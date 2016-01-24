@@ -738,7 +738,7 @@ defmodule File.Error do
 
   def message(exception) do
     formatted = IO.iodata_to_binary(:file.format_error(exception.reason))
-    "could not #{exception.action} #{exception.path}: #{formatted}"
+    "could not #{exception.action} #{inspect(exception.path)}: #{formatted}"
   end
 end
 

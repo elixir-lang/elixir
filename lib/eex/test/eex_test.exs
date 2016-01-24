@@ -344,7 +344,7 @@ foo
   end
 
   test "raises an Exception when there's an error with the given file" do
-    assert_raise File.Error, "could not read file non-existent.eex: no such file or directory", fn ->
+    assert_raise File.Error, "could not read file \"non-existent.eex\": no such file or directory", fn ->
       filename = "non-existent.eex"
       EEx.compile_file(filename)
     end
