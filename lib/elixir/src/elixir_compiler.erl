@@ -78,9 +78,8 @@ code_loading_compilation(Forms, Vars, #{line := Line} = E) ->
 
   %% Pass {native, false} to speed up bootstrap
   %% process when native is set to true
-  AllOpts   = options(),
-  FinalOpts = AllOpts -- [native, warn_missing_spec],
-  inner_module(Form, FinalOpts, true, E, fun(_, Binary) ->
+  ErlOpts = options() -- [native, warn_missing_spec],
+  inner_module(Form, ErlOpts, [{bootstrap, true}], E, fun(_, Binary) ->
     %% If we have labeled locals, anonymous functions
     %% were created and therefore we cannot ditch the
     %% module
@@ -169,7 +168,7 @@ allows_fast_compilation(_) -> false.
 %% executes the callback in case of success. This automatically
 %% handles errors and warnings. Used by this module and elixir_module.
 module(Forms, Opts, E, Callback) ->
-  Extra =
+  ErlOpts =
     case proplists:get_value(debug_info, Opts) of
       true -> [debug_info];
       false -> [];
@@ -179,16 +178,22 @@ module(Forms, Opts, E, Callback) ->
           false -> []
         end
     end,
-  inner_module(Forms, Extra ++ options(), false, E, Callback).
+  inner_module(Forms, ErlOpts ++ options(), Opts, E, Callback).
 
-inner_module(Forms, Options, Bootstrap, #{file := File} = E, Callback) when
-    is_list(Forms), is_list(Options), is_boolean(Bootstrap), is_function(Callback) ->
+inner_module(Forms, ErlOpts, ExOpts, #{file := File} = E, Callback) when
+    is_list(Forms), is_list(ErlOpts), is_list(ExOpts), is_function(Callback) ->
   Source = elixir_utils:characters_to_list(File),
+  Autoload = proplists:get_value(autoload, ExOpts, true),
+  Bootstrap = proplists:get_value(bootstrap, ExOpts, false),
 
-  case compile:noenv_forms([no_auto_import()|Forms], [return, {source, Source}|Options]) of
+  case compile:noenv_forms([no_auto_import()|Forms], [return, {source, Source}|ErlOpts]) of
     {ok, Module, Binary, Warnings} ->
       format_warnings(Bootstrap, Warnings),
-      {module, Module} = code:load_binary(Module, beam_location(E), Binary),
+      {module, Module} =
+        case Autoload of
+          true  -> code:load_binary(Module, beam_location(E), Binary);
+          false -> {module, Module}
+        end,
       Callback(Module, Binary);
     {error, Errors, Warnings} ->
       format_warnings(Bootstrap, Warnings),
