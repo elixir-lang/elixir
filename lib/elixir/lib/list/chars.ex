@@ -33,6 +33,7 @@ defimpl List.Chars, for: BitString do
 end
 
 defimpl List.Chars, for: List do
+  # Note that same inlining is used for the rewrite rule.
   def to_char_list(list), do: list
 end
 
