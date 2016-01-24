@@ -81,6 +81,16 @@ defmodule ModuleTest do
     assert ModuleTest.ToUse.before_compile == []
   end
 
+  def __on_definition__(env, kind, name, args, guards, expr) do
+    Process.put(env.module, :called)
+    assert env.module == ModuleTest.OnDefinition
+    assert kind == :def
+    assert name == :hello
+    assert [{:foo, _, _}, {:bar, _, _}] = args
+    assert [] = guards
+    assert {:+, _, [{:foo, _, nil}, {:bar, _, nil}]} = expr
+  end
+
   test "on definition" do
     defmodule OnDefinition do
       @on_definition ModuleTest
@@ -93,14 +103,11 @@ defmodule ModuleTest do
     assert Process.get(ModuleTest.OnDefinition) == :called
   end
 
-  def __on_definition__(env, kind, name, args, guards, expr) do
-    Process.put(env.module, :called)
-    assert env.module == ModuleTest.OnDefinition
-    assert kind == :def
-    assert name == :hello
-    assert [{:foo, _, _}, {:bar, _, _}] = args
-    assert [] = guards
-    assert {:+, _, [{:foo, _, nil}, {:bar, _, nil}]} = expr
+  defmacro __before_compile__(_) do
+    quote do
+      def constant, do: 1
+      defoverridable constant: 0
+    end
   end
 
   test "overridable inside before compile" do
@@ -108,21 +115,6 @@ defmodule ModuleTest do
       @before_compile ModuleTest
     end
     assert OverridableWithBeforeCompile.constant == 1
-  end
-
-  test "alias with raw atom" do
-    defmodule :"Elixir.ModuleTest.RawModule" do
-      def hello, do: :world
-    end
-
-    assert RawModule.hello == :world
-  end
-
-  defmacro __before_compile__(_) do
-    quote do
-      def constant, do: 1
-      defoverridable constant: 0
-    end
   end
 
   ## Attributes
@@ -207,6 +199,14 @@ defmodule ModuleTest do
     assert match?({:module, :root_defmodule, _, _}, defmodule :root_defmodule do
       :ok
     end)
+  end
+
+  test "defmodule with alias as atom" do
+    defmodule :"Elixir.ModuleTest.RawModule" do
+      def hello, do: :world
+    end
+
+    assert RawModule.hello == :world
   end
 
   test "create" do
