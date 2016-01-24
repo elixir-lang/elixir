@@ -384,7 +384,7 @@ defmodule Kernel.WarningTest do
         def hello(arg \\ 0), do: nil
       end
       """
-    end) =~ "warning: multiple clauses with default values should define a function head with the defaults, def hello/1 has multiple clauses and defines defaults in a clause with a body"
+    end) =~ "warning: definitions with multiple clauses and default values require a function head"
   after
     purge Sample
   end
@@ -397,7 +397,7 @@ defmodule Kernel.WarningTest do
       def hello(arg), do: nil
       end
       """
-    end) =~ "warning: multiple clauses with default values should define a function head with the defaults, def hello/1 has multiple clauses and defines defaults in a clause with a body"
+    end) =~ "warning: definitions with multiple clauses and default values require a function head"
   after
     purge Sample
   end

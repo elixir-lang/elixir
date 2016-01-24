@@ -203,8 +203,7 @@ defmodule Kernel.ErrorsTest do
 
   test "clause with defaults" do
     assert_compile_fail CompileError,
-      "nofile:3: def hello/1 has default values and multiple clauses, " <>
-      "define a function head with the defaults",
+      "nofile:3: definitions with multiple clauses and default values require a function head",
       ~C'''
       defmodule Kernel.ErrorsTest.ClauseWithDefaults1 do
         def hello(arg \\ 0), do: nil
@@ -846,7 +845,7 @@ defmodule Kernel.ErrorsTest do
 
   test "invalid args for bodyless clause" do
     assert_compile_fail CompileError,
-      "nofile:2: can use only variables and \\\\ as arguments of bodyless clause",
+      "nofile:2: can use only variables and \\\\ as arguments in function heads",
       '''
       defmodule Kernel.ErrorsTest.InvalidArgsForBodylessClause do
         def foo(arg // nil)
