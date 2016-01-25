@@ -137,29 +137,26 @@ defmodule Mix.Compilers.Elixir do
       |> List.delete(module)
       |> Enum.reject(&match?("elixir_" <> _, Atom.to_string(&1)))
 
-    attributes = module.__info__(:attributes)
-
-    kind   = detect_kind(attributes)
+    kind   = detect_kind(module)
     source = Path.relative_to(source, cwd)
-    files  = get_external_resources(attributes, cwd)
+    files  = get_external_resources(module, cwd)
     tuple  = {beam, module, kind, source, compile, runtime, files, binary}
     Agent.cast pid, &:lists.keystore(beam, 1, &1, tuple)
   end
 
-  defp detect_kind(attributes) do
+  defp detect_kind(module) do
     cond do
-      impl = attributes[:impl] ->
+      impl = Module.get_attribute(module, :impl) ->
         {:impl, impl[:protocol]}
-      attributes[:protocol] ->
+      Module.get_attribute(module, :protocol) ->
         :protocol
       true ->
         :module
     end
   end
 
-  defp get_external_resources(attributes, cwd) do
-    for {:external_resource, values} <- attributes,
-        file <- values,
+  defp get_external_resources(module, cwd) do
+    for file <- Module.get_attribute(module, :external_resource),
         File.regular?(file),
         relative = Path.relative_to(file, cwd),
         Path.type(relative) == :relative,
