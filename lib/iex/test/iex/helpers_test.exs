@@ -49,6 +49,28 @@ defmodule IEx.HelpersTest do
     assert capture_io(fn -> h __info__ end) == "No documentation for __info__ was found\n"
   end
 
+  test "h helper underscored functions" do
+    content = """
+    defmodule Sample do
+      def __foo__(), do: 0
+      @doc "Bar doc"
+      def __bar__(), do: 1
+    end
+    """
+    filename = "sample.ex"
+     with_file filename, content, fn ->
+      assert c(filename) == [Sample]
+
+      assert capture_io(fn -> h Sample.__foo__ end) == "No documentation for Sample.__foo__ was found\n"
+      assert capture_io(fn -> h Sample.__bar__ end) == "* def __bar__()\n\nBar doc\n"
+
+      assert capture_io(fn -> h Sample.__foo__/0 end) == "No documentation for Sample.__foo__/0 was found\n"
+      assert capture_io(fn -> h Sample.__bar__/0 end) == "* def __bar__()\n\nBar doc\n"
+    end
+  after
+    cleanup_modules([Sample])
+  end
+
   test "h helper for callbacks" do
     with_file ["a_behaviour.ex", "impl.ex"], [behaviour_module, impl_module], fn ->
       c("a_behaviour.ex")
