@@ -66,7 +66,7 @@ defmodule IEx.Introspection do
 
   defp h_mod_fun(mod, fun) when is_atom(mod) do
     if docs = Code.get_docs(mod, :docs) do
-      result = for {{f, arity}, _line, _type, _args, doc} <- docs, fun == f, doc != false do
+      result = for {{^fun, arity}, _, _, _, _} = doc <- docs, has_content?(doc) do
         h(mod, fun, arity)
       end
 
@@ -106,11 +106,8 @@ defmodule IEx.Introspection do
 
   defp h_mod_fun_arity(mod, fun, arity) when is_atom(mod) do
     if docs = Code.get_docs(mod, :docs) do
-      doc = find_doc(docs, fun, arity, 4)
-            || find_default_doc(docs, fun, arity)
-
-      if doc do
-        if match?({_, _, _, _, nil}, doc) && (callback_module = callback_module(mod, fun, arity)) do
+      if doc = find_doc(docs, fun, arity) do
+        if callback_module = is_nil(elem(doc, 4)) and callback_module(mod, fun, arity) do
           filter = &match?({^fun, _}, elem(&1, 0))
           print_callback_docs(callback_module, filter, &print_doc/2)
         else
@@ -125,26 +122,29 @@ defmodule IEx.Introspection do
     end
   end
 
-  defp find_doc(docs, function, arity, pos) do
-    if doc = List.keyfind(docs, {function, arity}, 0) do
-      case elem(doc, pos) do
-        false -> nil
-        _ -> doc
-      end
-    end
+  defp find_doc(docs, fun, arity) do
+    doc = List.keyfind(docs, {fun, arity}, 0) || find_doc_defaults(docs, fun, arity)
+    if has_content?(doc), do: doc
   end
 
-  defp find_default_doc(docs, function, min) do
-    Enum.find docs, fn(doc) ->
+  defp find_doc_defaults(docs, function, min) do
+    Enum.find(docs, fn doc ->
       case elem(doc, 0) do
-        {^function, max} when max > min ->
-          defaults = Enum.count elem(doc, 3), &match?({:\\, _, _}, &1)
-          min + defaults >= max
+        {^function, arity} when arity > min ->
+          defaults = Enum.count(elem(doc, 3), &match?({:\\, _, _}, &1))
+          arity <= (min + defaults)
         _ ->
           false
       end
-    end
+    end)
   end
+
+  defp has_content?({_, _, _, _, false}),
+    do: false
+  defp has_content?({{name, _}, _, _, _, nil}),
+    do: hd(Atom.to_char_list(name)) != ?_
+  defp has_content?({_, _, _, _, _}),
+    do: true
 
   defp callback_module(mod, fun, arity) do
     mod.module_info(:attributes)
