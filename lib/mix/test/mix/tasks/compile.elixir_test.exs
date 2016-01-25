@@ -192,6 +192,19 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     end
   end
 
+  test "compiles files with autoload disabled" do
+    in_fixture "no_mixfile", fn ->
+      File.write!("lib/a.ex", """
+      defmodule A do
+        @compile {:autoload, false}
+      end
+      """)
+
+      assert Mix.Tasks.Compile.Elixir.run([]) == :ok
+      purge [A, B, C]
+    end
+  end
+
   test "recompiles with --force" do
     in_fixture "no_mixfile", fn ->
       assert Mix.Tasks.Compile.Elixir.run([]) == :ok
