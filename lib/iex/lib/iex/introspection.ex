@@ -41,12 +41,12 @@ defmodule IEx.Introspection do
   with any arity in the list of modules.
   """
   def h(modules, function) when is_list(modules) and is_atom(function) do
-    result =
-      Enum.find_value modules, false, fn module ->
+    printed? =
+      Enum.any?(modules, fn module ->
         h_mod_fun(module, function) == :ok
-      end
+      end)
 
-    unless result, do: nodocs(function)
+    unless printed?, do: nodocs(function)
 
     dont_display_result
   end
@@ -81,12 +81,12 @@ defmodule IEx.Introspection do
   and arity in the list of modules.
   """
   def h(modules, function, arity) when is_list(modules) and is_atom(function) and is_integer(arity) do
-    result =
-      Enum.find_value modules, false, fn module ->
+    printed? =
+      Enum.any?(modules, fn module ->
         h_mod_fun_arity(module, function, arity) == :ok
-      end
+      end)
 
-    unless result, do: nodocs("#{function}/#{arity}")
+    unless printed?, do: nodocs("#{function}/#{arity}")
 
     dont_display_result
   end
@@ -150,12 +150,11 @@ defmodule IEx.Introspection do
     mod.module_info(:attributes)
     |> Keyword.get_values(:behaviour)
     |> Stream.concat()
-    |> Stream.filter(fn(module)->
+    |> Enum.find(fn module ->
       module.module_info(:attributes)
-      |> Enum.filter_map(&match?({:callback, _}, &1), fn {_, [{t,_}|_]} -> t end)
-      |> Enum.any?(&match?({^fun, ^arity}, &1))
+      |> Enum.filter(&match?({:callback, _}, &1))
+      |> Enum.any?(&match?({_, [{{^fun, ^arity}, _} | _]}, &1))
     end)
-    |> Enum.at(0)
   end
 
   defp print_doc({{fun, _}, _line, kind, args, doc}) do
@@ -187,7 +186,7 @@ defmodule IEx.Introspection do
   Prints the list of behaviour callbacks for the given module.
   """
   def b(mod) when is_atom(mod) do
-    printer = &puts_callback_info/2
+    printer = fn heading, _doc -> puts_info(heading) end
     case print_callback_docs(mod, &match?(_, &1), printer) do
       :ok        -> :ok
       :no_beam   -> nobeam(mod)
@@ -197,9 +196,6 @@ defmodule IEx.Introspection do
 
     dont_display_result
   end
-
-  defp puts_callback_info(heading, _doc),
-    do: puts_info(heading)
 
   @doc """
   Prints documentation for the given callback function with any arity.
@@ -269,7 +265,7 @@ defmodule IEx.Introspection do
     printer.("@#{kind} #{definition}", doc)
   end
 
-  defp drop_macro_env({name, meta, [{:::, _, [{:env, _, _}, _ | _]} | args]}),
+  defp drop_macro_env({name, meta, [{:::, _, [_, {{:., _, [Macro.Env, :t]}, _, _}]} | args]}),
     do: {name, meta, args}
 
   defp drop_macro_env(other),
@@ -296,8 +292,8 @@ defmodule IEx.Introspection do
       nil   -> nobeam(module)
       types ->
         printed =
-          for {_, {t, _, _args}} = typespec <- types, t == type do
-            print_type_doc(module, t)
+          for {_, {^type, _, _args}} = typespec <- types do
+            print_type_doc(module, type)
             print_type(typespec)
             typespec
           end
@@ -318,8 +314,8 @@ defmodule IEx.Introspection do
       nil   -> nobeam(module)
       types ->
         printed =
-          for {_, {t, _, args}} = typespec <- types, t == type, length(args) == arity do
-            print_type_doc(module, t)
+          for {_, {^type, _, args}} = typespec <- types, length(args) == arity do
+            print_type_doc(module, type)
             print_type(typespec)
             typespec
           end
@@ -334,10 +330,10 @@ defmodule IEx.Introspection do
 
   defp print_type_doc(module, type) do
     docs  = Code.get_docs(module, :type_docs)
-    {{_, _}, _, _, description} = Enum.find(docs, fn({{name, _}, _, _, _}) ->
+    {_, _, _, content} = Enum.find(docs, fn({{name, _}, _, _, _}) ->
       type == name
     end)
-    if description, do: puts_info(description)
+    if content, do: puts_info(content)
   end
 
   @doc """
@@ -348,7 +344,7 @@ defmodule IEx.Introspection do
       nil   -> nobeam(module)
       []    -> nospecs(inspect module)
       specs ->
-        printed = for {_kind, {{f, _arity}, _spec}} = spec <- specs, f != :"__info__" do
+        printed = for {_kind, {{fun, _arity}, _spec}} = spec <- specs, fun != :__info__ do
           print_spec(spec)
         end
         if printed == [] do
@@ -367,7 +363,7 @@ defmodule IEx.Introspection do
       nil   -> nobeam(module)
       specs ->
         printed =
-          for {_kind, {{f, _arity}, _spec}} = spec <- specs, f == function do
+          for {_kind, {{^function, _arity}, _spec}} = spec <- specs do
             print_spec(spec)
             spec
           end
@@ -388,7 +384,7 @@ defmodule IEx.Introspection do
       nil   -> nobeam(module)
       specs ->
         printed =
-          for {_kind, {{f, a}, _spec}} = spec <- specs, f == function and a == arity do
+          for {_kind, {{^function, ^arity}, _spec}} = spec <- specs do
             print_spec(spec)
             spec
           end

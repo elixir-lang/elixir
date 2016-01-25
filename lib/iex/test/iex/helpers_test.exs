@@ -72,24 +72,49 @@ defmodule IEx.HelpersTest do
   end
 
   test "h helper for callbacks" do
-    with_file ["a_behaviour.ex", "impl.ex"], [behaviour_module, impl_module], fn ->
-      c("a_behaviour.ex")
-      c("impl.ex")
-      assert capture_io(fn -> h Impl.first/1 end) == "* @callback first(integer()) :: integer()\n\nDocs for ABehaviour.first\n"
-      assert capture_io(fn -> h Impl.second/1 end) == "* def second(int)\n\nDocs for Impl.second\n"
-      assert capture_io(fn -> h Impl.third/1 end) == "* def third(int)\n\n\n"
+    behaviour = """
+    defmodule MyBehaviour do
+      @doc "Docs for MyBehaviour.first"
+      @callback first(integer) :: integer
+      @callback second(integer) :: integer
+    end
+    """
+    impl = """
+    defmodule Impl do
+      @behaviour MyBehaviour
+      def first(0), do: 0
+      @doc "Docs for Impl.second"
+      def second(0), do: 0
+    end
+    """
+    files = ["my_behaviour.ex", "impl.ex"]
+    with_file files, [behaviour, impl], fn ->
+      assert c(files) |> Enum.sort == [Impl, MyBehaviour]
 
-      assert capture_io(fn -> h Impl.first end) == "* @callback first(integer()) :: integer()\n\nDocs for ABehaviour.first\n"
+      assert capture_io(fn -> h Impl.first/1 end) == "* @callback first(integer()) :: integer()\n\nDocs for MyBehaviour.first\n"
+      assert capture_io(fn -> h Impl.second/1 end) == "* def second(int)\n\nDocs for Impl.second\n"
+
+      assert capture_io(fn -> h Impl.first end) == "* @callback first(integer()) :: integer()\n\nDocs for MyBehaviour.first\n"
       assert capture_io(fn -> h Impl.second end) == "* def second(int)\n\nDocs for Impl.second\n"
-      assert capture_io(fn -> h Impl.third end) == "* def third(int)\n\n\n"
     end
   after
-    cleanup_modules([ABehaviour, Impl])
+    cleanup_modules([Impl, MyBehaviour])
   end
 
   test "h helper for delegates" do
     filename = "delegate.ex"
-    with_file filename, delegator_module <> "\n" <> delegated_module, fn ->
+    content = """
+    defmodule Delegator do
+      defdelegate func1, to: Delegated
+      @doc "Delegator func2 doc"
+      defdelegate func2, to: Delegated
+    end
+    defmodule Delegated do
+      def func1, do: 1
+      def func2, do: 2
+    end
+    """
+    with_file filename, content, fn ->
       assert c(filename) |> Enum.sort == [Delegated, Delegator]
 
       assert capture_io(fn -> h Delegator.func1 end) == "* def func1()\n\nSee `Delegated.func1/0`.\n"
@@ -130,9 +155,15 @@ defmodule IEx.HelpersTest do
     assert "@opaque t()\n" = capture_io(fn -> t MapSet.t end)
     assert capture_io(fn -> t MapSet.t end) == capture_io(fn -> t MapSet.t/0 end)
 
+    content = """
+    defmodule TypeSample do
+      @typedoc "An id with description."
+      @type id_with_desc :: {number, String.t}
+    end
+    """
     filename = "typesample.ex"
-    with_file filename, module_with_typespecs, fn ->
-      c(filename)
+    with_file filename, content, fn ->
+      assert c(filename) == [TypeSample]
       assert capture_io(fn -> t TypeSample.id_with_desc/0 end) == """
       An id with description.
       @type id_with_desc() :: {number(), String.t()}
@@ -427,48 +458,6 @@ defmodule IEx.HelpersTest do
     """
   end
 
-  defp behaviour_module do
-    """
-    defmodule ABehaviour do
-      use Behaviour
-      @doc "Docs for ABehaviour.first"
-      defcallback first(integer) :: integer
-      defcallback second(integer) :: integer
-    end
-    """
-  end
-
-  defp impl_module do
-    """
-    defmodule Impl do
-      @behaviour ABehaviour
-      def first(0), do: 0
-      @doc "Docs for Impl.second"
-      def second(0), do: 0
-      def third(0), do: 0
-    end
-    """
-  end
-
-  defp delegator_module do
-    """
-    defmodule Delegator do
-      defdelegate func1, to: Delegated
-      @doc "Delegator func2 doc"
-      defdelegate func2, to: Delegated
-    end
-    """
-  end
-
-  defp delegated_module do
-    """
-    defmodule Delegated do
-      def func1, do: 1
-      def func2, do: 2
-    end
-    """
-  end
-
   defp erlang_module_code do
     """
     -module(sample).
@@ -482,15 +471,6 @@ defmodule IEx.HelpersTest do
     -module(sample).
     -export([hello/0]).
     hello() -> bye.
-    """
-  end
-
-  def module_with_typespecs do
-    """
-    defmodule TypeSample do
-      @typedoc "An id with description."
-      @type id_with_desc :: {number, String.t}
-    end
     """
   end
 
