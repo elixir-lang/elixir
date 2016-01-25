@@ -28,18 +28,20 @@ defmodule IEx.HelpersTest do
            "Could not load module :whatever, got: nofile\n"
 
     assert capture_io(fn -> h :lists end) ==
-           ":lists is an Erlang module and, as such, it does not have Elixir-style docs\n"
+      ":lists is an Erlang module\n and currently there is no helper installed to provide Erlang documentation\n"
   end
 
   test "h helper function" do
     pwd_h = "* def pwd()\n\nPrints the current working directory.\n\n"
     c_h   = "* def c(files, path \\\\ \".\")\n\nCompiles the given files."
+    defp_h = "* defmacro defp(call, expr \\\\ nil)\n\nDefines a private function"
 
     assert capture_io(fn -> h IEx.Helpers.pwd/0 end) =~ pwd_h
     assert capture_io(fn -> h IEx.Helpers.c/2 end) =~ c_h
 
     assert capture_io(fn -> h IEx.Helpers.c/1 end) =~ c_h
     assert capture_io(fn -> h pwd end) =~ pwd_h
+    assert capture_io(fn -> h defp end) =~ defp_h
   end
 
   test "h helper __info__" do
@@ -53,16 +55,20 @@ defmodule IEx.HelpersTest do
     with_file ["a_behaviour.ex", "impl.ex"], [behaviour_module, impl_module], fn ->
       c("a_behaviour.ex")
       c("impl.ex")
-      assert capture_io(fn -> h Impl.first/1 end) == "* @callback first(integer()) :: integer()\n\nDocs for ABehaviour.first\n"
+      assert capture_io(fn -> h Impl.first/1 end) == "* def first(int)\n\nDocs for ABehaviour.first\n"
       assert capture_io(fn -> h Impl.second/1 end) == "* def second(int)\n\nDocs for Impl.second\n"
       assert capture_io(fn -> h Impl.third/1 end) == "* def third(int)\n\n\n"
 
-      assert capture_io(fn -> h Impl.first end) == "* @callback first(integer()) :: integer()\n\nDocs for ABehaviour.first\n"
+      assert capture_io(fn -> h Impl.first end) == "* def first(int)\n\nDocs for ABehaviour.first\n"
       assert capture_io(fn -> h Impl.second end) == "* def second(int)\n\nDocs for Impl.second\n"
       assert capture_io(fn -> h Impl.third end) == "* def third(int)\n\n\n"
     end
   after
     cleanup_modules([ABehaviour, Impl])
+  end
+
+  test "h helper for callbacks where callback module has func docs corresponding to callback" do
+    assert capture_io(fn -> h HashSet.size end) =~ "* def size(hash_set)"
   end
 
   test "h helper for delegates" do
