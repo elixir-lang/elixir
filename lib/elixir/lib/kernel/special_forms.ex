@@ -655,7 +655,7 @@ defmodule Kernel.SpecialForms do
   defmacro __MODULE__
 
   @doc """
-  Returns the current directory as a binary.
+  Returns the absolute path of the directory of the current file as a binary.
 
   Although the directory can be accessed as `Path.dirname(__ENV__.file)`,
   this macro is a convenient shortcut.
