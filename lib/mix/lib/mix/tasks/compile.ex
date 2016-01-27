@@ -127,8 +127,8 @@ defmodule Mix.Tasks.Compile do
   """
   def manifests do
     Enum.flat_map(compilers(), fn(compiler) ->
-      module = Mix.Task.get!("compile.#{compiler}")
-      if function_exported?(module, :manifests, 0) do
+      module = Mix.Task.get("compile.#{compiler}")
+      if module && function_exported?(module, :manifests, 0) do
         module.manifests
       else
         []
