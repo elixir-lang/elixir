@@ -9,7 +9,7 @@ defmodule Path do
 
   The majority of the functions in this module do not
   interact with the file system, except for a few functions
-  that require it (like `wildcard/1` and `expand/1`).
+  that require it (like `wildcard/2` and `expand/1`).
   """
 
   alias :filename, as: FN
