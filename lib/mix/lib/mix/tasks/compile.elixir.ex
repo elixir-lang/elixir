@@ -2,7 +2,7 @@ defmodule Mix.Tasks.Compile.Elixir do
   use Mix.Task
 
   @recursive true
-  @manifest ".compile.elixir"
+  @manifest_root ".compile.elixir"
 
   @moduledoc """
   Compiles Elixir source files.
@@ -49,20 +49,20 @@ defmodule Mix.Tasks.Compile.Elixir do
   def run(args) do
     {opts, _, _} = OptionParser.parse(args, switches: @switches)
 
-    project = Mix.Project.config
     dest = Mix.Project.compile_path(project)
-    srcs = project[:elixirc_paths]
+    srcs = sources
     skip =
       case Keyword.get_values(opts, :elixirc_paths) do
         [] -> []
         ep -> srcs -- ep
       end
 
-    manifest = manifest()
     configs  = Mix.Project.config_files ++ Mix.Tasks.Compile.Erlang.manifests
-    force    = opts[:force] || Mix.Utils.stale?(configs, [manifest])
 
-    Mix.Compilers.Elixir.compile(manifest, srcs, skip, [:ex], dest, force, fn ->
+    keep_manifests = Map.take(manifest_map, srcs -- skip) |> Map.values
+    force    = opts[:force] || Mix.Utils.stale?(configs, keep_manifests)
+
+    Mix.Compilers.Elixir.compile(manifest_map, srcs, skip, [:ex], dest, force, fn ->
       set_compiler_opts(project, opts, [])
     end)
   end
@@ -70,19 +70,26 @@ defmodule Mix.Tasks.Compile.Elixir do
   @doc """
   Returns Elixir manifests.
   """
-  def manifests, do: [manifest]
-  defp manifest, do: Path.join(Mix.Project.manifest_path, @manifest)
+  def manifests, do: Map.values(manifest_map)
+  defp manifest_map do
+    Enum.map(sources, fn (source) ->
+      {source, Path.join(Mix.Project.manifest_path, @manifest_root <> "." <> String.replace(source, "/", "_"))}
+    end) |> Enum.into(%{})
+  end
+
+  defp project, do: Mix.Project.config
+  defp sources, do: project[:elixirc_paths]
 
   @doc """
   Cleans up compilation artifacts.
   """
   def clean do
-    Mix.Compilers.Elixir.clean(manifest())
+    Enum.each(manifests, &Mix.Compilers.Elixir.clean/1)
   end
 
   @doc false
   def protocols_and_impls do
-    Mix.Compilers.Elixir.protocols_and_impls(manifest())
+    Mix.Compilers.Elixir.protocols_and_impls(manifests)
   end
 
   defp set_compiler_opts(project, opts, extra) do

@@ -147,7 +147,7 @@ defmodule Mix.Tasks.DepsGitTest do
 
       # Clear up to prepare for the update
       File.rm("_build/dev/lib/git_repo/ebin/Elixir.GitRepo.beam")
-      File.rm("_build/dev/lib/git_repo/.compile.elixir")
+      File.rm("_build/dev/lib/git_repo/.compile.elixir.lib")
       File.rm("deps/git_repo/.fetch")
       Mix.Task.clear
       Mix.shell.flush
