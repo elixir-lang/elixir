@@ -85,6 +85,17 @@ ask Mix to use Rebar 3 to compile it by passing the `manager: :rebar3` option.
 Once configured, Mix will prompt you to install Rebar 3 if it is not yet
 available.
 
+## v1.2.2-dev
+
+### 1. Enhancements
+
+  * [Kernel] Support `@compile {:autoload, false}` to disable automatic loading after compilation
+
+### 2. Bug fixes
+
+  * [Mix] Ensure retrieve compile manifests do fail if some compilers are not yet available
+  * [Mix] Automatically merge managers according to the mix > rebar3 > rebar > make order
+
 ## v1.2.1 (2016-01-14)
 
 ### 1. Enhancements
