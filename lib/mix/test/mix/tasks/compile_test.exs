@@ -26,6 +26,12 @@ defmodule Mix.Tasks.CompileTest do
     assert_received {:mix_shell, :info, ["\nEnabled compilers: elixir, app, custom, protocols"]}
   end
 
+  test "compile does not require all compilers available on manifest" do
+    Mix.Project.push CustomCompilers
+    assert Mix.Tasks.Compile.manifests |> Enum.map(&Path.basename/1) ==
+           [".compile.elixir"]
+  end
+
   test "compile a project with mixfile" do
     in_fixture "no_mixfile", fn ->
       assert Mix.Tasks.Compile.run([]) == :ok
