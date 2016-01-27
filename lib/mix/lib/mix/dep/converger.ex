@@ -213,7 +213,8 @@ defmodule Mix.Dep.Converger do
           in_upper? && other_opts[:override] ->
             {other |> with_matching_only(dep, in_upper?), true}
           converge?(other, dep) ->
-            {other |> with_matching_only(dep, in_upper?) |> with_matching_req(dep) |> merge_manager(dep), true}
+            {other |> with_matching_only(dep, in_upper?)
+                   |> with_matching_req(dep) |> merge_manager(dep, in_upper?), true}
           true ->
             tag = if in_upper?, do: :overridden, else: :diverged
             {%{other | status: {tag, dep}}, true}
@@ -276,18 +277,9 @@ defmodule Mix.Dep.Converger do
     end
   end
 
-  defp converge?(%Mix.Dep{scm: scm1, manager: manager1, opts: opts1},
-                 %Mix.Dep{scm: scm2, manager: manager2, opts: opts2}) do
-    scm1 == scm2 and
-      manager_equal?(manager1, manager2) and
-      opts_equal?(opts1, opts2) and
-      scm1.equal?(opts1, opts2)
+  defp converge?(%Mix.Dep{scm: scm1, opts: opts1}, %Mix.Dep{scm: scm2, opts: opts2}) do
+    scm1 == scm2 and opts_equal?(opts1, opts2) and scm1.equal?(opts1, opts2)
   end
-
-  defp manager_equal?(manager, manager), do: true
-  defp manager_equal?(_, nil),           do: true
-  defp manager_equal?(nil, _),           do: true
-  defp manager_equal?(_, _),             do: false
 
   defp opts_equal?(opts1, opts2) do
     keys = ~w(app env compile)a
@@ -300,8 +292,18 @@ defmodule Mix.Dep.Converger do
     end
   end
 
-  defp merge_manager(other, dep) do
-    %{other | manager: other.manager || dep.manager}
+  defp merge_manager(%{manager: other_manager} = other, %{manager: manager}, in_upper?) do
+    %{other | manager: sort_manager(other_manager, manager, in_upper?)}
+  end
+
+  @managers [:mix, :rebar3, :rebar, :make]
+
+  defp sort_manager(other_manager, manager, true) do
+    other_manager || manager
+  end
+  defp sort_manager(other_manager, manager, false) do
+    priority = @managers -- (@managers -- (List.wrap(other_manager) ++ List.wrap(manager)))
+    List.first(priority) || other_manager || manager
   end
 
   defp with_matching_req(%Mix.Dep{} = other, %Mix.Dep{} = dep) do

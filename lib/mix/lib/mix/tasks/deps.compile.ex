@@ -25,7 +25,7 @@ defmodule Mix.Tasks.Deps.Compile do
   """
 
   import Mix.Dep, only: [loaded: 1, available?: 1, loaded_by_name: 2,
-                         format_dep: 1, make?: 1, mix?: 1, rebar?: 1]
+                         format_dep: 1, make?: 1, mix?: 1]
 
   @spec run(OptionParser.argv) :: :ok
   def run(args) do

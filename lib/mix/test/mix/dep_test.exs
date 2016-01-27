@@ -144,7 +144,22 @@ defmodule Mix.DepTest do
     end
   end
 
-  test "nested deps convergence with optional dependencies" do
+  test "nested deps with convergence and managers" do
+    Process.put(:custom_deps_git_repo_opts, [manager: :make])
+
+    deps = [{:deps_repo, "0.1.0", path: "custom/deps_repo", manager: :rebar},
+            {:git_repo, "0.2.0", git: MixTest.Case.fixture_path("git_repo")}]
+
+    with_deps deps, fn ->
+      in_fixture "deps_status", fn ->
+        [dep1, dep2] = Mix.Dep.loaded([])
+        assert dep1.manager == nil
+        assert dep2.manager == :rebar
+      end
+    end
+  end
+
+  test "nested deps with convergence and optional dependencies" do
     deps = [{:deps_repo, "0.1.0", path: "custom/deps_repo"},
             {:git_repo, "0.2.0", git: MixTest.Case.fixture_path("git_repo")}]
 
