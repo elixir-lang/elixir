@@ -239,9 +239,14 @@ defmodule Base do
   @doc """
   Decodes a base 64 encoded string into a binary string.
 
+  Accepts `ignore: :whitespace` option which will ignore all the
+  whitespace characters in the input string.
+
   ## Examples
 
       iex> Base.decode64("Zm9vYmFy")
+      {:ok, "foobar"}
+      iex> Base.decode64("Zm9vYmFy\\n", ignore: :whitespace)
       {:ok, "foobar"}
 
   """
@@ -256,12 +261,17 @@ defmodule Base do
   @doc """
   Decodes a base 64 encoded string into a binary string.
 
+  Accepts `ignore: :whitespace` option which will ignore all the
+  whitespace characters in the input string.
+
   An `ArgumentError` exception is raised if the padding is incorrect or
   a non-alphabet character is present in the string.
 
   ## Examples
 
       iex> Base.decode64!("Zm9vYmFy")
+      "foobar"
+      iex> Base.decode64!("Zm9vYmFy\\n", ignore: :whitespace)
       "foobar"
 
   """
@@ -290,9 +300,14 @@ defmodule Base do
   Decodes a base 64 encoded string with URL and filename safe alphabet
   into a binary string.
 
+  Accepts `ignore: :whitespace` option which will ignore all the
+  whitespace characters in the input string.
+
   ## Examples
 
       iex> Base.url_decode64("_3_-_A==")
+      {:ok, <<255, 127, 254, 252>>}
+      iex> Base.url_decode64("_3_-_A==\\n", ignore: :whitespace)
       {:ok, <<255, 127, 254, 252>>}
 
   """
@@ -308,12 +323,17 @@ defmodule Base do
   Decodes a base 64 encoded string with URL and filename safe alphabet
   into a binary string.
 
+  Accepts `ignore: :whitespace` option which will ignore all the
+  whitespace characters in the input string.
+
   An `ArgumentError` exception is raised if the padding is incorrect or
   a non-alphabet character is present in the string.
 
   ## Examples
 
       iex> Base.url_decode64!("_3_-_A==")
+      <<255, 127, 254, 252>>
+      iex> Base.url_decode64!("_3_-_A==\\n", ignore: :whitespace)
       <<255, 127, 254, 252>>
 
   """
