@@ -146,6 +146,8 @@ defmodule ExUnit.Callbacks do
 
   ## Helpers
 
+  @reserved ~w(case test line file capture_log skip timeout report async)a
+
   @doc false
   def __merge__(_mod, context, :ok) do
     {:ok, context}
@@ -163,12 +165,16 @@ defmodule ExUnit.Callbacks do
     raise_merge_failed!(mod, data)
   end
 
-  defp context_merge(_mod, context, %{} = data) do
-    Map.merge(context, data)
+  defp context_merge(mod, context, %{} = data) do
+    Map.merge(context, data, fn
+      _, v, v -> v
+      k, _, v when k in @reserved -> raise_merge_reserved!(mod, k, v)
+      _, _, v -> v
+    end)
   end
 
-  defp context_merge(_mod, context, data) when is_list(data) do
-    Enum.into(data, context)
+  defp context_merge(mod, context, data) when is_list(data) do
+    context_merge(mod, context, Map.new(data))
   end
 
   defp context_merge(mod, _context, data) do
@@ -177,7 +183,12 @@ defmodule ExUnit.Callbacks do
 
   defp raise_merge_failed!(mod, data) do
     raise "expected ExUnit callback in #{inspect mod} to return :ok " <>
-          " or {:ok, keywords | map}, got #{inspect data} instead"
+          "or {:ok, keywords | map}, got #{inspect data} instead"
+  end
+
+  defp raise_merge_reserved!(mod, key, value) do
+    raise "expected ExUnit callback in #{inspect mod} is trying to set " <>
+          "reserved field #{inspect key} to #{inspect value}"
   end
 
   defp escape(contents) do

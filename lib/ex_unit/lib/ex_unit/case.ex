@@ -114,10 +114,11 @@ defmodule ExUnit.Case do
   The following tags are set automatically by ExUnit and are
   therefore reserved:
 
-    * `:case` - the test case module
-    * `:test` - the test name
-    * `:line` - the line on which the test was defined
-    * `:file` - the file on which the test was defined
+    * `:case`  - the test case module
+    * `:test`  - the test name
+    * `:line`  - the line on which the test was defined
+    * `:file`  - the file on which the test was defined
+    * `:async` - if the test case is in async mode
 
   The following tags customize how tests behaves:
 
@@ -174,7 +175,7 @@ defmodule ExUnit.Case do
 
   This default can be overriden by `@tag capture_log: false` or `@moduletag capture_log: false`.
 
-  Since `setup_all` blocks don't belong to a specific test, log messages generated in them (or 
+  Since `setup_all` blocks don't belong to a specific test, log messages generated in them (or
   between tests) are never captured. If you want to suppress these messages as well, remove the
   console backend globally:
 
@@ -193,20 +194,16 @@ defmodule ExUnit.Case do
     end
 
     quote do
+      async = !!unquote(async)
+
       unless Module.get_attribute(__MODULE__, :ex_unit_tests) do
         Enum.each [:ex_unit_tests, :tag, :moduletag],
           &Module.register_attribute(__MODULE__, &1, accumulate: true)
 
-        if unquote(async) do
-          @moduletag async: true
-          ExUnit.Server.add_async_case(__MODULE__)
-        else
-          @moduletag async: false
-          ExUnit.Server.add_sync_case(__MODULE__)
-        end
-
+        @moduletag async: async
         @before_compile ExUnit.Case
         @ex_unit_test_names %{}
+        @ex_unit_async async
         use ExUnit.Callbacks
       end
 
@@ -254,7 +251,7 @@ defmodule ExUnit.Case do
 
     quote bind_quoted: binding do
       test = :"test #{message}"
-      ExUnit.Case.__on_definition__(__ENV__, test)
+      ExUnit.Case.__on_definition__(__ENV__, test, [])
       def unquote(test)(unquote(var)), do: unquote(contents)
     end
   end
@@ -284,6 +281,12 @@ defmodule ExUnit.Case do
   @doc false
   defmacro __before_compile__(_) do
     quote do
+      if @ex_unit_async do
+        ExUnit.Server.add_async_case(__MODULE__)
+      else
+        ExUnit.Server.add_sync_case(__MODULE__)
+      end
+
       def __ex_unit__(:case) do
         %ExUnit.TestCase{name: __MODULE__, tests: @ex_unit_tests}
       end
@@ -291,8 +294,7 @@ defmodule ExUnit.Case do
   end
 
   @doc false
-  def __on_definition__(env, name, tags \\ []) do
-    mod = env.module
+  def __on_definition__(%{module: mod, file: file, line: line}, name, tags) do
     moduletag = Module.get_attribute(mod, :moduletag)
 
     unless moduletag do
@@ -304,7 +306,7 @@ defmodule ExUnit.Case do
       (tags ++ Module.get_attribute(mod, :tag) ++ moduletag)
       |> normalize_tags
       |> validate_tags
-      |> Map.merge(%{line: env.line, file: env.file})
+      |> Map.merge(%{line: line, file: file})
 
     test = %ExUnit.Test{name: name, case: mod, tags: tags}
     test_names = Module.get_attribute(mod, :ex_unit_test_names)
