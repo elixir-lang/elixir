@@ -135,6 +135,18 @@ defmodule BaseTest do
     end
   end
 
+  test "decode64 whitespace" do
+    assert :error == decode64("\nQWxhZGRp bjpvcGVu\sIHNlc2Ft\t")
+    assert {:ok, "Aladdin:open sesam"} == decode64("\nQWxhZGRp bjpvcGVu\sIHNlc2Ft\t", ignore: :whitespace)
+  end
+
+  test "decode64! whitespace" do
+    assert_raise ArgumentError, "non-alphabet digit found: \"\\n\" (byte 10)", fn ->
+      decode64!("\nQWxhZGRp bjpvcGVu\sIHNlc2Ft\t")
+    end
+    assert "Aladdin:open sesam" == decode64!("\nQWxhZGRp bjpvcGVu\sIHNlc2Ft\t", ignore: :whitespace)
+  end
+
   test "decode64 incorrect padding" do
     assert :error == decode64("SGVsbG8gV29ybGQ")
   end
@@ -198,6 +210,19 @@ defmodule BaseTest do
   test "url_decode64! no pad" do
     assert "Aladdin:open sesam" == url_decode64!("QWxhZGRpbjpvcGVuIHNlc2Ft")
   end
+
+  test "url_decode64 whitespace" do
+    assert :error == url_decode64("\nQWxhZGRp bjpvcGVu\sIHNlc2Ft\t")
+    assert {:ok, "Aladdin:open sesam"} == url_decode64("\nQWxhZGRp bjpvcGVu\sIHNlc2Ft\t", ignore: :whitespace)
+  end
+
+  test "url_decode64! whitespace" do
+    assert_raise ArgumentError, "non-alphabet digit found: \"\\n\" (byte 10)", fn ->
+      url_decode64!("\nQWxhZGRp bjpvcGVu\sIHNlc2Ft\t")
+    end
+    assert "Aladdin:open sesam" == url_decode64!("\nQWxhZGRp bjpvcGVu\sIHNlc2Ft\t", ignore: :whitespace)
+  end
+
 
   test "url_decode64 non-alphabet digit" do
     assert :error == url_decode64("Zm9)")
