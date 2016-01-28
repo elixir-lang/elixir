@@ -114,11 +114,12 @@ defmodule ExUnit.Case do
   The following tags are set automatically by ExUnit and are
   therefore reserved:
 
-    * `:case`  - the test case module
-    * `:test`  - the test name
-    * `:line`  - the line on which the test was defined
-    * `:file`  - the file on which the test was defined
-    * `:async` - if the test case is in async mode
+    * `:case`       - the test case module
+    * `:test`       - the test name
+    * `:line`       - the line on which the test was defined
+    * `:file`       - the file on which the test was defined
+    * `:async`      - if the test case is in async mode
+    * `:registered` - used for `ExUnit.Case.register_attribute/3` values
 
   The following tags customize how tests behaves:
 
@@ -182,7 +183,7 @@ defmodule ExUnit.Case do
       config :logger, backends: []
   """
 
-  @reserved [:case, :test, :file, :line]
+  @reserved [:case, :test, :file, :line, :registered]
 
   @doc false
   defmacro __using__(opts) do
@@ -197,7 +198,7 @@ defmodule ExUnit.Case do
       async = !!unquote(async)
 
       unless Module.get_attribute(__MODULE__, :ex_unit_tests) do
-        Enum.each [:ex_unit_tests, :tag, :moduletag],
+        Enum.each [:ex_unit_tests, :tag, :moduletag, :ex_unit_registered],
           &Module.register_attribute(__MODULE__, &1, accumulate: true)
 
         @moduletag async: async
@@ -209,7 +210,7 @@ defmodule ExUnit.Case do
 
       import ExUnit.Callbacks
       import ExUnit.Assertions
-      import ExUnit.Case
+      import ExUnit.Case, only: [test: 1, test: 2, test: 3]
       import ExUnit.DocTest
     end
   end
@@ -302,11 +303,14 @@ defmodule ExUnit.Case do
             "\"use ExUnit.Case\" in the current module"
     end
 
+    registered_attributes = Module.get_attribute(mod, :ex_unit_registered)
+    registered = Map.new(registered_attributes, &{&1, Module.get_attribute(mod, &1)})
+
     tags =
       (tags ++ Module.get_attribute(mod, :tag) ++ moduletag)
       |> normalize_tags
       |> validate_tags
-      |> Map.merge(%{line: line, file: file})
+      |> Map.merge(%{line: line, file: file, registered: registered})
 
     test = %ExUnit.Test{name: name, case: mod, tags: tags}
     test_names = Module.get_attribute(mod, :ex_unit_test_names)
@@ -316,7 +320,36 @@ defmodule ExUnit.Case do
       Module.put_attribute(mod, :ex_unit_test_names, Map.put(test_names, name, true))
     end
 
-    Module.delete_attribute(mod, :tag)
+    Enum.each [:tag | registered_attributes], fn(attribute) ->
+      Module.delete_attribute(mod, attribute)
+    end
+  end
+
+  @doc """
+  Registers a new attribute to be used during `ExUnit.Case` tests.
+
+  The attribute values will be available as a key/value pair in
+  `context.registered`. The key/value pairs will be cleanred
+  after each `ExUnit.Case.test` similar to `@tag`.
+
+  `Module.register_attribute/3` is used to register the attribute,
+  this function takes the same options.
+
+  ## Examples
+
+      defmodule MyTest do
+        use ExUnit.Case
+        ExUnit.Case.register_attribute __MODULE__, :foobar
+
+        @foobar hello: "world"
+        test "using custom test attribute", context do
+          assert context.registered.hello == "world"
+        end
+      end
+  """
+  def register_attribute(mod, name, opts \\ []) when is_atom(name) do
+    Module.register_attribute(mod, name, opts)
+    Module.put_attribute(mod, :ex_unit_registered, name)
   end
 
   defp validate_tags(tags) do
