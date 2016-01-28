@@ -246,8 +246,9 @@ defmodule Base do
 
   """
   @spec decode64(binary) :: {:ok, binary} | :error
-  def decode64(string) when is_binary(string) do
-    {:ok, decode64!(string)}
+  @spec decode64(binary, Keyword.t) :: {:ok, binary} | :error
+  def decode64(string, opts \\ []) when is_binary(string) do
+    {:ok, decode64!(string, opts)}
   rescue
     ArgumentError -> :error
   end
@@ -267,12 +268,9 @@ defmodule Base do
 
   """
   @spec decode64!(binary) :: binary
-  def decode64!(string) when is_binary(string) and rem(byte_size(string), 4) == 0 do
-    do_decode64(string)
-  end
-
-  def decode64!(string) when is_binary(string) do
-    raise ArgumentError, "incorrect padding"
+  @spec decode64!(binary, Keyword.t) :: binary
+  def decode64!(string, opts \\ []) when is_binary(string) do
+    string |> filter_ignored(opts[:ignore]) |> do_decode64()
   end
 
   @doc """
@@ -301,8 +299,9 @@ defmodule Base do
 
   """
   @spec url_decode64(binary) :: {:ok, binary} | :error
-  def url_decode64(string) when is_binary(string) do
-    {:ok, url_decode64!(string)}
+  @spec url_decode64(binary, Keyword.t) :: {:ok, binary} | :error
+  def url_decode64(string, opts \\ []) when is_binary(string) do
+    {:ok, url_decode64!(string, opts)}
   rescue
     ArgumentError -> :error
   end
@@ -321,12 +320,9 @@ defmodule Base do
 
   """
   @spec url_decode64!(binary) :: binary
-  def url_decode64!(string) when is_binary(string) and rem(byte_size(string), 4) == 0 do
-    do_decode64url(string)
-  end
-
-  def url_decode64!(string) when is_binary(string) do
-    raise ArgumentError, "incorrect padding"
+  @spec url_decode64!(binary, Keyword.t) :: binary
+  def url_decode64!(string, opts \\ []) when is_binary(string)  do
+    string |> filter_ignored(opts[:ignore]) |> do_decode64url()
   end
 
   @doc """
@@ -500,6 +496,11 @@ defmodule Base do
     raise ArgumentError, "incorrect padding"
   end
 
+  defp filter_ignored(string, nil), do: string
+  defp filter_ignored(string, :whitespace) do
+    for <<c::8 <- string>>, not c in '\s\t\r\n', into: <<>>, do: <<c::8>>
+  end
+
   defp do_encode16(_, <<>>), do: <<>>
   defp do_encode16(:upper, data) do
     for <<c::4 <- data>>, into: <<>>, do: <<enc16(c)::8>>
@@ -541,7 +542,7 @@ defmodule Base do
   end
 
   defp do_decode64(<<>>), do: <<>>
-  defp do_decode64(string) do
+  defp do_decode64(string) when rem(byte_size(string), 4) == 0 do
     split = byte_size(string) - 4
     <<main::size(split)-binary, rest::binary>> = string
     main = for <<c::8 <- main>>, into: <<>>, do: <<dec64(c)::6>>
@@ -555,6 +556,9 @@ defmodule Base do
       <<>> ->
         main
     end
+  end
+  defp do_decode64(_) do
+    raise ArgumentError, "incorrect padding"
   end
 
   defp do_encode64url(<<>>), do: <<>>
@@ -573,7 +577,7 @@ defmodule Base do
   end
 
   defp do_decode64url(<<>>), do: <<>>
-  defp do_decode64url(string) do
+  defp do_decode64url(string) when rem(byte_size(string), 4) == 0 do
     split = byte_size(string) - 4
     <<main::size(split)-binary, rest::binary>> = string
     main = for <<c::8 <- main>>, into: <<>>, do: <<dec64url(c)::6>>
@@ -588,8 +592,9 @@ defmodule Base do
         main
     end
   end
-
-
+  defp do_decode64url(_) do
+    raise ArgumentError, "incorrect padding"
+  end
 
   defp do_encode32(_, <<>>), do: <<>>
 
