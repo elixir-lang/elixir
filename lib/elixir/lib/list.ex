@@ -621,7 +621,19 @@ defmodule List do
        :unicode.characters_to_binary(list)
     rescue
       ArgumentError ->
-        raise ArgumentError, "cannot convert list to string. The list must contain only integers, strings or nested such lists; got: #{inspect list}"
+        raise ArgumentError, """
+        Cannot convert this list to a string.
+
+        `List.to_string/1` (which is also called, indirectly, when you interpolate a list into a string) only accepts so called chardata lists. Chardata lists represent a string as a list containing strings, integers representing Unicode codepoints, or nested such lists.
+
+        The list you provided is not a valid chardata list. This is your list:
+
+        #{inspect(list)}
+
+        If you wanted to show a representation of the list like the one just above, use `Kernel.inspect/2`. For example:
+
+        "… \#{inspect(the_list)} …"
+        """
     else
       result when is_binary(result) ->
         result
