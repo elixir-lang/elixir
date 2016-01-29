@@ -187,7 +187,7 @@ defmodule ExUnit.Callbacks do
   end
 
   defp raise_merge_reserved!(mod, key, value) do
-    raise "expected ExUnit callback in #{inspect mod} is trying to set " <>
+    raise "ExUnit callback in #{inspect mod} is trying to set " <>
           "reserved field #{inspect key} to #{inspect value}"
   end
 
