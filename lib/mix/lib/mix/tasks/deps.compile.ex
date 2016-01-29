@@ -100,6 +100,11 @@ defmodule Mix.Tasks.Deps.Compile do
                         "but you are running on v#{System.version}"
       end
 
+      # Force recompilation on compile status
+      if dep.status == :compile do
+        Mix.Dep.Lock.touch_manifest
+      end
+
       try do
         res = Mix.Task.run("compile", ["--no-deps", "--no-elixir-version-check"])
         :ok in List.wrap(res)

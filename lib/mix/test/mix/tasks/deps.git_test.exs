@@ -146,9 +146,6 @@ defmodule Mix.Tasks.DepsGitTest do
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
 
       # Clear up to prepare for the update
-      File.rm("_build/dev/lib/git_repo/ebin/Elixir.GitRepo.beam")
-      File.rm("_build/dev/lib/git_repo/.compile.elixir")
-      File.rm("deps/git_repo/.fetch")
       Mix.Task.clear
       Mix.shell.flush
       purge [A, B, C, GitRepo]
