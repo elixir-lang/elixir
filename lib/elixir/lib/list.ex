@@ -622,7 +622,7 @@ defmodule List do
     rescue
       ArgumentError ->
         raise ArgumentError, """
-        Cannot convert this list to a string.
+        cannot convert this list to a string.
 
         `List.to_string/1` (which is also called, indirectly, when you interpolate a list into a string) only accepts so called chardata lists. Chardata lists represent a string as a list containing strings, integers representing Unicode codepoints, or nested such lists.
 

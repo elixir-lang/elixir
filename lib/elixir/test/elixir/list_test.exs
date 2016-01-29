@@ -164,7 +164,7 @@ defmodule ListTest do
     end
 
     assert_raise ArgumentError,
-                 ~r/Cannot convert this list to a string.*\[:a, :b\]/s, fn ->
+                 ~r/cannot convert this list to a string.*\[:a, :b\]/s, fn ->
       List.to_string([:a, :b])
     end
   end
