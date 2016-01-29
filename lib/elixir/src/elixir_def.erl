@@ -419,12 +419,12 @@ format_error({defs_with_defaults, Name, {Kind, Arity}, {K, A}}) when Arity < A -
 
 format_error({clauses_with_defaults, {Kind, Name, Arity}}) ->
   io_lib:format(""
-    "definitions with multiple clauses and default values require a function head. Instead of\n"
+    "definitions with multiple clauses and default values require a function head. Instead of:\n"
     "\n"
     "    def foo(:first_clause, b \\\\ :default) do ... end\n"
     "    def foo(:second_clause, b) do ... end\n"
     "\n"
-    "one should write\n"
+    "one should write:\n"
     "\n"
     "    def foo(a, b \\\\ :default)\n"
     "    def foo(:first_clause, b) do ... end\n"
