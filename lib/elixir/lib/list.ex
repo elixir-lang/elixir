@@ -624,13 +624,13 @@ defmodule List do
         raise ArgumentError, """
         cannot convert this list to a string.
 
-        `List.to_string/1` (which is also called, indirectly, when you interpolate a list into a string) only accepts so called chardata lists. Chardata lists represent a string as a list containing strings, integers representing Unicode codepoints, or nested such lists.
+        The only lists that can be directly converted into a string are so-called chardata lists. Those represent a string as a list of strings, integers representing Unicode codepoints, or nested such lists.
 
         The list you provided is not a valid chardata list.
 
-        If you wanted a code-like representation of the list, use `Kernel.inspect/2`. For example:
+        If you wanted a code-like string representation of the list, use `Kernel.inspect/2`. For example:
 
-        "… \#{inspect([:a, :b])} …" # => "… [:a, :b] …"
+        inspect([:a, :b]) # => "[:a, :b]"
         """
     else
       result when is_binary(result) ->
