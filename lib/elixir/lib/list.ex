@@ -626,13 +626,11 @@ defmodule List do
 
         `List.to_string/1` (which is also called, indirectly, when you interpolate a list into a string) only accepts so called chardata lists. Chardata lists represent a string as a list containing strings, integers representing Unicode codepoints, or nested such lists.
 
-        The list you provided is not a valid chardata list. This is your list:
+        The list you provided is not a valid chardata list.
 
-        #{inspect(list)}
+        If you wanted a code-like representation of the list, use `Kernel.inspect/2`. For example:
 
-        If you wanted to show a representation of the list like the one just above, use `Kernel.inspect/2`. For example:
-
-        "… \#{inspect(the_list)} …"
+        "… \#{inspect([:a, :b])} …" # => "… [:a, :b] …"
         """
     else
       result when is_binary(result) ->
