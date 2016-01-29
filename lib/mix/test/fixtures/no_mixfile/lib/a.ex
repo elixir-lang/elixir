@@ -1,3 +1,2 @@
 defmodule A do
-  
 end
