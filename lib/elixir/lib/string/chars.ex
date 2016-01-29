@@ -41,7 +41,24 @@ defimpl String.Chars, for: BitString do
 end
 
 defimpl String.Chars, for: List do
-  def to_string(char_list), do: List.to_string(char_list)
+  def to_string(char_list) do
+    try do
+       List.to_string(char_list)
+    rescue
+      ArgumentError ->
+        raise ArgumentError, """
+        cannot convert this list to a string.
+
+        The only lists that can be directly converted into a string are so-called chardata lists. Those represent a string as a list of strings, integers representing Unicode codepoints, or nested such lists.
+
+        The list you provided is not a valid chardata list.
+
+        If you wanted a code-like string representation of the list, use `Kernel.inspect/2`. For example:
+
+        "… \#{inspect([:a, :b])} …" # => "… [:a, :b] …"
+        """
+    end
+  end
 end
 
 defimpl String.Chars, for: Integer do
