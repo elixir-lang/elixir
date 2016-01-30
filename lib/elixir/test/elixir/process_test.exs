@@ -29,6 +29,10 @@ defmodule ProcessTest do
            quote(do: :erlang.monitor(:process, pid()))
   end
 
+  test "sleep/1" do
+    assert Process.sleep(0) == :ok
+  end
+
   test "info/2" do
     pid = spawn fn -> :timer.sleep(1000) end
     assert Process.info(pid, :priority) == {:priority, :normal}
