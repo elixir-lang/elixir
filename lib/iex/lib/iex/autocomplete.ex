@@ -267,7 +267,7 @@ defmodule IEx.Autocomplete do
   defp get_module_funs(mod) do
     if function_exported?(mod, :__info__, 1) do
       if docs = Code.get_docs(mod, :docs) do
-        for {tuple, _line, _kind, _sign, doc} <- docs, doc != false, do: tuple
+        Enum.filter_map(docs, &has_content?/1, &elem(&1, 0))
       else
         mod.__info__(:macros) ++ (mod.__info__(:functions) -- [__info__: 1])
       end
@@ -275,6 +275,13 @@ defmodule IEx.Autocomplete do
       mod.module_info(:exports)
     end
   end
+
+  defp has_content?({_, _, _, _, false}),
+    do: false
+  defp has_content?({{name, _}, _, _, _, nil}),
+    do: hd(Atom.to_char_list(name)) != ?_
+  defp has_content?({_, _, _, _, _}),
+    do: true
 
   defp ensure_loaded(Elixir), do: {:error, :nofile}
   defp ensure_loaded(mod),
