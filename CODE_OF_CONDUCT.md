@@ -1,22 +1,56 @@
-# Contributor Code of Conduct
+# Code of Conduct
 
-As contributors and maintainers of this project, and in the interest of fostering an open and welcoming community, we pledge to respect all people who contribute through reporting issues, posting feature requests, updating documentation, submitting pull requests or patches, and other activities.
+Contact: elixir-lang-conduct@googlegroups.com
 
-We are committed to making participation in this project a harassment-free experience for everyone, regardless of level of experience, gender, gender identity and expression, sexual orientation, disability, personal appearance, body size, race, ethnicity, age, religion, or nationality.
+## Why have a Code of Conduct?
 
-Examples of unacceptable behavior by participants include:
+As contributors and maintainers of this project, we are committed to providing a friendly, safe and welcoming environment for all, regardless of age, disability, gender, nationality, race, religion, sexuality, or similar personal characteristic.
 
-* The use of sexualized language or imagery
-* Personal attacks
-* Trolling or insulting/derogatory comments
-* Public or private harassment
-* Publishing other's private information, such as physical or electronic addresses, without explicit permission
-* Other unethical or unprofessional conduct.
+The goal of the Code of Conduct is to specify a baseline standard of behavior so that people with different social values and communication styles can talk about Elixir effectively, productively, and respectfully, even in face of disagreements. The Code of Conduct also provides a mechanism for resolving conflicts in the community when they arise.
 
-The Elixir Core Team has the right and responsibility to remove, edit, or reject comments, commits, code, wiki edits, issues, and other contributions that are not aligned to this Code of Conduct. By adopting this Code of Conduct, we commit ourselves to fairly and consistently applying these principles to every aspect of managing this project. Project maintainers who do not follow or enforce the Code of Conduct may be permanently removed from the project team.
+## Our Values
 
-This code of conduct applies both within project spaces and in public spaces when an individual is representing the project or its community.
+These are the values Elixir developers should aspire to:
 
-Instances of abusive, harassing, or otherwise unacceptable behavior may be reported by sending an e-mail to elixir-lang-conduct@googlegroups.com.
+  * Be friendly and welcoming
+  * Be patient
+    * Remember that people have varying communication styles and that not everyone is using their native language. (Meaning and tone can be lost in translation.)
+  * Be thoughtful
+    * Productive communication requires effort. Think about how your words will be interpreted.
+    * Remember that sometimes it is best to refrain entirely from commenting.
+  * Be respectful
+    * In particular, respect differences of opinion. It is important that we resolve disagreements and differing views constructively.
+  * Avoid destructive behavior
+    * Derailing: stay on topic; if you want to talk about something else, start a new conversation.
+    * Unconstructive criticism: don't merely decry the current state of affairs; offer—or at least solicit—suggestions as to how things may be improved.
+    * Snarking (pithy, unproductive, sniping comments).
 
-This Code of Conduct is adapted from the [Contributor Covenant](http://contributor-covenant.org), version 1.2.0, available at [http://contributor-covenant.org/version/1/2/0/](http://contributor-covenant.org/version/1/2/0/)
+The following actions are explicitly forbidden:
+
+  * Insulting, demeaning, hateful, or threatening remarks.
+  * Discrimination based on age, disability, gender, nationality, race, religion, sexuality, or similar personal characteristic.
+  * Bullying or systematic harassment.
+  * Unwelcome sexual advances.
+  * Incitement to any of these.
+
+## Where does the Code of Conduct apply?
+
+If you participate in or contribute to the Elixir ecosystem in any way, you are encouraged to follow the Code of Conduct while doing so.
+
+Explicit enforcement of the Code of Conduct applies to the official mediums operated by the Elixir project:
+
+* The official GitHub projects and code reviews.
+* The elixir-lang-core and elixir-lang-talk mailing lists.
+* The #elixir-lang IRC channel on Freenode.
+
+Project maintainers may remove, edit, or reject comments, commits, code, wiki edits, issues, and other contributions that are not aligned to this Code of Conduct.
+
+Instances of abusive, harassing, or otherwise unacceptable behavior may be reported by emailing: elixir-lang-conduct@googlegroups.com. All complaints will be reviewed and investigated and will result in a response that is deemed necessary and appropriate to the circumstances. **All reports will be kept confidential**.
+
+**The goal of the Code of Conduct is to resolve conflicts in the most harmonious way possible**. We hope that in most cases issues may be resolved through polite discussion and mutual agreement. Bannings and other forceful measures are to be employed only as a last resort. **Do not** post about the issue publicly or try to rally sentiment against a particular individual or group.
+
+Other Elixir activities (such as conferences, meetups, and other unofficial forums) are encouraged to adopt this Code of Conduct. Such groups must provide their own contact information.
+
+## Acknowledgements
+
+This document was based on the Code of Conduct from the Go project with parts derived from Django's Code of Conduct, Rust's Code of Conduct and the Contributor Convenant.
