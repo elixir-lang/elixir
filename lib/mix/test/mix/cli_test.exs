@@ -114,6 +114,33 @@ defmodule Mix.CLITest do
     System.delete_env("MIX_EXS")
   end
 
+  test "env config defaults to the tasks's preferred cli environment", context do
+    in_tmp context.test, fn ->
+      File.write! "custom.exs", """
+      defmodule P do
+        use Mix.Project
+        def project, do: [app: :p, version: "0.1.0"]
+      end
+
+      defmodule Mix.Tasks.TestTask do
+        use Mix.Task
+        @preferred_cli_env :prod
+
+        def run(args) do
+          IO.inspect {Mix.env, args}
+        end
+      end
+      """
+
+      System.put_env("MIX_EXS", "custom.exs")
+
+      output = mix ["test_task", "a", "b", "c"]
+      assert output =~ ~s({:prod, ["a", "b", "c"]})
+    end
+  after
+    System.delete_env("MIX_EXS")
+  end
+
   test "new with tests" do
     in_tmp "new_with_tests", fn ->
       output = mix ~w[new .]
