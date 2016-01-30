@@ -122,6 +122,80 @@ defmodule Process do
   end
 
   @doc """
+  Sleeps the current process by `timeout`.
+
+  `timeout` is either the number of miliseconds to sleep as an
+  integer or the atom `:infinity`. When `:infinity` is given,
+  the current process will suspend forever.
+
+  **Use this function with extreme care**. For almost all situations
+  where you would use `sleep/1` in Elixir, there is likely a
+  more correct, faster and precise way of achieving it with
+  message passing.
+
+  For example, if you are waiting a process to perform some
+  action, it is better to communicate.
+
+  In other words, **do not**:
+
+      Task.start_link fn ->
+        do_something()
+        ...
+      end
+
+      # Wait until work is done
+      Process.sleep(2000)
+
+  But **do**:
+
+      parent = self()
+      Task.start_link fn ->
+        do_something()
+        send parent, :work_is_done
+        ...
+      end
+
+      receive do
+        :work_is_done -> :ok
+      after
+        30_000 -> :timeout # Optional timeout
+      end
+
+  Or even use `Task.async/1` and `Task.await/2` in the example
+  above.
+
+  Similarly, if you are waiting for a process to terminate,
+  use monitor instead of sleep. **Do not**:
+
+      Task.start_link fn ->
+        ...
+      end
+
+      # Wait until task terminates
+      Process.sleep(2000)
+
+  Instead **do**:
+
+      {:ok, pid} =
+        Task.start_link fn ->
+          ...
+        end
+
+      ref = Process.monitor(pid)
+      receive do
+        {:DOWN, ^ref, _, _, _} -> :task_is_down
+      after
+        30_000 -> :timeout # Optional timeout
+      end
+
+  """
+  def sleep(timeout)
+      when is_integer(timeout) and timeout >= 0
+      when timeout == :infinity do
+    receive after: (timeout -> :ok)
+  end
+
+  @doc """
   Sends a message to the given process.
 
   If the option `:noconnect` is used and sending the message would require an
