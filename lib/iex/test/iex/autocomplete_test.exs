@@ -49,6 +49,27 @@ defmodule IEx.AutocompleteTest do
     assert expand('Ex')  == {:yes, [], ['ExUnit', 'Exception']}
   end
 
+  test "elixir no completion for underscored functions with no doc" do
+    filename = "sample.ex"
+    content = """
+    defmodule Sample do
+      def __foo__(), do: 0
+      @doc "Bar doc"
+      def __bar__(), do: 1
+    end
+    """
+    File.write!(filename, content)
+    try do
+      :elixir_compiler.file_to_path(filename, ".")
+      assert expand('Sample._') == {:yes, '_bar__', []}
+    after
+      File.rm("Elixir.Sample.beam")
+      :code.purge(Sample)
+      :code.delete(Sample)
+      File.rm(filename)
+    end
+  end
+
   test "elixir no completion" do
     assert expand('.')   == {:no, '', []}
     assert expand('Xyz') == {:no, '', []}
@@ -141,5 +162,4 @@ defmodule IEx.AutocompleteTest do
     assert expand('EList') == {:yes, '.', []}
     assert expand('EList.map') == {:yes, [], ['map/2', 'mapfoldl/3', 'mapfoldr/3']}
   end
-
 end
