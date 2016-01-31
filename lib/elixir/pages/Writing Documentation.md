@@ -34,7 +34,7 @@ Documentation in Elixir is usually attached to module attributes. Let's see an e
       end
     end
 
-The `@moduledoc` attribute is used to attach documentation to the module. `@doc` is used before a function to attach documentation to it. Besides the attributes above, `@typedoc` can also be used to attach documentation to types defined as part of typespecs.
+The `@moduledoc` attribute is used to add documentation to the module. `@doc` is used before a function to provide documentation for it. Besides the attributes above, `@typedoc` can also be used to attach documentation to types defined as part of typespecs.
 
 ## Function Arguments
 
@@ -52,11 +52,11 @@ The compiler will infer this argument as `hash_dict`. Sometimes the inference wi
 
 There are a couple tips we recommend developers to follow when writing documentation:
 
-  * Keep the first paragraph of the documentation concise and simple. Tools like ExDoc uses the first line to generate a summary.
+  * Keep the first paragraph of the documentation concise and simple, typically one-line. Tools like ExDoc uses the first line to generate a summary.
 
   * Markdown uses backticks (`` ` ``) to quote code. Elixir builds on top of that to automatically generate links when modules or function names are referenced. For this reason, always use full module names. If you have a module called `MyApp.Hello`, always reference it as `` `MyApp.Hello` `` and never as `` `Hello` ``. Function names must be referenced by name and arity if they are local, as in `` `world/1` ``, or by module, name and arity if pointing to an external module: `` `MyApp.Hello.world/1` ``. Referencing a `@callback` can be done by prepending `c:`, as in `` `c:world/1` ``.
 
-  * If using headings, always start from the second heading by using `##`. The first heading is reserved to the module or function name itself.
+  * When using headings, always start from the second heading by using `##`. The first heading is reserved to the module or function name itself.
 
 ## Doctests
 
@@ -83,15 +83,15 @@ Notice that, although developers can add `@doc false` to functions, it does not 
       def add(a, b), do: a + b
     end
 
-The function above can still be invoked as `MyApp.Sample.add(1, 2)`. Not only that, if the `MyApp.Sample` is imported, the `add/2` function will also be imported into the caller. For those reasons, be wary when adding `@doc false` to functions, instead prefer one of:
+The function above can still be invoked as `MyApp.Sample.add(1, 2)`. Not only that, if the `MyApp.Sample` is imported, the `add/2` function will also be imported into the caller. For those reasons, be cautious when adding `@doc false` to functions, instead prefer one of:
 
-  * Move the private function to a module with `@moduledoc false`, like `MyApp.Hidden`, ensuring the function won't be accidentally exposed or imported. In fact, you can use `@moduledoc false` to hide a whole module and still document each function with `@doc`. Tools will still ignore the module.
+  * Move the undocumented function to a module with `@moduledoc false`, like `MyApp.Hidden`, ensuring the function won't be accidentally exposed or imported. In fact, you can use `@moduledoc false` to hide a whole module and still document each function with `@doc`. Tools will still ignore the module.
 
-  * Start the function name with underscores, for example, `__add__/2`, and add `@doc false`. The compiler does not import functions with underscore and the underscore will tell users to be wary of using it.
+  * Start the function name with underscores, for example, `__add__/2`, and add `@doc false`. The compiler does not import functions with underscore and the underscore will hint users to be wary of using then.
 
 ## Documentation != Comments
 
-Elixir makes the difference between documentation and code comments. Documentation are for users of your API, be it your co-worker or your future self. Modules and functions must always be documented if they are part of your application public interface (API).
+Elixir treats documentation and code comments as different concepts. Documentation are for users of your API, be it your co-worker or your future self. Modules and functions must always be documented if they are part of your application public interface (API).
 
 Code comments are for developers reading the code. They are useful to mark improvements, leave notes for developers reading the code (for example, you decided to not call a function due to a bug in a library) and so forth.
 
@@ -99,4 +99,4 @@ In other words, documentation is required, code comments are optional.
 
 ## Code.get_docs/2
 
-Elixir stores documentation inside pre-defined chunks in the bytecode. It can be accessed from Elixir by using the `Code.get_docs/2` function. This also means documentation is only accessed when required and not when modules are loaded by the Virtual Machine. The only downside is that modules defined in-memory, like the ones defined via IEx, cannot have their documentation accessed.
+Elixir stores documentation inside pre-defined chunks in the bytecode. It can be accessed from Elixir by using the `Code.get_docs/2` function. This also means documentation is only accessed when required and not when modules are loaded by the Virtual Machine. The only downside is that modules defined in-memory, like the ones defined in IEx, cannot have their documentation accessed as they do not have their bytecode written to disk.
