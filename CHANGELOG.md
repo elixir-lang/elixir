@@ -85,7 +85,7 @@ ask Mix to use Rebar 3 to compile it by passing the `manager: :rebar3` option.
 Once configured, Mix will prompt you to install Rebar 3 if it is not yet
 available.
 
-## v1.2.2-dev
+## v1.2.2
 
 ### 1. Enhancements
 
@@ -93,8 +93,10 @@ available.
 
 ### 2. Bug fixes
 
+  * [ExUnit] Raise if trying to override reserved tag in `setup` blocks
   * [Mix] Ensure retrieve compile manifests do fail if some compilers are not yet available
   * [Mix] Automatically merge managers according to the mix > rebar3 > rebar > make order
+  * [Mix] Force recompilation if dependency was recently fetched
 
 ## v1.2.1 (2016-01-14)
 
