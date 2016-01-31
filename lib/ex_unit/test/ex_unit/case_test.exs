@@ -2,6 +2,9 @@ Code.require_file "../test_helper.exs", __DIR__
 
 defmodule ExUnit.CaseTest do
   use ExUnit.Case, async: true
+  ExUnit.Case.register_attribute __MODULE__, :foo
+  ExUnit.Case.register_attribute __MODULE__, :bar
+  ExUnit.Case.register_attribute __MODULE__, :baz
 
   @moduletag :moduletag
 
@@ -37,4 +40,14 @@ defmodule ExUnit.CaseTest do
   test "module tags can be overridden", context do
     assert context[:moduletag] == :overridden
   end
+
+  @foo :hello
+  @bar :world
+  test "collects the declared test attributes and nests them into the context", context do
+    assert context.registered.foo == :hello
+    assert context.registered.bar == :world
+  end
+
+  @foo false
+  @bar false
 end
