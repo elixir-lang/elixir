@@ -15,7 +15,7 @@ Atoms can be written either in `:snake_case` or `:CamelCase`, although the conve
 
 Generally speaking, filenames follow the `snake_case` convention of the module they define. For example, `MyApp` should be defined inside the `my_app.ex` file. However, this is only a convention. At the end of the day, any filename can be used as they do not affect the compiled code in any way.
 
-## Underscore (`_foo`)
+## Underscore (_foo)
 
 Elixir relies on underscores in different situations.
 
@@ -42,7 +42,7 @@ Due to this property, Elixir relies on functions starting with underscore to att
 
 Elixir also includes 4 special variables that follow the double underscore format. These forms retrieve compile-time information about the current environment: `__MODULE__`, `__DIR__`, `__ENV__` and `__CALLER__`.
 
-## Trailing bang (`foo!`)
+## Trailing bang (foo!)
 
 A trailing bang (exclamation mark) signifies a function or macro where failure cases raise an exception.
 
@@ -73,7 +73,7 @@ There are also some non-paired functions, with no non-bang variant. The bang sti
 
 In macro code, the bang on `Kernel.alias!/1` and `Kernel.var!/2` signifies that [macro hygiene](http://elixir-lang.org/getting-started/meta/macros.html#macros-hygiene) is set aside.
 
-## Trailing question mark (`foo?`)
+## Trailing question mark (foo?)
 
 Functions that return a boolean are named with a trailing question mark.
 
@@ -81,7 +81,7 @@ Examples: `Keyword.keyword?/1`, `Mix.debug?/0`, `String.contains?/2`
 
 However, functions that return booleans and are valid in guards follow another convention, described next.
 
-## `is_` prefix (`is_foo`)
+## is_ prefix (is_foo)
 
 Type checks and other boolean checks that are allowed in guard clauses are named with an `is_` prefix.
 
@@ -95,7 +95,7 @@ Note that type checks that are not valid in guard clauses do not follow this con
 
 Some names have specific meaning in Elixir. We detail those cases below.
 
-### `length` and `size`
+### length and size
 
 When you see `size` in a function name, it means the operation runs in constant time (also written as "O(1) time") because the size is stored alongside the data structure.
 
