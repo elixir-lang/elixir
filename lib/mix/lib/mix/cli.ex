@@ -100,11 +100,8 @@ defmodule Mix.CLI do
 
   defp preferred_cli_env(task) do
     task = String.to_atom(task)
-    Mix.Project.config[:preferred_cli_env][task] || default_cli_env(task)
+    Mix.Project.config[:preferred_cli_env][task] || Mix.Task.preferred_cli_env(task)
   end
-
-  defp default_cli_env(:test), do: :test
-  defp default_cli_env(_),     do: nil
 
   defp load_dot_config do
     path = Path.join(Mix.Utils.mix_home, "config.exs")
