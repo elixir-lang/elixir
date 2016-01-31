@@ -146,7 +146,7 @@ defmodule ExUnit.Callbacks do
 
   ## Helpers
 
-  @reserved ~w(case test line file capture_log skip timeout report async)a
+  @reserved ~w(case test line file)a
 
   @doc false
   def __merge__(_mod, context, :ok) do
