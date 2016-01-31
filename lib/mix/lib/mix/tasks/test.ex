@@ -29,6 +29,7 @@ defmodule Mix.Tasks.Test do
 
   @shortdoc "Runs a project's tests"
   @recursive true
+  @preferred_cli_env :test
 
   @moduledoc """
   Runs the tests for a project.
