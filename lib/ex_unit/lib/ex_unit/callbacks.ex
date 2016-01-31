@@ -146,7 +146,7 @@ defmodule ExUnit.Callbacks do
 
   ## Helpers
 
-  @reserved ~w(case test line file capture_log skip timeout report async)a
+  @reserved ~w(case test line file registered)a
 
   @doc false
   def __merge__(_mod, context, :ok) do
@@ -167,8 +167,7 @@ defmodule ExUnit.Callbacks do
 
   defp context_merge(mod, context, %{} = data) do
     Map.merge(context, data, fn
-      _, v, v -> v
-      k, _, v when k in @reserved -> raise_merge_reserved!(mod, k, v)
+      k, v1, v2 when k in @reserved -> v1 != v2 and raise_merge_reserved!(mod, k, v1)
       _, _, v -> v
     end)
   end
