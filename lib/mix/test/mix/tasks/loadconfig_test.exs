@@ -39,6 +39,11 @@ defmodule Mix.Tasks.LoadconfigTest do
       assert Application.fetch_env(:config_app, :key) == :error
       Mix.Task.run "loadconfig", []
       assert Application.fetch_env(:config_app, :key) == {:ok, :value}
+
+      File.rm "fresh.config"
+      assert_raise Mix.Config.LoadError, ~r"could not load config fresh\.config", fn ->
+        Mix.Task.run "loadconfig", []
+      end
     end
   end
 
