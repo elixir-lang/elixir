@@ -160,6 +160,17 @@ defmodule StringTest do
     assert String.capitalize("ﬁn") == "Fin"
   end
 
+  test "replace_trailing" do
+    assert String.replace_trailing("   abc aa", "a", "") == "   abc "
+    assert String.replace_trailing("   abc __", "_", "") == "   abc "
+    assert String.replace_trailing(" aaaaaaaaa", "a", "") == " "
+    assert String.replace_trailing("aaaaaaaaaa", "a", "") == ""
+    assert String.replace_trailing("]]]]]]]]]]", "]", "") == ""
+    assert String.replace_trailing("   cat 猫猫", "猫", "") == "   cat "
+    assert String.replace_trailing("test", "t", "") == "tes"
+    assert String.replace_trailing("t", "t", "") == ""
+  end
+
   test "rstrip" do
     assert String.rstrip("") == ""
     assert String.rstrip("1\n") == "1"
@@ -172,6 +183,9 @@ defmodule StringTest do
     assert String.rstrip("a  abc  a" <> <<194, 133>>) == "a  abc  a"
     assert String.rstrip("   abc aa", ?a) == "   abc "
     assert String.rstrip("   abc __", ?_) == "   abc "
+    assert String.rstrip(" aaaaaaaaa", ?a) == " "
+    assert String.rstrip("aaaaaaaaaa", ?a) == ""
+    assert String.rstrip("]]]]]]]]]]", ?]) == ""
     assert String.rstrip("   cat 猫猫", ?猫) == "   cat "
   end
 

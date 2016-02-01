@@ -661,7 +661,7 @@ defmodule String do
     replace_trailing(string, match, replacement, prefix_size, suffix_size, "")
   end
 
-  defp replace_trailing(string, match, replacement, prefix_size, suffix_size, acc) when prefix_size > 0 do
+  defp replace_trailing(string, match, replacement, prefix_size, suffix_size, acc) when prefix_size >= 0 do
     case string do
       <<prefix::size(prefix_size)-binary, suffix::size(suffix_size)-binary>> when suffix == match ->
         replace_trailing(prefix, match, replacement, prefix_size - suffix_size, suffix_size, acc <> replacement)
