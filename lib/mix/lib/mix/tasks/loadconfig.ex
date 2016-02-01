@@ -23,7 +23,7 @@ defmodule Mix.Tasks.Loadconfig do
     cond do
       file = Enum.at(args, 0) ->
         load file
-      File.regular?(config[:config_path]) ->
+      File.regular?(config[:config_path]) or (config[:config_path] != "config/config.exs") ->
         load config[:config_path]
       true ->
         :ok
