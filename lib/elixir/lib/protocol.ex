@@ -427,7 +427,7 @@ defmodule Protocol do
   defp after_defprotocol do
     quote bind_quoted: [builtin: builtin] do
       @doc false
-      @spec impl_for(term) :: atom() | nil
+      @spec impl_for(term) :: atom | nil
       Kernel.def impl_for(data)
 
       # Define the implementation for structs.
@@ -451,7 +451,7 @@ defmodule Protocol do
       end, builtin)
 
       @doc false
-      @spec impl_for!(term) :: atom() | no_return()
+      @spec impl_for!(term) :: atom | no_return
       Kernel.def impl_for!(data) do
         impl_for(data) || raise(Protocol.UndefinedError, protocol: __MODULE__, value: data)
       end
