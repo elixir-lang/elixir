@@ -488,6 +488,10 @@ defmodule Module do
     unless Keyword.has_key?(opts, :file) do
       raise ArgumentError, "expected :file to be given as option"
     end
+
+    next = :elixir_counter.next
+    line = Keyword.get(opts, :line, 0)
+    quoted = :elixir_quote.linify_with_context_counter(line, {module, next}, quoted)
     :elixir_module.compile(module, quoted, [], :elixir.env_for_eval(opts))
   end
 
