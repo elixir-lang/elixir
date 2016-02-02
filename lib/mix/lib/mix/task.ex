@@ -372,7 +372,7 @@ defmodule Mix.Task do
   @doc """
   Returns `true` if given module is a task.
   """
-  @spec task?(task_module) :: boolean()
+  @spec task?(task_module) :: boolean
   def task?(module) when is_atom(module) do
     match?('Elixir.Mix.Tasks.' ++ _, Atom.to_char_list(module)) and ensure_task?(module)
   end
