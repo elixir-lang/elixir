@@ -230,6 +230,19 @@ defmodule ModuleTest do
     end
   end
 
+  test "create with aliases/var hygiene" do
+    contents =
+      quote do
+        alias List, as: L
+        def test do
+          L.flatten([1, [2], 3])
+        end
+      end
+
+    Module.create ModuleHygiene, contents, __ENV__
+    assert ModuleHygiene.test == [1, 2, 3]
+  end
+
   test "no function in module body" do
     in_module do
       assert __ENV__.function == nil
