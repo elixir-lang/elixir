@@ -47,9 +47,7 @@ defmodule GenServerTest do
 
     assert GenServer.cast({:global, :foo}, {:push, :world}) == :ok
     assert GenServer.cast({:via, :foo, :bar}, {:push, :world}) == :ok
-    assert_raise ArgumentError, fn ->
-      GenServer.cast(:foo, {:push, :world})
-    end
+    assert GenServer.cast(:foo, {:push, :world}) == :ok
   end
 
   test "nil name" do

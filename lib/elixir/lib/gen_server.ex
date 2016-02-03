@@ -570,16 +570,10 @@ defmodule GenServer do
   @doc """
   Sends an asynchronous request to the `server`.
 
-  This function returns `:ok` without waiting for the
-  destination `server` to handle the message. Therefore it
+  This function always returns `:ok` regardless of whether
+  the destination `server` (or node) exists. Therefore it
   is unknown whether the destination `server` successfully
-  handled the message. If the `server` is an atom without
-  an associated process an `ArgumentError` is raised. In
-  all other cases the function returns `:ok` regardless of
-  whether the destination `server` (or node) exists. Note
-  that `{name, node()}` can be used when an exception is
-  not desired if no process is locally associated with the
-  atom `name`.
+  handled the message.
 
   `handle_cast/2` will be called on the server to handle
   the request. In case the `server` is on a node which is
@@ -636,8 +630,12 @@ defmodule GenServer do
   end
 
   defp do_send(dest, msg) do
-    send(dest, msg)
-    :ok
+    try do
+      send(dest, msg)
+      :ok
+    catch
+      _, _ -> :ok
+    end
   end
 
   @doc """
