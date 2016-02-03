@@ -225,8 +225,10 @@ defmodule Keyword do
     do: get_and_update(t, [h|acc], key, fun)
 
   defp get_and_update([], acc, key, fun) do
-    {get, update} = fun.(nil)
-    {get, [{key, update}|:lists.reverse(acc)]}
+    case fun.(nil) do
+      {:skip, _} -> {:ok, acc}
+      {get, update} -> {get, [{key, update}|:lists.reverse(acc)]}
+    end
   end
 
   @doc """
