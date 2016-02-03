@@ -43,6 +43,9 @@ defmodule Mix.CLI do
     exit({:shutdown, 1})
   end
 
+  defp get_task([testfile = "test/" <> _|t]) do
+    {"test", [testfile|t]}
+  end
   defp get_task([h|t]) do
     {h, t}
   end
