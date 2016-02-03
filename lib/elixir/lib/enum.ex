@@ -2159,7 +2159,7 @@ defmodule Enum do
   Notice this function will traverse the whole enumerable to
   get the random sublist of `enumerable`. If you want the random
   number between two integers, the best option is to use the
-  [`:random`](http://www.erlang.org/doc/man/random.html) module.
+  [`:rand`](http://www.erlang.org/doc/man/rand.html) module.
 
   See `random/1` for notes on implementation and random seed.
 
