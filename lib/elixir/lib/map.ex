@@ -433,7 +433,7 @@ defmodule Map do
 
   Returns a tuple with the new map and the old map with removed keys.
 
-  Keys for which there are no entires in the map are ignored.
+  Keys for which there are no entries in the map are ignored.
 
   ## Examples
 
