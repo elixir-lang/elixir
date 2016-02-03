@@ -114,7 +114,16 @@ defmodule Mix.CLI do
   end
 
   defp display_version() do
-    IO.puts "Mix #{System.version}"
+    #IO.puts :erlang.system_info(:system_version)
+
+    build_info = System.build_info
+    {:ok, v} = Version.parse(build_info[:version])
+    version_build = case v.pre do
+      [] -> "#{build_info[:version]}"
+      _  -> "#{build_info[:version]} (#{build_info[:revision]})"
+    end
+
+    IO.puts "Mix #{version_build}"
   end
 
   # Check for --help or --version in the args
