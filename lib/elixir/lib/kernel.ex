@@ -1810,6 +1810,38 @@ defmodule Kernel do
     do: Access.get_and_update(data, h, &get_and_update_in(&1, t, fun))
 
   @doc """
+  Deletes a key in a nested structure.
+
+  Uses the `Access` protocol to traverse the structures
+  according to the given `keys`, unless the `key` is a
+  function. If the key is a function, it will be invoked
+  as specified in `get_and_update_in/3`.
+
+  ## Examples
+
+      iex> users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
+      iex> delete_in(users, ["john", :age])
+      %{"john" => %{}, "meg" => %{age: 23}}
+
+  In case any entries in the middle returns `nil`,
+  the deletion will be considered a success.
+  """
+  @spec delete_in(Access.t, nonempty_list(term)) :: Access.t
+  def delete_in(data, keys) do
+    case do_delete_in(data, keys) do
+      {:skip, key} -> Access.delete(data, key)
+      {_, map} -> map
+    end
+  end
+
+  defp do_delete_in(nil, [h|_]),
+    do: {:skip, h}
+  defp do_delete_in(data, [h]),
+    do: {nil, Access.delete(data, h)}
+  defp do_delete_in(data, [h|t]),
+    do: Access.get_and_update(data, h, &do_delete_in(&1, t))
+
+  @doc """
   Puts a value in a nested structure via the given `path`.
 
   This is similar to `put_in/3`, except the path is extracted via
@@ -1842,6 +1874,43 @@ defmodule Kernel do
         nest_update_in(h, t, quote(do: fn _ -> unquote(value) end))
       {[h|t], false} ->
         expr = nest_get_and_update_in(h, t, quote(do: fn _ -> {nil, unquote(value)} end))
+        quote do: :erlang.element(2, unquote(expr))
+    end
+  end
+
+  @doc """
+  Deletes a key in a nested structure via the given `path`.
+
+  This is similar to `delete_in/2`, except the path is extracted via
+  a macro rather than passing a list. For example:
+
+      delete_in(opts[:foo][:bar])
+
+  Is equivalent to:
+
+      delete_in(opts, [:foo, :bar])
+
+  Note that in order for this macro to work, the complete path must always
+  be visible by this macro. For more information about the supported path
+  expressions, please check `get_and_update_in/2` docs.
+
+  ## Examples
+
+      iex> users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
+      iex> delete_in(users["john"][:age])
+      %{"john" => %{}, "meg" => %{age: 23}}
+
+      iex> users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
+      iex> delete_in(users["john"].age)
+      %{"john" => %{}, "meg" => %{age: 23}}
+
+  """
+  defmacro delete_in(path) do
+    case unnest(path, [], true, "delete_in/1") do
+      {[h|t], true} ->
+        nest_delete_in(h, t)
+      {[h|t], false} ->
+        expr = nest_delete_in_from_access(h, t)
         quote do: :erlang.element(2, unquote(expr))
     end
   end
@@ -1966,6 +2035,53 @@ defmodule Kernel do
   defp nest_get_and_update_in(h, [{:map, key}|t], fun) do
     quote do
       Map.get_and_update!(unquote(h), unquote(key), unquote(nest_get_and_update_in(t, fun)))
+    end
+  end
+
+  defp nest_delete_in(list) do
+    quote do
+      fn x -> unquote(nest_delete_in(quote(do: x), list)) end
+    end
+  end
+  defp nest_delete_in(h, [{:map, key}]) do
+    quote do
+      Map.delete(unquote(h), unquote(key))
+    end
+  end
+  defp nest_delete_in(h, [{:map, key}|t]) do
+    quote do
+      Map.update!(unquote(h), unquote(key), unquote(nest_delete_in(t)))
+    end
+  end
+
+  defp nest_delete_in_from_access(list) do
+    quote do
+      fn x -> unquote(nest_delete_in_from_access(quote(do: x), list)) end
+    end
+  end
+  defp nest_delete_in_from_access(h, [{:map, _key}]=list) do
+    {:ok, nest_delete_in(h, list)}
+  end
+  defp nest_delete_in_from_access(h, [{:access, key}]) do
+    quote do
+      case unquote(h) do
+        nil -> {:skip, nil}
+        h -> {:ok, Access.delete(h, unquote(key))}
+      end
+    end
+  end
+  defp nest_delete_in_from_access(nil=h, [{:access, key}|_]) do
+    quote do
+      Access.delete(unquote(h), unquote(key))
+    end
+  end
+  defp nest_delete_in_from_access(h, [{:access, key}|t]) do
+    quote do
+      Access.get_and_update(
+        unquote(h),
+        unquote(key),
+        unquote(nest_delete_in_from_access(t))
+      )
     end
   end
 
