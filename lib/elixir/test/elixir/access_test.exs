@@ -17,16 +17,19 @@ defmodule AccessTest do
   [1, 2, 3] = @mod.flatten([1, [2], 3])
 
   @mod -13
-  -13 = @mod
+  # -13 = @mod
 
-  test "for nil" do
-    assert nil[:foo] == nil
-    assert Access.fetch(nil, :foo) == :error
-    assert Access.get(nil, :foo) == nil
-    assert_raise ArgumentError, "could not put/update key :foo on a nil value", fn ->
-      Access.get_and_update(nil, :foo, fn nil -> {:ok, :bar} end)
-    end
-  end
+  # # test "for nil" do
+    # # assert nil[:foo] == nil
+    # # assert Access.fetch(nil, :foo) == :error
+    # # assert Access.get(nil, :foo) == nil
+    # # assert_raise ArgumentError, "could not put/update key :foo on a nil value", fn ->
+      # # Access.get_and_update(nil, :foo, fn nil -> {:ok, :bar} end)
+    # # end
+    # # assert_raise ArgumentError, "could not delete key :foo on a nil value", fn ->
+      # # Access.delete(nil, :foo)
+    # # end
+  # # end
 
   test "for keywords" do
     assert [foo: :bar][:foo] == :bar
@@ -44,6 +47,10 @@ defmodule AccessTest do
     assert Access.get([foo: :bar], :foo) == :bar
     assert Access.get_and_update([], :foo, fn nil -> {:ok, :baz} end) == {:ok, [foo: :baz]}
     assert Access.get_and_update([foo: :bar], :foo, fn :bar -> {:ok, :baz} end) == {:ok, [foo: :baz]}
+    assert Access.get_and_update([foo: :bar], :baz, fn nil -> {:skip, nil} end) == {:ok, [foo: :bar]}
+
+    assert Access.delete([foo: :bar], :foo) == []
+    assert Access.delete([], :foo) == []
   end
 
   test "for maps" do
@@ -58,6 +65,10 @@ defmodule AccessTest do
     assert Access.get(%{foo: :bar}, :foo) == :bar
     assert Access.get_and_update(%{}, :foo, fn nil -> {:ok, :baz} end) == {:ok, %{foo: :baz}}
     assert Access.get_and_update(%{foo: :bar}, :foo, fn :bar -> {:ok, :baz} end) == {:ok, %{foo: :baz}}
+    assert Access.get_and_update(%{foo: :bar}, :baz, fn nil -> {:skip, nil} end) == {:ok, %{foo: :bar}}
+
+    assert Access.delete(%{foo: :bar}, :foo) == %{}
+    assert Access.delete(%{}, :foo) == %{}
   end
 
   test "for struct" do
@@ -73,6 +84,11 @@ defmodule AccessTest do
     assert_raise UndefinedFunctionError,
                  "undefined function AccessTest.Sample.get_and_update/3 (AccessTest.Sample does not implement the Access behaviour)", fn ->
       Access.get_and_update(struct(Sample, []), :name, fn nil -> {:ok, :baz} end)
+    end
+
+    assert_raise UndefinedFunctionError,
+                "undefined function AccessTest.Sample.delete/2 (AccessTest.Sample does not implement the Access behaviour)", fn ->
+      Access.delete(struct(Sample, []), :name)
     end
   end
 end
