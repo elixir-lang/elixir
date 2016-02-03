@@ -151,6 +151,10 @@ defmodule Mix.CLITest do
       assert output =~ "1 test, 0 failures"
       assert output =~ "Generating cover results ..."
       assert File.regular?("cover/Elixir.NewWithTests.html")
+
+      output = mix ~w[test/new_with_tests_test.exs --cover]
+      assert output =~ "1 test, 0 failures"
+      assert output =~ "Generating cover results ..."
     end
   end
 
