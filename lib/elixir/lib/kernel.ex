@@ -2676,10 +2676,10 @@ defmodule Kernel do
     end
 
     case right do
-      _ when in_module? ->
-        quote do: Elixir.Enum.member?(unquote(right), unquote(left))
       [] ->
         false
+      _ when in_module? ->
+        quote do: Elixir.Enum.member?(unquote(right), unquote(left))
       [h|t] ->
         :lists.foldr(fn x, acc ->
           quote do: :erlang.or(unquote(comp(left, x)), unquote(acc))
