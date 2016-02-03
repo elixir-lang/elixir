@@ -80,6 +80,21 @@ defmodule System do
     %{version: version, date: get_date, revision: get_revision}
   end
 
+  @doc false
+  # Returns a string of the build info
+  @spec build_info(atom :: :version_build) :: String.t
+  def build_info(opt) when opt in [:version_build] do
+    case opt do
+      :version_build ->
+        build_info = System.build_info
+        {:ok, v} = Version.parse(build_info[:version])
+        case v.pre do
+          [] -> "#{build_info[:version]}"
+          _  -> "#{build_info[:version]} (#{build_info[:revision]})"
+        end
+    end
+  end
+
   @doc """
   Lists command line arguments.
 
