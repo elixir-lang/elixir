@@ -62,6 +62,6 @@ defmodule Mix.Tasks.App.Tree do
     Enum.map(apps, &{:normal, &1}) ++ Enum.map(included_apps, &{:included, &1})
   end
 
-  defp type(:normal),  do: ""
-  defp type(:include), do: " (included)"
+  defp type(:normal),   do: ""
+  defp type(:included), do: " (included)"
 end
