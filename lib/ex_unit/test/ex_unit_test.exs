@@ -23,7 +23,7 @@ defmodule ExUnitTest do
     end) =~ "2 tests, 2 failures"
   end
 
-  test "it doesn't hang on exists" do
+  test "it doesn't hang on exits" do
     defmodule EventServerTest do
       use ExUnit.Case
 
