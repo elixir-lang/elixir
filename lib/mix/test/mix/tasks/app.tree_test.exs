@@ -14,7 +14,7 @@ defmodule Mix.Tasks.App.TreeTest do
   end
 
   @tag apps: [:test, :app_deps_sample, :app_deps2_sample, :app_deps3_sample, :app_deps4_sample]
-  test "shows the application dependency tree", context do
+  test "shows the application tree", context do
     Mix.Project.push AppDepsSample
 
     in_tmp context.test, fn ->
@@ -29,8 +29,21 @@ defmodule Mix.Tasks.App.TreeTest do
     end
   end
 
+  @tag apps: [:foo, :bar]
+  test "show the application tree for umbrella apps" do
+    in_fixture "umbrella_dep/deps/umbrella", fn ->
+      Mix.Project.in_project(:umbrella, ".", fn _ ->
+        Mix.Task.run "app.tree", ["--pretty"]
+        assert_received {:mix_shell, :info, ["foo"]}
+        assert_received {:mix_shell, :info, ["└── elixir"]}
+        assert_received {:mix_shell, :info, ["bar"]}
+        assert_received {:mix_shell, :info, ["└── elixir"]}
+      end)
+    end
+  end
+
   @tag apps: [:test, :app_deps_sample, :app_deps2_sample, :app_deps3_sample, :app_deps4_sample]
-  test "shows the given application dependency tree", context do
+  test "shows the given application tree", context do
     Mix.Project.push AppDepsSample
 
     in_tmp context.test, fn ->
