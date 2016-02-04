@@ -34,6 +34,10 @@ defmodule Mix.Tasks.App.TreeTest do
     Mix.Project.push AppDepsSample
 
     in_tmp context.test, fn ->
+      assert_raise Mix.Error, "could not find application app_deps_sample", fn ->
+        Mix.Tasks.App.Tree.run(["--pretty", "app_deps_sample"])
+      end
+
       load_apps()
       Mix.Tasks.App.Tree.run(["--pretty", "app_deps_sample"])
 
@@ -54,7 +58,7 @@ defmodule Mix.Tasks.App.TreeTest do
 
       assert_received {:mix_shell, :info, ["test"]}
       assert_received {:mix_shell, :info, ["└── app_deps_sample"]}
-      assert_received {:mix_shell, :info, ["    ├── app_deps2_sample"]}
+      assert_received {:mix_shell, :info, ["    └── app_deps2_sample"]}
       refute_received {:mix_shell, :info, ["    │   └── app_deps4_sample (included)"]}
       refute_received {:mix_shell, :info, ["    └── app_deps3_sample"]}
     end
@@ -64,6 +68,6 @@ defmodule Mix.Tasks.App.TreeTest do
     :ok = :application.load({:application, :app_deps4_sample, [vsn: '1.0.0', env: []]})
     :ok = :application.load({:application, :app_deps3_sample, [vsn: '1.0.0', env: []]})
     :ok = :application.load({:application, :app_deps2_sample, [vsn: '1.0.0', env: [], included_applications: [:app_deps4_sample]]})
-    :ok = :application.load({:application, :app_deps_sample, [vsn: '1.0.0', env: [], applications: [:app_deps2_sample, :app_deps3_sample]]})    
+    :ok = :application.load({:application, :app_deps_sample, [vsn: '1.0.0', env: [], applications: [:app_deps2_sample, :app_deps3_sample]]})
   end
 end

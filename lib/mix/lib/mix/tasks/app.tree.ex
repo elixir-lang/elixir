@@ -13,7 +13,7 @@ defmodule Mix.Tasks.App.Tree do
 
   ## Command line options
 
-    * `--exclude` - exclude dependencies which you do not want to see printed.
+    * `--exclude` - exclude applications which you do not want to see printed.
       `kernel`, `stdlib` and `compiler` are always excluded from the tree.
 
     * `--pretty` - use Unicode codepoints for formatting the tree.
@@ -41,11 +41,7 @@ defmodule Mix.Tasks.App.Tree do
 
     Mix.Utils.print_tree([{:normal, app}], fn {type, app} ->
       load(app)
-      if app in excluded do
-        false
-      else
-        {"#{app}#{type(type)}", children_for(app)}
-      end
+      {"#{app}#{type(type)}", children_for(app, excluded)}
     end, opts)
   end
 
@@ -53,12 +49,13 @@ defmodule Mix.Tasks.App.Tree do
     case Application.load(app) do
       :ok -> :ok
       {:error, {:already_loaded, ^app}} -> :ok
+      _ -> Mix.raise("could not find application #{app}")
     end
   end
 
-  defp children_for(app) do
-    apps = Application.spec(app, :applications)
-    included_apps = Application.spec(app, :included_applications)
+  defp children_for(app, excluded) do
+    apps = Application.spec(app, :applications) -- excluded
+    included_apps = Application.spec(app, :included_applications) -- excluded
     Enum.map(apps, &{:normal, &1}) ++ Enum.map(included_apps, &{:included, &1})
   end
 
