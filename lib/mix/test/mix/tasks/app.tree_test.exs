@@ -19,45 +19,44 @@ defmodule Mix.Tasks.App.TreeTest do
 
     in_tmp context.test, fn ->
       load_apps()
-      Mix.Tasks.App.Tree.run([])
+      Mix.Tasks.App.Tree.run(["--pretty"])
 
       assert_received {:mix_shell, :info, ["test"]}
-      assert_received {:mix_shell, :info, [" `-- app_deps_sample"]}
-      assert_received {:mix_shell, :info, ["    |-- app_deps2_sample"]}
-      assert_received {:mix_shell, :info, ["    |  `-- app_deps4_sample"]}
-      assert_received {:mix_shell, :info, ["    `-- app_deps3_sample"]}
+      assert_received {:mix_shell, :info, ["└── app_deps_sample"]}
+      assert_received {:mix_shell, :info, ["    ├── app_deps2_sample"]}
+      assert_received {:mix_shell, :info, ["    │   └── app_deps4_sample"]}
+      assert_received {:mix_shell, :info, ["    └── app_deps3_sample"]}
     end
   end
 
   @tag apps: [:test, :app_deps_sample, :app_deps2_sample, :app_deps3_sample, :app_deps4_sample]
-  test "shows the application dependency tree excluding application", context do
+  test "shows the given application dependency tree", context do
     Mix.Project.push AppDepsSample
 
     in_tmp context.test, fn ->
       load_apps()
-      Mix.Tasks.App.Tree.run(["--exclude", "app_deps2_sample"])
+      Mix.Tasks.App.Tree.run(["--pretty", "app_deps_sample"])
 
-      assert_received {:mix_shell, :info, ["test"]}
-      assert_received {:mix_shell, :info, [" `-- app_deps_sample"]}
-      refute_received {:mix_shell, :info, ["    |-- app_deps2_sample"]}
-      refute_received {:mix_shell, :info, ["    |  `-- app_deps4_sample"]}
-      assert_received {:mix_shell, :info, ["    `-- app_deps3_sample"]}
+      assert_received {:mix_shell, :info, ["app_deps_sample"]}
+      assert_received {:mix_shell, :info, ["├── app_deps2_sample"]}
+      assert_received {:mix_shell, :info, ["│   └── app_deps4_sample"]}
+      assert_received {:mix_shell, :info, ["└── app_deps3_sample"]}
     end
   end
 
   @tag apps: [:test, :app_deps_sample, :app_deps2_sample, :app_deps3_sample, :app_deps4_sample]
-  test "shows the application dependency tree excluding more applications", context do
+  test "shows the application dependency tree excluding applications", context do
     Mix.Project.push AppDepsSample
 
     in_tmp context.test, fn ->
       load_apps()
-      Mix.Tasks.App.Tree.run(["--exclude", "app_deps4_sample", "--exclude", "app_deps3_sample"])
+      Mix.Tasks.App.Tree.run(["--pretty", "--exclude", "app_deps4_sample", "--exclude", "app_deps3_sample"])
 
       assert_received {:mix_shell, :info, ["test"]}
-      assert_received {:mix_shell, :info, [" `-- app_deps_sample"]}
-      assert_received {:mix_shell, :info, ["    |-- app_deps2_sample"]}
-      refute_received {:mix_shell, :info, ["    |  `-- app_deps4_sample"]}
-      refute_received {:mix_shell, :info, ["    `-- app_deps3_sample"]}
+      assert_received {:mix_shell, :info, ["└── app_deps_sample"]}
+      assert_received {:mix_shell, :info, ["    ├── app_deps2_sample"]}
+      refute_received {:mix_shell, :info, ["    │   └── app_deps4_sample"]}
+      refute_received {:mix_shell, :info, ["    └── app_deps3_sample"]}
     end
   end
 
