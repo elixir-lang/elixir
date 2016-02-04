@@ -470,10 +470,11 @@ defmodule Path do
   end
 
   defp do_join("", right, os_type),   do: relative(right, os_type)
-  defp do_join(left, "", _os_type),   do: left
+  defp do_join("/", right, os_type),  do: "/" <> relative(right, os_type)
   defp do_join(left, right, os_type), do: remove_dirsep(left, os_type) <> "/" <> relative(right, os_type)
 
   defp remove_dirsep("", _os_type), do: ""
+  defp remove_dirsep("/", _os_type), do: "/"
   defp remove_dirsep(bin, os_type) do
     last = :binary.last(bin)
     if last == ?/ or (last == ?\\ and os_type == :win32) do
