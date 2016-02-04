@@ -2,6 +2,7 @@ defmodule Mix.Tasks.App.Tree do
   use Mix.Task
 
   @shortdoc "Prints the application tree"
+  @recursive true
 
   @moduledoc """
   Prints the application tree.

@@ -48,6 +48,17 @@ defmodule Mix.Tasks.Deps.TreeTest do
     end
   end
 
+  test "show the dependency tree for umbrella apps" do
+    in_fixture "umbrella_dep/deps/umbrella", fn ->
+      Mix.Project.in_project(:umbrella, ".", fn _ ->
+        Mix.Task.run "deps.tree", ["--pretty"]
+        assert_received {:mix_shell, :info, ["foo"]}
+        assert_received {:mix_shell, :info, ["bar"]}
+        assert_received {:mix_shell, :info, ["└── foo (../foo)"]}
+      end)
+    end
+  end
+
   test "shows the given dependency", context do
     Mix.Project.push ConvergedDepsApp
 
