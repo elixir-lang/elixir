@@ -131,7 +131,7 @@ defmodule ExUnit.Case do
   ### Reporting tags
 
   ExUnit also allows tags to be included in error reports, making
-  it easy for developers to see under which circunstances a test
+  it easy for developers to see under which circumstances a test
   was evaluated. To do so, you use the `:report` tag:
 
       @moduletag report: [:user_id]
