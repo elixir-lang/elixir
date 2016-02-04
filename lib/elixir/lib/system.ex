@@ -5,6 +5,11 @@ defmodule System do
   with the VM or the host system.
   """
 
+  @base_dir           Path.join([__DIR__, "..", "..", ".."])
+  @version_file       Path.join(@base_dir, "VERSION")
+  @git_dir            Path.join(@base_dir, ".git")
+  @git_head_file      Path.join(@git_dir, "HEAD")
+
   defp strip_re(iodata, pattern) do
     :re.replace(iodata, pattern, "", [return: :binary])
   end
@@ -19,26 +24,47 @@ defmodule System do
 
   # Read and strip the version from the VERSION file.
   defmacrop get_version do
-    case read_stripped(:filename.join(__DIR__, "../../../VERSION")) do
+    case read_stripped(@version_file) do
       ""   -> raise RuntimeError, message: "could not read the version number from VERSION"
       data -> data
     end
   end
 
-  # Tries to run "git rev-parse --short HEAD". In the case of success returns
-  # the short revision hash. If that is not available, tries to read the commit hash
+  # Tries to run "git rev-parse HEAD". In the case of success returns
+  # the revision hash. If that is not available, tries to read the commit hash
   # from .git/HEAD. If that fails, returns an empty string.
+  @spec get_revision :: String.t
   defmacrop get_revision do
-    dirpath = :filename.join(__DIR__, "../../../.git")
-    case :file.read_file_info(dirpath) do
+    case :file.read_file_info(@git_dir) do
       {:ok, _} ->
         if :os.find_executable('git') do
-          data = :os.cmd('git rev-parse --short HEAD')
-          strip_re(data, "\n")
+          :os.cmd('git rev-parse HEAD')
+          |> strip_re("\n")
         else
-          read_stripped(:filename.join(".git", "HEAD"))
+          read_stripped(@git_head_file)
         end
-      _ -> ""
+
+      _ ->
+        ""
+    end
+  end
+
+  defmacrop get_tag do
+    revision = get_revision
+
+    case :file.read_file_info(@git_dir) do
+      {:ok, _} when revision != "" ->
+        if :os.find_executable('git') do
+          "git tag --points-at " <> revision
+          |> String.to_char_list
+          |> :os.cmd
+          |> strip_re("\n")
+        else
+          ""
+        end
+
+      _ ->
+        ""
     end
   end
 
@@ -73,11 +99,15 @@ defmodule System do
   @doc """
   Elixir build information.
 
-  Returns a keyword list with Elixir version, git short revision hash and compilation date.
+  Returns a keyword list with Elixir version, compilation date, git tag and short revision hash.
   """
   @spec build_info() :: map
   def build_info do
-    %{version: version, date: get_date, revision: get_revision}
+    %{  version:  get_version,
+        date:     get_date,
+        revision: binary_part(get_revision, 0, 7),
+        tag:      get_tag,
+      }
   end
 
   @doc false

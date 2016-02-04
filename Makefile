@@ -11,6 +11,8 @@ INSTALL = install
 INSTALL_DIR = $(INSTALL) -m755 -d
 INSTALL_DATA = $(INSTALL) -m644
 INSTALL_PROGRAM = $(INSTALL) -m755
+GIT_REVISION = $(shell (git rev-parse HEAD 2> /dev/null) || (cat .git/HEAD 2> /dev/null | head -c 40))
+GIT_TAG = $(shell head="$(call GIT_REVISION)"; git tag --points-at $$head 2> /dev/null | tail -1)
 
 .PHONY: install compile erlang elixir build_plt clean_plt dialyze test clean install_man clean_man docs Docs.zip Precompiled.zip publish_zips publish_docs publish_mix
 .NOTPARALLEL: compile
@@ -19,7 +21,7 @@ INSTALL_PROGRAM = $(INSTALL) -m755
 
 define CHECK_ERLANG_RELEASE
 	$(Q) erl -noshell -eval 'io:fwrite("~s", [erlang:system_info(otp_release) >= "18"])' -s erlang halt | grep -q '^true'; \
-		if [ $$? != 0 ]; then                                                                                                \
+		if [ $$? != 0 ]; then                                                                                            \
 		   echo "At least Erlang 18.0 is required to build Elixir";                                                          \
 		   exit 1;                                                                                                           \
 		fi;
@@ -71,7 +73,7 @@ elixir: stdlib lib/eex/ebin/Elixir.EEx.beam mix ex_unit logger eex iex
 
 stdlib: $(KERNEL) VERSION
 $(KERNEL): lib/elixir/lib/*.ex lib/elixir/lib/*/*.ex lib/elixir/lib/*/*/*.ex
-	$(Q) if [ ! -f $(KERNEL) ]; then                    \
+	$(Q) if [ ! -f $(KERNEL) ]; then                  \
 		echo "==> bootstrap (compile)";                 \
 		$(ERL) -s elixir_compiler core -s erlang halt;  \
 	fi
@@ -124,10 +126,10 @@ clean:
 clean_exbeam:
 	$(Q) rm -f lib/*/ebin/Elixir.*.beam
 
-#==>  Create Documentation
+#==> Create Documentation
 
 LOGO_PATH = $(shell test -f ../docs/logo.png && echo "--logo ../docs/logo.png")
-SOURCE_REF = $(shell head="$$(git rev-parse HEAD)" tag="$$(git tag --points-at $$head | tail -1)" ; echo "$${tag:-$$head}\c")
+SOURCE_REF = $(shell tag="$(call GIT_TAG)" revision="$(call GIT_REVISION)"; echo "$${tag:-$$revision}\c")
 COMPILE_DOCS = bin/elixir ../ex_doc/bin/ex_doc "$(1)" "$(VERSION)" "lib/$(2)/ebin" -m "$(3)" -u "https://github.com/elixir-lang/elixir" --source-ref "$(call SOURCE_REF)" $(call LOGO_PATH) -o doc/$(2) -p http://elixir-lang.org/docs.html $(4)
 
 docs: compile ../ex_doc/bin/ex_doc docs_elixir docs_eex docs_mix docs_iex docs_ex_unit docs_logger
