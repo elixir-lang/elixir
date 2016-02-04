@@ -1,6 +1,6 @@
 defmodule Access do
   @moduledoc """
-  Key-based access to data structures via the `foo[bar]` syntax.
+  Key-based access to data structures via the `foo[bar]` bracket syntax.
 
   Elixir provides two syntaxes for accessing values. `user[:name]`
   is used by dynamic structures, like maps and keywords, while
