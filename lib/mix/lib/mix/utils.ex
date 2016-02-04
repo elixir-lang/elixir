@@ -143,7 +143,7 @@ defmodule Mix.Utils do
   must either return `{printed, children}` tuple or
   `false` if the given node must not be printed.
   """
-  @spec print_tree([term], (term -> {String.t, [term]} | false), Keyword.t) :: :ok
+  @spec print_tree([term], (term -> {String.t, [term]}), Keyword.t) :: :ok
   def print_tree(nodes, callback, opts \\ []) do
     pretty = Keyword.get(opts, :pretty, elem(:os.type, 0) != :win32)
     print_tree(nodes, [], pretty, callback)
@@ -151,13 +151,9 @@ defmodule Mix.Utils do
 
   defp print_tree([], _depth, _pretty, _callback), do: :ok
   defp print_tree([node | nodes], depth, pretty, callback) do
-    case callback.(node) do
-      {print, children} ->
-        Mix.shell.info("#{depth(pretty, depth)}#{prefix(pretty, depth, nodes)}#{print}")
-        print_tree(children, [(nodes != []) | depth], pretty, callback)
-      false ->
-        :ok
-    end
+    {print, children} =  callback.(node)
+    Mix.shell.info("#{depth(pretty, depth)}#{prefix(pretty, depth, nodes)}#{print}")
+    print_tree(children, [(nodes != []) | depth], pretty, callback)
     print_tree(nodes, depth, pretty, callback)
   end
 
