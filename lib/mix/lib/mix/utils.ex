@@ -137,46 +137,52 @@ defmodule Mix.Utils do
   end
 
   @doc """
-  Converts the given atom or binary to underscore format.
+  Prints the given tree according to the callback.
 
-  If an atom is given, it is assumed to be an Elixir module,
-  so it is converted to a binary and then processed.
-
-  ## Examples
-
-      iex> Mix.Utils.underscore "FooBar"
-      "foo_bar"
-
-      iex> Mix.Utils.underscore "Foo.Bar"
-      "foo/bar"
-
-      iex> Mix.Utils.underscore Foo.Bar
-      "foo/bar"
-
-  In general, `underscore` can be thought of as the reverse of
-  `camelize`, however, in some cases formatting may be lost:
-
-      iex> Mix.Utils.underscore "SAPExample"
-      "sap_example"
-
-      iex> Mix.Utils.camelize "sap_example"
-      "SapExample"
-
+  The callback will be invoked for each node and it
+  must either return `{printed, children}` tuple or
+  `false` if the given node must not be printed.
   """
+  @spec print_tree([term], (term -> {String.t, [term]} | false), Keyword.t) :: :ok
+  def print_tree(nodes, callback, opts \\ []) do
+    pretty = Keyword.get(opts, :pretty, elem(:os.type, 0) != :win32)
+    print_tree(nodes, [], pretty, callback)
+  end
+
+  defp print_tree([], _depth, _pretty, _callback), do: :ok
+  defp print_tree([node | nodes], depth, pretty, callback) do
+    case callback.(node) do
+      {print, children} ->
+        Mix.shell.info("#{depth(pretty, depth)}#{prefix(pretty, depth, nodes)}#{print}")
+        print_tree(children, [(nodes != []) | depth], pretty, callback)
+      false ->
+        :ok
+    end
+    print_tree(nodes, depth, pretty, callback)
+  end
+
+  defp depth(_pretty, []),    do: ""
+  defp depth(pretty, depth), do: Enum.reverse(depth) |> tl |> Enum.map(&entry(pretty, &1))
+
+  defp entry(false, true),  do: "|   "
+  defp entry(false, false), do: "    "
+  defp entry(true, true),   do: "│   "
+  defp entry(true, false),  do: "    "
+
+  defp prefix(false, [], _), do: ""
+  defp prefix(false, _, []), do: "`-- "
+  defp prefix(false, _, _),  do: "|-- "
+  defp prefix(true, [], _),  do: ""
+  defp prefix(true, _, []),  do: "└── "
+  defp prefix(true, _, _),   do: "├── "
+
+  @doc false
   # TODO: Deprecate by 1.4
   def underscore(value) do
     Macro.underscore(value)
   end
 
-  @doc """
-  Converts the given string to CamelCase format.
-
-  ## Examples
-
-      iex> Mix.Utils.camelize "foo_bar"
-      "FooBar"
-
-  """
+  @doc false
   # TODO: Deprecate by 1.4
   def camelize(value) do
     Macro.camelize(value)
