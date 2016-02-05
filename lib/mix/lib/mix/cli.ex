@@ -119,7 +119,7 @@ defmodule Mix.CLI do
 
   # Check for --help or --version in the args
   defp check_for_shortcuts([first_arg|_]) when first_arg in
-      ["--help", "-h", "-help"], do: :help
+      ["--help", "-h"], do: :help
 
   defp check_for_shortcuts([first_arg|_]) when first_arg in
       ["--version", "-v"], do: :version
