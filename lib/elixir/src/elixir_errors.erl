@@ -200,6 +200,10 @@ handle_file_error(File, {Line, erl_lint, {spec_fun_undefined, {M, F, A}}}) ->
   Message = io_lib:format("spec for undefined function ~ts.~ts/~B", [elixir_aliases:inspect(M), F, A]),
   do_raise(Line, File, 'Elixir.CompileError', elixir_utils:characters_to_binary(Message));
 
+handle_file_error(File, {beam_validator, Rest}) ->
+  Message = beam_validator:format_error(Rest),
+  do_raise(0, File, 'Elixir.CompileError', elixir_utils:characters_to_binary(Message));
+
 handle_file_error(File, {Line, Module, Desc}) ->
   Message = format_error(Module, Desc),
   do_raise(Line, File, 'Elixir.CompileError', elixir_utils:characters_to_binary(Message)).
