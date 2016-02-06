@@ -10,19 +10,25 @@ defmodule System do
   @git_dir            Path.join(@base_dir, ".git")
   @git_head_file      Path.join(@git_dir, "HEAD")
 
-  defp strip_re(iodata, pattern) do
-    :re.replace(iodata, pattern, "", [return: :binary])
+  @spec strip(iodata) :: String.t
+  defp strip(iodata) do
+    iodata
+    |> :re.replace("^[\s\r\n\t]+", "", [return: :binary])
+    |> :re.replace("[\s\r\n\t]+$", "", [return: :binary])
   end
 
+  @spec read_stripped(String.t) :: String.t
   defp read_stripped(path) do
-    case :file.read_file(path) do
+    case File.read(path) do
       {:ok, binary} ->
-        strip_re(binary, "^\s+|\s+$")
-      _ -> ""
+        strip(binary)
+      _ ->
+        ""
     end
   end
 
   # Read and strip the version from the VERSION file.
+  @spec get_version :: String.t
   defmacrop get_version do
     case read_stripped(@version_file) do
       ""   -> raise RuntimeError, message: "could not read the version number from VERSION"
@@ -38,8 +44,7 @@ defmodule System do
     case :file.read_file_info(@git_dir) do
       {:ok, _} ->
         if :os.find_executable('git') do
-          :os.cmd('git rev-parse HEAD')
-          |> strip_re("\n")
+          :os.cmd('git rev-parse HEAD') |> strip
         else
           read_stripped(@git_head_file)
         end
@@ -49,16 +54,16 @@ defmodule System do
     end
   end
 
+  @spec get_tag :: String.t
   defmacrop get_tag do
     revision = get_revision
 
     case :file.read_file_info(@git_dir) do
       {:ok, _} when revision != "" ->
         if :os.find_executable('git') do
-          "git tag --points-at " <> revision
-          |> String.to_char_list
+          'git tag --points-at ' ++ :unicode.characters_to_list(revision)
           |> :os.cmd
-          |> strip_re("\n")
+          |> strip
         else
           ""
         end
@@ -103,10 +108,10 @@ defmodule System do
   """
   @spec build_info() :: map
   def build_info do
-    %{  version:  get_version,
-        date:     get_date,
+    %{  date:     get_date,
         revision: binary_part(get_revision, 0, 7),
         tag:      get_tag,
+        version:  get_version,
       }
   end
 
@@ -116,11 +121,11 @@ defmodule System do
   def build_info(opt) when opt in [:version_build] do
     case opt do
       :version_build ->
-        build_info = System.build_info
-        {:ok, v} = Version.parse(build_info[:version])
+        info = build_info()
+        {:ok, v} = Version.parse(info[:version])
         case v.pre do
-          [] -> "#{build_info[:version]}"
-          _  -> "#{build_info[:version]} (#{build_info[:revision]})"
+          [] -> "#{info[:version]}"
+          _  -> "#{info[:version]} (#{info[:revision]})"
         end
     end
   end
