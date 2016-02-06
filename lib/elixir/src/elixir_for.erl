@@ -19,10 +19,12 @@ expand(Meta, Args, E) ->
     end,
 
   {Expr, Opts} =
-    case lists:keyfind(do, 1, Block) of
-      {do, Do} -> {Do, lists:keydelete(do, 1, Block)};
-      _ -> elixir_errors:compile_error(Meta, ?m(E, file),
-            "missing do keyword in for comprehension")
+    case lists:keytake(do, 1, Block) of
+      {value, {do, Do}, DoOpts} ->
+        {Do, DoOpts};
+      false ->
+        elixir_errors:compile_error(Meta, ?m(E, file),
+          "missing do keyword in for comprehension")
     end,
 
   {EOpts, EO}  = elixir_exp:expand(Opts, E),
