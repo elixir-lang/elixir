@@ -174,13 +174,13 @@ has_match_tuple(_) -> false.
 % its previous value.
 
 normalize_vars(Key, {Ref, Counter, _Safe},
-               #elixir_scope{vars=Vars, export_vars=ClauseVars, safe_by_default=SafeDefault} = S) ->
+               #elixir_scope{vars=Vars, export_vars=ClauseVars} = S) ->
   {Expr, Safe} =
     case maps:find(Key, Vars) of
       {ok, {PrevRef, _, _}} ->
         {{var, 0, PrevRef}, true};
       error ->
-        {{atom, 0, nil}, SafeDefault}
+        {{atom, 0, nil}, false}
     end,
 
   Value = {Ref, Counter, Safe},

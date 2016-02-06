@@ -89,10 +89,10 @@ translate({'cond', CondMeta, [[{do, Pairs}]]}, S) ->
 
 %% Case
 
-translate({'case', Meta, [Expr, KV]}, #elixir_scope{safe_by_default=Safe} = S) ->
+translate({'case', Meta, [Expr, KV]}, S) ->
   Clauses = elixir_clauses:get_pairs(do, KV, match),
-  {TExpr, NS} = translate(Expr, S#elixir_scope{safe_by_default=true}),
-  {TClauses, TS} = elixir_clauses:clauses(Meta, Clauses, NS#elixir_scope{safe_by_default=Safe}),
+  {TExpr, NS} = translate(Expr, S),
+  {TClauses, TS} = elixir_clauses:clauses(Meta, Clauses, NS),
   {{'case', ?ann(Meta), TExpr, TClauses}, TS};
 
 %% Try

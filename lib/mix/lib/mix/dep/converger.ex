@@ -76,14 +76,14 @@ defmodule Mix.Dep.Converger do
 
     # Run remote converger if one is available and rerun Mix's
     # converger with the new information
-    if not diverged? && (remote = Mix.RemoteConverger.get) do
+    remote = Mix.RemoteConverger.get
+
+    if not diverged? && remote do
       # If there is a lock, it means we are doing a get/update
       # and we need to hit the remote converger which do external
       # requests and what not. In case of deps.check, deps and so
       # on, there is no lock, so we won't hit this branch.
-      if lock_given? do
-        lock = remote.converge(deps, lock)
-      end
+      lock = if lock_given?, do: remote.converge(deps, lock), else: lock
 
       deps = deps
              |> Enum.reject(&remote.remote?(&1))

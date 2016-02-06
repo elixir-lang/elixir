@@ -378,32 +378,34 @@ defmodule URI do
 end
 
 defimpl String.Chars, for: URI do
-  def to_string(uri) do
-    scheme = uri.scheme
-
-    if scheme && (port = URI.default_port(scheme)) do
-      if uri.port == port, do: uri = %{uri | port: nil}
-    end
+  def to_string(%{scheme: scheme, port: port, path: path,
+                  query: query, fragment: fragment} = uri) do
+    uri =
+      case scheme && URI.default_port(scheme) do
+        ^port -> %{uri | port: nil}
+        _     -> uri
+      end
 
     # Based on http://tools.ietf.org/html/rfc3986#section-5.3
     authority = extract_authority(uri)
 
-    result = ""
-    if uri.scheme,   do: result = result <> uri.scheme <> ":"
-    if authority,    do: result = result <> "//" <> authority
-    if uri.path,     do: result = result <> uri.path
-    if uri.query,    do: result = result <> "?" <> uri.query
-    if uri.fragment, do: result = result <> "#" <> uri.fragment
-    result
+    ""
+    |> if_value(scheme,    & &1 <> scheme <> ":")
+    |> if_value(authority, & &1 <> "//" <> authority)
+    |> if_value(path,      & &1 <> path)
+    |> if_value(query,     & &1 <> "?" <> query)
+    |> if_value(fragment,  & &1 <> "#" <> fragment)
   end
 
   defp extract_authority(%{host: nil, authority: authority}) do
     authority
   end
   defp extract_authority(%{host: host, userinfo: userinfo, port: port}) do
-    authority = host
-    if userinfo, do: authority = userinfo <> "@" <> authority
-    if port, do: authority = authority <> ":" <> Integer.to_string(port)
-    authority
+    host
+    |> if_value(userinfo, & userinfo <> "@" <> &1)
+    |> if_value(port, & &1 <> ":" <> Integer.to_string(port))
   end
+
+  defp if_value(result, nil, _fun), do: result
+  defp if_value(result, _value, fun), do: fun.(result)
 end

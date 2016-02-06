@@ -88,8 +88,7 @@ defmodule Mix.CLI do
   end
 
   defp change_env(task) do
-    if is_nil(System.get_env("MIX_ENV")) &&
-       (env = preferred_cli_env(task)) do
+    if env = preferred_cli_env(task) do
       Mix.env(env)
       if project = Mix.Project.pop do
         %{name: name, file: file} = project
@@ -99,8 +98,12 @@ defmodule Mix.CLI do
   end
 
   defp preferred_cli_env(task) do
-    task = String.to_atom(task)
-    Mix.Project.config[:preferred_cli_env][task] || Mix.Task.preferred_cli_env(task)
+    if System.get_env("MIX_ENV") do
+      nil
+    else
+      task = String.to_atom(task)
+      Mix.Project.config[:preferred_cli_env][task] || Mix.Task.preferred_cli_env(task)
+    end
   end
 
   defp load_dot_config do

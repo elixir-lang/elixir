@@ -16,8 +16,7 @@
   export_vars=nil,         %% a dict of all variables defined in a particular clause
   extra_guards=nil,        %% extra guards from args expansion
   counter=#{},             %% a map counting the variables defined
-  file=(<<"nofile">>),     %% the current scope filename
-  safe_by_default=false    %% if case/cond/receive variables should be marked as safe by default
+  file=(<<"nofile">>)      %% the current scope filename
 }).
 
 -record(elixir_quote, {
