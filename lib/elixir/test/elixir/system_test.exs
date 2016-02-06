@@ -5,10 +5,26 @@ defmodule SystemTest do
   import PathHelpers
 
   test "build_info/0" do
-    assert is_map System.build_info
-    assert is_binary System.build_info[:version]
-    assert is_binary System.build_info[:revision]
-    assert is_binary System.build_info[:date]
+    build_info = System.build_info
+    assert is_map build_info
+    assert is_binary build_info[:date]
+    assert is_binary build_info[:revision]
+    assert is_binary build_info[:tag]
+    assert is_binary build_info[:version]
+
+    if build_info[:revision] != "" do
+      assert String.length(build_info[:revision]) == 7
+    end
+
+    version_file = Path.join([__DIR__, "..", "..", "..", "..", "VERSION"]) |> Path.expand
+    {:ok, version} = File.read(version_file)
+    assert build_info[:version] == String.strip(version)
+  end
+
+  test "build_info/1" do
+    info = System.build_info(:version_build)
+    assert is_binary info
+    assert info != ""
   end
 
   test "cwd/0" do
