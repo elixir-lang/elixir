@@ -50,7 +50,7 @@ expand(Meta, Args, E) ->
 
 expand({'<-', Meta, [Left, Right]}, E) ->
   {ERight, ER} = elixir_exp:expand(Right, E),
-  {ELeft, EL}  = elixir_exp_clauses:match(fun elixir_exp:expand/2, Left, E),
+  {[ELeft], EL}  = elixir_exp_clauses:head([Left], E),
   {{'<-', Meta, [ELeft, ERight]}, elixir_env:mergev(EL, ER)};
 expand(X, E) ->
   elixir_exp:expand(X, E).
