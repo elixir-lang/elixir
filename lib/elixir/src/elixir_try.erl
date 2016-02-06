@@ -146,6 +146,11 @@ erl_rescue_guard_for(Meta, Var, 'Elixir.CaseClauseError') ->
           erl_tuple_size(Meta, Var, 2),
           erl_record_compare(Meta, Var, case_clause));
 
+erl_rescue_guard_for(Meta, Var, 'Elixir.WithClauseError') ->
+  erl_and(Meta,
+          erl_tuple_size(Meta, Var, 2),
+          erl_record_compare(Meta, Var, with_clause));
+
 erl_rescue_guard_for(Meta, Var, 'Elixir.TryClauseError') ->
   erl_and(Meta,
           erl_tuple_size(Meta, Var, 2),
