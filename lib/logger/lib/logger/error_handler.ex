@@ -58,8 +58,8 @@ defmodule Logger.ErrorHandler do
     %{level: min_level, truncate: truncate,
       utc_log: utc_log?, translators: translators} = Logger.Config.__data__
 
-    if Logger.compare_levels(level, min_level) != :lt &&
-       (message = translate(translators, min_level, level, kind, data, truncate)) do
+    with log when log != :lt <- Logger.compare_levels(level, min_level),
+         {:ok, message} <- translate(translators, min_level, level, kind, data, truncate) do
       message = Logger.Utils.truncate(message, truncate)
 
       # Mode is always async to avoid clogging the error_logger
@@ -118,18 +118,18 @@ defmodule Logger.ErrorHandler do
 
   defp translate([{mod, fun}|t], min_level, level, kind, data, truncate) do
     case apply(mod, fun, [min_level, level, kind, data]) do
-      {:ok, chardata} -> chardata
-      :skip -> nil
+      {:ok, chardata} -> {:ok, chardata}
+      :skip -> :skip
       :none -> translate(t, min_level, level, kind, data, truncate)
     end
   end
 
   defp translate([], _min_level, _level, :format, {format, args}, truncate) do
     {format, args} = Logger.Utils.inspect(format, args, truncate)
-    :io_lib.format(format, args)
+    {:ok, :io_lib.format(format, args)}
   end
 
   defp translate([], _min_level, _level, :report, {_type, data}, _truncate) do
-    Kernel.inspect(data)
+    {:ok, Kernel.inspect(data)}
   end
 end

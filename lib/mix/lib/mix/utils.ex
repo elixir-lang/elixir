@@ -310,15 +310,16 @@ defmodule Mix.Utils do
 
   defp checksum({:ok, binary} = return, opts) do
     Enum.find_value @checksums, return, fn hash ->
-      if (expected = Keyword.get(opts, hash)) &&
-         (actual = hexhash(binary, hash)) &&
-         expected != actual do
-          {:checksum, """
-            Data does not match the given sha512 checksum.
+      with expected when expected != nil  <- opts[hash],
+           actual when actual != expected <- hexhash(binary, hash) do
+        {:checksum, """
+          Data does not match the given sha512 checksum.
 
-            Expected: #{expected}
-              Actual: #{actual}
-            """}
+          Expected: #{expected}
+            Actual: #{actual}
+          """}
+      else
+        _ -> nil
       end
     end
   end
