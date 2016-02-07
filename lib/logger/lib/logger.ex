@@ -551,13 +551,20 @@ defmodule Logger do
   defp macro_log(level, data, metadata, caller) do
     %{module: module, function: fun, file: file, line: line} = caller
 
-    caller = [module: module, function: form_fa(fun), file: file, line: line]
-    if app = Application.get_env(:logger, :compile_time_application) do
-      caller = [application: app] ++ caller
-    end
+    caller =
+      compile_time_application ++
+        [module: module, function: form_fa(fun), file: file, line: line]
 
     quote do
       Logger.bare_log(unquote(level), unquote(data), unquote(caller) ++ unquote(metadata))
+    end
+  end
+
+  defp compile_time_application do
+    if app = Application.get_env(:logger, :compile_time_application) do
+      [application: app]
+    else
+      []
     end
   end
 

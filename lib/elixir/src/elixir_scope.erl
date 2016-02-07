@@ -211,7 +211,7 @@ format_error({unused_match, Name, Kind}) ->
                 "give the variables different names", [Name, context_info(Kind), Name]);
 
 format_error({unsafe_var, Name}) ->
-  io_lib:format("the variable \"~ts\" is unsafe as it has been defined in a conditional clause, "
+  io_lib:format("the variable \"~ts\" is unsafe as it has been set in a conditional clause, "
                 "as part of a case/cond/receive/if/&&/||. Please rewrite the clauses so the value is "
                 "explicitly returned. For example:\n\n"
                 "    case int do\n"
