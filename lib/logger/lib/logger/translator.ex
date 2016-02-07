@@ -39,19 +39,21 @@ defmodule Logger.Translator do
       {'** Generic server ' ++ _, [name, last, state, reason]} ->
         msg = ["GenServer #{inspect name} terminating" | format_stop(reason)]
         if min_level == :debug do
-          msg = [msg, "\nLast message: #{inspect last, opts}" |
-                      "\nState: #{inspect state, opts}"]
+          {:ok, [msg, "\nLast message: #{inspect last, opts}" |
+                      "\nState: #{inspect state, opts}"]}
+        else
+          {:ok, msg}
         end
-        {:ok, msg}
 
       {'** gen_event handler ' ++ _, [name, manager, last, state, reason]} ->
         msg = ["GenEvent handler #{inspect name} installed in #{inspect manager} terminating"
-          | format_stop(reason)]
+                | format_stop(reason)]
         if min_level == :debug do
-          msg = [msg, "\nLast message: #{inspect last, opts}" |
-                      "\nState: #{inspect state, opts}"]
+          {:ok, [msg, "\nLast message: #{inspect last, opts}" |
+                      "\nState: #{inspect state, opts}"]}
+        else
+          {:ok, msg}
         end
-        {:ok, msg}
 
       {'** Task ' ++ _, [name, starter, function, args, reason]} ->
         msg = ["Task #{inspect name} started from #{inspect starter} terminating",
