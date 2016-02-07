@@ -479,6 +479,62 @@ defmodule KernelTest do
     end
   end
 
+  test "calling if with invalid keys" do
+    error_message = "invalid or duplicate keys for if, only \"do\" " <>
+    "and an optional \"else\" are permitted"
+    assert_raise ArgumentError, error_message, fn ->
+      Code.eval_string("if true, foo: 7")
+    end
+
+    assert_raise ArgumentError, error_message, fn ->
+      Code.eval_string("if true, do: 6, boo: 7")
+    end
+
+    assert_raise ArgumentError, error_message, fn ->
+      Code.eval_string("if true, do: 7, do: 6")
+    end
+
+    assert_raise ArgumentError, error_message, fn ->
+      Code.eval_string("if true, do: 8, else: 7, else: 6")
+    end
+
+    assert_raise ArgumentError, error_message, fn ->
+      Code.eval_string("if true, else: 6")
+    end
+
+    assert_raise ArgumentError, error_message, fn ->
+      Code.eval_string("if true, []")
+    end
+  end
+
+  test "calling unless with invalid keys" do
+    error_message = "invalid or duplicate keys for unless, only \"do\" " <>
+      "and an optional \"else\" are permitted"
+    assert_raise ArgumentError, error_message, fn ->
+      Code.eval_string("unless true, foo: 7")
+    end
+
+    assert_raise ArgumentError, error_message, fn ->
+      Code.eval_string("unless true, do: 6, boo: 7")
+    end
+
+    assert_raise ArgumentError, error_message, fn ->
+      Code.eval_string("unless true, do: 7, do: 6")
+    end
+
+    assert_raise ArgumentError, error_message, fn ->
+      Code.eval_string("unless true, do: 8, else: 7, else: 6")
+    end
+
+    assert_raise ArgumentError, error_message, fn ->
+      Code.eval_string("unless true, else: 6")
+    end
+
+    assert_raise ArgumentError, error_message, fn ->
+      Code.eval_string("unless true, []")
+    end
+  end
+
   defmodule PipelineOp do
     use ExUnit.Case, async: true
 
@@ -507,114 +563,6 @@ defmodule KernelTest do
 
     defp local(list) do
       Enum.map(list, &(&1 * 2))
-    end
-  end
-
-  defmodule IfScope do
-    use ExUnit.Case, async: true
-
-    test "variables on nested if" do
-      {a, b} = {nil, nil}
-
-      if true do
-        a = 1
-        if true do
-          b = 2
-        end
-      end
-
-      assert a == 1
-      assert b == 2
-    end
-
-    test "variables on sibling if" do
-      {a, b, c} = {nil, nil, nil}
-
-      if true do
-        a = 1
-
-        if true do
-          b = 2
-        end
-
-        if true do
-          c = 3
-        end
-      end
-
-      assert a == 1
-      assert b == 2
-      assert c == 3
-    end
-
-    test "variables counter on nested ifs" do
-      r = (fn() -> 3 end).() # supresses warning at (if r < 0...)
-      r = r - 1
-      r = r - 1
-      r = r - 1
-
-      if true do
-        r = r - 1
-        if r < 0, do: r = 0
-      end
-
-      assert r == 0
-    end
-
-    test "calling if with invalid keys" do
-      error_message = "invalid or duplicate keys for if, only \"do\" " <>
-      "and an optional \"else\" are permitted"
-      assert_raise ArgumentError, error_message, fn ->
-        Code.eval_string("if true, foo: 7")
-      end
-
-      assert_raise ArgumentError, error_message, fn ->
-        Code.eval_string("if true, do: 6, boo: 7")
-      end
-
-      assert_raise ArgumentError, error_message, fn ->
-        Code.eval_string("if true, do: 7, do: 6")
-      end
-
-      assert_raise ArgumentError, error_message, fn ->
-        Code.eval_string("if true, do: 8, else: 7, else: 6")
-      end
-
-      assert_raise ArgumentError, error_message, fn ->
-        Code.eval_string("if true, else: 6")
-      end
-
-      assert_raise ArgumentError, error_message, fn ->
-        Code.eval_string("if true, []")
-      end
-    end
-
-    test "calling unless with invalid keys" do
-      error_message = "invalid or duplicate keys for unless, only \"do\" " <>
-        "and an optional \"else\" are permitted"
-      assert_raise ArgumentError, error_message, fn ->
-        Code.eval_string("unless true, foo: 7")
-      end
-
-      assert_raise ArgumentError, error_message, fn ->
-        Code.eval_string("unless true, do: 6, boo: 7")
-      end
-
-      assert_raise ArgumentError, error_message, fn ->
-        Code.eval_string("unless true, do: 7, do: 6")
-      end
-
-      assert_raise ArgumentError, error_message, fn ->
-        Code.eval_string("unless true, do: 8, else: 7, else: 6")
-      end
-
-      assert_raise ArgumentError, error_message, fn ->
-        Code.eval_string("unless true, else: 6")
-      end
-
-      assert_raise ArgumentError, error_message, fn ->
-        Code.eval_string("unless true, []")
-      end
     end
   end
 

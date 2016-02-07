@@ -419,32 +419,9 @@ defmodule Kernel.Typespec do
     translate_spec(kind, spec, [], caller)
   end
 
-  defp translate_spec(kind, {:::, meta, [{name, _, args}, return]}, guard, caller) when is_atom(name) and name != ::: do
-    if is_atom(args), do: args = []
-
-    if kind == :macrocallback do
-      kind = :callback
-      name = :"MACRO-#{name}"
-      args = [quote(do: env :: Macro.Env.t)|args]
-    end
-
-    ensure_no_defaults! args
-
-    unless Keyword.keyword?(guard) do
-      guard = Macro.to_string(guard)
-      compile_error caller, "expected keywords as guard in type specification, got: #{guard}"
-    end
-
-    vars = Keyword.keys(guard)
-    constraints = guard_to_constraints(guard, vars, meta, caller)
-
-    spec = {:type, line(meta), :fun, fn_args(meta, args, return, vars, caller)}
-    if constraints != [] do
-      spec = {:type, line(meta), :bounded_fun, [spec, constraints]}
-    end
-
-    arity = length(args)
-    {{kind, {name, arity}, spec}, caller.line}
+  defp translate_spec(kind, {:::, meta, [{name, _, args}, return]}, guard, caller)
+      when is_atom(name) and name != ::: do
+    translate_spec(kind, meta, name, args, return, guard, caller)
   end
 
   defp translate_spec(_kind, {name, _meta, _args} = spec, _guard, caller) when is_atom(name) and name != ::: do
@@ -455,6 +432,31 @@ defmodule Kernel.Typespec do
   defp translate_spec(_kind, spec, _guard, caller) do
     spec = Macro.to_string(spec)
     compile_error caller, "invalid type specification: #{spec}"
+  end
+
+  defp translate_spec(kind, meta, name, args, return, guard, caller) when is_atom(args),
+    do: translate_spec(kind, meta, name, [], return, guard, caller)
+  defp translate_spec(:macrocallback, meta, name, args, return, guard, caller),
+    do: translate_spec(:callback, meta, :"MACRO-#{name}", [quote(do: env :: Macro.Env.t)|args], return, guard, caller)
+  defp translate_spec(kind, meta, name, args, return, guard, caller) do
+    ensure_no_defaults!(args)
+
+    unless Keyword.keyword?(guard) do
+      compile_error caller, "expected keywords as guard in type specification, " <>
+                            "got: #{Macro.to_string(guard)}"
+    end
+
+    vars = Keyword.keys(guard)
+    spec = {:type, line(meta), :fun, fn_args(meta, args, return, vars, caller)}
+
+    spec =
+      case guard_to_constraints(guard, vars, meta, caller) do
+        [] -> spec
+        constraints -> {:type, line(meta), :bounded_fun, [spec, constraints]}
+      end
+
+    arity = length(args)
+    {{kind, {name, arity}, spec}, caller.line}
   end
 
   defp ensure_no_defaults!(args) do
