@@ -104,7 +104,7 @@ defmodule MapSet do
   """
   @spec disjoint?(t, t) :: boolean
   def disjoint?(%MapSet{map: map1}, %MapSet{map: map2}) do
-    if map_size(map1) > map_size(map2), do: {map1, map2} = {map2, map1}
+    {map1, map2} = order_by_size(map1, map2)
     :maps.fold(fn value, _, _ ->
       if Map.has_key?(map2, value) do
         throw({:halt, false})
@@ -148,7 +148,7 @@ defmodule MapSet do
   """
   @spec intersection(t, t) :: t
   def intersection(%MapSet{map: map1}, %MapSet{map: map2}) do
-    if map_size(map1) > map_size(map2), do: {map1, map2} = {map2, map1}
+    {map1, map2} = order_by_size(map1, map2)
     map = :maps.fold(fn value, _, acc ->
       if Map.has_key?(map2, value) do
         Map.put(acc, value, true)
@@ -262,6 +262,9 @@ defmodule MapSet do
   def union(%MapSet{map: map1}, %MapSet{map: map2}) do
     %MapSet{map: Map.merge(map1, map2)}
   end
+
+  defp order_by_size(map1, map2) when map_size(map1) > map_size(map2), do: {map2, map1}
+  defp order_by_size(map1, map2), do: {map1, map2}
 
   defimpl Enumerable do
     def reduce(set, acc, fun), do: Enumerable.List.reduce(MapSet.to_list(set), acc, fun)

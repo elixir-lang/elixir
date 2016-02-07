@@ -1380,8 +1380,8 @@ defmodule Enum do
       Enum.reduce(enumerable, :first, fn
         entry, {{_, fun_min} = acc_min, {_, fun_max} = acc_max} ->
           fun_entry = fun.(entry)
-          if fun_entry < fun_min, do: acc_min = {entry, fun_entry}
-          if fun_entry > fun_max, do: acc_max = {entry, fun_entry}
+          acc_min = if fun_entry < fun_min, do: {entry, fun_entry}, else: acc_min
+          acc_max = if fun_entry > fun_max, do: {entry, fun_entry}, else: acc_max
           {acc_min, acc_max}
         entry, :first ->
           fun_entry = fun.(entry)

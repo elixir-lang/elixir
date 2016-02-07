@@ -204,11 +204,14 @@ defmodule StringIO do
       {:error, _} = error ->
         {error, s}
       {result, input} ->
-        if capture_prompt do
-          output = <<output::binary, IO.chardata_to_string(prompt)::binary>>
-        end
+        s =
+          if capture_prompt do
+            %{s | output: <<output::binary, IO.chardata_to_string(prompt)::binary>>}
+          else
+            s
+          end
 
-        {result, %{s | input: input, output: output}}
+        {result, %{s | input: input}}
     end
   end
 
@@ -252,11 +255,14 @@ defmodule StringIO do
       chars ->
         {result, input} = do_get_line(chars, encoding)
 
-        if capture_prompt do
-          output = <<output::binary, IO.chardata_to_string(prompt)::binary>>
-        end
+        s =
+          if capture_prompt do
+            %{s | output: <<output::binary, IO.chardata_to_string(prompt)::binary>>}
+          else
+            s
+          end
 
-        {result, %{s | input: input, output: output}}
+        {result, %{s | input: input}}
     end
   end
 
@@ -282,17 +288,20 @@ defmodule StringIO do
       chars ->
         {result, input, count} = do_get_until(chars, encoding, mod, fun, args)
 
-        if capture_prompt do
-          output = <<output::binary, :binary.copy(IO.chardata_to_string(prompt), count)::binary>>
-        end
-
         input =
           case input do
             :eof -> ""
             _ -> :unicode.characters_to_binary(input, encoding)
           end
 
-        {result, %{s | input: input, output: output}}
+        s =
+          if capture_prompt do
+            %{s | output: <<output::binary, :binary.copy(IO.chardata_to_string(prompt), count)::binary>>}
+          else
+            s
+          end
+
+        {result, %{s | input: input}}
     end
   end
 
@@ -311,11 +320,10 @@ defmodule StringIO do
     {line, rest} = collect_line(chars)
 
     case apply(mod, fun, [continuation, line | args]) do
-      {:done, result, rest1} ->
-        unless rest1 == :eof do
-          rest = rest1 ++ rest
-        end
+      {:done, result, :eof} ->
         {result, rest, count + 1}
+      {:done, result, extra} ->
+        {result, extra ++ rest, count + 1}
       {:more, next_continuation} ->
         do_get_until(rest, encoding, mod, fun, args, next_continuation, count + 1)
     end
