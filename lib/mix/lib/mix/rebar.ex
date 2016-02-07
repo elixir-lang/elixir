@@ -216,7 +216,6 @@ defmodule Mix.Rebar do
 
   defp parse_dep({app, req, source, opts}) do
     [scm, url | source] = Tuple.to_list(source)
-    mix_opts = [{scm, to_string(url)}]
 
     ref =
       case source do
@@ -228,12 +227,12 @@ defmodule Mix.Rebar do
         _                     -> []
       end
 
-    mix_opts = mix_opts ++ ref
+    compile =
+      if :proplists.get_value(:raw, opts, false),
+        do: [compile: false],
+        else: []
 
-    if :proplists.get_value(:raw, opts, false) do
-      mix_opts = mix_opts ++ [compile: false]
-    end
-
+    mix_opts = [{scm, to_string(url)}] ++ ref ++ compile
     {app, compile_req(req), mix_opts}
   end
 

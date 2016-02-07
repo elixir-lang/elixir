@@ -125,14 +125,8 @@ defmodule Mix.Tasks.Escript.Build do
         beam_paths =
           [files, deps_files(), core_files(escript_opts, language)]
           |> Stream.concat
-          |> prepare_beam_paths
-
-        if project[:consolidate_protocols] do
-          beam_paths =
-            consolidated_path <> "/*"
-            |> Path.wildcard()
-            |> prepare_beam_paths(beam_paths)
-        end
+          |> prepare_beam_paths()
+          |> Map.merge(consolidated_paths(project))
 
         tuples = gen_main(project, escript_mod, main, app, language) ++
                  read_beams(beam_paths)
@@ -203,8 +197,8 @@ defmodule Mix.Tasks.Escript.Build do
     end
   end
 
-  defp prepare_beam_paths(paths, map \\ %{}) do
-    Enum.into paths, map, &{Path.basename(&1), &1}
+  defp prepare_beam_paths(paths) do
+    for path <- paths, into: %{}, do: {Path.basename(path), path}
   end
 
   defp read_beams(items) do
@@ -214,7 +208,15 @@ defmodule Mix.Tasks.Escript.Build do
     end)
   end
 
-  defp consolidated_path, do: Mix.Tasks.Compile.Protocols.default_path
+  defp consolidated_paths(project) do
+    if project[:consolidate_protocols] do
+      Mix.Tasks.Compile.Protocols.default_path <> "/*"
+      |> Path.wildcard()
+      |> prepare_beam_paths()
+    else
+      %{}
+    end
+  end
 
   defp build_comment(user_comment) do
     "%% #{user_comment}\n"
