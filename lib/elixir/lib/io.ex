@@ -348,16 +348,7 @@ defmodule IO do
   end
 
   def chardata_to_string(list) when is_list(list) do
-    case :unicode.characters_to_binary(list) do
-      result when is_binary(result) ->
-        result
-
-      {:error, encoded, rest} ->
-        raise UnicodeConversionError, encoded: encoded, rest: rest, kind: :invalid
-
-      {:incomplete, encoded, rest} ->
-        raise UnicodeConversionError, encoded: encoded, rest: rest, kind: :incomplete
-    end
+    List.to_string(list)
   end
 
   @doc """
