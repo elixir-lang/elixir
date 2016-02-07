@@ -153,7 +153,7 @@ defmodule IO.ANSI.Docs do
 
   defp process_list(entry, line, rest, count, indent, options) do
     # The first list always win some extra padding
-    if indent == "", do: entry = "  " <> entry
+    entry = if indent == "", do: "  " <> entry, else: entry
     new_indent = indent <> String.duplicate(" ", String.length(entry))
 
     {contents, rest, done} = process_list_next(rest, count, byte_size(new_indent), [])

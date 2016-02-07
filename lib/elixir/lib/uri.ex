@@ -324,19 +324,16 @@ defmodule URI do
     destructure [_, _, scheme, _, authority, path, _, query, _, fragment], parts
     {userinfo, host, port} = split_authority(authority)
 
-    if authority do
-      authority = ""
-
-      if userinfo, do: authority = authority <> userinfo <> "@"
-      if host, do: authority = authority <> host
-      if port, do: authority = authority <> ":" <> Integer.to_string(port)
-    end
+    authority =
+      if authority do
+        ""
+        <> if(userinfo, do: userinfo <> "@", else: "")
+        <> (host || "")
+        <> if(port, do: ":" <> Integer.to_string(port), else: "")
+      end
 
     scheme = normalize_scheme(scheme)
-
-    if is_nil(port) and not is_nil(scheme) do
-      port = default_port(scheme)
-    end
+    port   = port || (scheme && default_port(scheme))
 
     %URI{
       scheme: scheme, path: path, query: query,

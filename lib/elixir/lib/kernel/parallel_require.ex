@@ -60,18 +60,21 @@ defmodule Kernel.ParallelRequire do
       {:DOWN, ref, :process, pid, status} ->
         tuple = {pid, ref}
         if tuple in waiting do
+          waiting = List.delete(waiting, tuple)
+
           case status do
             {:required, mods, file} ->
               callback.(file)
-              result  = mods ++ result
-              waiting = List.delete(waiting, tuple)
+              spawn_requires(files, waiting, callback, schedulers, mods ++ result)
             {:failure, kind, reason, stacktrace} ->
               :erlang.raise(kind, reason, stacktrace)
             other ->
               :erlang.raise(:exit, other, [])
           end
+        else
+          spawn_requires(files, waiting, callback, schedulers, result)
         end
-        spawn_requires(files, waiting, callback, schedulers, result)
+
       {:module_available, child, ref, _, _, _} ->
         send(child, {ref, :ack})
         spawn_requires(files, waiting, callback, schedulers, result)

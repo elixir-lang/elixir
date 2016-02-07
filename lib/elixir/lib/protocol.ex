@@ -387,10 +387,11 @@ defmodule Protocol do
   defp compile({protocol, code}, docs) do
     opts = if Code.compiler_options[:debug_info], do: [:debug_info], else: []
     {:ok, ^protocol, binary, _warnings} = :compile.forms(code, [:return|opts])
-    unless docs == :missing_chunk do
-      binary = :elixir_module.add_beam_chunk(binary, @docs_chunk, docs)
-    end
-    {:ok, binary}
+    {:ok,
+      case docs do
+        :missing_chunk -> binary
+        _ -> :elixir_module.add_beam_chunk(binary, @docs_chunk, docs)
+      end}
   end
 
   ## Definition callbacks

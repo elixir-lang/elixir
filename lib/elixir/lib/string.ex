@@ -921,13 +921,17 @@ defmodule String do
   end
 
   defp translate_replace_options(options) do
-    opts = if Keyword.get(options, :global) != false, do: [:global], else: []
+    global =
+      if Keyword.get(options, :global) != false,
+        do: [:global],
+        else: []
 
-    if insert = Keyword.get(options, :insert_replaced) do
-      opts = [{:insert_replaced, insert}|opts]
-    end
+    insert =
+      if insert = Keyword.get(options, :insert_replaced),
+        do: [{:insert_replaced, insert}],
+        else: []
 
-    opts
+    global ++ insert
   end
 
   @doc ~S"""
@@ -1442,8 +1446,8 @@ defmodule String do
   def slice(string, first..last) do
     {bytes, length} = do_acc_bytes(next_grapheme_size(string), [], 0)
 
-    if first < 0, do: first = length + first
-    if last < 0,  do: last  = length + last
+    first = add_if_negative(first, length)
+    last  = add_if_negative(last, length)
 
     if first < 0 or first > last or first > length do
       ""
@@ -1455,6 +1459,9 @@ defmodule String do
       binary_part(string, Enum.sum(start_bytes), Enum.sum(length_bytes))
     end
   end
+
+  defp add_if_negative(value, to_add) when value < 0, do: value + to_add
+  defp add_if_negative(value, _to_add), do: value
 
   defp do_acc_bytes({size, rest}, bytes, length) do
     do_acc_bytes(next_grapheme_size(rest), [size|bytes], length + 1)

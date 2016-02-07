@@ -161,11 +161,13 @@ defmodule Kernel.ParallelCompiler do
         defined = fn {k, m} -> on == m and k in [kind, :module] end
 
         # Oops, we already got it, do not put it on waiting.
-        if :lists.any(defined, result) do
-          send child, {ref, :ready}
-        else
-          waiting = [{kind, child, ref, on}|waiting]
-        end
+        waiting =
+          if :lists.any(defined, result) do
+            send child, {ref, :ready}
+            waiting
+          else
+            [{kind, child, ref, on}|waiting]
+          end
 
         spawn_compilers(entries, original, output, options, waiting, queued, schedulers, result)
 
