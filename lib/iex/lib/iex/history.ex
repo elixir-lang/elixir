@@ -43,9 +43,7 @@ defmodule IEx.History.State do
 
   defp prune(%{queue: q} = state, counter, limit, collect?) do
     {{:value, entry}, q} = :queue.out(q)
-    unless collect? do
-      collect? = has_binary(entry)
-    end
+    collect? = collect? || has_binary(entry)
     prune(%{state | queue: q}, counter + 1, limit, collect?)
   end
 
