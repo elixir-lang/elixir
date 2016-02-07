@@ -137,15 +137,10 @@ defmodule ExUnit.CLIFormatter do
     test_pl = pluralize(config.tests_counter, "test", "tests")
     failure_pl = pluralize(config.failures_counter, "failure", "failures")
 
-    message = "#{config.tests_counter} #{test_pl}, #{config.failures_counter} #{failure_pl}"
-
-    if config.skipped_counter > 0 do
-      message = message <> ", #{config.skipped_counter} skipped"
-    end
-
-    if config.invalids_counter > 0 do
-      message = message <>  ", #{config.invalids_counter} invalid"
-    end
+    message =
+      "#{config.tests_counter} #{test_pl}, #{config.failures_counter} #{failure_pl}"
+      |> if_true(config.skipped_counter > 0, & &1 <> ", #{config.skipped_counter} skipped")
+      |> if_true(config.invalids_counter > 0, & &1 <> ", #{config.invalids_counter} invalid")
 
     cond do
       config.failures_counter > 0 -> IO.puts failure(message, config)
@@ -155,6 +150,9 @@ defmodule ExUnit.CLIFormatter do
 
     IO.puts "\nRandomized with seed #{config.seed}"
   end
+
+  defp if_true(value, false, _fun), do: value
+  defp if_true(value, true, fun), do: fun.(value)
 
   defp print_filters([include: [], exclude: []]) do
     :ok

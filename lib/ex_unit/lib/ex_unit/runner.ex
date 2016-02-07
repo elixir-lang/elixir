@@ -223,10 +223,13 @@ defmodule ExUnit.Runner do
   defp run_test(config, %{tags: tags} = test, context) do
     EM.test_started(config.manager, test)
 
-    if is_nil(test.state) do
-      capture_log? = Map.get(tags, :capture_log, config.capture_log)
-      test = run_test(capture_log?, config, test, Map.merge(tags, context))
-    end
+    test = 
+      if is_nil(test.state) do
+        capture_log? = Map.get(tags, :capture_log, config.capture_log)
+        run_test(capture_log?, config, test, Map.merge(tags, context))
+      else
+        test
+      end
 
     EM.test_finished(config.manager, test)
   end
