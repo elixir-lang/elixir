@@ -514,13 +514,17 @@ defmodule IEx.Helpers do
 
   defp ls_print(path, list, width) do
     Enum.reduce(list, 0, fn(item, len) ->
-      if len >= 80 do
-        IO.puts ""
-        len = 0
-      end
+      len =
+        if len >= 80 do
+          IO.puts ""
+          0
+        else
+          len
+        end
       IO.write format_item(Path.join(path, item), String.ljust(item, width))
-      len+width
+      len + width
     end)
+
     IO.puts ""
   end
 

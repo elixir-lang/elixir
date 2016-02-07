@@ -175,15 +175,15 @@ has_match_tuple(_) -> false.
 
 normalize_vars(Key, {Ref, Counter, _Safe},
                #elixir_scope{vars=Vars, export_vars=ClauseVars} = S) ->
-  {Expr, Safe} =
+  Expr =
     case maps:find(Key, Vars) of
       {ok, {PrevRef, _, _}} ->
-        {{var, 0, PrevRef}, true};
+        {var, 0, PrevRef};
       error ->
-        {{atom, 0, nil}, false}
+        {atom, 0, nil}
     end,
 
-  Value = {Ref, Counter, Safe},
+  Value = {Ref, Counter, false},
 
   VS = S#elixir_scope{
     vars=maps:put(Key, Value, Vars),
