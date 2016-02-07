@@ -177,19 +177,15 @@ defmodule Macro do
     do_traverse(ast, acc, pre, post)
   end
 
+  defp do_traverse({form, meta, args}, acc, pre, post) when is_atom(form) do
+    {args, acc} = do_traverse_args(args, acc, pre, post)
+    post.({form, meta, args}, acc)
+  end
+
   defp do_traverse({form, meta, args}, acc, pre, post) do
-    unless is_atom(form) do
-      {form, acc} = pre.(form, acc)
-      {form, acc} = do_traverse(form, acc, pre, post)
-    end
-
-    unless is_atom(args) do
-      {args, acc} = Enum.map_reduce(args, acc, fn x, acc ->
-        {x, acc} = pre.(x, acc)
-        do_traverse(x, acc, pre, post)
-      end)
-    end
-
+    {form, acc} = pre.(form, acc)
+    {form, acc} = do_traverse(form, acc, pre, post)
+    {args, acc} = do_traverse_args(args, acc, pre, post)
     post.({form, meta, args}, acc)
   end
 
@@ -202,15 +198,23 @@ defmodule Macro do
   end
 
   defp do_traverse(list, acc, pre, post) when is_list(list) do
-    {list, acc} = Enum.map_reduce(list, acc, fn x, acc ->
-      {x, acc} = pre.(x, acc)
-      do_traverse(x, acc, pre, post)
-    end)
+    {list, acc} = do_traverse_args(list, acc, pre, post)
     post.(list, acc)
   end
 
   defp do_traverse(x, acc, _pre, post) do
     post.(x, acc)
+  end
+
+  defp do_traverse_args(args, acc, _pre, _post) when is_atom(args) do
+    {args, acc}
+  end
+
+  defp do_traverse_args(args, acc, pre, post) when is_list(args) do
+    Enum.map_reduce(args, acc, fn x, acc ->
+      {x, acc} = pre.(x, acc)
+      do_traverse(x, acc, pre, post)
+    end)
   end
 
   @doc """
@@ -543,11 +547,12 @@ defmodule Macro do
 
   # left when right
   def to_string({:when, _, [left, right]} = ast, fun) do
-    if right != [] and Keyword.keyword?(right) do
-      right = kw_list_to_string(right, fun)
-    else
-      right = fun.(ast, op_to_string(right, fun, :when, :right))
-    end
+    right =
+      if right != [] and Keyword.keyword?(right) do
+        kw_list_to_string(right, fun)
+      else
+        fun.(ast, op_to_string(right, fun, :when, :right))
+      end
 
     fun.(ast, op_to_string(left, fun, :when, :left) <> " when " <> right)
   end
@@ -739,9 +744,12 @@ defmodule Macro do
     {list, last} = :elixir_utils.split_last(args)
 
     if last != [] and Keyword.keyword?(last) do
-      args = Enum.map_join(list, ", ", &to_string(&1, fun))
-      if list != [], do: args = args <> ", "
-      args <> kw_list_to_string(last, fun)
+      prefix =
+        case list do
+          [] -> ""
+          _  -> Enum.map_join(list, ", ", &to_string(&1, fun)) <> ", "
+        end
+      prefix <> kw_list_to_string(last, fun)
     else
       Enum.map_join(args, ", ", &to_string(&1, fun))
     end
