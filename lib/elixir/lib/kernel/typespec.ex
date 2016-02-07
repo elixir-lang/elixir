@@ -76,7 +76,6 @@ defmodule Kernel.Typespec do
     end
   end
 
-
   @doc """
   Defines a macro callback.
   This macro is responsible for handling the attribute `@macrocallback`.
@@ -89,6 +88,36 @@ defmodule Kernel.Typespec do
   defmacro defmacrocallback(spec) do
     quote do
       Kernel.Typespec.defspec(:macrocallback, unquote(Macro.escape(spec, unquote: true)), __ENV__)
+    end
+  end
+
+  @doc """
+  Defines an optional callback.
+  This macro is responsible for handling the attribute `@optionalcallback`.
+
+  ## Examples
+
+      @optionalcallback add(number, number) :: number
+
+  """
+  defmacro defoptionalcallback(spec) do
+    quote do
+      Kernel.Typespec.defspec(:optionalcallback, unquote(Macro.escape(spec, unquote: true)), __ENV__)
+    end
+  end
+
+  @doc """
+  Defines an optional macro callback.
+  This macro is responsible for handling the attribute `@optionalmacrocallback`.
+
+  ## Examples
+
+      @optionalmacrocallback add(number, number) :: Macro.t
+
+  """
+  defmacro defoptionalmacrocallback(spec) do
+    quote do
+      Kernel.Typespec.defspec(:optionalmacrocallback, unquote(Macro.escape(spec, unquote: true)), __ENV__)
     end
   end
 
@@ -270,6 +299,19 @@ defmodule Kernel.Typespec do
     from_abstract_code(module, :callback)
   end
 
+  @doc """
+  Returns all optional callbacks available from the module's beam code.
+
+  The result is returned as a list of name and arity tuples.
+
+  The module must have a corresponding beam file
+  which can be located by the runtime system.
+  """
+  @spec beam_optional_callbacks(module | binary) :: [[{atom, arity}]] | nil
+  def beam_optional_callbacks(module) when is_atom(module) or is_binary(module) do
+    from_abstract_code(module, :optional_callbacks)
+  end
+
   defp from_abstract_code(module, kind) do
     case abstract_code(module) do
       {:ok, abstract_code} ->
@@ -318,7 +360,8 @@ defmodule Kernel.Typespec do
   ## Macro callbacks
 
   @doc false
-  def defspec(kind, expr, caller) when kind in [:callback, :macrocallback] do
+  def defspec(kind, expr, caller) when kind in [:callback, :macrocallback,
+                                                :optionalcallback, :optionalmacrocallback] do
     case spec_to_signature(expr) do
       {name, arity} ->
         store_callbackdoc(caller, caller.module, kind, name, arity)
@@ -424,6 +467,12 @@ defmodule Kernel.Typespec do
 
     if kind == :macrocallback do
       kind = :callback
+      name = :"MACRO-#{name}"
+      args = [quote(do: env :: Macro.Env.t)|args]
+    end
+
+    if kind == :optionalmacrocallback do
+      kind = :optionalcallback
       name = :"MACRO-#{name}"
       args = [quote(do: env :: Macro.Env.t)|args]
     end

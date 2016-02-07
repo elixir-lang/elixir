@@ -80,7 +80,7 @@ do_compile(Line, Module, Block, Vars, E) ->
 
     {All, Forms0} = functions_form(Line, File, Module, Def, Defp,
                                    Defmacro, Defmacrop, Exports, Functions),
-    Forms1 = specs_form(Data, Defmacro, Defmacrop, Unreachable, Forms0),
+    Forms1 = specs_form(File, Data, Defmacro, Defmacrop, Unreachable, Forms0),
     Forms2 = types_form(Line, File, Data, Forms1),
     Forms3 = attributes_form(Line, File, Data, Forms2),
 
@@ -164,7 +164,8 @@ build(Line, File, Module, Docs, Lexical) ->
 
   Attributes = [behaviour, on_load, compile, external_resource, dialyzer],
   ets:insert(Data, {?acc_attr, [before_compile, after_compile, on_definition, derive,
-                                spec, type, typep, opaque, callback, macrocallback|Attributes]}),
+                                spec, type, typep, opaque, callback, macrocallback, optionalcallback,
+                                optionalmacrocallback|Attributes]}),
   ets:insert(Data, {?persisted_attr, [vsn|Attributes]}),
   ets:insert(Data, {?lexical_attr, Lexical}),
 
@@ -276,12 +277,14 @@ export_types_attributes(Types, Forms) ->
 
 %% Specs
 
-specs_form(Data, Defmacro, Defmacrop, Unreachable, Forms) ->
+specs_form(File, Data, Defmacro, Defmacrop, Unreachable, Forms) ->
   case elixir_compiler:get_opt(internal) of
     false ->
       Specs0 = get_typespec(Data, spec) ++
                get_typespec(Data, callback) ++
-               get_typespec(Data, macrocallback),
+               get_typespec(Data, macrocallback) ++
+               get_typespec(Data, optionalcallback) ++
+               get_typespec(Data, optionalmacrocallback),
       Specs1 = ['Elixir.Kernel.Typespec':translate_spec(Kind, Expr, Caller) ||
                 {Kind, Expr, Caller} <- Specs0],
       Specs2 = lists:flatmap(fun(Spec) ->
@@ -290,20 +293,47 @@ specs_form(Data, Defmacro, Defmacrop, Unreachable, Forms) ->
       Specs3 = lists:filter(fun({{_Kind, NameArity, _Spec}, _Line}) ->
                                 not lists:member(NameArity, Unreachable)
                             end, Specs2),
-      specs_attributes(Forms, Specs3);
+      specs_attributes(File, Forms, Specs3);
     true ->
       Forms
   end.
 
-specs_attributes(Forms, Specs) ->
+specs_attributes(File, Forms, Specs) ->
   Dict = lists:foldl(fun({{Kind, NameArity, Spec}, Line}, Acc) ->
                        dict:append({Kind, NameArity}, {Spec, Line}, Acc)
                      end, dict:new(), Specs),
   dict:fold(fun({Kind, NameArity}, ExprsLines, Acc) ->
     {Exprs, Lines} = lists:unzip(ExprsLines),
     Line = lists:min(Lines),
-    [{attribute, Line, Kind, {NameArity, Exprs}}|Acc]
+    case Kind of
+      callback ->
+        add_callback(File, Line, NameArity, Exprs, Acc, []);
+      optionalcallback ->
+        Acc2 = [{attribute, Line, optional_callbacks, [NameArity]}|Acc],
+        add_callback(File, Line, NameArity, Exprs, Acc2, []);
+      _ ->
+        [{attribute, Line, Kind, {NameArity, Exprs}}|Acc]
+    end
   end, Forms, Dict).
+
+add_callback(_File, Line, NameArity, Exprs, [], Acc) ->
+  [{attribute, Line, callback, {NameArity, Exprs}}|lists:reverse(Acc)];
+
+add_callback(File, Line, NameArity, Exprs, [{attribute, Line2, callback, {NameArity, Exprs2}}|Rest], Acc) ->
+  WarnLine = max(Line, Line2),
+  elixir_errors:form_warn([{line, WarnLine}], File, ?MODULE, callback_defined(NameArity)),
+  ActualLine = min(Line, Line2),
+  ActualExprs = Exprs ++ Exprs2,
+  lists:reverse(Acc, [{attribute, ActualLine, callback, {NameArity, ActualExprs}}|Rest]);
+
+add_callback(File, Line, NameArity, Exprs, [Head|Rest], Acc) ->
+  add_callback(File, Line, NameArity, Exprs, Rest, [Head|Acc]).
+
+callback_defined({Name, Arity}) ->
+  case atom_to_list(Name) of
+    "MACRO-" ++ Name2 -> {macrocallback_defined, {list_to_atom(Name2), Arity-1}};
+    _ -> {callback_defined, {Name, Arity}}
+  end.
 
 translate_macro_spec({{spec, NameArity, Spec}, Line}, Defmacro, Defmacrop) ->
   case lists:member(NameArity, Defmacrop) of
@@ -319,7 +349,10 @@ translate_macro_spec({{spec, NameArity, Spec}, Line}, Defmacro, Defmacrop) ->
   end;
 
 translate_macro_spec({{callback, NameArity, Spec}, Line}, _Defmacro, _Defmacrop) ->
-  [{{callback, NameArity, Spec}, Line}].
+  [{{callback, NameArity, Spec}, Line}];
+
+translate_macro_spec({{optionalcallback, NameArity, Spec}, Line}, _Defmacro, _Defmacrop) ->
+  [{{optionalcallback, NameArity, Spec}, Line}].
 
 spec_for_macro({type, Line, 'fun', [{type, _, product, Args}|T]}) ->
   NewArgs = [{type, Line, term, []}|Args],
@@ -539,6 +572,10 @@ format_error({unused_doc, typedoc}) ->
   "@typedoc provided but no type follows it";
 format_error({unused_doc, doc}) ->
   "@doc provided but no definition follows it";
+format_error({callback_defined, {Name, Arity}}) ->
+  io_lib:format("callback ~ts/~B defined as optionalcallback and callback", [Name, Arity]);
+format_error({macrocallback_defined, {Name, Arity}}) ->
+  io_lib:format("macrocallback ~ts/~B defined as optionalmacrocallback and macrocallback", [Name, Arity]);
 format_error({internal_function_overridden, {Name, Arity}}) ->
   io_lib:format("function ~ts/~B is internal and should not be overridden", [Name, Arity]);
 format_error({invalid_module, Module}) ->

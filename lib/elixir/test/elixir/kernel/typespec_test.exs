@@ -39,6 +39,11 @@ defmodule Kernel.TypespecTest do
     |> Enum.sort
   end
 
+  defp optional_callbacks(module) do
+    Kernel.Typespec.beam_optional_callbacks(module)
+    |> Enum.sort
+  end
+
   test "invalid type specification" do
     assert_raise CompileError, ~r"invalid type specification: mytype = 1", fn ->
       test_module do
@@ -624,14 +629,58 @@ defmodule Kernel.TypespecTest do
     @callback guarded(my_var) :: my_var when my_var: binary
     @callback orr(atom | integer) :: atom
     @callback literal(123, {atom}, :atom, [integer], true) :: atom
+    @optionalcallback optional() :: atom
     @macrocallback last(integer) :: Macro.t
   end
 
   test "callbacks" do
     assert Sample.behaviour_info(:callbacks) ==
-           [first: 1, guarded: 1, "MACRO-last": 2, literal: 5, orr: 1, foo: 2, bar: 2]
+           [first: 1, guarded: 1, "MACRO-last": 2, literal: 5, optional: 0, orr: 1, foo: 2, bar: 2]
+
+    assert Sample.behaviour_info(:optional_callbacks) ==
+           [optional: 0]
   end
 
+  test "warns when optionalcallback has callback defined with same name and arity" do
+    output = ExUnit.CaptureIO.capture_io :stderr, fn ->
+      module = test_module do
+        @callback myfun(integer) :: integer
+        @optionalcallback myfun(char_list) :: char_list
+      end
+
+      assert [[myfun: 1]] == optional_callbacks(module)
+      
+      assert [{{:myfun, 1}, [
+             {:type, _, :fun, [{:type, _, :product, [
+               {:remote_type, _, [{:atom, _, :elixir}, {:atom, _, :char_list}, []]}]},
+               {:remote_type, _, [{:atom, _, :elixir}, {:atom, _, :char_list}, []]}]},
+             {:type, _, :fun, [{:type, _, :product, [{:type, _, :integer, []}]}, {:type, _, :integer, []}]}]}] =
+           callbacks(module)
+    end
+
+    assert output =~ "warning: callback myfun/1 defined as optionalcallback and callback"
+  end
+
+  test "warns when optionalmacrocallback has macrocallback defined with same name and arity" do
+    output = ExUnit.CaptureIO.capture_io :stderr, fn ->
+      module = test_module do
+        @macrocallback myfun(integer) :: Macro.t
+        @optionalmacrocallback myfun(char_list) :: Macro.t
+      end
+
+      assert [["MACRO-myfun": 2]] == optional_callbacks(module)
+      assert [{{:"MACRO-myfun", 2},
+             [{:type, _, :fun, [{:type, _, :product,
+                 [{:ann_type, _, [{:var, _, :env}, {:remote_type, _, [{:atom, _, Macro.Env}, {:atom, _, :t}, []]}]},
+                  {:remote_type, _, [{:atom, _, :elixir}, {:atom, _, :char_list}, []]}]}, {:remote_type, _, [{:atom, _, Macro}, {:atom, _, :t}, []]}]},
+              {:type, 659, :fun,
+               [{:type, _, :product, [{:ann_type, _, [{:var, _, :env}, {:remote_type, _, [{:atom, _, Macro.Env}, {:atom, _, :t}, []]}]}, {:type, _, :integer, []}]},
+                {:remote_type, _, [{:atom, _, Macro}, {:atom, _, :t}, []]}]}]}] =
+            callbacks(module)
+    end
+
+    assert output =~ "warning: macrocallback myfun/1 defined as optionalmacrocallback and macrocallback"
+  end
   test "default is not supported" do
     assert_raise ArgumentError, fn ->
       defmodule WithDefault do
