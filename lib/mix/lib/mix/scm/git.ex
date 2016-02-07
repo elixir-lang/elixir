@@ -95,30 +95,31 @@ defmodule Mix.SCM.Git do
       location = opts[:git]
       update_origin(location)
 
-      command = "--git-dir=.git fetch --force"
-
-      if {1, 7, 1} <= git_version() do
-        command = command <> " --progress"
-      end
-
-      if opts[:tag] do
-        command = command <> " --tags"
-      end
+      command = IO.iodata_to_binary(["--git-dir=.git fetch --force",
+                                     progress_switch(git_version()),
+                                     tags_switch(opts[:tag])])
 
       git!(command)
       do_checkout(opts)
     end
   end
 
+  defp progress_switch(version) when {1, 7, 1} <= version, do: " --progress"
+  defp progress_switch(_),                                 do: ""
+
+  defp tags_switch(nil), do: ""
+  defp tags_switch(_), do: " --tags"
+
   ## Helpers
 
-  # TODO: make it raise (at v2.0?)
   defp validate_git_options(opts) do
-    if Enum.count(opts, fn({key, _}) -> key in [:branch, :ref, :tag] end) > 1 do
-      Mix.shell.error "warning: you should specify only one of branch, ref or tag, and only once. " <>
-                      "Error on git dependency: #{opts[:git]}"
+    case Keyword.take(opts, [:branch, :ref, :tag]) do
+      []  -> opts
+      [_] -> opts
+      _   ->
+        Mix.raise "you should specify only one of branch, ref or tag, and only once. " <>
+                  "Error on git dependency: #{opts[:git]}"
     end
-    opts
   end
 
   defp do_checkout(opts) do

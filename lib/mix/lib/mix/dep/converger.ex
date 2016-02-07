@@ -160,17 +160,17 @@ defmodule Mix.Dep.Converger do
         # They must be rejected after every all iteration.
         all(t, [dep|acc], upper_breadths, current_breadths, callback, rest, lock, env, cache)
       true ->
-        dep =
+        {dep, rest, lock} =
           case cache.(dep) do
             {:loaded, cached_dep} ->
-              cached_dep
+              {cached_dep, rest, lock}
             {:unloaded, dep, children} ->
               {dep, rest, lock} = callback.(put_lock(dep, lock), rest, lock)
 
               # After we invoke the callback (which may actually check out the
               # dependency), we load the dependency including its latest info
               # and children information.
-              Mix.Dep.Loader.load(dep, children)
+              {Mix.Dep.Loader.load(dep, children), rest, lock}
           end
 
         dep = %{dep | deps: reject_non_fullfilled_optional(dep.deps, current_breadths)}

@@ -442,17 +442,16 @@ defmodule Mix.Project do
       file = Path.expand("mix.exs")
       old_proj = get()
 
-      new_proj =
+      {new_proj, file} =
         if File.regular?(file) do
           _ = Code.load_file(file)
           case get() do
             ^old_proj -> Mix.raise "Could not find a Mix project at #{file}"
-            new_proj  -> new_proj
+            new_proj  -> {new_proj, file}
           end
         else
-          file = "nofile"
           push(nil, file, app)
-          nil
+          {nil, "nofile"}
         end
 
       Mix.ProjectStack.write_cache(app, {new_proj, file})

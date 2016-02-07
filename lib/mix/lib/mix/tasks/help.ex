@@ -162,13 +162,12 @@ defmodule Mix.Tasks.Help do
 
   defp build_task_doc_list(modules) do
     Enum.reduce modules, {[], 0}, fn module, {docs, max} ->
-      doc = Mix.Task.shortdoc(module)
-      if doc do
+      if doc = Mix.Task.shortdoc(module) do
         task = "mix " <> Mix.Task.task_name(module)
-        docs = [{task, doc} | docs]
-        max  = max(byte_size(task), max)
+        {[{task, doc} | docs], max(byte_size(task), max)}
+      else
+        {docs, max}
       end
-      {docs, max}
     end
   end
 end

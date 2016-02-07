@@ -139,10 +139,13 @@ defmodule Mix.Dep.Loader do
 
     {scm, opts} = get_scm(app, opts)
 
-    if !scm && Mix.Hex.ensure_installed?(app) do
-      _ = Mix.Hex.start()
-      {scm, opts} = get_scm(app, opts)
-    end
+    {scm, opts} =
+      if !scm && Mix.Hex.ensure_installed?(app) do
+        _ = Mix.Hex.start()
+        get_scm(app, opts)
+      else
+        {scm, opts}
+      end
 
     unless scm do
       Mix.raise "Could not find an SCM for dependency #{inspect app} from #{inspect Mix.Project.get}"
@@ -233,9 +236,12 @@ defmodule Mix.Dep.Loader do
 
   defp mix_dep(%Mix.Dep{opts: opts} = dep, nil) do
     Mix.Dep.in_dependency(dep, fn _ ->
-      if Mix.Project.umbrella? do
-        opts = Keyword.put_new(opts, :app, false)
-      end
+      opts =
+        if Mix.Project.umbrella? do
+          Keyword.put_new(opts, :app, false)
+        else
+          opts
+        end
 
       child_opts =
         cond do
