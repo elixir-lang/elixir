@@ -92,6 +92,7 @@ Built-in type           | Defined as
 `module()`              | `atom()` \| `tuple()`
 `arity()`               | `0..255`
 `mfa()`                 | `{atom(), atom(), arity()}`
+`identifier()`          | `pid()` \| `port()` \| `reference()`
 `node()`                | `atom()`
 `timeout()`             | `:infinity` \| `non_neg_integer()`
 `no_return()`           | `none()`
