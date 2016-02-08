@@ -36,7 +36,9 @@ defmodule IEx.Case do
 
   setup do
     on_exit fn ->
-      IEx.Config.put_config(@iex_env)
+      env = @iex_env
+      Enum.each(env, fn {k,_} -> Application.delete_env(:iex, k) end)
+      IEx.configure(env)
     end
     :ok
   end
