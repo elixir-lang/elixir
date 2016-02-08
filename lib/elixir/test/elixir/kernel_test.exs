@@ -390,7 +390,7 @@ defmodule KernelTest do
     end
 
     assert_raise UndefinedFunctionError, fn ->
-      delete_in(struct(Sample, []), [:name])
+      pop_in(struct(Sample, []), [:name])
     end
   end
 
@@ -452,52 +452,74 @@ defmodule KernelTest do
     end
   end
 
-  test "delete_in/2" do
+  test "pop_in/2" do
     users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
 
-    assert delete_in(users, ["john", :age]) ==
-           %{"john" => %{}, "meg" => %{age: 23}}
+    assert pop_in(users, ["john", :age]) ==
+           {27, %{"john" => %{}, "meg" => %{age: 23}}}
 
-    assert delete_in(users, ["bob", :age]) ==
-          %{"john" => %{age: 27}, "meg" => %{age: 23}}
+    assert pop_in(users, ["bob", :age]) ==
+           {nil, %{"john" => %{age: 27}, "meg" => %{age: 23}}}
 
-    assert delete_in([], [:foo, :bar]) == []
+    assert pop_in([], [:foo, :bar]) == {nil, []}
 
     assert_raise FunctionClauseError, fn ->
-      delete_in(users, [])
+      pop_in(users, [])
     end
   end
 
-  test "delete_in/1" do
+  test "pop_in/2 with paths" do
+    map = %{"fruits" => ["banana", "apple", "orange"]}
+    assert pop_in(map, ["fruits", by_index(0)]) ==
+           {"banana", %{"fruits" => ["apple", "orange"]}}
+    assert pop_in(map, ["fruits", by_index(3)]) ==
+           {nil, map}
+
+    map = %{"fruits" => [%{name: "banana"}, %{name: "apple"}]}
+    assert pop_in(map, ["fruits", by_index(0), :name]) ==
+           {"banana", %{"fruits" => [%{}, %{name: "apple"}]}}
+    assert pop_in(map, ["fruits", by_index(3), :name]) ==
+           {nil, map}
+  end
+
+  test "pop_in/1" do
     users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
 
-    assert delete_in(users["john"][:age]) ==
-           %{"john" => %{}, "meg" => %{age: 23}}
-    assert delete_in(users["john"][:name]) ==
-           %{"john" => %{age: 27}, "meg" => %{age: 23}}
-    assert delete_in(users["bob"][:age]) ==
-           %{"john" => %{age: 27}, "meg" => %{age: 23}}
+    assert pop_in(users["john"][:age]) ==
+           {27, %{"john" => %{}, "meg" => %{age: 23}}}
+    assert pop_in(users["john"][:name]) ==
+           {nil, %{"john" => %{age: 27}, "meg" => %{age: 23}}}
+    assert pop_in(users["bob"][:age]) ==
+           {nil, %{"john" => %{age: 27}, "meg" => %{age: 23}}}
 
     users = %{john: [age: 27], meg: [age: 23]}
 
-    assert delete_in(users.john[:age]) ==
-           %{john: [], meg: [age: 23]}
-    assert delete_in(users.john[:name]) ==
-           %{john: [age: 27], meg: [age: 23]}
+    assert pop_in(users.john[:age]) ==
+           {27, %{john: [], meg: [age: 23]}}
+    assert pop_in(users.john[:name]) ==
+           {nil, %{john: [age: 27], meg: [age: 23]}}
 
-    assert delete_in([][:foo][:bar]) == []
-    assert_raise KeyError, fn -> delete_in(users.bob[:age]) end
+    assert pop_in([][:foo][:bar]) == {nil, []}
+    assert_raise KeyError, fn -> pop_in(users.bob[:age]) end
   end
 
-  test "delete_in/1/2 with nils" do
+  test "pop_in/1/2 with nils" do
     users = %{"john" => nil, "meg" => %{age: 23}}
-    assert delete_in(users["john"][:age]) ==
-           %{"meg" => %{age: 23}}
-    assert delete_in(users, ["john", :age]) ==
-           %{"meg" => %{age: 23}}
+    assert pop_in(users["john"][:age]) ==
+           {nil, %{"meg" => %{age: 23}}}
+    assert pop_in(users, ["john", :age]) ==
+           {nil, %{"meg" => %{age: 23}}}
 
-    assert delete_in(nil["john"][:age]) == nil
-    assert delete_in(nil, ["john", :age]) == nil
+    users = %{john: nil, meg: %{age: 23}}
+    assert pop_in(users.john[:age]) ==
+           {nil, %{john: nil, meg: %{age: 23}}}
+    assert pop_in(users, [:john, :age]) ==
+           {nil, %{meg: %{age: 23}}}
+
+    x = nil
+    assert_raise ArgumentError, fn -> pop_in(x["john"][:age]) end
+    assert_raise ArgumentError, fn -> pop_in(nil["john"][:age]) end
+    assert_raise ArgumentError, fn -> pop_in(nil, ["john", :age]) end
   end
 
   test "paths" do
@@ -526,8 +548,11 @@ defmodule KernelTest do
       :get, data, next ->
         next.(Enum.at(data, index))
       :get_and_update, data, next ->
-        {get, update} = next.(Enum.at(data, index))
-        {get, List.replace_at(data, index, update)}
+        current = Enum.at(data, index)
+        case next.(current) do
+          {get, update} -> {get, List.replace_at(data, index, update)}
+          :pop -> {current, List.delete_at(data, index)}
+        end
     end
   end
 

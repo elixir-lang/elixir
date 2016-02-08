@@ -380,9 +380,9 @@ defmodule Map do
   """
   @spec pop(map, key, value) :: {value, map}
   def pop(map, key, default \\ nil) do
-    case fetch(map, key) do
-      {:ok, value} -> {value, delete(map, key)}
-      :error -> {default, map}
+    case map do
+      %{^key => value} -> {value, delete(map, key)}
+      %{} -> {default, map}
     end
   end
 
@@ -487,8 +487,10 @@ defmodule Map do
   retrieved value, which can be operated on before being returned) and the new
   value to be stored under `key`.
 
-  The returned value is a tuple with the "get" value returned by `fun` and a
-  new map with the updated value under `key`.
+  The returned value may be a tuple with the "get" value returned by
+  `fun` and a new map with the updated value under `key`. The function
+  may also return `:pop`, implying the current value shall be removed
+  from the map and returned.
 
   ## Examples
 
@@ -502,16 +504,25 @@ defmodule Map do
       ...> end)
       {nil, %{b: "new value!", a: 1}}
 
-  """
-  @spec get_and_update(map, key, (value -> {get, value})) :: {get, map} when get: term
-  def get_and_update(%{} = map, key, fun) do
-    current_value = case :maps.find(key, map) do
-      {:ok, value} -> value
-      :error -> nil
-    end
+      iex> Map.get_and_update(%{a: 1}, :a, fn _ -> :pop end)
+      {1, %{}}
 
-    {get, update} = fun.(current_value)
-    {get, :maps.put(key, update, map)}
+      iex> Map.get_and_update(%{a: 1}, :b, fn _ -> :pop end)
+      {nil, %{a: 1}}
+
+  """
+  @spec get_and_update(map, key, (value -> {get, value} | :pop)) :: {get, map} when get: term
+  def get_and_update(%{} = map, key, fun) do
+    current =
+      case :maps.find(key, map) do
+        {:ok, value} -> value
+        :error -> nil
+      end
+
+    case fun.(current) do
+      {get, update} -> {get, :maps.put(key, update, map)}
+      :pop          -> {current, :maps.remove(key, map)}
+    end
   end
 
   def get_and_update(map, _key, _fun), do: :erlang.error({:badmap, map})
