@@ -45,8 +45,8 @@ defmodule AccessTest do
     assert Access.get_and_update([], :foo, fn nil -> {:ok, :baz} end) == {:ok, [foo: :baz]}
     assert Access.get_and_update([foo: :bar], :foo, fn :bar -> {:ok, :baz} end) == {:ok, [foo: :baz]}
 
-    assert Access.delete([foo: :bar], :foo) == []
-    assert Access.delete([], :foo) == []
+    assert Access.pop([foo: :bar], :foo) == {:bar, []}
+    assert Access.pop([], :foo) == {nil, []}
   end
 
   test "for maps" do
@@ -62,8 +62,8 @@ defmodule AccessTest do
     assert Access.get_and_update(%{}, :foo, fn nil -> {:ok, :baz} end) == {:ok, %{foo: :baz}}
     assert Access.get_and_update(%{foo: :bar}, :foo, fn :bar -> {:ok, :baz} end) == {:ok, %{foo: :baz}}
 
-    assert Access.delete(%{foo: :bar}, :foo) == %{}
-    assert Access.delete(%{}, :foo) == %{}
+    assert Access.pop(%{foo: :bar}, :foo) == {:bar, %{}}
+    assert Access.pop(%{}, :foo) == {nil, %{}}
   end
 
   test "for struct" do
@@ -82,8 +82,8 @@ defmodule AccessTest do
     end
 
     assert_raise UndefinedFunctionError,
-                "undefined function AccessTest.Sample.delete/2 (AccessTest.Sample does not implement the Access behaviour)", fn ->
-      Access.delete(struct(Sample, []), :name)
+                "undefined function AccessTest.Sample.pop/2 (AccessTest.Sample does not implement the Access behaviour)", fn ->
+      Access.pop(struct(Sample, []), :name)
     end
   end
 end

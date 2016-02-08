@@ -195,8 +195,10 @@ defmodule Keyword do
   retrieved value, which can be operated on before being returned) and the new
   value to be stored under `key`.
 
-  The returned value is a tuple with the "get" value returned by `fun` and a new
-  keyword list with the updated value under `key`.
+  The returned value may be a tuple with the "get" value returned by
+  `fun` and a new keyword list with the updated value under `key`. The
+  function may also return `:pop`, implying the current value shall
+  be removed from the keyword list and returned.
 
   ## Examples
 
@@ -210,23 +212,33 @@ defmodule Keyword do
       ...> end)
       {nil, [b: "new value!", a: 1]}
 
+      iex> Keyword.get_and_update([a: 1], :a, fn _ -> :pop end)
+      {1, []}
+
+      iex> Keyword.get_and_update([a: 1], :b, fn _ -> :pop end)
+      {nil, [a: 1]}
+
   """
-  @spec get_and_update(t, key, (value -> {get, value})) :: {get, t} when get: term
+  @spec get_and_update(t, key, (value -> {get, value} | :pop)) :: {get, t} when get: term
   def get_and_update(keywords, key, fun)
     when is_list(keywords) and is_atom(key),
     do: get_and_update(keywords, [], key, fun)
 
-  defp get_and_update([{key, value}|t], acc, key, fun) do
-    {get, new_value} = fun.(value)
-    {get, :lists.reverse(acc, [{key, new_value}|t])}
+  defp get_and_update([{key, current}|t], acc, key, fun) do
+    case fun.(current) do
+      {get, value} -> {get, :lists.reverse(acc, [{key, value}|t])}
+      :pop         -> {current, :lists.reverse(acc, t)}
+    end
   end
 
   defp get_and_update([h|t], acc, key, fun),
     do: get_and_update(t, [h|acc], key, fun)
 
   defp get_and_update([], acc, key, fun) do
-    {get, update} = fun.(nil)
-    {get, [{key, update}|:lists.reverse(acc)]}
+    case fun.(nil) do
+      {get, update} -> {get, [{key, update}|:lists.reverse(acc)]}
+      :pop -> {nil, :lists.reverse(acc)}
+    end
   end
 
   @doc """

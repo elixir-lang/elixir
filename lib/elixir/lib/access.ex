@@ -61,7 +61,7 @@ defmodule Access do
   dynamic key-value structures, like maps and keywords, and not
   by static ones like structs.
 
-  However Elixir already provides a field-based lookup for structs.
+  Therefore Elixir provides a field-based lookup for structs.
   Imagine a struct named `User` with name and age fields. The
   following would raise:
 
@@ -81,9 +81,8 @@ defmodule Access do
       put_in user.name, "mary"
       %User{name: "mary"}
 
-  Differently from `user[:name]`, `user.name` cannot be extended by
-  the developers, and will be always restricted to only maps and
-  structs.
+  Differently from `user[:name]`, `user.name` is not extensible and
+  is restricted to only maps and structs.
 
   Summing up:
 
@@ -108,7 +107,8 @@ defmodule Access do
   @type value :: any
 
   @callback fetch(t, key) :: {:ok, value} | :error
-  @callback get_and_update(t, key, (value -> {value, value})) :: {value, t}
+  @callback get_and_update(t, key, (value -> {value, value} | :pop)) :: {value, t}
+  @callback pop(t, key) :: {value, t}
 
   defmacrop raise_undefined_behaviour(e, struct, top) do
     quote do
@@ -190,13 +190,7 @@ defmodule Access do
   end
 
   def get_and_update(%{} = map, key, fun) do
-    current_value = case :maps.find(key, map) do
-      {:ok, value} -> value
-      :error -> nil
-    end
-
-    {get, update} = fun.(current_value)
-    {get, :maps.put(key, update, map)}
+    Map.get_and_update(map, key, fun)
   end
 
   def get_and_update(list, key, fun) when is_list(list) do
@@ -208,16 +202,21 @@ defmodule Access do
       "could not put/update key #{inspect key} on a nil value"
   end
 
-  def delete(%{__struct__: struct} = container, key) do
-    struct.delete(container, key)
+  def pop(%{__struct__: struct} = container, key) do
+    struct.pop(container, key)
   rescue
     e in UndefinedFunctionError ->
-      raise_undefined_behaviour e, struct, {^struct, :delete, [^container, ^key], _}
+      raise_undefined_behaviour e, struct, {^struct, :pop, [^container, ^key], _}
   end
-  def delete(%{} = map, key), do: :maps.remove(key, map)
-  def delete(list, key) when is_list(list), do: Keyword.delete(list, key)
-  def delete(nil, key) do
+  def pop(list, key) when is_list(list), do: Keyword.pop(list, key)
+  def pop(map, key) when is_map(map) do
+    case map do
+      %{^key => value} -> {value, :maps.remove(key, map)}
+      %{} -> {nil, map}
+    end
+  end
+  def pop(nil, key) do
     raise ArgumentError,
-      "could not delete key #{inspect key} on a nil value"
+      "could not pop key #{inspect key} on a nil value"
   end
 end

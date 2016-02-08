@@ -1810,7 +1810,7 @@ defmodule Kernel do
     do: Access.get_and_update(data, h, &get_and_update_in(&1, t, fun))
 
   @doc """
-  Deletes a key in a nested structure.
+  Pops a key from the given nested structure.
 
   Uses the `Access` protocol to traverse the structures
   according to the given `keys`, unless the `key` is a
@@ -1820,27 +1820,27 @@ defmodule Kernel do
   ## Examples
 
       iex> users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
-      iex> delete_in(users, ["john", :age])
-      %{"john" => %{}, "meg" => %{age: 23}}
+      iex> pop_in(users, ["john", :age])
+      {27, %{"john" => %{}, "meg" => %{age: 23}}}
 
   In case any entry returns `nil`, its key will be removed
   and the deletion will be considered a success.
   """
-  @spec delete_in(Access.t, nonempty_list(term)) :: Access.t
-  def delete_in(data, keys) do
-    :erlang.element(2, do_delete_in(data, keys))
-  end
+  @spec pop_in(Access.t, nonempty_list(term)) :: Access.t
+  def pop_in(data, keys)
+  def pop_in(nil, [h|_]), do: Access.pop(nil, h)
+  def pop_in(data, keys), do: do_pop_in(data, keys)
 
-  defp do_delete_in(nil, [_|_]),
-    do: {:error, nil}
-  defp do_delete_in(data, [h]),
-    do: {:ok, Access.delete(data, h)}
-  defp do_delete_in(data, [h|t]) do
-    case Access.get_and_update(data, h, &do_delete_in(&1, t)) do
-      {:ok, data}    -> {:ok, data}
-      {:error, data} -> {:ok, Access.delete(data, h)}
-    end
-  end
+  defp do_pop_in(nil, [_|_]),
+    do: :pop
+  defp do_pop_in(data, [h]) when is_function(h),
+    do: h.(:get_and_update, data, fn _ -> :pop end)
+  defp do_pop_in(data, [h|t]) when is_function(h),
+    do: h.(:get_and_update, data, &do_pop_in(&1, t))
+  defp do_pop_in(data, [h]),
+    do: Access.pop(data, h)
+  defp do_pop_in(data, [h|t]),
+    do: Access.get_and_update(data, h, &do_pop_in(&1, t))
 
   @doc """
   Puts a value in a nested structure via the given `path`.
@@ -1880,16 +1880,16 @@ defmodule Kernel do
   end
 
   @doc """
-  Deletes a key in a nested structure via the given `path`.
+  Pops a key from the nested structure via the given `path`.
 
-  This is similar to `delete_in/2`, except the path is extracted via
+  This is similar to `pop_in/2`, except the path is extracted via
   a macro rather than passing a list. For example:
 
-      delete_in(opts[:foo][:bar])
+      pop_in(opts[:foo][:bar])
 
   Is equivalent to:
 
-      delete_in(opts, [:foo, :bar])
+      pop_in(opts, [:foo, :bar])
 
   Note that in order for this macro to work, the complete path must always
   be visible by this macro. For more information about the supported path
@@ -1898,20 +1898,19 @@ defmodule Kernel do
   ## Examples
 
       iex> users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
-      iex> delete_in(users["john"][:age])
-      %{"john" => %{}, "meg" => %{age: 23}}
+      iex> pop_in(users["john"][:age])
+      {27, %{"john" => %{}, "meg" => %{age: 23}}}
 
       iex> users = %{john: %{age: 27}, meg: %{age: 23}}
-      iex> delete_in(users.john[:age])
-      %{john: %{}, meg: %{age: 23}}
+      iex> pop_in(users.john[:age])
+      {27, %{john: %{}, meg: %{age: 23}}}
 
   In case any entry returns `nil`, its key will be removed
   and the deletion will be considered a success.
   """
-  defmacro delete_in(path) do
-    {[h|t], _} = unnest(path, [], true, "delete_in/1")
-    expr = nest_delete_in(h, t)
-    quote do: :erlang.element(2, unquote(expr))
+  defmacro pop_in(path) do
+    {[h|t], _} = unnest(path, [], true, "pop_in/1")
+    nest_pop_in(:map, h, t)
   end
 
   @doc """
@@ -2037,48 +2036,43 @@ defmodule Kernel do
     end
   end
 
-  defp nest_delete_in(list) do
+  defp nest_pop_in(kind, list) do
     quote do
-      fn x -> unquote(nest_delete_in(quote(do: x), list)) end
+      fn x -> unquote(nest_pop_in(kind, quote(do: x), list)) end
     end
   end
 
-  defp nest_delete_in(nil, [_|_]) do
-    {:error, nil}
-  end
-
-  defp nest_delete_in(_, [{:map, key}]) do
-    raise ArgumentError, "cannot use delete_in when the last segment is a map/struct field. " <>
-                         "This would effectively remove the field #{inspect key} from the map/struct"
-  end
-  defp nest_delete_in(h, [{:map, key}|t]) do
-    data =
-      case nest_delete_in(quote(do: x), t) do
-        {_, data} -> data
-        data      -> quote do: :erlang.element(2, unquote(data))
-      end
-    quote do
-      {:ok, Map.update!(unquote(h), unquote(key), fn x -> unquote(data) end)}
-    end
-  end
-
-  defp nest_delete_in(h, [{:access, key}]) do
+  defp nest_pop_in(:map, h, [{:access, key}]) do
     quote do
       case unquote(h) do
-        nil -> {:error, nil}
-        h   -> {:ok, Access.delete(h, unquote(key))}
+        nil -> {nil, nil}
+        h   -> Access.pop(h, unquote(key))
       end
     end
   end
-  defp nest_delete_in(h, [{:access, key}|t]) do
-    {:ok,
-      quote do
-        key = unquote(key)
-        case Access.get_and_update(unquote(h), key, unquote(nest_delete_in(t))) do
-          {:ok, data}    -> data
-          {:error, data} -> Access.delete(data, key)
-        end
-      end}
+
+  defp nest_pop_in(_, _, [{:map, key}]) do
+    raise ArgumentError, "cannot use pop_in when the last segment is a map/struct field. " <>
+                         "This would effectively remove the field #{inspect key} from the map/struct"
+  end
+  defp nest_pop_in(_, h, [{:map, key}|t]) do
+    quote do
+      Map.get_and_update!(unquote(h), unquote(key), unquote(nest_pop_in(:map, t)))
+    end
+  end
+
+  defp nest_pop_in(_, h, [{:access, key}]) do
+    quote do
+      case unquote(h) do
+        nil -> :pop
+        h   -> Access.pop(h, unquote(key))
+      end
+    end
+  end
+  defp nest_pop_in(_, h, [{:access, key}|t]) do
+    quote do
+      Access.get_and_update(unquote(h), unquote(key), unquote(nest_pop_in(:access, t)))
+    end
   end
 
   defp unnest({{:., _, [Access, :get]}, _, [expr, key]}, acc, _all_map?, kind) do
