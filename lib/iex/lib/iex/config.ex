@@ -18,27 +18,21 @@ defmodule IEx.Config do
   end
 
   def configure(options) do
-    Agent.update(@agent, __MODULE__, :handle_configure, [options])
-  end
-
-  def handle_configure(tab, options) do
     options = :lists.ukeysort(1, options)
     get_config()
     |> Keyword.merge(options, &merge_option/3)
     |> put_config()
-    tab
   end
 
-  defp get_config() do
+  def get_config() do
     Application.get_all_env(:iex)
     |> Keyword.take(@keys)
   end
 
-  defp put_config(config) do
-    put = fn({key, value}) when key in @keys ->
+  def put_config(config) do
+    Enum.each(config, fn {key, value} when key in @keys ->
       Application.put_env(:iex, key, value)
-    end
-    Enum.each(config, put)
+    end)
   end
 
   defp merge_option(:colors, old, new) when is_list(new), do: Keyword.merge(old, new)
