@@ -1466,7 +1466,7 @@ defmodule Kernel.SpecialForms do
   defmacro __aliases__(args)
 
   @doc """
-  Calls the overriden function when overriding it with `Kernel.defoverridable/1`.
+  Calls the overridden function when overriding it with `Kernel.defoverridable/1`.
 
   See `Kernel.defoverridable/1` for more information and documentation.
   """
