@@ -1823,12 +1823,12 @@ defmodule Kernel do
       iex> delete_in(users, ["john", :age])
       %{"john" => %{}, "meg" => %{age: 23}}
 
-  In case any entries in the middle returns `nil`,
-  the deletion will be considered a success.
+  In case any entry returns `nil`, its key will be removed
+  and the deletion will be considered a success.
   """
   @spec delete_in(Access.t, nonempty_list(term)) :: Access.t
   def delete_in(data, keys) do
-    do_delete_in(data, keys) |> elem(1)
+    :erlang.element(2, do_delete_in(data, keys))
   end
 
   defp do_delete_in(nil, [_|_]),
@@ -1905,6 +1905,8 @@ defmodule Kernel do
       iex> delete_in(users.john[:age])
       %{john: %{}, meg: %{age: 23}}
 
+  In case any entry returns `nil`, its key will be removed
+  and the deletion will be considered a success.
   """
   defmacro delete_in(path) do
     {[h|t], _} = unnest(path, [], true, "delete_in/1")
@@ -2053,7 +2055,7 @@ defmodule Kernel do
     data =
       case nest_delete_in(quote(do: x), t) do
         {_, data} -> data
-        data      -> quote do: unquote(data) |> elem(1)
+        data      -> quote do: :erlang.element(2, unquote(data))
       end
     quote do
       {:ok, Map.update!(unquote(h), unquote(key), fn x -> unquote(data) end)}
