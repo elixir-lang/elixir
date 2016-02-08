@@ -462,7 +462,6 @@ defmodule KernelTest do
           %{"john" => %{age: 27}, "meg" => %{age: 23}}
 
     assert delete_in([], [:foo, :bar]) == []
-    assert delete_in(nil, ["john", :age]) == nil
 
     assert_raise FunctionClauseError, fn ->
       delete_in(users, [])
@@ -486,10 +485,19 @@ defmodule KernelTest do
     assert delete_in(users.john[:name]) ==
            %{john: [age: 27], meg: [age: 23]}
 
-    assert_raise KeyError, fn -> delete_in(users.bob[:age]) end
-
     assert delete_in([][:foo][:bar]) == []
+    assert_raise KeyError, fn -> delete_in(users.bob[:age]) end
+  end
+
+  test "delete_in/1/2 with nils" do
+    users = %{"john" => nil, "meg" => %{age: 23}}
+    assert delete_in(users["john"][:age]) ==
+           %{"meg" => %{age: 23}}
+    assert delete_in(users, ["john", :age]) ==
+           %{"meg" => %{age: 23}}
+
     assert delete_in(nil["john"][:age]) == nil
+    assert delete_in(nil, ["john", :age]) == nil
   end
 
   test "paths" do
