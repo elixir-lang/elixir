@@ -174,7 +174,7 @@ defmodule ExUnit.Case do
 
       config :ex_unit, capture_log: true
 
-  This default can be overriden by `@tag capture_log: false` or `@moduletag capture_log: false`.
+  This default can be overridden by `@tag capture_log: false` or `@moduletag capture_log: false`.
 
   Since `setup_all` blocks don't belong to a specific test, log messages generated in them (or
   between tests) are never captured. If you want to suppress these messages as well, remove the

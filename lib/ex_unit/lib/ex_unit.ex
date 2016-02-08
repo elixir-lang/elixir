@@ -175,7 +175,7 @@ defmodule ExUnit do
       calls. Defaults to 100ms.
 
     * `:capture_log` - if ExUnit should default to keeping track of log messages
-      and print them on test failure. Can be overriden for individual tests via
+      and print them on test failure. Can be overridden for individual tests via
       `@tag capture_log: false`. Defaults to `false`.
 
     * `:colors` - a keyword list of colors to be used by some formatters.
