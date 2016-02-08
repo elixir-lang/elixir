@@ -195,8 +195,10 @@ defmodule Access do
       :error -> nil
     end
 
-    {get, update} = fun.(current_value)
-    {get, :maps.put(key, update, map)}
+    case fun.(current_value) do
+      {:skip, _} -> {:ok, map}
+      {get, update} -> {get, :maps.put(key, update, map)}
+    end
   end
 
   def get_and_update(list, key, fun) when is_list(list) do
@@ -206,5 +208,18 @@ defmodule Access do
   def get_and_update(nil, key, _fun) do
     raise ArgumentError,
       "could not put/update key #{inspect key} on a nil value"
+  end
+
+  def delete(%{__struct__: struct} = container, key) do
+    struct.delete(container, key)
+  rescue
+    e in UndefinedFunctionError ->
+      raise_undefined_behaviour e, struct, {^struct, :delete, [^container, ^key], _}
+  end
+  def delete(%{} = map, key), do: :maps.remove(key, map)
+  def delete(list, key) when is_list(list), do: Keyword.delete(list, key)
+  def delete(nil, key) do
+    raise ArgumentError,
+      "could not delete key #{inspect key} on a nil value"
   end
 end

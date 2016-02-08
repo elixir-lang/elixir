@@ -388,6 +388,10 @@ defmodule KernelTest do
     assert_raise ArgumentError, "could not put/update key \"john\" on a nil value", fn ->
       update_in(nil, ["john", :age], fn _ -> %{} end)
     end
+
+    assert_raise UndefinedFunctionError, fn ->
+      delete_in(struct(Sample, []), [:name])
+    end
   end
 
   test "update_in/2" do
@@ -405,6 +409,10 @@ defmodule KernelTest do
 
     assert_raise KeyError, fn ->
       put_in(users["meg"].unknown, &(&1 + 1))
+    end
+
+    assert_raise UndefinedFunctionError, fn ->
+      delete_in(struct(Sample, []).name)
     end
   end
 
@@ -445,6 +453,46 @@ defmodule KernelTest do
 
     assert_raise KeyError, fn ->
       get_and_update_in(users["meg"].unknown, &{&1, &1 + 1})
+    end
+  end
+
+  test "delete_in/2" do
+    users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
+
+    assert delete_in(users, ["john", :age]) ==
+           %{"john" => %{}, "meg" => %{age: 23}}
+
+    assert delete_in(users, ["bob", :age]) ==
+          %{"john" => %{age: 27}, "meg" => %{age: 23}}
+
+    assert delete_in([], [:foo, :bar]) == []
+
+    assert_raise FunctionClauseError, fn ->
+      delete_in(users, [])
+    end
+
+    assert_raise ArgumentError, "could not delete key \"john\" on a nil value", fn ->
+      delete_in(nil, ["john", :age])
+    end
+  end
+
+  test "delete_in/1" do
+    users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
+
+    assert delete_in(users["john"][:age]) ==
+           %{"john" => %{}, "meg" => %{age: 23}}
+
+    assert delete_in(users["john"].age) ==
+           %{"john" => %{}, "meg" => %{age: 23}}
+
+    assert delete_in(users["bob"][:age]) ==
+          %{"john" => %{age: 27}, "meg" => %{age: 23}}
+
+    assert delete_in([][:foo][:bar]) == []
+
+
+    assert_raise ArgumentError, "could not delete key \"john\" on a nil value", fn ->
+      delete_in(nil["john"][:age])
     end
   end
 
