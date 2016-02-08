@@ -1,7 +1,7 @@
 Code.require_file "../test_helper.exs", __DIR__
 
 defmodule IEx.ServerTest do
-  use IEx.Case, async: true
+  use IEx.Case
 
   # Options
 
