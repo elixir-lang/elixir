@@ -16,7 +16,7 @@ defmodule Mix.Tasks.Deps.TreeTest do
     end
   end
 
-  defmodule OverridenDepsApp do
+  defmodule OverriddenDepsApp do
     def project do
       [
         app: :sample,
@@ -75,8 +75,8 @@ defmodule Mix.Tasks.Deps.TreeTest do
     end
   end
 
-  test "shows overriden deps", context do
-    Mix.Project.push OverridenDepsApp
+  test "shows overridden deps", context do
+    Mix.Project.push OverriddenDepsApp
 
     in_tmp context.test, fn ->
       Mix.Tasks.Deps.Tree.run(["--pretty"])
@@ -88,7 +88,7 @@ defmodule Mix.Tasks.Deps.TreeTest do
   end
 
   test "excludes the given deps", context do
-    Mix.Project.push OverridenDepsApp
+    Mix.Project.push OverriddenDepsApp
 
     in_tmp context.test, fn ->
       Mix.Tasks.Deps.Tree.run(["--pretty", "--exclude", "deps_on_git_repo"])
@@ -99,7 +99,7 @@ defmodule Mix.Tasks.Deps.TreeTest do
   end
 
   test "shows a particular environment", context do
-    Mix.Project.push OverridenDepsApp
+    Mix.Project.push OverriddenDepsApp
 
     in_tmp context.test, fn ->
       Mix.Tasks.Deps.Tree.run(["--pretty", "--only", "prod"])

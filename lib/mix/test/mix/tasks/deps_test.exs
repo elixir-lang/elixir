@@ -308,7 +308,7 @@ defmodule Mix.Tasks.DepsTest do
     end
   end
 
-  defmodule OverridenDepsApp do
+  defmodule OverriddenDepsApp do
     def project do
       [
         app: :raw_sample,
@@ -321,7 +321,7 @@ defmodule Mix.Tasks.DepsTest do
     end
   end
 
-  defmodule NonOverridenDepsApp do
+  defmodule NonOverriddenDepsApp do
     def project do
       [
         app: :raw_sample,
@@ -462,7 +462,7 @@ defmodule Mix.Tasks.DepsTest do
   end
 
   test "works with overridden dependencies" do
-    Mix.Project.push OverridenDepsApp
+    Mix.Project.push OverriddenDepsApp
 
     in_fixture "deps_status", fn ->
       Mix.Tasks.Deps.Get.run []
@@ -484,7 +484,7 @@ defmodule Mix.Tasks.DepsTest do
   end
 
   test "converged dependencies errors if not overriding" do
-    Mix.Project.push NonOverridenDepsApp
+    Mix.Project.push NonOverriddenDepsApp
 
     in_fixture "deps_status", fn ->
       assert_raise Mix.Error, fn ->
