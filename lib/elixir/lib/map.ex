@@ -211,12 +211,13 @@ defmodule Map do
   """
   @spec take(map, [key]) :: map
   def take(map, keys) do
-    Enum.reduce(keys, new, fn key, acc ->
+    Enum.reduce(keys, [], fn key, acc ->
       case fetch(map, key) do
-        {:ok, value} -> put(acc, key, value)
+        {:ok, value} -> [{key, value} | acc]
         :error -> acc
       end
     end)
+    |> :maps.from_list
   end
 
   @doc """
