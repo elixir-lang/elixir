@@ -2301,8 +2301,8 @@ defmodule Enum do
       iex> Enum.uniq_by([{1, :x}, {2, :y}, {1, :z}], fn {x, _} -> x end)
       [{1, :x}, {2, :y}]
 
-      Enum.uniq_by([{a: {tea: 2}}, {b: {tea: 2}}, {c, {coffe: 1}}], fn {x, _} -> x end)
-      [a: [tea: 2], b: [tea: 2]]
+      iex> Enum.uniq_by([a: {:tea, 2}, b: {:tea, 2}, c: {:coffee, 1}],  fn {_, y} -> y end)
+      [a: {:tea, 2}, c: {:coffee, 1}]
 
   """
   @spec uniq_by(t, (element -> term)) :: list
