@@ -140,7 +140,7 @@ defmodule ExUnit.Runner do
     exclude = config.exclude
 
     for test <- tests do
-      tags = Map.put(test.tags, :test, test.name)
+      tags = Map.merge(test.tags, %{test: test.name, case: test.case})
       case ExUnit.Filters.eval(include, exclude, tags, tests) do
         :ok           -> %{test | tags: tags}
         {:error, msg} -> %{test | state: {:skip, msg}}
