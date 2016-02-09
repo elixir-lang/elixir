@@ -1472,7 +1472,7 @@ defmodule Kernel.SpecialForms do
   """
   defmacro super(args)
 
-  @doc """
+  @doc ~S"""
   Matches the given expression against the given clauses.
 
   ## Examples
@@ -1486,7 +1486,21 @@ defmodule Kernel.SpecialForms do
 
   In the example above, we match `thing` against each clause "head"
   and execute the clause "body" corresponding to the first clause
-  that matches. If no clause matches, an error is raised.
+  that matches.
+
+  If no clause matches, an error is raised.
+  For this reason, it may be necessary to add a final clause, equal to `_`,
+  which will always match.
+
+      x = 10
+
+      case x do
+        0 ->
+          "This clause won't match"
+        _ ->
+          "This clause would match any value (x = #{x})"
+      end
+      #=> "This clause would match any value (x = 10)"
 
   ## Variables handling
 
@@ -1516,6 +1530,18 @@ defmodule Kernel.SpecialForms do
   the value of `lucky?`. In case `value` has no previous value before
   case, clauses that do not explicitly bind a value have the variable
   bound to `nil`.
+
+  If you want to pattern match against an existing variable,
+  you need to use the `^/1` operator:
+
+      x = 1
+
+      case 10 do
+        ^x -> "Won't match"
+        _  -> "Will match"
+      end
+      #=> "Will match"
+
   """
   defmacro case(condition, clauses)
 
@@ -1523,7 +1549,14 @@ defmodule Kernel.SpecialForms do
   Evaluates the expression corresponding to the first clause that
   evaluates to a truthy value.
 
+      cond do
+        hd([1,2,3]) ->
+          "1 is considered as true"
+      end
+      #=> "1 is considered as true"
+
   Raises an error if all conditions evaluate to `nil` or `false`.
+  For this reason, it may be necessary to add a final condition, equal to `true`, which will always match.
 
   ## Examples
 
@@ -1535,6 +1568,7 @@ defmodule Kernel.SpecialForms do
         true ->
           "This will"
       end
+      #=> "This will"
 
   """
   defmacro cond(clauses)
