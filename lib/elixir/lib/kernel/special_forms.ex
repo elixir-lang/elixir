@@ -1489,7 +1489,7 @@ defmodule Kernel.SpecialForms do
   that matches.
 
   If no clause matches, an error is raised.
-  For this reason, it may be necessary to add a final clause, equal to `_`,
+  For this reason, it may be necessary to add a final catch-all clause (like `_`)
   which will always match.
 
       x = 10
@@ -1556,7 +1556,8 @@ defmodule Kernel.SpecialForms do
       #=> "1 is considered as true"
 
   Raises an error if all conditions evaluate to `nil` or `false`.
-  For this reason, it may be necessary to add a final condition, equal to `true`, which will always match.
+  For this reason, it may be necessary to add a final always-truthy condition
+  (anything non-`false` and non-`nil`), which will always match.
 
   ## Examples
 
