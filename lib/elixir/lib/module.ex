@@ -990,8 +990,8 @@ defmodule Module do
 
   ## Examples
 
-      Module.split Very.Long.Module.Name.And.Even.Longer
-      #=> ["Very", "Long", "Module", "Name", "And", "Even", "Longer"]
+      iex> Module.split Very.Long.Module.Name.And.Even.Longer
+      ["Very", "Long", "Module", "Name", "And", "Even", "Longer"]
 
   """
   def split(module) when is_atom(module) do
