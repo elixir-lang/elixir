@@ -151,7 +151,7 @@ defmodule Mix.Tasks.Help do
 
   defp display_iex_task_doc(max) do
     Mix.shell.info format_task("iex -S mix", max,
-                    "Starts IEx and run the default task")
+                    "Starts IEx and runs the default task")
   end
 
   defp display_task_doc_list(docs, max) do
