@@ -90,6 +90,7 @@ defmodule KernelTest do
     assert 2 in 1..3
     refute 4 in [1, 2, 3]
     refute 4 in 1..3
+    refute 2 in []
 
     list = [1, 2, 3]
     assert 2 in list
@@ -103,6 +104,8 @@ defmodule KernelTest do
   def fun_in(x) when x in @at_list,  do: :at_list
   def fun_in(x) when x in @at_range, do: :at_range
   def fun_in(_), do: :none
+
+  def fun_in_list_is_empty(_x) when _x in [] == false, do: :true
 
   test "in/2 in function guard" do
     assert fun_in(0) == :list
@@ -121,6 +124,8 @@ defmodule KernelTest do
     assert fun_in(6.0) == :none
     assert fun_in(7.0) == :none
     assert fun_in(8.0) == :none
+
+    assert fun_in_list_is_empty(:foo)
   end
 
   def fun_in(x, y, z) when x in y..z, do: true
