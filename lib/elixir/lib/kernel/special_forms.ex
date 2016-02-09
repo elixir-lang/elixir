@@ -733,8 +733,8 @@ defmodule Kernel.SpecialForms do
 
   ## Examples
 
-      quote do: sum(1, 2, 3)
-      #=> {:sum, [], [1, 2, 3]}
+      iex> quote do: sum(1, 2, 3)
+      {:sum, [], [1, 2, 3]}
 
   ## Explanation
 
@@ -1202,9 +1202,9 @@ defmodule Kernel.SpecialForms do
 
   Which is not the expected result. For this, we use unquote:
 
-      value = 13
-      quote do: sum(1, unquote(value), 3)
-      #=> {:sum, [], [1, 13, 3]}
+      iex> value = 13
+      iex> quote do: sum(1, unquote(value), 3)
+      {:sum, [], [1, 13, 3]}
 
   """
   defmacro unquote(:unquote)(expr)
@@ -1215,9 +1215,9 @@ defmodule Kernel.SpecialForms do
 
   ## Examples
 
-      values = [2, 3, 4]
-      quote do: sum(1, unquote_splicing(values), 5)
-      #=> {:sum, [], [1, 2, 3, 4, 5]}
+      iex> values = [2, 3, 4]
+      iex> quote do: sum(1, unquote_splicing(values), 5)
+      {:sum, [], [1, 2, 3, 4, 5]}
 
   """
   defmacro unquote(:unquote_splicing)(expr)

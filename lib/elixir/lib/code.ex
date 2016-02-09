@@ -389,8 +389,8 @@ defmodule Code do
 
   ## Examples
 
-      Code.available_compiler_options
-      #=> [:docs, :debug_info, :ignore_module_conflict, :warnings_as_errors]
+      iex> Code.available_compiler_options
+      [:docs, :debug_info, :ignore_module_conflict, :warnings_as_errors]
 
   """
   def available_compiler_options do

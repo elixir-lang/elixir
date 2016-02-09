@@ -130,7 +130,7 @@ defmodule Path do
 
   ## Examples
 
-      Path.expand("/foo/bar/../bar")
+      iex> Path.expand("/foo/bar/../bar")
       "/foo/bar"
 
   """
@@ -363,10 +363,11 @@ defmodule Path do
 
   ## Examples
 
-      Path.dirname("/foo/bar.ex")
-      #=> "/foo"
-      Path.dirname("/foo/bar/baz.ex")
-      #=> "/foo/bar"
+      iex> Path.dirname("/foo/bar.ex")
+      "/foo"
+
+      iex> Path.dirname("/foo/bar/baz.ex")
+      "/foo/bar"
 
   """
   @spec dirname(t) :: binary
