@@ -175,7 +175,7 @@ defmodule ExUnit.DocTest do
 
     * `:import` - when `true`, one can test a function defined in the module
       without referring to the module name. However, this is not feasible when
-      there is a clash with a module like Kernel. In these cases, `import`
+      there is a clash with a module like Kernel. In these cases, `:import`
       should be set to `false` and a full `M.f` construct should be used.
 
   ## Examples

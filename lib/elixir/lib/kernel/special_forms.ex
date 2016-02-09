@@ -4,7 +4,7 @@ defmodule Kernel.SpecialForms do
   they cannot be overridden by the developer.
 
   We define them in this module. Some of these forms are lexical (like
-  `alias`, `case`, etc). The macros `{}` and `<<>>` are also special
+  `alias/2`, `case/2`, etc). The macros `{}` and `<<>>` are also special
   forms used to define tuple and binary data structures respectively.
 
   This module also documents Elixir's pseudo variables (`__ENV__`,
@@ -462,11 +462,11 @@ defmodule Kernel.SpecialForms do
   defmacro unquote(:.)(left, right)
 
   @doc """
-  `alias` is used to setup aliases, often useful with modules names.
+  `alias/2` is used to setup aliases, often useful with modules names.
 
   ## Examples
 
-  `alias` can be used to setup an alias for any module:
+  `alias/2` can be used to setup an alias for any module:
 
       defmodule Math do
         alias MyKeyword, as: Keyword
@@ -493,7 +493,7 @@ defmodule Kernel.SpecialForms do
 
   ## Lexical scope
 
-  `import`, `require` and `alias` are called directives and all
+  `import/2`, `require/2` and `alias/2` are called directives and all
   have lexical scope. This means you can set up aliases inside
   specific functions and it won't affect the overall scope.
 
@@ -520,7 +520,7 @@ defmodule Kernel.SpecialForms do
   the only exception is if you want to use the macros from a module.
   In such cases, you need to explicitly require them.
 
-  Let's suppose you created your own `if` implementation in the module
+  Let's suppose you created your own `if/2` implementation in the module
   `MyMacros`. If you want to invoke it, you need to first explicitly
   require the `MyMacros`:
 
@@ -533,8 +533,8 @@ defmodule Kernel.SpecialForms do
 
   ## Alias shortcut
 
-  `require` also accepts `as:` as an option so it automatically sets
-  up an alias. Please check `alias` for more information.
+  `require/2` also accepts `as:` as an option so it automatically sets
+  up an alias. Please check `alias/2` for more information.
 
   """
   defmacro require(module, opts)
@@ -542,7 +542,7 @@ defmodule Kernel.SpecialForms do
   @doc """
   Imports functions and macros from other modules.
 
-  `import` allows one to easily access functions or macros from
+  `import/2` allows one to easily access functions or macros from
   others modules without using the qualified name.
 
   ## Examples
@@ -576,7 +576,7 @@ defmodule Kernel.SpecialForms do
       import List, only: [flatten: 1]
       import String, except: [split: 2]
 
-  Notice that calling `except` for a previously declared `import`
+  Notice that calling `except` for a previously declared `import/2`
   simply filters the previously imported elements. For example:
 
       import List, only: [flatten: 1, keyfind: 4]
@@ -595,7 +595,7 @@ defmodule Kernel.SpecialForms do
 
   ## Lexical scope
 
-  It is important to notice that `import` is lexical. This means you
+  It is important to notice that `import/2` is lexical. This means you
   can import specific macros inside specific functions:
 
       defmodule Math do
@@ -603,7 +603,7 @@ defmodule Kernel.SpecialForms do
           # 1) Disable "if/2" from Kernel
           import Kernel, except: [if: 2]
 
-          # 2) Require the new "if" macro from MyMacros
+          # 2) Require the new "if/2" macro from MyMacros
           import MyMacros
 
           # 3) Use the new macro
@@ -768,7 +768,7 @@ defmodule Kernel.SpecialForms do
     * `:context` - sets the resolution context.
 
     * `:bind_quoted` - passes a binding to the macro. Whenever a binding is
-      given, `unquote` is automatically disabled.
+      given, `unquote/1` is automatically disabled.
 
   ## Quote literals
 
@@ -784,7 +784,7 @@ defmodule Kernel.SpecialForms do
 
   ## Quote and macros
 
-  `quote` is commonly used with macros for code generation. As an exercise,
+  `quote/2` is commonly used with macros for code generation. As an exercise,
   let's define a macro that multiplies a number by itself (squared). Note
   there is no reason to define such as a macro (and it would actually be
   seen as a bad practice), but it is simple enough that it allows us to focus
@@ -852,7 +852,7 @@ defmodule Kernel.SpecialForms do
   once.
 
   In fact, this pattern is so common that most of the times you will want
-  to use the `bind_quoted` option with `quote`:
+  to use the `bind_quoted` option with `quote/2`:
 
       defmodule Math do
         defmacro squared(x) do
@@ -1565,7 +1565,7 @@ defmodule Kernel.SpecialForms do
   be used to control flow based on the result of the expression.
   Catch, rescue and else clauses work based on pattern matching.
 
-  Note that calls inside `try` are not tail recursive since the VM
+  Note that calls inside `try/1` are not tail recursive since the VM
   needs to keep the stacktrace in case an exception happens.
 
   ## Rescue clauses
@@ -1804,7 +1804,7 @@ defmodule Kernel.SpecialForms do
 
   ## Variables handling
 
-  The `receive` special form handles variables exactly as the `case`
+  The `receive/1` special form handles variables exactly as the `case/2`
   special macro. For more information, check the docs for `case/2`.
   """
   defmacro receive(args)

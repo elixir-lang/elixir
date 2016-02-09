@@ -126,7 +126,7 @@ defmodule Code do
   Notice that setting any of the values above overrides Elixir's default
   values. For example, setting `:requires` to `[]`, will no longer
   automatically require the `Kernel` module; in the same way setting
-  `:macros` will no longer auto-import `Kernel` macros like `if`, `case`,
+  `:macros` will no longer auto-import `Kernel` macros like `if/2`, `case/2`,
   etc.
 
   Returns a tuple of the form `{value, binding}`,
