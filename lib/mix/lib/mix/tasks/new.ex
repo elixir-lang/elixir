@@ -220,10 +220,22 @@ defmodule Mix.Tasks.New do
   """
 
   embed_text :gitignore, """
+  # The directory Mix will write compiled artifacts to.
   /_build
+  
+  # If you run "mix test --cover", coverage assets end up here.
   /cover
+  
+  # The directory Mix downloads your dependencies sources to.
   /deps
+  
+  # Where 3rd-party dependencies like ExDoc output generated docs.
+  /doc
+  
+  # If the VM crashes, it generates a dump, let's ignore it too.
   erl_crash.dump
+  
+  # Also ignore archive artifacts (built via "mix archive.build").
   *.ez
   """
 
