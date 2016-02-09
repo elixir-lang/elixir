@@ -10,7 +10,7 @@ defmodule Map do
 
   @type key :: any
   @type value :: any
-  @compile {:inline, fetch: 2, put: 3, delete: 2, has_key?: 2}
+  @compile {:inline, fetch: 2, put: 3, delete: 2, has_key?: 2, drop: 2, take: 2}
 
   @doc """
   Returns all keys from the map.
@@ -211,12 +211,7 @@ defmodule Map do
   """
   @spec take(map, [key]) :: map
   def take(map, keys) do
-    Enum.reduce(keys, new, fn key, acc ->
-      case fetch(map, key) do
-        {:ok, value} -> put(acc, key, value)
-        :error -> acc
-      end
-    end)
+    :maps.with(keys, map)
   end
 
   @doc """
@@ -424,7 +419,7 @@ defmodule Map do
   """
   @spec drop(map, [key]) :: map
   def drop(map, keys) do
-    Enum.reduce(keys, map, &delete(&2, &1))
+    :maps.without(keys, map)
   end
 
   @doc """
