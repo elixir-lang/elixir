@@ -250,6 +250,31 @@ defmodule ExUnitTest do
     assert output =~ "2 tests, 0 failures, 2 skipped"
   end
 
+  test "filtering cases with :case tag" do
+    defmodule FirstTestCase do
+      use ExUnit.Case
+      test "ok", do: :ok
+    end
+
+    defmodule SecondTestCase do
+      use ExUnit.Case
+      test "false", do: assert false
+    end
+
+    test_cases = ExUnit.Server.start_run
+
+    {result, output} = run_with_filter([exclude: :case], test_cases)
+    assert result == %{failures: 0, skipped: 2, total: 2}
+    assert output =~ "2 tests, 0 failures, 2 skipped"
+
+    {result, output} =
+      [exclude: :test, include: [case: "ExUnitTest.SecondTestCase"]]
+      |> run_with_filter(test_cases)
+    assert result == %{failures: 1, skipped: 1, total: 2}
+    assert output =~ "1) test false (ExUnitTest.SecondTestCase)"
+    assert output =~ "2 tests, 1 failure, 1 skipped"
+  end
+
   test "raises on reserved tag in module" do
     assert_raise RuntimeError, "cannot set tag :file because it is reserved by ExUnit", fn ->
       defmodule ReservedTag do
