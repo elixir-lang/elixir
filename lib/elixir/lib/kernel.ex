@@ -253,7 +253,7 @@ defmodule Kernel do
       1
 
   """
-  @spec hd(list) :: term
+  @spec hd(maybe_improper_list) :: term
   def hd(list) do
     :erlang.hd(list)
   end
