@@ -168,4 +168,11 @@ defmodule ListTest do
       List.to_string([:a, :b])
     end
   end
+
+  test "compact" do
+    assert List.compact([1,2,3,4,5]) == [1,2,3,4,5]
+    assert List.compact([nil, 1, nil,2, nil,3, nil,4, nil,5, nil]) == [1,2,3,4,5]
+    assert List.compact([nil, nil, nil]) == []
+    assert List.compact([]) == []
+  end
 end

@@ -634,6 +634,18 @@ defmodule List do
     end
   end
 
+  @doc """
+  Returns a copy of the given list with all `nil` elements removed.
+
+  ## Examples
+
+      iex> List.compact([1, 2, nil, 3, 4, nil, 5])
+      [1, 2, 3, 4, 5]
+  """
+  def compact(list) do
+    :lists.filter(fn(el) -> !is_nil(el) end, list)
+  end
+
   ## Helpers
 
   # replace_at
