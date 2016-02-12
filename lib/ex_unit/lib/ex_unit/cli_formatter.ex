@@ -47,7 +47,11 @@ defmodule ExUnit.CLIFormatter do
   end
 
   def handle_event({:test_finished, %ExUnit.Test{state: {:skip, _}} = test}, config) do
-    if config.trace, do: IO.puts trace_test_skip(test)
+    if config.trace do
+      IO.puts skipped(trace_test_skip(test), config)
+    else
+      IO.write skipped("S", config)
+    end
     {:ok, %{config | tests_counter: config.tests_counter + 1,
                      skipped_counter: config.skipped_counter + 1}}
   end
@@ -145,6 +149,7 @@ defmodule ExUnit.CLIFormatter do
     cond do
       config.failures_counter > 0 -> IO.puts failure(message, config)
       config.invalids_counter > 0 -> IO.puts invalid(message, config)
+      config.skipped_counter  > 0 -> IO.puts skipped(message, config)
       true                        -> IO.puts success(message, config)
     end
 
@@ -186,8 +191,12 @@ defmodule ExUnit.CLIFormatter do
     colorize([:green], msg, config)
   end
 
-  defp invalid(msg, config) do
+  defp skipped(msg, config) do
     colorize([:yellow], msg, config)
+  end
+
+  defp invalid(msg, config) do
+    colorize([:red], msg, config)
   end
 
   defp failure(msg, config) do
