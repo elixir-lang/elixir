@@ -34,6 +34,6 @@ This document simply outlines the release process:
 
 ## Places where version is mentioned
 
-* VERSION (make sure there is no newline in this file)
+* VERSION
 * CHANGELOG.md
 * src/elixir.app.src (not lib/elixir/src/elixir.app.src)
