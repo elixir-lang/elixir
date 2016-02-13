@@ -525,18 +525,18 @@ end
 defmodule TokenMissingError do
   defexception [file: nil, line: nil, description: "expression is incomplete"]
 
-  def message(exception) do
-    Exception.format_file_line(Path.relative_to_cwd(exception.file), exception.line) <>
-      " " <> exception.description
+  def message(%{file: file, line: line, description: description}) do
+    Exception.format_file_line(file && Path.relative_to_cwd(file), line) <>
+      " " <> description
   end
 end
 
 defmodule CompileError do
   defexception [file: nil, line: nil, description: "compile error"]
 
-  def message(exception) do
-    Exception.format_file_line(Path.relative_to_cwd(exception.file), exception.line) <>
-      " " <> exception.description
+  def message(%{file: file, line: line, description: description}) do
+    Exception.format_file_line(file && Path.relative_to_cwd(file), line) <>
+      " " <> description
   end
 end
 

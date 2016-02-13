@@ -542,15 +542,11 @@ defmodule Code do
   def ensure_compiled(module) when is_atom(module) do
     case :code.ensure_loaded(module) do
       {:error, :nofile} = error ->
-        case :erlang.get(:elixir_ensure_compiled) do
-          :undefined -> error
-          _ ->
-            try do
-              module.__info__(:module)
-              {:module, module}
-            rescue
-              UndefinedFunctionError -> error
-            end
+        if is_pid(:erlang.get(:elixir_compiler_pid)) and
+           Kernel.ErrorHandler.ensure_compiled(module, :module) do
+          {:module, module}
+        else
+          error
         end
       other -> other
     end

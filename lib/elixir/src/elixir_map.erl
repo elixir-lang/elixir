@@ -127,26 +127,11 @@ load_struct(Meta, Name, S) ->
   end.
 
 ensure_loaded(Module) ->
-  case code:ensure_loaded(Module) of
-    {module, Module} -> true;
-    {error, _} -> false
-  end.
+  code:ensure_loaded(Module) == {module, Module}.
 
 wait_for_struct(Module) ->
-  case erlang:get(elixir_compiler_pid) of
-    undefined ->
-      false;
-    Pid ->
-      Ref = erlang:make_ref(),
-      Pid ! {waiting, struct, self(), Ref, Module},
-      receive
-        {Ref, ready} ->
-          true;
-        {Ref, release} ->
-          'Elixir.Kernel.ErrorHandler':release(),
-          false
-      end
-  end.
+  is_pid(erlang:get(elixir_compiler_pid)) andalso
+    'Elixir.Kernel.ErrorHandler':ensure_compiled(Module, struct).
 
 translate_map(Meta, Assocs, TUpdate, #elixir_scope{extra=Extra} = S) ->
   {Op, KeyFun, ValFun} = extract_key_val_op(TUpdate, S),
