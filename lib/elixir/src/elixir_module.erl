@@ -67,6 +67,7 @@ do_compile(Line, Module, Block, Vars, E) ->
   {Data, Defs, Clas, Ref} = build(Line, File, Module, Docs, ?m(E, lexical_tracker)),
 
   try
+    erlang:put(elixir_compiler_module, Module),
     {Result, NE} = eval_form(Line, Module, Data, Block, Vars, E),
 
     _ = case ets:lookup(Data, 'on_load') of
@@ -111,6 +112,7 @@ do_compile(Line, Module, Block, Vars, E) ->
           erlang:raise(error, undef, Stack)
       end
   after
+    erlang:erase(elixir_compiler_module),
     elixir_locals:cleanup(Module),
     ets:delete(Data),
     ets:delete(Defs),
