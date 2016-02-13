@@ -205,6 +205,30 @@ defmodule Stream do
     next_with_acc(f1, :lists.reverse(buffer), h, nil, t)
   end
 
+  @doc """
+  Works just like `Stream.chunk_by/2`, but emits a 2-element tuple
+  where the first element is the chunk, and the second is the count
+  of elements inside the chunk.
+
+  ## Examples
+
+      iex> stream = Stream.chunk_by_with_size([1, 2, 2, 3, 4, 4, 6, 7, 7], &(rem(&1, 2) == 1))
+      iex> Enum.to_list(stream)
+      [{[1], 1}, {[2, 2], 2}, {[3], 1}, {[4, 4, 6], 3}, {[7, 7], 2}]
+  """
+  def chunk_by_with_size(enum, fun) do
+    lazy enum, nil,
+         fn(f1) -> R.chunk_by_with_size(fun, f1) end,
+         &do_chunk_by_with_size(&1, &2)
+  end
+
+  defp do_chunk_by_with_size(acc(_, nil, _) = acc, _f1) do
+    {:cont, acc}
+  end
+
+  defp do_chunk_by_with_size(acc(h, {buffer, _, size}, t), f1) do
+    next_with_acc(f1, {:lists.reverse(buffer), size}, h, nil, t)
+  end
 
   @doc """
   Creates a stream that only emits elements if they are different from the last emitted element.

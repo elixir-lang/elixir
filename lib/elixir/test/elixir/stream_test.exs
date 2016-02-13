@@ -96,6 +96,16 @@ defmodule StreamTest do
     assert Enum.zip(list, list) == Enum.zip(stream, stream)
   end
 
+  test "chunk_by_with_size/2" do
+    stream = Stream.chunk_by_with_size([1,2,2,3,4,4,6,7,7], &(rem(&1, 2) == 1))
+
+    assert is_lazy(stream)
+    assert Enum.to_list(stream) ==
+           [{[1], 1}, {[2, 2], 2}, {[3], 1}, {[4, 4, 6], 3}, {[7, 7], 2}]
+    assert stream |> Stream.take(3) |> Enum.to_list ==
+           [{[1], 1}, {[2, 2], 2}, {[3], 1}]
+  end
+
   test "concat/1" do
     stream = Stream.concat([1..3, [], [4, 5, 6], [], 7..9])
     assert is_function(stream)
