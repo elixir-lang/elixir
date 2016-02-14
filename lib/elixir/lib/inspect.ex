@@ -258,18 +258,18 @@ defimpl Inspect, for: BitString do
   end
 
   defp each_bit(<<h::8>>, _counter, opts) do
-    Inspect.inspect(h, opts)
+    Inspect.Integer.inspect(h, opts)
   end
 
   defp each_bit(<<h, t::bitstring>>, counter, opts) do
-    glue(concat(Inspect.inspect(h, opts), ","),
+    glue(concat(Inspect.Integer.inspect(h, opts), ","),
          each_bit(t, decrement(counter), opts))
   end
 
   defp each_bit(bitstring, _counter, opts) do
     size = bit_size(bitstring)
     <<h::size(size)>> = bitstring
-    Inspect.inspect(h, opts) <> "::size(" <> Integer.to_string(size) <> ")"
+    Inspect.Integer.inspect(h, opts) <> "::size(" <> Integer.to_string(size) <> ")"
   end
 
   defp decrement(:infinity), do: :infinity
