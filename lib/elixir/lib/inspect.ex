@@ -141,8 +141,8 @@ defimpl Inspect, for: Atom do
 end
 
 defimpl Inspect, for: BitString do
-  def inspect(thing, %Inspect.Opts{binaries: bins} = opts) when is_binary(thing) do
-    if bins == :as_strings or (bins == :infer and String.printable?(thing)) do
+  def inspect(thing, %Inspect.Opts{binaries: bins, base: base} = opts) when is_binary(thing) do
+    if base == :decimal and (bins == :as_strings or (bins == :infer and String.printable?(thing))) do
       <<?", escape(thing, ?")::binary, ?">>
     else
       inspect_bitstring(thing, opts)
@@ -246,30 +246,30 @@ defimpl Inspect, for: BitString do
   end
 
   defp inspect_bitstring(bitstring, opts) do
-    nest surround("<<", each_bit(bitstring, opts.limit), ">>"), 1
+    nest surround("<<", each_bit(bitstring, opts.limit, opts), ">>"), 1
   end
 
-  defp each_bit(_, 0) do
+  defp each_bit(_, 0, _) do
     "..."
   end
 
-  defp each_bit(<<>>, _counter) do
+  defp each_bit(<<>>, _counter, _opts) do
     :doc_nil
   end
 
-  defp each_bit(<<h::8>>, _counter) do
-    Integer.to_string(h)
+  defp each_bit(<<h::8>>, _counter, opts) do
+    Inspect.inspect(h, opts)
   end
 
-  defp each_bit(<<h, t::bitstring>>, counter) do
-    glue(concat(Integer.to_string(h), ","),
-         each_bit(t, decrement(counter)))
+  defp each_bit(<<h, t::bitstring>>, counter, opts) do
+    glue(concat(Inspect.inspect(h, opts), ","),
+         each_bit(t, decrement(counter), opts))
   end
 
-  defp each_bit(bitstring, _counter) do
+  defp each_bit(bitstring, _counter, opts) do
     size = bit_size(bitstring)
     <<h::size(size)>> = bitstring
-    Integer.to_string(h) <> "::size(" <> Integer.to_string(size) <> ")"
+    Inspect.inspect(h, opts) <> "::size(" <> Integer.to_string(size) <> ")"
   end
 
   defp decrement(:infinity), do: :infinity
