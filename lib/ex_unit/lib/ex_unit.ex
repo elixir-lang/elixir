@@ -193,7 +193,8 @@ defmodule ExUnit do
     * `:autorun` - if ExUnit should run by default on exit; defaults to `true`
 
     * `:include` - specify which tests are run by skipping tests that do not
-      match the filter
+      match the filter. Keep in mind that all tests are included by default, so unless they are
+      excluded first, the `:include` option has no effect.
 
     * `:exclude` - specify which tests are run by skipping tests that match the
       filter
