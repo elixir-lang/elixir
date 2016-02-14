@@ -337,7 +337,7 @@ defmodule StreamTest do
   test "flat_map/2 with inner flat_map/2" do
     stream = Stream.flat_map(1..5, fn x ->
       Stream.flat_map([x], fn x ->
-        x .. x * x
+        x..x * x
       end) |> Stream.map(& &1 * 1)
     end)
 

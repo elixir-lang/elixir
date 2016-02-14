@@ -465,7 +465,7 @@ defmodule EnumTest.List do
 
   test "to list" do
     assert Enum.to_list([]) == []
-    assert Enum.to_list(1 .. 3) == [1, 2, 3]
+    assert Enum.to_list(1..3) == [1, 2, 3]
   end
 
   test "uniq by" do
