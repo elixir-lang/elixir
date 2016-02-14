@@ -115,6 +115,13 @@ defmodule Inspect.BitStringTest do
     assert inspect(<<"john", 193, "doe">>, binaries: :as_binaries) == "<<106, 111, 104, 110, 193, 100, 111, 101>>"
     assert inspect(<<"john">>, binaries: :as_binaries) == "<<106, 111, 104, 110>>"
     assert inspect(<<193>>, binaries: :as_binaries) == "<<193>>"
+    # base: :hex is recognized
+    assert inspect("abc", binaries: :as_binary, base: :hex) == "<<0x61, 0x62, 0x63>>"
+    # any base other than :decimal implies binaries: :as_binaries
+    assert inspect("abc", base: :hex) == "<<0x61, 0x62, 0x63>>"
+    assert inspect("abc", base: :octal) == "<<0o141, 0o142, 0o143>>"
+    # size is still represented as decimal
+    assert inspect(<<10, 11, 12::4>>, base: :hex) == "<<0xA, 0xB, 0xC::size(4)>>"
   end
 
   test "unprintable with opts" do

@@ -34,7 +34,8 @@ defmodule Inspect.Opts do
       own line.
 
     * `:base` - print integers as :binary, :octal, :decimal, or :hex, defaults
-      to :decimal
+      to :decimal. When inspecting binaries any `:base` other than `:decimal`
+      implies `binaries: :as_binaries`.
 
     * `:safe` - when `false`, failures while inspecting structs will be raised
       as errors instead of being wrapped in the Inspect.Error exception. This
@@ -78,7 +79,7 @@ defmodule Inspect.Algebra do
   This module implements the functionality described in
   ["Strictly Pretty" (2000) by Christian Lindig][0] with small
   additions, like support for String nodes, and a custom
-  rendering function that maximises horizontal space use. 
+  rendering function that maximises horizontal space use.
 
       iex> Inspect.Algebra.empty
       :doc_nil
