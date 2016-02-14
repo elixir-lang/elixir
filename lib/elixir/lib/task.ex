@@ -368,11 +368,14 @@ defmodule Task do
   Temporarily blocks the current process waiting for a task reply.
 
   Returns `{:ok, reply}` if the reply is received, `nil` if
-  no reply has arrived, or `{:exit, reason}` if the task exited.
-  Keep in mind that normally this function will exit if the task
-  process terminates abnormally. `{:exit, reason}` can only be
-  returned if the task process exited with the reason `:normal`
-  or if it isn't linked to the caller.
+  no reply has arrived, or `{:exit, reason}` if the task has already
+  exited. Keep in mind that normally a task failure also causes
+  the process owning the task to exit. Therefore this function can
+  return `{:exit, reason}` only if
+
+    * the task process exited with the reason `:normal`
+    * it isn't linked to the caller
+    * the caller is trapping exits
 
   A timeout, in milliseconds, can be given with default value
   of `5000`. If the time runs out before a message from
