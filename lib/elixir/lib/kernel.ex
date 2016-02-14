@@ -2554,7 +2554,7 @@ defmodule Kernel do
       true
 
   """
-  defmacro first .. last do
+  defmacro first..last do
     case is_float(first) or is_float(last) or
          is_atom(first) or is_atom(last) or
          is_binary(first) or is_binary(last) or
