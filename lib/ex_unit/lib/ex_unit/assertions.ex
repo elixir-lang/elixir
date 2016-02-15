@@ -103,12 +103,13 @@ defmodule ExUnit.Assertions do
     # to avoid silly warnings though.
     return =
       no_warning(quote do
-        if right do
-          right
-        else
-          raise ExUnit.AssertionError,
-            expr: expr,
-            message: "Expected truthy, got #{inspect right}"
+        case right do
+          x when x in [nil, false] ->
+            raise ExUnit.AssertionError,
+              expr: expr,
+              message: "Expected truthy, got #{inspect right}"
+          _ ->
+            :ok
         end
       end)
 
@@ -416,8 +417,11 @@ defmodule ExUnit.Assertions do
     |> elem(1)
   end
 
-  defp no_warning({name, meta, args}) do
-    {name, [line: -1] ++ meta, args}
+  defp no_warning({name, meta, [expr, [do: clauses]]}) do
+    clauses = Enum.map clauses, fn {:->, meta, args} ->
+      {:->, [generated: true] ++ Keyword.put(meta, :line, -1), args}
+    end
+    {name, meta, [expr, [do: clauses]]}
   end
 
   @doc """
