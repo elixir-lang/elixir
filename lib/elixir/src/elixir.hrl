@@ -28,7 +28,8 @@
   imports_hygiene=true,
   unquote=true,
   unquoted=false,
-  escape=false
+  escape=false,
+  generated=false
 }).
 
 -record(elixir_tokenizer, {

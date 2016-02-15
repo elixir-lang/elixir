@@ -157,7 +157,7 @@ expand({quote, Meta, [KV, Do]}, E) when is_list(Do) ->
       false -> compile_error(Meta, E#elixir_scope.file, "missing do keyword in quote")
     end,
 
-  ValidOpts = [context, location, line, file, unquote, bind_quoted],
+  ValidOpts = [context, location, line, file, unquote, bind_quoted, generated],
   {EKV, ET} = expand_opts(Meta, quote, ValidOpts, KV, E),
 
   Context = case lists:keyfind(context, 1, EKV) of
@@ -198,7 +198,13 @@ expand({quote, Meta, [KV, Do]}, E) when is_list(Do) ->
     false -> DefaultUnquote
   end,
 
-  Q = #elixir_quote{line=Line, file=File, unquote=Unquote, context=Context},
+  Generated = lists:keyfind(generated, 1, EKV) == {generated, true},
+
+  %% TODO: Do not allow negative line numbers once Erlang 18
+  %% support is dropped as it only allows negative line
+  %% annotations alongside the generated check.
+  Q = #elixir_quote{line=Line, file=File, unquote=Unquote,
+                    context=Context, generated=Generated},
 
   {Quoted, _Q} = elixir_quote:quote(Exprs, Binding, Q, ET),
   expand(Quoted, ET);
