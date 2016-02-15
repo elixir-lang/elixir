@@ -766,8 +766,8 @@ defmodule Kernel.SpecialForms do
       information.
 
     * `:generated` - marks the given chunk as generated so it does not emit warnings.
-      Currently it only works on special forms (for example, you cannot annotate
-      a `case` but not an `if`).
+      Currently it only works on special forms (for example, you can annotate a `case`
+      but not an `if`).
 
     * `:context` - sets the resolution context.
 
