@@ -321,7 +321,10 @@ do_quote_tuple({Left, Meta, Right}, Q, E) ->
   {{'{}', [], [TLeft, meta(Meta, Q), TRight]}, RQ}.
 
 meta(Meta, Q) ->
-  file(line(Meta, Q), Q).
+  generated(file(line(Meta, Q), Q), Q).
+
+generated(Meta, #elixir_quote{generated=true}) -> [{generated, true}|Meta];
+generated(Meta, #elixir_quote{generated=false}) -> Meta.
 
 file(Meta, #elixir_quote{file=nil}) -> Meta;
 file(Meta, #elixir_quote{file=File}) -> [{file, File}|Meta].
