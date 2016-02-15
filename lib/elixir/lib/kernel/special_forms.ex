@@ -765,6 +765,10 @@ defmodule Kernel.SpecialForms do
       quote. Read the Stacktrace information section below for more
       information.
 
+    * `:generated` - marks the given chunk as generated so it does not emit warnings.
+      Currently it only works on special forms (for example, you cannot annotate
+      a `case` but not an `if`).
+
     * `:context` - sets the resolution context.
 
     * `:bind_quoted` - passes a binding to the macro. Whenever a binding is
