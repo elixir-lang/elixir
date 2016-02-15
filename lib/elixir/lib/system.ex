@@ -5,16 +5,14 @@ defmodule System do
   with the VM or the host system.
   """
 
-  @base_dir           Path.join([__DIR__, "..", "..", ".."])
+  @base_dir           Path.join([__DIR__, "../../.."])
   @version_file       Path.join(@base_dir, "VERSION")
   @git_dir            Path.join(@base_dir, ".git")
   @git_head_file      Path.join(@git_dir, "HEAD")
 
   @spec strip(iodata) :: String.t
   defp strip(iodata) do
-    iodata
-    |> :re.replace("^[\s\r\n\t]+", "", [return: :binary])
-    |> :re.replace("[\s\r\n\t]+$", "", [return: :binary])
+    :re.replace(iodata, "^[\s\r\n\t]+|[\s\r\n\t]+$", "", [:global, return: :binary])
   end
 
   @spec read_stripped(String.t) :: String.t
@@ -54,24 +52,8 @@ defmodule System do
     end
   end
 
-  @spec get_tag :: String.t
-  defmacrop get_tag do
-    revision = get_revision
-
-    case :file.read_file_info(@git_dir) do
-      {:ok, _} when revision != "" ->
-        if :os.find_executable('git') do
-          'git tag --points-at ' ++ :unicode.characters_to_list(revision)
-          |> :os.cmd
-          |> strip
-        else
-          ""
-        end
-
-      _ ->
-        ""
-    end
-  end
+  @spec revision() :: String.t
+  defp revision, do: get_revision
 
   # Get the date at compilation time.
   defmacrop get_date do
@@ -104,29 +86,27 @@ defmodule System do
   @doc """
   Elixir build information.
 
-  Returns a keyword list with Elixir version, compilation date, git tag and short revision hash.
+  Returns a keyword list with Elixir compilation date, revision hash, version
+  and version build string.
   """
   @spec build_info() :: map
   def build_info do
-    %{  date:     get_date,
-        revision: binary_part(get_revision, 0, 7),
-        tag:      get_tag,
-        version:  get_version,
+    %{date:     get_date,
+      revision: revision,
+      version:  version,
+      version_build: version_build,
       }
   end
 
   @doc false
   # Returns a string of the build info
-  @spec build_info(atom :: :version_build) :: String.t
-  def build_info(opt) when opt in [:version_build] do
-    case opt do
-      :version_build ->
-        info = build_info()
-        {:ok, v} = Version.parse(info[:version])
-        case v.pre do
-          [] -> "#{info[:version]}"
-          _  -> "#{info[:version]} (#{info[:revision]})"
-        end
+  @spec version_build :: String.t
+  defp version_build do
+    ver = version()
+    {:ok, v} = Version.parse(ver)
+    case v.pre do
+      [] -> "#{ver}"
+      _  -> "#{ver} (" <> binary_part(revision, 0, 7) <> ")"
     end
   end
 

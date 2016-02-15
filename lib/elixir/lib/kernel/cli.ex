@@ -147,10 +147,10 @@ defmodule Kernel.CLI do
 
   defp parse_shared([opt|_t], _config) when opt in ["-v", "--version"] do
     if function_exported?(IEx, :started?, 0) and IEx.started? do
-      IO.puts "IEx " <> System.build_info(:version_build)
+      IO.puts "IEx " <> System.build_info[:version_build]
     else
       IO.puts :erlang.system_info(:system_version)
-      IO.puts "Elixir " <> System.build_info(:version_build)
+      IO.puts "Elixir " <> System.build_info[:version_build]
     end
 
     System.halt 0

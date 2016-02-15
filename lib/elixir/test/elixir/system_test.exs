@@ -9,22 +9,17 @@ defmodule SystemTest do
     assert is_map build_info
     assert is_binary build_info[:date]
     assert is_binary build_info[:revision]
-    assert is_binary build_info[:tag]
     assert is_binary build_info[:version]
+    assert is_binary build_info[:version_build]
 
     if build_info[:revision] != "" do
-      assert String.length(build_info[:revision]) == 7
+      assert String.length(build_info[:revision]) == 40
     end
 
-    version_file = Path.join([__DIR__, "..", "..", "..", "..", "VERSION"]) |> Path.expand
+    version_file = Path.join([__DIR__, "../../../..", "VERSION"]) |> Path.expand
     {:ok, version} = File.read(version_file)
     assert build_info[:version] == String.strip(version)
-  end
-
-  test "build_info/1" do
-    info = System.build_info(:version_build)
-    assert is_binary info
-    assert info != ""
+    assert build_info[:version_build] != ""
   end
 
   test "cwd/0" do
