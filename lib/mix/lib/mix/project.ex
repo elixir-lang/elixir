@@ -237,6 +237,22 @@ defmodule Mix.Project do
   end
 
   @doc """
+  Returns the full path of all dependencies as a map.
+
+  ## Examples
+
+      Mix.Project.deps_paths
+      #=> %{foo: "deps/foo", bar: "custom/path/dep"}
+
+  """
+  @spec deps_paths() :: %{atom => Path.t}
+  def deps_paths do
+    Enum.reduce Mix.Dep.loaded(env: Mix.env), %{}, fn
+      %{app: app, opts: opts}, acc -> Map.put acc, app, opts[:dest]
+    end
+  end
+
+  @doc """
   Returns the build path for this project.
 
   The returned path will be expanded.
