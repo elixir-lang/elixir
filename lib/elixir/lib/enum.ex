@@ -2157,9 +2157,7 @@ defmodule Enum do
   Takes random items from the enumerable.
 
   Notice this function will traverse the whole enumerable to
-  get the random sublist of `enumerable`. If you want the random
-  number between two integers, the best option is to use the
-  [`:rand`](http://www.erlang.org/doc/man/rand.html) module.
+  get the random sublist of `enumerable`.
 
   See `random/1` for notes on implementation and random seed.
 
@@ -2175,6 +2173,14 @@ defmodule Enum do
   """
   @spec take_random(t, integer) :: list
   def take_random(_enumerable, 0), do: []
+
+  def take_random(first..last, 1) when first > last do
+    take_random(last..first, 1)
+  end
+
+  def take_random(first..last, 1) do
+    [random_index(last - first) + first]
+  end
 
   def take_random(enumerable, count) when count > 128 do
     reducer = fn(elem, {idx, sample}) ->
