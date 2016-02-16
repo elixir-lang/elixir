@@ -34,7 +34,7 @@ expand(Meta, Args, E) ->
 
 expand({'<-', Meta, [Left, Right]}, E) ->
   {ERight, ER} = elixir_exp:expand(Right, E),
-  {ELeft, EL}  = elixir_exp_clauses:match(fun elixir_exp:expand/2, Left, E),
+  {[ELeft], EL}  = elixir_exp_clauses:head([Left], E),
   {{'<-', Meta, [ELeft, ERight]}, elixir_env:mergev(EL, ER)};
 expand({'<<>>', Meta, Args} = X, E) when is_list(Args) ->
   case elixir_utils:split_last(Args) of
@@ -105,14 +105,24 @@ translate_gen(ForMeta, _, _, S) ->
 
 translate_gen(_Meta, Left, Right, T, S) ->
   {TRight, SR} = elixir_translator:translate(Right, S),
-  {TLeft, SL} = elixir_clauses:match(fun elixir_translator:translate/2, Left,
+  {LeftArgs, LeftGuards} = elixir_clauses:extract_guards(Left),
+  {TLeft, SL} = elixir_clauses:match(fun elixir_translator:translate/2, LeftArgs,
                                      SR#elixir_scope{extra=pin_guard, extra_guards=[]}),
 
+  TLeftGuards = elixir_clauses:guards(LeftGuards, [], SL),
   ExtraGuards = [{nil, X} || X <- SL#elixir_scope.extra_guards],
   SF = SL#elixir_scope{extra=S#elixir_scope.extra, extra_guards=nil},
 
   {TT, {TFilters, TS}} = translate_filters(T, SF),
-  {TLeft, TRight, ExtraGuards ++ TFilters, TT, TS}.
+  Guards = ExtraGuards ++ translate_guards(TLeftGuards) ++ TFilters,
+  {TLeft, TRight, Guards, TT, TS}.
+
+translate_guards([]) ->
+  [];
+translate_guards([[Guards]]) ->
+  [{nil, Guards}];
+translate_guards([[Left], [Right] | Rest]) ->
+  translate_guards([[{op, element(2, Left), 'orelse', Left, Right}] | Rest]).
 
 translate_filters(T, S) ->
   {Filters, Rest} = collect_filters(T, []),
