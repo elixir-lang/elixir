@@ -45,6 +45,11 @@ defmodule Kernel.ComprehensionTest do
     assert for({^x, v} <- maps, do: v * 2) == [2, 6]
   end
 
+  test "for comprehensions with guards" do
+    assert for(x when x < 4 <- 1..10, do: x) == [1, 2, 3]
+    assert for(x when x == 3 when x == 7 <- 1..10, do: x) == [3, 7]
+  end
+
   test "for comprehensions with map key matching" do
     maps = [%{x: 1}, %{y: 2}, %{x: 3}]
     assert for(%{x: v} <- maps, do: v * 2) == [2, 6]
