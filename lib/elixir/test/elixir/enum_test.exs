@@ -940,10 +940,11 @@ defmodule EnumTest.Range do
     seed2 = {1306, 421106, 567597}
     :rand.seed(:exsplus, seed1)
     assert Enum.random(1..2) == 1
-    assert Enum.random(1..3) == 1
-    :rand.seed(:exsplus, seed2)
-    assert Enum.random(1..2) == 2
     assert Enum.random(1..3) == 2
+    assert Enum.random(3..1) == 3
+    :rand.seed(:exsplus, seed2)
+    assert Enum.random(1..2) == 1
+    assert Enum.random(1..3) == 3
   end
 
   test "take random" do
@@ -958,15 +959,16 @@ defmodule EnumTest.Range do
     seed1 = {1406, 407414, 139258}
     seed2 = {1406, 421106, 567597}
     :rand.seed(:exsplus, seed1)
-    assert Enum.take_random(1..3, 1) == [1]
-    assert Enum.take_random(1..3, 2) == [1, 3]
-    assert Enum.take_random(1..3, 3) == [2, 1, 3]
-    assert Enum.take_random(1..3, 4) == [3, 1, 2]
-    :rand.seed(:exsplus, seed2)
     assert Enum.take_random(1..3, 1) == [3]
+    assert Enum.take_random(1..3, 2) == [3, 1]
+    assert Enum.take_random(1..3, 3) == [3, 1, 2]
+    assert Enum.take_random(1..3, 4) == [1, 3, 2]
+    assert Enum.take_random(3..1, 1) == [2]
+    :rand.seed(:exsplus, seed2)
+    assert Enum.take_random(1..3, 1) == [1]
     assert Enum.take_random(1..3, 2) == [1, 2]
-    assert Enum.take_random(1..3, 3) == [1, 2, 3]
-    assert Enum.take_random(1..3, 4) == [1, 2, 3]
+    assert Enum.take_random(1..3, 3) == [1, 3, 2]
+    assert Enum.take_random(1..3, 4) == [3, 2, 1]
   end
 
   test "scan" do
