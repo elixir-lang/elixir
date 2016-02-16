@@ -44,7 +44,15 @@ defmodule System do
         if :os.find_executable('git') do
           :os.cmd('git rev-parse HEAD') |> strip
         else
-          read_stripped(@git_head_file)
+          case read_stripped(@git_head_file) do
+            "ref: " <> path ->
+              case read_stripped(Path.join(@git_dir, path)) do
+                hash ->
+                  hash
+              end
+            hash ->
+              hash
+          end
         end
 
       _ ->
