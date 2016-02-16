@@ -85,6 +85,19 @@ ask Mix to use Rebar 3 to compile it by passing the `manager: :rebar3` option.
 Once configured, Mix will prompt you to install Rebar 3 if it is not yet
 available.
 
+## v1.2.3-dev
+
+### 1. Enhancements
+
+  * [Mix] Add `Mix.Projects.deps_paths` that returns the dependencies path as a map
+
+### 2. Bug fixes
+
+  * [ExUnit] Do not provide negative line numbers without generated annotation (for compatibility with Erlang 19)
+  * [Mix] Reject non fullfilled optional dependencies later on in the convergence resolution for proper dependency sorting
+  * [String] Fix incomplete data trimming on both `String.replace_trailing` and `String.rstrip`
+  * [String] Attach debug_info back into Unicode modules for Dialyzer support
+
 ## v1.2.2
 
 ### 1. Enhancements
