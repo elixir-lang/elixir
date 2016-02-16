@@ -100,8 +100,8 @@ Built-in type           | Defined as
 `list()`                | `[any()]`
 `maybe_improper_list()` | `maybe_improper_list(any(), any())`
 `nonempty_list()`       | `nonempty_list(any())`
+`iolist()`              | `maybe_improper_list(byte() \| binary() \| iolist(), binary() \| [])`
 `iodata()`              | `iolist()` \| `binary()`
-`iolist()`              | `maybe_improper_list(byte()` \| `binary()` \| `iolist(), binary()` \| `[])`
 `module()`              | `atom()` \| `tuple()`
 `arity()`               | `0..255`
 `mfa()`                 | `{atom(), atom(), arity()}`
