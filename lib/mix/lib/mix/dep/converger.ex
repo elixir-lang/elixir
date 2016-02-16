@@ -92,15 +92,18 @@ defmodule Mix.Dep.Converger do
       # In case no lock was given, we will use the local lock
       # which is potentially stale. So remote.deps/2 needs to always
       # check if the data it finds in the lock is actually valid.
-      all(main, apps, callback, rest, lock, env, fn dep ->
-        if cached = deps[dep.app] do
-          {:loaded, cached}
-        else
-          {:unloaded, dep, remote.deps(dep, lock)}
-        end
-      end)
+      {deps, rest, lock} =
+        all(main, apps, callback, rest, lock, env, fn dep ->
+          if cached = deps[dep.app] do
+            {:loaded, cached}
+          else
+            {:unloaded, dep, remote.deps(dep, lock)}
+          end
+        end)
+
+      {reject_non_fullfilled_optional(deps), rest, lock}
     else
-      {deps, rest, lock}
+      {reject_non_fullfilled_optional(deps), rest, lock}
     end
   end
 
@@ -173,12 +176,12 @@ defmodule Mix.Dep.Converger do
               Mix.Dep.Loader.load(dep, children)
           end
 
-        dep = %{dep | deps: reject_non_fullfilled_optional(dep.deps, current_breadths)}
         {acc, rest, lock} =
           all(t, [dep|acc], upper_breadths, current_breadths, callback, rest, lock, env, cache)
 
-        new_breadths = Enum.map(dep.deps, &(&1.app)) ++ current_breadths
-        all(dep.deps, acc, current_breadths, new_breadths, callback, rest, lock, env, cache)
+        deps = reject_non_fullfilled_optional(dep.deps, current_breadths)
+        new_breadths = Enum.map(deps, &(&1.app)) ++ current_breadths
+        all(deps, acc, current_breadths, new_breadths, callback, rest, lock, env, cache)
     end
   end
 
@@ -284,6 +287,13 @@ defmodule Mix.Dep.Converger do
   defp opts_equal?(opts1, opts2) do
     keys = ~w(app env compile)a
     Enum.all?(keys, &(Keyword.fetch(opts1, &1) == Keyword.fetch(opts2, &1)))
+  end
+
+  defp reject_non_fullfilled_optional(deps) do
+    apps = Enum.map(deps, & &1.app)
+    for dep <- deps do
+      update_in dep.deps, &reject_non_fullfilled_optional(&1, apps)
+    end
   end
 
   defp reject_non_fullfilled_optional(children, upper_breadths) do
