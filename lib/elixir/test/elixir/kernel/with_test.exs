@@ -16,6 +16,7 @@ defmodule Kernel.WithTest do
   test "with guards" do
     assert with(x when x < 2 <- four(), do: :ok) == 4
     assert with(x when x > 2 <- four(), do: :ok) == :ok
+    assert with(x when x < 2 when x == 4 <- four(), do: :ok) == :ok
   end
 
   test "pin matching with" do
