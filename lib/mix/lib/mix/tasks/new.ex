@@ -413,8 +413,9 @@ defmodule Mix.Tasks.New do
     def start(_type, _args) do
       import Supervisor.Spec, warn: false
 
+      # Define workers and child supervisors to be supervised
       children = [
-        # Define workers and child supervisors to be supervised
+        # Starts a worker by calling: <%= @mod %>.Worker.start_link(arg1, arg2, arg3)
         # worker(<%= @mod %>.Worker, [arg1, arg2, arg3]),
       ]
 
