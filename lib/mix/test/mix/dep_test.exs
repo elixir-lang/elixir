@@ -53,6 +53,17 @@ defmodule Mix.DepTest do
     end
   end
 
+  test "extracts all dependencies paths from the given project" do
+    Mix.Project.push DepsApp
+
+    in_fixture "deps_status", fn ->
+      paths = Mix.Project.deps_paths
+      assert map_size(paths) == 6
+      assert paths[:ok] =~ "deps/ok"
+      assert paths[:uncloned] =~ "deps/uncloned"
+    end
+  end
+
   test "fails on invalid dependencies" do
     assert_wrong_dependency [{:ok}]
     assert_wrong_dependency [{:ok, nil}]
