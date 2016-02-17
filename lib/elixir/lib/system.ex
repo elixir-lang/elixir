@@ -5,21 +5,25 @@ defmodule System do
   with the VM or the host system.
   """
 
-  defp strip_re(iodata, pattern) do
-    :re.replace(iodata, pattern, "", [return: :binary])
+  @base_dir      :filename.join(__DIR__, "../../..")
+  @version_file  :filename.join(@base_dir, "VERSION")
+
+  defp strip(iodata) do
+    :re.replace(iodata, "^[\s\r\n\t]+|[\s\r\n\t]+$", "", [:global, return: :binary])
   end
 
   defp read_stripped(path) do
     case :file.read_file(path) do
       {:ok, binary} ->
-        strip_re(binary, "^\s+|\s+$")
-      _ -> ""
+        strip(binary)
+      _ ->
+        ""
     end
   end
 
   # Read and strip the version from the VERSION file.
   defmacrop get_version do
-    case read_stripped(:filename.join(__DIR__, "../../../VERSION")) do
+    case read_stripped(@version_file) do
       ""   -> raise RuntimeError, message: "could not read the version number from VERSION"
       data -> data
     end
@@ -34,7 +38,7 @@ defmodule System do
       {:ok, _} ->
         if :os.find_executable('git') do
           data = :os.cmd('git rev-parse --short HEAD')
-          strip_re(data, "\n")
+          strip(data)
         else
           read_stripped(:filename.join(".git", "HEAD"))
         end
