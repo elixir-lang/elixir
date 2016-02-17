@@ -27,9 +27,9 @@ defmodule IEx.Helpers do
     * `cd/1`          - changes the current directory
     * `clear/0`       - clears the screen
     * `flush/0`       - flushes all messages sent to the shell
-    * `i/1`           - prints information about the given data type
     * `h/0`           - prints this help message
     * `h/1`           - prints help for the given module, function or macro
+    * `i/1`           - prints information about the given data type
     * `import_file/1` - evaluates the given file in the shell's context
     * `l/1`           - loads the given module's beam code
     * `ls/0`          - lists the contents of the current directory
@@ -42,7 +42,6 @@ defmodule IEx.Helpers do
     * `t/1`           — prints type information
     * `v/0`           — retrieves the last value from the history
     * `v/1`           — retrieves the nth value from the history
-    * `import_file/1` — evaluates the given file in the shell's context
 
   Help for all of those functions can be consulted directly from
   the command line using the `h` helper itself. Try:
