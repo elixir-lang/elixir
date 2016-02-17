@@ -2,12 +2,7 @@ Code.require_file "test_helper.exs", __DIR__
 
 defmodule EnumTest do
   use ExUnit.Case, async: true
-
   doctest Enum
-end
-
-defmodule EnumTest.List do
-  use ExUnit.Case, async: true
 
   test "empty?" do
     assert Enum.empty?([])
@@ -1122,6 +1117,36 @@ defmodule EnumTest.Range do
 
   test "with index" do
     assert Enum.with_index(1..3) == [{1, 0}, {2, 1}, {3, 2}]
+  end
+end
+
+defmodule EnumTest.Map do
+  # Some cases are inlined for ranges which means we need
+  # to verify them using maps or mapsets.
+  use ExUnit.Case, async: true
+
+  test "take random" do
+    # corner cases, independent of the seed
+    assert_raise FunctionClauseError, fn -> Enum.take_random(1..2, -1) end
+    assert Enum.take_random(%{a: 1}, 0) == []
+    assert Enum.take_random(%{a: 1}, 2) == [a: 1]
+    assert Enum.take_random(%{a: 1, b: 2}, 0) == []
+
+    # set a fixed seed so the test can be deterministic
+    # please note the order of following assertions is important
+    map = %{a: 1, b: 2, c: 3}
+    seed1 = {1406, 407414, 139258}
+    seed2 = {1406, 421106, 567597}
+    :rand.seed(:exsplus, seed1)
+    assert Enum.take_random(map, 1) == [a: 1]
+    assert Enum.take_random(map, 2) == [a: 1, c: 3]
+    assert Enum.take_random(map, 3) == [b: 2, a: 1, c: 3]
+    assert Enum.take_random(map, 4) == [c: 3, a: 1, b: 2]
+    :rand.seed(:exsplus, seed2)
+    assert Enum.take_random(map, 1) == [c: 3]
+    assert Enum.take_random(map, 2) == [a: 1, b: 2]
+    assert Enum.take_random(map, 3) == [a: 1, b: 2, c: 3]
+    assert Enum.take_random(map, 4) == [a: 1, b: 2, c: 3]
   end
 end
 
