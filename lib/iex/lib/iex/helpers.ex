@@ -34,6 +34,7 @@ defmodule IEx.Helpers do
     * `l/1`           - loads the given module's beam code
     * `ls/0`          - lists the contents of the current directory
     * `ls/1`          - lists the contents of the specified directory
+    * `nl/2`          - deploys local beam code to a list of connected nodes
     * `pid/3`         — creates a PID with the 3 integer arguments passed
     * `pwd/0`         — prints the current working directory
     * `r/1`           — recompiles and reloads the given module's source file
@@ -642,5 +643,43 @@ defmodule IEx.Helpers do
              Integer.to_char_list(y) ++ '.' ++
              Integer.to_char_list(z) ++ '>'
     )
+  end
+
+  @doc """
+  Deloys a given module's beam code to a list of connected nodes.
+
+  This function is useful for development and debugging when you have code that
+  has been compiled or updated locally that you want to run on other nodes.
+  
+  The node list defaults to a list of all connected nodes.
+
+  Returns `{:error, :nofile}` if the object code (i.e. ".beam" file) for the module
+  could not be found locally.
+
+  ## Examples
+
+      nl(HelloWorld)
+      #=> {:ok, [{:node1@easthost, :loaded, HelloWorld},
+                 {:node1@westhost, :loaded, HelloWorld}]}
+
+      nl(NoSuchModuleExists)
+      #=> {:error, :nofile}
+      
+  """
+  def nl(nodes \\ Node.list, module) when is_list(nodes) and is_atom(module) do
+    case :code.get_object_code(module) do
+      {^module, bin, beam_path} ->
+        results = 
+          for node <- nodes do
+            case :rpc.call(node, :code, :load_binary, [module, beam_path, bin]) do
+              {:module, _} -> {node, :loaded, module}
+              {:badrpc, message} -> {node, :badrpc, message}
+              {:error, message} -> {node, :error, message}
+              unexpected -> {node, :error, unexpected}
+            end
+          end
+        {:ok, results}
+      _otherwise -> {:error, :nofile}
+    end
   end
 end
