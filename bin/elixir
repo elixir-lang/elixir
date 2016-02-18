@@ -5,7 +5,7 @@ if [ $# -eq 0 ] || [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
   -v                Prints version and exits
   -e \"command\"      Evaluates the given command (*)
   -r \"file\"         Requires the given files/patterns (*)
-  -S \"script\"       Finds and executes the given script
+  -S \"script\"       Finds and executes the given script in PATH
   -pr \"file\"        Requires the given files/patterns in parallel (*)
   -pa \"path\"        Prepends the given path to Erlang code path (*)
   -pz \"path\"        Appends the given path to Erlang code path (*)

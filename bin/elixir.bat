@@ -12,7 +12,7 @@ echo.
 echo   -v                Prints version and exits
 echo   -e command        Evaluates the given command (*)
 echo   -r file           Requires the given files/patterns (*)
-echo   -S script         Finds and executes the given script
+echo   -S script         Finds and executes the given script in PATH
 echo   -pr file          Requires the given files/patterns in parallel (*)
 echo   -pa path          Prepends the given path to Erlang code path (*)
 echo   -pz path          Appends the given path to Erlang code path (*)
