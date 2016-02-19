@@ -117,10 +117,17 @@ defmodule Mix.Config do
   end
 
   @doc ~S"""
-  Imports configuration from the given file.
+  Imports configuration from the given file or files.
 
-  The path is expected to be relative to the directory the
-  current configuration file is on.
+  If `path_or_wildcard` is a wildcard, then all the files
+  matching that wildcard will be imported; if no file matches
+  the wildcard, no errors are raised. If `path_or_wildcard` is
+  not a wildcard but a path to a single file, then that file is
+  imported; in case the file doesn't exist, an error is raised.
+  This behaviour is analogous to the one for `read_wildcard!/1`.
+
+  If path/wildcard is a relative path/wildcard, it will be expanded relatively
+  to the directory the current configuration file is in.
 
   ## Examples
 
@@ -133,17 +140,21 @@ defmodule Mix.Config do
       import_config "../apps/*/config/config.exs"
 
   """
-  defmacro import_config(file) do
+  defmacro import_config(path_or_wildcard) do
     quote do
       Mix.Config.Agent.merge(
         var!(config_agent, Mix.Config),
-         Mix.Config.read_wildcard!(Path.expand(unquote(file), __DIR__))
+         Mix.Config.read_wildcard!(Path.expand(unquote(path_or_wildcard), __DIR__))
       )
     end
   end
 
   @doc """
   Reads and validates a configuration file.
+
+  `file` is the path to the configuration file to be read. If that file doesn't
+  exist or if there's an error loading it, a `Mix.Config.LoadError` exception
+  will be raised.
   """
   def read!(file) do
     try do
@@ -170,8 +181,10 @@ defmodule Mix.Config do
 
   @doc """
   Reads many configuration files given by wildcard into a single config.
+
   Raises an error if `path` is a concrete filename (with no wildcards)
-  but the corresponding file does not exist.
+  but the corresponding file does not exist; if `path` matches no files,
+  no errors are raised.
   """
   def read_wildcard!(path) do
     paths = if String.contains?(path, ~w(* ? [ {))do
@@ -186,7 +199,18 @@ defmodule Mix.Config do
   Persists the given configuration by modifying
   the configured applications environment.
 
-  Returns the configured apps.
+  `config` should be a list of `{app, app_config}` tuples or a
+  `%{app => app_config}` map where `app` are the applications to
+  be configured and `app_config` are the configuration (as key-value
+  pairs) for each of those applications.
+
+  Returns the configured applications.
+
+  ## Examples
+
+      Mix.Config.persist(logger: [level: :error], my_app: [my_config: 1])
+      #=> [:logger, :my_app]
+
   """
   def persist(config) do
     for {app, kw} <- config do
