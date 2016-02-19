@@ -14,7 +14,7 @@ defmodule GenEvent do
 
   There are many use cases for event handlers. For example, a logging
   system can be built using event handlers where each log message is
-  an event and different event handlers can be plugged to handle the
+  an event and different event handlers can be attached to handle the
   log messages. One handler may print error messages on the terminal,
   another can write it to a file, while a third one can keep the
   messages in memory (like a buffer) until they are read.
@@ -79,7 +79,7 @@ defmodule GenEvent do
 
   ## Modes
 
-  GenEvent stream supports three different notifications.
+  GenEvent supports three different notifications.
 
   On `GenEvent.ack_notify/2`, the manager acknowledges each event,
   providing backpressure, but processing of the message happens
@@ -114,11 +114,9 @@ defmodule GenEvent do
 
   ## Learn more and compatibility
 
-  If you wish to find out more about gen events, Elixir getting started
-  guides provide a tutorial-like introduction. The documentation and links
-  in Erlang can also provide extra insight.
+  If you wish to find out more about GenEvent, the documentation and links
+  in Erlang can provide extra insight.
 
-    * [Introduction to Mix – Elixir's Getting Started Guide](http://elixir-lang.org/getting-started/mix-otp/introduction-to-mix.html)
     * [`:gen_event` module documentation](http://www.erlang.org/doc/man/gen_event.html)
     * [Event Handlers – Learn You Some Erlang for Great Good!](http://learnyousomeerlang.com/event-handlers)
 
@@ -197,7 +195,7 @@ defmodule GenEvent do
   `{:ok, reply, new_state}` except the process is hibernated. See
   `handle_event/2` for more information on hibernation.
 
-  Returning `{:remove_handler, reply}` sends `reply` as a reponse to the call,
+  Returning `{:remove_handler, reply}` sends `reply` as a response to the call,
   removes the handler from the `GenEvent` loop and calls `terminate/2` with
   reason `:remove_handler` and state `state`.
   """
@@ -270,7 +268,7 @@ defmodule GenEvent do
   `old_vsn` is the previous version of the module (defined by the `@vsn`
   attribute) when upgrading. When downgrading the previous version is wrapped in
   a 2-tuple with first element `:down`. `state` is the current state of the
-  handker and `extra` is any extra data required to change the state.
+  handler and `extra` is any extra data required to change the state.
 
   Returning `{:ok, new_state}` changes the state to `new_state` and the code
   change is successful.
