@@ -30,20 +30,10 @@ defmodule System do
   end
 
   # Tries to run "git rev-parse --short HEAD". In the case of success returns
-  # the short revision hash. If that is not available, tries to read the commit hash
-  # from .git/HEAD. If that fails, returns an empty string.
+  # the short revision hash. If that fails, returns an empty string.
   defmacrop get_revision do
-    dirpath = :filename.join(__DIR__, "../../../.git")
-    case :file.read_file_info(dirpath) do
-      {:ok, _} ->
-        if :os.find_executable('git') do
-          data = :os.cmd('git rev-parse --short HEAD')
-          strip(data)
-        else
-          read_stripped(:filename.join(".git", "HEAD"))
-        end
-      _ -> ""
-    end
+    :os.cmd('git rev-parse --short HEAD 2> /dev/null')
+    |> strip
   end
 
   # Get the date at compilation time.
