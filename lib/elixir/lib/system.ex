@@ -36,6 +36,8 @@ defmodule System do
     |> strip
   end
 
+  defp revision, do: get_revision
+
   # Get the date at compilation time.
   defmacrop get_date do
     IO.iodata_to_binary :httpd_util.rfc1123_date
@@ -71,7 +73,23 @@ defmodule System do
   """
   @spec build_info() :: map
   def build_info do
-    %{version: version, date: get_date, revision: get_revision}
+    %{build:    build,
+      date:     get_date,
+      revision: revision,
+      version:  version,
+      }
+  end
+
+  # Returns a string of the build info
+  defp build do
+    {:ok, v} = Version.parse(version)
+
+    cond do
+      ([] == v.pre) or ("" == revision) ->
+        version
+      true ->
+        "#{version} (#{revision})"
+    end
   end
 
   @doc """
