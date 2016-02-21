@@ -93,6 +93,18 @@ defmodule BaseTest do
     assert "MDEyMzQ1Njc4OSFAIzBeJiooKTs6PD4sLiBbXXt9" == encode64(<<"0123456789!@#0^&*();:<>,. []{}">>)
   end
 
+  test "encode64 omit padding one pad" do
+    assert "SGVsbG8gV29ybGQ" == encode64("Hello World", padding: false)
+  end
+
+  test "encode64 omit padding two pads" do
+    assert "QWxhZGRpbjpvcGVuIHNlc2FtZQ" == encode64("Aladdin:open sesame", padding: false)
+  end
+
+  test "encode64 omit padding no pad" do
+    assert "QWxhZGRpbjpvcGVuIHNlc2Ft" == encode64("Aladdin:open sesam", padding: false)
+  end
+
   test "decode64 empty" do
     assert {:ok, ""} == decode64("")
   end
@@ -157,6 +169,38 @@ defmodule BaseTest do
     end
   end
 
+  test "decode64 ignore padding two pads" do
+    assert {:ok, "Aladdin:open sesame"} == decode64("QWxhZGRpbjpvcGVuIHNlc2FtZQ", padding: false)
+  end
+
+  test "decode64! ignore padding two pads" do
+    assert "Aladdin:open sesame" == decode64!("QWxhZGRpbjpvcGVuIHNlc2FtZQ", padding: false)
+  end
+
+  test "decode64 ignore padding one pad" do
+    assert {:ok, "Hello World"} == decode64("SGVsbG8gV29ybGQ", padding: false)
+  end
+
+  test "decode64! ignore padding one pad" do
+    assert "Hello World" == decode64!("SGVsbG8gV29ybGQ", padding: false)
+  end
+
+  test "decode64 ignore padding no pad" do
+    assert {:ok, "Aladdin:open sesam"} == decode64("QWxhZGRpbjpvcGVuIHNlc2Ft", padding: false)
+  end
+
+  test "decode64! ignore padding no pad" do
+    assert "Aladdin:open sesam" == decode64!("QWxhZGRpbjpvcGVuIHNlc2Ft", padding: false)
+  end
+
+  test "decode64 ignore padding incorrect padding" do
+    assert {:ok, "Hello World"} == decode64("SGVsbG8gV29ybGQ", padding: false)
+  end
+
+  test "decode64! ignore padding incorrect padding" do
+    assert "Hello World" == decode64!("SGVsbG8gV29ybGQ", padding: false)
+  end
+
   test "url_encode64 empty" do
     assert "" == url_encode64("")
   end
@@ -172,6 +216,18 @@ defmodule BaseTest do
   test "url_encode64 no pad" do
     assert "QWxhZGRpbjpvcGVuIHNlc2Ft" == url_encode64("Aladdin:open sesam")
     assert "MDEyMzQ1Njc4OSFAIzBeJiooKTs6PD4sLiBbXXt9" == url_encode64(<<"0123456789!@#0^&*();:<>,. []{}">>)
+  end
+
+  test "url_encode64 omit padding two pads" do
+    assert "QWxhZGRpbjpvcGVuIHNlc2FtZQ" == url_encode64("Aladdin:open sesame", padding: false)
+  end
+
+  test "url_encode64 omit padding one pad" do
+    assert "SGVsbG8gV29ybGQ" == url_encode64("Hello World", padding: false)
+  end
+
+  test "url_encode64 omit padding no pad" do
+    assert "QWxhZGRpbjpvcGVuIHNlc2Ft" == url_encode64("Aladdin:open sesam", padding: false)
   end
 
   test "url_encode64 no URL unsafe characters" do
@@ -223,7 +279,6 @@ defmodule BaseTest do
     assert "Aladdin:open sesam" == url_decode64!("\nQWxhZGRp bjpvcGVu\sIHNlc2Ft\t", ignore: :whitespace)
   end
 
-
   test "url_decode64 non-alphabet digit" do
     assert :error == url_decode64("Zm9)")
   end
@@ -242,6 +297,38 @@ defmodule BaseTest do
     assert_raise ArgumentError, "incorrect padding", fn ->
       url_decode64!("SGVsbG8gV29ybGQ")
     end
+  end
+
+  test "url_decode64 ignore padding two pads" do
+    assert {:ok, "Aladdin:open sesame"} == url_decode64("QWxhZGRpbjpvcGVuIHNlc2FtZQ", padding: false)
+  end
+
+  test "url_decode64! ignore padding two pads" do
+    assert "Aladdin:open sesame" == url_decode64!("QWxhZGRpbjpvcGVuIHNlc2FtZQ", padding: false)
+  end
+
+  test "url_decode64 ignore padding one pad" do
+    assert {:ok, "Hello World"} == url_decode64("SGVsbG8gV29ybGQ", padding: false)
+  end
+
+  test "url_decode64! ignore padding one pad" do
+    assert "Hello World" == url_decode64!("SGVsbG8gV29ybGQ", padding: false)
+  end
+
+  test "url_decode64 ignore padding no pad" do
+    assert {:ok, "Aladdin:open sesam"} == url_decode64("QWxhZGRpbjpvcGVuIHNlc2Ft", padding: false)
+  end
+
+  test "url_decode64! ignore padding no pad" do
+    assert "Aladdin:open sesam" == url_decode64!("QWxhZGRpbjpvcGVuIHNlc2Ft", padding: false)
+  end
+
+  test "url_decode64 ignore padding incorrect padding" do
+    assert {:ok, "Hello World"} == url_decode64("SGVsbG8gV29ybGQ", padding: false)
+  end
+
+  test "url_decode64! ignore padding incorrect padding" do
+    assert "Hello World" == url_decode64!("SGVsbG8gV29ybGQ", padding: false)
   end
 
   test "encode32 empty" do
@@ -267,6 +354,26 @@ defmodule BaseTest do
 
   test "encode32 no pads" do
     assert "MZXW6YTB" == encode32("fooba")
+  end
+
+  test "encode32 omit padding one pad" do
+    assert "MZXW6YQ" == encode32("foob", padding: false)
+  end
+
+  test "encode32 omit padding three pads" do
+    assert "MZXW6" == encode32("foo", padding: false)
+  end
+
+  test "encode32 omit padding four pads" do
+    assert "MZXQ" == encode32("fo", padding: false)
+  end
+
+  test "encode32 omit padding six pads" do
+    assert "MZXW6YTBOI" == encode32("foobar", padding: false)
+  end
+
+  test "encode32 omit padding no pads" do
+    assert "MZXW6YTB" == encode32("fooba", padding: false)
   end
 
   test "encode32 lowercase" do
@@ -367,6 +474,70 @@ defmodule BaseTest do
     end
   end
 
+  test "decode32 ignore padding one pad" do
+    assert {:ok, "foob"} == decode32("MZXW6YQ", padding: false)
+  end
+
+  test "decode32! ignore padding one pad" do
+    assert "foob" == decode32!("MZXW6YQ", padding: false)
+  end
+
+  test "decode32 ignore padding three pads" do
+    assert {:ok, "foo"} == decode32("MZXW6", padding: false)
+  end
+
+  test "decode32! ignore padding three pads" do
+    assert "foo" == decode32!("MZXW6", padding: false)
+  end
+
+  test "decode32 ignore padding four pads" do
+    assert {:ok, "fo"} == decode32("MZXQ", padding: false)
+  end
+
+  test "decode32! ignore padding four pads" do
+    assert "fo" == decode32!("MZXQ", padding: false)
+  end
+
+  test "decode32 ignore padding lowercase" do
+    assert {:ok, "fo"} == decode32("mzxq", case: :lower, padding: false)
+  end
+
+  test "decode32! ignore padding lowercase" do
+    assert "fo" == decode32!("mzxq", case: :lower, padding: false)
+  end
+
+  test "decode32 ignore padding mixed case" do
+    assert {:ok, "fo"} == decode32("mZXq", case: :mixed, padding: false)
+  end
+
+  test "decode32! ignore padding mixed case" do
+    assert "fo" == decode32!("mZXq", case: :mixed, padding: false)
+  end
+
+  test "decode32 ignore padding six pads" do
+    assert {:ok, "foobar"} == decode32("MZXW6YTBOI", padding: false)
+  end
+
+  test "decode32! ignore padding six pads" do
+    assert "foobar" == decode32!("MZXW6YTBOI", padding: false)
+  end
+
+  test "decode32 ignore padding no pads" do
+    assert {:ok, "fooba"} == decode32("MZXW6YTB", padding: false)
+  end
+
+  test "decode32! ignore padding no pads" do
+    assert "fooba" == decode32!("MZXW6YTB", padding: false)
+  end
+
+  test "decode32 ignore padding incorrect padding" do
+    assert {:ok, "foob"} == decode32("MZXW6YQ", padding: false)
+  end
+
+  test "decode32! ignore padding incorrect padding" do
+    "foob" = decode32!("MZXW6YQ", padding: false)
+  end
+
   test "hex_encode32 empty" do
     assert "" == hex_encode32("")
   end
@@ -390,6 +561,26 @@ defmodule BaseTest do
 
   test "hex_encode32 no pads" do
     assert "CPNMUOJ1" == hex_encode32("fooba")
+  end
+
+  test "hex_encode32 omit padding one pad" do
+    assert "CPNMUOG" == hex_encode32("foob", padding: false)
+  end
+
+  test "hex_encode32 omit padding three pads" do
+    assert "CPNMU" == hex_encode32("foo", padding: false)
+  end
+
+  test "hex_encode32 omit padding four pads" do
+    assert "CPNG" == hex_encode32("fo", padding: false)
+  end
+
+  test "hex_encode32 omit padding six pads" do
+    assert "CPNMUOJ1E8" == hex_encode32("foobar", padding: false)
+  end
+
+  test "hex_encode32 omit padding no pads" do
+    assert "CPNMUOJ1" == hex_encode32("fooba", padding: false)
   end
 
   test "hex_encode32 lowercase" do
@@ -494,5 +685,69 @@ defmodule BaseTest do
     assert_raise ArgumentError, "non-alphabet digit found: \"\\0\" (byte 0)", fn ->
       decode16!("012" <> <<0>>)
     end
+  end
+
+  test "hex_decode32 ignore padding one pad" do
+    assert {:ok, "foob"} == hex_decode32("CPNMUOG", padding: false)
+  end
+
+  test "hex_decode32! ignore padding one pad" do
+    assert "foob" == hex_decode32!("CPNMUOG", padding: false)
+  end
+
+  test "hex_decode32 ignore padding three pads" do
+    assert {:ok, "foo"} == hex_decode32("CPNMU", padding: false)
+  end
+
+  test "hex_decode32! ignore padding three pads" do
+    assert "foo" == hex_decode32!("CPNMU", padding: false)
+  end
+
+  test "hex_decode32 ignore padding four pads" do
+    assert {:ok, "fo"} == hex_decode32("CPNG", padding: false)
+  end
+
+  test "hex_decode32! ignore padding four pads" do
+    assert "fo" == hex_decode32!("CPNG", padding: false)
+  end
+
+  test "hex_decode32 ignore padding six pads" do
+    assert {:ok, "foobar"} == hex_decode32("CPNMUOJ1E8", padding: false)
+  end
+
+  test "hex_decode32! ignore padding six pads" do
+    assert "foobar" == hex_decode32!("CPNMUOJ1E8", padding: false)
+  end
+
+  test "hex_decode32 ignore padding no pads" do
+    assert {:ok, "fooba"} == hex_decode32("CPNMUOJ1", padding: false)
+  end
+
+  test "hex_decode32! ignore padding no pads" do
+    assert "fooba" == hex_decode32!("CPNMUOJ1", padding: false)
+  end
+
+  test "hex_decode32 ignore padding incorrect padding" do
+    assert {:ok, "foob"} == hex_decode32("CPNMUOG", padding: false)
+  end
+
+  test "hex_decode32! ignore padding incorrect padding" do
+    "foob" = hex_decode32!("CPNMUOG", padding: false)
+  end
+
+  test "hex_decode32 ignoring padding lowercase" do
+    assert {:ok, "fo"} == hex_decode32("cpng", case: :lower, padding: false)
+  end
+
+  test "hex_decode32! ignore padding lowercase" do
+    assert "fo" == hex_decode32!("cpng", case: :lower, padding: false)
+  end
+
+  test "hex_decode32 ignore padding mixed case" do
+    assert {:ok, "fo"} == hex_decode32("cPNg====", case: :mixed, padding: false)
+  end
+
+  test "hex_decode32! ignore padding mixed case" do
+    assert "fo" == hex_decode32!("cPNg", case: :mixed, padding: false)
   end
 end
