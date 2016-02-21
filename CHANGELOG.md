@@ -16,6 +16,7 @@
   * [Inspect] Support `:base` option when inspecting binaries
   * [Kernel] Support `generated: true` in quote
   * [Kernel] Support `Kernel.pop_in/1` and `Kernel.pop_in/2` for yanking a value from a nested data structure
+  * [Kernel] Allow variable struct names when matching, for example, `%module{key: "value"} = struct`
   * [Kernel] Allow guards on the left side of `<-` in `for` and `with` special forms
   * [Kernel] Support `else` chunks in `with`
   * [Process] Add `Process.sleep/1`
