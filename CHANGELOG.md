@@ -10,8 +10,8 @@
 
 #### Elixir
 
-  * [Base] Add option to ignore whitespace in base64 decoding
   * [Compiler] Emit a summary of compilation errors when modules are missing
+  * [Exception] Suggest possible functions on `UndefinedFunctionError` for existing modules
   * [File] Support IO devices in `File.copy/3`
   * [Inspect] Support `:base` option when inspecting binaries
   * [Kernel] Support `generated: true` in quote
@@ -39,6 +39,7 @@
 
   * [Mix] Add `mix app.tree` and `mix deps.tree`
   * [Mix] Support `@preferred_cli_env` attribute when defining tasks
+  * [Mix] Support `mix test --raise` that will raise when a test suite fails (instead of setting the status code to 1)
 
 ### 2. Bug fixes
 
