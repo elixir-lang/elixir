@@ -78,7 +78,7 @@ defmodule Range do
 end
 
 defimpl Enumerable, for: Range do
-  def reduce(first .. last, acc, fun) do
+  def reduce(first..last, acc, fun) do
     reduce(first, last, acc, fun, last >= first)
   end
 
@@ -102,7 +102,7 @@ defimpl Enumerable, for: Range do
     {:done, acc}
   end
 
-  def member?(first .. last, value) when is_integer(value) do
+  def member?(first..last, value) when is_integer(value) do
     if first <= last do
       {:ok, first <= value and value <= last}
     else
@@ -110,11 +110,11 @@ defimpl Enumerable, for: Range do
     end
   end
 
-  def member?(_ .. _, _value) do
+  def member?(_.._, _value) do
     {:ok, false}
   end
 
-  def count(first .. last) do
+  def count(first..last) do
     if first <= last do
       {:ok, last - first + 1}
     else
@@ -126,7 +126,7 @@ end
 defimpl Inspect, for: Range do
   import Inspect.Algebra
 
-  def inspect(first .. last, opts) do
+  def inspect(first..last, opts) do
     concat [to_doc(first, opts), "..", to_doc(last, opts)]
   end
 end
