@@ -621,7 +621,19 @@ defmodule List do
        :unicode.characters_to_binary(list)
     rescue
       ArgumentError ->
-        raise ArgumentError, "cannot convert list to string. The list must contain only integers, strings or nested such lists; got: #{inspect list}"
+        raise ArgumentError, """
+        cannot convert the given list to a string.
+
+        To be converted to a string, a list must contain only:
+
+          * strings
+          * integers representing Unicode codepoints
+          * or a list containing one of these three elements
+
+        Please check the given list or call inspect/1 to get the list representation, got:
+
+        #{inspect list}
+        """
     else
       result when is_binary(result) ->
         result
