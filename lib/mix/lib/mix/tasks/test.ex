@@ -48,6 +48,7 @@ defmodule Mix.Tasks.Test do
     * `--trace`      - run tests with detailed reporting; automatically sets `--max-cases` to 1
     * `--max-cases`  - set the maximum number of cases running async
     * `--cover`      - the directory to include coverage results
+    * `--raise`      - raise if the test suit failed
     * `--force`      - forces compilation regardless of modification times
     * `--no-compile` - do not compile, even if files require compilation
     * `--no-start`   - do not start applications after compilation
@@ -136,7 +137,7 @@ defmodule Mix.Tasks.Test do
   @switches [force: :boolean, color: :boolean, cover: :boolean,
              trace: :boolean, max_cases: :integer, include: :keep,
              exclude: :keep, seed: :integer, only: :keep, compile: :boolean,
-             start: :boolean, timeout: :integer]
+             start: :boolean, timeout: :integer, raise: :boolean]
 
   @cover [output: "cover", tool: Cover]
 
@@ -180,12 +181,12 @@ defmodule Mix.Tasks.Test do
     # Configure ExUnit with command line options before requiring
     # test helpers so that the configuration is available in helpers.
     # Then configure ExUnit again so command line options override
-    opts = ex_unit_opts(opts)
-    ExUnit.configure(opts)
+    ex_unit_opts = ex_unit_opts(opts)
+    ExUnit.configure(ex_unit_opts)
 
     test_paths = project[:test_paths] || ["test"]
     Enum.each(test_paths, &require_test_helper(&1))
-    ExUnit.configure(merge_helper_opts(opts))
+    ExUnit.configure(merge_helper_opts(ex_unit_opts))
 
     # Finally parse, require and load the files
     test_files = parse_files(files, test_paths)
@@ -206,10 +207,15 @@ defmodule Mix.Tasks.Test do
 
         # Run the test suite, coverage tools and register an exit hook
         %{failures: failures} = ExUnit.run
-        if cover, do: cover.()
+        cover && cover.()
 
-        System.at_exit fn _ ->
-          if failures > 0, do: exit({:shutdown, 1})
+        cond do
+          failures > 0 and opts[:raise] ->
+            Mix.raise "mix test failed"
+          failures > 0 ->
+            System.at_exit fn _ -> exit({:shutdown, 1}) end
+          true ->
+            :ok
         end
     end
   end
