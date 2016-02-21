@@ -39,7 +39,7 @@
 
   * [Mix] Add `mix app.tree` and `mix deps.tree`
   * [Mix] Support `@preferred_cli_env` attribute when defining tasks
-  * [Mix] Support `mix test --raise` that will raise when a test suite fails (instead of setting the status code to 1)
+  * [Mix] Support `mix test --raise` that will raise when a test suite fails (instead of setting the exit code to 1)
 
 ### 2. Bug fixes
 
