@@ -1,5 +1,6 @@
 REBAR := rebar
 DOCS := v1.0
+CANONICAL := stable
 ELIXIRC := bin/elixirc --verbose --ignore-module-conflict
 ERLC := erlc -I lib/elixir/include
 ERL := erl -I lib/elixir/include -noshell -pa lib/elixir/ebin
@@ -125,8 +126,9 @@ clean_exbeam:
 
 #==> Release tasks
 
-SOURCE_REF = $(shell head="$$(git rev-parse HEAD)" tag="$$(git tag --points-at $$head | tail -1)" ; echo "$${tag:-$$head}\c")
-COMPILE_DOCS = bin/elixir ../ex_doc/bin/ex_doc "$(1)" "$(VERSION)" "lib/$(2)/ebin" -m "$(3)" -u "https://github.com/elixir-lang/elixir" --source-ref "$(call SOURCE_REF)" -o doc/$(2) -p http://elixir-lang.org/docs.html
+LOGO_PATH = $(shell test -f ../docs/logo.png && echo "--logo ../docs/logo.png")
+SOURCE_REF = $(shell tag="$(call GIT_TAG)" revision="$(call GIT_REVISION)"; echo "$${tag:-$$revision}\c")
+COMPILE_DOCS = bin/elixir ../ex_doc/bin/ex_doc "$(1)" "$(VERSION)" "lib/$(2)/ebin" -m "$(3)" -u "https://github.com/elixir-lang/elixir" --source-ref "v$(VERSION)" $(call LOGO_PATH) -o doc/$(2) -a http://elixir-lang.org/docs/$(CANONICAL)/$(2)/ -p http://elixir-lang.org/docs.html
 
 docs: compile ../ex_doc/bin/ex_doc
 	$(Q) rm -rf doc
