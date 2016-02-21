@@ -138,14 +138,14 @@ defmodule Base do
   defp from_mixed(char),
     do: char
 
-  defp maybe_pad(<<>>, _, _, _),
-    do: <<>>
   defp maybe_pad(subject, false, _, _),
     do: subject
-  defp maybe_pad(subject, _, group_size, _) when rem(byte_size(subject), group_size) == 0,
-    do: subject
-  defp maybe_pad(subject, _, group_size, pad),
-    do: String.ljust(subject, byte_size(subject) + (group_size - rem(byte_size(subject), group_size)), pad)
+  defp maybe_pad(subject, _, group_size, pad) do
+    case rem(byte_size(subject), group_size) do
+      0 -> subject
+      x -> subject <> String.duplicate(pad, group_size - x)
+    end
+  end
 
   @doc """
   Encodes a binary string into a base 16 encoded string.
@@ -649,12 +649,12 @@ defmodule Base do
       <<>> ->
         <<>>
     end
-    main <> maybe_pad(tail, pad_flag, 4, ?=)
+    main <> maybe_pad(tail, pad_flag, 4, "=")
   end
 
   defp do_decode64(<<>>, _), do: <<>>
   defp do_decode64(string, false) do
-    maybe_pad(string, true, 4, ?=) |> do_decode64(true)
+    maybe_pad(string, true, 4, "=") |> do_decode64(true)
   end
   defp do_decode64(string, _pad_flag) when rem(byte_size(string), 4) == 0 do
     split = byte_size(string) - 4
@@ -689,12 +689,12 @@ defmodule Base do
       <<>> ->
         <<>>
     end
-    main <> maybe_pad(tail, pad_flag, 4, ?=)
+    main <> maybe_pad(tail, pad_flag, 4, "=")
   end
 
   defp do_decode64url(<<>>, _), do: <<>>
   defp do_decode64url(string, false) do
-    maybe_pad(string, true, 4, ?=) |> do_decode64url(true)
+    maybe_pad(string, true, 4, "=") |> do_decode64url(true)
   end
   defp do_decode64url(string, _pad_flag) when rem(byte_size(string), 4) == 0 do
     split = byte_size(string) - 4
@@ -741,13 +741,13 @@ defmodule Base do
         <<>> ->
           <<>>
       end
-      main <> maybe_pad(tail, pad_flag, 8, ?=)
+      main <> maybe_pad(tail, pad_flag, 8, "=")
     end
   end
 
   defp do_decode32(_, <<>>, _), do: <<>>
   defp do_decode32(case, string, false),
-    do: do_decode32(case, maybe_pad(string, true, 8, ?=), true)
+    do: do_decode32(case, maybe_pad(string, true, 8, "="), true)
 
   for {case, fun} <- [upper: :from_upper, lower: :from_lower, mixed: :from_mixed] do
     defp do_decode32(unquote(case), string, _pad_flag) when rem(byte_size(string), 8) == 0 do
@@ -809,13 +809,13 @@ defmodule Base do
         <<>> ->
           <<>>
       end
-      main <> maybe_pad(tail, pad_flag, 8, ?=)
+      main <> maybe_pad(tail, pad_flag, 8, "=")
     end
   end
 
   defp do_hex_decode32(_, <<>>, _), do: <<>>
   defp do_hex_decode32(case, string, false),
-    do: do_hex_decode32(case, maybe_pad(string, true, 8, ?=), true)
+    do: do_hex_decode32(case, maybe_pad(string, true, 8, "="), true)
 
   for {case, fun} <- [upper: :from_upper, lower: :from_lower, mixed: :from_mixed] do
     defp do_hex_decode32(unquote(case), string, _pad_flag) when rem(byte_size(string), 8) == 0 do
