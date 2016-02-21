@@ -1079,7 +1079,7 @@ defmodule Stream do
                       fn file -> File.close(file) end)
 
   """
-  @spec resource((() -> acc), (acc -> {element, acc} | {:halt, acc}), (acc -> term)) :: Enumerable.t
+  @spec resource((() -> acc), (acc -> {[element], acc} | {:halt, acc}), (acc -> term)) :: Enumerable.t
   def resource(start_fun, next_fun, after_fun) do
     &do_resource(start_fun.(), next_fun, &1, &2, after_fun)
   end
