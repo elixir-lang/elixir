@@ -110,7 +110,7 @@ defmodule Mix.Tasks.Test do
 
     * `:test_pattern` - a pattern to load test files, defaults to `*_test.exs`.
 
-    * `:warn_test_pattern` - a pattern to match potentially missed test files 
+    * `:warn_test_pattern` - a pattern to match potentially missed test files
       and display a warning, defaults to `*_test.ex`.
 
     * `:test_coverage` - a set of options to be passed down to the coverage
@@ -157,11 +157,11 @@ defmodule Mix.Tasks.Test do
     end
 
     project = Mix.Project.config
-    cover   = Keyword.merge(@cover, project[:test_coverage] || [])
 
     # Start cover after we load deps but before we start the app.
     cover =
       if opts[:cover] do
+        cover = Keyword.merge(@cover, project[:test_coverage] || [])
         cover[:tool].start(Mix.Project.compile_path(project), cover)
       end
 
@@ -194,11 +194,11 @@ defmodule Mix.Tasks.Test do
     warn_test_pattern = project[:warn_test_pattern] || "*_test.ex"
 
     matched_test_files = Mix.Utils.extract_files(test_files, test_pattern)
-    matched_warn_test_files = 
+    matched_warn_test_files =
       Mix.Utils.extract_files(test_files, warn_test_pattern) -- matched_test_files
-    
+
     display_warn_test_pattern(matched_warn_test_files, test_pattern)
-    
+
     case matched_test_files do
       [] ->
         Mix.shell.error "Test patterns did not match any file: " <> Enum.join(files, ", ")
