@@ -5,8 +5,8 @@ defmodule System do
   with the VM or the host system.
   """
 
-  @base_dir      :filename.join(__DIR__, "../../..")
-  @version_file  :filename.join(@base_dir, "VERSION")
+  @base_dir     :filename.join(__DIR__, "../../..")
+  @version_file :filename.join(@base_dir, "VERSION")
 
   defp strip(iodata) do
     :re.replace(iodata, "^[\s\r\n\t]+|[\s\r\n\t]+$", "", [:global, return: :binary])
