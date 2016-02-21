@@ -10,13 +10,21 @@
 
 #### Elixir
 
-  * [File] Support IO devices in `File.copy/3`
+  * [Base] Add option to ignore whitespace in base64 decoding
   * [Compiler] Emit a summary of compilation errors when modules are missing
+  * [File] Support IO devices in `File.copy/3`
+  * [Inspect] Support `:base` option when inspecting binaries
+  * [Kernel] Support `generated: true` in quote
+  * [Kernel] Support `Kernel.pop_in/1` and `Kernel.pop_in/2` for yanking a value from a nested data structure
+  * [Kernel] Allow guards on the left side of `<-` in `for` and `with` special forms
+  * [Kernel] Support `else` chunks in `with`
+  * [Process] Add `Process.sleep/1`
   * [Regex] Support `:include_captures` in `Regex.split/3`
 
 #### ExUnit
 
   * [ExUnit] Show pinned variables on failed `assert ^left = right` and `assert match?(^left, right)` assertions
+  * [ExUnit] Add `ExUnit.Case.register_attribute` which allow attributes to be cleaned up whenever a test is defined
 
 #### IEx
 
@@ -28,14 +36,19 @@
 
 #### Mix
 
+  * [Mix] Add `mix app.tree` and `mix deps.tree`
+  * [Mix] Support `@preferred_cli_env` attribute when defining tasks
+
 ### 2. Bug fixes
 
 #### Elixir
 
   * [Application] Ensure `Application.spec/2` returns nil for unknown applications
+  * [GenServer] Ensures `cast/2` returns `:ok` if locally registered process is not found
   * [Inspect] Ensure binaries break into new lines when inspected
   * [Kernel] Do not choke on capture operator with argument above `&191`
   * [Kernel] Raise if `defstruct` is called multiple times
+  * [Kernel] Ensure `Module.create/3` respects var/alias hygiene
   * [Macro] Fix `Macro.to_string/1` on a call of a capture argument, for example `&(&1).(:x)`
 
 #### Mix
@@ -54,6 +67,7 @@ This release deprecates many APIs that have been soft-deprecated in previous Eli
   * [Enum] Passing a non-map to `Enum.group_by/3` is deprecated
   * [Kernel] `\x{H*}` in strings/sigils/char lists is deprecated
   * [Kernel] Add deprecation for `defdelegate` list arguments and `:append_first` option
+  * [Kernel] Warn if a variable is assigned inside `case`/`if`/etc and used outside the block
   * [Keyword] `Keyword.size/1` is deprecated in favor of `Kernel.length/1`
   * [Map] `Map.size/1` is deprecated in favor of `Kernel.map_size/1`
   * [Regex] The option `/r` (for ungreedy) has been deprecated in favor of `/U`
