@@ -87,6 +87,12 @@ defmodule String.Chars.ErrorsTest do
     end
   end
 
+  test "non-char list" do
+    assert_raise ArgumentError, ~r/cannot convert this list to a string.*#\{inspect/s, fn ->
+      to_string([:a, :b])
+    end
+  end
+
   test "tuple" do
     assert_raise Protocol.UndefinedError, "protocol String.Chars not implemented for {1, 2, 3}", fn ->
       to_string({1, 2, 3})

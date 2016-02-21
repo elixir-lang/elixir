@@ -164,7 +164,7 @@ defmodule ListTest do
     end
 
     assert_raise ArgumentError,
-                 "cannot convert list to string. The list must contain only integers, strings or nested such lists; got: [:a, :b]", fn ->
+                 ~r/cannot convert this list to a string/, fn ->
       List.to_string([:a, :b])
     end
   end
