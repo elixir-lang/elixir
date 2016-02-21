@@ -85,7 +85,7 @@ ask Mix to use Rebar 3 to compile it by passing the `manager: :rebar3` option.
 Once configured, Mix will prompt you to install Rebar 3 if it is not yet
 available.
 
-## v1.2.3-dev
+## v1.2.3 (2016-02-21)
 
 ### 1. Enhancements
 
@@ -99,7 +99,7 @@ available.
   * [String] Fix incomplete data trimming on both `String.replace_trailing` and `String.rstrip`
   * [String] Attach debug_info back into Unicode modules for Dialyzer support
 
-## v1.2.2
+## v1.2.2 (2016-01-31)
 
 ### 1. Enhancements
 
