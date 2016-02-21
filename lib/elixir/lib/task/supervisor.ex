@@ -80,6 +80,21 @@ defmodule Task.Supervisor do
   The `supervisor` must be a reference as defined in `Task.Supervisor`.
   The task won't be linked to the caller, see `Task.async/3` for
   more information.
+
+  ## Compatibility with OTP behaviours
+
+  If you create a task using `async_nolink` inside an OTP behaviour
+  like `GenServer`, you should match on the message coming from the
+  task inside your `handle_info` callback.
+
+  The reply sent by the task will be in the format `{ref, result}`,
+  where `ref` is the monitor reference held by the task struct
+  and `result` is the return value of the task function.
+
+  Keep in mind that, regardless of how the task created with `async_nolink`
+  terminates, the caller's process will always receive a `:DOWN` message
+  with the same `ref` value that is held by the task struct. If the task
+  terminates normally, the reason in the `:DOWN` message will be `:normal`.
   """
   @spec async_nolink(Supervisor.supervisor, fun) :: Task.t
   def async_nolink(supervisor, fun) do
@@ -120,7 +135,7 @@ defmodule Task.Supervisor do
   end
 
   @doc """
-  Starts a task as child of the given `supervisor`.
+  Starts a task as a child of the given `supervisor`.
 
   Note that the spawned process is not linked to the caller, but
   only to the supervisor. This command is useful in case the
@@ -133,7 +148,7 @@ defmodule Task.Supervisor do
   end
 
   @doc """
-  Starts a task as child of the given `supervisor`.
+  Starts a task as a child of the given `supervisor`.
 
   Similar to `start_child/2` except the task is specified
   by the given `module`, `fun` and `args`.

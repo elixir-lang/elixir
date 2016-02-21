@@ -3,7 +3,7 @@ defmodule Task do
   Conveniences for spawning and awaiting tasks.
 
   Tasks are processes meant to execute one particular
-  action throughout their life-cycle, often with little or no
+  action throughout their lifetime, often with little or no
   communication with other processes. The most common use case
   for tasks is to convert sequential code into concurrent code
   by computing a value asynchronously:
@@ -12,51 +12,50 @@ defmodule Task do
       res  = do_some_other_work()
       res + Task.await(task)
 
-  Tasks spawned with `async` can be waited on by their caller
+  Tasks spawned with `async` can be awaited on by their caller
   process (and only their caller) as shown in the example above.
   They are implemented by spawning a process that sends a message
   to the caller once the given computation is performed.
 
   Besides `async/1` and `await/2`, tasks can also be
-  started as part of supervision tree and dynamically spawned
-  in remote nodes. We will explore all three scenarios next.
+  started as part of a supervision tree and dynamically spawned
+  on remote nodes. We will explore all three scenarios next.
 
   ## async and await
 
-  One of the common use of tasks is to convert sequential code
+  One of the common uses of tasks is to convert sequential code
   into concurrent code with `Task.async/1` while keeping its semantics.
   When invoked, a new process will be created, linked and monitored
   by the caller. Once the task action finishes, a message will be sent
   to the caller with the result.
 
   `Task.await/2` is used to read the message sent by the task.
-  `await` will check the monitor setup by the call to `async/1` to
-  verify if the process exited for any abnormal reason (or in case
-  exits are being trapped by the caller).
 
-  There are two important things to consider when using async:
+  There are two important things to consider when using `async`:
 
     1. If you are using async tasks, you must await a reply
        as they are *always* sent. If you are not expecting a reply,
-       consider using `Task.start_link/1` detailed below
+       consider using `Task.start_link/1` detailed below.
 
     2. async tasks link the caller and the spawned process. This
        means that, if the caller crashes, the task will crash
-       too and vice-versa. This is on purpose, if the process
+       too and vice-versa. This is on purpose: if the process
        meant to receive the result no longer exists, there is
-       no purpose in completing computation of the result. If this
-       is not desired, consider using `Task.start_link/1` as well
+       no purpose in completing the computation.
+
+       If this is not desired, consider starting the task under
+       a `Task.Supervisor` using `async_nolink` or `start_child`.
 
   `Task.yield/2` is an alternative to `await/2` where the caller will
   temporarily block, waiting until the task replies or crashes. If the
-  result does not arrive within the timeout it can be called again at a
+  result does not arrive within the timeout, it can be called again at a
   later moment. This allows checking for the result of a task multiple
-  times or to handle a timeout. If a reply does not arrive within the
-  desired time, `Task.shutdown/2` can be used to stop the task.
+  times. If a reply does not arrive within the desired time,
+  `Task.shutdown/2` can be used to stop the task.
 
   ## Supervised tasks
 
-  It is also possible to spawn a task inside a supervision tree
+  It is also possible to spawn a task under a supervisor
   with `start_link/1` and `start_link/3`:
 
       Task.start_link(fn -> IO.puts "ok" end)
@@ -70,12 +69,12 @@ defmodule Task do
       ]
 
   Since these tasks are supervised and not directly linked to
-  the caller, they cannot be waited on. Note `start_link/1`,
+  the caller, they cannot be awaited on. Note `start_link/1`,
   unlike `async/1`, returns `{:ok, pid}` (which is
   the result expected by supervision trees).
 
   By default, most supervision strategies will try to restart
-  a worker after it exits regardless of reason. If you design the
+  a worker after it exits regardless of the reason. If you design the
   task to terminate normally (as in the example with `IO.puts/2` above),
   consider passing `restart: :transient` in the options to `worker/3`.
 
@@ -113,18 +112,17 @@ defmodule Task do
         # Do something
       end) |> Task.await()
 
-  Finally, check `Task.Supervisor` for other operations supported by the
-  Task supervisor.
+  Finally, check `Task.Supervisor` for other supported operations.
 
   ## Distributed tasks
 
-  Since Elixir provides a Task supervisor, it is easy to use a task
-  supervisor to dynamically spawn tasks across nodes:
+  Since Elixir provides a Task supervisor, it is easy to use one
+  to dynamically spawn tasks across nodes:
 
-      # In the remote node
+      # On the remote node
       Task.Supervisor.start_link(name: MyApp.DistSupervisor)
 
-      # In the client
+      # On the client
       Task.Supervisor.async({MyApp.DistSupervisor, :remote@local},
                             MyMod, :my_fun, [arg1, arg2, arg3])
 
@@ -133,7 +131,7 @@ defmodule Task do
   works with anonymous functions. That's because anonymous functions expect
   the same module version to exist on all involved nodes. Check the `Agent` module
   documentation for more information on distributed processes as the limitations
-  described in the agents documentation apply to the whole ecosystem.
+  described there apply to the whole ecosystem.
   """
 
   @doc """
@@ -141,8 +139,8 @@ defmodule Task do
 
   It contains these fields:
 
-    * `:pid` - the process reference of the task process; `nil` if the task does
-      not use a task process.
+    * `:pid` - the PID of the task process; `nil` if the task does
+      not use a task process
 
     * `:ref` - the task monitor reference
 
@@ -194,7 +192,7 @@ defmodule Task do
   end
 
   @doc """
-  Starts a task that can be awaited on.
+  Starts a task that must be awaited on.
 
   This function spawns a process that is linked to and monitored
   by the caller process. A `Task` struct is returned containing
@@ -203,10 +201,7 @@ defmodule Task do
   Read the `Task` module documentation for more info on general
   usage of `async/1` and `async/3`.
 
-  ## Task's message format
-
-  The reply sent by the task will be in the format `{ref, msg}`,
-  where `ref` is the monitoring reference held by the task.
+  See also `async/3`.
   """
   @spec async(fun) :: t
   def async(fun) do
@@ -244,10 +239,10 @@ defmodule Task do
   As before, if `heavy_fun/0` fails, the whole computation will
   fail, including the parent process. If you don't want the task
   to fail then you must change the `heavy_fun/0` code in the
-  same way you would if you didn't have the async call. For
-  example to either return `{:ok, val} | :error` results or,
+  same way you would achieve it if you didn't have the async call.
+  For example, to either return `{:ok, val} | :error` results or,
   in more extreme cases, by using `try/rescue`. In other words,
-  an asynchronous task should be considered an extension of a
+  an asynchronous task should be thought of as an extension of a
   process rather than a mechanism to isolate it from all errors.
 
   If you don't want to link the caller to the task, then you
@@ -256,10 +251,14 @@ defmodule Task do
 
   In any case, avoid any of the following:
 
-    * Setting `:trap_exit` to true - trapping exists should be
+    * Setting `:trap_exit` to `true` - trapping exits should be
       used only in special circumstances as it would make your
       process immune to not only exits from the task but from
       any other processes.
+
+      Moreover, even when trapping exists, calling `await` will
+      still exit if the task has terminated without sending its
+      result back.
 
     * Unlinking the task process started with `async`/`await`.
       If you unlink the processes and the task does not belong
@@ -268,8 +267,9 @@ defmodule Task do
 
   ## Message format
 
-  The reply sent by the task will be in the format `{ref, msg}`,
-  where `ref` is the monitoring reference held by the task.
+  The reply sent by the task will be in the format `{ref, result}`,
+  where `ref` is the monitor reference held by the task struct
+  and `result` is the return value of the task function.
   """
   @spec async(module, atom, [term]) :: t
   def async(mod, fun, args) do
@@ -296,18 +296,24 @@ defmodule Task do
   of `5000`. In case the task process dies, this function will
   exit with the same reason as the task.
 
-  If the timeout is exceeded, `await` will exit, however,
+  If the timeout is exceeded, `await` will exit; however,
   the task will continue to run. When the calling process exits, its
   exit signal will terminate the task if it is not trapping exits.
 
   This function assumes the task's monitor is still active or the monitor's
   `:DOWN` message is in the message queue. If it has been demonitored, or the
-  message already received, this function may wait for the duration of the
+  message already received, this function will wait for the duration of the
   timeout awaiting the message.
 
-  This function will always exit and demonitor if the task crashes or if
-  it times out, so the task can not be used again. To explicitly handle
-  the timeout or the crash, use `yield/2` instead.
+  This function can only be called once for any given task. If you want
+  to be able to check multiple times if a long-running task has finished
+  its computation, use `yield/2` instead.
+
+  ## Compatibility with OTP behaviours
+
+  It is not recommended to `await` a long-running task inside an OTP
+  behaviour such as `GenServer`. Instead, you should match on the message
+  coming from a task inside your `handle_info` callback.
   """
   @spec await(t, timeout) :: term | no_return
   def await(task, timeout \\ 5000)
@@ -316,7 +322,7 @@ defmodule Task do
     raise ArgumentError, invalid_owner_error(task)
   end
 
-  def await(%Task{ref: ref}=task, timeout) do
+  def await(%Task{ref: ref} = task, timeout) do
     receive do
       {^ref, reply} ->
         Process.demonitor(ref, [:flush])
@@ -359,22 +365,27 @@ defmodule Task do
   end
 
   @doc """
-  Yields for a task reply in the given time interval.
+  Temporarily blocks the current process waiting for a task reply.
 
-  Returns `{:ok, reply}` if the reply is received, `{:exit, reason}`
-  if the task exited or `nil` if no reply arrived.
+  Returns `{:ok, reply}` if the reply is received, `nil` if
+  no reply has arrived, or `{:exit, reason}` if the task has already
+  exited. Keep in mind that normally a task failure also causes
+  the process owning the task to exit. Therefore this function can
+  return `{:exit, reason}` only if
+
+    * the task process exited with the reason `:normal`
+    * it isn't linked to the caller
+    * the caller is trapping exits
 
   A timeout, in milliseconds, can be given with default value
-  of `5000`. In case of the timeout, this function will return `nil`
+  of `5000`. If the time runs out before a message from
+  the task is received, this function will return `nil`
   and the monitor will remain active. Therefore `yield/2` can be
   called multiple times on the same task.
 
-  In case the task process dies, this function will exit with the
-  same reason as the task.
-
   This function assumes the task's monitor is still active or the
   monitor's `:DOWN` message is in the message queue. If it has been
-  demonitored, or the message already received, this function waits
+  demonitored or the message already received, this function will wait
   for the duration of the timeout awaiting the message.
   """
   @spec yield(t, timeout) :: {:ok, term} | {:exit, term} | nil
@@ -402,14 +413,19 @@ defmodule Task do
   @doc """
   Yields to multiple tasks in the given time interval.
 
-  This function receives a list of tasks and await for their
-  replies at once in the given time interval. It returns a list
-  of tuples of two elements, with tasks as the first element and
-  the `yield` result as the second.
+  This function receives a list of tasks and waits for their
+  replies in the given time interval. It returns a list
+  of tuples of two elements, with the task as the first element
+  and the yielded result as the second.
 
-  Similar to `yield/2`, if the task replied in the given interval,
-  it will return `{:ok, term}`, `{:exit, reason}`if it crashed or
-  `nil` if it timed out. Check `yield/2` for more information.
+  Similarly to `yield/2`, each task's result will be
+
+    * `{:ok, term}` if the task has successfully reported its
+      result back in the given time interval
+    * `{:exit, reason}` if the task has died
+    * `nil` if the task keeps running past the timeout
+
+  Check `yield/2` for more information.
 
   ## Example
 
@@ -417,6 +433,7 @@ defmodule Task do
   and retrieve the results received in a given timeframe.
   If we combine it with `Task.shutdown/2`, it allows us to gather
   those results and cancel the tasks that have not replied in time.
+
   Let's see an example.
 
       tasks =
@@ -444,8 +461,8 @@ defmodule Task do
   up to 10 seconds and return the amount of seconds they slept.
   If you execute the code all at once, you should see 1 up to 5
   printed, as those were the tasks that have replied in the
-  given time. All other tasks will have been shutdown, according
-  to the `Task.shutdown/2` call.
+  given time. All other tasks will have been shut down using
+  the `Task.shutdown/2` call.
   """
   @spec yield_many([t], timeout) :: [{t, {:ok, term} | {:exit, term} | nil}]
   def yield_many(tasks, timeout \\ 5000) do
@@ -493,23 +510,23 @@ defmodule Task do
   end
 
   @doc """
-  Unlinks and shutdowns the task, and then checks for a reply.
+  Unlinks and shuts down the task, and then checks for a reply.
 
   Returns `{:ok, reply}` if the reply is received while shutting down the task,
-  `{:exit, reason}` if the task exited abornormally, otherwise `nil`.
+  `{:exit, reason}` if the task died, otherwise `nil`.
 
   The shutdown method is either a timeout or `:brutal_kill`. In case
   of a `timeout`, a `:shutdown` exit signal is sent to the task process
-  and if it does not exit within the timeout it is killed. With `:brutal_kill`
-  the task is killed straight away. In case the task exits abnormally, or a 
-  timeout shutdown kills the task, this function will exit with the same reason.
+  and if it does not exit within the timeout, it is killed. With `:brutal_kill`
+  the task is killed straight away. In case the task terminates abnormally
+  (possibly killed by another process), this function will exit with the same reason.
 
   It is not required to call this function when terminating the caller, unless
-  exiting with reason `:normal` or the task is trapping exits. If the caller is
-  exiting with a reason other than `:normal` and the task is not trapping exits the
+  exiting with reason `:normal` or if the task is trapping exits. If the caller is
+  exiting with a reason other than `:normal` and the task is not trapping exits, the
   caller's exit signal will stop the task. The caller can exit with reason
-  `:shutdown` to shutdown linked processes, such as tasks, that are not trapping
-  exits without generating any log messages.
+  `:shutdown` to shutdown all of its linked processes, including tasks, that
+  are not trapping exits without generating any log messages.
 
   This function assumes the task's monitor is still active or the monitor's
   `:DOWN` message is in the message queue. If it has been demonitored, or the
