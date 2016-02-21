@@ -348,9 +348,15 @@ defmodule ExceptionTest do
     assert %UndefinedFunctionError{module: Enum, function: :man, arity: 1} |> message == """
            undefined function Enum.man/1. Perhaps you meant one of:
 
-                 * min/1
-                 * max/1
                  * map/2
+                 * max/1
+                 * min/1
+           """
+    assert %UndefinedFunctionError{module: :erlang, function: :gt_cookie, arity: 0} |> message == """
+           undefined function :erlang.gt_cookie/0. Perhaps you meant one of:
+
+                 * get_cookie/0
+                 * set_cookie/2
            """
   end
 

@@ -656,44 +656,38 @@ defmodule UndefinedFunctionError do
   @function_threshold 0.77
   @max_suggestions 5
 
-  defp perhaps(module, function, arity) do
+  defp perhaps(module, function, _arity) do
     exports = exports_for(module)
 
-    distances =
+    result =
       case Keyword.take(exports, [function]) do
         [] ->
           base = Atom.to_string(function)
-          for {k, v} <- exports,
-              d = String.jaro_distance(base, Atom.to_string(k)),
-              d >= @function_threshold,
-              do: {d, k, v}
+          for {key, val} <- exports,
+              dist = String.jaro_distance(base, Atom.to_string(key)),
+              dist >= @function_threshold,
+            do: {dist, key, val}
         arities ->
-          for {k, v} <- arities, do: {1.0, k, v}
+          for {key, val} <- arities, do: {1.0, key, val}
       end
+      |> Enum.sort(&elem(&1, 0) >= elem(&2, 0))
+      |> Enum.take(@max_suggestions)
+      |> Enum.sort(&elem(&1, 1) <= elem(&2, 1))
 
-    distances
-    |> Enum.sort(&elem(&1, 0) >= elem(&2, 0))
-    |> Enum.take(@max_suggestions)
-    |> Enum.sort(&elem(&1, 1) >= elem(&2, 1))
-    |> case do
-        []          -> ""
-        suggestions -> ". Perhaps you meant one of:\n\n#{Enum.map(suggestions, &format_fa/1)}"
-       end
+    case result do
+      []          -> ""
+      suggestions -> ". Perhaps you meant one of:\n\n#{Enum.map(suggestions, &format_fa/1)}"
+    end
   end
 
-  defp format_fa({_d, f, a}) do
-    f =
-      case inspect(f) do
-        ":" <> f -> f
-        f -> f
-      end
-
-    "      * " <> f <> "/" <> Integer.to_string(a) <> "\n"
+  defp format_fa({_dist, fun, arity}) do
+    fun = with ":" <> fun <- inspect(fun), do: fun
+    "      * " <> fun <> "/" <> Integer.to_string(arity) <> "\n"
   end
 
   defp exports_for(module) do
     if function_exported?(module, :__info__, 1) do
-      module.__info__(:functions) ++ module.__info__(:macros)
+      module.__info__(:macros) ++ module.__info__(:functions)
     else
       module.module_info(:exports)
     end
