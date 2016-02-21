@@ -12,14 +12,17 @@ expand_map(Meta, Args, E) ->
   validate_kv(Meta, EArgs, Args, E),
   {{'%{}', Meta, EArgs}, EA}.
 
-expand_struct(Meta, Left, Right, E) ->
+expand_struct(Meta, Left, Right, #{context := Context} = E) ->
   {[ELeft, ERight], EE} = elixir_exp:expand_args([Left, Right], E),
 
-  case is_atom(ELeft) of
+  case validate_struct(ELeft, Context) of
     true ->
       %% We always record structs when they are expanded
       %% as they expect the reference at compile time.
       elixir_lexical:record_remote(ELeft, nil, ?m(E, lexical_tracker));
+    false when Context == match ->
+      compile_error(Meta, ?m(E, file), "expected struct name in a match to be a compile "
+        "time atom, alias or a variable, got: ~ts", ['Elixir.Macro':to_string(ELeft)]);
     false ->
       compile_error(Meta, ?m(E, file), "expected struct name to be a compile "
         "time atom or alias, got: ~ts", ['Elixir.Macro':to_string(ELeft)])
@@ -40,6 +43,11 @@ expand_struct(Meta, Left, Right, E) ->
 
   {{'%', EMeta, [ELeft, ERight]}, EE}.
 
+validate_struct({'^', _, [{Var, _, Ctx}]}, match) when is_atom(Var), is_atom(Ctx) -> true;
+validate_struct({Var, _Meta, Ctx}, match) when is_atom(Var), is_atom(Ctx) -> true;
+validate_struct(Atom, _) when is_atom(Atom) -> true;
+validate_struct(_, _) -> false.
+
 validate_kv(Meta, KV, Original, E) ->
   lists:foldl(fun
     ({_K, _V}, Acc) -> Acc + 1;
@@ -52,6 +60,9 @@ validate_kv(Meta, KV, Original, E) ->
 translate_map(Meta, Args, S) ->
   {Assocs, TUpdate, US} = extract_assoc_update(Args, S),
   translate_map(Meta, Assocs, TUpdate, US).
+
+translate_struct(_Meta, Name, {'%{}', MapMeta, Assocs}, S) when is_tuple(Name) ->
+  translate_map(MapMeta, Assocs ++ [{'__struct__', Name}], nil, S);
 
 translate_struct(Meta, Name, {'%{}', MapMeta, Args}, S) ->
   {Assocs, TUpdate, US} = extract_assoc_update(Args, S),

@@ -548,6 +548,7 @@ bit_string -> open_bit container_args close_bit : build_bit('$1', '$2').
 %% Allow unquote/@something/aliases inside maps and structs.
 map_expr -> max_expr : '$1'.
 map_expr -> dot_identifier : build_identifier('$1', nil).
+map_expr -> unary_op_eol map_expr : build_unary_op('$1', '$2').
 map_expr -> at_op_eol map_expr : build_unary_op('$1', '$2').
 
 assoc_op_eol -> assoc_op : '$1'.

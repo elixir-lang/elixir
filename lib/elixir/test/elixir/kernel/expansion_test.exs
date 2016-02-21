@@ -184,8 +184,18 @@ defmodule Kernel.ExpansionTest do
   end
 
   test "structs: expects atoms" do
+    expand(quote do: %unknown{a: 1} = x)
+
     assert_raise CompileError, ~r"expected struct name to be a compile time atom or alias", fn ->
       expand(quote do: %unknown{a: 1})
+    end
+
+    assert_raise CompileError, ~r"expected struct name to be a compile time atom or alias", fn ->
+      expand(quote do: %unquote(1){a: 1})
+    end
+
+    assert_raise CompileError, ~r"expected struct name in a match to be a compile time atom, alias or a variable", fn ->
+      expand(quote do: %unquote(1){a: 1} = x)
     end
   end
 

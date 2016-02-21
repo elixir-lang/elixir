@@ -102,6 +102,13 @@ defmodule MapTest do
     end
   end
 
+  test "structs when matching" do
+    %struct{name: "john"} = %ExternalUser{name: "john", age: 27}
+    assert struct == ExternalUser
+    user = %ExternalUser{name: "john", age: 27}
+    %^struct{name: "john"} = user
+  end
+
   test "structs when quoted" do
     assert (quote do
       %User{foo: 1}
@@ -151,7 +158,7 @@ defmodule MapTest do
     assert LocalUser.Context.new == %LocalUser{name: "john", nested: %LocalUser.NestedUser{}}
   end
 
-  test "implements (almost) all functions in Map" do
+  test "implements (almost) all functions in Keyword" do
     assert Keyword.__info__(:functions) -- Map.__info__(:functions) ==
            [delete: 3, delete_first: 2, get_values: 2, keyword?: 1, pop_first: 2, pop_first: 3]
   end
