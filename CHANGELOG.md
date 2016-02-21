@@ -89,6 +89,7 @@ available.
 
 ### 1. Enhancements
 
+  * [Base] Add `:ignore` and `:padding` option to encoding/decoding functions
   * [Mix] Add `Mix.Projects.deps_paths` that returns the dependencies path as a map
 
 ### 2. Bug fixes
