@@ -181,7 +181,8 @@ defmodule ExUnit.AssertionsTest do
         "The following variables were pinned:\n" <>
         "  status = :valid\n" <>
         "Process mailbox:\n" <>
-        "  {:status, :invalid}" = error.message
+        "  {:status, :invalid}\n" <>
+        "Links: []" = error.message
     end
   end
 
@@ -200,7 +201,8 @@ defmodule ExUnit.AssertionsTest do
         "The following variables were pinned:\n" <>
         "  status = :valid\n" <>
         "Process mailbox:\n" <>
-        "  {:status, :invalid, :invalid}" = error.message
+        "  {:status, :invalid, :invalid}\n" <>
+        "Links: []" = error.message
     end
   end
 
@@ -221,7 +223,8 @@ defmodule ExUnit.AssertionsTest do
         "  status = :valid\n" <>
         "  other_status = :invalid\n" <>
         "Process mailbox:\n" <>
-        "  {:status, :invalid, :invalid}" = error.message
+        "  {:status, :invalid, :invalid}\n" <>
+        "Links: []" = error.message
     end
   end
 
@@ -230,7 +233,8 @@ defmodule ExUnit.AssertionsTest do
       "This should never be tested" = assert_received :hello
     rescue
       error in [ExUnit.AssertionError] ->
-        "No message matching :hello after 0ms.\nThe process mailbox is empty." = error.message
+        "No message matching :hello after 0ms.\nThe process mailbox is empty.\n" <>
+        "Links: []" = error.message
     end
   end
 
@@ -242,7 +246,8 @@ defmodule ExUnit.AssertionsTest do
       error in [ExUnit.AssertionError] ->
         "No message matching :hello after 0ms.\n" <>
         "Process mailbox:\n" <>
-        "  {:message, :not_expected, :at_all}" = error.message
+        "  {:message, :not_expected, :at_all}\n" <>
+        "Links: []" = error.message
     end
   end
 
@@ -256,7 +261,8 @@ defmodule ExUnit.AssertionsTest do
         "\n  {:message, 1}\n  {:message, 2}\n  {:message, 3}" <>
         "\n  {:message, 4}\n  {:message, 5}\n  {:message, 6}" <>
         "\n  {:message, 7}\n  {:message, 8}\n  {:message, 9}" <>
-        "\n  {:message, 10}\nShowing only 10 of 11 messages." = error.message
+        "\n  {:message, 10}\nShowing only 10 of 11 messages." <>
+        "\nLinks: []" = error.message
     end
   end
 
