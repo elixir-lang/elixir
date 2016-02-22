@@ -12,7 +12,7 @@
 
 ### Current behavior
 
-Include errors and stacktraces if appropriate.
+Include code samples, errors and stacktraces if appropriate.
 
 ### Expected behavior
 
