@@ -62,7 +62,7 @@ defmodule Mix.CLI do
       exception ->
         stacktrace = System.stacktrace
 
-        if Map.get(exception, :mix) do
+        if Map.get(exception, :mix) and not Mix.debug? do
           mod = exception.__struct__ |> Module.split() |> Enum.at(0, "Mix")
           Mix.shell.error "** (#{mod}) #{Exception.message(exception)}"
           exit({:shutdown, 1})
