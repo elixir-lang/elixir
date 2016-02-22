@@ -44,23 +44,26 @@ defmodule Mix.CLITest do
         def run(_) do
           IO.puts Mix.Project.get!.hello_world
           Mix.shell.info("This won't appear")
+          Mix.raise "oops"
         end
       end
       """
 
       contents = mix ~w[my_hello], [{"MIX_QUIET", "1"}]
-
       assert contents =~ "Hello from MyProject!\n"
       refute contents =~ "This won't appear"
 
       contents = mix ~w[my_hello], [{"MIX_QUIET", "0"}]
+      assert contents =~ "Hello from MyProject!\n"
       assert contents =~ "This won't appear"
 
       contents = mix ~w[my_hello], [{"MIX_DEBUG", "1"}]
       assert contents =~ "** Running mix my_hello (inside MyProject)"
+      assert contents =~ "** (Mix.Error) oops"
 
       contents = mix ~w[my_hello], [{"MIX_DEBUG", "0"}]
       refute contents =~ "** Running mix my_hello (inside MyProject)"
+      refute contents =~ "** (Mix.Error) oops"
     end
   end
 
