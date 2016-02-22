@@ -1,21 +1,54 @@
 import Kernel, except: [to_string: 1]
 
 defmodule Macro do
-  @moduledoc """
+  @moduledoc ~S"""
   Conveniences for working with macros.
 
   ## Custom Sigils
 
   To create a custom sigil, define a function with the name
   `sigil_{identifier}` that takes two arguments. The first argument will be
-  the interpolated string, the second will be a char list containing any
-  modifiers.
+  the string, the second will be a char list containing any modifiers. If the
+  sigil is lower case (such as `sigil_x`) then the string argument will allow
+  interpolation. If the sigil is upper case (such as `sigil_X`) then the string
+  will not be interpolated.
 
   Valid modifiers include only lower and upper case letters. Other characters
   will cause a syntax error.
 
   The module containing the custom sigil must be imported before the sigil
   syntax can be used.
+
+  ### Examples
+
+      defmodule MySigils do
+        defmacro sigil_x(term, [?r]) do
+          quote do: unquote(term) |> String.reverse()
+        end
+        defmacro sigil_x(term, _modifiers) do
+          term
+        end
+        defmacro sigil_X(term, [?r]) do
+          quote do: unquote(term) |> String.reverse()
+        end
+        defmacro sigil_X(term, _modifiers) do
+          term
+        end
+      end
+
+      import MySigils
+
+      ~x(with #{"inter" <> "polation"})
+      #=>"with interpolation"
+
+      ~x(with #{"inter" <> "polation"})r
+      #=>"noitalopretni htiw"
+
+      ~X(without #{"interpolation"})
+      #=>"without \#{"interpolation"}"
+
+      ~X(without #{"interpolation"})r
+      #=>"}\"noitalopretni\"{# tuohtiw"
   """
 
   @typedoc "Abstract Syntax Tree (AST)"
