@@ -284,16 +284,16 @@ defmodule Version do
     @moduledoc false
     import Parser.DSL
 
-    deflexer ">=",    do: :'>='
-    deflexer "<=",    do: :'<='
-    deflexer "~>",    do: :'~>'
-    deflexer ">",     do: :'>'
-    deflexer "<",     do: :'<'
-    deflexer "==",    do: :'=='
-    deflexer "!=",    do: :'!='
-    deflexer "!",     do: :'!='
-    deflexer " or ",  do: :'||'
-    deflexer " and ", do: :'&&'
+    deflexer ">=",    do: :>=
+    deflexer "<=",    do: :<=
+    deflexer "~>",    do: :~>
+    deflexer ">",     do: :>
+    deflexer "<",     do: :<
+    deflexer "==",    do: :==
+    deflexer "!=",    do: :!=
+    deflexer "!",     do: :!=
+    deflexer " or ",  do: :||
+    deflexer " and ", do: :&&
     deflexer " ",     do: :' '
 
     deflexer x, [] do
@@ -305,8 +305,8 @@ defmodule Version do
         is_binary h ->
           [h <> x | acc]
 
-        h in [:'||', :'&&'] ->
-          [x, :'==', h | acc]
+        h in [:||, :&&] ->
+          [x, :==, h | acc]
 
         true ->
           [x, h | acc]
@@ -432,65 +432,65 @@ defmodule Version do
       :invalid_matchspec -> :error
     end
 
-    defp to_condition([:'==', version | _]) do
+    defp to_condition([:==, version | _]) do
       matchable = parse_condition(version)
-      main_condition(:'==', matchable)
+      main_condition(:==, matchable)
     end
 
-    defp to_condition([:'!=', version | _]) do
+    defp to_condition([:!=, version | _]) do
       matchable = parse_condition(version)
       main_condition(:'/=', matchable)
     end
 
-    defp to_condition([:'~>', version | _]) do
+    defp to_condition([:~>, version | _]) do
       from = parse_condition(version, true)
       to   = approximate_upper(from)
 
-      {:andalso, to_condition([:'>=', matchable_to_string(from)]),
-                 to_condition([:'<', matchable_to_string(to)])}
+      {:andalso, to_condition([:>=, matchable_to_string(from)]),
+                 to_condition([:<, matchable_to_string(to)])}
     end
 
-    defp to_condition([:'>', version | _]) do
+    defp to_condition([:>, version | _]) do
       {major, minor, patch, pre} = parse_condition(version)
 
-      {:orelse, main_condition(:'>', {major, minor, patch}),
-                {:andalso, main_condition(:'==', {major, minor, patch}),
+      {:orelse, main_condition(:>, {major, minor, patch}),
+                {:andalso, main_condition(:==, {major, minor, patch}),
                            {:andalso, no_pre_condition(pre),
-                                      pre_condition(:'>', pre)}}}
+                                      pre_condition(:>, pre)}}}
     end
 
-    defp to_condition([:'>=', version | _]) do
+    defp to_condition([:>=, version | _]) do
       matchable = parse_condition(version)
 
-      {:orelse, main_condition(:'==', matchable),
-                to_condition([:'>', version])}
+      {:orelse, main_condition(:==, matchable),
+                to_condition([:>, version])}
     end
 
-    defp to_condition([:'<', version | _]) do
+    defp to_condition([:<, version | _]) do
       {major, minor, patch, pre} = parse_condition(version)
 
-      {:orelse, main_condition(:'<', {major, minor, patch}),
-                {:andalso, main_condition(:'==', {major, minor, patch}),
+      {:orelse, main_condition(:<, {major, minor, patch}),
+                {:andalso, main_condition(:==, {major, minor, patch}),
                            {:andalso, no_pre_condition(pre),
-                                      pre_condition(:'<', pre)}}}
+                                      pre_condition(:<, pre)}}}
     end
 
-    defp to_condition([:'<=', version | _]) do
+    defp to_condition([:<=, version | _]) do
       matchable = parse_condition(version)
 
-      {:orelse, main_condition(:'==', matchable),
-                to_condition([:'<', version])}
+      {:orelse, main_condition(:==, matchable),
+                to_condition([:<, version])}
     end
 
     defp to_condition(current, []) do
       current
     end
 
-    defp to_condition(current, [:'&&', operator, version | rest]) do
+    defp to_condition(current, [:&&, operator, version | rest]) do
       to_condition({:andalso, current, to_condition([operator, version])}, rest)
     end
 
-    defp to_condition(current, [:'||', operator, version | rest]) do
+    defp to_condition(current, [:||, operator, version | rest]) do
       to_condition({:orelse, current, to_condition([operator, version])}, rest)
     end
 
@@ -511,26 +511,26 @@ defmodule Version do
            {:const, version}}
     end
 
-    defp pre_condition(:'>', pre) do
+    defp pre_condition(:>, pre) do
       length_pre = length(pre)
 
-      {:orelse, {:andalso, {:'==', {:length, :'$4'}, 0},
+      {:orelse, {:andalso, {:==, {:length, :'$4'}, 0},
                            {:const, length_pre != 0}},
                 {:andalso, {:const, length_pre != 0},
-                           {:orelse, {:'>', {:length, :'$4'}, length_pre},
-                                     {:andalso, {:'==', {:length, :'$4'}, length_pre},
-                                                {:'>', :'$4', {:const, pre}}}}}}
+                           {:orelse, {:>, {:length, :'$4'}, length_pre},
+                                     {:andalso, {:==, {:length, :'$4'}, length_pre},
+                                                {:>, :'$4', {:const, pre}}}}}}
     end
 
-    defp pre_condition(:'<', pre) do
+    defp pre_condition(:<, pre) do
       length_pre = length(pre)
 
       {:orelse, {:andalso, {:'/=', {:length, :'$4'}, 0},
                            {:const, length_pre == 0}},
                 {:andalso, {:'/=', {:length, :'$4'}, 0},
-                           {:orelse, {:'<', {:length, :'$4'}, length_pre},
-                                     {:andalso, {:'==', {:length, :'$4'}, length_pre},
-                                                {:'<', :'$4', {:const, pre}}}}}}
+                           {:orelse, {:<, {:length, :'$4'}, length_pre},
+                                     {:andalso, {:==, {:length, :'$4'}, length_pre},
+                                                {:<, :'$4', {:const, pre}}}}}}
     end
 
     defp no_pre_condition(pre) do
