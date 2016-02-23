@@ -124,18 +124,21 @@ defmodule Version do
       ** (Version.InvalidRequirementError) == ==1.0.0
 
   """
-  @spec match?(version, requirement) :: boolean
-  def match?(version, requirement) when is_binary(requirement) do
+  @spec match?(version, requirement, Keyword.t) :: boolean
+  def match?(version, requirement, opts \\ [])
+
+  def match?(version, requirement, opts) when is_binary(requirement) do
     case parse_requirement(requirement) do
       {:ok, requirement} ->
-        match?(version, requirement)
+        match?(version, requirement, opts)
       :error ->
         raise InvalidRequirementError, message: requirement
     end
   end
 
-  def match?(version, %Requirement{matchspec: spec}) do
-    {:ok, result} = :ets.test_ms(to_matchable(version), spec)
+  def match?(version, %Requirement{matchspec: spec}, opts) do
+    allow_pre = Keyword.get(opts, :allow_pre, true)
+    {:ok, result} = :ets.test_ms(to_matchable(version, allow_pre), spec)
     result != false
   end
 
@@ -161,10 +164,10 @@ defmodule Version do
   """
   @spec compare(version, version) :: :gt | :eq | :lt
   def compare(version1, version2) do
-    do_compare(to_matchable(version1), to_matchable(version2))
+    do_compare(to_matchable(version1, true), to_matchable(version2, true))
   end
 
-  defp do_compare({major1, minor1, patch1, pre1}, {major2, minor2, patch2, pre2}) do
+  defp do_compare({major1, minor1, patch1, pre1, _}, {major2, minor2, patch2, pre2, _}) do
     cond do
       {major1, minor1, patch1} > {major2, minor2, patch2} -> :gt
       {major1, minor1, patch1} < {major2, minor2, patch2} -> :lt
@@ -224,14 +227,16 @@ defmodule Version do
     end
   end
 
-  defp to_matchable(%Version{major: major, minor: minor, patch: patch, pre: pre}) do
-    {major, minor, patch, pre}
+  defp to_matchable(%Version{major: major, minor: minor, patch: patch, pre: pre}, allow_pre?) do
+    {major, minor, patch, pre, allow_pre?}
   end
 
-  defp to_matchable(string) do
+  defp to_matchable(string, allow_pre?) do
     case Version.Parser.parse_version(string) do
-      {:ok, version} -> version
-      :error -> raise InvalidVersionError, message: string
+      {:ok, {major, minor, patch, pre}} ->
+        {major, minor, patch, pre, allow_pre?}
+      :error ->
+        raise InvalidVersionError, message: string
     end
   end
 
@@ -419,7 +424,7 @@ defmodule Version do
       if valid_requirement?(lexed) do
         first = to_condition(lexed)
         rest  = Enum.drop(lexed, 2)
-        {:ok, [{{:'$1', :'$2', :'$3', :'$4'}, [to_condition(first, rest)], [:'$_']}]}
+        {:ok, [{{:'$1', :'$2', :'$3', :'$4', :'$5'}, [to_condition(first, rest)], [:'$_']}]}
       else
         :error
       end
@@ -428,13 +433,13 @@ defmodule Version do
     end
 
     defp to_condition([:'==', version | _]) do
-      version = parse_condition(version)
-      {:'==', :'$_', {:const, version}}
+      matchable = parse_condition(version)
+      main_condition(:'==', matchable)
     end
 
     defp to_condition([:'!=', version | _]) do
-      version = parse_condition(version)
-      {:'/=', :'$_', {:const, version}}
+      matchable = parse_condition(version)
+      main_condition(:'/=', matchable)
     end
 
     defp to_condition([:'~>', version | _]) do
@@ -448,30 +453,32 @@ defmodule Version do
     defp to_condition([:'>', version | _]) do
       {major, minor, patch, pre} = parse_condition(version)
 
-      {:orelse, main_condition(:'>', major, minor, patch),
-                {:andalso, main_condition(:'==', major, minor, patch),
-                           pre_condition(:'>', pre)}}
+      {:orelse, main_condition(:'>', {major, minor, patch}),
+                {:andalso, main_condition(:'==', {major, minor, patch}),
+                           {:andalso, no_pre_condition(pre),
+                                      pre_condition(:'>', pre)}}}
     end
 
     defp to_condition([:'>=', version | _]) do
       matchable = parse_condition(version)
 
-      {:orelse, {:'==', :'$_', {:const, matchable}},
+      {:orelse, main_condition(:'==', matchable),
                 to_condition([:'>', version])}
     end
 
     defp to_condition([:'<', version | _]) do
       {major, minor, patch, pre} = parse_condition(version)
 
-      {:orelse, main_condition(:'<', major, minor, patch),
-                {:andalso, main_condition(:'==', major, minor, patch),
-                           pre_condition(:'<', pre)}}
+      {:orelse, main_condition(:'<', {major, minor, patch}),
+                {:andalso, main_condition(:'==', {major, minor, patch}),
+                           {:andalso, no_pre_condition(pre),
+                                      pre_condition(:'<', pre)}}}
     end
 
     defp to_condition([:'<=', version | _]) do
       matchable = parse_condition(version)
 
-      {:orelse, {:'==', :'$_', {:const, matchable}},
+      {:orelse, main_condition(:'==', matchable),
                 to_condition([:'<', version])}
     end
 
@@ -494,9 +501,14 @@ defmodule Version do
       end
     end
 
-    defp main_condition(op, major, minor, patch) do
+    defp main_condition(op, version) when tuple_size(version) == 3 do
       {op, {{:'$1', :'$2', :'$3'}},
-           {:const, {major, minor, patch}}}
+           {:const, version}}
+    end
+
+    defp main_condition(op, version) when tuple_size(version) == 4 do
+      {op, {{:'$1', :'$2', :'$3', :'$4'}},
+           {:const, version}}
     end
 
     defp pre_condition(:'>', pre) do
@@ -519,6 +531,11 @@ defmodule Version do
                            {:orelse, {:'<', {:length, :'$4'}, length_pre},
                                      {:andalso, {:'==', {:length, :'$4'}, length_pre},
                                                 {:'<', :'$4', {:const, pre}}}}}}
+    end
+
+    defp no_pre_condition(pre) do
+      {:orelse, :'$5',
+                {:const, pre == []}}
     end
 
     defp matchable_to_string({major, minor, patch, pre}) do
