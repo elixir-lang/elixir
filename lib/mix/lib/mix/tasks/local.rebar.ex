@@ -14,19 +14,23 @@ defmodule Mix.Tasks.Local.Rebar do
 
   It defaults to safely download a rebar copy from
   [Amazon S3](https://aws.amazon.com/s3/). However, a URL can be given
-  as argument, usually from an existing local copy of rebar. If not
-  specified both `rebar` and `rebar3` will be fetched.
+  as argument, usually from an existing local copy of rebar:
+
+      mix local.rebar rebar path/to/rebar
+      mix local.rebar rebar3 path/to/rebar
+
+  If not specified both `rebar` and `rebar3` will be fetched.
 
   The local copy is stored in your `MIX_HOME` (defaults to `~/.mix`).
   This version of rebar will be used as required by `mix deps.compile`.
 
   ## Command line options
 
-    * `--sha512` - checks the archive matches the given sha512 checksum
-
     * `rebar PATH` - specify a path or url for `rebar`
 
     * `rebar3 PATH` - specify a path or url for `rebar3`
+
+    * `--sha512` - checks the archive matches the given sha512 checksum
 
     * `--force` - forces installation without a shell prompt; primarily
       intended for automation in build systems like `make`
@@ -49,6 +53,9 @@ defmodule Mix.Tasks.Local.Rebar do
       [] ->
         install_from_s3(:rebar, @rebar2_list_url, @rebar2_escript_url, opts)
         install_from_s3(:rebar3, @rebar3_list_url, @rebar3_escript_url, opts)
+      _ ->
+        Mix.raise "Invalid arguments given to mix local.rebar. " <>
+                  "Check the proper call syntax with: mix help local.rebar"
     end
   end
 
