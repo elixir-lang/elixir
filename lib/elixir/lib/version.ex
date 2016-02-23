@@ -320,7 +320,7 @@ defmodule Version do
       (?:\+([\d\w\-]+))?    # build
       $/x
 
-    @spec parse_requirement(String.t) :: {:ok, Version.Requirement.t} | :error
+    @spec parse_requirement(String.t) :: {:ok, term} | :error
     def parse_requirement(source) do
       lexed = lexer(source, [])
       to_matchspec(lexed)
@@ -448,16 +448,9 @@ defmodule Version do
     defp to_condition([:'>', version | _]) do
       {major, minor, patch, pre} = parse_condition(version)
 
-      {:orelse, {:'>', {{:'$1', :'$2', :'$3'}},
-                       {:const, {major, minor, patch}}},
-                {:andalso, {:'==', {{:'$1', :'$2', :'$3'}},
-                                        {:const, {major, minor, patch}}},
-                {:orelse, {:andalso, {:'==', {:length, :'$4'}, 0},
-                                     {:'/=', length(pre), 0}},
-                          {:andalso, {:'/=', length(pre), 0},
-                                     {:orelse, {:'>', {:length, :'$4'}, length(pre)},
-                                     {:andalso, {:'==', {:length, :'$4'}, length(pre)},
-                                                {:'>', :'$4', {:const, pre}}}}}}}}
+      {:orelse, main_condition(:'>', major, minor, patch),
+                {:andalso, main_condition(:'==', major, minor, patch),
+                           pre_condition(:'>', pre)}}
     end
 
     defp to_condition([:'>=', version | _]) do
@@ -470,16 +463,9 @@ defmodule Version do
     defp to_condition([:'<', version | _]) do
       {major, minor, patch, pre} = parse_condition(version)
 
-      {:orelse, {:'<', {{:'$1', :'$2', :'$3'}},
-                       {:const, {major, minor, patch}}},
-                {:andalso, {:'==', {{:'$1', :'$2', :'$3'}},
-                                   {:const, {major, minor, patch}}},
-                {:orelse, {:andalso, {:'/=', {:length, :'$4'}, 0},
-                                     {:'==', length(pre), 0}},
-                          {:andalso, {:'/=', {:length, :'$4'}, 0},
-                          {:orelse, {:'<', {:length, :'$4'}, length(pre)},
-                                    {:andalso, {:'==', {:length, :'$4'}, length(pre)},
-                                               {:'<', :'$4', {:const, pre}}}}}}}}
+      {:orelse, main_condition(:'<', major, minor, patch),
+                {:andalso, main_condition(:'==', major, minor, patch),
+                           pre_condition(:'<', pre)}}
     end
 
     defp to_condition([:'<=', version | _]) do
@@ -506,6 +492,33 @@ defmodule Version do
         {:ok, version} -> version
         :error -> throw :invalid_matchspec
       end
+    end
+
+    defp main_condition(op, major, minor, patch) do
+      {op, {{:'$1', :'$2', :'$3'}},
+           {:const, {major, minor, patch}}}
+    end
+
+    defp pre_condition(:'>', pre) do
+      length_pre = length(pre)
+
+      {:orelse, {:andalso, {:'==', {:length, :'$4'}, 0},
+                           {:const, length_pre != 0}},
+                {:andalso, {:const, length_pre != 0},
+                           {:orelse, {:'>', {:length, :'$4'}, length_pre},
+                                     {:andalso, {:'==', {:length, :'$4'}, length_pre},
+                                                {:'>', :'$4', {:const, pre}}}}}}
+    end
+
+    defp pre_condition(:'<', pre) do
+      length_pre = length(pre)
+
+      {:orelse, {:andalso, {:'/=', {:length, :'$4'}, 0},
+                           {:const, length_pre == 0}},
+                {:andalso, {:'/=', {:length, :'$4'}, 0},
+                           {:orelse, {:'<', {:length, :'$4'}, length_pre},
+                                     {:andalso, {:'==', {:length, :'$4'}, length_pre},
+                                                {:'<', :'$4', {:const, pre}}}}}}
     end
 
     defp matchable_to_string({major, minor, patch, pre}) do
