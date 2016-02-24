@@ -160,8 +160,7 @@ defmodule Version do
 
   def match?(version, %Requirement{matchspec: spec}, opts) do
     allow_pre = Keyword.get(opts, :allow_pre, true)
-    {:ok, result} = :ets.test_ms(to_matchable(version, allow_pre), spec)
-    result != false
+    :ets.match_spec_run([to_matchable(version, allow_pre)], spec) != []
   end
 
   @doc """
@@ -243,7 +242,7 @@ defmodule Version do
   def parse_requirement(string) when is_binary(string) do
     case Version.Parser.parse_requirement(string) do
       {:ok, spec} ->
-        {:ok, %Requirement{source: string, matchspec: spec}}
+        {:ok, %Requirement{source: string, matchspec: :ets.match_spec_compile(spec)}}
       :error ->
         :error
     end
