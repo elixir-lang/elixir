@@ -65,9 +65,6 @@ defmodule Mix.Tasks.Escript.Install do
     executable = Path.basename(path)
     sys_path = System.find_executable(executable)
     if sys_path != path do
-      # FIXME: come up with a better error message? If the user already has a utility with the
-      # same name installed at a path that comes before the escript path, the warning will seem
-      # confusing
       Mix.shell.info "\nConsider adding #{Mix.Local.path_for(:escript)} to your PATH\n"
                   <> "to be able to invoke escripts by name."
     end
