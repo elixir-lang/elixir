@@ -52,11 +52,10 @@ defmodule Mix.SCM.Git do
         File.cd!(opts[:dest], fn ->
           rev_info = get_rev_info
           cond do
-            not git_repos_match?(lock_repo, opts[:git]) -> :outdated
-            lock_opts != get_lock_opts(opts)            -> :outdated
-            lock_rev  != rev_info[:rev]                 -> :mismatch
-            lock_repo != rev_info[:origin]              -> :mismatch
-            true                                        -> :ok
+            not lock_up_to_date?(opts)     -> :outdated
+            lock_rev  != rev_info[:rev]    -> :mismatch
+            lock_repo != rev_info[:origin] -> :mismatch
+            true                           -> :ok
           end
         end)
       nil ->
@@ -123,7 +122,7 @@ defmodule Mix.SCM.Git do
   end
 
   defp do_checkout(opts) do
-    ref = get_lock_rev(opts[:lock]) || get_opts_rev(opts)
+    ref = get_lock_rev_if_lock_up_to_date(opts) || get_opts_rev(opts)
     git!("--git-dir=.git checkout --quiet #{ref}")
 
     if opts[:submodules] do
@@ -148,6 +147,14 @@ defmodule Mix.SCM.Git do
       lock_opts ++ [submodules: true]
     else
       lock_opts
+    end
+  end
+
+  defp get_lock_rev_if_lock_up_to_date(opts) do
+    if lock_up_to_date?(opts) do
+      get_lock_rev(opts[:lock])
+    else
+      nil
     end
   end
 
@@ -228,5 +235,14 @@ defmodule Mix.SCM.Git do
   defp to_integer(string) do
     {int, _} = Integer.parse(string)
     int
+  end
+
+  defp lock_up_to_date?(opts) do
+    case opts[:lock] do
+      {:git, repo, _rev, lock_opts} ->
+        git_repos_match?(repo, opts[:git]) and lock_opts == get_lock_opts(opts)
+      _ ->
+        false
+    end
   end
 end
