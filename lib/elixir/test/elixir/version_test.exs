@@ -196,8 +196,11 @@ defmodule VersionTest do
     refute V.match?("1.1.0-beta", "~> 1.0", allow_pre: false)
     assert V.match?("1.0.1-beta", "~> 1.0.0-beta", allow_pre: false)
 
+    assert V.match?("1.1.0", ">= 1.0.0", allow_pre: true)
     assert V.match?("1.1.0", ">= 1.0.0", allow_pre: false)
-    assert V.match?("1.1.0-beta", ">= 1.0.0", allow_pre: false)
+    assert V.match?("1.1.0-beta", ">= 1.0.0", allow_pre: true)
+    refute V.match?("1.1.0-beta", ">= 1.0.0", allow_pre: false)
+    assert V.match?("1.1.0-beta", ">= 1.0.0-beta", allow_pre: false)
   end
 
   test "and" do
