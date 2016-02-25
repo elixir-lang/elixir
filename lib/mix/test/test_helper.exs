@@ -194,6 +194,7 @@ unless File.dir?(target) do
   File.cd! target, fn ->
     System.cmd("git", ~w[add .])
     System.cmd("git", ~w[commit -m "ok"])
+    System.cmd("git", ~w[tag without_module])
   end
 
   File.write! Path.join(target, "lib/git_repo.ex"), """
@@ -208,6 +209,7 @@ unless File.dir?(target) do
   File.cd! target, fn ->
     System.cmd("git", ~w[add .])
     System.cmd("git", ~w[commit -m "lib"])
+    System.cmd("git", ~w[tag with_module])
   end
 end
 

@@ -39,16 +39,6 @@ defmodule Mix.Tasks.DepsTest do
     end
   end
 
-  defmodule SpecificRefDepApp do
-    def project do
-      [ app: :specific_ref_dep, version: "0.1.0",
-        deps: [
-          {:tagged, github: "elixir-lang/tagged", tag: "v0.2.0"}
-        ]
-      ]
-    end
-  end
-
   ## deps
 
   test "prints list of dependencies and their status" do
@@ -119,7 +109,7 @@ defmodule Mix.Tasks.DepsTest do
       assert_received {:mix_shell, :info, ["* ok (https://github.com/elixir-lang/ok.git) (mix)"]}
       assert_received {:mix_shell, :info, ["  the dependency is not locked (run \"mix deps.get\" to generate \"mix.lock\" file)"]}
 
-      Mix.Dep.Lock.write %{ok: {:git, "git://github.com/elixir-lang/ok.git", "abcdefghi", []}}
+      Mix.Dep.Lock.write %{ok: {:git, "https://github.com/elixir-lang/ok.git", "abcdefghi", []}}
       Mix.Tasks.Deps.run []
 
       assert_received {:mix_shell, :info, ["* ok (https://github.com/elixir-lang/ok.git) (mix)"]}
@@ -130,21 +120,6 @@ defmodule Mix.Tasks.DepsTest do
       Mix.Tasks.Deps.run []
 
       assert_received {:mix_shell, :info, ["* ok (https://github.com/elixir-lang/ok.git) (mix)"]}
-      assert_received {:mix_shell, :info, ["  lock outdated: the lock is outdated compared to the options in your mixfile (run \"mix deps.get\" to fetch locked version)"]}
-    end
-  end
-
-  test "prints outdated deps based on mix.exs and lock" do
-    Mix.Project.push SpecificRefDepApp
-
-    in_fixture "deps_status", fn ->
-      File.cd!("deps/tagged", fn -> System.cmd("git", ["init"]) end)
-
-      Mix.Dep.Lock.write %{tagged: {:git, "git://github.com/elixir-lang/tagged.git", "abcdefghi", [tag: "v0.1.0"]}}
-      Mix.Tasks.Deps.run []
-
-      assert_received {:mix_shell, :info, ["* tagged (https://github.com/elixir-lang/tagged.git) (mix)"]}
-      assert_received {:mix_shell, :info, ["  locked at abcdefg (tag: v0.1.0)"]}
       assert_received {:mix_shell, :info, ["  lock outdated: the lock is outdated compared to the options in your mixfile (run \"mix deps.get\" to fetch locked version)"]}
     end
   end

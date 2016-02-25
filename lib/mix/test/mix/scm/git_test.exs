@@ -18,17 +18,6 @@ defmodule Mix.SCM.GitTest do
     refute Mix.SCM.Git.equal?([git: "foo", branch: "master"], [git: "foo", branch: "other"])
   end
 
-  test "considers two GitHub dep equals if they are the same repo and opts match, just different protocols" do
-    git_url = "git://github.com/elixir-lang/elixir.git"
-    https_url = "https://github.com/elixir-lang/elixir.git"
-
-    assert Mix.SCM.Git.equal?([git: git_url], [git: https_url])
-    refute Mix.SCM.Git.equal?([git: "git@github.com:elixir-lang/ecto.git"], [git: https_url])
-
-    assert Mix.SCM.Git.equal?([git: git_url, branch: "master"], [git: https_url, branch: "master"])
-    refute Mix.SCM.Git.equal?([git: git_url, branch: "master"], [git: https_url, branch: "other"])
-  end
-
   test "lock should not be taken into account when considering deps equal as the lock is shared" do
     assert Mix.SCM.Git.equal?([git: "foo", lock: 1], [git: "foo", lock: 2])
   end
