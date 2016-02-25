@@ -15,10 +15,11 @@ defmodule Mix.Tasks.DepsGitTest do
 
   defmodule GitApp do
     def project do
+      opts = Process.get(:git_repo_opts) || []
       [ app: :git_app,
         version: "0.1.0",
         deps: [
-          {:git_repo, "0.1.0", git: fixture_path("git_repo")}
+          {:git_repo, "0.1.0", [git: fixture_path("git_repo")] ++ opts}
         ] ]
     end
   end
@@ -304,6 +305,24 @@ defmodule Mix.Tasks.DepsGitTest do
       Mix.Dep.Lock.write %{git_repo: {:git, fixture_path("git_repo"), last, []}}
       Mix.Tasks.Deps.Get.run []
       assert File.read!("mix.lock") =~ last
+    end
+  after
+    purge [GitRepo, GitRepo.Mixfile]
+  end
+
+  test "updates on git opts change" do
+    Mix.Project.push GitApp
+
+    in_fixture "no_mixfile", fn ->
+      Process.put(:git_repo_opts, tag: "without_module")
+      refresh([])
+      Mix.Tasks.Deps.Get.run []
+      refute File.regular?("deps/git_repo/lib/git_repo.ex")
+
+      Process.put(:git_repo_opts, tag: "with_module")
+      refresh([])
+      Mix.Tasks.Deps.Get.run []
+      assert File.regular?("deps/git_repo/lib/git_repo.ex")
     end
   after
     purge [GitRepo, GitRepo.Mixfile]
