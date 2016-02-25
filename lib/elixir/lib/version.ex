@@ -64,7 +64,7 @@ defmodule Version do
   `~> 2.0`       | `>= 2.0.0 and < 3.0.0`
   `~> 2.1`       | `>= 2.1.0 and < 3.0.0`
 
-  When `allow_pre: false` is set the `~>` operator will not match a
+  When `allow_pre: false` is set the requirement will not match a
   pre-release version unless the operand is a pre-release version.
   The default is to allow always allow pre-releases but note that in
   Hex `:allow_pre` is set to `false.` See the table below for examples.
@@ -79,6 +79,8 @@ defmodule Version do
   `~> 2.1.2`     | `2.1.3-dev` | `false`      | `false`
   `~> 2.1-dev`   | `2.2.0-dev` | `false`      | `true`
   `~> 2.1.2-dev` | `2.1.3-dev` | `false`      | `true`
+  `>= 2.1.0`     | `2.2.0-dev` | `false`      | `false`
+  `>= 2.1.0-dev` | `2.2.3-dev` | `true`       | `true`
 
   """
 
@@ -127,9 +129,9 @@ defmodule Version do
 
   ## Options
 
-    * `:allow_pre` - when `false` pre-release versions will not match for
-      the `~>` operator unless the operand is a pre-release version
-      (default: `true`);
+    * `:allow_pre` - when `false` pre-release versions will not match
+      unless the operand is a pre-release version, see the table above
+      for examples  (default: `true`);
 
   ## Examples
 
@@ -463,7 +465,7 @@ defmodule Version do
 
     defp to_matchspec(lexed) do
       if valid_requirement?(lexed) do
-        first = to_condition(lexed, false)
+        first = to_condition(lexed)
         rest  = Enum.drop(lexed, 2)
           {:ok, [{{:'$1', :'$2', :'$3', :'$4', :'$5'}, [to_condition(first, rest)], [:'$_']}]}
       else
@@ -473,41 +475,41 @@ defmodule Version do
       :invalid_matchspec -> :error
     end
 
-    defp to_condition([:==, version | _], _) do
+    defp to_condition([:==, version | _]) do
       matchable = parse_condition(version)
       main_condition(:==, matchable)
     end
 
-    defp to_condition([:!=, version | _], _) do
+    defp to_condition([:!=, version | _]) do
       matchable = parse_condition(version)
       main_condition(:'/=', matchable)
     end
 
-    defp to_condition([:~>, version | _], _) do
+    defp to_condition([:~>, version | _]) do
       from = parse_condition(version, true)
       to   = approximate_upper(from)
 
-      {:andalso, to_condition([:>=, matchable_to_string(from)], true),
-                 to_condition([:<, matchable_to_string(to)], false)}
+      {:andalso, to_condition([:>=, matchable_to_string(from)]),
+                 to_condition([:<, matchable_to_string(to)])}
     end
 
-    defp to_condition([:>, version | _], twiddle?) do
+    defp to_condition([:>, version | _]) do
       {major, minor, patch, pre} = parse_condition(version)
 
       {:andalso, {:orelse, main_condition(:>, {major, minor, patch}),
                            {:andalso, main_condition(:==, {major, minor, patch}),
                                       pre_condition(:>, pre)}},
-                  no_pre_condition(pre, twiddle?)}
+                  no_pre_condition(pre)}
     end
 
-    defp to_condition([:>=, version | _], twiddle?) do
+    defp to_condition([:>=, version | _]) do
       matchable = parse_condition(version)
 
       {:orelse, main_condition(:==, matchable),
-                to_condition([:>, version], twiddle?)}
+                to_condition([:>, version])}
     end
 
-    defp to_condition([:<, version | _], _) do
+    defp to_condition([:<, version | _]) do
       {major, minor, patch, pre} = parse_condition(version)
 
       {:orelse, main_condition(:<, {major, minor, patch}),
@@ -515,11 +517,11 @@ defmodule Version do
                            pre_condition(:<, pre)}}
     end
 
-    defp to_condition([:<=, version | _], _) do
+    defp to_condition([:<=, version | _]) do
       matchable = parse_condition(version)
 
       {:orelse, main_condition(:==, matchable),
-                to_condition([:<, version], false)}
+                to_condition([:<, version])}
     end
 
     defp to_condition(current, []) do
@@ -527,11 +529,11 @@ defmodule Version do
     end
 
     defp to_condition(current, [:&&, operator, version | rest]) do
-      to_condition({:andalso, current, to_condition([operator, version], false)}, rest)
+      to_condition({:andalso, current, to_condition([operator, version])}, rest)
     end
 
     defp to_condition(current, [:||, operator, version | rest]) do
-      to_condition({:orelse, current, to_condition([operator, version], false)}, rest)
+      to_condition({:orelse, current, to_condition([operator, version])}, rest)
     end
 
     defp parse_condition(version, approximate? \\ false) do
@@ -573,14 +575,10 @@ defmodule Version do
                                                 {:<, :'$4', {:const, pre}}}}}}
     end
 
-    defp no_pre_condition(pre, true) when pre == [] do
-      {:orelse, :'$5',
-                {:==, {:length, :'$4'}, 0}}
+    defp no_pre_condition([]) do
+      {:orelse, :'$5', {:==, {:length, :'$4'}, 0}}
     end
-    defp no_pre_condition(_pre, true) do
-      {:const, true}
-    end
-    defp no_pre_condition(_pre, false) do
+    defp no_pre_condition(_pre) do
       {:const, true}
     end
 
