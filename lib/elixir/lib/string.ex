@@ -1385,8 +1385,8 @@ defmodule String do
   is traversed first in order to convert the negative indices into
   positive ones.
 
-  Remember this function works with Unicode codepoints and considers
-  the slices to represent codepoints offsets. If you want to split
+  Remember this function works with Unicode graphemes and considers
+  the slices to represent grapheme offsets. If you want to split
   on raw bytes, check `Kernel.binary_part/3` instead.
 
   ## Examples
