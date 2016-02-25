@@ -104,7 +104,7 @@ defmodule Version do
                          build: build}
 
   defmodule Requirement do
-    defstruct [:source, :matchspec]
+    defstruct [:source, :matchspec, :compiled]
     @type t :: %__MODULE__{}
   end
 
@@ -158,7 +158,13 @@ defmodule Version do
     end
   end
 
-  def match?(version, %Requirement{matchspec: spec}, opts) do
+  def match?(version, %Requirement{matchspec: spec, compiled: false}, opts) do
+    allow_pre = Keyword.get(opts, :allow_pre, true)
+    {:ok, result} = :ets.test_ms(to_matchable(version, allow_pre), spec)
+    result != false
+  end
+
+  def match?(version, %Requirement{matchspec: spec, compiled: true}, opts) do
     allow_pre = Keyword.get(opts, :allow_pre, true)
     :ets.match_spec_run([to_matchable(version, allow_pre)], spec) != []
   end
@@ -242,10 +248,24 @@ defmodule Version do
   def parse_requirement(string) when is_binary(string) do
     case Version.Parser.parse_requirement(string) do
       {:ok, spec} ->
-        {:ok, %Requirement{source: string, matchspec: :ets.match_spec_compile(spec)}}
+        {:ok, %Requirement{source: string, matchspec: spec, compiled: false}}
       :error ->
         :error
     end
+  end
+
+  @doc """
+  Compiles a requirement to its internal representation with
+  `:ets.match_spec_compile/1` for faster matching.
+
+  The internal representation is opaque and can not be converted to external
+  term format and then back again without losing its properties (meaning it
+  can not be sent to a process on another node and still remain a valid
+  compiled match_spec, nor can it be stored on disk).
+  """
+  @spec compile_requirement(Requirement.t) :: Requirement.t
+  def compile_requirement(%Requirement{matchspec: spec} = req) do
+    %{req | matchspec: :ets.match_spec_compile(spec), compiled: true}
   end
 
   defp to_matchable(%Version{major: major, minor: minor, patch: patch, pre: pre}, allow_pre?) do

@@ -212,4 +212,12 @@ defmodule VersionTest do
 
     refute V.match?("0.9.6", "0.9.1 or 0.9.3 or 0.9.5")
   end
+
+  test "compile requirement" do
+    {:ok, req} = V.parse_requirement("1.2.3")
+    req = V.compile_requirement(req)
+
+    assert V.match?("1.2.3", req)
+    refute V.match?("1.2.4", req)
+  end
 end
