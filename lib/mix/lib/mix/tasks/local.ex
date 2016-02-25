@@ -10,7 +10,7 @@ defmodule Mix.Tasks.Local do
   @spec run([]) :: :ok
   def run([]) do
     shell   = Mix.shell
-    modules = Mix.Local.all_tasks
+    modules = Mix.Local.archives_tasks
 
     docs = for module <- modules do
       {Mix.Task.task_name(module), Mix.Task.shortdoc(module)}

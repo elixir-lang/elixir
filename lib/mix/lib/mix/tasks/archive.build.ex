@@ -72,9 +72,36 @@ defmodule Mix.Tasks.Archive.Build do
       Mix.raise "Expected archive source #{inspect source} to be a directory"
     end
 
-    Mix.Archive.create(source, target)
+    create(source, target)
 
     Mix.shell.info "Generated archive #{inspect target} with MIX_ENV=#{Mix.env}"
     :ok
+  end
+
+  defp create(source, target) do
+    source_path = Path.expand(source)
+    target_path = Path.expand(target)
+    dir = Mix.Local.archive_name(target_path) |> String.to_char_list
+    {:ok, _} = :zip.create(String.to_char_list(target_path),
+                  files_to_add(source_path, dir),
+                  uncompress: ['.beam', '.app'])
+    :ok
+  end
+
+  defp files_to_add(path, dir) do
+    File.cd! path, fn ->
+      evsn = Path.wildcard(".elixir")
+      ebin = Path.wildcard("ebin/*.{beam,app}")
+      priv = Path.wildcard("priv/**/*")
+
+      Enum.reduce evsn ++ ebin ++ priv, [], fn(f, acc) ->
+        case File.read(f) do
+          {:ok, bin} ->
+            [{Path.join(dir, f) |> String.to_char_list, bin}|acc]
+          {:error, _} ->
+            acc
+        end
+      end
+    end
   end
 end

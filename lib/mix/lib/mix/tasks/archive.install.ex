@@ -48,12 +48,17 @@ defmodule Mix.Tasks.Archive.Install do
   end
 
   def find_previous_versions(src, _dst) do
-    app = src
-          |> Mix.Archive.dir
-          |> String.split("-")
-          |> List.first
+    app =
+      src
+      |> Mix.Local.archive_name
+      |> String.split("-")
+      |> List.first
 
-    if app, do: Mix.Local.archive_files(app), else: []
+    if app do
+      archives(app <> ".ez") ++ archives(app <> "-*.ez")
+    else
+      []
+    end
   end
 
   def before_install(src, dst_path) do
@@ -61,12 +66,19 @@ defmodule Mix.Tasks.Archive.Install do
   end
 
   def after_install(dst, previous) do
-    Mix.Local.check_archive_elixir_version(dst)
+    ebin = Mix.Local.archive_ebin(dst)
+    Mix.Local.check_elixir_version_in_ebin(ebin)
     unless dst in previous, do: remove_previous_versions(previous)
-    true = Code.append_path(Mix.Archive.ebin(dst))
+    true = Code.append_path(ebin)
   end
 
   ### Private helpers
+
+  defp archives(name) do
+    Mix.Local.path_for(:archive)
+    |> Path.join(name)
+    |> Path.wildcard
+  end
 
   defp check_file_exists(src, path) do
     # OTP keeps loaded archives open, this leads to unfortunate behaviour on

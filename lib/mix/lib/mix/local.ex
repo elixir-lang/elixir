@@ -46,7 +46,7 @@ defmodule Mix.Local do
   Appends archives paths into Erlang code path.
   """
   def append_archives do
-    archives = archives_ebin()
+    archives = archives_ebins()
     Enum.each(archives, &check_elixir_version_in_ebin/1)
     Enum.each(archives, &Code.append_path/1)
   end
@@ -61,36 +61,35 @@ defmodule Mix.Local do
   @doc """
   Returns all tasks in local archives.
   """
-  def all_tasks do
-    Mix.Task.load_tasks(archives_ebin())
+  def archives_tasks do
+    Mix.Task.load_tasks(archives_ebins())
   end
 
   @doc """
-  Returns paths of all archive files matching given
-  application name.
+  Returns the name of an archive given a path.
   """
-  def archive_files(name) do
-    archives(name, ".ez") ++ archives(name, "-*.ez")
+  def archive_name(path) do
+    path              # "foo/bar/baz-0.1.0.ez"
+    |> Path.basename  # "baz-0.1.0.ez"
+    |> Path.rootname  # "baz-0.1.0"
   end
 
   @doc """
-  Checks Elixir version requirement stored in the archive and print a warning if it is not satisfied.
+  Returns the ebin path of an archive.
   """
-  def check_archive_elixir_version(path) do
-    path |> Mix.Archive.ebin |> check_elixir_version_in_ebin()
+  def archive_ebin(path) do
+    Path.join [path, archive_name(path), "ebin"]
   end
 
-  defp archives(name, suffix) do
-    path_for(:archive)
-    |> Path.join(name <> suffix)
-    |> Path.wildcard
+  defp archives_ebins do
+    Path.join(path_for(:archive), "*.ez") |> Path.wildcard |> Enum.map(&archive_ebin/1)
   end
 
-  defp archives_ebin do
-    Path.join(path_for(:archive), "*.ez") |> Path.wildcard |> Enum.map(&Mix.Archive.ebin/1)
-  end
-
-  defp check_elixir_version_in_ebin(ebin) do
+  @doc """
+  Checks Elixir version requirement stored in the ebin directory
+  and print a warning if it is not satisfied.
+  """
+  def check_elixir_version_in_ebin(ebin) do
     elixir = ebin |> Path.dirname |> Path.join(".elixir") |> String.to_char_list
     case :erl_prim_loader.get_file(elixir) do
       {:ok, req, _} ->

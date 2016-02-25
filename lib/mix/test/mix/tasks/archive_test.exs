@@ -22,12 +22,23 @@ defmodule Mix.Tasks.ArchiveTest do
     :ok
   end
 
-  test "archive" do
-    in_fixture "archive", fn() ->
+  test "archive build" do
+    in_fixture "archive", fn ->
+      Mix.Tasks.Archive.Build.run ["--no-elixir-version-check"]
+      assert File.regular? 'archive-0.1.0.ez'
+      assert has_zip_file?('archive-0.1.0.ez', 'archive-0.1.0/.elixir')
+      assert has_zip_file?('archive-0.1.0.ez', 'archive-0.1.0/priv/not_really_an.so')
+      assert has_zip_file?('archive-0.1.0.ez', 'archive-0.1.0/ebin/Elixir.Mix.Tasks.Local.Sample.beam')
+      assert has_zip_file?('archive-0.1.0.ez', 'archive-0.1.0/ebin/archive.app')
+    end
+  end
+
+  test "archive install" do
+    in_fixture "archive", fn ->
       # Build and install archive
       Mix.Tasks.Archive.Build.run ["--no-elixir-version-check"]
-      assert File.regular? "archive-0.1.0.ez"
       assert_received {:mix_shell, :info, ["Generated archive \"archive-0.1.0.ez\" with MIX_ENV=dev"]}
+      assert File.regular? 'archive-0.1.0.ez'
 
       send self, {:mix_shell_input, :yes?, true}
       Mix.Tasks.Archive.Install.run []
@@ -105,6 +116,11 @@ defmodule Mix.Tasks.ArchiveTest do
       Mix.Tasks.Archive.Uninstall.run ["archive-0.2.0.ez"]
       refute_file_exists tmp_path("userhome/.mix/archives/archive-0.2.0.ez")
     end
+  end
+
+  defp has_zip_file?(archive, name) do
+    {:ok, files} = :zip.list_dir(archive)
+    Enum.find(files, &match?({:zip_file, ^name, _, _, _, _}, &1))
   end
 
   defp assert_file_exists(path) do
