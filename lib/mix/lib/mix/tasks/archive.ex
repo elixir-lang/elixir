@@ -1,13 +1,13 @@
 defmodule Mix.Tasks.Archive do
   use Mix.Task
 
-  @shortdoc "Lists all archives"
+  @shortdoc "Lists installed archives"
 
   @moduledoc """
   Lists all installed archives.
 
   Archives are typically installed at `~/.mix/archives`
-  although the installation path can be customize by
+  although the installation path can be customized by
   setting the `MIX_ARCHIVES` environment variable.
 
   Since archives are specific to Elixir versions, it is
@@ -18,18 +18,10 @@ defmodule Mix.Tasks.Archive do
   @spec run(OptionParser.argv) :: :ok
   def run(_) do
     archives =
-      Mix.Local.archives_path
+      Mix.Local.path_for(:archive)
       |> Path.join("*.ez")
       |> Path.wildcard()
-
-    if archives == [] do
-      Mix.shell.info "No archives currently installed."
-    else
-      Enum.each archives, fn archive ->
-        Mix.shell.info "* #{Path.basename(archive)}"
-      end
-
-      Mix.shell.info "Archives installed at: #{Mix.Local.archives_path}"
-    end
+      |> Enum.map(&Path.basename/1)
+    Mix.Local.Installer.print_list(:archive, archives)
   end
 end

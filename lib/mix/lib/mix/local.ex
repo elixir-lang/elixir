@@ -3,14 +3,43 @@ defmodule Mix.Local do
 
   @public_keys_html "https://s3.amazonaws.com/s3.hex.pm/installs/public_keys.html"
 
-  @doc """
-  The path for local archives.
+  @type item :: :archive | :escript
 
-  Check `mix archive` for info.
+  @doc """
+  Returns the name for an archive or an escript, based on on the project config.
+
+  ## Examples
+
+      iex> Mix.Local.name_for(:archive, [app: "foo", version: "0.1.0"])
+      "foo-0.1.0.ez"
+
+      iex> Mix.Local.name_for(:escript, [escript: [name: "foo"]])
+      "foo"
+
   """
-  def archives_path do
-    System.get_env("MIX_ARCHIVES") ||
-      Path.join(Mix.Utils.mix_home, "archives")
+  @spec name_for(item, Keyword.t) :: String.t
+  def name_for(:archive, project) do
+    version = if version = project[:version], do: "-#{version}"
+    "#{project[:app]}#{version}.ez"
+  end
+
+  def name_for(:escript, project) do
+    case get_in(project, [:escript, :name]) do
+      nil -> project[:app]
+      name -> name
+    end |> to_string()
+  end
+
+  @doc """
+  The path for local archives or escripts.
+  """
+  @spec path_for(item) :: String.t
+  def path_for(:archive) do
+    System.get_env("MIX_ARCHIVES") || Path.join(Mix.Utils.mix_home, "archives")
+  end
+
+  def path_for(:escript) do
+    Path.join(Mix.Utils.mix_home, "escripts")
   end
 
   @doc """
@@ -52,13 +81,13 @@ defmodule Mix.Local do
   end
 
   defp archives(name, suffix) do
-    archives_path()
+    path_for(:archive)
     |> Path.join(name <> suffix)
     |> Path.wildcard
   end
 
   defp archives_ebin do
-    Path.join(archives_path(), "*.ez") |> Path.wildcard |> Enum.map(&Mix.Archive.ebin/1)
+    Path.join(path_for(:archive), "*.ez") |> Path.wildcard |> Enum.map(&Mix.Archive.ebin/1)
   end
 
   defp check_elixir_version_in_ebin(ebin) do
