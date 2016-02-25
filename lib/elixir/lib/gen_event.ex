@@ -22,7 +22,7 @@ defmodule GenEvent do
   As an example, let's have a GenEvent that accumulates messages until
   they are collected by an explicit call.
 
-      # Define a Event Handler
+      # Define an Event Handler
       defmodule LoggerHandler do
         use GenEvent
 
@@ -134,7 +134,7 @@ defmodule GenEvent do
   """
 
   @doc """
-  Invoked when the handler is added to the `GenEvent` process. `add_handler/3`,
+  Invoked when the handler is added to the `GenEvent` process. `add_handler/3`
   (and `add_mon_handler/3`) will block until it returns.
 
   `args` is the argument term (third argument) passed to `add_handler/3`.
@@ -251,7 +251,7 @@ defmodule GenEvent do
   exits or its node is disconnected. Therefore it is not guaranteed that
   `terminate/2` is called when a `GenEvent` exits.
 
-  Care should be taken to cleanup because the `GenEvent` can continue is loop
+  Care should be taken to cleanup because the `GenEvent` can continue to loop
   after removing the handler. This is different to most other OTP behaviours.
   For example if the handler controls a `port` (e.g. `:gen_tcp.socket`) or
   `File.io_device`, it will be need to be closed in `terminate/2` as the
@@ -262,7 +262,7 @@ defmodule GenEvent do
 
   @doc """
   Invoked to change the state of the handler when a different version of the
-  handler's module module is loaded (hot code swapping) and the state's term
+  handler's module is loaded (hot code swapping) and the state's term
   structure should be changed.
 
   `old_vsn` is the previous version of the module (defined by the `@vsn`
@@ -456,7 +456,7 @@ defmodule GenEvent do
     * `{:swapped, new_handler, pid}` - if the process pid has replaced the
       event handler by another
 
-    * a term - if the event handler is removed due to an error. Which term
+    * `term` - if the event handler is removed due to an error. Which term
       depends on the error
 
   Keep in mind that the `{:gen_event_EXIT, handler, reason}` message is not
@@ -525,7 +525,7 @@ defmodule GenEvent do
   end
 
   @doc """
-  Sends a ack event notification to the event `manager`.
+  Sends an ack event notification to the event `manager`.
 
   In other words, this function only returns `:ok` as soon as the
   event manager starts processing this event, but it does not wait
