@@ -128,4 +128,42 @@ defmodule Mix.Tasks.EscriptTest do
       assert System.cmd("escript", ["escripttestconsolidated", "Enumerable"]) == {"true\n", 0}
     end
   end
+
+  test "escript install and uninstall" do
+    File.rm_rf! tmp_path("userhome")
+    System.put_env "MIX_HOME", tmp_path("userhome/.mix/")
+    Mix.Project.push Escript
+
+    in_fixture "escripttest", fn ->
+      # build the escript
+      Mix.Tasks.Escript.Build.run []
+      assert_received {:mix_shell, :info, ["Generated escript escriptest with MIX_ENV=dev"]}
+
+      # check that no escripts are installed
+      Mix.Tasks.Escript.run []
+      assert_received {:mix_shell, :info, ["No escripts currently installed."]}
+
+      # install our escript
+      send self, {:mix_shell_input, :yes?, true}
+      Mix.Tasks.Escript.Install.run []
+
+      # check that it shows in the list
+      Mix.Tasks.Escript.run []
+      assert_received {:mix_shell, :info, ["* escriptest"]}
+
+      # check uninstall confirmation
+      send self, {:mix_shell_input, :yes?, false}
+      Mix.Tasks.Escript.Uninstall.run ["escriptest"]
+      assert File.regular? tmp_path("userhome/.mix/escripts/escriptest")
+
+      # uninstall the escript
+      send self, {:mix_shell_input, :yes?, true}
+      Mix.Tasks.Escript.Uninstall.run ["escriptest"]
+      refute File.regular? tmp_path("userhome/.mix/escripts/escriptest")
+
+      # check that no escripts remain
+      Mix.Tasks.Escript.run []
+      assert_received {:mix_shell, :info, ["No escripts currently installed."]}
+    end
+  end
 end
