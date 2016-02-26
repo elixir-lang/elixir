@@ -1,7 +1,7 @@
 defmodule Kernel.SpecialForms do
   @moduledoc """
   Special forms are the basic building blocks of Elixir, and therefore
-  they cannot be overridden by the developer.
+  cannot be overridden by the developer.
 
   We define them in this module. Some of these forms are lexical (like
   `alias/2`, `case/2`, etc). The macros `{}` and `<<>>` are also special
@@ -12,7 +12,7 @@ defmodule Kernel.SpecialForms do
   information about Elixir's compilation environment and can only
   be read, never assigned to.
 
-  Finally, it also documents 2 special forms, `__block__` and
+  Finally, it also documents two special forms, `__block__` and
   `__aliases__`, which are not intended to be called directly by the
   developer but they appear in quoted contents since they are essential
   in Elixir's constructs.
@@ -233,7 +233,7 @@ defmodule Kernel.SpecialForms do
   ### Unit and Size
 
   The length of the match is equal to the `unit` (a number of bits) times the
-  `size` (the number of repeated segnments of length `unit`).
+  `size` (the number of repeated segments of length `unit`).
 
   Type      | Default Unit
   --------- | ------------
@@ -1215,7 +1215,7 @@ defmodule Kernel.SpecialForms do
 
   @doc """
   Unquotes the given list expanding its arguments. Similar
-  to unquote.
+  to `unquote/1`.
 
   ## Examples
 
@@ -1307,7 +1307,7 @@ defmodule Kernel.SpecialForms do
       {:ok, 150}
 
   If all clauses match, the `do` block is executed, returning its result.
-  Otherwise the chain is aborted and a non-matched value is returned:
+  Otherwise the chain is aborted and the non-matched value is returned:
 
       iex> opts = %{width: 10}
       iex> with {:ok, width} <- Map.fetch(opts, :width),
@@ -1322,8 +1322,8 @@ defmodule Kernel.SpecialForms do
       ...>   do: {:ok, to_string(role)}
       {:ok, "admin"}
 
-  Similarly to `for/1`, variables bound inside `with/1` won't leak,
-  and also it allows "bare expressions":
+  As in `for/1`, variables bound inside `with/1` won't leak;
+  "bare expressions" may also be inserted between the clauses:
 
       iex> width = nil
       iex> opts = %{width: 10, height: 15}
@@ -1335,8 +1335,8 @@ defmodule Kernel.SpecialForms do
       iex> width
       nil
 
-  An else option can be given to handle adjusting what is being returned from
-  with in the case of a failed match:
+  An `else` option can be given to modify what is being returned from
+  `with` in the case of a failed match:
 
       iex> opts = %{width: 10}
       iex> with {:ok, width} <- Map.fetch(opts, :width),
@@ -1348,7 +1348,7 @@ defmodule Kernel.SpecialForms do
       ...> end
       {:error, :wrong_data}
 
-  If there is no matching else condition, then `WithClauseError` exception is raised.
+  If there is no matching `else` condition, then a `WithClauseError` exception is raised.
 
   """
   defmacro with(args)
@@ -1846,7 +1846,7 @@ defmodule Kernel.SpecialForms do
     * `:infinity` - the process should wait indefinitely for a matching
       message, this is the same as not using a timeout
 
-    * 0 - if there is no matching message in the mailbox, the timeout
+    * `0` - if there is no matching message in the mailbox, the timeout
       will occur immediately
 
   ## Variables handling
