@@ -130,8 +130,7 @@ defmodule Mix.Tasks.EscriptTest do
   end
 
   test "escript install and uninstall" do
-    File.rm_rf! tmp_path("userhome")
-    System.put_env "MIX_HOME", tmp_path("userhome/.mix/")
+    File.rm_rf! tmp_path(".mix/escripts")
     Mix.Project.push Escript
 
     in_fixture "escripttest", fn ->
@@ -154,12 +153,12 @@ defmodule Mix.Tasks.EscriptTest do
       # check uninstall confirmation
       send self, {:mix_shell_input, :yes?, false}
       Mix.Tasks.Escript.Uninstall.run ["escriptest"]
-      assert File.regular? tmp_path("userhome/.mix/escripts/escriptest")
+      assert File.regular? tmp_path(".mix/escripts/escriptest")
 
       # uninstall the escript
       send self, {:mix_shell_input, :yes?, true}
       Mix.Tasks.Escript.Uninstall.run ["escriptest"]
-      refute File.regular? tmp_path("userhome/.mix/escripts/escriptest")
+      refute File.regular? tmp_path(".mix/escripts/escriptest")
 
       # check that no escripts remain
       Mix.Tasks.Escript.run []
