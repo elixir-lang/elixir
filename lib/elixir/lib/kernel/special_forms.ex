@@ -1253,9 +1253,10 @@ defmodule Kernel.SpecialForms do
       [2, 4, 6]
 
   Note generators can also be used to filter as it removes any value
-  that doesn't match the left side of `<-`:
+  that doesn't match the pattern on the left side of `<-`:
 
-      iex> for {:user, name} <- [user: "john", admin: "james", user: "meg"] do
+      iex> users = [user: "john", admin: "meg", guest: "barbara"]
+      iex> for {type, name} when type != :guest <- users do
       ...>   String.upcase(name)
       ...> end
       ["JOHN", "MEG"]
@@ -1313,6 +1314,13 @@ defmodule Kernel.SpecialForms do
       ...>      {:ok, height} <- Map.fetch(opts, :height),
       ...>   do: {:ok, width * height}
       :error
+
+  Guards can be used in patterns as well:
+
+      iex> users = %{"melany" => "guest", "bob" => :admin}
+      iex> with {:ok, role} when not is_binary(role) <- Map.fetch(users, "bob"),
+      ...>   do: {:ok, to_string(role)}
+      {:ok, "admin"}
 
   Similarly to `for/1`, variables bound inside `with/1` won't leak,
   and also it allows "bare expressions":
