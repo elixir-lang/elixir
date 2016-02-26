@@ -3509,7 +3509,9 @@ defmodule Kernel do
       end
 
   If a protocol is not found for a given type, it will fallback to
-  `Any`.
+  `Any`. Protocols that are implemented for maps don't work by default
+  on structs; look at `defstruct/1` for more information about deriving
+  protocols.
 
   ## Fallback to any
 
