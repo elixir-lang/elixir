@@ -5,37 +5,34 @@ defmodule Mix.Tasks.DepsTest do
 
   defmodule DepsApp do
     def project do
-      [ app: :deps, version: "0.1.0",
-        deps: [
-          {:ok, "0.1.0",         github: "elixir-lang/ok"},
-          {:invalidvsn, "0.2.0", path: "deps/invalidvsn"},
-          {:invalidapp, "0.1.0", path: "deps/invalidapp"},
-          {:noappfile, "0.1.0",  path: "deps/noappfile"},
-          {:nosemver, "~> 0.1",  path: "deps/nosemver"},
-        ]
-      ]
+      [app: :deps, version: "0.1.0",
+       deps: [
+         {:ok, "0.1.0",         github: "elixir-lang/ok"},
+         {:invalidvsn, "0.2.0", path: "deps/invalidvsn"},
+         {:invalidapp, "0.1.0", path: "deps/invalidapp"},
+         {:noappfile, "0.1.0",  path: "deps/noappfile"},
+         {:nosemver, "~> 0.1",  path: "deps/nosemver"},
+       ]]
     end
   end
 
   defmodule SuccessfulDepsApp do
     def project do
-      [ app: :sample, version: "0.1.0",
-        deps: [
-          {:ok, "0.1.0", path: "deps/ok"}
-        ]
-      ]
+      [app: :sample, version: "0.1.0",
+       deps: [
+         {:ok, "0.1.0", path: "deps/ok"}
+       ]]
     end
   end
 
   defmodule ReqDepsApp do
     def project do
-      [ app: :req_deps, version: "0.1.0",
-        deps: [
-          {:ok, ">= 2.0.0",  path: "deps/ok"},
-          {:noappfile,       path: "deps/noappfile", app: false},
-          {:apppath,         path: "deps/noappfile", app: "../deps/ok/ebin/ok.app"}
-        ]
-      ]
+      [app: :req_deps, version: "0.1.0",
+       deps: [
+         {:ok, ">= 2.0.0",  path: "deps/ok"},
+         {:noappfile,       path: "deps/noappfile", app: false},
+         {:apppath,         path: "deps/noappfile", app: "../deps/ok/ebin/ok.app"}
+       ]]
     end
   end
 
