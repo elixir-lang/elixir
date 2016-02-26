@@ -75,7 +75,7 @@ defmodule Mix.Local.Installer do
   defp usage(name), do: "Usage: mix #{name}.install <path or url>"
 
   defp do_install({module, name}, src, opts) do
-    src_basename = URI.parse(src).path
+    src_basename = Path.basename(URI.parse(src).path)
     dst_file_path = Path.join(Mix.Local.path_for(name), src_basename)
     dst_dir_path = Path.dirname(dst_file_path)
     previous_files = module.find_previous_versions(src, dst_file_path)
