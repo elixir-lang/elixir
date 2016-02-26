@@ -467,7 +467,7 @@ defmodule Version do
       if valid_requirement?(lexed) do
         first = to_condition(lexed)
         rest  = Enum.drop(lexed, 2)
-          {:ok, [{{:'$1', :'$2', :'$3', :'$4', :'$5'}, [to_condition(first, rest)], [:'$_']}]}
+        {:ok, [{{:'$1', :'$2', :'$3', :'$4', :'$5'}, [to_condition(first, rest)], [:'$_']}]}
       else
         :error
       end
