@@ -76,8 +76,8 @@ defmodule Mix.Local.Installer do
 
   defp do_install({module, name}, src, opts) do
     src_basename = URI.parse(src).path
-    dst_dir_path = Mix.Local.path_for(name)
-    dst_file_path = Path.join(dst_dir_path, src_basename)
+    dst_file_path = Path.join(Mix.Local.path_for(name), src_basename)
+    dst_dir_path = Path.dirname(dst_file_path)
     previous_files = module.find_previous_versions(src, dst_file_path)
 
     if opts[:force] || should_install?(name, src, previous_files) do
