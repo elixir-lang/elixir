@@ -184,7 +184,7 @@ eval_quoted(Tree, Binding, #{line := Line} = E) ->
   eval_forms(elixir_quote:linify(Line, Tree), Binding, E).
 
 %% Handle forms evaluation. The main difference to
-%% to eval_quoted is that it does not linefy the given
+%% eval_quoted is that it does not linefy the given
 %% args.
 
 eval_forms(Tree, Binding, Opts) when is_list(Opts) ->
