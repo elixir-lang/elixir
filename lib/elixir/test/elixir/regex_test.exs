@@ -247,6 +247,12 @@ defmodule RegexTest do
     assert matches_escaped?("# lol")
 
     assert matches_escaped?("\\A.^$*+?()[{\\| \t\n\x20\\z #hello\u202F\u205F")
+
+    assert Regex.escape("{}") == "\\{\\}"
+    assert Regex.escape("[]") == "\\[\\]"
+
+    assert Regex.escape("{foo}") == "\\{foo\\}"
+    assert Regex.escape("[foo]") == "\\[foo\\]"
   end
 
   defp matches_escaped?(string) do
