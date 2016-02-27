@@ -254,7 +254,7 @@ defmodule Kernel.WarningTest do
     assert capture_err(fn ->
       Code.compile_string """
       defmodule Sample do
-        import :lists, only: [flatten: 1]
+        import :lists
         def a, do: nil
       end
       """
@@ -262,9 +262,36 @@ defmodule Kernel.WarningTest do
 
     assert capture_err(fn ->
       Code.compile_string """
-      import :lists, only: [flatten: 1]
+      import :lists
       """
     end) =~ "warning: unused import :lists"
+  after
+    purge Sample
+  end
+
+  test "unused import of one of the functions in :only" do
+    assert capture_err(fn ->
+      Code.compile_string """
+      defmodule Sample do
+        import String, only: [upcase: 1, downcase: 1, strip: 1]
+        def a, do: upcase("hello")
+      end
+      """
+    end) == "nofile:2: warning: unused import String.downcase/1\n" <>
+            "nofile:2: warning: unused import String.strip/1\n"
+  after
+    purge Sample
+  end
+
+  test "unused import of any of the functions in :only" do
+    assert capture_err(fn ->
+      Code.compile_string """
+      defmodule Sample do
+        import String, only: [upcase: 1, downcase: 1]
+        def a, do: nil
+      end
+      """
+    end) == "nofile:2: warning: unused import String\n"
   after
     purge Sample
   end
