@@ -722,7 +722,7 @@ defmodule Kernel.SpecialForms do
 
       <<int::integer-little, rest::bits>> = bits
 
-  Read the documentation for `Kernel.Typespec` and
+  Read the documentation on the `Typespec` page and
   `<<>>/1` for more information on typespecs and
   bitstrings respectively.
   """
