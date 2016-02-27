@@ -153,6 +153,16 @@ build_inline(Ann, Clauses, Expr, Into, _Var, Acc, S) ->
     false -> build_reduce(Clauses, Expr, Into, Acc, S)
   end.
 
+build_into(Ann, Clauses, Expr, {map, _, []} = Into, _Var, Acc, S) ->
+  {Key, SK} = build_var(Ann, S),
+  {Val, SV} = build_var(Ann, SK),
+  MapExpr =
+    {block, Ann, [
+      {match, Ann, {tuple, Ann, [Key, Val]}, Expr},
+      {call, Ann, {remote, Ann, {atom, Ann, maps}, {atom, Ann, put}}, [Key, Val, Acc]}
+    ]},
+  {build_reduce_clause(Clauses, MapExpr, Into, Acc, SV), SV};
+
 build_into(Ann, Clauses, Expr, Into, Fun, Acc, S) ->
   {Kind, SK}   = build_var(Ann, S),
   {Reason, SR} = build_var(Ann, SK),
