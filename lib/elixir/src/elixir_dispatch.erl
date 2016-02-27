@@ -26,11 +26,11 @@ find_import(Meta, Name, Arity, E) ->
 
   case find_dispatch(Meta, Tuple, [], E) of
     {function, Receiver} ->
-      elixir_lexical:record_import(Receiver, ?m(E, lexical_tracker)),
+      elixir_lexical:record_import({Receiver, Name, Arity}, ?m(E, lexical_tracker)),
       %% elixir_locals:record_import(Tuple, Receiver, ?m(E, module), ?m(E, function)),
       Receiver;
     {macro, Receiver} ->
-      elixir_lexical:record_import(Receiver, ?m(E, lexical_tracker)),
+      elixir_lexical:record_import({Receiver, Name, Arity}, ?m(E, lexical_tracker)),
       %% elixir_locals:record_import(Tuple, Receiver, ?m(E, module), ?m(E, function)),
       Receiver;
     _ ->
@@ -43,7 +43,7 @@ import_function(Meta, Name, Arity, E) ->
   Tuple = {Name, Arity},
   case find_dispatch(Meta, Tuple, [], E) of
     {function, Receiver} ->
-      elixir_lexical:record_import(Receiver, ?m(E, lexical_tracker)),
+      elixir_lexical:record_import({Receiver, Name, Arity}, ?m(E, lexical_tracker)),
       elixir_locals:record_import(Tuple, Receiver, ?m(E, module), ?m(E, function)),
       remote_function(Meta, Receiver, Name, Arity, E);
     {macro, _Receiver} ->
@@ -137,12 +137,12 @@ expand_import(Meta, {Name, Arity} = Tuple, Args, E, Extra, External) ->
 do_expand_import(Meta, {Name, Arity} = Tuple, Args, Module, E, Result) ->
   case Result of
     {function, Receiver} ->
-      elixir_lexical:record_import(Receiver, ?m(E, lexical_tracker)),
+      elixir_lexical:record_import({Receiver, Name, Arity}, ?m(E, lexical_tracker)),
       elixir_locals:record_import(Tuple, Receiver, Module, ?m(E, function)),
       {ok, Receiver, Name, Args};
     {macro, Receiver} ->
       check_deprecation(Meta, Receiver, Name, Arity, E),
-      elixir_lexical:record_import(Receiver, ?m(E, lexical_tracker)),
+      elixir_lexical:record_import({Receiver, Name, Arity}, ?m(E, lexical_tracker)),
       elixir_locals:record_import(Tuple, Receiver, Module, ?m(E, function)),
       {ok, Receiver, expand_macro_named(Meta, Receiver, Name, Arity, Args, E)};
     {import, Receiver} ->
