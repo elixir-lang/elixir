@@ -264,24 +264,40 @@ defmodule IEx.Autocomplete do
     end
   end
 
+  defp get_module_funs(Kernel.SpecialForms) do
+    Code.get_docs(Kernel.SpecialForms, :docs) |> Enum.map(&elem(&1, 0))
+  end
+
   defp get_module_funs(mod) do
+    docs = Code.get_docs(mod, :docs) || []
+    module_info_funs(mod)
+    |> Enum.reject(&hidden_fun?(&1, docs))
+  end
+
+  defp module_info_funs(mod) do
     if function_exported?(mod, :__info__, 1) do
-      if docs = Code.get_docs(mod, :docs) do
-        Enum.filter_map(docs, &has_content?/1, &elem(&1, 0))
-      else
-        mod.__info__(:macros) ++ (mod.__info__(:functions) -- [__info__: 1])
-      end
+      mod.__info__(:macros) ++ (mod.__info__(:functions) -- [__info__: 1])
     else
       mod.module_info(:exports)
     end
   end
 
+  defp hidden_fun?(fun, docs) do
+    case Enum.find(docs, &match?({^fun, _, _, _, _}, &1)) do
+      nil -> underscored_fun?(fun)
+      doc -> not has_content?(doc)
+    end
+  end
+
   defp has_content?({_, _, _, _, false}),
     do: false
-  defp has_content?({{name, _}, _, _, _, nil}),
-    do: hd(Atom.to_char_list(name)) != ?_
+  defp has_content?({fun, _, _, _, nil}),
+    do: not underscored_fun?(fun)
   defp has_content?({_, _, _, _, _}),
     do: true
+
+  defp underscored_fun?({name, _}),
+    do: hd(Atom.to_char_list(name)) == ?_
 
   defp ensure_loaded(Elixir), do: {:error, :nofile}
   defp ensure_loaded(mod),

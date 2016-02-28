@@ -130,8 +130,8 @@ defmodule IEx.AutocompleteTest do
 
   test "ampersand completion" do
     assert expand('&Enu') == {:yes, 'm', []}
-    assert expand('&Enum.a') == {:yes, [], ['all?/2', 'any?/2', 'at/3']}
-    assert expand('f = &Enum.a') == {:yes, [], ['all?/2', 'any?/2', 'at/3']}
+    assert expand('&Enum.a') == {:yes, [], ['all?/1', 'all?/2', 'any?/1', 'any?/2', 'at/2', 'at/3']}
+    assert expand('f = &Enum.a') == {:yes, [], ['all?/1', 'all?/2', 'any?/1', 'any?/2', 'at/2', 'at/3']}
   end
 
   defmodule SublevelTest.LevelA.LevelB do
@@ -161,5 +161,37 @@ defmodule IEx.AutocompleteTest do
     assert expand('EL') == {:yes, 'ist.', []}
     assert expand('EList') == {:yes, '.', []}
     assert expand('EList.map') == {:yes, [], ['map/2', 'mapfoldl/3', 'mapfoldr/3']}
+  end
+
+  test "completion for functions added when a module is reloaded" do
+    filename = "sample.ex"
+    content = """
+    defmodule Sample do
+    def foo(), do: 0
+    end
+    """
+
+    reloaded_content = """
+    defmodule Sample do
+    def foo(), do: 0
+    def foobar(), do: 0
+    end
+    """
+    File.write!(filename, content)
+    compiler_options = :elixir_config.get(:compiler_options)
+    try do
+      :elixir_compiler.file_to_path(filename, ".")
+      assert expand('Sample.foo') == {:yes, '', ['foo/0']}
+      File.write!(filename, reloaded_content)
+      :elixir_config.put(:compiler_options, Map.put(compiler_options, :ignore_module_conflict, true))
+      Code.load_file(filename)
+      assert expand('Sample.foo') == {:yes, '', ['foo/0', 'foobar/0']}
+    after
+      :elixir_config.put(:compiler_options, compiler_options)
+      File.rm("Elixir.Sample.beam")
+      :code.purge(Sample)
+      :code.delete(Sample)
+      File.rm(filename)
+    end
   end
 end
