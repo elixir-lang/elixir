@@ -163,24 +163,25 @@ defmodule IEx.AutocompleteTest do
     assert expand('EList.map') == {:yes, [], ['map/2', 'mapfoldl/3', 'mapfoldr/3']}
   end
 
-  test "completion for functions added when a module is reloaded" do
-    Code.compiler_options(ignore_module_conflict: true)
-
-    defmodule Elixir.Autocomplete do
-      def foo(), do: 0
-    end
-
+  test "completion for functions added when compiled module is reloaded" do
+    {:module, _, bytecode, _} =
+      defmodule Elixir.Autocomplete do
+        def foo(), do: 0
+      end
+    File.write!("Elixir.Autocomplete.beam", bytecode)
+    assert Code.get_docs(Autocomplete, :docs)
     assert expand('Autocomplete.foo') == {:yes, '', ['foo/0']}
 
+    Code.compiler_options(ignore_module_conflict: true)
     defmodule Elixir.Autocomplete do
       def foo(), do: 0
       def foobar(), do: 0
     end
-
     assert expand('Autocomplete.foo') == {:yes, '', ['foo/0', 'foobar/0']}
   after
+    File.rm("Elixir.Autocomplete.beam")
+    Code.compiler_options(ignore_module_conflict: false)
     :code.purge(Autocomplete)
     :code.delete(Autocomplete)
-    Code.compiler_options(ignore_module_conflict: false)
   end
 end
