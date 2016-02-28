@@ -29,6 +29,8 @@ defmodule Kernel.SigilsTest do
     assert ~S(f\no) == "f\\no"
     assert ~S(foo\)) == "foo)"
     assert ~S[foo\]] == "foo]"
+    assert ~S(foo\
+bar) == "foo\\\nbar"
   end
 
   test "sigil S with heredoc" do

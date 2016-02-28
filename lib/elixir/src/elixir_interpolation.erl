@@ -24,11 +24,11 @@ extract(Line, Column, _Scope, _Interpol, [Last|Remaining], Buffer, Output, Last)
 
 %% Going through the string
 
-extract(Line, _Column, Scope, Interpol, [$\\, $\n|Rest], Buffer, Output, Last) ->
-  extract(Line+1, 1, Scope, Interpol, Rest, Buffer, Output, Last);
+extract(Line, _Column, Scope, true, [$\\, $\n|Rest], Buffer, Output, Last) ->
+  extract(Line+1, 1, Scope, true, Rest, Buffer, Output, Last);
 
-extract(Line, _Column, Scope, Interpol, [$\\, $\r, $\n|Rest], Buffer, Output, Last) ->
-  extract(Line+1, 1, Scope, Interpol, Rest, Buffer, Output, Last);
+extract(Line, _Column, Scope, true, [$\\, $\r, $\n|Rest], Buffer, Output, Last) ->
+  extract(Line+1, 1, Scope, true, Rest, Buffer, Output, Last);
 
 extract(Line, _Column, Scope, Interpol, [$\n|Rest], Buffer, Output, Last) ->
   extract(Line+1, 1, Scope, Interpol, Rest, [$\n|Buffer], Output, Last);
