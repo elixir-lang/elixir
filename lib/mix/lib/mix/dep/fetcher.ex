@@ -7,7 +7,7 @@
 defmodule Mix.Dep.Fetcher do
   @moduledoc false
 
-  import Mix.Dep, only: [format_dep: 1, check_lock: 1, available?: 1, ok?: 1]
+  import Mix.Dep, only: [format_dep: 1, check_lock: 1, available?: 1]
 
   @doc """
   Fetches all dependencies.
