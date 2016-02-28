@@ -186,7 +186,7 @@ defmodule Mix.Dep.Converger do
   end
 
   defp all([], acc, _upper, _current, _callback, rest, lock, _env, _cache) do
-    {acc, rest, lock}
+    {Enum.reverse(acc), rest, lock}
   end
 
   defp put_lock(%Mix.Dep{app: app} = dep, lock) do
