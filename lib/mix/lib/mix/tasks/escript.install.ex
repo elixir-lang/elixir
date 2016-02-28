@@ -51,15 +51,28 @@ defmodule Mix.Tasks.Escript.Install do
 
   def before_install(_src, dst_path) do
     File.rm(dst_path)
+    File.rm(dst_path <> ".bat")
     :ok
   end
 
   def after_install(dst, _previous) do
     File.chmod!(dst, @escript_file_mode)
+    write_bat!(dst <> ".bat", :os.type)
     check_discoverability(dst)
   end
 
   ### Private helpers
+
+  defp write_bat!(path, {:win32, _}) do
+    File.write!(path, """
+    @echo off
+    @escript "%~dpn0" %*
+    """)
+    File.chmod!(path, @escript_file_mode)
+  end
+  defp write_bat!(_path, _type) do
+    :ok
+  end
 
   defp check_discoverability(path) do
     executable = Path.basename(path)

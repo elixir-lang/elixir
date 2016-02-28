@@ -161,18 +161,17 @@ defmodule Mix.Local.Installer do
 
     if name = List.first(argv) do
       path = Path.join(root, name)
-      if File.regular?(path) do
-        if should_uninstall?(path, item_name) do
+      cond do
+        not File.regular?(path) ->
+          Mix.shell.error "Could not find a local #{item_name} named #{inspect name}. "<>
+                          "Existing #{item_plural} are:"
+          Mix.Task.run item_name
+          nil
+        should_uninstall?(path, item_name) ->
           File.rm!(path)
-          true
-        else
-          false
-        end
-      else
-        Mix.shell.error "Could not find a local #{item_name} named #{inspect name}. "<>
-                        "Existing #{item_plural} are:"
-        Mix.Task.run item_name
-        false
+          path
+        true ->
+          nil
       end
     else
       Mix.raise "No #{item_name} was given to #{item_name}.uninstall"

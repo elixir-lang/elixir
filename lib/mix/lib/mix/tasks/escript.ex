@@ -37,6 +37,6 @@ defmodule Mix.Tasks.Escript do
 
     executable_bit =
       stat.mode &&& (owner_exec_bit ||| group_exec_bit ||| other_exec_bit)
-    executable_bit != 0 and stat.type == :regular
+    executable_bit != 0 and stat.type == :regular and Path.extname(path) != ".bat"
   end
 end
