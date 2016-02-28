@@ -204,12 +204,12 @@ defmodule Mix.DepTest do
 
     def remote?(_app), do: true
 
-    def converge(_deps, lock) do
-      Process.put(:remote_converger, true)
+    def converge(deps, lock) do
+      Process.put(:remote_converger, deps)
       lock
     end
 
-    def deps(_deps, _lock) do
+    def deps(_dep, _lock) do
       []
     end
   end
@@ -234,6 +234,28 @@ defmodule Mix.DepTest do
     Mix.RemoteConverger.register(nil)
   end
 
+  test "pass dependencies to remote converger in defined order" do
+    deps = [
+      {:ok,         "0.1.0", path: "deps/ok"},
+      {:invalidvsn, "0.2.0", path: "deps/invalidvsn"},
+      {:invalidapp, "0.1.0", path: "deps/invalidapp"},
+      {:noappfile,  "0.1.0", path: "deps/noappfile"}
+    ]
+
+    with_deps deps, fn ->
+      Mix.RemoteConverger.register(IdentityRemoteConverger)
+
+      in_fixture "deps_status", fn ->
+        Mix.Tasks.Deps.Get.run([])
+
+        deps = Process.get(:remote_converger) |> Enum.map(& &1.app)
+        assert deps == [:ok, :invalidvsn, :invalidapp, :noappfile]
+      end
+    end
+  after
+    Mix.RemoteConverger.register(nil)
+  end
+
   defmodule RaiseRemoteConverger do
     @behaviour Mix.RemoteConverger
 
@@ -244,7 +266,7 @@ defmodule Mix.DepTest do
       lock
     end
 
-    def deps(_deps, _lock) do
+    def deps(_dep, _lock) do
       []
     end
   end
