@@ -149,6 +149,7 @@ defmodule Mix.Tasks.EscriptTest do
       # check that it shows in the list
       Mix.Tasks.Escript.run []
       assert_received {:mix_shell, :info, ["* escriptest"]}
+      refute_received {:mix_shell, :info, ["* escriptest.bat"]}
 
       # check uninstall confirmation
       send self, {:mix_shell_input, :yes?, false}
@@ -159,6 +160,7 @@ defmodule Mix.Tasks.EscriptTest do
       send self, {:mix_shell_input, :yes?, true}
       Mix.Tasks.Escript.Uninstall.run ["escriptest"]
       refute File.regular? tmp_path(".mix/escripts/escriptest")
+      refute File.regular? tmp_path(".mix/escripts/escriptest.bat")
 
       # check that no escripts remain
       Mix.Tasks.Escript.run []
