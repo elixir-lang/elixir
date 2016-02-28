@@ -16,6 +16,19 @@ defmodule Mix.Tasks.EscriptTest do
     end
   end
 
+  defmodule EscriptWithoutMain do
+    def project do
+      [ app: :escripttestwithoutmain,
+        version: "0.0.1",
+        escript: [
+          main_module: Escripttestwithoutmain,
+          name: "escriptestwithoutmain",
+          embed_elixir: true
+        ]
+      ]
+    end
+  end
+
   defmodule EscriptWithPath do
     def project do
       [ app: :escripttestwithpath,
@@ -68,6 +81,16 @@ defmodule Mix.Tasks.EscriptTest do
 
       Mix.Tasks.Escript.Build.run []
       refute_received {:mix_shell, :info, ["Generated escript escriptest with MIX_ENV=dev"]}
+    end
+  end
+
+  test "generate escript without main/1" do
+    Mix.Project.push EscriptWithoutMain
+
+    in_fixture "escripttest", fn ->
+      assert_raise Mix.Error, "Module does not contain main/1", fn ->
+        Mix.Tasks.Escript.Build.run []
+      end
     end
   end
 
