@@ -25,9 +25,15 @@ defmodule Kernel.LexicalTrackerTest do
     assert D.remotes(config[:pid]) == {[String], []}
   end
 
-  test "can add imports", config do
+  test "can add module imports", config do
     D.add_import(config[:pid], String, 1, true)
-    D.import_dispatch(config[:pid], String)
+    D.import_dispatch(config[:pid], {String, :upcase, 1})
+    assert D.remotes(config[:pid]) == {[String], []}
+  end
+
+  test "can add {module, function, arity} imports", config do
+    D.add_import(config[:pid], {String, :upcase, 1}, 1, true)
+    D.import_dispatch(config[:pid], {String, :upcase, 1})
     assert D.remotes(config[:pid]) == {[String], []}
   end
 
@@ -37,14 +43,33 @@ defmodule Kernel.LexicalTrackerTest do
     assert D.remotes(config[:pid]) == {[], []}
   end
 
-  test "unused imports", config do
+  test "unused module imports", config do
     D.add_import(config[:pid], String, 1, true)
     assert D.collect_unused_imports(config[:pid]) == [{String, 1}]
   end
 
-  test "used imports are not unused", config do
+  test "used module imports are not unused", config do
     D.add_import(config[:pid], String, 1, true)
-    D.import_dispatch(config[:pid], String)
+    D.import_dispatch(config[:pid], {String, :upcase, 1})
+    assert D.collect_unused_imports(config[:pid]) == []
+  end
+
+  test "unused {module, function, arity} imports", config do
+    D.add_import(config[:pid], {String, :upcase, 1}, 1, true)
+    assert D.collect_unused_imports(config[:pid]) == [{String, 1}, {{String, :upcase, 1}, 1}]
+  end
+
+  test "used {module, function, arity} imports are not unused", config do
+    D.add_import(config[:pid], {String, :upcase, 1}, 1, true)
+    D.add_import(config[:pid], {String, :downcase, 1}, 1, true)
+    D.import_dispatch(config[:pid], {String, :upcase, 1})
+    assert D.collect_unused_imports(config[:pid]) == [{{String, :downcase, 1}, 1}]
+  end
+
+  test "overwriting {module, function, arity} import with module import", config do
+    D.add_import(config[:pid], {String, :upcase, 1}, 1, true)
+    D.add_import(config[:pid], String, 1, true)
+    D.import_dispatch(config[:pid], {String, :downcase, 1})
     assert D.collect_unused_imports(config[:pid]) == []
   end
 

@@ -56,8 +56,8 @@ defmodule Kernel.LexicalTracker do
   end
 
   @doc false
-  def add_import(pid, module, line, warn) do
-    :gen_server.cast(pid, {:add_import, module, line, warn})
+  def add_import(pid, module_or_mfa, line, warn) do
+    :gen_server.cast(pid, {:add_import, module_or_mfa, line, warn})
   end
 
   @doc false
@@ -71,8 +71,8 @@ defmodule Kernel.LexicalTracker do
   end
 
   @doc false
-  def import_dispatch(pid, module) do
-    :gen_server.cast(pid, {:import_dispatch, module})
+  def import_dispatch(pid, {module, function, arity}) do
+    :gen_server.cast(pid, {:import_dispatch, {module, function, arity}})
   end
 
   @doc false
@@ -116,8 +116,9 @@ defmodule Kernel.LexicalTracker do
     {:noreply, {d, dest}}
   end
 
-  def handle_cast({:import_dispatch, module}, {d, dest}) do
+  def handle_cast({:import_dispatch, {module, function, arity}}, {d, dest}) do
     add_dispatch(d, module, :import)
+    add_dispatch(d, {module, function, arity}, :import)
     # Always compile time because we depend
     # on the module at compile time
     add_compile(d, module, :compile)
@@ -129,8 +130,16 @@ defmodule Kernel.LexicalTracker do
     {:noreply, {d, dest}}
   end
 
-  def handle_cast({:add_import, module, line, warn}, {d, dest}) do
+  def handle_cast({:add_import, module, line, warn}, {d, dest}) when is_atom(module) do
+    :ets.match_delete(d, {{:import, {module, :"_", :"_"}}, :"_"})
+
     add_directive(d, module, line, warn, :import)
+    {:noreply, {d, dest}}
+  end
+
+  def handle_cast({:add_import, {module, function, arity}, line, warn}, {d, dest}) do
+    add_directive(d, module, line, warn, :import)
+    add_directive(d, {module, function, arity}, line, warn, :import)
     {:noreply, {d, dest}}
   end
 
@@ -171,8 +180,8 @@ defmodule Kernel.LexicalTracker do
   defp add_compile(d, module, :runtime), do: :ets.insert_new(d, {{:mode, module}, :runtime})
   defp add_compile(d, module, :compile), do: :ets.insert(d, {{:mode, module}, :compile})
 
-  defp add_directive(d, module, line, warn, tag) do
+  defp add_directive(d, m_or_mfa, line, warn, tag) do
     marker = if warn, do: line, else: true
-    :ets.insert(d, {{tag, module}, marker})
+    :ets.insert(d, {{tag, m_or_mfa}, marker})
   end
 end
