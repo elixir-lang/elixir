@@ -12,7 +12,9 @@ defmodule Mix.Rebar do
   Returns the path to the global copy of `rebar`, if one exists.
   """
   def global_rebar_cmd(manager) do
-    wrap_cmd System.find_executable(Atom.to_string(manager))
+    if cmd = System.find_executable(Atom.to_string(manager)) do
+      wrap_cmd(cmd)
+    end
   end
 
   @doc """
@@ -20,7 +22,9 @@ defmodule Mix.Rebar do
   """
   def local_rebar_cmd(manager) do
     cmd = local_rebar_path(manager)
-    wrap_cmd(if File.regular?(cmd), do: cmd)
+    if File.regular?(cmd) do
+      wrap_cmd(cmd)
+    end
   end
 
   @doc """
@@ -274,12 +278,14 @@ defmodule Mix.Rebar do
     end)
   end
 
-  defp wrap_cmd(nil), do: nil
   defp wrap_cmd(rebar) do
-    if match?({:win32, _}, :os.type) and not String.ends_with?(rebar, ".cmd") do
-      "escript.exe \"#{rebar}\""
-    else
-      rebar
+    cond do
+      not match?({:win32, _}, :os.type) ->
+        rebar
+      String.ends_with?(rebar, ".cmd") ->
+        "\"#{String.replace(rebar, "/", "\\")}\""
+      true ->
+        "escript.exe \"#{rebar}\""
     end
   end
 
