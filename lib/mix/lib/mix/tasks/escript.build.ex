@@ -121,6 +121,9 @@ defmodule Mix.Tasks.Escript.Build do
         Mix.raise "Could not generate escript, please set :main_module " <>
           "in your project configuration (under :escript option) to a module that implements main/1"
 
+      not function_exported?(main, :main, 1) ->
+        Mix.raise "Module does not contain main/1"
+
       force || Mix.Utils.stale?(files, [filename]) ->
         beam_paths =
           [files, deps_files(), core_files(escript_opts, language)]
