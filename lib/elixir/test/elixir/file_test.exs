@@ -1672,6 +1672,10 @@ defmodule FileTest do
     last_year :calendar.local_time
   end
 
+  defp last_year({{year, 2, 29}, time}) do
+    {{year - 1, 2, 28}, time}
+  end
+
   defp last_year({{year, month, day}, time}) do
     {{year - 1, month, day}, time}
   end
