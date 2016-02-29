@@ -116,10 +116,11 @@ defmodule Mix.Shell do
 
       {:win32, osname} ->
         command = String.to_char_list(command)
+        command = '"' ++ String.to_char_list(command) ++ '"'
         case {System.get_env("COMSPEC"), osname} do
-          {nil, :windows} -> 'command.com /c ' ++ command
-          {nil, _}        -> 'cmd /c ' ++ command
-          {cmd, _}        -> '#{cmd} /c ' ++ command
+          {nil, :windows} -> 'command.com /s /c ' ++ command
+          {nil, _}        -> 'cmd /s /c ' ++ command
+          {cmd, _}        -> '#{cmd} /s /c ' ++ command
         end
     end
   end
