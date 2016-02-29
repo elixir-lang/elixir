@@ -245,15 +245,15 @@ defmodule Mix.Dep do
       case scm.lock_status(opts) do
         :mismatch ->
           status = if rev = opts[:lock], do: {:lockmismatch, rev}, else: :nolock
-          %{dep | status: status, opts: opts}
+          %{dep | status: status}
         :outdated ->
           # Don't include the lock in the dependency if it is outdated
           %{dep | status: :lockoutdated}
         :ok ->
-          check_manifest(%{dep | opts: opts}, opts[:build])
+          check_manifest(dep, opts[:build])
       end
     else
-      %{dep | opts: opts}
+      dep
     end
   end
 
