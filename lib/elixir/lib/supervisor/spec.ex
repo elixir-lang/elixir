@@ -157,6 +157,8 @@ defmodule Supervisor.Spec do
   @spec supervise([spec], strategy: strategy,
                           max_restarts: non_neg_integer,
                           max_seconds: non_neg_integer) :: {:ok, tuple}
+  # TODO: Make it return a tuple of format {:ok, children, opts}
+  # TODO: Deprecate once the new tuple format has been established
   def supervise(children, options) do
     unless strategy = options[:strategy] do
       raise ArgumentError, "expected :strategy option to be given"
@@ -232,6 +234,8 @@ defmodule Supervisor.Spec do
     child(:supervisor, module, args, options)
   end
 
+  # TODO: Do and expose proper child validation
+  # TODO: Convert into map childspecs by v2.0
   defp child(type, module, args, options) do
     id       = Keyword.get(options, :id, module)
     modules  = Keyword.get(options, :modules, modules(module))
@@ -243,6 +247,7 @@ defmodule Supervisor.Spec do
       restart, shutdown, type, modules}
   end
 
+  # TODO: Remove GenEvent when there is no more GenEvent v2.0
   defp modules(GenEvent), do: :dynamic
   defp modules(module),   do: [module]
 end
