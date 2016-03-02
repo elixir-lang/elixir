@@ -65,13 +65,7 @@ defmodule Task.Supervisor do
   """
   @spec async(Supervisor.supervisor, module, atom, [term]) :: Task.t
   def async(supervisor, module, fun, args) do
-    owner = self()
-    args = [owner, :link, get_info(owner), {module, fun, args}]
-    {:ok, pid} = Supervisor.start_child(supervisor, args)
-    Process.link(pid)
-    ref = Process.monitor(pid)
-    send pid, {owner, ref}
-    %Task{pid: pid, ref: ref, owner: owner}
+    do_async(supervisor, module, fun, args, :link)
   end
 
   @doc """
@@ -110,12 +104,7 @@ defmodule Task.Supervisor do
   """
   @spec async_nolink(Supervisor.supervisor, module, atom, [term]) :: Task.t
   def async_nolink(supervisor, module, fun, args) do
-    owner = self()
-    args = [owner, :monitor, get_info(owner), {module, fun, args}]
-    {:ok, pid} = Supervisor.start_child(supervisor, args)
-    ref = Process.monitor(pid)
-    send pid, {owner, ref}
-    %Task{pid: pid, ref: ref, owner: owner}
+    do_async(supervisor, module, fun, args, :monitor)
   end
 
   @doc """
@@ -164,5 +153,15 @@ defmodule Task.Supervisor do
        {:registered_name, []} -> self()
        {:registered_name, name} -> name
      end}
+  end
+
+  defp do_async(supervisor, module, fun, args, link_type) do
+    owner = self()
+    args = [owner, link_type, get_info(owner), {module, fun, args}]
+    {:ok, pid} = Supervisor.start_child(supervisor, args)
+    if link_type == :link, do: Process.link(pid)
+    ref = Process.monitor(pid)
+    send pid, {owner, ref}
+    %Task{pid: pid, ref: ref, owner: owner}
   end
 end
