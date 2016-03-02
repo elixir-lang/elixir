@@ -167,11 +167,11 @@ defmodule Integer do
 
   defp do_parse(_, _), do: :error
 
-  defp do_parse(<<char, rest::binary>>, base, acc) do
+  defp do_parse(<<char, rest::binary>> = bin, base, acc) do
     if valid_digit_in_base?(char, base) do
       do_parse(rest, base, base * acc + parse_digit(char, base))
     else
-      {acc, <<char, rest::binary>>}
+      {acc, bin}
     end
   end
 
