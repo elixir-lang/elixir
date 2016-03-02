@@ -63,7 +63,7 @@ defmodule ExUnit.Callbacks do
             IO.puts "This is invoked once the test is done"
           end
 
-          # Returns extra metadata, it must be a dict
+          # Returns extra metadata to be merged into context
           {:ok, hello: "world"}
         end
 
