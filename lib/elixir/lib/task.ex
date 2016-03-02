@@ -43,8 +43,9 @@ defmodule Task do
        meant to receive the result no longer exists, there is
        no purpose in completing the computation.
 
-       If this is not desired, consider starting the task under
-       a `Task.Supervisor` using `async_nolink` or `start_child`.
+       If this is not desired, use `Task.start/1` or consider starting 
+       the task under a `Task.Supervisor` using `async_nolink` or 
+       `start_child`.
 
   `Task.yield/2` is an alternative to `await/2` where the caller will
   temporarily block, waiting until the task replies or crashes. If the
