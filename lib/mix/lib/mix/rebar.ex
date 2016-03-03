@@ -203,7 +203,7 @@ defmodule Mix.Rebar do
   end
 
   defp parse_dep(app) when is_atom(app) do
-    parse_dep({app, nil})
+    parse_dep({app, ">= 0.0.0"})
   end
 
   defp parse_dep({app, req}) when is_list(req) do
@@ -211,7 +211,7 @@ defmodule Mix.Rebar do
   end
 
   defp parse_dep({app, source}) when is_tuple(source) do
-    parse_dep({app, nil, source, []})
+    parse_dep({app, ">= 0.0.0", source, []})
   end
 
   defp parse_dep({app, req, source}) do
@@ -238,10 +238,6 @@ defmodule Mix.Rebar do
 
     mix_opts = [{scm, to_string(url)}] ++ ref ++ compile
     {app, compile_req(req), mix_opts}
-  end
-
-  defp compile_req(nil) do
-    ">= 0.0.0"
   end
 
   defp compile_req(req) do
