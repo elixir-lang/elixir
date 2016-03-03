@@ -57,7 +57,8 @@ defmodule Mix.Tasks.Test do
     * `--include`    - include tests that match the filter
     * `--exclude`    - exclude tests that match the filter
     * `--only`       - run only tests that match the filter
-    * `--seed`       - seeds the random number generator used to randomize tests order
+    * `--seed`       - seeds the random number generator used to randomize tests order;
+      `--seed 0` disables randomization
     * `--timeout`    - set the timeout for the tests
 
   ## Filters
