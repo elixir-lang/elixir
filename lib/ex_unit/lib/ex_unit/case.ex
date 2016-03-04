@@ -169,7 +169,7 @@ defmodule ExUnit.Case do
   messages generated while running a test are captured and only if the test fails are they printed
   to aid with debugging.
 
-  You can opt into this behavior for individual tests by tagging them with `:capture_log` or enable
+  You can opt into this behaviour for individual tests by tagging them with `:capture_log` or enable
   log capture for all tests in the ExUnit configuration:
 
       config :ex_unit, capture_log: true
