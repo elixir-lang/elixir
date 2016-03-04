@@ -245,8 +245,8 @@ defmodule Process do
   @doc """
   Cancels a timer created by `send_after/3`.
 
-  When the result is an integer, it represents the time in milli-seconds
-  left until the timer will expire.
+  When the result is an integer, it represents the time in milliseconds
+  left until the timer would have expired.
 
   When the result is `false`, a timer corresponding to `timer_ref` could
   not be found. This can be either because the timer expired, already has
@@ -265,7 +265,7 @@ defmodule Process do
   @doc """
   Reads a timer created by `send_after/3`.
 
-  When the result is an integer, it represents the time in milli-seconds
+  When the result is an integer, it represents the time in milliseconds
   left until the timer will expire.
 
   When the result is `false`, a timer corresponding to `timer_ref` could
