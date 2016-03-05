@@ -46,7 +46,7 @@ defmodule URI do
 
   Takes an enumerable (containing a sequence of two-item tuples)
   and returns a string of the form "key1=value1&key2=value2..." where
-  keys and values are URL encoded as per `encode/2`.
+  keys and values are URL encoded as per `encode_www_form/1`.
 
   Keys and values can be any term that implements the `String.Chars`
   protocol, except lists which are explicitly forbidden.
@@ -56,6 +56,10 @@ defmodule URI do
       iex> hd = %{"foo" => 1, "bar" => 2}
       iex> URI.encode_query(hd)
       "bar=2&foo=1"
+
+      iex> query = %{"key" => "value with spaces"}
+      iex> URI.encode_query(query)
+      "key=value+with+spaces"
 
   """
   def encode_query(l), do: Enum.map_join(l, "&", &pair/1)
