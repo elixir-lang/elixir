@@ -28,7 +28,7 @@ defmodule Process do
   end
 
   @doc """
-  Returns all key-values in the process dictionary.
+  Returns all key-value pairs in the process dictionary.
 
   Inlined by the compiler.
   """
@@ -72,7 +72,7 @@ defmodule Process do
   end
 
   @doc """
-  Stores the given key-value in the process dictionary.
+  Stores the given `key`-`value` pair in the process dictionary.
 
   The return value is the value that was previously stored under the key `key`
   (or `nil` in case no value was stored under `key`).
@@ -293,8 +293,7 @@ defmodule Process do
   @type spawn_opts :: [spawn_opt]
 
   @doc """
-  Spawns the given module and function passing the given args
-  according to the given options.
+  Spawns the given function according to the given options.
 
   The result depends on the given options. In particular,
   if `:monitor` is given as an option, it will return a tuple
@@ -312,7 +311,7 @@ defmodule Process do
   end
 
   @doc """
-  Spawns the given module and function passing the given args
+  Spawns the given function from module `mod`, passing the given `args`
   according to the given options.
 
   The result depends on the given options. In particular,
@@ -331,7 +330,7 @@ defmodule Process do
   end
 
   @doc """
-  The calling process starts monitoring the item given.
+  The calling process starts monitoring the given `item`.
   It returns the monitor reference.
 
   See [the need for monitoring](http://elixir-lang.org/getting-started/mix-otp/genserver.html#the-need-for-monitoring)
@@ -417,7 +416,7 @@ defmodule Process do
   end
 
   @doc """
-  Removes the registered name, associated with a pid or a port identifier.
+  Removes the registered `name`, associated with a pid or a port identifier.
 
   See [`:erlang.unregister/1`](http://www.erlang.org/doc/man/erlang.html#unregister-1) for more info.
   """
@@ -427,7 +426,7 @@ defmodule Process do
   end
 
   @doc """
-  Returns the pid or port identifier with the registered name.
+  Returns the pid or port identifier with the registered `name`.
   Returns `nil` if the name is not registered.
 
   See [`:erlang.whereis/1`](http://www.erlang.org/doc/man/erlang.html#whereis-1) for more info.
@@ -467,7 +466,7 @@ defmodule Process do
                          :sensitive
   @doc """
   Sets certain flags for the process which calls this function.
-  Returns the old value of the flag.
+  Returns the old value of the `flag`.
 
   See [`:erlang.process_flag/2`](http://www.erlang.org/doc/man/erlang.html#process_flag-2) for more info.
   """
@@ -478,8 +477,8 @@ defmodule Process do
 
   @doc """
   Sets certain flags for the process `pid`, in the same manner as `flag/2`.
-  Returns the old value of the flag. The allowed values for `flag` are
-  only a subset of those allowed in `flag/2`, namely: `save_calls`.
+  Returns the old value of the `flag`. The allowed values for `flag` are
+  only a subset of those allowed in `flag/2`, namely `:save_calls`.
 
   See [`:erlang.process_flag/3`](http://www.erlang.org/doc/man/erlang.html#process_flag-3) for more info.
   """
@@ -489,7 +488,7 @@ defmodule Process do
   end
 
   @doc """
-  Returns information about the process identified by `pid` or `nil` if the process
+  Returns information about the process identified by `pid`, or returns `nil` if the process
   is not alive.
   Use this only for debugging information.
 
@@ -501,8 +500,8 @@ defmodule Process do
   end
 
   @doc """
-  Returns information about the process identified by `pid`
-  or `nil` if the process is not alive.
+  Returns information about the process identified by `pid`,
+  or returns `nil` if the process is not alive.
 
   See [`:erlang.process_info/2`](http://www.erlang.org/doc/man/erlang.html#process_info-2) for more info.
   """
