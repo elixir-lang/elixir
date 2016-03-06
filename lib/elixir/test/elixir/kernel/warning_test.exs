@@ -258,13 +258,13 @@ defmodule Kernel.WarningTest do
         def a, do: nil
       end
       """
-    end) =~ "warning: unused import :lists"
+    end) =~ "warning: unused import :lists\n"
 
     assert capture_err(fn ->
       Code.compile_string """
       import :lists
       """
-    end) =~ "warning: unused import :lists"
+    end) =~ "warning: unused import :lists\n"
   after
     purge Sample
   end
@@ -277,8 +277,10 @@ defmodule Kernel.WarningTest do
         def a, do: upcase("hello")
       end
       """
-    end) == "nofile:2: warning: unused import String.downcase/1\n" <>
-            "nofile:2: warning: unused import String.strip/1\n"
+    end) == """
+    nofile:2: warning: unused import String.downcase/1
+    nofile:2: warning: unused import String.strip/1
+    """
   after
     purge Sample
   end
