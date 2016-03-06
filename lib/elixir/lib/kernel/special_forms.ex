@@ -792,9 +792,7 @@ defmodule Kernel.SpecialForms do
 
       defmodule Math do
         defmacro squared(x) do
-          quote do
-            unquote(x) * unquote(x)
-          end
+          quote do: unquote(x) * unquote(x)
         end
       end
 
@@ -925,15 +923,11 @@ defmodule Kernel.SpecialForms do
 
       defmodule Hygiene do
         defmacro write do
-          quote do
-            a = 1
-          end
+          quote do: a = 1
         end
 
         defmacro read do
-          quote do
-            a
-          end
+          quote do: a
         end
       end
 
@@ -946,15 +940,11 @@ defmodule Kernel.SpecialForms do
 
       defmodule ContextHygiene do
         defmacro write do
-          quote do
-            var!(a, ContextHygiene) = 1
-          end
+          quote do: var!(a, ContextHygiene) = 1
         end
 
         defmacro read do
-          quote do
-            var!(a, ContextHygiene)
-          end
+          quote do: var!(a, ContextHygiene)
         end
       end
 
@@ -1033,9 +1023,7 @@ defmodule Kernel.SpecialForms do
 
       defmodule Hygiene do
         defmacrop get_length do
-          quote do
-            length([1,2,3])
-          end
+          quote do: length([1,2,3])
         end
 
         def return_length do
@@ -1067,9 +1055,7 @@ defmodule Kernel.SpecialForms do
         defmacrop get_length do
           import Kernel, except: [length: 1]
 
-          quote do
-            length("hello")
-          end
+          quote do: length("hello")
         end
 
         def return_length do
