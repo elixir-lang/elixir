@@ -319,7 +319,7 @@ defmodule Macro do
   @doc """
   Validates the given expressions are valid quoted expressions.
 
-  Check the `type:Macro.t` for the specification of a valid
+  Checks the `type:Macro.t` for the specification of a valid
   quoted expression.
   """
   @spec validate(term) :: :ok | {:error, term}
