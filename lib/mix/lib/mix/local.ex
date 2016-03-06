@@ -77,7 +77,7 @@ defmodule Mix.Local do
   end
 
   @doc """
-  Fetches the given signed CSV files, verify and return the matching
+  Fetches the given signed CSV files, verifies and returns the matching
   Elixir version, artifact version and artifact's checksum.
 
   Used to install both Rebar and Hex from S3.
