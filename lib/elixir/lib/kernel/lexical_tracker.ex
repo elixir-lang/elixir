@@ -131,7 +131,7 @@ defmodule Kernel.LexicalTracker do
   end
 
   def handle_cast({:add_import, module, line, warn}, {d, dest}) when is_atom(module) do
-    :ets.match_delete(d, {{:import, {module, :"_", :"_"}}, :"_"})
+    :ets.match_delete(d, {{:import, {module, :_, :_}}, :_})
 
     add_directive(d, module, line, warn, :import)
     {:noreply, {d, dest}}
@@ -180,8 +180,8 @@ defmodule Kernel.LexicalTracker do
   defp add_compile(d, module, :runtime), do: :ets.insert_new(d, {{:mode, module}, :runtime})
   defp add_compile(d, module, :compile), do: :ets.insert(d, {{:mode, module}, :compile})
 
-  defp add_directive(d, m_or_mfa, line, warn, tag) do
+  defp add_directive(d, module_or_mfa, line, warn, tag) do
     marker = if warn, do: line, else: true
-    :ets.insert(d, {{tag, m_or_mfa}, marker})
+    :ets.insert(d, {{tag, module_or_mfa}, marker})
   end
 end

@@ -50,7 +50,7 @@ record_warn(Meta, Ref, Opts, Added, E) ->
 
   case keyfind(only, Opts) of
     {only, List} when is_list(List) ->
-      [elixir_lexical:record_import({Ref, Name, Arity}, ?line(Meta), Added and Warn, ?m(E, lexical_tracker)) || {Name, Arity} <- List ];
+      [elixir_lexical:record_import({Ref, Name, Arity}, ?line(Meta), Added and Warn, ?m(E, lexical_tracker)) || {Name, Arity} <- List];
 
     _ ->
       elixir_lexical:record_import(Ref, ?line(Meta), Added and Warn, ?m(E, lexical_tracker))
