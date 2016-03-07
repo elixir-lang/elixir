@@ -402,21 +402,22 @@ defmodule Process do
   end
 
   @doc """
-  Associates the name with a pid or a port identifier. `name`, which must
-  be an atom, can be used instead of the pid / port identifier with the
-  `Kernel.send/2` function.
+  Associates the atom `name` with a `pid` or a port identifier.
 
-  `Process.register/2` will fail with `ArgumentError` if the pid supplied
-  is no longer alive, (check with `alive?/1`) or if the name is
-  already registered (check with `whereis/1`).
+  `name`, can then be used instead of the `pid` / port identifier with the `Kernel.send/2`
+  function. `Process.register/2` will fail with `ArgumentError` if the pid supplied
+  is no longer alive, (check with `alive?/1`) or if the name is already registered
+  (check with `whereis/1`) or if the `pid` is already registered to a different `name`.
   """
   @spec register(pid | port, atom) :: true
-  def register(pid, name) when not name in [nil, false, true] do
+  def register(pid, name) when not name in [nil, false, true] and is_atom(name) do
     :erlang.register(name, pid)
   end
 
   @doc """
   Removes the registered `name`, associated with a pid or a port identifier.
+
+  Fails with `ArgumentError` if the name is not registered to any pid or port.
 
   See [`:erlang.unregister/1`](http://www.erlang.org/doc/man/erlang.html#unregister-1) for more info.
   """
