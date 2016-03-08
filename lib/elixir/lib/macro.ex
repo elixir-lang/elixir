@@ -1131,6 +1131,11 @@ defmodule Macro do
     <<to_lower_char(h)>> <> do_underscore(t, h)
   end
 
+  defp do_underscore(<<h, t::binary>>, prev)
+      when (h >= ?0 and h <= ?9) and (prev >= ?a and prev <= ?z) do
+    <<?_, h>> <> do_underscore(t, h)
+  end
+
   defp do_underscore(<<h, t, rest::binary>>, _)
       when (h >= ?A and h <= ?Z) and not (t >= ?A and t <= ?Z) and t != ?. do
     <<?_, to_lower_char(h), t>> <> do_underscore(rest, t)
