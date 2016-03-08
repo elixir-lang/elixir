@@ -538,13 +538,13 @@ defmodule ExUnit.DocTest do
   end
 
   # Expression numbers are simply skipped.
-  defp extract_tests([{<<"iex(", _ :: 8>> <> string, _} | lines], expr_acc, expected_acc, acc, newtest) do
-    extract_tests(["iex" <> skip_iex_number(string)|lines], expr_acc, expected_acc, acc, newtest)
+  defp extract_tests([{<<"iex(", _>> <> string, line} | lines], expr_acc, expected_acc, acc, newtest) do
+    extract_tests([{"iex" <> skip_iex_number(string), line} | lines], expr_acc, expected_acc, acc, newtest)
   end
 
   # Expression numbers are simply skipped redux.
-  defp extract_tests([{<<"...(", _::8>> <> string, _} | lines], expr_acc, expected_acc, acc, newtest) do
-    extract_tests(["..." <> skip_iex_number(string)|lines], expr_acc, expected_acc, acc, newtest)
+  defp extract_tests([{<<"...(", _>> <> string, line} | lines], expr_acc, expected_acc, acc, newtest) do
+    extract_tests([{"..." <> skip_iex_number(string), line} | lines], expr_acc, expected_acc, acc, newtest)
   end
 
   # Skip empty or documentation line.
@@ -587,7 +587,7 @@ defmodule ExUnit.DocTest do
     ">" <> string
   end
 
-  defp skip_iex_number(<<_::8>> <> string) do
+  defp skip_iex_number(<<_>> <> string) do
     skip_iex_number(string)
   end
 
