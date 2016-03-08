@@ -67,20 +67,20 @@ end |> write_beam
 
 defmodule ExUnit.DocTestTest.SomewhatGoodModuleWithOnly do
   @doc """
-  iex> test_fun
+  iex> test_fun1
   1
-  iex> test_fun + 1
+  iex> test_fun1 + 1
   2
   """
-  def test_fun, do: 1
+  def test_fun1, do: 1
 
   @doc """
-  iex> test_fun
+  iex> test_fun2
   1
-  iex> test_fun + 1
+  iex> test_fun2 + 1
   1
   """
-  def test_fun1, do: 1
+  def test_fun2, do: 1
 end |> write_beam
 
 defmodule ExUnit.DocTestTest.SomewhatGoodModuleWithExcept do
@@ -90,20 +90,20 @@ defmodule ExUnit.DocTestTest.SomewhatGoodModuleWithExcept do
   """
 
   @doc """
-  iex> test_fun
+  iex> test_fun1
   1
-  iex> test_fun + 1
+  iex> test_fun1 + 1
   2
   """
-  def test_fun, do: 1
+  def test_fun1, do: 1
 
   @doc """
-  iex> test_fun
+  iex> test_fun2
   1
-  iex> test_fun + 1
+  iex> test_fun2 + 1
   1
   """
-  def test_fun1, do: 1
+  def test_fun2, do: 1
 end |> write_beam
 
 defmodule ExUnit.DocTestTest.NoImport do
@@ -190,7 +190,7 @@ defmodule ExUnit.DocTestTest.IndentationNotEnough do
       iex> 1 + 2
     3
   '''
-  def not_enough, do: :ok
+  def test_fun, do: :ok
 end |> write_beam
 
 defmodule ExUnit.DocTestTest.Incomplete do
@@ -198,13 +198,13 @@ defmodule ExUnit.DocTestTest.Incomplete do
       iex> 1 + 2
 
   '''
-  def not_enough, do: :ok
+  def test_fun, do: :ok
 end |> write_beam
 
 defmodule ExUnit.DocTestTest.Numbered do
   @doc """
-  iex(1)> x = 1 + 2
-  ...(1)> x
+  iex(1)> 1 +
+  ...(1)> 2
   3
   """
   def test_fun(), do: :ok
@@ -218,8 +218,8 @@ defmodule ExUnit.DocTestTest do
   # doctest ExUnit.DocTest
 
   doctest ExUnit.DocTestTest.GoodModule, import: true
-  doctest ExUnit.DocTestTest.SomewhatGoodModuleWithOnly, only: [test_fun: 0], import: true
-  doctest ExUnit.DocTestTest.SomewhatGoodModuleWithExcept, except: [:moduledoc, test_fun1: 0], import: true
+  doctest ExUnit.DocTestTest.SomewhatGoodModuleWithOnly, only: [test_fun1: 0], import: true
+  doctest ExUnit.DocTestTest.SomewhatGoodModuleWithExcept, except: [:moduledoc, test_fun2: 0], import: true
   doctest ExUnit.DocTestTest.NoImport
   doctest ExUnit.DocTestTest.IndentationHeredocs
 
@@ -228,7 +228,7 @@ defmodule ExUnit.DocTestTest do
   test "multiple functions filtered with :only" do
     defmodule MultipleOnly do
       use ExUnit.Case
-      doctest ExUnit.DocTestTest.SomewhatGoodModuleWithOnly, only: [test_fun: 0, test_fun1: 0], import: true
+      doctest ExUnit.DocTestTest.SomewhatGoodModuleWithOnly, only: [test_fun1: 0, test_fun2: 0], import: true
     end
 
     assert capture_io(fn -> ExUnit.run end) =~ "2 tests, 1 failure"
@@ -409,7 +409,7 @@ defmodule ExUnit.DocTestTest do
 
   test "fails on invalid use" do
     assert_raise RuntimeError, ~r"cannot define test", fn ->
-      defmodule FunctionClashFail2 do
+      defmodule FunctionClashFail do
         import ExUnit.DocTest
         doctest ExUnit.DocTestTest.Invalid
       end
