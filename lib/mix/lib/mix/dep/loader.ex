@@ -25,7 +25,7 @@ defmodule Mix.Dep.Loader do
   def partition_by_env(deps, env), do: Enum.partition(deps, &not skip?(&1, env))
 
   @doc """
-  Check if a dependency must be skipped according to the environment.
+  Checks if a dependency must be skipped according to the environment.
   """
   def skip?(_dep, nil), do: false
   def skip?(%Mix.Dep{status: {:divergedonly, _}}, _), do: false
