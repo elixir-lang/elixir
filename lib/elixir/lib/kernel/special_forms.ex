@@ -1107,6 +1107,11 @@ defmodule Kernel.SpecialForms do
         defadd
       end
 
+      require Sample
+      Sample.add(:one, :two)
+      #=> ** (ArithmeticError) bad argument in arithmetic expression
+      #=>     adder.ex:5: Sample.add/2
+
   When using `location: :keep` and invalid arguments are given to
   `Sample.add/2`, the stacktrace information will point to the file
   and line inside the quote. Without `location: :keep`, the error is
