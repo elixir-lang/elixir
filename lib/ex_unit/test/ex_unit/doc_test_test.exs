@@ -201,6 +201,15 @@ defmodule ExUnit.DocTestTest.Incomplete do
   def not_enough, do: :ok
 end |> write_beam
 
+defmodule ExUnit.DocTestTest.Numbered do
+  @doc """
+  iex(1)> x = 1 + 2
+  ...(1)> x
+  3
+  """
+  def test_fun(), do: :ok
+end |> write_beam()
+
 defmodule ExUnit.DocTestTest do
   use ExUnit.Case
 
@@ -239,7 +248,7 @@ defmodule ExUnit.DocTestTest do
 
     assert output =~ """
       1) test moduledoc at ExUnit.DocTestTest.Invalid (1) (ExUnit.DocTestTest.ActuallyCompiled)
-         test/ex_unit/doc_test_test.exs:231
+         test/ex_unit/doc_test_test.exs:240
          Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:120: syntax error before: '*'
          code: 1 + * 1
          stacktrace:
@@ -248,7 +257,7 @@ defmodule ExUnit.DocTestTest do
 
     assert output =~ """
       2) test moduledoc at ExUnit.DocTestTest.Invalid (2) (ExUnit.DocTestTest.ActuallyCompiled)
-         test/ex_unit/doc_test_test.exs:231
+         test/ex_unit/doc_test_test.exs:240
          Doctest failed
          code: 1 + hd(List.flatten([1])) === 3
          lhs:  2
@@ -258,7 +267,7 @@ defmodule ExUnit.DocTestTest do
 
     assert output =~ """
       3) test moduledoc at ExUnit.DocTestTest.Invalid (3) (ExUnit.DocTestTest.ActuallyCompiled)
-         test/ex_unit/doc_test_test.exs:231
+         test/ex_unit/doc_test_test.exs:240
          Doctest failed
          code: inspect(:oops) === "#MapSet<[]>"
          lhs:  ":oops"
@@ -269,7 +278,7 @@ defmodule ExUnit.DocTestTest do
     # The stacktrace points to the cause of the error
     assert output =~ """
       4) test moduledoc at ExUnit.DocTestTest.Invalid (4) (ExUnit.DocTestTest.ActuallyCompiled)
-         test/ex_unit/doc_test_test.exs:231
+         test/ex_unit/doc_test_test.exs:240
          Doctest failed: got UndefinedFunctionError with message undefined function Hello.world/0 (module Hello is not available)
          code:  Hello.world
          stacktrace:
@@ -279,7 +288,7 @@ defmodule ExUnit.DocTestTest do
 
     assert output =~ """
       5) test moduledoc at ExUnit.DocTestTest.Invalid (5) (ExUnit.DocTestTest.ActuallyCompiled)
-         test/ex_unit/doc_test_test.exs:231
+         test/ex_unit/doc_test_test.exs:240
          Doctest failed: expected exception WhatIsThis with message "oops" but got RuntimeError with message "oops"
          code: raise "oops"
          stacktrace:
@@ -288,7 +297,7 @@ defmodule ExUnit.DocTestTest do
 
     assert output =~ """
       6) test moduledoc at ExUnit.DocTestTest.Invalid (6) (ExUnit.DocTestTest.ActuallyCompiled)
-         test/ex_unit/doc_test_test.exs:231
+         test/ex_unit/doc_test_test.exs:240
          Doctest failed: expected exception RuntimeError with message "hello" but got RuntimeError with message "oops"
          code: raise "oops"
          stacktrace:
@@ -297,7 +306,7 @@ defmodule ExUnit.DocTestTest do
 
     assert output =~ """
       7) test doc at ExUnit.DocTestTest.Invalid.a/0 (7) (ExUnit.DocTestTest.ActuallyCompiled)
-         test/ex_unit/doc_test_test.exs:231
+         test/ex_unit/doc_test_test.exs:240
          Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:141: syntax error before: '*'
          code: 1 + * 1
          stacktrace:
@@ -306,12 +315,21 @@ defmodule ExUnit.DocTestTest do
 
     assert output =~ """
       8) test doc at ExUnit.DocTestTest.Invalid.b/0 (8) (ExUnit.DocTestTest.ActuallyCompiled)
-         test/ex_unit/doc_test_test.exs:231
+         test/ex_unit/doc_test_test.exs:240
          Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:147: syntax error before: '*'
          code: 1 + * 1
          stacktrace:
            test/ex_unit/doc_test_test.exs:147: ExUnit.DocTestTest.Invalid (module)
     """
+  end
+
+  test "iex prefix contains a number" do
+    defmodule NumberedUsage do
+      use ExUnit.Case
+      doctest ExUnit.DocTestTest.Numbered
+    end
+
+    assert capture_io(fn -> ExUnit.run end) =~ "1 test, 0 failures"
   end
 
   test "tags tests as doctests" do
