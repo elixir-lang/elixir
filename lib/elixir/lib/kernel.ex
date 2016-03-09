@@ -1575,7 +1575,7 @@ defmodule Kernel do
 
   The `struct` argument may be an atom (which defines `defstruct`)
   or a `struct` itself. The second argument is any `Enumerable` that
-  emits two-item tuples (key-value pairs) during enumeration.
+  emits two-element tuples (key-value pairs) during enumeration.
 
   Keys in the `Enumerable` that don't exist in the struct are automatically
   discarded. Note that keys must be atoms, as only atoms are allowed when
