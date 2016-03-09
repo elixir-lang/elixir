@@ -2,7 +2,7 @@ defmodule Keyword do
   @moduledoc """
   A set of functions for working with keywords.
 
-  A keyword is a list of 2-element tuples where the first
+  A keyword is a list of two-element tuples where the first
   element of the tuple is an atom and the second element
   can be any value.
 
@@ -191,7 +191,7 @@ defmodule Keyword do
   Gets the value from `key` and updates it, all in one pass.
 
   This `fun` argument receives the value of `key` (or `nil` if `key`
-  is not present) and must return a two-elements tuple: the "get" value (the
+  is not present) and must return a two-element tuple: the "get" value (the
   retrieved value, which can be operated on before being returned) and the new
   value to be stored under `key`.
 
@@ -245,7 +245,7 @@ defmodule Keyword do
   Gets the value from `key` and updates it. Raises if there is no `key`.
 
   This `fun` argument receives the value of `key` and must return a
-  two-elements tuple: the "get" value (the retrieved value, which can be
+  two-element tuple: the "get" value (the retrieved value, which can be
   operated on before being returned) and the new value to be stored under
   `key`.
 

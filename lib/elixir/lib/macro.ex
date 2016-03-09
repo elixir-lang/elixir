@@ -669,7 +669,7 @@ defmodule Macro do
     end
   end
 
-  # Two-item tuples
+  # Two-element tuples
   def to_string({left, right}, fun) do
     to_string({:{}, [], [left, right]}, fun)
   end
