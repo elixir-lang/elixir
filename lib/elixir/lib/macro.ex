@@ -354,6 +354,22 @@ defmodule Macro do
 
   Checks the `type:Macro.t` for the specification of a valid
   quoted expression.
+
+  It returns `:ok` if the expression is valid. Otherwise it returns a tuple in the form of
+  `{:error, remainder}` where `remainder` is the invalid part of the quoted expression.
+
+  ## Examples
+
+      iex> Macro.validate({:two_element, :tuple})
+      :ok
+      iex> Macro.validate({:three, :element, :tuple})
+      {:error, {:three, :element, :tuple}}
+
+      iex> Macro.validate([1, 2, 3])
+      :ok
+      iex> Macro.validate([1, 2, 3, {4}])
+      {:error, {4}}
+
   """
   @spec validate(term) :: :ok | {:error, term}
   def validate(expr) do
