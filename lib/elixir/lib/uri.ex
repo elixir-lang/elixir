@@ -45,7 +45,7 @@ defmodule URI do
   Encodes an enumerable into a query string.
 
   Takes an enumerable (containing a sequence of two-item tuples)
-  and returns a string of the form "key1=value1&key2=value2..." where
+  and returns a string in the form of `key1=value1&key2=value2...` where
   keys and values are URL encoded as per `encode_www_form/1`.
 
   Keys and values can be any term that implements the `String.Chars`
@@ -67,7 +67,7 @@ defmodule URI do
   @doc """
   Decodes a query string into a map.
 
-  Given a query string of the form "key1=value1&key2=value2...", produces a
+  Given a query string of the form of `key1=value1&key2=value2...`, produces a
   map with one entry for each key-value pair. Each key and value will be a
   binary. Keys and values will be percent-unescaped.
 

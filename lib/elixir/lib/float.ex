@@ -8,7 +8,7 @@ defmodule Float do
   @doc """
   Parses a binary into a float.
 
-  If successful, returns a tuple of the form `{float, remainder_of_binary}`;
+  If successful, returns a tuple in the form of `{float, remainder_of_binary}`;
   when the binary cannot be coerced into a valid float, the atom `:error` is
   returned.
 
