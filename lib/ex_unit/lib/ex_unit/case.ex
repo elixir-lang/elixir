@@ -40,7 +40,7 @@ defmodule ExUnit.Case do
           {:ok, [pid: pid]}
         end
 
-        test "stores key-values", context do
+        test "stores key-value pairs", context do
           assert KV.put(context[:pid], :hello, :world) == :ok
           assert KV.get(context[:pid], :hello) == :world
         end
@@ -49,7 +49,7 @@ defmodule ExUnit.Case do
   As the context is a map, it can be pattern matched on to extract
   information:
 
-      test "stores key-values", %{pid: pid} do
+      test "stores key-value pairs", %{pid: pid} do
         assert KV.put(pid, :hello, :world) == :ok
         assert KV.get(pid, :hello) == :world
       end
