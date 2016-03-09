@@ -1517,7 +1517,7 @@ defmodule Enum do
   If you wish to use another value for the accumulator, use
   `Enumerable.reduce/3`.
   This function won't call the specified function for enumerables that
-  are 1-element long.
+  are one-element long.
 
   Returns the accumulator.
 

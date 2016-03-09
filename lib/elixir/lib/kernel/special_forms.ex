@@ -92,7 +92,7 @@ defmodule Kernel.SpecialForms do
   ## AST representation
 
   Regardless if `=>` or the keywords syntax is used, Maps are
-  always represented internally as a list of two-items tuples
+  always represented internally as a list of two-element tuples
   for simplicity:
 
       iex> quote do: %{"a" => :b, c: :d}
