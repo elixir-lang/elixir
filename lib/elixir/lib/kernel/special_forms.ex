@@ -35,7 +35,9 @@ defmodule Kernel.SpecialForms do
       iex> {1, 2, 3}
       {1, 2, 3}
 
-      iex> quote do: {1, 2, 3}
+      iex> quote do
+      ...>   {1, 2, 3}
+      ...> end
       {:{}, [], [1, 2, 3]}
 
   """
@@ -95,7 +97,9 @@ defmodule Kernel.SpecialForms do
   always represented internally as a list of two-element tuples
   for simplicity:
 
-      iex> quote do: %{"a" => :b, c: :d}
+      iex> quote do
+      ...>   %{"a" => :b, c: :d}
+      ...> end
       {:%{}, [], [{"a", :b}, {:c, :d}]}
 
   """
@@ -413,7 +417,9 @@ defmodule Kernel.SpecialForms do
   forms. When the right side starts with a lowercase letter (or
   underscore):
 
-      iex> quote do: String.downcase("FOO")
+      iex> quote do
+      ...>   String.downcase("FOO")
+      ...> end
       {{:., [], [{:__aliases__, [alias: false], [:String]}, :downcase]}, [], ["FOO"]}
 
   Notice we have an inner tuple, containing the atom `:.` representing
@@ -427,7 +433,9 @@ defmodule Kernel.SpecialForms do
   alias `String` and the atom `:downcase`. The second argument is **always**
   an atom:
 
-      iex> quote do: String."downcase"("FOO")
+      iex> quote do
+      ...>   String."downcase"("FOO")
+      ...> end
       {{:., [], [{:__aliases__, [alias: false], [:String]}, :downcase]}, [], ["FOO"]}
 
   The tuple containing `:.` is wrapped in another tuple, which actually
@@ -435,7 +443,9 @@ defmodule Kernel.SpecialForms do
 
   When the right side is an alias (i.e. starts with uppercase), we get instead:
 
-      iex> quote do: Hello.World
+      iex> quote do
+      ...>   Hello.World
+      ...> end
       {:__aliases__, [alias: false], [:Hello, :World]}
 
   We got into more details about aliases in the `__aliases__` special form
@@ -446,7 +456,9 @@ defmodule Kernel.SpecialForms do
   We can also use unquote to generate a remote call in a quoted expression:
 
       iex> x = :downcase
-      iex> quote do: String.unquote(x)("FOO")
+      iex> quote do
+      ...>   String.unquote(x)("FOO")
+      ...> end
       {{:., [], [{:__aliases__, [alias: false], [:String]}, :downcase]}, [], ["FOO"]}
 
   Similar to `Kernel."HELLO"`, `unquote(x)` will always generate a remote call,
@@ -454,7 +466,9 @@ defmodule Kernel.SpecialForms do
   one needs to rely on `Module.concat/2`:
 
       iex> x = Sample
-      iex> quote do: Module.concat(String, unquote(x))
+      iex> quote do
+      ...>   Module.concat(String, unquote(x))
+      ...> end
       {{:., [], [{:__aliases__, [alias: false], [:Module]}, :concat]}, [],
        [{:__aliases__, [alias: false], [:String]}, Sample]}
 
@@ -733,7 +747,9 @@ defmodule Kernel.SpecialForms do
 
   ## Examples
 
-      iex> quote do: sum(1, 2, 3)
+      iex> quote do
+      ...>   sum(1, 2, 3)
+      ...> end
       {:sum, [], [1, 2, 3]}
 
   ## Explanation
@@ -896,7 +912,9 @@ defmodule Kernel.SpecialForms do
 
       defmodule Hygiene do
         defmacro no_interference do
-          quote do: a = 1
+          quote do
+            a = 1
+          end
         end
       end
 
@@ -914,7 +932,9 @@ defmodule Kernel.SpecialForms do
 
       defmodule NoHygiene do
         defmacro interference do
-          quote do: var!(a) = 1
+          quote do
+            var!(a) = 1
+          end
         end
       end
 
@@ -975,7 +995,9 @@ defmodule Kernel.SpecialForms do
         alias Map, as: M
 
         defmacro no_interference do
-          quote do: M.new
+          quote do
+            M.new
+          end
         end
       end
 
@@ -993,7 +1015,9 @@ defmodule Kernel.SpecialForms do
         alias Map, as: M
 
         defmacro no_interference do
-          quote do: M.new
+          quote do
+            M.new
+          end
         end
       end
 
@@ -1007,13 +1031,17 @@ defmodule Kernel.SpecialForms do
       defmodule Hygiene do
         # This will expand to Elixir.Nested.hello
         defmacro no_interference do
-          quote do: Nested.hello
+          quote do
+            Nested.hello
+          end
         end
 
         # This will expand to Nested.hello for
         # whatever is Nested in the caller
         defmacro interference do
-          quote do: alias!(Nested).hello
+          quote do
+            alias!(Nested).hello
+          end
         end
       end
 
@@ -1203,7 +1231,9 @@ defmodule Kernel.SpecialForms do
   would be:
 
       value = 13
-      quote do: sum(1, value, 3)
+      quote do
+        sum(1, value, 3)
+      end
 
   Which would then return:
 
@@ -1212,7 +1242,9 @@ defmodule Kernel.SpecialForms do
   Which is not the expected result. For this, we use unquote:
 
       iex> value = 13
-      iex> quote do: sum(1, unquote(value), 3)
+      iex> quote do
+      ...>   sum(1, unquote(value), 3)
+      ...> end
       {:sum, [], [1, 13, 3]}
 
   """
@@ -1225,7 +1257,9 @@ defmodule Kernel.SpecialForms do
   ## Examples
 
       iex> values = [2, 3, 4]
-      iex> quote do: sum(1, unquote_splicing(values), 5)
+      iex> quote do
+      ...>   sum(1, unquote_splicing(values), 5)
+      ...> end
       {:sum, [], [1, 2, 3, 4, 5]}
 
   """
@@ -1377,7 +1411,11 @@ defmodule Kernel.SpecialForms do
   of expressions in Elixir. This special form is private
   and should not be invoked directly:
 
-      iex> quote do: (1; 2; 3)
+      iex> quote do
+      ...>   1
+      ...>   2
+      ...>   3
+      ...> end
       {:__block__, [], [1, 2, 3]}
 
   """
@@ -1457,13 +1495,17 @@ defmodule Kernel.SpecialForms do
 
   It is usually compiled to an atom:
 
-      iex> quote do: Foo.Bar
+      iex> quote do
+      ...>   Foo.Bar
+      ...> end
       {:__aliases__, [alias: false], [:Foo, :Bar]}
 
   Elixir represents `Foo.Bar` as `__aliases__` so calls can be
   unambiguously identified by the operator `:.`. For example:
 
-      iex> quote do: Foo.bar
+      iex> quote do
+      ...>   Foo.bar
+      ...> end
       {{:., [], [{:__aliases__, [alias: false], [:Foo]}, :bar]}, [], []}
 
   Whenever an expression iterator sees a `:.` as the tuple key,
