@@ -99,7 +99,7 @@ defmodule Integer do
 
   If the base `base` is not given, base 10 will be used.
 
-  If successful, returns a tuple of the form `{integer, remainder_of_binary}`.
+  If successful, returns a tuple in the form of `{integer, remainder_of_binary}`.
   Otherwise `:error`.
 
   Raises an error if `base` is less than 2 or more than 36.
