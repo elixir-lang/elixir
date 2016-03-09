@@ -23,13 +23,17 @@ defmodule Macro do
 
       defmodule MySigils do
         defmacro sigil_x(term, [?r]) do
-          quote do: unquote(term) |> String.reverse()
+          quote do
+            unquote(term) |> String.reverse()
+          end
         end
         defmacro sigil_x(term, _modifiers) do
           term
         end
         defmacro sigil_X(term, [?r]) do
-          quote do: unquote(term) |> String.reverse()
+          quote do
+            unquote(term) |> String.reverse()
+          end
         end
         defmacro sigil_X(term, _modifiers) do
           term
@@ -292,19 +296,19 @@ defmodule Macro do
 
   ## Examples
 
-      iex> Macro.decompose_call(quote do: foo)
+      iex> Macro.decompose_call(quote(do: foo))
       {:foo, []}
 
-      iex> Macro.decompose_call(quote do: foo())
+      iex> Macro.decompose_call(quote(do: foo()))
       {:foo, []}
 
-      iex> Macro.decompose_call(quote do: foo(1, 2, 3))
+      iex> Macro.decompose_call(quote(do: foo(1, 2, 3)))
       {:foo, [1, 2, 3]}
 
-      iex> Macro.decompose_call(quote do: Elixir.M.foo(1, 2, 3))
+      iex> Macro.decompose_call(quote(do: Elixir.M.foo(1, 2, 3)))
       {{:__aliases__, [], [:Elixir, :M]}, :foo, [1, 2, 3]}
 
-      iex> Macro.decompose_call(quote do: 42)
+      iex> Macro.decompose_call(quote(do: 42))
       :error
 
   """
@@ -505,7 +509,7 @@ defmodule Macro do
 
   ## Examples
 
-      iex> Macro.to_string(quote do: foo.bar(1, 2, 3))
+      iex> Macro.to_string(quote(do: foo.bar(1, 2, 3)))
       "foo.bar(1, 2, 3)"
 
   """
