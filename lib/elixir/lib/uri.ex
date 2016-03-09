@@ -44,7 +44,7 @@ defmodule URI do
   @doc """
   Encodes an enumerable into a query string.
 
-  Takes an enumerable (containing a sequence of two-item tuples)
+  Takes an enumerable (containing a sequence of two-element tuples)
   and returns a string in the form of `key1=value1&key2=value2...` where
   keys and values are URL encoded as per `encode_www_form/1`.
 
