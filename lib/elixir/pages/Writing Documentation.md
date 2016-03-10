@@ -40,13 +40,13 @@ The `@moduledoc` attribute is used to add documentation to the module. `@doc` is
 
 When documenting a function, argument names are inferred by the compiler. For example:
 
-    def size(%HashDict{size: size}) do
+    def size(%{size: size}) do
       size
     end
 
-The compiler will infer this argument as `hash_dict`. Sometimes the inference will be suboptimal, specially if the function contains multiple clauses with the argument matching on different values each time. You can specify the proper names for documentation by using a bodyless clause:
+The compiler will infer this argument as `map`. Sometimes the inference will be suboptimal, specially if the function contains multiple clauses with the argument matching on different values each time. You can specify the proper names for documentation by using a bodyless clause:
 
-    def size(dict)
+    def size(map)
 
 ## Recommendations
 
@@ -64,38 +64,43 @@ We recommend developers to include examples in their documentation, often under 
 
 Notice doctests have limitations. When you cannot doctest a function, because it relies on state or side-effects, we recommend developers to include examples directly without the `iex>` prompt.
 
+## Documentation != Comments
+
+Elixir treats documentation and code comments as different concepts. Documentation are for users of your Application Programming Interface (API), be it your co-worker or your future self. Modules and functions must always be documented if they are part of your API.
+
+Code comments are for developers reading the code. They are useful to mark improvements, leave notes for developers reading the code (for example, you decided to not call a function due to a bug in a library) and so forth.
+
+In other words, documentation is required, code comments are optional.
+
 ## Privacy
 
-Elixir allows developers to hide both modules and functions from the documentation by setting the doc attribute to false:
+Elixir does not allow developers to document private functions. That's because private functions only exist inside the module that define them and cannot be accessed externally.
+
+Luckily, Elixir allows developers to hide modules and functions from the documentation. For example, one common practice for documenting internal behaviour is to set the `@moduledoc` attribute to false while documenting each function:
 
     defmodule MyApp.Hidden do
       @moduledoc false
 
-      def this_will_be_ignored_by_tools do
+      @doc """
+      This does something.
+      """
+      def function_that_wont_be_part_of_docs do
         # ...
       end
     end
 
-Notice that, although developers can add `@doc false` to functions, it does not make the function private:
+Similarly, developers can add `@doc false` to functions they do not want to publicly expose:
 
     defmodule MyApp.Sample do
       @doc false
       def add(a, b), do: a + b
     end
 
-The function above can still be invoked as `MyApp.Sample.add(1, 2)`. Not only that, if the `MyApp.Sample` is imported, the `add/2` function will also be imported into the caller. For those reasons, be cautious when adding `@doc false` to functions, instead prefer one of:
+However keep in mind adding `@doc false` does not make the function private. The function above can still be invoked as `MyApp.Sample.add(1, 2)`. Not only that, if the `MyApp.Sample` is imported, the `add/2` function will also be imported into the caller. For those reasons, be cautious when adding `@doc false` to functions, instead prefer one of:
 
-  * Move the undocumented function to a module with `@moduledoc false`, like `MyApp.Hidden`, ensuring the function won't be accidentally exposed or imported. In fact, you can use `@moduledoc false` to hide a whole module and still document each function with `@doc`. Tools will still ignore the module.
+  * Move the undocumented function to a module with `@moduledoc false`, like `MyApp.Hidden`, ensuring the function won't be accidentally exposed or imported. Remember you can use `@moduledoc false` to hide a whole module and still document each function with `@doc`. Tools will still ignore the module.
 
-  * Start the function name with underscores, for example, `__add__/2`, and add `@doc false`. The compiler does not import functions with underscore and the underscore will hint users to be wary of using then.
-
-## Documentation != Comments
-
-Elixir treats documentation and code comments as different concepts. Documentation are for users of your API, be it your co-worker or your future self. Modules and functions must always be documented if they are part of your application public interface (API).
-
-Code comments are for developers reading the code. They are useful to mark improvements, leave notes for developers reading the code (for example, you decided to not call a function due to a bug in a library) and so forth.
-
-In other words, documentation is required, code comments are optional.
+  * Start the function name with underscores, for example, `__add__/2`, and add `@doc false`. The compiler does not import functions with underscore and the underscore will hint of its intended private usage.
 
 ## Code.get_docs/2
 
