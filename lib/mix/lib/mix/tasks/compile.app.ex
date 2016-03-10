@@ -157,49 +157,55 @@ defmodule Mix.Tasks.Compile.App do
   defp validate_properties(properties) do
     Enum.each properties, fn
       {:description, value} ->
-        unless is_list(value), do:
-          invalid "Application description (:description) is not a character list (got #{inspect value})"
+        unless is_list(value) do
+          Mix.raise "Application description (:description) is not a character list, got: #{inspect value}"
+        end
       {:id, value} ->
-        unless is_list(value), do:
-          invalid "Application id (:id) is not a character list (got #{inspect value} instead)"
+        unless is_list(value) do
+          Mix.raise "Application id (:id) is not a character list, got: #{inspect value}"
+        end
       {:vsn, value} ->
-        unless is_list(value), do:
-          invalid "Application vsn (:vsn) is not a character list (got #{inspect value} instead)"
+        unless is_list(value) do
+          Mix.raise "Application vsn (:vsn) is not a character list, got: #{inspect value}"
+        end
       {:maxT, value} ->
-        unless value == :infinity or is_integer(value), do:
-          invalid "Application maximum time (:maxT) is not an integer or :infinity (got #{inspect value} instead)"
+        unless value == :infinity or is_integer(value) do
+          Mix.raise "Application maximum time (:maxT) is not an integer or :infinity, got: #{inspect value}"
+        end
       {:modules, value} ->
-        unless is_list(value) and Enum.all?(value, &is_atom(&1)), do:
-          invalid "Application modules (:modules) should be a list of atoms (got #{inspect value} instead)"
+        unless is_list(value) and Enum.all?(value, &is_atom(&1)) do
+          Mix.raise "Application modules (:modules) should be a list of atoms, got: #{inspect value}"
+        end
       {:registered, value} ->
-        unless is_list(value) and Enum.all?(value, &is_atom(&1)), do:
-          invalid "Application registered processes (:registered) should be a list of atoms (got #{inspect value} instead)"
+        unless is_list(value) and Enum.all?(value, &is_atom(&1)) do
+          Mix.raise "Application registered processes (:registered) should be a list of atoms, got: #{inspect value}"
+        end
       {:included_applications, value} ->
-        unless is_list(value) and Enum.all?(value, &is_atom(&1)), do:
-          invalid "Application included applications (:included_applications) should be a list of atoms (got #{inspect value} instead)"
+        unless is_list(value) and Enum.all?(value, &is_atom(&1)) do
+          Mix.raise "Application included applications (:included_applications) should be a list of atoms, got: #{inspect value}"
+        end
       {:applications, value} ->
-        unless is_list(value) and Enum.all?(value, &is_atom(&1)), do:
-          invalid "Application dependencies (:applications) should be a list of atoms (got #{inspect value} instead)"
+        unless is_list(value) and Enum.all?(value, &is_atom(&1)) do
+          Mix.raise "Application dependencies (:applications) should be a list of atoms, got: #{inspect value}"
+        end
       {:env, value} ->
-        unless Keyword.keyword?(value), do:
-          invalid "Application dependencies (:env) should be a keyword list (got #{inspect value} instead)"
+        unless Keyword.keyword?(value) do
+          Mix.raise "Application dependencies (:env) should be a keyword list, got: #{inspect value}"
+        end
       {:start_phases, value} ->
-        unless Keyword.keyword?(value), do:
-          invalid "Application start phases (:start_phases) should be a keyword list (got #{inspect value} instead)"
+        unless Keyword.keyword?(value) do
+          Mix.raise "Application start phases (:start_phases) should be a keyword list, got: #{inspect value}"
+        end
       {:mod, []} ->
         :ok
       {:mod, {module, _args}} when is_atom(module) ->
         :ok
       {:mod, value} ->
-        invalid "Application callback module (:mod) should be either [] or {module, start_args} (got #{inspect value} instead)"
+        Mix.raise "Application callback module (:mod) should be either [] or {module, start_args}, got: #{inspect value}"
       _ ->
         :ok
     end
 
     properties
-  end
-
-  defp invalid(message) do
-    Mix.raise message
   end
 end
