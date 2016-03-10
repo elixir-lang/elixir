@@ -240,7 +240,8 @@ defmodule String do
 
   @doc """
   Divides a string into substrings at each Unicode whitespace
-  occurrence with leading and trailing whitespace ignored.
+  occurrence with leading and trailing whitespace ignored. Groups
+  of whitespace are treated as a single occurrence.
 
   ## Examples
 
@@ -250,7 +251,7 @@ defmodule String do
       iex> String.split("foo" <> <<194, 133>> <> "bar")
       ["foo", "bar"]
 
-      iex> String.split(" foo bar ")
+      iex> String.split(" foo   bar ")
       ["foo", "bar"]
 
   """
