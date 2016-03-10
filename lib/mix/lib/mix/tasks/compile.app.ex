@@ -65,8 +65,8 @@ defmodule Mix.Tasks.Compile.App do
     project = Mix.Project.get!
     config  = Mix.Project.config
 
-    app     = Keyword.fetch!(config, :app)
-    version = Keyword.fetch!(config, :version)
+    app     = Keyword.get(config, :app)
+    version = Keyword.get(config, :version)
 
     validate_app(app)
     validate_version(version)
@@ -118,13 +118,22 @@ defmodule Mix.Tasks.Compile.App do
   end
 
   defp validate_app(app) when is_atom(app), do: :ok
-  defp validate_app(_), do: Mix.raise("Expected :app to be an atom")
+  defp validate_app(app) do
+    ensure_present(:app, app)
+    Mix.raise("Expected :app to be an atom, got: #{inspect(app)}")
+  end
 
   defp validate_version(version) do
+    ensure_present(:version, version)
     unless is_binary(version) and match?({:ok, _}, Version.parse(version)) do
-      Mix.raise("Expected :version to be a SemVer version")
+      Mix.raise("Expected :version to be a SemVer version, got: #{inspect(version)}")
     end
   end
+
+  defp ensure_present(name, nil) do
+    Mix.raise("Please ensure mix.exs file has the #{inspect(name)} in the project definition")
+  end
+  defp ensure_present(_name, _val), do: :ok
 
   defp modules_from(beams) do
     Enum.map beams, &(&1 |> Path.basename |> Path.rootname(".beam") |> String.to_atom)
