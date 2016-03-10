@@ -264,14 +264,9 @@ defmodule IEx.Autocomplete do
     end
   end
 
-  defp get_module_funs(Kernel.SpecialForms) do
-    Code.get_docs(Kernel.SpecialForms, :docs) |> Enum.map(&elem(&1, 0))
-  end
-
   defp get_module_funs(mod) do
     docs = Code.get_docs(mod, :docs) || []
-    module_info_funs(mod)
-    |> Enum.reject(&hidden_fun?(&1, docs))
+    module_info_funs(mod) |> Enum.reject(&hidden_fun?(&1, docs))
   end
 
   defp module_info_funs(mod) do

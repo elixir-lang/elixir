@@ -297,9 +297,8 @@ default_function_for(Kind, Name, {clause, Line, Args, _Guards, _Exprs} = Clause)
 default_function_for(_, Name, {clause, Line, Args, _Guards, _Exprs} = Clause) ->
   {function, Line, Name, length(Args), [Clause]}.
 
-warn_bodyless_function(_Line, _File, Special, _Kind, _Tuple)
-    when Special == 'Elixir.Kernel.SpecialForms'; Special == 'Elixir.Module' ->
-  ok;
+warn_bodyless_function(_Line, _File, 'Elixir.Module', _Kind, _Tuple) ->
+  ok; %% Documentation for __info__
 warn_bodyless_function(Line, File, _Module, Kind, Tuple) ->
   elixir_errors:form_warn([{line, Line}], File, ?MODULE, {bodyless_clause, Kind, Tuple}),
   ok.
