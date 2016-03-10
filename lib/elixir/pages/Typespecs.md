@@ -143,4 +143,4 @@ Elixir discourages the use of type `string` as it might be confused with binarie
 
 If you want to refer to the "string" type (the one operated on by functions in the `String` module), use `String.t` type instead.
 
-In map and struct type declarations such as `%{key: value}` or `%Struct{key: value}`, the key, value pair type information is not used by the current version of dialyzer.
+In map and struct type declarations such as `%{key: value}` or `%Struct{key: value}`, the key-value pair type information is not used by the current version of dialyzer.
