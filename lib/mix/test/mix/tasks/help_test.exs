@@ -40,19 +40,28 @@ defmodule Mix.Tasks.HelpTest do
       assert_received {:mix_shell, :info, ["h"]}
       assert_received {:mix_shell, :info, ["help"]}
       assert_received {:mix_shell, :info, ["escript.build"]}
+      refute_received {:mix_shell, :info, ["compile.all"]}
     end
   end
 
   test "help TASK", context do
     in_tmp context.test, fn ->
       output =
-        capture_io fn ->
+        capture_io(fn ->
           Mix.Tasks.Help.run ["compile"]
-        end
+        end)
 
-      assert output =~ "# mix compile"
+      assert output =~ "# mix compile\n"
       assert output =~ "## Command line options"
       assert output =~ ~r/^Location:/m
+
+      output =
+        capture_io(fn ->
+          Mix.Tasks.Help.run ["compile.all"]
+        end)
+
+      assert output =~ "# mix compile.all\n"
+      assert output =~ "There is no documentation for this task"
     end
   end
 
