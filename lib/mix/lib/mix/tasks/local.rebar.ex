@@ -1,7 +1,7 @@
 defmodule Mix.Tasks.Local.Rebar do
   use Mix.Task
 
-  @s3_url             "http://s3.amazonaws.com/s3.hex.pm"
+  @s3_url             "http://s3.hex.pm.global.prod.fastly.net"
   @rebar2_list_url     "/installs/rebar-1.x.csv"
   @rebar2_escript_url  "/installs/[ELIXIR_VERSION]/rebar-[REBAR_VERSION]"
   @rebar3_list_url     "/installs/rebar3-1.x.csv"
@@ -12,9 +12,9 @@ defmodule Mix.Tasks.Local.Rebar do
   @moduledoc """
   Fetches a copy of `rebar` or `rebar3` from the given path or url.
 
-  It defaults to safely download a rebar copy from
-  [Amazon S3](https://aws.amazon.com/s3/). However, a URL can be given
-  as argument, usually from an existing local copy of rebar:
+  It defaults to safely download a rebar copy from  Hex's CDN.
+  However, a URL can be given as argument, usually from an existing
+  local copy of rebar:
 
       mix local.rebar rebar path/to/rebar
       mix local.rebar rebar3 path/to/rebar
@@ -37,7 +37,7 @@ defmodule Mix.Tasks.Local.Rebar do
 
   ## Mirrors
 
-  If you want to change the [default mirror](http://s3.amazonaws.com/s3.hex.pm)
+  If you want to change the [default mirror](http://s3.hex.pm.global.prod.fastly.net)
   to use for fetching `rebar` please set the `HEX_CDN` environment variable.
   """
   @switches [force: :boolean, sha512: :string]
