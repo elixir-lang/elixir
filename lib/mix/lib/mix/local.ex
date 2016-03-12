@@ -1,7 +1,7 @@
 defmodule Mix.Local do
   @moduledoc false
 
-  @public_keys_html "https://s3.amazonaws.com/s3.hex.pm/installs/public_keys.html"
+  @public_keys_html "http://s3.hex.pm.global.prod.fastly.net/installs/public_keys.html"
 
   @type item :: :archive | :escript
 
