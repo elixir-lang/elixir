@@ -58,7 +58,7 @@ defmodule Module do
       ### Example
 
           defmodule M do
-            @behaviour gen_event
+            @behaviour :gen_event
 
             # ...
           end
