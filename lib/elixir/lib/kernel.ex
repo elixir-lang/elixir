@@ -4042,28 +4042,32 @@ defmodule Kernel do
     split_words(string, modifiers)
   end
 
-  defp split_words(string, modifiers) do
-    mod =
-      case modifiers do
-        [] -> ?s
-        [mod] when mod == ?s or mod == ?a or mod == ?c -> mod
-        _else -> raise ArgumentError, "modifier must be one of: s, a, c"
-      end
+  defp split_words(string, []) do
+    split_words(string, [?s])
+  end
 
+  defp split_words(string, [mod])
+  when mod == ?s or mod == ?a or mod == ?c do
     case is_binary(string) do
       true ->
+        parts = String.split(string)
         case mod do
-          ?s -> String.split(string)
-          ?a -> for p <- String.split(string), do: String.to_atom(p)
-          ?c -> for p <- String.split(string), do: String.to_char_list(p)
+          ?s -> parts
+          ?a -> :lists.map(&String.to_atom/1, parts)
+          ?c -> :lists.map(&String.to_char_list/1, parts)
         end
       false ->
+        parts = quote(do: String.split(unquote(string)))
         case mod do
-          ?s -> quote do: String.split(unquote(string))
-          ?a -> quote do: for(p <- String.split(unquote(string)), do: String.to_atom(p))
-          ?c -> quote do: for(p <- String.split(unquote(string)), do: String.to_char_list(p))
+          ?s -> parts
+          ?a -> quote(do: :lists.map(&String.to_atom/1, unquote(parts)))
+          ?c -> quote(do: :lists.map(&String.to_char_list/1, unquote(parts)))
         end
     end
+  end
+
+  defp split_words(_string, _mods) do
+    raise ArgumentError, "modifier must be one of: s, a, c"
   end
 
   ## Shared functions

@@ -66,6 +66,9 @@ bar) == "foo\\\nbar"
     assert ~w(foo bar baz) == ["foo", "bar", "baz"]
     assert ~w(foo #{:bar} baz) == ["foo", "bar", "baz"]
 
+    assert ~w(foo\ #{:bar}) == ["foo", "bar"]
+    assert ~w(foo\ bar) == ["foo", "bar"]
+
     assert ~w(
       foo
       bar
@@ -76,7 +79,7 @@ bar) == "foo\\\nbar"
     assert ~w(foo bar baz)a == [:foo, :bar, :baz]
     assert ~w(foo bar baz)c == ['foo', 'bar', 'baz']
 
-    bad_modifier = quote do: ~w(foo bar baz)x
+    bad_modifier = quote(do: ~w(foo bar baz)x)
     assert %ArgumentError{} = catch_error(Code.eval_quoted(bad_modifier))
 
     assert ~w(Foo Bar)a == [:"Foo", :"Bar"]
@@ -91,6 +94,8 @@ bar) == "foo\\\nbar"
   test "sigil W" do
     assert ~W() == []
     assert ~W(foo #{bar} baz) == ["foo", "\#{bar}", "baz"]
+
+    assert ~W(foo\ bar) == ["foo\\", "bar"]
 
     assert ~W(
       foo
