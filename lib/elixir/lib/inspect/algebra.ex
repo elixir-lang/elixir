@@ -38,7 +38,7 @@ defmodule Inspect.Opts do
       implies `binaries: :as_binaries`.
 
     * `:safe` - when `false`, failures while inspecting structs will be raised
-      as errors instead of being wrapped in the Inspect.Error exception. This
+      as errors instead of being wrapped in the `Inspect.Error` exception. This
       is useful when debugging failures and crashes for custom inspect
       implementations
 

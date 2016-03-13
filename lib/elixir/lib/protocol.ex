@@ -56,7 +56,7 @@ defmodule Protocol do
   @doc """
   Checks if the given module is loaded and is protocol.
 
-  Returns `:ok` if so, otherwise raises ArgumentError.
+  Returns `:ok` if so, otherwise raises `ArgumentError`.
   """
   @spec assert_protocol!(module) :: :ok | no_return
   def assert_protocol!(module) do
@@ -83,7 +83,7 @@ defmodule Protocol do
   Checks if the given module is loaded and is an implementation
   of the given protocol.
 
-  Returns `:ok` if so, otherwise raises ArgumentError.
+  Returns `:ok` if so, otherwise raises `ArgumentError`.
   """
   @spec assert_impl!(module, module) :: :ok | no_return
   def assert_impl!(protocol, base) do

@@ -1715,7 +1715,7 @@ defmodule Kernel.SpecialForms do
         ErlangError -> :ok
       end
 
-  In fact, ErlangError can be used to rescue any error that is
+  In fact, `ErlangError` can be used to rescue any error that is
   not an Elixir error proper. For example, it can be used to rescue
   the earlier `:badarg` error too, prior to transformation:
 
