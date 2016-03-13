@@ -89,6 +89,7 @@ bar) == "foo\\\nbar"
   end
 
   test "sigil W" do
+    assert ~W() == []
     assert ~W(foo #{bar} baz) == ["foo", "\#{bar}", "baz"]
 
     assert ~W(
