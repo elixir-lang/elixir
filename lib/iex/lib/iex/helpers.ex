@@ -34,6 +34,7 @@ defmodule IEx.Helpers do
     * `l/1`           - loads the given module's beam code
     * `ls/0`          - lists the contents of the current directory
     * `ls/1`          - lists the contents of the specified directory
+    * `pid/1`         — creates a PID from a string
     * `pid/3`         — creates a PID with the 3 integer arguments passed
     * `pwd/0`         — prints the current working directory
     * `r/1`           — recompiles and reloads the given module's source file
@@ -621,6 +622,19 @@ defmodule IEx.Helpers do
   end
 
   defp history, do: Process.get(:iex_history)
+
+  @doc """
+  Creates a PID from `string`.
+
+  ## Examples
+
+      iex> pid("0.21.32")
+      #PID<0.21.32>
+
+  """
+  def pid(string) when is_binary(string) do
+    :erlang.list_to_pid('<#{string}>')
+  end
 
   @doc """
   Creates a PID with 3 non negative integers passed as arguments
