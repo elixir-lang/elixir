@@ -14,16 +14,15 @@ defmodule String.Unicode do
 
   # WhiteSpace.txt is extracted from Unicode's PropList.txt (just the White_Space property)
   prop_path = Path.join(__DIR__, "WhiteSpace.txt")
-  prop_range_line_regex = ~r/\A([0-9A-F]{4})(?:\.\.([0-9A-F]{4}))?/
+
   whitespace = Enum.reduce File.stream!(prop_path), [], fn(line, acc) ->
-    case Regex.run(prop_range_line_regex, line, capture: :all_but_first) do
-      [single] ->
+    case line |> :binary.split(";") |> hd do
+      <<first::4-bytes, "..", last::4-bytes, _::binary>> ->
+        first = String.to_integer(first, 16)
+        last = String.to_integer(last, 16)
+        Enum.map(first..last, &to_binary.(Integer.to_string(&1, 16))) ++ acc
+      <<single::4-bytes, _::binary>> ->
         [to_binary.(single) | acc]
-      [first, last] ->
-        range = String.to_integer(first, 16)..String.to_integer(last, 16)
-        acc ++ Enum.map(range, &to_binary.(Integer.to_string(&1, 16)))
-      _ ->
-        acc
     end
   end
 
