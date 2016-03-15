@@ -372,6 +372,15 @@ defmodule IEx.HelpersTest do
     cleanup_modules([Sample])
   end
 
+  test "nl helper" do
+    assert nl(:non_existent_module) == {:error, :nofile}
+    assert nl([node], Enum) == {:ok, [{:nonode@nohost, :loaded, Enum}]}    
+    assert nl([:nosuchnode@badhost], Enum) == {:ok, [{:nosuchnode@badhost, :badrpc, :nodedown}]}
+    capture_log fn -> 
+      assert nl([node], :lists) == {:ok, [{:nonode@nohost, :error, :sticky_directory}]} 
+    end
+  end
+
   test "r helper unavailable" do
     assert_raise ArgumentError, "could not load nor find module: :non_existent_module", fn ->
       r :non_existent_module
