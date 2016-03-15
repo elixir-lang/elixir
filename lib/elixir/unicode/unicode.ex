@@ -10,7 +10,7 @@ end
 
 defmodule String.Unicode do
   @moduledoc false
-  def version, do: {7, 0, 0}
+  def version, do: {8, 0, 0}
 
   # WhiteSpace.txt is extracted from Unicode's PropList.txt (just the White_Space property)
   prop_path = Path.join(__DIR__, "WhiteSpace.txt")
