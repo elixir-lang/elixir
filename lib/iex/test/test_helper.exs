@@ -27,6 +27,7 @@ defmodule IEx.Case do
   using do
     quote do
       import ExUnit.CaptureIO
+      import ExUnit.CaptureLog
       import unquote(__MODULE__)
     end
   end
