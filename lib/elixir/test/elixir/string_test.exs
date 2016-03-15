@@ -33,8 +33,12 @@ defmodule StringTest do
     assert String.split("foo bar ") == ["foo", "bar"]
     assert String.split(" foo bar ") == ["foo", "bar"]
     assert String.split("foo\t\n\v\f\r\sbar\n") == ["foo", "bar"]
-    assert String.split("foo" <> <<31>> <> "bar") == ["foo", "bar"]
     assert String.split("foo" <> <<194, 133>> <> "bar") == ["foo", "bar"]
+    # information separators are not considered whitespace
+    assert String.split("foo\u001Fbar") == ["foo\u001Fbar"]
+    # no-break space is excluded
+    assert String.split("foo\00A0bar") == ["foo\00A0bar"]
+    assert String.split("foo\u202Fbar") == ["foo\u202Fbar"]
 
     assert String.split("a,b,c", ",") == ["a", "b", "c"]
     assert String.split("a,b", ".") == ["a,b"]
@@ -179,7 +183,6 @@ defmodule StringTest do
     assert String.rstrip("   abc a") == "   abc a"
     assert String.rstrip("a  abc  a\n\n") == "a  abc  a"
     assert String.rstrip("a  abc  a\t\n\v\f\r\s") == "a  abc  a"
-    assert String.rstrip("a  abc  a " <> <<31>>) == "a  abc  a"
     assert String.rstrip("a  abc  a" <> <<194, 133>>) == "a  abc  a"
     assert String.rstrip("   abc aa", ?a) == "   abc "
     assert String.rstrip("   abc __", ?_) == "   abc "
@@ -187,6 +190,10 @@ defmodule StringTest do
     assert String.rstrip("aaaaaaaaaa", ?a) == ""
     assert String.rstrip("]]]]]]]]]]", ?]) == ""
     assert String.rstrip("   cat 猫猫", ?猫) == "   cat "
+    # information separators are not whitespace
+    assert String.rstrip("a  abc  a \u001F") == "a  abc  a \u001F"
+    # no-break space
+    assert String.rstrip("a  abc  a \u00A0") == "a  abc  a"
   end
 
   test "lstrip" do
@@ -195,10 +202,13 @@ defmodule StringTest do
     assert String.lstrip("a  abc  a") == "a  abc  a"
     assert String.lstrip("\n\na  abc  a") == "a  abc  a"
     assert String.lstrip("\t\n\v\f\r\sa  abc  a") == "a  abc  a"
-    assert String.lstrip(<<31>> <> " a  abc  a") == "a  abc  a"
     assert String.lstrip(<<194, 133>> <> "a  abc  a") == "a  abc  a"
     assert String.lstrip("__  abc  _", ?_) == "  abc  _"
     assert String.lstrip("猫猫 cat   ", ?猫) == " cat   "
+    # information separators are not whitespace
+    assert String.lstrip("\u001F a  abc  a") == <<31>> <> " a  abc  a"
+    # no-break space
+    assert String.lstrip("\u00A0 a  abc  a") == "a  abc  a"
   end
 
   test "strip" do
@@ -208,6 +218,10 @@ defmodule StringTest do
     assert String.strip("a  abc  a\t\n\v\f\r\s") == "a  abc  a"
     assert String.strip("___  abc  ___", ?_) == "  abc  "
     assert String.strip("猫猫猫  cat  猫猫猫", ?猫) == "  cat  "
+    # no-break space
+    assert String.strip("\u00A0a  abc  a\u00A0") == "a  abc  a"
+    # whitespace defined as a range
+    assert String.strip("\u2008a  abc  a\u2005") == "a  abc  a"
   end
 
   test "rjust" do
