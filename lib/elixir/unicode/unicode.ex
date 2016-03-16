@@ -308,26 +308,21 @@ defmodule String.Graphemes do
   end
 
   # Handle Hangul L
-  for codepoint <- cluster["L"] do
-    defp next_hangul_l_size(<<unquote(codepoint), rest::binary>>, size) do
-      next_hangul_l_size(rest, size + unquote(byte_size(codepoint)))
-    end
-  end
 
-  for codepoint <- cluster["LV"] do
-    defp next_hangul_l_size(<<unquote(codepoint), rest::binary>>, size) do
-      next_hangul_v_size(rest, size + unquote(byte_size(codepoint)))
-    end
+  @cluster_reverse_map (for {class, list} <- cluster, codepoint <- list do
+    {codepoint, class}
   end
+  |> Map.new)
 
-  for codepoint <- cluster["LVT"] do
-    defp next_hangul_l_size(<<unquote(codepoint), rest::binary>>, size) do
-      next_hangul_t_size(rest, size + unquote(byte_size(codepoint)))
+  defp next_hangul_l_size(string, size) do
+    {codepoint, rest} = String.next_codepoint(string)
+    class_for_codepoint = @cluster_reverse_map[codepoint]
+    case class_for_codepoint do
+      "L" ->   next_hangul_l_size(rest, size + byte_size(codepoint))
+      "LV" ->  next_hangul_v_size(rest, size + byte_size(codepoint))
+      "LVT" -> next_hangul_t_size(rest, size + byte_size(codepoint))
+      _ ->     next_hangul_v_size(string, size)
     end
-  end
-
-  defp next_hangul_l_size(rest, size) do
-    next_hangul_v_size(rest, size)
   end
 
   # Handle Hangul V
