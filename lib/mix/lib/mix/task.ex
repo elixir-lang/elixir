@@ -389,6 +389,18 @@ defmodule Mix.Task do
   end
 
   @doc """
+  Reruns `task` with the given arguments.
+
+  This function reruns the given task; to do that, it first re-enables the task
+  and then regularly runs it.
+  """
+  @spec rerun(task_name, [any]) :: any
+  def rerun(task, args \\ []) do
+    reenable(task)
+    run(task, args)
+  end
+
+  @doc """
   Returns `true` if given module is a task.
   """
   @spec task?(task_module) :: boolean
