@@ -123,6 +123,21 @@ defmodule Mix.TaskTest do
     end
   end
 
+  test "rerun/1" do
+    assert Mix.Task.run("hello") == "Hello, World!"
+    assert Mix.Task.rerun("hello") == "Hello, World!"
+  end
+
+  test "rerun/1 for umbrella" do
+    in_fixture "umbrella_dep/deps/umbrella", fn ->
+      Mix.Project.in_project(:umbrella, ".", fn _ ->
+        assert [:ok, :ok] = Mix.Task.run "clean"
+        assert :noop      = Mix.Task.run "clean"
+        assert [:ok, :ok] = Mix.Task.rerun "clean"
+      end)
+    end
+  end
+
   test "get!" do
     assert Mix.Task.get!("hello") == Mix.Tasks.Hello
 
