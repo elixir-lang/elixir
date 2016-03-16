@@ -280,12 +280,13 @@ defmodule ExUnit.Assertions do
   end
 
   @doc """
-  Asserts a message was or is going to be received.
+  Asserts that a message matching `pattern` was or is going to be received.
 
   Unlike `assert_received`, it has a default timeout
   of 100 milliseconds.
 
-  The `expected` argument is a pattern.
+  The `pattern` argument must be a match pattern. Flunks with `failure_message`
+  if a message matching `pattern` is not received.
 
   ## Examples
 
@@ -303,22 +304,31 @@ defmodule ExUnit.Assertions do
       assert_receive {:count, ^x}
 
   """
-  defmacro assert_receive(expected,
+  defmacro assert_receive(pattern,
                           timeout \\ Application.fetch_env!(:ex_unit, :assert_receive_timeout),
-                          message \\ nil) do
-    do_assert_receive(expected, timeout, message, __CALLER__)
+                          failure_message \\ nil) do
+    do_assert_receive(pattern, timeout, failure_message, __CALLER__)
   end
 
   @doc """
-  Asserts a message was received and is in the current process' mailbox.
-  Timeout is set to 0, so there is no waiting time.
+  Asserts that a message matching `pattern` was received and is in the
+  current process' mailbox.
 
-  The `expected` argument is a pattern.
+  The `pattern` argument must be a match pattern. Flunks with `failure_message`
+  if a message matching `pattern` was not received.
+
+  Timeout is set to 0, so there is no waiting time.
 
   ## Examples
 
       send self, :hello
       assert_received :hello
+
+      send self, :bye
+      assert_received :hello, "Oh No!"
+      ** (ExUnit.AssertionError) Oh No!
+      Process mailbox:
+        :bye
 
   You can also match against specific patterns:
 
@@ -326,20 +336,20 @@ defmodule ExUnit.Assertions do
       assert_received {:hello, _}
 
   """
-  defmacro assert_received(expected, message \\ nil) do
-    do_assert_receive(expected, 0, message, __CALLER__)
+  defmacro assert_received(pattern, failure_message \\ nil) do
+    do_assert_receive(pattern, 0, failure_message, __CALLER__)
   end
 
-  defp do_assert_receive(expected, timeout, message, caller) do
-    binary = Macro.to_string(expected)
+  defp do_assert_receive(pattern, timeout, failure_message, caller) do
+    binary = Macro.to_string(pattern)
 
     # Expand before extracting metadata
-    expected = Macro.expand(expected, caller)
-    vars = collect_vars_from_pattern(expected)
-    pins = collect_pins_from_pattern(expected)
+    pattern = Macro.expand(pattern, caller)
+    vars = collect_vars_from_pattern(pattern)
+    pins = collect_pins_from_pattern(pattern)
 
     pattern =
-      case expected do
+      case pattern do
         {:when, meta, [left, right]} ->
           {:when, meta, [quote(do: unquote(left) = received), right]}
         left ->
@@ -355,8 +365,8 @@ defmodule ExUnit.Assertions do
             {received, unquote(vars)}
         after
           timeout ->
-            message = unquote(message) || "No message matching #{unquote(binary)} after #{timeout}ms."
-            flunk(message <> ExUnit.Assertions.__pins__(unquote(pins))
+            failure_message = unquote(failure_message) || "No message matching #{unquote(binary)} after #{timeout}ms."
+            flunk(failure_message <> ExUnit.Assertions.__pins__(unquote(pins))
                           <> ExUnit.Assertions.__mailbox__(self()))
         end
 
@@ -581,10 +591,11 @@ defmodule ExUnit.Assertions do
   end
 
   @doc """
-  Asserts `message` was not received (and won't be received) within
-  the `timeout` period.
+  Asserts that a message matching `pattern` was not received (and won't be received)
+  within the `timeout` period.
 
-  The `not_expected` argument is a match pattern.
+  The `pattern` argument must be a match pattern. Flunks with `failure_message`
+  if a message matching `pattern` is received.
 
   ## Examples
 
@@ -595,15 +606,18 @@ defmodule ExUnit.Assertions do
       refute_receive :bye, 1000
 
   """
-  defmacro refute_receive(not_expected,
+  defmacro refute_receive(pattern,
                           timeout \\ Application.fetch_env!(:ex_unit, :refute_receive_timeout),
-                          message \\ nil) do
-    do_refute_receive(not_expected, timeout, message)
+                          failure_message \\ nil) do
+    do_refute_receive(pattern, timeout, failure_message)
   end
 
   @doc """
-  Asserts a message was not received (i.e. it is not in the current process mailbox).
-  The `not_expected` argument must be a match pattern.
+  Asserts a message matching `pattern` was not received (i.e. it is not in the
+  current process' mailbox).
+
+  The `pattern` argument must be a match pattern. Flunks with `failure_message`
+  if a message matching `pattern` was received.
 
   Timeout is set to 0, so there is no waiting time.
 
@@ -612,13 +626,19 @@ defmodule ExUnit.Assertions do
       send self, :hello
       refute_received :bye
 
+      send self, :hello
+      refute_received :hello, "Oh No!"
+      ** (ExUnit.AssertionError) Oh No!
+      Process mailbox:
+        :bye
+
   """
-  defmacro refute_received(not_expected, message \\ nil) do
-    do_refute_receive(not_expected, 0, message)
+  defmacro refute_received(pattern, failure_message \\ nil) do
+    do_refute_receive(pattern, 0, failure_message)
   end
 
-  defp do_refute_receive(not_expected, timeout, message) do
-    receive_clause = refute_receive_clause(not_expected, message)
+  defp do_refute_receive(pattern, timeout, failure_message) do
+    receive_clause = refute_receive_clause(pattern, failure_message)
 
     quote do
       receive do
@@ -629,17 +649,17 @@ defmodule ExUnit.Assertions do
     end
   end
 
- defp refute_receive_clause(not_expected, nil) do
-  binary = Macro.to_string(not_expected)
+ defp refute_receive_clause(pattern, nil) do
+  binary = Macro.to_string(pattern)
   quote do
-    unquote(not_expected) = actual ->
+    unquote(pattern) = actual ->
       flunk "Unexpectedly received message #{inspect actual} (which matched #{unquote binary})"
     end
   end
 
-  defp refute_receive_clause(not_expected, message) do
+  defp refute_receive_clause(pattern, failure_message) do
     quote do
-      unquote(not_expected) -> flunk unquote(message)
+      unquote(pattern) -> flunk unquote(failure_message)
     end
   end
 
