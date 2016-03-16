@@ -76,12 +76,14 @@ IF """"=="%par:-pz=%"     (shift)
 IF """"=="%par:--app=%"   (shift) 
 IF """"=="%par:--remsh=%" (shift) 
 rem ******* ERLANG PARAMETERS **********************
-IF """"=="%par:--detached=%" (Set parsErlang=%parsErlang% -detached) 
-IF """"=="%par:--hidden=%"   (Set parsErlang=%parsErlang% -hidden)
-IF """"=="%par:--cookie=%"   (Set parsErlang=%parsErlang% -setcookie %1 && shift)
-IF """"=="%par:--sname=%"    (Set parsErlang=%parsErlang% -sname %1 && shift) 
-IF """"=="%par:--name=%"     (Set parsErlang=%parsErlang% -name %1 && shift) 
-IF """"=="%par:--erl=%"      (Set beforeExtra=%beforeExtra% %~1 && shift) 
+IF """"=="%par:--detached=%"            (Set parsErlang=%parsErlang% -detached) 
+IF """"=="%par:--hidden=%"              (Set parsErlang=%parsErlang% -hidden)
+IF """"=="%par:--cookie=%"              (Set parsErlang=%parsErlang% -setcookie %1 && shift)
+IF """"=="%par:--sname=%"               (Set parsErlang=%parsErlang% -sname %1 && shift) 
+IF """"=="%par:--name=%"                (Set parsErlang=%parsErlang% -name %1 && shift) 
+IF """"=="%par:--logger-otp-reports=%"  (Set parsErlang=%parsErlang% -logger handle_otp_reports %1 && shift) 
+IF """"=="%par:--logger-sasl-reports=%" (Set parsErlang=%parsErlang% -logger handle_sasl_reports %1 && shift) 
+IF """"=="%par:--erl=%"                 (Set beforeExtra=%beforeExtra% %~1 && shift) 
 goto:startloop
 
 rem ******* assume all pre-params are parsed ********************
