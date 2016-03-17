@@ -376,9 +376,12 @@ defmodule Application do
   @doc """
   Returns the given path inside `app_dir/1`.
   """
-  @spec app_dir(app, String.t) :: String.t
+  @spec app_dir(app, String.t | [String.t]) :: String.t
   def app_dir(app, path) when is_binary(path) do
     Path.join(app_dir(app), path)
+  end
+  def app_dir(app, path) when is_list(path) do
+    Path.join([app_dir(app)|path])
   end
 
   @doc """
