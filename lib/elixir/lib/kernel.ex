@@ -912,6 +912,11 @@ defmodule Kernel do
   @doc """
   Concatenates two lists.
 
+  The complexity of `a ++ b` is proportional to `length(a)`, so avoid repeatedly
+  appending to lists of arbitrary length, e.g. `list ++ [item]`.
+
+  Instead, consider prepending via `[item | rest]` and then reversing.
+
   Inlined by the compiler.
 
   ## Examples
@@ -931,6 +936,11 @@ defmodule Kernel do
   @doc """
   Removes the first occurrence of an item on the left list
   for each item on the right.
+
+  The complexity of `a -- b` is proportional to `length(a) * length(b)`,
+  meaning that it will be very slow if both `a` and `b` are long lists.
+  In such cases, consider converting each list to a `MapSet` and using
+  `MapSet.difference/2`.
 
   Inlined by the compiler.
 
