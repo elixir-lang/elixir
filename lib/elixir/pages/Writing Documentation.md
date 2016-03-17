@@ -58,6 +58,9 @@ There are a couple tips we recommend developers to follow when writing documenta
 
   * When using headings, always start from the second heading by using `##`. The first heading is reserved to the module or function name itself.
 
+  * When documenting a function with multiple clauses, it is recommended to add a bodyless function
+  head and add @doc and @spec to the bodyless function head only.
+
 ## Doctests
 
 We recommend developers to include examples in their documentation, often under its own `## Examples` heading. To ensure examples do not get out of date, Elixir's test framework (ExUnit) provides a feature called doctests that allows developers to test the examples in their documentation. Doctests work by parsing out code samples starting with `iex>` from the documentation. You can read more about it at `ExUnit.DocTest`.
