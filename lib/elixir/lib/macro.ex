@@ -153,6 +153,12 @@ defmodule Macro do
     "can only pipe into local calls foo(), remote calls Foo.bar() or anonymous functions calls foo.()"
   end
 
+  @doc false
+  def pipe_warning({call, _, _}) when call in unquote(@unary_ops) do
+    "piping into a unary operator is deprecated"
+  end
+  def pipe_warning(_), do: nil
+
   @doc """
   Applies the given function to the node metadata if it contains one.
 
