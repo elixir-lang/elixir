@@ -40,9 +40,9 @@ defmodule Calendar do
   # TODO: Remove this on 1.4. It exists only to aid migration of those
   # using the Calendar library.
   defmacro __using__(_opts) do
-    IO.write :stderr,
-             "warning: use Calendar is deprecated as it is now part of Elixir\n" <>
-             Exception.format_stacktrace(Macro.Env.stacktrace(__CALLER__))
+    %{file: file, line: line} = __CALLER__
+    :elixir_errors.warn(line, file, "use Calendar is deprecated as it is now part of Elixir")
+
     quote do
       alias Calendar.DateTime
       alias Calendar.DateTime.Interval
