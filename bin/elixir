@@ -68,6 +68,20 @@ while [ $I -le $# ]; do
         eval "VAL=\${$I}"
         ERL="$ERL `echo $PEEK | cut -c 2-` "$VAL""
         ;;
+    --logger-otp-reports)
+        I=$(expr $I + 1)
+        eval "VAL=\${$I}"
+        if [ "$VAL" == 'true' ] || [ "$VAL" == 'false' ]; then
+            ERL="$ERL -logger handle_otp_reports "$VAL""
+        fi
+        ;;
+    --logger-sasl-reports)
+        I=$(expr $I + 1)
+        eval "VAL=\${$I}"
+        if [ "$VAL" == 'true' ] || [ "$VAL" == 'false' ]; then
+            ERL="$ERL -logger handle_sasl_reports "$VAL""
+        fi
+        ;;
     --erl)
         I=$(expr $I + 1)
         eval "VAL=\${$I}"

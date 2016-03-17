@@ -187,7 +187,7 @@ defmodule Kernel.CLI do
     parse_shared t, %{config | commands: [{:parallel_require, h} | config.commands]}
   end
 
-  defp parse_shared([erl, _|t], config) when erl in ["--erl", "--sname", "--name", "--cookie"] do
+  defp parse_shared([erl, _|t], config) when erl in ["--erl", "--sname", "--name", "--cookie", "--logger-otp-reports", "--logger-sasl-reports"] do
     parse_shared t, config
   end
 
