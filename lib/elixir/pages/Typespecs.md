@@ -99,6 +99,8 @@ Built-in type           | Defined as
 `fun()`                 | `(... -> any)`
 `struct()`              | `%{__struct__: atom()}`
 `as_boolean(t)`         | `t`
+`keyword()`             | `[{atom(), any()}]`
+`keyword(t)`            | `[{atom(), t}]`
 
 ### Remote types
 
