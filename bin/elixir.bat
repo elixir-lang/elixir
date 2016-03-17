@@ -9,22 +9,25 @@ goto parseopts
 :documentation
 echo Usage: %~nx0 [options] [.exs file] [data]
 echo.
-echo   -v                Prints version and exits
-echo   -e command        Evaluates the given command (*)
-echo   -r file           Requires the given files/patterns (*)
-echo   -S script         Finds and executes the given script in PATH
-echo   -pr file          Requires the given files/patterns in parallel (*)
-echo   -pa path          Prepends the given path to Erlang code path (*)
-echo   -pz path          Appends the given path to Erlang code path (*)
-echo   --app app         Start the given app and its dependencies (*)
-echo   --erl switches    Switches to be passed down to erlang (*)
-echo   --name name       Makes and assigns a name to the distributed node
-echo   --sname name      Makes and assigns a short name to the distributed node
-echo   --cookie cookie   Sets a cookie for this distributed node
-echo   --hidden          Makes a hidden node
-echo   --detached        Starts the Erlang VM detached from console
-echo   --werl            Uses Erlang's Windows shell GUI
-echo   --no-halt         Does not halt the Erlang VM after execution
+echo   -v                          Prints version and exits
+echo   -e COMMAND                  Evaluates the given command (*)
+echo   -r FILE                     Requires the given files/patterns (*)
+echo   -S SCRIPT                   Finds and executes the given script in PATH
+echo   -pr FILE                    Requires the given files/patterns in parallel (*)
+echo   -pa PATH                    Prepends the given path to Erlang code path (*)
+echo   -pz PATH                    Appends the given path to Erlang code path (*)
+echo.
+echo   --app APP                   Starts the given app and its dependencies (*)
+echo   --cookie COOKIE             Sets a cookie for this distributed node
+echo   --detached                  Starts the Erlang VM detached from console
+echo   --erl SWITCHES              Switches to be passed down to erlang (*)
+echo   --hidden                    Makes a hidden node
+echo   --logger-otp-reports BOOL   Enables or disables OTP reporting
+echo   --logger-sasl-reports BOOL  Enables or disables SASL reporting
+echo   --name NAME                 Makes and assigns a name to the distributed node
+echo   --no-halt                   Does not halt the Erlang VM after execution
+echo   --sname NAME                Makes and assigns a short name to the distributed node
+echo   --werl                      Uses Erlang's Windows shell GUI
 echo.
 echo ** Options marked with (*) can be given more than once
 echo ** Options given after the .exs file or -- are passed down to the executed code

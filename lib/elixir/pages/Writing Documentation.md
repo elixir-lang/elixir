@@ -56,10 +56,9 @@ There are a couple tips we recommend developers to follow when writing documenta
 
   * Markdown uses backticks (`` ` ``) to quote code. Elixir builds on top of that to automatically generate links when modules or function names are referenced. For this reason, always use full module names. If you have a module called `MyApp.Hello`, always reference it as `` `MyApp.Hello` `` and never as `` `Hello` ``. Function names must be referenced by name and arity if they are local, as in `` `world/1` ``, or by module, name and arity if pointing to an external module: `` `MyApp.Hello.world/1` ``. Referencing a `@callback` can be done by prepending `c:`, as in `` `c:world/1` ``.
 
-  * When using headings, always start from the second heading by using `##`. The first heading is reserved to the module or function name itself.
+  * When the documentation has multiple sections, always start the section heading by using `##`. The first heading is reserved to the module or function name itself.
 
-  * When documenting a function with multiple clauses, it is recommended to add a bodyless function
-  head and add @doc and @spec to the bodyless function head only.
+  * When documenting a function with multiple clauses, the documentation must be placed before the first clause. Documentation is always per function and not per clause.
 
 ## Doctests
 
