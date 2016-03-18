@@ -73,7 +73,6 @@ start(_Type, _Args) ->
           {{ uri, <<"http">>}, 80},
           {{ uri, <<"https">>}, 443},
           {{ uri, <<"ldap">>}, 389}],
-  % URIConfig = [{{uri, Scheme}, Port} || {Scheme, Port} <- URIs],
   CompilerOpts = #{docs => true, ignore_module_conflict => false,
                    debug_info => true, warnings_as_errors => false},
   {ok, [[Home] | _]} = init:get_argument(home),
