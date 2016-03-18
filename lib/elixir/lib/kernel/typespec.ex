@@ -408,6 +408,8 @@ defmodule Kernel.Typespec do
   defp elixir_builtin_type?(:as_boolean, 1), do: true
   defp elixir_builtin_type?(:struct, 0), do: true
   defp elixir_builtin_type?(:char_list, 0), do: true
+  defp elixir_builtin_type?(:keyword, 0), do: true
+  defp elixir_builtin_type?(:keyword, 1), do: true
   defp elixir_builtin_type?(_, _), do: false
 
   @doc false
@@ -642,6 +644,10 @@ defmodule Kernel.Typespec do
 
   defp typespec_to_ast({:remote_type, line, [{:atom, _, :elixir}, {:atom, _, :as_boolean}, [arg]]}) do
     typespec_to_ast({:type, line, :as_boolean, [arg]})
+  end
+
+  defp typespec_to_ast({:remote_type, line, [{:atom, _, :elixir}, {:atom, _, :keyword}, args]}) do
+    typespec_to_ast({:type, line, :keyword, args})
   end
 
   defp typespec_to_ast({:remote_type, line, [mod, name, args]}) do
@@ -886,6 +892,10 @@ defmodule Kernel.Typespec do
 
   defp typespec({:as_boolean, _meta, [arg]}, vars, caller) do
     typespec((quote do: :elixir.as_boolean(unquote(arg))), vars, caller)
+  end
+
+  defp typespec({:keyword, _meta, args}, vars, caller) when length(args) <= 1 do
+    typespec((quote do: :elixir.keyword(unquote_splicing(args))), vars, caller)
   end
 
   defp typespec({:fun, meta, args}, vars, caller) do
