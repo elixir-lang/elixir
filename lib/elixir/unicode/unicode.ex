@@ -216,6 +216,17 @@ defmodule String.Unicode do
   end
 end
 
+defmodule Range.Builder do
+  def to_range(codepoints), do: to_range(codepoints, [])
+  def to_range([h|t], acc), do: to_range(t, h + 1, byte_size(<<h::utf8>>), h, acc)
+  def to_range([], acc),    do: Enum.reverse(acc)
+
+  def to_range([h|t], h, size, first, acc) when byte_size(<<h::utf8>>) == size,
+    do: to_range(t, h + 1, size, first, acc)
+  def to_range(t, last, size, first, acc),
+    do: to_range(t, [{first, last - 1, size} | acc])
+end
+
 defmodule String.Graphemes do
   @moduledoc false
 
@@ -230,10 +241,9 @@ defmodule String.Graphemes do
         {"D800", "DFFF"} ->
           []
         {first, ""} ->
-          [<<String.to_integer(first, 16)::utf8>>]
+          [String.to_integer(first, 16)]
         {first, last} ->
-          range = String.to_integer(first, 16)..String.to_integer(last, 16)
-          Enum.map(range, fn int -> <<int::utf8>> end)
+          Enum.to_list String.to_integer(first, 16)..String.to_integer(last, 16)
       end
 
     Map.update(dict, class, codepoints, &(&1 ++ codepoints))
@@ -251,37 +261,37 @@ defmodule String.Graphemes do
   end
 
   # Break on control
-  for codepoint <- cluster["CR"] ++ cluster["LF"] ++ cluster["Control"] do
-    def next_grapheme_size(<<unquote(codepoint), rest::binary>>) do
-      {unquote(byte_size(codepoint)), rest}
+  for {first, last, size} <- Range.Builder.to_range(cluster["LF"] ++ cluster["CR"] ++ cluster["Control"]) do
+    def next_grapheme_size(<<cp::utf8, rest::binary>>) when cp in unquote(first)..unquote(last) do
+      {unquote(size), rest}
     end
   end
 
   # Break on Prepend*
-  # for codepoint <- cluster["Prepend"] do
-  #   def next_grapheme_size(<<unquote(codepoint), rest::binary>>) do
-  #     next_prepend_size(rest, unquote(byte_size(codepoint)))
+  # for {codepoint, size} <- Range.Builder.to_range(cluster["Prepend"]) do
+  #   def next_grapheme_size(<<cp::utf8, rest::binary>>) when cp in unquote(first)..unquote(last) do
+  #     next_prepend_size(rest, unquote(size))
   #   end
   # end
 
   # Handle Hangul L
-  for codepoint <- cluster["L"] do
-    def next_grapheme_size(<<unquote(codepoint), rest::binary>>) do
-      next_hangul_l_size(rest, unquote(byte_size(codepoint)))
+  for {first, last, size} <- Range.Builder.to_range(cluster["L"]) do
+    def next_grapheme_size(<<cp::utf8, rest::binary>>) when cp in unquote(first)..unquote(last) do
+      next_hangul_l_size(rest, unquote(size))
     end
   end
 
   # Handle Hangul T
-  for codepoint <- cluster["T"] do
-    def next_grapheme_size(<<unquote(codepoint), rest::binary>>) do
-      next_hangul_t_size(rest, unquote(byte_size(codepoint)))
+  for {first, last, size} <- Range.Builder.to_range(cluster["T"]) do
+    def next_grapheme_size(<<cp::utf8, rest::binary>>) when cp in unquote(first)..unquote(last) do
+      next_hangul_t_size(rest, unquote(size))
     end
   end
 
   # Handle Regional
-  for codepoint <- cluster["Regional_Indicator"] do
-    def next_grapheme_size(<<unquote(codepoint), rest::binary>>) do
-      next_regional_size(rest, unquote(byte_size(codepoint)))
+  for {first, last, size} <- Range.Builder.to_range(cluster["Regional_Indicator"]) do
+    def next_grapheme_size(<<cp::utf8, rest::binary>>) when cp in unquote(first)..unquote(last) do
+      next_regional_size(rest, unquote(size))
     end
   end
 
@@ -305,21 +315,21 @@ defmodule String.Graphemes do
   end
 
   # Handle Hangul L
-  for codepoint <- cluster["L"] do
-    defp next_hangul_l_size(<<unquote(codepoint), rest::binary>>, size) do
-      next_hangul_l_size(rest, size + unquote(byte_size(codepoint)))
+  for {first, last, size} <- Range.Builder.to_range(cluster["L"]) do
+    defp next_hangul_l_size(<<cp::utf8, rest::binary>>, size) when cp in unquote(first)..unquote(last) do
+      next_hangul_l_size(rest, size + unquote(size))
     end
   end
 
-  for codepoint <- cluster["LV"] do
-    defp next_hangul_l_size(<<unquote(codepoint), rest::binary>>, size) do
-      next_hangul_v_size(rest, size + unquote(byte_size(codepoint)))
+  for {first, last, size} <- Range.Builder.to_range(cluster["LV"]) do
+    defp next_hangul_l_size(<<cp::utf8, rest::binary>>, size) when cp in unquote(first)..unquote(last) do
+      next_hangul_v_size(rest, size + unquote(size))
     end
   end
 
-  for codepoint <- cluster["LVT"] do
-    defp next_hangul_l_size(<<unquote(codepoint), rest::binary>>, size) do
-      next_hangul_t_size(rest, size + unquote(byte_size(codepoint)))
+  for {first, last, size} <- Range.Builder.to_range(cluster["LVT"]) do
+    defp next_hangul_l_size(<<cp::utf8, rest::binary>>, size) when cp in unquote(first)..unquote(last) do
+      next_hangul_t_size(rest, size + unquote(size))
     end
   end
 
@@ -328,9 +338,9 @@ defmodule String.Graphemes do
   end
 
   # Handle Hangul V
-  for codepoint <- cluster["V"] do
-    defp next_hangul_v_size(<<unquote(codepoint), rest::binary>>, size) do
-      next_hangul_v_size(rest, size + unquote(byte_size(codepoint)))
+  for {first, last, size} <- Range.Builder.to_range(cluster["V"]) do
+    defp next_hangul_v_size(<<cp::utf8, rest::binary>>, size) when cp in unquote(first)..unquote(last) do
+      next_hangul_v_size(rest, size + unquote(size))
     end
   end
 
@@ -339,9 +349,9 @@ defmodule String.Graphemes do
   end
 
   # Handle Hangul T
-  for codepoint <- cluster["T"] do
-    defp next_hangul_t_size(<<unquote(codepoint), rest::binary>>, size) do
-      next_hangul_t_size(rest, size + unquote(byte_size(codepoint)))
+  for {first, last, size} <- Range.Builder.to_range(cluster["T"]) do
+    defp next_hangul_t_size(<<cp::utf8, rest::binary>>, size) when cp in unquote(first)..unquote(last) do
+      next_hangul_t_size(rest, size + unquote(size))
     end
   end
 
@@ -350,9 +360,9 @@ defmodule String.Graphemes do
   end
 
   # Handle regional
-  for codepoint <- cluster["Regional_Indicator"] do
-    defp next_regional_size(<<unquote(codepoint), rest::binary>>, size) do
-      next_regional_size(rest, size + unquote(byte_size(codepoint)))
+  for {first, last, size} <- Range.Builder.to_range(cluster["Regional_Indicator"]) do
+    defp next_regional_size(<<cp::utf8, rest::binary>>, size) when cp in unquote(first)..unquote(last) do
+      next_regional_size(rest, size + unquote(size))
     end
   end
 
@@ -361,9 +371,9 @@ defmodule String.Graphemes do
   end
 
   # Handle Extend+SpacingMark
-  for codepoint <- cluster["Extend"] ++ cluster["SpacingMark"]  do
-    defp next_extend_size(<<unquote(codepoint), rest::binary>>, size) do
-      next_extend_size(rest, size + unquote(byte_size(codepoint)))
+  for {first, last, size} <- Range.Builder.to_range(cluster["Extend"] ++ cluster["SpacingMark"]) do
+    defp next_extend_size(<<cp::utf8, rest::binary>>, size) when cp in unquote(first)..unquote(last) do
+      next_extend_size(rest, size + unquote(size))
     end
   end
 
@@ -372,9 +382,9 @@ defmodule String.Graphemes do
   end
 
   # Handle Prepend
-  # for codepoint <- cluster["Prepend"] do
-  #   defp next_prepend_size(<<unquote(codepoint), rest::binary>>, size) do
-  #     next_prepend_size(rest, size + unquote(byte_size(codepoint)))
+  # for {first, last, size} <- Range.Builder.to_range(cluster["Prepend"] do
+  #   defp next_prepend_size(<<cp::utf8, rest::binary>>, size) when cp in unquote(first)..unquote(last) do
+  #     next_prepend_size(rest, size + unquote(size))
   #   end
   # end
   #
