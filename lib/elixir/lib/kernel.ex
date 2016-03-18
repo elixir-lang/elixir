@@ -2803,8 +2803,8 @@ defmodule Kernel do
       {:%{}, [], [__struct__: Elixir.Range, first: first, last: last]} ->
         in_range(left, Macro.expand(first, __CALLER__), Macro.expand(last, __CALLER__))
       _ ->
-        raise ArgumentError, <<"invalid args for operator \"in\", it expects a compile time list ",
-                               "or range on the right side when used in guard expressions, got: ",
+        raise ArgumentError, <<"invalid args for operator \"in\", it expects a compile-time list ",
+                               "or compile-time range on the right side when used in guard expressions, got: ",
                                Macro.to_string(right) :: binary>>
     end
   end
