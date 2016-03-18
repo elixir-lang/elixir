@@ -1,15 +1,6 @@
-to_binary = fn
-  "" ->
-    nil
-  codepoints ->
-    codepoints = :binary.split(codepoints, " ", [:global])
-    Enum.reduce codepoints, "", fn(codepoint, acc) ->
-      acc <> <<String.to_integer(codepoint, 16)::utf8>>
-    end
-end
-
 defmodule String.Unicode do
   @moduledoc false
+  import String.Utils
   def version, do: {8, 0, 0}
 
   # WhiteSpace.txt is extracted from Unicode's PropList.txt (just the White_Space property)
@@ -39,13 +30,13 @@ defmodule String.Unicode do
 
     cond do
       upper != "" or lower != "" or title != "" ->
-        {[{to_binary.(codepoint),
-           to_binary.(upper),
-           to_binary.(lower),
-           to_binary.(title)} | cacc],
+        {[{to_binary(codepoint),
+           to_binary(upper),
+           to_binary(lower),
+           to_binary(title)} | cacc],
          wacc}
       String.starts_with?(decomposition, "<noBreak>") ->
-        {cacc, List.delete(wacc, to_binary.(codepoint))}
+        {cacc, List.delete(wacc, to_binary(codepoint))}
       true ->
         {cacc, wacc}
     end
@@ -55,11 +46,11 @@ defmodule String.Unicode do
 
   codes = Enum.reduce File.stream!(special_path), codes, fn(line, acc) ->
     [codepoint, lower, title, upper, _] = :binary.split(line, "; ", [:global])
-    key = to_binary.(codepoint)
+    key = to_binary(codepoint)
     :lists.keystore(key, 1, acc, {key,
-                                  to_binary.(upper),
-                                  to_binary.(lower),
-                                  to_binary.(title)})
+                                  to_binary(upper),
+                                  to_binary(lower),
+                                  to_binary(title)})
   end
 
   # Downcase
@@ -216,19 +207,9 @@ defmodule String.Unicode do
   end
 end
 
-defmodule Range.Builder do
-  def to_range(codepoints), do: to_range(codepoints, [])
-  def to_range([h|t], acc), do: to_range(t, h + 1, byte_size(<<h::utf8>>), h, acc)
-  def to_range([], acc),    do: Enum.reverse(acc)
-
-  def to_range([h|t], h, size, first, acc) when byte_size(<<h::utf8>>) == size,
-    do: to_range(t, h + 1, size, first, acc)
-  def to_range(t, last, size, first, acc),
-    do: to_range(t, [{first, last - 1, size} | acc])
-end
-
 defmodule String.Graphemes do
   @moduledoc false
+  import String.Utils
 
   cluster_path = Path.join(__DIR__, "GraphemeBreakProperty.txt")
   regex = ~r/(?:^([0-9A-F]+)(?:\.\.([0-9A-F]+))?)\s+;\s(\w+)/m
@@ -236,17 +217,20 @@ defmodule String.Graphemes do
   cluster = Enum.reduce File.stream!(cluster_path), %{}, fn(line, dict) ->
     [_full, first, last, class] = Regex.run(regex, line)
 
-    codepoints =
+    old =
+      Map.get(dict, class, [])
+
+    new =
       case {first, last} do
         {"D800", "DFFF"} ->
-          []
+          old
         {first, ""} ->
-          [String.to_integer(first, 16)]
+          [String.to_integer(first, 16)|old]
         {first, last} ->
-          Enum.to_list String.to_integer(first, 16)..String.to_integer(last, 16)
+          Enum.reduce String.to_integer(first, 16)..String.to_integer(last, 16), old, &[&1|&2]
       end
 
-    Map.update(dict, class, codepoints, &(&1 ++ codepoints))
+    Map.put(dict, class, new)
   end
 
   # There is no codepoint marked as Prepend by Unicode 6.3.0
@@ -261,35 +245,35 @@ defmodule String.Graphemes do
   end
 
   # Break on control
-  for {first, last, size} <- Range.Builder.to_range(cluster["LF"] ++ cluster["CR"] ++ cluster["Control"]) do
+  for {first, last, size} <- to_range(cluster["LF"] ++ cluster["CR"] ++ cluster["Control"]) do
     def next_grapheme_size(<<cp::utf8, rest::binary>>) when cp in unquote(first)..unquote(last) do
       {unquote(size), rest}
     end
   end
 
   # Break on Prepend*
-  # for {codepoint, size} <- Range.Builder.to_range(cluster["Prepend"]) do
+  # for {codepoint, size} <- to_range(cluster["Prepend"]) do
   #   def next_grapheme_size(<<cp::utf8, rest::binary>>) when cp in unquote(first)..unquote(last) do
   #     next_prepend_size(rest, unquote(size))
   #   end
   # end
 
   # Handle Hangul L
-  for {first, last, size} <- Range.Builder.to_range(cluster["L"]) do
+  for {first, last, size} <- to_range(cluster["L"]) do
     def next_grapheme_size(<<cp::utf8, rest::binary>>) when cp in unquote(first)..unquote(last) do
       next_hangul_l_size(rest, unquote(size))
     end
   end
 
   # Handle Hangul T
-  for {first, last, size} <- Range.Builder.to_range(cluster["T"]) do
+  for {first, last, size} <- to_range(cluster["T"]) do
     def next_grapheme_size(<<cp::utf8, rest::binary>>) when cp in unquote(first)..unquote(last) do
       next_hangul_t_size(rest, unquote(size))
     end
   end
 
   # Handle Regional
-  for {first, last, size} <- Range.Builder.to_range(cluster["Regional_Indicator"]) do
+  for {first, last, size} <- to_range(cluster["Regional_Indicator"]) do
     def next_grapheme_size(<<cp::utf8, rest::binary>>) when cp in unquote(first)..unquote(last) do
       next_regional_size(rest, unquote(size))
     end
@@ -315,19 +299,19 @@ defmodule String.Graphemes do
   end
 
   # Handle Hangul L
-  for {first, last, size} <- Range.Builder.to_range(cluster["L"]) do
+  for {first, last, size} <- to_range(cluster["L"]) do
     defp next_hangul_l_size(<<cp::utf8, rest::binary>>, size) when cp in unquote(first)..unquote(last) do
       next_hangul_l_size(rest, size + unquote(size))
     end
   end
 
-  for {first, last, size} <- Range.Builder.to_range(cluster["LV"]) do
+  for {first, last, size} <- to_range(cluster["LV"]) do
     defp next_hangul_l_size(<<cp::utf8, rest::binary>>, size) when cp in unquote(first)..unquote(last) do
       next_hangul_v_size(rest, size + unquote(size))
     end
   end
 
-  for {first, last, size} <- Range.Builder.to_range(cluster["LVT"]) do
+  for {first, last, size} <- to_range(cluster["LVT"]) do
     defp next_hangul_l_size(<<cp::utf8, rest::binary>>, size) when cp in unquote(first)..unquote(last) do
       next_hangul_t_size(rest, size + unquote(size))
     end
@@ -338,7 +322,7 @@ defmodule String.Graphemes do
   end
 
   # Handle Hangul V
-  for {first, last, size} <- Range.Builder.to_range(cluster["V"]) do
+  for {first, last, size} <- to_range(cluster["V"]) do
     defp next_hangul_v_size(<<cp::utf8, rest::binary>>, size) when cp in unquote(first)..unquote(last) do
       next_hangul_v_size(rest, size + unquote(size))
     end
@@ -349,7 +333,7 @@ defmodule String.Graphemes do
   end
 
   # Handle Hangul T
-  for {first, last, size} <- Range.Builder.to_range(cluster["T"]) do
+  for {first, last, size} <- to_range(cluster["T"]) do
     defp next_hangul_t_size(<<cp::utf8, rest::binary>>, size) when cp in unquote(first)..unquote(last) do
       next_hangul_t_size(rest, size + unquote(size))
     end
@@ -360,7 +344,7 @@ defmodule String.Graphemes do
   end
 
   # Handle regional
-  for {first, last, size} <- Range.Builder.to_range(cluster["Regional_Indicator"]) do
+  for {first, last, size} <- to_range(cluster["Regional_Indicator"]) do
     defp next_regional_size(<<cp::utf8, rest::binary>>, size) when cp in unquote(first)..unquote(last) do
       next_regional_size(rest, size + unquote(size))
     end
@@ -371,7 +355,7 @@ defmodule String.Graphemes do
   end
 
   # Handle Extend+SpacingMark
-  for {first, last, size} <- Range.Builder.to_range(cluster["Extend"] ++ cluster["SpacingMark"]) do
+  for {first, last, size} <- to_range(cluster["Extend"] ++ cluster["SpacingMark"]) do
     defp next_extend_size(<<cp::utf8, rest::binary>>, size) when cp in unquote(first)..unquote(last) do
       next_extend_size(rest, size + unquote(size))
     end
@@ -382,7 +366,7 @@ defmodule String.Graphemes do
   end
 
   # Handle Prepend
-  # for {first, last, size} <- Range.Builder.to_range(cluster["Prepend"] do
+  # for {first, last, size} <- to_range(cluster["Prepend"] do
   #   defp next_prepend_size(<<cp::utf8, rest::binary>>, size) when cp in unquote(first)..unquote(last) do
   #     next_prepend_size(rest, size + unquote(size))
   #   end
@@ -434,23 +418,24 @@ end
 
 defmodule String.Normalizer do
   @moduledoc false
+  import String.Utils
 
   decomposition_path = Path.join(__DIR__, "Decomposition.txt")
 
   decompositions = Enum.reduce File.stream!(decomposition_path), [], fn(line, acc) ->
     [key, first, second, third, fourth, _] = :binary.split(line, ";", [:global])
-    decomposition = to_binary.(first) <> (to_binary.(second) || "") <>
-                                         (to_binary.(third)  || "") <>
-                                         (to_binary.(fourth) || "")
-    [{to_binary.(key), decomposition} | acc]
+    decomposition = to_binary(first) <> (to_binary(second) || "") <>
+                                         (to_binary(third)  || "") <>
+                                         (to_binary(fourth) || "")
+    [{to_binary(key), decomposition} | acc]
   end
 
   composition_path = Path.join(__DIR__, "Composition.txt")
 
   compositions = Enum.reduce File.stream!(composition_path), [], fn(line, acc) ->
     [first, second, composition, _] = :binary.split(line, ";", [:global])
-    key = to_binary.(first) <> to_binary.(second)
-    [{key, to_binary.(composition)} | acc]
+    key = to_binary(first) <> to_binary(second)
+    [{key, to_binary(composition)} | acc]
   end
 
   combining_class_path = Path.join(__DIR__, "CombiningClasses.txt")

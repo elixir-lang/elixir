@@ -89,7 +89,7 @@ unicode: $(UNICODE)
 $(UNICODE): lib/elixir/unicode/*
 	@ echo "==> unicode (compile)";
 	@ echo "Embedding the Unicode database... (this may take a while)"
-	$(Q) cd lib/elixir && ../../$(ELIXIRC) unicode/unicode.ex -o ebin;
+	$(Q) cd lib/elixir && ../../$(ELIXIRC) -r unicode/utils.exs unicode/unicode.ex -o ebin;
 
 $(eval $(call APP_TEMPLATE,ex_unit,ExUnit))
 $(eval $(call APP_TEMPLATE,logger,Logger))
