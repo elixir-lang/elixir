@@ -20,9 +20,9 @@ defmodule String.Unicode do
       <<first::4-bytes, "..", last::4-bytes, _::binary>> ->
         first = String.to_integer(first, 16)
         last = String.to_integer(last, 16)
-        Enum.map(first..last, &to_binary.(Integer.to_string(&1, 16))) ++ acc
+        Enum.map(first..last, fn int -> <<int::utf8>> end) ++ acc
       <<single::4-bytes, _::binary>> ->
-        [to_binary.(single) | acc]
+        [<<String.to_integer(single, 16)::utf8>> | acc]
     end
   end
 
@@ -222,24 +222,21 @@ defmodule String.Graphemes do
   cluster_path = Path.join(__DIR__, "GraphemeBreakProperty.txt")
   regex = ~r/(?:^([0-9A-F]+)(?:\.\.([0-9A-F]+))?)\s+;\s(\w+)/m
 
-  to_range = fn
-    first, ""   ->
-      [<<String.to_integer(first, 16)::utf8>>]
-    first, last ->
-      range = String.to_integer(first, 16)..String.to_integer(last, 16)
-      Enum.map(range, fn(int) -> <<int::utf8>> end)
-  end
-
   cluster = Enum.reduce File.stream!(cluster_path), %{}, fn(line, dict) ->
     [_full, first, last, class] = Regex.run(regex, line)
 
-    # Skip surrogates
-    if first == "D800" and last == "DFFF" do
-      dict
-    else
-      list = to_range.(first, last)
-      Map.update(dict, class, list, &(&1 ++ list))
-    end
+    codepoints =
+      case {first, last} do
+        {"D800", "DFFF"} ->
+          []
+        {first, ""} ->
+          [<<String.to_integer(first, 16)::utf8>>]
+        {first, last} ->
+          range = String.to_integer(first, 16)..String.to_integer(last, 16)
+          Enum.map(range, fn int -> <<int::utf8>> end)
+      end
+
+    Map.update(dict, class, codepoints, &(&1 ++ codepoints))
   end
 
   # There is no codepoint marked as Prepend by Unicode 6.3.0
