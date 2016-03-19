@@ -103,6 +103,7 @@ defmodule Mix.Dep do
 
     # We need to keep the order of deps, loaded/1 properly orders them
     deps = Enum.filter(all_deps, &(&1.app in apps))
+    deps = if opts[:include_children], do: include_children(deps, all_deps), else: deps
 
     Enum.each apps, fn(app) ->
       unless Enum.any?(all_deps, &(&1.app == app)) do
@@ -112,6 +113,18 @@ defmodule Mix.Dep do
 
     deps
   end
+
+  # If we need to include children, we need to traverse all
+  # them, fetch the uniq app names, and once again filter all
+  # deps to keep the proper dependency ordering.
+  defp include_children(deps, all_deps) do
+    deps = include_children(deps)
+    apps = deps |> Enum.map(& &1.app) |> Enum.uniq
+    Enum.filter(all_deps, &(&1.app in apps))
+  end
+
+  defp include_children([]), do: []
+  defp include_children(deps), do: deps ++ include_children(Enum.flat_map(deps, & &1.deps))
 
   @doc """
   Runs the given `fun` inside the given dependency project by
