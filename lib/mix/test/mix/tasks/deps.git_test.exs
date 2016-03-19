@@ -134,6 +134,23 @@ defmodule Mix.Tasks.DepsGitTest do
     purge [GitRepo, GitRepo.Mixfile]
   end
 
+  test "compiles many levels deep dependencies" do
+    Mix.Project.push DepsOnGitApp
+
+    in_fixture "no_mixfile", fn ->
+      Mix.Tasks.Deps.Get.run []
+      refute File.exists?("_build/dev/lib/deps_on_git_repo")
+      refute File.exists?("_build/dev/lib/git_repo")
+
+      # Compile the parent with children
+      Mix.Tasks.Deps.Compile.run ["deps_on_git_repo", "--include-children"]
+      assert File.exists?("_build/dev/lib/deps_on_git_repo")
+      assert File.exists?("_build/dev/lib/git_repo")
+    end
+  after
+    purge [GitRepo, GitRepo.Mixfile]
+  end
+
   test "recompiles the project when a dep is fetched" do
     Mix.Project.push GitApp
 
