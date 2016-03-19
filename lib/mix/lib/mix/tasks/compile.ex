@@ -41,9 +41,10 @@ defmodule Mix.Tasks.Compile do
 
   ## Command line options
 
-    * `--list`          - list all enabled compilers
-    * `--no-deps-check` - skip checking of dependencies
-    * `--force`         - force compilation
+    * `--list`              - list all enabled compilers
+    * `--no-archives-check` - skip checking of archives
+    * `--no-deps-check`     - skip checking of dependencies
+    * `--force`             - force compilation
 
   """
   @spec run(OptionParser.argv) :: :ok | :noop
@@ -96,7 +97,7 @@ defmodule Mix.Tasks.Compile do
 
   # Loadpaths without checks because compilers may be defined in deps.
   defp loadpaths! do
-    Mix.Task.run "loadpaths", ["--no-elixir-version-check", "--no-deps-check"]
+    Mix.Task.run "loadpaths", ["--no-elixir-version-check", "--no-deps-check", "--no-archives-check"]
     Mix.Task.reenable "loadpaths"
   end
 
