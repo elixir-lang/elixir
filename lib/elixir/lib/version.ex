@@ -317,7 +317,7 @@ defmodule Version do
       (?:\.(\d+))?          # minor
       (?:\.(\d+))?          # patch
       (?:\-([\d\w\.\-]+))?  # pre
-      (?:\+([\d\w\-]+))?    # build
+      (?:\+([\d\w\.\-]+))?  # build
       $/x
 
     @spec parse_requirement(String.t) :: {:ok, Version.Requirement.t} | :error
