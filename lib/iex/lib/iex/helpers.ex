@@ -35,15 +35,15 @@ defmodule IEx.Helpers do
     * `ls/0`          - lists the contents of the current directory
     * `ls/1`          - lists the contents of the specified directory
     * `nl/2`          - deploys local beam code to a list of nodes
-    * `pid/1`         — creates a PID from a string
-    * `pid/3`         — creates a PID with the 3 integer arguments passed
-    * `pwd/0`         — prints the current working directory
-    * `r/1`           — recompiles and reloads the given module's source file
-    * `respawn/0`     — respawns the current shell
-    * `s/1`           — prints spec information
-    * `t/1`           — prints type information
-    * `v/0`           — retrieves the last value from the history
-    * `v/1`           — retrieves the nth value from the history
+    * `pid/1`         - creates a PID from a string
+    * `pid/3`         - creates a PID with the 3 integer arguments passed
+    * `pwd/0`         - prints the current working directory
+    * `r/1`           - recompiles and reloads the given module's source file
+    * `respawn/0`     - respawns the current shell
+    * `s/1`           - prints spec information
+    * `t/1`           - prints type information
+    * `v/0`           - retrieves the last value from the history
+    * `v/1`           - retrieves the nth value from the history
 
   Help for all of those functions can be consulted directly from
   the command line using the `h` helper itself. Try:
