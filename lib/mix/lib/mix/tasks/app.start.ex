@@ -21,6 +21,7 @@ defmodule Mix.Tasks.App.Start do
     * `--permanent` - start the application as permanent
     * `--no-compile` - do not compile even if files require compilation
     * `--no-protocols` - do not load consolidated protocols
+    * `--no-archives-check` - do not check archives
     * `--no-deps-check` - do not check dependencies
     * `--no-elixir-version-check` - do not check Elixir version
     * `--no-start` - do not start applications after compilation
