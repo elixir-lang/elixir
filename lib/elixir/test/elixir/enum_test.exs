@@ -423,6 +423,12 @@ defmodule EnumTest do
     assert_raise ArithmeticError, fn ->
       Enum.sum([1, {}])
     end
+    assert Enum.sum(0..0) == 0
+    assert Enum.sum(0..100) == 5050
+    assert Enum.sum(10..100) == 5005
+    assert Enum.sum(100..10) == 5005
+    assert Enum.sum(-10..-20) == -165
+    assert Enum.sum(-10..2) == -52
   end
 
   test "take" do
