@@ -1,7 +1,7 @@
 defmodule Mix.Tasks.Local.Rebar do
   use Mix.Task
 
-  @s3_url             "http://s3.hex.pm.global.prod.fastly.net"
+  @s3_url             "https://hexpmrepo.global.ssl.fastly.net"
   @rebar2_list_url     "/installs/rebar-1.x.csv"
   @rebar2_escript_url  "/installs/[ELIXIR_VERSION]/rebar-[REBAR_VERSION]"
   @rebar3_list_url     "/installs/rebar3-1.x.csv"
@@ -37,7 +37,7 @@ defmodule Mix.Tasks.Local.Rebar do
 
   ## Mirrors
 
-  If you want to change the [default mirror](http://s3.hex.pm.global.prod.fastly.net)
+  If you want to change the [default mirror](https://hexpmrepo.global.ssl.fastly.net)
   to use for fetching `rebar` please set the `HEX_CDN` environment variable.
   """
   @switches [force: :boolean, sha512: :string]
