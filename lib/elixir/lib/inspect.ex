@@ -48,7 +48,7 @@ defprotocol Inspect do
   implementation directly. For example, to test Inspect.MapSet above,
   you can invoke it as:
 
-      Inspect.MapSet.inspect(MapSet.new, Inspect.Opts.new)
+      Inspect.MapSet.inspect(MapSet.new, %Inspect.Opts{})
 
   """
 
