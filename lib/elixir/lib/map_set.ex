@@ -37,8 +37,14 @@ defmodule MapSet do
 
   """
   @spec new(Enum.t) :: t
+  def new(%__MODULE__{} = mapset), do: mapset
   def new(enumerable) do
-    Enum.reduce(enumerable, %MapSet{}, &put(&2, &1))
+    map =
+      enumerable
+      |> Enum.to_list
+      |> do_new([])
+
+    %MapSet{map: map}
   end
 
   @doc """
@@ -52,7 +58,30 @@ defmodule MapSet do
   """
   @spec new(Enum.t, (term -> term)) :: t
   def new(enumerable, transform) do
-    Enum.reduce(enumerable, %MapSet{}, &put(&2, transform.(&1)))
+    map =
+      enumerable
+      |> Enum.to_list
+      |> do_new_transform(transform, [])
+
+    %MapSet{map: map}
+  end
+
+  defp do_new([], acc) do
+    acc
+    |> :lists.reverse
+    |> :maps.from_list
+  end
+  defp do_new([item | rest], acc) do
+    do_new(rest, [{item, true} | acc])
+  end
+
+  defp do_new_transform([], _fun, acc) do
+    acc
+    |> :lists.reverse
+    |> :maps.from_list
+  end
+  defp do_new_transform([item | rest], fun, acc) do
+    do_new_transform(rest, fun, [{fun.(item), true} | acc])
   end
 
   @doc """
@@ -84,11 +113,34 @@ defmodule MapSet do
 
   """
   @spec difference(t, t) :: t
-  def difference(%MapSet{map: map1}, %MapSet{map: map2}) do
-    map = :maps.fold(fn value, _, acc ->
-      Map.delete(acc, value)
-    end, map1, map2)
+  # If the first set is less than twice the size of the second map,
+  # it is fastest to re-accumulate items in the first set that are not
+  # present in the second set.
+  def difference(%MapSet{map: map1}, %MapSet{map: map2})
+  when map_size(map1) < map_size(map2) * 2 do
+    map = map1
+    |> Map.keys
+    |> filter_not_in(map2)
+
     %MapSet{map: map}
+  end
+
+  # If the second set is less than half the size of the first set, it's fastest
+  # to simply iterate through each item in the second set, deleting them from
+  # the first set.
+  def difference(%MapSet{map: map1}, %MapSet{map: map2}) do
+    %MapSet{map: Map.drop(map1, Map.keys(map2))}
+  end
+
+  defp filter_not_in(keys, map2, acc \\ [])
+  defp filter_not_in([], _map2, acc), do: :maps.from_list(acc)
+  defp filter_not_in([key | rest], map2, acc) do
+    acc = if Map.has_key?(map2, key) do
+      acc
+    else
+      [{key, true} | acc]
+    end
+    filter_not_in(rest, map2, acc)
   end
 
   @doc """
@@ -105,15 +157,20 @@ defmodule MapSet do
   @spec disjoint?(t, t) :: boolean
   def disjoint?(%MapSet{map: map1}, %MapSet{map: map2}) do
     {map1, map2} = order_by_size(map1, map2)
-    :maps.fold(fn value, _, _ ->
-      if Map.has_key?(map2, value) do
-        throw({:halt, false})
-      else
-        true
-      end
-    end, true, map1)
-  catch
-    {:halt, false} -> false
+
+    map1
+    |> Map.keys
+    |> none_in?(map2)
+  end
+
+  defp none_in?([], _) do
+    true
+  end
+  defp none_in?([key | rest], map2) do
+    case Map.has_key?(map2, key) do
+      true -> false
+      false -> none_in?(rest, map2)
+    end
   end
 
   @doc """
@@ -149,14 +206,8 @@ defmodule MapSet do
   @spec intersection(t, t) :: t
   def intersection(%MapSet{map: map1}, %MapSet{map: map2}) do
     {map1, map2} = order_by_size(map1, map2)
-    map = :maps.fold(fn value, _, acc ->
-      if Map.has_key?(map2, value) do
-        Map.put(acc, value, true)
-      else
-        acc
-      end
-    end, %{}, map1)
-    %MapSet{map: map}
+
+    %MapSet{map: Map.take(map2, Map.keys(map1))}
   end
 
   @doc """
@@ -221,18 +272,21 @@ defmodule MapSet do
   @spec subset?(t, t) :: boolean
   def subset?(%MapSet{map: map1}, %MapSet{map: map2}) do
     if map_size(map1) <= map_size(map2) do
-      :maps.fold(fn value, _, _ ->
-        if Map.has_key?(map2, value) do
-          true
-        else
-          throw({:halt, false})
-        end
-      end, true, map1)
+      map1
+      |> Map.keys
+      |> do_subset?(map2)
     else
       false
     end
-  catch
-    {:halt, false} -> false
+  end
+
+  defp do_subset?([], _), do: true
+  defp do_subset?([key | rest], map2) do
+    if Map.has_key?(map2, key) do
+      do_subset?(rest, map2)
+    else
+      false
+    end
   end
 
   @doc """

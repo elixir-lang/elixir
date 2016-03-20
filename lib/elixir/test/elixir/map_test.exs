@@ -38,6 +38,21 @@ defmodule MapTest do
     assert map_size(@sample) == 2
   end
 
+  test "take/2" do
+    assert Map.take(%{a: 1, b: 2, c: 3}, [:b, :c]) == %{b: 2, c: 3}
+    assert Map.take(%{a: 1, b: 2, c: 3}, MapSet.new([:b, :c])) == %{b: 2, c: 3}
+  end
+
+  test "drop/2" do
+    assert Map.drop(%{a: 1, b: 2, c: 3}, [:b, :c]) == %{a: 1}
+    assert Map.drop(%{a: 1, b: 2, c: 3}, MapSet.new([:b, :c])) == %{a: 1}
+  end
+
+  test "split/2" do
+    assert Map.split(%{a: 1, b: 2, c: 3}, [:b, :c]) == {%{b: 2, c: 3}, %{a: 1}}
+    assert Map.split(%{a: 1, b: 2, c: 3}, MapSet.new([:b, :c])) == {%{b: 2, c: 3}, %{a: 1}}
+  end
+
   test "maps with optional comma" do
     assert %{a: :b,} == %{a: :b}
     assert %{1 => 2,} == %{1 => 2}
