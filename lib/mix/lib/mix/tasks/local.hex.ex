@@ -1,7 +1,7 @@
 defmodule Mix.Tasks.Local.Hex do
   use Mix.Task
 
-  @hex_s3           "http://s3.hex.pm.global.prod.fastly.net"
+  @hex_s3           "https://hexpmrepo.global.ssl.fastly.net"
   @hex_list_path    "/installs/hex-1.x.csv"
   @hex_archive_path "/installs/[ELIXIR_VERSION]/hex-[HEX_VERSION].ez"
 
@@ -19,7 +19,7 @@ defmodule Mix.Tasks.Local.Hex do
 
   ## Mirrors
 
-  If you want to change the [default mirror](http://s3.hex.pm.global.prod.fastly.net)
+  If you want to change the [default mirror](https://hexpmrepo.global.ssl.fastly.net)
   to use for fetching Hex please set the `HEX_CDN` environment variable.
   """
   @spec run(OptionParser.argv) :: boolean
