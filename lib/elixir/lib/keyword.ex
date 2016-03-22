@@ -191,14 +191,14 @@ defmodule Keyword do
   Gets the value from `key` and updates it, all in one pass.
 
   This `fun` argument receives the value of `key` (or `nil` if `key`
-  is not present) and must return a two-element tuple: the "get" value (the
-  retrieved value, which can be operated on before being returned) and the new
-  value to be stored under `key`.
+  is not present) and must return a two-element tuple: the "get" value
+  (the retrieved value, which can be operated on before being returned)
+  and the new value to be stored under `key`. The `fun` may also
+  return `:pop`, implying the current value shall be removed from the
+  keyword list and returned.
 
-  The returned value may be a tuple with the "get" value returned by
-  `fun` and a new keyword list with the updated value under `key`. The
-  function may also return `:pop`, implying the current value shall
-  be removed from the keyword list and returned.
+  The returned value is a tuple with the "get" value returned by
+  `fun` and a new keyword list with the updated value under `key`.
 
   ## Examples
 

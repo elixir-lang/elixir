@@ -107,6 +107,7 @@ defmodule Access do
   @type value :: any
 
   @callback fetch(t, key) :: {:ok, value} | :error
+  @callback get(t, key, value) :: value
   @callback get_and_update(t, key, (value -> {value, value} | :pop)) :: {value, t}
   @callback pop(t, key) :: {value, t}
 
@@ -179,7 +180,7 @@ defmodule Access do
   The first element is the `get` value, as returned by `fun`.
   The second element is the container, updated with the value returned by `fun`.
   """
-  @spec get_and_update(t, term, (term -> {get, term})) :: {get, t} when get: var
+  @spec get_and_update(t, key, (value -> {get, value})) :: {get, t} when get: var
   def get_and_update(container, key, fun)
 
   def get_and_update(%{__struct__: struct} = container, key, fun) do
