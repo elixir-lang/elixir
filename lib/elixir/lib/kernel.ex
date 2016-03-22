@@ -2703,7 +2703,15 @@ defmodule Kernel do
   """
   defmacro left |> right do
     [{h, _}|t] = Macro.unpipe({:|>, [], [left, right]})
-    :lists.foldl fn {x, pos}, acc -> Macro.pipe(acc, x, pos) end, h, t
+    :lists.foldl fn {x, pos}, acc ->
+      # TODO: raise an error in `Macro.pipe` when we drop unary operator support in pipes
+      case Macro.pipe_warning(x) do
+        nil -> :ok
+        message ->
+          :elixir_errors.warn(__CALLER__.line, __CALLER__.file, message)
+      end
+      Macro.pipe(acc, x, pos)
+    end, h, t
   end
 
   @doc """
