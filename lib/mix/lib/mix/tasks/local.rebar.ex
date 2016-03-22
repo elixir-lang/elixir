@@ -1,7 +1,6 @@
 defmodule Mix.Tasks.Local.Rebar do
   use Mix.Task
 
-  @s3_url             "https://hexpmrepo.global.ssl.fastly.net"
   @rebar2_list_url     "/installs/rebar-1.x.csv"
   @rebar2_escript_url  "/installs/[ELIXIR_VERSION]/rebar-[REBAR_VERSION]"
   @rebar3_list_url     "/installs/rebar3-1.x.csv"
@@ -38,7 +37,7 @@ defmodule Mix.Tasks.Local.Rebar do
   ## Mirrors
 
   If you want to change the [default mirror](https://hexpmrepo.global.ssl.fastly.net)
-  to use for fetching `rebar` please set the `HEX_CDN` environment variable.
+  to use for fetching `rebar` please set the `HEX_MIRROR` environment variable.
   """
   @switches [force: :boolean, sha512: :string]
   @spec run(OptionParser.argv) :: true
@@ -92,14 +91,14 @@ defmodule Mix.Tasks.Local.Rebar do
   end
 
   defp install_from_s3(manager, list_url, escript_url, opts) do
-    rebar_mirror = System.get_env("HEX_CDN") || @s3_url
-    list_url = rebar_mirror <> list_url
+    hex_mirror = Mix.Hex.mirror
+    list_url = hex_mirror <> list_url
 
     {elixir_version, rebar_version, sha512} =
       Mix.Local.find_matching_versions_from_signed_csv!("Rebar", list_url)
 
     url =
-      (rebar_mirror <> escript_url)
+      (hex_mirror <> escript_url)
       |> String.replace("[ELIXIR_VERSION]", elixir_version)
       |> String.replace("[REBAR_VERSION]", rebar_version)
 
