@@ -2303,7 +2303,7 @@ defmodule Kernel do
     end
   end
 
-  # @attribute value
+  # @attribute(value)
   defp do_at([arg], name, function?, env) do
     case function? do
       true ->
@@ -2327,23 +2327,26 @@ defmodule Kernel do
   defp do_at(args, name, function?, env) when is_atom(args) or args == [] do
     stack = env_stacktrace(env)
 
+    doc_attr? = :lists.member(name, [:moduledoc, :typedoc, :doc])
     case function? do
       true ->
-        attr = Module.get_attribute(env.module, name, stack)
+        value =
+          with {_, doc} when doc_attr? <- Module.get_attribute(env.module, name, stack),
+            do: doc
         try do
-          :elixir_quote.escape(attr, false)
+          :elixir_quote.escape(value, false)
         rescue
-          e in [ArgumentError] ->
-            raise ArgumentError, "cannot inject attribute @#{name} into function/macro because " <> Exception.message(e)
+          ex in [ArgumentError] ->
+            raise ArgumentError, "cannot inject attribute @#{name} into function/macro because " <> Exception.message(ex)
         else
           {val, _} -> val
         end
       false ->
-        escaped = case stack do
-          [] -> []
-          _  -> Macro.escape(stack)
+        {escaped, _} = :elixir_quote.escape(stack, false)
+        quote do
+          with {_, doc} when unquote(doc_attr?) <- Module.get_attribute(__MODULE__, unquote(name), unquote(escaped)),
+            do: doc
         end
-        quote do: Module.get_attribute(__MODULE__, unquote(name), unquote(escaped))
     end
   end
 
