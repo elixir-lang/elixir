@@ -663,6 +663,18 @@ defmodule Kernel.ErrorsTest do
       'Module.eval_quoted Record, quote(do: 1), [], file: __ENV__.file'
   end
 
+  test "doc attributes format" do
+    message = "expected moduledoc attribute given " <>
+      "in the {line, doc} format, got: \"Other\""
+    assert_raise ArgumentError, message, fn ->
+      defmodule DocAttributesFormat do
+        @moduledoc "ModuleTest"
+        {671, "ModuleTest"} = Module.get_attribute(__MODULE__, :moduledoc)
+        Module.put_attribute(__MODULE__, :moduledoc, "Other")
+      end
+    end
+  end
+
   test "interpolation error" do
     assert_compile_fail SyntaxError,
       "nofile:1: unexpected token: \")\". \"do\" starting at line 1 is missing terminator \"end\"",
