@@ -2276,9 +2276,8 @@ defmodule Kernel do
   """
   defmacro @(expr)
 
-  # Typespecs attributes are special cased by the compiler so far
   defmacro @({name, _, args}) do
-    # Check for Macro as it is compiled later than Module
+    # Check for Module as it is compiled later than Kernel
     case bootstraped?(Module) do
       false -> nil
       true  ->
@@ -2291,6 +2290,7 @@ defmodule Kernel do
             raise ArgumentError, "invalid write attribute syntax, you probably meant to use: @#{name} expression"
         end
 
+        # Typespecs attributes are special cased by the compiler so far
         case is_list(args) and length(args) == 1 and typespec(name) do
           false ->
             do_at(args, name, function?, __CALLER__)
