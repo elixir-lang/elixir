@@ -76,8 +76,14 @@ defmodule Map do
 
   """
   @spec new(Enum.t) :: map
-  def new(enumerable) do
-    Enum.reduce(enumerable, %{}, fn {k, v}, acc -> put(acc, k, v) end)
+  def new(%{__struct__: _} = struct), do: new_from_enum(struct)
+  def new(%{} = map), do: map
+  def new(enum), do: new_from_enum(enum)
+
+  defp new_from_enum(enumerable) do
+    enumerable
+    |> Enum.to_list
+    |> :maps.from_list
   end
 
   @doc """
@@ -93,11 +99,18 @@ defmodule Map do
   """
   @spec new(Enum.t, (term -> {key, value})) :: map
   def new(enumerable, transform) do
-    fun = fn el, acc ->
-      {k, v} = transform.(el)
-      put(acc, k, v)
-    end
-    Enum.reduce(enumerable, %{}, fun)
+    enumerable
+    |> Enum.to_list
+    |> do_new_transform(transform, [])
+  end
+
+  defp do_new_transform([], _fun, acc) do
+    acc
+    |> :lists.reverse
+    |> :maps.from_list
+  end
+  defp do_new_transform([item | rest], fun, acc) do
+    do_new_transform(rest, fun, [fun.(item) | acc])
   end
 
   @doc """
@@ -209,15 +222,20 @@ defmodule Map do
       %{a: 1, c: 3}
 
   """
-  @spec take(map, [key]) :: map
+  @spec take(map, Enumerable.t) :: map
   def take(map, keys) do
-    Enum.reduce(keys, [], fn key, acc ->
-      case fetch(map, key) do
-        {:ok, value} -> [{key, value} | acc]
-        :error -> acc
-      end
-    end)
-    |> :maps.from_list
+    keys
+    |> Enum.to_list
+    |> do_take(map, [])
+  end
+
+  defp do_take([], _map, acc), do: :maps.from_list(acc)
+  defp do_take([key | rest], map, acc) do
+    acc = case fetch(map, key) do
+      {:ok, value} -> [{key, value} | acc]
+      :error -> acc
+    end
+    do_take(rest, map, acc)
   end
 
   @doc """
@@ -423,9 +441,16 @@ defmodule Map do
       %{a: 1, c: 3}
 
   """
-  @spec drop(map, [key]) :: map
+  @spec drop(map, Enumerable.t) :: map
   def drop(map, keys) do
-    Enum.reduce(keys, map, &delete(&2, &1))
+    keys
+    |> Enum.to_list
+    |> drop_list(map)
+  end
+
+  defp drop_list([], acc), do: acc
+  defp drop_list([key | rest], acc) do
+    drop_list(rest, Map.delete(acc, key))
   end
 
   @doc """
@@ -442,16 +467,23 @@ defmodule Map do
       {%{a: 1, c: 3}, %{b: 2}}
 
   """
-  @spec split(map, [key]) :: {map, map}
+  @spec split(map, Enumerable.t) :: {map, map}
   def split(map, keys) do
-    Enum.reduce(keys, {new, map}, fn key, {inc, exc} = acc ->
-      case fetch(exc, key) do
-        {:ok, value} ->
-          {put(inc, key, value), delete(exc, key)}
-        :error ->
-          acc
-      end
-    end)
+    keys
+    |> Enum.to_list
+    |> do_split([], map)
+  end
+
+  defp do_split([], inc, exc) do
+    {:maps.from_list(inc), exc}
+  end
+  defp do_split([key | rest], inc, exc) do
+    case fetch(exc, key) do
+      {:ok, value} ->
+        do_split(rest, [{key, value} | inc], delete(exc, key))
+      :error ->
+        do_split(rest, inc, exc)
+    end
   end
 
   @doc """
