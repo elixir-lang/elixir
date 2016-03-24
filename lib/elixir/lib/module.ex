@@ -1059,7 +1059,7 @@ defmodule Module do
 
     case :ets.lookup(table, key) do
       [{^key, val}] ->
-        postprocess_attribute(key, val)
+        val
       [] ->
         acc = :ets.lookup_element(table, {:elixir, :acc_attributes}, 2)
 
@@ -1086,6 +1086,13 @@ defmodule Module do
   end
 
   ## Helpers
+
+  defp preprocess_attribute(key, value) when key in [:moduledoc, :typedoc, :doc] do
+    unless match?({line, _} when is_integer(line), value) do
+      raise ArgumentError, "expected #{key} attribute given in the {line, doc} format, got: #{inspect(value)}"
+    end
+    value
+  end
 
   defp preprocess_attribute(:on_load, atom) when is_atom(atom) do
     {atom, 0}
@@ -1116,11 +1123,6 @@ defmodule Module do
   defp preprocess_attribute(_key, value) do
     value
   end
-
-  defp postprocess_attribute(:doc, {_line, doc}), do: doc
-  defp postprocess_attribute(:typedoc, {_line, doc}), do: doc
-  defp postprocess_attribute(:moduledoc, {_line, doc}), do: doc
-  defp postprocess_attribute(_, value), do: value
 
   defp get_doc_info(table, env) do
     case :ets.take(table, :doc) do
