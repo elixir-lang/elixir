@@ -234,6 +234,28 @@ defmodule Version do
   end
 
   @doc """
+  Parses a version string into a `Version`.
+
+  If `string` is an invalid version, an `InvalidVersionError` is raised.
+
+  ## Examples
+
+      iex> Version.parse!("2.0.1-alpha1")
+      #Version<2.0.1-alpha1>
+
+      iex> Version.parse!("2.0-alpha1")
+      ** (Version.InvalidVersionError) 2.0-alpha1
+
+  """
+  @spec parse!(String.t) :: t | no_return
+  def parse!(string) when is_binary(string) do
+    case parse(string) do
+      {:ok, version} -> version
+      :error -> raise InvalidVersionError, message: string
+    end
+  end
+
+  @doc """
   Parses a version requirement string into a `Version.Requirement`.
 
   ## Examples
