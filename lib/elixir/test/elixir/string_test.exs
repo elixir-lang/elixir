@@ -559,4 +559,13 @@ defmodule StringTest do
     assert String.jaro_distance("jon", "jan") == 0.7777777777777777
     assert String.jaro_distance("семена", "стремя") == 0.6666666666666666
   end
+
+  test "difference/2" do
+    assert String.myers_difference("", "abc") == [ins: "abc"]
+    assert String.myers_difference("abc", "") == [del: "abc"]
+    assert String.myers_difference("", "") == []
+    assert String.myers_difference("abc", "abc") == [eq: "abc"]
+    assert String.myers_difference("abc", "aйbc") == [eq: "a", ins: "й", eq: "bc"]
+    assert String.myers_difference("aйbc", "abc") == [eq: "a", del: "й", eq: "bc"]
+  end
 end
