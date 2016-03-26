@@ -68,8 +68,8 @@ defmodule ExUnit.Formatter do
     run_us  = run_us |> normalize_us
     load_us = load_us |> normalize_us
 
-    ms = run_us + load_us
-    "Finished in #{format_us ms} seconds (#{format_us load_us}s on load, #{format_us run_us}s on tests)"
+    total_us = run_us + load_us
+    "Finished in #{format_us total_us} seconds (#{format_us load_us}s on load, #{format_us run_us}s on tests)"
   end
 
   defp normalize_us(us) do
