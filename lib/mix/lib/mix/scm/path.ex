@@ -46,6 +46,7 @@ defmodule Mix.SCM.Path do
     []
   end
 
+  @spec checkout(list) :: no_return
   def checkout(opts) do
     path = Path.relative_to_cwd opts[:dest]
     Mix.raise "Cannot checkout path dependency, expected a dependency at #{path}"
