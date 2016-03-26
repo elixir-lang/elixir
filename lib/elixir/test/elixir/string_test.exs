@@ -557,5 +557,6 @@ defmodule StringTest do
     assert String.jaro_distance("sean", "susan") == 0.7833333333333333
     assert String.jaro_distance("jon", "john") == 0.9166666666666666
     assert String.jaro_distance("jon", "jan") == 0.7777777777777777
+    assert String.jaro_distance("семена", "стремя") == 0.6666666666666666
   end
 end
