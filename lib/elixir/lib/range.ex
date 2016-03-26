@@ -70,8 +70,7 @@ defmodule Range do
       false
 
   """
-  @spec range?(%Range{}) :: true
-  @spec range?(term) :: false
+  @spec range?(term) :: boolean
   def range?(term)
   def range?(%Range{}), do: true
   def range?(_), do: false
