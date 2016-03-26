@@ -2,6 +2,9 @@ defmodule StringIO do
   @moduledoc """
   This module provides an IO device that wraps a string.
 
+  A `StringIO` IO device can be passed as a "device" to
+  most of the functions in the `IO` module.
+
   ## Examples
 
       iex> {:ok, pid} = StringIO.open("foo")
@@ -14,6 +17,9 @@ defmodule StringIO do
 
   @doc """
   Creates an IO device.
+
+  `string` will be the initial input of the newly created
+  device.
 
   If the `:capture_prompt` option is set to `true`,
   prompts (specified as arguments to `IO.get*` functions)
@@ -40,7 +46,8 @@ defmodule StringIO do
   end
 
   @doc """
-  Returns current buffers.
+  Returns the current input/output buffers for the given IO
+  device.
 
   ## Examples
 
@@ -56,7 +63,7 @@ defmodule StringIO do
   end
 
   @doc """
-  Flushes output buffer.
+  Flushes the output buffer and returns its current contents.
 
   ## Examples
 
@@ -74,7 +81,8 @@ defmodule StringIO do
   end
 
   @doc """
-  Stops the IO device and returns remaining buffers.
+  Stops the IO device and returns the remaining input/output
+  buffers.
 
   ## Examples
 
