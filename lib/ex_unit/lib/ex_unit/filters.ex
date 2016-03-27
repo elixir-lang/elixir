@@ -80,7 +80,7 @@ defmodule ExUnit.Filters do
       {:error, "due to foo filter"}
 
   """
-  @spec eval(t, t, map, [ExUnit.Test.t]) :: :ok | {:error, atom}
+  @spec eval(t, t, map, [ExUnit.Test.t]) :: :ok | {:error, binary}
   def eval(include, exclude, tags, collection) when is_map(tags) do
     case Map.fetch(tags, :skip) do
       {:ok, msg} when is_binary(msg) ->

@@ -1331,7 +1331,7 @@ defmodule Kernel do
   defmacro raise(msg) do
     # Try to figure out the type at compilation time
     # to avoid dead code and make Dialyzer happy.
-    msg = case not is_binary(msg) and bootstraped?(Macro) do
+    msg = case not is_binary(msg) and bootstrapped?(Macro) do
       true  -> Macro.expand(msg, __CALLER__)
       false -> msg
     end
@@ -2278,7 +2278,7 @@ defmodule Kernel do
 
   defmacro @({name, _, args}) do
     # Check for Module as it is compiled later than Kernel
-    case bootstraped?(Module) do
+    case bootstrapped?(Module) do
       false -> nil
       true  ->
         assert_module_scope(__CALLER__, :@, 1)
@@ -2295,7 +2295,7 @@ defmodule Kernel do
           false ->
             do_at(args, name, function?, __CALLER__)
           macro ->
-            case bootstraped?(Kernel.Typespec) do
+            case bootstrapped?(Kernel.Typespec) do
               false -> nil
               true  -> quote do: Kernel.Typespec.unquote(macro)(unquote(hd(args)))
             end
@@ -2797,7 +2797,7 @@ defmodule Kernel do
   defmacro left in right do
     in_module? = (__CALLER__.context == nil)
 
-    right = case bootstraped?(Macro) and not in_module? do
+    right = case bootstrapped?(Macro) and not in_module? do
       true  -> Macro.expand(right, __CALLER__)
       false -> right
     end
@@ -3003,7 +3003,7 @@ defmodule Kernel do
   """
   defmacro defmodule(alias, do: block) do
     env   = __CALLER__
-    boot? = bootstraped?(Macro)
+    boot? = bootstrapped?(Macro)
 
     expanded =
       case boot? do
@@ -4101,9 +4101,9 @@ defmodule Kernel do
   # Once Kernel is loaded and we recompile, it is a no-op.
   case :code.ensure_loaded(Kernel) do
     {:module, _} ->
-      defp bootstraped?(_), do: true
+      defp bootstrapped?(_), do: true
     {:error, _} ->
-      defp bootstraped?(module), do: :code.ensure_loaded(module) == {:module, module}
+      defp bootstrapped?(module), do: :code.ensure_loaded(module) == {:module, module}
   end
 
   defp assert_module_scope(env, fun, arity) do
@@ -4121,7 +4121,7 @@ defmodule Kernel do
   end
 
   defp env_stacktrace(env) do
-    case bootstraped?(Path) do
+    case bootstrapped?(Path) do
       true  -> Macro.Env.stacktrace(env)
       false -> []
     end

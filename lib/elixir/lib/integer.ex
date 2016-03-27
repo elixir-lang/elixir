@@ -58,7 +58,7 @@ defmodule Integer do
       [1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1]
 
   """
-  @spec digits(non_neg_integer, pos_integer) :: [non_neg_integer]
+  @spec digits(non_neg_integer, pos_integer) :: [non_neg_integer, ...]
   def digits(n, base \\ 10) when is_integer(n)    and n >= 0
                             and  is_integer(base) and base >= 2 do
     do_digits(n, base, [])
