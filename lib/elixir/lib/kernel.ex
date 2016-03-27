@@ -872,6 +872,52 @@ defmodule Kernel do
   end
 
   @doc """
+  Arithmetic exponentiation.
+
+  When both *x* and *n* are integers and *n* is positive, returns an `integer`.
+  When *n* is a negative integer, returns a `float`.
+  When working with integers, the Exponentiation by Squaring algorithm is used, to allow for a fast and precise result.
+
+  When one of the numbers is a float, returns a `float` by using erlang's `:math.pow/2` function.
+
+  It is possible to calculate roots by choosing *n* between  0.0 and 1.0 (To calculate the *p* -th-root, pass 1/*p* to the function)  
+
+  *This function is _not_ allowed in guard clauses.*
+
+  ## Examples
+
+      iex> 2 ** 4
+      16
+      iex> 2.0 ** 4
+      16.0
+      iex> 2 ** 4.0
+      16.0
+      iex> 5 ** 100
+      7888609052210118054117285652827862296732064351090230047702789306640625
+      iex> 5.0 ** 100
+      7.888609052210118e69
+      iex> 2 ** (1/2)
+      1.4142135623730951
+  """
+  @spec number ** number :: number
+  def x ** n
+
+  def x ** n when is_integer(x) and is_integer(n), do: _pow(x, n)
+
+  # Float implementation. Uses erlang's math library.
+  def x ** n do
+    :math.pow(x, n)
+  end
+
+  # Integer implementation. Uses Exponentiation by Squaring. 
+  defp _pow(x, n, y \\ 1)
+  defp _pow(_x, 0, y), do: y
+  defp _pow(x, 1, y), do: x * y
+  defp _pow(x, n, y) when (n < 0), do: _pow(1 / x, -n, y)
+  defp _pow(x, n, y) when rem(n, 2) == 0, do: _pow(x * x, div(n, 2), y)
+  defp _pow(x, n, y), do: _pow(x * x, div((n - 1), 2), x * y)
+
+  @doc """
   Arithmetic multiplication.
 
   Allowed in guard tests. Inlined by the compiler.

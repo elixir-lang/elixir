@@ -28,6 +28,9 @@
 -define(mult_op(T),
   T == $* orelse T == $/).
 
+-define(pow_op(T1, T2),
+  T1 == $*, T2 == $*).
+
 -define(dual_op(T),
   T == $+ orelse T == $-).
 
@@ -263,7 +266,7 @@ tokenize([$:, T1, T2, T3|Rest], Line, Column, Scope, Tokens) when
 tokenize([$:, T1, T2|Rest], Line, Column, Scope, Tokens) when
     ?comp_op2(T1, T2); ?rel_op2(T1, T2); ?and_op(T1, T2); ?or_op(T1, T2);
     ?arrow_op(T1, T2); ?in_match_op(T1, T2); ?two_op(T1, T2); ?stab_op(T1, T2);
-    ?type_op(T1, T2) ->
+    ?type_op(T1, T2); ?pow_op(T1, T2) ->
   tokenize(Rest, Line, Column + 3, Scope, [{atom, {Line, Column, Column + 3}, list_to_atom([T1, T2])}|Tokens]);
 
 % ## Single Token Operators
@@ -363,6 +366,9 @@ tokenize([T1, T2|Rest], Line, Column, Scope, Tokens) when ?in_match_op(T1, T2) -
 
 tokenize([T1, T2|Rest], Line, Column, Scope, Tokens) when ?type_op(T1, T2) ->
   handle_op(Rest, Line, Column, type_op, 2, list_to_atom([T1, T2]), Scope, Tokens);
+
+tokenize([T1, T2|Rest], Line, Column, Scope, Tokens) when ?pow_op(T1, T2) ->
+  handle_op(Rest, Line, Column, pow_op, 2, list_to_atom([T1, T2]), Scope, Tokens);
 
 tokenize([T1, T2|Rest], Line, Column, Scope, Tokens) when ?stab_op(T1, T2) ->
   handle_op(Rest, Line, Column, stab_op, 2, list_to_atom([T1, T2]), Scope, Tokens);
