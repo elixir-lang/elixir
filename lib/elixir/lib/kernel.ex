@@ -882,7 +882,7 @@ defmodule Kernel do
 
   It is possible to calculate roots by choosing *n* between  0.0 and 1.0 (To calculate the *p* -th-root, pass 1/*p* to the function)  
 
-  This function is _not_ allowed in guard clauses.
+  *This function is _not_ allowed in guard clauses.*
 
   ## Examples
 
