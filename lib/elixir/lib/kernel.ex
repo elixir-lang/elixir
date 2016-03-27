@@ -928,37 +928,37 @@ defmodule Kernel do
       'foobar'
 
   """
-  @doc """
-  Arithmetic exponentiation.
+  # @doc """
+  # Arithmetic exponentiation.
 
-  When both numbers are integers, returns an integer.
-  When one of the numbers is a float, returns a float.
+  # When both numbers are integers, returns an integer.
+  # When one of the numbers is a float, returns a float.
 
-  Allowed in guard clauses? 
-  # TODO
+  # Allowed in guard clauses? 
+  # # TODO
 
-  ## Examples
+  # ## Examples
 
-      iex> 2 ** 4
-      16
+  #     iex> 2 ** 4
+  #     16
 
-  """
-  @spec (number + number) :: number
-  def x ** n
+  # """
+  # @spec (number + number) :: number
+  # def x ** n
 
-  def x ** n when is_integer(a) and is_integer(b), do: _pow(x, n)
+  # def x ** n when is_integer(a) and is_integer(b), do: _pow(x, n)
 
-  # Float implementation, use Erlang's math library.
-  def left ** right do
-    :math.pow(left, right)
-  end
+  # # Float implementation, use Erlang's math library.
+  # def left ** right do
+  #   :math.pow(left, right)
+  # end
 
-  defp _pow(x, n, y \\ 1)
-  defp _pow(_x, 0, y), do: y
-  defp _pow(x, 1, y), do: x * y
-  defp _pow(x, n, y) when (n < 0), do: _pow(1 / x, -n, y)
-  defp _pow(x, n, y) when rem(n, 2) == 0, do: _pow(x * x, div(n, 2), y)
-  defp _pow(x, n, y), do: _pow(x * x, div((n - 1), 2), x * y)
+  # defp _pow(x, n, y \\ 1)
+  # defp _pow(_x, 0, y), do: y
+  # defp _pow(x, 1, y), do: x * y
+  # defp _pow(x, n, y) when (n < 0), do: _pow(1 / x, -n, y)
+  # defp _pow(x, n, y) when rem(n, 2) == 0, do: _pow(x * x, div(n, 2), y)
+  # defp _pow(x, n, y), do: _pow(x * x, div((n - 1), 2), x * y)
 
 
   @spec (list ++ term) :: maybe_improper_list
