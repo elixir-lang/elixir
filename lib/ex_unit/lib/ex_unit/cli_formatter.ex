@@ -176,26 +176,25 @@ defmodule ExUnit.CLIFormatter do
   # Color styles
 
   defp colorize(escape, string, %{colors: colors}) do
-    enabled = colors[:enabled]
-    [IO.ANSI.format_fragment(escape, enabled),
-     string,
-     IO.ANSI.format_fragment(:reset, enabled)] |> IO.iodata_to_binary
+    [escape | string]
+    |> IO.ANSI.format(colors[:enabled])
+    |> IO.iodata_to_binary
   end
 
   defp success(msg, config) do
-    colorize([:green], msg, config)
+    colorize(:green, msg, config)
   end
 
   defp invalid(msg, config) do
-    colorize([:yellow], msg, config)
+    colorize(:yellow, msg, config)
   end
 
   defp failure(msg, config) do
-    colorize([:red], msg, config)
+    colorize(:red, msg, config)
   end
 
-  defp formatter(:error_info, msg, config),    do: colorize([:red], msg, config)
-  defp formatter(:extra_info, msg, config),    do: colorize([:cyan], msg, config)
+  defp formatter(:error_info, msg, config),    do: colorize(:red, msg, config)
+  defp formatter(:extra_info, msg, config),    do: colorize(:cyan, msg, config)
   defp formatter(:location_info, msg, config), do: colorize([:bright, :black], msg, config)
   defp formatter(_,  msg, _config),            do: msg
 
