@@ -868,8 +868,8 @@ defmodule EnumTest.Range do
   end
 
   test "max by" do
-    assert Enum.max_by(1..1, fn(x) -> :math.pow(-2, x) end) == 1
-    assert Enum.max_by(1..3, fn(x) -> :math.pow(-2, x) end) == 2
+    assert Enum.max_by(1..1, fn(x) -> -2 ** x end) == 1
+    assert Enum.max_by(1..3, fn(x) -> -2 ** x end) == 2
   end
 
   test "min" do

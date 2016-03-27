@@ -45,7 +45,7 @@ end
 
 defimpl List.Chars, for: Float do
   @digits 20
-  @limit  :math.pow(10, @digits)
+  @limit  10 ** @digits
 
   def to_char_list(thing) when thing > @limit do
     Float.to_char_list(thing, scientific: @digits)

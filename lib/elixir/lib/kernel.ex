@@ -872,6 +872,51 @@ defmodule Kernel do
   end
 
   @doc """
+  Arithmetic exponentiation.
+
+  When both *x* and *n* are integers, returns an `integer`.
+  When working with integers, the Exponentiation by Squaring algorithm is used, to allow for a fast and precise result.
+
+  When one of the numbers is a float, or when *n* is negative, returns a `float`.
+
+  It is possible to calculate roots by choosing *n* between  0.0 and 1.0 (To calculate the *p* -th-root, pass 1/*p* to the function)  
+
+  This function is _not_ allowed in guard clauses.
+
+  ## Examples
+
+      iex> 2 ** 4
+      16
+      iex> 2.0 ** 4
+      16.0
+      iex> 2 ** 4.0
+      16.0
+      iex> 5 ** 100
+      7888609052210118054117285652827862296732064351090230047702789306640625
+      iex> 5.0 ** 100
+      7.888609052210118e69
+      iex> 2 ** (1/2)
+      1.4142135623730951
+
+  """
+  @spec (number ** number) :: number
+  def (x ** n)
+
+  def (x ** n) when is_integer(x) and is_integer(n), do: _pow(x, n)
+
+  # Float implementation, use Erlang's math library.
+  def (left ** right) do
+    :math.pow(left, right)
+  end
+
+  defp _pow(x, n, y \\ 1)
+  defp _pow(_x, 0, y), do: y
+  defp _pow(x, 1, y), do: x * y
+  defp _pow(x, n, y) when (n < 0), do: _pow(1 / x, -n, y)
+  defp _pow(x, n, y) when rem(n, 2) == 0, do: _pow(x * x, div(n, 2), y)
+  defp _pow(x, n, y), do: _pow(x * x, div((n - 1), 2), x * y)
+
+  @doc """
   Arithmetic multiplication.
 
   Allowed in guard tests. Inlined by the compiler.
@@ -908,38 +953,6 @@ defmodule Kernel do
   def left / right do
     :erlang./(left, right)
   end
-
-  @doc """
-  Arithmetic exponentiation.
-
-  When both numbers are integers, returns an integer.
-  When one of the numbers is a float, returns a float.
-
-  Allowed in guard clauses? 
-  # TODO
-
-  ## Examples
-
-      iex> 2 ** 4
-      16
-
-  """
-  @spec (number ** number) :: number
-  def (x ** n)
-
-  def (x ** n) when is_integer(x) and is_integer(n), do: _pow(x, n)
-
-  # Float implementation, use Erlang's math library.
-  def (left ** right) do
-    :math.pow(left, right)
-  end
-
-  defp _pow(x, n, y \\ 1)
-  defp _pow(_x, 0, y), do: y
-  defp _pow(x, 1, y), do: x * y
-  defp _pow(x, n, y) when (n < 0), do: _pow(1 / x, -n, y)
-  defp _pow(x, n, y) when rem(n, 2) == 0, do: _pow(x * x, div(n, 2), y)
-  defp _pow(x, n, y), do: _pow(x * x, div((n - 1), 2), x * y)
 
   @doc """
   Concatenates two lists.
