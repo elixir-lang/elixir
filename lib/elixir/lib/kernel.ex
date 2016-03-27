@@ -910,6 +910,38 @@ defmodule Kernel do
   end
 
   @doc """
+  Arithmetic exponentiation.
+
+  When both numbers are integers, returns an integer.
+  When one of the numbers is a float, returns a float.
+
+  Allowed in guard clauses? 
+  # TODO
+
+  ## Examples
+
+      iex> 2 ** 4
+      16
+
+  """
+  @spec (number ** number) :: number
+  def (x ** n)
+
+  def (x ** n) when is_integer(x) and is_integer(n), do: _pow(x, n)
+
+  # Float implementation, use Erlang's math library.
+  def (left ** right) do
+    :math.pow(left, right)
+  end
+
+  defp _pow(x, n, y \\ 1)
+  defp _pow(_x, 0, y), do: y
+  defp _pow(x, 1, y), do: x * y
+  defp _pow(x, n, y) when (n < 0), do: _pow(1 / x, -n, y)
+  defp _pow(x, n, y) when rem(n, 2) == 0, do: _pow(x * x, div(n, 2), y)
+  defp _pow(x, n, y), do: _pow(x * x, div((n - 1), 2), x * y)
+
+  @doc """
   Concatenates two lists.
 
   The complexity of `a ++ b` is proportional to `length(a)`, so avoid repeatedly
@@ -928,39 +960,6 @@ defmodule Kernel do
       'foobar'
 
   """
-  # @doc """
-  # Arithmetic exponentiation.
-
-  # When both numbers are integers, returns an integer.
-  # When one of the numbers is a float, returns a float.
-
-  # Allowed in guard clauses? 
-  # # TODO
-
-  # ## Examples
-
-  #     iex> 2 ** 4
-  #     16
-
-  # """
-  # @spec (number + number) :: number
-  # def x ** n
-
-  # def x ** n when is_integer(a) and is_integer(b), do: _pow(x, n)
-
-  # # Float implementation, use Erlang's math library.
-  # def left ** right do
-  #   :math.pow(left, right)
-  # end
-
-  # defp _pow(x, n, y \\ 1)
-  # defp _pow(_x, 0, y), do: y
-  # defp _pow(x, 1, y), do: x * y
-  # defp _pow(x, n, y) when (n < 0), do: _pow(1 / x, -n, y)
-  # defp _pow(x, n, y) when rem(n, 2) == 0, do: _pow(x * x, div(n, 2), y)
-  # defp _pow(x, n, y), do: _pow(x * x, div((n - 1), 2), x * y)
-
-
   @spec (list ++ term) :: maybe_improper_list
   def left ++ right do
     :erlang.++(left, right)
@@ -2741,11 +2740,11 @@ defmodule Kernel do
     [{h, _}|t] = Macro.unpipe({:|>, [], [left, right]})
     :lists.foldl fn {x, pos}, acc ->
       # TODO: raise an error in `Macro.pipe` when we drop unary operator support in pipes
-      case Macro.pipe_warning(x) do
-        nil -> :ok
-        message ->
-          :elixir_errors.warn(__CALLER__.line, __CALLER__.file, message)
-      end
+      # case Macro.pipe_warning(x) do
+      #   nil -> :ok
+      #   message ->
+      #     :elixir_errors.warn(__CALLER__.line, __CALLER__.file, message)
+      # end
       Macro.pipe(acc, x, pos)
     end, h, t
   end
