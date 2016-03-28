@@ -282,6 +282,7 @@ defmodule Mix do
   name. This information is used by modules like `Mix.CLI` to
   properly format and show information to the user.
   """
+  @spec raise(atom, list) :: no_return
   def raise(exception, opts) when is_atom(exception) do
     Kernel.raise %{exception.exception(opts) | mix: true}
   end
