@@ -830,6 +830,20 @@ defmodule Kernel.ErrorsTest do
       'if true do\n  foo = [],\n  baz\nend'
   end
 
+  # As reported and discussed in
+  # https://github.com/elixir-lang/elixir/issues/4419.
+  test "characters literal are printed correctly in syntax errors" do
+    assert_compile_fail SyntaxError,
+      "nofile:1: syntax error before: ?a",
+      ':ok ?a'
+    assert_compile_fail SyntaxError,
+      "nofile:1: syntax error before: ?\\s",
+      ':ok ?\\s'
+    assert_compile_fail SyntaxError,
+      "nofile:1: syntax error before: ?す"
+      ':ok ?す'
+  end
+
   test "invalid var or function on guard" do
     assert_compile_fail CompileError,
       "nofile:4: unknown variable something_that_does_not_exist or " <>

@@ -175,9 +175,15 @@ tokenize([$~, S, H|T] = Original, Line, Column, Scope, Tokens) when ?is_sigil(H)
 
 % Char tokens
 
+% We tokenize char literals (?a) as {char, _, CharInt} instead of {number, _,
+% CharInt}. This is exactly what Erlang does with Erlang char literals
+% ($a). This means we'll have to adjust the error message for char literals in
+% elixir_errors.erl as by default {char, _, _} tokens are "hijacked" by Erlang
+% and printed with Erlang syntax ($a) in the parser's error messages.
+
 tokenize([$?, $\\, H|T], Line, Column, Scope, Tokens) ->
   Char = elixir_interpolation:unescape_map(H),
-  tokenize(T, Line, Column + 3, Scope, [{number, {Line, Column, Column + 3}, Char}|Tokens]);
+  tokenize(T, Line, Column + 3, Scope, [{char, {Line, Column, Column + 3}, Char}|Tokens]);
 
 tokenize([$?, Char|T], Line, Column, Scope, Tokens) ->
   case handle_char(Char) of
@@ -188,7 +194,7 @@ tokenize([$?, Char|T], Line, Column, Scope, Tokens) ->
     false ->
       ok
   end,
-  tokenize(T, Line, Column + 2, Scope, [{number, {Line, Column, Column + 2}, Char}|Tokens]);
+  tokenize(T, Line, Column + 2, Scope, [{char, {Line, Column, Column + 2}, Char}|Tokens]);
 
 % Heredocs
 
