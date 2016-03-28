@@ -111,6 +111,9 @@ defmodule VersionTest do
     assert V.match?("1.2.3-alpha", "1.2.3-alpha")
 
     assert V.match?("0.9.3", "== 0.9.3+dev")
+
+    {:ok, vsn} = Version.parse("2.3.0")
+    assert V.match?(vsn, "2.3.0")
   end
 
   test "!=" do
