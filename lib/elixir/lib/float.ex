@@ -155,6 +155,9 @@ defmodule Float do
       iex> Float.round(-5.5675, 3)
       -5.568
 
+      iex> Float.round(-5.5675)
+      -6.0
+
   """
   @spec round(float, 0..15) :: float
   def round(number, precision \\ 0) when is_float(number) and precision in 0..15 do
@@ -237,6 +240,9 @@ defmodule Float do
 
       iex> Float.to_string 7.1, [decimals: 2, compact: true]
       "7.1"
+
+      iex> Float.to_string 7.1, [decimals: 2, compact: false]
+      "7.10"
 
   """
   @spec to_string(float, list) :: String.t
