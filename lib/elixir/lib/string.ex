@@ -261,7 +261,7 @@ defmodule String do
 
   """
   @spec split(t) :: [t]
-  defdelegate split(binary), to: String.Unicode
+  defdelegate split(binary), to: String.Break
 
   @doc ~S"""
   Divides a string into substrings based on a pattern.
@@ -449,7 +449,7 @@ defmodule String do
   end
 
   defp do_split_at(string, position) do
-    {byte_size, rest} = String.Graphemes.split_at(string, position)
+    {byte_size, rest} = String.Unicode.split_at(string, position)
     {binary_part(string, 0, byte_size), rest || ""}
   end
 
@@ -529,7 +529,7 @@ defmodule String do
 
   """
   @spec upcase(t) :: t
-  defdelegate upcase(binary), to: String.Unicode
+  defdelegate upcase(binary), to: String.Casing
 
   @doc """
   Converts all characters in the given string to lowercase.
@@ -547,7 +547,7 @@ defmodule String do
 
   """
   @spec downcase(t) :: t
-  defdelegate downcase(binary), to: String.Unicode
+  defdelegate downcase(binary), to: String.Casing
 
   @doc """
   Converts the first character in the given string to
@@ -572,7 +572,7 @@ defmodule String do
   """
   @spec capitalize(t) :: t
   def capitalize(string) when is_binary(string) do
-    {char, rest} = String.Unicode.titlecase_once(string)
+    {char, rest} = String.Casing.titlecase_once(string)
     char <> downcase(rest)
   end
 
@@ -587,7 +587,7 @@ defmodule String do
 
   """
   @spec rstrip(t) :: t
-  defdelegate rstrip(binary), to: String.Unicode
+  defdelegate rstrip(binary), to: String.Break
 
   @doc """
   Returns a string where all trailing `char`s have been removed.
@@ -759,7 +759,7 @@ defmodule String do
       "abc  "
 
   """
-  defdelegate lstrip(binary), to: String.Unicode
+  defdelegate lstrip(binary), to: String.Break
 
   @doc """
   Returns a string where all leading `char`s have been removed.
@@ -1184,7 +1184,7 @@ defmodule String do
 
   """
   @spec graphemes(t) :: [grapheme]
-  defdelegate graphemes(string), to: String.Graphemes
+  defdelegate graphemes(string), to: String.Unicode
 
   @compile {:inline, next_grapheme: 1, next_grapheme_size: 1}
 
@@ -1223,7 +1223,7 @@ defmodule String do
 
   """
   @spec next_grapheme_size(t) :: {pos_integer, t} | nil
-  defdelegate next_grapheme_size(string), to: String.Graphemes
+  defdelegate next_grapheme_size(string), to: String.Unicode
 
   @doc """
   Returns the first grapheme from a utf8 string,
@@ -1283,7 +1283,7 @@ defmodule String do
 
   """
   @spec length(t) :: non_neg_integer
-  defdelegate length(string), to: String.Graphemes
+  defdelegate length(string), to: String.Unicode
 
   @doc """
   Returns the grapheme at the `position` of the given utf8 `string`.
@@ -1322,7 +1322,7 @@ defmodule String do
   end
 
   defp do_at(string, position) do
-    case String.Graphemes.split_at(string, position) do
+    case String.Unicode.split_at(string, position) do
       {_, nil}  -> nil
       {_, rest} -> first(rest)
     end
@@ -1372,10 +1372,10 @@ defmodule String do
   end
 
   def slice(string, start, len) when start >= 0 and len >= 0 do
-    case String.Graphemes.split_at(string, start) do
+    case String.Unicode.split_at(string, start) do
       {_, nil} -> ""
       {start_bytes, rest} ->
-        {len_bytes, _} = String.Graphemes.split_at(rest, len)
+        {len_bytes, _} = String.Unicode.split_at(rest, len)
         binary_part(string, start_bytes, len_bytes)
     end
   end
@@ -1443,7 +1443,7 @@ defmodule String do
   def slice("", _.._), do: ""
 
   def slice(string, first..-1) when first >= 0 do
-    case String.Graphemes.split_at(string, first) do
+    case String.Unicode.split_at(string, first) do
       {_, nil} ->
         ""
       {start_bytes, _} ->

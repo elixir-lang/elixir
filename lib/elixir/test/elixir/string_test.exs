@@ -313,6 +313,7 @@ defmodule StringTest do
   end
 
   test "normalize" do
+    assert String.normalize("ŝ", :nfd) == "ŝ"
     assert String.normalize("ḇravô", :nfd) == "ḇravô"
     assert String.normalize("ṩierra", :nfd) == "ṩierra"
     assert String.normalize("뢴", :nfd) == "뢴"
