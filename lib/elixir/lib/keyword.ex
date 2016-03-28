@@ -71,7 +71,7 @@ defmodule Keyword do
       []
 
   """
-  @spec new :: t
+  @spec new :: []
   def new, do: []
 
   @doc """
