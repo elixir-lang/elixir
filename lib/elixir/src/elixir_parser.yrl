@@ -14,6 +14,7 @@ Nonterminals
   bit_string open_bit close_bit
   map map_op map_close map_args map_expr struct_op
   assoc_op_eol assoc_expr assoc_base assoc_update assoc_update_kw assoc
+  number_or_char
   container_args_base container_args
   call_args_parens_expr call_args_parens_base call_args_parens parens_call
   call_args_no_parens_one call_args_no_parens_ambig call_args_no_parens_expr
@@ -31,7 +32,7 @@ Terminals
   identifier kw_identifier kw_identifier_safe kw_identifier_unsafe bracket_identifier
   paren_identifier do_identifier block_identifier
   fn 'end' aliases
-  number atom atom_safe atom_unsafe bin_string list_string sigil
+  number char atom atom_safe atom_unsafe bin_string list_string sigil
   dot_call_op op_identifier
   comp_op at_op unary_op and_op or_op arrow_op match_op in_op in_match_op
   type_op dual_op add_op mult_op two_op three_op pipe_op stab_op when_op assoc_op
@@ -233,9 +234,9 @@ no_parens_zero_expr -> dot_identifier : build_identifier('$1', nil).
 %% marks identifiers followed by brackets as bracket_identifier.
 access_expr -> bracket_at_expr : '$1'.
 access_expr -> bracket_expr : '$1'.
-access_expr -> at_op_eol number : build_unary_op('$1', ?exprs('$2')).
-access_expr -> unary_op_eol number : build_unary_op('$1', ?exprs('$2')).
-access_expr -> capture_op_eol number : build_unary_op('$1', ?exprs('$2')).
+access_expr -> at_op_eol number_or_char : build_unary_op('$1', '$2').
+access_expr -> unary_op_eol number_or_char : build_unary_op('$1', '$2').
+access_expr -> capture_op_eol number_or_char : build_unary_op('$1', '$2').
 access_expr -> fn_eoe stab end_eoe : build_fn('$1', reverse('$2')).
 access_expr -> open_paren stab close_paren : build_stab(reverse('$2')).
 access_expr -> open_paren stab ';' close_paren : build_stab(reverse('$2')).
@@ -243,7 +244,7 @@ access_expr -> open_paren ';' stab ';' close_paren : build_stab(reverse('$3')).
 access_expr -> open_paren ';' stab close_paren : build_stab(reverse('$3')).
 access_expr -> open_paren ';' close_paren : build_stab([]).
 access_expr -> empty_paren : nil.
-access_expr -> number : ?exprs('$1').
+access_expr -> number_or_char : '$1'.
 access_expr -> list : element(1, '$1').
 access_expr -> map : '$1'.
 access_expr -> tuple : '$1'.
@@ -591,6 +592,9 @@ struct_op -> '%' : '$1'.
 map -> map_op map_args : '$2'.
 map -> struct_op map_expr map_args : {'%', meta_from_token('$1'), ['$2', '$3']}.
 map -> struct_op map_expr eol map_args : {'%', meta_from_token('$1'), ['$2', '$4']}.
+
+number_or_char -> number : ?exprs('$1').
+number_or_char -> char : ?exprs('$1').
 
 Erlang code.
 
