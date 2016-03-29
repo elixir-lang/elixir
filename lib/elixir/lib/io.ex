@@ -64,7 +64,7 @@ defmodule IO do
   empty string in case the device has reached EOF.
   """
   @spec read(device, :all | :line | non_neg_integer) :: chardata | nodata
-  def read(device \\ group_leader, chars_or_line)
+  def read(device \\ group_leader(), chars_or_line)
 
   def read(device, :all) do
     do_read_all(map_dev(device), "")
@@ -107,7 +107,7 @@ defmodule IO do
   as it will return the wrong result.
   """
   @spec binread(device, :all | :line | non_neg_integer) :: iodata | nodata
-  def binread(device \\ group_leader, chars_or_line)
+  def binread(device \\ group_leader(), chars_or_line)
 
   def binread(device, :all) do
     do_binread_all(map_dev(device), "")
