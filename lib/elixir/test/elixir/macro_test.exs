@@ -561,6 +561,10 @@ defmodule MacroTest do
     # assert_raise ArgumentError, ~r"cannot pipe 1 into \+1", fn ->
     #   Macro.pipe(1, quote(do: + 1), 0)
     # end
+
+    assert_raise ArgumentError, ~r"cannot pipe Macro into Env", fn ->
+      Macro.pipe(Macro, quote(do: Env), 0)
+    end
   end
 
   test "unpipe" do
