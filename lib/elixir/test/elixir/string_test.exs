@@ -321,6 +321,8 @@ defmodule StringTest do
     assert String.normalize("거̄", :nfc) == "거̄"
     assert String.normalize("뢴", :nfc) == "뢴"
 
+    ## Cases from NormalizationTest.txt
+
     # 05B8 05B9 05B1 0591 05C3 05B0 05AC 059F
     # 05B1 05B8 05B9 0591 05C3 05B0 05AC 059F
     # HEBREW POINT QAMATS, HEBREW POINT HOLAM, HEBREW POINT HATAF SEGOL,
@@ -343,6 +345,11 @@ defmodule StringTest do
     # 0308 0301
     # COMBINING GREEK DIALYTIKA TONOS
     assert String.normalize("\u0344", :nfc) == "\u0308\u0301"
+
+    # 115B9 0334 115AF
+    # 115B9 0334 115AF
+    # SIDDHAM VOWEL SIGN AI, COMBINING TILDE OVERLAY, SIDDHAM VOWEL SIGN AA
+    assert String.normalize("𑖹̴𑖯", :nfc) == "𑖹̴𑖯"
   end
 
   test "graphemes" do
