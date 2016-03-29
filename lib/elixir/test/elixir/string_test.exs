@@ -320,6 +320,7 @@ defmodule StringTest do
     assert String.normalize("êchǭ", :nfc) == "êchǭ"
     assert String.normalize("거̄", :nfc) == "거̄"
     assert String.normalize("뢴", :nfc) == "뢴"
+    assert String.normalize("ֱָֹ֑׃ְ֬֟", :nfc) == "ֱָֹ֑׃ְ֬֟"
   end
 
   test "graphemes" do
