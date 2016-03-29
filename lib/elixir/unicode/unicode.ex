@@ -451,6 +451,7 @@ defmodule String.Break do
   defp add_buffer_to_acc(buffer, acc), do: [buffer|acc]
 end
 
+
 defmodule String.Normalizer do
   @moduledoc false
 
@@ -521,12 +522,19 @@ defmodule String.Normalizer do
     end
   end
   defp canonical_order(<<h::utf8, t::binary>>, acc) do
-    canonical_order(t, [{h, combining_class(h)}|acc])
-  end
-  defp canonical_order(<<>>, [{x, _}]) do
-    <<x::utf8>>
+    case combining_class(h) do
+      0 -> canonical_order(acc) <> canonical_order(t, [{h, 0}])
+      n -> canonical_order(t, [{h, n}|acc])
+    end
   end
   defp canonical_order(<<>>, acc) do
+    canonical_order(acc)
+  end
+
+  defp canonical_order([{x, _}]) do
+    <<x::utf8>>
+  end
+  defp canonical_order(acc) do
     :lists.keysort(2, Enum.reverse(acc))
     |> Enum.map(&<<elem(&1, 0)::utf8>>)
     |> IO.iodata_to_binary
