@@ -56,6 +56,12 @@ defmodule Logger do
       Logger call will be completely removed at compile time, accruing
       no overhead at runtime. Defaults to `:debug` and only
       applies to the `Logger.debug/2`, `Logger.info/2`, etc style of calls.
+      Note that in calls are removed from the AST at compilation time, the
+      passed arguments are never evaluated, so any function call that occurs in
+      these arguments is never executed. As a consequence, avoid code that looks
+      like `Logger.debug("Cleanup: #{perform_cleanup()}")` as in the example
+      `perform_cleanup/0` won't be executed if the `:compile_time_purge_level`
+      is `:info` or higher.
 
     * `:compile_time_application` - sets the `:application` metadata value
       to the configured value at compilation time. This configuration is
@@ -78,7 +84,9 @@ defmodule Logger do
     * `:level` - the logging level. Attempting to log any message
       with severity less than the configured level will simply
       cause the message to be ignored. Keep in mind that each backend
-      may have its specific level, too.
+      may have its specific level, too. Note that, unlike what happens with the
+      `:compile_time_purge_level` option, the argument passed to `Logger` calls
+      is evaluated even if the level of the call is lower than `:level`.
 
     * `:utc_log` - when `true`, uses UTC in logs. By default it uses
       local time (i.e. it defaults to `false`).
@@ -573,7 +581,7 @@ defmodule Logger do
     if compare_levels(level, min_level) != :lt do
       macro_log(level, data, metadata, caller)
     else
-      :ok
+      handle_unused_variable_warnings(data, caller)
     end
   end
 
@@ -592,4 +600,29 @@ defmodule Logger do
 
   defp notify(:sync, msg),  do: GenEvent.sync_notify(Logger, msg)
   defp notify(:async, msg), do: GenEvent.notify(Logger, msg)
+
+  defp handle_unused_variable_warnings(data, caller) do
+    # We collect all the names of variables (leaving `data` unchanged) with a
+    # scope of `nil` (as we don't warn for variables with a different scope
+    # anyways). We only want the variables that figure in `caller.vars`, as the
+    # AST for calls to local 0-arity functions without parens is the same as the
+    # AST for variables.
+    {^data, logged_vars} = Macro.postwalk(data, [], fn
+      {name, _meta, nil} = var, acc when is_atom(name) ->
+        if {name, nil} in caller.vars, do: {var, [name | acc]}, else: {var, acc}
+      ast, acc ->
+        {ast, acc}
+    end)
+
+    assignments =
+      logged_vars
+      |> Enum.reverse()
+      |> Enum.uniq()
+      |> Enum.map(&quote(do: _ = unquote(Macro.var(&1, nil))))
+
+    quote do
+      unquote_splicing(assignments)
+      :ok
+    end
+  end
 end
