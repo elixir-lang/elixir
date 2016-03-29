@@ -338,6 +338,11 @@ defmodule StringTest do
     # LATIN SMALL LETTER A, COMBINING COMMA ABOVE RIGHT, COMBINING GRAVE ACCENT,
     # HEBREW ACCENT ZINOR, COMBINING GRAVE TONE MARK, LATIN SMALL LETTER B
     assert String.normalize("à֮̀̕b", :nfc) == "à֮̀̕b"
+
+    # 0344
+    # 0308 0301
+    # COMBINING GREEK DIALYTIKA TONOS
+    assert String.normalize("\u0344", :nfc) == "\u0308\u0301"
   end
 
   test "graphemes" do

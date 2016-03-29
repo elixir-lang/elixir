@@ -248,7 +248,7 @@ end
 data_path = Path.join(__DIR__, "UnicodeData.txt")
 
 {codes, non_breakable, decompositions, combining_classes} =
-  Enum.reduce File.stream!(data_path), {[], [], %{}, []}, fn line, {cacc, wacc, dacc, kacc} ->
+  Enum.reduce File.stream!(data_path), {[], [], %{}, %{}}, fn line, {cacc, wacc, dacc, kacc} ->
     [codepoint, _name, _category,
      class, _bidi, decomposition,
      _numeric_1, _numeric_2, _numeric_3,
@@ -276,8 +276,8 @@ data_path = Path.join(__DIR__, "UnicodeData.txt")
           decomposition =
             decomposition
             |> :binary.split(" ", [:global])
-            |> Enum.map(&<<String.to_integer(&1, 16)::utf8>>)
-          Map.put(dacc, to_binary.(codepoint), decomposition)
+            |> Enum.map(&String.to_integer(&1, 16))
+          Map.put(dacc, String.to_integer(codepoint, 16), decomposition)
         _ ->
           dacc
       end
@@ -285,7 +285,7 @@ data_path = Path.join(__DIR__, "UnicodeData.txt")
     kacc =
       case Integer.parse(class) do
         {0, ""} -> kacc
-        {n, ""} -> [{String.to_integer(codepoint, 16), n}|kacc]
+        {n, ""} -> Map.put(kacc, String.to_integer(codepoint, 16), n)
       end
 
     {cacc, wacc, dacc, kacc}
@@ -459,7 +459,7 @@ defmodule String.Normalizer do
   compositions = Enum.reduce File.stream!(exclusions_path), decompositions, fn
     <<h, _::binary>> = line, acc when h in ?0..?9 or h in ?A..?F ->
       [codepoint, _] = :binary.split(line, " ")
-      Map.delete(acc, to_binary.(codepoint))
+      Map.delete(acc, String.to_integer(codepoint, 16))
     _, acc ->
       acc
   end
@@ -514,9 +514,10 @@ defmodule String.Normalizer do
     end
   end
 
-  for {binary, decomposition} <- decompositions do
-    defp canonical_order(unquote(binary) <> rest, acc) do
-      canonical_order(unquote(IO.iodata_to_binary(decomposition)) <> rest, acc)
+  for {cp, decomposition} <- decompositions do
+    decomposition = decomposition |> Enum.map(&<<&1::utf8>>) |> IO.iodata_to_binary()
+    defp canonical_order(unquote(<<cp::utf8>>) <> rest, acc) do
+      canonical_order(unquote(decomposition) <> rest, acc)
     end
   end
   defp canonical_order(<<h::utf8, t::binary>>, acc) do
@@ -566,8 +567,12 @@ defmodule String.Normalizer do
     end
   end
 
-  for {composition, [_, _] = binary} <- compositions do
-    defp compose_one(unquote(IO.iodata_to_binary(binary))), do: unquote(composition)
+  # Compositions:
+  # 1. We must exclude compositions with a single codepoint
+  # 2. We must exclude compositions that do not start with 0 combining class
+  for {cp, [fst, snd]} <- compositions,
+      Map.get(combining_classes, fst, 0) == 0 do
+    defp compose_one(unquote(<<fst::utf8, snd::utf8>>)), do: unquote(<<cp::utf8>>)
   end
 
   defp compose_one(_), do: nil
