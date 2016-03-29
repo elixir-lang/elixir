@@ -449,23 +449,20 @@ defmodule String.Break do
 
   defp add_buffer_to_acc("", acc),     do: acc
   defp add_buffer_to_acc(buffer, acc), do: [buffer|acc]
-
-  # Decompose
-
-  def decompose(entries, map) do
-    entries
-    |> Enum.map(fn entry ->
-         case map do
-           %{^entry => match} -> decompose(match, map)
-           %{} -> entry
-         end
-       end)
-    |> IO.iodata_to_binary()
-  end
 end
 
 defmodule String.Normalizer do
   @moduledoc false
+
+  exclusions_path = Path.join(__DIR__, "CompositionExclusions.txt")
+
+  compositions = Enum.reduce File.stream!(exclusions_path), decompositions, fn
+    <<h, _::binary>> = line, acc when h in ?0..?9 or h in ?A..?F ->
+      [codepoint, _] = :binary.split(line, " ")
+      Map.delete(acc, to_binary.(codepoint))
+    _, acc ->
+      acc
+  end
 
   # Normalize
 
@@ -494,9 +491,8 @@ defmodule String.Normalizer do
   end
 
   for {binary, decomposition} <- decompositions do
-    decomposition = String.Break.decompose(decomposition, decompositions)
     defp normalize_nfd(unquote(binary) <> rest, acc) do
-      normalize_nfd(rest, acc <> unquote(decomposition))
+      normalize_nfd(unquote(IO.iodata_to_binary(decomposition)) <> rest, acc)
     end
   end
 
@@ -549,7 +545,7 @@ defmodule String.Normalizer do
     end
   end
 
-  for {composition, [_, _] = binary} <- decompositions do
+  for {composition, [_, _] = binary} <- compositions do
     defp compose(unquote(IO.iodata_to_binary(binary))), do: unquote(composition)
   end
 
@@ -569,7 +565,7 @@ defmodule String.Normalizer do
     end
   end
 
-  for {_, [_, _] = binary} <- decompositions do
+  for {_, [_, _] = binary} <- compositions do
     defp composable?(unquote(IO.iodata_to_binary(binary))), do: true
   end
 
