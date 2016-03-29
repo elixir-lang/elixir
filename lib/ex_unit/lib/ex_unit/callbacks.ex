@@ -153,19 +153,23 @@ defmodule ExUnit.Callbacks do
     {:ok, context}
   end
 
-  def __merge__(mod, context, {:ok, data}) do
+  def __merge__(mod, _context, {:ok, %{__struct__: _}} = return_value) do
+    raise_merge_failed!(mod, return_value)
+  end
+
+  def __merge__(mod, context, {:ok, data}) when is_list(data) do
+    __merge__(mod, context, {:ok, Map.new(data)})
+  end
+
+  def __merge__(mod, context, {:ok, data}) when is_map(data) do
     {:ok, context_merge(mod, context, data)}
   end
 
-  def __merge__(mod, _, data) do
-    raise_merge_failed!(mod, data)
+  def __merge__(mod, _, return_value) do
+    raise_merge_failed!(mod, return_value)
   end
 
-  defp context_merge(mod, _context, %{__struct__: _} = data) do
-    raise_merge_failed!(mod, data)
-  end
-
-  defp context_merge(mod, context, %{} = data) do
+  defp context_merge(mod, context, data) do
     Map.merge(context, data, fn
       k, v1, v2 when k in @reserved ->
         if v1 == v2, do: v1, else: raise_merge_reserved!(mod, k, v1)
@@ -174,17 +178,9 @@ defmodule ExUnit.Callbacks do
     end)
   end
 
-  defp context_merge(mod, context, data) when is_list(data) do
-    context_merge(mod, context, Map.new(data))
-  end
-
-  defp context_merge(mod, _context, data) do
-    raise_merge_failed!(mod, data)
-  end
-
-  defp raise_merge_failed!(mod, data) do
+  defp raise_merge_failed!(mod, return_value) do
     raise "expected ExUnit callback in #{inspect mod} to return :ok " <>
-          "or {:ok, keywords | map}, got #{inspect data} instead"
+          "or {:ok, keywords | map}, got #{inspect return_value} instead"
   end
 
   defp raise_merge_reserved!(mod, key, value) do
