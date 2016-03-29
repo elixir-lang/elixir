@@ -153,6 +153,11 @@ defmodule Macro do
     raise ArgumentError, bad_pipe(expr, call_args)
   end
 
+  # Without this, `Macro |> Env == Macro.Env`.
+  def pipe(expr, {:__aliases__, _, _} = call_args, _integer) do
+    raise ArgumentError, bad_pipe(expr, call_args)
+  end
+
   def pipe(expr, {call, _, [_, _]} = call_args, _integer)
       when call in unquote(@binary_ops) do
     raise ArgumentError, "cannot pipe #{to_string expr} into #{to_string call_args}, " <>
