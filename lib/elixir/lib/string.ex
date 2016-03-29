@@ -504,7 +504,7 @@ defmodule String do
   ## Examples
 
       iex> String.normalize("yêṩ", :nfd)
-      "yêṩ"
+      "yêṩ"
 
       iex> String.normalize("leña", :nfc)
       "leña"
