@@ -107,7 +107,7 @@ head_and_tail_test() ->
 
 orrdict_match_test() ->
   {[{a, 1}, {b, 2}], _} = eval("a = [a: 1, b: 2]").
-  
+
 % Function match
 
 function_clause_test() ->

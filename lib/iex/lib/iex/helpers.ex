@@ -664,7 +664,7 @@ defmodule IEx.Helpers do
 
   This function is useful for development and debugging when you have code that
   has been compiled or updated locally that you want to run on other nodes.
-  
+
   The node list defaults to a list of all connected nodes.
 
   Returns `{:error, :nofile}` if the object code (i.e. ".beam" file) for the module
@@ -678,12 +678,12 @@ defmodule IEx.Helpers do
 
       nl(NoSuchModuleExists)
       #=> {:error, :nofile}
-      
+
   """
   def nl(nodes \\ Node.list, module) when is_list(nodes) and is_atom(module) do
     case :code.get_object_code(module) do
       {^module, bin, beam_path} ->
-        results = 
+        results =
           for node <- nodes do
             case :rpc.call(node, :code, :load_binary, [module, beam_path, bin]) do
               {:module, _} -> {node, :loaded, module}

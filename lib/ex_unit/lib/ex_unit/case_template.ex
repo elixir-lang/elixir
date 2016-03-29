@@ -70,7 +70,7 @@ defmodule ExUnit.CaseTemplate do
           alias MyApp.FunModule
         end
       end
-    
+
   """
   defmacro using(var \\ quote(do: _), do: block) do
     quote do

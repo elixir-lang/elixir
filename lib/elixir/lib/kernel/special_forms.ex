@@ -1887,8 +1887,8 @@ defmodule Kernel.SpecialForms do
           IO.puts :stderr, "No message in 5 seconds"
       end
 
-  The `after` clause can be specified even if there are no match clauses. 
-  The timeout value given to `after` can be a variable; two special 
+  The `after` clause can be specified even if there are no match clauses.
+  The timeout value given to `after` can be a variable; two special
   values are allowed:
 
     * `:infinity` - the process should wait indefinitely for a matching

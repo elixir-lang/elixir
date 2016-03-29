@@ -422,7 +422,7 @@ defmodule GenEvent do
   function returns `{:error, :already_present}`.
 
   For installing multiple instances of the same handler, `{Module, id}` instead
-  of `Module` must be used. The handler could be then referenced with 
+  of `Module` must be used. The handler could be then referenced with
   `{Module, id}` instead of just `Module`.
   """
   @spec add_handler(manager, handler, term) :: :ok | {:error, term}
