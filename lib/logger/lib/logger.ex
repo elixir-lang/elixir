@@ -56,6 +56,12 @@ defmodule Logger do
       Logger call will be completely removed at compile time, accruing
       no overhead at runtime. Defaults to `:debug` and only
       applies to the `Logger.debug/2`, `Logger.info/2`, etc style of calls.
+      Note that in calls are removed from the AST at compilation time, the
+      passed arguments are never evaluated, so any function call that occurs in
+      these arguments is never executed. As a consequence, avoid code that looks
+      like `Logger.debug("Cleanup: #{perform_cleanup()}")` as in the example
+      `perform_cleanup/0` won't be executed if the `:compile_time_purge_level`
+      is `:info` or higher.
 
     * `:compile_time_application` - sets the `:application` metadata value
       to the configured value at compilation time. This configuration is
@@ -78,7 +84,9 @@ defmodule Logger do
     * `:level` - the logging level. Attempting to log any message
       with severity less than the configured level will simply
       cause the message to be ignored. Keep in mind that each backend
-      may have its specific level, too.
+      may have its specific level, too. Note that, unlike what happens with the
+      `:compile_time_purge_level` option, the argument passed to `Logger` calls
+      is evaluated even if the level of the call is lower than `:level`.
 
     * `:utc_log` - when `true`, uses UTC in logs. By default it uses
       local time (i.e. it defaults to `false`).
