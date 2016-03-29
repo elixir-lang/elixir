@@ -25,6 +25,10 @@ defmodule URITest do
     assert_raise ArgumentError, fn ->
       URI.encode_query([{"foo", 'bar'}])
     end
+
+    assert_raise ArgumentError, fn ->
+      URI.encode_query([{'foo', "bar"}])
+    end
   end
 
   test "decode query" do
@@ -69,6 +73,10 @@ defmodule URITest do
   test "decode www form" do
     assert URI.decode_www_form("%3Eval+ue%2B") == ">val ue+"
     assert URI.decode_www_form("%E3%82%86+") == "ゆ "
+
+    assert_raise ArgumentError, fn ->
+      URI.decode_www_form("%ZZ")
+    end
   end
 
   test "parse uri" do
