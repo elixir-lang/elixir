@@ -153,7 +153,7 @@ chars_test() ->
   [{number, {1,1,4}, 7}]       = tokenize("?\\a"),
   [{number, {1,1,4}, 10}]      = tokenize("?\\n"),
   [{number, {1,1,4}, 92}]      = tokenize("?\\\\").
- 
+
 interpolation_test() ->
   [{bin_string, {1,1,9}, [<<"f">>,
     {{1,3,8}, [{identifier, {1,5,7}, oo}]}]},

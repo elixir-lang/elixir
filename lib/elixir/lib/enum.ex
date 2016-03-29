@@ -1411,14 +1411,14 @@ defmodule Enum do
   def sum(enumerable)
 
   def sum(first..last) when last > first do
-    ((last * (last + 1)) / 2) - ((first * (first - 1)) / 2)    
+    ((last * (last + 1)) / 2) - ((first * (first - 1)) / 2)
   end
-  
+
   def sum(first..last) do
     ((first * (first + 1)) / 2) - ((last * (last - 1)) / 2)
   end
 
-  def sum(enumerable) do      
+  def sum(enumerable) do
     reduce(enumerable, 0, &+/2)
   end
 
