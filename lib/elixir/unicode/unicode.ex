@@ -247,10 +247,10 @@ end
 
 data_path = Path.join(__DIR__, "UnicodeData.txt")
 
-{codes, non_breakable, decompositions} =
-  Enum.reduce File.stream!(data_path), {[], [], %{}}, fn line, {cacc, wacc, dacc} ->
+{codes, non_breakable, decompositions, combining_classes} =
+  Enum.reduce File.stream!(data_path), {[], [], %{}, []}, fn line, {cacc, wacc, dacc, kacc} ->
     [codepoint, _name, _category,
-     _class, _bidi, decomposition,
+     class, _bidi, decomposition,
      _numeric_1, _numeric_2, _numeric_3,
      _bidi_mirror, _unicode_1, _iso,
      upper, lower, title] = :binary.split(line, ";", [:global])
@@ -282,7 +282,13 @@ data_path = Path.join(__DIR__, "UnicodeData.txt")
           dacc
       end
 
-    {cacc, wacc, dacc}
+    kacc =
+      case Integer.parse(class) do
+        {0, ""} -> kacc
+        {n, ""} -> [{String.to_integer(codepoint, 16), n}|kacc]
+      end
+
+    {cacc, wacc, dacc, kacc}
   end
 
 defmodule String.Casing do
@@ -460,13 +466,6 @@ end
 
 defmodule String.Normalizer do
   @moduledoc false
-
-  combining_class_path = Path.join(__DIR__, "CombiningClasses.txt")
-
-  combining_classes = Enum.reduce File.stream!(combining_class_path), [], fn line, acc ->
-    [codepoint, class, _] = :binary.split(line, ";", [:global])
-    [{String.to_integer(codepoint, 16), class} | acc]
-  end
 
   # Normalize
 
