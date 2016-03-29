@@ -490,18 +490,12 @@ defmodule String.Normalizer do
     normalize_nfd(rest, acc <> binary)
   end
 
-  for {binary, decomposition} <- decompositions do
-    defp normalize_nfd(unquote(binary) <> rest, acc) do
-      normalize_nfd(unquote(IO.iodata_to_binary(decomposition)) <> rest, acc)
-    end
-  end
-
   defp normalize_nfd(binary, acc) do
     {n, rest} = String.Unicode.next_grapheme_size(binary)
     part = :binary.part(binary, 0, n)
     case n do
-      1 -> normalize_nfd(rest, acc <> part)
-      _ -> normalize_nfd(rest, acc <> canonical_order(part))
+      1 -> normalize_nfc(rest, acc <> part)
+      _ -> normalize_nfd(rest, acc <> canonical_order(part, []))
     end
   end
 
@@ -520,11 +514,21 @@ defmodule String.Normalizer do
     end
   end
 
-  defp canonical_order(binary) do
-    binary
-    |> :unicode.characters_to_list()
-    |> Enum.sort_by(&combining_class/1)
-    |> :unicode.characters_to_binary()
+  for {binary, decomposition} <- decompositions do
+    defp canonical_order(unquote(binary) <> rest, acc) do
+      canonical_order(unquote(IO.iodata_to_binary(decomposition)) <> rest, acc)
+    end
+  end
+  defp canonical_order(<<h::utf8, t::binary>>, acc) do
+    canonical_order(t, [{h, combining_class(h)}|acc])
+  end
+  defp canonical_order(<<>>, [{x, _}]) do
+    <<x::utf8>>
+  end
+  defp canonical_order(<<>>, acc) do
+    :lists.keysort(2, Enum.reverse(acc))
+    |> Enum.map(&<<elem(&1, 0)::utf8>>)
+    |> IO.iodata_to_binary
   end
 
   for {codepoint, class} <- combining_classes do
@@ -532,8 +536,6 @@ defmodule String.Normalizer do
   end
 
   defp combining_class(_), do: 0
-
-  defp compose(<<_::utf8>> = binary), do: binary
 
   defp compose(<<lead::utf8, vowel::utf8, rest::binary>>) when lead in 0x1100..0x1112 and vowel in 0x1161..0x1175 do
     codepoint = 0xAC00 + ((lead - 0x1100) * 588) + ((vowel - 0x1161) * 28)
@@ -545,29 +547,28 @@ defmodule String.Normalizer do
     end
   end
 
-  for {composition, [_, _] = binary} <- compositions do
-    defp compose(unquote(IO.iodata_to_binary(binary))), do: unquote(composition)
+  defp compose(binary) do
+    compose_one(binary) || (
+      <<cp::utf8, rest::binary>> = binary
+      compose_many(rest, <<cp::utf8>>, "", combining_class(cp) - 1)
+    )
   end
 
-  defp compose(<<cp::utf8, rest::binary>>) do
-    compose(rest, <<cp::utf8>>, "", combining_class(cp) - 1)
-  end
+  defp compose_many("", base, accents, _), do: base <> accents
 
-  defp compose("", base, accents, _), do: base <> accents
-
-  defp compose(<<cp::utf8, rest::binary>>, base, accents, last_class) do
+  defp compose_many(<<cp::utf8, rest::binary>>, base, accents, last_class) do
     part_class = combining_class(cp)
     combined = <<base::binary, cp::utf8>>
-    if last_class < part_class and composable?(combined) do
-      compose(rest, compose(combined), accents, last_class)
+    if composed = (last_class < part_class && compose_one(combined)) do
+      compose_many(rest, composed, accents, last_class)
     else
-      compose(rest, base, <<accents::binary, cp::utf8>>, part_class)
+      compose_many(rest, base, <<accents::binary, cp::utf8>>, part_class)
     end
   end
 
-  for {_, [_, _] = binary} <- compositions do
-    defp composable?(unquote(IO.iodata_to_binary(binary))), do: true
+  for {composition, [_, _] = binary} <- compositions do
+    defp compose_one(unquote(IO.iodata_to_binary(binary))), do: unquote(composition)
   end
 
-  defp composable?(_), do: false
+  defp compose_one(_), do: nil
 end

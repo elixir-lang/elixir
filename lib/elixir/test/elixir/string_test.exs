@@ -314,13 +314,30 @@ defmodule StringTest do
 
   test "normalize" do
     assert String.normalize("ŝ", :nfd) == "ŝ"
-    assert String.normalize("ḇravô", :nfd) == "ḇravô"
+    assert String.normalize("ḇravô", :nfd) == "ḇravô"
     assert String.normalize("ṩierra", :nfd) == "ṩierra"
     assert String.normalize("뢴", :nfd) == "뢴"
     assert String.normalize("êchǭ", :nfc) == "êchǭ"
     assert String.normalize("거̄", :nfc) == "거̄"
     assert String.normalize("뢴", :nfc) == "뢴"
+
+    # 05B8 05B9 05B1 0591 05C3 05B0 05AC 059F
+    # 05B1 05B8 05B9 0591 05C3 05B0 05AC 059F
+    # HEBREW POINT QAMATS, HEBREW POINT HOLAM, HEBREW POINT HATAF SEGOL,
+    # HEBREW ACCENT ETNAHTA, HEBREW PUNCTUATION SOF PASUQ, HEBREW POINT SHEVA,
+    # HEBREW ACCENT ILUY, HEBREW ACCENT QARNEY PARA
     assert String.normalize("ֱָֹ֑׃ְ֬֟", :nfc) == "ֱָֹ֑׃ְ֬֟"
+
+    # 095D (exclusion list)
+    # 0922 093C
+    # DEVANAGARI LETTER RHA
+    assert String.normalize("ढ़", :nfc) == "ढ़"
+
+    # 0061 0315 0300 05AE 0340 0062
+    # 00E0 05AE 0300 0315 0062
+    # LATIN SMALL LETTER A, COMBINING COMMA ABOVE RIGHT, COMBINING GRAVE ACCENT,
+    # HEBREW ACCENT ZINOR, COMBINING GRAVE TONE MARK, LATIN SMALL LETTER B
+    assert String.normalize("à֮̀̕b", :nfc) == "à֮̀̕b"
   end
 
   test "graphemes" do
