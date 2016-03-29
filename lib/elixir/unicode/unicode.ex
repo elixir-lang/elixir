@@ -449,8 +449,18 @@ defmodule String.Break do
 
   defp add_buffer_to_acc("", acc),     do: acc
   defp add_buffer_to_acc(buffer, acc), do: [buffer|acc]
-end
 
+  # Decompose
+
+  def decompose(entries, map) do
+    for entry <- entries do
+      case map do
+        %{^entry => match} -> decompose(match, map)
+        %{} -> <<entry::utf8>>
+      end
+    end
+  end
+end
 
 defmodule String.Normalizer do
   @moduledoc false
@@ -516,7 +526,11 @@ defmodule String.Normalizer do
   end
 
   for {cp, decomposition} <- decompositions do
-    decomposition = decomposition |> Enum.map(&<<&1::utf8>>) |> IO.iodata_to_binary()
+    decomposition =
+      decomposition
+      |> String.Break.decompose(decompositions)
+      |> IO.iodata_to_binary()
+
     defp canonical_order(unquote(<<cp::utf8>>) <> rest, acc) do
       canonical_order(unquote(decomposition) <> rest, acc)
     end
