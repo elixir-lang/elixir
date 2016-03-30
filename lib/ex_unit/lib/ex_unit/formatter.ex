@@ -226,14 +226,50 @@ defmodule ExUnit.Formatter do
     if_value(struct.left, fn left ->
       if_value(struct.right, fn right ->
         if same_data_type?(left, right) do
-          String.myers_difference(inspect(left), inspect(right))
-          |> Enum.map_join(&format_diff_fragment(&1, formatter))
-          |> String.replace("\n", "\n" <> @inspect_padding)
+          format_diff(left, right, formatter)
         else
           ExUnit.AssertionError.no_value
         end
       end)
     end)
+  end
+
+  defp format_diff(left, right, formatter) when is_binary(left) and is_binary(right) do
+    String.myers_difference(left, right)
+    |> Enum.map_join(&format_diff_fragment(&1, formatter))
+    |> String.replace("\n", "\n" <> @inspect_padding)
+  end
+
+  defp format_diff(left, right, formatter) when is_map(left) and is_map(right) do
+    {surplus, altered} =
+      Enum.reduce(left, {[], []}, fn({key, val1}, {surplus, altered} = acc) ->
+        case Map.fetch(right, key) do
+          {:ok, ^val1} ->
+            acc
+          {:ok, val2} ->
+            {surplus, [{key, {val1, val2}} | altered]}
+          :error ->
+            {[{key, val1} | surplus], altered}
+        end
+      end)
+    missing = Enum.reject(right, fn {key, _} -> Map.has_key?(left, key) end)
+    result = Enum.reduce(missing, [], fn({key, val}, acc) ->
+      [formatter.(:diff_insert, inspect(key) <> " => " <> inspect(val)) | acc]
+    end)
+    result = Enum.reduce(surplus, result, fn({key, val}, acc) ->
+      [formatter.(:diff_delete, inspect(key) <> " => " <> inspect(val)) | acc]
+    end)
+    result = Enum.reduce(altered, result, fn({key, {val1, val2}}, acc) ->
+      delete = formatter.(:diff_delete, inspect(val1))
+      insert = formatter.(:diff_insert, inspect(val2))
+      [inspect(key) <> " => " <> delete <> insert | acc]
+    end)
+    result = Enum.intersperse(result, ", ") |> IO.iodata_to_binary
+    "%{" <> result <> "}"
+  end
+
+  defp format_diff(left, right, formatter) do
+    format_diff(inspect(left), inspect(right), formatter)
   end
 
   defp format_diff_fragment({:eq, <<ch1::utf8, ch2::utf8, ch3::utf8>> <> rest}, _) do
