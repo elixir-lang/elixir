@@ -135,7 +135,7 @@ defmodule Regex do
   Compiles the regular expression according to the given options.
   Fails with `Regex.CompileError` if the regex cannot be compiled.
   """
-  @spec compile(binary, binary | [term]) :: t
+  @spec compile!(binary, binary | [term]) :: t
   def compile!(source, options \\ "") do
     case compile(source, options) do
       {:ok, regex} -> regex
@@ -173,8 +173,7 @@ defmodule Regex do
       false
 
   """
-  @spec regex?(t) :: true
-  @spec regex?(any) :: false
+  @spec regex?(any) :: boolean
   def regex?(term)
   def regex?(%Regex{}), do: true
   def regex?(_), do: false
