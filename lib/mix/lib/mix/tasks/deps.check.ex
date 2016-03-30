@@ -14,10 +14,15 @@ defmodule Mix.Tasks.Deps.Check do
   ## Command line options
 
     * `--no-compile` - do not compile dependencies
+    * `--no-archives-check` - do not check archives
 
   """
   @spec run(OptionParser.argv) :: :ok
   def run(args) do
+    unless "--no-archives-check" in args do
+      Mix.Task.run "archive.check", args
+    end
+
     all = Enum.map(loaded(env: Mix.env), &check_lock/1)
 
     _ = prune_deps(all)
