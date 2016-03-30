@@ -118,9 +118,10 @@ defmodule Task.Supervisor do
   @doc """
   Returns all children pids.
   """
+  # TODO: Once moved to a DynamicSupervisor, what should this return?
   @spec children(Supervisor.supervisor) :: [pid]
   def children(supervisor) do
-    Supervisor.which_children(supervisor) |> Enum.map(&elem(&1, 1))
+    for {_, pid, _, _} <- Supervisor.which_children(supervisor), is_pid(pid), do: pid
   end
 
   @doc """
