@@ -153,6 +153,8 @@ inline(?system, stacktrace, 0) -> {erlang, get_stacktrace};
 inline(?system, convert_time_unit, 3) -> {erlang, convert_time_unit};
 inline(?system, monotonic_time, 0) -> {erlang, monotonic_time};
 inline(?system, monotonic_time, 1) -> {erlang, monotonic_time};
+inline(?system, os_time, 0) -> {os, system_time};
+inline(?system, os_time, 1) -> {os, system_time};
 inline(?system, system_time, 0) -> {erlang, system_time};
 inline(?system, system_time, 1) -> {erlang, system_time};
 inline(?system, time_offset, 0) -> {erlang, time_offset};
