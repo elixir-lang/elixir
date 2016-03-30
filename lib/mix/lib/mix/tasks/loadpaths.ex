@@ -7,7 +7,7 @@ defmodule Mix.Tasks.Loadpaths do
   ## Command line options
 
     * `--no-archives-check` - do not check archive
-    * `--no-deps-check` - do not check dependencies
+    * `--no-deps-check` - do not check dependencies (also implies --no-archives-check)
     * `--no-elixir-version-check` - do not check Elixir version
 
   """
@@ -18,10 +18,6 @@ defmodule Mix.Tasks.Loadpaths do
 
     unless "--no-elixir-version-check" in args do
       check_elixir_version(config, args)
-    end
-
-    unless "--no-archives-check" in args do
-      Mix.Task.run "archive.check", args
     end
 
     # --no-deps is used only internally. It has not purpose

@@ -13,11 +13,15 @@ defmodule Mix.Tasks.Deps.Update do
 
   ## Command line options
 
-    * `--all`  - update all dependencies
+    * `--all` - update all dependencies
     * `--only` - only fetch dependencies for given environment
+    * `--no-archives-check` - do not check archives before fetching deps
   """
   @spec run(OptionParser.argv) :: [atom]
   def run(args) do
+    unless "--no-archives-check" in args do
+      Mix.Task.run "archive.check", args
+    end
     Mix.Project.get!
     {opts, rest, _} = OptionParser.parse(args, switches: [all: :boolean, only: :string])
 

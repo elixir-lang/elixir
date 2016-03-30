@@ -37,6 +37,10 @@ defmodule Mix.Tasks.Deps.Compile do
 
   @spec run(OptionParser.argv) :: :ok
   def run(args) do
+    unless "--no-archives-check" in args do
+      Mix.Task.run "archive.check", args
+    end
+
     Mix.Project.get!
 
     case OptionParser.parse(args, switches: @switches) do
