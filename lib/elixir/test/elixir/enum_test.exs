@@ -210,6 +210,11 @@ defmodule EnumTest do
     assert Enum.into([a: 1, b: 2], %{c: 3}) == %{a: 1, b: 2, c: 3}
     assert Enum.into(%{a: 1, b: 2}, []) == [a: 1, b: 2]
     assert Enum.into([1, 2, 3], "numbers: ", &to_string/1) == "numbers: 123"
+    assert Enum.into(1..3, []) == [1, 2, 3]
+    assert Enum.into(["H","i"], "") == "Hi"
+    assert_raise FunctionClauseError, fn ->
+      Enum.into([2, 3], %{}, &(&1))
+    end
   end
 
   test "intersperse" do
@@ -263,6 +268,9 @@ defmodule EnumTest do
     assert Enum.reduce([1, 2, 3], fn(x, acc) -> x + acc end) == 6
     assert_raise Enum.EmptyError, fn ->
       Enum.reduce([], fn(x, acc) -> x + acc end)
+    end
+    assert_raise Enum.EmptyError, fn ->
+      Enum.reduce(%{}, fn(_, acc) -> acc end)
     end
   end
 
@@ -341,6 +349,7 @@ defmodule EnumTest do
     assert Enum.take_random([1, 2, 3], 2) == [1, 2]
     assert Enum.take_random([1, 2, 3], 3) == [1, 2, 3]
     assert Enum.take_random([1, 2, 3], 4) == [1, 2, 3]
+    assert Enum.take_random([1, 2, 3], 129) == [3, 2, 1]
 
     # assert that every item in the sample comes from the input list
     list = for _<-1..100, do: make_ref
@@ -366,6 +375,8 @@ defmodule EnumTest do
   test "sort" do
     assert Enum.sort([5, 3, 2, 4, 1]) == [1, 2, 3, 4, 5]
     assert Enum.sort([5, 3, 2, 4, 1], &(&1 > &2)) == [5, 4, 3, 2, 1]
+    assert Enum.sort(5..1) == [1, 2, 3, 4, 5]
+    assert Enum.sort(5..1, &(&1 > &2)) == [5, 4, 3, 2, 1]
   end
 
   test "sort by" do
@@ -511,6 +522,9 @@ defmodule EnumTest do
     assert_raise Enum.EmptyError, fn ->
       Enum.max_by([], fn(x) -> String.length(x) end)
     end
+    assert_raise Enum.EmptyError, fn ->
+      Enum.max_by(%{}, &(&1))
+    end
   end
 
   test "min" do
@@ -519,6 +533,9 @@ defmodule EnumTest do
     assert Enum.min([[], :a, {}]) == :a
     assert_raise Enum.EmptyError, fn ->
       Enum.min([])
+    end
+    assert_raise Enum.EmptyError, fn ->
+      Enum.min_by(%{}, &(&1))
     end
   end
 
