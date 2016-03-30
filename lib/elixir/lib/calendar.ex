@@ -19,7 +19,7 @@ defmodule Calendar do
   @type hour        :: integer
   @type minute      :: integer
   @type second      :: integer
-  @type microsecond :: integer
+  @type micro_second :: integer
 
   @typedoc "A calendar implementation"
   @type calendar    :: module
@@ -70,9 +70,9 @@ defmodule Time do
   @moduledoc """
   A time implementation.
   """
-  defstruct [:hour, :minute, :second, :microsecond]
+  defstruct [:hour, :minute, :second, :micro_second]
   @type t :: %__MODULE__{hour: Calendar.hour, minute: Calendar.minute,
-                         second: Calendar.second, microsecond: Calendar.microsecond}
+                         second: Calendar.second, micro_second: Calendar.micro_second}
 end
 
 defmodule NaiveDateTime do
@@ -90,10 +90,10 @@ defmodule NaiveDateTime do
   may occur more than once. Since `NaiveDateTime` is not
   validated against a timezone, such errors would go unnoticed.
   """
-  defstruct [:year, :month, :day, :hour, :minute, :second, :microsecond, calendar: Calendar.ISO]
+  defstruct [:year, :month, :day, :hour, :minute, :second, :micro_second, calendar: Calendar.ISO]
   @type t :: %__MODULE__{year: Calendar.year, month: Calendar.month, day: Calendar.day,
                          calendar: Calendar.calendar, hour: Calendar.hour, minute: Calendar.minute,
-                         second: Calendar.second, microsecond: Calendar.microsecond}
+                         second: Calendar.second, micro_second: Calendar.micro_second}
 end
 
 defmodule DateTime do
@@ -106,11 +106,11 @@ defmodule DateTime do
   well as the zone abbreviation field used exclusively
   for formatting purposes.
   """
-  defstruct [:year, :month, :day, :hour, :minute, :second, :microsecond,
+  defstruct [:year, :month, :day, :hour, :minute, :second, :micro_second,
              :time_zone, :zone_abbr, :utc_offset, :std_offset, calendar: Calendar.ISO]
   @type t :: %__MODULE__{year: Calendar.year, month: Calendar.month, day: Calendar.day,
                          calendar: Calendar.calendar, hour: Calendar.hour, minute: Calendar.minute,
-                         second: Calendar.second, microsecond: Calendar.microsecond,
+                         second: Calendar.second, micro_second: Calendar.micro_second,
                          time_zone: Calendar.time_zone, zone_abbr: Calendar.zone_abbr,
                          utc_offset: Calendar.utc_offset, std_offset: Calendar.std_offset}
 end
