@@ -94,6 +94,7 @@ defmodule Logger do
     * `:truncate` - the maximum message size to be logged. Defaults
       to 8192 bytes. Note this configuration is approximate. Truncated
       messages will have `" (truncated)"` at the end.
+      The atom `:infinity` can be passed to disable this behavior.
 
     * `:sync_threshold` - if the Logger manager has more than
       `sync_threshold` messages in its queue, Logger will change

@@ -9,6 +9,9 @@ defmodule Logger.Utils do
   codepoint. For this reason, truncation is not exact.
   """
   @spec truncate(IO.chardata, non_neg_integer) :: IO.chardata
+  def truncate(chardata, :infinity) do
+    chardata
+  end
   def truncate(chardata, n) when n >= 0 do
     {chardata, n} = truncate_n(chardata, n)
     if n >= 0, do: chardata, else: [chardata, " (truncated)"]
