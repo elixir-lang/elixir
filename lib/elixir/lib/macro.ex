@@ -164,6 +164,16 @@ defmodule Macro do
                          "the #{to_string call} operator can only take two arguments"
   end
 
+  # {:fn, _, _} is what we get when we pipe into an anonymous function without
+  # calling it, e.g., `:foo |> (fn x -> x end)`.
+  def pipe(expr, {:fn, _, _} = call_args, _integer) do
+    expr_str = to_string(expr)
+    raise ArgumentError,
+      "cannot pipe #{expr_str} into an anonymous function without" <>
+      " calling the function; use something like (fn ... end).() or" <>
+      " define the anonymous function as a regular private function"
+  end
+
   def pipe(expr, {call, line, atom}, integer) when is_atom(atom) do
     {call, line, List.insert_at([], integer, expr)}
   end

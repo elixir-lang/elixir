@@ -565,6 +565,11 @@ defmodule MacroTest do
     assert_raise ArgumentError, ~r"cannot pipe Macro into Env", fn ->
       Macro.pipe(Macro, quote(do: Env), 0)
     end
+
+    message = ~r"cannot pipe :foo into an anonymous function without calling"
+    assert_raise ArgumentError, message, fn ->
+      Macro.pipe(:foo, quote(do: fn x -> x end), 0)
+    end
   end
 
   test "unpipe" do
