@@ -28,6 +28,10 @@ defmodule Logger.UtilsTest do
     assert truncate('ol' ++ "á", 2) == ['ol' ++ "", " (truncated)"]
     assert truncate('ol' ++ "á", 3) == ['ol' ++ "", " (truncated)"]
     assert truncate('ol' ++ "á", 4) == 'ol' ++ "á"
+
+    # :infinity
+    long_string = String.duplicate("foo", 10_000)
+    assert truncate(long_string, :infinity) == long_string
   end
 
   test "inspect/2 formats" do
