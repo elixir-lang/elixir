@@ -132,6 +132,39 @@ defmodule Mix.Tasks.ArchiveTest do
     end
   end
 
+  test "archive check" do
+    # Install the archive
+    in_fixture "archive", fn() ->
+      Mix.Tasks.Archive.Build.run ["--no-elixir-version-check"]
+      send self, {:mix_shell_input, :yes?, true}
+      Mix.Tasks.Archive.Install.run []
+    end
+
+    assert_raise Mix.Error, ~r/Expected archive to be in the format/, fn ->
+      archive_check [:archive]
+    end
+
+    assert_raise Mix.Error, ~r/Archive "archive" could not be found/, fn ->
+      archive_check [{:archive, ">= 1.0.0"}]
+    end
+
+    # Load the archive
+    Mix.Local.append_archives
+
+    assert_raise Mix.Error, ~r/Archive \"archive-0.1.0\" does not match requirement >= 1.0.0/, fn ->
+      archive_check [{:archive, ">= 1.0.0"}]
+    end
+
+    archive_check [{:archive, ">= 0.0.0"}]
+  end
+
+  defp archive_check(archives) do
+    Mix.Project.pop
+    Mix.ProjectStack.post_config archives: archives
+    Mix.Project.push MixTest.Case.Sample
+    Mix.Tasks.Archive.Check.run([])
+  end
+
   defp sha512(file) do
     Base.encode16 :crypto.hash(:sha512, File.read!(file)), case: :lower
   end

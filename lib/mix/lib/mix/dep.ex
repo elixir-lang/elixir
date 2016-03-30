@@ -100,9 +100,12 @@ defmodule Mix.Dep do
 
     # Ensure all apps are atoms
     apps = to_app_names(given)
-
-    # We need to keep the order of deps, loaded/1 properly orders them
-    deps = Enum.filter(all_deps, &(&1.app in apps))
+    deps =
+      if opts[:include_children] do
+        get_deps_with_children(all_deps, apps)
+      else
+        get_deps(all_deps, apps)
+      end
 
     Enum.each apps, fn(app) ->
       unless Enum.any?(all_deps, &(&1.app == app)) do
@@ -111,6 +114,30 @@ defmodule Mix.Dep do
     end
 
     deps
+  end
+
+  defp get_deps(all_deps, apps) do
+    Enum.filter(all_deps, &(&1.app in apps))
+  end
+
+  defp get_deps_with_children(all_deps, apps) do
+    deps = get_children(all_deps, apps)
+    apps = deps |> Enum.map(& &1.app) |> Enum.uniq
+    get_deps(all_deps, apps)
+  end
+
+  defp get_children(_all_deps, []), do: []
+  defp get_children(all_deps, apps) do
+    # Current deps
+    deps = get_deps(all_deps, apps)
+
+    # Children apps
+    apps = for %{deps: children} <- deps,
+               %{app: app} <- children,
+               do: app
+
+    # Current deps + children deps
+    deps ++ get_children(all_deps, apps)
   end
 
   @doc """

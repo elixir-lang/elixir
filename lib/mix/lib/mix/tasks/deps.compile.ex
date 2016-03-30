@@ -6,8 +6,8 @@ defmodule Mix.Tasks.Deps.Compile do
   @moduledoc """
   Compiles dependencies.
 
-  By default, compile all dependencies. A list of dependencies can
-  be given to force the compilation of specific dependencies.
+  By default, compile all dependencies. A list of dependencies
+  can be given to force the compilation of specific dependencies.
 
   This task attempts to detect if the project contains one of
   the following files and act accordingly:
@@ -22,23 +22,31 @@ defmodule Mix.Tasks.Deps.Compile do
 
       {:some_dependency, "0.1.0", compile: "command to compile"}
 
+  If a list of dependencies is given, Mix will attempt to compile
+  them as is. For example, if project `a` depends on `b`, calling
+  `mix deps.compile a` will compile `a` even if `b` is out of
+  date. This is to allow parts of the dependency tree to be
+  recompiled without propagating those changes upstream. To ensure
+  `b` is included in the compilation step, pass `--include-children`.
   """
 
   import Mix.Dep, only: [loaded: 1, available?: 1, loaded_by_name: 2,
                          format_dep: 1, make?: 1, mix?: 1]
 
+  @switches [include_children: :boolean]
+
   @spec run(OptionParser.argv) :: :ok
   def run(args) do
     Mix.Project.get!
 
-    case OptionParser.parse(args) do
+    case OptionParser.parse(args, switches: @switches) do
       {_, [], _} ->
-        # Because this command is invoked explicitly with
+        # Because this command may be invoked explicitly with
         # deps.compile, we simply try to compile any available
         # dependency.
         compile(Enum.filter(loaded(env: Mix.env), &available?/1))
-      {_, tail, _} ->
-        compile(loaded_by_name(tail, env: Mix.env))
+      {opts, tail, _} ->
+        compile(loaded_by_name(tail, [env: Mix.env] ++ opts))
     end
   end
 
@@ -47,7 +55,7 @@ defmodule Mix.Tasks.Deps.Compile do
     shell  = Mix.shell
     config = Mix.Project.deps_config
 
-    Mix.Task.run "deps.loadpaths"
+    Mix.Task.run "deps.precompile"
 
     compiled =
       Enum.map(deps, fn %Mix.Dep{app: app, status: status, opts: opts, scm: scm} = dep ->
