@@ -331,6 +331,11 @@ defmodule Map do
 
   All keys in `map2` will be added to `map1`, overriding any existing one.
 
+  If you have a struct and you would like to merge a set of keys into the
+  struct, do not use this function, as it would merge all keys on the right
+  side into the struct, even if the key is not part of the struct. Instead,
+  use `Kernel.struct/2`.
+
   ## Examples
 
       iex> Map.merge(%{a: 1, b: 2}, %{a: 3, d: 4})
