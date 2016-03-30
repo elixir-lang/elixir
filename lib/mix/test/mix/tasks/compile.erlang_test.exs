@@ -59,4 +59,25 @@ defmodule Mix.Tasks.Compile.ErlangTest do
       refute File.regular?("_build/dev/lib/sample/ebin/b.beam")
     end
   end
+
+  test "compilation purges the module" do
+    in_fixture "compile_erlang", fn ->
+      # Create the first version of the module.
+      defmodule :purge_test do
+        def version, do: :v1
+      end
+      assert :v1 == :purge_test.version
+
+      # Create the second version of the module (this time as Erlang source).
+      File.write! "src/purge_test.erl", """
+      -module(purge_test).
+      -compile(export_all).
+      version() -> v2.
+      """
+      assert Mix.Tasks.Compile.Erlang.run([]) == :ok
+
+      # If the module was not purged on recompilation, this would fail.
+      assert :v2 == :purge_test.version
+    end
+  end
 end

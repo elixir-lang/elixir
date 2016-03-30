@@ -80,6 +80,12 @@ defmodule Mix.Tasks.Compile.Erlang do
 
     Mix.Compilers.Erlang.compile(manifest(), tuples, fn
       input, _output ->
+        # We're purging the module because a previous compiler (e.g. Phoenix)
+        # might have already loaded the previous version of it.
+        module = Path.basename(input, ".erl") |> String.to_atom
+        :code.purge(module)
+        :code.delete(module)
+
         file = to_erl_file(Path.rootname(input, ".erl"))
         :compile.file(file, erlc_options)
     end)
