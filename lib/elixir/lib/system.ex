@@ -628,6 +628,40 @@ defmodule System do
   end
 
   @doc """
+  Returns the current OS time.
+
+  The result is returned in the `:native` time unit.
+
+  This time **does not** increase monotonically.
+
+  For more information, see the [chapter on time and time
+  correction](http://www.erlang.org/doc/apps/erts/time_correction.html) in the
+  Erlang docs.
+
+  Inlined by the compiler into `:os.system_time/0`.
+  """
+  @spec os_time() :: integer
+  def os_time do
+    :os.system_time()
+  end
+
+  @doc """
+  Returns the current OS time in the given time `unit`.
+
+  This time **does not** increase monotonically.
+
+  For more information, see the [chapter on time and time
+  correction](http://www.erlang.org/doc/apps/erts/time_correction.html) in the
+  Erlang docs.
+
+  Inlined by the compiler into `:os.system_time/1`.
+  """
+  @spec os_time(:erlang.time_unit) :: integer
+  def os_time(unit) do
+    :os.system_time(unit)
+  end
+
+  @doc """
   Generates and returns an integer that is unique in the current runtime
   instance.
 
