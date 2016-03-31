@@ -636,7 +636,7 @@ defmodule UndefinedFunctionError do
   end
 
   def message(%{reason: :"function not exported",  module: module, function: function, arity: arity}) do
-    "undefined function " <> Exception.format_mfa(module, function, arity) <> perhaps(module, function, arity)
+    "undefined (or private) function " <> Exception.format_mfa(module, function, arity) <> perhaps(module, function, arity)
   end
 
   def message(%{reason: :"function not available", module: module, function: function, arity: arity}) do
