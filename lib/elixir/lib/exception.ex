@@ -637,7 +637,7 @@ defmodule UndefinedFunctionError do
 
   def message(%{reason: :"function not exported",  module: module, function: function, arity: arity}) do
     "function " <> Exception.format_mfa(module, function, arity) <>
-    " is undefined or private" <> perhaps(module, function, arity)
+    " is undefined or private" <> did_you_mean(module, function, arity)
   end
 
   def message(%{reason: :"function not available", module: module, function: function, arity: arity}) do
@@ -653,7 +653,7 @@ defmodule UndefinedFunctionError do
   @function_threshold 0.77
   @max_suggestions 5
 
-  defp perhaps(module, function, _arity) do
+  defp did_you_mean(module, function, _arity) do
     exports = exports_for(module)
 
     result =
@@ -673,7 +673,7 @@ defmodule UndefinedFunctionError do
 
     case result do
       []          -> ""
-      suggestions -> ". Perhaps you meant one of:\n\n#{Enum.map(suggestions, &format_fa/1)}"
+      suggestions -> ". Did you mean one of:\n\n#{Enum.map(suggestions, &format_fa/1)}"
     end
   end
 

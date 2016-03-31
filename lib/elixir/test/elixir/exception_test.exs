@@ -356,19 +356,19 @@ defmodule ExceptionTest do
 
   test "UndefinedFunctionError message suggestions" do
     assert %UndefinedFunctionError{module: Enum, function: :map, arity: 1} |> message == """
-           function Enum.map/1 is undefined or private. Perhaps you meant one of:
+           function Enum.map/1 is undefined or private. Did you mean one of:
 
                  * map/2
            """
     assert %UndefinedFunctionError{module: Enum, function: :man, arity: 1} |> message == """
-           function Enum.man/1 is undefined or private. Perhaps you meant one of:
+           function Enum.man/1 is undefined or private. Did you mean one of:
 
                  * map/2
                  * max/1
                  * min/1
            """
     assert %UndefinedFunctionError{module: :erlang, function: :gt_cookie, arity: 0} |> message == """
-           function :erlang.gt_cookie/0 is undefined or private. Perhaps you meant one of:
+           function :erlang.gt_cookie/0 is undefined or private. Did you mean one of:
 
                  * get_cookie/0
                  * set_cookie/2
