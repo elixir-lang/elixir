@@ -631,22 +631,23 @@ defmodule UndefinedFunctionError do
   end
 
   def message(%{reason: :"module could not be loaded", module: module, function: function, arity: arity}) do
-    "undefined function " <> Exception.format_mfa(module, function, arity) <>
-      " (module #{inspect module} is not available)"
+    "function " <> Exception.format_mfa(module, function, arity) <>
+      " is undefined (module #{inspect module} is not available)"
   end
 
   def message(%{reason: :"function not exported",  module: module, function: function, arity: arity}) do
-    "undefined (or private) function " <> Exception.format_mfa(module, function, arity) <> perhaps(module, function, arity)
+    "function " <> Exception.format_mfa(module, function, arity) <>
+    " is undefined or private" <> perhaps(module, function, arity)
   end
 
   def message(%{reason: :"function not available", module: module, function: function, arity: arity}) do
     "nil." <> fa = Exception.format_mfa(nil, function, arity)
-    "undefined function " <> Exception.format_mfa(module, function, arity) <>
-      " (function #{fa} is not available)"
+    "function " <> Exception.format_mfa(module, function, arity) <>
+    " is undefined (function #{fa} is not available)"
   end
 
   def message(%{reason: reason,  module: module, function: function, arity: arity}) do
-    "undefined function " <> Exception.format_mfa(module, function, arity) <> " (#{reason})"
+    "function " <> Exception.format_mfa(module, function, arity) <> " is undefined (#{reason})"
   end
 
   @function_threshold 0.77

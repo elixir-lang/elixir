@@ -347,28 +347,28 @@ defmodule ExceptionTest do
   test "UndefinedFunctionError message" do
     assert %UndefinedFunctionError{} |> message == "undefined function"
     assert %UndefinedFunctionError{module: Kernel, function: :bar, arity: 1} |> message ==
-           "undefined (or private) function Kernel.bar/1"
+           "function Kernel.bar/1 is undefined or private"
     assert %UndefinedFunctionError{module: Foo, function: :bar, arity: 1} |> message ==
-           "undefined function Foo.bar/1 (module Foo is not available)"
+           "function Foo.bar/1 is undefined (module Foo is not available)"
     assert %UndefinedFunctionError{module: nil, function: :bar, arity: 0} |> message ==
-           "undefined (or private) function nil.bar/0"
+           "function nil.bar/0 is undefined or private"
   end
 
   test "UndefinedFunctionError message suggestions" do
     assert %UndefinedFunctionError{module: Enum, function: :map, arity: 1} |> message == """
-           undefined (or private) function Enum.map/1. Perhaps you meant one of:
+           function Enum.map/1 is undefined or private. Perhaps you meant one of:
 
                  * map/2
            """
     assert %UndefinedFunctionError{module: Enum, function: :man, arity: 1} |> message == """
-           undefined (or private) function Enum.man/1. Perhaps you meant one of:
+           function Enum.man/1 is undefined or private. Perhaps you meant one of:
 
                  * map/2
                  * max/1
                  * min/1
            """
     assert %UndefinedFunctionError{module: :erlang, function: :gt_cookie, arity: 0} |> message == """
-           undefined (or private) function :erlang.gt_cookie/0. Perhaps you meant one of:
+           function :erlang.gt_cookie/0 is undefined or private. Perhaps you meant one of:
 
                  * get_cookie/0
                  * set_cookie/2
