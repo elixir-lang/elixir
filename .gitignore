@@ -15,3 +15,5 @@
 /.release
 .elixir.plt
 erl_crash.dump
+/lib/*/cover
+/lib/*/_build
