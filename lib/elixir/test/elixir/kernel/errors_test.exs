@@ -868,11 +868,12 @@ defmodule Kernel.ErrorsTest do
 
   test "invalid function on match" do
     assert_compile_fail CompileError,
-      "nofile:3: cannot invoke local something_that_does_not_exist/0 inside match",
+      "nofile:3: cannot invoke local something_that_does_not_exist/1 inside match," <>
+      " called as: something_that_does_not_exist(:foo)",
       '''
       defmodule Kernel.ErrorsTest.InvalidFunctionOnMatch do
         def fun do
-          case [] do; something_that_does_not_exist() -> :ok; end
+          case [] do; something_that_does_not_exist(:foo) -> :ok; end
         end
       end
       '''
