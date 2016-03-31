@@ -166,7 +166,7 @@ defmodule Macro do
 
   # {:fn, _, _} is what we get when we pipe into an anonymous function without
   # calling it, e.g., `:foo |> (fn x -> x end)`.
-  def pipe(expr, {:fn, _, _} = call_args, _integer) do
+  def pipe(expr, {:fn, _, _}, _integer) do
     expr_str = to_string(expr)
     raise ArgumentError,
       "cannot pipe #{expr_str} into an anonymous function without" <>
