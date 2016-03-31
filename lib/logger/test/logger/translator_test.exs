@@ -151,7 +151,7 @@ defmodule Logger.TranslatorTest do
       receive do: ({:DOWN, ^ref, _, _, _} -> :ok)
     end) =~ ~r"""
     \[error\] Task #PID<\d+\.\d+\.\d+> started from #PID<\d+\.\d+\.\d+> terminating
-    \*\* \(UndefinedFunctionError\) undefined function Logger.TranslatorTest.undef/0
+    \*\* \(UndefinedFunctionError\) undefined \(or private\) function Logger.TranslatorTest.undef/0
     .*
     Function: &Logger.TranslatorTest.undef/0
         Args: \[\]
@@ -469,7 +469,7 @@ defmodule Logger.TranslatorTest do
     end) =~ ~r"""
     \[error\] Child Logger.TranslatorTest of Supervisor #PID<\d+\.\d+\.\d+> \(Supervisor\.Default\) failed to start
     \*\* \(exit\) an exception was raised:
-        \*\* \(UndefinedFunctionError\) undefined function Logger.TranslatorTest.undef/0
+        \*\* \(UndefinedFunctionError\) undefined \(or private\) function Logger.TranslatorTest.undef/0
         .*
     Start Call: Logger.TranslatorTest.undef\(\)
     """s
