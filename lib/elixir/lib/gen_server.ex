@@ -197,10 +197,10 @@ defmodule GenServer do
   `Supervisor.restart_child/2` as the child specification is saved in the parent
   supervisor. The main use cases for this are:
 
-  - The `GenServer` is disabled by configuration but might be enabled later.
-  - An error occured and it will be handled by a different mechanism than the
-  `Supervisor`. Likely this approach involves calling `Supervisor.restart_child/2`
-  after a delay to attempt a restart.
+    * The `GenServer` is disabled by configuration but might be enabled later.
+    * An error occured and it will be handled by a different mechanism than the
+     `Supervisor`. Likely this approach involves calling `Supervisor.restart_child/2`
+      after a delay to attempt a restart.
 
   Returning `{:stop, reason}` will cause `start_link/3` to return
   `{:error, reason}` and the process to exit with reason `reason` without
@@ -245,11 +245,11 @@ defmodule GenServer do
 
   There are three main use cases for not replying using the return value:
 
-  - To reply before returning from the callback because the response is known
-  before calling a slow function.
-  - To reply after returning from the callback because the response is not yet
-  available.
-  - To reply from another process, such as a task.
+    * To reply before returning from the callback because the response is known
+      before calling a slow function.
+    * To reply after returning from the callback because the response is not yet
+      available.
+    * To reply from another process, such as a task.
 
   When replying from another process the `GenServer` should exit if the other
   process exits without replying as the caller will be blocking awaiting a
