@@ -194,6 +194,10 @@ defmodule StringTest do
     assert String.rstrip("a  abc  a \u001F") == "a  abc  a \u001F"
     # no-break space
     assert String.rstrip("a  abc  a \u00A0") == "a  abc  a"
+    # String second argument
+    assert String.rstrip("   cat eee", "e") == "   cat "
+    assert String.rstrip("   cat 猫猫", "猫") == "   cat "
+    assert String.rstrip("   cat abab", "ab") == "   cat "
   end
 
   test "lstrip" do
@@ -209,6 +213,10 @@ defmodule StringTest do
     assert String.lstrip("\u001F a  abc  a") == <<31>> <> " a  abc  a"
     # no-break space
     assert String.lstrip("\u00A0 a  abc  a") == "a  abc  a"
+    # String second argument
+    assert String.lstrip("eee  cat ", "e") == "  cat "
+    assert String.lstrip("猫猫  cat ", "猫") == "  cat "
+    assert String.lstrip("abab  cat ", "ab") == "  cat "
   end
 
   test "strip" do
