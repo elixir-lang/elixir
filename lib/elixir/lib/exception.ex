@@ -498,11 +498,7 @@ defmodule ArgumentError do
 end
 
 defmodule ArithmeticError do
-  defexception []
-
-  def message(_) do
-    "bad argument in arithmetic expression"
-  end
+  defexception message: "bad argument in arithmetic expression"
 end
 
 defmodule SystemLimitError do
@@ -769,19 +765,11 @@ defmodule UnicodeConversionError do
 end
 
 defmodule Enum.OutOfBoundsError do
-  defexception []
-
-  def message(_) do
-    "out of bounds error"
-  end
+  defexception message: "out of bounds error"
 end
 
 defmodule Enum.EmptyError do
-  defexception []
-
-  def message(_) do
-    "empty error"
-  end
+  defexception message: "empty error"
 end
 
 defmodule File.Error do
