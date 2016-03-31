@@ -490,8 +490,8 @@ defmodule Kernel.ErrorsTest do
 
   test "macro with undefined local" do
     assert_compile_fail UndefinedFunctionError,
-      "undefined function Kernel.ErrorsTest.MacroWithUndefinedLocal.unknown/1 " <>
-      "(function unknown/1 is not available)",
+      "function Kernel.ErrorsTest.MacroWithUndefinedLocal.unknown/1" <>
+      " is undefined (function unknown/1 is not available)",
       '''
       defmodule Kernel.ErrorsTest.MacroWithUndefinedLocal do
         defmacrop bar, do: unknown(1)
@@ -502,7 +502,7 @@ defmodule Kernel.ErrorsTest do
 
   test "private macro" do
     assert_compile_fail UndefinedFunctionError,
-      "undefined function Kernel.ErrorsTest.PrivateMacro.foo/0 (function foo/0 is not available)",
+      "function Kernel.ErrorsTest.PrivateMacro.foo/0 is undefined (function foo/0 is not available)",
       '''
       defmodule Kernel.ErrorsTest.PrivateMacro do
         defmacrop foo, do: 1
@@ -929,7 +929,7 @@ defmodule Kernel.ErrorsTest do
       'alias Elixir.{Map}, as: Dict'
 
     assert_compile_fail UndefinedFunctionError,
-      "undefined function List.{}/1",
+      "function List.{}/1 is undefined or private",
       '[List.{Chars}, "one"]'
   end
 
