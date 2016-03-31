@@ -315,21 +315,36 @@ defmodule ExceptionTest do
     assert formatted =~ ~r"\s{16}:not_a_real_module\.function/0"
   end
 
-  ## Exception messagges
+  ## Exception messages
 
   import Exception, only: [message: 1]
 
-  test "runtime error message" do
+  test "RuntimeError message" do
     assert %RuntimeError{} |> message == "runtime error"
-    assert %RuntimeError{message: "exception"} |> message == "exception"
+    assert %RuntimeError{message: "unexpected roquefort"} |> message == "unexpected roquefort"
   end
 
-  test "argument error message" do
+  test "ArithmeticError message" do
+    assert %ArithmeticError{} |> message == "bad argument in arithmetic expression"
+    assert %ArithmeticError{message: "unexpected camembert"} |> message == "unexpected camembert"
+  end
+
+  test "ArgumentError message" do
     assert %ArgumentError{} |> message == "argument error"
-    assert %ArgumentError{message: "exception"} |> message == "exception"
+    assert %ArgumentError{message: "unexpected comté"} |> message == "unexpected comté"
   end
 
-  test "undefined function message" do
+  test "Enum.OutOfBoundsError message" do
+    assert %Enum.OutOfBoundsError{} |> message == "out of bounds error"
+    assert %Enum.OutOfBoundsError{message: "the brie is not on the table"} |> message == "the brie is not on the table"
+  end
+
+  test "Enum.EmptyError message" do
+    assert %Enum.EmptyError{} |> message == "empty error"
+    assert %Enum.EmptyError{message: "there is no saint-nectaire left!"} |> message == "there is no saint-nectaire left!"
+  end
+
+  test "UndefinedFunctionError message" do
     assert %UndefinedFunctionError{} |> message == "undefined function"
     assert %UndefinedFunctionError{module: Kernel, function: :bar, arity: 1} |> message ==
            "undefined function Kernel.bar/1"
@@ -339,7 +354,7 @@ defmodule ExceptionTest do
            "undefined function nil.bar/0"
   end
 
-  test "undefined function message suggestions" do
+  test "UndefinedFunctionError message suggestions" do
     assert %UndefinedFunctionError{module: Enum, function: :map, arity: 1} |> message == """
            undefined function Enum.map/1. Perhaps you meant one of:
 
@@ -360,14 +375,14 @@ defmodule ExceptionTest do
            """
   end
 
-  test "function clause message" do
+  test "FunctionClauseError message" do
     assert %FunctionClauseError{} |> message ==
            "no function clause matches"
     assert %FunctionClauseError{module: Foo, function: :bar, arity: 1} |> message ==
            "no function clause matching in Foo.bar/1"
   end
 
-  test "erlang error message" do
+  test "ErlangError message" do
     assert %ErlangError{original: :sample} |> message ==
            "erlang error: :sample"
   end
