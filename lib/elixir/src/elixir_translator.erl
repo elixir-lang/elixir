@@ -203,11 +203,12 @@ translate({Name, Meta, Kind}, S) when is_atom(Name), is_atom(Kind) ->
 
 %% Local calls
 
-translate({Name, Meta, Args}, S) when is_atom(Name), is_list(Meta), is_list(Args) ->
+translate({Name, Meta, Args} = Call, S) when is_atom(Name), is_list(Meta), is_list(Args) ->
   if
     S#elixir_scope.context == match ->
       compile_error(Meta, S#elixir_scope.file,
-                    "cannot invoke local ~ts/~B inside match", [Name, length(Args)]);
+                    "cannot invoke local ~ts/~B inside match, called as: ~ts",
+                    [Name, length(Args), 'Elixir.Macro':to_string(Call)]);
     S#elixir_scope.context == guard ->
       Arity = length(Args),
       File  = S#elixir_scope.file,
