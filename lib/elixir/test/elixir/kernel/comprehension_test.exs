@@ -3,6 +3,7 @@ Code.require_file "../test_helper.exs", __DIR__
 defmodule Kernel.ComprehensionTest do
   use ExUnit.Case, async: true
 
+  import CompileAssertion
   import ExUnit.CaptureIO
   require Integer
 
@@ -201,6 +202,11 @@ defmodule Kernel.ComprehensionTest do
     assert for(x <- enum, into: "", do: to_bin(x * 2)) == <<2, 4, 6>>
   end
 
+  test "map for comprehensions into map" do
+    enum = %{a: 2, b: 3}
+    assert for({k, v} <- enum, into: %{}, do: {k, v * v}) == %{a: 4, b: 9}
+  end
+
   test "list for comprehensions where value is not used" do
     enum = [1, 2, 3]
 
@@ -250,5 +256,11 @@ defmodule Kernel.ComprehensionTest do
       for(<<x <- bin>>, do: IO.puts x)
       nil
     end) == "1\n2\n3\n"
+  end
+
+  test "failure on missing do" do
+    assert_compile_fail CompileError,
+      "nofile:1: missing do keyword in for comprehension",
+      "for x <- 1..2"
   end
 end
