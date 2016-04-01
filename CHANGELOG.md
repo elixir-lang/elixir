@@ -85,6 +85,24 @@ ask Mix to use Rebar 3 to compile it by passing the `manager: :rebar3` option.
 Once configured, Mix will prompt you to install Rebar 3 if it is not yet
 available.
 
+## v1.2.4 (2016-04-01)
+
+### 1. Enhancements
+
+  * [Mix] Add `:archives` configuration to `def project` that allows projects to list archive dependencies. `--no-archives-check` (as well as `--no-deps-check`) will disable the archive check. The `:archives` option is not checked for dependencies.
+  * [Mix] Add `deps.precompile` task as hook
+  * [Mix] Support `--include-children` in `mix deps.compile` option
+  * [String] Update version of the Unicode database to 8.0.0
+
+### 2. Bug fixes
+
+  * [Application] Ensure `spec/2` returns nil for unknown applications
+  * [Integer] Fix a possible binary leak in `parse/1`
+  * [Mix] Purge Erlang modules on recompilation
+  * [String] Ensure `split/1` does not break on non-breakable whitespace
+  * [String] Ensure NFC and NFD normalization pass all of Unicode 8.0.0 tests
+  * [Version] Allow dots in build info for versions in `Version.parse/1`
+
 ## v1.2.3 (2016-02-21)
 
 ### 1. Enhancements
