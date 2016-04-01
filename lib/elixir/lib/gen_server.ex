@@ -265,6 +265,9 @@ defmodule GenServer do
 
   Returning `{:stop, reason, new_state}` is similar to
   `{:stop, reason, reply, new_state}` except a reply is not sent.
+
+  If this callback is not implemented, the default implementation by
+  `use GenServer` will return `{:stop, {:bad_call, request}, state}`.
   """
   @callback handle_call(request :: term, from, state :: term) ::
     {:reply, reply, new_state} |
@@ -293,6 +296,9 @@ defmodule GenServer do
   Returning `{:stop, reason, new_state}` stops the loop and `terminate/2` is
   called with the reason `reason` and state `new_state`. The process exits with
   reason `reason`.
+
+  If this callback is not implemented, the default implementation by
+  `use GenServer` will return `{:stop, {:bad_cast, request}, state}`.
   """
   @callback handle_cast(request :: term, state :: term) ::
     {:noreply, new_state} |
@@ -306,6 +312,9 @@ defmodule GenServer do
   a timeout occurs the message is `:timeout`.
 
   Return values are the same as `handle_cast/2`.
+
+  If this callback is not implemented, the default implementation by
+  `use GenServer` will return `{:noreply, state}`.
   """
   @callback handle_info(msg :: :timeout | term, state :: term) ::
     {:noreply, new_state} |
