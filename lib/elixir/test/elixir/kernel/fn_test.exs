@@ -157,6 +157,12 @@ defmodule Kernel.FnTest do
       "&foo()"
   end
 
+  test "failure on nested capture" do
+    assert_compile_fail CompileError,
+      "nofile:1: nested captures via & are not allowed: &(nil)",
+      "&(&())"
+  end
+
   defp is_a?(:atom, atom) when is_atom(atom), do: true
   defp is_a?(_, _), do: false
 
