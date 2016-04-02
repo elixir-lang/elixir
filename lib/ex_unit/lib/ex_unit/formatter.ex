@@ -225,22 +225,18 @@ defmodule ExUnit.Formatter do
   defp format_diff(struct, formatter) do
     if_value(struct.left, fn left ->
       if_value(struct.right, fn right ->
-        if same_data_type?(left, right) do
-          format_diff(left, right, formatter)
-        else
-          ExUnit.AssertionError.no_value
-        end
+        format_diff(left, right, formatter) || ExUnit.AssertionError.no_value
       end)
     end)
   end
 
-  defp format_diff(left, right, formatter) when is_binary(left) and is_binary(right) do
+  defp format_diff(<<left::bytes>>, <<right::bytes>>, formatter) do
     String.myers_difference(left, right)
     |> Enum.map_join(&format_diff_fragment(&1, formatter))
     |> String.replace("\n", "\n" <> @inspect_padding)
   end
 
-  defp format_diff(left, right, formatter) when is_map(left) and is_map(right) do
+  defp format_diff(%{} = left, %{} = right, formatter) do
     {surplus, altered} =
       Enum.reduce(left, {[], []}, fn({key, val1}, {surplus, altered} = acc) ->
         case Map.fetch(right, key) do
@@ -260,16 +256,32 @@ defmodule ExUnit.Formatter do
       [formatter.(:diff_delete, inspect(key) <> " => " <> inspect(val)) | acc]
     end)
     result = Enum.reduce(altered, result, fn({key, {val1, val2}}, acc) ->
-      delete = formatter.(:diff_delete, inspect(val1))
-      insert = formatter.(:diff_insert, inspect(val2))
-      [inspect(key) <> " => " <> delete <> insert | acc]
+      [inspect(key) <> " => " <> format_inner_diff(val1, val2, formatter) | acc]
     end)
     result = Enum.intersperse(result, ", ") |> IO.iodata_to_binary
     "%{" <> result <> "}"
   end
 
-  defp format_diff(left, right, formatter) do
+  defp format_diff(left, right, formatter)
+  when is_number(left) and is_number(right)
+  when is_tuple(left) and is_tuple(right)
+  when is_list(left) and is_list(right) do
     format_diff(inspect(left), inspect(right), formatter)
+  end
+
+  defp format_diff(_left, _right, _formatter), do: nil
+
+  defp format_inner_diff(<<left::bytes>>, <<right::bytes>>, formatter) do
+    format_diff(inspect(left), inspect(right), formatter)
+  end
+
+  defp format_inner_diff(left, right, formatter) do
+    if result = format_diff(left, right, formatter) do
+      result
+    else
+      formatter.(:diff_delete, inspect(left)) <>
+      formatter.(:diff_insert, inspect(right))
+    end
   end
 
   defp format_diff_fragment({:eq, <<ch1::utf8, ch2::utf8, ch3::utf8>> <> rest}, _) do
@@ -287,15 +299,6 @@ defmodule ExUnit.Formatter do
   defp format_diff_fragment({:ins, content}, formatter) do
     formatter.(:diff_insert, content)
   end
-
-  defp same_data_type?(left, right)
-  when is_number(left) and is_number(right)
-  when is_binary(left) and is_binary(right)
-  when is_tuple(left) and is_tuple(right)
-  when is_list(left) and is_list(right)
-  when is_map(left) and is_map(right), do: true
-
-  defp same_data_type?(_left, _right), do: false
 
   defp format_stacktrace([], _case, _test, _color) do
     ""
