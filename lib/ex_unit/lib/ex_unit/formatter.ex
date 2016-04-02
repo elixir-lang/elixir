@@ -236,7 +236,28 @@ defmodule ExUnit.Formatter do
     |> String.replace("\n", "\n" <> @inspect_padding)
   end
 
+  defp format_diff(%name{} = left, %name{} = right, formatter) do
+    left = Map.from_struct(left)
+    right = Map.from_struct(right)
+    format_map_diff(left, right, inspect(name), formatter)
+  end
+
+  defp format_diff(%_{}, %_{}, _formatter), do: nil
+
   defp format_diff(%{} = left, %{} = right, formatter) do
+    format_map_diff(left, right, "", formatter)
+  end
+
+  defp format_diff(left, right, formatter)
+      when is_number(left) and is_number(right)
+      when is_tuple(left) and is_tuple(right)
+      when is_list(left) and is_list(right) do
+    format_diff(inspect(left), inspect(right), formatter)
+  end
+
+  defp format_diff(_left, _right, _formatter), do: nil
+
+  defp format_map_diff(left, right, name, formatter) do
     {surplus, altered} =
       Enum.reduce(left, {[], []}, fn({key, val1}, {surplus, altered} = acc) ->
         case Map.fetch(right, key) do
@@ -268,17 +289,8 @@ defmodule ExUnit.Formatter do
       [format_map_pair(inspect(key), value_diff, keyword?) | acc]
     end)
     result = Enum.intersperse(result, ", ") |> IO.iodata_to_binary
-    "%{" <> result <> "}"
+    "%" <> name <> "{" <> result <> "}"
   end
-
-  defp format_diff(left, right, formatter)
-  when is_number(left) and is_number(right)
-  when is_tuple(left) and is_tuple(right)
-  when is_list(left) and is_list(right) do
-    format_diff(inspect(left), inspect(right), formatter)
-  end
-
-  defp format_diff(_left, _right, _formatter), do: nil
 
   defp format_map_pair(key, value, false) do
     key <> " => " <> value
