@@ -249,14 +249,23 @@ defmodule ExUnit.Formatter do
         end
       end)
     missing = Enum.reject(right, fn {key, _} -> Map.has_key?(left, key) end)
+
+    keyword? =
+      Inspect.List.keyword?(surplus) and
+      Inspect.List.keyword?(altered) and
+      Inspect.List.keyword?(missing)
+
     result = Enum.reduce(missing, [], fn({key, val}, acc) ->
-      [formatter.(:diff_insert, inspect(key) <> " => " <> inspect(val)) | acc]
+      map_pair = format_map_pair(inspect(key), inspect(val), keyword?)
+      [formatter.(:diff_insert, map_pair) | acc]
     end)
     result = Enum.reduce(surplus, result, fn({key, val}, acc) ->
-      [formatter.(:diff_delete, inspect(key) <> " => " <> inspect(val)) | acc]
+      map_pair = format_map_pair(inspect(key), inspect(val), keyword?)
+      [formatter.(:diff_delete, map_pair) | acc]
     end)
     result = Enum.reduce(altered, result, fn({key, {val1, val2}}, acc) ->
-      [inspect(key) <> " => " <> format_inner_diff(val1, val2, formatter) | acc]
+      value_diff = format_inner_diff(val1, val2, formatter)
+      [format_map_pair(inspect(key), value_diff, keyword?) | acc]
     end)
     result = Enum.intersperse(result, ", ") |> IO.iodata_to_binary
     "%{" <> result <> "}"
@@ -270,6 +279,18 @@ defmodule ExUnit.Formatter do
   end
 
   defp format_diff(_left, _right, _formatter), do: nil
+
+  defp format_map_pair(key, value, false) do
+    key <> " => " <> value
+  end
+
+  defp format_map_pair(":" <> rest, value, true) do
+    format_map_pair(rest, value, true)
+  end
+
+  defp format_map_pair(key, value, true) do
+    key <> ": " <> value
+  end
 
   defp format_inner_diff(<<left::bytes>>, <<right::bytes>>, formatter) do
     format_diff(inspect(left), inspect(right), formatter)
