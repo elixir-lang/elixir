@@ -103,7 +103,7 @@ unescape_chars(<<>>, _Map, Acc) -> Acc.
 
 % Unescape Helpers
 
-%% TODO: Remove deprecation on 2.0
+%% TODO: Remove deprecation by 2.0
 unescape_hex(<<A, B, Rest/binary>>, Map, Acc) when ?is_hex(A), ?is_hex(B) ->
   Bytes = list_to_integer([A, B], 16),
   unescape_chars(Rest, Map, <<Acc/binary, Bytes>>);

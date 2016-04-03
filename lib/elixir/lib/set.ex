@@ -9,7 +9,8 @@ defmodule Set do
   @type values :: [ value ]
   @type t :: map
 
-  # TODO: Deprecate every function on 1.4
+  # TODO: Deprecate every function by 1.4
+  # TODO: Remove by 2.0
   defmacrop target(set) do
     quote do
       case unquote(set) do

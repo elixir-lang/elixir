@@ -391,7 +391,6 @@ defmodule Stream do
       [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
 
   """
-  # TODO: Allow it to handle system messages.
   @spec interval(non_neg_integer) :: Enumerable.t
   def interval(n) do
     unfold 0, fn (count) ->

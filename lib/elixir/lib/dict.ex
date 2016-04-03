@@ -13,7 +13,8 @@ defmodule Dict do
   @type value :: any
   @type t :: list | map
 
-  # TODO: Deprecate every function on 1.4
+  # TODO: Deprecate every function by 1.4
+  # TODO: Remove by 2.0
   defmacro __using__(_) do
     # Use this import to guarantee proper code expansion
     import Kernel, except: [size: 1]

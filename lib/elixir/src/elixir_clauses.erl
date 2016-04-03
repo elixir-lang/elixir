@@ -184,8 +184,8 @@ normalize_vars(Key, {Ref, Counter, _Safe},
     end,
 
   %% TODO: Unsafe vars should raise in future versions.
-  %% When we do so, we can simplify the export vars mechanism.
-  %% For Elixir v2.0, we will never export them.
+  %% When we do so, we can unify the export vars mechanism.
+  %% For Elixir v2.0, we will never export them (or always raise in case/cond/try).
   Value = {Ref, Counter, false},
 
   VS = S#elixir_scope{

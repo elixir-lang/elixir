@@ -174,12 +174,14 @@ defmodule Mix.Utils do
 
   @doc false
   # TODO: Deprecate by 1.4
+  # TODO: Remove by 2.0
   def underscore(value) do
     Macro.underscore(value)
   end
 
   @doc false
   # TODO: Deprecate by 1.4
+  # TODO: Remove by 2.0
   def camelize(value) do
     Macro.camelize(value)
   end

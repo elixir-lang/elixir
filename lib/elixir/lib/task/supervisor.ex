@@ -118,7 +118,7 @@ defmodule Task.Supervisor do
   @doc """
   Returns all children pids.
   """
-  # TODO: Once moved to a DynamicSupervisor, what should this return?
+  # TODO: Delegate to DynamicSupervisor
   @spec children(Supervisor.supervisor) :: [pid]
   def children(supervisor) do
     for {_, pid, _, _} <- Supervisor.which_children(supervisor), is_pid(pid), do: pid
