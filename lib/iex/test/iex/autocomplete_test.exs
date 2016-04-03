@@ -50,24 +50,19 @@ defmodule IEx.AutocompleteTest do
   end
 
   test "elixir no completion for underscored functions with no doc" do
-    filename = "sample.ex"
-    content = """
-    defmodule Sample do
-      def __foo__(), do: 0
-      @doc "Bar doc"
-      def __bar__(), do: 1
-    end
-    """
-    File.write!(filename, content)
-    try do
-      :elixir_compiler.file_to_path(filename, ".")
-      assert expand('Sample._') == {:yes, '_bar__', []}
-    after
-      File.rm("Elixir.Sample.beam")
-      :code.purge(Sample)
-      :code.delete(Sample)
-      File.rm(filename)
-    end
+    {:module, _, bytecode, _} =
+      defmodule Elixir.Sample do
+        def __foo__(), do: 0
+        @doc "Bar doc"
+        def __bar__(), do: 1
+      end
+    File.write!("Elixir.Sample.beam", bytecode)
+    assert Code.get_docs(Sample, :docs)
+    assert expand('Sample._') == {:yes, '_bar__', []}
+  after
+    File.rm("Elixir.Sample.beam")
+    :code.purge(Sample)
+    :code.delete(Sample)
   end
 
   test "elixir no completion" do
@@ -165,23 +160,23 @@ defmodule IEx.AutocompleteTest do
 
   test "completion for functions added when compiled module is reloaded" do
     {:module, _, bytecode, _} =
-      defmodule Elixir.Autocomplete do
+      defmodule Elixir.Sample do
         def foo(), do: 0
       end
-    File.write!("Elixir.Autocomplete.beam", bytecode)
-    assert Code.get_docs(Autocomplete, :docs)
-    assert expand('Autocomplete.foo') == {:yes, '', ['foo/0']}
+    File.write!("Elixir.Sample.beam", bytecode)
+    assert Code.get_docs(Sample, :docs)
+    assert expand('Sample.foo') == {:yes, '', ['foo/0']}
 
     Code.compiler_options(ignore_module_conflict: true)
-    defmodule Elixir.Autocomplete do
+    defmodule Elixir.Sample do
       def foo(), do: 0
       def foobar(), do: 0
     end
-    assert expand('Autocomplete.foo') == {:yes, '', ['foo/0', 'foobar/0']}
+    assert expand('Sample.foo') == {:yes, '', ['foo/0', 'foobar/0']}
   after
-    File.rm("Elixir.Autocomplete.beam")
+    File.rm("Elixir.Sample.beam")
     Code.compiler_options(ignore_module_conflict: false)
-    :code.purge(Autocomplete)
-    :code.delete(Autocomplete)
+    :code.purge(Sample)
+    :code.delete(Sample)
   end
 end
