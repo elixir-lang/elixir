@@ -230,32 +230,40 @@ defmodule ExUnit.Formatter do
     end)
   end
 
-  defp format_diff(<<left::bytes>>, <<right::bytes>>, formatter) do
+  @doc """
+  Formats the difference between `left` and `right`.
+
+  Returns `nil` if they are not the same data type,
+  or if the given data type is not supported.
+  """
+  def format_diff(left, right, formatter_fun)
+
+  def format_diff(<<left::bytes>>, <<right::bytes>>, formatter) do
     String.myers_difference(left, right)
     |> Enum.map_join(&format_diff_fragment(&1, formatter))
     |> String.replace("\n", "\n" <> @inspect_padding)
   end
 
-  defp format_diff(%name{} = left, %name{} = right, formatter) do
+  def format_diff(%name{} = left, %name{} = right, formatter) do
     left = Map.from_struct(left)
     right = Map.from_struct(right)
     format_map_diff(left, right, inspect(name), formatter)
   end
 
-  defp format_diff(%_{}, %_{}, _formatter), do: nil
+  def format_diff(%_{}, %_{}, _formatter), do: nil
 
-  defp format_diff(%{} = left, %{} = right, formatter) do
+  def format_diff(%{} = left, %{} = right, formatter) do
     format_map_diff(left, right, "", formatter)
   end
 
-  defp format_diff(left, right, formatter)
+  def format_diff(left, right, formatter)
       when is_number(left) and is_number(right)
       when is_tuple(left) and is_tuple(right)
       when is_list(left) and is_list(right) do
     format_diff(inspect(left), inspect(right), formatter)
   end
 
-  defp format_diff(_left, _right, _formatter), do: nil
+  def format_diff(_left, _right, _formatter), do: nil
 
   defp format_map_diff(left, right, name, formatter) do
     {surplus, altered} =
@@ -315,12 +323,6 @@ defmodule ExUnit.Formatter do
       formatter.(:diff_delete, inspect(left)) <>
       formatter.(:diff_insert, inspect(right))
     end
-  end
-
-  defp format_diff_fragment({:eq, <<ch1::utf8, ch2::utf8, ch3::utf8>> <> rest}, _) do
-    slice = String.slice(rest, -2, 2)
-    fill = if slice != rest, do: "...", else: <<ch3::utf8>>
-    <<ch1::utf8, ch2::utf8>> <> fill <> slice
   end
 
   defp format_diff_fragment({:eq, content}, _), do: content
