@@ -28,6 +28,12 @@ defmodule MapTest do
     assert a == 1
   end
 
+  test "maps with string interpolation" do
+    a = 0
+    assert %{"foo#{0}" => "bar"} == %{"foo0" => "bar"}
+    assert %{"foo#{a}" => "bar"} == %{"foo0" => "bar"}
+  end
+
   test "is_map/1" do
     assert is_map(Map.new)
     refute is_map(Enum.to_list(%{}))
