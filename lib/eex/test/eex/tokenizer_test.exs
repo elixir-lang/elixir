@@ -158,5 +158,6 @@ baz %>
 
   test "raise syntax error when there is start mark and no end mark" do
     assert T.tokenize('foo <% :bar', 1) == {:error, 1, "missing token '%>'"}
+    assert T.tokenize('<%# true ', 1) == {:error, 1, "missing token '%>'"}
   end
 end
