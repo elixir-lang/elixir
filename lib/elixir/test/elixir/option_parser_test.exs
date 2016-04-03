@@ -212,12 +212,20 @@ defmodule OptionParserTest do
            == {[foo: true, boo: "-"], ["-"], []}
   end
 
-  test "correctly handles negative numbers" do
+  test "correctly handles negative integers" do
     assert OptionParser.parse(["arg1", "-43"])
       == {[], ["arg1", "-43"], []}
 
       assert OptionParser.parse(["arg1", "-o", "-43"], switches: [option: :integer], aliases: [o: :option])
       == {[option: -43], ["arg1"], []}
+  end
+
+  test "correctly handles negative floating point numbers" do
+    assert OptionParser.parse(["arg1", "-43.2"])
+      == {[], ["arg1", "-43.2"], []}
+
+      assert OptionParser.parse(["arg1", "-o", "-43.2"], switches: [option: :float], aliases: [o: :option])
+      == {[option: -43.2], ["arg1"], []}
   end
 
   test "multi-word option" do
