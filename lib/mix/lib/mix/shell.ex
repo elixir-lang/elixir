@@ -115,7 +115,6 @@ defmodule Mix.Shell do
         'sh -c "' ++ command ++ '"'
 
       {:win32, osname} ->
-        command = String.to_char_list(command)
         command = '"' ++ String.to_char_list(command) ++ '"'
         case {System.get_env("COMSPEC"), osname} do
           {nil, :windows} -> 'command.com /s /c ' ++ command
