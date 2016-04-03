@@ -3,6 +3,8 @@ Code.require_file "../test_helper.exs", __DIR__
 defmodule EEx.SmartEngineTest do
   use ExUnit.Case, async: true
 
+  import ExUnit.CaptureIO
+
   test "evaluates simple string" do
     assert_eval "foo bar", "foo bar"
   end
@@ -13,6 +15,13 @@ defmodule EEx.SmartEngineTest do
 
   test "evaluates with assigns as a map" do
     assert_eval "1", "<%= @foo %>", assigns: %{foo: 1}
+  end
+
+  test "error with missing assigns" do
+    stderr = capture_io(:stderr, fn ->
+      assert_eval "", "<%= @foo %>", assigns: %{}
+    end)
+    assert stderr =~ "warning: assign @foo not available in eex template"
   end
 
   test "evaluates with loops" do
