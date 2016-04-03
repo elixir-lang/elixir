@@ -217,20 +217,23 @@ defmodule OptionParser do
     {:error, argv}
   end
 
-  defp next(["-" <> option|rest], aliases, switches, strict) do
+  defp next(["-" <> option|rest] = argv, aliases, switches, strict) do
     {option, value} = split_option(option)
     opt_name_bin = "-" <> option
     tagged = tag_option(option, switches, aliases)
 
-    if strict and not option_defined?(tagged, switches) do
-      {:undefined, opt_name_bin, value, rest}
-    else
-      {opt_name, kinds, value} = normalize_option(tagged, value, switches)
-      {value, kinds, rest} = normalize_value(value, kinds, rest, strict)
-      case validate_option(value, kinds) do
-        {:ok, new_value} -> {:ok, opt_name, new_value, rest}
-        :invalid         -> {:invalid, opt_name_bin, value, rest}
-      end
+    cond do
+      is_negative_number(opt_name_bin) ->
+        {:error, argv}
+      strict and not option_defined?(tagged, switches) ->
+        {:undefined, opt_name_bin, value, rest}
+      true ->
+        {opt_name, kinds, value} = normalize_option(tagged, value, switches)
+        {value, kinds, rest} = normalize_value(value, kinds, rest, strict)
+        case validate_option(value, kinds) do
+          {:ok, new_value} -> {:ok, opt_name, new_value, rest}
+          :invalid         -> {:invalid, opt_name_bin, value, rest}
+        end
     end
   end
 
@@ -490,6 +493,13 @@ defmodule OptionParser do
       {:default, option}
     else
       :unknown
+    end
+  end
+
+  defp is_negative_number(arg) do
+    case Float.parse(arg) do
+      {_, ""} -> true
+      _       -> false
     end
   end
 end

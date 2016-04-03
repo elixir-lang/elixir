@@ -212,6 +212,11 @@ defmodule OptionParserTest do
            == {[foo: true, boo: "-"], ["-"], []}
   end
 
+  test "correctly handles negative numbers" do
+    assert OptionParser.parse(["arg1", "-43"])
+      == {[], ["arg1", "-43"], []}
+  end
+
   test "multi-word option" do
     config = [switches: [hello_world: :boolean]]
     assert OptionParser.next(["--hello-world"], config)
