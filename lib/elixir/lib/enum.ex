@@ -2305,10 +2305,9 @@ defmodule Enum do
   end
 
   @doc false
+  # TODO: Deprecate by 1.4
+  # TODO: Remove by 2.0
   def uniq(enumerable, fun) do
-    # TODO: Deprecate on 1.3 or 1.4 depending on warnings on projects
-    # IO.write :stderr, "warning: Enum.uniq/2 is deprecated, please use Enum.uniq_by/2 instead\n" <>
-    #                   Exception.format_stacktrace
     uniq_by(enumerable, fun)
   end
 
