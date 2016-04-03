@@ -446,11 +446,11 @@ defmodule OptionParser do
     {value, kinds, t}
   end
 
-  defp value_in_tail?(["-"|_]),       do: true
-  defp value_in_tail?(["- " <> _|_]), do: true
-  defp value_in_tail?(["-" <> _|_]),  do: false
-  defp value_in_tail?([]),            do: false
-  defp value_in_tail?(_),             do: true
+  defp value_in_tail?(["-"|_]),         do: true
+  defp value_in_tail?(["- " <> _|_]),   do: true
+  defp value_in_tail?(["-" <> arg|_]),  do: is_negative_number("-" <> arg)
+  defp value_in_tail?([]),              do: false
+  defp value_in_tail?(_),               do: true
 
   defp split_option(option) do
     case :binary.split(option, "=") do
