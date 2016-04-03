@@ -67,7 +67,7 @@ defmodule Mix.Hex do
     System.get_env("HEX_MIRROR") || cdn() || @hex_mirror
   end
 
-  # TODO: Remove this once 1.3 is out
+  # TODO: Remove by 1.4
   defp cdn do
     if cdn = System.get_env("HEX_CDN") do
       Mix.shell.error "warning: the HEX_CDN environment variable has been deprecated " <>

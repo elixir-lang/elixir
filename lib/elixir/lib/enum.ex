@@ -2306,7 +2306,6 @@ defmodule Enum do
 
   @doc false
   # TODO: Deprecate by 1.4
-  # TODO: Remove by 2.0
   def uniq(enumerable, fun) do
     uniq_by(enumerable, fun)
   end
