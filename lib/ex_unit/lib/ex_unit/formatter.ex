@@ -266,25 +266,18 @@ defmodule ExUnit.Formatter do
   def format_diff(_left, _right, _formatter), do: nil
 
   defp format_map_diff(left, right, name, formatter) do
-    {surplus, altered} =
-      Enum.reduce(left, {[], []}, fn({key, val1}, {surplus, altered} = acc) ->
-        case Map.fetch(right, key) do
-          {:ok, ^val1} ->
-            acc
-          {:ok, val2} ->
-            {surplus, [{key, {val1, val2}} | altered]}
-          :error ->
-            {[{key, val1} | surplus], altered}
-        end
-      end)
-    missing = Enum.reject(right, fn {key, _} -> Map.has_key?(left, key) end)
+    {surplus, altered, missing} = map_difference(left, right)
 
     keyword? =
       Inspect.List.keyword?(surplus) and
       Inspect.List.keyword?(altered) and
       Inspect.List.keyword?(missing)
 
-    result = Enum.reduce(missing, [], fn({key, val}, acc) ->
+    result =
+      if map_size(right) > length(altered) + length(missing),
+        do: ["..."],
+        else: []
+    result = Enum.reduce(missing, result, fn({key, val}, acc) ->
       map_pair = format_map_pair(inspect(key), inspect(val), keyword?)
       [formatter.(:diff_insert, map_pair) | acc]
     end)
@@ -296,8 +289,25 @@ defmodule ExUnit.Formatter do
       value_diff = format_inner_diff(val1, val2, formatter)
       [format_map_pair(inspect(key), value_diff, keyword?) | acc]
     end)
-    result = Enum.intersperse(result, ", ") |> IO.iodata_to_binary
-    "%" <> name <> "{" <> result <> "}"
+    "%" <> name <> "{" <> Enum.join(result, ", ") <> "}"
+  end
+
+  defp map_difference(map1, map2) do
+    {surplus, altered} =
+      Enum.reduce(map1, {[], []}, fn({key, val1}, {surplus, altered} = acc) ->
+        case Map.fetch(map2, key) do
+          {:ok, ^val1} ->
+            acc
+          {:ok, val2} ->
+            {surplus, [{key, {val1, val2}} | altered]}
+          :error ->
+            {[{key, val1} | surplus], altered}
+        end
+      end)
+    missing = Enum.reduce(map2, [], fn({key, _} = pair, acc) ->
+      if Map.has_key?(map1, key), do: acc, else: [pair | acc]
+    end)
+    {surplus, altered, missing}
   end
 
   defp format_map_pair(key, value, false) do
