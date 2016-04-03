@@ -271,9 +271,15 @@ defmodule ExUnit.FormatterTest do
 
     map1 = Enum.into(1..40, %{}, &{&1, &1}) |> Map.delete(33)
     map2 = Enum.reduce(5..10, map1, &Map.delete(&2, &1)) |> Map.put(33, 33) |> Map.put(23, 32)
-    expected = "%{23 => {2}3[2], {8 => 8}, {7 => 7}, {6 => 6}, {10 => 10}, {9 => 9}, {5 => 5}, [33 => 33]}"
+    expected = "%{23 => {2}3[2], {8 => 8}, {7 => 7}, {6 => 6}, {10 => 10}, {9 => 9}, {5 => 5}, [33 => 33], ...}"
     assert format_diff(map1, map2, &formatter/2) == expected
-    assert format_diff(%{foo: 12}, %{bar: 12}, &formatter/2) == "%{{foo: 12}, [bar: 12]}"
+
+    map1 = %{baz: 12}
+    map2 = %{foo: 12, bar: 12, baz: 12}
+    assert format_diff(map1, map2, &formatter/2) == "%{[bar: 12], [foo: 12], ...}"
+    assert format_diff(map2, map1, &formatter/2) == "%{{bar: 12}, {foo: 12}, ...}"
+    assert format_diff(map1, %{}, &formatter/2) == "%{{baz: 12}}"
+    assert format_diff(%{}, map1, &formatter/2) == "%{[baz: 12]}"
 
     user1 = %User{age: 16}
     user2 = %User{age: 21}
