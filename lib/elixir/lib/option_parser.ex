@@ -223,7 +223,7 @@ defmodule OptionParser do
     tagged = tag_option(option, switches, aliases)
 
     cond do
-      is_negative_number(opt_name_bin) ->
+      negative_number?(opt_name_bin) ->
         {:error, argv}
       strict and not option_defined?(tagged, switches) ->
         {:undefined, opt_name_bin, value, rest}
@@ -448,7 +448,7 @@ defmodule OptionParser do
 
   defp value_in_tail?(["-"|_]),         do: true
   defp value_in_tail?(["- " <> _|_]),   do: true
-  defp value_in_tail?(["-" <> arg|_]),  do: is_negative_number("-" <> arg)
+  defp value_in_tail?(["-" <> arg|_]),  do: negative_number?("-" <> arg)
   defp value_in_tail?([]),              do: false
   defp value_in_tail?(_),               do: true
 
@@ -496,10 +496,7 @@ defmodule OptionParser do
     end
   end
 
-  defp is_negative_number(arg) do
-    case Float.parse(arg) do
-      {_, ""} -> true
-      _       -> false
-    end
+  defp negative_number?(arg) do
+    match?({_, ""}, Float.parse(arg))
   end
 end
