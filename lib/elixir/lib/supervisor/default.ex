@@ -1,11 +1,11 @@
 defmodule Supervisor.Default do
   @moduledoc false
-  @behaviour :supervisor
 
   @doc """
   Supervisor callback that simply returns the given args.
 
-  This is the supervisor used by `Supervisor.start_link/2`.
+  This is the supervisor used by `Supervisor.start_link/2`
+  and others.
   """
   def init(args) do
     args

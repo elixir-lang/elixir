@@ -85,9 +85,9 @@ defmodule Supervisor do
 
   ## Module-based supervisors
 
-  In the example above, a supervisor was dynamically created by passing
-  the supervision structure to `start_link/2`. However, supervisors
-  can also be created by explicitly defining a supervision module:
+  In the example above, a supervisor was started by passing the supervision
+  structure to `start_link/2`. However, supervisors can also be created by
+  explicitly defining a supervision module:
 
       defmodule MyApp.Supervisor do
         use Supervisor
@@ -210,10 +210,19 @@ defmodule Supervisor do
   @doc false
   defmacro __using__(_) do
     quote location: :keep do
-      @behaviour :supervisor
+      @behaviour Supervisor
       import Supervisor.Spec
     end
   end
+
+  @doc """
+  Callback invoked to start the supervisor and during hot code upgrades.
+  """
+  # TODO: Support {:ok, [child_spec], Keyword.t}
+  # TODO: Document options here and update Supervisor.Spec
+  @callback init(args :: term) ::
+    {:ok, {:supervisor.sup_flags, [Supervisor.Spec.spec]}} |
+    :ignore
 
   @typedoc "Return values of `start_link` functions"
   @type on_start :: {:ok, pid} | :ignore |
