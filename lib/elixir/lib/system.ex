@@ -5,6 +5,30 @@ defmodule System do
   with the VM or the host system.
   """
 
+  @typedoc """
+  The time unit that can be passed to functions like `System.system_time/1`
+  and similar.
+
+  The `:seconds`, `:milli_seconds`, `:micro_seconds`, and `:nano_seconds` time
+  units are self-explanatory: the return value of the functions that accept a
+  time unit will be in the given time unit.
+
+  A time unit can also be a strictly positive integer. In this case, it
+  represents the "parts per second": the time will be returned in `1 /
+  parts_per_second` seconds. For example, using the `:milli_seconds` time unit
+  is equivalent to using `1000` as the time unit (as the time will be returned
+  in 1/1000 seconds - milliseconds).
+
+  See also the [documentation on the `time_unit` Erlang
+  type](http://erlang.org/doc/man/erlang.html#type-time_unit).
+  """
+  @type time_unit ::
+    :seconds
+    | :milli_seconds
+    | :micro_seconds
+    | :nano_seconds
+    | pos_integer
+
   @base_dir     :filename.join(__DIR__, "../../..")
   @version_file :filename.join(@base_dir, "VERSION")
 
@@ -549,7 +573,7 @@ defmodule System do
 
   Inlined by the compiler into `:erlang.monotonic_time/1`.
   """
-  @spec monotonic_time(:erlang.time_unit) :: integer
+  @spec monotonic_time(time_unit) :: integer
   def monotonic_time(unit) do
     :erlang.monotonic_time(unit)
   end
@@ -577,7 +601,7 @@ defmodule System do
 
   Inlined by the compiler into `:erlang.system_time/1`.
   """
-  @spec system_time(:erlang.time_unit) :: integer
+  @spec system_time(time_unit) :: integer
   def system_time(unit) do
     :erlang.system_time(unit)
   end
@@ -586,9 +610,16 @@ defmodule System do
   Converts `time` from time unit `from_unit` to time unit `to_unit`. The result
   is rounded via the floor function.
 
+  `convert_time_unit/3` accepts an additional time unit (other than the ones in
+  the `time_unit` type): `:native`. `:native` is the time unit used by the
+  Erlang runtime system. It's determined when the runtime starts and stays the
+  same until the runtime is stopped. To determine what the `:native` unit
+  amounts to in a system, you can call this function to convert 1 second to the
+  `:native` time unit (i.e., `System.convert_time_unit(1, :seconds, :native)`).
+
   Inlined by the compiler into `:erlang.convert_time_unit/3`.
   """
-  @spec convert_time_unit(integer, :erlang.time_unit, :erlang.time_unit) :: integer
+  @spec convert_time_unit(integer, time_unit | :native, time_unit | :native) :: integer
   def convert_time_unit(time, from_unit, to_unit) do
     :erlang.convert_time_unit(time, from_unit, to_unit)
   end
@@ -622,9 +653,43 @@ defmodule System do
 
   Inlined by the compiler into `:erlang.time_offset/1`.
   """
-  @spec time_offset(:erlang.time_unit) :: integer
+  @spec time_offset(time_unit) :: integer
   def time_offset(unit) do
     :erlang.time_offset(unit)
+  end
+
+  @doc """
+  Returns the current OS time.
+
+  The result is returned in the `:native` time unit.
+
+  This time **does not** increase monotonically.
+
+  For more information, see the [chapter on time and time
+  correction](http://www.erlang.org/doc/apps/erts/time_correction.html) in the
+  Erlang docs.
+
+  Inlined by the compiler into `:os.system_time/0`.
+  """
+  @spec os_time() :: integer
+  def os_time do
+    :os.system_time()
+  end
+
+  @doc """
+  Returns the current OS time in the given time `unit`.
+
+  This time **does not** increase monotonically.
+
+  For more information, see the [chapter on time and time
+  correction](http://www.erlang.org/doc/apps/erts/time_correction.html) in the
+  Erlang docs.
+
+  Inlined by the compiler into `:os.system_time/1`.
+  """
+  @spec os_time(time_unit) :: integer
+  def os_time(unit) do
+    :os.system_time(unit)
   end
 
   @doc """
