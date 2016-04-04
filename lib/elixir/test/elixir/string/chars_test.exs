@@ -76,6 +76,27 @@ defmodule String.Chars.ListTest do
   end
 end
 
+defmodule String.Chars.Version.RequirementTest do
+  use ExUnit.Case, async: true
+
+  test "version requirement" do
+    {:ok, requirement} = Version.parse_requirement("== 2.0.1")
+    assert String.Chars.to_string(requirement) == "== 2.0.1"
+  end
+end
+
+defmodule String.Chars.URITest do
+  use ExUnit.Case, async: true
+
+  test "uri" do
+    uri = URI.parse("http://google.com")
+    assert String.Chars.to_string(uri) == "http://google.com"
+
+    uri_no_host = URI.parse("/foo/bar")
+    assert String.Chars.to_string(uri_no_host) == "/foo/bar"
+  end
+end
+
 defmodule String.Chars.ErrorsTest do
   use ExUnit.Case, async: true
 
