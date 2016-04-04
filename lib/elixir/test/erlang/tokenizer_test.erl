@@ -147,12 +147,12 @@ space_test() ->
   [{op_identifier, {1,1,4}, foo}, {dual_op, {1,6,7}, '-'}, {number, {1,7,8}, 2}] = tokenize("foo  -2").
 
 chars_test() ->
-  [{number, {1,1,3}, 97}]      = tokenize("?a"),
-  [{number, {1,1,3}, 99}]      = tokenize("?c"),
-  [{number, {1,1,4}, 0}]       = tokenize("?\\0"),
-  [{number, {1,1,4}, 7}]       = tokenize("?\\a"),
-  [{number, {1,1,4}, 10}]      = tokenize("?\\n"),
-  [{number, {1,1,4}, 92}]      = tokenize("?\\\\").
+  [{char, {1,1,3}, 97}] = tokenize("?a"),
+  [{char, {1,1,3}, 99}] = tokenize("?c"),
+  [{char, {1,1,4}, 0}]  = tokenize("?\\0"),
+  [{char, {1,1,4}, 7}]  = tokenize("?\\a"),
+  [{char, {1,1,4}, 10}] = tokenize("?\\n"),
+  [{char, {1,1,4}, 92}] = tokenize("?\\\\").
 
 interpolation_test() ->
   [{bin_string, {1,1,9}, [<<"f">>,
