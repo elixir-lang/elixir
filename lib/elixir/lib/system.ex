@@ -465,10 +465,12 @@ defmodule System do
   `command` is expected to be an executable available in PATH
   unless an absolute path is given.
 
-  `args` must be a list of strings which are not expanded
-  in any way. For example, this means wildcard expansion will
-  not happen unless `Path.wildcard/2` is used. On Windows though,
-  wildcard expansion is up to the program.
+  `args` must be a list of binaries which the executable will receive
+  as its arguments as-is. This means that
+
+    * Environment variables will not be interpolated.
+    * Wildcard expansion will not happen (unless `Path.wildcard/2` is used explicitly).
+    * Arguments do not need to be escaped or quoted for shell safety.
 
   This function returns a tuple containing the collected result
   and the command exit status.
