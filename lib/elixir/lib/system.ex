@@ -1,16 +1,16 @@
 defmodule System do
   @moduledoc """
-  The System module provides functions that interact directly
+  The `System` module provides functions that interact directly
   with the VM or the host system.
 
   ## Time
 
-  The System module also provides functions that work with time.
-  Returning different times kept by the system as well as support
-  for different time units.
+  The `System` module also provides functions that work with time,
+  returning different times kept by the system with support for
+  different time units.
 
-  One of the complexities in relying on system time is that they
-  may be adjust. For example, when you enter and leave daylight
+  One of the complexities in relying on system times is that they
+  may be adjusted. For example, when you enter and leave daylight
   saving time, the system clock will be adjusted, often adding
   or removing one hour. We call such changes "time warps". In
   order to understand how such changes may be harmful, imagine
@@ -40,20 +40,21 @@ defmodule System do
     * `os_time/0` - the time reported by the OS. This time may be
       adjusted forwards or backwards in time with no limitation;
 
-    * `system_time/0` - the VM view of the `os_time/0`. They may
-      not match in case of time warps although the VM works towards
-      aligning them. This time is not monotonic (i.e. it may decrease)
+    * `system_time/0` - the VM view of the `os_time/0`. The system time and OS
+      time may not match in case of time warps although the VM works towards
+      aligning them. This time is not monotonic (i.e., it may decrease)
       as its behaviour is configured [by the VM time warp
       mode](http://erlang.org/doc/apps/erts/time_correction.html#Time_Warp_Modes);
 
     * `monotonic_time/0` - a monotonically increasing time provided
-      by the Erlang VM
+      by the Erlang VM.
 
-  The time functions in this module works in the `:native` unit,
-  which is OS dependent. Most of the time, all calculations are
-  done in the `:native` unit, to avoid loss of precision, with
-  `convert_time_unit/3` being invoked at the end to convert to
-  milli, micro or nanoseconds. See the `t:time_unit/0` type for
+  The time functions in this module work in the `:native` unit
+  (unless specified otherwise), which is OS dependent. Most of
+  the time, all calculations are done in the `:native` unit, to
+  avoid loss of precision, with `convert_time_unit/3` being
+  invoked at the end to convert to a specific time unit like
+  milliseconds or microseconds. See the `t:time_unit/0` type for
   more information.
 
   For a more complete rundown on the VM support for different
@@ -466,11 +467,12 @@ defmodule System do
   unless an absolute path is given.
 
   `args` must be a list of binaries which the executable will receive
-  as its arguments as-is. This means that
+  as its arguments as is. This means that:
 
-    * Environment variables will not be interpolated.
-    * Wildcard expansion will not happen (unless `Path.wildcard/2` is used explicitly).
-    * Arguments do not need to be escaped or quoted for shell safety.
+    * environment variables will not be interpolated
+    * wildcard expansion will not happen (unless `Path.wildcard/2` is used
+      explicitly)
+    * arguments do not need to be escaped or quoted for shell safety
 
   This function returns a tuple containing the collected result
   and the command exit status.
@@ -626,7 +628,7 @@ defmodule System do
   """
   @spec monotonic_time(time_unit) :: integer
   def monotonic_time(unit) do
-    :erlang.monotonic_time(convert_time_unit(unit))
+    :erlang.monotonic_time(normalize_time_unit(unit))
   end
 
   @doc """
@@ -652,7 +654,7 @@ defmodule System do
   """
   @spec system_time(time_unit) :: integer
   def system_time(unit) do
-    :erlang.system_time(convert_time_unit(unit))
+    :erlang.system_time(normalize_time_unit(unit))
   end
 
   @doc """
@@ -670,7 +672,7 @@ defmodule System do
   """
   @spec convert_time_unit(integer, time_unit | :native, time_unit | :native) :: integer
   def convert_time_unit(time, from_unit, to_unit) do
-    :erlang.convert_time_unit(time, convert_time_unit(from_unit), convert_time_unit(to_unit))
+    :erlang.convert_time_unit(time, normalize_time_unit(from_unit), normalize_time_unit(to_unit))
   end
 
   @doc """
@@ -699,7 +701,7 @@ defmodule System do
   """
   @spec time_offset(time_unit) :: integer
   def time_offset(unit) do
-    :erlang.time_offset(convert_time_unit(unit))
+    :erlang.time_offset(normalize_time_unit(unit))
   end
 
   @doc """
@@ -725,7 +727,7 @@ defmodule System do
   """
   @spec os_time(time_unit) :: integer
   def os_time(unit) do
-    :os.system_time(convert_time_unit(unit))
+    :os.system_time(normalize_time_unit(unit))
   end
 
   @doc """
@@ -756,20 +758,29 @@ defmodule System do
     :erlang.unique_integer(modifiers)
   end
 
-  defp convert_time_unit(:native),       do: :native
-  defp convert_time_unit(:seconds),      do: :seconds
-  defp convert_time_unit(:milliseconds), do: :milli_seconds
-  defp convert_time_unit(:microseconds), do: :micro_seconds
-  defp convert_time_unit(:nanoseconds),  do: :nano_seconds
+  defp normalize_time_unit(:native),
+    do: :native
+  defp normalize_time_unit(:seconds),
+    do: :seconds
+  defp normalize_time_unit(:milliseconds),
+    do: :milli_seconds
+  defp normalize_time_unit(:microseconds),
+    do: :micro_seconds
+  defp normalize_time_unit(:nanoseconds),
+    do: :nano_seconds
+  defp normalize_time_unit(unit) when is_integer(unit) and unit > 0,
+    do: unit
 
   # TODO: Warn on Elixir 1.4
-  defp convert_time_unit(erlang)
-      when erlang in [:milli_seconds, :micro_seconds, :nano_seconds] do
-    erlang
+  defp normalize_time_unit(erlang_unit)
+      when erlang_unit in [:milli_seconds, :micro_seconds, :nano_seconds] do
+    erlang_unit
   end
 
-  defp convert_time_unit(other) do
-    raise ArgumentError, "unsupported time unit. Expected :seconds, :milliseconds, " <>
-                         ":microseconds or :nanoseconds, got #{inspect other}"
+  defp normalize_time_unit(other) do
+    raise ArgumentError,
+      "unsupported time unit. Expected :seconds, :milliseconds, " <>
+      ":microseconds, :nanoseconds, or a positive integer, " <>
+      "got #{inspect other}"
   end
 end
