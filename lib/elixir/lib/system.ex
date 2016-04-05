@@ -754,7 +754,7 @@ defmodule System do
     :erlang.unique_integer(modifiers)
   end
 
-  defp convert_time_unit(:native),       do: :seconds
+  defp convert_time_unit(:native),       do: :native
   defp convert_time_unit(:seconds),      do: :seconds
   defp convert_time_unit(:milliseconds), do: :milli_seconds
   defp convert_time_unit(:microseconds), do: :micro_seconds
