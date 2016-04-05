@@ -239,9 +239,10 @@ defmodule ExUnit.Formatter do
   def format_diff(left, right, formatter_fun)
 
   def format_diff(<<left::bytes>>, <<right::bytes>>, formatter) do
-    String.myers_difference(left, right)
-    |> Enum.map_join(&format_diff_fragment(&1, formatter))
-    |> String.replace("\n", "\n" <> @inspect_padding)
+    if String.printable?(left) and String.printable?(right) do
+      String.myers_difference(left, right)
+      |> Enum.map_join(&format_diff_fragment(&1, formatter))
+    end
   end
 
   def format_diff(%name{} = left, %name{} = right, formatter) do
