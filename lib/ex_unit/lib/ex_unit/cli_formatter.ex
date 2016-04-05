@@ -63,12 +63,12 @@ defmodule ExUnit.CLIFormatter do
                      invalids_counter: config.invalids_counter + 1}}
   end
 
-  def handle_event({:test_finished, %ExUnit.Test{state: {:failed, failed}} = test}, config) do
+  def handle_event({:test_finished, %ExUnit.Test{state: {:failed, failures}} = test}, config) do
     if config.trace do
       IO.puts failure(trace_test_result(test), config)
     end
 
-    formatted = format_test_failure(test, failed, config.failures_counter + 1,
+    formatted = format_test_failure(test, failures, config.failures_counter + 1,
                                     config.width, &formatter(&1, &2, config))
     print_failure(formatted, config)
     print_logs(test.logs)
@@ -89,8 +89,8 @@ defmodule ExUnit.CLIFormatter do
     {:ok, config}
   end
 
-  def handle_event({:case_finished, %ExUnit.TestCase{state: {:failed, failed}} = test_case}, config) do
-    formatted = format_test_case_failure(test_case, failed, config.failures_counter + 1,
+  def handle_event({:case_finished, %ExUnit.TestCase{state: {:failed, failures}} = test_case}, config) do
+    formatted = format_test_case_failure(test_case, failures, config.failures_counter + 1,
                                          config.width, &formatter(&1, &2, config))
     print_failure(formatted, config)
     {:ok, %{config | failures_counter: config.failures_counter + 1}}
@@ -193,10 +193,26 @@ defmodule ExUnit.CLIFormatter do
     colorize(:red, msg, config)
   end
 
-  defp formatter(:error_info, msg, config),    do: colorize(:red, msg, config)
-  defp formatter(:extra_info, msg, config),    do: colorize(:cyan, msg, config)
-  defp formatter(:location_info, msg, config), do: colorize([:bright, :black], msg, config)
-  defp formatter(_,  msg, _config),            do: msg
+  defp formatter(:colors_enabled?, _, %{colors: colors}),
+    do: colors[:enabled]
+
+  defp formatter(:error_info, msg, config),
+    do: colorize(:red, msg, config)
+
+  defp formatter(:extra_info, msg, config),
+    do: colorize(:cyan, msg, config)
+
+  defp formatter(:location_info, msg, config),
+    do: colorize([:bright, :black], msg, config)
+
+  defp formatter(:diff_delete, msg, config),
+    do: colorize(:red, msg, config)
+
+  defp formatter(:diff_insert, msg, config),
+    do: colorize(:green, msg, config)
+
+  defp formatter(_,  msg, _config),
+    do: msg
 
   defp pluralize(1, singular, _plural), do: singular
   defp pluralize(_, _singular, plural), do: plural
