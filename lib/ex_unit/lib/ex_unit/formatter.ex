@@ -258,7 +258,20 @@ defmodule ExUnit.Formatter do
   end
 
   def format_diff(left, right, formatter)
-      when is_number(left) and is_number(right)
+      when is_integer(left) and is_integer(right)
+      when is_float(left) and is_float(right) do
+    {kind, skew} =
+      case to_string(right - left) do
+        "-" <> _ = result ->
+          {:diff_delete, result}
+        result ->
+          {:diff_insert, "+" <> result}
+      end
+    value_diff = formatter.(kind, "(off by " <> skew <> ")")
+    format_diff(inspect(left), inspect(right), formatter) <> " " <> value_diff
+  end
+
+  def format_diff(left, right, formatter)
       when is_tuple(left) and is_tuple(right)
       when is_list(left) and is_list(right) do
     format_diff(inspect(left), inspect(right), formatter)
