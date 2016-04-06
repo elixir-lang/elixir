@@ -53,4 +53,4 @@ Other Elixir activities (such as conferences, meetups, and other unofficial foru
 
 ## Acknowledgements
 
-This document was based on the Code of Conduct from the Go project with parts derived from Django's Code of Conduct, Rust's Code of Conduct and the Contributor Convenant.
+This document was based on the Code of Conduct from the Go project with parts derived from Django's Code of Conduct, Rust's Code of Conduct and the Contributor Covenant.
