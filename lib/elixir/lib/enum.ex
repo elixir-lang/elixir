@@ -1423,7 +1423,7 @@ defmodule Enum do
     do: sum(last..first)
 
   def sum(first..last) when last > first do
-    div(((last * (last + 1)) - (first * (first - 1))), 2)
+    div((last + first) * (last - first + 1), 2)
   end
 
   def sum(enumerable) do
