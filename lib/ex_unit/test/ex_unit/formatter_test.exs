@@ -253,8 +253,8 @@ defmodule ExUnit.FormatterTest do
   test "difference formatting" do
     int1 = 491512235
     int2 = 490512035
-    assert format_diff(int1, int2, &formatter/2) == "49{1}[0]512{2}[0]35"
-    assert format_diff(42.0, 43.0, &formatter/2) == "4{2}[3].0"
+    assert format_diff(int1, int2, &formatter/2) == "49{1}[0]512{2}[0]35 {(off by -1000200)}"
+    assert format_diff(42.0, 43.0, &formatter/2) == "4{2}[3].0 [(off by +1.0)]"
 
     string1 = "fox hops over the dog"
     string2 = "fox jumps over the lazy cat"
@@ -271,7 +271,7 @@ defmodule ExUnit.FormatterTest do
 
     map1 = Enum.into(1..40, %{}, &{&1, &1}) |> Map.delete(33)
     map2 = Enum.reduce(5..10, map1, &Map.delete(&2, &1)) |> Map.put(33, 33) |> Map.put(23, 32)
-    expected = "%{23 => {2}3[2], {8 => 8}, {7 => 7}, {6 => 6}, {10 => 10}, {9 => 9}, {5 => 5}, [33 => 33], ...}"
+    expected = "%{23 => {2}3[2] [(off by +9)], {8 => 8}, {7 => 7}, {6 => 6}, {10 => 10}, {9 => 9}, {5 => 5}, [33 => 33], ...}"
     assert format_diff(map1, map2, &formatter/2) == expected
 
     map1 = %{baz: 12}
@@ -283,7 +283,7 @@ defmodule ExUnit.FormatterTest do
 
     user1 = %User{age: 16}
     user2 = %User{age: 21}
-    assert format_diff(user1, user2, &formatter/2) == "%ExUnit.FormatterTest.User{age: [2]1{6}}"
+    assert format_diff(user1, user2, &formatter/2) == "%ExUnit.FormatterTest.User{age: [2]1{6} [(off by +5)]}"
     assert format_diff(%User{}, %ExUnit.Test{}, &formatter/2) == nil
 
     bin1 = <<147, 1, 2, 31>>
