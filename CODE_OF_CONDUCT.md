@@ -42,6 +42,7 @@ Explicit enforcement of the Code of Conduct applies to the official mediums oper
 * The official GitHub projects and code reviews.
 * The elixir-lang-core and elixir-lang-talk mailing lists.
 * The #elixir-lang IRC channel on Freenode.
+* The Elixir Slack community (http://elixir-lang.slack.com)
 
 Project maintainers may remove, edit, or reject comments, commits, code, wiki edits, issues, and other contributions that are not aligned to this Code of Conduct.
 
