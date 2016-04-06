@@ -25,4 +25,21 @@ defmodule Mix.Dep.LockTest do
       refute File.regular? "_build/dev/lib/sample/.compile.lock"
     end
   end
+
+  test "raises a proper error for merge conflicts", context do
+    in_tmp context.test, fn ->
+      File.write "mix.lock", ~S"""
+      %{"dep": {:hex, :dep, "0.1.0"},
+      <<<<<<< HEAD
+        "foo": {:hex, :foo, "0.1.0"},
+      =======
+        "bar": {:hex, :bar, "0.1.0"},
+      >>>>>>> foobar
+        "baz": {:hex, :baz, "0.1.0"}}
+      """
+      assert_raise Mix.Error, ~r/Your mix\.lock contains merge conflicts/, fn ->
+        Mix.Dep.Lock.read()
+      end
+    end
+  end
 end
