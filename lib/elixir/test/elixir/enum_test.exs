@@ -428,6 +428,11 @@ defmodule EnumTest do
     assert Enum.sum([1]) == 1
     assert Enum.sum([1, 2, 3]) == 6
     assert Enum.sum([1.1, 2.2, 3.3]) == 6.6
+    assert Enum.sum([-3, -2, -1, 0, 1, 2, 3]) == 0
+    assert Enum.sum(42..42) == 42
+    assert Enum.sum(11..17) == 98
+    assert Enum.sum(17..11) == 98
+    assert Enum.sum(11..-17) == Enum.sum(-17..11)
     assert_raise ArithmeticError, fn ->
       Enum.sum([{}])
     end

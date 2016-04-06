@@ -1416,12 +1416,14 @@ defmodule Enum do
   @spec sum(t) :: number
   def sum(enumerable)
 
-  def sum(first..last) when last > first do
-    ((last * (last + 1)) / 2) - ((first * (first - 1)) / 2)
-  end
+  def sum(first..first),
+    do: first
 
-  def sum(first..last) do
-    ((first * (first + 1)) / 2) - ((last * (last - 1)) / 2)
+  def sum(first..last) when last < first,
+    do: sum(last..first)
+
+  def sum(first..last) when last > first do
+    div(((last * (last + 1)) - (first * (first - 1))), 2)
   end
 
   def sum(enumerable) do
