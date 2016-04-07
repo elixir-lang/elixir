@@ -193,7 +193,7 @@ defmodule Macro do
 
   @doc false
   def pipe_warning({call, _, _}) when call in unquote(@unary_ops) do
-    "piping into a unary operator is deprecated. You could use e.g. Kernel.+(5) instead of +5."
+    "piping into a unary operator is deprecated. You could use e.g. Kernel.+(5) instead of +5"
   end
   def pipe_warning(_), do: nil
 
