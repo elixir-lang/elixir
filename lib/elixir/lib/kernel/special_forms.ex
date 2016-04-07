@@ -1074,7 +1074,7 @@ defmodule Kernel.SpecialForms do
       defmodule Hygiene do
         defmacrop get_length do
           quote do
-            length([1,2,3])
+            length([1, 2, 3])
           end
         end
 
@@ -1617,7 +1617,7 @@ defmodule Kernel.SpecialForms do
   evaluates to a truthy value.
 
       cond do
-        hd([1,2,3]) ->
+        hd([1, 2, 3]) ->
           "1 is considered as true"
       end
       #=> "1 is considered as true"

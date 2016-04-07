@@ -30,11 +30,11 @@ get_line(Opts) when is_list(Opts) ->
 get_ann(Opts) when is_list(Opts) ->
   get_ann(Opts, [], 0).
 
-get_ann([{generated,Gen}|T], Acc, Line) -> get_ann(T, [{generated,Gen}|Acc], Line);
-get_ann([{line,Line}|T], Acc, _) -> get_ann(T, Acc, Line);
+get_ann([{generated, Gen}|T], Acc, Line) -> get_ann(T, [{generated, Gen}|Acc], Line);
+get_ann([{line, Line}|T], Acc, _) -> get_ann(T, Acc, Line);
 get_ann([_|T], Acc, Line) -> get_ann(T, Acc, Line);
 get_ann([], [], Line) -> Line;
-get_ann([], Acc, Line) -> [{location,Line}|Acc].
+get_ann([], Acc, Line) -> [{location, Line}|Acc].
 
 split_last([])         -> {[], []};
 split_last(List)       -> split_last(List, []).

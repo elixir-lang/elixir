@@ -436,10 +436,10 @@ defmodule IEx.HelpersTest do
   end
 
   test "pid/3 helper" do
-    assert "#PID<0.32767.3276>" == capture_iex("pid(0,32767,3276)")
-    assert "#PID<0.5.6>" == capture_iex("pid(0,5,6)")
+    assert "#PID<0.32767.3276>" == capture_iex("pid(0, 32767, 3276)")
+    assert "#PID<0.5.6>" == capture_iex("pid(0, 5, 6)")
     assert "** (FunctionClauseError) no function clause matching in IEx.Helpers.pid/3" <> _ =
-      capture_iex("pid(0,6,-6)")
+      capture_iex("pid(0, 6, -6)")
   end
 
   test "i helper" do
