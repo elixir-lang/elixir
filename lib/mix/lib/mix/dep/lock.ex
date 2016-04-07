@@ -67,7 +67,7 @@ defmodule Mix.Dep.Lock do
   defp assert_no_merge_conflicts_in_lockfile(lockfile, info) do
     if String.contains?(info, ~w(<<<<<<< ======= >>>>>>>)) do
       Mix.raise "Your #{lockfile} contains merge conflicts. Please resolve the conflicts " <>
-                "and run the command again."
+                "and run the command again"
     end
   end
 end
