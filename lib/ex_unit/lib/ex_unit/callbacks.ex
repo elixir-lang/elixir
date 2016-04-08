@@ -74,6 +74,13 @@ defmodule ExUnit.Callbacks do
           :ok
         end
 
+        # Same as above, but will only be executed when the pattern matches
+        # and be skipped otherwise
+        setup %{hello: name} when is_binary(name) do
+          IO.puts "hello is set to #{name}"
+          :ok
+        end
+
         test "always pass" do
           assert true
         end
@@ -106,22 +113,14 @@ defmodule ExUnit.Callbacks do
   Defines a callback to be run before each test in a case.
   """
   defmacro setup(var \\ quote(do: _), block) do
-    quote bind_quoted: [var: escape(var), block: escape(block)] do
-      name = :"__ex_unit_setup_#{length(@ex_unit_setup)}"
-      defp unquote(name)(unquote(var)), unquote(block)
-      @ex_unit_setup [name | @ex_unit_setup]
-    end
+    define_callback(:setup, var, block)
   end
 
   @doc """
   Defines a callback to be run before all tests in a case.
   """
   defmacro setup_all(var \\ quote(do: _), block) do
-    quote bind_quoted: [var: escape(var), block: escape(block)] do
-      name = :"__ex_unit_setup_all_#{length(@ex_unit_setup_all)}"
-      defp unquote(name)(unquote(var)), unquote(block)
-      @ex_unit_setup_all [name | @ex_unit_setup_all]
-    end
+    define_callback(:setup_all, var, block)
   end
 
   @doc """
@@ -192,6 +191,25 @@ defmodule ExUnit.Callbacks do
     Macro.escape(contents, unquote: true)
   end
 
+  defp define_callback(kind, var, block) do
+    {var, guards} = extract_var_and_guards(var)
+    define_fallback_clause? = need_fallback_clause?(var, guards)
+
+    quote bind_quoted: [var: escape(var), guards: escape(guards), kind: kind,
+                        block: escape(block), define_fallback_clause?: define_fallback_clause?] do
+      callbacks_key = String.to_atom("ex_unit_#{kind}")
+      callbacks = Module.get_attribute(__MODULE__, callbacks_key)
+
+      name = :"__ex_unit_#{kind}_#{length(callbacks)}"
+      defp unquote(name)(unquote(var)) when unquote(guards), unquote(block)
+      if define_fallback_clause? do
+        defp unquote(name)(context), do: {:ok, context}
+      end
+
+      Module.put_attribute(__MODULE__, callbacks_key, [name | callbacks])
+    end
+  end
+
   defp compile_callbacks(env, kind) do
     callbacks = Module.get_attribute(env.module, :"ex_unit_#{kind}") |> Enum.reverse
 
@@ -218,4 +236,10 @@ defmodule ExUnit.Callbacks do
       unquote(__MODULE__).__merge__(__MODULE__, context, unquote(callback)(context))
     end
   end
+
+  defp extract_var_and_guards({:when, _, [var, guards]}), do: {var, guards}
+  defp extract_var_and_guards(var), do: {var, true}
+
+  defp need_fallback_clause?({_, _, context}, true) when is_atom(context), do: false
+  defp need_fallback_clause?(_, _), do: true
 end
