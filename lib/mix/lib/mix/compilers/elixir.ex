@@ -6,17 +6,17 @@ defmodule Mix.Compilers.Elixir do
   @doc """
   Compiles stale Elixir files.
 
-  It expects a manifest file, the source directories, the extensions
-  to read in sources, the destination directory, a flag to know if
+  It expects a `manifest` file, the source directories, the source directories to skip,
+  the extensions to read in sources, the destination directory, a flag to know if
   compilation is being forced or not and a callback to be invoked
   once (and only if) compilation starts.
 
-  The manifest is written down with information including dependencies
+  The `manifest` is written down with information including dependencies
   between modules, which helps it recompile only the modules that
   have changed at runtime.
   """
-  def compile(manifest, srcs, skip, exts, dest, force, on_start) do
-    keep = srcs -- skip
+  def compile(manifest, srcs, skip_srcs, exts, dest, force, on_start) do
+    keep = srcs -- skip_srcs
     all  = Mix.Utils.extract_files(keep, exts)
     {all_entries, skip_entries} = parse_manifest(manifest, keep)
 
@@ -74,7 +74,7 @@ defmodule Mix.Compilers.Elixir do
   end
 
   @doc """
-  Removes compiled files.
+  Removes compiled files for the given `manifest`.
   """
   def clean(manifest) do
     Enum.map read_manifest(manifest), fn {beam, _, _, _, _, _, _, _} ->
@@ -84,7 +84,7 @@ defmodule Mix.Compilers.Elixir do
   end
 
   @doc """
-  Returns protocols and implementations for the given manifest.
+  Returns protocols and implementations for the given `manifest`.
   """
   def protocols_and_impls(manifest) do
     for {_, module, kind, _, _, _, _, _} <- read_manifest(manifest),
