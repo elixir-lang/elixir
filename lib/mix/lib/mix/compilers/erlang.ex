@@ -2,11 +2,13 @@ defmodule Mix.Compilers.Erlang do
   @moduledoc false
 
   @doc """
-  Compiles the files in `src_dirs` with given extensions into
+  Compiles the files in `mappings` with given extensions into
   the destination, automatically invoking the callback for each
   stale input and output pair (or for all if `force` is `true`) and
   removing files that no longer have a source, while keeping the
-  manifest up to date.
+  `manifest` up to date.
+
+  `mappings` should be a list of tuples in the form of `{src, dest}` paths.
 
   ## Examples
 
@@ -24,8 +26,8 @@ defmodule Mix.Compilers.Erlang do
 
   The command above will:
 
-    1. look for files ending with the `lfe` extension in `src`
-       and their `beam` counterpart in `ebin`
+    1. look for files ending with the `lfe` extension in `src` path
+       and their `beam` counterpart in `ebin` path
 
     2. for each stale file (or for all if `force` is `true`),
        invoke the callback passing the calculated input
@@ -48,14 +50,16 @@ defmodule Mix.Compilers.Erlang do
   end
 
   @doc """
-  Compiles the given src/dest tuples.
+  Compiles the given `mappings`.
 
-  A manifest file and a callback to be invoked for each src/dest pair
+  `mappings` should be a list of tuples in the form of `{src, dest}`.
+
+  A `manifest` file and a `callback` to be invoked for each src/dest pair
   must be given. A src/dest pair where destination is `nil` is considered
   to be up to date and won't be (re-)compiled.
   """
-  def compile(manifest, tuples, callback) do
-    stale = for {:stale, src, dest} <- tuples, do: {src, dest}
+  def compile(manifest, mappings, callback) do
+    stale = for {:stale, src, dest} <- mappings, do: {src, dest}
 
     # Get the previous entries from the manifest
     entries = read_manifest(manifest)
@@ -63,7 +67,7 @@ defmodule Mix.Compilers.Erlang do
     # Files to remove are the ones in the manifest
     # but they no longer have a source
     removed = Enum.filter(entries, fn entry ->
-      not Enum.any?(tuples, fn {_status, _src, dest} -> dest == entry end)
+      not Enum.any?(mappings, fn {_status, _src, dest} -> dest == entry end)
     end)
 
     if stale == [] && removed == [] do
@@ -112,7 +116,7 @@ defmodule Mix.Compilers.Erlang do
   end
 
   @doc """
-  Removes compiled files.
+  Removes compiled files for the given `manifest`.
   """
   def clean(manifest) do
     Enum.each read_manifest(manifest), &File.rm/1
@@ -120,7 +124,7 @@ defmodule Mix.Compilers.Erlang do
   end
 
   @doc """
-  Converts the given file to a format accepted by
+  Converts the given `file` to a format accepted by
   the Erlang compilation tools.
   """
   def to_erl_file(file) do
