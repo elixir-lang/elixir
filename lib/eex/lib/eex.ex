@@ -35,7 +35,7 @@ defmodule EEx do
 
   ## Options
 
-  All functions in this module accepts EEx-related options.
+  All functions in this module accept EEx-related options.
   They are:
 
     * `:line` - the line to be used as the template start. Defaults to 1.
@@ -90,7 +90,7 @@ defmodule EEx do
 
       <%= {:ok, v} = Access.fetch(assigns, :foo); v %>
 
-  The assigns extension is useful when the number of variables
+  The `assigns` extension is useful when the number of variables
   required by the template is not specified at compilation time.
   """
 
