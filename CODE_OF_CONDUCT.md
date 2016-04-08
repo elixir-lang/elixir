@@ -40,16 +40,16 @@ If you participate in or contribute to the Elixir ecosystem in any way, you are 
 Explicit enforcement of the Code of Conduct applies to the official mediums operated by the Elixir project:
 
 * The official GitHub projects and code reviews.
-* The elixir-lang-core and elixir-lang-talk mailing lists.
+* The official elixir-lang mailing lists.
 * The #elixir-lang IRC channel on Freenode.
+
+Other Elixir activities (such as conferences, meetups, and other unofficial forums) are encouraged to adopt this Code of Conduct. Such groups must provide their own contact information.
 
 Project maintainers may remove, edit, or reject comments, commits, code, wiki edits, issues, and other contributions that are not aligned to this Code of Conduct.
 
 Instances of abusive, harassing, or otherwise unacceptable behavior may be reported by emailing: elixir-lang-conduct@googlegroups.com. All complaints will be reviewed and investigated and will result in a response that is deemed necessary and appropriate to the circumstances. **All reports will be kept confidential**.
 
 **The goal of the Code of Conduct is to resolve conflicts in the most harmonious way possible**. We hope that in most cases issues may be resolved through polite discussion and mutual agreement. Bannings and other forceful measures are to be employed only as a last resort. **Do not** post about the issue publicly or try to rally sentiment against a particular individual or group.
-
-Other Elixir activities (such as conferences, meetups, and other unofficial forums) are encouraged to adopt this Code of Conduct. Such groups must provide their own contact information.
 
 ## Acknowledgements
 
