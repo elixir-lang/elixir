@@ -260,10 +260,20 @@ defmodule ExUnit.FormatterTest do
     string2 = "fox jumps over the lazy cat"
     assert format_diff(string1, string2, &formatter/2) == "fox {ho}[jum]ps over the {dog}[lazy cat]"
 
-    list1 = [{"Content-type", "text/plain"}, {"etag", "One"}]
-    list2 = [{"content-type", "text/html"}, {"Etag", "Two"}]
-    expected = ~S([{"{C}[c]ontent-type", "text/{p}[htm]l{ain}"}, {"{e}[E]tag", "{One}[Two]"}])
+    list1 = ["One", :ok, nil, {}, :ok]
+    list2 = ["Two", :ok, 0.0, {true}]
+    expected = ~S<["{One}[Two]", :ok, {nil}[0.0], {[true]}, {:ok}]>
     assert format_diff(list1, list2, &formatter/2) == expected
+
+    keyword_list1 = [file: "nofile", line: 12]
+    keyword_list2 = [file: nil, llne: 10]
+    expected = ~S<[file: {"nofile"}[nil], l{i}[l]ne: 1{2}[0] {(off by -2)}]>
+    assert format_diff(keyword_list1, keyword_list2, &formatter/2) == expected
+
+    char_list1 = 'fox hops over \'the dog'
+    char_list2 = 'fox jumps over the lazy cat'
+    expected = "'fox {ho}[jum]ps over {\\'}the {dog}[lazy cat]'"
+    assert format_diff(char_list1, char_list2, &formatter/2) == expected
 
     tuple1 = {:yes, 'ject', []}
     tuple2 = {:yes, 'lter', []}
