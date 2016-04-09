@@ -229,10 +229,10 @@ defmodule GenServer do
 
   Returning `{:reply, reply, new_state, :hibernate}` is similar to
   `{:reply, reply, new_state}` except the process is hibernated and will
-  continue the loop once a message is its message queue. If a message is already
-  in the message queue this will be immediately. Hibernating a `GenServer`
-  causes garbage collection and leaves a continuous heap that minimises the
-  memory used by the process.
+  continue the loop once a message is in its message queue. If a message is
+  already in the message queue this will be immediately. Hibernating a
+  `GenServer` causes garbage collection and leaves a continuous heap that
+  minimises the memory used by the process.
 
   Hibernating should not be used aggressively as too much time could be spent
   garbage collecting. Normally it should only be used when a message is not
@@ -286,8 +286,8 @@ defmodule GenServer do
   Returning `{:noreply, new_state}` continues the loop with new state `new_state`.
 
   Returning `{:noreply, new_state, timeout}` is similar to
-  `{:noreply, reply, new_state}` except `handle_info(:timeout, new_state)` will
-  be called after `timeout` milliseconds if no messages are received.
+  `{:noreply, new_state}` except `handle_info(:timeout, new_state)` will be
+  called after `timeout` milliseconds if no messages are received.
 
   Returning `{:noreply, new_state, :hibernate}` is similar to
   `{:noreply, new_state}` except the process is hibernated before continuing the
