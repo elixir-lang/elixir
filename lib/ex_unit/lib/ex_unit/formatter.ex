@@ -194,7 +194,7 @@ defmodule ExUnit.Formatter do
   defp format_label(:note, _formatter), do: ""
 
   defp format_label(label, formatter) do
-    formatter.(:error_info, String.ljust("#{label}:", byte_size(@label_padding)))
+    formatter.(:extra_info, String.ljust("#{label}:", byte_size(@label_padding)))
   end
 
   defp format_banner(value, formatter) do
@@ -240,8 +240,9 @@ defmodule ExUnit.Formatter do
 
   def format_diff(<<left::bytes>>, <<right::bytes>>, formatter) do
     if String.printable?(left) and String.printable?(right) do
-      String.myers_difference(left, right)
-      |> Enum.map_join(&format_diff_fragment(&1, formatter))
+      left = Inspect.BitString.escape(left, ?\")
+      right = Inspect.BitString.escape(right, ?\")
+      "\"" <> format_string_diff(left, right, formatter) <> "\""
     end
   end
 
@@ -251,10 +252,23 @@ defmodule ExUnit.Formatter do
     format_map_diff(left, right, inspect(name), formatter)
   end
 
-  def format_diff(%_{}, %_{}, _formatter), do: nil
-
   def format_diff(%{} = left, %{} = right, formatter) do
-    format_map_diff(left, right, "", formatter)
+    if match?(%_{}, left) or match?(%_{}, right) do
+      nil
+    else
+      format_map_diff(left, right, "", formatter)
+    end
+  end
+
+  def format_diff(left, right, formatter) when is_list(left) and is_list(right) do
+    if Inspect.List.printable?(left) and Inspect.List.printable?(right) do
+      left = List.to_string(left) |> Inspect.BitString.escape(?')
+      right = List.to_string(right) |> Inspect.BitString.escape(?')
+      "'" <> format_string_diff(left, right, formatter) <> "'"
+    else
+      keyword? = Inspect.List.keyword?(left) and Inspect.List.keyword?(right)
+      format_list_diff(left, right, formatter, keyword?, [])
+    end
   end
 
   def format_diff(left, right, formatter)
@@ -268,16 +282,63 @@ defmodule ExUnit.Formatter do
           {:diff_insert, "+" <> result}
       end
     value_diff = formatter.(kind, "(off by " <> skew <> ")")
-    format_diff(inspect(left), inspect(right), formatter) <> " " <> value_diff
+    format_string_diff(inspect(left), inspect(right), formatter) <> " " <> value_diff
   end
 
   def format_diff(left, right, formatter)
-      when is_tuple(left) and is_tuple(right)
-      when is_list(left) and is_list(right) do
-    format_diff(inspect(left), inspect(right), formatter)
+      when is_tuple(left) and is_tuple(right) do
+    format_string_diff(inspect(left), inspect(right), formatter)
   end
 
   def format_diff(_left, _right, _formatter), do: nil
+
+  defp format_string_diff(string1, string2, formatter) do
+    String.myers_difference(string1, string2)
+    |> Enum.map_join(&format_diff_fragment(&1, formatter))
+  end
+
+  defp format_list_diff([], [], _formatter, _keyword?, acc) do
+    result = Enum.reverse(acc)
+    "[" <> Enum.join(result, ", ") <> "]"
+  end
+
+  defp format_list_diff([], [elem | rest], formatter, keyword?, acc) do
+    elem_diff = formatter.(:diff_insert, format_list_elem(elem, keyword?))
+    format_list_diff([], rest, formatter, keyword?, [elem_diff | acc])
+  end
+
+  defp format_list_diff([elem | rest], [], formatter, keyword?, acc) do
+    elem_diff = formatter.(:diff_delete, format_list_elem(elem, keyword?))
+    format_list_diff(rest, [], formatter, keyword?, [elem_diff | acc])
+  end
+
+  defp format_list_diff([elem | rest1], [elem | rest2], formatter, keyword?, acc) do
+    elem_diff = format_list_elem(elem, keyword?)
+    format_list_diff(rest1, rest2, formatter, keyword?, [elem_diff | acc])
+  end
+
+  defp format_list_diff([{key1, val1} | rest1], [{key2, val2} | rest2], formatter, true, acc) do
+    key_diff =
+      if key1 != key2 do
+        format_string_diff(Atom.to_string(key1), Atom.to_string(key2), formatter)
+      else
+        Atom.to_string(key1)
+      end
+    value_diff = format_inner_diff(val1, val2, formatter)
+    elem_diff = format_key_value(key_diff, value_diff, true)
+    format_list_diff(rest1, rest2, formatter, true, [elem_diff | acc])
+  end
+
+  defp format_list_diff([elem1 | rest1], [elem2 | rest2], formatter, false, acc) do
+    elem_diff = format_inner_diff(elem1, elem2, formatter)
+    format_list_diff(rest1, rest2, formatter, false, [elem_diff | acc])
+  end
+
+  defp format_list_elem(elem, false), do: inspect(elem)
+
+  defp format_list_elem({key, val}, true) do
+    format_key_value(Atom.to_string(key), inspect(val), true)
+  end
 
   defp format_map_diff(left, right, name, formatter) do
     {surplus, altered, missing} = map_difference(left, right)
@@ -292,16 +353,16 @@ defmodule ExUnit.Formatter do
         do: ["..."],
         else: []
     result = Enum.reduce(missing, result, fn({key, val}, acc) ->
-      map_pair = format_map_pair(inspect(key), inspect(val), keyword?)
+      map_pair = format_key_value(inspect(key), inspect(val), keyword?)
       [formatter.(:diff_insert, map_pair) | acc]
     end)
     result = Enum.reduce(surplus, result, fn({key, val}, acc) ->
-      map_pair = format_map_pair(inspect(key), inspect(val), keyword?)
+      map_pair = format_key_value(inspect(key), inspect(val), keyword?)
       [formatter.(:diff_delete, map_pair) | acc]
     end)
     result = Enum.reduce(altered, result, fn({key, {val1, val2}}, acc) ->
       value_diff = format_inner_diff(val1, val2, formatter)
-      [format_map_pair(inspect(key), value_diff, keyword?) | acc]
+      [format_key_value(inspect(key), value_diff, keyword?) | acc]
     end)
     "%" <> name <> "{" <> Enum.join(result, ", ") <> "}"
   end
@@ -324,20 +385,16 @@ defmodule ExUnit.Formatter do
     {surplus, altered, missing}
   end
 
-  defp format_map_pair(key, value, false) do
+  defp format_key_value(key, value, false) do
     key <> " => " <> value
   end
 
-  defp format_map_pair(":" <> rest, value, true) do
-    format_map_pair(rest, value, true)
+  defp format_key_value(":" <> rest, value, true) do
+    format_key_value(rest, value, true)
   end
 
-  defp format_map_pair(key, value, true) do
+  defp format_key_value(key, value, true) do
     key <> ": " <> value
-  end
-
-  defp format_inner_diff(<<left::bytes>>, <<right::bytes>>, formatter) do
-    format_diff(inspect(left), inspect(right), formatter)
   end
 
   defp format_inner_diff(left, right, formatter) do
