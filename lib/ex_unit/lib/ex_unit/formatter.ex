@@ -251,10 +251,12 @@ defmodule ExUnit.Formatter do
     format_map_diff(left, right, inspect(name), formatter)
   end
 
-  def format_diff(%_{}, %_{}, _formatter), do: nil
-
   def format_diff(%{} = left, %{} = right, formatter) do
-    format_map_diff(left, right, "", formatter)
+    if match?(%_{}, left) or match?(%_{}, right) do
+      nil
+    else
+      format_map_diff(left, right, "", formatter)
+    end
   end
 
   def format_diff(left, right, formatter) when is_list(left) and is_list(right) do

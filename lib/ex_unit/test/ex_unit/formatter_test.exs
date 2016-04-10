@@ -294,6 +294,7 @@ defmodule ExUnit.FormatterTest do
     user1 = %User{age: 16}
     user2 = %User{age: 21}
     assert format_diff(user1, user2, &formatter/2) == "%ExUnit.FormatterTest.User{age: [2]1{6} [(off by +5)]}"
+    assert format_diff(%User{}, %{}, &formatter/2) == nil
     assert format_diff(%User{}, %ExUnit.Test{}, &formatter/2) == nil
 
     bin1 = <<147, 1, 2, 31>>
