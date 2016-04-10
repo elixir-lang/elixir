@@ -240,8 +240,9 @@ defmodule ExUnit.Formatter do
 
   def format_diff(<<left::bytes>>, <<right::bytes>>, formatter) do
     if String.printable?(left) and String.printable?(right) do
-      String.myers_difference(left, right)
-      |> Enum.map_join(&format_diff_fragment(&1, formatter))
+      left = Inspect.BitString.escape(left, ?\")
+      right = Inspect.BitString.escape(right, ?\")
+      "\"" <> format_string_diff(left, right, formatter) <> "\""
     end
   end
 
@@ -263,7 +264,7 @@ defmodule ExUnit.Formatter do
     if Inspect.List.printable?(left) and Inspect.List.printable?(right) do
       left = List.to_string(left) |> Inspect.BitString.escape(?')
       right = List.to_string(right) |> Inspect.BitString.escape(?')
-      "'" <> format_diff(left, right, formatter) <> "'"
+      "'" <> format_string_diff(left, right, formatter) <> "'"
     else
       keyword? = Inspect.List.keyword?(left) and Inspect.List.keyword?(right)
       format_list_diff(left, right, formatter, keyword?, [])
@@ -281,15 +282,20 @@ defmodule ExUnit.Formatter do
           {:diff_insert, "+" <> result}
       end
     value_diff = formatter.(kind, "(off by " <> skew <> ")")
-    format_diff(inspect(left), inspect(right), formatter) <> " " <> value_diff
+    format_string_diff(inspect(left), inspect(right), formatter) <> " " <> value_diff
   end
 
   def format_diff(left, right, formatter)
       when is_tuple(left) and is_tuple(right) do
-    format_diff(inspect(left), inspect(right), formatter)
+    format_string_diff(inspect(left), inspect(right), formatter)
   end
 
   def format_diff(_left, _right, _formatter), do: nil
+
+  defp format_string_diff(string1, string2, formatter) do
+    String.myers_difference(string1, string2)
+    |> Enum.map_join(&format_diff_fragment(&1, formatter))
+  end
 
   defp format_list_diff([], [], _formatter, _keyword?, acc) do
     result = Enum.reverse(acc)
@@ -314,7 +320,7 @@ defmodule ExUnit.Formatter do
   defp format_list_diff([{key1, val1} | rest1], [{key2, val2} | rest2], formatter, true, acc) do
     key_diff =
       if key1 != key2 do
-        format_diff(Atom.to_string(key1), Atom.to_string(key2), formatter)
+        format_string_diff(Atom.to_string(key1), Atom.to_string(key2), formatter)
       else
         Atom.to_string(key1)
       end
@@ -389,10 +395,6 @@ defmodule ExUnit.Formatter do
 
   defp format_key_value(key, value, true) do
     key <> ": " <> value
-  end
-
-  defp format_inner_diff(<<left::bytes>>, <<right::bytes>>, formatter) do
-    format_diff(inspect(left), inspect(right), formatter)
   end
 
   defp format_inner_diff(left, right, formatter) do

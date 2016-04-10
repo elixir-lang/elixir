@@ -256,9 +256,10 @@ defmodule ExUnit.FormatterTest do
     assert format_diff(int1, int2, &formatter/2) == "49{1}[0]512{2}[0]35 {(off by -1000200)}"
     assert format_diff(42.0, 43.0, &formatter/2) == "4{2}[3].0 [(off by +1.0)]"
 
-    string1 = "fox hops over the dog"
+    string1 = "fox hops over \"the dog"
     string2 = "fox jumps over the lazy cat"
-    assert format_diff(string1, string2, &formatter/2) == "fox {ho}[jum]ps over the {dog}[lazy cat]"
+    expected = ~S<"fox {ho}[jum]ps over {\"}the {dog}[lazy cat]">
+    assert format_diff(string1, string2, &formatter/2) == expected
 
     list1 = ["One", :ok, nil, {}, :ok]
     list2 = ["Two", :ok, 0.0, {true}]
