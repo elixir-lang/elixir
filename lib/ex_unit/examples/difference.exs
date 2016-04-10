@@ -20,7 +20,7 @@ defmodule Difference do
   end
 
   test "strings" do
-    string1 = "fox hops over the dog"
+    string1 = "fox hops over \"the dog"
     string2 = "fox jumps over the lazy cat"
     assert string1 == string2
   end
