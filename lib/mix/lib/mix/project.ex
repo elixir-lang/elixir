@@ -159,7 +159,7 @@ defmodule Mix.Project do
             |> Path.join("**/*.*")
             |> Path.wildcard
             |> Enum.reject(&String.starts_with?(Path.basename(&1), "."))
-          [file|configs]
+          [file | configs]
         _ ->
           []
       end

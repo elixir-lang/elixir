@@ -173,7 +173,7 @@ defmodule Mix.Tasks.Escript.Build do
 
   defp core_files(escript_opts, language) do
     if Keyword.get(escript_opts, :embed_elixir, language == :elixir) do
-      Enum.flat_map [:elixir|extra_apps()], &app_files/1
+      Enum.flat_map [:elixir | extra_apps()], &app_files/1
     else
       []
     end

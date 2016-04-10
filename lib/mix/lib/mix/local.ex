@@ -156,7 +156,7 @@ defmodule Mix.Local do
     |> Enum.find_value(entries, &find_version(&1, current_version))
   end
 
-  defp find_version([artifact_version, digest|versions], current_version) do
+  defp find_version([artifact_version, digest | versions], current_version) do
     if version = Enum.find(versions, &Version.compare(&1, current_version) != :gt) do
       {version, artifact_version, digest}
     end

@@ -89,7 +89,7 @@ defmodule Mix.Shell do
       end
 
     port = Port.open({:spawn, shell_command(command)},
-                     [:stream, :binary, :exit_status, :hide, :use_stdio, {:env, env}|args])
+                     [:stream, :binary, :exit_status, :hide, :use_stdio, {:env, env} | args])
 
     do_cmd(port, callback)
   end

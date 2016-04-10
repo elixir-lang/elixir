@@ -757,11 +757,11 @@ defmodule UnicodeConversionError do
     "encoding starting at #{inspect rest}"
   end
 
-  defp detail([h|_]) when is_integer(h) do
+  defp detail([h | _]) when is_integer(h) do
     "code point #{h}"
   end
 
-  defp detail([h|_]) do
+  defp detail([h | _]) do
     detail(h)
   end
 end
@@ -841,10 +841,10 @@ defmodule ErlangError do
   def normalize({:badkey, key}, stacktrace) do
     term =
       case stacktrace || :erlang.get_stacktrace do
-        [{Map, :get_and_update!, [map, _, _], _}|_] -> map
-        [{Map, :update!, [map, _, _], _}|_] -> map
-        [{:maps, :update, [_, _, map], _}|_] -> map
-        [{:maps, :get, [_, map], _}|_] -> map
+        [{Map, :get_and_update!, [map, _, _], _} | _] -> map
+        [{Map, :update!, [map, _, _], _} | _] -> map
+        [{:maps, :update, [_, _, map], _} | _] -> map
+        [{:maps, :get, [_, map], _} | _] -> map
         _ -> nil
       end
     %KeyError{key: key, term: term}
@@ -885,11 +885,11 @@ defmodule ErlangError do
     %ErlangError{original: other}
   end
 
-  defp from_stacktrace([{module, function, args, _}|_]) when is_list(args) do
+  defp from_stacktrace([{module, function, args, _} | _]) when is_list(args) do
     {module, function, length(args)}
   end
 
-  defp from_stacktrace([{module, function, arity, _}|_]) do
+  defp from_stacktrace([{module, function, arity, _} | _]) do
     {module, function, arity}
   end
 

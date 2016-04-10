@@ -12,7 +12,7 @@ defmodule StreamTest do
       def into(struct) do
         {struct,
          fn
-           _, {:cont, x} -> Process.put(:stream_cont, [x|Process.get(:stream_cont)])
+           _, {:cont, x} -> Process.put(:stream_cont, [x | Process.get(:stream_cont)])
            _, :done -> Process.put(:stream_done, true)
            _, :halt -> Process.put(:stream_halt, true)
          end}
@@ -235,7 +235,7 @@ defmodule StreamTest do
     Process.put(:stream_each, [])
 
     stream = Stream.each([1, 2, 3], fn x ->
-      Process.put(:stream_each, [x|Process.get(:stream_each)])
+      Process.put(:stream_each, [x | Process.get(:stream_each)])
     end)
 
     assert is_lazy(stream)
@@ -743,7 +743,7 @@ defmodule StreamTest do
     stream = Stream.take(1..100, -5)
     assert is_lazy(stream)
 
-    stream = Stream.each(stream, &Process.put(:stream_each, [&1|Process.get(:stream_each)]))
+    stream = Stream.each(stream, &Process.put(:stream_each, [&1 | Process.get(:stream_each)]))
     assert Enum.to_list(stream) == [96, 97, 98, 99, 100]
     assert Process.get(:stream_each) == [100, 99, 98, 97, 96]
   end

@@ -1288,7 +1288,7 @@ defmodule Kernel do
   # Extracts concatenations in order to optimize many
   # concatenations into one single clause.
   defp extract_concatenations({:<>, _, [left, right]}) do
-    [wrap_concatenation(left)|extract_concatenations(right)]
+    [wrap_concatenation(left) | extract_concatenations(right)]
   end
 
   defp extract_concatenations(other) do
@@ -1551,7 +1551,7 @@ defmodule Kernel do
       iex> inspect('bar')
       "'bar'"
 
-      iex> inspect([0|'bar'])
+      iex> inspect([0 | 'bar'])
       "[0, 98, 97, 114]"
 
       iex> inspect(100, base: :octal)
@@ -1704,17 +1704,17 @@ defmodule Kernel do
 
   def get_in(data, [h]) when is_function(h),
     do: h.(:get, data, &(&1))
-  def get_in(data, [h|t]) when is_function(h),
+  def get_in(data, [h | t]) when is_function(h),
     do: h.(:get, data, &get_in(&1, t))
 
   def get_in(nil, [_]),
     do: nil
-  def get_in(nil, [_|t]),
+  def get_in(nil, [_ | t]),
     do: get_in(nil, t)
 
   def get_in(data, [h]),
     do: Access.get(data, h)
-  def get_in(data, [h|t]),
+  def get_in(data, [h | t]),
     do: get_in(Access.get(data, h), t)
 
   @doc """
@@ -1811,12 +1811,12 @@ defmodule Kernel do
 
   def get_and_update_in(data, [h], fun) when is_function(h),
     do: h.(:get_and_update, data, fun)
-  def get_and_update_in(data, [h|t], fun) when is_function(h),
+  def get_and_update_in(data, [h | t], fun) when is_function(h),
     do: h.(:get_and_update, data, &get_and_update_in(&1, t, fun))
 
   def get_and_update_in(data, [h], fun),
     do: Access.get_and_update(data, h, fun)
-  def get_and_update_in(data, [h|t], fun),
+  def get_and_update_in(data, [h | t], fun),
     do: Access.get_and_update(data, h, &get_and_update_in(&1, t, fun))
 
   @doc """
@@ -1838,18 +1838,18 @@ defmodule Kernel do
   """
   @spec pop_in(Access.t, nonempty_list(term)) :: Access.t
   def pop_in(data, keys)
-  def pop_in(nil, [h|_]), do: Access.pop(nil, h)
+  def pop_in(nil, [h | _]), do: Access.pop(nil, h)
   def pop_in(data, keys), do: do_pop_in(data, keys)
 
-  defp do_pop_in(nil, [_|_]),
+  defp do_pop_in(nil, [_ | _]),
     do: :pop
   defp do_pop_in(data, [h]) when is_function(h),
     do: h.(:get_and_update, data, fn _ -> :pop end)
-  defp do_pop_in(data, [h|t]) when is_function(h),
+  defp do_pop_in(data, [h | t]) when is_function(h),
     do: h.(:get_and_update, data, &do_pop_in(&1, t))
   defp do_pop_in(data, [h]),
     do: Access.pop(data, h)
-  defp do_pop_in(data, [h|t]),
+  defp do_pop_in(data, [h | t]),
     do: Access.get_and_update(data, h, &do_pop_in(&1, t))
 
   @doc """
@@ -1881,9 +1881,9 @@ defmodule Kernel do
   """
   defmacro put_in(path, value) do
     case unnest(path, [], true, "put_in/2") do
-      {[h|t], true} ->
+      {[h | t], true} ->
         nest_update_in(h, t, quote(do: fn _ -> unquote(value) end))
-      {[h|t], false} ->
+      {[h | t], false} ->
         expr = nest_get_and_update_in(h, t, quote(do: fn _ -> {nil, unquote(value)} end))
         quote do: :erlang.element(2, unquote(expr))
     end
@@ -1919,7 +1919,7 @@ defmodule Kernel do
   and the deletion will be considered a success.
   """
   defmacro pop_in(path) do
-    {[h|t], _} = unnest(path, [], true, "pop_in/1")
+    {[h | t], _} = unnest(path, [], true, "pop_in/1")
     nest_pop_in(:map, h, t)
   end
 
@@ -1952,9 +1952,9 @@ defmodule Kernel do
   """
   defmacro update_in(path, fun) do
     case unnest(path, [], true, "update_in/2") do
-      {[h|t], true} ->
+      {[h | t], true} ->
         nest_update_in(h, t, fun)
-      {[h|t], false} ->
+      {[h | t], false} ->
         expr = nest_get_and_update_in(h, t, quote(do: fn x -> {nil, unquote(fun).(x)} end))
         quote do: :erlang.element(2, unquote(expr))
     end
@@ -2009,7 +2009,7 @@ defmodule Kernel do
 
   """
   defmacro get_and_update_in(path, fun) do
-    {[h|t], _} = unnest(path, [], true, "get_and_update_in/2")
+    {[h | t], _} = unnest(path, [], true, "get_and_update_in/2")
     nest_get_and_update_in(h, t, fun)
   end
 
@@ -2019,7 +2019,7 @@ defmodule Kernel do
       fn x -> unquote(nest_update_in(quote(do: x), list, fun)) end
     end
   end
-  defp nest_update_in(h, [{:map, key}|t], fun) do
+  defp nest_update_in(h, [{:map, key} | t], fun) do
     quote do
       Map.update!(unquote(h), unquote(key), unquote(nest_update_in(t, fun)))
     end
@@ -2031,7 +2031,7 @@ defmodule Kernel do
       fn x -> unquote(nest_get_and_update_in(quote(do: x), list, fun)) end
     end
   end
-  defp nest_get_and_update_in(h, [{:access, key}|t], fun) do
+  defp nest_get_and_update_in(h, [{:access, key} | t], fun) do
     quote do
       Access.get_and_update(
         unquote(h),
@@ -2040,7 +2040,7 @@ defmodule Kernel do
       )
     end
   end
-  defp nest_get_and_update_in(h, [{:map, key}|t], fun) do
+  defp nest_get_and_update_in(h, [{:map, key} | t], fun) do
     quote do
       Map.get_and_update!(unquote(h), unquote(key), unquote(nest_get_and_update_in(t, fun)))
     end
@@ -2065,7 +2065,7 @@ defmodule Kernel do
     raise ArgumentError, "cannot use pop_in when the last segment is a map/struct field. " <>
                          "This would effectively remove the field #{inspect key} from the map/struct"
   end
-  defp nest_pop_in(_, h, [{:map, key}|t]) do
+  defp nest_pop_in(_, h, [{:map, key} | t]) do
     quote do
       Map.get_and_update!(unquote(h), unquote(key), unquote(nest_pop_in(:map, t)))
     end
@@ -2079,21 +2079,21 @@ defmodule Kernel do
       end
     end
   end
-  defp nest_pop_in(_, h, [{:access, key}|t]) do
+  defp nest_pop_in(_, h, [{:access, key} | t]) do
     quote do
       Access.get_and_update(unquote(h), unquote(key), unquote(nest_pop_in(:access, t)))
     end
   end
 
   defp unnest({{:., _, [Access, :get]}, _, [expr, key]}, acc, _all_map?, kind) do
-    unnest(expr, [{:access, key}|acc], false, kind)
+    unnest(expr, [{:access, key} | acc], false, kind)
   end
 
   defp unnest({{:., _, [expr, key]}, _, []}, acc, all_map?, kind)
       when is_tuple(expr) and
            :erlang.element(1, expr) != :__aliases__ and
            :erlang.element(1, expr) != :__MODULE__ do
-    unnest(expr, [{:map, key}|acc], all_map?, kind)
+    unnest(expr, [{:map, key} | acc], all_map?, kind)
   end
 
   defp unnest(other, [], _all_map?, kind) do
@@ -2103,7 +2103,7 @@ defmodule Kernel do
 
   defp unnest(other, acc, all_map?, kind) do
     case proper_start?(other) do
-      true -> {[other|acc], all_map?}
+      true -> {[other | acc], all_map?}
       false ->
         raise ArgumentError,
           "expression given to #{kind} must start with a variable, local or remote call " <>
@@ -2735,7 +2735,7 @@ defmodule Kernel do
   notation.
   """
   defmacro left |> right do
-    [{h, _}|t] = Macro.unpipe({:|>, [], [left, right]})
+    [{h, _} | t] = Macro.unpipe({:|>, [], [left, right]})
     :lists.foldl fn {x, pos}, acc ->
       # TODO: raise an error in `Macro.pipe` by 1.4
       case Macro.pipe_warning(x) do
@@ -2837,7 +2837,7 @@ defmodule Kernel do
         quote do: Elixir.Enum.member?(unquote(right), unquote(left))
       [] ->
         false
-      [h|t] ->
+      [h | t] ->
         :lists.foldr(fn x, acc ->
           quote do: :erlang.or(unquote(comp(left, x)), unquote(acc))
         end, comp(left, h), t)
@@ -3074,7 +3074,7 @@ defmodule Kernel do
     do: raw
 
   # defmodule Elixir.Alias
-  defp expand_module({:__aliases__, _, [:Elixir|t]}, module, _env) when t != [],
+  defp expand_module({:__aliases__, _, [:Elixir | t]}, module, _env) when t != [],
     do: module
 
   # defmodule Alias in root
@@ -3083,14 +3083,14 @@ defmodule Kernel do
 
   # defmodule Alias nested
   defp expand_module({:__aliases__, _, t}, _module, env),
-    do: :elixir_aliases.concat([env.module|t])
+    do: :elixir_aliases.concat([env.module | t])
 
   # defmodule _
   defp expand_module(_raw, module, env),
     do: :elixir_aliases.concat([env.module, module])
 
   # quote vars to be injected into the module definition
-  defp module_vars([{key, kind}|vars], counter) do
+  defp module_vars([{key, kind} | vars], counter) do
     var =
       case is_atom(kind) do
         true  -> {key, [warn: false], kind}
@@ -3099,7 +3099,7 @@ defmodule Kernel do
 
     under = String.to_atom(<<"_@", :erlang.integer_to_binary(counter)::binary>>)
     args  = [key, kind, under, var]
-    [{:{}, [], args}|module_vars(vars, counter+1)]
+    [{:{}, [], args} | module_vars(vars, counter+1)]
   end
 
   defp module_vars([], _counter) do
@@ -3131,17 +3131,17 @@ defmodule Kernel do
     end
   end
 
-  defp module_nesting([x|t1], [x|t2], acc, full),
-    do: module_nesting(t1, t2, [x|acc], full)
-  defp module_nesting([], [h|_], acc, _full),
+  defp module_nesting([x | t1], [x | t2], acc, full),
+    do: module_nesting(t1, t2, [x | acc], full)
+  defp module_nesting([], [h | _], acc, _full),
     do: {String.to_atom(<<"Elixir.", h::binary>>),
-          :elixir_aliases.concat(:lists.reverse([h|acc]))}
+          :elixir_aliases.concat(:lists.reverse([h | acc]))}
   defp module_nesting(_, _, _acc, full),
     do: {nil, full}
 
   defp split_module(atom) do
     case :binary.split(Atom.to_string(atom), ".", [:global]) do
-      ["Elixir"|t] -> t
+      ["Elixir" | t] -> t
       _ -> []
     end
   end
@@ -3445,7 +3445,7 @@ defmodule Kernel do
   """
   defmacro defexception(fields) do
     fields = case is_list(fields) do
-      true  -> [{:__exception__, true}|fields]
+      true  -> [{:__exception__, true} | fields]
       false -> quote(do: [{:__exception__, true}] ++ unquote(fields))
     end
 
@@ -4124,7 +4124,7 @@ defmodule Kernel do
   ## Shared functions
 
   defp optimize_boolean({:case, meta, args}) do
-    {:case, [{:optimize_boolean, true}|meta], args}
+    {:case, [{:optimize_boolean, true} | meta], args}
   end
 
   # We need this check only for bootstrap purposes.

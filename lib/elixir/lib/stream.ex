@@ -110,13 +110,13 @@ defmodule Stream do
   end
 
   defmacrop acc(h, n, t) do
-    quote do: [unquote(h), unquote(n)|unquote(t)]
+    quote do: [unquote(h), unquote(n) | unquote(t)]
   end
 
   defmacrop next_with_acc(f, entry, h, n, t) do
     quote do
-      {reason, [h|t]} = unquote(f).(unquote(entry), [unquote(h)|unquote(t)])
-      {reason, [h, unquote(n)|t]}
+      {reason, [h | t]} = unquote(f).(unquote(entry), [unquote(h) | unquote(t)])
+      {reason, [h, unquote(n) | t]}
     end
   end
 
@@ -270,20 +270,20 @@ defmodule Stream do
       fn
         entry, [h, {count, buf1, []} | t] ->
           do_drop(:cont, n, entry, h, count, buf1, [], t)
-        entry, [h, {count, buf1, [next|buf2]} | t] ->
-          {reason, [h|t]} = f1.(next, [h|t])
+        entry, [h, {count, buf1, [next | buf2]} | t] ->
+          {reason, [h | t]} = f1.(next, [h | t])
           do_drop(reason, n, entry, h, count, buf1, buf2, t)
       end
     end
   end
 
   defp do_drop(reason, n, entry, h, count, buf1, buf2, t) do
-    buf1  = [entry|buf1]
+    buf1  = [entry | buf1]
     count = count + 1
     if count == n do
-      {reason, [h, {0, [], :lists.reverse(buf1)}|t]}
+      {reason, [h, {0, [], :lists.reverse(buf1)} | t]}
     else
-      {reason, [h, {count, buf1, buf2}|t]}
+      {reason, [h, {count, buf1, buf2} | t]}
     end
   end
 
@@ -412,26 +412,26 @@ defmodule Stream do
 
   defp do_into(enum, collectable, transform, acc, fun) do
     {initial, into} = Collectable.into(collectable)
-    composed = fn x, [acc|collectable] ->
+    composed = fn x, [acc | collectable] ->
       collectable = into.(collectable, {:cont, transform.(x)})
       {reason, acc} = fun.(x, acc)
-      {reason, [acc|collectable]}
+      {reason, [acc | collectable]}
     end
     do_into(&Enumerable.reduce(enum, &1, composed), initial, into, acc)
   end
 
   defp do_into(reduce, collectable, into, {command, acc}) do
     try do
-      reduce.({command, [acc|collectable]})
+      reduce.({command, [acc | collectable]})
     catch
       kind, reason ->
         stacktrace = System.stacktrace
         into.(collectable, :halt)
         :erlang.raise(kind, reason, stacktrace)
     else
-      {:suspended, [acc|collectable], continuation} ->
+      {:suspended, [acc | collectable], continuation} ->
         {:suspended, acc, &do_into(continuation, collectable, into, &1)}
-      {reason, [acc|collectable]} ->
+      {reason, [acc | collectable]} ->
         into.(collectable, :done)
         {reason, acc}
     end
@@ -697,7 +697,7 @@ defmodule Stream do
 
   defp do_transform(user_acc, user, fun, next_acc, next, inner_acc, inner, after_fun) do
     case next.({:cont, next_acc}) do
-      {:suspended, [val|next_acc], next} ->
+      {:suspended, [val | next_acc], next} ->
         try do
           user.(val, user_acc)
         catch
@@ -749,7 +749,7 @@ defmodule Stream do
 
   defp do_enum_transform(user_acc, user, fun, next_acc, next, {op, inner_acc}, inner, reduce, after_fun) do
     try do
-      reduce.({op, [:outer|inner_acc]})
+      reduce.({op, [:outer | inner_acc]})
     catch
       kind, reason ->
         stacktrace = System.stacktrace
@@ -759,15 +759,15 @@ defmodule Stream do
     else
       # Only take into account outer halts when the op is not halt itself.
       # Otherwise, we were the ones wishing to halt, so we should just stop.
-      {:halted, [:outer|acc]} when op != :halt ->
+      {:halted, [:outer | acc]} when op != :halt ->
         do_transform(user_acc, user, fun, next_acc, next, {:cont, acc}, inner, after_fun)
-      {:halted, [_|acc]} ->
+      {:halted, [_ | acc]} ->
         next.({:halt, next_acc})
         do_after(after_fun, user_acc)
         {:halted, acc}
-      {:done, [_|acc]} ->
+      {:done, [_ | acc]} ->
         do_transform(user_acc, user, fun, next_acc, next, {:cont, acc}, inner, after_fun)
-      {:suspended, [_|acc], c} ->
+      {:suspended, [_ | acc], c} ->
         {:suspended, acc, &do_enum_transform(user_acc, user, fun, next_acc, next, &1, inner, c, after_fun)}
     end
   end
@@ -775,15 +775,15 @@ defmodule Stream do
   defp do_after(nil, _user_acc), do: :ok
   defp do_after(fun, user_acc),  do: fun.(user_acc)
 
-  defp do_transform_each(x, [:outer|acc], f) do
+  defp do_transform_each(x, [:outer | acc], f) do
     case f.(x, acc) do
-      {:halt, res} -> {:halt, [:inner|res]}
-      {op, res}    -> {op, [:outer|res]}
+      {:halt, res} -> {:halt, [:inner | res]}
+      {op, res}    -> {op, [:outer | res]}
     end
   end
 
   defp do_transform_step(x, acc) do
-    {:suspend, [x|acc]}
+    {:suspend, [x | acc]}
   end
 
   @doc """
@@ -916,10 +916,10 @@ defmodule Stream do
     end
   end
 
-  defp do_zip([{fun, fun_acc}|t], acc, callback, list, buffer) do
+  defp do_zip([{fun, fun_acc} | t], acc, callback, list, buffer) do
     case fun.({:cont, fun_acc}) do
-      {:suspended, [i|fun_acc], fun} ->
-        do_zip(t, acc, callback, [i|list], [{fun, fun_acc}|buffer])
+      {:suspended, [i | fun_acc], fun} ->
+        do_zip(t, acc, callback, [i | list], [{fun, fun_acc} | buffer])
       {_, _} ->
         do_zip_close(:lists.reverse(buffer, t))
         {:done, acc}
@@ -932,13 +932,13 @@ defmodule Stream do
   end
 
   defp do_zip_close([]), do: :ok
-  defp do_zip_close([{fun, acc}|t]) do
+  defp do_zip_close([{fun, acc} | t]) do
     fun.({:halt, acc})
     do_zip_close(t)
   end
 
   defp do_zip_step(x, acc) do
-    {:suspend, [x|acc]}
+    {:suspend, [x | acc]}
   end
 
   ## Sources
@@ -1140,28 +1140,28 @@ defmodule Stream do
 
   defp do_enum_resource(next_acc, next_fun, {op, acc}, fun, after_fun, reduce) do
     try do
-      reduce.({op, [:outer|acc]})
+      reduce.({op, [:outer | acc]})
     catch
       kind, reason ->
         stacktrace = System.stacktrace
         after_fun.(next_acc)
         :erlang.raise(kind, reason, stacktrace)
     else
-      {:halted, [:outer|acc]} ->
+      {:halted, [:outer | acc]} ->
         do_resource(next_acc, next_fun, {:cont, acc}, fun, after_fun)
-      {:halted, [:inner|acc]} ->
+      {:halted, [:inner | acc]} ->
         do_resource(next_acc, next_fun, {:halt, acc}, fun, after_fun)
-      {:done, [_|acc]} ->
+      {:done, [_ | acc]} ->
         do_resource(next_acc, next_fun, {:cont, acc}, fun, after_fun)
-      {:suspended, [_|acc], c} ->
+      {:suspended, [_ | acc], c} ->
         {:suspended, acc, &do_enum_resource(next_acc, next_fun, &1, fun, after_fun, c)}
     end
   end
 
-  defp do_resource_each(x, [:outer|acc], f) do
+  defp do_resource_each(x, [:outer | acc], f) do
     case f.(x, acc) do
-      {:halt, res} -> {:halt, [:inner|res]}
-      {op, res}    -> {op, [:outer|res]}
+      {:halt, res} -> {:halt, [:inner | res]}
+      {op, res}    -> {op, [:outer | res]}
     end
   end
 
@@ -1203,17 +1203,17 @@ defmodule Stream do
   @compile {:inline, lazy: 2, lazy: 3, lazy: 4}
 
   defp lazy(%Stream{done: nil, funs: funs} = lazy, fun),
-    do: %{lazy | funs: [fun|funs] }
+    do: %{lazy | funs: [fun | funs] }
   defp lazy(enum, fun),
     do: %Stream{enum: enum, funs: [fun]}
 
   defp lazy(%Stream{done: nil, funs: funs, accs: accs} = lazy, acc, fun),
-    do: %{lazy | funs: [fun|funs], accs: [acc|accs] }
+    do: %{lazy | funs: [fun | funs], accs: [acc | accs] }
   defp lazy(enum, acc, fun),
     do: %Stream{enum: enum, funs: [fun], accs: [acc]}
 
   defp lazy(%Stream{done: nil, funs: funs, accs: accs} = lazy, acc, fun, done),
-    do: %{lazy | funs: [fun|funs], accs: [acc|accs], done: done}
+    do: %{lazy | funs: [fun | funs], accs: [acc | accs], done: done}
   defp lazy(enum, acc, fun, done),
     do: %Stream{enum: enum, funs: [fun], accs: [acc], done: done}
 end
@@ -1243,8 +1243,8 @@ defimpl Enumerable, for: Stream do
   end
 
   defp do_each(reduce, done, accs, {command, acc}) do
-    case reduce.({command, [acc|accs]}) do
-      {:suspended, [acc|accs], continuation} ->
+    case reduce.({command, [acc | accs]}) do
+      {:suspended, [acc | accs], continuation} ->
         {:suspended, acc, &do_each(continuation, done, accs, &1)}
       {:halted, accs} ->
         do_done {:halted, accs}, done
@@ -1253,13 +1253,13 @@ defimpl Enumerable, for: Stream do
     end
   end
 
-  defp do_done({reason, [acc|_]}, nil), do: {reason, acc}
-  defp do_done({reason, [acc|t]}, {done, fun}) do
-    [h|_] = Enum.reverse(t)
+  defp do_done({reason, [acc | _]}, nil), do: {reason, acc}
+  defp do_done({reason, [acc | t]}, {done, fun}) do
+    [h | _] = Enum.reverse(t)
     case done.([acc, h], fun) do
-      {:cont, [acc|_]}    -> {reason, acc}
-      {:halt, [acc|_]}    -> {:halted, acc}
-      {:suspend, [acc|_]} -> {:suspended, acc, &({:done, elem(&1, 1)})}
+      {:cont, [acc | _]}    -> {reason, acc}
+      {:halt, [acc | _]}    -> {:halted, acc}
+      {:suspend, [acc | _]} -> {:suspended, acc, &({:done, elem(&1, 1)})}
     end
   end
 end

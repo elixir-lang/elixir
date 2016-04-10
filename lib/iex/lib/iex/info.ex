@@ -231,7 +231,7 @@ defimpl IEx.Info, for: PID do
   def info(pid) do
     extra =
       case :rpc.pinfo(pid, @keys) do
-        [_|_] = info ->
+        [_ | _] = info ->
           ["Alive": true,
            "Name": process_name(info[:registered_name]),
            "Links": links(info[:links]),

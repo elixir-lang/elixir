@@ -381,7 +381,7 @@ defmodule Application do
     Path.join(app_dir(app), path)
   end
   def app_dir(app, path) when is_list(path) do
-    Path.join([app_dir(app)|path])
+    Path.join([app_dir(app) | path])
   end
 
   @doc """

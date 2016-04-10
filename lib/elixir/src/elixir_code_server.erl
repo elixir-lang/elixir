@@ -46,7 +46,7 @@ handle_call({acquire, Path}, From, Config) ->
     {ok, true} ->
       {reply, loaded, Config};
     {ok, {Ref, List}} when is_list(List), is_reference(Ref) ->
-      Queued = maps:put(Path, {Ref, [From|List]}, Current),
+      Queued = maps:put(Path, {Ref, [From | List]}, Current),
       {reply, {queued, Ref}, Config#elixir_code_server{loaded=Queued}};
     error ->
       Queued = maps:put(Path, {make_ref(), []}, Current),
@@ -65,7 +65,7 @@ handle_call({compilation_status, CompilerPid}, _From, Config) ->
 
 handle_call(retrieve_module_name, _From, Config) ->
   case Config#elixir_code_server.mod_pool of
-    {[H|T], Counter} ->
+    {[H | T], Counter} ->
       {reply, module_tuple(H), Config#elixir_code_server{mod_pool={T, Counter}}};
     {[], Counter} ->
       {reply, module_tuple(Counter), Config#elixir_code_server{mod_pool={[], Counter+1}}}
@@ -108,7 +108,7 @@ handle_cast({unload_files, Files}, Config) ->
   {noreply, Config#elixir_code_server{loaded=Unloaded}};
 
 handle_cast({return_module_name, H}, #elixir_code_server{mod_pool={T, Counter}} = Config) ->
-  {noreply, Config#elixir_code_server{mod_pool={[H|T], Counter}}};
+  {noreply, Config#elixir_code_server{mod_pool={[H | T], Counter}}};
 
 handle_cast(Request, Config) ->
   {stop, {badcast, Request}, Config}.

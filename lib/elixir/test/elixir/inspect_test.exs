@@ -224,7 +224,7 @@ defmodule Inspect.ListTest do
   test "improper" do
     assert inspect([:foo | :bar]) == "[:foo | :bar]"
 
-    assert inspect([1, 2, 3, 4, 5|42], [pretty: true, width: 1]) == "[1,\n 2,\n 3,\n 4,\n 5 |\n 42]"
+    assert inspect([1, 2, 3, 4, 5 | 42], [pretty: true, width: 1]) == "[1,\n 2,\n 3,\n 4,\n 5 |\n 42]"
   end
 
   test "nested" do
@@ -309,7 +309,7 @@ defmodule Inspect.MapTest do
       inspect(%Failing{}, safe: false)
     end
 
-    assert [{Inspect.Inspect.MapTest.Failing, :inspect, 2, _}|_] = System.stacktrace
+    assert [{Inspect.Inspect.MapTest.Failing, :inspect, 2, _} | _] = System.stacktrace
   end
 
   test "bad implementation safe" do

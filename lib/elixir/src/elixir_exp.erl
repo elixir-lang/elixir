@@ -260,12 +260,12 @@ expand({'try', Meta, [KV]}, E) ->
 
 %% Comprehensions
 
-expand({for, Meta, [_|_] = Args}, E) ->
+expand({for, Meta, [_ | _] = Args}, E) ->
   elixir_for:expand(Meta, Args, E);
 
 %% With
 
-expand({with, Meta, [_|_] = Args}, E) ->
+expand({with, Meta, [_ | _] = Args}, E) ->
   elixir_with:expand(Meta, Args, E);
 
 %% Super
@@ -403,10 +403,10 @@ expand_multi_alias_call(Kind, Meta, Base, Refs, Opts, E) ->
 
 expand_list([{'|', Meta, [_, _] = Args}], Fun, Acc, List) ->
   {EArgs, EAcc} = lists:mapfoldl(Fun, Acc, Args),
-  expand_list([], Fun, EAcc, [{'|', Meta, EArgs}|List]);
-expand_list([H|T], Fun, Acc, List) ->
+  expand_list([], Fun, EAcc, [{'|', Meta, EArgs} | List]);
+expand_list([H | T], Fun, Acc, List) ->
   {EArg, EAcc} = Fun(H, Acc),
-  expand_list(T, Fun, EAcc, [EArg|List]);
+  expand_list(T, Fun, EAcc, [EArg | List]);
 expand_list([], _Fun, Acc, List) ->
   {lists:reverse(List), Acc}.
 
@@ -414,8 +414,8 @@ expand_block([], Acc, _Meta, E) ->
   {lists:reverse(Acc), E};
 expand_block([H], Acc, Meta, E) ->
   {EH, EE} = expand(H, E),
-  expand_block([], [EH|Acc], Meta, EE);
-expand_block([H|T], Acc, Meta, E) ->
+  expand_block([], [EH | Acc], Meta, EE);
+expand_block([H | T], Acc, Meta, E) ->
   {EH, EE} = expand(H, E),
 
   %% Notice checks rely on the code BEFORE expansion
@@ -435,7 +435,7 @@ expand_block([H|T], Acc, Meta, E) ->
       ok
   end,
 
-  expand_block(T, [EH|Acc], Meta, EE).
+  expand_block(T, [EH | Acc], Meta, EE).
 
 %% Notice we don't handle atoms on purpose. They are common
 %% when unquoting AST and it is unlikely that we would catch
@@ -548,8 +548,8 @@ no_alias_opts(KV) when is_list(KV) ->
   end;
 no_alias_opts(KV) -> KV.
 
-no_alias_expansion({'__aliases__', _, [H|T]}) when is_atom(H) ->
-  elixir_aliases:concat([H|T]);
+no_alias_expansion({'__aliases__', _, [H | T]}) when is_atom(H) ->
+  elixir_aliases:concat([H | T]);
 no_alias_expansion(Other) ->
   Other.
 
@@ -568,7 +568,7 @@ expand_alias(Meta, IncludeByDefault, Ref, KV, #{context_modules := Context} = E)
   %% module in context modules.
   NewContext =
     case lists:keyfind(defined, 1, Meta) of
-      {defined, Mod} when is_atom(Mod) -> [Mod|Context];
+      {defined, Mod} when is_atom(Mod) -> [Mod | Context];
       false -> Context
     end,
 

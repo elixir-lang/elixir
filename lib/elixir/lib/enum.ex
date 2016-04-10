@@ -16,7 +16,7 @@ defprotocol Enumerable do
   Internally, `Enum.map/2` is implemented as follows:
 
       def map(enum, fun) do
-        reducer = fn x, acc -> {:cont, [fun.(x)|acc]} end
+        reducer = fn x, acc -> {:cont, [fun.(x) | acc]} end
         Enumerable.reduce(enum, {:cont, []}, reducer) |> elem(1) |> :lists.reverse()
       end
 
@@ -109,7 +109,7 @@ defprotocol Enumerable do
       def reduce(_,     {:halt, acc}, _fun),   do: {:halted, acc}
       def reduce(list,  {:suspend, acc}, fun), do: {:suspended, acc, &reduce(list, &1, fun)}
       def reduce([],    {:cont, acc}, _fun),   do: {:done, acc}
-      def reduce([h|t], {:cont, acc}, fun),    do: reduce(t, fun.(h, acc), fun)
+      def reduce([h | t], {:cont, acc}, fun),    do: reduce(t, fun.(h, acc), fun)
 
   """
   @spec reduce(t, acc, reducer) :: result
@@ -191,7 +191,7 @@ defmodule Enum do
   end
 
   defmacrop next(_, entry, acc) do
-    quote do: [unquote(entry)|unquote(acc)]
+    quote do: [unquote(entry) | unquote(acc)]
   end
 
   defmacrop acc(h, n, _) do
@@ -200,7 +200,7 @@ defmodule Enum do
 
   defmacrop next_with_acc(f, entry, h, n, _) do
     quote do
-      {[unquote(entry)|unquote(h)], unquote(n)}
+      {[unquote(entry) | unquote(h)], unquote(n)}
     end
   end
 
@@ -367,7 +367,7 @@ defmodule Enum do
       :lists.reverse(acc)
     else
       buffer = :lists.reverse(buffer, take(pad, count - i))
-      :lists.reverse([buffer|acc])
+      :lists.reverse([buffer | acc])
     end
   end
 
@@ -439,7 +439,7 @@ defmodule Enum do
   end
 
   defp do_concat(enumerable) do
-    fun = &[&1|&2]
+    fun = &[&1 | &2]
     reduce(enumerable, [], &reduce(&1, &2, fun)) |> :lists.reverse
   end
 
@@ -561,7 +561,7 @@ defmodule Enum do
   def drop(enumerable, n) when n >= 0 do
     res =
       reduce(enumerable, n, fn
-        x, acc when is_list(acc) -> [x|acc]
+        x, acc when is_list(acc) -> [x | acc]
         x, 0                     -> [x]
         _, acc when acc > 0      -> acc - 1
       end)
@@ -876,7 +876,7 @@ defmodule Enum do
   @spec flat_map(t, (element -> t)) :: list
   def flat_map(enumerable, fun) do
     reduce(enumerable, [], fn(entry, acc) ->
-      reduce(fun.(entry), acc, &[&1|&2])
+      reduce(fun.(entry), acc, &[&1 | &2])
     end) |> :lists.reverse
   end
 
@@ -911,9 +911,9 @@ defmodule Enum do
             {[], acc} ->
               {:cont, {list, acc}}
             {[entry], acc} ->
-              {:cont, {[entry|list], acc}}
+              {:cont, {[entry | list], acc}}
             {entries, acc} ->
-              {:cont, {reduce(entries, list, &[&1|&2]), acc}}
+              {:cont, {reduce(entries, list, &[&1 | &2]), acc}}
           end
       end)
 
@@ -946,7 +946,7 @@ defmodule Enum do
 
     case list do
       []    -> []
-      [_|t] -> t  # Head is a superfluous intersperser element
+      [_ | t] -> t  # Head is a superfluous intersperser element
     end
   end
 
@@ -1069,7 +1069,7 @@ defmodule Enum do
   def join(enumerable, joiner) when is_binary(joiner) do
     reduced = reduce(enumerable, :first, fn
       entry, :first -> enum_to_string(entry)
-      entry, acc -> [acc, joiner|enum_to_string(entry)]
+      entry, acc -> [acc, joiner | enum_to_string(entry)]
     end)
     if reduced == :first do
       ""
@@ -1129,7 +1129,7 @@ defmodule Enum do
   def map_join(enumerable, joiner, mapper) when is_binary(joiner) do
     reduced = reduce(enumerable, :first, fn
       entry, :first -> enum_to_string(mapper.(entry))
-      entry, acc    -> [acc, joiner|enum_to_string(mapper.(entry))]
+      entry, acc    -> [acc, joiner | enum_to_string(mapper.(entry))]
     end)
 
     if reduced == :first do
@@ -1167,7 +1167,7 @@ defmodule Enum do
     {list, acc} = reduce(enumerable, {[], acc},
       fn(entry, {list, acc}) ->
         {new_entry, acc} = fun.(entry, acc)
-        {[new_entry|list], acc}
+        {[new_entry | list], acc}
     end)
     {:lists.reverse(list), acc}
   end
@@ -1208,7 +1208,7 @@ defmodule Enum do
 
   """
   @spec max_by(t, (element -> any)) :: element | no_return
-  def max_by([h|t], fun) do
+  def max_by([h | t], fun) do
     reduce(t, {h, fun.(h)}, fn(entry, {_, fun_max} = old) ->
       fun_entry = fun.(entry)
       if(fun_entry > fun_max, do: {entry, fun_entry}, else: old)
@@ -1309,7 +1309,7 @@ defmodule Enum do
 
   """
   @spec min_by(t, (element -> any)) :: element | no_return
-  def min_by([h|t], fun) do
+  def min_by([h | t], fun) do
     reduce(t, {h, fun.(h)}, fn(entry, {_, fun_min} = old) ->
       fun_entry = fun.(entry)
       if(fun_entry < fun_min, do: {entry, fun_entry}, else: old)
@@ -1448,9 +1448,9 @@ defmodule Enum do
     {acc1, acc2} =
       reduce(enumerable, {[], []}, fn(entry, {acc1, acc2}) ->
         if fun.(entry) do
-          {[entry|acc1], acc2}
+          {[entry | acc1], acc2}
         else
-          {acc1, [entry|acc2]}
+          {acc1, [entry | acc2]}
         end
       end)
 
@@ -1479,7 +1479,7 @@ defmodule Enum do
 
   def group_by(enumerable, map, fun) when is_map(map) do
     reduce(reverse(enumerable), map, fn entry, categories ->
-      Map.update(categories, fun.(entry), [entry], &[entry|&1])
+      Map.update(categories, fun.(entry), [entry], &[entry | &1])
     end)
   end
 
@@ -1491,7 +1491,7 @@ defmodule Enum do
     IO.write :stderr, "warning: Enum.group_by/3 with a dictionary is deprecated, please use a map instead\n" <>
                       Exception.format_stacktrace
     reduce(reverse(enumerable), dict, fn(entry, categories) ->
-      Dict.update(categories, fun.(entry), [entry], &[entry|&1])
+      Dict.update(categories, fun.(entry), [entry], &[entry | &1])
     end)
   end
 
@@ -1554,7 +1554,7 @@ defmodule Enum do
   @spec reduce(t, (element, any -> any)) :: any
   def reduce(enumerable, fun)
 
-  def reduce([h|t], fun) do
+  def reduce([h | t], fun) do
     reduce(t, h, fun)
   end
 
@@ -1655,7 +1655,7 @@ defmodule Enum do
 
   def reverse(enumerable, tail) do
     reduce(enumerable, to_list(tail), fn(entry, acc) ->
-      [entry|acc]
+      [entry | acc]
     end)
   end
 
@@ -1773,7 +1773,7 @@ defmodule Enum do
   @spec shuffle(t) :: list
   def shuffle(enumerable) do
     randomized = reduce(enumerable, [], fn x, acc ->
-      [{:rand.uniform, x}|acc]
+      [{:rand.uniform, x} | acc]
     end)
     unwrap(:lists.keysort(1, randomized), [])
   end
@@ -1824,9 +1824,9 @@ defmodule Enum do
         _entry, {start, count, _list} when start > 0 ->
           {:cont, {start-1, count, []}}
         entry, {start, count, list} when count > 1 ->
-          {:cont, {start, count-1, [entry|list]}}
+          {:cont, {start, count-1, [entry | list]}}
         entry, {start, count, list} ->
-          {:halt, {start, count, [entry|list]}}
+          {:halt, {start, count, [entry | list]}}
     end) |> elem(1)
 
     :lists.reverse(list)
@@ -2026,9 +2026,9 @@ defmodule Enum do
       reduce(enumerable, {count, [], []},
         fn(entry, {counter, acc1, acc2}) ->
           if counter > 0 do
-            {counter - 1, [entry|acc1], acc2}
+            {counter - 1, [entry | acc1], acc2}
           else
-            {counter, acc1, [entry|acc2]}
+            {counter, acc1, [entry | acc2]}
           end
       end)
 
@@ -2058,9 +2058,9 @@ defmodule Enum do
     {list1, list2} =
       reduce(enumerable, {[], []}, fn
         entry, {acc1, []} ->
-          if(fun.(entry), do: {[entry|acc1], []}, else: {acc1, [entry]})
+          if(fun.(entry), do: {[entry | acc1], []}, else: {acc1, [entry]})
         entry, {acc1, acc2} ->
-          {acc1, [entry|acc2]}
+          {acc1, [entry | acc2]}
       end)
 
     {:lists.reverse(list1), :lists.reverse(list2)}
@@ -2107,8 +2107,8 @@ defmodule Enum do
         fn(entry, {list, n}) ->
           case n do
             0 -> {:halt, {list, n}}
-            1 -> {:halt, {[entry|list], n - 1}}
-            _ -> {:cont, {[entry|list], n - 1}}
+            1 -> {:halt, {[entry | list], n - 1}}
+            _ -> {:cont, {[entry | list], n - 1}}
           end
       end)
     :lists.reverse(res)
@@ -2119,7 +2119,7 @@ defmodule Enum do
 
     {_count, buf1, buf2} =
       reduce(enumerable, {0, [], []}, fn entry, {n, buf1, buf2} ->
-        buf1  = [entry|buf1]
+        buf1  = [entry | buf1]
         n = n + 1
         if n == count do
           {0, [], buf1}
@@ -2135,10 +2135,10 @@ defmodule Enum do
     do: acc
   defp do_take_last([], [], _, acc),
     do: acc
-  defp do_take_last([], [h|t], count, acc),
-    do: do_take_last([], t, count-1, [h|acc])
-  defp do_take_last([h|t], buf2, count, acc),
-    do: do_take_last(t, buf2, count-1, [h|acc])
+  defp do_take_last([], [h | t], count, acc),
+    do: do_take_last([], t, count-1, [h | acc])
+  defp do_take_last([h | t], buf2, count, acc),
+    do: do_take_last(t, buf2, count-1, [h | acc])
 
   @doc """
   Returns a list of every `nth` item in the enumerable,
@@ -2267,7 +2267,7 @@ defmodule Enum do
     {_, res} =
       Enumerable.reduce(enumerable, {:cont, []}, fn(entry, acc) ->
         if fun.(entry) do
-          {:cont, [entry|acc]}
+          {:cont, [entry | acc]}
         else
           {:halt, acc}
         end
@@ -2364,7 +2364,7 @@ defmodule Enum do
   def unzip(enumerable) do
     {list1, list2} = reduce(enumerable, {[], []},
       fn({el1, el2}, {list1, list2}) ->
-        {[el1|list1], [el2|list2]}
+        {[el1 | list1], [el2 | list2]}
     end)
 
     {:lists.reverse(list1), :lists.reverse(list2)}
@@ -2392,7 +2392,7 @@ defmodule Enum do
   end
 
   def zip(enumerable1, enumerable2) do
-    Stream.zip(enumerable1, enumerable2).({:cont, []}, &{:cont, [&1|&2]})
+    Stream.zip(enumerable1, enumerable2).({:cont, []}, &{:cont, [&1 | &2]})
     |> elem(1)
     |> :lists.reverse
   end
@@ -2441,7 +2441,7 @@ defmodule Enum do
 
   ## all?
 
-  defp do_all?([h|t], fun) do
+  defp do_all?([h | t], fun) do
     if fun.(h) do
       do_all?(t, fun)
     else
@@ -2455,7 +2455,7 @@ defmodule Enum do
 
   ## any?
 
-  defp do_any?([h|t], fun) do
+  defp do_any?([h | t], fun) do
     if fun.(h) do
       true
     else
@@ -2469,13 +2469,13 @@ defmodule Enum do
 
   ## fetch
 
-  defp do_fetch([h|_], 0), do: {:ok, h}
-  defp do_fetch([_|t], n), do: do_fetch(t, n - 1)
+  defp do_fetch([h | _], 0), do: {:ok, h}
+  defp do_fetch([_ | t], n), do: do_fetch(t, n - 1)
   defp do_fetch([], _),    do: :error
 
   ## drop
 
-  defp do_drop([_|t], counter) when counter > 0 do
+  defp do_drop([_ | t], counter) when counter > 0 do
     do_drop(t, counter - 1)
   end
 
@@ -2489,11 +2489,11 @@ defmodule Enum do
 
   ## drop_while
 
-  defp do_drop_while([h|t], fun) do
+  defp do_drop_while([h | t], fun) do
     if fun.(h) do
       do_drop_while(t, fun)
     else
-      [h|t]
+      [h | t]
     end
   end
 
@@ -2503,7 +2503,7 @@ defmodule Enum do
 
   ## find
 
-  defp do_find([h|t], default, fun) do
+  defp do_find([h | t], default, fun) do
     if fun.(h) do
       h
     else
@@ -2517,7 +2517,7 @@ defmodule Enum do
 
   ## find_index
 
-  defp do_find_index([h|t], counter, fun) do
+  defp do_find_index([h | t], counter, fun) do
     if fun.(h) do
       counter
     else
@@ -2531,7 +2531,7 @@ defmodule Enum do
 
   ## find_value
 
-  defp do_find_value([h|t], default, fun) do
+  defp do_find_value([h | t], default, fun) do
     fun.(h) || do_find_value(t, default, fun)
   end
 
@@ -2542,7 +2542,7 @@ defmodule Enum do
   ## shuffle
 
   defp unwrap([{_, h} | enumerable], t) do
-    unwrap(enumerable, [h|t])
+    unwrap(enumerable, [h | t])
   end
 
   defp unwrap([], t), do: t
@@ -2552,9 +2552,9 @@ defmodule Enum do
   defp sort_reducer(entry, {:split, y, x, r, rs, bool}, fun) do
     cond do
       fun.(y, entry) == bool ->
-        {:split, entry, y, [x|r], rs, bool}
+        {:split, entry, y, [x | r], rs, bool}
       fun.(x, entry) == bool ->
-        {:split, y, entry, [x|r], rs, bool}
+        {:split, y, entry, [x | r], rs, bool}
       r == [] ->
         {:split, y, x, [entry], rs, bool}
       true ->
@@ -2580,7 +2580,7 @@ defmodule Enum do
   end
 
   defp sort_reducer(entry, acc, _fun) do
-    [entry|acc]
+    [entry | acc]
   end
 
   defp sort_terminator({:split, y, x, r, rs, bool}, fun) do
@@ -2669,8 +2669,8 @@ defmodule Enum do
 
   ## split
 
-  defp do_split([h|t], counter, acc) when counter > 0 do
-    do_split(t, counter - 1, [h|acc])
+  defp do_split([h | t], counter, acc) when counter > 0 do
+    do_split(t, counter - 1, [h | acc])
   end
 
   defp do_split(list, 0, acc) do
@@ -2681,8 +2681,8 @@ defmodule Enum do
     {:lists.reverse(acc), []}
   end
 
-  defp do_split_reverse([h|t], counter, acc) when counter > 0 do
-    do_split_reverse(t, counter - 1, [h|acc])
+  defp do_split_reverse([h | t], counter, acc) when counter > 0 do
+    do_split_reverse(t, counter - 1, [h | acc])
   end
 
   defp do_split_reverse(list, 0, acc) do
@@ -2695,11 +2695,11 @@ defmodule Enum do
 
   ## split_while
 
-  defp do_split_while([h|t], fun, acc) do
+  defp do_split_while([h | t], fun, acc) do
     if fun.(h) do
-      do_split_while(t, fun, [h|acc])
+      do_split_while(t, fun, [h | acc])
     else
-      {:lists.reverse(acc), [h|t]}
+      {:lists.reverse(acc), [h | t]}
     end
   end
 
@@ -2709,8 +2709,8 @@ defmodule Enum do
 
   ## take
 
-  defp do_take([h|t], counter) when counter > 0 do
-    [h|do_take(t, counter - 1)]
+  defp do_take([h | t], counter) when counter > 0 do
+    [h | do_take(t, counter - 1)]
   end
 
   defp do_take(_list, 0) do
@@ -2723,9 +2723,9 @@ defmodule Enum do
 
   ## take_while
 
-  defp do_take_while([h|t], fun) do
+  defp do_take_while([h | t], fun) do
     if fun.(h) do
-      [h|do_take_while(t, fun)]
+      [h | do_take_while(t, fun)]
     else
       []
     end
@@ -2737,12 +2737,12 @@ defmodule Enum do
 
   ## uniq
 
-  defp do_uniq([h|t], acc, fun) do
+  defp do_uniq([h | t], acc, fun) do
     fun_h = fun.(h)
     if Map.has_key?(acc, fun_h) do
       do_uniq(t, acc, fun)
     else
-      [h|do_uniq(t, Map.put(acc, fun_h, true), fun)]
+      [h | do_uniq(t, Map.put(acc, fun_h, true), fun)]
     end
   end
 
@@ -2752,8 +2752,8 @@ defmodule Enum do
 
   ## zip
 
-  defp do_zip([h1|next1], [h2|next2]) do
-    [{h1, h2}|do_zip(next1, next2)]
+  defp do_zip([h1 | next1], [h2 | next2]) do
+    [{h1, h2} | do_zip(next1, next2)]
   end
 
   defp do_zip(_, []), do: []
@@ -2769,11 +2769,11 @@ defmodule Enum do
     []
   end
 
-  defp do_slice([h|t], 0, count) do
-    [h|do_slice(t, 0, count-1)]
+  defp do_slice([h | t], 0, count) do
+    [h | do_slice(t, 0, count-1)]
   end
 
-  defp do_slice([_|t], start, count) do
+  defp do_slice([_ | t], start, count) do
     do_slice(t, start-1, count)
   end
 end
@@ -2782,7 +2782,7 @@ defimpl Enumerable, for: List do
   def reduce(_,     {:halt, acc}, _fun),   do: {:halted, acc}
   def reduce(list,  {:suspend, acc}, fun), do: {:suspended, acc, &reduce(list, &1, fun)}
   def reduce([],    {:cont, acc}, _fun),   do: {:done, acc}
-  def reduce([h|t], {:cont, acc}, fun),    do: reduce(t, fun.(h, acc), fun)
+  def reduce([h | t], {:cont, acc}, fun),    do: reduce(t, fun.(h, acc), fun)
 
   def member?(_list, _value),
     do: {:error, __MODULE__}
@@ -2798,7 +2798,7 @@ defimpl Enumerable, for: Map do
   defp do_reduce(_,     {:halt, acc}, _fun),   do: {:halted, acc}
   defp do_reduce(list,  {:suspend, acc}, fun), do: {:suspended, acc, &do_reduce(list, &1, fun)}
   defp do_reduce([],    {:cont, acc}, _fun),   do: {:done, acc}
-  defp do_reduce([h|t], {:cont, acc}, fun),    do: do_reduce(t, fun.(h, acc), fun)
+  defp do_reduce([h | t], {:cont, acc}, fun),    do: do_reduce(t, fun.(h, acc), fun)
 
   def member?(map, {key, value}) do
     {:ok, match?({:ok, ^value}, :maps.find(key, map))}

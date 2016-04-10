@@ -196,7 +196,7 @@ defmodule Kernel.Typespec do
   def type_to_ast({{:record, record}, fields, args}) when is_atom(record) do
     fields = for field <- fields, do: typespec_to_ast(field)
     args = for arg <- args, do: typespec_to_ast(arg)
-    type = {:{}, [], [record|fields]}
+    type = {:{}, [], [record | fields]}
     quote do: unquote(record)(unquote_splicing(args)) :: unquote(type)
   end
 
@@ -439,7 +439,7 @@ defmodule Kernel.Typespec do
   defp translate_spec(kind, meta, name, args, return, guard, caller) when is_atom(args),
     do: translate_spec(kind, meta, name, [], return, guard, caller)
   defp translate_spec(:macrocallback, meta, name, args, return, guard, caller),
-    do: translate_spec(:callback, meta, :"MACRO-#{name}", [quote(do: env :: Macro.Env.t)|args], return, guard, caller)
+    do: translate_spec(:callback, meta, :"MACRO-#{name}", [quote(do: env :: Macro.Env.t) | args], return, guard, caller)
   defp translate_spec(kind, meta, name, args, return, guard, caller) do
     ensure_no_defaults!(args)
 
@@ -488,7 +488,7 @@ defmodule Kernel.Typespec do
       {name, type}, acc ->
         constraint = [{:atom, line, :is_subtype}, [{:var, line, name}, typespec(type, vars, caller)]]
         type = {:type, line, :constraint, constraint}
-        [type|acc]
+        [type | acc]
     end, [], guard) |> :lists.reverse
   end
 
@@ -795,7 +795,7 @@ defmodule Kernel.Typespec do
           end
         end, fields)
 
-        typespec({:{}, meta, [atom|types]}, vars, caller)
+        typespec({:{}, meta, [atom | types]}, vars, caller)
       _ ->
         compile_error(caller, "unknown record #{inspect atom}")
     end
@@ -827,7 +827,7 @@ defmodule Kernel.Typespec do
 
   # Handle type operator
   defp typespec({:::, meta, [var, expr]}, vars, caller) do
-    left  = typespec(var, [elem(var, 0)|vars], caller)
+    left  = typespec(var, [elem(var, 0) | vars], caller)
     right = typespec(expr, vars, caller)
     {:ann_type, line(meta), [left, right]}
   end
@@ -936,7 +936,7 @@ defmodule Kernel.Typespec do
   end
 
   defp typespec(list, vars, caller) when is_list(list) do
-    [h|t] = :lists.reverse(list)
+    [h | t] = :lists.reverse(list)
     union = :lists.foldl(fn(x, acc) ->
       {:|, [], [validate_kw(x, list, caller), acc]}
     end, validate_kw(h, list, caller), t)
@@ -958,7 +958,7 @@ defmodule Kernel.Typespec do
     {:remote_type, line(meta), [ remote, name, arguments ]}
   end
 
-  defp collect_union({:|, _, [a, b]}), do: [a|collect_union(b)]
+  defp collect_union({:|, _, [a, b]}), do: [a | collect_union(b)]
   defp collect_union(v), do: [v]
 
   defp validate_kw({key, _} = t, _, _caller) when is_atom(key), do: t
@@ -986,8 +986,8 @@ defmodule Kernel.Typespec do
     {:var, line(meta), name}
   end
 
-  defp unpack_typespec_kw([{:type, _, :tuple, [{:atom, _, atom}, type]}|t], acc) do
-    unpack_typespec_kw(t, [{atom, typespec_to_ast(type)}|acc])
+  defp unpack_typespec_kw([{:type, _, :tuple, [{:atom, _, atom}, type]} | t], acc) do
+    unpack_typespec_kw(t, [{atom, typespec_to_ast(type)} | acc])
   end
 
   defp unpack_typespec_kw([], acc) do

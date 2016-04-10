@@ -36,7 +36,7 @@ expand(Meta, Args, E) ->
     end,
 
   case ElseOpts of
-    [{Key, _}|_] ->
+    [{Key, _} | _] ->
       elixir_errors:compile_error(Meta, ?m(E, file),
         "unexpected keyword ~ts in with", [Key]);
     [] ->

@@ -154,14 +154,14 @@ defmodule Mix.Dep.Converger do
   # Now, since "d" was specified in a parent project, no
   # exception is going to be raised since d is considered
   # to be the authoritative source.
-  defp all([dep|t], acc, upper_breadths, current_breadths, callback, rest, lock, env, cache) do
+  defp all([dep | t], acc, upper_breadths, current_breadths, callback, rest, lock, env, cache) do
     cond do
       new_acc = diverged_deps(acc, upper_breadths, dep) ->
         all(t, new_acc, upper_breadths, current_breadths, callback, rest, lock, env, cache)
       Mix.Dep.Loader.skip?(dep, env) ->
         # We still keep skipped dependencies around to detect conflicts.
         # They must be rejected after every all iteration.
-        all(t, [dep|acc], upper_breadths, current_breadths, callback, rest, lock, env, cache)
+        all(t, [dep | acc], upper_breadths, current_breadths, callback, rest, lock, env, cache)
       true ->
         {dep, rest, lock} =
           case cache.(dep) do
@@ -177,7 +177,7 @@ defmodule Mix.Dep.Converger do
           end
 
         {acc, rest, lock} =
-          all(t, [dep|acc], upper_breadths, current_breadths, callback, rest, lock, env, cache)
+          all(t, [dep | acc], upper_breadths, current_breadths, callback, rest, lock, env, cache)
 
         deps = reject_non_fullfilled_optional(dep.deps, current_breadths)
         new_breadths = Enum.map(deps, &(&1.app)) ++ current_breadths

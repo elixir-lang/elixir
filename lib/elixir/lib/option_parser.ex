@@ -151,19 +151,19 @@ defmodule OptionParser do
 
       {:invalid, option, value, rest} ->
         # the option exist but it has wrong value
-        do_parse(rest, config, opts, args, [{option, value}|invalid], all?)
+        do_parse(rest, config, opts, args, [{option, value} | invalid], all?)
 
       {:undefined, option, _value, rest} ->
         # the option does not exist (for strict cases)
-        do_parse(rest, config, opts, args, [{option, nil}|invalid], all?)
+        do_parse(rest, config, opts, args, [{option, nil} | invalid], all?)
 
-      {:error, ["--"|rest]} ->
+      {:error, ["--" | rest]} ->
         {Enum.reverse(opts), Enum.reverse(args, rest), Enum.reverse(invalid)}
 
-      {:error, [arg|rest]=remaining_args} ->
+      {:error, [arg | rest]=remaining_args} ->
         # there is no option
         if all? do
-          do_parse(rest, config, opts, [arg|args], invalid, all?)
+          do_parse(rest, config, opts, [arg | args], invalid, all?)
         else
           {Enum.reverse(opts), Enum.reverse(args, remaining_args), Enum.reverse(invalid)}
         end
@@ -205,19 +205,19 @@ defmodule OptionParser do
     {:error, []}
   end
 
-  defp next(["--"|_]=argv, _aliases, _switches, _strict) do
+  defp next(["--" | _]=argv, _aliases, _switches, _strict) do
     {:error, argv}
   end
 
-  defp next(["-"|_]=argv, _aliases, _switches, _strict) do
+  defp next(["-" | _]=argv, _aliases, _switches, _strict) do
     {:error, argv}
   end
 
-  defp next(["- " <> _|_]=argv, _aliases, _switches, _strict) do
+  defp next(["- " <> _ | _]=argv, _aliases, _switches, _strict) do
     {:error, argv}
   end
 
-  defp next(["-" <> option|rest] = argv, aliases, switches, strict) do
+  defp next(["-" <> option | rest] = argv, aliases, switches, strict) do
     {option, value} = split_option(option)
     opt_name_bin = "-" <> option
     tagged = tag_option(option, switches, aliases)
@@ -305,7 +305,7 @@ defmodule OptionParser do
 
   # If we have space and we are outside of a quote, start new segment
   defp do_split(<<?\s, t::binary>>, buffer, acc, nil),
-    do: do_split(strip_leading_spaces(t), "", [buffer|acc], nil)
+    do: do_split(strip_leading_spaces(t), "", [buffer | acc], nil)
 
   # All other characters are moved to buffer
   defp do_split(<<h, t::binary>>, buffer, acc, quote) do
@@ -317,7 +317,7 @@ defmodule OptionParser do
     do: Enum.reverse(acc)
 
   defp do_split(<<>>, buffer, acc, nil),
-    do: Enum.reverse([buffer|acc])
+    do: Enum.reverse([buffer | acc])
 
   # Otherwise raise
   defp do_split(<<>>, _, _acc, marker) do
@@ -380,9 +380,9 @@ defmodule OptionParser do
   defp do_store_option(dict, option, value, kinds) do
     cond do
       :keep in kinds ->
-        [{option, value}|dict]
+        [{option, value} | dict]
       true ->
-        [{option, value}|Keyword.delete(dict, option)]
+        [{option, value} | Keyword.delete(dict, option)]
     end
   end
 
@@ -433,7 +433,7 @@ defmodule OptionParser do
       :boolean in kinds ->
         {true, kinds, t}
       value_in_tail?(t) ->
-        [h|t] = t
+        [h | t] = t
         {h, kinds, t}
       kinds == [] ->
         {nil_or_true, kinds, t}
@@ -446,9 +446,9 @@ defmodule OptionParser do
     {value, kinds, t}
   end
 
-  defp value_in_tail?(["-"|_]),         do: true
-  defp value_in_tail?(["- " <> _|_]),   do: true
-  defp value_in_tail?(["-" <> arg|_]),  do: negative_number?("-" <> arg)
+  defp value_in_tail?(["-" | _]),         do: true
+  defp value_in_tail?(["- " <> _ | _]),   do: true
+  defp value_in_tail?(["-" <> arg | _]),  do: negative_number?("-" <> arg)
   defp value_in_tail?([]),              do: false
   defp value_in_tail?(_),               do: true
 

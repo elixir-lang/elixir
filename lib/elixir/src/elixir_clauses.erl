@@ -51,17 +51,17 @@ guards(Guards, Extra, S) ->
   end.
 
 translate_guard(Guard, Extra, S) ->
-  [element(1, elixir_translator:translate(Guard, S))|Extra].
+  [element(1, elixir_translator:translate(Guard, S)) | Extra].
 
 extract_guards({'when', _, [Left, Right]}) -> {Left, extract_or_guards(Right)};
 extract_guards(Else) -> {Else, []}.
 
-extract_or_guards({'when', _, [Left, Right]}) -> [Left|extract_or_guards(Right)];
+extract_or_guards({'when', _, [Left, Right]}) -> [Left | extract_or_guards(Right)];
 extract_or_guards(Term) -> [Term].
 
 % Extract guards when multiple left side args are allowed.
 
-extract_splat_guards([{'when', _, [_, _|_] = Args}]) ->
+extract_splat_guards([{'when', _, [_, _ | _] = Args}]) ->
   {Left, Right} = elixir_utils:split_last(Args),
   {Left, extract_or_guards(Right)};
 extract_splat_guards(Else) ->
@@ -81,7 +81,7 @@ do_clauses(Meta, DecoupledClauses, S) ->
   % and storing variables defined inside each clause.
   Transformer = fun(X, {SAcc, VAcc}) ->
     {TX, TS} = each_clause(X, SAcc),
-    {TX, {elixir_scope:mergec(S, TS), [TS#elixir_scope.export_vars|VAcc]}}
+    {TX, {elixir_scope:mergec(S, TS), [TS#elixir_scope.export_vars | VAcc]}}
   end,
 
   {TClauses, {TS, ReverseCV}} =
@@ -104,14 +104,14 @@ do_clauses(Meta, DecoupledClauses, S) ->
   % that defines variables missing in one clause to the others.
   expand_clauses(?ann(Meta), TClauses, CV, FinalVars, [], FS).
 
-expand_clauses(Ann, [Clause|T], [ClauseVars|V], FinalVars, Acc, S) ->
+expand_clauses(Ann, [Clause | T], [ClauseVars | V], FinalVars, Acc, S) ->
   case generate_match_vars(FinalVars, ClauseVars, [], []) of
     {[], []} ->
-      expand_clauses(Ann, T, V, FinalVars, [Clause|Acc], S);
+      expand_clauses(Ann, T, V, FinalVars, [Clause | Acc], S);
     {Left, Right} ->
       MatchExpr   = generate_match(Ann, Left, Right),
       ClauseExprs = element(5, Clause),
-      [Final|RawClauseExprs] = lists:reverse(ClauseExprs),
+      [Final | RawClauseExprs] = lists:reverse(ClauseExprs),
 
       % If the last sentence has a match clause, we need to assign its value
       % in the variable list. If not, we insert the variable list before the
@@ -120,19 +120,19 @@ expand_clauses(Ann, [Clause|T], [ClauseVars|V], FinalVars, Acc, S) ->
         true ->
           case Final of
             {match, _, {var, _, UserVarName} = UserVar, _} when UserVarName /= '_' ->
-              {[UserVar, MatchExpr, Final|RawClauseExprs], S};
+              {[UserVar, MatchExpr, Final | RawClauseExprs], S};
             _ ->
               {VarName, _, SS} = elixir_scope:build_var('_', S),
               StorageVar  = {var, Ann, VarName},
               StorageExpr = {match, Ann, StorageVar, Final},
-              {[StorageVar, MatchExpr, StorageExpr|RawClauseExprs], SS}
+              {[StorageVar, MatchExpr, StorageExpr | RawClauseExprs], SS}
           end;
         false ->
-          {[Final, MatchExpr|RawClauseExprs], S}
+          {[Final, MatchExpr | RawClauseExprs], S}
       end,
 
       FinalClause = setelement(5, Clause, lists:reverse(FinalClauseExprs)),
-      expand_clauses(Ann, T, V, FinalVars, [FinalClause|Acc], FS)
+      expand_clauses(Ann, T, V, FinalVars, [FinalClause | Acc], FS)
   end;
 
 expand_clauses(_Ann, [], [], _FinalVars, Acc, S) ->
@@ -198,17 +198,17 @@ normalize_vars(Key, {Ref, Counter, _Safe},
 % Generate match vars by checking if they were updated
 % or not and assigning the previous value.
 
-generate_match_vars([{Key, Value, Expr}|T], ClauseVars, Left, Right) ->
+generate_match_vars([{Key, Value, Expr} | T], ClauseVars, Left, Right) ->
   case maps:find(Key, ClauseVars) of
     {ok, Value} ->
       generate_match_vars(T, ClauseVars, Left, Right);
     {ok, Clause} ->
       generate_match_vars(T, ClauseVars,
-        [{var, 0, element(1, Value)}|Left],
-        [{var, 0, element(1, Clause)}|Right]);
+        [{var, 0, element(1, Value)} | Left],
+        [{var, 0, element(1, Clause)} | Right]);
     error ->
       generate_match_vars(T, ClauseVars,
-        [{var, 0, element(1, Value)}|Left], [Expr|Right])
+        [{var, 0, element(1, Value)} | Left], [Expr | Right])
   end;
 
 generate_match_vars([], _ClauseVars, Left, Right) ->

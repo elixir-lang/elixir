@@ -25,38 +25,38 @@ defmodule EEx.Compiler do
 
   # Generates the buffers by handling each expression from the tokenizer
 
-  defp generate_buffer([{:text, chars}|t], buffer, scope, state) do
+  defp generate_buffer([{:text, chars} | t], buffer, scope, state) do
     buffer = state.engine.handle_text(buffer, IO.chardata_to_string(chars))
     generate_buffer(t, buffer, scope, state)
   end
 
-  defp generate_buffer([{:expr, line, mark, chars}|t], buffer, scope, state) do
+  defp generate_buffer([{:expr, line, mark, chars} | t], buffer, scope, state) do
     expr = Code.string_to_quoted!(chars, [line: line, file: state.file])
     buffer = state.engine.handle_expr(buffer, IO.chardata_to_string(mark), expr)
     generate_buffer(t, buffer, scope, state)
   end
 
-  defp generate_buffer([{:start_expr, start_line, mark, chars}|t], buffer, scope, state) do
+  defp generate_buffer([{:start_expr, start_line, mark, chars} | t], buffer, scope, state) do
     {contents, line, t} = look_ahead_text(t, start_line, chars)
-    {contents, t} = generate_buffer(t, "", [contents|scope],
+    {contents, t} = generate_buffer(t, "", [contents | scope],
                                     %{state | quoted: [], line: line, start_line: start_line})
     buffer = state.engine.handle_expr(buffer, IO.chardata_to_string(mark), contents)
     generate_buffer(t, buffer, scope, state)
   end
 
-  defp generate_buffer([{:middle_expr, line, _, chars}|t], buffer, [current|scope], state) do
+  defp generate_buffer([{:middle_expr, line, _, chars} | t], buffer, [current | scope], state) do
     {wrapped, state} = wrap_expr(current, line, buffer, chars, state)
-    generate_buffer(t, "", [wrapped|scope], %{state | line: line})
+    generate_buffer(t, "", [wrapped | scope], %{state | line: line})
   end
 
-  defp generate_buffer([{:end_expr, line, _, chars}|t], buffer, [current|_], state) do
+  defp generate_buffer([{:end_expr, line, _, chars} | t], buffer, [current | _], state) do
     {wrapped, state} = wrap_expr(current, line, buffer, chars, state)
     tuples = Code.string_to_quoted!(wrapped, [line: state.start_line, file: state.file])
     buffer = insert_quoted(tuples, state.quoted)
     {buffer, t}
   end
 
-  defp generate_buffer([{:end_expr, line, _, chars}|_], _buffer, [], state) do
+  defp generate_buffer([{:end_expr, line, _, chars} | _], _buffer, [], state) do
     raise EEx.SyntaxError, message: "unexpected token #{inspect chars}", file: state.file, line: line
   end
 
@@ -76,12 +76,12 @@ defmodule EEx.Compiler do
     key = length(state.quoted)
     placeholder = '__EEX__(' ++ Integer.to_char_list(key) ++ ');'
     {current ++ placeholder ++ new_lines ++ chars,
-     %{state | quoted: [{key, buffer}|state.quoted]}}
+     %{state | quoted: [{key, buffer} | state.quoted]}}
   end
 
   # Look text ahead on expressions
 
-  defp look_ahead_text([{:text, text}, {:middle_expr, line, _, chars}|t]=list, start, contents) do
+  defp look_ahead_text([{:text, text}, {:middle_expr, line, _, chars} | t]=list, start, contents) do
     if only_spaces?(text) do
       {contents ++ text ++ chars, line, t}
     else

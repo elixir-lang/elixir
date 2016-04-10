@@ -10,7 +10,7 @@ defmodule ExceptionTest do
       try do
         raise "a"
       rescue _ ->
-        [top|_] = System.stacktrace
+        [top | _] = System.stacktrace
         top
       end
     file = __ENV__.file |> Path.relative_to_cwd |> String.to_char_list

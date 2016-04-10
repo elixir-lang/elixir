@@ -8,10 +8,10 @@ defmodule Kernel.Utils do
 
   defp destructure_list(_, 0), do: []
   defp destructure_list([], count), do: destructure_nil(count)
-  defp destructure_list([h|t], count), do: [h|destructure_list(t, count - 1)]
+  defp destructure_list([h | t], count), do: [h | destructure_list(t, count - 1)]
 
   defp destructure_nil(0), do: []
-  defp destructure_nil(count), do: [nil|destructure_nil(count - 1)]
+  defp destructure_nil(count), do: [nil | destructure_nil(count - 1)]
 
   def defdelegate(fun, opts) do
     append_first = Keyword.get(opts, :append_first, false)
@@ -41,16 +41,16 @@ defmodule Kernel.Utils do
 
   defp normalize_args(raw_args) do
     :lists.foldr(fn
-      ({:\\, _, [arg, default_arg]}, [as_args|_] = as_args_list) ->
-        new_as_args = [default_arg|as_args]
-        [new_as_args|add_arg(as_args_list, arg)]
+      ({:\\, _, [arg, default_arg]}, [as_args | _] = as_args_list) ->
+        new_as_args = [default_arg | as_args]
+        [new_as_args | add_arg(as_args_list, arg)]
       (arg, as_args_list) ->
         add_arg(as_args_list, arg)
     end, [[]], raw_args)
   end
 
   defp add_arg(as_args_list, {name, _, mod} = arg) when is_atom(name) and is_atom(mod),
-    do: :lists.map(&([arg|&1]), as_args_list)
+    do: :lists.map(&([arg | &1]), as_args_list)
   defp add_arg(_, code) do
     raise ArgumentError,
       "defdelegate/2 only accepts function parameters, got: #{Macro.to_string(code)}"

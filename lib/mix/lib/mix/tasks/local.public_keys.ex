@@ -38,7 +38,7 @@ defmodule Mix.Tasks.Local.PublicKeys do
 
     case argv do
       []       -> show(opts)
-      [path|_] -> install(path, opts)
+      [path | _] -> install(path, opts)
     end
   end
 

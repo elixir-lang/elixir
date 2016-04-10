@@ -172,7 +172,7 @@ defmodule String.Unicode do
   end
 
   defp do_graphemes({size, rest}, binary) do
-    [:binary.part(binary, 0, size)|do_graphemes(next_grapheme_size(rest), rest)]
+    [:binary.part(binary, 0, size) | do_graphemes(next_grapheme_size(rest), rest)]
   end
 
   defp do_graphemes(nil, _) do
@@ -227,7 +227,7 @@ defmodule String.Unicode do
   end
 
   defp do_codepoints({c, rest}) do
-    [c|do_codepoints(next_codepoint(rest))]
+    [c | do_codepoints(next_codepoint(rest))]
   end
 
   defp do_codepoints(nil) do
@@ -266,7 +266,7 @@ data_path = Path.join(__DIR__, "UnicodeData.txt")
 
     wacc =
       case decomposition do
-        "<noBreak>" <> _ -> [to_binary.(codepoint)|wacc]
+        "<noBreak>" <> _ -> [to_binary.(codepoint) | wacc]
         _ -> wacc
       end
 
@@ -448,7 +448,7 @@ defmodule String.Break do
   @compile {:inline, add_buffer_to_acc: 2}
 
   defp add_buffer_to_acc("", acc),     do: acc
-  defp add_buffer_to_acc(buffer, acc), do: [buffer|acc]
+  defp add_buffer_to_acc(buffer, acc), do: [buffer | acc]
 
   # Decompose
 
@@ -538,7 +538,7 @@ defmodule String.Normalizer do
   defp canonical_order(<<h::utf8, t::binary>>, acc) do
     case combining_class(h) do
       0 -> canonical_order(acc) <> canonical_order(t, [{h, 0}])
-      n -> canonical_order(t, [{h, n}|acc])
+      n -> canonical_order(t, [{h, n} | acc])
     end
   end
   defp canonical_order(<<>>, acc) do

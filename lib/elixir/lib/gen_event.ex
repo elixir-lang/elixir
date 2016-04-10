@@ -29,7 +29,7 @@ defmodule GenEvent do
         # Callbacks
 
         def handle_event({:log, x}, messages) do
-          {:ok, [x|messages]}
+          {:ok, [x | messages]}
         end
 
         def handle_call(:messages, messages) do
@@ -899,13 +899,13 @@ defmodule GenEvent do
     {hib, server_collect_process_handlers(mode, event, streams, handlers, name)}
   end
 
-  defp server_split_process_handlers(mode, event, [handler|t], handlers, streams) do
+  defp server_split_process_handlers(mode, event, [handler | t], handlers, streams) do
     case handler(handler, :id) do
       {pid, _ref} when is_pid(pid) ->
         server_process_notify(mode, event, handler)
-        server_split_process_handlers(mode, event, t, handlers, [handler|streams])
+        server_split_process_handlers(mode, event, t, handlers, [handler | streams])
       _ ->
-        server_split_process_handlers(mode, event, t, [handler|handlers], streams)
+        server_split_process_handlers(mode, event, t, [handler | handlers], streams)
     end
   end
 
@@ -921,10 +921,10 @@ defmodule GenEvent do
   defp mode_to_tag(:sync),  do: :sync_notify
   defp mode_to_tag(:async), do: :notify
 
-  defp server_notify(event, fun, [handler|t], name, handlers, acc, hib) do
+  defp server_notify(event, fun, [handler | t], name, handlers, acc, hib) do
     case server_update(handler, fun, event, name, handlers) do
       {new_hib, handler} ->
-        server_notify(event, fun, t, name, handlers, [handler|acc], hib or new_hib)
+        server_notify(event, fun, t, name, handlers, [handler | acc], hib or new_hib)
       :error ->
         server_notify(event, fun, t, name, handlers, acc, hib)
     end
@@ -958,16 +958,16 @@ defmodule GenEvent do
     end
   end
 
-  defp server_collect_process_handlers(:async, event, [handler|t], handlers, name) do
-    server_collect_process_handlers(:async, event, t, [handler|handlers], name)
+  defp server_collect_process_handlers(:async, event, [handler | t], handlers, name) do
+    server_collect_process_handlers(:async, event, t, [handler | handlers], name)
   end
 
-  defp server_collect_process_handlers(mode, event, [handler|t], handlers, name) when mode in [:sync, :ack] do
+  defp server_collect_process_handlers(mode, event, [handler | t], handlers, name) when mode in [:sync, :ack] do
     handler(ref: ref, id: id) = handler
 
     receive do
       {^ref, :ok} ->
-        server_collect_process_handlers(mode, event, t, [handler|handlers], name)
+        server_collect_process_handlers(mode, event, t, [handler | handlers], name)
       {_from, tag, {:delete_handler, ^id, args}} ->
         do_terminate(handler, args, :remove, name, :normal)
         reply(tag, :ok)
@@ -1057,9 +1057,9 @@ defmodule GenEvent do
           {:ok, res} ->
             case res do
               {:ok, state} ->
-                {false, succ, [handler(handler, state: state)|handlers]}
+                {false, succ, [handler(handler, state: state) | handlers]}
               {:ok, state, :hibernate} ->
-                {true, succ, [handler(handler, state: state)|handlers]}
+                {true, succ, [handler(handler, state: state) | handlers]}
               {:error, _} = error ->
                 {false, error, handlers}
               other ->
@@ -1122,7 +1122,7 @@ defmodule GenEvent do
   defp report_error(handler, reason, state, last_in, name) do
     reason =
       case reason do
-        {:undef, [{m, f, a, _}|_]=mfas} ->
+        {:undef, [{m, f, a, _} | _]=mfas} ->
           cond do
             :code.is_loaded(m) === false ->
               {:"module could not be loaded", mfas}

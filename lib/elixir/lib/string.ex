@@ -353,7 +353,7 @@ defmodule String do
   defp split_each(string, _pattern, _trim, 1) when is_binary(string), do: [string]
   defp split_each(string, pattern, trim, count) do
     case do_splitter(string, pattern, trim) do
-      {h, t} -> [h|split_each(t, pattern, trim, count - 1)]
+      {h, t} -> [h | split_each(t, pattern, trim, count - 1)]
       nil    -> []
     end
   end
@@ -977,7 +977,7 @@ defmodule String do
   end
 
   defp do_reverse({grapheme, rest}, acc) do
-    do_reverse(next_grapheme(rest), [grapheme|acc])
+    do_reverse(next_grapheme(rest), [grapheme | acc])
   end
 
   defp do_reverse(nil, acc), do: IO.iodata_to_binary(acc)
@@ -1144,7 +1144,7 @@ defmodule String do
   defp do_chunk(string, acc, chunk, flag, pred_fn) do
     {cp, rest} = next_codepoint(string)
     if pred_fn.(cp) != flag do
-      do_chunk(rest, [chunk|acc], cp, not flag, pred_fn)
+      do_chunk(rest, [chunk | acc], cp, not flag, pred_fn)
     else
       do_chunk(rest, acc, chunk <> cp, flag, pred_fn)
     end
@@ -1471,7 +1471,7 @@ defmodule String do
   defp add_if_negative(value, _to_add), do: value
 
   defp do_acc_bytes({size, rest}, bytes, length) do
-    do_acc_bytes(next_grapheme_size(rest), [size|bytes], length + 1)
+    do_acc_bytes(next_grapheme_size(rest), [size | bytes], length + 1)
   end
 
   defp do_acc_bytes(nil, bytes, length) do

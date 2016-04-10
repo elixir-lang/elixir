@@ -92,22 +92,22 @@ defmodule Mix.Rebar do
 
   defp do_tuple_merge(old, []),
     do: old
-  defp do_tuple_merge(olds, [new|news]),
+  defp do_tuple_merge(olds, [new | news]),
     do: do_tuple_umerge_dedup(umerge(:new, olds, [], news, new), [])
 
   defp umerge(_, [], [], acc, current),
-    do: [current|acc]
+    do: [current | acc]
   defp umerge(:new, [], news, acc, current),
-    do: Enum.reverse(news, [current|acc])
+    do: Enum.reverse(news, [current | acc])
   defp umerge(:old, olds, [], acc, current),
-    do: Enum.reverse(olds, [current|acc])
-  defp umerge(:new, [old|olds], news, acc, current) do
+    do: Enum.reverse(olds, [current | acc])
+  defp umerge(:new, [old | olds], news, acc, current) do
     {dir, merged, new_current} = compare({:new, current}, {:old, old})
-    umerge(dir, olds, news, [merged|acc], new_current)
+    umerge(dir, olds, news, [merged | acc], new_current)
   end
-  defp umerge(:old, olds, [new|news], acc, current) do
+  defp umerge(:old, olds, [new | news], acc, current) do
     {dir, merged, new_current} = compare({:new, new}, {:old, current})
-    umerge(dir, olds, news, [merged|acc], new_current)
+    umerge(dir, olds, news, [merged | acc], new_current)
   end
 
   defp compare({priority, a}, {secondary, b}) when is_tuple(a) and is_tuple(b) do
@@ -144,11 +144,11 @@ defmodule Mix.Rebar do
   end
 
   defp do_tuple_umerge_dedup([], acc), do: acc
-  defp do_tuple_umerge_dedup([h|t], acc) do
+  defp do_tuple_umerge_dedup([h | t], acc) do
     if h in t do
       do_tuple_umerge_dedup(t, acc)
     else
-      do_tuple_umerge_dedup(t, [h|acc])
+      do_tuple_umerge_dedup(t, [h | acc])
     end
   end
 
@@ -199,7 +199,7 @@ defmodule Mix.Rebar do
       |> Enum.map(&recur(&1, fun))
       |> Enum.concat
 
-    [fun.(config)|subs]
+    [fun.(config) | subs]
   end
 
   defp parse_dep(app) when is_atom(app) do
@@ -223,11 +223,11 @@ defmodule Mix.Rebar do
 
     ref =
       case source do
-        [""|_]                -> [branch: "HEAD"]
-        [{:branch, branch}|_] -> [branch: to_string(branch)]
-        [{:tag, tag}|_]       -> [tag: to_string(tag)]
-        [{:ref, ref}|_]       -> [ref: to_string(ref)]
-        [ref|_]               -> [ref: to_string(ref)]
+        ["" | _]                -> [branch: "HEAD"]
+        [{:branch, branch} | _] -> [branch: to_string(branch)]
+        [{:tag, tag} | _]       -> [tag: to_string(tag)]
+        [{:ref, ref} | _]       -> [ref: to_string(ref)]
+        [ref | _]               -> [ref: to_string(ref)]
         _                     -> []
       end
 

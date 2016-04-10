@@ -25,7 +25,7 @@ clause(_Meta, _Kind, Fun, {'->', Meta, [Left, Right]}, #{export_vars := ExportVa
 clause(Meta, Kind, _Fun, _, E) ->
   compile_error(Meta, ?m(E, file), "expected -> clauses in ~ts", [Kind]).
 
-head([{'when', Meta, [_, _|_] = All}], E) ->
+head([{'when', Meta, [_, _ | _] = All}], E) ->
   {Args, Guard} = elixir_utils:split_last(All),
   {EArgs, EA}   = match(fun elixir_exp:expand_args/2, Args, E),
   {EGuard, EG}  = guard(Guard, EA#{context := guard}),

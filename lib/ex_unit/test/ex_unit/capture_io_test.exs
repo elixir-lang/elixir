@@ -12,7 +12,7 @@ defmodule ExUnit.CaptureIOTest do
       case Enum.split_while(chars, fn(c) -> c != stop_char end) do
         {l, []} ->
           {:more, this_far ++ l}
-        {l, [stop_char|rest]} ->
+        {l, [stop_char | rest]} ->
           {:done, this_far ++ l ++ [stop_char], rest}
       end
     end
