@@ -194,7 +194,7 @@ defmodule ExUnit.Formatter do
   defp format_label(:note, _formatter), do: ""
 
   defp format_label(label, formatter) do
-    formatter.(:error_info, String.ljust("#{label}:", byte_size(@label_padding)))
+    formatter.(:extra_info, String.ljust("#{label}:", byte_size(@label_padding)))
   end
 
   defp format_banner(value, formatter) do
