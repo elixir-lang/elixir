@@ -50,8 +50,8 @@ defmodule Difference do
   end
 
   test "tuples" do
-    tuple1 = {:yes, 'ject', []}
-    tuple2 = {:yes, 'lter', []}
+    tuple1 = {:hex, "0.1", [{:ex_doc}]}
+    tuple2 = {:hex, "1.1"}
     assert tuple1 == tuple2
   end
 
