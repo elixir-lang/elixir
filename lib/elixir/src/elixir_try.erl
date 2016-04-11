@@ -23,8 +23,8 @@ each_clause({'catch', Meta, Raw, Expr}, S) ->
 
   Condition = [{'{}', Meta, Final}],
   {TC, TS} = elixir_clauses:clause(Meta, fun elixir_translator:translate_args/2,
-                                   Condition, Expr, Guards, S#elixir_scope{extra=nil}),
-  {[TC], TS#elixir_scope{extra=S#elixir_scope.extra}};
+                                   Condition, Expr, Guards, S),
+  {[TC], TS};
 
 each_clause({rescue, Meta, [{in, _, [Left, Right]}], Expr}, S) ->
   {VarName, _, CS} = elixir_scope:build_var('_', S),
@@ -57,11 +57,10 @@ each_clause({Key, Meta, _, _}, S) ->
 build_rescue(Meta, Parts, Body, S) ->
   Matches = [Match || {Match, _} <- Parts],
 
-  {{clause, Line, TMatches, _, TBody}, TSTmp} =
+  {{clause, Line, TMatches, _, TBody}, TS} =
     elixir_clauses:clause(Meta, fun elixir_translator:translate_args/2,
-                          Matches, Body, [], S#elixir_scope{extra=nil}),
+                          Matches, Body, [], S),
 
-  TS = TSTmp#elixir_scope{extra=S#elixir_scope.extra},
   TClauses =
     [begin
       TArgs   = [{tuple, Line, [{atom, Line, error}, TMatch, {var, Line, '_'}]}],

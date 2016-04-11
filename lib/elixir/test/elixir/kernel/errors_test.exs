@@ -318,11 +318,11 @@ defmodule Kernel.ErrorsTest do
 
   test "unbound map key var" do
     assert_compile_fail CompileError,
-      ~r"nofile:1: illegal use of variable x as map key inside match,",
+      ~r"nofile:1: illegal use of variable x inside map key match,",
       '%{x => 1} = %{}'
 
     assert_compile_fail CompileError,
-      ~r"nofile:1: illegal use of variable x as map key inside match,",
+      ~r"nofile:1: illegal use of variable x inside map key match,",
       '%{x = 1 => 1}'
   end
 

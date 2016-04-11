@@ -36,6 +36,7 @@ defmodule MapTest do
     assert %{(try do raise "error" rescue _ -> 1 end) => 1} == %{1 => 1}
     assert %{(try do throw 1 catch x -> x end) => 1} == %{1 => 1}
     assert %{(try do a = 1; a rescue _ -> 2 end) => 1} == %{1 => 1}
+    assert %{(try do 1 else a -> a end) => 1} == %{1 => 1}
   end
 
   test "is_map/1" do
