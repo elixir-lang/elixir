@@ -149,6 +149,7 @@ defmodule Kernel.CLI do
     if function_exported?(IEx, :started?, 0) and IEx.started? do
       IO.puts "IEx " <> System.build_info[:build]
     else
+      IO.puts :erlang.system_info(:system_version)
       IO.puts "Elixir " <> System.build_info[:build]
     end
 
