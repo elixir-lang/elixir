@@ -98,22 +98,23 @@ translate({'case', Meta, [Expr, KV]}, S) ->
 %% Try
 
 translate({'try', Meta, [Clauses]}, S) ->
+  SN = S#elixir_scope{extra=nil},
   Do = proplists:get_value('do', Clauses, nil),
-  {TDo, SB} = elixir_translator:translate(Do, S#elixir_scope{extra=nil}),
+  {TDo, SB} = elixir_translator:translate(Do, SN),
 
   Catch = [Tuple || {X, _} = Tuple <- Clauses, X == 'rescue' orelse X == 'catch'],
-  {TCatch, SC} = elixir_try:clauses(Meta, Catch, mergec(S, SB)),
+  {TCatch, SC} = elixir_try:clauses(Meta, Catch, mergec(SN, SB)),
 
   case lists:keyfind('after', 1, Clauses) of
     {'after', After} ->
-      {TBlock, SA} = translate(After, mergec(S, SC)),
+      {TBlock, SA} = translate(After, mergec(SN, SC)),
       TAfter = unblock(TBlock);
     false ->
-      {TAfter, SA} = {[], mergec(S, SC)}
+      {TAfter, SA} = {[], mergec(SN, SC)}
   end,
 
   Else = elixir_clauses:get_pairs(else, Clauses, match),
-  {TElse, SE} = elixir_clauses:clauses(Meta, Else, mergec(S, SA)),
+  {TElse, SE} = elixir_clauses:clauses(Meta, Else, mergec(SN, SA)),
   {{'try', ?ann(Meta), unblock(TDo), TElse, TCatch, TAfter}, mergec(S, SE)};
 
 %% Receive
@@ -188,7 +189,7 @@ translate({'^', Meta, [{Name, VarMeta, Kind}]}, #elixir_scope{context=match, fil
   end;
 
 translate({Name, Meta, Kind}, #elixir_scope{extra=map_key, context=match} = S) when is_atom(Name), is_atom(Kind) ->
-  Message = "illegal use of variable ~ts as map key inside match, "
+  Message = "illegal use of variable ~ts inside map key match, "
             "maps can only match on existing variable by using ^~ts",
   compile_error(Meta, S#elixir_scope.file, Message, [Name, Name]);
 
