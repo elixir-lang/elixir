@@ -28,6 +28,16 @@ defmodule MapTest do
     assert a == 1
   end
 
+  test "maps with generated variables in key" do
+    assert %{"#{1}" => 1} == %{"1" => 1}
+    assert %{(for x <- 1..3, do: x) => 1} == %{[1, 2, 3] => 1}
+    assert %{(with x = 1, do: x) => 1} == %{1 => 1}
+    assert %{(with {:ok, x} <- {:ok, 1}, do: x) => 1} == %{1 => 1}
+    assert %{(try do raise "error" rescue _ -> 1 end) => 1} == %{1 => 1}
+    assert %{(try do throw 1 catch x -> x end) => 1} == %{1 => 1}
+    assert %{(try do a = 1; a rescue _ -> 2 end) => 1} == %{1 => 1}
+  end
+
   test "is_map/1" do
     assert is_map(Map.new)
     refute is_map(Enum.to_list(%{}))

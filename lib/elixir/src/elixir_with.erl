@@ -72,7 +72,7 @@ translate(Meta, Args, S) ->
       [] ->
         build_cases(Parts, Expr, fun(X) -> X end)
     end,
-  {TC, TS} = elixir_translator:translate(CaseExpr, S),
+  {TC, TS} = elixir_translator:translate(CaseExpr, S#elixir_scope{extra=nil}),
   {TC, elixir_scope:mergec(S, TS)}.
 
 build_cases([{'<-', Meta, [Left, Right]} | Rest], DoExpr, Wrapper) ->
