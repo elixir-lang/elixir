@@ -92,7 +92,7 @@ defmodule Mix.CLITest do
   test "--version smoke test", context do
     in_tmp context.test, fn ->
       output = mix ~w[--version]
-      assert output =~ ~r/Mix [0-9\.a-z]+/
+      assert output =~ ~r{Erlang/OTP \d+ .+\n\nMix [0-9\.a-z]+}
     end
   end
 
