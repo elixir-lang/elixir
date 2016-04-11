@@ -50,6 +50,10 @@ defmodule GenServerTest do
     assert GenServer.cast(:foo, {:push, :world}) == :ok
   end
 
+  test "call/3 exit messages" do
+    assert catch_exit(GenServer.call(self, :pop, 5000)) == {:calling_self, {GenServer, :call, [self, :pop, 5000]}}
+  end
+
   test "nil name" do
     {:ok, pid} = GenServer.start_link(Stack, [:hello], name: nil)
     assert Process.info(pid, :registered_name) == {:registered_name, []}
