@@ -565,7 +565,13 @@ defmodule GenServer do
   that are two-element tuples with a reference as the first element.
   """
   @spec call(server, term, timeout) :: term
-  def call(server, request, timeout \\ 5000) do
+  def call(server, request, timeout \\ 5000)
+
+  def call(server, request, timeout) when server == self() do
+    exit({:calling_self, {__MODULE__, :call, [server, request, timeout]}})
+  end
+
+  def call(server, request, timeout) do
     try do
       :gen.call(server, :"$gen_call", request, timeout)
     catch
