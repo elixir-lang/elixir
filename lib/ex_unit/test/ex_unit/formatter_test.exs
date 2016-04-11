@@ -8,14 +8,6 @@ defmodule ExUnit.FormatterTest do
 
   def falsy(), do: false
 
-  defp formatter(:diff_insert, message) do
-    "[" <> message <> "]"
-  end
-
-  defp formatter(:diff_delete, message) do
-    "{" <> message <> "}"
-  end
-
   defp formatter(_kind, message), do: message
 
   defmacrop catch_assertion(expr) do
@@ -244,68 +236,5 @@ defmodule ExUnit.FormatterTest do
          test/ex_unit/formatter_test.exs:1
          ** (ExUnit.FormatterTest.BadMessage) #{message}
     """
-  end
-
-  defmodule User do
-    defstruct [:age]
-  end
-
-  test "difference formatting" do
-    int1 = 491512235
-    int2 = 490512035
-    assert format_diff(int1, int2, &formatter/2) == "49{1}[0]512{2}[0]35 {(off by -1000200)}"
-    assert format_diff(42.0, 43.0, &formatter/2) == "4{2}[3].0 [(off by +1.0)]"
-
-    string1 = "fox hops over \"the dog"
-    string2 = "fox jumps over the lazy cat"
-    expected = ~S<"fox {ho}[jum]ps over {\"}the {dog}[lazy cat]">
-    assert format_diff(string1, string2, &formatter/2) == expected
-
-    list1 = ["One", :ok, nil, {}, :ok]
-    list2 = ["Two", :ok, 0.0, {true}]
-    expected = ~S<["{One}[Two]", :ok, {nil}[0.0], {[true]}, {:ok}]>
-    assert format_diff(list1, list2, &formatter/2) == expected
-
-    keyword_list1 = [file: "nofile", line: 12]
-    keyword_list2 = [file: nil, llne: 10]
-    expected = ~S<[file: {"nofile"}[nil], l{i}[l]ne: 1{2}[0] {(off by -2)}]>
-    assert format_diff(keyword_list1, keyword_list2, &formatter/2) == expected
-
-    char_list1 = 'fox hops over \'the dog'
-    char_list2 = 'fox jumps over the lazy cat'
-    expected = "'fox {ho}[jum]ps over {\\'}the {dog}[lazy cat]'"
-    assert format_diff(char_list1, char_list2, &formatter/2) == expected
-
-    tuple1 = {:hex, '1.1'}
-    tuple2 = {:hex, '0.1', [{:ex_doc}]}
-    expected = "{:hex, '{1}[0].1', [[{:ex_doc}]]}"
-    assert format_diff(tuple1, tuple2, &formatter/2) == expected
-    assert format_diff(tuple1, {}, &formatter/2) == "{{:hex}, {'1.1'}}"
-    assert format_diff({}, tuple1, &formatter/2) == "{[:hex], ['1.1']}"
-
-    map1 = Enum.into(1..40, %{}, &{&1, &1}) |> Map.delete(33)
-    map2 = Enum.reduce(5..10, map1, &Map.delete(&2, &1)) |> Map.put(33, 33) |> Map.put(23, 32)
-    expected = "%{23 => {2}3[2] [(off by +9)], {8 => 8}, {7 => 7}, {6 => 6}, {10 => 10}, {9 => 9}, {5 => 5}, [33 => 33], ...}"
-    assert format_diff(map1, map2, &formatter/2) == expected
-
-    map1 = %{baz: 12}
-    map2 = %{foo: 12, bar: 12, baz: 12}
-    assert format_diff(map1, map2, &formatter/2) == "%{[bar: 12], [foo: 12], ...}"
-    assert format_diff(map2, map1, &formatter/2) == "%{{bar: 12}, {foo: 12}, ...}"
-    assert format_diff(map1, %{}, &formatter/2) == "%{{baz: 12}}"
-    assert format_diff(%{}, map1, &formatter/2) == "%{[baz: 12]}"
-
-    user1 = %User{age: 16}
-    user2 = %User{age: 21}
-    assert format_diff(user1, user2, &formatter/2) == "%ExUnit.FormatterTest.User{age: [2]1{6} [(off by +5)]}"
-    assert format_diff(%User{}, %{}, &formatter/2) == nil
-    assert format_diff(%User{}, %ExUnit.Test{}, &formatter/2) == nil
-
-    bin1 = <<147, 1, 2, 31>>
-    bin2 = <<193, 1, 31>>
-    assert format_diff(bin1, bin2, &formatter/2) == nil
-
-    assert format_diff(:foo, :bar, &formatter/2) == nil
-    assert format_diff(12, "foo", &formatter/2) == nil
   end
 end
