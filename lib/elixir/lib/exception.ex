@@ -230,7 +230,7 @@ defmodule Exception do
     "shutdown: #{inspect(reason)}"
   end
 
-  defp format_exit_reason(:calling_self), do: "calling self"
+  defp format_exit_reason(:calling_self), do: "process attempted to call itself"
   defp format_exit_reason(:timeout), do: "time out"
   defp format_exit_reason(:killed), do: "killed"
   defp format_exit_reason(:noconnection), do: "no connection"

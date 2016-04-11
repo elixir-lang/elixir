@@ -146,7 +146,7 @@ defmodule ExceptionTest do
     assert Exception.format_exit(:killed) == "killed"
     assert Exception.format_exit(:normal) == "normal"
     assert Exception.format_exit(:shutdown) == "shutdown"
-    assert Exception.format_exit(:calling_self) == "calling self"
+    assert Exception.format_exit(:calling_self) == "process attempted to call itself"
     assert Exception.format_exit({:shutdown, :bye}) == "shutdown: :bye"
     assert Exception.format_exit({:badarg, [{:not_a_real_module, :function, 0, []}]}) ==
            "an exception was raised:\n    ** (ArgumentError) argument error\n        :not_a_real_module.function/0"
