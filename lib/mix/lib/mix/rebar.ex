@@ -228,7 +228,7 @@ defmodule Mix.Rebar do
         [{:tag, tag} | _]       -> [tag: to_string(tag)]
         [{:ref, ref} | _]       -> [ref: to_string(ref)]
         [ref | _]               -> [ref: to_string(ref)]
-        _                     -> []
+        _                       -> []
       end
 
     compile =

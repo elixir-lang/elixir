@@ -98,8 +98,8 @@ last(Atom) ->
   list_to_atom("Elixir." ++ Last).
 
 last([$. | _], Acc) -> Acc;
-last([H | T], Acc) -> last(T, [H | Acc]);
-last([], Acc) -> Acc.
+last([H | T], Acc)  -> last(T, [H | Acc]);
+last([], Acc)       -> Acc.
 
 %% Receives a list of atoms, binaries or lists
 %% representing modules and concatenates them.

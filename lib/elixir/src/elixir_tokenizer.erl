@@ -778,7 +778,7 @@ tokenize_bin(Rest, Acc) -> {Rest, list_to_integer(lists:reverse(Acc), 2), length
 
 tokenize_comment("\r\n" ++ _ = Rest) -> Rest;
 tokenize_comment("\n" ++ _ = Rest)   -> Rest;
-tokenize_comment([_ | Rest])           -> tokenize_comment(Rest);
+tokenize_comment([_ | Rest])         -> tokenize_comment(Rest);
 tokenize_comment([])                 -> [].
 
 %% Atoms

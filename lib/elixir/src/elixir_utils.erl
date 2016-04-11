@@ -36,9 +36,9 @@ get_ann([_ | T], Acc, Line) -> get_ann(T, Acc, Line);
 get_ann([], [], Line) -> Line;
 get_ann([], Acc, Line) -> [{location, Line} | Acc].
 
-split_last([])         -> {[], []};
-split_last(List)       -> split_last(List, []).
-split_last([H], Acc)   -> {lists:reverse(Acc), H};
+split_last([])           -> {[], []};
+split_last(List)         -> split_last(List, []).
+split_last([H], Acc)     -> {lists:reverse(Acc), H};
 split_last([H | T], Acc) -> split_last(T, [H | Acc]).
 
 read_file_type(File) ->

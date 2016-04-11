@@ -175,7 +175,7 @@ defmodule Mix.Tasks.New do
     "#{version.major}.#{version.minor}" <>
       case version.pre do
         [h | _] -> "-#{h}"
-        []    -> ""
+        []      -> ""
       end
   end
 

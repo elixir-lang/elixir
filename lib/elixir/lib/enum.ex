@@ -106,9 +106,9 @@ defprotocol Enumerable do
 
   As an example, here is the implementation of `reduce` for lists:
 
-      def reduce(_,     {:halt, acc}, _fun),   do: {:halted, acc}
-      def reduce(list,  {:suspend, acc}, fun), do: {:suspended, acc, &reduce(list, &1, fun)}
-      def reduce([],    {:cont, acc}, _fun),   do: {:done, acc}
+      def reduce(_,       {:halt, acc}, _fun),   do: {:halted, acc}
+      def reduce(list,    {:suspend, acc}, fun), do: {:suspended, acc, &reduce(list, &1, fun)}
+      def reduce([],      {:cont, acc}, _fun),   do: {:done, acc}
       def reduce([h | t], {:cont, acc}, fun),    do: reduce(t, fun.(h, acc), fun)
 
   """
@@ -945,7 +945,7 @@ defmodule Enum do
       end) |> :lists.reverse()
 
     case list do
-      []    -> []
+      []      -> []
       [_ | t] -> t  # Head is a superfluous intersperser element
     end
   end
@@ -2471,7 +2471,7 @@ defmodule Enum do
 
   defp do_fetch([h | _], 0), do: {:ok, h}
   defp do_fetch([_ | t], n), do: do_fetch(t, n - 1)
-  defp do_fetch([], _),    do: :error
+  defp do_fetch([], _),      do: :error
 
   ## drop
 
@@ -2779,9 +2779,9 @@ defmodule Enum do
 end
 
 defimpl Enumerable, for: List do
-  def reduce(_,     {:halt, acc}, _fun),   do: {:halted, acc}
-  def reduce(list,  {:suspend, acc}, fun), do: {:suspended, acc, &reduce(list, &1, fun)}
-  def reduce([],    {:cont, acc}, _fun),   do: {:done, acc}
+  def reduce(_,       {:halt, acc}, _fun),   do: {:halted, acc}
+  def reduce(list,    {:suspend, acc}, fun), do: {:suspended, acc, &reduce(list, &1, fun)}
+  def reduce([],      {:cont, acc}, _fun),   do: {:done, acc}
   def reduce([h | t], {:cont, acc}, fun),    do: reduce(t, fun.(h, acc), fun)
 
   def member?(_list, _value),
@@ -2795,9 +2795,9 @@ defimpl Enumerable, for: Map do
     do_reduce(:maps.to_list(map), acc, fun)
   end
 
-  defp do_reduce(_,     {:halt, acc}, _fun),   do: {:halted, acc}
-  defp do_reduce(list,  {:suspend, acc}, fun), do: {:suspended, acc, &do_reduce(list, &1, fun)}
-  defp do_reduce([],    {:cont, acc}, _fun),   do: {:done, acc}
+  defp do_reduce(_,       {:halt, acc}, _fun),   do: {:halted, acc}
+  defp do_reduce(list,    {:suspend, acc}, fun), do: {:suspended, acc, &do_reduce(list, &1, fun)}
+  defp do_reduce([],      {:cont, acc}, _fun),   do: {:done, acc}
   defp do_reduce([h | t], {:cont, acc}, fun),    do: do_reduce(t, fun.(h, acc), fun)
 
   def member?(map, {key, value}) do

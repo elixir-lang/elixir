@@ -39,7 +39,7 @@ defmodule Mix.ProjectStack do
     cast fn state ->
       update_in state.stack, fn
         [h | t] -> [%{h | configured_applications: apps} | t]
-        []    -> []
+        []      -> []
       end
     end
   end

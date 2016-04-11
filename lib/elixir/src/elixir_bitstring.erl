@@ -219,15 +219,15 @@ is_byte_size([Element | T], Acc) ->
 is_byte_size([], Size) ->
   Size rem 8 == 0.
 
-elem_size({bin_element, _, _, default, _})              -> {0, 0};
+elem_size({bin_element, _, _, default, _})                -> {0, 0};
 elem_size({bin_element, _, _, {integer, _, Size}, Types}) -> {Size, unit_size(Types, 1)};
-elem_size({bin_element, _, _, _Size, Types})            -> {unknown, unit_size(Types, 1)}.
+elem_size({bin_element, _, _, _Size, Types})              -> {unknown, unit_size(Types, 1)}.
 
 unit_size([binary | T], _)       -> unit_size(T, 8);
 unit_size([bytes | T], _)        -> unit_size(T, 8);
 unit_size([{unit, Size} | _], _) -> Size;
 unit_size([_ | T], Guess)        -> unit_size(T, Guess);
-unit_size([], Guess)           -> Guess.
+unit_size([], Guess)             -> Guess.
 
 %% Extra bitstring specifiers
 

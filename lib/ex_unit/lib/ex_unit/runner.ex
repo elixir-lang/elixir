@@ -341,7 +341,7 @@ defmodule ExUnit.Runner do
   defp take_sync_cases(config) do
     case config.sync_cases do
       [h | t] -> {%{config | sync_cases: t}, [h]}
-      []    -> nil
+      []      -> nil
     end
   end
 

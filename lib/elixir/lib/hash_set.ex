@@ -110,9 +110,9 @@ defmodule HashSet do
   defp do_member?(node, term, hash) do
     index = key_mask(hash)
     case elem(node, index) do
-      []        -> false
+      []          -> false
       [^term | _] -> true
-      [_]       -> false
+      [_]         -> false
       [_ | n]     -> do_member?(n, term, key_shift(hash))
     end
   end
@@ -172,8 +172,8 @@ defmodule HashSet do
 
   ## Set fold
 
-  defp do_fold_each([], acc, _fun),   do: acc
-  defp do_fold_each([t], acc, fun),   do: fun.(t, acc)
+  defp do_fold_each([], acc, _fun),     do: acc
+  defp do_fold_each([t], acc, fun),     do: fun.(t, acc)
   defp do_fold_each([t | n], acc, fun), do: do_fold(n, fun.(t, acc), fun, @node_size)
 
   defp do_fold(node, acc, fun, count) when count > 0 do

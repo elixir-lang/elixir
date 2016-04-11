@@ -90,7 +90,7 @@ defmodule HashDict do
   defp do_fetch(node, key, hash) do
     index = key_mask(hash)
     case elem(node, index) do
-      [^key | v]     -> {:ok, v}
+      [^key | v]   -> {:ok, v}
       {^key, v, _} -> {:ok, v}
       {_, _, n}    -> do_fetch(n, key, key_shift(hash))
       _            -> :error
