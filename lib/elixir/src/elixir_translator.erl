@@ -92,14 +92,14 @@ translate({'cond', CondMeta, [[{do, Pairs}]]}, S) ->
 translate({'case', Meta, [Expr, KV]}, S) ->
   Clauses = elixir_clauses:get_pairs(do, KV, match),
   {TExpr, NS} = translate(Expr, S),
-  {TClauses, TS} = elixir_clauses:clauses(Meta, Clauses, NS),
-  {{'case', ?ann(Meta), TExpr, TClauses}, TS};
+  {TClauses, TS} = elixir_clauses:clauses(Meta, Clauses, NS#elixir_scope{extra=nil}),
+  {{'case', ?ann(Meta), TExpr, TClauses}, TS#elixir_scope{extra=NS#elixir_scope.extra}};
 
 %% Try
 
 translate({'try', Meta, [Clauses]}, S) ->
   Do = proplists:get_value('do', Clauses, nil),
-  {TDo, SB} = elixir_translator:translate(Do, S),
+  {TDo, SB} = elixir_translator:translate(Do, S#elixir_scope{extra=nil}),
 
   Catch = [Tuple || {X, _} = Tuple <- Clauses, X == 'rescue' orelse X == 'catch'],
   {TCatch, SC} = elixir_try:clauses(Meta, Catch, mergec(S, SB)),
