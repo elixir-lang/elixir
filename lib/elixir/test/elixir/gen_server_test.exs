@@ -51,7 +51,16 @@ defmodule GenServerTest do
   end
 
   test "call/3 exit messages" do
-    assert catch_exit(GenServer.call(self, :pop, 5000)) == {:calling_self, {GenServer, :call, [self, :pop, 5000]}}
+    assert catch_exit(GenServer.call(nil, :pop, 5000)) == {:noproc, {GenServer, :call, [nil, :pop, 5000]}}
+    assert catch_exit(GenServer.call(self(), :pop, 5000)) == {:calling_self, {GenServer, :call, [self(), :pop, 5000]}}
+
+    name = :self
+    Process.register self(), name
+    assert catch_exit(GenServer.call(name, :pop, 5000)) == {:calling_self, {GenServer, :call, [name, :pop, 5000]}}
+
+    :global.register_name name, self()
+    assert catch_exit(GenServer.call({:global, name}, :pop, 5000)) == {:calling_self, {GenServer, :call, [{:global, name}, :pop, 5000]}}
+    assert catch_exit(GenServer.call({:via, :global, name}, :pop, 5000)) == {:calling_self, {GenServer, :call, [{:via, :global, name}, :pop, 5000]}}
   end
 
   test "nil name" do
