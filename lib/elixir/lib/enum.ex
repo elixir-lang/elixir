@@ -1431,7 +1431,7 @@ defmodule Enum do
   end
 
   @doc """
-  Partitions `enumerable` into two enumerables, where the first one
+  Partitions `enumerable` into two lists, where the first one
   contains elements for which `fun` returns a truthy value, and the
   second one – for which `fun` returns `false` or `nil`.
 
