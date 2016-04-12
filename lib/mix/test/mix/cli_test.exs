@@ -81,18 +81,18 @@ defmodule Mix.CLITest do
     end
   end
 
-  test "--help smoke test", context do
+  test "-h smoke test", context do
     in_tmp context.test, fn ->
-      output = mix ~w[--help]
+      output = mix ~w[-h]
       assert output =~ ~r/mix compile\s+# Compiles source files/
       refute output =~ "mix invalid"
     end
   end
 
-  test "--version smoke test", context do
+  test "-v smoke test", context do
     in_tmp context.test, fn ->
-      output = mix ~w[--version]
-      assert output =~ ~r/Mix [0-9\.a-z]+/
+      output = mix ~w[-v]
+      assert output =~ ~r{Erlang/OTP \d+ .+\n\nMix [0-9\.a-z]+}
     end
   end
 

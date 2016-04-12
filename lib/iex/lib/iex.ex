@@ -164,7 +164,7 @@ defmodule IEx do
       13
 
   It is possible to load another file by supplying the `--dot-iex`
-  option to iex. See `iex --help`.
+  option to iex. See `iex -h`.
 
   ## Configuring the shell
 

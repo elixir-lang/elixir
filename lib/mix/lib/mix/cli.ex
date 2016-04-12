@@ -118,7 +118,7 @@ defmodule Mix.CLI do
     IO.puts "Mix " <> System.build_info[:build]
   end
 
-  # Check for --help or --version in the args
+  # Check for -h or -v in the args
   defp check_for_shortcuts([first_arg|_]) when first_arg in
       ["--help", "-h"], do: :help
 
