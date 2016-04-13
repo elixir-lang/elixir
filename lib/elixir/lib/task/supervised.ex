@@ -23,7 +23,12 @@ defmodule Task.Supervised do
     initial_call(mfa)
     case link do
       :link ->
-        Process.link(caller)
+        try do
+          Process.link(caller)
+        catch
+          :error, :noproc ->
+            exit({:shutdown, :noproc})
+        end
         reply(caller, nil, @ref_timeout, info, mfa)
       :monitor ->
         mref = Process.monitor(caller)
@@ -39,7 +44,7 @@ defmodule Task.Supervised do
         _ = if mref, do: Process.demonitor(mref, [:flush])
         send caller, {ref, do_apply(info, mfa)}
       {:DOWN, ^mref, _, _, reason} when is_reference(mref) ->
-        exit(reason)
+        exit({:shutdown, reason})
     after
       # There is a race condition on this operation when working across
       # node that manifests if a "Task.Supervisor.async/2" call is made
