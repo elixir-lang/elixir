@@ -234,8 +234,23 @@ defmodule Mix.Compilers.Elixir do
     end
   end
 
+  # Similar to read manifest but supports data migration.
   defp parse_manifest(manifest, keep_paths) do
-    Enum.reduce read_manifest(manifest), {[], [], %{}, %{}}, fn
+    state = {[], [], %{}, %{}}
+
+    case :file.consult(manifest) do
+      {:ok, [@manifest_vsn|data]} ->
+        parse_manifest(data, keep_paths, state)
+      {:ok, [:v2|data]} ->
+        for {beam, _, _, _, _, _, _, _} <- data, do: File.rm(beam)
+        state
+      _ ->
+        state
+    end
+  end
+
+  defp parse_manifest(data, keep_paths, state) do
+    Enum.reduce data, state, fn
       {_, _, _, source, _, _, _} = entry, {keep, skip, keep_sources, skip_sources} ->
         if String.starts_with?(source, keep_paths) do
           {[entry|keep], skip, keep_sources, skip_sources}
