@@ -192,6 +192,18 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     end
   end
 
+  test "does not recompile empty files" do
+    in_fixture "no_mixfile", fn ->
+      File.write!("lib/a.ex", "")
+
+      assert Mix.Tasks.Compile.Elixir.run([]) == :ok
+      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+
+      assert Mix.Tasks.Compile.Elixir.run([]) == :noop
+      refute_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+    end
+  end
+
   test "compiles files with autoload disabled" do
     in_fixture "no_mixfile", fn ->
       File.write!("lib/a.ex", """
