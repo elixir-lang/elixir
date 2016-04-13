@@ -49,7 +49,7 @@ defmodule Mix.Compilers.Elixir do
 
     sources = update_stale_sources(all_sources, removed, changed)
     {entries, changed} = update_stale_entries(all_entries, removed ++ changed,
-                                              stale_local_deps(modified))
+                                              stale_local_deps(manifest, modified))
 
     stale = changed -- removed
     new_entries = entries ++ skip_entries
@@ -228,9 +228,11 @@ defmodule Mix.Compilers.Elixir do
     end
   end
 
-  defp stale_local_deps(modified) do
-    for %{scm: scm} = dep <- Mix.Dep.children,
+  defp stale_local_deps(manifest, modified) do
+    base = Path.basename(manifest)
+    for %{scm: scm, opts: opts} = dep <- Mix.Dep.children,
         not scm.fetchable?,
+        Mix.Utils.last_modified(Path.join(opts[:build], base)) > modified,
         path <- Mix.Dep.load_paths(dep),
         beam <- Path.wildcard(Path.join(path, "*.beam")),
         Mix.Utils.last_modified(beam) > modified,
