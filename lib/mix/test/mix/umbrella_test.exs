@@ -261,34 +261,72 @@ defmodule Mix.UmbrellaTest do
     in_fixture("umbrella_dep/deps/umbrella/apps", fn ->
       Mix.Project.in_project(:bar, "bar", fn _ ->
         Mix.Task.run "compile"
-        assert Mix.Tasks.Compile.Elixir.run([]) == :noop
         assert_receive {:mix_shell, :info, ["Compiled lib/foo.ex"]}
         assert_receive {:mix_shell, :info, ["Compiled lib/bar.ex"]}
-        assert File.regular?("_build/dev/consolidated/Elixir.Enumerable.beam")
 
-        # Ensure we can measure a timestamp difference
-        ensure_touched("_build/dev/lib/foo/.compile.elixir",
-                       File.stat!("_build/dev/lib/bar/.compile.lock").mtime)
-        ensure_touched("../foo/mix.exs",
-                       File.stat!("_build/dev/lib/foo/.compile.elixir").mtime)
-
-        # Mark locks and protocols as outdated
-        File.touch!("_build/dev/lib/foo/.compile.elixir",
-                    {{2010, 1, 1}, {0, 0, 0}})
-        File.touch!("_build/dev/consolidated/Elixir.Enumerable.beam",
-                    {{2010, 1, 1}, {0, 0, 0}})
-
-        purge [Foo, Bar]
-        Mix.Task.clear
-        Mix.shell.flush
-
-        assert Mix.Task.run("compile") == :ok
+        # Noop by default
         assert Mix.Tasks.Compile.Elixir.run([]) == :noop
-        assert_receive {:mix_shell, :info, ["Compiled lib/foo.ex"]}
+
+        # Noop when there is no runtime dependency
+        ensure_touched("_build/dev/lib/foo/ebin/Elixir.Foo.beam",
+                       File.stat!("_build/dev/lib/bar/.compile.elixir").mtime)
+        assert Mix.Tasks.Compile.Elixir.run([]) == :noop
+
+        # Add runtime dependency
+        File.write!("lib/bar.ex", """
+        defmodule Bar do
+          def bar, do: Foo.foo
+        end
+        """)
+        assert Mix.Tasks.Compile.Elixir.run([]) == :ok
         assert_receive {:mix_shell, :info, ["Compiled lib/bar.ex"]}
-        assert File.stat!("_build/dev/consolidated/Elixir.Enumerable.beam").mtime >
-               {{2010, 1, 1}, {0, 0, 0}}
-        purge [Foo, Bar]
+
+        # Noop for runtime dependencies
+        ensure_touched("_build/dev/lib/foo/ebin/Elixir.Foo.beam",
+                       File.stat!("_build/dev/lib/bar/.compile.elixir").mtime)
+        assert Mix.Tasks.Compile.Elixir.run([]) == :noop
+
+        # Add compile time dependency
+        File.write!("lib/bar.ex", "defmodule Bar, do: Foo.foo")
+        assert Mix.Tasks.Compile.Elixir.run([]) == :ok
+        assert_receive {:mix_shell, :info, ["Compiled lib/bar.ex"]}
+
+        # Recompiles for compile time dependencies
+        ensure_touched("_build/dev/lib/foo/ebin/Elixir.Foo.beam",
+                       File.stat!("_build/dev/lib/bar/.compile.elixir").mtime)
+        assert Mix.Tasks.Compile.Elixir.run([]) == :ok
+        assert_receive {:mix_shell, :info, ["Compiled lib/bar.ex"]}
+      end)
+    end)
+  end
+
+  test "reconsolidates after path dependency changes" do
+    in_fixture("umbrella_dep/deps/umbrella/apps", fn ->
+      Mix.Project.in_project(:bar, "bar", fn _ ->
+        # Add a protocol dependency
+        File.write!("../foo/lib/foo.ex", """
+        defprotocol Foo do
+          def foo(arg)
+        end
+        defimpl Foo, for: List do
+          def foo(list), do: list
+        end
+        """)
+        Mix.Task.run("compile")
+        assert File.regular?("_build/dev/consolidated/Elixir.Foo.beam")
+        assert Mix.Tasks.Compile.Protocols.run([]) == :noop
+
+        # Mark protocol as outdated
+        File.touch!("_build/dev/consolidated/Elixir.Foo.beam",
+                    {{2010, 1, 1}, {0, 0, 0}})
+
+        ensure_touched("_build/dev/lib/foo/ebin/Elixir.Foo.beam",
+                       File.stat!("_build/dev/consolidated/.compile.protocols").mtime)
+        assert Mix.Tasks.Compile.Protocols.run([]) == :ok
+
+        # Check new timestamp
+        assert File.stat!("_build/dev/consolidated/Elixir.Foo.beam").mtime >
+                         {{2010, 1, 1}, {0, 0, 0}}
       end)
     end)
   end
