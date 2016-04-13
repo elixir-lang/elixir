@@ -1,7 +1,7 @@
 defmodule Mix.Compilers.Elixir do
   @moduledoc false
 
-  @manifest_vsn :v2
+  @manifest_vsn :v3
 
   @doc """
   Compiles stale Elixir files.
@@ -18,10 +18,10 @@ defmodule Mix.Compilers.Elixir do
   def compile(manifest, srcs, skip_srcs, exts, dest, force, on_start) do
     keep = srcs -- skip_srcs
     all  = Mix.Utils.extract_files(keep, exts)
-    {all_entries, skip_entries} = parse_manifest(manifest, keep)
+    {all_entries, skip_entries, all_sources, skip_sources} = parse_manifest(manifest, keep)
 
     removed =
-      for {_b, _m, _k, source, _cd, _rd, _f, _bin} <- all_entries,
+      for {source, _files} <- all_sources,
           not(source in all),
           do: source
 
@@ -32,43 +32,43 @@ defmodule Mix.Compilers.Elixir do
         all
       else
         modified   = Mix.Utils.last_modified(manifest)
-        all_mtimes = mtimes(all_entries)
+        all_mtimes = mtimes(all_sources)
 
         # Otherwise let's start with the new ones
         # plus the ones that have changed
         for(source <- all,
-            not Enum.any?(all_entries, fn {_b, _m, _k, s, _cd, _rd, _f, _bin} -> s == source end),
+            not Map.has_key?(all_sources, source),
             do: source)
           ++
-        for({_b, _m, _k, source, _cd, _rd, files, _bin} <- all_entries,
+        for({source, files} <- all_sources,
             times = Enum.map([source|files], &Map.fetch!(all_mtimes, &1)),
             Mix.Utils.stale?(times, [modified]),
             do: source)
       end
 
+    sources = update_stale_sources(all_sources, removed, changed)
     {entries, changed} = remove_stale_entries(all_entries, removed ++ changed)
     stale = changed -- removed
 
+    new_entries = entries ++ skip_entries
+    new_sources = Map.merge(sources, skip_sources)
+
     cond do
       stale != [] ->
-        compile_manifest(manifest, entries ++ skip_entries, stale, dest, on_start)
+        compile_manifest(manifest, new_entries, new_sources, stale, dest, on_start)
         :ok
       removed != [] ->
-        write_manifest(manifest, entries ++ skip_entries)
+        write_manifest(manifest, new_entries, new_sources)
         :ok
       true ->
         :noop
     end
   end
 
-  defp mtimes(entries) do
-    Enum.reduce(entries, %{}, fn {_b, _m, _k, source, _cd, _rd, files, _bin}, dict ->
-      Enum.reduce([source|files], dict, fn file, dict ->
-        if Map.has_key?(dict, file) do
-          dict
-        else
-          Map.put(dict, file, Mix.Utils.last_modified(file))
-        end
+  defp mtimes(sources) do
+    Enum.reduce(sources, %{}, fn {source, files}, map ->
+      Enum.reduce([source|files], map, fn file, map ->
+        Map.put_new_lazy(map, file, fn -> Mix.Utils.last_modified(file) end)
       end)
     end)
   end
@@ -77,22 +77,24 @@ defmodule Mix.Compilers.Elixir do
   Removes compiled files for the given `manifest`.
   """
   def clean(manifest) do
-    Enum.map read_manifest(manifest), fn {beam, _, _, _, _, _, _, _} ->
-      File.rm(beam)
+    Enum.each read_manifest(manifest), fn
+      {beam, _, _, _, _, _, _} ->
+        File.rm(beam)
+      {_, _} ->
+        :ok
     end
-    :ok
   end
 
   @doc """
   Returns protocols and implementations for the given `manifest`.
   """
   def protocols_and_impls(manifest) do
-    for {_, module, kind, _, _, _, _, _} <- read_manifest(manifest),
+    for {_, module, kind, _, _, _, _} <- read_manifest(manifest),
         match?(:protocol, kind) or match?({:impl, _}, kind),
         do: {module, kind}
   end
 
-  defp compile_manifest(manifest, entries, stale, dest, on_start) do
+  defp compile_manifest(manifest, entries, sources, stale, dest, on_start) do
     Mix.Project.ensure_structure()
     true = Code.prepend_path(dest)
 
@@ -101,16 +103,16 @@ defmodule Mix.Compilers.Elixir do
 
     # Starts a server responsible for keeping track which files
     # were compiled and the dependencies between them.
-    {:ok, pid} = Agent.start_link(fn -> entries end)
+    {:ok, pid} = Agent.start_link(fn -> {entries, sources} end)
 
     try do
       _ = Kernel.ParallelCompiler.files :lists.usort(stale),
         each_module: &each_module(pid, dest, cwd, &1, &2, &3),
         each_file: &each_file(&1),
         dest: dest
-      Agent.cast pid, fn entries ->
-        write_manifest(manifest, entries)
-        entries
+      Agent.cast pid, fn {entries, sources} ->
+        write_manifest(manifest, entries, sources)
+        {entries, sources}
       end
     after
       Agent.stop(pid, :normal, :infinity)
@@ -140,8 +142,12 @@ defmodule Mix.Compilers.Elixir do
     kind   = detect_kind(module)
     source = Path.relative_to(source, cwd)
     files  = get_external_resources(module, cwd)
-    tuple  = {beam, module, kind, source, compile, runtime, files, binary}
-    Agent.cast pid, &:lists.keystore(beam, 1, &1, tuple)
+
+    Agent.cast pid, fn {entries, sources} ->
+      entries = List.keystore(entries, beam, 0, {beam, module, kind, source, compile, runtime, binary})
+      sources = Map.update(sources, source, files, & files ++ &1)
+      {entries, sources}
+    end
   end
 
   defp detect_kind(module) do
@@ -163,11 +169,15 @@ defmodule Mix.Compilers.Elixir do
         do: relative
   end
 
-  defp each_file(file) do
-    Mix.shell.info "Compiled #{file}"
+  defp each_file(source) do
+    Mix.shell.info "Compiled #{source}"
   end
 
   ## Resolution
+
+  defp update_stale_sources(sources, removed, changed) do
+    Enum.reduce changed, Map.drop(sources, removed), &Map.put(&2, &1, [])
+  end
 
   # This function receives the manifest entries and some source
   # files that have changed. It then, recursively, figures out
@@ -193,7 +203,7 @@ defmodule Mix.Compilers.Elixir do
     end
   end
 
-  defp remove_stale_entry({beam, module, _kind, source, compile, runtime, _f, _bin} = entry,
+  defp remove_stale_entry({beam, module, _kind, source, compile, runtime, _bin} = entry,
                           {rest, stale, removed}) do
     cond do
       # If I changed in disk or have a compile time dependency
@@ -225,30 +235,40 @@ defmodule Mix.Compilers.Elixir do
   end
 
   defp parse_manifest(manifest, keep_paths) do
-    Enum.reduce read_manifest(manifest), {[], []}, fn
-      {_, _, _, source, _, _, _, _} = entry, {keep, skip} ->
+    Enum.reduce read_manifest(manifest), {[], [], %{}, %{}}, fn
+      {_, _, _, source, _, _, _} = entry, {keep, skip, keep_sources, skip_sources} ->
         if String.starts_with?(source, keep_paths) do
-          {[entry|keep], skip}
+          {[entry|keep], skip, keep_sources, skip_sources}
         else
-          {keep, [entry|skip]}
+          {keep, [entry|skip], keep_sources, skip_sources}
+        end
+      {source, files}, {keep, skip, keep_sources, skip_sources} ->
+        if String.starts_with?(source, keep_paths) do
+          {keep, skip, Map.put(keep_sources, source, files), skip_sources}
+        else
+          {keep, skip, keep_sources, Map.put(skip_sources, source, files)}
         end
     end
   end
 
-  defp write_manifest(manifest, []) do
+  defp write_manifest(manifest, [], sources) when sources == %{} do
     File.rm(manifest)
     :ok
   end
 
-  defp write_manifest(manifest, entries) do
+  defp write_manifest(manifest, entries, sources) do
     File.mkdir_p!(Path.dirname(manifest))
 
     File.open!(manifest, [:write], fn device ->
       :io.format(device, '~p.~n', [@manifest_vsn])
 
-      Enum.map entries, fn {beam, _, _, _, _, _, _, binary} = entry ->
+      Enum.each entries, fn {beam, _, _, _, _, _, binary} = entry ->
         if binary, do: File.write!(beam, binary)
-        :io.format(device, '~p.~n', [put_elem(entry, 7, nil)])
+        :io.format(device, '~p.~n', [put_elem(entry, 6, nil)])
+      end
+
+      Enum.each sources, fn {_, _} = entry ->
+        :io.format(device, '~p.~n', [entry])
       end
 
       :ok
