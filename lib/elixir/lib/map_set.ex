@@ -99,8 +99,8 @@ defmodule MapSet do
 
   """
   @spec delete(t, value) :: t
-  def delete(%MapSet{map: map} = set, term) do
-    %{set | map: Map.delete(map, term)}
+  def delete(%MapSet{map: map} = set, value) do
+    %{set | map: Map.delete(map, value)}
   end
 
   @doc """
