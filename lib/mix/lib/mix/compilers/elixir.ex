@@ -20,6 +20,8 @@ defmodule Mix.Compilers.Elixir do
     all  = Mix.Utils.extract_files(keep, exts)
     {all_entries, skip_entries, all_sources, skip_sources} = parse_manifest(manifest, keep)
 
+    modified = Mix.Utils.last_modified(manifest)
+
     removed =
       for {source, _files} <- all_sources,
           not(source in all),
@@ -31,25 +33,25 @@ defmodule Mix.Compilers.Elixir do
         # changed, let's just compile everything
         all
       else
-        modified   = Mix.Utils.last_modified(manifest)
-        all_mtimes = mtimes(all_sources)
+        sources_mtimes = mtimes(all_sources)
 
-        # Otherwise let's start with the new ones
-        # plus the ones that have changed
+        # Otherwise let's start with the new sources
         for(source <- all,
             not Map.has_key?(all_sources, source),
             do: source)
           ++
+        # Plus the sources that have changed in disk
         for({source, files} <- all_sources,
-            times = Enum.map([source|files], &Map.fetch!(all_mtimes, &1)),
+            times = Enum.map([source|files], &Map.fetch!(sources_mtimes, &1)),
             Mix.Utils.stale?(times, [modified]),
             do: source)
       end
 
     sources = update_stale_sources(all_sources, removed, changed)
-    {entries, changed} = remove_stale_entries(all_entries, removed ++ changed)
-    stale = changed -- removed
+    {entries, changed} = update_stale_entries(all_entries, removed ++ changed,
+                                              stale_local_deps(modified))
 
+    stale = changed -- removed
     new_entries = entries ++ skip_entries
     new_sources = Map.merge(sources, skip_sources)
 
@@ -89,9 +91,9 @@ defmodule Mix.Compilers.Elixir do
   Returns protocols and implementations for the given manifest.
   """
   def protocols_and_impls(manifest) do
-    for {_, module, kind, _, _, _, _} <- read_manifest(manifest),
+    for {beam, module, kind, _, _, _, _} <- read_manifest(manifest),
         match?(:protocol, kind) or match?({:impl, _}, kind),
-        do: {module, kind}
+        do: {module, kind, beam}
   end
 
   defp compile_manifest(manifest, entries, sources, stale, dest, on_start) do
@@ -183,12 +185,13 @@ defmodule Mix.Compilers.Elixir do
   # files that have changed. It then, recursively, figures out
   # all the files that changed (via the module dependencies) and
   # return the non-changed entries and the removed sources.
-  defp remove_stale_entries(all, []) do
+  defp update_stale_entries(all, [], stale) when stale == %{} do
     {all, []}
   end
 
-  defp remove_stale_entries(all, changed) do
-    remove_stale_entries(all, %{}, Enum.into(changed, %{}, &{&1, true}))
+  defp update_stale_entries(all, changed, stale) do
+    removed = Enum.into(changed, %{}, &{&1, true})
+    remove_stale_entries(all, stale, removed)
   end
 
   defp remove_stale_entries(entries, old_stale, old_removed) do
@@ -223,6 +226,16 @@ defmodule Mix.Compilers.Elixir do
       true ->
         {[entry|rest], stale, removed}
     end
+  end
+
+  defp stale_local_deps(modified) do
+    for %{scm: scm} = dep <- Mix.Dep.children,
+        not scm.fetchable?,
+        path <- Mix.Dep.load_paths(dep),
+        beam <- Path.wildcard(Path.join(path, "*.beam")),
+        Mix.Utils.last_modified(beam) > modified,
+        do: {beam |> Path.basename |> Path.rootname |> String.to_atom, true},
+        into: %{}
   end
 
   ## Manifest handling

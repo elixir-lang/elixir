@@ -80,11 +80,6 @@ defmodule Mix.Tasks.Compile.Elixir do
     Mix.Compilers.Elixir.clean(manifest())
   end
 
-  @doc false
-  def protocols_and_impls do
-    Mix.Compilers.Elixir.protocols_and_impls(manifest())
-  end
-
   defp set_compiler_opts(project, opts, extra) do
     opts = Keyword.take(opts, Code.available_compiler_options)
     opts = Keyword.merge(project[:elixirc_options] || [], opts)
