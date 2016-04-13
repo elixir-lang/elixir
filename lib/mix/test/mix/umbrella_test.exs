@@ -270,6 +270,8 @@ defmodule Mix.UmbrellaTest do
         # Noop when there is no runtime dependency
         ensure_touched("_build/dev/lib/foo/ebin/Elixir.Foo.beam",
                        File.stat!("_build/dev/lib/bar/.compile.elixir").mtime)
+        ensure_touched("_build/dev/lib/foo/.compile.elixir",
+                       File.stat!("_build/dev/lib/bar/.compile.elixir").mtime)
         assert Mix.Tasks.Compile.Elixir.run([]) == :noop
 
         # Add runtime dependency
@@ -284,6 +286,8 @@ defmodule Mix.UmbrellaTest do
         # Noop for runtime dependencies
         ensure_touched("_build/dev/lib/foo/ebin/Elixir.Foo.beam",
                        File.stat!("_build/dev/lib/bar/.compile.elixir").mtime)
+        ensure_touched("_build/dev/lib/foo/.compile.elixir",
+                       File.stat!("_build/dev/lib/bar/.compile.elixir").mtime)
         assert Mix.Tasks.Compile.Elixir.run([]) == :noop
 
         # Add compile time dependency
@@ -293,6 +297,8 @@ defmodule Mix.UmbrellaTest do
 
         # Recompiles for compile time dependencies
         ensure_touched("_build/dev/lib/foo/ebin/Elixir.Foo.beam",
+                       File.stat!("_build/dev/lib/bar/.compile.elixir").mtime)
+        ensure_touched("_build/dev/lib/foo/.compile.elixir",
                        File.stat!("_build/dev/lib/bar/.compile.elixir").mtime)
         assert Mix.Tasks.Compile.Elixir.run([]) == :ok
         assert_receive {:mix_shell, :info, ["Compiled lib/bar.ex"]}

@@ -80,16 +80,17 @@ defmodule Mix.Tasks.Compile.Protocols do
   end
 
   defp protocols_and_impls(config) do
-    deps = for(%{scm: scm, app: app} <- Mix.Dep.children,
+    deps = for(%{scm: scm, app: app, opts: opts} <- Mix.Dep.children,
                not scm.fetchable?,
-               do: app)
+               do: opts[:build])
 
-    build_path = Path.join(Mix.Project.build_path(config), "lib")
+    app = Mix.Project.app_path(config)
 
     protocols_and_impls =
-      for app <- [config[:app] | deps],
-          elixir = Path.join([build_path, Atom.to_string(app), ".compile.elixir"]),
-          do: Mix.Compilers.Elixir.protocols_and_impls(elixir)
+      for path <- [app | deps] do
+        elixir = Path.join(path, ".compile.elixir")
+        Mix.Compilers.Elixir.protocols_and_impls(elixir)
+      end
 
     Enum.concat(protocols_and_impls)
   end
