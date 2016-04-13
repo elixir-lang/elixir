@@ -5,7 +5,7 @@
   characters_to_list/1, characters_to_binary/1, macro_name/1,
   convert_to_boolean/4, returns_boolean/1, atom_concat/1,
   read_file_type/1, read_link_type/1, relative_to_cwd/1,
-  change_universal_time/2, erl_call/4, meta_location/1]).
+  read_mtime/1, change_universal_time/2, erl_call/4, meta_location/1]).
 -include("elixir.hrl").
 -include_lib("kernel/include/file.hrl").
 
@@ -50,6 +50,12 @@ read_file_type(File) ->
 read_link_type(File) ->
   case file:read_link_info(File) of
     {ok, #file_info{type=Type}} -> {ok, Type};
+    {error, _} = Error -> Error
+  end.
+
+read_mtime(File) ->
+  case file:read_file_info(File, [{time, universal}]) of
+    {ok, #file_info{mtime=Mtime}} -> {ok, Mtime};
     {error, _} = Error -> Error
   end.
 
