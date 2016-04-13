@@ -287,7 +287,9 @@ defmodule ExUnit.Formatter do
 
   def format_diff(left, right, formatter)
       when is_tuple(left) and is_tuple(right) do
-    format_string_diff(inspect(left), inspect(right), formatter)
+    left = {left, tuple_size(left) - 1}
+    right = {right, tuple_size(right) - 1}
+    format_tuple_diff(left, right, formatter, [])
   end
 
   def format_diff(_left, _right, _formatter), do: nil
@@ -338,6 +340,36 @@ defmodule ExUnit.Formatter do
 
   defp format_list_elem({key, val}, true) do
     format_key_value(Atom.to_string(key), inspect(val), true)
+  end
+
+  defp format_tuple_diff({_tuple1, -1}, {_tuple2, -1}, _formatter, acc) do
+    "{" <> Enum.join(acc, ", ") <> "}"
+  end
+
+  defp format_tuple_diff({tuple1, index1}, {_, index2} = right, formatter, acc)
+      when index1 > index2 do
+    elem = elem(tuple1, index1)
+    elem_diff = formatter.(:diff_delete, inspect(elem))
+    format_tuple_diff({tuple1, index1 - 1}, right, formatter, [elem_diff | acc])
+  end
+
+  defp format_tuple_diff({_, index1} = left, {tuple2, index2}, formatter, acc)
+      when index1 < index2 do
+    elem = elem(tuple2, index2)
+    elem_diff = formatter.(:diff_insert, inspect(elem))
+    format_tuple_diff(left, {tuple2, index2 - 1}, formatter, [elem_diff | acc])
+  end
+
+  defp format_tuple_diff({tuple1, index}, {tuple2, index}, formatter, acc) do
+    elem1 = elem(tuple1, index)
+    elem2 = elem(tuple2, index)
+    elem_diff =
+      if elem1 != elem2 do
+        format_inner_diff(elem1, elem2, formatter)
+      else
+        inspect(elem1)
+      end
+    format_tuple_diff({tuple1, index - 1}, {tuple2, index - 1}, formatter, [elem_diff | acc])
   end
 
   defp format_map_diff(left, right, name, formatter) do

@@ -276,9 +276,12 @@ defmodule ExUnit.FormatterTest do
     expected = "'fox {ho}[jum]ps over {\\'}the {dog}[lazy cat]'"
     assert format_diff(char_list1, char_list2, &formatter/2) == expected
 
-    tuple1 = {:yes, 'ject', []}
-    tuple2 = {:yes, 'lter', []}
-    assert format_diff(tuple1, tuple2, &formatter/2) == "{:yes, '{jec}[l]t[er]', []}"
+    tuple1 = {:hex, '1.1'}
+    tuple2 = {:hex, '0.1', [{:ex_doc}]}
+    expected = "{:hex, '{1}[0].1', [[{:ex_doc}]]}"
+    assert format_diff(tuple1, tuple2, &formatter/2) == expected
+    assert format_diff(tuple1, {}, &formatter/2) == "{{:hex}, {'1.1'}}"
+    assert format_diff({}, tuple1, &formatter/2) == "{[:hex], ['1.1']}"
 
     map1 = Enum.into(1..40, %{}, &{&1, &1}) |> Map.delete(33)
     map2 = Enum.reduce(5..10, map1, &Map.delete(&2, &1)) |> Map.put(33, 33) |> Map.put(23, 32)
