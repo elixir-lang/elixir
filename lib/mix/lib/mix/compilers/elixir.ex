@@ -212,9 +212,7 @@ defmodule Mix.Compilers.Elixir do
       # If I changed in disk or have a compile time dependency
       # on something stale, I need to be recompiled.
       Map.has_key?(removed, source) or Enum.any?(compile, &Map.has_key?(stale, &1)) ->
-        _ = File.rm(beam)
-        _ = :code.purge(module)
-        _ = :code.delete(module)
+        remove_and_purge(beam, module)
         {rest, Map.put(stale, module, true), Map.put(removed, source, true)}
 
       # If I have a runtime time dependency on something stale,
@@ -240,6 +238,12 @@ defmodule Mix.Compilers.Elixir do
         into: %{}
   end
 
+  defp remove_and_purge(beam, module) do
+    _ = File.rm(beam)
+    _ = :code.purge(module)
+    _ = :code.delete(module)
+  end
+
   ## Manifest handling
 
   defp read_manifest(manifest) do
@@ -257,7 +261,9 @@ defmodule Mix.Compilers.Elixir do
       {:ok, [@manifest_vsn|data]} ->
         parse_manifest(data, keep_paths, state)
       {:ok, [:v2|data]} ->
-        for {beam, _, _, _, _, _, _, _} <- data, do: File.rm(beam)
+        for {beam, module, _, _, _, _, _, _} <- data do
+          remove_and_purge(beam, module)
+        end
         state
       _ ->
         state
