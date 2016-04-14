@@ -167,4 +167,13 @@ defmodule Mix.Tasks.EscriptTest do
       assert_received {:mix_shell, :info, ["No escripts currently installed."]}
     end
   end
+
+  test "escript invalid install" do
+    # Install our escript
+    send self, {:mix_shell_input, :yes?, true}
+    assert_raise Mix.Error,
+                 "the given path does not point to an escript, installation aborted", fn ->
+      Mix.Tasks.Escript.Install.run [__ENV__.file]
+    end
+  end
 end
