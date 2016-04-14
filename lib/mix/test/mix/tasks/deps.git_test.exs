@@ -126,7 +126,7 @@ defmodule Mix.Tasks.DepsGitTest do
       Code.delete_path("_build/dev/lib/git_repo/ebin")
 
       # Deps on git repo loads it automatically on compile
-      Mix.Task.reenable "deps.loadpaths"
+      Mix.Task.reenable "deps.check"
       Mix.Tasks.Deps.Compile.run ["deps_on_git_repo"]
       assert File.exists?("_build/dev/lib/deps_on_git_repo/ebin")
     end

@@ -275,7 +275,7 @@ defmodule Mix.Task do
     # 2. Otherwise we look for it in dependencies.
     # 3. Finally, we compile the current project in hope it is available.
     module =
-      get_task_or_run(proj, task, fn -> deps_loadpaths end) ||
+      get_task_or_run(proj, task, fn -> Mix.Task.run("deps.check") end) ||
       get_task_or_run(proj, task, fn -> Mix.Project.compile([]) end) ||
       get!(task)
 
@@ -305,11 +305,6 @@ defmodule Mix.Task do
 
   defp task_to_string(task, []), do: task
   defp task_to_string(task, args), do: task <> " " <> Enum.join(args, " ")
-
-  defp deps_loadpaths do
-    Mix.Task.run "deps.check"
-    Mix.Task.run "deps.loadpaths"
-  end
 
   defp get_task_or_run(proj, task, fun) do
     cond do

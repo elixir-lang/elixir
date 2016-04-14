@@ -45,7 +45,7 @@ defmodule Mix.TaskTest do
     Mix.debug(false)
   end
 
-  test "try to deps.loadpaths if task is missing", context do
+  test "try to load deps if task is missing", context do
     in_tmp context.test, fn ->
       Mix.Project.push(SampleProject, "sample")
 
