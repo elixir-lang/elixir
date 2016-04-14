@@ -153,10 +153,12 @@ defmodule Mix.Compilers.Elixir do
   end
 
   defp detect_kind(module) do
+    impl = Module.get_attribute(module, :impl)
+
     cond do
-      impl = Module.get_attribute(module, :impl) ->
+      is_list(impl) and impl[:protocol] ->
         {:impl, impl[:protocol]}
-      Module.get_attribute(module, :protocol) ->
+      is_list(Module.get_attribute(module, :protocol)) ->
         :protocol
       true ->
         :module
