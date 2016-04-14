@@ -247,7 +247,7 @@ defmodule Mix.Project do
   """
   @spec deps_paths() :: %{atom => Path.t}
   def deps_paths do
-    Enum.reduce Mix.Dep.loaded(env: Mix.env), %{}, fn
+    Enum.reduce Mix.Dep.cached(), %{}, fn
       %{app: app, opts: opts}, acc -> Map.put acc, app, opts[:dest]
     end
   end
@@ -450,7 +450,7 @@ defmodule Mix.Project do
   defp load_project(app, post_config) do
     Mix.ProjectStack.post_config(post_config)
 
-    if cached = Mix.ProjectStack.read_cache(app) do
+    if cached = Mix.ProjectStack.read_cache({:app, app}) do
       {project, file} = cached
       push(project, file, app)
       project
@@ -470,7 +470,7 @@ defmodule Mix.Project do
           {nil, "nofile"}
         end
 
-      Mix.ProjectStack.write_cache(app, {new_proj, file})
+      Mix.ProjectStack.write_cache({:app, app}, {new_proj, file})
       new_proj
     end
   end

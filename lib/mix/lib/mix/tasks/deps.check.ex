@@ -1,7 +1,7 @@
 defmodule Mix.Tasks.Deps.Check do
   use Mix.Task
 
-  import Mix.Dep, only: [loaded: 1, loaded_by_name: 2, format_dep: 1, ok?: 1,
+  import Mix.Dep, only: [loaded_by_name: 2, format_dep: 1, ok?: 1,
                          format_status: 1, check_lock: 1]
 
   @moduledoc """
@@ -27,7 +27,7 @@ defmodule Mix.Tasks.Deps.Check do
       Mix.Task.run "archive.check", args
     end
 
-    all = Enum.map(loaded(env: Mix.env), &check_lock/1)
+    all = Enum.map(Mix.Dep.cached(), &check_lock/1)
 
     unless "--no-deps-check" in args do
       deps_check(all, "--no-compile" in args)
@@ -85,10 +85,11 @@ defmodule Mix.Tasks.Deps.Check do
         :ok
       true ->
         Mix.Tasks.Deps.Compile.compile(compile)
-        show_not_ok! compile
-                     |> Enum.map(& &1.app)
-                     |> loaded_by_name(env: Mix.env)
-                     |> Enum.filter(&(not ok?(&1)))
+        compile
+        |> Enum.map(& &1.app)
+        |> loaded_by_name(env: Mix.env)
+        |> Enum.filter(&(not ok?(&1)))
+        |> show_not_ok!
     end
   end
 

@@ -62,17 +62,23 @@ defmodule Mix.Dep do
                extra: term}
 
   @doc """
-  Returns all children dependencies for the current project,
-  as well as the defined apps in case of umbrella projects.
-  The children dependencies returned by this function were
-  not loaded yet.
+  Returns loaded dependencies from the cache for the current environment.
 
-  ## Exceptions
-
-  This function raises an exception if any of the dependencies
-  provided in the project are in the wrong format.
+  Because the dependencies are cached during deps.check, their
+  status may be outdated (for example, `:compile` did not
+  yet become `:ok`). Therefore it is recommended to not rely
+  on the their status, also given they haven't been checked
+  against the lock.
   """
-  defdelegate children(), to: Mix.Dep.Loader
+  def cached do
+    if project = Mix.Project.get do
+      key = {:cached_deps, project}
+      Mix.ProjectStack.read_cache(key) ||
+        Mix.ProjectStack.write_cache(key, loaded(env: Mix.env))
+    else
+      loaded(env: Mix.env)
+    end
+  end
 
   @doc """
   Returns loaded dependencies recursively as a `Mix.Dep` struct.

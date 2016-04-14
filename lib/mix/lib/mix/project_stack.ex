@@ -163,6 +163,7 @@ defmodule Mix.ProjectStack do
     cast fn state ->
       %{state | cache: Map.put(state.cache, key, value)}
     end
+    value
   end
 
   @spec clear_cache :: :ok
