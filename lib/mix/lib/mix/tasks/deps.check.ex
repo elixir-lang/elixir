@@ -5,16 +5,20 @@ defmodule Mix.Tasks.Deps.Check do
                          format_status: 1, check_lock: 1]
 
   @moduledoc """
-  Checks if all dependencies are valid and if not, abort.
-  Prints the invalid dependencies' status before aborting.
+  Checks if all dependencies are valid, loading them along
+  the way.
+
+  If there is an invalid dependency, its status is printed
+  before aborting.
 
   This task is not shown in `mix help` but it is part
   of the `mix` public API and can be depended on.
 
   ## Command line options
 
-    * `--no-compile` - do not compile dependencies
     * `--no-archives-check` - do not check archives
+    * `--no-deps-check` - do not check deps
+    * `--no-compile` - do not compile dependencies
 
   """
   @spec run(OptionParser.argv) :: :ok
@@ -25,21 +29,17 @@ defmodule Mix.Tasks.Deps.Check do
 
     all = Enum.map(loaded(env: Mix.env), &check_lock/1)
 
-    _ = prune_deps(all)
-    {not_ok, compile} = partition(all, [], [])
-
-    cond do
-      not_ok != [] ->
-        show_not_ok!(not_ok)
-      compile == [] or "--no-compile" in args ->
-        :ok
-      true ->
-        Mix.Tasks.Deps.Compile.compile(compile)
-        show_not_ok! compile
-                     |> Enum.map(& &1.app)
-                     |> loaded_by_name(env: Mix.env)
-                     |> Enum.filter(&(not ok?(&1)))
+    unless "--no-deps-check" in args do
+      deps_check(all, "--no-compile" in args)
     end
+
+    load_paths =
+      for dep <- all, path <- Mix.Dep.load_paths(dep) do
+        _ = Code.prepend_path(path)
+        path
+      end
+
+    prune_deps(load_paths, "--no-deps-check" in args)
   end
 
   # If the build is per environment, we should be able to look
@@ -47,31 +47,48 @@ defmodule Mix.Tasks.Deps.Check do
   # have a dependency defined for them.
   #
   # Notice we require the build_path to be nil. If it is not nil,
-  # it means the build_path is shared, so we leave it up to the owner.
+  # it means the build_path is shared so we don't delete entries.
   #
   # We also expect env_path to be nil. If it is not nil, it means
   # it was set by a parent application and the parent application
   # should be the one doing the pruning.
-  defp prune_deps(all) do
+  defp prune_deps(load_paths, no_check?) do
     config = Mix.Project.config
 
-    if is_nil(config[:env_path]) and
-       is_nil(config[:build_path]) and
-       config[:build_per_environment] do
-      paths = Mix.Project.build_path(config)
-              |> Path.join("lib/*/ebin")
-              |> Path.wildcard
-              |> List.delete(config[:app] && Mix.Project.compile_path(config))
+    shared_build? =
+      no_check? or config[:build_path] != nil or config[:build_per_environment] == false
 
-      to_prune = Enum.reduce(all, paths, &(&2 -- Mix.Dep.load_paths(&1)))
+    config
+    |> Mix.Project.build_path
+    |> Path.join("lib/*/ebin")
+    |> Path.wildcard
+    |> List.delete(config[:app] && Mix.Project.compile_path(config))
+    |> Kernel.--(load_paths)
+    |> Enum.each(&prune_path(&1, shared_build?))
+  end
 
-      Enum.map(to_prune, fn path ->
-        # Path cannot be in code path when deleting
-        _ = Code.delete_path(path)
-        File.rm_rf!(path |> Path.dirname)
-      end)
-    else
-      []
+  defp prune_path(path, shared_build?) do
+    _ = Code.delete_path(path)
+
+    unless shared_build? do
+      path |> Path.dirname |> File.rm_rf!
+    end
+  end
+
+  defp deps_check(all, no_compile?) do
+    {not_ok, compile} = partition(all, [], [])
+
+    cond do
+      not_ok != [] ->
+        show_not_ok!(not_ok)
+      compile == [] or no_compile? ->
+        :ok
+      true ->
+        Mix.Tasks.Deps.Compile.compile(compile)
+        show_not_ok! compile
+                     |> Enum.map(& &1.app)
+                     |> loaded_by_name(env: Mix.env)
+                     |> Enum.filter(&(not ok?(&1)))
     end
   end
 

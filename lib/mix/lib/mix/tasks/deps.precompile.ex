@@ -11,9 +11,16 @@ defmodule Mix.Tasks.Deps.Precompile do
       aliases: ["deps.precompile": ["nerves.precompile", "deps.precompile"]]
 
   By default, this task has a single responsibility
-  of loading all dependencies paths.
+  of loading all dependencies paths. The dependency
+  loading is ad-hoc on purpose, to load as much as
+  it can without validating it.
   """
   def run(_) do
-    Mix.Task.run "deps.loadpaths"
+    config = Mix.Project.config
+    Mix.Project.build_path(config)
+    |> Path.join("lib/*/ebin")
+    |> Path.wildcard
+    |> List.delete(config[:app] && Mix.Project.compile_path(config))
+    |> Enum.each(&Code.prepend_path/1)
   end
 end

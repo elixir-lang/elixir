@@ -23,7 +23,7 @@ defmodule Mix.Tasks.Loadpaths do
     # --no-deps is used only internally. It has not purpose
     # from Mix.CLI because the CLI itself already loads deps.
     unless "--no-deps" in args do
-      load_deps(config, args)
+      Mix.Task.run "deps.check", args
     end
 
     if config[:app] do
@@ -46,14 +46,6 @@ defmodule Mix.Tasks.Loadpaths do
           Mix.raise "Invalid Elixir version requirement #{req} in mix.exs file"
       end
     end
-  end
-
-  defp load_deps(_config, args) do
-    unless "--no-deps-check" in args do
-      Mix.Task.run "deps.check", args
-    end
-
-    Mix.Task.run "deps.loadpaths"
   end
 
   defp load_project(config, _args) do
