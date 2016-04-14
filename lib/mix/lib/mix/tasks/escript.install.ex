@@ -22,7 +22,9 @@ defmodule Mix.Tasks.Escript.Install do
 
       ~/.mix/escripts/foo
 
-  For convenience, consider adding `~/.mix/escripts` directory to your `PATH` environment variable.
+  For convenience, consider adding `~/.mix/escripts` directory to your
+  `PATH` environment variable. For more information, check the wikipedia
+  article on PATH: https://en.wikipedia.org/wiki/PATH_(variable)
 
   ## Command line options
 
@@ -63,7 +65,7 @@ defmodule Mix.Tasks.Escript.Install do
       :ok
     else
       File.rm_rf(dst)
-      {:error, "File is not an escript"}
+      {:error, "the given path does not point to an escript, installation aborted"}
     end
   end
 
@@ -84,12 +86,13 @@ defmodule Mix.Tasks.Escript.Install do
     executable = Path.basename(path)
     sys_path = System.find_executable(executable)
     if sys_path != path do
-      Mix.shell.info "\nConsider adding #{Mix.Local.path_for(:escript)} to your PATH\n"
-                  <> "to be able to invoke escripts by name."
+      Mix.shell.error "\nwarning: you must add #{Mix.Local.path_for(:escript)}\n" <>
+                      "to your PATH if you want to invoke escripts by name.\n"
     end
   end
 
   defp escript?(binary) do
-    binary_part(binary, 0, 2) == "#!"
+    parts = String.split(binary, "\n", parts: 4)
+    match?(["#!" <> _, _, _, <<80, 75, 3, 4, _::binary>>], parts)
   end
 end

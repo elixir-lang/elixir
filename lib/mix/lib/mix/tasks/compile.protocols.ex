@@ -80,7 +80,7 @@ defmodule Mix.Tasks.Compile.Protocols do
   end
 
   defp protocols_and_impls(config) do
-    deps = for(%{scm: scm, app: app, opts: opts} <- Mix.Dep.children,
+    deps = for(%{scm: scm, opts: opts} <- Mix.Dep.children,
                not scm.fetchable?,
                do: opts[:build])
 
