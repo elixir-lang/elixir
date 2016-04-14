@@ -243,6 +243,60 @@ defmodule StringTest do
     assert String.strip("\u2008a  abc  a\u2005") == "a  abc  a"
   end
 
+  test "pad_leading" do
+    assert String.pad_leading("", 5) == "     "
+    assert String.pad_leading("abc", 5) == "  abc"
+    assert String.pad_leading("  abc  ", 9) == "    abc  "
+    assert String.pad_leading("猫", 5) == "    猫"
+    assert String.pad_leading("-", 0) == "-"
+    assert String.pad_leading("-", 1) == "-"
+
+    assert String.pad_leading("---", 5, "abc") == "ab---"
+    assert String.pad_leading("---", 9, "abc") == "abcabc---"
+
+    assert String.pad_leading("---", 5, ["abc"]) == "abcabc---"
+    assert String.pad_leading("--", 6, ["a", "bc"]) == "abcabc--"
+
+    assert_raise FunctionClauseError, fn ->
+      String.pad_leading("-", -1)
+    end
+    assert_raise FunctionClauseError, fn ->
+      String.pad_leading("-", 1, [])
+    end
+
+    message = "expected a string padding element, got: 10"
+    assert_raise ArgumentError, message, fn ->
+      String.pad_leading("-", 3, ["-", 10])
+    end
+  end
+
+  test "pad_trailing" do
+    assert String.pad_trailing("", 5) == "     "
+    assert String.pad_trailing("abc", 5) == "abc  "
+    assert String.pad_trailing("  abc  ", 9) == "  abc    "
+    assert String.pad_trailing("猫", 5) == "猫    "
+    assert String.pad_trailing("-", 0) == "-"
+    assert String.pad_trailing("-", 1) == "-"
+
+    assert String.pad_trailing("---", 5, "abc") == "---ab"
+    assert String.pad_trailing("---", 9, "abc") == "---abcabc"
+
+    assert String.pad_trailing("---", 5, ["abc"]) == "---abcabc"
+    assert String.pad_trailing("--", 6, ["a", "bc"]) == "--abcabc"
+
+    assert_raise FunctionClauseError, fn ->
+      String.pad_trailing("-", -1)
+    end
+    assert_raise FunctionClauseError, fn ->
+      String.pad_trailing("-", 1, [])
+    end
+
+    message = "expected a string padding element, got: 10"
+    assert_raise ArgumentError, message, fn ->
+      String.pad_trailing("-", 3, ["-", 10])
+    end
+  end
+
   test "rjust" do
     assert String.rjust("", 5) == "     "
     assert String.rjust("abc", 5) == "  abc"
