@@ -22,7 +22,7 @@ defmodule Mix.Local.Installer do
   @doc """
   Custom actions to be performed after the installation has succeeded.
   """
-  @callback after_install(Path.t, [Path.t]) :: term
+  @callback after_install(Path.t,  binary, [Path.t]) :: :ok | {:error, String.t}
 
   @doc """
   Common implementation of installation for archives and escripts.
@@ -90,6 +90,10 @@ defmodule Mix.Local.Installer do
         {:ok, binary} ->
           File.mkdir_p!(dst_dir_path)
           File.write!(dst_file_path, binary)
+          case module.after_install(dst_file_path, binary, previous_files) do
+            :ok -> :ok
+            {:error, message} -> Mix.raise message
+          end
 
         :badpath ->
           Mix.raise "Expected #{inspect src} to be a URL or a local file path"
@@ -112,7 +116,6 @@ defmodule Mix.Local.Installer do
       end
 
       Mix.shell.info [:green, "* creating ", :reset, Path.relative_to_cwd(dst_file_path)]
-      _ = module.after_install(dst_file_path, previous_files)
       true
     else
       false

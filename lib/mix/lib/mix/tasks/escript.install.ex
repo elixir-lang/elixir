@@ -55,10 +55,16 @@ defmodule Mix.Tasks.Escript.Install do
     :ok
   end
 
-  def after_install(dst, _previous) do
-    File.chmod!(dst, @escript_file_mode)
-    write_bat!(dst <> ".bat", :os.type)
-    check_discoverability(dst)
+  def after_install(dst, binary, _previous) do
+    if escript?(binary) do
+      File.chmod!(dst, @escript_file_mode)
+      write_bat!(dst <> ".bat", :os.type)
+      check_discoverability(dst)
+      :ok
+    else
+      File.rm_rf(dst)
+      {:error, "File is not an escript"}
+    end
   end
 
   ### Private helpers
@@ -81,5 +87,9 @@ defmodule Mix.Tasks.Escript.Install do
       Mix.shell.info "\nConsider adding #{Mix.Local.path_for(:escript)} to your PATH\n"
                   <> "to be able to invoke escripts by name."
     end
+  end
+
+  defp escript?(binary) do
+    binary_part(binary, 0, 2) == "#!"
   end
 end

@@ -65,11 +65,12 @@ defmodule Mix.Tasks.Archive.Install do
     check_file_exists(src, dst_path)
   end
 
-  def after_install(dst, previous) do
+  def after_install(dst, _binary, previous) do
     ebin = Mix.Local.archive_ebin(dst)
     Mix.Local.check_elixir_version_in_ebin(ebin)
     unless dst in previous, do: remove_previous_versions(previous)
     true = Code.append_path(ebin)
+    :ok
   end
 
   ### Private helpers
