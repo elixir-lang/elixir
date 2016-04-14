@@ -168,7 +168,7 @@ bar \"""
       sec_data::binary>>
   end
 
-  test "bitsyntax size shorcut" do
+  test "bitsyntax size shortcut" do
     assert <<1::3>> == <<1::size(3)>>
     assert <<1::3 * 8>> == <<1::size(3)-unit(8)>>
   end
