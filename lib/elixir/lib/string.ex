@@ -814,6 +814,126 @@ defmodule String do
   end
 
   @doc ~S"""
+  Returns a new string padded with a leading filler
+  which is made of elements from the `padding`.
+
+  Passing a list of strings as `padding` will take one element of the list
+  for every missing entry. If the list is shorter than the number of inserts,
+  the filling will start again from the beginning of the list.
+  Passing a string `padding` is equivalent to passing the list of graphemes in it.
+  If no `padding` is given, it defaults to whitespace.
+
+  When `count` is less than or equal to the length of `string`,
+  given `string` is returned.
+
+  Raises `ArgumentError` if the given `padding` contains non-string element.
+
+  ## Examples
+
+      iex> String.pad_leading("abc", 5)
+      "  abc"
+
+      iex> String.pad_leading("abc", 4, "12")
+      "1abc"
+
+      iex> String.pad_leading("abc", 6, "12")
+      "121abc"
+
+      iex> String.pad_leading("abc", 5, ["1", "23"])
+      "123abc"
+
+  """
+  @spec pad_leading(t, non_neg_integer, t | [t]) :: t
+  def pad_leading(string, count, padding \\ [" "])
+
+  def pad_leading(string, count, padding) when is_binary(padding) do
+    pad_leading(string, count, graphemes(padding))
+  end
+
+  def pad_leading(string, count, [_ | _] = padding)
+      when is_binary(string) and is_integer(count) and count >= 0 do
+    pad(:leading, string, count, padding)
+  end
+
+  @doc ~S"""
+  Returns a new string padded with a trailing filler
+  which is made of elements from the `padding`.
+
+  Passing a list of strings as `padding` will take one element of the list
+  for every missing entry. If the list is shorter than the number of inserts,
+  the filling will start again from the beginning of the list.
+  Passing a string `padding` is equivalent to passing the list of graphemes in it.
+  If no `padding` is given, it defaults to whitespace.
+
+  When `count` is less than or equal to the length of `string`,
+  given `string` is returned.
+
+  Raises `ArgumentError` if the given `padding` contains non-string element.
+
+  ## Examples
+
+      iex> String.pad_trailing("abc", 5)
+      "abc  "
+
+      iex> String.pad_trailing("abc", 4, "12")
+      "abc1"
+
+      iex> String.pad_trailing("abc", 6, "12")
+      "abc121"
+
+      iex> String.pad_trailing("abc", 5, ["1", "23"])
+      "abc123"
+
+  """
+  @spec pad_trailing(t, non_neg_integer, t | [t]) :: t
+  def pad_trailing(string, count, padding \\ [" "])
+
+  def pad_trailing(string, count, padding) when is_binary(padding) do
+    pad_trailing(string, count, graphemes(padding))
+  end
+
+  def pad_trailing(string, count, [_ | _] = padding)
+      when is_binary(string) and is_integer(count) and count >= 0 do
+    pad(:trailing, string, count, padding)
+  end
+
+  defp pad(kind, string, count, padding) do
+    string_len = length(string)
+    if string_len >= count do
+      string
+    else
+      filler = build_filler(count - string_len, padding, padding, 0, [])
+      case kind do
+        :leading -> [filler | string]
+        :trailing -> [string | filler]
+      end
+      |> IO.iodata_to_binary
+    end
+  end
+
+  defp build_filler(0, _source, _padding, _size, filler), do: filler
+
+  defp build_filler(count, source, [], size, filler) do
+    rem_filler =
+      rem(count, size)
+      |> build_filler(source, source, 0, [])
+    filler =
+      filler
+      |> IO.iodata_to_binary
+      |> duplicate(div(count, size) + 1)
+    [filler | rem_filler]
+  end
+
+  defp build_filler(count, source, [elem | rest], size, filler)
+      when is_binary(elem) do
+    build_filler(count - 1, source, rest, size + 1, [filler | elem])
+  end
+
+  defp build_filler(_count, _source, [elem | _rest], _size, _filler) do
+    raise ArgumentError, "expected a string padding element, got: #{inspect(elem)}"
+  end
+
+  @doc ~S"""
   Returns a new string of length `len` with `subject` right justified and
   padded with `pad`. If `pad` is not present, it defaults to
   whitespace. When `len` is less than the length of `subject`, `subject` is
