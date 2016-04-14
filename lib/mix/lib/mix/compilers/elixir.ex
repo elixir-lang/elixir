@@ -230,7 +230,7 @@ defmodule Mix.Compilers.Elixir do
 
   defp stale_local_deps(manifest, modified) do
     base = Path.basename(manifest)
-    for %{scm: scm, opts: opts} = dep <- Mix.Dep.children,
+    for %{scm: scm, opts: opts} = dep <- Mix.Dep.cached(),
         not scm.fetchable?,
         Mix.Utils.last_modified(Path.join(opts[:build], base)) > modified,
         path <- Mix.Dep.load_paths(dep),

@@ -167,7 +167,7 @@ defmodule Mix.Tasks.Escript.Build do
   end
 
   defp deps_files() do
-    deps = Mix.Dep.loaded(env: Mix.env) || []
+    deps = Mix.Dep.cached()
     Enum.flat_map(deps, fn dep -> get_files(dep.opts[:build]) end)
   end
 

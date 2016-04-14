@@ -319,6 +319,7 @@ defmodule Mix.DepTest do
           Mix.Tasks.Deps.Check.run([])
         end
 
+        Mix.ProjectStack.clear_cache()
         Mix.env(:prod)
         Mix.Tasks.Deps.Check.run([])
       end
