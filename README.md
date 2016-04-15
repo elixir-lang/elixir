@@ -1,6 +1,6 @@
 ![Elixir](https://github.com/elixir-lang/elixir-lang.github.com/raw/master/images/logo/logo.png)
 =========
-[![Build Status](https://secure.travis-ci.org/elixir-lang/elixir.svg?branch=master 
+[![Build Status](https://secure.travis-ci.org/elixir-lang/elixir.svg?branch=master
 "Build Status")](https://travis-ci.org/elixir-lang/elixir)
 
 For more about Elixir, installation and documentation,
@@ -85,8 +85,10 @@ case you are looking for some examples:
 * [Add String.valid? – Pull Request](https://github.com/elixir-lang/elixir/pull/1058)
 * [Implement capture_io for ExUnit – Pull Request](https://github.com/elixir-lang/elixir/pull/1059)
 
-We usually keep a list of features and bugs [in the issue tracker][2]. Remember
-all interactions on our repositories follow our [Code of Conduct][8].
+We usually keep a list of enhancements and bugs [in the issue tracker][2].
+For proposing a new feature, please start a discussion in the
+[Elixir Core mailing list][3]. Remember all interactions in our
+official spaces follow our [Code of Conduct][8].
 
 ## Building documentation
 
@@ -107,21 +109,19 @@ the `doc` directory. If you are planning to contribute documentation,
 ## Important links
 
   * [Elixir Website][1]
-  * [Elixir Documentation][7]
-  * **[#elixir-lang][5]** on [Freenode][6] IRC
+  * [Elixir Documentation][6]
+  * [Elixir Core Mailing list (development)][3]
   * [Issues tracker][2]
-  * [Code of Conduct][8]
-  * [elixir-talk Mailing list (questions)][3]
-  * [elixir-core Mailing list (development)][4]
+  * [Code of Conduct][7]
+  * **[#elixir-lang][4]** on [Freenode][5] IRC
 
   [1]: http://elixir-lang.org
   [2]: https://github.com/elixir-lang/elixir/issues
-  [3]: https://groups.google.com/group/elixir-lang-talk
-  [4]: https://groups.google.com/group/elixir-lang-core
-  [5]: https://webchat.freenode.net/?channels=#elixir-lang
-  [6]: http://www.freenode.net
-  [7]: http://elixir-lang.org/docs.html
-  [8]: CODE_OF_CONDUCT.md
+  [3]: https://groups.google.com/group/elixir-lang-core
+  [4]: https://webchat.freenode.net/?channels=#elixir-lang
+  [5]: http://www.freenode.net
+  [6]: http://elixir-lang.org/docs.html
+  [7]: CODE_OF_CONDUCT.md
 
 ## License
 
