@@ -65,7 +65,7 @@ defmodule Mix.Tasks.Escript.Install do
       :ok
     else
       File.rm_rf(dst)
-      {:error, "the given path does not point to an escript, installation aborted"}
+      {:error, "The given path does not point to an escript, installation aborted"}
     end
   end
 
