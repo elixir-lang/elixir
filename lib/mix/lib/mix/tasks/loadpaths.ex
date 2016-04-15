@@ -4,6 +4,11 @@ defmodule Mix.Tasks.Loadpaths do
   @moduledoc """
   Loads the application and its dependencies paths.
 
+  ## Configuration
+
+    * `:elixir` - matches the current elixir version against the
+      given requirement
+
   ## Command line options
 
     * `--no-archives-check` - do not check archive

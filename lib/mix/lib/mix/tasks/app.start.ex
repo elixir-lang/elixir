@@ -14,6 +14,17 @@ defmodule Mix.Tasks.App.Start do
   which guarantee the node will shutdown in case the application
   crashes permanently.
 
+  ## Configuration
+
+    * `:start_permanent` - the application and all of its children
+      applications are started in permanent mode
+
+    * `:consolidate_protocols` - when `true`, loads consolidated
+      protocols before start
+
+    * `:elixir` - matches the current elixir version against the
+      given requirement
+
   ## Command line options
 
     * `--force` - force compilation regardless of compilation times
