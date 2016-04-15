@@ -1,6 +1,6 @@
 defmodule Access do
   @moduledoc """
-  Key-based access to data structures via the `foo[bar]` bracket syntax.
+  Key-based access to data structures using the `foo[bar]` syntax.
 
   Elixir provides two syntaxes for accessing values. `user[:name]`
   is used by dynamic structures, like maps and keywords, while
@@ -51,8 +51,9 @@ defmodule Access do
       nil
 
   Since Access is a behaviour, it can be implemented to key-value
-  data structures. Access requires the key comparison to be
-  implemented using the `===` operator.
+  data structures. The implementation should be added to the
+  module that defines the struct being access. Access requires the
+  key comparison to be implemented using the `===` operator.
 
   ## Field-based lookups
 
