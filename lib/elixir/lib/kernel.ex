@@ -2685,8 +2685,12 @@ defmodule Kernel do
 
       Enum.map(List.flatten([1, [2], 3]), fn x -> x * 2 end)
 
-  Beware of operator precedence when using the pipe operator.
-  For example, the following expression:
+  ## Pitfalls
+
+  There are two common pitfalls when using the pipe operator.
+
+  The first one is related to operator precedence. For example,
+  the following expression:
 
       String.graphemes "Hello" |> Enum.reverse
 
@@ -2703,6 +2707,32 @@ defmodule Kernel do
 
       "Hello" |> String.graphemes |> Enum.reverse
 
+  The second pitfall is that the `|>` operator works on calls.
+  For example, when you write:
+
+      "Hello" |> some_function()
+
+  Elixir sees the right-hand side is a function call and pipes
+  to it. This means that, if you want to pipe to an anonymous
+  or captured function, it must also be explicitly called.
+
+  Given the anonymous function:
+
+      fun = fn x -> IO.puts(x) end
+      fun.("Hello")
+
+  This won't work as it will rather try to invoke the local
+  function `fun`:
+
+      "Hello" |> fun()
+
+  This works:
+
+      "Hello" |> fun.()
+
+  As you can see, the `|>` operator retains the same semantics
+  as when the pipe is not used since both require the `fun.(...)`
+  notation.
   """
   defmacro left |> right do
     [{h, _}|t] = Macro.unpipe({:|>, [], [left, right]})
