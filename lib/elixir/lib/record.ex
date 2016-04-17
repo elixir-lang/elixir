@@ -298,13 +298,11 @@ defmodule Record do
   defp create(atom, fields, keyword, caller) do
     in_match = Macro.Env.in_match?(caller)
 
-    #backward compatiblity for Erlang, a :_ key sets all fields to a default value
+    # Backward compatiblity for Erlang, a :_ key sets all fields to a default value
     {fields, keyword} = case Keyword.pop(keyword, :_) do
       {nil, _} -> {fields, keyword}
-      {defaultValue, keyword2} -> 
-        fields2 = Enum.reduce fields, [], fn({k, _}, acc) ->
-          [{k,defaultValue}|acc]
-        end
+      {default_value, keyword2} -> 
+        fields2 = Enum.map(fields, fn {k, _} -> {k, default_value} end)
         {fields2, keyword2}
     end
 
@@ -336,6 +334,14 @@ defmodule Record do
   defp update(atom, fields, var, keyword, caller) do
     if Macro.Env.in_match?(caller) do
       raise ArgumentError, "cannot invoke update style macro inside match"
+    end
+
+    # Backward compatiblity for Erlang, a :_ key sets all fields to a default value
+    keyword = case Keyword.pop(keyword, :_) do
+      {nil, _} -> keyword
+      {default_value, keyword2} -> 
+        keyword_prepend = Enum.map(fields, fn {k, _} -> {k, default_value} end)
+        keyword_prepend ++ keyword2
     end
 
     Enum.reduce keyword, var, fn({key, value}, acc) ->
