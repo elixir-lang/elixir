@@ -170,6 +170,13 @@ defmodule Access do
     end
   end
 
+  def get!(container, key, default \\ nil) do
+    case fetch(container, key) do
+      {:ok, value} -> value
+      :error -> raise ArgumentError, "map does not have the key: #{inspect key}"
+    end
+  end
+  
   @doc """
   Gets and updates the container's value for the given key, in a single pass.
 
