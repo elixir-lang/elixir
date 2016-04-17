@@ -299,10 +299,11 @@ defmodule Record do
     in_match = Macro.Env.in_match?(caller)
 
     #backward compatiblity for Erlang, a :_ key sets all fields to a default value
-    {fields, keyword} = case Dict.pop(keyword, :_) do
+    {fields, keyword} = case Keyword.pop(keyword, :_) do
       {nil, _} -> {fields, keyword}
-      {defaultValue, keyword2} -> fields2 = Enum.reduce fields, [], fn({k,v}, acc) ->
-          acc ++ [{k,defaultValue}]
+      {defaultValue, keyword2} -> 
+        fields2 = Enum.reduce fields, [], fn({k, _}, acc) ->
+          [{k,defaultValue}|acc]
         end
         {fields2, keyword2}
     end
