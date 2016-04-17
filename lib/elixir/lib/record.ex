@@ -298,6 +298,15 @@ defmodule Record do
   defp create(atom, fields, keyword, caller) do
     in_match = Macro.Env.in_match?(caller)
 
+    #backward compatiblity for Erlang, a :_ key sets all fields to a default value
+    {fields, keyword} = case Dict.pop(keyword, :_) do
+      {nil, _} -> {fields, keyword}
+      {defaultValue, keyword2} -> fields2 = Enum.reduce fields, [], fn({k,v}, acc) ->
+          acc ++ [{k,defaultValue}]
+        end
+        {fields2, keyword2}
+    end
+
     {match, remaining} =
       Enum.map_reduce(fields, keyword, fn({field, default}, each_keyword) ->
         new_fields =
