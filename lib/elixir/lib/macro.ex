@@ -766,7 +766,7 @@ defmodule Macro do
   # Block keywords
   @kw_keywords [:do, :catch, :rescue, :after, :else]
 
-  defp kw_blocks?([_|_] = kw) do
+  defp kw_blocks?([{:do, _} | _] = kw) do
     Enum.all?(kw, &match?({x, _} when x in unquote(@kw_keywords), &1))
   end
   defp kw_blocks?(_), do: false
