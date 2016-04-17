@@ -467,6 +467,8 @@ defmodule MacroTest do
     assert Macro.to_string(quote do: {[]}) == "{[]}"
     assert Macro.to_string(quote do: {[a: b]}) == "{[a: b]}"
     assert Macro.to_string(quote do: {x, a: b}) == "{x, [a: b]}"
+    assert Macro.to_string(quote do: foo(else: a)) == "foo(else: a)"
+    assert Macro.to_string(quote do: foo(catch: a)) == "foo(catch: a)"
   end
 
   test "to string with fun" do
