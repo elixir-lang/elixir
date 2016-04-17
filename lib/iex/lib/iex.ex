@@ -440,8 +440,6 @@ defmodule IEx do
 
     # We cannot use colors because IEx may be off.
     case res do
-      {:error, :self} ->
-        IO.puts :stdio, "IEx cannot pry the shell itself."
       {:error, :no_iex} ->
         extra =
           case :os.type do
