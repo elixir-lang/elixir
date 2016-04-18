@@ -59,14 +59,19 @@ defmodule RecordTest do
     refute record?(13)
   end
 
-  Record.defrecord  :timestamp, [:date, :time]
-  Record.defrecord  :user, __MODULE__, name: "john", age: 25
+  Record.defrecord :timestamp, [:date, :time]
+  Record.defrecord :user, __MODULE__, name: "john", age: 25
+
   Record.defrecordp :file_info,
     Record.extract(:file_info, from_lib: "kernel/include/file.hrl")
   Record.defrecordp :certificate, :OTPCertificate,
     Record.extract(:OTPCertificate, from_lib: "public_key/include/public_key.hrl")
 
-  test "records generates macros that generates tuples" do
+  test "records are tagged" do
+    assert elem(file_info(), 0) == :file_info
+  end
+
+  test "records macros" do
     record = user()
     assert user(record, :name) == "john"
     assert user(record, :age)  == 25
@@ -83,8 +88,17 @@ defmodule RecordTest do
     assert user(:name) == 1
   end
 
-  test "records with no tag" do
-    assert elem(file_info(), 0) == :file_info
+  test "records with default values" do
+    record = user(_: :_, name: "meg")
+    assert user(record, :name) == "meg"
+    assert user(record, :age) == :_
+
+    assert match?(user(_: _), user())
+    refute match?(user(_: "other"), user())
+
+    record = user(user(), _: :_, name: "meg")
+    assert user(record, :name) == "meg"
+    assert user(record, :age) == :_
   end
 
   test "records with dynamic arguments" do
