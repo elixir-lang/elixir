@@ -578,7 +578,7 @@ defmodule Map do
 
   ## Examples
 
-      iex> Map.get_and_update!(%{a: 1}, :a, fn(current_value) ->
+      iex> Map.get_and_update!(%{a: 1}, :a, fn current_value ->
       ...>   {current_value, "new value!"}
       ...> end)
       {1, %{a: "new value!"}}
@@ -588,13 +588,20 @@ defmodule Map do
       ...> end)
       ** (KeyError) key :b not found
 
+      iex> Map.get_and_update!(%{a: 1}, :a, fn _ ->
+      ...>   :pop
+      ...> end)
+      {1, %{}}
+
   """
   @spec get_and_update!(map, key, (value -> {get, value})) :: {get, map} | no_return when get: term
   def get_and_update!(%{} = map, key, fun) do
     case :maps.find(key, map) do
       {:ok, value} ->
-        {get, update} = fun.(value)
-        {get, :maps.put(key, update, map)}
+        case fun.(value) do
+          {get, update} -> {get, :maps.put(key, update, map)}
+          :pop          -> {value, :maps.remove(key, map)}
+        end
       :error ->
         :erlang.error({:badkey, key})
     end

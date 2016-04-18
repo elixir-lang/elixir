@@ -254,7 +254,7 @@ defmodule Keyword do
 
   ## Examples
 
-      iex> Keyword.get_and_update!([a: 1], :a, fn(current_value) ->
+      iex> Keyword.get_and_update!([a: 1], :a, fn current_value ->
       ...>   {current_value, "new value!"}
       ...> end)
       {1, [a: "new value!"]}
@@ -264,6 +264,11 @@ defmodule Keyword do
       ...> end)
       ** (KeyError) key :b not found in: [a: 1]
 
+      iex> Keyword.get_and_update!([a: 1], :a, fn _ ->
+      ...>   :pop
+      ...> end)
+      {1, []}
+
   """
   @spec get_and_update!(t, key, (value -> {get, value})) :: {get, t} | no_return when get: term
   def get_and_update!(keywords, key, fun) do
@@ -271,8 +276,12 @@ defmodule Keyword do
   end
 
   defp get_and_update!([{key, value}|keywords], key, fun, acc) do
-    {get, value} = fun.(value)
-    {get, :lists.reverse(acc, [{key, value}|delete(keywords, key)])}
+    case fun.(value) do
+      {get, value} ->
+        {get, :lists.reverse(acc, [{key, value}|delete(keywords, key)])}
+      :pop ->
+        {value, :lists.reverse(acc, keywords)}
+    end
   end
 
   defp get_and_update!([{_, _} = e|keywords], key, fun, acc) do

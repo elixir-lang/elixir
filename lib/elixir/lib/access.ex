@@ -173,13 +173,15 @@ defmodule Access do
   @doc """
   Gets and updates the container's value for the given key, in a single pass.
 
-  The argument function `fun` must receive the value for the given `key` (or
-  `nil` if the key doesn't exist in `container`). It must return a tuple
-  containing the `get` value and the new value to be stored in the `container`.
+  This `fun` argument receives the value of `key` (or `nil` if `key`
+  is not present) and must return a two-element tuple: the "get" value
+  (the retrieved value, which can be operated on before being returned)
+  and the new value to be stored under `key`. The `fun` may also
+  return `:pop`, implying the current value shall be removed
+  from the map and returned.
 
-  This function returns a two-element tuple.
-  The first element is the `get` value, as returned by `fun`.
-  The second element is the container, updated with the value returned by `fun`.
+  The returned value is a tuple with the "get" value returned by
+  `fun` and a new map with the updated value under `key`.
   """
   @spec get_and_update(t, key, (value -> {get, value})) :: {get, t} when get: var
   def get_and_update(container, key, fun)
