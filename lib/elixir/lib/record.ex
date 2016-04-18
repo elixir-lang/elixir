@@ -297,25 +297,15 @@ defmodule Record do
   # Creates a new record with the given default fields and keyword values.
   defp create(atom, fields, keyword, caller) do
     in_match = Macro.Env.in_match?(caller)
-
-    # Backward compatiblity for Erlang, a :_ key sets all fields to a default value
-    {fields, keyword} = case Keyword.pop(keyword, :_) do
-      {nil, _} -> {fields, keyword}
-      {default_value, keyword2} -> 
-        fields2 = Enum.map(fields, fn {k, _} -> {k, default_value} end)
-        {fields2, keyword2}
-    end
+    keyword = apply_underscore(fields, keyword)
 
     {match, remaining} =
       Enum.map_reduce(fields, keyword, fn({field, default}, each_keyword) ->
         new_fields =
-          case Keyword.has_key?(each_keyword, field) do
-            true  -> Keyword.get(each_keyword, field)
-            false ->
-              case in_match do
-                true  -> {:_, [], nil}
-                false -> Macro.escape(default)
-              end
+          case Keyword.fetch(each_keyword, field) do
+            {:ok, value} -> value
+            :error when in_match -> {:_, [], nil}
+            :error -> Macro.escape(default)
           end
 
         {new_fields, Keyword.delete(each_keyword, field)}
@@ -336,13 +326,7 @@ defmodule Record do
       raise ArgumentError, "cannot invoke update style macro inside match"
     end
 
-    # Backward compatiblity for Erlang, a :_ key sets all fields to a default value
-    keyword = case Keyword.pop(keyword, :_) do
-      {nil, _} -> keyword
-      {default_value, keyword2} -> 
-        keyword_prepend = Enum.map(fields, fn {k, _} -> {k, default_value} end)
-        keyword_prepend ++ keyword2
-    end
+    keyword = apply_underscore(fields, keyword)
 
     Enum.reduce keyword, var, fn({key, value}, acc) ->
       index = find_index(fields, key, 0)
@@ -388,4 +372,16 @@ defmodule Record do
     do: join_keyword(fields, values, [{field, value}| acc])
   defp join_keyword([], [], acc),
     do: :lists.reverse(acc)
+
+  defp apply_underscore(fields, keyword) do
+    case Keyword.fetch(keyword, :_) do
+      {:ok, default} ->
+        fields
+        |> Enum.map(fn {k, _} -> {k, default} end)
+        |> Keyword.merge(keyword)
+        |> Keyword.delete(:_)
+      :error ->
+        keyword
+    end
+  end
 end
