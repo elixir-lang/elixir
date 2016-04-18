@@ -38,6 +38,14 @@ defmodule Mix.Shell.IO do
   end
 
   @doc """
+  Writes a warn message to the shell followed by new line.
+  """
+  def warn(message) do
+    print_app
+    IO.puts IO.ANSI.format(yellow(message))
+  end
+
+  @doc """
   Writes an error message to the shell followed by new line.
   """
   def error(message) do
@@ -73,5 +81,9 @@ defmodule Mix.Shell.IO do
 
   defp red(message) do
     [:red, :bright, message]
+  end
+
+  defp yellow(message) do
+    [:yellow, :bright, message]
   end
 end
