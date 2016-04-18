@@ -100,10 +100,10 @@ defmodule GenEvent do
         stream = GenEvent.stream(pid)
 
         # Discard the next 3 events
-        _ = Enum.take(stream, 3)
+        remaining = Enum.drop(stream, 3)
 
         # Print all remaining events
-        for event <- stream do
+        for event <- remaining do
           IO.inspect event
         end
       end
