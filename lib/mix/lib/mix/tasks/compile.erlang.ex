@@ -55,12 +55,16 @@ defmodule Mix.Tasks.Compile.Erlang do
   @spec run(OptionParser.argv) :: :ok | :noop
   def run(args) do
     {opts, _, _} = OptionParser.parse(args, switches: [force: :boolean])
-
     project      = Mix.Project.config
     source_paths = project[:erlc_paths]
+    files        = Mix.Utils.extract_files(source_paths, [:erl])
+    do_run(files, opts, project, source_paths)
+  end
+
+  defp do_run([], _, _, _), do: :noop
+  defp do_run(files, opts, project, source_paths) do
     include_path = to_erl_file project[:erlc_include_path]
     compile_path = to_erl_file Mix.Project.compile_path(project)
-    files        = Mix.Utils.extract_files(source_paths, [:erl])
 
     erlc_options = project[:erlc_options] || []
     erlc_options = erlc_options ++ [{:outdir, compile_path}, {:i, include_path}, :report]
