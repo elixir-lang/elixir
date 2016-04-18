@@ -66,7 +66,7 @@ parse_error(Line, File, <<"syntax error before: ">>, <<"{sigil,", _Rest/binary>>
     true -> Content;
     false -> <<>>
   end,
-  Message = <<"syntax error before: sigil ~", Sigil," starting with content '", Content2/binary, "'">>,
+  Message = <<"syntax error before: sigil ~", Sigil, " starting with content '", Content2/binary, "'">>,
   do_raise(Line, File, 'Elixir.SyntaxError', Message);
 
 %% Aliases are wrapped in ['']

@@ -47,7 +47,7 @@ defmodule Mix.RebarTest do
   end
 
   test "parse rebar dependencies" do
-    config = [deps: [{:git_rebar, '~> 1.0',}]]
+    config = [deps: [{:git_rebar, '~> 1.0'}]]
     assert [{:git_rebar, "~> 1.0"}] ==
            Mix.Rebar.deps(:foo, config, [])
 

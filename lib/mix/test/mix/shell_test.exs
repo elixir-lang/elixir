@@ -4,11 +4,11 @@ defmodule Mix.ShellTest do
   use MixTest.Case
 
   defp capture_io(somefunc) do
-    ExUnit.CaptureIO.capture_io(somefunc) |> String.replace("\r\n","\n")
+    ExUnit.CaptureIO.capture_io(somefunc) |> String.replace("\r\n", "\n")
   end
 
   defp capture_io(from, somefunc) do
-    ExUnit.CaptureIO.capture_io(from, somefunc) |> String.replace("\r\n","\n")
+    ExUnit.CaptureIO.capture_io(from, somefunc) |> String.replace("\r\n", "\n")
   end
 
   setup do

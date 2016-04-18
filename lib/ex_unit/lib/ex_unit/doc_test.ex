@@ -553,7 +553,7 @@ defmodule ExUnit.DocTest do
   end
 
   # Encountered an empty line, store pending test
-  defp extract_tests([{"",_}|lines], expr_acc, expected_acc, [test=%{exprs: exprs}|t], _) do
+  defp extract_tests([{"", _}|lines], expr_acc, expected_acc, [test=%{exprs: exprs}|t], _) do
     test = %{test | exprs: [{expr_acc, {:test, expected_acc}} | exprs]}
     extract_tests(lines, "", "", [test|t], true)
   end

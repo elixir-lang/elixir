@@ -311,7 +311,7 @@ defmodule Code do
 
   ## Examples
 
-      Code.load_file("eex_test.exs","../eex/test") |> List.first
+      Code.load_file("eex_test.exs", "../eex/test") |> List.first
       #=> {EExTest.Compiled, <<70, 79, 82, 49, ...>>}
 
   """
@@ -343,11 +343,11 @@ defmodule Code do
 
   If the code is already loaded, it returns `nil`:
 
-      Code.require_file("eex_test.exs","../eex/test") #=> nil
+      Code.require_file("eex_test.exs", "../eex/test") #=> nil
 
   If the code is not loaded yet, it returns the same as `load_file/2`:
 
-      Code.require_file("eex_test.exs","../eex/test") |> List.first
+      Code.require_file("eex_test.exs", "../eex/test") |> List.first
       #=> {EExTest.Compiled, <<70, 79, 82, 49, ...>>}
 
   """

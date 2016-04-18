@@ -427,7 +427,7 @@ defmodule ExUnit.AssertionsTest do
   rescue
     ExUnit.AssertionError ->
       stacktrace = System.stacktrace
-      [{Not.Defined, :function, [1,2,3], _}|_] = stacktrace
+      [{Not.Defined, :function, [1, 2, 3], _}|_] = stacktrace
   end
 
   test "assert raise with erlang error" do

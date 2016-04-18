@@ -111,27 +111,27 @@ unescape_hex(<<A, Rest/binary>>, Map, Acc) when ?is_hex(A) ->
   io:format(standard_error, "warning: \\xH inside strings/sigils/chars is deprecated, please use \\xHH (byte) or \\uHHHH (codepoint) instead~n", []),
   append_codepoint(Rest, Map, [A], Acc, 16);
 
-unescape_hex(<<${,A,$}, Rest/binary>>, Map, Acc) when ?is_hex(A) ->
+unescape_hex(<<${, A, $}, Rest/binary>>, Map, Acc) when ?is_hex(A) ->
   io:format(standard_error, "warning: \\x{H*} inside strings/sigils/chars is deprecated, please use \\xHH (byte) or \\uHHHH (codepoint) instead~n", []),
   append_codepoint(Rest, Map, [A], Acc, 16);
 
-unescape_hex(<<${,A,B,$}, Rest/binary>>, Map, Acc) when ?is_hex(A), ?is_hex(B) ->
+unescape_hex(<<${, A, B, $}, Rest/binary>>, Map, Acc) when ?is_hex(A), ?is_hex(B) ->
   io:format(standard_error, "warning: \\x{H*} inside strings/sigils/chars is deprecated, please use \\xHH (byte) or \\uHHHH (codepoint) instead~n", []),
   append_codepoint(Rest, Map, [A, B], Acc, 16);
 
-unescape_hex(<<${,A,B,C,$}, Rest/binary>>, Map, Acc) when ?is_hex(A), ?is_hex(B), ?is_hex(C) ->
+unescape_hex(<<${, A, B, C, $}, Rest/binary>>, Map, Acc) when ?is_hex(A), ?is_hex(B), ?is_hex(C) ->
   io:format(standard_error, "warning: \\x{H*} inside strings/sigils/chars is deprecated, please use \\xHH (byte) or \\uHHHH (codepoint) instead~n", []),
   append_codepoint(Rest, Map, [A, B, C], Acc, 16);
 
-unescape_hex(<<${,A,B,C,D,$}, Rest/binary>>, Map, Acc) when ?is_hex(A), ?is_hex(B), ?is_hex(C), ?is_hex(D) ->
+unescape_hex(<<${, A, B, C, D, $}, Rest/binary>>, Map, Acc) when ?is_hex(A), ?is_hex(B), ?is_hex(C), ?is_hex(D) ->
   io:format(standard_error, "warning: \\x{H*} inside strings/sigils/chars is deprecated, please use \\xHH (byte) or \\uHHHH (codepoint) instead~n", []),
   append_codepoint(Rest, Map, [A, B, C, D], Acc, 16);
 
-unescape_hex(<<${,A,B,C,D,E,$}, Rest/binary>>, Map, Acc) when ?is_hex(A), ?is_hex(B), ?is_hex(C), ?is_hex(D), ?is_hex(E) ->
+unescape_hex(<<${, A, B, C, D, E, $}, Rest/binary>>, Map, Acc) when ?is_hex(A), ?is_hex(B), ?is_hex(C), ?is_hex(D), ?is_hex(E) ->
   io:format(standard_error, "warning: \\x{H*} inside strings/sigils/chars is deprecated, please use \\xHH (byte) or \\uHHHH (codepoint) instead~n", []),
   append_codepoint(Rest, Map, [A, B, C, D, E], Acc, 16);
 
-unescape_hex(<<${,A,B,C,D,E,F,$}, Rest/binary>>, Map, Acc) when ?is_hex(A), ?is_hex(B), ?is_hex(C), ?is_hex(D), ?is_hex(E), ?is_hex(F) ->
+unescape_hex(<<${, A, B, C, D, E, F, $}, Rest/binary>>, Map, Acc) when ?is_hex(A), ?is_hex(B), ?is_hex(C), ?is_hex(D), ?is_hex(E), ?is_hex(F) ->
   io:format(standard_error, "warning: \\x{H*} inside strings/sigils/chars is deprecated, please use \\xHH (byte) or \\uHHHH (codepoint) instead~n", []),
   append_codepoint(Rest, Map, [A, B, C, D, E, F], Acc, 16);
 
@@ -141,25 +141,25 @@ unescape_hex(<<_/binary>>, _Map, _Acc) ->
 
 %% Finish deprecated sequences
 
-unescape_unicode(<<A,B,C,D, Rest/binary>>, Map, Acc) when ?is_hex(A), ?is_hex(B), ?is_hex(C), ?is_hex(D) ->
+unescape_unicode(<<A, B, C, D, Rest/binary>>, Map, Acc) when ?is_hex(A), ?is_hex(B), ?is_hex(C), ?is_hex(D) ->
   append_codepoint(Rest, Map, [A, B, C, D], Acc, 16);
 
-unescape_unicode(<<${,A,$}, Rest/binary>>, Map, Acc) when ?is_hex(A) ->
+unescape_unicode(<<${, A, $}, Rest/binary>>, Map, Acc) when ?is_hex(A) ->
   append_codepoint(Rest, Map, [A], Acc, 16);
 
-unescape_unicode(<<${,A,B,$}, Rest/binary>>, Map, Acc) when ?is_hex(A), ?is_hex(B) ->
+unescape_unicode(<<${, A, B, $}, Rest/binary>>, Map, Acc) when ?is_hex(A), ?is_hex(B) ->
   append_codepoint(Rest, Map, [A, B], Acc, 16);
 
-unescape_unicode(<<${,A,B,C,$}, Rest/binary>>, Map, Acc) when ?is_hex(A), ?is_hex(B), ?is_hex(C) ->
+unescape_unicode(<<${, A, B, C, $}, Rest/binary>>, Map, Acc) when ?is_hex(A), ?is_hex(B), ?is_hex(C) ->
   append_codepoint(Rest, Map, [A, B, C], Acc, 16);
 
-unescape_unicode(<<${,A,B,C,D,$}, Rest/binary>>, Map, Acc) when ?is_hex(A), ?is_hex(B), ?is_hex(C), ?is_hex(D) ->
+unescape_unicode(<<${, A, B, C, D, $}, Rest/binary>>, Map, Acc) when ?is_hex(A), ?is_hex(B), ?is_hex(C), ?is_hex(D) ->
   append_codepoint(Rest, Map, [A, B, C, D], Acc, 16);
 
-unescape_unicode(<<${,A,B,C,D,E,$}, Rest/binary>>, Map, Acc) when ?is_hex(A), ?is_hex(B), ?is_hex(C), ?is_hex(D), ?is_hex(E) ->
+unescape_unicode(<<${, A, B, C, D, E, $}, Rest/binary>>, Map, Acc) when ?is_hex(A), ?is_hex(B), ?is_hex(C), ?is_hex(D), ?is_hex(E) ->
   append_codepoint(Rest, Map, [A, B, C, D, E], Acc, 16);
 
-unescape_unicode(<<${,A,B,C,D,E,F,$}, Rest/binary>>, Map, Acc) when ?is_hex(A), ?is_hex(B), ?is_hex(C), ?is_hex(D), ?is_hex(E), ?is_hex(F) ->
+unescape_unicode(<<${, A, B, C, D, E, F, $}, Rest/binary>>, Map, Acc) when ?is_hex(A), ?is_hex(B), ?is_hex(C), ?is_hex(D), ?is_hex(E), ?is_hex(F) ->
   append_codepoint(Rest, Map, [A, B, C, D, E, F], Acc, 16);
 
 unescape_unicode(<<_/binary>>, _Map, _Acc) ->
