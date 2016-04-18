@@ -25,22 +25,22 @@ defmodule FileTest do
     #
     # Renaming files
     # :ok               -> rename file to existing file default behaviour
-    # {:error,:eisdir}  -> rename file to existing empty dir
-    # {:error,:eisdir}  -> rename file to existing non empty dir
+    # {:error, :eisdir} -> rename file to existing empty dir
+    # {:error, :eisdir} -> rename file to existing non empty dir
     # :ok               -> rename file to non existing location
-    # {:error,:eexist}  -> rename file to existing file
+    # {:error, :eexist} -> rename file to existing file
     # :ok               -> rename file to itself
 
     # Renaming dirs
-    # {:error,:enotdir} -> rename dir to existing file
-    # :ok               -> rename dir to non existing leaf location
-    # {:error,??}       -> rename dir to non existing parent location
-    # :ok               -> rename dir to itself
-    # :ok               -> rename dir to existing empty dir default behaviour
-    # {:error,:eexist}  -> rename dir to existing empty dir
-    # {:error, :einval} -> rename parent dir to existing sub dir
-    # {:error, :einval} -> rename parent dir to non existing sub dir
-    # {:error,:eexist}  -> rename dir to existing non empty dir
+    # {:error, :enotdir} -> rename dir to existing file
+    # :ok                -> rename dir to non existing leaf location
+    # {:error, ??}       -> rename dir to non existing parent location
+    # :ok                -> rename dir to itself
+    # :ok                -> rename dir to existing empty dir default behaviour
+    # {:error, :eexist}  -> rename dir to existing empty dir
+    # {:error, :einval}  -> rename parent dir to existing sub dir
+    # {:error, :einval}  -> rename parent dir to non existing sub dir
+    # {:error, :eexist}  -> rename dir to existing non empty dir
 
     # other tests
     # {:error, :enoent} -> rename unknown source
@@ -70,7 +70,7 @@ defmodule FileTest do
 
       try do
         File.mkdir(dest)
-        assert File.rename(src, dest) == {:error,:eisdir}
+        assert File.rename(src, dest) == {:error, :eisdir}
         assert File.exists?(src)
         refute File.exists?(tmp_path("tmp/file.txt"))
       after
@@ -84,8 +84,8 @@ defmodule FileTest do
       dest = tmp_path("tmp")
 
       try do
-        File.mkdir_p(Path.join(dest,"a"))
-        assert File.rename(src, dest) == {:error,:eisdir}
+        File.mkdir_p(Path.join(dest, "a"))
+        assert File.rename(src, dest) == {:error, :eisdir}
         assert File.exists?(src)
         refute File.exists?(Path.join(dest, "file.txt"))
       after
@@ -293,7 +293,7 @@ defmodule FileTest do
         assert File.exists?(src)
         refute File.exists?(tmp_path("tmp/a"))
 
-        assert File.rename(src, dest) == {:error,:eexist}
+        assert File.rename(src, dest) == {:error, :eexist}
 
         assert File.exists?(tmp_path("tmp/x"))
         assert File.exists?(src)
@@ -333,7 +333,7 @@ defmodule FileTest do
     def tmp_fixture_path(extra) do
       src = fixture_path(extra)
       dest = tmp_path(extra)
-      File.cp_r(src,dest)
+      File.cp_r(src, dest)
       dest
     end
   end

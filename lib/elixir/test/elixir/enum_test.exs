@@ -211,7 +211,7 @@ defmodule EnumTest do
     assert Enum.into(%{a: 1, b: 2}, []) == [a: 1, b: 2]
     assert Enum.into([1, 2, 3], "numbers: ", &to_string/1) == "numbers: 123"
     assert Enum.into(1..3, []) == [1, 2, 3]
-    assert Enum.into(["H","i"], "") == "Hi"
+    assert Enum.into(["H", "i"], "") == "Hi"
     assert_raise FunctionClauseError, fn ->
       Enum.into([2, 3], %{}, &(&1))
     end

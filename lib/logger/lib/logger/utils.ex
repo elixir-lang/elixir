@@ -141,11 +141,11 @@ defmodule Logger.Utils do
 
   ## pad char
 
-  defp collect_cc(:pad_char, [?.,?*|t], [arg|args], used_format, used_args, opts),
-    do: collect_cc(:encoding, t, args, [?*,?.|used_format], [arg|used_args], opts)
+  defp collect_cc(:pad_char, [?., ?*|t], [arg|args], used_format, used_args, opts),
+    do: collect_cc(:encoding, t, args, [?*, ?.|used_format], [arg|used_args], opts)
 
-  defp collect_cc(:pad_char, [?.,p|t], args, used_format, used_args, opts),
-    do: collect_cc(:encoding, t, args, [p,?.|used_format], used_args, opts)
+  defp collect_cc(:pad_char, [?., p|t], args, used_format, used_args, opts),
+    do: collect_cc(:encoding, t, args, [p, ?.|used_format], used_args, opts)
 
   defp collect_cc(:pad_char, t, args, used_format, used_args, opts),
     do: collect_cc(:encoding, t, args, used_format, used_args, opts)
@@ -180,8 +180,8 @@ defmodule Logger.Utils do
     {t, args, [h|used_format], used_args}
   end
 
-  defp collect_cc(?x, [a,prefix|args], used), do: {args, [prefix, a|used]}
-  defp collect_cc(?X, [a,prefix|args], used), do: {args, [prefix, a|used]}
+  defp collect_cc(?x, [a, prefix|args], used), do: {args, [prefix, a|used]}
+  defp collect_cc(?X, [a, prefix|args], used), do: {args, [prefix, a|used]}
   defp collect_cc(?s, [a|args], used), do: {args, [a|used]}
   defp collect_cc(?e, [a|args], used), do: {args, [a|used]}
   defp collect_cc(?f, [a|args], used), do: {args, [a|used]}

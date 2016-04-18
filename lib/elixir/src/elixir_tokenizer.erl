@@ -401,7 +401,7 @@ tokenize([T|Rest], Line, Column, Scope, Tokens) when ?pipe_op(T) ->
 
 % Others
 
-tokenize([$%,${|T], Line, Column, Scope, Tokens) ->
+tokenize([$%, ${|T], Line, Column, Scope, Tokens) ->
   tokenize([${|T], Line, Column + 1, Scope, [{'%{}', {Line, Column, Column + 1}}|Tokens]);
 
 tokenize([$%|T], Line, Column, Scope, Tokens) ->
