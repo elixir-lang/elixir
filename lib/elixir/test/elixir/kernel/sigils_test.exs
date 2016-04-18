@@ -66,6 +66,10 @@ bar) == "foo\\\nbar"
     assert ~w(foo bar baz) == ["foo", "bar", "baz"]
     assert ~w(foo #{:bar} baz) == ["foo", "bar", "baz"]
 
+    assert ~w(#{""}) == []
+    assert ~w(foo #{""}) == ["foo"]
+    assert ~w(#{" foo bar "}) == ["foo", "bar"]
+
     assert ~w(foo\ #{:bar}) == ["foo", "bar"]
     assert ~w(foo\ bar) == ["foo", "bar"]
 
