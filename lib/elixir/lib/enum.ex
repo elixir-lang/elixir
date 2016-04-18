@@ -485,12 +485,14 @@ defmodule Enum do
     end) |> elem(1)
   end
 
-
   @doc """
   Enumerates the `enumerable`, returning a list where all consecutive
   duplicated elements are collapsed to a single element.
 
   Elements are compared using `===`.
+
+  If you want to remove all duplicated elements, regardless of order,
+  see `uniq/1`.
 
   ## Examples
 
@@ -2599,7 +2601,6 @@ defmodule Enum do
   defp sort_merge(list, fun, false), do:
     sort_merge(list, [], fun, false)
 
-
   defp sort_merge([t1, [h2 | t2] | l], acc, fun, true), do:
     sort_merge(l, [sort_merge_1(t1, h2, t2, [], fun, false) | acc], fun, true)
 
@@ -2614,7 +2615,6 @@ defmodule Enum do
   defp sort_merge([], acc, fun, bool), do:
     reverse_sort_merge(acc, [], fun, bool)
 
-
   defp reverse_sort_merge([[h2 | t2], t1 | l], acc, fun, true), do:
     reverse_sort_merge(l, [sort_merge_1(t1, h2, t2, [], fun, true) | acc], fun, true)
 
@@ -2627,7 +2627,6 @@ defmodule Enum do
   defp reverse_sort_merge([], acc, fun, bool), do:
     sort_merge(acc, [], fun, bool)
 
-
   defp sort_merge_1([h1 | t1], h2, t2, m, fun, bool) do
     if fun.(h1, h2) == bool do
       sort_merge_2(h1, t1, t2, [h2 | m], fun, bool)
@@ -2638,7 +2637,6 @@ defmodule Enum do
 
   defp sort_merge_1([], h2, t2, m, _fun, _bool), do:
     :lists.reverse(t2, [h2 | m])
-
 
   defp sort_merge_2(h1, t1, [h2 | t2], m, fun, bool) do
     if fun.(h1, h2) == bool do
