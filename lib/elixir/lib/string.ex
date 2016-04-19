@@ -588,7 +588,7 @@ defmodule String do
 
   """
   @spec rstrip(t) :: t
-  defdelegate rstrip(binary), to: String.Break
+  defdelegate rstrip(binary), to: String.Break, as: :trim_trailing
 
   @doc """
   Returns a string where all trailing `char`s have been removed.
@@ -760,7 +760,7 @@ defmodule String do
       "abc  "
 
   """
-  defdelegate lstrip(binary), to: String.Break
+  defdelegate lstrip(binary), to: String.Break, as: :trim_leading
 
   @doc """
   Returns a string where all leading `char`s have been removed.
@@ -811,6 +811,100 @@ defmodule String do
   @spec strip(t, char) :: t
   def strip(string, char) do
     rstrip(lstrip(string, char), char)
+  end
+
+  @doc ~S"""
+  Returns a string where all leading Unicode whitespaces
+  have been removed.
+
+  ## Examples
+
+      iex> String.trim_leading("\n  abc   ")
+      "abc   "
+
+  """
+  @spec trim_leading(t) :: t
+  defdelegate trim_leading(string), to: String.Break
+
+  @doc """
+  Returns a string where all leading `to_trim`s have been removed.
+
+  ## Examples
+
+      iex> String.trim_leading("__ abc _", "_")
+      " abc _"
+
+      iex> String.trim_leading("1 abc", "11")
+      "1 abc"
+
+  """
+  @spec trim_leading(t, t) :: t
+  def trim_leading(string, to_trim) do
+    replace_leading(string, to_trim, "")
+  end
+
+  @doc ~S"""
+  Returns a string where all trailing Unicode whitespaces
+  has been removed.
+
+  ## Examples
+
+      iex> String.trim_trailing("   abc\n  ")
+      "   abc"
+
+  """
+  @spec trim_trailing(t) :: t
+  defdelegate trim_trailing(string), to: String.Break
+
+  @doc """
+  Returns a string where all trailing `to_trim`s have been removed.
+
+  ## Examples
+
+      iex> String.trim_trailing("_ abc __", "_")
+      "_ abc "
+
+      iex> String.trim_trailing("abc 1", "11")
+      "abc 1"
+
+  """
+  @spec trim_trailing(t, t) :: t
+  def trim_trailing(string, to_trim) do
+    replace_trailing(string, to_trim, "")
+  end
+
+  @doc ~S"""
+  Returns a string where all leading and trailing Unicode whitespaces
+  have been removed.
+
+  ## Examples
+
+      iex> String.trim("\n  abc\n  ")
+      "abc"
+
+  """
+  @spec trim(t) :: t
+  def trim(string) do
+    string
+    |> trim_leading()
+    |> trim_trailing()
+  end
+
+  @doc """
+  Returns a string where all leading and trailing `to_trim`s have been
+  removed.
+
+  ## Examples
+
+      iex> String.trim("a  abc  a", "a")
+      "  abc  "
+
+  """
+  @spec trim(t, t) :: t
+  def trim(string, to_trim) do
+    string
+    |> trim_leading(to_trim)
+    |> trim_trailing(to_trim)
   end
 
   @doc ~S"""
