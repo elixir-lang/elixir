@@ -1,7 +1,7 @@
 defmodule Mix.Hex do
   @moduledoc false
   @hex_requirement  ">= 0.5.0"
-  @hex_mirror       "https://hexpmrepo.global.ssl.fastly.net"
+  @hex_mirror       "https://repo.hex.pm"
 
   @doc """
   Returns `true` if `Hex` is loaded or installed. Otherwise returns `false`.

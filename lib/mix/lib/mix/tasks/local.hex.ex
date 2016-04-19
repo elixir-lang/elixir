@@ -18,7 +18,7 @@ defmodule Mix.Tasks.Local.Hex do
 
   ## Mirrors
 
-  If you want to change the [default mirror](https://hexpmrepo.global.ssl.fastly.net)
+  If you want to change the [default mirror](https://repo.hex.pm)
   to use for fetching Hex please set the `HEX_MIRROR` environment variable.
   """
   @spec run(OptionParser.argv) :: boolean
