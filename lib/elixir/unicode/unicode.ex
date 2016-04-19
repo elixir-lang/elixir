@@ -370,56 +370,56 @@ defmodule String.Break do
     end
   end
 
-  # lstrip
+  # trim_leading
 
-  def lstrip(""), do: ""
+  def trim_leading(""), do: ""
 
   for codepoint <- whitespace do
-    def lstrip(unquote(codepoint) <> rest) do
-      lstrip(rest)
+    def trim_leading(unquote(codepoint) <> rest) do
+      trim_leading(rest)
     end
   end
 
-  def lstrip(string) when is_binary(string), do: string
+  def trim_leading(string) when is_binary(string), do: string
 
-  # rstrip
+  # trim_trailing
 
   for codepoint <- whitespace do
     # We need to increment @whitespace_max_size as well
     # as the small table (_s) if we add a new entry here.
     case byte_size(codepoint) do
       3 ->
-        defp do_rstrip_l(unquote(codepoint)), do: -3
+        defp do_trim_trailing_l(unquote(codepoint)), do: -3
       2 ->
-        defp do_rstrip_l(<<_, unquote(codepoint)>>), do: -2
+        defp do_trim_trailing_l(<<_, unquote(codepoint)>>), do: -2
 
-        defp do_rstrip_s(unquote(codepoint)), do: <<>>
+        defp do_trim_trailing_s(unquote(codepoint)), do: <<>>
       1 ->
-        defp do_rstrip_l(<<unquote(codepoint), unquote(codepoint), unquote(codepoint)>>), do: -3
-        defp do_rstrip_l(<<_, unquote(codepoint), unquote(codepoint)>>), do: -2
-        defp do_rstrip_l(<<_, _, unquote(codepoint)>>), do: -1
+        defp do_trim_trailing_l(<<unquote(codepoint), unquote(codepoint), unquote(codepoint)>>), do: -3
+        defp do_trim_trailing_l(<<_, unquote(codepoint), unquote(codepoint)>>), do: -2
+        defp do_trim_trailing_l(<<_, _, unquote(codepoint)>>), do: -1
 
-        defp do_rstrip_s(<<x, unquote(codepoint)>>), do: do_rstrip_s(<<x>>)
-        defp do_rstrip_s(unquote(codepoint)), do: <<>>
+        defp do_trim_trailing_s(<<x, unquote(codepoint)>>), do: do_trim_trailing_s(<<x>>)
+        defp do_trim_trailing_s(unquote(codepoint)), do: <<>>
     end
   end
 
-  defp do_rstrip_l(_), do: 0
-  defp do_rstrip_s(o), do: o
+  defp do_trim_trailing_l(_), do: 0
+  defp do_trim_trailing_s(o), do: o
 
-  def rstrip(string) when is_binary(string) do
-    rstrip(string, byte_size(string))
+  def trim_trailing(string) when is_binary(string) do
+    trim_trailing(string, byte_size(string))
   end
 
-  defp rstrip(string, size) when size < @whitespace_max_size do
-    do_rstrip_s(string)
+  defp trim_trailing(string, size) when size < @whitespace_max_size do
+    do_trim_trailing_s(string)
   end
 
-  defp rstrip(string, size) do
+  defp trim_trailing(string, size) do
     trail = binary_part(string, size, -@whitespace_max_size)
-    case do_rstrip_l(trail) do
+    case do_trim_trailing_l(trail) do
       0 -> string
-      x -> rstrip(binary_part(string, 0, size + x), size + x)
+      x -> trim_trailing(binary_part(string, 0, size + x), size + x)
     end
   end
 
