@@ -139,6 +139,13 @@ Specifications can be overloaded just like ordinary functions.
     @spec function(integer) :: atom
     @spec function(atom)    :: integer
 
+You can also name your arguments in a typespec using `arg_name :: arg_type` syntax.
+This is particularly useful as a way to differentiate multiple arguments
+of the same type (or multiple elements of the same type in a type def):
+
+    @spec days_since_epoch(year :: integer, month :: integer, day :: integer) :: integer
+    @type color :: {red :: integer, green :: integer, blue :: integer}
+
 ## Notes
 
 Elixir discourages the use of type `string` as it might be confused with binaries which are referred to as "strings" in Elixir (as opposed to character lists). In order to use the type that is called `string` in Erlang, one has to use the `char_list` type which is a synonym for `string`. If you use `string`, you'll get a warning from the compiler.
