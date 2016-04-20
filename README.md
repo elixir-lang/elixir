@@ -88,7 +88,7 @@ case you are looking for some examples:
 We usually keep a list of enhancements and bugs [in the issue tracker][2].
 For proposing a new feature, please start a discussion in the
 [Elixir Core mailing list][3]. Remember all interactions in our
-official spaces follow our [Code of Conduct][8].
+official spaces follow our [Code of Conduct][7].
 
 ## Building documentation
 
