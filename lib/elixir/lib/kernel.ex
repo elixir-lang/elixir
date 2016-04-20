@@ -4053,6 +4053,9 @@ defmodule Kernel do
       iex> ~w(foo #{:bar} baz)
       ["foo", "bar", "baz"]
 
+      iex> ~w(foo #{" bar baz "})
+      ["foo", "bar", "baz"]
+
       iex> ~w(--source test/enum_test.exs)
       ["--source", "test/enum_test.exs"]
 
