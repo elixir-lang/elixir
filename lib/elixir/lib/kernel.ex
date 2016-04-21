@@ -3013,7 +3013,7 @@ defmodule Kernel do
   usually used for module names. What is called a module name is an
   _uppercase ASCII letter_ followed by any number of _lowercase or
   uppercase ASCII letters_, _numbers_, or _underscores_.
-  This identifier is equivilant to an atom prefixed by `Elixir.`. So in the
+  This identifier is equivalent to an atom prefixed by `Elixir.`. So in the
   `defmodule Foo` example `Foo` is equivalent to `:"Elixir.Foo"`
 
   ## Dynamic names
