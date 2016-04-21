@@ -217,7 +217,7 @@ defmodule String do
   @spec printable?(t) :: boolean
   def printable?(string)
 
-  def printable?(<<h::utf8, t::binary >>)
+  def printable?(<<h::utf8, t::binary>>)
       when h in 0x20..0x7E
       when h in 0xA0..0xD7FF
       when h in 0xE000..0xFFFD
@@ -1078,7 +1078,7 @@ defmodule String do
      0x9FFFE, 0x9FFFF, 0x10FFFE, 0x10FFFF]
 
   for noncharacter <- noncharacters do
-    def valid?(<<unquote(noncharacter)::utf8, _::binary >>), do: false
+    def valid?(<<unquote(noncharacter)::utf8, _::binary>>), do: false
   end
 
   def valid?(<<_::utf8, t::binary>>), do: valid?(t)
