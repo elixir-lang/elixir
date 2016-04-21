@@ -151,8 +151,8 @@ defmodule String do
 
   Or also via pattern matching:
 
-      iex> <<eacute::utf8>> = "á"
-      iex> eacute
+      iex> <<aacute::utf8>> = "á"
+      iex> aacute
       225
 
   As we have seen above, codepoints can be inserted into
