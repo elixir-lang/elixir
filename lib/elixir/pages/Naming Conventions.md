@@ -26,9 +26,9 @@ For example, a value that is not meant to be used must be assigned to `_` or to 
 Function names may also start with an underscore. Such functions are never imported by default:
 
     iex> defmodule Example do
-    ...>  def _wont_be_imported do
-    ...>    :oops
-    ...>  end
+    ...>   def _wont_be_imported do
+    ...>     :oops
+    ...>   end
     ...> end
 
     iex> import Example
