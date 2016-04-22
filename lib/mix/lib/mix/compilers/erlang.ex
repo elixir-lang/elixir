@@ -152,7 +152,7 @@ defmodule Mix.Compilers.Erlang do
 
   defp interpret_result(file, result) do
     case result do
-      {:ok, _} -> Mix.shell.info "Compiled #{file}"
+      {:ok, _} -> Mix.shell.info [[:bright, :black], "Compiled #{file}", :reset]
       :error -> nil
     end
     result
