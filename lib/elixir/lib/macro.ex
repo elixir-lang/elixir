@@ -1163,6 +1163,11 @@ defmodule Macro do
   If an atom is given, it is assumed to be an Elixir module,
   so it is converted to a binary and then processed.
 
+  This function was designed to underscore language indentifiers/tokens,
+  that's why it belongs to the `Macro` module. Do not use it as a general
+  mechanism for underscoring strings as it does not support Unicode or
+  characters that are not valid in Elixir identifiers.
+
   ## Examples
 
       iex> Macro.underscore "FooBar"
@@ -1224,6 +1229,11 @@ defmodule Macro do
 
   @doc """
   Converts the given string to CamelCase format.
+
+  This function was designed to camelize language indentifiers/tokens,
+  that's why it belongs to the `Macro` module. Do not use it as a general
+  mechanism for camelizing strings as it does not support Unicode or
+  characters that are not valid in Elixir identifiers.
 
   ## Examples
 
