@@ -174,7 +174,7 @@ defmodule Mix.Compilers.Elixir do
   end
 
   defp each_file(source) do
-    Mix.shell.info "Compiled #{source}"
+    Mix.shell.info [[:bright, :black], "Compiled #{source}", :reset]
   end
 
   ## Resolution
