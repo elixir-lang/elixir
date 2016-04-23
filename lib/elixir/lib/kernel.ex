@@ -152,9 +152,9 @@ defmodule Kernel do
       3
 
   """
-  @spec byte_size(binary) :: non_neg_integer
-  def byte_size(binary) do
-    :erlang.byte_size(binary)
+  @spec byte_size(bitstring) :: non_neg_integer
+  def byte_size(bitstring) do
+    :erlang.byte_size(bitstring)
   end
 
   @doc """
