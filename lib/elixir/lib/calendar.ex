@@ -24,16 +24,16 @@ defmodule Calendar do
   @typedoc "A calendar implementation"
   @type calendar    :: module
 
-  @typedoc "The timezone ID according to Unicode's CLDR"
+  @typedoc "The time zone ID according to the IANA tz database (e.g. Europe/Zurich)"
   @type time_zone   :: String.t
 
-  @typedoc "The timezone abbreviation"
+  @typedoc "The time zone abbreviation (e.g. CET or CEST or BST etc.)"
   @type zone_abbr   :: String.t
 
-  @typedoc "The timezone UTC offset in seconds"
+  @typedoc "The time zone UTC offset in seconds"
   @type utc_offset  :: integer
 
-  @typedoc "The timezone standard offset in seconds (not zero in summer times)"
+  @typedoc "The time zone standard offset in seconds (not zero in summer times)"
   @type std_offset  :: integer
 
   @doc false
