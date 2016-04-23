@@ -194,55 +194,6 @@ defmodule StringTest do
     assert String.replace_trailing("aaa", "b", "c") == "aaa"
   end
 
-  test "rstrip" do
-    assert String.rstrip("") == ""
-    assert String.rstrip("1\n") == "1"
-    assert String.rstrip("\r\n") == ""
-    assert String.rstrip("   abc  ") == "   abc"
-    assert String.rstrip("   abc a") == "   abc a"
-    assert String.rstrip("a  abc  a\n\n") == "a  abc  a"
-    assert String.rstrip("a  abc  a\t\n\v\f\r\s") == "a  abc  a"
-    assert String.rstrip("a  abc  a" <> <<194, 133>>) == "a  abc  a"
-    assert String.rstrip("   abc aa", ?a) == "   abc "
-    assert String.rstrip("   abc __", ?_) == "   abc "
-    assert String.rstrip(" aaaaaaaaa", ?a) == " "
-    assert String.rstrip("aaaaaaaaaa", ?a) == ""
-    assert String.rstrip("]]]]]]]]]]", ?]) == ""
-    assert String.rstrip("   cat 猫猫", ?猫) == "   cat "
-    # information separators are not whitespace
-    assert String.rstrip("a  abc  a \u001F") == "a  abc  a \u001F"
-    # no-break space
-    assert String.rstrip("a  abc  a \u00A0") == "a  abc  a"
-  end
-
-  test "lstrip" do
-    assert String.lstrip("") == ""
-    assert String.lstrip("   abc  ") == "abc  "
-    assert String.lstrip("a  abc  a") == "a  abc  a"
-    assert String.lstrip("\n\na  abc  a") == "a  abc  a"
-    assert String.lstrip("\t\n\v\f\r\sa  abc  a") == "a  abc  a"
-    assert String.lstrip(<<194, 133>> <> "a  abc  a") == "a  abc  a"
-    assert String.lstrip("__  abc  _", ?_) == "  abc  _"
-    assert String.lstrip("猫猫 cat   ", ?猫) == " cat   "
-    # information separators are not whitespace
-    assert String.lstrip("\u001F a  abc  a") == <<31>> <> " a  abc  a"
-    # no-break space
-    assert String.lstrip("\u00A0 a  abc  a") == "a  abc  a"
-  end
-
-  test "strip" do
-    assert String.strip("") == ""
-    assert String.strip("   abc  ") == "abc"
-    assert String.strip("a  abc  a\n\n") == "a  abc  a"
-    assert String.strip("a  abc  a\t\n\v\f\r\s") == "a  abc  a"
-    assert String.strip("___  abc  ___", ?_) == "  abc  "
-    assert String.strip("猫猫猫  cat  猫猫猫", ?猫) == "  cat  "
-    # no-break space
-    assert String.strip("\u00A0a  abc  a\u00A0") == "a  abc  a"
-    # whitespace defined as a range
-    assert String.strip("\u2008a  abc  a\u2005") == "a  abc  a"
-  end
-
   test "trim" do
     assert String.trim("") == ""
     assert String.trim("  abc ") == "abc"
@@ -360,32 +311,6 @@ defmodule StringTest do
     message = "expected a string padding element, got: 10"
     assert_raise ArgumentError, message, fn ->
       String.pad_trailing("-", 3, ["-", 10])
-    end
-  end
-
-  test "rjust" do
-    assert String.rjust("", 5) == "     "
-    assert String.rjust("abc", 5) == "  abc"
-    assert String.rjust("  abc  ", 9) == "    abc  "
-    assert String.rjust("猫", 5) == "    猫"
-    assert String.rjust("abc", 5, ?-) == "--abc"
-    assert String.rjust("abc", 5, ?猫) == "猫猫abc"
-    assert String.rjust("-", 0) == "-"
-    assert_raise FunctionClauseError, fn ->
-      String.rjust("-", -1)
-    end
-  end
-
-  test "ljust" do
-    assert String.ljust("", 5) == "     "
-    assert String.ljust("abc", 5) == "abc  "
-    assert String.ljust("  abc  ", 9) == "  abc    "
-    assert String.ljust("猫", 5) == "猫    "
-    assert String.ljust("abc", 5, ?-) == "abc--"
-    assert String.ljust("abc", 5, ?猫) == "abc猫猫"
-    assert String.ljust("-", 0) == "-"
-    assert_raise FunctionClauseError, fn ->
-      String.ljust("-", -1)
     end
   end
 
