@@ -577,29 +577,12 @@ defmodule String do
     char <> downcase(rest)
   end
 
-  @doc """
-  Returns a string where all trailing Unicode whitespaces
-  has been removed.
-
-  ## Examples
-
-      iex> String.rstrip("   abc  ")
-      "   abc"
-
-  """
-  @spec rstrip(t) :: t
+  @doc false
+  # TODO: Deprecate by 1.4
   defdelegate rstrip(binary), to: String.Break, as: :trim_trailing
 
-  @doc """
-  Returns a string where all trailing `char`s have been removed.
-
-  ## Examples
-
-      iex> String.rstrip("   abc _", ?_)
-      "   abc "
-
-  """
-  @spec rstrip(t, char) :: t
+  @doc false
+  # TODO: Deprecate by 1.4
   def rstrip(string, char) when is_integer(char) do
     replace_trailing(string, <<char::utf8>>, "")
   end
@@ -750,67 +733,26 @@ defmodule String do
     end
   end
 
-  @doc """
-  Returns a string where all leading Unicode whitespaces
-  have been removed.
-
-  ## Examples
-
-      iex> String.lstrip("   abc  ")
-      "abc  "
-
-  """
+  @doc false
+  # TODO: Deprecate by 1.4
   defdelegate lstrip(binary), to: String.Break, as: :trim_leading
 
-  @doc """
-  Returns a string where all leading `char`s have been removed.
-
-  ## Examples
-
-      iex> String.lstrip("_  abc  _", ?_)
-      "  abc  _"
-
-  """
-  @spec lstrip(t, char) :: t
-  def lstrip(string, char)
-
-  def lstrip(<<char::utf8, rest::binary>>, char) when is_integer(char) do
-    <<lstrip(rest, char)::binary>>
-  end
-
+  @doc false
+  # TODO: Deprecate by 1.4
   def lstrip(string, char) when is_integer(char) do
-    string
+    replace_leading(string, <<char::utf8>>, "")
   end
 
-  @doc """
-  Returns a string where all leading and trailing Unicode whitespaces
-  have been removed.
-
-  ## Examples
-
-      iex> String.strip("   abc  ")
-      "abc"
-
-  """
-  @spec strip(t) :: t
-
+  @doc false
+  # TODO: Deprecate by 1.4
   def strip(string) do
-    rstrip(lstrip(string))
+    trim(string)
   end
 
-  @doc """
-  Returns a string where all leading and trailing `char`s have been
-  removed.
-
-  ## Examples
-
-      iex> String.strip("a  abc  a", ?a)
-      "  abc  "
-
-  """
-  @spec strip(t, char) :: t
+  @doc false
+  # TODO: Deprecate by 1.4
   def strip(string, char) do
-    rstrip(lstrip(string, char), char)
+    trim(string, <<char::utf8>>)
   end
 
   @doc ~S"""
@@ -1027,64 +969,16 @@ defmodule String do
     raise ArgumentError, "expected a string padding element, got: #{inspect(elem)}"
   end
 
-  @doc ~S"""
-  Returns a new string of length `len` with `subject` right justified and
-  padded with `pad`. If `pad` is not present, it defaults to
-  whitespace. When `len` is less than the length of `subject`, `subject` is
-  returned.
-
-  ## Examples
-
-      iex> String.rjust("abc", 5)
-      "  abc"
-
-      iex> String.rjust("abc", 5, ?-)
-      "--abc"
-
-  """
-  @spec rjust(t, non_neg_integer) :: t
-  @spec rjust(t, non_neg_integer, char) :: t
-
+  @doc false
+  # TODO: Deprecate by 1.4
   def rjust(subject, len, pad \\ ?\s) when is_integer(pad) and is_integer(len) and len >= 0 do
-    justify(subject, len, pad, :right)
+    pad(:leading, subject, len, [<<pad::utf8>>])
   end
 
-  @doc ~S"""
-  Returns a new string of length `len` with `subject` left justified and padded
-  with `pad`. If `pad` is not present, it defaults to whitespace. When
-  `len` is less than the length of `subject`, `subject` is returned.
-
-  ## Examples
-
-      iex> String.ljust("abc", 5)
-      "abc  "
-
-      iex> String.ljust("abc", 5, ?-)
-      "abc--"
-
-  """
-  @spec ljust(t, non_neg_integer) :: t
-  @spec ljust(t, non_neg_integer, char) :: t
-
+  @doc false
+  # TODO: Deprecate by 1.4
   def ljust(subject, len, pad \\ ?\s) when is_integer(pad) and is_integer(len) and len >= 0 do
-    justify(subject, len, pad, :left)
-  end
-
-  defp justify(subject, 0, _pad, _type), do: subject
-  defp justify(subject, len, padding, type) do
-    subject_len = length(subject)
-
-    cond do
-      subject_len >= len ->
-        subject
-      subject_len < len ->
-        fill = duplicate(<<padding::utf8>>, len - subject_len)
-
-        case type do
-          :left  -> subject <> fill
-          :right -> fill <> subject
-        end
-    end
+    pad(:trailing, subject, len, [<<pad::utf8>>])
   end
 
   @doc ~S"""
