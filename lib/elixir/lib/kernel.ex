@@ -135,9 +135,9 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns the number of bytes needed to contain `bitstring`.
+  Returns the number of bytes needed to contain `binary`.
 
-  That is, if the number of bits in `bitstring` is not divisible by 8, the
+  That is, if the number of bits in `binary` is not divisible by 8, the
   resulting number of bytes will be rounded up (by excess). This operation
   happens in constant time.
 
