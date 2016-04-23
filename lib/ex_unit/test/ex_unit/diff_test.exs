@@ -50,6 +50,16 @@ defmodule ExUnit.DiffTest do
     assert format(char_list1, char_list2, &formatter/2) == expected
   end
 
+  test "improper lists" do
+    assert format([1, 2], [1, 2 | 3], &formatter/2) == "[1, 2 | [3]]"
+    assert format([1, 2 | 3], [1, 2], &formatter/2) == "[1, 2 | {3}]"
+    assert format([1, "a"], [1 | "b"], &formatter/2) == ~S<[1{,}[ |] "{a}[b]"]>
+    assert format([1 | "b"], [1, "a"], &formatter/2) == ~S<[1{ |}[,] "{b}[a]"]>
+    assert format([1 | 2], [1 | 3], &formatter/2) == "[1 | {2}[3] [(off by +1)]]"
+    assert format([1, 'b' | 3], [1, 'a' | 3], &formatter/2) == "[1, '{b}[a]' | 3]"
+    assert format(['a', 2 | 3], ['b', 2 | 3], &formatter/2) == "['{a}[b]', 2 | 3]"
+  end
+
   test "tuples" do
     tuple1 = {:hex, '1.1'}
     tuple2 = {:hex, '0.1', [{:ex_doc}]}
