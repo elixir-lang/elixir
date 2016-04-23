@@ -135,9 +135,9 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns the number of bytes needed to contain `binary`.
+  Returns the number of bytes needed to contain `bitstring`.
 
-  That is, if the number of bits in `binary` is not divisible by 8, the
+  That is, if the number of bits in `bitstring` is not divisible by 8, the
   resulting number of bytes will be rounded up (by excess). This operation
   happens in constant time.
 
@@ -152,9 +152,9 @@ defmodule Kernel do
       3
 
   """
-  @spec byte_size(binary) :: non_neg_integer
-  def byte_size(binary) do
-    :erlang.byte_size(binary)
+  @spec byte_size(bitstring) :: non_neg_integer
+  def byte_size(bitstring) do
+    :erlang.byte_size(bitstring)
   end
 
   @doc """
