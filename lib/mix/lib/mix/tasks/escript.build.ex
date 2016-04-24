@@ -117,9 +117,13 @@ defmodule Mix.Tasks.Escript.Build do
         Mix.raise "Could not generate escript, no name given, " <>
           "set :name escript option or :app in the project settings"
 
-      !main or !Code.ensure_loaded?(main)->
+      !main ->
         Mix.raise "Could not generate escript, please set :main_module " <>
           "in your project configuration (under :escript option) to a module that implements main/1"
+
+      !Code.ensure_loaded?(main) ->
+        Mix.raise "Could not generate escript, module #{main} defined as " <>
+          ":main_module could not be loaded"
 
       force || Mix.Utils.stale?(files, [filename]) ->
         beam_paths =

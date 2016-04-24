@@ -49,6 +49,17 @@ defmodule Mix.Tasks.EscriptTest do
     end
   end
 
+  defmodule EscriptWithUnknownMainModule do
+    def project do
+      [ app: :escripttestwithunknownmainmodule,
+        version: "0.0.1",
+        escript: [
+          main_module: BogusEscripttest
+        ]
+      ]
+    end
+  end
+
   defmodule EscriptConsolidated do
     def project do
       [ app: :escripttestconsolidated,
@@ -174,6 +185,17 @@ defmodule Mix.Tasks.EscriptTest do
     assert_raise Mix.Error,
                  "The given path does not point to an escript, installation aborted", fn ->
       Mix.Tasks.Escript.Install.run [__ENV__.file]
+    end
+  end
+
+  test "escript invalid main module" do
+    Mix.Project.push EscriptWithUnknownMainModule
+
+    in_fixture "escripttest", fn ->
+      assert_raise Mix.Error, "Could not generate escript, module Elixir.BogusEscripttest defined as " <>
+                ":main_module could not be loaded", fn ->
+        Mix.Tasks.Escript.Build.run []
+      end
     end
   end
 end
