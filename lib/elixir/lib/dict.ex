@@ -82,19 +82,19 @@ defmodule Dict do
 
       def to_list(dict) do
         reduce(dict, {:cont, []}, fn
-          kv, acc -> {:cont, [kv|acc]}
+          kv, acc -> {:cont, [kv | acc]}
         end) |> elem(1) |> :lists.reverse
       end
 
       def keys(dict) do
         reduce(dict, {:cont, []}, fn
-          {k, _}, acc -> {:cont, [k|acc]}
+          {k, _}, acc -> {:cont, [k | acc]}
         end) |> elem(1) |> :lists.reverse
       end
 
       def values(dict) do
         reduce(dict, {:cont, []}, fn
-          {_, v}, acc -> {:cont, [v|acc]}
+          {_, v}, acc -> {:cont, [v | acc]}
         end) |> elem(1) |> :lists.reverse
       end
 

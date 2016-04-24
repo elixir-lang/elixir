@@ -186,7 +186,7 @@ inner_module(Forms, ErlOpts, ExOpts, #{file := File} = E, Callback) when
   Autoload = proplists:get_value(autoload, ExOpts, true),
   Bootstrap = proplists:get_value(bootstrap, ExOpts, false),
 
-  case compile:noenv_forms([no_auto_import()|Forms], [return, {source, Source}|ErlOpts]) of
+  case compile:noenv_forms([no_auto_import() | Forms], [return, {source, Source} | ErlOpts]) of
     {ok, Module, Binary, Warnings} ->
       format_warnings(Bootstrap, Warnings),
       {module, Module} =

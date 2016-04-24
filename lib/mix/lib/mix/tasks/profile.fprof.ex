@@ -112,9 +112,9 @@ defmodule Mix.Tasks.Profile.Fprof do
 
     {file, argv} =
       case {Keyword.has_key?(opts, :eval), head} do
-        {true, _}  -> {nil, head}
-        {_, [h|t]} -> {h, t}
-        {_, []}    -> {nil, []}
+        {true, _}    -> {nil, head}
+        {_, [h | t]} -> {h, t}
+        {_, []}      -> {nil, []}
       end
 
     System.argv(argv)

@@ -7,7 +7,7 @@ clauses(_Meta, Clauses, S) ->
   Rescue = elixir_clauses:get_pairs(rescue, Clauses, rescue),
   reduce_clauses(Rescue ++ Catch, [], S, S).
 
-reduce_clauses([H|T], Acc, SAcc, S) ->
+reduce_clauses([H | T], Acc, SAcc, S) ->
   {TH, TS} = each_clause(H, SAcc),
   reduce_clauses(T, TH ++ Acc, elixir_scope:mergec(S, TS), S);
 reduce_clauses([], Acc, SAcc, _S) ->
@@ -100,10 +100,10 @@ rescue_guards(Meta, Var, Aliases, S) ->
 %% Matching of variables is done with Erlang exceptions is done in
 %% function for optimization.
 
-rescue_each_ref(Meta, Var, [H|T], Elixir, Erlang, S) when is_atom(H) ->
+rescue_each_ref(Meta, Var, [H | T], Elixir, Erlang, S) when is_atom(H) ->
   case erl_rescue_guard_for(Meta, Var, H) of
-    false -> rescue_each_ref(Meta, Var, T, [H|Elixir], Erlang, S);
-    Expr  -> rescue_each_ref(Meta, Var, T, [H|Elixir], [Expr|Erlang], S)
+    false -> rescue_each_ref(Meta, Var, T, [H | Elixir], Erlang, S);
+    Expr  -> rescue_each_ref(Meta, Var, T, [H | Elixir], [Expr | Erlang], S)
   end;
 
 rescue_each_ref(_, _, [], Elixir, Erlang, _) ->
@@ -202,7 +202,7 @@ erl_record_compare(Meta, Var, Expr) ->
   ]}.
 
 prepend_to_block(_Meta, Expr, {'__block__', Meta, Args}) ->
-  {'__block__', Meta, [Expr|Args]};
+  {'__block__', Meta, [Expr | Args]};
 
 prepend_to_block(Meta, Expr, Args) ->
   {'__block__', Meta, [Expr, Args]}.

@@ -70,7 +70,7 @@ calculate(Meta, Key, Opts, Old, File, Existing) ->
             " when :only is either :functions or :macros")
       end,
       case Only -- get_exports(Key) of
-        [{Name, Arity}|_] ->
+        [{Name, Arity} | _] ->
           Tuple = {invalid_import, {Key, Name, Arity}},
           elixir_errors:form_error(Meta, File, ?MODULE, Tuple);
         _ ->
@@ -97,7 +97,7 @@ calculate(Meta, Key, Opts, Old, File, Existing) ->
       {false, keydelete(Key, Old)};
     _  ->
       ensure_no_special_form_conflict(Meta, File, Key, Final),
-      {true, [{Key, Final}|keydelete(Key, Old)]}
+      {true, [{Key, Final} | keydelete(Key, Old)]}
   end.
 
 %% Retrieve functions and macros from modules
@@ -138,7 +138,7 @@ get_optional_macros(Module)  ->
 
 %% VALIDATION HELPERS
 
-ensure_no_special_form_conflict(Meta, File, Key, [{Name, Arity}|T]) ->
+ensure_no_special_form_conflict(Meta, File, Key, [{Name, Arity} | T]) ->
   case special_form(Name, Arity) of
     true  ->
       Tuple = {special_form_conflict, {Key, Name, Arity}},
@@ -178,9 +178,9 @@ keyfind(Key, List) ->
 keydelete(Key, List) ->
   lists:keydelete(Key, 1, List).
 
-intersection([H|T], All) ->
+intersection([H | T], All) ->
   case lists:member(H, All) of
-    true  -> [H|intersection(T, All)];
+    true  -> [H | intersection(T, All)];
     false -> intersection(T, All)
   end;
 

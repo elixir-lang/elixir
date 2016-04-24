@@ -37,8 +37,8 @@ defmodule Mix.Tasks.Local.PublicKeys do
     {opts, argv, _} = OptionParser.parse(argv, switches: [force: :boolean, detailed: :boolean])
 
     case argv do
-      []       -> show(opts)
-      [path|_] -> install(path, opts)
+      []         -> show(opts)
+      [path | _] -> install(path, opts)
     end
   end
 

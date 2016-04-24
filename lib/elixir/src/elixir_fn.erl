@@ -119,17 +119,17 @@ invalid_capture(Meta, Arg, E) ->
             "&local/arity or a capture containing at least one argument as &1, got: ~ts",
   compile_error(Meta, ?m(E, file), Message, ['Elixir.Macro':to_string(Arg)]).
 
-validate(Meta, [{Pos, Var}|T], Pos, E) ->
-  [Var|validate(Meta, T, Pos + 1, E)];
+validate(Meta, [{Pos, Var} | T], Pos, E) ->
+  [Var | validate(Meta, T, Pos + 1, E)];
 
-validate(Meta, [{Pos, _}|_], Expected, E) ->
+validate(Meta, [{Pos, _} | _], Expected, E) ->
   compile_error(Meta, ?m(E, file), "capture &~B cannot be defined without &~B", [Pos, Expected]);
 
 validate(_Meta, [], _Pos, _E) ->
   [].
 
 do_escape({'&', _, [Pos]}, Counter, _E, Dict) when is_integer(Pos), Pos > 0 ->
-  Var = {list_to_atom([$x|integer_to_list(Pos)]), [{counter, Counter}], elixir_fn},
+  Var = {list_to_atom([$x | integer_to_list(Pos)]), [{counter, Counter}], elixir_fn},
   {Var, orddict:store(Pos, Var, Dict)};
 
 do_escape({'&', Meta, [Pos]}, _Counter, E, _Dict) when is_integer(Pos) ->
@@ -164,7 +164,7 @@ args_from_arity(Meta, A, E) ->
 is_sequential_and_not_empty([])   -> false;
 is_sequential_and_not_empty(List) -> is_sequential(List, 1).
 
-is_sequential([{'&', _, [Int]}|T], Int) ->
+is_sequential([{'&', _, [Int]} | T], Int) ->
   is_sequential(T, Int + 1);
 is_sequential([], _Int) -> true;
 is_sequential(_, _Int) -> false.

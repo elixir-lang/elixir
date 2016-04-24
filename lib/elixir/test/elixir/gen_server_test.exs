@@ -6,7 +6,7 @@ defmodule GenServerTest do
   defmodule Stack do
     use GenServer
 
-    def handle_call(:pop, _from, [h|t]) do
+    def handle_call(:pop, _from, [h | t]) do
       {:reply, h, t}
     end
 
@@ -19,7 +19,7 @@ defmodule GenServerTest do
     end
 
     def handle_cast({:push, item}, state) do
-      {:noreply, [item|state]}
+      {:noreply, [item | state]}
     end
 
     def handle_cast(request, state) do

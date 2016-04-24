@@ -31,7 +31,7 @@ defmodule Protocol do
       name  = unquote(name)
       arity = unquote(arity)
 
-      @functions [{name, arity}|@functions]
+      @functions [{name, arity} | @functions]
 
       # Generate a fake definition with the user
       # signature that will be used by docs
@@ -298,7 +298,7 @@ defmodule Protocol do
     end
   end
 
-  defp change_impl_for([{:function, line, :__protocol__, 1, clauses}|t], protocol, types, structs, _, acc) do
+  defp change_impl_for([{:function, line, :__protocol__, 1, clauses} | t], protocol, types, structs, _, acc) do
     clauses = :lists.map(fn
       {:clause, l, [{:atom, _, :consolidated?}], [], [{:atom, _, _}]} ->
         {:clause, l, [{:atom, 0, :consolidated?}], [], [{:atom, 0, true}]}
@@ -307,34 +307,34 @@ defmodule Protocol do
     end, clauses)
 
     change_impl_for(t, protocol, types, structs, true,
-                    [{:function, line, :__protocol__, 1, clauses}|acc])
+                    [{:function, line, :__protocol__, 1, clauses} | acc])
   end
 
-  defp change_impl_for([{:function, line, :impl_for, 1, _}|t], protocol, types, structs, is_protocol, acc) do
+  defp change_impl_for([{:function, line, :impl_for, 1, _} | t], protocol, types, structs, is_protocol, acc) do
     fallback = if Any in types, do: load_impl(protocol, Any)
 
     clauses = for {guard, mod} <- builtin,
                   mod in types,
                   do: builtin_clause_for(mod, guard, protocol, line)
 
-    clauses = [struct_clause_for(line)|clauses] ++
+    clauses = [struct_clause_for(line) | clauses] ++
               [fallback_clause_for(fallback, protocol, line)]
 
     change_impl_for(t, protocol, types, structs, is_protocol,
-                    [{:function, line, :impl_for, 1, clauses}|acc])
+                    [{:function, line, :impl_for, 1, clauses} | acc])
   end
 
-  defp change_impl_for([{:function, line, :struct_impl_for, 1, _}|t], protocol, types, structs, is_protocol, acc) do
+  defp change_impl_for([{:function, line, :struct_impl_for, 1, _} | t], protocol, types, structs, is_protocol, acc) do
     fallback = if Any in types, do: load_impl(protocol, Any)
     clauses = for struct <- structs, do: each_struct_clause_for(struct, protocol, line)
     clauses = clauses ++ [fallback_clause_for(fallback, protocol, line)]
 
     change_impl_for(t, protocol, types, structs, is_protocol,
-                    [{:function, line, :struct_impl_for, 1, clauses}|acc])
+                    [{:function, line, :struct_impl_for, 1, clauses} | acc])
   end
 
-  defp change_impl_for([h|t], protocol, info, types, is_protocol, acc) do
-    change_impl_for(t, protocol, info, types, is_protocol, [h|acc])
+  defp change_impl_for([h | t], protocol, info, types, is_protocol, acc) do
+    change_impl_for(t, protocol, info, types, is_protocol, [h | acc])
   end
 
   defp change_impl_for([], protocol, _info, _types, is_protocol, acc) do
@@ -386,7 +386,7 @@ defmodule Protocol do
   # Finally compile the module and emit its bytecode.
   defp compile({protocol, code}, docs) do
     opts = if Code.compiler_options[:debug_info], do: [:debug_info], else: []
-    {:ok, ^protocol, binary, _warnings} = :compile.forms(code, [:return|opts])
+    {:ok, ^protocol, binary, _warnings} = :compile.forms(code, [:return | opts])
     {:ok,
       case docs do
         :missing_chunk -> binary
@@ -504,7 +504,7 @@ defmodule Protocol do
   @doc false
   def __functions_spec__([]),
     do: []
-  def __functions_spec__([h|t]),
+  def __functions_spec__([h | t]),
     do: [:lists.foldl(&{:|, [], [&1, &2]}, h, t), quote(do: ...)]
 
   @doc false

@@ -50,7 +50,7 @@ defmodule Mix.Tasks.New do
     case argv do
       [] ->
         Mix.raise "Expected PATH to be given, please use \"mix new PATH\""
-      [path|_] ->
+      [path | _] ->
         app = opts[:app] || Path.basename(Path.expand(path))
         check_application_name!(app, !!opts[:app])
         mod = opts[:module] || camelize(app)
@@ -174,8 +174,8 @@ defmodule Mix.Tasks.New do
     {:ok, version} = Version.parse(version)
     "#{version.major}.#{version.minor}" <>
       case version.pre do
-        [h|_] -> "-#{h}"
-        []    -> ""
+        [h | _] -> "-#{h}"
+        []      -> ""
       end
   end
 

@@ -20,10 +20,10 @@ defmodule Kernel.LexicalTracker do
     |> partition([], [])
   end
 
-  defp partition([[remote, :compile]|t], compile, runtime),
-    do: partition(t, [remote|compile], runtime)
-  defp partition([[remote, :runtime]|t], compile, runtime),
-    do: partition(t, compile, [remote|runtime])
+  defp partition([[remote, :compile] | t], compile, runtime),
+    do: partition(t, [remote | compile], runtime)
+  defp partition([[remote, :runtime] | t], compile, runtime),
+    do: partition(t, compile, [remote | runtime])
   defp partition([], compile, runtime),
     do: {compile, runtime}
 

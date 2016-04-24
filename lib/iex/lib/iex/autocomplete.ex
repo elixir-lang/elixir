@@ -5,7 +5,7 @@ defmodule IEx.Autocomplete do
     expand_import("")
   end
 
-  def expand([h|t]=expr) do
+  def expand([h | t]=expr) do
     cond do
       h === ?. and t != [] ->
         expand_dot(reduce(t))
@@ -45,7 +45,7 @@ defmodule IEx.Autocomplete do
         expand_import(Atom.to_string(atom))
       {:ok, {:__aliases__, _, [root]}} ->
         expand_elixir_modules([], Atom.to_string(root))
-      {:ok, {:__aliases__, _, [h|_] = list}} when is_atom(h) ->
+      {:ok, {:__aliases__, _, [h | _] = list}} when is_atom(h) ->
         hint = Atom.to_string(List.last(list))
         list = Enum.take(list, length(list) - 1)
         expand_elixir_modules(list, hint)
@@ -62,7 +62,7 @@ defmodule IEx.Autocomplete do
     end) |> Enum.reverse |> strip_ampersand
   end
 
-  defp strip_ampersand([?&|t]), do: t
+  defp strip_ampersand([?& | t]), do: t
   defp strip_ampersand(expr), do: expr
 
   defp yes(hint, entries) do
@@ -86,7 +86,7 @@ defmodule IEx.Autocomplete do
     end
   end
 
-  defp format_expansion([first|_]=entries, hint) do
+  defp format_expansion([first | _]=entries, hint) do
     binary = Enum.map(entries, &(&1.name))
     length = byte_size(hint)
     prefix = :binary.longest_common_prefix(binary)
@@ -163,7 +163,7 @@ defmodule IEx.Autocomplete do
       if alias === module do
         case Atom.to_string(mod) do
           "Elixir." <> mod ->
-            Module.concat [mod|rest]
+            Module.concat [mod | rest]
           _ ->
             mod
         end
@@ -249,8 +249,8 @@ defmodule IEx.Autocomplete do
 
         list = Enum.reduce falist, [], fn {f, a}, acc ->
           case :lists.keyfind(f, 1, acc) do
-            {f, aa} -> :lists.keyreplace(f, 1, acc, {f, [a|aa]})
-            false -> [{f, [a]}|acc]
+            {f, aa} -> :lists.keyreplace(f, 1, acc, {f, [a | aa]})
+            false -> [{f, [a]} | acc]
           end
         end
 

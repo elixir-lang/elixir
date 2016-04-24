@@ -16,7 +16,7 @@ expand(Meta, Args, E) ->
 
 expand_bitstr(_Fun, [], Acc, E) ->
   {lists:reverse(Acc), E};
-expand_bitstr(Fun, [{'::', Meta, [Left, Right]}|T], Acc, E) ->
+expand_bitstr(Fun, [{'::', Meta, [Left, Right]} | T], Acc, E) ->
   {ELeft, EL} = Fun(Left, E),
 
   %% Variables defined outside the binary can be accounted
@@ -27,18 +27,18 @@ expand_bitstr(Fun, [{'::', Meta, [Left, Right]}|T], Acc, E) ->
   end,
 
   ERight = expand_bit_info(Meta, Right, ER),
-  expand_bitstr(Fun, T, [{'::', Meta, [ELeft, ERight]}|Acc], EL);
+  expand_bitstr(Fun, T, [{'::', Meta, [ELeft, ERight]} | Acc], EL);
 
-expand_bitstr(Fun, [H|T], Acc, E) ->
+expand_bitstr(Fun, [H | T], Acc, E) ->
   {Expr, ES} = Fun(H, E),
-  expand_bitstr(Fun, T, [Expr|Acc], ES).
+  expand_bitstr(Fun, T, [Expr | Acc], ES).
 
 %% Expand bit info
 
 expand_bit_info(Meta, Info, E) ->
   expand_bit_info(Meta, unpack_bit_info(Info, []), default, [], E).
 
-expand_bit_info(Meta, [{size, _, [_]=Args}|T], Size, Types, E) ->
+expand_bit_info(Meta, [{size, _, [_]=Args} | T], Size, Types, E) ->
   case Size of
     default ->
       {[EArg], EE} = elixir_exp:expand_args(Args, E),
@@ -60,22 +60,22 @@ expand_bit_info(Meta, [{size, _, [_]=Args}|T], Size, Types, E) ->
         "duplicated size definition in bitstring")
   end;
 
-expand_bit_info(Meta, [{Expr, ExprMeta, Args}|T], Size, Types, E) when is_atom(Expr) ->
+expand_bit_info(Meta, [{Expr, ExprMeta, Args} | T], Size, Types, E) when is_atom(Expr) ->
   case expand_bit_type(Expr, Args) of
     type ->
       {EArgs, EE} = elixir_exp:expand_args(Args, E),
       validate_bit_type_args(Meta, Expr, EArgs, EE),
-      expand_bit_info(Meta, T, Size, [{Expr, [], EArgs}|Types], EE);
+      expand_bit_info(Meta, T, Size, [{Expr, [], EArgs} | Types], EE);
     none ->
       handle_unknown_bit_info(Meta, {Expr, ExprMeta, Args}, T, Size, Types, E)
   end;
 
-expand_bit_info(Meta, [Expr|_], _Size, _Types, E) ->
+expand_bit_info(Meta, [Expr | _], _Size, _Types, E) ->
   elixir_errors:compile_error(Meta, ?m(E, file),
     "unknown bitstring specifier ~ts", ['Elixir.Kernel':inspect(Expr)]);
 
 expand_bit_info(Meta, [], Size, Types, _) ->
-  [H|T] = case Size of
+  [H | T] = case Size of
     default -> lists:reverse(Types);
     _       -> lists:reverse(Types, [Size])
   end,
@@ -117,16 +117,16 @@ handle_unknown_bit_info(Meta, Expr, T, Size, Types, E) ->
 unpack_bit_info({'-', _, [H, T]}, Acc) ->
   unpack_bit_info(H, unpack_bit_info(T, Acc));
 unpack_bit_info({'*', _, [{'_', _, Atom}, Unit]}, Acc) when is_atom(Atom) and is_integer(Unit) ->
-  [{unit, [], [Unit]}|Acc];
+  [{unit, [], [Unit]} | Acc];
 unpack_bit_info({'*', _, [Size, Unit]}, Acc) when is_integer(Size) and is_integer(Unit) ->
-  [{size, [], [Size]}, {unit, [], [Unit]}|Acc];
+  [{size, [], [Size]}, {unit, [], [Unit]} | Acc];
 unpack_bit_info(Size, Acc) when is_integer(Size) ->
-  [{size, [], [Size]}|Acc];
+  [{size, [], [Size]} | Acc];
 unpack_bit_info({Expr, Meta, Args}, Acc) when is_atom(Expr) ->
   ListArgs = if is_atom(Args) -> []; is_list(Args) -> Args end,
-  [{Expr, Meta, ListArgs}|Acc];
+  [{Expr, Meta, ListArgs} | Acc];
 unpack_bit_info(Other, Acc) ->
-  [Other|Acc].
+  [Other | Acc].
 
 %% Translation
 
@@ -152,11 +152,11 @@ build_bitstr(Fun, Exprs, Meta, S) ->
 build_bitstr_each(_Fun, [], _Meta, S, Acc) ->
   {Acc, S};
 
-build_bitstr_each(Fun, [{'::', _, [H, V]}|T], Meta, S, Acc) ->
+build_bitstr_each(Fun, [{'::', _, [H, V]} | T], Meta, S, Acc) ->
   {Size, Types} = extract_bit_info(V, S#elixir_scope{context=nil}),
   build_bitstr_each(Fun, T, Meta, S, Acc, H, Size, Types);
 
-build_bitstr_each(Fun, [H|T], Meta, S, Acc) ->
+build_bitstr_each(Fun, [H | T], Meta, S, Acc) ->
   build_bitstr_each(Fun, T, Meta, S, Acc, H, default, default).
 
 build_bitstr_each(Fun, T, Meta, S, Acc, H, default, Types) when is_binary(H) ->
@@ -176,7 +176,7 @@ build_bitstr_each(Fun, T, Meta, S, Acc, H, default, Types) when is_binary(H) ->
         end
     end,
 
-  build_bitstr_each(Fun, T, Meta, S, [Element|Acc]);
+  build_bitstr_each(Fun, T, Meta, S, [Element | Acc]);
 
 build_bitstr_each(_Fun, _T, Meta, S, _Acc, H, _Size, _Types) when is_binary(H) ->
   elixir_errors:compile_error(Meta, S#elixir_scope.file, "size is not supported for literal string in <<>>");
@@ -192,14 +192,14 @@ build_bitstr_each(Fun, T, Meta, S, Acc, H, Size, Types) ->
     {bin, _, Elements} ->
       case (Size == default) andalso types_allow_splice(Types, Elements) of
         true  -> build_bitstr_each(Fun, T, Meta, NS, lists:reverse(Elements, Acc));
-        false -> build_bitstr_each(Fun, T, Meta, NS, [{bin_element, ?ann(Meta), Expr, Size, Types}|Acc])
+        false -> build_bitstr_each(Fun, T, Meta, NS, [{bin_element, ?ann(Meta), Expr, Size, Types} | Acc])
       end;
     _ ->
-      build_bitstr_each(Fun, T, Meta, NS, [{bin_element, ?ann(Meta), Expr, Size, Types}|Acc])
+      build_bitstr_each(Fun, T, Meta, NS, [{bin_element, ?ann(Meta), Expr, Size, Types} | Acc])
   end.
 
-types_require_conversion([End|T]) when End == little; End == big -> types_require_conversion(T);
-types_require_conversion([UTF|T]) when UTF == utf8; UTF == utf16; UTF == utf32 -> types_require_conversion(T);
+types_require_conversion([End | T]) when End == little; End == big -> types_require_conversion(T);
+types_require_conversion([UTF | T]) when UTF == utf8; UTF == utf16; UTF == utf32 -> types_require_conversion(T);
 types_require_conversion([]) -> true;
 types_require_conversion(_) -> false.
 
@@ -210,7 +210,7 @@ types_allow_splice([bitstring], _)     -> true;
 types_allow_splice(default, _)         -> true;
 types_allow_splice(_, _)               -> false.
 
-is_byte_size([Element|T], Acc) ->
+is_byte_size([Element | T], Acc) ->
   case elem_size(Element) of
     {unknown, Unit} when Unit rem 8 == 0 -> is_byte_size(T, Acc);
     {unknown, _Unit} -> false;
@@ -219,15 +219,15 @@ is_byte_size([Element|T], Acc) ->
 is_byte_size([], Size) ->
   Size rem 8 == 0.
 
-elem_size({bin_element, _, _, default, _})              -> {0, 0};
+elem_size({bin_element, _, _, default, _})                -> {0, 0};
 elem_size({bin_element, _, _, {integer, _, Size}, Types}) -> {Size, unit_size(Types, 1)};
-elem_size({bin_element, _, _, _Size, Types})            -> {unknown, unit_size(Types, 1)}.
+elem_size({bin_element, _, _, _Size, Types})              -> {unknown, unit_size(Types, 1)}.
 
-unit_size([binary|T], _)       -> unit_size(T, 8);
-unit_size([bytes|T], _)        -> unit_size(T, 8);
-unit_size([{unit, Size}|_], _) -> Size;
-unit_size([_|T], Guess)        -> unit_size(T, Guess);
-unit_size([], Guess)           -> Guess.
+unit_size([binary | T], _)       -> unit_size(T, 8);
+unit_size([bytes | T], _)        -> unit_size(T, 8);
+unit_size([{unit, Size} | _], _) -> Size;
+unit_size([_ | T], Guess)        -> unit_size(T, Guess);
+unit_size([], Guess)             -> Guess.
 
 %% Extra bitstring specifiers
 
@@ -245,6 +245,6 @@ extract_bit_size(Size, S) ->
 extract_bit_type({'-', _, [L, R]}, Acc) ->
   extract_bit_type(L, extract_bit_type(R, Acc));
 extract_bit_type({unit, _, [Arg]}, Acc) ->
-  [{unit, Arg}|Acc];
+  [{unit, Arg} | Acc];
 extract_bit_type({Other, _, []}, Acc) ->
-  [Other|Acc].
+  [Other | Acc].

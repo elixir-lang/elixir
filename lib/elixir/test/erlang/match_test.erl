@@ -96,12 +96,12 @@ list_vars_test() ->
   {[3, 1], [{x, 3}]} = eval("x = 1\n[x = x + 2, x]").
 
 head_and_tail_test() ->
-  {_, [{h, 1}, {t, [2, 3]}]} = eval("[h|t] = [1, 2, 3]"),
-  {_, [{h, 2}, {t, [3]}]} = eval("[1, h|t] = [1, 2, 3]"),
-  {_, [{t, [3]}]} = eval("[1, 2|t] = [1, 2, 3]"),
-  {_, [{h, 1}]} = eval("[h|[2, 3]] = [1, 2, 3]"),
-  {_, [{t, [2, 3]}]} = eval("[+1|t] = [1, 2, 3]"),
-  ?assertError({badmatch, _}, eval("[2, h|t] = [1, 2, 3]")).
+  {_, [{h, 1}, {t, [2, 3]}]} = eval("[h | t] = [1, 2, 3]"),
+  {_, [{h, 2}, {t, [3]}]} = eval("[1, h | t] = [1, 2, 3]"),
+  {_, [{t, [3]}]} = eval("[1, 2 | t] = [1, 2, 3]"),
+  {_, [{h, 1}]} = eval("[h | [2, 3]] = [1, 2, 3]"),
+  {_, [{t, [2, 3]}]} = eval("[+1 | t] = [1, 2, 3]"),
+  ?assertError({badmatch, _}, eval("[2, h | t] = [1, 2, 3]")).
 
 % Keyword match
 
@@ -112,7 +112,7 @@ orrdict_match_test() ->
 
 function_clause_test() ->
   F = fun() ->
-    eval("defmodule Foo do\ndef a([{_k, _}=e|_]), do: e\nend"),
+    eval("defmodule Foo do\ndef a([{_k, _}=e | _]), do: e\nend"),
     {{foo, bar}, _} = eval("Foo.a([{:foo, :bar}])")
   end,
   test_helper:run_and_remove(F, ['Elixir.Foo']).

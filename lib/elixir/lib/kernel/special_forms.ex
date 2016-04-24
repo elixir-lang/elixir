@@ -1481,9 +1481,9 @@ defmodule Kernel.SpecialForms do
       iex> fun.(1, 2)
       {1, 2}
 
-      iex> fun = &[&1|&2]
+      iex> fun = &[&1 | &2]
       iex> fun.(1, 2)
-      [1|2]
+      [1 | 2]
 
   The only restrictions when creating anonymous functions is that at
   least one placeholder must be present, i.e. it must contain at least

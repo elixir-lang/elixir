@@ -29,7 +29,7 @@ defmodule Mix.ProjectStack do
         file = find_project_named(module, stack) ->
           {{:error, file}, state}
         true ->
-          {:ok, %{state | post_config: [], stack: [project|state.stack]}}
+          {:ok, %{state | post_config: [], stack: [project | state.stack]}}
       end
     end
   end
@@ -38,8 +38,8 @@ defmodule Mix.ProjectStack do
   def configured_applications(apps) do
     cast fn state ->
       update_in state.stack, fn
-        [h|t] -> [%{h | configured_applications: apps}|t]
-        []    -> []
+        [h | t] -> [%{h | configured_applications: apps} | t]
+        []      -> []
       end
     end
   end
@@ -47,7 +47,7 @@ defmodule Mix.ProjectStack do
   @spec configured_applications() :: [atom]
   def configured_applications() do
     get fn
-      %{stack: [h|_]} -> h.configured_applications
+      %{stack: [h | _]} -> h.configured_applications
       %{stack: []} -> []
     end
   end
@@ -56,7 +56,7 @@ defmodule Mix.ProjectStack do
   def pop do
     get_and_update fn %{stack: stack} = state ->
       case stack do
-        [h|t] -> {take(h), %{state | stack: t}}
+        [h | t] -> {take(h), %{state | stack: t}}
         [] -> {nil, state}
       end
     end
@@ -66,7 +66,7 @@ defmodule Mix.ProjectStack do
   def peek do
     get fn %{stack: stack} ->
       case stack do
-        [h|_] -> take(h)
+        [h | _] -> take(h)
         [] -> nil
       end
     end
@@ -78,15 +78,15 @@ defmodule Mix.ProjectStack do
   def root(fun) do
     {top, file} =
       get_and_update fn %{stack: stack} = state ->
-        {top, [mid|bottom]} = Enum.split_while(stack, &(not &1.recursing?))
-        {{top, mid.file}, %{state | stack: [%{mid | recursing?: false}|bottom]}}
+        {top, [mid | bottom]} = Enum.split_while(stack, &(not &1.recursing?))
+        {{top, mid.file}, %{state | stack: [%{mid | recursing?: false} | bottom]}}
       end
 
     try do
       File.cd! Path.dirname(file), fun
     after
-      cast fn %{stack: [mid|bottom]} = state ->
-        %{state | stack: top ++ [%{mid | recursing?: true}|bottom]}
+      cast fn %{stack: [mid | bottom]} = state ->
+        %{state | stack: top ++ [%{mid | recursing?: true} | bottom]}
       end
     end
   end
@@ -104,12 +104,12 @@ defmodule Mix.ProjectStack do
       case stack do
         [] ->
           {nil, state}
-        [%{io_done: true}|_] ->
+        [%{io_done: true} | _] ->
           {nil, state}
-        [h|t] ->
+        [h | t] ->
           h = %{h | io_done: true}
           t = Enum.map(t, &%{&1 | io_done: false})
-          {h.config[:app], %{state | stack: [h|t]}}
+          {h.config[:app], %{state | stack: [h | t]}}
       end
     end
   end
@@ -127,15 +127,15 @@ defmodule Mix.ProjectStack do
   """
   @spec recur((... -> result)) :: result when result: var
   def recur(fun) do
-    cast fn %{stack: [h|t]} = state ->
-      %{state | stack: [%{h | recursing?: true}|t]}
+    cast fn %{stack: [h | t]} = state ->
+      %{state | stack: [%{h | recursing?: true} | t]}
     end
 
     try do
       fun.()
     after
-      cast fn %{stack: [h|t]} = state ->
-        %{state | stack: [%{h | recursing?: false}|t]}
+      cast fn %{stack: [h | t]} = state ->
+        %{state | stack: [%{h | recursing?: false} | t]}
       end
     end
   end

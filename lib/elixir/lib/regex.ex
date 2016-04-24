@@ -415,38 +415,38 @@ defmodule Regex do
   defp do_split([], string, offset, _counter, _trim, _with_captures),
     do: [binary_part(string, offset, byte_size(string) - offset)]
 
-  defp do_split([[{pos, _}|h]|t], string, offset, counter, trim, with_captures) when pos - offset < 0,
-    do: do_split([h|t], string, offset, counter, trim, with_captures)
+  defp do_split([[{pos, _} | h] | t], string, offset, counter, trim, with_captures) when pos - offset < 0,
+    do: do_split([h | t], string, offset, counter, trim, with_captures)
 
-  defp do_split([[]|t], string, offset, counter, trim, with_captures),
+  defp do_split([[] | t], string, offset, counter, trim, with_captures),
     do: do_split(t, string, offset, counter, trim, with_captures)
 
-  defp do_split([[{pos, length}|h]|t], string, offset, counter, trim, true) do
+  defp do_split([[{pos, length} | h] | t], string, offset, counter, trim, true) do
     new_offset = pos + length
     keep = pos - offset
 
     if keep == 0 and length == 0 do
-      do_split([h|t], string, new_offset, counter, trim, true)
+      do_split([h | t], string, new_offset, counter, trim, true)
     else
       <<_::binary-size(offset), part::binary-size(keep), match::binary-size(length), _::binary>> = string
 
       if keep == 0 and (length == 0 or trim) do
-        [match | do_split([h|t], string, new_offset, counter - 1, trim, true)]
+        [match | do_split([h | t], string, new_offset, counter - 1, trim, true)]
       else
-        [part, match | do_split([h|t], string, new_offset, counter - 1, trim, true)]
+        [part, match | do_split([h | t], string, new_offset, counter - 1, trim, true)]
       end
     end
   end
 
-  defp do_split([[{pos, length}|h]|t], string, offset, counter, trim, false) do
+  defp do_split([[{pos, length} | h] | t], string, offset, counter, trim, false) do
     new_offset = pos + length
     keep = pos - offset
 
     if keep == 0 and (length == 0 or trim) do
-      do_split([h|t], string, new_offset, counter, trim, false)
+      do_split([h | t], string, new_offset, counter, trim, false)
     else
       <<_::binary-size(offset), part::binary-size(keep), _::binary>> = string
-      [part | do_split([h|t], string, new_offset, counter - 1, trim, false)]
+      [part | do_split([h | t], string, new_offset, counter - 1, trim, false)]
     end
   end
 
@@ -509,13 +509,13 @@ defmodule Regex do
 
   defp do_replace(%Regex{re_pattern: compiled}, string, replacement, options) do
     opts = if Keyword.get(options, :global) != false, do: [:global], else: []
-    opts = [{:capture, :all, :index}|opts]
+    opts = [{:capture, :all, :index} | opts]
 
     case :re.run(string, compiled, opts) do
       :nomatch ->
         string
-      {:match, [mlist|t]} when is_list(mlist) ->
-        apply_list(string, replacement, [mlist|t]) |> IO.iodata_to_binary
+      {:match, [mlist | t]} when is_list(mlist) ->
+        apply_list(string, replacement, [mlist | t]) |> IO.iodata_to_binary
       {:match, slist} ->
         apply_list(string, replacement, [slist]) |> IO.iodata_to_binary
     end
@@ -535,7 +535,7 @@ defmodule Regex do
 
   defp precompile_replacement(<<?\\, x, rest::binary>>) when x in ?0..?9 do
     {ns, rest} = pick_int(rest)
-    [List.to_integer([x|ns]) | precompile_replacement(rest)]
+    [List.to_integer([x | ns]) | precompile_replacement(rest)]
   end
 
   defp precompile_replacement(<<x, rest::binary>>) do
@@ -549,7 +549,7 @@ defmodule Regex do
 
   defp pick_int(<<x, rest::binary>>) when x in ?0..?9 do
     {found, rest} = pick_int(rest)
-    {[x|found], rest}
+    {[x | found], rest}
   end
 
   defp pick_int(bin) do
@@ -617,11 +617,11 @@ defmodule Regex do
   end
 
   defp get_indexes(string, [], arity) do
-    [""|get_indexes(string, [], arity - 1)]
+    ["" | get_indexes(string, [], arity - 1)]
   end
 
-  defp get_indexes(string, [h|t], arity) do
-    [get_index(string, h)|get_indexes(string, t, arity - 1)]
+  defp get_indexes(string, [h | t], arity) do
+    [get_index(string, h) | get_indexes(string, t, arity - 1)]
   end
 
   {:ok, pattern} = :re.compile(~S"[.^$*+?()\[\]{}\\\|\s#]", [:unicode])
@@ -658,18 +658,18 @@ defmodule Regex do
 
   # Private Helpers
 
-  defp translate_options(<<?u, t::binary>>, acc), do: translate_options(t, [:unicode, :ucp|acc])
-  defp translate_options(<<?i, t::binary>>, acc), do: translate_options(t, [:caseless|acc])
-  defp translate_options(<<?x, t::binary>>, acc), do: translate_options(t, [:extended|acc])
-  defp translate_options(<<?f, t::binary>>, acc), do: translate_options(t, [:firstline|acc])
-  defp translate_options(<<?U, t::binary>>, acc), do: translate_options(t, [:ungreedy|acc])
-  defp translate_options(<<?s, t::binary>>, acc), do: translate_options(t, [:dotall, {:newline, :anycrlf}|acc])
-  defp translate_options(<<?m, t::binary>>, acc), do: translate_options(t, [:multiline|acc])
+  defp translate_options(<<?u, t::binary>>, acc), do: translate_options(t, [:unicode, :ucp | acc])
+  defp translate_options(<<?i, t::binary>>, acc), do: translate_options(t, [:caseless | acc])
+  defp translate_options(<<?x, t::binary>>, acc), do: translate_options(t, [:extended | acc])
+  defp translate_options(<<?f, t::binary>>, acc), do: translate_options(t, [:firstline | acc])
+  defp translate_options(<<?U, t::binary>>, acc), do: translate_options(t, [:ungreedy | acc])
+  defp translate_options(<<?s, t::binary>>, acc), do: translate_options(t, [:dotall, {:newline, :anycrlf} | acc])
+  defp translate_options(<<?m, t::binary>>, acc), do: translate_options(t, [:multiline | acc])
 
   defp translate_options(<<?r, t::binary>>, acc) do
     IO.write :stderr, "warning: the /r modifier in regular expressions is deprecated, please use /U instead\n" <>
                       Exception.format_stacktrace
-    translate_options(t, [:ungreedy|acc])
+    translate_options(t, [:ungreedy | acc])
   end
 
   defp translate_options(<<>>, acc), do: acc

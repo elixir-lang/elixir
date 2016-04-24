@@ -197,7 +197,7 @@ defmodule IO.ANSI.Docs do
 
   defp write_text(text, indent, options) do
     case Enum.reverse(text) do
-      [:no_wrap|rest] -> write_text(rest, indent, options, true)
+      [:no_wrap | rest] -> write_text(rest, indent, options, true)
       rest -> write_text(rest, indent, options, false)
     end
   end
@@ -229,7 +229,7 @@ defmodule IO.ANSI.Docs do
   end
 
   defp process_code(["    " <> line | rest], code, indent, options) do
-    process_code(rest, [line|code], indent, options)
+    process_code(rest, [line | code], indent, options)
   end
 
   defp process_code(rest, code, indent, options) do
@@ -250,7 +250,7 @@ defmodule IO.ANSI.Docs do
     if line === delimiter do
       process_code(rest, code, indent, options)
     else
-      process_fenced_code(rest, [line|code], indent, options, delimiter)
+      process_fenced_code(rest, [line | code], indent, options, delimiter)
     end
   end
 
@@ -379,13 +379,13 @@ defmodule IO.ANSI.Docs do
     write_with_wrap(rest, available, indent, false)
   end
 
-  defp take_words([word|words], available, acc) do
+  defp take_words([word | words], available, acc) do
     available = available - length_without_escape(word, 0)
 
     cond do
       # It fits, take one for space and continue decreasing
       available > 0 ->
-        take_words(words, available - 1, [word|acc])
+        take_words(words, available - 1, [word | acc])
 
       # No space but we got no words
       acc == [] ->
@@ -393,7 +393,7 @@ defmodule IO.ANSI.Docs do
 
       # Otherwise
       true ->
-        {Enum.reverse(acc), [word|words]}
+        {Enum.reverse(acc), [word | words]}
     end
   end
 
@@ -466,80 +466,80 @@ defmodule IO.ANSI.Docs do
 
   defp handle_inline(<<delimiter, ?*, ?*, rest::binary>>, nil, buffer, acc, options)
       when rest != "" and delimiter in @delimiters do
-    handle_inline(rest, ?d, ["**"], [delimiter, Enum.reverse(buffer)|acc], options)
+    handle_inline(rest, ?d, ["**"], [delimiter, Enum.reverse(buffer) | acc], options)
   end
 
   defp handle_inline(<<delimiter, mark, rest::binary>>, nil, buffer, acc, options)
       when rest != "" and delimiter in @delimiters and mark in @single do
-    handle_inline(rest, mark, [<<mark>>], [delimiter, Enum.reverse(buffer)|acc], options)
+    handle_inline(rest, mark, [<<mark>>], [delimiter, Enum.reverse(buffer) | acc], options)
   end
 
   defp handle_inline(<<?`, rest::binary>>, nil, buffer, acc, options)
       when rest != "" do
-    handle_inline(rest, ?`, ["`"], [Enum.reverse(buffer)|acc], options)
+    handle_inline(rest, ?`, ["`"], [Enum.reverse(buffer) | acc], options)
   end
 
   # Clauses for handling escape
 
   defp handle_inline(<<?\\, ?\\, ?*, ?*, rest::binary>>, nil, buffer, acc, options)
       when rest != "" do
-    handle_inline(rest, ?d, ["**"], [?\\, Enum.reverse(buffer)|acc], options)
+    handle_inline(rest, ?d, ["**"], [?\\, Enum.reverse(buffer) | acc], options)
   end
 
   defp handle_inline(<<?\\, ?\\, mark, rest::binary>>, nil, buffer, acc, options)
       when rest != "" and mark in @single do
-    handle_inline(rest, mark, [<<mark>>], [?\\, Enum.reverse(buffer)|acc], options)
+    handle_inline(rest, mark, [<<mark>>], [?\\, Enum.reverse(buffer) | acc], options)
   end
 
   defp handle_inline(<<?\\, ?\\, rest::binary>>, limit, buffer, acc, options) do
-    handle_inline(rest, limit, [?\\|buffer], acc, options)
+    handle_inline(rest, limit, [?\\ | buffer], acc, options)
   end
 
   # An escape is not valid inside `
   defp handle_inline(<<?\\, mark, rest::binary>>, limit, buffer, acc, options)
       when not(mark == limit and mark == ?`) do
-    handle_inline(rest, limit, [mark|buffer], acc, options)
+    handle_inline(rest, limit, [mark | buffer], acc, options)
   end
 
   # Inline end
 
   defp handle_inline(<<?*, ?*, delimiter, rest::binary>>, ?d, buffer, acc, options)
       when delimiter in @delimiters do
-    handle_inline(<<delimiter, rest::binary>>, nil, [], [inline_buffer(buffer, options)|acc], options)
+    handle_inline(<<delimiter, rest::binary>>, nil, [], [inline_buffer(buffer, options) | acc], options)
   end
 
   defp handle_inline(<<mark, delimiter, rest::binary>>, mark, buffer, acc, options)
       when delimiter in @delimiters and mark in @single do
-    handle_inline(<<delimiter, rest::binary>>, nil, [], [inline_buffer(buffer, options)|acc], options)
+    handle_inline(<<delimiter, rest::binary>>, nil, [], [inline_buffer(buffer, options) | acc], options)
   end
 
   defp handle_inline(<<?*, ?*, rest::binary>>, ?d, buffer, acc, options)
       when rest == "" do
-    handle_inline(<<>>, nil, [], [inline_buffer(buffer, options)|acc], options)
+    handle_inline(<<>>, nil, [], [inline_buffer(buffer, options) | acc], options)
   end
 
   defp handle_inline(<<mark, rest::binary>>, mark, buffer, acc, options)
       when rest == "" and mark in @single do
-    handle_inline(<<>>, nil, [], [inline_buffer(buffer, options)|acc], options)
+    handle_inline(<<>>, nil, [], [inline_buffer(buffer, options) | acc], options)
   end
 
   defp handle_inline(<<?`, rest::binary>>, ?`, buffer, acc, options) do
-    handle_inline(rest, nil, [], [inline_buffer(buffer, options)|acc], options)
+    handle_inline(rest, nil, [], [inline_buffer(buffer, options) | acc], options)
   end
 
   # Catch all
 
   defp handle_inline(<<char, rest::binary>>, mark, buffer, acc, options) do
-    handle_inline(rest, mark, [char|buffer], acc, options)
+    handle_inline(rest, mark, [char | buffer], acc, options)
   end
 
   defp handle_inline(<<>>, _mark, buffer, acc, _options) do
-    IO.iodata_to_binary Enum.reverse([Enum.reverse(buffer)|acc])
+    IO.iodata_to_binary Enum.reverse([Enum.reverse(buffer) | acc])
   end
 
   defp inline_buffer(buffer, options) do
-    [h|t] = Enum.reverse([IO.ANSI.reset|buffer])
-    [color_for(h, options)|t]
+    [h | t] = Enum.reverse([IO.ANSI.reset | buffer])
+    [color_for(h, options) | t]
   end
 
   defp color_for(mark, colors) do

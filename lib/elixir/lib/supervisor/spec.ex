@@ -171,7 +171,7 @@ defmodule Supervisor.Spec do
     {:ok, {{strategy, maxR, maxS}, children}}
   end
 
-  defp assert_unique_ids([id|rest]) do
+  defp assert_unique_ids([id | rest]) do
     if id in rest do
       raise ArgumentError,
         "duplicated id #{inspect id} found in the supervisor specification, " <>

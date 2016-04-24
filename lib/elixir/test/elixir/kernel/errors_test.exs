@@ -949,7 +949,7 @@ defmodule Kernel.ErrorsTest do
 
   test "macros error stacktrace" do
     assert [{:erlang, :+, [1, :foo], _},
-            {Kernel.ErrorsTest.MacrosErrorStacktrace, :sample, 1, _}|_] =
+            {Kernel.ErrorsTest.MacrosErrorStacktrace, :sample, 1, _} | _] =
       rescue_stacktrace("""
       defmodule Kernel.ErrorsTest.MacrosErrorStacktrace do
         defmacro sample(num), do: num + :foo
@@ -959,7 +959,7 @@ defmodule Kernel.ErrorsTest do
   end
 
   test "macros function clause stacktrace" do
-    assert [{__MODULE__, :sample, 1, _}|_] =
+    assert [{__MODULE__, :sample, 1, _} | _] =
       rescue_stacktrace("""
       defmodule Kernel.ErrorsTest.MacrosFunctionClauseStacktrace do
         import Kernel.ErrorsTest
@@ -969,7 +969,7 @@ defmodule Kernel.ErrorsTest do
   end
 
   test "macros interpreted function clause stacktrace" do
-    assert [{Kernel.ErrorsTest.MacrosInterpretedFunctionClauseStacktrace, :sample, 1, _}|_] =
+    assert [{Kernel.ErrorsTest.MacrosInterpretedFunctionClauseStacktrace, :sample, 1, _} | _] =
       rescue_stacktrace("""
       defmodule Kernel.ErrorsTest.MacrosInterpretedFunctionClauseStacktrace do
         defmacro sample(0), do: 0
@@ -979,7 +979,7 @@ defmodule Kernel.ErrorsTest do
   end
 
   test "macros compiled callback" do
-    assert [{Kernel.ErrorsTest, :__before_compile__, [%Macro.Env{module: Kernel.ErrorsTest.MacrosCompiledCallback}], _}|_] =
+    assert [{Kernel.ErrorsTest, :__before_compile__, [%Macro.Env{module: Kernel.ErrorsTest.MacrosCompiledCallback}], _} | _] =
       rescue_stacktrace("""
       defmodule Kernel.ErrorsTest.MacrosCompiledCallback do
         Module.put_attribute(__MODULE__, :before_compile, Kernel.ErrorsTest)

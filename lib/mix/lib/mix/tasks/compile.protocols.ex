@@ -136,7 +136,7 @@ defmodule Mix.Tasks.Compile.Protocols do
 
   defp read_manifest(manifest) do
     case :file.consult(manifest) do
-      {:ok, [@manifest_vsn|t]} -> t
+      {:ok, [@manifest_vsn | t]} -> t
       _ -> []
     end
   end

@@ -251,7 +251,7 @@ quoted_to_erl(Quoted, Env, Scope) ->
 %% Converts a given string (char list) into quote expression
 
 string_to_quoted(String, StartLine, File, Opts) when is_integer(StartLine), is_binary(File) ->
-  case elixir_tokenizer:tokenize(String, StartLine, [{file, File}|Opts]) of
+  case elixir_tokenizer:tokenize(String, StartLine, [{file, File} | Opts]) of
     {ok, _Line, _Column, Tokens} ->
       put(elixir_parser_file, File),
       try elixir_parser:parse(Tokens) of

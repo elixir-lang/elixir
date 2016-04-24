@@ -318,13 +318,13 @@ defmodule Mix.Task do
     end
   end
 
-  defp run_alias([h|t], alias_args, _res) when is_binary(h) do
-    [task|args] = OptionParser.split(h)
+  defp run_alias([h | t], alias_args, _res) when is_binary(h) do
+    [task | args] = OptionParser.split(h)
     res = Mix.Task.run task, join_args(args, alias_args, t)
     run_alias(t, alias_args, res)
   end
 
-  defp run_alias([h|t], alias_args, _res) when is_function(h, 1) do
+  defp run_alias([h | t], alias_args, _res) when is_function(h, 1) do
     res = h.(join_args([], alias_args, t))
     run_alias(t, alias_args, res)
   end

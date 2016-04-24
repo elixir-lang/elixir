@@ -160,8 +160,8 @@ defmodule List do
 
   """
   @spec first([elem]) :: nil | elem when elem: var
-  def first([]),    do: nil
-  def first([h|_]), do: h
+  def first([]),      do: nil
+  def first([h | _]), do: h
 
   @doc """
   Returns the last element in `list` or `nil` if `list` is empty.
@@ -179,9 +179,9 @@ defmodule List do
 
   """
   @spec last([elem]) :: nil | elem when elem: var
-  def last([]),    do: nil
-  def last([h]),   do: h
-  def last([_|t]), do: last(t)
+  def last([]),      do: nil
+  def last([h]),     do: h
+  def last([_ | t]), do: last(t)
 
   @doc """
   Receives a list of tuples and returns the first tuple

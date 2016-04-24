@@ -14,7 +14,7 @@ defmodule Kernel.ComprehensionTest do
       def into(struct) do
         {struct,
          fn
-           _, {:cont, x} -> Process.put(:into_cont, [x|Process.get(:into_cont)])
+           _, {:cont, x} -> Process.put(:into_cont, [x | Process.get(:into_cont)])
            _, :done -> Process.put(:into_done, true)
            _, :halt -> Process.put(:into_halt, true)
          end}

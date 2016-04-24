@@ -118,7 +118,7 @@ defmodule Logger.Config do
   end
 
   def handle_call({:add_translator, translator}, state) do
-    state = update_translators(state, fn t -> [translator|List.delete(t, translator)] end)
+    state = update_translators(state, fn t -> [translator | List.delete(t, translator)] end)
     {:ok, :ok, state}
   end
 
@@ -128,7 +128,7 @@ defmodule Logger.Config do
   end
 
   def handle_call({:add_backend, backend}, state) do
-    update_backends(&[backend|List.delete(&1, backend)])
+    update_backends(&[backend | List.delete(&1, backend)])
     {:ok, :ok, state}
   end
 

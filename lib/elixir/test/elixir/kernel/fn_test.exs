@@ -102,7 +102,7 @@ defmodule Kernel.FnTest do
     assert (&[ 1, &1 ]).(2) == [ 1, 2 ]
     assert (&[ 1, &1, &2 ]).(2, 3) == [ 1, 2, 3 ]
 
-    assert (&[&1|&2]).(1, 2) == [1|2]
+    assert (&[&1 | &2]).(1, 2) == [1 | 2]
   end
 
   test "capture and partially apply on call" do

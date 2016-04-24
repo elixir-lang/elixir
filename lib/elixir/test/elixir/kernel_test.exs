@@ -225,7 +225,7 @@ defmodule KernelTest do
   end
 
   test "apply/3 and apply/2" do
-    assert apply(Enum, :reverse, [[1|[2, 3]]]) == [3, 2, 1]
+    assert apply(Enum, :reverse, [[1 | [2, 3]]]) == [3, 2, 1]
     assert apply(fn x -> x * 2 end, [2]) == 4
   end
 

@@ -23,12 +23,12 @@ defmodule GenServer do
 
         # Callbacks
 
-        def handle_call(:pop, _from, [h|t]) do
+        def handle_call(:pop, _from, [h | t]) do
           {:reply, h, t}
         end
 
         def handle_cast({:push, item}, state) do
-          {:noreply, [item|state]}
+          {:noreply, [item | state]}
         end
       end
 
@@ -129,7 +129,7 @@ defmodule GenServer do
 
         # Server (callbacks)
 
-        def handle_call(:pop, _from, [h|t]) do
+        def handle_call(:pop, _from, [h | t]) do
           {:reply, h, t}
         end
 
@@ -139,7 +139,7 @@ defmodule GenServer do
         end
 
         def handle_cast({:push, item}, state) do
-          {:noreply, [item|state]}
+          {:noreply, [item | state]}
         end
 
         def handle_cast(request, state) do
@@ -739,6 +739,6 @@ defmodule GenServer do
   @compile {:inline, [nodes: 0]}
 
   defp nodes do
-    [node()|:erlang.nodes()]
+    [node() | :erlang.nodes()]
   end
 end

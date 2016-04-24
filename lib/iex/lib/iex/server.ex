@@ -12,7 +12,7 @@ defmodule IEx.Server do
   """
   @spec whereis :: pid | nil
   def whereis() do
-    Enum.find_value([node()|Node.list], fn node ->
+    Enum.find_value([node() | Node.list], fn node ->
       server = :rpc.call(node, IEx.Server, :local, [])
       if is_pid(server), do: server
     end)

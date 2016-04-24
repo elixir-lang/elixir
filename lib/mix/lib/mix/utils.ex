@@ -272,7 +272,7 @@ defmodule Mix.Utils do
     do_make_relative_path(Path.split(source), Path.split(target))
   end
 
-  defp do_make_relative_path([h|t1], [h|t2]) do
+  defp do_make_relative_path([h | t1], [h | t2]) do
     do_make_relative_path(t1, t2)
   end
 

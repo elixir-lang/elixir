@@ -298,7 +298,7 @@ defmodule Mix.Tasks.Test do
       |> Keyword.put_new(:include, [])
       |> Keyword.put_new(:exclude, [])
       |> Keyword.update!(:include, &(filters ++ &1))
-      |> Keyword.update!(:exclude, &[:test|&1])
+      |> Keyword.update!(:exclude, &[:test | &1])
     else
       opts
     end
