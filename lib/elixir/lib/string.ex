@@ -633,7 +633,7 @@ defmodule String do
       <<prefix::size(prefix_size)-binary, suffix::size(suffix_size)-binary>> when prefix == match ->
         replace_leading(suffix, match, replacement, prefix_size, suffix_size - prefix_size, acc <> replacement)
       _ ->
-        string
+        acc <> string
     end
   end
 
