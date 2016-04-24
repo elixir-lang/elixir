@@ -180,14 +180,18 @@ defmodule StringTest do
   end
 
   test "replace_trailing" do
-    assert String.replace_trailing("   abc aa", "a", "") == "   abc "
-    assert String.replace_trailing("   abc __", "_", "") == "   abc "
-    assert String.replace_trailing(" aaaaaaaaa", "a", "") == " "
-    assert String.replace_trailing("aaaaaaaaaa", "a", "") == ""
-    assert String.replace_trailing("]]]]]]]]]]", "]", "") == ""
-    assert String.replace_trailing("   cat 猫猫", "猫", "") == "   cat "
-    assert String.replace_trailing("test", "t", "") == "tes"
-    assert String.replace_trailing("t", "t", "") == ""
+    assert String.replace_trailing("   abc aa", "a", "b") == "   abc bb"
+    assert String.replace_trailing("   abc __", "_", "b") == "   abc bb"
+    assert String.replace_trailing(" aaaaaaaa", "a", "b") == " bbbbbbbb"
+    assert String.replace_trailing(" aaaaaaaa", "aaa", "b") == " aabb"
+    assert String.replace_trailing("aaaaaaaaa", "a", "b") == "bbbbbbbbb"
+    assert String.replace_trailing("]]]]]]", "]", "[]") == "[][][][][][]"
+    assert String.replace_trailing("]]]]]]]]", "]", "") == ""
+    assert String.replace_trailing("] ]]]]]]", "]", "") == "] "
+    assert String.replace_trailing("  cat 猫猫", "猫", "й") == "  cat йй"
+    assert String.replace_trailing("test", "t", "T") == "tesT"
+    assert String.replace_trailing("t", "t", "T") == "T"
+    assert String.replace_trailing("aaa", "b", "c") == "aaa"
   end
 
   test "rstrip" do

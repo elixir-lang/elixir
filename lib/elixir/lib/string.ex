@@ -671,7 +671,7 @@ defmodule String do
       <<prefix::size(prefix_size)-binary, suffix::size(suffix_size)-binary>> when suffix == match ->
         replace_trailing(prefix, match, replacement, prefix_size - suffix_size, suffix_size, acc <> replacement)
       _ ->
-        string
+        string <> acc
     end
   end
 
