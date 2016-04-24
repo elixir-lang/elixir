@@ -146,7 +146,7 @@ do_expand_import(Meta, {Name, Arity} = Tuple, Args, Module, E, Result) ->
       elixir_locals:record_import(Tuple, Receiver, Module, ?m(E, function)),
       {ok, Receiver, expand_macro_named(Meta, Receiver, Name, Arity, Args, E)};
     {import, Receiver} ->
-      case expand_require([{require, false}|Meta], Receiver, Tuple, Args, E) of
+      case expand_require([{require, false} | Meta], Receiver, Tuple, Args, E) of
         {ok, _, _} = Response -> Response;
         error -> {ok, Receiver, Name, Args}
       end;
@@ -185,7 +185,7 @@ expand_macro_fun(Meta, Fun, Receiver, Name, Args, E) ->
   EArg = {Line, E},
 
   try
-    apply(Fun, [EArg|Args])
+    apply(Fun, [EArg | Args])
   catch
     Kind:Reason ->
       Arity = length(Args),
@@ -247,7 +247,7 @@ find_dispatch(Meta, Tuple, Extra, E) ->
         {[], []} -> false;
         _ ->
           {Name, Arity} = Tuple,
-          [First, Second|_] = FunMatch ++ MacMatch,
+          [First, Second | _] = FunMatch ++ MacMatch,
           Error = {ambiguous_call, {First, Second, Name, Arity}},
           elixir_errors:form_error(Meta, ?m(E, file), ?MODULE, Error)
       end
@@ -267,16 +267,16 @@ is_import(Meta) ->
   end.
 
 % %% We've reached the macro wrapper fun, skip it with the rest
-prune_stacktrace([{_, _, [E|_], _}|_], _MFA, Info, E) ->
+prune_stacktrace([{_, _, [E | _], _} | _], _MFA, Info, E) ->
   Info;
 %% We've reached the invoked macro, skip it
-prune_stacktrace([{M, F, A, _}|_], {M, F, A}, Info, _E) ->
+prune_stacktrace([{M, F, A, _} | _], {M, F, A}, Info, _E) ->
   Info;
 %% We've reached the elixir_dispatch internals, skip it with the rest
-prune_stacktrace([{Mod, _, _, _}|_], _MFA, Info, _E) when Mod == elixir_dispatch; Mod == elixir_exp ->
+prune_stacktrace([{Mod, _, _, _} | _], _MFA, Info, _E) when Mod == elixir_dispatch; Mod == elixir_exp ->
   Info;
-prune_stacktrace([H|T], MFA, Info, E) ->
-  [H|prune_stacktrace(T, MFA, Info, E)];
+prune_stacktrace([H | T], MFA, Info, E) ->
+  [H | prune_stacktrace(T, MFA, Info, E)];
 prune_stacktrace([], _MFA, Info, _E) ->
   Info.
 

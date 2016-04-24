@@ -310,15 +310,15 @@ defimpl Inspect, for: List do
   def keyword?(_other), do: false
 
   @doc false
-  def printable?([c|cs]) when is_integer(c) and c in 32..126, do: printable?(cs)
-  def printable?([?\n|cs]), do: printable?(cs)
-  def printable?([?\r|cs]), do: printable?(cs)
-  def printable?([?\t|cs]), do: printable?(cs)
-  def printable?([?\v|cs]), do: printable?(cs)
-  def printable?([?\b|cs]), do: printable?(cs)
-  def printable?([?\f|cs]), do: printable?(cs)
-  def printable?([?\e|cs]), do: printable?(cs)
-  def printable?([?\a|cs]), do: printable?(cs)
+  def printable?([c | cs]) when is_integer(c) and c in 32..126, do: printable?(cs)
+  def printable?([?\n | cs]), do: printable?(cs)
+  def printable?([?\r | cs]), do: printable?(cs)
+  def printable?([?\t | cs]), do: printable?(cs)
+  def printable?([?\v | cs]), do: printable?(cs)
+  def printable?([?\b | cs]), do: printable?(cs)
+  def printable?([?\f | cs]), do: printable?(cs)
+  def printable?([?\e | cs]), do: printable?(cs)
+  def printable?([?\a | cs]), do: printable?(cs)
   def printable?([]), do: true
   def printable?(_), do: false
 

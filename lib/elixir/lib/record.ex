@@ -260,8 +260,8 @@ defmodule Record do
         create(atom, fields, args, caller)
       true ->
         case Macro.expand(args, caller) do
-          {:{}, _, [^atom|list]} when length(list) == length(fields) ->
-            record = List.to_tuple([atom|list])
+          {:{}, _, [^atom | list]} when length(list) == length(fields) ->
+            record = List.to_tuple([atom | list])
             Macro.escape(Record.__keyword__(atom, fields, record))
           {^atom, arg} when length(fields) == 1 ->
             Macro.escape(Record.__keyword__(atom, fields, {atom, arg}))
@@ -313,7 +313,7 @@ defmodule Record do
 
     case remaining do
       [] ->
-        {:{}, [], [atom|match]}
+        {:{}, [], [atom | match]}
       _  ->
         keys = for {key, _} <- remaining, do: key
         raise ArgumentError, "record #{inspect atom} does not have the key: #{inspect hd(keys)}"
@@ -352,15 +352,15 @@ defmodule Record do
     end
   end
 
-  defp find_index([{k, _}|_], k, i), do: i + 2
-  defp find_index([{_, _}|t], k, i), do: find_index(t, k, i + 1)
+  defp find_index([{k, _} | _], k, i), do: i + 2
+  defp find_index([{_, _} | t], k, i), do: find_index(t, k, i + 1)
   defp find_index([], _k, _i), do: nil
 
   # Returns a keyword list of the record
   @doc false
   def __keyword__(atom, fields, record) do
     if is_record(record, atom) do
-      [_tag|values] = Tuple.to_list(record)
+      [_tag | values] = Tuple.to_list(record)
       join_keyword(fields, values, [])
     else
       msg = "expected argument to be a literal atom, literal keyword or a #{inspect atom} record, got runtime: #{inspect record}"
@@ -368,8 +368,8 @@ defmodule Record do
     end
   end
 
-  defp join_keyword([{field, _default}|fields], [value|values], acc),
-    do: join_keyword(fields, values, [{field, value}| acc])
+  defp join_keyword([{field, _default} | fields], [value | values], acc),
+    do: join_keyword(fields, values, [{field, value} | acc])
   defp join_keyword([], [], acc),
     do: :lists.reverse(acc)
 

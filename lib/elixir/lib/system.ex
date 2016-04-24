@@ -314,7 +314,7 @@ defmodule System do
   The function must receive the exit status code as an argument.
   """
   def at_exit(fun) when is_function(fun, 1) do
-    :elixir_config.update :at_exit, &[fun|&1]
+    :elixir_config.update :at_exit, &[fun | &1]
   end
 
   @doc """
@@ -569,28 +569,28 @@ defmodule System do
     end
   end
 
-  defp cmd_opts([{:into, any}|t], opts, _into),
+  defp cmd_opts([{:into, any} | t], opts, _into),
     do: cmd_opts(t, opts, any)
 
-  defp cmd_opts([{:cd, bin}|t], opts, into) when is_binary(bin),
-    do: cmd_opts(t, [{:cd, bin}|opts], into)
+  defp cmd_opts([{:cd, bin} | t], opts, into) when is_binary(bin),
+    do: cmd_opts(t, [{:cd, bin} | opts], into)
 
-  defp cmd_opts([{:arg0, bin}|t], opts, into) when is_binary(bin),
-    do: cmd_opts(t, [{:arg0, bin}|opts], into)
+  defp cmd_opts([{:arg0, bin} | t], opts, into) when is_binary(bin),
+    do: cmd_opts(t, [{:arg0, bin} | opts], into)
 
-  defp cmd_opts([{:stderr_to_stdout, true}|t], opts, into),
-    do: cmd_opts(t, [:stderr_to_stdout|opts], into)
+  defp cmd_opts([{:stderr_to_stdout, true} | t], opts, into),
+    do: cmd_opts(t, [:stderr_to_stdout | opts], into)
 
-  defp cmd_opts([{:stderr_to_stdout, false}|t], opts, into),
+  defp cmd_opts([{:stderr_to_stdout, false} | t], opts, into),
     do: cmd_opts(t, opts, into)
 
-  defp cmd_opts([{:parallelism, bool}|t], opts, into) when is_boolean(bool),
-    do: cmd_opts(t, [{:parallelism, bool}|opts], into)
+  defp cmd_opts([{:parallelism, bool} | t], opts, into) when is_boolean(bool),
+    do: cmd_opts(t, [{:parallelism, bool} | opts], into)
 
-  defp cmd_opts([{:env, enum}|t], opts, into),
-    do: cmd_opts(t, [{:env, validate_env(enum)}|opts], into)
+  defp cmd_opts([{:env, enum} | t], opts, into),
+    do: cmd_opts(t, [{:env, validate_env(enum)} | opts], into)
 
-  defp cmd_opts([{key, val}|_], _opts, _into),
+  defp cmd_opts([{key, val} | _], _opts, _into),
     do: raise(ArgumentError, "invalid option #{inspect key} with value #{inspect val}")
 
   defp cmd_opts([], opts, into),

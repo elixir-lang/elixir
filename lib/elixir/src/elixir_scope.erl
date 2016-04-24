@@ -170,7 +170,7 @@ load_binding(Binding, Scope) ->
     counter=#{'_' => NewCounter}
  }}.
 
-load_binding([{Key, Value}|T], Binding, Keys, Vars, Counter) ->
+load_binding([{Key, Value} | T], Binding, Keys, Vars, Counter) ->
   Actual = case Key of
     {_Name, _Kind} -> Key;
     Name when is_atom(Name) -> {Name, nil}

@@ -38,7 +38,7 @@ defmodule Kernel.ParallelRequire do
     wait_for_messages(files, waiting, callback, schedulers, result)
   end
 
-  defp spawn_requires([h|t], waiting, callback, schedulers, result) do
+  defp spawn_requires([h | t], waiting, callback, schedulers, result) do
     parent = self()
     {pid, ref} = :erlang.spawn_monitor fn ->
       :erlang.put(:elixir_compiler_pid, parent)
@@ -52,7 +52,7 @@ defmodule Kernel.ParallelRequire do
       end)
     end
 
-    spawn_requires(t, [{pid, ref}|waiting], callback, schedulers, result)
+    spawn_requires(t, [{pid, ref} | waiting], callback, schedulers, result)
   end
 
   defp wait_for_messages(files, waiting, callback, schedulers, result) do

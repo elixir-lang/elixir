@@ -93,13 +93,13 @@ defmodule Mix.Tasks.Deps.Check do
     end
   end
 
-  defp partition([dep|deps], not_ok, compile) do
+  defp partition([dep | deps], not_ok, compile) do
     cond do
       from_umbrella?(dep)      -> partition(deps, not_ok, compile)
-      compilable?(dep)         -> partition(deps, not_ok, [dep|compile])
-      ok?(dep) and local?(dep) -> partition(deps, not_ok, [dep|compile])
+      compilable?(dep)         -> partition(deps, not_ok, [dep | compile])
+      ok?(dep) and local?(dep) -> partition(deps, not_ok, [dep | compile])
       ok?(dep)                 -> partition(deps, not_ok, compile)
-      true                     -> partition(deps, [dep|not_ok], compile)
+      true                     -> partition(deps, [dep | not_ok], compile)
     end
   end
 

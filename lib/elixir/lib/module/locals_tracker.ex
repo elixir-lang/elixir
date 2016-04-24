@@ -174,9 +174,9 @@ defmodule Module.LocalsTracker do
     reduce_unreachable(private, [], :sets.from_list(unreachable))
   end
 
-  defp reduce_unreachable([{vertex, callers}|t], acc, unreachable) do
+  defp reduce_unreachable([{vertex, callers} | t], acc, unreachable) do
     if :sets.is_subset(callers, unreachable) do
-      reduce_unreachable(t, [{vertex, callers}|acc], unreachable)
+      reduce_unreachable(t, [{vertex, callers} | acc], unreachable)
     else
       reduce_unreachable(acc ++ t, [], :sets.del_element(vertex, unreachable))
     end
@@ -195,7 +195,7 @@ defmodule Module.LocalsTracker do
     if :lists.member(tuple, reachable) do
       acc
     else
-      [{:unused_def, tuple, kind}|acc]
+      [{:unused_def, tuple, kind} | acc]
     end
   end
 
@@ -207,12 +207,12 @@ defmodule Module.LocalsTracker do
     invoked = for {n, a} <- reachable, n == name, a in min..max, do: a
 
     if invoked == [] do
-      [{:unused_def, tuple, kind}|acc]
+      [{:unused_def, tuple, kind} | acc]
     else
       case :lists.min(invoked) - min do
         0 -> acc
-        ^default -> [{:unused_args, tuple}|acc]
-        unused_args -> [{:unused_args, tuple, unused_args}|acc]
+        ^default -> [{:unused_args, tuple} | acc]
+        unused_args -> [{:unused_args, tuple, unused_args} | acc]
       end
     end
   end
@@ -244,11 +244,11 @@ defmodule Module.LocalsTracker do
   @doc false
   def handle_call({:cache_env, env}, _from, {d, cache}) do
     case cache do
-      [{i, ^env}|_] ->
+      [{i, ^env} | _] ->
         {:reply, i, {d, cache}}
       t ->
         i = length(t)
-        {:reply, i, {d, [{i, env}|t]}}
+        {:reply, i, {d, [{i, env} | t]}}
     end
   end
 
@@ -353,7 +353,7 @@ defmodule Module.LocalsTracker do
 
   defp replace_edge!(d, from, to) do
     _ = unless :lists.member(to, :digraph.out_neighbours(d, from)) do
-      [:"$e"|_] = :digraph.add_edge(d, from, to)
+      [:"$e" | _] = :digraph.add_edge(d, from, to)
     end
     :ok
   end

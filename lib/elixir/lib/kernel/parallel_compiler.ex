@@ -72,7 +72,7 @@ defmodule Kernel.ParallelCompiler do
   end
 
   # Release waiting processes
-  defp spawn_compilers([{h, kind}|t], original, output, options, waiting, queued, schedulers, result) when is_pid(h) do
+  defp spawn_compilers([{h, kind} | t], original, output, options, waiting, queued, schedulers, result) when is_pid(h) do
     waiting =
       case List.keytake(waiting, h, 1) do
         {{_kind, ^h, ref, _module, _defining}, waiting} ->
@@ -85,7 +85,7 @@ defmodule Kernel.ParallelCompiler do
   end
 
   # Spawn a compiler for each file in the list until we reach the limit
-  defp spawn_compilers([h|t], original, output, options, waiting, queued, schedulers, result) do
+  defp spawn_compilers([h | t], original, output, options, waiting, queued, schedulers, result) do
     parent = self()
 
     {pid, ref} =
@@ -108,7 +108,7 @@ defmodule Kernel.ParallelCompiler do
       end
 
     spawn_compilers(t, original, output, options, waiting,
-                    [{pid, ref, h}|queued], schedulers, result)
+                    [{pid, ref, h} | queued], schedulers, result)
   end
 
   # No more files, nothing waiting, queue is empty, we are done
@@ -147,7 +147,7 @@ defmodule Kernel.ParallelCompiler do
                         do: {pid, :found}
 
         spawn_compilers(available ++ entries, original, output, options,
-                        waiting, queued, schedulers, [{:struct, module}|result])
+                        waiting, queued, schedulers, [{:struct, module} | result])
 
       {:module_available, child, ref, file, module, binary} ->
         if callback = Keyword.get(options, :each_module) do
@@ -162,7 +162,7 @@ defmodule Kernel.ParallelCompiler do
                         do: {pid, :found}
 
         spawn_compilers(available ++ entries, original, output, options,
-                        waiting, queued, schedulers, [{:module, module}|result])
+                        waiting, queued, schedulers, [{:module, module} | result])
 
       {:waiting, kind, child, ref, on, defining} ->
         defined = fn {k, m} -> on == m and k in [kind, :module] end
@@ -173,7 +173,7 @@ defmodule Kernel.ParallelCompiler do
             send child, {ref, :found}
             waiting
           else
-            [{kind, child, ref, on, defining}|waiting]
+            [{kind, child, ref, on, defining} | waiting]
           end
 
         spawn_compilers(entries, original, output, options, waiting, queued, schedulers, result)
@@ -263,12 +263,12 @@ defmodule Kernel.ParallelCompiler do
                      :elixir_translator, :elixir_expand, :elixir_lexical, :elixir_exp_clauses,
                      :elixir_def, :elixir_map, Kernel.ErrorHandler]
 
-  defp prune_stacktrace([{mod, _, _, _}|t]) when mod in @elixir_internals do
+  defp prune_stacktrace([{mod, _, _, _} | t]) when mod in @elixir_internals do
     prune_stacktrace(t)
   end
 
-  defp prune_stacktrace([h|t]) do
-    [h|prune_stacktrace(t)]
+  defp prune_stacktrace([h | t]) do
+    [h | prune_stacktrace(t)]
   end
 
   defp prune_stacktrace([]) do

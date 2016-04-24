@@ -24,7 +24,7 @@ defmodule ExUnit.Runner do
     opts = normalize_opts(opts)
 
     {:ok, pid} = EM.start_link
-    formatters = [ExUnit.RunnerStats|opts[:formatters]]
+    formatters = [ExUnit.RunnerStats | opts[:formatters]]
     Enum.each formatters, &(:ok = EM.add_handler(pid, &1, opts))
 
     config = %{
@@ -340,8 +340,8 @@ defmodule ExUnit.Runner do
 
   defp take_sync_cases(config) do
     case config.sync_cases do
-      [h|t] -> {%{config | sync_cases: t}, [h]}
-      []    -> nil
+      [h | t] -> {%{config | sync_cases: t}, [h]}
+      []      -> nil
     end
   end
 
@@ -359,12 +359,12 @@ defmodule ExUnit.Runner do
   defp pruned_stacktrace, do: prune_stacktrace(System.stacktrace)
 
   # Assertions can pop-up in the middle of the stack
-  defp prune_stacktrace([{ExUnit.Assertions, _, _, _}|t]), do: prune_stacktrace(t)
+  defp prune_stacktrace([{ExUnit.Assertions, _, _, _} | t]), do: prune_stacktrace(t)
 
   # As soon as we see a Runner, it is time to ignore the stacktrace
-  defp prune_stacktrace([{ExUnit.Runner, _, _, _}|_]), do: []
+  defp prune_stacktrace([{ExUnit.Runner, _, _, _} | _]), do: []
 
   # All other cases
-  defp prune_stacktrace([h|t]), do: [h|prune_stacktrace(t)]
+  defp prune_stacktrace([h | t]), do: [h | prune_stacktrace(t)]
   defp prune_stacktrace([]), do: []
 end

@@ -480,7 +480,7 @@ defmodule Task do
     end
   end
 
-  defp yield_many([%Task{ref: ref, owner: owner}=task|rest], timeout_ref, timeout) do
+  defp yield_many([%Task{ref: ref, owner: owner}=task | rest], timeout_ref, timeout) do
     if owner != self() do
       raise ArgumentError, invalid_owner_error(task)
     end
@@ -488,20 +488,20 @@ defmodule Task do
     receive do
       {^ref, reply} ->
         Process.demonitor(ref, [:flush])
-        [{task, {:ok, reply}}|yield_many(rest, timeout_ref, timeout)]
+        [{task, {:ok, reply}} | yield_many(rest, timeout_ref, timeout)]
 
       {:DOWN, ^ref, _, proc, :noconnection} ->
         throw({:noconnection, reason(:noconnection, proc)})
 
       {:DOWN, ^ref, _, _, reason} ->
-        [{task, {:exit, reason}}|yield_many(rest, timeout_ref, timeout)]
+        [{task, {:exit, reason}} | yield_many(rest, timeout_ref, timeout)]
 
       ^timeout_ref ->
-        [{task, nil}|yield_many(rest, timeout_ref, 0)]
+        [{task, nil} | yield_many(rest, timeout_ref, 0)]
 
     after
       timeout ->
-        [{task, nil}|yield_many(rest, timeout_ref, 0)]
+        [{task, nil} | yield_many(rest, timeout_ref, 0)]
 
     end
   end

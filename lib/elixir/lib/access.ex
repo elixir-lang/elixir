@@ -117,7 +117,7 @@ defmodule Access do
       stacktrace = System.stacktrace
       e =
         case stacktrace do
-          [unquote(top)|_] ->
+          [unquote(top) | _] ->
             %{unquote(e) | reason: "#{inspect unquote(struct)} does not implement the Access behaviour"}
           _ ->
             unquote(e)

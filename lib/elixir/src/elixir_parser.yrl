@@ -86,7 +86,7 @@ grammar -> '$empty' : nil.
 
 % Note expressions are on reverse order
 expr_list -> expr : ['$1'].
-expr_list -> expr_list eoe expr : ['$3'|'$1'].
+expr_list -> expr_list eoe expr : ['$3' | '$1'].
 
 expr -> matched_expr : '$1'.
 expr -> no_parens_expr : '$1'.
@@ -281,8 +281,8 @@ bracket_at_expr -> at_op_eol access_expr bracket_arg :
 
 do_block -> do_eoe 'end' : [[{do, nil}]].
 do_block -> do_eoe stab end_eoe : [[{do, build_stab(reverse('$2'))}]].
-do_block -> do_eoe block_list 'end' : [[{do, nil}|'$2']].
-do_block -> do_eoe stab_eoe block_list 'end' : [[{do, build_stab(reverse('$2'))}|'$3']].
+do_block -> do_eoe block_list 'end' : [[{do, nil} | '$2']].
+do_block -> do_eoe stab_eoe block_list 'end' : [[{do, build_stab(reverse('$2'))} | '$3']].
 
 eoe -> eol : '$1'.
 eoe -> ';' : '$1'.
@@ -301,7 +301,7 @@ block_eoe -> block_identifier : '$1'.
 block_eoe -> block_identifier eoe : '$1'.
 
 stab -> stab_expr : ['$1'].
-stab -> stab eoe stab_expr : ['$3'|'$1'].
+stab -> stab eoe stab_expr : ['$3' | '$1'].
 
 stab_eoe -> stab : '$1'.
 stab_eoe -> stab eoe : '$1'.
@@ -328,7 +328,7 @@ block_item -> block_eoe stab_eoe : {?exprs('$1'), build_stab(reverse('$2'))}.
 block_item -> block_eoe : {?exprs('$1'), nil}.
 
 block_list -> block_item : ['$1'].
-block_list -> block_item block_list : ['$1'|'$2'].
+block_list -> block_item block_list : ['$1' | '$2'].
 
 %% Helpers
 
@@ -453,7 +453,7 @@ call_args_no_parens_expr -> matched_expr : '$1'.
 call_args_no_parens_expr -> no_parens_expr : throw_no_parens_many_strict('$1').
 
 call_args_no_parens_comma_expr -> matched_expr ',' call_args_no_parens_expr : ['$3', '$1'].
-call_args_no_parens_comma_expr -> call_args_no_parens_comma_expr ',' call_args_no_parens_expr : ['$3'|'$1'].
+call_args_no_parens_comma_expr -> call_args_no_parens_comma_expr ',' call_args_no_parens_expr : ['$3' | '$1'].
 
 call_args_no_parens_all -> call_args_no_parens_one : '$1'.
 call_args_no_parens_all -> call_args_no_parens_ambig : '$1'.
@@ -466,7 +466,7 @@ call_args_no_parens_ambig -> no_parens_expr : ['$1'].
 
 call_args_no_parens_many -> matched_expr ',' call_args_no_parens_kw : ['$1', '$3'].
 call_args_no_parens_many -> call_args_no_parens_comma_expr : reverse('$1').
-call_args_no_parens_many -> call_args_no_parens_comma_expr ',' call_args_no_parens_kw : reverse(['$3'|'$1']).
+call_args_no_parens_many -> call_args_no_parens_comma_expr ',' call_args_no_parens_kw : reverse(['$3' | '$1']).
 
 call_args_no_parens_many_strict -> call_args_no_parens_many : '$1'.
 call_args_no_parens_many_strict -> open_paren call_args_no_parens_kw close_paren : throw_no_parens_strict('$1').
@@ -482,11 +482,11 @@ container_expr -> unmatched_expr : '$1'.
 container_expr -> no_parens_expr : throw_no_parens_container_strict('$1').
 
 container_args_base -> container_expr : ['$1'].
-container_args_base -> container_args_base ',' container_expr : ['$3'|'$1'].
+container_args_base -> container_args_base ',' container_expr : ['$3' | '$1'].
 
 container_args -> container_args_base : lists:reverse('$1').
 container_args -> container_args_base ',' : lists:reverse('$1').
-container_args -> container_args_base ',' kw : lists:reverse(['$3'|'$1']).
+container_args -> container_args_base ',' kw : lists:reverse(['$3' | '$1']).
 
 % Function calls with parentheses
 
@@ -495,13 +495,13 @@ call_args_parens_expr -> unmatched_expr : '$1'.
 call_args_parens_expr -> no_parens_expr : throw_no_parens_many_strict('$1').
 
 call_args_parens_base -> call_args_parens_expr : ['$1'].
-call_args_parens_base -> call_args_parens_base ',' call_args_parens_expr : ['$3'|'$1'].
+call_args_parens_base -> call_args_parens_base ',' call_args_parens_expr : ['$3' | '$1'].
 
 call_args_parens -> empty_paren : [].
 call_args_parens -> open_paren no_parens_expr close_paren : ['$2'].
 call_args_parens -> open_paren kw close_paren : ['$2'].
 call_args_parens -> open_paren call_args_parens_base close_paren : reverse('$2').
-call_args_parens -> open_paren call_args_parens_base ',' kw close_paren : reverse(['$4'|'$2']).
+call_args_parens -> open_paren call_args_parens_base ',' kw close_paren : reverse(['$4' | '$2']).
 
 % KV
 
@@ -513,7 +513,7 @@ kw_eol -> kw_identifier_unsafe : build_quoted_atom('$1', false).
 kw_eol -> kw_identifier_unsafe eol : build_quoted_atom('$1', false).
 
 kw_base -> kw_eol container_expr : [{'$1', '$2'}].
-kw_base -> kw_base ',' kw_eol container_expr : [{'$3', '$4'}|'$1'].
+kw_base -> kw_base ',' kw_eol container_expr : [{'$3', '$4'} | '$1'].
 
 kw -> kw_base : reverse('$1').
 kw -> kw_base ',' : reverse('$1').
@@ -522,7 +522,7 @@ call_args_no_parens_kw_expr -> kw_eol matched_expr : {'$1', '$2'}.
 call_args_no_parens_kw_expr -> kw_eol no_parens_expr : {'$1', '$2'}.
 
 call_args_no_parens_kw -> call_args_no_parens_kw_expr : ['$1'].
-call_args_no_parens_kw -> call_args_no_parens_kw_expr ',' call_args_no_parens_kw : ['$1'|'$3'].
+call_args_no_parens_kw -> call_args_no_parens_kw_expr ',' call_args_no_parens_kw : ['$1' | '$3'].
 
 % Lists
 
@@ -568,7 +568,7 @@ assoc_update_kw -> matched_expr pipe_op_eol kw : {'$2', '$1', '$3'}.
 assoc_update_kw -> unmatched_expr pipe_op_eol kw : {'$2', '$1', '$3'}.
 
 assoc_base -> assoc_expr : ['$1'].
-assoc_base -> assoc_base ',' assoc_expr : ['$3'|'$1'].
+assoc_base -> assoc_base ',' assoc_expr : ['$3' | '$1'].
 
 assoc -> assoc_base : reverse('$1').
 assoc -> assoc_base ',' : reverse('$1').
@@ -610,7 +610,7 @@ Erlang code.
 -compile([{hipe, [{regalloc, linear_scan}]}]).
 -import(lists, [reverse/1, reverse/2]).
 
-meta_from_token(Token, Counter) -> [{counter, Counter}|meta_from_token(Token)].
+meta_from_token(Token, Counter) -> [{counter, Counter} | meta_from_token(Token)].
 meta_from_token(Token) -> meta_from_location(?location(Token)).
 
 meta_from_location({Line, Column, EndColumn})
@@ -661,7 +661,7 @@ build_dot_alias(_Dot, Atom, {'aliases', _, _} = Token) when is_atom(Atom) ->
   throw_bad_atom(Token);
 
 build_dot_alias(Dot, Other, {'aliases', _, Right}) ->
-  {'__aliases__', meta_from_token(Dot), [Other|Right]}.
+  {'__aliases__', meta_from_token(Dot), [Other | Right]}.
 
 build_dot_container(Dot, Left, Right) ->
   Meta = meta_from_token(Dot),
@@ -690,14 +690,14 @@ build_identifier({'.', Meta, _} = Dot, Args) ->
   {Dot, Meta, FArgs};
 
 build_identifier({op_identifier, Location, Identifier}, [Arg]) ->
-  {Identifier, [{ambiguous_op, nil}|meta_from_location(Location)], [Arg]};
+  {Identifier, [{ambiguous_op, nil} | meta_from_location(Location)], [Arg]};
 
 build_identifier({_, Location, Identifier}, Args) ->
   {Identifier, meta_from_location(Location), Args}.
 
 %% Fn
 
-build_fn(Op, [{'->', _, [_, _]}|_] = Stab) ->
+build_fn(Op, [{'->', _, [_, _]} | _] = Stab) ->
   {fn, meta_from_token(Op), build_stab(Stab)};
 build_fn(Op, _Stab) ->
   throw(meta_from_token(Op), "expected clauses to be defined with -> inside: ", "'fn'").
@@ -751,22 +751,22 @@ string_tokens_parse(Tokens) ->
 
 %% Keywords
 
-build_stab([{'->', Meta, [Left, Right]}|T]) ->
+build_stab([{'->', Meta, [Left, Right]} | T]) ->
   build_stab(Meta, T, Left, [Right], []);
 
 build_stab(Else) ->
   build_block(Else).
 
-build_stab(Old, [{'->', New, [Left, Right]}|T], Marker, Temp, Acc) ->
+build_stab(Old, [{'->', New, [Left, Right]} | T], Marker, Temp, Acc) ->
   H = {'->', Old, [Marker, build_block(reverse(Temp))]},
-  build_stab(New, T, Left, [Right], [H|Acc]);
+  build_stab(New, T, Left, [Right], [H | Acc]);
 
-build_stab(Meta, [H|T], Marker, Temp, Acc) ->
-  build_stab(Meta, T, Marker, [H|Temp], Acc);
+build_stab(Meta, [H | T], Marker, Temp, Acc) ->
+  build_stab(Meta, T, Marker, [H | Temp], Acc);
 
 build_stab(Meta, [], Marker, Temp, Acc) ->
   H = {'->', Meta, [Marker, build_block(reverse(Temp))]},
-  reverse([H|Acc]).
+  reverse([H | Acc]).
 
 %% Every time the parser sees a (unquote_splicing())
 %% it assumes that a block is being spliced, wrapping
@@ -845,7 +845,7 @@ warn_empty_stab_clause({stab_op, {Line, _Begin, _End}, '->'}) ->
     "an expression is always required on the right side of ->. "
     "Please provide a value after ->").
 
-warn_pipe({arrow_op, {Line, _Begin, _End}, Op}, {_, [_|_], [_|_]}) ->
+warn_pipe({arrow_op, {Line, _Begin, _End}, Op}, {_, [_ | _], [_ | _]}) ->
   elixir_errors:warn(Line, ?file(),
     io_lib:format(
       "you are piping into a function call without parentheses, which may be ambiguous. "

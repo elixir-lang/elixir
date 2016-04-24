@@ -97,7 +97,7 @@ defmodule Mix.Tasks.Archive.Build do
       Enum.reduce evsn ++ ebin ++ priv, [], fn(f, acc) ->
         case File.read(f) do
           {:ok, bin} ->
-            [{Path.join(dir, f) |> String.to_char_list, bin}|acc]
+            [{Path.join(dir, f) |> String.to_char_list, bin} | acc]
           {:error, _} ->
             acc
         end

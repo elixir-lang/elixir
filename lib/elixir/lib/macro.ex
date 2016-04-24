@@ -136,7 +136,7 @@ defmodule Macro do
   end
 
   defp unpipe(other, acc) do
-    [{other, 0}|acc]
+    [{other, 0} | acc]
   end
 
   @doc """
@@ -638,7 +638,7 @@ defmodule Macro do
   end
 
   # left -> right
-  def to_string([{:->, _, _}|_] = ast, fun) do
+  def to_string([{:->, _, _} | _] = ast, fun) do
     fun.(ast, "(" <> arrow_to_string(ast, fun, true) <> ")")
   end
 
@@ -772,7 +772,7 @@ defmodule Macro do
   defp kw_blocks?(_), do: false
 
   # Check if we have an interpolated string.
-  defp interpolated?({:<<>>, _, [_|_] = parts}) do
+  defp interpolated?({:<<>>, _, [_ | _] = parts}) do
     Enum.all?(parts, fn
       {:::, _, [{{:., _, [Kernel, :to_string]}, _, [_]},
                 {:binary, _, _}]} -> true
@@ -866,7 +866,7 @@ defmodule Macro do
     Atom.to_string(key) <> "\n  " <> block <> "\n"
   end
 
-  defp block_to_string([{:->, _, _}|_] = block, fun) do
+  defp block_to_string([{:->, _, _} | _] = block, fun) do
     Enum.map_join(block, "\n", fn({:->, _, [left, right]}) ->
       left = comma_join_or_empty_paren(left, fun, false)
       left <> "->\n  " <> adjust_new_lines block_to_string(right, fun), "\n  "

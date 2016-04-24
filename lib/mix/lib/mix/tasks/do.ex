@@ -18,7 +18,7 @@ defmodule Mix.Tasks.Do do
   @spec run(OptionParser.argv) :: :ok
   def run(args) do
     Enum.each gather_commands(args), fn
-      [task|args] -> Mix.Task.run task, args
+      [task | args] -> Mix.Task.run task, args
       [] -> Mix.raise "No expression between commas"
     end
   end
@@ -27,17 +27,17 @@ defmodule Mix.Tasks.Do do
     gather_commands args, [], []
   end
 
-  defp gather_commands([h|t], current, acc) when binary_part(h, byte_size(h), -1) == "," do
+  defp gather_commands([h | t], current, acc) when binary_part(h, byte_size(h), -1) == "," do
     part    = binary_part(h, 0, byte_size(h) - 1)
-    current = Enum.reverse([part|current])
-    gather_commands t, [], [current|acc]
+    current = Enum.reverse([part | current])
+    gather_commands t, [], [current | acc]
   end
 
-  defp gather_commands([h|t], current, acc) do
-    gather_commands t, [h|current], acc
+  defp gather_commands([h | t], current, acc) do
+    gather_commands t, [h | current], acc
   end
 
   defp gather_commands([], current, acc) do
-    Enum.reverse [Enum.reverse(current)|acc]
+    Enum.reverse [Enum.reverse(current) | acc]
   end
 end

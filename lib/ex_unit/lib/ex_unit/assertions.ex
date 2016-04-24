@@ -412,7 +412,7 @@ defmodule ExUnit.Assertions do
     {_, pins} =
       Macro.prewalk(expr, [], fn
         {:^, _, [{name, _, _} = var]}, acc ->
-          {:ok, [{name, var}|acc]}
+          {:ok, [{name, var} | acc]}
         form, acc ->
           {form, acc}
       end)

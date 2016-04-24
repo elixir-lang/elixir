@@ -428,14 +428,14 @@ defmodule Version do
     defp parse_pre(nil), do: {:ok, []}
     defp parse_pre(pre), do: parse_pre(String.split(pre, "."), [])
 
-    defp parse_pre([piece|t], acc) do
+    defp parse_pre([piece | t], acc) do
       cond do
         piece =~ ~r/^(0|[1-9][0-9]*)$/ ->
-          parse_pre(t, [String.to_integer(piece)|acc])
+          parse_pre(t, [String.to_integer(piece) | acc])
         piece =~ ~r/^[0-9]*$/ ->
           :error
         true ->
-          parse_pre(t, [piece|acc])
+          parse_pre(t, [piece | acc])
       end
     end
 

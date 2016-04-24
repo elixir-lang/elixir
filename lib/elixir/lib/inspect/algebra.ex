@@ -418,7 +418,7 @@ defmodule Inspect.Algebra do
   def fold_doc(list, fun)
   def fold_doc([], _), do: empty
   def fold_doc([doc], _), do: doc
-  def fold_doc([d|ds], fun), do: fun.(d, fold_doc(ds, fun))
+  def fold_doc([d | ds], fun), do: fun.(d, fold_doc(ds, fun))
 
   # Elixir conveniences
 
@@ -490,14 +490,14 @@ defmodule Inspect.Algebra do
     fun.(h, %{opts | limit: limit})
   end
 
-  defp do_surround_many([h|t], limit, opts, fun, sep) when is_list(t) do
+  defp do_surround_many([h | t], limit, opts, fun, sep) when is_list(t) do
     limit = decrement(limit)
     h = fun.(h, %{opts | limit: limit})
     t = do_surround_many(t, limit, opts, fun, sep)
     do_join(h, t, sep)
   end
 
-  defp do_surround_many([h|t], limit, opts, fun, _sep) do
+  defp do_surround_many([h | t], limit, opts, fun, _sep) do
     limit = decrement(limit)
     h = fun.(h, %{opts | limit: limit})
     t = fun.(t, %{opts | limit: limit})

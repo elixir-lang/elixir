@@ -51,8 +51,8 @@ defmodule MacroTest do
   end
 
   test "escape improper" do
-    assert [{:|, [], [1, 2]}] == Macro.escape([1|2])
-    assert [1, {:|, [], [2, 3]}] == Macro.escape([1, 2|3])
+    assert [{:|, [], [1, 2]}] == Macro.escape([1 | 2])
+    assert [1, {:|, [], [2, 3]}] == Macro.escape([1, 2 | 3])
   end
 
   test "escape with unquote" do
@@ -104,7 +104,7 @@ defmodule MacroTest do
     contents = quote unquote: false, do: [1, unquote_splicing([2]), 3, unquote_splicing([4]), 5]
     assert eval_escaped(contents) == [1, 2, 3, 4, 5]
 
-    contents = quote unquote: false, do: [1, unquote_splicing([2]), 3, unquote_splicing([4])|[5]]
+    contents = quote unquote: false, do: [1, unquote_splicing([2]), 3, unquote_splicing([4]) | [5]]
     assert eval_escaped(contents) == [1, 2, 3, 4, 5]
   end
 
@@ -411,7 +411,7 @@ defmodule MacroTest do
   test "binary ops to string" do
     assert Macro.to_string(quote do: 1 + 2)   == "1 + 2"
     assert Macro.to_string(quote do: [ 1, 2 | 3 ]) == "[1, 2 | 3]"
-    assert Macro.to_string(quote do: [h|t] = [1, 2, 3]) == "[h | t] = [1, 2, 3]"
+    assert Macro.to_string(quote do: [h | t] = [1, 2, 3]) == "[h | t] = [1, 2, 3]"
     assert Macro.to_string(quote do: (x ++ y) ++ z) == "(x ++ y) ++ z"
   end
 
@@ -599,7 +599,7 @@ defmodule MacroTest do
   end
 
   defp traverse(ast) do
-    Macro.traverse(ast, [], &{&1, [&1|&2]}, &{&1, [&1|&2]}) |> elem(1) |> Enum.reverse
+    Macro.traverse(ast, [], &{&1, [&1 | &2]}, &{&1, [&1 | &2]}) |> elem(1) |> Enum.reverse
   end
 
   test "prewalk" do
@@ -617,7 +617,7 @@ defmodule MacroTest do
   end
 
   defp prewalk(ast) do
-    Macro.prewalk(ast, [], &{&1, [&1|&2]}) |> elem(1) |> Enum.reverse
+    Macro.prewalk(ast, [], &{&1, [&1 | &2]}) |> elem(1) |> Enum.reverse
   end
 
   test "postwalk" do
@@ -635,7 +635,7 @@ defmodule MacroTest do
   end
 
   defp postwalk(ast) do
-    Macro.postwalk(ast, [], &{&1, [&1|&2]}) |> elem(1) |> Enum.reverse
+    Macro.postwalk(ast, [], &{&1, [&1 | &2]}) |> elem(1) |> Enum.reverse
   end
 
   test "underscore" do

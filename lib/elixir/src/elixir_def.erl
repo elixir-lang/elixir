@@ -181,7 +181,7 @@ translate_clause(_, Line, Kind, Args, Guards, Body, S) ->
   FClause = case is_macro(Kind) of
     true ->
       FArgs = {var, Line, '_@CALLER'},
-      MClause = setelement(3, TClause, [FArgs|element(3, TClause)]),
+      MClause = setelement(3, TClause, [FArgs | element(3, TClause)]),
 
       case TS#elixir_scope.caller of
         true  ->
@@ -189,7 +189,7 @@ translate_clause(_, Line, Kind, Args, Guards, Body, S) ->
             {'var', Line, '__CALLER__'},
             elixir_utils:erl_call(Line, elixir_env, linify, [{var, Line, '_@CALLER'}])
           },
-          setelement(5, MClause, [FBody|element(5, TClause)]);
+          setelement(5, MClause, [FBody | element(5, TClause)]);
         false ->
           MClause
       end;
@@ -218,7 +218,7 @@ unwrap_definitions(File, Module) ->
   Unreachable = elixir_locals:warn_unused_local(File, Module, Private),
   split_definition(All, Unreachable, [], [], [], [], [], {[], []}).
 
-unwrap_definition([Fun|T], File, Module, CTable, All, Private) ->
+unwrap_definition([Fun | T], File, Module, CTable, All, Private) ->
   {Tuple, Kind, Line, _, Check, Location, {Defaults, _, _}} = Fun,
   Export = export(Kind, Tuple),
 
@@ -233,43 +233,43 @@ unwrap_definition([Fun|T], File, Module, CTable, All, Private) ->
       NewPrivate =
         if
           Kind == defp; Kind == defmacrop ->
-            [{Tuple, Kind, Line, Check, Defaults}|Private];
+            [{Tuple, Kind, Line, Check, Defaults} | Private];
           true ->
             Private
         end,
 
-      unwrap_definition(T, File, Module, CTable, [Unwrapped|All], NewPrivate)
+      unwrap_definition(T, File, Module, CTable, [Unwrapped | All], NewPrivate)
   end;
 
 unwrap_definition([], _File, _Module, _CTable, All, Private) ->
   {All, Private}.
 
-split_definition([{Tuple, def, Line, Location, Body}|T], Unreachable,
+split_definition([{Tuple, def, Line, Location, Body} | T], Unreachable,
                  Def, Defp, Defmacro, Defmacrop, Exports, Functions) ->
-  split_definition(T, Unreachable, [Tuple|Def], Defp, Defmacro, Defmacrop,
-                   [export(def, Tuple)|Exports],
+  split_definition(T, Unreachable, [Tuple | Def], Defp, Defmacro, Defmacrop,
+                   [export(def, Tuple) | Exports],
                    add_definition(Line, Location, Body, Functions));
 
-split_definition([{Tuple, defp, Line, Location, Body}|T], Unreachable,
+split_definition([{Tuple, defp, Line, Location, Body} | T], Unreachable,
                  Def, Defp, Defmacro, Defmacrop, Exports, Functions) ->
   case lists:member(Tuple, Unreachable) of
     false ->
-      split_definition(T, Unreachable, Def, [Tuple|Defp], Defmacro, Defmacrop,
+      split_definition(T, Unreachable, Def, [Tuple | Defp], Defmacro, Defmacrop,
                        Exports, add_definition(Line, Location, Body, Functions));
     true ->
-      split_definition(T, Unreachable, Def, [Tuple|Defp], Defmacro, Defmacrop,
+      split_definition(T, Unreachable, Def, [Tuple | Defp], Defmacro, Defmacrop,
                        Exports, Functions)
   end;
 
-split_definition([{Tuple, defmacro, Line, Location, Body}|T], Unreachable,
+split_definition([{Tuple, defmacro, Line, Location, Body} | T], Unreachable,
                  Def, Defp, Defmacro, Defmacrop, Exports, Functions) ->
-  split_definition(T, Unreachable, Def, Defp, [Tuple|Defmacro], Defmacrop,
-                   [export(defmacro, Tuple)|Exports],
+  split_definition(T, Unreachable, Def, Defp, [Tuple | Defmacro], Defmacrop,
+                   [export(defmacro, Tuple) | Exports],
                    add_definition(Line, Location, Body, Functions));
 
-split_definition([{Tuple, defmacrop, _Line, _Location, _Body}|T], Unreachable,
+split_definition([{Tuple, defmacrop, _Line, _Location, _Body} | T], Unreachable,
                  Def, Defp, Defmacro, Defmacrop, Exports, Functions) ->
-  split_definition(T, Unreachable, Def, Defp, Defmacro, [Tuple|Defmacrop],
+  split_definition(T, Unreachable, Def, Defp, Defmacro, [Tuple | Defmacrop],
                    Exports, Functions);
 
 split_definition([], Unreachable, Def, Defp, Defmacro, Defmacrop, Exports, {Head, Tail}) ->
@@ -286,10 +286,10 @@ function_for_stored_definition(Line, {Name, Arity}, Clauses) ->
   {function, Line, Name, Arity, Clauses}.
 
 add_definition(_Line, nil, Body, {Head, Tail}) ->
-  {[Body|Head], Tail};
+  {[Body | Head], Tail};
 add_definition(Line, Location, Body, {Head, Tail}) ->
   {Head,
-   [{attribute, Line, file, Location}, Body|Tail]}.
+   [{attribute, Line, file, Location}, Body | Tail]}.
 
 default_function_for(Kind, Name, {clause, Line, Args, _Guards, _Exprs} = Clause)
     when Kind == defmacro; Kind == defmacrop ->

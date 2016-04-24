@@ -109,7 +109,7 @@ defmodule ExUnit.Callbacks do
     quote bind_quoted: [var: escape(var), block: escape(block)] do
       name = :"__ex_unit_setup_#{length(@ex_unit_setup)}"
       defp unquote(name)(unquote(var)), unquote(block)
-      @ex_unit_setup [name|@ex_unit_setup]
+      @ex_unit_setup [name | @ex_unit_setup]
     end
   end
 
@@ -120,7 +120,7 @@ defmodule ExUnit.Callbacks do
     quote bind_quoted: [var: escape(var), block: escape(block)] do
       name = :"__ex_unit_setup_all_#{length(@ex_unit_setup_all)}"
       defp unquote(name)(unquote(var)), unquote(block)
-      @ex_unit_setup_all [name|@ex_unit_setup_all]
+      @ex_unit_setup_all [name | @ex_unit_setup_all]
     end
   end
 
@@ -199,7 +199,7 @@ defmodule ExUnit.Callbacks do
       case callbacks do
         [] ->
           quote do: {:ok, context}
-        [h|t] ->
+        [h | t] ->
           Enum.reduce t, compile_merge(h), fn(callback, acc) ->
             quote do
               {:ok, context} = unquote(acc)

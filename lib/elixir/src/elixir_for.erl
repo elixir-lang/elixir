@@ -30,7 +30,7 @@ expand(Meta, Args, E) ->
   {EOpts, EO}  = elixir_exp:expand(Opts, E),
   {ECases, EC} = lists:mapfoldl(fun expand/2, EO, Cases),
   {EExpr, _}   = elixir_exp:expand(Expr, EC),
-  {{for, Meta, ECases ++ [[{do, EExpr}|EOpts]]}, E}.
+  {{for, Meta, ECases ++ [[{do, EExpr} | EOpts]]}, E}.
 
 expand({'<-', Meta, [Left, Right]}, E) ->
   {ERight, ER} = elixir_exp:expand(Right, E),
@@ -59,7 +59,7 @@ translate(Meta, Args, Return, S) ->
   Acc  = {var, Ann, AccName},
   Var  = {var, Ann, VarName},
 
-  {Cases, [{do, Expr}|Opts]} = elixir_utils:split_last(Args),
+  {Cases, [{do, Expr} | Opts]} = elixir_utils:split_last(Args),
 
   {TInto, SI} =
     case lists:keyfind(into, 1, Opts) of
@@ -84,13 +84,13 @@ translate(Meta, Args, Return, S) ->
 wrap_expr(Expr, false) -> {'__block__', [], [Expr, nil]};
 wrap_expr(Expr, _)  -> Expr.
 
-translate_gen(ForMeta, [{'<-', Meta, [Left, Right]}|T], Acc, S) ->
+translate_gen(ForMeta, [{'<-', Meta, [Left, Right]} | T], Acc, S) ->
   {TLeft, TRight, TFilters, TT, TS} = translate_gen(Meta, Left, Right, T, S),
-  TAcc = [{enum, Meta, TLeft, TRight, TFilters}|Acc],
+  TAcc = [{enum, Meta, TLeft, TRight, TFilters} | Acc],
   translate_gen(ForMeta, TT, TAcc, TS);
-translate_gen(ForMeta, [{'<<>>', _, [ {'<-', Meta, [Left, Right]} ]}|T], Acc, S) ->
+translate_gen(ForMeta, [{'<<>>', _, [ {'<-', Meta, [Left, Right]} ]} | T], Acc, S) ->
   {TLeft, TRight, TFilters, TT, TS} = translate_gen(Meta, Left, Right, T, S),
-  TAcc = [{bin, Meta, TLeft, TRight, TFilters}|Acc],
+  TAcc = [{bin, Meta, TLeft, TRight, TFilters} | Acc],
   case elixir_bitstring:has_size(TLeft) of
     true  -> translate_gen(ForMeta, TT, TAcc, TS);
     false ->
@@ -138,12 +138,12 @@ translate_filter(Filter, S) ->
       {{{var, 0, Name}, TFilter}, VS}
   end.
 
-collect_filters([{'<-', _, [_, _]}|_] = T, Acc) ->
+collect_filters([{'<-', _, [_, _]} | _] = T, Acc) ->
   {Acc, T};
-collect_filters([{'<<>>', _, [{'<-', _, [_, _]}]}|_] = T, Acc) ->
+collect_filters([{'<<>>', _, [{'<-', _, [_, _]}]} | _] = T, Acc) ->
   {Acc, T};
-collect_filters([H|T], Acc) ->
-  collect_filters(T, [H|Acc]);
+collect_filters([H | T], Acc) ->
+  collect_filters(T, [H | Acc]);
 collect_filters([], Acc) ->
   {Acc, []}.
 
@@ -202,10 +202,10 @@ build_reduce(Clauses, Expr, {nil, Ann} = Into, Acc, S) ->
     [build_reduce_clause(Clauses, ListExpr, Into, Acc, S)]);
 build_reduce(Clauses, Expr, {bin, _, _} = Into, Acc, S) ->
   {bin, Ann, Elements} = Expr,
-  BinExpr = {bin, Ann, [{bin_element, Ann, Acc, default, [bitstring]}|Elements]},
+  BinExpr = {bin, Ann, [{bin_element, Ann, Acc, default, [bitstring]} | Elements]},
   build_reduce_clause(Clauses, BinExpr, Into, Acc, S).
 
-build_reduce_clause([{enum, Meta, Left, Right, Filters}|T], Expr, Arg, Acc, S) ->
+build_reduce_clause([{enum, Meta, Left, Right, Filters} | T], Expr, Arg, Acc, S) ->
   Ann  = ?ann(Meta),
   True  = build_reduce_clause(T, Expr, Acc, Acc, S),
   False = Acc,
@@ -222,12 +222,12 @@ build_reduce_clause([{enum, Meta, Left, Right, Filters}|T], Expr, Arg, Acc, S) -
   Clauses1 =
     [{clause, Ann,
       [Left, Acc], [],
-      [join_filters(Ann, Filters, True, False)]}|Clauses0],
+      [join_filters(Ann, Filters, True, False)]} | Clauses0],
 
   Args  = [Right, Arg, {'fun', Ann, {clauses, Clauses1}}],
   elixir_utils:erl_call(Ann, 'Elixir.Enum', reduce, Args);
 
-build_reduce_clause([{bin, Meta, Left, Right, Filters}|T], Expr, Arg, Acc, S) ->
+build_reduce_clause([{bin, Meta, Left, Right, Filters} | T], Expr, Arg, Acc, S) ->
   Ann = ?ann(Meta),
   {Tail, ST} = build_var(Ann, S),
   {Fun, SF}  = build_var(Ann, ST),
@@ -284,7 +284,7 @@ build_comprehension(Ann, Clauses, Expr, false) ->
 build_comprehension(Ann, Clauses, Expr, Into) ->
   {comprehension_kind(Into), Ann, Expr, comprehension_clause(Clauses)}.
 
-comprehension_clause([{Kind, Meta, Left, Right, Filters}|T]) ->
+comprehension_clause([{Kind, Meta, Left, Right, Filters} | T]) ->
   Ann = ?ann(Meta),
   [{comprehension_generator(Kind), Ann, Left, Right}] ++
     comprehension_filter(Ann, Filters) ++
@@ -316,7 +316,7 @@ comprehension_filter(Ann, Filters) ->
 
 join_filters(_Ann, [], True, _False) ->
   True;
-join_filters(Ann, [H|T], True, False) ->
+join_filters(Ann, [H | T], True, False) ->
   lists:foldl(fun(Filter, Acc) ->
     join_filter(Ann, Filter, Acc, False)
   end, join_filter(Ann, H, True, False), T).

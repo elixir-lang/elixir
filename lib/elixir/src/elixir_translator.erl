@@ -72,7 +72,7 @@ translate({fn, Meta, Clauses}, S) ->
 %% Cond
 
 translate({'cond', CondMeta, [[{do, Pairs}]]}, S) ->
-  [{'->', Meta, [[Condition], Body]} = H|T] = lists:reverse(Pairs),
+  [{'->', Meta, [[Condition], Body]} = H | T] = lists:reverse(Pairs),
 
   Case =
     case Condition of
@@ -83,7 +83,7 @@ translate({'cond', CondMeta, [[{do, Pairs}]]}, S) ->
         build_cond_clauses(T, Body, Meta);
       _ ->
         Error = {{'.', Meta, [erlang, error]}, [], [cond_clause]},
-        build_cond_clauses([H|T], Error, Meta)
+        build_cond_clauses([H | T], Error, Meta)
     end,
   translate(replace_case_meta(CondMeta, Case), S);
 
@@ -136,12 +136,12 @@ translate({'receive', Meta, [KV]}, S) ->
 
 %% Comprehensions
 
-translate({for, Meta, [_|_] = Args}, S) ->
+translate({for, Meta, [_ | _] = Args}, S) ->
   elixir_for:translate(Meta, Args, true, S);
 
 %% With
 
-translate({with, Meta, [_|_] = Args}, S) ->
+translate({with, Meta, [_ | _] = Args}, S) ->
   elixir_with:translate(Meta, Args, S);
 
 %% Super
@@ -180,7 +180,7 @@ translate({'^', Meta, [{Name, VarMeta, Kind}]}, #elixir_scope{context=match, fil
         pin_guard ->
           {TVar, TS} = elixir_scope:translate_var(VarMeta, Name, var_kind(VarMeta, Kind), S),
           Guard = {op, PAnn, '=:=', PVar, TVar},
-          {TVar, TS#elixir_scope{extra_guards=[Guard|TS#elixir_scope.extra_guards]}};
+          {TVar, TS#elixir_scope{extra_guards=[Guard | TS#elixir_scope.extra_guards]}};
         _ ->
           {PVar, S}
       end;
@@ -318,14 +318,14 @@ guard_op(Op, Arity) ->
 
 translate_list([{'|', _, [_, _]=Args}], Fun, Acc, List) ->
   {[TLeft, TRight], TAcc} = lists:mapfoldl(Fun, Acc, Args),
-  {build_list([TLeft|List], TRight), TAcc};
-translate_list([H|T], Fun, Acc, List) ->
+  {build_list([TLeft | List], TRight), TAcc};
+translate_list([H | T], Fun, Acc, List) ->
   {TH, TAcc} = Fun(H, Acc),
-  translate_list(T, Fun, TAcc, [TH|List]);
+  translate_list(T, Fun, TAcc, [TH | List]);
 translate_list([], _Fun, Acc, List) ->
   {build_list(List, {nil, 0}), Acc}.
 
-build_list([H|T], Acc) ->
+build_list([H | T], Acc) ->
   build_list(T, {cons, 0, H, Acc});
 build_list([], Acc) ->
   Acc.
@@ -361,22 +361,22 @@ translate_block([], Acc, S) ->
   {lists:reverse(Acc), S};
 translate_block([H], Acc, S) ->
   {TH, TS} = translate(H, S),
-  translate_block([], [TH|Acc], TS);
-translate_block([{'__block__', _Meta, Args}|T], Acc, S) when is_list(Args) ->
+  translate_block([], [TH | Acc], TS);
+translate_block([{'__block__', _Meta, Args} | T], Acc, S) when is_list(Args) ->
   translate_block(Args ++ T, Acc, S);
-translate_block([{for, Meta, [_|_] = Args}|T], Acc, S) ->
+translate_block([{for, Meta, [_ | _] = Args} | T], Acc, S) ->
   {TH, TS} = elixir_for:translate(Meta, Args, false, S),
-  translate_block(T, [TH|Acc], TS);
-translate_block([{'=', _, [{'_', _, Ctx}, {for, Meta, [_|_] = Args}]}|T], Acc, S) when is_atom(Ctx) ->
+  translate_block(T, [TH | Acc], TS);
+translate_block([{'=', _, [{'_', _, Ctx}, {for, Meta, [_ | _] = Args}]} | T], Acc, S) when is_atom(Ctx) ->
   {TH, TS} = elixir_for:translate(Meta, Args, false, S),
-  translate_block(T, [TH|Acc], TS);
-translate_block([H|T], Acc, S) ->
+  translate_block(T, [TH | Acc], TS);
+translate_block([H | T], Acc, S) ->
   {TH, TS} = translate(H, S),
-  translate_block(T, [TH|Acc], TS).
+  translate_block(T, [TH | Acc], TS).
 
 %% Cond
 
-build_cond_clauses([{'->', NewMeta, [[Condition], Body]}|T], Acc, OldMeta) ->
+build_cond_clauses([{'->', NewMeta, [[Condition], Body]} | T], Acc, OldMeta) ->
   {NewCondition, Truthy, Other} = build_truthy_clause(NewMeta, Condition, Body),
   Falsy = {'->', OldMeta, [[Other], Acc]},
   Case = {'case', NewMeta, [NewCondition, [{do, [Truthy, Falsy]}]]},

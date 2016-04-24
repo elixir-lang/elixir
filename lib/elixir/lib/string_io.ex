@@ -339,7 +339,7 @@ defmodule StringIO do
 
   ## io_requests
 
-  defp io_requests([r|rs], {:ok, s}) do
+  defp io_requests([r | rs], {:ok, s}) do
     io_requests(rs, io_request(r, s))
   end
 
@@ -358,15 +358,15 @@ defmodule StringIO do
   end
 
   defp collect_line([?\r, ?\n | rest], stack) do
-    {:lists.reverse([?\n|stack]), rest}
+    {:lists.reverse([?\n | stack]), rest}
   end
 
   defp collect_line([?\n | rest], stack) do
-    {:lists.reverse([?\n|stack]), rest}
+    {:lists.reverse([?\n | stack]), rest}
   end
 
-  defp collect_line([h|t], stack) do
-    collect_line(t, [h|stack])
+  defp collect_line([h | t], stack) do
+    collect_line(t, [h | stack])
   end
 
   defp io_reply(from, reply_as, reply) do

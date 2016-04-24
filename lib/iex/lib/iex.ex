@@ -459,7 +459,7 @@ defmodule IEx do
       env.file
       |> File.stream!
       |> Enum.slice(max(env.line - 3, 0), 5)
-    Enum.intersperse(["\n\n"|lines], "    ")
+    Enum.intersperse(["\n\n" | lines], "    ")
   end
 
   ## Callbacks

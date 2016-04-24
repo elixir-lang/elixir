@@ -4,7 +4,7 @@
 -include("elixir.hrl").
 
 expand_map(Meta, [{'|', UpdateMeta, [Left, Right]}], E) ->
-  {[ELeft|ERight], EA} = elixir_exp:expand_args([Left|Right], E),
+  {[ELeft | ERight], EA} = elixir_exp:expand_args([Left | Right], E),
   validate_kv(Meta, ERight, Right, E),
   {{'%{}', Meta, [{'|', UpdateMeta, [ELeft, ERight]}]}, EA};
 expand_map(Meta, Args, E) ->
@@ -30,7 +30,7 @@ expand_struct(Meta, Left, Right, #{context := Context} = E) ->
 
   EMeta =
     case lists:member(ELeft, ?m(E, context_modules)) of
-      true  -> [{struct, context}|Meta];
+      true  -> [{struct, context} | Meta];
       false -> Meta
     end,
 

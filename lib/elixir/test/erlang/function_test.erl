@@ -32,7 +32,7 @@ function_with_kv_args_test() ->
   6 = Fun(1, [{other, 2}, {another, 3}]).
 
 function_as_closure_test() ->
-  {_, [{a, Res1}|_]} = eval("b = 1; a = fn -> b + 2 end"),
+  {_, [{a, Res1} | _]} = eval("b = 1; a = fn -> b + 2 end"),
   3 = Res1().
 
 function_apply_test() ->

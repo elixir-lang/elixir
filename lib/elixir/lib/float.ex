@@ -250,8 +250,8 @@ defmodule Float do
     :erlang.float_to_binary(float, expand_compact(options))
   end
 
-  defp expand_compact([{:compact, false}|t]), do: expand_compact(t)
-  defp expand_compact([{:compact, true}|t]),  do: [:compact|expand_compact(t)]
-  defp expand_compact([h|t]),                 do: [h|expand_compact(t)]
-  defp expand_compact([]),                    do: []
+  defp expand_compact([{:compact, false} | t]), do: expand_compact(t)
+  defp expand_compact([{:compact, true} | t]),  do: [:compact | expand_compact(t)]
+  defp expand_compact([h | t]),                 do: [h | expand_compact(t)]
+  defp expand_compact([]),                      do: []
 end

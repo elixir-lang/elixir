@@ -166,8 +166,8 @@ build(Line, File, Module, Docs, Lexical) ->
 
   Attributes = [behaviour, on_load, compile, external_resource, dialyzer],
   ets:insert(Data, {?acc_attr, [before_compile, after_compile, on_definition, derive,
-                                spec, type, typep, opaque, callback, macrocallback|Attributes]}),
-  ets:insert(Data, {?persisted_attr, [vsn|Attributes]}),
+                                spec, type, typep, opaque, callback, macrocallback | Attributes]}),
+  ets:insert(Data, {?persisted_attr, [vsn | Attributes]}),
   ets:insert(Data, {?lexical_attr, Lexical}),
 
   %% Setup definition related modules
@@ -201,8 +201,8 @@ functions_form(Line, File, Module, Def, Defp, Defmacro, Defmacrop, Exports, Body
   All = Def ++ Defmacro ++ Defp ++ Defmacrop,
   {Spec, Info} = add_info_function(Line, File, Module, All, Def, Defmacro),
 
-  {[{'__info__', 1}|All],
-   [{attribute, Line, export, lists:sort([{'__info__', 1}|Exports])},
+  {[{'__info__', 1} | All],
+   [{attribute, Line, export, lists:sort([{'__info__', 1} | Exports])},
     Spec, Info | Body]}.
 
 %% Add attributes handling to the form
@@ -222,7 +222,7 @@ attributes_form(Line, File, Data, Current) ->
           end,
 
         lists:foldl(fun(X, Final) ->
-          [{attribute, Line, Key, X}|Final]
+          [{attribute, Line, Key, X} | Final]
         end, Acc, process_attribute(Line, File, Key, Values))
     end
   end,
@@ -263,14 +263,14 @@ types_form(Line, File, Data, Forms0) ->
 
 types_attributes(Types, Forms) ->
   Fun = fun({{Kind, _NameArity, Expr}, Line, _Export}, Acc) ->
-    [{attribute, Line, Kind, Expr}|Acc]
+    [{attribute, Line, Kind, Expr} | Acc]
   end,
   lists:foldl(Fun, Forms, Types).
 
 export_types_attributes(Types, Forms) ->
   Fun = fun
     ({{_Kind, NameArity, _Expr}, Line, true}, Acc) ->
-      [{attribute, Line, export_type, [NameArity]}|Acc];
+      [{attribute, Line, export_type, [NameArity]} | Acc];
     ({_Type, _Line, false}, Acc) ->
       Acc
   end,
@@ -304,7 +304,7 @@ specs_attributes(Forms, Specs) ->
   dict:fold(fun({Kind, NameArity}, ExprsLines, Acc) ->
     {Exprs, Lines} = lists:unzip(ExprsLines),
     Line = lists:min(Lines),
-    [{attribute, Line, Kind, {NameArity, Exprs}}|Acc]
+    [{attribute, Line, Kind, {NameArity, Exprs}} | Acc]
   end, Forms, Dict).
 
 translate_macro_spec({{spec, NameArity, Spec}, Line}, Defmacro, Defmacrop) ->
@@ -323,9 +323,9 @@ translate_macro_spec({{spec, NameArity, Spec}, Line}, Defmacro, Defmacrop) ->
 translate_macro_spec({{callback, NameArity, Spec}, Line}, _Defmacro, _Defmacrop) ->
   [{{callback, NameArity, Spec}, Line}].
 
-spec_for_macro({type, Line, 'fun', [{type, _, product, Args}|T]}) ->
-  NewArgs = [{type, Line, term, []}|Args],
-  {type, Line, 'fun', [{type, Line, product, NewArgs}|T]};
+spec_for_macro({type, Line, 'fun', [{type, _, product, Args} | T]}) ->
+  NewArgs = [{type, Line, term, []} | Args],
+  {type, Line, 'fun', [{type, Line, product, NewArgs} | T]};
 
 spec_for_macro(Else) -> Else.
 
@@ -345,7 +345,7 @@ load_form(Line, Data, Forms, Opts, E) ->
 
     case get(elixir_compiled) of
       Current when is_list(Current) ->
-        put(elixir_compiled, [{Module, Binary}|Current]),
+        put(elixir_compiled, [{Module, Binary} | Current]),
 
         case get(elixir_compiler_pid) of
           undefined -> ok;
@@ -490,7 +490,7 @@ add_beam_chunk(Bin, Id, ChunkData)
         when is_binary(Bin), is_list(Id), is_binary(ChunkData) ->
   {ok, _, Chunks0} = beam_lib:all_chunks(Bin),
   NewChunk = {Id, ChunkData},
-  Chunks = [NewChunk|Chunks0],
+  Chunks = [NewChunk | Chunks0],
   {ok, NewBin} = beam_lib:build_module(Chunks),
   NewBin.
 
@@ -523,12 +523,12 @@ location(Line, E) ->
   [{file, elixir_utils:characters_to_list(?m(E, file))}, {line, Line}].
 
 %% We've reached the elixir_module or eval internals, skip it with the rest
-prune_stacktrace(Info, [{elixir, eval_forms, _, _}|_]) ->
+prune_stacktrace(Info, [{elixir, eval_forms, _, _} | _]) ->
   [Info];
-prune_stacktrace(Info, [{elixir_module, _, _, _}|_]) ->
+prune_stacktrace(Info, [{elixir_module, _, _, _} | _]) ->
   [Info];
-prune_stacktrace(Info, [H|T]) ->
-  [H|prune_stacktrace(Info, T)];
+prune_stacktrace(Info, [H | T]) ->
+  [H | prune_stacktrace(Info, T)];
 prune_stacktrace(Info, []) ->
   [Info].
 

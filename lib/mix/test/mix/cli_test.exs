@@ -170,7 +170,7 @@ defmodule Mix.CLITest do
 
   defp mix(args, envs \\ []) when is_list(args) do
     System.cmd(elixir_executable,
-               ["-r", mix_executable, "--"|args],
+               ["-r", mix_executable, "--" | args],
                stderr_to_stdout: true,
                env: envs) |> elem(0)
   end

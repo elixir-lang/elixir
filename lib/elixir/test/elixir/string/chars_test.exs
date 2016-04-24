@@ -133,7 +133,7 @@ defmodule String.Chars.ErrorsTest do
   end
 
   test "port" do
-    [port|_] = Port.list
+    [port | _] = Port.list
     assert_raise Protocol.UndefinedError, ~r"^protocol String\.Chars not implemented for #Port<.+?>$", fn ->
       to_string(port)
     end

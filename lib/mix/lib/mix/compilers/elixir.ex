@@ -42,7 +42,7 @@ defmodule Mix.Compilers.Elixir do
           ++
         # Plus the sources that have changed in disk
         for({source, files} <- all_sources,
-            times = Enum.map([source|files], &Map.fetch!(sources_mtimes, &1)),
+            times = Enum.map([source | files], &Map.fetch!(sources_mtimes, &1)),
             Mix.Utils.stale?(times, [modified]),
             do: source)
       end
@@ -69,7 +69,7 @@ defmodule Mix.Compilers.Elixir do
 
   defp mtimes(sources) do
     Enum.reduce(sources, %{}, fn {source, files}, map ->
-      Enum.reduce([source|files], map, fn file, map ->
+      Enum.reduce([source | files], map, fn file, map ->
         Map.put_new_lazy(map, file, fn -> Mix.Utils.last_modified(file) end)
       end)
     end)
@@ -220,11 +220,11 @@ defmodule Mix.Compilers.Elixir do
       # If I have a runtime time dependency on something stale,
       # I am stale too.
       Enum.any?(runtime, &Map.has_key?(stale, &1)) ->
-        {[entry|rest], Map.put(stale, module, true), removed}
+        {[entry | rest], Map.put(stale, module, true), removed}
 
       # Otherwise, we don't store it anywhere
       true ->
-        {[entry|rest], stale, removed}
+        {[entry | rest], stale, removed}
     end
   end
 
@@ -250,7 +250,7 @@ defmodule Mix.Compilers.Elixir do
 
   defp read_manifest(manifest) do
     case :file.consult(manifest) do
-      {:ok, [@manifest_vsn|t]} -> t
+      {:ok, [@manifest_vsn | t]} -> t
       _ -> []
     end
   end

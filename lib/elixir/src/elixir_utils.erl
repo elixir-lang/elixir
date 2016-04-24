@@ -30,16 +30,16 @@ get_line(Opts) when is_list(Opts) ->
 get_ann(Opts) when is_list(Opts) ->
   get_ann(Opts, [], 0).
 
-get_ann([{generated, Gen}|T], Acc, Line) -> get_ann(T, [{generated, Gen}|Acc], Line);
-get_ann([{line, Line}|T], Acc, _) -> get_ann(T, Acc, Line);
-get_ann([_|T], Acc, Line) -> get_ann(T, Acc, Line);
+get_ann([{generated, Gen} | T], Acc, Line) -> get_ann(T, [{generated, Gen} | Acc], Line);
+get_ann([{line, Line} | T], Acc, _) -> get_ann(T, Acc, Line);
+get_ann([_ | T], Acc, Line) -> get_ann(T, Acc, Line);
 get_ann([], [], Line) -> Line;
-get_ann([], Acc, Line) -> [{location, Line}|Acc].
+get_ann([], Acc, Line) -> [{location, Line} | Acc].
 
-split_last([])         -> {[], []};
-split_last(List)       -> split_last(List, []).
-split_last([H], Acc)   -> {lists:reverse(Acc), H};
-split_last([H|T], Acc) -> split_last(T, [H|Acc]).
+split_last([])           -> {[], []};
+split_last(List)         -> split_last(List, []).
+split_last([H], Acc)     -> {lists:reverse(Acc), H};
+split_last([H | T], Acc) -> split_last(T, [H | Acc]).
 
 read_file_type(File) ->
   case file:read_file_info(File) of
@@ -162,10 +162,10 @@ elixir_to_erl(Pid) when is_pid(Pid) ->
 elixir_to_erl(_Other) ->
   error(badarg).
 
-elixir_to_erl_cons_1([H|T], Acc) -> elixir_to_erl_cons_1(T, [H|Acc]);
+elixir_to_erl_cons_1([H | T], Acc) -> elixir_to_erl_cons_1(T, [H | Acc]);
 elixir_to_erl_cons_1(Other, Acc) -> elixir_to_erl_cons_2(Acc, elixir_to_erl(Other)).
 
-elixir_to_erl_cons_2([H|T], Acc) ->
+elixir_to_erl_cons_2([H | T], Acc) ->
   elixir_to_erl_cons_2(T, {cons, 0, elixir_to_erl(H), Acc});
 elixir_to_erl_cons_2([], Acc) ->
   Acc.

@@ -610,7 +610,7 @@ defmodule File do
           {:ok, files} ->
             case mkdir(dest) do
               success when success in [:ok, {:error, :eexist}] ->
-                Enum.reduce(files, [dest|acc], fn(x, acc) ->
+                Enum.reduce(files, [dest | acc], fn(x, acc) ->
                   do_cp_r(Path.join(src, x), Path.join(dest, x), callback, acc)
                 end)
               {:error, reason} -> {:error, reason, dest}
@@ -637,13 +637,13 @@ defmodule File do
     case F.copy(src, {dest, [:exclusive]}) do
       {:ok, _} ->
         copy_file_mode!(src, dest)
-        [dest|acc]
+        [dest | acc]
       {:error, :eexist} ->
         if path_differs?(src, dest) and callback.(src, dest) do
           case copy(src, dest) do
             {:ok, _} ->
               copy_file_mode!(src, dest)
-              [dest|acc]
+              [dest | acc]
             {:error, reason} -> {:error, reason, src}
           end
         else
@@ -657,13 +657,13 @@ defmodule File do
   defp do_cp_link(link, src, dest, callback, acc) do
     case F.make_symlink(link, dest) do
       :ok ->
-        [dest|acc]
+        [dest | acc]
       {:error, :eexist} ->
         if path_differs?(src, dest) and callback.(src, dest) do
           # If rm/1 fails, F.make_symlink/2 will fail
           _ = rm(dest)
           case F.make_symlink(link, dest) do
-            :ok -> [dest|acc]
+            :ok -> [dest | acc]
             {:error, reason} -> {:error, reason, src}
           end
         else
@@ -850,7 +850,7 @@ defmodule File do
         case res do
           {:ok, acc} ->
             case rmdir(path) do
-              :ok -> {:ok, [path|acc]}
+              :ok -> {:ok, [path | acc]}
               {:error, :enoent} -> res
               {:error, reason} -> {:error, reason, path}
             end
@@ -870,7 +870,7 @@ defmodule File do
 
   defp do_rm_regular(path, {:ok, acc} = entry) do
     case rm(path) do
-      :ok -> {:ok, [path|acc]}
+      :ok -> {:ok, [path | acc]}
       {:error, :enoent} -> entry
       {:error, reason} -> {:error, reason, path}
     end
@@ -882,7 +882,7 @@ defmodule File do
   # a file removal.
   defp do_rm_directory(path, {:ok, acc} = entry) do
     case rmdir(path) do
-      :ok -> {:ok, [path|acc]}
+      :ok -> {:ok, [path | acc]}
       {:error, :enotdir} -> do_rm_regular(path, entry)
       {:error, :enoent} -> entry
       {:error, reason} -> {:error, reason, path}
@@ -1318,20 +1318,20 @@ defmodule File do
 
   @read_ahead 64*1024
 
-  defp open_defaults([:char_list|t], _add_binary) do
+  defp open_defaults([:char_list | t], _add_binary) do
     open_defaults(t, false)
   end
 
-  defp open_defaults([:utf8|t], add_binary) do
-    open_defaults([{:encoding, :utf8}|t], add_binary)
+  defp open_defaults([:utf8 | t], add_binary) do
+    open_defaults([{:encoding, :utf8} | t], add_binary)
   end
 
-  defp open_defaults([:read_ahead|t], add_binary) do
-    open_defaults([{:read_ahead, @read_ahead}|t], add_binary)
+  defp open_defaults([:read_ahead | t], add_binary) do
+    open_defaults([{:read_ahead, @read_ahead} | t], add_binary)
   end
 
-  defp open_defaults([h|t], add_binary) do
-    [h|open_defaults(t, add_binary)]
+  defp open_defaults([h | t], add_binary) do
+    [h | open_defaults(t, add_binary)]
   end
 
   defp open_defaults([], true),  do: [:binary]
