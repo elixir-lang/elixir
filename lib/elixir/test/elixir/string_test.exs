@@ -164,6 +164,21 @@ defmodule StringTest do
     assert String.capitalize("ﬁn") == "Fin"
   end
 
+  test "replace_leading" do
+    assert String.replace_leading("aa abc   ", "a", "b") == "bb abc   "
+    assert String.replace_leading("__ abc   ", "_", "b") == "bb abc   "
+    assert String.replace_leading("aaaaaaaa ", "a", "b") == "bbbbbbbb "
+    assert String.replace_leading("aaaaaaaa ", "aaa", "b") == "bbaa "
+    assert String.replace_leading("aaaaaaaaa", "a", "b") == "bbbbbbbbb"
+    assert String.replace_leading("]]]]]]", "]", "[]") == "[][][][][][]"
+    assert String.replace_leading("]]]]]]]]", "]", "") == ""
+    assert String.replace_leading("]]]]]] ]", "]", "") == " ]"
+    assert String.replace_leading("猫猫 cat  ", "猫", "й") == "йй cat  "
+    assert String.replace_leading("test", "t", "T") == "Test"
+    assert String.replace_leading("t", "t", "T") == "T"
+    assert String.replace_leading("aaa", "b", "c") == "aaa"
+  end
+
   test "replace_trailing" do
     assert String.replace_trailing("   abc aa", "a", "") == "   abc "
     assert String.replace_trailing("   abc __", "_", "") == "   abc "
