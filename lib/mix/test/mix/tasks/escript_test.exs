@@ -5,67 +5,64 @@ defmodule Mix.Tasks.EscriptTest do
 
   defmodule Escript do
     def project do
-      [ app: :escripttest,
-        version: "0.0.1",
-        escript: [
-          main_module: Escripttest,
-          name: "escriptest",
-          embed_elixir: true
-        ]
-      ]
+      [app: :escripttest,
+       version: "0.0.1",
+       escript: [
+         main_module: Escripttest,
+         name: "escriptest",
+         embed_elixir: true
+       ]]
     end
   end
 
   defmodule EscriptWithPath do
     def project do
-      [ app: :escripttestwithpath,
-        version: "0.0.1",
-        escript: [
-          app: nil,
-          embed_elixir: true,
-          main_module: Escripttest,
-          path: Path.join("ebin", "escripttestwithpath")
-        ]
-      ]
+      [app: :escripttestwithpath,
+       version: "0.0.1",
+       escript: [
+         app: nil,
+         embed_elixir: true,
+         main_module: Escripttest,
+         path: Path.join("ebin", "escripttestwithpath")
+       ]]
     end
   end
 
   defmodule EscriptWithDeps do
     def project do
-      [ app: :escripttestwithdeps,
-        version: "0.0.1",
-        escript: [main_module: Escripttest],
-        deps: [{:ok, path: fixture_path("deps_status/deps/ok")}] ]
+      [app: :escripttestwithdeps,
+       version: "0.0.1",
+       escript: [main_module: Escripttest],
+       deps: [{:ok, path: fixture_path("deps_status/deps/ok")}]]
     end
   end
 
   defmodule EscriptErlangWithDeps do
     def project do
-      [ app: :escripttesterlangwithdeps,
-        version: "0.0.1",
-        language: :erlang,
-        escript: [main_module: :escripttest],
-        deps: [{:ok, path: fixture_path("deps_status/deps/ok")}] ]
+      [app: :escripttesterlangwithdeps,
+       version: "0.0.1",
+       language: :erlang,
+       escript: [main_module: :escripttest],
+       deps: [{:ok, path: fixture_path("deps_status/deps/ok")}]]
     end
   end
 
   defmodule EscriptWithUnknownMainModule do
     def project do
-      [ app: :escripttestwithunknownmainmodule,
-        version: "0.0.1",
-        escript: [
-          main_module: BogusEscripttest
-        ]
-      ]
+      [app: :escripttestwithunknownmainmodule,
+       version: "0.0.1",
+       escript: [
+         main_module: BogusEscripttest
+       ]]
     end
   end
 
   defmodule EscriptConsolidated do
     def project do
-      [ app: :escripttestconsolidated,
-        build_embedded: true,
-        version: "0.0.1",
-        escript: [main_module: Escripttest] ]
+      [app: :escripttestconsolidated,
+       build_embedded: true,
+       version: "0.0.1",
+       escript: [main_module: Escripttest]]
     end
   end
 
