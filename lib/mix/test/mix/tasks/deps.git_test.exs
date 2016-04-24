@@ -5,40 +5,40 @@ defmodule Mix.Tasks.DepsGitTest do
 
   defmodule DepsOnGitApp do
     def project do
-      [ app: :deps_on_git_app,
-        version: "0.1.0",
-        deps: [
-          {:deps_on_git_repo, "0.2.0", git: fixture_path("deps_on_git_repo")}
-        ] ]
+      [app: :deps_on_git_app,
+       version: "0.1.0",
+       deps: [
+         {:deps_on_git_repo, "0.2.0", git: fixture_path("deps_on_git_repo")}
+       ]]
     end
   end
 
   defmodule GitApp do
     def project do
       opts = Process.get(:git_repo_opts) || []
-      [ app: :git_app,
-        version: "0.1.0",
-        deps: [
-          {:git_repo, "0.1.0", [git: fixture_path("git_repo")] ++ opts}
-        ] ]
+      [app: :git_app,
+       version: "0.1.0",
+       deps: [
+         {:git_repo, "0.1.0", [git: fixture_path("git_repo")] ++ opts}
+       ]]
     end
   end
 
   defmodule GitSubmodulesApp do
     def project do
-      [ app: :git_app,
-        version: "0.1.0",
-        deps: [
-          {:git_repo, "0.1.0", git: fixture_path("git_repo"), submodules: true}
-        ] ]
+      [app: :git_app,
+       version: "0.1.0",
+       deps: [
+         {:git_repo, "0.1.0", git: fixture_path("git_repo"), submodules: true}
+       ]]
     end
   end
 
   defmodule GitErrorApp do
     def project do
-      [ deps: [
-          {:git_repo, "0.1.0", git: fixture_path("not_git_repo")}
-        ] ]
+      [deps: [
+         {:git_repo, "0.1.0", git: fixture_path("not_git_repo")}
+       ]]
     end
   end
 
