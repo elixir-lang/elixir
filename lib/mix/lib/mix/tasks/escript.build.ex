@@ -121,7 +121,7 @@ defmodule Mix.Tasks.Escript.Build do
         Mix.raise "Could not generate escript, please set :main_module " <>
           "in your project configuration (under :escript option) to a module that implements main/1"
 
-      !Code.ensure_loaded?(main) ->
+      not Code.ensure_loaded?(main) ->
         Mix.raise "Could not generate escript, module #{main} defined as " <>
           ":main_module could not be loaded"
 
