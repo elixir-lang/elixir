@@ -194,78 +194,123 @@ defmodule StringTest do
     assert String.replace_trailing("aaa", "b", "c") == "aaa"
   end
 
-  test "rstrip" do
-    assert String.rstrip("") == ""
-    assert String.rstrip("1\n") == "1"
-    assert String.rstrip("\r\n") == ""
-    assert String.rstrip("   abc  ") == "   abc"
-    assert String.rstrip("   abc a") == "   abc a"
-    assert String.rstrip("a  abc  a\n\n") == "a  abc  a"
-    assert String.rstrip("a  abc  a\t\n\v\f\r\s") == "a  abc  a"
-    assert String.rstrip("a  abc  a" <> <<194, 133>>) == "a  abc  a"
-    assert String.rstrip("   abc aa", ?a) == "   abc "
-    assert String.rstrip("   abc __", ?_) == "   abc "
-    assert String.rstrip(" aaaaaaaaa", ?a) == " "
-    assert String.rstrip("aaaaaaaaaa", ?a) == ""
-    assert String.rstrip("]]]]]]]]]]", ?]) == ""
-    assert String.rstrip("   cat 猫猫", ?猫) == "   cat "
-    # information separators are not whitespace
-    assert String.rstrip("a  abc  a \u001F") == "a  abc  a \u001F"
-    # no-break space
-    assert String.rstrip("a  abc  a \u00A0") == "a  abc  a"
-  end
+  test "trim" do
+    assert String.trim("") == ""
+    assert String.trim("  abc ") == "abc"
+    assert String.trim("a  abc  a\n\n") == "a  abc  a"
+    assert String.trim("a  abc  a\t\n\v\f\r\s") == "a  abc  a"
 
-  test "lstrip" do
-    assert String.lstrip("") == ""
-    assert String.lstrip("   abc  ") == "abc  "
-    assert String.lstrip("a  abc  a") == "a  abc  a"
-    assert String.lstrip("\n\na  abc  a") == "a  abc  a"
-    assert String.lstrip("\t\n\v\f\r\sa  abc  a") == "a  abc  a"
-    assert String.lstrip(<<194, 133>> <> "a  abc  a") == "a  abc  a"
-    assert String.lstrip("__  abc  _", ?_) == "  abc  _"
-    assert String.lstrip("猫猫 cat   ", ?猫) == " cat   "
-    # information separators are not whitespace
-    assert String.lstrip("\u001F a  abc  a") == <<31>> <> " a  abc  a"
+    assert String.trim("___  abc  ___", "_") == "  abc  "
+    assert String.trim("猫猫猫cat猫猫猫", "猫猫") == "猫cat猫"
     # no-break space
-    assert String.lstrip("\u00A0 a  abc  a") == "a  abc  a"
-  end
-
-  test "strip" do
-    assert String.strip("") == ""
-    assert String.strip("   abc  ") == "abc"
-    assert String.strip("a  abc  a\n\n") == "a  abc  a"
-    assert String.strip("a  abc  a\t\n\v\f\r\s") == "a  abc  a"
-    assert String.strip("___  abc  ___", ?_) == "  abc  "
-    assert String.strip("猫猫猫  cat  猫猫猫", ?猫) == "  cat  "
-    # no-break space
-    assert String.strip("\u00A0a  abc  a\u00A0") == "a  abc  a"
+    assert String.trim("\u00A0a  abc  a\u00A0") == "a  abc  a"
     # whitespace defined as a range
-    assert String.strip("\u2008a  abc  a\u2005") == "a  abc  a"
+    assert String.trim("\u2008a  abc  a\u2005") == "a  abc  a"
   end
 
-  test "rjust" do
-    assert String.rjust("", 5) == "     "
-    assert String.rjust("abc", 5) == "  abc"
-    assert String.rjust("  abc  ", 9) == "    abc  "
-    assert String.rjust("猫", 5) == "    猫"
-    assert String.rjust("abc", 5, ?-) == "--abc"
-    assert String.rjust("abc", 5, ?猫) == "猫猫abc"
-    assert String.rjust("-", 0) == "-"
+  test "trim_leading" do
+    assert String.trim_leading("") == ""
+    assert String.trim_leading("   abc  ") == "abc  "
+    assert String.trim_leading("a  abc  a") == "a  abc  a"
+    assert String.trim_leading("\n\na  abc  a") == "a  abc  a"
+    assert String.trim_leading("\t\n\v\f\r\sa  abc  a") == "a  abc  a"
+    assert String.trim_leading(<<194, 133, "a  abc  a">>) == "a  abc  a"
+    # information separators are not whitespace
+    assert String.trim_leading("\u001F a  abc  a") == "\u001F a  abc  a"
+    # no-break space
+    assert String.trim_leading("\u00A0 a  abc  a") == "a  abc  a"
+
+    assert String.trim_leading("aa aaa", "aaa") == "aa aaa"
+    assert String.trim_leading("aaa aaa", "aa") == "a aaa"
+    assert String.trim_leading("aa abc   ", "a") == " abc   "
+    assert String.trim_leading("__ abc   ", "_") == " abc   "
+    assert String.trim_leading("aaaaaaaaa ", "a") == " "
+    assert String.trim_leading("aaaaaaaaaa", "a") == ""
+    assert String.trim_leading("]]]]]] ]", "]") == " ]"
+    assert String.trim_leading("猫猫 cat   ", "猫") == " cat   "
+    assert String.trim_leading("test", "t") == "est"
+    assert String.trim_leading("t", "t") == ""
+    assert String.trim_leading("", "t") == ""
+  end
+
+  test "trim_trailing" do
+    assert String.trim_trailing("") == ""
+    assert String.trim_trailing("1\n") == "1"
+    assert String.trim_trailing("\r\n") == ""
+    assert String.trim_trailing("   abc  ") == "   abc"
+    assert String.trim_trailing("   abc a") == "   abc a"
+    assert String.trim_trailing("a  abc  a\n\n") == "a  abc  a"
+    assert String.trim_trailing("a  abc  a\t\n\v\f\r\s") == "a  abc  a"
+    assert String.trim_trailing(<<"a  abc  a", 194, 133>>) == "a  abc  a"
+    # information separators are not whitespace
+    assert String.trim_trailing("a  abc  a \u001F") == "a  abc  a \u001F"
+    # no-break space
+    assert String.trim_trailing("a  abc  a \u00A0") == "a  abc  a"
+
+    assert String.trim_trailing("aaa aa", "aaa") == "aaa aa"
+    assert String.trim_trailing("aaa aaa", "aa") == "aaa a"
+    assert String.trim_trailing("   abc aa", "a") == "   abc "
+    assert String.trim_trailing("   abc __", "_") == "   abc "
+    assert String.trim_trailing(" aaaaaaaaa", "a") == " "
+    assert String.trim_trailing("aaaaaaaaaa", "a") == ""
+    assert String.trim_trailing("] ]]]]]]", "]") == "] "
+    assert String.trim_trailing("   cat 猫猫", "猫") == "   cat "
+    assert String.trim_trailing("test", "t") == "tes"
+    assert String.trim_trailing("t", "t") == ""
+    assert String.trim_trailing("", "t") == ""
+  end
+
+  test "pad_leading" do
+    assert String.pad_leading("", 5) == "     "
+    assert String.pad_leading("abc", 5) == "  abc"
+    assert String.pad_leading("  abc  ", 9) == "    abc  "
+    assert String.pad_leading("猫", 5) == "    猫"
+    assert String.pad_leading("-", 0) == "-"
+    assert String.pad_leading("-", 1) == "-"
+
+    assert String.pad_leading("---", 5, "abc") == "ab---"
+    assert String.pad_leading("---", 9, "abc") == "abcabc---"
+
+    assert String.pad_leading("---", 5, ["abc"]) == "abcabc---"
+    assert String.pad_leading("--", 6, ["a", "bc"]) == "abcabc--"
+
     assert_raise FunctionClauseError, fn ->
-      String.rjust("-", -1)
+      String.pad_leading("-", -1)
+    end
+    assert_raise FunctionClauseError, fn ->
+      String.pad_leading("-", 1, [])
+    end
+
+    message = "expected a string padding element, got: 10"
+    assert_raise ArgumentError, message, fn ->
+      String.pad_leading("-", 3, ["-", 10])
     end
   end
 
-  test "ljust" do
-    assert String.ljust("", 5) == "     "
-    assert String.ljust("abc", 5) == "abc  "
-    assert String.ljust("  abc  ", 9) == "  abc    "
-    assert String.ljust("猫", 5) == "猫    "
-    assert String.ljust("abc", 5, ?-) == "abc--"
-    assert String.ljust("abc", 5, ?猫) == "abc猫猫"
-    assert String.ljust("-", 0) == "-"
+  test "pad_trailing" do
+    assert String.pad_trailing("", 5) == "     "
+    assert String.pad_trailing("abc", 5) == "abc  "
+    assert String.pad_trailing("  abc  ", 9) == "  abc    "
+    assert String.pad_trailing("猫", 5) == "猫    "
+    assert String.pad_trailing("-", 0) == "-"
+    assert String.pad_trailing("-", 1) == "-"
+
+    assert String.pad_trailing("---", 5, "abc") == "---ab"
+    assert String.pad_trailing("---", 9, "abc") == "---abcabc"
+
+    assert String.pad_trailing("---", 5, ["abc"]) == "---abcabc"
+    assert String.pad_trailing("--", 6, ["a", "bc"]) == "--abcabc"
+
     assert_raise FunctionClauseError, fn ->
-      String.ljust("-", -1)
+      String.pad_trailing("-", -1)
+    end
+    assert_raise FunctionClauseError, fn ->
+      String.pad_trailing("-", 1, [])
+    end
+
+    message = "expected a string padding element, got: 10"
+    assert_raise ArgumentError, message, fn ->
+      String.pad_trailing("-", 3, ["-", 10])
     end
   end
 

@@ -577,29 +577,12 @@ defmodule String do
     char <> downcase(rest)
   end
 
-  @doc """
-  Returns a string where all trailing Unicode whitespaces
-  has been removed.
+  @doc false
+  # TODO: Deprecate by 1.4
+  defdelegate rstrip(binary), to: String.Break, as: :trim_trailing
 
-  ## Examples
-
-      iex> String.rstrip("   abc  ")
-      "   abc"
-
-  """
-  @spec rstrip(t) :: t
-  defdelegate rstrip(binary), to: String.Break
-
-  @doc """
-  Returns a string where all trailing `char`s have been removed.
-
-  ## Examples
-
-      iex> String.rstrip("   abc _", ?_)
-      "   abc "
-
-  """
-  @spec rstrip(t, char) :: t
+  @doc false
+  # TODO: Deprecate by 1.4
   def rstrip(string, char) when is_integer(char) do
     replace_trailing(string, <<char::utf8>>, "")
   end
@@ -750,127 +733,252 @@ defmodule String do
     end
   end
 
-  @doc """
+  @doc false
+  # TODO: Deprecate by 1.4
+  defdelegate lstrip(binary), to: String.Break, as: :trim_leading
+
+  @doc false
+  # TODO: Deprecate by 1.4
+  def lstrip(string, char) when is_integer(char) do
+    replace_leading(string, <<char::utf8>>, "")
+  end
+
+  @doc false
+  # TODO: Deprecate by 1.4
+  def strip(string) do
+    trim(string)
+  end
+
+  @doc false
+  # TODO: Deprecate by 1.4
+  def strip(string, char) do
+    trim(string, <<char::utf8>>)
+  end
+
+  @doc ~S"""
   Returns a string where all leading Unicode whitespaces
   have been removed.
 
   ## Examples
 
-      iex> String.lstrip("   abc  ")
-      "abc  "
+      iex> String.trim_leading("\n  abc   ")
+      "abc   "
 
   """
-  defdelegate lstrip(binary), to: String.Break
+  @spec trim_leading(t) :: t
+  defdelegate trim_leading(string), to: String.Break
 
   @doc """
-  Returns a string where all leading `char`s have been removed.
+  Returns a string where all leading `to_trim`s have been removed.
 
   ## Examples
 
-      iex> String.lstrip("_  abc  _", ?_)
-      "  abc  _"
+      iex> String.trim_leading("__ abc _", "_")
+      " abc _"
+
+      iex> String.trim_leading("1 abc", "11")
+      "1 abc"
 
   """
-  @spec lstrip(t, char) :: t
-  def lstrip(string, char)
-
-  def lstrip(<<char::utf8, rest::binary>>, char) when is_integer(char) do
-    <<lstrip(rest, char)::binary>>
+  @spec trim_leading(t, t) :: t
+  def trim_leading(string, to_trim) do
+    replace_leading(string, to_trim, "")
   end
 
-  def lstrip(string, char) when is_integer(char) do
-    string
-  end
+  @doc ~S"""
+  Returns a string where all trailing Unicode whitespaces
+  has been removed.
+
+  ## Examples
+
+      iex> String.trim_trailing("   abc\n  ")
+      "   abc"
+
+  """
+  @spec trim_trailing(t) :: t
+  defdelegate trim_trailing(string), to: String.Break
 
   @doc """
+  Returns a string where all trailing `to_trim`s have been removed.
+
+  ## Examples
+
+      iex> String.trim_trailing("_ abc __", "_")
+      "_ abc "
+
+      iex> String.trim_trailing("abc 1", "11")
+      "abc 1"
+
+  """
+  @spec trim_trailing(t, t) :: t
+  def trim_trailing(string, to_trim) do
+    replace_trailing(string, to_trim, "")
+  end
+
+  @doc ~S"""
   Returns a string where all leading and trailing Unicode whitespaces
   have been removed.
 
   ## Examples
 
-      iex> String.strip("   abc  ")
+      iex> String.trim("\n  abc\n  ")
       "abc"
 
   """
-  @spec strip(t) :: t
-
-  def strip(string) do
-    rstrip(lstrip(string))
+  @spec trim(t) :: t
+  def trim(string) do
+    string
+    |> trim_leading()
+    |> trim_trailing()
   end
 
   @doc """
-  Returns a string where all leading and trailing `char`s have been
+  Returns a string where all leading and trailing `to_trim`s have been
   removed.
 
   ## Examples
 
-      iex> String.strip("a  abc  a", ?a)
+      iex> String.trim("a  abc  a", "a")
       "  abc  "
 
   """
-  @spec strip(t, char) :: t
-  def strip(string, char) do
-    rstrip(lstrip(string, char), char)
+  @spec trim(t, t) :: t
+  def trim(string, to_trim) do
+    string
+    |> trim_leading(to_trim)
+    |> trim_trailing(to_trim)
   end
 
   @doc ~S"""
-  Returns a new string of length `len` with `subject` right justified and
-  padded with `pad`. If `pad` is not present, it defaults to
-  whitespace. When `len` is less than the length of `subject`, `subject` is
-  returned.
+  Returns a new string padded with a leading filler
+  which is made of elements from the `padding`.
+
+  Passing a list of strings as `padding` will take one element of the list
+  for every missing entry. If the list is shorter than the number of inserts,
+  the filling will start again from the beginning of the list.
+  Passing a string `padding` is equivalent to passing the list of graphemes in it.
+  If no `padding` is given, it defaults to whitespace.
+
+  When `count` is less than or equal to the length of `string`,
+  given `string` is returned.
+
+  Raises `ArgumentError` if the given `padding` contains non-string element.
 
   ## Examples
 
-      iex> String.rjust("abc", 5)
+      iex> String.pad_leading("abc", 5)
       "  abc"
 
-      iex> String.rjust("abc", 5, ?-)
-      "--abc"
+      iex> String.pad_leading("abc", 4, "12")
+      "1abc"
+
+      iex> String.pad_leading("abc", 6, "12")
+      "121abc"
+
+      iex> String.pad_leading("abc", 5, ["1", "23"])
+      "123abc"
 
   """
-  @spec rjust(t, non_neg_integer) :: t
-  @spec rjust(t, non_neg_integer, char) :: t
+  @spec pad_leading(t, non_neg_integer, t | [t]) :: t
+  def pad_leading(string, count, padding \\ [" "])
 
-  def rjust(subject, len, pad \\ ?\s) when is_integer(pad) and is_integer(len) and len >= 0 do
-    justify(subject, len, pad, :right)
+  def pad_leading(string, count, padding) when is_binary(padding) do
+    pad_leading(string, count, graphemes(padding))
+  end
+
+  def pad_leading(string, count, [_ | _] = padding)
+      when is_binary(string) and is_integer(count) and count >= 0 do
+    pad(:leading, string, count, padding)
   end
 
   @doc ~S"""
-  Returns a new string of length `len` with `subject` left justified and padded
-  with `pad`. If `pad` is not present, it defaults to whitespace. When
-  `len` is less than the length of `subject`, `subject` is returned.
+  Returns a new string padded with a trailing filler
+  which is made of elements from the `padding`.
+
+  Passing a list of strings as `padding` will take one element of the list
+  for every missing entry. If the list is shorter than the number of inserts,
+  the filling will start again from the beginning of the list.
+  Passing a string `padding` is equivalent to passing the list of graphemes in it.
+  If no `padding` is given, it defaults to whitespace.
+
+  When `count` is less than or equal to the length of `string`,
+  given `string` is returned.
+
+  Raises `ArgumentError` if the given `padding` contains non-string element.
 
   ## Examples
 
-      iex> String.ljust("abc", 5)
+      iex> String.pad_trailing("abc", 5)
       "abc  "
 
-      iex> String.ljust("abc", 5, ?-)
-      "abc--"
+      iex> String.pad_trailing("abc", 4, "12")
+      "abc1"
+
+      iex> String.pad_trailing("abc", 6, "12")
+      "abc121"
+
+      iex> String.pad_trailing("abc", 5, ["1", "23"])
+      "abc123"
 
   """
-  @spec ljust(t, non_neg_integer) :: t
-  @spec ljust(t, non_neg_integer, char) :: t
+  @spec pad_trailing(t, non_neg_integer, t | [t]) :: t
+  def pad_trailing(string, count, padding \\ [" "])
 
-  def ljust(subject, len, pad \\ ?\s) when is_integer(pad) and is_integer(len) and len >= 0 do
-    justify(subject, len, pad, :left)
+  def pad_trailing(string, count, padding) when is_binary(padding) do
+    pad_trailing(string, count, graphemes(padding))
   end
 
-  defp justify(subject, 0, _pad, _type), do: subject
-  defp justify(subject, len, padding, type) do
-    subject_len = length(subject)
+  def pad_trailing(string, count, [_ | _] = padding)
+      when is_binary(string) and is_integer(count) and count >= 0 do
+    pad(:trailing, string, count, padding)
+  end
 
-    cond do
-      subject_len >= len ->
-        subject
-      subject_len < len ->
-        fill = duplicate(<<padding::utf8>>, len - subject_len)
-
-        case type do
-          :left  -> subject <> fill
-          :right -> fill <> subject
-        end
+  defp pad(kind, string, count, padding) do
+    string_len = length(string)
+    if string_len >= count do
+      string
+    else
+      filler = build_filler(count - string_len, padding, padding, 0, [])
+      case kind do
+        :leading -> [filler | string]
+        :trailing -> [string | filler]
+      end
+      |> IO.iodata_to_binary
     end
+  end
+
+  defp build_filler(0, _source, _padding, _size, filler), do: filler
+
+  defp build_filler(count, source, [], size, filler) do
+    rem_filler =
+      rem(count, size)
+      |> build_filler(source, source, 0, [])
+    filler =
+      filler
+      |> IO.iodata_to_binary
+      |> duplicate(div(count, size) + 1)
+    [filler | rem_filler]
+  end
+
+  defp build_filler(count, source, [elem | rest], size, filler)
+      when is_binary(elem) do
+    build_filler(count - 1, source, rest, size + 1, [filler | elem])
+  end
+
+  defp build_filler(_count, _source, [elem | _rest], _size, _filler) do
+    raise ArgumentError, "expected a string padding element, got: #{inspect(elem)}"
+  end
+
+  @doc false
+  # TODO: Deprecate by 1.4
+  def rjust(subject, len, pad \\ ?\s) when is_integer(pad) and is_integer(len) and len >= 0 do
+    pad(:leading, subject, len, [<<pad::utf8>>])
+  end
+
+  @doc false
+  # TODO: Deprecate by 1.4
+  def ljust(subject, len, pad \\ ?\s) when is_integer(pad) and is_integer(len) and len >= 0 do
+    pad(:trailing, subject, len, [<<pad::utf8>>])
   end
 
   @doc ~S"""
