@@ -332,13 +332,12 @@ defmodule Enum do
   chunks do not overlap.
 
   If the final chunk does not have `count` elements to fill the chunk,
-  elements are taken as necessary from `pad` if it was passed.
+  elements are taken as necessary from `leftover` if it was passed.
 
-  If `pad` is passed and does not have enough elements to fill the
+  If `leftover` is passed and does not have enough elements to fill the
   chunk, then the chunk is returned anyway with less than `count`
-  elements.
-  If `pad` is not passed at all or is `nil`, then the partial chunk is
-  discarded from the result.
+  elements. If `leftover` is not passed at all or is `nil`, then the
+  partial chunk is discarded from the result.
 
   ## Examples
 
@@ -356,17 +355,16 @@ defmodule Enum do
 
   """
   @spec chunk(t, pos_integer, pos_integer, t | nil) :: [list]
-  def chunk(enumerable, count, step, pad \\ nil) when count > 0
-  and step > 0 do
+  def chunk(enumerable, count, step, leftover \\ nil) when count > 0 and step > 0 do
     limit = :erlang.max(count, step)
 
     {acc, {buffer, i}} =
       reduce(enumerable, {[], {[], 0}}, R.chunk(count, step, limit))
 
-    if is_nil(pad) || i == 0 do
+    if is_nil(leftover) || i == 0 do
       :lists.reverse(acc)
     else
-      buffer = :lists.reverse(buffer, take(pad, count - i))
+      buffer = :lists.reverse(buffer, take(leftover, count - i))
       :lists.reverse([buffer | acc])
     end
   end
