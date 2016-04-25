@@ -185,6 +185,11 @@ defmodule ExUnitTest do
     assert output =~ "1) test multi (ExUnitTest.MultiTest)"
     assert output =~ "Failure #1"
     assert output =~ "Failure #2"
+
+    assert_raise ExUnit.MultiError, ~r/oops/, fn ->
+      error = {:error, RuntimeError.exception("oops"), System.stacktrace}
+      raise ExUnit.MultiError, errors: [error]
+    end
   end
 
   test "registers only the first test with any given name" do

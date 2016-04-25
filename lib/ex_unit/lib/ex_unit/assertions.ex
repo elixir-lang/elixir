@@ -26,8 +26,10 @@ defmodule ExUnit.MultiError do
   defexception [errors: []]
 
   def message(exception) do
-    "got the following errors:\n\n  * " <>
-      Enum.map_join(exception, "\n  * ", &Exception.message/1)
+    "got the following errors:\n\n" <>
+      Enum.map_join(exception, "\n\n", fn {kind, error, stack} ->
+        Exception.format_banner(kind, error, stack)
+      end)
   end
 end
 
