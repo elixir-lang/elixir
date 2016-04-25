@@ -617,12 +617,12 @@ defmodule String do
       <<prefix::size(prefix_size)-binary, suffix::size(suffix_size)-binary>> when prefix == match ->
         replace_leading(suffix, match, replacement, prefix_size, suffix_size - prefix_size, acc + 1)
       _ ->
-        String.duplicate(replacement, acc) <> string
+        duplicate(replacement, acc) <> string
     end
   end
 
   defp replace_leading(string, _match, replacement, _prefix_size, _suffix_size, acc) do
-    String.duplicate(replacement, acc) <> string
+    duplicate(replacement, acc) <> string
   end
 
   @doc """
@@ -655,12 +655,12 @@ defmodule String do
       <<prefix::size(prefix_size)-binary, suffix::size(suffix_size)-binary>> when suffix == match ->
         replace_trailing(prefix, match, replacement, prefix_size - suffix_size, suffix_size, acc + 1)
       _ ->
-        string <> String.duplicate(replacement, acc)
+        string <> duplicate(replacement, acc)
     end
   end
 
   defp replace_trailing(string, _match, replacement, _prefix_size, _suffix_size, acc) do
-    string <> String.duplicate(replacement, acc)
+    string <> duplicate(replacement, acc)
   end
 
   @doc """
