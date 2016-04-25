@@ -135,9 +135,9 @@ defmodule Stream do
   `step` is optional and, if not passed, defaults to `n`, i.e.
   chunks do not overlap. If the final chunk does not have `n`
   elements to fill the chunk, elements are taken as necessary
-  from `pad` if it was passed. If `pad` is passed and does not
-  have enough elements to fill the chunk, then the chunk is
-  returned anyway with less than `n` elements. If `pad` is not
+  from `leftover` if it was passed. If `leftover` is passed and
+  does not have enough elements to fill the chunk, then the chunk is
+  returned anyway with less than `n` elements. If `leftover` is not
   passed at all or is `nil`, then the partial chunk is discarded
   from the result.
 
@@ -158,14 +158,14 @@ defmodule Stream do
   """
   @spec chunk(Enumerable.t, pos_integer, pos_integer) :: Enumerable.t
   @spec chunk(Enumerable.t, pos_integer, pos_integer, Enumerable.t | nil) :: Enumerable.t
-  def chunk(enum, n, step, pad \\ nil) when n > 0 and step > 0 do
+  def chunk(enum, n, step, leftover \\ nil) when n > 0 and step > 0 do
     limit = :erlang.max(n, step)
-    if is_nil(pad) do
+    if is_nil(leftover) do
       lazy enum, {[], 0}, fn(f1) -> R.chunk(n, step, limit, f1) end
     else
       lazy enum, {[], 0},
            fn(f1) -> R.chunk(n, step, limit, f1) end,
-           &do_chunk(&1, n, pad, &2)
+           &do_chunk(&1, n, leftover, &2)
      end
   end
 
@@ -173,8 +173,8 @@ defmodule Stream do
     {:cont, acc}
   end
 
-  defp do_chunk(acc(h, {buffer, count} = old, t), n, pad, f1) do
-    buffer = :lists.reverse(buffer, Enum.take(pad, n - count))
+  defp do_chunk(acc(h, {buffer, count} = old, t), n, leftover, f1) do
+    buffer = :lists.reverse(buffer, Enum.take(leftover, n - count))
     next_with_acc(f1, buffer, h, old, t)
   end
 
