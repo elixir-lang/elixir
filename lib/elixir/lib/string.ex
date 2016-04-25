@@ -591,17 +591,26 @@ defmodule String do
   defdelegate rstrip(binary), to: String.Break
 
   @doc """
-  Returns a string where all trailing `char`s have been removed.
+  Returns a string where all trailing `to_strip`s have been removed.
 
   ## Examples
 
       iex> String.rstrip("   abc _", ?_)
       "   abc "
 
+      iex> String.rstrip("ab abc ab", "ab")
+      "ab abc "
+
   """
-  @spec rstrip(t, char) :: t
+  @spec rstrip(t, char | binary) :: t
+  def rstrip(string, to_strip)
+
   def rstrip(string, char) when is_integer(char) do
     replace_trailing(string, <<char::utf8>>, "")
+  end
+
+  def rstrip(string, to_strip) when is_binary(to_strip) do
+    replace_trailing(string, to_strip, "")
   end
 
   @doc """
@@ -763,16 +772,19 @@ defmodule String do
   defdelegate lstrip(binary), to: String.Break
 
   @doc """
-  Returns a string where all leading `char`s have been removed.
+  Returns a string where all leading `to_strip`s have been removed.
 
   ## Examples
 
       iex> String.lstrip("_  abc  _", ?_)
       "  abc  _"
 
+      iex> String.lstrip("ab  abc  ab", "ab")
+      "  abc  ab"
+
   """
-  @spec lstrip(t, char) :: t
-  def lstrip(string, char)
+  @spec lstrip(t, char | binary) :: t
+  def lstrip(string, to_strip)
 
   def lstrip(<<char::utf8, rest::binary>>, char) when is_integer(char) do
     <<lstrip(rest, char)::binary>>
@@ -780,6 +792,10 @@ defmodule String do
 
   def lstrip(string, char) when is_integer(char) do
     string
+  end
+
+  def lstrip(string, to_strip) when is_binary(to_strip) do
+    replace_leading(string, to_strip, "")
   end
 
   @doc """
@@ -799,7 +815,7 @@ defmodule String do
   end
 
   @doc """
-  Returns a string where all leading and trailing `char`s have been
+  Returns a string where all leading and trailing `to_strip`s have been
   removed.
 
   ## Examples
@@ -807,10 +823,13 @@ defmodule String do
       iex> String.strip("a  abc  a", ?a)
       "  abc  "
 
+      iex> String.strip("ab  abc  ab", "ab")
+      "  abc  "
+
   """
-  @spec strip(t, char) :: t
-  def strip(string, char) do
-    rstrip(lstrip(string, char), char)
+  @spec strip(t, char | binary) :: t
+  def strip(string, to_strip) do
+    rstrip(lstrip(string, to_strip), to_strip)
   end
 
   @doc ~S"""
