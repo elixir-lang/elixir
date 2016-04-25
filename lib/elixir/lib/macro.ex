@@ -1188,6 +1188,9 @@ defmodule Macro do
       iex> Macro.camelize "sap_example"
       "SapExample"
 
+      iex> Macro.camelize "hello_10"
+      "Hello10"
+
   """
   def underscore(atom) when is_atom(atom) do
     "Elixir." <> rest = Atom.to_string(atom)
@@ -1198,11 +1201,6 @@ defmodule Macro do
 
   def underscore(<<h, t::binary>>) do
     <<to_lower_char(h)>> <> do_underscore(t, h)
-  end
-
-  defp do_underscore(<<h, t::binary>>, prev)
-      when (h >= ?0 and h <= ?9) and (prev >= ?a and prev <= ?z) do
-    <<?_, h>> <> do_underscore(t, h)
   end
 
   defp do_underscore(<<h, t, rest::binary>>, _)
