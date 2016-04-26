@@ -738,7 +738,7 @@ defmodule System do
   will never return the same integer more than once on the current runtime
   instance.
 
-  If `modifiers` is `[]`, then an unique integer (that can be positive or negative) is returned.
+  If `modifiers` is `[]`, then a unique integer (that can be positive or negative) is returned.
   Other modifiers can be passed to change the properties of the returned integer:
 
     * `:positive` - the returned integer is guaranteed to be positive.
