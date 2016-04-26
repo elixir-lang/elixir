@@ -15,10 +15,9 @@ defmodule Mix.Compilers.Elixir do
   between modules, which helps it recompile only the modules that
   have changed at runtime.
   """
-  def compile(manifest, srcs, skip_srcs, exts, dest, force, on_start) do
-    keep = srcs -- skip_srcs
-    all  = Mix.Utils.extract_files(keep, exts)
-    {all_entries, skip_entries, all_sources, skip_sources} = parse_manifest(manifest, keep)
+  def compile(manifest, srcs, exts, dest, force, on_start) do
+    all  = Mix.Utils.extract_files(srcs, exts)
+    {all_entries, all_sources} = parse_manifest(manifest)
 
     modified = Mix.Utils.last_modified(manifest)
 
@@ -50,17 +49,14 @@ defmodule Mix.Compilers.Elixir do
     sources = update_stale_sources(all_sources, removed, changed)
     {entries, changed} = update_stale_entries(all_entries, removed ++ changed,
                                               stale_local_deps(manifest, modified))
-
     stale = changed -- removed
-    new_entries = entries ++ skip_entries
-    new_sources = Map.merge(sources, skip_sources)
 
     cond do
       stale != [] ->
-        compile_manifest(manifest, new_entries, new_sources, stale, dest, on_start)
+        compile_manifest(manifest, entries, sources, stale, dest, on_start)
         :ok
       removed != [] ->
-        write_manifest(manifest, new_entries, new_sources)
+        write_manifest(manifest, entries, sources)
         :ok
       true ->
         :noop
@@ -256,12 +252,12 @@ defmodule Mix.Compilers.Elixir do
   end
 
   # Similar to read manifest but supports data migration.
-  defp parse_manifest(manifest, keep_paths) do
-    state = {[], [], %{}, %{}}
+  defp parse_manifest(manifest) do
+    state = {[], %{}}
 
     case :file.consult(manifest) do
       {:ok, [@manifest_vsn|data]} ->
-        parse_manifest(data, keep_paths, state)
+        parse_manifest(data, state)
       {:ok, [:v2|data]} ->
         for {beam, module, _, _, _, _, _, _} <- data do
           remove_and_purge(beam, module)
@@ -272,20 +268,12 @@ defmodule Mix.Compilers.Elixir do
     end
   end
 
-  defp parse_manifest(data, keep_paths, state) do
+  defp parse_manifest(data, state) do
     Enum.reduce data, state, fn
-      {_, _, _, source, _, _, _} = entry, {keep, skip, keep_sources, skip_sources} ->
-        if String.starts_with?(source, keep_paths) do
-          {[entry|keep], skip, keep_sources, skip_sources}
-        else
-          {keep, [entry|skip], keep_sources, skip_sources}
-        end
-      {source, files}, {keep, skip, keep_sources, skip_sources} ->
-        if String.starts_with?(source, keep_paths) do
-          {keep, skip, Map.put(keep_sources, source, files), skip_sources}
-        else
-          {keep, skip, keep_sources, Map.put(skip_sources, source, files)}
-        end
+      {_, _, _, source, _, _, _} = entry, {entries, sources} ->
+        {[entry|entries], sources}
+      {source, files}, {entries, sources} ->
+        {entries, Map.put(sources, source, files)}
     end
   end
 
