@@ -316,7 +316,7 @@ foo
     assert_eval "\ndone\n", string, packages: nil, all: nil
   end
 
-  test "unicode" do
+  test "Unicode" do
     template = """
       • <%= "•" %> •
       <%= "Jößé Vâlìm" %> Jößé Vâlìm

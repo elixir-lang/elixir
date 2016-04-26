@@ -163,7 +163,7 @@ unescape_unicode(<<${, A, B, C, D, E, F, $}, Rest/binary>>, Map, Acc) when ?is_h
   append_codepoint(Rest, Map, [A, B, C, D, E, F], Acc, 16);
 
 unescape_unicode(<<_/binary>>, _Map, _Acc) ->
-  Msg = <<"invalid unicode sequence after \\u, expected \\uHHHH or \\u{H*}">>,
+  Msg = <<"invalid Unicode sequence after \\u, expected \\uHHHH or \\u{H*}">>,
   error('Elixir.ArgumentError':exception([{message, Msg}])).
 
 append_codepoint(Rest, Map, List, Acc, Base) ->
@@ -172,7 +172,7 @@ append_codepoint(Rest, Map, List, Acc, Base) ->
     Binary -> unescape_chars(Rest, Map, Binary)
   catch
     error:badarg ->
-      Msg = <<"invalid or reserved unicode codepoint ", (integer_to_binary(Codepoint))/binary>>,
+      Msg = <<"invalid or reserved Unicode codepoint ", (integer_to_binary(Codepoint))/binary>>,
       error('Elixir.ArgumentError':exception([{message, Msg}]))
   end.
 

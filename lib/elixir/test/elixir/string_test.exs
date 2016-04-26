@@ -12,7 +12,7 @@ defmodule StringTest do
   end
 
   # test cases described in http://mortoray.com/2013/11/27/the-string-type-is-broken/
-  test "unicode" do
+  test "Unicode" do
     assert String.reverse("noël") == "lëon"
     assert String.slice("noël", 0..2) == "noë"
     assert String.length("noël") == 4
