@@ -15,16 +15,16 @@ defmodule Inspect.Opts do
       When the default `:infer`, the binary will be printed as a string if it
       is printable, otherwise in bit syntax.
 
-    * `:char_lists` - when `:as_char_lists` all lists will be printed as char
+    * `:charlists` - when `:as_charlists` all lists will be printed as char
       lists, non-printable elements will be escaped.
 
       When `:as_lists` all lists will be printed as lists.
 
-      When the default `:infer`, the list will be printed as a char list if it
+      When the default `:infer`, the list will be printed as a charlist if it
       is printable, otherwise as list.
 
     * `:limit` - limits the number of items that are printed for tuples,
-      bitstrings, and lists, does not apply to strings nor char lists, defaults
+      bitstrings, and lists, does not apply to strings nor charlists, defaults
       to 50.
 
     * `:pretty` - if set to `true` enables pretty printing, defaults to `false`.
@@ -46,7 +46,7 @@ defmodule Inspect.Opts do
 
   defstruct structs: true,
             binaries: :infer,
-            char_lists: :infer,
+            charlists: :infer,
             limit: 50,
             width: 80,
             base: :decimal,
@@ -56,7 +56,7 @@ defmodule Inspect.Opts do
   @type t :: %__MODULE__{
                structs: boolean,
                binaries: :infer | :as_binaries | :as_strings,
-               char_lists: :infer | :as_lists | :as_char_lists,
+               charlists: :infer | :as_lists | :as_charlists,
                limit: pos_integer | :infinity,
                width: pos_integer | :infinity,
                base: :decimal | :binary | :hex | :octal,

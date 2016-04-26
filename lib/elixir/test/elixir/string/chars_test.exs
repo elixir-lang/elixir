@@ -63,7 +63,7 @@ defmodule String.Chars.ListTest do
     assert to_string('abc') == "abc"
   end
 
-  test "char list" do
+  test "charlist" do
     assert to_string([0, 1, 2, 3, 255]) ==
            <<0, 1, 2, 3, 195, 191>>
 

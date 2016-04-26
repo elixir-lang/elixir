@@ -215,7 +215,7 @@ defmodule Mix.Tasks.Profile.Fprof do
     else
       :ok ->
         {_in, analysis_output} = StringIO.contents(analyse_dest)
-        String.to_char_list(analysis_output)
+        String.to_charlist(analysis_output)
     after
       StringIO.close(analyse_dest)
     end
@@ -230,8 +230,8 @@ defmodule Mix.Tasks.Profile.Fprof do
     |> Enum.each(&print_analysis_result/1)
   end
 
-  defp next_term(char_list) do
-    case :erl_scan.tokens([], char_list, 1) do
+  defp next_term(charlist) do
+    case :erl_scan.tokens([], charlist, 1) do
       {:done, result, leftover} ->
         case result do
           {:ok, tokens, _} ->

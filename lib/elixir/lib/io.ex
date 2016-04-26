@@ -381,7 +381,7 @@ defmodule IO do
 
   Notice that this function treats lists of integers as raw bytes
   and does not perform any kind of encoding conversion. If you want
-  to convert from a char list to a string (UTF-8 encoded), please
+  to convert from a charlist to a string (UTF-8 encoded), please
   use `chardata_to_string/1` instead.
 
   If this function receives a binary, the same binary is returned.

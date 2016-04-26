@@ -370,7 +370,7 @@ foo
         {EExTest.Compiled,
           :before_compile,
           0,
-          [file: to_char_list(Path.relative_to_cwd(__ENV__.file)), line: 7]
+          [file: to_charlist(Path.relative_to_cwd(__ENV__.file)), line: 7]
        }
      }
 
@@ -379,7 +379,7 @@ foo
         {EExTest.Compiled,
           :after_compile,
           0,
-          [file: to_char_list(Path.relative_to_cwd(__ENV__.file)), line: 22]
+          [file: to_charlist(Path.relative_to_cwd(__ENV__.file)), line: 22]
        }
      }
 

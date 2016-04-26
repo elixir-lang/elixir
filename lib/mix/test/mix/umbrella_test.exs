@@ -92,9 +92,9 @@ defmodule Mix.UmbrellaTest do
       File.mkdir_p!("_build/dev/lib/bar/ebin")
 
       Mix.Task.run "loadpaths", ["--no-deps-check", "--no-elixir-version-check"]
-      assert to_char_list(Path.expand("_build/dev/lib/some_dep/ebin")) in :code.get_path
-      assert to_char_list(Path.expand("_build/dev/lib/foo/ebin")) in :code.get_path
-      assert to_char_list(Path.expand("_build/dev/lib/bar/ebin")) in :code.get_path
+      assert to_charlist(Path.expand("_build/dev/lib/some_dep/ebin")) in :code.get_path
+      assert to_charlist(Path.expand("_build/dev/lib/foo/ebin")) in :code.get_path
+      assert to_charlist(Path.expand("_build/dev/lib/bar/ebin")) in :code.get_path
     end
   end
 

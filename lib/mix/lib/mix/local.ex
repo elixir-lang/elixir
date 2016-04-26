@@ -90,7 +90,7 @@ defmodule Mix.Local do
   and print a warning if it is not satisfied.
   """
   def check_elixir_version_in_ebin(ebin) do
-    elixir = ebin |> Path.dirname |> Path.join(".elixir") |> String.to_char_list
+    elixir = ebin |> Path.dirname |> Path.join(".elixir") |> String.to_charlist
     case :erl_prim_loader.get_file(elixir) do
       {:ok, req, _} ->
         unless Version.match?(System.version, req) do

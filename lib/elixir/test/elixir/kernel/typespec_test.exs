@@ -344,11 +344,11 @@ defmodule Kernel.TypespecTest do
 
   test "@type with a union" do
     module = test_module do
-      @type mytype :: integer | char_list | atom
+      @type mytype :: integer | charlist | atom
     end
 
     assert [type: {:mytype, {:type, _, :union, [{:type, _, :integer, []},
-             {:remote_type, _, [{:atom, _, :elixir}, {:atom, _, :char_list}, []]},
+             {:remote_type, _, [{:atom, _, :elixir}, {:atom, _, :charlist}, []]},
              {:type, _, :atom, []}]}, []}] =
            types(module)
   end
@@ -504,7 +504,7 @@ defmodule Kernel.TypespecTest do
     module = test_module do
       def myfun(x), do: x
       @spec myfun(integer)   :: integer
-      @spec myfun(char_list) :: char_list
+      @spec myfun(charlist) :: charlist
       @callback cb(integer)  :: integer
     end
 
@@ -513,8 +513,8 @@ defmodule Kernel.TypespecTest do
 
     assert [{{:myfun, 1}, [
              {:type, _, :fun, [{:type, _, :product, [
-               {:remote_type, _, [{:atom, _, :elixir}, {:atom, _, :char_list}, []]}]},
-               {:remote_type, _, [{:atom, _, :elixir}, {:atom, _, :char_list}, []]}]},
+               {:remote_type, _, [{:atom, _, :elixir}, {:atom, _, :charlist}, []]}]},
+               {:remote_type, _, [{:atom, _, :elixir}, {:atom, _, :charlist}, []]}]},
              {:type, _, :fun, [{:type, _, :product, [{:type, _, :integer, []}]}, {:type, _, :integer, []}]}]}] =
            specs(module)
   end
@@ -550,7 +550,7 @@ defmodule Kernel.TypespecTest do
       (quote do: @type binary_type3() :: <<_ :: 3>>),
       (quote do: @type tuple_type() :: {integer()}),
       (quote do: @type ftype() :: (() -> any()) | (() -> integer()) | ((integer() -> integer()))),
-      (quote do: @type cl() :: char_list()),
+      (quote do: @type cl() :: charlist()),
       (quote do: @type st() :: struct()),
       (quote do: @type ab() :: as_boolean(term())),
       (quote do: @type kw() :: keyword()),

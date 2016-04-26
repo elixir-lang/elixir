@@ -997,7 +997,7 @@ defmodule Kernel.ErrorsTest do
 
   defp rescue_stacktrace(expr) do
     result = try do
-      :elixir.eval(to_char_list(expr), [])
+      :elixir.eval(to_charlist(expr), [])
       nil
     rescue
       _ -> System.stacktrace

@@ -123,7 +123,7 @@ defmodule CodeTest do
   end
 
   test "compile source" do
-    assert __MODULE__.__info__(:compile)[:source] == String.to_char_list(__ENV__.file)
+    assert __MODULE__.__info__(:compile)[:source] == String.to_charlist(__ENV__.file)
   end
 
   test "compile info returned with source accessible through keyword module" do
@@ -169,9 +169,9 @@ defmodule Code.SyncTest do
   test "path manipulation" do
     path = Path.join(__DIR__, "fixtures")
     Code.prepend_path path
-    assert to_char_list(path) in :code.get_path
+    assert to_charlist(path) in :code.get_path
 
     Code.delete_path path
-    refute to_char_list(path) in :code.get_path
+    refute to_charlist(path) in :code.get_path
   end
 end

@@ -24,7 +24,7 @@ defmodule Kernel.FnTest do
 
   test "capture remote" do
     assert (&:erlang.atom_to_list/1).(:a) == 'a'
-    assert (&Atom.to_char_list/1).(:a) == 'a'
+    assert (&Atom.to_charlist/1).(:a) == 'a'
 
     assert (&List.flatten/1).([[0]]) == [0]
     assert (&(List.flatten/1)).([[0]]) == [0]

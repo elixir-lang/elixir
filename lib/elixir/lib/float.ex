@@ -171,18 +171,18 @@ defmodule Float do
   end
 
   @doc """
-  Returns a char list which corresponds to the text representation of the given float.
+  Returns a charlist which corresponds to the text representation of the given float.
 
   Inlined by the compiler.
 
   ## Examples
 
-      iex> Float.to_char_list(7.0)
+      iex> Float.to_charlist(7.0)
       '7.00000000000000000000e+00'
 
   """
-  @spec to_char_list(float) :: char_list
-  def to_char_list(float) do
+  @spec to_charlist(float) :: charlist
+  def to_charlist(float) do
     :erlang.float_to_list(float)
   end
 
@@ -199,12 +199,12 @@ defmodule Float do
 
   ## Examples
 
-      iex> Float.to_char_list 7.1, [decimals: 2, compact: true]
+      iex> Float.to_charlist 7.1, [decimals: 2, compact: true]
       '7.1'
 
   """
-  @spec to_char_list(float, list) :: char_list
-  def to_char_list(float, options) do
+  @spec to_charlist(float, list) :: charlist
+  def to_charlist(float, options) do
     :erlang.float_to_list(float, expand_compact(options))
   end
 

@@ -79,7 +79,7 @@ defmodule Mix.Tasks.Compile.App do
 
     if opts[:force] || Mix.Utils.stale?(sources, [target]) || modules_changed?(mods, target) do
       best_guess = [
-        vsn: to_char_list(version),
+        vsn: to_charlist(version),
         modules: mods,
         applications: []
       ]
@@ -149,7 +149,7 @@ defmodule Mix.Tasks.Compile.App do
 
   defp ensure_correct_properties(app, config, properties) do
     properties
-    |> Keyword.put_new(:description, to_char_list(config[:description] || app))
+    |> Keyword.put_new(:description, to_charlist(config[:description] || app))
     |> Keyword.put_new(:registered, [])
     |> validate_properties
   end

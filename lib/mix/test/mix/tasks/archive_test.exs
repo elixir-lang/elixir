@@ -49,7 +49,7 @@ defmodule Mix.Tasks.ArchiveTest do
       assert_received {:mix_shell, :error, [^version_error]}
 
       archive = tmp_path("userhome/.mix/archives/archive-0.1.0.ez/archive-0.1.0/ebin")
-      assert to_char_list(archive) in :code.get_path
+      assert to_charlist(archive) in :code.get_path
 
       # Loading the archive should emit warning again
       Mix.Local.append_archives

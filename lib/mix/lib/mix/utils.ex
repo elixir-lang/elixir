@@ -240,7 +240,7 @@ defmodule Mix.Utils do
       link = case :os.type do
         {:win32, _} -> source
         _           -> make_relative_path(source, target)
-      end |> String.to_char_list
+      end |> String.to_charlist
 
       case :file.read_link(target) do
         {:ok, ^link} ->
@@ -409,7 +409,7 @@ defmodule Mix.Utils do
     uri = URI.parse(proxy || "")
 
     if uri.host && uri.port do
-      host = String.to_char_list(uri.host)
+      host = String.to_charlist(uri.host)
       :httpc.set_options([{proxy_scheme(scheme), {{host, uri.port}, []}}], :mix)
     end
 
@@ -435,8 +435,8 @@ defmodule Mix.Utils do
   defp proxy_auth(%URI{userinfo: auth}) do
     destructure [user, pass], String.split(auth, ":", parts: 2)
 
-    user = String.to_char_list(user)
-    pass = String.to_char_list(pass || "")
+    user = String.to_charlist(user)
+    pass = String.to_charlist(pass || "")
 
     [proxy_auth: {user, pass}]
   end

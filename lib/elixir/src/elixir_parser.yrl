@@ -723,7 +723,7 @@ build_list_string({list_string, _Location, [H]}) when is_binary(H) ->
   elixir_utils:characters_to_list(H);
 build_list_string({list_string, Location, Args}) ->
   Meta = meta_from_location(Location),
-  {{'.', Meta, ['Elixir.String', to_char_list]}, Meta, [{'<<>>', Meta, string_parts(Args)}]}.
+  {{'.', Meta, ['Elixir.String', to_charlist]}, Meta, [{'<<>>', Meta, string_parts(Args)}]}.
 
 build_quoted_atom({_, _Location, [H]}, Safe) when is_binary(H) ->
   Op = binary_to_atom_op(Safe), erlang:Op(H, utf8);

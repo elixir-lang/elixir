@@ -40,17 +40,17 @@ defmodule Kernel.CLI.OptionParsingTest do
   use ExUnit.Case, async: true
 
   test "properly parses paths" do
-    root = fixture_path("../../..") |> to_char_list
+    root = fixture_path("../../..") |> to_charlist
     list = elixir('-pa "#{root}/*" -pz "#{root}/lib/*" -e "IO.inspect(:code.get_path, limit: :infinity)"')
     {path, _} = Code.eval_string list, []
 
     # pa
-    assert to_char_list(Path.expand('ebin', root)) in path
-    assert to_char_list(Path.expand('lib', root)) in path
-    assert to_char_list(Path.expand('src', root)) in path
+    assert to_charlist(Path.expand('ebin', root)) in path
+    assert to_charlist(Path.expand('lib', root)) in path
+    assert to_charlist(Path.expand('src', root)) in path
 
     # pz
-    assert to_char_list(Path.expand('lib/list', root)) in path
+    assert to_charlist(Path.expand('lib/list', root)) in path
   end
 end
 
@@ -58,7 +58,7 @@ defmodule Kernel.CLI.AtExitTest do
   use ExUnit.Case, async: true
 
   test "invokes at_exit callbacks" do
-    assert elixir(fixture_path("at_exit.exs") |> to_char_list) ==
+    assert elixir(fixture_path("at_exit.exs") |> to_charlist) ==
            'goodbye cruel world with status 1\n'
   end
 end
@@ -123,7 +123,7 @@ defmodule Kernel.CLI.CompileTest do
     # Can only assert when read-only applies to the user
     if access != :read_write do
       output = elixirc(compilation_args)
-      expected = '(File.Error) could not write to "' ++ String.to_char_list(context[:beam_file_path]) ++ '": permission denied'
+      expected = '(File.Error) could not write to "' ++ String.to_charlist(context[:beam_file_path]) ++ '": permission denied'
       assert :string.str(output, expected) > 0, "expected compilation error message due to not having write access"
     end
   end

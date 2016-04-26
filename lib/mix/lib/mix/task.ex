@@ -69,7 +69,7 @@ defmodule Mix.Task do
     # entire load path so make sure we only return unique modules.
 
     for(dir <- dirs,
-        {:ok, files} = :erl_prim_loader.list_dir(to_char_list(dir)),
+        {:ok, files} = :erl_prim_loader.list_dir(to_charlist(dir)),
         file <- files,
         mod = task_from_path(file),
         do: mod)
@@ -400,7 +400,7 @@ defmodule Mix.Task do
   """
   @spec task?(task_module) :: boolean
   def task?(module) when is_atom(module) do
-    match?('Elixir.Mix.Tasks.' ++ _, Atom.to_char_list(module)) and ensure_task?(module)
+    match?('Elixir.Mix.Tasks.' ++ _, Atom.to_charlist(module)) and ensure_task?(module)
   end
 
   defp ensure_task?(module) do

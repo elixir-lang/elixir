@@ -57,13 +57,13 @@ case_test() ->
   {true, []} = eval("case {1, 2} do; {3, 4} -> false\n_ -> true\nend").
 
 case_with_do_ambiguity_test() ->
-  {true, _} = eval("case Atom.to_char_list(true) do\n_ -> true\nend").
+  {true, _} = eval("case Atom.to_charlist(true) do\n_ -> true\nend").
 
 case_with_match_do_ambiguity_test() ->
-  {true, _} = eval("case x = Atom.to_char_list(true) do\n_ -> true\nend").
+  {true, _} = eval("case x = Atom.to_charlist(true) do\n_ -> true\nend").
 
 case_with_unary_do_ambiguity_test() ->
-  {false, _} = eval("! case Atom.to_char_list(true) do\n_ -> true\nend").
+  {false, _} = eval("! case Atom.to_charlist(true) do\n_ -> true\nend").
 
 % Comparison
 

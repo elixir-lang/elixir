@@ -20,7 +20,7 @@ defmodule File do
   `IO.write/2` functions must be used as they are responsible for
   doing the proper conversions and providing the proper data guarantees.
 
-  Note that filenames when given as char lists in Elixir are
+  Note that filenames when given as charlists in Elixir are
   always treated as UTF-8. In particular, we expect that the
   shell and the operating system are configured to use UTF-8
   encoding. Binary filenames are considered raw and passed
@@ -946,8 +946,8 @@ defmodule File do
     * `:exclusive` - the file, when opened for writing, is created if it does
       not exist. If the file exists, open will return `{:error, :eexist}`.
 
-    * `:char_list` - when this term is given, read operations on the file will
-      return char lists rather than binaries.
+    * `:charlist` - when this term is given, read operations on the file will
+      return charlists rather than binaries.
 
     * `:compressed` - makes it possible to read or write gzip compressed files.
 
@@ -1318,7 +1318,7 @@ defmodule File do
 
   @read_ahead 64*1024
 
-  defp open_defaults([:char_list | t], _add_binary) do
+  defp open_defaults([:charlist | t], _add_binary) do
     open_defaults(t, false)
   end
 
