@@ -80,7 +80,7 @@
 ### 3. Soft deprecations (no warnings emitted)
 
   * [String] The confusing `String.strip/2`, `String.lstrip/2` and `String.rstrip/2` API has been soft deprecated in favor of `String.trim/2`, `String.trim_leading/2` and `String.trim_trailing/2`
-  * [String] The confusing `String.lstrip/2` and `String.rstrip/2` API has been soft deprecated in favor of `String.pad_leading/2` and `String.pad_trailing/2`
+  * [String] The confusing `String.ljust/3` and `String.rjust/3` API has been soft deprecated in favor of `String.pad_leading/3` and `String.pad_trailing/3`
 
 ### 4. Deprecations
 
