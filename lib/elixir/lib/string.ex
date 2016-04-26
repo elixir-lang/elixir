@@ -269,7 +269,7 @@ defmodule String do
   be a string, a list of strings or a regular expression.
 
   The string is split into as many parts as possible by
-  default, but can be controlled via the `parts: num` option.
+  default, but can be controlled via the `parts: pos_integer` option.
   If you pass `parts: :infinity`, it will return all possible parts
   (being this one the default behaviour).
 
