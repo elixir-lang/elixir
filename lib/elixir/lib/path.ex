@@ -3,7 +3,7 @@ defmodule Path do
   This module provides conveniences for manipulating or
   retrieving file system paths.
 
-  The functions in this module may receive a char data as
+  The functions in this module may receive a chardata as
   argument (i.e. a string or a list of characters / string)
   and will always return a string (encoded in UTF-8).
 
