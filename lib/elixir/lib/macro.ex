@@ -1163,7 +1163,7 @@ defmodule Macro do
   If an atom is given, it is assumed to be an Elixir module,
   so it is converted to a binary and then processed.
 
-  This function was designed to underscore language indentifiers/tokens,
+  This function was designed to underscore language identifiers/tokens,
   that's why it belongs to the `Macro` module. Do not use it as a general
   mechanism for underscoring strings as it does not support Unicode or
   characters that are not valid in Elixir identifiers.
@@ -1228,7 +1228,7 @@ defmodule Macro do
   @doc """
   Converts the given string to CamelCase format.
 
-  This function was designed to camelize language indentifiers/tokens,
+  This function was designed to camelize language identifiers/tokens,
   that's why it belongs to the `Macro` module. Do not use it as a general
   mechanism for camelizing strings as it does not support Unicode or
   characters that are not valid in Elixir identifiers.
