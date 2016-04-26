@@ -214,8 +214,8 @@ defmodule Mix.Dep do
   def format_status(%Mix.Dep{status: :compile}),
     do: "the dependency build is outdated, please run \"#{mix_env_var}mix deps.compile\""
 
-  def format_status(%Mix.Dep{app: app, status: {:divergedreq, other}} = dep) do
-    "the dependency #{app}\n" <>
+  def format_status(%Mix.Dep{app: app, status: {:divergedreq, vsn, other}} = dep) do
+    "the dependency #{app} #{vsn}\n" <>
     "#{dep_status(dep)}" <>
     "\n  does not match the requirement specified\n" <>
     "#{dep_status(other)}" <>

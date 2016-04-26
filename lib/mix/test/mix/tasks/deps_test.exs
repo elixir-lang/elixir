@@ -405,7 +405,7 @@ defmodule Mix.Tasks.DepsTest do
         Mix.Tasks.Deps.Check.run []
       end
 
-      assert_received {:mix_shell, :error, ["  the dependency git_repo" <> _ = msg]}
+      assert_received {:mix_shell, :error, ["  the dependency git_repo 0.1.0" <> _ = msg]}
       assert msg =~ "In custom/deps_repo/mix.exs:"
       assert msg =~ "{:git_repo, \"0.2.0\", [git: #{inspect fixture_path("git_repo")}]}"
     end
