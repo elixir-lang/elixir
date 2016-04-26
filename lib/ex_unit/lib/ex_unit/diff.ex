@@ -72,23 +72,23 @@ defmodule ExUnit.Diff do
   end
 
   defp format_list([], [], _formatter, _keyword?, acc) do
-    result = Enum.reverse(acc)
-    "[" <> Enum.join(result, ", ") <> "]"
+    result = with ", " <> rest <- Enum.join(Enum.reverse(acc)), do: rest
+    "[" <> result <> "]"
   end
 
   defp format_list([], [elem | rest], formatter, keyword?, acc) do
     elem_diff = formatter.(:diff_insert, format_list_elem(elem, keyword?))
-    format_list([], rest, formatter, keyword?, [elem_diff | acc])
+    format_list([], rest, formatter, keyword?, [", " <> elem_diff | acc])
   end
 
   defp format_list([elem | rest], [], formatter, keyword?, acc) do
     elem_diff = formatter.(:diff_delete, format_list_elem(elem, keyword?))
-    format_list(rest, [], formatter, keyword?, [elem_diff | acc])
+    format_list(rest, [], formatter, keyword?, [", " <> elem_diff | acc])
   end
 
   defp format_list([elem | rest1], [elem | rest2], formatter, keyword?, acc) do
     elem_diff = format_list_elem(elem, keyword?)
-    format_list(rest1, rest2, formatter, keyword?, [elem_diff | acc])
+    format_list(rest1, rest2, formatter, keyword?, [", " <> elem_diff | acc])
   end
 
   defp format_list([{key1, val1} | rest1], [{key2, val2} | rest2], formatter, true, acc) do
@@ -100,12 +100,40 @@ defmodule ExUnit.Diff do
       end
     value_diff = format_inner(val1, val2, formatter)
     elem_diff = format_key_value(key_diff, value_diff, true)
-    format_list(rest1, rest2, formatter, true, [elem_diff | acc])
+    format_list(rest1, rest2, formatter, true, [", " <> elem_diff | acc])
   end
 
   defp format_list([elem1 | rest1], [elem2 | rest2], formatter, false, acc) do
     elem_diff = format_inner(elem1, elem2, formatter)
-    format_list(rest1, rest2, formatter, false, [elem_diff | acc])
+    format_list(rest1, rest2, formatter, false, [", " <> elem_diff | acc])
+  end
+
+  defp format_list(last, [elem | rest], formatter, keyword?, acc) do
+    joiner_diff = format_plain_diff(" |", ",", formatter) <> " "
+    elem_diff = format_inner(last, elem, formatter)
+    new_acc = [joiner_diff <> elem_diff | acc]
+    format_list([], rest, formatter, keyword?, new_acc)
+  end
+
+  defp format_list([elem | rest], last, formatter, keyword?, acc) do
+    joiner_diff = format_plain_diff(",", " |", formatter) <> " "
+    elem_diff = format_inner(elem, last, formatter)
+    new_acc = [joiner_diff <> elem_diff | acc]
+    format_list(rest, [], formatter, keyword?, new_acc)
+  end
+
+  defp format_list(last1, last2, formatter, keyword?, acc) do
+    elem_diff =
+      cond do
+        last1 == [] ->
+          formatter.(:diff_insert, inspect(last2))
+        last2 == [] ->
+          formatter.(:diff_delete, inspect(last1))
+        true ->
+          format_inner(last1, last2, formatter)
+      end
+    new_acc = [" | " <> elem_diff | acc]
+    format_list([], [], formatter, keyword?, new_acc)
   end
 
   defp format_list_elem(elem, false), do: inspect(elem)
@@ -135,12 +163,7 @@ defmodule ExUnit.Diff do
   defp format_tuple({tuple1, index}, {tuple2, index}, formatter, acc) do
     elem1 = elem(tuple1, index)
     elem2 = elem(tuple2, index)
-    elem_diff =
-      if elem1 != elem2 do
-        format_inner(elem1, elem2, formatter)
-      else
-        inspect(elem1)
-      end
+    elem_diff = format_inner(elem1, elem2, formatter)
     format_tuple({tuple1, index - 1}, {tuple2, index - 1}, formatter, [elem_diff | acc])
   end
 
@@ -201,13 +224,19 @@ defmodule ExUnit.Diff do
     key <> ": " <> value
   end
 
+  defp format_inner(term, term, _formatter), do: inspect(term)
+
   defp format_inner(left, right, formatter) do
     if result = format(left, right, formatter) do
       result
     else
-      formatter.(:diff_delete, inspect(left)) <>
-      formatter.(:diff_insert, inspect(right))
+      format_plain_diff(inspect(left), inspect(right), formatter)
     end
+  end
+
+  defp format_plain_diff(left, right, formatter) do
+    formatter.(:diff_delete, left) <>
+    formatter.(:diff_insert, right)
   end
 
   defp format_fragment({:eq, content}, _), do: content
