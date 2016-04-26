@@ -39,6 +39,12 @@ defmodule Difference do
     assert [1, 2, 3] == []
   end
 
+  test "improper lists" do
+    list1 = [1 | "b"]
+    list2 = [1, "a"]
+    assert list1 == list2
+  end
+
   test "char lists" do
     char_list1 = 'fox hops over \'the dog'
     char_list2 = 'fox jumps over the lazy cat'
