@@ -15,6 +15,7 @@
   * [Compiler] Emit a summary of compilation errors when modules are missing
   * [Exception] Suggest possible functions on `UndefinedFunctionError` for existing modules
   * [File] Support IO devices in `File.copy/3`
+  * [GenServer] Raise a more meaningful exit if you try to `GenServer.call/3` yourself
   * [Inspect] Support `:base` option when inspecting binaries
   * [Kernel] Support `generated: true` in quote
   * [Kernel] Support `Kernel.pop_in/1` and `Kernel.pop_in/2` for yanking a value from a nested data structure
@@ -22,14 +23,18 @@
   * [Kernel] Allow guards on the left side of `<-` in `for` and `with` special forms
   * [Kernel] Support `else` chunks in `with`
   * [Kernel] Track `{module, function, arity}` imports and warn on unused ones when such are specified in `:only`
+  * [Kernel] Add `keyword/0` and `keyword/1` built-in types to typespecs
   * [Process] Add `Process.sleep/1`
   * [Regex] Support `:include_captures` in `Regex.split/3`
-  * [Unicode] Update Unicode to 8.0.0
+  * [String] Add `String.myers_difference/2` for calculating the difference between two strings
+  * [System] Add `System.os_time/0` and `System.os_time/1`
+  * [Version] Add `Version.parse!/1`
 
 #### ExUnit
 
   * [ExUnit] Show pinned variables on failed `assert ^left = right` and `assert match?(^left, right)` assertions
   * [ExUnit] Add `ExUnit.Case.register_attribute` which allow attributes to be cleaned up whenever a test is defined
+  * [ExUnit] Support diffing of values when using `==` in `assert`
 
 #### IEx
 
@@ -49,6 +54,7 @@
   * [Mix] Enable rebar3 manager by default
   * [Mix] Add `mix escript.install` to install escripts
   * [Mix] Print stacktraces for `Mix.Error` when `MIX_DEBUG=1` is set
+  * [Mix] Add a user friendly error for merge conflicts on `mix.lock`
 
 ### 2. Bug fixes
 
@@ -60,6 +66,7 @@
   * [Kernel] Do not choke on capture operator with argument above `&191`
   * [Kernel] Raise if `defstruct` is called multiple times
   * [Kernel] Ensure `Module.create/3` respects var/alias hygiene
+  * [OptionParser] Allow `OptionParser` to parse negative numbers
   * [Macro] Fix `Macro.to_string/1` on a call of a capture argument, for example `&(&1).(:x)`
   * [String] Ensure `strip` also removes non-breaking whitespaces (and ensure `split` still does not split on them)
 
@@ -67,8 +74,12 @@
 
   * [Mix] Improve task not found message when Mix would include the not found task as a suggestion due to different casing
   * [Mix] Ignore lock revision when the lock is out of date when updating Mix dependencies
+  * [Mix] Only recompile empty Elixir files if they changed instead of recompiling them on every run
 
 ### 3. Soft deprecations (no warnings emitted)
+
+  * [String] The confusing `String.strip/2`, `String.lstrip/2` and `String.rstrip/2` API has been soft deprecated in favor of `String.trim/2`, `String.trim_leading/2` and `String.trim_trailing/2`
+  * [String] The confusing `String.lstrip/2` and `String.rstrip/2` API has been soft deprecated in favor of `String.pad_leading/2` and `String.pad_trailing/2`
 
 ### 4. Deprecations
 
