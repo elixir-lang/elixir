@@ -55,6 +55,7 @@
   * [Mix] Add `mix escript.install` to install escripts
   * [Mix] Print stacktraces for `Mix.Error` when `MIX_DEBUG=1` is set
   * [Mix] Add a user friendly error for merge conflicts on `mix.lock`
+  * [Mix] Track files between path dependencies. This means umbrella applications will no longer trigger full recompilation when a sibling changes. Instead it will only recompile the files affected by the sibling changes
 
 ### 2. Bug fixes
 
