@@ -165,7 +165,7 @@ defmodule Mix.Tasks.DepsTest do
       assert File.exists?("_build/dev/lib/ok/priv/sample")
 
       Mix.Tasks.Compile.run []
-      assert to_char_list(Path.expand("_build/dev/lib/ok/ebin/")) in :code.get_path
+      assert to_charlist(Path.expand("_build/dev/lib/ok/ebin/")) in :code.get_path
       assert File.exists?("_build/dev/lib/sample/ebin/sample.app")
 
       # Remove the deps but set build_path, deps won't be pruned, but load paths are
@@ -175,7 +175,7 @@ defmodule Mix.Tasks.DepsTest do
       Mix.Project.push SuccessfulDepsApp
 
       Mix.Tasks.Deps.Check.run []
-      refute to_char_list(Path.expand("_build/dev/lib/ok/ebin/")) in :code.get_path
+      refute to_charlist(Path.expand("_build/dev/lib/ok/ebin/")) in :code.get_path
       assert File.exists?("_build/dev/lib/ok/ebin/ok.app")
       assert File.exists?("_build/dev/lib/sample/ebin/sample.app")
 

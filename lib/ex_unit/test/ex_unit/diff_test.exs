@@ -44,10 +44,10 @@ defmodule ExUnit.DiffTest do
     expected = ~S<[file: {"nofile"}[nil], l{i}[l]ne: 1{2}[0] {(off by -2)}]>
     assert format(keyword_list1, keyword_list2, &formatter/2) == expected
 
-    char_list1 = 'fox hops over \'the dog'
-    char_list2 = 'fox jumps over the lazy cat'
+    charlist1 = 'fox hops over \'the dog'
+    charlist2 = 'fox jumps over the lazy cat'
     expected = "'fox {ho}[jum]ps over {\\'}the {dog}[lazy cat]'"
-    assert format(char_list1, char_list2, &formatter/2) == expected
+    assert format(charlist1, charlist2, &formatter/2) == expected
   end
 
   test "improper lists" do

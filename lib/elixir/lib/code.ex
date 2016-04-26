@@ -56,7 +56,7 @@ defmodule Code do
 
   """
   def append_path(path) do
-    :code.add_pathz(to_char_list(Path.expand path))
+    :code.add_pathz(to_charlist(Path.expand path))
   end
 
   @doc """
@@ -76,7 +76,7 @@ defmodule Code do
 
   """
   def prepend_path(path) do
-    :code.add_patha(to_char_list(Path.expand path))
+    :code.add_patha(to_charlist(Path.expand path))
   end
 
   @doc """
@@ -95,7 +95,7 @@ defmodule Code do
 
   """
   def delete_path(path) do
-    :code.del_path(to_char_list(Path.expand path))
+    :code.del_path(to_charlist(Path.expand path))
   end
 
   @doc """
@@ -159,13 +159,13 @@ defmodule Code do
   def eval_string(string, binding \\ [], opts \\ [])
 
   def eval_string(string, binding, %Macro.Env{} = env) do
-    {value, binding, _env, _scope} = :elixir.eval to_char_list(string), binding, Map.to_list(env)
+    {value, binding, _env, _scope} = :elixir.eval to_charlist(string), binding, Map.to_list(env)
     {value, binding}
   end
 
   def eval_string(string, binding, opts) when is_list(opts) do
     validate_eval_opts(opts)
-    {value, binding, _env, _scope} = :elixir.eval to_char_list(string), binding, opts
+    {value, binding, _env, _scope} = :elixir.eval to_charlist(string), binding, opts
     {value, binding}
   end
 
@@ -263,7 +263,7 @@ defmodule Code do
   def string_to_quoted(string, opts \\ []) when is_list(opts) do
     file = Keyword.get opts, :file, "nofile"
     line = Keyword.get opts, :line, 1
-    :elixir.string_to_quoted(to_char_list(string), line, file, opts)
+    :elixir.string_to_quoted(to_charlist(string), line, file, opts)
   end
 
   @doc """
@@ -279,7 +279,7 @@ defmodule Code do
   def string_to_quoted!(string, opts \\ []) when is_list(opts) do
     file = Keyword.get opts, :file, "nofile"
     line = Keyword.get opts, :line, 1
-    :elixir.string_to_quoted!(to_char_list(string), line, file, opts)
+    :elixir.string_to_quoted!(to_charlist(string), line, file, opts)
   end
 
   @doc """
@@ -445,7 +445,7 @@ defmodule Code do
   For compiling many files at once, check `Kernel.ParallelCompiler.files/2`.
   """
   def compile_string(string, file \\ "nofile") when is_binary(file) do
-    :elixir_compiler.string to_char_list(string), file
+    :elixir_compiler.string to_charlist(string), file
   end
 
   @doc """
@@ -597,7 +597,7 @@ defmodule Code do
       iex> [fun | _] = Code.get_docs(Atom, :docs) |> Enum.sort()
       iex> {{_function, _arity}, _line, _kind, _signature, text} = fun
       iex> String.split(text, "\n") |> Enum.at(0)
-      "Converts an atom to a char list."
+      "Converts an atom to a charlist."
 
       # Module doesn't exist
       iex> Code.get_docs(ModuleNotGood, :all)
@@ -616,7 +616,7 @@ defmodule Code do
   end
 
   def get_docs(binpath, kind) when is_binary(binpath) and kind in @doc_kinds do
-    do_get_docs(String.to_char_list(binpath), kind)
+    do_get_docs(String.to_charlist(binpath), kind)
   end
 
   @docs_chunk 'ExDc'

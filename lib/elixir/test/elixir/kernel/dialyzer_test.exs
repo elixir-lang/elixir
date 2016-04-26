@@ -14,7 +14,7 @@ defmodule Kernel.DialyzerTest do
     plt =
       dir
       |> Path.join("base_plt")
-      |> String.to_char_list()
+      |> String.to_charlist()
 
     # Add a few key elixir modules for types
     files = Enum.map([Kernel, String, Keyword, Exception], &:code.which/1)
@@ -33,13 +33,13 @@ defmodule Kernel.DialyzerTest do
     dir =
       context[:base_dir]
       |> Path.join("line#{context[:line]}")
-      |> String.to_char_list()
+      |> String.to_charlist()
     File.mkdir_p!(dir)
 
     plt =
       dir
       |> Path.join("plt")
-      |> String.to_char_list()
+      |> String.to_charlist()
     File.cp!(context[:base_plt], plt)
 
     dialyzer = [analysis_type: :succ_typings, check_plt: false,

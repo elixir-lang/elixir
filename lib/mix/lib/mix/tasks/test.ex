@@ -6,7 +6,7 @@ defmodule Mix.Tasks.Test do
       Mix.shell.info "Cover compiling modules ... "
       _ = :cover.start
 
-      case :cover.compile_beam_directory(compile_path |> to_char_list) do
+      case :cover.compile_beam_directory(compile_path |> to_charlist) do
         results when is_list(results) ->
           :ok
         {:error, _} ->

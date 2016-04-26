@@ -9,7 +9,7 @@ defmodule AtomTest do
     assert Atom.to_string(:"héllo") == "héllo"
   end
 
-  test "to_char_list/1" do
-    assert Atom.to_char_list(:"héllo") == 'héllo'
+  test "to_charlist/1" do
+    assert Atom.to_charlist(:"héllo") == 'héllo'
   end
 end

@@ -41,7 +41,7 @@ defimpl String.Chars, for: BitString do
 end
 
 defimpl String.Chars, for: List do
-  def to_string(char_list), do: List.to_string(char_list)
+  def to_string(charlist), do: List.to_string(charlist)
 end
 
 defimpl String.Chars, for: Integer do

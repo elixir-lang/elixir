@@ -328,7 +328,7 @@ defmodule System do
   """
   @spec find_executable(binary) :: binary | nil
   def find_executable(program) when is_binary(program) do
-    case :os.find_executable(String.to_char_list(program)) do
+    case :os.find_executable(String.to_charlist(program)) do
       false -> nil
       other -> List.to_string(other)
     end
@@ -358,7 +358,7 @@ defmodule System do
   """
   @spec get_env(binary) :: binary | nil
   def get_env(varname) when is_binary(varname) do
-    case :os.getenv(String.to_char_list(varname)) do
+    case :os.getenv(String.to_charlist(varname)) do
       false -> nil
       other -> List.to_string(other)
     end
@@ -382,7 +382,7 @@ defmodule System do
   """
   @spec put_env(binary, binary) :: :ok
   def put_env(varname, value) when is_binary(varname) and is_binary(value) do
-   :os.putenv String.to_char_list(varname), String.to_char_list(value)
+   :os.putenv String.to_charlist(varname), String.to_charlist(value)
    :ok
   end
 
@@ -404,7 +404,7 @@ defmodule System do
   """
   @spec delete_env(String.t) :: :ok
   def delete_env(varname) do
-    :os.unsetenv(String.to_char_list(varname))
+    :os.unsetenv(String.to_charlist(varname))
     :ok
   end
 
@@ -457,7 +457,7 @@ defmodule System do
   end
 
   def halt(status) when is_binary(status) do
-    :erlang.halt(String.to_char_list(status))
+    :erlang.halt(String.to_charlist(status))
   end
 
   @doc ~S"""
@@ -537,7 +537,7 @@ defmodule System do
   @spec cmd(binary, [binary], Keyword.t) ::
         {Collectable.t, exit_status :: non_neg_integer}
   def cmd(command, args, opts \\ []) when is_binary(command) and is_list(args) do
-    cmd = String.to_char_list(command)
+    cmd = String.to_charlist(command)
 
     cmd =
       if Path.type(cmd) == :absolute do
@@ -599,9 +599,9 @@ defmodule System do
   defp validate_env(enum) do
     Enum.map enum, fn
       {k, nil} ->
-        {String.to_char_list(k), false}
+        {String.to_charlist(k), false}
       {k, v} ->
-        {String.to_char_list(k), String.to_char_list(v)}
+        {String.to_charlist(k), String.to_charlist(v)}
       other ->
         raise ArgumentError, "invalid environment key-value #{inspect other}"
     end

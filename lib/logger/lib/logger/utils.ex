@@ -87,7 +87,7 @@ defmodule Logger.Utils do
   def inspect(format, args, truncate, opts \\ %Inspect.Opts{})
 
   def inspect(format, args, truncate, opts) when is_atom(format) do
-    do_inspect(Atom.to_char_list(format), args, truncate, opts)
+    do_inspect(Atom.to_charlist(format), args, truncate, opts)
   end
 
   def inspect(format, args, truncate, opts) when is_binary(format) do
@@ -153,7 +153,7 @@ defmodule Logger.Utils do
   ## encoding
 
   defp collect_cc(:encoding, [?l | t], args, used_format, used_args, opts),
-    do: collect_cc(:done, t, args, [?l | used_format], used_args, %{opts | char_lists: false})
+    do: collect_cc(:done, t, args, [?l | used_format], used_args, %{opts | charlists: false})
 
   defp collect_cc(:encoding, [?t | t], args, used_format, used_args, opts),
     do: collect_cc(:done, t, args, [?t | used_format], used_args, opts)

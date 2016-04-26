@@ -534,7 +534,7 @@ defmodule Module do
   was already referenced.
 
   If the alias was not referenced yet, fails with `ArgumentError`.
-  It handles char lists, binaries and atoms.
+  It handles charlists, binaries and atoms.
 
   ## Examples
 
@@ -555,7 +555,7 @@ defmodule Module do
   already referenced.
 
   If the alias was not referenced yet, fails with `ArgumentError`.
-  It handles char lists, binaries and atoms.
+  It handles charlists, binaries and atoms.
 
   ## Examples
 

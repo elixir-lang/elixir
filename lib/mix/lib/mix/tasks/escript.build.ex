@@ -208,7 +208,7 @@ defmodule Mix.Tasks.Escript.Build do
   defp read_beams(items) do
     items
     |> Enum.map(fn {basename, beam_path} ->
-      {String.to_char_list(basename), File.read!(beam_path)}
+      {String.to_charlist(basename), File.read!(beam_path)}
     end)
   end
 

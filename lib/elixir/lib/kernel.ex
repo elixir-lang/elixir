@@ -2139,16 +2139,16 @@ defmodule Kernel do
   end
 
   @doc """
-  Converts the argument to a char list according to the `List.Chars` protocol.
+  Converts the argument to a charlist according to the `List.Chars` protocol.
 
   ## Examples
 
-      iex> to_char_list(:foo)
+      iex> to_charlist(:foo)
       'foo'
 
   """
-  defmacro to_char_list(arg) do
-    quote do: List.Chars.to_char_list(unquote(arg))
+  defmacro to_charlist(arg) do
+    quote do: List.Chars.to_charlist(unquote(arg))
   end
 
   @doc """
@@ -3941,7 +3941,7 @@ defmodule Kernel do
   @doc ~S"""
   Handles the sigil `~C`.
 
-  It simply returns a char list without escaping characters and without
+  It simply returns a charlist without escaping characters and without
   interpolations.
 
   ## Examples
@@ -3955,13 +3955,13 @@ defmodule Kernel do
   """
   defmacro sigil_C(term, modifiers)
   defmacro sigil_C({:<<>>, _line, [string]}, []) when is_binary(string) do
-    String.to_char_list(string)
+    String.to_charlist(string)
   end
 
   @doc ~S"""
   Handles the sigil `~c`.
 
-  It returns a char list as if it were a single quoted string, unescaping
+  It returns a charlist as if it were a single quoted string, unescaping
   characters and replacing interpolations.
 
   ## Examples
@@ -3981,12 +3981,12 @@ defmodule Kernel do
   # We can skip the runtime conversion if we are
   # creating a binary made solely of series of chars.
   defmacro sigil_c({:<<>>, _line, [string]}, []) when is_binary(string) do
-    String.to_char_list(Macro.unescape_string(string))
+    String.to_charlist(Macro.unescape_string(string))
   end
 
   defmacro sigil_c({:<<>>, line, pieces}, []) do
     binary = {:<<>>, line, Macro.unescape_tokens(pieces)}
-    quote do: String.to_char_list(unquote(binary))
+    quote do: String.to_charlist(unquote(binary))
   end
 
   @doc """
@@ -4048,7 +4048,7 @@ defmodule Kernel do
 
     * `s`: words in the list are strings (default)
     * `a`: words in the list are atoms
-    * `c`: words in the list are char lists
+    * `c`: words in the list are charlists
 
   ## Examples
 
@@ -4085,7 +4085,7 @@ defmodule Kernel do
 
     * `s`: words in the list are strings (default)
     * `a`: words in the list are atoms
-    * `c`: words in the list are char lists
+    * `c`: words in the list are charlists
 
   ## Examples
 
@@ -4110,14 +4110,14 @@ defmodule Kernel do
         case mod do
           ?s -> parts
           ?a -> :lists.map(&String.to_atom/1, parts)
-          ?c -> :lists.map(&String.to_char_list/1, parts)
+          ?c -> :lists.map(&String.to_charlist/1, parts)
         end
       false ->
         parts = quote(do: String.split(unquote(string)))
         case mod do
           ?s -> parts
           ?a -> quote(do: :lists.map(&String.to_atom/1, unquote(parts)))
-          ?c -> quote(do: :lists.map(&String.to_char_list/1, unquote(parts)))
+          ?c -> quote(do: :lists.map(&String.to_charlist/1, unquote(parts)))
         end
     end
   end

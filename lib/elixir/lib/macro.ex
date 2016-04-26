@@ -8,7 +8,7 @@ defmodule Macro do
 
   To create a custom sigil, define a function with the name
   `sigil_{identifier}` that takes two arguments. The first argument will be
-  the string, the second will be a char list containing any modifiers. If the
+  the string, the second will be a charlist containing any modifiers. If the
   sigil is lower case (such as `sigil_x`) then the string argument will allow
   interpolation. If the sigil is upper case (such as `sigil_X`) then the string
   will not be interpolated.
@@ -504,7 +504,7 @@ defmodule Macro do
       def unescape_map(e),  do: e
 
   If the `unescape_map` function returns `false`. The char is
-  not escaped and `\` is kept in the char list.
+  not escaped and `\` is kept in the charlist.
 
   Hexadecimals and Unicode codepoints will be escaped if the map
   function returns `true` for `?x`. Unicode codepoints if the map
@@ -976,7 +976,7 @@ defmodule Macro do
   Consider the implementation below:
 
       defmacro defmodule_with_length(name, do: block) do
-        length = length(Atom.to_char_list(name))
+        length = length(Atom.to_charlist(name))
 
         quote do
           defmodule unquote(name) do
@@ -1016,7 +1016,7 @@ defmodule Macro do
 
       defmacro defmodule_with_length(name, do: block) do
         expanded = Macro.expand(name, __CALLER__)
-        length   = length(Atom.to_char_list(expanded))
+        length   = length(Atom.to_charlist(expanded))
 
         quote do
           defmodule unquote(name) do

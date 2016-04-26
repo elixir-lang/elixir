@@ -22,18 +22,18 @@ defmodule Atom do
   end
 
   @doc """
-  Converts an atom to a char list.
+  Converts an atom to a charlist.
 
   Inlined by the compiler.
 
   ## Examples
 
-      iex> Atom.to_char_list(:"An atom")
+      iex> Atom.to_charlist(:"An atom")
       'An atom'
 
   """
-  @spec to_char_list(atom) :: char_list
-  def to_char_list(atom) do
+  @spec to_charlist(atom) :: charlist
+  def to_charlist(atom) do
     :erlang.atom_to_list(atom)
   end
 end
