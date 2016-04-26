@@ -51,18 +51,11 @@ defmodule Mix.Tasks.Compile.Elixir do
     dest = Mix.Project.compile_path(project)
     srcs = project[:elixirc_paths]
 
-    # TODO: Remove support for this options on 1.4
-    skip =
-      case Keyword.get_values(opts, :elixirc_paths) do
-        [] -> []
-        ep -> srcs -- ep
-      end
-
     manifest = manifest()
     configs  = Mix.Project.config_files ++ Mix.Tasks.Compile.Erlang.manifests
     force    = opts[:force] || Mix.Utils.stale?(configs, [manifest])
 
-    Mix.Compilers.Elixir.compile(manifest, srcs, skip, [:ex], dest, force, fn ->
+    Mix.Compilers.Elixir.compile(manifest, srcs, [:ex], dest, force, fn ->
       set_compiler_opts(project, opts, [])
     end)
   end
