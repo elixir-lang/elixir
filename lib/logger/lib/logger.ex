@@ -562,7 +562,7 @@ defmodule Logger do
   end
 
   defp truncate(data, n) when is_function(data, 0),
-    do: Logger.Utils.truncate(data.(), n)
+    do: truncate(data.(), n)
   defp truncate(data, n) when is_list(data) or is_binary(data),
     do: Logger.Utils.truncate(data, n)
   defp truncate(data, n),
