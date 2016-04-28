@@ -43,7 +43,9 @@ defmodule IOTest do
 
   test "getn with count" do
     {:ok, file} = File.open(Path.expand('fixtures/file.txt', __DIR__), [:char_list])
-    assert 'FOO' == IO.getn(file, "", 3)
+    assert 'F' == IO.getn(file, "λ")
+    assert 'OO' == IO.getn(file, "", 2)
+    assert '\n' == IO.getn(file, "λ", 99)
     assert File.close(file) == :ok
   end
 
@@ -135,5 +137,32 @@ defmodule IOTest do
     assert capture_io("foo\n", fn -> IO.getn('hello', 3) end) == "hello"
     assert capture_io("foo\n", fn -> IO.getn(:hello, 3) end) == "hello"
     assert capture_io("foo\n", fn -> IO.getn(13, 3) end) == "13"
+  end
+
+  test "getn with different arities" do
+    assert capture_io("hello", fn ->
+      input = IO.getn(">")
+      IO.write input
+    end) == ">h"
+
+    assert capture_io("hello", fn ->
+      input = IO.getn(">", 3)
+      IO.write input
+    end) == ">hel"
+
+    assert capture_io("hello", fn ->
+      input = IO.getn(:erlang.group_leader, ">")
+      IO.write input
+    end) == ">h"
+
+    assert capture_io([input: "hello", capture_prompt: false], fn ->
+      input = IO.getn(:erlang.group_leader, ">")
+      IO.write input
+    end) == "h"
+
+    assert capture_io([input: "hello", capture_prompt: false], fn ->
+      input = IO.getn(:erlang.group_leader, ">", 99)
+      IO.write input
+    end) == "hello"
   end
 end
