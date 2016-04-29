@@ -128,7 +128,7 @@ defmodule Process do
   @doc """
   Sleeps the current process by `timeout`.
 
-  `timeout` is either the number of miliseconds to sleep as an
+  `timeout` is either the number of milliseconds to sleep as an
   integer or the atom `:infinity`. When `:infinity` is given,
   the current process will suspend forever.
 
