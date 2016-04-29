@@ -2843,6 +2843,8 @@ defmodule Kernel do
         end, comp(left, h), t)
       {:%{}, _meta, [__struct__: Elixir.Range, first: first, last: last]} ->
         in_range(left, Macro.expand(first, __CALLER__), Macro.expand(last, __CALLER__))
+      %{__struct__: Elixir.Range, first: first, last: last} ->
+        raise ArgumentError, <<"non-literal range in guard should be escaped with Macro.escape/2">>
       _ ->
         raise ArgumentError, <<"invalid args for operator \"in\", it expects a compile-time list ",
                                "or compile-time range on the right side when used in guard expressions, got: ",
