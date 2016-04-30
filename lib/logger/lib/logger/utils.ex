@@ -9,7 +9,7 @@ defmodule Logger.Utils do
   codepoint. For this reason, truncation is not exact.
   """
   @spec truncate(IO.chardata, non_neg_integer) :: IO.chardata
-  def truncate(chardata, :infinity) do
+  def truncate(chardata, :infinity) when is_binary(chardata) or is_list(chardata) do
     chardata
   end
   def truncate(chardata, n) when n >= 0 do

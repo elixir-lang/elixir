@@ -48,13 +48,11 @@ defmodule Logger.Backends.Console do
       Application.put_env(:logger, :console, config)
     end
 
-    format =
-      Keyword.get(config, :format)
-      |> Logger.Formatter.compile
+    format   = Logger.Formatter.compile Keyword.get(config, :format)
     level    = Keyword.get(config, :level)
     metadata = Keyword.get(config, :metadata, [])
     colors   = configure_colors(config)
-    %{format: format, metadata: metadata,
+    %{format: format, metadata: Enum.reverse(metadata),
       level: level, colors: colors, device: device}
   end
 
@@ -86,7 +84,7 @@ defmodule Logger.Backends.Console do
   end
 
   defp take_metadata(metadata, keys) do
-    List.foldr keys, [], fn key, acc ->
+    Enum.reduce keys, [], fn key, acc ->
       case Keyword.fetch(metadata, key) do
         {:ok, val} -> [{key, val} | acc]
         :error     -> acc
