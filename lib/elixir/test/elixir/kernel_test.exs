@@ -181,9 +181,6 @@ defmodule KernelTest do
       end
       """
     end
-  after
-    :code.purge(InErrors)
-    :code.delete(InErrors)
   end
 
   test "in/2 with a non-compile-time range in guards" do
@@ -195,9 +192,6 @@ defmodule KernelTest do
       end
       """
     end
-  after
-    :code.purge(InErrors)
-    :code.delete(InErrors)
   end
 
   @bitstring <<"foo", 16::4>>
