@@ -256,9 +256,9 @@ defmodule Mix.Compilers.Elixir do
     state = {[], %{}}
 
     case :file.consult(manifest) do
-      {:ok, [@manifest_vsn|data]} ->
+      {:ok, [@manifest_vsn | data]} ->
         parse_manifest(data, state)
-      {:ok, [:v2|data]} ->
+      {:ok, [:v2 | data]} ->
         for {beam, module, _, _, _, _, _, _} <- data do
           remove_and_purge(beam, module)
         end
@@ -270,8 +270,8 @@ defmodule Mix.Compilers.Elixir do
 
   defp parse_manifest(data, state) do
     Enum.reduce data, state, fn
-      {_, _, _, source, _, _, _} = entry, {entries, sources} ->
-        {[entry|entries], sources}
+      entry, {entries, sources} when tuple_size(entry) == 7 ->
+        {[entry | entries], sources}
       {source, files}, {entries, sources} ->
         {entries, Map.put(sources, source, files)}
     end
