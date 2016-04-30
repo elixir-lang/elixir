@@ -171,6 +171,35 @@ defmodule KernelTest do
     end
   end
 
+  test "in/2 with a non-literal non-escaped compile-time range in guards" do
+    message = "non-literal range in guard should be escaped with Macro.escape/2"
+    assert_raise ArgumentError, message, fn ->
+      Code.eval_string """
+      defmodule InErrors do
+        range = 1..3
+        def foo(x) when x in unquote(range), do: :ok
+      end
+      """
+    end
+  after
+    :code.purge(InErrors)
+    :code.delete(InErrors)
+  end
+
+  test "in/2 with a non-compile-time range in guards" do
+    message = ~r/invalid args for operator "in", .* got: :hello/
+    assert_raise ArgumentError, message, fn ->
+      Code.eval_string """
+      defmodule InErrors do
+        def foo(x) when x in :hello, do: :ok
+      end
+      """
+    end
+  after
+    :code.purge(InErrors)
+    :code.delete(InErrors)
+  end
+
   @bitstring <<"foo", 16::4>>
 
   test "bitstring attribute" do
