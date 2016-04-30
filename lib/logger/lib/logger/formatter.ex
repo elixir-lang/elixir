@@ -44,6 +44,26 @@ defmodule Logger.Formatter do
   @type pattern :: :date | :level | :levelpad | :message | :metadata | :node | :time
   @valid_patterns [:time, :date, :message, :level, :node, :metadata, :levelpad]
   @default_pattern "\n$time $metadata[$level] $levelpad$message\n"
+  @replacement "�"
+
+  @doc """
+  Prune non-valid UTF-8 codepoints.
+
+  Typically called after formatting when the data cannot be printed.
+  """
+  @spec prune(IO.chardata) :: IO.chardata
+  def prune(binary) when is_binary(binary), do: prune_binary(binary, "")
+  def prune([h|t]) when h in 0..1114111, do: [h|prune(t)]
+  def prune([h|t]), do: [prune(h)|prune(t)]
+  def prune([]), do: []
+  def prune(_), do: @replacement
+
+  defp prune_binary(<<h::utf8, t::binary>>, acc),
+    do: prune_binary(t, <<acc::binary, h::utf8>>)
+  defp prune_binary(<<_, t::binary>>, acc),
+    do: prune_binary(t, <<acc::binary, @replacement>>)
+  defp prune_binary(<<>>, acc),
+    do: acc
 
   @doc ~S"""
   Compiles a format string into an array that the `format/5` can handle.
