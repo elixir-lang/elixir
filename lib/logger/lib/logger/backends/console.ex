@@ -74,11 +74,16 @@ defmodule Logger.Backends.Console do
       enabled: Keyword.get(colors, :enabled, IO.ANSI.enabled?)}
   end
 
-  defp log_event(level, msg, ts, md, %{colors: colors} = state) do
+  defp log_event(level, msg, ts, md, %{colors: colors, device: device} = state) do
     output =
       format_event(level, msg, ts, md, state)
       |> color_event(level, colors)
-    IO.write(state.device, output)
+    try do
+      IO.write(device, output)
+    rescue
+      ArgumentError ->
+        IO.write(device, Logger.Utils.prune(output))
+    end
   end
 
   defp format_event(level, msg, ts, md, %{format: format, metadata: keys}) do

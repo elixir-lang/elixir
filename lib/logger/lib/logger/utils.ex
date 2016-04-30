@@ -1,6 +1,25 @@
 defmodule Logger.Utils do
   @moduledoc false
 
+  @replacement "�"
+
+  @doc """
+  Prune non-valid UTF-8 codepoints.
+  """
+  @spec prune(IO.chardata) :: IO.chardata
+  def prune(binary) when is_binary(binary), do: prune_binary(binary, "")
+  def prune([h|t]) when h in 0..1114111, do: [h|prune(t)]
+  def prune([h|t]), do: [prune(h)|prune(t)]
+  def prune([]), do: []
+  def prune(_), do: @replacement
+
+  defp prune_binary(<<h::utf8, t::binary>>, acc),
+    do: prune_binary(t, <<acc::binary, h::utf8>>)
+  defp prune_binary(<<_, t::binary>>, acc),
+    do: prune_binary(t, <<acc::binary, @replacement>>)
+  defp prune_binary(<<>>, acc),
+    do: acc
+
   @doc """
   Truncates a char data into n bytes.
 
