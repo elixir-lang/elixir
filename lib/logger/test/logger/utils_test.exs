@@ -6,14 +6,6 @@ defmodule Logger.UtilsTest do
   import Kernel, except: [inspect: 2]
   defp inspect(format, args), do: Logger.Utils.inspect(format, args, 10)
 
-  test "prune/1" do
-    assert prune(1) == "�"
-    assert prune(<<"hí", 233>>) == "hí�"
-    assert prune(["hi"|233]) == ["hi"|"�"]
-    assert prune([233|"hi"]) == [233|"hi"]
-    assert prune([[]|[]]) == [[]]
-  end
-
   test "truncate/2" do
     # ASCII binaries
     assert truncate("foo", 4) == "foo"

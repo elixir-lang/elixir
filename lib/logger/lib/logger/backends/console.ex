@@ -80,7 +80,7 @@ defmodule Logger.Backends.Console do
       IO.write(device, output)
     rescue
       ArgumentError ->
-        IO.write(device, Logger.Utils.prune(output))
+        IO.write(device, Logger.Formatter.prune(output))
     end
   end
 
