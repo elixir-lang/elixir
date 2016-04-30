@@ -10,9 +10,9 @@ defmodule Logger.Watcher do
   """
   def start_link(m, f, a) do
     import Supervisor.Spec
-    child = worker(__MODULE__, [],
-      [function: :watcher, restart: :transient])
-    options  = [strategy: :simple_one_for_one, name: @name]
+    child = worker(__MODULE__, [], [function: :watcher, restart: :transient])
+    options  = [strategy: :simple_one_for_one, name: @name,
+                max_restarts: 30, max_seconds: 3]
     case Supervisor.start_link([child], options) do
       {:ok, _} = ok ->
         _ = for {mod, handler, args} <- apply(m, f, a) do
