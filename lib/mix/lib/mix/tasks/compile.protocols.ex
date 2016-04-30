@@ -2,7 +2,7 @@ defmodule Mix.Tasks.Compile.Protocols do
   use Mix.Task
 
   @manifest ".compile.protocols"
-  @manifest_vsn :v2
+  @manifest_vsn :v1
 
   @moduledoc ~S"""
   Consolidates all protocols in all paths.
@@ -41,12 +41,11 @@ defmodule Mix.Tasks.Compile.Protocols do
     Mix.Task.run "compile", args
     {opts, _, _} = OptionParser.parse(args, switches: [force: :boolean])
 
-    output   = default_path(config)
+    output = default_path()
     manifest = Path.join(output, @manifest)
-
     protocols_and_impls =
       unless Mix.Project.umbrella?(config) do
-        protocols_and_impls(config)
+        Mix.Tasks.Compile.Elixir.protocols_and_impls
       end
 
     cond do
@@ -75,24 +74,7 @@ defmodule Mix.Tasks.Compile.Protocols do
   end
 
   @doc false
-  def default_path(config \\ Mix.Project.config) do
-    Path.join(Mix.Project.build_path(config), "consolidated")
-  end
-
-  defp protocols_and_impls(config) do
-    deps = for(%{scm: scm, app: app} <- Mix.Dep.children,
-               not scm.fetchable?,
-               do: app)
-
-    build_path = Path.join(Mix.Project.build_path(config), "lib")
-
-    protocols_and_impls =
-      for app <- [config[:app] | deps],
-          elixir = Path.join([build_path, Atom.to_string(app), ".compile.elixir"]),
-          do: Mix.Compilers.Elixir.protocols_and_impls(elixir)
-
-    Enum.concat(protocols_and_impls)
-  end
+  def default_path, do: Path.join(Mix.Project.build_path, "consolidated")
 
   defp consolidation_paths do
     filter_otp(:code.get_path, :code.lib_dir)
@@ -152,34 +134,23 @@ defmodule Mix.Tasks.Compile.Protocols do
   end
 
   defp diff_manifest(manifest, new_metadata, output) do
-    modified = Mix.Utils.last_modified(manifest)
     old_metadata = read_manifest(manifest)
 
-    protocols =
-      for {protocol, :protocol, beam} <- new_metadata,
-          Mix.Utils.last_modified(beam) > modified,
-          remove_consolidated(protocol, output),
-          do: {protocol, true},
-          into: %{}
-
-    protocols =
-      Enum.reduce(new_metadata -- old_metadata, protocols, fn
-        {_, {:impl, protocol}, _beam}, protocols ->
-          Map.put(protocols, protocol, true)
-        {protocol, :protocol, _beam}, protocols ->
-          Map.put(protocols, protocol, true)
+    additions =
+      Enum.flat_map(new_metadata -- old_metadata, fn
+        {_, {:impl, protocol}} -> [protocol]
+        {protocol, :protocol} -> [protocol]
       end)
 
-    protocols =
-      Enum.reduce(old_metadata -- new_metadata, protocols, fn
-        {_, {:impl, protocol}, _beam}, protocols ->
-          Map.put(protocols, protocol, true)
-        {protocol, :protocol, _beam}, protocols ->
+    removals =
+      Enum.flat_map(old_metadata -- new_metadata, fn
+        {_, {:impl, protocol}} -> [protocol]
+        {protocol, :protocol} ->
           remove_consolidated(protocol, output)
-          protocols
+          []
       end)
 
-    Map.keys(protocols)
+    additions ++ removals
   end
 
   defp remove_consolidated(protocol, output) do

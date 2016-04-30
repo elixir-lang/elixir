@@ -65,7 +65,7 @@ defmodule Mix.Tasks.Deps.Compile do
       Enum.map(deps, fn %Mix.Dep{app: app, status: status, opts: opts, scm: scm} = dep ->
         check_unavailable!(app, status)
 
-        compiled? = cond do
+        compiled = cond do
           not is_nil(opts[:compile]) ->
             do_compile dep, config
           mix?(dep) ->
@@ -79,27 +79,20 @@ defmodule Mix.Tasks.Deps.Compile do
           true ->
             shell.error "Could not compile #{inspect app}, no \"mix.exs\", \"rebar.config\" or \"Makefile\" " <>
               "(pass :compile as an option to customize compilation, set it to \"false\" to do nothing)"
-            false
         end
 
         unless mix?(dep), do: build_structure(dep, config)
-        # We should touch fetchable dependencies even if they
-        # did not compile otherwise they will always be marked
-        # as stale, even when there is nothing to do.
-        fetchable? = touch_fetchable(scm, opts[:build])
-        compiled? and fetchable?
+        touch_fetchable(scm, opts[:build])
+        compiled
       end)
 
-    if true in compiled, do: Mix.Dep.Lock.touch_manifest, else: :ok
+    if Enum.any?(compiled), do: Mix.Dep.Lock.touch_manifest, else: :ok
   end
 
   defp touch_fetchable(scm, path) do
     if scm.fetchable? do
       File.mkdir_p!(path)
       File.touch!(Path.join(path, ".compile.fetch"))
-      true
-    else
-      false
     end
   end
 
