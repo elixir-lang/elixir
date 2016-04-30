@@ -1,6 +1,6 @@
 defmodule StringIO do
   @moduledoc """
-  This module provides an IO device that wraps a string.
+  Controls an IO device process that wraps a string.
 
   A `StringIO` IO device can be passed as a "device" to
   most of the functions in the `IO` module.
