@@ -464,11 +464,7 @@ defmodule Exception do
       ""
 
   """
-  def format_file_line(file, line) do
-    format_file_line(file, line, "")
-  end
-
-  defp format_file_line(file, line, suffix) do
+  def format_file_line(file, line, suffix \\ "") do
     if file do
       if line && line != 0 do
         "#{file}:#{line}:#{suffix}"
