@@ -35,7 +35,7 @@ defmodule ExUnit.Formatter do
   @type run_us :: pos_integer
   @type load_us :: pos_integer | nil
 
-  import Exception, only: [format_stacktrace_entry: 1]
+  import Exception, only: [format_stacktrace_entry: 1, format_file_line: 3]
 
   @label_padding   "      "
   @counter_padding "     "
@@ -236,16 +236,17 @@ defmodule ExUnit.Formatter do
 
   defp format_stacktrace(stacktrace, test_case, test, color) do
     extra_info("stacktrace:", color) <>
-      Enum.map_join(stacktrace,
-        fn(s) -> stacktrace_info format_stacktrace_entry(s, test_case, test), color end)
+      Enum.map_join(stacktrace, fn entry ->
+        stacktrace_info format_stacktrace_entry(entry, test_case, test), color
+      end)
   end
 
   defp format_stacktrace_entry({test_case, test, _, location}, test_case, test) do
-    "#{location[:file]}:#{location[:line]}"
+    format_file_line(location[:file], location[:line], " (test)")
   end
 
-  defp format_stacktrace_entry(s, _test_case, _test) do
-    format_stacktrace_entry(s)
+  defp format_stacktrace_entry(entry, _test_case, _test) do
+    format_stacktrace_entry(entry)
   end
 
   defp with_location(tags) do
@@ -277,6 +278,7 @@ defmodule ExUnit.Formatter do
   defp extra_info(msg, nil),       do: "     " <> msg <> "\n"
   defp extra_info(msg, formatter), do: extra_info(formatter.(:extra_info, msg), nil)
 
+  defp stacktrace_info("", _formatter), do: ""
   defp stacktrace_info(msg, nil),       do: "       " <> msg <> "\n"
   defp stacktrace_info(msg, formatter), do: stacktrace_info(formatter.(:stacktrace_info, msg), nil)
 end

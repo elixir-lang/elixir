@@ -283,7 +283,7 @@ defmodule ExUnit.DocTestTest do
          code:  Hello.world
          stacktrace:
            Hello.world()
-           (for doctest at) test/ex_unit/doc_test_test.exs:129
+           (for doctest at) test/ex_unit/doc_test_test.exs:129: (test)
     """
 
     assert output =~ """
