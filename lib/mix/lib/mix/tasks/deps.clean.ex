@@ -72,20 +72,31 @@ defmodule Mix.Tasks.Deps.Clean do
 
   defp do_clean(apps, build, deps, build_only?) do
     shell = Mix.shell
+    loaded_deps = Mix.Dep.loaded([])
 
     Enum.each apps, fn(app) ->
       shell.info "* Cleaning #{app}"
 
+      # Remove everything from the build directory of dependencies
       build
       |> Path.join(to_string(app))
       |> Path.wildcard
       |> Enum.each(&File.rm_rf!/1)
 
-      unless build_only? do
+      # Remove everything from the source directory of dependencies.
+      # Skip this step if --build option is specified or if
+      # the dependency is local, ie, referenced using :path.
+      unless build_only? || local?(app, loaded_deps) do
         deps
         |> Path.join(to_string(app))
         |> File.rm_rf!
       end
+    end
+  end
+
+  defp local?(app, loaded_deps) do
+    Enum.any? loaded_deps, fn dep  ->
+      to_string(dep.app) == app && !dep.scm.fetchable?
     end
   end
 end

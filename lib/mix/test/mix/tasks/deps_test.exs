@@ -607,7 +607,8 @@ defmodule Mix.Tasks.DepsTest do
         app: :raw_sample,
         version: "0.1.0",
         deps: [
-          {:git_repo, ">= 0.1.0", git: MixTest.Case.fixture_path("git_repo")}
+          {:git_repo, ">= 0.1.0", git: MixTest.Case.fixture_path("git_repo")},
+          {:ok, ">= 2.0.0",  path: "deps/ok"}
         ]
       ]
     end
@@ -620,6 +621,8 @@ defmodule Mix.Tasks.DepsTest do
       File.mkdir_p!("_build/dev/lib/raw_sample")
       File.mkdir_p!("_build/dev/lib/git_repo")
       File.mkdir_p!("_build/test/lib/git_repo")
+      File.mkdir_p!("_build/dev/lib/ok")
+      File.mkdir_p!("_build/test/lib/ok")
 
       message = "\"mix deps.clean\" expects dependencies as arguments or " <>
                 "a flag indicating which dependencies to clean. " <>
@@ -632,6 +635,7 @@ defmodule Mix.Tasks.DepsTest do
 
       Mix.Tasks.Deps.Clean.run ["--only", "dev", "--all"]
       refute File.exists?("_build/dev/lib/git_repo")
+      refute File.exists?("_build/dev/lib/ok")
       assert File.exists?("_build/test/lib/git_repo")
       assert File.exists?("_build/dev/lib/raw_sample")
 
@@ -671,6 +675,19 @@ defmodule Mix.Tasks.DepsTest do
       Mix.Tasks.Deps.Clean.run ["raw_sample", "--build"]
       assert File.exists?("deps/raw_sample")
       refute File.exists?("_build/dev/lib/raw_sample")
+    end
+  end
+
+  test "does not remove dependency source when using :path" do
+    Mix.Project.push CleanDepsApp
+
+    in_fixture "deps_status", fn ->
+      assert File.exists?("deps/ok")
+
+      Mix.Tasks.Deps.Clean.run ["raw_sample", "--all"]
+      refute File.exists?("_build/dev/lib/ok")
+      refute File.exists?("_build/test/lib/ok")
+      assert File.exists?("deps/ok")
     end
   end
 end
