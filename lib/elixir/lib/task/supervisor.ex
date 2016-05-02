@@ -26,8 +26,8 @@ defmodule Task.Supervisor do
 
   * `:restart` - the restart strategy, may be `:temporary` (the default),
     `:transient` or `:permanent`. Check `Supervisor.Spec` for more info.
-    Defaults to `:temporary` as most tasks can't be effectively restarted after
-    a crash;
+    Defaults to `:temporary` so tasks aren't automatically restarted when
+    they complete nor in case of crashes;
 
   * `:shutdown` - `:brutal_kill` if the tasks must be killed directly on shutdown
     or an integer indicating the timeout value, defaults to 5000 milliseconds;
@@ -118,7 +118,6 @@ defmodule Task.Supervisor do
   @doc """
   Returns all children pids.
   """
-  # TODO: Delegate to DynamicSupervisor
   @spec children(Supervisor.supervisor) :: [pid]
   def children(supervisor) do
     for {_, pid, _, _} <- Supervisor.which_children(supervisor), is_pid(pid), do: pid
