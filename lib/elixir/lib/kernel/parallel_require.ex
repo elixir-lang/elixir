@@ -80,7 +80,7 @@ defmodule Kernel.ParallelRequire do
         spawn_requires(files, waiting, callback, schedulers, result)
       {:struct_available, _} ->
         spawn_requires(files, waiting, callback, schedulers, result)
-      {:waiting, :struct, child, ref, _, _} ->
+      {:waiting, _, child, ref, _, _} ->
         send(child, {ref, :not_found})
         spawn_requires(files, waiting, callback, schedulers, result)
     end
