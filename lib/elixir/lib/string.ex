@@ -588,7 +588,7 @@ defmodule String do
   end
 
   @doc """
-  Replaces all leading occurences of `match` by `replacement` of `match` in `string`.
+  Replaces all leading occurrences of `match` by `replacement` of `match` in `string`.
 
   Returns the string untouched if there are no occurrences.
 
@@ -626,7 +626,7 @@ defmodule String do
   end
 
   @doc """
-  Replaces all trailing occurences of `match` by `replacement` in `string`.
+  Replaces all trailing occurrences of `match` by `replacement` in `string`.
 
   Returns the string untouched if there are no occurrences.
 
@@ -982,10 +982,10 @@ defmodule String do
   end
 
   @doc ~S"""
-  Returns a new string created by replacing occurences of `pattern` in
+  Returns a new string created by replacing occurrences of `pattern` in
   `subject` with `replacement`.
 
-  By default, it replaces all occurences, unless the `global` option is
+  By default, it replaces all occurrences, unless the `global` option is
   set to `false`, where it will only replace the first one
 
   The `pattern` may be a string or a regular expression.
