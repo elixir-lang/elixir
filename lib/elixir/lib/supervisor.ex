@@ -40,25 +40,25 @@ defmodule Supervisor do
 
       # We are going to supervise the Stack server which
       # will be started with a single argument [:hello]
-      # and the default name of :sup_stack.
+      # and the default name of MyStack.
       children = [
-        worker(Stack, [[:hello], [name: :sup_stack]])
+        worker(Stack, [[:hello], [name: MyStack]])
       ]
 
       # Start the supervisor with our one child
       {:ok, pid} = Supervisor.start_link(children, strategy: :one_for_one)
 
   Notice that when starting the GenServer, we are registering it
-  with name `:sup_stack`, which allows us to call it directly and
+  with name `MyStack`, which allows us to call it directly and
   get what is on the stack:
 
-      GenServer.call(:sup_stack, :pop)
+      GenServer.call(MyStack, :pop)
       #=> :hello
 
-      GenServer.cast(:sup_stack, {:push, :world})
+      GenServer.cast(MyStack, {:push, :world})
       #=> :ok
 
-      GenServer.call(:sup_stack, :pop)
+      GenServer.call(MyStack, :pop)
       #=> :world
 
   However, there is a bug in our stack server. If we call `:pop` and
@@ -66,13 +66,13 @@ defmodule Supervisor do
   Let's try it:
 
       GenServer.call(:sup_stack, :pop)
-      ** (exit) exited in: GenServer.call(:sup_stack, :pop, 5000)
+      ** (exit) exited in: GenServer.call(MyStack, :pop, 5000)
 
   Luckily, since the server is being supervised by a supervisor, the
   supervisor will automatically start a new one, with the default stack
   of `[:hello]` like before:
 
-      GenServer.call(:sup_stack, :pop) == :hello
+      GenServer.call(MyStack, :pop) == :hello
 
   Supervisors support different strategies; in the example above, we
   have chosen `:one_for_one`. Furthermore, each supervisor can have many

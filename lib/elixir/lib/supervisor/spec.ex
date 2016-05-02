@@ -38,18 +38,6 @@ defmodule Supervisor.Spec do
   Notice in this case we don't have to explicitly import
   `Supervisor.Spec` as `use Supervisor` automatically does so.
 
-  Explicit supervisors as above are required when there is a need to:
-
-    1. Partially change the supervision tree during hot-code swaps.
-
-    2. Define supervisors inside other supervisors.
-
-    3. Perform actions inside the supervision `init/1` callback.
-
-       For example, you may want to start an ETS table that is linked to
-       the supervisor (i.e. if the supervision tree needs to be restarted,
-       the ETS table must be restarted too).
-
   ## Supervisor and worker options
 
   In the example above, we defined workers and supervisors
@@ -100,6 +88,8 @@ defmodule Supervisor.Spec do
       within the specified time (in milliseconds), the child process is
       unconditionally terminated using `Process.exit(child, :kill)`.
   """
+
+  # TODO: Update and provide a digest of strategies once we include DynamicSupervisor.
 
   @typedoc "Supported strategies"
   @type strategy :: :simple_one_for_one | :one_for_one | :one_for_all | :rest_for_one
