@@ -237,7 +237,6 @@ defmodule IO do
     getn(group_leader, prompt, count)
   end
 
-  # This a catch-all function to call IO.getn/3
   def getn(device, prompt) when not is_integer(prompt) do
     getn(device, prompt, 1)
   end
@@ -317,8 +316,8 @@ defmodule IO do
   """
   @spec stream(device, :line | pos_integer) :: Enumerable.t
   def stream(device, line_or_codepoints)
-      when line_or_codepoints == :line or
-      (is_integer(line_or_codepoints) and line_or_codepoints > 0) do
+      when line_or_codepoints == :line
+      when is_integer(line_or_codepoints) and line_or_codepoints > 0 do
     IO.Stream.__build__(map_dev(device), false, line_or_codepoints)
   end
 
@@ -342,8 +341,8 @@ defmodule IO do
   """
   @spec binstream(device, :line | pos_integer) :: Enumerable.t
   def binstream(device, line_or_bytes)
-      when line_or_bytes == :line or
-      (is_integer(line_or_bytes) and line_or_bytes > 0) do
+      when line_or_bytes == :line
+      when is_integer(line_or_bytes) and line_or_bytes > 0 do
     IO.Stream.__build__(map_dev(device), true, line_or_bytes)
   end
 

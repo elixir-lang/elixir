@@ -7,9 +7,9 @@ defmodule Logger.FormatterTest do
   test "prune/1" do
     assert prune(1) == "�"
     assert prune(<<"hí", 233>>) == "hí�"
-    assert prune(["hi"|233]) == ["hi"|"�"]
-    assert prune([233|"hi"]) == [233|"hi"]
-    assert prune([[]|[]]) == [[]]
+    assert prune(["hi" | 233]) == ["hi" | "�"]
+    assert prune([233 | "hi"]) == [233 | "hi"]
+    assert prune([[] | []]) == [[]]
   end
 
   defmodule CompileMod do

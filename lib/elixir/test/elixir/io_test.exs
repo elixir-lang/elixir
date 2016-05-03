@@ -151,18 +151,18 @@ defmodule IOTest do
     end) == ">hel"
 
     assert capture_io("hello", fn ->
-      input = IO.getn(:erlang.group_leader, ">")
+      input = IO.getn(Process.group_leader, ">")
       IO.write input
     end) == ">h"
 
-    assert capture_io([input: "hello", capture_prompt: false], fn ->
-      input = IO.getn(:erlang.group_leader, ">")
+    assert capture_io("hello", fn ->
+      input = IO.getn(Process.group_leader, ">")
       IO.write input
-    end) == "h"
+    end) == ">h"
 
-    assert capture_io([input: "hello", capture_prompt: false], fn ->
-      input = IO.getn(:erlang.group_leader, ">", 99)
+    assert capture_io("hello", fn ->
+      input = IO.getn(Process.group_leader, ">", 99)
       IO.write input
-    end) == "hello"
+    end) == ">hello"
   end
 end
