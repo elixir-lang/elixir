@@ -33,26 +33,18 @@ defmodule Mix.Tasks.Do do
     |> Enum.map(&Enum.reverse(&1))
     |> Enum.reverse
   end
+
   defp gather_commands([arg | rest], current, commands) do
-    {current, commands} =
-      case String.split(arg, ",") do
-        [arg] -> {[arg | current], commands}
-        # special care if the argument contains a comma
-        args  -> update_commands(args, current, commands)
-      end
-    gather_commands(rest, current, commands)
+    case String.split(arg, ",", parts: 2) do
+      [arg] ->
+        gather_commands(rest, [arg | current], commands)
+      [left, right] ->
+        rest    = append_unless_empty(right, rest)
+        current = append_unless_empty(left, current)
+        gather_commands(rest, [], [current | commands])
+    end
   end
 
-  defp update_commands([], current, commands) do
-    {current, commands}
-  end
-  defp update_commands([arg], current, commands) when arg != "" do
-    {[arg], [current | commands]}
-  end
-  defp update_commands([arg | args], current, commands) do
-    # if the argument is empty, we had a leading or trailing comma
-    # so we simply terminate the current command
-    command = if arg == "", do: current, else: [arg | current]
-    update_commands(args, [], [command | commands])
-  end
+  defp append_unless_empty("", list), do: list
+  defp append_unless_empty(h, list),  do: [h | list]
 end
