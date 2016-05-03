@@ -53,8 +53,8 @@ defmodule Logger.Formatter do
   """
   @spec prune(IO.chardata) :: IO.chardata
   def prune(binary) when is_binary(binary), do: prune_binary(binary, "")
-  def prune([h|t]) when h in 0..1114111, do: [h|prune(t)]
-  def prune([h|t]), do: [prune(h)|prune(t)]
+  def prune([h | t]) when h in 0..1114111, do: [h | prune(t)]
+  def prune([h | t]), do: [prune(h) | prune(t)]
   def prune([]), do: []
   def prune(_), do: @replacement
 
