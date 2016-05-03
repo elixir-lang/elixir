@@ -10,7 +10,16 @@ defmodule ExUnit.CallbacksTest do
       use ExUnit.Case
 
       setup_all do
-        {:ok, [context: :setup_all]}
+        {:ok, [context: :setup_all, value: 1]}
+      end
+
+      setup_all %{context: :setup_all, value: value} = context when is_integer(value) do
+        assert value == 1
+        {:ok, context}
+      end
+
+      setup_all %{value: value} when is_binary(value) do
+        flunk "value is not a binary, I should not be executed"
       end
 
       setup do
@@ -21,6 +30,15 @@ defmodule ExUnit.CallbacksTest do
         assert context[:initial_setup]
         assert context[:context] == :setup_all
         {:ok, [context: :setup]}
+      end
+
+      setup %{foo: "bar"} do
+        flunk "there is not key foo, I should not be executed"
+      end
+
+      setup %{value: value} = context when is_integer(value) do
+        assert value == 1
+        {:ok, context}
       end
 
       test "callbacks", context do
