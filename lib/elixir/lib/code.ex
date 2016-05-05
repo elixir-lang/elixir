@@ -593,11 +593,10 @@ defmodule Code do
 
   ## Examples
 
-      # Get the documentation for the first function listed
-      iex> [fun | _] = Code.get_docs(Atom, :docs) |> Enum.sort()
-      iex> {{_function, _arity}, _line, _kind, _signature, text} = fun
+      # Get the module documentation
+      iex> {_line, text} = Code.get_docs(Atom, :moduledoc)
       iex> String.split(text, "\n") |> Enum.at(0)
-      "Converts an atom to a charlist."
+      "Convenience functions for working with atoms."
 
       # Module doesn't exist
       iex> Code.get_docs(ModuleNotGood, :all)

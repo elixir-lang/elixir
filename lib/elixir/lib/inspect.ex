@@ -279,7 +279,20 @@ end
 defimpl Inspect, for: List do
   def inspect([], _opts), do: "[]"
 
-  def inspect(thing, %Inspect.Opts{charlists: lists} = opts) do
+  # TODO: Deprecate :char_lists and :as_char_lists keys in v1.5
+  def inspect(thing, %Inspect.Opts{charlists: lists, char_lists: lists_deprecated} = opts) do
+    lists =
+      if lists == :infer and lists_deprecated != :infer do
+        case lists_deprecated do
+          :as_char_lists ->
+            :as_charlists
+          _ ->
+            lists_deprecated
+        end
+      else
+        lists
+      end
+
     cond do
       lists == :as_charlists or (lists == :infer and printable?(thing)) ->
         <<?', Inspect.BitString.escape(IO.chardata_to_string(thing), ?')::binary, ?'>>

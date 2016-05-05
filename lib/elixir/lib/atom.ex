@@ -36,4 +36,9 @@ defmodule Atom do
   def to_charlist(atom) do
     :erlang.atom_to_list(atom)
   end
+
+  # TODO: Deprecate by v1.5
+  @doc false
+  @spec to_char_list(atom) :: charlist
+  def to_char_list(atom), do: Atom.to_charlist(atom)
 end

@@ -1318,7 +1318,8 @@ defmodule File do
 
   @read_ahead 64*1024
 
-  defp open_defaults([:charlist | t], _add_binary) do
+  # TODO: Deprecate :char_list mode by v1.5
+  defp open_defaults([mode | t], _add_binary) when mode in [:charlist, :char_list] do
     open_defaults(t, false)
   end
 

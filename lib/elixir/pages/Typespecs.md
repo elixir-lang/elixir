@@ -83,7 +83,7 @@ Built-in type           | Defined as
 `byte()`                | `0..255`
 `char()`                | `0..0x10ffff`
 `number()`              | `integer()` \| `float()`
-`charlist()`           | `[char()]`
+`charlist()`            | `[char()]`
 `list()`                | `[any()]`
 `maybe_improper_list()` | `maybe_improper_list(any(), any())`
 `nonempty_list()`       | `nonempty_list(any())`

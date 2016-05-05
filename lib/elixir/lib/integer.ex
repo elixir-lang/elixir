@@ -261,4 +261,9 @@ defmodule Integer do
   def to_charlist(number, base) do
     :erlang.integer_to_list(number, base)
   end
+
+  # TODO: Deprecate by v1.5
+  @doc false
+  @spec to_char_list(integer) :: charlist
+  def to_char_list(integer), do: Integer.to_charlist(integer)
 end

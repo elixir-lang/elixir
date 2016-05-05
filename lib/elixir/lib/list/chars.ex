@@ -10,6 +10,12 @@ defprotocol List.Chars do
   """
 
   def to_charlist(thing)
+
+  # TODO: Deprecate by v1.5
+  @doc false
+  Kernel.def to_char_list(thing) do
+    __MODULE__.to_charlist(thing)
+  end
 end
 
 defimpl List.Chars, for: Atom do
