@@ -24,7 +24,7 @@ defmodule String.Unicode do
 
   # There is no codepoint marked as Prepend by Unicode 6.3.0
   if cluster["Prepend"] do
-    raise "it seems this new unicode version has added Prepend items. " <>
+    raise "it seems this new Unicode version has added Prepend items. " <>
           "Please remove this error and uncomment the code below"
   end
 

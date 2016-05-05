@@ -100,7 +100,7 @@ defmodule DateTime do
   @moduledoc """
   A datetime implementation with a time zone.
 
-  This datetime can be seen as a ephemeral snapshot
+  This datetime can be seen as an ephemeral snapshot
   of a datetime at a given timezone. For such purposes,
   it also includes both UTC and Standard offsets, as
   well as the zone abbreviation field used exclusively
