@@ -13,7 +13,7 @@ defmodule Map do
   @compile {:inline, fetch: 2, put: 3, delete: 2, has_key?: 2}
 
   @doc """
-  Returns all keys from the map.
+  Returns all keys from `map`.
 
   ## Examples
 
@@ -25,7 +25,7 @@ defmodule Map do
   defdelegate keys(map), to: :maps
 
   @doc """
-  Returns all values from the map.
+  Returns all values from `map`.
 
   ## Examples
 
@@ -37,7 +37,7 @@ defmodule Map do
   defdelegate values(map), to: :maps
 
   @doc """
-  Converts the map to a list.
+  Converts `map` to a list.
 
   ## Examples
 
@@ -63,7 +63,7 @@ defmodule Map do
   def new, do: %{}
 
   @doc """
-  Creates a map from an enumerable.
+  Creates a map from an `enumerable`.
 
   Duplicated keys are removed; the latest one prevails.
 
@@ -76,6 +76,7 @@ defmodule Map do
 
   """
   @spec new(Enum.t) :: map
+  def new(enumerable)
   def new(%{__struct__: _} = struct), do: new_from_enum(struct)
   def new(%{} = map), do: map
   def new(enum), do: new_from_enum(enum)
@@ -87,7 +88,7 @@ defmodule Map do
   end
 
   @doc """
-  Creates a map from an enumerable via the transformation function.
+  Creates a map from an `enumerable` via the transformation function.
 
   Duplicated entries are removed; the latest one prevails.
 
@@ -311,9 +312,9 @@ defmodule Map do
   end
 
   @doc """
-  Deletes the entries in the map for a specific `key`.
+  Deletes the entries in `map` for a specific `key`.
 
-  If the `key` does not exist, returns the map unchanged.
+  If the `key` does not exist, returns `map` unchanged.
 
   ## Examples
 
@@ -390,7 +391,7 @@ defmodule Map do
   end
 
   @doc """
-  Returns and removes all values associated with `key` in the `map`.
+  Returns and removes all values associated with `key` in `map`.
 
   ## Examples
 
@@ -411,7 +412,7 @@ defmodule Map do
   end
 
   @doc """
-  Lazily returns and removes all values associated with `key` in the `map`.
+  Lazily returns and removes all values associated with `key` in `map`.
 
   This is useful if the default value is very expensive to calculate or
   generally difficult to setup and teardown again.
@@ -438,7 +439,7 @@ defmodule Map do
   end
 
   @doc """
-  Drops the given keys from the map.
+  Drops the given `keys` from `map`.
 
   ## Examples
 
@@ -459,12 +460,12 @@ defmodule Map do
   end
 
   @doc """
-  Takes all entries corresponding to the given keys and extracts them into a
-  separate map.
+  Takes all entries corresponding to the given `keys` and extracts them into a
+  separate `map`.
 
   Returns a tuple with the new map and the old map with removed keys.
 
-  Keys for which there are no entries in the map are ignored.
+  Keys for which there are no entries in `map` are ignored.
 
   ## Examples
 
@@ -525,7 +526,7 @@ defmodule Map do
   (the retrieved value, which can be operated on before being returned)
   and the new value to be stored under `key`. The `fun` may also
   return `:pop`, implying the current value shall be removed
-  from the map and returned.
+  from `map` and returned.
 
   The returned value is a tuple with the "get" value returned by
   `fun` and a new map with the updated value under `key`.
@@ -610,7 +611,7 @@ defmodule Map do
   def get_and_update!(map, _key, _fun), do: :erlang.error({:badmap, map})
 
   @doc """
-  Converts a struct to map.
+  Converts a `struct` to map.
 
   It accepts the struct module or a struct itself and
   simply removes the `__struct__` field from the struct.
