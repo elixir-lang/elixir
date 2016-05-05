@@ -57,9 +57,7 @@ defmodule Range do
   end
 
   @doc """
-  Returns `true` if the given `term` is a range.
-
-  It does not check if the range is valid.
+  Returns `true` if the given `term` is a valid range.
 
   ## Examples
 
@@ -72,7 +70,7 @@ defmodule Range do
   """
   @spec range?(term) :: boolean
   def range?(term)
-  def range?(%Range{}), do: true
+  def range?(first..last) when is_integer(first) and is_integer(last), do: true
   def range?(_), do: false
 end
 
