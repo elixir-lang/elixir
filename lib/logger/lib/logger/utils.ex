@@ -2,7 +2,7 @@ defmodule Logger.Utils do
   @moduledoc false
 
   @doc """
-  Truncates a char data into n bytes.
+  Truncates a `chardata` into `n` bytes.
 
   There is a chance we truncate in the middle of a grapheme
   cluster but we never truncate in the middle of a binary

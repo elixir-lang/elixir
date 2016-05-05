@@ -13,7 +13,7 @@ defmodule Regex do
       # A simple regular expressions that matches foo anywhere in the string
       ~r/foo/
 
-      # A regular expression with case insensitive and unicode options
+      # A regular expression with case insensitive and Unicode options
       ~r/foo/iu
 
   A Regex is represented internally as the `Regex` struct. Therefore,
@@ -23,9 +23,9 @@ defmodule Regex do
 
   The modifiers available when creating a Regex are:
 
-    * `unicode` (u) - enables unicode specific patterns like `\p` and change
-      modifiers like `\w`, `\W`, `\s` and friends to also match on unicode.
-      It expects valid unicode strings to be given on match
+    * `unicode` (u) - enables Unicode specific patterns like `\p` and change
+      modifiers like `\w`, `\W`, `\s` and friends to also match on Unicode.
+      It expects valid Unicode strings to be given on match
 
     * `caseless` (i) - add case insensitivity
 
