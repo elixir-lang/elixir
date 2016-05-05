@@ -408,6 +408,8 @@ defmodule Kernel.Typespec do
   defp elixir_builtin_type?(:as_boolean, 1), do: true
   defp elixir_builtin_type?(:struct, 0), do: true
   defp elixir_builtin_type?(:charlist, 0), do: true
+  # TODO: Deprecate char_list type by v1.5
+  defp elixir_builtin_type?(:char_list, 0), do: true
   defp elixir_builtin_type?(:keyword, 0), do: true
   defp elixir_builtin_type?(:keyword, 1), do: true
   defp elixir_builtin_type?(_, _), do: false
@@ -634,7 +636,9 @@ defmodule Kernel.Typespec do
   end
 
   # Special shortcut(s)
-  defp typespec_to_ast({:remote_type, line, [{:atom, _, :elixir}, {:atom, _, :charlist}, []]}) do
+  # TODO: Deprecate char_list type by v1.5
+  defp typespec_to_ast({:remote_type, line, [{:atom, _, :elixir}, {:atom, _, type}, []]})
+      when type in [:charlist, :char_list] do
     typespec_to_ast({:type, line, :charlist, []})
   end
 
@@ -882,7 +886,8 @@ defmodule Kernel.Typespec do
     {:type, line(meta), type, arguments}
   end
 
-  defp typespec({:charlist, _meta, []}, vars, caller) do
+  # TODO: Deprecate char_list type by v1.5
+  defp typespec({type, _meta, []}, vars, caller) when type in [:charlist, :char_list] do
     typespec((quote do: :elixir.charlist()), vars, caller)
   end
 

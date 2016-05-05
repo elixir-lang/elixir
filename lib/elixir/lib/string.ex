@@ -2020,4 +2020,9 @@ defmodule String do
   defp follow_snake(path) do
     {:cont, path}
   end
+
+  # TODO: Deprecate by v1.5
+  @doc false
+  @spec to_char_list(t) :: charlist
+  def to_char_list(string), do: String.to_charlist(string)
 end

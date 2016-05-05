@@ -254,4 +254,9 @@ defmodule Float do
   defp expand_compact([{:compact, true} | t]),  do: [:compact | expand_compact(t)]
   defp expand_compact([h | t]),                 do: [h | expand_compact(t)]
   defp expand_compact([]),                      do: []
+
+  # TODO: Deprecate by v1.5
+  @doc false
+  @spec to_char_list(float) :: charlist
+  def to_char_list(float), do: Float.to_charlist(float)
 end

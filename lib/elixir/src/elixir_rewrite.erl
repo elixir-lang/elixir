@@ -30,14 +30,21 @@
 %% number and order of arguments and show up on captures.
 
 inline(?atom, to_charlist, 1) -> {erlang, atom_to_list};
+%% TODO: Deprecate to_char_list function by v1.5
+inline(?atom, to_char_list, 1) -> {erlang, atom_to_list};
 inline(?io, iodata_length, 1) -> {erlang, iolist_size};
 inline(?io, iodata_to_binary, 1) -> {erlang, iolist_to_binary};
 inline(?integer, to_string, 1) -> {erlang, integer_to_binary};
 inline(?integer, to_string, 2) -> {erlang, integer_to_binary};
 inline(?integer, to_charlist, 1) -> {erlang, integer_to_list};
 inline(?integer, to_charlist, 2) -> {erlang, integer_to_list};
+%% TODO: Deprecate to_char_list function by v1.5
+inline(?integer, to_char_list, 1) -> {erlang, integer_to_list};
+inline(?integer, to_char_list, 2) -> {erlang, integer_to_list};
 inline(?float, to_string, 1) -> {erlang, float_to_binary};
 inline(?float, to_charlist, 1) -> {erlang, float_to_list};
+%% TODO: Deprecate to_char_list function by v1.5
+inline(?float, to_char_list, 1) -> {erlang, float_to_list};
 inline(?list, to_atom, 1) -> {erlang, list_to_atom};
 inline(?list, to_existing_atom, 1) -> {erlang, list_to_existing_atom};
 inline(?list, to_float, 1) -> {erlang, list_to_float};
@@ -183,6 +190,9 @@ rewrite(?access, _DotMeta, 'get', Meta, [Arg, _], Env)
     "the Access syntax and calls to Access.get/2 are not available for the value: ~ts",
     ['Elixir.Macro':to_string(Arg)]);
 rewrite(?list_chars, _DotMeta, 'to_charlist', _Meta, [List], _Env) when is_list(List) ->
+  List;
+%% TODO: Deprecate to_char_list function by v1.5
+rewrite(?list_chars, _DotMeta, 'to_char_list', _Meta, [List], _Env) when is_list(List) ->
   List;
 rewrite(?string_chars, _DotMeta, 'to_string', _Meta, [String], _Env) when is_binary(String) ->
   String;

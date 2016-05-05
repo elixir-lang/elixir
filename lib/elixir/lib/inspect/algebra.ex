@@ -44,19 +44,23 @@ defmodule Inspect.Opts do
 
   """
 
+  # TODO: Deprecate char_lists key by v1.5
   defstruct structs: true,
             binaries: :infer,
             charlists: :infer,
+            char_lists: :infer,
             limit: 50,
             width: 80,
             base: :decimal,
             pretty: false,
             safe: true
 
+  # TODO: Deprecate char_lists key and :as_char_lists value by v1.5
   @type t :: %__MODULE__{
                structs: boolean,
                binaries: :infer | :as_binaries | :as_strings,
                charlists: :infer | :as_lists | :as_charlists,
+               char_lists: :infer | :as_lists | :as_char_lists,
                limit: pos_integer | :infinity,
                width: pos_integer | :infinity,
                base: :decimal | :binary | :hex | :octal,

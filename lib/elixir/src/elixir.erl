@@ -10,8 +10,10 @@
 -define(system, 'Elixir.System').
 
 %% Top level types
--export_type([charlist/0, struct/0, as_boolean/1, keyword/0, keyword/1]).
+%% TODO: Deprecate char_list type by v1.5
+-export_type([charlist/0, char_list/0, struct/0, as_boolean/1, keyword/0, keyword/1]).
 -type charlist() :: string().
+-type char_list() :: string().
 -type struct() :: #{'__struct__' => atom()}.
 -type as_boolean(T) :: T.
 -type keyword() :: [{atom(), any()}].
