@@ -25,6 +25,7 @@
   * [Kernel] Track `{module, function, arity}` imports and warn on unused ones when such are specified in `:only`
   * [Kernel] Add `keyword/0` and `keyword/1` built-in types to typespecs
   * [Process] Add `Process.sleep/1`
+  * [Range] `Range.range?/1` now checks the validity of a range.
   * [Regex] Support `:include_captures` in `Regex.split/3`
   * [String] Add `String.myers_difference/2` for calculating the difference between two strings
   * [System] Add `System.os_time/0` and `System.os_time/1`
