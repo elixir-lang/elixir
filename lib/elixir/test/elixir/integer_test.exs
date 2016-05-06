@@ -47,6 +47,7 @@ defmodule IntegerTest do
     assert Integer.digits(0) == [0]
     assert Integer.digits(0, 2) == [0]
     assert Integer.digits(58127, 2) == [1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1]
+    assert Integer.digits(987654, 987654) == [1, 0]
   end
 
   test "undigits" do
@@ -64,6 +65,7 @@ defmodule IntegerTest do
 
   test "parse" do
     assert Integer.parse("12") === {12, ""}
+    assert Integer.parse("+12") === {12, ""}
     assert Integer.parse("-12") === {-12, ""}
     assert Integer.parse("123456789") === {123456789, ""}
     assert Integer.parse("12.5") === {12, ".5"}
