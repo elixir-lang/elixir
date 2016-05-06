@@ -7,10 +7,10 @@ defmodule Logger do
     * Provides debug, info, warn and error levels.
 
     * Supports multiple backends which are automatically
-      supervised when plugged into Logger.
+      supervised when plugged into `Logger`.
 
     * Formats and truncates messages on the client
-      to avoid clogging Logger backends.
+      to avoid clogging `Logger` backends.
 
     * Alternates between sync and async modes to remain
       performant when required but also apply backpressure
@@ -30,14 +30,14 @@ defmodule Logger do
 
   ## Configuration
 
-  Logger supports a wide range of configurations.
+  `Logger` supports a wide range of configurations.
 
   This configuration is split in three categories:
 
-    * Application configuration - must be set before the Logger
+    * Application configuration - must be set before the `:logger`
       application is started
 
-    * Runtime configuration - can be set before the Logger
+    * Runtime configuration - can be set before the `:logger`
       application is started, but may be changed during runtime
 
     * Error logger configuration - configuration for the
@@ -45,32 +45,33 @@ defmodule Logger do
 
   ### Application configuration
 
-  The following configuration must be set via config files
-  before the Logger application is started.
+  The following configuration must be set via config files (e.g.,
+  `config/config.exs`) before the `:logger` application is started.
 
     * `:backends` - the backends to be used. Defaults to `[:console]`.
       See the "Backends" section for more information.
 
-    * `:compile_time_purge_level` - purge all calls that have log level
-      lower than the configured value at compilation time. This means the
-      Logger call will be completely removed at compile time, accruing
-      no overhead at runtime. Defaults to `:debug` and only
-      applies to the `Logger.debug/2`, `Logger.info/2`, etc style of calls.
-      Note that in calls are removed from the AST at compilation time, the
-      passed arguments are never evaluated, so any function call that occurs in
-      these arguments is never executed. As a consequence, avoid code that looks
-      like `Logger.debug("Cleanup: #{perform_cleanup()}")` as in the example
-      `perform_cleanup/0` won't be executed if the `:compile_time_purge_level`
-      is `:info` or higher.
+    * `:compile_time_purge_level` - purge *at compilation time* all calls that
+      have log level lower than the value of this option. This means that
+      `Logger` calls with level lower than this option will be completely
+      removed at compile time, accruing no overhead at runtime. Defaults to
+      `:debug` and only applies to the `Logger.debug/2`, `Logger.info/2`,
+      `Logger.warn/2`, and `Logger.error/2` macros (e.g., it doesn't apply to
+      `Logger.log/3`). Note that arguments passed to `Logger` calls that are
+      removed from the AST at compilation time are never evaluated, thus any
+      function call that occurs in these arguments is never executed. As a
+      consequence, avoid code that looks like `Logger.debug("Cleanup:
+      #{perform_cleanup()}")` as in the example `perform_cleanup/0` won't be
+      executed if the `:compile_time_purge_level` is `:info` or higher.
 
     * `:compile_time_application` - sets the `:application` metadata value
       to the configured value at compilation time. This configuration is
       usually only useful for build tools to automatically add the
-      application to the metadata for `Logger.debug/2`, `Logger.info/2`, etc
+      application to the metadata for `Logger.debug/2`, `Logger.info/2`, etc.
       style of calls.
 
   For example, to configure the `:backends` and `compile_time_purge_level`
-  in a `config/config.exs` file:
+  options in a `config/config.exs` file:
 
       config :logger,
         backends: [:console],
@@ -78,8 +79,9 @@ defmodule Logger do
 
   ### Runtime Configuration
 
-  All configuration below can be set via config files but also
-  changed dynamically during runtime via `Logger.configure/1`.
+  All configuration below can be set via config files (e.g.,
+  `config/config.exs`) but also changed dynamically during runtime via
+  `Logger.configure/1`.
 
     * `:level` - the logging level. Attempting to log any message
       with severity less than the configured level will simply
@@ -89,17 +91,17 @@ defmodule Logger do
       is evaluated even if the level of the call is lower than `:level`.
 
     * `:utc_log` - when `true`, uses UTC in logs. By default it uses
-      local time (i.e. it defaults to `false`).
+      local time (i.e., it defaults to `false`).
 
-    * `:truncate` - the maximum message size to be logged. Defaults
-      to 8192 bytes. Note this configuration is approximate. Truncated
-      messages will have `" (truncated)"` at the end.
-      The atom `:infinity` can be passed to disable this behavior.
+    * `:truncate` - the maximum message size to be logged (in bytes). Defaults
+      to 8192 bytes. Note this configuration is approximate. Truncated messages
+      will have `" (truncated)"` at the end.  The atom `:infinity` can be passed
+      to disable this behavior.
 
-    * `:sync_threshold` - if the Logger manager has more than
-      `sync_threshold` messages in its queue, Logger will change
-      to sync mode, to apply backpressure to the clients.
-      Logger will return to async mode once the number of messages
+    * `:sync_threshold` - if the `Logger` manager has more than
+      `:sync_threshold` messages in its queue, `Logger` will change
+      to *sync mode*, to apply backpressure to the clients.
+      `Logger` will return to *async mode* once the number of messages
       in the queue is reduced to `sync_threshold * 0.75` messages.
       Defaults to 20 messages.
 
@@ -108,7 +110,7 @@ defmodule Logger do
       error reports. This configuration allow developers to change
       how much and how the data should be inspected.
 
-  For example, to configure the `:level` and `:truncate` in a
+  For example, to configure the `:level` and `:truncate` options in a
   `config/config.exs` file:
 
       config :logger,
@@ -117,16 +119,16 @@ defmodule Logger do
 
   ### Error Logger configuration
 
-  The following configuration applies to the Logger wrapper around
+  The following configuration applies to `Logger`'s wrapper around
   Erlang's `error_logger`. All the configurations below must be set
-  before the Logger application starts.
+  before the `:logger` application starts.
 
-    * `:handle_otp_reports` - redirects OTP reports to Logger so
+    * `:handle_otp_reports` - redirects OTP reports to `Logger` so
       they are formatted in Elixir terms. This uninstalls Erlang's
       logger that prints terms to terminal. Defaults to `true`.
 
     * `:handle_sasl_reports` - redirects supervisor, crash and
-      progress reports to Logger so they are formatted in Elixir
+      progress reports to `Logger` so they are formatted in Elixir
       terms. This uninstalls `sasl`'s logger that prints these
       reports to the terminal. Defaults to `false`.
 
@@ -137,14 +139,14 @@ defmodule Logger do
       threshold, the `error_logger` enters discard mode for the
       remainder of that second. Defaults to 500 messages.
 
-  For example, to configure Logger to redirect all `error_logger` messages
+  For example, to configure `Logger` to redirect all `error_logger` messages
   using a `config/config.exs` file:
 
       config :logger,
         handle_otp_reports: true,
         handle_sasl_reports: true
 
-  Furthermore, Logger allows messages sent by Erlang's `error_logger`
+  Furthermore, `Logger` allows messages sent by Erlang's `error_logger`
   to be translated into an Elixir format via translators. Translators
   can be dynamically added at any time with the `add_translator/1`
   and `remove_translator/1` APIs. Check `Logger.Translator` for more
@@ -152,32 +154,32 @@ defmodule Logger do
 
   ## Backends
 
-  Logger supports different backends where log messages are written to.
+  `Logger` supports different backends where log messages are written to.
 
   The available backends by default are:
 
     * `:console` - logs messages to the console (enabled by default)
 
   Developers may also implement their own backends, an option that
-  is explored with detail below.
+  is explored in more detail below.
 
   The initial backends are loaded via the `:backends` configuration,
-  which must be set before the Logger application is started.
+  which must be set before the `:logger` application is started.
 
   ### Console backend
 
-  The console backend logs message to the console. It supports the
-  following options:
+  The console backend logs messages by printing them to the console. It supports
+  the following options:
 
     * `:level` - the level to be logged by this backend.
-      Note that messages are first filtered by the general
-      `:level` configuration in `:logger`
+      Note that messages are filtered by the general
+      `:level` configuration for the `:logger` application first.
 
     * `:format` - the format message used to print logs.
-      Defaults to: `"$time $metadata[$level] $levelpad$message\n"`
+      Defaults to: `"$time $metadata[$level] $levelpad$message\n"`.
 
     * `:metadata` - the metadata to be printed by `$metadata`.
-      Defaults to an empty list (no metadata)
+      Defaults to an empty list (no metadata).
 
     * `:colors` - a keyword list of coloring options.
 
@@ -220,34 +222,44 @@ defmodule Logger do
 
   ### Custom backends
 
-  Any developer can create their own backend for Logger.
-  Since Logger is an event manager powered by `GenEvent`,
+  Any developer can create their own `Logger` backend.
+  Since `Logger` is an event manager powered by `GenEvent`,
   writing a new backend is a matter of creating an event
   handler, as described in the `GenEvent` module.
 
   From now on, we will be using the term "event handler" to refer
   to your custom backend, as we head into implementation details.
 
-  Once Logger starts, it installs all event handlers under
-  the `:backends` configuration into the Logger event manager.
-  The event manager and all added event handlers are
-  automatically supervised by Logger.
+  Once the `:logger` application starts, it installs all event handlers listed under
+  the `:backends` configuration into the `Logger` event manager. The event
+  manager and all added event handlers are automatically supervised by `Logger`.
 
   Once initialized, the handler should be designed to handle events
   in the following format:
 
-      {level, group_leader,
-        {Logger, message, timestamp, metadata}}
+      {level, group_leader, {Logger, message, timestamp, metadata}}
 
-  The level is one of `:debug`, `:info`, `:warn` or `:error`,
-  as previously described, the group leader is the group
-  leader of the process which logged the message, followed by
-  a tuple starting with the atom `Logger`, the message as
-  chardata, the timestamp and a keyword list of metadata.
+  where:
+
+    * `level` is one of `:debug`, `:info`, `:warn`, or `:error`, as previously
+      described
+    * `group_leader` is the group leader of the process which logged the message
+    * `{Logger, message, timestamp, metadata}` is a tuple containing information
+      about the logged message:
+      * the first element is always the atom `Logger`
+      * `message` is the actual message (as chardata)
+      * `timestamp` is the timestamp for when the message was logged, as a
+        `{{year, month, day}, {hour, minute, second, milliseconds}}` tuple
+      * `metadata` is a keyword list of metadata used when logging the message
 
   It is recommended that handlers ignore messages where
   the group leader is in a different node than the one where
-  the handler is installed.
+  the handler is installed. For example:
+
+      def handle_event({_level, gl, {Logger, _, _, _}}, state)
+          when node(gl) != node() do
+        {:ok, state}
+      end
 
   Furthermore, backends can be configured via the
   `configure_backend/2` function which requires event handlers
@@ -260,11 +272,11 @@ defmodule Logger do
   return value for successful configuration is `:ok`.
 
   It is recommended that backends support at least the following
-  configuration values:
+  configuration options:
 
-    * `level` - the logging level for that backend
-    * `format` - the logging format for that backend
-    * `metadata` - the metadata to include the backend
+    * `:level` - the logging level for that backend
+    * `:format` - the logging format for that backend
+    * `:metadata` - the metadata to include in that backend
 
   Check the implementation for `Logger.Backends.Console`, for
   examples on how to handle the recommendations in this section
