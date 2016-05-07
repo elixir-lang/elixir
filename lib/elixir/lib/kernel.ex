@@ -2588,7 +2588,7 @@ defmodule Kernel do
   @doc """
   Provides a short-circuit operator that evaluates and returns
   the second expression only if the first one evaluates to `true`
-  (i.e., it is not `nil` nor `false`). Returns the first expression
+  (i.e., it is neither `nil` nor `false`). Returns the first expression
   otherwise.
 
   Not allowed in guard clauses.
@@ -2606,7 +2606,6 @@ defmodule Kernel do
 
       iex> false && throw(:bad)
       false
-
 
   Note that, unlike `and/2`, this operator accepts any expression
   as the first argument, not only booleans.
