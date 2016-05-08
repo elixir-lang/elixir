@@ -31,6 +31,10 @@ defmodule ExUnit.DiffTest do
     expected = ~S<"fox {ho}[jum]ps over {\"}the {dog}[lazy cat]">
     assert format(string1, string2, &formatter/2) == expected
     assert format(string1, <<193, 31>>, &formatter/2) == nil
+
+    # pre-fillering
+    assert format("aaa", "bba", &formatter/2) == ~S<"{aaa}[bba]">
+    assert format("aaa", "baa", &formatter/2) == ~S<"[b]aa{a}">
   end
 
   test "lists" do
