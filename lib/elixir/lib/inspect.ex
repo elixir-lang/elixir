@@ -279,9 +279,22 @@ end
 defimpl Inspect, for: List do
   def inspect([], _opts), do: "[]"
 
-  def inspect(thing, %Inspect.Opts{char_lists: lists} = opts) do
+  # TODO: Deprecate :char_lists and :as_char_lists keys in v1.5
+  def inspect(thing, %Inspect.Opts{charlists: lists, char_lists: lists_deprecated} = opts) do
+    lists =
+      if lists == :infer and lists_deprecated != :infer do
+        case lists_deprecated do
+          :as_char_lists ->
+            :as_charlists
+          _ ->
+            lists_deprecated
+        end
+      else
+        lists
+      end
+
     cond do
-      lists == :as_char_lists or (lists == :infer and printable?(thing)) ->
+      lists == :as_charlists or (lists == :infer and printable?(thing)) ->
         <<?', Inspect.BitString.escape(IO.chardata_to_string(thing), ?')::binary, ?'>>
       keyword?(thing) ->
         surround_many("[", thing, "]", opts, &keyword/2)
@@ -300,7 +313,7 @@ defimpl Inspect, for: List do
 
   @doc false
   def keyword?([{key, _value} | rest]) when is_atom(key) do
-    case Atom.to_char_list(key) do
+    case Atom.to_charlist(key) do
       'Elixir.' ++ _ -> false
       _ -> keyword?(rest)
     end
@@ -459,7 +472,7 @@ defimpl Inspect, for: Function do
     if fun_info[:type] == :external and fun_info[:env] == [] do
       "&#{Inspect.Atom.inspect(mod)}.#{fun_info[:name]}/#{fun_info[:arity]}"
     else
-      case Atom.to_char_list(mod) do
+      case Atom.to_charlist(mod) do
         'elixir_compiler_' ++ _ ->
           if function_exported?(mod, :__RELATIVE__, 0) do
             "#Function<#{uniq(fun_info)} in file:#{mod.__RELATIVE__}>"

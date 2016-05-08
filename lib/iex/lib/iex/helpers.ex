@@ -612,7 +612,7 @@ defmodule IEx.Helpers do
 
   # Compiles and loads an Erlang source file, returns {module, binary}
   defp compile_erlang(source) do
-    source = Path.relative_to_cwd(source) |> String.to_char_list
+    source = Path.relative_to_cwd(source) |> String.to_charlist
     case :compile.file(source, [:binary, :report]) do
       {:ok, module, binary} ->
         :code.purge(module)
@@ -654,9 +654,9 @@ defmodule IEx.Helpers do
                         is_integer(y) and y >= 0 and
                         is_integer(z) and z >= 0 do
     :erlang.list_to_pid(
-      '<' ++ Integer.to_char_list(x) ++ '.' ++
-             Integer.to_char_list(y) ++ '.' ++
-             Integer.to_char_list(z) ++ '>'
+      '<' ++ Integer.to_charlist(x) ++ '.' ++
+             Integer.to_charlist(y) ++ '.' ++
+             Integer.to_charlist(z) ++ '>'
     )
   end
 

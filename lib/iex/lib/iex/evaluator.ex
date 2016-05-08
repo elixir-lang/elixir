@@ -77,7 +77,7 @@ defmodule IEx.Evaluator do
 
       # Evaluate the contents in the same environment server_loop will run in
       {_result, binding, env, _scope} =
-        :elixir.eval(String.to_char_list(code), state.binding, env)
+        :elixir.eval(String.to_charlist(code), state.binding, env)
 
       %{state | binding: binding, env: :elixir.env_for_eval(env, file: "iex", line: 1)}
     catch
@@ -105,7 +105,7 @@ defmodule IEx.Evaluator do
 
   defp eval(code, iex_state, history, state) do
     try do
-      do_eval(String.to_char_list(code), iex_state, history, state)
+      do_eval(String.to_charlist(code), iex_state, history, state)
     catch
       kind, error ->
         print_error(kind, error, System.stacktrace)

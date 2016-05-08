@@ -230,35 +230,40 @@ defmodule Integer do
   end
 
   @doc """
-  Returns a char list which corresponds to the text representation of the given integer.
+  Returns a charlist which corresponds to the text representation of the given integer.
 
   Inlined by the compiler.
 
   ## Examples
 
-      iex> Integer.to_char_list(7)
+      iex> Integer.to_charlist(7)
       '7'
 
   """
-  @spec to_char_list(integer) :: char_list
-  def to_char_list(number) do
+  @spec to_charlist(integer) :: charlist
+  def to_charlist(number) do
     :erlang.integer_to_list(number)
   end
 
   @doc """
-  Returns a char list which corresponds to the text representation of the
+  Returns a charlist which corresponds to the text representation of the
   given integer in the given base.
 
   Inlined by the compiler.
 
   ## Examples
 
-      iex> Integer.to_char_list(1023, 16)
+      iex> Integer.to_charlist(1023, 16)
       '3FF'
 
   """
-  @spec to_char_list(integer, 2..36) :: char_list
-  def to_char_list(number, base) do
+  @spec to_charlist(integer, 2..36) :: charlist
+  def to_charlist(number, base) do
     :erlang.integer_to_list(number, base)
   end
+
+  # TODO: Deprecate by v1.5
+  @doc false
+  @spec to_char_list(integer) :: charlist
+  def to_char_list(integer), do: Integer.to_charlist(integer)
 end

@@ -89,7 +89,7 @@ defmodule MixTest.Case do
   def in_fixture(which, tmp, function) do
     src  = fixture_path(which)
     dest = tmp_path(tmp)
-    flag = String.to_char_list(tmp_path)
+    flag = String.to_charlist(tmp_path)
 
     File.rm_rf!(dest)
     File.mkdir_p!(dest)
@@ -130,7 +130,7 @@ defmodule MixTest.Case do
   end
 
   defp delete_tmp_paths do
-    tmp = tmp_path |> String.to_char_list
+    tmp = tmp_path |> String.to_charlist
     for path <- :code.get_path,
         :string.str(path, tmp) != 0,
         do: :code.del_path(path)

@@ -128,7 +128,7 @@ defmodule Mix.Compilers.Erlang do
   the Erlang compilation tools.
   """
   def to_erl_file(file) do
-    to_char_list(file)
+    to_charlist(file)
   end
 
   defp extract_targets(src_dir, src_ext, dest_dir, dest_ext, force) do

@@ -66,7 +66,7 @@ defmodule IEx.Autocomplete do
   defp strip_ampersand(expr), do: expr
 
   defp yes(hint, entries) do
-    {:yes, String.to_char_list(hint), Enum.map(entries, &String.to_char_list/1)}
+    {:yes, String.to_charlist(hint), Enum.map(entries, &String.to_charlist/1)}
   end
 
   defp no do
@@ -292,7 +292,7 @@ defmodule IEx.Autocomplete do
     do: true
 
   defp underscored_fun?({name, _}),
-    do: hd(Atom.to_char_list(name)) == ?_
+    do: hd(Atom.to_charlist(name)) == ?_
 
   defp ensure_loaded(Elixir), do: {:error, :nofile}
   defp ensure_loaded(mod),

@@ -80,7 +80,7 @@ defimpl IEx.Info, for: List do
     specific_info =
       cond do
         list == []                    -> info_list(list)
-        Inspect.List.printable?(list) -> info_char_list(list)
+        Inspect.List.printable?(list) -> info_charlist(list)
         Keyword.keyword?(list)        -> info_kw_list(list)
         true                          -> info_list(list)
       end
@@ -88,17 +88,17 @@ defimpl IEx.Info, for: List do
     ["Data type": "List"] ++ specific_info
   end
 
-  defp info_char_list(char_list) do
+  defp info_charlist(charlist) do
     desc = """
     This is a list of integers that is printed as a sequence of characters
     delimited by single quotes because all the integers in it represent valid
     ASCII characters. Conventionally, such lists of integers are referred to as
-    "char lists" (more precisely, a char list is a list of Unicode codepoints,
+    "charlists" (more precisely, a charlist is a list of Unicode codepoints,
     and ASCII is a subset of Unicode).
     """
 
     ["Description": desc,
-     "Raw representation": inspect(char_list, char_lists: :as_lists),
+     "Raw representation": inspect(charlist, charlists: :as_lists),
      "Reference modules": "List"]
   end
 

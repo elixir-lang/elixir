@@ -111,11 +111,11 @@ defmodule Mix.Shell do
       {:unix, _} ->
         command = command
           |> String.replace("\"", "\\\"")
-          |> String.to_char_list
+          |> String.to_charlist
         'sh -c "' ++ command ++ '"'
 
       {:win32, osname} ->
-        command = '"' ++ String.to_char_list(command) ++ '"'
+        command = '"' ++ String.to_charlist(command) ++ '"'
         case {System.get_env("COMSPEC"), osname} do
           {nil, :windows} -> 'command.com /s /c ' ++ command
           {nil, _}        -> 'cmd /s /c ' ++ command
@@ -127,9 +127,9 @@ defmodule Mix.Shell do
   defp validate_env(enum) do
     Enum.map enum, fn
       {k, nil} ->
-        {String.to_char_list(k), false}
+        {String.to_charlist(k), false}
       {k, v} ->
-        {String.to_char_list(k), String.to_char_list(v)}
+        {String.to_charlist(k), String.to_charlist(v)}
       other ->
         raise ArgumentError, "invalid environment key-value #{inspect other}"
     end

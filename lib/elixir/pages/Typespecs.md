@@ -83,7 +83,7 @@ Built-in type           | Defined as
 `byte()`                | `0..255`
 `char()`                | `0..0x10ffff`
 `number()`              | `integer()` \| `float()`
-`char_list()`           | `[char()]`
+`charlist()`            | `[char()]`
 `list()`                | `[any()]`
 `maybe_improper_list()` | `maybe_improper_list(any(), any())`
 `nonempty_list()`       | `nonempty_list(any())`
@@ -148,7 +148,7 @@ Specifications can be overloaded just like ordinary functions.
 
 ## Notes
 
-Elixir discourages the use of type `string` as it might be confused with binaries which are referred to as "strings" in Elixir (as opposed to character lists). In order to use the type that is called `string` in Erlang, one has to use the `char_list` type which is a synonym for `string`. If you use `string`, you'll get a warning from the compiler.
+Elixir discourages the use of type `string` as it might be confused with binaries which are referred to as "strings" in Elixir (as opposed to character lists). In order to use the type that is called `string` in Erlang, one has to use the `charlist` type which is a synonym for `string`. If you use `string`, you'll get a warning from the compiler.
 
 If you want to refer to the "string" type (the one operated on by functions in the `String` module), use `String.t` type instead.
 

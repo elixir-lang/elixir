@@ -104,7 +104,7 @@ defmodule IEx.InteractionTest do
   end
 
   test "inspect opts" do
-    opts = [inspect: [binaries: :as_binaries, char_lists: :as_lists, structs: false, limit: 4]]
+    opts = [inspect: [binaries: :as_binaries, charlists: :as_lists, structs: false, limit: 4]]
     assert capture_iex("<<45, 46, 47>>\n[45, 46, 47]\n%IO.Stream{}", opts) ==
               "<<45, 46, 47>>\n[45, 46, 47]\n%{__struct__: IO.Stream, device: nil, line_or_bytes: :line, raw: true}"
   end

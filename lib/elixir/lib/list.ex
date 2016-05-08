@@ -14,23 +14,23 @@ defmodule List do
   of receiving the subject (in this case, a list) as the
   first argument.
 
-  ## Char lists
+  ## Charlists
 
   If a list is made of non-negative integers, it can also
-  be called as a char list. Elixir uses single quotes to
-  define char lists:
+  be called as a charlist. Elixir uses single quotes to
+  define charlists:
 
       iex> 'héllo'
       [104, 233, 108, 108, 111]
 
-  In particular, char lists may be printed back in single
+  In particular, charlists may be printed back in single
   quotes if they contain only ASCII-printable codepoints:
 
       iex> 'abc'
       'abc'
 
   The rationale behind this behaviour is to better support
-  Erlang libraries which may return text as char lists
+  Erlang libraries which may return text as charlists
   instead of Elixir strings. One example of such functions
   is `Application.loaded_applications`:
 
@@ -492,9 +492,9 @@ defmodule List do
   end
 
   @doc """
-  Converts a char list to an atom.
+  Converts a charlist to an atom.
 
-  Currently Elixir does not support conversions from char lists
+  Currently Elixir does not support conversions from charlists
   which contains Unicode codepoints greater than 0xFF.
 
   Inlined by the compiler.
@@ -505,16 +505,16 @@ defmodule List do
       :elixir
 
   """
-  @spec to_atom(char_list) :: atom
-  def to_atom(char_list) do
-    :erlang.list_to_atom(char_list)
+  @spec to_atom(charlist) :: atom
+  def to_atom(charlist) do
+    :erlang.list_to_atom(charlist)
   end
 
   @doc """
-  Converts a char list to an existing atom. Raises an `ArgumentError`
+  Converts a charlist to an existing atom. Raises an `ArgumentError`
   if the atom does not exist.
 
-  Currently Elixir does not support conversions from char lists
+  Currently Elixir does not support conversions from charlists
   which contains Unicode codepoints greater than 0xFF.
 
   Inlined by the compiler.
@@ -529,13 +529,13 @@ defmodule List do
       ** (ArgumentError) argument error
 
   """
-  @spec to_existing_atom(char_list) :: atom
-  def to_existing_atom(char_list) do
-    :erlang.list_to_existing_atom(char_list)
+  @spec to_existing_atom(charlist) :: atom
+  def to_existing_atom(charlist) do
+    :erlang.list_to_existing_atom(charlist)
   end
 
   @doc """
-  Returns the float whose text representation is `char_list`.
+  Returns the float whose text representation is `charlist`.
 
   Inlined by the compiler.
 
@@ -545,13 +545,13 @@ defmodule List do
       2.2017764
 
   """
-  @spec to_float(char_list) :: float
-  def to_float(char_list) do
-    :erlang.list_to_float(char_list)
+  @spec to_float(charlist) :: float
+  def to_float(charlist) do
+    :erlang.list_to_float(charlist)
   end
 
   @doc """
-  Returns an integer whose text representation is `char_list`.
+  Returns an integer whose text representation is `charlist`.
 
   Inlined by the compiler.
 
@@ -561,13 +561,13 @@ defmodule List do
       123
 
   """
-  @spec to_integer(char_list) :: integer
-  def to_integer(char_list) do
-    :erlang.list_to_integer(char_list)
+  @spec to_integer(charlist) :: integer
+  def to_integer(charlist) do
+    :erlang.list_to_integer(charlist)
   end
 
   @doc """
-  Returns an integer whose text representation is `char_list` in base `base`.
+  Returns an integer whose text representation is `charlist` in base `base`.
 
   Inlined by the compiler.
 
@@ -577,9 +577,9 @@ defmodule List do
       1023
 
   """
-  @spec to_integer(char_list, 2..36) :: integer
-  def to_integer(char_list, base) do
-    :erlang.list_to_integer(char_list, base)
+  @spec to_integer(charlist, 2..36) :: integer
+  def to_integer(charlist, base) do
+    :erlang.list_to_integer(charlist, base)
   end
 
   @doc """

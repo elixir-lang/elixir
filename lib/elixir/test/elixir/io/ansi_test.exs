@@ -40,7 +40,7 @@ defmodule IO.ANSITest do
            "Hello, world!"
   end
 
-  test "format char list" do
+  test "format charlist" do
     assert IO.chardata_to_string(IO.ANSI.format('Hello, world!', true)) ==
            "Hello, world!"
     assert IO.chardata_to_string(IO.ANSI.format('Hello, world!', false)) ==

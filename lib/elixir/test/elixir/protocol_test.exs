@@ -232,7 +232,7 @@ defmodule ProtocolTest do
 
   test "derived implementation keeps local file/line info" do
     assert ProtocolTest.WithAny.ProtocolTest.ImplStruct.__info__(:compile)[:source] ==
-           String.to_char_list(__ENV__.file)
+           String.to_charlist(__ENV__.file)
   end
 
   test "cannot derive without any implementation" do
