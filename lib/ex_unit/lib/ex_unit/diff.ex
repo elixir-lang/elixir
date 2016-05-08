@@ -67,8 +67,56 @@ defmodule ExUnit.Diff do
   def format(_left, _right, _formatter), do: nil
 
   defp format_string(string1, string2, formatter) do
-    String.myers_difference(string1, string2)
+    string_difference(string1, string2)
     |> Enum.map_join(&format_fragment(&1, formatter))
+  end
+
+  defp string_difference(string1, string2) do
+    length1 = String.length(string1)
+    length2 = String.length(string2)
+    if bag_distance(string1, string2) / max(length1, length2) > 0.6 do
+      [del: string1, ins: string2]
+    else
+      String.myers_difference(string1, string2)
+    end
+  end
+
+  # The algorithm is outlined in the
+  # "String Matching with Metric Trees Using an Approximate Distance"
+  # paper by Ilaria Bartolini, Paolo Ciaccia, and Marco Patella.
+  defp bag_distance(string1, string2) do
+    bag1 = string_to_bag(string1)
+    bag2 = string_to_bag(string2)
+
+    diff1 = bag_difference(bag1, bag2)
+    diff2 = bag_difference(bag2, bag1)
+
+    max(diff1, diff2)
+  end
+
+  defp string_to_bag(string) do
+    string_to_bag(string, %{}, &(&1 + 1))
+  end
+
+  defp string_to_bag(string, bag, fun) do
+    case String.next_grapheme(string) do
+      {char, rest} ->
+        bag = Map.update(bag, char, 1, fun)
+        string_to_bag(rest, bag, fun)
+      nil ->
+        bag
+    end
+  end
+
+  defp bag_difference(bag1, bag2) do
+    Enum.reduce(bag1, 0, fn {char, count1}, sum ->
+      case Map.fetch(bag2, char) do
+        {:ok, count2} ->
+          sum + max(count1 - count2, 0)
+        :error ->
+          sum + count1
+      end
+    end)
   end
 
   defp format_list([], [], _formatter, _keyword?, acc) do
