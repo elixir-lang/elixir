@@ -198,7 +198,7 @@ defmodule GenServer do
   supervisor. The main use cases for this are:
 
     * The `GenServer` is disabled by configuration but might be enabled later.
-    * An error occured and it will be handled by a different mechanism than the
+    * An error occurred and it will be handled by a different mechanism than the
      `Supervisor`. Likely this approach involves calling `Supervisor.restart_child/2`
       after a delay to attempt a restart.
 
