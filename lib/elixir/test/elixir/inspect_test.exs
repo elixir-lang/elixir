@@ -200,21 +200,21 @@ defmodule Inspect.ListTest do
   end
 
   test "opt infer" do
-    assert inspect('john' ++ [0] ++ 'doe', char_lists: :infer) == "[106, 111, 104, 110, 0, 100, 111, 101]"
-    assert inspect('john', char_lists: :infer) == "'john'"
-    assert inspect([0], char_lists: :infer) == "[0]"
+    assert inspect('john' ++ [0] ++ 'doe', charlists: :infer) == "[106, 111, 104, 110, 0, 100, 111, 101]"
+    assert inspect('john', charlists: :infer) == "'john'"
+    assert inspect([0], charlists: :infer) == "[0]"
   end
 
   test "opt as strings" do
-    assert inspect('john' ++ [0] ++ 'doe', char_lists: :as_char_lists) == "'john\\0doe'"
-    assert inspect('john', char_lists: :as_char_lists) == "'john'"
-    assert inspect([0], char_lists: :as_char_lists) == "'\\0'"
+    assert inspect('john' ++ [0] ++ 'doe', charlists: :as_charlists) == "'john\\0doe'"
+    assert inspect('john', charlists: :as_charlists) == "'john'"
+    assert inspect([0], charlists: :as_charlists) == "'\\0'"
   end
 
   test "opt as lists" do
-    assert inspect('john' ++ [0] ++ 'doe', char_lists: :as_lists) == "[106, 111, 104, 110, 0, 100, 111, 101]"
-    assert inspect('john', char_lists: :as_lists) == "[106, 111, 104, 110]"
-    assert inspect([0], char_lists: :as_lists) == "[0]"
+    assert inspect('john' ++ [0] ++ 'doe', charlists: :as_lists) == "[106, 111, 104, 110, 0, 100, 111, 101]"
+    assert inspect('john', charlists: :as_lists) == "[106, 111, 104, 110]"
+    assert inspect([0], charlists: :as_lists) == "[0]"
   end
 
   test "non printable" do

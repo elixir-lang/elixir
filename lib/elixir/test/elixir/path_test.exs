@@ -90,8 +90,8 @@ defmodule PathTest do
     assert Path.relative_to_cwd(__ENV__.file) ==
            Path.relative_to(__ENV__.file, System.cwd!)
 
-    assert Path.relative_to_cwd(to_char_list(__ENV__.file)) ==
-           Path.relative_to(to_char_list(__ENV__.file), to_char_list(System.cwd!))
+    assert Path.relative_to_cwd(to_charlist(__ENV__.file)) ==
+           Path.relative_to(to_charlist(__ENV__.file), to_charlist(System.cwd!))
   end
 
   test "absname" do

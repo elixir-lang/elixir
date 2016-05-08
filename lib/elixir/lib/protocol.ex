@@ -129,8 +129,8 @@ defmodule Protocol do
   @doc """
   Extracts all protocols from the given paths.
 
-  The paths can be either a char list or a string. Internally
-  they are worked on as char lists, so passing them as lists
+  The paths can be either a charlist or a string. Internally
+  they are worked on as charlists, so passing them as lists
   avoid extra conversion.
 
   Does not load any of the protocols.
@@ -144,7 +144,7 @@ defmodule Protocol do
       true
 
   """
-  @spec extract_protocols([char_list | String.t]) :: [atom]
+  @spec extract_protocols([charlist | String.t]) :: [atom]
   def extract_protocols(paths) do
     extract_matching_by_attribute paths, 'Elixir.',
       fn module, attributes ->
@@ -159,8 +159,8 @@ defmodule Protocol do
   Extracts all types implemented for the given protocol from
   the given paths.
 
-  The paths can be either a char list or a string. Internally
-  they are worked on as char lists, so passing them as lists
+  The paths can be either a charlist or a string. Internally
+  they are worked on as charlists, so passing them as lists
   avoid extra conversion.
 
   Does not load any of the implementations.
@@ -174,9 +174,9 @@ defmodule Protocol do
       true
 
   """
-  @spec extract_impls(module, [char_list | String.t]) :: [atom]
+  @spec extract_impls(module, [charlist | String.t]) :: [atom]
   def extract_impls(protocol, paths) when is_atom(protocol) do
-    prefix = Atom.to_char_list(protocol) ++ '.'
+    prefix = Atom.to_charlist(protocol) ++ '.'
     extract_matching_by_attribute paths, prefix, fn
       _mod, attributes ->
         case attributes[:impl] do
@@ -200,7 +200,7 @@ defmodule Protocol do
     end
   end
 
-  defp list_dir(path), do: list_dir(to_char_list(path))
+  defp list_dir(path), do: list_dir(to_charlist(path))
 
   defp extract_from_file(path, file, prefix, callback) do
     if :lists.prefix(prefix, file) and :filename.extension(file) == '.beam' do

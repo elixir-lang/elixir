@@ -74,7 +74,7 @@ defmodule EEx.Compiler do
   defp wrap_expr(current, line, buffer, chars, state) do
     new_lines = List.duplicate(?\n, line - state.line)
     key = length(state.quoted)
-    placeholder = '__EEX__(' ++ Integer.to_char_list(key) ++ ');'
+    placeholder = '__EEX__(' ++ Integer.to_charlist(key) ++ ');'
     {current ++ placeholder ++ new_lines ++ chars,
      %{state | quoted: [{key, buffer} | state.quoted]}}
   end

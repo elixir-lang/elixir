@@ -94,7 +94,7 @@ defmodule CompileAssertion do
 
   defp format_rescue(expr) do
     result = try do
-      :elixir.eval(to_char_list(expr), [])
+      :elixir.eval(to_charlist(expr), [])
       nil
     rescue
       error -> {error.__struct__, Exception.message(error)}

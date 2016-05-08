@@ -2,7 +2,7 @@ defmodule EEx.Tokenizer do
   @moduledoc false
 
   @doc """
-  Tokenizes the given char list or binary.
+  Tokenizes the given charlist or binary.
 
   It returns {:ok, list} with the following tokens:
 
@@ -17,7 +17,7 @@ defmodule EEx.Tokenizer do
   def tokenize(bin, line, opts \\ [])
 
   def tokenize(bin, line, opts) when is_binary(bin) do
-    tokenize(String.to_char_list(bin), line, opts)
+    tokenize(String.to_charlist(bin), line, opts)
   end
 
   def tokenize(list, line, opts) do

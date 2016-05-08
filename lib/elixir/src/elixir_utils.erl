@@ -75,7 +75,7 @@ characters_to_list(Data) when is_list(Data) ->
 characters_to_list(Data) ->
   case elixir_compiler:get_opt(internal) of
     true  -> unicode:characters_to_list(Data);
-    false -> 'Elixir.String':to_char_list(Data)
+    false -> 'Elixir.String':to_charlist(Data)
   end.
 
 characters_to_binary(Data) when is_binary(Data) ->

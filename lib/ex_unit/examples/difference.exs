@@ -45,10 +45,10 @@ defmodule Difference do
     assert list1 == list2
   end
 
-  test "char lists" do
-    char_list1 = 'fox hops over \'the dog'
-    char_list2 = 'fox jumps over the lazy cat'
-    assert char_list1 == char_list2
+  test "charlists" do
+    charlist1 = 'fox hops over \'the dog'
+    charlist2 = 'fox jumps over the lazy cat'
+    assert charlist1 == charlist2
   end
 
   test "keyword lists" do

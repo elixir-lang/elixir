@@ -203,8 +203,8 @@ defmodule Kernel.CLI do
   defp expand_code_path(path) do
     path = Path.expand(path)
     case Path.wildcard(path) do
-      []   -> [to_char_list(path)]
-      list -> Enum.map(list, &to_char_list/1)
+      []   -> [to_charlist(path)]
+      list -> Enum.map(list, &to_charlist/1)
     end
   end
 

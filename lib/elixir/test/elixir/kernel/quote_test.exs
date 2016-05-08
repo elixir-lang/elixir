@@ -219,7 +219,7 @@ defmodule Kernel.QuoteTest.ErrorsTest do
     end
 
     mod  = Kernel.QuoteTest.ErrorsTest
-    file = __ENV__.file |> Path.relative_to_cwd |> String.to_char_list
+    file = __ENV__.file |> Path.relative_to_cwd |> String.to_charlist
     assert [{^mod, :add, 2, [file: ^file, line: 200]} | _] = System.stacktrace
   end
 
@@ -229,7 +229,7 @@ defmodule Kernel.QuoteTest.ErrorsTest do
     end
 
     mod  = Kernel.QuoteTest.ErrorsTest
-    file = __ENV__.file |> Path.relative_to_cwd |> String.to_char_list
+    file = __ENV__.file |> Path.relative_to_cwd |> String.to_charlist
     assert [{^mod, _, _, [file: ^file, line: 228]} | _] = System.stacktrace
   end
 end

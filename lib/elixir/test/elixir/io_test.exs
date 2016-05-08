@@ -8,7 +8,7 @@ defmodule IOTest do
   import ExUnit.CaptureIO
 
   test "read with count" do
-    {:ok, file} = File.open(Path.expand('fixtures/file.txt', __DIR__), [:char_list])
+    {:ok, file} = File.open(Path.expand('fixtures/file.txt', __DIR__), [:charlist])
     assert 'FOO' == IO.read(file, 3)
     assert File.close(file) == :ok
   end
@@ -42,7 +42,7 @@ defmodule IOTest do
   end
 
   test "getn with count" do
-    {:ok, file} = File.open(Path.expand('fixtures/file.txt', __DIR__), [:char_list])
+    {:ok, file} = File.open(Path.expand('fixtures/file.txt', __DIR__), [:charlist])
     assert 'F' == IO.getn(file, "λ")
     assert 'OO' == IO.getn(file, "", 2)
     assert '\n' == IO.getn(file, "λ", 99)
@@ -56,7 +56,7 @@ defmodule IOTest do
   end
 
   test "gets" do
-    {:ok, file} = File.open(Path.expand('fixtures/file.txt', __DIR__), [:char_list])
+    {:ok, file} = File.open(Path.expand('fixtures/file.txt', __DIR__), [:charlist])
     assert 'FOO\n' == IO.gets(file, "")
     assert :eof == IO.gets(file, "")
     assert File.close(file) == :ok

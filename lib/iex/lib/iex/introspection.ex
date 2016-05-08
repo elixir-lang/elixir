@@ -142,7 +142,7 @@ defmodule IEx.Introspection do
   defp has_content?({_, _, _, _, false}),
     do: false
   defp has_content?({{name, _}, _, _, _, nil}),
-    do: hd(Atom.to_char_list(name)) != ?_
+    do: hd(Atom.to_charlist(name)) != ?_
   defp has_content?({_, _, _, _, _}),
     do: true
 

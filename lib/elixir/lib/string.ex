@@ -1701,7 +1701,7 @@ defmodule String do
   end
 
   @doc """
-  Converts a string into a char list.
+  Converts a string into a charlist.
 
   Specifically, this functions takes a UTF-8 encoded binary and returns a list of its integer
   codepoints. It is similar to `codepoints/1` except that the latter returns a list of codepoints as
@@ -1712,11 +1712,11 @@ defmodule String do
 
   ## Examples
 
-      iex> String.to_char_list("æß")
+      iex> String.to_charlist("æß")
       'æß'
   """
-  @spec to_char_list(t) :: char_list
-  def to_char_list(string) when is_binary(string) do
+  @spec to_charlist(t) :: charlist
+  def to_charlist(string) when is_binary(string) do
     case :unicode.characters_to_list(string) do
       result when is_list(result) ->
         result
@@ -2020,4 +2020,9 @@ defmodule String do
   defp follow_snake(path) do
     {:cont, path}
   end
+
+  # TODO: Deprecate by v1.5
+  @doc false
+  @spec to_char_list(t) :: charlist
+  def to_char_list(string), do: String.to_charlist(string)
 end

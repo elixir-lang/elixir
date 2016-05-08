@@ -204,7 +204,7 @@ defmodule Kernel.SpecialForms do
       <<1, 2, 3>>
 
   Elixir also accepts by default the segment to be a literal
-  string or a literal char list, which are by default expanded to integers:
+  string or a literal charlist, which are by default expanded to integers:
 
       iex> <<0, "foo">>
       <<0, 102, 111, 111>>
@@ -222,7 +222,7 @@ defmodule Kernel.SpecialForms do
       "foo"
 
   The utf8, utf16, and utf32 types are for Unicode codepoints. They
-  can also be applied to literal strings and char lists:
+  can also be applied to literal strings and charlists:
 
       iex> <<"foo"::utf16>>
       <<0, 102, 0, 111, 0, 111>>

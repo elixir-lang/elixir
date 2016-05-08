@@ -577,8 +577,8 @@ defmodule FileTest do
     end
 
     test "cp_r with src dir and dest dir using lists" do
-      src  = fixture_path("cp_r") |> to_char_list
-      dest = tmp_path("tmp") |> to_char_list
+      src  = fixture_path("cp_r") |> to_charlist
+      dest = tmp_path("tmp") |> to_charlist
 
       File.mkdir(dest)
 
@@ -691,7 +691,7 @@ defmodule FileTest do
 
     test "regular" do
       assert File.regular?(__ENV__.file)
-      assert File.regular?(String.to_char_list(__ENV__.file))
+      assert File.regular?(String.to_charlist(__ENV__.file))
       refute File.regular?("#{__ENV__.file}.unknown")
     end
 
@@ -789,8 +789,8 @@ defmodule FileTest do
       assert File.close(file) == :ok
     end
 
-    test "open file with char list" do
-      {:ok, file} = File.open(fixture_path("file.txt"), [:char_list])
+    test "open file with charlist" do
+      {:ok, file} = File.open(fixture_path("file.txt"), [:charlist])
       assert IO.gets(file, "") == 'FOO\n'
       assert File.close(file) == :ok
     end
@@ -832,7 +832,7 @@ defmodule FileTest do
     end
 
     test "open utf8 and charlist" do
-      {:ok, file} = File.open(fixture_path("utf8.txt"), [:char_list, :utf8])
+      {:ok, file} = File.open(fixture_path("utf8.txt"), [:charlist, :utf8])
       assert IO.gets(file, "") == [1056, 1091, 1089, 1089, 1082, 1080, 1081, 10]
       assert File.close(file) == :ok
     end
@@ -880,7 +880,7 @@ defmodule FileTest do
     end
 
     test "mkdir with list" do
-      fixture = tmp_path("tmp_test") |> to_char_list
+      fixture = tmp_path("tmp_test") |> to_charlist
       try do
         refute File.exists?(fixture)
         assert File.mkdir(fixture) == :ok
@@ -944,7 +944,7 @@ defmodule FileTest do
     end
 
     test "mkdir_p with nested directory and list" do
-      base    = tmp_path("tmp_test") |> to_char_list
+      base    = tmp_path("tmp_test") |> to_charlist
       fixture = Path.join(base, "test")
       refute File.exists?(base)
 
@@ -1115,8 +1115,8 @@ defmodule FileTest do
       File.rm(tmp_path("tmp/from"))
     end
 
-    test "rm_rf with char list" do
-      fixture = tmp_path("tmp") |> to_char_list
+    test "rm_rf with charlist" do
+      fixture = tmp_path("tmp") |> to_charlist
       File.mkdir(fixture)
       File.cp_r!(fixture_path("cp_r"), fixture)
 

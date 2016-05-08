@@ -605,18 +605,18 @@ defmodule StringTest do
     refute String.contains? "elixir of life", ["death", "mercury", "eternal life"]
   end
 
-  test "to char list" do
-    assert String.to_char_list("æß")  == [?æ, ?ß]
-    assert String.to_char_list("abc") == [?a, ?b, ?c]
+  test "to charlist" do
+    assert String.to_charlist("æß")  == [?æ, ?ß]
+    assert String.to_charlist("abc") == [?a, ?b, ?c]
 
     assert_raise UnicodeConversionError,
                  "invalid encoding starting at <<223, 255>>", fn ->
-      String.to_char_list(<< 0xDF, 0xFF >>)
+      String.to_charlist(<< 0xDF, 0xFF >>)
     end
 
     assert_raise UnicodeConversionError,
                  "incomplete encoding starting at <<195>>", fn ->
-      String.to_char_list(<< 106, 111, 115, 195 >>)
+      String.to_charlist(<< 106, 111, 115, 195 >>)
     end
   end
 

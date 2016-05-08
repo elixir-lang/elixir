@@ -407,6 +407,8 @@ defmodule Kernel.Typespec do
 
   defp elixir_builtin_type?(:as_boolean, 1), do: true
   defp elixir_builtin_type?(:struct, 0), do: true
+  defp elixir_builtin_type?(:charlist, 0), do: true
+  # TODO: Deprecate char_list type by v1.5
   defp elixir_builtin_type?(:char_list, 0), do: true
   defp elixir_builtin_type?(:keyword, 0), do: true
   defp elixir_builtin_type?(:keyword, 1), do: true
@@ -634,8 +636,10 @@ defmodule Kernel.Typespec do
   end
 
   # Special shortcut(s)
-  defp typespec_to_ast({:remote_type, line, [{:atom, _, :elixir}, {:atom, _, :char_list}, []]}) do
-    typespec_to_ast({:type, line, :char_list, []})
+  # TODO: Deprecate char_list type by v1.5
+  defp typespec_to_ast({:remote_type, line, [{:atom, _, :elixir}, {:atom, _, type}, []]})
+      when type in [:charlist, :char_list] do
+    typespec_to_ast({:type, line, :charlist, []})
   end
 
   defp typespec_to_ast({:remote_type, line, [{:atom, _, :elixir}, {:atom, _, :struct}, []]}) do
@@ -877,13 +881,14 @@ defmodule Kernel.Typespec do
   # Handle local calls
   defp typespec({type, meta, arguments}, vars, caller) when type in [:string, :nonempty_string] do
     :elixir_errors.warn caller.line, caller.file, "#{type}() type use is discouraged. For character lists, use " <>
-      "char_list() type, for strings, String.t()\n#{Exception.format_stacktrace(Macro.Env.stacktrace(caller))}"
+      "charlist() type, for strings, String.t()\n#{Exception.format_stacktrace(Macro.Env.stacktrace(caller))}"
     arguments = for arg <- arguments, do: typespec(arg, vars, caller)
     {:type, line(meta), type, arguments}
   end
 
-  defp typespec({:char_list, _meta, []}, vars, caller) do
-    typespec((quote do: :elixir.char_list()), vars, caller)
+  # TODO: Deprecate char_list type by v1.5
+  defp typespec({type, _meta, []}, vars, caller) when type in [:charlist, :char_list] do
+    typespec((quote do: :elixir.charlist()), vars, caller)
   end
 
   defp typespec({:struct, _meta, []}, vars, caller) do
