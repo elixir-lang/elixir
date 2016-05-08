@@ -225,9 +225,17 @@ defmodule ExUnit.Formatter do
   defp format_diff(struct, formatter) do
     if_value(struct.left, fn left ->
       if_value(struct.right, fn right ->
-        ExUnit.Diff.format(left, right, formatter) || ExUnit.AssertionError.no_value
+        format_diff(left, right, formatter) || ExUnit.AssertionError.no_value
       end)
     end)
+  end
+
+  defp format_diff(left, right, formatter) do
+    task = Task.async(ExUnit.Diff, :format, [left, right, formatter])
+    case Task.yield(task, 1_500) || Task.shutdown(task, :brutal_kill) do
+      {:ok, diff} -> diff
+      nil -> nil
+    end
   end
 
   defp format_stacktrace([], _case, _test, _color) do
