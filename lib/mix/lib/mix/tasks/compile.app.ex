@@ -100,7 +100,7 @@ defmodule Mix.Tasks.Compile.App do
       contents   = {:application, app, properties}
 
       Mix.Project.ensure_structure()
-      File.write!(target, :io_lib.format("~p.", [contents]))
+      File.write!(target, :io_lib.format("~p.", [contents]), [:utf8])
       Mix.shell.info "Generated #{app} app"
       :ok
     else

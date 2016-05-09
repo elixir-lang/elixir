@@ -5,7 +5,8 @@ defmodule Mix.Tasks.Compile.AppTest do
 
   defmodule CustomProject do
     def project do
-      [app: :custom_project, version: "0.2.0"]
+      [app: :custom_project, version: "0.2.0",
+       description: "Some UTF-8 description (uma descrição em UTF-8)"]
     end
 
     def application do
@@ -66,6 +67,7 @@ defmodule Mix.Tasks.Compile.AppTest do
       assert contents =~ "0.2.0"
       assert contents =~ "{maxT,infinity}"
       assert contents =~ "{applications,[kernel,stdlib,elixir,example_app]}"
+      assert contents =~ "Some UTF-8 description (uma descrição em UTF-8)"
     end
   end
 
