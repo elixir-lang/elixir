@@ -700,7 +700,7 @@ defmodule File do
   """
   @spec write(Path.t, iodata, [mode]) :: :ok | {:error, posix}
   def write(path, content, modes \\ []) do
-    F.write_file(IO.chardata_to_string(path), content, modes)
+    F.write_file(IO.chardata_to_string(path), content, write_defaults(modes))
   end
 
   @doc """
@@ -708,7 +708,7 @@ defmodule File do
   """
   @spec write!(Path.t, iodata, [mode]) :: :ok | no_return
   def write!(path, content, modes \\ []) do
-    case F.write_file(path, content, modes) do
+    case F.write_file(path, content, write_defaults(modes)) do
       :ok -> :ok
       {:error, reason} ->
         raise File.Error, reason: reason, action: "write to file",
@@ -1337,6 +1337,13 @@ defmodule File do
 
   defp open_defaults([], true),  do: [:binary]
   defp open_defaults([], false), do: []
+
+  defp write_defaults([:utf8 | t]),
+    do: [{:encoding, :utf8} | write_defaults(t)]
+  defp write_defaults([h | t]),
+    do: [h | write_defaults(t)]
+  defp write_defaults([]),
+    do: []
 
   defp maybe_to_string(path) when is_pid(path),
     do: path
