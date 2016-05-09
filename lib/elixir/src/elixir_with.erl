@@ -68,27 +68,30 @@ translate(Meta, Args, S) ->
   CaseExpr =
     case ExprList of
       [{else, ElseExpr}] ->
-        build_else(Meta, build_cases(Parts, {ok, Expr}, fun(X) -> {error, X} end), ElseExpr);
+        build_else(Meta, build_case(Parts, {ok, Expr}, fun(X) -> {error, X} end), ElseExpr);
       [] ->
-        build_cases(Parts, Expr, fun(X) -> X end)
+        build_case(Parts, Expr, fun(X) -> X end)
     end,
   {TC, TS} = elixir_translator:translate(CaseExpr, S#elixir_scope{extra=nil}),
   {TC, elixir_scope:mergec(S, TS)}.
 
-build_cases([{'<-', Meta, [Left, Right]} | Rest], DoExpr, Wrapper) ->
-  Other = {'other', Meta, ?MODULE},
+build_case([{'<-', Meta, [{Name, _, Ctx}, _] = Args} | Rest], DoExpr, Wrapper)
+    when is_atom(Name) andalso is_atom(Ctx) ->
+  build_case([{'=', Meta, Args} | Rest], DoExpr, Wrapper);
+build_case([{'<-', Meta, [Left, Right]} | Rest], DoExpr, Wrapper) ->
+  Other = {other, Meta, ?MODULE},
   Clauses = [
-    {'->', Meta, [[Left], build_cases(Rest, DoExpr, Wrapper)]},
-    {'->', Meta, [[Other], Wrapper(Other)]}
+    {'->', ?generated, [[Left], build_case(Rest, DoExpr, Wrapper)]},
+    {'->', ?generated, [[Other], Wrapper(Other)]}
   ],
-  {'case', Meta, [Right, [{do, Clauses}]]};
-build_cases([Expr | Rest], DoExpr, Wrapper) ->
-  {'__block__', [], [Expr, build_cases(Rest, DoExpr, Wrapper)]};
-build_cases([], DoExpr, _Wrapper) ->
+  {'case', ?generated, [Right, [{do, Clauses}]]};
+build_case([Expr | Rest], DoExpr, Wrapper) ->
+  {'__block__', [], [Expr, build_case(Rest, DoExpr, Wrapper)]};
+build_case([], DoExpr, _Wrapper) ->
   DoExpr.
 
 build_else(Meta, WithCases, ElseClauses) ->
-  Result = {'result', Meta, ?MODULE},
+  Result = {result, Meta, ?MODULE},
   Clauses = [
     {'->', Meta, [[{ok, Result}], Result]}
     | else_to_error_clause(ElseClauses)
@@ -100,5 +103,5 @@ else_to_error_clause(Clauses) ->
     {'->', Meta, [[Match], Expr]} <- Clauses].
 
 build_raise(Meta) ->
-  Other = {'raise', Meta, ?MODULE},
+  Other = {raise, Meta, ?MODULE},
   {'->', ?generated, [[{error, Other}], {{'.', Meta, [erlang, error]}, Meta, [{with_clause, Other}]}]}.

@@ -4,7 +4,8 @@ defmodule Kernel.WithTest do
   use ExUnit.Case, async: true
 
   test "basic with" do
-    assert with(res <- 41, do: res + 1) == 42
+    assert with({:ok, res} <- ok(41), do: res) == 41
+    assert with(res <- four(), do: res + 10) == 14
   end
 
   test "matching with" do
@@ -25,7 +26,7 @@ defmodule Kernel.WithTest do
   end
 
   test "two levels with" do
-    result = with(n1 <- 11, n2 <- 22, do: n1 + n2)
+    result = with({:ok, n1} <- ok(11), n2 <- 22, do: n1 + n2)
     assert result == 33
 
     result = with(n1 <- 11, {:ok, n2} <- :error, do: n1 + n2)
