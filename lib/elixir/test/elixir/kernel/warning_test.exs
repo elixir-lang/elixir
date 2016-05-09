@@ -693,9 +693,9 @@ defmodule Kernel.WarningTest do
   test "pipe without explicit parentheses" do
     assert capture_err(fn ->
       Code.eval_string """
-        [5, 6, 7, 3]
-        |> Enum.map_join "", &(Integer.to_string(&1))
-        |> String.to_integer
+      [5, 6, 7, 3]
+      |> Enum.map_join "", &(Integer.to_string(&1))
+      |> String.to_integer
       """
     end) =~ "nofile:2: warning: you are piping into a function call without parentheses"
   end
