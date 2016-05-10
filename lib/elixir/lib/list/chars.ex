@@ -61,3 +61,9 @@ defimpl List.Chars, for: Float do
     Float.to_charlist(thing, compact: true, decimals: @digits)
   end
 end
+
+defimpl List.Chars, for: Range do
+  def to_charlist(thing) do
+    Range.to_charlist(thing)
+  end
+end

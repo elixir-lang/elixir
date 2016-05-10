@@ -389,4 +389,10 @@ defmodule Inspect.OthersTest do
     "~r/\\a\\x08\\x7F\\x1B\\f\\n\\r \\t\\v\\//" = inspect(Regex.compile!("\a\b\d\e\f\n\r\s\t\v/"))
     "~r/\\a\\b\\d\\e\\f\\n\\r\\s\\t\\v\\//" = inspect(~r<\a\b\d\e\f\n\r\s\t\v/>)
   end
+
+  test "range" do
+    assert inspect(1..2) ==  "1..2"
+    assert inspect(-2..-1) ==  "-2..-1"
+    assert inspect(33..33) ==  "33..33"
+  end
 end
