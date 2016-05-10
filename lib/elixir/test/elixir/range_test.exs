@@ -42,7 +42,10 @@ defmodule RangeTest do
 
   test "inspect" do
     assert inspect(1..3) == "1..3"
-    assert inspect(3..1) == "3..1"
+    assert inspect(1..-3) == "1..-3"
+    assert inspect(-3..1) == "-3..1"
+    assert inspect(-1..-3) == "-1..-3"
+    assert inspect(17..17) == "17..17"
   end
 
   test "integer only" do
