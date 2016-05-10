@@ -161,10 +161,10 @@ defmodule Integer do
   @spec parse(binary, 2..36) :: {integer, binary} | :error | no_return
   def parse(binary, base \\ 10)
 
-  def parse("", base) when is_integer(base) and base in 2..36,
+  def parse("", base) when base in 2..36,
     do: :error
 
-  def parse(binary, base) when is_binary(binary) and is_integer(base) and base in 2..36 do
+  def parse(binary, base) when is_binary(binary) and base in 2..36 do
     parse_in_base(binary, base)
   end
 
