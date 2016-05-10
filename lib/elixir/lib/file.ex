@@ -246,17 +246,16 @@ defmodule File do
     end
   end
 
- @doc """
- +  Returns `binary`, which is part of the contents of `path` starting at `start` and of length
- +  `bytes`
- +  """
- +  @spec read(Path.t, pos_integer, pos_integer) :: binary 
- +  def read(path, start, bytes) do
- +    {ok, f} = :file.open(path, [:binary])
- +    {ok, data} = :file.pread(f, start, bytes)
- +    :file.close(f)
- +    data
- +  end
+  @doc """
+  Returns `binary`, which is part of the contents of `path` starting at `start` and of length `bytes`
+  """
+  @spec read(Path.t, pos_integer, pos_integer) :: binary 
+  def read(path, start, bytes) do
+    {ok, f} = :file.open(path, [:binary])
+    {ok, data} = :file.pread(f, start, bytes)
+    :file.close(f)
+    data
+  end
  
   @doc """
   Returns information about the `path`. If it exists, it
