@@ -251,8 +251,8 @@ defmodule File do
   """
   @spec read(Path.t, pos_integer, pos_integer) :: binary 
   def read(path, start, bytes) do
-    {ok, f} = :file.open(path, [:binary])
-    {ok, data} = :file.pread(f, start, bytes)
+    {:ok, f} = :file.open(path, [:binary])
+    {:ok, data} = :file.pread(f, start, bytes)
     :file.close(f)
     data
   end
