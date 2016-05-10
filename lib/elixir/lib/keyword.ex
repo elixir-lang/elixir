@@ -707,7 +707,7 @@ defmodule Keyword do
 
   Returns a tuple with the new list and the old list with removed keys.
 
-  Keys for which there are no entires in the keyword list are ignored.
+  Keys for which there are no entries in the keyword list are ignored.
 
   Entries with duplicated keys end up in the same keyword list.
 
