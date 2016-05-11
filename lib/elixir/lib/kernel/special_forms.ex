@@ -1753,6 +1753,23 @@ defmodule Kernel.SpecialForms do
   catch values also support `:error`, as in Erlang, although it is
   commonly avoided in favor of raise/rescue control mechanisms.
 
+  ## After clauses
+
+  An `after` clause allows you to define cleanup logic that will be invoked both
+  when the tried block of code succeeds and also when an error is raised. Note
+  that the process will exit as usually when receiving an exit signal that causes
+  it to exit abruptly and so the `after` clause is not guaranteed to be executed.
+  Luckily, most resources in Elixir--such as open files, ETS tables, ports, sockets,
+  etc--are linked to or monitor the owning process and will automatically clean
+  themselves up if that process exits.
+
+      File.write!("tmp/story.txt", "Hello, World")
+      try do
+        do_something_with("tmp/story.txt")
+      after
+        File.rm("tmp/story.txt")
+      end
+
   ## Else clauses
 
   Else clauses allow the result of the expression to be pattern
