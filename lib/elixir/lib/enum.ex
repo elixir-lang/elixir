@@ -870,6 +870,9 @@ defmodule Enum do
       iex> Enum.flat_map([{1, 3}, {4, 6}], fn({x, y}) -> x..y end)
       [1, 2, 3, 4, 5, 6]
 
+      iex> Enum.flat_map([:a, :b, :c], fn(x) -> [[x]] end)
+      [[:a], [:b], [:c]]
+
   """
   @spec flat_map(t, (element -> t)) :: list
   def flat_map(enumerable, fun) do

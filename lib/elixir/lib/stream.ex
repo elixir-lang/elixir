@@ -332,13 +332,17 @@ defmodule Stream do
 
   @doc """
   Creates a stream that will apply the given function on enumeration and
-  flatten the result.
+  flatten the result, but only one level deep.
 
   ## Examples
 
       iex> stream = Stream.flat_map([1, 2, 3], fn(x) -> [x, x * 2] end)
       iex> Enum.to_list(stream)
       [1, 2, 2, 4, 3, 6]
+
+      iex> stream = Stream.flat_map([1, 2, 3], fn(x) -> [[x]] end)
+      iex> Enum.to_list(stream)
+      [[1], [2], [3]]
 
   """
   @spec flat_map(Enumerable.t, (element -> Enumerable.t)) :: Enumerable.t
