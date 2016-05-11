@@ -9,12 +9,12 @@ defprotocol List.Chars do
   by Kernel invokes this protocol.
   """
 
-  def to_charlist(thing)
+  def to_charlist(term)
 
   # TODO: Deprecate by v1.5
   @doc false
-  Kernel.def to_char_list(thing) do
-    __MODULE__.to_charlist(thing)
+  Kernel.def to_char_list(term) do
+    __MODULE__.to_charlist(term)
   end
 end
 
@@ -24,16 +24,16 @@ end
 
 defimpl List.Chars, for: BitString do
   @doc """
-  Returns the given binary converted to a charlist.
+  Returns the given binary `term` converted to a charlist.
   """
-  def to_charlist(thing) when is_binary(thing) do
-    String.to_charlist(thing)
+  def to_charlist(term) when is_binary(term) do
+    String.to_charlist(term)
   end
 
-  def to_charlist(thing) do
+  def to_charlist(term) do
     raise Protocol.UndefinedError,
              protocol: @protocol,
-                value: thing,
+                value: term,
           description: "cannot convert a bitstring to a charlist"
   end
 end
@@ -44,8 +44,8 @@ defimpl List.Chars, for: List do
 end
 
 defimpl List.Chars, for: Integer do
-  def to_charlist(thing) do
-    Integer.to_charlist(thing)
+  def to_charlist(term) do
+    Integer.to_charlist(term)
   end
 end
 
@@ -53,11 +53,11 @@ defimpl List.Chars, for: Float do
   @digits 20
   @limit  :math.pow(10, @digits)
 
-  def to_charlist(thing) when thing > @limit do
-    Float.to_charlist(thing, scientific: @digits)
+  def to_charlist(term) when term > @limit do
+    Float.to_charlist(term, scientific: @digits)
   end
 
-  def to_charlist(thing) do
-    Float.to_charlist(thing, compact: true, decimals: @digits)
+  def to_charlist(term) do
+    Float.to_charlist(term, compact: true, decimals: @digits)
   end
 end
