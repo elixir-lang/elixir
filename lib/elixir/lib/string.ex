@@ -511,7 +511,7 @@ defmodule String do
       "leña"
 
   """
-  @spec normalize(t, atom) :: boolean
+  @spec normalize(t, atom) :: t
   defdelegate normalize(string, form), to: String.Normalizer
 
   @doc """
