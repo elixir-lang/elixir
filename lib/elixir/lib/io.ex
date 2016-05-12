@@ -188,6 +188,22 @@ defmodule IO do
   end
 
   @doc """
+  Writes `warning` as a binary to stderr.
+
+  It returns `:ok` if it succeeds.
+
+  ## Examples
+
+      IO.warn "variable bar is unused"
+      #=> "warning: variable bar is unused"
+
+  """
+  @spec warn(chardata | String.Chars.t) :: :ok
+  def warn(warning) do
+    :io.put_chars map_dev(:stderr), ["warning: ", to_chardata(warning), ?\n]
+  end
+
+  @doc """
   Inspects and writes the given `item` to the device.
 
   It enables pretty printing by default with width of

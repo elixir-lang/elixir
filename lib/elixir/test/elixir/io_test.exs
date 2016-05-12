@@ -118,6 +118,13 @@ defmodule IOTest do
     assert capture_io(fn -> IO.puts(13) end) == "13\n"
   end
 
+  test "warn with chardata" do
+    assert capture_io(:stderr, fn -> IO.warn("hello") end) == "warning: hello\n"
+    assert capture_io(:stderr, fn -> IO.warn('hello') end) == "warning: hello\n"
+    assert capture_io(:stderr, fn -> IO.warn(:hello) end) == "warning: hello\n"
+    assert capture_io(:stderr, fn -> IO.warn(13) end) == "warning: 13\n"
+  end
+
   test "write with chardata" do
     assert capture_io(fn -> IO.write("hello") end) == "hello"
     assert capture_io(fn -> IO.write('hello') end) == "hello"
