@@ -381,9 +381,12 @@ defmodule Stream do
   end
 
   @doc """
-  Creates a stream that emits a value after the given period `n` in milliseconds.
+  Creates a stream that emits a value after the given period `n`
+  in milliseconds.
 
   The values emitted are an increasing counter starting at `0`.
+  This operation will block the caller by the given interval
+  every time a new item is streamed.
 
   ## Examples
 
@@ -614,7 +617,8 @@ defmodule Stream do
   @doc """
   Creates a stream that emits a single value after `n` milliseconds.
 
-  The value emitted is `0`.
+  The value emitted is `0`. This operation will block the caller by
+  the given time until the item is streamed. 
 
   ## Examples
 
