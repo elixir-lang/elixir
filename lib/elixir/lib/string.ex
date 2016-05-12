@@ -1195,8 +1195,8 @@ defmodule String do
 
   @doc false
   def valid_character?(string) do
-    IO.write :stderr, "warning: String.valid_character?/1 is deprecated, please use valid?/1 instead\n" <>
-                      Exception.format_stacktrace
+    IO.warn "String.valid_character?/1 is deprecated, please use valid?/1 instead\n" <>
+            Exception.format_stacktrace
     case string do
       <<_::utf8>> -> valid?(string)
       _ -> false

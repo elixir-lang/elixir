@@ -339,8 +339,8 @@ defmodule Task do
 
   @doc false
   def find(tasks, msg) do
-    IO.write :stderr, "warning: Task.find/2 is deprecated, please match on the message directly\n" <>
-                      Exception.format_stacktrace
+    IO.warn "Task.find/2 is deprecated, please match on the message directly\n" <>
+            Exception.format_stacktrace
     do_find(tasks, msg)
   end
 
