@@ -158,7 +158,9 @@ defmodule Stream do
   """
   @spec chunk(Enumerable.t, pos_integer, pos_integer) :: Enumerable.t
   @spec chunk(Enumerable.t, pos_integer, pos_integer, Enumerable.t | nil) :: Enumerable.t
-  def chunk(enum, n, step, leftover \\ nil) when n > 0 and step > 0 do
+  def chunk(enum, n, step, leftover \\ nil) when n > 0 and step > 0
+    and step > 0 and is_integer(n) and is_integer(step) do
+
     limit = :erlang.max(n, step)
     if is_nil(leftover) do
       lazy enum, {[], 0}, fn(f1) -> R.chunk(n, step, limit, f1) end
