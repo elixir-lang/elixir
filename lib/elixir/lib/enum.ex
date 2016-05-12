@@ -882,7 +882,7 @@ defmodule Enum do
   end
 
   @doc """
-  Maps and reduces an enumerable, flattening the given results.
+  Maps and reduces an enumerable, flattening the given results (only one level deep).
 
   It expects an accumulator and a function that receives each stream
   item, and must return a tuple containing a new stream (often a list)
@@ -897,6 +897,9 @@ defmodule Enum do
       ...>   if acc < n, do: {[i], acc + 1}, else: {:halt, acc}
       ...> end)
       {[1, 2, 3], 3}
+
+      iex> Enum.flat_map_reduce(1..5, 0, fn(i, acc) -> {[[i]], acc + i} end)
+      {[[1], [2], [3], [4], [5]], 15}
 
   """
   @spec flat_map_reduce(t, acc, fun) :: {[any], any} when
