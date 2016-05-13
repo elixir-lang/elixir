@@ -505,7 +505,7 @@ defmodule String.Normalizer do
     {n, rest} = String.Unicode.next_grapheme_size(binary)
     part = :binary.part(binary, 0, n)
     case n do
-      1 -> normalize_nfc(rest, acc <> part)
+      1 -> normalize_nfd(rest, acc <> part)
       _ -> normalize_nfd(rest, acc <> canonical_order(part, []))
     end
   end

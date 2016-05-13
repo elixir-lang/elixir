@@ -505,13 +505,13 @@ defmodule String do
   ## Examples
 
       iex> String.normalize("yêṩ", :nfd)
-      "yêṩ"
+      "yêṩ"
 
       iex> String.normalize("leña", :nfc)
       "leña"
 
   """
-  @spec normalize(t, atom) :: boolean
+  @spec normalize(t, atom) :: t
   defdelegate normalize(string, form), to: String.Normalizer
 
   @doc """
