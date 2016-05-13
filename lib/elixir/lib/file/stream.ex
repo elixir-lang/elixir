@@ -20,14 +20,15 @@ defmodule File.Stream do
     raw = :lists.keyfind(:encoding, 1, modes) == false
 
     modes =
-      if raw do
-        if :lists.keyfind(:read_ahead, 1, modes) == {:read_ahead, false} do
-          [:raw | modes]
-        else
-          [:raw, :read_ahead | modes]
-        end
-      else
-        modes
+      case raw do
+        true ->
+          if :lists.keyfind(:read_ahead, 1, modes) == {:read_ahead, false} do
+            [:raw | modes]
+          else
+            [:raw, :read_ahead | modes]
+          end
+        false ->
+          modes
       end
 
     %File.Stream{path: path, modes: modes, raw: raw, line_or_bytes: line_or_bytes}
