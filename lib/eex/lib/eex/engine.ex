@@ -90,8 +90,7 @@ defmodule EEx.Engine do
         keys = Enum.map(assigns, &elem(&1, 0))
         IO.warn "assign @#{key} not available in eex template. " <>
                 "Please ensure all assigns are given as options. " <>
-                "Available assigns: #{inspect keys}\n" <>
-                Exception.format_stacktrace
+                "Available assigns: #{inspect keys}"
         nil
     end
   end

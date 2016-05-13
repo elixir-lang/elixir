@@ -1486,8 +1486,7 @@ defmodule Enum do
   end
 
   defp group_by_dict(enumerable, dict, fun) do
-    IO.warn "Enum.group_by/3 with a dictionary is deprecated, please use a map instead\n" <>
-            Exception.format_stacktrace
+    IO.warn "Enum.group_by/3 with a dictionary is deprecated, please use a map instead"
     reduce(reverse(enumerable), dict, fn(entry, categories) ->
       Dict.update(categories, fun.(entry), [entry], &[entry | &1])
     end)
