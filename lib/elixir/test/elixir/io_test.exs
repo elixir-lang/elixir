@@ -1,7 +1,7 @@
 Code.require_file "test_helper.exs", __DIR__
 
 defmodule IOTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case
 
   doctest IO
 
