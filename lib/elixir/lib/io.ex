@@ -189,28 +189,49 @@ defmodule IO do
 
   @doc """
   Writes `message` as a binary to stderr, along with the given stacktrace
-  `trace`.
+  `trace`. An empty list can be passed to avoid printing a stacktrace.
 
-  If no trace is given the current stacktrace will be used. An empty list can
-  be passed to avoid printing a stacktrace.
+  It returns `:ok` if it succeeds.
+
+  ## Examples
+
+      trace = [{IEx.Evaluator, :eval, 4, [file: 'evaluator.ex', line: 108]}]
+      IO.warn "variable bar is unused", trace
+      #=> \"""
+      #=> warning: variable bar is unused
+      #=>     evaluator.ex:108: IEx.Evaluator.eval/4
+      #=> \"""
+  """
+  @spec warn(chardata | String.Chars.t, [...]) :: :ok
+  def warn(message, []) do
+    :io.put_chars(map_dev(:stderr), ["warning: ", to_chardata(message), ?\n])
+  end
+  def warn(message, trace) when is_list(trace) do
+    formatted = trace |> Exception.format_stacktrace
+    :io.put_chars(
+      map_dev(:stderr),
+      ["warning: ", to_chardata(message), ?\n, formatted]
+    )
+  end
+
+  @doc """
+  Writes `message` as a binary to stderr, along with the current stacktrace.
 
   It returns `:ok` if it succeeds.
 
   ## Examples
 
       IO.warn "variable bar is unused"
-      #=> "warning: variable bar is unused"
+      #=> \"""
+      #=> warning: variable bar is unused
+      #=>     evaluator.ex:108: IEx.Evaluator.eval/4
+      #=> \"""
 
   """
-  @spec warn(chardata | String.Chars.t, [...]) :: :ok
-  def warn(message, trace \\ nil) do
-    formatted = (trace || case Process.info(self, :current_stacktrace) do
-      {:current_stacktrace, t} -> Enum.drop(t, 3)
-    end) |> Exception.format_stacktrace
-    :io.put_chars(
-      map_dev(:stderr),
-      ["warning: ", to_chardata(message), ?\n, formatted]
-    )
+  @spec warn(chardata | String.Chars.t) :: :ok
+  def warn(message) do
+    {:current_stacktrace, trace} = Process.info(self, :current_stacktrace)
+    warn(message, Enum.drop(trace, 2))
   end
 
   @doc """
