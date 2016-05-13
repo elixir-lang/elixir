@@ -126,7 +126,7 @@ defmodule Inspect.Algebra do
   `:flat` (breaks as spaces) and `:break` (breaks as newlines).
   Implementing the same logic in a strict language such as Elixir leads
   to an exponential growth of possible documents, unless document groups
-  are encoded explictly as `:flat` or `:break`. Those groups are then reduced
+  are encoded explicitly as `:flat` or `:break`. Those groups are then reduced
   to a simple document, where the layout is already decided, per [Lindig][0].
 
   This implementation slightly changes the semantic of Lindig's algorithm
