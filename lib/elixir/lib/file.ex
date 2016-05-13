@@ -75,9 +75,9 @@ defmodule File do
   @type posix :: :file.posix()
   @type io_device :: :file.io_device()
   @type stat_options :: [time: :local | :universal | :posix]
-  @type mode :: :append | :binary | :compressed | :delayed_write | :exclusive |
-    :raw | :read | :read_ahead | :sync | :write |
-    {:encoding, :latin1 | :unicode | :utf16 | :utf32 | :utf8 |
+  @type mode :: :append | :binary | :charlist | :compressed | :delayed_write | :exclusive |
+    :raw | :read | :read_ahead | :sync | :utf8 | :write |
+    {:encoding, :latin1 | :unicode | :utf8 | :utf16 | :utf32 |
       {:utf16, :big | :little} | {:utf32, :big | :little}} |
     {:read_ahead, pos_integer} |
     {:delayed_write, non_neg_integer, non_neg_integer}
@@ -920,16 +920,19 @@ defmodule File do
   end
 
   @doc ~S"""
-  Opens the given `path` according to the given list of modes.
+  Opens the given `path` according to the given list of `modes`.
 
   In order to write and read files, one must use the functions
-  in the `IO` module. By default, a file is opened in binary mode,
+  in the `IO` module. By default, a file is opened in `:binary` mode,
   which requires the functions `IO.binread/2` and `IO.binwrite/2`
   to interact with the file. A developer may pass `:utf8` as an
   option when opening the file and then all other functions from
   `IO` are available, since they work directly with Unicode data.
 
   The allowed modes:
+
+    * `:binary` - opens the file in binary mode, disabling special handling of unicode sequences
+      (default mode).
 
     * `:read` - the file, which must exist, is opened for reading.
 
@@ -964,8 +967,9 @@ defmodule File do
       cannot cope with the character range of the data, an error occurs and the
       file will be closed.
 
-  For more information about other options like `:read_ahead` and `:delayed_write`,
-  see [`:file.open/2`](http://www.erlang.org/doc/man/file.html#open-2).
+    * `:delayed_write`, `:raw`, `:ram`, `:read_ahead`, `:sync`, `{:encoding, ...}`,
+      `{:read_ahead, pos_integer}`, `{:delayed_write, non_neg_integer, non_neg_integer}` -
+      for more information about these options see [`:file.open/2`](http://www.erlang.org/doc/man/file.html#open-2).
 
   This function returns:
 
