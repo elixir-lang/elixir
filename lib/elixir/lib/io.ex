@@ -188,7 +188,11 @@ defmodule IO do
   end
 
   @doc """
-  Writes `warning` as a binary to stderr.
+  Writes `message` as a binary to stderr, along with the given stacktrace
+  `trace`.
+
+  If no trace is given the current stacktrace will be used. An empty list can
+  be passed to avoid printing a stacktrace.
 
   It returns `:ok` if it succeeds.
 
@@ -198,9 +202,15 @@ defmodule IO do
       #=> "warning: variable bar is unused"
 
   """
-  @spec warn(chardata | String.Chars.t) :: :ok
-  def warn(warning) do
-    :io.put_chars map_dev(:stderr), ["warning: ", to_chardata(warning), ?\n]
+  @spec warn(chardata | String.Chars.t, [...]) :: :ok
+  def warn(message, trace \\ nil) do
+    formatted = (trace || case Process.info(self, :current_stacktrace) do
+      {:current_stacktrace, t} -> Enum.drop(t, 3)
+    end) |> Exception.format_stacktrace
+    :io.put_chars(
+      map_dev(:stderr),
+      ["warning: ", to_chardata(message), ?\n, formatted]
+    )
   end
 
   @doc """
