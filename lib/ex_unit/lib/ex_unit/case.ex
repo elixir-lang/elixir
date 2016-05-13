@@ -330,7 +330,7 @@ defmodule ExUnit.Case do
   Registers a new attribute to be used during `ExUnit.Case` tests.
 
   The attribute values will be available as a key/value pair in
-  `context.registered`. The key/value pairs will be cleanred
+  `context.registered`. The key/value pairs will be cleared
   after each `ExUnit.Case.test` similar to `@tag`.
 
   `Module.register_attribute/3` is used to register the attribute,
