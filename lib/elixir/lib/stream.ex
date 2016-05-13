@@ -158,9 +158,8 @@ defmodule Stream do
   """
   @spec chunk(Enumerable.t, pos_integer, pos_integer) :: Enumerable.t
   @spec chunk(Enumerable.t, pos_integer, pos_integer, Enumerable.t | nil) :: Enumerable.t
-  def chunk(enum, n, step, leftover \\ nil) when n > 0 and step > 0
-    and step > 0 and is_integer(n) and is_integer(step) do
-
+  def chunk(enum, n, step, leftover \\ nil)
+      when is_integer(n) and n > 0 and is_integer(step) and step > 0 do
     limit = :erlang.max(n, step)
     if is_nil(leftover) do
       lazy enum, {[], 0}, fn(f1) -> R.chunk(n, step, limit, f1) end
@@ -624,7 +623,7 @@ defmodule Stream do
   Creates a stream that emits a single value after `n` milliseconds.
 
   The value emitted is `0`. This operation will block the caller by
-  the given time until the item is streamed. 
+  the given time until the item is streamed.
 
   ## Examples
 
