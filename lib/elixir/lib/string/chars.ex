@@ -14,7 +14,7 @@ defprotocol String.Chars do
   as `"foo" <> to_string(bar)`.
   """
 
-  def to_string(thing)
+  def to_string(term)
 end
 
 defimpl String.Chars, for: Atom do
@@ -28,14 +28,14 @@ defimpl String.Chars, for: Atom do
 end
 
 defimpl String.Chars, for: BitString do
-  def to_string(thing) when is_binary(thing) do
-    thing
+  def to_string(term) when is_binary(term) do
+    term
   end
 
-  def to_string(thing) do
+  def to_string(term) do
     raise Protocol.UndefinedError,
              protocol: @protocol,
-                value: thing,
+                value: term,
           description: "cannot convert a bitstring to a string"
   end
 end
@@ -45,13 +45,13 @@ defimpl String.Chars, for: List do
 end
 
 defimpl String.Chars, for: Integer do
-  def to_string(thing) do
-    Integer.to_string(thing)
+  def to_string(term) do
+    Integer.to_string(term)
   end
 end
 
 defimpl String.Chars, for: Float do
-  def to_string(thing) do
-    IO.iodata_to_binary(:io_lib_format.fwrite_g(thing))
+  def to_string(term) do
+    IO.iodata_to_binary(:io_lib_format.fwrite_g(term))
   end
 end
