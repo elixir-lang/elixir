@@ -39,7 +39,8 @@ defmodule IEx.Helpers do
     * `pid/1`         - creates a PID from a string
     * `pid/3`         - creates a PID with the 3 integer arguments passed
     * `pwd/0`         - prints the current working directory
-    * `r/1`           - recompiles and reloads the given module's source file
+    * `r/1`           - recompiles the given module's source file
+    * `recompile/0`   - recompiles the current project
     * `respawn/0`     - respawns the current shell
     * `s/1`           - prints spec information
     * `t/1`           - prints type information
@@ -60,16 +61,12 @@ defmodule IEx.Helpers do
   Recompiles the current Mix application.
 
   This helper only works when IEx is started with a Mix
-  project, for example, `iex -S mix`. Before compiling
-  the code, it will stop the current application, and
-  start it again afterwards. Stopping applications are
-  required so processes in the supervision tree won't
-  crash when code is upgraded multiple times without
-  going through the proper hot-code swapping mechanism.
-
-  Changes to `mix.exs` or configuration files won't be
-  picked up by this helper, only changes to sources.
-  Restarting the shell and Mix is required in such cases.
+  project, for example, `iex -S mix`. The application is
+  not restarted after compilation, which means any long
+  running process may crash as the code is updated but the
+  state does not go through the proper code changes callback.
+  In any case, the supervision tree should notice the failure
+  and restart such servers.
 
   If you want to reload a single module, consider using
   `r ModuleName` instead.
@@ -81,14 +78,7 @@ defmodule IEx.Helpers do
     if mix_started? do
       config = Mix.Project.config
       reenable_tasks(config)
-      case stop_apps(config) do
-        {true, apps} ->
-          Mix.Task.run("app.start")
-          {:restarted, apps}
-        {false, apps} ->
-          Mix.Task.run("app.start", ["--no-start"])
-          {:recompiled, apps}
-      end
+      Mix.Task.run("compile")
     else
       IO.puts IEx.color(:eval_error, "Mix is not running. Please start IEx with: iex -S mix")
       :error
@@ -100,28 +90,11 @@ defmodule IEx.Helpers do
   end
 
   defp reenable_tasks(config) do
-    Mix.Task.reenable("app.start")
     Mix.Task.reenable("compile")
     Mix.Task.reenable("compile.all")
+    Mix.Task.reenable("compile.protocols")
     compilers = config[:compilers] || Mix.compilers
     Enum.each compilers, &Mix.Task.reenable("compile.#{&1}")
-  end
-
-  defp stop_apps(config) do
-    apps =
-      cond do
-        Mix.Project.umbrella?(config) ->
-          for %Mix.Dep{app: app} <- Mix.Dep.Umbrella.loaded, do: app
-        app = config[:app] ->
-          [app]
-        true ->
-          []
-      end
-    stopped? =
-      Enum.reverse(apps)
-      |> Enum.all?(&match?({:error, {:not_started, &1}}, Application.stop(&1)))
-      |> Kernel.not
-    {stopped?, apps}
   end
 
   @doc """
