@@ -90,10 +90,65 @@ defmodule Application do
   supervisor is automatically handled by the VM.
   """
 
+  @doc """
+  Called when an application is started.
+
+  This function is called when an the application is started using
+  `Application.start/2` (and functions on top of that, such as
+  `Application.ensure_started/2`). This function should start the top-level
+  process of the application (which should be the top supervisor of the
+  application's supervision tree if the application follows the OTP design
+  principles around supervision).
+
+  `start_type` defines how the application is started:
+
+    * `:normal` - used if the startup is a normal startup or if the application
+      is distributed and is started on the current node because of a failover
+      from another mode and the application specification key `:start_phases`
+      is `:undefined`.
+    * `{:takeover, node}` - used if the application is distributed and is
+      started on the current node because of a failover on the node `node`.
+    * `{:failover, node}` - used if the application is distributed and is
+      started on the current node because of a failover on node `node`, and the
+      application specification key `:start_phases` is not `:undefined`.
+
+  `start_args` are the arguments passed to the application in the `:mod`
+  specification key (e.g., `mod: {MyApp, [:my_args]}`).
+
+  This function should either return `{:ok, pid}` or `{:ok, pid, state}` if
+  startup is successful. `pid` should be the pid of the top supervisor. `state`
+  can be an arbitrary term, and if omitted will default to `[]`; if the
+  application is later stopped, `state` is passed to the `stop/1` callback (see
+  the documentation for the `stop/2` callback for more information).
+
+  `use Application` provides no default implementation for the `start/2`
+  callback.
+  """
+  @callback start(start_type, start_args :: term) ::
+    {:ok, pid} |
+    {:ok, pid, state} |
+    {:error, reason :: term}
+
+  @doc """
+  Called when an application is stopped.
+
+  This function is called when an application has stopped, i.e., when its
+  supervision tree has been stopped. It should do the opposite of what the
+  `start/2` callback did, and should perform any necessary cleanup. The return
+  value of this callback is ignored.
+
+  `state` is the return value of the `start/2` callback or the return value of
+  the `prep_stop/1` function if the application module defines such a function.
+
+  `use Application` defines a default implementation of this function which does
+  nothing and just returns `:ok`.
+  """
+  @callback stop(state) :: term
+
   @doc false
   defmacro __using__(_) do
     quote location: :keep do
-      @behaviour :application
+      @behaviour Application
 
       @doc false
       def stop(_state) do
@@ -107,6 +162,7 @@ defmodule Application do
   @type app :: atom
   @type key :: atom
   @type value :: term
+  @type state :: term
   @type start_type :: :permanent | :transient | :temporary
 
   @application_keys [:description, :id, :vsn, :modules, :maxP, :maxT, :registered,
