@@ -657,8 +657,7 @@ defmodule Map do
 
   @doc false
   def size(map) do
-    IO.write :stderr, "warning: Map.size/1 is deprecated, please use Kernel.map_size/1\n" <>
-                      Exception.format_stacktrace
+    IO.warn "Map.size/1 is deprecated, please use Kernel.map_size/1"
     map_size(map)
   end
 end
