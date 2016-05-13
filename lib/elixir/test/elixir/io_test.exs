@@ -124,8 +124,8 @@ defmodule IOTest do
     assert capture_io(:stderr, fn -> IO.warn(:hello) end) =~ "warning: hello\n    (ex_unit) lib/ex_unit"
     assert capture_io(:stderr, fn -> IO.warn(13) end) =~ "warning: 13\n    (ex_unit) lib/ex_unit"
     assert capture_io(:stderr, fn -> IO.warn("hello", []) end) == "warning: hello\n"
-    trace = [{IEx.Evaluator, :eval, 4, [file: 'lib/iex/evaluator.ex', line: 108]}]
-    assert capture_io(:stderr, fn -> IO.warn("hello", trace) end) == """
+    stacktrace = [{IEx.Evaluator, :eval, 4, [file: 'lib/iex/evaluator.ex', line: 108]}]
+    assert capture_io(:stderr, fn -> IO.warn("hello", stacktrace) end) == """
     warning: hello
         lib/iex/evaluator.ex:108: IEx.Evaluator.eval/4
     """
