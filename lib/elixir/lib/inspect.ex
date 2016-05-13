@@ -55,7 +55,7 @@ defprotocol Inspect do
   # Handle structs in Any
   @fallback_to_any true
 
-  def inspect(thing, opts)
+  def inspect(term, opts)
 end
 
 defimpl Inspect, for: Atom do
@@ -141,16 +141,16 @@ defimpl Inspect, for: Atom do
 end
 
 defimpl Inspect, for: BitString do
-  def inspect(thing, %Inspect.Opts{binaries: bins, base: base} = opts) when is_binary(thing) do
-    if base == :decimal and (bins == :as_strings or (bins == :infer and String.printable?(thing))) do
-      <<?", escape(thing, ?")::binary, ?">>
+  def inspect(term, %Inspect.Opts{binaries: bins, base: base} = opts) when is_binary(term) do
+    if base == :decimal and (bins == :as_strings or (bins == :infer and String.printable?(term))) do
+      <<?", escape(term, ?")::binary, ?">>
     else
-      inspect_bitstring(thing, opts)
+      inspect_bitstring(term, opts)
     end
   end
 
-  def inspect(thing, opts) do
-    inspect_bitstring(thing, opts)
+  def inspect(term, opts) do
+    inspect_bitstring(term, opts)
   end
 
   ## Escaping
@@ -280,7 +280,7 @@ defimpl Inspect, for: List do
   def inspect([], _opts), do: "[]"
 
   # TODO: Deprecate :char_lists and :as_char_lists keys in v1.5
-  def inspect(thing, %Inspect.Opts{charlists: lists, char_lists: lists_deprecated} = opts) do
+  def inspect(term, %Inspect.Opts{charlists: lists, char_lists: lists_deprecated} = opts) do
     lists =
       if lists == :infer and lists_deprecated != :infer do
         case lists_deprecated do
@@ -294,12 +294,12 @@ defimpl Inspect, for: List do
       end
 
     cond do
-      lists == :as_charlists or (lists == :infer and printable?(thing)) ->
-        <<?', Inspect.BitString.escape(IO.chardata_to_string(thing), ?')::binary, ?'>>
-      keyword?(thing) ->
-        surround_many("[", thing, "]", opts, &keyword/2)
+      lists == :as_charlists or (lists == :infer and printable?(term)) ->
+        <<?', Inspect.BitString.escape(IO.chardata_to_string(term), ?')::binary, ?'>>
+      keyword?(term) ->
+        surround_many("[", term, "]", opts, &keyword/2)
       true ->
-        surround_many("[", thing, "]", opts, &to_doc/2)
+        surround_many("[", term, "]", opts, &to_doc/2)
     end
   end
 
@@ -380,8 +380,8 @@ defimpl Inspect, for: Map do
 end
 
 defimpl Inspect, for: Integer do
-  def inspect(thing, %Inspect.Opts{base: base}) do
-    Integer.to_string(thing, base_to_value(base))
+  def inspect(term, %Inspect.Opts{base: base}) do
+    Integer.to_string(term, base_to_value(base))
     |> prepend_prefix(base)
   end
 
@@ -406,8 +406,8 @@ defimpl Inspect, for: Integer do
 end
 
 defimpl Inspect, for: Float do
-  def inspect(thing, _opts) do
-    IO.iodata_to_binary(:io_lib_format.fwrite_g(thing))
+  def inspect(term, _opts) do
+    IO.iodata_to_binary(:io_lib_format.fwrite_g(term))
   end
 end
 

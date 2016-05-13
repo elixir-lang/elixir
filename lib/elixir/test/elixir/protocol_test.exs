@@ -9,13 +9,13 @@ defmodule ProtocolTest do
     @type t :: any
     @doc "Ok"
     @spec ok(t) :: boolean
-    def ok(thing)
+    def ok(term)
   end
 
   defprotocol WithAny do
     @fallback_to_any true
     @doc "Ok"
-    def ok(thing)
+    def ok(term)
   end
 
   defprotocol Derivable do
@@ -108,11 +108,11 @@ defmodule ProtocolTest do
       @type t :: any
       @doc "Ok"
       @spec ok(t) :: boolean
-      def ok(thing)
+      def ok(term)
     end)
 
     docs = Code.get_docs(SampleDocsProto, :docs)
-    assert {{:ok, 1}, _, :def, [{:thing, _, nil}], "Ok"} =
+    assert {{:ok, 1}, _, :def, [{:term, _, nil}], "Ok"} =
            List.keyfind(docs, {:ok, 1}, 0)
   end
 
@@ -261,7 +261,7 @@ defmodule Protocol.ConsolidationTest do
       @type t :: any
       @doc "Ok"
       @spec ok(t) :: boolean
-      def ok(thing)
+      def ok(term)
     end
   )
 
@@ -269,7 +269,7 @@ defmodule Protocol.ConsolidationTest do
     defprotocol WithAny do
       @fallback_to_any true
       @doc "Ok"
-      def ok(thing)
+      def ok(term)
     end
   )
 
@@ -362,7 +362,7 @@ defmodule Protocol.ConsolidationTest do
 
   test "consolidation keeps docs" do
     docs = Code.get_docs(Sample, :docs)
-    assert {{:ok, 1}, _, :def, [{:thing, _, nil}], "Ok"} =
+    assert {{:ok, 1}, _, :def, [{:term, _, nil}], "Ok"} =
            List.keyfind(docs, {:ok, 1}, 0)
   end
 
