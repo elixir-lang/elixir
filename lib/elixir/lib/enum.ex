@@ -883,8 +883,8 @@ defmodule Enum do
   @doc """
   Maps and reduces an enumerable, flattening the given results.
 
-  It expects an accumulator and a function that receives each stream
-  item, and must return a tuple containing a new stream (often a list)
+  It expects an accumulator and a function that receives each enumerable
+  item, and must return a tuple containing a new enumerable (often a list)
   with the new accumulator or a tuple with `:halt` as first element and
   the accumulator as second.
 
