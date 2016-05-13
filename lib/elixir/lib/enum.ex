@@ -355,7 +355,9 @@ defmodule Enum do
 
   """
   @spec chunk(t, pos_integer, pos_integer, t | nil) :: [list]
-  def chunk(enumerable, count, step, leftover \\ nil) when count > 0 and step > 0 do
+  def chunk(enumerable, count, step, leftover \\ nil) when count > 0
+    and step > 0 and is_integer(count) and is_integer(step) do
+
     limit = :erlang.max(count, step)
 
     {acc, {buffer, i}} =
