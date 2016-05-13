@@ -153,7 +153,7 @@ defmodule Logger.Utils do
   ## encoding
 
   defp collect_cc(:encoding, [?l | t], args, used_format, used_args, opts),
-    do: collect_cc(:done, t, args, [?l | used_format], used_args, %{opts | charlists: false})
+    do: collect_cc(:done, t, args, [?l | used_format], used_args, %{opts | charlists: :as_lists})
 
   defp collect_cc(:encoding, [?t | t], args, used_format, used_args, opts),
     do: collect_cc(:done, t, args, [?t | used_format], used_args, opts)
