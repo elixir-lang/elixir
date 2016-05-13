@@ -192,24 +192,22 @@ defmodule ExUnitTest do
     end
   end
 
-  test "registers only the first test with any given name" do
-    capture_io :stderr, fn ->
+  test "raises friendly error for duplicate test names" do
+    message = ~s(a test named "duplicate" is already defined in ExUnitTest.TestWithSameNames)
+
+    assert_raise ExUnit.DuplicateTestError, message, fn ->
       defmodule TestWithSameNames do
         use ExUnit.Case
 
-        test "same name, different outcome" do
-          assert 1 == 1
+        test "duplicate" do
+          assert true
         end
 
-        test "same name, different outcome" do
-          assert 1 == 2
+        test "duplicate" do
+          assert true
         end
       end
     end
-
-    assert capture_io(fn ->
-      assert ExUnit.run == %{failures: 0, skipped: 0, total: 1}
-    end) =~ "1 test, 0 failure"
   end
 
   test "produces error on not implemented tests" do

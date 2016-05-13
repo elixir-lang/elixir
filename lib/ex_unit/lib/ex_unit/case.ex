@@ -1,3 +1,7 @@
+defmodule ExUnit.DuplicateTestError do
+  defexception [:message]
+end
+
 defmodule ExUnit.Case do
   @moduledoc """
   Sets up an ExUnit test case.
@@ -253,6 +257,11 @@ defmodule ExUnit.Case do
 
     quote bind_quoted: binding do
       test = :"test #{message}"
+
+      if Module.defines?(__MODULE__, {test, 1}) do
+        raise ExUnit.DuplicateTestError, ~s(a test named "#{message}" is already defined in #{inspect __MODULE__})
+      end
+
       ExUnit.Case.__on_definition__(__ENV__, test, [])
       def unquote(test)(unquote(var)), do: unquote(contents)
     end
