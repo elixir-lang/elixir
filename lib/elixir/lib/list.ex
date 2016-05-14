@@ -135,7 +135,8 @@ defmodule List do
   Folds (reduces) the given list from the right with
   a function. Requires an accumulator.
 
-  Notice that `foldr/3` is not [tail-recursive](https://en.wikipedia.org/wiki/Tail_call). Therefore, `foldl/3` is usually preferred.
+  Notice that `foldr/3` is not [tail-recursive](https://en.wikipedia.org/wiki/Tail_call). 
+  Therefore, `foldl/3` is usually preferred.
 
   ## Examples
 
