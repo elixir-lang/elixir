@@ -1211,6 +1211,9 @@ defmodule Enum do
       iex> Enum.max_by(["a", "aa", "aaa"], fn(x) -> String.length(x) end)
       "aaa"
 
+      iex> Enum.max_by(["a", "aa", "aaa", "b", "bbb"], &String.length/1)
+      "aaa"
+
   """
   @spec max_by(t, (element -> any)) :: element | no_return
   def max_by([h | t], fun) do
@@ -1312,6 +1315,9 @@ defmodule Enum do
       iex> Enum.min_by(["a", "aa", "aaa"], fn(x) -> String.length(x) end)
       "a"
 
+      iex> Enum.min_by(["a", "aa", "aaa", "b", "bbb"], &String.length/1)
+      "a"
+
   """
   @spec min_by(t, (element -> any)) :: element | no_return
   def min_by([h | t], fun) do
@@ -1385,6 +1391,9 @@ defmodule Enum do
 
       iex> Enum.min_max_by(["aaa", "bb", "c"], fn(x) -> String.length(x) end)
       {"c", "aaa"}
+
+      iex> Enum.min_max_by(["aaa", "a", "bb", "c", "ccc"], &String.length/1)
+      {"a", "aaa"}
 
   """
   @spec min_max_by(t, (element -> any)) :: {element, element} | no_return
