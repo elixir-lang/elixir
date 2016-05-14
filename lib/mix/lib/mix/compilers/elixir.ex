@@ -107,6 +107,8 @@ defmodule Mix.Compilers.Elixir do
       _ = Kernel.ParallelCompiler.files :lists.usort(stale),
         each_module: &each_module(pid, dest, cwd, &1, &2, &3),
         each_file: &each_file(&1),
+        each_waiting: &each_waiting(&1),
+        waiting_timeout: 5_000,
         dest: dest
       Agent.cast pid, fn {entries, sources} ->
         write_manifest(manifest, entries, sources)
@@ -171,6 +173,10 @@ defmodule Mix.Compilers.Elixir do
 
   defp each_file(source) do
     Mix.shell.info "Compiled #{source}"
+  end
+
+  defp each_waiting(source) do
+    Mix.shell.info "Compiling #{source} (it's taking more than 5s)"
   end
 
   ## Resolution

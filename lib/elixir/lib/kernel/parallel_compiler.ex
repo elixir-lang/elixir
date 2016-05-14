@@ -20,6 +20,13 @@ defmodule Kernel.ParallelCompiler do
     * `:each_file` - for each file compiled, invokes the callback passing the
       file
 
+    * `:each_waiting` - for each file that takes more than a given timeout (see
+      the `:waiting_timeout` option) to compile, invoke this callback passing
+      the file as its argument
+
+    * `:waiting_timeout` - the timeout (in milliseconds) after the
+      `:each_waiting` callback is invoked; defaults to `5000`
+
     * `:each_module` - for each module compiled, invokes the callback passing
       the file, module and the module bytecode
 
@@ -107,8 +114,11 @@ defmodule Kernel.ParallelCompiler do
         end)
       end
 
-    spawn_compilers(t, original, output, options, waiting,
-                    [{pid, ref, h} | queued], schedulers, result)
+    timeout = Keyword.get(options, :waiting_timeout, 5_000)
+    timer_ref = Process.send_after(self(), {:timed_out, pid}, timeout)
+
+    new_queued = [{pid, ref, h, timer_ref} | queued]
+    spawn_compilers(t, original, output, options, waiting, new_queued, schedulers, result)
   end
 
   # No more files, nothing waiting, queue is empty, we are done
@@ -118,7 +128,7 @@ defmodule Kernel.ParallelCompiler do
 
   # Queued x, waiting for x: POSSIBLE ERROR! Release processes so we get the failures
   defp spawn_compilers([], original, output, options, waiting, queued, schedulers, result) when length(waiting) == length(queued) do
-    entries = for {pid, _, _} <- queued,
+    entries = for {pid, _, _, _} <- queued,
                   waiting_on_is_not_being_defined?(waiting, pid),
                   do: {pid, :not_found}
 
@@ -161,6 +171,8 @@ defmodule Kernel.ParallelCompiler do
                         module == waiting_module,
                         do: {pid, :found}
 
+        cancel_waiting_timer(queued, child)
+
         spawn_compilers(available ++ entries, original, output, options,
                         waiting, queued, schedulers, [{:module, module} | result])
 
@@ -178,10 +190,19 @@ defmodule Kernel.ParallelCompiler do
 
         spawn_compilers(entries, original, output, options, waiting, queued, schedulers, result)
 
+      {:timed_out, child} ->
+        if callback = Keyword.get(options, :each_waiting) do
+          {^child, _, file, _} = List.keyfind(queued, child, 0)
+          callback.(file)
+        end
+        spawn_compilers(entries, original, output, options, waiting, queued, schedulers, result)
+
       {:DOWN, _down_ref, :process, down_pid, {:shutdown, file}} ->
         if callback = Keyword.get(options, :each_file) do
           callback.(file)
         end
+
+        cancel_waiting_timer(queued, down_pid)
 
         # Sometimes we may have spurious entries in the waiting
         # list because someone invoked try/rescue UndefinedFunctionError
@@ -198,7 +219,7 @@ defmodule Kernel.ParallelCompiler do
 
   defp handle_deadlock(waiting, queued) do
     deadlock =
-      for {pid, _, file} <- queued do
+      for {pid, _, file, _} <- queued do
         {:current_stacktrace, stacktrace} = Process.info(pid, :current_stacktrace)
         Process.exit(pid, :kill)
 
@@ -231,7 +252,7 @@ defmodule Kernel.ParallelCompiler do
   defp handle_failure(ref, reason, queued) do
     if file = find_failure(ref, queued) do
       print_failure(file, reason)
-      for {pid, _, _} <- queued do
+      for {pid, _, _, _} <- queued do
         Process.exit(pid, :kill)
       end
       exit({:shutdown, 1})
@@ -240,7 +261,7 @@ defmodule Kernel.ParallelCompiler do
 
   defp find_failure(ref, queued) do
     case List.keyfind(queued, ref, 1) do
-      {_child, ^ref, file} -> file
+      {_child, ^ref, file, _timer_ref} -> file
       _ -> nil
     end
   end
@@ -273,5 +294,21 @@ defmodule Kernel.ParallelCompiler do
 
   defp prune_stacktrace([]) do
     []
+  end
+
+  defp cancel_waiting_timer(queued, child_pid) do
+    case List.keyfind(queued, child_pid, 0) do
+      {^child_pid, _ref, _file, timer_ref} ->
+        Process.cancel_timer(timer_ref)
+        # Let's flush the message in case it arrived before we canceled the
+        # timeout.
+        receive do
+          {:timed_out, ^child_pid} -> :ok
+        after
+          0 -> :ok
+        end
+      nil ->
+        :ok
+    end
   end
 end
