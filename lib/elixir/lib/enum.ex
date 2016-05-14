@@ -1181,7 +1181,7 @@ defmodule Enum do
   Returns the biggest of the elements in the enumerable according
   to Erlang's term ordering.
 
-  If more than one elements compare equal, the first one that was found
+  If multiple elements are considered the biggest, the first one that was found
   is returned.
 
   Raises `Enum.EmptyError` if `enumerable` is empty.
@@ -1201,7 +1201,7 @@ defmodule Enum do
   Returns the biggest of the elements in the enumerable as calculated
   by the given function.
 
-  If more than one elements compare equal, the first one that was found
+  If multiple elements are considered the biggest, the first one that was found
   is returned.
 
   Raises `Enum.EmptyError` if `enumerable` is empty.
@@ -1282,7 +1282,7 @@ defmodule Enum do
   Returns the smallest of the elements in the enumerable according
   to Erlang's term ordering.
 
-  If more than one elements compare equal, the first one that was found
+  If multiple elements are considered the smallest, the first one that was found
   is returned.
 
   Raises `Enum.EmptyError` if `enumerable` is empty.
@@ -1302,7 +1302,7 @@ defmodule Enum do
   Returns the smallest of the elements in the enumerable as calculated
   by the given function.
 
-  If more than one elements compare equal, the first one that was found
+  If multiple elements are considered the smallest, the first one that was found
   is returned.
 
   Raises `Enum.EmptyError` if `enumerable` is empty.
@@ -1345,8 +1345,8 @@ defmodule Enum do
   Returns a tuple with the smallest and the biggest elements in the
   enumerable according to Erlang's term ordering.
 
-  If more than one elements compare equal, the first one that was found
-  is picked.
+  If multiple elements are considered the biggest or smallest, the first one
+  that was found is returned.
 
   Raises `Enum.EmptyError` if `enumerable` is empty.
 
@@ -1376,8 +1376,8 @@ defmodule Enum do
   Returns a tuple with the smallest and the biggest elements in the
   enumerable as calculated by the given function.
 
-  If more than one elements compare equal, the first one that was found
-  is picked.
+  If multiple elements are considered the biggest or smallest, the first one
+  that was found is returned.
 
   Raises `Enum.EmptyError` if `enumerable` is empty.
 
