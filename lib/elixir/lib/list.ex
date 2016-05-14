@@ -115,6 +115,8 @@ defmodule List do
   Folds (reduces) the given list from the left with
   a function. Requires an accumulator.
 
+  `foldl/3` is [tail-recursive](https://en.wikipedia.org/wiki/Tail_call).
+
   ## Examples
 
       iex> List.foldl([5, 5], 10, fn (x, acc) -> x + acc end)
@@ -132,6 +134,8 @@ defmodule List do
   @doc """
   Folds (reduces) the given list from the right with
   a function. Requires an accumulator.
+
+  Notice that `foldr/3` is not [tail-recursive](https://en.wikipedia.org/wiki/Tail_call). Therefore, `foldl/3` is usually preferred.
 
   ## Examples
 
