@@ -700,7 +700,8 @@ defmodule File do
   """
   @spec write(Path.t, iodata, [mode]) :: :ok | {:error, posix}
   def write(path, content, modes \\ []) do
-    F.write_file(IO.chardata_to_string(path), content, write_defaults(modes))
+    modes = normalize_modes(modes, false)
+    F.write_file(IO.chardata_to_string(path), content, modes)
   end
 
   @doc """
@@ -708,7 +709,8 @@ defmodule File do
   """
   @spec write!(Path.t, iodata, [mode]) :: :ok | no_return
   def write!(path, content, modes \\ []) do
-    case F.write_file(path, content, write_defaults(modes)) do
+    modes = normalize_modes(modes, false)
+    case F.write_file(path, content, modes) do
       :ok -> :ok
       {:error, reason} ->
         raise File.Error, reason: reason, action: "write to file",
@@ -997,7 +999,7 @@ defmodule File do
   def open(path, modes \\ [])
 
   def open(path, modes) when is_list(modes) do
-    F.open(IO.chardata_to_string(path), open_defaults(modes, true))
+    F.open(IO.chardata_to_string(path), normalize_modes(modes, true))
   end
 
   def open(path, function) when is_function(function) do
@@ -1226,7 +1228,7 @@ defmodule File do
 
   """
   def stream!(path, modes \\ [], line_or_bytes \\ :line) do
-    modes = open_defaults(modes, true)
+    modes = normalize_modes(modes, true)
     File.Stream.__build__(IO.chardata_to_string(path), modes, line_or_bytes)
   end
 
@@ -1320,34 +1322,23 @@ defmodule File do
 
   ## Helpers
 
-  @read_ahead 64*1024
+  @read_ahead_size 64 * 1024
 
+  defp normalize_modes([:utf8 | rest], binary?) do
+    [encoding: :utf8] ++ normalize_modes(rest, binary?)
+  end
+  defp normalize_modes([:read_ahead | rest], binary?) do
+    [read_ahead: @read_ahead_size] ++ normalize_modes(rest, binary?)
+  end
   # TODO: Deprecate :char_list mode by v1.5
-  defp open_defaults([mode | t], _add_binary) when mode in [:charlist, :char_list] do
-    open_defaults(t, false)
+  defp normalize_modes([mode | rest], _binary?) when mode in [:charlist, :char_list] do
+    normalize_modes(rest, false)
   end
-
-  defp open_defaults([:utf8 | t], add_binary) do
-    open_defaults([{:encoding, :utf8} | t], add_binary)
+  defp normalize_modes([mode | rest], binary?) do
+    [mode | normalize_modes(rest, binary?)]
   end
-
-  defp open_defaults([:read_ahead | t], add_binary) do
-    open_defaults([{:read_ahead, @read_ahead} | t], add_binary)
-  end
-
-  defp open_defaults([h | t], add_binary) do
-    [h | open_defaults(t, add_binary)]
-  end
-
-  defp open_defaults([], true),  do: [:binary]
-  defp open_defaults([], false), do: []
-
-  defp write_defaults([:utf8 | t]),
-    do: [{:encoding, :utf8} | write_defaults(t)]
-  defp write_defaults([h | t]),
-    do: [h | write_defaults(t)]
-  defp write_defaults([]),
-    do: []
+  defp normalize_modes([], true), do: [:binary]
+  defp normalize_modes([], false), do: []
 
   defp maybe_to_string(path) when is_pid(path),
     do: path
