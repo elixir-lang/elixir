@@ -112,10 +112,11 @@ defmodule Mix.Compilers.Elixir do
     {:ok, pid} = Agent.start_link(fn -> {entries, sources} end)
 
     try do
+      long_compilation_threshold = Keyword.get(opts, :long_compilation_threshold, 5)
       _ = Kernel.ParallelCompiler.files :lists.usort(stale),
             [each_module: &each_module(pid, dest, cwd, &1, &2, &3),
-             each_long_compilation: &each_long_compilation(&1),
-             timeout: 5_000,
+             each_long_compilation: &each_long_compilation(&1, long_compilation_threshold),
+             long_compilation_threshold: long_compilation_threshold,
              dest: dest] ++ extra
       Agent.cast pid, fn {entries, sources} ->
         write_manifest(manifest, entries, sources)
@@ -188,8 +189,8 @@ defmodule Mix.Compilers.Elixir do
     Mix.shell.info "Compiled #{source}"
   end
 
-  defp each_long_compilation(source) do
-    Mix.shell.info "Compiling #{source} (it's taking more than 5s)"
+  defp each_long_compilation(source, threshold) do
+    Mix.shell.info "Compiling #{source} (it's taking more than #{threshold}s)"
   end
 
   ## Resolution
