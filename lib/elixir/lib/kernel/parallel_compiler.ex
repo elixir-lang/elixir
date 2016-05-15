@@ -20,12 +20,12 @@ defmodule Kernel.ParallelCompiler do
     * `:each_file` - for each file compiled, invokes the callback passing the
       file
 
-    * `:each_timeout` - for each file that takes more than a given timeout (see
-      the `:timeout` option) to compile, invoke this callback passing
-      the file as its argument
+    * `:each_long_compilation` - for each file that takes more than a given
+      timeout (see the `:long_compilation_threshold` option) to compile, invoke
+      this callback passing the file as its argument
 
-    * `:timeout` - the timeout (in milliseconds) after the
-      `:each_timeout` callback is invoked; defaults to `5000`
+    * `:long_compilation_threshold` - the timeout (in milliseconds) after the
+      `:each_long_compilation` callback is invoked; defaults to `5000`
 
     * `:each_module` - for each module compiled, invokes the callback passing
       the file, module and the module bytecode
@@ -114,7 +114,7 @@ defmodule Kernel.ParallelCompiler do
         end)
       end
 
-    timeout = Keyword.get(options, :timeout, 5_000)
+    timeout = Keyword.get(options, :long_compilation_threshold, 5_000)
     timer_ref = Process.send_after(self(), {:timed_out, pid}, timeout)
 
     new_queued = [{pid, ref, h, timer_ref} | queued]
@@ -191,7 +191,7 @@ defmodule Kernel.ParallelCompiler do
         spawn_compilers(entries, original, output, options, waiting, queued, schedulers, result)
 
       {:timed_out, child} ->
-        if callback = Keyword.get(options, :each_timeout) do
+        if callback = Keyword.get(options, :each_long_compilation) do
           {^child, _, file, _} = List.keyfind(queued, child, 0)
           callback.(file)
         end
