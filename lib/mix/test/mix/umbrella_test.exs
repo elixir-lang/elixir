@@ -15,7 +15,7 @@ defmodule Mix.UmbrellaTest do
         # Ensure we can compile and run checks
         Mix.Task.run "deps.compile"
         Mix.Task.run "deps.check"
-        Mix.Task.run "compile"
+        Mix.Task.run "compile", ["--verbose"]
 
         assert_received {:mix_shell, :info, ["==> bar"]}
         assert_received {:mix_shell, :info, ["Compiled lib/bar.ex"]}
@@ -250,7 +250,7 @@ defmodule Mix.UmbrellaTest do
         end
         """
 
-        Mix.Task.run "compile"
+        Mix.Task.run "compile", ["--verbose"]
         assert_receive {:mix_shell, :info, ["no compile bar"]}
         refute_receive {:mix_shell, :info, ["Compiled lib/bar.ex"]}
       end
@@ -260,7 +260,7 @@ defmodule Mix.UmbrellaTest do
   test "recompiles after path dependency changes" do
     in_fixture("umbrella_dep/deps/umbrella/apps", fn ->
       Mix.Project.in_project(:bar, "bar", fn _ ->
-        Mix.Task.run "compile"
+        Mix.Task.run "compile", ["--verbose"]
         assert_receive {:mix_shell, :info, ["Compiled lib/foo.ex"]}
         assert_receive {:mix_shell, :info, ["Compiled lib/bar.ex"]}
 
@@ -280,7 +280,7 @@ defmodule Mix.UmbrellaTest do
           def bar, do: Foo.foo
         end
         """)
-        assert Mix.Tasks.Compile.Elixir.run([]) == :ok
+        assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == :ok
         assert_receive {:mix_shell, :info, ["Compiled lib/bar.ex"]}
 
         # Noop for runtime dependencies
@@ -288,11 +288,11 @@ defmodule Mix.UmbrellaTest do
                        File.stat!("_build/dev/lib/bar/.compile.elixir").mtime)
         ensure_touched("_build/dev/lib/foo/.compile.elixir",
                        File.stat!("_build/dev/lib/bar/.compile.elixir").mtime)
-        assert Mix.Tasks.Compile.Elixir.run([]) == :noop
+        assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == :noop
 
         # Add compile time dependency
         File.write!("lib/bar.ex", "defmodule Bar, do: Foo.foo")
-        assert Mix.Tasks.Compile.Elixir.run([]) == :ok
+        assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == :ok
         assert_receive {:mix_shell, :info, ["Compiled lib/bar.ex"]}
 
         # Recompiles for compile time dependencies
@@ -300,7 +300,7 @@ defmodule Mix.UmbrellaTest do
                        File.stat!("_build/dev/lib/bar/.compile.elixir").mtime)
         ensure_touched("_build/dev/lib/foo/.compile.elixir",
                        File.stat!("_build/dev/lib/bar/.compile.elixir").mtime)
-        assert Mix.Tasks.Compile.Elixir.run([]) == :ok
+        assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == :ok
         assert_receive {:mix_shell, :info, ["Compiled lib/bar.ex"]}
       end)
     end)
@@ -351,7 +351,7 @@ defmodule Mix.UmbrellaTest do
       File.mkdir_p! "apps/errors/lib"
       File.write! "apps/errors/lib/always_fail.ex", "raise ~s[oops]"
 
-      assert Mix.Task.run("compile.elixir") == [:ok, :ok]
+      assert Mix.Task.run("compile.elixir", ["--verbose"]) == [:ok, :ok]
       assert_received {:mix_shell, :info, ["Compiled lib/bar.ex"]}
       assert_received {:mix_shell, :info, ["Compiled lib/foo.ex"]}
     end)

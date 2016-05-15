@@ -34,18 +34,18 @@ defmodule Mix.Tasks.CompileTest do
 
   test "compile a project with mixfile" do
     in_fixture "no_mixfile", fn ->
-      assert Mix.Tasks.Compile.run([]) == :ok
+      assert Mix.Tasks.Compile.run(["--verbose"]) == :ok
       assert File.regular?("_build/dev/lib/sample/ebin/Elixir.A.beam")
       assert File.regular?("_build/dev/lib/sample/ebin/sample.app")
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       assert_received {:mix_shell, :info, ["Generated sample app"]}
 
       assert File.regular? "_build/dev/consolidated/Elixir.Enumerable.beam"
-      assert Mix.Tasks.Compile.run([]) == :noop
+      assert Mix.Tasks.Compile.run(["--verbose"]) == :noop
       refute_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       purge [Enumerable]
 
-      assert Mix.Tasks.App.Start.run([]) == :ok
+      assert Mix.Tasks.App.Start.run(["--verbose"]) == :ok
       assert Protocol.consolidated?(Enumerable)
     end
   end
