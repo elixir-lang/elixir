@@ -11,9 +11,8 @@ defmodule Mix.CLITest do
         def project, do: [app: :p, version: "0.1.0"]
       end
       """
-      output = mix ~w[]
+      mix ~w[]
       assert File.regular?("_build/dev/lib/p/ebin/Elixir.A.beam")
-      assert output =~ "Compiled lib/a.ex"
     end
   end
 
@@ -44,7 +43,7 @@ defmodule Mix.CLITest do
         def run(_) do
           IO.puts Mix.Project.get!.hello_world
           Mix.shell.info("This won't appear")
-          Mix.raise "oops"
+          Mix.raise("oops")
         end
       end
       """

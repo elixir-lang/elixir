@@ -159,9 +159,7 @@ defmodule Mix.Tasks.DepsGitTest do
       assert File.exists?("deps/git_repo/.fetch")
 
       # We can compile just fine
-      Mix.Tasks.Compile.run ["--verbose"]
-      assert_received {:mix_shell, :info, ["Compiled lib/git_repo.ex"]}
-      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      assert Mix.Tasks.Compile.run(["--verbose"]) == :ok
 
       # Clear up to prepare for the update
       Mix.Task.clear
@@ -180,7 +178,6 @@ defmodule Mix.Tasks.DepsGitTest do
 
       # But also ran automatically
       Mix.Tasks.Compile.run ["--verbose"]
-      assert_received {:mix_shell, :info, ["Compiled lib/git_repo.ex"]}
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       assert File.exists?("_build/dev/lib/git_repo/.compile.fetch")
       :ok

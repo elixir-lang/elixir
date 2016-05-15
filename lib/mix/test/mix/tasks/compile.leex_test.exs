@@ -28,7 +28,6 @@ defmodule Mix.Tasks.Compile.LeexTest do
   test "compiles src/test_ok.xrl" do
     in_fixture "compile_leex", fn ->
       assert Mix.Tasks.Compile.Leex.run(["--verbose"]) == :ok
-
       assert_received {:mix_shell, :info, ["Compiled src/test_ok.xrl"]}
       assert File.regular?("src/test_ok.erl")
 
