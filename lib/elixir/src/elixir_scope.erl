@@ -211,19 +211,20 @@ format_error({unused_match, Name, Kind}) ->
                 "give the variables different names", [Name, context_info(Kind), Name]);
 
 format_error({unsafe_var, Name}) ->
-  io_lib:format("the variable \"~ts\" is unsafe as it has been set in a conditional clause, "
-                "as part of a case/cond/receive/if/&&/||. Please rewrite the clauses so the value is "
-                "explicitly returned. For example:\n\n"
+  io_lib:format("the variable \"~ts\" is unsafe as it has been set inside "
+                "a case/cond/receive/if/&&/||. Please explicitly return the "
+                "variable value instead. For example:\n\n"
                 "    case int do\n"
                 "      1 -> atom = :one\n"
                 "      2 -> atom = :two\n"
                 "    end\n\n"
-                "Can be rewritten as:\n\n"
+                "should be written as\n\n"
                 "    atom =\n"
                 "      case int do\n"
                 "        1 -> :one\n"
                 "        2 -> :two\n"
-                "      end\n", [Name]);
+                "      end\n\n"
+                "Unsafe variable found at:", [Name]);
 
 format_error({underscore_var_access, Name}) ->
   io_lib:format("the underscored variable \"~ts\" is used after being set. "
