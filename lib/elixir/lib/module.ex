@@ -1067,22 +1067,13 @@ defmodule Module do
           :lists.member(key, acc) ->
             []
           is_list(stack) ->
-            :elixir_errors.warn warn_info(stack), "undefined module attribute @#{key}, " <>
-              "please remove access to @#{key} or explicitly set it before access"
+            IO.warn "undefined module attribute @#{key}, " <>
+                    "please remove access to @#{key} or explicitly set it before access", stack
             nil
           true ->
             nil
         end
     end
-  end
-
-  defp warn_info([entry | _]) do
-    opts = elem(entry, tuple_size(entry) - 1)
-    Exception.format_file_line(Keyword.get(opts, :file), Keyword.get(opts, :line)) <> " "
-  end
-
-  defp warn_info([]) do
-    ""
   end
 
   ## Helpers
@@ -1149,8 +1140,7 @@ defmodule Module do
       when is_list(stack) and key in [:doc, :typedoc, :moduledoc] do
     case :ets.lookup(table, key) do
       [{_, {line, val}}] when val != false ->
-        :elixir_errors.warn warn_info(stack),
-                            "redefining @#{key} attribute previously set at line #{line}"
+        IO.warn "redefining @#{key} attribute previously set at line #{line}", stack
       _ ->
         false
     end

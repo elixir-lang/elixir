@@ -324,7 +324,7 @@ defmodule Protocol.ConsolidationTest do
       defimpl WithAny, for: Integer do
         def ok(_any), do: :ok
       end
-    end) =~ ~r"warning: the .+WithAny protocol has already been consolidated"
+    end) =~ ~r"the .+WithAny protocol has already been consolidated"
   after
     :code.purge(WithAny.Atom)
     :code.delete(WithAny.Atom)
