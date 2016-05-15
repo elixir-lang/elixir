@@ -27,15 +27,15 @@ defmodule Mix.Tasks.Compile.YeccTest do
 
   test "compiles src/test_ok.yrl" do
     in_fixture "compile_yecc", fn ->
-      assert Mix.Tasks.Compile.Yecc.run([]) == :ok
+      assert Mix.Tasks.Compile.Yecc.run(["--verbose"]) == :ok
 
       assert_received {:mix_shell, :info, ["Compiled src/test_ok.yrl"]}
       assert File.regular?("src/test_ok.erl")
 
-      assert Mix.Tasks.Compile.Yecc.run([]) == :noop
+      assert Mix.Tasks.Compile.Yecc.run(["--verbose"]) == :noop
       refute_received {:mix_shell, :info, ["Compiled src/test_ok.yrl"]}
 
-      assert Mix.Tasks.Compile.Yecc.run(["--force"]) == :ok
+      assert Mix.Tasks.Compile.Yecc.run(["--force", "--verbose"]) == :ok
       assert_received {:mix_shell, :info, ["Compiled src/test_ok.yrl"]}
     end
   end
