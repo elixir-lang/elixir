@@ -151,10 +151,10 @@ defmodule IO do
   ## Examples
 
       IO.write "sample"
-      #=> "sample"
+      #=> sample
 
       IO.write :stderr, "error"
-      #=> "error"
+      #=> error
 
   """
   @spec write(device, chardata | String.Chars.t) :: :ok
@@ -180,7 +180,6 @@ defmodule IO do
   @doc """
   Writes `item` to the given `device`, similar to `write/2`,
   but adds a newline at the end.
-
   """
   @spec puts(device, chardata | String.Chars.t) :: :ok
   def puts(device \\ group_leader(), item) do
@@ -197,10 +196,9 @@ defmodule IO do
 
       stacktrace = [{MyApp, :main, 1, [file: 'my_app.ex', line: 4]}]
       IO.warn "variable bar is unused", stacktrace
-      #=> \"""
       #=> warning: variable bar is unused
-      #=>     my_app.ex:4: MyApp.main/1
-      #=> \"""
+      #=>   my_app.ex:4: MyApp.main/1
+
   """
   @spec warn(chardata | String.Chars.t, Exception.stacktrace) :: :ok
   def warn(message, []) do
@@ -219,10 +217,8 @@ defmodule IO do
   ## Examples
 
       IO.warn "variable bar is unused"
-      #=> \"""
       #=> warning: variable bar is unused
-      #=>     evaluator.ex:108: IEx.Evaluator.eval/4
-      #=> \"""
+      #=>   (iex) evaluator.ex:108: IEx.Evaluator.eval/4
 
   """
   @spec warn(chardata | String.Chars.t) :: :ok
