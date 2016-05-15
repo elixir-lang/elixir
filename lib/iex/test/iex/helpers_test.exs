@@ -403,7 +403,7 @@ defmodule IEx.HelpersTest do
         assert_raise UndefinedFunctionError, "function Sample.run/0 is undefined or private", fn ->
           Sample.run
         end
-      end) =~ ~r"^.*?sample\.ex:1: warning: redefining module Sample \(current version loaded from Elixir.Sample.beam\)\n$"
+      end) =~ "redefining module Sample (current version loaded from Elixir.Sample.beam)"
     end
   after
     # Clean up old version produced by the r helper

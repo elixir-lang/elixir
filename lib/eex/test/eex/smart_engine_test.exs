@@ -21,7 +21,7 @@ defmodule EEx.SmartEngineTest do
     stderr = capture_io(:stderr, fn ->
       assert_eval "", "<%= @foo %>", assigns: %{}
     end)
-    assert stderr =~ "warning: assign @foo not available in eex template"
+    assert stderr =~ "assign @foo not available in eex template"
   end
 
   test "evaluates with loops" do
