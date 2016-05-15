@@ -60,7 +60,7 @@ defmodule Mix.Tasks.Compile.App do
   """
   @spec run(OptionParser.argv) :: :ok | :noop
   def run(args) do
-    {opts, _, _} = OptionParser.parse(args, switches: [force: :boolean, verbose: :boolean])
+    {opts, _, _} = OptionParser.parse(args, switches: [force: :boolean])
 
     project = Mix.Project.get!
     config  = Mix.Project.config
@@ -78,8 +78,6 @@ defmodule Mix.Tasks.Compile.App do
     sources = Mix.Project.config_files
 
     if opts[:force] || Mix.Utils.stale?(sources, [target]) || modules_changed?(mods, target) do
-      Mix.shell.print_app()
-
       best_guess = [
         vsn: to_charlist(version),
         modules: mods,
@@ -103,9 +101,7 @@ defmodule Mix.Tasks.Compile.App do
 
       Mix.Project.ensure_structure()
       File.write!(target, :io_lib.format("~p.", [contents]), [:utf8])
-      if opts[:verbose] do
-        Mix.shell.info "Generated #{app} app"
-      end
+      Mix.shell.info "Generated #{app} app"
       :ok
     else
       :noop

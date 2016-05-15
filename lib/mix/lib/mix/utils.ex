@@ -1,7 +1,5 @@
 defmodule Mix.Utils do
-  @moduledoc """
-  Utilities used throughout Mix and tasks.
-  """
+  @moduledoc false
 
   @doc """
   Gets the Mix home.
@@ -112,6 +110,14 @@ defmodule Mix.Utils do
         {{1970, 1, 1}, {0, 0, 0}}
     end
   end
+
+  @doc """
+  Prints n files are being compiled with the given extension.
+  """
+  def compiling_n(1, ext),
+    do: Mix.shell.info "Compiling 1 file (.#{ext})"
+  def compiling_n(n, ext),
+    do: Mix.shell.info "Compiling #{n} files (.#{ext})"
 
   @doc """
   Extracts files from a list of paths.
