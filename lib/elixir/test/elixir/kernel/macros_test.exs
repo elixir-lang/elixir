@@ -13,7 +13,7 @@ defmodule Kernel.MacrosTest do
 
   doctest Macro
 
-  require Kernel.MacrosTest.Nested, as: Nested
+  Kernel.MacrosTest.Nested = require Kernel.MacrosTest.Nested, as: Nested
 
   defmacro my_macro do
     quote do: 1 + 1

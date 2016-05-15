@@ -23,7 +23,7 @@ defmodule Kernel.AliasTest do
   end
 
   test "overwriten alias" do
-    alias List, as: Nested
+    assert List = alias List, as: Nested
     assert Nested.flatten([[13]]) == [13]
   end
 
@@ -46,9 +46,10 @@ defmodule Kernel.AliasTest do
   end
 
   test "multi-call" do
-    alias unquote(Inspect).{
+    result = alias unquote(Inspect).{
       Opts, Algebra,
     }
+    assert result == [Inspect.Opts, Inspect.Algebra]
     assert %Opts{} == %Inspect.Opts{}
     assert Algebra.empty == :doc_nil
   end
