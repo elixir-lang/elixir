@@ -22,6 +22,8 @@ defmodule Mix.Tasks.Compile.Elixir do
     * `--debug-info` (`--no-debug-info`) - attach (or not) debug info to compiled modules
     * `--ignore-module-conflict` - do not emit warnings if a module was previously defined
     * `--warnings-as-errors` - treat warnings as errors and return a non-zero exit code
+    * `--long-compilation-threshold N` - sets the "long compilation" threshold
+      (in seconds) to `N` (see the docs for `Kernel.ParallelCompiler.files/2`)
 
   ## Configuration
 
@@ -38,7 +40,8 @@ defmodule Mix.Tasks.Compile.Elixir do
 
   @switches [force: :boolean, docs: :boolean, warnings_as_errors: :boolean,
              ignore_module_conflict: :boolean, debug_info: :boolean,
-             elixirc_paths: :keep, verbose: :boolean]
+             elixirc_paths: :keep, verbose: :boolean,
+             long_compilation_threshold: :integer]
 
   @doc """
   Runs this task.
