@@ -366,10 +366,10 @@ defmodule Exception do
   end
 
   defp format_application(module) do
-    if app = Application.get_application(module) do
-      "(" <> Atom.to_string(app) <> ") "
-    else
-      ""
+    # We cannot use Application due to bootstrap issues
+    case :application.get_application(module) do
+      {:ok, app} -> "(" <> Atom.to_string(app) <> ") "
+      :undefined -> ""
     end
   end
 

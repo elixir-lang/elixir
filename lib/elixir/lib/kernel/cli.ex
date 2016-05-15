@@ -390,8 +390,13 @@ defmodule Kernel.CLI do
       {:ok, files} ->
         wrapper fn ->
           Code.compiler_options(config.compiler_options)
-          Kernel.ParallelCompiler.files_to_path(files, config.output,
-            each_file: fn file -> if config.verbose_compile do IO.puts "Compiled #{file}" end end)
+          opts =
+            if config.verbose_compile do
+              [each_waiting: &IO.puts("Compiling #{&1} (it's taking more than 5s)")]
+            else
+              []
+            end
+          Kernel.ParallelCompiler.files_to_path(files, config.output, opts)
         end
       {:missing, missing} ->
         {:error, "No files matched pattern(s) #{Enum.join(missing, ",")}"}

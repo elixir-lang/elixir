@@ -12,12 +12,12 @@ goto run
 :documentation
 echo Usage: %~nx0 [elixir switches] [compiler switches] [.ex files]
 echo.
-echo  -o               The directory to output compiled files
-echo  --no-docs        Do not attach documentation to compiled modules
-echo  --no-debug-info  Do not attach debug info to compiled modules
-echo  --ignore-module-conflict
+echo  -o                   The directory to output compiled files
+echo  --no-docs            Do not attach documentation to compiled modules
+echo  --no-debug-info      Do not attach debug info to compiled modules
+echo  --verbose            Print compilation status
 echo  --warnings-as-errors Treat warnings as errors and return non-zero exit code
-echo  --verbose        Print informational messages.
+echo  --ignore-module-conflict
 echo.
 echo ** Options given after -- are passed down to the executed code
 echo ** Options can be passed to the Erlang runtime using ELIXIR_ERL_OPTIONS
