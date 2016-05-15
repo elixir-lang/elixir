@@ -386,7 +386,7 @@ defmodule Exception do
 
     case trace do
       [] -> "\n"
-      s  -> "    " <> Enum.map_join(s, "\n    ", &format_stacktrace_entry(&1)) <> "\n"
+      _ -> "    " <> Enum.map_join(trace, "\n    ", &format_stacktrace_entry(&1)) <> "\n"
     end
   end
 

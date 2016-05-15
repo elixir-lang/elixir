@@ -849,9 +849,9 @@ warn_pipe({arrow_op, {Line, _Begin, _End}, Op}, {_, [_ | _], [_ | _]}) ->
   elixir_errors:warn(Line, ?file(),
     io_lib:format(
       "parentheses are required when piping into a function call. For example:\n\n"
-      "  foo 1 ~ts bar 2 ~ts baz 3\n\n"
+      "    foo 1 ~ts bar 2 ~ts baz 3\n\n"
       "is ambiguous and should be written as\n\n"
-      "  foo(1) ~ts bar(2) ~ts baz(3)\n\n"
+      "    foo(1) ~ts bar(2) ~ts baz(3)\n\n"
       "Ambiguous pipe found at:",
       [Op, Op, Op, Op]
     )

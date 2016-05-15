@@ -13,7 +13,7 @@
 warn(none, File, Warning) ->
   warn(0, File, Warning);
 warn(Line, File, Warning) when is_integer(Line), is_binary(File) ->
-  warn([Warning, "\n    ", file_format(Line, File), $\n]).
+  warn([Warning, "\n  ", file_format(Line, File), $\n]).
 
 -spec warn(unicode:chardata()) -> ok.
 warn(Message) ->
@@ -21,15 +21,15 @@ warn(Message) ->
   if
     CompilerPid =/= undefined ->
       elixir_code_server:cast({register_warning, CompilerPid});
-    true -> false
+    true -> ok
   end,
-  io:put_chars(standard_error, [warning(), Message, $\n]),
+  io:put_chars(standard_error, [warning_prefix(), Message, $\n]),
   ok.
 
-warning() ->
+warning_prefix() ->
   case application:get_env(elixir, ansi_enabled) of
-    {ok, true} -> <<"\e[33mwarning! \e[0m">>;
-    _ -> <<"warning! ">>
+    {ok, true} -> <<"\e[33mwarning: \e[0m">>;
+    _ -> <<"warning: ">>
   end.
 
 %% General forms handling.
