@@ -18,8 +18,10 @@ defmodule Mix.UmbrellaTest do
         Mix.Task.run "compile", ["--verbose"]
 
         assert_received {:mix_shell, :info, ["==> bar"]}
+        assert_received {:mix_shell, :info, ["Generated bar app"]}
         assert File.regular?("_build/dev/lib/bar/ebin/Elixir.Bar.beam")
         assert_received {:mix_shell, :info, ["==> foo"]}
+        assert_received {:mix_shell, :info, ["Generated foo app"]}
         assert File.regular?("_build/dev/lib/foo/ebin/Elixir.Foo.beam")
 
         # Ensure foo was loaded and in the same env as Mix.env
@@ -259,8 +261,10 @@ defmodule Mix.UmbrellaTest do
     in_fixture("umbrella_dep/deps/umbrella/apps", fn ->
       Mix.Project.in_project(:bar, "bar", fn _ ->
         Mix.Task.run "compile", ["--verbose"]
-        assert File.regular?("_build/dev/lib/bar/ebin/Elixir.Bar.beam")
+        assert_received {:mix_shell, :info, ["Generated foo app"]}
+        assert_received {:mix_shell, :info, ["Generated bar app"]}
         assert File.regular?("_build/dev/lib/foo/ebin/Elixir.Foo.beam")
+        assert File.regular?("_build/dev/lib/bar/ebin/Elixir.Bar.beam")
 
         # Noop by default
         assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == :noop

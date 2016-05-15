@@ -15,8 +15,8 @@ defmodule Mix.Compilers.Elixir do
   between modules, which helps it recompile only the modules that
   have changed at runtime.
   """
-  def compile(manifest, srcs, exts, dest, force, opts) do
-    all  = Mix.Utils.extract_files(srcs, exts)
+  def compile(manifest, srcs, dest, force, opts) do
+    all  = Mix.Utils.extract_files(srcs, [:ex])
     {all_entries, all_sources} = parse_manifest(manifest)
 
     modified = Mix.Utils.last_modified(manifest)
@@ -93,7 +93,7 @@ defmodule Mix.Compilers.Elixir do
   end
 
   defp compile_manifest(manifest, entries, sources, stale, dest, opts) do
-    Mix.shell.print_app()
+    Mix.Utils.compiling_n(length(stale), :ex)
     Mix.Project.ensure_structure()
     true = Code.prepend_path(dest)
 

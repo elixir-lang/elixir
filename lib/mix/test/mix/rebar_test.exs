@@ -222,6 +222,8 @@ defmodule Mix.RebarTest do
       """
 
       Mix.Tasks.Deps.Compile.run []
+      assert_received {:mix_shell, :info, ["==> rebar_dep"]}
+      assert_received {:mix_shell, :info, ["Generated rebar_dep app"]}
       assert File.regular?("_build/dev/lib/rebar_dep/ebin/rebar_dep.app")
     end
   after

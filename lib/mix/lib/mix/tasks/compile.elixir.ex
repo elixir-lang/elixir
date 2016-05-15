@@ -55,7 +55,7 @@ defmodule Mix.Tasks.Compile.Elixir do
     configs  = Mix.Project.config_files ++ Mix.Tasks.Compile.Erlang.manifests
     force    = opts[:force] || Mix.Utils.stale?(configs, [manifest])
 
-    Mix.Compilers.Elixir.compile(manifest, srcs, [:ex], dest, force, opts)
+    Mix.Compilers.Elixir.compile(manifest, srcs, dest, force, opts)
   end
 
   @doc """

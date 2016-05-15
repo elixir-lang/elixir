@@ -39,7 +39,7 @@ defmodule Mix.Tasks.Compile.Protocols do
   def run(args) do
     config = Mix.Project.config
     Mix.Task.run "compile", args
-    {opts, _, _} = OptionParser.parse(args, switches: [force: :boolean])
+    {opts, _, _} = OptionParser.parse(args, switches: [force: :boolean, verbose: :boolean])
 
     output   = default_path(config)
     manifest = Path.join(output, @manifest)
@@ -55,12 +55,12 @@ defmodule Mix.Tasks.Compile.Protocols do
         paths = consolidation_paths()
         paths
         |> Protocol.extract_protocols
-        |> consolidate(paths, output, manifest, protocols_and_impls)
+        |> consolidate(paths, output, manifest, protocols_and_impls, opts)
 
       protocols_and_impls ->
         manifest
         |> diff_manifest(protocols_and_impls, output)
-        |> consolidate(consolidation_paths(), output, manifest, protocols_and_impls)
+        |> consolidate(consolidation_paths(), output, manifest, protocols_and_impls, opts)
 
       true ->
         :noop
@@ -103,30 +103,32 @@ defmodule Mix.Tasks.Compile.Protocols do
     Enum.filter(paths, &(not :lists.prefix(&1, otp)))
   end
 
-  defp consolidate([], _paths, output, manifest, metadata) do
+  defp consolidate([], _paths, output, manifest, metadata, _opts) do
     File.mkdir_p!(output)
     write_manifest(manifest, metadata)
     :noop
   end
 
-  defp consolidate(protocols, paths, output, manifest, metadata) do
+  defp consolidate(protocols, paths, output, manifest, metadata, opts) do
     File.mkdir_p!(output)
 
     protocols
     |> Enum.uniq()
-    |> Enum.map(&Task.async(fn -> consolidate(&1, paths, output) end))
+    |> Enum.map(&Task.async(fn -> consolidate(&1, paths, output, opts) end))
     |> Enum.map(&Task.await(&1, 30_000))
 
     write_manifest(manifest, metadata)
     :ok
   end
 
-  defp consolidate(protocol, paths, output) do
+  defp consolidate(protocol, paths, output, opts) do
     impls = Protocol.extract_impls(protocol, paths)
     reload(protocol)
     {:ok, binary} = Protocol.consolidate(protocol, impls)
     File.write!(Path.join(output, "#{protocol}.beam"), binary)
-    Mix.shell.info "Consolidated #{inspect protocol}"
+    if opts[:verbose] do
+      Mix.shell.info "Consolidated #{inspect protocol}"
+    end
   end
 
   defp reload(module) do

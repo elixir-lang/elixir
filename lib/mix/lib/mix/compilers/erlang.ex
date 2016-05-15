@@ -46,7 +46,7 @@ defmodule Mix.Compilers.Erlang do
     files = for {src, dest} <- mappings do
               extract_targets(src, src_ext, dest, dest_ext, force)
             end |> Enum.concat
-    compile(manifest, files, callback)
+    compile(manifest, files, src_ext, callback)
   end
 
   @doc """
@@ -59,6 +59,10 @@ defmodule Mix.Compilers.Erlang do
   to be up to date and won't be (re-)compiled.
   """
   def compile(manifest, mappings, callback) do
+    compile(manifest, mappings, :erl, callback)
+  end
+
+  defp compile(manifest, mappings, ext, callback) do
     stale = for {:stale, src, dest} <- mappings, do: {src, dest}
 
     # Get the previous entries from the manifest
@@ -73,7 +77,7 @@ defmodule Mix.Compilers.Erlang do
     if stale == [] && removed == [] do
       :noop
     else
-      Mix.shell.print_app
+      Mix.Utils.compiling_n(length(stale), ext)
       Mix.Project.ensure_structure()
 
       # Let's prepend the newly created path so compiled files
