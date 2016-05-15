@@ -648,6 +648,7 @@ defmodule Kernel.WarningTest do
     end)
     assert output =~ "redefining @doc attribute previously set at line 2"
     assert output =~ "nofile:3: Sample (module)"
+    refute output =~ "nofile:7"
   after
     purge Sample
   end
