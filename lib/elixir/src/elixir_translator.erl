@@ -50,8 +50,8 @@ translate({{'.', _, [erlang, 'orelse']}, Meta, [Left, Right]}, S) ->
 
 %% Lexical
 
-translate({Lexical, _, [_, _]}, S) when Lexical == import; Lexical == alias; Lexical == require ->
-  {{atom, 0, nil}, S};
+translate({Lexical, _, [Module, _]}, S) when Lexical == import; Lexical == alias; Lexical == require ->
+  {{atom, 0, Module}, S};
 
 %% Pseudo variables
 

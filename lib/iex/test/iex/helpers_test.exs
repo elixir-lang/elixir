@@ -235,7 +235,7 @@ defmodule IEx.HelpersTest do
              = capture_iex("puts \"hi\"")
 
       assert capture_iex("import_file \"dot-iex\"\nvariable\nputs \"hi\"")
-             == "nil\n:hello\nhi\n:ok"
+             == "IO\n:hello\nhi\n:ok"
     end
   end
 
@@ -250,7 +250,7 @@ defmodule IEx.HelpersTest do
              = capture_iex("puts \"hi\"")
 
       assert capture_iex("import_file \"dot-iex\"\nvariable\nputs \"hi\"\nparent")
-             == "nil\n:hello\nhi\n:ok\ntrue"
+             == "IO\n:hello\nhi\n:ok\ntrue"
     end
   end
 
