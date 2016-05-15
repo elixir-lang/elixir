@@ -207,7 +207,8 @@ defmodule IO do
     :elixir_errors.warn([to_chardata(message), ?\n])
   end
   def warn(message, stacktrace) when is_list(stacktrace) do
-    :elixir_errors.warn([to_chardata(message), ?\n, Exception.format_stacktrace(stacktrace)])
+    formatted = Enum.map_join(stacktrace, "\n  ", &Exception.format_stacktrace_entry(&1))
+    :elixir_errors.warn([to_chardata(message), ?\n, "  ", formatted, ?\n])
   end
 
   @doc """
