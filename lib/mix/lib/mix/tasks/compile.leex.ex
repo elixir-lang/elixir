@@ -42,7 +42,7 @@ defmodule Mix.Tasks.Compile.Leex do
   """
   @spec run(OptionParser.argv) :: :ok | :noop
   def run(args) do
-    {opts, _, _} = OptionParser.parse(args, switches: [force: :boolean])
+    {opts, _, _} = OptionParser.parse(args, switches: [force: :boolean, verbose: true])
 
     project      = Mix.Project.config
     source_paths = project[:erlc_paths]
@@ -53,7 +53,15 @@ defmodule Mix.Tasks.Compile.Leex do
       input, output ->
         Erlang.ensure_application!(:parsetools, input)
         options = options ++ @forced_opts ++ [scannerfile: Erlang.to_erl_file(output)]
-        :leex.file(Erlang.to_erl_file(input), options)
+        case :leex.file(Erlang.to_erl_file(input), options) do
+          {:ok, _} = ok ->
+            if opts[:verbose] do
+              Mix.shell.info "Compiled #{input}"
+            end
+            ok
+          :error ->
+            :error
+        end
     end)
   end
 

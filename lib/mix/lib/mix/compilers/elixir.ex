@@ -15,7 +15,7 @@ defmodule Mix.Compilers.Elixir do
   between modules, which helps it recompile only the modules that
   have changed at runtime.
   """
-  def compile(manifest, srcs, exts, dest, force, on_start) do
+  def compile(manifest, srcs, exts, dest, force, opts) do
     all  = Mix.Utils.extract_files(srcs, exts)
     {all_entries, all_sources} = parse_manifest(manifest)
 
@@ -53,7 +53,7 @@ defmodule Mix.Compilers.Elixir do
 
     cond do
       stale != [] ->
-        compile_manifest(manifest, entries, sources, stale, dest, on_start)
+        compile_manifest(manifest, entries, sources, stale, dest, opts)
         :ok
       removed != [] ->
         write_manifest(manifest, entries, sources)
@@ -92,12 +92,20 @@ defmodule Mix.Compilers.Elixir do
         do: {module, kind, beam}
   end
 
-  defp compile_manifest(manifest, entries, sources, stale, dest, on_start) do
+  defp compile_manifest(manifest, entries, sources, stale, dest, opts) do
+    Mix.shell.print_app()
     Mix.Project.ensure_structure()
     true = Code.prepend_path(dest)
 
-    on_start.()
+    set_compiler_opts(opts)
     cwd = File.cwd!
+
+    extra =
+      if opts[:verbose] do
+        [each_file: &each_file/1]
+      else
+        []
+      end
 
     # Starts a server responsible for keeping track which files
     # were compiled and the dependencies between them.
@@ -105,10 +113,10 @@ defmodule Mix.Compilers.Elixir do
 
     try do
       _ = Kernel.ParallelCompiler.files :lists.usort(stale),
-        each_module: &each_module(pid, dest, cwd, &1, &2, &3),
-        each_timeout: &each_timeout(&1),
-        timeout: 5_000,
-        dest: dest
+            [each_module: &each_module(pid, dest, cwd, &1, &2, &3),
+             each_timeout: &each_timeout(&1),
+             timeout: 5_000,
+             dest: dest] ++ extra
       Agent.cast pid, fn {entries, sources} ->
         write_manifest(manifest, entries, sources)
         {entries, sources}
@@ -118,6 +126,12 @@ defmodule Mix.Compilers.Elixir do
     end
 
     :ok
+  end
+
+  defp set_compiler_opts(opts) do
+    opts = Keyword.take(opts, Code.available_compiler_options)
+    opts = Keyword.merge(Mix.Project.config[:elixirc_options] || [], opts)
+    Code.compiler_options opts
   end
 
   defp each_module(pid, dest, cwd, source, module, binary) do
@@ -168,6 +182,10 @@ defmodule Mix.Compilers.Elixir do
         relative = Path.relative_to(file, cwd),
         Path.type(relative) == :relative,
         do: relative
+  end
+
+  defp each_file(source) do
+    Mix.shell.info "Compiled #{source}"
   end
 
   defp each_timeout(source) do
