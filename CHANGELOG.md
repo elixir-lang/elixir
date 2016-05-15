@@ -77,6 +77,7 @@
   * [Mix] Improve task not found message when Mix would include the not found task as a suggestion due to different casing
   * [Mix] Ignore lock revision when the lock is out of date when updating Mix dependencies
   * [Mix] Only recompile empty Elixir files if they changed instead of recompiling them on every run
+  * [Mix] Improve error message when application description contains non-ASCII codepoints
 
 ### 3. Soft deprecations (no warnings emitted)
 

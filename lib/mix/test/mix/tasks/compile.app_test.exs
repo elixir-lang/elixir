@@ -40,6 +40,14 @@ defmodule Mix.Tasks.Compile.AppTest do
     end
   end
 
+  defmodule NonASCIIDescriptionProject do
+    def project do
+      [app: :non_ascii_description_project,
+       version: "0.3.0",
+       description: "São Paulo"]
+    end
+  end
+
   test "generates .app file when changes happen" do
     Mix.Project.push MixTest.Case.Sample
 
@@ -107,6 +115,17 @@ defmodule Mix.Tasks.Compile.AppTest do
 
     in_fixture "no_mixfile", fn ->
       message = "Expected :version to be a SemVer version, got: \"0.3\""
+      assert_raise Mix.Error, message, fn ->
+        Mix.Tasks.Compile.App.run([])
+      end
+    end
+  end
+
+  test "raise on non-ASCII description" do
+    Mix.Project.push NonASCIIDescriptionProject
+
+    in_fixture "no_mixfile", fn ->
+      message = "Application description (:description) may contain only ASCII codepoints, got: [83, 227, 111, 32, 80, 97, 117, 108, 111]"
       assert_raise Mix.Error, message, fn ->
         Mix.Tasks.Compile.App.run([])
       end

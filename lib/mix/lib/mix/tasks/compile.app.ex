@@ -160,6 +160,10 @@ defmodule Mix.Tasks.Compile.App do
         unless is_list(value) do
           Mix.raise "Application description (:description) is not a character list, got: #{inspect value}"
         end
+
+        unless Enum.all?(value, fn char -> char in 0..127 end) do
+          Mix.raise "Application description (:description) may contain only ASCII codepoints, got: #{inspect value}"
+        end
       {:id, value} ->
         unless is_list(value) do
           Mix.raise "Application id (:id) is not a character list, got: #{inspect value}"
