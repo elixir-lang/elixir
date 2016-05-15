@@ -60,7 +60,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
   test "recompiles project if scm changed" do
     in_fixture "no_mixfile", fn ->
-      Mix.Tasks.Compile.run []
+      Mix.Tasks.Compile.run ["--verbose"]
       purge [A, B, C]
 
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
@@ -185,7 +185,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       purge [A, B, C]
 
       File.touch!("lib/a.eex", {{2020, 1, 1}, {0, 0, 0}})
-      assert Mix.Tasks.Compile.Elixir.run([]) == :ok
+      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == :ok
 
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}

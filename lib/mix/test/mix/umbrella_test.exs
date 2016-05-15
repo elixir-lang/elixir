@@ -18,11 +18,9 @@ defmodule Mix.UmbrellaTest do
         Mix.Task.run "compile", ["--verbose"]
 
         assert_received {:mix_shell, :info, ["==> bar"]}
-        assert_received {:mix_shell, :info, ["Compiled lib/bar.ex"]}
-        assert_received {:mix_shell, :info, ["Generated bar app"]}
+        assert File.regular?("_build/dev/lib/bar/ebin/Elixir.Bar.beam")
         assert_received {:mix_shell, :info, ["==> foo"]}
-        assert_received {:mix_shell, :info, ["Compiled lib/foo.ex"]}
-        assert_received {:mix_shell, :info, ["Generated foo app"]}
+        assert File.regular?("_build/dev/lib/foo/ebin/Elixir.Foo.beam")
 
         # Ensure foo was loaded and in the same env as Mix.env
         assert_received {:mix_shell, :info, [":foo env is dev"]}
@@ -41,7 +39,7 @@ defmodule Mix.UmbrellaTest do
           Mix.Tasks.App.Start.run []
         end
 
-        Mix.Task.run "compile"
+        Mix.Task.run "compile", ["--verbose"]
 
         assert_received {:mix_shell, :info, ["Generated bar app"]}
         assert_received {:mix_shell, :info, ["Generated foo app"]}
@@ -60,7 +58,7 @@ defmodule Mix.UmbrellaTest do
         defmodule Elixir.Mix.Tasks.Umbrella.Recur do
           use Mix.Task
           @recursive true
-          def run(_), do: Mix.Task.run "compile"
+          def run(_), do: Mix.Task.run "compile", ["--verbose"]
         end
 
         Mix.Task.run "umbrella.recur"
@@ -261,18 +259,18 @@ defmodule Mix.UmbrellaTest do
     in_fixture("umbrella_dep/deps/umbrella/apps", fn ->
       Mix.Project.in_project(:bar, "bar", fn _ ->
         Mix.Task.run "compile", ["--verbose"]
-        assert_receive {:mix_shell, :info, ["Compiled lib/foo.ex"]}
-        assert_receive {:mix_shell, :info, ["Compiled lib/bar.ex"]}
+        assert File.regular?("_build/dev/lib/bar/ebin/Elixir.Bar.beam")
+        assert File.regular?("_build/dev/lib/foo/ebin/Elixir.Foo.beam")
 
         # Noop by default
-        assert Mix.Tasks.Compile.Elixir.run([]) == :noop
+        assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == :noop
 
         # Noop when there is no runtime dependency
         ensure_touched("_build/dev/lib/foo/ebin/Elixir.Foo.beam",
                        File.stat!("_build/dev/lib/bar/.compile.elixir").mtime)
         ensure_touched("_build/dev/lib/foo/.compile.elixir",
                        File.stat!("_build/dev/lib/bar/.compile.elixir").mtime)
-        assert Mix.Tasks.Compile.Elixir.run([]) == :noop
+        assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == :noop
 
         # Add runtime dependency
         File.write!("lib/bar.ex", """

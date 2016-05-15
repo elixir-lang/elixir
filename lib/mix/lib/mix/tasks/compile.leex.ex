@@ -42,7 +42,7 @@ defmodule Mix.Tasks.Compile.Leex do
   """
   @spec run(OptionParser.argv) :: :ok | :noop
   def run(args) do
-    {opts, _, _} = OptionParser.parse(args, switches: [force: :boolean, verbose: true])
+    {opts, _, _} = OptionParser.parse(args, switches: [force: :boolean, verbose: :boolean])
 
     project      = Mix.Project.config
     source_paths = project[:erlc_paths]
