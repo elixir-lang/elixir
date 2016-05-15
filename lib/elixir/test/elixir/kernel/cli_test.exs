@@ -96,12 +96,6 @@ defmodule Kernel.CLI.CompileTest do
     Code.delete_path context[:tmp_dir_path]
   end
 
-  test "compiles code with verbose mode", context do
-    assert elixirc('#{context[:fixture]} -o #{context[:tmp_dir_path]} --verbose') ==
-      'Compiled #{context[:fixture]}\n'
-    assert File.regular?(context[:beam_file_path])
-  end
-
   test "fails on missing patterns", context do
     output = elixirc('#{context[:fixture]} non_existing.ex -o #{context[:tmp_dir_path]}')
     assert :string.str(output, 'non_existing.ex') > 0, "expected non_existing.ex to be mentioned"
