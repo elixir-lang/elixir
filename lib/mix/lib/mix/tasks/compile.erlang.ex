@@ -91,7 +91,15 @@ defmodule Mix.Tasks.Compile.Erlang do
         :code.delete(module)
 
         file = to_erl_file(Path.rootname(input, ".erl"))
-        :compile.file(file, erlc_options)
+        case :compile.file(file, erlc_options) do
+          {:ok, _} = ok ->
+            if opts[:verbose] do
+              Mix.shell.info "Compiled #{input}"
+            end
+            ok
+          :error ->
+            :error
+        end
     end)
   end
 

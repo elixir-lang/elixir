@@ -38,7 +38,7 @@ defmodule Mix.Tasks.Compile.Elixir do
 
   @switches [force: :boolean, docs: :boolean, warnings_as_errors: :boolean,
              ignore_module_conflict: :boolean, debug_info: :boolean,
-             elixirc_paths: :keep]
+             elixirc_paths: :keep, verbose: :boolean]
 
   @doc """
   Runs this task.
@@ -55,9 +55,7 @@ defmodule Mix.Tasks.Compile.Elixir do
     configs  = Mix.Project.config_files ++ Mix.Tasks.Compile.Erlang.manifests
     force    = opts[:force] || Mix.Utils.stale?(configs, [manifest])
 
-    Mix.Compilers.Elixir.compile(manifest, srcs, [:ex], dest, force, fn ->
-      set_compiler_opts(project, opts, [])
-    end)
+    Mix.Compilers.Elixir.compile(manifest, srcs, [:ex], dest, force, opts)
   end
 
   @doc """
@@ -71,11 +69,5 @@ defmodule Mix.Tasks.Compile.Elixir do
   """
   def clean do
     Mix.Compilers.Elixir.clean(manifest())
-  end
-
-  defp set_compiler_opts(project, opts, extra) do
-    opts = Keyword.take(opts, Code.available_compiler_options)
-    opts = Keyword.merge(project[:elixirc_options] || [], opts)
-    Code.compiler_options Keyword.merge(opts, extra)
   end
 end

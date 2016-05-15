@@ -53,7 +53,15 @@ defmodule Mix.Tasks.Compile.Yecc do
       input, output ->
         Erlang.ensure_application!(:parsetools, input)
         options = options ++ @forced_opts ++ [parserfile: Erlang.to_erl_file(output)]
-        :yecc.file(Erlang.to_erl_file(input), options)
+        case :yecc.file(Erlang.to_erl_file(input), options) do
+          {:ok, _} = ok ->
+            if opts[:verbose] do
+              Mix.shell.info "Compiled #{input}"
+            end
+            ok
+          :error ->
+            :error
+        end
     end)
   end
 

@@ -73,6 +73,7 @@ defmodule Mix.Compilers.Erlang do
     if stale == [] && removed == [] do
       :noop
     else
+      Mix.shell.print_app
       Mix.Project.ensure_structure()
 
       # Let's prepend the newly created path so compiled files
@@ -85,7 +86,7 @@ defmodule Mix.Compilers.Erlang do
 
       # Compile stale files and print the results
       results = for {input, output} <- stale do
-        interpret_result(input, callback.(input, output))
+        callback.(input, output)
       end
 
       # Write final entries to manifest
@@ -148,14 +149,6 @@ defmodule Mix.Compilers.Erlang do
 
   defp module_from_artifact(artifact) do
     artifact |> Path.basename |> Path.rootname
-  end
-
-  defp interpret_result(file, result) do
-    case result do
-      {:ok, _} -> Mix.shell.info "Compiled #{file}"
-      :error -> nil
-    end
-    result
   end
 
   defp read_manifest(file) do
