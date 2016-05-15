@@ -2,7 +2,7 @@
 % This is not exposed in the Elixir language.
 -module(elixir_errors).
 -export([compile_error/3, compile_error/4,
-  form_error/4, form_warn/4, parse_error/4, warn/2, warn/3,
+  form_error/4, form_warn/4, parse_error/4, warn/1, warn/3,
   handle_file_warning/2, handle_file_warning/3, handle_file_error/2]).
 -include("elixir.hrl").
 
@@ -13,12 +13,24 @@
 warn(none, File, Warning) ->
   warn(0, File, Warning);
 warn(Line, File, Warning) when is_integer(Line), is_binary(File) ->
-  warn(file_format(Line, File), Warning).
+  warn([Warning, "\n    ", file_format(Line, File), $\n]).
 
--spec warn(unicode:chardata(), unicode:chardata()) -> ok.
+-spec warn(unicode:chardata()) -> ok.
+warn(Message) ->
+  CompilerPid = get(elixir_compiler_pid),
+  if
+    CompilerPid =/= undefined ->
+      elixir_code_server:cast({register_warning, CompilerPid});
+    true -> false
+  end,
+  io:put_chars(standard_error, [warning(), Message, $\n]),
+  ok.
 
-warn(Caller, Warning) ->
-  do_warn([Caller, "warning: ", Warning, $\n]).
+warning() ->
+  case application:get_env(elixir, ansi_enabled) of
+    {ok, true} -> <<"\e[33mwarning! \e[0m">>;
+    _ -> <<"warning! ">>
+  end.
 
 %% General forms handling.
 
@@ -224,10 +236,10 @@ raise(Meta, File, Kind, Message) when is_list(Meta) ->
   do_raise(MetaLine, MetaFile, Kind, Message).
 
 file_format(0, File) ->
-  io_lib:format("~ts: ", [elixir_utils:relative_to_cwd(File)]);
+  io_lib:format("~ts", [elixir_utils:relative_to_cwd(File)]);
 
 file_format(Line, File) ->
-  io_lib:format("~ts:~w: ", [elixir_utils:relative_to_cwd(File), Line]).
+  io_lib:format("~ts:~w", [elixir_utils:relative_to_cwd(File), Line]).
 
 format_var(Var) ->
   list_to_atom(lists:takewhile(fun(X) -> X /= $@ end, atom_to_list(Var))).
@@ -269,16 +281,6 @@ meta_location(Meta, File) ->
     {F, L} -> {F, L};
     nil    -> {File, ?line(Meta)}
   end.
-
-do_warn(Warning) ->
-  CompilerPid = get(elixir_compiler_pid),
-  if
-    CompilerPid =/= undefined ->
-      elixir_code_server:cast({register_warning, CompilerPid});
-    true -> false
-  end,
-  io:put_chars(standard_error, Warning),
-  ok.
 
 do_raise(none, File, Kind, Message) ->
   do_raise(0, File, Kind, Message);

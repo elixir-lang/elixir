@@ -466,7 +466,7 @@ defmodule Kernel.TypespecTest do
       assert [] == specs(module)
     end
 
-    assert output =~ "warning: function myfun/1 is unused"
+    assert output =~ "function myfun/1 is unused"
   end
 
   test "@spec(spec) with guards" do

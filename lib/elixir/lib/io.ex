@@ -202,13 +202,12 @@ defmodule IO do
       #=>     my_app.ex:4: MyApp.main/1
       #=> \"""
   """
-  @spec warn(chardata | String.Chars.t, [...]) :: :ok
+  @spec warn(chardata | String.Chars.t, Exception.stacktrace) :: :ok
   def warn(message, []) do
-    :io.put_chars(map_dev(:stderr), ["warning: ", to_chardata(message), ?\n])
+    :elixir_errors.warn([to_chardata(message), ?\n])
   end
   def warn(message, stacktrace) when is_list(stacktrace) do
-    formatted = Exception.format_stacktrace(stacktrace)
-    :io.put_chars(map_dev(:stderr), ["warning: ", to_chardata(message), ?\n, formatted])
+    :elixir_errors.warn([to_chardata(message), ?\n, Exception.format_stacktrace(stacktrace)])
   end
 
   @doc """

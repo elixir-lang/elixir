@@ -119,14 +119,14 @@ defmodule IOTest do
   end
 
   test "warn with chardata" do
-    assert capture_io(:stderr, fn -> IO.warn("hello") end) =~ "warning: hello\n    (ex_unit) lib/ex_unit"
-    assert capture_io(:stderr, fn -> IO.warn('hello') end) =~ "warning: hello\n    (ex_unit) lib/ex_unit"
-    assert capture_io(:stderr, fn -> IO.warn(:hello) end) =~ "warning: hello\n    (ex_unit) lib/ex_unit"
-    assert capture_io(:stderr, fn -> IO.warn(13) end) =~ "warning: 13\n    (ex_unit) lib/ex_unit"
-    assert capture_io(:stderr, fn -> IO.warn("hello", []) end) == "warning: hello\n"
+    assert capture_io(:stderr, fn -> IO.warn("hello") end) =~ "hello\n    (ex_unit) lib/ex_unit"
+    assert capture_io(:stderr, fn -> IO.warn('hello') end) =~ "hello\n    (ex_unit) lib/ex_unit"
+    assert capture_io(:stderr, fn -> IO.warn(:hello) end) =~ "hello\n    (ex_unit) lib/ex_unit"
+    assert capture_io(:stderr, fn -> IO.warn(13) end) =~ "13\n    (ex_unit) lib/ex_unit"
+    assert capture_io(:stderr, fn -> IO.warn("hello", []) end) =~ "hello\n"
     stacktrace = [{IEx.Evaluator, :eval, 4, [file: 'lib/iex/evaluator.ex', line: 108]}]
-    assert capture_io(:stderr, fn -> IO.warn("hello", stacktrace) end) == """
-    warning: hello
+    assert capture_io(:stderr, fn -> IO.warn("hello", stacktrace) end) =~ """
+    hello
         lib/iex/evaluator.ex:108: IEx.Evaluator.eval/4
     """
   end
