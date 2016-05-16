@@ -178,7 +178,7 @@ defmodule IEx.HelpersTest do
   end
 
   test "s helper" do
-    assert capture_io(fn -> s ExUnit end) == "No specification for ExUnit was found\n"
+    assert capture_io(fn -> s IEx.Remsh end) == "No specification for IEx.Remsh was found\n"
 
     # Test that it shows at least two specs
     assert Enum.count(capture_io(fn -> s Enum end) |> String.split("\n"), fn line ->

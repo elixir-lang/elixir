@@ -15,7 +15,7 @@ defmodule ExUnit.CLIFormatter do
       trace: opts[:trace],
       colors: Keyword.put_new(opts[:colors], :enabled, IO.ANSI.enabled?),
       width: get_terminal_width(),
-      tests_counter: 0,
+      tests_counter: %{},
       failures_counter: 0,
       skipped_counter: 0,
       invalids_counter: 0
@@ -43,12 +43,12 @@ defmodule ExUnit.CLIFormatter do
     else
       IO.write success(".", config)
     end
-    {:ok, %{config | tests_counter: config.tests_counter + 1}}
+    {:ok, %{config | tests_counter: update_tests_counter(config.tests_counter, test)}}
   end
 
   def handle_event({:test_finished, %ExUnit.Test{state: {:skip, _}} = test}, config) do
     if config.trace, do: IO.puts trace_test_skip(test)
-    {:ok, %{config | tests_counter: config.tests_counter + 1,
+    {:ok, %{config | tests_counter: update_tests_counter(config.tests_counter, test),
                      skipped_counter: config.skipped_counter + 1}}
   end
 
@@ -59,7 +59,7 @@ defmodule ExUnit.CLIFormatter do
       IO.write invalid("?", config)
     end
 
-    {:ok, %{config | tests_counter: config.tests_counter + 1,
+    {:ok, %{config | tests_counter: update_tests_counter(config.tests_counter, test),
                      invalids_counter: config.invalids_counter + 1}}
   end
 
@@ -73,7 +73,7 @@ defmodule ExUnit.CLIFormatter do
     print_failure(formatted, config)
     print_logs(test.logs)
 
-    {:ok, %{config | tests_counter: config.tests_counter + 1,
+    {:ok, %{config | tests_counter: update_tests_counter(config.tests_counter, test),
                      failures_counter: config.failures_counter + 1}}
   end
 
@@ -120,6 +120,10 @@ defmodule ExUnit.CLIFormatter do
     end
   end
 
+  defp update_tests_counter(tests_counter, %{type: type} = _test) do
+    Map.update(tests_counter, type, 1, &(&1 + 1))
+  end
+
   ## Printing
 
   defp print_suite(config, run_us, load_us) do
@@ -127,11 +131,12 @@ defmodule ExUnit.CLIFormatter do
     IO.puts format_time(run_us, load_us)
 
     # singular/plural
-    test_pl = pluralize(config.tests_counter, "test", "tests")
     failure_pl = pluralize(config.failures_counter, "failure", "failures")
 
+    test_type_counts = format_test_type_counts(config)
+
     message =
-      "#{config.tests_counter} #{test_pl}, #{config.failures_counter} #{failure_pl}"
+      "#{test_type_counts} #{config.failures_counter} #{failure_pl}"
       |> if_true(config.skipped_counter > 0, & &1 <> ", #{config.skipped_counter} skipped")
       |> if_true(config.invalids_counter > 0, & &1 <> ", #{config.invalids_counter} invalid")
 
@@ -164,6 +169,14 @@ defmodule ExUnit.CLIFormatter do
       true -> IO.puts "\n"
     end
     IO.puts formatted
+  end
+
+  defp format_test_type_counts(%{tests_counter: tests_counter} = _config) do
+    Enum.map_join tests_counter, " ", fn {type, count} ->
+      type_pluralized = pluralize(count, type, ExUnit.plural_rule(type |> to_string()))
+
+      "#{count} #{type_pluralized},"
+    end
   end
 
   # Color styles
