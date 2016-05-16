@@ -207,7 +207,6 @@ defmodule ExUnit.Case do
         @moduletag async: async
         @before_compile ExUnit.Case
         @after_compile ExUnit.Case
-        @ex_unit_test_names %{}
         @ex_unit_async async
         use ExUnit.Callbacks
       end
@@ -325,12 +324,7 @@ defmodule ExUnit.Case do
       |> Map.merge(%{line: line, file: file, registered: registered})
 
     test = %ExUnit.Test{name: name, case: mod, tags: tags}
-    test_names = Module.get_attribute(mod, :ex_unit_test_names)
-
-    unless Map.has_key?(test_names, name) do
-      Module.put_attribute(mod, :ex_unit_tests, test)
-      Module.put_attribute(mod, :ex_unit_test_names, Map.put(test_names, name, true))
-    end
+    Module.put_attribute(mod, :ex_unit_tests, test)
 
     Enum.each [:tag | registered_attributes], fn(attribute) ->
       Module.delete_attribute(mod, attribute)
