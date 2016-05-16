@@ -132,6 +132,9 @@ defmodule ExUnit.Case do
     * `:timeout` - customizes the test timeout in milliseconds (defaults to 60000)
     * `:report` - include the given tags and context keys on error reports,
       see the "Reporting tags" section
+    * `:type` - customizes the test's type in reports (defaults to `:test`). The
+      test type will be converted to a string and pluralized for display. You
+      can use `ExUnit.plural_rule/2` to set a custom pluralization.
 
   ### Reporting tags
 
@@ -324,6 +327,14 @@ defmodule ExUnit.Case do
       |> Map.merge(%{line: line, file: file, registered: registered})
 
     test = %ExUnit.Test{name: name, case: mod, tags: tags}
+
+    test =
+      if tags[:type] do
+        %{test | type: tags[:type]}
+      else
+        test
+      end
+
     Module.put_attribute(mod, :ex_unit_tests, test)
 
     Enum.each [:tag | registered_attributes], fn(attribute) ->
@@ -363,6 +374,10 @@ defmodule ExUnit.Case do
         Map.has_key?(tags, tag) do
       raise "cannot set tag #{inspect tag} because it is reserved by ExUnit"
     end
+
+    unless is_atom(tags[:type]),
+      do: raise "value for tag `:type` must be an atom"
+
     tags
   end
 
