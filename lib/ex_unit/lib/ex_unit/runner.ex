@@ -3,7 +3,7 @@ defmodule ExUnit.Runner do
 
   alias ExUnit.EventManager, as: EM
 
-  def run(async, sync, opts, load_us) do
+  def run(opts) do
     {opts, config} = configure(opts)
 
     :erlang.system_flag(:backtrace_depth,
@@ -12,11 +12,10 @@ defmodule ExUnit.Runner do
     {run_us, _} =
       :timer.tc fn ->
         EM.suite_started(config.manager, opts)
-        loop %{config | sync_cases: shuffle(config, sync),
-                        async_cases: shuffle(config, async)}
+        loop(config, 0)
       end
 
-    EM.suite_finished(config.manager, run_us, load_us)
+    EM.suite_finished(config.manager, run_us)
     EM.call(config.manager, ExUnit.RunnerStats, :stop, :infinity)
   end
 
@@ -28,18 +27,16 @@ defmodule ExUnit.Runner do
     Enum.each formatters, &(:ok = EM.add_handler(pid, &1, opts))
 
     config = %{
-      async_cases: [],
       capture_log: opts[:capture_log],
       exclude: opts[:exclude],
       include: opts[:include],
       manager: pid,
       max_cases: opts[:max_cases],
       seed: opts[:seed],
-      sync_cases: [],
-      taken_cases: 0,
+      cases: :async,
       timeout: opts[:timeout],
       trace: opts[:trace]
-     }
+    }
 
     {opts, config}
   end
@@ -62,30 +59,35 @@ defmodule ExUnit.Runner do
     end
   end
 
-  defp loop(config) do
-    available = config.max_cases - config.taken_cases
+  defp loop(%{cases: :async} = config, taken) do
+    available = config.max_cases - taken
 
     cond do
       # No cases available, wait for one
       available <= 0 ->
-        wait_until_available config
+        wait_until_available(config, taken)
 
       # Slots are available, start with async cases
-      tuple = take_async_cases(config, available) ->
-        {config, cases} = tuple
-        spawn_cases(config, cases)
+      cases = ExUnit.Server.take_async_cases(available) ->
+        spawn_cases(config, cases, taken)
 
-      # No more async cases, wait for them to finish
-      config.taken_cases > 0 ->
-        wait_until_available config
+      true ->
+        cases = ExUnit.Server.take_sync_cases()
+        loop(%{config | cases: cases}, taken)
+    end
+  end
+
+  defp loop(%{cases: cases} = config, taken) do
+    case cases do
+      _ when taken > 0 ->
+        wait_until_available(config, taken)
 
       # So we can start all sync cases
-      tuple = take_sync_cases(config) ->
-        {config, cases} = tuple
-        spawn_cases(config, cases)
+      [h | t] ->
+        spawn_cases(%{config | cases: t}, [h], taken)
 
       # No more cases, we are done!
-      true ->
+      [] ->
         config
     end
   end
@@ -93,14 +95,14 @@ defmodule ExUnit.Runner do
   # Loop expecting messages from the spawned cases. Whenever
   # a test case has finished executing, decrease the taken
   # cases counter and attempt to spawn new ones.
-  defp wait_until_available(config) do
+  defp wait_until_available(config, taken) do
     receive do
       {_pid, :case_finished, _test_case} ->
-        loop %{config | taken_cases: config.taken_cases - 1}
+        loop(config, taken - 1)
     end
   end
 
-  defp spawn_cases(config, cases) do
+  defp spawn_cases(config, cases, taken) do
     pid = self()
 
     Enum.each cases, fn case_name ->
@@ -109,7 +111,7 @@ defmodule ExUnit.Runner do
       end
     end
 
-    loop %{config | taken_cases: config.taken_cases + length(cases)}
+    loop(config, taken + length(cases))
   end
 
   defp run_case(config, pid, case_name) do
@@ -327,22 +329,6 @@ defmodule ExUnit.Runner do
   defp shuffle(%{seed: seed}, list) do
     _ = :rand.seed(:exsplus, {3172, 9814, seed})
     Enum.shuffle(list)
-  end
-
-  defp take_async_cases(config, count) do
-    case config.async_cases do
-      [] -> nil
-      cases ->
-        {response, remaining} = Enum.split(cases, count)
-        {%{config | async_cases: remaining}, response}
-    end
-  end
-
-  defp take_sync_cases(config) do
-    case config.sync_cases do
-      [h | t] -> {%{config | sync_cases: t}, [h]}
-      []      -> nil
-    end
   end
 
   defp failed(:error, %ExUnit.MultiError{errors: errors}, _stack) do

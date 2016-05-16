@@ -28,6 +28,7 @@ defmodule ExUnit.CallbacksTest do
       end
     end
 
+    ExUnit.Server.cases_loaded()
     assert capture_io(fn -> ExUnit.run end) =~
            "1 test, 0 failures"
   end
@@ -47,6 +48,7 @@ defmodule ExUnit.CallbacksTest do
       defp error, do: :error
     end
 
+    ExUnit.Server.cases_loaded()
     assert capture_io(fn -> ExUnit.run end) =~
            "** (MatchError) no match of right hand side value: :error"
   end
@@ -66,6 +68,7 @@ defmodule ExUnit.CallbacksTest do
       defp error, do: :error
     end
 
+    ExUnit.Server.cases_loaded()
     assert capture_io(fn -> ExUnit.run end) =~
            "** (MatchError) no match of right hand side value: :error"
   end
@@ -82,6 +85,7 @@ defmodule ExUnit.CallbacksTest do
       defp error, do: :error
     end
 
+    ExUnit.Server.cases_loaded()
     assert capture_io(fn -> ExUnit.run end) =~
            "** (MatchError) no match of right hand side value: :error"
   end
@@ -96,6 +100,7 @@ defmodule ExUnit.CallbacksTest do
       end
     end
 
+    ExUnit.Server.cases_loaded()
     assert capture_io(fn -> ExUnit.run end) =~
            ">) killed"
   end
@@ -137,6 +142,7 @@ defmodule ExUnit.CallbacksTest do
       end
     end
 
+    ExUnit.Server.cases_loaded()
     output = capture_io(fn -> ExUnit.run end)
     assert output =~ "on_exit run"
     assert output =~ "1 test, 0 failures"
@@ -188,6 +194,7 @@ defmodule ExUnit.CallbacksTest do
     end
 
     no_formatters!
+    ExUnit.Server.cases_loaded()
     output = capture_io(fn -> ExUnit.run end)
 
     assert output =~ """
@@ -231,6 +238,7 @@ defmodule ExUnit.CallbacksTest do
     end
 
     no_formatters!
+    ExUnit.Server.cases_loaded()
     output = capture_io(fn -> ExUnit.run end)
 
     assert output =~ """

@@ -60,13 +60,13 @@ defmodule ExUnit.CaptureLog do
 
     try do
       :ok = add_capture(string_io, opts)
-      ref = ExUnit.Server.log_capture_on(self())
+      ref = ExUnit.CaptureServer.log_capture_on(self())
 
       try do
         fun.()
       after
         :ok = Logger.flush()
-        :ok = ExUnit.Server.log_capture_off(ref)
+        :ok = ExUnit.CaptureServer.log_capture_off(ref)
         :ok = remove_capture(string_io)
       end
 

@@ -209,7 +209,10 @@ defmodule Mix.Tasks.Test do
       [] ->
         Mix.shell.error "Test patterns did not match any file: " <> Enum.join(files, ", ")
       test_files ->
-        _ = Kernel.ParallelRequire.files(test_files)
+        Task.start_link(fn ->
+          Kernel.ParallelRequire.files(test_files)
+          ExUnit.Server.cases_loaded()
+        end)
 
         # Run the test suite, coverage tools and register an exit hook
         %{failures: failures} = ExUnit.run
@@ -234,10 +237,11 @@ defmodule Mix.Tasks.Test do
 
   @doc false
   def ex_unit_opts(opts) do
-    opts = opts
-           |> filter_opts(:include)
-           |> filter_opts(:exclude)
-           |> filter_only_opts()
+    opts =
+      opts
+      |> filter_opts(:include)
+      |> filter_opts(:exclude)
+      |> filter_only_opts()
 
     default_opts(opts) ++
       Keyword.take(opts, [:trace, :max_cases, :include, :exclude, :seed, :timeout])

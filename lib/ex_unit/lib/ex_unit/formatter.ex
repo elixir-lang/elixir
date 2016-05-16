@@ -52,24 +52,11 @@ defmodule ExUnit.Formatter do
       iex> format_time(10000, nil)
       "Finished in 0.01 seconds"
 
-      iex> format_time(10000, 20000)
-      "Finished in 0.03 seconds (0.02s on load, 0.01s on tests)"
-
-      iex> format_time(10000, 200000)
-      "Finished in 0.2 seconds (0.2s on load, 0.01s on tests)"
-
   """
+  # TODO: Remove second argument when formatters are no longer GenEvent
   @spec format_time(run_us, load_us) :: String.t
   def format_time(run_us, nil) do
     "Finished in #{run_us |> normalize_us |> format_us} seconds"
-  end
-
-  def format_time(run_us, load_us) do
-    run_us  = run_us |> normalize_us
-    load_us = load_us |> normalize_us
-
-    total_us = run_us + load_us
-    "Finished in #{format_us total_us} seconds (#{format_us load_us}s on load, #{format_us run_us}s on tests)"
   end
 
   defp normalize_us(us) do

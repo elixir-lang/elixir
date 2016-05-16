@@ -131,6 +131,7 @@ defmodule ExUnit do
 
     children = [
       worker(ExUnit.Server, []),
+      worker(ExUnit.CaptureServer, []),
       worker(ExUnit.OnExitHandler, [])
     ]
 
@@ -155,6 +156,7 @@ defmodule ExUnit do
 
       System.at_exit fn
         0 ->
+          ExUnit.Server.cases_loaded()
           %{failures: failures} = ExUnit.run
           System.at_exit fn _ ->
             if failures > 0, do: exit({:shutdown, 1})
@@ -231,7 +233,6 @@ defmodule ExUnit do
   of failures and the number of skipped tests.
   """
   def run do
-    {async, sync, load_us} = ExUnit.Server.start_run
-    ExUnit.Runner.run async, sync, configuration, load_us
+    ExUnit.Runner.run configuration
   end
 end
