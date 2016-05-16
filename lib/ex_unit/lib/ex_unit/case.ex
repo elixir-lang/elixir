@@ -192,15 +192,13 @@ defmodule ExUnit.Case do
 
   @doc false
   defmacro __using__(opts) do
-    async = Keyword.get(opts, :async, false)
-
     unless Process.whereis(ExUnit.Server) do
       raise "cannot use ExUnit.Case without starting the ExUnit application, " <>
             "please call ExUnit.start() or explicitly start the :ex_unit app"
     end
 
     quote do
-      async = !!unquote(async)
+      async = !!unquote(opts)[:async]
 
       unless Module.get_attribute(__MODULE__, :ex_unit_tests) do
         Enum.each [:ex_unit_tests, :tag, :moduletag, :ex_unit_registered],
@@ -208,6 +206,7 @@ defmodule ExUnit.Case do
 
         @moduletag async: async
         @before_compile ExUnit.Case
+        @after_compile ExUnit.Case
         @ex_unit_test_names %{}
         @ex_unit_async async
         use ExUnit.Callbacks
@@ -259,7 +258,8 @@ defmodule ExUnit.Case do
       test = :"test #{message}"
 
       if Module.defines?(__MODULE__, {test, 1}) do
-        raise ExUnit.DuplicateTestError, ~s(a test named "#{message}" is already defined in #{inspect __MODULE__})
+        raise ExUnit.DuplicateTestError,
+          ~s(a test named "#{message}" is already defined in #{inspect __MODULE__})
       end
 
       ExUnit.Case.__on_definition__(__ENV__, test, [])
@@ -292,15 +292,17 @@ defmodule ExUnit.Case do
   @doc false
   defmacro __before_compile__(_) do
     quote do
-      if @ex_unit_async do
-        ExUnit.Server.add_async_case(__MODULE__)
-      else
-        ExUnit.Server.add_sync_case(__MODULE__)
-      end
-
       def __ex_unit__(:case) do
         %ExUnit.TestCase{name: __MODULE__, tests: @ex_unit_tests}
       end
+    end
+  end
+
+  def __after_compile__(%{module: module}, _) do
+    if Module.get_attribute(module, :ex_unit_async) do
+      ExUnit.Server.add_async_case(module)
+    else
+      ExUnit.Server.add_sync_case(module)
     end
   end
 

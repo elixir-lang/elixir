@@ -18,6 +18,8 @@ defmodule ExUnitTest do
       end
     end
 
+    ExUnit.Server.cases_loaded()
+
     assert capture_io(fn ->
       assert ExUnit.run == %{failures: 2, skipped: 0, total: 2}
     end) =~ "2 tests, 2 failures"
@@ -35,6 +37,8 @@ defmodule ExUnitTest do
       end
     end
 
+    ExUnit.Server.cases_loaded()
+
     assert capture_io(fn ->
       assert ExUnit.run == %{failures: 1, skipped: 0, total: 1}
     end) =~ "1 test, 1 failure"
@@ -49,6 +53,8 @@ defmodule ExUnitTest do
         :timer.sleep(:infinity)
       end
     end
+
+    ExUnit.Server.cases_loaded()
 
     output = capture_io(fn -> ExUnit.run end)
     assert output =~ "** (ExUnit.TimeoutError) test timed out after 10ms"
@@ -65,6 +71,7 @@ defmodule ExUnitTest do
     end
 
     ExUnit.configure(timeout: 5)
+    ExUnit.Server.cases_loaded()
     output = capture_io(fn -> ExUnit.run end)
     assert output =~ "** (ExUnit.TimeoutError) test timed out after 5ms"
   after
@@ -87,25 +94,23 @@ defmodule ExUnitTest do
       test "three", do: :ok
     end
 
-    test_cases = ExUnit.Server.start_run
-
-    {result, output} = run_with_filter([], test_cases)
+    {result, output} = run_with_filter([], []) # Empty because it is already loaded
     assert result == %{failures: 1, skipped: 0, total: 4}
     assert output =~ "4 tests, 1 failure"
 
-    {result, output} = run_with_filter([exclude: [even: true]], test_cases)
+    {result, output} = run_with_filter([exclude: [even: true]], [ParityTest])
     assert result == %{failures: 0, skipped: 1, total: 4}
     assert output =~ "4 tests, 0 failures, 1 skipped"
 
-    {result, output} = run_with_filter([exclude: :even], test_cases)
+    {result, output} = run_with_filter([exclude: :even], [ParityTest])
     assert result == %{failures: 0, skipped: 3, total: 4}
     assert output =~ "4 tests, 0 failures, 3 skipped"
 
-    {result, output} = run_with_filter([exclude: :even, include: [even: true]], test_cases)
+    {result, output} = run_with_filter([exclude: :even, include: [even: true]], [ParityTest])
     assert result == %{failures: 1, skipped: 2, total: 4}
     assert output =~ "4 tests, 1 failure, 2 skipped"
 
-    {result, output} = run_with_filter([exclude: :test, include: [even: true]], test_cases)
+    {result, output} = run_with_filter([exclude: :test, include: [even: true]], [ParityTest])
     assert result == %{failures: 1, skipped: 3, total: 4}
     assert output =~ "4 tests, 1 failure, 3 skipped"
   end
@@ -145,6 +150,7 @@ defmodule ExUnitTest do
       end
     end
 
+    ExUnit.Server.cases_loaded()
     output = capture_io(&ExUnit.run/0)
     assert output =~ "[debug] two"
     refute output =~ "[debug] one"
@@ -176,6 +182,8 @@ defmodule ExUnitTest do
         end
       end
     end
+
+    ExUnit.Server.cases_loaded()
 
     output = capture_io(fn ->
       assert ExUnit.run == %{failures: 1, skipped: 0, total: 1}
@@ -222,6 +230,8 @@ defmodule ExUnitTest do
       test "this is not implemented yet"
     end
 
+    ExUnit.Server.cases_loaded()
+
     output = capture_io(fn ->
       assert ExUnit.run == %{failures: 1, skipped: 0, total: 1}
     end)
@@ -246,6 +256,8 @@ defmodule ExUnitTest do
       test "this will also raise", do: raise "oops"
     end
 
+    ExUnit.Server.cases_loaded()
+
     output = capture_io(fn ->
       assert ExUnit.run == %{failures: 0, skipped: 2, total: 2}
     end)
@@ -264,15 +276,13 @@ defmodule ExUnitTest do
       test "false", do: assert false
     end
 
-    test_cases = ExUnit.Server.start_run
-
-    {result, output} = run_with_filter([exclude: :case], test_cases)
+    {result, output} = run_with_filter([exclude: :case], []) # Empty because it is already loaded
     assert result == %{failures: 0, skipped: 2, total: 2}
     assert output =~ "2 tests, 0 failures, 2 skipped"
 
     {result, output} =
       [exclude: :test, include: [case: "ExUnitTest.SecondTestCase"]]
-      |> run_with_filter(test_cases)
+      |> run_with_filter([FirstTestCase, SecondTestCase])
     assert result == %{failures: 1, skipped: 1, total: 2}
     assert output =~ "1) test false (ExUnitTest.SecondTestCase)"
     assert output =~ "2 tests, 1 failure, 1 skipped"
@@ -304,6 +314,8 @@ defmodule ExUnitTest do
       test "sample", do: :ok
     end
 
+    ExUnit.Server.cases_loaded()
+
     output = capture_io(fn ->
       assert ExUnit.run == %{failures: 1, skipped: 0, total: 1}
     end)
@@ -322,16 +334,18 @@ defmodule ExUnitTest do
       test "sample", do: :ok
     end
 
+    ExUnit.Server.cases_loaded()
+
     capture_io(fn ->
       assert ExUnit.run == %{failures: 0, skipped: 0, total: 1}
     end)
   end
 
-  defp run_with_filter(filters, {async, sync, load_us}) do
+  defp run_with_filter(filters, cases) do
+    Enum.each(cases, &ExUnit.Server.add_sync_case/1)
+    ExUnit.Server.cases_loaded()
     opts = Keyword.merge(ExUnit.configuration, filters)
-    output = capture_io fn ->
-      Process.put(:capture_result, ExUnit.Runner.run(async, sync, opts, load_us))
-    end
+    output = capture_io fn -> Process.put(:capture_result, ExUnit.Runner.run(opts)) end
     {Process.get(:capture_result), output}
   end
 end

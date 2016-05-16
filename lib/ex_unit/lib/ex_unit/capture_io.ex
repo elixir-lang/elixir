@@ -125,12 +125,12 @@ defmodule ExUnit.CaptureIO do
   defp do_capture_io(device, options, fun) do
     input = Keyword.get(options, :input, "")
     {:ok, string_io} = StringIO.open(input)
-    case ExUnit.Server.capture_device(device, string_io) do
+    case ExUnit.CaptureServer.device_capture_on(device, string_io) do
       {:ok, ref} ->
         try do
           do_capture_io(string_io, fun)
         after
-          ExUnit.Server.release_device(ref)
+          ExUnit.CaptureServer.device_capture_off(ref)
         end
       {:error, :no_device} ->
         _ = StringIO.close(string_io)
