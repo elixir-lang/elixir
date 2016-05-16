@@ -120,7 +120,7 @@ defmodule ExUnit.CLIFormatter do
     end
   end
 
-  defp update_tests_counter(tests_counter, %{type: type} = _test) do
+  defp update_tests_counter(tests_counter, %{tags: %{type: type}}) do
     Map.update(tests_counter, type, 1, &(&1 + 1))
   end
 
@@ -131,12 +131,11 @@ defmodule ExUnit.CLIFormatter do
     IO.puts format_time(run_us, load_us)
 
     # singular/plural
+    test_type_counts = format_test_type_counts(config)
     failure_pl = pluralize(config.failures_counter, "failure", "failures")
 
-    test_type_counts = format_test_type_counts(config)
-
     message =
-      "#{test_type_counts} #{config.failures_counter} #{failure_pl}"
+      "#{test_type_counts}#{config.failures_counter} #{failure_pl}"
       |> if_true(config.skipped_counter > 0, & &1 <> ", #{config.skipped_counter} skipped")
       |> if_true(config.invalids_counter > 0, & &1 <> ", #{config.invalids_counter} invalid")
 
@@ -172,10 +171,9 @@ defmodule ExUnit.CLIFormatter do
   end
 
   defp format_test_type_counts(%{tests_counter: tests_counter} = _config) do
-    Enum.map_join tests_counter, " ", fn {type, count} ->
+    Enum.map tests_counter, fn {type, count} ->
       type_pluralized = pluralize(count, type, ExUnit.plural_rule(type |> to_string()))
-
-      "#{count} #{type_pluralized},"
+      "#{count} #{type_pluralized}, "
     end
   end
 
