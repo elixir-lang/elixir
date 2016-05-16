@@ -345,7 +345,7 @@ defmodule ExUnitTest do
     Enum.each(cases, &ExUnit.Server.add_sync_case/1)
     ExUnit.Server.cases_loaded()
     opts = Keyword.merge(ExUnit.configuration, filters)
-    output = capture_io fn -> Process.put(:capture_result, ExUnit.Runner.run(opts)) end
+    output = capture_io fn -> Process.put(:capture_result, ExUnit.Runner.run(opts, nil)) end
     {Process.get(:capture_result), output}
   end
 end

@@ -156,8 +156,8 @@ defmodule ExUnit do
 
       System.at_exit fn
         0 ->
-          ExUnit.Server.cases_loaded()
-          %{failures: failures} = ExUnit.run
+          time = ExUnit.Server.cases_loaded()
+          %{failures: failures} = ExUnit.Runner.run(configuration(), time)
           System.at_exit fn _ ->
             if failures > 0, do: exit({:shutdown, 1})
           end
@@ -233,6 +233,6 @@ defmodule ExUnit do
   of failures and the number of skipped tests.
   """
   def run do
-    ExUnit.Runner.run configuration
+    ExUnit.Runner.run(configuration(), nil)
   end
 end

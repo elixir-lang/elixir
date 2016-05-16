@@ -3,7 +3,7 @@ defmodule ExUnit.Runner do
 
   alias ExUnit.EventManager, as: EM
 
-  def run(opts) do
+  def run(opts, load_us) do
     {opts, config} = configure(opts)
 
     :erlang.system_flag(:backtrace_depth,
@@ -15,7 +15,7 @@ defmodule ExUnit.Runner do
         loop(config, 0)
       end
 
-    EM.suite_finished(config.manager, run_us)
+    EM.suite_finished(config.manager, run_us, load_us)
     EM.call(config.manager, ExUnit.RunnerStats, :stop, :infinity)
   end
 

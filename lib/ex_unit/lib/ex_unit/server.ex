@@ -8,8 +8,6 @@ defmodule ExUnit.Server do
     GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
   end
 
-  ## Before run API
-
   def add_async_case(name) do
     GenServer.cast(__MODULE__, {:add_async_case, name})
   end
@@ -19,10 +17,8 @@ defmodule ExUnit.Server do
   end
 
   def cases_loaded do
-    GenServer.cast(__MODULE__, :cases_loaded)
+    GenServer.call(__MODULE__, :cases_loaded)
   end
-
-  ## Run API
 
   def take_async_cases(count) do
     GenServer.call(__MODULE__, {:take_async_cases, count}, @timeout)
@@ -36,7 +32,7 @@ defmodule ExUnit.Server do
 
   def init(:ok) do
     {:ok, %{
-      loaded: false,
+      loaded: System.monotonic_time,
       waiting: nil,
       async_cases: [],
       sync_cases: [],
@@ -49,8 +45,14 @@ defmodule ExUnit.Server do
   end
 
   # Called once after all async cases have been sent and reverts the state.
-  def handle_call(:take_sync_cases, _from, %{waiting: nil, loaded: true, async_cases: []} = state) do
-    {:reply, state.sync_cases, %{state | sync_cases: [], loaded: false}}
+  def handle_call(:take_sync_cases, _from, %{waiting: nil, loaded: :done, async_cases: []} = state) do
+    {:reply, state.sync_cases,
+     %{state | sync_cases: [], loaded: System.monotonic_time}}
+  end
+
+  def handle_call(:cases_loaded, _from, %{loaded: loaded} = state) when is_integer(loaded) do
+    diff = System.convert_time_unit(System.monotonic_time - loaded, :native, :microseconds)
+    {:reply, diff, take_cases(%{state | loaded: :done})}
   end
 
   def handle_cast({:add_async_case, name}, %{async_cases: cases} = state) do
@@ -61,15 +63,11 @@ defmodule ExUnit.Server do
     {:noreply, %{state | sync_cases: [name | cases]}}
   end
 
-  def handle_cast(:cases_loaded, %{loaded: false} = state) do
-    {:noreply, take_cases(%{state | loaded: true})}
-  end
-
   defp take_cases(%{waiting: nil} = state) do
     state
   end
 
-  defp take_cases(%{waiting: {from, _count}, async_cases: [], loaded: true} = state) do
+  defp take_cases(%{waiting: {from, _count}, async_cases: [], loaded: :done} = state) do
     GenServer.reply(from, nil)
     %{state | waiting: nil}
   end
