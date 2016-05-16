@@ -71,8 +71,8 @@ defmodule IEx.Helpers do
   If you want to reload a single module, consider using
   `r ModuleName` instead.
 
-  NOTE: This feature is experimental and may be removed
-  in upcoming releases.
+  This function is meant to be used for development and
+  debugging purposes. Do not depend on it in production code.
   """
   def recompile do
     if mix_started? do
@@ -339,16 +339,20 @@ defmodule IEx.Helpers do
   Please note that all the modules defined in the same
   file as `module` are recompiled and reloaded.
 
+  This function is meant to be used for development and
+  debugging purposes. Do not depend on it in production code.
+
   ## In-memory reloading
 
-  When we reload the module in IEx, we recompile the module source code,
-  updating its contents in memory. The original `.beam` file in disk,
-  probably the one where the first definition of the module came from,
-  does not change at all.
+  When we reload the module in IEx, we recompile the module source
+  code, updating its contents in memory. The original `.beam` file
+  in disk, probably the one where the first definition of the module
+  came from, does not change at all.
 
-  Since typespecs and docs are loaded from the .beam file (they are not
-  loaded in memory with the module because there is no need for them to
-  be in memory), they are not reloaded when you reload the module.
+  Since typespecs and docs are loaded from the .beam file (they
+  are not loaded in memory with the module because there is no need
+  for them to be in memory), they are not reloaded when you reload
+  the module.
   """
   def r(module) when is_atom(module) do
     {:reloaded, module, do_r(module)}
