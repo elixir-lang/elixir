@@ -201,7 +201,7 @@ defmodule ExUnitTest do
   end
 
   test "raises friendly error for duplicate test names" do
-    message = ~S(a test named "duplicate" is already defined in ExUnitTest.TestWithSameNames)
+    message = ~S("test duplicate" is already defined in ExUnitTest.TestWithSameNames)
 
     assert_raise ExUnit.DuplicateTestError, message, fn ->
       defmodule TestWithSameNames do

@@ -258,12 +258,6 @@ defmodule ExUnit.Case do
 
     quote bind_quoted: binding do
       test = :"test #{message}"
-
-      if Module.defines?(__MODULE__, {test, 1}) do
-        raise ExUnit.DuplicateTestError,
-          ~s(a test named "#{message}" is already defined in #{inspect __MODULE__})
-      end
-
       ExUnit.Case.__on_definition__(__ENV__, test, [])
       def unquote(test)(unquote(var)), do: unquote(contents)
     end
@@ -300,6 +294,7 @@ defmodule ExUnit.Case do
     end
   end
 
+  @doc false
   def __after_compile__(%{module: module}, _) do
     if Module.get_attribute(module, :ex_unit_async) do
       ExUnit.Server.add_async_case(module)
@@ -315,6 +310,10 @@ defmodule ExUnit.Case do
     unless moduletag do
       raise "cannot define test. Please make sure you have invoked " <>
             "\"use ExUnit.Case\" in the current module"
+    end
+
+    if Module.defines?(mod, {name, 1}) do
+      raise ExUnit.DuplicateTestError, ~s("#{name}" is already defined in #{inspect mod})
     end
 
     registered_attributes = Module.get_attribute(mod, :ex_unit_registered)
