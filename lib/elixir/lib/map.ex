@@ -90,7 +90,7 @@ defmodule Map do
   @doc """
   Creates a map from an `enumerable` via the transformation function.
 
-  Duplicated entries are removed; the latest one prevails.
+  Duplicated keys are removed; the latest one prevails.
 
   ## Examples
 
@@ -391,7 +391,7 @@ defmodule Map do
   end
 
   @doc """
-  Returns and removes all values associated with `key` in `map`.
+  Returns and removes the value associated with `key` in `map`.
 
   ## Examples
 
@@ -412,7 +412,7 @@ defmodule Map do
   end
 
   @doc """
-  Lazily returns and removes all values associated with `key` in `map`.
+  Lazily returns and removes the value associated with `key` in `map`.
 
   This is useful if the default value is very expensive to calculate or
   generally difficult to setup and teardown again.
