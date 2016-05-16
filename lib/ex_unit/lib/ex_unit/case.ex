@@ -324,17 +324,10 @@ defmodule ExUnit.Case do
       (tags ++ Module.get_attribute(mod, :tag) ++ moduletag)
       |> normalize_tags
       |> validate_tags
+      |> Map.put_new(:type, :test)
       |> Map.merge(%{line: line, file: file, registered: registered})
 
     test = %ExUnit.Test{name: name, case: mod, tags: tags}
-
-    test =
-      if tags[:type] do
-        %{test | type: tags[:type]}
-      else
-        test
-      end
-
     Module.put_attribute(mod, :ex_unit_tests, test)
 
     Enum.each [:tag | registered_attributes], fn(attribute) ->

@@ -341,49 +341,6 @@ defmodule ExUnitTest do
     end)
   end
 
-  test "plural rules" do
-    on_exit fn ->
-      ExUnit.configure(plural_rules: %{})
-    end
-
-    word = "property"
-    pluralization = "properties"
-
-    assert ExUnit.plural_rule(word) == word <> "s"
-
-    assert ExUnit.plural_rule(word, pluralization) == :ok
-
-    assert ExUnit.plural_rule(word) == pluralization
-
-    invalid_word =
-      fn ->
-        ExUnit.plural_rule(:atom)
-      end
-
-    assert_raise ArgumentError, "`word` must be a binary", invalid_word
-
-    invalid_word =
-      fn ->
-        ExUnit.plural_rule(:atom, "atoms")
-      end
-
-    assert_raise ArgumentError, "`word` must be a binary", invalid_word
-
-    both_invalid =
-    fn ->
-      ExUnit.plural_rule(:atom, :atoms)
-    end
-
-    assert_raise ArgumentError, "`word` must be a binary", both_invalid
-
-    invalid_pluralization =
-      fn ->
-        ExUnit.plural_rule("atom", :atoms)
-      end
-
-    assert_raise ArgumentError, "`pluralization` must be a binary", invalid_pluralization
-  end
-
   test "singular test types" do
     on_exit fn ->
       ExUnit.configure(plural_rules: %{})
