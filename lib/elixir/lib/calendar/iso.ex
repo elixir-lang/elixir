@@ -1,6 +1,6 @@
 defmodule Calendar.ISO do
   @moduledoc """
-  A calendar implentation that follows to ISO8601.
+  A calendar implementation that follows to ISO8601.
 
   This calendar implements the proleptic Gregorian calendar and
   is therefore compatible with the calendar used in most countries
