@@ -73,16 +73,18 @@ defmodule ExUnit do
       * `:time`  - the time to run the test
       * `:tags`  - the test tags
       * `:logs`  - the captured logs
+      * `:type`  - the test type
 
     """
-    defstruct [:name, :case, :state, time: 0, tags: %{}, logs: ""]
+    defstruct [:name, :case, :state, time: 0, tags: %{}, logs: "", type: :test]
 
     @type t :: %__MODULE__{
                  name: atom,
                  case: module,
                  state: ExUnit.state,
                  time: non_neg_integer,
-                 tags: map}
+                 tags: map,
+                 type: atom}
   end
 
   defmodule TestCase do
@@ -211,6 +213,9 @@ defmodule ExUnit do
       on formatting and reporters (defaults to 20)
 
     * `:timeout` - set the timeout for the tests (default 60_000ms)
+
+    * `:plural_rules` - See `ExUnit.plural_rule/1` and `ExUnit.plural_rule/2`.
+      You should not set this option directly.
   """
   def configure(options) do
     Enum.each options, fn {k, v} ->
@@ -224,6 +229,42 @@ defmodule ExUnit do
   def configuration do
     Application.get_all_env(:ex_unit)
   end
+
+  @doc """
+  Returns the pluralization for `word`.
+
+  If one is not registered, returns `"\#{word}s"`.
+  """
+  @spec plural_rule(binary) :: binary
+  def plural_rule(word) when not is_binary(word),
+    do: raise_plural_argument_error("word")
+  def plural_rule(word) do
+    configuration()
+    |> Keyword.get(:plural_rules, %{})
+    |> Map.get(word, "#{word}s")
+  end
+
+  @doc """
+  Registers a `pluralization` for `word`.
+
+  If one is already registered, it is replaced.
+  """
+  @spec plural_rule(binary, binary) :: :ok
+  def plural_rule(word, _pluralization) when not is_binary(word),
+    do: raise_plural_argument_error("word")
+  def plural_rule(_word, pluralization) when not is_binary(pluralization),
+    do: raise_plural_argument_error("pluralization")
+  def plural_rule(word, pluralization) do
+    plural_rules =
+      configuration()
+      |> Keyword.get(:plural_rules, %{})
+      |> Map.put(word, pluralization)
+
+    configure(plural_rules: plural_rules)
+  end
+
+  defp raise_plural_argument_error(argument_name),
+    do: raise ArgumentError, message: "`#{argument_name}` must be a binary"
 
   @doc """
   API used to run the tests. It is invoked automatically
