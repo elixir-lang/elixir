@@ -209,9 +209,17 @@ defmodule Mix.Tasks.Test do
       [] ->
         Mix.shell.error "Test patterns did not match any file: " <> Enum.join(files, ", ")
       test_files ->
-        Task.start_link(fn ->
-          Kernel.ParallelRequire.files(test_files)
-          ExUnit.Server.cases_loaded()
+        spawn_link(fn ->
+          try do
+            Kernel.ParallelRequire.files(test_files)
+          catch
+            :error, value ->
+              exit({value, System.stacktrace()})
+            :throw, value ->
+              exit({{:nocatch, value}, System.stacktrace()})
+          after
+            ExUnit.Server.cases_loaded()
+          end
         end)
 
         # Run the test suite, coverage tools and register an exit hook
