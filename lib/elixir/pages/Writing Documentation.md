@@ -52,9 +52,9 @@ The compiler will infer this argument as `map`. Sometimes the inference will be 
 
 There are a couple tips we recommend developers to follow when writing documentation:
 
-  * Keep the first paragraph of the documentation concise and simple, typically one-line. Tools like ExDoc uses the first line to generate a summary.
+  * Keep the first paragraph of the documentation concise and simple, typically one-line. Tools like ExDoc use the first line to generate a summary.
 
-  * Markdown uses backticks (`` ` ``) to quote code. Elixir builds on top of that to automatically generate links when modules or function names are referenced. For this reason, always use full module names. If you have a module called `MyApp.Hello`, always reference it as `` `MyApp.Hello` `` and never as `` `Hello` ``. Function names must be referenced by name and arity if they are local, as in `` `world/1` ``, or by module, name and arity if pointing to an external module: `` `MyApp.Hello.world/1` ``. Referencing a `@callback` can be done by prepending `c:`, as in `` `c:world/1` ``.
+  * Markdown uses backticks (`` ` ``) to quote code. Elixir builds on top of that to automatically generate links when module or function names are referenced. For this reason, always use full module names. If you have a module called `MyApp.Hello`, always reference it as `` `MyApp.Hello` `` and never as `` `Hello` ``. Function names must be referenced by name and arity if they are local, as in `` `world/1` ``, or by module, name and arity if pointing to an external module: `` `MyApp.Hello.world/1` ``. Referencing a `@callback` can be done by prepending `c:`, as in `` `c:world/1` ``.
 
   * When the documentation has multiple sections, always start the section heading by using `##`. The first heading is reserved to the module or function name itself.
 
@@ -76,7 +76,7 @@ In other words, documentation is required, code comments are optional.
 
 ## Privacy
 
-Elixir does not allow developers to document private functions. That's because private functions only exist inside the module that define them and cannot be accessed externally.
+Elixir does not allow developers to document private functions. That's because private functions only exist inside the module that defines them and cannot be accessed externally.
 
 Luckily, Elixir allows developers to hide modules and functions from the documentation. For example, one common practice for documenting internal behaviour is to set the `@moduledoc` attribute to false while documenting each function:
 
@@ -98,11 +98,11 @@ Similarly, developers can add `@doc false` to functions they do not want to publ
       def add(a, b), do: a + b
     end
 
-However keep in mind adding `@doc false` does not make the function private. The function above can still be invoked as `MyApp.Sample.add(1, 2)`. Not only that, if the `MyApp.Sample` is imported, the `add/2` function will also be imported into the caller. For those reasons, be cautious when adding `@doc false` to functions, instead prefer one of:
+However keep in mind adding `@doc false` does not make the function private. The function above can still be invoked as `MyApp.Sample.add(1, 2)`. Not only that, if `MyApp.Sample` is imported, the `add/2` function will also be imported into the caller. For those reasons, be cautious when adding `@doc false` to functions, instead prefer one of:
 
   * Move the undocumented function to a module with `@moduledoc false`, like `MyApp.Hidden`, ensuring the function won't be accidentally exposed or imported. Remember you can use `@moduledoc false` to hide a whole module and still document each function with `@doc`. Tools will still ignore the module.
 
-  * Start the function name with underscores, for example, `__add__/2`, and add `@doc false`. The compiler does not import functions with underscore and the underscore will hint of its intended private usage.
+  * Start the function name with underscores, for example, `__add__/2`, and add `@doc false`. The compiler does not import functions with leading underscores and they hint to anyone reading the code of their intended private usage.
 
 ## Code.get_docs/2
 
