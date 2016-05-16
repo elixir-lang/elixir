@@ -33,7 +33,7 @@ defmodule ExUnit.CLIFormatter do
   end
 
   def handle_event({:test_started, %ExUnit.Test{} = test}, config) do
-    if config.trace, do: IO.write "  * #{trace_test_name test}"
+    if config.trace, do: IO.write "  * #{test.name}"
     {:ok, config}
   end
 
@@ -98,23 +98,16 @@ defmodule ExUnit.CLIFormatter do
 
   ## Tracing
 
-  defp trace_test_name(%ExUnit.Test{name: name}) do
-    case Atom.to_string(name) do
-      "test " <> rest -> rest
-      rest -> rest
-    end
-  end
-
   defp trace_test_time(%ExUnit.Test{time: time}) do
     "#{format_us(time)}ms"
   end
 
   defp trace_test_result(test) do
-    "\r  * #{trace_test_name test} (#{trace_test_time(test)})"
+    "\r  * #{test.name} (#{trace_test_time(test)})"
   end
 
   defp trace_test_skip(test) do
-    "\r  * #{trace_test_name test} (skipped)"
+    "\r  * #{test.name} (skipped)"
   end
 
   defp format_us(us) do
