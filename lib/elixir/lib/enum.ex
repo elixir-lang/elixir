@@ -1178,10 +1178,10 @@ defmodule Enum do
   end
 
   @doc """
-  Returns the biggest of the elements in the enumerable according
+  Returns the maximal element in the enumerable according
   to Erlang's term ordering.
 
-  If multiple elements are considered the biggest, the first one that was found
+  If multiple elements are considered maximal, the first one that was found
   is returned.
 
   Raises `Enum.EmptyError` if `enumerable` is empty.
@@ -1198,10 +1198,10 @@ defmodule Enum do
   end
 
   @doc """
-  Returns the biggest of the elements in the enumerable as calculated
+  Returns the maximal element in the enumerable as calculated
   by the given function.
 
-  If multiple elements are considered the biggest, the first one that was found
+  If multiple elements are considered maximal, the first one that was found
   is returned.
 
   Raises `Enum.EmptyError` if `enumerable` is empty.
@@ -1282,10 +1282,10 @@ defmodule Enum do
   end
 
   @doc """
-  Returns the smallest of the elements in the enumerable according
+  Returns the minimal element in the enumerable according
   to Erlang's term ordering.
 
-  If multiple elements are considered the smallest, the first one that was found
+  If multiple elements are considered minimal, the first one that was found
   is returned.
 
   Raises `Enum.EmptyError` if `enumerable` is empty.
@@ -1302,10 +1302,10 @@ defmodule Enum do
   end
 
   @doc """
-  Returns the smallest of the elements in the enumerable as calculated
+  Returns the minimal element in the enumerable as calculated
   by the given function.
 
-  If multiple elements are considered the smallest, the first one that was found
+  If multiple elements are considered minimal, the first one that was found
   is returned.
 
   Raises `Enum.EmptyError` if `enumerable` is empty.
@@ -1348,10 +1348,10 @@ defmodule Enum do
   end
 
   @doc """
-  Returns a tuple with the smallest and the biggest elements in the
+  Returns a tuple with the minimal and the maximal elements in the
   enumerable according to Erlang's term ordering.
 
-  If multiple elements are considered the biggest or smallest, the first one
+  If multiple elements are considered maximal or minimal, the first one
   that was found is returned.
 
   Raises `Enum.EmptyError` if `enumerable` is empty.
@@ -1379,10 +1379,10 @@ defmodule Enum do
   end
 
   @doc """
-  Returns a tuple with the smallest and the biggest elements in the
+  Returns a tuple with the minimal and the maximal elements in the
   enumerable as calculated by the given function.
 
-  If multiple elements are considered the biggest or smallest, the first one
+  If multiple elements are considered maximal or minimal, the first one
   that was found is returned.
 
   Raises `Enum.EmptyError` if `enumerable` is empty.
