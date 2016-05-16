@@ -1178,10 +1178,10 @@ defmodule Enum do
   end
 
   @doc """
-  Returns the biggest of the elements in the enumerable according
+  Returns the maximal element in the enumerable according
   to Erlang's term ordering.
 
-  If more than one elements compare equal, the first one that was found
+  If multiple elements are considered maximal, the first one that was found
   is returned.
 
   Raises `Enum.EmptyError` if `enumerable` is empty.
@@ -1198,10 +1198,10 @@ defmodule Enum do
   end
 
   @doc """
-  Returns the biggest of the elements in the enumerable as calculated
+  Returns the maximal element in the enumerable as calculated
   by the given function.
 
-  If more than one elements compare equal, the first one that was found
+  If multiple elements are considered maximal, the first one that was found
   is returned.
 
   Raises `Enum.EmptyError` if `enumerable` is empty.
@@ -1209,6 +1209,9 @@ defmodule Enum do
   ## Examples
 
       iex> Enum.max_by(["a", "aa", "aaa"], fn(x) -> String.length(x) end)
+      "aaa"
+
+      iex> Enum.max_by(["a", "aa", "aaa", "b", "bbb"], &String.length/1)
       "aaa"
 
   """
@@ -1279,10 +1282,10 @@ defmodule Enum do
   end
 
   @doc """
-  Returns the smallest of the elements in the enumerable according
+  Returns the minimal element in the enumerable according
   to Erlang's term ordering.
 
-  If more than one elements compare equal, the first one that was found
+  If multiple elements are considered minimal, the first one that was found
   is returned.
 
   Raises `Enum.EmptyError` if `enumerable` is empty.
@@ -1299,10 +1302,10 @@ defmodule Enum do
   end
 
   @doc """
-  Returns the smallest of the elements in the enumerable as calculated
+  Returns the minimal element in the enumerable as calculated
   by the given function.
 
-  If more than one elements compare equal, the first one that was found
+  If multiple elements are considered minimal, the first one that was found
   is returned.
 
   Raises `Enum.EmptyError` if `enumerable` is empty.
@@ -1310,6 +1313,9 @@ defmodule Enum do
   ## Examples
 
       iex> Enum.min_by(["a", "aa", "aaa"], fn(x) -> String.length(x) end)
+      "a"
+
+      iex> Enum.min_by(["a", "aa", "aaa", "b", "bbb"], &String.length/1)
       "a"
 
   """
@@ -1342,11 +1348,11 @@ defmodule Enum do
   end
 
   @doc """
-  Returns a tuple with the smallest and the biggest elements in the
+  Returns a tuple with the minimal and the maximal elements in the
   enumerable according to Erlang's term ordering.
 
-  If more than one elements compare equal, the first one that was found
-  is picked.
+  If multiple elements are considered maximal or minimal, the first one
+  that was found is returned.
 
   Raises `Enum.EmptyError` if `enumerable` is empty.
 
@@ -1373,11 +1379,11 @@ defmodule Enum do
   end
 
   @doc """
-  Returns a tuple with the smallest and the biggest elements in the
+  Returns a tuple with the minimal and the maximal elements in the
   enumerable as calculated by the given function.
 
-  If more than one elements compare equal, the first one that was found
-  is picked.
+  If multiple elements are considered maximal or minimal, the first one
+  that was found is returned.
 
   Raises `Enum.EmptyError` if `enumerable` is empty.
 
@@ -1385,6 +1391,9 @@ defmodule Enum do
 
       iex> Enum.min_max_by(["aaa", "bb", "c"], fn(x) -> String.length(x) end)
       {"c", "aaa"}
+
+      iex> Enum.min_max_by(["aaa", "a", "bb", "c", "ccc"], &String.length/1)
+      {"a", "aaa"}
 
   """
   @spec min_max_by(t, (element -> any)) :: {element, element} | no_return
