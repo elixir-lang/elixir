@@ -384,6 +384,73 @@ defmodule ExUnitTest do
     assert_raise ArgumentError, "`pluralization` must be a binary", invalid_pluralization
   end
 
+  test "singular test types" do
+    on_exit fn ->
+      ExUnit.configure(plural_rules: %{})
+    end
+
+    ExUnit.plural_rule("property", "properties")
+
+    defmodule SingularTestTypeCase do
+      use ExUnit.Case
+
+      @tag type: :property
+      test "property is true" do
+        assert succeed()
+      end
+
+      test "test true" do
+        assert succeed()
+      end
+
+      defp succeed, do: true
+    end
+
+    ExUnit.Server.cases_loaded()
+
+    assert capture_io(fn ->
+      assert ExUnit.run == %{failures: 0, skipped: 0, total: 2}
+    end) =~ "1 property, 1 test, 0 failures"
+  end
+
+  test "plural test types" do
+    on_exit fn ->
+      ExUnit.configure(plural_rules: %{})
+    end
+
+    ExUnit.plural_rule("property", "properties")
+
+    defmodule PluralTestTypeCase do
+      use ExUnit.Case
+
+      @tag type: :property
+      test "property is true" do
+        assert succeed()
+      end
+
+      @tag type: :property
+      test "property is also true" do
+        assert succeed()
+      end
+
+      test "test true" do
+        assert succeed()
+      end
+
+      test "test true also" do
+        assert succeed()
+      end
+
+      defp succeed, do: true
+    end
+
+    ExUnit.Server.cases_loaded()
+
+    assert capture_io(fn ->
+      assert ExUnit.run == %{failures: 0, skipped: 0, total: 4}
+    end) =~ "2 properties, 2 tests, 0 failures"
+  end
+
   defp run_with_filter(filters, cases) do
     Enum.each(cases, &ExUnit.Server.add_sync_case/1)
     ExUnit.Server.cases_loaded()
