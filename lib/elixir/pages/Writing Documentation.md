@@ -76,7 +76,7 @@ In other words, documentation is required, code comments are optional.
 
 ## Hiding Internal Modules and Functions
 
-Libraries often have two levels of public interface: on one hand, they expose an API for external clients, but on the other hand, the modules and functions that conform the library often need to use other modules and functions in the library which are not part of the external public interface. While these modules and functions can be accessed, they are meant to be internal to the library and thus should not have documentation for end users.
+Besides the modules and functions libraries provide as part of their public interface, libraries may also implement important functionality that are not part of its API. While these modules and functions can be accessed, they are meant to be internal to the library and thus should not have documentation for end users.
 
 Luckily, Elixir allows developers to hide modules and functions from the documentation. For example, one common practice for documenting internal behaviour is to set the `@moduledoc` attribute to false while documenting each function:
 
@@ -84,9 +84,9 @@ Luckily, Elixir allows developers to hide modules and functions from the documen
       @moduledoc false
 
       @doc """
-      This documentation won't appear in the docs.
+      This function won't be listed in docs.
       """
-      def function_that_wont_be_part_of_docs do
+      def function_that_wont_be_listed_in_docs do
         # ...
       end
     end
