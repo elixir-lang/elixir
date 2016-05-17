@@ -226,7 +226,7 @@ defmodule Mix.Dep.Loader do
   defp attach_only(deps, opts) do
     if only = opts[:only] do
       Enum.map(deps, fn %{opts: opts} = dep ->
-        %{dep | opts: Keyword.put(opts, :only, only)}
+        %{dep | opts: Keyword.put_new(opts, :only, only)}
       end)
     else
       deps
