@@ -271,15 +271,16 @@ defmodule Mix.Dep.Loader do
     Mix.Dep.in_dependency(dep, fn _ ->
       config = Mix.Rebar.load_config(".")
       extra = Mix.Rebar.merge_config(dep.extra, config)
-      deps   = if children do
-        from = Path.absname("rebar.config")
-        # Pass the manager because deps of a rebar project need
-        # to default to rebar if we cannot chose a manager from
-        # files in the dependency
-        Enum.map(children, &to_dep(&1, from, manager))
-      else
-        rebar_children(app, config, extra, manager)
-      end
+      deps =
+        if children do
+          from = Path.absname("rebar.config")
+          # Pass the manager because deps of a rebar project need
+          # to default to rebar if we cannot chose a manager from
+          # files in the dependency
+          Enum.map(children, &to_dep(&1, from, manager))
+        else
+          rebar_children(app, config, extra, manager)
+        end
       {%{dep | extra: extra}, deps}
     end)
   end
@@ -306,12 +307,14 @@ defmodule Mix.Dep.Loader do
   defp rebar_children(app, root_config, extra, manager) do
     from = Path.absname("rebar.config")
     Mix.Rebar.recur(root_config, fn config ->
-      deps = Mix.Rebar.deps(app, config, extra[:overrides] || [])
-      Enum.map(deps, fn dep ->
-        %{to_dep(dep, from, manager) | extra: extra}
-      end)
+      app
+      |> Mix.Rebar.deps(config, overrides(manager, extra))
+      |> Enum.map(fn dep -> %{to_dep(dep, from, manager) | extra: extra} end)
     end) |> Enum.concat
   end
+
+  defp overrides(:rebar3, extra), do: extra[:overrides] || []
+  defp overrides(_, _extra), do: []
 
   defp validate_app(%Mix.Dep{opts: opts, requirement: req, app: app} = dep) do
     opts_app = opts[:app]
