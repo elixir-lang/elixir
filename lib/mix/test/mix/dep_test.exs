@@ -357,26 +357,11 @@ defmodule Mix.DepTest do
   end
 
   test "nested deps selects only prod dependencies" do
+    Process.put(:custom_deps_git_repo_opts, [only: :test])
     deps = [{:deps_repo, "0.1.0", path: "custom/deps_repo"}]
 
     with_deps deps, fn ->
       in_fixture "deps_status", fn ->
-        File.write! "custom/deps_repo/mix.exs", """
-        defmodule DepsRepo do
-          use Mix.Project
-
-          def project do
-            [
-              app: :deps_repo,
-              version: "0.1.0",
-              deps: [
-                {:git_repo, "0.2.0", git: MixTest.Case.fixture_path("git_repo"), only: :test}
-              ]
-            ]
-          end
-        end
-        """
-
         loaded = Mix.Dep.loaded([])
         assert [:deps_repo] = Enum.map(loaded, &(&1.app))
 
@@ -516,7 +501,34 @@ defmodule Mix.DepTest do
     end
   end
 
-  test "nested deps converge and diverge only not in_upper" do
+  test "nested deps with valid only in both parent and child" do
+    Process.put(:custom_deps_git_repo_opts, [only: :test])
+
+    # deps_repo has environment set to test so it loads the deps_git_repo set to test too
+    deps = [{:deps_repo, "0.1.0", path: "custom/deps_repo", env: :test, only: [:dev, :test]},
+            {:git_repo, "0.1.0", git: MixTest.Case.fixture_path("git_repo"), only: :test}]
+
+    with_deps deps, fn ->
+      in_fixture "deps_status", fn ->
+        loaded = Mix.Dep.loaded([])
+        assert [:git_repo, :deps_repo] = Enum.map(loaded, &(&1.app))
+        assert [unavailable: _, noappfile: _] = Enum.map(loaded, &(&1.status))
+
+        loaded = Mix.Dep.loaded([env: :dev])
+        assert [:deps_repo] = Enum.map(loaded, &(&1.app))
+        assert [noappfile: _] = Enum.map(loaded, &(&1.status))
+
+        loaded = Mix.Dep.loaded([env: :test])
+        assert [:git_repo, :deps_repo] = Enum.map(loaded, &(&1.app))
+        assert [unavailable: _, noappfile: _] = Enum.map(loaded, &(&1.status))
+
+        loaded = Mix.Dep.loaded([env: :prod])
+        assert [] = Enum.map(loaded, &(&1.app))
+      end
+    end
+  end
+
+  test "nested deps converge and diverge when only is not in_upper" do
     loaded_only = fn deps ->
       with_deps deps, fn ->
         in_fixture "deps_status", fn ->
