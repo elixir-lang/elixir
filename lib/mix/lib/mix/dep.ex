@@ -266,7 +266,7 @@ defmodule Mix.Dep do
   defp dep_status(%Mix.Dep{app: app, requirement: req, manager: manager, opts: opts, from: from}) do
     opts = Keyword.drop(opts, [:dest, :env, :build, :lock, :manager])
     opts = opts ++ (if manager, do: [manager: manager], else: [])
-    info = {app, req, opts}
+    info = if req, do: {app, req, opts}, else: {app, opts}
     "\n  > In #{Path.relative_to_cwd(from)}:\n    #{inspect info}\n"
   end
 
