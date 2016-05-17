@@ -258,7 +258,7 @@ defmodule ExUnit.Case do
 
     quote bind_quoted: binding do
       test = :"test #{message}"
-      ExUnit.Case.__on_definition__(__ENV__, test, [])
+      ExUnit.Case.register_test(__ENV__, test, [])
       def unquote(test)(unquote(var)), do: unquote(contents)
     end
   end
@@ -280,7 +280,7 @@ defmodule ExUnit.Case do
   defmacro test(message) do
     quote bind_quoted: binding do
       test = :"test #{message}"
-      ExUnit.Case.__on_definition__(__ENV__, test, [:not_implemented])
+      ExUnit.Case.register_test(__ENV__, test, [:not_implemented])
       def unquote(test)(_), do: flunk("Not yet implemented")
     end
   end
@@ -303,8 +303,15 @@ defmodule ExUnit.Case do
     end
   end
 
-  @doc false
-  def __on_definition__(%{module: mod, file: file, line: line}, name, tags) do
+  @doc """
+  Registers a function to run as part of this case.
+
+  This is used by 3rd party projects, like QuickCheck, to
+  implement macros like `property/3` that works like `test`
+  but instead defines a property. See `test/3` implementation
+  for an example of invoking this function.
+  """
+  def register_test(%{module: mod, file: file, line: line}, name, tags) do
     moduletag = Module.get_attribute(mod, :moduletag)
 
     unless moduletag do
@@ -348,7 +355,7 @@ defmodule ExUnit.Case do
 
       defmodule MyTest do
         use ExUnit.Case
-        ExUnit.Case.register_attribute __MODULE__, :foobar
+        ExUnit.Case.register_attribute __ENV__, :foobar
 
         @foobar hello: "world"
         test "using custom test attribute", context do
@@ -356,7 +363,13 @@ defmodule ExUnit.Case do
         end
       end
   """
-  def register_attribute(mod, name, opts \\ []) when is_atom(name) do
+  def register_attribute(env, name, opts \\ [])
+
+  def register_attribute(%{module: module}, name, opts) do
+    register_attribute(module, name, opts)
+  end
+
+  def register_attribute(mod, name, opts) when is_atom(mod) and is_atom(name) and is_list(opts) do
     Module.register_attribute(mod, name, opts)
     Module.put_attribute(mod, :ex_unit_registered, name)
   end
