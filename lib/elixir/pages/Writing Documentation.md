@@ -44,21 +44,24 @@ When documenting a function, argument names are inferred by the compiler. For ex
       size
     end
 
-The compiler will infer this argument as `map`. Sometimes the inference will be suboptimal, specially if the function contains multiple clauses with the argument matching on different values each time. You can specify the proper names for documentation by using a bodyless clause:
+The compiler will infer this argument as `map`. Sometimes the inference will be suboptimal, specially if the function contains multiple clauses with the argument matching on different values each time. You can specify the proper names for documentation by declaring before a bodyless clause:
 
     def size(map)
+    def size(%{size: size}) do
+      size
+    end
 
 ## Recommendations
 
 There are a couple tips we recommend developers to follow when writing documentation:
 
-  * Keep the first paragraph of the documentation concise and simple, typically one-line. Tools like ExDoc use the first line to generate a summary.
+  * Keep the first paragraph of the documentation concise and simple, typically one-line. Tools like [ExDoc](https://github.com/elixir-lang/ex_doc/) use the first line to generate a summary.
 
-  * Markdown uses backticks (`` ` ``) to quote code. Elixir builds on top of that to automatically generate links when module or function names are referenced. For this reason, always use full module names. If you have a module called `MyApp.Hello`, always reference it as `` `MyApp.Hello` `` and never as `` `Hello` ``. Function names must be referenced by name and arity if they are local, as in `` `world/1` ``, or by module, name and arity if pointing to an external module: `` `MyApp.Hello.world/1` ``. Referencing a `@callback` can be done by prepending `c:`, as in `` `c:world/1` ``.
+  * Markdown uses backticks (`` ` ``) to quote code. Elixir builds on top of that to automatically generate links when module or function names are referenced. For this reason, always use full module names. If you have a module called `MyApp.Hello`, always reference it as `` `MyApp.Hello` `` and never as `` `Hello` ``. Function names must be referenced by name and arity if they are local, as in `` `world/1` ``, or by module, name and arity if pointing to an external module: `` `MyApp.Hello.world/1` ``. Referencing a `@callback` can be done by prepending `c:`, as in `` `c:world/1` ``; and a `@type` by using `t:`, as in `t:values/0`.
 
-  * When the documentation has multiple sections, always start the section heading by using `##`. The first heading is reserved to the module or function name itself.
+  * When the documentation has multiple sections, always start the section heading by using `##`. The first heading is reserved for modules and function names.
 
-  * When documenting a function with multiple clauses, the documentation must be placed before the first clause. Documentation is always per function and not per clause.
+  * When documenting a function with multiple clauses, the documentation must be placed before the first clause. Documentation is always per function and arity and not per clause.
 
 ## Doctests
 
@@ -70,15 +73,15 @@ Notice doctests have limitations. When you cannot doctest a function, because it
 
 Elixir treats documentation and code comments as different concepts. Documentation are for users of your Application Programming Interface (API), be it your co-worker or your future self. Modules and functions must always be documented if they are part of your API.
 
-Code comments are for developers reading the code. They are useful to mark improvements, leave notes for developers reading the code (for example, you decided to not call a function due to a bug in a library) and so forth.
+Code comments are for developers reading the code. They are useful to mark improvements, leave notes for developers reading the code (for example, you decided not to call a function due to a bug in a library) and so forth.
 
-In other words, documentation is required, code comments are optional.
+In other words: documentation is required, code comments are optional.
 
 ## Hiding Internal Modules and Functions
 
-Besides the modules and functions libraries provide as part of their public interface, libraries may also implement important functionality that are not part of its API. While these modules and functions can be accessed, they are meant to be internal to the library and thus should not have documentation for end users.
+Besides the modules and functions libraries provided as part of their public interface, libraries may also implement important functionality that are not part of their API. While these modules and functions can be accessed, they are meant to be internal to the library and thus should not have documentation for end users.
 
-Luckily, Elixir allows developers to hide modules and functions from the documentation. For example, one common practice for documenting internal behaviour is to set the `@moduledoc` attribute to false while documenting each function:
+Luckily, Elixir allows developers to hide modules and functions from the documentation. For example, one common practice for documenting internal behaviour is to set the `@moduledoc` attribute to `false` while documenting each function:
 
     defmodule MyApp.Hidden do
       @moduledoc false
@@ -91,7 +94,7 @@ Luckily, Elixir allows developers to hide modules and functions from the documen
       end
     end
 
-Similarly, developers can add `@doc false` to functions they do not want to publicly expose:
+Similarly, developers can add `@doc false` to functions they do not want to be publicly exposed:
 
     defmodule MyApp.Sample do
       @doc false
@@ -102,7 +105,7 @@ However keep in mind adding `@doc false` does not make the function private. The
 
   * Move the undocumented function to a module with `@moduledoc false`, like `MyApp.Hidden`, ensuring the function won't be accidentally exposed or imported. Remember you can use `@moduledoc false` to hide a whole module and still document each function with `@doc`. Tools will still ignore the module.
 
-  * Start the function name with one or more underscores, for example, `__add__/2`, and add `@doc false`. The compiler does not import functions with leading underscores and they hint to anyone reading the code of their intended private usage.
+  * Start the function name with one or two underscores, for example, `__add__/2`, and add `@doc false`. The compiler does not import functions with leading underscores and they hint to anyone reading the code of their intended private usage.
 
 ## Documenting Private Functions
 
