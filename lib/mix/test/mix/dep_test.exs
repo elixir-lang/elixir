@@ -128,13 +128,9 @@ defmodule Mix.DepTest do
           use Mix.Project
 
           def project do
-            [
-              app: :deps_repo,
-              version: "0.1.0",
-              deps: [
-                {:git_repo, "0.2.0", git: MixTest.Case.fixture_path("git_repo"), optional: true}
-              ]
-            ]
+            [app: :deps_repo,
+             version: "0.1.0",
+             deps: [{:git_repo, "0.2.0", git: MixTest.Case.fixture_path("git_repo"), optional: true}]]
           end
         end
         """
@@ -181,18 +177,52 @@ defmodule Mix.DepTest do
           use Mix.Project
 
           def project do
-            [
-              app: :deps_repo,
-              version: "0.1.0",
-              deps: [
-                {:git_repo, "0.2.0", git: MixTest.Case.fixture_path("git_repo"), optional: true}
-              ]
-            ]
+            [app: :deps_repo,
+             version: "0.1.0",
+             deps: [{:git_repo, "0.2.0", git: MixTest.Case.fixture_path("git_repo"), optional: true}]]
           end
         end
         """
 
         assert Enum.map(Mix.Dep.loaded([]), &(&1.app)) == [:git_repo, :deps_repo]
+      end
+    end
+  end
+
+  test "nested deps with optional dependencies and cousin conflict" do
+    with_deps [{:deps_repo1, "0.1.0", path: "custom/deps_repo1"},
+               {:deps_repo2, "0.1.0", path: "custom/deps_repo2"}], fn ->
+      in_fixture "deps_status", fn ->
+        File.mkdir_p!("custom/deps_repo1")
+        File.write! "custom/deps_repo1/mix.exs", """
+        defmodule DepsRepo1 do
+          use Mix.Project
+
+          def project do
+            [app: :deps_repo1,
+             version: "0.1.0",
+             deps: [{:git_repo, "0.2.0", git: MixTest.Case.fixture_path("git_repo"), optional: true}]]
+          end
+        end
+        """
+
+        File.mkdir_p!("custom/deps_repo2")
+        File.write! "custom/deps_repo2/mix.exs", """
+        defmodule DepsRepo2 do
+          use Mix.Project
+
+          def project do
+            [app: :deps_repo2,
+             version: "0.1.0",
+             deps: [{:git_repo, "0.2.0", path: "somewhere"}]]
+          end
+        end
+        """
+
+        Mix.Tasks.Deps.run([])
+        assert_received {:mix_shell, :info, ["* git_repo" <> _]}
+        assert_received {:mix_shell, :info, [msg]}
+        assert msg =~ "different specs were given for the git_repo"
       end
     end
   end

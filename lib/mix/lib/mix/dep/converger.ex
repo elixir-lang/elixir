@@ -179,7 +179,7 @@ defmodule Mix.Dep.Converger do
         {acc, rest, lock} =
           all(t, [dep | acc], upper_breadths, current_breadths, callback, rest, lock, env, cache)
 
-        deps = reject_non_fullfilled_optional(dep.deps, current_breadths)
+        deps = reject_non_fullfilled_optional(dep.deps, Enum.map(acc, & &1.app))
         new_breadths = Enum.map(deps, &(&1.app)) ++ current_breadths
         all(deps, acc, current_breadths, new_breadths, callback, rest, lock, env, cache)
     end
