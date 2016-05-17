@@ -148,6 +148,13 @@ defmodule TestOneOfEach do
     flunk "oops"
   end
 
+  @tag capture_log: true
+  test "28. log capturing" do
+    require Logger
+    Logger.debug "this will be logged"
+    flunk "oops"
+  end
+
   defp blows_up do
     ignite(0) + 1
   end
