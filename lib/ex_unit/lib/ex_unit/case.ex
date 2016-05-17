@@ -180,7 +180,7 @@ defmodule ExUnit.Case do
   You can opt into this behaviour for individual tests by tagging them with `:capture_log` or enable
   log capture for all tests in the ExUnit configuration:
 
-      config :ex_unit, capture_log: true
+      ExUnit.start(capture_log: true)
 
   This default can be overridden by `@tag capture_log: false` or `@moduletag capture_log: false`.
 
