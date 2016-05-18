@@ -130,8 +130,8 @@ defmodule Path do
 
   ## Examples
 
-      iex> Path.expand("/foo/bar/../bar")
-      "/foo/bar"
+      Path.expand("/foo/bar/../bar")
+      #=> "/foo/bar"
 
   """
   @spec expand(t) :: binary
