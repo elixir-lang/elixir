@@ -1,10 +1,10 @@
 @if defined ELIXIR_CLI_ECHO (@echo on) else  (@echo off)
 SETLOCAL
-if /I ""%1""==""--help"" goto :documentation
-if /I ""%1""==""-h""     goto :documentation
-if /I ""%1""==""/h""     goto :documentation
-if /I ""%1""==""/?""     goto :documentation
-goto :run
+if /I ""%1""==""--help"" goto documentation
+if /I ""%1""==""-h""     goto documentation
+if /I ""%1""==""/h""     goto documentation
+if /I ""%1""==""/?""     goto documentation
+goto run
 
 :documentation
 echo Usage: %~nx0 [options] [.exs file] [data]
