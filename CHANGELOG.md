@@ -101,7 +101,7 @@ This release deprecates many APIs that have been soft-deprecated in previous Eli
 #### Elixir
 
   * [Dict] `Dict` is no longer a behaviour and its functions will be deprecated in upcoming releases
-  * [Enum] Passing a non-map to `Enum.group_by/3` is deprecated
+  * [Enum] Passing a dictionary to `Enum.group_by/3` is deprecated
   * [Kernel] `\x{H*}` in strings/sigils/charlists is deprecated
   * [Kernel] Add deprecation for `defdelegate` list arguments and `:append_first` option
   * [Kernel] Warn if a variable is assigned inside `case`/`if`/etc and used outside the block

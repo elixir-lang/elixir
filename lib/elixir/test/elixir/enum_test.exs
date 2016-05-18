@@ -196,13 +196,12 @@ defmodule EnumTest do
   end
 
   test "group by" do
-    assert Enum.group_by([], fn -> nil end) == %{}
+    assert Enum.group_by([], fn _ -> raise "oops" end) ==
+           %{}
     assert Enum.group_by(1..6, &rem(&1, 3)) ==
            %{0 => [3, 6], 1 => [1, 4], 2 => [2, 5]}
-
-    result = Enum.group_by(1..6, %{3 => :default}, &rem(&1, 3))
-    assert result[0] == [3, 6]
-    assert result[3] == :default
+    assert Enum.group_by(1..6, &rem(&1, 3), &(&1 * 2)) ==
+           %{0 => [6, 12], 1 => [2, 8], 2 => [4, 10]}
   end
 
   test "into" do
