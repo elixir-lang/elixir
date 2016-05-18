@@ -50,14 +50,7 @@ defimpl List.Chars, for: Integer do
 end
 
 defimpl List.Chars, for: Float do
-  @digits 20
-  @limit  :math.pow(10, @digits)
-
-  def to_charlist(term) when term > @limit do
-    Float.to_charlist(term, scientific: @digits)
-  end
-
   def to_charlist(term) do
-    Float.to_charlist(term, compact: true, decimals: @digits)
+    :io_lib_format.fwrite_g(term)
   end
 end

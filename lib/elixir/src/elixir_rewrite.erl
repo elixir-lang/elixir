@@ -9,7 +9,6 @@
 -define(atom, 'Elixir.Atom').
 -define(access, 'Elixir.Access').
 -define(enum, 'Elixir.Enum').
--define(float, 'Elixir.Float').
 -define(io, 'Elixir.IO').
 -define(integer, 'Elixir.Integer').
 -define(kernel, 'Elixir.Kernel').
@@ -41,10 +40,6 @@ inline(?integer, to_charlist, 2) -> {erlang, integer_to_list};
 %% TODO: Deprecate to_char_list function by v1.5
 inline(?integer, to_char_list, 1) -> {erlang, integer_to_list};
 inline(?integer, to_char_list, 2) -> {erlang, integer_to_list};
-inline(?float, to_string, 1) -> {erlang, float_to_binary};
-inline(?float, to_charlist, 1) -> {erlang, float_to_list};
-%% TODO: Deprecate to_char_list function by v1.5
-inline(?float, to_char_list, 1) -> {erlang, float_to_list};
 inline(?list, to_atom, 1) -> {erlang, list_to_atom};
 inline(?list, to_existing_atom, 1) -> {erlang, list_to_existing_atom};
 inline(?list, to_float, 1) -> {erlang, list_to_float};
