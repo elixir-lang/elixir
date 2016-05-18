@@ -56,8 +56,8 @@ defmodule Kernel.LexicalTracker do
   end
 
   @doc false
-  def add_import(pid, module_or_mfa, line, warn) do
-    :gen_server.cast(pid, {:add_import, module_or_mfa, line, warn})
+  def add_import(pid, module, fas, line, warn) do
+    :gen_server.cast(pid, {:add_import, module, fas, line, warn})
   end
 
   @doc false
@@ -112,7 +112,7 @@ defmodule Kernel.LexicalTracker do
   end
 
   def handle_cast({:remote_dispatch, module, mode}, {d, dest}) do
-    add_compile(d, module, mode)
+    add_reference(d, module, mode)
     {:noreply, {d, dest}}
   end
 
@@ -121,7 +121,7 @@ defmodule Kernel.LexicalTracker do
     add_dispatch(d, {module, function, arity}, :import)
     # Always compile time because we depend
     # on the module at compile time
-    add_compile(d, module, :compile)
+    add_reference(d, module, :compile)
     {:noreply, {d, dest}}
   end
 
@@ -130,16 +130,14 @@ defmodule Kernel.LexicalTracker do
     {:noreply, {d, dest}}
   end
 
-  def handle_cast({:add_import, module, line, warn}, {d, dest}) when is_atom(module) do
+  def handle_cast({:add_import, module, fas, line, warn}, {d, dest}) when is_atom(module) do
     :ets.match_delete(d, {{:import, {module, :_, :_}}, :_})
 
     add_directive(d, module, line, warn, :import)
-    {:noreply, {d, dest}}
-  end
+    for {function, arity} <- fas do
+      add_directive(d, {module, function, arity}, line, warn, :import)
+    end
 
-  def handle_cast({:add_import, {module, function, arity}, line, warn}, {d, dest}) do
-    add_directive(d, module, line, warn, :import)
-    add_directive(d, {module, function, arity}, line, warn, :import)
     {:noreply, {d, dest}}
   end
 
@@ -169,19 +167,20 @@ defmodule Kernel.LexicalTracker do
 
   # Callbacks helpers
 
+  defp add_reference(d, module, :runtime) when is_atom(module),
+    do: :ets.insert_new(d, {{:mode, module}, :runtime})
+  defp add_reference(d, module, :compile) when is_atom(module),
+    do: :ets.insert(d, {{:mode, module}, :compile})
+
   # In the table we keep imports and aliases.
-  # If the value is false, it was not imported/aliased
-  # If the value is a line, it was imported/aliased and has a pending warning
-  # If the value is true, it was imported/aliased and used
-  defp add_dispatch(d, module, tag) do
-    :ets.insert(d, {{tag, module}, true})
-  end
-
-  defp add_compile(d, module, :runtime), do: :ets.insert_new(d, {{:mode, module}, :runtime})
-  defp add_compile(d, module, :compile), do: :ets.insert(d, {{:mode, module}, :compile})
-
+  # If the marker is a line, it was imported/aliased and has a pending warning
+  # If the marker is true, it was imported/aliased and used
   defp add_directive(d, module_or_mfa, line, warn, tag) do
     marker = if warn, do: line, else: true
     :ets.insert(d, {{tag, module_or_mfa}, marker})
+  end
+
+  defp add_dispatch(d, module_or_mfa, tag) do
+    :ets.insert(d, {{tag, module_or_mfa}, true})
   end
 end
