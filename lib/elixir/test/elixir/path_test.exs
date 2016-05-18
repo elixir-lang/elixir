@@ -113,7 +113,7 @@ defmodule PathTest do
   end
 
   test "expand path with user home" do
-    home = System.user_home!
+    home = System.user_home! |> Path.absname
 
     assert home == Path.expand("~")
     assert home == Path.expand('~')
