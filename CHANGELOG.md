@@ -17,6 +17,7 @@
   * [File] Support IO devices in `File.copy/3`
   * [GenServer] Raise a more meaningful exit if you try to `GenServer.call/3` yourself
   * [Inspect] Support `:base` option when inspecting binaries
+  * [IO] Add `IO.warn/2` that will print a warning message with stacktrace and notify the compiler a warning was printed (in case --warnings-as-errors was enabled)
   * [Kernel] Support `generated: true` in quote
   * [Kernel] Support `Kernel.pop_in/1` and `Kernel.pop_in/2` for yanking a value from a nested data structure
   * [Kernel] Allow variable struct names when matching, for example, `%module{key: "value"} = struct`
@@ -35,11 +36,15 @@
 
   * [ExUnit] Show pinned variables on failed `assert ^left = right` and `assert match?(^left, right)` assertions
   * [ExUnit] Add `ExUnit.Case.register_attribute` which allow attributes to be cleaned up whenever a test is defined
+  * [ExUnit] Add `ExUnit.Case.register_test` and support the ability to tag "tests" by type. This will allow projects like QuickCheck to change the wording in formatters to say "10 properties" instead of "10 tests"
   * [ExUnit] Support diffing of values when using `==` in `assert`
+  * [ExUnit] Start running tests as soon as cases are loaded. This feature is enabled by default when running tests through Mix
+  * [ExUnit] Raise a straight-forward error message in case a duplicate test name is defined
 
 #### IEx
 
   * [IEx] Add `nl/2` that loads a given modules on a list of nodes
+  * [IEx.Helpers] No longer restart applications on `recompile/1`
   * [IEx.Autocomplete] Improve IEx expand to handle functions after `&`
 
 #### Logger
@@ -52,11 +57,12 @@
   * [Mix] Add `Mix.Task.rerun/2` that reenables and re-runs a task
   * [Mix] Support `@preferred_cli_env` attribute when defining tasks
   * [Mix] Support `mix test --raise` that will raise when a test suite fails (instead of setting the exit code to 1)
-  * [Mix] Enable rebar3 manager by default
+  * [Mix] Enable rebar3 manager by default for Hex dependencies
   * [Mix] Add `mix escript.install` to install escripts
   * [Mix] Print stacktraces for `Mix.Error` when `MIX_DEBUG=1` is set
   * [Mix] Add a user friendly error for merge conflicts on `mix.lock`
   * [Mix] Track files between path dependencies. This means umbrella applications will no longer trigger full recompilation when a sibling changes. Instead it will only recompile the files affected by the sibling changes
+  * [Mix] No longer print every file being compiled. Instead a generic "Compiling N files (.ext)" will be printed and files will only be logged in case they take more than 5 seconds to compile. This threshold can be customized by passing the `--long-compilation-threshold` flag and the previous behaviour can be reenabled by giving `--verbose` to `mix compile`
 
 ### 2. Bug fixes
 
@@ -68,6 +74,7 @@
   * [Kernel] Do not choke on capture operator with argument above `&191`
   * [Kernel] Raise if `defstruct` is called multiple times
   * [Kernel] Ensure `Module.create/3` respects var/alias hygiene
+  * [Kernel] Support non-literal ranges on the right side of `in/2`
   * [OptionParser] Allow `OptionParser` to parse negative numbers
   * [Macro] Fix `Macro.to_string/1` on a call of a capture argument, for example `&(&1).(:x)`
   * [String] Ensure `strip` also removes non-breaking whitespaces (and ensure `split` still does not split on them)
@@ -77,9 +84,13 @@
   * [Mix] Improve task not found message when Mix would include the not found task as a suggestion due to different casing
   * [Mix] Ignore lock revision when the lock is out of date when updating Mix dependencies
   * [Mix] Only recompile empty Elixir files if they changed instead of recompiling them on every run
+  * [Mix] Ensure .app file is written in UTF-8 (this allows app descriptions to contain UTF-8 characters)
+  * [Mix.Dep] Always specify the `:env` option for dependencies internally to avoid false positives in the dependency resolution
+  * [Mix.Dep] Correctly detect conflict from cousin optional dependencies in the dependency resolution algorithm
 
 ### 3. Soft deprecations (no warnings emitted)
 
+  * [Float] `Float.to_string/2` and `Float.to_char_list/2` has been soft-deprecated as Elixir will now attempt to print the shortest and most accurate representation by default. Developers can always fallback to `:erlang.float_to_binary/2` and `:erlang.float_to_list/2` if they need the previous functionality
   * [String] The confusing `String.strip/2`, `String.lstrip/2` and `String.rstrip/2` API has been soft deprecated in favor of `String.trim/2`, `String.trim_leading/2` and `String.trim_trailing/2`
   * [String] The confusing `String.ljust/3` and `String.rjust/3` API has been soft deprecated in favor of `String.pad_leading/3` and `String.pad_trailing/3`
 

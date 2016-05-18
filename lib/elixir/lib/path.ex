@@ -562,10 +562,14 @@ defmodule Path do
     * `**` - two adjacent `*`'s used as a single pattern will match all
       files and zero or more directories and subdirectories
 
-    * `[char1, char2, ...]` - matches any of the characters listed; two
-      characters separated by a hyphen will match a range of characters
+    * `[char1,char2,...]` - matches any of the characters listed; two
+      characters separated by a hyphen will match a range of characters.
+      Do not add spaces before and after the comma as it would then match
+      paths containing the space character itself.
 
-    * `{item1, item2, ...}` - matches one of the alternatives
+    * `{item1,item2,...}` - matches one of the alternatives
+      Do not add spaces before and after the comma as it would then match
+      paths containing the space character itself.
 
   Other characters represent themselves. Only paths that have
   exactly the same character in the same position will match. Note

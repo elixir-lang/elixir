@@ -188,9 +188,12 @@ defmodule IO do
 
   @doc """
   Writes a `message` to stderr, along with the given `stacktrace`.
-  An empty list can be passed to avoid stacktrace printing.
 
-  It returns `:ok` if it succeeds.
+  This function also notifies the compiler a warning was printed
+  (in case --warnings-as-errors was enabled). It returns `:ok`
+  if it succeeds.
+
+  An empty list can be passed to avoid stacktrace printing.
 
   ## Examples
 
