@@ -45,8 +45,10 @@ defmodule PathTest do
       assert Path.relative_to("D:/usr/local/foo", "D:/usr/") == "local/foo"
       assert Path.relative_to("D:/usr/local/foo", "d:/usr/") == "local/foo"
       assert Path.relative_to("d:/usr/local/foo", "D:/usr/") == "local/foo"
-      assert Path.relative_to("D:/usr/local/foo", "d:") == "usr/local/foo"
-      assert Path.relative_to("D:/usr/local/foo", "D:") == "usr/local/foo"
+      assert Path.relative_to("D:/usr/local/foo", "d:/") == "usr/local/foo"
+      assert Path.relative_to("D:/usr/local/foo", "D:/") == "usr/local/foo"
+      assert Path.relative_to("D:/usr/local/foo", "d:") == "D:/usr/local/foo"
+      assert Path.relative_to("D:/usr/local/foo", "D:") == "D:/usr/local/foo"
     end
 
     test "type win" do
