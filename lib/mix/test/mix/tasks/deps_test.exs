@@ -376,7 +376,7 @@ defmodule Mix.Tasks.DepsTest do
 
       assert_received {:mix_shell, :error, ["  different specs were given for the git_repo app:" <> _ = msg]}
       assert msg =~ "In custom/deps_repo/mix.exs:"
-      assert msg =~ "{:git_repo, \"0.1.0\", [git: #{inspect fixture_path("git_repo")}]}"
+      assert msg =~ "{:git_repo, \"0.1.0\", [env: :prod, git: #{inspect fixture_path("git_repo")}]}"
     end
   end
 
@@ -407,7 +407,7 @@ defmodule Mix.Tasks.DepsTest do
 
       assert_received {:mix_shell, :error, ["  the dependency git_repo 0.1.0" <> _ = msg]}
       assert msg =~ "In custom/deps_repo/mix.exs:"
-      assert msg =~ "{:git_repo, \"0.2.0\", [git: #{inspect fixture_path("git_repo")}]}"
+      assert msg =~ "{:git_repo, \"0.2.0\", [env: :prod, git: #{inspect fixture_path("git_repo")}]}"
     end
   end
 
@@ -495,7 +495,7 @@ defmodule Mix.Tasks.DepsTest do
       receive do
         {:mix_shell, :error, ["  the dependency git_repo in mix.exs" <> _ = msg]} ->
           assert msg =~ "In mix.exs:"
-          assert msg =~ "{:git_repo, \"0.1.0\", [git: #{inspect fixture_path("git_repo")}]}"
+          assert msg =~ "{:git_repo, \"0.1.0\", [env: :prod, git: #{inspect fixture_path("git_repo")}]}"
       after
         0 -> flunk "expected overriding error message"
       end

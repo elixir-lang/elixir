@@ -156,7 +156,7 @@ defmodule Mix.Dep.Loader do
       app: app,
       requirement: req,
       status: scm_status(scm, opts),
-      opts: opts}
+      opts: Keyword.put_new(opts, :env, :prod)}
   end
 
   defp get_scm(app, opts) do
@@ -243,13 +243,10 @@ defmodule Mix.Dep.Loader do
         end
 
       child_opts =
-        cond do
-          opts[:from_umbrella] ->
-            []
-          env = opts[:env] ->
-            [env: env]
-          true ->
-            [env: :prod]
+        if opts[:from_umbrella] do
+          []
+        else
+          [env: Keyword.fetch!(opts, :env)]
         end
 
       deps = mix_children(child_opts) ++ Mix.Dep.Umbrella.unloaded
