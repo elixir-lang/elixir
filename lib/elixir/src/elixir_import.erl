@@ -48,13 +48,13 @@ record_warn(Meta, Ref, Opts, Added, E) ->
       false -> not lists:keymember(context, 1, Meta)
     end,
 
-  case keyfind(only, Opts) of
-    {only, List} when is_list(List) ->
-      [elixir_lexical:record_import({Ref, Name, Arity}, ?line(Meta), Added and Warn, ?m(E, lexical_tracker)) || {Name, Arity} <- List];
+  Only =
+    case keyfind(only, Opts) of
+      {only, List} when is_list(List) -> List;
+      _ -> []
+    end,
 
-    _ ->
-      elixir_lexical:record_import(Ref, ?line(Meta), Added and Warn, ?m(E, lexical_tracker))
-  end.
+  elixir_lexical:record_import(Ref, Only, ?line(Meta), Added and Warn, ?m(E, lexical_tracker)).
 
 %% Calculates the imports based on only and except
 

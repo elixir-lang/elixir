@@ -16,10 +16,12 @@ expand_struct(Meta, Left, Right, #{context := Context} = E) ->
   {[ELeft, ERight], EE} = elixir_exp:expand_args([Left, Right], E),
 
   case validate_struct(ELeft, Context) of
-    true ->
+    true when is_atom(ELeft) ->
       %% We always record structs when they are expanded
       %% as they expect the reference at compile time.
       elixir_lexical:record_remote(ELeft, nil, ?m(E, lexical_tracker));
+    true ->
+      ok;
     false when Context == match ->
       compile_error(Meta, ?m(E, file), "expected struct name in a match to be a compile "
         "time atom, alias or a variable, got: ~ts", ['Elixir.Macro':to_string(ELeft)]);
