@@ -373,6 +373,63 @@ defmodule URI do
       "http://google.com"
   """
   defdelegate to_string(uri), to: String.Chars.URI
+
+  @doc ~S"""
+  Merges two URIs as per RFC 2396 §5.2
+
+  ## Examples
+
+      iex> URI.merge(URI.parse("http://google.com"), "/query") |> to_string
+      "http://google.com/query"
+
+      iex> URI.merge("http://example.com", "http://google.com")|> to_string
+      "http://google.com"
+  """
+  def merge(%URI{authority: nil}, %URI{}), do: raise ArgumentError, "You must merge onto an absolute URI"
+  # 5.2 (3)
+  def merge(%URI{}, %URI{scheme: scheme}=rel) when not is_nil(scheme) do
+    rel
+  end
+  # 5.2 (2)
+  def merge(%URI{}=base, %URI{path: "", query: query, fragment: fragment}=rel) do
+    merge(base, %{rel | path: nil, query: query, fragment: fragment})
+  end
+  # 5.2 (7)
+  def merge(%URI{path: base_path}=base, %URI{path: nil, query: query, fragment: fragment}) do
+    %{base | path: base_path, query: query, fragment: fragment}
+  end
+  def merge(%URI{path: base_path}=base, %URI{path: path, query: query, fragment: fragment}) do
+    %{base | path: merge_paths(base_path, path), query: query, fragment: fragment}
+  end
+  # Convert binary to URI
+  def merge(base, rel), do: merge(URI.parse(base), URI.parse(rel))
+
+  defp merge_paths(nil, rel_path), do: merge_paths("/", rel_path)
+  # 5.2 (5)
+  defp merge_paths(_, << "/" <> _ >>=rel_path), do: rel_path
+  # 5.2 (6)
+  defp merge_paths(base_path, rel_path) do
+    [_ | base_segments] = path_to_segments(base_path) |> Enum.reverse
+    rel_segments = path_to_segments(rel_path) |> Enum.reverse
+    rel_segments ++ base_segments
+    |> clean_segments
+    |> Enum.reverse
+    |> Enum.join("/")
+  end
+
+  defp clean_segments(list, acc \\ [])
+  defp clean_segments([], acc), do: acc |> Enum.reverse
+  defp clean_segments(["." | tail], acc) do
+    clean_segments(tail, acc)
+  end
+  defp clean_segments([".." | [_ | tail]], acc) do
+    clean_segments(tail, acc)
+  end
+  defp clean_segments([head | tail], acc) do
+    clean_segments(tail, [head | acc])
+  end
+
+  defp path_to_segments(path), do: String.split(path, ~r[/+])
 end
 
 defimpl String.Chars, for: URI do
