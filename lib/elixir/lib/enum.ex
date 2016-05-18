@@ -1474,35 +1474,31 @@ defmodule Enum do
   @doc """
   Splits the enumerable into groups based on `fun`.
 
-  The result is a map where each key is a group and each value is
-  a list of elements from enumerable for which `fun` returned that
-  group. Ordering is preserved.
+  The result is a map where each key is given by `key_fun` and each
+  value is a list of elements given by `value_fun`. Ordering is preserved.
 
   ## Examples
 
       iex> Enum.group_by(~w{ant buffalo cat dingo}, &String.length/1)
       %{3 => ["ant", "cat"], 7 => ["buffalo"], 5 => ["dingo"]}
 
+      iex> Enum.group_by(~w{ant buffalo cat dingo}, &String.length/1, &String.first/1)
+      %{3 => ["a", "c"], 7 => ["b"], 5 => ["d"]}
+
   """
-  @spec group_by(t, (element -> any)) :: map
-  def group_by(enumerable, map \\ %{}, fun)
+  @spec group_by(t, (element -> any), (element -> any)) :: map
+  def group_by(enumerable, key_fun, mapper_fun \\ fn x -> x end)
 
-  def group_by(enumerable, %{__struct__: _} = dict, fun) do
-    group_by_dict(enumerable, dict, fun)
-  end
-
-  def group_by(enumerable, map, fun) when is_map(map) do
-    reduce(reverse(enumerable), map, fn entry, categories ->
-      Map.update(categories, fun.(entry), [entry], &[entry | &1])
+  def group_by(enumerable, key_fun, value_fun)
+      when is_function(key_fun, 1) and is_function(value_fun, 1) do
+    reduce(reverse(enumerable), %{}, fn entry, categories ->
+      value = value_fun.(entry)
+      Map.update(categories, key_fun.(entry), [value], &[value | &1])
     end)
   end
 
-  def group_by(enumerable, dict, fun) do
-    group_by_dict(enumerable, dict, fun)
-  end
-
-  defp group_by_dict(enumerable, dict, fun) do
-    IO.warn "Enum.group_by/3 with a dictionary is deprecated, please use a map instead"
+  def group_by(enumerable, dict, fun) when is_function(fun, 1) do
+    IO.warn "Enum.group_by/3 with a map/dictionary as second element is deprecated, please use a map instead"
     reduce(reverse(enumerable), dict, fn(entry, categories) ->
       Dict.update(categories, fun.(entry), [entry], &[entry | &1])
     end)
