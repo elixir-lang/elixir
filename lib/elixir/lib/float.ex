@@ -171,81 +171,57 @@ defmodule Float do
   end
 
   @doc """
-  Returns a charlist which corresponds to the text representation of the given float.
+  Returns a charlist which corresponds to the text representation
+  of the given float.
 
-  Inlined by the compiler.
+  It uses the shortest representation according to algorithm described
+  in "Printing Floating-Point Numbers Quickly and Accurately" in
+  Proceedings of the SIGPLAN '96 Conference on Programming Language
+  Design and Implementation.
 
   ## Examples
 
       iex> Float.to_charlist(7.0)
-      '7.00000000000000000000e+00'
+      '7.0'
 
   """
   @spec to_charlist(float) :: charlist
-  def to_charlist(float) do
-    :erlang.float_to_list(float)
-  end
-
-  @doc """
-  Returns a list which corresponds to the text representation
-  of the given float.
-
-  ## Options
-
-    * `:decimals`   - number of decimal points to show
-    * `:scientific` - number of decimal points to show, in scientific format
-    * `:compact`    - when `true`, use the most compact representation (ignored
-      with the `scientific` option)
-
-  ## Examples
-
-      iex> Float.to_charlist 7.1, [decimals: 2, compact: true]
-      '7.1'
-
-  """
-  @spec to_charlist(float, list) :: charlist
-  def to_charlist(float, options) do
-    :erlang.float_to_list(float, expand_compact(options))
+  def to_charlist(float) when is_float(float) do
+    :io_lib_format.fwrite_g(float)
   end
 
   @doc """
   Returns a binary which corresponds to the text representation
   of the given float.
 
-  Inlined by the compiler.
+  It uses the shortest representation according to algorithm described
+  in "Printing Floating-Point Numbers Quickly and Accurately" in
+  Proceedings of the SIGPLAN '96 Conference on Programming Language
+  Design and Implementation.
 
   ## Examples
 
       iex> Float.to_string(7.0)
-      "7.00000000000000000000e+00"
+      "7.0"
 
   """
   @spec to_string(float) :: String.t
-  def to_string(float) do
-    :erlang.float_to_binary(float)
+  def to_string(float) when is_float(float) do
+    IO.iodata_to_binary(:io_lib_format.fwrite_g(float))
   end
 
-  @doc """
-  Returns a binary which corresponds to the text representation
-  of `float`.
+  # TODO: Deprecate by v1.5
+  @doc false
+  def to_char_list(float), do: Float.to_charlist(float)
 
-  ## Options
+  # TODO: Deprecate by v1.4
+  @doc false
+  def to_char_list(float, options) do
+    :erlang.float_to_list(float, expand_compact(options))
+  end
 
-    * `:decimals`   - number of decimal points to show
-    * `:scientific` - number of decimal points to show, in scientific format
-    * `:compact`    - when `true`, use the most compact representation (ignored
-      with the `scientific` option)
-
-  ## Examples
-
-      iex> Float.to_string 7.1, [decimals: 2, compact: true]
-      "7.1"
-
-      iex> Float.to_string 7.1, [decimals: 2, compact: false]
-      "7.10"
-
-  """
-  @spec to_string(float, list) :: String.t
+  # TODO: Deprecate by v1.4
+  @doc false
   def to_string(float, options) do
     :erlang.float_to_binary(float, expand_compact(options))
   end
@@ -254,9 +230,4 @@ defmodule Float do
   defp expand_compact([{:compact, true} | t]),  do: [:compact | expand_compact(t)]
   defp expand_compact([h | t]),                 do: [h | expand_compact(t)]
   defp expand_compact([]),                      do: []
-
-  # TODO: Deprecate by v1.5
-  @doc false
-  @spec to_char_list(float) :: charlist
-  def to_char_list(float), do: Float.to_charlist(float)
 end
