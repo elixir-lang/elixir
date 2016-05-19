@@ -431,7 +431,19 @@ defmodule URI do
     remove_dot_segments(tail, [head | acc], repeat)
   end
 
-  defp path_to_segments(path), do: String.split(path, ~r[/+]) |> Enum.reverse
+  def path_to_segments(path) do
+    [h | t] = String.split(path, "/")
+    reverse_and_discard_empty(t, [h])
+  end
+
+  defp reverse_and_discard_empty([], acc),
+    do: acc
+  defp reverse_and_discard_empty([h], acc),
+    do: [h | acc]
+  defp reverse_and_discard_empty(["" | t], acc),
+    do: reverse_and_discard_empty(t, acc)
+  defp reverse_and_discard_empty([h | t], acc),
+    do: reverse_and_discard_empty(t, [h | acc])
 end
 
 defimpl String.Chars, for: URI do
