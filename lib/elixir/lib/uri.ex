@@ -375,7 +375,7 @@ defmodule URI do
   defdelegate to_string(uri), to: String.Chars.URI
 
   @doc ~S"""
-  Merges two URIs as per RFC 2396 §5.2
+  Merges two URIs as per RFC 3986 §5.2
 
   ## Examples
 
@@ -386,17 +386,14 @@ defmodule URI do
       "http://google.com"
   """
   def merge(%URI{authority: nil}, %URI{}), do: raise ArgumentError, "You must merge onto an absolute URI"
-  # 5.2 (3)
   def merge(%URI{}, %URI{scheme: scheme}=rel) when not is_nil(scheme) do
     rel
   end
-  # 5.2 (2)
   def merge(%URI{}=base, %URI{path: "", query: query, fragment: fragment}=rel) do
     merge(base, %{rel | path: nil, query: query, fragment: fragment})
   end
-  # 5.2 (7)
-  def merge(%URI{path: base_path}=base, %URI{path: nil, query: query, fragment: fragment}) do
-    %{base | path: base_path, query: query, fragment: fragment}
+  def merge(%URI{}=base, %URI{path: nil, query: query, fragment: fragment}) do
+    %{base | path: base.path, query: query || base.query, fragment: fragment}
   end
   def merge(%URI{path: base_path}=base, %URI{path: path, query: query, fragment: fragment}) do
     %{base | path: merge_paths(base_path, path), query: query, fragment: fragment}
@@ -405,31 +402,36 @@ defmodule URI do
   def merge(base, rel), do: merge(URI.parse(base), URI.parse(rel))
 
   defp merge_paths(nil, rel_path), do: merge_paths("/", rel_path)
-  # 5.2 (5)
   defp merge_paths(_, << "/" <> _ >>=rel_path), do: rel_path
-  # 5.2 (6)
   defp merge_paths(base_path, rel_path) do
-    [_ | base_segments] = path_to_segments(base_path) |> Enum.reverse
-    rel_segments = path_to_segments(rel_path) |> Enum.reverse
+    [_ | base_segments] = path_to_segments(base_path)
+    rel_segments = path_to_segments(rel_path)
     rel_segments ++ base_segments
-    |> clean_segments
-    |> Enum.reverse
+    |> remove_dot_segments
     |> Enum.join("/")
   end
 
-  defp clean_segments(list, acc \\ [])
-  defp clean_segments([], acc), do: acc |> Enum.reverse
-  defp clean_segments(["." | tail], acc) do
-    clean_segments(tail, acc)
+  defp remove_dot_segments(list, acc \\ [], repeat \\ false)
+  defp remove_dot_segments([], acc, true), do: remove_dot_segments(Enum.reverse(acc))
+  defp remove_dot_segments([], ["" | _]=acc, false), do: acc
+  defp remove_dot_segments([], acc, false), do: ["" | acc]
+  defp remove_dot_segments(["." | tail], acc, repeat) do
+    remove_dot_segments(tail, acc, repeat)
   end
-  defp clean_segments([".." | [_ | tail]], acc) do
-    clean_segments(tail, acc)
+  defp remove_dot_segments([".." | [".." | _]=tail], acc, _repeat) do
+    remove_dot_segments(tail, [".." | acc], true)
   end
-  defp clean_segments([head | tail], acc) do
-    clean_segments(tail, [head | acc])
+  defp remove_dot_segments([".." | []], acc, _repeat) do
+    remove_dot_segments([], acc, true)
+  end
+  defp remove_dot_segments([".." | [_ | tail]], acc, repeat) do
+    remove_dot_segments(tail, acc, repeat)
+  end
+  defp remove_dot_segments([head | tail], acc, repeat) do
+    remove_dot_segments(tail, [head | acc], repeat)
   end
 
-  defp path_to_segments(path), do: String.split(path, ~r[/+])
+  defp path_to_segments(path), do: String.split(path, ~r[/+]) |> Enum.reverse
 end
 
 defimpl String.Chars, for: URI do
