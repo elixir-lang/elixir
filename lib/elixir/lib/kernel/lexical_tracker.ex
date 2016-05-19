@@ -102,11 +102,7 @@ defmodule Kernel.LexicalTracker do
   end
 
   def handle_call(:remotes, _from, state) do
-    remotes =
-      for({module, mode} <- state.references, do: {module, mode})
-      |> partition([], [])
-
-    {:reply, remotes, state}
+    {:reply, partition(state.references, [], []), state}
   end
 
   def handle_call(:dest, _from, state) do
