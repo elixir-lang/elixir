@@ -59,7 +59,16 @@ defmodule Kernel.ParallelCompiler do
     :elixir_code_server.cast({:reset_warnings, compiler_pid})
     schedulers = max(:erlang.system_info(:schedulers_online), 2)
 
-    result = spawn_compilers(files, files, path, options, [], [], schedulers, [])
+    result = spawn_compilers(%{
+      entries: files,
+      original: files,
+      output: path,
+      options: options,
+      waiting: [],
+      queued: [],
+      schedulers: schedulers,
+      result: [],
+    })
 
     # In case --warning-as-errors is enabled and there was a warning,
     # compilation status will be set to error.
@@ -73,13 +82,13 @@ defmodule Kernel.ParallelCompiler do
   end
 
   # We already have n=schedulers currently running, don't spawn new ones
-  defp spawn_compilers(entries, original, output, options, waiting, queued, schedulers, result) when
-      length(queued) - length(waiting) >= schedulers do
-    wait_for_messages(entries, original, output, options, waiting, queued, schedulers, result)
+  defp spawn_compilers(%{queued: queued, waiting: waiting, schedulers: schedulers} = state)
+      when length(queued) - length(waiting) >= schedulers do
+    wait_for_messages(state)
   end
 
   # Release waiting processes
-  defp spawn_compilers([{h, kind} | t], original, output, options, waiting, queued, schedulers, result) when is_pid(h) do
+  defp spawn_compilers(%{entries: [{h, kind} | t], waiting: waiting} = state) do
     waiting =
       case List.keytake(waiting, h, 1) do
         {{_kind, ^h, ref, _module, _defining}, waiting} ->
@@ -88,11 +97,10 @@ defmodule Kernel.ParallelCompiler do
         nil ->
           waiting
       end
-    spawn_compilers(t, original, output, options, waiting, queued, schedulers, result)
+    spawn_compilers(%{state | entries: t, waiting: waiting})
   end
 
-  # Spawn a compiler for each file in the list until we reach the limit
-  defp spawn_compilers([h | t], original, output, options, waiting, queued, schedulers, result) do
+  defp spawn_compilers(%{entries: [h | t], queued: queued, output: output, options: options} = state) do
     parent = self()
 
     {pid, ref} =
@@ -118,29 +126,29 @@ defmodule Kernel.ParallelCompiler do
     timer_ref = Process.send_after(self(), {:timed_out, pid}, timeout)
 
     new_queued = [{pid, ref, h, timer_ref} | queued]
-    spawn_compilers(t, original, output, options, waiting, new_queued, schedulers, result)
+    spawn_compilers(%{state | entries: t, queued: new_queued})
   end
 
   # No more files, nothing waiting, queue is empty, we are done
-  defp spawn_compilers([], _original, _output, _options, [], [], _schedulers, result) do
+  defp spawn_compilers(%{entries: [], waiting: [], queued: [], result: result}) do
     for {:module, mod} <- result, do: mod
   end
 
   # Queued x, waiting for x: POSSIBLE ERROR! Release processes so we get the failures
-  defp spawn_compilers([], original, output, options, waiting, queued, schedulers, result) when length(waiting) == length(queued) do
+  defp spawn_compilers(%{entries: [], waiting: waiting, queued: queued} = state) when length(waiting) == length(queued) do
     entries = for {pid, _, _, _} <- queued,
                   waiting_on_is_not_being_defined?(waiting, pid),
                   do: {pid, :not_found}
 
     case entries do
       [] -> handle_deadlock(waiting, queued)
-      _  -> spawn_compilers(entries, original, output, options, waiting, queued, schedulers, result)
+      _  -> spawn_compilers(%{state | entries: entries})
     end
   end
 
   # No more files, but queue and waiting are not full or do not match
-  defp spawn_compilers([], original, output, options, waiting, queued, schedulers, result) do
-    wait_for_messages([], original, output, options, waiting, queued, schedulers, result)
+  defp spawn_compilers(%{entries: []} = state) do
+    wait_for_messages(state)
   end
 
   defp waiting_on_is_not_being_defined?(waiting, pid) do
@@ -149,15 +157,16 @@ defmodule Kernel.ParallelCompiler do
   end
 
   # Wait for messages from child processes
-  defp wait_for_messages(entries, original, output, options, waiting, queued, schedulers, result) do
+  defp wait_for_messages(state) do
+    %{entries: entries, options: options, waiting: waiting, queued: queued, result: result} = state
+
     receive do
       {:struct_available, module} ->
         available = for {:struct, pid, _, waiting_module, _defining} <- waiting,
                         module == waiting_module,
                         do: {pid, :found}
 
-        spawn_compilers(available ++ entries, original, output, options,
-                        waiting, queued, schedulers, [{:struct, module} | result])
+        spawn_compilers(%{state | entries: available ++ entries, result: [{:struct, module} | result]})
 
       {:module_available, child, ref, file, module, binary} ->
         if callback = Keyword.get(options, :each_module) do
@@ -173,8 +182,7 @@ defmodule Kernel.ParallelCompiler do
 
         cancel_waiting_timer(queued, child)
 
-        spawn_compilers(available ++ entries, original, output, options,
-                        waiting, queued, schedulers, [{:module, module} | result])
+        spawn_compilers(%{state | entries: available ++ entries, result: [{:module, module} | result]})
 
       {:waiting, kind, child, ref, on, defining} ->
         defined = fn {k, m} -> on == m and k in [kind, :module] end
@@ -188,14 +196,14 @@ defmodule Kernel.ParallelCompiler do
             [{kind, child, ref, on, defining} | waiting]
           end
 
-        spawn_compilers(entries, original, output, options, waiting, queued, schedulers, result)
+        spawn_compilers(%{state | waiting: waiting})
 
       {:timed_out, child} ->
         if callback = Keyword.get(options, :each_long_compilation) do
           {^child, _, file, _} = List.keyfind(queued, child, 0)
           callback.(file)
         end
-        spawn_compilers(entries, original, output, options, waiting, queued, schedulers, result)
+        spawn_compilers(state)
 
       {:DOWN, _down_ref, :process, down_pid, {:shutdown, file}} ->
         if callback = Keyword.get(options, :each_file) do
@@ -209,11 +217,11 @@ defmodule Kernel.ParallelCompiler do
         new_entries = List.delete(entries, down_pid)
         new_queued  = List.keydelete(queued, down_pid, 0)
         new_waiting = List.keydelete(waiting, down_pid, 1)
-        spawn_compilers(new_entries, original, output, options, new_waiting, new_queued, schedulers, result)
+        spawn_compilers(%{state | entries: new_entries, waiting: new_waiting, queued: new_queued})
 
       {:DOWN, down_ref, :process, _down_pid, reason} ->
         handle_failure(down_ref, reason, queued)
-        wait_for_messages(entries, original, output, options, waiting, queued, schedulers, result)
+        wait_for_messages(state)
     end
   end
 
