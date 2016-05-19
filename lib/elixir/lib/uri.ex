@@ -385,7 +385,7 @@ defmodule URI do
       iex> URI.merge("http://example.com", "http://google.com")|> to_string
       "http://google.com"
   """
-  def merge(%URI{authority: nil}, %URI{}), do: raise ArgumentError, "You must merge onto an absolute URI"
+  def merge(%URI{authority: nil}, %URI{}), do: raise ArgumentError, "you must merge onto an absolute URI"
   def merge(%URI{}, %URI{scheme: scheme}=rel) when not is_nil(scheme) do
     rel
   end
@@ -402,7 +402,7 @@ defmodule URI do
   def merge(base, rel), do: merge(URI.parse(base), URI.parse(rel))
 
   defp merge_paths(nil, rel_path), do: merge_paths("/", rel_path)
-  defp merge_paths(_, << "/" <> _ >>=rel_path), do: rel_path
+  defp merge_paths(_, "/" <> _=rel_path), do: rel_path
   defp merge_paths(base_path, rel_path) do
     [_ | base_segments] = path_to_segments(base_path)
     rel_segments = path_to_segments(rel_path)
@@ -421,10 +421,10 @@ defmodule URI do
   defp remove_dot_segments([".." | [".." | _]=tail], acc, _repeat) do
     remove_dot_segments(tail, [".." | acc], true)
   end
-  defp remove_dot_segments([".." | []], acc, _repeat) do
+  defp remove_dot_segments([".."], acc, _repeat) do
     remove_dot_segments([], acc, true)
   end
-  defp remove_dot_segments([".." | [_ | tail]], acc, repeat) do
+  defp remove_dot_segments(["..", _ | tail], acc, repeat) do
     remove_dot_segments(tail, acc, repeat)
   end
   defp remove_dot_segments([head | tail], acc, repeat) do
