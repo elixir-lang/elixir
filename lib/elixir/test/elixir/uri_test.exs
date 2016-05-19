@@ -254,6 +254,14 @@ defmodule URITest do
     assert URI.merge(base, "./baz") |> to_string == "http://example.com/foo/baz"
     assert URI.merge(base, "bar/./baz") |> to_string == "http://example.com/foo/bar/baz"
 
+    base = URI.parse("http://example.com/foo/bar/")
+    assert URI.merge(base, "/baz") |> to_string == "http://example.com/baz"
+    assert URI.merge(base, "baz") |> to_string == "http://example.com/foo/bar/baz"
+    assert URI.merge(base, "../baz") |> to_string == "http://example.com/foo/baz"
+    assert URI.merge(base, ".././baz") |> to_string == "http://example.com/foo/baz"
+    assert URI.merge(base, "./baz") |> to_string == "http://example.com/foo/bar/baz"
+    assert URI.merge(base, "bar/./baz") |> to_string == "http://example.com/foo/bar/bar/baz"
+
     base = URI.parse("http://example.com/foo/bar/baz")
     assert URI.merge(base, "../../foobar") |> to_string == "http://example.com/foobar"
     assert URI.merge(base, "../../../foobar") |> to_string == "http://example.com/foobar"
