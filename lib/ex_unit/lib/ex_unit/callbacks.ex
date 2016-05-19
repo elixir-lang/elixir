@@ -146,7 +146,7 @@ defmodule ExUnit.Callbacks do
 
   ## Helpers
 
-  @reserved ~w(case test line file registered)a
+  @reserved [:case, :file, :line, :test, :async, :registered]
 
   @doc false
   def __merge__(_mod, context, :ok) do
