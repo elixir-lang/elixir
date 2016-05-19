@@ -15,17 +15,8 @@ defmodule Kernel.LexicalTracker do
   Returns all remotes linked to in this lexical scope.
   """
   def remotes(arg) do
-    references = :gen_server.call(to_pid(arg), :references, @timeout)
-    for({{:mode, module}, mode} <- references, do: {module, mode})
-    |> partition([], [])
+    :gen_server.call(to_pid(arg), :remotes, @timeout)
   end
-
-  defp partition([{remote, :compile} | t], compile, runtime),
-    do: partition(t, [remote | compile], runtime)
-  defp partition([{remote, :runtime} | t], compile, runtime),
-    do: partition(t, compile, [remote | runtime])
-  defp partition([], compile, runtime),
-    do: {compile, runtime}
 
   @doc """
   Gets the destination the lexical scope is meant to
@@ -91,14 +82,7 @@ defmodule Kernel.LexicalTracker do
   end
 
   defp unused(pid, tag) do
-    directives = :gen_server.call(pid, :directives, @timeout)
-
-    directives =
-      for {{^tag, module_or_mfa}, marker} <- directives,
-          is_integer(marker),
-          do: {module_or_mfa, marker}
-
-    Enum.sort(directives)
+    :gen_server.call(pid, {:unused, tag}, @timeout)
   end
 
   # Callbacks
@@ -108,12 +92,21 @@ defmodule Kernel.LexicalTracker do
   end
 
   @doc false
-  def handle_call(:directives, _from, state) do
-    {:reply, state.directives, state}
+  def handle_call({:unused, tag}, _from, state) do
+    directives =
+      for {{^tag, module_or_mfa}, marker} <- state.directives,
+          is_integer(marker),
+          do: {module_or_mfa, marker}
+
+    {:reply, Enum.sort(directives), state}
   end
 
-  def handle_call(:references, _from, state) do
-    {:reply, state.references, state}
+  def handle_call(:remotes, _from, state) do
+    remotes =
+      for({module, mode} <- state.references, do: {module, mode})
+      |> partition([], [])
+
+    {:reply, remotes, state}
   end
 
   def handle_call(:dest, _from, state) do
@@ -178,19 +171,25 @@ defmodule Kernel.LexicalTracker do
     {:ok, state}
   end
 
+
+  defp partition([{remote, :compile} | t], compile, runtime),
+    do: partition(t, [remote | compile], runtime)
+  defp partition([{remote, :runtime} | t], compile, runtime),
+    do: partition(t, compile, [remote | runtime])
+  defp partition([], compile, runtime),
+    do: {compile, runtime}
+
   # Callbacks helpers
 
   defp add_reference(references, module, :runtime) when is_atom(module) do
-    key = {:mode, module}
-
-    case :maps.find(key, references) do
+    case :maps.find(module, references) do
       {:ok, _} -> references
-      :error -> :maps.put(key, :runtime, references)
+      :error -> :maps.put(module, :runtime, references)
     end
    end
 
   defp add_reference(references, module, :compile) when is_atom(module),
-    do: :maps.put({:mode, module}, :compile, references)
+    do: :maps.put(module, :compile, references)
 
   # In the map we keep imports and aliases.
   # If the value is a line, it was imported/aliased and has a pending warning
