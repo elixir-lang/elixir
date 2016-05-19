@@ -94,9 +94,12 @@ defmodule Mix.Compilers.Elixir do
 
   defp compile_manifest(manifest, entries, sources, stale, dest, opts) do
     Mix.Utils.compiling_n(length(stale), :ex)
-    Mix.Project.ensure_structure()
+
+    config = Mix.Project.config()
+    Mix.Project.ensure_structure(config)
     true = Code.prepend_path(dest)
 
+    opts = Keyword.merge(config[:elixirc_options] || [], opts)
     set_compiler_opts(opts)
     cwd = File.cwd!
 
@@ -110,10 +113,10 @@ defmodule Mix.Compilers.Elixir do
     # Starts a server responsible for keeping track which files
     # were compiled and the dependencies between them.
     {:ok, pid} = Agent.start_link(fn -> {entries, sources} end)
+    long_compilation_threshold = opts[:long_compilation_threshold] || 5
 
     try do
-      long_compilation_threshold = Keyword.get(opts, :long_compilation_threshold, 5)
-      _ = Kernel.ParallelCompiler.files :lists.usort(stale),
+      _ = Kernel.ParallelCompiler.files stale,
             [each_module: &each_module(pid, dest, cwd, &1, &2, &3),
              each_long_compilation: &each_long_compilation(&1, long_compilation_threshold),
              long_compilation_threshold: long_compilation_threshold,
@@ -130,9 +133,9 @@ defmodule Mix.Compilers.Elixir do
   end
 
   defp set_compiler_opts(opts) do
-    opts = Keyword.take(opts, Code.available_compiler_options)
-    opts = Keyword.merge(Mix.Project.config[:elixirc_options] || [], opts)
-    Code.compiler_options opts
+    opts
+    |> Keyword.take(Code.available_compiler_options)
+    |> Code.compiler_options()
   end
 
   defp each_module(pid, dest, cwd, source, module, binary) do
