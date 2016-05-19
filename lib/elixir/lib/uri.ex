@@ -385,24 +385,24 @@ defmodule URI do
       iex> URI.merge("http://example.com", "http://google.com")|> to_string
       "http://google.com"
   """
-  def merge(%URI{authority: nil}, %URI{}), do: raise ArgumentError, "you must merge onto an absolute URI"
-  def merge(%URI{}, %URI{scheme: scheme}=rel) when not is_nil(scheme) do
+  def merge(%URI{authority: nil}, _rel), do: raise ArgumentError, "you must merge onto an absolute URI"
+  def merge(%URI{}, %URI{scheme: scheme} = rel) when scheme != nil do
     rel
   end
-  def merge(%URI{}=base, %URI{path: "", query: query, fragment: fragment}=rel) do
+  def merge(%URI{} = base, %URI{path: "", query: query, fragment: fragment} = rel) do
     merge(base, %{rel | path: nil, query: query, fragment: fragment})
   end
-  def merge(%URI{}=base, %URI{path: nil, query: query, fragment: fragment}) do
+  def merge(%URI{} = base, %URI{path: nil, query: query, fragment: fragment}) do
     %{base | path: base.path, query: query || base.query, fragment: fragment}
   end
-  def merge(%URI{path: base_path}=base, %URI{path: path, query: query, fragment: fragment}) do
-    %{base | path: merge_paths(base_path, path), query: query, fragment: fragment}
+  def merge(%URI{path: base_path} = base, %URI{path: rel_path, query: query, fragment: fragment}) do
+    %{base | path: merge_paths(base_path, rel_path), query: query, fragment: fragment}
   end
   # Convert binary to URI
-  def merge(base, rel), do: merge(URI.parse(base), URI.parse(rel))
+  def merge(base, rel), do: merge(parse(base), parse(rel))
 
   defp merge_paths(nil, rel_path), do: merge_paths("/", rel_path)
-  defp merge_paths(_, "/" <> _=rel_path), do: rel_path
+  defp merge_paths(_, "/" <> _ = rel_path), do: rel_path
   defp merge_paths(base_path, rel_path) do
     [_ | base_segments] = path_to_segments(base_path)
     rel_segments = path_to_segments(rel_path)
