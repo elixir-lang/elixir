@@ -102,7 +102,7 @@ defmodule Kernel.LexicalTracker do
   end
 
   def handle_call(:remotes, _from, state) do
-    {:reply, partition(state.references, [], []), state}
+    {:reply, partition(Enum.to_list(state.references), [], []), state}
   end
 
   def handle_call(:dest, _from, state) do
