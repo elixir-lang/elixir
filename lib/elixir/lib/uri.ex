@@ -411,25 +411,20 @@ defmodule URI do
     |> Enum.join("/")
   end
 
-  defp remove_dot_segments(list, acc \\ [], repeat \\ false)
-  defp remove_dot_segments([], acc, true), do: remove_dot_segments(Enum.reverse(acc))
-  defp remove_dot_segments([], ["" | _]=acc, false), do: acc
-  defp remove_dot_segments([], acc, false), do: ["" | acc]
-  defp remove_dot_segments(["." | tail], acc, repeat) do
-    remove_dot_segments(tail, acc, repeat)
-  end
-  defp remove_dot_segments([".." | [".." | _]=tail], acc, _repeat) do
-    remove_dot_segments(tail, [".." | acc], true)
-  end
-  defp remove_dot_segments([".."], acc, _repeat) do
-    remove_dot_segments([], acc, true)
-  end
-  defp remove_dot_segments(["..", _ | tail], acc, repeat) do
-    remove_dot_segments(tail, acc, repeat)
-  end
-  defp remove_dot_segments([head | tail], acc, repeat) do
-    remove_dot_segments(tail, [head | acc], repeat)
-  end
+  defp remove_dot_segments(list, acc \\ [])
+  defp remove_dot_segments([], [head, ".." | acc]),
+    do: remove_dot_segments([], [head | acc])
+  defp remove_dot_segments([], acc), do: acc
+  defp remove_dot_segments(["." | tail], acc),
+    do: remove_dot_segments(tail, acc)
+  defp remove_dot_segments([head | tail], ["..", ".." | _] = acc),
+    do: remove_dot_segments(tail, [head | acc])
+  defp remove_dot_segments(segments, [_, ".." | acc]),
+    do: remove_dot_segments(segments, acc)
+  defp remove_dot_segments(["" | tail], acc),
+    do: remove_dot_segments(tail, ["" | acc])
+  defp remove_dot_segments([head | tail], acc),
+    do: remove_dot_segments(tail, [head | acc])
 
   def path_to_segments(path) do
     [h | t] = String.split(path, "/")
