@@ -41,7 +41,7 @@ store(Module, Function, GenerateName) ->
       ok;
     {Count, Clause, Neighbours, false} ->
       overridable(Module, maps:put(Function, {Count, Clause, Neighbours, true}, Overridable)),
-      {{{Name, Arity}, Kind, Line, File, _Check,
+      {{{def, {Name, Arity}}, Kind, Line, File, _Check,
        Location, {Defaults, _HasBody, _LastDefaults}}, Clauses} = Clause,
 
       {FinalKind, FinalName} = case GenerateName of

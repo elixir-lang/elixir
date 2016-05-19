@@ -14,9 +14,8 @@
 
 macro_for(Module, Name, Arity) ->
   Tuple = {Name, Arity},
-  try elixir_def:lookup_definition(Module, Tuple) of
-    {{Tuple, Kind, Line, _, _, _, _}, [_ | _] = Clauses}
-        when Kind == defmacro; Kind == defmacrop ->
+  try elixir_def:lookup_clauses(Module, Tuple) of
+    {Kind, Line, [_ | _] = Clauses} when Kind == defmacro; Kind == defmacrop ->
       fun() -> get_function(Line, Module, Clauses) end;
     _ ->
       false
@@ -28,9 +27,8 @@ local_for(Module, Name, Arity) ->
   local_for(Module, Name, Arity, nil).
 local_for(Module, Name, Arity, Given) ->
   Tuple = {Name, Arity},
-  case elixir_def:lookup_definition(Module, Tuple) of
-    {{Tuple, Kind, Line, _, _, _, _}, [_ | _] = Clauses}
-        when Given == nil; Kind == Given ->
+  case elixir_def:lookup_clauses(Module, Tuple) of
+    {Kind, Line, [_ | _] = Clauses} when Given == nil; Kind == Given ->
       get_function(Line, Module, Clauses);
     _ ->
       [_ | T] = erlang:get_stacktrace(),

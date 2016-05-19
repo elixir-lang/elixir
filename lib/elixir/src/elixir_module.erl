@@ -1,6 +1,5 @@
 -module(elixir_module).
--export([data_table/1, defs_table/1, clas_table/1, is_open/1,
-         get_attribute/2, delete_doc/6,
+-export([data_table/1, defs_table/1, is_open/1, get_attribute/2, delete_doc/6,
          compile/4, expand_callback/6, add_beam_chunk/3, format_error/1]).
 -include("elixir.hrl").
 
@@ -17,9 +16,6 @@ data_table(Module) ->
 
 defs_table(Module) ->
   ets:lookup_element(elixir_modules, Module, 3).
-
-clas_table(Module) ->
-  ets:lookup_element(elixir_modules, Module, 4).
 
 is_open(Module) ->
   ets:lookup(elixir_modules, Module) /= [].
@@ -64,7 +60,7 @@ do_compile(Line, Module, Block, Vars, E) ->
   check_module_availability(Line, File, Module),
 
   Docs = elixir_compiler:get_opt(docs),
-  {Data, Defs, Clas, Ref} = build(Line, File, Module, Docs, ?m(E, lexical_tracker)),
+  {Data, Defs, Ref} = build(Line, File, Module, Docs, ?m(E, lexical_tracker)),
 
   try
     erlang:put(elixir_compiler_module, Module),
@@ -116,7 +112,6 @@ do_compile(Line, Module, Block, Vars, E) ->
     elixir_locals:cleanup(Module),
     ets:delete(Data),
     ets:delete(Defs),
-    ets:delete(Clas),
     elixir_code_server:call({undefmodule, Ref})
   end.
 
@@ -139,7 +134,7 @@ compile_undef(Module, Fun, Arity, Stack) ->
 
 build(Line, File, Module, Docs, Lexical) ->
   case ets:lookup(elixir_modules, Module) of
-    [{Module, _, _, _, OldLine, OldFile}] ->
+    [{Module, _, _, OldLine, OldFile}] ->
       Error = {module_in_definition, Module, OldFile, OldLine},
       elixir_errors:form_error([{line, Line}], File, ?MODULE, Error);
     _ ->
@@ -147,11 +142,9 @@ build(Line, File, Module, Docs, Lexical) ->
   end,
 
   Data = ets:new(Module, [set, public]),
-  Defs = ets:new(Module, [set, public]),
-  Clas = ets:new(Module, [bag, public]),
-
-  Ref = elixir_code_server:call({defmodule, self(),
-                                 {Module, Data, Defs, Clas, Line, File}}),
+  Defs = ets:new(Module, [bag, public]),
+  Ref  = elixir_code_server:call({defmodule, self(),
+                                 {Module, Data, Defs, Line, File}}),
 
   ets:insert(Data, {before_compile, []}),
   ets:insert(Data, {after_compile, []}),
@@ -175,7 +168,7 @@ build(Line, File, Module, Docs, Lexical) ->
   elixir_locals:setup(Module),
   elixir_def_overridable:setup(Module),
 
-  {Data, Defs, Clas, Ref}.
+  {Data, Defs, Ref}.
 
 %% Receives the module representation and evaluates it.
 
