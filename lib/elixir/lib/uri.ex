@@ -421,8 +421,6 @@ defmodule URI do
     do: remove_dot_segments(tail, [head | acc])
   defp remove_dot_segments(segments, [_, ".." | acc]),
     do: remove_dot_segments(segments, acc)
-  defp remove_dot_segments(["" | tail], acc),
-    do: remove_dot_segments(tail, ["" | acc])
   defp remove_dot_segments([head | tail], acc),
     do: remove_dot_segments(tail, [head | acc])
 
