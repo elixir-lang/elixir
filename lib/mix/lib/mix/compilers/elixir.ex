@@ -6,10 +6,7 @@ defmodule Mix.Compilers.Elixir do
   import Record
 
   defrecordp :module, [:module, :kind, :source, :beam, :binary]
-
-  defrecordp :file, [:file, :compile, :runtime]
-
-  defrecordp :source, [:source, :files]
+  defrecordp :source, [:source, compile: [], runtime: [], external: []]
 
   @doc """
   Compiles stale Elixir files.
@@ -24,13 +21,13 @@ defmodule Mix.Compilers.Elixir do
   have changed at runtime.
   """
   def compile(manifest, srcs, dest, force, opts) do
-    all  = Mix.Utils.extract_files(srcs, [:ex])
-    {all_modules, all_files, all_sources} = parse_manifest(manifest)
+    all = Mix.Utils.extract_files(srcs, [:ex])
+    {all_modules, all_sources} = parse_manifest(manifest)
 
     modified = Mix.Utils.last_modified(manifest)
 
     removed =
-      for {source, _files} <- all_sources,
+      for source(source: source) <- all_sources,
           not(source in all),
           do: source
 
@@ -44,34 +41,33 @@ defmodule Mix.Compilers.Elixir do
 
         # Otherwise let's start with the new sources
         for(source <- all,
-            not Map.has_key?(all_sources, source),
+            not List.keymember?(all_sources, source, source(:source)),
             do: source)
           ++
         # Plus the sources that have changed in disk
-        for({source, files} <- all_sources,
-            times = Enum.map([source | files], &Map.fetch!(sources_mtimes, &1)),
+        for(source(source: source, external: external) <- all_sources,
+            times = Enum.map([source | external], &Map.fetch!(sources_mtimes, &1)),
             Mix.Utils.stale?(times, [modified]),
             do: source)
       end
 
-    sources = update_stale_sources(all_sources, removed, changed)
-
-    {modules, files, changed} =
+    {modules, changed} =
       update_stale_entries(
         all_modules,
-        all_files,
+        all_sources,
         removed ++ changed,
         stale_local_deps(manifest, modified)
       )
 
-    stale = changed -- removed
+    stale   = changed -- removed
+    sources = update_stale_sources(all_sources, removed, changed)
 
     cond do
       stale != [] ->
-        compile_manifest(manifest, modules, files, sources, stale, dest, opts)
+        compile_manifest(manifest, modules, sources, stale, dest, opts)
         :ok
       removed != [] ->
-        write_manifest(manifest, modules, files, sources)
+        write_manifest(manifest, modules, sources)
         :ok
       true ->
         :noop
@@ -79,8 +75,8 @@ defmodule Mix.Compilers.Elixir do
   end
 
   defp mtimes(sources) do
-    Enum.reduce(sources, %{}, fn {source, files}, map ->
-      Enum.reduce([source | files], map, fn file, map ->
+    Enum.reduce(sources, %{}, fn source(source: source, external: external), map ->
+      Enum.reduce([source | external], map, fn file, map ->
         Map.put_new_lazy(map, file, fn -> Mix.Utils.last_modified(file) end)
       end)
     end)
@@ -107,7 +103,7 @@ defmodule Mix.Compilers.Elixir do
         do: {module, kind, beam}
   end
 
-  defp compile_manifest(manifest, modules, files, sources, stale, dest, opts) do
+  defp compile_manifest(manifest, modules, sources, stale, dest, opts) do
     Mix.Utils.compiling_n(length(stale), :ex)
 
     config = Mix.Project.config()
@@ -127,7 +123,7 @@ defmodule Mix.Compilers.Elixir do
 
     # Starts a server responsible for keeping track which files
     # were compiled and the dependencies between them.
-    {:ok, pid} = Agent.start_link(fn -> {modules, files, sources} end)
+    {:ok, pid} = Agent.start_link(fn -> {modules, sources} end)
     long_compilation_threshold = opts[:long_compilation_threshold] || 5
 
     try do
@@ -136,9 +132,9 @@ defmodule Mix.Compilers.Elixir do
              each_long_compilation: &each_long_compilation(&1, long_compilation_threshold),
              long_compilation_threshold: long_compilation_threshold,
              dest: dest] ++ extra
-      Agent.cast pid, fn {modules, files, sources} ->
-        write_manifest(manifest, modules, files, sources)
-        {modules, files, sources}
+      Agent.cast pid, fn {modules, sources} ->
+        write_manifest(manifest, modules, sources)
+        {modules, sources}
       end
     after
       Agent.stop(pid, :normal, :infinity)
@@ -171,27 +167,34 @@ defmodule Mix.Compilers.Elixir do
       |> List.delete(module)
       |> Enum.reject(&match?("elixir_" <> _, Atom.to_string(&1)))
 
-    kind   = detect_kind(module)
-    source = Path.relative_to(source, cwd)
-    source_files  = get_external_resources(module, cwd)
+    kind     = detect_kind(module)
+    source   = Path.relative_to(source, cwd)
+    external = get_external_resources(module, cwd)
 
-    Agent.cast pid, fn {modules, files, sources} ->
-      new_module =
-        module(
-          module: module,
-          kind: kind,
-          source: source,
-          beam: beam,
-          binary: binary
-        )
-      modules = List.keystore(modules, module, 1, new_module)
+    Agent.cast pid, fn {modules, sources} ->
+      external = case List.keyfind(sources, source, source(:source)) do
+        source(external: old_external) -> external ++ old_external
+        nil -> external
+      end
 
-      new_file = file(file: source, compile: compile, runtime: runtime)
-      files = List.keystore(files, source, 1, new_file)
+      new_module = module(
+        module: module,
+        kind: kind,
+        source: source,
+        beam: beam,
+        binary: binary
+      )
 
-      sources = Map.update(sources, source, source_files, & source_files ++ &1)
+      new_source = source(
+        source: source,
+        compile: compile,
+        runtime: runtime,
+        external: external
+      )
 
-      {modules, files, sources}
+      modules = List.keystore(modules, module, module(:module), new_module)
+      sources = List.keystore(sources, source, source(:source), new_source)
+      {modules, sources}
     end
   end
 
@@ -227,69 +230,58 @@ defmodule Mix.Compilers.Elixir do
   ## Resolution
 
   defp update_stale_sources(sources, removed, changed) do
-    Enum.reduce changed, Map.drop(sources, removed), &Map.put(&2, &1, [])
+    sources =
+      Enum.reject(sources, fn source(source: source) -> source in removed end)
+    sources =
+      Enum.reduce(changed, sources, &List.keystore(&2, &1, source(:source), source(source: &1)))
+    sources
   end
 
   # This function receives the manifest entries and some source
   # files that have changed. It then, recursively, figures out
   # all the files that changed (via the module dependencies) and
   # return the non-changed entries and the removed sources.
-  defp update_stale_entries(modules, files, [], stale) when stale == %{} do
-    {modules, files, []}
+  defp update_stale_entries(modules, _sources, [], stale) when stale == %{} do
+    {modules, []}
   end
 
-  defp update_stale_entries(modules, files, changed, stale) do
+  defp update_stale_entries(modules, sources, changed, stale) do
     removed = Enum.into(changed, %{}, &{&1, true})
-    remove_stale_entries(modules, files, stale, removed)
+    remove_stale_entries(modules, sources, stale, removed)
   end
 
-  defp remove_stale_entries(modules, files, old_stale, old_removed) do
-    file_modules =
-      Enum.reduce modules, %{}, fn module(source: source) = module, file_modules ->
-        file = Enum.find(files, & file(&1, :file) == source)
-        Map.update(file_modules, file, [module], &[module | &1])
-      end
-
-    {rest_modules, rest_files, new_stale, new_removed} =
-      Enum.reduce file_modules, {[], [], old_stale, old_removed}, &remove_stale_entry/2
+  defp remove_stale_entries(modules, sources, old_stale, old_removed) do
+    {rest, new_stale, new_removed} =
+      Enum.reduce modules, {[], old_stale, old_removed}, &remove_stale_entry(&1, &2, sources)
 
     if map_size(new_stale) > map_size(old_stale) or
        map_size(new_removed) > map_size(old_removed) do
-      remove_stale_entries(rest_modules, rest_files, new_stale, new_removed)
+      remove_stale_entries(rest, sources, new_stale, new_removed)
     else
-      {rest_modules, rest_files, Map.keys(new_removed)}
+      {rest, Map.keys(new_removed)}
     end
   end
 
-  defp remove_stale_entry({file, modules}, acc) do
-    file(file: source, compile: compile, runtime: runtime) = file
-    {rest_modules, rest_files, stale, removed} = acc
+  defp remove_stale_entry(module(module: module, beam: beam, source: source) = entry,
+                          {rest, stale, removed}, sources) do
+    source(compile: compile, runtime: runtime) =
+      List.keyfind(sources, source, source(:source))
 
     cond do
       # If I changed in disk or have a compile time dependency
       # on something stale, I need to be recompiled.
       Map.has_key?(removed, source) or Enum.any?(compile, &Map.has_key?(stale, &1)) ->
-        stale =
-          Enum.reduce modules, stale, fn module(beam: beam, module: module), stale ->
-            remove_and_purge(beam, module)
-
-            Map.put(stale, module, true)
-          end
-
-        removed = Map.put(removed, source, true)
-        {rest_modules, rest_files, stale, removed}
+        remove_and_purge(beam, module)
+        {rest, Map.put(stale, module, true), Map.put(removed, source, true)}
 
       # If I have a runtime time dependency on something stale,
       # I am stale too.
       Enum.any?(runtime, &Map.has_key?(stale, &1)) ->
-        rest_modules = modules ++ rest_modules
-        rest_files = [file | rest_files]
-        stale = Enum.reduce(modules, stale, &Map.put(&2, &1, true))
-        {rest_modules, rest_files, stale, removed}
+        {[entry | rest], Map.put(stale, module, true), removed}
 
       # Otherwise, we don't store it anywhere
       true ->
-        {modules ++ rest_modules, [file | rest_files], stale, removed}
+        {[entry | rest], stale, removed}
     end
   end
 
@@ -322,7 +314,7 @@ defmodule Mix.Compilers.Elixir do
 
   # Similar to read manifest but supports data migration.
   defp parse_manifest(manifest) do
-    state = {[], [], %{}}
+    state = {[], []}
 
     case :file.consult(manifest) do
       {:ok, [@manifest_vsn | data]} ->
@@ -339,21 +331,19 @@ defmodule Mix.Compilers.Elixir do
 
   defp parse_manifest(data, state) do
     Enum.reduce data, state, fn
-      module() = module, {modules, files, sources} ->
-        {[module | modules], files, sources}
-      file() = file, {modules, files, sources} ->
-        {modules, [file | files], sources}
-      source(source: source, files: source_files), {modules, files, sources} ->
-        {modules, files, Map.put(sources, source, source_files)}
+      module() = module, {modules, sources} ->
+        {[module | modules], sources}
+      source() = source, {modules, sources} ->
+        {modules, [source | sources]}
     end
   end
 
-  defp write_manifest(manifest, [], [], sources) when sources == %{} do
+  defp write_manifest(manifest, [], []) do
     File.rm(manifest)
     :ok
   end
 
-  defp write_manifest(manifest, modules, files, sources) do
+  defp write_manifest(manifest, modules, sources) do
     File.mkdir_p!(Path.dirname(manifest))
 
     File.open!(manifest, [:write], fn device ->
@@ -364,12 +354,8 @@ defmodule Mix.Compilers.Elixir do
         :io.format(device, '~p.~n', [module(module, binary: nil)])
       end
 
-      Enum.each files, fn file ->
-        :io.format(device, '~p.~n', [file])
-      end
-
-      Enum.each sources, fn {source, files} ->
-        :io.format(device, '~p.~n', [source(source: source, files: files)])
+      Enum.each sources, fn source ->
+        :io.format(device, '~p.~n', [source])
       end
 
       :ok
