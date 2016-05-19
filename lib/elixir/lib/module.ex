@@ -742,7 +742,7 @@ defmodule Module do
   def defines?(module, tuple) when is_tuple(tuple) do
     assert_not_compiled!(:defines?, module)
     table = defs_table_for(module)
-    :ets.lookup(table, tuple) != []
+    :ets.lookup(table, {:def, tuple}) != []
   end
 
   @doc """
@@ -763,7 +763,7 @@ defmodule Module do
   def defines?(module, tuple, kind) do
     assert_not_compiled!(:defines?, module)
     table = defs_table_for(module)
-    case :ets.lookup(table, tuple) do
+    case :ets.lookup(table, {:def, tuple}) do
       [{_, ^kind, _, _, _, _, _}] -> true
       _ -> false
     end
@@ -783,7 +783,7 @@ defmodule Module do
   def definitions_in(module) do
     assert_not_compiled!(:definitions_in, module)
     table = defs_table_for(module)
-    :lists.concat :ets.match(table, {:'$1', :_, :_, :_, :_, :_, :_})
+    :lists.concat :ets.match(table, {{:def, :'$1'}, :_, :_, :_, :_, :_, :_})
   end
 
   @doc """
@@ -802,7 +802,7 @@ defmodule Module do
   def definitions_in(module, kind) do
     assert_not_compiled!(:definitions_in, module)
     table = defs_table_for(module)
-    :lists.concat :ets.match(table, {:'$1', kind, :_, :_, :_, :_, :_})
+    :lists.concat :ets.match(table, {{:def, :'$1'}, kind, :_, :_, :_, :_, :_})
   end
 
   @doc """
@@ -816,18 +816,17 @@ defmodule Module do
     assert_not_compiled!(:make_overridable, module)
 
     :lists.foreach(fn tuple ->
-      case :elixir_def.lookup_definition(module, tuple) do
+      case :elixir_def.take_definition(module, tuple) do
         false ->
           {name, arity} = tuple
           raise "cannot make function #{name}/#{arity} overridable because it was not defined"
         clause ->
-          :elixir_def.delete_definition(module, tuple)
-
-          neighbours = if :elixir_compiler.get_opt(:internal) do
-            []
-          else
-            Module.LocalsTracker.yank(module, tuple)
-          end
+          neighbours =
+            if :elixir_compiler.get_opt(:internal) do
+              []
+            else
+              Module.LocalsTracker.yank(module, tuple)
+            end
 
           old   = :elixir_def_overridable.overridable(module)
           count = case :maps.find(tuple, old) do

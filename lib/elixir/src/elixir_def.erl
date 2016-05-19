@@ -1,7 +1,7 @@
 % Holds the logic responsible for function definitions (def(p) and defmacro(p)).
 -module(elixir_def).
--export([setup/1, reset_last/1, lookup_definition/2,
-  delete_definition/2, store_definition/6, unwrap_definitions/2,
+-export([setup/1, reset_last/1, lookup_clauses/2,
+  take_definition/2, store_definition/6, unwrap_definitions/2,
   store_each/7, format_error/1]).
 -include("elixir.hrl").
 
@@ -18,18 +18,23 @@ setup(Module) ->
 reset_last(Module) ->
   ets:insert(elixir_module:data_table(Module), {?last_def, []}).
 
-lookup_definition(Module, Tuple) ->
-  case ets:lookup(elixir_module:defs_table(Module), Tuple) of
-    [Result] ->
-      CTable = elixir_module:clas_table(Module),
-      {Result, [Clause || {_, Clause} <- ets:lookup(CTable, Tuple)]};
+lookup_clauses(Module, Tuple) ->
+  Table = elixir_module:defs_table(Module),
+  case ets:lookup(Table, {def, Tuple}) of
+    [{_, Kind, Line, _, _, _, _}] ->
+      {Kind, Line, [Clause || {_, Clause} <- ets:lookup(Table, {clauses, Tuple})]};
     _ ->
       false
   end.
 
-delete_definition(Module, Tuple) ->
-  ets:delete(elixir_module:defs_table(Module), Tuple),
-  ets:delete(elixir_module:clas_table(Module), Tuple).
+take_definition(Module, Tuple) ->
+  Table = elixir_module:defs_table(Module),
+  case ets:take(Table, {def, Tuple}) of
+    [Result] ->
+      {Result, [Clause || {_, Clause} <- ets:take(Table, {clauses, Tuple})]};
+    [] ->
+      false
+  end.
 
 % Invoked by the wrap definition with the function abstract tree.
 % Each function is then added to the function table.
@@ -211,21 +216,20 @@ is_macro(_)         -> false.
 % It returns a list of all functions to be exported, plus the macros,
 % and the body of all functions.
 unwrap_definitions(File, Module) ->
-  Table  = elixir_module:defs_table(Module),
-  CTable = elixir_module:clas_table(Module),
-
-  {All, Private} = unwrap_definition(ets:tab2list(Table), File, Module, CTable, [], []),
+  Table = elixir_module:defs_table(Module),
+  Entries = ets:match(Table, {{def, '$1'}, '_', '_', '_', '_', '_', '_'}),
+  {All, Private} = unwrap_definition(Entries, File, Module, Table, [], []),
   Unreachable = elixir_locals:warn_unused_local(File, Module, Private),
   split_definition(All, Unreachable, [], [], [], [], [], {[], []}).
 
-unwrap_definition([Fun | T], File, Module, CTable, All, Private) ->
-  {Tuple, Kind, Line, _, Check, Location, {Defaults, _, _}} = Fun,
+unwrap_definition([[Tuple] | T], File, Module, Table, All, Private) ->
+  [{_, Kind, Line, _, Check, Location, {Defaults, _, _}}] = ets:lookup(Table, {def, Tuple}),
   Export = export(Kind, Tuple),
 
-  case [Clause || {_, Clause} <- ets:lookup(CTable, Tuple)] of
+  case [Clause || {_, Clause} <- ets:lookup(Table, {clauses, Tuple})] of
     [] ->
       warn_bodyless_function(Line, File, Module, Kind, Tuple),
-      unwrap_definition(T, File, Module, CTable, All, Private);
+      unwrap_definition(T, File, Module, Table, All, Private);
     Clauses ->
       Unwrapped = {Tuple, Kind, Line, Location,
                    function_for_stored_definition(Line, Export, Clauses)},
@@ -238,10 +242,10 @@ unwrap_definition([Fun | T], File, Module, CTable, All, Private) ->
             Private
         end,
 
-      unwrap_definition(T, File, Module, CTable, [Unwrapped | All], NewPrivate)
+      unwrap_definition(T, File, Module, Table, [Unwrapped | All], NewPrivate)
   end;
 
-unwrap_definition([], _File, _Module, _CTable, All, Private) ->
+unwrap_definition([], _File, _Module, _Table, All, Private) ->
   {All, Private}.
 
 split_definition([{Tuple, def, Line, Location, Body} | T], Unreachable,
@@ -310,13 +314,12 @@ warn_bodyless_function(Line, File, _Module, Kind, Tuple) ->
 store_each(Check, Kind, File, Location, Module, Defaults, {function, Line, Name, Arity, Clauses}) ->
   Data = elixir_module:data_table(Module),
   Defs = elixir_module:defs_table(Module),
-  Clas = elixir_module:clas_table(Module),
 
   Tuple   = {Name, Arity},
   HasBody = Clauses =/= [],
 
-  case ets:lookup(Defs, Tuple) of
-    [{Tuple, StoredKind, StoredLine, StoredFile, StoredCheck,
+  case ets:take(Defs, {def, Tuple}) of
+    [{_, StoredKind, StoredLine, StoredFile, StoredCheck,
         StoredLocation, {StoredDefaults, LastHasBody, LastDefaults}}] ->
       FinalLine = StoredLine,
       FinalLocation = StoredLocation,
@@ -332,8 +335,8 @@ store_each(Check, Kind, File, Location, Module, Defaults, {function, Line, Name,
   end,
 
   Check andalso ets:insert(Data, {?last_def, {Name, Arity}}),
-  ets:insert(Clas, [{Tuple, Clause} || Clause <- Clauses]),
-  ets:insert(Defs, {Tuple, Kind, FinalLine, File, Check, FinalLocation, FinalDefaults}).
+  ets:insert(Defs, [{{clauses, Tuple}, Clause} || Clause <- Clauses]),
+  ets:insert(Defs, {{def, Tuple}, Kind, FinalLine, File, Check, FinalLocation, FinalDefaults}).
 
 %% Validations
 
@@ -367,7 +370,8 @@ check_valid_defaults(Line, File, Name, Arity, Kind, 0, _, LastDefaults, true) wh
 check_valid_defaults(_Line, _File, _Name, _Arity, _Kind, 0, _, _, _) -> [].
 
 check_previous_defaults(Line, Module, Name, Arity, Kind, Defaults, E) ->
-  Matches = ets:match(elixir_module:defs_table(Module), {{Name, '$2'}, '$1', '_', '_', '_', '_', {'$3', '_', '_'}}),
+  Matches = ets:match(elixir_module:defs_table(Module),
+                      {{def, {Name, '$2'}}, '$1', '_', '_', '_', '_', {'$3', '_', '_'}}),
   [ begin
       elixir_errors:form_error([{line, Line}], ?m(E, file), ?MODULE,
         {defs_with_defaults, Name, {Kind, Arity}, {K, A}})
