@@ -156,19 +156,19 @@ defmodule Kernel.LexicalTrackerTest do
   {{compile, runtime}, {compile_remote_calls, runtime_remote_calls}} =
     elem(remotes, 0)
 
-  assert Enum.sort(compile) == [Integer, Kernel, Kernel.LexicalTracker, Record, :elixir_def]
-  assert Enum.sort(runtime) == [Bitwise, MissingModuleReferencer, NotAModule, :erlang]
+  assert Enum.sort(compile) == [Bitwise, Integer, Kernel, Kernel.LexicalTracker, Record, :elixir_def]
+  assert Enum.sort(runtime) == [MissingModuleReferencer, NotAModule, :erlang]
 
   assert Enum.sort(compile_remote_calls) == [
+    {Bitwise, {:&&&, 2}, 8},
+    {Integer, {:is_even, 1}, 8},
+    {Kernel, {:and, 2}, 7},
     {Kernel.LexicalTracker, {:remote_dispatches, 1}, 15},
     {Kernel.LexicalTracker, {:remote_references, 1}, 14},
     {:elixir_def, {:store_definition, 6}, 5}
   ]
 
   assert Enum.sort(runtime_remote_calls) == [
-    {Bitwise, {:&&&, 2}, 8},
-    {Integer, {:is_even, 1}, 8},
-    {Kernel, {:and, 2}, 7},
     {MissingModuleReferencer, {:no_func, 0}, 11},
     {Record, {:extract, 2}, 6},
     {:erlang, {:==, 2}, 8},

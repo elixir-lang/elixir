@@ -168,7 +168,7 @@ expand_require(Meta, Receiver, {Name, Arity} = Tuple, Args, E) ->
       Requires = ?m(E, requires),
       case (Receiver == Module) orelse is_element(Receiver, Requires) orelse skip_require(Meta) of
         true  ->
-          elixir_lexical:record_remote(Receiver, Name, Arity, ?m(E, function), ?line(Meta), ?m(E, lexical_tracker)),
+          elixir_lexical:record_remote(Receiver, Name, Arity, nil, ?line(Meta), ?m(E, lexical_tracker)),
           {ok, Receiver, expand_macro_named(Meta, Receiver, Name, Arity, Args, E)};
         false ->
           Info = {unrequired_module, {Receiver, Name, length(Args), Requires}},
