@@ -224,7 +224,7 @@ defmodule Mix do
 
   """
   def compilers do
-    [:yecc, :leex, :erlang, :elixir, :app]
+    [:yecc, :leex, :erlang, :elixir, :xref, :app]
   end
 
   @doc """

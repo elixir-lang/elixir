@@ -34,3 +34,37 @@ defimpl BadProtocol, for: BadReferencer do
     BadReferencer.no_func3()
   end
 end
+
+defmodule BadReferencer3 do
+  if function_exported?(List, :flatten, 1) do
+    List.flatten([1, 2, 3])
+  else
+    List.old_flatten([1, 2, 3])
+  end
+
+  if function_exported?(List, :flatten, 1) do
+    def flatten(arg), do: List.flatten(arg)
+  else
+    def flatten(arg), do: List.old_flatten(arg)
+  end
+
+  if function_exported?(List, :flatten, 1) do
+    def flatten2(arg), do: List.old_flatten(arg)
+  else
+    def flatten2(arg), do: List.flatten(arg)
+  end
+
+  def erlang do
+    :missing_module
+    :missing_module.no_func()
+    :lists.not_a_real_func()
+    :lists.all(1, 2)
+    :lists.all(1, 2, 3)
+  end
+end
+
+if function_exported?(List, :flatten, 1) do
+  List.flatten([1, 2, 3])
+else
+  List.old_flatten([1, 2, 3])
+end

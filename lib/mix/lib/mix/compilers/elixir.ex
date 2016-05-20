@@ -5,11 +5,11 @@ defmodule Mix.Compilers.Elixir do
 
   import Record
 
-  defrecordp :module, [:module, :kind, :source, :beam, :binary]
-  defrecordp :source, [
+  defrecord :module, [:module, :kind, :source, :beam, :binary]
+  defrecord :source, [
     source: nil,
-    compile: [],
-    runtime: [],
+    compile_references: [],
+    runtime_references: [],
     compile_dispatches: [],
     runtime_dispatches: [],
     external: []
@@ -121,20 +121,24 @@ defmodule Mix.Compilers.Elixir do
     set_compiler_opts(opts)
     cwd = File.cwd!
 
+    extra =
+      if opts[:verbose] do
+        [each_file: &each_file/1]
+      else
+        []
+      end
+
     # Starts a server responsible for keeping track which files
     # were compiled and the dependencies between them.
     {:ok, pid} = Agent.start_link(fn -> {modules, sources} end)
     long_compilation_threshold = opts[:long_compilation_threshold] || 5
 
     try do
-      Kernel.ParallelCompiler.files stale, [
-        each_module: &each_module(pid, dest, cwd, &1, &2, &3),
-        each_long_compilation: &each_long_compilation(&1, long_compilation_threshold),
-        long_compilation_threshold: long_compilation_threshold,
-        dest: dest,
-        each_file: &each_file(pid, opts[:verbose], &1)
-      ]
-
+      _ = Kernel.ParallelCompiler.files stale,
+            [each_module: &each_module(pid, dest, cwd, &1, &2, &3),
+             each_long_compilation: &each_long_compilation(&1, long_compilation_threshold),
+             long_compilation_threshold: long_compilation_threshold,
+             dest: dest] ++ extra
       Agent.cast pid, fn {modules, sources} ->
         write_manifest(manifest, modules, sources)
         {modules, sources}
@@ -158,15 +162,15 @@ defmodule Mix.Compilers.Elixir do
       |> Path.join(Atom.to_string(module) <> ".beam")
       |> Path.relative_to(cwd)
 
-    {compile, runtime} = Kernel.LexicalTracker.remote_references(module)
+    {compile_references, runtime_references} = Kernel.LexicalTracker.remote_references(module)
 
-    compile =
-      compile
+    compile_references =
+      compile_references
       |> List.delete(module)
       |> Enum.reject(&match?("elixir_" <> _, Atom.to_string(&1)))
 
-    runtime =
-      runtime
+    runtime_references =
+      runtime_references
       |> List.delete(module)
       |> Enum.reject(&match?("elixir_" <> _, Atom.to_string(&1)))
 
@@ -200,8 +204,8 @@ defmodule Mix.Compilers.Elixir do
 
       new_source = source(
         source: source,
-        compile: compile,
-        runtime: runtime,
+        compile_references: compile_references,
+        runtime_references: runtime_references,
         compile_dispatches: compile_dispatches,
         runtime_dispatches: runtime_dispatches,
         external: external
@@ -234,75 +238,9 @@ defmodule Mix.Compilers.Elixir do
         do: relative
   end
 
-  defp each_file(pid, verbose, source) do
-    if verbose, do: Mix.shell.info "Compiled #{source}"
-
-    Agent.get(pid, fn {_, sources} -> Enum.find(sources, & source(&1, :source) == source) end)
-    |> warn_for_missing_remote_functions()
+  defp each_file(source) do
+    Mix.shell.info "Compiled #{source}"
   end
-
-  defp warn_for_missing_remote_functions(source_record) do
-    compile_dispatches = source(source_record, :compile_dispatches)
-    runtime_dispatches = source(source_record, :runtime_dispatches)
-    source = source(source_record, :source)
-
-    do_warn_for_missing_remote_functions(compile_dispatches, :compile, source)
-    do_warn_for_missing_remote_functions(runtime_dispatches, :runtime, source)
-  end
-
-  defp do_warn_for_missing_remote_functions(dispatches, mode, source) do
-    Enum.sort_by(dispatches, fn {_, _, line} -> line end)
-    |> Enum.each(fn {module, {func, arity}, line} ->
-      if Code.ensure_loaded?(module) do
-        unless function_exported?(module, func, arity) or
-               is_macro?(module, func, arity, mode) or
-               is_erlang_op?(module, func, arity)
-        do
-          IO.warn(
-            "Remote function #{inspect module}.#{func}/#{arity} cannot be found\n" <>
-            "  #{source}:#{line}",
-            []
-          )
-        end
-      else
-        unless builtin_protocol_impl?(module, func, arity) do
-          IO.warn(
-            "Module #{inspect module} cannot be found\n" <>
-            "  In remote call to #{inspect module}.#{func}/#{arity} at:\n" <>
-            "    #{source}:#{line}",
-            []
-          )
-        end
-      end
-    end)
-  end
-
-  defp is_macro?(module, func, arity, :compile) do
-    if function_exported?(module, :__info__, 1) do
-      {func, arity} in module.__info__(:macros)
-    else
-      false
-    end
-  end
-  defp is_macro?(_, _, _, _),
-    do: false
-
-  defp is_erlang_op?(:erlang, func, 2) when func in [:andalso, :orelse],
-    do: true
-  defp is_erlang_op?(_, _, _),
-    do: false
-
-  @protocol_builtins for {_, type} <- Protocol.__builtin__(), do: type
-
-  defp builtin_protocol_impl?(module, :__impl__, 1) do
-    {maybe_protocol, maybe_builtin} = module |> Module.split() |> Enum.split(-1)
-    maybe_protocol = Module.concat(maybe_protocol)
-    maybe_builtin = Module.concat(maybe_builtin)
-
-    maybe_builtin in @protocol_builtins and function_exported?(maybe_protocol, :__protocol__, 1)
-  end
-  defp builtin_protocol_impl?(_, _, _),
-    do: false
 
   defp each_long_compilation(source, threshold) do
     Mix.shell.info "Compiling #{source} (it's taking more than #{threshold}s)"
@@ -345,19 +283,19 @@ defmodule Mix.Compilers.Elixir do
 
   defp remove_stale_entry(module(module: module, beam: beam, source: source) = entry,
                           {rest, stale, removed}, sources) do
-    source(compile: compile, runtime: runtime) =
+    source(compile_references: compile_references, runtime_references: runtime_references) =
       List.keyfind(sources, source, source(:source))
 
     cond do
-      # If I changed in disk or have a compile time dependency
-      # on something stale, I need to be recompiled.
-      Map.has_key?(removed, source) or Enum.any?(compile, &Map.has_key?(stale, &1)) ->
+      # If I changed in disk or have a compile time reference to
+      # something stale, I need to be recompiled.
+      Map.has_key?(removed, source) or Enum.any?(compile_references, &Map.has_key?(stale, &1)) ->
         remove_and_purge(beam, module)
         {rest, Map.put(stale, module, true), Map.put(removed, source, true)}
 
-      # If I have a runtime time dependency on something stale,
+      # If I have a runtime references to something stale,
       # I am stale too.
-      Enum.any?(runtime, &Map.has_key?(stale, &1)) ->
+      Enum.any?(runtime_references, &Map.has_key?(stale, &1)) ->
         {[entry | rest], Map.put(stale, module, true), removed}
 
       # Otherwise, we don't store it anywhere
@@ -394,7 +332,8 @@ defmodule Mix.Compilers.Elixir do
   end
 
   # Similar to read manifest but supports data migration.
-  defp parse_manifest(manifest) do
+  @doc false
+  def parse_manifest(manifest) do
     state = {[], []}
 
     case :file.consult(manifest) do
@@ -436,7 +375,6 @@ defmodule Mix.Compilers.Elixir do
       end
 
       Enum.each sources, fn source ->
-        source = source(source, compile_dispatches: [], runtime_dispatches: [])
         :io.format(device, '~p.~n', [source])
       end
 
