@@ -407,11 +407,10 @@ defmodule URI do
     [_ | base_segments] = path_to_segments(base_path)
     rel_segments = path_to_segments(rel_path)
     rel_segments ++ base_segments
-    |> remove_dot_segments
+    |> remove_dot_segments([])
     |> Enum.join("/")
   end
 
-  defp remove_dot_segments(list, acc \\ [])
   defp remove_dot_segments([], [head, ".." | acc]),
     do: remove_dot_segments([], [head | acc])
   defp remove_dot_segments([], acc), do: acc
