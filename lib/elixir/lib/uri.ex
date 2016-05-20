@@ -457,23 +457,18 @@ defimpl String.Chars, for: URI do
     # Based on http://tools.ietf.org/html/rfc3986#section-5.3
     authority = extract_authority(uri)
 
-    ""
-    |> if_value(scheme,    & &1 <> scheme <> ":")
-    |> if_value(authority, & &1 <> "//" <> authority)
-    |> if_value(path,      & &1 <> path)
-    |> if_value(query,     & &1 <> "?" <> query)
-    |> if_value(fragment,  & &1 <> "#" <> fragment)
+    if(scheme, do: scheme <> ":", else: "") <>
+    if(authority, do: "//" <> authority, else: "") <>
+    if(path, do: path, else: "") <>
+    if(query, do: "?" <> query, else: "") <>
+    if(fragment, do: "#" <> fragment, else: "")
   end
 
   defp extract_authority(%{host: nil, authority: authority}) do
     authority
   end
   defp extract_authority(%{host: host, userinfo: userinfo, port: port}) do
-    host
-    |> if_value(userinfo, & userinfo <> "@" <> &1)
-    |> if_value(port, & &1 <> ":" <> Integer.to_string(port))
+    if(userinfo, do: userinfo <> "@" <> host, else: host) <>
+    if(port, do: ":" <> Integer.to_string(port), else: "")
   end
-
-  defp if_value(result, nil, _fun), do: result
-  defp if_value(result, _value, fun), do: fun.(result)
 end
