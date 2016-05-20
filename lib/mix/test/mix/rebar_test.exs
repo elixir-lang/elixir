@@ -184,8 +184,8 @@ defmodule Mix.RebarTest do
       assert_received {:mix_shell, :info, ["* Getting git_rebar (../../test/fixtures/git_rebar)"]}
 
       Mix.Tasks.Deps.Compile.run []
-      assert_received {:mix_shell, :run, ["\e[0;32m===> Compiling git_rebar\n\e[0m"]}
-      assert_received {:mix_shell, :run, ["\e[0;32m===> Compiling rebar_dep\n\e[0m"]}
+      assert_received {:mix_shell, :run, ["===> Compiling git_rebar\n"]}
+      assert_received {:mix_shell, :run, ["===> Compiling rebar_dep\n"]}
       assert :git_rebar.any_function == :ok
       assert :rebar_dep.any_function == :ok
 

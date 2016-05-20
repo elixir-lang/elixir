@@ -618,7 +618,7 @@ defmodule List do
   @spec to_string(:unicode.charlist) :: String.t
   def to_string(list) when is_list(list) do
     try do
-       :unicode.characters_to_binary(list)
+      :unicode.characters_to_binary(list)
     rescue
       ArgumentError ->
         raise ArgumentError, """
