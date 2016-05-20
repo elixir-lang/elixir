@@ -54,7 +54,7 @@ defmodule Mix.Tasks.Compile.Xref do
   def manifests, do: [manifest]
   defp manifest, do: Path.join(Mix.Project.manifest_path, @manifest)
 
-  def write_manifest do
+  defp write_manifest do
     # Only write the manifest if the manifest path exists,
     # because if it doesn't we don't need one.
     if File.exists?(Mix.Project.manifest_path()),
