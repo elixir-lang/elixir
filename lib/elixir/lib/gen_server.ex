@@ -466,38 +466,41 @@ defmodule GenServer do
 
   This is often used to start the `GenServer` as part of a supervision tree.
 
-  Once the server is started, it calls the `init/1` function in the given `module`
-  passing the given `args` to initialize it. To ensure a synchronized start-up
-  procedure, this function does not return until `init/1` has returned.
+  Once the server is started, the `init/1` function of the given `module` is
+  called with `args` as its arguments to initialize the server. To ensure a
+  synchronized start-up procedure, this function does not return until `init/1`
+  has returned.
 
   Note that a `GenServer` started with `start_link/3` is linked to the
-  parent process and will exit in case of crashes. The GenServer will also
-  exit due to the `:normal` reasons in case it is configured to trap exits
-  in the `init/1` callback.
+  parent process and will exit in case of crashes from the parent. The GenServer
+  will also exit due to the `:normal` reasons in case it is configured to trap
+  exits in the `init/1` callback.
 
   ## Options
 
-  The `:name` option is used for name registration as described in the module
-  documentation. If the option `:timeout` option is present, the server is
-  allowed to spend the given milliseconds initializing or it will be
-  terminated and the start function will return `{:error, :timeout}`.
+    * `:name` - used for name registration as described in the "Name
+      registration" section of the module documentation
 
-  If the `:debug` option is present, the corresponding function in the
-  [`:sys` module](http://www.erlang.org/doc/man/sys.html) will be invoked.
+    * `:timeout` - if present, the server is allowed to spend the given amount of
+      milliseconds initializing or it will be terminated and the start function
+      will return `{:error, :timeout}`
 
-  If the `:spawn_opt` option is present, its value will be passed as options
-  to the underlying process as in `Process.spawn/4`.
+    * `:debug` - if present, the corresponding function in the [`:sys`
+      module](http://www.erlang.org/doc/man/sys.html) is invoked
+
+    * `:spawn_opt` - if present, its value is passed as options to the
+      underlying process as in `Process.spawn/4`
 
   ## Return values
 
-  If the server is successfully created and initialized, the function returns
-  `{:ok, pid}`, where pid is the pid of the server. If a process with the
-  specified server name already exists, the function returns
+  If the server is successfully created and initialized, this function returns
+  `{:ok, pid}`, where `pid` is the pid of the server. If a process with the
+  specified server name already exists, this function returns
   `{:error, {:already_started, pid}}` with the pid of that process.
 
-  If the `init/1` callback fails with `reason`, the function returns
+  If the `init/1` callback fails with `reason`, this function returns
   `{:error, reason}`. Otherwise, if it returns `{:stop, reason}`
-  or `:ignore`, the process is terminated and the function returns
+  or `:ignore`, the process is terminated and this function returns
   `{:error, reason}` or `:ignore`, respectively.
   """
   @spec start_link(module, any, options) :: on_start
@@ -529,14 +532,13 @@ defmodule GenServer do
   @doc """
   Stops the server with the given `reason`.
 
-  The `terminate/2` callback will be invoked before exiting.
-  It returns `:ok` if the server terminates with the given
-  reason, if it terminates with another reason, the call will
-  exit.
+  The `terminate/2` callback of the given `server` will be invoked before
+  exiting. This function returns `:ok` if the server terminates with the
+  given reason; if it terminates with another reason, the call exits.
 
   This function keeps OTP semantics regarding error reporting.
   If the reason is any other than `:normal`, `:shutdown` or
-  `{:shutdown, _}`, an error report will be logged.
+  `{:shutdown, _}`, an error report is logged.
   """
   @spec stop(server, reason :: term, timeout) :: :ok
   def stop(server, reason \\ :normal, timeout \\ :infinity) do
@@ -550,19 +552,20 @@ defmodule GenServer do
   arrives or a timeout occurs. `handle_call/3` will be called on the server
   to handle the request.
 
-  The server can be any of the values described in the `Name Registration`
-  section of the module documentation.
+  `server` can be any of the values described in the "Name registration"
+  section of the documentation for this module.
 
   ## Timeouts
 
-  The `timeout` is an integer greater than zero which specifies how many
+  `timeout` is an integer greater than zero which specifies how many
   milliseconds to wait for a reply, or the atom `:infinity` to wait
-  indefinitely. The default value is 5000. If no reply is received within
-  the specified time, the function call fails. If the caller catches the
-  failure and continues running, and the server is just late with the reply,
-  it may arrive at any time later into the caller's message queue. The caller
-  must in this case be prepared for this and discard any such garbage messages
-  that are two-element tuples with a reference as the first element.
+  indefinitely. The default value is `5000`. If no reply is received within
+  the specified time, the function call fails and the caller exits. If the
+  caller catches the failure and continues running, and the server is just late
+  with the reply, it may arrive at any time later into the caller's message
+  queue. The caller must in this case be prepared for this and discard any such
+  garbage messages that are two-element tuples with a reference as the first
+  element.
   """
   @spec call(server, term, timeout) :: term
   def call(server, request, timeout \\ 5000) do
@@ -629,7 +632,7 @@ defmodule GenServer do
   @doc """
   Casts all servers locally registered as `name` at the specified nodes.
 
-  The function returns immediately and ignores nodes that do not exist, or where the
+  This function returns immediately and ignores nodes that do not exist, or where the
   server name does not exist.
 
   See `multi_call/4` for more information.
@@ -657,18 +660,31 @@ defmodule GenServer do
   @doc """
   Calls all servers locally registered as `name` at the specified `nodes`.
 
-  The `request` is first sent to every node and then we wait for the
-  replies. This function returns a tuple containing the node and its reply
-  as first element and all bad nodes as second element. The bad nodes is a
-  list of nodes that either did not exist, or where a server with the given
-  `name` did not exist or did not reply.
+  First, the `request` is sent to every node in `nodes`; then, the caller waits
+  for the replies. This function returns a two-element tuple `{replies,
+  bad_nodes}` where:
 
-  Nodes is a list of node names to which the request is sent. The default
-  value is the list of all known nodes.
+    * `replies` - is a list of `{node, reply}` tuples where `node` is the node
+      that replied and `reply` is its reply
+    * `bad_nodes` - is a list of nodes that either did not exist or where a
+      server with the given `name` did not exist or did not reply
+
+  `nodes` is a list of node names to which the request is sent. The default
+  value is the list of all known nodes (including this node).
 
   To avoid that late answers (after the timeout) pollute the caller's message
   queue, a middleman process is used to do the actual calls. Late answers will
   then be discarded when they arrive to a terminated process.
+
+  ## Examples
+
+  Assuming the `Stack` GenServer mentioned in the docs for the `GenServer`
+  module is registered as `Stack` in the `:"foo@my-machine"` and
+  `:"bar@my-machine"` nodes:
+
+      GenServer.multi_call(Stack, :pop)
+      #=> {[{:"foo@my-machine", :hello}, {:"bar@my-machine", :world}], []}
+
   """
   @spec multi_call([node], name :: atom, term, timeout) ::
                   {replies :: [{node, term}], bad_nodes :: [node]}
@@ -679,15 +695,31 @@ defmodule GenServer do
   @doc """
   Replies to a client.
 
-  This function can be used by a server to explicitly send a reply to a
-  client that called `call/3` or `multi_call/4`. When the reply cannot be
-  defined in the return value of `handle_call/3`.
+  This function can be used to explicitely send a reply to a client that called
+  `call/3` or `multi_call/4` when the reply cannot be specified in the return
+  value of `handle_call/3`.
 
-  The `client` must be the `from` argument (the second argument) received
-  in `handle_call/3` callbacks. Reply is an arbitrary term which will be
-  given back to the client as the return value of the call.
+  `client` must be the `from` argument (the second argument) accepted by
+  `handle_call/3` callbacks. `reply` is an arbitrary term which will be given
+  back to the client as the return value of the call.
+
+  Note that `reply/2` can be called from any process, not just the GenServer
+  that originally received the call (as long as that GenServer communicated the
+  `from` argument somehow).
 
   This function always returns `:ok`.
+
+  ## Examples
+
+      def handle_call(:reply_in_one_second, from, state) do
+        Process.send_after(self(), {:reply, from}, 1_000)
+        {:noreply, state}
+      end
+
+      def handle_info({:reply, from}, state) do
+        GenServer.reply(from, :one_second_has_passed)
+      end
+
   """
   @spec reply(from, term) :: :ok
   def reply(client, reply)
@@ -702,10 +734,12 @@ defmodule GenServer do
   end
 
   @doc """
-  Returns the `pid` or `{name, node}` of a GenServer process.
-  Returns `nil` if no process is associated with the given name.
+  Returns the `pid` or `{name, node}` of a GenServer process, or `nil` if
+  no process is associated with the given name.
 
-  For example, to lookup a server process, monitor it and send a cast:
+  ## Examples
+
+  For example, to lookup a server process, monitor it and send a cast to it:
 
       process = GenServer.whereis(server)
       monitor = Process.monitor(process)
