@@ -13,13 +13,23 @@ defmodule Mix.Tasks.Xref do
   When this task runs, it looks for all runtime remote dispatches in the
   application. It will then check that all of the modules/functions referred to
   by the dispatches are available. If any are not, a warning will be printed.
+
+  ## Command line options
+
+    * `--no-compile` - do not compile even if files require compilation
+
   """
 
   @doc """
   Runs this task.
   """
   @spec run(OptionParser.argv) :: :ok | :error
-  def run(_args) do
+  def run(args) do
+    {opts, _, _} =
+      OptionParser.parse(args, switches: [no_compile: :boolean])
+
+    unless opts[:no_compile], do: Mix.Task.run("compile")
+
     Enum.reduce manifests(), :ok, fn manifest, result ->
       {_, sources} = parse_manifest(manifest)
 
@@ -76,7 +86,9 @@ defmodule Mix.Tasks.Xref do
     maybe_protocol = Module.concat(maybe_protocol)
     maybe_builtin = Module.concat(maybe_builtin)
 
-    maybe_builtin in @protocol_builtins and function_exported?(maybe_protocol, :__protocol__, 1)
+    Code.ensure_loaded?(maybe_protocol) and
+    maybe_builtin in @protocol_builtins and
+    function_exported?(maybe_protocol, :__protocol__, 1)
   end
   defp builtin_protocol_impl?(_, _, _),
     do: false

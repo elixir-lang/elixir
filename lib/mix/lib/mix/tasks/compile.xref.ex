@@ -4,7 +4,6 @@ defmodule Mix.Tasks.Compile.Xref do
 
   @recursive true
   @manifest ".compile.xref"
-  @manifest_vsn :v1
 
   @moduledoc """
   Performs remote dispatch checking.
@@ -29,20 +28,25 @@ defmodule Mix.Tasks.Compile.Xref do
     {opts, _, _} =
       OptionParser.parse(args, switches: [force: :boolean, warnings_as_errors: :boolean])
 
-    if Mix.Utils.stale?(E.manifests(), manifests()) or opts[:force] do
-      if Mix.Task.run("xref", args) == :ok do
-        write_manifest()
-      else
-        if opts[:warnings_as_errors] do
-          exit({:shutdown, 1})
-        else
-          write_manifest()
-        end
-      end
-    else
-      :noop
+    config = Mix.Project.config()
+    warnings_as_errors =
+      (opts[:warnings_as_errors] != nil) or (config[:elixirc_options][:warnings_as_errors] != nil)
+
+    if needs_xref?(opts) and should_exit?(Mix.Task.run("xref", args), warnings_as_errors) do
+      exit({:shutdown, 1})
     end
+
+    write_manifest()
   end
+
+  defp needs_xref?(opts) do
+    Mix.Utils.stale?(E.manifests(), manifests()) or (opts[:force] != nil)
+  end
+
+  defp should_exit?(:error, true),
+    do: true
+  defp should_exit?(_, _),
+    do: false
 
   @doc """
   Returns xref manifests.
@@ -51,10 +55,12 @@ defmodule Mix.Tasks.Compile.Xref do
   defp manifest, do: Path.join(Mix.Project.manifest_path, @manifest)
 
   def write_manifest do
-    data = {@manifest_vsn, System.version}
-    File.mkdir_p!(Mix.Project.manifest_path())
-    File.write!(manifest(), :io_lib.format('~p.~n', [data]))
-    :ok
+    # Only write the manifest if the manifest path exists,
+    # because if it doesn't we don't need one.
+    if File.exists?(Mix.Project.manifest_path()),
+      do: File.write!(manifest(), "")
+
+    :noop
   end
 
   @doc """

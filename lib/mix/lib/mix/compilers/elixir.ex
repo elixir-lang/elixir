@@ -110,6 +110,27 @@ defmodule Mix.Compilers.Elixir do
         do: {module, kind, beam}
   end
 
+  @doc """
+  Reads the manifest at path `manifest`.
+
+  Similar to read_manifest, but supports data migration.
+  """
+  def parse_manifest(manifest) do
+    state = {[], []}
+
+    case :file.consult(manifest) do
+      {:ok, [@manifest_vsn | data]} ->
+        parse_manifest(data, state)
+      {:ok, [:v2 | data]} ->
+        for {beam, module, _, _, _, _, _, _} <- data do
+          remove_and_purge(beam, module)
+        end
+        state
+      _ ->
+        state
+    end
+  end
+
   defp compile_manifest(manifest, modules, sources, stale, dest, opts) do
     Mix.Utils.compiling_n(length(stale), :ex)
 
@@ -172,16 +193,11 @@ defmodule Mix.Compilers.Elixir do
     runtime_references =
       runtime_references
       |> List.delete(module)
-      |> Enum.reject(&match?("elixir_" <> _, Atom.to_string(&1)))
 
     {compile_dispatches, runtime_dispatches} = Kernel.LexicalTracker.remote_dispatches(module)
 
     compile_dispatches =
       compile_dispatches
-      |> Enum.reject(&match?("elixir_" <> _, Atom.to_string(elem(&1, 0))))
-
-    runtime_dispatches =
-      runtime_dispatches
       |> Enum.reject(&match?("elixir_" <> _, Atom.to_string(elem(&1, 0))))
 
     kind     = detect_kind(module)
@@ -328,24 +344,6 @@ defmodule Mix.Compilers.Elixir do
     case :file.consult(manifest) do
       {:ok, [@manifest_vsn | t]} -> t
       _ -> []
-    end
-  end
-
-  # Similar to read manifest but supports data migration.
-  @doc false
-  def parse_manifest(manifest) do
-    state = {[], []}
-
-    case :file.consult(manifest) do
-      {:ok, [@manifest_vsn | data]} ->
-        parse_manifest(data, state)
-      {:ok, [:v2 | data]} ->
-        for {beam, module, _, _, _, _, _, _} <- data do
-          remove_and_purge(beam, module)
-        end
-        state
-      _ ->
-        state
     end
   end
 
