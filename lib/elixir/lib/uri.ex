@@ -373,6 +373,69 @@ defmodule URI do
       "http://google.com"
   """
   defdelegate to_string(uri), to: String.Chars.URI
+
+  @doc ~S"""
+  Merges two URIs as per RFC 3986 §5.2
+
+  ## Examples
+
+      iex> URI.merge(URI.parse("http://google.com"), "/query") |> to_string
+      "http://google.com/query"
+
+      iex> URI.merge("http://example.com", "http://google.com")|> to_string
+      "http://google.com"
+  """
+  def merge(%URI{authority: nil}, _rel), do: raise ArgumentError, "you must merge onto an absolute URI"
+  def merge(%URI{}, %URI{scheme: scheme} = rel) when scheme != nil do
+    rel
+  end
+  def merge(%URI{} = base, %URI{path: "", query: query, fragment: fragment} = rel) do
+    merge(base, %{rel | path: nil, query: query, fragment: fragment})
+  end
+  def merge(%URI{} = base, %URI{path: nil, query: query, fragment: fragment}) do
+    %{base | path: base.path, query: query || base.query, fragment: fragment}
+  end
+  def merge(%URI{path: base_path} = base, %URI{path: rel_path, query: query, fragment: fragment}) do
+    %{base | path: merge_paths(base_path, rel_path), query: query, fragment: fragment}
+  end
+  # Convert binary to URI
+  def merge(base, rel), do: merge(parse(base), parse(rel))
+
+  defp merge_paths(nil, rel_path), do: merge_paths("/", rel_path)
+  defp merge_paths(_, "/" <> _ = rel_path), do: rel_path
+  defp merge_paths(base_path, rel_path) do
+    [_ | base_segments] = path_to_segments(base_path)
+    rel_segments = path_to_segments(rel_path)
+    rel_segments ++ base_segments
+    |> remove_dot_segments([])
+    |> Enum.join("/")
+  end
+
+  defp remove_dot_segments([], [head, ".." | acc]),
+    do: remove_dot_segments([], [head | acc])
+  defp remove_dot_segments([], acc), do: acc
+  defp remove_dot_segments(["." | tail], acc),
+    do: remove_dot_segments(tail, acc)
+  defp remove_dot_segments([head | tail], ["..", ".." | _] = acc),
+    do: remove_dot_segments(tail, [head | acc])
+  defp remove_dot_segments(segments, [_, ".." | acc]),
+    do: remove_dot_segments(segments, acc)
+  defp remove_dot_segments([head | tail], acc),
+    do: remove_dot_segments(tail, [head | acc])
+
+  def path_to_segments(path) do
+    [h | t] = String.split(path, "/")
+    reverse_and_discard_empty(t, [h])
+  end
+
+  defp reverse_and_discard_empty([], acc),
+    do: acc
+  defp reverse_and_discard_empty([h], acc),
+    do: [h | acc]
+  defp reverse_and_discard_empty(["" | t], acc),
+    do: reverse_and_discard_empty(t, acc)
+  defp reverse_and_discard_empty([h | t], acc),
+    do: reverse_and_discard_empty(t, [h | acc])
 end
 
 defimpl String.Chars, for: URI do
