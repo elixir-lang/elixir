@@ -377,8 +377,7 @@ defmodule URI do
   @doc ~S"""
   Merges two URIs.
 
-  This function merges two URIs as per [RFC
-  3986](https://www.ietf.org/rfc/rfc3986.txt) §5.2.
+  This function merges two URIs as per [RFC3986, section 5.2](http://tools.ietf.org/html/rfc3986#section-5.2).
 
   ## Examples
 
@@ -389,35 +388,39 @@ defmodule URI do
       "http://google.com"
 
   """
-  def merge(%URI{authority: nil}, _rel), do: raise ArgumentError, "you must merge onto an absolute URI"
-  def merge(%URI{}, %URI{scheme: scheme} = rel) when scheme != nil do
+  def merge(%URI{authority: nil}, _rel) do
+    raise ArgumentError, "you must merge onto an absolute URI"
+  end
+  def merge(_base, %URI{scheme: rel_scheme} = rel) when rel_scheme != nil do
     rel
   end
-  def merge(%URI{} = base, %URI{path: "", query: query, fragment: fragment} = rel) do
-    merge(base, %{rel | path: nil, query: query, fragment: fragment})
+  def merge(%URI{} = base, %URI{path: rel_path} = rel) when rel_path in ["", nil] do
+    %{base | query: rel.query || base.query, fragment: rel.fragment}
   end
-  def merge(%URI{} = base, %URI{path: nil, query: query, fragment: fragment}) do
-    %{base | path: base.path, query: query || base.query, fragment: fragment}
+  def merge(%URI{} = base, %URI{} = rel) do
+    new_path = merge_paths(base.path, rel.path)
+    %{base | path: new_path, query: rel.query, fragment: rel.fragment}
   end
-  def merge(%URI{path: base_path} = base, %URI{path: rel_path, query: query, fragment: fragment}) do
-    %{base | path: merge_paths(base_path, rel_path), query: query, fragment: fragment}
+  def merge(base, rel) do
+    merge(parse(base), parse(rel))
   end
-  # Convert binary to URI
-  def merge(base, rel), do: merge(parse(base), parse(rel))
 
-  defp merge_paths(nil, rel_path), do: merge_paths("/", rel_path)
-  defp merge_paths(_, "/" <> _ = rel_path), do: rel_path
+  defp merge_paths(nil, rel_path),
+    do: merge_paths("/", rel_path)
+  defp merge_paths(_, "/" <> _ = rel_path),
+    do: rel_path
   defp merge_paths(base_path, rel_path) do
     [_ | base_segments] = path_to_segments(base_path)
-    rel_segments = path_to_segments(rel_path)
-    rel_segments ++ base_segments
+    path_to_segments(rel_path)
+    |> Kernel.++(base_segments)
     |> remove_dot_segments([])
     |> Enum.join("/")
   end
 
   defp remove_dot_segments([], [head, ".." | acc]),
     do: remove_dot_segments([], [head | acc])
-  defp remove_dot_segments([], acc), do: acc
+  defp remove_dot_segments([], acc),
+    do: acc
   defp remove_dot_segments(["." | tail], acc),
     do: remove_dot_segments(tail, acc)
   defp remove_dot_segments([head | tail], ["..", ".." | _] = acc),
@@ -428,18 +431,18 @@ defmodule URI do
     do: remove_dot_segments(tail, [head | acc])
 
   def path_to_segments(path) do
-    [h | t] = String.split(path, "/")
-    reverse_and_discard_empty(t, [h])
+    [head | tail] = String.split(path, "/")
+    reverse_and_discard_empty(tail, [head])
   end
 
   defp reverse_and_discard_empty([], acc),
     do: acc
-  defp reverse_and_discard_empty([h], acc),
-    do: [h | acc]
-  defp reverse_and_discard_empty(["" | t], acc),
-    do: reverse_and_discard_empty(t, acc)
-  defp reverse_and_discard_empty([h | t], acc),
-    do: reverse_and_discard_empty(t, [h | acc])
+  defp reverse_and_discard_empty([head], acc),
+    do: [head | acc]
+  defp reverse_and_discard_empty(["" | tail], acc),
+    do: reverse_and_discard_empty(tail, acc)
+  defp reverse_and_discard_empty([head | tail], acc),
+    do: reverse_and_discard_empty(tail, [head | acc])
 end
 
 defimpl String.Chars, for: URI do
