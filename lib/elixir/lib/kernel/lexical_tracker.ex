@@ -1,9 +1,6 @@
 # This is an Elixir module responsible for tracking
 # the usage of aliases, imports and requires in the Elixir scope.
 #
-# The implementation simply stores dispatch information in an
-# ETS table and then consults this table once compilation is done.
-#
 # Note that since this is required for bootstrap, we can't use
 # any of the `GenServer.Behaviour` conveniences.
 defmodule Kernel.LexicalTracker do
