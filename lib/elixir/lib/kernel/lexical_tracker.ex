@@ -115,7 +115,9 @@ defmodule Kernel.LexicalTracker do
   end
 
   def handle_call(:remote_dispatches, _from, state) do
-    {:reply, partition(Enum.to_list(state.dispatches), [], []), state}
+    compile = state.dispatches[:compile] || %{}
+    runtime = state.dispatches[:runtime] || %{}
+    {:reply, {compile, runtime}, state}
   end
 
   def handle_call(:dest, _from, state) do
@@ -201,10 +203,13 @@ defmodule Kernel.LexicalTracker do
   defp add_reference(references, module, :compile) when is_atom(module),
     do: map_put(references, module, :compile)
 
-  defp add_remote_dispatch(dispatches, module, fa, line, :runtime) when is_atom(module),
-    do: map_put_new(dispatches, {module, fa, line}, :runtime)
-  defp add_remote_dispatch(dispatches, module, fa, line, :compile) when is_atom(module),
-    do: map_put(dispatches, {module, fa, line}, :compile)
+  defp add_remote_dispatch(dispatches, module, fa, line, mode) when is_atom(module) do
+    map_update dispatches, mode, %{module => %{fa => [line]}}, fn mode_dispatches ->
+      map_update mode_dispatches, module, %{fa => [line]}, fn module_dispatches ->
+        map_update module_dispatches, fa, [line], &[line | List.delete(&1, line)]
+      end
+    end
+  end
 
   # In the map we keep imports and aliases.
   # If the value is a line, it was imported/aliased and has a pending warning
@@ -218,12 +223,22 @@ defmodule Kernel.LexicalTracker do
     map_put(directives, {tag, module_or_mfa}, true)
   end
 
+  defp map_update(map, key, initial, fun) do
+    case map_find(map, key) do
+      {:ok, val} -> map_put(map, key, fun.(val))
+      :error -> map_put(map, key, initial)
+    end
+  end
+
   defp map_put_new(map, key, value) do
-    case :maps.find(key, map) do
+    case map_find(map, key) do
       {:ok, _} -> map
       :error -> map_put(map, key, value)
     end
   end
+
+  defp map_find(map, key),
+    do: :maps.find(key, map)
 
   defp map_put(map, key, value),
     do: :maps.put(key, value, map)

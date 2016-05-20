@@ -41,37 +41,59 @@ defmodule Mix.Tasks.Xref do
   end
 
   defp warn_for_missing_remote_functions(runtime_dispatches, source, result) do
-    Enum.sort_by(runtime_dispatches, fn {_, _, line} -> line end)
-    |> Enum.reduce(result, &reduce_dispatch(source, &1, &2))
+    warnings =
+      Enum.flat_map runtime_dispatches, fn {module, func_arity_lines} ->
+        Enum.flat_map func_arity_lines, fn {{func, arity}, lines} ->
+          for line <- lines, warning = warning(module, func, arity, line),
+            do: warning
+        end
+      end
+
+    if warnings == [] do
+      result
+    else
+      print_warnings(source, warnings)
+
+      :error
+    end
   end
 
-  defp reduce_dispatch(source, {module, {func, arity}, line}, result) do
+  defp warning(module, func, arity, line) do
     if Code.ensure_loaded?(module) do
-      if function_exported?(module, func, arity) or is_erlang_op?(module, func, arity) do
-        result
-      else
-        IO.warn(
-          "Remote function #{inspect module}.#{func}/#{arity} cannot be found\n" <>
-          "  #{source}:#{line}",
-          []
-        )
-
-        :error
+      unless function_exported?(module, func, arity) or is_erlang_op?(module, func, arity) do
+        {line, :unknown_function, module, func, arity}
       end
     else
-      if builtin_protocol_impl?(module, func, arity) do
-        result
-      else
-        IO.warn(
-          "Module #{inspect module} cannot be found\n" <>
-          "  In remote call to #{inspect module}.#{func}/#{arity} at:\n" <>
-          "    #{source}:#{line}",
-          []
-        )
-
-        :error
+      unless builtin_protocol_impl?(module, func, arity) do
+        {line, :unknown_module, module, func, arity}
       end
     end
+  end
+
+  defp print_warnings(source, warnings) do
+    Enum.sort(warnings)
+    |> Enum.each(&print_warning(source, &1))
+  end
+
+  defp print_warning(source, {line, :unknown_function, module, func, arity}) do
+    message =
+      """
+      Remote function #{inspect module}.#{func}/#{arity} cannot be found
+        #{source}:#{line}
+      """
+
+    :elixir_errors.warn([message])
+  end
+
+  defp print_warning(source, {line, :unknown_module, module, func, arity}) do
+    message =
+      """
+      Module #{inspect module} cannot be found
+        In remote call to #{inspect module}.#{func}/#{arity} at:
+          #{source}:#{line}
+      """
+
+    :elixir_errors.warn([message])
   end
 
   defp is_erlang_op?(:erlang, func, 2) when func in [:andalso, :orelse],

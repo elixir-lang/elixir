@@ -27,19 +27,22 @@ defmodule Kernel.LexicalTrackerTest do
 
   test "can add remote dispatches with {function, arity} and line", config do
     D.remote_dispatch(config[:pid], String, {:upcase, 1}, 1, :runtime)
-    assert D.remote_dispatches(config[:pid]) == {[], [{String, {:upcase, 1}, 1}]}
+    assert D.remote_dispatches(config[:pid]) == {%{}, %{String => %{{:upcase, 1} => [1]}}}
     assert D.remote_references(config[:pid]) == {[], [String]}
 
     D.remote_dispatch(config[:pid], String, {:upcase, 1}, 1, :compile)
-    assert D.remote_dispatches(config[:pid]) == {[{String, {:upcase, 1}, 1}], []}
+    assert D.remote_dispatches(config[:pid]) ==
+      {%{String => %{{:upcase, 1} => [1]}}, %{String => %{{:upcase, 1} => [1]}}}
     assert D.remote_references(config[:pid]) == {[String], []}
 
     D.remote_dispatch(config[:pid], String, {:upcase, 1}, 1, :runtime)
-    assert D.remote_dispatches(config[:pid]) == {[{String, {:upcase, 1}, 1}], []}
+    assert D.remote_dispatches(config[:pid]) ==
+      {%{String => %{{:upcase, 1} => [1]}}, %{String => %{{:upcase, 1} => [1]}}}
     assert D.remote_references(config[:pid]) == {[String], []}
 
     D.remote_dispatch(config[:pid], String, {:upcase, 1}, 2, :runtime)
-    assert D.remote_dispatches(config[:pid]) == {[{String, {:upcase, 1}, 1}], [{String, {:upcase, 1}, 2}]}
+    assert D.remote_dispatches(config[:pid]) ==
+      {%{String => %{{:upcase, 1} => [1]}}, %{String => %{{:upcase, 1} => [2, 1]}}}
     assert D.remote_references(config[:pid]) == {[String], []}
   end
 
@@ -160,25 +163,29 @@ defmodule Kernel.LexicalTrackerTest do
   assert Enum.sort(runtime) == [MissingModuleReferencer, NotAModule, :erlang]
 
   assert Enum.sort(compile_remote_calls) == [
-    {Bitwise, {:&&&, 2}, 8},
-    {Integer, {:is_even, 1}, 8},
-    {Kernel, {:and, 2}, 7},
-    {Kernel.LexicalTracker, {:remote_dispatches, 1}, 15},
-    {Kernel.LexicalTracker, {:remote_references, 1}, 14},
-    {:elixir_def, {:store_definition, 6}, 5}
+    {Bitwise, %{{:&&&, 2} => [8]}},
+    {Integer, %{{:is_even, 1} => [8]}},
+    {Kernel, %{{:and, 2} => [7]}},
+    {Kernel.LexicalTracker, %{
+      {:remote_dispatches, 1} => [15],
+      {:remote_references, 1} => [14]
+    }},
+    {:elixir_def, %{{:store_definition, 6} => [5]}}
   ]
 
   assert Enum.sort(runtime_remote_calls) == [
-    {MissingModuleReferencer, {:no_func, 0}, 11},
-    {Record, {:extract, 2}, 6},
-    {:erlang, {:==, 2}, 8},
-    {:erlang, {:>, 2}, 7},
-    {:erlang, {:andalso, 2}, 7},
-    {:erlang, {:band, 2}, 8},
-    {:erlang, {:element, 2}, 7},
-    {:erlang, {:is_atom, 1}, 7},
-    {:erlang, {:is_tuple, 1}, 7},
-    {:erlang, {:tuple_size, 1}, 7}
+    {MissingModuleReferencer, %{{:no_func, 0} => [11]}},
+    {Record, %{{:extract, 2} => [6]}},
+    {:erlang, %{
+      {:==, 2} => [8],
+      {:>, 2} => [7],
+      {:andalso, 2} => [7],
+      {:band, 2} => [8],
+      {:element, 2} => [7],
+      {:is_atom, 1} => [7],
+      {:is_tuple, 1} => [7],
+      {:tuple_size, 1} => [7]
+    }}
   ]
 end
 end
