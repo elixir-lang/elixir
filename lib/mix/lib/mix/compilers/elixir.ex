@@ -6,7 +6,14 @@ defmodule Mix.Compilers.Elixir do
   import Record
 
   defrecordp :module, [:module, :kind, :source, :beam, :binary]
-  defrecordp :source, [:source, compile: [], runtime: [], external: []]
+  defrecordp :source, [
+    source: nil,
+    compile: [],
+    runtime: [],
+    compile_dispatches: [],
+    runtime_dispatches: [],
+    external: []
+  ]
 
   @doc """
   Compiles stale Elixir files.
@@ -114,24 +121,20 @@ defmodule Mix.Compilers.Elixir do
     set_compiler_opts(opts)
     cwd = File.cwd!
 
-    extra =
-      if opts[:verbose] do
-        [each_file: &each_file/1]
-      else
-        []
-      end
-
     # Starts a server responsible for keeping track which files
     # were compiled and the dependencies between them.
     {:ok, pid} = Agent.start_link(fn -> {modules, sources} end)
     long_compilation_threshold = opts[:long_compilation_threshold] || 5
 
     try do
-      _ = Kernel.ParallelCompiler.files stale,
-            [each_module: &each_module(pid, dest, cwd, &1, &2, &3),
-             each_long_compilation: &each_long_compilation(&1, long_compilation_threshold),
-             long_compilation_threshold: long_compilation_threshold,
-             dest: dest] ++ extra
+      Kernel.ParallelCompiler.files stale, [
+        each_module: &each_module(pid, dest, cwd, &1, &2, &3),
+        each_long_compilation: &each_long_compilation(&1, long_compilation_threshold),
+        long_compilation_threshold: long_compilation_threshold,
+        dest: dest,
+        each_file: &each_file(pid, opts[:verbose], &1)
+      ]
+
       Agent.cast pid, fn {modules, sources} ->
         write_manifest(manifest, modules, sources)
         {modules, sources}
@@ -155,7 +158,7 @@ defmodule Mix.Compilers.Elixir do
       |> Path.join(Atom.to_string(module) <> ".beam")
       |> Path.relative_to(cwd)
 
-    {compile, runtime} = Kernel.LexicalTracker.remotes(module)
+    {compile, runtime} = Kernel.LexicalTracker.remote_references(module)
 
     compile =
       compile
@@ -166,6 +169,16 @@ defmodule Mix.Compilers.Elixir do
       runtime
       |> List.delete(module)
       |> Enum.reject(&match?("elixir_" <> _, Atom.to_string(&1)))
+
+    {compile_dispatches, runtime_dispatches} = Kernel.LexicalTracker.remote_dispatches(module)
+
+    compile_dispatches =
+      compile_dispatches
+      |> Enum.reject(&match?("elixir_" <> _, Atom.to_string(elem(&1, 0))))
+
+    runtime_dispatches =
+      runtime_dispatches
+      |> Enum.reject(&match?("elixir_" <> _, Atom.to_string(elem(&1, 0))))
 
     kind     = detect_kind(module)
     source   = Path.relative_to(source, cwd)
@@ -189,6 +202,8 @@ defmodule Mix.Compilers.Elixir do
         source: source,
         compile: compile,
         runtime: runtime,
+        compile_dispatches: compile_dispatches,
+        runtime_dispatches: runtime_dispatches,
         external: external
       )
 
@@ -219,9 +234,61 @@ defmodule Mix.Compilers.Elixir do
         do: relative
   end
 
-  defp each_file(source) do
-    Mix.shell.info "Compiled #{source}"
+  defp each_file(pid, verbose, source) do
+    if verbose, do: Mix.shell.info "Compiled #{source}"
+
+    Agent.get(pid, fn {_, sources} -> Enum.find(sources, & source(&1, :source) == source) end)
+    |> warn_for_missing_remote_functions()
   end
+
+  defp warn_for_missing_remote_functions(source_record) do
+    compile_dispatches = source(source_record, :compile_dispatches)
+    runtime_dispatches = source(source_record, :runtime_dispatches)
+    source = source(source_record, :source)
+
+    do_warn_for_missing_remote_functions(compile_dispatches ++ runtime_dispatches, source)
+  end
+
+  defp do_warn_for_missing_remote_functions(runtime_dispatches, source) do
+    Enum.sort_by(runtime_dispatches, fn {_, _, line} -> line end)
+    |> Enum.each(fn {module, {func, arity}, line} ->
+      if Code.ensure_loaded?(module) do
+        unless function_exported?(module, func, arity) or is_erlang_op?(module, func, arity) do
+          IO.warn(
+            "Remote function #{inspect module}.#{func}/#{arity} cannot be found\n" <>
+            "  #{source}:#{line}",
+            []
+          )
+        end
+      else
+        unless builtin_protocol_impl?(module, func, arity) do
+          IO.warn(
+            "Module #{inspect module} cannot be found\n" <>
+            "  In remote call to #{inspect module}.#{func}/#{arity} at:\n" <>
+            "    #{source}:#{line}",
+            []
+          )
+        end
+      end
+    end)
+  end
+
+  defp is_erlang_op?(:erlang, func, 2) when func in [:andalso, :orelse],
+    do: true
+  defp is_erlang_op?(_, _, _),
+    do: false
+
+  @protocol_builtins for {_, type} <- Protocol.__builtin__(), do: type
+
+  defp builtin_protocol_impl?(module, :__impl__, 1) do
+    {maybe_protocol, maybe_builtin} = module |> Module.split() |> Enum.split(-1)
+    maybe_protocol = Module.concat(maybe_protocol)
+    maybe_builtin = Module.concat(maybe_builtin)
+
+    maybe_builtin in @protocol_builtins and function_exported?(maybe_protocol, :__protocol__, 1)
+  end
+  defp builtin_protocol_impl?(_, _, _),
+    do: false
 
   defp each_long_compilation(source, threshold) do
     Mix.shell.info "Compiling #{source} (it's taking more than #{threshold}s)"
@@ -355,6 +422,7 @@ defmodule Mix.Compilers.Elixir do
       end
 
       Enum.each sources, fn source ->
+        source = source(source, compile_dispatches: [], runtime_dispatches: [])
         :io.format(device, '~p.~n', [source])
       end
 

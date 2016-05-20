@@ -14,33 +14,51 @@ defmodule Kernel.LexicalTrackerTest do
     assert D.dest(config[:pid]) == "dest"
   end
 
-  test "can add remote dispatches", config do
-    D.remote_dispatch(config[:pid], String, :runtime)
-    assert D.remotes(config[:pid]) == {[], [String]}
+  test "can add remote references", config do
+    D.remote_reference(config[:pid], String, :runtime)
+    assert D.remote_references(config[:pid]) == {[], [String]}
 
-    D.remote_dispatch(config[:pid], String, :compile)
-    assert D.remotes(config[:pid]) == {[String], []}
+    D.remote_reference(config[:pid], String, :compile)
+    assert D.remote_references(config[:pid]) == {[String], []}
 
-    D.remote_dispatch(config[:pid], String, :runtime)
-    assert D.remotes(config[:pid]) == {[String], []}
+    D.remote_reference(config[:pid], String, :runtime)
+    assert D.remote_references(config[:pid]) == {[String], []}
+  end
+
+  test "can add remote dispatches with {function, arity} and line", config do
+    D.remote_dispatch(config[:pid], String, {:upcase, 1}, 1, :runtime)
+    assert D.remote_dispatches(config[:pid]) == {[], [{String, {:upcase, 1}, 1}]}
+    assert D.remote_references(config[:pid]) == {[], [String]}
+
+    D.remote_dispatch(config[:pid], String, {:upcase, 1}, 1, :compile)
+    assert D.remote_dispatches(config[:pid]) == {[{String, {:upcase, 1}, 1}], []}
+    assert D.remote_references(config[:pid]) == {[String], []}
+
+    D.remote_dispatch(config[:pid], String, {:upcase, 1}, 1, :runtime)
+    assert D.remote_dispatches(config[:pid]) == {[{String, {:upcase, 1}, 1}], []}
+    assert D.remote_references(config[:pid]) == {[String], []}
+
+    D.remote_dispatch(config[:pid], String, {:upcase, 1}, 2, :runtime)
+    assert D.remote_dispatches(config[:pid]) == {[{String, {:upcase, 1}, 1}], [{String, {:upcase, 1}, 2}]}
+    assert D.remote_references(config[:pid]) == {[String], []}
   end
 
   test "can add module imports", config do
     D.add_import(config[:pid], String, [], 1, true)
     D.import_dispatch(config[:pid], {String, :upcase, 1})
-    assert D.remotes(config[:pid]) == {[String], []}
+    assert D.remote_references(config[:pid]) == {[String], []}
   end
 
   test "can add module with {function, arity} imports", config do
     D.add_import(config[:pid], String, [upcase: 1], 1, true)
     D.import_dispatch(config[:pid], {String, :upcase, 1})
-    assert D.remotes(config[:pid]) == {[String], []}
+    assert D.remote_references(config[:pid]) == {[String], []}
   end
 
   test "can add aliases", config do
     D.add_alias(config[:pid], String, 1, true)
     D.alias_dispatch(config[:pid], String)
-    assert D.remotes(config[:pid]) == {[], []}
+    assert D.remote_references(config[:pid]) == {[], []}
   end
 
   test "unused module imports", config do
@@ -101,7 +119,7 @@ defmodule Kernel.LexicalTrackerTest do
         alias Foo.Bar, as: Bar, warn: false
         @spec foo :: Foo.Bar.t
         def foo, do: Bar.t
-        Kernel.LexicalTracker.remotes(__ENV__.module)
+        Kernel.LexicalTracker.remote_references(__ENV__.module)
       end |> elem(3)
       """)
 
@@ -111,4 +129,56 @@ defmodule Kernel.LexicalTrackerTest do
     assert Foo.Bar in runtime
     refute Foo.Bar in compile
   end
+
+  test "call graph" do
+  remotes =
+    Code.eval_string("""
+    defmodule CallGraphTesterModule do
+      import Record
+      require Integer
+
+      def reference do
+        _ = extract(1, 2)
+        _ = is_record({:record})
+        _ = Integer.is_even(2)
+
+        NotAModule
+        MissingModuleReferencer.no_func()
+      end
+
+      references = Kernel.LexicalTracker.remote_references(__ENV__.module)
+      dispatches = Kernel.LexicalTracker.remote_dispatches(__ENV__.module)
+
+      {references, dispatches}
+    end |> elem(3)
+    """)
+
+  {{compile, runtime}, {compile_remote_calls, runtime_remote_calls}} =
+    elem(remotes, 0)
+
+  assert Enum.sort(compile) == [Integer, Kernel, Kernel.LexicalTracker, Record, :elixir_def]
+  assert Enum.sort(runtime) == [Bitwise, MissingModuleReferencer, NotAModule, :erlang]
+
+  assert Enum.sort(compile_remote_calls) == [
+    {Kernel.LexicalTracker, {:remote_dispatches, 1}, 15},
+    {Kernel.LexicalTracker, {:remote_references, 1}, 14},
+    {:elixir_def, {:store_definition, 6}, 5}
+  ]
+
+  assert Enum.sort(runtime_remote_calls) == [
+    {Bitwise, {:&&&, 2}, 8},
+    {Integer, {:is_even, 1}, 8},
+    {Kernel, {:and, 2}, 7},
+    {MissingModuleReferencer, {:no_func, 0}, 11},
+    {Record, {:extract, 2}, 6},
+    {:erlang, {:==, 2}, 8},
+    {:erlang, {:>, 2}, 7},
+    {:erlang, {:andalso, 2}, 7},
+    {:erlang, {:band, 2}, 8},
+    {:erlang, {:element, 2}, 7},
+    {:erlang, {:is_atom, 1}, 7},
+    {:erlang, {:is_tuple, 1}, 7},
+    {:erlang, {:tuple_size, 1}, 7}
+  ]
+end
 end

@@ -230,4 +230,36 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
     end
   end
+
+  test "warns on referencing missing modules" do
+    in_fixture "missing_modules_and_functions", fn ->
+      task = fn ->
+        assert Mix.Tasks.Compile.Elixir.run([]) == :ok
+      end
+
+      result = ExUnit.CaptureIO.capture_io(:stderr, task)
+
+      assert result == """
+      \e[33mwarning: \e[0mRemote function BadReferencer.no_func4/0 cannot be found
+        lib/missing_modules_and_functions.ex:1
+
+      \e[33mwarning: \e[0mRemote function BadReferencer.no_func/0 cannot be found
+        lib/missing_modules_and_functions.ex:17
+
+      \e[33mwarning: \e[0mModule MissingModule2 cannot be found
+        In remote call to MissingModule2.call/0 at:
+          lib/missing_modules_and_functions.ex:24
+
+      \e[33mwarning: \e[0mRemote function BadReferencer.reference/1 cannot be found
+        lib/missing_modules_and_functions.ex:26
+
+      \e[33mwarning: \e[0mRemote function BadReferencer.no_func2/0 cannot be found
+        lib/missing_modules_and_functions.ex:27
+
+      \e[33mwarning: \e[0mRemote function BadReferencer.no_func3/0 cannot be found
+        lib/missing_modules_and_functions.ex:34
+
+      """
+    end
+  end
 end
