@@ -253,7 +253,10 @@ defmodule Mix.Compilers.Elixir do
     Enum.sort_by(runtime_dispatches, fn {_, _, line} -> line end)
     |> Enum.each(fn {module, {func, arity}, line} ->
       if Code.ensure_loaded?(module) do
-        unless function_exported?(module, func, arity) or is_erlang_op?(module, func, arity) do
+        unless function_exported?(module, func, arity) or
+               is_macro?(module, func, arity) or
+               is_erlang_op?(module, func, arity)
+        do
           IO.warn(
             "Remote function #{inspect module}.#{func}/#{arity} cannot be found\n" <>
             "  #{source}:#{line}",
@@ -271,6 +274,14 @@ defmodule Mix.Compilers.Elixir do
         end
       end
     end)
+  end
+
+  defp is_macro?(module, func, arity) do
+    if function_exported?(module, :__info__, 1) do
+      {func, arity} in module.__info__(:macros)
+    else
+      false
+    end
   end
 
   defp is_erlang_op?(:erlang, func, 2) when func in [:andalso, :orelse],
