@@ -210,6 +210,10 @@ defmodule Mix.Rebar do
     {app, List.to_string(req)}
   end
 
+  defp parse_dep({app, req, {:pkg, package}}) when is_list(req) do
+    {app, List.to_string(req), hex: package}
+  end
+
   defp parse_dep({app, source}) when is_tuple(source) do
     parse_dep({app, nil, source, []})
   end
