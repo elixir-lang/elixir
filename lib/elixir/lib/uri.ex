@@ -375,15 +375,19 @@ defmodule URI do
   defdelegate to_string(uri), to: String.Chars.URI
 
   @doc ~S"""
-  Merges two URIs as per RFC 3986 §5.2
+  Merges two URIs.
+
+  This function merges two URIs as per [RFC
+  3986](https://www.ietf.org/rfc/rfc3986.txt) §5.2.
 
   ## Examples
 
       iex> URI.merge(URI.parse("http://google.com"), "/query") |> to_string
       "http://google.com/query"
 
-      iex> URI.merge("http://example.com", "http://google.com")|> to_string
+      iex> URI.merge("http://example.com", "http://google.com") |> to_string
       "http://google.com"
+
   """
   def merge(%URI{authority: nil}, _rel), do: raise ArgumentError, "you must merge onto an absolute URI"
   def merge(%URI{}, %URI{scheme: scheme} = rel) when scheme != nil do
