@@ -119,9 +119,9 @@ defmodule ExUnit.Case do
   therefore reserved:
 
     * `:case`       - the test case module
-    * `:test`       - the test name
-    * `:line`       - the line on which the test was defined
     * `:file`       - the file on which the test was defined
+    * `:line`       - the line on which the test was defined
+    * `:test`       - the test name
     * `:async`      - if the test case is in async mode
     * `:registered` - used for `ExUnit.Case.register_attribute/3` values
 
@@ -191,7 +191,7 @@ defmodule ExUnit.Case do
       config :logger, backends: []
   """
 
-  @reserved [:case, :test, :file, :line, :registered]
+  @reserved [:case, :file, :line, :test, :async, :registered]
 
   @doc false
   defmacro __using__(opts) do
@@ -207,7 +207,6 @@ defmodule ExUnit.Case do
         Enum.each [:ex_unit_tests, :tag, :moduletag, :ex_unit_registered],
           &Module.register_attribute(__MODULE__, &1, accumulate: true)
 
-        @moduletag async: async
         @before_compile ExUnit.Case
         @after_compile ExUnit.Case
         @ex_unit_async async
@@ -326,12 +325,15 @@ defmodule ExUnit.Case do
     registered_attributes = Module.get_attribute(mod, :ex_unit_registered)
     registered = Map.new(registered_attributes, &{&1, Module.get_attribute(mod, &1)})
 
+    tag = Module.get_attribute(mod, :tag)
+    async = Module.get_attribute(mod, :ex_unit_async)
+
     tags =
-      (tags ++ Module.get_attribute(mod, :tag) ++ moduletag)
+      (tags ++ tag ++ moduletag)
       |> normalize_tags
       |> validate_tags
       |> Map.put_new(:type, :test)
-      |> Map.merge(%{line: line, file: file, registered: registered})
+      |> Map.merge(%{line: line, file: file, registered: registered, async: async})
 
     test = %ExUnit.Test{name: name, case: mod, tags: tags}
     Module.put_attribute(mod, :ex_unit_tests, test)

@@ -288,14 +288,10 @@ defmodule ExUnitTest do
     assert output =~ "2 tests, 1 failure, 1 skipped"
   end
 
-  test "raises on reserved tag in module" do
+  test "raises on reserved tag :file in module" do
     assert_raise RuntimeError, "cannot set tag :file because it is reserved by ExUnit", fn ->
-      defmodule ReservedTag do
+      defmodule ReservedTagFile do
         use ExUnit.Case
-
-        setup do
-          {:ok, file: :foo}
-        end
 
         @tag file: "oops"
         test "sample", do: :ok
@@ -303,8 +299,19 @@ defmodule ExUnitTest do
     end
   end
 
-  test "raises on reserved tag in setup" do
-    defmodule ReservedSetupTag do
+  test "raises on reserved tag :async in module" do
+    assert_raise RuntimeError, "cannot set tag :async because it is reserved by ExUnit", fn ->
+      defmodule ReservedTagAsync do
+        use ExUnit.Case
+
+        @tag async: true
+        test "sample", do: :ok
+      end
+    end
+  end
+
+  test "raises on reserved tag :file in setup" do
+    defmodule ReservedSetupTagFile do
       use ExUnit.Case
 
       setup do
@@ -321,6 +328,26 @@ defmodule ExUnitTest do
     end)
 
     assert output =~ "trying to set reserved field :file"
+  end
+
+  test "raises on reserved tag :async in setup" do
+    defmodule ReservedSetupTagAsync do
+      use ExUnit.Case
+
+      setup do
+        {:ok, async: true}
+      end
+
+      test "sample", do: :ok
+    end
+
+    ExUnit.Server.cases_loaded()
+
+    output = capture_io(fn ->
+      assert ExUnit.run == %{failures: 1, skipped: 0, total: 1}
+    end)
+
+    assert output =~ "trying to set reserved field :async"
   end
 
   test "does not raise on reserved tag in setup_all (lower priority)" do
