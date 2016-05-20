@@ -164,7 +164,7 @@ defmodule Mix.Tasks.DepsGitTest do
       # Clear up to prepare for the update
       Mix.Task.clear
       Mix.shell.flush
-      purge [A, B, C, GitRepo]
+      purge [A, B, GitRepo]
 
       # Update will mark the update required
       Mix.Tasks.Deps.Update.run ["git_repo"]
@@ -183,7 +183,7 @@ defmodule Mix.Tasks.DepsGitTest do
       :ok
     end
   after
-    purge [A, B, C, GitRepo, GitRepo.Mixfile]
+    purge [A, B, GitRepo, GitRepo.Mixfile]
   end
 
   test "all up to date dependencies" do
