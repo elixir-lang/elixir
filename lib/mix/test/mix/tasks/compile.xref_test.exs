@@ -12,9 +12,6 @@ defmodule Mix.Tasks.Compile.XrefTest do
     in_fixture "no_mixfile", fn ->
       assert Mix.Tasks.Compile.Xref.run([]) == :noop
       assert Mix.Tasks.Compile.Elixir.run([]) == :ok
-      # assert Mix.Tasks.Compile.Xref.run([]) == :ok
-      # assert Mix.Tasks.Compile.Xref.run([]) == :noop
-      # assert Mix.Tasks.Compile.Xref.run(["--force"]) == :ok
     end
   end
 
@@ -46,8 +43,9 @@ defmodule Mix.Tasks.Compile.XrefTest do
         lib/missing_modules_and_functions.ex:17
 
       \e[33mwarning: \e[0mModule MissingModule2 cannot be found
-        In remote call to MissingModule2.call/0 at:
-          lib/missing_modules_and_functions.ex:24
+
+      In remote call to MissingModule2.call/0 at:
+        lib/missing_modules_and_functions.ex:24
 
       \e[33mwarning: \e[0mRemote function BadReferencer.reference/1 cannot be found
         lib/missing_modules_and_functions.ex:26
@@ -62,8 +60,9 @@ defmodule Mix.Tasks.Compile.XrefTest do
         lib/missing_modules_and_functions.ex:52
 
       \e[33mwarning: \e[0mModule :missing_module cannot be found
-        In remote call to :missing_module.no_func/0 at:
-          lib/missing_modules_and_functions.ex:59
+
+      In remote call to :missing_module.no_func/0 at:
+        lib/missing_modules_and_functions.ex:59
 
       \e[33mwarning: \e[0mRemote function :lists.not_a_real_func/0 cannot be found
         lib/missing_modules_and_functions.ex:60

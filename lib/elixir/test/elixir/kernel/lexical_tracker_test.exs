@@ -134,58 +134,58 @@ defmodule Kernel.LexicalTrackerTest do
   end
 
   test "call graph" do
-  remotes =
-    Code.eval_string("""
-    defmodule CallGraphTesterModule do
-      import Record
-      require Integer
+    remotes =
+      Code.eval_string("""
+      defmodule CallGraphTesterModule do
+        import Record
+        require Integer
 
-      def reference do
-        _ = extract(1, 2)
-        _ = is_record({:record})
-        _ = Integer.is_even(2)
+        def reference do
+          _ = extract(1, 2)
+          _ = is_record({:record})
+          _ = Integer.is_even(2)
 
-        NotAModule
-        MissingModuleReferencer.no_func()
-      end
+          NotAModule
+          MissingModuleReferencer.no_func()
+        end
 
-      references = Kernel.LexicalTracker.remote_references(__ENV__.module)
-      dispatches = Kernel.LexicalTracker.remote_dispatches(__ENV__.module)
+        references = Kernel.LexicalTracker.remote_references(__ENV__.module)
+        dispatches = Kernel.LexicalTracker.remote_dispatches(__ENV__.module)
 
-      {references, dispatches}
-    end |> elem(3)
-    """)
+        {references, dispatches}
+      end |> elem(3)
+      """)
 
-  {{compile, runtime}, {compile_remote_calls, runtime_remote_calls}} =
-    elem(remotes, 0)
+    {{compile, runtime}, {compile_remote_calls, runtime_remote_calls}} =
+      elem(remotes, 0)
 
-  assert Enum.sort(compile) == [Bitwise, Integer, Kernel, Kernel.LexicalTracker, Record, :elixir_def]
-  assert Enum.sort(runtime) == [MissingModuleReferencer, NotAModule, :erlang]
+    assert Enum.sort(compile) == [Bitwise, Integer, Kernel, Kernel.LexicalTracker, Record, :elixir_def]
+    assert Enum.sort(runtime) == [MissingModuleReferencer, NotAModule, :erlang]
 
-  assert Enum.sort(compile_remote_calls) == [
-    {Bitwise, %{{:&&&, 2} => [8]}},
-    {Integer, %{{:is_even, 1} => [8]}},
-    {Kernel, %{{:and, 2} => [7]}},
-    {Kernel.LexicalTracker, %{
-      {:remote_dispatches, 1} => [15],
-      {:remote_references, 1} => [14]
-    }},
-    {:elixir_def, %{{:store_definition, 6} => [5]}}
-  ]
+    assert Enum.sort(compile_remote_calls) == [
+      {Bitwise, %{{:&&&, 2} => [8]}},
+      {Integer, %{{:is_even, 1} => [8]}},
+      {Kernel, %{{:and, 2} => [7]}},
+      {Kernel.LexicalTracker, %{
+        {:remote_dispatches, 1} => [15],
+        {:remote_references, 1} => [14]
+      }},
+      {:elixir_def, %{{:store_definition, 6} => [5]}}
+    ]
 
-  assert Enum.sort(runtime_remote_calls) == [
-    {MissingModuleReferencer, %{{:no_func, 0} => [11]}},
-    {Record, %{{:extract, 2} => [6]}},
-    {:erlang, %{
-      {:==, 2} => [8],
-      {:>, 2} => [7],
-      {:andalso, 2} => [7],
-      {:band, 2} => [8],
-      {:element, 2} => [7],
-      {:is_atom, 1} => [7],
-      {:is_tuple, 1} => [7],
-      {:tuple_size, 1} => [7]
-    }}
-  ]
-end
+    assert Enum.sort(runtime_remote_calls) == [
+      {MissingModuleReferencer, %{{:no_func, 0} => [11]}},
+      {Record, %{{:extract, 2} => [6]}},
+      {:erlang, %{
+        {:==, 2} => [8],
+        {:>, 2} => [7],
+        {:andalso, 2} => [7],
+        {:band, 2} => [8],
+        {:element, 2} => [7],
+        {:is_atom, 1} => [7],
+        {:is_tuple, 1} => [7],
+        {:tuple_size, 1} => [7]
+      }}
+    ]
+  end
 end

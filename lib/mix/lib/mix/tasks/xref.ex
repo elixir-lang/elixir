@@ -60,7 +60,7 @@ defmodule Mix.Tasks.Xref do
 
   defp warning(module, func, arity, line) do
     if Code.ensure_loaded?(module) do
-      unless function_exported?(module, func, arity) or is_erlang_op?(module, func, arity) do
+      unless function_exported?(module, func, arity) or erlang_op?(module, func, arity) do
         {line, :unknown_function, module, func, arity}
       end
     else
@@ -77,28 +77,22 @@ defmodule Mix.Tasks.Xref do
 
   defp print_warning(source, {line, :unknown_function, module, func, arity}) do
     message =
-      """
-      Remote function #{inspect module}.#{func}/#{arity} cannot be found
-        #{source}:#{line}
-      """
+      "Remote function #{inspect module}.#{func}/#{arity} cannot be found"
 
-    :elixir_errors.warn([message])
+    :elixir_errors.warn(line, source, message)
   end
 
   defp print_warning(source, {line, :unknown_module, module, func, arity}) do
     message =
-      """
-      Module #{inspect module} cannot be found
-        In remote call to #{inspect module}.#{func}/#{arity} at:
-          #{source}:#{line}
-      """
+      "Module #{inspect module} cannot be found\n\n" <>
+      "In remote call to #{inspect module}.#{func}/#{arity} at:"
 
-    :elixir_errors.warn([message])
+    :elixir_errors.warn(line, source, message)
   end
 
-  defp is_erlang_op?(:erlang, func, 2) when func in [:andalso, :orelse],
+  defp erlang_op?(:erlang, func, 2) when func in [:andalso, :orelse],
     do: true
-  defp is_erlang_op?(_, _, _),
+  defp erlang_op?(_, _, _),
     do: false
 
   @protocol_builtins for {_, type} <- Protocol.__builtin__(), do: type
