@@ -67,7 +67,6 @@ defmodule Mix.Tasks.CompileTest do
 
       refute File.regular?("ebin/Elixir.A.beam")
       refute File.regular?("ebin/Elixir.B.beam")
-      refute File.regular?("ebin/Elixir.C.beam")
     end
   end
 

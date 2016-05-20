@@ -18,11 +18,9 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
       assert File.regular?("_build/shared/lib/sample/ebin/Elixir.A.beam")
       assert File.regular?("_build/shared/lib/sample/ebin/Elixir.B.beam")
-      assert File.regular?("_build/shared/lib/sample/ebin/Elixir.C.beam")
 
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
-      assert_received {:mix_shell, :info, ["Compiled lib/c.ex"]}
     end
   end
 
@@ -32,18 +30,16 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
       assert File.regular?("_build/dev/lib/sample/ebin/Elixir.A.beam")
       assert File.regular?("_build/dev/lib/sample/ebin/Elixir.B.beam")
-      assert File.regular?("_build/dev/lib/sample/ebin/Elixir.C.beam")
 
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
-      assert_received {:mix_shell, :info, ["Compiled lib/c.ex"]}
     end
   end
 
   test "recompiles project if elixir version changed" do
     in_fixture "no_mixfile", fn ->
       Mix.Tasks.Compile.run ["--verbose"]
-      purge [A, B, C]
+      purge [A, B]
 
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       assert Mix.Dep.ElixirSCM.read == {:ok, System.version, Mix.SCM.Path}
@@ -61,7 +57,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
   test "recompiles project if scm changed" do
     in_fixture "no_mixfile", fn ->
       Mix.Tasks.Compile.run ["--verbose"]
-      purge [A, B, C]
+      purge [A, B]
 
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       assert Mix.Dep.ElixirSCM.read == {:ok, System.version, Mix.SCM.Path}
@@ -112,7 +108,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
 
       Mix.shell.flush
-      purge [A, B, C]
+      purge [A, B]
 
       future = {{2020, 1, 1}, {0, 0, 0}}
       File.touch!("lib/a.ex", future)
@@ -138,7 +134,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
 
       Mix.shell.flush
-      purge [A, B, C]
+      purge [A, B]
 
       future = {{2020, 1, 1}, {0, 0, 0}}
       File.touch!("lib/b.ex", future)
@@ -158,7 +154,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
 
       Mix.shell.flush
-      purge [A, B, C]
+      purge [A, B]
 
       File.rm("lib/b.ex")
       File.write!("lib/a.ex", "defmodule A, do: nil")
@@ -182,7 +178,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
       assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == :ok
       Mix.shell.flush
-      purge [A, B, C]
+      purge [A, B]
 
       File.touch!("lib/a.eex", {{2020, 1, 1}, {0, 0, 0}})
       assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == :ok
@@ -213,14 +209,14 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       """)
 
       assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == :ok
-      purge [A, B, C]
+      purge [A, B]
     end
   end
 
   test "recompiles with --force" do
     in_fixture "no_mixfile", fn ->
       assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == :ok
-      purge [A, B, C]
+      purge [A, B]
 
       # Now we have a noop
       assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == :noop
