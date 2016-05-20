@@ -227,7 +227,7 @@ defmodule URITest do
   end
 
   test "merge/2" do
-    assert_raise ArgumentError, fn ->
+    assert_raise ArgumentError, "you must merge onto an absolute URI", fn ->
       URI.merge("/relative", "")
     end
 
