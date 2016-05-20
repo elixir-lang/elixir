@@ -246,15 +246,16 @@ defmodule Mix.Compilers.Elixir do
     runtime_dispatches = source(source_record, :runtime_dispatches)
     source = source(source_record, :source)
 
-    do_warn_for_missing_remote_functions(compile_dispatches ++ runtime_dispatches, source)
+    do_warn_for_missing_remote_functions(compile_dispatches, :compile, source)
+    do_warn_for_missing_remote_functions(runtime_dispatches, :runtime, source)
   end
 
-  defp do_warn_for_missing_remote_functions(runtime_dispatches, source) do
-    Enum.sort_by(runtime_dispatches, fn {_, _, line} -> line end)
+  defp do_warn_for_missing_remote_functions(dispatches, mode, source) do
+    Enum.sort_by(dispatches, fn {_, _, line} -> line end)
     |> Enum.each(fn {module, {func, arity}, line} ->
       if Code.ensure_loaded?(module) do
         unless function_exported?(module, func, arity) or
-               is_macro?(module, func, arity) or
+               is_macro?(module, func, arity, mode) or
                is_erlang_op?(module, func, arity)
         do
           IO.warn(
@@ -276,13 +277,15 @@ defmodule Mix.Compilers.Elixir do
     end)
   end
 
-  defp is_macro?(module, func, arity) do
+  defp is_macro?(module, func, arity, :compile) do
     if function_exported?(module, :__info__, 1) do
       {func, arity} in module.__info__(:macros)
     else
       false
     end
   end
+  defp is_macro?(_, _, _, _),
+    do: false
 
   defp is_erlang_op?(:erlang, func, 2) when func in [:andalso, :orelse],
     do: true
