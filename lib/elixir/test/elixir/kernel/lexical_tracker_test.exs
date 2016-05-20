@@ -166,9 +166,6 @@ defmodule Kernel.LexicalTrackerTest do
   ]
 
   assert Enum.sort(runtime_remote_calls) == [
-    {Bitwise, {:&&&, 2}, 8},
-    {Integer, {:is_even, 1}, 8},
-    {Kernel, {:and, 2}, 7},
     {MissingModuleReferencer, {:no_func, 0}, 11},
     {Record, {:extract, 2}, 6},
     {:erlang, {:==, 2}, 8},
