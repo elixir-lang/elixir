@@ -162,7 +162,8 @@ defmodule OptionParser do
       ** (OptionParser.ParseError) 1 error found!
       --unknown : Unknown option
 
-      iex> OptionParser.parse!(["-l", "xyz", "-f", "bar"], switches: [limit: :integer, foo: :integer], aliases: [l: :limit, f: :foo])
+      iex> OptionParser.parse!(["-l", "xyz", "-f", "bar"],
+      ...>                     switches: [limit: :integer, foo: :integer], aliases: [l: :limit, f: :foo])
       ** (OptionParser.ParseError) 2 errors found!
       -l : Expected type integer, got "xyz"
       -f : Expected type integer, got "bar"
@@ -197,7 +198,7 @@ defmodule OptionParser do
   end
 
   @doc """
-  The same as `parse_head/2` but raises an `OptionParser.InvalidOptionError`
+  The same as `parse_head/2` but raises an `OptionParser.ParseError`
   exception if any invalid options are given.
 
   If there weren't any errors, returns a three-element tuple as follows:
@@ -212,9 +213,10 @@ defmodule OptionParser do
       ** (OptionParser.ParseError) 1 error found!
       --number : Expected type integer, got "lib"
 
-      iex> OptionParser.parse_head!(["--verbose", "true", "--source", "lib", "test/enum_test.exs", "--unlock"], strict: [verbose: :integer, source: :integer])
+      iex> OptionParser.parse_head!(["--verbose", "--source", "lib", "test/enum_test.exs", "--unlock"],
+      ...>                          strict: [verbose: :integer, source: :integer])
       ** (OptionParser.ParseError) 2 errors found!
-      --verbose : Expected type integer, got "true"
+      --verbose : Missing argument of type integer
       --source : Expected type integer, got "lib"
   """
   @spec parse_head!(argv, options) :: {parsed, argv, errors} | no_return
@@ -602,20 +604,26 @@ defmodule OptionParser do
     "#{total} #{error} found!#{info}"
   end
 
-  defp format_error({option, nil}, _, _) do
-    "\n#{option} : Unknown option"
+  defp format_error({option, nil}, opts, types) do
+    if type = get_type(option, opts, types) do
+      "\n#{option} : Missing argument of type #{type}"
+    else
+      "\n#{option} : Unknown option"
+    end
   end
 
   defp format_error({option, value}, opts, types) do
+    type = get_type(option, opts, types)
+    "\n#{option} : Expected type #{type}, got #{inspect value}"
+  end
+
+  defp get_type(option, opts, types) do
     option_key = option |> String.lstrip(?-) |> get_option()
 
-    type =
-      if option_alias = opts[:aliases][option_key] do
-        types[option_alias]
-      else
-        types[option_key]
-      end
-
-    "\n#{option} : Expected type #{type}, got #{inspect value}"
+    if option_alias = opts[:aliases][option_key] do
+      types[option_alias]
+    else
+      types[option_key]
+    end
   end
 end
