@@ -199,14 +199,14 @@ defmodule Kernel.LexicalTracker do
   # Callbacks helpers
 
   defp add_reference(references, module, :runtime) when is_atom(module),
-    do: map_put_new(references, module, :runtime)
+    do: map_put_new(module, :runtime, references)
   defp add_reference(references, module, :compile) when is_atom(module),
-    do: map_put(references, module, :compile)
+    do: :maps.put(module, :compile, references)
 
   defp add_remote_dispatch(dispatches, module, fa, line, mode) when is_atom(module) do
-    map_update dispatches, mode, %{module => %{fa => [line]}}, fn mode_dispatches ->
-      map_update mode_dispatches, module, %{fa => [line]}, fn module_dispatches ->
-        map_update module_dispatches, fa, [line], &[line | List.delete(&1, line)]
+    map_update mode, %{module => %{fa => [line]}}, dispatches, fn mode_dispatches ->
+      map_update module, %{fa => [line]}, mode_dispatches, fn module_dispatches ->
+        map_update fa, [line], module_dispatches, &[line | List.delete(&1, line)]
       end
     end
   end
@@ -216,30 +216,24 @@ defmodule Kernel.LexicalTracker do
   # If the value is true, it was imported/aliased and used
   defp add_directive(directives, module_or_mfa, line, warn, tag) do
     marker = if warn, do: line, else: true
-    map_put(directives, {tag, module_or_mfa}, marker)
+    :maps.put({tag, module_or_mfa}, marker, directives)
   end
 
   defp add_dispatch(directives, module_or_mfa, tag) do
-    map_put(directives, {tag, module_or_mfa}, true)
+    :maps.put({tag, module_or_mfa}, true, directives)
   end
 
-  defp map_update(map, key, initial, fun) do
-    case map_find(map, key) do
-      {:ok, val} -> map_put(map, key, fun.(val))
-      :error -> map_put(map, key, initial)
+  defp map_update(key, initial, map, fun) do
+    case :maps.find(key, map) do
+      {:ok, val} -> :maps.put(key, fun.(val), map)
+      :error -> :maps.put(key, initial, map)
     end
   end
 
-  defp map_put_new(map, key, value) do
-    case map_find(map, key) do
+  defp map_put_new(key, value, map) do
+    case :maps.find(key, map) do
       {:ok, _} -> map
-      :error -> map_put(map, key, value)
+      :error -> :maps.put(key, value, map)
     end
   end
-
-  defp map_find(map, key),
-    do: :maps.find(key, map)
-
-  defp map_put(map, key, value),
-    do: :maps.put(key, value, map)
 end

@@ -3,96 +3,101 @@ Code.require_file "../../test_helper.exs", __DIR__
 defmodule Mix.Tasks.Compile.XrefTest do
   use MixTest.Case
 
+  import ExUnit.CaptureIO
+
   setup do
     Mix.Project.push MixTest.Case.Sample
     :ok
   end
 
-  test "doesnt xref if not stale unless forced" do
+  test "doesn't do anything if no elixir manifest" do
     in_fixture "no_mixfile", fn ->
-      assert Mix.Tasks.Compile.Xref.run([]) == :noop
-      assert Mix.Tasks.Compile.Elixir.run([]) == :ok
+      write_no_func()
+
+      [xref_manifest] = Mix.Tasks.Compile.Xref.manifests()
+
+      assert_no_warn fn ->
+        assert Mix.Tasks.Compile.Xref.run([]) == :noop
+        refute File.exists? xref_manifest
+      end
+    end
+  end
+
+  test "doesn't xref if not stale, unless forced" do
+    in_fixture "no_mixfile", fn ->
+      write_no_func()
+
+      assert_warn_no_func fn ->
+        assert Mix.Tasks.Compile.Elixir.run([]) == :ok
+        assert Mix.Tasks.Compile.Xref.run([]) == :noop
+      end
+
+      assert_no_warn fn ->
+        assert Mix.Tasks.Compile.Xref.run([]) == :noop
+      end
+
+      Mix.Task.reenable("xref")
+
+      assert_warn_no_func fn ->
+        assert Mix.Tasks.Compile.Xref.run(["--force"]) == :noop
+      end
     end
   end
 
   test "xrefs if stale" do
     in_fixture "no_mixfile", fn ->
-      assert Mix.Tasks.Compile.Elixir.run([]) == :ok
-      assert Mix.Tasks.Compile.Xref.run([]) == :noop
+      write_no_func()
 
-      purge [A, B, C]
-      [manifest] = Mix.Tasks.Compile.Elixir.manifests()
-      future = {{2020, 1, 1}, {0, 0, 0}}
-      File.touch!(manifest, future)
-
-      assert Mix.Tasks.Compile.Xref.run([]) == :noop
-    end
-  end
-
-  test "warns on referencing missing modules" do
-    in_fixture "missing_modules_and_functions", fn ->
-      task = fn ->
+      assert_warn_no_func fn ->
         assert Mix.Tasks.Compile.Elixir.run([]) == :ok
         assert Mix.Tasks.Compile.Xref.run([]) == :noop
       end
 
-      result = ExUnit.CaptureIO.capture_io(:stderr, task)
+      [manifest] = Mix.Tasks.Compile.Elixir.manifests()
+      future = {{2020, 1, 1}, {0, 0, 0}}
+      File.touch!(manifest, future)
 
-      assert result == """
-      \e[33mwarning: \e[0mRemote function BadReferencer.no_func/0 cannot be found
-        lib/missing_modules_and_functions.ex:17
+      Mix.Task.reenable("xref")
 
-      \e[33mwarning: \e[0mModule MissingModule2 cannot be found
-
-      In remote call to MissingModule2.call/0 at:
-        lib/missing_modules_and_functions.ex:24
-
-      \e[33mwarning: \e[0mRemote function BadReferencer.reference/1 cannot be found
-        lib/missing_modules_and_functions.ex:26
-
-      \e[33mwarning: \e[0mRemote function BadReferencer.no_func2/0 cannot be found
-        lib/missing_modules_and_functions.ex:27
-
-      \e[33mwarning: \e[0mRemote function BadReferencer.no_func3/0 cannot be found
-        lib/missing_modules_and_functions.ex:34
-
-      \e[33mwarning: \e[0mRemote function List.old_flatten/1 cannot be found
-        lib/missing_modules_and_functions.ex:52
-
-      \e[33mwarning: \e[0mModule :missing_module cannot be found
-
-      In remote call to :missing_module.no_func/0 at:
-        lib/missing_modules_and_functions.ex:59
-
-      \e[33mwarning: \e[0mRemote function :lists.not_a_real_func/0 cannot be found
-        lib/missing_modules_and_functions.ex:60
-
-      \e[33mwarning: \e[0mRemote function :lists.all/3 cannot be found
-        lib/missing_modules_and_functions.ex:62
-
-      """
+      assert_warn_no_func fn ->
+        assert Mix.Tasks.Compile.Xref.run([]) == :noop
+      end
     end
   end
 
   test "exits if warnings-as-errors" do
-    in_fixture "missing_modules_and_functions", fn ->
-      task = fn ->
+    in_fixture "no_mixfile", fn ->
+      write_no_func()
+
+      assert_warn_no_func fn ->
         assert Mix.Tasks.Compile.Elixir.run([]) == :ok
         assert catch_exit(Mix.Tasks.Compile.Xref.run(["--warnings-as-errors"])) == {:shutdown, 1}
       end
-
-      assert ExUnit.CaptureIO.capture_io(:stderr, task) =~ "warning"
     end
   end
 
   test "does not exit if warnings-as-errors and no warnings" do
     in_fixture "no_mixfile", fn ->
-      task = fn ->
+      assert_no_warn fn ->
         assert Mix.Tasks.Compile.Elixir.run([]) == :ok
         assert Mix.Tasks.Compile.Xref.run(["--warnings-as-errors"]) == :noop
       end
-
-      assert ExUnit.CaptureIO.capture_io(:stderr, task) =~ ""
     end
+  end
+
+  defp write_no_func do
+    File.write!("lib/a.ex", """
+    defmodule A do
+      def a, do: B.no_func
+    end
+    """)
+  end
+
+  defp assert_warn_no_func(fun) do
+    assert capture_io(:stderr, fun) =~ "no_func"
+  end
+
+  defp assert_no_warn(fun) do
+    assert capture_io(:stderr, fun) == ""
   end
 end
