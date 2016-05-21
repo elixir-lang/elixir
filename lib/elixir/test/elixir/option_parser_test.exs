@@ -108,6 +108,16 @@ defmodule OptionParserTest do
            == {[no_value: true], [], []}
   end
 
+  test "parses configured counters" do
+    assert OptionParser.parse(["--verbose"], switches: [verbose: :count])
+           == {[verbose: 1], [], []}
+    assert OptionParser.parse(["--verbose", "--verbose"], switches: [verbose: :count])
+           == {[verbose: 2], [], []}
+    assert OptionParser.parse(["--verbose", "-v", "-v", "--", "bar"],
+                              aliases: [v: :verbose], strict: [verbose: :count])
+           == {[verbose: 3], ["bar"], []}
+  end
+
   test "parses configured integers" do
     assert OptionParser.parse(["--value", "1", "foo"], switches: [value: :integer])
            == {[value: 1], ["foo"], []}
