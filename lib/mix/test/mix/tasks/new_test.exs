@@ -5,7 +5,7 @@ defmodule Mix.Tasks.NewTest do
 
   test "new" do
     in_tmp "new", fn ->
-      Mix.Tasks.New.run ["hello_world", "--bare"]
+      Mix.Tasks.New.run ["hello_world"]
 
       assert_file "hello_world/mix.exs", fn(file) ->
         assert file =~ "app: :hello_world"

@@ -30,10 +30,12 @@ defmodule Mix.Tasks.Archive.Build do
       Only applies when `mix.exs` is available.
 
   """
+  @switches [force: :boolean, compile: :boolean, output: :string, input: :string,
+             deps_check: :boolean, archives_check: :boolean, elixir_version_check: :boolean]
+
   @spec run(OptionParser.argv) :: :ok
   def run(args) do
-    {opts, _, _} = OptionParser.parse(args, aliases: [o: :output, i: :input],
-                                      switches: [force: :boolean, compile: :boolean])
+    {opts, _} = OptionParser.parse!(args, aliases: [o: :output, i: :input], strict: @switches)
 
     project = Mix.Project.get
 

@@ -28,6 +28,8 @@ defmodule Mix.Tasks.Escript.Install do
 
   ## Command line options
 
+    * `--sha512` - checks the archive matches the given sha512 checksum
+
     * `--force` - forces installation without a shell prompt; primarily
       intended for automation in build systems like make
 
@@ -37,7 +39,7 @@ defmodule Mix.Tasks.Escript.Install do
 
   @escript_file_mode 0o555 # only read and execute permissions
 
-  @switches [force: :boolean]
+  @switches [force: :boolean, sha512: :string]
   @spec run(OptionParser.argv) :: boolean
   def run(argv) do
     Mix.Local.Installer.install({__MODULE__, :escript}, argv, @switches)

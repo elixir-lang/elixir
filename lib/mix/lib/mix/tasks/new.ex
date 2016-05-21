@@ -43,9 +43,11 @@ defmodule Mix.Tasks.New do
 
   """
 
+  @switches [sup: :boolean, umbrella: :boolean, app: :string, module: :string]
+
   @spec run(OptionParser.argv) :: :ok
   def run(argv) do
-    {opts, argv, _} = OptionParser.parse(argv, switches: [sup: :boolean, umbrella: :boolean])
+    {opts, argv} = OptionParser.parse!(argv, strict: @switches)
 
     case argv do
       [] ->

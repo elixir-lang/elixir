@@ -56,11 +56,11 @@ defmodule Mix.Tasks.Profile.FprofTest do
   test "sort options", context do
     in_tmp context.test, fn ->
       assert capture_io(fn ->
-        Fprof.run(["-e", "Enum.each(1..5, fn(_) -> MapSet.new end)", "--sort acc"])
+        Fprof.run(["-e", "Enum.each(1..5, fn(_) -> MapSet.new end)", "--sort", "acc"])
       end) =~ ~r(MapSet\.new/0 *5 *\d+\.\d{3} *\d+\.\d{3})
 
       assert capture_io(fn ->
-        Fprof.run(["-e", "Enum.each(1..5, fn(_) -> MapSet.new end)", "--sort own"])
+        Fprof.run(["-e", "Enum.each(1..5, fn(_) -> MapSet.new end)", "--sort", "own"])
       end) =~ ~r(MapSet\.new/0 *5 *\d+\.\d{3} *\d+\.\d{3})
     end
   end
