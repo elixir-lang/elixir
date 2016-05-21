@@ -292,7 +292,12 @@ defmodule Mix.Task do
 
       true ->
         Mix.TasksServer.put({:task, task, proj})
-        module.run(args)
+        try do
+          module.run(args)
+        rescue
+          e in OptionParser.ParseError ->
+            Mix.raise "Could not invoke task #{inspect task}: " <> Exception.message(e)
+        end
     end
   end
 
