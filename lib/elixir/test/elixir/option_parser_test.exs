@@ -209,21 +209,21 @@ defmodule OptionParserTest do
   end
 
   test "parse!/2 raise an exception for an unknown option using strict" do
-    assert_raise OptionParser.InvalidOptionError, "1 error found! Unknown option --doc", fn ->
+    assert_raise OptionParser.ParseError, "1 error found!\n--doc : Unknown option", fn ->
       args = ["--source", "from_docs/", "--doc", "show"]
       OptionParser.parse!(args, strict: [source: :string, docs: :string])
     end
   end
 
   test "parse!/2 raise an exception when an option is of the wrong type" do
-    assert_raise OptionParser.InvalidOptionError, fn ->
+    assert_raise OptionParser.ParseError, fn ->
       args = ["--bad", "opt", "foo", "-o", "bad", "bar"]
       OptionParser.parse!(args, switches: [bad: :integer])
     end
   end
 
   test "parse_head!/2 raise an exception when an option is of the wrong type" do
-    assert_raise OptionParser.InvalidOptionError, "1 error found! Option --number is of the wrong type, expected a integer, given \"lib\"", fn ->
+    assert_raise OptionParser.ParseError, "1 error found!\n--number : Expected type integer, got \"lib\"", fn ->
       args = ["--number", "lib", "test/enum_test.exs"]
       OptionParser.parse_head!(args, strict: [number: :integer])
     end
