@@ -35,8 +35,9 @@ defmodule OptionParser do
 
   Note: Elixir also converts the switches to underscore atoms, so
   `--source-path` becomes `:source_path`, to better suit Elixir
-  conventions. This means that option names on the command line cannot contain
-  underscores; such options will be put in the invalid options list.
+  conventions. This means that option names on the command line cannot
+  contain underscores; such options will be put in the invalid options
+  list.
 
   ## Switch Definitions
 
@@ -50,29 +51,42 @@ defmodule OptionParser do
     * `:strict` - the switches are strict. Any switch that is not specified
       in the list is returned in the invalid options list.
 
-  Note that you should only supply the `:switches` or `:strict` option. If you
-  supply both, an error will be raised.
+  Note that you should only supply the `:switches` or `:strict` option.
+  If you supply both, an error will be raised.
 
-  For each switch, the following types are supported:
+  ### Types
 
-    * `:boolean` - marks the given switch as a boolean. Boolean switches
-      never consume the following value unless it is `true` or
-      `false`.
-    * `:count`   - parses the switch as a counter, ignores `:keep`.
-    * `:integer` - parses the switch as an integer.
-    * `:float`   - parses the switch as a float.
-    * `:string`  - returns the switch as a string.
+  Option parser switches may take 0 or 1 argument.
 
-  If a switch can't be parsed, it is returned in the invalid options list.
+  The following switches take no argument:
 
-  The following extra "types" are supported:
+    * `:boolean` - sets the value to true when given
+    * `:count`   - counts the number of times the switch is given
 
-    * `:keep` - keeps duplicated items in the list instead of overriding them.
+  The following switches take 1 argument:
+
+    * `:integer` - parses the upcoming value as an integer.
+    * `:float`   - parses the upcoming value as a float.
+    * `:string`  - parses the upcoming value as a string.
+
+  If a switch can't be parsed, it is returned in the invalid
+  options list.
+
+  ### Modifiers
+
+  Switches can be specified with modifiers, which change how
+  they behave. The following modifiers are supported:
+
+    * `:keep` - keeps duplicated items instead of overriding them.
+      Works with all types except `:count`.
 
   Note: if you want to use `:keep` with a non-string type, use a list, e.g.
   `[foo: [:integer, :keep]]`.
 
-  Examples:
+  ### Examples
+
+  Here are some examples of option parser working with different types
+  and modifiers:
 
       iex> OptionParser.parse(["--unlock", "path/to/file"], strict: [unlock: :boolean])
       {[unlock: true], ["path/to/file"], []}
@@ -103,7 +117,7 @@ defmodule OptionParser do
       iex> OptionParser.parse(["--unlock", "path/to/file", "--unlock", "path/to/another/file"], strict: [unlock: :keep])
       {[unlock: "path/to/file", unlock: "path/to/another/file"], [], []}
 
-  ## Negation switches
+  ### Negation switches
 
   In case a switch is declared as boolean, it may be passed as `--no-SWITCH`
   which will set the option to `false`:
@@ -226,20 +240,20 @@ defmodule OptionParser do
 
   defp next(["-" <> option | rest] = argv, aliases, switches, strict) do
     {option, value} = split_option(option)
-    opt_name_bin = "-" <> option
+    original = "-" <> option
     tagged = tag_option(option, switches, aliases)
 
     cond do
-      negative_number?(opt_name_bin) ->
+      negative_number?(original) ->
         {:error, argv}
       strict and not option_defined?(tagged, switches) ->
-        {:undefined, opt_name_bin, value, rest}
+        {:undefined, original, value, rest}
       true ->
-        {opt_name, kinds, value} = normalize_option(tagged, value, switches)
+        {option, kinds, value} = normalize_option(tagged, value, switches)
         {value, kinds, rest} = normalize_value(value, kinds, rest, strict)
         case validate_option(value, kinds) do
-          {:ok, new_value} -> {:ok, opt_name, new_value, rest}
-          :invalid         -> {:invalid, opt_name_bin, value, rest}
+          {:ok, new_value} -> {:ok, option, new_value, rest}
+          :invalid         -> {:invalid, original, value, rest}
         end
     end
   end
@@ -354,35 +368,36 @@ defmodule OptionParser do
   end
 
   defp validate_option(value, kinds) do
-    {is_invalid, value} = cond do
-      :invalid in kinds ->
-        {true, value}
-      :boolean in kinds ->
-        case value do
-          t when t in [true, "true"] -> {nil, true}
-          f when f in [false, "false"] -> {nil, false}
-          _ -> {true, value}
-        end
-      :count in kinds ->
-        case value do
-          1 -> {nil, value}
-          _ -> {true, value}
-        end
-      :integer in kinds ->
-        case Integer.parse(value) do
-          {value, ""} -> {nil, value}
-          _ -> {true, value}
-        end
-      :float in kinds ->
-        case Float.parse(value) do
-          {value, ""} -> {nil, value}
-          _ -> {true, value}
-        end
-      true ->
-        {nil, value}
-    end
+    {invalid?, value} =
+      cond do
+        :invalid in kinds ->
+          {true, value}
+        :boolean in kinds ->
+          case value do
+            t when t in [true, "true"] -> {false, true}
+            f when f in [false, "false"] -> {false, false}
+            _ -> {true, value}
+          end
+        :count in kinds ->
+          case value do
+            1 -> {false, value}
+            _ -> {true, value}
+          end
+        :integer in kinds ->
+          case Integer.parse(value) do
+            {value, ""} -> {false, value}
+            _ -> {true, value}
+          end
+        :float in kinds ->
+          case Float.parse(value) do
+            {value, ""} -> {false, value}
+            _ -> {true, value}
+          end
+        true ->
+          {false, value}
+      end
 
-    if is_invalid do
+    if invalid? do
       :invalid
     else
       {:ok, value}
@@ -392,12 +407,7 @@ defmodule OptionParser do
   defp do_store_option(dict, option, value, kinds) do
     cond do
       :count in kinds ->
-        case Keyword.pop(dict, option) do
-          {nil, dict} ->
-            [{option, value} | dict]
-          {old_value, dict} ->
-            [{option, old_value + value} | dict]
-        end
+        Keyword.update(dict, option, value, & &1 + 1)
       :keep in kinds ->
         [{option, value} | dict]
       true ->
@@ -405,8 +415,23 @@ defmodule OptionParser do
     end
   end
 
-  defp tag_option(<<?-, option::binary>>, switches, _aliases) do
-    get_negated(option, switches)
+  defp tag_option("-no-" <> option, switches, _aliases) do
+    cond do
+      (negated = get_option(option)) && :boolean in List.wrap(switches[negated]) ->
+        {:negated, negated}
+      option = get_option("no-" <> option) ->
+        {:default, option}
+      true ->
+        :unknown
+    end
+  end
+
+  defp tag_option("-" <> option, _switches, _aliases) do
+    if option = get_option(option) do
+      {:default, option}
+    else
+      :unknown
+    end
   end
 
   defp tag_option(option, _switches, aliases) when is_binary(option) do
@@ -447,7 +472,6 @@ defmodule OptionParser do
   end
 
   defp normalize_value(nil, kinds, t, strict) do
-    nil_or_true = if strict, do: nil, else: true
     cond do
       :boolean in kinds ->
         {true, kinds, t}
@@ -456,8 +480,10 @@ defmodule OptionParser do
       value_in_tail?(t) ->
         [h | t] = t
         {h, kinds, t}
+      kinds == [] and strict ->
+        {nil, kinds, t}
       kinds == [] ->
-        {nil_or_true, kinds, t}
+        {true, kinds, t}
       true ->
         {nil, [:invalid], t}
     end
@@ -467,11 +493,11 @@ defmodule OptionParser do
     {value, kinds, t}
   end
 
-  defp value_in_tail?(["-" | _]),         do: true
-  defp value_in_tail?(["- " <> _ | _]),   do: true
-  defp value_in_tail?(["-" <> arg | _]),  do: negative_number?("-" <> arg)
-  defp value_in_tail?([]),              do: false
-  defp value_in_tail?(_),               do: true
+  defp value_in_tail?(["-" | _]),        do: true
+  defp value_in_tail?(["- " <> _ | _]),  do: true
+  defp value_in_tail?(["-" <> arg | _]), do: negative_number?("-" <> arg)
+  defp value_in_tail?([]),               do: false
+  defp value_in_tail?(_),                do: true
 
   defp split_option(option) do
     case :binary.split(option, "=") do
@@ -480,40 +506,20 @@ defmodule OptionParser do
     end
   end
 
-  defp to_underscore(option), do: to_underscore(option, <<>>)
-
-  defp to_underscore("_" <> _rest, _acc), do: nil
-
+  defp to_underscore(option),
+    do: to_underscore(option, <<>>)
+  defp to_underscore("_" <> _rest, _acc),
+    do: nil
   defp to_underscore("-" <> rest, acc),
     do: to_underscore(rest, acc <> "_")
-
   defp to_underscore(<<c>> <> rest, acc),
     do: to_underscore(rest, <<acc::binary, c>>)
-
-  defp to_underscore(<<>>, acc), do: acc
+  defp to_underscore(<<>>, acc),
+    do: acc
 
   defp get_option(option) do
     if str = to_underscore(option) do
       String.to_atom(str)
-    end
-  end
-
-  defp get_negated("no-" <> rest = original, switches) do
-    cond do
-      (negated = get_option(rest)) && :boolean in List.wrap(switches[negated]) ->
-        {:negated, negated}
-      option = get_option(original) ->
-        {:default, option}
-      true ->
-        :unknown
-    end
-  end
-
-  defp get_negated(rest, _switches) do
-    if option = get_option(rest) do
-      {:default, option}
-    else
-      :unknown
     end
   end
 
