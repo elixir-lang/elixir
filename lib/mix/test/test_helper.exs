@@ -305,6 +305,10 @@ defmodule Mix.Tasks.Hello do
     "Hello, World!"
   end
 
+  def run(["--parser" | args]) do
+    OptionParser.parse!(args, strict: [int: :integer])
+  end
+
   def run(args) do
     "Hello, #{Enum.join(args, " ")}!"
   end
