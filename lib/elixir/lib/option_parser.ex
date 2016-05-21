@@ -58,6 +58,7 @@ defmodule OptionParser do
     * `:boolean` - marks the given switch as a boolean. Boolean switches
       never consume the following value unless it is `true` or
       `false`.
+    * `:count`   - parses the switch as a counter, ignores `:keep`.
     * `:integer` - parses the switch as an integer.
     * `:float`   - parses the switch as a float.
     * `:string`  - returns the switch as a string.
@@ -85,6 +86,12 @@ defmodule OptionParser do
 
       iex> OptionParser.parse(["--limit", "xyz"], strict: [limit: :integer])
       {[], [], [{"--limit", "xyz"}]}
+
+      iex> OptionParser.parse(["--verbose"], switches: [verbose: :count])
+      {[verbose: 1], [], []}
+
+      iex> OptionParser.parse(["-v", "-v"], aliases: [v: :verbose], strict: [verbose: :count])
+      {[verbose: 2], [], []}
 
       iex> OptionParser.parse(["--unknown", "xyz"], strict: [])
       {[], ["xyz"], [{"--unknown", nil}]}
@@ -356,6 +363,11 @@ defmodule OptionParser do
           f when f in [false, "false"] -> {nil, false}
           _ -> {true, value}
         end
+      :count in kinds ->
+        case value do
+          1 -> {nil, value}
+          _ -> {true, value}
+        end
       :integer in kinds ->
         case Integer.parse(value) do
           {value, ""} -> {nil, value}
@@ -379,6 +391,13 @@ defmodule OptionParser do
 
   defp do_store_option(dict, option, value, kinds) do
     cond do
+      :count in kinds ->
+        case Keyword.pop(dict, option) do
+          {nil, dict} ->
+            [{option, value} | dict]
+          {old_value, dict} ->
+            [{option, old_value + value} | dict]
+        end
       :keep in kinds ->
         [{option, value} | dict]
       true ->
@@ -432,6 +451,8 @@ defmodule OptionParser do
     cond do
       :boolean in kinds ->
         {true, kinds, t}
+      :count in kinds ->
+        {1, kinds, t}
       value_in_tail?(t) ->
         [h | t] = t
         {h, kinds, t}
