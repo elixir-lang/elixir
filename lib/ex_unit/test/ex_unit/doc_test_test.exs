@@ -41,6 +41,13 @@ defmodule ExUnit.DocTestTest.GoodModule do
   """
   def exception_test, do: :ok
 
+  @doc ~S"""
+  iex> raise "foo\nbar"
+  ** (RuntimeError) foo
+  bar
+  """
+  def multiline_exception_test, do: :ok
+
   @doc """
   iex> Enum.into([:a, :b, :c], MapSet.new)
   #MapSet<[:a, :b, :c]>
@@ -250,78 +257,78 @@ defmodule ExUnit.DocTestTest do
 
     assert output =~ """
       1) test moduledoc at ExUnit.DocTestTest.Invalid (1) (ExUnit.DocTestTest.ActuallyCompiled)
-         test/ex_unit/doc_test_test.exs:241
-         Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:120: syntax error before: '*'
+         test/ex_unit/doc_test_test.exs:248
+         Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:127: syntax error before: '*'
          code: 1 + * 1
          stacktrace:
-           test/ex_unit/doc_test_test.exs:120: ExUnit.DocTestTest.Invalid (module)
+           test/ex_unit/doc_test_test.exs:127: ExUnit.DocTestTest.Invalid (module)
     """
 
     assert output =~ """
       2) test moduledoc at ExUnit.DocTestTest.Invalid (2) (ExUnit.DocTestTest.ActuallyCompiled)
-         test/ex_unit/doc_test_test.exs:241
+         test/ex_unit/doc_test_test.exs:248
          Doctest failed
          code: 1 + hd(List.flatten([1])) === 3
          lhs:  2
          stacktrace:
-           test/ex_unit/doc_test_test.exs:123: ExUnit.DocTestTest.Invalid (module)
+           test/ex_unit/doc_test_test.exs:130: ExUnit.DocTestTest.Invalid (module)
     """
 
     assert output =~ """
       3) test moduledoc at ExUnit.DocTestTest.Invalid (3) (ExUnit.DocTestTest.ActuallyCompiled)
-         test/ex_unit/doc_test_test.exs:241
+         test/ex_unit/doc_test_test.exs:248
          Doctest failed
          code: inspect(:oops) === "#MapSet<[]>"
          lhs:  ":oops"
          stacktrace:
-           test/ex_unit/doc_test_test.exs:126: ExUnit.DocTestTest.Invalid (module)
+           test/ex_unit/doc_test_test.exs:133: ExUnit.DocTestTest.Invalid (module)
     """
 
     # The stacktrace points to the cause of the error
     assert output =~ """
       4) test moduledoc at ExUnit.DocTestTest.Invalid (4) (ExUnit.DocTestTest.ActuallyCompiled)
-         test/ex_unit/doc_test_test.exs:241
+         test/ex_unit/doc_test_test.exs:248
          Doctest failed: got UndefinedFunctionError with message function Hello.world/0 is undefined (module Hello is not available)
          code:  Hello.world
          stacktrace:
            Hello.world()
-           (for doctest at) test/ex_unit/doc_test_test.exs:129: (test)
+           (for doctest at) test/ex_unit/doc_test_test.exs:136: (test)
     """
 
     assert output =~ """
       5) test moduledoc at ExUnit.DocTestTest.Invalid (5) (ExUnit.DocTestTest.ActuallyCompiled)
-         test/ex_unit/doc_test_test.exs:241
+         test/ex_unit/doc_test_test.exs:248
          Doctest failed: expected exception WhatIsThis with message "oops" but got RuntimeError with message "oops"
          code: raise "oops"
          stacktrace:
-           test/ex_unit/doc_test_test.exs:132: ExUnit.DocTestTest.Invalid (module)
+           test/ex_unit/doc_test_test.exs:139: ExUnit.DocTestTest.Invalid (module)
     """
 
     assert output =~ """
       6) test moduledoc at ExUnit.DocTestTest.Invalid (6) (ExUnit.DocTestTest.ActuallyCompiled)
-         test/ex_unit/doc_test_test.exs:241
+         test/ex_unit/doc_test_test.exs:248
          Doctest failed: expected exception RuntimeError with message "hello" but got RuntimeError with message "oops"
          code: raise "oops"
          stacktrace:
-           test/ex_unit/doc_test_test.exs:135: ExUnit.DocTestTest.Invalid (module)
+           test/ex_unit/doc_test_test.exs:142: ExUnit.DocTestTest.Invalid (module)
     """
 
     assert output =~ """
       7) test doc at ExUnit.DocTestTest.Invalid.a/0 (7) (ExUnit.DocTestTest.ActuallyCompiled)
-         test/ex_unit/doc_test_test.exs:241
-         Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:141: syntax error before: '*'
+         test/ex_unit/doc_test_test.exs:248
+         Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:148: syntax error before: '*'
          code: 1 + * 1
          stacktrace:
-           test/ex_unit/doc_test_test.exs:141: ExUnit.DocTestTest.Invalid (module)
+           test/ex_unit/doc_test_test.exs:148: ExUnit.DocTestTest.Invalid (module)
     """
 
     assert output =~ """
       8) test doc at ExUnit.DocTestTest.Invalid.b/0 (8) (ExUnit.DocTestTest.ActuallyCompiled)
-         test/ex_unit/doc_test_test.exs:241
-         Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:147: syntax error before: '*'
+         test/ex_unit/doc_test_test.exs:248
+         Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:154: syntax error before: '*'
          code: 1 + * 1
          stacktrace:
-           test/ex_unit/doc_test_test.exs:147: ExUnit.DocTestTest.Invalid (module)
+           test/ex_unit/doc_test_test.exs:154: ExUnit.DocTestTest.Invalid (module)
     """
   end
 
