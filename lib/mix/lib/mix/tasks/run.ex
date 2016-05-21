@@ -36,17 +36,20 @@ defmodule Mix.Tasks.Run do
     * `--parallel-require`, `-pr` - requires pattern in parallel
     * `--no-compile` - do not compile even if files require compilation
     * `--no-deps-check` - do not check dependencies
+    * `--no-archives-check` - do not check archives
     * `--no-halt` - do not halt the system after running the command
     * `--no-start` - do not start applications after compilation
+    * `--no-elixir-version-check` - do not check the Elixir version from mix.exs
 
   """
 
   @spec run(OptionParser.argv) :: :ok
   def run(args) do
-    {opts, head, _} = OptionParser.parse_head(args,
+    {opts, head} = OptionParser.parse_head!(args,
       aliases: [r: :require, pr: :parallel_require, e: :eval, c: :config],
-      switches: [parallel_require: :keep, require: :keep, eval: :keep, config: :keep,
-                 halt: :boolean, compile: :boolean, deps_check: :boolean, start: :boolean])
+      strict: [parallel_require: :keep, require: :keep, eval: :keep, config: :keep,
+               halt: :boolean, compile: :boolean, deps_check: :boolean, start: :boolean,
+               archives_check: :boolean, elixir_version_check: :boolean])
 
     {file, argv} =
       case {Keyword.has_key?(opts, :eval), head} do

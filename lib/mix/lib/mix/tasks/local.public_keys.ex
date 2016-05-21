@@ -34,7 +34,8 @@ defmodule Mix.Tasks.Local.PublicKeys do
   """
   @spec run(OptionParser.argv) :: true
   def run(argv) do
-    {opts, argv, _} = OptionParser.parse(argv, switches: [force: :boolean, detailed: :boolean])
+    {opts, argv} =
+      OptionParser.parse!(argv, switches: [force: :boolean, detailed: :boolean])
 
     case argv do
       []         -> show(opts)

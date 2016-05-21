@@ -86,10 +86,13 @@ defmodule Mix.Tasks.Escript.Build do
       end
 
   """
+  @switches [force: :boolean, compile: :boolean,
+             deps_check: :boolean, archives_check: :boolean, elixir_version_check: :boolean]
+
   @spec run(OptionParser.argv) :: :ok | :noop
   def run(args) do
     Mix.Project.get!
-    {opts, _, _} = OptionParser.parse(args, switches: [force: :boolean, compile: :boolean])
+    {opts, _} = OptionParser.parse!(args, strict: @switches)
 
     if Keyword.get(opts, :compile, true) do
       Mix.Task.run :compile, args

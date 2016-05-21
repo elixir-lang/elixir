@@ -32,7 +32,7 @@ defmodule Mix.Local.Installer do
   """
   @spec install({module, atom}, OptionParser.argv, Keyword.t) :: boolean
   def install({module, name}, argv, switches) do
-    {opts, args, _} = OptionParser.parse(argv, switches: switches)
+    {opts, args} = OptionParser.parse!(argv, strict: switches)
 
     case args do
       [src] ->

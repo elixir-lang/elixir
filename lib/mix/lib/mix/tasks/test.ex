@@ -60,6 +60,9 @@ defmodule Mix.Tasks.Test do
     * `--seed`       - seeds the random number generator used to randomize tests order;
       `--seed 0` disables randomization
     * `--timeout`    - set the timeout for the tests
+    * `--no-deps-check` - do not check dependencies
+    * `--no-archives-check` - do not check archives
+    * `--no-elixir-version-check` - do not check the Elixir version from mix.exs
 
   ## Filters
 
@@ -143,13 +146,14 @@ defmodule Mix.Tasks.Test do
   @switches [force: :boolean, color: :boolean, cover: :boolean,
              trace: :boolean, max_cases: :integer, include: :keep,
              exclude: :keep, seed: :integer, only: :keep, compile: :boolean,
-             start: :boolean, timeout: :integer, raise: :boolean]
+             start: :boolean, timeout: :integer, raise: :boolean,
+             deps_check: :boolean, archives_check: :boolean, elixir_version_check: :boolean]
 
   @cover [output: "cover", tool: Cover]
 
   @spec run(OptionParser.argv) :: :ok
   def run(args) do
-    {opts, files, _} = OptionParser.parse(args, switches: @switches)
+    {opts, files} = OptionParser.parse!(args, strict: @switches)
 
     unless System.get_env("MIX_ENV") || Mix.env == :test do
       Mix.raise "\"mix test\" is running on environment \"#{Mix.env}\". If you are " <>

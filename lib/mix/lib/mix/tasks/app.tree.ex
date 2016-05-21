@@ -29,11 +29,11 @@ defmodule Mix.Tasks.App.Tree do
     Mix.Task.run "compile"
 
     {app, opts} =
-      case OptionParser.parse(args, switches: [exclude: :keep, pretty: :boolean]) do
-        {opts, [], _} ->
+      case OptionParser.parse!(args, strict: [exclude: :keep, pretty: :boolean]) do
+        {opts, []} ->
           app = Mix.Project.config[:app] || Mix.raise("no application given and none found in mix.exs file")
           {app, opts}
-        {opts, [app], _} ->
+        {opts, [app]} ->
           {String.to_atom(app), opts}
       end
 
