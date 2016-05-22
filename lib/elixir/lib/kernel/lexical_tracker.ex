@@ -9,10 +9,17 @@ defmodule Kernel.LexicalTracker do
   @behaviour :gen_server
 
   @doc """
-  Returns all remotes linked to in this lexical scope.
+  Returns all remotes referenced in this lexical scope.
   """
-  def remotes(arg) do
-    :gen_server.call(to_pid(arg), :remotes, @timeout)
+  def remote_references(arg) do
+    :gen_server.call(to_pid(arg), :remote_references, @timeout)
+  end
+
+  @doc """
+  Returns all remote dispatches in this lexical scope.
+  """
+  def remote_dispatches(arg) do
+    :gen_server.call(to_pid(arg), :remote_dispatches, @timeout)
   end
 
   @doc """
@@ -54,8 +61,13 @@ defmodule Kernel.LexicalTracker do
   end
 
   @doc false
-  def remote_dispatch(pid, module, mode) do
-    :gen_server.cast(pid, {:remote_dispatch, module, mode})
+  def remote_reference(pid, module, mode) do
+    :gen_server.cast(pid, {:remote_reference, module, mode})
+  end
+
+  @doc false
+  def remote_dispatch(pid, module, fa, line, mode) do
+    :gen_server.cast(pid, {:remote_dispatch, module, fa, line, mode})
   end
 
   @doc false
@@ -85,7 +97,7 @@ defmodule Kernel.LexicalTracker do
   # Callbacks
 
   def init(dest) do
-    {:ok, %{directives: %{}, references: %{}, dest: dest}}
+    {:ok, %{directives: %{}, references: %{}, dispatches: %{}, dest: dest}}
   end
 
   @doc false
@@ -98,16 +110,28 @@ defmodule Kernel.LexicalTracker do
     {:reply, Enum.sort(directives), state}
   end
 
-  def handle_call(:remotes, _from, state) do
+  def handle_call(:remote_references, _from, state) do
     {:reply, partition(Enum.to_list(state.references), [], []), state}
+  end
+
+  def handle_call(:remote_dispatches, _from, state) do
+    compile = state.dispatches[:compile] || %{}
+    runtime = state.dispatches[:runtime] || %{}
+    {:reply, {compile, runtime}, state}
   end
 
   def handle_call(:dest, _from, state) do
     {:reply, state.dest, state}
   end
 
-  def handle_cast({:remote_dispatch, module, mode}, state) do
+  def handle_cast({:remote_reference, module, mode}, state) do
     {:noreply, %{state | references: add_reference(state.references, module, mode)}}
+  end
+
+  def handle_cast({:remote_dispatch, module, fa, line, mode}, state) do
+    references = add_reference(state.references, module, mode)
+    dispatches = add_remote_dispatch(state.dispatches, module, fa, line, mode)
+    {:noreply, %{state | references: references, dispatches: dispatches}}
   end
 
   def handle_cast({:import_dispatch, {module, function, arity}}, state) do
@@ -174,15 +198,18 @@ defmodule Kernel.LexicalTracker do
 
   # Callbacks helpers
 
-  defp add_reference(references, module, :runtime) when is_atom(module) do
-    case :maps.find(module, references) do
-      {:ok, _} -> references
-      :error -> :maps.put(module, :runtime, references)
-    end
-   end
-
+  defp add_reference(references, module, :runtime) when is_atom(module),
+    do: map_put_new(module, :runtime, references)
   defp add_reference(references, module, :compile) when is_atom(module),
     do: :maps.put(module, :compile, references)
+
+  defp add_remote_dispatch(dispatches, module, fa, line, mode) when is_atom(module) do
+    map_update mode, %{module => %{fa => [line]}}, dispatches, fn mode_dispatches ->
+      map_update module, %{fa => [line]}, mode_dispatches, fn module_dispatches ->
+        map_update fa, [line], module_dispatches, &[line | List.delete(&1, line)]
+      end
+    end
+  end
 
   # In the map we keep imports and aliases.
   # If the value is a line, it was imported/aliased and has a pending warning
@@ -194,5 +221,19 @@ defmodule Kernel.LexicalTracker do
 
   defp add_dispatch(directives, module_or_mfa, tag) do
     :maps.put({tag, module_or_mfa}, true, directives)
+  end
+
+  defp map_update(key, initial, map, fun) do
+    case :maps.find(key, map) do
+      {:ok, val} -> :maps.put(key, fun.(val), map)
+      :error -> :maps.put(key, initial, map)
+    end
+  end
+
+  defp map_put_new(key, value, map) do
+    case :maps.find(key, map) do
+      {:ok, _} -> map
+      :error -> :maps.put(key, value, map)
+    end
   end
 end

@@ -517,7 +517,7 @@ expand_local(Meta, Name, Args, #{module := Module, function := Function} = E) ->
 expand_remote(Receiver, DotMeta, Right, Meta, Args, E, EL) ->
   if
     is_atom(Receiver) ->
-      elixir_lexical:record_remote(Receiver, ?m(E, function), ?m(E, lexical_tracker));
+      elixir_lexical:record_remote(Receiver, Right, length(Args), ?m(E, function), ?line(Meta), ?m(E, lexical_tracker));
     true ->
       ok
   end,

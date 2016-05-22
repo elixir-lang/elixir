@@ -290,7 +290,7 @@ defmodule Protocol do
   # impl_for/1 dispatch version.
   defp change_debug_info({protocol, any, code, docs}, types) do
     types   = if any, do: types, else: List.delete(types, Any)
-    all     = [Any] ++ for {_guard, mod} <- builtin, do: mod
+    all     = [Any] ++ for {_guard, mod} <- __builtin__(), do: mod
     structs = types -- all
     case change_impl_for(code, protocol, types, structs, false, []) do
       {:ok, ret} -> {:ok, ret, docs}
@@ -313,7 +313,7 @@ defmodule Protocol do
   defp change_impl_for([{:function, line, :impl_for, 1, _} | t], protocol, types, structs, is_protocol, acc) do
     fallback = if Any in types, do: load_impl(protocol, Any)
 
-    clauses = for {guard, mod} <- builtin,
+    clauses = for {guard, mod} <- __builtin__(),
                   mod in types,
                   do: builtin_clause_for(mod, guard, protocol, line)
 
@@ -426,7 +426,7 @@ defmodule Protocol do
   end
 
   defp after_defprotocol do
-    quote bind_quoted: [builtin: builtin] do
+    quote bind_quoted: [builtin: __builtin__()] do
       @doc false
       @spec impl_for(term) :: atom | nil
       Kernel.def impl_for(data)
@@ -635,7 +635,8 @@ defmodule Protocol do
 
   ## Helpers
 
-  defp builtin do
+  @doc false
+  def __builtin__ do
     [is_tuple: Tuple,
      is_atom: Atom,
      is_list: List,

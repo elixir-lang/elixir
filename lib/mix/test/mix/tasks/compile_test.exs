@@ -16,7 +16,7 @@ defmodule Mix.Tasks.CompileTest do
 
   test "compile --list with mixfile" do
     Mix.Tasks.Compile.run ["--list"]
-    assert_received {:mix_shell, :info, ["\nEnabled compilers: yecc, leex, erlang, elixir, app, protocols"]}
+    assert_received {:mix_shell, :info, ["\nEnabled compilers: yecc, leex, erlang, elixir, xref, app, protocols"]}
     assert_received {:mix_shell, :info, ["mix compile.elixir    # " <> _]}
   end
 

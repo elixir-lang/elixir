@@ -5,8 +5,15 @@ defmodule Mix.Compilers.Elixir do
 
   import Record
 
-  defrecordp :module, [:module, :kind, :source, :beam, :binary]
-  defrecordp :source, [:source, compile: [], runtime: [], external: []]
+  defrecord :module, [:module, :kind, :source, :beam, :binary]
+  defrecord :source, [
+    source: nil,
+    compile_references: [],
+    runtime_references: [],
+    compile_dispatches: [],
+    runtime_dispatches: [],
+    external: []
+  ]
 
   @doc """
   Compiles stale Elixir files.
@@ -103,6 +110,27 @@ defmodule Mix.Compilers.Elixir do
         do: {module, kind, beam}
   end
 
+  @doc """
+  Reads the manifest at path `manifest`.
+
+  Similar to read_manifest, but supports data migration.
+  """
+  def parse_manifest(manifest) do
+    state = {[], []}
+
+    case :file.consult(manifest) do
+      {:ok, [@manifest_vsn | data]} ->
+        parse_manifest(data, state)
+      {:ok, [:v2 | data]} ->
+        for {beam, module, _, _, _, _, _, _} <- data do
+          remove_and_purge(beam, module)
+        end
+        state
+      _ ->
+        state
+    end
+  end
+
   defp compile_manifest(manifest, modules, sources, stale, dest, opts) do
     Mix.Utils.compiling_n(length(stale), :ex)
 
@@ -155,17 +183,22 @@ defmodule Mix.Compilers.Elixir do
       |> Path.join(Atom.to_string(module) <> ".beam")
       |> Path.relative_to(cwd)
 
-    {compile, runtime} = Kernel.LexicalTracker.remotes(module)
+    {compile_references, runtime_references} = Kernel.LexicalTracker.remote_references(module)
 
-    compile =
-      compile
+    compile_references =
+      compile_references
       |> List.delete(module)
       |> Enum.reject(&match?("elixir_" <> _, Atom.to_string(&1)))
 
-    runtime =
-      runtime
+    runtime_references =
+      runtime_references
       |> List.delete(module)
-      |> Enum.reject(&match?("elixir_" <> _, Atom.to_string(&1)))
+
+    {compile_dispatches, runtime_dispatches} = Kernel.LexicalTracker.remote_dispatches(module)
+
+    compile_dispatches =
+      compile_dispatches
+      |> Enum.reject(&match?("elixir_" <> _, Atom.to_string(elem(&1, 0))))
 
     kind     = detect_kind(module)
     source   = Path.relative_to(source, cwd)
@@ -187,8 +220,10 @@ defmodule Mix.Compilers.Elixir do
 
       new_source = source(
         source: source,
-        compile: compile,
-        runtime: runtime,
+        compile_references: compile_references,
+        runtime_references: runtime_references,
+        compile_dispatches: compile_dispatches,
+        runtime_dispatches: runtime_dispatches,
         external: external
       )
 
@@ -264,19 +299,19 @@ defmodule Mix.Compilers.Elixir do
 
   defp remove_stale_entry(module(module: module, beam: beam, source: source) = entry,
                           {rest, stale, removed}, sources) do
-    source(compile: compile, runtime: runtime) =
+    source(compile_references: compile_references, runtime_references: runtime_references) =
       List.keyfind(sources, source, source(:source))
 
     cond do
-      # If I changed in disk or have a compile time dependency
-      # on something stale, I need to be recompiled.
-      Map.has_key?(removed, source) or Enum.any?(compile, &Map.has_key?(stale, &1)) ->
+      # If I changed in disk or have a compile time reference to
+      # something stale, I need to be recompiled.
+      Map.has_key?(removed, source) or Enum.any?(compile_references, &Map.has_key?(stale, &1)) ->
         remove_and_purge(beam, module)
         {rest, Map.put(stale, module, true), Map.put(removed, source, true)}
 
-      # If I have a runtime time dependency on something stale,
+      # If I have a runtime references to something stale,
       # I am stale too.
-      Enum.any?(runtime, &Map.has_key?(stale, &1)) ->
+      Enum.any?(runtime_references, &Map.has_key?(stale, &1)) ->
         {[entry | rest], Map.put(stale, module, true), removed}
 
       # Otherwise, we don't store it anywhere
@@ -309,23 +344,6 @@ defmodule Mix.Compilers.Elixir do
     case :file.consult(manifest) do
       {:ok, [@manifest_vsn | t]} -> t
       _ -> []
-    end
-  end
-
-  # Similar to read manifest but supports data migration.
-  defp parse_manifest(manifest) do
-    state = {[], []}
-
-    case :file.consult(manifest) do
-      {:ok, [@manifest_vsn | data]} ->
-        parse_manifest(data, state)
-      {:ok, [:v2 | data]} ->
-        for {beam, module, _, _, _, _, _, _} <- data do
-          remove_and_purge(beam, module)
-        end
-        state
-      _ ->
-        state
     end
   end
 
