@@ -97,7 +97,8 @@ defmodule Kernel.LexicalTracker do
   # Callbacks
 
   def init(dest) do
-    {:ok, %{directives: %{}, references: %{}, dispatches: %{}, dest: dest}}
+    {:ok, %{directives: %{}, references: %{}, compile: %{},
+            runtime: %{}, dest: dest}}
   end
 
   @doc false
@@ -115,9 +116,7 @@ defmodule Kernel.LexicalTracker do
   end
 
   def handle_call(:remote_dispatches, _from, state) do
-    compile = state.dispatches[:compile] || %{}
-    runtime = state.dispatches[:runtime] || %{}
-    {:reply, {compile, runtime}, state}
+    {:reply, {state.compile, state.runtime}, state}
   end
 
   def handle_call(:dest, _from, state) do
@@ -130,8 +129,8 @@ defmodule Kernel.LexicalTracker do
 
   def handle_cast({:remote_dispatch, module, fa, line, mode}, state) do
     references = add_reference(state.references, module, mode)
-    dispatches = add_remote_dispatch(state.dispatches, module, fa, line, mode)
-    {:noreply, %{state | references: references, dispatches: dispatches}}
+    state = add_remote_dispatch(state, module, fa, line, mode)
+    {:noreply, %{state | references: references}}
   end
 
   def handle_cast({:import_dispatch, {module, function, arity}}, state) do
@@ -188,7 +187,6 @@ defmodule Kernel.LexicalTracker do
     {:ok, state}
   end
 
-
   defp partition([{remote, :compile} | t], compile, runtime),
     do: partition(t, [remote | compile], runtime)
   defp partition([{remote, :runtime} | t], compile, runtime),
@@ -203,8 +201,8 @@ defmodule Kernel.LexicalTracker do
   defp add_reference(references, module, :compile) when is_atom(module),
     do: :maps.put(module, :compile, references)
 
-  defp add_remote_dispatch(dispatches, module, fa, line, mode) when is_atom(module) do
-    map_update mode, %{module => %{fa => [line]}}, dispatches, fn mode_dispatches ->
+  defp add_remote_dispatch(state, module, fa, line, mode) when is_atom(module) do
+    map_update mode, %{module => %{fa => [line]}}, state, fn mode_dispatches ->
       map_update module, %{fa => [line]}, mode_dispatches, fn module_dispatches ->
         map_update fa, [line], module_dispatches, &[line | List.delete(&1, line)]
       end
