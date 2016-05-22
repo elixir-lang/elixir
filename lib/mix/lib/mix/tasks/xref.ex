@@ -48,13 +48,15 @@ defmodule Mix.Tasks.Xref do
       Mix.Task.run("compile")
     end
 
-    cond do
-      opts[:warnings] ->
+    mode = Keyword.take(opts, [:warnings, :unreachable])
+
+    case mode do
+      [warnings: true] ->
         warnings()
-      opts[:unreachable] ->
+      [unreachable: true] ->
         unreachable()
-      true ->
-        Mix.raise "xref expects one of the following flags: --warnings, --unreachable"
+      _ ->
+        Mix.raise "xref expects exactly one of the following modes: --warnings, --unreachable"
     end
   end
 
@@ -150,7 +152,7 @@ defmodule Mix.Tasks.Xref do
   end
 
   defp format_file_lines(file, lines) do
-    ["\nFound at #{length(lines)} locations:\n" |
+    ["Found at #{length(lines)} locations:\n" |
      Enum.map(lines, &format_file_line(file, &1))]
   end
 
