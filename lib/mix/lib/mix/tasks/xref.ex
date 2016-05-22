@@ -140,7 +140,7 @@ defmodule Mix.Tasks.Xref do
   end
 
   defp format_file_lines(file, lines) do
-    ["Violation found at #{length(lines)} locations below:\n" |
+    ["\nFound at #{length(lines)} locations:\n" |
      Enum.map(lines, &format_file_line(file, &1))]
   end
 
