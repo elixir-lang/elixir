@@ -125,16 +125,37 @@ defmodule Mix.Tasks.XrefTest do
     defmodule A2 do
       def a, do: A.no_func
       def b, do: A.b
-      def c, do: A.no_func
     end
     """, """
     warning: function A2.no_func/0 is undefined or private
       lib/a.ex:2
 
     warning: function A.no_func/0 is undefined or private
-    Violation found at 2 locations below:
       lib/a.ex:7
-      lib/a.ex:9
+
+    """
+  end
+
+  test "warnings: groups multiple warnings in one file" do
+    assert_warnings """
+    defmodule A do
+      def a, do: A.no_func
+      def b, do: A2.no_func
+      def c, do: A.no_func
+      def d, do: A2.no_func
+    end
+    """, """
+    warning: function A.no_func/0 is undefined or private
+
+    Found at 2 locations:
+      lib/a.ex:2
+      lib/a.ex:4
+
+    warning: function A2.no_func/0 is undefined (module A2 is not available)
+
+    Found at 2 locations:
+      lib/a.ex:3
+      lib/a.ex:5
 
     """
   end
