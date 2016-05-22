@@ -110,30 +110,17 @@ defmodule Mix.Compilers.Elixir do
   end
 
   @doc """
-  Reads the manifest at path `manifest`.
-
-  Similar to read_manifest, but supports data migration.
+  Reads the manifest.
   """
-  def parse_manifest(manifest) do
-    state = {[], []}
-
-    manifest =
-      try do
-        {:ok, manifest |> File.read!() |> :erlang.binary_to_term()}
-      rescue
-        _ -> :file.consult(manifest)
-      end
-
-    case manifest do
-      {:ok, [@manifest_vsn | data]} ->
-        parse_manifest(data, state)
-      {:ok, [:v2 | data]} ->
-        for {beam, module, _, _, _, _, _, _} <- data do
-          remove_and_purge(beam, module)
-        end
-        state
-      _ ->
-        state
+  def read_manifest(manifest) do
+    # TODO: No longer support file consult once v1.3 is out
+    try do
+      manifest |> File.read!() |> :erlang.binary_to_term()
+    else
+      [@manifest_vsn | t] -> t
+      _ -> []
+    rescue
+      _ -> []
     end
   end
 
@@ -350,14 +337,28 @@ defmodule Mix.Compilers.Elixir do
 
   ## Manifest handling
 
-  defp read_manifest(manifest) do
-    try do
-      manifest |> File.read!() |> :erlang.binary_to_term()
-    else
-      [@manifest_vsn | t] -> t
-      _ -> []
-    rescue
-      _ -> []
+  # Similar to read_manifest, but supports data migration.
+  defp parse_manifest(manifest) do
+    state = {[], []}
+
+    # TODO: No longer support file consult once v1.3 is out
+    manifest =
+      try do
+        {:ok, manifest |> File.read!() |> :erlang.binary_to_term()}
+      rescue
+        _ -> :file.consult(manifest)
+      end
+
+    case manifest do
+      {:ok, [@manifest_vsn | data]} ->
+        parse_manifest(data, state)
+      {:ok, [:v2 | data]} ->
+        for {beam, module, _, _, _, _, _, _} <- data do
+          remove_and_purge(beam, module)
+        end
+        state
+      _ ->
+        state
     end
   end
 
