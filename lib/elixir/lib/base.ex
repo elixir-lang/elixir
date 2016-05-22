@@ -150,8 +150,16 @@ defmodule Base do
   @doc """
   Encodes a binary string into a base 16 encoded string.
 
-  Accepts an atom `:upper` (default) for encoding to upper case characters or
-  `:lower` for lower case characters.
+  ## Options
+
+  The accepted options are:
+
+    * `:case` - specifies the character case to use when encoding
+
+  The values for `:case` can be:
+
+    * `:upper` - use upper case characters (default)
+    * `:lower` - use lower case characters
 
   ## Examples
 
@@ -172,9 +180,17 @@ defmodule Base do
   @doc """
   Decodes a base 16 encoded string into a binary string.
 
-  Accepts an atom `:upper` (default) for decoding from upper case characters or
-  `:lower` for lower case characters. `:mixed` can be given for mixed case
-  characters.
+  ## Options
+
+  The accepted options are:
+
+    * `:case` - specifies the character case to accept when decoding
+
+  The values for `:case` can be:
+
+    * `:upper` - only allow upper case characters (default)
+    * `:lower` - only allow lower case characters
+    * `:mixed` - allow mixed case characters
 
   ## Examples
 
@@ -199,9 +215,17 @@ defmodule Base do
   @doc """
   Decodes a base 16 encoded string into a binary string.
 
-  Accepts an atom `:upper` (default) for decoding from upper case characters or
-  `:lower` for lower case characters. `:mixed` can be given for mixed case
-  characters.
+  ## Options
+
+  The accepted options are:
+
+    * `:case` - specifies the character case to accept when decoding
+
+  The values for `:case` can be:
+
+    * `:upper` - only allow upper case characters (default)
+    * `:lower` - only allow lower case characters
+    * `:mixed` - allow mixed case characters
 
   An `ArgumentError` exception is raised if the padding is incorrect or
   a non-alphabet character is present in the string.
@@ -410,11 +434,22 @@ defmodule Base do
   @doc """
   Encodes a binary string into a base 32 encoded string.
 
-  Accepts an atom `:upper` (default) for encoding to upper case characters or
-  `:lower` for lower case characters.
+  ## Options
 
-  Accepts `padding: false` option which will omit padding from
-  the output string.
+  The accepted options are:
+
+    * `:case` - specifies the character case to use when encoding
+    * `:padding` - specifies whether to apply padding
+
+  The values for `:case` can be:
+
+    * `:upper` - use upper case characters (default)
+    * `:lower` - use lower case characters
+
+  The values for `:padding` can be:
+
+    * `true` - pad the output string to the nearest multiple of 8 (default)
+    * `false` - omit padding from the output string
 
   ## Examples
 
@@ -439,12 +474,23 @@ defmodule Base do
   @doc """
   Decodes a base 32 encoded string into a binary string.
 
-  Accepts an atom `:upper` (default) for decoding from upper case characters or
-  `:lower` for lower case characters. `:mixed` can be given for mixed case
-  characters.
+  ## Options
 
-  Accepts `padding: false` option which will ignore padding from
-  the input string.
+  The accepted options are:
+
+    * `:case` - specifies the character case to accept when decoding
+    * `:padding` - specifies whether to require padding
+
+  The values for `:case` can be:
+
+    * `:upper` - only allow  upper case characters (default)
+    * `:lower` - only allow lower case characters
+    * `:mixed` - allow mixed case characters
+
+  The values for `:padding` can be:
+
+    * `true` - require the input string to be padded to the nearest multiple of 8 (default)
+    * `false` - ignore padding from the input string
 
   ## Examples
 
@@ -472,15 +518,26 @@ defmodule Base do
   @doc """
   Decodes a base 32 encoded string into a binary string.
 
-  Accepts an atom `:upper` (default) for decoding from upper case characters or
-  `:lower` for lower case characters. `:mixed` can be given for mixed case
-  characters.
-
-  Accepts `padding: false` option which will ignore padding from
-  the input string.
-
   An `ArgumentError` exception is raised if the padding is incorrect or
   a non-alphabet character is present in the string.
+
+  ## Options
+
+  The accepted options are:
+
+    * `:case` - specifies the character case to accept when decoding
+    * `:padding` - specifies whether to require padding
+
+  The values for `:case` can be:
+
+    * `:upper` - only allow upper case characters (default)
+    * `:lower` - only allow lower case characters
+    * `:mixed` - allow mixed case characters
+
+  The values for `:padding` can be:
+
+    * `true` - require the input string to be padded to the nearest multiple of 8 (default)
+    * `false` - ignore padding from the input string
 
   ## Examples
 
@@ -509,11 +566,22 @@ defmodule Base do
   Encodes a binary string into a base 32 encoded string with an
   extended hexadecimal alphabet.
 
-  Accepts an atom `:upper` (default) for encoding to upper case characters or
-  `:lower` for lower case characters.
+  ## Options
 
-  Accepts `padding: false` option which will omit padding from
-  the output string.
+  The accepted options are:
+
+    * `:case` - specifies the character case to use when encoding
+    * `:padding` - specifies whether to apply padding
+
+  The values for `:case` can be:
+
+    * `:upper` - use upper case characters (default)
+    * `:lower` - use lower case characters
+
+  The values for `:padding` can be:
+
+    * `true` - pad the output string to the nearest multiple of 8 (default)
+    * `false` - omit padding from the output string
 
   ## Examples
 
@@ -539,12 +607,23 @@ defmodule Base do
   Decodes a base 32 encoded string with extended hexadecimal alphabet
   into a binary string.
 
-  Accepts an atom `:upper` (default) for decoding from upper case characters or
-  `:lower` for lower case characters. `:mixed` can be given for mixed case
-  characters.
+  ## Options
 
-  Accepts `padding: false` option which will ignore padding from
-  the input string.
+  The accepted options are:
+
+    * `:case` - specifies the character case to accept when decoding
+    * `:padding` - specifies whether to require padding
+
+  The values for `:case` can be:
+
+    * `:upper` - only allow upper case characters (default)
+    * `:lower` - only allow lower case characters
+    * `:mixed` - allow mixed case characters
+
+  The values for `:padding` can be:
+
+    * `true` - require the input string to be padded to the nearest multiple of 8 (default)
+    * `false` - ignore padding from the input string
 
   ## Examples
 
@@ -573,15 +652,26 @@ defmodule Base do
   Decodes a base 32 encoded string with extended hexadecimal alphabet
   into a binary string.
 
-  Accepts an atom `:upper` (default) for decoding from upper case characters or
-  `:lower` for lower case characters. `:mixed` can be given for mixed case
-  characters.
-
-  Accepts `padding: false` option which will ignore padding from
-  the input string.
-
   An `ArgumentError` exception is raised if the padding is incorrect or
   a non-alphabet character is present in the string.
+
+  ## Options
+
+  The accepted options are:
+
+    * `:case` - specifies the character case to accept when decoding
+    * `:padding` - specifies whether to require padding
+
+  The values for `:case` can be:
+
+    * `:upper` - only allow upper case characters (default)
+    * `:lower` - only allow lower case characters
+    * `:mixed` - allow mixed case characters
+
+  The values for `:padding` can be:
+
+    * `true` - require the input string to be padded to the nearest multiple of 8 (default)
+    * `false` - ignore padding from the input string
 
   ## Examples
 
