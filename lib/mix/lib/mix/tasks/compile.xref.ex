@@ -33,15 +33,15 @@ defmodule Mix.Tasks.Compile.Xref do
         Mix.Project.config()[:elixirc_options][:warnings_as_errors]
       end)
 
-    if needs_xref(opts) && should_exit?(Mix.Task.run("xref", ["--warnings"]), warnings_as_errors) do
+    if needs_xref?(opts) and should_exit?(Mix.Task.run("xref", ["--warnings"]), warnings_as_errors) do
       exit({:shutdown, 1})
     end
 
     write_manifest()
   end
 
-  defp needs_xref(opts) do
-    opts[:force] || Mix.Utils.stale?(E.manifests(), manifests())
+  defp needs_xref?(opts) do
+    !!opts[:force] or Mix.Utils.stale?(E.manifests(), manifests())
   end
 
   defp should_exit?(:error, true),
