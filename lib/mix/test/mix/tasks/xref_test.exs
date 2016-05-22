@@ -5,56 +5,62 @@ defmodule Mix.Tasks.XrefTest do
 
   import ExUnit.CaptureIO
 
+  setup_all do
+    previous = Application.get_env(:elixir, :ansi_enabled, false)
+    Application.put_env(:elixir, :ansi_enabled, false)
+    on_exit fn -> Application.put_env(:elixir, :ansi_enabled, previous) end
+  end
+
   setup do
     Mix.Project.push MixTest.Case.Sample
     :ok
   end
 
-  test "reports nothing with no references" do
+  ## Warnings
+
+  test "warnings: reports nothing with no references" do
     assert_no_warnings "defmodule A do end"
   end
 
-  test "reports missing functions" do
+  test "warnings: reports missing functions" do
     assert_warnings """
     defmodule A do
       def a, do: A.no_func
       def b, do: A.a()
     end
     """, """
-    \e[33mwarning: \e[0mRemote function A.no_func/0 cannot be found
+    warning: function A.no_func/0 is undefined or private
       lib/a.ex:2
 
     """
   end
 
-  test "reports missing functions respecting arity" do
+  test "warnings: reports missing functions respecting arity" do
     assert_warnings """
     defmodule A do
       def a, do: :ok
       def b, do: A.a(1)
     end
     """, """
-    \e[33mwarning: \e[0mRemote function A.a/1 cannot be found
+    warning: function A.a/1 is undefined or private
       lib/a.ex:3
 
     """
   end
 
-  test "reports missing modules" do
+  test "warnings: reports missing modules" do
     assert_warnings """
     defmodule A do
       def a, do: D.no_module
     end
     """, """
-    \e[33mwarning: \e[0mModule D cannot be found
-
-    In remote call to D.no_module/0 at:
+    warning: function D.no_module/0 is undefined (module D is not available)
       lib/a.ex:2
 
     """
   end
 
-  test "doesn't report missing funcs at compile time" do
+  test "warnings: doesn't report missing funcs at compile time" do
     assert_no_warnings """
       Enum.map([], fn _ -> BadReferencer.no_func4() end)
 
@@ -66,7 +72,7 @@ defmodule Mix.Tasks.XrefTest do
     """
   end
 
-  test "protocols are checked, ignoring missing builtin impls" do
+  test "warnings: protocols are checked, ignoring missing builtin impls" do
     assert_warnings """
     defprotocol AProtocol do
       def func(arg)
@@ -78,13 +84,13 @@ defmodule Mix.Tasks.XrefTest do
       end
     end
     """, """
-    \e[33mwarning: \e[0mRemote function B.no_func/0 cannot be found
+    warning: function B.no_func/0 is undefined or private
       lib/a.ex:7
 
     """
   end
 
-  test "handles erlang ops" do
+  test "warnings: handles erlang ops" do
     assert_no_warnings """
     defmodule A do
       def a(a, b), do: a and b
@@ -93,25 +99,23 @@ defmodule Mix.Tasks.XrefTest do
     """
   end
 
-  test "handles erlang modules" do
+  test "warnings: handles erlang modules" do
     assert_warnings """
     defmodule A do
       def a, do: :not_a_module.no_module
       def b, do: :lists.no_func
     end
     """, """
-    \e[33mwarning: \e[0mModule :not_a_module cannot be found
-
-    In remote call to :not_a_module.no_module/0 at:
+    warning: function :not_a_module.no_module/0 is undefined (module :not_a_module is not available)
       lib/a.ex:2
 
-    \e[33mwarning: \e[0mRemote function :lists.no_func/0 cannot be found
+    warning: function :lists.no_func/0 is undefined or private
       lib/a.ex:3
 
     """
   end
 
-  test "handles multiple modules in one file" do
+  test "warnings: handles multiple modules in one file" do
     assert_warnings """
     defmodule A do
       def a, do: A2.no_func
@@ -121,18 +125,21 @@ defmodule Mix.Tasks.XrefTest do
     defmodule A2 do
       def a, do: A.no_func
       def b, do: A.b
+      def c, do: A.no_func
     end
     """, """
-    \e[33mwarning: \e[0mRemote function A2.no_func/0 cannot be found
+    warning: function A2.no_func/0 is undefined or private
       lib/a.ex:2
 
-    \e[33mwarning: \e[0mRemote function A.no_func/0 cannot be found
+    warning: function A.no_func/0 is undefined or private
+    Violation found at 2 locations below:
       lib/a.ex:7
+      lib/a.ex:9
 
     """
   end
 
-  test "handles module body conditionals" do
+  test "warnings: handles module body conditionals" do
     assert_warnings """
     defmodule A do
       if function_exported?(List, :flatten, 1) do
@@ -154,13 +161,13 @@ defmodule Mix.Tasks.XrefTest do
       end
     end
     """, """
-    \e[33mwarning: \e[0mRemote function List.old_flatten/1 cannot be found
+    warning: function List.old_flatten/1 is undefined or private
       lib/a.ex:15
 
     """
   end
 
-  test "imports" do
+  test "warnings: imports" do
     assert_no_warnings """
     defmodule A do
       import Record
@@ -171,7 +178,7 @@ defmodule Mix.Tasks.XrefTest do
     """
   end
 
-  test "requires" do
+  test "warnings: requires" do
     assert_no_warnings """
     defmodule A do
       require Integer
@@ -186,17 +193,41 @@ defmodule Mix.Tasks.XrefTest do
       File.write!("lib/a.ex", contents)
 
       assert capture_io(:stderr, fn ->
-        assert Mix.Task.run("xref", []) == :error
+        assert Mix.Task.run("xref", ["--warnings"]) == :error
       end) == expected
     end
   end
+
   defp assert_no_warnings(contents) do
     in_fixture "no_mixfile", fn ->
       File.write!("lib/a.ex", contents)
 
       assert capture_io(:stderr, fn ->
-        assert Mix.Task.run("xref", []) == :ok
+        assert Mix.Task.run("xref", ["--warnings"]) == :ok
       end) == ""
+    end
+  end
+
+  ## Unreachable
+
+  test "unreachble: reports missing functions" do
+    assert_unreachable """
+    defmodule A do
+      def a, do: A.no_func
+      def b, do: A.a()
+    end
+    """, """
+    lib/a.ex:2: A.no_func/0
+    """
+  end
+
+  defp assert_unreachable(contents, expected) do
+    in_fixture "no_mixfile", fn ->
+      File.write!("lib/a.ex", contents)
+
+      assert capture_io(fn ->
+        assert Mix.Task.run("xref", ["--unreachable"]) == :error
+      end) == expected
     end
   end
 end

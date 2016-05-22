@@ -1,111 +1,172 @@
 defmodule Mix.Tasks.Xref do
   use Mix.Task
 
-  import Mix.Tasks.Compile.Elixir, only: [manifests: 0]
+  alias Mix.Tasks.Compile.Elixir, as: E
   import Mix.Compilers.Elixir, only: [parse_manifest: 1, source: 1]
 
-  @shortdoc "Performs remote dispatch checking"
+  @shortdoc "Performs cross reference checks"
   @recursive true
 
   @moduledoc """
-  Performs remote dispatch checking.
+  Performs cross reference checks between modules.
 
-  When this task runs, it looks for all runtime remote dispatches in the
-  application. It will then check that all of the modules/functions referred to
-  by the dispatches are available. If any are not, a warning will be printed.
+  ## Xref modes
+
+  The following options control the information xref can emit.
+
+    * `--warnings` - prints warnings for violated cross reference checks
+    * `--unreachable` - prints all unreachable "file:line: module.function/arity" entries
 
   ## Command line options
 
     * `--no-compile` - do not compile even if files require compilation
+    * `--no-deps-check` - do not check dependencies
+    * `--no-archives-check` - do not check archives
+    * `--no-elixir-version-check` - do not check the Elixir version from mix.exs
 
   """
+
+  @switches [compile: :boolean, deps_check: :boolean, archives_check: :boolean,
+             warnings: :boolean, unreachable: :boolean, elixir_version_check: :boolean]
 
   @doc """
   Runs this task.
   """
   @spec run(OptionParser.argv) :: :ok | :error
   def run(args) do
-    {opts, _, _} =
-      OptionParser.parse(args, switches: [no_compile: :boolean])
+    {opts, _} =
+      OptionParser.parse!(args, strict: @switches)
 
-    unless opts[:no_compile], do: Mix.Task.run("compile")
+    if Keyword.get(opts, :compile, true) do
+      Mix.Task.run("compile")
+    end
 
-    Enum.reduce manifests(), :ok, fn manifest, result ->
-      {_, sources} = parse_manifest(manifest)
-
-      Enum.reduce sources, result, fn source, result ->
-        source(runtime_dispatches: runtime_dispatches, source: source) = source
-        warn_for_missing_remote_functions(runtime_dispatches, source, result)
-      end
+    cond do
+      opts[:warnings] ->
+        warnings()
+      opts[:unreachable] ->
+        unreachable()
+      true ->
+        Mix.raise "xref expects one of the following flags: --warnings, --unreachable"
     end
   end
 
-  defp warn_for_missing_remote_functions(runtime_dispatches, source, result) do
-    warnings =
-      Enum.flat_map runtime_dispatches, fn {module, func_arity_lines} ->
-        Enum.flat_map func_arity_lines, fn {{func, arity}, lines} ->
-          for line <- lines, warning = warning(module, func, arity, line),
-            do: warning
-        end
-      end
+  ## Modes
 
-    if warnings == [] do
-      result
+  defp warnings() do
+    if unreachable(&print_warnings/2) == [] do
+      :ok
     else
-      print_warnings(source, warnings)
-
       :error
     end
   end
 
-  defp warning(module, func, arity, line) do
-    if Code.ensure_loaded?(module) do
-      unless function_exported?(module, func, arity) or erlang_op?(module, func, arity) do
-        {line, :unknown_function, module, func, arity}
-      end
+  defp unreachable() do
+    if unreachable(&print_entry/2) == [] do
+      :ok
     else
-      unless builtin_protocol_impl?(module, func, arity) do
-        {line, :unknown_module, module, func, arity}
-      end
+      :error
     end
   end
 
-  defp print_warnings(source, warnings) do
-    Enum.sort(warnings)
-    |> Enum.each(&print_warning(source, &1))
+  ## Unreachable
+
+  defp unreachable(pair) do
+    for manifest <- E.manifests(),
+        {_, sources} = parse_manifest(manifest),
+        source(source: file) = source <- sources,
+        entries = unreachable_source(source),
+        entries != [],
+        do: pair.(file, entries)
   end
 
-  defp print_warning(source, {line, :unknown_function, module, func, arity}) do
-    message =
-      "Remote function #{inspect module}.#{func}/#{arity} cannot be found"
+  defp unreachable_source(source) do
+    source(runtime_dispatches: runtime_dispatches) = source
 
-    :elixir_errors.warn(line, source, message)
+    for {module, func_arity_lines} <- runtime_dispatches,
+        {{func, arity}, lines} <- func_arity_lines,
+        warning = unreachable_mfa(module, func, arity, lines),
+        do: warning
   end
 
-  defp print_warning(source, {line, :unknown_module, module, func, arity}) do
-    message =
-      "Module #{inspect module} cannot be found\n\n" <>
-      "In remote call to #{inspect module}.#{func}/#{arity} at:"
-
-    :elixir_errors.warn(line, source, message)
+  defp unreachable_mfa(module, func, arity, lines) do
+    cond do
+      skip?(module, func, arity) ->
+        nil
+      not Code.ensure_loaded?(module) ->
+        {Enum.sort(lines), :unknown_module, module, func, arity}
+      not function_exported?(module, func, arity) ->
+        {Enum.sort(lines), :unknown_function, module, func, arity}
+      true ->
+        nil
+    end
   end
 
-  defp erlang_op?(:erlang, func, 2) when func in [:andalso, :orelse],
-    do: true
-  defp erlang_op?(_, _, _),
-    do: false
+  ## Print entries
+
+  defp print_entry(file, entries) do
+    entries
+    |> Enum.sort()
+    |> Enum.each(&IO.write(format_entry(file, &1)))
+  end
+
+  defp format_entry(file, {lines, _, module, function, arity}) do
+    for line <- lines do
+      [Exception.format_file_line(file, line), ?\s, Exception.format_mfa(module, function, arity), ?\n]
+    end
+  end
+
+  ## Print warnings
+
+  defp print_warnings(file, entries) do
+    prefix = IO.ANSI.format([:yellow, "warning: "])
+    entries
+    |> Enum.sort
+    |> Enum.each(&IO.write(:stderr, [prefix, format_warning(file, &1), ?\n]))
+  end
+
+  defp format_warning(file, {lines, :unknown_function, module, function, arity}) do
+    ["function ", Exception.format_mfa(module, function, arity),
+      " is undefined or private\n" | format_file_lines(file, lines)]
+  end
+
+  defp format_warning(file, {lines, :unknown_module, module, function, arity}) do
+    ["function ", Exception.format_mfa(module, function, arity),
+     " is undefined (module #{inspect module} is not available)\n" | format_file_lines(file, lines)]
+  end
+
+  defp format_file_lines(file, [line]) do
+    format_file_line(file, line)
+  end
+
+  defp format_file_lines(file, lines) do
+    ["Violation found at #{length(lines)} locations below:\n" |
+     Enum.map(lines, &format_file_line(file, &1))]
+  end
+
+  defp format_file_line(file, line) do
+    ["  ", file, ?:, Integer.to_string(line), ?\n]
+  end
+
+  ## Helpers
 
   @protocol_builtins for {_, type} <- Protocol.__builtin__(), do: type
 
-  defp builtin_protocol_impl?(module, :__impl__, 1) do
+  defp skip?(:erlang, func, 2) when func in [:andalso, :orelse] do
+    true
+  end
+
+  defp skip?(module, :__impl__, 1) do
     {maybe_protocol, maybe_builtin} = module |> Module.split() |> Enum.split(-1)
     maybe_protocol = Module.concat(maybe_protocol)
     maybe_builtin = Module.concat(maybe_builtin)
 
-    Code.ensure_loaded?(maybe_protocol) and
-    maybe_builtin in @protocol_builtins and
-    function_exported?(maybe_protocol, :__protocol__, 1)
+    maybe_builtin in @protocol_builtins
+      and Code.ensure_loaded?(maybe_protocol)
+      and function_exported?(maybe_protocol, :__protocol__, 1)
   end
-  defp builtin_protocol_impl?(_, _, _),
-    do: false
+
+  defp skip?(_, _, _) do
+    false
+  end
 end

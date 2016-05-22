@@ -30,7 +30,6 @@ defmodule Mix.Compilers.Elixir do
   def compile(manifest, srcs, dest, force, opts) do
     all = Mix.Utils.extract_files(srcs, [:ex])
     {all_modules, all_sources} = parse_manifest(manifest)
-
     modified = Mix.Utils.last_modified(manifest)
 
     removed =
@@ -200,6 +199,10 @@ defmodule Mix.Compilers.Elixir do
       compile_dispatches
       |> Enum.reject(&match?("elixir_" <> _, Atom.to_string(elem(&1, 0))))
 
+    runtime_dispatches =
+      runtime_dispatches
+      |> Enum.to_list
+
     kind     = detect_kind(module)
     source   = Path.relative_to(source, cwd)
     external = get_external_resources(module, cwd)
@@ -364,7 +367,7 @@ defmodule Mix.Compilers.Elixir do
   defp write_manifest(manifest, modules, sources) do
     File.mkdir_p!(Path.dirname(manifest))
 
-    File.open!(manifest, [:write], fn device ->
+    File.open!(manifest, [:write, :utf8], fn device ->
       :io.format(device, '~p.~n', [@manifest_vsn])
 
       Enum.each modules, fn module(beam: beam, binary: binary) = module ->
