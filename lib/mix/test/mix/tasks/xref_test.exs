@@ -146,13 +146,11 @@ defmodule Mix.Tasks.XrefTest do
     end
     """, """
     warning: function A.no_func/0 is undefined or private
-
     Found at 2 locations:
       lib/a.ex:2
       lib/a.ex:4
 
     warning: function A2.no_func/0 is undefined (module A2 is not available)
-
     Found at 2 locations:
       lib/a.ex:3
       lib/a.ex:5
