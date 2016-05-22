@@ -2,7 +2,7 @@ defmodule Mix.Tasks.Xref do
   use Mix.Task
 
   alias Mix.Tasks.Compile.Elixir, as: E
-  import Mix.Compilers.Elixir, only: [parse_manifest: 1, source: 1]
+  import Mix.Compilers.Elixir, only: [read_manifest: 1, source: 1]
 
   @shortdoc "Performs cross reference checks"
   @recursive true
@@ -73,8 +73,7 @@ defmodule Mix.Tasks.Xref do
 
   defp unreachable(pair) do
     for manifest <- E.manifests(),
-        {_, sources} = parse_manifest(manifest),
-        source(source: file) = source <- sources,
+        source(source: file) = source <- read_manifest(manifest),
         entries = unreachable_source(source),
         entries != [],
         do: pair.(file, entries)
