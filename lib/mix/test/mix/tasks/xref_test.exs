@@ -251,4 +251,34 @@ defmodule Mix.Tasks.XrefTest do
       end) == expected
     end
   end
+
+  ## Exclude
+
+  test "exclude: excludes specified modules and MFAs" do
+    defmodule ExcludeSample do
+      def project do
+        [app: :sample,
+         version: "0.1.0",
+         xref: [exclude: [MissingModule, {MissingModule2, :no_func, 2}]]]
+      end
+    end
+
+    Mix.Project.push ExcludeSample
+
+    assert_warnings """
+    defmodule A do
+      def a, do: MissingModule.no_func(1)
+      def b, do: MissingModule2.no_func(1, 2)
+      def c, do: MissingModule2.no_func(1)
+      def d, do: MissingModule3.no_func(1, 2)
+    end
+    """, """
+    warning: function MissingModule2.no_func/1 is undefined (module MissingModule2 is not available)
+      lib/a.ex:4
+
+    warning: function MissingModule3.no_func/2 is undefined (module MissingModule3 is not available)
+      lib/a.ex:5
+
+    """
+  end
 end
