@@ -28,11 +28,12 @@ defmodule Mix.Tasks.Compile.Xref do
     {opts, _, _} =
       OptionParser.parse(args, switches: [force: :boolean, warnings_as_errors: :boolean])
 
-    config = Mix.Project.config()
     warnings_as_errors =
-      (opts[:warnings_as_errors] != nil) or (config[:elixirc_options][:warnings_as_errors] != nil)
+      Keyword.get_lazy(opts, :warnings_as_errors, fn ->
+        Mix.Project.config()[:elixirc_options][:warnings_as_errors]
+      end)
 
-    if needs_xref?(opts) and should_exit?(Mix.Task.run("xref", args), warnings_as_errors) do
+    if needs_xref?(opts) && should_exit?(Mix.Task.run("xref", ["--warnings"]), warnings_as_errors) do
       exit({:shutdown, 1})
     end
 
@@ -40,7 +41,7 @@ defmodule Mix.Tasks.Compile.Xref do
   end
 
   defp needs_xref?(opts) do
-    Mix.Utils.stale?(E.manifests(), manifests()) or (opts[:force] != nil)
+    opts[:force] || Mix.Utils.stale?(E.manifests(), manifests())
   end
 
   defp should_exit?(:error, true),
@@ -55,11 +56,7 @@ defmodule Mix.Tasks.Compile.Xref do
   defp manifest, do: Path.join(Mix.Project.manifest_path, @manifest)
 
   defp write_manifest do
-    # Only write the manifest if the manifest path exists,
-    # because if it doesn't we don't need one.
-    if File.exists?(Mix.Project.manifest_path()),
-      do: File.write!(manifest(), "")
-
+    File.touch(manifest())
     :noop
   end
 
