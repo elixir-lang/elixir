@@ -117,7 +117,14 @@ defmodule Mix.Compilers.Elixir do
   def parse_manifest(manifest) do
     state = {[], []}
 
-    case :file.consult(manifest) do
+    manifest =
+      try do
+        {:ok, manifest |> File.read!() |> :erlang.binary_to_term()}
+      rescue
+        _ -> :file.consult(manifest)
+      end
+
+    case manifest do
       {:ok, [@manifest_vsn | data]} ->
         parse_manifest(data, state)
       {:ok, [:v2 | data]} ->
@@ -344,8 +351,12 @@ defmodule Mix.Compilers.Elixir do
   ## Manifest handling
 
   defp read_manifest(manifest) do
-    case :file.consult(manifest) do
-      {:ok, [@manifest_vsn | t]} -> t
+    try do
+      manifest |> File.read!() |> :erlang.binary_to_term()
+    else
+      [@manifest_vsn | t] -> t
+      _ -> []
+    rescue
       _ -> []
     end
   end
@@ -367,20 +378,17 @@ defmodule Mix.Compilers.Elixir do
   defp write_manifest(manifest, modules, sources) do
     File.mkdir_p!(Path.dirname(manifest))
 
-    File.open!(manifest, [:write, :utf8], fn device ->
-      :io.format(device, '~p.~n', [@manifest_vsn])
-
-      Enum.each modules, fn module(beam: beam, binary: binary) = module ->
+    modules =
+      for module(beam: beam, binary: binary) = module <- modules do
         if binary, do: File.write!(beam, binary)
-        :io.format(device, '~p.~n', [module(module, binary: nil)])
+        module(module, binary: nil)
       end
 
-      Enum.each sources, fn source ->
-        :io.format(device, '~p.~n', [source])
-      end
+    manifest_data =
+      [@manifest_vsn | modules ++ sources]
+      |> :erlang.term_to_binary(compressed: 9)
 
-      :ok
-    end)
+    File.write!(manifest, manifest_data)
 
     # Since Elixir is a dependency itself, we need to touch the lock
     # so the current Elixir version, used to compile the files above,
