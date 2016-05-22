@@ -45,8 +45,10 @@ defmodule PathTest do
       assert Path.relative_to("D:/usr/local/foo", "D:/usr/") == "local/foo"
       assert Path.relative_to("D:/usr/local/foo", "d:/usr/") == "local/foo"
       assert Path.relative_to("d:/usr/local/foo", "D:/usr/") == "local/foo"
-      assert Path.relative_to("D:/usr/local/foo", "d:") == "usr/local/foo"
-      assert Path.relative_to("D:/usr/local/foo", "D:") == "usr/local/foo"
+      assert Path.relative_to("D:/usr/local/foo", "d:/") == "usr/local/foo"
+      assert Path.relative_to("D:/usr/local/foo", "D:/") == "usr/local/foo"
+      assert Path.relative_to("D:/usr/local/foo", "d:") == "D:/usr/local/foo"
+      assert Path.relative_to("D:/usr/local/foo", "D:") == "D:/usr/local/foo"
     end
 
     test "type win" do
@@ -111,7 +113,7 @@ defmodule PathTest do
   end
 
   test "expand path with user home" do
-    home = System.user_home!
+    home = System.user_home! |> Path.absname
 
     assert home == Path.expand("~")
     assert home == Path.expand('~')
