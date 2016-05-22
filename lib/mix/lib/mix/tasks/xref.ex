@@ -28,9 +28,8 @@ defmodule Mix.Tasks.Xref do
 
     All configuration for Xref should be placed under the key `:xref`.
 
-    * `:exclude` - modules and `{module, func, arity}`s to ignore when checking
-      cross references. For example:
-      `xref: [exclude: [MissingModule, {MissingModule2, :missing_func, 2}]]`
+    * `:exclude` - a list of modules and `{module, function, arity}` tuples to ignore when checking
+      cross references. For example: `[MissingModule, {MissingModule2, :missing_func, 2}]`
 
   """
 
