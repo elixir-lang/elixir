@@ -161,9 +161,9 @@ defmodule Mix.Tasks.Xref do
     maybe_protocol = Module.concat(maybe_protocol)
     maybe_builtin = Module.concat(maybe_builtin)
 
-    maybe_builtin in @protocol_builtins
-      and Code.ensure_loaded?(maybe_protocol)
-      and function_exported?(maybe_protocol, :__protocol__, 1)
+    maybe_builtin in @protocol_builtins and
+      Code.ensure_loaded?(maybe_protocol) and
+      function_exported?(maybe_protocol, :__protocol__, 1)
   end
 
   defp skip?(_, _, _) do
