@@ -142,9 +142,9 @@ defmodule IEx.InteractionTest do
   end
 
   test "receive exit" do
-    assert capture_iex("spawn_link(fn -> exit(:bye) end)") =~
+    assert capture_iex("spawn_link(fn -> exit(:bye) end); Process.sleep(1000)") =~
            ~r"\*\* \(EXIT from #PID<\d+\.\d+\.\d+>\) :bye"
-    assert capture_iex("spawn_link(fn -> exit({:bye, [:world]}) end)") =~
+    assert capture_iex("spawn_link(fn -> exit({:bye, [:world]}) end); Process.sleep(1000)") =~
            ~r"\*\* \(EXIT from #PID<\d+\.\d+\.\d+>\) {:bye, \[:world\]}"
   end
 
@@ -152,7 +152,8 @@ defmodule IEx.InteractionTest do
     # use exit/1 to fake an error so that an error message
     # is not sent to the error logger.
     content = capture_iex("spawn_link(fn -> exit({%ArgumentError{},
-                           [{:not_a_real_module, :function, 0, []}]}) end)")
+                           [{:not_a_real_module, :function, 0, []}]}) end);
+                           Process.sleep(1000)")
     assert content =~ ~r"\*\* \(EXIT from #PID<\d+\.\d+\.\d+>\) an exception was raised:\n"
     assert content =~ ~r"\s{4}\*\* \(ArgumentError\) argument error\n"
     assert content =~ ~r"\s{8}:not_a_real_module\.function/0"
