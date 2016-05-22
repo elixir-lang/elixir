@@ -24,6 +24,14 @@ defmodule Mix.Tasks.Xref do
     * `--no-archives-check` - do not check archives
     * `--no-elixir-version-check` - do not check the Elixir version from mix.exs
 
+  ## Configuration
+
+    All configuration for Xref should be placed under the key `:xref`.
+
+    * `:exclude` - modules and `{module, func, arity}`s to ignore when checking
+      cross references. For example:
+      `xref: [exclude: [MissingModule, {MissingModule2, :missing_func, 2}]]`
+
   """
 
   @switches [compile: :boolean, deps_check: :boolean, archives_check: :boolean,
@@ -72,24 +80,28 @@ defmodule Mix.Tasks.Xref do
   ## Unreachable
 
   defp unreachable(pair) do
+    excludes = excludes()
+
     for manifest <- E.manifests(),
         source(source: file) = source <- read_manifest(manifest),
-        entries = unreachable_source(source),
+        entries = unreachable_source(source, excludes),
         entries != [],
         do: pair.(file, entries)
   end
 
-  defp unreachable_source(source) do
+  defp unreachable_source(source, excludes) do
     source(runtime_dispatches: runtime_dispatches) = source
 
     for {module, func_arity_lines} <- runtime_dispatches,
         {{func, arity}, lines} <- func_arity_lines,
-        warning = unreachable_mfa(module, func, arity, lines),
+        warning = unreachable_mfa(module, func, arity, lines, excludes),
         do: warning
   end
 
-  defp unreachable_mfa(module, func, arity, lines) do
+  defp unreachable_mfa(module, func, arity, lines, excludes) do
     cond do
+      excluded?(module, func, arity, excludes) ->
+        nil
       skip?(module, func, arity) ->
         nil
       not Code.ensure_loaded?(module) ->
@@ -167,5 +179,16 @@ defmodule Mix.Tasks.Xref do
 
   defp skip?(_, _, _) do
     false
+  end
+
+  defp excludes() do
+    Mix.Project.config()
+    |> Keyword.get(:xref, [])
+    |> Keyword.get(:exclude, [])
+    |> MapSet.new()
+  end
+
+  defp excluded?(module, func, arity, excludes) do
+    MapSet.member?(excludes, module) or MapSet.member?(excludes, {module, func, arity})
   end
 end
