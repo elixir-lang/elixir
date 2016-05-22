@@ -186,14 +186,27 @@ defmodule Kernel.TypespecTest do
            types(module)
   end
 
-  test "@type with a map" do
+  test "@type with a keyword map" do
     module = test_module do
       @type mytype :: %{hello: :world}
     end
 
     assert [type: {:mytype,
              {:type, _, :map, [
-               {:type, _, :map_field_assoc, [{:atom, _, :hello}, {:atom, _, :world}]}
+               {:type, _, :map_field_exact, [{:atom, _, :hello}, {:atom, _, :world}]}
+             ]},
+            []}] = types(module)
+  end
+
+  test "@type with a map" do
+    module = test_module do
+      @type mytype :: %{required(:a) => :b, optional(:c) => :d}
+    end
+
+    assert [type: {:mytype,
+             {:type, _, :map, [
+               {:type, _, :map_field_exact, [{:atom, _, :a}, {:atom, _, :b}]},
+               {:type, _, :map_field_assoc, [{:atom, _, :c}, {:atom, _, :d}]}
              ]},
             []}] = types(module)
   end
@@ -206,9 +219,9 @@ defmodule Kernel.TypespecTest do
 
     assert [type: {:mytype,
              {:type, _, :map, [
-               {:type, _, :map_field_assoc, [{:atom, _, :__struct__}, {:atom, _, TestTypespec}]},
-               {:type, _, :map_field_assoc, [{:atom, _, :hello}, {:atom, _, :world}]},
-               {:type, _, :map_field_assoc, [{:atom, _, :other}, {:type, _, :term, []}]}
+               {:type, _, :map_field_exact, [{:atom, _, :__struct__}, {:atom, _, TestTypespec}]},
+               {:type, _, :map_field_exact, [{:atom, _, :hello}, {:atom, _, :world}]},
+               {:type, _, :map_field_exact, [{:atom, _, :other}, {:type, _, :term, []}]}
              ]},
             []}] = types(module)
   end
@@ -579,6 +592,8 @@ defmodule Kernel.TypespecTest do
       (quote do: @type a_map() :: map()),
       (quote do: @type empty_map() :: %{}),
       (quote do: @type my_map() :: %{hello: :world}),
+      (quote do: @type my_req_map() :: %{required(0) => :atom}),
+      (quote do: @type my_opt_map() :: %{optional(0) => :atom}),
       (quote do: @type my_struct() :: %Kernel.TypespecTest{hello: :world}),
       (quote do: @type list1() :: list()),
       (quote do: @type list2() :: [0]),

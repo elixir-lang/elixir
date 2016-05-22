@@ -566,12 +566,14 @@ defmodule Kernel.Typespec do
 
   defp typespec_to_ast({:type, line, :map, fields}) do
     fields = Enum.map fields, fn
-      # OTP 18
+      {:type, _, :map_field_assoc, :any} ->
+        {:..., [line: line], nil}
+      {:type, _, :map_field_exact, [{:atom, _, k}, v]} ->
+        {k, typespec_to_ast(v)}
+      {:type, _, :map_field_exact, [k, v]} ->
+        {{:required, [], [typespec_to_ast(k)]}, typespec_to_ast(v)}
       {:type, _, :map_field_assoc, [k, v]} ->
-        {typespec_to_ast(k), typespec_to_ast(v)}
-      # OTP 17
-      {:type, _, :map_field_assoc, k, v} ->
-        {typespec_to_ast(k), typespec_to_ast(v)}
+        {{:optional, [], [typespec_to_ast(k)]}, typespec_to_ast(v)}
     end
 
     {struct, fields} = Keyword.pop(fields, :__struct__)
@@ -737,11 +739,24 @@ defmodule Kernel.Typespec do
   defp typespec({:%{}, meta, fields} = map, vars, caller) do
     fields =
       :lists.map(fn
+        :... ->
+          {:type, line(meta), :map_field_assoc, :any}
+        {k, v} when is_atom(k) ->
+          {:type, line(meta), :map_field_exact, [typespec(k, vars, caller), typespec(v, vars, caller)]}
+        {{:required, meta2, [k]}, v} ->
+          {:type, line(meta2), :map_field_exact, [typespec(k, vars, caller), typespec(v, vars, caller)]}
+        {{:optional, meta2, [k]}, v} ->
+          {:type, line(meta2), :map_field_assoc, [typespec(k, vars, caller), typespec(v, vars, caller)]}
         {k, v} ->
+          # :elixir_errors.warn(caller.line, caller.file,
+          #   "invalid map specification. %{foo => bar} is deprecated in favor of " <>
+          #   "%{required(foo) => bar} and %{optional(foo) => bar}. required/1 is an " <>
+          #   "OTP 19 only feature, if you are targeting OTP 18 use optional/1.")
           {:type, line(meta), :map_field_assoc, [typespec(k, vars, caller), typespec(v, vars, caller)]}
         {:|, _, [_, _]} ->
-          compile_error(caller, "invalid map specification. When using the | operator in the map key, " <>
-                                "make sure to wrap the key type in parentheses: #{Macro.to_string(map)}")
+          compile_error(caller,
+            "invalid map specification. When using the | operator in the map key, " <>
+            "make sure to wrap the key type in parentheses: #{Macro.to_string(map)}")
         _ ->
           compile_error(caller, "invalid map specification: #{Macro.to_string(map)}")
       end, fields)
