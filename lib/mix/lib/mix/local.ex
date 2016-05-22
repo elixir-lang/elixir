@@ -121,7 +121,7 @@ defmodule Mix.Local do
     if Mix.PublicKey.verify csv, :sha512, signature do
       csv
       |> parse_csv
-      |> find_latest_eligibile_version
+      |> find_latest_eligible_version
     else
       Mix.raise "Could not install #{name} because Mix could not verify authenticity " <>
                 "of metadata file at #{path}. This may happen because a proxy or some " <>
@@ -149,7 +149,7 @@ defmodule Mix.Local do
     |> Enum.map(&:binary.split(&1, ",", [:global, :trim]))
   end
 
-  defp find_latest_eligibile_version(entries) do
+  defp find_latest_eligible_version(entries) do
     {:ok, current_version} = Version.parse(System.version)
     entries
     |> Enum.reverse
