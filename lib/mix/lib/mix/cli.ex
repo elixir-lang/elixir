@@ -83,7 +83,7 @@ defmodule Mix.CLI do
 
   defp ensure_no_slashes(task) do
     if String.contains?(task, "/") do
-      Mix.raise Mix.NoTaskError, task: task
+      raise Mix.NoTaskError, task: task
     end
   end
 

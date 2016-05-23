@@ -113,7 +113,7 @@ defmodule Mix.Project do
   """
   @spec get!() :: module | no_return
   def get! do
-    get || Mix.raise Mix.NoProjectError, []
+    get || raise Mix.NoProjectError, []
   end
 
   @doc """

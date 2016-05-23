@@ -3442,19 +3442,13 @@ defmodule Kernel do
 
   The example above shows the preferred strategy for customizing
   exception messages.
-
   """
   defmacro defexception(fields) do
-    fields = case is_list(fields) do
-      true  -> [{:__exception__, true} | fields]
-      false -> quote(do: [{:__exception__, true}] ++ unquote(fields))
-    end
-
-    quote do
+    quote bind_quoted: [fields: fields] do
       @behaviour Exception
-      fields = defstruct unquote(fields)
+      struct = defstruct([__exception__: true] ++ fields)
 
-      if Map.has_key?(fields, :message) do
+      if Map.has_key?(struct, :message) do
         @spec message(Exception.t) :: String.t
         def message(exception) do
           exception.message
@@ -3470,7 +3464,7 @@ defmodule Kernel do
 
       @spec exception(Keyword.t) :: Exception.t
       def exception(args) when is_list(args) do
-        Kernel.struct(__struct__, args)
+        Exception.__struct__(__struct__(), unquote(Kernel.Utils.defexception(struct)), args)
       end
 
       defoverridable exception: 1
