@@ -58,9 +58,9 @@ The following literals are also supported in typespecs:
           | 1.0                           ## Floats
 
           | <<>>                          ## Bitstrings
-          | <<_::size>>                 # size is 0 or a positive integer
-          | <<_::_ * unit>>             # unit is an integer from 1 to 256
-          | <<_::size * unit>>
+          | <<_::size>>                   # size is 0 or a positive integer
+          | <<_::_*unit>>                 # unit is an integer from 1 to 256
+          | <<_::size, _::_*unit>>
 
           | [type]                        ## Lists
           | []                            # empty list
