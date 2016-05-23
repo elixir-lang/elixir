@@ -46,11 +46,7 @@ defmodule Calendar.ISO do
 
   """
   def leap_year?(year) when is_integer(year) and year >= 0 do
-    cond do
-      rem(year, 4) == 0 and rem(year, 100) > 0 -> true
-      rem(year, 400) == 0 -> true
-      true -> false
-    end
+    rem(year, 4) === 0 and (rem(year, 100) > 0 or rem(year, 400) === 0)
   end
 
   @doc """
