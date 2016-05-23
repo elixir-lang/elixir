@@ -32,11 +32,11 @@ defmodule Exception do
   @callback message(t) :: String.t
 
   @doc false
-  def __struct__(struct, fields, args) do
-    keys = for({k, _} <- args, do: k)
+  def __struct__(struct, required_fields, args) do
+    keys = for({key, _} <- args, do: key)
 
-    # TODO: Consider if this should raise or warn in future versions.
-    case fields -- keys do
+    # TODO: Consider if this should raise or warn in future versions
+    case required_fields -- keys do
       [] ->
         :ok
       missing ->
@@ -752,7 +752,7 @@ defmodule Protocol.UndefinedError do
     msg = "protocol #{inspect exception.protocol} not implemented for #{inspect exception.value}"
     case exception.description do
       "" -> msg
-      _  -> msg <> ", " <> exception.description
+      descr -> msg <> ", " <> descr
     end
   end
 end

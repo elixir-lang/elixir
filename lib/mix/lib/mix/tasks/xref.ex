@@ -48,9 +48,8 @@ defmodule Mix.Tasks.Xref do
       Mix.Task.run("compile")
     end
 
-    mode = Keyword.take(opts, [:warnings, :unreachable])
-
-    case mode do
+    modes = [:warnings, :unreachable]
+    case Keyword.take(opts, modes) do
       [warnings: true] ->
         warnings()
       [unreachable: true] ->
@@ -139,7 +138,7 @@ defmodule Mix.Tasks.Xref do
 
   defp format_warning(file, {lines, :unknown_function, module, function, arity}) do
     ["function ", Exception.format_mfa(module, function, arity),
-      " is undefined or private\n" | format_file_lines(file, lines)]
+     " is undefined or private\n" | format_file_lines(file, lines)]
   end
 
   defp format_warning(file, {lines, :unknown_module, module, function, arity}) do
