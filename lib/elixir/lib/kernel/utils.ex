@@ -82,8 +82,4 @@ defmodule Kernel.Utils do
 
     :maps.put(:__struct__, module, :maps.from_list(fields))
   end
-
-  def defexception(struct) do
-    :lists.map(&elem(&1, 0), :lists.filter(&elem(&1, 1) == nil, :maps.to_list(struct)))
-  end
 end

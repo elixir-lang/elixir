@@ -350,7 +350,7 @@ defmodule Keyword do
   @spec get_values(t, key) :: [value]
   def get_values(keywords, key) when is_list(keywords) and is_atom(key) do
     fun = fn
-      {k, v} when k === key -> {true, v}
+      {^key, val} -> {true, val}
       {_, _} -> false
     end
     :lists.filtermap(fun, keywords)

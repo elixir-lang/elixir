@@ -3447,6 +3447,11 @@ defmodule Kernel do
     quote bind_quoted: [fields: fields] do
       @behaviour Exception
       struct = defstruct([__exception__: true] ++ fields)
+      required_fields =
+        :lists.filtermap(fn
+          {key, nil} -> {true, key}
+          {_, _} -> false
+        end, :maps.to_list(struct))
 
       if Map.has_key?(struct, :message) do
         @spec message(Exception.t) :: String.t
@@ -3464,7 +3469,7 @@ defmodule Kernel do
 
       @spec exception(Keyword.t) :: Exception.t
       def exception(args) when is_list(args) do
-        Exception.__struct__(__struct__(), unquote(Kernel.Utils.defexception(struct)), args)
+        Exception.__struct__(__struct__(), unquote(required_fields), args)
       end
 
       defoverridable exception: 1
