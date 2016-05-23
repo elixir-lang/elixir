@@ -144,7 +144,7 @@ defmodule Kernel.TypespecTest do
 
   test "@type with a binary with a base size" do
     module = test_module do
-      @type mytype :: <<_ :: 3>>
+      @type mytype :: <<_::3>>
     end
 
     assert [type: {:mytype, {:type, _, :binary, [{:integer, _, 3}, {:integer, _, 0}]}, []}] =
@@ -158,6 +158,23 @@ defmodule Kernel.TypespecTest do
 
     assert [type: {:mytype, {:type, _, :binary, [{:integer, _, 0}, {:integer, _, 8}]}, []}] =
            types(module)
+  end
+
+  test "@type with a binary with a size and unit size" do
+    module = test_module do
+      @type mytype :: <<_::3, _::_*8>>
+    end
+
+    assert [type: {:mytype, {:type, _, :binary, [{:integer, _, 3}, {:integer, _, 8}]}, []}] =
+           types(module)
+  end
+
+  test "@type with invalid binary spec" do
+    assert_raise CompileError, fn ->
+      test_module do
+        @type mytype :: <<_::3*8>>
+      end
+    end
   end
 
   test "@type with a range op" do
@@ -545,9 +562,9 @@ defmodule Kernel.TypespecTest do
       (quote do: @type simple_type() :: integer()),
       (quote do: @type param_type(p) :: [p]),
       (quote do: @type union_type() :: integer() | binary() | boolean()),
-      (quote do: @type binary_type1() :: <<_ :: _ * 8>>),
-      (quote do: @type binary_type2() :: <<_ :: 3 * 8>>),
-      (quote do: @type binary_type3() :: <<_ :: 3>>),
+      (quote do: @type binary_type1() :: <<_::_*8>>),
+      (quote do: @type binary_type2() :: <<_::3>>),
+      (quote do: @type binary_type3() :: <<_::3, _::_*8>>),
       (quote do: @type tuple_type() :: {integer()}),
       (quote do: @type ftype() :: (() -> any()) | (() -> integer()) | ((integer() -> integer()))),
       (quote do: @type cl() :: charlist()),
