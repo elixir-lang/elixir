@@ -64,6 +64,34 @@ defmodule Date do
   defstruct [:year, :month, :day, calendar: Calendar.ISO]
   @type t :: %__MODULE__{year: Calendar.year, month: Calendar.month,
                          day: Calendar.day, calendar: Calendar.calendar}
+
+  @doc """
+  Builds a new ISO date.
+
+  Expects all values to be integers. Returns `{:ok, time}` if each
+  entry fits its appropriate range, returns `:error` otherwise.
+
+  ## Examples
+
+      iex> Date.new(2000, 1, 1)
+      {:ok, %Date{year: 2000, month: 1, day: 1}}
+      iex> Date.new(2000, 13, 1)
+      {:error, :invalid_date}
+      iex> Date.new(2000, 2, 29)
+      {:ok, %Date{year: 2000, month: 2, day: 29}}
+      iex> Date.new(2000, 2, 30)
+      {:error, :invalid_date}
+      iex> Date.new(2001, 2, 29)
+      {:error, :invalid_date}
+  """
+  @spec new(integer, integer, integer) :: {:ok, Date.t} | {:error, atom}
+  def new(year, month, day) when is_integer(year) and is_integer(month) and is_integer(day) do
+    if Calendar.ISO.valid_date?(year, month, day) do
+      {:ok, %Date{year: year, month: month, day: day}}
+    else
+      {:error, :invalid_date}
+    end
+  end
 end
 
 defmodule Time do
@@ -73,6 +101,38 @@ defmodule Time do
   defstruct [:hour, :minute, :second, :microsecond]
   @type t :: %__MODULE__{hour: Calendar.hour, minute: Calendar.minute,
                          second: Calendar.second, microsecond: Calendar.microsecond}
+
+  @doc """
+  Builds a new time.
+
+  Expects all values to be integers. Returns `{:ok, time}` if each
+  entry fits its appropriate range, returns `{:error, reason}` otherwise.
+
+  ## Examples
+
+      iex> Time.new(0, 0, 0, 0)
+      {:ok, %Time{hour: 0, minute: 0, second: 0, microsecond: 0}}
+      iex> Time.new(23, 59, 59, 999_999)
+      {:ok, %Time{hour: 23, minute: 59, second: 59, microsecond: 999_999}}
+      iex> Time.new(24, 59, 59, 999_999)
+      {:error, :invalid_time}
+      iex> Time.new(23, 60, 59, 999_999)
+      {:error, :invalid_time}
+      iex> Time.new(23, 59, 60, 999_999)
+      {:error, :invalid_time}
+      iex> Time.new(23, 59, 59, 1_000_000)
+      {:error, :invalid_time}
+
+  """
+  @spec new(integer, integer, integer, integer) :: {:ok, Time.t} | {:error, atom}
+  def new(hour, minute, second, microsecond \\ 0)
+      when is_integer(hour) and is_integer(minute) and is_integer(second) and is_integer(microsecond) do
+    if hour in 0..23 and minute in 0..59 and second in 0..59 and microsecond in 0..999_999 do
+      {:ok, %Time{hour: hour, minute: minute, second: second, microsecond: microsecond}}
+    else
+      {:error, :invalid_time}
+    end
+  end
 end
 
 defmodule NaiveDateTime do
@@ -94,6 +154,53 @@ defmodule NaiveDateTime do
   @type t :: %__MODULE__{year: Calendar.year, month: Calendar.month, day: Calendar.day,
                          calendar: Calendar.calendar, hour: Calendar.hour, minute: Calendar.minute,
                          second: Calendar.second, microsecond: Calendar.microsecond}
+
+  @doc """
+  Builds a new ISO naive date time.
+
+  Expects all values to be integers. Returns `{:ok, naive_date_time}`
+  if each entry fits its appropriate range, returns `{:error, reason}`
+  otherwise.
+
+  ## Examples
+
+      iex> NaiveDateTime.new(2000, 1, 1, 0, 0, 0)
+      {:ok, %NaiveDateTime{year: 2000, month: 1, day: 1, hour: 0, minute: 0, second: 0, microsecond: 0}}
+      iex> NaiveDateTime.new(2000, 13, 1, 0, 0, 0)
+      {:error, :invalid_date}
+      iex> NaiveDateTime.new(2000, 2, 29, 0, 0, 0)
+      {:ok, %NaiveDateTime{year: 2000, month: 2, day: 29, hour: 0, minute: 0, second: 0, microsecond: 0}}
+      iex> NaiveDateTime.new(2000, 2, 30, 0, 0, 0)
+      {:error, :invalid_date}
+      iex> NaiveDateTime.new(2001, 2, 29, 0, 0, 0)
+      {:error, :invalid_date}
+
+      iex> NaiveDateTime.new(2000, 1, 1, 23, 59, 59, 999_999)
+      {:ok, %NaiveDateTime{year: 2000, month: 1, day: 1, hour: 23, minute: 59, second: 59, microsecond: 999_999}}
+      iex> NaiveDateTime.new(2000, 1, 1, 24, 59, 59, 999_999)
+      {:error, :invalid_time}
+      iex> NaiveDateTime.new(2000, 1, 1, 23, 60, 59, 999_999)
+      {:error, :invalid_time}
+      iex> NaiveDateTime.new(2000, 1, 1, 23, 59, 60, 999_999)
+      {:error, :invalid_time}
+      iex> NaiveDateTime.new(2000, 1, 1, 23, 59, 59, 1_000_000)
+      {:error, :invalid_time}
+  """
+  @spec new(integer, integer, integer, integer, integer, integer, integer) ::
+        {:ok, NaiveDateTime.t} | {:error, atom}
+  def new(year, month, day, hour, minute, second, microsecond \\ 0)
+      when is_integer(year) and is_integer(month) and is_integer(day) and
+           is_integer(hour) and is_integer(minute) and is_integer(second) and is_integer(microsecond) do
+    cond do
+      not(Calendar.ISO.valid_date?(year, month, day)) ->
+        {:error, :invalid_date}
+      not(hour in 0..23 and minute in 0..59 and second in 0..59 and microsecond in 0..999_999) ->
+        {:error, :invalid_time}
+      true ->
+        {:ok, %NaiveDateTime{year: year, month: month, day: day,
+                             hour: hour, minute: minute, second: second, microsecond: microsecond}}
+    end
+  end
 end
 
 defmodule DateTime do
