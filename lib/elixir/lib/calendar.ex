@@ -108,17 +108,21 @@ defmodule Time do
   Expects all values to be integers. Returns `{:ok, time}` if each
   entry fits its appropriate range, returns `{:error, reason}` otherwise.
 
+  Note a time may have 60 seconds in case of leap seconds.
+
   ## Examples
 
       iex> Time.new(0, 0, 0, 0)
       {:ok, %Time{hour: 0, minute: 0, second: 0, microsecond: 0}}
       iex> Time.new(23, 59, 59, 999_999)
       {:ok, %Time{hour: 23, minute: 59, second: 59, microsecond: 999_999}}
+      iex> Time.new(23, 59, 50, 999_999)
+      {:ok, %Time{hour: 23, minute: 59, second: 50, microsecond: 999_999}}
       iex> Time.new(24, 59, 59, 999_999)
       {:error, :invalid_time}
       iex> Time.new(23, 60, 59, 999_999)
       {:error, :invalid_time}
-      iex> Time.new(23, 59, 60, 999_999)
+      iex> Time.new(23, 59, 61, 999_999)
       {:error, :invalid_time}
       iex> Time.new(23, 59, 59, 1_000_000)
       {:error, :invalid_time}
@@ -127,7 +131,7 @@ defmodule Time do
   @spec new(integer, integer, integer, integer) :: {:ok, Time.t} | {:error, atom}
   def new(hour, minute, second, microsecond \\ 0)
       when is_integer(hour) and is_integer(minute) and is_integer(second) and is_integer(microsecond) do
-    if hour in 0..23 and minute in 0..59 and second in 0..59 and microsecond in 0..999_999 do
+    if hour in 0..23 and minute in 0..59 and second in 0..60 and microsecond in 0..999_999 do
       {:ok, %Time{hour: hour, minute: minute, second: second, microsecond: microsecond}}
     else
       {:error, :invalid_time}
@@ -177,11 +181,13 @@ defmodule NaiveDateTime do
 
       iex> NaiveDateTime.new(2000, 1, 1, 23, 59, 59, 999_999)
       {:ok, %NaiveDateTime{year: 2000, month: 1, day: 1, hour: 23, minute: 59, second: 59, microsecond: 999_999}}
+      iex> NaiveDateTime.new(2000, 1, 1, 23, 59, 60, 999_999)
+      {:ok, %NaiveDateTime{year: 2000, month: 1, day: 1, hour: 23, minute: 59, second: 60, microsecond: 999_999}}
       iex> NaiveDateTime.new(2000, 1, 1, 24, 59, 59, 999_999)
       {:error, :invalid_time}
       iex> NaiveDateTime.new(2000, 1, 1, 23, 60, 59, 999_999)
       {:error, :invalid_time}
-      iex> NaiveDateTime.new(2000, 1, 1, 23, 59, 60, 999_999)
+      iex> NaiveDateTime.new(2000, 1, 1, 23, 59, 61, 999_999)
       {:error, :invalid_time}
       iex> NaiveDateTime.new(2000, 1, 1, 23, 59, 59, 1_000_000)
       {:error, :invalid_time}
@@ -194,7 +200,7 @@ defmodule NaiveDateTime do
     cond do
       not(Calendar.ISO.valid_date?(year, month, day)) ->
         {:error, :invalid_date}
-      not(hour in 0..23 and minute in 0..59 and second in 0..59 and microsecond in 0..999_999) ->
+      not(hour in 0..23 and minute in 0..59 and second in 0..60 and microsecond in 0..999_999) ->
         {:error, :invalid_time}
       true ->
         {:ok, %NaiveDateTime{year: year, month: month, day: day,
