@@ -586,13 +586,13 @@ defmodule Kernel.Typespec do
 
   defp typespec_to_ast({:type, line, :binary, [arg1, arg2]}) do
     [arg1, arg2] = for arg <- [arg1, arg2], do: typespec_to_ast(arg)
-    cond do
-      arg2 == 0 ->
+    case {typespec_to_ast(arg1), typespec_to_ast(arg2)} do
+      {arg1, 0} ->
         quote line: line, do: <<_ :: unquote(arg1)>>
-      arg1 == 0 ->
+      {0, arg2} ->
         quote line: line, do: <<_ :: _ * unquote(arg2)>>
-      true ->
-        quote line: line, do: <<_ :: unquote(arg1) * unquote(arg2)>>
+      {arg1, arg2} ->
+        quote line: line, do: <<_ :: unquote(arg1), _ :: _ * unquote(arg2)>>
     end
   end
 
@@ -719,14 +719,14 @@ defmodule Kernel.Typespec do
     {:type, line(meta), :binary, [{:integer, line(meta), 0}, {:integer, line(unit_meta), unit}]}
   end
 
-  defp typespec({:<<>>, meta, [{:::, shared_meta, [{:_, _, ctx}, {:*, _, [size, unit]}]}]}, _, _)
-      when is_atom(ctx) and is_integer(unit) and is_integer(size) do
-    {:type, line(meta), :binary, [{:integer, line(shared_meta), size}, {:integer, line(shared_meta), unit}]}
-  end
-
   defp typespec({:<<>>, meta, [{:::, size_meta, [{:_, _, ctx}, size]}]}, _, _)
       when is_atom(ctx) and is_integer(size) do
     {:type, line(meta), :binary, [{:integer, line(size_meta), size}, {:integer, line(meta), 0}]}
+  end
+
+  defp typespec({:<<>>, meta, [{:::, size_meta, [{:_, _, ctx1}, size]}, {:::, unit_meta, [{:_, _, ctx2}, {:*, _, [{:_, _, ctx3}, unit]}]}]}, _, _)
+      when is_atom(ctx1) and is_atom(ctx2) and is_atom(ctx3) and is_integer(size) and is_integer(unit) do
+    {:type, line(meta), :binary, [{:integer, line(size_meta), size}, {:integer, line(unit_meta), unit}]}
   end
 
   ## Handle maps and structs
