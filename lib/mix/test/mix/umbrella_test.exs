@@ -358,4 +358,26 @@ defmodule Mix.UmbrellaTest do
       assert_received {:mix_shell, :info, ["Compiled lib/foo.ex"]}
     end)
   end
+
+  test "apps cannot refer to themselves as a dep" do
+    in_fixture("umbrella_dep/deps/umbrella", fn ->
+      Mix.Project.in_project :umbrella, ".", fn _ ->
+        File.write! "apps/bar/mix.exs", """
+        defmodule Bar.Mixfile do
+          use Mix.Project
+
+          def project do
+            [app: :bar,
+             version: "0.1.0",
+             deps: [{:bar, in_umbrella: true}]]
+          end
+        end
+        """
+
+        assert_raise Mix.Error, "app bar lists itself as a dependency", fn ->
+          Mix.Task.run("deps.get", ["--verbose"]) == [:ok, :ok]
+        end
+      end
+    end)
+  end
 end

@@ -16,8 +16,11 @@ defmodule Mix.Dep.Converger do
       end)
 
       Enum.each(deps, fn %Mix.Dep{app: app, deps: other_deps} ->
-        Enum.each(other_deps, fn %Mix.Dep{app: other_app} ->
-          :digraph.add_edge(graph, other_app, app)
+        Enum.each(other_deps, fn
+          %Mix.Dep{app: ^app} ->
+            Mix.raise "app #{app} lists itself as a dependency"
+          %Mix.Dep{app: other_app} ->
+            :digraph.add_edge(graph, other_app, app)
         end)
       end)
 
