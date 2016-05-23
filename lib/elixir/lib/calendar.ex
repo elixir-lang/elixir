@@ -92,6 +92,42 @@ defmodule Date do
       {:error, :invalid_date}
     end
   end
+
+  @doc """
+  Converts a `Date` struct to an Erlang date tuple (like those produced by the `:calendar` module).
+
+  Only supports converting Dates which are in the ISO calendar,
+  attempting to convert Dates from other calendars will produce an error tuple.
+
+  ## Examples
+
+      iex> Date.to_erl(%Date{year: 2000, month: 1, day: 1})
+      {:ok, {2000, 1, 1}}
+      iex> Date.to_erl(%Date{calendar: :other, year: 2000, month: 1, day: 1})
+      {:error, :unsupported_calendar}
+  """
+  @spec to_erl(__MODULE__.t) :: {:ok, :calendar.date()} | {:error, :unsupported_calendar}
+  def to_erl(%__MODULE__{calendar: Calendar.ISO} = date) do
+    {:ok, {date.year, date.month, date.day}}
+  end
+  def to_erl(%__MODULE__{}), do: {:error, :unsupported_calendar}
+
+  @doc """
+  Converts an Erlang date tuple (like those produced by the `:calendar` module) to a `Date` struct.
+
+  Attempting to convert an invalid ISO calendar date will produce an error tuple.
+
+  ## Examples
+
+    iex> Date.from_erl({2000, 1, 1})
+    {:ok, %Date{calendar: Calendar.ISO, year: 2000, month: 1, day: 1}}
+    iex> Date.from_erl({2000, 13, 1})
+    {:error, :invalid_date}
+  """
+  @spec from_erl(:calendar.date()) :: {:ok, __MODULE__.t} | {:error, atom}
+  def from_erl({year, month, day}) do
+    new(year, month, day)
+  end
 end
 
 defmodule Time do
@@ -136,6 +172,36 @@ defmodule Time do
     else
       {:error, :invalid_time}
     end
+  end
+
+  @doc """
+  Converts a `Time` struct to an Erlang time tuple (like those produced by the `:calendar` module)
+
+  WARNING: Loss of precision may occur, as Erlang time tuples only contain hours/minutes/seconds.
+
+  ## Examples
+
+      iex> Time.to_erl(%Time{hour: 23, minute: 30, second: 15, microsecond: 999})
+      {:ok, {23, 30, 15}}
+  """
+  @spec to_erl(__MODULE__.t) :: {:ok, :calendar.time()} | {:error, atom}
+  def to_erl(%__MODULE__{} = time) do
+    {:ok, {time.hour, time.minute, time.second}}
+  end
+
+  @doc """
+  Converts an Erlang time tuple (like those produced by the `:calendar` module) to a `Time` struct.
+
+  ## Examples
+
+    iex> Time.from_erl({23, 30, 15})
+    {:ok, %Time{hour: 23, minute: 30, second: 15, microsecond: 0}}
+    iex> Time.from_erl({24, 30, 15})
+    {:error, :invalid_time}
+  """
+  @spec from_erl(:calendar.time()) :: {:ok, __MODULE__.t} | {:error, atom}
+  def from_erl({hour, minute, second}) do
+    new(hour, minute, second)
   end
 end
 
@@ -206,6 +272,46 @@ defmodule NaiveDateTime do
         {:ok, %NaiveDateTime{year: year, month: month, day: day,
                              hour: hour, minute: minute, second: second, microsecond: microsecond}}
     end
+  end
+
+  @doc """
+  Converts a `NaiveDateTime` struct to an Erlang datetime tuple (like those produced by the `:calendar` module).
+
+  Only supports converting NaiveDateTimes which are in the ISO calendar,
+  attempting to convert NaiveDateTimes from other calendars will produce an error tuple.
+
+  WARNING: Loss of precision may occur, as Erlang time tuples only store hour/minute/second.
+
+  ## Examples
+
+      iex> NaiveDateTime.to_erl(%NaiveDateTime{year: 2000, month: 1, day: 1, hour: 13, minute: 30, second: 15})
+      {:ok, {{2000,1,1},{13,30,15}}}
+      iex> NaiveDateTime.to_erl(%NaiveDateTime{calendar: :other, year: 2000, month: 1, day: 1})
+      {:error, :unsupported_calendar}
+  """
+  @spec to_erl(__MODULE__.t) :: {:ok, :calendar.datetime()} | {:error, :unsupported_calendar}
+  def to_erl(%__MODULE__{calendar: Calendar.ISO} = dt) do
+    {:ok, {{dt.year, dt.month, dt.day}, {dt.hour, dt.minute, dt.second}}}
+  end
+  def to_erl(%__MODULE__{}), do: {:error, :unsupported_calendar}
+
+  @doc """
+  Converts an Erlang datetime tuple (like those produced by the `:calendar` module) to a `NaiveDateTime` struct.
+
+  Attempting to convert an invalid ISO calendar date will produce an error tuple.
+
+  ## Examples
+
+    iex> NaiveDateTime.from_erl({{2000,1,1},{13,30,15}})
+    {:ok, %NaiveDateTime{calendar: Calendar.ISO, year: 2000, month: 1, day: 1, hour: 13, minute: 30, second: 15, microsecond: 0}}
+    iex> NaiveDateTime.from_erl({{2000,13,1},{13,30,15}})
+    {:error, :invalid_date}
+    iex> NaiveDateTime.from_erl({{2000,13,1},{13,30,15}})
+    {:error, :invalid_date}
+  """
+  @spec from_erl(:calendar.datetime()) :: {:ok, __MODULE__.t} | {:error, atom}
+  def from_erl({{year, month, day}, {hour, minute, second}}) do
+    new(year, month, day, hour, minute, second, 0)
   end
 end
 
