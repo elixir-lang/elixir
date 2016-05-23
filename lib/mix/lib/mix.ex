@@ -273,17 +273,4 @@ defmodule Mix do
   def raise(message) when is_binary(message) do
     Kernel.raise Mix.Error, mix: true, message: message
   end
-
-  @doc """
-  Raises a Mix compatible exception.
-
-  A Mix compatible exception contains a special field called
-  `:mix` that is used to store the current project or application
-  name. This information is used by modules like `Mix.CLI` to
-  properly format and show information to the user.
-  """
-  @spec raise(atom, list) :: no_return
-  def raise(exception, opts) when is_atom(exception) do
-    Kernel.raise %{exception.exception(opts) | mix: true}
-  end
 end

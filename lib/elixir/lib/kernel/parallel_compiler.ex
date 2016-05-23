@@ -232,7 +232,8 @@ defmodule Kernel.ParallelCompiler do
         Process.exit(pid, :kill)
 
         {_kind, ^pid, _, on, _} = List.keyfind(waiting, pid, 1)
-        error = CompileError.exception(description: "deadlocked waiting on module #{inspect on}")
+        error = CompileError.exception(description: "deadlocked waiting on module #{inspect on}",
+                                       file: nil, line: nil)
         print_failure(file, {:failure, :error, error, stacktrace})
 
         {file, on}

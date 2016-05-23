@@ -58,7 +58,8 @@ defmodule Kernel.Utils do
 
   def defstruct(module, fields) do
     case fields do
-      fs when is_list(fs) -> :ok
+      fs when is_list(fs) ->
+        :ok
       other ->
         raise ArgumentError, "struct fields definition must be list, got: #{inspect other}"
     end
@@ -80,5 +81,9 @@ defmodule Kernel.Utils do
     end, fields)
 
     :maps.put(:__struct__, module, :maps.from_list(fields))
+  end
+
+  def defexception(struct) do
+    :lists.map(&elem(&1, 0), :lists.filter(&elem(&1, 1) == nil, :maps.to_list(struct)))
   end
 end

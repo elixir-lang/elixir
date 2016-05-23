@@ -15,6 +15,8 @@
   * [Compiler] Emit a summary of compilation errors when modules are missing
   * [Enum] Add `Enum.group_by/3` that allows developers to map on the value being grouped
   * [Exception] Suggest possible functions on `UndefinedFunctionError` for existing modules
+  * [Exception] Warn if unknown fields are given to `raise/2`
+  * [Exception] Warn if fields are missing when calling `raise/2`
   * [File] Support IO devices in `File.copy/3`
   * [GenServer] Raise a more meaningful exit if you try to `GenServer.call/3` yourself
   * [Inspect] Support `:base` option when inspecting binaries

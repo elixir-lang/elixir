@@ -31,6 +31,38 @@ defmodule Exception do
   @callback exception(term) :: t
   @callback message(t) :: String.t
 
+  @doc false
+  def __struct__(struct, fields, args) do
+    keys = for({k, _} <- args, do: k)
+
+    # TODO: Consider if this should raise or warn in future versions.
+    case fields -- keys do
+      [] ->
+        :ok
+      missing ->
+        IO.warn "the following fields are missing when raising " <>
+                "#{inspect struct.__struct__}: #{inspect missing}. " <>
+                "Please make sure all fields are provided or have a " <>
+                "default value. Future Elixir versions may raise on " <>
+                "missing fields"
+    end
+
+    # TODO: Use Kernel.struct! on future versions
+    case keys -- Map.keys(struct) do
+      [] ->
+        :ok
+      unmatched ->
+        IO.warn "the following fields are unknown when raising " <>
+                "#{inspect struct.__struct__}: #{inspect unmatched}. " <>
+                "Please make sure to only give known fields when raising " <>
+                "or redefine #{inspect struct.__struct__}.exception/1 to " <>
+                "discard unknown fields. Future Elixir versions may raise on " <>
+                "unknown fields"
+    end
+
+    Kernel.struct(struct, args)
+  end
+
   @doc """
   Returns `true` if the given `term` is an exception.
   """
@@ -714,14 +746,13 @@ defmodule Code.LoadError do
 end
 
 defmodule Protocol.UndefinedError do
-  defexception [protocol: nil, value: nil, description: nil]
+  defexception [protocol: nil, value: nil, description: ""]
 
   def message(exception) do
     msg = "protocol #{inspect exception.protocol} not implemented for #{inspect exception.value}"
-    if exception.description do
-      msg <> ", " <> exception.description
-    else
-      msg
+    case exception.description do
+      "" -> msg
+      _  -> msg <> ", " <> exception.description
     end
   end
 end
@@ -780,13 +811,20 @@ defmodule File.Error do
 end
 
 defmodule File.CopyError do
-  defexception [reason: nil, action: "", source: nil, destination: nil, on: nil]
+  defexception [reason: nil, source: nil, destination: nil, on: "", action: ""]
 
   def message(exception) do
-    formatted = IO.iodata_to_binary(:file.format_error(exception.reason))
-    location  = if on = exception.on, do: ". #{on}", else: ""
+    formatted =
+      IO.iodata_to_binary(:file.format_error(exception.reason))
+
+    location =
+      case exception.on do
+        "" -> ""
+        on -> ". #{on}"
+      end
+
     "could not #{exception.action} from #{inspect(exception.source)} to " <>
-    "#{inspect(exception.destination)}#{location}: #{formatted}"
+      "#{inspect(exception.destination)}#{location}: #{formatted}"
   end
 end
 

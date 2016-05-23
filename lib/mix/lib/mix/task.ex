@@ -214,9 +214,9 @@ defmodule Mix.Task do
       {:ok, module} ->
         module
       {:error, :invalid} ->
-        Mix.raise Mix.InvalidTaskError, task: task
+        raise Mix.InvalidTaskError, task: task
       {:error, :not_found} ->
-        Mix.raise Mix.NoTaskError, task: task
+        raise Mix.NoTaskError, task: task
     end
   end
 
