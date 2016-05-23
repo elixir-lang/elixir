@@ -13,6 +13,7 @@
   * [Calendar] Add `Calendar` and `Date`, `Time`, `NaiveDateTime` and `DateTime` types
   * [CLI] Add `--logger-otp-reports BOOL` and `--logger-sasl-reports BOOL` switches
   * [Compiler] Emit a summary of compilation errors when modules are missing
+  * [Enum] Add `Enum.group_by/3` that allows developers to map on the value being grouped
   * [Exception] Suggest possible functions on `UndefinedFunctionError` for existing modules
   * [File] Support IO devices in `File.copy/3`
   * [GenServer] Raise a more meaningful exit if you try to `GenServer.call/3` yourself
@@ -25,11 +26,14 @@
   * [Kernel] Support `else` chunks in `with`
   * [Kernel] Track `{module, function, arity}` imports and warn on unused ones when such are specified in `:only`
   * [Kernel] Add `keyword/0` and `keyword/1` built-in types to typespecs
+  * [OptionParser] Add support for `:count` switch type
+  * [OptionParser] Add `parse!/2` and `parse_head!/2` that raise `OptionParser.ParseError` in case of errors
   * [Process] Add `Process.sleep/1`
   * [Range] `Range.range?/1` now checks the validity of a range.
   * [Regex] Support `:include_captures` in `Regex.split/3`
   * [String] Add `String.myers_difference/2` for calculating the difference between two strings
   * [System] Add `System.os_time/0` and `System.os_time/1`
+  * [URI] Add `URI.merge/2`
   * [Version] Add `Version.parse!/1`
 
 #### ExUnit
@@ -53,8 +57,10 @@
 
 #### Mix
 
+  * [Mix] Add `mix xref` and `mix compile.xref` that runs cross-reference checks, with the latter running after compilation by default
   * [Mix] Add `mix app.tree` and `mix deps.tree`
   * [Mix] Add `Mix.Task.rerun/2` that reenables and re-runs a task
+  * [Mix] Integrate `OptionParser.ParseError` into Mix, automatically converting such exceptions into `Mix.Error` and embedding the task information
   * [Mix] Support `@preferred_cli_env` attribute when defining tasks
   * [Mix] Support `mix test --raise` that will raise when a test suite fails (instead of setting the exit code to 1)
   * [Mix] Enable rebar3 manager by default for Hex dependencies
@@ -82,10 +88,10 @@
 #### Mix
 
   * [Mix] Improve task not found message when Mix would include the not found task as a suggestion due to different casing
-  * [Mix] Ignore lock revision when the lock is out of date when updating Mix dependencies
-  * [Mix] Only recompile empty Elixir files if they changed instead of recompiling them on every run
+  * [Mix] Ignore lock revision when the lock is out of date when updating Mix dependencies. Before this fix, git tags and branches in the lock file would erroneously take higher precedence than the one in `mix.exs`
+  * [Mix] Only recompile empty Elixir files if they change instead of recompiling them on every run
   * [Mix] Ensure .app file is written in UTF-8 (this allows app descriptions to contain UTF-8 characters)
-  * [Mix.Dep] Always specify the `:env` option for dependencies internally to avoid false positives in the dependency resolution
+  * [Mix.Dep] Always specify the `:env` option internally for dependencies to avoid false positives in the dependency resolution
   * [Mix.Dep] Correctly detect conflict from cousin optional dependencies in the dependency resolution algorithm
 
 ### 3. Soft deprecations (no warnings emitted)
