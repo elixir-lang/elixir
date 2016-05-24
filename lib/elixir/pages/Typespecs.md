@@ -26,8 +26,8 @@ Integers and atom literals are allowed as types (ex. `1`, `:atom` or `false`). A
           | pos_integer()           # 1, 2, 3, ...
           | neg_integer()           # ..., -3, -2, -1
           | float()
-          | map()
-          | struct()
+          | map()                   # any map
+          | struct()                # any struct
           | list(type)
           | nonempty_list(type)
           | improper_list(type1, type2)
@@ -45,29 +45,35 @@ The following literals are also supported in typespecs:
           | 1..10                         ## Integers from 1 to 10
           | 1.0                           ## Floats
 
-          | <<>>                          ## Bitstrings
+                                          ## Bitstrings
+          | <<>>                          # empty bitstring
           | <<_::size>>                   # size is 0 or a positive integer
-          | <<_::_*unit>>                 # unit is an integer from 1 to 256
+          | <<_::_ * unit>>               # unit is an integer from 1 to 256
           | <<_::size, _::_*unit>>
 
-          | [type]                        ## Lists
+                                          ## Lists
+          | [type]                        # list with any number of type elements
           | []                            # empty list
           | [...]                         # shorthand for nonempty_list(any())
           | [type, ...]                   # shorthand for nonempty_list(type)
           | [key: type]                   # keyword lists
 
-          | (... -> type)                 ## Functions
+                                          ## Functions
           | (... -> type)                 # any arity, returns type
           | (() -> type)                  # 0-arity, returns type
           | (type1, type2 -> type)        # 2-arity, returns type
 
-          | %{}                           ## Maps
-          | %{key: type}                  # map with key :key with value of type
-          | %{type1 => type2}             # map with keys of type1 with values of type2
-          | %SomeStruct{}
-          | %SomeStruct{key: type}
+                                          ## Maps
+          | %{}                           # empty map
+          | %{...}                        # any map
+          | %{key: type}                  # map with required key :key with value of type
+          | %{required(type1) => type2}   # map with required keys of type1 with values of type2
+          | %{optional(type1) => type2}   # map with optional keys of type1 with values of type2
+          | %SomeStruct{}                 # struct with all fields of any type
+          | %SomeStruct{key: type}        # struct with :key field of type
 
-          | {}                            ## Tuples
+                                          ## Tuples
+          | {}                            # empty tuple
           | {:ok, type}                   # two element tuple with an atom and any type
 
 ### Built-in types
@@ -105,6 +111,14 @@ Built-in type           | Defined as
 ### Remote types
 
 Any module is also able to define its own type and the modules in Elixir are no exception. For example, a string is `String.t`, a range is `Range.t`, any enumerable can be `Enum.t` and so on.
+
+### Maps
+
+The key types in maps are allowed to overlap, and if they do, the leftmost key takes precedence. A map value does not belong to this type if it contains a key that is not in the maps allowed keys.
+
+Because it is common to end a map type with `optional(any) => any` to denote that keys that do not belong to any other key in the map type are allowed, and may map to any value, the shorthand notation `...` is allowed as the last element of a map type.
+
+Notice that the syntactic representation of `map()` is `%{...}` (or `%{optional(any) => any}`), not `%{}`. The notation `%{}` specifies the singleton type for the empty map.
 
 ## Defining a type
 
@@ -151,5 +165,3 @@ Specifications can be overloaded just like ordinary functions.
 Elixir discourages the use of type `string` as it might be confused with binaries which are referred to as "strings" in Elixir (as opposed to character lists). In order to use the type that is called `string` in Erlang, one has to use the `charlist` type which is a synonym for `string`. If you use `string`, you'll get a warning from the compiler.
 
 If you want to refer to the "string" type (the one operated on by functions in the `String` module), use `String.t` type instead.
-
-In map and struct type declarations such as `%{key: value}` or `%Struct{key: value}`, the key-value pair type information is not used by the current version of dialyzer.

@@ -340,7 +340,7 @@ defmodule System do
   Returns a list of all environment variables. Each variable is given as a
   `{name, value}` tuple where both `name` and `value` are strings.
   """
-  @spec get_env() :: %{String.t => String.t}
+  @spec get_env() :: %{optional(String.t) => String.t}
   def get_env do
     Enum.into(:os.getenv, %{}, fn var ->
       var = IO.chardata_to_string var
