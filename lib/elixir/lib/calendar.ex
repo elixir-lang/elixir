@@ -615,6 +615,38 @@ defmodule NaiveDateTime do
   end
 
   @doc """
+  Converts a `NaiveDateTime` into a `Date`.
+
+  Because `Date` does not hold time information,
+  data will be lost during the conversion.
+
+  ## Examples
+
+      iex> NaiveDateTime.to_date(~N[2002-01-13 23:00:07])
+      ~D[2002-01-13]
+
+  """
+  def to_date(%NaiveDateTime{year: year, month: month, day: day, calendar: calendar}) do
+    %Date{year: year, month: month, day: day, calendar: calendar}
+  end
+
+  @doc """
+  Converts a `NaiveDateTime` into `Time`.
+
+  Because `Time` does not hold date information,
+  data will be lost during the conversion.
+
+  ## Examples
+
+      iex> NaiveDateTime.to_time(~N[2002-01-13 23:00:07])
+      ~T[23:00:07]
+
+  """
+  def to_time(%NaiveDateTime{hour: hour, minute: minute, second: second, microsecond: microsecond}) do
+    %Time{hour: hour, minute: minute, second: second, microsecond: microsecond}
+  end
+
+  @doc """
   Converts the given naive date time to a string according to its calendar.
 
   ### Examples
