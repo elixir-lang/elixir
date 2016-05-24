@@ -25,6 +25,12 @@ defmodule Difference do
     assert string1 == string2
   end
 
+  test "large strings" do
+    string1 = "oops"
+    string2 = "really long string that should not emit diff"
+    assert string1 == string2
+  end
+
   test "lists" do
     list1 = ["One", :ok, make_ref(), {}]
     list2 = ["Two", :ok, self(), {true}]

@@ -9,21 +9,27 @@ defmodule ExUnit.Diff do
   """
   def format(left, right, formatter)
 
-  def format(left, right, formatter)
-      when is_binary(left) and is_binary(right) do
+  # Binaries
+  def format(left, right, formatter) when is_binary(left) and is_binary(right) do
     if String.printable?(left) and String.printable?(right) do
-      left = Inspect.BitString.escape(left, ?\")
-      right = Inspect.BitString.escape(right, ?\")
-      "\"" <> format_string(left, right, formatter) <> "\""
+      length1 = String.length(left)
+      length2 = String.length(right)
+      if bag_distance(left, right) / max(length1, length2) <= 0.6 do
+        left = Inspect.BitString.escape(left, ?\")
+        right = Inspect.BitString.escape(right, ?\")
+        "\"" <> format_string(left, right, formatter) <> "\""
+      end
     end
   end
 
+  # Structs
   def format(%name{} = left, %name{} = right, formatter) do
     left = Map.from_struct(left)
     right = Map.from_struct(right)
     format_map(left, right, inspect(name), formatter)
   end
 
+  # Maps
   def format(%{} = left, %{} = right, formatter) do
     if match?(%_{}, left) or match?(%_{}, right) do
       nil
@@ -32,17 +38,24 @@ defmodule ExUnit.Diff do
     end
   end
 
+  # Char lists and lists
   def format(left, right, formatter) when is_list(left) and is_list(right) do
     if Inspect.List.printable?(left) and Inspect.List.printable?(right) do
       left = List.to_string(left) |> Inspect.BitString.escape(?')
       right = List.to_string(right) |> Inspect.BitString.escape(?')
-      "'" <> format_string(left, right, formatter) <> "'"
+      length1 = String.length(left)
+      length2 = String.length(left)
+
+      if bag_distance(left, right) / max(length1, length2) <= 0.6 do
+        "'" <> format_string(left, right, formatter) <> "'"
+      end
     else
       keyword? = Inspect.List.keyword?(left) and Inspect.List.keyword?(right)
       format_list(left, right, formatter, keyword?, [])
     end
   end
 
+  # Numbers
   def format(left, right, formatter)
       when is_integer(left) and is_integer(right)
       when is_float(left) and is_float(right) do
@@ -57,6 +70,7 @@ defmodule ExUnit.Diff do
     format_string(inspect(left), inspect(right), formatter) <> " " <> value_diff
   end
 
+  # Tuples
   def format(left, right, formatter)
       when is_tuple(left) and is_tuple(right) do
     left = {left, tuple_size(left) - 1}
@@ -67,18 +81,10 @@ defmodule ExUnit.Diff do
   def format(_left, _right, _formatter), do: nil
 
   defp format_string(string1, string2, formatter) do
-    string_difference(string1, string2)
-    |> Enum.map_join(&format_fragment(&1, formatter))
-  end
-
-  defp string_difference(string1, string2) do
-    length1 = String.length(string1)
-    length2 = String.length(string2)
-    if bag_distance(string1, string2) / max(length1, length2) > 0.6 do
-      [del: string1, ins: string2]
-    else
-      String.myers_difference(string1, string2)
-    end
+    string1
+    |> String.myers_difference(string2)
+    |> Enum.map(&format_fragment(&1, formatter))
+    |> IO.iodata_to_binary
   end
 
   # The algorithm is outlined in the
