@@ -12,6 +12,32 @@ defmodule Calendar.ISO do
   @behaviour Calendar
 
   @doc """
+  Builds and validates an ISO date.
+
+  ## Examples
+
+      iex> Calendar.ISO.date(2000, 1, 1)
+      {:ok, ~D[2000-01-01]}
+      iex> Calendar.ISO.date(2000, 13, 1)
+      {:error, :invalid_date}
+      iex> Calendar.ISO.date(2000, 2, 29)
+      {:ok, ~D[2000-02-29]}
+
+      iex> Calendar.ISO.date(2000, 2, 30)
+      {:error, :invalid_date}
+      iex> Calendar.ISO.date(2001, 2, 29)
+      {:error, :invalid_date}
+
+  """
+  def date(year, month, day) when is_integer(year) and is_integer(month) and is_integer(day) do
+    if :calendar.valid_date(year, month, day) and year <= 9999 do
+      {:ok, %Date{year: year, month: month, day: day}}
+    else
+      {:error, :invalid_date}
+    end
+  end
+
+  @doc """
   Returns if the given year is a leap year.
 
   ## Examples
