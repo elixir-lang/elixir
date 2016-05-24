@@ -270,6 +270,22 @@ defmodule Date do
         raise ArgumentError, "cannot convert #{inspect tuple} to date, reason: #{inspect reason}"
     end
   end
+
+  defimpl String.Chars do
+    def to_string(%Date{calendar: calendar} = date) do
+      calendar.to_string(date)
+    end
+  end
+
+  defimpl Inspect do
+    def inspect(%Date{calendar: Calendar.ISO} = date, _) do
+      "~D[" <> Calendar.ISO.to_string(date) <> "]"
+    end
+
+    def inspect(date, opts) do
+      Inspect.Any.inspect(date, opts)
+    end
+  end
 end
 
 defmodule Time do
@@ -495,6 +511,18 @@ defmodule Time do
         value
       {:error, reason} ->
         raise ArgumentError, "cannot convert #{inspect tuple} to time, reason: #{inspect reason}"
+    end
+  end
+
+  defimpl String.Chars do
+    def to_string(time) do
+      Calendar.ISO.to_string(time)
+    end
+  end
+
+  defimpl Inspect do
+    def inspect(time, _) do
+      "~T[" <> Calendar.ISO.to_string(time) <> "]"
     end
   end
 end
@@ -767,6 +795,22 @@ defmodule NaiveDateTime do
         raise ArgumentError, "cannot convert #{inspect tuple} to naive date time, reason: #{inspect reason}"
     end
   end
+
+  defimpl String.Chars do
+    def to_string(%NaiveDateTime{calendar: calendar} = naive) do
+      calendar.to_string(naive)
+    end
+  end
+
+  defimpl Inspect do
+    def inspect(%NaiveDateTime{calendar: Calendar.ISO} = naive, _) do
+      "~N[" <> Calendar.ISO.to_string(naive) <> "]"
+    end
+
+    def inspect(naive, opts) do
+      Inspect.Any.inspect(naive, opts)
+    end
+  end
 end
 
 defmodule DateTime do
@@ -794,7 +838,10 @@ defmodule DateTime do
   attempting to convert date times from other calendars will raise.
 
   WARNING: the ISO8601 does contain the time zone nor its abbreviation,
-  which means information is lost when converting to such format.
+  which means information is lost when converting to such format. This
+  is also why this module does not provide a `from_iso8601/1` function,
+  as it is impossible to build a proper `DateTime` from only the
+  information in the ISO8601 string.
 
   ### Examples
 
@@ -847,5 +894,11 @@ defmodule DateTime do
   @spec to_string(DateTime.t) :: String.t
   def to_string(%DateTime{calendar: calendar} = dt) do
     calendar.to_string(dt)
+  end
+
+  defimpl String.Chars do
+    def to_string(%DateTime{calendar: calendar} = dt) do
+      calendar.to_string(dt)
+    end
   end
 end
