@@ -73,7 +73,24 @@ end
 
 defmodule Date do
   @moduledoc """
-  A date implementation.
+  A Date struct and functions.
+
+  The Date struct contains the fields year, month, day and calendar.
+  New dates can be built with the `new/3` function or using the `~D`
+  sigil:
+
+      iex> ~D[2000-01-01]
+      ~D[2000-01-01]
+
+  Both `new/3` and sigil return a struct where the date fields can
+  be accessed directly:
+
+      iex> date = ~D[2000-01-01]
+      iex> date.year
+      2000
+      iex> date.month
+      1
+
   """
   defstruct [:year, :month, :day, calendar: Calendar.ISO]
   @type t :: %__MODULE__{year: Calendar.year, month: Calendar.month,
@@ -88,11 +105,11 @@ defmodule Date do
   ## Examples
 
       iex> Date.new(2000, 1, 1)
-      {:ok, %Date{year: 2000, month: 1, day: 1}}
+      {:ok, ~D[2000-01-01]}
       iex> Date.new(2000, 13, 1)
       {:error, :invalid_date}
       iex> Date.new(2000, 2, 29)
-      {:ok, %Date{year: 2000, month: 2, day: 29}}
+      {:ok, ~D[2000-02-29]}
 
       iex> Date.new(2000, 2, 30)
       {:error, :invalid_date}
@@ -114,8 +131,7 @@ defmodule Date do
 
   ### Examples
 
-      iex> {:ok, date} = Date.new(2000, 2, 28)
-      iex> Date.to_string(date)
+      iex> Date.to_string(~D[2000-02-28])
       "2000-02-28"
 
   """
@@ -140,7 +156,7 @@ defmodule Date do
   ## Examples
 
       iex> Date.from_iso8601("2015-01-23")
-      {:ok, %Date{year: 2015, month: 01, day: 23}}
+      {:ok, ~D[2015-01-23]}
 
       iex> Date.from_iso8601("2015:01:23")
       {:error, :invalid_format}
@@ -171,7 +187,7 @@ defmodule Date do
   ## Examples
 
       iex> Date.from_iso8601!("2015-01-23")
-      %Date{year: 2015, month: 01, day: 23}
+      ~D[2015-01-23]
       iex> Date.from_iso8601!("2015:01:23")
       ** (ArgumentError) cannot parse "2015:01:23" as date, reason: :invalid_format
   """
@@ -194,8 +210,7 @@ defmodule Date do
 
   ### Examples
 
-      iex> {:ok, date} = Date.new(2000, 2, 28)
-      iex> Date.to_iso8601(date)
+      iex> Date.to_iso8601(~D[2000-02-28])
       {:ok, "2000-02-28"}
 
   """
@@ -216,10 +231,10 @@ defmodule Date do
 
   ## Examples
 
-      iex> {:ok, date} = Date.new(2000, 1, 1)
-      iex> Date.to_erl(date)
+      iex> Date.to_erl(~D[2000-01-01])
       {:ok, {2000, 1, 1}}
-      iex> date = put_in date.calendar, :other
+
+      iex> date = Map.put(~D[2000-01-01], :calendar, :other)
       iex> Date.to_erl(date)
       {:error, :unsupported_calendar}
   """
@@ -237,7 +252,7 @@ defmodule Date do
   ## Examples
 
       iex> Date.from_erl({2000, 1, 1})
-      {:ok, %Date{year: 2000, month: 1, day: 1}}
+      {:ok, ~D[2000-01-01]}
       iex> Date.from_erl({2000, 13, 1})
       {:error, :invalid_date}
   """
@@ -252,7 +267,7 @@ defmodule Date do
   ## Examples
 
       iex> Date.from_erl!({2000, 1, 1})
-      %Date{year: 2000, month: 1, day: 1}
+      ~D[2000-01-01]
       iex> Date.from_erl!({2000, 13, 1})
       ** (ArgumentError) cannot convert {2000, 13, 1} to date, reason: :invalid_date
   """
@@ -269,7 +284,24 @@ end
 
 defmodule Time do
   @moduledoc """
-  A time implementation.
+  A Time struct and functions.
+
+  The Time struct contains the fields hour, minute, second and microseconds.
+  New times can be built with the `new/4` function or using the `~T`
+  sigil:
+
+      iex> ~T[23:00:07.001]
+      ~T[23:00:07.001]
+
+  Both `new/4` and sigil return a struct where the time fields can
+  be accessed directly:
+
+      iex> time = ~T[23:00:07.001]
+      iex> time.hour
+      23
+      iex> time.microsecond
+      1000
+
   """
   defstruct [:hour, :minute, :second, :microsecond]
   @type t :: %__MODULE__{hour: Calendar.hour, minute: Calendar.minute,
@@ -286,11 +318,11 @@ defmodule Time do
   ## Examples
 
       iex> Time.new(0, 0, 0, 0)
-      {:ok, %Time{hour: 0, minute: 0, second: 0, microsecond: 0}}
+      {:ok, ~T[00:00:00]}
       iex> Time.new(23, 59, 59, 999_999)
-      {:ok, %Time{hour: 23, minute: 59, second: 59, microsecond: 999_999}}
-      iex> Time.new(23, 59, 50, 999_999)
-      {:ok, %Time{hour: 23, minute: 59, second: 50, microsecond: 999_999}}
+      {:ok, ~T[23:59:59.999999]}
+      iex> Time.new(23, 59, 60, 999_999)
+      {:ok, ~T[23:59:60.999999]}
 
       iex> Time.new(24, 59, 59, 999_999)
       {:error, :invalid_time}
@@ -318,14 +350,11 @@ defmodule Time do
 
   ### Examples
 
-      iex> {:ok, time} = Time.new(23, 0, 0)
-      iex> Time.to_string(time)
+      iex> Time.to_string(~T[23:00:00])
       "23:00:00"
-      iex> {:ok, time} = Time.new(23, 0, 0, 1000)
-      iex> Time.to_string(time)
+      iex> Time.to_string(~T[23:00:00.001])
       "23:00:00.001"
-      iex> {:ok, time} = Time.new(23, 0, 0, 123456)
-      iex> Time.to_string(time)
+      iex> Time.to_string(~T[23:00:00.123456])
       "23:00:00.123456"
 
   """
@@ -349,16 +378,16 @@ defmodule Time do
   ## Examples
 
       iex> Time.from_iso8601("23:50:07")
-      {:ok, %Time{hour: 23, minute: 50, second: 07, microsecond: 0}}
+      {:ok, ~T[23:50:07]}
       iex> Time.from_iso8601("23:50:07Z")
-      {:ok, %Time{hour: 23, minute: 50, second: 07, microsecond: 0}}
+      {:ok, ~T[23:50:07]}
       iex> Time.from_iso8601("T23:50:07Z")
-      {:ok, %Time{hour: 23, minute: 50, second: 07, microsecond: 0}}
+      {:ok, ~T[23:50:07]}
 
       iex> Time.from_iso8601("23:50:07.0123456")
-      {:ok, %Time{hour: 23, minute: 50, second: 07, microsecond: 12345}}
+      {:ok, ~T[23:50:07.012345]}
       iex> Time.from_iso8601("23:50:07.123Z")
-      {:ok, %Time{hour: 23, minute: 50, second: 07, microsecond: 123000}}
+      {:ok, ~T[23:50:07.123]}
 
       iex> Time.from_iso8601("2015:01:23 23-50-07")
       {:error, :invalid_format}
@@ -415,12 +444,10 @@ defmodule Time do
 
   ### Examples
 
-      iex> {:ok, time} = Time.new(23, 0, 13)
-      iex> Time.to_iso8601(time)
+      iex> Time.to_iso8601(~T[23:00:13])
       {:ok, "23:00:13"}
 
-      iex> {:ok, time} = Time.new(23, 0, 13, 1000)
-      iex> Time.to_iso8601(time)
+      iex> Time.to_iso8601(~T[23:00:13.001])
       {:ok, "23:00:13.001"}
 
   """
@@ -437,8 +464,7 @@ defmodule Time do
 
   ## Examples
 
-      iex> {:ok, time} = Time.new(23, 30, 15, 999)
-      iex> Time.to_erl(time)
+      iex> Time.to_erl(~T[23:30:15.999])
       {:ok, {23, 30, 15}}
 
   """
@@ -453,7 +479,7 @@ defmodule Time do
   ## Examples
 
       iex> Time.from_erl({23, 30, 15}, 5000)
-      {:ok, %Time{hour: 23, minute: 30, second: 15, microsecond: 5000}}
+      {:ok, ~T[23:30:15.005]}
       iex> Time.from_erl({24, 30, 15})
       {:error, :invalid_time}
   """
@@ -468,7 +494,7 @@ defmodule Time do
   ## Examples
 
       iex> Time.from_erl!({23, 30, 15}, 5000)
-      %Time{hour: 23, minute: 30, second: 15, microsecond: 5000}
+      ~T[23:30:15.005]
       iex> Time.from_erl!({24, 30, 15})
       ** (ArgumentError) cannot convert {24, 30, 15} to time, reason: :invalid_time
   """
@@ -485,7 +511,23 @@ end
 
 defmodule NaiveDateTime do
   @moduledoc """
-  A naive datetime implementation (without a time zone).
+  A NaiveDateTime struct (without a time zone) and functions.
+
+  The NaiveDateTime struct contains the fields year, month, day, hour,
+  minute, second, microsecond and calendar. New naive date times can be
+  built with the `new/7` function or using the `~N` sigil:
+
+      iex> ~N[2000-01-01 23:00:07]
+      ~N[2000-01-01 23:00:07]
+
+  Both `new/7` and sigil return a struct where the date fields can
+  be accessed directly:
+
+      iex> naive = ~N[2000-01-01 23:00:07]
+      iex> naive.year
+      2000
+      iex> naive.second
+      7
 
   The naive bit implies this datetime representation does
   not have a timezone. This means the datetime may not
@@ -513,20 +555,20 @@ defmodule NaiveDateTime do
   ## Examples
 
       iex> NaiveDateTime.new(2000, 1, 1, 0, 0, 0)
-      {:ok, %NaiveDateTime{year: 2000, month: 1, day: 1, hour: 0, minute: 0, second: 0, microsecond: 0}}
+      {:ok, ~N[2000-01-01 00:00:00]}
       iex> NaiveDateTime.new(2000, 13, 1, 0, 0, 0)
       {:error, :invalid_date}
       iex> NaiveDateTime.new(2000, 2, 29, 0, 0, 0)
-      {:ok, %NaiveDateTime{year: 2000, month: 2, day: 29, hour: 0, minute: 0, second: 0, microsecond: 0}}
+      {:ok, ~N[2000-02-29 00:00:00]}
       iex> NaiveDateTime.new(2000, 2, 30, 0, 0, 0)
       {:error, :invalid_date}
       iex> NaiveDateTime.new(2001, 2, 29, 0, 0, 0)
       {:error, :invalid_date}
 
       iex> NaiveDateTime.new(2000, 1, 1, 23, 59, 59, 999_999)
-      {:ok, %NaiveDateTime{year: 2000, month: 1, day: 1, hour: 23, minute: 59, second: 59, microsecond: 999_999}}
+      {:ok, ~N[2000-01-01 23:59:59.999999]}
       iex> NaiveDateTime.new(2000, 1, 1, 23, 59, 60, 999_999)
-      {:ok, %NaiveDateTime{year: 2000, month: 1, day: 1, hour: 23, minute: 59, second: 60, microsecond: 999_999}}
+      {:ok, ~N[2000-01-01 23:59:60.999999]}
       iex> NaiveDateTime.new(2000, 1, 1, 24, 59, 59, 999_999)
       {:error, :invalid_time}
       iex> NaiveDateTime.new(2000, 1, 1, 23, 60, 59, 999_999)
@@ -559,12 +601,10 @@ defmodule NaiveDateTime do
 
   ### Examples
 
-      iex> {:ok, naive} = NaiveDateTime.new(2000, 2, 28, 23, 0, 13)
-      iex> NaiveDateTime.to_string(naive)
+      iex> NaiveDateTime.to_string(~N[2000-02-28 23:00:13])
       "2000-02-28 23:00:13"
 
-      iex> {:ok, naive} = NaiveDateTime.new(2000, 2, 28, 23, 0, 13, 1000)
-      iex> NaiveDateTime.to_string(naive)
+      iex> NaiveDateTime.to_string(~N[2000-02-28 23:00:13.001])
       "2000-02-28 23:00:13.001"
 
   """
@@ -589,16 +629,16 @@ defmodule NaiveDateTime do
   ## Examples
 
       iex> NaiveDateTime.from_iso8601("2015-01-23 23:50:07")
-      {:ok, %NaiveDateTime{year: 2015, month: 01, day: 23, hour: 23, minute: 50, second: 07, microsecond: 0}}
+      {:ok, ~N[2015-01-23 23:50:07]}
       iex> NaiveDateTime.from_iso8601("2015-01-23T23:50:07")
-      {:ok, %NaiveDateTime{year: 2015, month: 01, day: 23, hour: 23, minute: 50, second: 07, microsecond: 0}}
+      {:ok, ~N[2015-01-23 23:50:07]}
       iex> NaiveDateTime.from_iso8601("2015-01-23T23:50:07Z")
-      {:ok, %NaiveDateTime{year: 2015, month: 01, day: 23, hour: 23, minute: 50, second: 07, microsecond: 0}}
+      {:ok, ~N[2015-01-23 23:50:07]}
 
       iex> NaiveDateTime.from_iso8601("2015-01-23 23:50:07.0123456")
-      {:ok, %NaiveDateTime{year: 2015, month: 01, day: 23, hour: 23, minute: 50, second: 07, microsecond: 12345}}
+      {:ok, ~N[2015-01-23 23:50:07.012345]}
       iex> NaiveDateTime.from_iso8601("2015-01-23T23:50:07.123Z")
-      {:ok, %NaiveDateTime{year: 2015, month: 01, day: 23, hour: 23, minute: 50, second: 07, microsecond: 123000}}
+      {:ok, ~N[2015-01-23 23:50:07.123]}
 
       iex> NaiveDateTime.from_iso8601("2015-01-23P23:50:07")
       {:error, :invalid_format}
@@ -641,7 +681,7 @@ defmodule NaiveDateTime do
   ## Examples
 
       iex> NaiveDateTime.from_iso8601!("2015-01-23T23:50:07.123Z")
-      %NaiveDateTime{year: 2015, month: 01, day: 23, hour: 23, minute: 50, second: 07, microsecond: 123000}
+      ~N[2015-01-23 23:50:07.123]
       iex> NaiveDateTime.from_iso8601!("2015-01-23P23:50:07")
       ** (ArgumentError) cannot parse "2015-01-23P23:50:07" as naive date time, reason: :invalid_format
 
@@ -665,12 +705,10 @@ defmodule NaiveDateTime do
 
   ### Examples
 
-      iex> {:ok, naive} = NaiveDateTime.new(2000, 2, 28, 23, 0, 13)
-      iex> NaiveDateTime.to_iso8601(naive)
+      iex> NaiveDateTime.to_iso8601(~N[2000-02-28 23:00:13])
       {:ok, "2000-02-28T23:00:13"}
 
-      iex> {:ok, naive} = NaiveDateTime.new(2000, 2, 28, 23, 0, 13, 1000)
-      iex> NaiveDateTime.to_iso8601(naive)
+      iex> NaiveDateTime.to_iso8601(~N[2000-02-28 23:00:13.001])
       {:ok, "2000-02-28T23:00:13.001"}
 
   """
@@ -694,10 +732,10 @@ defmodule NaiveDateTime do
 
   ## Examples
 
-      iex> {:ok, naive} = NaiveDateTime.new(2000, 1, 1, 13, 30, 15)
-      iex> NaiveDateTime.to_erl(naive)
+      iex> NaiveDateTime.to_erl(~N[2000-01-01 13:30:15])
       {:ok, {{2000, 1, 1}, {13, 30, 15}}}
-      iex> naive = put_in naive.calendar, :other
+
+      iex> naive = Map.put(~N[2000-01-01 13:30:15], :calendar, :other)
       iex> NaiveDateTime.to_erl(naive)
       {:error, :unsupported_calendar}
   """
@@ -715,8 +753,8 @@ defmodule NaiveDateTime do
 
   ## Examples
 
-      iex> NaiveDateTime.from_erl({{2000, 1, 1},{13,30,15}}, 5000)
-      {:ok, %NaiveDateTime{year: 2000, month: 1, day: 1, hour: 13, minute: 30, second: 15, microsecond: 5000}}
+      iex> NaiveDateTime.from_erl({{2000, 1, 1}, {13, 30, 15}}, 5000)
+      {:ok, ~N[2000-01-01 13:30:15.005]}
       iex> NaiveDateTime.from_erl({{2000, 13, 1}, {13, 30, 15}})
       {:error, :invalid_date}
       iex> NaiveDateTime.from_erl({{2000, 13, 1},{13, 30, 15}})
@@ -735,8 +773,8 @@ defmodule NaiveDateTime do
 
   ## Examples
 
-      iex> NaiveDateTime.from_erl!({{2000, 1, 1},{13,30,15}}, 5000)
-      %NaiveDateTime{year: 2000, month: 1, day: 1, hour: 13, minute: 30, second: 15, microsecond: 5000}
+      iex> NaiveDateTime.from_erl!({{2000, 1, 1}, {13, 30, 15}}, 5000)
+      ~N[2000-01-01 13:30:15.005]
       iex> NaiveDateTime.from_erl!({{2000, 13, 1}, {13, 30, 15}})
       ** (ArgumentError) cannot convert {{2000, 13, 1}, {13, 30, 15}} to naive date time, reason: :invalid_date
   """
