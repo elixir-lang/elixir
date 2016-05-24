@@ -875,6 +875,130 @@ defmodule DateTime do
                          time_zone: Calendar.time_zone, zone_abbr: Calendar.zone_abbr,
                          utc_offset: Calendar.utc_offset, std_offset: Calendar.std_offset}
 
+  @seconds_per_day 86400
+  @seconds_per_hour 3600
+  @seconds_per_minute 60
+  @days_per_year 365
+  @days_per_leap_year 365
+
+  @doc """
+  Converts the given unix time to DateTime.
+
+  The integer can be given in different precisions
+  according to `System.convert_time_unit/3` and it will
+  be converted to microseconds precision internally.
+
+  Unix times are always in UTC and therefore the DateTime
+  will be returned in UTC.
+
+  ## Examples
+
+      iex> DateTime.from_unix(1464096368)
+      %DateTime{calendar: Calendar.ISO, day: 24, hour: 13, microsecond: 0, minute: 26,
+                month: 5, second: 8, std_offset: 0, time_zone: "Etc/UTC", utc_offset: 0,
+                year: 2016, zone_abbr: "UTC"}
+
+      iex> DateTime.from_unix(1432560368868569, :microseconds)
+      %DateTime{calendar: Calendar.ISO, day: 25, hour: 13, microsecond: 868569, minute: 26,
+                month: 5, second: 8, std_offset: 0, time_zone: "Etc/UTC", utc_offset: 0,
+                year: 2015, zone_abbr: "UTC"}
+
+  """
+  @spec from_unix(non_neg_integer, :native | System.time_unit) :: DateTime.t
+  def from_unix(integer, precision \\ :seconds) when is_integer(integer) and integer >= 0 do
+    unit = System.convert_time_unit(integer, precision, :microseconds)
+    microsecond = rem(unit, 1_000_000)
+    datetime = div(unit, 1_000_000)
+
+    date = div(datetime, @seconds_per_day)
+    time = rem(datetime, @seconds_per_day)
+
+    hour = div(time, @seconds_per_hour)
+    minute_second = rem(time, @seconds_per_hour)
+    minute = div(minute_second, @seconds_per_minute)
+    second = rem(minute_second, @seconds_per_minute)
+
+    {year, days} = days_to_year_day(date)
+    year = year + 1970
+    {month, day} = year_day_to_month_day(days_per_month(year), 1, days + 1)
+
+    %DateTime{year: year, month: month, day: day,
+              hour: hour, minute: minute, second: second, microsecond: microsecond,
+              std_offset: 0, utc_offset: 0, zone_abbr: "UTC", time_zone: "Etc/UTC"}
+  end
+
+  @doc """
+  Converts the given DateTime to unix time.
+
+  The DateTime is expected to be UTC using the ISO calendar
+  with a year greater than or equal to 1970.
+
+  It will return the integer with the given precision,
+  according to `System.convert_time_unit/3`.
+
+  ## Examples
+
+      iex> 1464096368 |> DateTime.from_unix() |> DateTime.to_unix()
+      1464096368
+
+  """
+  @spec to_unix(DateTime.t, System.time_unit) :: non_neg_integer
+  def to_unix(%DateTime{std_offset: 0, utc_offset: 0, time_zone: "Etc/UTC",
+                        hour: hour, minute: minute, second: second, microsecond: microsecond,
+                        year: year, month: month, day: day}, precision \\ :seconds) when year >= 1970 do
+    seconds = time_to_seconds(hour, minute, second) + date_to_seconds(year - 1970, month, day)
+    System.convert_time_unit(seconds * 1_000_000 + microsecond, :microseconds, precision)
+  end
+
+  # Converts the given time to seconds
+  defp time_to_seconds(hour, minute, second) do
+    (hour * 60 + minute) * 60 + second
+  end
+
+  # Converts the given date to seconds
+  defp date_to_seconds(year, month, day) do
+    (days_in_previous_years(year) +
+      days_in_previous_months(days_per_month(year), month, 0) +
+      day) * @seconds_per_day
+  end
+
+  # Receives the day of year and returns the month plus day of month.
+  defp year_day_to_month_day([current | _], month, days) when days <= current,
+    do: {month, days}
+  defp year_day_to_month_day([current | rest], month, days),
+    do: year_day_to_month_day(rest, month + 1, days - current)
+
+  # Returns the number of days per month.
+  defp days_per_month(year) do
+    feb = if Calendar.ISO.leap_year?(year), do: 29, else: 28
+    [31, feb, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+  end
+
+  # Receives epoch days and return year plus day of the year.
+  defp days_to_year_day(days) do
+    year = div(days, @days_per_year)
+    {year, diff_days} = days_to_year_day_diff(year, days, days_in_previous_years(year))
+    {year, days - diff_days}
+  end
+
+  defp days_to_year_day_diff(year, d1, d2) when d1 < d2,
+    do: days_to_year_day_diff(year - 1, d1, days_in_previous_years(year - 1))
+  defp days_to_year_day_diff(year, _d, d2),
+    do: {year, d2}
+
+  # Gets the days in previous months
+  defp days_in_previous_months([_ | _], 1, acc),
+    do: acc
+  defp days_in_previous_months([days | rest], month, acc),
+    do: days_in_previous_months(rest, month - 1, acc + days)
+
+  # Gets the days in previous years
+  defp days_in_previous_years(year) when year <= 0, do: 0
+  defp days_in_previous_years(year) do
+    rest = year - 1
+    div(rest, 4) - div(rest, 100) + div(rest, 400) + rest * @days_per_year + @days_per_leap_year
+  end
+
   @doc """
   Converts a `DateTime` into a `NaiveDateTime`.
 
