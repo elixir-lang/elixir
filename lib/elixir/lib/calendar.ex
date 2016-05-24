@@ -822,6 +822,18 @@ defmodule DateTime do
   it also includes both UTC and Standard offsets, as
   well as the zone abbreviation field used exclusively
   for formatting purposes.
+
+  ## Where are my functions?
+
+  You will notice this module only contains conversion
+  functions as well as functions that work on UTC. This
+  is because a proper DateTime implementation requires a
+  TimeZone database which currently is not provided as part
+  of Elixir.
+
+  Such may be addressed in upcoming versions, meanwhile,
+  use 3rd party packages to provide DateTime building and
+  similar functionality with time zone backing.
   """
   defstruct [:year, :month, :day, :hour, :minute, :second, :microsecond,
              :time_zone, :zone_abbr, :utc_offset, :std_offset, calendar: Calendar.ISO]
@@ -830,6 +842,65 @@ defmodule DateTime do
                          second: Calendar.second, microsecond: Calendar.microsecond,
                          time_zone: Calendar.time_zone, zone_abbr: Calendar.zone_abbr,
                          utc_offset: Calendar.utc_offset, std_offset: Calendar.std_offset}
+
+  @doc """
+  Converts a `DateTime` into a `NaiveDateTime`.
+
+  Because `NaiveDateTime` does not hold timezone information,
+  any timezone related data will be lost during the conversion.
+
+  ## Examples
+
+      iex> dt = %DateTime{year: 2000, month: 2, day: 29,
+      ...>                hour: 23, minute: 0, second: 7, microsecond: 0,
+      ...>                utc_offset: 3600, std_offset: 3600, time_zone: "Europe/Warsaw"}
+      iex> DateTime.to_naive(dt)
+      ~N[2000-02-29 23:00:07]
+
+  """
+  def to_naive(%DateTime{year: year, month: month, day: day, calendar: calendar,
+                         hour: hour, minute: minute, second: second, microsecond: microsecond}) do
+    %NaiveDateTime{year: year, month: month, day: day, calendar: calendar,
+                   hour: hour, minute: minute, second: second, microsecond: microsecond}
+  end
+
+  @doc """
+  Converts a `DateTime` into a `Date`.
+
+  Because `Date` does not hold time nor timezone information,
+  data will be lost during the conversion.
+
+  ## Examples
+
+      iex> dt = %DateTime{year: 2000, month: 2, day: 29,
+      ...>                hour: 23, minute: 0, second: 7, microsecond: 0,
+      ...>                utc_offset: 3600, std_offset: 3600, time_zone: "Europe/Warsaw"}
+      iex> DateTime.to_date(dt)
+      ~D[2000-02-29]
+
+  """
+  def to_date(%DateTime{year: year, month: month, day: day, calendar: calendar}) do
+    %Date{year: year, month: month, day: day, calendar: calendar}
+  end
+
+  @doc """
+  Converts a `DateTime` into `Time`.
+
+  Because `Time` does not hold date nor timezone information,
+  data will be lost during the conversion.
+
+  ## Examples
+
+      iex> dt = %DateTime{year: 2000, month: 2, day: 29,
+      ...>                hour: 23, minute: 0, second: 7, microsecond: 0,
+      ...>                utc_offset: 3600, std_offset: 3600, time_zone: "Europe/Warsaw"}
+      iex> DateTime.to_time(dt)
+      ~T[23:00:07]
+
+  """
+  def to_time(%DateTime{hour: hour, minute: minute, second: second, microsecond: microsecond}) do
+    %Time{hour: hour, minute: minute, second: second, microsecond: microsecond}
+  end
 
   @doc """
   Converts the given date time to ISO8601.
