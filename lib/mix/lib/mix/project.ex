@@ -245,7 +245,7 @@ defmodule Mix.Project do
       #=> %{foo: "deps/foo", bar: "custom/path/dep"}
 
   """
-  @spec deps_paths() :: %{atom => Path.t}
+  @spec deps_paths() :: %{optional(atom) => Path.t}
   def deps_paths do
     Enum.reduce Mix.Dep.cached(), %{}, fn
       %{app: app, opts: opts}, acc -> Map.put acc, app, opts[:dest]
