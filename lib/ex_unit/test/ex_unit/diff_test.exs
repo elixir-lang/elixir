@@ -32,15 +32,15 @@ defmodule ExUnit.DiffTest do
     assert format(string1, string2, &formatter/2) == expected
     assert format(string1, <<193, 31>>, &formatter/2) == nil
 
-    # pre-fillering
-    assert format("aaa", "bba", &formatter/2) == ~S<"{aaa}[bba]">
-    assert format("aaa", "baa", &formatter/2) == ~S<"[b]aa{a}">
+    # Filtered due to bag different
+    assert format("aaa", "bba", &formatter/2) == nil
+    assert format("aaa", "baa", &formatter/2) == "\"[b]aa{a}\""
   end
 
   test "lists" do
     list1 = ["One", :ok, nil, {}, :ok]
     list2 = ["Two", :ok, 0.0, {true}]
-    expected = ~S<["{One}[Two]", :ok, {nil}[0.0], {[true]}, {:ok}]>
+    expected = ~S<[{"One"}["Two"], :ok, {nil}[0.0], {[true]}, {:ok}]>
     assert format(list1, list2, &formatter/2) == expected
 
     keyword_list1 = [file: "nofile", line: 12]
@@ -57,11 +57,11 @@ defmodule ExUnit.DiffTest do
   test "improper lists" do
     assert format([1, 2], [1, 2 | 3], &formatter/2) == "[1, 2 | [3]]"
     assert format([1, 2 | 3], [1, 2], &formatter/2) == "[1, 2 | {3}]"
-    assert format([1, "a"], [1 | "b"], &formatter/2) == ~S<[1{,}[ |] "{a}[b]"]>
-    assert format([1 | "b"], [1, "a"], &formatter/2) == ~S<[1{ |}[,] "{b}[a]"]>
+    assert format([1, "a"], [1 | "b"], &formatter/2) == ~S<[1{,}[ |] {"a"}["b"]]>
+    assert format([1 | "b"], [1, "a"], &formatter/2) == ~S<[1{ |}[,] {"b"}["a"]]>
     assert format([1 | 2], [1 | 3], &formatter/2) == "[1 | {2}[3] [(off by +1)]]"
-    assert format([1, 'b' | 3], [1, 'a' | 3], &formatter/2) == "[1, '{b}[a]' | 3]"
-    assert format(['a', 2 | 3], ['b', 2 | 3], &formatter/2) == "['{a}[b]', 2 | 3]"
+    assert format([1, 'b' | 3], [1, 'a' | 3], &formatter/2) == "[1, {'b'}['a'] | 3]"
+    assert format(['a', 2 | 3], ['b', 2 | 3], &formatter/2) == "[{'a'}['b'], 2 | 3]"
   end
 
   test "tuples" do
