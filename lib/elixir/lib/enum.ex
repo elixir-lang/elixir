@@ -1610,6 +1610,8 @@ defmodule Enum do
   Returns elements of `enumerable` for which the function `fun` returns
   `false` or `nil`.
 
+  For the inverse (opposite), see `filter`.
+
   ## Examples
 
       iex> Enum.reject([1, 2, 3], fn(x) -> rem(x, 2) == 0 end)
