@@ -36,6 +36,20 @@ defmodule Calendar do
   @typedoc "The time zone standard offset in seconds (not zero in summer times)"
   @type std_offset  :: integer
 
+  @doc """
+  Returns true if the given year is a leap year.
+
+  A leap year is a year of a longer length than normal. The exact meaning
+  is up to the calendar. A calendar must return `false` if does not support
+  the concept of leap years.
+  """
+  @callback leap_year?(year) :: boolean
+
+  @doc """
+  Converts the given structure into a string according to the calendar.
+  """
+  @callback to_string(Date.t | NaiveDateTime.t | DateTime.t) :: String.t
+
   @doc false
   # TODO: Remove this on 1.4. It exists only to aid migration of those
   # using the Calendar library.
@@ -84,14 +98,30 @@ defmodule Date do
       {:error, :invalid_date}
       iex> Date.new(2001, 2, 29)
       {:error, :invalid_date}
+
   """
   @spec new(Calendar.year, Calendar.month, Calendar.day) :: {:ok, Date.t} | {:error, atom}
   def new(year, month, day) when is_integer(year) and is_integer(month) and is_integer(day) do
-    if Calendar.ISO.valid_date?(year, month, day) do
+    if :calendar.valid_date(year, month, day) and year <= 9999 do
       {:ok, %Date{year: year, month: month, day: day}}
     else
       {:error, :invalid_date}
     end
+  end
+
+  @doc """
+  Converts the given date to a string according to its calendar.
+
+  ### Examples
+
+      iex> {:ok, date} = Date.new(2000, 2, 28)
+      iex> Date.to_string(date)
+      "2000-02-28"
+
+  """
+  @spec to_string(Date.t) :: String.t
+  def to_string(%Date{calendar: calendar} = date) do
+    calendar.to_string(date)
   end
 
   @doc """
@@ -120,9 +150,9 @@ defmodule Date do
   """
   @spec from_iso8601(String.t) :: {:ok, Date.t} | {:error, atom}
   def from_iso8601(<<year::4-bytes, ?-, month::2-bytes, ?-, day::2-bytes>>) do
-    with {year, ""}       <- Integer.parse(year),
-         {month, ""}      <- Integer.parse(month),
-         {day, ""}        <- Integer.parse(day) do
+    with {year, ""}  <- Integer.parse(year),
+         {month, ""} <- Integer.parse(month),
+         {day, ""}   <- Integer.parse(day) do
       new(year, month, day)
     else
       _ -> {:error, :invalid_format}
@@ -131,6 +161,28 @@ defmodule Date do
 
   def from_iso8601(<<_::binary>>) do
     {:error, :invalid_format}
+  end
+
+  @doc """
+  Converts the given date time to ISO8601.
+
+  Only supports converting date times which are in the ISO calendar,
+  attempting to convert date times from other calendars will produce
+  an error tuple.
+
+  ### Examples
+
+      iex> {:ok, date} = Date.new(2000, 2, 28)
+      iex> Date.to_iso8601(date)
+      {:ok, "2000-02-28"}
+
+  """
+  @spec to_iso8601(Date.t) :: {:ok, String.t} | {:error, atom}
+  def to_iso8601(%Date{calendar: Calendar.ISO} = date) do
+    {:ok, Calendar.ISO.to_iso8601(date)}
+  end
+  def to_iso8601(%Date{}) do
+    {:error, :unsupported_calendar}
   end
 
   @doc """
@@ -220,6 +272,27 @@ defmodule Time do
   end
 
   @doc """
+  Converts the given time to a string.
+
+  ### Examples
+
+      iex> {:ok, time} = Time.new(23, 0, 0)
+      iex> Time.to_string(time)
+      "23:00:00"
+      iex> {:ok, time} = Time.new(23, 0, 0, 1000)
+      iex> Time.to_string(time)
+      "23:00:00.001"
+      iex> {:ok, time} = Time.new(23, 0, 0, 123456)
+      iex> Time.to_string(time)
+      "23:00:00.123456"
+
+  """
+  @spec to_string(Time.t) :: String.t
+  def to_string(%Time{} = time) do
+    Calendar.ISO.to_string(time)
+  end
+
+  @doc """
   Parses the extended "Local time" format described by ISO8601:2004.
 
   Timezone offset may be included in the string but they will be
@@ -271,6 +344,25 @@ defmodule Time do
   end
   def from_iso8601(<<_::binary>>) do
     {:error, :invalid_format}
+  end
+
+  @doc """
+  Converts the given time to ISO8601.
+
+  ### Examples
+
+      iex> {:ok, time} = Time.new(23, 0, 13)
+      iex> Time.to_iso8601(time)
+      {:ok, "23:00:13"}
+
+      iex> {:ok, time} = Time.new(23, 0, 13, 1000)
+      iex> Time.to_iso8601(time)
+      {:ok, "23:00:13.001"}
+
+  """
+  @spec to_iso8601(Time.t) :: {:ok, String.t} | {:error, atom}
+  def to_iso8601(%Time{} = time) do
+    {:ok, Calendar.ISO.to_iso8601(time)}
   end
 
   @doc """
@@ -358,6 +450,7 @@ defmodule NaiveDateTime do
       {:error, :invalid_time}
       iex> NaiveDateTime.new(2000, 1, 1, 23, 59, 59, 1_000_000)
       {:error, :invalid_time}
+
   """
   @spec new(Calendar.year, Calendar.month, Calendar.day,
             Calendar.hour, Calendar.minute, Calendar.second, Calendar.microsecond) ::
@@ -366,7 +459,7 @@ defmodule NaiveDateTime do
       when is_integer(year) and is_integer(month) and is_integer(day) and
            is_integer(hour) and is_integer(minute) and is_integer(second) and is_integer(microsecond) do
     cond do
-      not(Calendar.ISO.valid_date?(year, month, day)) ->
+      not(:calendar.valid_date(year, month, day) and year <= 9999) ->
         {:error, :invalid_date}
       not(hour in 0..23 and minute in 0..59 and second in 0..60 and microsecond in 0..999_999) ->
         {:error, :invalid_time}
@@ -374,6 +467,25 @@ defmodule NaiveDateTime do
         {:ok, %NaiveDateTime{year: year, month: month, day: day,
                              hour: hour, minute: minute, second: second, microsecond: microsecond}}
     end
+  end
+
+  @doc """
+  Converts the given naive date time to a string according to its calendar.
+
+  ### Examples
+
+      iex> {:ok, naive} = NaiveDateTime.new(2000, 2, 28, 23, 0, 13)
+      iex> NaiveDateTime.to_string(naive)
+      "2000-02-28 23:00:13"
+
+      iex> {:ok, naive} = NaiveDateTime.new(2000, 2, 28, 23, 0, 13, 1000)
+      iex> NaiveDateTime.to_string(naive)
+      "2000-02-28 23:00:13.001"
+
+  """
+  @spec to_string(NaiveDateTime.t) :: String.t
+  def to_string(%NaiveDateTime{calendar: calendar} = naive) do
+    calendar.to_string(naive)
   end
 
   @doc """
@@ -437,6 +549,32 @@ defmodule NaiveDateTime do
   end
 
   @doc """
+  Converts the given naive date time to ISO8601.
+
+  Only supports converting naive date times which are in the ISO calendar,
+  attempting to convert naive date times from other calendars will produce
+  an error tuple.
+
+  ### Examples
+
+      iex> {:ok, naive} = NaiveDateTime.new(2000, 2, 28, 23, 0, 13)
+      iex> NaiveDateTime.to_iso8601(naive)
+      {:ok, "2000-02-28T23:00:13"}
+
+      iex> {:ok, naive} = NaiveDateTime.new(2000, 2, 28, 23, 0, 13, 1000)
+      iex> NaiveDateTime.to_iso8601(naive)
+      {:ok, "2000-02-28T23:00:13.001"}
+
+  """
+  @spec to_iso8601(NaiveDateTime.t) :: {:ok, String.t} | {:error, atom}
+  def to_iso8601(%NaiveDateTime{calendar: Calendar.ISO} = naive) do
+    {:ok, Calendar.ISO.to_iso8601(naive)}
+  end
+  def to_iso8601(%NaiveDateTime{}) do
+    {:error, :unsupported_calendar}
+  end
+
+  @doc """
   Converts a `NaiveDateTime` struct to an Erlang datetime tuple.
 
   Only supports converting naive date times which are in the ISO calendar,
@@ -463,7 +601,7 @@ defmodule NaiveDateTime do
   def to_erl(%NaiveDateTime{}), do: {:error, :unsupported_calendar}
 
   @doc """
-  Converts an Erlang datetime tuple (like those produced by the `:calendar` module) to a `NaiveDateTime` struct.
+  Converts an Erlang datetime tuple to a `NaiveDateTime` struct.
 
   Attempting to convert an invalid ISO calendar date will produce an error tuple.
 
@@ -499,4 +637,32 @@ defmodule DateTime do
                          second: Calendar.second, microsecond: Calendar.microsecond,
                          time_zone: Calendar.time_zone, zone_abbr: Calendar.zone_abbr,
                          utc_offset: Calendar.utc_offset, std_offset: Calendar.std_offset}
+
+  @doc """
+  Converts the given date time to a string according to its calendar.
+
+  ### Examples
+
+      iex> dt = %DateTime{year: 2000, month: 2, day: 29,
+      ...>                hour: 23, minute: 0, second: 7, microsecond: 0,
+      ...>                utc_offset: 3600, std_offset: 3600, time_zone: "Europe/Warsaw"}
+      iex> DateTime.to_string(naive)
+      "2000-02-29 23:00:13+02:00 Europe/Warsaw"
+
+      iex> dt = %DateTime{year: 2000, month: 2, day: 29,
+      ...>                hour: 23, minute: 0, second: 7, microsecond: 0,
+      ...>                utc_offset: 0, std_offset: 0, time_zone: "Etc/UTC"}
+      iex> DateTime.to_string(naive)
+      "2000-02-29 23:00:13Z"
+
+      iex> dt = %DateTime{year: 2000, month: 2, day: 29,
+      ...>                hour: 23, minute: 0, second: 7, microsecond: 0,
+      ...>                utc_offset: -12600, std_offset: 3600, time_zone: "Brazil/Manaus"}
+      iex> DateTime.to_string(naive)
+      "2000-02-29 23:00:13-02:30 Brazil/Manaus"
+  """
+  @spec to_string(DateTime.t) :: String.t
+  def to_string(%DateTime{calendar: calendar} = naive) do
+    calendar.to_string(naive)
+  end
 end

@@ -9,30 +9,7 @@ defmodule Calendar.ISO do
   before the year 1583 from when the Gregorian calendar was adopted.
   """
 
-  @doc """
-  Checks if the given date is valid.
-
-  ## Examples
-
-      iex> Calendar.ISO.valid_date?(2000, 1, 1)
-      true
-      iex> Calendar.ISO.valid_date?(2000, 13, 1)
-      false
-      iex> Calendar.ISO.valid_date?(2000, 2, 29)
-      true
-      iex> Calendar.ISO.valid_date?(2000, 2, 30)
-      false
-      iex> Calendar.ISO.valid_date?(2001, 2, 29)
-      false
-      iex> Calendar.ISO.valid_date?(10000, 2, 29)
-      false
-      iex> Calendar.ISO.valid_date?(-1, 2, 29)
-      false
-
-  """
-  def valid_date?(year, month, day) when is_integer(year) and is_integer(month) and is_integer(day) do
-    year in 0..9999 and month in 1..12 and day in 1..last_day_of_month(year, month)
-  end
+  @behaviour Calendar
 
   @doc """
   Returns if the given year is a leap year.
@@ -54,29 +31,74 @@ defmodule Calendar.ISO do
   end
 
   @doc """
-  Returns the last day of the given year and month.
+  Converts the given structure into a string.
 
-  ## Examples
-
-      iex> Calendar.ISO.last_day_of_month(2000, 1)
-      31
-      iex> Calendar.ISO.last_day_of_month(2000, 2)
-      29
-      iex> Calendar.ISO.last_day_of_month(2001, 2)
-      28
-      iex> Calendar.ISO.last_day_of_month(2001, 3)
-      31
-      iex> Calendar.ISO.last_day_of_month(2001, 4)
-      30
-
+  It uses the ISO8601 standard except for DateTime where the
+  timezone information is added between brackets.
   """
-  def last_day_of_month(year, month) when is_integer(year) and year >= 0 and month in 1..12 do
-    cond do
-      month in [4, 6, 9, 11] -> 30
-      month == 2 and leap_year?(year) -> 29
-      month == 2 -> 28
-      true -> 31
-    end
+  def to_string(%Date{year: year, month: month, day: day}) do
+    date_to_string(year, month, day)
+  end
+
+  def to_string(%Time{hour: hour, minute: minute, second: second, microsecond: microsecond}) do
+    time_to_string(hour, minute, second, microsecond)
+  end
+
+  def to_string(%NaiveDateTime{year: year, month: month, day: day,
+                               hour: hour, minute: minute, second: second, microsecond: microsecond}) do
+    date_to_string(year, month, day) <> " " <> time_to_string(hour, minute, second, microsecond)
+  end
+
+  def to_string(%DateTime{year: year, month: month, day: day,
+                          hour: hour, minute: minute, second: second, microsecond: microsecond,
+                          utc_offset: utc_offset, std_offset: std_offset, time_zone: time_zone}) do
+    date_to_string(year, month, day) <> " " <> time_to_string(hour, minute, second, microsecond) <>
+      offset_to_string(utc_offset, std_offset, time_zone)
+  end
+
+  defp date_to_string(year, month, day) do
+    zero_pad(year, 4) <> "-" <> zero_pad(month, 2) <> "-" <> zero_pad(day, 2)
+  end
+
+  defp time_to_string(hour, minute, second, 0) do
+    zero_pad(hour, 2) <> ":" <> zero_pad(minute, 2) <> ":" <> zero_pad(second, 2)
+  end
+  defp time_to_string(hour, minute, second, microsecond) do
+    time_to_string(hour, minute, second, 0) <> "." <>
+      (microsecond |> zero_pad(6) |> String.trim_trailing("0"))
+  end
+
+  defp offset_to_string(0, 0, "Etc/UTC"), do: "Z"
+  defp offset_to_string(utc, std, zone) do
+    total  = utc + std
+    second = abs(total)
+    minute = second |> rem(3600) |> div(60)
+    hour   = second |> div(3600)
+    sign(total) <> zero_pad(hour, 2) <> ":" <> zero_pad(minute, 2) <> " [" <> zone <> "]"
+  end
+
+  defp sign(total) when total < 0, do: "-"
+  defp sign(_), do: "+"
+
+  defp zero_pad(val, count) do
+    num = Integer.to_string(val)
+    :binary.copy("0", count - byte_size(num)) <> num
+  end
+
+  ## Helpers
+
+  @doc false
+  def to_iso8601(%Date{year: year, month: month, day: day}) do
+    date_to_string(year, month, day)
+  end
+
+  def to_iso8601(%Time{hour: hour, minute: minute, second: second, microsecond: microsecond}) do
+    time_to_string(hour, minute, second, microsecond)
+  end
+
+  def to_iso8601(%NaiveDateTime{year: year, month: month, day: day,
+                                hour: hour, minute: minute, second: second, microsecond: microsecond}) do
+    date_to_string(year, month, day) <> "T" <> time_to_string(hour, minute, second, microsecond)
   end
 
   @doc false
