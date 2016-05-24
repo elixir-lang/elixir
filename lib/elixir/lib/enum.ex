@@ -2111,7 +2111,7 @@ defmodule Enum do
 
   def take(enumerable, count) when is_list(enumerable)
   and is_integer(count) and count > 0 do
-    do_take(enumerable, count)
+    do_take(enumerable, count, [])
   end
 
   def take(enumerable, count) when is_integer(count) and count > 0 do
@@ -2273,7 +2273,7 @@ defmodule Enum do
   """
   @spec take_while(t, (element -> as_boolean(term))) :: list
   def take_while(enumerable, fun) when is_list(enumerable) do
-    do_take_while(enumerable, fun)
+    do_take_while(enumerable, fun, [])
   end
 
   def take_while(enumerable, fun) do
@@ -2345,7 +2345,7 @@ defmodule Enum do
   @spec uniq_by(t, (element -> term)) :: list
 
   def uniq_by(enumerable, fun) when is_list(enumerable) do
-    do_uniq(enumerable, %{}, fun)
+    do_uniq(enumerable, %{}, fun, [])
   end
 
   def uniq_by(enumerable, fun) do
@@ -2401,7 +2401,7 @@ defmodule Enum do
   @spec zip(t, t) :: [{any, any}]
   def zip(enumerable1, enumerable2) when is_list(enumerable1)
   and is_list(enumerable2) do
-    do_zip(enumerable1, enumerable2)
+    do_zip(enumerable1, enumerable2, [])
   end
 
   def zip(enumerable1, enumerable2) do
@@ -2722,55 +2722,54 @@ defmodule Enum do
 
   ## take
 
-  defp do_take([h | t], counter) when counter > 0 do
-    [h | do_take(t, counter - 1)]
+  defp do_take([h | t], counter, acc) when counter > 0 do
+    do_take(t, counter - 1, [h | acc])
   end
 
-  defp do_take(_list, 0) do
-    []
+  defp do_take(_list, 0, acc) do
+    :lists.reverse(acc)
   end
 
-  defp do_take([], _) do
-    []
+  defp do_take([], _, acc) do
+    :lists.reverse(acc)
   end
 
   ## take_while
 
-  defp do_take_while([h | t], fun) do
+  defp do_take_while([h | t], fun, acc) do
     if fun.(h) do
-      [h | do_take_while(t, fun)]
+      do_take_while(t, fun, [h | acc])
     else
-      []
+      :lists.reverse(acc)
     end
   end
 
-  defp do_take_while([], _) do
-    []
+  defp do_take_while([], _, acc) do
+    :lists.reverse(acc)
   end
 
   ## uniq
 
-  defp do_uniq([h | t], acc, fun) do
-    fun_h = fun.(h)
-    if Map.has_key?(acc, fun_h) do
-      do_uniq(t, acc, fun)
-    else
-      [h | do_uniq(t, Map.put(acc, fun_h, true), fun)]
+  defp do_uniq([h | t], set, fun, acc) do
+    value = fun.(h)
+    case set do
+      %{^value => true} -> do_uniq(t, set, fun, acc)
+      %{} -> do_uniq(t, Map.put(set, value, true), fun, [h | acc])
     end
   end
 
-  defp do_uniq([], _acc, _fun) do
-    []
+  defp do_uniq([], _set, _fun, acc) do
+    :lists.reverse(acc)
   end
 
   ## zip
 
-  defp do_zip([h1 | next1], [h2 | next2]) do
-    [{h1, h2} | do_zip(next1, next2)]
+  defp do_zip([h1 | next1], [h2 | next2], acc) do
+    do_zip(next1, next2, [{h1, h2} | acc])
   end
 
-  defp do_zip(_, []), do: []
-  defp do_zip([], _), do: []
+  defp do_zip(_, [], acc), do: :lists.reverse(acc)
+  defp do_zip([], _, acc), do: :lists.reverse(acc)
 
   ## slice
 
