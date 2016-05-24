@@ -79,6 +79,7 @@ defmodule Date do
       {:error, :invalid_date}
       iex> Date.new(2000, 2, 29)
       {:ok, %Date{year: 2000, month: 2, day: 29}}
+
       iex> Date.new(2000, 2, 30)
       {:error, :invalid_date}
       iex> Date.new(2001, 2, 29)
@@ -94,6 +95,45 @@ defmodule Date do
   end
 
   @doc """
+  Parses the extended "Date and time of day" format described by ISO8601:2004.
+
+  Timezone offset may be included in the string but they will be
+  simply discarded as such information is not included in naive date
+  times.
+
+  As specified in the standard, the separator "T" may be omitted if
+  desired as there is no ambiguity within this function.
+
+  Time representations with reduced accuracy and decimal fractions
+  are not supported.
+
+  ## Examples
+
+      iex> Date.from_iso8601("2015-01-23")
+      {:ok, %Date{year: 2015, month: 01, day: 23}}
+
+      iex> Date.from_iso8601("2015:01:23")
+      {:error, :invalid_format}
+      iex> Date.from_iso8601("2015-01-32")
+      {:error, :invalid_date}
+
+  """
+  @spec from_iso8601(String.t) :: {:ok, Date.t} | {:error, atom}
+  def from_iso8601(<<year::4-bytes, ?-, month::2-bytes, ?-, day::2-bytes>>) do
+    with {year, ""}       <- Integer.parse(year),
+         {month, ""}      <- Integer.parse(month),
+         {day, ""}        <- Integer.parse(day) do
+      new(year, month, day)
+    else
+      _ -> {:error, :invalid_format}
+    end
+  end
+
+  def from_iso8601(<<_::binary>>) do
+    {:error, :invalid_format}
+  end
+
+  @doc """
   Converts a `Date` struct to an Erlang date tuple.
 
   Only supports converting dates which are in the ISO calendar,
@@ -102,9 +142,11 @@ defmodule Date do
 
   ## Examples
 
-      iex> Date.to_erl(%Date{year: 2000, month: 1, day: 1})
+      iex> {:ok, date} = Date.new(2000, 1, 1)
+      iex> Date.to_erl(date)
       {:ok, {2000, 1, 1}}
-      iex> Date.to_erl(%Date{calendar: :other, year: 2000, month: 1, day: 1})
+      iex> date = put_in date.calendar, :other
+      iex> Date.to_erl(date)
       {:error, :unsupported_calendar}
   """
   @spec to_erl(Date.t) :: {:ok, :calendar.date()} | {:error, :unsupported_calendar}
@@ -155,6 +197,7 @@ defmodule Time do
       {:ok, %Time{hour: 23, minute: 59, second: 59, microsecond: 999_999}}
       iex> Time.new(23, 59, 50, 999_999)
       {:ok, %Time{hour: 23, minute: 59, second: 50, microsecond: 999_999}}
+
       iex> Time.new(24, 59, 59, 999_999)
       {:error, :invalid_time}
       iex> Time.new(23, 60, 59, 999_999)
@@ -177,6 +220,60 @@ defmodule Time do
   end
 
   @doc """
+  Parses the extended "Local time" format described by ISO8601:2004.
+
+  Timezone offset may be included in the string but they will be
+  simply discarded as such information is not included in times.
+
+  As specified in the standard, the separator "T" may be omitted if
+  desired as there is no ambiguity within this function.
+
+  Time representations with reduced accuracy and decimal fractions
+  are not supported.
+
+  ## Examples
+
+      iex> Time.from_iso8601("23:50:07")
+      {:ok, %Time{hour: 23, minute: 50, second: 07, microsecond: 0}}
+      iex> Time.from_iso8601("23:50:07Z")
+      {:ok, %Time{hour: 23, minute: 50, second: 07, microsecond: 0}}
+      iex> Time.from_iso8601("T23:50:07Z")
+      {:ok, %Time{hour: 23, minute: 50, second: 07, microsecond: 0}}
+
+      iex> Time.from_iso8601("23:50:07.0123456")
+      {:ok, %Time{hour: 23, minute: 50, second: 07, microsecond: 12345}}
+      iex> Time.from_iso8601("23:50:07.123Z")
+      {:ok, %Time{hour: 23, minute: 50, second: 07, microsecond: 123000}}
+
+      iex> Time.from_iso8601("2015:01:23 23-50-07")
+      {:error, :invalid_format}
+      iex> Time.from_iso8601("23:50:07A")
+      {:error, :invalid_format}
+      iex> Time.from_iso8601("23:50:61")
+      {:error, :invalid_time}
+
+  """
+  @spec from_iso8601(String.t) :: {:ok, Time.t} | {:error, atom}
+  def from_iso8601(<<?T, h, rest::binary>>) when h in ?0..?9 do
+    from_iso8601(<<h, rest::binary>>)
+  end
+
+  def from_iso8601(<<hour::2-bytes, ?:, min::2-bytes, ?:, sec::2-bytes, rest::binary>>) do
+    with {hour, ""}       <- Integer.parse(hour),
+         {min, ""}        <- Integer.parse(min),
+         {sec, ""}        <- Integer.parse(sec),
+         {microsec, rest} <- Calendar.ISO.parse_microsecond(rest),
+         {_offset, ""}    <- Calendar.ISO.parse_offset(rest) do
+      new(hour, min, sec, microsec)
+    else
+      _ -> {:error, :invalid_format}
+    end
+  end
+  def from_iso8601(<<_::binary>>) do
+    {:error, :invalid_format}
+  end
+
+  @doc """
   Converts a `Time` struct to an Erlang time tuple.
 
   WARNING: Loss of precision may occur, as Erlang time tuples
@@ -184,7 +281,8 @@ defmodule Time do
 
   ## Examples
 
-      iex> Time.to_erl(%Time{hour: 23, minute: 30, second: 15, microsecond: 999})
+      iex> {:ok, time} = Time.new(23, 30, 15, 999)
+      iex> Time.to_erl(time)
       {:ok, {23, 30, 15}}
   """
   @spec to_erl(Time.t) :: {:ok, :calendar.time()} | {:error, atom}
@@ -279,6 +377,66 @@ defmodule NaiveDateTime do
   end
 
   @doc """
+  Parses the extended "Date and time of day" format described by ISO8601:2004.
+
+  Timezone offset may be included in the string but they will be
+  simply discarded as such information is not included in naive date
+  times.
+
+  As specified in the standard, the separator "T" may be omitted if
+  desired as there is no ambiguity within this function.
+
+  Time representations with reduced accuracy and decimal fractions
+  are not supported.
+
+  ## Examples
+
+      iex> NaiveDateTime.from_iso8601("2015-01-23 23:50:07")
+      {:ok, %NaiveDateTime{year: 2015, month: 01, day: 23, hour: 23, minute: 50, second: 07, microsecond: 0}}
+      iex> NaiveDateTime.from_iso8601("2015-01-23T23:50:07")
+      {:ok, %NaiveDateTime{year: 2015, month: 01, day: 23, hour: 23, minute: 50, second: 07, microsecond: 0}}
+      iex> NaiveDateTime.from_iso8601("2015-01-23T23:50:07Z")
+      {:ok, %NaiveDateTime{year: 2015, month: 01, day: 23, hour: 23, minute: 50, second: 07, microsecond: 0}}
+
+      iex> NaiveDateTime.from_iso8601("2015-01-23 23:50:07.0123456")
+      {:ok, %NaiveDateTime{year: 2015, month: 01, day: 23, hour: 23, minute: 50, second: 07, microsecond: 12345}}
+      iex> NaiveDateTime.from_iso8601("2015-01-23T23:50:07.123Z")
+      {:ok, %NaiveDateTime{year: 2015, month: 01, day: 23, hour: 23, minute: 50, second: 07, microsecond: 123000}}
+
+      iex> NaiveDateTime.from_iso8601("2015-01-23P23:50:07")
+      {:error, :invalid_format}
+      iex> NaiveDateTime.from_iso8601("2015:01:23 23-50-07")
+      {:error, :invalid_format}
+      iex> NaiveDateTime.from_iso8601("2015-01-23 23:50:07A")
+      {:error, :invalid_format}
+      iex> NaiveDateTime.from_iso8601("2015-01-23 23:50:61")
+      {:error, :invalid_time}
+      iex> NaiveDateTime.from_iso8601("2015-01-32 23:50:07")
+      {:error, :invalid_date}
+
+  """
+  @spec from_iso8601(String.t) :: {:ok, NaiveDateTime.t} | {:error, atom}
+  def from_iso8601(<<year::4-bytes, ?-, month::2-bytes, ?-, day::2-bytes, sep,
+                     hour::2-bytes, ?:, min::2-bytes, ?:, sec::2-bytes, rest::binary>>) when sep in [?\s, ?T] do
+    with {year, ""}       <- Integer.parse(year),
+         {month, ""}      <- Integer.parse(month),
+         {day, ""}        <- Integer.parse(day),
+         {hour, ""}       <- Integer.parse(hour),
+         {min, ""}        <- Integer.parse(min),
+         {sec, ""}        <- Integer.parse(sec),
+         {microsec, rest} <- Calendar.ISO.parse_microsecond(rest),
+         {_offset, ""}    <- Calendar.ISO.parse_offset(rest) do
+      new(year, month, day, hour, min, sec, microsec)
+    else
+      _ -> {:error, :invalid_format}
+    end
+  end
+
+  def from_iso8601(<<_::binary>>) do
+    {:error, :invalid_format}
+  end
+
+  @doc """
   Converts a `NaiveDateTime` struct to an Erlang datetime tuple.
 
   Only supports converting naive date times which are in the ISO calendar,
@@ -290,9 +448,11 @@ defmodule NaiveDateTime do
 
   ## Examples
 
-      iex> NaiveDateTime.to_erl(%NaiveDateTime{year: 2000, month: 1, day: 1, hour: 13, minute: 30, second: 15})
-      {:ok, {{2000,1,1},{13,30,15}}}
-      iex> NaiveDateTime.to_erl(%NaiveDateTime{calendar: :other, year: 2000, month: 1, day: 1})
+      iex> {:ok, naive} = NaiveDateTime.new(2000, 1, 1, 13, 30, 15)
+      iex> NaiveDateTime.to_erl(naive)
+      {:ok, {{2000, 1, 1}, {13, 30, 15}}}
+      iex> naive = put_in naive.calendar, :other
+      iex> NaiveDateTime.to_erl(naive)
       {:error, :unsupported_calendar}
   """
   @spec to_erl(NaiveDateTime.t) :: {:ok, :calendar.datetime()} | {:error, :unsupported_calendar}
