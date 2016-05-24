@@ -14,3 +14,8 @@ defmodule NaiveDateTimeTest do
   use ExUnit.Case, async: true
   doctest NaiveDateTime
 end
+
+defmodule DateTimeTest do
+  use ExUnit.Case, async: true
+  doctest DateTime
+end
