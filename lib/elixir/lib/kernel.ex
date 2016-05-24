@@ -3952,7 +3952,7 @@ defmodule Kernel do
 
   """
   defmacro sigil_C(term, modifiers)
-  defmacro sigil_C({:<<>>, _line, [string]}, []) when is_binary(string) do
+  defmacro sigil_C({:<<>>, _meta, [string]}, []) when is_binary(string) do
     String.to_charlist(string)
   end
 
@@ -3978,12 +3978,12 @@ defmodule Kernel do
 
   # We can skip the runtime conversion if we are
   # creating a binary made solely of series of chars.
-  defmacro sigil_c({:<<>>, _line, [string]}, []) when is_binary(string) do
+  defmacro sigil_c({:<<>>, _meta, [string]}, []) when is_binary(string) do
     String.to_charlist(Macro.unescape_string(string))
   end
 
-  defmacro sigil_c({:<<>>, line, pieces}, []) do
-    binary = {:<<>>, line, Macro.unescape_tokens(pieces)}
+  defmacro sigil_c({:<<>>, meta, pieces}, []) do
+    binary = {:<<>>, meta, Macro.unescape_tokens(pieces)}
     quote do: String.to_charlist(unquote(binary))
   end
 
@@ -4005,14 +4005,14 @@ defmodule Kernel do
 
   """
   defmacro sigil_r(term, modifiers)
-  defmacro sigil_r({:<<>>, _line, [string]}, options) when is_binary(string) do
+  defmacro sigil_r({:<<>>, _meta, [string]}, options) when is_binary(string) do
     binary = Macro.unescape_string(string, fn(x) -> Regex.unescape_map(x) end)
     regex  = Regex.compile!(binary, :binary.list_to_bin(options))
     Macro.escape(regex)
   end
 
-  defmacro sigil_r({:<<>>, line, pieces}, options) do
-    binary = {:<<>>, line, Macro.unescape_tokens(pieces, fn(x) -> Regex.unescape_map(x) end)}
+  defmacro sigil_r({:<<>>, meta, pieces}, options) do
+    binary = {:<<>>, meta, Macro.unescape_tokens(pieces, fn(x) -> Regex.unescape_map(x) end)}
     quote do: Regex.compile!(unquote(binary), unquote(:binary.list_to_bin(options)))
   end
 
@@ -4031,9 +4031,63 @@ defmodule Kernel do
 
   """
   defmacro sigil_R(term, modifiers)
-  defmacro sigil_R({:<<>>, _line, [string]}, options) when is_binary(string) do
+  defmacro sigil_R({:<<>>, _meta, [string]}, options) when is_binary(string) do
     regex = Regex.compile!(string, :binary.list_to_bin(options))
     Macro.escape(regex)
+  end
+
+  @doc ~S"""
+  Handles the sigil `~D` for dates.
+
+  The lower case `~d` variant does not exist as interpolation
+  and escape characters are not useful for date sigils.
+
+  ## Examples
+
+      iex> ~D[2015-01-13]
+      %Date{year: 2015, month: 1, day: 13}
+  """
+  defmacro sigil_D(date, modifiers)
+  defmacro sigil_D({:<<>>, _, [string]}, []) do
+    Macro.escape(Date.from_iso8601!(string))
+  end
+
+  @doc ~S"""
+  Handles the sigil `~T` for times.
+
+  The lower case `~t` variant does not exist as interpolation
+  and escape characters are not useful for time sigils.
+
+  ## Examples
+
+      iex> ~T[13:00:07]
+      %Time{hour: 13, minute: 0, second: 7, microsecond: 0}
+      iex> ~T[13:00:07.001]
+      %Time{hour: 13, minute: 0, second: 7, microsecond: 1000}
+
+  """
+  defmacro sigil_T(date, modifiers)
+  defmacro sigil_T({:<<>>, _, [string]}, []) do
+    Macro.escape(Time.from_iso8601!(string))
+  end
+
+  @doc ~S"""
+  Handles the sigil `~N` for naive date times.
+
+  The lower case `~n` variant does not exist as interpolation
+  and escape characters are not useful for datetime sigils.
+
+  ## Examples
+
+      iex> ~N[2015-01-13 13:00:07]
+      %NaiveDateTime{year: 2015, month: 1, day: 13, hour: 13, minute: 0, second: 7, microsecond: 0}
+      iex> ~N[2015-01-13T13:00:07.001]
+      %NaiveDateTime{year: 2015, month: 1, day: 13, hour: 13, minute: 0, second: 7, microsecond: 1000}
+
+  """
+  defmacro sigil_N(date, modifiers)
+  defmacro sigil_N({:<<>>, _, [string]}, []) do
+    Macro.escape(NaiveDateTime.from_iso8601!(string))
   end
 
   @doc ~S"""
@@ -4064,12 +4118,12 @@ defmodule Kernel do
 
   """
   defmacro sigil_w(term, modifiers)
-  defmacro sigil_w({:<<>>, _line, [string]}, modifiers) when is_binary(string) do
+  defmacro sigil_w({:<<>>, _meta, [string]}, modifiers) when is_binary(string) do
     split_words(Macro.unescape_string(string), modifiers)
   end
 
-  defmacro sigil_w({:<<>>, line, pieces}, modifiers) do
-    binary = {:<<>>, line, Macro.unescape_tokens(pieces)}
+  defmacro sigil_w({:<<>>, meta, pieces}, modifiers) do
+    binary = {:<<>>, meta, Macro.unescape_tokens(pieces)}
     split_words(binary, modifiers)
   end
 
@@ -4092,7 +4146,7 @@ defmodule Kernel do
 
   """
   defmacro sigil_W(term, modifiers)
-  defmacro sigil_W({:<<>>, _line, [string]}, modifiers) when is_binary(string) do
+  defmacro sigil_W({:<<>>, _meta, [string]}, modifiers) when is_binary(string) do
     split_words(string, modifiers)
   end
 
