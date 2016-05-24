@@ -164,6 +164,28 @@ defmodule Date do
   end
 
   @doc """
+  Parses the extended "Date and time of day" format described by ISO8601:2004.
+
+  Raises it the format is invalid.
+
+  ## Examples
+
+      iex> Date.from_iso8601!("2015-01-23")
+      %Date{year: 2015, month: 01, day: 23}
+      iex> Date.from_iso8601!("2015:01:23")
+      ** (ArgumentError) cannot parse "2015:01:23" as date, reason: :invalid_format
+  """
+  @spec from_iso8601!(String.t) :: Date.t | no_return
+  def from_iso8601!(string) do
+    case from_iso8601(string) do
+      {:ok, value} ->
+        value
+      {:error, reason} ->
+        raise ArgumentError, "cannot parse #{inspect string} as date, reason: #{inspect reason}"
+    end
+  end
+
+  @doc """
   Converts the given date time to ISO8601.
 
   Only supports converting date times which are in the ISO calendar,
@@ -208,7 +230,7 @@ defmodule Date do
   def to_erl(%Date{}), do: {:error, :unsupported_calendar}
 
   @doc """
-  Converts an Erlang date tuple (like those produced by the `:calendar` module) to a `Date` struct.
+  Converts an Erlang date tuple to a `Date` struct.
 
   Attempting to convert an invalid ISO calendar date will produce an error tuple.
 
@@ -222,6 +244,26 @@ defmodule Date do
   @spec from_erl(:calendar.date()) :: {:ok, Date.t} | {:error, atom}
   def from_erl({year, month, day}) do
     new(year, month, day)
+  end
+
+  @doc """
+  Converts an Erlang date tuple but raises for invalid dates.
+
+  ## Examples
+
+      iex> Date.from_erl!({2000, 1, 1})
+      %Date{year: 2000, month: 1, day: 1}
+      iex> Date.from_erl!({2000, 13, 1})
+      ** (ArgumentError) cannot convert {2000, 13, 1} to date, reason: :invalid_date
+  """
+  @spec from_erl!(:calendar.date()) :: Date.t | no_return
+  def from_erl!(tuple) do
+    case from_erl(tuple) do
+      {:ok, value} ->
+        value
+      {:error, reason} ->
+        raise ArgumentError, "cannot convert #{inspect tuple} to date, reason: #{inspect reason}"
+    end
   end
 end
 
@@ -347,6 +389,28 @@ defmodule Time do
   end
 
   @doc """
+  Parses the extended "Local time" format described by ISO8601:2004.
+
+  Raises it the format is invalid.
+
+  ## Examples
+
+      iex> Time.from_iso8601!("23:50:07.123Z")
+      %Time{hour: 23, minute: 50, second: 07, microsecond: 123000}
+      iex> Time.from_iso8601!("2015:01:23 23-50-07")
+      ** (ArgumentError) cannot parse "2015:01:23 23-50-07" as time, reason: :invalid_format
+  """
+  @spec from_iso8601(String.t) :: Time.t | no_return
+  def from_iso8601!(string) do
+    case from_iso8601(string) do
+      {:ok, value} ->
+        value
+      {:error, reason} ->
+        raise ArgumentError, "cannot parse #{inspect string} as time, reason: #{inspect reason}"
+    end
+  end
+
+  @doc """
   Converts the given time to ISO8601.
 
   ### Examples
@@ -376,6 +440,7 @@ defmodule Time do
       iex> {:ok, time} = Time.new(23, 30, 15, 999)
       iex> Time.to_erl(time)
       {:ok, {23, 30, 15}}
+
   """
   @spec to_erl(Time.t) :: {:ok, :calendar.time()} | {:error, atom}
   def to_erl(%Time{hour: hour, minute: minute, second: second}) do
@@ -383,7 +448,7 @@ defmodule Time do
   end
 
   @doc """
-  Converts an Erlang time tuple (like those produced by the `:calendar` module) to a `Time` struct.
+  Converts an Erlang time tuple to a `Time` struct.
 
   ## Examples
 
@@ -392,9 +457,29 @@ defmodule Time do
       iex> Time.from_erl({24, 30, 15})
       {:error, :invalid_time}
   """
-  @spec from_erl(:calendar.time(), Calendar.microsecond) :: {:ok, __MODULE__.t} | {:error, atom}
+  @spec from_erl(:calendar.time(), Calendar.microsecond) :: {:ok, Time.t} | {:error, atom}
   def from_erl({hour, minute, second}, microsecond \\ 0) do
     new(hour, minute, second, microsecond)
+  end
+
+  @doc """
+  Converts an Erlang time tuple to a `Time` struct.
+
+  ## Examples
+
+      iex> Time.from_erl!({23, 30, 15}, 5000)
+      %Time{hour: 23, minute: 30, second: 15, microsecond: 5000}
+      iex> Time.from_erl!({24, 30, 15})
+      ** (ArgumentError) cannot convert {24, 30, 15} to time, reason: :invalid_time
+  """
+  @spec from_erl!(:calendar.time(), Calendar.microsecond) :: Time.t | no_return
+  def from_erl!(tuple, microsecond \\ 0) do
+    case from_erl(tuple, microsecond) do
+      {:ok, value} ->
+        value
+      {:error, reason} ->
+        raise ArgumentError, "cannot convert #{inspect tuple} to time, reason: #{inspect reason}"
+    end
   end
 end
 
@@ -549,6 +634,29 @@ defmodule NaiveDateTime do
   end
 
   @doc """
+  Parses the extended "Date and time of day" format described by ISO8601:2004.
+
+  Raises it the format is invalid.
+
+  ## Examples
+
+      iex> NaiveDateTime.from_iso8601!("2015-01-23T23:50:07.123Z")
+      %NaiveDateTime{year: 2015, month: 01, day: 23, hour: 23, minute: 50, second: 07, microsecond: 123000}
+      iex> NaiveDateTime.from_iso8601!("2015-01-23P23:50:07")
+      ** (ArgumentError) cannot parse "2015-01-23P23:50:07" as naive date time, reason: :invalid_format
+
+  """
+  @spec from_iso8601!(String.t) :: NaiveDateTime.t | no_return
+  def from_iso8601!(string) do
+    case from_iso8601(string) do
+      {:ok, value} ->
+        value
+      {:error, reason} ->
+        raise ArgumentError, "cannot parse #{inspect string} as naive date time, reason: #{inspect reason}"
+    end
+  end
+
+  @doc """
   Converts the given naive date time to ISO8601.
 
   Only supports converting naive date times which are in the ISO calendar,
@@ -614,9 +722,32 @@ defmodule NaiveDateTime do
       iex> NaiveDateTime.from_erl({{2000, 13, 1},{13, 30, 15}})
       {:error, :invalid_date}
   """
-  @spec from_erl(:calendar.datetime(), Calendar.microsecond) :: {:ok, __MODULE__.t} | {:error, atom}
+  @spec from_erl(:calendar.datetime(), Calendar.microsecond) :: {:ok, NaiveDateTime.t} | {:error, atom}
   def from_erl({{year, month, day}, {hour, minute, second}}, microsecond \\ 0) do
     new(year, month, day, hour, minute, second, microsecond)
+  end
+
+   @doc """
+  Converts an Erlang datetime tuple to a `NaiveDateTime` struct.
+
+  Raises if the datetime is invalid.
+  Attempting to convert an invalid ISO calendar date will produce an error tuple.
+
+  ## Examples
+
+      iex> NaiveDateTime.from_erl!({{2000, 1, 1},{13,30,15}}, 5000)
+      %NaiveDateTime{year: 2000, month: 1, day: 1, hour: 13, minute: 30, second: 15, microsecond: 5000}
+      iex> NaiveDateTime.from_erl!({{2000, 13, 1}, {13, 30, 15}})
+      ** (ArgumentError) cannot convert {{2000, 13, 1}, {13, 30, 15}} to naive date time, reason: :invalid_date
+  """
+  @spec from_erl!(:calendar.datetime(), Calendar.microsecond) :: NaiveDateTime.t | no_return
+  def from_erl!(tuple, microsecond \\ 0) do
+    case from_erl(tuple, microsecond) do
+      {:ok, value} ->
+        value
+      {:error, reason} ->
+        raise ArgumentError, "cannot convert #{inspect tuple} to naive date time, reason: #{inspect reason}"
+    end
   end
 end
 
