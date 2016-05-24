@@ -24,10 +24,14 @@ defmodule Calendar.ISO do
       false
       iex> Calendar.ISO.valid_date?(2001, 2, 29)
       false
+      iex> Calendar.ISO.valid_date?(10000, 2, 29)
+      false
+      iex> Calendar.ISO.valid_date?(-1, 2, 29)
+      false
 
   """
   def valid_date?(year, month, day) when is_integer(year) and is_integer(month) and is_integer(day) do
-    year >= 0 and month in 1..12 and day in 1..last_day_of_month(year, month)
+    year in 0..9999 and month in 1..12 and day in 1..last_day_of_month(year, month)
   end
 
   @doc """
