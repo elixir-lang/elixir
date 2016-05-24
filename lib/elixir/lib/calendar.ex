@@ -16,10 +16,14 @@ defmodule Calendar do
   @type year        :: integer
   @type month       :: integer
   @type day         :: integer
-  @type hour        :: integer
-  @type minute      :: integer
-  @type second      :: integer
-  @type microsecond :: integer
+  @type hour        :: 0..23
+  @type minute      :: 0..59
+
+  @typedoc "From 0 to 60 to account for leap seconds"
+  @type second      :: 0..60
+
+  @typedoc "Stored precision is microseconds"
+  @type microsecond :: 0..999_999
 
   @typedoc "A calendar implementation"
   @type calendar    :: module
@@ -35,6 +39,11 @@ defmodule Calendar do
 
   @typedoc "The time zone standard offset in seconds (not zero in summer times)"
   @type std_offset  :: integer
+
+  @doc """
+  Builds a new date from propletic year, month and day of month.
+  """
+  @callback date(year, month, day) :: {:ok, Date.t} | {:error, atom}
 
   @doc """
   Returns true if the given year is a leap year.
@@ -118,12 +127,8 @@ defmodule Date do
 
   """
   @spec new(Calendar.year, Calendar.month, Calendar.day) :: {:ok, Date.t} | {:error, atom}
-  def new(year, month, day) when is_integer(year) and is_integer(month) and is_integer(day) do
-    if :calendar.valid_date(year, month, day) and year <= 9999 do
-      {:ok, %Date{year: year, month: month, day: day}}
-    else
-      {:error, :invalid_date}
-    end
+  def new(year, month, day) do
+    Calendar.ISO.date(year, month, day)
   end
 
   @doc """
@@ -228,6 +233,7 @@ defmodule Date do
 
       iex> Date.to_erl(~D[2000-01-01])
       {2000, 1, 1}
+
   """
   @spec to_erl(Date.t) :: :calendar.date()
   def to_erl(%Date{calendar: Calendar.ISO, year: year, month: month, day: day}) do
@@ -603,15 +609,27 @@ defmodule NaiveDateTime do
   def new(year, month, day, hour, minute, second, microsecond \\ 0)
       when is_integer(year) and is_integer(month) and is_integer(day) and
            is_integer(hour) and is_integer(minute) and is_integer(second) and is_integer(microsecond) do
-    cond do
-      not(:calendar.valid_date(year, month, day) and year <= 9999) ->
-        {:error, :invalid_date}
-      not(hour in 0..23 and minute in 0..59 and second in 0..60 and microsecond in 0..999_999) ->
-        {:error, :invalid_time}
-      true ->
-        {:ok, %NaiveDateTime{year: year, month: month, day: day,
-                             hour: hour, minute: minute, second: second, microsecond: microsecond}}
-    end
+    with {:ok, date} <- Calendar.ISO.date(year, month, day),
+         {:ok, time} <- Time.new(hour, minute, second, microsecond),
+         do: new(date, time)
+  end
+
+  @doc """
+  Builds a naive date time from date and time structs.
+
+  ## Examples
+
+      iex> NaiveDateTime.new(~D[2010-01-13], ~T[23:00:07.005])
+      {:ok, ~N[2010-01-13 23:00:07.005]}
+
+  """
+  @spec new(Date.t, Time.t) :: {:ok, NaiveDateTime.t}
+  def new(date, time)
+
+  def new(%Date{calendar: calendar, year: year, month: month, day: day},
+          %Time{hour: hour, minute: minute, second: second, microsecond: microsecond}) do
+    {:ok, %NaiveDateTime{calendar: calendar, year: year, month: month, day: day,
+                         hour: hour, minute: minute, second: second, microsecond: microsecond}}
   end
 
   @doc """
@@ -878,6 +896,21 @@ defmodule DateTime do
   @unix_epoch :calendar.datetime_to_gregorian_seconds {{1970, 1, 1}, {0, 0, 0}}
 
   @doc """
+  Returns the current datetime in UTC.
+
+  ## Examples
+
+      iex> datetime = DateTime.utc_now()
+      iex> datetime.time_zone
+      "Etc/UTC"
+
+  """
+  @spec utc_now() :: DateTime.t
+  def utc_now() do
+    :os.system_time |> from_unix!(:native)
+  end
+
+  @doc """
   Converts the given unix time to DateTime.
 
   The integer can be given in different precisions
@@ -890,26 +923,48 @@ defmodule DateTime do
   ## Examples
 
       iex> DateTime.from_unix(1464096368)
-      %DateTime{calendar: Calendar.ISO, day: 24, hour: 13, microsecond: 0, minute: 26,
-                month: 5, second: 8, std_offset: 0, time_zone: "Etc/UTC", utc_offset: 0,
-                year: 2016, zone_abbr: "UTC"}
+      {:ok, %DateTime{calendar: Calendar.ISO, day: 24, hour: 13, microsecond: 0, minute: 26,
+                      month: 5, second: 8, std_offset: 0, time_zone: "Etc/UTC", utc_offset: 0,
+                      year: 2016, zone_abbr: "UTC"}}
 
       iex> DateTime.from_unix(1432560368868569, :microseconds)
-      %DateTime{calendar: Calendar.ISO, day: 25, hour: 13, microsecond: 868569, minute: 26,
-                month: 5, second: 8, std_offset: 0, time_zone: "Etc/UTC", utc_offset: 0,
-                year: 2015, zone_abbr: "UTC"}
+      {:ok, %DateTime{calendar: Calendar.ISO, day: 25, hour: 13, microsecond: 868569, minute: 26,
+                      month: 5, second: 8, std_offset: 0, time_zone: "Etc/UTC", utc_offset: 0,
+                      year: 2015, zone_abbr: "UTC"}}
 
   """
-  @spec from_unix(non_neg_integer, :native | System.time_unit) :: DateTime.t
+  @spec from_unix(non_neg_integer, :native | System.time_unit) :: {:ok, DateTime.t}
   def from_unix(integer, precision \\ :seconds) when is_integer(integer) and integer >= 0 do
     unit = System.convert_time_unit(integer, precision, :microseconds)
     microsecond = rem(unit, 1_000_000)
     {{year, month, day}, {hour, minute, second}} =
       :calendar.gregorian_seconds_to_datetime(@unix_epoch + div(unit, 1_000_000))
 
-    %DateTime{year: year, month: month, day: day,
-              hour: hour, minute: minute, second: second, microsecond: microsecond,
-              std_offset: 0, utc_offset: 0, zone_abbr: "UTC", time_zone: "Etc/UTC"}
+    {:ok, %DateTime{year: year, month: month, day: day,
+                    hour: hour, minute: minute, second: second, microsecond: microsecond,
+                    std_offset: 0, utc_offset: 0, zone_abbr: "UTC", time_zone: "Etc/UTC"}}
+  end
+
+  @doc """
+  Converts the given unix time to DateTime.
+
+  ## Examples
+
+    iex> DateTime.from_unix!(1464096368)
+    %DateTime{calendar: Calendar.ISO, day: 24, hour: 13, microsecond: 0, minute: 26,
+              month: 5, second: 8, std_offset: 0, time_zone: "Etc/UTC", utc_offset: 0,
+              year: 2016, zone_abbr: "UTC"}
+
+    iex> DateTime.from_unix!(1432560368868569, :microseconds)
+    %DateTime{calendar: Calendar.ISO, day: 25, hour: 13, microsecond: 868569, minute: 26,
+              month: 5, second: 8, std_offset: 0, time_zone: "Etc/UTC", utc_offset: 0,
+              year: 2015, zone_abbr: "UTC"}
+
+  """
+  @spec from_unix!(non_neg_integer, :native | System.time_unit) :: DateTime.t
+  def from_unix!(integer, precision \\ :seconds) do
+    {:ok, datetime} = from_unix(integer, precision)
+    datetime
   end
 
   @doc """
@@ -923,7 +978,7 @@ defmodule DateTime do
 
   ## Examples
 
-      iex> 1464096368 |> DateTime.from_unix() |> DateTime.to_unix()
+      iex> 1464096368 |> DateTime.from_unix!() |> DateTime.to_unix()
       1464096368
 
   """
