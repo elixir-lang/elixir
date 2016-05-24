@@ -732,6 +732,8 @@ defmodule Enum do
   Filters the enumerable, i.e. returns only those elements
   for which `fun` returns a truthy value.
 
+  See also `reject/2`.
+
   ## Examples
 
       iex> Enum.filter([1, 2, 3], fn(x) -> rem(x, 2) == 0 end)
@@ -1609,6 +1611,8 @@ defmodule Enum do
   @doc """
   Returns elements of `enumerable` for which the function `fun` returns
   `false` or `nil`.
+
+  See also `filter/2`.
 
   ## Examples
 
