@@ -74,4 +74,30 @@ defmodule Calendar.ISO do
       true -> 31
     end
   end
+
+  @doc false
+  def parse_microsecond("." <> rest) do
+    case parse_microsecond(rest, "") do
+      {microsecond, rest} when byte_size(microsecond) > 6 ->
+        {String.to_integer(binary_part(microsecond, 0, 6)), rest}
+      {microsecond, rest} when byte_size(microsecond) in 1..6 ->
+        pad = String.duplicate("0", 6 - byte_size(microsecond))
+        {String.to_integer(microsecond <> pad), rest}
+      {"", _} ->
+        :error
+    end
+  end
+  def parse_microsecond(rest) do
+    {0, rest}
+  end
+
+  defp parse_microsecond(<<h, t::binary>>, acc) when h in ?0..?9,
+    do: parse_microsecond(t, <<acc::binary, h>>)
+  defp parse_microsecond(rest, acc),
+    do: {acc, rest}
+
+  @doc false
+  def parse_offset("Z"), do: {0, ""}
+  def parse_offset(""),  do: {nil, ""}
+  def parse_offset(_),   do: :error
 end
