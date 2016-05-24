@@ -52,8 +52,10 @@ defmodule Calendar.ISO do
   def to_string(%DateTime{year: year, month: month, day: day,
                           hour: hour, minute: minute, second: second, microsecond: microsecond,
                           utc_offset: utc_offset, std_offset: std_offset, time_zone: time_zone}) do
-    date_to_string(year, month, day) <> " " <> time_to_string(hour, minute, second, microsecond) <>
-      offset_to_string(utc_offset, std_offset, time_zone)
+    date_to_string(year, month, day) <> " " <>
+      time_to_string(hour, minute, second, microsecond) <>
+      offset_to_string(utc_offset, std_offset, time_zone) <>
+      zone_to_string(utc_offset, std_offset, time_zone)
   end
 
   defp date_to_string(year, month, day) do
@@ -69,13 +71,16 @@ defmodule Calendar.ISO do
   end
 
   defp offset_to_string(0, 0, "Etc/UTC"), do: "Z"
-  defp offset_to_string(utc, std, zone) do
+  defp offset_to_string(utc, std, _zone) do
     total  = utc + std
     second = abs(total)
     minute = second |> rem(3600) |> div(60)
     hour   = second |> div(3600)
-    sign(total) <> zero_pad(hour, 2) <> ":" <> zero_pad(minute, 2) <> " [" <> zone <> "]"
+    sign(total) <> zero_pad(hour, 2) <> ":" <> zero_pad(minute, 2)
   end
+
+  defp zone_to_string(0, 0, "Etc/UTC"), do: ""
+  defp zone_to_string(_, _, zone), do: " " <> zone
 
   defp sign(total) when total < 0, do: "-"
   defp sign(_), do: "+"
@@ -99,6 +104,14 @@ defmodule Calendar.ISO do
   def to_iso8601(%NaiveDateTime{year: year, month: month, day: day,
                                 hour: hour, minute: minute, second: second, microsecond: microsecond}) do
     date_to_string(year, month, day) <> "T" <> time_to_string(hour, minute, second, microsecond)
+  end
+
+  def to_iso8601(%DateTime{year: year, month: month, day: day,
+                           hour: hour, minute: minute, second: second, microsecond: microsecond,
+                           utc_offset: utc_offset, std_offset: std_offset, time_zone: time_zone}) do
+    date_to_string(year, month, day) <> "T" <>
+      time_to_string(hour, minute, second, microsecond) <>
+      offset_to_string(utc_offset, std_offset, time_zone)
   end
 
   @doc false
