@@ -85,14 +85,14 @@ defmodule Record do
     case Macro.Env.in_guard?(__CALLER__) do
       true ->
         quote do
-          is_tuple(unquote(data)) and tuple_size(unquote(data)) > 0
-            and :erlang.element(1, unquote(data)) == unquote(kind)
+          is_atom(unquote(kind)) and is_tuple(unquote(data)) and tuple_size(unquote(data)) > 0 and
+            elem(unquote(data), 0) == unquote(kind)
         end
       false ->
         quote do
           result = unquote(data)
-          is_tuple(result) and tuple_size(result) > 0
-            and :erlang.element(1, result) == unquote(kind)
+          kind = unquote(kind)
+          is_atom(kind) and is_tuple(result) and tuple_size(result) > 0 and elem(result, 0) == kind
         end
     end
   end
@@ -116,14 +116,13 @@ defmodule Record do
     case Macro.Env.in_guard?(__CALLER__) do
       true ->
         quote do
-          is_tuple(unquote(data)) and tuple_size(unquote(data)) > 0
-            and is_atom(:erlang.element(1, unquote(data)))
+          is_tuple(unquote(data)) and tuple_size(unquote(data)) > 0 and
+            is_atom(elem(unquote(data), 0))
         end
       false ->
         quote do
           result = unquote(data)
-          is_tuple(result) and tuple_size(result) > 0
-            and is_atom(:erlang.element(1, result))
+          is_tuple(result) and tuple_size(result) > 0 and is_atom(elem(result, 0))
         end
     end
   end

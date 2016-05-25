@@ -88,8 +88,9 @@
   * [Kernel] Raise if `defstruct` is called multiple times
   * [Kernel] Ensure `Module.create/3` respects var/alias hygiene
   * [Kernel] Support non-literal ranges on the right side of `in/2`
-  * [OptionParser] Allow `OptionParser` to parse negative numbers
   * [Macro] Fix `Macro.to_string/1` on a call of a capture argument, for example `&(&1).(:x)`
+  * [OptionParser] Allow `OptionParser` to parse negative numbers
+  * [Record] Fix `Record.is_record/2` when dealing with non-record tuples
   * [String] Ensure `strip` also removes non-breaking whitespaces (and ensure `split` still does not split on them)
   * [URI] Use square brackets for IPv6 in `URI.to_string/1`
 
