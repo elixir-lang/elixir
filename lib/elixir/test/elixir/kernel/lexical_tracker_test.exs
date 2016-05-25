@@ -158,8 +158,12 @@ defmodule Kernel.LexicalTrackerTest do
     assert compile_remote_calls == %{
       Bitwise => %{{:&&&, 2} => [9]},
       Integer => %{{:is_even, 1} => [9]},
-      Kernel => %{{:and, 2} => [8]},
+      Kernel => %{
+        {:and, 2} => [8],
+        {:def, 2} => [6]
+      },
       Kernel.LexicalTracker => %{{:remote_dispatches, 1} => [16]},
+      Record => %{{:is_record, 1} => [8]},
       :elixir_def => %{{:store_definition, 6} => [6]}
     }
 

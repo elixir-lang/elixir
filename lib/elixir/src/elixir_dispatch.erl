@@ -139,7 +139,6 @@ do_expand_import(Meta, {Name, Arity} = Tuple, Args, Module, E, Result) ->
     {function, Receiver} ->
       elixir_lexical:record_import({Receiver, Name, Arity}, ?m(E, lexical_tracker)),
       elixir_locals:record_import(Tuple, Receiver, Module, ?m(E, function)),
-      elixir_lexical:record_remote(Receiver, Name, Arity, nil, ?line(Meta), ?m(E, lexical_tracker)),
       {ok, Receiver, Name, Args};
     {macro, Receiver} ->
       check_deprecation(Meta, Receiver, Name, Arity, E),
