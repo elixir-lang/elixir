@@ -2,7 +2,7 @@ defmodule Mix.Tasks.Xref do
   use Mix.Task
 
   alias Mix.Tasks.Compile.Elixir, as: E
-  import Mix.Compilers.Elixir, only: [read_manifest: 1, source: 1]
+  import Mix.Compilers.Elixir, only: [read_manifest: 1, source: 1, source: 2]
 
   @shortdoc "Performs cross reference checks"
   @recursive true
@@ -16,6 +16,8 @@ defmodule Mix.Tasks.Xref do
 
     * `--warnings` - prints warnings for violated cross reference checks
     * `--unreachable` - prints all unreachable "file:line: module.function/arity" entries
+    * `--callers` - prints all references of given `Module`, `Module.function`, or
+      `Module.function/arity`
 
   ## Command line options
 
@@ -34,12 +36,13 @@ defmodule Mix.Tasks.Xref do
   """
 
   @switches [compile: :boolean, deps_check: :boolean, archives_check: :boolean,
-             warnings: :boolean, unreachable: :boolean, elixir_version_check: :boolean]
+             warnings: :boolean, unreachable: :boolean, elixir_version_check: :boolean,
+             callers: :string]
 
   @doc """
   Runs this task.
   """
-  @spec run(OptionParser.argv) :: :ok | :error
+  @spec run(OptionParser.argv) :: :ok | :error | [{Path.t, [{atom, atom, non_neg_integer, [pos_integer]}]}]
   def run(args) do
     {opts, _} =
       OptionParser.parse!(args, strict: @switches)
@@ -48,14 +51,16 @@ defmodule Mix.Tasks.Xref do
       Mix.Task.run("compile")
     end
 
-    modes = [:warnings, :unreachable]
+    modes = [:warnings, :unreachable, :callers]
     case Keyword.take(opts, modes) do
       [warnings: true] ->
         warnings()
       [unreachable: true] ->
         unreachable()
+      [callers: callee] ->
+        callers(callee)
       _ ->
-        Mix.raise "xref expects exactly one of the following modes: --warnings, --unreachable"
+        Mix.raise "xref expects exactly one of the following modes: --warnings, --unreachable, --callers"
     end
   end
 
@@ -77,19 +82,21 @@ defmodule Mix.Tasks.Xref do
     end
   end
 
-  ## Unreachable
-
-  defp unreachable(pair) do
-    excludes = excludes()
-
-    for manifest <- E.manifests(),
-        source(source: file) = source <- read_manifest(manifest),
-        entries = unreachable_source(source, excludes),
-        entries != [],
-        do: pair.(file, entries)
+  defp callers(callee) do
+    callee
+    |> filter_for_callee()
+    |> do_callers()
   end
 
-  defp unreachable_source(source, excludes) do
+  ## Unreachable
+
+  defp unreachable(pair_fun) do
+    excludes = excludes()
+
+    each_source_entries(&source_warnings(&1, excludes), pair_fun)
+  end
+
+  defp source_warnings(source, excludes) do
     source(runtime_dispatches: runtime_dispatches) = source
 
     for {module, func_arity_lines} <- runtime_dispatches,
@@ -159,7 +166,7 @@ defmodule Mix.Tasks.Xref do
     ["  ", file, ?:, Integer.to_string(line), ?\n]
   end
 
-  ## Helpers
+  ## Unreachable helpers
 
   @protocol_builtins for {_, type} <- Protocol.__builtin__(), do: type
 
@@ -190,5 +197,110 @@ defmodule Mix.Tasks.Xref do
 
   defp excluded?(module, func, arity, excludes) do
     MapSet.member?(excludes, module) or MapSet.member?(excludes, {module, func, arity})
+  end
+
+  ## Callers
+
+  defp do_callers(filter) do
+    each_source_entries(&source_calls_for_filter(&1, filter), &print_calls/2)
+  end
+
+  defp source_calls_for_filter(source, filter) do
+    runtime_dispatches = source(source, :runtime_dispatches)
+    compile_dispatches = source(source, :compile_dispatches)
+    dispatches = merge_dispatches(runtime_dispatches, compile_dispatches)
+
+    for {module, func_arity_lines} <- dispatches,
+        {{func, arity}, lines} <- func_arity_lines,
+        filter.({module, func, arity}),
+        do: {module, func, arity, lines}
+  end
+
+  ## Print callers
+
+  defp print_calls(file, calls) do
+    IO.write(["file: ", file, ?\n])
+
+    calls
+    |> Enum.sort()
+    |> Enum.each(&IO.write(["  ", format_call(&1), ?\n]))
+
+    {file, calls}
+  end
+
+  defp format_call({module, func, arity, lines}) do
+    lines =
+      lines
+      |> Enum.reverse()
+      |> Enum.map(&to_string/1)
+      |> Enum.intersperse(",")
+
+    [Exception.format_mfa(module, func, arity), ":", lines]
+  end
+
+  ## Callers helpers
+
+  defp filter_for_callee(callee) do
+    mfa_list =
+      case Code.string_to_quoted(callee) do
+        {:ok, quoted_callee} -> quoted_to_mfa_list(quoted_callee)
+        {:error, _} -> raise_invalid_callee(callee)
+      end
+
+    mfa_list_length = length(mfa_list)
+
+    fn {module, function, arity} ->
+      mfa_list == Enum.take([module, function, arity], mfa_list_length)
+    end
+  end
+
+  defp quoted_to_mfa_list(quoted) do
+    quoted
+    |> do_quoted_to_mfa_list()
+    |> Enum.reverse()
+  end
+
+  defp do_quoted_to_mfa_list({:__aliases__, _, aliases}) do
+    [Module.concat(aliases)]
+  end
+
+  defp do_quoted_to_mfa_list({{:., _, [module, func]}, _, []}) when is_atom(func) do
+    [func | do_quoted_to_mfa_list(module)]
+  end
+
+  defp do_quoted_to_mfa_list({:/, _, [dispatch, arity]}) when is_integer(arity) do
+    [arity | do_quoted_to_mfa_list(dispatch)]
+  end
+
+  defp do_quoted_to_mfa_list(other) do
+    other
+    |> Macro.to_string()
+    |> raise_invalid_callee()
+  end
+
+  defp raise_invalid_callee(callee) do
+    message =
+      "xref --callers expects `Module`, `Module.function`, or `Module.function/arity`, got: " <>
+      callee
+
+    Mix.raise message
+  end
+
+  defp merge_dispatches(dispatches1, dispatches2) do
+    Keyword.merge dispatches1, dispatches2, fn _module, fals1, fals2 ->
+      Map.merge fals1, fals2, fn _fa, lines1, lines2 ->
+        Enum.uniq(lines1 ++ lines2)
+      end
+    end
+  end
+
+  ## Helpers
+
+  defp each_source_entries(entries_fun, pair_fun) do
+    for manifest <- E.manifests(),
+        source(source: file) = source <- read_manifest(manifest),
+        entries = entries_fun.(source),
+        entries != [],
+        do: pair_fun.(file, entries)
   end
 end

@@ -60,6 +60,18 @@ defmodule Mix.Tasks.XrefTest do
     """
   end
 
+  test "warnings: reports missing captures" do
+    assert_warnings """
+    defmodule A do
+      def a, do: &A.no_func/0
+    end
+    """, """
+    warning: function A.no_func/0 is undefined or private
+      lib/a.ex:2
+
+    """
+  end
+
   test "warnings: doesn't report missing funcs at compile time" do
     assert_no_warnings """
       Enum.map([], fn _ -> BadReferencer.no_func4() end)
@@ -197,6 +209,23 @@ defmodule Mix.Tasks.XrefTest do
     """
   end
 
+  test "warnings: aliases" do
+    assert_warnings """
+    defmodule A do
+      alias Enum, as: E
+
+      def a(a, b), do: E.map2(a, b)
+      def b, do: &E.map2/2
+    end
+    """, """
+    warning: function Enum.map2/2 is undefined or private
+    Found at 2 locations:
+      lib/a.ex:4
+      lib/a.ex:5
+
+    """
+  end
+
   test "warnings: requires" do
     assert_no_warnings """
     defmodule A do
@@ -229,7 +258,7 @@ defmodule Mix.Tasks.XrefTest do
 
   ## Unreachable
 
-  test "unreachble: reports missing functions" do
+  test "unreachable: reports missing functions" do
     assert_unreachable """
     defmodule A do
       def a, do: A.no_func
@@ -278,5 +307,177 @@ defmodule Mix.Tasks.XrefTest do
       lib/a.ex:5
 
     """
+  end
+
+  ## Callers
+
+  test "callers: prints callers of specified Module" do
+    assert_callers "A", """
+    defmodule A do
+      def a, do: A.a()
+      def a(arg), do: A.a(arg)
+      def b, do: A.b()
+      def c, do: B.a()
+    end
+    """,
+    """
+    file: lib/a.ex
+      A.a/0:2
+      A.a/1:3
+      A.b/0:4
+    """,
+    [{"lib/a.ex", [{A, :a, 0, [2]}, {A, :a, 1, [3]}, {A, :b, 0, [4]}]}]
+  end
+
+  test "callers: prints callers of specified Module.func" do
+    assert_callers "A.a", """
+    defmodule A do
+      def a, do: A.a()
+      def a(arg), do: A.a(arg)
+      def b, do: A.b()
+      def c, do: B.a()
+    end
+    """,
+    """
+    file: lib/a.ex
+      A.a/0:2
+      A.a/1:3
+    """,
+    [{"lib/a.ex", [{A, :a, 0, [2]}, {A, :a, 1, [3]}]}]
+  end
+
+  test "callers: prints callers of specified Module.func/arity" do
+    assert_callers "A.a/0", """
+    defmodule A do
+      def a, do: A.a()
+      def a(arg), do: A.a(arg)
+      def b, do: A.b()
+      def c, do: B.a()
+    end
+    """,
+    """
+    file: lib/a.ex
+      A.a/0:2
+    """,
+    [{"lib/a.ex", [{A, :a, 0, [2]}]}]
+  end
+
+  test "callers: lists compile calls and macros" do
+    assert_callers "A", """
+    defmodule A do
+      defmacro a_macro, do: :ok
+      def a, do: :ok
+    end
+    """, """
+    defmodule B do
+      require A
+
+      A.a_macro()
+      A.a()
+    end
+    """,
+    """
+    file: lib/b.ex
+      A.a/0:5
+      A.a_macro/0:4
+    """,
+    [{"lib/b.ex", [{A, :a, 0, [5]}, {A, :a_macro, 0, [4]}]}]
+  end
+
+  test "callers: handles aliases" do
+    assert_callers "Enum", """
+    defmodule A do
+      alias Enum, as: E
+
+      E.map([], &E.flatten/1)
+
+      def a(a, b), do: E.map(a, b)
+    end
+    """, """
+    file: lib/a.ex
+      Enum.flatten/1:4
+      Enum.map/2:4,6
+    """, [{"lib/a.ex", [{Enum, :flatten, 1, [4]}, {Enum, :map, 2, [6, 4]}]}]
+  end
+
+  test "callers: handles imports" do
+    assert_callers "Integer", """
+    defmodule A do
+      import Integer
+
+      &is_even/1
+      &parse/1
+
+      _ = is_even(Enum.random([1, 2, 3]))
+      _ = parse("2")
+
+      def a(a), do: is_even(a)
+      def b(a), do: parse(a)
+    end
+    """, """
+    file: lib/a.ex
+      Integer.is_even/1:4,7,10
+      Integer.parse/1:5,8,11
+    """,
+    [{"lib/a.ex", [{Integer, :is_even, 1, [10, 7, 4]}, {Integer, :parse, 1, [11, 8, 5]}]}]
+  end
+
+  test "callers: groups multiple calls" do
+    assert_callers "A", """
+    defmodule A do
+      def a, do: A.a()
+      def b, do: A.a()
+    end
+    """,
+    """
+    file: lib/a.ex
+      A.a/0:2,3
+    """,
+    [{"lib/a.ex", [{A, :a, 0, [3, 2]}]}]
+  end
+
+  test "callers: no argument gives error" do
+    in_fixture "no_mixfile", fn ->
+      message =
+        "Could not invoke task \"xref\": 1 error found!\n" <>
+        "--callers : Missing argument of type string"
+
+      assert_raise Mix.Error, message, fn ->
+        assert Mix.Task.run("xref", ["--callers"]) == :error
+      end
+    end
+  end
+
+  test "callers: gives nice error for quotable but invalid callers spec" do
+    in_fixture "no_mixfile", fn ->
+      message =
+        "xref --callers expects `Module`, `Module.function`, or `Module.function/arity`, got: Module.func(arg)"
+
+      assert_raise Mix.Error, message, fn ->
+        Mix.Task.run("xref", ["--callers", "Module.func(arg)"])
+      end
+    end
+  end
+
+  test "callers: gives nice error for unquotable callers spec" do
+    in_fixture "no_mixfile", fn ->
+      message =
+        "xref --callers expects `Module`, `Module.function`, or `Module.function/arity`, got: %"
+
+      assert_raise Mix.Error, message, fn ->
+        Mix.Task.run("xref", ["--callers", "%"])
+      end
+    end
+  end
+
+  defp assert_callers(callee, contents_a, contents_b \\ "", expected_print, expected_result) do
+    in_fixture "no_mixfile", fn ->
+      File.write!("lib/a.ex", contents_a)
+      File.write!("lib/b.ex", contents_b)
+
+      assert capture_io(fn ->
+        assert Mix.Task.run("xref", ["--callers", callee]) == expected_result
+      end) == expected_print
+    end
   end
 end
