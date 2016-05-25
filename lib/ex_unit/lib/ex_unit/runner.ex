@@ -55,7 +55,7 @@ defmodule ExUnit.Runner do
     cond do
       opts[:trace]           -> 1
       max = opts[:max_cases] -> max
-      true                   -> :erlang.system_info(:schedulers_online)
+      true                   -> :erlang.system_info(:schedulers_online) * 2
     end
   end
 
