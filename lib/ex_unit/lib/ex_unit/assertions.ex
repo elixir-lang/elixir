@@ -3,8 +3,6 @@ defmodule ExUnit.AssertionError do
   Raised to signal an assertion error.
   """
 
-  alias ExUnit.Formatter, as: F
-
   @no_value :ex_unit_no_meaningful_value
 
   defexception left:    @no_value,
@@ -19,8 +17,9 @@ defmodule ExUnit.AssertionError do
     @no_value
   end
 
-  def message(assertion_error) do
-    "\n\n" <> F.format_assertion_error(assertion_error, :infinity, &formatter/2, "")
+  def message(exception) do
+    "\n\n" <>
+      ExUnit.Formatter.format_assertion_error(exception, :infinity, &formatter/2, "")
   end
 
   defp formatter(_, msg), do: msg

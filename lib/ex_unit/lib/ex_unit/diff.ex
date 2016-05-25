@@ -2,44 +2,44 @@ defmodule ExUnit.Diff do
   @moduledoc false
 
   @doc """
-  Formats the difference between `left` and `right`.
+  Returns an edit script representing the difference between `left` and `right`.
 
   Returns `nil` if they are not the same data type,
   or if the given data type is not supported.
   """
-  def format(left, right, formatter)
+  def script(left, right)
 
   # Binaries
-  def format(left, right, formatter) when is_binary(left) and is_binary(right) do
+  def script(left, right) when is_binary(left) and is_binary(right) do
     if String.printable?(left) and String.printable?(right) do
       length1 = String.length(left)
       length2 = String.length(right)
       if bag_distance(left, right) / max(length1, length2) <= 0.6 do
         left = Inspect.BitString.escape(left, ?\")
         right = Inspect.BitString.escape(right, ?\")
-        "\"" <> format_string(left, right, formatter) <> "\""
+        [{:eq, "\""}, script_string(left, right), {:eq, "\""}]
       end
     end
   end
 
   # Structs
-  def format(%name{} = left, %name{} = right, formatter) do
+  def script(%name{} = left, %name{} = right) do
     left = Map.from_struct(left)
     right = Map.from_struct(right)
-    format_map(left, right, inspect(name), formatter)
+    script_map(left, right, inspect(name))
   end
 
   # Maps
-  def format(%{} = left, %{} = right, formatter) do
+  def script(%{} = left, %{} = right) do
     if match?(%_{}, left) or match?(%_{}, right) do
       nil
     else
-      format_map(left, right, "", formatter)
+      script_map(left, right, "")
     end
   end
 
   # Char lists and lists
-  def format(left, right, formatter) when is_list(left) and is_list(right) do
+  def script(left, right) when is_list(left) and is_list(right) do
     if Inspect.List.printable?(left) and Inspect.List.printable?(right) do
       left = List.to_string(left) |> Inspect.BitString.escape(?')
       right = List.to_string(right) |> Inspect.BitString.escape(?')
@@ -47,44 +47,33 @@ defmodule ExUnit.Diff do
       length2 = String.length(left)
 
       if bag_distance(left, right) / max(length1, length2) <= 0.6 do
-        "'" <> format_string(left, right, formatter) <> "'"
+        [{:eq, "'"}, script_string(left, right), {:eq, "'"}]
       end
     else
       keyword? = Inspect.List.keyword?(left) and Inspect.List.keyword?(right)
-      format_list(left, right, formatter, keyword?, [])
+      script_list(left, right, keyword?, [])
     end
   end
 
   # Numbers
-  def format(left, right, formatter)
+  def script(left, right)
       when is_integer(left) and is_integer(right)
       when is_float(left) and is_float(right) do
-    {kind, skew} =
-      case to_string(right - left) do
-        "-" <> _ = result ->
-          {:diff_delete, result}
-        result ->
-          {:diff_insert, "+" <> result}
-      end
-    value_diff = formatter.(kind, "(off by " <> skew <> ")")
-    format_string(inspect(left), inspect(right), formatter) <> " " <> value_diff
+    script_string(inspect(left), inspect(right))
   end
 
   # Tuples
-  def format(left, right, formatter)
+  def script(left, right)
       when is_tuple(left) and is_tuple(right) do
     left = {left, tuple_size(left) - 1}
     right = {right, tuple_size(right) - 1}
-    format_tuple(left, right, formatter, [])
+    script_tuple(left, right, [])
   end
 
-  def format(_left, _right, _formatter), do: nil
+  def script(_left, _right), do: nil
 
-  defp format_string(string1, string2, formatter) do
-    string1
-    |> String.myers_difference(string2)
-    |> Enum.map(&format_fragment(&1, formatter))
-    |> IO.iodata_to_binary
+  defp script_string(string1, string2) do
+    String.myers_difference(string1, string2)
   end
 
   # The algorithm is outlined in the
@@ -125,69 +114,68 @@ defmodule ExUnit.Diff do
     end)
   end
 
-  defp format_list([], [], _formatter, _keyword?, acc) do
-    result = with ", " <> rest <- Enum.join(Enum.reverse(acc)), do: rest
-    "[" <> result <> "]"
+  defp script_list([], [], _keyword?, acc) do
+    [[_ | elem_diff] | rest] = Enum.reverse(acc)
+    [{:eq, "["}, [elem_diff | rest], {:eq, "]"}]
   end
 
-  defp format_list([], [elem | rest], formatter, keyword?, acc) do
-    elem_diff = formatter.(:diff_insert, format_list_elem(elem, keyword?))
-    format_list([], rest, formatter, keyword?, [", " <> elem_diff | acc])
+  defp script_list([], [elem | rest], keyword?, acc) do
+    elem_diff = [ins: format_list_elem(elem, keyword?)]
+    script_list([], rest, keyword?, [[ins: ", "] ++ elem_diff | acc])
   end
 
-  defp format_list([elem | rest], [], formatter, keyword?, acc) do
-    elem_diff = formatter.(:diff_delete, format_list_elem(elem, keyword?))
-    format_list(rest, [], formatter, keyword?, [", " <> elem_diff | acc])
+  defp script_list([elem | rest], [], keyword?, acc) do
+    elem_diff = [del: format_list_elem(elem, keyword?)]
+    script_list(rest, [], keyword?, [[del: ", "] ++ elem_diff | acc])
   end
 
-  defp format_list([elem | rest1], [elem | rest2], formatter, keyword?, acc) do
-    elem_diff = format_list_elem(elem, keyword?)
-    format_list(rest1, rest2, formatter, keyword?, [", " <> elem_diff | acc])
+  defp script_list([elem | rest1], [elem | rest2], keyword?, acc) do
+    elem_diff = [eq: format_list_elem(elem, keyword?)]
+    script_list(rest1, rest2, keyword?, [[eq: ", "] ++ elem_diff | acc])
   end
 
-  defp format_list([{key1, val1} | rest1], [{key2, val2} | rest2], formatter, true, acc) do
+  defp script_list([{key1, val1} | rest1], [{key2, val2} | rest2], true, acc) do
     key_diff =
       if key1 != key2 do
-        format_string(Atom.to_string(key1), Atom.to_string(key2), formatter)
+        script_string(Atom.to_string(key1), Atom.to_string(key2))
       else
-        Atom.to_string(key1)
+        [eq: Atom.to_string(key1)]
       end
-    value_diff = format_inner(val1, val2, formatter)
-    elem_diff = format_key_value(key_diff, value_diff, true)
-    format_list(rest1, rest2, formatter, true, [", " <> elem_diff | acc])
+    value_diff = script_inner(val1, val2)
+    elem_diff = [[key_diff, {:eq, ": "}], value_diff]
+    script_list(rest1, rest2, true, [[eq: ", "] ++ elem_diff | acc])
   end
 
-  defp format_list([elem1 | rest1], [elem2 | rest2], formatter, false, acc) do
-    elem_diff = format_inner(elem1, elem2, formatter)
-    format_list(rest1, rest2, formatter, false, [", " <> elem_diff | acc])
+  defp script_list([elem1 | rest1], [elem2 | rest2], false, acc) do
+    elem_diff = script_inner(elem1, elem2)
+    script_list(rest1, rest2, false, [[eq: ", "] ++ elem_diff | acc])
   end
 
-  defp format_list(last, [elem | rest], formatter, keyword?, acc) do
-    joiner_diff = format_plain_diff(" |", ",", formatter) <> " "
-    elem_diff = format_inner(last, elem, formatter)
-    new_acc = [joiner_diff <> elem_diff | acc]
-    format_list([], rest, formatter, keyword?, new_acc)
+  defp script_list(last, [elem | rest], keyword?, acc) do
+    joiner_diff = [del: " |", ins: ",", eq: " "]
+    elem_diff = script_inner(last, elem)
+    new_acc = [joiner_diff ++ elem_diff | acc]
+    script_list([], rest, keyword?, new_acc)
   end
 
-  defp format_list([elem | rest], last, formatter, keyword?, acc) do
-    joiner_diff = format_plain_diff(",", " |", formatter) <> " "
-    elem_diff = format_inner(elem, last, formatter)
-    new_acc = [joiner_diff <> elem_diff | acc]
-    format_list(rest, [], formatter, keyword?, new_acc)
+  defp script_list([elem | rest], last, keyword?, acc) do
+    joiner_diff = [del: ",", ins: " |", eq: " "]
+    elem_diff = script_inner(elem, last)
+    new_acc = [joiner_diff ++ elem_diff | acc]
+    script_list(rest, [], keyword?, new_acc)
   end
 
-  defp format_list(last1, last2, formatter, keyword?, acc) do
+  defp script_list(last1, last2, keyword?, acc) do
     elem_diff =
       cond do
         last1 == [] ->
-          formatter.(:diff_insert, inspect(last2))
+          [ins: " | " <> inspect(last2)]
         last2 == [] ->
-          formatter.(:diff_delete, inspect(last1))
+          [del: " | " <> inspect(last1)]
         true ->
-          format_inner(last1, last2, formatter)
+          [eq: " | "] ++ script_inner(last1, last2)
       end
-    new_acc = [" | " <> elem_diff | acc]
-    format_list([], [], formatter, keyword?, new_acc)
+    script_list([], [], keyword?, [elem_diff | acc])
   end
 
   defp format_list_elem(elem, false), do: inspect(elem)
@@ -196,74 +184,85 @@ defmodule ExUnit.Diff do
     format_key_value(Atom.to_string(key), inspect(val), true)
   end
 
-  defp format_tuple({_tuple1, -1}, {_tuple2, -1}, _formatter, acc) do
-    "{" <> Enum.join(acc, ", ") <> "}"
+  defp script_tuple({_tuple1, -1}, {_tuple2, -1}, acc) do
+    [[_ | elem_diff] | rest] = acc
+    [{:eq, "{"}, [elem_diff | rest], {:eq, "}"}]
   end
 
-  defp format_tuple({tuple1, index1}, {_, index2} = right, formatter, acc)
+  defp script_tuple({tuple1, index1}, {_, index2} = right, acc)
       when index1 > index2 do
     elem = elem(tuple1, index1)
-    elem_diff = formatter.(:diff_delete, inspect(elem))
-    format_tuple({tuple1, index1 - 1}, right, formatter, [elem_diff | acc])
+    elem_diff = [del: ", ", del: inspect(elem)]
+    script_tuple({tuple1, index1 - 1}, right, [elem_diff | acc])
   end
 
-  defp format_tuple({_, index1} = left, {tuple2, index2}, formatter, acc)
+  defp script_tuple({_, index1} = left, {tuple2, index2}, acc)
       when index1 < index2 do
     elem = elem(tuple2, index2)
-    elem_diff = formatter.(:diff_insert, inspect(elem))
-    format_tuple(left, {tuple2, index2 - 1}, formatter, [elem_diff | acc])
+    elem_diff = [ins: ", ", ins: inspect(elem)]
+    script_tuple(left, {tuple2, index2 - 1}, [elem_diff | acc])
   end
 
-  defp format_tuple({tuple1, index}, {tuple2, index}, formatter, acc) do
+  defp script_tuple({tuple1, index}, {tuple2, index}, acc) do
     elem1 = elem(tuple1, index)
     elem2 = elem(tuple2, index)
-    elem_diff = format_inner(elem1, elem2, formatter)
-    format_tuple({tuple1, index - 1}, {tuple2, index - 1}, formatter, [elem_diff | acc])
+    elem_diff = script_inner(elem1, elem2)
+    script_tuple({tuple1, index - 1}, {tuple2, index - 1}, [[eq: ", "] ++ elem_diff | acc])
   end
 
-  defp format_map(left, right, name, formatter) do
-    {surplus, altered, missing} = map_difference(left, right)
+  defp script_map(left, right, name) do
+    {surplus, altered, missing, same} = map_difference(left, right)
 
     keyword? =
       Inspect.List.keyword?(surplus) and
       Inspect.List.keyword?(altered) and
-      Inspect.List.keyword?(missing)
+      Inspect.List.keyword?(missing) and
+      Inspect.List.keyword?(same)
 
-    result =
-      if map_size(right) > length(altered) + length(missing),
-        do: ["..."],
-        else: []
+    result = Enum.reduce(same, [], fn({key, val}, acc) ->
+      map_pair = format_key_value(inspect(key), inspect(val), keyword?)
+      [[eq: ", ", eq: map_pair] | acc]
+    end)
     result = Enum.reduce(missing, result, fn({key, val}, acc) ->
       map_pair = format_key_value(inspect(key), inspect(val), keyword?)
-      [formatter.(:diff_insert, map_pair) | acc]
+      [[ins: ", ", ins: map_pair] | acc]
     end)
     result = Enum.reduce(surplus, result, fn({key, val}, acc) ->
       map_pair = format_key_value(inspect(key), inspect(val), keyword?)
-      [formatter.(:diff_delete, map_pair) | acc]
+      [[del: ", ", del: map_pair] | acc]
     end)
     result = Enum.reduce(altered, result, fn({key, {val1, val2}}, acc) ->
-      value_diff = format_inner(val1, val2, formatter)
-      [format_key_value(inspect(key), value_diff, keyword?) | acc]
+      value_diff = script_inner(val1, val2)
+      [[{:eq, ", "}, script_key(key, keyword?), value_diff] | acc]
     end)
-    "%" <> name <> "{" <> Enum.join(result, ", ") <> "}"
+    [[_ | elem_diff] | rest] = result
+    [{:eq, "%" <> name <> "{"}, [elem_diff | rest], {:eq, "}"}]
   end
 
   defp map_difference(map1, map2) do
-    {surplus, altered} =
-      Enum.reduce(map1, {[], []}, fn({key, val1}, {surplus, altered} = acc) ->
+    {surplus, altered, same} =
+      Enum.reduce(map1, {[], [], []}, fn({key, val1}, {surplus, altered, same}) ->
         case Map.fetch(map2, key) do
           {:ok, ^val1} ->
-            acc
+            {surplus, altered, [{key, val1} | same]}
           {:ok, val2} ->
-            {surplus, [{key, {val1, val2}} | altered]}
+            {surplus, [{key, {val1, val2}} | altered], same}
           :error ->
-            {[{key, val1} | surplus], altered}
+            {[{key, val1} | surplus], altered, same}
         end
       end)
     missing = Enum.reduce(map2, [], fn({key, _} = pair, acc) ->
       if Map.has_key?(map1, key), do: acc, else: [pair | acc]
     end)
-    {surplus, altered, missing}
+    {surplus, altered, missing, same}
+  end
+
+  defp script_key(key, false) do
+    [eq: inspect(key) <> " => "]
+  end
+
+  defp script_key(key, true) do
+    [eq: Atom.to_string(key) <> ": "]
   end
 
   defp format_key_value(key, value, false) do
@@ -278,32 +277,15 @@ defmodule ExUnit.Diff do
     key <> ": " <> value
   end
 
-  defp format_inner(term, term, _formatter), do: inspect(term)
+  defp script_inner(term, term) do
+    [eq: inspect(term)]
+  end
 
-  defp format_inner(left, right, formatter) do
-    if result = format(left, right, formatter) do
+  defp script_inner(left, right) do
+    if result = script(left, right) do
       result
     else
-      format_plain_diff(inspect(left), inspect(right), formatter)
+      [del: inspect(left), ins: inspect(right)]
     end
-  end
-
-  defp format_plain_diff(left, right, formatter) do
-    formatter.(:diff_delete, left) <>
-    formatter.(:diff_insert, right)
-  end
-
-  defp format_fragment({:eq, content}, _), do: content
-
-  defp format_fragment({:ins, content}, formatter) do
-    formatter.(:diff_insert, point_whitespace(content))
-  end
-
-  defp format_fragment({:del, content}, formatter) do
-    formatter.(:diff_delete, point_whitespace(content))
-  end
-
-  defp point_whitespace(content) do
-    String.replace(content, " ", "·")
   end
 end
