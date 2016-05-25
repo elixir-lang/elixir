@@ -75,6 +75,10 @@ defmodule Kernel.LexicalTracker do
     :gen_server.cast(pid, {:import_dispatch, {module, function, arity}})
   end
 
+  def import_dispatch(pid, module, fa, line, mode) do
+    :gen_server.cast(pid, {:import_dispatch, module, fa, line, mode})
+  end
+
   @doc false
   def alias_dispatch(pid, module) do
     :gen_server.cast(pid, {:alias_dispatch, module})
@@ -134,13 +138,16 @@ defmodule Kernel.LexicalTracker do
   end
 
   def handle_cast({:import_dispatch, {module, function, arity}}, state) do
-    directives =
-      add_dispatch(state.directives, module, :import)
-      |> add_dispatch({module, function, arity}, :import)
-    # Always compile time because we depend
-    # on the module at compile time
-    references = add_reference(state.references, module, :compile)
-    {:noreply, %{state | directives: directives, references: references}}
+    {:noreply, add_import_dispatch(state, module, function, arity)}
+  end
+
+  def handle_cast({:import_dispatch, module, {function, arity} = fa, line, mode}, state) do
+    state =
+      state
+      |> add_import_dispatch(module, function, arity)
+      |> add_remote_dispatch(module, fa, line, mode)
+
+    {:noreply, state}
   end
 
   def handle_cast({:alias_dispatch, module}, state) do
@@ -207,6 +214,17 @@ defmodule Kernel.LexicalTracker do
         map_update fa, [line], module_dispatches, &[line | List.delete(&1, line)]
       end
     end
+  end
+
+  defp add_import_dispatch(state, module, function, arity) do
+    directives =
+      add_dispatch(state.directives, module, :import)
+      |> add_dispatch({module, function, arity}, :import)
+    # Always compile time because we depend
+    # on the module at compile time
+    references = add_reference(state.references, module, :compile)
+
+    %{state | directives: directives, references: references}
   end
 
   # In the map we keep imports and aliases.

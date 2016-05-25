@@ -149,37 +149,89 @@ defmodule Kernel.LexicalTrackerTest do
           NotAModule
           Remote.func()
           R.func()
+          &extract/2
+          &is_record/1
+          &R.func/0
+          &Remote.func/0
+          &Integer.is_even/1
         end
+
+        &extract/2
+        &is_record/1
+        &R.func/0
+        &Remote.func/0
+        &Integer.is_even/1
 
         Kernel.LexicalTracker.remote_dispatches(__ENV__.module)
       end |> elem(3)
       """)
 
-    assert compile_remote_calls == %{
-      Bitwise => %{{:&&&, 2} => [9]},
-      Integer => %{{:is_even, 1} => [9]},
-      Kernel => %{
-        {:and, 2} => [8],
-        {:def, 2} => [6]
-      },
-      Kernel.LexicalTracker => %{{:remote_dispatches, 1} => [16]},
-      Record => %{{:is_record, 1} => [8]},
-      :elixir_def => %{{:store_definition, 6} => [6]}
-    }
+    assert unroll_dispatches(compile_remote_calls) == [
+      {6, Kernel, :def, 2},
+      {6, :elixir_def, :store_definition, 6},
+      {8, Kernel, :and, 2},
+      {8, Record, :is_record, 1},
+      {9, Bitwise, :&&&, 2},
+      {9, Integer, :is_even, 1},
+      {15, Kernel, :and, 2},
+      {15, Record, :is_record, 1},
+      {18, Bitwise, :&&&, 2},
+      {18, Integer, :is_even, 1},
+      {21, Record, :extract, 2},
+      {21, :erlang, :make_fun, 3},
+      {22, Kernel, :and, 2},
+      {22, Record, :is_record, 1},
+      {22, :erlang, :>, 2},
+      {22, :erlang, :andalso, 2},
+      {22, :erlang, :element, 2},
+      {22, :erlang, :is_atom, 1},
+      {22, :erlang, :is_tuple, 1},
+      {22, :erlang, :tuple_size, 1},
+      {23, Remote, :func, 0},
+      {23, :erlang, :make_fun, 3},
+      {24, Remote, :func, 0},
+      {24, :erlang, :make_fun, 3},
+      {25, Bitwise, :&&&, 2},
+      {25, Integer, :is_even, 1},
+      {25, :erlang, :==, 2},
+      {25, :erlang, :band, 2},
+      {27, Kernel.LexicalTracker, :remote_dispatches, 1}
+    ]
 
-    assert runtime_remote_calls == %{
-      Record => %{{:extract, 2} => [7]},
-      Remote => %{{:func, 0} => [13, 12]},
-      :erlang => %{
-        {:==, 2} => [9],
-        {:>, 2} => [8],
-        {:andalso, 2} => [8],
-        {:band, 2} => [9],
-        {:element, 2} => [8],
-        {:is_atom, 1} => [8],
-        {:is_tuple, 1} => [8],
-        {:tuple_size, 1} => [8]
-      }
-    }
+    assert unroll_dispatches(runtime_remote_calls) == [
+      {7, Record, :extract, 2},
+      {8, :erlang, :>, 2},
+      {8, :erlang, :andalso, 2},
+      {8, :erlang, :element, 2},
+      {8, :erlang, :is_atom, 1},
+      {8, :erlang, :is_tuple, 1},
+      {8, :erlang, :tuple_size, 1},
+      {9, :erlang, :==, 2},
+      {9, :erlang, :band, 2},
+      {12, Remote, :func, 0},
+      {13, Remote, :func, 0},
+      {14, Record, :extract, 2},
+      {14, :erlang, :make_fun, 3},
+      {15, :erlang, :>, 2},
+      {15, :erlang, :andalso, 2},
+      {15, :erlang, :element, 2},
+      {15, :erlang, :is_atom, 1},
+      {15, :erlang, :is_tuple, 1},
+      {15, :erlang, :tuple_size, 1},
+      {16, Remote, :func, 0},
+      {16, :erlang, :make_fun, 3},
+      {17, Remote, :func, 0},
+      {17, :erlang, :make_fun, 3},
+      {18, :erlang, :==, 2},
+      {18, :erlang, :band, 2}
+    ]
+  end
+
+  defp unroll_dispatches(dispatches) do
+    for({module, fals} <- dispatches,
+        {{func, arity}, lines} <- fals,
+        line <- lines,
+        do: {line, module, func, arity})
+    |> Enum.sort()
   end
 end
