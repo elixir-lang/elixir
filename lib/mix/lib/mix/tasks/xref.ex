@@ -221,11 +221,11 @@ defmodule Mix.Tasks.Xref do
   ## Print callers
 
   defp print_calls(file, calls) do
-    IO.write(["file: ", file, ?\n])
+    IO.puts(["file: ", file])
 
     calls
     |> Enum.sort()
-    |> Enum.each(&IO.write(["  ", format_call(&1), ?\n]))
+    |> Enum.each(&IO.puts(["  ", format_call(&1)]))
   end
 
   defp format_call({module, func, arity, lines}) do
