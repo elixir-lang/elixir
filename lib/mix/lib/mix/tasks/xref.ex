@@ -86,6 +86,8 @@ defmodule Mix.Tasks.Xref do
     callee
     |> filter_for_callee()
     |> do_callers()
+
+    :ok
   end
 
   ## Unreachable
@@ -224,8 +226,6 @@ defmodule Mix.Tasks.Xref do
     calls
     |> Enum.sort()
     |> Enum.each(&IO.write(["  ", format_call(&1), ?\n]))
-
-    {file, calls}
   end
 
   defp format_call({module, func, arity, lines}) do

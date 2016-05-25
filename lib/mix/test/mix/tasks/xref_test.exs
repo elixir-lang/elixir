@@ -325,8 +325,7 @@ defmodule Mix.Tasks.XrefTest do
       A.a/0:2
       A.a/1:3
       A.b/0:4
-    """,
-    [{"lib/a.ex", [{A, :a, 0, [2]}, {A, :a, 1, [3]}, {A, :b, 0, [4]}]}]
+    """
   end
 
   test "callers: prints callers of specified Module.func" do
@@ -342,8 +341,7 @@ defmodule Mix.Tasks.XrefTest do
     file: lib/a.ex
       A.a/0:2
       A.a/1:3
-    """,
-    [{"lib/a.ex", [{A, :a, 0, [2]}, {A, :a, 1, [3]}]}]
+    """
   end
 
   test "callers: prints callers of specified Module.func/arity" do
@@ -358,8 +356,7 @@ defmodule Mix.Tasks.XrefTest do
     """
     file: lib/a.ex
       A.a/0:2
-    """,
-    [{"lib/a.ex", [{A, :a, 0, [2]}]}]
+    """
   end
 
   test "callers: lists compile calls and macros" do
@@ -380,8 +377,7 @@ defmodule Mix.Tasks.XrefTest do
     file: lib/b.ex
       A.a/0:5
       A.a_macro/0:4
-    """,
-    [{"lib/b.ex", [{A, :a, 0, [5]}, {A, :a_macro, 0, [4]}]}]
+    """
   end
 
   test "callers: handles aliases" do
@@ -397,7 +393,7 @@ defmodule Mix.Tasks.XrefTest do
     file: lib/a.ex
       Enum.flatten/1:4
       Enum.map/2:4,6
-    """, [{"lib/a.ex", [{Enum, :flatten, 1, [4]}, {Enum, :map, 2, [6, 4]}]}]
+    """
   end
 
   test "callers: handles imports" do
@@ -418,8 +414,7 @@ defmodule Mix.Tasks.XrefTest do
     file: lib/a.ex
       Integer.is_even/1:4,7,10
       Integer.parse/1:5,8,11
-    """,
-    [{"lib/a.ex", [{Integer, :is_even, 1, [10, 7, 4]}, {Integer, :parse, 1, [11, 8, 5]}]}]
+    """
   end
 
   test "callers: groups multiple calls" do
@@ -432,8 +427,7 @@ defmodule Mix.Tasks.XrefTest do
     """
     file: lib/a.ex
       A.a/0:2,3
-    """,
-    [{"lib/a.ex", [{A, :a, 0, [3, 2]}]}]
+    """
   end
 
   test "callers: no argument gives error" do
@@ -470,14 +464,14 @@ defmodule Mix.Tasks.XrefTest do
     end
   end
 
-  defp assert_callers(callee, contents_a, contents_b \\ "", expected_print, expected_result) do
+  defp assert_callers(callee, contents_a, contents_b \\ "", expected) do
     in_fixture "no_mixfile", fn ->
       File.write!("lib/a.ex", contents_a)
       File.write!("lib/b.ex", contents_b)
 
       assert capture_io(fn ->
-        assert Mix.Task.run("xref", ["--callers", callee]) == expected_result
-      end) == expected_print
+        assert Mix.Task.run("xref", ["--callers", callee]) == :ok
+      end) == expected
     end
   end
 end
