@@ -48,13 +48,20 @@ defmodule Kernel.LexicalTrackerTest do
 
   test "can add module imports", config do
     D.add_import(config[:pid], String, [], 1, true)
-    D.import_dispatch(config[:pid], {String, :upcase, 1})
+    D.import_dispatch(config[:pid], String, {:upcase, 1}, 1, :compile)
     assert D.remote_references(config[:pid]) == {[String], []}
+    assert D.remote_dispatches(config[:pid]) ==
+      {%{String => %{{:upcase, 1} => [1]}}, %{}}
+
+    D.import_dispatch(config[:pid], String, {:upcase, 1}, 1, :runtime)
+    assert D.remote_references(config[:pid]) == {[String], []}
+    assert D.remote_dispatches(config[:pid]) ==
+      {%{String => %{{:upcase, 1} => [1]}}, %{String => %{{:upcase, 1} => [1]}}}
   end
 
   test "can add module with {function, arity} imports", config do
     D.add_import(config[:pid], String, [upcase: 1], 1, true)
-    D.import_dispatch(config[:pid], {String, :upcase, 1})
+    D.import_dispatch(config[:pid], String, {:upcase, 1}, 1, :compile)
     assert D.remote_references(config[:pid]) == {[String], []}
   end
 
@@ -71,7 +78,7 @@ defmodule Kernel.LexicalTrackerTest do
 
   test "used module imports are not unused", config do
     D.add_import(config[:pid], String, [], 1, true)
-    D.import_dispatch(config[:pid], {String, :upcase, 1})
+    D.import_dispatch(config[:pid], String, {:upcase, 1}, 1, :compile)
     assert D.collect_unused_imports(config[:pid]) == []
   end
 
@@ -83,14 +90,14 @@ defmodule Kernel.LexicalTrackerTest do
   test "used {module, function, arity} imports are not unused", config do
     D.add_import(config[:pid], String, [upcase: 1], 1, true)
     D.add_import(config[:pid], String, [downcase: 1], 1, true)
-    D.import_dispatch(config[:pid], {String, :upcase, 1})
+    D.import_dispatch(config[:pid], String, {:upcase, 1}, 1, :compile)
     assert D.collect_unused_imports(config[:pid]) == [{{String, :downcase, 1}, 1}]
   end
 
   test "overwriting {module, function, arity} import with module import", config do
     D.add_import(config[:pid], String, [upcase: 1], 1, true)
     D.add_import(config[:pid], String, [], 1, true)
-    D.import_dispatch(config[:pid], {String, :downcase, 1})
+    D.import_dispatch(config[:pid], String, {:downcase, 1}, 1, :compile)
     assert D.collect_unused_imports(config[:pid]) == []
   end
 
@@ -149,33 +156,57 @@ defmodule Kernel.LexicalTrackerTest do
           NotAModule
           Remote.func()
           R.func()
+          &extract/2
+          &is_record/1
+          &R.func/0
+          &Remote.func/0
+          &Integer.is_even/1
         end
+
+        &extract/2
+        &is_record/1
+        &R.func/0
+        &Remote.func/0
+        &Integer.is_even/1
+
+        &is_record/1; def b(a), do: is_record(a)
 
         Kernel.LexicalTracker.remote_dispatches(__ENV__.module)
       end |> elem(3)
       """)
 
-    assert compile_remote_calls == %{
-      Bitwise => %{{:&&&, 2} => [9]},
-      Integer => %{{:is_even, 1} => [9]},
-      Kernel => %{{:and, 2} => [8]},
-      Kernel.LexicalTracker => %{{:remote_dispatches, 1} => [16]},
-      :elixir_def => %{{:store_definition, 6} => [6]}
-    }
+    compile_remote_calls = unroll_dispatches(compile_remote_calls)
+    assert {6, Kernel, :def, 2} in compile_remote_calls
+    assert {8, Record, :is_record, 1} in compile_remote_calls
+    assert {9, Integer, :is_even, 1} in compile_remote_calls
+    assert {15, Record, :is_record, 1} in compile_remote_calls
+    assert {18, Integer, :is_even, 1} in compile_remote_calls
+    assert {21, Record, :extract, 2} in compile_remote_calls
+    assert {22, Record, :is_record, 1} in compile_remote_calls
+    assert {23, Remote, :func, 0} in compile_remote_calls
+    assert {24, Remote, :func, 0} in compile_remote_calls
+    assert {25, Integer, :is_even, 1} in compile_remote_calls
+    assert {27, Kernel, :def, 2} in compile_remote_calls
+    assert {27, Record, :is_record, 1} in compile_remote_calls
+    assert {29, Kernel.LexicalTracker, :remote_dispatches, 1} in compile_remote_calls
 
-    assert runtime_remote_calls == %{
-      Record => %{{:extract, 2} => [7]},
-      Remote => %{{:func, 0} => [13, 12]},
-      :erlang => %{
-        {:==, 2} => [9],
-        {:>, 2} => [8],
-        {:andalso, 2} => [8],
-        {:band, 2} => [9],
-        {:element, 2} => [8],
-        {:is_atom, 1} => [8],
-        {:is_tuple, 1} => [8],
-        {:tuple_size, 1} => [8]
-      }
-    }
+    runtime_remote_calls = unroll_dispatches(runtime_remote_calls)
+    assert {7, Record, :extract, 2} in runtime_remote_calls
+    assert {8, :erlang, :is_tuple, 1} in runtime_remote_calls
+    assert {12, Remote, :func, 0} in runtime_remote_calls
+    assert {13, Remote, :func, 0} in runtime_remote_calls
+    assert {14, Record, :extract, 2} in runtime_remote_calls
+    assert {15, :erlang, :is_tuple, 1} in runtime_remote_calls
+    assert {16, Remote, :func, 0} in runtime_remote_calls
+    assert {17, Remote, :func, 0} in runtime_remote_calls
+    assert {18, :erlang, :==, 2} in runtime_remote_calls
+    assert {27, :erlang, :is_tuple, 1} in runtime_remote_calls
+  end
+
+  defp unroll_dispatches(dispatches) do
+    for {module, fals} <- dispatches,
+        {{func, arity}, lines} <- fals,
+        line <- lines,
+        do: {line, module, func, arity}
   end
 end
