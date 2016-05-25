@@ -141,7 +141,7 @@ defmodule Mix.Tasks.Xref do
   defp print_warnings(file, entries) do
     prefix = IO.ANSI.format([:yellow, "warning: "])
     entries
-    |> Enum.sort
+    |> Enum.sort()
     |> Enum.each(&IO.write(:stderr, [prefix, format_warning(file, &1), ?\n]))
   end
 
