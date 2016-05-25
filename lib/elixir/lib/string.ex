@@ -1941,7 +1941,7 @@ defmodule String do
   end
 
   @doc """
-  Returns a keyword list that represents an edit graph.
+  Returns a keyword list that represents an edit script.
 
   The algorithm is outlined in the
   "An O(ND) Difference Algorithm and Its Variations" paper by E. Myers.
