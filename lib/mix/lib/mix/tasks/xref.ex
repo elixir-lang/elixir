@@ -210,12 +210,16 @@ defmodule Mix.Tasks.Xref do
   defp source_calls_for_filter(source, filter) do
     runtime_dispatches = source(source, :runtime_dispatches)
     compile_dispatches = source(source, :compile_dispatches)
-    dispatches = merge_dispatches(runtime_dispatches, compile_dispatches)
+    dispatches = Stream.concat(runtime_dispatches, compile_dispatches)
 
-    for {module, func_arity_lines} <- dispatches,
-        {{func, arity}, lines} <- func_arity_lines,
-        filter.({module, func, arity}),
-        do: {module, func, arity, lines}
+    calls =
+      for {module, func_arity_lines} <- dispatches,
+          {{func, arity}, lines} <- func_arity_lines,
+          filter.({module, func, arity}),
+          do: {module, func, arity, lines},
+          into: MapSet.new()
+
+    MapSet.to_list(calls)
   end
 
   ## Print callers
@@ -277,14 +281,6 @@ defmodule Mix.Tasks.Xref do
       callee
 
     Mix.raise message
-  end
-
-  defp merge_dispatches(dispatches1, dispatches2) do
-    Keyword.merge dispatches1, dispatches2, fn _module, fals1, fals2 ->
-      Map.merge fals1, fals2, fn _fa, lines1, lines2 ->
-        Enum.uniq(lines1 ++ lines2)
-      end
-    end
   end
 
   ## Helpers
