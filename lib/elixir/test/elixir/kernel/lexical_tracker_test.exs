@@ -204,10 +204,9 @@ defmodule Kernel.LexicalTrackerTest do
   end
 
   defp unroll_dispatches(dispatches) do
-    for({module, fals} <- dispatches,
+    for {module, fals} <- dispatches,
         {{func, arity}, lines} <- fals,
         line <- lines,
-        do: {line, module, func, arity})
-    |> Enum.sort()
+        do: {line, module, func, arity}
   end
 end
