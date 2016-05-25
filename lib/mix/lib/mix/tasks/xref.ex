@@ -168,7 +168,7 @@ defmodule Mix.Tasks.Xref do
     ["  ", file, ?:, Integer.to_string(line), ?\n]
   end
 
-  ## Unreachable helpers
+  ## "Unreachable" helpers
 
   @protocol_builtins for {_, type} <- Protocol.__builtin__(), do: type
 
@@ -231,7 +231,7 @@ defmodule Mix.Tasks.Xref do
       do: [file, ":", to_string(line), ": ", Exception.format_mfa(module, func, arity), ?\n]
   end
 
-  ## Callers helpers
+  ## "Callers" helpers
 
   defp filter_for_callee(callee) do
     mfa_list =
