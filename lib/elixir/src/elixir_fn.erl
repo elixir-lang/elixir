@@ -99,6 +99,12 @@ capture_require(Meta, {{'.', _, [Left, Right]}, RequireMeta, Args} = Expr, E, Se
 handle_capture({local, Fun, Arity}, _Meta, _Expr, _E, _Sequential) ->
   {local, Fun, Arity};
 handle_capture({remote, Receiver, Fun, Arity}, Meta, _Expr, E, _Sequential) ->
+  if
+    is_atom(Receiver) ->
+      elixir_lexical:record_remote(Receiver, Fun, Arity, ?m(E, function), ?line(Meta), ?m(E, lexical_tracker));
+    true ->
+      ok
+  end,
   Tree = {{'.', [], [erlang, make_fun]}, Meta, [Receiver, Fun, Arity]},
   {expanded, Tree, E};
 handle_capture(false, Meta, Expr, E, Sequential) ->
