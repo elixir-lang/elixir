@@ -216,10 +216,12 @@ defmodule Mix.Tasks.Xref do
       for {module, func_arity_lines} <- dispatches,
           {{func, arity}, lines} <- func_arity_lines,
           filter.({module, func, arity}),
-          do: {module, func, arity, lines},
-          into: MapSet.new()
+          do: {module, func, arity, lines}
 
-    MapSet.to_list(calls)
+    Enum.reduce calls, %{}, fn {module, func, arity, lines}, merged_calls ->
+      lines = MapSet.new(lines)
+      Map.update(merged_calls, {module, func, arity}, lines, &MapSet.union(&1, lines))
+    end
   end
 
   ## Print callers
@@ -230,7 +232,7 @@ defmodule Mix.Tasks.Xref do
     |> Enum.each(&IO.write(format_call(file, &1)))
   end
 
-  defp format_call(file, {module, func, arity, lines}) do
+  defp format_call(file, {{module, func, arity}, lines}) do
     for line <- Enum.sort(lines),
       do: [file, ":", to_string(line), ": ", Exception.format_mfa(module, func, arity), ?\n]
   end
@@ -289,7 +291,7 @@ defmodule Mix.Tasks.Xref do
     for manifest <- E.manifests(),
         source(source: file) = source <- read_manifest(manifest),
         entries = entries_fun.(source),
-        entries != [],
+        entries != [] and entries != %{},
         do: pair_fun.(file, entries)
   end
 end

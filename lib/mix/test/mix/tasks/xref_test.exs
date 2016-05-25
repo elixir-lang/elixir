@@ -393,23 +393,25 @@ defmodule Mix.Tasks.XrefTest do
   end
 
   test "callers: handles imports" do
-    assert_callers "Integer", """
+    assert_callers "Integer", ~S"""
     defmodule A do
       import Integer
 
       &is_even/1
       &parse/1
 
-      _ = is_even(Enum.random([1, 2, 3]))
+      _ = is_even(Enum.random([1]))
       _ = parse("2")
 
       def a(a), do: is_even(a)
       def b(a), do: parse(a)
+      _ = is_even(Enum.random([1])); def c(a), do: is_even(a)
     end
     """, """
     lib/a.ex:4: Integer.is_even/1
     lib/a.ex:7: Integer.is_even/1
     lib/a.ex:10: Integer.is_even/1
+    lib/a.ex:12: Integer.is_even/1
     lib/a.ex:5: Integer.parse/1
     lib/a.ex:8: Integer.parse/1
     lib/a.ex:11: Integer.parse/1

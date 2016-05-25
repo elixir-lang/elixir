@@ -162,69 +162,38 @@ defmodule Kernel.LexicalTrackerTest do
         &Remote.func/0
         &Integer.is_even/1
 
+        &is_record/1; def b(a), do: is_record(a)
+
         Kernel.LexicalTracker.remote_dispatches(__ENV__.module)
       end |> elem(3)
       """)
 
-    assert unroll_dispatches(compile_remote_calls) == [
-      {6, Kernel, :def, 2},
-      {6, :elixir_def, :store_definition, 6},
-      {8, Kernel, :and, 2},
-      {8, Record, :is_record, 1},
-      {9, Bitwise, :&&&, 2},
-      {9, Integer, :is_even, 1},
-      {15, Kernel, :and, 2},
-      {15, Record, :is_record, 1},
-      {18, Bitwise, :&&&, 2},
-      {18, Integer, :is_even, 1},
-      {21, Record, :extract, 2},
-      {21, :erlang, :make_fun, 3},
-      {22, Kernel, :and, 2},
-      {22, Record, :is_record, 1},
-      {22, :erlang, :>, 2},
-      {22, :erlang, :andalso, 2},
-      {22, :erlang, :element, 2},
-      {22, :erlang, :is_atom, 1},
-      {22, :erlang, :is_tuple, 1},
-      {22, :erlang, :tuple_size, 1},
-      {23, Remote, :func, 0},
-      {23, :erlang, :make_fun, 3},
-      {24, Remote, :func, 0},
-      {24, :erlang, :make_fun, 3},
-      {25, Bitwise, :&&&, 2},
-      {25, Integer, :is_even, 1},
-      {25, :erlang, :==, 2},
-      {25, :erlang, :band, 2},
-      {27, Kernel.LexicalTracker, :remote_dispatches, 1}
-    ]
+    compile_remote_calls = unroll_dispatches(compile_remote_calls)
+    assert {6, Kernel, :def, 2} in compile_remote_calls
+    assert {8, Record, :is_record, 1} in compile_remote_calls
+    assert {9, Integer, :is_even, 1} in compile_remote_calls
+    assert {15, Record, :is_record, 1} in compile_remote_calls
+    assert {18, Integer, :is_even, 1} in compile_remote_calls
+    assert {21, Record, :extract, 2} in compile_remote_calls
+    assert {22, Record, :is_record, 1} in compile_remote_calls
+    assert {23, Remote, :func, 0} in compile_remote_calls
+    assert {24, Remote, :func, 0} in compile_remote_calls
+    assert {25, Integer, :is_even, 1} in compile_remote_calls
+    assert {27, Kernel, :def, 2} in compile_remote_calls
+    assert {27, Record, :is_record, 1} in compile_remote_calls
+    assert {29, Kernel.LexicalTracker, :remote_dispatches, 1} in compile_remote_calls
 
-    assert unroll_dispatches(runtime_remote_calls) == [
-      {7, Record, :extract, 2},
-      {8, :erlang, :>, 2},
-      {8, :erlang, :andalso, 2},
-      {8, :erlang, :element, 2},
-      {8, :erlang, :is_atom, 1},
-      {8, :erlang, :is_tuple, 1},
-      {8, :erlang, :tuple_size, 1},
-      {9, :erlang, :==, 2},
-      {9, :erlang, :band, 2},
-      {12, Remote, :func, 0},
-      {13, Remote, :func, 0},
-      {14, Record, :extract, 2},
-      {14, :erlang, :make_fun, 3},
-      {15, :erlang, :>, 2},
-      {15, :erlang, :andalso, 2},
-      {15, :erlang, :element, 2},
-      {15, :erlang, :is_atom, 1},
-      {15, :erlang, :is_tuple, 1},
-      {15, :erlang, :tuple_size, 1},
-      {16, Remote, :func, 0},
-      {16, :erlang, :make_fun, 3},
-      {17, Remote, :func, 0},
-      {17, :erlang, :make_fun, 3},
-      {18, :erlang, :==, 2},
-      {18, :erlang, :band, 2}
-    ]
+    runtime_remote_calls = unroll_dispatches(runtime_remote_calls)
+    assert {7, Record, :extract, 2} in runtime_remote_calls
+    assert {8, :erlang, :is_tuple, 1} in runtime_remote_calls
+    assert {12, Remote, :func, 0} in runtime_remote_calls
+    assert {13, Remote, :func, 0} in runtime_remote_calls
+    assert {14, Record, :extract, 2} in runtime_remote_calls
+    assert {15, :erlang, :is_tuple, 1} in runtime_remote_calls
+    assert {16, Remote, :func, 0} in runtime_remote_calls
+    assert {17, Remote, :func, 0} in runtime_remote_calls
+    assert {18, :erlang, :==, 2} in runtime_remote_calls
+    assert {27, :erlang, :is_tuple, 1} in runtime_remote_calls
   end
 
   defp unroll_dispatches(dispatches) do
