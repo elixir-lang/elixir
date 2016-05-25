@@ -71,10 +71,6 @@ defmodule Kernel.LexicalTracker do
   end
 
   @doc false
-  def import_dispatch(pid, {module, function, arity}) do
-    :gen_server.cast(pid, {:import_dispatch, {module, function, arity}})
-  end
-
   def import_dispatch(pid, module, fa, line, mode) do
     :gen_server.cast(pid, {:import_dispatch, module, fa, line, mode})
   end
@@ -135,10 +131,6 @@ defmodule Kernel.LexicalTracker do
     references = add_reference(state.references, module, mode)
     state = add_remote_dispatch(state, module, fa, line, mode)
     {:noreply, %{state | references: references}}
-  end
-
-  def handle_cast({:import_dispatch, {module, function, arity}}, state) do
-    {:noreply, add_import_dispatch(state, module, function, arity)}
   end
 
   def handle_cast({:import_dispatch, module, {function, arity} = fa, line, mode}, state) do

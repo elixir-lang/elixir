@@ -3,8 +3,8 @@
 -export([run/3, dest/1,
   record_alias/4, record_alias/2,
   record_import/6, record_import/5,
-  record_import/2, record_remote/3,
-  record_remote/6, format_error/1
+  record_remote/3, record_remote/6,
+  format_error/1
 ]).
 -include("elixir.hrl").
 
@@ -40,9 +40,6 @@ record_import(Module, FAs, Line, Warn, Ref) ->
 
 record_alias(Module, Ref) ->
   if_tracker(Ref, fun(Pid) -> ?tracker:alias_dispatch(Pid, Module), ok end).
-
-record_import({Module, Function, Arity}, Ref) ->
-  if_tracker(Ref, fun(Pid) -> ?tracker:import_dispatch(Pid, {Module, Function, Arity}), ok end).
 
 record_import(Module, Function, Arity, EnvFunction, Line, Ref) ->
   if_tracker(Ref, fun(Pid) -> ?tracker:import_dispatch(Pid, Module, {Function, Arity}, Line, mode(EnvFunction)), ok end).
