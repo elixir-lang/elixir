@@ -188,7 +188,8 @@ defmodule ExUnit do
       defaults to `[ExUnit.CLIFormatter]`
 
     * `:max_cases` - maximum number of cases to run in parallel;
-      defaults to `:erlang.system_info(:schedulers_online)`
+      defaults to `:erlang.system_info(:schedulers_online) * 2` to
+      optimize both CPU-bound and IO-bound tests
 
     * `:trace` - set ExUnit into trace mode, this sets `:max_cases` to `1` and
       prints each test case and test while running
