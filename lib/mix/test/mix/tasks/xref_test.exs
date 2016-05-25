@@ -321,10 +321,9 @@ defmodule Mix.Tasks.XrefTest do
     end
     """,
     """
-    file: lib/a.ex
-      A.a/0:2
-      A.a/1:3
-      A.b/0:4
+    lib/a.ex:2: A.a/0
+    lib/a.ex:3: A.a/1
+    lib/a.ex:4: A.b/0
     """
   end
 
@@ -338,9 +337,8 @@ defmodule Mix.Tasks.XrefTest do
     end
     """,
     """
-    file: lib/a.ex
-      A.a/0:2
-      A.a/1:3
+    lib/a.ex:2: A.a/0
+    lib/a.ex:3: A.a/1
     """
   end
 
@@ -354,8 +352,7 @@ defmodule Mix.Tasks.XrefTest do
     end
     """,
     """
-    file: lib/a.ex
-      A.a/0:2
+    lib/a.ex:2: A.a/0
     """
   end
 
@@ -374,9 +371,8 @@ defmodule Mix.Tasks.XrefTest do
     end
     """,
     """
-    file: lib/b.ex
-      A.a/0:5
-      A.a_macro/0:4
+    lib/b.ex:5: A.a/0
+    lib/b.ex:4: A.a_macro/0
     """
   end
 
@@ -390,9 +386,9 @@ defmodule Mix.Tasks.XrefTest do
       def a(a, b), do: E.map(a, b)
     end
     """, """
-    file: lib/a.ex
-      Enum.flatten/1:4
-      Enum.map/2:4,6
+    lib/a.ex:4: Enum.flatten/1
+    lib/a.ex:4: Enum.map/2
+    lib/a.ex:6: Enum.map/2
     """
   end
 
@@ -411,22 +407,12 @@ defmodule Mix.Tasks.XrefTest do
       def b(a), do: parse(a)
     end
     """, """
-    file: lib/a.ex
-      Integer.is_even/1:4,7,10
-      Integer.parse/1:5,8,11
-    """
-  end
-
-  test "callers: groups multiple calls" do
-    assert_callers "A", """
-    defmodule A do
-      def a, do: A.a()
-      def b, do: A.a()
-    end
-    """,
-    """
-    file: lib/a.ex
-      A.a/0:2,3
+    lib/a.ex:4: Integer.is_even/1
+    lib/a.ex:7: Integer.is_even/1
+    lib/a.ex:10: Integer.is_even/1
+    lib/a.ex:5: Integer.parse/1
+    lib/a.ex:8: Integer.parse/1
+    lib/a.ex:11: Integer.parse/1
     """
   end
 
