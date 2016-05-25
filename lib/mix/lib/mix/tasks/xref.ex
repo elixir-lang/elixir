@@ -42,7 +42,7 @@ defmodule Mix.Tasks.Xref do
   @doc """
   Runs this task.
   """
-  @spec run(OptionParser.argv) :: :ok | :error | [{Path.t, [{atom, atom, non_neg_integer, [pos_integer]}]}]
+  @spec run(OptionParser.argv) :: :ok | :error
   def run(args) do
     {opts, _} =
       OptionParser.parse!(args, strict: @switches)
