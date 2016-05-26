@@ -238,7 +238,7 @@ defmodule Access do
   ## Accessors
 
   @doc """
-  Accesses the given field in a map.
+  Accesses the given field in a map/struct.
 
   Raises if the field does not exist.
 
@@ -271,9 +271,9 @@ defmodule Access do
   end
 
   @doc ~S"""
-  Accesses the given element in a tuple.
+  Accesses the element at the given index in a tuple.
 
-  Raises if the element is out of bounds.
+  Raises if the index is out of bounds.
 
   ## Examples
 
@@ -288,8 +288,8 @@ defmodule Access do
       ** (RuntimeError) cannot pop data from a tuple
 
   """
-  def elem(pos) when is_integer(pos) do
-    pos = pos + 1
+  def elem(index) when is_integer(index) do
+    pos = index + 1
 
     fn
       :get, data, next ->
@@ -309,13 +309,13 @@ defmodule Access do
   ## Examples
 
       iex> list = [%{name: "john"}, %{name: "mary"}]
-      iex> get_in(list, [Access.all, :name])
+      iex> get_in(list, [Access.all(), :name])
       ["john", "mary"]
-      iex> get_and_update_in(list, [Access.all, :name], fn
+      iex> get_and_update_in(list, [Access.all(), :name], fn
       ...>   prev -> {prev, String.upcase(prev)}
       ...> end)
       {["john", "mary"], [%{name: "JOHN"}, %{name: "MARY"}]}
-      iex> pop_in(list, [Access.all, :name])
+      iex> pop_in(list, [Access.all(), :name])
       {["john", "mary"], [%{}, %{}]}
 
   Here is an example that traverses the list dropping even
