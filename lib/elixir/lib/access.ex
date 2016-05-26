@@ -99,8 +99,19 @@ defmodule Access do
   functions for traversing other structures, like tuples and lists,
   to be used alongside `Kernel.put_in/2` in others.
 
-  **TODO: implement `field/1`, `key/1`, `at/1`, `elem/1`.**
+  For instance, given a user with a list of languages, here is how to
+  deeply traverse the map and convert all language names to uppercase:
 
+      iex> user = %{name: "john",
+      ...>          languages: [%{name: "elixir", type: :functional},
+      ...>                      %{name: "c", type: :procedural}]}
+      iex> update_in user, [:languages, Access.all(), :name], &String.upcase/1
+      %{name: "john",
+        languages: [%{name: "ELIXIR", type: :functional},
+                    %{name: "C", type: :procedural}]}
+
+  See the functions `field/1`, `elem/1` and `all/0` for the current
+  accessors.
   """
 
   @type t :: list | map | nil
@@ -222,5 +233,121 @@ defmodule Access do
   def pop(nil, key) do
     raise ArgumentError,
       "could not pop key #{inspect key} on a nil value"
+  end
+
+  ## Accessors
+
+  @doc """
+  Accesses the given field in a map.
+
+  Raises if the field does not exist.
+
+  ## Examples
+
+      iex> map = %{user: %{name: "john"}}
+      iex> get_in(map, [Access.field(:user), Access.field(:name)])
+      "john"
+      iex> get_and_update_in(map, [Access.field(:user), Access.field(:name)], fn
+      ...>   prev -> {prev, String.upcase(prev)}
+      ...> end)
+      {"john", %{user: %{name: "JOHN"}}}
+      iex> pop_in(map, [Access.field(:user), Access.field(:name)])
+      {"john", %{user: %{}}}
+      iex> get_in(map, [Access.field(:user), Access.field(:unknown)])
+      ** (KeyError) key :unknown not found in: %{name: \"john\"}
+
+  """
+  def field(key) do
+    fn
+      :get, data, next ->
+        next.(Map.fetch!(data, key))
+      :get_and_update, data, next ->
+        value = Map.fetch!(data, key)
+        case next.(value) do
+          {get, update} -> {get, Map.put(data, key, update)}
+          :pop -> {value, Map.delete(data, key)}
+        end
+    end
+  end
+
+  @doc ~S"""
+  Accesses the given element in a tuple.
+
+  Raises if the element is out of bounds.
+
+  ## Examples
+
+      iex> map = %{user: {"john", 27}}
+      iex> get_in(map, [:user, Access.elem(0)])
+      "john"
+      iex> get_and_update_in(map, [:user, Access.elem(0)], fn
+      ...>   prev -> {prev, String.upcase(prev)}
+      ...> end)
+      {"john", %{user: {"JOHN", 27}}}
+      iex> pop_in(map, [:user, Access.elem(0)])
+      ** (RuntimeError) cannot pop data from a tuple
+
+  """
+  def elem(pos) when is_integer(pos) do
+    pos = pos + 1
+
+    fn
+      :get, data, next ->
+        next.(:erlang.element(pos, data))
+      :get_and_update, data, next ->
+        value = :erlang.element(pos, data)
+        case next.(value) do
+          {get, update} -> {get, :erlang.setelement(pos, data, update)}
+          :pop -> raise "cannot pop data from a tuple"
+        end
+    end
+  end
+
+  @doc ~S"""
+  Accesses all the elements in a list.
+
+  ## Examples
+
+      iex> list = [%{name: "john"}, %{name: "mary"}]
+      iex> get_in(list, [Access.all, :name])
+      ["john", "mary"]
+      iex> get_and_update_in(list, [Access.all, :name], fn
+      ...>   prev -> {prev, String.upcase(prev)}
+      ...> end)
+      {["john", "mary"], [%{name: "JOHN"}, %{name: "MARY"}]}
+      iex> pop_in(list, [Access.all, :name])
+      {["john", "mary"], [%{}, %{}]}
+
+  Here is an example that traverses the list dropping even
+  numbers and multipling odd numbers by 2:
+
+      iex> require Integer
+      iex> get_and_update_in([1, 2, 3, 4, 5], [Access.all], fn
+      ...>   num -> if Integer.is_even(num), do: :pop, else: {num, num * 2}
+      ...> end)
+      {[1, 2, 3, 4, 5], [2, 6, 10]}
+
+  """
+  def all() do
+    &all/3
+  end
+
+  defp all(:get, data, next) when is_list(data) do
+    Enum.map(data, next)
+  end
+
+  defp all(:get_and_update, data, next) when is_list(data) do
+    all(data, next, [], [])
+  end
+
+  defp all([head | rest], next, gets, updates) do
+    case next.(head) do
+      {get, update} -> all(rest, next, [get | gets], [update | updates])
+      :pop -> all(rest, next, [head | gets], updates)
+    end
+  end
+
+  defp all([], _next, gets, updates) do
+    {:lists.reverse(gets), :lists.reverse(updates)}
   end
 end
