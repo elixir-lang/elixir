@@ -189,17 +189,21 @@ defmodule URITest do
 
     Enum.each addrs, fn(addr) ->
       simple_uri = URI.parse("http://[#{addr}]/")
+      assert simple_uri.authority == "[#{addr}]"
       assert simple_uri.host == addr
 
       userinfo_uri = URI.parse("http://user:pass@[#{addr}]/")
+      assert userinfo_uri.authority == "user:pass@[#{addr}]"
       assert userinfo_uri.host == addr
       assert userinfo_uri.userinfo == "user:pass"
 
       port_uri = URI.parse("http://[#{addr}]:2222/")
+      assert port_uri.authority == "[#{addr}]:2222"
       assert port_uri.host == addr
       assert port_uri.port == 2222
 
       userinfo_port_uri = URI.parse("http://user:pass@[#{addr}]:2222/")
+      assert userinfo_port_uri.authority == "user:pass@[#{addr}]:2222"
       assert userinfo_port_uri.host == addr
       assert userinfo_port_uri.userinfo == "user:pass"
       assert userinfo_port_uri.port == 2222

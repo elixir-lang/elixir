@@ -326,13 +326,6 @@ defmodule URI do
     destructure [_, _, scheme, _, authority, path, _, query, _, fragment], parts
     {userinfo, host, port} = split_authority(authority)
 
-    authority = authority &&
-      IO.iodata_to_binary([
-        if(userinfo, do: userinfo <> "@", else: ""),
-        host || "",
-        if(port, do: ":" <> Integer.to_string(port), else: "")
-      ])
-
     scheme = normalize_scheme(scheme)
     port   = port || (scheme && default_port(scheme))
 
@@ -349,8 +342,8 @@ defmodule URI do
     components = Regex.run ~r/(^(.*)@)?(\[[a-zA-Z0-9:.]*\]|[^:]*)(:(\d*))?/, s
 
     destructure [_, _, userinfo, host, _, port], nillify(components)
+    host = if host, do: host |> String.trim_leading("[") |> String.trim_trailing("]")
     port = if port, do: String.to_integer(port)
-    host = if host, do: host |> String.lstrip(?[) |> String.rstrip(?])
 
     {userinfo, host, port}
   end
