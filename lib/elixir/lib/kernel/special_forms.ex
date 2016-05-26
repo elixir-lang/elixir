@@ -85,7 +85,7 @@ defmodule Kernel.SpecialForms do
       iex> map.a
       :b
 
-  Note that the `.` operator expects the field to exist in the map.
+  Note that the `.` operator expects the key `:a` to exist in the map.
   If not, an `ArgumentError` is raised.
 
   ## Update syntax
@@ -120,17 +120,7 @@ defmodule Kernel.SpecialForms do
   default values for keys, tags to be used in polymorphic
   dispatches and compile time assertions.
 
-  To define a struct, you just need to implement the `__struct__/0`
-  function in a module:
-
-      defmodule User do
-        def __struct__ do
-          %{name: "john", age: 27}
-        end
-      end
-
-  In practice though, structs are usually defined with the
-  `Kernel.defstruct/1` macro:
+  Structs are usually defined with the `Kernel.defstruct/1` macro:
 
       defmodule User do
         defstruct name: "john", age: 27
@@ -140,7 +130,7 @@ defmodule Kernel.SpecialForms do
 
       %User{}
 
-  Underneath a struct is just a map with a `__struct__` field
+  Underneath a struct is just a map with a `:__struct__` key
   pointing to the `User` module:
 
       %User{} == %{__struct__: User, name: "john", age: 27}
@@ -150,13 +140,6 @@ defmodule Kernel.SpecialForms do
   `:full_name` in the `User` struct:
 
       %User{full_name: "john doe"}
-
-  Note that a struct specifies a minimum set of keys required
-  for operations. Other keys can be added to structs via the
-  regular map operations:
-
-      user = %User{}
-      Map.put(user, :a_non_struct_key, :value)
 
   An update operation specific for structs is also available:
 
@@ -170,8 +153,8 @@ defmodule Kernel.SpecialForms do
   any of the protocols implemented for maps. Check
   `Kernel.defprotocol/2` for more information on how structs
   can be used with protocols for polymorphic dispatch. Also
-  see `Kernel.struct/2` for examples on how to create and update
-  structs dynamically.
+  see `Kernel.struct/2` and `Kernel.struct!/2` for examples on
+  how to create and update structs dynamically.
   """
   defmacro unquote(:%)(struct, map), do: error!([struct, map])
 

@@ -1829,7 +1829,7 @@ defmodule Kernel do
 
   The `Access` module ships with many convenience accessor functions,
   like the `all` function defined above. See `Access.all/0`,
-  `Access.field/1` and others as examples.
+  `Access.key/1` and others as examples.
   """
   @spec get_and_update_in(Access.t, nonempty_list(term),
                           (term -> {get, term})) :: {get, Access.t} when get: var
@@ -2012,8 +2012,8 @@ defmodule Kernel do
   A path may start with a variable, local or remote call, and must be
   followed by one or more:
 
-    * `foo[bar]` - access a field; in case an intermediate field is not
-      present or returns `nil`, an empty map is used
+    * `foo[bar]` - access the key `bar` in `foo`; in case `foo` is nil,
+      `nil` is returned
 
     * `foo.bar` - access a map/struct field; in case the field is not
       present, an error is raised
@@ -2030,7 +2030,7 @@ defmodule Kernel do
       # Does a remote call after the initial value
       users["john"].do_something(arg1, arg2)
 
-      # Does not access any field
+      # Does not access any key or field
       users
 
   """
@@ -3313,12 +3313,9 @@ defmodule Kernel do
   default values for keys, tags to be used in polymorphic
   dispatches and compile time assertions.
 
-  The only thing needed to define a struct is a `__struct__/0` function that
-  returns a map with the struct fields and their default values. `defstruct/1`
-  is a convenience macro which defines such a function (as well as a `t` type
-  and deriving conveniences).
-
-  When using `defstruct/1`, a struct named like the enclosing module is defined.
+  To define a struct, a developer must define both `__struct__/0` and
+  `__struct__/1` functions. `defstruct/1` is a convenience macro which
+  defines such functions with some conveniences.
 
   For more information about structs, please check `Kernel.SpecialForms.%/2`.
 
@@ -3337,10 +3334,11 @@ defmodule Kernel do
         defstruct name: nil, age: 10 + 11
       end
 
-  The `fields` argument is usually a keyword list with fields as keys and
-  default values as corresponding values. `defstruct/1` also supports a list of
-  atoms as its argument: in that case, the atoms in the list will be used as
-  the struct's fields and they will all default to `nil`.
+  The `fields` argument is usually a keyword list with field names
+  as atom keys and default values as corresponding values. `defstruct/1`
+  also supports a list of atoms as its argument: in that case, the atoms
+  in the list will be used as the struct's field names and they will all
+  default to `nil`.
 
       defmodule Post do
         defstruct [:title, :content, :author]
@@ -3413,8 +3411,8 @@ defmodule Kernel do
   type. When referring to another struct it's better to use `User.t`instead of
   `%User{}`.
 
-  The types of the struct fields that are not included in the struct's type
-  default to `term`.
+  The types of the struct fields that are not included in `%User{}` default to
+  `term`.
 
   Structs whose internal structure is private to the local module (pattern
   matching them or directly accessing their fields should not be allowed) should
