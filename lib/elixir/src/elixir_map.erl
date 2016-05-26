@@ -146,8 +146,21 @@ load_struct(Meta, Name, Args, S) ->
         false ->
           compile_error(Meta, S#elixir_scope.file, "~ts.__struct__/~p is undefined, "
             "cannot expand struct ~ts", [Inspected, Arity, Inspected])
-      end
+      end;
+
+    Kind:Reason ->
+      Info = [{Name, '__struct__', Arity, [{file, "expanding struct"}]},
+              elixir_utils:caller(?line(Meta), S#elixir_scope.file,
+                                  S#elixir_scope.module, S#elixir_scope.function)],
+      erlang:raise(Kind, Reason, prune_stacktrace(erlang:get_stacktrace(), Name, Arity) ++ Info)
   end.
+
+prune_stacktrace([{Module, '__struct__', Arity, _} | _], Module, Arity) ->
+  [];
+prune_stacktrace([H | T], Module, Arity) ->
+  [H | prune_stacktrace(T, Module, Arity)];
+prune_stacktrace([], _Module, _Arity) ->
+  [].
 
 ensure_loaded(Module) ->
   code:ensure_loaded(Module) == {module, Module}.

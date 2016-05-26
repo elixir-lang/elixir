@@ -215,16 +215,8 @@ expand_quoted(Meta, Receiver, Name, Arity, Quoted, E) ->
       erlang:raise(Kind, Reason, prune_stacktrace(erlang:get_stacktrace(), MFA, Info, nil))
   end.
 
-caller(Line, #{module := nil} = E) ->
-  {elixir_compiler_0, '__FILE__', 1, location(Line, E)};
-caller(Line, #{module := Module, function := nil} = E) ->
-  {Module, '__MODULE__', 0, location(Line, E)};
-caller(Line, #{module := Module, function := {Name, Arity}} = E) ->
-  {Module, Name, Arity, location(Line, E)}.
-
-location(Line, E) ->
-  [{file, elixir_utils:characters_to_list(elixir_utils:relative_to_cwd(?m(E, file)))},
-   {line, Line}].
+caller(Line, E) ->
+  elixir_utils:caller(Line, ?m(E, file), ?m(E, module), ?m(E, function)).
 
 %% Helpers
 

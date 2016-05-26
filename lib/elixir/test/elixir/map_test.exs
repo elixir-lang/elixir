@@ -92,6 +92,11 @@ defmodule MapTest do
     end
   end
 
+  test "implements (almost) all functions in Keyword" do
+    assert Keyword.__info__(:functions) -- Map.__info__(:functions) ==
+           [delete: 3, delete_first: 2, get_values: 2, keyword?: 1, pop_first: 2, pop_first: 3]
+  end
+
   test "variable keys" do
     x = :key
     %{^x => :value} = %{x => :value}
@@ -157,12 +162,27 @@ defmodule MapTest do
 
   test "defstruct can only be used once in a module" do
     message = "defstruct has already been called for TestMod, " <>
-      "defstruct can only be called once per module"
+              "defstruct can only be called once per module"
     assert_raise ArgumentError, message, fn ->
       Code.eval_string("""
         defmodule TestMod do
           defstruct [:foo]
           defstruct [:foo]
+        end
+        """)
+    end
+  end
+
+  test "defstruct allow keys to be enforced" do
+    message = "the following keys must also be given when building struct TestMod: [:foo]"
+    assert_raise ArgumentError, message, fn ->
+      Code.eval_string("""
+        defmodule TestMod do
+          @enforce_keys :foo
+          defstruct [:foo]
+          def foo do
+            %TestMod{}
+          end
         end
         """)
     end
@@ -189,10 +209,5 @@ defmodule MapTest do
   test "local and nested structs" do
     assert LocalUser.new == %LocalUser{name: "john", nested: %LocalUser.NestedUser{}}
     assert LocalUser.Context.new == %LocalUser{name: "john", nested: %LocalUser.NestedUser{}}
-  end
-
-  test "implements (almost) all functions in Keyword" do
-    assert Keyword.__info__(:functions) -- Map.__info__(:functions) ==
-           [delete: 3, delete_first: 2, get_values: 2, keyword?: 1, pop_first: 2, pop_first: 3]
   end
 end

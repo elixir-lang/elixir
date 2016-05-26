@@ -80,6 +80,8 @@ defmodule Kernel.Utils do
         raise ArgumentError, "struct field names must be atoms, got: #{inspect other}"
     end, fields)
 
-    :maps.put(:__struct__, module, :maps.from_list(fields))
+    {:maps.put(:__struct__, module, :maps.from_list(fields)),
+     List.wrap(Module.get_attribute(module, :enforce_keys)),
+     Module.get_attribute(module, :derive)}
   end
 end
