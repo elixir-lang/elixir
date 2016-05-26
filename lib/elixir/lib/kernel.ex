@@ -58,7 +58,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Invokes the given `fun` with the array of arguments `args`.
+  Invokes the given `fun` with the list of arguments `args`.
 
   Inlined by the compiler.
 
@@ -74,7 +74,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Invokes the given `fun` from `module` with the array of arguments `args`.
+  Invokes the given `fun` from `module` with the list of arguments `args`.
 
   Inlined by the compiler.
 
