@@ -106,6 +106,10 @@ defmodule MapTest do
     def __struct__ do
       %{__struct__: ThisDoesNotLeak, name: "john", age: 27}
     end
+
+    def __struct__(kv) do
+      Enum.reduce kv, __struct__(), fn {k, v}, acc -> :maps.update(k, v, acc) end
+    end
   end
 
   test "structs" do
@@ -114,6 +118,9 @@ defmodule MapTest do
 
     assert %ExternalUser{name: "meg"} ==
            %{__struct__: ExternalUser, name: "meg", age: 27}
+
+    assert %ExternalUser{__struct__: ThisWillBeIgnored} ==
+           %{__struct__: ExternalUser, name: "john", age: 27}
 
     user = %ExternalUser{}
     assert %ExternalUser{user | name: "meg"} ==

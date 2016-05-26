@@ -94,6 +94,10 @@ defmodule Macro.Env do
       lexical_tracker: nil}
   end
 
+  def __struct__(kv) do
+    Enum.reduce kv, __struct__(), fn {k, v}, acc -> :maps.update(k, v, acc) end
+  end
+
   @doc """
   Returns a keyword list containing the file and line
   information as keys.

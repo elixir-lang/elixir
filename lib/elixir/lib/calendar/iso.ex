@@ -151,7 +151,7 @@ defmodule Calendar.ISO do
       {microsecond, precision, rest} when precision in 1..6 ->
         pad = String.duplicate("0", 6 - byte_size(microsecond))
         {{String.to_integer(microsecond <> pad), precision}, rest}
-      {microsecond, precision, rest} ->
+      {microsecond, _precision, rest} ->
         {{String.to_integer(binary_part(microsecond, 0, 6)), 6}, rest}
     end
   end
