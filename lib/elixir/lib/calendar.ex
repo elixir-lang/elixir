@@ -107,6 +107,9 @@ defmodule Date do
       iex> date.month
       1
 
+  Developers should avoid creating the Date struct directly and
+  instead rely on the functions provided by this module as well as
+  the ones in 3rd party calendar libraries.
   """
   defstruct [:year, :month, :day, calendar: Calendar.ISO]
   @type t :: %__MODULE__{year: Calendar.year, month: Calendar.month,
@@ -321,6 +324,9 @@ defmodule Time do
       iex> time.microsecond
       {1000, 3}
 
+  Developers should avoid creating the Time struct directly and
+  instead rely on the functions provided by this module as well as
+  the ones in 3rd party calendar libraries.
   """
   defstruct [:hour, :minute, :second, :microsecond]
   @type t :: %__MODULE__{hour: Calendar.hour, minute: Calendar.minute,
@@ -586,6 +592,10 @@ defmodule NaiveDateTime do
   by one hour. This means certain datetimes never occur or
   may occur more than once. Since `NaiveDateTime` is not
   validated against a timezone, such errors would go unnoticed.
+
+  Developers should avoid creating the NaiveDateTime struct directly
+  and instead rely on the functions provided by this module as well
+  as the ones in 3rd party calendar libraries.
   """
   defstruct [:year, :month, :day, :hour, :minute, :second, :microsecond, calendar: Calendar.ISO]
   @type t :: %__MODULE__{year: Calendar.year, month: Calendar.month, day: Calendar.day,
@@ -901,6 +911,10 @@ defmodule DateTime do
   it also includes both UTC and Standard offsets, as
   well as the zone abbreviation field used exclusively
   for formatting purposes.
+
+  Developers should avoid creating the DateTime struct directly
+  and instead rely on the functions provided by this module as
+  well as the ones in 3rd party calendar libraries.
 
   ## Where are my functions?
 
