@@ -4045,7 +4045,7 @@ defmodule Kernel do
   ## Examples
 
       iex> ~D[2015-01-13]
-      %Date{year: 2015, month: 1, day: 13}
+      ~D[2015-01-13]
   """
   defmacro sigil_D(date, modifiers)
   defmacro sigil_D({:<<>>, _, [string]}, []) do
@@ -4061,9 +4061,9 @@ defmodule Kernel do
   ## Examples
 
       iex> ~T[13:00:07]
-      %Time{hour: 13, minute: 0, second: 7, microsecond: 0}
+      ~T[13:00:07]
       iex> ~T[13:00:07.001]
-      %Time{hour: 13, minute: 0, second: 7, microsecond: 1000}
+      ~T[13:00:07.001]
 
   """
   defmacro sigil_T(date, modifiers)
@@ -4080,9 +4080,9 @@ defmodule Kernel do
   ## Examples
 
       iex> ~N[2015-01-13 13:00:07]
-      %NaiveDateTime{year: 2015, month: 1, day: 13, hour: 13, minute: 0, second: 7, microsecond: 0}
+      ~N[2015-01-13 13:00:07]
       iex> ~N[2015-01-13T13:00:07.001]
-      %NaiveDateTime{year: 2015, month: 1, day: 13, hour: 13, minute: 0, second: 7, microsecond: 1000}
+      ~N[2015-01-13 13:00:07.001]
 
   """
   defmacro sigil_N(date, modifiers)
