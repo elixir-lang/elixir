@@ -15,7 +15,7 @@ defmodule Access do
   `Kernel.get_in/2`, `Kernel.put_in/3`, `Kernel.update_in/3`,
   `Kernel.get_and_update_in/3` and friends.
 
-  ## Key-based lookups
+  ## Dynamic lookups
 
   Out of the box, Access works with `Keyword` and `Map`:
 
@@ -55,16 +55,17 @@ defmodule Access do
   module that defines the struct being access. Access requires the
   key comparison to be implemented using the `===` operator.
 
-  ## Field-based lookups
+  ## Static lookups
 
   The Access syntax (`foo[bar]`) cannot be used to access fields in
-  structs. That's by design, as Access is meant to be used for
-  dynamic key-value structures, like maps and keywords, and not
-  by static ones like structs.
+  structs, since structs do not implement the Access behaviour by
+  default. It is also design decision: the dynamic access lookup
+  is meant to be used for dynamic key-value structures, like maps
+  and keywords, and not by static ones like structs.
 
-  Therefore Elixir provides a field-based lookup for structs.
-  Imagine a struct named `User` with name and age fields. The
-  following would raise:
+  Therefore Elixir provides a static lookup for map and structs
+  fields. Imagine a struct named `User` with name and age fields.
+  The following would raise:
 
       user = %User{name: "john"}
       user[:name]
@@ -82,8 +83,8 @@ defmodule Access do
       put_in user.name, "mary"
       %User{name: "mary"}
 
-  Differently from `user[:name]`, `user.name` is not extensible and
-  is restricted to only maps and structs.
+  Differently from `user[:name]`, `user.name` is not extensible via
+  a behaviour and is restricted to only maps and structs.
 
   Summing up:
 
@@ -110,7 +111,7 @@ defmodule Access do
         languages: [%{name: "ELIXIR", type: :functional},
                     %{name: "C", type: :procedural}]}
 
-  See the functions `field/1`, `elem/1` and `all/0` for the current
+  See the functions `key/1`, `key!/1`, `elem/1` and `all/0` for the current
   accessors.
   """
 
@@ -238,30 +239,72 @@ defmodule Access do
   ## Accessors
 
   @doc """
-  Accesses the given field in a map/struct.
+  Accesses the given key in a map/struct.
 
-  Raises if the field does not exist.
+  Uses the default value if the key does not exist
+  or if the value being accessed is nil.
+
+  ## Examples
+
+      iex> get_in(%{}, [Access.key(:unknown), Access.key(:name)])
+      nil
+      iex> get_in(%{}, [Access.key(:unknown, %{name: "john"}), Access.key(:name)])
+      "john"
+      iex> get_in(%{}, [Access.key(:unknown), Access.key(:name, "john")])
+      "john"
+
+      iex> map = %{user: %{name: "john"}}
+      iex> get_in(map, [Access.key(:unknown), Access.key(:name, "john")])
+      "john"
+      iex> get_and_update_in(map, [Access.key(:user), Access.key(:name)], fn
+      ...>   prev -> {prev, String.upcase(prev)}
+      ...> end)
+      {"john", %{user: %{name: "JOHN"}}}
+      iex> pop_in(map, [Access.key(:user), Access.key(:name)])
+      {"john", %{user: %{}}}
+
+  """
+  def key(key, default \\ nil) do
+    fn
+      :get, data, next ->
+        next.(Map.get(to_map(data), key, default))
+      :get_and_update, data, next ->
+        value = Map.get(to_map(data), key, default)
+        case next.(value) do
+          {get, update} -> {get, Map.put(data, key, update)}
+          :pop -> {value, Map.delete(data, key)}
+        end
+    end
+  end
+
+  defp to_map(nil), do: %{}
+  defp to_map(%{} = map), do: map
+
+  @doc """
+  Accesses the given key in a map/struct.
+
+  Raises if the key does not exist.
 
   ## Examples
 
       iex> map = %{user: %{name: "john"}}
-      iex> get_in(map, [Access.field(:user), Access.field(:name)])
+      iex> get_in(map, [Access.key!(:user), Access.key!(:name)])
       "john"
-      iex> get_and_update_in(map, [Access.field(:user), Access.field(:name)], fn
+      iex> get_and_update_in(map, [Access.key!(:user), Access.key!(:name)], fn
       ...>   prev -> {prev, String.upcase(prev)}
       ...> end)
       {"john", %{user: %{name: "JOHN"}}}
-      iex> pop_in(map, [Access.field(:user), Access.field(:name)])
+      iex> pop_in(map, [Access.key!(:user), Access.key!(:name)])
       {"john", %{user: %{}}}
-      iex> get_in(map, [Access.field(:user), Access.field(:unknown)])
+      iex> get_in(map, [Access.key!(:user), Access.key!(:unknown)])
       ** (KeyError) key :unknown not found in: %{name: \"john\"}
 
   """
-  def field(key) do
+  def key!(key) do
     fn
-      :get, data, next ->
+      :get, %{} = data, next ->
         next.(Map.fetch!(data, key))
-      :get_and_update, data, next ->
+      :get_and_update, %{} = data, next ->
         value = Map.fetch!(data, key)
         case next.(value) do
           {get, update} -> {get, Map.put(data, key, update)}
