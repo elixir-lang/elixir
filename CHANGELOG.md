@@ -10,13 +10,13 @@
 
 #### Elixir
 
+  * [Access] Add support for `Access.all/0`, `Access.elem/1`, `Access.key/2` and `Access.key!/1` for traversing nested data structures
   * [Calendar] Add `Calendar` and `Date`, `Time`, `NaiveDateTime` and `DateTime` types
   * [CLI] Add `--logger-otp-reports BOOL` and `--logger-sasl-reports BOOL` switches
   * [Compiler] Emit a summary of compilation errors when modules are missing
   * [Enum] Add `Enum.group_by/3` that allows developers to map on the value being grouped
   * [Exception] Suggest possible functions on `UndefinedFunctionError` for existing modules
   * [Exception] Warn if unknown fields are given to `raise/2`
-  * [Exception] Warn if fields are missing when calling `raise/2`
   * [File] Support IO devices in `File.copy/3`
   * [GenServer] Raise a more meaningful exit if you try to `GenServer.call/3` yourself
   * [Inspect] Support `:base` option when inspecting binaries
@@ -28,6 +28,8 @@
   * [Kernel] Support `else` chunks in `with`
   * [Kernel] Track `{module, function, arity}` imports and warn on unused ones when such are specified in `:only`
   * [Kernel] Add `keyword/0` and `keyword/1` built-in types to typespecs
+  * [Kernel] Add sigils for date (`~D[2015-04-17]`), time (`~T[08:00:00]`) and naive date times `~N[2015-04-17 08:00:00]`
+  * [Kernel] Support `@enforce_keys` on `defstruct/1` to guarantee some keys are explicitly given when building structs
   * [OptionParser] Add support for `:count` switch type
   * [OptionParser] Add `parse!/2` and `parse_head!/2` that raise `OptionParser.ParseError` in case of errors
   * [Process] Add `Process.sleep/1`
@@ -35,6 +37,8 @@
   * [Regex] Support `:include_captures` in `Regex.split/3`
   * [String] Add `String.myers_difference/2` for calculating the difference between two strings
   * [System] Add `System.os_time/0` and `System.os_time/1`
+  * [Typespec] Add support for `%{required(foo) => bar}` and `%{optional(foo) => bar}` forms (Erlang 19 only)
+  * [Typespec] Introduce `%{...}` to mean any map (Erlang 19 only)
   * [URI] Add `URI.merge/2`
   * [Version] Add `Version.parse!/1`
 
@@ -46,6 +50,7 @@
   * [ExUnit] Support diffing of values when using `==` in `assert`
   * [ExUnit] Start running tests as soon as cases are loaded. This feature is enabled by default when running tests through Mix
   * [ExUnit] Raise a straight-forward error message in case a duplicate test name is defined
+  * [ExUnit] Bump the default number of max cases to double of schedulers to support both IO and CPU bound tests
 
 #### IEx
 
@@ -86,6 +91,7 @@
   * [OptionParser] Allow `OptionParser` to parse negative numbers
   * [Macro] Fix `Macro.to_string/1` on a call of a capture argument, for example `&(&1).(:x)`
   * [String] Ensure `strip` also removes non-breaking whitespaces (and ensure `split` still does not split on them)
+  * [URI] Use square brackets for IPv6 in `URI.to_string/1`
 
 #### Mix
 
