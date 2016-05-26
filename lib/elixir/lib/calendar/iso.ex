@@ -91,9 +91,12 @@ defmodule Calendar.ISO do
   defp time_to_string(hour, minute, second, 0) do
     zero_pad(hour, 2) <> ":" <> zero_pad(minute, 2) <> ":" <> zero_pad(second, 2)
   end
-  defp time_to_string(hour, minute, second, microsecond) do
+  defp time_to_string(hour, minute, second, {_, 0}) do
+    time_to_string(hour, minute, second, 0)
+  end
+  defp time_to_string(hour, minute, second, {microsecond, precision}) do
     time_to_string(hour, minute, second, 0) <> "." <>
-      (microsecond |> zero_pad(6) |> String.trim_trailing("0"))
+      (microsecond |> zero_pad(6) |> binary_part(0, precision))
   end
 
   defp offset_to_string(0, 0, "Etc/UTC"), do: "Z"
@@ -142,24 +145,24 @@ defmodule Calendar.ISO do
 
   @doc false
   def parse_microsecond("." <> rest) do
-    case parse_microsecond(rest, "") do
-      {microsecond, rest} when byte_size(microsecond) > 6 ->
-        {String.to_integer(binary_part(microsecond, 0, 6)), rest}
-      {microsecond, rest} when byte_size(microsecond) in 1..6 ->
-        pad = String.duplicate("0", 6 - byte_size(microsecond))
-        {String.to_integer(microsecond <> pad), rest}
-      {"", _} ->
+    case parse_microsecond(rest, 0, "") do
+      {"", 0, _} ->
         :error
+      {microsecond, precision, rest} when precision in 1..6 ->
+        pad = String.duplicate("0", 6 - byte_size(microsecond))
+        {{String.to_integer(microsecond <> pad), precision}, rest}
+      {microsecond, precision, rest} ->
+        {{String.to_integer(binary_part(microsecond, 0, 6)), 6}, rest}
     end
   end
   def parse_microsecond(rest) do
-    {0, rest}
+    {{0, 0}, rest}
   end
 
-  defp parse_microsecond(<<h, t::binary>>, acc) when h in ?0..?9,
-    do: parse_microsecond(t, <<acc::binary, h>>)
-  defp parse_microsecond(rest, acc),
-    do: {acc, rest}
+  defp parse_microsecond(<<h, t::binary>>, precision, acc) when h in ?0..?9,
+    do: parse_microsecond(t, precision + 1, <<acc::binary, h>>)
+  defp parse_microsecond(rest, precision, acc),
+    do: {acc, precision, rest}
 
   @doc false
   def parse_offset("Z"), do: {0, ""}

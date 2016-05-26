@@ -51,7 +51,8 @@ defmodule NaiveDateTimeTest do
     assert inspect(~N[2000-01-01 23:00:07.005]) == "~N[2000-01-01 23:00:07.005]"
 
     date = Map.put(~N[2000-01-01 23:00:07.005], :calendar, FakeCalendar)
-    assert inspect(date) == "%NaiveDateTime{calendar: FakeCalendar, day: 1, hour: 23, microsecond: 5000, minute: 0, month: 1, second: 7, year: 2000}"
+    assert inspect(date) == "%NaiveDateTime{calendar: FakeCalendar, day: 1, hour: 23, " <>
+                            "microsecond: {5000, 3}, minute: 0, month: 1, second: 7, year: 2000}"
   end
 end
 
@@ -61,7 +62,7 @@ defmodule DateTimeTest do
 
   test "to_string/1" do
     dt = %DateTime{year: 2000, month: 2, day: 29,
-                   hour: 23, minute: 0, second: 7, microsecond: 0,
+                   hour: 23, minute: 0, second: 7, microsecond: {0, 0},
                    utc_offset: -12600, std_offset: 3600, time_zone: "Brazil/Manaus"}
     assert to_string(dt) == "2000-02-29 23:00:07-02:30 Brazil/Manaus"
   end
