@@ -32,7 +32,7 @@ defmodule Kernel.ParallelRequire do
       :ok ->
         result
       :error ->
-        IO.puts :stderr, "Compilation failed due to warnings while using the --warnings-as-errors option"
+        IO.puts :stderr, "\nLoading files failed due to warnings while using the --warnings-as-errors option"
         exit({:shutdown, 1})
     end
   end
