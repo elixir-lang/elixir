@@ -1789,7 +1789,7 @@ defmodule Kernel do
   It expects a tuple to be returned, containing the value
   retrieved and the update one.
 
-  Uses the `Access` module to traverse the structures
+  It uses the `Access` module to traverse the structures
   according to the given `keys`, unless the `key` is a
   function.
 
@@ -1826,6 +1826,10 @@ defmodule Kernel do
   If the previous value before invoking the function is `nil`,
   the function *will* receive `nil` as a value and must handle it
   accordingly (be it by failing or providing a sane default).
+
+  The `Access` module ships with many convenience accessor functions,
+  like the `all` function defined above. See `Access.all/0`,
+  `Access.field/1` and others as examples.
   """
   @spec get_and_update_in(Access.t, nonempty_list(term),
                           (term -> {get, term})) :: {get, Access.t} when get: var
