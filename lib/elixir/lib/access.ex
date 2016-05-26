@@ -263,6 +263,11 @@ defmodule Access do
       iex> pop_in(map, [Access.key(:user), Access.key(:name)])
       {"john", %{user: %{}}}
 
+  An error is raised if the accessed structure is not a map/struct/nil:
+
+      iex> get_in([], [Access.key(:foo)])
+      ** (RuntimeError) Access.key/1 expected a map/struct or nil, got: []
+
   """
   def key(key, default \\ nil) do
     fn
@@ -279,6 +284,7 @@ defmodule Access do
 
   defp to_map(nil), do: %{}
   defp to_map(%{} = map), do: map
+  defp to_map(data), do: raise "Access.key/1 expected a map/struct or nil, got: #{inspect data}"
 
   @doc """
   Accesses the given key in a map/struct.
@@ -299,6 +305,11 @@ defmodule Access do
       iex> get_in(map, [Access.key!(:user), Access.key!(:unknown)])
       ** (KeyError) key :unknown not found in: %{name: \"john\"}
 
+  An error is raised if the accessed structure is not a map/struct:
+
+      iex> get_in([], [Access.key!(:foo)])
+      ** (RuntimeError) Access.key!/1 expected a map/struct, got: []
+
   """
   def key!(key) do
     fn
@@ -310,6 +321,8 @@ defmodule Access do
           {get, update} -> {get, Map.put(data, key, update)}
           :pop -> {value, Map.delete(data, key)}
         end
+      _op, data, _next ->
+        raise "Access.key!/1 expected a map/struct, got: #{inspect data}"
     end
   end
 
@@ -330,6 +343,11 @@ defmodule Access do
       iex> pop_in(map, [:user, Access.elem(0)])
       ** (RuntimeError) cannot pop data from a tuple
 
+  An error is raised if the accessed structure is not a tuple:
+
+      iex> get_in(%{}, [Access.elem(0)])
+      ** (RuntimeError) Access.elem/1 expected a tuple, got: %{}
+
   """
   def elem(index) when is_integer(index) do
     pos = index + 1
@@ -343,6 +361,8 @@ defmodule Access do
           {get, update} -> {get, :erlang.setelement(pos, data, update)}
           :pop -> raise "cannot pop data from a tuple"
         end
+      _op, data, _next ->
+        raise "Access.elem/1 expected a tuple, got: #{inspect data}"
     end
   end
 
@@ -370,6 +390,11 @@ defmodule Access do
       ...> end)
       {[1, 2, 3, 4, 5], [2, 6, 10]}
 
+  An error is raised if the accessed structure is not a list:
+
+      iex> get_in(%{}, [Access.all()])
+      ** (RuntimeError) Access.all/0 expected a list, got: %{}
+
   """
   def all() do
     &all/3
@@ -381,6 +406,10 @@ defmodule Access do
 
   defp all(:get_and_update, data, next) when is_list(data) do
     all(data, next, [], [])
+  end
+
+  defp all(_op, data, _next) do
+    raise "Access.all/0 expected a list, got: #{inspect data}"
   end
 
   defp all([head | rest], next, gets, updates) do
