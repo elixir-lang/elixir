@@ -32,35 +32,23 @@ defmodule Exception do
   @callback message(t) :: String.t
 
   @doc false
-  def __struct__(struct, required_fields, args) do
-    keys = for({key, _} <- args, do: key)
+  # TODO: Remove this function and use Kernel.struct! directly
+  def __struct__(struct, args) do
+    {valid, invalid} = Enum.partition(args, fn {k, _} -> Map.has_key?(struct, k) end)
 
-    # TODO: Consider if this should raise or warn in future versions
-    case required_fields -- keys do
+    case invalid do
       [] ->
         :ok
-      missing ->
-        IO.warn "the following fields are missing when raising " <>
-                "#{inspect struct.__struct__}: #{inspect missing}. " <>
-                "Please make sure all fields are provided or have a " <>
-                "default value. Future Elixir versions may raise on " <>
-                "missing fields"
-    end
-
-    # TODO: Use Kernel.struct! on future versions
-    case keys -- Map.keys(struct) do
-      [] ->
-        :ok
-      unmatched ->
+      _  ->
         IO.warn "the following fields are unknown when raising " <>
-                "#{inspect struct.__struct__}: #{inspect unmatched}. " <>
+                "#{inspect struct.__struct__}: #{inspect invalid}. " <>
                 "Please make sure to only give known fields when raising " <>
                 "or redefine #{inspect struct.__struct__}.exception/1 to " <>
-                "discard unknown fields. Future Elixir versions may raise on " <>
-                "unknown fields"
+                "discard unknown fields. Future Elixir versions will raise on " <>
+                "unknown fields given to raise/2"
     end
 
-    Kernel.struct(struct, args)
+    Kernel.struct!(struct, valid)
   end
 
   @doc """

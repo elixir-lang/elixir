@@ -4,7 +4,7 @@
 -export([elixir_to_erl/1, get_ann/1, get_line/1, split_last/1,
   characters_to_list/1, characters_to_binary/1, macro_name/1,
   convert_to_boolean/4, returns_boolean/1, atom_concat/1,
-  read_file_type/1, read_link_type/1, relative_to_cwd/1,
+  read_file_type/1, read_link_type/1, relative_to_cwd/1, caller/4,
   read_mtime/1, change_universal_time/2, erl_call/4, meta_location/1]).
 -include("elixir.hrl").
 -include_lib("kernel/include/file.hrl").
@@ -85,6 +85,18 @@ characters_to_binary(Data) ->
     true  -> unicode:characters_to_binary(Data);
     false -> 'Elixir.List':to_string(Data)
   end.
+
+%% Returns the caller as a stacktrace entry.
+caller(Line, File, nil, _) ->
+  {elixir_compiler_0, '__FILE__', 1, stack_location(Line, File)};
+caller(Line, File, Module, nil) ->
+  {Module, '__MODULE__', 0, stack_location(Line, File)};
+caller(Line, File, Module, {Name, Arity}) ->
+  {Module, Name, Arity, stack_location(Line, File)}.
+
+stack_location(Line, File) ->
+  [{file, elixir_utils:characters_to_list(elixir_utils:relative_to_cwd(File))},
+   {line, Line}].
 
 %% Meta location.
 %%

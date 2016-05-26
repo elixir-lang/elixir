@@ -3369,6 +3369,31 @@ defmodule Kernel do
   callback. If so, the callback is invoked, otherwise an implementation
   that simply points to the any implementation is automatically derived.
 
+  ## Enforcing keys
+
+  When building a struct, Elixir will automatically guarantee all keys
+  belongs to the struct:
+
+      %User{name: "john", unknown: :key}
+      ** (KeyError) key :unknown not found in: %User{age: 21, name: nil}
+
+  Elixir also allows developers to enforce certain keys must always be
+  given when building the struct:
+
+      defmodule User do
+        @enforce_keys [:name]
+        defstruct name: nil, age: 10 + 11
+      end
+
+  Now trying to build a struct without the name key will fail:
+
+      %User{age: 21}
+      ** (ArgumentError) the following keys must also be given when building struct User: [:name]
+
+  Keep in mind `@enforce_keys` is a simply a compile-time guarantee
+  to aid developers when building structs. It is not enforced on
+  updates and it does not provide any sort of value-validation.
+
   ## Types
 
   It is recommended to define types for structs. By convention such type
@@ -3398,9 +3423,15 @@ defmodule Kernel do
         true ->
           quote do
             def __struct__(kv) do
-              Enum.reduce(kv, __struct__(), fn {key, val}, acc ->
-                :maps.update(key, val, acc)
-              end)
+              {map, keys} =
+                Enum.reduce(kv, {__struct__(), @enforce_keys}, fn {key, val}, {map, keys} ->
+                  {:maps.update(key, val, map), :lists.delete(key, keys)}
+                end)
+              case keys do
+                [] -> map
+                _  -> raise ArgumentError, "the following keys must also be given when building " <>
+                                           "struct #{inspect __MODULE__}: #{inspect keys}"
+              end
             end
           end
         false ->
@@ -3419,12 +3450,13 @@ defmodule Kernel do
           "#{Kernel.inspect(__MODULE__)}, defstruct can only be called once per module"
       end
 
-      fields = Kernel.Utils.defstruct(__MODULE__, unquote(fields))
+      {fields, keys, derive} = Kernel.Utils.defstruct(__MODULE__, unquote(fields))
       @struct fields
+      @enforce_keys keys
 
-      case Module.get_attribute(__MODULE__, :derive) do
+      case derive do
         [] -> :ok
-        derive -> Protocol.__derive__(derive, __MODULE__, __ENV__)
+        _  -> Protocol.__derive__(derive, __MODULE__, __ENV__)
       end
 
       def __struct__() do
@@ -3492,11 +3524,6 @@ defmodule Kernel do
     quote bind_quoted: [fields: fields] do
       @behaviour Exception
       struct = defstruct([__exception__: true] ++ fields)
-      required_fields =
-        :lists.filtermap(fn
-          {key, nil} -> {true, key}
-          {_, _} -> false
-        end, :maps.to_list(struct))
 
       if Map.has_key?(struct, :message) do
         @spec message(Exception.t) :: String.t
@@ -3514,7 +3541,7 @@ defmodule Kernel do
 
       @spec exception(Keyword.t) :: Exception.t
       def exception(args) when is_list(args) do
-        Exception.__struct__(__struct__(), unquote(required_fields), args)
+        Exception.__struct__(__struct__(), args)
       end
 
       defoverridable exception: 1
