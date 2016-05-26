@@ -335,9 +335,9 @@ defmodule Access do
     pos = index + 1
 
     fn
-      :get, data, next ->
+      :get, data, next when is_tuple(data) ->
         next.(:erlang.element(pos, data))
-      :get_and_update, data, next ->
+      :get_and_update, data, next when is_tuple(data) ->
         value = :erlang.element(pos, data)
         case next.(value) do
           {get, update} -> {get, :erlang.setelement(pos, data, update)}
