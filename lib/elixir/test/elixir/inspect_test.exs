@@ -266,9 +266,7 @@ defmodule Inspect.MapTest do
   end
 
   defmodule Public do
-    def __struct__ do
-      %{key: 0, __struct__: Public}
-    end
+    defstruct key: 0
   end
 
   defmodule Private do
@@ -289,9 +287,7 @@ defmodule Inspect.MapTest do
   end
 
   defmodule Failing do
-    def __struct__ do
-      %{key: 0}
-    end
+    defstruct key: 0
 
     defimpl Inspect do
       def inspect(struct, _) do

@@ -1631,10 +1631,32 @@ defmodule Kernel do
   end
 
   @doc """
-  Same as `struct/2` but raises if any of provided keys doesn't exist in the struct.
+  Similar to `struct/2` but checks for key validity.
+
+  The function `struct!/2` emulates the compile time behaviour
+  of structs. This means that:
+
+    * when building a struct, as in `struct!(SomeStruct, key: :value)`,
+      it is equivalent to `%SomeStruct{key: :value}` and therefore this
+      function will check if every given key-value belongs to the struct.
+      If the struct is enforcing any key via `@enforce_keys`, those will
+      be enforced as well;
+
+    * when updating a struct, as in `struct!(%SomeStruct{}, key: :value)`,
+      it is equivalent to `%SomeStruct{struct | key: :value}` and therefore this
+      function will check if every given key-value belongs to the struct.
+      However, updating structs does not enforce keys, as keys are enforced
+      only when building;
+
   """
   @spec struct!(module | map, Enum.t) :: map | no_return
-  def struct!(struct, kv \\ []) do
+  def struct!(struct, kv \\ [])
+
+  def struct!(struct, kv) when is_atom(struct) do
+    struct.__struct__(kv)
+  end
+
+  def struct!(struct, kv) when is_map(struct) do
     struct(struct, kv, fn
       {:__struct__, _}, acc -> acc
       {key, val}, acc ->
@@ -3371,12 +3393,33 @@ defmodule Kernel do
   use `@type`.
   """
   defmacro defstruct(fields) do
-    quote bind_quoted: [fields: fields] do
+    builder =
+      case bootstrapped?(Enum) do
+        true ->
+          quote do
+            def __struct__(kv) do
+              Enum.reduce(kv, __struct__(), fn {key, val}, acc ->
+                :maps.update(key, val, acc)
+              end)
+            end
+          end
+        false ->
+          quote do
+            def __struct__(kv) do
+              :lists.foldl(fn {key, val}, acc ->
+                :maps.update(key, val, acc)
+              end, __struct__(), kv)
+            end
+          end
+      end
+
+    quote do
       if Module.get_attribute(__MODULE__, :struct) do
         raise ArgumentError, "defstruct has already been called for " <>
           "#{Kernel.inspect(__MODULE__)}, defstruct can only be called once per module"
       end
-      fields = Kernel.Utils.defstruct(__MODULE__, fields)
+
+      fields = Kernel.Utils.defstruct(__MODULE__, unquote(fields))
       @struct fields
 
       case Module.get_attribute(__MODULE__, :derive) do
@@ -3387,6 +3430,8 @@ defmodule Kernel do
       def __struct__() do
         @struct
       end
+
+      unquote(builder)
 
       fields
     end

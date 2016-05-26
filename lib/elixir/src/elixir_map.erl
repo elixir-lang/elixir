@@ -68,18 +68,17 @@ translate_struct(_Meta, Name, {'%{}', MapMeta, Assocs}, S) when is_tuple(Name) -
 
 translate_struct(Meta, Name, {'%{}', MapMeta, Args}, S) ->
   {Assocs, TUpdate, US} = extract_assoc_update(Args, S),
-  Struct = load_struct(Meta, Name, S),
+  Operation = operation(TUpdate, S),
 
-  case is_map(Struct) of
-    true  ->
-      assert_struct_keys(Meta, Name, Struct, Assocs, S);
-    false ->
-      compile_error(Meta, S#elixir_scope.file, "expected ~ts.__struct__/0 to "
-        "return a map, got: ~ts", [elixir_aliases:inspect(Name), 'Elixir.Kernel':inspect(Struct)])
+  Struct = case Operation of
+    expand -> load_struct(Meta, Name, [Args], S);
+    _ -> load_struct(Meta, Name, [], S)
   end,
 
-  if
-    TUpdate /= nil ->
+  assert_struct_keys(Meta, Name, Struct, Assocs, S),
+
+  case Operation of
+    update ->
       Ann = ?ann(Meta),
       {VarName, _, VS} = elixir_scope:build_var('_', US),
 
@@ -95,9 +94,9 @@ translate_struct(Meta, Name, {'%{}', MapMeta, Args}, S) ->
         {clause, Ann, [Match], [], [TMap]},
         {clause, Ann, [Var], [], [elixir_utils:erl_call(Ann, erlang, error, [Error])]}
       ]}, TS};
-    S#elixir_scope.context == match ->
+    match ->
       translate_map(MapMeta, Assocs ++ [{'__struct__', Name}], nil, US);
-    true ->
+    expand ->
       Keys = [K || {K, _} <- Assocs],
       {StructAssocs, _} = elixir_quote:escape(maps:to_list(maps:without(Keys, Struct)), false),
       translate_map(MapMeta, StructAssocs ++ Assocs ++ [{'__struct__', Name}], nil, US)
@@ -105,8 +104,13 @@ translate_struct(Meta, Name, {'%{}', MapMeta, Args}, S) ->
 
 %% Helpers
 
-load_struct(Meta, Name, S) ->
+operation(nil, #elixir_scope{context=match}) -> match;
+operation(nil, _) -> expand;
+operation(_, _) -> update.
+
+load_struct(Meta, Name, Args, S) ->
   Context = lists:keyfind(struct, 1, Meta) == {struct, context},
+  Arity = length(Args),
 
   Local =
     not(ensure_loaded(Name)) andalso
@@ -116,14 +120,20 @@ load_struct(Meta, Name, S) ->
     case Local of
       true ->
         try
-          (elixir_locals:local_for(Name, '__struct__', 0, def))()
+          apply(elixir_locals:local_for(Name, '__struct__', Arity, def), Args)
         catch
-          error:undef  -> Name:'__struct__'();
-          error:badarg -> Name:'__struct__'()
+          error:undef  -> apply(Name, '__struct__', Args);
+          error:badarg -> apply(Name, '__struct__', Args)
         end;
       false ->
-        Name:'__struct__'()
+        apply(Name, '__struct__', Args)
     end
+  of
+    #{} = Struct ->
+      Struct;
+    Other ->
+      compile_error(Meta, S#elixir_scope.file, "expected ~ts.__struct__/~p to "
+        "return a map, got: ~ts", [elixir_aliases:inspect(Name), Arity, 'Elixir.Kernel':inspect(Other)])
   catch
     error:undef ->
       Inspected = elixir_aliases:inspect(Name),
@@ -134,8 +144,8 @@ load_struct(Meta, Name, S) ->
             "cannot access struct ~ts, the struct was not yet defined or the struct is being "
             "accessed in the same context that defines it", [Inspected]);
         false ->
-          compile_error(Meta, S#elixir_scope.file, "~ts.__struct__/0 is undefined, "
-            "cannot expand struct ~ts", [Inspected, Inspected])
+          compile_error(Meta, S#elixir_scope.file, "~ts.__struct__/~p is undefined, "
+            "cannot expand struct ~ts", [Inspected, Arity, Inspected])
       end
   end.
 

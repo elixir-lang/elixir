@@ -328,8 +328,12 @@ defmodule Kernel.ErrorsTest do
 
   test "struct errors" do
     assert_compile_fail CompileError,
-      "nofile:1: BadStruct.__struct__/0 is undefined, cannot expand struct BadStruct",
+      "nofile:1: BadStruct.__struct__/1 is undefined, cannot expand struct BadStruct",
       '%BadStruct{}'
+
+    assert_compile_fail CompileError,
+      "nofile:1: BadStruct.__struct__/0 is undefined, cannot expand struct BadStruct",
+      '%BadStruct{} = %{}'
 
     defmodule BadStruct do
       def __struct__ do
@@ -339,17 +343,19 @@ defmodule Kernel.ErrorsTest do
 
     assert_compile_fail CompileError,
       "nofile:1: expected Kernel.ErrorsTest.BadStruct.__struct__/0 to return a map, got: []",
-      '%#{BadStruct}{}'
+      '%#{BadStruct}{} = %{}'
 
     defmodule GoodStruct do
-      def __struct__ do
-        %{name: "john"}
-      end
+      defstruct name: "john"
     end
+
+    assert_compile_fail KeyError,
+      "key :age not found in: %Kernel.ErrorsTest.GoodStruct{name: \"john\"}",
+      '%#{GoodStruct}{age: 27}'
 
     assert_compile_fail CompileError,
       "nofile:1: unknown key :age for struct Kernel.ErrorsTest.GoodStruct",
-      '%#{GoodStruct}{age: 27}'
+      '%#{GoodStruct}{age: 27} = %{}'
   end
 
   test "name for defmodule" do
@@ -664,12 +670,11 @@ defmodule Kernel.ErrorsTest do
   end
 
   test "doc attributes format" do
-    message = "expected moduledoc attribute given " <>
-      "in the {line, doc} format, got: \"Other\""
+    message = "expected moduledoc attribute given in the {line, doc} format, got: \"Other\""
     assert_raise ArgumentError, message, fn ->
       defmodule DocAttributesFormat do
         @moduledoc "ModuleTest"
-        {671, "ModuleTest"} = Module.get_attribute(__MODULE__, :moduledoc)
+        {676, "ModuleTest"} = Module.get_attribute(__MODULE__, :moduledoc)
         Module.put_attribute(__MODULE__, :moduledoc, "Other")
       end
     end
