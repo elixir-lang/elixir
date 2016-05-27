@@ -66,19 +66,4 @@ defmodule Mix.Tasks.Test.StaleTest do
   defp assert_stale_run_output(opts \\ [], expected) do
     assert mix(~w[test --stale] ++ opts) =~ expected
   end
-
-  defp mix(args, envs \\ []) when is_list(args) do
-    System.cmd(elixir_executable,
-               ["-r", mix_executable, "--" | args],
-               stderr_to_stdout: true,
-               env: envs) |> elem(0)
-  end
-
-  defp mix_executable do
-    Path.expand("../../../../../../bin/mix", __DIR__)
-  end
-
-  defp elixir_executable do
-    Path.expand("../../../../../../bin/elixir", __DIR__)
-  end
 end

@@ -65,7 +65,8 @@ defmodule Mix.Tasks.Test do
     * `--no-deps-check` - do not check dependencies
     * `--no-archives-check` - do not check archives
     * `--no-elixir-version-check` - do not check the Elixir version from mix.exs
-    * `--stale` - run only tests which reference modules that changed since the last `test --stale`
+    * `--stale` - run only tests which reference modules that changed since the
+      last `test --stale`. You can read more about this option in the "Stale" section below.
 
   ## Filters
 

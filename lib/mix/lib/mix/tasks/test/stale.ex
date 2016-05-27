@@ -1,8 +1,7 @@
 defmodule Mix.Tasks.Test.Stale do
   @moduledoc false
 
-  require Mix.Compilers.Elixir
-  alias Mix.Compilers.Elixir, as: CE
+  require Mix.Compilers.Elixir, as: CE
 
   import Record
 
@@ -15,7 +14,6 @@ defmodule Mix.Tasks.Test.Stale do
 
   @stale_manifest ".compile.test_stale"
   @manifest_vsn :v1
-
 
   @doc """
   Set up the `--stale` run for given matched test files, test paths, and options.
@@ -118,7 +116,7 @@ defmodule Mix.Tasks.Test.Stale do
 
   defp test_helper_stale?(test_paths) do
     test_paths
-    |> Stream.map(&Path.join(&1, "test_helper.exs"))
+    |> Enum.map(&Path.join(&1, "test_helper.exs"))
     |> Mix.Utils.stale?([manifest()])
   end
 
@@ -182,7 +180,7 @@ defmodule Mix.Tasks.Test.Stale do
 
     if Mix.Utils.stale?([elixir_manifest], [test_manifest]) do
       elixir_manifest_entries =
-        Mix.Compilers.Elixir.read_manifest(elixir_manifest)
+        CE.read_manifest(elixir_manifest)
         |> Enum.group_by(&elem(&1, 0))
 
       stale_modules =
@@ -195,7 +193,7 @@ defmodule Mix.Tasks.Test.Stale do
 
       for module <- stale_modules,
           source(source: source, runtime_references: r, compile_references: c) <- test_sources,
-          module in r ++ c,
+          module in r or module in c,
           do: source,
           into: MapSet.new()
     else
@@ -203,12 +201,7 @@ defmodule Mix.Tasks.Test.Stale do
     end
   end
 
-  defp find_all_dependant_on(modules, sources, all_modules, resolved \\ MapSet.new())
-
-  defp find_all_dependant_on(modules, _sources, _all_modules, modules),
-    do: modules
-
-  defp find_all_dependant_on(modules, sources, all_modules, resolved) do
+  defp find_all_dependant_on(modules, sources, all_modules, resolved \\ MapSet.new()) do
     new_modules =
       for module <- modules,
           not module in resolved,
@@ -216,12 +209,16 @@ defmodule Mix.Tasks.Test.Stale do
           do: dependant_module,
           into: modules
 
-    find_all_dependant_on(new_modules, sources, all_modules, modules)
+    if MapSet.size(new_modules) == MapSet.size(modules) do
+      new_modules
+    else
+      find_all_dependant_on(new_modules, sources, all_modules, modules)
+    end
   end
 
   defp dependant_modules(module, modules, sources) do
     for CE.source(source: source, runtime_references: r, compile_references: c) <- sources,
-        module in r ++ c,
+        module in r or module in c,
         CE.module(source: ^source, module: dependant_module) <- modules,
         do: dependant_module
   end
