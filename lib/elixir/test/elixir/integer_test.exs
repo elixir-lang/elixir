@@ -144,40 +144,40 @@ defmodule IntegerTest do
     end
   end
 
-  test "to_char_list/1" do
-    assert Integer.to_char_list(42) == '42'
-    assert Integer.to_char_list(+42) == '42'
-    assert Integer.to_char_list(-42) == '-42'
-    assert Integer.to_char_list(-0001) == '-1'
+  test "to_charlist/1" do
+    assert Integer.to_charlist(42) == '42'
+    assert Integer.to_charlist(+42) == '42'
+    assert Integer.to_charlist(-42) == '-42'
+    assert Integer.to_charlist(-0001) == '-1'
 
     for n <- [42.0, :forty_two, '42', "42"] do
       assert_raise ArgumentError, fn ->
-        Integer.to_char_list(n)
+        Integer.to_charlist(n)
       end
     end
   end
 
-  test "to_char_list/2" do
-    assert Integer.to_char_list(42, 2) == '101010'
-    assert Integer.to_char_list(42, 10) == '42'
-    assert Integer.to_char_list(42, 16) == '2A'
-    assert Integer.to_char_list(+42, 16) == '2A'
-    assert Integer.to_char_list(-42, 16) == '-2A'
-    assert Integer.to_char_list(-042, 16) == '-2A'
+  test "to_charlist/2" do
+    assert Integer.to_charlist(42, 2) == '101010'
+    assert Integer.to_charlist(42, 10) == '42'
+    assert Integer.to_charlist(42, 16) == '2A'
+    assert Integer.to_charlist(+42, 16) == '2A'
+    assert Integer.to_charlist(-42, 16) == '-2A'
+    assert Integer.to_charlist(-042, 16) == '-2A'
 
     for n <- [42.0, :forty_two, '42', "42"] do
       assert_raise ArgumentError, fn ->
-        Integer.to_char_list(n, 42)
+        Integer.to_charlist(n, 42)
       end
     end
 
     for n <- [-1, 0, 1, 37] do
       assert_raise ArgumentError, fn ->
-        Integer.to_char_list(42, n)
+        Integer.to_charlist(42, n)
       end
 
       assert_raise ArgumentError, fn ->
-        Integer.to_char_list(n, n)
+        Integer.to_charlist(n, n)
       end
     end
   end
