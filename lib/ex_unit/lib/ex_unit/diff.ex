@@ -295,11 +295,11 @@ defmodule ExUnit.Diff do
 
   defp format_fragment({:eq, content}, _), do: content
 
-  defp format_fragment({:del, content}, formatter) do
-    formatter.(:diff_delete, content)
+  defp format_fragment({type, content}, formatter) do
+    content = String.replace(content, " ", "·")
+    formatter.(translate_type(type), content)
   end
 
-  defp format_fragment({:ins, content}, formatter) do
-    formatter.(:diff_insert, content)
-  end
+  def translate_type(:ins), do: :diff_insert
+  def translate_type(:del), do: :diff_delete
 end
