@@ -988,9 +988,16 @@ defmodule DateTime do
                       month: 5, second: 8, std_offset: 0, time_zone: "Etc/UTC", utc_offset: 0,
                       year: 2015, zone_abbr: "UTC"}}
 
+  The unit can also be an integer as in `System.time_unit`:
+
+      iex> DateTime.from_unix(1432560368868569, 1024)
+      {:ok, %DateTime{calendar: Calendar.ISO, day: 23, hour: 22, microsecond: {211914, 3}, minute: 53,
+                      month: 1, second: 43, std_offset: 0, time_zone: "Etc/UTC", utc_offset: 0,
+                      year: 46302, zone_abbr: "UTC"}}}
+
   """
   @spec from_unix(non_neg_integer, :native | System.time_unit) :: {:ok, DateTime.t}
-  def from_unix(integer, unit \\ :seconds) when is_integer(integer) and integer >= 0 and is_atom(unit) do
+  def from_unix(integer, unit \\ :seconds) when is_integer(integer) and integer >= 0 do
     total = System.convert_time_unit(integer, unit, :microseconds)
     microsecond = rem(total, 1_000_000)
     precision = precision_for_unit(unit)
@@ -1002,14 +1009,17 @@ defmodule DateTime do
                     std_offset: 0, utc_offset: 0, zone_abbr: "UTC", time_zone: "Etc/UTC"}}
   end
 
-  defp precision_for_unit(unit) do
-    case System.convert_time_unit(1, :seconds, unit) do
-      1 -> 0
-      1_000 -> 3
-      1_000_000 -> 6
-      1_000_000_000 -> 6 # Our maximum precision is 6
-    end
+  def precision_for_unit(unit) do
+    subseconds = div System.convert_time_unit(1, :seconds, unit), 10
+    precision_for_unit(subseconds, 0)
   end
+
+  defp precision_for_unit(0, precision),
+    do: precision
+  defp precision_for_unit(_, 6),
+    do: 6
+  defp precision_for_unit(number, precision),
+    do: precision_for_unit(div(number, 10), precision + 1)
 
   @doc """
   Converts the given unix time to DateTime.
