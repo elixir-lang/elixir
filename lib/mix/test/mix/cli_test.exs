@@ -166,19 +166,4 @@ defmodule Mix.CLITest do
       assert output =~ "1 test, 0 failures"
     end
   end
-
-  defp mix(args, envs \\ []) when is_list(args) do
-    System.cmd(elixir_executable,
-               ["-r", mix_executable, "--" | args],
-               stderr_to_stdout: true,
-               env: envs) |> elem(0)
-  end
-
-  defp mix_executable do
-    Path.expand("../../../../bin/mix", __DIR__)
-  end
-
-  defp elixir_executable do
-    Path.expand("../../../../bin/elixir", __DIR__)
-  end
 end
