@@ -46,6 +46,9 @@ defmodule RecordTest do
     assert record?({User, "meg", 27}, User)
     refute record?({User, "meg", 27}, Author)
     refute record?(13, Author)
+    refute record?({"user", "meg", 27}, "user")
+    refute record?({}, User)
+    refute record?([], User)
   end
 
   # We need indirection to avoid warnings
@@ -57,6 +60,25 @@ defmodule RecordTest do
     assert record?({User, "john", 27})
     refute record?({"john", 27})
     refute record?(13)
+    refute record?({})
+  end
+
+  def is_record_in_guard(term) when Record.is_record(term),
+    do: true
+  def is_record_in_guard(_),
+    do: false
+
+  def is_record_in_guard(term, kind) when Record.is_record(term, kind),
+    do: true
+  def is_record_in_guard(_, _),
+    do: false
+
+  test "is_record/1/2 (in guard)" do
+    assert is_record_in_guard({User, "john", 27})
+    refute is_record_in_guard({"user", "john", 27})
+
+    assert is_record_in_guard({User, "john", 27}, User)
+    refute is_record_in_guard({"user", "john", 27}, "user")
   end
 
   Record.defrecord :timestamp, [:date, :time]
