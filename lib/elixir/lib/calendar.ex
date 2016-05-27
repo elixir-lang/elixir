@@ -993,7 +993,7 @@ defmodule DateTime do
       iex> DateTime.from_unix(1432560368868569, 1024)
       {:ok, %DateTime{calendar: Calendar.ISO, day: 23, hour: 22, microsecond: {211914, 3}, minute: 53,
                       month: 1, second: 43, std_offset: 0, time_zone: "Etc/UTC", utc_offset: 0,
-                      year: 46302, zone_abbr: "UTC"}}}
+                      year: 46302, zone_abbr: "UTC"}}
 
   """
   @spec from_unix(non_neg_integer, :native | System.time_unit) :: {:ok, DateTime.t}
