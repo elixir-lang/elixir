@@ -129,6 +129,21 @@ defmodule MixTest.Case do
     end
   end
 
+  def mix(args, envs \\ []) when is_list(args) do
+    System.cmd(elixir_executable,
+               ["-r", mix_executable, "--" | args],
+               stderr_to_stdout: true,
+               env: envs) |> elem(0)
+  end
+
+  defp mix_executable do
+    Path.expand("../../../bin/mix", __DIR__)
+  end
+
+  defp elixir_executable do
+    Path.expand("../../../bin/elixir", __DIR__)
+  end
+
   defp delete_tmp_paths do
     tmp = tmp_path |> String.to_charlist
     for path <- :code.get_path,
