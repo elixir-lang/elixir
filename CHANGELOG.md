@@ -15,6 +15,7 @@
   * [CLI] Add `--logger-otp-reports BOOL` and `--logger-sasl-reports BOOL` switches
   * [Compiler] Emit a summary of compilation errors when modules are missing
   * [Enum] Add `Enum.group_by/3` that allows developers to map on the value being grouped
+  * [Enum] Add `Enum.drop_every/2` that drops every `nth`, including the first one
   * [Exception] Suggest possible functions on `UndefinedFunctionError` for existing modules
   * [Exception] Warn if unknown fields are given to `raise/2`
   * [File] Support IO devices in `File.copy/3`
@@ -76,6 +77,7 @@
   * [Mix] Add a user friendly error for merge conflicts on `mix.lock`
   * [Mix] Track files between path dependencies. This means umbrella applications will no longer trigger full recompilation when a sibling changes. Instead it will only recompile the files affected by the sibling changes
   * [Mix] No longer print every file being compiled. Instead a generic "Compiling N files (.ext)" will be printed and files will only be logged in case they take more than 5 seconds to compile. This threshold can be customized by passing the `--long-compilation-threshold` flag and the previous behaviour can be reenabled by giving `--verbose` to `mix compile`
+  * [Mix] Add `mix test --stale` that uses static analysis on source files to know which tests should run when source files changes. If any test file changes, it will also re-run. Changing a configuration file or the test helper will trigger a full recompilation
 
 ### 2. Bug fixes
 
@@ -106,6 +108,7 @@
 ### 3. Soft deprecations (no warnings emitted)
 
   * [Float] `Float.to_string/2` and `Float.to_char_list/2` has been soft-deprecated as Elixir will now attempt to print the shortest and most accurate representation by default. Developers can always fallback to `:erlang.float_to_binary/2` and `:erlang.float_to_list/2` if they need the previous functionality
+  * [Kernel] `to_char_list` functions have been deprecated in favor of `to_charlist`. This aligns with the naming conventions in both Erlang and Elixir
   * [String] The confusing `String.strip/2`, `String.lstrip/2` and `String.rstrip/2` API has been soft deprecated in favor of `String.trim/2`, `String.trim_leading/2` and `String.trim_trailing/2`
   * [String] The confusing `String.ljust/3` and `String.rjust/3` API has been soft deprecated in favor of `String.pad_leading/3` and `String.pad_trailing/3`
 
