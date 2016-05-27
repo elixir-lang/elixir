@@ -17,17 +17,14 @@ defmodule Mix.Tasks.Test.StaleTest do
     in_fixture "test_stale", fn ->
       assert_stale_run_output "2 tests, 0 failures"
 
-      # These sleeps are here because the file is not detected as modified otherwise
-      # due to the resolution of mtimes, and if we manually change the times on any files
-      # to the future mix corrects it
-      :timer.sleep(1_000)
-
+      set_all_mtimes()
       File.touch!("lib/b.ex")
+
       assert_stale_run_output "1 test, 0 failures"
 
-      :timer.sleep(1_000)
-
+      set_all_mtimes()
       File.touch!("lib/a.ex")
+
       assert_stale_run_output "2 tests, 0 failures"
     end
   end
@@ -36,9 +33,9 @@ defmodule Mix.Tasks.Test.StaleTest do
     in_fixture "test_stale", fn ->
       assert_stale_run_output "2 tests, 0 failures"
 
-      :timer.sleep(1_000)
-
+      set_all_mtimes()
       File.touch!("test/a_test_stale.exs")
+
       assert_stale_run_output "1 test, 0 failures"
     end
   end
@@ -47,9 +44,9 @@ defmodule Mix.Tasks.Test.StaleTest do
     in_fixture "test_stale", fn ->
       assert_stale_run_output "2 tests, 0 failures"
 
-      :timer.sleep(1_000)
-
+      set_all_mtimes()
       File.touch!("test/test_helper.exs")
+
       assert_stale_run_output "2 tests, 0 failures"
     end
   end
@@ -60,6 +57,10 @@ defmodule Mix.Tasks.Test.StaleTest do
 
       assert_stale_run_output ~w[--force], "2 tests, 0 failures"
     end
+  end
+
+  defp set_all_mtimes(time \\ {{2010, 1, 1}, {0, 0, 0}}) do
+    Enum.each(Path.wildcard("**", match_dot: true), &File.touch!(&1, time))
   end
 
   defp assert_stale_run_output(opts \\ [], expected) do
