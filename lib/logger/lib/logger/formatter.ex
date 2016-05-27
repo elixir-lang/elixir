@@ -66,7 +66,7 @@ defmodule Logger.Formatter do
     do: acc
 
   @doc ~S"""
-  Compiles a format string into an array that the `format/5` can handle.
+  Compiles a format string into a data structure that the `format/5` can handle.
 
   Check the module doc for documentation on the valid parameters. If you
   pass `nil`, it defaults to: `$time $metadata [$level] $levelpad$message\n`
