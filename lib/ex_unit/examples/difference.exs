@@ -21,13 +21,7 @@ defmodule Difference do
 
   test "strings" do
     string1 = "fox hops over \"the dog"
-    string2 = "fox jumps over the lazy cat"
-    assert string1 == string2
-  end
-
-  test "whitespace" do
-    string1 = "spac e"
-    string2 = "spacee  "
+    string2 = "fox  jumps over the lazy cat"
     assert string1 == string2
   end
 
