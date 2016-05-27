@@ -289,6 +289,36 @@ defmodule Stream do
   end
 
   @doc """
+  Creates a stream that drops every `nth` item from the enumerable.
+
+  The first item is always dropped, unless `nth` is 0.
+
+  `nth` must be a non-negative integer, or `FunctionClauseError` will be thrown.
+
+  ## Examples
+
+      iex> stream = Stream.drop_every(1..10, 2)
+      iex> Enum.to_list(stream)
+      [2, 4, 6, 8, 10]
+
+      iex> stream = Stream.drop_every(1..1000, 1)
+      iex> Enum.to_list(stream)
+      []
+
+      iex> stream = Stream.drop_every([1, 2, 3, 4, 5], 0)
+      iex> Enum.to_list(stream)
+      [1, 2, 3, 4, 5]
+
+  """
+  @spec drop_every(Enumerable.t, non_neg_integer) :: Enumerable.t
+  def drop_every(enum, 0), do: %Stream{enum: enum}
+  def drop_every([], _nth), do: %Stream{enum: []}
+
+  def drop_every(enum, nth) when is_integer(nth) and nth > 0 do
+    lazy enum, nth, fn(f1) -> R.drop_every(nth, f1) end
+  end
+
+  @doc """
   Lazily drops elements of the enumerable while the given
   function returns `true`.
 
