@@ -474,7 +474,7 @@ defmodule Time do
       iex> Time.from_iso8601!("2015:01:23 23-50-07")
       ** (ArgumentError) cannot parse "2015:01:23 23-50-07" as time, reason: :invalid_format
   """
-  @spec from_iso8601(String.t) :: Time.t | no_return
+  @spec from_iso8601!(String.t) :: Time.t | no_return
   def from_iso8601!(string) do
     case from_iso8601(string) do
       {:ok, value} ->
