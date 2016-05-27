@@ -439,7 +439,7 @@ defmodule Kernel.SpecialForms do
       ...> end
       {:__aliases__, [alias: false], [:Hello, :World]}
 
-  We got into more details about aliases in the `__aliases__` special form
+  We go into more details about aliases in the `__aliases__` special form
   documentation.
 
   ## Unquoting
