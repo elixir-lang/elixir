@@ -27,7 +27,7 @@ defmodule Mix.Tasks.Test do
 
   use Mix.Task
 
-  alias Mix.Tasks.Test.Stale
+  alias Mix.Compilers.Test, as: CT
 
   @shortdoc "Runs a project's tests"
   @recursive true
@@ -226,38 +226,8 @@ defmodule Mix.Tasks.Test do
 
     display_warn_test_pattern(matched_warn_test_files, test_pattern)
 
-    stale = opts[:stale]
-
-    {test_files_to_run, stale_manifest_pid, parallel_require_callbacks} =
-      if stale do
-        Stale.set_up(matched_test_files, test_paths, opts)
-      else
-        {matched_test_files, nil, []}
-      end
-
-    case test_files_to_run do
-      [] when stale ->
-        :ok
-      [] ->
-        Mix.shell.error "Test patterns did not match any file: " <> Enum.join(files, ", ")
-      test_files ->
-        spawn_link(fn ->
-          try do
-            Kernel.ParallelRequire.files(test_files, parallel_require_callbacks)
-            Stale.agent_write_manifest(stale_manifest_pid)
-          catch
-            :error, value ->
-              exit({value, System.stacktrace()})
-            :throw, value ->
-              exit({{:nocatch, value}, System.stacktrace()})
-          after
-            Stale.agent_stop(stale_manifest_pid)
-            ExUnit.Server.cases_loaded()
-          end
-        end)
-
-        # Run the test suite, coverage tools and register an exit hook
-        %{failures: failures} = ExUnit.run
+    case CT.require_and_run(files, matched_test_files, test_paths, opts) do
+      {:ok, %{failures: failures}} ->
         cover && cover.()
 
         cond do
@@ -268,6 +238,9 @@ defmodule Mix.Tasks.Test do
           true ->
             :ok
         end
+
+      :noop ->
+        :ok
     end
   end
 

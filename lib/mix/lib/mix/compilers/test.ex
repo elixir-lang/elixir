@@ -1,4 +1,4 @@
-defmodule Mix.Tasks.Test.Stale do
+defmodule Mix.Compilers.Test do
   @moduledoc false
 
   require Mix.Compilers.Elixir, as: CE
@@ -16,22 +16,59 @@ defmodule Mix.Tasks.Test.Stale do
   @manifest_vsn :v1
 
   @doc """
-  Set up the `--stale` run for given matched test files, test paths, and options.
+  Requires and runs test files.
 
-  If there are tests to run, a tuple containing the test files to run, the PID
-  of the agent used in the each_module callback, and the callback options for
-  ParallelRequire is returned.
-
-  If there are no tests to run, the pid and callbacks are not returned, since the
-  test task should not perform a ParallelRequire if there are no tests to run.
-
-  The test task is responsible for running the returned tests, using the returned
-  ParallelRequire callbacks, calling the agent_write_manifest/1 function with the
-  provided PID after performing the ParallelRequire sucessfully, and calling the
-  agent_stop/1 function with the same PID after the ParallelRequire, whether it
-  succeeds or not.
+  It expects all of the test patterns, the test files that were matched for the
+  test patterns, the test paths, and the opts from the test task.
   """
-  def set_up(matched_test_files, test_paths, opts) do
+  def require_and_run(test_patterns, matched_test_files, test_paths, opts) do
+    stale = opts[:stale]
+
+    {test_files_to_run, stale_manifest_pid, parallel_require_callbacks} =
+      if stale do
+        set_up_stale(matched_test_files, test_paths, opts)
+      else
+        {matched_test_files, nil, []}
+      end
+
+    case test_files_to_run do
+      [] when stale ->
+        Mix.shell.info "No stale tests."
+        :noop
+
+      [] ->
+        Mix.shell.error "Test patterns did not match any file: " <> Enum.join(test_patterns, ", ")
+        :noop
+
+      test_files ->
+        try do
+          spawn_link(fn ->
+            try do
+              Kernel.ParallelRequire.files(test_files, parallel_require_callbacks)
+            catch
+              :error, value ->
+                exit({value, System.stacktrace()})
+              :throw, value ->
+                exit({{:nocatch, value}, System.stacktrace()})
+            after
+              ExUnit.Server.cases_loaded()
+            end
+          end)
+
+          %{failures: failures} = results = ExUnit.run()
+
+          if failures == 0 do
+            agent_write_manifest(stale_manifest_pid)
+          end
+
+          {:ok, results}
+        after
+          agent_stop(stale_manifest_pid)
+        end
+    end
+  end
+
+  defp set_up_stale(matched_test_files, test_paths, opts) do
     manifest = manifest()
     modified = Mix.Utils.last_modified(manifest)
     all_sources = read_manifest()
@@ -74,7 +111,6 @@ defmodule Mix.Tasks.Test.Stale do
 
     if test_files_to_run == [] do
       write_manifest(sources)
-      Mix.shell.info "mix test --stale did not find any tests to run, add --force if you want to run all tests"
 
       {[], nil, nil}
     else
@@ -87,28 +123,20 @@ defmodule Mix.Tasks.Test.Stale do
     end
   end
 
-  @doc """
-  Should be called with the PID returned from `set_up`, after a successful
-  ParallelRequire.
-  """
-  def agent_write_manifest(nil),
+  defp agent_write_manifest(nil),
     do: :noop
 
-  def agent_write_manifest(pid) do
+  defp agent_write_manifest(pid) do
     Agent.cast pid, fn sources ->
       write_manifest(sources)
       sources
     end
   end
 
-  @doc """
-  Should be called with the PID returned from `set_up`, after the ParallelRequire
-  is complete, whether it succeeded or not.
-  """
-  def agent_stop(nil),
+  defp agent_stop(nil),
     do: :noop
 
-  def agent_stop(pid) do
+  defp agent_stop(pid) do
     Agent.stop(pid, :normal, :infinity)
   end
 
