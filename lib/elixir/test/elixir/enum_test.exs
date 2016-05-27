@@ -124,6 +124,20 @@ defmodule EnumTest do
     assert Enum.drop([], 3) == []
   end
 
+  test "drop every" do
+    assert Enum.drop_every([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 2) == [2, 4, 6, 8, 10]
+    assert Enum.drop_every([], 2) == []
+    assert Enum.drop_every([1, 2], 2) == [2]
+    assert Enum.drop_every([1, 2, 3], 0) == [1, 2, 3]
+    assert Enum.drop_every(1..3, 1) == []
+    assert_raise FunctionClauseError, fn ->
+      Enum.drop_every([1, 2, 3], -1)
+    end
+    assert_raise FunctionClauseError, fn ->
+      Enum.drop_every(1..10, 3.33)
+    end
+  end
+
   test "drop while" do
     assert Enum.drop_while([1, 2, 3, 4, 3, 2, 1], fn(x) -> x <= 3 end) == [4, 3, 2, 1]
     assert Enum.drop_while([1, 2, 3], fn(_) -> false end) == [1, 2, 3]

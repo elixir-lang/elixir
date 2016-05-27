@@ -64,6 +64,18 @@ defmodule Stream.Reducers do
     end
   end
 
+  defmacro drop_every(nth, f \\ nil) do
+    quote do
+      fn
+        entry, acc(h, n, t) when n === :first
+                            when n === unquote(nth) ->
+          skip(acc(h, 1, t))
+        entry, acc(h, n, t) ->
+          next_with_acc(unquote(f), entry, h, n+1, t)
+      end
+    end
+  end
+
   defmacro drop_while(callback, f \\ nil) do
     quote do
       fn entry, acc(h, bool, t) = orig ->

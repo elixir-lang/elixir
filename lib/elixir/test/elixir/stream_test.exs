@@ -219,6 +219,36 @@ defmodule StreamTest do
     refute_receive {:stream, 3}
   end
 
+  test "drop_every/2" do
+    assert 1..10
+           |> Stream.drop_every(2)
+           |> Enum.to_list == [2, 4, 6, 8, 10]
+
+    assert 1..10
+           |> Stream.drop(2)
+           |> Stream.drop_every(2)
+           |> Stream.drop(1)
+           |> Enum.to_list == [6, 8, 10]
+
+    assert 1..10
+           |> Stream.drop_every(0)
+           |> Enum.to_list == [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+    assert []
+           |> Stream.drop_every(10)
+           |> Enum.to_list == []
+  end
+
+  test "drop_every/2 without non-negative integer" do
+    assert_raise FunctionClauseError, fn ->
+      Stream.drop_every(1..10, -1)
+    end
+
+    assert_raise FunctionClauseError, fn ->
+      Stream.take_every(1..10, 3.33)
+    end
+  end
+
   test "drop_while/2" do
     stream = Stream.drop_while(1..10, &(&1 <= 5))
     assert is_lazy(stream)
