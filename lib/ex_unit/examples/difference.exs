@@ -25,6 +25,12 @@ defmodule Difference do
     assert string1 == string2
   end
 
+  test "whitespace" do
+    string1 = "spac e"
+    string2 = "spacee  "
+    assert string1 == string2
+  end
+
   test "large strings" do
     string1 = "oops"
     string2 = "really long string that should not emit diff"

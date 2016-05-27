@@ -28,7 +28,7 @@ defmodule ExUnit.DiffTest do
   test "strings" do
     string1 = "fox hops over \"the dog"
     string2 = "fox jumps over the lazy cat"
-    expected = ~S<"fox {ho}[jum]ps over {\"}the {dog}[lazy cat]">
+    expected = ~S<"fox {ho}[jum]ps over {\"}the {dog}[lazy·cat]">
     assert format(string1, string2, &formatter/2) == expected
     assert format(string1, <<193, 31>>, &formatter/2) == nil
 
@@ -50,7 +50,7 @@ defmodule ExUnit.DiffTest do
 
     charlist1 = 'fox hops over \'the dog'
     charlist2 = 'fox jumps over the lazy cat'
-    expected = "'fox {ho}[jum]ps over {\\'}the {dog}[lazy cat]'"
+    expected = "'fox {ho}[jum]ps over {\\'}the {dog}[lazy·cat]'"
     assert format(charlist1, charlist2, &formatter/2) == expected
   end
 
