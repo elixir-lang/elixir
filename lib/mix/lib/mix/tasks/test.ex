@@ -27,6 +27,8 @@ defmodule Mix.Tasks.Test do
 
   use Mix.Task
 
+  alias Mix.Tasks.Test.Stale
+
   @shortdoc "Runs a project's tests"
   @recursive true
   @preferred_cli_env :test
@@ -63,6 +65,7 @@ defmodule Mix.Tasks.Test do
     * `--no-deps-check` - do not check dependencies
     * `--no-archives-check` - do not check archives
     * `--no-elixir-version-check` - do not check the Elixir version from mix.exs
+    * `--stale` - run only tests which reference modules that changed since the last `test --stale`
 
   ## Filters
 
@@ -141,13 +144,26 @@ defmodule Mix.Tasks.Test do
   compilation path and the `test_coverage` options as arguments. It must
   return an anonymous function of zero arity that will be run after the
   test suite is done or `nil`.
+
+  ## "Stale"
+
+  The `--stale` command line option attempts to run only those test files which
+  reference modules that have changed since the last time you ran this task with
+  `--stale`.
+
+  The first time this task is run with `--stale`, all tests are run and a manifest
+  is generated. On subsequent runs, a test file is marked "stale" if any modules it
+  references (and any modules those modules reference, recursively) were modified
+  since the last run with `--stale`. A test file is also marked "stale" if it has
+  been changed since the last run with `--stale`.
   """
 
   @switches [force: :boolean, color: :boolean, cover: :boolean,
              trace: :boolean, max_cases: :integer, include: :keep,
              exclude: :keep, seed: :integer, only: :keep, compile: :boolean,
              start: :boolean, timeout: :integer, raise: :boolean,
-             deps_check: :boolean, archives_check: :boolean, elixir_version_check: :boolean]
+             deps_check: :boolean, archives_check: :boolean, elixir_version_check: :boolean,
+             stale: :boolean]
 
   @cover [output: "cover", tool: Cover]
 
@@ -209,19 +225,32 @@ defmodule Mix.Tasks.Test do
 
     display_warn_test_pattern(matched_warn_test_files, test_pattern)
 
-    case matched_test_files do
+    stale = opts[:stale]
+
+    {test_files_to_run, stale_manifest_pid, parallel_require_callbacks} =
+      if stale do
+        Stale.set_up(matched_test_files, opts)
+      else
+        {matched_test_files, nil, []}
+      end
+
+    case test_files_to_run do
+      [] when stale ->
+        :ok
       [] ->
         Mix.shell.error "Test patterns did not match any file: " <> Enum.join(files, ", ")
       test_files ->
         spawn_link(fn ->
           try do
-            Kernel.ParallelRequire.files(test_files)
+            Kernel.ParallelRequire.files(test_files, parallel_require_callbacks)
+            Stale.agent_write_manifest(stale_manifest_pid)
           catch
             :error, value ->
               exit({value, System.stacktrace()})
             :throw, value ->
               exit({{:nocatch, value}, System.stacktrace()})
           after
+            Stale.agent_stop(stale_manifest_pid)
             ExUnit.Server.cases_loaded()
           end
         end)
