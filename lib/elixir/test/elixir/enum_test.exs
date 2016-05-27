@@ -126,6 +126,7 @@ defmodule EnumTest do
 
   test "drop every" do
     assert Enum.drop_every([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 2) == [2, 4, 6, 8, 10]
+    assert Enum.drop_every([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 3) == [2, 3, 5, 6, 8, 9]
     assert Enum.drop_every([], 2) == []
     assert Enum.drop_every([1, 2], 2) == [2]
     assert Enum.drop_every([1, 2, 3], 0) == [1, 2, 3]
@@ -468,6 +469,7 @@ defmodule EnumTest do
 
   test "take every" do
     assert Enum.take_every([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 2) == [1, 3, 5, 7, 9]
+    assert Enum.take_every([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 3) == [1, 4, 7, 10]
     assert Enum.take_every([], 2) == []
     assert Enum.take_every([1, 2], 2) == [1]
     assert Enum.take_every([1, 2, 3], 0) == []

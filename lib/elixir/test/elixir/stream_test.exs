@@ -225,6 +225,10 @@ defmodule StreamTest do
            |> Enum.to_list == [2, 4, 6, 8, 10]
 
     assert 1..10
+           |> Stream.drop_every(3)
+           |> Enum.to_list == [2, 3, 5, 6, 8, 9]
+
+    assert 1..10
            |> Stream.drop(2)
            |> Stream.drop_every(2)
            |> Stream.drop(1)
@@ -245,7 +249,7 @@ defmodule StreamTest do
     end
 
     assert_raise FunctionClauseError, fn ->
-      Stream.take_every(1..10, 3.33)
+      Stream.drop_every(1..10, 3.33)
     end
   end
 
@@ -788,6 +792,10 @@ defmodule StreamTest do
     assert 1..10
            |> Stream.take_every(2)
            |> Enum.to_list == [1, 3, 5, 7, 9]
+
+    assert 1..10
+           |> Stream.take_every(3)
+           |> Enum.to_list == [1, 4, 7, 10]
 
     assert 1..10
            |> Stream.drop(2)
