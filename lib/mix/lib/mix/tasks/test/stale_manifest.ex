@@ -18,7 +18,7 @@ defmodule Mix.Tasks.Test.Stale do
 
 
   @doc """
-  Set up the `--stale` run with the given matched test files and options.
+  Set up the `--stale` run for given matched test files, test paths, and options.
 
   If there are tests to run, a tuple containing the test files to run, the PID
   of the agent used in the each_module callback, and the callback options for
@@ -33,7 +33,7 @@ defmodule Mix.Tasks.Test.Stale do
   agent_stop/1 function with the same PID after the ParallelRequire, whether it
   succeeds or not.
   """
-  def set_up(matched_test_files, opts) do
+  def set_up(matched_test_files, test_paths, opts) do
     manifest = manifest()
     modified = Mix.Utils.last_modified(manifest)
     all_sources = read_manifest()
@@ -44,7 +44,7 @@ defmodule Mix.Tasks.Test.Stale do
           do: source
 
     configs = Mix.Project.config_files
-    force = opts[:force] || Mix.Utils.stale?(configs, [manifest])
+    force = opts[:force] || Mix.Utils.stale?(configs, [manifest]) || test_helper_stale?(test_paths)
 
     changed =
       if force do
@@ -115,6 +115,12 @@ defmodule Mix.Tasks.Test.Stale do
   end
 
   ## Setup helpers
+
+  defp test_helper_stale?(test_paths) do
+    test_paths
+    |> Stream.map(&Path.join(&1, "test_helper.exs"))
+    |> Mix.Utils.stale?([manifest()])
+  end
 
   defp mtimes(sources) do
     Enum.reduce(sources, %{}, fn source(source: source, external: external), map ->

@@ -229,7 +229,7 @@ defmodule Mix.Tasks.Test do
 
     {test_files_to_run, stale_manifest_pid, parallel_require_callbacks} =
       if stale do
-        Stale.set_up(matched_test_files, opts)
+        Stale.set_up(matched_test_files, test_paths, opts)
       else
         {matched_test_files, nil, []}
       end
