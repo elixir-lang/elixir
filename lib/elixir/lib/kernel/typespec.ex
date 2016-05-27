@@ -92,6 +92,12 @@ defmodule Kernel.Typespec do
     end
   end
 
+  defmacro defoptional_callbacks(callbacks) do
+    quote do
+      Module.store_typespec(__ENV__.module, :optional_callbacks, {__ENV__.line, unquote(callbacks)})
+    end
+  end
+
   @doc """
   Defines a `type`, `typep` or `opaque` by receiving a typespec expression.
   """
