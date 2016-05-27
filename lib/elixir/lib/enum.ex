@@ -572,6 +572,39 @@ defmodule Enum do
   end
 
   @doc """
+  Returns a list of every `nth` item in the enumerable dropped,
+  starting with the first element.
+
+  The first item is always dropped, unless `nth` is 0.
+
+  The second argument specifying every `nth` item must be a non-negative
+  integer, otherwise `FunctionClauseError` will be raised.
+
+  ## Examples
+
+      iex> Enum.drop_every(1..10, 2)
+      [2, 4, 6, 8, 10]
+
+      iex> Enum.drop_every(1..10, 0)
+      [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+      iex> Enum.drop_every([1, 2, 3], 1)
+      []
+
+  """
+  @spec drop_every(t, non_neg_integer) :: list | no_return
+  def drop_every(enumerable, nth)
+
+  def drop_every(_enumerable, 1), do: []
+  def drop_every(enumerable, 0), do: to_list(enumerable)
+  def drop_every([], _nth), do: []
+
+  def drop_every(enumerable, nth) when is_integer(nth) and nth > 0 do
+    {res, _} = reduce(enumerable, {[], :first}, R.drop_every(nth))
+    :lists.reverse(res)
+  end
+
+  @doc """
   Drops items at the beginning of the enumerable while `fun` returns a
   truthy value.
 
