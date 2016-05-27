@@ -32,6 +32,17 @@ defmodule Mix.Tasks.Test.StaleTest do
     end
   end
 
+  test "--stale: runs tests that have changed" do
+    in_fixture "test_stale", fn ->
+      assert_stale_run_output "2 tests, 0 failures"
+
+      :timer.sleep(1_000)
+
+      File.touch!("test/a_test_stale.exs")
+      assert_stale_run_output "1 test, 0 failures"
+    end
+  end
+
   test "--stale: runs tests that have changed test_helpers" do
     in_fixture "test_stale", fn ->
       assert_stale_run_output "2 tests, 0 failures"
