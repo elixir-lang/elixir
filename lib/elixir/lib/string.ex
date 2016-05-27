@@ -1588,29 +1588,36 @@ defmodule String do
   @doc """
   Returns `true` if `string` starts with any of the prefixes given.
 
-  `prefixes` can be either a single prefix or a list of prefixes.
-
-  Raises argument error if an empty string is given.
+  `prefix` can be either a single prefix or a list of prefixes.
 
   ## Examples
 
       iex> String.starts_with? "elixir", "eli"
       true
-
       iex> String.starts_with? "elixir", ["erlang", "elixir"]
       true
-
       iex> String.starts_with? "elixir", ["erlang", "ruby"]
       false
 
+  An empty string will always match:
+
+      iex> String.starts_with? "elixir", ""
+      true
+      iex> String.starts_with? "elixir", ["", "other"]
+      true
+
   """
   @spec starts_with?(t, t | [t]) :: boolean
-  def starts_with?(_string, []) do
+  def starts_with?(string, []) when is_binary(string) do
     false
   end
 
-  def starts_with?(string, prefix) when is_list(prefix) or is_binary(prefix) do
-    Kernel.match?({0, _}, :binary.match(string, prefix))
+  def starts_with?(string, prefix) when is_binary(string) and is_list(prefix) do
+    "" in prefix or Kernel.match?({0, _}, :binary.match(string, prefix))
+  end
+
+  def starts_with?(string, prefix) when is_binary(string) do
+    "" == prefix or Kernel.match?({0, _}, :binary.match(string, prefix))
   end
 
   @doc """
@@ -1618,27 +1625,34 @@ defmodule String do
 
   `suffixes` can be either a single suffix or a list of suffixes.
 
-  Raises argument error if an empty string is given.
-
   ## Examples
 
       iex> String.ends_with? "language", "age"
       true
-
       iex> String.ends_with? "language", ["youth", "age"]
       true
-
       iex> String.ends_with? "language", ["youth", "elixir"]
       false
 
+  An empty string will always match:
+
+      iex> String.ends_with? "language", ""
+      true
+      iex> String.ends_with? "language", ["", "other"]
+      true
+
   """
   @spec ends_with?(t, t | [t]) :: boolean
-  def ends_with?(string, suffixes) when is_list(suffixes) do
+  def ends_with?(string, suffixes) when is_binary(string) and is_list(suffixes) do
     Enum.any?(suffixes, &do_ends_with(string, &1))
   end
 
-  def ends_with?(string, suffix) do
+  def ends_with?(string, suffix) when is_binary(string) do
     do_ends_with(string, suffix)
+  end
+
+  defp do_ends_with(_string, "") do
+    true
   end
 
   defp do_ends_with(string, suffix) when is_binary(suffix) do
@@ -1670,18 +1684,21 @@ defmodule String do
 
   `contents` can be either a single string or a list of strings.
 
-  Raises argument error if an empty string is given.
-
   ## Examples
 
       iex> String.contains? "elixir of life", "of"
       true
-
       iex> String.contains? "elixir of life", ["life", "death"]
       true
-
       iex> String.contains? "elixir of life", ["death", "mercury"]
       false
+
+  An empty string will always match:
+
+      iex> String.contains? "elixir of life", ""
+      true
+      iex> String.contains? "elixir of life", ["", "other"]
+      true
 
   The argument can also be a precompiled pattern:
 
@@ -1691,12 +1708,16 @@ defmodule String do
 
   """
   @spec contains?(t, pattern) :: boolean
-  def contains?(_string, []) do
+  def contains?(string, []) when is_binary(string) do
     false
   end
 
-  def contains?(string, contents) do
-    :binary.match(string, contents) != :nomatch
+  def contains?(string, contents) when is_binary(string) and is_list(contents) do
+    "" in contents or :binary.match(string, contents) != :nomatch
+  end
+
+  def contains?(string, contents) when is_binary(string) do
+    "" == contents or :binary.match(string, contents) != :nomatch
   end
 
   @doc """
