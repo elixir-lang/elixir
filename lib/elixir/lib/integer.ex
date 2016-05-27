@@ -298,7 +298,7 @@ defmodule Integer do
       '123'
 
   """
-  @spec to_charlist(integer) :: char_list
+  @spec to_charlist(integer) :: charlist
   def to_charlist(integer) do
     :erlang.integer_to_list(integer)
   end
@@ -322,7 +322,7 @@ defmodule Integer do
       'ELIXIR'
 
   """
-  @spec to_charlist(integer, 2..36) :: char_list
+  @spec to_charlist(integer, 2..36) :: charlist
   def to_charlist(integer, base) do
     :erlang.integer_to_list(integer, base)
   end
