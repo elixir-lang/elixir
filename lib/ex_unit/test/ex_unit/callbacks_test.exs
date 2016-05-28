@@ -5,16 +5,20 @@ defmodule ExUnit.CallbacksTest do
 
   import ExUnit.CaptureIO
 
+  def start_counter(_) do
+    [counter: []]
+  end
+
   test "callbacks run custom code with context" do
     defmodule CallbacksTest do
       use ExUnit.Case
 
       setup_all do
-        {:ok, [context: :setup_all]}
+        [context: :setup_all]
       end
 
       setup do
-        {:ok, [initial_setup: true]}
+        %{initial_setup: true}
       end
 
       setup context do
@@ -26,6 +30,38 @@ defmodule ExUnit.CallbacksTest do
       test "callbacks", context do
         assert context[:context] == :setup
       end
+    end
+
+    ExUnit.Server.cases_loaded()
+    assert capture_io(fn -> ExUnit.run end) =~
+           "1 test, 0 failures"
+  end
+
+  test "named callbacks run custom code in order" do
+    defmodule NamedCallbacksTest do
+      use ExUnit.Case
+
+      import ExUnit.CallbacksTest
+      setup_all :start_counter
+
+      setup :store_1
+      setup [:store_2, :store_3]
+
+      setup context do
+        [counter: [4 | context.counter]]
+      end
+
+      setup :store_5
+
+      test "callbacks", context do
+        assert context[:counter] == [5, 4, 3, 2, 1]
+      end
+
+      defp store(context, number), do: [counter: [number | context.counter]]
+      defp store_1(context), do: store(context, 1)
+      defp store_2(context), do: store(context, 2)
+      defp store_3(context), do: store(context, 3)
+      defp store_5(context), do: store(context, 5)
     end
 
     ExUnit.Server.cases_loaded()

@@ -186,8 +186,7 @@ defmodule ExUnit.Runner do
   end
 
   defp exec_case_setup(%ExUnit.TestCase{name: case_name} = test_case) do
-    {:ok, context} = case_name.__ex_unit__(:setup_all, %{case: case_name})
-    {:ok, test_case, context}
+    {:ok, test_case, case_name.__ex_unit__(:setup_all, %{case: case_name})}
   catch
     kind, error ->
       failed = failed(kind, error, pruned_stacktrace())
@@ -287,8 +286,7 @@ defmodule ExUnit.Runner do
   end
 
   defp exec_test_setup(%ExUnit.Test{case: case} = test, context) do
-    {:ok, context} = case.__ex_unit__(:setup, context)
-    {:ok, %{test | tags: context}}
+    {:ok, %{test | tags: case.__ex_unit__(:setup, context)}}
   catch
     kind, error ->
       {:error, %{test | state: failed(kind, error, pruned_stacktrace())}}
