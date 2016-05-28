@@ -58,7 +58,7 @@ defmodule URI do
   new URIs.
   """
   @spec default_port(binary, pos_integer) :: :ok
-  def default_port(scheme, port) when is_binary(scheme) and port > 0 do
+  def default_port(scheme, port) when is_binary(scheme) and is_integer(port) and port > 0 do
     :elixir_config.put({:uri, scheme}, port)
   end
 
@@ -88,7 +88,22 @@ defmodule URI do
 
   """
   @spec encode_query(term) :: binary
-  def encode_query(l), do: Enum.map_join(l, "&", &pair/1)
+  def encode_query(enumerable) do
+    Enum.map_join(enumerable, "&", &encode_kv_pair/1)
+  end
+
+  defp encode_kv_pair({key, _}) when is_list(key) do
+    raise ArgumentError, "encode_query/1 keys cannot be lists, got: #{inspect key}"
+  end
+
+  defp encode_kv_pair({_, value}) when is_list(value) do
+    raise ArgumentError, "encode_query/1 values cannot be lists, got: #{inspect value}"
+  end
+
+  defp encode_kv_pair({key, value}) do
+    encode_www_form(Kernel.to_string(key)) <>
+    "=" <> encode_www_form(Kernel.to_string(value))
+  end
 
   @doc """
   Decodes a query string into a map.
@@ -110,33 +125,37 @@ defmodule URI do
 
   """
   @spec decode_query(binary, map) :: map
-  def decode_query(q, map \\ %{})
+  def decode_query(query, map \\ %{})
 
-  def decode_query(q, %{__struct__: _} = dict) when is_binary(q) do
+  def decode_query(query, %{__struct__: _} = dict) when is_binary(query) do
     IO.warn "URI.decode_query/2 is deprecated, please use URI.decode_query/1"
-    decode_query_dict(q, dict)
+    decode_query_into_dict(query, dict)
   end
 
-  def decode_query(q, map) when is_binary(q) and is_map(map) do
-    decode_query_map(q, map)
+  def decode_query(query, map) when is_binary(query) and is_map(map) do
+    decode_query_into_map(query, map)
   end
 
-  def decode_query(q, dict) when is_binary(q) do
+  def decode_query(query, dict) when is_binary(query) do
     IO.warn "URI.decode_query/2 is deprecated, please use URI.decode_query/1"
-    decode_query_dict(q, dict)
+    decode_query_into_dict(query, dict)
   end
 
-  defp decode_query_map(q, map) do
-    case do_decode_query(q) do
-      nil         -> map
-      {{k, v}, q} -> decode_query_map(q, Map.put(map, k, v))
+  defp decode_query_into_map(query, map) do
+    case decode_next_query_pair(query) do
+      nil ->
+        map
+      {{key, value}, rest} ->
+        decode_query_into_map(rest, Map.put(map, key, value))
     end
   end
 
-  defp decode_query_dict(q, dict) do
-    case do_decode_query(q) do
-      nil         -> dict
-      {{k, v}, q} -> decode_query_dict(q, Dict.put(dict, k, v))
+  defp decode_query_into_dict(query, dict) do
+    case decode_next_query_pair(query) do
+      nil ->
+        dict
+      {{key, value}, rest} ->
+        decode_query_into_dict(rest, Dict.put(dict, key, value))
     end
   end
 
@@ -153,43 +172,28 @@ defmodule URI do
 
   """
   @spec query_decoder(binary) :: Enumerable.t
-  def query_decoder(q) when is_binary(q) do
-    Stream.unfold(q, &do_decode_query/1)
+  def query_decoder(query) when is_binary(query) do
+    Stream.unfold(query, &decode_next_query_pair/1)
   end
 
-  defp do_decode_query("") do
+  defp decode_next_query_pair("") do
     nil
   end
 
-  defp do_decode_query(q) do
-    {first, next} =
-      case :binary.split(q, "&") do
-        [first, rest] -> {first, rest}
-        [first]       -> {first, ""}
+  defp decode_next_query_pair(query) do
+    {undecoded_next_pair, rest} =
+      case :binary.split(query, "&") do
+        [next_pair, rest] -> {next_pair, rest}
+        [next_pair]       -> {next_pair, ""}
       end
 
-    current =
-      case :binary.split(first, "=") do
-        [key, value] ->
-          {decode_www_form(key), decode_www_form(value)}
-        [key] ->
-          {decode_www_form(key), nil}
+    next_pair =
+      case :binary.split(undecoded_next_pair, "=") do
+        [key, value] -> {decode_www_form(key), decode_www_form(value)}
+        [key]        -> {decode_www_form(key), nil}
       end
 
-    {current, next}
-  end
-
-  defp pair({k, _}) when is_list(k) do
-    raise ArgumentError, "encode_query/1 keys cannot be lists, got: #{inspect k}"
-  end
-
-  defp pair({_, v}) when is_list(v) do
-    raise ArgumentError, "encode_query/1 values cannot be lists, got: #{inspect v}"
-  end
-
-  defp pair({k, v}) do
-    encode_www_form(Kernel.to_string(k)) <>
-    "=" <> encode_www_form(Kernel.to_string(v))
+    {next_pair, rest}
   end
 
   @doc """
@@ -204,9 +208,9 @@ defmodule URI do
       true
 
   """
-  @spec char_reserved?(term) :: boolean
-  def char_reserved?(c) do
-    c in ':/?#[]@!$&\'()*+,;='
+  @spec char_reserved?(char) :: boolean
+  def char_reserved?(char) when char in 0..0x10ffff do
+    char in ':/?#[]@!$&\'()*+,;='
   end
 
   @doc """
@@ -221,12 +225,12 @@ defmodule URI do
       true
 
   """
-  @spec char_unreserved?(term) :: boolean
-  def char_unreserved?(c) do
-    c in ?0..?9 or
-    c in ?a..?z or
-    c in ?A..?Z or
-    c in '~_-.'
+  @spec char_unreserved?(char) :: boolean
+  def char_unreserved?(char) when char in 0..0x10ffff do
+    char in ?0..?9 or
+    char in ?a..?z or
+    char in ?A..?Z or
+    char in '~_-.'
   end
 
   @doc """
@@ -241,9 +245,9 @@ defmodule URI do
       false
 
   """
-  @spec char_unescaped?(term) :: boolean
-  def char_unescaped?(c) do
-    char_reserved?(c) or char_unreserved?(c)
+  @spec char_unescaped?(char) :: boolean
+  def char_unescaped?(char) when char in 0..0x10ffff do
+    char_reserved?(char) or char_unreserved?(char)
   end
 
   @doc """
@@ -264,8 +268,9 @@ defmodule URI do
 
   """
   @spec encode(binary, (byte -> boolean)) :: binary
-  def encode(str, predicate \\ &char_unescaped?/1) when is_binary(str) do
-    for <<c <- str>>, into: "", do: percent(c, predicate)
+  def encode(string, predicate \\ &char_unescaped?/1)
+      when is_binary(string) and is_function(predicate, 1) do
+    for <<char <- string>>, into: "", do: percent(char, predicate)
   end
 
   @doc """
@@ -278,20 +283,20 @@ defmodule URI do
 
   """
   @spec encode_www_form(binary) :: binary
-  def encode_www_form(str) when is_binary(str) do
-    for <<c <- str>>, into: "" do
-      case percent(c, &char_unreserved?/1) do
+  def encode_www_form(string) when is_binary(string) do
+    for <<char <- string>>, into: "" do
+      case percent(char, &char_unreserved?/1) do
         "%20" -> "+"
-        pct   -> pct
+        percent -> percent
       end
     end
   end
 
-  defp percent(c, predicate) do
-    if predicate.(c) do
-      <<c>>
+  defp percent(char, predicate) do
+    if predicate.(char) do
+      <<char>>
     else
-      "%" <> hex(bsr(c, 4)) <> hex(band(c, 15))
+      "%" <> hex(bsr(char, 4)) <> hex(band(char, 15))
     end
   end
 
@@ -325,11 +330,11 @@ defmodule URI do
 
   """
   @spec decode_www_form(binary) :: binary
-  def decode_www_form(str) do
-    unpercent(str, "", true)
+  def decode_www_form(string) do
+    unpercent(string, "", true)
   catch
     :malformed_uri ->
-      raise ArgumentError, "malformed URI #{inspect str}"
+      raise ArgumentError, "malformed URI #{inspect string}"
   end
 
   defp unpercent(<<?+, tail::binary>>, acc, spaces = true) do
@@ -392,15 +397,15 @@ defmodule URI do
 
   def parse(%URI{} = uri), do: uri
 
-  def parse(s) when is_binary(s) do
+  def parse(string) when is_binary(string) do
     # From http://tools.ietf.org/html/rfc3986#appendix-B
     regex = ~r/^(([a-z][a-z0-9\+\-\.]*):)?(\/\/([^\/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?/i
-    parts = nillify(Regex.run(regex, s))
+    parts = nillify(Regex.run(regex, string))
 
     destructure [_, _, scheme, _, authority, path, _, query, _, fragment], parts
     {userinfo, host, port} = split_authority(authority)
 
-    scheme = normalize_scheme(scheme)
+    scheme = scheme && String.downcase(scheme)
     port   = port || (scheme && default_port(scheme))
 
     %URI{
@@ -411,9 +416,8 @@ defmodule URI do
   end
 
   # Split an authority into its userinfo, host and port parts.
-  defp split_authority(s) do
-    s = s || ""
-    components = Regex.run ~r/(^(.*)@)?(\[[a-zA-Z0-9:.]*\]|[^:]*)(:(\d*))?/, s
+  defp split_authority(string) do
+    components = Regex.run(~r/(^(.*)@)?(\[[a-zA-Z0-9:.]*\]|[^:]*)(:(\d*))?/, string || "")
 
     destructure [_, _, userinfo, host, _, port], nillify(components)
     host = if host, do: host |> String.trim_leading("[") |> String.trim_trailing("]")
@@ -422,14 +426,11 @@ defmodule URI do
     {userinfo, host, port}
   end
 
-  defp normalize_scheme(nil),     do: nil
-  defp normalize_scheme(scheme),  do: String.downcase(scheme)
-
   # Regex.run returns empty strings sometimes. We want
   # to replace those with nil for consistency.
-  defp nillify(l) do
-    for s <- l do
-      if byte_size(s) > 0, do: s
+  defp nillify(list) do
+    for string <- list do
+      if byte_size(string) > 0, do: string
     end
   end
 
