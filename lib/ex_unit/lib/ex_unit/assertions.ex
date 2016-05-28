@@ -20,7 +20,7 @@ defmodule ExUnit.AssertionError do
   end
 
   def message(assertion_error) do
-    "\n" <> F.format_assertion_error(assertion_error, :infinity, &formatter/2, "")
+    "\n\n" <> F.format_assertion_error(assertion_error, :infinity, &formatter/2, "")
   end
 
   defp formatter(:colors_enabled?, _), do: false
