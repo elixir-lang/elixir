@@ -123,7 +123,9 @@ defmodule ExUnit.Case do
     * `:line`       - the line on which the test was defined
     * `:test`       - the test name
     * `:async`      - if the test case is in async mode
+    * `:type`       - the type of the test (`:test`, `:property`, etc)
     * `:registered` - used for `ExUnit.Case.register_attribute/3` values
+    * `:bundle`     - the bundle the test belongs to
 
   The following tags customize how tests behaves:
 
@@ -132,9 +134,6 @@ defmodule ExUnit.Case do
     * `:timeout` - customizes the test timeout in milliseconds (defaults to 60000)
     * `:report` - include the given tags and context keys on error reports,
       see the "Reporting tags" section
-    * `:type` - customizes the test's type in reports (defaults to `:test`). The
-      test type will be converted to a string and pluralized for display. You
-      can use `ExUnit.plural_rule/2` to set a custom pluralization.
 
   ### Reporting tags
 
@@ -191,7 +190,7 @@ defmodule ExUnit.Case do
       config :logger, backends: []
   """
 
-  @reserved [:case, :file, :line, :test, :async, :registered]
+  @reserved [:case, :file, :line, :test, :async, :registered, :bundle, :type]
 
   @doc false
   defmacro __using__(opts) do
@@ -204,18 +203,19 @@ defmodule ExUnit.Case do
       async = !!unquote(opts)[:async]
 
       unless Module.get_attribute(__MODULE__, :ex_unit_tests) do
-        Enum.each [:ex_unit_tests, :tag, :moduletag, :ex_unit_registered],
+        Enum.each [:ex_unit_tests, :tag, :bundletag, :moduletag, :ex_unit_registered],
           &Module.register_attribute(__MODULE__, &1, accumulate: true)
 
         @before_compile ExUnit.Case
         @after_compile ExUnit.Case
         @ex_unit_async async
+        @ex_unit_bundle nil
         use ExUnit.Callbacks
       end
 
       import ExUnit.Callbacks
       import ExUnit.Assertions
-      import ExUnit.Case, only: [test: 1, test: 2, test: 3]
+      import ExUnit.Case, only: [bundle: 2, test: 1, test: 2, test: 3]
       import ExUnit.DocTest
     end
   end
@@ -256,9 +256,8 @@ defmodule ExUnit.Case do
     contents = Macro.escape(contents, unquote: true)
 
     quote bind_quoted: binding do
-      test = :"test #{message}"
-      ExUnit.Case.register_test(__ENV__, test, [])
-      def unquote(test)(unquote(var)), do: unquote(contents)
+      name = ExUnit.Case.register_test(__ENV__, :test, message, [])
+      def unquote(name)(unquote(var)), do: unquote(contents)
     end
   end
 
@@ -278,9 +277,59 @@ defmodule ExUnit.Case do
   """
   defmacro test(message) do
     quote bind_quoted: binding do
-      test = :"test #{message}"
-      ExUnit.Case.register_test(__ENV__, test, [:not_implemented])
-      def unquote(test)(_), do: flunk("Not yet implemented")
+      name = ExUnit.Case.register_test(__ENV__, :test, message, [:not_implemented])
+      def unquote(name)(_), do: flunk("Not yet implemented")
+    end
+  end
+
+  @doc """
+  Bundles tests together.
+
+  Every bundle receives a name which is used as prefix for upcoming tests.
+  Inside a bundle, `ExUnit.Callbacks.setup/1` may be invoked and it will
+  define a setup callback to run only for the current bundle. The bundle
+  name is also added as a tag, allowing developers to run tests for
+  specific bundles.
+
+  ## Examples
+
+      defmodule StringTest do
+        use ExUnit.Case, async: true
+
+        bundle "String.capitalize/1" do
+          test "first grapheme is in uppercase" do
+            assert String.capitalize("hello") == "Hello"
+          end
+
+          test "converts remaining graphemes to lowercase" do
+            assert String.capitalize("HELLO") == "Hello"
+          end
+        end
+      end
+
+  When using Mix, you can run all tests in a bundle as:
+
+      mix test --only bundle:"String.capitalize/1"
+
+  """
+  defmacro bundle(message, do: block) do
+    quote do
+      if @ex_unit_bundle do
+        raise "cannot call bundle/2 inside another bundle"
+      end
+
+      @ex_unit_bundle (case unquote(message) do
+        msg when is_binary(msg) -> msg
+        msg -> raise ArgumentError, "bundle name must be a string, got: #{inspect msg}"
+      end)
+      Module.delete_attribute(__ENV__.module, :bundletag)
+
+      try do
+        unquote(block)
+      after
+        @ex_unit_bundle nil
+        Module.delete_attribute(__ENV__.module, :bundletag)
+      end
     end
   end
 
@@ -309,17 +358,17 @@ defmodule ExUnit.Case do
   implement macros like `property/3` that works like `test`
   but instead defines a property. See `test/3` implementation
   for an example of invoking this function.
+
+  The test type will be converted to a string and pluralized for
+  display. You can use `ExUnit.plural_rule/2` to set a custom
+  pluralization.
   """
-  def register_test(%{module: mod, file: file, line: line}, name, tags) do
+  def register_test(%{module: mod, file: file, line: line}, type, name, tags) do
     moduletag = Module.get_attribute(mod, :moduletag)
 
     unless moduletag do
-      raise "cannot define test. Please make sure you have invoked " <>
+      raise "cannot define #{type}. Please make sure you have invoked " <>
             "\"use ExUnit.Case\" in the current module"
-    end
-
-    if Module.defines?(mod, {name, 1}) do
-      raise ExUnit.DuplicateTestError, ~s("#{name}" is already defined in #{inspect mod})
     end
 
     registered_attributes = Module.get_attribute(mod, :ex_unit_registered)
@@ -328,12 +377,23 @@ defmodule ExUnit.Case do
     tag = Module.get_attribute(mod, :tag)
     async = Module.get_attribute(mod, :ex_unit_async)
 
+    {name, bundle, bundletag} =
+      if bundle = Module.get_attribute(mod, :ex_unit_bundle) do
+        {:"#{type} #{bundle} #{name}", bundle, Module.get_attribute(mod, :bundletag)}
+      else
+        {:"#{type} #{name}", nil, []}
+      end
+
+    if Module.defines?(mod, {name, 1}) do
+      raise ExUnit.DuplicateTestError, ~s("#{name}" is already defined in #{inspect mod})
+    end
+
     tags =
-      (tags ++ tag ++ moduletag)
+      (tags ++ tag ++ bundletag ++ moduletag)
       |> normalize_tags
       |> validate_tags
-      |> Map.put_new(:type, :test)
-      |> Map.merge(%{line: line, file: file, registered: registered, async: async})
+      |> Map.merge(%{line: line, file: file, registered: registered,
+                     async: async, bundle: bundle, type: type})
 
     test = %ExUnit.Test{name: name, case: mod, tags: tags}
     Module.put_attribute(mod, :ex_unit_tests, test)
@@ -341,6 +401,8 @@ defmodule ExUnit.Case do
     Enum.each [:tag | registered_attributes], fn(attribute) ->
       Module.delete_attribute(mod, attribute)
     end
+
+    name
   end
 
   @doc """

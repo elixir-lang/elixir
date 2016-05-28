@@ -378,8 +378,8 @@ defmodule ExUnitTest do
     defmodule SingularTestTypeCase do
       use ExUnit.Case
 
-      @tag type: :property
-      test "property is true" do
+      :"property is true" = ExUnit.Case.register_test(__ENV__, :property, "is true", [])
+      def unquote(:"property is true")(_) do
         assert succeed()
       end
 
@@ -407,13 +407,13 @@ defmodule ExUnitTest do
     defmodule PluralTestTypeCase do
       use ExUnit.Case
 
-      @tag type: :property
-      test "property is true" do
+      :"property is true" = ExUnit.Case.register_test(__ENV__, :property, "is true", [])
+      def unquote(:"property is true")(_) do
         assert succeed()
       end
 
-      @tag type: :property
-      test "property is also true" do
+      :"property is also true" = ExUnit.Case.register_test(__ENV__, :property, "is also true", [])
+      def unquote(:"property is also true")(_) do
         assert succeed()
       end
 
