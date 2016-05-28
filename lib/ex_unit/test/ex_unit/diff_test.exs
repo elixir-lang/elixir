@@ -117,7 +117,7 @@ defmodule ExUnit.DiffTest do
     expected = [
       {:eq, "%{"},
       [
-        [[eq: "12 => "], [del: "1", ins: "3", eq: "2"]],
+        [{:eq, "12 => "}, [del: "1", ins: "3", eq: "2"]],
         [del: ", ", del: "5 => 5"], [del: ", ", del: "6 => 6"], [del: ", ", del: "7 => 7"],
         [del: ", ", del: "8 => 8"], [del: ", ", del: "9 => 9"], [del: ", ", del: "10 => 10"],
         [ins: ", ", ins: "13 => 13"],
@@ -144,7 +144,7 @@ defmodule ExUnit.DiffTest do
   test "structs" do
     user1 = %User{age: 16}
     user2 = %User{age: 21}
-    expected = [{:eq, "%ExUnit.DiffTest.User{"}, [[[eq: "age: "], [ins: "2", eq: "1", del: "6"]]], {:eq, "}"}]
+    expected = [{:eq, "%ExUnit.DiffTest.User{"}, [[{:eq, "age: "}, [ins: "2", eq: "1", del: "6"]]], {:eq, "}"}]
     assert script(user1, user2) == expected
     assert script(%User{}, %{}) == nil
     assert script(%User{}, %ExUnit.Test{}) == nil
