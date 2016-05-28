@@ -117,13 +117,13 @@ defmodule ExUnit.DiffTest do
     expected = [
       {:eq, "%{"},
       [
-        [{:eq, "12 => "}, [del: "1", ins: "3", eq: "2"]],
+        [eq: "1 => 1"], [eq: ", ", eq: "2 => 2"], [eq: ", ", eq: "3 => 3"],
+        [eq: ", ", eq: "4 => 4"], [eq: ", ", eq: "11 => 11"], [eq: ", ", eq: "14 => 14"],
+        [eq: ", ", eq: "15 => 15"],
+        [{:eq, ", "}, {:eq, "12 => "}, [del: "1", ins: "3", eq: "2"]],
         [del: ", ", del: "5 => 5"], [del: ", ", del: "6 => 6"], [del: ", ", del: "7 => 7"],
         [del: ", ", del: "8 => 8"], [del: ", ", del: "9 => 9"], [del: ", ", del: "10 => 10"],
         [ins: ", ", ins: "13 => 13"],
-        [eq: ", ", eq: "1 => 1"], [eq: ", ", eq: "2 => 2"], [eq: ", ", eq: "3 => 3"],
-        [eq: ", ", eq: "4 => 4"], [eq: ", ", eq: "11 => 11"], [eq: ", ", eq: "14 => 14"],
-        [eq: ", ", eq: "15 => 15"],
       ],
       {:eq, "}"}
     ]
@@ -131,9 +131,9 @@ defmodule ExUnit.DiffTest do
 
     map1 = %{baz: 12}
     map2 = %{foo: 12, bar: 12, baz: 12}
-    expected = [{:eq, "%{"}, [[ins: "bar: 12"], [ins: ", ", ins: "foo: 12"], [eq: ", ", eq: "baz: 12"]], {:eq, "}"}]
+    expected = [{:eq, "%{"}, [[eq: "baz: 12"], [ins: ", ", ins: "bar: 12"], [ins: ", ", ins: "foo: 12"]], {:eq, "}"}]
     assert script(map1, map2) == expected
-    expected = [{:eq, "%{"}, [[del: "bar: 12"], [del: ", ", del: "foo: 12"], [eq: ", ", eq: "baz: 12"]], {:eq, "}"}]
+    expected = [{:eq, "%{"}, [[eq: "baz: 12"], [del: ", ", del: "bar: 12"], [del: ", ", del: "foo: 12"]], {:eq, "}"}]
     assert script(map2, map1) == expected
     assert script(map1, %{}) == [{:eq, "%{"}, [[del: "baz: 12"]], {:eq, "}"}]
     assert script(%{}, map1) == [{:eq, "%{"}, [[ins: "baz: 12"]], {:eq, "}"}]
