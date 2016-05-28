@@ -26,9 +26,15 @@ defmodule Difference do
   end
 
   test "large strings" do
-    string1 = "oops"
+    string1 = "short"
     string2 = "really long string that should not emit diff"
     assert string1 == string2
+  end
+
+  test "large strings; inner" do
+    tuple1 = {"short"}
+    tuple2 = {"really long string that should not emit diff"}
+    assert tuple1 == tuple2
   end
 
   test "lists" do
