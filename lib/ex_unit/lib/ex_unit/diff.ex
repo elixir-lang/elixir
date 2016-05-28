@@ -184,11 +184,11 @@ defmodule ExUnit.Diff do
     script_list([], [], keyword?, [elem_diff | acc])
   end
 
-  defp format_list_elem(elem, false), do: inspect(elem)
+  defp format_list_elem(elem, false),
+    do: inspect(elem)
 
-  defp format_list_elem({key, val}, true) do
-    format_key_value(Atom.to_string(key), inspect(val), true)
-  end
+  defp format_list_elem({key, val}, true),
+    do: format_key_value(key, val, true)
 
   defp script_tuple({_tuple1, -1}, {_tuple2, -1}, acc) do
     [[_ | elem_diff] | rest] = acc
@@ -226,20 +226,20 @@ defmodule ExUnit.Diff do
       Inspect.List.keyword?(same)
 
     result = Enum.reduce(same, [], fn({key, val}, acc) ->
-      map_pair = format_key_value(inspect(key), inspect(val), keyword?)
+      map_pair = format_key_value(key, val, keyword?)
       [[eq: ", ", eq: map_pair] | acc]
     end)
     result = Enum.reduce(missing, result, fn({key, val}, acc) ->
-      map_pair = format_key_value(inspect(key), inspect(val), keyword?)
+      map_pair = format_key_value(key, val, keyword?)
       [[ins: ", ", ins: map_pair] | acc]
     end)
     result = Enum.reduce(surplus, result, fn({key, val}, acc) ->
-      map_pair = format_key_value(inspect(key), inspect(val), keyword?)
+      map_pair = format_key_value(key, val, keyword?)
       [[del: ", ", del: map_pair] | acc]
     end)
     result = Enum.reduce(altered, result, fn({key, {val1, val2}}, acc) ->
       value_diff = script_inner(val1, val2)
-      [[{:eq, ", "}, script_key(key, keyword?), value_diff] | acc]
+      [[{:eq, ", "}, {:eq, format_key(key, keyword?)}, value_diff] | acc]
     end)
     [[_ | elem_diff] | rest] = result
     [{:eq, "%" <> name <> "{"}, [elem_diff | rest], {:eq, "}"}]
@@ -263,24 +263,16 @@ defmodule ExUnit.Diff do
     {surplus, altered, missing, same}
   end
 
-  defp script_key(key, false) do
-    [eq: inspect(key) <> " => "]
+  defp format_key(key, false) do
+    inspect(key) <> " => "
   end
 
-  defp script_key(key, true) do
-    [eq: Atom.to_string(key) <> ": "]
+  defp format_key(key, true) do
+    Atom.to_string(key) <> ": "
   end
 
-  defp format_key_value(key, value, false) do
-    key <> " => " <> value
-  end
-
-  defp format_key_value(":" <> rest, value, true) do
-    format_key_value(rest, value, true)
-  end
-
-  defp format_key_value(key, value, true) do
-    key <> ": " <> value
+  defp format_key_value(key, value, keyword?) do
+    format_key(key, keyword?) <> inspect(value)
   end
 
   defp script_inner(term, term) do
