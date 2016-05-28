@@ -18,13 +18,7 @@ defmodule ExUnit.Diff do
   # Binaries
   def script(left, right) when is_binary(left) and is_binary(right) do
     if String.printable?(left) and String.printable?(right) do
-      length1 = String.length(left)
-      length2 = String.length(right)
-      if bag_distance(left, right) / max(length1, length2) <= 0.6 do
-        left = Inspect.BitString.escape(left, ?\")
-        right = Inspect.BitString.escape(right, ?\")
-        [{:eq, "\""}, script_string(left, right), {:eq, "\""}]
-      end
+      script_string(left, right, ?\")
     end
   end
 
@@ -47,14 +41,7 @@ defmodule ExUnit.Diff do
   # Char lists and lists
   def script(left, right) when is_list(left) and is_list(right) do
     if Inspect.List.printable?(left) and Inspect.List.printable?(right) do
-      left = List.to_string(left) |> Inspect.BitString.escape(?')
-      right = List.to_string(right) |> Inspect.BitString.escape(?')
-      length1 = String.length(left)
-      length2 = String.length(left)
-
-      if bag_distance(left, right) / max(length1, length2) <= 0.6 do
-        [{:eq, "'"}, script_string(left, right), {:eq, "'"}]
-      end
+      script_string(List.to_string(left), List.to_string(right), ?')
     else
       keyword? = Inspect.List.keyword?(left) and Inspect.List.keyword?(right)
       script_list(left, right, keyword?, [])
@@ -77,6 +64,16 @@ defmodule ExUnit.Diff do
   end
 
   def script(_left, _right), do: nil
+
+  defp script_string(string1, string2, token) do
+    length1 = String.length(string1)
+    length2 = String.length(string2)
+    if bag_distance(string1, string2) / max(length1, length2) <= 0.6 do
+      string1 = Inspect.BitString.escape(string1, token)
+      string2 = Inspect.BitString.escape(string2, token)
+      [{:eq, <<token>>}, script_string(string1, string2), {:eq, <<token>>}]
+    end
+  end
 
   defp script_string(string1, string2) do
     String.myers_difference(string1, string2)
