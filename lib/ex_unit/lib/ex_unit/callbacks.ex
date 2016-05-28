@@ -64,7 +64,7 @@ defmodule ExUnit.Callbacks do
           end
 
           # Returns extra metadata to be merged into context
-          {:ok, hello: "world"}
+          [hello: "world"]
         end
 
         # Same as "setup", but receives the context
@@ -74,12 +74,19 @@ defmodule ExUnit.Callbacks do
           :ok
         end
 
+        # Setups can also invoke a local or imported function
+        setup :invoke_local_or_imported_function
+
         test "always pass" do
           assert true
         end
 
         test "another one", context do
           assert context[:hello] == "world"
+        end
+
+        defp invoke_local_or_imported_function(context) do
+          [from_named_setup: true]
         end
       end
 
@@ -104,8 +111,37 @@ defmodule ExUnit.Callbacks do
 
   @doc """
   Defines a callback to be run before each test in a case.
+
+  ## Examples
+
+      setup :clean_up_tmp_directory
+
   """
-  defmacro setup(var \\ quote(do: _), block) do
+  defmacro setup(block) do
+    if Keyword.keyword?(block) do
+      do_setup(quote(do: _), block)
+    else
+      quote do
+        @ex_unit_setup ExUnit.Callbacks.__callback__(unquote(block)) ++ @ex_unit_setup
+      end
+    end
+  end
+
+  @doc """
+  Defines a callback to be run before each test in a case.
+
+  ## Examples
+
+      setup context do
+        [conn: Plug.Conn.build_conn()]
+      end
+
+  """
+  defmacro setup(var, block) do
+    do_setup(var, block)
+  end
+
+  defp do_setup(var, block) do
     quote bind_quoted: [var: escape(var), block: escape(block)] do
       name = :"__ex_unit_setup_#{length(@ex_unit_setup)}"
       defp unquote(name)(unquote(var)), unquote(block)
@@ -114,9 +150,38 @@ defmodule ExUnit.Callbacks do
   end
 
   @doc """
-  Defines a callback to be run before all tests in a case.
+  Defines a callback to be run before each test in a case.
+
+  ## Examples
+
+      setup_all :clean_up_tmp_directory
+
   """
-  defmacro setup_all(var \\ quote(do: _), block) do
+  defmacro setup_all(block) do
+    if Keyword.keyword?(block) do
+      do_setup_all(quote(do: _), block)
+    else
+      quote do
+        @ex_unit_setup_all ExUnit.Callbacks.__callback__(unquote(block)) ++ @ex_unit_setup_all
+      end
+    end
+  end
+
+  @doc """
+  Defines a callback to be run before each test in a case.
+
+  ## Examples
+
+      setup_all context do
+        [conn: Plug.Conn.build_conn()]
+      end
+
+  """
+  defmacro setup_all(var, block) do
+    do_setup_all(var, block)
+  end
+
+  defp do_setup_all(var, block) do
     quote bind_quoted: [var: escape(var), block: escape(block)] do
       name = :"__ex_unit_setup_all_#{length(@ex_unit_setup_all)}"
       defp unquote(name)(unquote(var)), unquote(block)
@@ -149,20 +214,34 @@ defmodule ExUnit.Callbacks do
   @reserved [:case, :file, :line, :test, :async, :registered]
 
   @doc false
-  def __merge__(_mod, context, :ok) do
-    {:ok, context}
+  def __callback__(callback) do
+    for k <- List.wrap(callback), not is_atom(k) do
+      raise ArgumentError, "setup/setup_all expect a callback name as an atom or " <>
+                           "a list of callback names, got: #{inspect k}"
+    end
+
+    callback |> List.wrap() |> Enum.reverse()
   end
 
-  def __merge__(mod, _context, {:ok, %{__struct__: _}} = return_value) do
+  @doc false
+  def __merge__(_mod, context, :ok) do
+    context
+  end
+
+  def __merge__(mod, context, {:ok, value}) do
+    __merge__(mod, context, value)
+  end
+
+  def __merge__(mod, _context, %{__struct__: _} = return_value) do
     raise_merge_failed!(mod, return_value)
   end
 
-  def __merge__(mod, context, {:ok, data}) when is_list(data) do
-    __merge__(mod, context, {:ok, Map.new(data)})
+  def __merge__(mod, context, data) when is_list(data) do
+    __merge__(mod, context, Map.new(data))
   end
 
-  def __merge__(mod, context, {:ok, data}) when is_map(data) do
-    {:ok, context_merge(mod, context, data)}
+  def __merge__(mod, context, data) when is_map(data) do
+    context_merge(mod, context, data)
   end
 
   def __merge__(mod, _, return_value) do
@@ -179,8 +258,8 @@ defmodule ExUnit.Callbacks do
   end
 
   defp raise_merge_failed!(mod, return_value) do
-    raise "expected ExUnit callback in #{inspect mod} to return :ok " <>
-          "or {:ok, keywords | map}, got #{inspect return_value} instead"
+    raise "expected ExUnit callback in #{inspect mod} to return :ok | keyword | map, " <>
+          "got #{inspect return_value} instead"
   end
 
   defp raise_merge_reserved!(mod, key, value) do
@@ -198,11 +277,11 @@ defmodule ExUnit.Callbacks do
     acc =
       case callbacks do
         [] ->
-          quote do: {:ok, context}
+          quote do: context
         [h | t] ->
           Enum.reduce t, compile_merge(h), fn(callback, acc) ->
             quote do
-              {:ok, context} = unquote(acc)
+              context = unquote(acc)
               unquote(compile_merge(callback))
             end
           end
