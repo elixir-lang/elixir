@@ -235,6 +235,7 @@ defmodule ExUnit.Callbacks do
     context
   end
 
+  # TODO: Deprecate tagged tuple result
   def __merge__(mod, context, {:ok, value}) do
     __merge__(mod, context, value)
   end
