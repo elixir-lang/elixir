@@ -11,7 +11,16 @@ defmodule URI do
             fragment: nil, authority: nil,
             userinfo: nil, host: nil, port: nil
 
-  @type t :: %__MODULE__{}
+  @type t :: %__MODULE__{
+    scheme: nil | binary,
+    path: nil | binary,
+    query: nil | binary,
+    fragment: nil | binary,
+    authority: nil | binary,
+    userinfo: nil | binary,
+    host: nil | binary,
+    port: nil | :inet.port_number,
+  }
 
   import Bitwise
 
@@ -31,6 +40,7 @@ defmodule URI do
       nil
 
   """
+  @spec default_port(binary) :: nil | pos_integer
   def default_port(scheme) when is_binary(scheme) do
     :elixir_config.get({:uri, scheme})
   end
@@ -47,6 +57,7 @@ defmodule URI do
   application's start callback in case you want to register
   new URIs.
   """
+  @spec default_port(binary, pos_integer) :: :ok
   def default_port(scheme, port) when is_binary(scheme) and port > 0 do
     :elixir_config.put({:uri, scheme}, port)
   end
@@ -76,6 +87,7 @@ defmodule URI do
       ** (ArgumentError) encode_query/1 values cannot be lists, got: [:a, :list]
 
   """
+  @spec encode_query(term) :: binary
   def encode_query(l), do: Enum.map_join(l, "&", &pair/1)
 
   @doc """
@@ -97,6 +109,7 @@ defmodule URI do
       %{"percent" => "oh yes!", "starting" => "map"}
 
   """
+  @spec decode_query(binary, map) :: map
   def decode_query(q, map \\ %{})
 
   def decode_query(q, %{__struct__: _} = dict) when is_binary(q) do
@@ -139,6 +152,7 @@ defmodule URI do
       [{"foo", "1"}, {"bar", "2"}]
 
   """
+  @spec query_decoder(binary) :: Enumerable.t
   def query_decoder(q) when is_binary(q) do
     Stream.unfold(q, &do_decode_query/1)
   end
@@ -190,6 +204,7 @@ defmodule URI do
       true
 
   """
+  @spec char_reserved?(term) :: boolean
   def char_reserved?(c) do
     c in ':/?#[]@!$&\'()*+,;='
   end
@@ -206,6 +221,7 @@ defmodule URI do
       true
 
   """
+  @spec char_unreserved?(term) :: boolean
   def char_unreserved?(c) do
     c in ?0..?9 or
     c in ?a..?z or
@@ -225,6 +241,7 @@ defmodule URI do
       false
 
   """
+  @spec char_unescaped?(term) :: boolean
   def char_unescaped?(c) do
     char_reserved?(c) or char_unreserved?(c)
   end
@@ -246,6 +263,7 @@ defmodule URI do
       "a str%69ng"
 
   """
+  @spec encode(binary, (byte -> boolean)) :: binary
   def encode(str, predicate \\ &char_unescaped?/1) when is_binary(str) do
     for <<c <- str>>, into: "", do: percent(c, predicate)
   end
@@ -259,6 +277,7 @@ defmodule URI do
       "put%3A+it%2B%D0%B9"
 
   """
+  @spec encode_www_form(binary) :: binary
   def encode_www_form(str) when is_binary(str) do
     for <<c <- str>>, into: "" do
       case percent(c, &char_unreserved?/1) do
@@ -288,6 +307,7 @@ defmodule URI do
       "http://elixir-lang.org"
 
   """
+  @spec decode(binary) :: binary
   def decode(uri) do
     unpercent(uri, "", false)
   catch
@@ -304,6 +324,7 @@ defmodule URI do
       "<all in/"
 
   """
+  @spec decode_www_form(binary) :: binary
   def decode_www_form(str) do
     unpercent(str, "", true)
   catch
@@ -366,6 +387,9 @@ defmodule URI do
            port: nil, query: nil, scheme: nil, userinfo: nil}
 
   """
+  @spec parse(t | binary) :: t
+  def parse(uri)
+
   def parse(%URI{} = uri), do: uri
 
   def parse(s) when is_binary(s) do
@@ -419,6 +443,7 @@ defmodule URI do
       "foo://bar.baz"
 
   """
+  @spec to_string(t) :: binary
   defdelegate to_string(uri), to: String.Chars.URI
 
   @doc ~S"""
@@ -436,6 +461,9 @@ defmodule URI do
       "http://google.com"
 
   """
+  @spec merge(t | binary, t | binary) :: t
+  def merge(uri, rel)
+
   def merge(%URI{authority: nil}, _rel) do
     raise ArgumentError, "you must merge onto an absolute URI"
   end
