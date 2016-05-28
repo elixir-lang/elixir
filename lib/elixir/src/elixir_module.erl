@@ -159,7 +159,8 @@ build(Line, File, Module, Docs, Lexical) ->
 
   Attributes = [behaviour, on_load, compile, external_resource, dialyzer],
   ets:insert(Data, {?acc_attr, [before_compile, after_compile, on_definition, derive,
-                                spec, type, typep, opaque, callback, macrocallback | Attributes]}),
+                                spec, type, typep, opaque, callback, macrocallback,
+                                optional_callbacks | Attributes]}),
   ets:insert(Data, {?persisted_attr, [vsn | Attributes]}),
   ets:insert(Data, {?lexical_attr, Lexical}),
 
@@ -285,7 +286,8 @@ specs_form(Data, Defmacro, Defmacrop, Unreachable, Forms) ->
       Specs3 = lists:filter(fun({{_Kind, NameArity, _Spec}, _Line}) ->
                                 not lists:member(NameArity, Unreachable)
                             end, Specs2),
-      specs_attributes(Forms, Specs3);
+      optional_callbacks_attributes(get_typespec(Data, optional_callbacks), Specs3) ++
+        specs_attributes(Forms, Specs3);
     true ->
       Forms
   end.
@@ -321,6 +323,22 @@ spec_for_macro({type, Line, 'fun', [{type, _, product, Args} | T]}) ->
   {type, Line, 'fun', [{type, Line, product, NewArgs} | T]};
 
 spec_for_macro(Else) -> Else.
+
+optional_callbacks_attributes(OptionalCallbacksTypespec, Specs) ->
+  % We only take the specs of the callbacks (which are both callbacks and
+  % macrocallbacks).
+  Callbacks = [NameArity || {{callback, NameArity, _Spec}, _Line} <- Specs],
+  [{attribute, Line, optional_callbacks, macroify_callback_names(NamesArities, Callbacks)} ||
+    {Line, NamesArities} <- OptionalCallbacksTypespec].
+
+macroify_callback_names(NamesArities, Callbacks) ->
+  lists:map(fun({Name, Arity} = NameArity) ->
+                MacroNameArity = {elixir_utils:macro_name(Name), Arity + 1},
+                case lists:member(MacroNameArity, Callbacks) of
+                  true -> MacroNameArity;
+                  false -> NameArity
+                end
+            end, NamesArities).
 
 %% Loads the form into the code server.
 
