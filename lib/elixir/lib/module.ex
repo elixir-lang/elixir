@@ -1105,8 +1105,8 @@ defmodule Module do
   defp preprocess_attribute(:on_definition, atom) when is_atom(atom),
     do: {atom, :__on_definition__}
 
-  defp preprocess_attribute(key, _value) when key in [:type, :typep, :export_type, :opaque, :callback, :macrocallback] do
-    raise ArgumentError, "attributes type, typep, export_type, opaque, callback and macrocallback " <>
+  defp preprocess_attribute(key, _value) when key in [:type, :typep, :export_type, :opaque, :callback, :macrocallback, :optional_callbacks] do
+    raise ArgumentError, "attributes type, typep, export_type, opaque, callback, macrocallback, and optional_callbacks " <>
       "must be set directly via the @ notation"
   end
 

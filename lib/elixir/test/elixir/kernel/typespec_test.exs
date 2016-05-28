@@ -659,11 +659,18 @@ defmodule Kernel.TypespecTest do
     @callback orr(atom | integer) :: atom
     @callback literal(123, {atom}, :atom, [integer], true) :: atom
     @macrocallback last(integer) :: Macro.t
+    @macrocallback lastlast() :: atom
+    @optional_callbacks bar: 2, lastlast: 0
   end
 
   test "callbacks" do
     assert Sample.behaviour_info(:callbacks) ==
-           [first: 1, guarded: 1, "MACRO-last": 2, literal: 5, orr: 1, foo: 2, bar: 2]
+           ["MACRO-lastlast": 1, first: 1, guarded: 1, "MACRO-last": 2, literal: 5, orr: 1, foo: 2, bar: 2]
+  end
+
+  test "optional callbacks" do
+    assert Sample.behaviour_info(:optional_callbacks) ==
+           [bar: 2, "MACRO-lastlast": 1]
   end
 
   test "default is not supported" do
