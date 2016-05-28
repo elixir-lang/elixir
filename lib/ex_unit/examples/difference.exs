@@ -74,8 +74,8 @@ defmodule Difference do
   end
 
   test "maps; mixed diff" do
-    map1 = Enum.into(1..40, %{}, &{&1, &1}) |> Map.delete(33)
-    map2 = Enum.reduce(5..10, map1, &Map.delete(&2, &1)) |> Map.put(33, 33) |> Map.put(23, 32)
+    map1 = Enum.into(1..15, %{}, &{&1, &1}) |> Map.delete(13)
+    map2 = Enum.reduce(5..10, map1, &Map.delete(&2, &1)) |> Map.put(13, 13) |> Map.put(12, 32)
     assert map1 == map2
   end
 

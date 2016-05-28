@@ -119,24 +119,17 @@ defmodule ExUnit.Formatter do
   end
 
   @doc false
-  def format_assertion_error(%ExUnit.AssertionError{} = struct, width, formatter, counter_padding \\ @counter_padding) do
+  def format_assertion_error(%ExUnit.AssertionError{} = struct, width, formatter, counter_padding) do
     padding_size = byte_size(@inspect_padding)
+    inspect = &inspect_multiline(&1, padding_size, width)
+    {left, right} = format_sides(struct, formatter, inspect)
 
-    fields = [
+    [
       note: if_value(struct.message, &format_banner(&1, formatter)),
       code: if_value(struct.expr, &code_multiline(&1, padding_size)),
-      lhs:  if_value(struct.left,  &inspect_multiline(&1, padding_size, width)),
-      rhs:  if_value(struct.right, &inspect_multiline(&1, padding_size, width))
+      lhs: left,
+      rhs: right
     ]
-
-    fields =
-      if formatter.(:diff_enabled?, nil) == true do
-        fields ++ [diff: format_diff(struct, formatter)]
-      else
-        fields
-      end
-
-    fields
     |> filter_interesting_fields()
     |> format_each_field(formatter)
     |> make_into_lines(counter_padding)
@@ -173,7 +166,7 @@ defmodule ExUnit.Formatter do
   end
 
   defp format_kind_reason(:error, %ExUnit.AssertionError{} = struct, width, formatter) do
-    format_assertion_error(struct, width, formatter)
+    format_assertion_error(struct, width, formatter, @counter_padding)
   end
 
   defp format_kind_reason(kind, reason, _width, formatter) do
@@ -181,9 +174,7 @@ defmodule ExUnit.Formatter do
   end
 
   defp filter_interesting_fields(fields) do
-    Enum.filter(fields, fn {_, value} ->
-      value != ExUnit.AssertionError.no_value
-    end)
+    Enum.filter(fields, fn {_, value} -> has_value?(value) end)
   end
 
   defp format_each_field(fields, formatter) do
@@ -193,10 +184,10 @@ defmodule ExUnit.Formatter do
   end
 
   defp if_value(value, fun) do
-    if value == ExUnit.AssertionError.no_value do
-      value
-    else
+    if has_value?(value) do
       fun.(value)
+    else
+      value
     end
   end
 
@@ -231,18 +222,49 @@ defmodule ExUnit.Formatter do
     padding <> Enum.join(reasons, "\n" <> padding) <> "\n"
   end
 
-  defp format_diff(struct, formatter) do
-    if_value(struct.left, fn left ->
-      if_value(struct.right, fn right ->
-        format_diff(left, right, formatter) || ExUnit.AssertionError.no_value
-      end)
-    end)
+  defp format_sides(struct, formatter, inspect) do
+    left = struct.left
+    right = struct.right
+    case format_diff(left, right, formatter) do
+      {left, right} ->
+        {IO.iodata_to_binary(left), IO.iodata_to_binary(right)}
+      nil ->
+        {if_value(left, inspect), if_value(right, inspect)}
+    end
+  end
+
+  defp has_value?(value) do
+    value != ExUnit.AssertionError.no_value
   end
 
   defp format_diff(left, right, formatter) do
-    task = Task.async(ExUnit.Diff, :format, [left, right, formatter])
+    if has_value?(left) and has_value?(right) and formatter.(:diff_enabled?, false) do
+      if script = edit_script(left, right) do
+        colorize_diff(script, formatter, {[], []})
+      end
+    end
+  end
+
+  defp colorize_diff(script, formatter, acc) when is_list(script) do
+    Enum.reduce(script, acc, &colorize_diff(&1, formatter, &2))
+  end
+
+  defp colorize_diff({:eq, content}, _formatter, {left, right}) do
+    {[left | content], [right | content]}
+  end
+
+  defp colorize_diff({:del, content}, formatter, {left, right}) do
+    {[left | formatter.(:diff_delete, content)], right}
+  end
+
+  defp colorize_diff({:ins, content}, formatter, {left, right}) do
+    {left, [right | formatter.(:diff_insert, content)]}
+  end
+
+  defp edit_script(left, right) do
+    task = Task.async(ExUnit.Diff, :script, [left, right])
     case Task.yield(task, 1_500) || Task.shutdown(task, :brutal_kill) do
-      {:ok, diff} -> diff
+      {:ok, script} -> script
       nil -> nil
     end
   end
