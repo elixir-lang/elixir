@@ -118,6 +118,30 @@ defmodule ExUnit.Formatter do
     <> report(tags, failures, width, formatter)
   end
 
+  @doc false
+  def format_assertion_error(%ExUnit.AssertionError{} = struct, width, formatter, counter_padding \\ @counter_padding) do
+    padding_size = byte_size(@inspect_padding)
+
+    fields = [
+      note: if_value(struct.message, &format_banner(&1, formatter)),
+      code: if_value(struct.expr, &code_multiline(&1, padding_size)),
+      lhs:  if_value(struct.left,  &inspect_multiline(&1, padding_size, width)),
+      rhs:  if_value(struct.right, &inspect_multiline(&1, padding_size, width))
+    ]
+
+    fields =
+      if formatter.(:diff_enabled?, nil) == true do
+        fields ++ [diff: format_diff(struct, formatter)]
+      else
+        fields
+      end
+
+    fields
+    |> filter_interesting_fields()
+    |> format_each_field(formatter)
+    |> make_into_lines(counter_padding)
+  end
+
   defp report(tags, failures, width, formatter) do
     case Map.take(tags, List.wrap(tags[:report])) do
       report when map_size(report) == 0 ->
@@ -149,22 +173,7 @@ defmodule ExUnit.Formatter do
   end
 
   defp format_kind_reason(:error, %ExUnit.AssertionError{} = struct, width, formatter) do
-    padding_size = byte_size(@inspect_padding)
-
-    fields = [
-      note: if_value(struct.message, &format_banner(&1, formatter)),
-      code: if_value(struct.expr, &code_multiline(&1, padding_size)),
-      lhs:  if_value(struct.left,  &inspect_multiline(&1, padding_size, width)),
-      rhs:  if_value(struct.right, &inspect_multiline(&1, padding_size, width))
-    ]
-    if formatter.(:colors_enabled?, nil) do
-      fields ++ [diff: format_diff(struct, formatter)]
-    else
-      fields
-    end
-    |> filter_interesting_fields()
-    |> format_each_field(formatter)
-    |> make_into_lines(@counter_padding)
+    format_assertion_error(struct, width, formatter)
   end
 
   defp format_kind_reason(kind, reason, _width, formatter) do
