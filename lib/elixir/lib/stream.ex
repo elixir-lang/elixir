@@ -96,7 +96,6 @@ defmodule Stream do
   @type element :: any
   @type index   :: non_neg_integer
   @type default :: any
-  @opaque t     :: %__MODULE__{}
 
   # Require Stream.Reducers and its callbacks
   require Stream.Reducers, as: R
