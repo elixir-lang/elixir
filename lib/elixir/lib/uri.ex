@@ -1,6 +1,10 @@
 defmodule URI do
   @moduledoc """
-  Utilities for working with and creating URIs.
+  Utilities for working with URIs.
+
+  This module provides functions for working with URIs (for example, parsing
+  URIs or encoding query strings). For reference, most of the functions in this
+  module refer to [RFC 3986](https://tools.ietf.org/html/rfc3986).
   """
 
   defstruct scheme: nil, path: nil, query: nil,
@@ -14,8 +18,9 @@ defmodule URI do
   @doc """
   Returns the default port for a given scheme.
 
-  If the scheme is unknown to URI, returns `nil`.
-  Any scheme may be registered via `default_port/2`.
+  If the scheme is unknown to the `URI` module, this function returns
+  `nil`. The default port for any scheme can be configured globally
+  via `default_port/2`.
 
   ## Examples
 
@@ -31,10 +36,15 @@ defmodule URI do
   end
 
   @doc """
-  Registers a scheme with a default port.
+  Registers the default port `port` for the given `scheme`.
+
+  After this function is called, `port` will be returned by
+  `default_port/1` for the given scheme `scheme`. Note that this function
+  changes the default port for the given `scheme` *globally*, meaning for
+  every application.
 
   It is recommended for this function to be invoked in your
-  application start callback in case you want to register
+  application's start callback in case you want to register
   new URIs.
   """
   def default_port(scheme, port) when is_binary(scheme) and port > 0 do
@@ -44,9 +54,10 @@ defmodule URI do
   @doc """
   Encodes an enumerable into a query string.
 
-  Takes an enumerable (containing a sequence of two-element tuples)
-  and returns a string in the form of `key1=value1&key2=value2...` where
-  keys and values are URL encoded as per `encode_www_form/1`.
+  Takes an enumerable that enumerates as a list of two-element
+  tuples (e.g., a map or a keyword list) and returns a string
+  in the form of `key1=value1&key2=value2...` where keys and
+  values are URL encoded as per `encode_www_form/1`.
 
   Keys and values can be any term that implements the `String.Chars`
   protocol, except lists which are explicitly forbidden.
@@ -61,15 +72,19 @@ defmodule URI do
       iex> URI.encode_query(query)
       "key=value+with+spaces"
 
+      iex> URI.encode_query %{key: [:a, :list]}
+      ** (ArgumentError) encode_query/1 values cannot be lists, got: [:a, :list]
+
   """
   def encode_query(l), do: Enum.map_join(l, "&", &pair/1)
 
   @doc """
   Decodes a query string into a map.
 
-  Given a query string of the form of `key1=value1&key2=value2...`, produces a
-  map with one entry for each key-value pair. Each key and value will be a
-  binary. Keys and values will be percent-unescaped.
+  Given a query string of the form of `key1=value1&key2=value2...`, this
+  function inserts each key-value pair in the query string as one entry in the
+  given `map`. Keys and values in the resulting map will be binaries. Keys and
+  values will be percent-unescaped.
 
   Use `query_decoder/1` if you want to iterate over each value manually.
 
@@ -77,6 +92,9 @@ defmodule URI do
 
       iex> URI.decode_query("foo=1&bar=2")
       %{"bar" => "2", "foo" => "1"}
+
+      iex> URI.decode_query("percent=oh+yes%21", %{"starting" => "map"})
+      %{"percent" => "oh yes!", "starting" => "map"}
 
   """
   def decode_query(q, map \\ %{})
@@ -110,12 +128,14 @@ defmodule URI do
   end
 
   @doc """
-  Returns an iterator function over the query string that decodes
-  the query string in steps.
+  Returns a stream of two-element tuples representing key-value pairs in the
+  given `query`.
+
+  Key and value in each tuple will be binaries and will be percent-unescaped.
 
   ## Examples
 
-      iex> URI.query_decoder("foo=1&bar=2") |> Enum.map(&(&1))
+      iex> URI.query_decoder("foo=1&bar=2") |> Enum.to_list()
       [{"foo", "1"}, {"bar", "2"}]
 
   """
@@ -161,7 +181,14 @@ defmodule URI do
   @doc """
   Checks if the character is a "reserved" character in a URI.
 
-  Reserved characters are specified in [RFC3986, section 2.2](http://tools.ietf.org/html/rfc3986#section-2.2).
+  Reserved characters are specified in
+  [RFC 3986, section 2.2](http://tools.ietf.org/html/rfc3986#section-2.2).
+
+  ## Examples
+
+      iex> URI.char_reserved?(?+)
+      true
+
   """
   def char_reserved?(c) do
     c in ':/?#[]@!$&\'()*+,;='
@@ -170,7 +197,14 @@ defmodule URI do
   @doc """
   Checks if the character is a "unreserved" character in a URI.
 
-  Unreserved characters are specified in [RFC3986, section 2.3](http://tools.ietf.org/html/rfc3986#section-2.3).
+  Unreserved characters are specified in
+  [RFC 3986, section 2.3](http://tools.ietf.org/html/rfc3986#section-2.3).
+
+  ## Examples
+
+      iex> URI.char_unreserved?(?_)
+      true
+
   """
   def char_unreserved?(c) do
     c in ?0..?9 or
@@ -184,19 +218,32 @@ defmodule URI do
 
   This is the default used by `URI.encode/2` where both
   reserved and unreserved characters are kept unescaped.
+
+  ## Examples
+
+      iex> URI.char_unescaped?(?{)
+      false
+
   """
   def char_unescaped?(c) do
     char_reserved?(c) or char_unreserved?(c)
   end
 
   @doc """
-  Percent-escapes a URI.
-  Accepts `predicate` function as an argument to specify if char can be left as is.
+  Percent-escapes the given string.
+
+  This function accepts a `predicate` function as an optional argument; if
+  passed, this function will be called with each character (byte) in `str` as
+  its argument and should return `true` if that character should not be escaped
+  and left as is.
 
   ## Example
 
       iex> URI.encode("ftp://s-ite.tld/?value=put it+й")
       "ftp://s-ite.tld/?value=put%20it+%D0%B9"
+
+      iex> URI.encode("a string", &(&1 != ?i))
+      "a str%69ng"
 
   """
   def encode(str, predicate \\ &char_unescaped?/1) when is_binary(str) do
@@ -287,14 +334,17 @@ defmodule URI do
   Parses a well-formed URI reference into its components.
 
   Note this function expects a well-formed URI and does not perform
-  any validation. See the examples section below of how `URI.parse/1`
-  can be used to parse a wide range of relative URIs.
+  any validation. See the "Examples" section below for examples of how
+  `URI.parse/1` can be used to parse a wide range of URIs.
 
   This function uses the parsing regular expression as defined
-  in the [Appendix B of RFC3986](http://tools.ietf.org/html/rfc3986#appendix-B).
+  in [RFC 3986, Appendix B](http://tools.ietf.org/html/rfc3986#appendix-B).
 
-  When a URI is given without a port, the values registered via
-  `URI.default_port/1` and `URI.default_port/2` are used.
+  When a URI is given without a port, the value returned by
+  `URI.default_port/1` for the URI's scheme is used for the `:port` field.
+
+  If a `%URI{}` struct is given to this function, this function returns it
+  unmodified.
 
   ## Examples
 
@@ -360,17 +410,22 @@ defmodule URI do
   end
 
   @doc """
-  Converts the URI to string.
+  Returns the string representation of the given `URI` struct.
 
       iex> URI.to_string(URI.parse("http://google.com"))
       "http://google.com"
+
+      iex> URI.to_string(%URI{scheme: "foo", host: "bar.baz"})
+      "foo://bar.baz"
+
   """
   defdelegate to_string(uri), to: String.Chars.URI
 
   @doc ~S"""
   Merges two URIs.
 
-  This function merges two URIs as per [RFC3986, section 5.2](http://tools.ietf.org/html/rfc3986#section-5.2).
+  This function merges two URIs as per
+  [RFC 3986, section 5.2](http://tools.ietf.org/html/rfc3986#section-5.2).
 
   ## Examples
 
