@@ -48,7 +48,7 @@ defmodule Calendar do
   @type std_offset  :: integer
 
   @doc """
-  Builds a new date from propletic year, month and day of month.
+  Builds a new date from proleptic year, month and day of month.
   """
   @callback date(year, month, day) :: {:ok, Date.t} | {:error, atom}
 
@@ -56,7 +56,7 @@ defmodule Calendar do
   Returns true if the given year is a leap year.
 
   A leap year is a year of a longer length than normal. The exact meaning
-  is up to the calendar. A calendar must return `false` if does not support
+  is up to the calendar. A calendar must return `false` if it does not support
   the concept of leap years.
   """
   @callback leap_year?(year) :: boolean
@@ -200,7 +200,7 @@ defmodule Date do
   @doc """
   Parses the extended "Date and time of day" format described by ISO8601:2004.
 
-  Raises it the format is invalid.
+  Raises if the format is invalid.
 
   ## Examples
 
@@ -465,7 +465,7 @@ defmodule Time do
   @doc """
   Parses the extended "Local time" format described by ISO8601:2004.
 
-  Raises it the format is invalid.
+  Raises if the format is invalid.
 
   ## Examples
 
@@ -788,7 +788,7 @@ defmodule NaiveDateTime do
   @doc """
   Parses the extended "Date and time of day" format described by ISO8601:2004.
 
-  Raises it the format is invalid.
+  Raises if the format is invalid.
 
   ## Examples
 
@@ -1131,7 +1131,7 @@ defmodule DateTime do
   Only supports converting date times which are in the ISO calendar,
   attempting to convert date times from other calendars will raise.
 
-  WARNING: the ISO8601 does contain the time zone nor its abbreviation,
+  WARNING: the ISO8601 does not contain the time zone nor its abbreviation,
   which means information is lost when converting to such format. This
   is also why this module does not provide a `from_iso8601/1` function,
   as it is impossible to build a proper `DateTime` from only the
