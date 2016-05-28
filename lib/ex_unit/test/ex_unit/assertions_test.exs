@@ -593,6 +593,17 @@ defmodule ExUnit.AssertionsTest do
       "no function clause matching in ExUnit.Assertions.flunk/1" = FunctionClauseError.message error
   end
 
+  test "AssertionError message should include nice formatting" do
+    assert :a = :b
+  rescue
+    error in [ExUnit.AssertionError] ->
+      """
+      match (=) failed
+      code: :a = :b
+      rhs:  :b
+      """ = Exception.message(error)
+  end
+
   defp ok(val), do: {:ok, val}
   defp error(val), do: {:error, val}
 end

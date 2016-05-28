@@ -16,6 +16,13 @@ defmodule ExUnit.AssertionError do
   def no_value do
     @no_value
   end
+
+  def message(assertion_error) do
+    ExUnit.Formatter.format_assertion_error(assertion_error, :infinity, &formatter/2, "")
+  end
+
+  defp formatter(:colors_enabled?, _), do: false
+  defp formatter(_, msg), do: msg
 end
 
 defmodule ExUnit.MultiError do
