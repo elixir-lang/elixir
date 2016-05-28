@@ -39,6 +39,7 @@
   * [String] Add `String.myers_difference/2` for calculating the difference between two strings
   * [System] Add `System.os_time/0` and `System.os_time/1`
   * [Typespec] Add support for `%{required(foo) => bar}` and `%{optional(foo) => bar}` forms (Erlang 19 only)
+  * [Typespec] Add support for `@optional_callbacks` to mark certain that certain callbacks may be optionally implemented
   * [Typespec] Introduce `%{...}` to mean any map (Erlang 19 only)
   * [URI] Add `URI.merge/2`
   * [Version] Add `Version.parse!/1`
@@ -52,6 +53,8 @@
   * [ExUnit] Start running tests as soon as cases are loaded. This feature is enabled by default when running tests through Mix
   * [ExUnit] Raise a straight-forward error message in case a duplicate test name is defined
   * [ExUnit] Bump the default number of max cases to double of schedulers to support both IO and CPU bound tests
+  * [ExUnit] Support for named setups in `setup` and `setup_all`
+  * [ExUnit] Support for bundling tests together with `bundle/2`
 
 #### IEx
 
@@ -108,9 +111,10 @@
 ### 3. Soft deprecations (no warnings emitted)
 
   * [Float] `Float.to_string/2` and `Float.to_char_list/2` has been soft-deprecated as Elixir will now attempt to print the shortest and most accurate representation by default. Developers can always fallback to `:erlang.float_to_binary/2` and `:erlang.float_to_list/2` if they need the previous functionality
-  * [Kernel] `to_char_list` functions have been deprecated in favor of `to_charlist`. This aligns with the naming conventions in both Erlang and Elixir
+  * [Kernel] `to_char_list` functions have been soft-deprecated in favor of `to_charlist`. This aligns with the naming conventions in both Erlang and Elixir
   * [String] The confusing `String.strip/2`, `String.lstrip/2` and `String.rstrip/2` API has been soft deprecated in favor of `String.trim/2`, `String.trim_leading/2` and `String.trim_trailing/2`
   * [String] The confusing `String.ljust/3` and `String.rjust/3` API has been soft deprecated in favor of `String.pad_leading/3` and `String.pad_trailing/3`
+  * [Typespec] `char_list` is soft-deprecated in favor of `charlist`
 
 ### 4. Deprecations
 
