@@ -33,8 +33,8 @@ Integers and atom literals are allowed as types (ex. `1`, `:atom` or `false`). A
           | improper_list(type1, type2)
           | maybe_improper_list(type1, type2)
           | Literals                # Described in section "Literals"
-          | Builtin                 # Described in section "Builtin-types"
-          | Remotes                 # Described in section "Remotes"
+          | Builtin                 # Described in section "Built-in types"
+          | Remotes                 # Described in section "Remote types"
 
 ### Literals
 
