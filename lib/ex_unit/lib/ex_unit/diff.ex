@@ -9,6 +9,12 @@ defmodule ExUnit.Diff do
   """
   def script(left, right)
 
+  def script(term, term)
+      when is_binary(term) or is_number(term)
+      when is_map(term) or is_list(term) or is_tuple(term) do
+    [eq: inspect(term)]
+  end
+
   # Binaries
   def script(left, right) when is_binary(left) and is_binary(right) do
     if String.printable?(left) and String.printable?(right) do
