@@ -598,6 +598,7 @@ defmodule ExUnit.AssertionsTest do
   rescue
     error in [ExUnit.AssertionError] ->
       """
+
       match (=) failed
       code: :a = :b
       rhs:  :b
