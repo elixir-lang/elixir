@@ -152,7 +152,7 @@ defmodule ExUnit.Callbacks do
   end
 
   @doc """
-  Defines a callback to be run before each test in a case.
+  Defines a callback to be run before all tests in a case.
 
   ## Examples
 
@@ -172,7 +172,7 @@ defmodule ExUnit.Callbacks do
   end
 
   @doc """
-  Defines a callback to be run before each test in a case.
+  Defines a callback to be run before all tests in a case.
 
   ## Examples
 
