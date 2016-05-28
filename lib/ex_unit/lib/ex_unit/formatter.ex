@@ -130,7 +130,7 @@ defmodule ExUnit.Formatter do
     ]
 
     fields =
-      if formatter.(:colors_enabled?, nil) do
+      if formatter.(:diff_enabled?, nil) == true do
         fields ++ [diff: format_diff(struct, formatter)]
       else
         fields
