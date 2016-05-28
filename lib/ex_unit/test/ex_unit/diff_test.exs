@@ -32,6 +32,8 @@ defmodule ExUnit.DiffTest do
     # Filtered due to bag distance
     assert script("aaa", "bba") == nil
     assert script("aaa", "baa") == [{:eq, "\""}, [ins: "b", eq: "aa", del: "a"], {:eq, "\""}]
+
+    assert script("", "") == [eq: "\"\""]
   end
 
   test "lists" do
@@ -70,6 +72,8 @@ defmodule ExUnit.DiffTest do
       {:eq, "'"}
     ]
     assert script(charlist1, charlist2) == expected
+
+    assert script([], []) == [eq: "[]"]
   end
 
   test "improper lists" do
@@ -103,6 +107,8 @@ defmodule ExUnit.DiffTest do
     assert script(tuple1, tuple2) == expected
     assert script(tuple1, {}) == [{:eq, "{"}, [[del: ":hex"], [del: ", ", del: "'1.1'"]], {:eq, "}"}]
     assert script({}, tuple1) == [{:eq, "{"}, [[ins: ":hex"], [ins: ", ", ins: "'1.1'"]], {:eq, "}"}]
+
+    assert script({}, {}) == [eq: "{}"]
   end
 
   test "maps" do
@@ -131,6 +137,8 @@ defmodule ExUnit.DiffTest do
     assert script(map2, map1) == expected
     assert script(map1, %{}) == [{:eq, "%{"}, [[del: "baz: 12"]], {:eq, "}"}]
     assert script(%{}, map1) == [{:eq, "%{"}, [[ins: "baz: 12"]], {:eq, "}"}]
+
+    assert script(%{}, %{}) == [eq: "%{}"]
   end
 
   test "structs" do
