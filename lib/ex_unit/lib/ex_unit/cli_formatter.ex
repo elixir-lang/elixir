@@ -197,7 +197,7 @@ defmodule ExUnit.CLIFormatter do
     colorize(:red, msg, config)
   end
 
-  defp formatter(:colors_enabled?, _, %{colors: colors}),
+  defp formatter(:diff_enabled?, _, %{colors: colors}),
     do: colors[:enabled]
 
   defp formatter(:error_info, msg, config),
