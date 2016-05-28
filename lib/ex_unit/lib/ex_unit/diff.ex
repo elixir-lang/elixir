@@ -186,7 +186,6 @@ defmodule ExUnit.Diff do
 
   defp format_list_elem(elem, false),
     do: inspect(elem)
-
   defp format_list_elem({key, val}, true),
     do: format_key_value(key, val, true)
 
@@ -225,11 +224,7 @@ defmodule ExUnit.Diff do
       Inspect.List.keyword?(missing) and
       Inspect.List.keyword?(same)
 
-    result = Enum.reduce(same, [], fn({key, val}, acc) ->
-      map_pair = format_key_value(key, val, keyword?)
-      [[eq: ", ", eq: map_pair] | acc]
-    end)
-    result = Enum.reduce(missing, result, fn({key, val}, acc) ->
+    result = Enum.reduce(missing, [], fn({key, val}, acc) ->
       map_pair = format_key_value(key, val, keyword?)
       [[ins: ", ", ins: map_pair] | acc]
     end)
@@ -240,6 +235,10 @@ defmodule ExUnit.Diff do
     result = Enum.reduce(altered, result, fn({key, {val1, val2}}, acc) ->
       value_diff = script_inner(val1, val2)
       [[{:eq, ", "}, {:eq, format_key(key, keyword?)}, value_diff] | acc]
+    end)
+    result = Enum.reduce(same, result, fn({key, val}, acc) ->
+      map_pair = format_key_value(key, val, keyword?)
+      [[eq: ", ", eq: map_pair] | acc]
     end)
     [[_ | elem_diff] | rest] = result
     [{:eq, "%" <> name <> "{"}, [elem_diff | rest], {:eq, "}"}]
