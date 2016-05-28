@@ -96,7 +96,10 @@ defmodule Stream do
   @type element :: any
   @type index   :: non_neg_integer
   @type default :: any
-  @opaque t     :: %__MODULE__{}
+
+  @opaque t ::
+    %__MODULE__{} |
+    ({:cont | :halt | :suspend, any}, any -> {:done | :halted, any} | {:suspended, any, (any -> any)})
 
   # Require Stream.Reducers and its callbacks
   require Stream.Reducers, as: R
