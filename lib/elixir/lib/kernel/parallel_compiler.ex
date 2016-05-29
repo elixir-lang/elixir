@@ -251,7 +251,7 @@ defmodule Kernel.ParallelCompiler do
       |> Enum.max
 
     for {file, mod} <- deadlock do
-      IO.puts "  " <> String.rjust(file, max) <> " => " <> inspect(mod)
+      IO.puts ["  ", String.pad_leading(file, max), " => " | inspect(mod)]
     end
 
     IO.puts ""

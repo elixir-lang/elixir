@@ -126,7 +126,7 @@ defmodule Mix.Tasks.Help do
   end
 
   defp format_task(task, max, doc) do
-    String.ljust(task, max) <> " # " <> doc
+    String.pad_trailing(task, max) <> " # " <> doc
   end
 
   defp where_is_file(module) do

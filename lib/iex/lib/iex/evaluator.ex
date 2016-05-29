@@ -225,7 +225,7 @@ defmodule IEx.Evaluator do
   end
 
   defp format_entry({app, info}, width) do
-    app = String.rjust(app, width)
+    app = String.pad_leading(app, width)
     IEx.color(:stack_app, app) <> IEx.color(:stack_info, info)
   end
 end
