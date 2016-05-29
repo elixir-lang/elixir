@@ -171,8 +171,7 @@ defmodule Date do
   As specified in the standard, the separator "T" may be omitted if
   desired as there is no ambiguity within this function.
 
-  Time representations with reduced accuracy and decimal fractions
-  are not supported.
+  Time representations with reduced accuracy are not supported.
 
   ## Examples
 
@@ -418,8 +417,7 @@ defmodule Time do
   As specified in the standard, the separator "T" may be omitted if
   desired as there is no ambiguity within this function.
 
-  Time representations with reduced accuracy and decimal fractions
-  are not supported.
+  Time representations with reduced accuracy are not supported.
 
   ## Examples
 
@@ -736,8 +734,7 @@ defmodule NaiveDateTime do
   As specified in the standard, the separator "T" may be omitted if
   desired as there is no ambiguity within this function.
 
-  Time representations with reduced accuracy and decimal fractions
-  are not supported.
+  Time representations with reduced accuracy are not supported.
 
   ## Examples
 
@@ -765,6 +762,19 @@ defmodule NaiveDateTime do
       {:error, :invalid_time}
       iex> NaiveDateTime.from_iso8601("2015-01-32 23:50:07")
       {:error, :invalid_date}
+
+      iex> NaiveDateTime.from_iso8601("2015-01-23T23:50:07.123+02:30")
+      {:ok, ~N[2015-01-23 23:50:07.123]}
+      iex> NaiveDateTime.from_iso8601("2015-01-23T23:50:07.123+00:00")
+      {:ok, ~N[2015-01-23 23:50:07.123]}
+      iex> NaiveDateTime.from_iso8601("2015-01-23T23:50:07.123-02:30")
+      {:ok, ~N[2015-01-23 23:50:07.123]}
+      iex> NaiveDateTime.from_iso8601("2015-01-23T23:50:07.123-00:00")
+      {:error, :invalid_format}
+      iex> NaiveDateTime.from_iso8601("2015-01-23T23:50:07.123-00:60")
+      {:error, :invalid_format}
+      iex> NaiveDateTime.from_iso8601("2015-01-23T23:50:07.123-24:00")
+      {:error, :invalid_format}
 
   """
   @spec from_iso8601(String.t) :: {:ok, NaiveDateTime.t} | {:error, atom}
