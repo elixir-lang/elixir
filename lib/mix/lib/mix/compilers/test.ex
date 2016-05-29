@@ -42,20 +42,15 @@ defmodule Mix.Compilers.Test do
 
       test_files ->
         try do
-          spawn_link(fn ->
-            try do
-              Kernel.ParallelRequire.files(test_files, parallel_require_callbacks)
-            catch
-              :error, value ->
-                exit({value, System.stacktrace()})
-              :throw, value ->
-                exit({{:nocatch, value}, System.stacktrace()})
-            after
-              ExUnit.Server.cases_loaded()
-            end
-          end)
+          task = Task.async(ExUnit, :run, [])
 
-          %{failures: failures} = results = ExUnit.run()
+          try do
+            Kernel.ParallelRequire.files(test_files, parallel_require_callbacks)
+          after
+            ExUnit.Server.cases_loaded()
+          end
+
+          %{failures: failures} = results = Task.await(task, :infinity)
 
           if failures == 0 do
             agent_write_manifest(stale_manifest_pid)
