@@ -335,7 +335,7 @@ defmodule IEx do
       nil ->
         string
       ansi ->
-        IO.iodata_to_binary([IO.ANSI.format_fragment(ansi, true), string | IO.ANSI.reset])
+        [ansi | string] |> IO.ANSI.format(true) |> IO.iodata_to_binary()
     end
   end
 

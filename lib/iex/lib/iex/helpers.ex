@@ -501,7 +501,7 @@ defmodule IEx.Helpers do
         else
           len
         end
-      IO.write format_item(Path.join(path, item), String.ljust(item, width))
+      IO.write format_item(Path.join(path, item), String.pad_leading(item, width))
       len + width
     end)
 
