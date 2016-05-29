@@ -228,9 +228,9 @@ defmodule URI do
   @spec char_unreserved?(char) :: boolean
   def char_unreserved?(char) when char in 0..0x10ffff do
     char in ?0..?9 or
-    char in ?a..?z or
-    char in ?A..?Z or
-    char in '~_-.'
+      char in ?a..?z or
+      char in ?A..?Z or
+      char in '~_-.'
   end
 
   @doc """
@@ -535,10 +535,10 @@ defimpl String.Chars, for: URI do
     authority = extract_authority(uri)
 
     if(scheme, do: scheme <> ":", else: "") <>
-    if(authority, do: "//" <> authority, else: "") <>
-    if(path, do: path, else: "") <>
-    if(query, do: "?" <> query, else: "") <>
-    if(fragment, do: "#" <> fragment, else: "")
+      if(authority, do: "//" <> authority, else: "") <>
+      if(path, do: path, else: "") <>
+      if(query, do: "?" <> query, else: "") <>
+      if(fragment, do: "#" <> fragment, else: "")
   end
 
   defp extract_authority(%{host: nil, authority: authority}) do
@@ -550,7 +550,7 @@ defimpl String.Chars, for: URI do
     # in it only if it's an IPv6 or "IPvFuture" address), so if there's a colon
     # in the host we can safely surround it with [].
     if(userinfo, do: userinfo <> "@", else: "") <>
-    if(String.contains?(host, ":"), do: "[" <> host <> "]", else: host) <>
-    if(port, do: ":" <> Integer.to_string(port), else: "")
+      if(String.contains?(host, ":"), do: "[" <> host <> "]", else: host) <>
+      if(port, do: ":" <> Integer.to_string(port), else: "")
   end
 end
