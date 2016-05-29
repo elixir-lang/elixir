@@ -1184,7 +1184,7 @@ defmodule DateTime do
       ...>                hour: 23, minute: 0, second: 7, microsecond: {0, 0},
       ...>                utc_offset: 3600, std_offset: 3600, time_zone: "Europe/Warsaw"}
       iex> DateTime.to_string(dt)
-      "2000-02-29 23:00:07+02:00 Europe/Warsaw"
+      "2000-02-29 23:00:07+02:00 CEST Europe/Warsaw"
 
       iex> dt = %DateTime{year: 2000, month: 2, day: 29, zone_abbr: "UTC",
       ...>                hour: 23, minute: 0, second: 7, microsecond: {0, 0},
@@ -1196,7 +1196,7 @@ defmodule DateTime do
       ...>                hour: 23, minute: 0, second: 7, microsecond: {0, 0},
       ...>                utc_offset: -12600, std_offset: 3600, time_zone: "Brazil/Manaus"}
       iex> DateTime.to_string(dt)
-      "2000-02-29 23:00:07-02:30 Brazil/Manaus"
+      "2000-02-29 23:00:07-02:30 BRM Brazil/Manaus"
   """
   @spec to_string(DateTime.t) :: String.t
   def to_string(%DateTime{calendar: calendar} = dt) do

@@ -75,13 +75,13 @@ defmodule Calendar.ISO do
     date_to_string(year, month, day) <> " " <> time_to_string(hour, minute, second, microsecond)
   end
 
-  def to_string(%DateTime{year: year, month: month, day: day,
+  def to_string(%DateTime{year: year, month: month, day: day, zone_abbr: zone_abbr,
                           hour: hour, minute: minute, second: second, microsecond: microsecond,
                           utc_offset: utc_offset, std_offset: std_offset, time_zone: time_zone}) do
     date_to_string(year, month, day) <> " " <>
       time_to_string(hour, minute, second, microsecond) <>
       offset_to_string(utc_offset, std_offset, time_zone) <>
-      zone_to_string(utc_offset, std_offset, time_zone)
+      zone_to_string(utc_offset, std_offset, zone_abbr, time_zone)
   end
 
   defp date_to_string(year, month, day) do
@@ -108,8 +108,8 @@ defmodule Calendar.ISO do
     sign(total) <> zero_pad(hour, 2) <> ":" <> zero_pad(minute, 2)
   end
 
-  defp zone_to_string(0, 0, "Etc/UTC"), do: ""
-  defp zone_to_string(_, _, zone), do: " " <> zone
+  defp zone_to_string(0, 0, _abbr, "Etc/UTC"), do: ""
+  defp zone_to_string(_, _, abbr, zone), do: " " <> abbr <> " " <> zone
 
   defp sign(total) when total < 0, do: "-"
   defp sign(_), do: "+"
