@@ -198,6 +198,7 @@ ExUnit v1.3 includes the ability to register different test types. This means li
 ```elixir
 defmodule StringTest do
   use ExUnit.Case, async: true
+  use PropertyTestingLibrary
 
   property "starts_with?" do
     forall({s1, s2} <- {utf8, utf8}) do
