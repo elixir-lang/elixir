@@ -186,8 +186,8 @@ defmodule IO.ANSI do
       [[[[[[], "Hello, "] | "\e[31m"] | "\e[1m"], "world!"] | "\e[0m"]
 
   """
-  def format(chardata, emit \\ enabled?) when is_boolean(emit) do
-    do_format(chardata, [], [], emit, :maybe)
+  def format(chardata, emit? \\ enabled?) when is_boolean(emit?) do
+    do_format(chardata, [], [], emit?, :maybe)
   end
 
   @doc ~S"""
@@ -206,12 +206,12 @@ defmodule IO.ANSI do
       [[[[[[] | "\e[1m"], 87], 111], 114], 100]
 
   """
-  def format_fragment(chardata, emit \\ enabled?) when is_boolean(emit) do
-    do_format(chardata, [], [], emit, false)
+  def format_fragment(chardata, emit? \\ enabled?) when is_boolean(emit?) do
+    do_format(chardata, [], [], emit?, false)
   end
 
-  defp do_format([term | rest], rem, acc, emit, append_reset) do
-    do_format(term, [rest | rem], acc, emit, append_reset)
+  defp do_format([term | rest], rem, acc, emit?, append_reset) do
+    do_format(term, [rest | rem], acc, emit?, append_reset)
   end
 
   defp do_format(term, rem, acc, true, append_reset) when is_atom(term) do
@@ -222,19 +222,19 @@ defmodule IO.ANSI do
     do_format([], rem, acc, false, append_reset)
   end
 
-  defp do_format(term, rem, acc, emit, append_reset) when not is_list(term) do
-    do_format([], rem, [acc | [term]], emit, append_reset)
+  defp do_format(term, rem, acc, emit?, append_reset) when not is_list(term) do
+    do_format([], rem, [acc, term], emit?, append_reset)
   end
 
-  defp do_format([], [next | rest], acc, emit, append_reset) do
-    do_format(next, rest, acc, emit, append_reset)
+  defp do_format([], [next | rest], acc, emit?, append_reset) do
+    do_format(next, rest, acc, emit?, append_reset)
   end
 
   defp do_format([], [], acc, true, true) do
     [acc | IO.ANSI.reset]
   end
 
-  defp do_format([], [], acc, _emit, _append_reset) do
+  defp do_format([], [], acc, _emit?, _append_reset) do
     acc
   end
 end
