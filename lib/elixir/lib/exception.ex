@@ -31,26 +31,6 @@ defmodule Exception do
   @callback exception(term) :: t
   @callback message(t) :: String.t
 
-  @doc false
-  # TODO: Remove this function and use Kernel.struct! directly
-  def __struct__(struct, args) do
-    {valid, invalid} = Enum.partition(args, fn {k, _} -> Map.has_key?(struct, k) end)
-
-    case invalid do
-      [] ->
-        :ok
-      _  ->
-        IO.warn "the following fields are unknown when raising " <>
-                "#{inspect struct.__struct__}: #{inspect invalid}. " <>
-                "Please make sure to only give known fields when raising " <>
-                "or redefine #{inspect struct.__struct__}.exception/1 to " <>
-                "discard unknown fields. Future Elixir versions will raise on " <>
-                "unknown fields given to raise/2"
-    end
-
-    Kernel.struct!(struct, valid)
-  end
-
   @doc """
   Returns `true` if the given `term` is an exception.
   """

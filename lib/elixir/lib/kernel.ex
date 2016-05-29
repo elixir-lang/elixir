@@ -3543,8 +3543,24 @@ defmodule Kernel do
       end
 
       @spec exception(Keyword.t) :: Exception.t
+      # TODO: Only call Kernel.struct! by Elixir v1.4
       def exception(args) when is_list(args) do
-        Exception.__struct__(__struct__(), args)
+        struct = __struct__()
+        {valid, invalid} = Enum.partition(args, fn {k, _} -> Map.has_key?(struct, k) end)
+
+        case invalid do
+          [] ->
+            :ok
+          _  ->
+            IO.warn "the following fields are unknown when raising " <>
+                    "#{inspect __MODULE__}: #{inspect invalid}. " <>
+                    "Please make sure to only give known fields when raising " <>
+                    "or redefine #{inspect __MODULE__}.exception/1 to " <>
+                    "discard unknown fields. Future Elixir versions will raise on " <>
+                    "unknown fields given to raise/2"
+        end
+
+        Kernel.struct!(struct, valid)
       end
 
       defoverridable exception: 1
