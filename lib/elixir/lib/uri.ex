@@ -102,7 +102,7 @@ defmodule URI do
 
   defp encode_kv_pair({key, value}) do
     encode_www_form(Kernel.to_string(key)) <>
-    "=" <> encode_www_form(Kernel.to_string(value))
+      "=" <> encode_www_form(Kernel.to_string(value))
   end
 
   @doc """
