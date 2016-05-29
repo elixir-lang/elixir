@@ -28,26 +28,31 @@ defmodule Mix.Tasks.Compile.Xref do
     {opts, _, _} =
       OptionParser.parse(args, switches: [force: :boolean, warnings_as_errors: :boolean])
 
-    warnings_as_errors =
-      Keyword.get_lazy(opts, :warnings_as_errors, fn ->
-        Mix.Project.config()[:elixirc_options][:warnings_as_errors]
-      end)
-
-    if needs_xref?(opts) and should_exit?(Mix.Task.run("xref", ["--warnings"]), warnings_as_errors) do
+    if needs_xref?(opts) and should_exit?(run_xref(), opts) do
       exit({:shutdown, 1})
     end
 
     write_manifest()
   end
 
+  defp run_xref do
+    Mix.Task.run("xref", ["--warnings"])
+  end
+
   defp needs_xref?(opts) do
     !!opts[:force] or Mix.Utils.stale?(E.manifests(), manifests())
   end
 
-  defp should_exit?(:error, true),
-    do: true
-  defp should_exit?(_, _),
+  defp should_exit?(:error, opts),
+    do: warnings_as_errors(opts) == true
+  defp should_exit?(_, _opts),
     do: false
+
+  defp warnings_as_errors(opts) do
+    Keyword.get_lazy(opts, :warnings_as_errors, fn ->
+      Mix.Project.config()[:elixirc_options][:warnings_as_errors]
+    end)
+  end
 
   @doc """
   Returns xref manifests.
