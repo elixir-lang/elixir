@@ -164,7 +164,7 @@ ExUnit builds on top of `mix xref` to provide the `mix test --stale` functionali
   * If you changed a library file, for example, `lib/foo.ex` that defines `Foo`, any test that invokes a function in `Foo` directly or indirectly will also run
   * If you modify your `mix.exs` or your `test/test_helper.exs`, Mix will run the whole test suite
 
-Such feature provide a great workflow for developers, allowing them to effortlessly focus on parts of the codebase when developing new features.
+This feature provides a great workflow for developers, allowing them to effortlessly focus on parts of the codebase when developing new features.
 
 ### Diffing
 
