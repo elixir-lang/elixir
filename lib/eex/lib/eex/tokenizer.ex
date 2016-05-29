@@ -143,7 +143,7 @@ defmodule EEx.Tokenizer do
     Enum.find_index tokens, fn
       {:fn_paren, _} -> true
       {:fn, _}       -> true
-      _                -> false
+      _              -> false
     end
   end
 

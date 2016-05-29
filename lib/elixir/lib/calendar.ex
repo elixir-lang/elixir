@@ -3,10 +3,13 @@ defmodule Calendar do
   This module defines the responsibilities for working with
   calendars, dates, times and datetimes in Elixir.
 
-  Currently it defines types but may define the calendar
-  behaviour in future versions. For the actual date, time
-  and datetime structures, see `Date`, `Time`, `NaiveDateTime`
-  and `DateTime`.
+  Currently it defines types and the minimal implementation
+  for a calendar behaviour in Elixir. The goal of the Calendar
+  features in Elixir is to provide a base for interoperatibility
+  instead of full-featured datetime API.
+
+  For the actual date, time and datetime structures, see `Date`,
+  `Time`, `NaiveDateTime` and `DateTime`.
 
   Note the year, month, day, etc designations are over specified
   (i.e. an integer instead of 1..12 for months) because different
