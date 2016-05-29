@@ -165,7 +165,25 @@ defmodule Calendar.ISO do
     do: {acc, precision, rest}
 
   @doc false
-  def parse_offset("Z"), do: {0, ""}
-  def parse_offset(""),  do: {nil, ""}
-  def parse_offset(_),   do: :error
+  def parse_offset(""),
+    do: {nil, ""}
+  def parse_offset("Z"),
+    do: {0, ""}
+  def parse_offset("-00:00"),
+    do: :error
+  def parse_offset(<<?+, hour::2-bytes, ?:, min::2-bytes, rest::binary>>),
+    do: parse_offset(1, hour, min, rest)
+  def parse_offset(<<?-, hour::2-bytes, ?:, min::2-bytes, rest::binary>>),
+    do: parse_offset(-1, hour, min, rest)
+  def parse_offset(_),
+    do: :error
+
+  defp parse_offset(sign, hour, min, rest) do
+    with {hour, ""} when hour < 24 <- Integer.parse(hour),
+         {min, ""} when min < 60 <- Integer.parse(min) do
+      {((hour * 60) + min) * 60 * sign, rest}
+    else
+      _ -> :error
+    end
+  end
 end
