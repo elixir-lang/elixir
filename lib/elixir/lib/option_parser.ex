@@ -374,7 +374,7 @@ defmodule OptionParser do
   """
   @spec split(String.t) :: argv
   def split(string) do
-    do_split(strip_leading_spaces(string), "", [], nil)
+    do_split(String.trim_leading(string, " "), "", [], nil)
   end
 
   # If we have an escaped quote, simply remove the escape
@@ -395,7 +395,7 @@ defmodule OptionParser do
 
   # If we have space and we are outside of a quote, start new segment
   defp do_split(<<?\s, t::binary>>, buffer, acc, nil),
-    do: do_split(strip_leading_spaces(t), "", [buffer | acc], nil)
+    do: do_split(String.trim_leading(t, " "), "", [buffer | acc], nil)
 
   # All other characters are moved to buffer
   defp do_split(<<h, t::binary>>, buffer, acc, quote) do
@@ -413,9 +413,6 @@ defmodule OptionParser do
   defp do_split(<<>>, _, _acc, marker) do
     raise "argv string did not terminate properly, a #{<<marker>>} was opened but never closed"
   end
-
-  defp strip_leading_spaces(" " <> t), do: strip_leading_spaces(t)
-  defp strip_leading_spaces(t), do: t
 
   ## Helpers
 
@@ -618,7 +615,7 @@ defmodule OptionParser do
   end
 
   defp get_type(option, opts, types) do
-    option_key = option |> String.lstrip(?-) |> get_option()
+    option_key = option |> String.trim_leading("-") |> get_option()
 
     if option_alias = opts[:aliases][option_key] do
       types[option_alias]

@@ -58,7 +58,7 @@ defmodule IO.ANSI.Docs do
     options = Keyword.merge(default_options, options)
     doc
     |> String.split(["\r\n", "\n"], trim: false)
-    |> Enum.map(&String.rstrip/1)
+    |> Enum.map(&String.trim_trailing/1)
     |> process([], "", options)
   end
 
@@ -68,19 +68,19 @@ defmodule IO.ANSI.Docs do
 
   defp process(["# " <> heading | rest], text, indent, options) do
     write_text(text, indent, options)
-    write_h1(String.strip(heading), options)
+    write_h1(String.trim(heading), options)
     process(rest, [], "", options)
   end
 
   defp process(["## " <> heading | rest], text, indent, options) do
     write_text(text, indent, options)
-    write_h2(String.strip(heading), options)
+    write_h2(String.trim(heading), options)
     process(rest, [], "", options)
   end
 
   defp process(["### " <> heading | rest], text, indent, options) do
     write_text(text, indent, options)
-    write_h3(String.strip(heading), indent, options)
+    write_h3(String.trim(heading), indent, options)
     process(rest, [], "", options)
   end
 
@@ -285,8 +285,8 @@ defmodule IO.ANSI.Docs do
 
   defp split_into_columns(line, options) do
     line
-    |> String.strip(?|)
-    |> String.strip()
+    |> String.trim("|")
+    |> String.trim()
     |> String.split(~r/\s\|\s/)
     |> Enum.map(&render_column(&1, options))
   end

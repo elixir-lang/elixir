@@ -273,13 +273,13 @@ defmodule Kernel.WarningTest do
     output = capture_err(fn ->
       Code.compile_string """
       defmodule Sample do
-        import String, only: [upcase: 1, downcase: 1, strip: 1]
+        import String, only: [upcase: 1, downcase: 1, trim: 1]
         def a, do: upcase("hello")
       end
       """
     end)
     assert output =~ "unused import String.downcase/1"
-    assert output =~ "unused import String.strip/1"
+    assert output =~ "unused import String.trim/1"
   after
     purge Sample
   end
