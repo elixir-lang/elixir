@@ -64,6 +64,6 @@ defmodule DateTimeTest do
     dt = %DateTime{year: 2000, month: 2, day: 29, zone_abbr: "BRM",
                    hour: 23, minute: 0, second: 7, microsecond: {0, 0},
                    utc_offset: -12600, std_offset: 3600, time_zone: "Brazil/Manaus"}
-    assert to_string(dt) == "2000-02-29 23:00:07-02:30 Brazil/Manaus"
+    assert to_string(dt) == "2000-02-29 23:00:07-02:30 BRM Brazil/Manaus"
   end
 end
