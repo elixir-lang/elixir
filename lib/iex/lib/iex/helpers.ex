@@ -399,7 +399,7 @@ defmodule IEx.Helpers do
     info = ["Term": inspect(term)] ++ IEx.Info.info(term)
 
     for {subject, info} <- info do
-      info = info |> to_string() |> String.strip() |> String.replace("\n", "\n  ")
+      info = info |> to_string() |> String.trim() |> String.replace("\n", "\n  ")
       IO.puts IEx.color(:eval_result, to_string(subject))
       IO.puts IEx.color(:eval_info, "  #{info}")
     end

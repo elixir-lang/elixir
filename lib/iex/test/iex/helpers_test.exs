@@ -217,7 +217,7 @@ defmodule IEx.HelpersTest do
     File.cd! iex_path, fn ->
       paths = capture_io(fn -> ls end)
               |> String.split
-              |> Enum.map(&String.strip(&1))
+              |> Enum.map(&String.trim/1)
 
       assert "ebin" in paths
       assert "mix.exs" in paths
@@ -444,7 +444,7 @@ defmodule IEx.HelpersTest do
 
   test "i helper" do
     output = capture_iex ~s[i(:ok)]
-    assert output == String.rstrip("""
+    assert output == String.trim_trailing("""
     Term
       :ok
     Data type

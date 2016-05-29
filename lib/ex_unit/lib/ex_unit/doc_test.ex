@@ -300,7 +300,7 @@ defmodule ExUnit.DocTest do
         actual ->
           reraise ExUnit.AssertionError,
             [message: "Doctest failed",
-             expr: "#{unquote(String.strip(expr))} === #{unquote(String.strip(expected))}",
+             expr: "#{unquote(String.trim(expr))} === #{unquote(String.trim(expected))}",
              left: actual],
             unquote(stack)
       end
@@ -318,7 +318,7 @@ defmodule ExUnit.DocTest do
         actual ->
           reraise ExUnit.AssertionError,
             [message: "Doctest failed",
-             expr: "inspect(#{unquote(String.strip(expr))}) === #{unquote(String.strip(expected))}",
+             expr: "inspect(#{unquote(String.trim(expr))}) === #{unquote(String.trim(expected))}",
              left: actual],
             unquote(stack)
       end
@@ -330,7 +330,7 @@ defmodule ExUnit.DocTest do
 
     quote do
       stack = unquote(stack)
-      expr  = unquote(String.strip(expr))
+      expr  = unquote(String.trim(expr))
       spec  = inspect(unquote(exception)) <> " with message " <> inspect(unquote(message))
 
       try do
@@ -369,7 +369,7 @@ defmodule ExUnit.DocTest do
         quote do
           reraise ExUnit.AssertionError,
             [message: "Doctest did not compile, got: #{unquote(message)}",
-             expr: unquote(String.strip(expr))],
+             expr: unquote(String.trim(expr))],
             unquote(stack)
         end
     end
@@ -429,7 +429,7 @@ defmodule ExUnit.DocTest do
   end
 
   defp adjust_indent(:text, [line | rest], line_no, adjusted_lines, indent, module) do
-    case String.starts_with?(String.lstrip(line), @iex_prompt) do
+    case String.starts_with?(String.trim_leading(line), @iex_prompt) do
       true  ->
         adjust_indent(:prompt, [line | rest], line_no, adjusted_lines, get_indent(line, indent), module)
       false ->
@@ -440,7 +440,7 @@ defmodule ExUnit.DocTest do
   defp adjust_indent(kind, [line | rest], line_no, adjusted_lines, indent, module) when kind in [:prompt, :after_prompt] do
     stripped_line = strip_indent(line, indent)
 
-    case String.lstrip(line) do
+    case String.trim_leading(line) do
       "" ->
         raise Error, line: line_no, module: module,
                      message: "expected non-blank line to follow iex> prompt"
@@ -472,7 +472,7 @@ defmodule ExUnit.DocTest do
     cond do
       stripped_line == "" ->
         adjust_indent(:text, rest, line_no + 1, [{stripped_line, line_no} | adjusted_lines], 0, module)
-      String.starts_with?(String.lstrip(line), @iex_prompt) ->
+      String.starts_with?(String.trim_leading(line), @iex_prompt) ->
         adjust_indent(:prompt, [line | rest], line_no, adjusted_lines, indent, module)
       true ->
         adjust_indent(:code, rest, line_no + 1, [{stripped_line, line_no} | adjusted_lines], indent, module)
@@ -587,7 +587,7 @@ defmodule ExUnit.DocTest do
     case string do
       "** (" <> error ->
         [mod, message] = :binary.split(error, ")")
-        {:error, Module.concat([mod]), String.lstrip(message)}
+        {:error, Module.concat([mod]), String.trim_leading(message)}
       _ ->
         if string =~ ~r/^#[A-Z][\w\.]*<.*>$/ do
           {:inspect, inspect(string)}

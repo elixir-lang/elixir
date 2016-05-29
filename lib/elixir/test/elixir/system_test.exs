@@ -18,7 +18,7 @@ defmodule SystemTest do
 
     version_file = Path.join([__DIR__, "../../../..", "VERSION"]) |> Path.expand
     {:ok, version} = File.read(version_file)
-    assert build_info[:version] == String.strip(version)
+    assert build_info[:version] == String.trim(version)
     assert build_info[:build] != ""
   end
 

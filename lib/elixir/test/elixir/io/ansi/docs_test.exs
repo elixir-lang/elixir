@@ -5,11 +5,11 @@ defmodule IO.ANSI.DocsTest do
   import ExUnit.CaptureIO
 
   def format_heading(str) do
-    capture_io(fn -> IO.ANSI.Docs.print_heading(str, []) end) |> String.rstrip
+    capture_io(fn -> IO.ANSI.Docs.print_heading(str, []) end) |> String.trim_trailing
   end
 
   def format(str) do
-    capture_io(fn -> IO.ANSI.Docs.print(str, []) end) |> String.rstrip
+    capture_io(fn -> IO.ANSI.Docs.print(str, []) end) |> String.trim_trailing
   end
 
   test "heading is formatted" do
