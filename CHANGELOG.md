@@ -136,7 +136,7 @@ plug
 Mix also includes `mix escript.install` and `mix escript.uninstall` tasks for managing escripts. The tasks was designed in a way to mimic the existing `mix archive` functionality except that:
 
   * Archives must be used sparingly because every new archive installed affects Mix performance, as every new archive is loaded when Mix boots. Escripts solve this by being managed apart from your Elixir/Mix installed
-  * Archives depends on the current Elixir version. Therefore, updating your Elixir version may break an archive. Fortunately, escripts bundle Elixir inside themselves, and therefore do not depend on your Elixir system version
+  * Archives depends on the current Elixir version. Therefore, updating your Elixir version may break an archive. Fortunately, escripts include Elixir inside themselves, and therefore do not depend on your Elixir system version
 
 Escripts will be installed at `~/.mix/escripts` which must be added to your [`PATH` environment variable](https://en.wikipedia.org/wiki/PATH_(variable)).
 
@@ -214,15 +214,15 @@ At the end of the run, ExUnit will also report it as a property, including both 
 1 property, 10 tests, 0 failures
 ```
 
-### Named setups and bundles
+### Named setups and describes
 
-Finally, ExUnit v1.3 includes the ability to organize tests together in bundles:
+Finally, ExUnit v1.3 includes the ability to organize tests together in describe blocks:
 
 ```elixir
 defmodule StringTest do
   use ExUnit.Case, async: true
 
-  bundle "String.capitalize/2" do
+  describe "String.capitalize/2" do
     test "uppercases the first grapheme" do
       assert "T" <> _ = String.capitalize("test")
     end
@@ -234,25 +234,25 @@ defmodule StringTest do
 end
 ```
 
-Every test inside a bundle will be tagged with the bundle name. This allows developers to run tests that belong to particular bundles, be them in the same file or across many files:
+Every test inside a describe block will be tagged with the describe block name. This allows developers to run tests that belong to particular blocks, be them in the same file or across many files:
 
 ```
-$ mix test --only bundle:"String.capitalize/2"
+$ mix test --only describe:"String.capitalize/2"
 ```
 
-Note bundles cannot be nested. Instead of relying on hierarchy for composition, we want developers to build on top of named setups. For example:
+Note describe blocks cannot be nested. Instead of relying on hierarchy for composition, we want developers to build on top of named setups. For example:
 
 ```elixir
 defmodule UserManagementTest do
   use ExUnit.Case, async: true
 
-  bundle "when user is logged in and is an admin" do
+  describe "when user is logged in and is an admin" do
     setup [:log_user_in, :set_type_to_admin]
 
     test ...
   end
 
-  bundle "when user is logged in and is a manager" do
+  describe "when user is logged in and is a manager" do
     setup [:log_user_in, :set_type_to_manager]
 
     test ...
@@ -264,7 +264,7 @@ defmodule UserManagementTest do
 end
 ```
 
-By forbidding hierarchies in favor of named setups, it is straight-forward for the developer to glance at each bundle and know exactly the setup steps involved.
+By forbidding hierarchies in favor of named setups, it is straight-forward for the developer to glance at each describe block and know exactly the setup steps involved.
 
 ## v1.3.0-dev
 
@@ -320,7 +320,7 @@ By forbidding hierarchies in favor of named setups, it is straight-forward for t
   * [ExUnit] Raise a straight-forward error message in case a duplicate test name is defined
   * [ExUnit] Bump the default number of max cases to double of schedulers to support both IO and CPU bound tests
   * [ExUnit] Support for named setups in `setup` and `setup_all`
-  * [ExUnit] Support for bundling tests together with `bundle/2`
+  * [ExUnit] Support for bundling tests together with `describe/2`
 
 #### IEx
 

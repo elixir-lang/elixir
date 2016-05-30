@@ -95,7 +95,7 @@ defmodule ExUnit.Callbacks do
   @doc false
   defmacro __using__(_) do
     quote do
-      @ex_unit_bundle nil
+      @ex_unit_describe nil
       @ex_unit_setup []
       @ex_unit_setup_all []
 
@@ -123,7 +123,7 @@ defmodule ExUnit.Callbacks do
       do_setup(quote(do: _), block)
     else
       quote do
-        @ex_unit_setup ExUnit.Callbacks.__callback__(unquote(block), @ex_unit_bundle) ++
+        @ex_unit_setup ExUnit.Callbacks.__callback__(unquote(block), @ex_unit_describe) ++
                        @ex_unit_setup
       end
     end
@@ -147,7 +147,7 @@ defmodule ExUnit.Callbacks do
     quote bind_quoted: [var: escape(var), block: escape(block)] do
       name = :"__ex_unit_setup_#{length(@ex_unit_setup)}"
       defp unquote(name)(unquote(var)), unquote(block)
-      @ex_unit_setup [{name, @ex_unit_bundle} | @ex_unit_setup]
+      @ex_unit_setup [{name, @ex_unit_describe} | @ex_unit_setup]
     end
   end
 
@@ -164,7 +164,8 @@ defmodule ExUnit.Callbacks do
       do_setup_all(quote(do: _), block)
     else
       quote do
-        @ex_unit_bundle && raise "cannot invoke setup_all/1 inside bundle"
+        @ex_unit_describe && raise "cannot invoke setup_all/1 inside describe as setup_all/1 " <>
+                                   "always applies to all tests in a module"
         @ex_unit_setup_all ExUnit.Callbacks.__callback__(unquote(block), nil) ++
                            @ex_unit_setup_all
       end
@@ -187,7 +188,7 @@ defmodule ExUnit.Callbacks do
 
   defp do_setup_all(var, block) do
     quote bind_quoted: [var: escape(var), block: escape(block)] do
-      @ex_unit_bundle && raise "cannot invoke setup_all/2 inside bundle"
+      @ex_unit_describe && raise "cannot invoke setup_all/2 inside describe"
       name = :"__ex_unit_setup_all_#{length(@ex_unit_setup_all)}"
       defp unquote(name)(unquote(var)), unquote(block)
       @ex_unit_setup_all [{name, nil} | @ex_unit_setup_all]
@@ -216,17 +217,17 @@ defmodule ExUnit.Callbacks do
 
   ## Helpers
 
-  @reserved [:case, :file, :line, :test, :async, :registered, :bundle]
+  @reserved [:case, :file, :line, :test, :async, :registered, :describe]
 
   @doc false
-  def __callback__(callback, bundle) do
+  def __callback__(callback, describe) do
     for k <- List.wrap(callback) do
       if not is_atom(k) do
         raise ArgumentError, "setup/setup_all expect a callback name as an atom or " <>
                              "a list of callback names, got: #{inspect k}"
       end
 
-      {k, bundle}
+      {k, describe}
     end |> Enum.reverse()
   end
 
@@ -287,17 +288,17 @@ defmodule ExUnit.Callbacks do
         [] ->
           quote do: context
         [h | t] ->
-          Enum.reduce t, compile_merge(h), fn callback_bundle, acc ->
+          Enum.reduce t, compile_merge(h), fn callback_describe, acc ->
             quote do
               context = unquote(acc)
-              unquote(compile_merge(callback_bundle))
+              unquote(compile_merge(callback_describe))
             end
           end
       end
 
     quote do
       def __ex_unit__(unquote(kind), context) do
-        bundle = Map.get(context, :bundle, nil)
+        describe = Map.get(context, :describe, nil)
         unquote(acc)
       end
     end
@@ -309,9 +310,9 @@ defmodule ExUnit.Callbacks do
     end
   end
 
-  defp compile_merge({callback, bundle}) do
+  defp compile_merge({callback, describe}) do
     quote do
-      if unquote(bundle) == bundle do
+      if unquote(describe) == describe do
         unquote(compile_merge({callback, nil}))
       else
         context

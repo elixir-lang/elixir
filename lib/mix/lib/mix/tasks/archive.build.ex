@@ -11,7 +11,7 @@ defmodule Mix.Tasks.Archive.Build do
   expected to be the project root), unless an argument `-o` is
   provided with the file name.
 
-  Archives are meant to bundle small projects, usually installed
+  Archives are meant to contain small projects, usually installed
   locally.  By default, this command archives the current project
   but the `-i` and `-o` options can be used to archive any directory.
   For example, `mix archive.build` with no options translates to:
