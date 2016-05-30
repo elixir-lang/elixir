@@ -1050,14 +1050,6 @@ defmodule Macro do
     end
   end
 
-  # Expand @ calls
-  defp do_expand_once({:@, _, [{name, _, args}]} = original, env) when is_atom(args) or args == [] do
-    case (module = env.module) && Module.open?(module) do
-      true  -> {escape(Module.get_attribute(module, name)), true}
-      false -> {original, false}
-    end
-  end
-
   # Expand pseudo-variables
   defp do_expand_once({:__MODULE__, _, atom}, env) when is_atom(atom),
     do: {env.module, true}

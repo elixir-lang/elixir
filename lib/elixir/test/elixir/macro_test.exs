@@ -213,10 +213,11 @@ defmodule MacroTest do
   end
 
   @foo 1
-  @bar Macro.expand_once(quote(do: @foo), __ENV__)
 
-  test "expand once with module at" do
-    assert @bar == 1
+  test "expand once should expand module attributes" do
+    assert_raise ArgumentError, fn ->
+      Macro.expand_once(quote(do: @foo), __ENV__)
+    end
   end
 
   defp expand_and_clean(quoted, env) do
