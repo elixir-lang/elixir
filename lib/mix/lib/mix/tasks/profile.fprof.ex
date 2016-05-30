@@ -33,6 +33,7 @@ defmodule Mix.Tasks.Profile.Fprof do
     * `--no-archives-check` - do not check archives
     * `--no-start`      - do not start applications after compilation
     * `--no-elixir-version-check` - do not check the Elixir version from mix.exs
+    * `--no-warmup`     - do not execute code once before profiling
 
   ## Profile output
 
@@ -106,7 +107,8 @@ defmodule Mix.Tasks.Profile.Fprof do
 
   @switches [parallel_require: :keep, require: :keep, eval: :keep, config: :keep,
              compile: :boolean, deps_check: :boolean, start: :boolean, archives_check: :boolean,
-             details: :boolean, callers: :boolean, sort: :string, elixir_version_check: :boolean]
+             details: :boolean, callers: :boolean, sort: :string, elixir_version_check: :boolean,
+             warmup: :boolean]
 
   @spec run(OptionParser.argv) :: :ok
   def run(args) do
@@ -201,6 +203,11 @@ defmodule Mix.Tasks.Profile.Fprof do
   end
 
   defp profile_and_analyse(fun, opts) do
+    if Keyword.get(opts, :warmup, true) do
+      IO.puts "Warmup..."
+      fun.()
+    end
+
     sorting = case Keyword.get(opts, :sort, "acc") do
       "acc" -> :acc
       "own" -> :own
