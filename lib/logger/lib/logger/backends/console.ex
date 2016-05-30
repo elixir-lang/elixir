@@ -76,11 +76,13 @@ defmodule Logger.Backends.Console do
     output =
       format_event(level, msg, ts, md, state)
       |> color_event(level, colors)
-    try do
-      send(device, {:io_request, self(), self(), {:put_chars, :unicode, output}})
-    rescue
-      ArgumentError ->
-        send(device, {:io_request, self(), self(), {:put_chars, :unicode, Logger.Formatter.prune(output)}})
+    case :unicode.characters_to_binary(output) do
+      {:incomplete, good, bad} ->
+        send(device, {:io_request, self(), self(), {:put_chars, :unicode, [good | Logger.Formatter.prune(bad)]}})
+      {:error, good, bad} ->
+        send(device, {:io_request, self(), self(), {:put_chars, :unicode, [good | Logger.Formatter.prune(bad)]}})
+      good ->
+        send(device, {:io_request, self(), self(), {:put_chars, :unicode, good}})
     end
   end
 
