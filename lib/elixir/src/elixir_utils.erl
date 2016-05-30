@@ -230,7 +230,7 @@ convert_to_boolean(Line, Expr, Bool, S) when is_integer(Line) ->
     _               -> do_convert_to_boolean(Line, Expr, Bool, S)
   end.
 
-%% Notice we use a temporary var and bundle nil
+%% Notice we use a temporary var and include nil
 %% and false checks in the same clause since
 %% it makes dialyzer happy.
 do_convert_to_boolean(Line, Expr, Bool, S) ->

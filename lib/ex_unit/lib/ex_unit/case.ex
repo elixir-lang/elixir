@@ -125,7 +125,7 @@ defmodule ExUnit.Case do
     * `:async`      - if the test case is in async mode
     * `:type`       - the type of the test (`:test`, `:property`, etc)
     * `:registered` - used for `ExUnit.Case.register_attribute/3` values
-    * `:bundle`     - the bundle the test belongs to
+    * `:describe`   - the describe block the test belongs to
 
   The following tags customize how tests behaves:
 
@@ -190,7 +190,7 @@ defmodule ExUnit.Case do
       config :logger, backends: []
   """
 
-  @reserved [:case, :file, :line, :test, :async, :registered, :bundle, :type]
+  @reserved [:case, :file, :line, :test, :async, :registered, :describe, :type]
 
   @doc false
   defmacro __using__(opts) do
@@ -203,19 +203,19 @@ defmodule ExUnit.Case do
       async = !!unquote(opts)[:async]
 
       unless Module.get_attribute(__MODULE__, :ex_unit_tests) do
-        Enum.each [:ex_unit_tests, :tag, :bundletag, :moduletag, :ex_unit_registered],
+        Enum.each [:ex_unit_tests, :tag, :describetag, :moduletag, :ex_unit_registered],
           &Module.register_attribute(__MODULE__, &1, accumulate: true)
 
         @before_compile ExUnit.Case
         @after_compile ExUnit.Case
         @ex_unit_async async
-        @ex_unit_bundle nil
+        @ex_unit_describe nil
         use ExUnit.Callbacks
       end
 
       import ExUnit.Callbacks
       import ExUnit.Assertions
-      import ExUnit.Case, only: [bundle: 2, test: 1, test: 2, test: 3]
+      import ExUnit.Case, only: [describe: 2, test: 1, test: 2, test: 3]
       import ExUnit.DocTest
     end
   end
@@ -283,20 +283,20 @@ defmodule ExUnit.Case do
   end
 
   @doc """
-  Bundles tests together.
+  Describes tests together.
 
-  Every bundle receives a name which is used as prefix for upcoming tests.
-  Inside a bundle, `ExUnit.Callbacks.setup/1` may be invoked and it will
-  define a setup callback to run only for the current bundle. The bundle
-  name is also added as a tag, allowing developers to run tests for
-  specific bundles.
+  Every describe block receives a name which is used as prefix for
+  upcoming tests. Inside a block, `ExUnit.Callbacks.setup/1` may be
+  invoked and it will define a setup callback to run only for the
+  current block. The describe name is also added as a tag, allowing
+  developers to run tests for specific blocks.
 
   ## Examples
 
       defmodule StringTest do
         use ExUnit.Case, async: true
 
-        bundle "String.capitalize/1" do
+        describe "String.capitalize/1" do
           test "first grapheme is in uppercase" do
             assert String.capitalize("hello") == "Hello"
           end
@@ -307,28 +307,56 @@ defmodule ExUnit.Case do
         end
       end
 
-  When using Mix, you can run all tests in a bundle as:
+  When using Mix, you can run all tests in a describe block as:
 
-      mix test --only bundle:"String.capitalize/1"
+      mix test --only describe:"String.capitalize/1"
 
-  """
-  defmacro bundle(message, do: block) do
-    quote do
-      if @ex_unit_bundle do
-        raise "cannot call bundle/2 inside another bundle"
+  Note describe blocks cannot be nested. Instead of relying on hierarchy
+  for composition, developers should build on top of named setups. For
+  example:
+
+      defmodule UserManagementTest do
+        use ExUnit.Case, async: true
+
+        describe "when user is logged in and is an admin" do
+          setup [:log_user_in, :set_type_to_admin]
+
+          test ...
+        end
+
+        describe "when user is logged in and is a manager" do
+          setup [:log_user_in, :set_type_to_manager]
+
+          test ...
+        end
+
+        defp log_user_in(context) do
+          # ...
+        end
       end
 
-      @ex_unit_bundle (case unquote(message) do
+  By forbidding hierarchies in favor of named setups, it is straight-forward
+  for the developer to glance at each describe block and know exactly the
+  setup steps involved.
+  """
+  defmacro describe(message, do: block) do
+    quote do
+      if @ex_unit_describe do
+        raise "cannot call describe/2 inside another describe. See the documentation " <>
+              "for describe/2 on named setups and how to handle hierarchies"
+      end
+
+      @ex_unit_describe (case unquote(message) do
         msg when is_binary(msg) -> msg
-        msg -> raise ArgumentError, "bundle name must be a string, got: #{inspect msg}"
+        msg -> raise ArgumentError, "describe name must be a string, got: #{inspect msg}"
       end)
-      Module.delete_attribute(__ENV__.module, :bundletag)
+      Module.delete_attribute(__ENV__.module, :describetag)
 
       try do
         unquote(block)
       after
-        @ex_unit_bundle nil
-        Module.delete_attribute(__ENV__.module, :bundletag)
+        @ex_unit_describe nil
+        Module.delete_attribute(__ENV__.module, :describetag)
       end
     end
   end
@@ -377,9 +405,9 @@ defmodule ExUnit.Case do
     tag = Module.get_attribute(mod, :tag)
     async = Module.get_attribute(mod, :ex_unit_async)
 
-    {name, bundle, bundletag} =
-      if bundle = Module.get_attribute(mod, :ex_unit_bundle) do
-        {:"#{type} #{bundle} #{name}", bundle, Module.get_attribute(mod, :bundletag)}
+    {name, describe, describetag} =
+      if describe = Module.get_attribute(mod, :ex_unit_describe) do
+        {:"#{type} #{describe} #{name}", describe, Module.get_attribute(mod, :describetag)}
       else
         {:"#{type} #{name}", nil, []}
       end
@@ -389,11 +417,11 @@ defmodule ExUnit.Case do
     end
 
     tags =
-      (tags ++ tag ++ bundletag ++ moduletag)
+      (tags ++ tag ++ describetag ++ moduletag)
       |> normalize_tags
       |> validate_tags
       |> Map.merge(%{line: line, file: file, registered: registered,
-                     async: async, bundle: bundle, type: type})
+                     async: async, describe: describe, type: type})
 
     test = %ExUnit.Test{name: name, case: mod, tags: tags}
     Module.put_attribute(mod, :ex_unit_tests, test)
