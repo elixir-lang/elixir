@@ -77,10 +77,10 @@ defmodule Logger.Backends.Console do
       format_event(level, msg, ts, md, state)
       |> color_event(level, colors)
     try do
-      IO.write(device, output)
+      send(device, {:io_request, self(), self(), {:put_chars, :unicode, output}})
     rescue
       ArgumentError ->
-        IO.write(device, Logger.Formatter.prune(output))
+        send(device, {:io_request, self(), self(), {:put_chars, :unicode, Logger.Formatter.prune(output)}})
     end
   end
 
