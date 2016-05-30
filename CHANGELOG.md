@@ -264,9 +264,9 @@ defmodule UserManagementTest do
 end
 ```
 
-By forbidding hierarchies in favor of named setups, it is straight-forward for the developer to glance at each describe block and know exactly the setup steps involved.
+By restricting hierarchies in favor of named setups, it is straight-forward for the developer to glance at each describe block and know exactly the setup steps involved.
 
-## v1.3.0-dev
+## v1.3.0-rc.0 (2016-30-05)
 
 ### 1. Enhancements
 
