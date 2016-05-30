@@ -422,4 +422,70 @@ defmodule Access do
   defp all([], _next, gets, updates) do
     {:lists.reverse(gets), :lists.reverse(updates)}
   end
+
+  @doc ~S"""
+  Accesses the element at `index` (zero based) of a list.
+
+  ## Examples
+
+      iex> list = [%{name: "john"}, %{name: "mary"}]
+      iex> get_in(list, [Access.at(1), :name])
+      "mary"
+      iex> get_and_update_in(list, [Access.at(0), :name], fn
+      ...>   prev -> {prev, String.upcase(prev)}
+      ...> end)
+      {"john", [%{name: "JOHN"}, %{name: "mary"}]}
+      iex> pop_in(list, [Access.at(0), :name])
+      {"john", [%{}, %{name: "mary"}]}
+
+  When the index is out of bounds, `nil` is returned and the update function is never called:
+
+      iex> list = [%{name: "john"}, %{name: "mary"}]
+      iex> get_in(list, [Access.at(10), :name])
+      nil
+      iex> get_and_update_in(list, [Access.at(10), :name], fn
+      ...>   prev -> {prev, String.upcase(prev)}
+      ...> end)
+      {nil, [%{name: "john"}, %{name: "mary"}]}
+
+  An error is raised for negative indexes:
+
+      iex> get_in([], [Access.at(-1)])
+      ** (FunctionClauseError) no function clause matching in Access.at/1
+
+  An error is raised if the accessed structure is not a list:
+
+      iex> get_in(%{}, [Access.at(1)])
+      ** (RuntimeError) Access.at/1 expected a list, got: %{}
+  """
+  def at(index) when index >= 0 do
+    fn(op, data, next) -> at(op, data, index, next) end
+  end
+
+  defp at(:get, data, index, next) when is_list(data) do
+    data |> Enum.at(index) |> next.()
+  end
+
+  defp at(:get_and_update, data, index, next) when is_list(data) do
+    get_and_update_at(data, index, next, [])
+  end
+
+  defp at(_op, data, _index, _next) do
+    raise "Access.at/1 expected a list, got: #{inspect data}"
+  end
+
+  defp get_and_update_at([head | rest], 0, next, updates) do
+    case next.(head) do
+      {get, update} -> {get, :lists.reverse([update | updates], rest)}
+      :pop -> {head, :lists.reverse([head | updates], rest)}
+    end
+  end
+
+  defp get_and_update_at([head | rest], index, next, updates) do
+    get_and_update_at(rest, index - 1, next, [head | updates])
+  end
+
+  defp get_and_update_at([], _index, _next, updates) do
+    {nil, :lists.reverse(updates)}
+  end
 end
