@@ -476,13 +476,8 @@ defmodule Logger do
           level: min_level, utc_log: utc_log?} = Logger.Config.__data__
 
         if compare_levels(level, min_level) != :lt do
-          truncated = truncate(chardata_or_fn, truncate)
+          message = truncate(chardata_or_fn, truncate)
           metadata = [pid: self()] ++ Keyword.merge(pdict, metadata)
-          message =
-            case :unicode.characters_to_binary(truncated) do
-              {_, good, bad} -> [good | Logger.Formatter.prune(bad)]
-              good -> good
-            end
 
           tuple = {Logger, message, Logger.Utils.timestamp(utc_log?), metadata}
 
