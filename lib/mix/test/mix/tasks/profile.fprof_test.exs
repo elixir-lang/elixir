@@ -22,15 +22,17 @@ defmodule Mix.Tasks.Profile.FprofTest do
   end
 
   test "profiles the script", context do
-    git_repo = fixture_path("git_repo/lib/git_repo.ex")
-
     in_tmp context.test, fn ->
+      profile_script_name = "profile_script.ex"
+
+      File.write! profile_script_name, """
+      Enum.each(1..5, fn(_) -> MapSet.new end)
+      """
+
       assert capture_io(fn ->
-        Fprof.run([git_repo])
-      end) =~ ~r(:elixir_module\.compile/4 *\d+ *\d+\.\d{3} *\d+\.\d{3})
+        Fprof.run([profile_script_name])
+      end) =~ ~r(MapSet\.new/0 *5 *\d+\.\d{3} *\d+\.\d{3})
     end
-  after
-    purge [GitRepo]
   end
 
   test "expands callers", context do
