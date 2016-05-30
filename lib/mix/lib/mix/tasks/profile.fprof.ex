@@ -126,7 +126,9 @@ defmodule Mix.Tasks.Profile.Fprof do
 
     # Start app after rewriting System.argv,
     # but before requiring and evaling
-    Mix.Task.run "app.start", args
+    unless "--no-start" in args do
+      Mix.Task.run "app.start", args
+    end
     process_load opts
 
     _ = if file do
