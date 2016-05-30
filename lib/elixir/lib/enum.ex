@@ -335,7 +335,7 @@ defmodule Enum do
   elements are taken as necessary from `leftover` if it was passed.
 
   If `leftover` is passed and does not have enough elements to fill the
-  chunk, then the chunk is returned anyway with less than `count`
+  chunk, then a partial chunk is returned with less than `count`
   elements. If `leftover` is not passed at all or is `nil`, then the
   partial chunk is discarded from the result.
 
@@ -350,8 +350,8 @@ defmodule Enum do
       iex> Enum.chunk([1, 2, 3, 4, 5, 6], 3, 2, [7])
       [[1, 2, 3], [3, 4, 5], [5, 6, 7]]
 
-      iex> Enum.chunk([1, 2, 3, 4, 5, 6], 3, 3, [])
-      [[1, 2, 3], [4, 5, 6]]
+      iex> Enum.chunk([1, 2, 3, 4], 3, 3, [])
+      [[1, 2, 3], [4]]
 
   """
   @spec chunk(t, pos_integer, pos_integer, t | nil) :: [list]
