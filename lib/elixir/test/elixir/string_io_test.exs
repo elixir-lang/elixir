@@ -140,7 +140,7 @@ defmodule StringIOTest do
   test "IO.binwrite with utf8" do
     pid = start("")
     assert IO.binwrite(pid, "あいう") == :ok
-    assert contents(pid) == {"", "あいう"}
+    assert contents(pid) == {"", <<195, 163, 194, 129, 194, 130, 195, 163, 194, 129, 194, 132, 195, 163, 194, 129, 194, 134>>}
   end
 
   test "IO.puts" do
