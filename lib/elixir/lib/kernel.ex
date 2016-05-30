@@ -2605,8 +2605,10 @@ defmodule Kernel do
           "got: #{Macro.to_string({:.., [], [first, last]})}"
       false ->
         case __CALLER__.context do
-          nil -> quote do: Elixir.Range.new(unquote(first), unquote(last))
-          _   -> {:%{}, [], [__struct__: Elixir.Range, first: first, last: last]}
+          :match ->
+            {:%{}, [], [__struct__: Elixir.Range, first: first, last: last]}
+          _ ->
+            quote do: Elixir.Range.new(unquote(first), unquote(last))
         end
     end
   end
@@ -2853,14 +2855,12 @@ defmodule Kernel do
   defmacro left in right do
     in_module? = (__CALLER__.context == nil)
 
-    right = case bootstrapped?(Macro) and not in_module? do
+    right = case bootstrapped?(Macro) do
       true  -> Macro.expand(right, __CALLER__)
       false -> right
     end
 
     case right do
-      _ when in_module? ->
-        quote do: Elixir.Enum.member?(unquote(right), unquote(left))
       [] ->
         false
       [h | t] ->
@@ -2869,6 +2869,10 @@ defmodule Kernel do
         end, comp(left, h), t)
       {:%{}, _meta, [__struct__: Elixir.Range, first: first, last: last]} ->
         in_range(left, Macro.expand(first, __CALLER__), Macro.expand(last, __CALLER__))
+      {{:., [], [{:__aliases__, [], [:Elixir, :Range]}, :new]}, [], [first, last]} ->
+        in_range(left, Macro.expand(first, __CALLER__), Macro.expand(last, __CALLER__))
+      _ when in_module? ->
+        quote do: Elixir.Enum.member?(unquote(right), unquote(left))
       %{__struct__: Elixir.Range, first: _, last: _} ->
         raise ArgumentError, "non-literal range in guard should be escaped with Macro.escape/2"
       _ ->

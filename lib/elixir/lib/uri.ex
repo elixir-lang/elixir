@@ -296,12 +296,12 @@ defmodule URI do
     if predicate.(char) do
       <<char>>
     else
-      "%" <> hex(bsr(char, 4)) <> hex(band(char, 15))
+      <<"%", hex(bsr(char, 4)), hex(band(char, 15))>>
     end
   end
 
-  defp hex(n) when n <= 9, do: <<n + ?0>>
-  defp hex(n), do: <<n + ?A - 10>>
+  defp hex(n) when n <= 9, do: n + ?0
+  defp hex(n), do: n + ?A - 10
 
   @doc """
   Percent-unescapes a URI.
