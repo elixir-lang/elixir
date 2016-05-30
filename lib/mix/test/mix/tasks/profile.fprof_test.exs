@@ -85,4 +85,16 @@ defmodule Mix.Tasks.Profile.FprofTest do
       end
     end
   end
+
+  test "warmup", context do
+    in_tmp context.test, fn ->
+      assert capture_io(fn ->
+        Fprof.run(["-e", "Enum.each(1..5, fn(_) -> MapSet.new end)"])
+      end) =~ "Warmup..."
+
+      refute capture_io(fn ->
+        Fprof.run(["-e", "Enum.each(1..5, fn(_) -> MapSet.new end)", "--no-warmup"])
+      end) =~ "Warmup..."
+    end
+  end
 end
