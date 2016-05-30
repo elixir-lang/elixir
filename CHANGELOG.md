@@ -55,7 +55,7 @@ The current Calendar modules and its types is to provide a base for interoperati
 
 Elixir v1.3 also introduces 3 new sigils related to the types above:
 
-  * `~D[2016-29-05]` - builds a new date
+  * `~D[2016-05-29]` - builds a new date
   * `~T[08:00:00]` and `~T[08:00:00.285]` - builds a new time (with different precisions)
   * `~N[2016-29-05 08:00:00]` - builds a naive date time
 
