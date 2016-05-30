@@ -324,7 +324,7 @@ By restricting hierarchies in favor of named setups, it is straight-forward for 
 
 #### IEx
 
-  * [IEx] Add `nl/2` that loads a given modules on a list of nodes
+  * [IEx] Add `nl/2` that loads a given module on a list of nodes
   * [IEx.Helpers] No longer restart applications on `recompile/1`
   * [IEx.Autocomplete] Improve IEx expand to handle functions after `&`
 
