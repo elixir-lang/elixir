@@ -288,6 +288,12 @@ defmodule LoggerTest do
     end
   end
 
+  test "log/2 prunes bad unicode chars" do
+    assert capture_log(fn ->
+      assert Logger.log(:debug, "he" <> <<185>> <> "lo") == :ok
+    end) =~ "he�lo"
+  end
+
   test "log/2 relies on sync_threshold" do
     Logger.remove_backend(:console)
     Logger.configure(sync_threshold: 0)
