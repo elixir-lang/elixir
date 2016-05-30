@@ -11,9 +11,9 @@ defmodule Calendar do
   For the actual date, time and datetime structures, see `Date`,
   `Time`, `NaiveDateTime` and `DateTime`.
 
-  Note the year, month, day, etc designations are over specified
+  Note the year, month, day, etc designations are overspecified
   (i.e. an integer instead of 1..12 for months) because different
-  calendars may have a different number of numbers and so on.
+  calendars may have a different number of days per month, months per year and so on.
   """
 
   @type year        :: integer
