@@ -135,21 +135,20 @@ defmodule StringIO do
     s
   end
 
-  defp io_request({:put_chars, chars}, %{output: output} = s) do
-    {:ok, %{s | output: <<output::binary, IO.chardata_to_string(chars)::binary>>}}
+  defp io_request({:put_chars, chars} = req, s) do
+    put_chars(:latin1, chars, req, s)
   end
 
-  defp io_request({:put_chars, m, f, as}, %{output: output} = s) do
-    chars = apply(m, f, as)
-    {:ok, %{s | output: <<output::binary, IO.chardata_to_string(chars)::binary>>}}
+  defp io_request({:put_chars, m, f, as} = req, s) do
+    put_chars(:latin1, apply(m, f, as), req, s)
   end
 
-  defp io_request({:put_chars, _encoding, chars}, s) do
-    io_request({:put_chars, chars}, s)
+  defp io_request({:put_chars, encoding, chars} = req, s) do
+    put_chars(encoding, chars, req, s)
   end
 
-  defp io_request({:put_chars, _encoding, mod, func, args}, s) do
-    io_request({:put_chars, mod, func, args}, s)
+  defp io_request({:put_chars, encoding, mod, func, args} = req, s) do
+    put_chars(encoding, apply(mod, func, args), req, s)
   end
 
   defp io_request({:get_chars, prompt, n}, s) when n >= 0 do
@@ -202,6 +201,17 @@ defmodule StringIO do
 
   defp io_request(_, s) do
     {{:error, :request}, s}
+  end
+
+  ## put_chars
+
+  defp put_chars(encoding, chars, req, %{output: output} = s) do
+    case :unicode.characters_to_binary(chars, encoding, :unicode) do
+      string when is_binary(string) ->
+        {:ok, %{s | output: output <> string}}
+      {_, _, _} ->
+        {{:error, req}, s}
+    end
   end
 
   ## get_chars
