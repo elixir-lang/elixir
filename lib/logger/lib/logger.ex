@@ -183,6 +183,8 @@ defmodule Logger do
 
     * `:colors` - a keyword list of coloring options.
 
+    * `:max_buffer` - maximum events to buffer (default: 32)
+
   In addition to the keys provided by the user via `Logger.metadata/1`,
   the following default keys are available in the `:metadata` list:
 
@@ -237,7 +239,7 @@ defmodule Logger do
   Once initialized, the handler should be designed to handle events
   in the following format:
 
-      {level, group_leader, {Logger, message, timestamp, metadata}}
+      {level, group_leader, {Logger, message, timestamp, metadata}} | :flush
 
   where:
 
@@ -260,6 +262,9 @@ defmodule Logger do
           when node(gl) != node() do
         {:ok, state}
       end
+
+  In the case of the event `:flush` handlers should flush any pending data. This
+  event is triggered by `flush/0`.
 
   Furthermore, backends can be configured via the
   `configure_backend/2` function which requires event handlers
@@ -395,8 +400,7 @@ defmodule Logger do
   @spec flush :: :ok
   def flush do
     _ = GenEvent.which_handlers(:error_logger)
-    _ = GenEvent.which_handlers(Logger)
-    :ok
+    GenEvent.sync_notify(Logger, :flush)
   end
 
   @doc """
@@ -478,13 +482,8 @@ defmodule Logger do
         if compare_levels(level, min_level) != :lt do
           truncated = truncate(chardata_or_fn, truncate)
           metadata = [pid: self()] ++ Keyword.merge(pdict, metadata)
-          message =
-            case :unicode.characters_to_binary(truncated) do
-              {_, good, bad} -> [good | Logger.Formatter.prune(bad)]
-              good -> good
-            end
 
-          tuple = {Logger, message, Logger.Utils.timestamp(utc_log?), metadata}
+          tuple = {Logger, truncated, Logger.Utils.timestamp(utc_log?), metadata}
 
           try do
             notify(mode, {level, Process.group_leader(), tuple})
