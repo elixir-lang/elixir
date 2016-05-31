@@ -339,6 +339,9 @@ defmodule Enum do
   elements. If `leftover` is not passed at all or is `nil`, then the
   partial chunk is discarded from the result.
 
+  If `count` is greater than the number of elements in the enumerable
+  and `leftover` is not passed, empty list will be returned.
+
   ## Examples
 
       iex> Enum.chunk([1, 2, 3, 4, 5, 6], 2)
@@ -352,6 +355,12 @@ defmodule Enum do
 
       iex> Enum.chunk([1, 2, 3, 4], 3, 3, [])
       [[1, 2, 3], [4]]
+
+      iex> Enum.chunk([1, 2, 3, 4], 10)
+      []
+
+      iex> Enum.chunk([1, 2, 3, 4], 10, 10, [])
+      [[1, 2, 3, 4]]
 
   """
   @spec chunk(t, pos_integer, pos_integer, t | nil) :: [list]
