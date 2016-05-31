@@ -3,6 +3,9 @@ defmodule Logger.Backends.Console do
 
   use GenEvent
 
+  defstruct [format: nil, metadata: nil, level: nil, colors: nil, device: nil,
+             max_buffer: nil, buffer_size: 0, buffer: [], ref: nil, output: nil]
+
   def init(:console) do
     if Process.whereis(:user) do
       init({:user, []})
@@ -12,11 +15,11 @@ defmodule Logger.Backends.Console do
   end
 
   def init({device, opts}) do
-    {:ok, configure(device, opts)}
+    {:ok, configure(device, opts, %__MODULE__{})}
   end
 
   def handle_call({:configure, options}, state) do
-    {:ok, :ok, configure(state.device, options)}
+    {:ok, :ok, configure(state.device, options, state)}
   end
 
   def handle_event({_level, gl, _event}, state)
@@ -25,9 +28,38 @@ defmodule Logger.Backends.Console do
   end
 
   def handle_event({level, _gl, {Logger, msg, ts, md}}, state) do
-    if meet_level?(level, state.level) do
-      log_event(level, msg, ts, md, state)
+    %{level: log_level, ref: ref, buffer_size: buffer_size,
+      max_buffer: max_buffer} = state
+    cond do
+      not meet_level?(level, log_level) ->
+        {:ok, state}
+      is_nil(ref) ->
+        {:ok, log_event(level, msg, ts, md, state)}
+      buffer_size < max_buffer ->
+        {:ok, buffer_event(level, msg, ts, md, state)}
+      buffer_size === max_buffer ->
+        state = buffer_event(level, msg, ts, md, state)
+        {:ok, await_io(state)}
     end
+  end
+
+  def handle_event(:flush, state) do
+    {:ok, flush(state)}
+  end
+
+  def handle_event(_, state) do
+    {:ok, state}
+  end
+
+  def handle_info({:io_reply, ref, msg}, %{ref: ref} = state) do
+    {:ok, handle_io_reply(msg, state)}
+  end
+
+  def handle_info({:DOWN, ref, _, pid, reason}, %{ref: ref}) do
+    raise "device #{inspect pid} exited: " <> Exception.format_exit(reason)
+  end
+
+  def handle_info(_, state) do
     {:ok, state}
   end
 
@@ -39,7 +71,7 @@ defmodule Logger.Backends.Console do
     Logger.compare_levels(lvl, min) != :lt
   end
 
-  defp configure(device, options) do
+  defp configure(device, options, state) do
     config =
       Application.get_env(:logger, :console, [])
       |> configure_merge(options)
@@ -48,12 +80,13 @@ defmodule Logger.Backends.Console do
       Application.put_env(:logger, :console, config)
     end
 
-    format   = Logger.Formatter.compile Keyword.get(config, :format)
-    level    = Keyword.get(config, :level)
-    metadata = Keyword.get(config, :metadata, [])
-    colors   = configure_colors(config)
-    %{format: format, metadata: Enum.reverse(metadata),
-      level: level, colors: colors, device: device}
+    format     = Logger.Formatter.compile Keyword.get(config, :format)
+    level      = Keyword.get(config, :level)
+    metadata   = Keyword.get(config, :metadata, [])
+    colors     = configure_colors(config)
+    max_buffer = Keyword.get(config, :max_buffer, 32)
+    %{state | format: format, metadata: Enum.reverse(metadata),
+      level: level, colors: colors, device: device, max_buffer: max_buffer}
   end
 
   defp configure_merge(env, options) do
@@ -72,15 +105,51 @@ defmodule Logger.Backends.Console do
       enabled: Keyword.get(colors, :enabled, IO.ANSI.enabled?)}
   end
 
-  defp log_event(level, msg, ts, md, %{colors: colors, device: device} = state) do
-    output =
-      format_event(level, msg, ts, md, state)
-      |> color_event(level, colors)
-    send(device, {:io_request, self(), self(), {:put_chars, :unicode, output}})
+  defp log_event(level, msg, ts, md, %{device: device} = state) do
+    output = format_event(level, msg, ts, md, state)
+    %{state | ref: async_io(device, output), output: output}
   end
 
-  defp format_event(level, msg, ts, md, %{format: format, metadata: keys}) do
-    Logger.Formatter.format(format, level, msg, ts, take_metadata(md, keys))
+  defp buffer_event(level, msg, ts, md, state) do
+    %{buffer: buffer, buffer_size: buffer_size} = state
+    buffer = [buffer | format_event(level, msg, ts, md, state)]
+    %{state | buffer: buffer, buffer_size: buffer_size + 1}
+  end
+
+  defp async_io(:user, output) do
+    case Process.whereis(:user) do
+      device when is_pid(device) ->
+        async_io(device, output)
+      nil ->
+        raise "no device registered with the name :user"
+    end
+  end
+
+  defp async_io(device, output) when is_pid(device) do
+    ref = Process.monitor(device)
+    send(device, {:io_request, self(), ref, {:put_chars, :unicode, output}})
+    ref
+  end
+
+  defp await_io(%{ref: nil} = state), do: state
+
+  defp await_io(%{ref: ref} = state) do
+    receive do
+      {:io_reply, ^ref, :ok} ->
+        handle_io_reply(:ok, state)
+      {:io_reply, ^ref, error} ->
+        handle_io_reply(error, state)
+        |> await_io()
+      {:DOWN, ^ref, _, pid, reason} ->
+        raise "device #{inspect pid} exited: " <> Exception.format_exit(reason)
+    end
+  end
+
+  defp format_event(level, msg, ts, md, state) do
+    %{format: format, metadata: keys, colors: colors} = state
+    format
+    |> Logger.Formatter.format(level, msg, ts, take_metadata(md, keys))
+    |> color_event(level, colors)
   end
 
   defp take_metadata(metadata, keys) do
@@ -96,5 +165,50 @@ defmodule Logger.Backends.Console do
 
   defp color_event(data, level, %{enabled: true} = colors) do
     [IO.ANSI.format_fragment(Map.fetch!(colors, level), true), data | IO.ANSI.reset]
+  end
+
+  defp log_buffer(%{buffer_size: 0, buffer: []} = state), do: state
+
+  defp log_buffer(state) do
+    %{device: device, buffer: buffer} = state
+    %{state | ref: async_io(device, buffer), buffer: [], buffer_size: 0,
+      output: buffer}
+  end
+
+  defp handle_io_reply(:ok, %{ref: ref} = state) do
+    Process.demonitor(ref, [:flush])
+    log_buffer(%{state | ref: nil, output: nil})
+  end
+
+  defp handle_io_reply({:error, {:put_chars, :unicode, _} = error}, state) do
+    retry_log(error, state)
+  end
+
+  defp handle_io_reply({:error, :put_chars}, %{output: output} = state) do
+    retry_log({:put_chars, :unicode, output}, state)
+  end
+
+  defp handle_io_reply({:error, error}, _) do
+    raise "failure while logging console messages: " <> inspect(error)
+  end
+
+  defp retry_log(error, %{device: device, ref: ref, output: dirty} = state) do
+    Process.demonitor(ref, [:flush])
+    case :unicode.characters_to_binary(dirty) do
+      {_, good, bad} ->
+        clean = [good | Logger.Formatter.prune(bad)]
+        %{state | ref: async_io(device, clean), output: clean}
+      _ ->
+        # A well behaved IO device should not error on good data
+        raise "failure while logging consoles messages: " <> inspect(error)
+    end
+  end
+
+  defp flush(%{ref: nil} = state), do: state
+
+  defp flush(state) do
+    state
+    |> await_io()
+    |> flush()
   end
 end
