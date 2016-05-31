@@ -28,7 +28,7 @@ defmodule Mix.Tasks.Escript.Install do
 
   ## Command line options
 
-    * `--sha512` - checks the archive matches the given sha512 checksum
+    * `--sha512` - checks the escript matches the given sha512 checksum
 
     * `--force` - forces installation without a shell prompt; primarily
       intended for automation in build systems like make
