@@ -325,7 +325,7 @@ defmodule Logger do
   end
 
   @doc """
-  Resets the current process metadata to the the given keyword list.
+  Resets the current process metadata to the given keyword list.
   """
   def reset_metadata(keywords \\ []) do
     {enabled?, _metadata} = __metadata__()
