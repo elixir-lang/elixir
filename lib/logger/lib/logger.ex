@@ -183,7 +183,10 @@ defmodule Logger do
 
     * `:colors` - a keyword list of coloring options.
 
-    * `:max_buffer` - maximum events to buffer (default: 32)
+    * `:max_buffer` - maximum events to buffer while waiting
+      for a confirmation from the IO device (default: 32).
+      Once the buffer is full, the backend will block until
+      a confirmation is received.
 
   In addition to the keys provided by the user via `Logger.metadata/1`,
   the following default keys are available in the `:metadata` list:
