@@ -53,21 +53,21 @@ defmodule Mix.Tasks.Escript.Install do
     if File.exists?(dst), do: [dst], else: []
   end
 
-  def before_install(_src, dst_path) do
-    File.rm(dst_path)
-    File.rm(dst_path <> ".bat")
-    :ok
-  end
-
-  def after_install(dst, binary, _previous) do
+  def install(dst, binary, _previous) do
     if escript?(binary) do
+      _ = File.rm(dst)
+      _ = File.rm(dst <> ".bat")
+
+      File.mkdir_p!(Path.dirname(dst))
+      File.write!(dst, binary)
       File.chmod!(dst, @escript_file_mode)
       write_bat!(dst <> ".bat", :os.type)
+
+      Mix.shell.info [:green, "* creating ", :reset, Path.relative_to_cwd(dst)]
       check_discoverability(dst)
       :ok
     else
-      File.rm_rf(dst)
-      {:error, "The given path does not point to an escript, installation aborted"}
+      Mix.raise "The given path does not point to an escript, installation aborted"
     end
   end
 

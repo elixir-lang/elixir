@@ -69,9 +69,9 @@ defmodule Mix.Local do
   Returns the name of an archive given a path.
   """
   def archive_name(path) do
-    path              # "foo/bar/baz-0.1.0.ez"
-    |> Path.basename  # "baz-0.1.0.ez"
-    |> Path.rootname  # "baz-0.1.0"
+    path                    # "foo/bar/baz-0.1.0.ez"
+    |> Path.basename        # "baz-0.1.0.ez"
+    |> Path.rootname(".ez") # "baz-0.1.0"
   end
 
   @doc """
@@ -82,7 +82,11 @@ defmodule Mix.Local do
   end
 
   defp archives_ebins do
-    Path.join(path_for(:archive), "*.ez") |> Path.wildcard |> Enum.map(&archive_ebin/1)
+    path = path_for(:archive)
+    case File.ls(path) do
+      {:ok, entries} -> Enum.map(entries, &archive_ebin(Path.join(path, &1)))
+      {:error, _} -> []
+    end
   end
 
   @doc """

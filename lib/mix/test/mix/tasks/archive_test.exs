@@ -42,13 +42,14 @@ defmodule Mix.Tasks.ArchiveTest do
 
       send self, {:mix_shell_input, :yes?, true}
       Mix.Tasks.Archive.Install.run []
-      assert File.regular? tmp_path("userhome/.mix/archives/archive-0.1.0.ez")
+      refute File.regular? tmp_path("userhome/.mix/archives/archive-0.1.0.ez")
+      assert File.dir? tmp_path("userhome/.mix/archives/archive-0.1.0/archive-0.1.0/ebin")
 
       # Check that the version warning is printed after installation
       version_error = "warning: the archive archive-0.1.0 requires Elixir \"~> 0.1.0\" but you are running on v#{System.version}"
       assert_received {:mix_shell, :error, [^version_error]}
 
-      archive = tmp_path("userhome/.mix/archives/archive-0.1.0.ez/archive-0.1.0/ebin")
+      archive = tmp_path("userhome/.mix/archives/archive-0.1.0/archive-0.1.0/ebin")
       assert to_charlist(archive) in :code.get_path
 
       # Loading the archive should emit warning again
@@ -61,7 +62,7 @@ defmodule Mix.Tasks.ArchiveTest do
       assert_received {:mix_shell, :info, [^info]}
 
       Mix.Tasks.Archive.run []
-      assert_received {:mix_shell, :info, ["* archive-0.1.0.ez"]}
+      assert_received {:mix_shell, :info, ["* archive-0.1.0"]}
 
       # Run archived task
       Mix.Task.run "local.sample"
@@ -87,20 +88,22 @@ defmodule Mix.Tasks.ArchiveTest do
       # Install new version
       send self, {:mix_shell_input, :yes?, true}
       Mix.Tasks.Archive.Install.run []
-      assert File.regular? tmp_path("userhome/.mix/archives/archive-0.2.0.ez")
+      refute File.regular? tmp_path("userhome/.mix/archives/archive-0.2.0.ez")
+      assert File.dir? tmp_path("userhome/.mix/archives/archive-0.2.0/archive-0.2.0/ebin")
 
       # Re-install current version should not change system
       send self, {:mix_shell_input, :yes?, true}
       Mix.Tasks.Archive.Install.run []
-      assert File.regular? tmp_path("userhome/.mix/archives/archive-0.2.0.ez")
+      refute File.regular? tmp_path("userhome/.mix/archives/archive-0.2.0.ez")
+      assert File.dir? tmp_path("userhome/.mix/archives/archive-0.2.0/archive-0.2.0/ebin")
 
       # Try to install a missing version does not remove archive
       assert_raise Mix.Error, fn ->
         Mix.Tasks.Archive.Install.run ["./archive-0.0.0.ez"]
       end
 
-      assert File.regular? tmp_path("userhome/.mix/archives/archive-0.2.0.ez")
-      refute_file_exists tmp_path("userhome/.mix/archives/archive-0.1.0.ez")
+      assert File.dir? tmp_path("userhome/.mix/archives/archive-0.2.0/archive-0.2.0/ebin")
+      refute File.regular? tmp_path("userhome/.mix/archives/archive-0.1.0.ez")
 
       # Load archive without warnings because there is no :elixir requirement in mix.exs
       Mix.Local.append_archives
@@ -108,37 +111,19 @@ defmodule Mix.Tasks.ArchiveTest do
 
       # Check uninstall confirmation
       send self, {:mix_shell_input, :yes?, false}
-      Mix.Tasks.Archive.Uninstall.run ["archive-0.2.0.ez"]
-      assert_file_exists tmp_path("userhome/.mix/archives/archive-0.2.0.ez")
+      Mix.Tasks.Archive.Uninstall.run ["archive-0.2.0"]
+      assert File.dir? tmp_path("userhome/.mix/archives/archive-0.2.0/archive-0.2.0/ebin")
 
       # Remove it!
       send self, {:mix_shell_input, :yes?, true}
-      Mix.Tasks.Archive.Uninstall.run ["archive-0.2.0.ez"]
-      refute_file_exists tmp_path("userhome/.mix/archives/archive-0.2.0.ez")
+      Mix.Tasks.Archive.Uninstall.run ["archive-0.2.0"]
+      refute File.dir? tmp_path("userhome/.mix/archives/archive-0.2.0/archive-0.2.0/ebin")
     end
   end
 
   defp has_zip_file?(archive, name) do
     {:ok, files} = :zip.list_dir(archive)
     Enum.find(files, &match?({:zip_file, ^name, _, _, _, _}, &1))
-  end
-
-  defp assert_file_exists(path) do
-    # We don't do the assertion below on Windows because
-    # the archive is open by Erlang code server and the archive
-    # is not effectively removed until the Erlang process exits.
-    unless match? {:win32, _}, :os.type do
-      assert File.regular? path
-    end
-  end
-
-  defp refute_file_exists(path) do
-    # We don't do the assertion below on Windows because
-    # the archive is open by Erlang code server and the archive
-    # is not effectively removed until the Erlang process exits.
-    unless match? {:win32, _}, :os.type do
-      refute File.regular? path
-    end
   end
 
   test "archive checksum" do
@@ -156,7 +141,8 @@ defmodule Mix.Tasks.ArchiveTest do
       # Install with correct checksum
       send self, {:mix_shell_input, :yes?, true}
       Mix.Tasks.Archive.Install.run ["--sha512", sha512("archive-0.1.0.ez")]
-      assert File.regular? tmp_path("userhome/.mix/archives/archive-0.1.0.ez")
+      refute File.regular? tmp_path("userhome/.mix/archives/archive-0.1.0.ez")
+      assert File.dir? tmp_path("userhome/.mix/archives/archive-0.1.0/archive-0.1.0/ebin")
     end
   end
 

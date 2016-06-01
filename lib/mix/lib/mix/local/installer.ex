@@ -15,14 +15,9 @@ defmodule Mix.Local.Installer do
   @callback find_previous_versions(String.t, Path.t) :: [Path.t]
 
   @doc """
-  Custom actions to be performed before the actual installation.
+  The installation itself.
   """
-  @callback before_install(String.t, Path.t) :: :ok | {:error, String.t}
-
-  @doc """
-  Custom actions to be performed after the installation has succeeded.
-  """
-  @callback after_install(Path.t,  binary, [Path.t]) :: :ok | {:error, String.t}
+  @callback install(dest :: Path.t, contents :: binary, previous :: [Path.t]) :: :ok
 
   @doc """
   Common implementation of installation for archives and escripts.
@@ -76,24 +71,13 @@ defmodule Mix.Local.Installer do
 
   defp do_install({module, name}, src, opts) do
     src_basename = Path.basename(URI.parse(src).path)
-    dst_file_path = Path.join(Mix.Local.path_for(name), src_basename)
-    dst_dir_path = Path.dirname(dst_file_path)
-    previous_files = module.find_previous_versions(src, dst_file_path)
+    dst = Path.join(Mix.Local.path_for(name), src_basename)
+    previous_files = module.find_previous_versions(src, dst)
 
     if opts[:force] || should_install?(name, src, previous_files) do
-      case module.before_install(src, dst_file_path) do
-        :ok -> :ok
-        {:error, message} -> Mix.raise message
-      end
-
       case Mix.Utils.read_path(src, opts) do
         {:ok, binary} ->
-          File.mkdir_p!(dst_dir_path)
-          File.write!(dst_file_path, binary)
-          case module.after_install(dst_file_path, binary, previous_files) do
-            :ok -> :ok
-            {:error, message} -> Mix.raise message
-          end
+          module.install(dst, binary, previous_files)
 
         :badpath ->
           Mix.raise "Expected #{inspect src} to be a URL or a local file path"
@@ -115,7 +99,6 @@ defmodule Mix.Local.Installer do
           """
       end
 
-      Mix.shell.info [:green, "* creating ", :reset, Path.relative_to_cwd(dst_file_path)]
       true
     else
       false
@@ -165,13 +148,13 @@ defmodule Mix.Local.Installer do
     if name = List.first(argv) do
       path = Path.join(root, name)
       cond do
-        not File.regular?(path) ->
+        not File.exists?(path) ->
           Mix.shell.error "Could not find a local #{item_name} named #{inspect name}. "<>
                           "Existing #{item_plural} are:"
           Mix.Task.run item_name
           nil
         should_uninstall?(path, item_name) ->
-          File.rm!(path)
+          File.rm_rf!(path)
           path
         true ->
           nil
