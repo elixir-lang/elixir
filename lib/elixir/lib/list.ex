@@ -117,10 +117,10 @@ defmodule List do
 
   ## Examples
 
-      iex> List.foldl([5, 5], 10, fn (x, acc) -> x + acc end)
+      iex> List.foldl([5, 5], 10, fn(x, acc) -> x + acc end)
       20
 
-      iex> List.foldl([1, 2, 3, 4], 0, fn (x, acc) -> x - acc end)
+      iex> List.foldl([1, 2, 3, 4], 0, fn(x, acc) -> x - acc end)
       2
 
   """
@@ -135,7 +135,7 @@ defmodule List do
 
   ## Examples
 
-      iex> List.foldr([1, 2, 3, 4], 0, fn (x, acc) -> x - acc end)
+      iex> List.foldr([1, 2, 3, 4], 0, fn(x, acc) -> x - acc end)
       -2
 
   """

@@ -49,9 +49,9 @@ function_parens_test() ->
   {1, _} = eval("(fn(1) -> 1 end).(1)"),
   {3, _} = eval("(fn(1, 2) -> 3 end).(1, 2)"),
 
-  {0, _} = eval("(fn () -> 0 end).()"),
-  {1, _} = eval("(fn (1) -> 1 end).(1)"),
-  {3, _} = eval("(fn (1, 2) -> 3 end).(1, 2)").
+  {0, _} = eval("(fn() -> 0 end).()"),
+  {1, _} = eval("(fn(1) -> 1 end).(1)"),
+  {3, _} = eval("(fn(1, 2) -> 3 end).(1, 2)").
 
 %% Function calls
 
