@@ -13,7 +13,7 @@ defmodule Mix.Tasks.Escript.Install do
 
       mix do escript.build, escript.install
 
-  If an argument is provided, it should be a local path, a URL to a prebuilt escript,
+  If an argument is provided, it should be a local path or a URL to a prebuilt escript,
   a git repository, or a github repository.
 
       mix escript.install escript
@@ -94,10 +94,6 @@ defmodule Mix.Tasks.Escript.Install do
   end
 
   defp do_git_install([url, ref_type, ref], opts) do
-    if opts[:sha512] do
-      Mix.raise "--sha512 is not supported for given "
-    end
-
     in_tmp_dir fn tmp_path ->
       checkout_opts =
         ref_to_config(ref_type, ref) ++
