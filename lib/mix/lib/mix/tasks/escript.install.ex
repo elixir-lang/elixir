@@ -2,7 +2,6 @@ defmodule Mix.Tasks.Escript.Install do
   use Mix.Task
 
   @shortdoc "Installs an escript locally"
-  @preferred_cli_env :prod
 
   @moduledoc """
   Installs an escript locally.
@@ -183,10 +182,18 @@ defmodule Mix.Tasks.Escript.Install do
   defp do_escript_build_and_install(path, opts) do
     install_opts = if opts[:force], do: ["--force"], else: []
 
-    Mix.Project.in_project :new_escript, path, fn _mixfile ->
-      Mix.Task.run("deps.get", ["--only", Mix.env])
-      Mix.Task.run("escript.build", [])
-      Mix.Task.run("escript.install", install_opts)
+    previous_env = Mix.env()
+
+    try do
+      Mix.env(:prod)
+
+      Mix.Project.in_project :new_escript, path, fn _mixfile ->
+        Mix.Task.run("deps.get", ["--only", Mix.env()])
+        Mix.Task.run("escript.build", [])
+        Mix.Task.run("escript.install", install_opts)
+      end
+    after
+      Mix.env(previous_env)
     end
   end
 
