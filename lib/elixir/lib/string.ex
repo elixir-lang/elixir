@@ -1169,10 +1169,10 @@ defmodule String do
       iex> String.valid?("ø")
       true
 
-      iex> String.valid?(<<0xffff :: 16>>)
+      iex> String.valid?(<<0xFFFF :: 16>>)
       false
 
-      iex> String.valid?("asd" <> <<0xffff :: 16>>)
+      iex> String.valid?("asd" <> <<0xFFFF :: 16>>)
       false
 
   """
@@ -1223,11 +1223,11 @@ defmodule String do
       iex> String.chunk(<<?a, ?b, ?c, 0>>, :valid)
       ["abc\0"]
 
-      iex> String.chunk(<<?a, ?b, ?c, 0, 0x0ffff::utf8>>, :valid)
-      ["abc\0", <<0x0ffff::utf8>>]
+      iex> String.chunk(<<?a, ?b, ?c, 0, 0x0FFFF::utf8>>, :valid)
+      ["abc\0", <<0x0FFFF::utf8>>]
 
-      iex> String.chunk(<<?a, ?b, ?c, 0, 0x0ffff::utf8>>, :printable)
-      ["abc", <<0, 0x0ffff::utf8>>]
+      iex> String.chunk(<<?a, ?b, ?c, 0, 0x0FFFF::utf8>>, :printable)
+      ["abc", <<0, 0x0FFFF::utf8>>]
 
   """
   @spec chunk(t, :valid | :printable) :: [t]
