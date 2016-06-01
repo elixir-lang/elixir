@@ -115,7 +115,7 @@ defmodule Mix.Tasks.EscriptTest do
     purge [Ok.Mixfile]
   end
 
-  test "generate escript with erlang and deps" do
+  test "generate escript with Erlang and deps" do
     Mix.Project.push EscriptErlangWithDeps
 
     in_fixture "escripttest", fn ->

@@ -178,7 +178,7 @@ defmodule Logger.TranslatorTest do
     """s
   end
 
-  test "translates Task raising erlang badarg error" do
+  test "translates Task raising Erlang badarg error" do
     assert capture_log(fn ->
       {:ok, pid} = Task.start(:erlang, :error, [:badarg])
       ref = Process.monitor(pid)

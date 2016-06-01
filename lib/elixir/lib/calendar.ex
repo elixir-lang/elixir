@@ -980,7 +980,7 @@ defmodule DateTime do
   end
 
   @doc """
-  Converts the given unix time to DateTime.
+  Converts the given Unix time to DateTime.
 
   The integer can be given in different unit
   according to `System.convert_time_unit/3` and it will
@@ -1035,7 +1035,7 @@ defmodule DateTime do
     do: precision_for_unit(div(number, 10), precision + 1)
 
   @doc """
-  Converts the given unix time to DateTime.
+  Converts the given Unix time to DateTime.
 
   ## Examples
 
@@ -1057,7 +1057,7 @@ defmodule DateTime do
   end
 
   @doc """
-  Converts the given DateTime to unix time.
+  Converts the given DateTime to Unix time.
 
   The DateTime is expected to be UTC using the ISO calendar
   with a year greater than or equal to 1970.

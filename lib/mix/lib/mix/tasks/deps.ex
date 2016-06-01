@@ -29,7 +29,7 @@ defmodule Mix.Tasks.Deps do
   Hex (if it wasn't previously installed and download a package
   suitable to your project).
 
-  Mix also supports git and path dependencies:
+  Mix also supports Git and path dependencies:
 
       {:foobar, git: "https://github.com/elixir-lang/foobar.git", tag: "0.1"}
       {:foobar, path: "path/to/foobar"}
@@ -67,19 +67,19 @@ defmodule Mix.Tasks.Deps do
     * `:override` - if set to `true` the dependency will override any other
       definitions of itself by other dependencies
 
-    * `:manager` - Mix can also compile rebar, rebar3 and makefile projects
-      and can fetch sub dependencies of rebar and rebar3 projects. Mix will
+    * `:manager` - Mix can also compile Rebar, Rebar3 and Makefile projects
+      and can fetch sub dependencies of Rebar and Rebar3 projects. Mix will
       try to infer the type of project but it can be overridden with this
       option by setting it to `:mix`, `:rebar`, `:rebar3` or `:make`
 
   ## Git options (`:git`)
 
-    * `:git`        - the git repository URI
-    * `:github`     - a shortcut for specifying git repos from github, uses `git:`
+    * `:git`        - the Git repository URI
+    * `:github`     - a shortcut for specifying Git repos from GitHub, uses `git:`
     * `:ref`        - the reference to checkout (may be a branch, a commit sha or a tag)
-    * `:branch`     - the git branch to checkout
-    * `:tag`        - the git tag to checkout
-    * `:submodules` - when ` true`, initialize submodules for the repo
+    * `:branch`     - the Git branch to checkout
+    * `:tag`        - the Git tag to checkout
+    * `:submodules` - when `true`, initialize submodules for the repo
 
   ## Path options (`:path`)
 

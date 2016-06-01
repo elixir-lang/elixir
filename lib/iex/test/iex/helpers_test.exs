@@ -316,7 +316,7 @@ defmodule IEx.HelpersTest do
     cleanup_modules([Sample, Sample2])
   end
 
-  test "c helper erlang" do
+  test "c helper Erlang" do
     assert_raise UndefinedFunctionError, ~r"function :sample.hello/0 is undefined", fn ->
       :sample.hello
     end
@@ -387,7 +387,7 @@ defmodule IEx.HelpersTest do
     end
   end
 
-  test "r helper elixir" do
+  test "r helper Elixir" do
     assert_raise UndefinedFunctionError, ~r"function Sample.run/0 is undefined \(module Sample is not available\)", fn ->
       Sample.run
     end
@@ -410,7 +410,7 @@ defmodule IEx.HelpersTest do
     cleanup_modules([Sample])
   end
 
-  test "r helper erlang" do
+  test "r helper Erlang" do
     assert_raise UndefinedFunctionError, ~r"function :sample.hello/0 is undefined", fn ->
       :sample.hello
     end

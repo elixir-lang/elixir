@@ -54,8 +54,8 @@ defmodule Mix.Dep.Loader do
         mix?(dep) ->
           mix_dep(dep, children)
 
-        # If not an explicit rebar or Mix dependency
-        # but came from rebar, assume to be a rebar dep.
+        # If not an explicit Rebar or Mix dependency
+        # but came from Rebar, assume to be a Rebar dep.
         rebar?(dep) ->
           rebar_dep(dep, children, manager)
 
@@ -165,7 +165,7 @@ defmodule Mix.Dep.Loader do
     end
   end
 
-  # Notice we ignore make dependencies because the
+  # Notice we ignore Make dependencies because the
   # file based heuristic will always figure it out.
   @scm_managers ~w(mix rebar rebar3)a
 
@@ -271,8 +271,8 @@ defmodule Mix.Dep.Loader do
       deps =
         if children do
           from = Path.absname("rebar.config")
-          # Pass the manager because deps of a rebar project need
-          # to default to rebar if we cannot chose a manager from
+          # Pass the manager because deps of a Rebar project need
+          # to default to Rebar if we cannot chose a manager from
           # files in the dependency
           Enum.map(children, &to_dep(&1, from, manager))
         else

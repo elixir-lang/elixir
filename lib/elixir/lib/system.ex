@@ -150,7 +150,7 @@ defmodule System do
   @doc """
   Elixir build information.
 
-  Returns a keyword list with Elixir version, git short revision hash and compilation date.
+  Returns a keyword list with Elixir version, Git short revision hash and compilation date.
   """
   @spec build_info() :: map
   def build_info do

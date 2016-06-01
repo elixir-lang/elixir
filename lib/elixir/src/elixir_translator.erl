@@ -239,7 +239,7 @@ translate({{'.', _, [Left, Right]}, Meta, []}, S)
   TVar = {var, Ann, Var},
   TError = {tuple, Ann, [{atom, Ann, badkey}, TRight, TVar]},
 
-  %% TODO: there is a bug in dialyzer that warns about generated matches that
+  %% TODO: there is a bug in Dialyzer that warns about generated matches that
   %% can never match on line 0. The is_map/1 guard is used instead of matching
   %% against an empty map to avoid the warning.
   {{'case', ?generated, TLeft, [
@@ -267,7 +267,7 @@ translate({{'.', _, [Left, Right]}, Meta, Args}, S)
   TRight = {atom, Ann, Right},
   SC = mergev(SL, SA),
 
-  %% Rewrite erlang function calls as operators so they
+  %% Rewrite Erlang function calls as operators so they
   %% work on guards, matches and so on.
   case (Left == erlang) andalso guard_op(Right, Arity) of
     true ->
