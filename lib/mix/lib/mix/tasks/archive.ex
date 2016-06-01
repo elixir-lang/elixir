@@ -19,7 +19,7 @@ defmodule Mix.Tasks.Archive do
   def run(_) do
     archives =
       Mix.Local.path_for(:archive)
-      |> Path.join("*.ez")
+      |> Path.join("*")
       |> Path.wildcard()
       |> Enum.map(&Path.basename/1)
     Mix.Local.Installer.print_list(:archive, archives)
