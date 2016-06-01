@@ -357,7 +357,7 @@ defmodule Mix.Project do
   Compiles the given project.
 
   It will run the compile task unless the project
-  is in build embedded mode, which may fail as a
+  is in build embedded mode, which may fail as an
   explicit command to `mix compile` is required.
   """
   @spec compile([term], Keyword.t) :: term
