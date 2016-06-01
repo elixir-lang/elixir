@@ -1229,7 +1229,7 @@ defmodule Enum do
   the second one is the final accumulator.
 
   The function, `fun`, receives two arguments: the first one is the
-  element, and the second one is the accumulator. `fun` must return a
+  element, and the second one is the accumulator. `fun` must return
   a tuple with two elements in the form of `{result, accumulator}`.
 
   For maps, the first tuple element must be a `{key, value}` tuple.
