@@ -68,7 +68,7 @@ defmodule Mix.Tasks.Compile.Protocols do
   end
 
   @doc """
-  Clean up consolidated protocols.
+  Cleans up consolidated protocols.
   """
   def clean do
     File.rm_rf(default_path)
