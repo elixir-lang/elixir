@@ -14,7 +14,7 @@ defmodule Mix.Tasks.Escript.Install do
       mix do escript.build, escript.install
 
   If an argument is provided, it should be a local path or a URL to a prebuilt escript,
-  a git repository, or a github repository.
+  a git repository, a github repository, or a hex package.
 
       mix escript.install escript
       mix escript.install path/to/escript
@@ -27,6 +27,8 @@ defmodule Mix.Tasks.Escript.Install do
       mix escript.install github user/project branch git_branch
       mix escript.install github user/project tag git_tag
       mix escript.install github user/project ref git_ref
+      mix escript.install hex hex_package
+      mix escript.install hex hex_package 1.2.3
 
   After installation, the escript can be invoked as
 
@@ -65,6 +67,9 @@ defmodule Mix.Tasks.Escript.Install do
       ["github" | rest] ->
         raise_if_sha512("github", opts)
         do_github_install(rest, opts)
+      ["hex" | rest] ->
+        raise_if_sha512("hex", opts)
+        do_hex_install(rest, opts)
       _ ->
         Mix.Local.Installer.install({__MODULE__, :escript}, argv, @switches)
     end
@@ -117,6 +122,51 @@ defmodule Mix.Tasks.Escript.Install do
 
   defp ref_to_config(ref_type, _) do
     Mix.raise "escript.install expected one of \"branch\", \"tag\", or \"ref\". Got: \"#{ref_type}\""
+  end
+
+  defp do_hex_install([], _opts) do
+    Mix.raise "escript.install hex expects a package name"
+  end
+
+  defp do_hex_install([package_name], opts) do
+    do_hex_install([package_name, nil], opts)
+  end
+
+  defp do_hex_install([package_name, version], opts) do
+    if Mix.Hex.ensure_installed?(package_name) do
+      Mix.Hex.start()
+
+      with_tmp_dir fn tmp_path ->
+        package_name = String.to_atom(package_name)
+
+        version =
+          if version do
+            version
+          else
+            case Hex.API.Package.get(package_name) do
+              {200, %{"releases" => [newest | _]}, _} -> newest["version"]
+              _ -> nil
+            end
+          end
+
+        unless version do
+          Mix.raise "escript.install could not find hex package #{package_name}"
+        end
+
+        lock = {:hex, package_name, version}
+
+        Mix.shell.info "* Getting #{package_name} (Hex package)"
+
+        Hex.SCM.prefetch([{package_name, lock}])
+        Hex.SCM.checkout([hex: package_name, dest: tmp_path, lock: lock])
+
+        do_escript_build_and_install(tmp_path, opts)
+      end
+    end
+  end
+
+  defp do_hex_install([_package_name | rest], _opts) do
+    Mix.raise "escript.install received invalid hex package spec: #{Enum.join(rest, " ")}"
   end
 
   defp with_tmp_dir(fun) do
