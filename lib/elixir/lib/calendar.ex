@@ -1039,15 +1039,15 @@ defmodule DateTime do
 
   ## Examples
 
-    iex> DateTime.from_unix!(1464096368)
-    %DateTime{calendar: Calendar.ISO, day: 24, hour: 13, microsecond: {0, 0}, minute: 26,
-              month: 5, second: 8, std_offset: 0, time_zone: "Etc/UTC", utc_offset: 0,
-              year: 2016, zone_abbr: "UTC"}
+      iex> DateTime.from_unix!(1464096368)
+      %DateTime{calendar: Calendar.ISO, day: 24, hour: 13, microsecond: {0, 0}, minute: 26,
+                month: 5, second: 8, std_offset: 0, time_zone: "Etc/UTC", utc_offset: 0,
+                year: 2016, zone_abbr: "UTC"}
 
-    iex> DateTime.from_unix!(1432560368868569, :microseconds)
-    %DateTime{calendar: Calendar.ISO, day: 25, hour: 13, microsecond: {868569, 6}, minute: 26,
-              month: 5, second: 8, std_offset: 0, time_zone: "Etc/UTC", utc_offset: 0,
-              year: 2015, zone_abbr: "UTC"}
+      iex> DateTime.from_unix!(1432560368868569, :microseconds)
+      %DateTime{calendar: Calendar.ISO, day: 25, hour: 13, microsecond: {868569, 6}, minute: 26,
+                month: 5, second: 8, std_offset: 0, time_zone: "Etc/UTC", utc_offset: 0,
+                year: 2015, zone_abbr: "UTC"}
 
   """
   @spec from_unix!(non_neg_integer, :native | System.time_unit) :: DateTime.t
