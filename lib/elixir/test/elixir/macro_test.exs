@@ -214,7 +214,7 @@ defmodule MacroTest do
 
   @foo 1
 
-  test "expand once should expand module attributes" do
+  test "expand once with module attributes" do
     assert_raise ArgumentError, fn ->
       Macro.expand_once(quote(do: @foo), __ENV__)
     end
