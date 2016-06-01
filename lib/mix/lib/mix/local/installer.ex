@@ -120,7 +120,7 @@ defmodule Mix.Local.Installer do
   end
 
   @doc """
-  Print a list of items in a uniform way. Used for printing the list of installed archives and
+  Prints a list of items in a uniform way. Used for printing the list of installed archives and
   escripts.
   """
   @spec print_list(atom, [String.t]) :: :ok
