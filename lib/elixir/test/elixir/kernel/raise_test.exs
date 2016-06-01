@@ -209,7 +209,7 @@ defmodule Kernel.RaiseTest do
     assert result == "an exception"
   end
 
-  test "wrap custom erlang error" do
+  test "wrap custom Erlang error" do
     result = try do
       :erlang.error(:sample)
     rescue
@@ -373,7 +373,7 @@ defmodule Kernel.RaiseTest do
     assert result == "no try clause matching: :example"
   end
 
-  test "undefined function error as erlang error" do
+  test "undefined function error as Erlang error" do
     result = try do
       DoNotExist.for_sure()
     rescue

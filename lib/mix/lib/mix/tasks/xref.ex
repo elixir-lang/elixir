@@ -279,7 +279,7 @@ defmodule Mix.Tasks.Xref do
 
   defp raise_invalid_callee(callee) do
     message =
-      "xref --callers expects `Module`, `Module.function`, or `Module.function/arity`, got: " <>
+      "xref --callers expects \"Module\", \"Module.function\", or \"Module.function/arity\", got: " <>
       callee
 
     Mix.raise message

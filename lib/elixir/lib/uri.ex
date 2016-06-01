@@ -209,7 +209,7 @@ defmodule URI do
 
   """
   @spec char_reserved?(char) :: boolean
-  def char_reserved?(char) when char in 0..0x10ffff do
+  def char_reserved?(char) when char in 0..0x10FFFF do
     char in ':/?#[]@!$&\'()*+,;='
   end
 
@@ -226,7 +226,7 @@ defmodule URI do
 
   """
   @spec char_unreserved?(char) :: boolean
-  def char_unreserved?(char) when char in 0..0x10ffff do
+  def char_unreserved?(char) when char in 0..0x10FFFF do
     char in ?0..?9 or
       char in ?a..?z or
       char in ?A..?Z or
@@ -246,7 +246,7 @@ defmodule URI do
 
   """
   @spec char_unescaped?(char) :: boolean
-  def char_unescaped?(char) when char in 0..0x10ffff do
+  def char_unescaped?(char) when char in 0..0x10FFFF do
     char_reserved?(char) or char_unreserved?(char)
   end
 

@@ -121,7 +121,7 @@ defmodule Module.LocalsTracker do
     :gen_server.cast(pid, {:add_local, from, to})
   end
 
-  # Adds a import dispatch to the given target.
+  # Adds an import dispatch to the given target.
   @doc false
   def add_import(pid, function, module, target) when is_atom(module) and is_tuple(target) do
     :gen_server.cast(pid, {:add_import, function, module, target})

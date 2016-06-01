@@ -109,7 +109,7 @@ rescue_each_ref(Meta, Var, [H | T], Elixir, Erlang, S) when is_atom(H) ->
 rescue_each_ref(_, _, [], Elixir, Erlang, _) ->
   {Elixir, Erlang}.
 
-%% Handle erlang rescue matches.
+%% Handle Erlang rescue matches.
 
 erl_rescue_guard_for(Meta, Var, 'Elixir.UndefinedFunctionError') ->
   {erl(Meta, '=='), Meta, [Var, undef]};

@@ -21,7 +21,7 @@ echo.
 echo   --app APP                   Starts the given app and its dependencies (*)
 echo   --cookie COOKIE             Sets a cookie for this distributed node
 echo   --detached                  Starts the Erlang VM detached from console
-echo   --erl SWITCHES              Switches to be passed down to erlang (*)
+echo   --erl SWITCHES              Switches to be passed down to Erlang (*)
 echo   --hidden                    Makes a hidden node
 echo   --logger-otp-reports BOOL   Enables or disables OTP reporting
 echo   --logger-sasl-reports BOOL  Enables or disables SASL reporting
@@ -32,7 +32,7 @@ echo   --werl                      Uses Erlang's Windows shell GUI
 echo.
 echo ** Options marked with (*) can be given more than once
 echo ** Options given after the .exs file or -- are passed down to the executed code
-echo ** Options can be passed to the erlang runtime using ELIXIR_ERL_OPTIONS or --erl
+echo ** Options can be passed to the Erlang runtime using ELIXIR_ERL_OPTIONS or --erl
 goto end
 
 :parseopts
@@ -70,24 +70,24 @@ if "%par%"=="""" (
 rem ******* EXECUTION OPTIONS **********************
 IF "%par%"==""--werl"" (Set useWerl=1)
 IF "%par%"==""+iex"" (Set runMode="iex")
-rem ******* elixir parameters **********************
+rem ******* ELIXIR PARAMETERS **********************
 rem Note: we don't have to do anything with options that don't take an argument
-IF """"=="%par:-e=%"      (shift) 
-IF """"=="%par:-r=%"      (shift) 
-IF """"=="%par:-pr=%"     (shift) 
-IF """"=="%par:-pa=%"     (shift) 
-IF """"=="%par:-pz=%"     (shift) 
-IF """"=="%par:--app=%"   (shift) 
-IF """"=="%par:--remsh=%" (shift) 
+IF """"=="%par:-e=%"      (shift)
+IF """"=="%par:-r=%"      (shift)
+IF """"=="%par:-pr=%"     (shift)
+IF """"=="%par:-pa=%"     (shift)
+IF """"=="%par:-pz=%"     (shift)
+IF """"=="%par:--app=%"   (shift)
+IF """"=="%par:--remsh=%" (shift)
 rem ******* ERLANG PARAMETERS **********************
-IF """"=="%par:--detached=%"            (Set parsErlang=%parsErlang% -detached) 
+IF """"=="%par:--detached=%"            (Set parsErlang=%parsErlang% -detached)
 IF """"=="%par:--hidden=%"              (Set parsErlang=%parsErlang% -hidden)
 IF """"=="%par:--cookie=%"              (Set parsErlang=%parsErlang% -setcookie %1 && shift)
-IF """"=="%par:--sname=%"               (Set parsErlang=%parsErlang% -sname %1 && shift) 
-IF """"=="%par:--name=%"                (Set parsErlang=%parsErlang% -name %1 && shift) 
-IF """"=="%par:--logger-otp-reports=%"  (Set parsErlang=%parsErlang% -logger handle_otp_reports %1 && shift) 
-IF """"=="%par:--logger-sasl-reports=%" (Set parsErlang=%parsErlang% -logger handle_sasl_reports %1 && shift) 
-IF """"=="%par:--erl=%"                 (Set beforeExtra=%beforeExtra% %~1 && shift) 
+IF """"=="%par:--sname=%"               (Set parsErlang=%parsErlang% -sname %1 && shift)
+IF """"=="%par:--name=%"                (Set parsErlang=%parsErlang% -name %1 && shift)
+IF """"=="%par:--logger-otp-reports=%"  (Set parsErlang=%parsErlang% -logger handle_otp_reports %1 && shift)
+IF """"=="%par:--logger-sasl-reports=%" (Set parsErlang=%parsErlang% -logger handle_sasl_reports %1 && shift)
+IF """"=="%par:--erl=%"                 (Set beforeExtra=%beforeExtra% %~1 && shift)
 goto:startloop
 
 rem ******* assume all pre-params are parsed ********************

@@ -2,7 +2,7 @@ defmodule Mix.Rebar do
   @moduledoc false
 
   @doc """
-  Returns the path supposed to host the local copy of rebar.
+  Returns the path supposed to host the local copy of `rebar`.
   """
   def local_rebar_path(manager) do
     Path.join(Mix.Utils.mix_home, Atom.to_string(manager))
@@ -162,7 +162,7 @@ defmodule Mix.Rebar do
   end
 
   @doc """
-  Serializes a rebar config to a term file.
+  Serializes a Rebar config to a term file.
   """
   def serialize_config(config) do
     Enum.map(config, &[:io_lib.print(&1) | ".\n"])
@@ -184,7 +184,7 @@ defmodule Mix.Rebar do
 
   @doc """
   Runs `fun` for the given config and for each `sub_dirs` in the
-  given rebar config.
+  given Rebar config.
   """
   def recur(config, fun) when is_binary(config) do
     recur(load_config(config), fun)
@@ -269,7 +269,7 @@ defmodule Mix.Rebar do
         config
       {:error, error} ->
         reason = :file.format_error(error)
-        Mix.shell.error("Error evaluating rebar config script #{script_path}:#{reason}")
+        Mix.shell.error("Error evaluating Rebar config script #{script_path}:#{reason}")
         Mix.shell.error("Any dependencies defined in the script won't be available " <>
                         "unless you add them to your Mix project")
         config
@@ -277,7 +277,7 @@ defmodule Mix.Rebar do
   end
 
   defp eval_binds(binds) do
-    Enum.reduce(binds, :erl_eval.new_bindings, fn ({k, v}, binds) ->
+    Enum.reduce(binds, :erl_eval.new_bindings, fn({k, v}, binds) ->
       :erl_eval.add_binding(k, v, binds)
     end)
   end

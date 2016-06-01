@@ -40,8 +40,7 @@ defmodule Kernel.Utils do
   end
 
   defp normalize_args(raw_args) do
-    :lists.foldr(fn
-      ({:\\, _, [arg, default_arg]}, [as_args | _] = as_args_list) ->
+    :lists.foldr(fn({:\\, _, [arg, default_arg]}, [as_args | _] = as_args_list) ->
         new_as_args = [default_arg | as_args]
         [new_as_args | add_arg(as_args_list, arg)]
       (arg, as_args_list) ->

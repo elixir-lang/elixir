@@ -153,7 +153,7 @@ defmodule Macro do
     raise ArgumentError, bad_pipe(expr, call_args)
   end
 
-  # Without this, `Macro |> Env == Macro.Env`.
+  # Without this: "Macro |> Env == Macro.Env"
   def pipe(expr, {:__aliases__, _, _} = call_args, _integer) do
     raise ArgumentError, bad_pipe(expr, call_args)
   end
@@ -165,7 +165,7 @@ defmodule Macro do
   end
 
   # {:fn, _, _} is what we get when we pipe into an anonymous function without
-  # calling it, e.g., `:foo |> (fn x -> x end)`.
+  # calling it, e.g., ":foo |> (fn x -> x end)"
   def pipe(expr, {:fn, _, _}, _integer) do
     expr_str = to_string(expr)
     raise ArgumentError,

@@ -980,7 +980,7 @@ defmodule DateTime do
   end
 
   @doc """
-  Converts the given unix time to DateTime.
+  Converts the given Unix time to DateTime.
 
   The integer can be given in different unit
   according to `System.convert_time_unit/3` and it will
@@ -1035,19 +1035,19 @@ defmodule DateTime do
     do: precision_for_unit(div(number, 10), precision + 1)
 
   @doc """
-  Converts the given unix time to DateTime.
+  Converts the given Unix time to DateTime.
 
   ## Examples
 
-    iex> DateTime.from_unix!(1464096368)
-    %DateTime{calendar: Calendar.ISO, day: 24, hour: 13, microsecond: {0, 0}, minute: 26,
-              month: 5, second: 8, std_offset: 0, time_zone: "Etc/UTC", utc_offset: 0,
-              year: 2016, zone_abbr: "UTC"}
+      iex> DateTime.from_unix!(1464096368)
+      %DateTime{calendar: Calendar.ISO, day: 24, hour: 13, microsecond: {0, 0}, minute: 26,
+                month: 5, second: 8, std_offset: 0, time_zone: "Etc/UTC", utc_offset: 0,
+                year: 2016, zone_abbr: "UTC"}
 
-    iex> DateTime.from_unix!(1432560368868569, :microseconds)
-    %DateTime{calendar: Calendar.ISO, day: 25, hour: 13, microsecond: {868569, 6}, minute: 26,
-              month: 5, second: 8, std_offset: 0, time_zone: "Etc/UTC", utc_offset: 0,
-              year: 2015, zone_abbr: "UTC"}
+      iex> DateTime.from_unix!(1432560368868569, :microseconds)
+      %DateTime{calendar: Calendar.ISO, day: 25, hour: 13, microsecond: {868569, 6}, minute: 26,
+                month: 5, second: 8, std_offset: 0, time_zone: "Etc/UTC", utc_offset: 0,
+                year: 2015, zone_abbr: "UTC"}
 
   """
   @spec from_unix!(non_neg_integer, :native | System.time_unit) :: DateTime.t
@@ -1057,7 +1057,7 @@ defmodule DateTime do
   end
 
   @doc """
-  Converts the given DateTime to unix time.
+  Converts the given DateTime to Unix time.
 
   The DateTime is expected to be UTC using the ISO calendar
   with a year greater than or equal to 1970.

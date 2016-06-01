@@ -154,7 +154,7 @@ defmodule MacroTest do
     end)
   end
 
-  test "expand once with erlang" do
+  test "expand once with Erlang" do
     assert Macro.expand_once(quote(do: :foo), __ENV__) == :foo
   end
 

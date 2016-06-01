@@ -68,7 +68,7 @@ defmodule Mix.Shell.IO do
     answer =~ ~r/^(Y(es)?)?$/i
   end
 
-  # The io server may return :eof or :error
+  # The IO server may return :eof or :error
   defp got_yes?(_), do: false
 
   defp red(message) do

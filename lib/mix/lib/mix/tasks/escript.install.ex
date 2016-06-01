@@ -1,10 +1,10 @@
 defmodule Mix.Tasks.Escript.Install do
   use Mix.Task
 
-  @shortdoc "Install an escript locally"
+  @shortdoc "Installs an escript locally"
 
   @moduledoc """
-  Install an escript locally.
+  Installs an escript locally.
 
   If no argument is supplied but there is an escript in the project's root directory
   (created with `mix escript.build`), then the escript will be installed
@@ -23,8 +23,8 @@ defmodule Mix.Tasks.Escript.Install do
       ~/.mix/escripts/foo
 
   For convenience, consider adding `~/.mix/escripts` directory to your
-  `PATH` environment variable. For more information, check the wikipedia
-  article on PATH: https://en.wikipedia.org/wiki/PATH_(variable)
+  `PATH` environment variable. For more information, check the [Wikipedia
+  article on PATH](https://en.wikipedia.org/wiki/PATH_(variable))
 
   ## Command line options
 

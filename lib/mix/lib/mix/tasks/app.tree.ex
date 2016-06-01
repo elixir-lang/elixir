@@ -18,7 +18,7 @@ defmodule Mix.Tasks.App.Tree do
       `kernel`, `stdlib` and `compiler` are always excluded from the tree.
 
     * `--pretty` - use Unicode codepoints for formatting the tree.
-      Defaults to true except on Windows.
+      Defaults to `true` except on Windows.
 
   """
 

@@ -66,14 +66,14 @@ defmodule PathTest do
       assert Path.split("C:/foo/bar") == ["c:/", "foo", "bar"]
     end
   else
-    test "relative unix" do
+    test "relative Unix" do
       assert Path.relative("/usr/local/bin")   == "usr/local/bin"
       assert Path.relative("usr/local/bin")    == "usr/local/bin"
       assert Path.relative("../usr/local/bin") == "../usr/local/bin"
       assert Path.relative(['/usr', ?/, "local/bin"]) == "usr/local/bin"
     end
 
-    test "type unix" do
+    test "type Unix" do
       assert Path.type("/usr/local/bin")   == :absolute
       assert Path.type("usr/local/bin")    == :relative
       assert Path.type("../usr/local/bin") == :relative

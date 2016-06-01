@@ -18,7 +18,7 @@ defmodule Mix.Tasks.Deps.Tree do
     * `--exclude` - exclude dependencies which you do not want to see printed.
 
     * `--pretty` - use Unicode codepoints for formatting the tree.
-      Defaults to true except on Windows.
+      Defaults to `true` except on Windows.
 
   """
   @switches [only: :string, exclude: :keep, pretty: :boolean]
