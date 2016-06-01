@@ -44,7 +44,7 @@ defmodule System do
       time may not match in case of time warps although the VM works towards
       aligning them. This time is not monotonic (i.e., it may decrease)
       as its behaviour is configured [by the VM time warp
-      mode](http://erlang.org/doc/apps/erts/time_correction.html#Time_Warp_Modes);
+      mode](http://www.erlang.org/doc/apps/erts/time_correction.html#Time_Warp_Modes);
 
     * `monotonic_time/0` - a monotonically increasing time provided
       by the Erlang VM.
@@ -150,7 +150,7 @@ defmodule System do
   @doc """
   Elixir build information.
 
-  Returns a keyword list with Elixir version, git short revision hash and compilation date.
+  Returns a keyword list with Elixir version, Git short revision hash and compilation date.
   """
   @spec build_info() :: map
   def build_info do

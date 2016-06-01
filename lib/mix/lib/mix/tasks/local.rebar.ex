@@ -6,14 +6,14 @@ defmodule Mix.Tasks.Local.Rebar do
   @rebar3_list_url     "/installs/rebar3-1.x.csv"
   @rebar3_escript_url  "/installs/[ELIXIR_VERSION]/rebar3-[REBAR_VERSION]"
 
-  @shortdoc  "Installs rebar locally"
+  @shortdoc  "Installs Rebar locally"
 
   @moduledoc """
   Fetches a copy of `rebar` or `rebar3` from the given path or url.
 
-  It defaults to safely download a rebar copy from  Hex's CDN.
+  It defaults to safely download a Rebar copy from  Hex's CDN.
   However, a URL can be given as argument, usually from an existing
-  local copy of rebar:
+  local copy of Rebar:
 
       mix local.rebar rebar path/to/rebar
       mix local.rebar rebar3 path/to/rebar
@@ -21,7 +21,7 @@ defmodule Mix.Tasks.Local.Rebar do
   If not specified both `rebar` and `rebar3` will be fetched.
 
   The local copy is stored in your `MIX_HOME` (defaults to `~/.mix`).
-  This version of rebar will be used as required by `mix deps.compile`.
+  This version of Rebar will be used as required by `mix deps.compile`.
 
   ## Command line options
 

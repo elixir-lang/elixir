@@ -7,49 +7,49 @@ defmodule IEx.AutocompleteTest do
     IEx.Autocomplete.expand(Enum.reverse expr)
   end
 
-  test "erlang module completion" do
+  test "Erlang module completion" do
     assert expand(':zl') == {:yes, 'ib.', []}
   end
 
-  test "erlang module no completion" do
+  test "Erlang module no completion" do
     assert expand(':unknown') == {:no, '', []}
     assert expand('Enum:') == {:no, '', []}
   end
 
-  test "erlang module multiple values completion" do
+  test "Erlang module multiple values completion" do
     {:yes, '', list} = expand(':user')
     assert 'user' in list
     assert 'user_drv' in list
   end
 
-  test "erlang root completion" do
+  test "Erlang root completion" do
     {:yes, '', list} = expand(':')
     assert is_list(list)
     assert 'lists' in list
   end
 
-  test "elixir proxy" do
+  test "Elixir proxy" do
     {:yes, '', list} = expand('E')
     assert 'Elixir' in list
   end
 
-  test "elixir completion" do
+  test "Elixir completion" do
     assert expand('En') == {:yes, 'um', []}
     assert expand('Enumera') == {:yes, 'ble.', []}
   end
 
-  test "elixir completion with self" do
+  test "Elixir completion with self" do
     assert expand('Enumerable') == {:yes, '.', []}
   end
 
-  test "elixir completion on modules from load path" do
+  test "Elixir completion on modules from load path" do
     assert expand('Str') == {:yes, [], ['Stream', 'String', 'StringIO']}
     assert expand('Ma') == {:yes, '', ['Macro', 'Map', 'MapSet', 'MatchError']}
     assert expand('Dic') == {:yes, 't.', []}
     assert expand('Ex')  == {:yes, [], ['ExUnit', 'Exception']}
   end
 
-  test "elixir no completion for underscored functions with no doc" do
+  test "Elixir no completion for underscored functions with no doc" do
     {:module, _, bytecode, _} =
       defmodule Elixir.Sample do
         def __foo__(), do: 0
@@ -65,21 +65,21 @@ defmodule IEx.AutocompleteTest do
     :code.delete(Sample)
   end
 
-  test "elixir no completion" do
+  test "Elixir no completion" do
     assert expand('.')   == {:no, '', []}
     assert expand('Xyz') == {:no, '', []}
     assert expand('x.Foo') == {:no, '', []}
   end
 
-  test "elixir root submodule completion" do
+  test "Elixir root submodule completion" do
     assert expand('Elixir.Acce') == {:yes, 'ss.', []}
   end
 
-  test "elixir submodule completion" do
+  test "Elixir submodule completion" do
     assert expand('String.Cha') == {:yes, 'rs.', []}
   end
 
-  test "elixir submodule no completion" do
+  test "Elixir submodule no completion" do
     assert expand('IEx.Xyz') == {:no, '', []}
   end
 
@@ -132,7 +132,7 @@ defmodule IEx.AutocompleteTest do
   defmodule SublevelTest.LevelA.LevelB do
   end
 
-  test "elixir completion sublevel" do
+  test "Elixir completion sublevel" do
     assert expand('IEx.AutocompleteTest.SublevelTest.') == {:yes, 'LevelA.', []}
   end
 
@@ -142,7 +142,7 @@ defmodule IEx.AutocompleteTest do
     end
   end
 
-  test "complete aliases of elixir modules" do
+  test "complete aliases of Elixir modules" do
     Application.put_env(:iex, :autocomplete_server, MyServer)
 
     assert expand('MyL') == {:yes, 'ist.', []}
@@ -150,7 +150,7 @@ defmodule IEx.AutocompleteTest do
     assert expand('MyList.to_integer') == {:yes, [], ['to_integer/1', 'to_integer/2']}
   end
 
-  test "complete aliases of erlang modules" do
+  test "complete aliases of Erlang modules" do
     Application.put_env(:iex, :autocomplete_server, MyServer)
 
     assert expand('EL') == {:yes, 'ist.', []}

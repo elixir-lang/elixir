@@ -80,7 +80,7 @@ defmodule IEx.Helpers do
       reenable_tasks(config)
       Mix.Task.run("compile")
     else
-      IO.puts IEx.color(:eval_error, "Mix is not running. Please start IEx with: iex -S mix")
+      IO.puts IEx.color(:eval_error, "Mix is not running. Please start IEx with: \"iex -S mix\"")
       :error
     end
   end

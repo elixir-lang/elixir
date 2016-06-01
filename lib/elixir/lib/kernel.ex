@@ -2769,7 +2769,7 @@ defmodule Kernel do
   defmacro left |> right do
     [{h, _} | t] = Macro.unpipe({:|>, [], [left, right]})
     :lists.foldl fn {x, pos}, acc ->
-      # TODO: raise an error in `Macro.pipe` by 1.4
+      # TODO: raise an error in "Macro.pipe/3" by 1.4
       case Macro.pipe_warning(x) do
         nil -> :ok
         message ->

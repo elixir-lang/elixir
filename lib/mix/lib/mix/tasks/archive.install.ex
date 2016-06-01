@@ -14,7 +14,7 @@ defmodule Mix.Tasks.Archive.Install do
 
   The argument can be an archive located at some URL:
 
-      mix archive.install http://example.com/foo.ez
+      mix archive.install https://example.com/foo.ez
 
   After installation, the tasks in the archive are available locally:
 

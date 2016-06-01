@@ -102,7 +102,7 @@ defmodule Mix.Tasks.XrefTest do
     """
   end
 
-  test "warnings: handles erlang ops" do
+  test "warnings: handles Erlang ops" do
     assert_no_warnings """
     defmodule A do
       def a(a, b), do: a and b
@@ -111,7 +111,7 @@ defmodule Mix.Tasks.XrefTest do
     """
   end
 
-  test "warnings: handles erlang modules" do
+  test "warnings: handles Erlang modules" do
     assert_warnings """
     defmodule A do
       def a, do: :not_a_module.no_module
@@ -433,7 +433,7 @@ defmodule Mix.Tasks.XrefTest do
   test "callers: gives nice error for quotable but invalid callers spec" do
     in_fixture "no_mixfile", fn ->
       message =
-        "xref --callers expects `Module`, `Module.function`, or `Module.function/arity`, got: Module.func(arg)"
+        "xref --callers expects \"Module\", \"Module.function\", or \"Module.function/arity\", got: Module.func(arg)"
 
       assert_raise Mix.Error, message, fn ->
         Mix.Task.run("xref", ["--callers", "Module.func(arg)"])
@@ -444,7 +444,7 @@ defmodule Mix.Tasks.XrefTest do
   test "callers: gives nice error for unquotable callers spec" do
     in_fixture "no_mixfile", fn ->
       message =
-        "xref --callers expects `Module`, `Module.function`, or `Module.function/arity`, got: %"
+        "xref --callers expects \"Module\", \"Module.function\", or \"Module.function/arity\", got: %"
 
       assert_raise Mix.Error, message, fn ->
         Mix.Task.run("xref", ["--callers", "%"])

@@ -306,8 +306,8 @@ stab -> stab eoe stab_expr : ['$3' | '$1'].
 stab_eoe -> stab : '$1'.
 stab_eoe -> stab eoe : '$1'.
 
-%% Here, `element(1, Token)` is the stab operator,
-%% while `element(2, Token)` is the expression.
+%% Here, "element(1, Token)" is the stab operator,
+%% while "element(2, Token)" is the expression.
 stab_expr -> expr :
                '$1'.
 stab_expr -> stab_op_eol_and_expr :

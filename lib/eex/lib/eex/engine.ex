@@ -88,7 +88,7 @@ defmodule EEx.Engine do
         val
       :error ->
         keys = Enum.map(assigns, &elem(&1, 0))
-        IO.warn "assign @#{key} not available in eex template. " <>
+        IO.warn "assign @#{key} not available in EEx template. " <>
                 "Please ensure all assigns are given as options. " <>
                 "Available assigns: #{inspect keys}"
         nil

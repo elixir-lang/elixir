@@ -202,7 +202,7 @@ defmodule Application do
   end
 
   @doc """
-  Get the application for the given module.
+  Gets the application for the given module.
 
   The application is located by analyzing the spec
   of all loaded applications. Returns `nil` if

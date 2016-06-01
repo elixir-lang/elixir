@@ -452,7 +452,7 @@ defmodule Task do
       end)
 
       # Here we are matching only on {:ok, value} and
-      # ignoring {:exit, _} (crashed tasks) and `nil` (no replies)
+      # ignoring {:exit, _} (crashed tasks) and :nil (no replies)
       for {:ok, value} <- results do
         IO.inspect value
       end

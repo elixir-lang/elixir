@@ -40,7 +40,7 @@ defmodule Mix.SCM.Git do
   end
 
   def checked_out?(opts) do
-    # Are we inside a git repository?
+    # Are we inside a Git repository?
     File.regular?(Path.join(opts[:dest], ".git/HEAD"))
   end
 
@@ -115,8 +115,8 @@ defmodule Mix.SCM.Git do
       []  -> opts
       [_] -> opts
       _   ->
-        Mix.raise "you should specify only one of branch, ref or tag, and only once. " <>
-                  "Error on git dependency: #{opts[:git]}"
+        Mix.raise "You should specify only one of branch, ref or tag, and only once. " <>
+                  "Error on Git dependency: #{opts[:git]}"
     end
   end
 

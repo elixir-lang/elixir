@@ -87,7 +87,7 @@ Built-in type           | Defined as
 `bitstring()`           | `<<_::_ * 1>>`
 `boolean()`             | `false` \| `true`
 `byte()`                | `0..255`
-`char()`                | `0..0x10ffff`
+`char()`                | `0..0x10FFFF`
 `number()`              | `integer()` \| `float()`
 `charlist()`            | `[char()]`
 `list()`                | `[any()]`

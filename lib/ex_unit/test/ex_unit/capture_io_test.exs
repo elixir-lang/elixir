@@ -285,7 +285,7 @@ defmodule ExUnit.CaptureIOTest do
     end)
   end
 
-  test "with multiple io requests" do
+  test "with multiple IO requests" do
     assert capture_io(fn ->
       send_and_receive_io({:requests, [{:put_chars, :unicode, "a"},
                                         {:put_chars, :unicode, "b"}]})
@@ -297,7 +297,7 @@ defmodule ExUnit.CaptureIOTest do
     end)
   end
 
-  test "with unknown io request" do
+  test "with unknown IO request" do
     assert capture_io(fn ->
       send_and_receive_io(:unknown)
     end) == ""

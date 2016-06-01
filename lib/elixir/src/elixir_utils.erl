@@ -232,7 +232,7 @@ convert_to_boolean(Line, Expr, Bool, S) when is_integer(Line) ->
 
 %% Notice we use a temporary var and include nil
 %% and false checks in the same clause since
-%% it makes dialyzer happy.
+%% it makes Dialyzer happy.
 do_convert_to_boolean(Line, Expr, Bool, S) ->
   {Name, _, TS} = elixir_scope:build_var('_', S),
   Var = {var, Line, Name},

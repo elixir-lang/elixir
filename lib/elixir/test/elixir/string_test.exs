@@ -542,8 +542,8 @@ defmodule StringTest do
     assert String.valid?("øsdfh")
     assert String.valid?("dskfjあska")
 
-    refute String.valid?(<<0xffff :: 16>>)
-    refute String.valid?("asd" <> <<0xffff :: 16>>)
+    refute String.valid?(<<0xFFFF :: 16>>)
+    refute String.valid?("asd" <> <<0xFFFF :: 16>>)
   end
 
   test "chunk valid" do
@@ -552,11 +552,11 @@ defmodule StringTest do
     assert String.chunk("ødskfjあ\x11ska", :valid)
            == ["ødskfjあ\x11ska"]
     assert String.chunk("abc\u{0ffff}def", :valid)
-           == ["abc", <<0x0ffff::utf8>>, "def"]
-    assert String.chunk("\u{0fffe}\u{3ffff}привет\u{0ffff}мир", :valid)
-           == [<<0x0fffe::utf8, 0x3ffff::utf8>>, "привет", <<0x0ffff::utf8>>, "мир"]
-    assert String.chunk("日本\u{0ffff}\u{fdef}ござございます\u{fdd0}", :valid)
-           == ["日本", <<0x0ffff::utf8, 0xfdef::utf8>>, "ござございます", <<0xfdd0::utf8>>]
+           == ["abc", <<0x0FFFF::utf8>>, "def"]
+    assert String.chunk("\u{0FFFE}\u{3FFFF}привет\u{0FFFF}мир", :valid)
+           == [<<0x0FFFE::utf8, 0x3FFFF::utf8>>, "привет", <<0x0FFFF::utf8>>, "мир"]
+    assert String.chunk("日本\u{0FFFF}\u{FDEF}ござございます\u{FDD0}", :valid)
+           == ["日本", <<0x0FFFF::utf8, 0xFDEF::utf8>>, "ござございます", <<0xFDD0::utf8>>]
   end
 
   test "chunk printable" do
@@ -564,8 +564,8 @@ defmodule StringTest do
 
     assert String.chunk("ødskfjあska", :printable)
            == ["ødskfjあska"]
-    assert String.chunk("abc\u{0ffff}def", :printable)
-           == ["abc", <<0x0ffff::utf8>>, "def"]
+    assert String.chunk("abc\u{0FFFF}def", :printable)
+           == ["abc", <<0x0FFFF::utf8>>, "def"]
     assert String.chunk("\x06ab\x05cdef\x03\0", :printable)
            == [<<6>>, "ab", <<5>>, "cdef", <<3, 0>>]
   end

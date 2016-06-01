@@ -152,7 +152,7 @@ defmodule MixTest.Case do
   end
 end
 
-## Set up Mix home with rebar
+## Set up Mix home with Rebar
 
 home = MixTest.Case.tmp_path(".mix")
 File.mkdir_p!(home)
@@ -261,7 +261,7 @@ unless File.dir?(target) do
   end
 end
 
-# Git rebar
+# Git Rebar
 target = Path.expand("fixtures/git_rebar", __DIR__)
 
 unless File.dir?(target) do

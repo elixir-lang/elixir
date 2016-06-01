@@ -22,7 +22,7 @@ defmodule Mix.Utils do
   Gets all paths defined in the MIX_PATH env variable.
 
   `MIX_PATH` may contain multiple paths. If on Windows, those
-  paths should be separated by `;`, if on unix systems, use `:`.
+  paths should be separated by `;`, if on Unix systems, use `:`.
   """
   def mix_paths do
     if path = System.get_env("MIX_PATH") do
@@ -87,7 +87,7 @@ defmodule Mix.Utils do
   @doc """
   Returns the date the given path was last modified.
 
-  If the path does not exist, it returns the unix epoch
+  If the path does not exist, it returns the Unix epoch
   (1970-01-01 00:00:00).
   """
   def last_modified(path)
@@ -242,7 +242,7 @@ defmodule Mix.Utils do
   """
   def symlink_or_copy(source, target) do
     if File.exists?(source) do
-      # Relative symbolic links on windows are broken
+      # Relative symbolic links on Windows are broken
       link = case :os.type do
         {:win32, _} -> source
         _           -> make_relative_path(source, target)

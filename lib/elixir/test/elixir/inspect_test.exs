@@ -335,7 +335,7 @@ defmodule Inspect.OthersTest do
     assert bin == "&Enum.map/2"
   end
 
-  test "external erlang funs" do
+  test "external Erlang funs" do
     bin = inspect(&:lists.map/2)
     assert bin == "&:lists.map/2"
   end

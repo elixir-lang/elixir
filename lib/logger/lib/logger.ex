@@ -624,9 +624,9 @@ defmodule Logger do
   defp notify(:async, msg), do: GenEvent.notify(Logger, msg)
 
   defp handle_unused_variable_warnings(data, caller) do
-    # We collect all the names of variables (leaving `data` unchanged) with a
-    # scope of `nil` (as we don't warn for variables with a different scope
-    # anyways). We only want the variables that figure in `caller.vars`, as the
+    # We collect all the names of variables (leaving "data" unchanged) with a
+    # scope of "nil" (as we don't warn for variables with a different scope
+    # anyways). We only want the variables that figure in "caller.vars", as the
     # AST for calls to local 0-arity functions without parens is the same as the
     # AST for variables.
     {^data, logged_vars} = Macro.postwalk(data, [], fn

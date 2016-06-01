@@ -329,7 +329,7 @@ defmodule Mix.Project do
       app = config[:app] ->
         Path.join([build_path(config), "lib", Atom.to_string(app)])
       config[:apps_path] ->
-        raise "Trying to access Mix.Project.app_path for an umbrella project but umbrellas have no app"
+        raise "trying to access Mix.Project.app_path for an umbrella project but umbrellas have no app"
       true ->
         Mix.raise "Cannot access build without an application name, " <>
           "please ensure you are in a directory with a mix.exs file and it defines " <>
@@ -357,7 +357,7 @@ defmodule Mix.Project do
   Compiles the given project.
 
   It will run the compile task unless the project
-  is in build embedded mode, which may fail as a
+  is in build embedded mode, which may fail as an
   explicit command to `mix compile` is required.
   """
   @spec compile([term], Keyword.t) :: term

@@ -3,7 +3,7 @@ defmodule Mix.Shell.Quiet do
   This is Mix's default shell when the `MIX_QUIET` environment
   variable is set.
 
-  It's just like `Mix.Shell.IO' but print far less.
+  It's just like `Mix.Shell.IO` but print far less.
   """
 
   @behaviour Mix.Shell
