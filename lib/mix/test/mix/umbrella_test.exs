@@ -374,7 +374,7 @@ defmodule Mix.UmbrellaTest do
         end
         """
 
-        assert_raise Mix.Error, "app bar lists itself as a dependency", fn ->
+        assert_raise Mix.Error, "App bar lists itself as a dependency", fn ->
           Mix.Task.run("deps.get", ["--verbose"]) == [:ok, :ok]
         end
       end
