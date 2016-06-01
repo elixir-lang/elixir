@@ -67,7 +67,7 @@ defmodule Mix.Dep do
   Because the dependencies are cached during deps.check, their
   status may be outdated (for example, `:compile` did not
   yet become `:ok`). Therefore it is recommended to not rely
-  on the their status, also given they haven't been checked
+  on their status, also given they haven't been checked
   against the lock.
   """
   def cached do
