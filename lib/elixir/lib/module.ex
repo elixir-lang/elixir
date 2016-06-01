@@ -63,6 +63,14 @@ defmodule Module do
             # ...
           end
 
+    * `@callback`, `@macrocallback`, and `@optional_callbacks`
+
+      These attributes are used to define a behaviour (as shown in the
+      documentation for `@behaviour` above). `@callback` defines a function
+      callback, `@macrocallback` defines a macro callback, and
+      `@optional_callbacks` specifies which callbacks and macrocallbacks are
+      optional.
+
     * `@compile`
 
       Defines options for module compilation. This is used to configure
@@ -223,12 +231,14 @@ defmodule Module do
   The following attributes are part of typespecs and are also reserved by
   Elixir:
 
-    * `@type`          - defines a type to be used in `@spec`
-    * `@typep`         - defines a private type to be used in `@spec`
-    * `@opaque`        - defines an opaque type to be used in `@spec`
-    * `@spec`          - provides a specification for a function
-    * `@callback`      - provides a specification for a behaviour callback
+    * `@type` - defines a type to be used in `@spec`
+    * `@typep` - defines a private type to be used in `@spec`
+    * `@opaque` - defines an opaque type to be used in `@spec`
+    * `@spec` - provides a specification for a function
+    * `@callback` - provides a specification for a behaviour callback
     * `@macrocallback` - provides a specification for a macro behaviour callback
+    * `@optional_callbacks` - specifies which behaviour callbacks and macro
+      behaviour callbacks are optional
 
   In addition to the built-in attributes outlined above, custom attributes may
   also be added. A custom attribute is any valid identifier prefixed with an
