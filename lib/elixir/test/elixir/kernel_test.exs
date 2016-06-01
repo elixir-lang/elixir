@@ -194,6 +194,14 @@ defmodule KernelTest do
     end
   end
 
+  test "in/2 with a non-integer range" do
+    message = "ranges (first..last) expect both sides to be integers, got: 0..5.0"
+    assert_raise ArgumentError, message, fn ->
+      last = 5.0
+      1 in 0..last
+    end
+  end
+
   test "in/2 optimized" do
     assert expand_to_string(quote(do: foo in [])) == "Elixir.Enum.member?([], foo)"
 
