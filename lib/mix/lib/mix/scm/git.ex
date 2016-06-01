@@ -115,7 +115,7 @@ defmodule Mix.SCM.Git do
       []  -> opts
       [_] -> opts
       _   ->
-        Mix.raise "you should specify only one of branch, ref or tag, and only once. " <>
+        Mix.raise "You should specify only one of branch, ref or tag, and only once. " <>
                   "Error on git dependency: #{opts[:git]}"
     end
   end
