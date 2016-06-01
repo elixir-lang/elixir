@@ -2594,22 +2594,26 @@ defmodule Kernel do
       true
 
   """
-  defmacro first..last do
-    case is_float(first) or is_float(last) or
+  defmacro first..last when is_integer(first) and is_integer(last) do
+    {:%{}, [], [__struct__: Elixir.Range, first: first, last: last]}
+  end
+
+  defmacro first..last
+    when is_float(first) or is_float(last) or
          is_atom(first) or is_atom(last) or
          is_binary(first) or is_binary(last) or
          is_list(first) or is_list(last) do
-      true ->
-        raise ArgumentError,
-          "ranges (first..last) expect both sides to be integers, " <>
-          "got: #{Macro.to_string({:.., [], [first, last]})}"
-      false ->
-        case __CALLER__.context do
-          :match ->
-            {:%{}, [], [__struct__: Elixir.Range, first: first, last: last]}
-          _ ->
-            quote do: Elixir.Range.new(unquote(first), unquote(last))
-        end
+    raise ArgumentError,
+      "ranges (first..last) expect both sides to be integers, " <>
+      "got: #{Macro.to_string({:.., [], [first, last]})}"
+  end
+
+  defmacro first..last do
+    case __CALLER__.context do
+      nil ->
+        quote do: Elixir.Range.new(unquote(first), unquote(last))
+      _ ->
+        {:%{}, [], [__struct__: Elixir.Range, first: first, last: last]}
     end
   end
 
@@ -2868,8 +2872,6 @@ defmodule Kernel do
           quote do: :erlang.or(unquote(comp(left, x)), unquote(acc))
         end, comp(left, h), t)
       {:%{}, _meta, [__struct__: Elixir.Range, first: first, last: last]} ->
-        in_range(left, Macro.expand(first, __CALLER__), Macro.expand(last, __CALLER__))
-      {{:., [], [{:__aliases__, [], [:Elixir, :Range]}, :new]}, [], [first, last]} ->
         in_range(left, Macro.expand(first, __CALLER__), Macro.expand(last, __CALLER__))
       _ when in_module? ->
         quote do: Elixir.Enum.member?(unquote(right), unquote(left))
