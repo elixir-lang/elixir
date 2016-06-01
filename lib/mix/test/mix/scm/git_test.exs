@@ -23,11 +23,11 @@ defmodule Mix.SCM.GitTest do
   end
 
   test "raises about conflicting git checkout options" do
-    assert_raise Mix.Error, ~r/you should specify only one of branch, ref or tag/, fn ->
+    assert_raise Mix.Error, ~r/You should specify only one of branch, ref or tag/, fn ->
       Mix.SCM.Git.accepts_options(nil, [git: "/repo", branch: "master", tag: "0.1.0"])
     end
 
-    assert_raise Mix.Error, ~r/you should specify only one of branch, ref or tag/, fn ->
+    assert_raise Mix.Error, ~r/You should specify only one of branch, ref or tag/, fn ->
       Mix.SCM.Git.accepts_options(nil, [git: "/repo", branch: "master", branch: "develop"])
     end
   end
