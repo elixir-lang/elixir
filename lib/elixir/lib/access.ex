@@ -242,7 +242,7 @@ defmodule Access do
   Accesses the given key in a map/struct.
 
   Uses the default value if the key does not exist
-  or if the value being accessed is nil.
+  or if the value being accessed is `nil`.
 
   ## Examples
 

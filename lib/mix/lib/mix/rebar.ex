@@ -2,7 +2,7 @@ defmodule Mix.Rebar do
   @moduledoc false
 
   @doc """
-  Returns the path supposed to host the local copy of rebar.
+  Returns the path supposed to host the local copy of `rebar`.
   """
   def local_rebar_path(manager) do
     Path.join(Mix.Utils.mix_home, Atom.to_string(manager))

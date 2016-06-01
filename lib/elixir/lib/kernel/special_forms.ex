@@ -1828,7 +1828,7 @@ defmodule Kernel.SpecialForms do
   This means the VM no longer needs to keep the stacktrace once inside
   an else clause and so tail recursion is possible when using a `try`
   with a tail call as the final call inside an else clause. The same
-  is true for `rescue` and `catch` clauses.
+  is `true` for `rescue` and `catch` clauses.
 
   ## Variable handling
 
