@@ -363,8 +363,8 @@ defmodule Mix.Utils do
     {:ok, _} = Application.ensure_all_started(:ssl)
     {:ok, _} = Application.ensure_all_started(:inets)
 
-    # Starting an http client profile allows us to scope
-    # the effects of using an http proxy to this function
+    # Starting an HTTP client profile allows us to scope
+    # the effects of using an HTTP proxy to this function
     {:ok, _pid} = :inets.start(:httpc, [{:profile, :mix}])
 
     headers = [{'user-agent', 'Mix/#{System.version}'}]

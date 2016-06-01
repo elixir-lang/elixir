@@ -11,7 +11,7 @@ defmodule URITest do
            "%0D%0A%26%3C%25%3E%22%20%E3%82%86"
   end
 
-  test "encode www form" do
+  test "encode WWW form" do
     assert URI.encode_www_form("4test ~1.x") == "4test+~1.x"
     assert URI.encode_www_form("poll:146%") == "poll%3A146%25"
     assert URI.encode_www_form("/\n+/ゆ") == "%2F%0A%2B%2F%E3%82%86"
@@ -70,7 +70,7 @@ defmodule URITest do
     end
   end
 
-  test "decode www form" do
+  test "decode WWW form" do
     assert URI.decode_www_form("%3Eval+ue%2B") == ">val ue+"
     assert URI.decode_www_form("%E3%82%86+") == "ゆ "
 
@@ -79,18 +79,18 @@ defmodule URITest do
     end
   end
 
-  test "parse uri" do
+  test "parse URI" do
     assert URI.parse(uri = %URI{scheme: "http", host: "foo.com"}) == uri
   end
 
-  test "parse http" do
+  test "parse HTTP" do
     assert %URI{scheme: "http", host: "foo.com", path: "/path/to/something",
                 query: "foo=bar&bar=foo", fragment: "fragment", port: 80,
                 authority: "foo.com", userinfo: nil} ==
            URI.parse("http://foo.com/path/to/something?foo=bar&bar=foo#fragment")
   end
 
-  test "parse https" do
+  test "parse HTTPS" do
     assert %URI{scheme: "https", host: "foo.com", authority: "foo.com",
                 query: nil, fragment: nil, port: 443, path: nil, userinfo: nil} ==
            URI.parse("https://foo.com")
@@ -102,7 +102,7 @@ defmodule URITest do
            URI.parse("file:///foo/bar/baz")
   end
 
-  test "parse ftp" do
+  test "parse FTP" do
     assert %URI{scheme: "ftp", host: "private.ftp-servers.example.com",
                 userinfo: "user001:secretpassword", authority: "user001:secretpassword@private.ftp-servers.example.com",
                 path: "/mydirectory/myfile.txt", query: nil, fragment: nil,
@@ -110,14 +110,14 @@ defmodule URITest do
            URI.parse("ftp://user001:secretpassword@private.ftp-servers.example.com/mydirectory/myfile.txt")
   end
 
-  test "parse sftp" do
+  test "parse SFTP" do
     assert %URI{scheme: "sftp", host: "private.ftp-servers.example.com",
                 userinfo: "user001:secretpassword", authority: "user001:secretpassword@private.ftp-servers.example.com",
                 path: "/mydirectory/myfile.txt", query: nil, fragment: nil, port: 22} ==
            URI.parse("sftp://user001:secretpassword@private.ftp-servers.example.com/mydirectory/myfile.txt")
   end
 
-  test "parse tftp" do
+  test "parse TFTP" do
     assert %URI{scheme: "tftp", host: "private.ftp-servers.example.com",
                 userinfo: "user001:secretpassword", authority: "user001:secretpassword@private.ftp-servers.example.com",
                 path: "/mydirectory/myfile.txt", query: nil, fragment: nil, port: 69} ==
@@ -125,7 +125,7 @@ defmodule URITest do
   end
 
 
-  test "parse ldap" do
+  test "parse LDAP" do
     assert %URI{scheme: "ldap", host: nil, authority: nil, userinfo: nil,
                 path: "/dc=example,dc=com", query: "?sub?(givenName=John)",
                 fragment: nil, port: 389} ==
@@ -166,7 +166,7 @@ defmodule URITest do
     assert URI.default_port("unknown") == 13
   end
 
-  test "parse bad uris" do
+  test "parse bad URIs" do
     assert URI.parse("")
     assert URI.parse("https:??@?F?@#>F//23/")
 
@@ -175,7 +175,7 @@ defmodule URITest do
     assert URI.parse("ht\0tps://foo.com").path == "ht\0tps://foo.com"
   end
 
-  test "ipv6 addresses" do
+  test "IPv6 addresses" do
     addrs = [
       "::",                                      # undefined
       "::1",                                     # loopback

@@ -9,7 +9,7 @@ defmodule Mix.Tasks.Local.Rebar do
   @shortdoc  "Installs Rebar locally"
 
   @moduledoc """
-  Fetches a copy of `rebar` or `rebar3` from the given path or url.
+  Fetches a copy of `rebar` or `rebar3` from the given path or URL.
 
   It defaults to safely download a Rebar copy from  Hex's CDN.
   However, a URL can be given as argument, usually from an existing
@@ -25,9 +25,9 @@ defmodule Mix.Tasks.Local.Rebar do
 
   ## Command line options
 
-    * `rebar PATH` - specify a path or url for `rebar`
+    * `rebar PATH` - specify a path or URL for `rebar`
 
-    * `rebar3 PATH` - specify a path or url for `rebar3`
+    * `rebar3 PATH` - specify a path or URL for `rebar3`
 
     * `--sha512` - checks the archive matches the given sha512 checksum
 
@@ -69,7 +69,7 @@ defmodule Mix.Tasks.Local.Rebar do
           File.chmod!(local, 0o755)
           Mix.shell.info [:green, "* creating ", :reset, Path.relative_to_cwd(local)]
         :badpath ->
-          Mix.raise "Expected #{inspect path} to be a url or a local file path"
+          Mix.raise "Expected #{inspect path} to be a URL or a local file path"
         {:local, message} ->
           Mix.raise message
         {kind, message} when kind in [:remote, :checksum] ->
