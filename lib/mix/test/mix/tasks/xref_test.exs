@@ -433,7 +433,7 @@ defmodule Mix.Tasks.XrefTest do
   test "callers: gives nice error for quotable but invalid callers spec" do
     in_fixture "no_mixfile", fn ->
       message =
-        "xref --callers expects `Module`, `Module.function`, or `Module.function/arity`, got: Module.func(arg)"
+        "xref --callers expects Module, Module.function, or Module.function/arity, got: Module.func(arg)"
 
       assert_raise Mix.Error, message, fn ->
         Mix.Task.run("xref", ["--callers", "Module.func(arg)"])
@@ -444,7 +444,7 @@ defmodule Mix.Tasks.XrefTest do
   test "callers: gives nice error for unquotable callers spec" do
     in_fixture "no_mixfile", fn ->
       message =
-        "xref --callers expects `Module`, `Module.function`, or `Module.function/arity`, got: %"
+        "xref --callers expects Module, Module.function, or Module.function/arity, got: %"
 
       assert_raise Mix.Error, message, fn ->
         Mix.Task.run("xref", ["--callers", "%"])
