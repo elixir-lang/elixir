@@ -430,7 +430,7 @@ defmodule Stream do
   """
   @spec interval(non_neg_integer) :: Enumerable.t
   def interval(n) do
-    unfold 0, fn (count) ->
+    unfold 0, fn(count) ->
       :timer.sleep(n)
       {count, count + 1}
     end
