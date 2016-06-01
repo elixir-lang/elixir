@@ -94,12 +94,13 @@ defmodule Mix.Tasks.Escript.Install do
   end
 
   defp do_git_install([url, ref_type, ref], opts) do
-    in_tmp_dir fn tmp_path ->
-      checkout_opts =
+    with_tmp_dir fn tmp_path ->
+      git_opts =
         ref_to_config(ref_type, ref) ++
         [dest: tmp_path, git: url, submodules: opts[:submodules]]
 
-      Mix.SCM.Git.checkout(checkout_opts)
+      Mix.SCM.Git.checkout(git_opts)
+
       do_escript_build_and_install(tmp_path, opts)
     end
   end
@@ -118,7 +119,7 @@ defmodule Mix.Tasks.Escript.Install do
     Mix.raise "escript.install expected one of \"branch\", \"tag\", or \"ref\". Got: \"#{ref_type}\""
   end
 
-  defp in_tmp_dir(fun) do
+  defp with_tmp_dir(fun) do
     unique = :crypto.strong_rand_bytes(4) |> Base.url_encode64(padding: false)
     tmp_path = Path.join(System.tmp_dir!(), "mix-escript-install-" <> unique)
 
@@ -133,7 +134,7 @@ defmodule Mix.Tasks.Escript.Install do
     install_opts = if opts[:force], do: ["--force"], else: []
 
     Mix.Project.in_project :new_escript, path, fn _mixfile ->
-      Mix.Task.run("deps.get", [])
+      Mix.Task.run("deps.get", ["--only", Mix.env])
       Mix.Task.run("escript.build", [])
       Mix.Task.run("escript.install", install_opts)
     end
