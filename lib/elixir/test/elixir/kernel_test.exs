@@ -195,22 +195,13 @@ defmodule KernelTest do
   end
 
   test "in/2 optimized" do
-    assert expand_to_string(quote(do: foo in [])) == "false"
+    assert expand_to_string(quote(do: foo in [])) == "Elixir.Enum.member?([], foo)"
 
     assert expand_to_string(quote(do: foo in 1..2)) ==
-           ~s[:erlang.andalso(:erlang.is_integer(foo), :erlang.>=(foo, 1) and :erlang.=<(foo, 2))]
+           ~S[:erlang.andalso(:erlang.is_integer(foo), :erlang.>=(foo, 1) and :erlang.=<(foo, 2))]
 
     assert expand_to_string(quote(do: foo in [1, 2])) ==
-           ~s[:erlang.or(:erlang.=:=(foo, 2), :erlang.=:=(foo, 1))]
-
-    assert expand_to_string(quote(do: case(foo, do: (_ foo in [1, 2] -> :ok)))) ==
-           String.trim_trailing(
-             """
-             case(foo) do
-               _(foo in [1, 2]) ->
-                 :ok
-             end
-             """)
+           ~S[:erlang.or(:erlang.=:=(foo, 2), :erlang.=:=(foo, 1))]
   end
 
   defp expand_to_string(ast) do

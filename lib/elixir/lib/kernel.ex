@@ -2861,7 +2861,7 @@ defmodule Kernel do
     end
 
     case right do
-      [] ->
+      [] when not in_module? ->
         false
       [h | t] ->
         :lists.foldr(fn x, acc ->
