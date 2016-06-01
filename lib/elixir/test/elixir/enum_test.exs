@@ -249,7 +249,7 @@ defmodule EnumTest do
     assert Enum.join(["", "", 1, 2, "", 3, "", "\n"], ";") == ";;1;2;;3;;\n"
     assert Enum.join([""]) == ""
 
-    assert Enum.join(fn (acc, _) -> acc end, ".") == ""
+    assert Enum.join(fn(acc, _) -> acc end, ".") == ""
   end
 
   test "map/2" do
@@ -263,7 +263,7 @@ defmodule EnumTest do
     assert Enum.map_join([1, 2, 3], &(&1 * 2)) == "246"
     assert Enum.map_join(["", "", 1, 2, "", 3, "", "\n"], ";", &(&1)) == ";;1;2;;3;;\n"
     assert Enum.map_join([""], "", &(&1)) == ""
-    assert Enum.map_join(fn (acc, _) -> acc end, ".", &(&1 + 0)) == ""
+    assert Enum.map_join(fn(acc, _) -> acc end, ".", &(&1 + 0)) == ""
   end
 
   test "map_reduce/3" do
