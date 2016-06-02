@@ -219,21 +219,21 @@ unwrap_definitions(File, Module) ->
   split_definition(All, Unreachable, [], [], [], [], [], {[], []}).
 
 unwrap_definition([Fun|T], File, Module, CTable, All, Private) ->
-  {Tuple, Kind, Line, _, Check, Location, {Defaults, _, _}} = Fun,
+  {Tuple, Kind, Ann, _, Check, Location, {Defaults, _, _}} = Fun,
   Export = export(Kind, Tuple),
 
   case [Clause || {_, Clause} <- ets:lookup(CTable, Tuple)] of
     [] ->
-      warn_bodyless_function(Line, File, Module, Kind, Tuple),
+      warn_bodyless_function(Ann, File, Module, Kind, Tuple),
       unwrap_definition(T, File, Module, CTable, All, Private);
     Clauses ->
-      Unwrapped = {Tuple, Kind, Line, Location,
-                   function_for_stored_definition(Line, Export, Clauses)},
+      Unwrapped = {Tuple, Kind, Ann, Location,
+                   function_for_stored_definition(Ann, Export, Clauses)},
 
       NewPrivate =
         if
           Kind == defp; Kind == defmacrop ->
-            [{Tuple, Kind, Line, Check, Defaults}|Private];
+            [{Tuple, Kind, Ann, Check, Defaults}|Private];
           true ->
             Private
         end,
@@ -244,30 +244,30 @@ unwrap_definition([Fun|T], File, Module, CTable, All, Private) ->
 unwrap_definition([], _File, _Module, _CTable, All, Private) ->
   {All, Private}.
 
-split_definition([{Tuple, def, Line, Location, Body}|T], Unreachable,
+split_definition([{Tuple, def, Ann, Location, Body}|T], Unreachable,
                  Def, Defp, Defmacro, Defmacrop, Exports, Functions) ->
   split_definition(T, Unreachable, [Tuple|Def], Defp, Defmacro, Defmacrop,
                    [export(def, Tuple)|Exports],
-                   add_definition(Line, Location, Body, Functions));
+                   add_definition(Ann, Location, Body, Functions));
 
-split_definition([{Tuple, defp, Line, Location, Body}|T], Unreachable,
+split_definition([{Tuple, defp, Ann, Location, Body}|T], Unreachable,
                  Def, Defp, Defmacro, Defmacrop, Exports, Functions) ->
   case lists:member(Tuple, Unreachable) of
     false ->
       split_definition(T, Unreachable, Def, [Tuple|Defp], Defmacro, Defmacrop,
-                       Exports, add_definition(Line, Location, Body, Functions));
+                       Exports, add_definition(Ann, Location, Body, Functions));
     true ->
       split_definition(T, Unreachable, Def, [Tuple|Defp], Defmacro, Defmacrop,
                        Exports, Functions)
   end;
 
-split_definition([{Tuple, defmacro, Line, Location, Body}|T], Unreachable,
+split_definition([{Tuple, defmacro, Ann, Location, Body}|T], Unreachable,
                  Def, Defp, Defmacro, Defmacrop, Exports, Functions) ->
   split_definition(T, Unreachable, Def, Defp, [Tuple|Defmacro], Defmacrop,
                    [export(defmacro, Tuple)|Exports],
-                   add_definition(Line, Location, Body, Functions));
+                   add_definition(Ann, Location, Body, Functions));
 
-split_definition([{Tuple, defmacrop, _Line, _Location, _Body}|T], Unreachable,
+split_definition([{Tuple, defmacrop, _Ann, _Location, _Body}|T], Unreachable,
                  Def, Defp, Defmacro, Defmacrop, Exports, Functions) ->
   split_definition(T, Unreachable, Def, Defp, Defmacro, [Tuple|Defmacrop],
                    Exports, Functions);
@@ -282,33 +282,33 @@ export(Kind, {Name, Arity}) when Kind == defmacro; Kind == defmacrop ->
 export(Kind, {Name, Arity}) when Kind == def; Kind == defp ->
   {Name, Arity}.
 
-function_for_stored_definition(Line, {Name, Arity}, Clauses) ->
-  {function, Line, Name, Arity, Clauses}.
+function_for_stored_definition(Ann, {Name, Arity}, Clauses) ->
+  {function, Ann, Name, Arity, Clauses}.
 
-add_definition(_Line, nil, Body, {Head, Tail}) ->
+add_definition(_Ann, nil, Body, {Head, Tail}) ->
   {[Body|Head], Tail};
-add_definition(Line, Location, Body, {Head, Tail}) ->
+add_definition(Ann, Location, Body, {Head, Tail}) ->
   {Head,
-   [{attribute, Line, file, Location}, Body|Tail]}.
+   [{attribute, Ann, file, Location}, Body|Tail]}.
 
-default_function_for(Kind, Name, {clause, Line, Args, _Guards, _Exprs} = Clause)
+default_function_for(Kind, Name, {clause, Ann, Args, _Guards, _Exprs} = Clause)
     when Kind == defmacro; Kind == defmacrop ->
-  {function, Line, Name, length(Args) - 1, [Clause]};
-default_function_for(_, Name, {clause, Line, Args, _Guards, _Exprs} = Clause) ->
-  {function, Line, Name, length(Args), [Clause]}.
+  {function, Ann, Name, length(Args) - 1, [Clause]};
+default_function_for(_, Name, {clause, Ann, Args, _Guards, _Exprs} = Clause) ->
+  {function, Ann, Name, length(Args), [Clause]}.
 
-warn_bodyless_function(_Line, _File, Special, _Kind, _Tuple)
+warn_bodyless_function(_Ann, _File, Special, _Kind, _Tuple)
     when Special == 'Elixir.Kernel.SpecialForms'; Special == 'Elixir.Module' ->
   ok;
-warn_bodyless_function(Line, File, _Module, Kind, Tuple) ->
-  elixir_errors:form_warn([{line, Line}], File, ?MODULE, {bodyless_fun, Kind, Tuple}),
+warn_bodyless_function(Ann, File, _Module, Kind, Tuple) ->
+  elixir_errors:form_warn([{line, erl_anno:line(Ann)}], File, ?MODULE, {bodyless_fun, Kind, Tuple}),
   ok.
 
 %% Store each definition in the table.
 %% This function also checks and emit warnings in case
 %% the kind, of the visibility of the function changes.
 
-store_each(Check, Kind, File, Location, Module, Defaults, {function, Line, Name, Arity, Clauses}) ->
+store_each(Check, Kind, File, Location, Module, Defaults, {function, Ann, Name, Arity, Clauses}) ->
   Data = elixir_module:data_table(Module),
   Defs = elixir_module:defs_table(Module),
   Clas = elixir_module:clas_table(Module),
@@ -317,60 +317,60 @@ store_each(Check, Kind, File, Location, Module, Defaults, {function, Line, Name,
   HasBody = Clauses =/= [],
 
   case ets:lookup(Defs, Tuple) of
-    [{Tuple, StoredKind, StoredLine, StoredFile, StoredCheck,
+    [{Tuple, StoredKind, StoredAnn, StoredFile, StoredCheck,
         StoredLocation, {StoredDefaults, LastHasBody, LastDefaults}}] ->
-      FinalLine = StoredLine,
+      FinalAnn = StoredAnn,
       FinalLocation = StoredLocation,
       FinalDefaults = {max(Defaults, StoredDefaults), HasBody, Defaults},
-      check_valid_kind(Line, File, Name, Arity, Kind, StoredKind),
+      check_valid_kind(Ann, File, Name, Arity, Kind, StoredKind),
       (Check and StoredCheck) andalso
-        check_valid_clause(Line, File, Name, Arity, Kind, Data, StoredLine, StoredFile),
-      check_valid_defaults(Line, File, Name, Arity, Kind, Defaults, StoredDefaults, LastDefaults, LastHasBody);
+        check_valid_clause(Ann, File, Name, Arity, Kind, Data, StoredAnn, StoredFile),
+      check_valid_defaults(Ann, File, Name, Arity, Kind, Defaults, StoredDefaults, LastDefaults, LastHasBody);
     [] ->
-      FinalLine = Line,
+      FinalAnn = Ann,
       FinalLocation = Location,
       FinalDefaults = {Defaults, HasBody, Defaults}
   end,
 
   Check andalso ets:insert(Data, {?last_def, {Name, Arity}}),
   ets:insert(Clas, [{Tuple, Clause} || Clause <- Clauses]),
-  ets:insert(Defs, {Tuple, Kind, FinalLine, File, Check, FinalLocation, FinalDefaults}).
+  ets:insert(Defs, {Tuple, Kind, FinalAnn, File, Check, FinalLocation, FinalDefaults}).
 
 %% Validations
 
-check_valid_kind(_Line, _File, _Name, _Arity, Kind, Kind) -> [];
-check_valid_kind(Line, File, Name, Arity, Kind, StoredKind) ->
-  elixir_errors:form_error([{line, Line}], File, ?MODULE,
+check_valid_kind(_Ann, _File, _Name, _Arity, Kind, Kind) -> [];
+check_valid_kind(Ann, File, Name, Arity, Kind, StoredKind) ->
+  elixir_errors:form_error([{line, erl_anno:line(Ann)}], File, ?MODULE,
     {changed_kind, {Name, Arity, StoredKind, Kind}}).
 
-check_valid_clause(Line, File, Name, Arity, Kind, Data, StoredLine, StoredFile) ->
+check_valid_clause(Ann, File, Name, Arity, Kind, Data, StoredAnn, StoredFile) ->
   case ets:lookup_element(Data, ?last_def, 2) of
     {Name, Arity} -> [];
     [] -> [];
     _ ->
       Relative = elixir_utils:relative_to_cwd(elixir_utils:relative_to_cwd(StoredFile)),
-      elixir_errors:form_warn([{line, Line}], File, ?MODULE,
-        {ungrouped_clause, {Kind, Name, Arity, StoredLine, Relative}})
+      elixir_errors:form_warn([{line, erl_anno:line(Ann)}], File, ?MODULE,
+        {ungrouped_clause, {Kind, Name, Arity, erl_anno:line(StoredAnn), Relative}})
   end.
 
 % Clause with defaults after clause with defaults
-check_valid_defaults(Line, File, Name, Arity, Kind, Defaults, StoredDefaults, _, _) when Defaults > 0, StoredDefaults > 0 ->
-  elixir_errors:form_error([{line, Line}], File, ?MODULE,
+check_valid_defaults(Ann, File, Name, Arity, Kind, Defaults, StoredDefaults, _, _) when Defaults > 0, StoredDefaults > 0 ->
+  elixir_errors:form_error([{line, erl_anno:line(Ann)}], File, ?MODULE,
     {clauses_with_defaults, {Kind, Name, Arity}});
 % Clause with defaults after clause(s) without defaults
-check_valid_defaults(Line, File, Name, Arity, Kind, Defaults, 0, 0, _) when Defaults > 0 ->
-  elixir_errors:form_warn([{line, Line}], File, ?MODULE, {out_of_order_defaults, {Kind, Name, Arity}});
+check_valid_defaults(Ann, File, Name, Arity, Kind, Defaults, 0, 0, _) when Defaults > 0 ->
+  elixir_errors:form_warn([{line, erl_anno:line(Ann)}], File, ?MODULE, {out_of_order_defaults, {Kind, Name, Arity}});
 % Clause without defaults directly after clause with defaults (body less does not count)
-check_valid_defaults(Line, File, Name, Arity, Kind, 0, _, LastDefaults, true) when LastDefaults > 0 ->
-  elixir_errors:form_warn([{line, Line}], File, ?MODULE,
+check_valid_defaults(Ann, File, Name, Arity, Kind, 0, _, LastDefaults, true) when LastDefaults > 0 ->
+  elixir_errors:form_warn([{line, erl_anno:line(Ann)}], File, ?MODULE,
     {out_of_order_defaults, {Kind, Name, Arity}});
 % Clause without defaults
-check_valid_defaults(_Line, _File, _Name, _Arity, _Kind, 0, _, _, _) -> [].
+check_valid_defaults(_Ann, _File, _Name, _Arity, _Kind, 0, _, _, _) -> [].
 
-check_previous_defaults(Line, Module, Name, Arity, Kind, Defaults, E) ->
+check_previous_defaults(Ann, Module, Name, Arity, Kind, Defaults, E) ->
   Matches = ets:match(elixir_module:defs_table(Module), {{Name, '$2'}, '$1', '_', '_', '_', '_', {'$3', '_', '_'}}),
   [ begin
-      elixir_errors:form_error([{line, Line}], ?m(E, file), ?MODULE,
+      elixir_errors:form_error([{line, erl_anno:line(Ann)}], ?m(E, file), ?MODULE,
         {defs_with_defaults, Name, {Kind, Arity}, {K, A}})
     end || [K, A, D] <- Matches, A /= Arity, D /= 0, defaults_conflict(A, D, Arity, Defaults)].
 
