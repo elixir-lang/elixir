@@ -94,7 +94,7 @@ defmodule Mix.Tasks.Escript.Install do
       ref_to_config(ref_type, ref) ++
       [git: url, submodules: opts[:submodules]]
 
-    fetch_build_and_install_escript("new_escript", {:new_escript, git_opts}, opts)
+    fetch_build_and_install_escript("new escript", {:"new escript", git_opts}, opts)
   end
 
   defp install_from_git([_url | rest], _opts) do
@@ -145,12 +145,13 @@ defmodule Mix.Tasks.Escript.Install do
         end
 
         package_path = Path.join([tmp_path, "deps", package_name])
+        package_name = String.to_atom(package_name)
         post_config = [
           deps_path: Path.join(tmp_path, "deps"),
           lockfile: Path.join(tmp_path, "mix.lock")
         ]
 
-        Mix.Project.in_project :new_escript, package_path, post_config, fn _mixfile ->
+        Mix.Project.in_project package_name, package_path, post_config, fn _mixfile ->
           Mix.Task.run("escript.build", [])
           Mix.Task.run("escript.install", install_opts(opts))
         end
