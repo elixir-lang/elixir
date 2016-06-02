@@ -168,9 +168,6 @@ defmodule Date do
   simply discarded as such information is not included in naive date
   times.
 
-  As specified in the standard, the separator "T" may be omitted if
-  desired as there is no ambiguity within this function.
-
   Time representations with reduced accuracy are not supported.
 
   ## Examples
