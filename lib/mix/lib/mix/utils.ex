@@ -178,6 +178,29 @@ defmodule Mix.Utils do
   defp prefix(true, _, []),  do: "└── "
   defp prefix(true, _, _),   do: "├── "
 
+  @doc """
+  Outputs the given tree according to the callback as a DOT graph.
+
+  The callback will be invoked for each node and it
+  must either return `{printed, children}` tuple or
+  `false` if the given node must not be printed.
+  """
+  @spec print_dot_graph(String.t, [term], (term -> {String.t, [term]}), Keyword.t) :: :ok
+  def print_dot_graph(title, nodes, callback, _opts \\ []) do
+    Mix.shell.info "digraph \"#{title}\" {"
+    {parent_name, _} = callback.(hd(nodes))
+    do_print_dot_graph(parent_name, nodes, callback)
+    Mix.shell.info "}"
+  end
+
+  defp do_print_dot_graph(_parent, [], _callback), do: :ok
+  defp do_print_dot_graph(parent, [node | nodes], callback) do
+    {name, children} = callback.(node)
+    Mix.shell.info "  #{parent} -> #{name}"
+    do_print_dot_graph(name, children, callback)
+    do_print_dot_graph(parent, nodes, callback)
+  end
+
   @doc false
   # TODO: Deprecate by 1.4
   def underscore(value) do

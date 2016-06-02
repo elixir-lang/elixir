@@ -46,7 +46,7 @@ defmodule Mix.Tasks.Deps.Tree do
       %Mix.Dep{app: app} = dep ->
         deps =
           # Do not show dependencies if they were
-          # already show at the top level
+          # already shown at the top level
           if not dep.top_level && find_dep(top_level, app) do
             []
           else
