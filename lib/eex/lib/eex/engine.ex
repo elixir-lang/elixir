@@ -81,7 +81,7 @@ defmodule EEx.Engine do
   end
 
   @doc false
-  # TODO: Raise on 1.4
+  # TODO: Raise on 2.0
   def fetch_assign!(assigns, key) do
     case Access.fetch(assigns, key) do
       {:ok, val} ->

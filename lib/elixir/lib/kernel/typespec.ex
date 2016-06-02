@@ -212,6 +212,7 @@ defmodule Kernel.Typespec do
   end
 
   @doc false
+  # TODO: Remove on v2.0
   def beam_typedocs(module) when is_atom(module) or is_binary(module) do
     IO.write :stderr, "Kernel.Typespec.beam_typedocs/1 is deprecated, please use Code.get_docs/2 instead\n" <>
                       Exception.format_stacktrace
@@ -754,6 +755,7 @@ defmodule Kernel.Typespec do
         {{:optional, meta2, [k]}, v} ->
           {:type, line(meta2), :map_field_assoc, [typespec(k, vars, caller), typespec(v, vars, caller)]}
         {k, v} ->
+          # TODO: Emit warnings on v1.5
           # :elixir_errors.warn(caller.line, caller.file,
           #   "invalid map specification. %{foo => bar} is deprecated in favor of " <>
           #   "%{required(foo) => bar} and %{optional(foo) => bar}. required/1 is an " <>

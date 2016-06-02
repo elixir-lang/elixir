@@ -107,6 +107,8 @@ unescape_hex(<<A, B, Rest/binary>>, Map, Acc) when ?is_hex(A), ?is_hex(B) ->
   Bytes = list_to_integer([A, B], 16),
   unescape_chars(Rest, Map, <<Acc/binary, Bytes>>);
 
+%% TODO: Remove deprecated sequences on v2.0
+
 unescape_hex(<<A, Rest/binary>>, Map, Acc) when ?is_hex(A) ->
   io:format(standard_error, "warning: \\xH inside strings/sigils/chars is deprecated, please use \\xHH (byte) or \\uHHHH (codepoint) instead~n", []),
   append_codepoint(Rest, Map, [A], Acc, 16);

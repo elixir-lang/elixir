@@ -5,6 +5,8 @@ defmodule HashSet do
   Use the `MapSet` module instead.
   """
 
+  # TODO: Deprecate every function by 1.4
+
   @node_bitmap 0b111
   @node_shift 3
   @node_size 8
