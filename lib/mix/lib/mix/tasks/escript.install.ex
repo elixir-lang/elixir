@@ -105,7 +105,7 @@ defmodule Mix.Tasks.Escript.Install do
 
       Mix.SCM.Git.checkout(git_opts)
 
-      do_escript_build_and_install(tmp_path, opts)
+      build_and_install_escript(tmp_path, opts)
     end
   end
 
@@ -159,7 +159,7 @@ defmodule Mix.Tasks.Escript.Install do
         Hex.SCM.prefetch([{package_name, lock}])
         Hex.SCM.checkout([hex: package_name, dest: tmp_path, lock: lock])
 
-        do_escript_build_and_install(tmp_path, opts)
+        build_and_install_escript(tmp_path, opts)
       end
     end
   end
@@ -179,7 +179,7 @@ defmodule Mix.Tasks.Escript.Install do
     end
   end
 
-  defp do_escript_build_and_install(path, opts) do
+  defp build_and_install_escript(path, opts) do
     install_opts = if opts[:force], do: ["--force"], else: []
 
     previous_env = Mix.env()
