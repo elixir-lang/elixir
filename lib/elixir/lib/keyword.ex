@@ -867,6 +867,7 @@ defmodule Keyword do
   end
 
   @doc false
+  # TODO: Remove on 2.0
   def size(keyword) do
     IO.warn "Keyword.size/1 is deprecated, please use Kernel.length/1"
     length(keyword)

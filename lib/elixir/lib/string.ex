@@ -578,11 +578,11 @@ defmodule String do
   end
 
   @doc false
-  # TODO: Deprecate by 1.4
+  # TODO: Deprecate by 1.5
   defdelegate rstrip(binary), to: String.Break, as: :trim_trailing
 
   @doc false
-  # TODO: Deprecate by 1.4
+  # TODO: Deprecate by 1.5
   def rstrip(string, char) when is_integer(char) do
     replace_trailing(string, <<char::utf8>>, "")
   end
@@ -734,23 +734,23 @@ defmodule String do
   end
 
   @doc false
-  # TODO: Deprecate by 1.4
+  # TODO: Deprecate by 1.5
   defdelegate lstrip(binary), to: String.Break, as: :trim_leading
 
   @doc false
-  # TODO: Deprecate by 1.4
+  # TODO: Deprecate by 1.5
   def lstrip(string, char) when is_integer(char) do
     replace_leading(string, <<char::utf8>>, "")
   end
 
   @doc false
-  # TODO: Deprecate by 1.4
+  # TODO: Deprecate by 1.5
   def strip(string) do
     trim(string)
   end
 
   @doc false
-  # TODO: Deprecate by 1.4
+  # TODO: Deprecate by 1.5
   def strip(string, char) do
     trim(string, <<char::utf8>>)
   end
@@ -970,13 +970,13 @@ defmodule String do
   end
 
   @doc false
-  # TODO: Deprecate by 1.4
+  # TODO: Deprecate by 1.5
   def rjust(subject, len, pad \\ ?\s) when is_integer(pad) and is_integer(len) and len >= 0 do
     pad(:leading, subject, len, [<<pad::utf8>>])
   end
 
   @doc false
-  # TODO: Deprecate by 1.4
+  # TODO: Deprecate by 1.5
   def ljust(subject, len, pad \\ ?\s) when is_integer(pad) and is_integer(len) and len >= 0 do
     pad(:trailing, subject, len, [<<pad::utf8>>])
   end
@@ -1194,6 +1194,7 @@ defmodule String do
   def valid?(_), do: false
 
   @doc false
+  # TODO: Remove on 2.0
   def valid_character?(string) do
     IO.warn "String.valid_character?/1 is deprecated, please use valid?/1 instead"
     case string do

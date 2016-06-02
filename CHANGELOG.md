@@ -391,7 +391,7 @@ This release deprecates many APIs that have been soft-deprecated in previous Eli
   * [Dict] `Dict` is no longer a behaviour and its functions will be deprecated in upcoming releases
   * [Enum] Passing a dictionary to `Enum.group_by/3` is deprecated
   * [Kernel] `\x{H*}` in strings/sigils/charlists is deprecated
-  * [Kernel] Add deprecation for `defdelegate` list arguments and `:append_first` option
+  * [Kernel] Add deprecation for `defdelegate` list arguments and `:append_first` option. The previously undocumented and deprecated support for matching has been removed
   * [Kernel] Warn if a variable is assigned inside `case`/`if`/etc and used outside the block
   * [Keyword] `Keyword.size/1` is deprecated in favor of `Kernel.length/1`
   * [Map] `Map.size/1` is deprecated in favor of `Kernel.map_size/1`
@@ -399,4 +399,4 @@ This release deprecates many APIs that have been soft-deprecated in previous Eli
   * [Set] `Set` is no longer a behaviour and its functions will be deprecated in upcoming releases
   * [String] `String.valid_character?/1` is deprecated in favor of `String.valid?/1` with pattern matching
   * [Task] `Task.find/2` is deprecated in favor of explicit message matching
-  * [URI] Passing a non-map to `URI.decode_query/3` is deprecated
+  * [URI] Passing a non-map to `URI.decode_query/2` is deprecated

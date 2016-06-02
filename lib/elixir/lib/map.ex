@@ -656,6 +656,7 @@ defmodule Map do
   def equal?(%{} = map1, %{} = map2), do: map1 === map2
 
   @doc false
+  # TODO: Remove on 2.0
   def size(map) do
     IO.warn "Map.size/1 is deprecated, please use Kernel.map_size/1"
     map_size(map)

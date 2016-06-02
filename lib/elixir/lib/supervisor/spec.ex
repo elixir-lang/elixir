@@ -234,7 +234,6 @@ defmodule Supervisor.Spec do
   end
 
   # TODO: Do and expose proper child validation
-  # TODO: Convert into map childspecs by v2.0?
   defp child(type, module, args, options) do
     id       = Keyword.get(options, :id, module)
     modules  = Keyword.get(options, :modules, modules(module))

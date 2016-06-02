@@ -771,7 +771,7 @@ defmodule System do
   defp normalize_time_unit(unit) when is_integer(unit) and unit > 0,
     do: unit
 
-  # TODO: Warn on Elixir 1.4
+  # TODO: Warn on Elixir 1.5
   defp normalize_time_unit(erlang_unit)
       when erlang_unit in [:milli_seconds, :micro_seconds, :nano_seconds] do
     erlang_unit

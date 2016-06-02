@@ -5,6 +5,8 @@ defmodule HashDict do
   Use the `Map` module instead.
   """
 
+  # TODO: Deprecate every function by 1.4
+
   use Dict
 
   @node_bitmap 0b111

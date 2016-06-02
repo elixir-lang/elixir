@@ -2769,7 +2769,7 @@ defmodule Kernel do
   defmacro left |> right do
     [{h, _} | t] = Macro.unpipe({:|>, [], [left, right]})
     :lists.foldl fn {x, pos}, acc ->
-      # TODO: raise an error in `Macro.pipe/3` by 1.4
+      # TODO: raise an error in `Macro.pipe/3` by 1.5
       case Macro.pipe_warning(x) do
         nil -> :ok
         message ->
@@ -3549,7 +3549,7 @@ defmodule Kernel do
       end
 
       @spec exception(Keyword.t) :: Exception.t
-      # TODO: Only call Kernel.struct! by Elixir v1.4
+      # TODO: Only call Kernel.struct! by Elixir v1.5
       def exception(args) when is_list(args) do
         struct = __struct__()
         {valid, invalid} = Enum.partition(args, fn {k, _} -> Map.has_key?(struct, k) end)
@@ -3963,6 +3963,7 @@ defmodule Kernel do
       target = Keyword.get(opts, :to) ||
         raise ArgumentError, "expected to: to be given as argument"
 
+      # TODO: Raise on 2.0
       %{file: file, line: line} = __ENV__
       if is_list(funs) do
         :elixir_errors.warn(line, file,
@@ -3970,6 +3971,7 @@ defmodule Kernel do
           "please define each delegate separately")
       end
 
+      # TODO: Remove on 2.0
       if Keyword.has_key?(opts, :append_first) do
         :elixir_errors.warn(line, file,
           "Kernel.defdelegate/2 :append_first option is deprecated")
