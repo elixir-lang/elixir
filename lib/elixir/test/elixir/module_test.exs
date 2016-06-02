@@ -245,6 +245,19 @@ defmodule ModuleTest do
     assert ModuleHygiene.test == [1, 2, 3]
   end
 
+  if :erlang.system_info(:otp_release) >= '19' do
+    test "create with generated true does not emit warnings" do
+      contents =
+        quote generated: true do
+          def world, do: true
+          def world, do: false
+        end
+      {:module, ModuleCreateGenerated, _, _} =
+        Module.create(ModuleCreateGenerated, contents, __ENV__)
+      assert ModuleCreateGenerated.world
+    end
+  end
+
   test "no function in module body" do
     in_module do
       assert __ENV__.function == nil
