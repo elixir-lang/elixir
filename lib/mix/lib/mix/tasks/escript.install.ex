@@ -62,13 +62,13 @@ defmodule Mix.Tasks.Escript.Install do
     case args do
       ["git" | rest] ->
         raise_if_sha512("git", opts)
-        do_git_install(rest, opts)
+        install_from_git(rest, opts)
       ["github" | rest] ->
         raise_if_sha512("github", opts)
-        do_github_install(rest, opts)
+        install_from_github(rest, opts)
       ["hex" | rest] ->
         raise_if_sha512("hex", opts)
-        do_hex_install(rest, opts)
+        install_from_hex(rest, opts)
       _ ->
         Mix.Local.Installer.install({__MODULE__, :escript}, argv, @switches)
     end
@@ -80,24 +80,24 @@ defmodule Mix.Tasks.Escript.Install do
     end
   end
 
-  defp do_github_install([], _opts) do
+  defp install_from_github([], _opts) do
     Mix.raise "escript.install github expects a repository"
   end
 
-  defp do_github_install([repo | rest], opts) do
+  defp install_from_github([repo | rest], opts) do
     url = "https://github.com/#{repo}.git"
-    do_git_install([url | rest], opts)
+    install_from_git([url | rest], opts)
   end
 
-  defp do_git_install([], _opts) do
+  defp install_from_git([], _opts) do
     Mix.raise "escript.install git expects a URL"
   end
 
-  defp do_git_install([url], opts) do
-    do_git_install([url, "branch", "master"], opts)
+  defp install_from_git([url], opts) do
+    install_from_git([url, "branch", "master"], opts)
   end
 
-  defp do_git_install([url, ref_type, ref], opts) do
+  defp install_from_git([url, ref_type, ref], opts) do
     with_tmp_dir fn tmp_path ->
       git_opts =
         ref_to_config(ref_type, ref) ++
@@ -109,7 +109,7 @@ defmodule Mix.Tasks.Escript.Install do
     end
   end
 
-  defp do_git_install([_url | rest], _opts) do
+  defp install_from_git([_url | rest], _opts) do
     Mix.raise "escript.install received invalid git checkout spec: #{Enum.join(rest, " ")}"
   end
 
@@ -123,15 +123,15 @@ defmodule Mix.Tasks.Escript.Install do
     Mix.raise "escript.install expected one of \"branch\", \"tag\", or \"ref\". Got: \"#{ref_type}\""
   end
 
-  defp do_hex_install([], _opts) do
+  defp install_from_hex([], _opts) do
     Mix.raise "escript.install hex expects a package name"
   end
 
-  defp do_hex_install([package_name], opts) do
-    do_hex_install([package_name, nil], opts)
+  defp install_from_hex([package_name], opts) do
+    install_from_hex([package_name, nil], opts)
   end
 
-  defp do_hex_install([package_name, version], opts) do
+  defp install_from_hex([package_name, version], opts) do
     if Mix.Hex.ensure_installed?(package_name) do
       Mix.Hex.start()
 
@@ -164,7 +164,7 @@ defmodule Mix.Tasks.Escript.Install do
     end
   end
 
-  defp do_hex_install([_package_name | rest], _opts) do
+  defp install_from_hex([_package_name | rest], _opts) do
     Mix.raise "escript.install received invalid hex package spec: #{Enum.join(rest, " ")}"
   end
 
