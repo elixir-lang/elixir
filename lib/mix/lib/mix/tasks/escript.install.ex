@@ -90,21 +90,11 @@ defmodule Mix.Tasks.Escript.Install do
   end
 
   defp install_from_git([url, ref_type, ref], opts) do
-    with_tmp_dir fn tmp_path ->
-      git_opts =
-        ref_to_config(ref_type, ref) ++
-        [dest: tmp_path, git: url, submodules: opts[:submodules]]
+    git_opts =
+      ref_to_config(ref_type, ref) ++
+      [git: url, submodules: opts[:submodules]]
 
-      Mix.SCM.Git.checkout(git_opts)
-
-      with_mix_env_prod fn ->
-        Mix.Project.in_project :new_escript, tmp_path, fn _mixfile ->
-          Mix.Task.run("deps.get", ["--only", Mix.env()])
-          Mix.Task.run("escript.build", [])
-          Mix.Task.run("escript.install", install_opts(opts))
-        end
-      end
-    end
+    fetch_build_and_install_escript("new_escript", {:new_escript, git_opts}, opts)
   end
 
   defp install_from_git([_url | rest], _opts) do
@@ -126,6 +116,14 @@ defmodule Mix.Tasks.Escript.Install do
   end
 
   defp install_from_hex([package_name, version], opts) do
+    fetch_build_and_install_escript(package_name, {String.to_atom(package_name), version}, opts)
+  end
+
+  defp install_from_hex([_package_name | rest], _opts) do
+    Mix.raise "escript.install received invalid hex package spec: #{Enum.join(rest, " ")}"
+  end
+
+  defp fetch_build_and_install_escript(package_name, dep_spec, opts) do
     with_tmp_dir fn tmp_path ->
       File.mkdir_p!(tmp_path)
 
@@ -136,7 +134,7 @@ defmodule Mix.Tasks.Escript.Install do
         def project do
           [app: :escript_installer,
            version: "0.0.1",
-           deps: [{:#{package_name}, "#{version}"}]]
+           deps: [#{inspect dep_spec}]]
         end
       end
       """
@@ -147,22 +145,17 @@ defmodule Mix.Tasks.Escript.Install do
         end
 
         package_path = Path.join([tmp_path, "deps", package_name])
-        package_name = String.to_atom(package_name)
         post_config = [
           deps_path: Path.join(tmp_path, "deps"),
           lockfile: Path.join(tmp_path, "mix.lock")
         ]
 
-        Mix.Project.in_project package_name, package_path, post_config, fn _mixfile ->
+        Mix.Project.in_project :new_escript, package_path, post_config, fn _mixfile ->
           Mix.Task.run("escript.build", [])
           Mix.Task.run("escript.install", install_opts(opts))
         end
       end
     end
-  end
-
-  defp install_from_hex([_package_name | rest], _opts) do
-    Mix.raise "escript.install received invalid hex package spec: #{Enum.join(rest, " ")}"
   end
 
   defp with_tmp_dir(fun) do
