@@ -75,36 +75,74 @@ defmodule SystemTest do
     assert System.get_env(@test_var) == "OTHER_SAMPLE"
   end
 
-  test "cmd/2" do
-    assert {"hello\n", 0} = System.cmd "echo", ["hello"]
-  end
+  if windows? do
 
-  test "cmd/3 (with options)" do
-    assert {["hello\n"], 0} = System.cmd "echo", ["hello"],
-                                into: [], cd: System.cwd!, env: %{"foo" => "bar", "baz" => nil},
-                                arg0: "echo", stderr_to_stdout: true, parallelism: true
-  end
-
-  @echo "echo-elixir-test"
-
-  test "cmd/2 with absolute and relative paths" do
-    echo = tmp_path(@echo)
-    File.mkdir_p! Path.dirname(echo)
-    File.cp! System.find_executable("echo"), echo
-
-    File.cd! Path.dirname(echo), fn ->
-      # There is a bug in OTP where find_executable is finding
-      # entries on the current directory. If this is the case,
-      # we should avoid the assertion below.
-      unless System.find_executable(@echo) do
-        assert :enoent = catch_error(System.cmd(@echo, ["hello"]))
-      end
-
-      assert {"hello\n", 0} = System.cmd(Path.join(System.cwd!, @echo), ["hello"], [{:arg0, "echo"}])
+    test "cmd/2 win" do
+      assert {"hello\r\n", 0} = System.cmd "cmd", ~w[/c echo hello]
     end
-  after
-    File.rm_rf! tmp_path(@echo)
+
+    test "cmd/3 (with options) win" do
+      assert {["hello\r\n"], 0} = System.cmd "cmd", ~w[/c echo hello],
+                                  into: [], cd: System.cwd!, env: %{"foo" => "bar", "baz" => nil},
+                                  arg0: "echo", stderr_to_stdout: true, parallelism: true
+    end
+
+    @echo "echo-elixir-test"
+
+    test "cmd/2 with absolute and relative paths win" do
+      echo = tmp_path(@echo)
+      File.mkdir_p! Path.dirname(echo)
+      File.cp! System.find_executable("cmd"), echo
+
+      File.cd! Path.dirname(echo), fn ->
+        # There is a bug in OTP where find_executable is finding
+        # entries on the current directory. If this is the case,
+        # we should avoid the assertion below.
+        unless System.find_executable(@echo) do
+          assert :enoent = catch_error(System.cmd(@echo, ~w[/c echo hello]))
+        end
+
+        assert {"hello\r\n", 0} = System.cmd(Path.join(System.cwd!, @echo), ~w[/c echo hello], [{:arg0, "echo"}])
+      end
+    after
+      File.rm_rf! Path.dirname(tmp_path(@echo))
+    end
+
+  else
+
+    test "cmd/2 unix" do
+      assert {"hello\n", 0} = System.cmd "echo", ["hello"]
+    end
+
+    test "cmd/3 (with options) unix" do
+      assert {["hello\n"], 0} = System.cmd "echo", ["hello"],
+                                  into: [], cd: System.cwd!, env: %{"foo" => "bar", "baz" => nil},
+                                  arg0: "echo", stderr_to_stdout: true, parallelism: true
+    end
+
+    @echo "echo-elixir-test"
+
+    test "cmd/2 with absolute and relative paths unix" do
+      echo = tmp_path(@echo)
+      File.mkdir_p! Path.dirname(echo)
+      File.cp! System.find_executable("echo"), echo
+
+      File.cd! Path.dirname(echo), fn ->
+        # There is a bug in OTP where find_executable is finding
+        # entries on the current directory. If this is the case,
+        # we should avoid the assertion below.
+        unless System.find_executable(@echo) do
+          assert :enoent = catch_error(System.cmd(@echo, ["hello"]))
+        end
+
+        assert {"hello\n", 0} = System.cmd(Path.join(System.cwd!, @echo), ["hello"], [{:arg0, "echo"}])
+      end
+    after
+      File.rm_rf! tmp_path(@echo)
+    end
+
   end
+
 
   test "find_executable/1" do
     assert System.find_executable("erl")
