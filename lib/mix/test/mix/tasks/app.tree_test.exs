@@ -77,6 +77,26 @@ defmodule Mix.Tasks.App.TreeTest do
     end
   end
 
+  @tag apps: [:test, :app_deps_sample, :app_deps2_sample, :app_deps3_sample, :app_deps4_sample]
+  test "shows the application tree in dot form", context do
+    Mix.Project.push AppDepsSample
+
+    in_tmp context.test, fn ->
+      load_apps()
+      Mix.Tasks.App.Tree.run(["--dot"])
+
+      # Why is this generated when it doesn't appear in other tests?
+      assert_received {:mix_shell, :info, ["Generated test app"]}
+
+      assert_received {:mix_shell, :info, ["digraph \"application tree\" {"]}
+      assert_received {:mix_shell, :info, ["  \"test\" -> \"app_deps_sample\""]}
+      assert_received {:mix_shell, :info, ["  \"app_deps_sample\" -> \"app_deps2_sample\""]}
+      assert_received {:mix_shell, :info, ["  \"app_deps2_sample\" -> \"app_deps4_sample (included)\""]}
+      assert_received {:mix_shell, :info, ["  \"app_deps_sample\" -> \"app_deps3_sample\""]}
+      assert_received {:mix_shell, :info, ["}"]}
+    end
+  end
+
   def load_apps() do
     :ok = :application.load({:application, :app_deps4_sample, [vsn: '1.0.0', env: []]})
     :ok = :application.load({:application, :app_deps3_sample, [vsn: '1.0.0', env: []]})

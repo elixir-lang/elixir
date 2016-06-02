@@ -20,6 +20,8 @@ defmodule Mix.Tasks.App.Tree do
     * `--pretty` - use Unicode codepoints for formatting the tree.
       Defaults to `true` except on Windows.
 
+    * `--dot` - produces a DOT graph description of the application tree.
+
   """
 
   @default_excluded [:kernel, :stdlib, :compiler]
@@ -29,7 +31,7 @@ defmodule Mix.Tasks.App.Tree do
     Mix.Task.run "compile"
 
     {app, opts} =
-      case OptionParser.parse!(args, strict: [exclude: :keep, pretty: :boolean]) do
+      case OptionParser.parse!(args, strict: [exclude: :keep, pretty: :boolean, dot: :boolean]) do
         {opts, []} ->
           app = Mix.Project.config[:app] || Mix.raise("no application given and none found in mix.exs file")
           {app, opts}
@@ -40,10 +42,17 @@ defmodule Mix.Tasks.App.Tree do
     excluded = Keyword.get_values(opts, :exclude) |> Enum.map(&String.to_atom/1)
     excluded = @default_excluded ++ excluded
 
-    Mix.Utils.print_tree([{:normal, app}], fn {type, app} ->
-      load(app)
-      {"#{app}#{type(type)}", children_for(app, excluded)}
-    end, opts)
+    if opts[:dot] do
+      Mix.Utils.print_dot_graph("application tree", [{:normal, app}], fn {type, app} ->
+        load(app)
+        {"#{app}#{type(type)}", children_for(app, excluded)}
+      end, opts)
+    else
+      Mix.Utils.print_tree([{:normal, app}], fn {type, app} ->
+        load(app)
+        {"#{app}#{type(type)}", children_for(app, excluded)}
+      end, opts)
+    end
   end
 
   defp load(app) do

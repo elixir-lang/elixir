@@ -196,7 +196,9 @@ defmodule Mix.Utils do
   defp do_print_dot_graph(_parent, [], _callback), do: :ok
   defp do_print_dot_graph(parent, [node | nodes], callback) do
     {name, children} = callback.(node)
-    Mix.shell.info "  #{parent} -> #{name}"
+    if parent != name do
+      Mix.shell.info ~s(  "#{parent}" -> "#{name}")
+    end
     do_print_dot_graph(name, children, callback)
     do_print_dot_graph(parent, nodes, callback)
   end
