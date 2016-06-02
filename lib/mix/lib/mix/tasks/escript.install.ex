@@ -60,13 +60,13 @@ defmodule Mix.Tasks.Escript.Install do
     {opts, args} = OptionParser.parse!(argv, strict: @switches)
 
     case args do
-      ["git" | rest] ->
+      ["git" | rest] when rest != [] ->
         raise_if_sha512("git", opts)
         install_from_git(rest, opts)
-      ["github" | rest] ->
+      ["github" | rest] when rest != [] ->
         raise_if_sha512("github", opts)
         install_from_github(rest, opts)
-      ["hex" | rest] ->
+      ["hex" | rest] when rest != [] ->
         raise_if_sha512("hex", opts)
         install_from_hex(rest, opts)
       _ ->
@@ -80,17 +80,9 @@ defmodule Mix.Tasks.Escript.Install do
     end
   end
 
-  defp install_from_github([], _opts) do
-    Mix.raise "escript.install github expects a repository"
-  end
-
   defp install_from_github([repo | rest], opts) do
     url = "https://github.com/#{repo}.git"
     install_from_git([url | rest], opts)
-  end
-
-  defp install_from_git([], _opts) do
-    Mix.raise "escript.install git expects a URL"
   end
 
   defp install_from_git([url], opts) do
@@ -105,7 +97,13 @@ defmodule Mix.Tasks.Escript.Install do
 
       Mix.SCM.Git.checkout(git_opts)
 
-      build_and_install_escript(tmp_path, opts)
+      with_mix_env_prod fn ->
+        Mix.Project.in_project :new_escript, tmp_path, fn _mixfile ->
+          Mix.Task.run("deps.get", ["--only", Mix.env()])
+          Mix.Task.run("escript.build", [])
+          Mix.Task.run("escript.install", install_opts(opts))
+        end
+      end
     end
   end
 
@@ -123,43 +121,42 @@ defmodule Mix.Tasks.Escript.Install do
     Mix.raise "escript.install expected one of \"branch\", \"tag\", or \"ref\". Got: \"#{ref_type}\""
   end
 
-  defp install_from_hex([], _opts) do
-    Mix.raise "escript.install hex expects a package name"
-  end
-
   defp install_from_hex([package_name], opts) do
-    install_from_hex([package_name, nil], opts)
+    install_from_hex([package_name, ">= 0.0.0"], opts)
   end
 
   defp install_from_hex([package_name, version], opts) do
-    if Mix.Hex.ensure_installed?(package_name) do
-      Mix.Hex.start()
+    with_tmp_dir fn tmp_path ->
+      File.mkdir_p!(tmp_path)
 
-      with_tmp_dir fn tmp_path ->
-        package_name = String.to_atom(package_name)
+      File.write! Path.join(tmp_path, "mix.exs"), """
+      defmodule EscriptInstaller.Mixfile do
+        use Mix.Project
 
-        version =
-          if version do
-            version
-          else
-            case Hex.API.Package.get(package_name) do
-              {200, %{"releases" => [newest | _]}, _} -> newest["version"]
-              _ -> nil
-            end
-          end
+        def project do
+          [app: :escript_installer,
+           version: "0.0.1",
+           deps: [{:#{package_name}, "#{version}"}]]
+        end
+      end
+      """
 
-        unless version do
-          Mix.raise "escript.install could not find hex package #{package_name}"
+      with_mix_env_prod fn ->
+        Mix.Project.in_project :escript_installer, tmp_path, fn _mixfile ->
+          Mix.Task.run("deps.get", [])
         end
 
-        lock = {:hex, package_name, version}
+        package_path = Path.join([tmp_path, "deps", package_name])
+        package_name = String.to_atom(package_name)
+        post_config = [
+          deps_path: Path.join(tmp_path, "deps"),
+          lockfile: Path.join(tmp_path, "mix.lock")
+        ]
 
-        Mix.shell.info "* Getting #{package_name} (Hex package)"
-
-        Hex.SCM.prefetch([{package_name, lock}])
-        Hex.SCM.checkout([hex: package_name, dest: tmp_path, lock: lock])
-
-        build_and_install_escript(tmp_path, opts)
+        Mix.Project.in_project package_name, package_path, post_config, fn _mixfile ->
+          Mix.Task.run("escript.build", [])
+          Mix.Task.run("escript.install", install_opts(opts))
+        end
       end
     end
   end
@@ -179,22 +176,19 @@ defmodule Mix.Tasks.Escript.Install do
     end
   end
 
-  defp build_and_install_escript(path, opts) do
-    install_opts = if opts[:force], do: ["--force"], else: []
-
+  defp with_mix_env_prod(fun) do
     previous_env = Mix.env()
 
     try do
       Mix.env(:prod)
-
-      Mix.Project.in_project :new_escript, path, fn _mixfile ->
-        Mix.Task.run("deps.get", ["--only", Mix.env()])
-        Mix.Task.run("escript.build", [])
-        Mix.Task.run("escript.install", install_opts)
-      end
+      fun.()
     after
       Mix.env(previous_env)
     end
+  end
+
+  defp install_opts(opts) do
+    if opts[:force], do: ["--force"], else: []
   end
 
   ### Mix.Local.Installer callbacks
