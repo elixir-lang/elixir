@@ -15,8 +15,8 @@
 macro_for(Module, Name, Arity) ->
   Tuple = {Name, Arity},
   try elixir_def:lookup_clauses(Module, Tuple) of
-    {Kind, Line, [_ | _] = Clauses} when Kind == defmacro; Kind == defmacrop ->
-      fun() -> get_function(Line, Module, Clauses) end;
+    {Kind, Ann, [_ | _] = Clauses} when Kind == defmacro; Kind == defmacrop ->
+      fun() -> get_function(Ann, Module, Clauses) end;
     _ ->
       false
   catch
@@ -28,23 +28,23 @@ local_for(Module, Name, Arity) ->
 local_for(Module, Name, Arity, Given) ->
   Tuple = {Name, Arity},
   case elixir_def:lookup_clauses(Module, Tuple) of
-    {Kind, Line, [_ | _] = Clauses} when Given == nil; Kind == Given ->
-      get_function(Line, Module, Clauses);
+    {Kind, Ann, [_ | _] = Clauses} when Given == nil; Kind == Given ->
+      get_function(Ann, Module, Clauses);
     _ ->
       [_ | T] = erlang:get_stacktrace(),
       erlang:raise(error, undef, [{Module, Name, Arity, []} | T])
   end.
 
-get_function(Line, Module, Clauses) ->
+get_function(Ann, Module, Clauses) ->
   RewrittenClauses = [rewrite_clause(Clause, Module) || Clause <- Clauses],
-  Fun = {'fun', Line, {clauses, RewrittenClauses}},
+  Fun = {'fun', Ann, {clauses, RewrittenClauses}},
   {value, Result, _Binding} = erl_eval:exprs([Fun], []),
   Result.
 
-rewrite_clause({call, Line, {atom, Line, RawName}, Args}, Module) ->
-  Remote = {remote, Line,
-    {atom, Line, ?MODULE},
-    {atom, Line, local_for}
+rewrite_clause({call, Ann1, {atom, Ann2, RawName}, Args}, Module) ->
+  Remote = {remote, Ann1,
+    {atom, Ann2, ?MODULE},
+    {atom, Ann2, local_for}
  },
 
   %% If we have a macro, its arity in the table is
@@ -54,10 +54,10 @@ rewrite_clause({call, Line, {atom, Line, RawName}, Args}, Module) ->
     _ -> {RawName, length(Args)}
   end,
 
-  FunCall = {call, Line, Remote, [
-    {atom, Line, Module}, {atom, Line, Name}, {integer, Line, Arity}
+  FunCall = {call, Ann1, Remote, [
+    {atom, Ann2, Module}, {atom, Ann2, Name}, {integer, Ann2, Arity}
   ]},
-  {call, Line, FunCall, Args};
+  {call, Ann1, FunCall, Args};
 
 rewrite_clause(Tuple, Module) when is_tuple(Tuple) ->
   list_to_tuple(rewrite_clause(tuple_to_list(Tuple), Module));
