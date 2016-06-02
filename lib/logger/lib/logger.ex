@@ -417,7 +417,7 @@ defmodule Logger do
 
   """
   def add_backend(backend, opts \\ []) do
-    _ = if opts[:flush], do: GenEvent.which_handlers(:error_logger)
+    _ = if opts[:flush], do: flush()
     case Logger.Watcher.watch(Logger, Logger.Config.translate_backend(backend), backend) do
       {:ok, _} = ok ->
         Logger.Config.add_backend(backend)
@@ -437,7 +437,7 @@ defmodule Logger do
       the backend is removed
   """
   def remove_backend(backend, opts \\ []) do
-    _ = if opts[:flush], do: GenEvent.which_handlers(:error_logger)
+    _ = if opts[:flush], do: flush()
     Logger.Config.remove_backend(backend)
     Logger.Watcher.unwatch(Logger, Logger.Config.translate_backend(backend))
   end
