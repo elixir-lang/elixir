@@ -65,13 +65,15 @@ store_definition(Line, Kind, CheckClauses, Call, Body, Pos) when is_integer(Line
   LinifyArgs   = elixir_quote:linify(Line, Key, Args),
   LinifyGuards = elixir_quote:linify(Line, Key, Guards),
   LinifyBody   = elixir_quote:linify(Line, Key, Body),
+  LinifyMeta   = lists:keystore(line, 1, Meta, {line, Line}),
 
-  assert_no_aliases_name(Line, Name, Args, E),
-  assert_valid_name(Line, Kind, Name, Args, E),
-  store_definition(Line, Kind, DoCheckClauses, Name,
+  assert_no_aliases_name(LinifyMeta, Name, Args, E),
+  assert_valid_name(LinifyMeta, Kind, Name, Args, E),
+  store_definition(LinifyMeta, Line, Kind, DoCheckClauses, Name,
                    LinifyArgs, LinifyGuards, LinifyBody, Location, E).
 
-store_definition(Line, Kind, CheckClauses, Name, Args, Guards, Body, KeepLocation, #{module := Module} = ER) ->
+store_definition(Meta, Line, Kind, CheckClauses, Name, Args, Guards, Body, KeepLocation,
+                 #{module := Module} = ER) ->
   Arity = length(Args),
   Tuple = {Name, Arity},
   Location = retrieve_location(KeepLocation, Module),
@@ -83,8 +85,9 @@ store_definition(Line, Kind, CheckClauses, Name, Args, Guards, Body, KeepLocatio
 
   elixir_locals:record_definition(Tuple, Kind, Module),
 
-  {Function, Defaults, Super} = translate_definition(Kind, Line, Name, Args, Guards, Body, E),
-  run_on_definition_callbacks(Kind, Line, Module, Name, Args, Guards, expr_from_body(Line, Body), E),
+  WrappedBody = expr_from_body(Line, Body),
+  {Function, Defaults, Super} = translate_definition(Kind, Meta, Name, Args, Guards, Body, WrappedBody, E),
+  run_on_definition_callbacks(Kind, Line, Module, Name, Args, Guards, WrappedBody, E),
 
   DefaultsLength = length(Defaults),
   elixir_locals:record_defaults(Tuple, Kind, Module, DefaultsLength),
@@ -152,42 +155,39 @@ compile_super(_Module, _, _E) -> ok.
 %% Translate the given call and expression given
 %% and then store it in memory.
 
-translate_definition(Kind, Line, Name, Args, Guards, Body, E) when is_integer(Line) ->
+translate_definition(Kind, Meta, Name, Args, Guards, Body, WrappedBody, E) ->
   Arity = length(Args),
 
   {EArgs, EGuards, EBody, _} = elixir_exp_clauses:def(fun elixir_def_defaults:expand/2,
-                                Args, Guards, expr_from_body(Line, Body), E),
-
-  case Body of
-    nil -> check_args_for_bodyless_clause(Line, EArgs, E);
-    _ -> ok
-  end,
+                                Args, Guards, WrappedBody, E),
 
   S = elixir_env:env_to_scope(E),
   {Unpacked, Defaults} = elixir_def_defaults:unpack(Kind, Name, EArgs, S),
-  {Clauses, Super} = translate_clause(Body, Line, Kind, Unpacked, EGuards, EBody, S),
+  {Clauses, Super} = translate_clause(Body, Kind, Meta, Unpacked, EGuards, EBody, S),
 
-  Function = {function, Line, Name, Arity, Clauses},
+  Function = {function, ?ann(Meta), Name, Arity, Clauses},
   {Function, Defaults, Super}.
 
-translate_clause(nil, _Line, _Kind, _Args, [], _Body, _S) ->
+translate_clause(nil, _Kind, Meta, Args, [], _Body, S) ->
+  check_args_for_bodyless_clause(Meta, Args, S),
   {[], false};
-translate_clause(nil, Line, Kind, _Args, _Guards, _Body, #elixir_scope{file=File}) ->
-  elixir_errors:form_error([{line, Line}], File, ?MODULE, {missing_do, Kind});
-translate_clause(_, Line, Kind, Args, Guards, Body, S) ->
-  {TClause, TS} = elixir_clauses:clause([{line, Line}],
+translate_clause(nil, Kind, Meta, _Args, _Guards, _Body, #elixir_scope{file=File}) ->
+  elixir_errors:form_error(Meta, File, ?MODULE, {missing_do, Kind});
+translate_clause(_, Kind, Meta, Args, Guards, Body, S) ->
+  {TClause, TS} = elixir_clauses:clause(Meta,
                     fun elixir_translator:translate_args/2, Args, Body, Guards, S),
 
   FClause = case is_macro(Kind) of
     true ->
-      FArgs = {var, Line, '_@CALLER'},
+      Ann = ?ann(Meta),
+      FArgs = {var, Ann, '_@CALLER'},
       MClause = setelement(3, TClause, [FArgs|element(3, TClause)]),
 
       case TS#elixir_scope.caller of
         true  ->
-          FBody = {'match', Line,
-            {'var', Line, '__CALLER__'},
-            elixir_utils:erl_call(Line, elixir_env, linify, [{var, Line, '_@CALLER'}])
+          FBody = {'match', Ann,
+            {'var', Ann, '__CALLER__'},
+            elixir_utils:erl_call(Ann, elixir_env, linify, [{var, Ann, '_@CALLER'}])
           },
           setelement(5, MClause, [FBody|element(5, TClause)]);
         false ->
@@ -378,9 +378,9 @@ defaults_conflict(A, D, Arity, Defaults) ->
   ((Arity >= (A - D)) andalso (Arity < A)) orelse
     ((A >= (Arity - Defaults)) andalso (A < Arity)).
 
-check_args_for_bodyless_clause(Line, Args, E) ->
+check_args_for_bodyless_clause(Meta, Args, S) ->
   [ begin
-      elixir_errors:form_error([{line, Line}], ?m(E, file), ?MODULE,
+      elixir_errors:form_error(Meta, S#elixir_scope.file, ?MODULE,
         invalid_args_for_bodyless_clause)
     end || Arg <- Args, invalid_arg(Arg) ].
 
@@ -391,14 +391,14 @@ invalid_arg({'\\\\', _, [{Name, _, Kind}, _]}) when is_atom(Name), is_atom(Kind)
 invalid_arg(_) ->
   true.
 
-assert_no_aliases_name(Line, '__aliases__', [Atom], #{file := File}) when is_atom(Atom) ->
-  elixir_errors:form_error([{line, Line}], File, ?MODULE, {no_alias, Atom});
-assert_no_aliases_name(_Line, _Aliases, _Args, _S) ->
+assert_no_aliases_name(Meta, '__aliases__', [Atom], #{file := File}) when is_atom(Atom) ->
+  elixir_errors:form_error(Meta, File, ?MODULE, {no_alias, Atom});
+assert_no_aliases_name(_Meta, _Aliases, _Args, _S) ->
   ok.
 
-assert_valid_name(Line, Kind, is_record, [_, _], #{file := File}) when Kind == defp; Kind == def ->
-  elixir_errors:form_error([{line, Line}], File, ?MODULE, {is_record, Kind});
-assert_valid_name(_Line, _Kind, _Name, _Args, _S) ->
+assert_valid_name(Meta, Kind, is_record, [_, _], #{file := File}) when Kind == defp; Kind == def ->
+  elixir_errors:form_error(Meta, File, ?MODULE, {is_record, Kind});
+assert_valid_name(_Meta, _Kind, _Name, _Args, _S) ->
   ok.
 
 %% Format errors
