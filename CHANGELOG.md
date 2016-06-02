@@ -85,6 +85,19 @@ ask Mix to use Rebar 3 to compile it by passing the `manager: :rebar3` option.
 Once configured, Mix will prompt you to install Rebar 3 if it is not yet
 available.
 
+## v1.2.6-dev
+
+### 1. Enhancements
+
+  * [Kernel] Support Erlang 19
+  * [Kernel] Supported generated: true in the `quote` special form
+
+### 2. Bug fixes
+
+  * [Path] Fix a bug in path join with "/" followed by empty segments
+  * [String] Fix a bug in NFD normalization when followed by one-byte sized graphemes
+  * [Typespec] Correctly support `<<_::size, _::_*unit>>` syntax
+
 ## v1.2.5 (2016-04-30)
 
 ### 1. Bug fixes
