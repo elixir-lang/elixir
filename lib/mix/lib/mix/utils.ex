@@ -295,7 +295,7 @@ defmodule Mix.Utils do
 
   ## Options
 
-    * `:sha512` - checks against the given sha512 checksum. Returns
+    * `:sha512` - checks against the given SHA-512 checksum. Returns
       `{:checksum, message}` in case it fails
   """
   @spec read_path(String.t, Keyword.t) ::
@@ -319,7 +319,7 @@ defmodule Mix.Utils do
       with expected when expected != nil  <- opts[hash],
            actual when actual != expected <- hexhash(binary, hash) do
         {:checksum, """
-          Data does not match the given sha512 checksum.
+          Data does not match the given SHA-512 checksum.
 
           Expected: #{expected}
             Actual: #{actual}
