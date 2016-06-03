@@ -75,5 +75,4 @@ defmodule ApplicationTest do
       path |> String.downcase
     end
   end
-
 end

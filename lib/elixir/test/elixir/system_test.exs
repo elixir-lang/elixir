@@ -76,15 +76,14 @@ defmodule SystemTest do
   end
 
   if windows? do
-
     test "cmd/2 win" do
       assert {"hello\r\n", 0} = System.cmd "cmd", ~w[/c echo hello]
     end
 
     test "cmd/3 (with options) win" do
       assert {["hello\r\n"], 0} = System.cmd "cmd", ~w[/c echo hello],
-                                  into: [], cd: System.cwd!, env: %{"foo" => "bar", "baz" => nil},
-                                  arg0: "echo", stderr_to_stdout: true, parallelism: true
+                                    into: [], cd: System.cwd!, env: %{"foo" => "bar", "baz" => nil},
+                                    arg0: "echo", stderr_to_stdout: true, parallelism: true
     end
 
     @echo "echo-elixir-test"
@@ -107,9 +106,7 @@ defmodule SystemTest do
     after
       File.rm_rf! Path.dirname(tmp_path(@echo))
     end
-
   else
-
     test "cmd/2 unix" do
       assert {"hello\n", 0} = System.cmd "echo", ["hello"]
     end
@@ -140,9 +137,7 @@ defmodule SystemTest do
     after
       File.rm_rf! tmp_path(@echo)
     end
-
   end
-
 
   test "find_executable/1" do
     assert System.find_executable("erl")
