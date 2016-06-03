@@ -2230,10 +2230,10 @@ defmodule Enum do
   end
 
   @doc """
-  Takes random items from the enumerable.
+  Takes random items from `enumerable`.
 
-  Notice this function will traverse the whole enumerable to
-  get the random sublist of `enumerable`.
+  Notice this function will traverse the whole `enumerable` to
+  get the random sublist.
 
   See `random/1` for notes on implementation and random seed.
 
@@ -2247,18 +2247,16 @@ defmodule Enum do
       'fhjni'
 
   """
-  @spec take_random(t, integer) :: list
+  @spec take_random(t, non_neg_integer) :: list
   def take_random(_enumerable, 0), do: []
+  def take_random(first..first, 1),
+    do: [first]
+  def take_random(first..last, 1) when first > last,
+    do: take_random(last..first, 1)
+  def take_random(first..last, 1),
+    do: [random_index(last - first) + first]
 
-  def take_random(first..last, 1) when first > last do
-    take_random(last..first, 1)
-  end
-
-  def take_random(first..last, 1) do
-    [random_index(last - first) + first]
-  end
-
-  def take_random(enumerable, count) when count > 128 do
+  def take_random(enumerable, count) when is_integer(count) and count > 128 do
     reducer = fn(elem, {idx, sample}) ->
       jdx = random_index(idx)
       cond do
@@ -2276,7 +2274,7 @@ defmodule Enum do
     take_random(sample, Kernel.min(count, size), [])
   end
 
-  def take_random(enumerable, count) when count > 0 do
+  def take_random(enumerable, count) when is_integer(count) and count > 0 do
     sample = Tuple.duplicate(nil, count)
 
     reducer = fn(elem, {idx, sample}) ->
@@ -2300,8 +2298,7 @@ defmodule Enum do
 
   defp take_random(sample, position, acc) do
     position = position - 1
-    acc = [Map.get(sample, position) | acc]
-    take_random(sample, position, acc)
+    take_random(sample, position, [Map.get(sample, position) | acc])
   end
 
   @doc """
