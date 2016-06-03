@@ -1625,7 +1625,7 @@ defmodule Kernel.SpecialForms do
   defmacro cond(clauses), do: error!([clauses])
 
   @doc ~S"""
-  Evaluates the given expressions and handle any error, exit
+  Evaluates the given expressions and handles any error, exit
   or throw that may have happened.
 
   ## Examples
@@ -1771,8 +1771,8 @@ defmodule Kernel.SpecialForms do
           :large
       end
 
-  If an else clause is not present the result of the expression will
-  be return, if no exceptions are raised:
+  If an else clause is not present and no exceptions are raised,
+  the result of the expression will be returned:
 
       x = 1
       ^x =
@@ -1828,7 +1828,7 @@ defmodule Kernel.SpecialForms do
   This means the VM no longer needs to keep the stacktrace once inside
   an else clause and so tail recursion is possible when using a `try`
   with a tail call as the final call inside an else clause. The same
-  is `true` for `rescue` and `catch` clauses.
+  is true for `rescue` and `catch` clauses.
 
   ## Variable handling
 
