@@ -108,4 +108,27 @@ defmodule Mix.Tasks.Deps.TreeTest do
       refute_received {:mix_shell, :info, ["└── deps_on_git_repo ~r/0.2.0/ (" <> _]}
     end
   end
+
+  test "shows the dependency tree in DOT graph format", context do
+    Mix.Project.push ConvergedDepsApp
+
+    in_tmp context.test, fn ->
+      Mix.Tasks.Deps.Tree.run(["--dot"])
+      assert_received {:mix_shell, :info, ["digraph \"dependency tree\" {"]}
+      assert_received {:mix_shell, :info, ["  \"sample\" -> \"git_repo >= 0.1.0\""]}
+      assert_received {:mix_shell, :info, ["  \"sample\" -> \"deps_on_git_repo 0.2.0\""]}
+      refute_received {:mix_shell, :info, ["  \"deps_on_git_repo 0.2.0\" -> \"git_repo\""]}
+      assert_received {:mix_shell, :info, ["}"]}
+
+      Mix.Tasks.Deps.Get.run([])
+      Mix.Tasks.Deps.Tree.run(["--dot"])
+      assert_received {:mix_shell, :info, ["digraph \"dependency tree\" {"]}
+      assert_received {:mix_shell, :info, ["  \"sample\" -> \"git_repo >= 0.1.0\""]}
+      assert_received {:mix_shell, :info, ["  \"sample\" -> \"deps_on_git_repo 0.2.0\""]}
+      assert_received {:mix_shell, :info, ["  \"deps_on_git_repo 0.2.0\" -> \"git_repo\""]}
+      assert_received {:mix_shell, :info, ["}"]}
+    end
+  after
+    purge [DepsOnGitRepo.Mixfile, GitRepo.Mixfile]
+  end
 end

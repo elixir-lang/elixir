@@ -20,8 +20,10 @@ defmodule Mix.Tasks.Deps.Tree do
     * `--pretty` - use Unicode codepoints for formatting the tree.
       Defaults to `true` except on Windows.
 
+    * `--dot` - produces a DOT graph description of the dependency tree.
+
   """
-  @switches [only: :string, exclude: :keep, pretty: :boolean]
+  @switches [only: :string, exclude: :keep, pretty: :boolean, dot: :boolean]
 
   @spec run(OptionParser.argv) :: :ok
   def run(args) do
@@ -42,29 +44,47 @@ defmodule Mix.Tasks.Deps.Tree do
           find_dep(deps, app) || Mix.raise("could not find dependency #{app}")
       end
 
-    Mix.Utils.print_tree([root], fn
-      %Mix.Dep{app: app} = dep ->
-        deps =
-          # Do not show dependencies if they were
-          # already shown at the top level
-          if not dep.top_level && find_dep(top_level, app) do
-            []
-          else
-            find_dep(deps, app).deps
-          end
-        {format_dep(dep), exclude(deps, excluded)}
-      app ->
-        {Atom.to_string(app), exclude(top_level, excluded)}
-    end, opts)
+    deps_tree_callback =
+      fn
+        %Mix.Dep{app: app} = dep ->
+          deps =
+            # Do not show dependencies if they were
+            # already shown at the top level
+            if not dep.top_level && find_dep(top_level, app) do
+              []
+            else
+              find_dep(deps, app).deps
+            end
+          {format_dep(dep, opts), exclude(deps, excluded)}
+        app ->
+          {Atom.to_string(app), exclude(top_level, excluded)}
+      end
+
+    if opts[:dot] do
+      Mix.Utils.print_dot_graph("dependency tree", [root], deps_tree_callback, opts)
+    else
+      Mix.Utils.print_tree([root], deps_tree_callback, opts)
+    end
   end
 
   defp exclude(deps, excluded) do
     Enum.reject deps, & &1.app in excluded
   end
 
-  defp format_dep(%{app: app, scm: scm, requirement: requirement, opts: opts}) do
-    override = if opts[:override], do: "#{IO.ANSI.bright} *override*#{IO.ANSI.normal}", else: ""
-    "#{app}#{requirement(requirement)} (#{scm.format(opts)})#{override}"
+  defp format_dep(%{app: app, scm: scm, requirement: requirement, opts: deps_opts}, opts) do
+    override =
+      if deps_opts[:override] do
+        "#{IO.ANSI.bright} *override*#{IO.ANSI.normal}"
+      else
+        ""
+      end
+    scm_info =
+      if opts[:dot] do
+        ""
+      else
+        " (#{scm.format(deps_opts)})"
+      end
+    "#{app}#{requirement(requirement)}#{scm_info}#{override}"
   end
 
   defp requirement(nil), do: ""
