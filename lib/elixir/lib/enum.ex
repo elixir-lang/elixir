@@ -1839,8 +1839,7 @@ defmodule Enum do
   @spec slice(t, Range.t) :: list
   def slice(enumerable, range)
 
-  def slice(enumerable, first..last) when is_integer(first)
-  and first >= 0 and is_integer(last) and last >= 0 do
+  def slice(enumerable, first..last) when first >= 0 and last >= 0 do
     # Simple case, which works on infinite enumerables
     if last - first >= 0 do
       slice(enumerable, first, last - first + 1)
@@ -1849,8 +1848,7 @@ defmodule Enum do
     end
   end
 
-  def slice(enumerable, first..last) when is_integer(first)
-  and is_integer(last) do
+  def slice(enumerable, first..last) do
     {list, count} = enumerate_and_count(enumerable, 0)
     corr_first = if first >= 0, do: first, else: first + count
     corr_last = if last >= 0, do: last, else: last + count
