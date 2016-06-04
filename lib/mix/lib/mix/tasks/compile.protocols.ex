@@ -133,17 +133,14 @@ defmodule Mix.Tasks.Compile.Protocols do
 
   defp read_manifest(manifest, output) do
     try do
-      manifest |> File.read!() |> :erlang.binary_to_term()
-    else
-      [@manifest_vsn | t] ->
-        t
-
+      [@manifest_vsn | t] =
+        manifest |> File.read! |> :erlang.binary_to_term()
+      t
+    rescue
       _ ->
-        # If manifest is out of date, remove old files
+        # If there is no manifest or it is out of date, remove old files
         File.rm_rf(output)
         []
-    rescue
-      _ -> []
     end
   end
 

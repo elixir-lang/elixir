@@ -88,11 +88,11 @@ defmodule Kernel.ParallelCompiler do
   end
 
   # Release waiting processes
-  defp spawn_compilers(%{entries: [{h, kind} | t], waiting: waiting} = state) do
+  defp spawn_compilers(%{entries: [{ref, found} | t], waiting: waiting} = state) do
     waiting =
-      case List.keytake(waiting, h, 1) do
-        {{_kind, ^h, ref, _module, _defining}, waiting} ->
-          send h, {ref, kind}
+      case List.keytake(waiting, ref, 2) do
+        {{_kind, pid, ^ref, _on, _defining}, waiting} ->
+          send pid, {ref, found}
           waiting
         nil ->
           waiting
@@ -100,7 +100,7 @@ defmodule Kernel.ParallelCompiler do
     spawn_compilers(%{state | entries: t, waiting: waiting})
   end
 
-  defp spawn_compilers(%{entries: [h | t], queued: queued, output: output, options: options} = state) do
+  defp spawn_compilers(%{entries: [file | files], queued: queued, output: output, options: options} = state) do
     parent = self()
 
     {pid, ref} =
@@ -111,11 +111,11 @@ defmodule Kernel.ParallelCompiler do
 
         exit(try do
           _ = if output do
-            :elixir_compiler.file_to_path(h, output)
+            :elixir_compiler.file_to_path(file, output)
           else
-            :elixir_compiler.file(h, Keyword.get(options, :dest))
+            :elixir_compiler.file(file, Keyword.get(options, :dest))
           end
-          {:shutdown, h}
+          {:shutdown, file}
         catch
           kind, reason ->
             {:failure, kind, reason, System.stacktrace}
@@ -125,8 +125,8 @@ defmodule Kernel.ParallelCompiler do
     timeout = Keyword.get(options, :long_compilation_threshold, 5) * 1_000
     timer_ref = Process.send_after(self(), {:timed_out, pid}, timeout)
 
-    new_queued = [{pid, ref, h, timer_ref} | queued]
-    spawn_compilers(%{state | entries: t, queued: new_queued})
+    new_queued = [{pid, ref, file, timer_ref} | queued]
+    spawn_compilers(%{state | entries: files, queued: new_queued})
   end
 
   # No more files, nothing waiting, queue is empty, we are done
@@ -137,8 +137,9 @@ defmodule Kernel.ParallelCompiler do
   # Queued x, waiting for x: POSSIBLE ERROR! Release processes so we get the failures
   defp spawn_compilers(%{entries: [], waiting: waiting, queued: queued} = state) when length(waiting) == length(queued) do
     entries = for {pid, _, _, _} <- queued,
-                  on = waiting_on_without_definition(waiting, pid),
-                  do: {on, {pid, :not_found}}
+                  entry = waiting_on_without_definition(waiting, pid),
+                  {_, _, ref, on, _} = entry,
+                  do: {on, {ref, :not_found}}
 
     # Instead of releasing all files at once, we release them in groups
     # based on the module they are waiting on. We pick the module being
@@ -168,11 +169,11 @@ defmodule Kernel.ParallelCompiler do
   end
 
   defp waiting_on_without_definition(waiting, pid) do
-    {_kind, ^pid, _, on, _defining} = List.keyfind(waiting, pid, 1)
+    {_, ^pid, _, on, _} = entry = List.keyfind(waiting, pid, 1)
     if Enum.any?(waiting, fn {_, _, _, _, defining} -> on in defining end) do
       nil
     else
-      on
+      entry
     end
   end
 
@@ -182,9 +183,9 @@ defmodule Kernel.ParallelCompiler do
 
     receive do
       {:struct_available, module} ->
-        available = for {:struct, pid, _, waiting_module, _defining} <- waiting,
+        available = for {:struct, _, ref, waiting_module, _defining} <- waiting,
                         module == waiting_module,
-                        do: {pid, :found}
+                        do: {ref, :found}
 
         spawn_compilers(%{state | entries: available ++ entries, result: [{:struct, module} | result]})
 
@@ -196,9 +197,9 @@ defmodule Kernel.ParallelCompiler do
         # Release the module loader which is waiting for an ack
         send child, {ref, :ack}
 
-        available = for {:module, pid, _, waiting_module, _defining} <- waiting,
+        available = for {:module, _, ref, waiting_module, _defining} <- waiting,
                         module == waiting_module,
-                        do: {pid, :found}
+                        do: {ref, :found}
 
         cancel_waiting_timer(queued, child)
 
