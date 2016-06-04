@@ -29,7 +29,7 @@ defmodule Mix.Compilers.Elixir do
   """
   def compile(manifest, srcs, dest, force, opts) do
     all = Mix.Utils.extract_files(srcs, [:ex])
-    {all_modules, all_sources} = parse_manifest(manifest)
+    {all_modules, all_sources} = parse_manifest(manifest, dest)
     modified = Mix.Utils.last_modified(manifest)
 
     removed =
@@ -73,7 +73,7 @@ defmodule Mix.Compilers.Elixir do
         compile_manifest(manifest, modules, sources, stale, dest, opts)
         :ok
       removed != [] ->
-        write_manifest(manifest, modules, sources)
+        write_manifest(manifest, modules, sources, dest)
         :ok
       true ->
         :noop
@@ -91,20 +91,20 @@ defmodule Mix.Compilers.Elixir do
   @doc """
   Removes compiled files for the given `manifest`.
   """
-  def clean(manifest) do
-    Enum.each read_manifest(manifest), fn
+  def clean(manifest, compile_path) do
+    Enum.each(read_manifest(manifest, compile_path), fn
       module(beam: beam) ->
         File.rm(beam)
       _ ->
         :ok
-    end
+    end)
   end
 
   @doc """
   Returns protocols and implementations for the given `manifest`.
   """
-  def protocols_and_impls(manifest) do
-    for module(beam: beam, module: module, kind: kind) <- read_manifest(manifest),
+  def protocols_and_impls(manifest, compile_path) do
+    for module(beam: beam, module: module, kind: kind) <- read_manifest(manifest, compile_path),
         match?(:protocol, kind) or match?({:impl, _}, kind),
         do: {module, kind, beam}
   end
@@ -112,13 +112,15 @@ defmodule Mix.Compilers.Elixir do
   @doc """
   Reads the manifest.
   """
-  def read_manifest(manifest) do
+  def read_manifest(manifest, compile_path) do
     # TODO: No longer support file consult once v1.3 is out
     try do
       manifest |> File.read!() |> :erlang.binary_to_term()
     else
-      [@manifest_vsn | t] -> t
-      _ -> []
+      [@manifest_vsn | t] ->
+        expand_beam_paths(t, compile_path)
+      _ ->
+        []
     rescue
       _ -> []
     end
@@ -149,12 +151,12 @@ defmodule Mix.Compilers.Elixir do
 
     try do
       _ = Kernel.ParallelCompiler.files stale,
-            [each_module: &each_module(pid, dest, cwd, &1, &2, &3),
+            [each_module: &each_module(pid, cwd, &1, &2, &3),
              each_long_compilation: &each_long_compilation(&1, long_compilation_threshold),
              long_compilation_threshold: long_compilation_threshold,
              dest: dest] ++ extra
       Agent.cast pid, fn {modules, sources} ->
-        write_manifest(manifest, modules, sources)
+        write_manifest(manifest, modules, sources, dest)
         {modules, sources}
       end
     after
@@ -170,11 +172,8 @@ defmodule Mix.Compilers.Elixir do
     |> Code.compiler_options()
   end
 
-  defp each_module(pid, dest, cwd, source, module, binary) do
-    beam =
-      dest
-      |> Path.join(Atom.to_string(module) <> ".beam")
-      |> Path.relative_to(cwd)
+  defp each_module(pid, cwd, source, module, binary) do
+    beam = Atom.to_string(module) <> ".beam"
 
     {compile_references, runtime_references} = Kernel.LexicalTracker.remote_references(module)
 
@@ -338,9 +337,7 @@ defmodule Mix.Compilers.Elixir do
   ## Manifest handling
 
   # Similar to read_manifest, but supports data migration.
-  defp parse_manifest(manifest) do
-    state = {[], []}
-
+  defp parse_manifest(manifest, compile_path) do
     # TODO: No longer support file consult once v1.3 is out
     manifest =
       try do
@@ -351,37 +348,53 @@ defmodule Mix.Compilers.Elixir do
 
     case manifest do
       {:ok, [@manifest_vsn | data]} ->
-        parse_manifest(data, state)
+        do_parse_manifest(data, compile_path)
       {:ok, [:v2 | data]} ->
-        for {beam, module, _, _, _, _, _, _} <- data do
-          remove_and_purge(beam, module)
-        end
-        state
+        for {beam, module, _, _, _, _, _, _} <- data,
+            do: remove_and_purge(beam, module)
+        {[], []}
       _ ->
-        state
+        {[], []}
     end
   end
 
-  defp parse_manifest(data, state) do
-    Enum.reduce data, state, fn
+  defp do_parse_manifest(data, compile_path) do
+    Enum.reduce(data, {[], []}, fn
       module() = module, {modules, sources} ->
-        {[module | modules], sources}
+        {[expand_beam_path(module, compile_path) | modules], sources}
       source() = source, {modules, sources} ->
         {modules, [source | sources]}
-    end
+    end)
   end
 
-  defp write_manifest(manifest, [], []) do
+  defp expand_beam_path(module(beam: beam) = module, compile_path) do
+    module(module, beam: Path.join(compile_path, beam))
+  end
+
+  defp expand_beam_paths(modules, ""), do: modules
+  defp expand_beam_paths(modules, compile_path) do
+    Enum.map(modules, fn
+      module() = module ->
+        expand_beam_path(module, compile_path)
+      other ->
+        other
+    end)
+  end
+
+  defp write_manifest(manifest, [], [], _compile_path) do
     File.rm(manifest)
     :ok
   end
 
-  defp write_manifest(manifest, modules, sources) do
+  defp write_manifest(manifest, modules, sources, compile_path) do
     File.mkdir_p!(Path.dirname(manifest))
 
     modules =
       for module(beam: beam, binary: binary) = module <- modules do
-        if binary, do: File.write!(beam, binary)
+        if binary do
+          beam_path = Path.join(compile_path, beam)
+          File.write!(beam_path, binary)
+        end
         module(module, binary: nil)
       end
 

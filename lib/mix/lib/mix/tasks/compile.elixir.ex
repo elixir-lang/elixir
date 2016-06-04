@@ -71,6 +71,7 @@ defmodule Mix.Tasks.Compile.Elixir do
   Cleans up compilation artifacts.
   """
   def clean do
-    Mix.Compilers.Elixir.clean(manifest())
+    dest = Mix.Project.compile_path
+    Mix.Compilers.Elixir.clean(manifest(), dest)
   end
 end

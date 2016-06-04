@@ -2,7 +2,7 @@ defmodule Mix.Tasks.Xref do
   use Mix.Task
 
   alias Mix.Tasks.Compile.Elixir, as: E
-  import Mix.Compilers.Elixir, only: [read_manifest: 1, source: 1, source: 2]
+  import Mix.Compilers.Elixir, only: [read_manifest: 2, source: 1, source: 2]
 
   @shortdoc "Performs cross reference checks"
   @recursive true
@@ -289,7 +289,7 @@ defmodule Mix.Tasks.Xref do
 
   defp each_source_entries(entries_fun, pair_fun) do
     for manifest <- E.manifests(),
-        source(source: file) = source <- read_manifest(manifest),
+        source(source: file) = source <- read_manifest(manifest, ""),
         entries = entries_fun.(source),
         entries != [] and entries != %{},
         do: pair_fun.(file, entries)
