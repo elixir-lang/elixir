@@ -137,7 +137,7 @@ defmodule Kernel.ParallelCompiler do
   # Queued x, waiting for x: POSSIBLE ERROR! Release processes so we get the failures
   defp spawn_compilers(%{entries: [], waiting: waiting, queued: queued} = state) when length(waiting) == length(queued) do
     entries = for {pid, _, _, _} <- queued,
-                  waiting_on_is_not_being_defined?(waiting, pid),
+                  not waiting_on_is_being_defined?(waiting, pid),
                   do: {pid, :not_found}
 
     case entries do
@@ -151,9 +151,9 @@ defmodule Kernel.ParallelCompiler do
     wait_for_messages(state)
   end
 
-  defp waiting_on_is_not_being_defined?(waiting, pid) do
+  defp waiting_on_is_being_defined?(waiting, pid) do
     {_kind, ^pid, _, on, _defining} = List.keyfind(waiting, pid, 1)
-    List.keyfind(waiting, on, 4) == nil
+    Enum.any?(waiting, fn {_, _, _, _, defining} -> on in defining end)
   end
 
   # Wait for messages from child processes

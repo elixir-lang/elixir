@@ -1,6 +1,7 @@
 -module(elixir_module).
 -export([data_table/1, defs_table/1, is_open/1, get_attribute/2, delete_doc/6,
-         compile/4, expand_callback/6, add_beam_chunk/3, format_error/1]).
+         compile/4, expand_callback/6, add_beam_chunk/3, format_error/1,
+         compiler_modules/0]).
 -include("elixir.hrl").
 
 -define(acc_attr, {elixir, acc_attributes}).
@@ -8,6 +9,19 @@
 -define(persisted_attr, {elixir, persisted_attributes}).
 -define(overridable_attr, {elixir, overridable}).
 -define(location_attr, {elixir, location}).
+
+%% Stores modules currently being defined by the compiler
+
+compiler_modules() ->
+  case erlang:get(elixir_compiler_modules) of
+    undefined -> [];
+    M when is_list(M) -> M
+  end.
+
+put_compiler_modules([]) ->
+  erlang:erase(elixir_compiler_modules);
+put_compiler_modules(M) when is_list(M) ->
+  erlang:put(elixir_compiler_modules, M).
 
 %% TABLE METHODS
 
@@ -59,11 +73,12 @@ do_compile(Line, Module, Block, Vars, E) ->
   File = ?m(E, file),
   check_module_availability(Line, File, Module),
 
+  CompilerModules = compiler_modules(),
   Docs = elixir_compiler:get_opt(docs),
   {Data, Defs, Ref} = build(Line, File, Module, Docs, ?m(E, lexical_tracker)),
 
   try
-    erlang:put(elixir_compiler_module, Module),
+    put_compiler_modules([Module|CompilerModules]),
     {Result, NE} = eval_form(Line, Module, Data, Block, Vars, E),
 
     _ = case ets:lookup(Data, 'on_load') of
@@ -108,7 +123,7 @@ do_compile(Line, Module, Block, Vars, E) ->
           erlang:raise(error, undef, Stack)
       end
   after
-    erlang:erase(elixir_compiler_module),
+    put_compiler_modules(CompilerModules),
     elixir_locals:cleanup(Module),
     ets:delete(Data),
     ets:delete(Defs),
