@@ -152,6 +152,8 @@ $ mix test --unknown
 --unknown : Unknown option
 ```
 
+Note not all tasks have been updated to use strict option parsing. Some tasks, like `mix compile`, are actually a front-end to many other tasks, and as such, it cannot effectively assert which options are valid.
+
 ## ExUnit
 
 ExUnit packs many improvements on the tooling side, better integration with external tools, as well as mechanisms to improve the readability of your tests.
