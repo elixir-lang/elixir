@@ -23,18 +23,18 @@ string(Contents, File, Dest) ->
 quoted(Forms, File) when is_binary(File) ->
   quoted(Forms, File, nil).
 quoted(Forms, File, Dest) ->
-  Previous = get(elixir_compiled),
+  Previous = get(elixir_module_binaries),
 
   try
-    put(elixir_compiled, []),
+    put(elixir_module_binaries, []),
     elixir_lexical:run(File, Dest, fun
       (Pid) ->
         Env = elixir:env_for_eval([{line, 1}, {file, File}]),
         eval_forms(Forms, [], Env#{lexical_tracker := Pid})
     end),
-    lists:reverse(get(elixir_compiled))
+    lists:reverse(get(elixir_module_binaries))
   after
-    put(elixir_compiled, Previous)
+    put(elixir_module_binaries, Previous)
   end.
 
 file(Relative) when is_binary(Relative) ->

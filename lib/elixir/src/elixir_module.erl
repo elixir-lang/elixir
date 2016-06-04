@@ -369,12 +369,13 @@ load_form(Line, Data, Forms, Opts, E) ->
     Binary = add_docs_chunk(Binary0, Data, Line, Docs),
     eval_callbacks(Line, Data, after_compile, [E, Binary], E),
 
-    case get(elixir_compiled) of
+    case get(elixir_module_binaries) of
       Current when is_list(Current) ->
-        put(elixir_compiled, [{Module, Binary} | Current]),
+        put(elixir_module_binaries, [{Module, Binary} | Current]),
 
         case get(elixir_compiler_pid) of
-          undefined -> ok;
+          undefined ->
+            ok;
           PID ->
             Ref = make_ref(),
             PID ! {module_available, self(), Ref, ?m(E, file), Module, Binary},
