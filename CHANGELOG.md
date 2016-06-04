@@ -193,7 +193,7 @@ When working with large or nested data structures, the diffing algorithm makes i
 
 ### Test types
 
-ExUnit v1.3 includes the ability to register different test types. This means libraries like QuickCheck can now provide functionality such as:
+ExUnit v1.3 includes the ability to register different test types. This means libraries like [QuickCheck](https://github.com/Quviq/eqc_ex) can now provide functionality such as:
 
 ```elixir
 defmodule StringTest do
