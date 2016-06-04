@@ -140,6 +140,15 @@ defmodule Kernel.ParallelCompiler do
                   on = waiting_on_without_definition(waiting, pid),
                   do: {on, {pid, :not_found}}
 
+    # Instead of releasing all files at once, we release them in groups
+    # based on the module they are waiting on. We pick the module being
+    # depended on with less edges, as it is the mostly likely source of
+    # error (for example, someone made a type). This may not always be
+    # true though: for example, if there is a macro injecting code into
+    # multiple modules and such code becomes faulty, now multiple modules
+    # are waiting on the same module required by the faulty code. However,
+    # since we need to pick something to be first, the one with fewer edges
+    # sounds like a sane choice.
     entries =
       entries
       |> Enum.group_by(&elem(&1, 0), &elem(&1, 1))
