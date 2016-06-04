@@ -49,19 +49,11 @@ defmodule Mix.Tasks.Compile.Leex do
     mappings     = Enum.zip(source_paths, source_paths)
     options      = project[:leex_options] || []
 
-    Erlang.compile(manifest(), mappings, :xrl, :erl, opts[:force], fn
+    Erlang.compile(manifest(), mappings, :xrl, :erl, opts, fn
       input, output ->
         Erlang.ensure_application!(:parsetools, input)
         options = options ++ @forced_opts ++ [scannerfile: Erlang.to_erl_file(output)]
-        case :leex.file(Erlang.to_erl_file(input), options) do
-          {:ok, _} = ok ->
-            if opts[:verbose] do
-              Mix.shell.info "Compiled #{input}"
-            end
-            ok
-          :error ->
-            :error
-        end
+        :leex.file(Erlang.to_erl_file(input), options)
     end)
   end
 

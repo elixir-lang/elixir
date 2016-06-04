@@ -82,7 +82,7 @@ defmodule Mix.Tasks.Compile.Erlang do
              |> sort_dependencies
              |> Enum.map(&annotate_target(&1, compile_path, opts[:force]))
 
-    Mix.Compilers.Erlang.compile(manifest(), tuples, fn
+    Mix.Compilers.Erlang.compile(manifest(), tuples, opts, fn
       input, _output ->
         # We're purging the module because a previous compiler (e.g. Phoenix)
         # might have already loaded the previous version of it.
@@ -91,15 +91,7 @@ defmodule Mix.Tasks.Compile.Erlang do
         :code.delete(module)
 
         file = to_erl_file(Path.rootname(input, ".erl"))
-        case :compile.file(file, erlc_options) do
-          {:ok, _} = ok ->
-            if opts[:verbose] do
-              Mix.shell.info "Compiled #{input}"
-            end
-            ok
-          :error ->
-            :error
-        end
+        :compile.file(file, erlc_options)
     end)
   end
 
@@ -181,7 +173,7 @@ defmodule Mix.Tasks.Compile.Erlang do
   end
 
   defp annotate_target(erl, compile_path, force) do
-    beam = Path.join(compile_path, "#{erl.module}#{:code.objfile_extension}")
+    beam = Path.join(compile_path, "#{erl.module}.beam")
 
     if force || Mix.Utils.stale?([erl.file | erl.includes], [beam]) do
       {:stale, erl.file, beam}
