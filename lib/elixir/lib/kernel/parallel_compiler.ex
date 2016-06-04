@@ -176,7 +176,7 @@ defmodule Kernel.ParallelCompiler do
         # Release the module loader which is waiting for an ack
         send child, {ref, :ack}
 
-        available = for {_kind, pid, _, waiting_module, _defining} <- waiting,
+        available = for {:module, pid, _, waiting_module, _defining} <- waiting,
                         module == waiting_module,
                         do: {pid, :found}
 
@@ -185,7 +185,7 @@ defmodule Kernel.ParallelCompiler do
         spawn_compilers(%{state | entries: available ++ entries, result: [{:module, module} | result]})
 
       {:waiting, kind, child, ref, on, defining} ->
-        defined = fn {k, m} -> on == m and k in [kind, :module] end
+        defined = fn {k, m} -> on == m and k == kind end
 
         # Oops, we already got it, do not put it on waiting.
         waiting =
