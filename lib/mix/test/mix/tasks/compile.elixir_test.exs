@@ -47,7 +47,8 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
       Mix.Task.clear
       File.write!("_build/dev/consolidated/.to_be_removed", "")
-      File.write!("_build/dev/lib/sample/.compile.elixir_scm", ~s({v1, <<"0.0.0">>, nil}.))
+      manifest_data = :erlang.term_to_binary({:v1, "0.0.0", nil})
+      File.write!("_build/dev/lib/sample/.compile.elixir_scm", manifest_data)
       File.touch!("_build/dev/lib/sample/.compile.elixir_scm", {{2010, 1, 1}, {0, 0, 0}})
 
       Mix.Tasks.Compile.run []
@@ -66,7 +67,8 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       assert Mix.Dep.ElixirSCM.read == {:ok, System.version, Mix.SCM.Path}
 
       Mix.Task.clear
-      File.write!("_build/dev/lib/sample/.compile.elixir_scm", ~s({v1, <<"#{System.version}">>, another}.))
+      manifest_data = :erlang.term_to_binary({:v1, "#{System.version}", :another})
+      File.write!("_build/dev/lib/sample/.compile.elixir_scm", manifest_data)
       File.touch!("_build/dev/lib/sample/.compile.elixir_scm", {{2010, 1, 1}, {0, 0, 0}})
 
       Mix.Tasks.Compile.run []
