@@ -49,19 +49,11 @@ defmodule Mix.Tasks.Compile.Yecc do
     mappings     = Enum.zip(source_paths, source_paths)
     options      = project[:yecc_options] || []
 
-    Erlang.compile(manifest(), mappings, :yrl, :erl, opts[:force], fn
+    Erlang.compile(manifest(), mappings, :yrl, :erl, opts, fn
       input, output ->
         Erlang.ensure_application!(:parsetools, input)
         options = options ++ @forced_opts ++ [parserfile: Erlang.to_erl_file(output)]
-        case :yecc.file(Erlang.to_erl_file(input), options) do
-          {:ok, _} = ok ->
-            if opts[:verbose] do
-              Mix.shell.info "Compiled #{input}"
-            end
-            ok
-          :error ->
-            :error
-        end
+        :yecc.file(Erlang.to_erl_file(input), options)
     end)
   end
 

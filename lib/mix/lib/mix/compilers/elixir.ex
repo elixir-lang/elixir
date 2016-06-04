@@ -28,7 +28,12 @@ defmodule Mix.Compilers.Elixir do
   have changed at runtime.
   """
   def compile(manifest, srcs, dest, force, opts) do
+    # We fetch the time from before we read files so any future
+    # change to files are still picked up by the compiler. This
+    # timestamp is used when writing beams and the manifest.
+    timestamp = :calendar.universal_time()
     all = Mix.Utils.extract_files(srcs, [:ex])
+
     {all_modules, all_sources} = parse_manifest(manifest, dest)
     modified = Mix.Utils.last_modified(manifest)
 
@@ -70,10 +75,10 @@ defmodule Mix.Compilers.Elixir do
 
     cond do
       stale != [] ->
-        compile_manifest(manifest, modules, sources, stale, dest, opts)
+        compile_manifest(manifest, modules, sources, stale, dest, timestamp, opts)
         :ok
       removed != [] ->
-        write_manifest(manifest, modules, sources, dest)
+        write_manifest(manifest, modules, sources, dest, timestamp)
         :ok
       true ->
         :noop
@@ -126,7 +131,7 @@ defmodule Mix.Compilers.Elixir do
     end
   end
 
-  defp compile_manifest(manifest, modules, sources, stale, dest, opts) do
+  defp compile_manifest(manifest, modules, sources, stale, dest, timestamp, opts) do
     Mix.Utils.compiling_n(length(stale), :ex)
 
     config = Mix.Project.config()
@@ -156,7 +161,7 @@ defmodule Mix.Compilers.Elixir do
              long_compilation_threshold: long_compilation_threshold,
              dest: dest] ++ extra
       Agent.cast pid, fn {modules, sources} ->
-        write_manifest(manifest, modules, sources, dest)
+        write_manifest(manifest, modules, sources, dest, timestamp)
         {modules, sources}
       end
     after
@@ -381,12 +386,12 @@ defmodule Mix.Compilers.Elixir do
     end)
   end
 
-  defp write_manifest(manifest, [], [], _compile_path) do
+  defp write_manifest(manifest, [], [], _compile_path, _timestamp) do
     File.rm(manifest)
     :ok
   end
 
-  defp write_manifest(manifest, modules, sources, compile_path) do
+  defp write_manifest(manifest, modules, sources, compile_path, timestamp) do
     File.mkdir_p!(Path.dirname(manifest))
 
     modules =
@@ -394,6 +399,7 @@ defmodule Mix.Compilers.Elixir do
         if binary do
           beam_path = Path.join(compile_path, beam)
           File.write!(beam_path, binary)
+          File.touch!(beam_path, timestamp)
         end
         module(module, binary: nil)
       end
@@ -403,6 +409,7 @@ defmodule Mix.Compilers.Elixir do
       |> :erlang.term_to_binary(compressed: 9)
 
     File.write!(manifest, manifest_data)
+    File.touch!(manifest, timestamp)
 
     # Since Elixir is a dependency itself, we need to touch the lock
     # so the current Elixir version, used to compile the files above,
