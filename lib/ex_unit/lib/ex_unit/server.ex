@@ -55,11 +55,13 @@ defmodule ExUnit.Server do
     {:reply, diff, take_cases(%{state | loaded: :done})}
   end
 
-  def handle_cast({:add_async_case, name}, %{async_cases: cases} = state) do
+  def handle_cast({:add_async_case, name}, %{async_cases: cases, loaded: loaded} = state)
+      when is_integer(loaded) do
     {:noreply, take_cases(%{state | async_cases: [name | cases]})}
   end
 
-  def handle_cast({:add_sync_case, name}, %{sync_cases: cases} = state) do
+  def handle_cast({:add_sync_case, name}, %{sync_cases: cases, loaded: loaded} = state)
+      when is_integer(loaded) do
     {:noreply, %{state | sync_cases: [name | cases]}}
   end
 
