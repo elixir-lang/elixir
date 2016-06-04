@@ -20,21 +20,19 @@ defmodule Mix.Dep.ElixirSCM do
   end
 
   def read(manifest_path \\ Mix.Project.manifest_path) do
-    case manifest(manifest_path) |> File.read() do
+    case File.read(manifest(manifest_path)) do
       {:ok, contents} ->
         try do
-           :erlang.binary_to_term(contents)
+          :erlang.binary_to_term(contents)
         else
           {@manifest_vsn, vsn, scm} ->
             {:ok, vsn, scm}
-
           _ ->
             {:ok, "1.0.0", nil} # Force old version if file exists but old format
         rescue
           _ ->
             {:ok, "1.0.0", nil} # Force old version if file exists but old format
         end
-
       _ ->
         :error
     end
