@@ -72,5 +72,6 @@ defmodule Mix.Tasks.Loadpaths do
 
   defp rm_rf_app(config) do
     File.rm_rf Mix.Project.app_path(config)
+    File.rm_rf Mix.Project.consolidation_path(config)
   end
 end
