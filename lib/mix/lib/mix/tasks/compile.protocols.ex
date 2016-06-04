@@ -132,27 +132,28 @@ defmodule Mix.Tasks.Compile.Protocols do
   end
 
   defp read_manifest(manifest, output) do
-    case :file.consult(manifest) do
-      {:ok, [@manifest_vsn | t]} ->
+    try do
+      manifest |> File.read!() |> :erlang.binary_to_term()
+    else
+      [@manifest_vsn | t] ->
         t
-      {:ok, _} ->
+
+      _ ->
         # If manifest is out of date, remove old files
-        _ = File.rm_rf(output)
+        File.rm_rf(output)
         []
-      {:error, _} ->
-        []
+    rescue
+      _ -> []
     end
   end
 
   defp write_manifest(_manifest, nil), do: :om
   defp write_manifest(manifest, metadata) do
-    File.open!(manifest, [:write], fn device ->
-      :io.format(device, '~p.~n', [@manifest_vsn])
-      Enum.map metadata, fn entry ->
-        :io.format(device, '~p.~n', [entry])
-      end
-      :ok
-    end)
+    manifest_data =
+      [@manifest_vsn | metadata]
+      |> :erlang.term_to_binary(compressed: 9)
+
+    File.write!(manifest, manifest_data)
   end
 
   defp diff_manifest(manifest, new_metadata, output) do
