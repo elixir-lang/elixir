@@ -512,7 +512,8 @@ defmodule Mix.Tasks.DepsTest do
       Mix.Tasks.Deps.Check.run []
 
       File.mkdir_p!("_build/dev/lib/ok/ebin")
-      File.write!("_build/dev/lib/ok/.compile.elixir_scm", ~s({v1, <<\"the_future\">>, scm}.))
+      manifest_data = :erlang.term_to_binary({:v1, "the_future", :scm})
+      File.write!("_build/dev/lib/ok/.compile.elixir_scm", manifest_data)
       Mix.Task.clear
 
       msg = "  the dependency was built with an out-of-date Elixir version, run \"mix deps.compile\""
@@ -536,7 +537,8 @@ defmodule Mix.Tasks.DepsTest do
       Mix.Tasks.Deps.Check.run []
 
       File.mkdir_p!("_build/dev/lib/ok/ebin")
-      File.write!("_build/dev/lib/ok/.compile.elixir_scm", ~s({v1, <<"#{System.version}">>, scm}.))
+      manifest_data = :erlang.term_to_binary({:v1, "#{System.version}", :scm})
+      File.write!("_build/dev/lib/ok/.compile.elixir_scm", manifest_data)
       Mix.Task.clear
 
       msg = "  the dependency was built with another SCM, run \"mix deps.compile\""
