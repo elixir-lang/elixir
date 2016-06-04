@@ -572,6 +572,8 @@ defmodule EnumTest do
   end
 
   test "take_random/2" do
+    assert Enum.take_random(-42..-42, 1) == [-42]
+
     # corner cases, independent of the seed
     assert_raise FunctionClauseError, fn -> Enum.take_random([1, 2], -1) end
     assert Enum.take_random([], 0) == []
@@ -600,6 +602,16 @@ defmodule EnumTest do
     list = for _<-1..100, do: make_ref
     for x <- Enum.take_random(list, 50) do
       assert x in list
+    end
+
+    assert_raise FunctionClauseError, fn ->
+      Enum.take_random(1..10, -1)
+    end
+    assert_raise FunctionClauseError, fn ->
+      Enum.take_random(1..10, 10.0)
+    end
+    assert_raise FunctionClauseError, fn ->
+      Enum.take_random(1..10, 128.1)
     end
   end
 
