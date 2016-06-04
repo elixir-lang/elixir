@@ -38,19 +38,22 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
   test "recompiles project if elixir version changed" do
     in_fixture "no_mixfile", fn ->
-      Mix.Tasks.Compile.run ["--verbose"]
+      Mix.Tasks.Compile.run []
       purge [A, B]
 
-      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      assert File.exists?("_build/dev/lib/sample")
+      assert File.exists?("_build/dev/consolidated")
       assert Mix.Dep.ElixirSCM.read == {:ok, System.version, Mix.SCM.Path}
 
       Mix.Task.clear
+      File.write!("_build/dev/consolidated/.to_be_removed", "")
       File.write!("_build/dev/lib/sample/.compile.elixir_scm", ~s({v1, <<"0.0.0">>, nil}.))
       File.touch!("_build/dev/lib/sample/.compile.elixir_scm", {{2010, 1, 1}, {0, 0, 0}})
 
-      Mix.Tasks.Compile.run ["--verbose"]
+      Mix.Tasks.Compile.run []
       assert Mix.Dep.ElixirSCM.read == {:ok, System.version, Mix.SCM.Path}
       assert File.stat!("_build/dev/lib/sample/.compile.elixir_scm").mtime > {{2010, 1, 1}, {0, 0, 0}}
+      refute File.exists?("_build/dev/consolidated/.to_be_removed")
     end
   end
 

@@ -215,9 +215,10 @@ defmodule Mix.Tasks.Escript.Build do
     end)
   end
 
-  defp consolidated_paths(project) do
-    if project[:consolidate_protocols] do
-      Mix.Tasks.Compile.Protocols.default_path <> "/*"
+  defp consolidated_paths(config) do
+    if config[:consolidate_protocols] do
+      Mix.Project.consolidation_path(config)
+      |> Path.join("*")
       |> Path.wildcard()
       |> prepare_beam_paths()
     else

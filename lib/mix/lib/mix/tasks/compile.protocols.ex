@@ -41,7 +41,7 @@ defmodule Mix.Tasks.Compile.Protocols do
     Mix.Task.run "compile", args
     {opts, _, _} = OptionParser.parse(args, switches: [force: :boolean, verbose: :boolean])
 
-    output   = default_path(config)
+    output   = Mix.Project.consolidation_path(config)
     manifest = Path.join(output, @manifest)
 
     protocols_and_impls =
@@ -50,7 +50,7 @@ defmodule Mix.Tasks.Compile.Protocols do
       end
 
     cond do
-      opts[:force] || Mix.Utils.stale?(Mix.Project.config_files, [manifest]) ->
+      opts[:force] || Mix.Utils.stale?(Mix.Project.config_files(), [manifest]) ->
         clean()
         paths = consolidation_paths()
         paths
@@ -71,12 +71,7 @@ defmodule Mix.Tasks.Compile.Protocols do
   Cleans up consolidated protocols.
   """
   def clean do
-    File.rm_rf(default_path)
-  end
-
-  @doc false
-  def default_path(config \\ Mix.Project.config) do
-    Path.join(Mix.Project.build_path(config), "consolidated")
+    File.rm_rf(Mix.Project.consolidation_path)
   end
 
   defp protocols_and_impls(config) do
@@ -136,10 +131,16 @@ defmodule Mix.Tasks.Compile.Protocols do
     :code.delete(module)
   end
 
-  defp read_manifest(manifest) do
+  defp read_manifest(manifest, output) do
     case :file.consult(manifest) do
-      {:ok, [@manifest_vsn | t]} -> t
-      _ -> []
+      {:ok, [@manifest_vsn | t]} ->
+        t
+      {:ok, _} ->
+        # If manifest is out of date, remove old files
+        _ = File.rm_rf(output)
+        []
+      {:error, _} ->
+        []
     end
   end
 
@@ -156,7 +157,7 @@ defmodule Mix.Tasks.Compile.Protocols do
 
   defp diff_manifest(manifest, new_metadata, output) do
     modified = Mix.Utils.last_modified(manifest)
-    old_metadata = read_manifest(manifest)
+    old_metadata = read_manifest(manifest, output)
 
     protocols =
       for {protocol, :protocol, beam} <- new_metadata,

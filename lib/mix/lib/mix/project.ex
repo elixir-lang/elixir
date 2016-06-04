@@ -354,6 +354,13 @@ defmodule Mix.Project do
   end
 
   @doc """
+  The path where protocol consolidations are stored.
+  """
+  def consolidation_path(config \\ config()) do
+    Path.join(build_path(config), "consolidated")
+  end
+
+  @doc """
   Compiles the given project.
 
   It will run the compile task unless the project
