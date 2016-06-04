@@ -331,8 +331,8 @@ defmodule Time do
   the ones in 3rd party calendar libraries.
   """
 
-  @enforce_keys [:hour, :minute, :second, :microsecond]
-  defstruct [:hour, :minute, :second, :microsecond]
+  @enforce_keys [:hour, :minute, :second]
+  defstruct [:hour, :minute, :second, microsecond: {0, 0}]
 
   @type t :: %__MODULE__{hour: Calendar.hour, minute: Calendar.minute,
                          second: Calendar.second, microsecond: Calendar.microsecond}
@@ -602,8 +602,8 @@ defmodule NaiveDateTime do
   as the ones in 3rd party calendar libraries.
   """
 
-  @enforce_keys [:year, :month, :day, :hour, :minute, :second, :microsecond]
-  defstruct [:year, :month, :day, :hour, :minute, :second, :microsecond, calendar: Calendar.ISO]
+  @enforce_keys [:year, :month, :day, :hour, :minute, :second]
+  defstruct [:year, :month, :day, :hour, :minute, :second, microsecond: {0, 0}, calendar: Calendar.ISO]
 
   @type t :: %__MODULE__{year: Calendar.year, month: Calendar.month, day: Calendar.day,
                          calendar: Calendar.calendar, hour: Calendar.hour, minute: Calendar.minute,
@@ -948,10 +948,10 @@ defmodule DateTime do
   similar functionality with time zone backing.
   """
 
-  @enforce_keys [:year, :month, :day, :hour, :minute, :second, :microsecond,
+  @enforce_keys [:year, :month, :day, :hour, :minute, :second,
                  :time_zone, :zone_abbr, :utc_offset, :std_offset]
-  defstruct [:year, :month, :day, :hour, :minute, :second, :microsecond,
-             :time_zone, :zone_abbr, :utc_offset, :std_offset, calendar: Calendar.ISO]
+  defstruct [:year, :month, :day, :hour, :minute, :second, :time_zone,
+             :zone_abbr, :utc_offset, :std_offset, microsecond: {0, 0}, calendar: Calendar.ISO]
 
   @type t :: %__MODULE__{year: Calendar.year, month: Calendar.month, day: Calendar.day,
                          calendar: Calendar.calendar, hour: Calendar.hour, minute: Calendar.minute,
