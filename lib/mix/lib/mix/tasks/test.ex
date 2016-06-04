@@ -184,12 +184,13 @@ defmodule Mix.Tasks.Test do
     end
 
     project = Mix.Project.config
+    compile_path = Mix.Project.compile_path(project)
 
     # Start cover after we load deps but before we start the app.
     cover =
       if opts[:cover] do
         cover = Keyword.merge(@cover, project[:test_coverage] || [])
-        cover[:tool].start(Mix.Project.compile_path(project), cover)
+        cover[:tool].start(compile_path, cover)
       end
 
     # Start the app and configure exunit with command line options
@@ -226,7 +227,7 @@ defmodule Mix.Tasks.Test do
 
     display_warn_test_pattern(matched_warn_test_files, test_pattern)
 
-    case CT.require_and_run(files, matched_test_files, test_paths, opts) do
+    case CT.require_and_run(files, matched_test_files, test_paths, compile_path, opts) do
       {:ok, %{failures: failures}} ->
         cover && cover.()
 

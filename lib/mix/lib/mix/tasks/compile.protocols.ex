@@ -83,8 +83,9 @@ defmodule Mix.Tasks.Compile.Protocols do
 
     protocols_and_impls =
       for path <- [app | deps] do
-        elixir = Path.join(path, ".compile.elixir")
-        Mix.Compilers.Elixir.protocols_and_impls(elixir)
+        manifest_path = Path.join(path, ".compile.elixir")
+        compile_path = Path.join(path, "ebin")
+        Mix.Compilers.Elixir.protocols_and_impls(manifest_path, compile_path)
       end
 
     Enum.concat(protocols_and_impls)
