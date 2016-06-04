@@ -137,8 +137,15 @@ defmodule Kernel.ParallelCompiler do
   # Queued x, waiting for x: POSSIBLE ERROR! Release processes so we get the failures
   defp spawn_compilers(%{entries: [], waiting: waiting, queued: queued} = state) when length(waiting) == length(queued) do
     entries = for {pid, _, _, _} <- queued,
-                  not waiting_on_is_being_defined?(waiting, pid),
-                  do: {pid, :not_found}
+                  on = waiting_on_without_definition(waiting, pid),
+                  do: {on, {pid, :not_found}}
+
+    entries =
+      entries
+      |> Enum.group_by(&elem(&1, 0), &elem(&1, 1))
+      |> Enum.sort_by(&length(elem(&1, 1)))
+      |> Enum.at(0, {__MODULE__, []})
+      |> elem(1)
 
     case entries do
       [] -> handle_deadlock(waiting, queued)
@@ -151,9 +158,13 @@ defmodule Kernel.ParallelCompiler do
     wait_for_messages(state)
   end
 
-  defp waiting_on_is_being_defined?(waiting, pid) do
+  defp waiting_on_without_definition(waiting, pid) do
     {_kind, ^pid, _, on, _defining} = List.keyfind(waiting, pid, 1)
-    Enum.any?(waiting, fn {_, _, _, _, defining} -> on in defining end)
+    if Enum.any?(waiting, fn {_, _, _, _, defining} -> on in defining end) do
+      nil
+    else
+      on
+    end
   end
 
   # Wait for messages from child processes
