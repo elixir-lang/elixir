@@ -1,16 +1,24 @@
 # Typespecs
 
-Elixir comes with a notation for declaring types and specifications. Elixir is dynamically typed, and as such, typespecs are never used by the compiler to optimize or modify code. Still, using typespecs is useful as documentation and tools such as [Dialyzer](http://www.erlang.org/doc/man/dialyzer.html) can analyze code with typespecs to find bugs.
+Elixir comes with a notation for declaring types and specifications. Elixir is a dynamically typed language, and as such, type specifications are never used by the compiler to optimize or modify code. Still, using type specifications is useful because
 
-The attributes `@type`, `@opaque`, `@typep`, `@spec`, `@callback` and `@macrocallback` are the main mechanism for defining typespecs. See sub-sections "Defining a type" and "Defining a specification" below.
+  * they provide documentation (for example, tools such as [ExDoc](https://github.com/elixir-lang/ex_doc) show type specifications in the documentation)
+  * they're used by tools sych as [Dialyzer](http://www.erlang.org/doc/man/dialyzer.html), that can analyze code with typespec to find type inconsistencies and possible bugs
+
+Type specifications (sometimes referred to as *typespecs*) are defined in different contexts using the following attributes:
+
+  * `@type`
+  * `@opaque`
+  * `@typep`
+  * `@spec`
+  * `@callback`
+  * `@macrocallback`
+
+See the "Defining a type" and "Defining a specification" sub-sections below for more information on defining types and typespecs.
 
 ## Types and their syntax
 
-The type syntax provided by Elixir is fairly similar to [the one in Erlang](http://www.erlang.org/doc/reference_manual/typespec.html).
-
-Most of the built-in types provided in Erlang (for example, `pid()`) are expressed the same way: `pid()` or simply `pid`. Parameterized types are also supported (`list(integer)`) and so are remote types (`Enum.t`).
-
-Integers and atom literals are allowed as types (ex. `1`, `:atom` or `false`). All other types are built of unions of predefined types. Certain shorthands are allowed, such as `[...]`, `<<>>` and `{...}`.
+The syntax Elixir provides for type specifications is similar to [the one in Erlang](http://www.erlang.org/doc/reference_manual/typespec.html). Most of the built-in types provided in Erlang (for example, `pid()`) are expressed in the same way: `pid()` (or simply `pid`). Parametrized types (such as `list(integer)`) are supported as well and so are remote types (such as `Enum.t`). Integers and atom literals are allowed as types (e.g., `1`, `:atom`, or `false`). All other types are built out of unions of predefined types. Some shorthands are allowed, such as `[...]`, `<<>>`, and `{...}`.
 
 ### Basic types
 
@@ -78,7 +86,7 @@ The following literals are also supported in typespecs:
 
 ### Built-in types
 
-These types are also provided by Elixir as shortcuts on top of the basic and literal types.
+The following types are also provided by Elixir as shortcuts on top of the basic and literal types described above.
 
 Built-in type           | Defined as
 :---------------------- | :---------
@@ -110,7 +118,7 @@ Built-in type           | Defined as
 
 ### Remote types
 
-Any module is also able to define its own type and the modules in Elixir are no exception. For example, a string is `String.t`, a range is `Range.t`, any enumerable can be `Enum.t` and so on.
+Any module is also able to define its own types and the modules in Elixir are no exception. For example, the `Range` module defines a `t` type that represents a range: this type can be referred to as `Range.t`. In a similar fashion, a string is `String.t`, any enumerable can be `Enum.t`, and so on.
 
 ### Maps
 
@@ -122,13 +130,15 @@ Notice that the syntactic representation of `map()` is `%{...}` (or `%{optional(
 
 ## Defining a type
 
+The `@type`, `@typep`, and `@opaque` module attributes can be used to define new types:
+
     @type type_name :: type
     @typep type_name :: type
     @opaque type_name :: type
 
 A type defined with `@typep` is private. An opaque type, defined with `@opaque` is a type where the internal structure of the type will not be visible, but the type is still public.
 
-Types can be parameterized by defining variables as parameters, these variables can then be used to define the type.
+Types can be parameterized by defining variables as parameters; these variables can then be used to define the type.
 
     @type dict(key, value) :: [{key, value}]
 
@@ -148,9 +158,7 @@ Type variables with no restriction can also be defined.
 
     @spec function(arg) :: [arg] when arg: var
 
-You can also name your arguments in a typespec using `arg_name :: arg_type` syntax.
-This is particularly useful as a way to differentiate multiple arguments
-of the same type (or multiple elements of the same type in a type def):
+You can also name your arguments in a typespec using `arg_name :: arg_type` syntax. This is particularly useful in documentation as a way to differentiate multiple arguments of the same type (or multiple elements of the same type in a type definition):
 
     @spec days_since_epoch(year :: integer, month :: integer, day :: integer) :: integer
     @type color :: {red :: integer, green :: integer, blue :: integer}
@@ -158,7 +166,7 @@ of the same type (or multiple elements of the same type in a type def):
 Specifications can be overloaded just like ordinary functions.
 
     @spec function(integer) :: atom
-    @spec function(atom)    :: integer
+    @spec function(atom) :: integer
 
 ## Notes
 
