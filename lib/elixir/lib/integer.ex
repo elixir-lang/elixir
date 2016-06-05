@@ -131,7 +131,7 @@ defmodule Integer do
 
   Raises an error if `base` is less than 2 or more than 36.
 
-  If an integer formatted string wants to be directly converted to a integer,
+  If you want to convert a string-formatted integer directly to a integer,
   `String.to_integer/1` or `String.to_integer/2` can be used instead.
 
   ## Examples

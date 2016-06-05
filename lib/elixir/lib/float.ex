@@ -15,7 +15,7 @@ defmodule Float do
   If the size of float exceeds the maximum size of `1.7976931348623157e+308`,
   the `ArgumentError` exception is raised.
 
-  If a float formatted string wants to be directly converted to a float,
+  If you want to convert a string-formatted float directly to a float,
   `String.to_float/1` can be used instead.
 
   ## Examples
