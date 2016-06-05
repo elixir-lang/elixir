@@ -537,7 +537,7 @@ defmodule Mix.Tasks.DepsTest do
       Mix.Tasks.Deps.Check.run []
 
       File.mkdir_p!("_build/dev/lib/ok/ebin")
-      manifest_data = :erlang.term_to_binary({:v1, "#{System.version}", :scm})
+      manifest_data = :erlang.term_to_binary({:v1, System.version, :scm})
       File.write!("_build/dev/lib/ok/.compile.elixir_scm", manifest_data)
       Mix.Task.clear
 

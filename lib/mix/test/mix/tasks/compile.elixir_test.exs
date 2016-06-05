@@ -67,7 +67,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       assert Mix.Dep.ElixirSCM.read == {:ok, System.version, Mix.SCM.Path}
 
       Mix.Task.clear
-      manifest_data = :erlang.term_to_binary({:v1, "#{System.version}", :another})
+      manifest_data = :erlang.term_to_binary({:v1, System.version, :another})
       File.write!("_build/dev/lib/sample/.compile.elixir_scm", manifest_data)
       File.touch!("_build/dev/lib/sample/.compile.elixir_scm", {{2010, 1, 1}, {0, 0, 0}})
 
