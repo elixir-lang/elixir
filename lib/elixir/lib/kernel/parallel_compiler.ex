@@ -154,8 +154,7 @@ defmodule Kernel.ParallelCompiler do
       entries
       |> Enum.group_by(&elem(&1, 0), &elem(&1, 1))
       |> Enum.sort_by(&length(elem(&1, 1)))
-      |> Enum.at(0, {__MODULE__, []})
-      |> elem(1)
+      |> Enum.find_value([], &elem(&1, 1))
 
     case entries do
       [] -> handle_deadlock(waiting, queued)
@@ -206,11 +205,9 @@ defmodule Kernel.ParallelCompiler do
         spawn_compilers(%{state | entries: available ++ entries, result: [{:module, module} | result]})
 
       {:waiting, kind, child, ref, on, defining} ->
-        defined = fn {k, m} -> on == m and k == kind end
-
         # Oops, we already got it, do not put it on waiting.
         waiting =
-          if :lists.any(defined, result) do
+          if :lists.any(&match?({^kind, ^on}, &1), result) do
             send child, {ref, :found}
             waiting
           else
