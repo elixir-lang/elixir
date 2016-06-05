@@ -2931,8 +2931,8 @@ defmodule Kernel do
   defp module_vars([{key, kind}|vars], counter) do
     var =
       case is_atom(kind) do
-        true  -> {key, [warn: false], kind}
-        false -> {key, [counter: kind, warn: false], nil}
+        true  -> {key, [generated: true], kind}
+        false -> {key, [counter: kind, generated: true], nil}
       end
 
     under = String.to_atom(<<"_@", :erlang.integer_to_binary(counter)::binary>>)
