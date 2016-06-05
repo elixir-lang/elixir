@@ -118,12 +118,11 @@ defmodule Mix.Compilers.Elixir do
   Reads the manifest.
   """
   def read_manifest(manifest, compile_path) do
-    # TODO: No longer support file consult once v1.3 is out
     try do
       manifest |> File.read!() |> :erlang.binary_to_term()
     else
-      [@manifest_vsn | t] ->
-        expand_beam_paths(t, compile_path)
+      [@manifest_vsn | data] ->
+        expand_beam_paths(data, compile_path)
       _ ->
         []
     rescue
