@@ -287,7 +287,7 @@ defmodule Kernel.CLI do
     {%{config | commands: [{:compile, config.compile} | config.commands]}, []}
   end
 
-  # Parse iex options
+  # Parse IEx options
 
   defp parse_iex(["--" | t], config) do
     {config, t}

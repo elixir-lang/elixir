@@ -411,7 +411,7 @@ defmodule File do
   @doc """
   Copies the contents of `source` to `destination`.
 
-  Both parameters can be a filename or an io device opened
+  Both parameters can be a filename or an IO device opened
   with `open/2`. `bytes_count` specifies the number of
   bytes to copy, the default being `:infinity`.
 
@@ -485,7 +485,7 @@ defmodule File do
   The function returns `:ok` in case of success, returns
   `{:error, reason}` otherwise.
 
-  If you want to copy contents from an io device to another device
+  If you want to copy contents from an IO device to another device
   or do a straight copy from a source to a destination without
   preserving modes, check `copy/3` instead.
 
@@ -878,7 +878,7 @@ defmodule File do
     end
   end
 
-  # On windows, symlinks are treated as directory and must be removed
+  # On Windows, symlinks are treated as directory and must be removed
   # with rmdir/1. But on Unix, we remove them via rm/1. So we first try
   # to remove it as a directory and, if we get :enotdir, we fallback to
   # a file removal.

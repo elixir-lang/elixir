@@ -133,7 +133,7 @@ defmodule Mix.Tasks.ArchiveTest do
       send self, {:mix_shell_input, :yes?, true}
 
       # Install with wrong checksum
-      assert_raise Mix.Error, ~r"Data does not match the given sha512 checksum", fn ->
+      assert_raise Mix.Error, ~r"Data does not match the given SHA-512 checksum", fn ->
         send self, {:mix_shell_input, :yes?, true}
         Mix.Tasks.Archive.Install.run ["--sha512", "wrong"]
       end

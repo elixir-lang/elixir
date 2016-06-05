@@ -42,7 +42,7 @@ defmodule Mix.Tasks.DepsGitTest do
     end
   end
 
-  test "gets and updates git repos with compilation" do
+  test "gets and updates Git repos with compilation" do
     Mix.Project.push GitApp
 
     in_fixture "no_mixfile", fn ->
@@ -58,7 +58,7 @@ defmodule Mix.Tasks.DepsGitTest do
     end
   end
 
-  test "gets and updates git repos with submodules" do
+  test "gets and updates Git repos with submodules" do
     Mix.Project.push GitSubmodulesApp
 
     in_fixture "no_mixfile", fn ->
@@ -120,12 +120,12 @@ defmodule Mix.Tasks.DepsGitTest do
       assert File.exists?("deps/deps_on_git_repo/.fetch")
       assert File.exists?("deps/git_repo/.fetch")
 
-      # Compile git repo but unload it so...
+      # Compile Git repo but unload it so...
       Mix.Tasks.Deps.Compile.run ["git_repo"]
       assert File.exists?("_build/dev/lib/git_repo/ebin")
       Code.delete_path("_build/dev/lib/git_repo/ebin")
 
-      # Deps on git repo loads it automatically on compile
+      # Deps on Git repo loads it automatically on compile
       Mix.Task.reenable "deps.check"
       Mix.Tasks.Deps.Compile.run ["deps_on_git_repo"]
       assert File.exists?("_build/dev/lib/deps_on_git_repo/ebin")
@@ -324,7 +324,7 @@ defmodule Mix.Tasks.DepsGitTest do
     purge [GitRepo, GitRepo.Mixfile]
   end
 
-  test "updates on git opts change" do
+  test "updates on Git opts change" do
     Mix.Project.push GitApp
 
     in_fixture "no_mixfile", fn ->

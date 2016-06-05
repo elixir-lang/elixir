@@ -491,7 +491,7 @@ defmodule IO do
 
   @compile {:inline, map_dev: 1, to_chardata: 1}
 
-  # Map the Elixir names for standard io and error to Erlang names
+  # Map the Elixir names for standard IO and error to Erlang names
   defp map_dev(:stdio),  do: :standard_io
   defp map_dev(:stderr), do: :standard_error
   defp map_dev(other) when is_atom(other) or is_pid(other) or is_tuple(other), do: other

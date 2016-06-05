@@ -61,7 +61,7 @@ defmodule Mix.Hex do
   end
 
   @doc """
-  Returns the url to the Hex mirror.
+  Returns the URL to the Hex mirror.
   """
   def mirror do
     System.get_env("HEX_MIRROR") || cdn() || @hex_mirror

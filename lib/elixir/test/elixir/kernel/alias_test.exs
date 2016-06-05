@@ -9,7 +9,7 @@ end
 defmodule Kernel.AliasTest do
   use ExUnit.Case, async: true
 
-  test "alias erlang" do
+  test "alias Erlang" do
     alias :lists, as: MyList
     assert MyList.flatten([1, [2], 3]) == [1, 2, 3]
     assert Elixir.MyList.Bar == :"Elixir.MyList.Bar"

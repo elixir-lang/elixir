@@ -1245,7 +1245,7 @@ defmodule FileTest do
   end
 
 
-  test "io stream utf8" do
+  test "IO stream utf8" do
     src  = File.open! fixture_path("file.txt"), [:utf8]
     dest = tmp_path("tmp_test.txt")
 
@@ -1260,7 +1260,7 @@ defmodule FileTest do
     end
   end
 
-  test "io stream" do
+  test "IO stream" do
     src  = File.open! fixture_path("file.txt")
     dest = tmp_path("tmp_test.txt")
 

@@ -244,7 +244,7 @@ defmodule IEx do
     * `:ls_directory` - ... for directory entries (ls helper)
     * `:ls_device`    - ... device entries (ls helper)
 
-  When printing documentation, IEx will convert the markdown
+  When printing documentation, IEx will convert the Markdown
   documentation to ANSI as well. Those can be configured via:
 
     * `:doc_code`        - the attributes for code blocks (cyan, bright)
@@ -504,7 +504,7 @@ defmodule IEx do
       end
 
     # expand_fun is not supported by a shell variant
-    # on Windows, so we do two io calls, not caring
+    # on Windows, so we do two IO calls, not caring
     # about the result of the expand_fun one.
     _ = :io.setopts(gl, expand_fun: expand_fun)
     :io.setopts(gl, binary: true, encoding: :unicode)
