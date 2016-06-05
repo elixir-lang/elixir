@@ -160,10 +160,9 @@ defmodule Mix.Compilers.Test do
 
   defp read_manifest() do
     try do
-      manifest() |> File.read!() |> :erlang.binary_to_term()
-    else
-      [@manifest_vsn | t] -> t
-      _ -> []
+      [@manifest_vsn | sources] =
+        manifest() |> File.read!() |> :erlang.binary_to_term()
+      sources
     rescue
       _ -> []
     end
