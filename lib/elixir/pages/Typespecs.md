@@ -148,7 +148,7 @@ Types can be parameterized by defining variables as parameters; these variables 
     @callback function_name(type1, type2) :: return_type
     @macrocallback macro_name(type1, type2) :: Macro.t
 
-Callbacks are used to define the callbacks functions of behaviours (see `Behaviour`).
+Callbacks are used to define the callbacks functions of behaviours (see the ["Behaviours"](behaviours.html) page in the documentation for more information on behaviours).
 
 Guards can be used to restrict type variables given as arguments to the function.
 
