@@ -185,22 +185,24 @@ defmodule Mix.Utils do
   must either return `{printed, children}` tuple or
   `false` if the given node must not be printed.
   """
-  @spec print_dot_graph(String.t, [term], (term -> {String.t, [term]}), Keyword.t) :: :ok
-  def print_dot_graph(title, nodes, callback, _opts \\ []) do
-    Mix.shell.info "digraph \"#{title}\" {"
+  @spec build_dot_graph(String.t, [term], (term -> {String.t, [term]}), Keyword.t) :: :ok
+  def build_dot_graph(title, nodes, callback, _opts \\ []) do
     {parent_name, _} = callback.(hd(nodes))
-    do_print_dot_graph(parent_name, nodes, callback)
-    Mix.shell.info "}"
+    "digraph \"#{title}\" {\n" <>
+    do_build_dot_graph(parent_name, nodes, callback) <>
+    "}"
   end
 
-  defp do_print_dot_graph(_parent, [], _callback), do: :ok
-  defp do_print_dot_graph(parent, [node | nodes], callback) do
+  defp do_build_dot_graph(_parent, [], _callback), do: ""
+  defp do_build_dot_graph(parent, [node | nodes], callback) do
     {name, children} = callback.(node)
     if parent != name do
-      Mix.shell.info ~s(  "#{parent}" -> "#{name}")
-    end
-    do_print_dot_graph(name, children, callback)
-    do_print_dot_graph(parent, nodes, callback)
+      ~s(  "#{parent}" -> "#{name}"\n)
+    else
+      ""
+    end <>
+    do_build_dot_graph(name, children, callback) <>
+    do_build_dot_graph(parent, nodes, callback)
   end
 
   @doc false
