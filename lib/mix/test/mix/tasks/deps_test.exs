@@ -198,10 +198,10 @@ defmodule Mix.Tasks.DepsTest do
 
     in_fixture "deps_status", fn ->
       Mix.Tasks.Deps.Compile.run []
-      File.touch! "deps/ok/clean-me"
+      File.touch! "_build/dev/lib/ok/clean-me"
 
       Mix.Tasks.Deps.Compile.run ["--force"]
-      refute File.exists? "deps/ok/clean-me"
+      refute File.exists? "_build/dev/lib/ok/clean-me"
     end
   end
 
