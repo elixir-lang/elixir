@@ -85,7 +85,7 @@ ask Mix to use Rebar 3 to compile it by passing the `manager: :rebar3` option.
 Once configured, Mix will prompt you to install Rebar 3 if it is not yet
 available.
 
-## v1.2.6-dev
+## v1.2.6 (2016-06-06)
 
 ### 1. Enhancements
 

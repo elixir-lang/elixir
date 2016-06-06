@@ -17,13 +17,17 @@ defmodule Mix.Dep.ElixirSCM do
   end
 
   def read(manifest_path \\ Mix.Project.manifest_path) do
-    case :file.consult(manifest(manifest_path)) do
-      {:ok, [{@manifest_vsn, vsn, scm}]} ->
-        {:ok, vsn, scm}
-      {:error, {_, :erl_parse, _}} ->
-        {:ok, "1.0.0", nil} # Force old version if file exists but old format
-      _ ->
-        :error
+    try do
+      case :file.consult(manifest(manifest_path)) do
+        {:ok, [{@manifest_vsn, vsn, scm}]} ->
+          {:ok, vsn, scm}
+        {:error, {_, :erl_parse, _}} ->
+          {:ok, "1.0.0", nil} # Force old version if file exists but old format
+        _ ->
+          :error
+      end
+    rescue
+      _ -> :error
     end
   end
 end
