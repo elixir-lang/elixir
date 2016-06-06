@@ -64,7 +64,13 @@ defmodule Difference do
   end
 
   test "keyword lists" do
-    assert [file: "nofile", line: 12] == [file: nil, llne: 10]
+    assert [file: "nofile", line: 12] == [file: nil, lime: 10]
+  end
+
+  test "keyword lists; reverse order" do
+    keyword1 = [port: 4000, max_connections: 1000]
+    keyword2 = [max_connections: 1000, port: 4000]
+    assert keyword1 == keyword2
   end
 
   test "tuples" do

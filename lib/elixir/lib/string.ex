@@ -2018,16 +2018,16 @@ defmodule String do
     {x + 1, y, chars1, rest, [{:ins, char} | edits]}
   end
 
-  defp move_right({x, y, chars1, chars2, edits}) do
-    {x + 1, y, chars1, chars2, edits}
+  defp move_right({x, y, chars1, [], edits}) do
+    {x + 1, y, chars1, [], edits}
   end
 
   defp move_down({x, y, [char | rest], chars2, edits}) do
     {x, y + 1, rest, chars2, [{:del, char} | edits]}
   end
 
-  defp move_down({x, y, chars1, chars2, edits}) do
-    {x, y + 1, chars1, chars2, edits}
+  defp move_down({x, y, [], chars2, edits}) do
+    {x, y + 1, [], chars2, edits}
   end
 
   defp follow_snake({x, y, [char | rest1], [char | rest2], edits}) do
