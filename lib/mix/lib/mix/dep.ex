@@ -381,14 +381,14 @@ defmodule Mix.Dep do
   end
 
   @doc """
-  Returns `true` if dependency is a rebar project.
+  Returns `true` if dependency is a Rebar project.
   """
   def rebar?(%Mix.Dep{manager: manager}) do
     manager in [:rebar, :rebar3]
   end
 
   @doc """
-  Returns `true` if dependency is a make project.
+  Returns `true` if dependency is a Make project.
   """
   def make?(%Mix.Dep{manager: manager}) do
     manager == :make

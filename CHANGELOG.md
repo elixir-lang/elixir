@@ -370,7 +370,7 @@ By restricting hierarchies in favor of named setups, it is straight-forward for 
 #### Mix
 
   * [Mix] Improve task not found message when Mix would include the not found task as a suggestion due to different casing
-  * [Mix] Ignore lock revision when the lock is out of date when updating Mix dependencies. Before this fix, git tags and branches in the lock file would erroneously take higher precedence than the one in `mix.exs`
+  * [Mix] Ignore lock revision when the lock is out of date when updating Mix dependencies. Before this fix, Git tags and branches in the lock file would erroneously take higher precedence than the one in `mix.exs`
   * [Mix] Only recompile empty Elixir files if they change instead of recompiling them on every run
   * [Mix] Ensure .app file is written in UTF-8 (this allows app descriptions to contain UTF-8 characters)
   * [Mix.Dep] Always specify the `:env` option internally for dependencies to avoid false positives in the dependency resolution

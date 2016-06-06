@@ -240,7 +240,7 @@ get_stacktrace(CurrentStack, CurrentStack) ->
 get_stacktrace([StackItem | Stacktrace], CurrentStack) ->
   [StackItem | get_stacktrace(Stacktrace, CurrentStack)].
 
-%% Converts a quoted expression to erlang abstract format
+%% Converts a quoted expression to Erlang abstract format
 
 quoted_to_erl(Quoted, Env) ->
   quoted_to_erl(Quoted, Env, elixir_env:env_to_scope(Env)).

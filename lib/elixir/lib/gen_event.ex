@@ -312,7 +312,7 @@ defmodule GenEvent do
 
       @doc false
       def handle_call(msg, state) do
-        # We do this to trick dialyzer to not complain about non-local returns.
+        # We do this to trick Dialyzer to not complain about non-local returns.
         reason = {:bad_call, msg}
         case :erlang.phash2(1, 1) do
           0 -> exit(reason)

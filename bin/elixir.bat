@@ -21,7 +21,7 @@ echo.
 echo   --app APP                   Starts the given app and its dependencies (*)
 echo   --cookie COOKIE             Sets a cookie for this distributed node
 echo   --detached                  Starts the Erlang VM detached from console
-echo   --erl SWITCHES              Switches to be passed down to erlang (*)
+echo   --erl SWITCHES              Switches to be passed down to Erlang (*)
 echo   --hidden                    Makes a hidden node
 echo   --logger-otp-reports BOOL   Enables or disables OTP reporting
 echo   --logger-sasl-reports BOOL  Enables or disables SASL reporting
@@ -32,7 +32,7 @@ echo   --werl                      Uses Erlang's Windows shell GUI
 echo.
 echo ** Options marked with (*) can be given more than once
 echo ** Options given after the .exs file or -- are passed down to the executed code
-echo ** Options can be passed to the erlang runtime using ELIXIR_ERL_OPTIONS or --erl
+echo ** Options can be passed to the Erlang runtime using ELIXIR_ERL_OPTIONS or --erl
 goto end
 
 :parseopts
@@ -70,7 +70,7 @@ if "%par%"=="""" (
 rem ******* EXECUTION OPTIONS **********************
 IF "%par%"==""--werl"" (Set useWerl=1)
 IF "%par%"==""+iex"" (Set runMode="iex")
-rem ******* elixir parameters **********************
+rem ******* ELIXIR PARAMETERS **********************
 rem Note: we don't have to do anything with options that don't take an argument
 IF """"=="%par:-e=%"      (shift) 
 IF """"=="%par:-r=%"      (shift) 

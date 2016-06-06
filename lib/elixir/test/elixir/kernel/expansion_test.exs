@@ -219,7 +219,7 @@ defmodule Kernel.ExpansionTest do
 
   ## Remote calls
 
-  test "remote calls: expands to erlang" do
+  test "remote calls: expands to Erlang" do
     assert expand(quote do: Kernel.is_atom(a)) == quote do: :erlang.is_atom(a())
   end
 

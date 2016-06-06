@@ -50,7 +50,7 @@ defmodule Mix.Tasks.CompileTest do
     end
   end
 
-  test "compile a project with multiple compilers and a syntax error in an erlang file" do
+  test "compile a project with multiple compilers and a syntax error in an Erlang file" do
     in_fixture "no_mixfile", fn ->
       import ExUnit.CaptureIO
 
