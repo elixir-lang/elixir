@@ -21,7 +21,7 @@ defmodule Kernel.DialyzerTest do
     :dialyzer.run([analysis_type: :plt_build, output_plt: plt,
                    apps: [:erts], files: files])
 
-    # Compile dialyzer fixtures
+    # Compile Dialyzer fixtures
     assert '' = elixirc("#{fixture_path("dialyzer")} -o #{dir}")
 
     {:ok, [base_dir: dir, base_plt: plt]}

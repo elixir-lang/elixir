@@ -430,7 +430,7 @@ defmodule ExUnit.AssertionsTest do
       [{Not.Defined, :function, [1, 2, 3], _} | _] = stacktrace
   end
 
-  test "assert raise with erlang error" do
+  test "assert raise with Erlang error" do
     assert_raise SyntaxError, fn ->
       List.flatten(1)
     end

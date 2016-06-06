@@ -102,7 +102,7 @@ defmodule Mix.Tasks.XrefTest do
     """
   end
 
-  test "warnings: handles erlang ops" do
+  test "warnings: handles Erlang ops" do
     assert_no_warnings """
     defmodule A do
       def a(a, b), do: a and b
@@ -111,7 +111,7 @@ defmodule Mix.Tasks.XrefTest do
     """
   end
 
-  test "warnings: handles erlang modules" do
+  test "warnings: handles Erlang modules" do
     assert_warnings """
     defmodule A do
       def a, do: :not_a_module.no_module
