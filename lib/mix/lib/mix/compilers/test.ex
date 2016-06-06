@@ -21,12 +21,12 @@ defmodule Mix.Compilers.Test do
   It expects all of the test patterns, the test files that were matched for the
   test patterns, the test paths, and the opts from the test task.
   """
-  def require_and_run(test_patterns, matched_test_files, test_paths, compile_path, opts) do
+  def require_and_run(test_patterns, matched_test_files, test_paths, opts) do
     stale = opts[:stale]
 
     {test_files_to_run, stale_manifest_pid, parallel_require_callbacks} =
       if stale do
-        set_up_stale(matched_test_files, test_paths, compile_path, opts)
+        set_up_stale(matched_test_files, test_paths, opts)
       else
         {matched_test_files, nil, []}
       end
@@ -58,7 +58,7 @@ defmodule Mix.Compilers.Test do
     end
   end
 
-  defp set_up_stale(matched_test_files, test_paths, compile_path, opts) do
+  defp set_up_stale(matched_test_files, test_paths, opts) do
     manifest = manifest()
     modified = Mix.Utils.last_modified(manifest)
     all_sources = read_manifest()
@@ -95,20 +95,17 @@ defmodule Mix.Compilers.Test do
 
     test_files_to_run =
       sources
-      |> tests_with_changed_references(compile_path)
+      |> tests_with_changed_references()
       |> MapSet.union(stale)
       |> MapSet.to_list()
 
     if test_files_to_run == [] do
       write_manifest(sources)
-
       {[], nil, nil}
     else
       {:ok, pid} = Agent.start_link(fn -> sources end)
-
       cwd = File.cwd!()
       parallel_require_callbacks = [each_module: &each_module(pid, cwd, &1, &2, &3)]
-
       {test_files_to_run, pid, parallel_require_callbacks}
     end
   end
@@ -191,13 +188,13 @@ defmodule Mix.Compilers.Test do
 
   ## Test changed dependency resolution
 
-  defp tests_with_changed_references(test_sources, compile_path) do
+  defp tests_with_changed_references(test_sources) do
     test_manifest = manifest()
     [elixir_manifest] = Mix.Tasks.Compile.Elixir.manifests()
 
     if Mix.Utils.stale?([elixir_manifest], [test_manifest]) do
       elixir_manifest_entries =
-        CE.read_manifest(elixir_manifest, compile_path)
+        CE.read_manifest(elixir_manifest, Mix.Project.compile_path())
         |> Enum.group_by(&elem(&1, 0))
 
       stale_modules =
