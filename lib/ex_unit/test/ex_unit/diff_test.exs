@@ -52,18 +52,6 @@ defmodule ExUnit.DiffTest do
     ]
     assert script(list1, list2) == expected
 
-    keyword_list1 = [file: "nofile", line: 12]
-    keyword_list2 = [file: nil, llne: 10]
-    expected = [
-      {:eq, "["},
-      [
-        [[[eq: "file"], {:eq, ": "}], [del: "\"nofile\"", ins: "nil"]],
-        [{:eq, ", "}, [[eq: "l", del: "i", ins: "l", eq: "ne"], {:eq, ": "}], [eq: "1", del: "2", ins: "0"]]
-      ],
-      {:eq, "]"}
-    ]
-    assert script(keyword_list1, keyword_list2) == expected
-
     charlist1 = 'fox hops over \'the dog'
     charlist2 = 'fox jumps over the lazy cat'
     expected = [
@@ -74,6 +62,123 @@ defmodule ExUnit.DiffTest do
     assert script(charlist1, charlist2) == expected
 
     assert script([], []) == [eq: "[]"]
+  end
+
+  test "keyword lists" do
+    keyword1 = [file: "nofile", line: 1]
+    keyword2 = [file: nil, lime: 1]
+    expected = [
+      {:eq, "["},
+      [
+        [{:eq, "file: "}, [del: "\"nofile\"", ins: "nil"]],
+        {:eq, ", "},
+        {:del, "line: 1"}, {:ins, "lime: 1"}
+      ],
+      {:eq, "]"}
+    ]
+    assert script(keyword1, keyword2) == expected
+
+    keyword1 = [file: nil, line: 1]
+    keyword2 = [file: "nofile"]
+    expected = [
+      {:eq, "["},
+      [
+        [{:eq, "file: "}, [del: "nil", ins: "\"nofile\""]],
+        {:del, ", "},
+        {:del, "line: 1"}
+      ],
+      {:eq, "]"}
+    ]
+    assert script(keyword1, keyword2) == expected
+
+    keyword1 = [file: "nofile"]
+    keyword2 = [file: nil, line: 1]
+    expected = [
+      {:eq, "["},
+      [
+        [{:eq, "file: "}, [del: "\"nofile\"", ins: "nil"]],
+        {:ins, ", "},
+        {:ins, "line: 1"}
+      ],
+      {:eq, "]"}
+    ]
+    assert script(keyword1, keyword2) == expected
+
+    keyword1 = [file: "nofile", line: 1]
+    keyword2 = [file: nil, line: 1]
+    expected = [
+      {:eq, "["},
+      [
+        [{:eq, "file: "}, [del: "\"nofile\"", ins: "nil"]],
+        {:eq, ", "},
+        {:eq, "line: 1"}
+      ],
+      {:eq, "]"}
+    ]
+    assert script(keyword1, keyword2) == expected
+
+    keyword1 = [line: 1, file: "nofile"]
+    keyword2 = [line: 1, file: nil]
+    expected = [
+      {:eq, "["},
+      [
+        {:eq, "line: 1"},
+        {:eq, ", "},
+        [{:eq, "file: "}, [del: "\"nofile\"", ins: "nil"]]
+      ],
+      {:eq, "]"}
+    ]
+    assert script(keyword1, keyword2) == expected
+
+    keyword1 = [file: "one", line: 1]
+    keyword2 = [file: "two", line: 2]
+    expected = [
+      {:eq, "["},
+      [
+        [{:eq, "file: "}, [del: "\"one\"", ins: "\"two\""]],
+        {:eq, ", "},
+        [{:eq, "line: "}, [del: "1", ins: "2"]]
+      ],
+      {:eq, "]"}
+    ]
+    assert script(keyword1, keyword2) == expected
+
+    keyword1 = [file: "nofile"]
+    keyword2 = [file: nil]
+    expected = [
+      {:eq, "["},
+      [{:eq, "file: "}, [del: "\"nofile\"", ins: "nil"]],
+      {:eq, "]"}
+    ]
+    assert script(keyword1, keyword2) == expected
+
+    keyword1 = [file: nil, line: 1]
+    keyword2 = [line: 1]
+    expected = [
+      {:eq, "["},
+      [{:del, "file: nil"}, {:del, ", "}, {:eq, "line: 1"}],
+      {:eq, "]"}
+    ]
+    assert script(keyword1, keyword2) == expected
+
+    keyword1 = [file: nil]
+    keyword2 = []
+    expected = [{:eq, "["}, [{:del, "file: nil"}], {:eq, "]"}]
+    assert script(keyword1, keyword2) == expected
+
+    keyword1 = []
+    keyword2 = [file: nil]
+    expected = [{:eq, "["}, [{:ins, "file: nil"}], {:eq, "]"}]
+    assert script(keyword1, keyword2) == expected
+
+    keyword1 = [port: 4000, max_connections: 1000]
+    keyword2 = [max_connections: 1000, port: 4000]
+    expected = [
+      {:eq, "["},
+      [del: "port: 4000", del: ", ", eq: "max_connections: 1000", ins: ", ", ins: "port: 4000"],
+      {:eq, "]"}
+    ]
+    assert script(keyword1, keyword2) == expected
   end
 
   test "improper lists" do
