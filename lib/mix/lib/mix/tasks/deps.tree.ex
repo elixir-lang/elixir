@@ -80,13 +80,11 @@ defmodule Mix.Tasks.Deps.Tree do
       else
         ""
       end
-    extra_info =
-      if opts[:dot] do
-        ""
-      else
-        "#{requirement(requirement)} (#{scm.format(deps_opts)})"
-      end
-    "#{app}#{extra_info}#{override}"
+    if opts[:dot] do
+      {app, "#{requirement(requirement)}#{override}"}
+    else
+      "#{app}#{requirement(requirement)} (#{scm.format(deps_opts)})#{override}"
+    end
   end
 
   defp requirement(nil), do: ""

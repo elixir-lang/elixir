@@ -115,17 +115,17 @@ defmodule Mix.Tasks.Deps.TreeTest do
     in_tmp context.test, fn ->
       Mix.Tasks.Deps.Tree.run(["--dot"])
       assert_received {:mix_shell, :info, ["digraph \"dependency tree\" {"]}
-      assert_received {:mix_shell, :info, ["  \"sample\" -> \"git_repo\""]}
-      assert_received {:mix_shell, :info, ["  \"sample\" -> \"deps_on_git_repo\""]}
-      refute_received {:mix_shell, :info, ["  \"deps_on_git_repo\" -> \"git_repo\""]}
+      assert_received {:mix_shell, :info, ["  \"sample\" -> \"git_repo\" [label=\" >= 0.1.0\"]"]}
+      assert_received {:mix_shell, :info, ["  \"sample\" -> \"deps_on_git_repo\" [label=\" 0.2.0\"]"]}
+      refute_received {:mix_shell, :info, ["  \"deps_on_git_repo\" -> \"git_repo\" [label=\"\"]"]}
       assert_received {:mix_shell, :info, ["}"]}
 
       Mix.Tasks.Deps.Get.run([])
       Mix.Tasks.Deps.Tree.run(["--dot"])
       assert_received {:mix_shell, :info, ["digraph \"dependency tree\" {"]}
-      assert_received {:mix_shell, :info, ["  \"sample\" -> \"git_repo\""]}
-      assert_received {:mix_shell, :info, ["  \"sample\" -> \"deps_on_git_repo\""]}
-      assert_received {:mix_shell, :info, ["  \"deps_on_git_repo\" -> \"git_repo\""]}
+      assert_received {:mix_shell, :info, ["  \"sample\" -> \"git_repo\" [label=\" >= 0.1.0\"]"]}
+      assert_received {:mix_shell, :info, ["  \"sample\" -> \"deps_on_git_repo\" [label=\" 0.2.0\"]"]}
+      assert_received {:mix_shell, :info, ["  \"deps_on_git_repo\" -> \"git_repo\" [label=\"\"]"]}
       assert_received {:mix_shell, :info, ["}"]}
     end
   after

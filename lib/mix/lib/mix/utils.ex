@@ -196,8 +196,19 @@ defmodule Mix.Utils do
   defp do_build_dot_graph(_parent, [], _callback), do: ""
   defp do_build_dot_graph(parent, [node | nodes], callback) do
     {name, children} = callback.(node)
+
+    parent_name = case parent do
+      {parent_name, _} -> parent_name
+      parent_name -> parent_name
+    end
+
     if parent != name do
-      ~s(  "#{parent}" -> "#{name}"\n)
+      case name do
+        {node_name, edge_info} ->
+          ~s(  "#{parent_name}" -> "#{node_name}" [label=\"#{edge_info}\"]\n)
+        node_name ->
+          ~s(  "#{parent_name}" -> "#{node_name}"\n)
+      end
     else
       ""
     end <>
