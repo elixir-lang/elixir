@@ -61,9 +61,8 @@ defmodule Mix.Tasks.Deps.Tree do
       end
 
     if opts[:dot] do
-      Mix.Utils.build_dot_graph("dependency tree", [root], deps_tree_callback, opts)
-      |> String.split("\n")
-      |> Enum.map(&Mix.shell.info/1)
+      dep_tree = Mix.Utils.build_dot_graph("dependency tree", [root], deps_tree_callback, opts)
+      File.write!("dep_tree.dot", dep_tree <> "\n")
     else
       Mix.Utils.print_tree([root], deps_tree_callback, opts)
     end

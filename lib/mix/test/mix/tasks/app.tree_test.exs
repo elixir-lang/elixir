@@ -85,12 +85,17 @@ defmodule Mix.Tasks.App.TreeTest do
       load_apps()
       Mix.Tasks.App.Tree.run(["--dot"])
 
-      assert_received {:mix_shell, :info, ["digraph \"application tree\" {"]}
-      assert_received {:mix_shell, :info, ["  \"test\" -> \"app_deps_sample\""]}
-      assert_received {:mix_shell, :info, ["  \"app_deps_sample\" -> \"app_deps2_sample\""]}
-      assert_received {:mix_shell, :info, ["  \"app_deps2_sample\" -> \"app_deps4_sample (included)\""]}
-      assert_received {:mix_shell, :info, ["  \"app_deps_sample\" -> \"app_deps3_sample\""]}
-      assert_received {:mix_shell, :info, ["}"]}
+      assert File.read!("app_tree.dot") == """
+        digraph "application tree" {
+          "test" -> "elixir"
+          "test" -> "logger"
+          "logger" -> "elixir"
+          "test" -> "app_deps_sample"
+          "app_deps_sample" -> "app_deps2_sample"
+          "app_deps2_sample" -> "app_deps4_sample (included)"
+          "app_deps_sample" -> "app_deps3_sample"
+        }
+        """
     end
   end
 

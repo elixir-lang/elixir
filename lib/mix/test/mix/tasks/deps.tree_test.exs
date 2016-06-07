@@ -114,19 +114,24 @@ defmodule Mix.Tasks.Deps.TreeTest do
 
     in_tmp context.test, fn ->
       Mix.Tasks.Deps.Tree.run(["--dot"])
-      assert_received {:mix_shell, :info, ["digraph \"dependency tree\" {"]}
-      assert_received {:mix_shell, :info, ["  \"sample\" -> \"git_repo\" [label=\" >= 0.1.0\"]"]}
-      assert_received {:mix_shell, :info, ["  \"sample\" -> \"deps_on_git_repo\" [label=\" 0.2.0\"]"]}
-      refute_received {:mix_shell, :info, ["  \"deps_on_git_repo\" -> \"git_repo\" [label=\"\"]"]}
-      assert_received {:mix_shell, :info, ["}"]}
+
+      assert File.read!("dep_tree.dot") == """
+        digraph "dependency tree" {
+          "sample" -> "git_repo" [label=" >= 0.1.0"]
+          "sample" -> "deps_on_git_repo" [label=" 0.2.0"]
+        }
+        """
 
       Mix.Tasks.Deps.Get.run([])
       Mix.Tasks.Deps.Tree.run(["--dot"])
-      assert_received {:mix_shell, :info, ["digraph \"dependency tree\" {"]}
-      assert_received {:mix_shell, :info, ["  \"sample\" -> \"git_repo\" [label=\" >= 0.1.0\"]"]}
-      assert_received {:mix_shell, :info, ["  \"sample\" -> \"deps_on_git_repo\" [label=\" 0.2.0\"]"]}
-      assert_received {:mix_shell, :info, ["  \"deps_on_git_repo\" -> \"git_repo\" [label=\"\"]"]}
-      assert_received {:mix_shell, :info, ["}"]}
+
+      assert File.read!("dep_tree.dot") == """
+        digraph "dependency tree" {
+          "sample" -> "git_repo" [label=" >= 0.1.0"]
+          "sample" -> "deps_on_git_repo" [label=" 0.2.0"]
+          "deps_on_git_repo" -> "git_repo" [label=""]
+        }
+        """
     end
   after
     purge [DepsOnGitRepo.Mixfile, GitRepo.Mixfile]

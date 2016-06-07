@@ -43,12 +43,11 @@ defmodule Mix.Tasks.App.Tree do
     excluded = @default_excluded ++ excluded
 
     if opts[:dot] do
-      Mix.Utils.build_dot_graph("application tree", [{:normal, app}], fn {type, app} ->
+      app_tree = Mix.Utils.build_dot_graph("application tree", [{:normal, app}], fn {type, app} ->
         load(app)
         {"#{app}#{type(type)}", children_for(app, excluded)}
       end, opts)
-      |> String.split("\n")
-      |> Enum.map(&Mix.shell.info/1)
+      File.write!("app_tree.dot", app_tree <> "\n")
     else
       Mix.Utils.print_tree([{:normal, app}], fn {type, app} ->
         load(app)
