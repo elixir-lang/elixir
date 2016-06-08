@@ -17,13 +17,20 @@ defmodule Mix.Tasks.Deps.Tree do
 
     * `--exclude` - exclude dependencies which you do not want to see printed.
 
-    * `--pretty` - use Unicode codepoints for formatting the tree.
-      Defaults to `true` except on Windows.
+    * `--format` - Can be set to one of either:
 
-    * `--dot` - produces a DOT graph description of the dependency tree.
+      * `pretty` - use Unicode codepoints for formatting the tree.
+        This is the default except on Windows.
+
+      * `plain` - do not use Unicode codepoints for formatting the tree.
+        This is the default on Windows.
+
+      * `dot` - produces a DOT graph description of the dependency tree
+        in `deps_tree.dot` in the current directory.
+        Warning: this will override any previously generated file.
 
   """
-  @switches [only: :string, exclude: :keep, pretty: :boolean, dot: :boolean]
+  @switches [only: :string, exclude: :keep, format: :string]
 
   @spec run(OptionParser.argv) :: :ok
   def run(args) do
@@ -60,9 +67,11 @@ defmodule Mix.Tasks.Deps.Tree do
           {Atom.to_string(app), exclude(top_level, excluded)}
       end
 
-    if opts[:dot] do
-      dep_tree = Mix.Utils.build_dot_graph("dependency tree", [root], deps_tree_callback, opts)
-      File.write!("dep_tree.dot", dep_tree <> "\n")
+    if opts[:format] == "dot" do
+      deps_tree = Mix.Utils.build_dot_graph("dependency tree", [root], deps_tree_callback, opts)
+      filename = "deps_tree.dot"
+      File.write!(filename, deps_tree <> "\n")
+      Mix.shell.info("Generated `#{filename}` in current directory")
     else
       Mix.Utils.print_tree([root], deps_tree_callback, opts)
     end
@@ -79,7 +88,7 @@ defmodule Mix.Tasks.Deps.Tree do
       else
         ""
       end
-    if opts[:dot] do
+    if opts[:format] == "dot" do
       {app, "#{requirement(requirement)}#{override}"}
     else
       "#{app}#{requirement(requirement)} (#{scm.format(deps_opts)})#{override}"

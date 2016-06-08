@@ -151,7 +151,12 @@ defmodule Mix.Utils do
   """
   @spec print_tree([term], (term -> {String.t, [term]}), Keyword.t) :: :ok
   def print_tree(nodes, callback, opts \\ []) do
-    pretty = Keyword.get(opts, :pretty, elem(:os.type, 0) != :win32)
+    pretty =
+      case Keyword.get(opts, :format) do
+        "pretty" -> true
+        "plain" -> false
+        _ -> elem(:os.type, 0) != :win32
+      end
     print_tree(nodes, [], pretty, callback)
   end
 
