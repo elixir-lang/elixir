@@ -1075,7 +1075,7 @@ defmodule DateTime do
 
   """
   @spec to_unix(DateTime.t, System.time_unit) :: non_neg_integer
-  def to_unix(%DateTime{std_offset: std_offset, utc_offset: utc_offset,
+  def to_unix(%DateTime{calendar: Calendar.ISO, std_offset: std_offset, utc_offset: utc_offset,
                         hour: hour, minute: minute, second: second, microsecond: {microsecond, _},
                         year: year, month: month, day: day}, unit \\ :seconds) when year >= 1970 do
     seconds =
