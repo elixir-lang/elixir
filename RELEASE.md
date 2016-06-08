@@ -28,7 +28,7 @@ This document simply outlines the release process:
 
 11. Create a new branch "vMAJOR.MINOR"
 
-12. Move docs generation to `docs/vMAJOR.MINOR` in Makefile, set CANONICAL reference and copy them to `docs/stable` (change index.html accordingly)
+12. Set `DOCS=vMAJOR.MINOR` and `CANONICAL=stable` in Makefile and copy them to `docs/stable` (change index.html accordingly)
 
 13. In master, bump versions, start new CHANGELOG, add `-dev` back and commit "Start vVERSION+1"
 
