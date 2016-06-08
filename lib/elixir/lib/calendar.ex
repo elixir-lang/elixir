@@ -1056,7 +1056,7 @@ defmodule DateTime do
   @doc """
   Converts the given DateTime to Unix time.
 
-  The DateTime is expected to be UTC using the ISO calendar
+  The DateTime is expected to be using the ISO calendar
   with a year greater than or equal to 1970.
 
   It will return the integer with the given unit,
@@ -1067,12 +1067,19 @@ defmodule DateTime do
       iex> 1464096368 |> DateTime.from_unix!() |> DateTime.to_unix()
       1464096368
 
+      iex> %DateTime{calendar: Calendar.ISO, day: 20, hour: 18, microsecond: {273806, 6}, minute: 58,
+      ...>           month: 11, second: 19, time_zone: "America/Montevideo",
+      ...>           utc_offset: -10800, std_offset: 3600, year: 2014, zone_abbr: "UYST"}
+      ...> |> DateTime.to_unix()
+      1416517099
   """
   @spec to_unix(DateTime.t, System.time_unit) :: non_neg_integer
-  def to_unix(%DateTime{std_offset: 0, utc_offset: 0, time_zone: "Etc/UTC",
+  def to_unix(%DateTime{std_offset: std_offset, utc_offset: utc_offset,
                         hour: hour, minute: minute, second: second, microsecond: {microsecond, _},
                         year: year, month: month, day: day}, unit \\ :seconds) when year >= 1970 do
     seconds = :calendar.datetime_to_gregorian_seconds({{year, month, day}, {hour, minute, second}})
+    |> Kernel.-(utc_offset)
+    |> Kernel.-(std_offset)
     System.convert_time_unit((seconds - @unix_epoch) * 1_000_000 + microsecond, :microseconds, unit)
   end
 
