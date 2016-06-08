@@ -117,8 +117,8 @@ defmodule Mix.Tasks.Deps.TreeTest do
 
       assert File.read!("deps_tree.dot") == """
         digraph "dependency tree" {
-          "sample" -> "git_repo" [label=" >= 0.1.0"]
-          "sample" -> "deps_on_git_repo" [label=" 0.2.0"]
+          "sample" -> "git_repo" [label=">= 0.1.0"]
+          "sample" -> "deps_on_git_repo" [label="0.2.0"]
         }
         """
 
@@ -127,8 +127,8 @@ defmodule Mix.Tasks.Deps.TreeTest do
 
       assert File.read!("deps_tree.dot") == """
         digraph "dependency tree" {
-          "sample" -> "git_repo" [label=" >= 0.1.0"]
-          "sample" -> "deps_on_git_repo" [label=" 0.2.0"]
+          "sample" -> "git_repo" [label=">= 0.1.0"]
+          "sample" -> "deps_on_git_repo" [label="0.2.0"]
           "deps_on_git_repo" -> "git_repo" [label=""]
         }
         """

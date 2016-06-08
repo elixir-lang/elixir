@@ -149,21 +149,22 @@ defmodule Mix.Utils do
   must either return `{printed, children}` tuple or
   `false` if the given node must not be printed.
   """
-  @spec print_tree([term], (term -> {String.t, [term]}), Keyword.t) :: :ok
-  def print_tree(nodes, callback, opts \\ []) do
+  @spec print_tree(term, (term -> {String.t, [term]}), Keyword.t) :: :ok
+  def print_tree(root, callback, opts \\ []) do
     pretty =
       case Keyword.get(opts, :format) do
         "pretty" -> true
         "plain" -> false
         _ -> elem(:os.type, 0) != :win32
       end
-    print_tree(nodes, [], pretty, callback)
+    print_tree([root], [], pretty, callback)
   end
 
   defp print_tree([], _depth, _pretty, _callback), do: :ok
   defp print_tree([node | nodes], depth, pretty, callback) do
-    {print, children} =  callback.(node)
-    Mix.shell.info("#{depth(pretty, depth)}#{prefix(pretty, depth, nodes)}#{print}")
+    {{name, info}, children} =  callback.(node)
+    space = if info, do: " ", else: ""
+    Mix.shell.info("#{depth(pretty, depth)}#{prefix(pretty, depth, nodes)}#{name}#{space}#{info}")
     print_tree(children, [(nodes != []) | depth], pretty, callback)
     print_tree(nodes, depth, pretty, callback)
   end
@@ -190,35 +191,34 @@ defmodule Mix.Utils do
   must either return `{printed, children}` tuple or
   `false` if the given node must not be printed.
   """
-  @spec build_dot_graph(String.t, [term], (term -> {String.t, [term]}), Keyword.t) :: :ok
-  def build_dot_graph(title, nodes, callback, _opts \\ []) do
-    {parent_name, _} = callback.(hd(nodes))
-    "digraph \"#{title}\" {\n" <>
-    do_build_dot_graph(parent_name, nodes, callback) <>
-    "}"
+  @spec write_dot_graph!(Path.t, String.t, term, (term -> {String.t, [term]}), Keyword.t) :: :ok
+  def write_dot_graph!(path, title, root, callback, _opts \\ []) do
+    {{parent, _}, children} = callback.(root)
+    {dot, _} = build_dot_graph(parent, children, %{}, callback)
+    File.write! path, "digraph \"#{title}\" {\n#{dot}}\n"
   end
 
-  defp do_build_dot_graph(_parent, [], _callback), do: ""
-  defp do_build_dot_graph(parent, [node | nodes], callback) do
-    {name, children} = callback.(node)
+  defp build_dot_graph(_parent, [], seen, _callback), do: {"", seen}
+  defp build_dot_graph(parent, [node | nodes], seen, callback) do
+    {{name, edge_info}, children} = callback.(node)
+    {current, seen}  = build_dot_current(parent, name, edge_info, seen)
+    {children, seen} = build_dot_graph(name, children, seen, callback)
+    {siblings, seen} = build_dot_graph(parent, nodes, seen, callback)
+    {current <> children <> siblings, seen}
+  end
 
-    parent_name = case parent do
-      {parent_name, _} -> parent_name
-      parent_name -> parent_name
+  defp build_dot_current(parent, name, edge_info, seen) do
+    key = {parent, name}
+    case seen do
+      %{^key => _} ->
+        {"", seen}
+      %{} when is_nil(edge_info) ->
+        {~s(  "#{parent}" -> "#{name}"\n),
+         Map.put(seen, key, true),}
+      %{} ->
+        {~s(  "#{parent}" -> "#{name}" [label=\"#{edge_info}\"]\n),
+         Map.put(seen, key, true)}
     end
-
-    if parent != name do
-      case name do
-        {node_name, edge_info} ->
-          ~s(  "#{parent_name}" -> "#{node_name}" [label=\"#{edge_info}\"]\n)
-        node_name ->
-          ~s(  "#{parent_name}" -> "#{node_name}"\n)
-      end
-    else
-      ""
-    end <>
-    do_build_dot_graph(name, children, callback) <>
-    do_build_dot_graph(parent, nodes, callback)
   end
 
   @doc false

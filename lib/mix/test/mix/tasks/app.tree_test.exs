@@ -92,7 +92,7 @@ defmodule Mix.Tasks.App.TreeTest do
           "logger" -> "elixir"
           "test" -> "app_deps_sample"
           "app_deps_sample" -> "app_deps2_sample"
-          "app_deps2_sample" -> "app_deps4_sample (included)"
+          "app_deps2_sample" -> "app_deps4_sample" [label="(included)"]
           "app_deps_sample" -> "app_deps3_sample"
         }
         """
