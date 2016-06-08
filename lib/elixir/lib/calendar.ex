@@ -1067,19 +1067,21 @@ defmodule DateTime do
       iex> 1464096368 |> DateTime.from_unix!() |> DateTime.to_unix()
       1464096368
 
-      iex> %DateTime{calendar: Calendar.ISO, day: 20, hour: 18, microsecond: {273806, 6}, minute: 58,
-      ...>           month: 11, second: 19, time_zone: "America/Montevideo",
-      ...>           utc_offset: -10800, std_offset: 3600, year: 2014, zone_abbr: "UYST"}
-      ...> |> DateTime.to_unix()
+      iex> dt = %DateTime{calendar: Calendar.ISO, day: 20, hour: 18, microsecond: {273806, 6},
+      ...>                minute: 58, month: 11, second: 19, time_zone: "America/Montevideo",
+      ...>                utc_offset: -10800, std_offset: 3600, year: 2014, zone_abbr: "UYST"}
+      iex> DateTime.to_unix(dt)
       1416517099
+
   """
   @spec to_unix(DateTime.t, System.time_unit) :: non_neg_integer
   def to_unix(%DateTime{std_offset: std_offset, utc_offset: utc_offset,
                         hour: hour, minute: minute, second: second, microsecond: {microsecond, _},
                         year: year, month: month, day: day}, unit \\ :seconds) when year >= 1970 do
-    seconds = :calendar.datetime_to_gregorian_seconds({{year, month, day}, {hour, minute, second}})
-    |> Kernel.-(utc_offset)
-    |> Kernel.-(std_offset)
+    seconds =
+      :calendar.datetime_to_gregorian_seconds({{year, month, day}, {hour, minute, second}})
+      |> Kernel.-(utc_offset)
+      |> Kernel.-(std_offset)
     System.convert_time_unit((seconds - @unix_epoch) * 1_000_000 + microsecond, :microseconds, unit)
   end
 
