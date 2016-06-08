@@ -379,7 +379,6 @@ defmodule ExUnit.Assertions do
                           <> ExUnit.Assertions.__mailbox__(self()))
         end
 
-      _ = unquote(vars) # Silence warnings
       received
     end
   end
