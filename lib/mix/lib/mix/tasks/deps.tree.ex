@@ -39,8 +39,6 @@ defmodule Mix.Tasks.Deps.Tree do
 
     deps_opts = if only = opts[:only], do: [env: :"#{only}"], else: []
     deps      = Mix.Dep.loaded(deps_opts)
-    excluded  = Keyword.get_values(opts, :exclude) |> Enum.map(&String.to_atom/1)
-    top_level = Enum.filter(deps, & &1.top_level)
 
     root =
       case args do
@@ -51,9 +49,23 @@ defmodule Mix.Tasks.Deps.Tree do
           find_dep(deps, app) || Mix.raise("could not find dependency #{app}")
       end
 
-    deps_tree_callback =
-      fn
-        %Mix.Dep{app: app} = dep ->
+    if opts[:format] == "dot" do
+      callback = callback(&format_dot/1, deps, opts)
+      Mix.Utils.write_dot_graph!("deps_tree.dot", "dependency tree", root, callback, opts)
+      Mix.shell.info "Generated \"deps_tree.dot\" in current directory.\n" <>
+                     "You can use http://www.graphviz.org/ to open it."
+    else
+      callback = callback(&format_tree/1, deps, opts)
+      Mix.Utils.print_tree(root, callback, opts)
+    end
+  end
+
+  defp callback(formatter, deps, opts) do
+    excluded  = Keyword.get_values(opts, :exclude) |> Enum.map(&String.to_atom/1)
+    top_level = Enum.filter(deps, & &1.top_level)
+
+    fn
+      %Mix.Dep{app: app} = dep ->
           deps =
             # Do not show dependencies if they were
             # already shown at the top level
@@ -62,18 +74,9 @@ defmodule Mix.Tasks.Deps.Tree do
             else
               find_dep(deps, app).deps
             end
-          {format_dep(dep, opts), exclude(deps, excluded)}
+          {formatter.(dep), exclude(deps, excluded)}
         app ->
-          {Atom.to_string(app), exclude(top_level, excluded)}
-      end
-
-    if opts[:format] == "dot" do
-      deps_tree = Mix.Utils.build_dot_graph("dependency tree", [root], deps_tree_callback, opts)
-      filename = "deps_tree.dot"
-      File.write!(filename, deps_tree <> "\n")
-      Mix.shell.info("Generated `#{filename}` in current directory")
-    else
-      Mix.Utils.print_tree([root], deps_tree_callback, opts)
+          {{Atom.to_string(app), nil}, exclude(top_level, excluded)}
     end
   end
 
@@ -81,23 +84,32 @@ defmodule Mix.Tasks.Deps.Tree do
     Enum.reject deps, & &1.app in excluded
   end
 
-  defp format_dep(%{app: app, scm: scm, requirement: requirement, opts: deps_opts}, opts) do
+  defp format_dot(%{app: app, requirement: requirement, opts: opts}) do
     override =
-      if deps_opts[:override] do
-        "#{IO.ANSI.bright} *override*#{IO.ANSI.normal}"
+      if opts[:override] do
+        " *override*"
       else
         ""
       end
-    if opts[:format] == "dot" do
-      {app, "#{requirement(requirement)}#{override}"}
-    else
-      "#{app}#{requirement(requirement)} (#{scm.format(deps_opts)})#{override}"
-    end
+
+    requirement = requirement && requirement(requirement)
+    {app, "#{requirement}#{override}"}
   end
 
-  defp requirement(nil), do: ""
-  defp requirement(%Regex{} = regex), do: " #{inspect regex}"
-  defp requirement(binary) when is_binary(binary), do: " #{binary}"
+  defp format_tree(%{app: app, scm: scm, requirement: requirement, opts: opts}) do
+    override =
+      if opts[:override] do
+        IO.ANSI.format([:bright, " *override*"])
+      else
+        ""
+      end
+
+    requirement = requirement && "#{requirement(requirement)} "
+    {app, "#{requirement}(#{scm.format(opts)})#{override}"}
+  end
+
+  defp requirement(%Regex{} = regex), do: "#{inspect regex}"
+  defp requirement(binary) when is_binary(binary), do: binary
 
   defp find_dep(deps, app) do
     Enum.find(deps, & &1.app == app)

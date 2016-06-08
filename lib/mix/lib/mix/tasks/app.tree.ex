@@ -49,19 +49,18 @@ defmodule Mix.Tasks.App.Tree do
     excluded = Keyword.get_values(opts, :exclude) |> Enum.map(&String.to_atom/1)
     excluded = @default_excluded ++ excluded
 
-    app_tree_callback =
-      fn {type, app} ->
-        load(app)
-        {"#{app}#{type(type)}", children_for(app, excluded)}
-      end
+    callback = fn {type, app} ->
+      load(app)
+      {{app, type(type)}, children_for(app, excluded)}
+    end
 
     if opts[:format] == "dot" do
-      app_tree = Mix.Utils.build_dot_graph("application tree", [{:normal, app}], app_tree_callback, opts)
-      filename = "app_tree.dot"
-      File.write!(filename, app_tree <> "\n")
-      Mix.shell.info("Generated `#{filename}` in current directory")
+      Mix.Utils.write_dot_graph!("app_tree.dot", "application tree",
+                                 {:normal, app}, callback, opts)
+      Mix.shell.info "Generated \"app_tree.dot\" in current directory.\n" <>
+                     "You can use http://www.graphviz.org/ to open it."
     else
-      Mix.Utils.print_tree([{:normal, app}], app_tree_callback, opts)
+      Mix.Utils.print_tree({:normal, app}, callback, opts)
     end
   end
 
@@ -79,6 +78,6 @@ defmodule Mix.Tasks.App.Tree do
     Enum.map(apps, &{:normal, &1}) ++ Enum.map(included_apps, &{:included, &1})
   end
 
-  defp type(:normal),   do: ""
-  defp type(:included), do: " (included)"
+  defp type(:normal),   do: nil
+  defp type(:included), do: "(included)"
 end
