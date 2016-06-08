@@ -9,7 +9,7 @@ defmodule Mix.Tasks.NewTest do
 
       assert_file "hello_world/mix.exs", fn(file) ->
         assert file =~ "app: :hello_world"
-        assert file =~ "version: \"0.0.1\""
+        assert file =~ "version: \"0.1.0\""
       end
 
       assert_file "hello_world/README.md", ~r/# HelloWorld\n/
@@ -31,7 +31,7 @@ defmodule Mix.Tasks.NewTest do
 
       assert_file "hello_world/mix.exs", fn(file) ->
         assert file =~ "app: :hello_world"
-        assert file =~ "version: \"0.0.1\""
+        assert file =~ "version: \"0.1.0\""
         assert file =~ "mod: {HelloWorld, []}"
       end
 
@@ -58,7 +58,7 @@ defmodule Mix.Tasks.NewTest do
 
       assert_file "HELLO_WORLD/mix.exs", fn(file) ->
         assert file =~ "app: :hello_world"
-        assert file =~ "version: \"0.0.1\""
+        assert file =~ "version: \"0.1.0\""
       end
 
       assert_file "HELLO_WORLD/README.md", ~r/# HelloWorld\n/
