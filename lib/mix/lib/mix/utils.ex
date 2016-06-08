@@ -151,7 +151,12 @@ defmodule Mix.Utils do
   """
   @spec print_tree([term], (term -> {String.t, [term]}), Keyword.t) :: :ok
   def print_tree(nodes, callback, opts \\ []) do
-    pretty = Keyword.get(opts, :pretty, elem(:os.type, 0) != :win32)
+    pretty =
+      case Keyword.get(opts, :format) do
+        "pretty" -> true
+        "plain" -> false
+        _ -> elem(:os.type, 0) != :win32
+      end
     print_tree(nodes, [], pretty, callback)
   end
 
@@ -177,6 +182,44 @@ defmodule Mix.Utils do
   defp prefix(true, [], _),  do: ""
   defp prefix(true, _, []),  do: "└── "
   defp prefix(true, _, _),   do: "├── "
+
+  @doc """
+  Outputs the given tree according to the callback as a DOT graph.
+
+  The callback will be invoked for each node and it
+  must either return `{printed, children}` tuple or
+  `false` if the given node must not be printed.
+  """
+  @spec build_dot_graph(String.t, [term], (term -> {String.t, [term]}), Keyword.t) :: :ok
+  def build_dot_graph(title, nodes, callback, _opts \\ []) do
+    {parent_name, _} = callback.(hd(nodes))
+    "digraph \"#{title}\" {\n" <>
+    do_build_dot_graph(parent_name, nodes, callback) <>
+    "}"
+  end
+
+  defp do_build_dot_graph(_parent, [], _callback), do: ""
+  defp do_build_dot_graph(parent, [node | nodes], callback) do
+    {name, children} = callback.(node)
+
+    parent_name = case parent do
+      {parent_name, _} -> parent_name
+      parent_name -> parent_name
+    end
+
+    if parent != name do
+      case name do
+        {node_name, edge_info} ->
+          ~s(  "#{parent_name}" -> "#{node_name}" [label=\"#{edge_info}\"]\n)
+        node_name ->
+          ~s(  "#{parent_name}" -> "#{node_name}"\n)
+      end
+    else
+      ""
+    end <>
+    do_build_dot_graph(name, children, callback) <>
+    do_build_dot_graph(parent, nodes, callback)
+  end
 
   @doc false
   # TODO: Deprecate by 1.4
