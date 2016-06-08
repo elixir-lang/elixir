@@ -48,13 +48,15 @@ defmodule Mix.Tasks.Escript.Install do
     * `--submodules` - fetch repository submodules before building escript from
       git or github
 
+    * `--app` - specify a custom app name to be used for building the escript
+      from git, github, or hex
   """
 
   @behaviour Mix.Local.Installer
 
   @escript_file_mode 0o555 # only read and execute permissions
 
-  @switches [force: :boolean, sha512: :string, submodules: :boolean]
+  @switches [force: :boolean, sha512: :string, submodules: :boolean, app: :string]
   @spec run(OptionParser.argv) :: boolean
   def run(argv) do
     {opts, args} = OptionParser.parse!(argv, strict: @switches)
@@ -94,7 +96,14 @@ defmodule Mix.Tasks.Escript.Install do
       ref_to_config(ref_type, ref) ++
       [git: url, submodules: opts[:submodules]]
 
-    fetch_build_and_install_escript("new escript", {:"new escript", git_opts}, opts)
+    app_name =
+      if opts[:app] do
+        opts[:app]
+      else
+        "new escript"
+      end
+
+    fetch_build_and_install_escript(app_name, {String.to_atom(app_name), git_opts}, opts)
   end
 
   defp install_from_git([_url | rest], _opts) do
@@ -116,7 +125,16 @@ defmodule Mix.Tasks.Escript.Install do
   end
 
   defp install_from_hex([package_name, version], opts) do
-    fetch_build_and_install_escript(package_name, {String.to_atom(package_name), version}, opts)
+    app_name =
+      if opts[:app] do
+        opts[:app]
+      else
+        package_name
+      end
+
+    dep_spec = {String.to_atom(app_name), version, hex: String.to_atom(package_name)}
+
+    fetch_build_and_install_escript(app_name, dep_spec, opts)
   end
 
   defp install_from_hex([_package_name | rest], _opts) do
