@@ -1,7 +1,7 @@
 REBAR ?= "$(CURDIR)/rebar"
 PREFIX ?= /usr/local
-DOCS := master
-CANONICAL := master
+DOCS := v1.3
+CANONICAL := stable
 ELIXIRC := bin/elixirc --verbose --ignore-module-conflict
 ERLC := erlc -I lib/elixir/include
 ERL := erl -I lib/elixir/include -noshell -pa lib/elixir/ebin
