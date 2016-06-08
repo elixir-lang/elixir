@@ -196,6 +196,8 @@ defmodule Mix.Utils do
     {{parent, _}, children} = callback.(root)
     {dot, _} = build_dot_graph(parent, children, %{}, callback)
     File.write! path, "digraph \"#{title}\" {\n#{dot}}\n"
+    Mix.shell.info "Generated \"#{path}\" in the current directory.\n" <>
+                   "You can use http://www.graphviz.org/ to open it."
   end
 
   defp build_dot_graph(_parent, [], seen, _callback), do: {"", seen}
