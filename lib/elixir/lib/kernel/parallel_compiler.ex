@@ -25,7 +25,7 @@ defmodule Kernel.ParallelCompiler do
       this callback passing the file as its argument
 
     * `:long_compilation_threshold` - the timeout (in seconds) after the
-      `:each_long_compilation` callback is invoked; defaults to `5`
+      `:each_long_compilation` callback is invoked; defaults to `10`
 
     * `:each_module` - for each module compiled, invokes the callback passing
       the file, module and the module bytecode
@@ -122,7 +122,7 @@ defmodule Kernel.ParallelCompiler do
         end)
       end
 
-    timeout = Keyword.get(options, :long_compilation_threshold, 5) * 1_000
+    timeout = Keyword.get(options, :long_compilation_threshold, 10) * 1_000
     timer_ref = Process.send_after(self(), {:timed_out, pid}, timeout)
 
     new_queued = [{pid, ref, file, timer_ref} | queued]
