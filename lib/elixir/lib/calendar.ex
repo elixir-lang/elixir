@@ -1084,9 +1084,9 @@ defmodule DateTime do
 
   ## Examples
 
-      iex> dt = %DateTime{year: 2000, month: 2, day: 29, zone_abbr: "CEST",
+      iex> dt = %DateTime{year: 2000, month: 2, day: 29, zone_abbr: "CET",
       ...>                hour: 23, minute: 0, second: 7, microsecond: {0, 1},
-      ...>                utc_offset: 3600, std_offset: 3600, time_zone: "Europe/Warsaw"}
+      ...>                utc_offset: 3600, std_offset: 0, time_zone: "Europe/Warsaw"}
       iex> DateTime.to_naive(dt)
       ~N[2000-02-29 23:00:07.0]
 
@@ -1105,9 +1105,9 @@ defmodule DateTime do
 
   ## Examples
 
-      iex> dt = %DateTime{year: 2000, month: 2, day: 29, zone_abbr: "CEST",
-      ...>                hour: 23, minute: 0, second: 7, microsecond: 0,
-      ...>                utc_offset: 3600, std_offset: 3600, time_zone: "Europe/Warsaw"}
+      iex> dt = %DateTime{year: 2000, month: 2, day: 29, zone_abbr: "CET",
+      ...>                hour: 23, minute: 0, second: 7, microsecond: {0, 0},
+      ...>                utc_offset: 3600, std_offset: 0, time_zone: "Europe/Warsaw"}
       iex> DateTime.to_date(dt)
       ~D[2000-02-29]
 
@@ -1124,9 +1124,9 @@ defmodule DateTime do
 
   ## Examples
 
-      iex> dt = %DateTime{year: 2000, month: 2, day: 29, zone_abbr: "CEST",
+      iex> dt = %DateTime{year: 2000, month: 2, day: 29, zone_abbr: "CET",
       ...>                hour: 23, minute: 0, second: 7, microsecond: {0, 1},
-      ...>                utc_offset: 3600, std_offset: 3600, time_zone: "Europe/Warsaw"}
+      ...>                utc_offset: 3600, std_offset: 0, time_zone: "Europe/Warsaw"}
       iex> DateTime.to_time(dt)
       ~T[23:00:07.0]
 
@@ -1149,23 +1149,23 @@ defmodule DateTime do
 
   ### Examples
 
-      iex> dt = %DateTime{year: 2000, month: 2, day: 29, zone_abbr: "CEST",
-      ...>                hour: 23, minute: 0, second: 7, microsecond: 0,
-      ...>                utc_offset: 3600, std_offset: 3600, time_zone: "Europe/Warsaw"}
+      iex> dt = %DateTime{year: 2000, month: 2, day: 29, zone_abbr: "CET",
+      ...>                hour: 23, minute: 0, second: 7, microsecond: {0, 0},
+      ...>                utc_offset: 3600, std_offset: 0, time_zone: "Europe/Warsaw"}
       iex> DateTime.to_iso8601(dt)
-      "2000-02-29T23:00:07+02:00"
+      "2000-02-29T23:00:07+01:00"
 
       iex> dt = %DateTime{year: 2000, month: 2, day: 29, zone_abbr: "UTC",
-      ...>                hour: 23, minute: 0, second: 7, microsecond: 0,
+      ...>                hour: 23, minute: 0, second: 7, microsecond: {0, 0},
       ...>                utc_offset: 0, std_offset: 0, time_zone: "Etc/UTC"}
       iex> DateTime.to_iso8601(dt)
       "2000-02-29T23:00:07Z"
 
-      iex> dt = %DateTime{year: 2000, month: 2, day: 29, zone_abbr: "BRM",
-      ...>                hour: 23, minute: 0, second: 7, microsecond: 0,
-      ...>                utc_offset: -12600, std_offset: 3600, time_zone: "Brazil/Manaus"}
+      iex> dt = %DateTime{year: 2000, month: 2, day: 29, zone_abbr: "AMT",
+      ...>                hour: 23, minute: 0, second: 7, microsecond: {0, 0},
+      ...>                utc_offset: -14400, std_offset: 0, time_zone: "America/Manaus"}
       iex> DateTime.to_iso8601(dt)
-      "2000-02-29T23:00:07-02:30"
+      "2000-02-29T23:00:07-04:00"
   """
   @spec to_iso8601(DateTime.t) :: String.t
   def to_iso8601(%DateTime{calendar: Calendar.ISO} = dt) do
@@ -1177,11 +1177,11 @@ defmodule DateTime do
 
   ### Examples
 
-      iex> dt = %DateTime{year: 2000, month: 2, day: 29, zone_abbr: "CEST",
+      iex> dt = %DateTime{year: 2000, month: 2, day: 29, zone_abbr: "CET",
       ...>                hour: 23, minute: 0, second: 7, microsecond: {0, 0},
-      ...>                utc_offset: 3600, std_offset: 3600, time_zone: "Europe/Warsaw"}
+      ...>                utc_offset: 3600, std_offset: 0, time_zone: "Europe/Warsaw"}
       iex> DateTime.to_string(dt)
-      "2000-02-29 23:00:07+02:00 CEST Europe/Warsaw"
+      "2000-02-29 23:00:07+01:00 CET Europe/Warsaw"
 
       iex> dt = %DateTime{year: 2000, month: 2, day: 29, zone_abbr: "UTC",
       ...>                hour: 23, minute: 0, second: 7, microsecond: {0, 0},
@@ -1189,11 +1189,11 @@ defmodule DateTime do
       iex> DateTime.to_string(dt)
       "2000-02-29 23:00:07Z"
 
-      iex> dt = %DateTime{year: 2000, month: 2, day: 29, zone_abbr: "BRM",
+      iex> dt = %DateTime{year: 2000, month: 2, day: 29, zone_abbr: "AMT",
       ...>                hour: 23, minute: 0, second: 7, microsecond: {0, 0},
-      ...>                utc_offset: -12600, std_offset: 3600, time_zone: "Brazil/Manaus"}
+      ...>                utc_offset: -14400, std_offset: 0, time_zone: "America/Manaus"}
       iex> DateTime.to_string(dt)
-      "2000-02-29 23:00:07-02:30 BRM Brazil/Manaus"
+      "2000-02-29 23:00:07-04:00 AMT America/Manaus"
   """
   @spec to_string(DateTime.t) :: String.t
   def to_string(%DateTime{calendar: calendar} = dt) do
