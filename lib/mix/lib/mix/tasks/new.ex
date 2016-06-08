@@ -207,7 +207,7 @@ defmodule Mix.Tasks.New do
 
       ```elixir
       def deps do
-        [{:<%= @app %>, "~> 0.0.1"}]
+        [{:<%= @app %>, "~> 0.1.0"}]
       end
       ```
 
@@ -247,7 +247,7 @@ defmodule Mix.Tasks.New do
 
     def project do
       [app: :<%= @app %>,
-       version: "0.0.1",
+       version: "0.1.0",
        elixir: "~> <%= @version %>",
        build_embedded: Mix.env == :prod,
        start_permanent: Mix.env == :prod,
@@ -282,7 +282,7 @@ defmodule Mix.Tasks.New do
 
     def project do
       [app: :<%= @app %>,
-       version: "0.0.1",
+       version: "0.1.0",
        build_path: "../../_build",
        config_path: "../../config/config.exs",
        deps_path: "../../deps",
