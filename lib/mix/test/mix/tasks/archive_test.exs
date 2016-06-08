@@ -40,7 +40,7 @@ defmodule Mix.Tasks.ArchiveTest do
       assert_received {:mix_shell, :info, ["Generated archive \"archive-0.1.0.ez\" with MIX_ENV=dev"]}
       assert File.regular? 'archive-0.1.0.ez'
 
-      send self, {:mix_shell_input, :yes?, true}
+      send self(), {:mix_shell_input, :yes?, true}
       Mix.Tasks.Archive.Install.run []
       refute File.regular? tmp_path("userhome/.mix/archives/archive-0.1.0.ez")
       assert File.dir? tmp_path("userhome/.mix/archives/archive-0.1.0/archive-0.1.0/ebin")
@@ -75,7 +75,7 @@ defmodule Mix.Tasks.ArchiveTest do
       # Install previous version
       Mix.Tasks.Archive.Build.run ["--no-elixir-version-check"]
       assert File.regular? "archive-0.1.0.ez"
-      send self, {:mix_shell_input, :yes?, true}
+      send self(), {:mix_shell_input, :yes?, true}
       Mix.Tasks.Archive.Install.run []
       assert_received {:mix_shell, :error, [_]}
 
@@ -86,13 +86,13 @@ defmodule Mix.Tasks.ArchiveTest do
       assert_received {:mix_shell, :info, ["Generated archive \"archive-0.2.0.ez\" with MIX_ENV=dev"]}
 
       # Install new version
-      send self, {:mix_shell_input, :yes?, true}
+      send self(), {:mix_shell_input, :yes?, true}
       Mix.Tasks.Archive.Install.run []
       refute File.regular? tmp_path("userhome/.mix/archives/archive-0.2.0.ez")
       assert File.dir? tmp_path("userhome/.mix/archives/archive-0.2.0/archive-0.2.0/ebin")
 
       # Re-install current version should not change system
-      send self, {:mix_shell_input, :yes?, true}
+      send self(), {:mix_shell_input, :yes?, true}
       Mix.Tasks.Archive.Install.run []
       refute File.regular? tmp_path("userhome/.mix/archives/archive-0.2.0.ez")
       assert File.dir? tmp_path("userhome/.mix/archives/archive-0.2.0/archive-0.2.0/ebin")
@@ -110,12 +110,12 @@ defmodule Mix.Tasks.ArchiveTest do
       refute_received {:mix_shell, :error, [_]}
 
       # Check uninstall confirmation
-      send self, {:mix_shell_input, :yes?, false}
+      send self(), {:mix_shell_input, :yes?, false}
       Mix.Tasks.Archive.Uninstall.run ["archive-0.2.0"]
       assert File.dir? tmp_path("userhome/.mix/archives/archive-0.2.0/archive-0.2.0/ebin")
 
       # Remove it!
-      send self, {:mix_shell_input, :yes?, true}
+      send self(), {:mix_shell_input, :yes?, true}
       Mix.Tasks.Archive.Uninstall.run ["archive-0.2.0"]
       refute File.dir? tmp_path("userhome/.mix/archives/archive-0.2.0/archive-0.2.0/ebin")
     end
@@ -130,16 +130,16 @@ defmodule Mix.Tasks.ArchiveTest do
     in_fixture "archive", fn() ->
       Mix.Tasks.Archive.Build.run ["--no-elixir-version-check"]
       assert File.regular? "archive-0.1.0.ez"
-      send self, {:mix_shell_input, :yes?, true}
+      send self(), {:mix_shell_input, :yes?, true}
 
       # Install with wrong checksum
       assert_raise Mix.Error, ~r"Data does not match the given SHA-512 checksum", fn ->
-        send self, {:mix_shell_input, :yes?, true}
+        send self(), {:mix_shell_input, :yes?, true}
         Mix.Tasks.Archive.Install.run ["--sha512", "wrong"]
       end
 
       # Install with correct checksum
-      send self, {:mix_shell_input, :yes?, true}
+      send self(), {:mix_shell_input, :yes?, true}
       Mix.Tasks.Archive.Install.run ["--sha512", sha512("archive-0.1.0.ez")]
       refute File.regular? tmp_path("userhome/.mix/archives/archive-0.1.0.ez")
       assert File.dir? tmp_path("userhome/.mix/archives/archive-0.1.0/archive-0.1.0/ebin")
@@ -150,7 +150,7 @@ defmodule Mix.Tasks.ArchiveTest do
     # Install the archive
     in_fixture "archive", fn() ->
       Mix.Tasks.Archive.Build.run ["--no-elixir-version-check"]
-      send self, {:mix_shell_input, :yes?, true}
+      send self(), {:mix_shell_input, :yes?, true}
       Mix.Tasks.Archive.Install.run []
     end
 

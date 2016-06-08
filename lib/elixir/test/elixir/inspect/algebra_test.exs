@@ -27,13 +27,13 @@ defmodule Inspect.AlgebraTest do
 
   test "empty doc" do
     # Consistence with definitions
-    assert empty == :doc_nil
+    assert empty() == :doc_nil
 
     # Consistence of corresponding sdoc
-    assert sdoc(empty) == []
+    assert sdoc(empty()) == []
 
     # Consistent formatting
-    assert render(empty, 80) == ""
+    assert render(empty(), 80) == ""
   end
 
   test "break doc" do
@@ -79,11 +79,11 @@ defmodule Inspect.AlgebraTest do
 
   test "nest doc" do
     # Consistence with definitions
-    assert nest(empty, 1) == {:doc_nest, empty, 1}
-    assert nest(empty, 0) == :doc_nil
+    assert nest(empty(), 1) == {:doc_nest, empty(), 1}
+    assert nest(empty(), 0) == :doc_nil
 
     # Wrong argument type
-    assert_raise FunctionClauseError, fn -> nest("foo", empty) end
+    assert_raise FunctionClauseError, fn -> nest("foo", empty()) end
 
     # Consistence of corresponding sdoc
     assert sdoc(nest("a", 1))  == ["a"]
@@ -109,15 +109,15 @@ defmodule Inspect.AlgebraTest do
   test "group doc" do
     # Consistency with definitions
     assert group(glue("a", "b")) ==
-      {:doc_group, {:doc_cons, "a", concat(break, "b")}}
-    assert group(empty) == {:doc_group, empty}
+      {:doc_group, {:doc_cons, "a", concat(break(), "b")}}
+    assert group(empty()) == {:doc_group, empty()}
 
     # Consistence of corresponding sdoc
     assert sdoc(glue("a", "b")) == ["a", " ", "b"]
 
     # Consistent formatting
-    assert render(helloabcd, 5) == "hello\na b\ncd"
-    assert render(helloabcd, 80) == "hello a b cd"
+    assert render(helloabcd(), 5) == "hello\na b\ncd"
+    assert render(helloabcd(), 80) == "hello a b cd"
   end
 
   test "formatting with infinity" do
@@ -131,18 +131,18 @@ defmodule Inspect.AlgebraTest do
   test "formatting surround_many with empty" do
     sm = &surround_many("[", &1, "]", %Inspect.Opts{}, fn(d, _) -> d end, ",")
 
-    assert sm.([])                |> render(80) == "[]"
-    assert sm.([empty])           |> render(80) == "[]"
-    assert sm.([empty, empty])    |> render(80) == "[]"
-    assert sm.(["a"])             |> render(80) == "[a]"
-    assert sm.(["a", empty])      |> render(80) == "[a]"
-    assert sm.([empty, "a"])      |> render(80) == "[a]"
-    assert sm.(["a", empty, "b"]) |> render(80) == "[a, b]"
-    assert sm.([empty, "a", "b"]) |> render(80) == "[a, b]"
-    assert sm.(["a", "b", empty]) |> render(80) == "[a, b]"
-    assert sm.(["a", "b" | "c"])  |> render(80) == "[a, b | c]"
-    assert sm.(["a" | "b"])       |> render(80) == "[a | b]"
-    assert sm.(["a" | empty])     |> render(80) == "[a]"
-    assert sm.([empty | "b"])     |> render(80) == "[b]"
+    assert sm.([]) |> render(80) == "[]"
+    assert sm.([empty()]) |> render(80) == "[]"
+    assert sm.([empty(), empty()]) |> render(80) == "[]"
+    assert sm.(["a"]) |> render(80) == "[a]"
+    assert sm.(["a", empty()]) |> render(80) == "[a]"
+    assert sm.([empty(), "a"]) |> render(80) == "[a]"
+    assert sm.(["a", empty(), "b"]) |> render(80) == "[a, b]"
+    assert sm.([empty(), "a", "b"]) |> render(80) == "[a, b]"
+    assert sm.(["a", "b", empty()]) |> render(80) == "[a, b]"
+    assert sm.(["a", "b" | "c"]) |> render(80) == "[a, b | c]"
+    assert sm.(["a" | "b"]) |> render(80) == "[a | b]"
+    assert sm.(["a" | empty()]) |> render(80) == "[a]"
+    assert sm.([empty() | "b"]) |> render(80) == "[b]"
   end
 end

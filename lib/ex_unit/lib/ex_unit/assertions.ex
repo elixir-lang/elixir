@@ -330,10 +330,10 @@ defmodule ExUnit.Assertions do
 
   ## Examples
 
-      send self, :hello
+      send self(), :hello
       assert_received :hello
 
-      send self, :bye
+      send self(), :bye
       assert_received :hello, "Oh No!"
       ** (ExUnit.AssertionError) Oh No!
       Process mailbox:
@@ -341,7 +341,7 @@ defmodule ExUnit.Assertions do
 
   You can also match against specific patterns:
 
-      send self, {:hello, "world"}
+      send self(), {:hello, "world"}
       assert_received {:hello, _}
 
   """
@@ -631,10 +631,10 @@ defmodule ExUnit.Assertions do
 
   ## Examples
 
-      send self, :hello
+      send self(), :hello
       refute_received :bye
 
-      send self, :hello
+      send self(), :hello
       refute_received :hello, "Oh No!"
       ** (ExUnit.AssertionError) Oh No!
       Process mailbox:

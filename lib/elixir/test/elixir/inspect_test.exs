@@ -326,7 +326,7 @@ end
 defmodule Inspect.OthersTest do
   use ExUnit.Case, async: true
 
-  def f do
+  def fun() do
     fn() -> :ok end
   end
 
@@ -365,7 +365,7 @@ defmodule Inspect.OthersTest do
 
   test "other funs" do
     assert "#Function<" <> _ = inspect(fn(x) -> x + 1 end)
-    assert "#Function<" <> _ = inspect(f)
+    assert "#Function<" <> _ = inspect(fun())
   end
 
   test "map set" do
@@ -373,11 +373,11 @@ defmodule Inspect.OthersTest do
   end
 
   test "pids" do
-    assert "#PID<" <> _ = inspect(self)
+    assert "#PID<" <> _ = inspect(self())
   end
 
   test "references" do
-    assert "#Reference<" <> _ = inspect(make_ref)
+    assert "#Reference<" <> _ = inspect(make_ref())
   end
 
   test "regex" do

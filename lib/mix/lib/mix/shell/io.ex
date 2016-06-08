@@ -33,7 +33,7 @@ defmodule Mix.Shell.IO do
   Writes a message to the shell followed by new line.
   """
   def info(message) do
-    print_app
+    print_app()
     IO.puts IO.ANSI.format message
   end
 
@@ -41,7 +41,7 @@ defmodule Mix.Shell.IO do
   Writes an error message to the shell followed by new line.
   """
   def error(message) do
-    print_app
+    print_app()
     IO.puts :stderr, IO.ANSI.format(red(message))
   end
 
@@ -50,7 +50,7 @@ defmodule Mix.Shell.IO do
   input. Input will be consumed until enter is pressed.
   """
   def prompt(message) do
-    print_app
+    print_app()
     IO.gets message <> " "
   end
 
@@ -60,7 +60,7 @@ defmodule Mix.Shell.IO do
   regex `~r/^Y(es)?$/i`.
   """
   def yes?(message) do
-    print_app
+    print_app()
     got_yes? IO.gets(message <> " [Yn] ")
   end
 

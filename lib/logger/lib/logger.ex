@@ -582,7 +582,7 @@ defmodule Logger do
     %{module: module, function: fun, file: file, line: line} = caller
 
     caller =
-      compile_time_application ++
+      compile_time_application() ++
         [module: module, function: form_fa(fun), file: file, line: line]
 
     quote do

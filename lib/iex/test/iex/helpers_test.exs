@@ -7,17 +7,17 @@ defmodule IEx.HelpersTest do
 
   test "clear helper" do
     Application.put_env(:elixir, :ansi_enabled, true)
-    assert capture_iex("clear") == "\e[H\e[2J"
+    assert capture_iex("clear()") == "\e[H\e[2J"
 
     Application.put_env(:elixir, :ansi_enabled, false)
-    assert capture_iex("clear") =~ "Cannot clear the screen because ANSI escape codes are not enabled on this shell"
+    assert capture_iex("clear()") =~ "Cannot clear the screen because ANSI escape codes are not enabled on this shell"
   after
     Application.delete_env(:elixir, :ansi_enabled)
   end
 
   test "h helper" do
     assert "* IEx.Helpers\n\nWelcome to Interactive Elixir" <> _
-           = capture_iex("h")
+           = capture_iex("h()")
   end
 
   test "h helper module" do
@@ -204,18 +204,18 @@ defmodule IEx.HelpersTest do
   end
 
   test "flush helper" do
-    assert capture_io(fn -> send self(), :hello; flush end) == ":hello\n"
+    assert capture_io(fn -> send self(), :hello; flush() end) == ":hello\n"
   end
 
   test "pwd helper" do
-    File.cd! iex_path, fn ->
-      assert capture_io(fn -> pwd end) =~ ~r"lib[\\/]iex\n$"
+    File.cd! iex_path(), fn ->
+      assert capture_io(fn -> pwd() end) =~ ~r"lib[\\/]iex\n$"
     end
   end
 
   test "ls helper" do
-    File.cd! iex_path, fn ->
-      paths = capture_io(fn -> ls end)
+    File.cd! iex_path(), fn ->
+      paths = capture_io(fn -> ls() end)
               |> String.split
               |> Enum.map(&String.trim/1)
 
@@ -229,8 +229,11 @@ defmodule IEx.HelpersTest do
 
   test "import_file helper" do
     with_file "dot-iex", "variable = :hello\nimport IO", fn ->
-      assert "** (CompileError) iex:1: undefined function variable/0" <> _
-             = capture_iex("variable")
+      capture_io(:stderr, fn ->
+        assert "** (CompileError) iex:1: undefined function variable/0" <> _ =
+          capture_iex("variable")
+      end)
+
       assert "** (CompileError) iex:1: undefined function puts/1" <> _
              = capture_iex("puts \"hi\"")
 
@@ -244,8 +247,11 @@ defmodule IEx.HelpersTest do
     dot_1 = "variable = :hello\nimport IO"
 
     with_file ["dot-iex", "dot-iex-1"], [dot, dot_1], fn ->
-      assert "** (CompileError) iex:1: undefined function parent/0" <> _
-             = capture_iex("parent")
+      capture_io(:stderr, fn ->
+        assert "** (CompileError) iex:1: undefined function parent/0" <> _ =
+          capture_iex("parent")
+      end)
+
       assert "** (CompileError) iex:1: undefined function puts/1" <> _
              = capture_iex("puts \"hi\"")
 
@@ -268,7 +274,7 @@ defmodule IEx.HelpersTest do
     end
 
     filename = "sample.ex"
-    with_file filename, test_module_code, fn ->
+    with_file filename, test_module_code(), fn ->
       assert c(filename) == [Sample]
       assert Sample.run == :run
     end
@@ -278,7 +284,7 @@ defmodule IEx.HelpersTest do
 
   test "c helper with full path" do
     filename = "sample.ex"
-    with_file filename, test_module_code, fn ->
+    with_file filename, test_module_code(), fn ->
       assert c(Path.expand(filename)) == [Sample]
       assert Sample.run == :run
     end
@@ -292,7 +298,7 @@ defmodule IEx.HelpersTest do
     end
 
     filename = "sample.ex"
-    with_file filename, test_module_code <> "\n" <> another_test_module, fn ->
+    with_file filename, test_module_code() <> "\n" <> another_test_module(), fn ->
       assert c(filename) |> Enum.sort == [Sample, Sample2]
       assert Sample.run == :run
       assert Sample2.hello == :world
@@ -307,7 +313,7 @@ defmodule IEx.HelpersTest do
     end
 
     filenames = ["sample1.ex", "sample2.ex"]
-    with_file filenames, [test_module_code, another_test_module], fn ->
+    with_file filenames, [test_module_code(), another_test_module()], fn ->
       assert c(filenames) |> Enum.sort == [Sample, Sample2]
       assert Sample.run == :run
       assert Sample2.hello == :world
@@ -322,7 +328,7 @@ defmodule IEx.HelpersTest do
     end
 
     filename = "sample.erl"
-    with_file filename, erlang_module_code, fn ->
+    with_file filename, erlang_module_code(), fn ->
       assert c(filename) == [:sample]
       assert :sample.hello == :world
     end
@@ -337,7 +343,7 @@ defmodule IEx.HelpersTest do
     end
 
    filenames = ["sample.erl", "not_found.ex", "sample2.ex"]
-   with_file filenames, [erlang_module_code, "", another_test_module], fn ->
+   with_file filenames, [erlang_module_code(), "", another_test_module()], fn ->
       assert c(filenames) |> Enum.sort == [Sample2, :sample]
       assert :sample.hello == :world
       assert Sample2.hello == :world
@@ -355,7 +361,7 @@ defmodule IEx.HelpersTest do
     assert l(:non_existent_module) == {:error, :nofile}
 
     filename = "sample.ex"
-    with_file filename, test_module_code, fn ->
+    with_file filename, test_module_code(), fn ->
       assert c(filename) == [Sample]
       assert Sample.run == :run
 
@@ -374,10 +380,10 @@ defmodule IEx.HelpersTest do
 
   test "nl helper" do
     assert nl(:non_existent_module) == {:error, :nofile}
-    assert nl([node], Enum) == {:ok, [{:nonode@nohost, :loaded, Enum}]}
+    assert nl([node()], Enum) == {:ok, [{:nonode@nohost, :loaded, Enum}]}
     assert nl([:nosuchnode@badhost], Enum) == {:ok, [{:nosuchnode@badhost, :badrpc, :nodedown}]}
     capture_log fn ->
-      assert nl([node], :lists) == {:ok, [{:nonode@nohost, :error, :sticky_directory}]}
+      assert nl([node()], :lists) == {:ok, [{:nonode@nohost, :error, :sticky_directory}]}
     end
   end
 
@@ -393,7 +399,7 @@ defmodule IEx.HelpersTest do
     end
 
     filename = "sample.ex"
-    with_file filename, test_module_code, fn ->
+    with_file filename, test_module_code(), fn ->
       assert capture_io(:stderr, fn ->
         assert c(filename) == [Sample]
         assert Sample.run == :run
@@ -416,11 +422,11 @@ defmodule IEx.HelpersTest do
     end
 
     filename = "sample.erl"
-    with_file filename, erlang_module_code, fn ->
+    with_file filename, erlang_module_code(), fn ->
       assert c(filename) == [:sample]
       assert :sample.hello == :world
 
-      File.write!(filename, other_erlang_module_code)
+      File.write!(filename, other_erlang_module_code())
       assert {:reloaded, :sample, [:sample]} = r(:sample)
       assert :sample.hello == :bye
     end
@@ -516,7 +522,7 @@ defmodule IEx.HelpersTest do
 
   defp elixirc(args) do
     executable = Path.expand("../../../../bin/elixirc", __DIR__)
-    System.cmd("#{executable}#{executable_extension}", args, [stderr_to_stdout: true])
+    System.cmd("#{executable}#{executable_extension()}", args, [stderr_to_stdout: true])
   end
 
   defp iex_path do

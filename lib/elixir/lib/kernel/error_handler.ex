@@ -28,7 +28,7 @@ defmodule Kernel.ErrorHandler do
     parent = :erlang.get(:elixir_compiler_pid)
     ref    = :erlang.make_ref
     send parent, {:waiting, kind, self(), ref, module, :elixir_module.compiler_modules()}
-    :erlang.garbage_collect(self)
+    :erlang.garbage_collect(self())
     receive do
       {^ref, :found}     -> true
       {^ref, :not_found} -> false

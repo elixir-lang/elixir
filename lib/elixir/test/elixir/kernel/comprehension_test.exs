@@ -63,7 +63,7 @@ defmodule Kernel.ComprehensionTest do
   end
 
   test "for comprehensions with nilly filters" do
-    assert for(x <- 1..3, nilly, do: x * 2) == []
+    assert for(x <- 1..3, nilly(), do: x * 2) == []
   end
 
   test "for comprehensions with errors on filters" do
@@ -178,7 +178,7 @@ defmodule Kernel.ComprehensionTest do
   end
 
   test "list for comprehensions with nilly filters" do
-    assert for(x <- [1, 2, 3], nilly, do: x * 2) == []
+    assert for(x <- [1, 2, 3], nilly(), do: x * 2) == []
   end
 
   test "list for comprehensions with errors on filters" do

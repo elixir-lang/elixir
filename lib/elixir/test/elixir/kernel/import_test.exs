@@ -58,7 +58,7 @@ defmodule Kernel.ImportTest do
   end
 
   test "import with options via macro" do
-    import :lists, dynamic_opts
+    import :lists, dynamic_opts()
     assert flatten([1, [2], 3]) == [1, 2, 3]
   end
 
@@ -154,7 +154,7 @@ defmodule Kernel.ImportTest do
     if false do
       import List
       flatten([1, [2], 3])
-      flunk
+      flunk()
     else
       # Buggy local duplicate is untouched
       assert duplicate([1], 2) == [1]
@@ -166,7 +166,7 @@ defmodule Kernel.ImportTest do
       false ->
         import List
         flatten([1, [2], 3])
-        flunk
+        flunk()
       true ->
         # Buggy local duplicate is untouched
         assert duplicate([1], 2) == [1]
@@ -177,7 +177,7 @@ defmodule Kernel.ImportTest do
     try do
       import List
       flatten([1, [2], 3])
-      flunk
+      flunk()
     catch
       _, _ ->
         # Buggy local duplicate is untouched

@@ -24,7 +24,7 @@ defmodule Mix.Dep.Umbrella do
   Gets all umbrella dependencies in the loaded format.
   """
   def loaded do
-    deps = unloaded
+    deps = unloaded()
     apps = Enum.map(deps, &(&1.app))
 
     Enum.map(deps, fn umbrella_dep ->

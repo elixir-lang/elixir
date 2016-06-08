@@ -172,8 +172,8 @@ defmodule Kernel.WarningTest do
     assert capture_err(fn ->
       Code.eval_string """
       defmodule Sample do
-        defp a, do: b
-        defp b, do: a
+        defp a, do: b()
+        defp b, do: a()
       end
       """
     end) =~ "function a/0 is unused"
@@ -383,7 +383,7 @@ defmodule Kernel.WarningTest do
 
       defmodule Sample2 do
         import Sample1
-        generate
+        generate()
       end
       """
     end) == ""
@@ -434,7 +434,7 @@ defmodule Kernel.WarningTest do
     assert capture_err(fn ->
       Code.eval_string """
       defmodule Sample do
-        def hello, do: world
+        def hello, do: world()
         defp world, do: :ok
         defoverridable [hello: 0]
         def hello, do: :ok
@@ -449,7 +449,7 @@ defmodule Kernel.WarningTest do
     assert capture_err(fn ->
       Code.eval_string """
       defmodule Sample do
-        def hello, do: world
+        def hello, do: world()
         defp world, do: :ok
         defoverridable [hello: 0, world: 0]
       end
@@ -700,6 +700,21 @@ defmodule Kernel.WarningTest do
       |> String.to_integer
       """
     end) =~ "parentheses are required when piping into a function call"
+  end
+
+  test "variable is being expanded to function call" do
+    output = capture_err(fn ->
+      Code.eval_string """
+      self
+      defmodule Sample do
+        def my_node(), do: node
+      end
+      """
+    end)
+    assert output =~ "variable \"self\" does not exist and is being expanded to \"self()\""
+    assert output =~ "variable \"node\" does not exist and is being expanded to \"node()\""
+  after
+    purge Sample
   end
 
   defp purge(list) when is_list(list) do

@@ -76,22 +76,22 @@ defmodule Kernel.CLI do
           fun.(elem(res, 1))
         catch
           :exit, {:shutdown, int} when is_integer(int) ->
-            send parent, {self, {:shutdown, int}}
+            send parent, {self(), {:shutdown, int}}
             exit({:shutdown, int})
           :exit, reason
               when reason == :normal
               when reason == :shutdown
               when tuple_size(reason) == 2 and elem(reason, 0) == :shutdown ->
-            send parent, {self, {:shutdown, 0}}
+            send parent, {self(), {:shutdown, 0}}
             exit(reason)
           kind, reason ->
             stack = System.stacktrace
             print_error(kind, reason, stack)
-            send parent, {self, {:shutdown, 1}}
+            send parent, {self(), {:shutdown, 1}}
             exit(to_exit(kind, reason, stack))
         else
           _ ->
-            send parent, {self, res}
+            send parent, {self(), res}
         end
       end)
 

@@ -4,7 +4,7 @@ require EEx
 
 defmodule EExTest.Compiled do
   def before_compile do
-    fill_in_stacktrace
+    fill_in_stacktrace()
     {__ENV__.line, hd(tl(System.stacktrace))}
   end
 
@@ -19,13 +19,13 @@ defmodule EExTest.Compiled do
   def file_sample(arg), do: private_file_sample(arg)
 
   def after_compile do
-    fill_in_stacktrace
+    fill_in_stacktrace()
     {__ENV__.line, hd(tl(System.stacktrace))}
   end
 
   @file "unknown"
   def unknown do
-    fill_in_stacktrace
+    fill_in_stacktrace()
     {__ENV__.line, hd(tl(System.stacktrace))}
   end
 

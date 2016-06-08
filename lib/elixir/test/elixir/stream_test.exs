@@ -200,7 +200,7 @@ defmodule StreamTest do
   end
 
   test "drop/2 with negative count stream entries" do
-    par = self
+    par = self()
     pid = spawn_link fn ->
       Enum.each Stream.drop(&inbox_stream/2, -3),
                 fn x -> send par, {:stream, x} end

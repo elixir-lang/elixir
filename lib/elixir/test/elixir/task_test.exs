@@ -22,7 +22,7 @@ defmodule TaskTest do
   end
 
   defp create_dummy_task do
-    %Task{ref: make_ref, pid: spawn(fn() -> :ok end), owner: self()}
+    %Task{ref: make_ref(), pid: spawn(fn() -> :ok end), owner: self()}
   end
 
   test "async/1" do
@@ -36,7 +36,7 @@ defmodule TaskTest do
     assert is_reference task.ref
 
     # Assert the link
-    {:links, links} = Process.info(self, :links)
+    {:links, links} = Process.info(self(), :links)
     assert task.pid in links
 
     receive do: (:ready -> :ok)
@@ -58,7 +58,7 @@ defmodule TaskTest do
     task = Task.async(__MODULE__, :wait_and_send, [self(), :done])
     assert task.__struct__ == Task
 
-    {:links, links} = Process.info(self, :links)
+    {:links, links} = Process.info(self(), :links)
     assert task.pid in links
 
     receive do: (:ready -> :ok)
@@ -76,7 +76,7 @@ defmodule TaskTest do
     fun = fn -> wait_and_send(parent, :done) end
     {:ok, pid} = Task.start(fun)
 
-    {:links, links} = Process.info(self, :links)
+    {:links, links} = Process.info(self(), :links)
     refute pid in links
 
     receive do: (:ready -> :ok)
@@ -91,7 +91,7 @@ defmodule TaskTest do
   test "start/3" do
     {:ok, pid} = Task.start(__MODULE__, :wait_and_send, [self(), :done])
 
-    {:links, links} = Process.info(self, :links)
+    {:links, links} = Process.info(self(), :links)
     refute pid in links
 
     receive do: (:ready -> :ok)
@@ -107,7 +107,7 @@ defmodule TaskTest do
     fun = fn -> wait_and_send(parent, :done) end
     {:ok, pid} = Task.start_link(fun)
 
-    {:links, links} = Process.info(self, :links)
+    {:links, links} = Process.info(self(), :links)
     assert pid in links
 
     receive do: (:ready -> :ok)
@@ -122,7 +122,7 @@ defmodule TaskTest do
   test "start_link/3" do
     {:ok, pid} = Task.start_link(__MODULE__, :wait_and_send, [self(), :done])
 
-    {:links, links} = Process.info(self, :links)
+    {:links, links} = Process.info(self(), :links)
     assert pid in links
 
     receive do: (:ready -> :ok)
@@ -201,9 +201,9 @@ defmodule TaskTest do
   end
 
   test "yield/2 returns {:ok, result} when reply and :DOWN in message queue" do
-    task = %Task{ref: make_ref, owner: self()}
+    task = %Task{ref: make_ref(), owner: self()}
     send(self(), {task.ref, :result})
-    send(self(), {:DOWN, task.ref, :process, self, :abnormal})
+    send(self(), {:DOWN, task.ref, :process, self(), :abnormal})
     assert Task.yield(task, 0) == {:ok, :result}
     refute_received {:DOWN, _, _, _, _}
   end
@@ -232,9 +232,9 @@ defmodule TaskTest do
   end
 
   test "yield_many/2 returns {:ok, result} when reply and :DOWN in message queue" do
-    task = %Task{ref: make_ref, owner: self()}
+    task = %Task{ref: make_ref(), owner: self()}
     send(self(), {task.ref, :result})
-    send(self(), {:DOWN, task.ref, :process, self, :abnormal})
+    send(self(), {:DOWN, task.ref, :process, self(), :abnormal})
     assert Task.yield_many([task], 0) == [{task, {:ok, :result}}]
     refute_received {:DOWN, _, _, _, _}
   end
@@ -336,7 +336,7 @@ defmodule TaskTest do
   end
 
   test "shutdown/2 raises if task pid is nil" do
-    task = %Task{ref: make_ref, pid: nil}
+    task = %Task{ref: make_ref(), pid: nil}
     assert_raise ArgumentError, "task #{inspect task} does not have an associated task process",
       fn -> Task.shutdown(task) end
   end

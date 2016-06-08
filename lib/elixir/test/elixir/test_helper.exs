@@ -18,15 +18,15 @@ defmodule PathHelpers do
   end
 
   def fixture_path(extra) do
-    Path.join(fixture_path, extra)
+    Path.join(fixture_path(), extra)
   end
 
   def tmp_path(extra) do
-    Path.join(tmp_path, extra)
+    Path.join(tmp_path(), extra)
   end
 
   def elixir(args) do
-    runcmd(elixir_executable, args)
+    runcmd(elixir_executable(), args)
   end
 
   def elixir_executable do
@@ -34,7 +34,7 @@ defmodule PathHelpers do
   end
 
   def elixirc(args) do
-    runcmd(elixirc_executable, args)
+    runcmd(elixirc_executable(), args)
   end
 
   def elixirc_executable do
@@ -49,11 +49,11 @@ defmodule PathHelpers do
   end
 
   defp runcmd(executable, args) do
-    :os.cmd :binary.bin_to_list("#{executable} #{IO.chardata_to_string(args)}#{redirect_std_err_on_win}")
+    :os.cmd :binary.bin_to_list("#{executable} #{IO.chardata_to_string(args)}#{redirect_std_err_on_win()}")
   end
 
   defp executable_path(name) do
-    Path.expand("../../../../bin/#{name}#{executable_extension}", __DIR__)
+    Path.expand("../../../../bin/#{name}#{executable_extension()}", __DIR__)
   end
 
   if match? {:win32, _}, :os.type do

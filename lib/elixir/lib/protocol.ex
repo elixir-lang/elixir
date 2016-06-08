@@ -420,7 +420,7 @@ defmodule Protocol do
         _ = unquote(block)
 
         # Finalize expansion
-        unquote(after_defprotocol)
+        unquote(after_defprotocol())
       end
     end
   end
@@ -446,7 +446,7 @@ defmodule Protocol do
         Kernel.def impl_for(data) when :erlang.unquote(guard)(data) do
           case impl_for?(unquote(target)) do
             true  -> unquote(target).__impl__(:target)
-            false -> any_impl_for
+            false -> any_impl_for()
           end
         end
       end, builtin)
@@ -459,9 +459,9 @@ defmodule Protocol do
 
       # Internal handler for Any
       if @fallback_to_any do
-        Kernel.defp any_impl_for, do: __MODULE__.Any.__impl__(:target)
+        Kernel.defp any_impl_for(), do: __MODULE__.Any.__impl__(:target)
       else
-        Kernel.defp any_impl_for, do: nil
+        Kernel.defp any_impl_for(), do: nil
       end
 
       # Internal handler for Structs
@@ -469,7 +469,7 @@ defmodule Protocol do
         target = Module.concat(__MODULE__, struct)
         case impl_for?(target) do
           true  -> target.__impl__(:target)
-          false -> any_impl_for
+          false -> any_impl_for()
         end
       end
 

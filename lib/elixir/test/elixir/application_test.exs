@@ -66,7 +66,7 @@ defmodule ApplicationTest do
     end
   end
 
-  if windows? do
+  if windows?() do
     defp normalize_app_dir(path) do
       path |> String.downcase |> Path.expand
     end

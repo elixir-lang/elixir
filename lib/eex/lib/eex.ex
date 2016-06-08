@@ -111,7 +111,7 @@ defmodule EEx do
 
   """
   defmacro function_from_string(kind, name, source, args \\ [], options \\ []) do
-    quote bind_quoted: binding do
+    quote bind_quoted: binding() do
       info = Keyword.merge [file: __ENV__.file, line: __ENV__.line], options
       args = Enum.map args, fn arg -> {arg, [line: info[:line]], nil} end
       compiled = EEx.compile_string(source, info)
@@ -148,7 +148,7 @@ defmodule EEx do
 
   """
   defmacro function_from_file(kind, name, file, args \\ [], options \\ []) do
-    quote bind_quoted: binding do
+    quote bind_quoted: binding() do
       info = Keyword.merge options, [file: file, line: 1]
       args = Enum.map args, fn arg -> {arg, [line: 1], nil} end
       compiled = EEx.compile_file(file, info)

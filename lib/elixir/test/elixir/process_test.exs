@@ -20,7 +20,7 @@ defmodule ProcessTest do
 
   test "group_leader/2 and group_leader/0" do
     another = spawn_link(fn -> :timer.sleep(1000) end)
-    assert Process.group_leader(self, another)
+    assert Process.group_leader(self(), another)
     assert Process.group_leader == another
   end
 
@@ -51,15 +51,15 @@ defmodule ProcessTest do
     assert Process.info(pid, [:registered_name]) ==
            nil
 
-    assert Process.info(self, :registered_name) ==
+    assert Process.info(self(), :registered_name) ==
            {:registered_name, []}
-    assert Process.info(self, [:registered_name]) ==
+    assert Process.info(self(), [:registered_name]) ==
            [registered_name: []]
 
-    Process.register(self, __MODULE__)
-    assert Process.info(self, :registered_name) ==
+    Process.register(self(), __MODULE__)
+    assert Process.info(self(), :registered_name) ==
            {:registered_name, __MODULE__}
-    assert Process.info(self, [:registered_name]) ==
+    assert Process.info(self(), [:registered_name]) ==
            [registered_name: __MODULE__]
   end
 

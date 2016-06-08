@@ -74,7 +74,7 @@ defmodule ExUnit.CallbacksTest do
       use ExUnit.Case
 
       setup _ do
-        :ok = error
+        :ok = error()
       end
 
       test "ok" do
@@ -94,7 +94,7 @@ defmodule ExUnit.CallbacksTest do
       use ExUnit.Case
 
       setup_all _ do
-        :ok = error
+        :ok = error()
       end
 
       test "ok" do
@@ -114,7 +114,7 @@ defmodule ExUnit.CallbacksTest do
       use ExUnit.Case
 
       test "ok" do
-        on_exit fn -> :ok = error end
+        on_exit fn -> :ok = error() end
         :ok
       end
 
@@ -165,7 +165,7 @@ defmodule ExUnit.CallbacksTest do
         receive do: (:ready -> :ok)
 
         on_exit fn ->
-          send pid, {:on_exit, self}
+          send pid, {:on_exit, self()}
           assert_receive :done
           IO.puts "on_exit run"
         end
@@ -229,7 +229,7 @@ defmodule ExUnit.CallbacksTest do
       end
     end
 
-    no_formatters!
+    no_formatters!()
     ExUnit.Server.cases_loaded()
     output = capture_io(fn -> ExUnit.run end)
 
@@ -273,7 +273,7 @@ defmodule ExUnit.CallbacksTest do
       end
     end
 
-    no_formatters!
+    no_formatters!()
     ExUnit.Server.cases_loaded()
     output = capture_io(fn -> ExUnit.run end)
 

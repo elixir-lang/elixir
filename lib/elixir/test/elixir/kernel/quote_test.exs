@@ -64,7 +64,7 @@ defmodule Kernel.QuoteTest do
   end
 
   test "nested quote in macro" do
-    assert nested_quote_in_macro == 1
+    assert nested_quote_in_macro() == 1
   end
 
   Enum.each [foo: 1, bar: 2, baz: 3], fn {k, v} ->
@@ -158,7 +158,7 @@ defmodule Kernel.QuoteTest do
   end
 
   test "with dynamic opts" do
-    assert quote(dynamic_opts, do: bar(1, 2, 3)) == {:bar, [line: 3], [1, 2, 3]}
+    assert quote(dynamic_opts(), do: bar(1, 2, 3)) == {:bar, [line: 3], [1, 2, 3]}
   end
 
   test "unary with integer precedence" do
@@ -211,7 +211,7 @@ defmodule Kernel.QuoteTest.ErrorsTest do
   import Kernel.QuoteTest.Errors
 
   # Defines the add function
-  defadd
+  defadd()
 
   test "inside function error" do
     assert_raise ArithmeticError, fn ->
@@ -225,7 +225,7 @@ defmodule Kernel.QuoteTest.ErrorsTest do
 
   test "outside function error" do
     assert_raise RuntimeError, fn ->
-      will_raise
+      will_raise()
     end
 
     mod  = Kernel.QuoteTest.ErrorsTest
@@ -282,24 +282,24 @@ defmodule Kernel.QuoteTest.VarHygieneTest do
 
   test "no interference" do
     a = 10
-    no_interference
+    no_interference()
     assert a == 10
   end
 
   test "cross module interference" do
-    cross_module_no_interference
-    cross_module_interference
-    assert read_cross_module == 1
+    cross_module_no_interference()
+    cross_module_interference()
+    assert read_cross_module() == 1
   end
 
   test "write interference" do
-    write_interference
+    write_interference()
     assert a == 1
   end
 
   test "read interference" do
     a = 10
-    read_interference
+    read_interference()
   end
 
   test "nested" do
@@ -311,7 +311,7 @@ defmodule Kernel.QuoteTest.VarHygieneTest do
   end
 
   test "hat" do
-    assert hat == 1
+    assert hat() == 1
   end
 end
 
@@ -387,9 +387,9 @@ defmodule Kernel.QuoteTest.ImportsHygieneTest do
 
   test "expand imports" do
     import Kernel, except: [length: 1]
-    assert get_list_length == 5
-    assert get_list_length_with_partial == 5
-    assert get_list_length_with_function == 5
+    assert get_list_length() == 5
+    assert get_list_length_with_partial() == 5
+    assert get_list_length_with_function() == 5
   end
 
   defmacrop get_string_length do
@@ -403,16 +403,16 @@ defmodule Kernel.QuoteTest.ImportsHygieneTest do
   test "lazy expand imports" do
     import Kernel, except: [length: 1]
     import String, only: [length: 1]
-    assert get_string_length == 5
+    assert get_string_length() == 5
   end
 
   test "lazy expand imports no conflicts" do
     import Kernel, except: [length: 1]
     import String, only: [length: 1]
 
-    assert get_list_length == 5
-    assert get_list_length_with_partial == 5
-    assert get_list_length_with_function == 5
+    assert get_list_length() == 5
+    assert get_list_length_with_partial() == 5
+    assert get_list_length_with_function() == 5
   end
 
   defmacrop with_length do
@@ -424,7 +424,7 @@ defmodule Kernel.QuoteTest.ImportsHygieneTest do
   end
 
   test "explicitly overridden imports" do
-    assert with_length == 5
+    assert with_length() == 5
   end
 end
 
