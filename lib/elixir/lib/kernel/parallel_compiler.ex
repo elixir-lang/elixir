@@ -217,9 +217,12 @@ defmodule Kernel.ParallelCompiler do
         spawn_compilers(%{state | waiting: waiting})
 
       {:timed_out, child} ->
-        if callback = Keyword.get(options, :each_long_compilation) do
-          {^child, _, file, _} = List.keyfind(queued, child, 0)
-          callback.(file)
+        callback = Keyword.get(options, :each_long_compilation)
+        case List.keyfind(queued, child, 0) do
+          {^child, _, file, _} when not is_nil(callback) ->
+            callback.(file)
+          _ ->
+            :ok
         end
         spawn_compilers(state)
 
