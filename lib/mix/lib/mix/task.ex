@@ -15,7 +15,7 @@ defmodule Mix.Task do
         end
       end
 
-  The `run/1` function will receive all arguments passed
+  The `run/1` function will receive a list of all arguments passed
   to the command line.
 
   ## Attributes
