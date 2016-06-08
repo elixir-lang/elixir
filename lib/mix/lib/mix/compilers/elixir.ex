@@ -151,7 +151,7 @@ defmodule Mix.Compilers.Elixir do
     # Starts a server responsible for keeping track which files
     # were compiled and the dependencies between them.
     {:ok, pid} = Agent.start_link(fn -> {modules, sources} end)
-    long_compilation_threshold = opts[:long_compilation_threshold] || 5
+    long_compilation_threshold = opts[:long_compilation_threshold] || 10
 
     try do
       _ = Kernel.ParallelCompiler.files stale,

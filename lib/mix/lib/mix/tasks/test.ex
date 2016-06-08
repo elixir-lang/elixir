@@ -184,7 +184,6 @@ defmodule Mix.Tasks.Test do
     end
 
     project = Mix.Project.config
-    
 
     # Start cover after we load deps but before we start the app.
     cover =
