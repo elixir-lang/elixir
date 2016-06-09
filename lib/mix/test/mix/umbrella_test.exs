@@ -135,7 +135,7 @@ defmodule Mix.UmbrellaTest do
     Mix.env(:test)
   end
 
-  test "loads umbrella child dependencies in umbrellas" do
+  test "loads umbrella sibling dependencies with :in_umbrella" do
     in_fixture "umbrella_dep/deps/umbrella", fn ->
       Mix.Project.in_project :umbrella, ".", fn _ ->
         File.write! "apps/bar/mix.exs", """
@@ -153,6 +153,31 @@ defmodule Mix.UmbrellaTest do
         # Running from umbrella should not cause conflicts
         Mix.Tasks.Deps.Get.run []
         Mix.Tasks.Run.run []
+      end
+    end
+  end
+
+  test "finds umbrella sibling dependencies conflicts with :in_umbrella" do
+    in_fixture "umbrella_dep/deps/umbrella", fn ->
+      Mix.Project.in_project :umbrella, ".", fn _ ->
+        File.write! "apps/bar/mix.exs", """
+        defmodule Bar.Mixfile do
+          use Mix.Project
+
+          def project do
+            [app: :bar,
+             version: "0.1.0",
+             deps: [{:foo, in_umbrella: true, env: :unknown}]]
+          end
+        end
+        """
+
+        assert_raise Mix.Error, fn ->
+          Mix.Tasks.Deps.Get.run []
+        end
+
+        assert_received {:mix_shell, :error, ["Dependencies have diverged:"]}
+        assert_received {:mix_shell, :error, ["  the dependency foo in mix.exs is overriding a child dependency" <> _]}
       end
     end
   end

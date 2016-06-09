@@ -95,11 +95,16 @@ defmodule Mix.Tasks.Deps.Check do
 
   defp partition([dep | deps], not_ok, compile) do
     cond do
-      from_umbrella?(dep)      -> partition(deps, not_ok, compile)
-      compilable?(dep)         -> partition(deps, not_ok, [dep | compile])
-      ok?(dep) and local?(dep) -> partition(deps, not_ok, [dep | compile])
-      ok?(dep)                 -> partition(deps, not_ok, compile)
-      true                     -> partition(deps, [dep | not_ok], compile)
+      compilable?(dep) ->
+        if from_umbrella?(dep) do
+          partition(deps, not_ok, compile)
+        else
+          partition(deps, not_ok, [dep | compile])
+        end
+      ok?(dep) ->
+        partition(deps, not_ok, compile)
+      true ->
+        partition(deps, [dep | not_ok], compile)
     end
   end
 
@@ -123,7 +128,7 @@ defmodule Mix.Tasks.Deps.Check do
   defp compilable?(%Mix.Dep{status: {:noappfile, _}}), do: true
   defp compilable?(%Mix.Dep{status: {:scmlock, _}}), do: true
   defp compilable?(%Mix.Dep{status: :compile}), do: true
-  defp compilable?(%Mix.Dep{}), do: false
+  defp compilable?(%Mix.Dep{} = dep), do: ok?(dep) and local?(dep)
 
   defp show_not_ok!([]) do
     :ok
