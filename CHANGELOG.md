@@ -283,6 +283,7 @@ By restricting hierarchies in favor of named setups, it is straight-forward for 
   * [CLI] Add `--logger-otp-reports BOOL` and `--logger-sasl-reports BOOL` switches
   * [Compiler] Emit a summary of compilation errors when modules are missing
   * [Enum] Add `Enum.group_by/3` that allows developers to map on the value being grouped
+  * [Enum] Make list values in maps returned by `Enum.group_by/2` and `Enum.group_by/3` preserve the order of the input enumerable instead of reversing it.
   * [Enum] Add `Enum.drop_every/2` that drops every `nth`, including the first one
   * [Exception] Suggest possible functions on `UndefinedFunctionError` for existing modules
   * [Exception] Warn if unknown fields are given to `raise/2`
