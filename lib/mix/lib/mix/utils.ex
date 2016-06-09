@@ -192,12 +192,15 @@ defmodule Mix.Utils do
   `false` if the given node must not be printed.
   """
   @spec write_dot_graph!(Path.t, String.t, term, (term -> {String.t, [term]}), Keyword.t) :: :ok
-  def write_dot_graph!(path, title, root, callback, _opts \\ []) do
+  def write_dot_graph!(basepath, title, root, callback, _opts \\ []) do
     {{parent, _}, children} = callback.(root)
     {dot, _} = build_dot_graph(parent, children, %{}, callback)
+    path = basepath <> ".dot"
     File.write! path, "digraph \"#{title}\" {\n#{dot}}\n"
-    Mix.shell.info "Generated \"#{path}\" in the current directory.\n" <>
-                   "You can use http://www.graphviz.org/ to open it."
+    Mix.shell.info "Generated \"#{path}\" in the current directory. " <>
+                   "To generate an SVG:\n\n" <>
+                   "    dot -Tsvg #{path} -o #{basepath <> ".svg"}\n\n" <>
+                   "For more options see http://www.graphviz.org/."
   end
 
   defp build_dot_graph(_parent, [], seen, _callback), do: {"", seen}

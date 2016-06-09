@@ -55,7 +55,7 @@ defmodule Mix.Tasks.App.Tree do
     end
 
     if opts[:format] == "dot" do
-      Mix.Utils.write_dot_graph!("app_tree.dot", "application tree",
+      Mix.Utils.write_dot_graph!("app_tree", "application tree",
                                  {:normal, app}, callback, opts)
     else
       Mix.Utils.print_tree({:normal, app}, callback, opts)
