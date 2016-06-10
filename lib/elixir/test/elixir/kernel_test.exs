@@ -571,6 +571,11 @@ defmodule KernelTest do
     assert_raise ArgumentError, fn -> pop_in(nil, ["john", :age]) end
   end
 
+  test "divrem/2" do
+    assert divrem(15, 2) == {7, 1}
+    assert_raise ArithmeticError, fn -> divrem(15.0, 2) end
+  end
+
   test "paths" do
     map = empty_map()
 
