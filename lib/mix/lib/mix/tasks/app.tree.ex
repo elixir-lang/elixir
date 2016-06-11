@@ -63,7 +63,7 @@ defmodule Mix.Tasks.App.Tree do
            dot -Tpng app_tree.dot -o app_tree.png
 
         For more options see http://www.graphviz.org/.
-        """
+        """ |> String.strip
     else
       Mix.Utils.print_tree({:normal, app}, callback, opts)
     end

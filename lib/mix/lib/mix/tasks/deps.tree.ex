@@ -58,7 +58,7 @@ defmodule Mix.Tasks.Deps.Tree do
             dot -Tpng deps_tree.dot -o deps_tree.png
 
         For more options see http://www.graphviz.org/.
-        """
+        """ |> String.strip
     else
       callback = callback(&format_tree/1, deps, opts)
       Mix.Utils.print_tree(root, callback, opts)
