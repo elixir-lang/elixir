@@ -2957,7 +2957,7 @@ defmodule Kernel do
   end
 
   defmacro var!(x, _context) do
-    raise ArgumentError, "expected a var to be given to var!, got: #{Macro.to_string(x)}"
+    raise ArgumentError, "expected a variable to be given to var!, got: #{Macro.to_string(x)}"
   end
 
   defp do_var!(name, meta, context, env) do

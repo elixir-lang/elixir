@@ -122,10 +122,10 @@ defmodule Kernel.ExpansionTest do
   test "vars: forces variable to exist" do
     assert expand(quote do: (var!(a) = 1; var!(a)))
 
-    message = ~r"expected var \"a\" to expand to an existing variable or be part of a match"
+    message = ~r"expected variable \"a\" to expand to an existing variable or be part of a match"
     assert_raise CompileError, message, fn -> expand(quote do: var!(a)) end
 
-    message = ~r"expected var \"a\" \(context Unknown\) to expand to an existing variable or be part of a match"
+    message = ~r"expected variable \"a\" \(context Unknown\) to expand to an existing variable or be part of a match"
     assert_raise CompileError, message, fn -> expand(quote do: var!(a, Unknown)) end
   end
 
