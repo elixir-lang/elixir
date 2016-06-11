@@ -141,66 +141,15 @@ defmodule Mix.Tasks.Escript.Install do
     Mix.raise "escript.install received invalid hex package spec: #{Enum.join(rest, " ")}"
   end
 
-  defp fetch_build_and_install_escript(package_name, dep_spec, opts) do
-    with_tmp_dir fn tmp_path ->
-      File.mkdir_p!(tmp_path)
-
-      File.write! Path.join(tmp_path, "mix.exs"), """
-      defmodule EscriptInstaller.Mixfile do
-        use Mix.Project
-
-        def project do
-          [app: :escript_installer,
-           version: "0.0.1",
-           deps: [#{inspect dep_spec}]]
-        end
-      end
-      """
-
-      with_mix_env_prod fn ->
-        Mix.Project.in_project :escript_installer, tmp_path, fn _mixfile ->
-          Mix.Task.run("deps.get", [])
-        end
-
-        package_path = Path.join([tmp_path, "deps", package_name])
-        package_name = String.to_atom(package_name)
-        post_config = [
-          deps_path: Path.join(tmp_path, "deps"),
-          lockfile: Path.join(tmp_path, "mix.lock")
-        ]
-
-        Mix.Project.in_project package_name, package_path, post_config, fn _mixfile ->
-          Mix.Task.run("escript.build", [])
-          Mix.Task.run("escript.install", install_opts(opts))
-        end
-      end
-    end
-  end
-
-  defp with_tmp_dir(fun) do
-    unique = :crypto.strong_rand_bytes(4) |> Base.url_encode64(padding: false)
-    tmp_path = Path.join(System.tmp_dir!(), "mix-escript-install-" <> unique)
-
-    try do
-      fun.(tmp_path)
-    after
-      File.rm_rf!(tmp_path)
-    end
-  end
-
-  defp with_mix_env_prod(fun) do
-    previous_env = Mix.env()
-
-    try do
-      Mix.env(:prod)
-      fun.()
-    after
-      Mix.env(previous_env)
-    end
-  end
-
   defp install_opts(opts) do
     if opts[:force], do: ["--force"], else: []
+  end
+
+  defp fetch_build_and_install_escript(app_name, dep_spec, opts) do
+    Mix.Local.Fetcher.fetch app_name, dep_spec, fn _mixfile ->
+      Mix.Task.run("escript.build", [])
+      Mix.Task.run("escript.install", install_opts(opts))
+    end
   end
 
   ### Mix.Local.Installer callbacks
