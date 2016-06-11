@@ -224,10 +224,16 @@ defmodule Map do
 
   """
   @spec take(map, Enumerable.t) :: map
-  def take(map, keys) do
+  def take(map, keys)
+
+  def take(map, keys) when is_map(map) do
     keys
     |> Enum.to_list
     |> do_take(map, [])
+  end
+
+  def take(non_map, _keys) do
+    :erlang.error({:badmap, non_map})
   end
 
   defp do_take([], _map, acc), do: :maps.from_list(acc)
@@ -448,10 +454,16 @@ defmodule Map do
 
   """
   @spec drop(map, Enumerable.t) :: map
-  def drop(map, keys) do
+  def drop(map, keys)
+
+  def drop(map, keys) when is_map(map) do
     keys
     |> Enum.to_list
     |> drop_list(map)
+  end
+
+  def drop(non_map, _keys) do
+    :erlang.error({:badmap, non_map})
   end
 
   defp drop_list([], acc), do: acc
@@ -474,10 +486,16 @@ defmodule Map do
 
   """
   @spec split(map, Enumerable.t) :: {map, map}
-  def split(map, keys) do
+  def split(map, keys)
+
+  def split(map, keys) when is_map(map) do
     keys
     |> Enum.to_list
     |> do_split([], map)
+  end
+
+  def split(non_map, _keys) do
+    :erlang.error({:badmap, non_map})
   end
 
   defp do_split([], inc, exc) do
