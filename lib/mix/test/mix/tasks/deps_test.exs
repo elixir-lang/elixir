@@ -193,6 +193,20 @@ defmodule Mix.Tasks.DepsTest do
 
   ## deps.unlock
 
+  test "cleans and recompiles artifacts if --force given" do
+    Mix.Project.push SuccessfulDepsApp
+
+    in_fixture "deps_status", fn ->
+      Mix.Tasks.Deps.Compile.run []
+      File.touch! "_build/dev/lib/ok/clean-me"
+
+      Mix.Tasks.Deps.Compile.run ["--force"]
+      refute File.exists? "_build/dev/lib/ok/clean-me"
+    end
+  end
+
+  ## deps.unlock
+
   test "unlocks all deps", context do
     Mix.Project.push DepsApp
     in_tmp context.test, fn ->

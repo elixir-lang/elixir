@@ -33,7 +33,7 @@ defmodule Mix.Tasks.Deps.Compile do
   import Mix.Dep, only: [loaded: 1, available?: 1, loaded_by_name: 2,
                          make?: 1, mix?: 1]
 
-  @switches [include_children: :boolean]
+  @switches [include_children: :boolean, force: :boolean]
 
   @spec run(OptionParser.argv) :: :ok
   def run(args) do
@@ -44,18 +44,18 @@ defmodule Mix.Tasks.Deps.Compile do
     Mix.Project.get!
 
     case OptionParser.parse(args, switches: @switches) do
-      {_, [], _} ->
+      {opts, [], _} ->
         # Because this command may be invoked explicitly with
         # deps.compile, we simply try to compile any available
         # dependency.
-        compile(Enum.filter(loaded(env: Mix.env), &available?/1))
+        compile(Enum.filter(loaded(env: Mix.env), &available?/1), opts)
       {opts, tail, _} ->
-        compile(loaded_by_name(tail, [env: Mix.env] ++ opts))
+        compile(loaded_by_name(tail, [env: Mix.env] ++ opts), opts)
     end
   end
 
   @doc false
-  def compile(deps) do
+  def compile(deps, options \\ []) do
     shell  = Mix.shell
     config = Mix.Project.deps_config
 
@@ -64,6 +64,8 @@ defmodule Mix.Tasks.Deps.Compile do
     compiled =
       Enum.map(deps, fn %Mix.Dep{app: app, status: status, opts: opts, scm: scm} = dep ->
         check_unavailable!(app, status)
+
+        clean(app, options)
 
         compiled? = cond do
           not is_nil(opts[:compile]) ->
@@ -91,6 +93,12 @@ defmodule Mix.Tasks.Deps.Compile do
       end)
 
     if true in compiled, do: Mix.Dep.Lock.touch_manifest, else: :ok
+  end
+
+  defp clean(app, opts) do
+    if Keyword.get(opts, :force, false) do
+      File.rm_rf! Path.join [Mix.Project.build_path, "lib", Atom.to_string(app)]
+    end
   end
 
   defp touch_fetchable(scm, path) do
