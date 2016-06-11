@@ -2953,24 +2953,20 @@ defmodule Kernel do
   defmacro var!(var, context \\ nil)
 
   defmacro var!({name, meta, atom}, context) when is_atom(name) and is_atom(atom) do
-    do_var!(name, meta, context, __CALLER__)
-  end
-
-  defmacro var!(x, _context) do
-    raise ArgumentError, "expected a variable to be given to var!, got: #{Macro.to_string(x)}"
-  end
-
-  defp do_var!(name, meta, context, env) do
     # Remove counter and force them to be vars
     meta = :lists.keydelete(:counter, 1, meta)
     meta = :lists.keystore(:var, 1, meta, {:var, true})
 
-    case Macro.expand(context, env) do
-      x when is_atom(x) ->
-        {name, meta, x}
-      x ->
-        raise ArgumentError, "expected var! context to expand to an atom, got: #{Macro.to_string(x)}"
+    case Macro.expand(context, __CALLER__) do
+      context when is_atom(context) ->
+        {name, meta, context}
+      other ->
+        raise ArgumentError, "expected var! context to expand to an atom, got: #{Macro.to_string(other)}"
     end
+  end
+
+  defmacro var!(other, _context) do
+    raise ArgumentError, "expected a variable to be given to var!, got: #{Macro.to_string(other)}"
   end
 
   @doc """
