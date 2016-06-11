@@ -15,7 +15,7 @@ defmodule Mix.Local.FetcherTest do
     assert Mix.env() == :dev
 
     assert config[:app] == :git_repo
-    assert config[:deps_path] =~ ~r/mix-local-builder-.*\/deps/
-    assert config[:lockfile] =~ ~r/mix-local-builder-.*\/mix.lock/
+    assert config[:deps_path] =~ ~r/mix-local-fetcher-.*\/deps/
+    assert config[:lockfile] =~ ~r/mix-local-fetcher-.*\/mix.lock/
   end
 end
