@@ -192,7 +192,7 @@ defmodule ExUnit.DocTest do
         end
       end
 
-    tests = quote bind_quoted: binding do
+    tests = quote bind_quoted: binding() do
       file = "(for doctest at) " <> Path.relative_to_cwd(mod.__info__(:compile)[:source])
       for {name, test} <- ExUnit.DocTest.__doctests__(mod, opts) do
         @tag :doctest

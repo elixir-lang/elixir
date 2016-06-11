@@ -153,20 +153,20 @@ defmodule ExUnit.AssertionsTest do
   end
 
   test "assert receive waits" do
-    parent = self
+    parent = self()
     spawn fn -> send parent, :hello end
     :hello = assert_receive :hello
   end
 
   test "assert received does not wait" do
-    send self, :hello
+    send self(), :hello
     :hello = assert_received :hello
   end
 
   @received :hello
 
   test "assert received with module attribute" do
-    send self, :hello
+    send self(), :hello
     :hello = assert_received @received
   end
 
@@ -235,7 +235,7 @@ defmodule ExUnit.AssertionsTest do
   end
 
   test "assert received when different message" do
-    send self, {:message, :not_expected, :at_all}
+    send self(), {:message, :not_expected, :at_all}
     try do
       "This should never be tested" = assert_received :hello
     rescue
@@ -247,7 +247,7 @@ defmodule ExUnit.AssertionsTest do
   end
 
   test "assert received when different message having more than 10 on mailbox" do
-    for i <- 1..11, do: send(self, {:message, i})
+    for i <- 1..11, do: send(self(), {:message, i})
     try do
       "This should never be tested" = assert_received x when x == :hello
     rescue
@@ -261,7 +261,7 @@ defmodule ExUnit.AssertionsTest do
   end
 
   test "assert received leaks" do
-    send self, {:hello, :world}
+    send self(), {:hello, :world}
     assert_received {:hello, world}
     :world = world
   end
@@ -275,7 +275,7 @@ defmodule ExUnit.AssertionsTest do
   end
 
   test "refute received when equal" do
-    send self, :hello
+    send self(), :hello
     try do
       "This should never be tested" = refute_received :hello
     rescue
@@ -573,7 +573,7 @@ defmodule ExUnit.AssertionsTest do
   end
 
   test "flunk" do
-    "This should never be tested" = flunk
+    "This should never be tested" = flunk()
   rescue
     error in [ExUnit.AssertionError] ->
       "Flunked!" = error.message

@@ -186,7 +186,7 @@ defmodule IO.ANSI do
       [[[[[[], "Hello, "] | "\e[31m"] | "\e[1m"], "world!"] | "\e[0m"]
 
   """
-  def format(chardata, emit? \\ enabled?) when is_boolean(emit?) do
+  def format(chardata, emit? \\ enabled?()) when is_boolean(emit?) do
     do_format(chardata, [], [], emit?, :maybe)
   end
 
@@ -206,7 +206,7 @@ defmodule IO.ANSI do
       [[[[[[] | "\e[1m"], 87], 111], 114], 100]
 
   """
-  def format_fragment(chardata, emit? \\ enabled?) when is_boolean(emit?) do
+  def format_fragment(chardata, emit? \\ enabled?()) when is_boolean(emit?) do
     do_format(chardata, [], [], emit?, false)
   end
 

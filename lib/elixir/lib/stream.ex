@@ -340,7 +340,7 @@ defmodule Stream do
 
   ## Examples
 
-      iex> stream = Stream.each([1, 2, 3], fn(x) -> send self, x end)
+      iex> stream = Stream.each([1, 2, 3], fn(x) -> send self(), x end)
       iex> Enum.to_list(stream)
       iex> receive do: (x when is_integer(x) -> x)
       1

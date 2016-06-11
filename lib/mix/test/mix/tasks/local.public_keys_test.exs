@@ -32,12 +32,12 @@ defmodule Mix.Tasks.Local.PublicKeysTest do
     path = tmp_path("sample.pub")
     File.write!(path, @pub)
 
-    send self, {:mix_shell_input, :yes?, true}
+    send self(), {:mix_shell_input, :yes?, true}
     Mix.Tasks.Local.PublicKeys.run [path]
     assert_received {:mix_shell, :yes?, ["Are you sure you want to install public key" <> _]}
     assert_received {:mix_shell, :info, ["* creating " <> _]}
 
-    send self, {:mix_shell_input, :yes?, true}
+    send self(), {:mix_shell_input, :yes?, true}
     Mix.Tasks.Local.PublicKeys.run [path]
     assert_received {:mix_shell, :yes?, ["There is already a public key named sample.pub." <> _]}
     assert_received {:mix_shell, :info, ["* creating " <> _]}
@@ -47,7 +47,7 @@ defmodule Mix.Tasks.Local.PublicKeysTest do
     assert_raise Mix.Error, ~r(Could not decode public key:), fn ->
       path = tmp_path("bad.pub")
       File.write!(path, "oops")
-      send self, {:mix_shell_input, :yes?, true}
+      send self(), {:mix_shell_input, :yes?, true}
       Mix.Tasks.Local.PublicKeys.run [path]
     end
   end

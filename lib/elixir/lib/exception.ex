@@ -380,7 +380,7 @@ defmodule Exception do
   is retrieved from `Process.info/2`.
   """
   def format_stacktrace(trace \\ nil) do
-    trace = trace || case Process.info(self, :current_stacktrace) do
+    trace = trace || case Process.info(self(), :current_stacktrace) do
       {:current_stacktrace, t} -> Enum.drop(t, 3)
     end
 

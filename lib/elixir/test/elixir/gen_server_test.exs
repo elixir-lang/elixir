@@ -30,7 +30,7 @@ defmodule GenServerTest do
       # There is a race condition if the agent is
       # restarted too fast and it is registered.
       try do
-        self |> Process.info(:registered_name) |> elem(1) |> Process.unregister
+        self() |> Process.info(:registered_name) |> elem(1) |> Process.unregister
       rescue
         _ -> :ok
       end
@@ -41,7 +41,7 @@ defmodule GenServerTest do
   test "start_link/2, call/2 and cast/2" do
     {:ok, pid} = GenServer.start_link(Stack, [:hello])
 
-    {:links, links} = Process.info(self, :links)
+    {:links, links} = Process.info(self(), :links)
     assert pid in links
 
     assert GenServer.call(pid, :pop) == :hello
@@ -80,7 +80,7 @@ defmodule GenServerTest do
 
   test "start/2" do
     {:ok, pid} = GenServer.start(Stack, [:hello])
-    {:links, links} = Process.info(self, :links)
+    {:links, links} = Process.info(self(), :links)
     refute pid in links
     GenServer.stop(pid)
   end
@@ -91,7 +91,7 @@ defmodule GenServerTest do
     assert GenServer.abcast(:stack, {:push, :hello}) == :abcast
     assert GenServer.call({:stack, node()}, :pop) == :hello
 
-    assert GenServer.abcast([node, :foo@bar], :stack, {:push, :world}) == :abcast
+    assert GenServer.abcast([node(), :foo@bar], :stack, {:push, :world}) == :abcast
     assert GenServer.call(:stack, :pop) == :world
 
     GenServer.stop(:stack)
@@ -102,8 +102,8 @@ defmodule GenServerTest do
 
     assert GenServer.multi_call(:stack, :pop) ==
            {[{node(), :hello}], []}
-    assert GenServer.multi_call([node, :foo@bar], :stack, :pop) ==
-           {[{node, :world}], [:foo@bar]}
+    assert GenServer.multi_call([node(), :foo@bar], :stack, :pop) ==
+           {[{node(), :world}], [:foo@bar]}
 
     GenServer.stop(:stack)
   end

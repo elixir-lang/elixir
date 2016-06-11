@@ -48,8 +48,8 @@ defmodule Mix.Tasks.Profile.FprofTest do
       output = capture_io(fn ->
         Fprof.run(["-e", "spawn(fn -> :ok end); Enum.each(1..5, fn(_) -> MapSet.new end)", "--details"])
       end)
-      assert output =~ ~r(#{:erlang.pid_to_list(self)} +\d+ +\d+\.\d{3})
-      assert output =~ ~r(spawned by #{:erlang.pid_to_list(self)})
+      assert output =~ ~r(#{:erlang.pid_to_list(self())} +\d+ +\d+\.\d{3})
+      assert output =~ ~r(spawned by #{:erlang.pid_to_list(self())})
       assert output =~ ~r(as :erlang.apply)
       assert output =~ ~r(initial calls:)
     end

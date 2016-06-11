@@ -64,7 +64,7 @@ defmodule Mix.Tasks.Compile.Elixir do
   @doc """
   Returns Elixir manifests.
   """
-  def manifests, do: [manifest]
+  def manifests, do: [manifest()]
   defp manifest, do: Path.join(Mix.Project.manifest_path, @manifest)
 
   @doc """

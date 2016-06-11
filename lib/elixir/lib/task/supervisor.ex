@@ -144,7 +144,7 @@ defmodule Task.Supervisor do
   """
   @spec start_child(Supervisor.supervisor, module, atom, [term]) :: {:ok, pid}
   def start_child(supervisor, module, fun, args) do
-    Supervisor.start_child(supervisor, [get_info(self), {module, fun, args}])
+    Supervisor.start_child(supervisor, [get_info(self()), {module, fun, args}])
   end
 
   defp get_info(self) do

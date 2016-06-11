@@ -28,12 +28,12 @@ defmodule IEx.Introspection do
       {:error, reason} ->
         puts_error("Could not load module #{inspect module}, got: #{reason}")
     end
-    dont_display_result
+    dont_display_result()
   end
 
   def h(_) do
     puts_error("Invalid arguments for h helper")
-    dont_display_result
+    dont_display_result()
   end
 
   @doc """
@@ -48,7 +48,7 @@ defmodule IEx.Introspection do
 
     unless printed?, do: nodocs(function)
 
-    dont_display_result
+    dont_display_result()
   end
 
   def h(module, function) when is_atom(module) and is_atom(function) do
@@ -61,7 +61,7 @@ defmodule IEx.Introspection do
         nodocs("#{inspect module}.#{function}")
     end
 
-    dont_display_result
+    dont_display_result()
   end
 
   defp h_mod_fun(mod, fun) when is_atom(mod) do
@@ -88,7 +88,7 @@ defmodule IEx.Introspection do
 
     unless printed?, do: nodocs("#{function}/#{arity}")
 
-    dont_display_result
+    dont_display_result()
   end
 
   def h(module, function, arity) when is_atom(module) and is_atom(function) and is_integer(arity) do
@@ -101,7 +101,7 @@ defmodule IEx.Introspection do
         nodocs("#{inspect module}.#{function}/#{arity}")
     end
 
-    dont_display_result
+    dont_display_result()
   end
 
   defp h_mod_fun_arity(mod, fun, arity) when is_atom(mod) do
@@ -194,7 +194,7 @@ defmodule IEx.Introspection do
       :not_found -> puts_error("No callbacks for #{inspect mod} were found")
     end
 
-    dont_display_result
+    dont_display_result()
   end
 
   @doc """
@@ -209,7 +209,7 @@ defmodule IEx.Introspection do
       :not_found -> nodocs("#{inspect mod}.#{fun}")
     end
 
-    dont_display_result
+    dont_display_result()
   end
 
   @doc """
@@ -224,7 +224,7 @@ defmodule IEx.Introspection do
       :not_found -> nodocs("#{inspect mod}.#{fun}/#{arity}")
     end
 
-    dont_display_result
+    dont_display_result()
   end
 
   defp print_callback_docs(mod, filter, printer) do
@@ -281,7 +281,7 @@ defmodule IEx.Introspection do
       types -> Enum.each(types, &print_type/1)
     end
 
-    dont_display_result
+    dont_display_result()
   end
 
   @doc """
@@ -303,7 +303,7 @@ defmodule IEx.Introspection do
         end
     end
 
-    dont_display_result
+    dont_display_result()
   end
 
   @doc """
@@ -325,7 +325,7 @@ defmodule IEx.Introspection do
         end
     end
 
-    dont_display_result
+    dont_display_result()
   end
 
   defp print_type_doc(module, type) do
@@ -352,7 +352,7 @@ defmodule IEx.Introspection do
         end
     end
 
-    dont_display_result
+    dont_display_result()
   end
 
   @doc """
@@ -373,7 +373,7 @@ defmodule IEx.Introspection do
         end
     end
 
-    dont_display_result
+    dont_display_result()
   end
 
   @doc """
@@ -394,7 +394,7 @@ defmodule IEx.Introspection do
         end
     end
 
-    dont_display_result
+    dont_display_result()
   end
 
   defp beam_specs(module) do

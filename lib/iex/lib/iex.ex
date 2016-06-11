@@ -414,7 +414,7 @@ defmodule IEx do
   """
   defmacro pry(timeout \\ 5000) do
     quote do
-      IEx.pry(binding, __ENV__, unquote(timeout))
+      IEx.pry(binding(), __ENV__, unquote(timeout))
     end
   end
 
@@ -428,7 +428,7 @@ defmodule IEx do
   """
   def pry(binding, env, timeout) do
     opts = [binding: binding, dot_iex_path: "", env: env, prefix: "pry"]
-    meta = "#{inspect self} at #{Path.relative_to_cwd(env.file)}:#{env.line}"
+    meta = "#{inspect self()} at #{Path.relative_to_cwd(env.file)}:#{env.line}"
     desc =
       if File.regular?(env.file) do
         parse_file(env)
@@ -496,9 +496,9 @@ defmodule IEx do
     glnode = node gl
 
     expand_fun =
-      if glnode != node do
+      if glnode != node() do
         _ = ensure_module_exists glnode, IEx.Remsh
-        IEx.Remsh.expand node
+        IEx.Remsh.expand node()
       else
         &IEx.Autocomplete.expand(&1)
       end
@@ -518,7 +518,7 @@ defmodule IEx do
   end
 
   defp run_after_spawn do
-    _ = for fun <- Enum.reverse(after_spawn), do: fun.()
+    _ = for fun <- Enum.reverse(after_spawn()), do: fun.()
     :ok
   end
 end

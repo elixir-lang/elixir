@@ -304,12 +304,15 @@ expand({Name, Meta, Kind} = Var, #{vars := Vars} = E) when is_atom(Name), is_ato
     true ->
       {Var, E};
     false ->
-      VarMeta = lists:keyfind(var, 1, Meta),
-      if
-        VarMeta == {var, true} ->
+      case lists:keyfind(var, 1, Meta) of
+        {var, true} ->
           compile_error(Meta, ?m(E, file), "expected var \"~ts\"~ts to expand to an existing variable "
                         "or be part of a match", [Name, elixir_scope:context_info(Kind)]);
-        true ->
+        _ ->
+          Message =
+            io_lib:format("variable \"~ts\" does not exist and is being expanded to \"~ts()\","
+              " please use parentheses to remove the ambiguity or change the variable name", [Name, Name]),
+          elixir_errors:warn(?line(Meta), ?m(E, file), Message),
           expand({Name, Meta, []}, E)
       end
   end;

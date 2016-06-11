@@ -205,7 +205,7 @@ defmodule Mix.Tasks.DepsGitTest do
     Mix.Project.push GitApp
 
     # Get git repo first revision
-    [last, first | _] = get_git_repo_revs
+    [last, first | _] = get_git_repo_revs()
 
     in_fixture "no_mixfile", fn ->
       Mix.Dep.Lock.write %{git_repo: {:git, fixture_path("git_repo"), first, []}}
@@ -231,7 +231,7 @@ defmodule Mix.Tasks.DepsGitTest do
 
   test "updates the repo when the lock updates" do
     Mix.Project.push GitApp
-    [last, first | _] = get_git_repo_revs
+    [last, first | _] = get_git_repo_revs()
 
     in_fixture "no_mixfile", fn ->
       Mix.Dep.Lock.write %{git_repo: {:git, fixture_path("git_repo"), first, []}}
@@ -267,7 +267,7 @@ defmodule Mix.Tasks.DepsGitTest do
 
   test "updates the repo and the lock when the mixfile updates" do
     Mix.Project.push GitApp
-    [last, first | _] = get_git_repo_revs
+    [last, first | _] = get_git_repo_revs()
 
     in_fixture "no_mixfile", fn ->
       # Move to the first version
@@ -310,7 +310,7 @@ defmodule Mix.Tasks.DepsGitTest do
 
   test "does not load bad mixfiles on get" do
     Mix.Project.push GitApp
-    [last, _, bad | _] = get_git_repo_revs
+    [last, _, bad | _] = get_git_repo_revs()
 
     in_fixture "no_mixfile", fn ->
       Mix.Dep.Lock.write %{git_repo: {:git, fixture_path("git_repo"), bad, []}}
@@ -344,7 +344,7 @@ defmodule Mix.Tasks.DepsGitTest do
 
   test "does not load bad mixfiles on update" do
     Mix.Project.push GitApp
-    [last, _, bad | _] = get_git_repo_revs
+    [last, _, bad | _] = get_git_repo_revs()
 
     in_fixture "no_mixfile", fn ->
       Mix.Dep.Lock.write %{git_repo: {:git, fixture_path("git_repo"), bad, []}}

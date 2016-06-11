@@ -599,7 +599,7 @@ defmodule EnumTest do
     assert Enum.take_random([1, 2, 3], 129) == [3, 2, 1]
 
     # assert that every item in the sample comes from the input list
-    list = for _<-1..100, do: make_ref
+    list = for _<-1..100, do: make_ref()
     for x <- Enum.take_random(list, 50) do
       assert x in list
     end

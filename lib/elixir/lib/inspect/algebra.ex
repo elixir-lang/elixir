@@ -337,7 +337,7 @@ defmodule Inspect.Algebra do
   Inserts a break between two docs. See `break/1` for more info.
   """
   @spec glue(t, t) :: doc_cons
-  def glue(x, y), do: concat(x, concat(break, y))
+  def glue(x, y), do: concat(x, concat(break(), y))
 
   @doc """
   Inserts a break, passed as the second argument, between two docs,
@@ -420,7 +420,7 @@ defmodule Inspect.Algebra do
   """
   @spec fold_doc([t], ((t, t) -> t)) :: t
   def fold_doc(list, fun)
-  def fold_doc([], _), do: empty
+  def fold_doc([], _), do: empty()
   def fold_doc([doc], _), do: doc
   def fold_doc([d | ds], fun), do: fun.(d, fold_doc(ds, fun))
 

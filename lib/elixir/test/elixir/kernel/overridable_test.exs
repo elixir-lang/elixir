@@ -18,7 +18,7 @@ defmodule Kernel.Overridable do
   end
 
   def explicit_nested_super do
-    {super?, 2}
+    {super?(), 2}
   end
 
   false = Module.overridable? __MODULE__, {:explicit_nested_super, 0}
@@ -28,7 +28,7 @@ defmodule Kernel.Overridable do
   true = Module.overridable? __MODULE__, {:explicit_nested_super, 0}
 
   def explicit_nested_super do
-    {super, super?, 1}
+    {super(), super?(), 1}
   end
 
   true = Module.overridable? __MODULE__, {:explicit_nested_super, 0}
@@ -38,13 +38,13 @@ defmodule Kernel.Overridable do
   true = Module.overridable? __MODULE__, {:explicit_nested_super, 0}
 
   def implicit_nested_super do
-    {super?, 1}
+    {super?(), 1}
   end
 
   defoverridable [implicit_nested_super: 0]
 
   def implicit_nested_super do
-    {super, super?, 0}
+    {super(), super?(), 0}
   end
 
   def super_with_explicit_args(x, y) do
@@ -71,11 +71,11 @@ defmodule Kernel.Overridable do
   end
 
   def no_overridable do
-    {:no_overridable, super?}
+    {:no_overridable, super?()}
   end
 
   def explicit_nested_super do
-    {super, super?, 0}
+    {super(), super?(), 0}
   end
 
   def super_with_explicit_args(x, y) do
@@ -161,7 +161,7 @@ defmodule Kernel.OverridableTest do
 
   test "invalid super call" do
     try do
-      :elixir.eval 'defmodule Foo.Forwarding do\ndef bar, do: 1\ndefoverridable [bar: 0]\ndef foo, do: super\nend', []
+      :elixir.eval 'defmodule Foo.Forwarding do\ndef bar, do: 1\ndefoverridable [bar: 0]\ndef foo, do: super()\nend', []
       flunk "expected eval to fail"
     rescue
       error ->

@@ -74,7 +74,7 @@ defmodule Mix.Generator do
 
   """
   defmacro embed_template(name, contents) do
-    quote bind_quoted: binding do
+    quote bind_quoted: binding() do
       contents =
         case contents do
           [from_file: file] ->
@@ -110,7 +110,7 @@ defmodule Mix.Generator do
 
   """
   defmacro embed_text(name, contents) do
-    quote bind_quoted: binding do
+    quote bind_quoted: binding() do
       contents =
         case contents do
           [from_file: f] -> File.read!(f)

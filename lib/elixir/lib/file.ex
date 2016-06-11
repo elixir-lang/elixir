@@ -1139,7 +1139,7 @@ defmodule File do
   """
   @spec cd!(Path.t, (() -> res)) :: res | no_return when res: var
   def cd!(path, function) do
-    old = cwd!
+    old = cwd!()
     cd!(path)
     try do
       function.()

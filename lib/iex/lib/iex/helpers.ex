@@ -75,7 +75,7 @@ defmodule IEx.Helpers do
   debugging purposes. Do not depend on it in production code.
   """
   def recompile do
-    if mix_started? do
+    if mix_started?() do
       config = Mix.Project.config
       reenable_tasks(config)
       Mix.Task.run("compile")
@@ -157,7 +157,7 @@ defmodule IEx.Helpers do
     else
       IO.puts "Cannot clear the screen because ANSI escape codes are not enabled on this shell"
     end
-    dont_display_result
+    dont_display_result()
   end
 
   @doc """
@@ -165,7 +165,7 @@ defmodule IEx.Helpers do
   """
   def h() do
     IEx.Introspection.h(IEx.Helpers)
-    dont_display_result
+    dont_display_result()
   end
 
   @doc """
@@ -330,7 +330,7 @@ defmodule IEx.Helpers do
   For instance, v(-1) returns the result of the last evaluated expression.
   """
   def v(n \\ -1) do
-    IEx.History.nth(history, n) |> elem(2)
+    IEx.History.nth(history(), n) |> elem(2)
   end
 
   @doc """
@@ -404,7 +404,7 @@ defmodule IEx.Helpers do
       IO.puts IEx.color(:eval_info, "  #{info}")
     end
 
-    dont_display_result
+    dont_display_result()
   end
 
   @doc """
@@ -438,7 +438,7 @@ defmodule IEx.Helpers do
   """
   def pwd do
     IO.puts IEx.color(:eval_info, System.cwd!)
-    dont_display_result
+    dont_display_result()
   end
 
   @doc """
@@ -446,7 +446,7 @@ defmodule IEx.Helpers do
   """
   def cd(directory) when is_binary(directory) do
     case File.cd(expand_home(directory)) do
-      :ok -> pwd
+      :ok -> pwd()
       {:error, :enoent} ->
         IO.puts IEx.color(:eval_error, "No directory #{directory}")
     end
@@ -530,8 +530,8 @@ defmodule IEx.Helpers do
   """
   def respawn do
     if whereis = IEx.Server.whereis do
-      send whereis, {:respawn, self}
-      dont_display_result
+      send whereis, {:respawn, self()}
+      dont_display_result()
     end
   end
 

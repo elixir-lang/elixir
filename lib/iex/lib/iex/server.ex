@@ -71,12 +71,12 @@ defmodule IEx.Server do
         {:error, :no_iex}
       true ->
         ref = make_ref()
-        send server, {:take?, self, ref}
+        send server, {:take?, self(), ref}
 
         receive do
           ^ref ->
-            opts = [evaluator: self] ++ opts
-            send server, {:take, self, identifier, ref, opts}
+            opts = [evaluator: self()] ++ opts
+            send server, {:take, self(), identifier, ref, opts}
 
             receive do
               {^ref, nil} ->
@@ -140,7 +140,7 @@ defmodule IEx.Server do
   defp run(opts) when is_list(opts) do
     IO.puts "Interactive Elixir (#{System.version}) - press Ctrl+C to exit (type h() ENTER for help)"
 
-    self_pid = self
+    self_pid = self()
     self_leader = Process.group_leader
 
     evaluator = opts[:evaluator] || spawn(fn -> IEx.Evaluator.init(self_pid, self_leader, opts) end)
@@ -162,7 +162,7 @@ defmodule IEx.Server do
     Process.delete(:evaluator)
     Process.demonitor(evaluator_ref, [:flush])
     if done? do
-      send(evaluator, {:done, self})
+      send(evaluator, {:done, self()})
     end
     :ok
   end
@@ -179,7 +179,7 @@ defmodule IEx.Server do
   defp wait_input(state, evaluator, evaluator_ref, input) do
     receive do
       {:input, ^input, code} when is_binary(code) ->
-        send evaluator, {:eval, self, code, state}
+        send evaluator, {:eval, self(), code, state}
         wait_eval(evaluator, evaluator_ref)
       {:input, ^input, {:error, :interrupted}} ->
         io_error "** (EXIT) interrupted"
@@ -275,13 +275,13 @@ defmodule IEx.Server do
 
   defp io_get(pid, prefix, counter) do
     prompt = prompt(prefix, counter)
-    send pid, {:input, self, IO.gets(:stdio, prompt)}
+    send pid, {:input, self(), IO.gets(:stdio, prompt)}
   end
 
   defp prompt(prefix, counter) do
     {mode, prefix} =
       if Node.alive? do
-        {:alive_prompt, prefix || remote_prefix}
+        {:alive_prompt, prefix || remote_prefix()}
       else
         {:default_prompt, prefix || "iex"}
       end
@@ -289,7 +289,7 @@ defmodule IEx.Server do
     prompt = apply(IEx.Config, mode, [])
              |> String.replace("%counter", to_string(counter))
              |> String.replace("%prefix", to_string(prefix))
-             |> String.replace("%node", to_string(node))
+             |> String.replace("%node", to_string(node()))
 
     prompt <> " "
   end
@@ -299,6 +299,6 @@ defmodule IEx.Server do
   end
 
   defp remote_prefix do
-    if node == node(Process.group_leader), do: "iex", else: "rem"
+    if node() == node(Process.group_leader), do: "iex", else: "rem"
   end
 end

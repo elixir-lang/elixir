@@ -4,9 +4,9 @@ import ExUnit.TestHelpers
 
 defmodule ExUnit.DocTestTest.GoodModule do
   @doc """
-  iex> test_fun
+  iex> test_fun()
   1
-  iex> test_fun + 1
+  iex> test_fun() + 1
   2
   """
   def test_fun, do: 1
@@ -74,17 +74,17 @@ end |> write_beam
 
 defmodule ExUnit.DocTestTest.SomewhatGoodModuleWithOnly do
   @doc """
-  iex> test_fun1
+  iex> test_fun1()
   1
-  iex> test_fun1 + 1
+  iex> test_fun1() + 1
   2
   """
   def test_fun1, do: 1
 
   @doc """
-  iex> test_fun2
+  iex> test_fun2()
   1
-  iex> test_fun2 + 1
+  iex> test_fun2() + 1
   1
   """
   def test_fun2, do: 1
@@ -97,17 +97,17 @@ defmodule ExUnit.DocTestTest.SomewhatGoodModuleWithExcept do
   """
 
   @doc """
-  iex> test_fun1
+  iex> test_fun1()
   1
-  iex> test_fun1 + 1
+  iex> test_fun1() + 1
   2
   """
   def test_fun1, do: 1
 
   @doc """
-  iex> test_fun2
+  iex> test_fun2()
   1
-  iex> test_fun2 + 1
+  iex> test_fun2() + 1
   1
   """
   def test_fun2, do: 1

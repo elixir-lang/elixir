@@ -36,11 +36,11 @@ defmodule Kernel.MacrosTest do
   end
 
   test "local but private macro" do
-    assert my_private_macro == 4
+    assert my_private_macro() == 4
   end
 
   test "local with defaults macro" do
-    assert my_macro_with_default == 6
+    assert my_macro_with_default() == 6
   end
 
   test "macros cannot be called dynamically" do

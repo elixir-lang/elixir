@@ -130,7 +130,7 @@ defmodule IEx.Config do
     cond do
       Keyword.has_key?(inspect_options, :width) ->
         inspect_options
-      colors_enabled? ->
+      colors_enabled?() ->
         [width: width()] ++ inspect_options
       true ->
         inspect_options

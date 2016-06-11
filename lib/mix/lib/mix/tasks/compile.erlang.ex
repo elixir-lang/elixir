@@ -98,7 +98,7 @@ defmodule Mix.Tasks.Compile.Erlang do
   @doc """
   Returns Erlang manifests.
   """
-  def manifests, do: [manifest]
+  def manifests, do: [manifest()]
   defp manifest, do: Path.join(Mix.Project.manifest_path, @manifest)
 
   @doc """

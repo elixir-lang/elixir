@@ -33,7 +33,7 @@ defmodule Task.SupervisorTest do
     assert is_reference task.ref
 
     # Assert the link
-    {:links, links} = Process.info(self, :links)
+    {:links, links} = Process.info(self(), :links)
     assert task.pid in links
 
     receive do: (:ready -> :ok)
@@ -76,7 +76,7 @@ defmodule Task.SupervisorTest do
     assert is_reference task.ref
 
     # Refute the link
-    {:links, links} = Process.info(self, :links)
+    {:links, links} = Process.info(self(), :links)
     refute task.pid in links
 
     receive do: (:ready -> :ok)
@@ -112,7 +112,7 @@ defmodule Task.SupervisorTest do
     {:ok, pid} = Task.Supervisor.start_child(config[:supervisor], fun)
     assert Task.Supervisor.children(config[:supervisor]) == [pid]
 
-    {:links, links} = Process.info(self, :links)
+    {:links, links} = Process.info(self(), :links)
     refute pid in links
 
     receive do: (:ready -> :ok)
@@ -127,7 +127,7 @@ defmodule Task.SupervisorTest do
     {:ok, pid} = Task.Supervisor.start_child(config[:supervisor], __MODULE__, :wait_and_send, [self(), :done])
     assert Task.Supervisor.children(config[:supervisor]) == [pid]
 
-    {:links, links} = Process.info(self, :links)
+    {:links, links} = Process.info(self(), :links)
     refute pid in links
 
     receive do: (:ready -> :ok)

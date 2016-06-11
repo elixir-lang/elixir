@@ -79,7 +79,7 @@ defmodule IEx.InteractionTest do
   test "module definition" do
     input = """
     defmodule Sample do
-      def foo, do: bar
+      def foo, do: bar()
       def bar, do: 13
     end && Sample.foo
     """
@@ -120,7 +120,9 @@ defmodule IEx.InteractionTest do
   ## .iex file loading
 
   test "no .iex" do
-    assert "** (CompileError) iex:1: undefined function my_variable/0" <> _ = capture_iex("my_variable")
+    capture_io(:stderr, fn ->
+      assert "** (CompileError) iex:1: undefined function my_variable/0" <> _ = capture_iex("my_variable")
+    end)
   end
 
   test ".iex" do

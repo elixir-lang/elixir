@@ -133,7 +133,7 @@ defmodule ExUnit.Runner do
     # tests but we do send the notifications to formatter.
     Enum.each pending, &run_test(config, &1, [])
     EM.case_finished(config.manager, test_case)
-    send pid, {self, :case_finished, test_case}
+    send pid, {self(), :case_finished, test_case}
   end
 
   defp prepare_tests(config, tests) do
@@ -151,20 +151,20 @@ defmodule ExUnit.Runner do
   end
 
   defp spawn_case(config, test_case, tests) do
-    parent = self
+    parent = self()
 
     {case_pid, case_ref} =
       spawn_monitor(fn ->
-        ExUnit.OnExitHandler.register(self)
+        ExUnit.OnExitHandler.register(self())
 
         case exec_case_setup(test_case) do
           {:ok, test_case, context} ->
             Enum.each tests, &run_test(config, &1, context)
-            send parent, {self, :case_finished, test_case, []}
+            send parent, {self(), :case_finished, test_case, []}
 
           {:error, test_case} ->
             failed_tests = Enum.map tests, & %{&1 | state: {:invalid, test_case}}
-            send parent, {self, :case_finished, test_case, failed_tests}
+            send parent, {self(), :case_finished, test_case, failed_tests}
         end
 
         exit(:shutdown)
@@ -240,7 +240,7 @@ defmodule ExUnit.Runner do
 
     {test_pid, test_ref} =
       spawn_monitor(fn ->
-        ExUnit.OnExitHandler.register(self)
+        ExUnit.OnExitHandler.register(self())
 
         {us, test} =
           :timer.tc(fn ->
@@ -252,7 +252,7 @@ defmodule ExUnit.Runner do
             end
           end)
 
-        send parent, {self, :test_finished, %{test | time: us}}
+        send parent, {self(), :test_finished, %{test | time: us}}
         exit(:shutdown)
       end)
 

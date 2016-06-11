@@ -18,7 +18,7 @@ defmodule Mix.Tasks.Compile.ProtocolsTest do
         def foo(a, b)
       end
       """)
-      assert compile_elixir_and_protocols == :ok
+      assert compile_elixir_and_protocols() == :ok
       mark_as_old!("_build/dev/consolidated/Elixir.Compile.Protocol.beam")
 
       # Implement a local protocol
@@ -27,17 +27,17 @@ defmodule Mix.Tasks.Compile.ProtocolsTest do
         def foo(a, b), do: a + b
       end
       """)
-      assert compile_elixir_and_protocols == :ok
+      assert compile_elixir_and_protocols() == :ok
       assert mark_as_old!("_build/dev/consolidated/Elixir.Compile.Protocol.beam") != @old
 
       # Delete a local implementation
       File.rm!("lib/impl.ex")
-      assert compile_elixir_and_protocols == :ok
+      assert compile_elixir_and_protocols() == :ok
       assert mark_as_old!("_build/dev/consolidated/Elixir.Compile.Protocol.beam") != @old
 
       # Delete a local protocol
       File.rm!("lib/protocol.ex")
-      assert compile_elixir_and_protocols == :noop
+      assert compile_elixir_and_protocols() == :noop
       refute File.regular?("_build/dev/consolidated/Elixir.Compile.Protocol.beam")
     end
   end
@@ -51,7 +51,7 @@ defmodule Mix.Tasks.Compile.ProtocolsTest do
       assert Mix.Task.run("compile")
       mark_as_old!("_build/dev/consolidated/Elixir.String.Chars.beam")
 
-      assert compile_elixir_and_protocols == :noop
+      assert compile_elixir_and_protocols() == :noop
       assert mtime("_build/dev/consolidated/Elixir.String.Chars.beam") == @old
 
       # Implement a deps protocol
@@ -63,12 +63,12 @@ defmodule Mix.Tasks.Compile.ProtocolsTest do
         end
       end
       """)
-      assert compile_elixir_and_protocols == :ok
+      assert compile_elixir_and_protocols() == :ok
       assert mark_as_old!("_build/dev/consolidated/Elixir.String.Chars.beam") != @old
 
       # Delete the local implementation
       File.rm!("lib/struct.ex")
-      assert compile_elixir_and_protocols == :ok
+      assert compile_elixir_and_protocols() == :ok
       assert mark_as_old!("_build/dev/consolidated/Elixir.String.Chars.beam") != @old
     end
   end

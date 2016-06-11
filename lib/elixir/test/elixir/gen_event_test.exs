@@ -338,7 +338,7 @@ defmodule GenEventTest do
   test "notify/2 with bad args" do
     assert GenEvent.notify({:global, :foo}, :bar) == :ok
     assert GenEvent.notify({:foo, :bar}, :bar) == :ok
-    assert GenEvent.notify(self, :bar) == :ok
+    assert GenEvent.notify(self(), :bar) == :ok
 
     assert_raise ArgumentError, fn ->
       GenEvent.notify(:foo, :bar)

@@ -11,8 +11,8 @@ defmodule Elixir.FileCase do
   end
 
   setup do
-    File.mkdir_p!(tmp_path)
-    on_exit(fn -> File.rm_rf(tmp_path) end)
+    File.mkdir_p!(tmp_path())
+    on_exit(fn -> File.rm_rf(tmp_path()) end)
     :ok
   end
 end
@@ -697,7 +697,7 @@ defmodule FileTest do
 
     test "exists" do
       assert File.exists?(__ENV__.file)
-      assert File.exists?(fixture_path)
+      assert File.exists?(fixture_path())
       assert File.exists?(fixture_path("file.txt"))
 
       refute File.exists?(fixture_path("missing.txt"))
@@ -706,7 +706,7 @@ defmodule FileTest do
   end
 
   test "ls" do
-    {:ok, value} = File.ls(fixture_path)
+    {:ok, value} = File.ls(fixture_path())
     assert "code_sample.exs" in value
     assert "file.txt" in value
 
@@ -714,7 +714,7 @@ defmodule FileTest do
   end
 
   test "ls!" do
-    value = File.ls!(fixture_path)
+    value = File.ls!(fixture_path())
     assert "code_sample.exs" in value
     assert "file.txt" in value
 
@@ -1026,7 +1026,7 @@ defmodule FileTest do
     end
 
     test "rm file with dir" do
-      assert File.rm(fixture_path) == {:error, :eperm}
+      assert File.rm(fixture_path()) == {:error, :eperm}
     end
 
     test "rm nonexistent file" do
@@ -1102,7 +1102,7 @@ defmodule FileTest do
       File.write!(Path.join(to, "hello"), "world")
       :file.make_symlink(to, from)
 
-      if File.exists?(from) or not windows? do
+      if File.exists?(from) or not windows?() do
         assert File.exists?(from)
 
         {:ok, files} = File.rm_rf(from)
@@ -1494,7 +1494,7 @@ defmodule FileTest do
   test "cwd and cd" do
     {:ok, current} = File.cwd
     try do
-      assert File.cd(fixture_path) == :ok
+      assert File.cd(fixture_path()) == :ok
       assert File.exists?("file.txt")
     after
       File.cd!(current)
@@ -1525,7 +1525,7 @@ defmodule FileTest do
   end
 
   test "cd with function" do
-    assert File.cd!(fixture_path, fn ->
+    assert File.cd!(fixture_path(), fn ->
       assert File.exists?("file.txt")
       :cd_result
     end) == :cd_result
@@ -1552,7 +1552,7 @@ defmodule FileTest do
       assert File.touch!(fixture) == :ok
       stat = File.stat!(fixture)
 
-      assert File.touch!(fixture, last_year) == :ok
+      assert File.touch!(fixture, last_year()) == :ok
       assert stat.mtime > File.stat!(fixture).mtime
     after
       File.rm(fixture)
@@ -1560,7 +1560,7 @@ defmodule FileTest do
   end
 
   test "touch with dir" do
-    assert File.touch(fixture_path) == :ok
+    assert File.touch(fixture_path()) == :ok
   end
 
   test "touch with failure" do
@@ -1569,7 +1569,7 @@ defmodule FileTest do
   end
 
   test "touch! with success" do
-    assert File.touch!(fixture_path) == :ok
+    assert File.touch!(fixture_path()) == :ok
   end
 
   test "touch! with failure" do
@@ -1588,7 +1588,7 @@ defmodule FileTest do
       stat = File.stat!(fixture)
       assert stat.mode == 0o100666
 
-      unless windows? do
+      unless windows?() do
         assert File.chmod(fixture, 0o100777) == :ok
         stat = File.stat!(fixture)
         assert stat.mode == 0o100777
@@ -1607,7 +1607,7 @@ defmodule FileTest do
       stat = File.stat!(fixture)
       assert stat.mode == 0o100666
 
-      unless windows? do
+      unless windows?() do
         assert File.chmod!(fixture, 0o100777) == :ok
         stat = File.stat!(fixture)
         assert stat.mode == 0o100777

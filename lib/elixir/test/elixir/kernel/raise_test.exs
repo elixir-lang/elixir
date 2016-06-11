@@ -391,7 +391,7 @@ defmodule Kernel.RaiseTest do
     result = try do
       DoNotExist.for_sure()
     rescue
-      x in exceptions -> Exception.message(x)
+      x in exceptions() -> Exception.message(x)
     end
 
     assert result == "function DoNotExist.for_sure/0 is undefined (module DoNotExist is not available)"

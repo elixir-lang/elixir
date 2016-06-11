@@ -18,7 +18,7 @@ defmodule SupervisorTest do
       # There is a race condition between genserver terminations.
       # So we will explicitly unregister it here.
       try do
-        self |> Process.info(:registered_name) |> elem(1) |> Process.unregister
+        self() |> Process.info(:registered_name) |> elem(1) |> Process.unregister
       rescue
         _ -> :ok
       end

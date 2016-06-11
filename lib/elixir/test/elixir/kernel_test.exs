@@ -255,7 +255,7 @@ defmodule KernelTest do
     assert is_list Kernel.__info__(:exports)
   end
 
-  def exported?,      do: not_exported?
+  def exported?,      do: not_exported?()
   defp not_exported?, do: true
 
   test "function_exported?/3" do
@@ -731,7 +731,7 @@ defmodule KernelTest do
     end
 
     test "nil values" do
-      destructure [a, b, c], a_nil
+      destructure [a, b, c], a_nil()
       assert a == nil
       assert b == nil
       assert c == nil
@@ -740,7 +740,7 @@ defmodule KernelTest do
     test "invalid match" do
       a = List.first([3])
       assert_raise MatchError, fn ->
-        destructure [^a, _b, _c], a_list
+        destructure [^a, _b, _c], a_list()
       end
     end
 

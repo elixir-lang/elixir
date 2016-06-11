@@ -165,7 +165,7 @@ defmodule Task do
   """
   @spec start_link(module, atom, [term]) :: {:ok, pid}
   def start_link(mod, fun, args) do
-    Task.Supervised.start_link(get_info(self), {mod, fun, args})
+    Task.Supervised.start_link(get_info(self()), {mod, fun, args})
   end
 
   @doc """
@@ -189,7 +189,7 @@ defmodule Task do
   """
   @spec start(module, atom, [term]) :: {:ok, pid}
   def start(mod, fun, args) do
-    Task.Supervised.start(get_info(self), {mod, fun, args})
+    Task.Supervised.start(get_info(self()), {mod, fun, args})
   end
 
   @doc """

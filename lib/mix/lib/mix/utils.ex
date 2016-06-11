@@ -26,7 +26,7 @@ defmodule Mix.Utils do
   """
   def mix_paths do
     if path = System.get_env("MIX_PATH") do
-      String.split(path, path_separator)
+      String.split(path, path_separator())
     else
       []
     end
@@ -442,7 +442,7 @@ defmodule Mix.Utils do
   end
 
   def proxy_config(url) do
-    {http_proxy, https_proxy} = proxy_env
+    {http_proxy, https_proxy} = proxy_env()
 
     proxy_auth(URI.parse(url), http_proxy, https_proxy)
   end

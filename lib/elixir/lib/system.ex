@@ -117,7 +117,7 @@ defmodule System do
     |> strip
   end
 
-  defp revision, do: get_revision
+  defp revision, do: get_revision()
 
   # Get the date at compilation time.
   defmacrop get_date do
@@ -145,7 +145,7 @@ defmodule System do
   Returns Elixir's version as binary.
   """
   @spec version() :: String.t
-  def version, do: get_version
+  def version, do: get_version()
 
   @doc """
   Elixir build information.
@@ -154,22 +154,22 @@ defmodule System do
   """
   @spec build_info() :: map
   def build_info do
-    %{build:    build,
-      date:     get_date,
-      revision: revision,
-      version:  version,
+    %{build:    build(),
+      date:     get_date(),
+      revision: revision(),
+      version:  version(),
       }
   end
 
   # Returns a string of the build info
   defp build do
-    {:ok, v} = Version.parse(version)
+    {:ok, v} = Version.parse(version())
 
     cond do
-      ([] == v.pre) or ("" == revision) ->
-        version
+      ([] == v.pre) or ("" == revision()) ->
+        version()
       true ->
-        "#{version} (#{revision})"
+        "#{version()} (#{revision()})"
     end
   end
 
@@ -222,7 +222,7 @@ defmodule System do
   Returns the current working directory or raises `RuntimeError`.
   """
   def cwd! do
-    cwd ||
+    cwd() ||
       raise RuntimeError, message: "could not get a current working directory, the current location is not accessible"
   end
 
@@ -242,7 +242,7 @@ defmodule System do
   instead of returning `nil` if no user home is set.
   """
   def user_home! do
-    user_home ||
+    user_home() ||
       raise RuntimeError, message: "could not find the user home, please set the HOME environment variable"
   end
 
@@ -275,7 +275,7 @@ defmodule System do
   instead of returning `nil` if no temp dir is set.
   """
   def tmp_dir! do
-    tmp_dir ||
+    tmp_dir() ||
       raise RuntimeError, message: "could not get a writable temporary directory, " <>
                                    "please set the TMPDIR environment variable"
   end
