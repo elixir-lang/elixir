@@ -195,4 +195,38 @@ defmodule Mix.Tasks.EscriptTest do
       end
     end
   end
+
+  test "escript.install from git" do
+    in_fixture "git_repo", fn ->
+      File.write! "lib/git_repo.ex", """
+      defmodule GitRepo do
+        def main(_argv) do
+          IO.puts "TEST"
+        end
+      end
+      """
+
+      File.write! "mix.exs", """
+      defmodule GitRepo.Mixfile do
+        use Mix.Project
+
+        def project do
+          [app: :git_repo, version: "0.1.0", escript: [main_module: GitRepo]]
+        end
+      end
+      """
+
+      System.cmd("git", ~w[add .])
+      System.cmd("git", ~w[commit -m "ok"])
+
+      send self, {:mix_shell_input, :yes?, true}
+      Mix.Tasks.Escript.Install.run ["git", File.cwd!()]
+      assert_received {:mix_shell, :info, ["Generated escript git_repo with MIX_ENV=prod"]}
+
+      escript_path = Path.join([tmp_path(".mix"), "escripts", "git_repo"])
+      assert System.cmd("escript", [escript_path]) == {"TEST\n", 0}
+    end
+  after
+    purge [GitRepo, GitRepo.Mixfile]
+  end
 end
