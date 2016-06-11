@@ -65,7 +65,7 @@ defmodule Mix.Tasks.Escript.Install do
       {:fetcher, dep_spec} ->
         raise_if_sha512(opts)
         fetch_build_and_install_escript(dep_spec, opts)
-      {type, _} when type in [:project, :local, :url] ->
+      _ ->
         Mix.Local.Installer.install({__MODULE__, :escript}, argv, @switches)
     end
   end
