@@ -214,7 +214,7 @@ defmodule Mix.Utils do
         {"", seen}
       %{} when is_nil(edge_info) ->
         {~s(  "#{parent}" -> "#{name}"\n),
-         Map.put(seen, key, true),}
+         Map.put(seen, key, true)}
       %{} ->
         {~s(  "#{parent}" -> "#{name}" [label=\"#{edge_info}\"]\n),
          Map.put(seen, key, true)}
