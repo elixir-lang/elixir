@@ -58,95 +58,30 @@ defmodule Mix.Tasks.Escript.Install do
 
   @switches [force: :boolean, sha512: :string, submodules: :boolean, app: :string]
   @spec run(OptionParser.argv) :: boolean
-  def run(argv, fetcher \\ Mix.Local.Fetcher) do
+  def run(argv) do
     {opts, args} = OptionParser.parse!(argv, strict: @switches)
 
-    case args do
-      ["git" | rest] when rest != [] ->
-        raise_if_sha512("git", opts)
-        install_from_git(rest, opts, fetcher)
-      ["github" | rest] when rest != [] ->
-        raise_if_sha512("github", opts)
-        install_from_github(rest, opts, fetcher)
-      ["hex" | rest] when rest != [] ->
-        raise_if_sha512("hex", opts)
-        install_from_hex(rest, opts, fetcher)
-      _ ->
+    case Mix.Local.Installer.parse_args(args, opts) do
+      {:fetcher, dep_spec} ->
+        raise_if_sha512(opts)
+        fetch_build_and_install_escript(dep_spec, opts)
+      {type, _} when type in [:project, :local, :url] ->
         Mix.Local.Installer.install({__MODULE__, :escript}, argv, @switches)
     end
   end
 
-  defp raise_if_sha512(name, opts) do
+  defp raise_if_sha512(opts) do
     if opts[:sha512] do
-      Mix.raise "--sha512 is not supported for escript.install from #{name}"
+      Mix.raise "--sha512 is only supported for escript.install from path/URL"
     end
-  end
-
-  defp install_from_github([repo | rest], opts, fetcher) do
-    url = "https://github.com/#{repo}.git"
-    install_from_git([url | rest], opts, fetcher)
-  end
-
-  defp install_from_git([url], opts, fetcher) do
-    install_from_git([url, "branch", "master"], opts, fetcher)
-  end
-
-  defp install_from_git([url, ref_type, ref], opts, fetcher) do
-    git_opts =
-      ref_to_config(ref_type, ref) ++
-      [git: url, submodules: opts[:submodules]]
-
-    app_name =
-      if opts[:app] do
-        opts[:app]
-      else
-        "new escript"
-      end
-
-    fetch_build_and_install_escript(app_name, {String.to_atom(app_name), git_opts}, opts, fetcher)
-  end
-
-  defp install_from_git([_url | rest], _opts, _fetcher) do
-    Mix.raise "escript.install received invalid git checkout spec: #{Enum.join(rest, " ")}"
-  end
-
-  defp ref_to_config("branch", branch), do: [branch: branch]
-
-  defp ref_to_config("tag", tag), do: [tag: tag]
-
-  defp ref_to_config("ref", ref), do: [ref: ref]
-
-  defp ref_to_config(ref_type, _) do
-    Mix.raise "escript.install expected one of \"branch\", \"tag\", or \"ref\". Got: \"#{ref_type}\""
-  end
-
-  defp install_from_hex([package_name], opts, fetcher) do
-    install_from_hex([package_name, ">= 0.0.0"], opts, fetcher)
-  end
-
-  defp install_from_hex([package_name, version], opts, fetcher) do
-    app_name =
-      if opts[:app] do
-        opts[:app]
-      else
-        package_name
-      end
-
-    dep_spec = {String.to_atom(app_name), version, hex: String.to_atom(package_name)}
-
-    fetch_build_and_install_escript(app_name, dep_spec, opts, fetcher)
-  end
-
-  defp install_from_hex([_package_name | rest], _opts, _fetcher) do
-    Mix.raise "escript.install received invalid hex package spec: #{Enum.join(rest, " ")}"
   end
 
   defp install_opts(opts) do
     if opts[:force], do: ["--force"], else: []
   end
 
-  defp fetch_build_and_install_escript(app_name, dep_spec, opts, fetcher) do
-    fetcher.fetch app_name, dep_spec, fn _mixfile ->
+  defp fetch_build_and_install_escript(dep_spec, opts) do
+    Mix.Local.Installer.fetch dep_spec, fn _mixfile ->
       Mix.Task.run("escript.build", [])
       Mix.Task.run("escript.install", install_opts(opts))
     end
