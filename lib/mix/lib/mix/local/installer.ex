@@ -119,6 +119,78 @@ defmodule Mix.Local.Installer do
     Mix.shell.yes?(message)
   end
 
+  @doc false
+  def parse_args([], _opts) do
+    {:project, nil}
+  end
+
+  def parse_args([url_or_path], _opts) do
+    cond do
+      local_path?(url_or_path) -> {:local, url_or_path}
+      file_url?(url_or_path) -> {:url, url_or_path}
+      true -> Mix.raise "Expected a local file path or a file URL."
+    end
+  end
+
+  def parse_args(["github" | rest], opts) do
+    [repo | rest] = rest
+    url = "https://github.com/#{repo}.git"
+    parse_args(["git", url] ++ rest, opts)
+  end
+
+  def parse_args(["git", url], opts) do
+    parse_args(["git", url, "branch", "master"], opts)
+  end
+
+  def parse_args(["git", url, ref_type, ref], opts) do
+    git_opts =
+      ref_to_config(ref_type, ref) ++
+      [git: url, submodules: opts[:submodules]]
+
+    app_name =
+      if opts[:app] do
+        opts[:app]
+      else
+        "new package"
+      end
+
+      {:fetcher, {String.to_atom(app_name), git_opts}}
+    end
+
+
+  def parse_args(["git" | [_url | rest]], _opts) do
+    Mix.raise "received invalid git checkout spec: #{Enum.join(rest, " ")}"
+  end
+
+  def parse_args(["hex", package_name], opts) do
+    parse_args(["hex", package_name, ">= 0.0.0"], opts)
+  end
+
+  def parse_args(["hex", package_name, version], opts) do
+    app_name =
+      if opts[:app] do
+        opts[:app]
+      else
+        package_name
+      end
+
+    {:fetcher, {String.to_atom(app_name), version, hex: String.to_atom(package_name)}}
+  end
+
+  def parse_args(["hex" | [_package_name | rest]], _opts) do
+    Mix.raise "received invalid hex package spec: #{Enum.join(rest, " ")}"
+  end
+
+  defp ref_to_config("branch", branch), do: [branch: branch]
+
+  defp ref_to_config("tag", tag), do: [tag: tag]
+
+  defp ref_to_config("ref", ref), do: [ref: ref]
+
+  defp ref_to_config(ref_type, _) do
+    Mix.raise "expected one of \"branch\", \"tag\", or \"ref\". Got: \"#{ref_type}\""
+  end
+
   @doc """
   Prints a list of items in a uniform way. Used for printing the list of installed archives and
   escripts.
@@ -166,5 +238,73 @@ defmodule Mix.Local.Installer do
 
   defp should_uninstall?(path, item_name) do
     Mix.shell.yes?("Are you sure you want to uninstall #{item_name} #{path}?")
+  end
+
+  @doc """
+  Generates a new mix project in a temporary directory with the given `dep_spec`
+  added to a mix.exs. Then, `in_fetcher` is executed in the fetcher project. By
+  default, this fetches the dependency, but you can provide an `in_fetcher`
+  during test or for other purposes. After the `in_fetcher` is executed,
+  `in_package` is executed in the now (presumably) fetched package, with the
+  package's config overridden with the deps_path and lockfile of the fetcher
+  package. Also, the Mix env is set to :prod.
+  """
+  @spec fetch(tuple, ((atom) -> any), ((atom) -> any)) :: any
+  def fetch(dep_spec, in_fetcher \\ &in_fetcher/1, in_package) do
+    with_tmp_dir fn tmp_path ->
+      File.mkdir_p!(tmp_path)
+
+      File.write! Path.join(tmp_path, "mix.exs"), """
+      defmodule Mix.Local.Installer.Fetcher.Mixfile do
+        use Mix.Project
+
+        def project do
+          [app: Mix.Local.Installer.Fetcher,
+           version: "1.0.0",
+           deps: [#{inspect dep_spec}]]
+        end
+      end
+      """
+
+      with_mix_env_prod fn ->
+        Mix.Project.in_project(Mix.Local.Installer.Fetcher, tmp_path, in_fetcher)
+
+        package_name = elem(dep_spec, 0)
+        package_name_string = Atom.to_string(package_name)
+        package_path = Path.join([tmp_path, "deps", package_name_string])
+        post_config = [
+          deps_path: Path.join(tmp_path, "deps"),
+          lockfile: Path.join(tmp_path, "mix.lock")
+        ]
+
+        Mix.Project.in_project(package_name, package_path, post_config, in_package)
+      end
+    end
+  end
+
+  defp in_fetcher(_mixfile) do
+    Mix.Task.run("deps.get", [])
+  end
+
+  defp with_tmp_dir(fun) do
+    unique = :crypto.strong_rand_bytes(4) |> Base.url_encode64(padding: false)
+    tmp_path = Path.join(System.tmp_dir!(), "mix-local-installer-fetcher-" <> unique)
+
+    try do
+      fun.(tmp_path)
+    after
+      File.rm_rf(tmp_path)
+    end
+  end
+
+  defp with_mix_env_prod(fun) do
+    previous_env = Mix.env()
+
+    try do
+      Mix.env(:prod)
+      fun.()
+    after
+      Mix.env(previous_env)
+    end
   end
 end

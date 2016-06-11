@@ -12,11 +12,22 @@ defmodule Mix.Tasks.Escript.Install do
 
       mix do escript.build, escript.install
 
-  If an argument is provided, it should be a local path or a URL to a prebuilt escript.
+  If an argument is provided, it should be a local path or a URL to a prebuilt escript,
+  a git repository, a github repository, or a hex package.
 
       mix escript.install escript
       mix escript.install path/to/escript
       mix escript.install https://example.com/myescript
+      mix escript.install git https://path/to/git/repo
+      mix escript.install git https://path/to/git/repo branch git_branch
+      mix escript.install git https://path/to/git/repo tag git_tag
+      mix escript.install git https://path/to/git/repo ref git_ref
+      mix escript.install github user/project
+      mix escript.install github user/project branch git_branch
+      mix escript.install github user/project tag git_tag
+      mix escript.install github user/project ref git_ref
+      mix escript.install hex hex_package
+      mix escript.install hex hex_package 1.2.3
 
   After installation, the escript can be invoked as
 
@@ -28,21 +39,52 @@ defmodule Mix.Tasks.Escript.Install do
 
   ## Command line options
 
-    * `--sha512` - checks the escript matches the given SHA-512 checksum
+    * `--sha512` - checks the escript matches the given SHA-512 checksum. Only
+      applies to installations via URL or local path.
 
     * `--force` - forces installation without a shell prompt; primarily
       intended for automation in build systems like make
 
+    * `--submodules` - fetch repository submodules before building escript from
+      git or github
+
+    * `--app` - specify a custom app name to be used for building the escript
+      from git, github, or hex
   """
 
   @behaviour Mix.Local.Installer
 
   @escript_file_mode 0o555 # only read and execute permissions
 
-  @switches [force: :boolean, sha512: :string]
+  @switches [force: :boolean, sha512: :string, submodules: :boolean, app: :string]
   @spec run(OptionParser.argv) :: boolean
   def run(argv) do
-    Mix.Local.Installer.install({__MODULE__, :escript}, argv, @switches)
+    {opts, args} = OptionParser.parse!(argv, strict: @switches)
+
+    case Mix.Local.Installer.parse_args(args, opts) do
+      {:fetcher, dep_spec} ->
+        raise_if_sha512(opts)
+        fetch_build_and_install_escript(dep_spec, opts)
+      _ ->
+        Mix.Local.Installer.install({__MODULE__, :escript}, argv, @switches)
+    end
+  end
+
+  defp raise_if_sha512(opts) do
+    if opts[:sha512] do
+      Mix.raise "--sha512 is only supported for escript.install from path/URL"
+    end
+  end
+
+  defp install_opts(opts) do
+    if opts[:force], do: ["--force"], else: []
+  end
+
+  defp fetch_build_and_install_escript(dep_spec, opts) do
+    Mix.Local.Installer.fetch dep_spec, fn _mixfile ->
+      Mix.Task.run("escript.build", [])
+      Mix.Task.run("escript.install", install_opts(opts))
+    end
   end
 
   ### Mix.Local.Installer callbacks
