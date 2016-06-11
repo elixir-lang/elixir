@@ -192,6 +192,6 @@ defmodule Mix.Tasks.ArchiveTest do
     assert File.dir? tmp_path("userhome/.mix/archives/git_repo-0.1.0/git_repo-0.1.0/ebin")
   after
     purge [GitRepo, GitRepo.Mixfile, Mix.Local.Installer.Fetcher.Mixfile]
-    File.rm_rf!(tmp_path("userhome/.mix/archives/git_repo-0.1.0"))
+    File.rm_rf(tmp_path("userhome/.mix/archives/git_repo-0.1.0"))
   end
 end
