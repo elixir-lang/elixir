@@ -182,4 +182,15 @@ defmodule Mix.Tasks.ArchiveTest do
   defp sha512(file) do
     Base.encode16 :crypto.hash(:sha512, File.read!(file)), case: :lower
   end
+
+  test "archive.install from git" do
+    send self, {:mix_shell_input, :yes?, true}
+    Mix.Tasks.Archive.Install.run ["git", fixture_path("git_repo")]
+    assert_received {:mix_shell, :info, ["Generated archive \"git_repo-0.1.0.ez\" with MIX_ENV=prod"]}
+
+    refute File.regular? tmp_path("userhome/.mix/archives/git_repo-0.1.0.ez")
+    assert File.dir? tmp_path("userhome/.mix/archives/git_repo-0.1.0/git_repo-0.1.0/ebin")
+  after
+    purge [GitRepo, GitRepo.Mixfile]
+  end
 end

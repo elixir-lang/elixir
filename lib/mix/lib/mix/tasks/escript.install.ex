@@ -59,37 +59,20 @@ defmodule Mix.Tasks.Escript.Install do
   @switches [force: :boolean, sha512: :string, submodules: :boolean, app: :string]
   @spec run(OptionParser.argv) :: boolean
   def run(argv) do
-    {opts, args} = OptionParser.parse!(argv, strict: @switches)
-
-    case Mix.Local.Installer.parse_args(args, opts) do
-      {:fetcher, dep_spec} ->
-        raise_if_sha512(opts)
-        fetch_build_and_install_escript(dep_spec, opts)
-      _ ->
-        Mix.Local.Installer.install({__MODULE__, :escript}, argv, @switches)
-    end
-  end
-
-  defp raise_if_sha512(opts) do
-    if opts[:sha512] do
-      Mix.raise "--sha512 is only supported for escript.install from path/URL"
-    end
-  end
-
-  defp install_opts(opts) do
-    if opts[:force], do: ["--force"], else: []
-  end
-
-  defp fetch_build_and_install_escript(dep_spec, opts) do
-    Mix.Local.Installer.fetch dep_spec, fn _mixfile ->
-      Mix.Task.run("escript.build", [])
-      Mix.Task.run("escript.install", install_opts(opts))
-    end
+    Mix.Local.Installer.install({__MODULE__, :escript}, argv, @switches)
   end
 
   ### Mix.Local.Installer callbacks
 
-  def check_path_or_url(_), do: :ok
+  def check_install_spec({:fetcher, _}, opts) do
+    if opts[:sha512] do
+      {:error, "--sha512 is only supported for escript.install from path/URL"}
+    else
+      :ok
+    end
+  end
+
+  def check_install_spec(_, _), do: :ok
 
   def find_previous_versions(_src, dst) do
     if File.exists?(dst), do: [dst], else: []
@@ -114,6 +97,10 @@ defmodule Mix.Tasks.Escript.Install do
     else
       Mix.raise "The given path does not point to an escript, installation aborted"
     end
+  end
+
+  def build(_mixfile) do
+    Mix.Task.run("escript.build", [])
   end
 
   ### Private helpers

@@ -12,9 +12,22 @@ defmodule Mix.Tasks.Archive.Install do
 
       mix do archive.build, archive.install
 
-  The argument can be an archive located at some URL:
+  If an argument is provided, it should be a local path or a URL to a prebuilt archive,
+  a git repository, a github repository, or a hex package.
 
-      mix archive.install http://example.com/foo.ez
+      mix archive.install archive.ez
+      mix archive.install path/to/archive.ez
+      mix archive.install https://example.com/myarchive.ez
+      mix archive.install git https://path/to/git/repo
+      mix archive.install git https://path/to/git/repo branch git_branch
+      mix archive.install git https://path/to/git/repo tag git_tag
+      mix archive.install git https://path/to/git/repo ref git_ref
+      mix archive.install github user/project
+      mix archive.install github user/project branch git_branch
+      mix archive.install github user/project tag git_tag
+      mix archive.install github user/project ref git_ref
+      mix archive.install hex hex_package
+      mix archive.install hex hex_package 1.2.3
 
   After installation, the tasks in the archive are available locally:
 
@@ -27,11 +40,16 @@ defmodule Mix.Tasks.Archive.Install do
     * `--force` - forces installation without a shell prompt; primarily
       intended for automation in build systems like `make`
 
+    * `--submodules` - fetch repository submodules before building archive from
+      git or github
+
+    * `--app` - specify a custom app name to be used for building the archive
+      from git, github, or hex
   """
 
   @behaviour Mix.Local.Installer
 
-  @switches [force: :boolean, sha512: :string]
+  @switches [force: :boolean, sha512: :string, submodules: :boolean, app: :string]
   @spec run(OptionParser.argv) :: boolean
   def run(argv) do
     Mix.Local.Installer.install({__MODULE__, :archive}, argv, @switches)
@@ -39,13 +57,24 @@ defmodule Mix.Tasks.Archive.Install do
 
   ### Mix.Local.Installer callbacks
 
-  def check_path_or_url(path_or_url) do
+  def check_install_spec({:fetcher, _}, opts) do
+    if opts[:sha512] do
+      {:error, "--sha512 is only supported for archive.install from path/URL"}
+    else
+      :ok
+    end
+  end
+
+  def check_install_spec({local_or_url, path_or_url}, _opts)
+  when local_or_url in [:local, :url] do
     if Path.extname(path_or_url) == ".ez" do
       :ok
     else
       {:error, "Expected a local file path or a file URL ending in .ez."}
     end
   end
+
+  def check_install_spec(_, _), do: :ok
 
   def find_previous_versions(src, _dst) do
     app =
@@ -74,6 +103,10 @@ defmodule Mix.Tasks.Archive.Install do
     Mix.Local.check_elixir_version_in_ebin(ebin)
     true = Code.append_path(ebin)
     :ok
+  end
+
+  def build(_mixfile) do
+    Mix.Task.run("archive.build", [])
   end
 
   ### Private helpers
