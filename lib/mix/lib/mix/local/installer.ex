@@ -293,7 +293,7 @@ defmodule Mix.Local.Installer do
     try do
       fun.(tmp_path)
     after
-      File.rm_rf!(tmp_path)
+      File.rm_rf(tmp_path)
     end
   end
 
