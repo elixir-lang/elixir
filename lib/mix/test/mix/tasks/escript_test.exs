@@ -227,6 +227,6 @@ defmodule Mix.Tasks.EscriptTest do
       assert System.cmd("escript", [escript_path]) == {"TEST\n", 0}
     end
   after
-    purge [GitRepo, GitRepo.Mixfile]
+    purge [GitRepo, GitRepo.Mixfile, Mix.Local.Installer.Fetcher.Mixfile]
   end
 end
