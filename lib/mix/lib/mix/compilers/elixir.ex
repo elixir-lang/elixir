@@ -177,8 +177,6 @@ defmodule Mix.Compilers.Elixir do
   end
 
   defp each_module(pid, cwd, source, module, binary) do
-    beam = Atom.to_string(module) <> ".beam"
-
     {compile_references, runtime_references} = Kernel.LexicalTracker.remote_references(module)
 
     compile_references =
@@ -214,7 +212,7 @@ defmodule Mix.Compilers.Elixir do
         module: module,
         kind: kind,
         source: source,
-        beam: beam,
+        beam: nil, # They are calculated when writing the manifest
         binary: binary
       )
 
@@ -265,8 +263,10 @@ defmodule Mix.Compilers.Elixir do
   ## Resolution
 
   defp update_stale_sources(sources, removed, changed) do
+    # Remove delete sources
     sources =
-      Enum.reject(sources, fn source(source: source) -> source in removed end)
+      Enum.reduce(removed, sources, &List.keydelete(&2, &1, source(:source)))
+    # Store empty sources for the changed ones as the compiler appends data
     sources =
       Enum.reduce(changed, sources, &List.keystore(&2, &1, source(:source), source(source: &1)))
     sources
@@ -394,13 +394,14 @@ defmodule Mix.Compilers.Elixir do
     File.mkdir_p!(Path.dirname(manifest))
 
     modules =
-      for module(beam: beam, binary: binary) = module <- modules do
+      for module(binary: binary, module: module) = entry <- modules do
+        beam = Atom.to_string(module) <> ".beam"
         if binary do
           beam_path = Path.join(compile_path, beam)
           File.write!(beam_path, binary)
           File.touch!(beam_path, timestamp)
         end
-        module(module, binary: nil)
+        module(entry, binary: nil, beam: beam)
       end
 
     manifest_data =
