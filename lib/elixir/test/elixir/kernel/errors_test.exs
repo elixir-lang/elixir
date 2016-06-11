@@ -393,11 +393,7 @@ defmodule Kernel.ErrorsTest do
       'quote 1'
     assert_compile_fail CompileError,
       "nofile:1: invalid options for quote, expected a keyword list",
-      '''
-      quote :foo do
-        foo
-      end
-      '''
+      'quote(:foo, do: foo)'
   end
 
   test "invalid calls" do
@@ -412,20 +408,14 @@ defmodule Kernel.ErrorsTest do
 
   test "unhandled stab" do
     assert_compile_fail CompileError,
-      "nofile:3: unhandled operator ->",
-      '''
-      defmodule Kernel.ErrorsTest.UnhandledStab do
-        def fun do
-          casea foo(), do: (bar -> baz)
-        end
-      end
-      '''
+      "nofile:1: unhandled operator ->",
+      '(bar -> baz)'
   end
 
   test "undefined non local function" do
     assert_compile_fail CompileError,
-      "nofile:1: undefined function casea/2",
-      'casea foo, do: @hello :world'
+      "nofile:1: undefined function call/2",
+      'call foo, do: :foo'
   end
 
   test "invalid attribute" do
@@ -674,7 +664,7 @@ defmodule Kernel.ErrorsTest do
     assert_raise ArgumentError, message, fn ->
       defmodule DocAttributesFormat do
         @moduledoc "ModuleTest"
-        {676, "ModuleTest"} = Module.get_attribute(__MODULE__, :moduledoc)
+        {666, "ModuleTest"} = Module.get_attribute(__MODULE__, :moduledoc)
         Module.put_attribute(__MODULE__, :moduledoc, "Other")
       end
     end
@@ -706,29 +696,29 @@ defmodule Kernel.ErrorsTest do
   test "duplicated bitstring size" do
     assert_compile_fail CompileError,
       "nofile:1: duplicated size definition in bitstring",
-      '<<1 :: size(12)-size(13)>>'
+      '<<1::size(12)-size(13)>>'
   end
 
   test "invalid bitstring specified" do
     assert_compile_fail CompileError,
       "nofile:1: unknown bitstring specifier :atom",
-      '<<1 :: :atom>>'
+      '<<1::(:atom)>>'
 
     assert_compile_fail CompileError,
       "nofile:1: unknown bitstring specifier unknown()",
-      '<<1 :: unknown>>'
+      '<<1::unknown>>'
 
     assert_compile_fail CompileError,
       "nofile:1: unknown bitstring specifier another(12)",
-      '<<1 :: another(12)>>'
+      '<<1::another(12)>>'
 
     assert_compile_fail CompileError,
       "nofile:1: size in bitstring expects an integer or a variable as argument, got: :a",
-      '<<1 :: size(:a)>>'
+      '<<1::size(:a)>>'
 
     assert_compile_fail CompileError,
       "nofile:1: unit in bitstring expects an integer as argument, got: :x",
-      '<<1 :: unit(:x)>>'
+      '<<1::unit(:x)>>'
   end
 
   test "invalid alias" do
@@ -768,7 +758,7 @@ defmodule Kernel.ErrorsTest do
   test "invalid for bit generator" do
     assert_compile_fail CompileError,
       "nofile:1: bitstring fields without size are not allowed in bitstring generators",
-      'for << x :: binary <- "123" >>, do: x'
+      'for <<x::binary <- "123">>, do: x'
   end
 
   test "invalid size in bitstrings" do
