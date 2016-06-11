@@ -10,7 +10,7 @@ defmodule Mix.Local.Fetcher do
   fetched package, with the package's config overridden with the deps_path and
   lockfile of the fetcher package. Also, the Mix env is set to :prod.
   """
-  @spec fetch(atom, tuple, ((atom) -> any), ((atom) -> any)) :: any
+  @spec fetch(String.t, tuple, ((atom) -> any), ((atom) -> any)) :: any
   def fetch(package_name, dep_spec, in_fetcher \\ &in_fetcher/1, in_package) do
     with_tmp_dir fn tmp_path ->
       File.mkdir_p!(tmp_path)
