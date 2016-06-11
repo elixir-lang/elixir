@@ -20,7 +20,7 @@ defmodule Mix.Tasks.Clean do
   @spec run(OptionParser.argv) :: :ok
   def run(args) do
     Mix.Project.get!
-    loadpaths!
+    loadpaths!()
 
     {opts, _, _} = OptionParser.parse(args, switches: @switches)
 

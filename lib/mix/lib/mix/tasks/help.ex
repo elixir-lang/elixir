@@ -41,7 +41,7 @@ defmodule Mix.Tasks.Help do
   def run(argv)
 
   def run([]) do
-    loadpaths!
+    loadpaths!()
 
     modules = load_tasks()
     {docs, max} = build_task_doc_list(modules)
@@ -52,7 +52,7 @@ defmodule Mix.Tasks.Help do
   end
 
   def run(["--names"]) do
-    loadpaths!
+    loadpaths!()
 
     tasks = Enum.map(load_tasks(), &Mix.Task.task_name/1)
 
@@ -66,7 +66,7 @@ defmodule Mix.Tasks.Help do
   end
 
   def run(["--search", pattern]) do
-    loadpaths!
+    loadpaths!()
 
     modules =
       load_tasks()
@@ -81,14 +81,14 @@ defmodule Mix.Tasks.Help do
   end
 
   def run([task]) do
-    loadpaths!
+    loadpaths!()
 
     module = Mix.Task.get!(task)
     doc    = Mix.Task.moduledoc(module) || "There is no documentation for this task"
     opts   = Application.get_env(:mix, :colors)
 
     if ansi_docs?(opts) do
-      opts = [width: width] ++ opts
+      opts = [width: width()] ++ opts
       IO.ANSI.Docs.print_heading("mix #{task}", opts)
       IO.ANSI.Docs.print(doc, opts)
     else

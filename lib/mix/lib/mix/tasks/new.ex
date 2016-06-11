@@ -75,9 +75,9 @@ defmodule Mix.Tasks.New do
                version: get_version(System.version)]
 
     create_file "README.md",  readme_template(assigns)
-    create_file ".gitignore", gitignore_text
+    create_file ".gitignore", gitignore_text()
 
-    if in_umbrella? do
+    if in_umbrella?() do
       create_file "mix.exs", mixfile_apps_template(assigns)
     else
       create_file "mix.exs", mixfile_template(assigns)
@@ -121,7 +121,7 @@ defmodule Mix.Tasks.New do
   defp do_generate_umbrella(_app, mod, path, _opts) do
     assigns = [app: nil, mod: mod]
 
-    create_file ".gitignore", gitignore_text
+    create_file ".gitignore", gitignore_text()
     create_file "README.md", readme_template(assigns)
     create_file "mix.exs", mixfile_umbrella_template(assigns)
 
@@ -251,7 +251,7 @@ defmodule Mix.Tasks.New do
        elixir: "~> <%= @version %>",
        build_embedded: Mix.env == :prod,
        start_permanent: Mix.env == :prod,
-       deps: deps]
+       deps: deps()]
     end
 
     # Configuration for the OTP application
@@ -290,7 +290,7 @@ defmodule Mix.Tasks.New do
        elixir: "~> <%= @version %>",
        build_embedded: Mix.env == :prod,
        start_permanent: Mix.env == :prod,
-       deps: deps]
+       deps: deps()]
     end
 
     # Configuration for the OTP application
@@ -327,7 +327,7 @@ defmodule Mix.Tasks.New do
       [apps_path: "apps",
        build_embedded: Mix.env == :prod,
        start_permanent: Mix.env == :prod,
-       deps: deps]
+       deps: deps()]
     end
 
     # Dependencies can be Hex packages:

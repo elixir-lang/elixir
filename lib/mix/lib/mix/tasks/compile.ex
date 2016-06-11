@@ -49,7 +49,7 @@ defmodule Mix.Tasks.Compile do
   """
   @spec run(OptionParser.argv) :: :ok | :noop
   def run(["--list"]) do
-    loadpaths!
+    loadpaths!()
     _ = Mix.Task.load_all
 
     shell   = Mix.shell

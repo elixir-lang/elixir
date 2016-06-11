@@ -276,7 +276,7 @@ defmodule ExUnit.Case do
 
   """
   defmacro test(message) do
-    quote bind_quoted: binding do
+    quote bind_quoted: binding() do
       name = ExUnit.Case.register_test(__ENV__, :test, message, [:not_implemented])
       def unquote(name)(_), do: flunk("Not yet implemented")
     end

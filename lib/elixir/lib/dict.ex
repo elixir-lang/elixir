@@ -72,7 +72,7 @@ defmodule Dict do
       end
 
       def take(dict, keys) do
-        Enum.reduce(keys, new, fn key, acc ->
+        Enum.reduce(keys, new(), fn key, acc ->
           case fetch(dict, key) do
             {:ok, value} -> put(acc, key, value)
             :error -> acc
@@ -166,7 +166,7 @@ defmodule Dict do
       end
 
       def split(dict, keys) do
-        Enum.reduce(keys, {new, dict}, fn key, {inc, exc} = acc ->
+        Enum.reduce(keys, {new(), dict}, fn key, {inc, exc} = acc ->
           case fetch(exc, key) do
             {:ok, value} ->
               {put(inc, key, value), delete(exc, key)}

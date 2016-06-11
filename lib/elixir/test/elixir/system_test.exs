@@ -75,7 +75,7 @@ defmodule SystemTest do
     assert System.get_env(@test_var) == "OTHER_SAMPLE"
   end
 
-  if windows? do
+  if windows?() do
     test "cmd/2 win" do
       assert {"hello\r\n", 0} = System.cmd "cmd", ~w[/c echo hello]
     end

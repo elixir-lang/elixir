@@ -151,7 +151,7 @@ defmodule Mix.Tasks.EscriptTest do
       assert_received {:mix_shell, :info, ["No escripts currently installed."]}
 
       # install our escript
-      send self, {:mix_shell_input, :yes?, true}
+      send self(), {:mix_shell_input, :yes?, true}
       Mix.Tasks.Escript.Install.run []
 
       # check that it shows in the list
@@ -160,12 +160,12 @@ defmodule Mix.Tasks.EscriptTest do
       refute_received {:mix_shell, :info, ["* escriptest.bat"]}
 
       # check uninstall confirmation
-      send self, {:mix_shell_input, :yes?, false}
+      send self(), {:mix_shell_input, :yes?, false}
       Mix.Tasks.Escript.Uninstall.run ["escriptest"]
       assert File.regular? tmp_path(".mix/escripts/escriptest")
 
       # uninstall the escript
-      send self, {:mix_shell_input, :yes?, true}
+      send self(), {:mix_shell_input, :yes?, true}
       Mix.Tasks.Escript.Uninstall.run ["escriptest"]
       refute File.regular? tmp_path(".mix/escripts/escriptest")
       refute File.regular? tmp_path(".mix/escripts/escriptest.bat")
@@ -178,7 +178,7 @@ defmodule Mix.Tasks.EscriptTest do
 
   test "escript invalid install" do
     # Install our escript
-    send self, {:mix_shell_input, :yes?, true}
+    send self(), {:mix_shell_input, :yes?, true}
     assert_raise Mix.Error,
                  "The given path does not point to an escript, installation aborted", fn ->
       Mix.Tasks.Escript.Install.run [__ENV__.file]

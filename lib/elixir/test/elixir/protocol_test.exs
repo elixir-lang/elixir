@@ -77,9 +77,9 @@ defmodule ProtocolTest do
     assert is_nil Sample.impl_for("foo")
     assert is_nil Sample.impl_for(<<1>>)
     assert is_nil Sample.impl_for(%{})
-    assert is_nil Sample.impl_for(self)
+    assert is_nil Sample.impl_for(self())
     assert is_nil Sample.impl_for(hd(:erlang.ports))
-    assert is_nil Sample.impl_for(make_ref)
+    assert is_nil Sample.impl_for(make_ref())
 
     assert Sample.impl_for(%ImplStruct{}) ==
            Sample.ProtocolTest.ImplStruct
@@ -88,11 +88,11 @@ defmodule ProtocolTest do
   end
 
   test "protocol implementation with any and structs fallback" do
-    assert WithAny.impl_for(%NoImplStruct{})      == WithAny.Any
-    assert WithAny.impl_for(%ImplStruct{})        == WithAny.Any # Derived
+    assert WithAny.impl_for(%NoImplStruct{}) == WithAny.Any
+    assert WithAny.impl_for(%ImplStruct{}) == WithAny.Any # Derived
     assert WithAny.impl_for(%{__struct__: "foo"}) == WithAny.Map
-    assert WithAny.impl_for(%{})                  == WithAny.Map
-    assert WithAny.impl_for(self)                 == WithAny.Any
+    assert WithAny.impl_for(%{}) == WithAny.Map
+    assert WithAny.impl_for(self()) == WithAny.Any
   end
 
   test "protocol not implemented" do
@@ -341,10 +341,10 @@ defmodule Protocol.ConsolidationTest do
     assert is_nil Sample.impl_for({1, 2, 3})
     assert is_nil Sample.impl_for("foo")
     assert is_nil Sample.impl_for(<<1>>)
-    assert is_nil Sample.impl_for(self)
+    assert is_nil Sample.impl_for(self())
     assert is_nil Sample.impl_for(%{})
     assert is_nil Sample.impl_for(hd(:erlang.ports))
-    assert is_nil Sample.impl_for(make_ref)
+    assert is_nil Sample.impl_for(make_ref())
 
     assert Sample.impl_for(%ImplStruct{}) ==
            Sample.Protocol.ConsolidationTest.ImplStruct
@@ -353,11 +353,11 @@ defmodule Protocol.ConsolidationTest do
   end
 
   test "consolidated implementations with any and tuple fallback" do
-    assert WithAny.impl_for(%NoImplStruct{})      == WithAny.Any
-    assert WithAny.impl_for(%ImplStruct{})        == WithAny.Any # Derived
+    assert WithAny.impl_for(%NoImplStruct{}) == WithAny.Any
+    assert WithAny.impl_for(%ImplStruct{}) == WithAny.Any # Derived
     assert WithAny.impl_for(%{__struct__: "foo"}) == WithAny.Map
-    assert WithAny.impl_for(%{})                  == WithAny.Map
-    assert WithAny.impl_for(self)                 == WithAny.Any
+    assert WithAny.impl_for(%{}) == WithAny.Map
+    assert WithAny.impl_for(self()) == WithAny.Any
   end
 
   test "consolidation keeps docs" do

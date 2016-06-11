@@ -12,12 +12,12 @@ defmodule IEx.Evaluator do
   """
   def init(server, leader, opts) do
     old_leader = Process.group_leader
-    Process.group_leader(self, leader)
+    Process.group_leader(self(), leader)
 
     try do
       loop(server, IEx.History.init, loop_state(opts))
     after
-      Process.group_leader(self, old_leader)
+      Process.group_leader(self(), old_leader)
     end
   end
 
@@ -25,7 +25,7 @@ defmodule IEx.Evaluator do
     receive do
       {:eval, ^server, code, iex_state} ->
         {result, history, state} = eval(code, iex_state, history, state)
-        send server, {:evaled, self, result}
+        send server, {:evaled, self(), result}
         loop(server, history, state)
       {:peek_env, receiver} ->
         send receiver, {:peek_env, state.env}

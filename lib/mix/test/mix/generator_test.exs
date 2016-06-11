@@ -10,7 +10,7 @@ defmodule Mix.GeneratorTest do
   embed_template :bar, "<%= @a + @b %>"
 
   test "embed text" do
-    assert foo_text == "foo"
+    assert foo_text() == "foo"
   end
 
   test "embed template" do
@@ -18,7 +18,7 @@ defmodule Mix.GeneratorTest do
   end
 
   test "from file" do
-    assert self_text =~ "import Mix.Generator"
+    assert self_text() =~ "import Mix.Generator"
   end
 
   test "create file" do
@@ -44,7 +44,7 @@ defmodule Mix.GeneratorTest do
   test "create with conflict returning true" do
     in_tmp "create_file", fn ->
       File.write! "foo", "HELLO"
-      send self, {:mix_shell_input, :yes?, true}
+      send self(), {:mix_shell_input, :yes?, true}
 
       create_file "foo", "WORLD"
       assert File.read!("foo") == "WORLD"
@@ -56,7 +56,7 @@ defmodule Mix.GeneratorTest do
   test "create with conflict returning false" do
     in_tmp "create_file", fn ->
       File.write! "foo", "HELLO"
-      send self, {:mix_shell_input, :yes?, false}
+      send self(), {:mix_shell_input, :yes?, false}
 
       create_file "foo", "WORLD"
       assert File.read!("foo") == "HELLO"

@@ -207,8 +207,8 @@ defmodule ExUnit.Callbacks do
   guarantee the callback will be invoked only once.
   """
   @spec on_exit(term, (() -> term)) :: :ok
-  def on_exit(ref \\ make_ref, callback) do
-    case ExUnit.OnExitHandler.add(self, ref, callback) do
+  def on_exit(ref \\ make_ref(), callback) do
+    case ExUnit.OnExitHandler.add(self(), ref, callback) do
       :ok -> :ok
       :error ->
         raise ArgumentError, "on_exit/1 callback can only be invoked from the test process"

@@ -40,12 +40,12 @@ defmodule IO.ANSI.Docs do
   """
   def print_heading(heading, options \\ []) do
     IO.puts IO.ANSI.reset
-    options = Keyword.merge(default_options, options)
+    options = Keyword.merge(default_options(), options)
     width   = options[:width]
     padding = div(width + String.length(heading), 2)
     heading = heading |> String.pad_leading(padding) |> String.pad_trailing(width)
     write(:doc_title, heading, options)
-    newline_after_block
+    newline_after_block()
   end
 
   @doc """
@@ -55,7 +55,7 @@ defmodule IO.ANSI.Docs do
   defined in `default_options/1`.
   """
   def print(doc, options \\ []) do
-    options = Keyword.merge(default_options, options)
+    options = Keyword.merge(default_options(), options)
     doc
     |> String.split(["\r\n", "\n"], trim: false)
     |> Enum.map(&String.trim_trailing/1)
@@ -124,13 +124,13 @@ defmodule IO.ANSI.Docs do
 
   defp write_h2(heading, options) do
     write(:doc_headings, heading, options)
-    newline_after_block
+    newline_after_block()
   end
 
   defp write_h3(heading, indent, options) do
     IO.write(indent)
     write(:doc_headings, heading, options)
-    newline_after_block
+    newline_after_block()
   end
 
   ## Lists
@@ -256,7 +256,7 @@ defmodule IO.ANSI.Docs do
 
   defp write_code(code, indent, options) do
     write(:doc_code, "#{indent}┃ #{Enum.join(Enum.reverse(code), "\n#{indent}┃ ")}", options)
-    newline_after_block
+    newline_after_block()
   end
 
   ## Tables
@@ -264,7 +264,7 @@ defmodule IO.ANSI.Docs do
   defp process_table(lines, indent, options) do
     {table, rest} = Enum.split_while(lines, &table_line?/1)
     table_lines(table, options)
-    newline_after_block
+    newline_after_block()
     process(rest, [], indent, options)
   end
 

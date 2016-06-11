@@ -5,7 +5,7 @@ defmodule Kernel.ExpansionTarget do
 end
 
 defmodule Kernel.ExpansionTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
 
   ## __block__
 
@@ -553,6 +553,11 @@ defmodule Kernel.ExpansionTest do
   end
 
   defp expand_env(expr, env) do
-    :elixir_exp.expand(expr, env)
+    ExUnit.CaptureIO.capture_io(:stderr, fn ->
+      send self(), {:expand_env, :elixir_exp.expand(expr, env)}
+    end)
+    receive do
+      {:expand_env, result} -> result
+    end
   end
 end

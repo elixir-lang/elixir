@@ -215,7 +215,7 @@ defmodule Kernel.ErrorsTest do
       "nofile:2: undefined function foo/0",
       ~C'''
       defmodule Kernel.ErrorsTest.ClauseWithDefaults3 do
-        def hello(foo, bar \\ foo)
+        def hello(foo, bar \\ foo())
         def hello(foo, bar), do: foo + bar
       end
       '''
@@ -256,7 +256,7 @@ defmodule Kernel.ErrorsTest do
       "nofile:2: undefined function bar/0",
       '''
       defmodule Kernel.ErrorsTest.BadForm do
-        def foo, do: bar
+        def foo, do: bar()
       end
       '''
   end
@@ -416,7 +416,7 @@ defmodule Kernel.ErrorsTest do
       '''
       defmodule Kernel.ErrorsTest.UnhandledStab do
         def fun do
-          casea foo, do: (bar -> baz)
+          casea foo(), do: (bar -> baz)
         end
       end
       '''
@@ -513,7 +513,7 @@ defmodule Kernel.ErrorsTest do
       defmodule Kernel.ErrorsTest.PrivateMacro do
         defmacrop foo, do: 1
         defmacro bar, do: __MODULE__.foo
-        defmacro baz, do: bar
+        defmacro baz, do: bar()
       end
       '''
   end
@@ -627,7 +627,7 @@ defmodule Kernel.ErrorsTest do
           {:foo, :bar, :baz, :bat}
         end
 
-        def test, do: oops
+        def test, do: oops()
       end
       '''
   end
@@ -857,7 +857,7 @@ defmodule Kernel.ErrorsTest do
       defmodule Kernel.ErrorsTest.InvalidVarOrFunctionOnGuard do
         def bar do
           case [] do
-            [] when something_that_does_not_exist == [] -> :ok
+            [] when something_that_does_not_exist() == [] -> :ok
           end
         end
       end

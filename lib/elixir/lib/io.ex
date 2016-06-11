@@ -277,7 +277,7 @@ defmodule IO do
   def getn(prompt, count \\ 1)
 
   def getn(prompt, count) when is_integer(count) and count > 0 do
-    getn(group_leader, prompt, count)
+    getn(group_leader(), prompt, count)
   end
 
   def getn(device, prompt) when not is_integer(prompt) do

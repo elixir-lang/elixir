@@ -32,7 +32,7 @@ defmodule PathTest do
     File.rm_rf tmp_path("wildcard")
   end
 
-  if windows? do
+  if windows?() do
     test "relative win" do
       assert Path.relative("C:/usr/local/bin")    == "usr/local/bin"
       assert Path.relative("C:\\usr\\local\\bin") == "usr\\local\\bin"
@@ -237,7 +237,7 @@ defmodule PathTest do
     assert Path.split([?/, "foo/bar"]) == ["/", "foo", "bar"]
   end
 
-  if windows? do
+  if windows?() do
     defp strip_drive_letter_if_windows([_d, ?: | rest]), do: rest
     defp strip_drive_letter_if_windows(<<_d, ?:, rest::binary>>), do: rest
   else

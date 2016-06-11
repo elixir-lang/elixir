@@ -120,7 +120,7 @@ defmodule Task.Supervised do
       '** When function  == ~p~n' ++
       '**      arguments == ~p~n' ++
       '** Reason for termination == ~n' ++
-      '** ~p~n', [self, get_from(info), fun, args, get_reason(log_reason)])
+      '** ~p~n', [self(), get_from(info), fun, args, get_reason(log_reason)])
 
     exit(reason)
   end

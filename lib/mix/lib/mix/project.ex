@@ -56,7 +56,7 @@ defmodule Mix.Project do
     file = file ||
            (atom && List.to_string(atom.__info__(:compile)[:source]))
 
-    config = ([app: app] ++ default_config)
+    config = ([app: app] ++ default_config())
              |> Keyword.merge(get_project_config(atom))
 
     case Mix.ProjectStack.push(atom, config, file) do
@@ -113,7 +113,7 @@ defmodule Mix.Project do
   """
   @spec get!() :: module | no_return
   def get! do
-    get || raise Mix.NoProjectError, []
+    get() || raise Mix.NoProjectError, []
   end
 
   @doc """
@@ -135,7 +135,7 @@ defmodule Mix.Project do
   def config do
     case Mix.ProjectStack.peek do
       %{config: config} -> config
-      _ -> default_config
+      _ -> default_config()
     end
   end
 

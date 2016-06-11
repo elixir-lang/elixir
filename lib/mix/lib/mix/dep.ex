@@ -212,7 +212,7 @@ defmodule Mix.Dep do
     do: "the dependency is not locked (run \"mix deps.get\" to generate \"mix.lock\" file)"
 
   def format_status(%Mix.Dep{status: :compile}),
-    do: "the dependency build is outdated, please run \"#{mix_env_var}mix deps.compile\""
+    do: "the dependency build is outdated, please run \"#{mix_env_var()}mix deps.compile\""
 
   def format_status(%Mix.Dep{app: app, status: {:divergedreq, vsn, other}} = dep) do
     "the dependency #{app} #{vsn}\n" <>
@@ -258,10 +258,10 @@ defmodule Mix.Dep do
   end
 
   def format_status(%Mix.Dep{status: {:elixirlock, _}}),
-    do: "the dependency was built with an out-of-date Elixir version, run \"#{mix_env_var}mix deps.compile\""
+    do: "the dependency was built with an out-of-date Elixir version, run \"#{mix_env_var()}mix deps.compile\""
 
   def format_status(%Mix.Dep{status: {:scmlock, _}}),
-    do: "the dependency was built with another SCM, run \"#{mix_env_var}mix deps.compile\""
+    do: "the dependency was built with another SCM, run \"#{mix_env_var()}mix deps.compile\""
 
   defp dep_status(%Mix.Dep{app: app, requirement: req, manager: manager, opts: opts, from: from}) do
     opts = Keyword.drop(opts, [:dest, :build, :lock, :manager])

@@ -45,7 +45,7 @@ defmodule ExceptionTest do
   test "normalize" do
     assert Exception.normalize(:throw, :badarg) == :badarg
     assert Exception.normalize(:exit, :badarg) == :badarg
-    assert Exception.normalize({:EXIT, self}, :badarg) == :badarg
+    assert Exception.normalize({:EXIT, self()}, :badarg) == :badarg
     assert Exception.normalize(:error, :badarg).__struct__ == ArgumentError
     assert Exception.normalize(:error, %ArgumentError{}).__struct__ == ArgumentError
   end
@@ -61,14 +61,14 @@ defmodule ExceptionTest do
   end
 
   test "format with EXIT has no stacktrace" do
-    assert Exception.format({:EXIT, self}, :badarg) == "** (EXIT from #{inspect self}) :badarg"
+    assert Exception.format({:EXIT, self()}, :badarg) == "** (EXIT from #{inspect self()}) :badarg"
   end
 
   test "format_banner" do
     assert Exception.format_banner(:error, :badarg) == "** (ArgumentError) argument error"
     assert Exception.format_banner(:throw, :badarg) == "** (throw) :badarg"
     assert Exception.format_banner(:exit, :badarg) == "** (exit) :badarg"
-    assert Exception.format_banner({:EXIT, self}, :badarg) == "** (EXIT from #{inspect self}) :badarg"
+    assert Exception.format_banner({:EXIT, self()}, :badarg) == "** (EXIT from #{inspect self()}) :badarg"
   end
 
   test "format_stacktrace from file" do

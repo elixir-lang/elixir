@@ -187,7 +187,7 @@ defmodule Path do
   """
   @spec type(t) :: :absolute | :relative | :volumerelative
   def type(name) when is_list(name) or is_binary(name) do
-    pathtype(name, major_os_type) |> elem(0)
+    pathtype(name, major_os_type()) |> elem(0)
   end
 
   @doc """
@@ -625,7 +625,7 @@ defmodule Path do
   defp resolve_home(""), do: System.user_home!
 
   defp resolve_home(rest) do
-    case {rest, major_os_type} do
+    case {rest, major_os_type()} do
       {"\\" <> _, :win32} ->
         System.user_home! <> rest
       {"/" <> _, _} ->
