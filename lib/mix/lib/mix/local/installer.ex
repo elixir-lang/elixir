@@ -188,7 +188,7 @@ defmodule Mix.Local.Installer do
   defp ref_to_config("ref", ref), do: [ref: ref]
 
   defp ref_to_config(ref_type, _) do
-    Mix.raise "escript.install expected one of \"branch\", \"tag\", or \"ref\". Got: \"#{ref_type}\""
+    Mix.raise "expected one of \"branch\", \"tag\", or \"ref\". Got: \"#{ref_type}\""
   end
 
   @doc """
