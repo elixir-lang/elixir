@@ -48,7 +48,7 @@ defmodule Mix.Local.Fetcher do
 
   defp with_tmp_dir(fun) do
     unique = :crypto.strong_rand_bytes(4) |> Base.url_encode64(padding: false)
-    tmp_path = Path.join(System.tmp_dir!(), "mix-local-builder-" <> unique)
+    tmp_path = Path.join(System.tmp_dir!(), "mix-local-fetcher-" <> unique)
 
     try do
       fun.(tmp_path)
