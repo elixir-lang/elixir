@@ -16,7 +16,7 @@ defmodule Kernel.DialyzerTest do
       |> Path.join("base_plt")
       |> String.to_charlist()
 
-    # some os (e.g. Windows) does not provide HOME environment variable
+    # Some os (e.g. Windows) does not provide HOME environment variable
     unless System.get_env("HOME") do
       System.put_env("HOME", System.user_home())
     end
