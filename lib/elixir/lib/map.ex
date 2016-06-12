@@ -551,7 +551,7 @@ defmodule Map do
       %{a: 2}
 
       iex> Map.update!(%{a: 1}, :b, &(&1 * 2))
-      ** (KeyError) key :b not found
+      ** (KeyError) key :b not found in: %{a: 1}
 
   """
   @spec update!(map, key, (value -> value)) :: map | no_return
@@ -560,7 +560,7 @@ defmodule Map do
       {:ok, value} ->
         put(map, key, fun.(value))
       :error ->
-        :erlang.error({:badkey, key})
+        raise KeyError, term: map, key: key
     end
   end
 
@@ -630,7 +630,7 @@ defmodule Map do
       iex> Map.get_and_update!(%{a: 1}, :b, fn current_value ->
       ...>   {current_value, "new value!"}
       ...> end)
-      ** (KeyError) key :b not found
+      ** (KeyError) key :b not found in: %{a: 1}
 
       iex> Map.get_and_update!(%{a: 1}, :a, fn _ ->
       ...>   :pop
@@ -647,7 +647,7 @@ defmodule Map do
           :pop          -> {value, :maps.remove(key, map)}
         end
       :error ->
-        :erlang.error({:badkey, key})
+        raise KeyError, term: map, key: key
     end
   end
 
