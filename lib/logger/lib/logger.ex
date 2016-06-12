@@ -189,7 +189,7 @@ defmodule Logger do
       a confirmation is received.
 
   In addition to the keys provided by the user via `Logger.metadata/1`,
-  the following default keys are available in the `:metadata` list:
+  the following extra keys are available to the `:metadata` list:
 
     * `:application` - the current application
 
