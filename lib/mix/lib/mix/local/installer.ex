@@ -180,10 +180,7 @@ defmodule Mix.Local.Installer do
         {:error, error}
 
       git_config ->
-        git_opts =
-          git_config ++
-          [git: url, submodules: opts[:submodules]]
-
+        git_opts = git_config ++ [git: url, submodules: opts[:submodules]]
         app_name =
           if opts[:app] do
             opts[:app]
@@ -191,10 +188,9 @@ defmodule Mix.Local.Installer do
             "new package"
           end
 
-          {:fetcher, {String.to_atom(app_name), git_opts}}
+        {:fetcher, {String.to_atom(app_name), git_opts}}
     end
   end
-
 
   def parse_args(["git" | [_url | rest]], _opts) do
     {:error, "received invalid git checkout spec: #{Enum.join(rest, " ")}"}
