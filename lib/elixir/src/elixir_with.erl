@@ -65,15 +65,23 @@ expand_else(nil, E) ->
 
 translate(Meta, Args, S) ->
   {Parts, [{do, Expr} | ExprList]} = elixir_utils:split_last(Args),
-  CaseExpr =
-    case ExprList of
-      [{else, ElseExpr}] ->
-        build_else(Meta, build_case(Parts, {ok, Expr}, fun(X) -> {error, X} end), ElseExpr);
-      [] ->
-        build_case(Parts, Expr, fun(X) -> X end)
-    end,
-  {TC, TS} = elixir_translator:translate(CaseExpr, S#elixir_scope{extra=nil}),
-  {TC, elixir_scope:mergec(S, TS)}.
+  case ExprList of
+    [{else, ElseExpr}] ->
+      {TCases, TS} = translate_case(Parts, {ok, Expr}, fun(X) -> {error, X} end, S),
+      translate_else(Meta, TCases, ElseExpr, TS);
+    [] ->
+      translate_case(Parts, Expr, fun(X) -> X end, S)
+  end.
+
+translate_case(Parts, DoExpr, Wrapper, S) ->
+  Cases = build_case(Parts, DoExpr, Wrapper),
+  {TCases, TS} = elixir_translator:translate(Cases, S#elixir_scope{extra=nil}),
+  {TCases, elixir_scope:mergec(S, TS)}.
+
+translate_else(Meta, WithCases, ElseExpr, S) ->
+  ElseClauses = build_else(Meta, ElseExpr),
+  {TClauses, TS} = elixir_clauses:clauses(Meta, ElseClauses, S#elixir_scope{extra=nil}),
+  {{'case', ?ann(Meta), WithCases, TClauses}, elixir_scope:mergec(S, TS)}.
 
 build_case([{'<-', Meta, [{Name, _, Ctx}, _] = Args} | Rest], DoExpr, Wrapper)
     when is_atom(Name) andalso is_atom(Ctx) ->
@@ -90,18 +98,15 @@ build_case([Expr | Rest], DoExpr, Wrapper) ->
 build_case([], DoExpr, _Wrapper) ->
   DoExpr.
 
-build_else(Meta, WithCases, ElseClauses) ->
+build_else(Meta, ElseClauses) ->
   Result = {result, Meta, ?MODULE},
-  Clauses = [
-    {'->', Meta, [[{ok, Result}], Result]}
-    | else_to_error_clause(ElseClauses)
-  ] ++ [build_raise(Meta)],
-  {'case', Meta, [WithCases, [{do, Clauses}]]}.
+  [{match, Meta, [{ok, Result}], Result} |
+    each_clause_to_error_match(ElseClauses)] ++ [build_raise(Meta)].
 
-else_to_error_clause(Clauses) ->
-  [{'->', Meta, [[{error, Match}], Expr]} ||
+each_clause_to_error_match(Clauses) ->
+  [{match, Meta, [{error, Match}], Expr} ||
     {'->', Meta, [[Match], Expr]} <- Clauses].
 
 build_raise(Meta) ->
-  Other = {raise, Meta, ?MODULE},
-  {'->', ?generated, [[{error, Other}], {{'.', Meta, [erlang, error]}, Meta, [{with_clause, Other}]}]}.
+  Other = {other, Meta, ?MODULE},
+  {match, ?generated, [{error, Other}], {{'.', Meta, [erlang, error]}, Meta, [{with_clause, Other}]}}.

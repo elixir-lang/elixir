@@ -47,6 +47,13 @@ defmodule Kernel.WithTest do
     assert result == :error
   end
 
+  test "does not leak variables to else" do
+    state = 1
+    result = with 1 <- state, state = 2, :ok <- error(), do: state, else: (_ -> state)
+    assert result == 1
+    assert state == 1
+  end
+
   test "errors in with" do
     assert_raise RuntimeError, fn ->
       with({:ok, res} <- oops(), do: res)
