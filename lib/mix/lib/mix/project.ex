@@ -469,7 +469,8 @@ defmodule Mix.Project do
         if File.regular?(file) do
           try do
             Code.compiler_options(relative_paths: false)
-            Code.load_file(file)
+            _ = Code.load_file(file)
+            get()
           after
             Code.compiler_options(relative_paths: true)
           else
