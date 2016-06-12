@@ -3,7 +3,7 @@ defmodule Mix.Tasks.Test do
     @moduledoc false
 
     def start(compile_path, opts) do
-      Mix.shell.info "Cover compiling modules ... "
+      Mix.shell.info "Cover compiling modules ..."
       _ = :cover.start
 
       case :cover.compile_beam_directory(compile_path |> to_charlist) do
@@ -16,7 +16,7 @@ defmodule Mix.Tasks.Test do
       output = opts[:output]
 
       fn() ->
-        Mix.shell.info "\nGenerating cover results ... "
+        Mix.shell.info "\nGenerating cover results ..."
         File.mkdir_p!(output)
         Enum.each :cover.modules, fn(mod) ->
           {:ok, _} = :cover.analyse_to_file(mod, '#{output}/#{mod}.html', [:html])
