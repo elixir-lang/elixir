@@ -212,8 +212,8 @@ format_error({unused_match, Name, Kind}) ->
 
 format_error({unsafe_var, Name}) ->
   io_lib:format("the variable \"~ts\" is unsafe as it has been set inside "
-                "a case/cond/receive/if/&&/||. Please explicitly return the "
-                "variable value instead. For example:\n\n"
+                "a case/cond/receive/if/with/&&/||. Please explicitly return "
+                "the variable value instead. For example:\n\n"
                 "    case int do\n"
                 "      1 -> atom = :one\n"
                 "      2 -> atom = :two\n"
