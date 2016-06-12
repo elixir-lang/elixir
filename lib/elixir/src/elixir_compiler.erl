@@ -216,7 +216,8 @@ no_auto_import() ->
 
 core() ->
   {ok, _} = application:ensure_all_started(elixir),
-  Update = fun(Old) -> maps:merge(Old, #{docs => false, internal => true}) end,
+  Update = fun(Old) -> maps:merge(Old, #{docs => false, internal => true,
+                                         relative_paths => false}) end,
   _ = elixir_config:update(compiler_options, Update),
   [core_file(File) || File <- core_main()].
 

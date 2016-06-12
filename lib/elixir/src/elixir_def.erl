@@ -350,7 +350,7 @@ check_valid_clause(Ann, File, Name, Arity, Kind, Data, StoredAnn, StoredFile) ->
     {Name, Arity} -> [];
     [] -> [];
     _ ->
-      Relative = elixir_utils:relative_to_cwd(elixir_utils:relative_to_cwd(StoredFile)),
+      Relative = elixir_utils:relative_to_cwd(StoredFile),
       elixir_errors:form_warn([{line, erl_anno:line(Ann)}], File, ?MODULE,
         {ungrouped_clause, {Kind, Name, Arity, erl_anno:line(StoredAnn), Relative}})
   end.
