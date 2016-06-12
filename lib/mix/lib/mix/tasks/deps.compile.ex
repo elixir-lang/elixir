@@ -65,7 +65,7 @@ defmodule Mix.Tasks.Deps.Compile do
       Enum.map(deps, fn %Mix.Dep{app: app, status: status, opts: opts, scm: scm} = dep ->
         check_unavailable!(app, status)
 
-        clean(app, options)
+        maybe_clean(app, options)
 
         compiled? = cond do
           not is_nil(opts[:compile]) ->
@@ -95,7 +95,7 @@ defmodule Mix.Tasks.Deps.Compile do
     if true in compiled, do: Mix.Dep.Lock.touch_manifest, else: :ok
   end
 
-  defp clean(app, opts) do
+  defp maybe_clean(app, opts) do
     if Keyword.get(opts, :force, false) do
       File.rm_rf! Path.join [Mix.Project.build_path, "lib", Atom.to_string(app)]
     end
