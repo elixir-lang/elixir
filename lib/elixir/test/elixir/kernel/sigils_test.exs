@@ -34,19 +34,15 @@ defmodule Kernel.SigilsTest do
   end
 
   if windows?() do
-
     test "sigil S newline windows" do
       assert ~S(foo\
 bar) == "foo\\\r\nbar"
     end
-
   else
-
     test "sigil S newline unix" do
       assert ~S(foo\
 bar) == "foo\\\nbar"
     end
-
   end
 
   test "sigil S with heredoc" do
