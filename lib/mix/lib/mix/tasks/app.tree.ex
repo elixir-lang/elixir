@@ -57,13 +57,15 @@ defmodule Mix.Tasks.App.Tree do
     if opts[:format] == "dot" do
       Mix.Utils.write_dot_graph!("app_tree.dot", "application tree",
                                  {:normal, app}, callback, opts)
-      Mix.shell.info """
-        Generated "app_tree.dot" in the current directory. To generate a PNG:
+      """
+      Generated "app_tree.dot" in the current directory. To generate a PNG:
 
-           dot -Tpng app_tree.dot -o app_tree.png
+         dot -Tpng app_tree.dot -o app_tree.png
 
-        For more options see http://www.graphviz.org/.
-        """ |> String.strip
+      For more options see http://www.graphviz.org/.
+      """
+      |> String.trim_trailing
+      |> Mix.shell.info
     else
       Mix.Utils.print_tree({:normal, app}, callback, opts)
     end
