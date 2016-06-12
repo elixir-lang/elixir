@@ -62,15 +62,15 @@ defmodule Mix.Tasks.New do
 
         File.cd! path, fn ->
           if opts[:umbrella] do
-            do_generate_umbrella(app, mod, path, opts)
+            generate_umbrella(app, mod, path, opts)
           else
-            do_generate(app, mod, path, opts)
+            generate(app, mod, path, opts)
           end
         end
     end
   end
 
-  defp do_generate(app, mod, path, opts) do
+  defp generate(app, mod, path, opts) do
     assigns = [app: app, mod: mod, otp_app: otp_app(mod, !!opts[:sup]),
                version: get_version(System.version)]
 
@@ -98,7 +98,7 @@ defmodule Mix.Tasks.New do
     create_file "test/test_helper.exs", test_helper_template(assigns)
     create_file "test/#{app}_test.exs", test_template(assigns)
 
-    Mix.shell.info """
+    """
 
     Your Mix project was created successfully.
     You can use "mix" to compile it, test it, and more:
@@ -108,6 +108,8 @@ defmodule Mix.Tasks.New do
 
     Run "mix help" for more commands.
     """
+    |> String.trim_trailing
+    |> Mix.shell.info
   end
 
   defp otp_app(_mod, false) do
@@ -118,7 +120,7 @@ defmodule Mix.Tasks.New do
     "    [applications: [:logger],\n     mod: {#{mod}, []}]"
   end
 
-  defp do_generate_umbrella(_app, mod, path, _opts) do
+  defp generate_umbrella(_app, mod, path, _opts) do
     assigns = [app: nil, mod: mod]
 
     create_file ".gitignore", gitignore_text()
@@ -130,7 +132,7 @@ defmodule Mix.Tasks.New do
     create_directory "config"
     create_file "config/config.exs", config_umbrella_template(assigns)
 
-    Mix.shell.info """
+    """
 
     Your umbrella project was created successfully.
     Inside your project, you will find an apps/ directory
@@ -144,6 +146,8 @@ defmodule Mix.Tasks.New do
     in the umbrella project root will automatically run
     for each application in the apps/ directory.
     """
+    |> String.trim_trailing
+    |> Mix.shell.info
   end
 
   defp check_application_name!(name, from_app_flag) do
