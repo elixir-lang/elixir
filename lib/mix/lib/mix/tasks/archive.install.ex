@@ -57,16 +57,8 @@ defmodule Mix.Tasks.Archive.Install do
 
   ### Mix.Local.Installer callbacks
 
-  def check_install_spec({:fetcher, _}, opts) do
-    if opts[:sha512] do
-      {:error, "--sha512 is only supported for archive.install from path/URL"}
-    else
-      :ok
-    end
-  end
-
-  def check_install_spec({local_or_url, path_or_url}, _opts)
-  when local_or_url in [:local, :url] do
+  def check_install_spec({local_or_url, path_or_url}, _opts) when
+      local_or_url in [:local, :url] do
     if Path.extname(path_or_url) == ".ez" do
       :ok
     else

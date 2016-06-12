@@ -64,14 +64,6 @@ defmodule Mix.Tasks.Escript.Install do
 
   ### Mix.Local.Installer callbacks
 
-  def check_install_spec({:fetcher, _}, opts) do
-    if opts[:sha512] do
-      {:error, "--sha512 is only supported for escript.install from path/URL"}
-    else
-      :ok
-    end
-  end
-
   def check_install_spec(_, _), do: :ok
 
   def find_previous_versions(_src, dst) do

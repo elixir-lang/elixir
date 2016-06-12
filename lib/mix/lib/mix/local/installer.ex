@@ -32,7 +32,7 @@ defmodule Mix.Local.Installer do
   @doc """
   For installs involving a `fetch`, this will be executed as the `in_package`.
   """
-  @callback build(mixfile :: atom) :: :ok | {:error, String.t}
+  @callback build(mixfile :: atom) :: :ok
 
   @doc """
   The installation itself.
@@ -49,7 +49,11 @@ defmodule Mix.Local.Installer do
   def install({module, name}, argv, switches) do
     {opts, args} = OptionParser.parse!(argv, strict: switches)
 
-    install_spec = parse_args(args, opts)
+    install_spec =
+      case parse_args(args, opts) do
+        {:error, message} -> Mix.raise message <> "\n" <> usage(name)
+        install_spec -> install_spec
+      end
 
     case module.check_install_spec(install_spec, opts) do
       :ok -> :noop
@@ -58,15 +62,14 @@ defmodule Mix.Local.Installer do
 
     case install_spec do
       {:fetcher, dep_spec} ->
-        fetch dep_spec, fn mixfile ->
-          case module.build(mixfile) do
-            :ok ->
-              argv = if opts[:force], do: ["--force"], else: []
-              install({module, name}, argv, switches)
+        if opts[:sha512] do
+          Mix.raise "--sha512 is not supported for #{name} from git/github/hex\n" <> usage(name)
+        end
 
-            {:error, reason} ->
-              Mix.raise(reason)
-          end
+        fetch dep_spec, fn mixfile ->
+          module.build(mixfile)
+          argv = if opts[:force], do: ["--force"], else: []
+          install({module, name}, argv, switches)
         end
 
       {path_or_url, src} when path_or_url in [:local, :url] ->
@@ -91,7 +94,7 @@ defmodule Mix.Local.Installer do
     URI.parse(url_or_path).scheme in ["http", "https"]
   end
 
-  defp usage(name), do: "Usage: mix #{name}.install <path or url>"
+  defp usage(name), do: "\nRun:\n\n    mix help #{name}.install\n\nfor more information."
 
   defp do_install({module, name}, src, opts) do
     src_basename = Path.basename(URI.parse(src).path)
@@ -157,7 +160,7 @@ defmodule Mix.Local.Installer do
     cond do
       local_path?(url_or_path) -> {:local, url_or_path}
       file_url?(url_or_path) -> {:url, url_or_path}
-      true -> Mix.raise "Expected a local file path or a file URL."
+      true -> {:error, "Expected a local file path or a file URL."}
     end
   end
 
@@ -172,23 +175,29 @@ defmodule Mix.Local.Installer do
   end
 
   def parse_args(["git", url, ref_type, ref], opts) do
-    git_opts =
-      ref_to_config(ref_type, ref) ++
-      [git: url, submodules: opts[:submodules]]
+    case ref_to_config(ref_type, ref) do
+      {:error, error} ->
+        {:error, error}
 
-    app_name =
-      if opts[:app] do
-        opts[:app]
-      else
-        "new package"
-      end
+      git_config ->
+        git_opts =
+          git_config ++
+          [git: url, submodules: opts[:submodules]]
 
-      {:fetcher, {String.to_atom(app_name), git_opts}}
+        app_name =
+          if opts[:app] do
+            opts[:app]
+          else
+            "new package"
+          end
+
+          {:fetcher, {String.to_atom(app_name), git_opts}}
     end
+  end
 
 
   def parse_args(["git" | [_url | rest]], _opts) do
-    Mix.raise "received invalid git checkout spec: #{Enum.join(rest, " ")}"
+    {:error, "received invalid git checkout spec: #{Enum.join(rest, " ")}"}
   end
 
   def parse_args(["hex", package_name], opts) do
@@ -207,7 +216,7 @@ defmodule Mix.Local.Installer do
   end
 
   def parse_args(["hex" | [_package_name | rest]], _opts) do
-    Mix.raise "received invalid hex package spec: #{Enum.join(rest, " ")}"
+    {:error, "received invalid hex package spec: #{Enum.join(rest, " ")}"}
   end
 
   defp ref_to_config("branch", branch), do: [branch: branch]
@@ -217,7 +226,7 @@ defmodule Mix.Local.Installer do
   defp ref_to_config("ref", ref), do: [ref: ref]
 
   defp ref_to_config(ref_type, _) do
-    Mix.raise "expected one of \"branch\", \"tag\", or \"ref\". Got: \"#{ref_type}\""
+    {:error, "expected one of \"branch\", \"tag\", or \"ref\". Got: \"#{ref_type}\""}
   end
 
   @doc """
@@ -311,6 +320,9 @@ defmodule Mix.Local.Installer do
         Mix.Project.in_project(package_name, package_path, post_config, in_package)
       end
     end
+  after
+    :code.purge(Mix.Local.Installer.Fetcher)
+    :code.delete(Mix.Local.Installer.Fetcher)
   end
 
   defp in_fetcher(_mixfile) do
