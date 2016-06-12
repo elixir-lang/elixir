@@ -36,7 +36,7 @@ defmodule Mix.Tasks.Compile.Xref do
   end
 
   defp run_xref do
-    Mix.Task.run("xref", ["--warnings"])
+    Mix.Task.run("xref", ["warnings"])
   end
 
   defp needs_xref?(opts) do

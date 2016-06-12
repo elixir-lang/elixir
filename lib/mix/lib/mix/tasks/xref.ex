@@ -12,12 +12,12 @@ defmodule Mix.Tasks.Xref do
 
   ## Xref modes
 
-  The following options control the information xref can emit.
+  The following commands are available:
 
-    * `--warnings` - prints warnings for violated cross reference checks
-    * `--unreachable` - prints all unreachable "file:line: module.function/arity" entries
-    * `--callers` - prints all references of given `Module`, `Module.function`, or
-      `Module.function/arity`
+    * `warnings` - prints warnings for violated cross reference checks
+    * `unreachable` - prints all unreachable "file:line: module.function/arity" entries
+    * `callers CALLEE` - prints all references of `CALLEE`, which can be one of: `Module`,
+      `Module.function`, or `Module.function/arity`
 
   ## Command line options
 
@@ -36,31 +36,29 @@ defmodule Mix.Tasks.Xref do
   """
 
   @switches [compile: :boolean, deps_check: :boolean, archives_check: :boolean,
-             warnings: :boolean, unreachable: :boolean, elixir_version_check: :boolean,
-             callers: :string]
+             elixir_version_check: :boolean]
 
   @doc """
   Runs this task.
   """
   @spec run(OptionParser.argv) :: :ok | :error
   def run(args) do
-    {opts, _} =
+    {opts, args} =
       OptionParser.parse!(args, strict: @switches)
 
     if Keyword.get(opts, :compile, true) do
       Mix.Task.run("compile")
     end
 
-    modes = [:warnings, :unreachable, :callers]
-    case Keyword.take(opts, modes) do
-      [warnings: true] ->
+    case args do
+      ["warnings"] ->
         warnings()
-      [unreachable: true] ->
+      ["unreachable"] ->
         unreachable()
-      [callers: callee] ->
+      ["callers", callee] ->
         callers(callee)
       _ ->
-        Mix.raise "xref expects exactly one of the following modes: --warnings, --unreachable, --callers"
+        Mix.raise "xref expects one of the following commands: warnings, unreachable, callers CALLEE"
     end
   end
 
@@ -279,7 +277,7 @@ defmodule Mix.Tasks.Xref do
 
   defp raise_invalid_callee(callee) do
     message =
-      "xref --callers expects Module, Module.function, or Module.function/arity, got: " <>
+      "xref callers CALLEE expects Module, Module.function, or Module.function/arity, got: " <>
       callee
 
     Mix.raise message
