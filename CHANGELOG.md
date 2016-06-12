@@ -102,11 +102,11 @@ In any case, the previous behaviour can be brought back with the `--verbose` fla
 
 ### mix xref
 
-Speaking about warnings, Mix v1.3 includes a new task called `xref` that performs cross reference checks in your code. One of such checks is the ability to find calls to modules and functions that do not exist. For example, if in your library code you call `ThisModuleDoesNotExist.foo(1, 2, 3)`, `mix xref --unreachable` will be able to find such code and let you know about it.
+Speaking about warnings, Mix v1.3 includes a new task called `xref` that performs cross reference checks in your code. One of such checks is the ability to find calls to modules and functions that do not exist. For example, if in your library code you call `ThisModuleDoesNotExist.foo(1, 2, 3)`, `mix xref unreachable` will be able to find such code and let you know about it.
 
 Since such checks can discover possible bugs in your codebase, a new compiler called `xref` has been added to `Mix.compilers/0`, so they run by default every time you compile your code.
 
-We have included other modes in `xref`, such as `mix xref --callers Foo`, to find all places in your code that a function from the module `Foo` is called. We hope other tools and text editors can leverage such features to provide useful functionality for their users.
+We have included other modes in `xref`, such as `mix xref callers Foo`, to find all places in your code that a function from the module `Foo` is called. We hope other tools and text editors can leverage such features to provide useful functionality for their users.
 
 ### Better dependency tracking
 
