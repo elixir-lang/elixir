@@ -382,7 +382,7 @@ defmodule Map do
 
   """
   @spec merge(map, map, (key, value, value -> value)) :: map
-  def merge(map1, map2, callback) do
+  def merge(map1, map2, callback) when is_function(callback, 3) do
     :maps.fold fn k, v2, acc ->
       update(acc, k, v2, fn(v1) -> callback.(k, v1, v2) end)
     end, map1, map2
@@ -404,7 +404,7 @@ defmodule Map do
 
   """
   @spec update(map, key, value, (value -> value)) :: map
-  def update(map, key, initial, fun) do
+  def update(map, key, initial, fun) when is_function(fun, 1) do
     case fetch(map, key) do
       {:ok, value} ->
         put(map, key, fun.(value))
@@ -555,7 +555,7 @@ defmodule Map do
 
   """
   @spec update!(map, key, (value -> value)) :: map | no_return
-  def update!(%{} = map, key, fun) do
+  def update!(%{} = map, key, fun) when is_function(fun, 1) do
     case fetch(map, key) do
       {:ok, value} ->
         put(map, key, fun.(value))
@@ -599,7 +599,7 @@ defmodule Map do
 
   """
   @spec get_and_update(map, key, (value -> {get, value} | :pop)) :: {get, map} when get: term
-  def get_and_update(%{} = map, key, fun) do
+  def get_and_update(%{} = map, key, fun) when is_function(fun, 1) do
     current =
       case :maps.find(key, map) do
         {:ok, value} -> value
