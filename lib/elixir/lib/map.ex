@@ -39,6 +39,9 @@ defmodule Map do
   @doc """
   Converts `map` to a list.
 
+  Each key-value pair in the map is converted to a two-element tuple `{key,
+  value}` in the resulting list.
+
   ## Examples
 
       iex> Map.to_list(%{a: 1})
@@ -88,7 +91,7 @@ defmodule Map do
   end
 
   @doc """
-  Creates a map from an `enumerable` via the transformation function.
+  Creates a map from an `enumerable` via the given transformation function.
 
   Duplicated keys are removed; the latest one prevails.
 
@@ -115,7 +118,7 @@ defmodule Map do
   end
 
   @doc """
-  Returns whether a given `key` exists in the given `map`.
+  Returns whether the given `key` exists in the given `map`.
 
   ## Examples
 
@@ -129,9 +132,10 @@ defmodule Map do
   def has_key?(map, key), do: :maps.is_key(key, map)
 
   @doc """
-  Fetches the value for a specific `key` and returns it in a tuple.
+  Fetches the value for a specific `key` in the given `map`.
 
-  If the `key` does not exist, returns `:error`.
+  If `map` contains the given `key` with value `value`, then `{:ok, value}` is
+  returned. If `map` doesn't contain `key`, `:error` is returned.
 
   ## Examples
 
@@ -145,9 +149,11 @@ defmodule Map do
   def fetch(map, key), do: :maps.find(key, map)
 
   @doc """
-  Fetches the value for specific `key`.
+  Fetches the value for a specific `key` in the given `map`, erroring out if
+  `map` doesn't contain `key`.
 
-  If `key` does not exist, a `KeyError` is raised.
+  If `map` contains the given `key`, the corresponding value is returned. If
+  `map` doesn't contain `key`, a `KeyError` exception is raised.
 
   ## Examples
 
@@ -167,7 +173,7 @@ defmodule Map do
 
   @doc """
   Puts the given `value` under `key` unless the entry `key`
-  already exists.
+  already exists in `map`.
 
   ## Examples
 
@@ -187,10 +193,11 @@ defmodule Map do
 
   @doc """
   Evaluates `fun` and puts the result under `key`
-  in map unless `key` is already present.
+  in `map` unless `key` is already present.
 
-  This is useful if the value is very expensive to calculate or
-  generally difficult to setup and teardown again.
+  This function is useful in case you want to compute the value to put under
+  `key` only if `key` is not already present (e.g., the value is expensive to
+  calculate or generally difficult to setup and teardown again).
 
   ## Examples
 
@@ -214,8 +221,10 @@ defmodule Map do
   end
 
   @doc """
-  Takes all entries corresponding to the given keys and
-  returns them in a new map.
+  Returns a new map with all the key-value pairs in `map` where the key
+  is in `keys`.
+
+  If `keys` contains keys that are not in `map`, they're simply ignored.
 
   ## Examples
 
@@ -246,10 +255,11 @@ defmodule Map do
   end
 
   @doc """
-  Gets the value for a specific `key`.
+  Gets the value for a specific `key` in `map`.
 
-  If `key` does not exist, return the default value
-  (`nil` if no default value).
+  If `key` is present in `map` with value `value`, then `value` is
+  returned. Otherwise, `default` is returned (which is `nil` unless
+  specified otherwise).
 
   ## Examples
 
@@ -273,9 +283,10 @@ defmodule Map do
   end
 
   @doc """
-  Gets the value for a specific `key`.
+  Gets the value for a specific `key` in `map`.
 
-  If `key` does not exist, lazily evaluates `fun` and returns its result.
+  If `key` is present in `map` with value `value`, then `value` is
+  returned. Otherwise, `fun` is evaluated and its result is returned.
 
   This is useful if the default value is very expensive to calculate or
   generally difficult to setup and teardown again.
@@ -302,7 +313,7 @@ defmodule Map do
   end
 
   @doc """
-  Puts the given `value` under `key`.
+  Puts the given `value` under `key` in `map`.
 
   ## Examples
 
@@ -318,7 +329,7 @@ defmodule Map do
   end
 
   @doc """
-  Deletes the entries in `map` for a specific `key`.
+  Deletes the entry in `map` for a specific `key`.
 
   If the `key` does not exist, returns `map` unchanged.
 
@@ -336,7 +347,8 @@ defmodule Map do
   @doc """
   Merges two maps into one.
 
-  All keys in `map2` will be added to `map1`, overriding any existing one.
+  All keys in `map2` will be added to `map1`, overriding any existing one
+  (i.e., the keys in `map2` "have precedence" over the ones in `map1`).
 
   If you have a struct and you would like to merge a set of keys into the
   struct, do not use this function, as it would merge all keys on the right
@@ -353,10 +365,13 @@ defmodule Map do
   defdelegate merge(map1, map2), to: :maps
 
   @doc """
-  Merges two maps into one.
+  Merges two maps into one, resolving conflicts through the given `callback`.
 
-  All keys in `map2` will be added to `map1`. The given function will
-  be invoked with the key, value1 and value2 to solve conflicts.
+  All keys in `map2` will be added to `map1`. The given function will be invoked
+  when there are duplicate keys; its arguments are `key` (the duplicate key),
+  `value1` (the value of `key` in `map1`), and `value2` (the value of `key` in
+  `map2`). The value returned by `callback` is used as the value under `key` in
+  the resulting map.
 
   ## Examples
 
@@ -376,7 +391,9 @@ defmodule Map do
   @doc """
   Updates the `key` in `map` with the given function.
 
-  If the `key` does not exist, inserts the given `initial` value.
+  If `key` is present in `map` with value `value`, `fun` is invoked with
+  argument `value` and its result is used as the new value of `key`. If `key` is
+  not present in `map`, `initial` is inserted as the value of `key`.
 
   ## Examples
 
@@ -399,6 +416,10 @@ defmodule Map do
   @doc """
   Returns and removes the value associated with `key` in `map`.
 
+  If `key` is present in `map` with value `value`, `{value, new_map}` is
+  returned where `new_map` is the result of removing `key` from `map`. If `key`
+  is not present in `map`, `{default, map}` is returned.
+
   ## Examples
 
       iex> Map.pop(%{a: 1}, :a)
@@ -419,6 +440,11 @@ defmodule Map do
 
   @doc """
   Lazily returns and removes the value associated with `key` in `map`.
+
+  If `key` is present in `map` with value `value`, `{value, new_map}` is
+  returned where `new_map` is the result of removing `key` from `map`. If `key`
+  is not present in `map`, `{fun_result, map}` is returned, where `fun_result`
+  is the result of applying `fun`.
 
   This is useful if the default value is very expensive to calculate or
   generally difficult to setup and teardown again.
@@ -447,6 +473,8 @@ defmodule Map do
   @doc """
   Drops the given `keys` from `map`.
 
+  If `keys` contains keys that are not in `map`, they're simply ignored.
+
   ## Examples
 
       iex> Map.drop(%{a: 1, b: 2, c: 3}, [:b, :d])
@@ -468,12 +496,12 @@ defmodule Map do
 
   defp drop_list([], acc), do: acc
   defp drop_list([key | rest], acc) do
-    drop_list(rest, Map.delete(acc, key))
+    drop_list(rest, delete(acc, key))
   end
 
   @doc """
-  Takes all entries corresponding to the given `keys` and extracts them into a
-  separate `map`.
+  Takes all entries corresponding to the given `keys` in `maps` and extracts
+  them into a separate map.
 
   Returns a tuple with the new map and the old map with removed keys.
 
@@ -511,9 +539,11 @@ defmodule Map do
   end
 
   @doc """
-  Updates the `key` with the given function.
+  Updates `key` with the given function.
 
-  If the `key` does not exist, raises `KeyError`.
+  If `key` is present in `map` with value `value`, `fun` is invoked with
+  argument `value` and its result is used as the new value of `key`. If `key` is
+  not present in `map`, a `KeyError` exception is raised.
 
   ## Examples
 
@@ -539,12 +569,12 @@ defmodule Map do
   @doc """
   Gets the value from `key` and updates it, all in one pass.
 
-  This `fun` argument receives the value of `key` (or `nil` if `key`
-  is not present) and must return a two-element tuple: the "get" value
-  (the retrieved value, which can be operated on before being returned)
-  and the new value to be stored under `key`. The `fun` may also
-  return `:pop`, implying the current value shall be removed
-  from `map` and returned.
+  `fun` is called with the current value under `key` in `map` (or `nil` if `key`
+  is not present in `map`) and must return a two-element tuple: the "get" value
+  (the retrieved value, which can be operated on before being returned) and the
+  new value to be stored under `key` in the resulting new map. `fun` may also
+  return `:pop`, which means the current value shall be removed from `map` and
+  returned (making this function behave like `Map.pop(map, key)`.
 
   The returned value is a tuple with the "get" value returned by
   `fun` and a new map with the updated value under `key`.
@@ -587,13 +617,8 @@ defmodule Map do
   @doc """
   Gets the value from `key` and updates it. Raises if there is no `key`.
 
-  This `fun` argument receives the value of `key` and must return a
-  two-element tuple: the "get" value (the retrieved value, which can be
-  operated on before being returned) and the new value to be stored under
-  `key`.
-
-  The returned value is a tuple with the "get" value returned by `fun` and a
-  new map with the updated value under `key`.
+  Behaves exactly like `get_and_update/3`, but raises a `KeyError` exception if
+  `key` is not present in `map`.
 
   ## Examples
 
@@ -632,7 +657,8 @@ defmodule Map do
   Converts a `struct` to map.
 
   It accepts the struct module or a struct itself and
-  simply removes the `__struct__` field from the struct.
+  simply removes the `__struct__` field from the given struct
+  or from a new struct generated from the given module.
 
   ## Example
 
