@@ -1,5 +1,6 @@
-# This is an Elixir module responsible for tracking
-# the usage of aliases, imports and requires in the Elixir scope.
+# This is an Elixir module responsible for tracking references
+# to modules, remote dispatches, and the usage of
+# aliases/imports/requires in the Elixir scope.
 #
 # Note that since this is required for bootstrap, we can't use
 # any of the `GenServer.Behaviour` conveniences.
