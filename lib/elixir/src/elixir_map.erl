@@ -19,7 +19,7 @@ expand_struct(Meta, Left, Right, #{context := Context} = E) ->
     true when is_atom(ELeft) ->
       %% We always record structs when they are expanded
       %% as they expect the reference at compile time.
-      elixir_lexical:record_remote(ELeft, nil, ?m(E, lexical_tracker));
+      elixir_lexical:record_remote(ELeft, '__struct__', 1, nil, ?line(Meta), ?m(E, lexical_tracker));
     true ->
       ok;
     false when Context == match ->
