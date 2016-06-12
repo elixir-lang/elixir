@@ -121,6 +121,18 @@ defmodule Mix.Tasks.DepsTest do
     end
   end
 
+  test "cleans and recompiles artifacts if --force given" do
+    Mix.Project.push SuccessfulDepsApp
+
+    in_fixture "deps_status", fn ->
+      Mix.Tasks.Deps.Compile.run []
+      File.touch! "_build/dev/lib/ok/clean-me"
+
+      Mix.Tasks.Deps.Compile.run ["--force"]
+      refute File.exists? "_build/dev/lib/ok/clean-me"
+    end
+  end
+
   ## deps.check
 
   test "checks list of dependencies and their status with success" do
@@ -188,20 +200,6 @@ defmodule Mix.Tasks.DepsTest do
       Mix.Tasks.Deps.Check.run []
       refute File.exists?("_build/dev/lib/ok/ebin/ok.app")
       assert File.exists?("_build/dev/lib/sample/ebin/sample.app")
-    end
-  end
-
-  ## deps.unlock
-
-  test "cleans and recompiles artifacts if --force given" do
-    Mix.Project.push SuccessfulDepsApp
-
-    in_fixture "deps_status", fn ->
-      Mix.Tasks.Deps.Compile.run []
-      File.touch! "_build/dev/lib/ok/clean-me"
-
-      Mix.Tasks.Deps.Compile.run ["--force"]
-      refute File.exists? "_build/dev/lib/ok/clean-me"
     end
   end
 

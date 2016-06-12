@@ -344,10 +344,10 @@ defmodule ExUnit.CaptureIOTest do
   end
 
   defp send_and_receive_io(req) do
-    send :erlang.group_leader, {:io_request, self(), self(), req}
-    s = self()
+    pid = self()
+    send :erlang.group_leader, {:io_request, pid, pid, req}
     receive do
-      {:io_reply, ^s, res} -> res
+      {:io_reply, ^pid, res} -> res
     end
   end
 end
