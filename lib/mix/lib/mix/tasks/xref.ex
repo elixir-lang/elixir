@@ -2,7 +2,7 @@ defmodule Mix.Tasks.Xref do
   use Mix.Task
 
   alias Mix.Tasks.Compile.Elixir, as: E
-  import Mix.Compilers.Elixir, only: [read_manifest: 2, source: 1, source: 2]
+  import Mix.Compilers.Elixir, only: [read_manifest: 2, source: 1, source: 2, module: 1]
 
   @shortdoc "Performs cross reference checks"
   @recursive true
@@ -15,16 +15,44 @@ defmodule Mix.Tasks.Xref do
   The following commands are available:
 
     * `warnings` - prints warnings for violated cross reference checks
+
     * `unreachable` - prints all unreachable "file:line: module.function/arity" entries
+
     * `callers CALLEE` - prints all references of `CALLEE`, which can be one of: `Module`,
       `Module.function`, or `Module.function/arity`
+
+    * `graph` - prints the module reference graph. By default, an edge from `A` to `B` indicates
+      that `A` depends on `B`
 
   ## Command line options
 
     * `--no-compile` - do not compile even if files require compilation
+
     * `--no-deps-check` - do not check dependencies
+
     * `--no-archives-check` - do not check archives
+
     * `--no-elixir-version-check` - do not check the Elixir version from mix.exs
+
+    * `--exclude` - for the `graph` command, modules to exclude. Use `Module` for elixir modules,
+      and `:module` for erlang modules
+
+    * `--source` - for the `graph` command, display only modules for which there is a path from the
+      given source module
+
+    * `--sink` - for the `graph` command, display only modules for which there is a path to the
+      given sink module. In this mode, an edge from `A` to `B` indicates `B` depends on `A`
+
+    * `--format` - for the `graph` command, can be set to one of:
+
+      * `pretty` - use Unicode codepoints for formatting the graph. This is the default except on
+        Windows
+
+      * `plain` - do not use Unicode codepoints for formatting the graph. This is the default on
+        Windows
+
+      * `dot` - produces a DOT graph description of the application tree in `xref_graph.dot` in the
+        current directory. Warning: this will override any previously generated file
 
   ## Configuration
 
@@ -36,7 +64,8 @@ defmodule Mix.Tasks.Xref do
   """
 
   @switches [compile: :boolean, deps_check: :boolean, archives_check: :boolean,
-             elixir_version_check: :boolean]
+             elixir_version_check: :boolean, exclude: :keep, format: :string,
+             source: :string, sink: :string]
 
   @doc """
   Runs this task.
@@ -57,6 +86,8 @@ defmodule Mix.Tasks.Xref do
         unreachable()
       ["callers", callee] ->
         callers(callee)
+      ["graph"] ->
+        graph(opts)
       _ ->
         Mix.raise "xref expects one of the following commands: warnings, unreachable, callers CALLEE"
     end
@@ -84,6 +115,12 @@ defmodule Mix.Tasks.Xref do
     callee
     |> filter_for_callee()
     |> do_callers()
+
+    :ok
+  end
+
+  defp graph(opts) do
+    write_graph(module_references(), excluded(opts), opts)
 
     :ok
   end
@@ -281,6 +318,85 @@ defmodule Mix.Tasks.Xref do
       callee
 
     Mix.raise message
+  end
+
+  ## Graph helpers
+
+  defp excluded(opts) do
+    Keyword.get_values(opts, :exclude)
+    |> Enum.map(&{&1, nil})
+  end
+
+  defp module_references() do
+    source_modules =
+      for manifest <- E.manifests(),
+          manifest_data = read_manifest(manifest, ""),
+          module(module: module, source: source) <- manifest_data,
+          source = Enum.find(manifest_data, &match?(source(source: ^source), &1)),
+          do: {source, module}
+
+    source_modules = Enum.group_by(source_modules, &elem(&1, 0), &elem(&1, 1))
+
+    all_modules =
+      Enum.reduce source_modules, MapSet.new(), fn {_, modules}, acc ->
+        Enum.reduce(modules, acc, &MapSet.put(&2, &1))
+      end
+
+    Enum.reduce source_modules, [], fn {source, modules}, acc ->
+      source(runtime_references: r, compile_references: c) = source
+      references =
+        r ++ c ++ modules
+        |> MapSet.new()
+        |> MapSet.intersection(all_modules)
+
+      Enum.reduce modules, acc, fn module, acc ->
+        module_references = MapSet.delete(references, module)
+        [{{inspect(module), nil}, Enum.map(module_references, &{inspect(&1), nil})} | acc]
+      end
+    end
+  end
+
+  defp write_graph(module_references, excluded, opts) do
+    {root, module_references} =
+      case {opts[:source], opts[:sink]} do
+        {nil, nil} -> {{nil, nil}, module_references}
+        {source, nil} -> {{source, nil}, module_references}
+        {nil, sink} -> {{sink, nil}, invert_references(module_references)}
+        {_, _} -> Mix.raise "mix xref graph expects only one of --source and --sink"
+      end
+
+    callback =
+      fn
+        {nil, nil} ->
+          {{nil, nil}, Enum.map(module_references, &elem(&1, 0)) -- excluded}
+
+        {module, nil} ->
+          {_, children} = List.keyfind(module_references, {module, nil}, 0, {{module, nil}, []})
+          {{module, nil}, children -- excluded}
+      end
+
+    if opts[:format] == "dot" do
+      Mix.Utils.write_dot_graph!("xref_graph.dot", "xref graph",
+                                 root, callback, opts)
+      Mix.shell.info """
+        Generated "xref_graph.dot" in the current directory. To generate a PNG:
+
+           dot -Tpng xref_graph.dot -o xref_graph.png
+
+        For more options see http://www.graphviz.org/.
+        """ |> String.strip
+    else
+      Mix.Utils.print_tree(root, callback, opts)
+    end
+  end
+
+  defp invert_references(module_references) do
+    Enum.reduce(module_references, %{}, fn {module, references}, acc ->
+      Enum.reduce references, acc, fn reference, acc ->
+        Map.update(acc, reference, [module], &[module | &1])
+      end
+    end)
+    |> Enum.to_list()
   end
 
   ## Helpers

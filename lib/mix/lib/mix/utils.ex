@@ -147,7 +147,9 @@ defmodule Mix.Utils do
 
   The callback will be invoked for each node and it
   must either return `{printed, children}` tuple or
-  `false` if the given node must not be printed.
+  `false` if the given node must not be printed. If
+  `printed` is `nil`, the node will not be printed,
+  but any `children` will.
   """
   @spec print_tree(term, (term -> {String.t, [term]}), Keyword.t) :: :ok
   def print_tree(root, callback, opts \\ []) do
@@ -157,16 +159,31 @@ defmodule Mix.Utils do
         "plain" -> false
         _ -> elem(:os.type, 0) != :win32
       end
-    print_tree([root], [], pretty, callback)
+    print_tree([root], [], nil, MapSet.new(), pretty, callback)
+
+    :ok
   end
 
-  defp print_tree([], _depth, _pretty, _callback), do: :ok
-  defp print_tree([node | nodes], depth, pretty, callback) do
-    {{name, info}, children} =  callback.(node)
-    space = if info, do: " ", else: ""
-    Mix.shell.info("#{depth(pretty, depth)}#{prefix(pretty, depth, nodes)}#{name}#{space}#{info}")
-    print_tree(children, [(nodes != []) | depth], pretty, callback)
-    print_tree(nodes, depth, pretty, callback)
+  defp print_tree([], _depth, _parent, seen, _pretty, _callback), do: seen
+  defp print_tree([node | nodes], depth, parent, seen, pretty, callback) do
+    {{name, info}, children} = callback.(node)
+    key = {parent, name}
+
+    if key in seen do
+      seen
+    else
+      {new_depth, seen} =
+        if is_nil(name) or (is_nil(parent) and name in seen) do
+          {depth, seen}
+        else
+          space = if info, do: " ", else: ""
+          Mix.shell.info("#{depth(pretty, depth)}#{prefix(pretty, depth, nodes)}#{name}#{space}#{info}")
+          {[(nodes != []) | depth], seen |> MapSet.put(key) |> MapSet.put(name)}
+        end
+
+      seen = print_tree(children, new_depth, name, seen, pretty, callback)
+      print_tree(nodes, depth, parent, seen, pretty, callback)
+    end
   end
 
   defp depth(_pretty, []),    do: ""
@@ -189,9 +206,11 @@ defmodule Mix.Utils do
 
   The callback will be invoked for each node and it
   must either return `{printed, children}` tuple or
-  `false` if the given node must not be printed.
+  `false` if the given node must not be printed. If
+  `printed` is `nil`, the node will not be printed,
+  but any `children` will.
   """
-  @spec write_dot_graph!(Path.t, String.t, term, (term -> {String.t, [term]}), Keyword.t) :: :ok
+  @spec write_dot_graph!(Path.t, String.t, term, (term -> {String.t | atom, [term]}), Keyword.t) :: :ok
   def write_dot_graph!(path, title, root, callback, _opts \\ []) do
     {{parent, _}, children} = callback.(root)
     {dot, _} = build_dot_graph(parent, children, %{}, callback)
@@ -201,21 +220,32 @@ defmodule Mix.Utils do
   defp build_dot_graph(_parent, [], seen, _callback), do: {"", seen}
   defp build_dot_graph(parent, [node | nodes], seen, callback) do
     {{name, edge_info}, children} = callback.(node)
-    {current, seen}  = build_dot_current(parent, name, edge_info, seen)
-    {children, seen} = build_dot_graph(name, children, seen, callback)
-    {siblings, seen} = build_dot_graph(parent, nodes, seen, callback)
-    {current <> children <> siblings, seen}
+    key = {parent, name}
+
+    if seen[key] do
+      {"", seen}
+    else
+      {current, seen} = build_dot_current(parent, name, edge_info, key, seen)
+      {children, seen} = build_dot_graph(name, children, seen, callback)
+      {siblings, seen} = build_dot_graph(parent, nodes, seen, callback)
+      {current <> children <> siblings, seen}
+    end
   end
 
-  defp build_dot_current(parent, name, edge_info, seen) do
-    key = {parent, name}
-    case seen do
-      %{^key => _} ->
+  defp build_dot_current(parent, name, edge_info, key, seen) do
+    case {is_nil(name), is_nil(parent), is_nil(edge_info)} do
+      {true, _, _} ->
         {"", seen}
-      %{} when is_nil(edge_info) ->
+      {false, true, true} ->
+        {~s(  "#{name}"\n),
+         Map.put(seen, key, true)}
+      {false, true, false} ->
+        {~s(  "#{name} [label=\"#{edge_info}\"]"\n),
+         Map.put(seen, key, true)}
+      {false, false, true} ->
         {~s(  "#{parent}" -> "#{name}"\n),
          Map.put(seen, key, true)}
-      %{} ->
+      {false, false, false} ->
         {~s(  "#{parent}" -> "#{name}" [label=\"#{edge_info}\"]\n),
          Map.put(seen, key, true)}
     end

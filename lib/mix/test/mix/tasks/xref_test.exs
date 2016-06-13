@@ -460,4 +460,118 @@ defmodule Mix.Tasks.XrefTest do
       end) == expected
     end
   end
+
+  ## Graph
+
+  test "graph: basic usage" do
+    assert_graph """
+    :d
+    └── A
+        └── B
+            └── A
+    C
+    """
+  end
+
+  test "graph: exclude elixir modules" do
+    assert_graph ~w[--exclude C --exclude B], """
+    :d
+    └── A
+    """
+  end
+
+  test "graph: exclude erlang module" do
+    assert_graph ~w[--exclude :d], """
+    C
+    B
+    └── A
+        └── B
+    """
+  end
+
+  test "graph: dot format" do
+    assert_graph ~w[--format dot], true, """
+    digraph "xref graph" {
+      ":d"
+      ":d" -> "A"
+      "A" -> "B"
+      "B" -> "A"
+      "C"
+      "B"
+      "A"
+    }
+    """
+  end
+
+  test "graph: source" do
+    assert_graph ~w[--source A], """
+    A
+    └── B
+        └── A
+    """
+  end
+
+  test "graph: sink" do
+    assert_graph ~w[--sink B], """
+    B
+    └── A
+        ├── B
+        └── :d
+    """
+  end
+
+  defp assert_graph(opts \\ [], dot \\ false, expected) do
+    in_fixture "no_mixfile", fn ->
+      File.write! "lib/a.ex", """
+      defmodule A do
+        def a do
+          B.a
+        end
+      end
+      """
+
+      File.write! "lib/b.ex", """
+      defmodule B do
+        def a do
+          A.a
+        end
+      end
+      """
+
+      File.write! "lib/c.ex", """
+      defmodule C do
+      end
+      """
+
+      File.write! "lib/d.ex", """
+      defmodule :d do
+        def a do
+          A.a
+        end
+      end
+      """
+
+      assert Mix.Task.run("xref", opts ++ ["graph"]) == :ok
+
+      result =
+        if dot do
+          File.read!("xref_graph.dot")
+        else
+          assert "Compiling 4 files (.ex)\nGenerated sample app\n" <> result =
+            Enum.join(receive_until_no_messages(), "\n") <> "\n"
+
+          result
+        end
+
+      assert result == expected
+    end
+  end
+
+  defp receive_until_no_messages(acc \\ []) do
+    receive do
+      {:mix_shell, :info, [line]} -> receive_until_no_messages([line | acc])
+    after
+      0 -> Enum.reverse(acc)
+    end
+  end
 end
