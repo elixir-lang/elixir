@@ -21,11 +21,10 @@ defmodule Mix.Tasks.Xref do
     * `callers CALLEE` - prints all references of `CALLEE`, which can be one of: `Module`,
       `Module.function`, or `Module.function/arity`
 
-    * `graph` - prints the module reference graph. By default, an edge from `A` to `B` indicates
+    * `graph` - prints the file reference graph. By default, an edge from `A` to `B` indicates
       that `A` depends on `B`
 
-      * `--exclude` - modules to exclude. Use `Module` for Elixir modules,
-        and `:module` for Erlang modules
+      * `--exclude` - paths to exclude
 
       * `--source` - display only modules for which there is a path from the
         given source module
@@ -41,7 +40,7 @@ defmodule Mix.Tasks.Xref do
         * `plain` - do not use Unicode codepoints for formatting the graph. This is the default on
           Windows
 
-        * `dot` - produces a DOT graph description of the application tree in `xref_graph.dot` in the
+        * `dot` - produces a DOT graph description in `xref_graph.dot` in the
           current directory. Warning: this will override any previously generated file
 
   ## Options for all commands
@@ -120,7 +119,7 @@ defmodule Mix.Tasks.Xref do
   end
 
   defp graph(opts) do
-    write_graph(module_references(), excluded(opts), opts)
+    write_graph(file_references(), excluded(opts), opts)
 
     :ok
   end
@@ -327,53 +326,63 @@ defmodule Mix.Tasks.Xref do
     |> Enum.map(&{&1, nil})
   end
 
-  defp module_references() do
-    source_modules =
+  defp file_references() do
+    module_sources =
       for manifest <- E.manifests(),
           manifest_data = read_manifest(manifest, ""),
           module(module: module, source: source) <- manifest_data,
           source = Enum.find(manifest_data, &match?(source(source: ^source), &1)),
-          do: {source, module}
+          do: {module, source},
+          into: %{}
 
-    source_modules = Enum.group_by(source_modules, &elem(&1, 0), &elem(&1, 1))
+    all_modules = MapSet.new(module_sources, &elem(&1, 0))
 
-    all_modules =
-      Enum.reduce source_modules, MapSet.new(), fn {_, modules}, acc ->
-        Enum.reduce(modules, acc, &MapSet.put(&2, &1))
-      end
-
-    Enum.reduce source_modules, [], fn {source, modules}, acc ->
-      source(runtime_references: runtime, compile_references: compile) = source
+    Map.new module_sources, fn {module, source} ->
+      source(runtime_references: runtime, compile_references: compile, source: file) = source
       references =
-        runtime ++ compile ++ modules
+        runtime ++ compile
         |> MapSet.new()
         |> MapSet.intersection(all_modules)
+        |> MapSet.delete(module)
+        |> Enum.map(&{source(module_sources[&1], :source), nil})
 
-      Enum.reduce modules, acc, fn module, acc ->
-        module_references = MapSet.delete(references, module)
-        [{{inspect(module), nil}, Enum.map(module_references, &{inspect(&1), nil})} | acc]
-      end
+      {{file, nil}, references}
     end
   end
 
-  defp write_graph(module_references, excluded, opts) do
+  defp write_graph(file_references, excluded, opts) do
     app_label = "#{Mix.Project.config[:app]} application"
-    {root, module_references} =
+    {root, file_references} =
       case {opts[:source], opts[:sink]} do
-        {nil, nil} -> {{app_label, nil}, module_references}
-        {source, nil} -> {{source, nil}, module_references}
-        {nil, sink} -> {{sink, nil}, invert_references(module_references)}
-        {_, _} -> Mix.raise "mix xref graph expects only one of --source and --sink"
+        {nil, nil} ->
+          {{app_label, nil}, file_references}
+
+        {source, nil} ->
+          if file_references[{source, nil}] do
+            {{source, nil}, file_references}
+          else
+            Mix.raise "Source could not be found: #{source}"
+          end
+
+        {nil, sink} ->
+          if file_references[{sink, nil}] do
+            {{sink, nil}, file_references |> invert_references()}
+          else
+            Mix.raise "Sink could not be found: #{sink}"
+          end
+
+        {_, _} ->
+          Mix.raise "mix xref graph expects only one of --source and --sink"
       end
 
     callback =
       fn
         {^app_label, nil} ->
-          {{app_label, nil}, Enum.map(module_references, &elem(&1, 0)) -- excluded}
+          {{app_label, nil}, Enum.map(file_references, &elem(&1, 0)) -- excluded}
 
-        {module, nil} ->
-          {_, children} = List.keyfind(module_references, {module, nil}, 0, {{module, nil}, []})
-          {{module, nil}, children -- excluded}
+        {file, nil} ->
+          children = Map.get(file_references, {file, nil}, [])
+          {{file, nil}, children -- excluded}
       end
 
     if opts[:format] == "dot" do
@@ -393,13 +402,12 @@ defmodule Mix.Tasks.Xref do
     end
   end
 
-  defp invert_references(module_references) do
-    Enum.reduce(module_references, %{}, fn {module, references}, acc ->
+  defp invert_references(file_references) do
+    Enum.reduce file_references, %{}, fn {file, references}, acc ->
       Enum.reduce references, acc, fn reference, acc ->
-        Map.update(acc, reference, [module], &[module | &1])
+        Map.update(acc, reference, [file], &[file | &1])
       end
-    end)
-    |> Enum.to_list()
+    end
   end
 
   ## Helpers

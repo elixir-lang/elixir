@@ -466,65 +466,83 @@ defmodule Mix.Tasks.XrefTest do
   test "graph: basic usage" do
     assert_graph """
     sample application
-    ├── :d
-    │   └── A
-    │       └── B
-    │           └── A
-    ├── C
-    ├── B
-    └── A
+    ├── lib/a.ex
+    │   └── lib/b.ex
+    │       └── lib/a.ex
+    ├── lib/b.ex
+    ├── lib/c.ex
+    └── lib/d.ex
+        └── lib/a.ex
     """
   end
 
-  test "graph: exclude elixir modules" do
-    assert_graph ~w[--exclude C --exclude B], """
+  test "graph: exclude" do
+    assert_graph ~w[--exclude lib/c.ex --exclude lib/b.ex], """
     sample application
-    ├── :d
-    │   └── A
-    └── A
+    ├── lib/a.ex
+    └── lib/d.ex
+        └── lib/a.ex
     """
   end
 
-  test "graph: exclude erlang module" do
-    assert_graph ~w[--exclude :d], """
+  test "graph: exclude 1" do
+    assert_graph ~w[--exclude lib/d.ex], """
     sample application
-    ├── C
-    ├── B
-    │   └── A
-    │       └── B
-    └── A
+    ├── lib/a.ex
+    │   └── lib/b.ex
+    │       └── lib/a.ex
+    ├── lib/b.ex
+    └── lib/c.ex
     """
   end
 
   test "graph: dot format" do
     assert_graph ~w[--format dot], true, """
     digraph "xref graph" {
-      "sample application" -> ":d"
-      ":d" -> "A"
-      "A" -> "B"
-      "B" -> "A"
-      "sample application" -> "C"
-      "sample application" -> "B"
-      "sample application" -> "A"
+      "sample application" -> "lib/a.ex"
+      "lib/a.ex" -> "lib/b.ex"
+      "lib/b.ex" -> "lib/a.ex"
+      "sample application" -> "lib/b.ex"
+      "sample application" -> "lib/c.ex"
+      "sample application" -> "lib/d.ex"
+      "lib/d.ex" -> "lib/a.ex"
     }
     """
   end
 
   test "graph: source" do
-    assert_graph ~w[--source A], """
-    A
-    └── B
-        └── A
+    assert_graph ~w[--source lib/a.ex], """
+    lib/a.ex
+    └── lib/b.ex
+        └── lib/a.ex
     """
   end
 
+  test "graph: invalid source" do
+    assert_raise Mix.Error, "Source could not be found: lib/a2.ex", fn ->
+      assert_graph ~w[--source lib/a2.ex], ""
+    end
+  end
+
   test "graph: sink" do
-    assert_graph ~w[--sink B], """
-    B
-    └── A
-        ├── B
-        └── :d
+    assert_graph ~w[--sink lib/b.ex], """
+    lib/b.ex
+    └── lib/a.ex
+        ├── lib/d.ex
+        └── lib/b.ex
     """
+  end
+
+  test "graph: invalid sink" do
+    assert_raise Mix.Error, "Sink could not be found: lib/b2.ex", fn ->
+      assert_graph ~w[--sink lib/b2.ex], ""
+    end
+  end
+
+  test "graph: sink and source is error" do
+    assert_raise Mix.Error, "mix xref graph expects only one of --source and --sink", fn ->
+      assert_graph ~w[--source lib/a.ex --sink lib/b.ex], ""
+    end
   end
 
   defp assert_graph(opts \\ [], dot \\ false, expected) do
