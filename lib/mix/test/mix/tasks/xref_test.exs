@@ -420,7 +420,7 @@ defmodule Mix.Tasks.XrefTest do
 
   test "callers: no argument gives error" do
     in_fixture "no_mixfile", fn ->
-      message = "xref expects one of the following commands: warnings, unreachable, callers CALLEE"
+      message = "xref doesn't support this command, see mix help xref for more information"
 
       assert_raise Mix.Error, message, fn ->
         assert Mix.Task.run("xref", ["callers"]) == :error
@@ -465,40 +465,47 @@ defmodule Mix.Tasks.XrefTest do
 
   test "graph: basic usage" do
     assert_graph """
-    :d
+    sample application
+    ├── :d
+    │   └── A
+    │       └── B
+    │           └── A
+    ├── C
+    ├── B
     └── A
-        └── B
-            └── A
-    C
     """
   end
 
   test "graph: exclude elixir modules" do
     assert_graph ~w[--exclude C --exclude B], """
-    :d
+    sample application
+    ├── :d
+    │   └── A
     └── A
     """
   end
 
   test "graph: exclude erlang module" do
     assert_graph ~w[--exclude :d], """
-    C
-    B
+    sample application
+    ├── C
+    ├── B
+    │   └── A
+    │       └── B
     └── A
-        └── B
     """
   end
 
   test "graph: dot format" do
     assert_graph ~w[--format dot], true, """
     digraph "xref graph" {
-      ":d"
+      "sample application" -> ":d"
       ":d" -> "A"
       "A" -> "B"
       "B" -> "A"
-      "C"
-      "B"
-      "A"
+      "sample application" -> "C"
+      "sample application" -> "B"
+      "sample application" -> "A"
     }
     """
   end
@@ -558,7 +565,7 @@ defmodule Mix.Tasks.XrefTest do
           File.read!("xref_graph.dot")
         else
           assert "Compiling 4 files (.ex)\nGenerated sample app\n" <> result =
-            Enum.join(receive_until_no_messages(), "\n") <> "\n"
+            receive_until_no_messages([])
 
           result
         end
@@ -567,11 +574,11 @@ defmodule Mix.Tasks.XrefTest do
     end
   end
 
-  defp receive_until_no_messages(acc \\ []) do
+  defp receive_until_no_messages(acc) do
     receive do
-      {:mix_shell, :info, [line]} -> receive_until_no_messages([line | acc])
+      {:mix_shell, :info, [line]} -> receive_until_no_messages([acc, line | "\n"])
     after
-      0 -> Enum.reverse(acc)
+      0 -> IO.iodata_to_binary(acc)
     end
   end
 end

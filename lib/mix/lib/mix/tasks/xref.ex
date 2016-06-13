@@ -12,7 +12,7 @@ defmodule Mix.Tasks.Xref do
 
   ## Xref modes
 
-  The following commands are available:
+  The following commands and options are available:
 
     * `warnings` - prints warnings for violated cross reference checks
 
@@ -24,7 +24,27 @@ defmodule Mix.Tasks.Xref do
     * `graph` - prints the module reference graph. By default, an edge from `A` to `B` indicates
       that `A` depends on `B`
 
-  ## Command line options
+      * `--exclude` - modules to exclude. Use `Module` for Elixir modules,
+        and `:module` for Erlang modules
+
+      * `--source` - display only modules for which there is a path from the
+        given source module
+
+      * `--sink` - display only modules for which there is a path to the
+        given sink module. In this mode, an edge from `A` to `B` indicates `B` depends on `A`
+
+      * `--format` - can be set to one of:
+
+        * `pretty` - use Unicode codepoints for formatting the graph. This is the default except on
+          Windows
+
+        * `plain` - do not use Unicode codepoints for formatting the graph. This is the default on
+          Windows
+
+        * `dot` - produces a DOT graph description of the application tree in `xref_graph.dot` in the
+          current directory. Warning: this will override any previously generated file
+
+  ## Options for all commands
 
     * `--no-compile` - do not compile even if files require compilation
 
@@ -33,26 +53,6 @@ defmodule Mix.Tasks.Xref do
     * `--no-archives-check` - do not check archives
 
     * `--no-elixir-version-check` - do not check the Elixir version from mix.exs
-
-    * `--exclude` - for the `graph` command, modules to exclude. Use `Module` for elixir modules,
-      and `:module` for erlang modules
-
-    * `--source` - for the `graph` command, display only modules for which there is a path from the
-      given source module
-
-    * `--sink` - for the `graph` command, display only modules for which there is a path to the
-      given sink module. In this mode, an edge from `A` to `B` indicates `B` depends on `A`
-
-    * `--format` - for the `graph` command, can be set to one of:
-
-      * `pretty` - use Unicode codepoints for formatting the graph. This is the default except on
-        Windows
-
-      * `plain` - do not use Unicode codepoints for formatting the graph. This is the default on
-        Windows
-
-      * `dot` - produces a DOT graph description of the application tree in `xref_graph.dot` in the
-        current directory. Warning: this will override any previously generated file
 
   ## Configuration
 
@@ -89,7 +89,7 @@ defmodule Mix.Tasks.Xref do
       ["graph"] ->
         graph(opts)
       _ ->
-        Mix.raise "xref expects one of the following commands: warnings, unreachable, callers CALLEE"
+        Mix.raise "xref doesn't support this command, see mix help xref for more information"
     end
   end
 
@@ -343,9 +343,9 @@ defmodule Mix.Tasks.Xref do
       end
 
     Enum.reduce source_modules, [], fn {source, modules}, acc ->
-      source(runtime_references: r, compile_references: c) = source
+      source(runtime_references: runtime, compile_references: compile) = source
       references =
-        r ++ c ++ modules
+        runtime ++ compile ++ modules
         |> MapSet.new()
         |> MapSet.intersection(all_modules)
 
@@ -357,9 +357,10 @@ defmodule Mix.Tasks.Xref do
   end
 
   defp write_graph(module_references, excluded, opts) do
+    app_label = "#{Mix.Project.config[:app]} application"
     {root, module_references} =
       case {opts[:source], opts[:sink]} do
-        {nil, nil} -> {{nil, nil}, module_references}
+        {nil, nil} -> {{app_label, nil}, module_references}
         {source, nil} -> {{source, nil}, module_references}
         {nil, sink} -> {{sink, nil}, invert_references(module_references)}
         {_, _} -> Mix.raise "mix xref graph expects only one of --source and --sink"
@@ -367,8 +368,8 @@ defmodule Mix.Tasks.Xref do
 
     callback =
       fn
-        {nil, nil} ->
-          {{nil, nil}, Enum.map(module_references, &elem(&1, 0)) -- excluded}
+        {^app_label, nil} ->
+          {{app_label, nil}, Enum.map(module_references, &elem(&1, 0)) -- excluded}
 
         {module, nil} ->
           {_, children} = List.keyfind(module_references, {module, nil}, 0, {{module, nil}, []})
@@ -378,13 +379,15 @@ defmodule Mix.Tasks.Xref do
     if opts[:format] == "dot" do
       Mix.Utils.write_dot_graph!("xref_graph.dot", "xref graph",
                                  root, callback, opts)
-      Mix.shell.info """
-        Generated "xref_graph.dot" in the current directory. To generate a PNG:
+      """
+      Generated "xref_graph.dot" in the current directory. To generate a PNG:
 
-           dot -Tpng xref_graph.dot -o xref_graph.png
+         dot -Tpng xref_graph.dot -o xref_graph.png
 
-        For more options see http://www.graphviz.org/.
-        """ |> String.strip
+      For more options see http://www.graphviz.org/.
+      """
+      |> String.trim_trailing()
+      |> Mix.shell.info()
     else
       Mix.Utils.print_tree(root, callback, opts)
     end
