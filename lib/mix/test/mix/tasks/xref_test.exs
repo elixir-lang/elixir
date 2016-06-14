@@ -467,12 +467,12 @@ defmodule Mix.Tasks.XrefTest do
     assert_graph """
     sample application
     ├── lib/a.ex
-    │   └── lib/b.ex
-    │       └── lib/a.ex
+    │   └── lib/b.ex (runtime)
+    │       └── lib/a.ex (runtime)
     ├── lib/b.ex
     ├── lib/c.ex
     └── lib/d.ex
-        └── lib/a.ex
+        └── lib/a.ex (compile)
     """
   end
 
@@ -481,7 +481,7 @@ defmodule Mix.Tasks.XrefTest do
     sample application
     ├── lib/a.ex
     └── lib/d.ex
-        └── lib/a.ex
+        └── lib/a.ex (compile)
     """
   end
 
@@ -489,8 +489,8 @@ defmodule Mix.Tasks.XrefTest do
     assert_graph ~w[--exclude lib/d.ex], """
     sample application
     ├── lib/a.ex
-    │   └── lib/b.ex
-    │       └── lib/a.ex
+    │   └── lib/b.ex (runtime)
+    │       └── lib/a.ex (runtime)
     ├── lib/b.ex
     └── lib/c.ex
     """
@@ -500,12 +500,12 @@ defmodule Mix.Tasks.XrefTest do
     assert_graph ~w[--format dot], true, """
     digraph "xref graph" {
       "sample application" -> "lib/a.ex"
-      "lib/a.ex" -> "lib/b.ex"
-      "lib/b.ex" -> "lib/a.ex"
+      "lib/a.ex" -> "lib/b.ex" [label="(runtime)"]
+      "lib/b.ex" -> "lib/a.ex" [label="(runtime)"]
       "sample application" -> "lib/b.ex"
       "sample application" -> "lib/c.ex"
       "sample application" -> "lib/d.ex"
-      "lib/d.ex" -> "lib/a.ex"
+      "lib/d.ex" -> "lib/a.ex" [label="(compile)"]
     }
     """
   end
@@ -513,8 +513,8 @@ defmodule Mix.Tasks.XrefTest do
   test "graph: source" do
     assert_graph ~w[--source lib/a.ex], """
     lib/a.ex
-    └── lib/b.ex
-        └── lib/a.ex
+    └── lib/b.ex (runtime)
+        └── lib/a.ex (runtime)
     """
   end
 
@@ -527,9 +527,9 @@ defmodule Mix.Tasks.XrefTest do
   test "graph: sink" do
     assert_graph ~w[--sink lib/b.ex], """
     lib/b.ex
-    └── lib/a.ex
-        ├── lib/d.ex
-        └── lib/b.ex
+    └── lib/a.ex (runtime)
+        ├── lib/d.ex (compile)
+        └── lib/b.ex (runtime)
     """
   end
 
@@ -552,6 +552,8 @@ defmodule Mix.Tasks.XrefTest do
         def a do
           B.a
         end
+
+        def b, do: :ok
       end
       """
 
@@ -570,9 +572,7 @@ defmodule Mix.Tasks.XrefTest do
 
       File.write! "lib/d.ex", """
       defmodule :d do
-        def a do
-          A.a
-        end
+        A.b
       end
       """
 

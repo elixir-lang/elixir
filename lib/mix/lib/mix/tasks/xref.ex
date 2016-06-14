@@ -323,7 +323,7 @@ defmodule Mix.Tasks.Xref do
 
   defp excluded(opts) do
     Keyword.get_values(opts, :exclude)
-    |> Enum.map(&{&1, nil})
+    |> Enum.flat_map(&[{&1, nil}, {&1, "(compile)"}, {&1, "(runtime)"}])
   end
 
   defp file_references() do
@@ -339,14 +339,21 @@ defmodule Mix.Tasks.Xref do
 
     Map.new module_sources, fn {module, source} ->
       source(runtime_references: runtime, compile_references: compile, source: file) = source
-      references =
-        runtime ++ compile
+      compile_references =
+        compile
         |> MapSet.new()
-        |> MapSet.intersection(all_modules)
         |> MapSet.delete(module)
-        |> Enum.map(&{source(module_sources[&1], :source), nil})
+        |> MapSet.intersection(all_modules)
+        |> Enum.map(&{source(module_sources[&1], :source), "(compile)"})
 
-      {{file, nil}, references}
+      runtime_references =
+        runtime
+        |> MapSet.new()
+        |> MapSet.delete(module)
+        |> MapSet.intersection(all_modules)
+        |> Enum.map(&{source(module_sources[&1], :source), "(runtime)"})
+
+      {file, compile_references ++ runtime_references}
     end
   end
 
@@ -358,14 +365,14 @@ defmodule Mix.Tasks.Xref do
           {{app_label, nil}, file_references}
 
         {source, nil} ->
-          if file_references[{source, nil}] do
+          if file_references[source] do
             {{source, nil}, file_references}
           else
             Mix.raise "Source could not be found: #{source}"
           end
 
         {nil, sink} ->
-          if file_references[{sink, nil}] do
+          if file_references[sink] do
             {{sink, nil}, file_references |> invert_references()}
           else
             Mix.raise "Sink could not be found: #{sink}"
@@ -378,11 +385,11 @@ defmodule Mix.Tasks.Xref do
     callback =
       fn
         {^app_label, nil} ->
-          {{app_label, nil}, Enum.map(file_references, &elem(&1, 0)) -- excluded}
+          {{app_label, nil}, Enum.map(file_references, &{elem(&1, 0), nil}) -- excluded}
 
-        {file, nil} ->
-          children = Map.get(file_references, {file, nil}, [])
-          {{file, nil}, children -- excluded}
+        {file, type} ->
+          children = Map.get(file_references, file, [])
+          {{file, type}, children -- excluded}
       end
 
     if opts[:format] == "dot" do
@@ -404,8 +411,8 @@ defmodule Mix.Tasks.Xref do
 
   defp invert_references(file_references) do
     Enum.reduce file_references, %{}, fn {file, references}, acc ->
-      Enum.reduce references, acc, fn reference, acc ->
-        Map.update(acc, reference, [file], &[file | &1])
+      Enum.reduce references, acc, fn {reference, type}, acc ->
+        Map.update(acc, reference, [{file, type}], &[{file, type} | &1])
       end
     end
   end
