@@ -16,6 +16,11 @@ defmodule Kernel.DialyzerTest do
       |> Path.join("base_plt")
       |> String.to_charlist()
 
+    # Some OSs (like Windows) do not provide the HOME environment variable.
+    unless System.get_env("HOME") do
+      System.put_env("HOME", System.user_home())
+    end
+
     # Add a few key elixir modules for types
     files = Enum.map([Kernel, String, Keyword, Exception], &:code.which/1)
     :dialyzer.run([analysis_type: :plt_build, output_plt: plt,
