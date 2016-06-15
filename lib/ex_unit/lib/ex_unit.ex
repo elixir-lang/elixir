@@ -105,12 +105,11 @@ defmodule ExUnit do
   end
 
   defmodule TimeoutError do
-    defexception [:timeout]
+    defexception [:timeout, :type]
 
-    def message(timeout)
-    def message(%{timeout: timeout}) do
+    def message(%{timeout: timeout, type: type}) do
       """
-      test timed out after #{timeout}ms. You can change the timeout:
+      #{type} timed out after #{timeout}ms. You can change the timeout:
 
         1. per test by setting "@tag timeout: x"
         2. per case by setting "@moduletag timeout: x"

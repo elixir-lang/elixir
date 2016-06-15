@@ -23,15 +23,15 @@ defmodule ExUnit.OnExitHandler do
     end)
   end
 
-  @spec run(pid) :: :ok | {Exception.kind, term, Exception.stacktrace}
-  def run(pid) do
+  @spec run(pid, non_neg_integer | :infinity) :: :ok | {Exception.kind, term, Exception.stacktrace}
+  def run(pid, timeout) do
     callbacks = Agent.get_and_update(@name, &Map.pop(&1, pid))
-    exec_on_exit_callbacks(Enum.reverse(callbacks))
+    exec_on_exit_callbacks(Enum.reverse(callbacks), timeout)
   end
 
-  defp exec_on_exit_callbacks(callbacks) do
+  defp exec_on_exit_callbacks(callbacks, timeout) do
     {runner_pid, runner_monitor, state} =
-      Enum.reduce callbacks, {nil, nil, nil}, &exec_on_exit_callback/2
+      Enum.reduce(callbacks, {nil, nil, nil}, &exec_on_exit_callback(&1, timeout, &2))
 
     if is_pid(runner_pid) and Process.alive?(runner_pid) do
       send(runner_pid, :shutdown)
@@ -43,7 +43,7 @@ defmodule ExUnit.OnExitHandler do
     state || :ok
   end
 
-  defp exec_on_exit_callback({_ref, callback}, {runner_pid, runner_monitor, state}) do
+  defp exec_on_exit_callback({_ref, callback}, timeout, {runner_pid, runner_monitor, state}) do
     {runner_pid, runner_monitor} = ensure_alive_callback_runner(runner_pid, runner_monitor)
     send(runner_pid, {:run, self(), callback})
 
@@ -54,6 +54,19 @@ defmodule ExUnit.OnExitHandler do
         {runner_pid, runner_monitor, state || error}
       {:DOWN, ^runner_monitor, :process, ^runner_pid, error} ->
         {nil, nil, state || {{:EXIT, runner_pid}, error, []}}
+    after
+      timeout ->
+        stacktrace =
+          case Process.info(runner_pid, :current_stacktrace) do
+            {:current_stacktrace, stacktrace} ->
+              stacktrace
+            nil ->
+              []
+          end
+        Process.exit(runner_pid, :kill)
+        Process.demonitor(runner_monitor, [:flush])
+        exception = ExUnit.TimeoutError.exception(timeout: timeout, type: :on_exit)
+        {nil, nil, state || {:error, exception, stacktrace}}
     end
   end
 
