@@ -1181,11 +1181,11 @@ defmodule Enum do
   @spec map(t, (element -> any)) :: list
   def map(enumerable, fun)
 
-  def map(enumerable, fun) when is_list(enumerable) and is_function(fun) do
+  def map(enumerable, fun) when is_list(enumerable) and is_function(fun, 1) do
     :lists.map(fun, enumerable)
   end
 
-  def map(enumerable, fun) when is_function(fun) do
+  def map(enumerable, fun) when is_function(fun, 1) do
     reduce(enumerable, [], R.map(fun)) |> :lists.reverse
   end
 
