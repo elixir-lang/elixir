@@ -111,7 +111,7 @@ handle_capture(false, Meta, Expr, E, Sequential) ->
   do_capture(Meta, Expr, E, Sequential).
 
 do_capture(Meta, Expr, E, Sequential) ->
-  case do_escape(Expr, elixir_counter:next(), E, []) of
+  case do_escape(Expr, erlang:unique_integer(), E, []) of
     {_, []} when not Sequential ->
       invalid_capture(Meta, Expr, E);
     {EExpr, EDict} ->
