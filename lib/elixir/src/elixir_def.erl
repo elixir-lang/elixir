@@ -318,20 +318,16 @@ store_each(Check, Kind, File, Location, Module, Defaults, {function, Ann, Name, 
   Tuple   = {Name, Arity},
   HasBody = Clauses =/= [],
 
-  case ets:take(Defs, {def, Tuple}) of
+  {FinalAnn, FinalLocation, FinalDefaults} = case ets:take(Defs, {def, Tuple}) of
     [{_, StoredKind, StoredAnn, StoredFile, StoredCheck,
         StoredLocation, {StoredDefaults, LastHasBody, LastDefaults}}] ->
-      FinalAnn = StoredAnn,
-      FinalLocation = StoredLocation,
-      FinalDefaults = {max(Defaults, StoredDefaults), HasBody, Defaults},
       check_valid_kind(Ann, File, Name, Arity, Kind, StoredKind),
       (Check and StoredCheck) andalso
         check_valid_clause(Ann, File, Name, Arity, Kind, Data, StoredAnn, StoredFile),
-      check_valid_defaults(Ann, File, Name, Arity, Kind, Defaults, StoredDefaults, LastDefaults, LastHasBody);
+      check_valid_defaults(Ann, File, Name, Arity, Kind, Defaults, StoredDefaults, LastDefaults, LastHasBody),
+      {StoredAnn, StoredLocation, {max(Defaults, StoredDefaults), HasBody, Defaults}};
     [] ->
-      FinalAnn = Ann,
-      FinalLocation = Location,
-      FinalDefaults = {Defaults, HasBody, Defaults}
+      {Ann, Location, {Defaults, HasBody, Defaults}}
   end,
 
   Check andalso ets:insert(Data, {?last_def, {Name, Arity}}),
