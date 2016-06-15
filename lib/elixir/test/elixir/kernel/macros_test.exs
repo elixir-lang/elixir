@@ -48,7 +48,7 @@ defmodule Kernel.MacrosTest do
     assert_raise UndefinedFunctionError, fn -> x.value end
   end
 
-  test "bang do block" do
+  test "macros with bang and do block have proper precedence" do
     import Kernel.MacrosTest.Nested
     assert (do_identity! do 1 end) == 1
     assert (Kernel.MacrosTest.Nested.do_identity! do 1 end) == 1

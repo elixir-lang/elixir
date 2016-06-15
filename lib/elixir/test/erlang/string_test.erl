@@ -15,7 +15,6 @@ extract_interpolations(String) ->
       Z
    end.
 
-
 % Interpolations
 
 extract_interpolations_without_interpolation_test() ->

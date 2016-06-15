@@ -8,7 +8,7 @@ translate(Meta, Clauses, S) ->
     {Args, Guards} = elixir_clauses:extract_splat_guards(ArgsWithGuards),
     {TClause, TS } = elixir_clauses:clause(CMeta, fun translate_fn_match/2,
                                             Args, Expr, Guards, Acc),
-    {TClause, elixir_scope:mergef(S, TS)}
+    {TClause, elixir_scope:mergec(S, TS)}
   end,
 
   {TClauses, NS} = lists:mapfoldl(Transformer, S, Clauses),
