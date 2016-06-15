@@ -12,38 +12,70 @@ defmodule Mix.Tasks.Xref do
 
   ## Xref modes
 
-  The following commands and options are available:
+  The `xref` task expects a mode as first argument:
+  
+      mix xref MODE
+  
+  All modes available are discussed below.
+  
+  ### warnings
 
-    * `warnings` - prints warnings for violated cross reference checks
+  Prints warnings for violated cross reference checks:
+  
+      mix xref warnings
+  
+  This is the mode used by Mix during compilation.
 
-    * `unreachable` - prints all unreachable "file:line: module.function/arity" entries
+  ### unreachable
 
-    * `callers CALLEE` - prints all references of `CALLEE`, which can be one of: `Module`,
-      `Module.function`, or `Module.function/arity`
+  Prints all unreachable "file:line: module.function/arity" entries:
+  
+      mix xref unreachable
+  
+  The "file:line" represents the file and line a call to an unknown
+  "module.function/arity" is made.
+  
+  ### callers CALLEE
 
-    * `graph` - prints the file reference graph. By default, an edge from `A` to `B` indicates
-      that `A` depends on `B`
+  Prints all callers of the given `CALLEE`, which can be one of: `Module`,
+  `Module.function`, or `Module.function/arity`. Examples:
 
-      * `--exclude` - paths to exclude
+      mix xref callers MyMod
+      mix xref callers MyMod.fun
+      mix xref callers MyMod.fun/3
 
-      * `--source` - display only files for which there is a path from the
-        given source file
+  ### graph
 
-      * `--sink` - display only files for which there is a path to the
-        given sink file.
+  Prints a file dependency graph where an edge from `A` to `B` indicates
+  that `A` depends on `B`.
+ 
+      mix xref graph --format dot
 
-      * `--format` - can be set to one of:
+  The following options are accepted:
 
-        * `pretty` - use Unicode codepoints for formatting the graph. This is the default except on
-          Windows
+    * `--exclude` - paths to exclude
 
-        * `plain` - do not use Unicode codepoints for formatting the graph. This is the default on
-          Windows
+    * `--source` - display all files that the given source file references (directly or indirectly)
 
-        * `dot` - produces a DOT graph description in `xref_graph.dot` in the
-          current directory. Warning: this will override any previously generated file
+    * `--sink` - display all files that references the given file (directly or indirectly)
 
-  ## Options for all commands
+    * `--format` - can be set to one of:
+
+      * `pretty` - use Unicode codepoints for formatting the graph.
+        This is the default except on Windows
+
+      * `plain` - do not use Unicode codepoints for formatting the graph.
+        This is the default on Windows
+
+      * `dot` - produces a DOT graph description in `xref_graph.dot` in the
+        current directory. Warning: this will override any previously generated file
+
+  The `--source` and `--sink` options are particularly useful to understand how
+  the modules in a particule file interact with the whole system.
+
+  ## Shared options
+
+  Those options are shared across all modes:
 
     * `--no-compile` - do not compile even if files require compilation
 
@@ -55,7 +87,7 @@ defmodule Mix.Tasks.Xref do
 
   ## Configuration
 
-    All configuration for Xref should be placed under the key `:xref`.
+  All configuration for Xref should be placed under the key `:xref`.
 
     * `:exclude` - a list of modules and `{module, function, arity}` tuples to ignore when checking
       cross references. For example: `[MissingModule, {MissingModule2, :missing_func, 2}]`
