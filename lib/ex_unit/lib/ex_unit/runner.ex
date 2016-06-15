@@ -271,12 +271,11 @@ defmodule ExUnit.Runner do
       after
         timeout ->
           stacktrace =
-            try do
-              Process.info(test_pid, :current_stacktrace)
-            catch
-              _, _ -> []
-            else
-              {:current_stacktrace, stacktrace} -> stacktrace
+            case Process.info(test_pid, :current_stacktrace) do
+              {:current_stacktrace, stacktrace} ->
+                stacktrace
+              nil ->
+                []
             end
           Process.exit(test_pid, :kill)
           Process.demonitor(test_ref, [:flush])
