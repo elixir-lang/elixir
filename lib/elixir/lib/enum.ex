@@ -2859,7 +2859,7 @@ defimpl Enumerable, for: Map do
     {:ok, false}
   end
 
-  def reduce(map, acc, fun) when is_function(fun, 2) do
+  def reduce(map, acc, fun) do
     do_reduce(:maps.to_list(map), acc, fun)
   end
 
