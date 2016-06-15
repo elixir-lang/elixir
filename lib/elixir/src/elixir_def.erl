@@ -218,7 +218,7 @@ is_macro(_)         -> false.
 unwrap_definitions(File, Module) ->
   Table = elixir_module:defs_table(Module),
   Entries = ets:match(Table, {{def, '$1'}, '_', '_', '_', '_', '_', '_'}),
-  {All, Private} = unwrap_definition(Entries, File, Module, Table, [], []),
+  {All, Private} = unwrap_definition(lists:sort(Entries), File, Module, Table, [], []),
   Unreachable = elixir_locals:warn_unused_local(File, Module, Private),
   split_definition(All, Unreachable, [], [], [], [], [], {[], []}).
 
