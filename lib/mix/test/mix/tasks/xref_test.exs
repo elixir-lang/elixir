@@ -420,7 +420,7 @@ defmodule Mix.Tasks.XrefTest do
 
   test "callers: no argument gives error" do
     in_fixture "no_mixfile", fn ->
-      message = "xref expects one of the following commands: warnings, unreachable, callers CALLEE"
+      message = "xref doesn't support this command, see mix help xref for more information"
 
       assert_raise Mix.Error, message, fn ->
         assert Mix.Task.run("xref", ["callers"]) == :error
@@ -458,6 +458,144 @@ defmodule Mix.Tasks.XrefTest do
       assert capture_io(fn ->
         assert Mix.Task.run("xref", ["callers", callee]) == :ok
       end) == expected
+    end
+  end
+
+  ## Graph
+
+  test "graph: basic usage" do
+    assert_graph """
+    lib/a.ex
+    └── lib/b.ex
+        └── lib/a.ex
+    lib/b.ex
+    lib/c.ex
+    lib/d.ex
+    └── lib/a.ex (compile)
+    """
+  end
+
+  test "graph: exclude" do
+    assert_graph ~w[--exclude lib/c.ex --exclude lib/b.ex], """
+    lib/a.ex
+    lib/d.ex
+    └── lib/a.ex (compile)
+    """
+  end
+
+  test "graph: exclude 1" do
+    assert_graph ~w[--exclude lib/d.ex], """
+    lib/a.ex
+    └── lib/b.ex
+        └── lib/a.ex
+    lib/b.ex
+    lib/c.ex
+    """
+  end
+
+  test "graph: dot format" do
+    assert_graph ~w[--format dot], true, """
+    digraph "xref graph" {
+      "lib/a.ex"
+      "lib/a.ex" -> "lib/b.ex"
+      "lib/b.ex" -> "lib/a.ex"
+      "lib/b.ex"
+      "lib/c.ex"
+      "lib/d.ex"
+      "lib/d.ex" -> "lib/a.ex" [label="(compile)"]
+    }
+    """
+  end
+
+  test "graph: source" do
+    assert_graph ~w[--source lib/a.ex], """
+    lib/a.ex
+    └── lib/b.ex
+        └── lib/a.ex
+    """
+  end
+
+  test "graph: invalid source" do
+    assert_raise Mix.Error, "Source could not be found: lib/a2.ex", fn ->
+      assert_graph ~w[--source lib/a2.ex], ""
+    end
+  end
+
+  test "graph: sink" do
+    assert_graph ~w[--sink lib/b.ex], """
+    lib/a.ex
+    └── lib/b.ex
+        └── lib/a.ex
+    lib/d.ex
+    └── lib/a.ex (compile)
+    """
+  end
+
+  test "graph: invalid sink" do
+    assert_raise Mix.Error, "Sink could not be found: lib/b2.ex", fn ->
+      assert_graph ~w[--sink lib/b2.ex], ""
+    end
+  end
+
+  test "graph: sink and source is error" do
+    assert_raise Mix.Error, "mix xref graph expects only one of --source and --sink", fn ->
+      assert_graph ~w[--source lib/a.ex --sink lib/b.ex], ""
+    end
+  end
+
+  defp assert_graph(opts \\ [], dot \\ false, expected) do
+    in_fixture "no_mixfile", fn ->
+      File.write! "lib/a.ex", """
+      defmodule A do
+        def a do
+          B.a
+        end
+
+        def b, do: :ok
+      end
+      """
+
+      File.write! "lib/b.ex", """
+      defmodule B do
+        def a do
+          A.a
+          B.a
+        end
+      end
+      """
+
+      File.write! "lib/c.ex", """
+      defmodule C do
+      end
+      """
+
+      File.write! "lib/d.ex", """
+      defmodule :d do
+        A.b
+      end
+      """
+
+      assert Mix.Task.run("xref", opts ++ ["graph"]) == :ok
+
+      result =
+        if dot do
+          File.read!("xref_graph.dot")
+        else
+          assert "Compiling 4 files (.ex)\nGenerated sample app\n" <> result =
+            receive_until_no_messages([])
+
+          result
+        end
+
+      assert result == expected
+    end
+  end
+
+  defp receive_until_no_messages(acc) do
+    receive do
+      {:mix_shell, :info, [line]} -> receive_until_no_messages([acc, line | "\n"])
+    after
+      0 -> IO.iodata_to_binary(acc)
     end
   end
 end

@@ -87,6 +87,7 @@ defmodule Mix.Tasks.App.TreeTest do
 
       assert File.read!("app_tree.dot") == """
         digraph "application tree" {
+          "test"
           "test" -> "elixir"
           "test" -> "logger"
           "logger" -> "elixir"

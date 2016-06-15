@@ -142,31 +142,40 @@ defmodule Mix.Utils do
     end) |> Enum.uniq
   end
 
+  @type tree_node :: {name :: String.Chars.t, edge_info :: String.Chars.t}
+
   @doc """
   Prints the given tree according to the callback.
 
   The callback will be invoked for each node and it
-  must either return `{printed, children}` tuple or
-  `false` if the given node must not be printed.
+  must return a `{printed, children}` tuple.
   """
-  @spec print_tree(term, (term -> {String.t, [term]}), Keyword.t) :: :ok
-  def print_tree(root, callback, opts \\ []) do
+  @spec print_tree([tree_node], (tree_node -> {tree_node, [tree_node]}), Keyword.t) :: :ok
+  def print_tree(nodes, callback, opts \\ []) do
     pretty =
       case Keyword.get(opts, :format) do
         "pretty" -> true
         "plain" -> false
         _ -> elem(:os.type, 0) != :win32
       end
-    print_tree([root], [], pretty, callback)
+    print_tree(nodes, [], nil, MapSet.new(), pretty, callback)
+
+    :ok
   end
 
-  defp print_tree([], _depth, _pretty, _callback), do: :ok
-  defp print_tree([node | nodes], depth, pretty, callback) do
-    {{name, info}, children} =  callback.(node)
-    space = if info, do: " ", else: ""
-    Mix.shell.info("#{depth(pretty, depth)}#{prefix(pretty, depth, nodes)}#{name}#{space}#{info}")
-    print_tree(children, [(nodes != []) | depth], pretty, callback)
-    print_tree(nodes, depth, pretty, callback)
+  defp print_tree([], _depth, _parent, seen, _pretty, _callback), do: seen
+  defp print_tree([node | nodes], depth, parent, seen, pretty, callback) do
+    {{name, info}, children} = callback.(node)
+    key = {parent, name}
+
+    if MapSet.member?(seen, key) do
+      seen
+    else
+      space = if info, do: " ", else: ""
+      Mix.shell.info("#{depth(pretty, depth)}#{prefix(pretty, depth, nodes)}#{name}#{space}#{info}")
+      seen = print_tree(children, [(nodes != []) | depth], name, MapSet.put(seen, key), pretty, callback)
+      print_tree(nodes, depth, parent, seen, pretty, callback)
+    end
   end
 
   defp depth(_pretty, []),    do: ""
@@ -188,37 +197,42 @@ defmodule Mix.Utils do
   Outputs the given tree according to the callback as a DOT graph.
 
   The callback will be invoked for each node and it
-  must either return `{printed, children}` tuple or
-  `false` if the given node must not be printed.
+  must return a `{printed, children}` tuple.
   """
-  @spec write_dot_graph!(Path.t, String.t, term, (term -> {String.t, [term]}), Keyword.t) :: :ok
-  def write_dot_graph!(path, title, root, callback, _opts \\ []) do
-    {{parent, _}, children} = callback.(root)
-    {dot, _} = build_dot_graph(parent, children, %{}, callback)
+  @spec write_dot_graph!(Path.t, String.t, [tree_node], (tree_node -> {tree_node, [tree_node]}), Keyword.t) :: :ok
+  def write_dot_graph!(path, title, nodes, callback, _opts \\ []) do
+    {dot, _} = build_dot_graph(make_ref(), nodes, MapSet.new(), callback)
     File.write! path, "digraph \"#{title}\" {\n#{dot}}\n"
   end
 
   defp build_dot_graph(_parent, [], seen, _callback), do: {"", seen}
   defp build_dot_graph(parent, [node | nodes], seen, callback) do
     {{name, edge_info}, children} = callback.(node)
-    {current, seen}  = build_dot_current(parent, name, edge_info, seen)
-    {children, seen} = build_dot_graph(name, children, seen, callback)
-    {siblings, seen} = build_dot_graph(parent, nodes, seen, callback)
-    {current <> children <> siblings, seen}
+    key = {parent, name}
+
+    if MapSet.member?(seen, key) do
+      {"", seen}
+    else
+      seen = MapSet.put(seen, key)
+      current = build_dot_current(parent, name, edge_info)
+      {children, seen} = build_dot_graph(name, children, seen, callback)
+      {siblings, seen} = build_dot_graph(parent, nodes, seen, callback)
+      {current <> children <> siblings, seen}
+    end
   end
 
-  defp build_dot_current(parent, name, edge_info, seen) do
-    key = {parent, name}
-    case seen do
-      %{^key => _} ->
-        {"", seen}
-      %{} when is_nil(edge_info) ->
-        {~s(  "#{parent}" -> "#{name}"\n),
-         Map.put(seen, key, true)}
-      %{} ->
-        {~s(  "#{parent}" -> "#{name}" [label=\"#{edge_info}\"]\n),
-         Map.put(seen, key, true)}
-    end
+  defp build_dot_current(parent, name, edge_info) do
+    edge_info =
+      if edge_info do
+         ~s( [label="#{edge_info}"])
+      end
+
+    parent =
+      unless is_reference(parent) do
+        ~s("#{parent}" -> )
+      end
+
+    ~s(  #{parent}"#{name}"#{edge_info}\n)
   end
 
   @doc false
