@@ -804,12 +804,12 @@ defmodule Enum do
     (element -> element)) :: list
 
   def filter_map(enumerable, filter, mapper)
-  when is_list(enumerable) and is_function(filter, 1) and is_function(mapper, 1) do
+      when is_list(enumerable) and is_function(filter, 1) and is_function(mapper, 1) do
     for item <- enumerable, filter.(item), do: mapper.(item)
   end
 
   def filter_map(enumerable, filter, mapper)
-  when is_function(filter, 1) and is_function(mapper, 1) do
+      when is_function(filter, 1) and is_function(mapper, 1) do
     reduce(enumerable, [], R.filter_map(filter, mapper))
     |> :lists.reverse
   end
