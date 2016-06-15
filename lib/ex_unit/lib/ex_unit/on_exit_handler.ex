@@ -57,12 +57,11 @@ defmodule ExUnit.OnExitHandler do
     after
       timeout ->
         stacktrace =
-          try do
-            Process.info(runner_pid, :current_stacktrace)
-          catch
-            _, _ -> []
-          else
-            {:current_stacktrace, stacktrace} -> stacktrace
+          case Process.info(runner_pid, :current_stacktrace) do
+            {:current_stacktrace, stacktrace} ->
+              stacktrace
+            nil ->
+              []
           end
         Process.exit(runner_pid, :kill)
         Process.demonitor(runner_monitor, [:flush])
