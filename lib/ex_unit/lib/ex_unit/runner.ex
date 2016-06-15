@@ -182,7 +182,8 @@ defmodule ExUnit.Runner do
           {test_case, []}
       end
 
-    {exec_on_exit(test_case, case_pid), pending}
+    timeout = get_timeout(%{}, config)
+    {exec_on_exit(test_case, case_pid, timeout), pending}
   end
 
   defp exec_case_setup(%ExUnit.TestCase{name: case_name} = test_case) do
@@ -270,19 +271,19 @@ defmodule ExUnit.Runner do
       after
         timeout ->
           stacktrace =
-            try do
-              Process.info(test_pid, :current_stacktrace)
-            catch
-              _, _ -> []
-            else
-              {:current_stacktrace, stacktrace} -> stacktrace
+            case Process.info(test_pid, :current_stacktrace) do
+              {:current_stacktrace, stacktrace} ->
+                stacktrace
+              nil ->
+                []
             end
           Process.exit(test_pid, :kill)
           Process.demonitor(test_ref, [:flush])
-          %{test | state: failed(:error, %ExUnit.TimeoutError{timeout: timeout}, stacktrace)}
+          exception = ExUnit.TimeoutError.exception(timeout: timeout, type: test.tags.type)
+          %{test | state: failed(:error, exception, stacktrace)}
       end
 
-    exec_on_exit(test, test_pid)
+    exec_on_exit(test, test_pid, timeout)
   end
 
   defp exec_test_setup(%ExUnit.Test{case: case} = test, context) do
@@ -300,8 +301,8 @@ defmodule ExUnit.Runner do
       %{test | state: failed(kind, error, pruned_stacktrace())}
   end
 
-  defp exec_on_exit(test_or_case, pid) do
-    case ExUnit.OnExitHandler.run(pid) do
+  defp exec_on_exit(test_or_case, pid, timeout) do
+    case ExUnit.OnExitHandler.run(pid, timeout) do
       :ok ->
         test_or_case
       {kind, reason, stack} ->
