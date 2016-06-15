@@ -2,8 +2,7 @@
 -module(elixir_scope).
 -export([translate_var/4, build_var/2, context_info/1,
   load_binding/2, dump_binding/2,
-  mergev/2, mergec/2, mergef/2,
-  merge_vars/2, merge_opt_vars/2,
+  mergev/2, mergec/2, merge_vars/2, merge_opt_vars/2,
   warn_unsafe_var/4, warn_underscored_var_access/3, format_error/1
 ]).
 -include("elixir.hrl").
@@ -124,14 +123,6 @@ mergev(S1, S2) ->
 mergec(S1, S2) ->
   S1#elixir_scope{
     counter=S2#elixir_scope.counter,
-    super=S2#elixir_scope.super,
-    caller=S2#elixir_scope.caller
- }.
-
-%% Similar to mergec but does not merge the user vars counter.
-
-mergef(S1, S2) ->
-  S1#elixir_scope{
     super=S2#elixir_scope.super,
     caller=S2#elixir_scope.caller
  }.
