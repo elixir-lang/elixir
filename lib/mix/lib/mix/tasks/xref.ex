@@ -16,7 +16,7 @@ defmodule Mix.Tasks.Xref do
   
       mix xref MODE
   
-  All modes available are discussed below.
+  All available modes are discussed below.
   
   ### warnings
 
@@ -57,7 +57,7 @@ defmodule Mix.Tasks.Xref do
 
     * `--source` - display all files that the given source file references (directly or indirectly)
 
-    * `--sink` - display all files that references the given file (directly or indirectly)
+    * `--sink` - display all files that reference the given file (directly or indirectly)
 
     * `--format` - can be set to one of:
 
@@ -70,8 +70,8 @@ defmodule Mix.Tasks.Xref do
       * `dot` - produces a DOT graph description in `xref_graph.dot` in the
         current directory. Warning: this will override any previously generated file
 
-  The `--source` and `--sink` options are particularly useful to understand how
-  the modules in a particule file interact with the whole system.
+  The `--source` and `--sink` options are particularly useful when trying to understand how
+  the modules in a particular file interact with the whole system.
 
   ## Shared options
 
