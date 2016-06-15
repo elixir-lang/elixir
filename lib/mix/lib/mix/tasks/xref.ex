@@ -26,11 +26,11 @@ defmodule Mix.Tasks.Xref do
 
       * `--exclude` - paths to exclude
 
-      * `--source` - display only modules for which there is a path from the
-        given source module
+      * `--source` - display only files for which there is a path from the
+        given source file
 
-      * `--sink` - display only modules for which there is a path to the
-        given sink module. In this mode, an edge from `A` to `B` indicates `B` depends on `A`
+      * `--sink` - display only files for which there is a path to the
+        given sink file.
 
       * `--format` - can be set to one of:
 
@@ -374,7 +374,12 @@ defmodule Mix.Tasks.Xref do
 
         {nil, sink} ->
           if file_references[sink] do
-            {[{sink, nil}], file_references |> invert_references()}
+            file_references = filter_for_sink(file_references, sink)
+            roots =
+              file_references
+              |> Map.delete(sink)
+              |> Enum.map(&{elem(&1, 0), nil})
+            {roots -- excluded, file_references}
           else
             Mix.raise "Sink could not be found: #{sink}"
           end
@@ -403,6 +408,24 @@ defmodule Mix.Tasks.Xref do
       |> Mix.shell.info()
     else
       Mix.Utils.print_tree(root, callback, opts)
+    end
+  end
+
+  defp filter_for_sink(file_references, sink) do
+    file_references
+    |> invert_references()
+    |> do_filter_for_sink([{sink, nil}], %{})
+    |> invert_references()
+  end
+
+  defp do_filter_for_sink(file_references, new_nodes, acc) do
+    Enum.reduce new_nodes, acc, fn {new_node_name, _type}, acc ->
+      new_nodes = file_references[new_node_name]
+      if acc[new_node_name] || !new_nodes do
+        acc
+      else
+        do_filter_for_sink(file_references, new_nodes, Map.put(acc, new_node_name, new_nodes))
+      end
     end
   end
 

@@ -523,10 +523,11 @@ defmodule Mix.Tasks.XrefTest do
 
   test "graph: sink" do
     assert_graph ~w[--sink lib/b.ex], """
-    lib/b.ex
-    └── lib/a.ex
-        ├── lib/d.ex (compile)
-        └── lib/b.ex
+    lib/a.ex
+    └── lib/b.ex
+        └── lib/a.ex
+    lib/d.ex
+    └── lib/a.ex (compile)
     """
   end
 
