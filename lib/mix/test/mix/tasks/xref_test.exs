@@ -465,46 +465,43 @@ defmodule Mix.Tasks.XrefTest do
 
   test "graph: basic usage" do
     assert_graph """
-    sample application
-    ├── lib/a.ex
-    │   └── lib/b.ex (runtime)
-    │       └── lib/a.ex (runtime)
-    ├── lib/b.ex
-    ├── lib/c.ex
-    └── lib/d.ex
-        └── lib/a.ex (compile)
+    lib/a.ex
+    └── lib/b.ex
+        └── lib/a.ex
+    lib/b.ex
+    lib/c.ex
+    lib/d.ex
+    └── lib/a.ex (compile)
     """
   end
 
   test "graph: exclude" do
     assert_graph ~w[--exclude lib/c.ex --exclude lib/b.ex], """
-    sample application
-    ├── lib/a.ex
-    └── lib/d.ex
-        └── lib/a.ex (compile)
+    lib/a.ex
+    lib/d.ex
+    └── lib/a.ex (compile)
     """
   end
 
   test "graph: exclude 1" do
     assert_graph ~w[--exclude lib/d.ex], """
-    sample application
-    ├── lib/a.ex
-    │   └── lib/b.ex (runtime)
-    │       └── lib/a.ex (runtime)
-    ├── lib/b.ex
-    └── lib/c.ex
+    lib/a.ex
+    └── lib/b.ex
+        └── lib/a.ex
+    lib/b.ex
+    lib/c.ex
     """
   end
 
   test "graph: dot format" do
     assert_graph ~w[--format dot], true, """
     digraph "xref graph" {
-      "sample application" -> "lib/a.ex"
-      "lib/a.ex" -> "lib/b.ex" [label="(runtime)"]
-      "lib/b.ex" -> "lib/a.ex" [label="(runtime)"]
-      "sample application" -> "lib/b.ex"
-      "sample application" -> "lib/c.ex"
-      "sample application" -> "lib/d.ex"
+      "lib/a.ex"
+      "lib/a.ex" -> "lib/b.ex"
+      "lib/b.ex" -> "lib/a.ex"
+      "lib/b.ex"
+      "lib/c.ex"
+      "lib/d.ex"
       "lib/d.ex" -> "lib/a.ex" [label="(compile)"]
     }
     """
@@ -513,8 +510,8 @@ defmodule Mix.Tasks.XrefTest do
   test "graph: source" do
     assert_graph ~w[--source lib/a.ex], """
     lib/a.ex
-    └── lib/b.ex (runtime)
-        └── lib/a.ex (runtime)
+    └── lib/b.ex
+        └── lib/a.ex
     """
   end
 
@@ -527,9 +524,9 @@ defmodule Mix.Tasks.XrefTest do
   test "graph: sink" do
     assert_graph ~w[--sink lib/b.ex], """
     lib/b.ex
-    └── lib/a.ex (runtime)
+    └── lib/a.ex
         ├── lib/d.ex (compile)
-        └── lib/b.ex (runtime)
+        └── lib/b.ex
     """
   end
 
@@ -561,6 +558,7 @@ defmodule Mix.Tasks.XrefTest do
       defmodule B do
         def a do
           A.a
+          B.a
         end
       end
       """

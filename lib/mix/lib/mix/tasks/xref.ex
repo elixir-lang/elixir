@@ -344,6 +344,7 @@ defmodule Mix.Tasks.Xref do
         |> MapSet.new()
         |> MapSet.delete(module)
         |> MapSet.intersection(all_modules)
+        |> Enum.filter(&module_sources[&1] != source)
         |> Enum.map(&{source(module_sources[&1], :source), "(compile)"})
 
       runtime_references =
@@ -351,29 +352,29 @@ defmodule Mix.Tasks.Xref do
         |> MapSet.new()
         |> MapSet.delete(module)
         |> MapSet.intersection(all_modules)
-        |> Enum.map(&{source(module_sources[&1], :source), "(runtime)"})
+        |> Enum.filter(&module_sources[&1] != source)
+        |> Enum.map(&{source(module_sources[&1], :source), nil})
 
       {file, compile_references ++ runtime_references}
     end
   end
 
   defp write_graph(file_references, excluded, opts) do
-    app_label = "#{Mix.Project.config[:app]} application"
     {root, file_references} =
       case {opts[:source], opts[:sink]} do
         {nil, nil} ->
-          {{app_label, nil}, file_references}
+          {Enum.map(file_references, &{elem(&1, 0), nil}) -- excluded, file_references}
 
         {source, nil} ->
           if file_references[source] do
-            {{source, nil}, file_references}
+            {[{source, nil}], file_references}
           else
             Mix.raise "Source could not be found: #{source}"
           end
 
         {nil, sink} ->
           if file_references[sink] do
-            {{sink, nil}, file_references |> invert_references()}
+            {[{sink, nil}], file_references |> invert_references()}
           else
             Mix.raise "Sink could not be found: #{sink}"
           end
@@ -383,13 +384,9 @@ defmodule Mix.Tasks.Xref do
       end
 
     callback =
-      fn
-        {^app_label, nil} ->
-          {{app_label, nil}, Enum.map(file_references, &{elem(&1, 0), nil}) -- excluded}
-
-        {file, type} ->
-          children = Map.get(file_references, file, [])
-          {{file, type}, children -- excluded}
+      fn {file, type} ->
+        children = Map.get(file_references, file, [])
+        {{file, type}, children -- excluded}
       end
 
     if opts[:format] == "dot" do
