@@ -2,7 +2,7 @@ defmodule Mix.Tasks.Xref do
   use Mix.Task
 
   alias Mix.Tasks.Compile.Elixir, as: E
-  import Mix.Compilers.Elixir, only: [read_manifest: 2, source: 1, source: 2]
+  import Mix.Compilers.Elixir, only: [read_manifest: 2, source: 1, source: 2, module: 1]
 
   @shortdoc "Performs cross reference checks"
   @recursive true
@@ -12,18 +12,45 @@ defmodule Mix.Tasks.Xref do
 
   ## Xref modes
 
-  The following commands are available:
+  The following commands and options are available:
 
     * `warnings` - prints warnings for violated cross reference checks
+
     * `unreachable` - prints all unreachable "file:line: module.function/arity" entries
+
     * `callers CALLEE` - prints all references of `CALLEE`, which can be one of: `Module`,
       `Module.function`, or `Module.function/arity`
 
-  ## Command line options
+    * `graph` - prints the file reference graph. By default, an edge from `A` to `B` indicates
+      that `A` depends on `B`
+
+      * `--exclude` - paths to exclude
+
+      * `--source` - display only files for which there is a path from the
+        given source file
+
+      * `--sink` - display only files for which there is a path to the
+        given sink file.
+
+      * `--format` - can be set to one of:
+
+        * `pretty` - use Unicode codepoints for formatting the graph. This is the default except on
+          Windows
+
+        * `plain` - do not use Unicode codepoints for formatting the graph. This is the default on
+          Windows
+
+        * `dot` - produces a DOT graph description in `xref_graph.dot` in the
+          current directory. Warning: this will override any previously generated file
+
+  ## Options for all commands
 
     * `--no-compile` - do not compile even if files require compilation
+
     * `--no-deps-check` - do not check dependencies
+
     * `--no-archives-check` - do not check archives
+
     * `--no-elixir-version-check` - do not check the Elixir version from mix.exs
 
   ## Configuration
@@ -36,7 +63,8 @@ defmodule Mix.Tasks.Xref do
   """
 
   @switches [compile: :boolean, deps_check: :boolean, archives_check: :boolean,
-             elixir_version_check: :boolean]
+             elixir_version_check: :boolean, exclude: :keep, format: :string,
+             source: :string, sink: :string]
 
   @doc """
   Runs this task.
@@ -57,8 +85,10 @@ defmodule Mix.Tasks.Xref do
         unreachable()
       ["callers", callee] ->
         callers(callee)
+      ["graph"] ->
+        graph(opts)
       _ ->
-        Mix.raise "xref expects one of the following commands: warnings, unreachable, callers CALLEE"
+        Mix.raise "xref doesn't support this command, see mix help xref for more information"
     end
   end
 
@@ -84,6 +114,12 @@ defmodule Mix.Tasks.Xref do
     callee
     |> filter_for_callee()
     |> do_callers()
+
+    :ok
+  end
+
+  defp graph(opts) do
+    write_graph(file_references(), excluded(opts), opts)
 
     :ok
   end
@@ -281,6 +317,124 @@ defmodule Mix.Tasks.Xref do
       callee
 
     Mix.raise message
+  end
+
+  ## Graph helpers
+
+  defp excluded(opts) do
+    Keyword.get_values(opts, :exclude)
+    |> Enum.flat_map(&[{&1, nil}, {&1, "(compile)"}, {&1, "(runtime)"}])
+  end
+
+  defp file_references() do
+    module_sources =
+      for manifest <- E.manifests(),
+          manifest_data = read_manifest(manifest, ""),
+          module(module: module, source: source) <- manifest_data,
+          source = Enum.find(manifest_data, &match?(source(source: ^source), &1)),
+          do: {module, source},
+          into: %{}
+
+    all_modules = MapSet.new(module_sources, &elem(&1, 0))
+
+    Map.new module_sources, fn {module, source} ->
+      source(runtime_references: runtime, compile_references: compile, source: file) = source
+      compile_references =
+        compile
+        |> MapSet.new()
+        |> MapSet.delete(module)
+        |> MapSet.intersection(all_modules)
+        |> Enum.filter(&module_sources[&1] != source)
+        |> Enum.map(&{source(module_sources[&1], :source), "(compile)"})
+
+      runtime_references =
+        runtime
+        |> MapSet.new()
+        |> MapSet.delete(module)
+        |> MapSet.intersection(all_modules)
+        |> Enum.filter(&module_sources[&1] != source)
+        |> Enum.map(&{source(module_sources[&1], :source), nil})
+
+      {file, compile_references ++ runtime_references}
+    end
+  end
+
+  defp write_graph(file_references, excluded, opts) do
+    {root, file_references} =
+      case {opts[:source], opts[:sink]} do
+        {nil, nil} ->
+          {Enum.map(file_references, &{elem(&1, 0), nil}) -- excluded, file_references}
+
+        {source, nil} ->
+          if file_references[source] do
+            {[{source, nil}], file_references}
+          else
+            Mix.raise "Source could not be found: #{source}"
+          end
+
+        {nil, sink} ->
+          if file_references[sink] do
+            file_references = filter_for_sink(file_references, sink)
+            roots =
+              file_references
+              |> Map.delete(sink)
+              |> Enum.map(&{elem(&1, 0), nil})
+            {roots -- excluded, file_references}
+          else
+            Mix.raise "Sink could not be found: #{sink}"
+          end
+
+        {_, _} ->
+          Mix.raise "mix xref graph expects only one of --source and --sink"
+      end
+
+    callback =
+      fn {file, type} ->
+        children = Map.get(file_references, file, [])
+        {{file, type}, children -- excluded}
+      end
+
+    if opts[:format] == "dot" do
+      Mix.Utils.write_dot_graph!("xref_graph.dot", "xref graph",
+                                 root, callback, opts)
+      """
+      Generated "xref_graph.dot" in the current directory. To generate a PNG:
+
+         dot -Tpng xref_graph.dot -o xref_graph.png
+
+      For more options see http://www.graphviz.org/.
+      """
+      |> String.trim_trailing()
+      |> Mix.shell.info()
+    else
+      Mix.Utils.print_tree(root, callback, opts)
+    end
+  end
+
+  defp filter_for_sink(file_references, sink) do
+    file_references
+    |> invert_references()
+    |> do_filter_for_sink([{sink, nil}], %{})
+    |> invert_references()
+  end
+
+  defp do_filter_for_sink(file_references, new_nodes, acc) do
+    Enum.reduce new_nodes, acc, fn {new_node_name, _type}, acc ->
+      new_nodes = file_references[new_node_name]
+      if acc[new_node_name] || !new_nodes do
+        acc
+      else
+        do_filter_for_sink(file_references, new_nodes, Map.put(acc, new_node_name, new_nodes))
+      end
+    end
+  end
+
+  defp invert_references(file_references) do
+    Enum.reduce file_references, %{}, fn {file, references}, acc ->
+      Enum.reduce references, acc, fn {reference, type}, acc ->
+        Map.update(acc, reference, [{file, type}], &[{file, type} | &1])
+      end
+    end
   end
 
   ## Helpers
