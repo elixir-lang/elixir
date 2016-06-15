@@ -310,12 +310,11 @@ defmodule Logger.TranslatorTest do
     Ancestors: \[#PID<\d+\.\d+\.\d+>\]
     Neighbours:
         #PID<\d+\.\d+\.\d+>
-            Initial Call: :timer.sleep/1
-            Current Call: :timer.sleep/1
+            Initial Call: Logger.TranslatorTest.sleep/1
+            Current Call: Logger.TranslatorTest.sleep/1
             Ancestors: \[#PID<\d+\.\d+\.\d+>, #PID<\d+\.\d+\.\d+>\]
     """
   end
-  M
 
   test "translates :proc_lib crashes with neighbour with name" do
     {:ok, pid} = Task.start_link(__MODULE__, :sub_task,
@@ -333,8 +332,8 @@ defmodule Logger.TranslatorTest do
     Ancestors: \[#PID<\d+\.\d+\.\d+>\]
     Neighbours:
         Logger.TranslatorTest \(#PID<\d+\.\d+\.\d+>\)
-            Initial Call: :timer.sleep/1
-            Current Call: :timer.sleep/1
+            Initial Call: Logger.TranslatorTest.sleep/1
+            Current Call: Logger.TranslatorTest.sleep/1
             Ancestors: \[#PID<\d+\.\d+\.\d+>, #PID<\d+\.\d+\.\d+>\]
     """
   end
@@ -385,13 +384,13 @@ defmodule Logger.TranslatorTest do
     {:ok, pid} = Supervisor.start_link([], [strategy: :one_for_one])
     assert capture_log(:info, fn ->
       ref = Process.monitor(pid)
-      Supervisor.start_child(pid, worker(Task, [:timer, :sleep, [500]]))
+      Supervisor.start_child(pid, worker(Task, [__MODULE__, :sleep, [self()]]))
       Process.exit(pid, :normal)
       receive do: ({:DOWN, ^ref, _, _, _} -> :ok)
     end) =~ ~r"""
     \[info\]  Child Task of Supervisor #PID<\d+\.\d+\.\d+> \(Supervisor\.Default\) started
     Pid: #PID<\d+\.\d+\.\d+>
-    Start Call: Task.start_link\(:timer, :sleep, \[500\]\)
+    Start Call: Task.start_link\(Logger.TranslatorTest, :sleep, \[#PID<\d+\.\d+\.\d+>\]\)
     """
   end
 
@@ -400,7 +399,7 @@ defmodule Logger.TranslatorTest do
       [strategy: :one_for_one, name: __MODULE__])
     assert capture_log(:info, fn ->
       ref = Process.monitor(pid)
-      Supervisor.start_child(pid, worker(Task, [:timer, :sleep, [500]]))
+      Supervisor.start_child(pid, worker(Task, [__MODULE__, :sleep, [self()]]))
       Process.exit(pid, :normal)
       receive do: ({:DOWN, ^ref, _, _, _} -> :ok)
     end) =~ ~r"""
@@ -411,7 +410,7 @@ defmodule Logger.TranslatorTest do
       [strategy: :one_for_one, name: {:global, __MODULE__}])
     assert capture_log(:info, fn ->
       ref = Process.monitor(pid)
-      Supervisor.start_child(pid, worker(Task, [:timer, :sleep, [500]]))
+      Supervisor.start_child(pid, worker(Task, [__MODULE__, :sleep, [self()]]))
       Process.exit(pid, :normal)
       receive do: ({:DOWN, ^ref, _, _, _} -> :ok)
     end) =~ ~r"""
@@ -422,7 +421,7 @@ defmodule Logger.TranslatorTest do
       [strategy: :one_for_one, name: {:via, :global, __MODULE__}])
     assert capture_log(:info, fn ->
       ref = Process.monitor(pid)
-      Supervisor.start_child(pid, worker(Task, [:timer, :sleep, [500]]))
+      Supervisor.start_child(pid, worker(Task, [__MODULE__, :sleep, [self()]]))
       Process.exit(pid, :normal)
       receive do: ({:DOWN, ^ref, _, _, _} -> :ok)
     end) =~ ~r"""
@@ -434,11 +433,11 @@ defmodule Logger.TranslatorTest do
     {:ok, pid} = Supervisor.start_link([], [strategy: :one_for_one])
     assert capture_log(:debug, fn ->
       ref = Process.monitor(pid)
-      Supervisor.start_child(pid, worker(Task, [:timer, :sleep, [500]]))
+      Supervisor.start_child(pid, worker(Task, [__MODULE__, :sleep, [self()]]))
       Process.exit(pid, :normal)
       receive do: ({:DOWN, ^ref, _, _, _} -> :ok)
     end) =~ ~r"""
-    Start Call: Task.start_link\(:timer, :sleep, \[500\]\)
+    Start Call: Task.start_link\(Logger.TranslatorTest, :sleep, \[#PID<\d+\.\d+\.\d+>\]\)
     Restart: :permanent
     Shutdown: 5000
     Type: :worker
@@ -589,14 +588,33 @@ defmodule Logger.TranslatorTest do
   end
 
   def task(parent, fun \\ (fn() -> raise "oops" end)) do
+    mon = Process.monitor(parent)
     Process.unlink(parent)
-    receive do: (:go -> fun.())
+    receive do
+      :go ->
+        fun.()
+      {:DOWN, ^mon, _, _, _} ->
+        exit(:shutdown)
+    end
   end
 
   def sub_task(parent, fun \\ (fn(_) -> raise "oops" end)) do
+    mon = Process.monitor(parent)
     Process.unlink(parent)
-    {:ok, pid} = Task.start_link(:timer, :sleep, [500])
-    receive do: (:go -> fun.(pid))
+    {:ok, pid} = Task.start_link(__MODULE__, :sleep, [self()])
+    receive do: (:sleeping -> :ok)
+    receive do
+      :go ->
+        fun.(pid)
+      {:DOWN, ^mon, _, _, _} ->
+        exit(:shutdown)
+    end
+  end
+
+  def sleep(pid) do
+    mon = Process.monitor(pid)
+    send(pid, :sleeping)
+    receive do: ({:DOWN, ^mon, _, _, _} -> exit(:shutdown))
   end
 
   def error(), do: {:error, :stop}
