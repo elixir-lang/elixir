@@ -245,6 +245,17 @@ defmodule ModuleTest do
     assert ModuleHygiene.test == [1, 2, 3]
   end
 
+  test "ensure function clauses are ordered" do
+    {_, _, binary, _} =
+      defmodule Ordered do
+        def foo(:foo), do: :bar
+        def baz(:baz), do: :bat
+      end
+    atoms = :beam_lib.chunks(binary, [:atoms])
+    assert :erlang.phash2(atoms) == 53987778
+  end
+
+  # TODO: Remove this check once we depend only on 19
   if :erlang.system_info(:otp_release) >= '19' do
     test "create with generated true does not emit warnings" do
       contents =
