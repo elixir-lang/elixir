@@ -2839,9 +2839,7 @@ defimpl Enumerable, for: List do
     do: {:error, __MODULE__}
 
   def reduce(_,       {:halt, acc}, _fun),   do: {:halted, acc}
-  def reduce(list,    {:suspend, acc}, fun) when is_function(fun, 2) do
-    {:suspended, acc, &reduce(list, &1, fun)}
-  end
+  def reduce(list,    {:suspend, acc}, fun), do: {:suspended, acc, &reduce(list, &1, fun)}
   def reduce([],      {:cont, acc}, _fun),   do: {:done, acc}
   def reduce([h | t], {:cont, acc}, fun),    do: reduce(t, fun.(h, acc), fun)
 end
