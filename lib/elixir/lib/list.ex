@@ -31,9 +31,18 @@ defmodule List do
       iex> [1 | [2 | [3 | []]]]
       [1, 2, 3]
 
-  Due to this representation, prepending an element to the
-  top of the list is always fast (constant time), while appending
-  becomes slower as the list grows in size (linear time):
+  Some lists, called improper lists, do not have an empty list as
+  the second element in the last cons cell:
+  
+      iex> [1 | [2 | [3 | 4]]]
+      [1, 2, 3 | 4]
+  
+  Although improper lists are generally avoided, they are used in some
+  special circumstances like iodata and chardata entities (see the `IO` module).
+
+  Due to their cons cell based representation, prepending an element
+  to a list is always fast (constant time), while appending becomes
+  slower as the list grows in size (linear time):
 
       iex> list = [1, 2, 3]
       iex> [0 | list]   # fast
