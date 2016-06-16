@@ -2,10 +2,92 @@ defmodule Map do
   @moduledoc """
   A set of functions for working with maps.
 
-  Maps are key-value stores where keys can be any value and
-  are compared using the match operator (`===`). Maps can be
-  created with the `%{}` special form defined in the
-  `Kernel.SpecialForms` module.
+  Maps are the "go to" key-value data structure in Elixir. Maps can be created
+  with the `%{}` syntax, and key-value pairs can be expressed as `key => value`:
+
+      iex> %{}
+      %{}
+      iex> %{"one" => :two, 3 => "four"}
+      %{3 => "four", "one" => :two}
+
+  Key-value pairs in a map do not follow any order (that's why the printed map
+  in the example above has a different order than the map that was created).
+
+  Maps do not impose any restriction on the key type: anything can be a key in a
+  map. As a key-value structure, maps do not allow duplicated keys; keys are
+  compared using the match operator (`===`).
+
+  When the key in a key-value pair is an atom, the `key: value` shorthand syntax
+  can be used:
+
+      iex> %{a: 1, b: 2}
+      %{a: 1, b: 2}
+
+  Keys in maps can be accessed through some of the functions in this module
+  (such as `Map.get/3` or `Map.fetch/2`) or through the `[]` syntax provided by
+  the `Access` module:
+
+      iex> map = %{a: 1, b: 2}
+      iex> Map.fetch(map, :a)
+      {:ok, 1}
+      iex> map[:b]
+      2
+      iex> map["non_existing_key"]
+      nil
+
+  The alternative access syntax `map.key` is provided alongside `[]` when the
+  map has a `:key` key; note that while `map[key]` will return `nil` if `map`
+  doesn't contain the key `key`, `map.key` will raise if `map` doesn't contain
+  the key `:key`.
+
+      iex> map = %{foo: "bar", baz: "bong"}
+      iex> map.foo
+      "bar"
+      iex> map.non_existing_key
+      ** (KeyError) key :non_existing_key not found in: %{baz: "bong", foo: "bar"}
+
+  Maps can be pattern matched on; when a map is on the left-hand side of a
+  pattern match, it will match if the map on the right-hand side contains the
+  keys on the left-hand side and their values match the ones on the left-hand
+  side. This means that an empty map matches every map.
+
+      iex> %{} = %{foo: "bar"}
+      %{foo: "bar"}
+      iex> %{a: a} = %{:a => 1, "b" => 2, [:c, :e, :e] => 3}
+      iex> a
+      1
+      iex> %{:c => c} = %{:a => 1, 2 => :b}
+      ** (MatchError) no match of right hand side value: %{2 => :b, :a => 1}
+
+  Variables can be used as map keys both when writing map literals as well as
+  when matching:
+
+      iex> n = 1
+      1
+      iex> map = %{n => :one}
+      %{1 => :one}
+      iex> %{^n => :one} = %{1 => :one, 2 => :two, 3 => :three}
+      %{1 => :one, 2 => :two, 3 => :three}
+
+  Maps also support a specific update syntax to update the value stored under
+  *existing* atom keys:
+
+      iex> map = %{one: 1, two: 2}
+      iex> %{map | one: "one"}
+      %{one: "one", two: 2}
+      iex> %{map | three: 3}
+      ** (KeyError) key :three not found
+
+  ## Modules to work with maps
+
+  This module aims to provide functions that perform operations specific to maps
+  (like accessing keys, updating values, and so on). For traversing maps as
+  collections, developers should use the `Enum` module that works across a
+  variety of data types.
+
+  The `Kernel` module also provides a few functions to work with maps: for
+  example, `Kernel.map_size/1` to know the number of key-value pairs in a map or
+  `Kernel.is_map/1` to know if a term is a map.
   """
 
   @type key :: any
