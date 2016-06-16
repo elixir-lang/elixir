@@ -33,10 +33,10 @@ defmodule List do
 
   Some lists, called improper lists, do not have an empty list as
   the second element in the last cons cell:
-  
+
       iex> [1 | [2 | [3 | 4]]]
       [1, 2, 3 | 4]
-  
+
   Although improper lists are generally avoided, they are used in some
   special circumstances like iodata and chardata entities (see the `IO` module).
 
