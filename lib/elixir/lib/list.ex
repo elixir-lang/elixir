@@ -1,24 +1,57 @@
 defmodule List do
   @moduledoc """
-  Specialized functions that only work on lists.
+  Functions that works on (linked) lists.
 
-  In general, favor using the `Enum` API instead of `List`.
+  Lists in Elixir are specified between square brackets:
 
-  Index access for list is linear. Negative indexes are also
-  supported but they imply the list will be iterated twice,
-  one to calculate the proper index and another to perform the
-  operation.
+      iex> [1, "two", 3, :four]
+      [1, "two", 3, :four]
 
-  A decision was taken to delegate most functions to
-  Erlang's standard library but follow Elixir's convention
-  of receiving the subject (in this case, a list) as the
-  first argument.
+  Two lists can be concatenated and subtracted using the
+  `Kernel.++/2` and `Kernel.--/2` operators:
+
+      iex> [1, 2, 3] ++ [4, 5, 6]
+      [1, 2, 3, 4, 5, 6]
+      iex> [1, true, 2, false, 3, true] -- [true, false]
+      [1, 2, 3, true]
+
+  Lists in Elixir are effectively linked lists, which means
+  they are internally represented in pairs containing the
+  head and the tail of a list:
+
+      iex> [h | t] = [1, 2, 3]
+      iex> h
+      1
+      iex> t
+      [2, 3]
+
+  Similarly, we could write the list `[1, 2, 3]` using only
+  such pairs (called cons cells):
+
+      iex> [1 | [2 | [3 | []]]]
+      [1, 2, 3]
+
+  Due to this representation, prepending an element to the
+  top of the list is always fast (constant time), while appending
+  becomes slower as the list grows in size (linear time):
+
+      iex> list = [1, 2, 3]
+      iex> [0 | list]   # fast
+      [0, 1, 2, 3]
+      iex> list ++ [4]  # slow
+      [1, 2, 3, 4]
+
+  The `Kernel` module contains many functions to manipulate lists
+  and that are allowed in guards. For example, `Kernel.hd/1` to
+  retrieve the head, `Kernel.tl/1` to fetch the tail and
+  `Kernel.length/1` for calculating the length. Keep in mind that,
+  similar to appending to a list, calculating the length needs to
+  traverse the whole list.
 
   ## Charlists
 
-  If a list is made of non-negative integers, it can also
-  be called as a charlist. Elixir uses single quotes to
-  define charlists:
+  If a list is made of non-negative integers, it can also be called
+  a charlist. Elixir uses single quotes to define charlists:
 
       iex> 'héllo'
       [104, 233, 108, 108, 111]
@@ -40,6 +73,19 @@ defmodule List do
             {:elixir, 'elixir', '1.0.0'},
             {:kernel, 'ERTS  CXC 138 10', '4.1'},
             {:logger, 'logger', '1.0.0'}]
+
+  ## List and Enum modules
+
+  This module aims to provide operations that are specific
+  to lists, like convertion between data types, updates,
+  deletions and key lookups (for lists of tuples). For traversing
+  lists in general, developers should use the functions in the
+  `Enum` module that work across a variety of data types.
+
+  In both `Enum` and `List` modules, any kind of index access
+  on a list is linear. Negative indexes are also supported but
+  they imply the list will be iterated twice, one to calculate
+  the proper index and another to perform the operation.
   """
 
   @compile :inline_list_funcs
