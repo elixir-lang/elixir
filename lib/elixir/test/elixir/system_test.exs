@@ -187,4 +187,16 @@ defmodule SystemTest do
     time = System.monotonic_time(:nanoseconds)
     assert abs(System.convert_time_unit(time, :nanoseconds, :microseconds)) < abs(time)
   end
+
+  test "schedulers/0" do
+    assert System.schedulers >= 1
+  end
+
+  test "schedulers_online/0" do
+    assert System.schedulers_online >= 1
+  end
+
+  test "otp_release/0" do
+    assert is_binary System.otp_release
+  end
 end
