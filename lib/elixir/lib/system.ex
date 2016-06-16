@@ -34,7 +34,6 @@ defmodule System do
       next = System.monotonic_time()
       diff = next - prev
 
-
   Generally speaking, the VM provides three time measurements:
 
     * `os_time/0` - the time reported by the OS. This time may be
@@ -157,8 +156,7 @@ defmodule System do
     %{build:    build(),
       date:     get_date(),
       revision: revision(),
-      version:  version(),
-      }
+      version:  version()}
   end
 
   # Returns a string of the build info
@@ -728,6 +726,30 @@ defmodule System do
   @spec os_time(time_unit) :: integer
   def os_time(unit) do
     :os.system_time(normalize_time_unit(unit))
+  end
+
+  @doc """
+  Returns the OTP release number.
+  """
+  @spec otp_release :: String.t
+  def otp_release do
+    :erlang.list_to_binary :erlang.system_info(:otp_release)
+  end
+
+  @doc """
+  Returns the number of schedulers in the VM.
+  """
+  @spec schedulers :: pos_integer
+  def schedulers do
+    :erlang.system_info(:schedulers)
+  end
+
+  @doc """
+  Returns the number of schedulers online in the VM.
+  """
+  @spec schedulers_online :: pos_integer
+  def schedulers_online do
+    :erlang.system_info(:schedulers_online)
   end
 
   @doc """
