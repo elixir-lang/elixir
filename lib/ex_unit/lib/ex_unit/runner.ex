@@ -277,7 +277,9 @@ defmodule ExUnit.Runner do
         case Process.info(test_pid, :current_stacktrace) do
           {:current_stacktrace, stacktrace} ->
             Process.exit(test_pid, :kill)
-            Process.demonitor(test_ref, [:flush])
+            receive do
+              {:DOWN, ^test_ref, :process, ^test_pid, _} -> :ok
+            end
             exception = ExUnit.TimeoutError.exception(timeout: timeout, type: test.tags.type)
             %{test | state: failed(:error, exception, stacktrace)}
           nil ->

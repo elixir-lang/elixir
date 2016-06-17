@@ -62,7 +62,9 @@ defmodule ExUnit.OnExitHandler do
         case Process.info(runner_pid, :current_stacktrace) do
           {:current_stacktrace, stacktrace} ->
             Process.exit(runner_pid, :kill)
-            Process.demonitor(runner_monitor, [:flush])
+            receive do
+              {:DOWN, ^runner_monitor, :process, ^runner_pid, _} -> :ok
+            end
             exception = ExUnit.TimeoutError.exception(timeout: timeout, type: :on_exit)
             {nil, nil, state || {:error, exception, stacktrace}}
           nil ->
