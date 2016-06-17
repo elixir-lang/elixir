@@ -1,6 +1,6 @@
 Code.require_file "../test_helper.exs", __DIR__
 
-defmodule ExUnit.BundleTest do
+defmodule ExUnit.DescribeTest do
   use ExUnit.Case, async: true
 
   @moduletag [attribute_tag: :from_module]
