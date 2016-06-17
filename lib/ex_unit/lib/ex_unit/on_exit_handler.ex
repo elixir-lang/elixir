@@ -46,7 +46,10 @@ defmodule ExUnit.OnExitHandler do
   defp exec_on_exit_callback({_ref, callback}, timeout, {runner_pid, runner_monitor, state}) do
     {runner_pid, runner_monitor} = ensure_alive_callback_runner(runner_pid, runner_monitor)
     send(runner_pid, {:run, self(), callback})
+    receive_runner_reply(runner_pid, runner_monitor, state, timeout)
+  end
 
+  defp receive_runner_reply(runner_pid, runner_monitor, state, timeout) do
     receive do
       {^runner_pid, nil} ->
         {runner_pid, runner_monitor, state}
@@ -56,17 +59,17 @@ defmodule ExUnit.OnExitHandler do
         {nil, nil, state || {{:EXIT, runner_pid}, error, []}}
     after
       timeout ->
-        stacktrace =
-          case Process.info(runner_pid, :current_stacktrace) do
-            {:current_stacktrace, stacktrace} ->
-              stacktrace
-            nil ->
-              []
-          end
-        Process.exit(runner_pid, :kill)
-        Process.demonitor(runner_monitor, [:flush])
-        exception = ExUnit.TimeoutError.exception(timeout: timeout, type: :on_exit)
-        {nil, nil, state || {:error, exception, stacktrace}}
+        case Process.info(runner_pid, :current_stacktrace) do
+          {:current_stacktrace, stacktrace} ->
+            Process.exit(runner_pid, :kill)
+            receive do
+              {:DOWN, ^runner_monitor, :process, ^runner_pid, _} -> :ok
+            end
+            exception = ExUnit.TimeoutError.exception(timeout: timeout, type: :on_exit)
+            {nil, nil, state || {:error, exception, stacktrace}}
+          nil ->
+            receive_runner_reply(runner_pid, runner_monitor, state, timeout)
+        end
     end
   end
 
