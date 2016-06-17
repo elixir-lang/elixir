@@ -258,32 +258,34 @@ defmodule ExUnit.Runner do
       end)
 
     timeout = get_timeout(test.tags, config)
-
-    test =
-      receive do
-        {^test_pid, :test_finished, test} ->
-          receive do
-            {:DOWN, ^test_ref, :process, ^test_pid, _} -> :ok
-          end
-          test
-        {:DOWN, ^test_ref, :process, ^test_pid, error} ->
-          %{test | state: failed({:EXIT, test_pid}, error, [])}
-      after
-        timeout ->
-          stacktrace =
-            case Process.info(test_pid, :current_stacktrace) do
-              {:current_stacktrace, stacktrace} ->
-                stacktrace
-              nil ->
-                []
-            end
-          Process.exit(test_pid, :kill)
-          Process.demonitor(test_ref, [:flush])
-          exception = ExUnit.TimeoutError.exception(timeout: timeout, type: test.tags.type)
-          %{test | state: failed(:error, exception, stacktrace)}
-      end
+    test = receive_test_reply(test, test_pid, test_ref, timeout)
 
     exec_on_exit(test, test_pid, timeout)
+  end
+
+  defp receive_test_reply(test, test_pid, test_ref, timeout) do
+    receive do
+      {^test_pid, :test_finished, test} ->
+        receive do
+          {:DOWN, ^test_ref, :process, ^test_pid, _} -> :ok
+        end
+        test
+      {:DOWN, ^test_ref, :process, ^test_pid, error} ->
+        %{test | state: failed({:EXIT, test_pid}, error, [])}
+    after
+      timeout ->
+        case Process.info(test_pid, :current_stacktrace) do
+          {:current_stacktrace, stacktrace} ->
+            Process.exit(test_pid, :kill)
+            receive do
+              {:DOWN, ^test_ref, :process, ^test_pid, _} -> :ok
+            end
+            exception = ExUnit.TimeoutError.exception(timeout: timeout, type: test.tags.type)
+            %{test | state: failed(:error, exception, stacktrace)}
+          nil ->
+            receive_test_reply(test, test_pid, test_ref, timeout)
+        end
+    end
   end
 
   defp exec_test_setup(%ExUnit.Test{case: case} = test, context) do
