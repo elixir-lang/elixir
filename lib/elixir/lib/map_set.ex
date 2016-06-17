@@ -1,12 +1,35 @@
 defmodule MapSet do
   @moduledoc """
-  A set of functions for working with sets.
+  Functions that work on sets.
 
-  The `MapSet` is represented internally as a struct,
-  therefore `%MapSet{}` can be used whenever there is a
-  need to match on any `MapSet`. Note though the struct
-  fields are private and must not be accessed directly.
-  Instead, use the functions in this module.
+  `MapSet` is the "go to" set data structure in Elixir. A set can be constructed
+  using `MapSet.new/0`:
+
+      iex> MapSet.new
+      #MapSet<[]>
+
+  A set can contain any kind of elements and elements in a set don't have to be
+  of the same type. By definition, sets can't contain duplicate elements: when
+  inserting an element in a set where it's already present, the insertion is
+  simply a no-op.
+
+      iex> set = MapSet.new
+      iex> MapSet.put(set, "foo")
+      #MapSet<["foo"]>
+      iex> set |> MapSet.put("foo") |> MapSet.put("foo")
+      #MapSet<["foo"]>
+
+  A `MapSet` is represented internally using the `%MapSet{}` struct. This struct
+  can be used whenever there's a need to pattern match on something being a `MapSet`:
+
+      iex> match?(%MapSet{}, MapSet.new())
+      true
+
+  Note that, however, the struct fields are private and must not be accessed
+  directly; use the functions in this module to perfom operations on sets.
+
+  Sets can also be constructed starting from other collection-type data
+  structures: for example, see `MapSet.new/1` or `Enum.into/2`.
   """
 
   @opaque t :: %__MODULE__{map: map}
