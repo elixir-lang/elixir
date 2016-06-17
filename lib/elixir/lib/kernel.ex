@@ -1051,7 +1051,7 @@ defmodule Kernel do
   @doc """
   Returns `true` if the two items are equal.
 
-  This operator considers 1 and 1.0 to be equal. For match
+  This operator considers 1 and 1.0 to be equal. For stricter
   semantics, use `===` instead.
 
   All terms in Elixir can be compared with each other.
@@ -1097,11 +1097,12 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns `true` if the two items are match.
+  Returns `true` if the two items are exactly equal.
 
-  This operator gives the same semantics as the one existing in
-  pattern matching, i.e., `1` and `1.0` are equal, but they do
-  not match.
+  The items are only considered to be exactly equal if they
+  have the same value and are of the same type. For example,
+  `1 == 1.0` returns true, but since they are of different
+  types, `1 === 1.0` returns false.
 
   All terms in Elixir can be compared with each other.
 
@@ -1122,7 +1123,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns `true` if the two items do not match.
+  Returns `true` if the two items are not exactly equal.
 
   All terms in Elixir can be compared with each other.
 
