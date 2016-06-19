@@ -10,11 +10,11 @@ defmodule Mix.Tasks.Deps.Clean do
   Since this is a destructive action, cleaning of dependencies
   can only happen by passing arguments/options:
 
-    * `dep1, dep2` - the name of dependencies to be deleted
-    * `--unlock`   - also unlocks the deleted dependencies
-    * `--build`    - deletes only compiled files (keeps source files)
-    * `--all`      - deletes all dependencies
-    * `--unused`   - deletes only unused dependencies
+    * `dep1 dep2` - the name of dependencies to be deleted separated by a space
+    * `--unlock` - also unlocks the deleted dependencies
+    * `--build` - deletes only compiled files (keeps source files)
+    * `--all` - deletes all dependencies
+    * `--unused` - deletes only unused dependencies
       (i.e. dependencies no longer mentioned in `mix.exs` are removed)
 
   By default this task works across all environments,
@@ -73,6 +73,14 @@ defmodule Mix.Tasks.Deps.Clean do
     apps -- Enum.map(deps, &Atom.to_string(&1.app))
   end
 
+  defp maybe_warn_for_invalid_path(path, dependency) do
+    unless File.dir?(path) do
+      Mix.shell.error "warning: the dependency #{dependency} is not present in the build directory"
+    end
+
+    path
+  end
+
   defp do_clean(apps, deps, build_path, deps_path, build_only?) do
     shell = Mix.shell
 
@@ -87,6 +95,7 @@ defmodule Mix.Tasks.Deps.Clean do
       # Remove everything from the build directory of dependencies
       build_path
       |> Path.join(to_string(app))
+      |> maybe_warn_for_invalid_path(app)
       |> Path.wildcard
       |> Enum.each(&File.rm_rf!/1)
 
