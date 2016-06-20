@@ -692,6 +692,21 @@ defmodule Mix.Tasks.DepsTest do
     end
   end
 
+  test "warns on invalid path on clean dependencies" do
+    Mix.Project.push CleanDepsApp
+
+    in_fixture "deps_status", fn ->
+      File.mkdir_p!("deps/raw_sample")
+      File.mkdir_p!("_build/dev/lib/raw_sample")
+
+      Mix.Tasks.Deps.Clean.run ["raw_sample_with_a_typo"]
+      assert File.exists?("deps/raw_sample")
+
+      msg = "warning: the dependency raw_sample_with_a_typo is not present in the build directory"
+      assert_received {:mix_shell, :error, [^msg]}
+    end
+  end
+
   test "does not remove dependency source when using :path" do
     Mix.Project.push CleanDepsApp
 
