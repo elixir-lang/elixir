@@ -122,22 +122,33 @@ defmodule Kernel.LexicalTrackerTest do
     assert D.collect_unused_aliases(config[:pid]) == []
   end
 
-  test "does not tag aliases nor types as compile time" do
-    {{compile, runtime}, _binding} =
+  test "does not tag aliases nor types" do
+    {{{compile, runtime}, {compile_dispatches, runtime_dispatches}}, _binding} =
       Code.eval_string("""
       defmodule Kernel.LexicalTrackerTest.Sample do
         alias Foo.Bar, as: Bar, warn: false
-        @spec foo :: Foo.Bar.t
-        def foo, do: Bar.t
-        Kernel.LexicalTracker.remote_references(__ENV__.module)
+        @type bar :: Foo.Bar.t
+        @opaque bar2 :: Foo.Bar.t
+        @typep bar3 :: Foo.Bar.t
+        @callback foo :: Foo.Bar.t
+        @macrocallback foo2(Foo.Bar.t) :: Foo.Bar.t
+        @spec foo(bar3) :: Foo.Bar.t
+        def foo(_), do: :bar
+        refs = Kernel.LexicalTracker.remote_references(__ENV__.module)
+        dispatches = Kernel.LexicalTracker.remote_dispatches(__ENV__.module)
+        {refs, dispatches}
       end |> elem(3)
       """)
 
     refute Elixir.Bar in runtime
+    refute Map.has_key?(runtime_dispatches, Elixir.Bar)
     refute Elixir.Bar in compile
+    refute Map.has_key?(compile_dispatches, Elixir.Bar)
 
-    assert Foo.Bar in runtime
+    refute Foo.Bar in runtime
+    refute Map.has_key?(runtime_dispatches, Foo.Bar)
     refute Foo.Bar in compile
+    refute Map.has_key?(compile_dispatches, Foo.Bar)
   end
 
   test "remote dispatches" do
