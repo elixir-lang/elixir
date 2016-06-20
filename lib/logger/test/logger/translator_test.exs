@@ -81,7 +81,7 @@ defmodule Logger.TranslatorTest do
     end) =~ ~r"""
     \[error\] GenServer #PID<\d+\.\d+\.\d+> terminating
     \*\* \(RuntimeError\) oops
-    .*
+    .*/\d+
     Last message: :error
     State: :ok
     """s
@@ -108,7 +108,7 @@ defmodule Logger.TranslatorTest do
     end) =~ ~r"""
     \[error\] GenEvent handler Logger.TranslatorTest.MyGenEvent installed in #PID<\d+\.\d+\.\d+> terminating
     \*\* \(RuntimeError\) oops
-    .*
+    .*/\d+
     Last message: :error
     State: :ok
     """s
@@ -124,7 +124,7 @@ defmodule Logger.TranslatorTest do
     end) =~ ~r"""
     \[error\] Task #PID<\d+\.\d+\.\d+> started from #PID<\d+\.\d+\.\d+> terminating
     \*\* \(RuntimeError\) oops
-    .*
+    .*/\d+
     Function: &Logger.TranslatorTest.task\/1
         Args: \[#PID<\d+\.\d+\.\d+>\]
     """s
@@ -138,7 +138,7 @@ defmodule Logger.TranslatorTest do
     end) =~ ~r"""
     \[error\] Task #PID<\d+\.\d+\.\d+> started from #PID<\d+\.\d+\.\d+> terminating
     \*\* \(UndefinedFunctionError\) function :module_does_not_exist.undef/0 is undefined \(module :module_does_not_exist is not available\)
-    .*
+    .*/\d+
     Function: &:module_does_not_exist.undef/0
         Args: \[\]
     """s
@@ -152,7 +152,7 @@ defmodule Logger.TranslatorTest do
     end) =~ ~r"""
     \[error\] Task #PID<\d+\.\d+\.\d+> started from #PID<\d+\.\d+\.\d+> terminating
     \*\* \(UndefinedFunctionError\) function Logger.TranslatorTest.undef/0 is undefined or private
-    .*
+    .*/\d+
     Function: &Logger.TranslatorTest.undef/0
         Args: \[\]
     """s
@@ -186,7 +186,7 @@ defmodule Logger.TranslatorTest do
     end) =~ ~r"""
     \[error\] Task #PID<\d+\.\d+\.\d+> started from #PID<\d+\.\d+\.\d+> terminating
     \*\* \(ArgumentError\) argument error
-    .*
+    .*/\d+
     Function: &:erlang\.error/1
         Args: \[:badarg\]
     """s
@@ -200,7 +200,7 @@ defmodule Logger.TranslatorTest do
     end) =~ ~r"""
     \[error\] Task #PID<\d+\.\d+\.\d+> started from #PID<\d+\.\d+\.\d+> terminating
     \*\* \(stop\) :abnormal
-    .*
+    .*/\d+
     Function: &:erlang\.exit/1
         Args: \[:abnormal\]
     """s
@@ -236,7 +236,7 @@ defmodule Logger.TranslatorTest do
     \[error\] Process #PID<\d+\.\d+\.\d+> terminating
     \*\* \(exit\) an exception was raised:
         \*\* \(RuntimeError\) oops
-    .*
+    .*/\d+
     Initial Call: Logger.TranslatorTest.task/1
     Ancestors: \[#PID<\d+\.\d+\.\d+>\]
     """s
@@ -271,7 +271,7 @@ defmodule Logger.TranslatorTest do
     \[error\] Process Logger.TranslatorTest \(#PID<\d+\.\d+\.\d+>\) terminating
     \*\* \(exit\) an exception was raised:
         \*\* \(RuntimeError\) oops
-    .*
+    .*/\d+
     Initial Call: Logger.TranslatorTest.task/2
     Ancestors: \[#PID<\d+\.\d+\.\d+>\]
     """s
@@ -293,7 +293,7 @@ defmodule Logger.TranslatorTest do
     \[error\] Process #PID<\d+\.\d+\.\d+> terminating
     \*\* \(exit\) an exception was raised:
         \*\* \(RuntimeError\) oops
-    .*
+    .*/\d+
     Ancestors: \[#PID<\d+\.\d+\.\d+>\]
     """s
   end
@@ -469,7 +469,7 @@ defmodule Logger.TranslatorTest do
     \[error\] Child Logger.TranslatorTest of Supervisor #PID<\d+\.\d+\.\d+> \(Supervisor\.Default\) failed to start
     \*\* \(exit\) an exception was raised:
         \*\* \(UndefinedFunctionError\) function Logger.TranslatorTest.undef/0 is undefined or private
-        .*
+        .*/\d+
     Start Call: Logger.TranslatorTest.undef\(\)
     """s
   end
