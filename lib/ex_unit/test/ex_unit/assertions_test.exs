@@ -267,7 +267,7 @@ defmodule ExUnit.AssertionsTest do
   end
 
   test "assert received does not leak external variables used in guards" do
-    send self, {:hello, :world}
+    send self(), {:hello, :world}
     guard_world = :world
     assert_received {:hello, world} when world == guard_world
     :world = world
