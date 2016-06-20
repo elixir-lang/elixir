@@ -266,6 +266,13 @@ defmodule ExUnit.AssertionsTest do
     :world = world
   end
 
+  test "assert received does not leak external variables used in guards" do
+    send self, {:hello, :world}
+    guard_world = :world
+    assert_received {:hello, world} when world == guard_world
+    :world = world
+  end
+
   test "refute received does not wait" do
     false = refute_received :hello
   end

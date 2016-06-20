@@ -427,6 +427,12 @@ defmodule ExUnit.Assertions do
     Enum.uniq_by(pins, &elem(&1, 0))
   end
 
+  defp collect_vars_from_pattern({:when, _, [left, right]}) do
+    pattern = collect_vars_from_pattern(left)
+    guards = for var <- collect_vars_from_pattern(right), var in pattern, do: var
+    pattern ++ guards
+  end
+
   defp collect_vars_from_pattern(expr) do
     Macro.prewalk(expr, [], fn
       {:::, _, [left, _]}, acc ->
