@@ -31,6 +31,16 @@ defmodule Logger.TranslatorTest do
     end
   end
 
+  defmodule MyGenFSM do
+    def init(state), do: {:ok, :state_name, state}
+
+    def state_name(:error, _, _) do
+      raise "oops"
+    end
+
+    def terminate(_, _, _), do: :ok
+  end
+
   setup_all do
     sasl_reports? = Application.get_env(:logger, :handle_sasl_reports, false)
     Application.put_env(:logger, :handle_sasl_reports, true)
@@ -585,6 +595,31 @@ defmodule Logger.TranslatorTest do
       catch_exit(GenServer.call(pid, :error))
       [] = Supervisor.which_children(sup)
     end) =~ "Start Call: GenServer.start_link/?"
+  end
+
+  test "translates :gen_fsm crashes" do
+    {:ok, pid} = :gen_fsm.start(MyGenFSM, :state, [])
+
+    assert capture_log(:info, fn ->
+      catch_exit(:gen_fsm.sync_send_event(pid, :error))
+    end) =~ """
+    [error] :gen_fsm #{inspect pid} terminating
+    ** (RuntimeError) oops
+    """
+  end
+
+  test "translates :gen_fsm crashes with event on debug" do
+    {:ok, pid} = :gen_fsm.start(MyGenFSM, :state, [])
+
+    assert capture_log(:debug, fn ->
+      catch_exit(:gen_fsm.sync_send_event(pid, :error))
+    end) =~ ~r"""
+    \[error\] :gen_fsm #PID<\d+\.\d+\.\d+> terminating
+    \*\* \(RuntimeError\) oops
+    .*/\d+
+    Last message: {:\"\$gen_sync_event\", .*, :error}
+    State: {:state_name, :state}
+    """s
   end
 
   def task(parent, fun \\ (fn() -> raise "oops" end)) do

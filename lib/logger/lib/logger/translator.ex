@@ -55,6 +55,18 @@ defmodule Logger.Translator do
           {:ok, msg}
         end
 
+      {'** State machine ~p terminating \n' ++ _, [_, _, _, _, _] = args} ->
+        [name, last, state, data, reason] = args
+        msg = [":gen_fsm #{inspect name} terminating" |
+          format_stop(reason)]
+        if min_level == :debug do
+          {:ok, [msg,
+                 "\nLast message: ", inspect(last, opts),
+                 "\nState: ", inspect({state, data}, opts)]}
+        else
+          {:ok, msg}
+        end
+
       {'** Task ' ++ _, [name, starter, function, args, reason]} ->
         msg = ["Task #{inspect name} started from #{inspect starter} terminating",
                format_stop(reason),
