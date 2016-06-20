@@ -1,5 +1,10 @@
+exclude =
+  case :erlang.system_info(:otp_release) do
+    '18' -> [:gen_statem]
+    _    -> []
+  end
 Logger.configure_backend(:console, colors: [enabled: false])
-ExUnit.start()
+ExUnit.start(exclude: exclude)
 
 defmodule Logger.Case do
   use ExUnit.CaseTemplate

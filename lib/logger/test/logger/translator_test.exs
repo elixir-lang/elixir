@@ -41,6 +41,17 @@ defmodule Logger.TranslatorTest do
     def terminate(_, _, _), do: :ok
   end
 
+  defmodule MyGenStatem do
+    def init({state, data}) do
+      {:handle_event_function, state, data}
+    end
+
+    def handle_event(_, :error, _, _), do: raise "oops"
+    def handle_event(_, actions, _, _), do: {:keep_state_and_data, actions}
+
+    def terminate(_, _, _), do: :ok
+  end
+
   setup_all do
     sasl_reports? = Application.get_env(:logger, :handle_sasl_reports, false)
     Application.put_env(:logger, :handle_sasl_reports, true)
@@ -619,6 +630,41 @@ defmodule Logger.TranslatorTest do
     .*/\d+
     Last message: {:\"\$gen_sync_event\", .*, :error}
     State: {:state_name, :state}
+    """s
+  end
+
+  @tag :gen_statem
+  test "translates :gen_statem crashes" do
+    {:ok, pid} = :gen_statem.start(MyGenStatem, {:state, :data}, [])
+
+    assert capture_log(:info, fn ->
+      catch_exit(:gen_statem.call(pid, :error))
+      :timer.sleep(100)
+    end) =~ """
+    [error] :gen_statem #{inspect pid} terminating
+    ** (RuntimeError) oops
+    """
+  end
+
+  @tag :gen_statem
+  test "translates :gen_statem crashes debug" do
+    {:ok, pid} = :gen_statem.start(MyGenStatem, {:state, :data}, [])
+
+    assert capture_log(:debug, fn ->
+      actions = [{:next_event, :internal, :postpone},
+                 {:next_event, :internal, :error},
+                 {:next_event, :internal, :queued}]
+      catch_exit(:gen_statem.call(pid, actions))
+      :timer.sleep(100)
+    end) =~ ~r"""
+    \[error\] :gen_statem #PID<\d+\.\d+\.\d+> terminating
+    \*\* \(RuntimeError\) oops
+    .*/\d+
+    Last message: {:internal, :error}
+    State: {:state, :data}
+    Callback mode: :handle_event_function
+    Queued messages: \[internal: :queued\]
+    Postponed messages: \[internal: :postpone\]
     """s
   end
 
