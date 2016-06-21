@@ -266,22 +266,22 @@ defmodule Mix.Dep.Loader do
     {dep, deps}
   end
 
-  defp rebar_dep(%Mix.Dep{app: app} = dep, children, manager) do
-    Mix.Dep.in_dependency(dep, fn _ ->
-      config = Mix.Rebar.load_config(".")
-      extra = Mix.Rebar.merge_config(dep.extra, config)
-      deps =
-        if children do
-          from = Path.absname("rebar.config")
-          # Pass the manager because deps of a Rebar project need
-          # to default to Rebar if we cannot chose a manager from
-          # files in the dependency
-          Enum.map(children, &to_dep(&1, from, manager))
-        else
-          rebar_children(app, config, extra, manager)
-        end
-      {%{dep | extra: extra}, deps}
+  defp rebar_dep(%Mix.Dep{app: app, opts: opts} = dep, children, manager) do
+    config = File.cd!(opts[:dest], fn ->
+      Mix.Rebar.load_config(".")
     end)
+    extra = Mix.Rebar.merge_config(dep.extra, config)
+    deps =
+      if children do
+        from = Path.absname("rebar.config")
+        # Pass the manager because deps of a Rebar project need
+        # to default to Rebar if we cannot chose a manager from
+        # files in the dependency
+        Enum.map(children, &to_dep(&1, from, manager))
+      else
+        rebar_children(app, config, extra, manager)
+      end
+    {%{dep | extra: extra}, deps}
   end
 
   defp make_dep(dep) do
