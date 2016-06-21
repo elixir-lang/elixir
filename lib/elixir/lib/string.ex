@@ -4,7 +4,7 @@ defmodule String do
   @moduledoc ~S"""
   A String in Elixir is a UTF-8 encoded binary.
 
-  ## Codepoints and graphemes
+  ## Codepoints and grapheme cluster
 
   The functions in this module act according to the Unicode
   Standard, version 6.3.0.
@@ -22,12 +22,11 @@ defmodule String do
       iex> String.length("é")
       1
 
-  Furthermore, this module also presents the concept of
-  graphemes. A single grapheme can consist of multiple codepoints
-  that may be perceived as a single character by readers. For example,
-  the "é" grapheme can be represented either as a single "e with acute"
-  codepoint (like above), or as the letter "e" followed by a
-  "combining acute accent" (two codepoints):
+  Furthermore, this module also presents the concept of grapheme cluster
+  (from now on referenced as graphemes). Graphemes can consist of multiple
+  codepoints that may be perceived as a single character by readers. For
+  example, "é" can be represented either as a single "e with acute" codepoint
+  or as the letter "e" followed by a "combining acute accent" (two codepoints):
 
       iex> string = "\u0065\u0301"
       iex> byte_size(string)
@@ -44,9 +43,9 @@ defmodule String do
 
   Graphemes can also be two characters that are interpreted
   as one by some languages. For example, some languages may
-  consider "ch" as a grapheme. However, since this information
-  depends on the locale, it is not taken into account by this
-  module.
+  consider "ch" as a single character. However, since this
+  information depends on the locale, it is not taken into account
+  by this module.
 
   In general, the functions in this module rely on the Unicode
   Standard, but do not contain any of the locale specific behaviour.
@@ -173,9 +172,10 @@ defmodule String do
   a correct result even if an invalid codepoint is fed into it.
 
   In other words, this module expects invalid data to be detected
-  when retrieving data from the external source. For example, a
-  driver that reads strings from a database will be
-  responsible to check the validity of the encoding.
+  elsewhere, usually when retrieving data from the external source.
+  For example, a driver that reads strings from a database will be
+  responsible to check the validity of the encoding. `String.chunk/1`
+  can be used for breaking a string into valid and invalid parts.
 
   ## Patterns
 
@@ -1208,8 +1208,8 @@ defmodule String do
 
   The trait can be one of two options:
 
-    * `:valid`     - the string is split into chunks of valid and invalid character
-      sequences
+    * `:valid` - the string is split into chunks of valid and invalid
+      character sequences
 
     * `:printable` - the string is split into chunks of printable and
       non-printable character sequences
