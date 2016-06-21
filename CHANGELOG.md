@@ -268,7 +268,7 @@ end
 
 By restricting hierarchies in favor of named setups, it is straight-forward for the developer to glance at each describe block and know exactly the setup steps involved.
 
-## v1.3.0-rc.1 (2016-08-06)
+## v1.3.0 (2016-06-21)
 
 ### 1. Enhancements
 
