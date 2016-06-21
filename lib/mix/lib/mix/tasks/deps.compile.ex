@@ -184,12 +184,13 @@ defmodule Mix.Tasks.Deps.Compile do
       Mix.raise "\"#{manager}\" installation failed"
   end
 
-  defp do_make(dep, config) do
-    command = if match?({:win32, _}, :os.type) and File.regular?("Makefile.win") do
-      "nmake /F Makefile.win"
-    else
-      "make"
-    end
+  defp do_make(%{opts: opts} = dep, config) do
+    command =
+      if match?({:win32, _}, :os.type) and File.regular?(Path.join(opts[:dest], "Makefile.win")) do
+        "nmake /F Makefile.win"
+      else
+        "make"
+      end
     do_command(dep, config, command, true)
   end
 
