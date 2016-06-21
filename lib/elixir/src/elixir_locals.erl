@@ -31,7 +31,7 @@ local_for(Module, Name, Arity, Given) ->
     {Kind, Ann, [_ | _] = Clauses} when Given == nil; Kind == Given ->
       get_function(Ann, Module, Clauses);
     _ ->
-      [_ | T] = erlang:get_stacktrace(),
+      {current_stacktrace, [_ | T]} = erlang:process_info(self(), current_stacktrace),
       erlang:raise(error, undef, [{Module, Name, Arity, []} | T])
   end.
 
