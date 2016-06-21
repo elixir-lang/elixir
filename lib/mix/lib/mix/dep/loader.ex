@@ -188,6 +188,8 @@ defmodule Mix.Dep.Loader do
         :mix
       any_of?(dest, ["rebar", "rebar.config", "rebar.config.script"]) ->
         :rebar
+      any_of?(dest, ["rebar.lock"]) ->
+        :rebar3
       any_of?(dest, ["Makefile", "Makefile.win"]) ->
         :make
       true ->
