@@ -6,7 +6,7 @@
 For more about Elixir, installation and documentation,
 [check Elixir's website](http://elixir-lang.org/).
 
-## Usage
+## Compiling from source
 
 To run Elixir from source, clone this repository to your machine, compile and test it:
 
@@ -34,15 +34,18 @@ by calling `erl` in the command line. You will see some information as follows:
 
     Erlang/OTP 18 [erts-7.0] [source] [smp:2:2] [async-threads:10] [hipe] [kernel-poll:false]
 
-If you have the correct version and tests still fail, please
-[open an issue][2].
+If you have properly set up your dependencies and tests still fail,
+you may want to open up a bug report, as explained next.
+
+## Bug reports
+
+For reporting bugs, [visit our issues tracker][2] and follow the steps for reporting a new issue. Security vulnerabilities must be privately disclosed at elixir-security@googlegroups.com.
 
 ## Contributing
 
-We welcome everyone to contribute to Elixir and help us tackle
-existing issues! To do so, there are a few things you need to know
-about the code. First, Elixir code is divided in applications inside
-the `lib` folder:
+We welcome everyone to contribute to Elixir and help us tackle existing issues!
+To do so, there are a few things you need to know about the code. First, Elixir
+code is divided in applications inside the `lib` folder:
 
 * `elixir` - Contains Elixir's kernel and stdlib
 
@@ -86,7 +89,7 @@ case you are looking for some examples:
 * [Implement capture_io for ExUnit – Pull Request](https://github.com/elixir-lang/elixir/pull/1059)
 
 We usually keep a list of enhancements and bugs [in the issue tracker][2].
-For proposing a new feature, please start a discussion in the
+For proposing new features, please start a discussion in the
 [Elixir Core mailing list][3]. Keep in mind that it is your responsibility
 to argue and explain why a feature is useful and how it will impact the
 codebase and the community. Finally, remember all interactions in our official
