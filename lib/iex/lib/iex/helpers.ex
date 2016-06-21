@@ -23,8 +23,8 @@ defmodule IEx.Helpers do
   There are many other helpers available:
 
     * `b/1`           - prints callbacks info and docs for a given module
-    * `c/1`           - compiles a file at the current directory
-    * `c/2`           - compiles a file at the given path
+    * `c/1`           - compiles a file into the current directory
+    * `c/2`           - compiles a file to the given path
     * `cd/1`          - changes the current directory
     * `clear/0`       - clears the screen
     * `flush/0`       - flushes all messages sent to the shell
@@ -115,6 +115,7 @@ defmodule IEx.Helpers do
 
       c "baz.ex"
       #=> [Baz]
+
   """
   def c(files, path \\ ".") when is_binary(path) do
     files = List.wrap(files)
@@ -123,10 +124,7 @@ defmodule IEx.Helpers do
       raise ArgumentError, "expected a binary or a list of binaries as argument"
     end
 
-    {found, not_found} =
-      files
-      |> Enum.map(&Path.expand(&1, path))
-      |> Enum.partition(&File.exists?/1)
+    {found, not_found} = Enum.partition(files, &File.exists?/1)
 
     unless Enum.empty?(not_found) do
       raise ArgumentError, "could not find files #{Enum.join(not_found, ", ")}"
