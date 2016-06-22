@@ -33,7 +33,7 @@ defmodule Mix.Tasks.Loadpaths do
     # --no-deps is used only internally. It has no purpose
     # from Mix.CLI because the CLI itself already loads deps.
     unless "--no-deps" in args do
-      Mix.Task.run "deps.check", args
+      Mix.Task.run "deps.loadpaths", args
     end
 
     if config[:app] do

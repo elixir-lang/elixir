@@ -90,7 +90,7 @@ defmodule Mix.Tasks.DepsGitTest do
       File.rm_rf!("deps/git_repo/.git")
 
       assert_raise Mix.Error, "Can't continue due to errors on dependencies", fn ->
-        Mix.Tasks.Deps.Check.run ["git_repo"]
+        Mix.Tasks.Deps.Loadpaths.run ["git_repo"]
       end
     end
   end
@@ -126,7 +126,7 @@ defmodule Mix.Tasks.DepsGitTest do
       Code.delete_path("_build/dev/lib/git_repo/ebin")
 
       # Deps on Git repo loads it automatically on compile
-      Mix.Task.reenable "deps.check"
+      Mix.Task.reenable "deps.loadpaths"
       Mix.Tasks.Deps.Compile.run ["deps_on_git_repo"]
       assert File.exists?("_build/dev/lib/deps_on_git_repo/ebin")
     end
@@ -243,7 +243,7 @@ defmodule Mix.Tasks.DepsGitTest do
       # Update the lock and now we should get an error
       Mix.Dep.Lock.write %{git_repo: {:git, fixture_path("git_repo"), last, []}}
       assert_raise Mix.Error, fn ->
-        Mix.Tasks.Deps.Check.run []
+        Mix.Tasks.Deps.Loadpaths.run []
       end
 
       # Flush the errors we got, move to a clean slate
