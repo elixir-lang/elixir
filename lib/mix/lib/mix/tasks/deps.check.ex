@@ -5,41 +5,36 @@ defmodule Mix.Tasks.Deps.Check do
                          format_status: 1, check_lock: 1]
 
   @moduledoc """
-  Checks if all dependencies are valid, loading them along
-  the way.
+  Checks if all dependencies (including archives) are valid,
+  loading them along the way.
 
   If there is an invalid dependency, its status is printed
   before aborting.
 
-  This task is not shown in `mix help` but it is part
-  of the `mix` public API and can be depended on.
-
   ## Command line options
 
-    * `--no-archives-check` - do not check archives
-    * `--no-deps-check` - do not check deps
+    * `--no-deps-check` - do not check or compile deps, only load available ones
+    * `--no-deps-loading` - do not load dependencies
     * `--no-compile` - do not compile dependencies
 
   """
   @spec run(OptionParser.argv) :: :ok
   def run(args) do
-    unless "--no-archives-check" in args do
-      Mix.Task.run "archive.check", args
-    end
-
     all = Enum.map(Mix.Dep.cached(), &check_lock/1)
 
     unless "--no-deps-check" in args do
       deps_check(all, "--no-compile" in args)
     end
 
-    load_paths =
-      for dep <- all, path <- Mix.Dep.load_paths(dep) do
-        _ = Code.prepend_path(path)
-        path
-      end
+    unless "--no-deps-loading" in args do
+      load_paths =
+        for dep <- all, path <- Mix.Dep.load_paths(dep) do
+          _ = Code.prepend_path(path)
+          path
+        end
 
-    prune_deps(load_paths, "--no-deps-check" in args)
+      prune_deps(load_paths, "--no-deps-check" in args)
+    end
   end
 
   # If the build is per environment, we should be able to look
