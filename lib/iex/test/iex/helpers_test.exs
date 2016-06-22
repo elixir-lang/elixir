@@ -33,7 +33,7 @@ defmodule IEx.HelpersTest do
 
   test "h helper function" do
     pwd_h = "* def pwd()\n\nPrints the current working directory.\n\n"
-    c_h   = "* def c(files, path \\\\ \".\")\n\nCompiles the given files."
+    c_h   = "* def c(files, path \\\\ :in_memory)\n\nCompiles the given files."
 
     assert capture_io(fn -> h IEx.Helpers.pwd/0 end) =~ pwd_h
     assert capture_io(fn -> h IEx.Helpers.c/2 end) =~ c_h
@@ -59,7 +59,7 @@ defmodule IEx.HelpersTest do
     """
     filename = "sample.ex"
      with_file filename, content, fn ->
-      assert c(filename) == [Sample]
+      assert c(filename, ".") == [Sample]
 
       assert capture_io(fn -> h Sample.__foo__ end) == "No documentation for Sample.__foo__ was found\n"
       assert capture_io(fn -> h Sample.__bar__ end) == "* def __bar__()\n\nBar doc\n"
@@ -89,7 +89,7 @@ defmodule IEx.HelpersTest do
     """
     files = ["my_behaviour.ex", "impl.ex"]
     with_file files, [behaviour, impl], fn ->
-      assert c(files) |> Enum.sort == [Impl, MyBehaviour]
+      assert c(files, ".") |> Enum.sort == [Impl, MyBehaviour]
 
       assert capture_io(fn -> h Impl.first/1 end) == "* @callback first(integer()) :: integer()\n\nDocs for MyBehaviour.first\n"
       assert capture_io(fn -> h Impl.second/1 end) == "* def second(int)\n\nDocs for Impl.second\n"
@@ -115,7 +115,7 @@ defmodule IEx.HelpersTest do
     end
     """
     with_file filename, content, fn ->
-      assert c(filename) |> Enum.sort == [Delegated, Delegator]
+      assert c(filename, ".") |> Enum.sort == [Delegated, Delegator]
 
       assert capture_io(fn -> h Delegator.func1 end) == "* def func1()\n\nSee `Delegated.func1/0`.\n"
       assert capture_io(fn -> h Delegator.func2 end) == "* def func2()\n\nDelegator func2 doc\n"
@@ -163,7 +163,7 @@ defmodule IEx.HelpersTest do
     """
     filename = "typesample.ex"
     with_file filename, content, fn ->
-      assert c(filename) == [TypeSample]
+      assert c(filename, ".") == [TypeSample]
       assert capture_io(fn -> t TypeSample.id_with_desc/0 end) == """
       An id with description.
       @type id_with_desc() :: {number(), String.t()}
@@ -276,6 +276,22 @@ defmodule IEx.HelpersTest do
     filename = "sample.ex"
     with_file filename, test_module_code(), fn ->
       assert c(filename) == [Sample]
+      refute File.exists?("Elixir.Sample.beam")
+      assert Sample.run == :run
+    end
+  after
+    cleanup_modules([Sample])
+  end
+
+  test "c/2 helper" do
+    assert_raise UndefinedFunctionError, ~r"function Sample\.run/0 is undefined", fn ->
+      Sample.run
+    end
+
+    filename = "sample.ex"
+    with_file filename, test_module_code(), fn ->
+      assert c(filename, ".") == [Sample]
+      assert File.exists?("Elixir.Sample.beam")
       assert Sample.run == :run
     end
   after
@@ -331,11 +347,26 @@ defmodule IEx.HelpersTest do
     with_file filename, erlang_module_code(), fn ->
       assert c(filename) == [:sample]
       assert :sample.hello == :world
+      refute File.exists?("sample.beam")
     end
   after
     cleanup_modules([:sample])
   end
 
+  test "c/2 helper erlang" do
+    assert_raise UndefinedFunctionError, ~r"function :sample.hello/0 is undefined", fn ->
+      :sample.hello
+    end
+
+    filename = "sample.erl"
+    with_file filename, erlang_module_code(), fn ->
+      assert c(filename, ".") == [:sample]
+      assert :sample.hello == :world
+      assert File.exists?("sample.beam")
+    end
+  after
+    cleanup_modules([:sample])
+  end
 
   test "c helper skips unknown files" do
     assert_raise UndefinedFunctionError, ~r"function :sample.hello/0 is undefined", fn ->
@@ -362,7 +393,7 @@ defmodule IEx.HelpersTest do
 
     filename = "sample.ex"
     with_file filename, test_module_code(), fn ->
-      assert c(filename) == [Sample]
+      assert c(filename, ".") == [Sample]
       assert Sample.run == :run
 
       File.write! filename, "defmodule Sample do end"
@@ -401,7 +432,7 @@ defmodule IEx.HelpersTest do
     filename = "sample.ex"
     with_file filename, test_module_code(), fn ->
       assert capture_io(:stderr, fn ->
-        assert c(filename) == [Sample]
+        assert c(filename, ".") == [Sample]
         assert Sample.run == :run
 
         File.write! filename, "defmodule Sample do end"
@@ -423,7 +454,7 @@ defmodule IEx.HelpersTest do
 
     filename = "sample.erl"
     with_file filename, erlang_module_code(), fn ->
-      assert c(filename) == [:sample]
+      assert c(filename, ".") == [:sample]
       assert :sample.hello == :world
 
       File.write!(filename, other_erlang_module_code())
