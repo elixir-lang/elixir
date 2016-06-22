@@ -29,7 +29,7 @@ defmodule BehaviourTest do
   end
 
   test "specs" do
-    assert length(AbstractCodeHelpers.callbacks_for_beam(@sample_binary)) == 7
+    assert length(Kernel.Typespec.beam_callbacks(@sample_binary)) == 7
   end
 
   test "default is not supported" do

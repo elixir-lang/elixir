@@ -189,7 +189,7 @@ defmodule ProtocolTest do
   end
 
   defp get_callbacks(beam, name, arity) do
-    callbacks = AbstractCodeHelpers.callbacks_for_beam(beam)
+    callbacks = Kernel.Typespec.beam_callbacks(beam)
     List.keyfind(callbacks, {name, arity}, 0) |> elem(1)
   end
 
@@ -375,7 +375,7 @@ defmodule Protocol.ConsolidationTest do
   end
 
   test "consolidated keeps callbacks" do
-    callbacks = AbstractCodeHelpers.callbacks_for_beam(@sample_binary)
+    callbacks = Kernel.Typespec.beam_callbacks(@sample_binary)
     assert callbacks != []
   end
 
