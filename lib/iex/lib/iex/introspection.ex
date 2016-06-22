@@ -108,7 +108,7 @@ defmodule IEx.Introspection do
     if docs = Code.get_docs(mod, :docs) do
       if doc = find_doc(docs, fun, arity) do
         if callback_module = is_nil(elem(doc, 4)) and callback_module(mod, fun, arity) do
-          filter = &match?({^fun, _}, elem(&1, 0))
+          filter = &match?({^fun, ^arity}, elem(&1, 0))
           print_callback_docs(callback_module, filter, &print_doc/2)
         else
           print_doc(doc)
@@ -147,14 +147,11 @@ defmodule IEx.Introspection do
     do: true
 
   defp callback_module(mod, fun, arity) do
+    filter = &match?({{^fun, ^arity}, _}, &1)
     mod.module_info(:attributes)
     |> Keyword.get_values(:behaviour)
     |> Stream.concat()
-    |> Enum.find(fn module ->
-      module.module_info(:attributes)
-      |> Enum.filter(&match?({:callback, _}, &1))
-      |> Enum.any?(&match?({_, [{{^fun, ^arity}, _} | _]}, &1))
-    end)
+    |> Enum.find(&Enum.any?(Typespec.beam_callbacks(&1), filter))
   end
 
   defp print_doc({{fun, _}, _line, kind, args, doc}) do
