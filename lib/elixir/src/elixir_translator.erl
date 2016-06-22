@@ -161,8 +161,15 @@ translate({super, Meta, Args}, S) when is_list(Args) ->
                     "arguments as the current function")
   end,
 
-  Super = elixir_def_overridable:name(Module, Function),
-  {{call, ?ann(Meta), {atom, ?ann(Meta), Super}, TArgs}, TS#elixir_scope{super=true}};
+  {FinalName, FinalArgs} =
+    case elixir_def_overridable:kind_and_name(Module, Function) of
+      {Kind, Name} when Kind == def; Kind == defp ->
+        {Name, TArgs};
+      {Kind, Name} when Kind == defmacro; Kind == defmacrop ->
+        {elixir_utils:macro_name(Name), [{var, ?ann(Meta), '_@CALLER'} | TArgs]}
+    end,
+
+  {{call, ?ann(Meta), {atom, ?ann(Meta), FinalName}, FinalArgs}, TS#elixir_scope{super=true}};
 
 %% Variables
 
