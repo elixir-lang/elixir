@@ -1,4 +1,10 @@
-ExUnit.start [trace: "--trace" in System.argv]
+exclude =
+  case :erlang.system_info(:otp_release) do
+    '19' -> [:does_not_apply_to_otp19]
+    _    -> []
+  end
+
+ExUnit.start [exclude: exclude, trace: "--trace" in System.argv]
 
 # Beam files compiled on demand
 path = Path.expand("../../tmp/beams", __DIR__)
