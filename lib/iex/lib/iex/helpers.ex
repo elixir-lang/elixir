@@ -117,7 +117,7 @@ defmodule IEx.Helpers do
       #=> [Baz]
 
   """
-  def c(files, path \\ ".") when is_binary(path) do
+  def c(files, path \\ :in_memory) when is_binary(path) or path == :in_memory do
     files = List.wrap(files)
 
     unless Enum.all?(files, &is_binary/1) do
@@ -134,12 +134,14 @@ defmodule IEx.Helpers do
 
     modules = Enum.map(erls, fn(source) ->
       {module, binary} = compile_erlang(source)
-      base = source |> Path.basename |> Path.rootname
-      File.write!(Path.join(path, base <> ".beam"), binary)
+      unless path == :in_memory do
+        base = source |> Path.basename |> Path.rootname
+        File.write!(Path.join(path, base <> ".beam"), binary)
+      end
       module
     end)
 
-    modules ++ Kernel.ParallelCompiler.files_to_path(exs, path)
+    modules ++ compile_elixir(exs, path)
   end
 
   @doc """
@@ -584,6 +586,9 @@ defmodule IEx.Helpers do
   defmacro import_file(_path, _opts) do
     raise ArgumentError, "import_file/1 expects a literal binary as its argument"
   end
+
+  defp compile_elixir(exs, :in_memory), do: Kernel.ParallelCompiler.files(exs)
+  defp compile_elixir(exs, path), do: Kernel.ParallelCompiler.files_to_path(exs, path)
 
   # Compiles and loads an Erlang source file, returns {module, binary}
   defp compile_erlang(source) do
