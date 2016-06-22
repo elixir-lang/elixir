@@ -275,7 +275,7 @@ defmodule Mix.Task do
     # 2. Otherwise we look for it in dependencies.
     # 3. Finally, we compile the current project in hope it is available.
     module =
-      get_task_or_run(proj, task, fn -> Mix.Task.run("deps.check") end) ||
+      get_task_or_run(proj, task, fn -> Mix.Task.run("deps.loadpaths") end) ||
       get_task_or_run(proj, task, fn -> Mix.Project.compile([]) end) ||
       get!(task)
 
