@@ -5,7 +5,7 @@ defmodule Mix.Tasks.Deps.Check do
                          format_status: 1, check_lock: 1]
 
   @moduledoc """
-  Checks if all dependencies (including archives) are valid,
+  Checks if all dependencies are valid,
   loading them along the way.
 
   If there is an invalid dependency, its status is printed
@@ -14,7 +14,6 @@ defmodule Mix.Tasks.Deps.Check do
   ## Command line options
 
     * `--no-deps-check` - do not check or compile deps, only load available ones
-    * `--no-deps-loading` - do not load dependencies
     * `--no-compile` - do not compile dependencies
 
   """
@@ -26,15 +25,13 @@ defmodule Mix.Tasks.Deps.Check do
       deps_check(all, "--no-compile" in args)
     end
 
-    unless "--no-deps-loading" in args do
-      load_paths =
-        for dep <- all, path <- Mix.Dep.load_paths(dep) do
-          _ = Code.prepend_path(path)
-          path
-        end
+    load_paths =
+      for dep <- all, path <- Mix.Dep.load_paths(dep) do
+        _ = Code.prepend_path(path)
+        path
+      end
 
-      prune_deps(load_paths, "--no-deps-check" in args)
-    end
+    prune_deps(load_paths, "--no-deps-check" in args)
   end
 
   # If the build is per environment, we should be able to look
