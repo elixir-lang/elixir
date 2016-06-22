@@ -93,6 +93,18 @@ defmodule Kernel.Overridable do
   def many_clauses(x) do
     super(x)
   end
+
+  ## Macros
+
+  defmacro overridable_macro(x) do
+    x + 100
+  end
+
+  defoverridable overridable_macro: 1
+
+  defmacro overridable_macro(x) do
+    super(x) + 1_000
+  end
 end
 
 defmodule Kernel.OverridableTest do
@@ -169,5 +181,9 @@ defmodule Kernel.OverridableTest do
           "nofile:4: no super defined for foo/0 in module Foo.Forwarding. " <>
           "Overridable functions available are: bar/0"
     end
+  end
+
+  test "overridable macros" do
+    assert Overridable.overridable_macro(1) == 1101
   end
 end

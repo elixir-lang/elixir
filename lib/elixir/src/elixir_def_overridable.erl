@@ -1,6 +1,6 @@
 % Holds the logic responsible for defining overridable functions and handling super.
 -module(elixir_def_overridable).
--export([setup/1, overridable/1, overridable/2, name/2, super/2, store_pending/1,
+-export([setup/1, overridable/1, overridable/2, kind_and_name/2, super/2, store_pending/1,
          ensure_defined/4, format_error/1]).
 -include("elixir.hrl").
 -define(attr, {elixir, overridable}).
@@ -23,14 +23,20 @@ ensure_defined(Meta, Module, Tuple, S) ->
     _ -> elixir_errors:form_error(Meta, S#elixir_scope.file, ?MODULE, {no_super, Module, Tuple})
   end.
 
-%% Gets the name based on the function and stored overridables
+%% Builds a function name based on how many times the function has been
+%% overridden.
 
-name(Module, Function) ->
-  name(Module, Function, overridable(Module)).
-
-name(_Module, {Name, _} = Function, Overridable) ->
-  {Count, _, _, _} = maps:get(Function, Overridable),
+name({Name, _} = _Function, Count) when is_integer(Count) ->
   elixir_utils:atom_concat([Name, " (overridable ", Count, ")"]).
+
+%% Returns the kind (def, defp, and so on) of the given overridable function and
+%% its overridable name.
+
+kind_and_name(Module, FunctionOrMacro) ->
+  Overridable = overridable(Module),
+  {Count, Clause, _, _} = maps:get(FunctionOrMacro, Overridable),
+  {{{def, _Function}, Kind, _Line, _File, _Check, _Location, _Defaults}, _Clauses} = Clause,
+  {Kind, name(FunctionOrMacro, Count)}.
 
 %% Store
 
@@ -44,10 +50,15 @@ store(Module, Function, GenerateName) ->
       {{{def, {Name, Arity}}, Kind, Line, File, _Check,
        Location, {Defaults, _HasBody, _LastDefaults}}, Clauses} = Clause,
 
-      {FinalKind, FinalName} = case GenerateName of
-        true  -> {defp, name(Module, Function, Overridable)};
-        false -> {Kind, Name}
-      end,
+      {FinalKind, FinalName, FinalArity} =
+        case {GenerateName, Kind} of
+          {false, _} ->
+            {Kind, Name, Arity};
+          {true, K} when K == defmacro; K == defmacrop ->
+            {defp, elixir_utils:macro_name(name(Function, Count)), Arity + 1};
+          {true, K} when K == def; K == defp ->
+            {defp, name(Function, Count), Arity}
+        end,
 
       case elixir_compiler:get_opt(internal) of
         false ->
@@ -56,7 +67,7 @@ store(Module, Function, GenerateName) ->
           ok
       end,
 
-      Def = {function, Line, FinalName, Arity, Clauses},
+      Def = {function, Line, FinalName, FinalArity, Clauses},
       elixir_def:store_each(false, FinalKind, File, Location, Module, Defaults, Def)
   end.
 
