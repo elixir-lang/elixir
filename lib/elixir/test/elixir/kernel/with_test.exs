@@ -75,7 +75,7 @@ defmodule Kernel.WithTest do
     end
   end
 
-  test "invalid else form" do
+  test "invalid else option" do
     assert_raise CompileError, "nofile:1: expected -> clauses for else in with",  fn ->
       Code.eval_quoted(quote do: with(_ <- true, do: :ok, else: :error))
     end

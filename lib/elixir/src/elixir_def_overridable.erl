@@ -51,12 +51,12 @@ store(Module, Function, GenerateName) ->
        Location, {Defaults, _HasBody, _LastDefaults}}, Clauses} = Clause,
 
       {FinalKind, FinalName, FinalArity} =
-        case {GenerateName, Kind} of
-          {false, _} ->
+        case GenerateName of
+          false ->
             {Kind, Name, Arity};
-          {true, K} when K == defmacro; K == defmacrop ->
+          true when Kind == defmacro; Kind == defmacrop ->
             {defp, elixir_utils:macro_name(name(Function, Count)), Arity + 1};
-          {true, K} when K == def; K == defp ->
+          true when Kind == def; Kind == defp ->
             {defp, name(Function, Count), Arity}
         end,
 
