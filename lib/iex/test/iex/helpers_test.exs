@@ -71,6 +71,7 @@ defmodule IEx.HelpersTest do
     cleanup_modules([Sample])
   end
 
+  @tag :does_not_apply_to_otp19
   test "h helper for callbacks" do
     behaviour = """
     defmodule MyBehaviour do

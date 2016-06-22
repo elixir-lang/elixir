@@ -1,6 +1,13 @@
 :ok = Application.start(:iex)
 IEx.configure([colors: [enabled: false]])
-ExUnit.start [trace: "--trace" in System.argv]
+
+exclude =
+  case :erlang.system_info(:otp_release) do
+    '19' -> [:does_not_apply_to_otp19]
+    _    -> []
+  end
+
+ExUnit.start [exclude: exclude, trace: "--trace" in System.argv]
 
 defmodule IEx.Case do
   use ExUnit.CaseTemplate
@@ -70,4 +77,3 @@ defmodule IEx.Case do
     |> String.trim
   end
 end
-
