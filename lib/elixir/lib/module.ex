@@ -830,6 +830,10 @@ defmodule Module do
         false ->
           {name, arity} = tuple
           raise "cannot make function #{name}/#{arity} overridable because it was not defined"
+        {{{:def, {name, arity}}, :defmacrop, _line, _file, _check, _location, _defaults}, _clauses} ->
+          raise ArgumentError,
+            "cannot make private macro #{name}/#{arity} overridable, overriding " <>
+            "private macros is not supported"
         clause ->
           neighbours =
             if :elixir_compiler.get_opt(:internal) do
