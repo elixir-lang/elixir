@@ -296,6 +296,20 @@ defmodule EnumTest do
     refute Enum.member?([1, 2, 3], 0)
   end
 
+  test "merge/2" do
+    assert Enum.merge([], fn x, _y -> x end) == []
+    assert Enum.merge([1], fn x, _y -> x end) == [1]
+    assert Enum.merge([1, -1], fn x, _y -> x end) == [1, -1]
+    assert Enum.merge([1, 1], fn x, _y -> x end) == [1]
+    assert Enum.merge([1, 2, 3, 3, 2, 1], fn x, y -> x + y end) == [2, 4, 6]
+  end
+
+  test "merge/3" do
+    list = [%{k: "a", v: 1}, %{k: "b", v: 2}, %{k: "a", v: 3}, %{k: "b", v: 4}]
+    assert Enum.merge_by(list, fn(t1, _t2) -> t1 end, fn s -> s.k end) == [%{k: "a", v: 1}, %{k: "b", v: 2}]
+    assert Enum.merge_by(list, fn(t1, t2) -> %{t1 | v: t1.v + t2.v} end, fn s -> s.k end) == [%{k: "a", v: 4}, %{k: "b", v: 6}]
+  end
+
   test "min/1" do
     assert Enum.min([1]) == 1
     assert Enum.min([1, 2, 3]) == 1
