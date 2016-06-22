@@ -172,14 +172,17 @@ defmodule Kernel.OverridableTest do
   end
 
   test "invalid super call" do
-    try do
-      :elixir.eval 'defmodule Foo.Forwarding do\ndef bar, do: 1\ndefoverridable [bar: 0]\ndef foo, do: super()\nend', []
-      flunk "expected eval to fail"
-    rescue
-      error ->
-        assert Exception.message(error) ==
-          "nofile:4: no super defined for foo/0 in module Foo.Forwarding. " <>
-          "Overridable functions available are: bar/0"
+    message =
+      "nofile:4: no super defined for foo/0 in module Foo.Forwarding. " <>
+      "Overridable functions available are: bar/0"
+    assert_raise CompileError, message, fn ->
+      Code.eval_string """
+      defmodule Foo.Forwarding do
+        def bar(), do: 1
+        defoverridable bar: 0
+        def foo(), do: super()
+      end
+      """
     end
   end
 
