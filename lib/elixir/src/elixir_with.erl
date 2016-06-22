@@ -45,7 +45,7 @@ expand(Meta, Args, E) ->
 
   {ECases, EC} = lists:mapfoldl(fun expand/2, E, Cases),
   {EDoExpr, _} = elixir_exp:expand(DoExpr, EC),
-  {EElseExpr, _} = expand_else(ElseExpr, E),
+  {EElseExpr, _} = expand_else(Meta, ElseExpr, E),
   {{with, Meta, ECases ++ [[{do, EDoExpr} | EElseExpr]]}, E}.
 
 expand({'<-', Meta, [Left, Right]}, E) ->
@@ -55,11 +55,14 @@ expand({'<-', Meta, [Left, Right]}, E) ->
 expand(X, E) ->
   elixir_exp:expand(X, E).
 
-expand_else(KV, E) when is_list(KV) ->
+expand_else(_Meta, KV, E) when is_list(KV) ->
   {[{do, EClauses}], EC} = elixir_exp_clauses:'case'([], [{do, KV}], E),
   {[{else, EClauses}], EC};
-expand_else(nil, E) ->
-  {[], E}.
+expand_else(_Meta, nil, E) ->
+  {[], E};
+expand_else(Meta, _KV, E) ->
+  Message = "expected -> clauses for else in with",
+  elixir_errors:compile_error(Meta, ?m(E, file), Message, []).
 
 %% Translation
 
