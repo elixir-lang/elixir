@@ -338,8 +338,6 @@ defmodule String do
     :binary.split(string, pattern, [:global])
   end
 
-  # TODO: Use :trim_all with :binary.split/3 whenever parts is
-  # infinity and pattern != "" and at least Erlang 18.2 is required.
   def split(string, pattern, options) when is_binary(string) do
     parts   = Keyword.get(options, :parts, :infinity)
     trim    = Keyword.get(options, :trim, false)
