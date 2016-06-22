@@ -103,3 +103,18 @@ defmodule CompileAssertion do
     result || flunk("Expected expression to fail")
   end
 end
+
+defmodule AbstractCodeHelpers do
+  def callbacks_for_beam(beam) do
+    abstract_code = abstract_code_for_beam(beam)
+
+    for {:attribute, _, :callback, value} <- abstract_code, do: value
+  end
+
+  defp abstract_code_for_beam(beam) do
+    {:ok, {_, [abstract_code: {:raw_abstract_v1, abstract_code}]}} =
+      :beam_lib.chunks(beam, [:abstract_code])
+
+    abstract_code
+  end
+end
