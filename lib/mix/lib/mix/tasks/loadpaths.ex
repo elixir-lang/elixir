@@ -12,12 +12,13 @@ defmodule Mix.Tasks.Loadpaths do
   ## Command line options
 
     * `--no-archives-check` - do not check archive
-    * `--no-deps-check` - do not check dependencies (also implies --no-archives-check)
+    * `--no-deps-check` - do not check dependencies
     * `--no-elixir-version-check` - do not check Elixir version
 
   """
 
   @spec run(OptionParser.argv) :: :ok
+
   def run(args) do
     config = Mix.Project.config
 
@@ -25,7 +26,11 @@ defmodule Mix.Tasks.Loadpaths do
       check_elixir_version(config, args)
     end
 
-    # --no-deps is used only internally. It has not purpose
+    unless "--no-archives-check" in args do
+      Mix.Task.run "archive.check", args
+    end
+
+    # --no-deps is used only internally. It has no purpose
     # from Mix.CLI because the CLI itself already loads deps.
     unless "--no-deps" in args do
       Mix.Task.run "deps.check", args
