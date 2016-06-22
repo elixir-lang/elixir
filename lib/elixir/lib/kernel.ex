@@ -3470,7 +3470,7 @@ defmodule Kernel do
       end
 
       unquote(builder)
-
+      Kernel.Utils.announce_struct(__MODULE__)
       fields
     end
   end

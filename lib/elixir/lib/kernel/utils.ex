@@ -84,4 +84,11 @@ defmodule Kernel.Utils do
      List.wrap(Module.get_attribute(module, :enforce_keys)),
      Module.get_attribute(module, :derive)}
   end
+
+  def announce_struct(module) do
+    case :erlang.get(:elixir_compiler_pid) do
+      :undefined -> :ok
+      pid -> send(pid, {:struct_available, module})
+    end
+  end
 end
