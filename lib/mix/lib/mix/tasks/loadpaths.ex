@@ -18,7 +18,6 @@ defmodule Mix.Tasks.Loadpaths do
   """
 
   @spec run(OptionParser.argv) :: :ok
-
   def run(args) do
     config = Mix.Project.config
 
