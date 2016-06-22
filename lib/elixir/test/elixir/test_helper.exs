@@ -1,6 +1,6 @@
 exclude =
   case :erlang.system_info(:otp_release) do
-    '19' -> [:does_not_apply_to_otp19]
+    '19' -> [otp19: false]
     _    -> []
   end
 

@@ -53,7 +53,7 @@ defmodule Kernel.DialyzerTest do
     {:ok, [outdir: dir, dialyzer: dialyzer]}
   end
 
-  @tag :does_not_apply_to_otp19
+  @tag otp19: false
   test "no warnings on valid remote calls", context do
     copy_beam! context, Dialyzer.RemoteCall
     assert_dialyze_no_warnings! context
@@ -64,7 +64,7 @@ defmodule Kernel.DialyzerTest do
     assert_dialyze_no_warnings! context
   end
 
-  @tag :does_not_apply_to_otp19
+  @tag otp19: false
   test "no warnings on raise", context do
     copy_beam! context, Dialyzer.Raise
     assert_dialyze_no_warnings! context
