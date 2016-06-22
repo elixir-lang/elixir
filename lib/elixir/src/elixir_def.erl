@@ -105,8 +105,6 @@ store_definition(Meta, Line, Kind, CheckClauses, Name, Args, Guards, Body, KeepL
   store_each(CheckClauses, Kind, File, Location, Module, DefaultsLength, Function),
   [store_each(false, Kind, File, Location, Module, 0,
     default_function_for(Kind, Name, Default)) || Default <- Defaults],
-
-  make_struct_available(Kind, Module, Name, Args),
   {Name, Arity}.
 
 %% @on_definition
@@ -115,16 +113,6 @@ run_on_definition_callbacks(Kind, Line, Module, Name, Args, Guards, Expr, E) ->
   Env = elixir_env:linify({Line, E}),
   Callbacks = elixir_module:get_attribute(Module, on_definition),
   _ = [Mod:Fun(Env, Kind, Name, Args, Guards, Expr) || {Mod, Fun} <- Callbacks],
-  ok.
-
-make_struct_available(def, Module, '__struct__', []) ->
-  case erlang:get(elixir_compiler_pid) of
-    undefined -> ok;
-    Pid ->
-      Pid ! {struct_available, Module},
-      ok
-  end;
-make_struct_available(_, _, _, _) ->
   ok.
 
 %% Retrieve location from meta file (if Key == keep)
