@@ -2231,7 +2231,7 @@ defmodule Enum do
   end
 
   @doc """
-  Takes random items from `enumerable`.
+  Takes `count` random items from `enumerable`.
 
   Notice this function will traverse the whole `enumerable` to
   get the random sublist.
@@ -2249,8 +2249,11 @@ defmodule Enum do
 
   """
   @spec take_random(t, non_neg_integer) :: list
-  def take_random(_enumerable, 0), do: []
-  def take_random(first..first, 1),
+  def take_random(enumerable, count)
+
+  def take_random(_enumerable, 0),
+    do: []
+  def take_random(first..first, count) when is_integer(count) and count >= 1,
     do: [first]
   def take_random(first..last, 1) when first > last,
     do: take_random(last..first, 1)
