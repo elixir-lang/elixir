@@ -283,9 +283,10 @@ defmodule Kernel.RaiseTest do
   end
 
   test "badfun error" do
-    x = :example
+    # Avoid "invalid function call" warning in >= OTP 19
+    x = fn -> :example end
     result = try do
-      x.(2)
+      x.().(2)
     rescue
       x in [BadFunctionError] -> Exception.message(x)
     end
