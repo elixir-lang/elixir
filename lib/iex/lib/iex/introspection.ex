@@ -124,7 +124,7 @@ defmodule IEx.Introspection do
 
   defp find_doc(docs, fun, arity) do
     doc = List.keyfind(docs, {fun, arity}, 0) || find_doc_defaults(docs, fun, arity)
-    if has_content?(doc), do: doc
+    if doc != nil and has_content?(doc), do: doc
   end
 
   defp find_doc_defaults(docs, function, min) do
@@ -139,8 +139,6 @@ defmodule IEx.Introspection do
     end)
   end
 
-  defp has_content?(nil),
-    do: false
   defp has_content?({_, _, _, _, false}),
     do: false
   defp has_content?({{name, _}, _, _, _, nil}),
