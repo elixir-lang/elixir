@@ -369,7 +369,7 @@ defmodule Module do
     * `@compile :debug_info` - includes `:debug_info` regardless of the
       setting in `Code.compiler_options`
 
-    * `@compile {:debug_info, false} - disables `:debug_info` regardless
+    * `@compile {:debug_info, false}` - disables `:debug_info` regardless
       of the setting in `Code.compiler_options`
 
     * `@compile {:inline, some_fun: 2, other_fun: 3}` - inlines the given
