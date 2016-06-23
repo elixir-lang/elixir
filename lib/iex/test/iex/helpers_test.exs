@@ -34,9 +34,11 @@ defmodule IEx.HelpersTest do
   test "h helper function" do
     pwd_h = "* def pwd()\n\nPrints the current working directory.\n\n"
     c_h   = "* def c(files, path \\\\ :in_memory)\n\nCompiles the given files."
+    eq_h  = "* def ==(left, right)\n\nReturns `true` if the two items are equal.\n\n"
 
     assert capture_io(fn -> h IEx.Helpers.pwd/0 end) =~ pwd_h
     assert capture_io(fn -> h IEx.Helpers.c/2 end) =~ c_h
+    assert capture_io(fn -> h ==/2 end) =~ eq_h
 
     assert capture_io(fn -> h IEx.Helpers.c/1 end) =~ c_h
     assert capture_io(fn -> h pwd end) =~ pwd_h
