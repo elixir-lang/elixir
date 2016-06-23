@@ -5,18 +5,24 @@ defmodule ProtocolTest do
 
   doctest Protocol
 
-  defprotocol Sample do
-    @type t :: any
-    @doc "Ok"
-    @spec ok(t) :: boolean
-    def ok(term)
-  end
+  {_, _, sample_binary, _} =
+    defprotocol Sample do
+      @type t :: any
+      @doc "Ok"
+      @spec ok(t) :: boolean
+      def ok(term)
+    end
 
-  defprotocol WithAny do
-    @fallback_to_any true
-    @doc "Ok"
-    def ok(term)
-  end
+  @sample_binary sample_binary
+
+  {_, _, with_any_binary, _} =
+    defprotocol WithAny do
+      @fallback_to_any true
+      @doc "Ok"
+      def ok(term)
+    end
+
+  @with_any_binary with_any_binary
 
   defprotocol Derivable do
     def ok(a)
@@ -123,11 +129,11 @@ defmodule ProtocolTest do
   end
 
   test "protocol defines callbacks" do
-    assert get_callbacks(Sample, :ok, 1) ==
-      [{:type, [11], :fun, [{:type, [11], :product, [{:user_type, [11], :t, []}]}, {:type, [11], :boolean, []}]}]
+    assert get_callbacks(@sample_binary, :ok, 1) ==
+      [{:type, 12, :fun, [{:type, 12, :product, [{:user_type, 12, :t, []}]}, {:type, 12, :boolean, []}]}]
 
-    assert get_callbacks(WithAny, :ok, 1) ==
-      [{:type, [18], :fun, [{:type, [18], :product, [{:user_type, [18], :t, []}]}, {:type, [18], :term, []}]}]
+    assert get_callbacks(@with_any_binary, :ok, 1) ==
+      [{:type, 22, :fun, [{:type, 22, :product, [{:user_type, 22, :t, []}]}, {:type, 22, :term, []}]}]
   end
 
   test "protocol defines functions and attributes" do
@@ -182,8 +188,8 @@ defmodule ProtocolTest do
     assert Multi.test(:a) == :a
   end
 
-  defp get_callbacks(module, name, arity) do
-    callbacks = for {:callback, info} <- module.__info__(:attributes), do: hd(info)
+  defp get_callbacks(beam, name, arity) do
+    callbacks = Kernel.Typespec.beam_callbacks(beam)
     List.keyfind(callbacks, {name, arity}, 0) |> elem(1)
   end
 
@@ -308,6 +314,8 @@ defmodule Protocol.ConsolidationTest do
   {:ok, binary} = Protocol.consolidate(Sample, [Any, ImplStruct])
   :code.load_binary(Sample, 'protocol_test.exs', binary)
 
+  @sample_binary binary
+
   # Any should be moved to the end
   :code.purge(WithAny)
   :code.delete(WithAny)
@@ -367,7 +375,7 @@ defmodule Protocol.ConsolidationTest do
   end
 
   test "consolidated keeps callbacks" do
-    callbacks = for {:callback, info} <- Sample.__info__(:attributes), do: hd(info)
+    callbacks = Kernel.Typespec.beam_callbacks(@sample_binary)
     assert callbacks != []
   end
 
