@@ -139,6 +139,8 @@ defmodule IEx.Introspection do
     end)
   end
 
+  defp has_content?(nil),
+    do: false
   defp has_content?({_, _, _, _, false}),
     do: false
   defp has_content?({{name, _}, _, _, _, nil}),
