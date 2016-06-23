@@ -189,4 +189,18 @@ defmodule Kernel.OverridableTest do
   test "overridable macros" do
     assert Overridable.overridable_macro(1) == 1101
   end
+
+  test "private macros can't be overridden" do
+    message =
+      "cannot make private macro foo/0 overridable, overriding " <>
+      "private macros is not supported"
+    assert_raise ArgumentError, message, fn ->
+      Code.eval_string """
+      defmodule Foo do
+        defmacrop foo, do: 1
+        defoverridable foo: 0
+      end
+      """
+    end
+  end
 end
