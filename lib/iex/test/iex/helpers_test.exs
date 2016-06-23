@@ -79,14 +79,17 @@ defmodule IEx.HelpersTest do
       @doc "Docs for MyBehaviour.first"
       @callback first(integer) :: integer
       @callback second(integer) :: integer
+      @callback second(integer, integer) :: integer
     end
     """
     impl = """
     defmodule Impl do
       @behaviour MyBehaviour
       def first(0), do: 0
-      @doc "Docs for Impl.second"
+      @doc "Docs for Impl.second/1"
       def second(0), do: 0
+      @doc "Docs for Impl.second/2"
+      def second(0, 0), do: 0
     end
     """
     files = ["my_behaviour.ex", "impl.ex"]
@@ -94,10 +97,11 @@ defmodule IEx.HelpersTest do
       assert c(files, ".") |> Enum.sort == [Impl, MyBehaviour]
 
       assert capture_io(fn -> h Impl.first/1 end) == "* @callback first(integer()) :: integer()\n\nDocs for MyBehaviour.first\n"
-      assert capture_io(fn -> h Impl.second/1 end) == "* def second(int)\n\nDocs for Impl.second\n"
+      assert capture_io(fn -> h Impl.second/1 end) == "* def second(int)\n\nDocs for Impl.second/1\n"
+      assert capture_io(fn -> h Impl.second/2 end) == "* def second(int1, int2)\n\nDocs for Impl.second/2\n"
 
       assert capture_io(fn -> h Impl.first end) == "* @callback first(integer()) :: integer()\n\nDocs for MyBehaviour.first\n"
-      assert capture_io(fn -> h Impl.second end) == "* def second(int)\n\nDocs for Impl.second\n"
+      assert capture_io(fn -> h Impl.second end) == "* def second(int)\n\nDocs for Impl.second/1\n* def second(int1, int2)\n\nDocs for Impl.second/2\n"
     end
   after
     cleanup_modules([Impl, MyBehaviour])

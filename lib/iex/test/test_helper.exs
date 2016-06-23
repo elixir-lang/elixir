@@ -70,4 +70,3 @@ defmodule IEx.Case do
     |> String.trim
   end
 end
-
