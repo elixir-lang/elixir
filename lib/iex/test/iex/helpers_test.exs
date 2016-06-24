@@ -274,6 +274,12 @@ defmodule IEx.HelpersTest do
     assert failing =~ "no such file or directory"
   end
 
+  test "import_if_available helper" do
+    assert "nil" == capture_iex("import_if_available NoSuchModule")
+    assert "[1, 2, 3]" == capture_iex("import_if_available Integer; digits 123")
+    assert "[1, 2, 3]" == capture_iex("import_if_available Integer, only: [digits: 1]; digits 123")
+  end
+
   test "c helper" do
     assert_raise UndefinedFunctionError, ~r"function Sample\.run/0 is undefined", fn ->
       Sample.run
