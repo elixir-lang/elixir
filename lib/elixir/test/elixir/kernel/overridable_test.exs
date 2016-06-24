@@ -190,6 +190,17 @@ defmodule Kernel.OverridableTest do
     assert Overridable.overridable_macro(1) == 1101
   end
 
+  test "undefined functions can't be marked as overridable" do
+    message = "cannot make function foo/2 overridable because it was not defined"
+    assert_raise ArgumentError, message, fn ->
+      Code.eval_string """
+      defmodule Foo do
+        defoverridable foo: 2
+      end
+      """
+    end
+  end
+
   test "private macros can't be overridden" do
     message =
       "cannot make private macro foo/0 overridable, overriding " <>
