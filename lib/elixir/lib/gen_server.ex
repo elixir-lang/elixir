@@ -746,7 +746,7 @@ defmodule GenServer do
   @spec reply(from, term) :: :ok
   def reply(client, reply)
 
-  def reply({to, tag}, reply) do
+  def reply({to, tag}, reply) when is_pid(to) do
     try do
       send(to, {tag, reply})
       :ok
