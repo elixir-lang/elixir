@@ -113,7 +113,7 @@ defmodule Kernel.OverridableTest do
       process_url(str)
     end
 
-    defp process_url(_str) do
+    def process_url(_str) do
       :first
     end
 
@@ -124,13 +124,15 @@ defmodule Kernel.OverridableTest do
     # errors. If it compiles, it works!
     defoverridable [process_url: 1, not_private: 1]
 
-    defp process_url(_str) do
+    def process_url(_str) do
       :second
     end
   end
 
   require Kernel.Overridable, as: Overridable
-  use ExUnit.Case, async: true
+  use ExUnit.Case
+
+  import ExUnit.CaptureIO
 
   test "overridable is made concrete if no other is defined" do
     assert Overridable.sample == 1
