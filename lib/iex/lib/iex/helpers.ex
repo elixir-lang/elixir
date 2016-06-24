@@ -585,6 +585,25 @@ defmodule IEx.Helpers do
     raise ArgumentError, "import_file/1 expects a literal binary as its argument"
   end
 
+  @doc """
+  Calls `import/2` with the given arguments, but only if the module is available.
+
+  This lets you put imports in `.iex.exs` files (including `~/.iex.exs`) without
+  getting compile errors if you open a console where the module is not available.
+
+  ## Example
+
+      # In ~/.iex.exs
+      import_if_available Ecto.Query
+  """
+  defmacro import_if_available(quoted_module, opts \\ []) do
+    module = Macro.expand(quoted_module, __CALLER__)
+
+    if Code.ensure_loaded?(module) do
+      quote do: import unquote(quoted_module), unquote(opts)
+    end
+  end
+
   # Compiles and loads an Erlang source file, returns {module, binary}
   defp compile_erlang(source) do
     source = Path.relative_to_cwd(source) |> String.to_charlist
