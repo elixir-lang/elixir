@@ -90,14 +90,14 @@ defmodule Mix.Tasks.Compile.App do
         best_guess
       end
 
+      properties = ensure_correct_properties(app, config, properties)
+
       # Ensure we always prepend the standard application dependencies
-      core_apps = [:kernel, :stdlib] ++ language_app(config)
       properties = Keyword.update!(properties, :applications, fn apps ->
-        core_apps ++ apps
+        [:kernel, :stdlib] ++ language_app(config) ++ apps
       end)
 
-      properties = ensure_correct_properties(app, config, properties)
-      contents   = {:application, app, properties}
+      contents = {:application, app, properties}
 
       Mix.Project.ensure_structure()
       File.write!(target, :io_lib.format("~p.", [contents]), [:utf8])

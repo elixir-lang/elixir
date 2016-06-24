@@ -421,8 +421,8 @@ defmodule Kernel.WarningTest do
     assert capture_err(fn ->
       Code.eval_string ~S"""
       defmodule Sample do
-      def hello(arg \\ 0), do: nil
-      def hello(arg), do: nil
+        def hello(arg \\ 0), do: nil
+        def hello(arg), do: nil
       end
       """
     end) =~ "definitions with multiple clauses and default values require a function head"
@@ -551,7 +551,7 @@ defmodule Kernel.WarningTest do
       """
     end) =~ "undefined behaviour function foo/0 (for behaviour Sample1)"
   after
-    purge [Sample1, Sample2, Sample3]
+    purge [Sample1, Sample2]
   end
 
   test "undefined macro for behaviour" do
@@ -567,7 +567,7 @@ defmodule Kernel.WarningTest do
       """
     end) =~ "undefined behaviour macro foo/0 (for behaviour Sample1)"
   after
-    purge [Sample1, Sample2, Sample3]
+    purge [Sample1, Sample2]
   end
 
   test "undefined behavior" do
