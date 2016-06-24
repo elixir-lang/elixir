@@ -459,20 +459,6 @@ defmodule Kernel.WarningTest do
     purge Sample
   end
 
-  test "used with local with reattached overridable" do
-    assert capture_err(fn ->
-      Code.eval_string """
-      defmodule Sample do
-        def hello, do: world()
-        defp world, do: :ok
-        defoverridable [hello: 0, world: 0]
-      end
-      """
-    end) == ""
-  after
-    purge Sample
-  end
-
   test "undefined module attribute" do
     assert capture_err(fn ->
       Code.eval_string """

@@ -825,17 +825,23 @@ defmodule Module do
   def make_overridable(module, tuples) do
     assert_not_compiled!(:make_overridable, module)
 
-    :lists.foreach(fn tuple ->
+    :lists.foreach(fn {name, arity} = tuple ->
       case :elixir_def.take_definition(module, tuple) do
         false ->
-          {name, arity} = tuple
           raise ArgumentError,
             "cannot make function #{name}/#{arity} overridable because it was not defined"
-        {{{:def, {name, arity}}, :defmacrop, _line, _file, _check, _location, _defaults}, _clauses} ->
+        {{_def, :defmacrop, _line, _file, _check, _location, _defaults}, _clauses} ->
           raise ArgumentError,
             "cannot make private macro #{name}/#{arity} overridable, overriding " <>
             "private macros is not supported"
         clause ->
+          {{_def, kind, _line, _file, _check, _location, _defaults}, _clauses} = clause
+
+          # TODO: Deprecate for v2.0
+          if kind == :defp do
+            IO.warn "making private functions (#{name}/#{arity} in this case) overridable is deprecated"
+          end
+
           neighbours =
             if :elixir_compiler.get_opt(:internal) do
               []
