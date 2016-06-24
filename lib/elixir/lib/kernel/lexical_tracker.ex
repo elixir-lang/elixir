@@ -148,17 +148,15 @@ defmodule Kernel.LexicalTracker do
 
   def handle_cast({:add_import, module, fas, line, warn}, state) when is_atom(module) do
     directives =
-      for {{:import, {import_module, _, _}}, _} = directive <- state.directives,
-          module != import_module,
-          do: directive,
-          into: %{}
-
-    directives = add_directive(directives, module, line, warn, :import)
+      state.directives
+      |> Enum.reject(&match?({{:import, {^module, _, _}}, _}, &1))
+      |> :maps.from_list
+      |> add_directive(module, line, warn, :import)
 
     directives =
-      Enum.reduce fas, directives, fn {function, arity}, directives ->
+      Enum.reduce(fas, directives, fn {function, arity}, directives ->
         add_directive(directives, {module, function, arity}, line, warn, :import)
-      end
+      end)
 
     {:noreply, %{state | directives: directives}}
   end
