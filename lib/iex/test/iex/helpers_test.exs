@@ -257,11 +257,11 @@ defmodule IEx.HelpersTest do
   end
 
   test "import_file when the file is missing" do
-    assert "nil" == capture_iex("import_file \"nonexistent\", optional: true")
-
     failing = capture_iex("import_file \"nonexistent\"")
     assert "** (File.Error) could not read file" <> _ = failing
     assert failing =~ "no such file or directory"
+
+    assert "nil" == capture_iex("import_file_if_available \"nonexistent\"")
   end
 
   test "import_if_available helper" do

@@ -534,6 +534,15 @@ defmodule IEx.Helpers do
   end
 
   @doc """
+  Similar to `import_file` but only imports it if it is available.
+  """
+  defmacro import_file_if_available(path) do
+    quote do
+      import_file(unquote(path), optional: true)
+    end
+  end
+
+  @doc """
   Evaluates the contents of the file at `path` as if it were directly typed into
   the shell.
 
