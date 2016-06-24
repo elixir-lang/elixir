@@ -310,6 +310,20 @@ defmodule Kernel.WarningTest do
     purge Sample
   end
 
+  test "unused alias when also import" do
+    assert capture_err(fn ->
+      Code.compile_string """
+      defmodule Sample do
+        alias :lists, as: List
+        import MapSet
+        new()
+      end
+      """
+    end) =~ "unused alias List"
+  after
+    purge Sample
+  end
+
   test "unused inside dynamic module" do
     import List, only: [flatten: 1], warn: false
 
