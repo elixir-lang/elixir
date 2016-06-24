@@ -837,7 +837,7 @@ defmodule Module do
         clause ->
           {{_def, kind, _line, _file, _check, _location, _defaults}, _clauses} = clause
 
-          # TODO: Deprecate for v2.0
+          # TODO: Remove on v2.0
           if kind == :defp do
             IO.warn "making private functions (#{name}/#{arity} in this case) overridable is deprecated"
           end

@@ -146,6 +146,9 @@ defmodule IEx do
       # source another ".iex.exs" file
       import_file "~/.iex.exs"
 
+      # import some module from lib that may not yet have been defined
+      import_if_available MyApp.Mod
+
       # print something before the shell starts
       IO.puts "hello world"
 
@@ -156,7 +159,7 @@ defmodule IEx do
   results in:
 
       $ iex
-      Erlang 17 [...]
+      Erlang 18 [...]
 
       hello world
       Interactive Elixir - press Ctrl+C to exit (type h() ENTER for help)

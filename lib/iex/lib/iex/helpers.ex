@@ -536,11 +536,34 @@ defmodule IEx.Helpers do
   end
 
   @doc """
-  Similar to `import_file` but only imports it if it is available.
+  Similar to `import_file` but only imports the file it if it is available.
+
+  By default, `import_file/1` fails when the given file does not exist.
+  However, since `import_file/1` is expanded at compile-time, it's not
+  possible to conditionally import a file since the macro is always
+  expanded:
+
+      # This raises a File.Error if ~/.iex.exs doesn't exist.
+      if ("~/.iex.exs" |> Path.expand |> File.exists?) do
+        import_file "~/.iex.exs"
+      end
+
+  This macro addresses this issue by checking if the file exists or not
+  in behalf of the user.
   """
-  defmacro import_file_if_available(path) do
-    quote do
-      import_file(unquote(path), optional: true)
+  defmacro import_file_if_available(path) when is_binary(path) do
+    import_file_if_available(path, true)
+  end
+
+  defmacro import_file_if_available(_) do
+    raise ArgumentError, "import_file_if_available/1 expects a literal binary as its argument"
+  end
+
+  defp import_file_if_available(path, optional?) when is_binary(path) do
+    path = Path.expand(path)
+
+    if not optional? or File.exists?(path) do
+      path |> File.read! |> Code.string_to_quoted!(file: path)
     end
   end
 
@@ -550,22 +573,6 @@ defmodule IEx.Helpers do
 
   `path` has to be a literal string. `path` is automatically expanded via
   `Path.expand/1`.
-
-  ## Non-existent files
-
-  By default, `import_file/1` fails when the given file does not exist. However,
-  since this macro is expanded at compile-time, it's not possible to
-  conditionally import a file since the macro is always expanded:
-
-      # This raises a File.Error if ~/.iex.exs doesn't exist.
-      if ("~/.iex.exs" |> Path.expand |> File.exists?) do
-        import_file "~/.iex.exs"
-      end
-
-  This is why an `:optional` option can be passed to `import_file/1`. The
-  default value of this option is `false`, meaning that an exception will be
-  raised if the given file is missing. If `:optional` is set to `true`, missing
-  files will be ignored and `import_file/1` will just compile to `nil`.
 
   ## Examples
 
@@ -577,23 +584,19 @@ defmodule IEx.Helpers do
       13
       iex(2)> value
       13
-      iex(3)> import_file "nonexisting.file.ex", optional: true
-      nil
 
   """
-  defmacro import_file(path, opts \\ [])
-
-  defmacro import_file(path, opts) when is_binary(path) do
-    optional? = Keyword.get(opts, :optional, false)
-    path = Path.expand(path)
-
-    if not optional? or File.exists?(path) do
-      path |> File.read! |> Code.string_to_quoted!(file: path)
-    end
+  defmacro import_file(path) when is_binary(path) do
+    import_file_if_available(path, false)
   end
 
-  defmacro import_file(_path, _opts) do
+  defmacro import_file(_) do
     raise ArgumentError, "import_file/1 expects a literal binary as its argument"
+  end
+
+  defmacro import_file(path, opts) when is_binary(path) and is_list(opts) do
+    IO.warn "import_file/2 is deprecated, please use import_file_if_available/1 instead"
+    import_file_if_available(path, Keyword.get(opts, :optional, false))
   end
 
   @doc """
