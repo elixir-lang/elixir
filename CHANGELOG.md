@@ -268,6 +268,33 @@ end
 
 By restricting hierarchies in favor of named setups, it is straight-forward for the developer to glance at each describe block and know exactly the setup steps involved.
 
+## v1.3.1-dev
+
+### 1. Enhancements
+
+#### IEx
+
+  * [IEx.Helpers] `Add import_file_if_available` for importing files only if they are available
+  * [IEx.Helpers] `Add import_if_available` for importing modules only if they are available
+
+### 2. Bug fixes
+
+#### Elixir
+
+  * [Kernel] Ensure aliases warnings are not accidentally discarded when the same module is imported
+  * [Kernel.ParallelCompiler] Ensure two modules with cyclic struct dependencies cannot run into a deadlock when compiling
+  * [Module] Do not expect stacktraces to be always present when dispatching to locals during the module compilation
+
+#### IEx
+
+  * [IEx.Helpers] Fix `h` helper for operators
+
+#### Mix
+
+  * [Mix] Ensure `deps.check` does not check archives (that's done in loadpaths)
+  * [Mix] Validate application properties before traversing them
+  * [Mix] Check for proper Makefile when compiling on Windows
+
 ## v1.3.0 (2016-06-21)
 
 ### 1. Enhancements
