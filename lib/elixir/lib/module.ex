@@ -829,7 +829,8 @@ defmodule Module do
       case :elixir_def.take_definition(module, tuple) do
         false ->
           {name, arity} = tuple
-          raise "cannot make function #{name}/#{arity} overridable because it was not defined"
+          raise ArgumentError,
+            "cannot make function #{name}/#{arity} overridable because it was not defined"
         {{{:def, {name, arity}}, :defmacrop, _line, _file, _check, _location, _defaults}, _clauses} ->
           raise ArgumentError,
             "cannot make private macro #{name}/#{arity} overridable, overriding " <>
