@@ -147,11 +147,11 @@ defmodule IEx.Introspection do
     do: true
 
   defp callback_module(mod, fun, arity) do
-    filter = &match?({{^fun, ^arity}, _}, &1)
+    predicate = &match?({{^fun, ^arity}, _}, &1)
     mod.module_info(:attributes)
     |> Keyword.get_values(:behaviour)
     |> Stream.concat()
-    |> Enum.find(&Enum.any?(Typespec.beam_callbacks(&1), filter))
+    |> Enum.find(&Enum.any?(Typespec.beam_callbacks(&1), predicate))
   end
 
   defp print_doc({{fun, _}, _line, kind, args, doc}) do
