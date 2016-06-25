@@ -379,7 +379,7 @@ defmodule Protocol.ConsolidationTest do
     assert callbacks != []
   end
 
-  test "consolidation errors on missing beams" do
+  test "consolidation errors on missing BEAM files" do
     defprotocol NoBeam, do: nil
     assert Protocol.consolidate(String, [])  == {:error, :not_a_protocol}
     assert Protocol.consolidate(NoBeam, [])  == {:error, :no_beam_info}

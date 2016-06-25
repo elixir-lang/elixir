@@ -222,12 +222,12 @@ defmodule Kernel.Typespec do
   end
 
   @doc """
-  Returns all types available from the module's beam code.
+  Returns all types available from the module's BEAM code.
 
   The result is returned as a list of tuples where the first
   element is the type (`:typep`, `:type` and `:opaque`).
 
-  The module must have a corresponding beam file which can be
+  The module must have a corresponding BEAM file which can be
   located by the runtime system.
   """
   @spec beam_types(module | binary) :: [tuple] | nil
@@ -250,12 +250,12 @@ defmodule Kernel.Typespec do
   end
 
   @doc """
-  Returns all specs available from the module's beam code.
+  Returns all specs available from the module's BEAM code.
 
   The result is returned as a list of tuples where the first
   element is spec name and arity and the second is the spec.
 
-  The module must have a corresponding beam file which can be
+  The module must have a corresponding BEAM file which can be
   located by the runtime system.
   """
   @spec beam_specs(module | binary) :: [tuple] | nil
@@ -264,12 +264,12 @@ defmodule Kernel.Typespec do
   end
 
   @doc """
-  Returns all callbacks available from the module's beam code.
+  Returns all callbacks available from the module's BEAM code.
 
   The result is returned as a list of tuples where the first
   element is spec name and arity and the second is the spec.
 
-  The module must have a corresponding beam file
+  The module must have a corresponding BEAM file
   which can be located by the runtime system.
   """
   @spec beam_callbacks(module | binary) :: [tuple] | nil

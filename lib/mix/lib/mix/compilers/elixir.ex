@@ -30,7 +30,7 @@ defmodule Mix.Compilers.Elixir do
   def compile(manifest, srcs, dest, force, opts) do
     # We fetch the time from before we read files so any future
     # change to files are still picked up by the compiler. This
-    # timestamp is used when writing beams and the manifest.
+    # timestamp is used when writing BEAM files and the manifest.
     timestamp = :calendar.universal_time()
     all = Mix.Utils.extract_files(srcs, [:ex])
 
