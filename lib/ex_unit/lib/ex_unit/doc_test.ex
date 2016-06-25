@@ -282,7 +282,7 @@ defmodule ExUnit.DocTest do
         error ->
           original_stack = System.stacktrace
           reraise ExUnit.AssertionError,
-            [message: "Doctest failed: got #{inspect(error.__struct__)} with message #{Exception.message(error)}",
+            [message: "Doctest failed: got #{inspect(error.__struct__)} with message " <> inspect(Exception.message(error)),
              expr: unquote(whole_expr)],
             original_stack
       end
