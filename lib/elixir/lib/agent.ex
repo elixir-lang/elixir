@@ -144,9 +144,9 @@ defmodule Agent do
   ## Return values
 
   If the server is successfully created and initialized, the function returns
-  `{:ok, pid}`, where `pid` is the pid of the server. If an agent with the
+  `{:ok, pid}`, where `pid` is the PID of the server. If an agent with the
   specified name already exists, the function returns
-  `{:error, {:already_started, pid}}` with the pid of that process.
+  `{:error, {:already_started, pid}}` with the PID of that process.
 
   If the given function callback fails with `reason`, the function returns
   `{:error, reason}`.

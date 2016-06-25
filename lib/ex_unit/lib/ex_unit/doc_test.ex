@@ -67,7 +67,7 @@ defmodule ExUnit.DocTest do
       iex> is_pid(pid)
       true
 
-  This is useful when the result is something variable (like a pid in the
+  This is useful when the result is something variable (like a PID in the
   example above) or when the result is a complicated data structure and you
   don't want to show it all, but just parts of it or some of its properties.
 

@@ -116,7 +116,7 @@ defmodule Task.Supervisor do
   end
 
   @doc """
-  Returns all children pids.
+  Returns all children PIDs.
   """
   @spec children(Supervisor.supervisor) :: [pid]
   def children(supervisor) do

@@ -79,7 +79,7 @@ defmodule GenServer do
       mechanism and name. The `:via` option expects a module that exports
       `register_name/2`, `unregister_name/1`, `whereis_name/1` and `send/2`.
       One such example is the `:global` module which uses these functions
-      for keeping the list of names of processes and their  associated pid's
+      for keeping the list of names of processes and their  associated PIDs
       that are available globally for a network of Erlang nodes.
 
   For example, we could start and register our Stack server locally as follows:
@@ -217,7 +217,7 @@ defmodule GenServer do
   reply is received (unless the call times out or nodes are disconnected).
 
   `request` is the request message sent by a `call/3`, `from` is a 2-tuple
-  containing the caller's pid and a term that uniquely identifies the call, and
+  containing the caller's PID and a term that uniquely identifies the call, and
   `state` is the current state of the `GenServer`.
 
   Returning `{:reply, reply, new_state}` sends the response `reply` to the
@@ -428,7 +428,7 @@ defmodule GenServer do
   @typedoc """
   Tuple describing the client of a call request.
 
-  `pid` is the pid of the caller and `tag` is a unique term used to identify the
+  `pid` is the PID of the caller and `tag` is a unique term used to identify the
   call.
   """
   @type from :: {pid, tag :: term}
@@ -516,9 +516,9 @@ defmodule GenServer do
   ## Return values
 
   If the server is successfully created and initialized, this function returns
-  `{:ok, pid}`, where `pid` is the pid of the server. If a process with the
+  `{:ok, pid}`, where `pid` is the PID of the server. If a process with the
   specified server name already exists, this function returns
-  `{:error, {:already_started, pid}}` with the pid of that process.
+  `{:error, {:already_started, pid}}` with the PID of that process.
 
   If the `init/1` callback fails with `reason`, this function returns
   `{:error, reason}`. Otherwise, if it returns `{:stop, reason}`

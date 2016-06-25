@@ -266,9 +266,9 @@ defmodule Supervisor do
   If the supervisor and its child processes are successfully created
   (i.e., if the start function of each child process returns `{:ok, child}`,
   `{:ok, child, info}`, or `:ignore`) this function returns
-  `{:ok, pid}`, where `pid` is the pid of the supervisor. If a process with the
+  `{:ok, pid}`, where `pid` is the PID of the supervisor. If a process with the
    specified name already exists, the function returns `{:error,
-   {:already_started, pid}}`, where `pid` is the pid of that process.
+   {:already_started, pid}}`, where `pid` is the PID of that process.
 
   If the start function of any of the child processes fails or returns an error
   tuple or an erroneous value, the supervisor first terminates with reason
@@ -334,11 +334,11 @@ defmodule Supervisor do
   respectively.
 
   If the child process start function returns `{:ok, child}` or `{:ok, child,
-  info}`, then child specification and pid are added to the supervisor and
+  info}`, then child specification and PID are added to the supervisor and
   this function returns the same value.
 
   If the child process start function returns `:ignore`, the child specification
-  is added to the supervisor, the pid is set to `:undefined` and this function
+  is added to the supervisor, the PID is set to `:undefined` and this function
   returns `{:ok, :undefined}`.
 
   If the child process start function returns an error tuple or an erroneous
@@ -352,13 +352,13 @@ defmodule Supervisor do
   end
 
   @doc """
-  Terminates the given children, identified by pid or child id.
+  Terminates the given children, identified by PID or child id.
 
   If the supervisor is not a `:simple_one_for_one`, the child id is expected
   and the process, if there's one, is terminated; the child specification is
   kept unless the child is temporary.
 
-  In case of a `:simple_one_for_one` supervisor, a pid is expected. If the child
+  In case of a `:simple_one_for_one` supervisor, a PID is expected. If the child
   specification identifier is given instead of a `pid`, this function returns
   `{:error, :simple_one_for_one}`.
 
@@ -367,7 +367,7 @@ defmodule Supervisor do
   `delete_child/2` to remove the child specification.
 
   If successful, this function returns `:ok`. If there is no child specification
-  for the given child id or there is no process with the given pid, this
+  for the given child id or there is no process with the given PID, this
   function returns `{:error, :not_found}`.
   """
   @spec terminate_child(supervisor, pid | Supervisor.Spec.child_id) :: :ok | {:error, error}
@@ -404,9 +404,9 @@ defmodule Supervisor do
   when the child terminates, and thus it is not possible to restart such children.
 
   If the child process start function returns `{:ok, child}` or `{:ok, child, info}`,
-  the pid is added to the supervisor and this function returns the same value.
+  the PID is added to the supervisor and this function returns the same value.
 
-  If the child process start function returns `:ignore`, the pid remains set to
+  If the child process start function returns `:ignore`, the PID remains set to
   `:undefined` and this function returns `{:ok, :undefined}`.
 
   This function may return an error with an appropriate error tuple if the
@@ -436,7 +436,7 @@ defmodule Supervisor do
     * `id` - as defined in the child specification or `:undefined` in the case
       of a `simple_one_for_one` supervisor
 
-    * `child` - the pid of the corresponding child process, `:restarting` if the
+    * `child` - the PID of the corresponding child process, `:restarting` if the
       process is about to be restarted, or `:undefined` if there is no such
       process
 

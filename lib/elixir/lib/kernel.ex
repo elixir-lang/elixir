@@ -388,7 +388,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns `true` if `term` is a pid (process identifier); otherwise returns `false`.
+  Returns `true` if `term` is a PID (process identifier); otherwise returns `false`.
 
   Allowed in guard tests. Inlined by the compiler.
   """
@@ -544,7 +544,7 @@ defmodule Kernel do
 
   @doc """
   Returns the node where the given argument is located.
-  The argument can be a pid, a reference, or a port.
+  The argument can be a PID, a reference, or a port.
   If the local node is not alive, `:nonode@nohost` is returned.
 
   Allowed in guard tests. Inlined by the compiler.
@@ -596,7 +596,7 @@ defmodule Kernel do
   @doc """
   Sends a message to the given `dest` and returns the message.
 
-  `dest` may be a remote or local pid, a (local) port, a locally
+  `dest` may be a remote or local PID, a (local) port, a locally
   registered name, or a tuple `{registered_name, node}` for a registered
   name at another node.
 
@@ -614,7 +614,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns the pid (process identifier) of the calling process.
+  Returns the PID (process identifier) of the calling process.
 
   Allowed in guard clauses. Inlined by the compiler.
   """
@@ -624,7 +624,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Spawns the given function and returns its pid.
+  Spawns the given function and returns its PID.
 
   Check the `Process` and `Node` modules for other functions
   to handle processes, including spawning functions in nodes.
@@ -648,7 +648,7 @@ defmodule Kernel do
 
   @doc """
   Spawns the given module and function passing the given args
-  and returns its pid.
+  and returns its PID.
 
   Check the `Process` and `Node` modules for other functions
   to handle processes, including spawning functions in nodes.
@@ -666,7 +666,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Spawns the given function, links it to the current process and returns its pid.
+  Spawns the given function, links it to the current process and returns its PID.
 
   Check the `Process` and `Node` modules for other functions
   to handle processes, including spawning functions in nodes.
@@ -690,7 +690,7 @@ defmodule Kernel do
 
   @doc """
   Spawns the given module and function passing the given args,
-  links it to the current process and returns its pid.
+  links it to the current process and returns its PID.
 
   Check the `Process` and `Node` modules for other functions
   to handle processes, including spawning functions in nodes.
@@ -708,7 +708,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Spawns the given function, monitors it and returns its pid
+  Spawns the given function, monitors it and returns its PID
   and monitoring reference.
 
   Check the `Process` and `Node` modules for other functions
@@ -729,7 +729,7 @@ defmodule Kernel do
 
   @doc """
   Spawns the given module and function passing the given args,
-  monitors it and returns its pid and monitoring reference.
+  monitors it and returns its PID and monitoring reference.
 
   Check the `Process` and `Node` modules for other functions
   to handle processes, including spawning functions in nodes.
