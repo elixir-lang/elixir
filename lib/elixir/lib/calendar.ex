@@ -124,8 +124,8 @@ defmodule Date do
   @doc """
   Builds a new ISO date.
 
-  Expects all values to be integers. Returns `{:ok, time}` if each
-  entry fits its appropriate range, returns `:error` otherwise.
+  Expects all values to be integers. Returns `{:ok, date}` if each
+  entry fits its appropriate range, returns `{:error, reason}` otherwise.
 
   ## Examples
 
