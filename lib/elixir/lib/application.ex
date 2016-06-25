@@ -116,7 +116,7 @@ defmodule Application do
   specification key (e.g., `mod: {MyApp, [:my_args]}`).
 
   This function should either return `{:ok, pid}` or `{:ok, pid, state}` if
-  startup is successful. `pid` should be the pid of the top supervisor. `state`
+  startup is successful. `pid` should be the PID of the top supervisor. `state`
   can be an arbitrary term, and if omitted will default to `[]`; if the
   application is later stopped, `state` is passed to the `stop/1` callback (see
   the documentation for the `stop/2` callback for more information).

@@ -3,7 +3,7 @@ defmodule IO do
   Functions handling input/output (IO).
 
   Many functions in this module expect an IO device as an argument.
-  An IO device must be a pid or an atom representing a process.
+  An IO device must be a PID or an atom representing a process.
   For convenience, Elixir provides `:stdio` and `:stderr` as
   shortcuts to Erlang's `:standard_io` and `:standard_error`.
 
@@ -17,7 +17,7 @@ defmodule IO do
 
   ## IO devices
 
-  An IO device may be an atom or a pid. In case it is an atom,
+  An IO device may be an atom or a PID. In case it is an atom,
   the atom must be the name of a registered process. In addition,
   Elixir provides two shortcuts:
 

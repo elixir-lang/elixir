@@ -263,7 +263,7 @@ defmodule Mix.Tasks.Profile.Fprof do
     print_row(["s", "B", ".3f", ".3f", "s"], ["Total", count, acc, own, ""])
   end
 
-  # Represents the "pid" entry
+  # Represents the "PID" entry
   defp print_analysis_result([{pid_atom, count, :undefined, own} | info]) do
     print_process(pid_atom, count, own)
 

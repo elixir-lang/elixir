@@ -19,7 +19,7 @@ defmodule IEx.Server do
   end
 
   @doc """
-  Returns the pid of the IEx server on the local node if exists.
+  Returns the PID of the IEx server on the local node if exists.
   """
   @spec local :: pid | nil
   def local() do

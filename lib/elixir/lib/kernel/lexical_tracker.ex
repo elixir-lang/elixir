@@ -40,7 +40,7 @@ defmodule Kernel.LexicalTracker do
 
   # Internal API
 
-  # Starts the tracker and returns its pid.
+  # Starts the tracker and returns its PID.
   @doc false
   def start_link(dest) do
     :gen_server.start_link(__MODULE__, dest, [])
