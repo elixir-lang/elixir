@@ -30,8 +30,8 @@ defmodule Kernel.ParallelCompiler do
     * `:each_module` - for each module compiled, invokes the callback passing
       the file, module and the module bytecode
 
-    * `:dest` - the destination directory for the beam files. When using `files/2`,
-      this information is only used to properly annotate the beam files before
+    * `:dest` - the destination directory for the BEAM files. When using `files/2`,
+      this information is only used to properly annotate the BEAM files before
       they are loaded into memory. If you want a file to actually be written to
       `dest`, use `files_to_path/3` instead.
 

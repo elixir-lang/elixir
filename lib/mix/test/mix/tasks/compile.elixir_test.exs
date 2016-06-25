@@ -77,7 +77,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     end
   end
 
-  test "does not write beam down on failures" do
+  test "does not write BEAM down on failures" do
     import ExUnit.CaptureIO
 
     in_tmp "blank", fn ->

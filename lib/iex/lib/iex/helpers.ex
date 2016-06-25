@@ -32,10 +32,10 @@ defmodule IEx.Helpers do
     * `h/1`           - prints help for the given module, function or macro
     * `i/1`           - prints information about the given data type
     * `import_file/1` - evaluates the given file in the shell's context
-    * `l/1`           - loads the given module's beam code
+    * `l/1`           - loads the given module's BEAM code
     * `ls/0`          - lists the contents of the current directory
     * `ls/1`          - lists the contents of the specified directory
-    * `nl/2`          - deploys local beam code to a list of nodes
+    * `nl/2`          - deploys local BEAM code to a list of nodes
     * `pid/1`         - creates a PID from a string
     * `pid/3`         - creates a PID with the 3 integer arguments passed
     * `pwd/0`         - prints the current working directory
@@ -380,7 +380,7 @@ defmodule IEx.Helpers do
   end
 
   @doc """
-  Loads the given module's beam code (and ensures any previous
+  Loads the given module's BEAM code (and ensures any previous
   old version was properly purged before).
 
   This function is useful when you know the bytecode for module
@@ -641,7 +641,7 @@ defmodule IEx.Helpers do
   end
 
   @doc """
-  Deloys a given module's beam code to a list of nodes.
+  Deloys a given module's BEAM code to a list of nodes.
 
   This function is useful for development and debugging when you have code that
   has been compiled or updated locally that you want to run on other nodes.
