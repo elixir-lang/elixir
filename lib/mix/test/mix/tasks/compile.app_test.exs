@@ -21,16 +21,7 @@ defmodule Mix.Tasks.Compile.AppTest do
     end
 
     def application do
-      case Process.get(:error) do
-        :modules -> [modules: :invalid]
-        :maxT -> [maxT: :invalid]
-        :registered -> [registered: ["invalid"]]
-        :included_applications -> [included_applications: ["invalid"]]
-        :applications -> [applications: ["invalid"]]
-        :env -> [env: [:a]]
-        :mod -> [mod: {Mod}]
-        :start_phases -> [start_phases: [:invalid]]
-      end
+      Process.get(:application)
     end
   end
 
@@ -75,13 +66,58 @@ defmodule Mix.Tasks.Compile.AppTest do
     Mix.Project.push InvalidProject
 
     in_fixture "no_mixfile", fn ->
-      for error <- [:modules, :maxT, :registered, :included_applications,
-                    :applications, :env, :mod, :start_phases] do
-        Process.put(:error, error)
+      Process.put(:application, [modules: :invalid])
+      message = "Application modules (:modules) should be a list of atoms, got: :invalid"
+      assert_raise Mix.Error, message, fn ->
+        Mix.Tasks.Compile.App.run([])
+      end
 
-        assert_raise Mix.Error, ~r/:#{error}/, fn ->
-          Mix.Tasks.Compile.App.run([])
-        end
+      Process.put(:application, [maxT: :invalid])
+      message = "Application maximum time (:maxT) is not an integer or :infinity, got: :invalid"
+      assert_raise Mix.Error, message, fn ->
+        Mix.Tasks.Compile.App.run([])
+      end
+
+      Process.put(:application, [registered: ["invalid"]])
+      message = "Application registered processes (:registered) should be a list of atoms, got: [\"invalid\"]"
+      assert_raise Mix.Error, message, fn ->
+        Mix.Tasks.Compile.App.run([])
+      end
+
+      Process.put(:application, [included_applications: ["invalid"]])
+      message = "Application included applications (:included_applications) should be a list of atoms, got: [\"invalid\"]"
+      assert_raise Mix.Error, message, fn ->
+        Mix.Tasks.Compile.App.run([])
+      end
+
+      Process.put(:application, [applications: ["invalid"]])
+      message = "Application dependencies (:applications) should be a list of atoms, got: [\"invalid\"]"
+      assert_raise Mix.Error, message, fn ->
+        Mix.Tasks.Compile.App.run([])
+      end
+
+      Process.put(:application, [applications: nil])
+      message = "Application dependencies (:applications) should be a list of atoms, got: nil"
+      assert_raise Mix.Error, message, fn ->
+        Mix.Tasks.Compile.App.run([])
+      end
+
+      Process.put(:application, [env: [:invalid]])
+      message = "Application dependencies (:env) should be a keyword list, got: [:invalid]"
+      assert_raise Mix.Error, message, fn ->
+        Mix.Tasks.Compile.App.run([])
+      end
+
+      Process.put(:application, [mod: {Mod}])
+      message = "Application callback module (:mod) should be either [] or {module, start_args}, got: {Mod}"
+      assert_raise Mix.Error, message, fn ->
+        Mix.Tasks.Compile.App.run([])
+      end
+
+      Process.put(:application, [start_phases: [:invalid]])
+      message = "Application start phases (:start_phases) should be a keyword list, got: [:invalid]"
+      assert_raise Mix.Error, message, fn ->
+        Mix.Tasks.Compile.App.run([])
       end
     end
   end
