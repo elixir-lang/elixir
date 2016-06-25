@@ -27,10 +27,10 @@ defmodule EEx.Engine do
   default implementations for the functions above.
   """
 
-  @callback init(Keyword.t) :: Macro.t
-  @callback handle_body(Macro.t) :: Macro.t
-  @callback handle_text(Macro.t, String.t) :: Macro.t
-  @callback handle_expr(Macro.t, String.t, Macro.t) :: Macro.t
+  @callback init(opts :: Keyword.t) :: Macro.t
+  @callback handle_body(quoted :: Macro.t) :: Macro.t
+  @callback handle_text(buffer :: Macro.t, text :: String.t) :: Macro.t
+  @callback handle_expr(buffer :: Macro.t, marker :: String.t, expr :: Macro.t) :: Macro.t
 
   @doc false
   defmacro __using__(_) do
@@ -41,8 +41,8 @@ defmodule EEx.Engine do
         EEx.Engine.init(opts)
       end
 
-      def handle_body(body) do
-        EEx.Engine.handle_body(body)
+      def handle_body(quoted) do
+        EEx.Engine.handle_body(quoted)
       end
 
       def handle_text(buffer, text) do
