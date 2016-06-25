@@ -1,5 +1,6 @@
 REBAR ?= "$(CURDIR)/rebar"
 PREFIX ?= /usr/local
+SHARE_PREFIX ?= $(PREFIX)/share
 DOCS := master
 CANONICAL := master
 ELIXIRC := bin/elixirc --verbose --ignore-module-conflict
@@ -8,6 +9,7 @@ ERL := erl -I lib/elixir/include -noshell -pa lib/elixir/ebin
 VERSION := $(strip $(shell cat VERSION))
 Q := @
 LIBDIR := lib
+BINDIR := bin
 INSTALL = install
 INSTALL_DIR = $(INSTALL) -m755 -d
 INSTALL_DATA = $(INSTALL) -m644
@@ -105,9 +107,9 @@ install: compile
 	done
 	$(Q) $(INSTALL_DIR) "$(DESTDIR)$(PREFIX)/$(LIBDIR)/elixir/bin"
 	$(Q) $(INSTALL_PROGRAM) $(filter-out %.ps1, $(filter-out %.bat, $(wildcard bin/*))) "$(DESTDIR)$(PREFIX)/$(LIBDIR)/elixir/bin"
-	$(Q) $(INSTALL_DIR) "$(DESTDIR)$(PREFIX)/bin"
+	$(Q) $(INSTALL_DIR) "$(DESTDIR)$(PREFIX)/$(BINDIR)"
 	$(Q) for file in "$(DESTDIR)$(PREFIX)"/$(LIBDIR)/elixir/bin/* ; do \
-		ln -sf "../$(LIBDIR)/elixir/bin/$${file##*/}" "$(DESTDIR)$(PREFIX)/bin/" ; \
+		ln -sf "../$(LIBDIR)/elixir/bin/$${file##*/}" "$(DESTDIR)$(PREFIX)/$(BINDIR)/" ; \
 	done
 	$(MAKE) install_man
 
@@ -255,9 +257,9 @@ clean_man:
 	rm -f man/iex.1
 
 install_man: build_man
-	$(Q) mkdir -p $(DESTDIR)$(PREFIX)/share/man/man1
-	$(Q) $(INSTALL_DATA) man/elixir.1  $(DESTDIR)$(PREFIX)/share/man/man1
-	$(Q) $(INSTALL_DATA) man/elixirc.1 $(DESTDIR)$(PREFIX)/share/man/man1
-	$(Q) $(INSTALL_DATA) man/iex.1     $(DESTDIR)$(PREFIX)/share/man/man1
-	$(Q) $(INSTALL_DATA) man/mix.1     $(DESTDIR)$(PREFIX)/share/man/man1
+	$(Q) mkdir -p $(DESTDIR)$(SHARE_PREFIX)/man/man1
+	$(Q) $(INSTALL_DATA) man/elixir.1  $(DESTDIR)$(SHARE_PREFIX)/man/man1
+	$(Q) $(INSTALL_DATA) man/elixirc.1 $(DESTDIR)$(SHARE_PREFIX)/man/man1
+	$(Q) $(INSTALL_DATA) man/iex.1     $(DESTDIR)$(SHARE_PREFIX)/man/man1
+	$(Q) $(INSTALL_DATA) man/mix.1     $(DESTDIR)$(SHARE_PREFIX)/man/man1
 	$(MAKE) clean_man
