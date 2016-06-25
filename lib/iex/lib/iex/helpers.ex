@@ -614,7 +614,9 @@ defmodule IEx.Helpers do
     module = Macro.expand(quoted_module, __CALLER__)
 
     if Code.ensure_loaded?(module) do
-      quote do: import unquote(quoted_module), unquote(opts)
+      quote do
+        import unquote(quoted_module), unquote(opts)
+      end
     end
   end
 

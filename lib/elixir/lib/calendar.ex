@@ -67,7 +67,7 @@ defmodule Calendar do
   @doc """
   Converts the given structure into a string according to the calendar.
   """
-  @callback to_string(structure) :: String.t when structure: Date.t | DateTime.t | NaiveDateTime.t
+  @callback to_string(structure :: Date.t | DateTime.t | NaiveDateTime.t) :: String.t
 
   @doc false
   # TODO: Remove this on 1.4. It exists only to aid migration of those
