@@ -214,8 +214,10 @@ defmodule MacroTest do
 
   @foo 1
 
-  test "expand once with module attributes" do
-    assert_raise ArgumentError, fn ->
+  test "expand once does not expand module attributes" do
+    message = "could not call get_attribute on module #{inspect(__MODULE__)} " <>
+      "because it was already compiled"
+    assert_raise ArgumentError, message, fn ->
       Macro.expand_once(quote(do: @foo), __ENV__)
     end
   end
