@@ -349,9 +349,9 @@ defmodule GenEvent do
   section in the `GenServer` module docs.
 
   If the event manager is successfully created and initialized, the function
-  returns `{:ok, pid}`, where pid is the pid of the server. If a process with
+  returns `{:ok, pid}`, where `pid` is the PID of the server. If a process with
   the specified server name already exists, the function returns
-  `{:error, {:already_started, pid}}` with the pid of that process.
+  `{:error, {:already_started, pid}}` with the PID of that process.
 
   Note that a `GenEvent` started with `start_link/1` is linked to the
   parent process and will exit not only on crashes but also if the parent
@@ -453,7 +453,7 @@ defmodule GenEvent do
     * `:shutdown` - if the event handler has been removed because the event
       manager is terminating
 
-    * `{:swapped, new_handler, pid}` - if the process pid has replaced the
+    * `{:swapped, new_handler, pid}` - if the process PID has replaced the
       event handler by another
 
     * `term` - if the event handler is removed due to an error. Which term

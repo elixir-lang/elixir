@@ -114,7 +114,7 @@ defmodule String.Chars.ErrorsTest do
     end
   end
 
-  test "pid" do
+  test "PID" do
     assert_raise Protocol.UndefinedError, ~r"^protocol String\.Chars not implemented for #PID<.+?>$", fn ->
       to_string(self())
     end

@@ -977,7 +977,7 @@ defmodule File do
 
     * `{:ok, io_device}` - the file has been opened in the requested mode.
 
-      `io_device` is actually the pid of the process which handles the file.
+      `io_device` is actually the PID of the process which handles the file.
       This process is linked to the process which originally opened the file.
       If any process to which the `io_device` is linked terminates, the file
       will be closed and the process itself will be terminated.

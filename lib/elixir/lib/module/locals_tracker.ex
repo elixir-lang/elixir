@@ -89,7 +89,7 @@ defmodule Module.LocalsTracker do
 
   # Internal API
 
-  # Starts the tracker and returns its pid.
+  # Starts the tracker and returns its PID.
   @doc false
   def start_link do
     :gen_server.start_link(__MODULE__, [], [])

@@ -104,7 +104,7 @@ defmodule Process do
        of `pid`.
 
     3. If `reason` is the atom `:normal`, `pid` will not exit (unless it
-       is the calling process's pid, in which case it will exit with the
+       is the calling process's PID, in which case it will exit with the
        reason `:normal`). If it is trapping exits, the exit signal is
        transformed into a message `{:EXIT, from, :normal}` and delivered
        to its message queue.
@@ -228,7 +228,7 @@ defmodule Process do
   @doc """
   Sends `msg` to `dest` after `time` milliseconds.
 
-  If `dest` is a pid, it must be the pid of a local process, dead or alive.
+  If `dest` is a PID, it must be the PID of a local process, dead or alive.
   If `dest` is an atom, it must be the name of a registered process
   which is looked up at the time of delivery. No error is given if the name does
   not refer to a process.
@@ -236,8 +236,8 @@ defmodule Process do
   This function returns a timer reference, which can be read or canceled with
   `read_timer/1` and `cancel_timer/1`.
 
-  Finally, the timer will be automatically canceled if the given `dest` is a pid
-  which is not alive or when the given pid exits. Note that timers will not be
+  Finally, the timer will be automatically canceled if the given `dest` is a PID
+  which is not alive or when the given PID exits. Note that timers will not be
   automatically canceled when `dest` is an atom (as the atom resolution is done
   on delivery).
   """
@@ -297,8 +297,8 @@ defmodule Process do
 
   The result depends on the given options. In particular,
   if `:monitor` is given as an option, it will return a tuple
-  containing the pid and the monitoring reference, otherwise
-  just the spawned process pid.
+  containing the PID and the monitoring reference, otherwise
+  just the spawned process PID.
 
   It also accepts extra options, for the list of available options
   check [`:erlang.spawn_opt/4`](http://www.erlang.org/doc/man/erlang.html#spawn_opt-4).
@@ -316,8 +316,8 @@ defmodule Process do
 
   The result depends on the given options. In particular,
   if `:monitor` is given as an option, it will return a tuple
-  containing the pid and the monitoring reference, otherwise
-  just the spawned process pid.
+  containing the PID and the monitoring reference, otherwise
+  just the spawned process PID.
 
   It also accepts extra options, for the list of available options
   check [`:erlang.spawn_opt/4`](http://www.erlang.org/doc/man/erlang.html#spawn_opt-4).
@@ -405,7 +405,7 @@ defmodule Process do
   Associates the atom `name` with a `pid` or a port identifier.
 
   `name`, can then be used instead of the `pid` / port identifier with the `Kernel.send/2`
-  function. `Process.register/2` will fail with `ArgumentError` if the pid supplied
+  function. `Process.register/2` will fail with `ArgumentError` if the PID supplied
   is no longer alive, (check with `alive?/1`) or if the name is already registered
   (check with `whereis/1`) or if the `pid` is already registered to a different `name`.
   """
@@ -415,9 +415,9 @@ defmodule Process do
   end
 
   @doc """
-  Removes the registered `name`, associated with a pid or a port identifier.
+  Removes the registered `name`, associated with a PID or a port identifier.
 
-  Fails with `ArgumentError` if the name is not registered to any pid or port.
+  Fails with `ArgumentError` if the name is not registered to any PID or port.
 
   See [`:erlang.unregister/1`](http://www.erlang.org/doc/man/erlang.html#unregister-1) for more info.
   """
@@ -427,7 +427,7 @@ defmodule Process do
   end
 
   @doc """
-  Returns the pid or port identifier with the registered `name`.
+  Returns the PID or port identifier with the registered `name`.
   Returns `nil` if the name is not registered.
 
   See [`:erlang.whereis/1`](http://www.erlang.org/doc/man/erlang.html#whereis-1) for more info.
@@ -438,7 +438,7 @@ defmodule Process do
   end
 
   @doc """
-  Returns the pid of the group leader for the process which evaluates the function.
+  Returns the PID of the group leader for the process which evaluates the function.
   """
   @spec group_leader :: pid
   def group_leader do

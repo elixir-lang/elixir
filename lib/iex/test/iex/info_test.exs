@@ -98,7 +98,7 @@ defmodule IEx.InfoTest do
     assert info[:"Description"] == "This is an anonymous function."
   end
 
-  test "pids" do
+  test "PIDs" do
     pid = spawn_link(fn -> :timer.sleep(1000) end)
 
     info = Info.info(pid)

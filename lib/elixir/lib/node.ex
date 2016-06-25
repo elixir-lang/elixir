@@ -154,8 +154,8 @@ defmodule Node do
   end
 
   @doc """
-  Returns the pid of a new process started by the application of `fun`
-  on `node`. If `node` does not exist, a useless pid is returned.
+  Returns the PID of a new process started by the application of `fun`
+  on `node`. If `node` does not exist, a useless PID is returned.
 
   For the list of available options, see
   [`:erlang.spawn/2`](http://www.erlang.org/doc/man/erlang.html#spawn-2).
@@ -168,10 +168,10 @@ defmodule Node do
   end
 
   @doc """
-  Returns the pid of a new process started by the application of `fun`
+  Returns the PID of a new process started by the application of `fun`
   on `node`.
 
-  If `node` does not exist, a useless pid is returned.
+  If `node` does not exist, a useless PID is returned.
 
   For the list of available options, see
   [`:erlang.spawn_opt/3`](http://www.erlang.org/doc/man/erlang.html#spawn_opt-3).
@@ -184,10 +184,10 @@ defmodule Node do
   end
 
   @doc """
-  Returns the pid of a new process started by the application of
+  Returns the PID of a new process started by the application of
   `module.function(args)` on `node`.
 
-  If `node` does not exist, a useless pid is returned.
+  If `node` does not exist, a useless PID is returned.
 
   For the list of available options, see
   [`:erlang.spawn/4`](http://www.erlang.org/doc/man/erlang.html#spawn-4).
@@ -200,10 +200,10 @@ defmodule Node do
   end
 
   @doc """
-  Returns the pid of a new process started by the application of
+  Returns the PID of a new process started by the application of
   `module.function(args)` on `node`.
 
-  If `node` does not exist, a useless pid is returned.
+  If `node` does not exist, a useless PID is returned.
 
   For the list of available options, see
   [`:erlang.spawn/5`](http://www.erlang.org/doc/man/erlang.html#spawn_opt-5).
@@ -216,10 +216,10 @@ defmodule Node do
   end
 
   @doc """
-  Returns the pid of a new linked process started by the application of `fun` on `node`.
+  Returns the PID of a new linked process started by the application of `fun` on `node`.
 
   A link is created between the calling process and the new process, atomically.
-  If `node` does not exist, a useless pid is returned (and due to the link, an exit
+  If `node` does not exist, a useless PID is returned (and due to the link, an exit
   signal with exit reason `:noconnection` will be received).
 
   Inlined by the compiler.
@@ -230,11 +230,11 @@ defmodule Node do
   end
 
   @doc """
-  Returns the pid of a new linked process started by the application of
+  Returns the PID of a new linked process started by the application of
   `module.function(args)` on `node`.
 
   A link is created between the calling process and the new process, atomically.
-  If `node` does not exist, a useless pid is returned (and due to the link, an exit
+  If `node` does not exist, a useless PID is returned (and due to the link, an exit
   signal with exit reason `:noconnection` will be received).
 
   Inlined by the compiler.
