@@ -1640,12 +1640,14 @@ defmodule Enum do
   end
 
   @doc """
-  Reduces the enumerable until `halt` is emitted.
+  Reduces the enumerable until `fun` returns `{:halt, term}`.
 
-  The return value for `fun` is expected to be `{:cont, acc}`, return
-  `{:halt, acc}` to end the reduction early.
+  The return value for `fun` is expected to be
 
-  Returns the accumulator.
+    * `{:cont, acc}` to continue the reduction with `acc` as the new
+      accumulator or
+    * `{:halt, acc}` to halt the reduction and return `acc` as the return
+      value of this function
 
   ## Examples
 
@@ -1655,6 +1657,7 @@ defmodule Enum do
       3
 
   """
+  @spec reduce_while(t, any, (element, any -> {:cont, any} | {:halt, any})) :: any
   def reduce_while(enumerable, acc, fun) when is_function(fun, 2) do
     Enumerable.reduce(enumerable, {:cont, acc}, fun) |> elem(1)
   end
