@@ -864,6 +864,19 @@ defmodule Kernel.Typespec do
     {:op, line(meta), op, {:integer, line(meta), integer}}
   end
 
+  # Handle remote calls in the form of @module_attribute.type.
+  # These are not handled by the general remote type clause as calling
+  # Macro.expand/2 on the remote does not expand module attributes (but expands
+  # things like __MODULE__).
+  defp typespec({{:., meta, [{:@, _, [{attr, _, _}]}, name]}, _, args} = orig, vars, caller) do
+    remote = Module.get_attribute(caller.module, attr)
+    unless is_atom(remote) and remote != nil do
+      message = "invalid remote in typespec: #{Macro.to_string(orig)} (@#{attr} is #{inspect remote})"
+      compile_error(caller, message)
+    end
+    remote_type({typespec(remote, vars, caller), meta, typespec(name, vars, caller), args}, vars, caller)
+  end
+
   # Handle remote calls
   defp typespec({{:., meta, [remote, name]}, _, args} = orig, vars, caller) do
     remote = Macro.expand remote, caller
