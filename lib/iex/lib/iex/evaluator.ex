@@ -14,8 +14,10 @@ defmodule IEx.Evaluator do
     old_leader = Process.group_leader
     Process.group_leader(self(), leader)
 
+    state = loop_state(opts)
+    send(server, {:configuration_loaded, self()})
     try do
-      loop(server, IEx.History.init, loop_state(opts))
+      loop(server, IEx.History.init, state)
     after
       Process.group_leader(self(), old_leader)
     end
