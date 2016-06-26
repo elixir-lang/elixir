@@ -40,13 +40,11 @@ defmodule ExUnit.Diff do
 
   # Char lists and lists
   def script(left, right) when is_list(left) and is_list(right) do
-    cond do
-      Inspect.List.printable?(left) and Inspect.List.printable?(right) ->
-        script_string(List.to_string(left), List.to_string(right), ?')
-      Inspect.List.keyword?(left) and Inspect.List.keyword?(right) ->
-        script_keyword(left, right, true)
-      true ->
-        script_list(left, right, [])
+    if Inspect.List.printable?(left) and Inspect.List.printable?(right) do
+      script_string(List.to_string(left), List.to_string(right), ?')
+    else
+      keywords? = Inspect.List.keyword?(left) and Inspect.List.keyword?(right)
+      script_list_new(left, right, keywords?)
     end
   end
 
@@ -80,6 +78,15 @@ defmodule ExUnit.Diff do
   defp script_string(string1, string2) do
     String.myers_difference(string1, string2)
   end
+
+  defp check_if_proper_and_get_length([_ | rest], length),
+    do: check_if_proper_and_get_length(rest, length + 1)
+
+  defp check_if_proper_and_get_length([], length),
+    do: {true, length}
+
+  defp check_if_proper_and_get_length(_other, length),
+    do: {false, length + 1}
 
   # The algorithm is outlined in the
   # "String Matching with Metric Trees Using an Approximate Distance"
@@ -119,12 +126,19 @@ defmodule ExUnit.Diff do
     end)
   end
 
-  defp script_keyword(list1, list2, keywords?) do
-    path = {0, 0, list1, list2, []}
-    result =
-      find_script(0, length(list1) + length(list2), [path], keywords?)
-      |> format_each_fragment([], keywords?)
-    [{:eq, "["}, result, {:eq, "]"}]
+  defp script_list_new(list1, list2, keywords?) do
+    {proper1?, length1} = check_if_proper_and_get_length(list1, 0)
+    {proper2?, length2} = check_if_proper_and_get_length(list2, 0)
+
+    if proper1? and proper2? do
+      initial_path = {0, 0, list1, list2, []}
+      result =
+        find_script(0, length1 + length2, [initial_path], keywords?)
+        |> format_each_fragment([], keywords?)
+      [{:eq, "["}, result, {:eq, "]"}]
+    else
+      script_list(list1, list2, [])
+    end
   end
 
   defp format_each_fragment([{:diff, script}], [], _keywords?),

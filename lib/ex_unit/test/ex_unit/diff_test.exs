@@ -37,21 +37,63 @@ defmodule ExUnit.DiffTest do
   end
 
   test "lists" do
-    list1 = ["One", :ok, nil, {}, :ok]
-    list2 = ["Two", :ok, 0.0, {true}]
+    list1 = ["Tvo", nil, :ok, {}, :ok]
+    list2 = ["Two", :ok, self(), {true}]
+
     expected = [
       {:eq, "["},
       [
-        [del: "\"One\"", ins: "\"Two\""],
-        [eq: ", ", eq: ":ok"],
-        [eq: ", ", del: "nil", ins: "0.0"],
-        [{:eq, ", "}, {:eq, "{"}, [[ins: "true"]], {:eq, "}"}],
-        [del: ", ", del: ":ok"]
+        [{:eq, "\""}, [eq: "T", del: "v", ins: "w", eq: "o"], {:eq, "\""}], {:eq, ", "},
+        {:del, "nil"}, {:del, ", "},
+        {:eq, ":ok"}, {:eq, ", "},
+        {:ins, inspect(self())}, {:ins, ", "},
+        [{:eq, "{"}, [[ins: "true"]], {:eq, "}"}], {:del, ", "}, {:del, ":ok"}
       ],
       {:eq, "]"}
     ]
     assert script(list1, list2) == expected
 
+    list1 = [1, "2", 1]
+    list2 = [1, 1, 2]
+    expected = [
+      {:eq, "["},
+      [eq: "1", eq: ", ", del: "\"2\"", del: ", ", eq: "1", ins: ", ", ins: "2"],
+      {:eq, "]"}
+    ]
+    assert script(list1, list2) == expected
+
+    list1 = [1, 1, "1", 2]
+    list2 = [1, 1, 2]
+    expected = [
+      {:eq, "["},
+      [eq: "1, 1", eq: ", ", del: "\"1\"", del: ", ", eq: "2"],
+      {:eq, "]"}
+    ]
+    assert script(list1, list2) == expected
+
+    list1 = [1, 2]
+    list2 = [1, 1, 2]
+    expected = [
+      {:eq, "["},
+      [{:eq, "1"}, {:eq, ", "}, [del: "2", ins: "1"], {:ins, ", "}, {:ins, "2"}],
+      {:eq, "]"}
+    ]
+    assert script(list1, list2) == expected
+
+    list1 = []
+    list2 = [1, 2]
+    expected = [{:eq, "["}, [ins: "1, 2"], {:eq, "]"}]
+    assert script(list1, list2) == expected
+
+    list1 = [1, 2]
+    list2 = []
+    expected = [{:eq, "["}, [del: "1, 2"], {:eq, "]"}]
+    assert script(list1, list2) == expected
+
+    assert script([], []) == [eq: "[]"]
+  end
+
+  test "charlists" do
     charlist1 = 'fox hops over \'the dog'
     charlist2 = 'fox jumps over the lazy cat'
     expected = [
@@ -60,8 +102,6 @@ defmodule ExUnit.DiffTest do
       {:eq, "'"}
     ]
     assert script(charlist1, charlist2) == expected
-
-    assert script([], []) == [eq: "[]"]
   end
 
   test "keyword lists" do
