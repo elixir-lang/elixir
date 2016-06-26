@@ -468,7 +468,7 @@ defmodule Kernel.TypespecTest do
   end
 
   test "invalid remote @type with module attribute that does not evaluate to a module" do
-    assert_raise CompileError, ~r/(@foo is "bar")/, fn ->
+    assert_raise CompileError, ~r/\(@foo is "bar"\)/, fn ->
       test_module do
         @foo "bar"
         @type t :: @foo.t
