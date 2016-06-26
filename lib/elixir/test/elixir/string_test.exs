@@ -143,6 +143,34 @@ defmodule StringTest do
     assert String.downcase("ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝÞ") == "àáâãäåæçèéêëìíîïðñòóôõöøùúûüýþ"
     assert String.downcase("áüÈß") == "áüèß"
   end
+  
+  test "is_lower?" do
+    refute String.is_lower?("A")
+    refute String.is_lower?("È")
+    refute String.is_lower?("Ç")
+    refute String.is_lower?("4")
+    refute String.is_lower?("%")
+    refute String.is_lower?("#")
+    refute String.is_lower?(" ")
+    
+    assert String.is_lower?("б")
+    assert String.is_lower?("ß")
+    assert String.is_lower?("ﬁ")
+  end
+  
+  test "is_upper?" do
+    assert String.is_upper?("A")
+    assert String.is_upper?("È")
+    assert String.is_upper?("Ç")
+    refute String.is_upper?("4")
+    refute String.is_upper?("%")
+    refute String.is_upper?("#")
+    refute String.is_upper?(" ")
+    
+    refute String.is_upper?("б")
+    refute String.is_upper?("ß")
+    refute String.is_upper?("ﬁ")
+  end
 
   test "capitalize" do
     assert String.capitalize("") == ""

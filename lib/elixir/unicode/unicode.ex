@@ -305,50 +305,74 @@ defmodule String.Casing do
                                   to_binary.(title)})
   end
 
-  # Downcase
-
-  def downcase(string), do: downcase(string, "")
-
-  for {codepoint, _upper, lower, _title} <- codes, lower && lower != codepoint do
-    defp downcase(unquote(codepoint) <> rest, acc) do
-      downcase(rest, acc <> unquote(lower))
+  for {codepoint, upper, lower, title} <- codes do
+    def get_codepoint_info(unquote(codepoint)) do
+      if is_nil(unquote(lower)) || unquote(codepoint) == unquote(lower) do
+        %{case: :lower, upper: unquote(upper),
+                        lower: unquote(codepoint),
+                        title: unquote(title)}
+      else
+        %{case: :upper, upper: unquote(codepoint),
+                        lower: unquote(lower),
+                        title: unquote(title)}
+      end
     end
   end
+  
+  def get_codepoint_info(_), do: %{}
 
-  defp downcase(<<char, rest::binary>>, acc) do
-    downcase(rest, <<acc::binary, char>>)
+  # Downcase
+  def downcase(str) do
+    cp_list = String.codepoints(str)
+      |> Enum.map(fn x ->
+          case get_codepoint_info(x) do
+            %{case: :upper, lower: lower} -> lower
+            _ -> x # leave unchanged
+          end
+        end)
+    :erlang.list_to_binary(cp_list)
   end
 
-  defp downcase("", acc), do: acc
 
   # Upcase
-
-  def upcase(string), do: upcase(string, "")
-
-  for {codepoint, upper, _lower, _title} <- codes, upper && upper != codepoint do
-    defp upcase(unquote(codepoint) <> rest, acc) do
-      upcase(rest, acc <> unquote(upper))
-    end
+  def upcase(str) do
+    cp_list = String.codepoints(str)
+      |> Enum.map(fn x ->
+          case get_codepoint_info(x) do
+            %{case: :lower, upper: upper} -> upper
+            _ -> x # leave unchanged
+          end
+        end)
+    :erlang.list_to_binary(cp_list)
   end
 
-  defp upcase(<<char, rest::binary>>, acc) do
-    upcase(rest, <<acc::binary, char>>)
-  end
-
-  defp upcase("", acc), do: acc
 
   # Titlecase once
-
   def titlecase_once(""), do: {"", ""}
 
-  for {codepoint, _upper, _lower, title} <- codes, title && title != codepoint do
-    def titlecase_once(unquote(codepoint) <> rest) do
-      {unquote(title), rest}
+  def titlecase_once(<<char :: utf8, rest :: binary>>) do
+    case get_codepoint_info(<<char :: utf8>>) do
+      %{case: :lower, title: title} -> {title, rest}
+      _ -> {<<char :: utf8>>, rest}
     end
   end
 
-  def titlecase_once(<<char, rest::binary>>) do
-    {<<char>>, rest}
+
+  # Is lower?
+  def is_lower?(char) do
+    case get_codepoint_info(char) do
+      %{case: :lower} -> true
+      _ -> false
+    end
+  end
+
+
+  # Is upper?
+  def is_upper?(char) do
+    case get_codepoint_info(char) do
+      %{case: :upper} -> true
+      _ -> false
+    end
   end
 end
 

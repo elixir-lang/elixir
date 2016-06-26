@@ -560,6 +560,45 @@ defmodule String do
   @spec downcase(t) :: t
   defdelegate downcase(binary), to: String.Casing
 
+
+  @doc ~S"""
+  Indicates whether a Unicode character is categorized as a lowercase letter.
+
+  ## Examples
+
+      iex> String.is_lower?("б")
+      true
+
+      iex> String.is_lower?("ﬁ")
+      true
+
+      iex> String.is_lower?("Ç")
+      false
+
+  """
+  @spec is_lower?(t) :: boolean
+  defdelegate is_lower?(binary), to: String.Casing
+
+
+  @doc ~S"""
+  Indicates whether a Unicode character is categorized as an uppercase letter.
+
+  ## Examples
+
+      iex> String.is_upper?("È")
+      true
+
+      iex> String.is_upper?("A")
+      true
+
+      iex> String.is_upper?("ß")
+      false
+
+  """
+  @spec is_upper?(t) :: boolean
+  defdelegate is_upper?(binary), to: String.Casing
+
+
   @doc """
   Converts the first character in the given string to
   uppercase and the remainder to lowercase.
