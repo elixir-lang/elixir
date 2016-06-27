@@ -82,7 +82,7 @@ defmodule IEx.Server do
               {^ref, nil} ->
                 {:error, :refused}
               {^ref, leader} ->
-                IEx.Evaluator.init(server, leader, opts)
+                IEx.Evaluator.init(:no_ack, server, leader, opts)
             end
         after
           timeout ->
@@ -142,16 +142,9 @@ defmodule IEx.Server do
 
     self_pid = self()
     self_leader = Process.group_leader
-
-    evaluator = opts[:evaluator] || spawn(fn -> IEx.Evaluator.init(self_pid, self_leader, opts) end)
+    evaluator = opts[:evaluator] ||
+                :proc_lib.start(IEx.Evaluator, :init, [:ack, self_pid, self_leader, opts])
     Process.put(:evaluator, evaluator)
-
-    # Wait for evaluator to load config from dot file.
-    receive do
-      {:configuration_loaded, ^evaluator} -> :ok
-    after 1_000 -> :ok
-    end
-
     loop(run_state(opts), evaluator, Process.monitor(evaluator))
   end
 

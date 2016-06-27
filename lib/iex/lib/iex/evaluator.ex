@@ -10,12 +10,13 @@ defmodule IEx.Evaluator do
     * keeping expression history
 
   """
-  def init(server, leader, opts) do
+  def init(command, server, leader, opts) do
     old_leader = Process.group_leader
     Process.group_leader(self(), leader)
 
     state = loop_state(opts)
-    send(server, {:configuration_loaded, self()})
+    command == :ack && :proc_lib.init_ack(self())
+
     try do
       loop(server, IEx.History.init, state)
     after
@@ -193,6 +194,7 @@ defmodule IEx.Evaluator do
     # and eval_bits information from the user stacktrace.
     stacktrace
     |> Enum.reverse()
+    |> Enum.drop_while(&(elem(&1, 0) == :proc_lib))
     |> Enum.drop_while(&(elem(&1, 0) == __MODULE__))
     |> Enum.drop_while(&(elem(&1, 0) == :elixir))
     |> Enum.drop_while(&(elem(&1, 0) in [:erl_eval, :eval_bits]))
