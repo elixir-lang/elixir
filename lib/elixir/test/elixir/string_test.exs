@@ -196,6 +196,23 @@ defmodule StringTest do
     refute String.is_control?("ß")
     refute String.is_control?("22")
   end
+  
+  test "whitespace" do
+    assert String.is_whitespace?(<<9>>) # CHARACTER TAB
+    assert String.is_whitespace?(<<10 :: utf8>>) # \n
+    assert String.is_whitespace?(<<13 :: utf8>>) # \r
+    assert String.is_whitespace?(" ") # SPACE
+    assert String.is_whitespace?("\u2008") # PUNCTATION SPACE
+    assert String.is_whitespace?("\u2028") # LINE SEPARATOR
+    assert String.is_whitespace?("\u2029") # PARAGRAPH SEPARATOR
+    
+    refute String.is_whitespace?("b")
+    refute String.is_whitespace?("Я")
+    refute String.is_whitespace?("ß")
+    refute String.is_whitespace?("9")
+    refute String.is_whitespace?("#")
+    refute String.is_whitespace?(")")
+  end
 
   test "capitalize" do
     assert String.capitalize("") == ""

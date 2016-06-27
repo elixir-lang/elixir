@@ -639,6 +639,24 @@ defmodule String do
   defdelegate is_upper?(binary), to: String.Casing
 
 
+  @doc ~S"""
+  Indicates whether a Unicode character is categorized as white space.
+
+  ## Examples
+
+      iex> String.is_whitespace?(" ")
+      true
+
+      iex> String.is_whitespace?("\n")
+      true
+
+      iex> String.is_whitespace?("@")
+      false
+
+  """
+  @spec is_whitespace?(t) :: t
+  defdelegate is_whitespace?(binary), to: String.Break
+
   @doc """
   Converts the first character in the given string to
   uppercase and the remainder to lowercase.

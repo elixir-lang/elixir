@@ -247,9 +247,9 @@ end
 
 data_path = Path.join(__DIR__, "UnicodeData.txt")
 
-{codes, non_breakable, decompositions, combining_classes, digits, control_chars} =
+{codes, non_breakable, decompositions, combining_classes, digits, control_chars, whitespace} =
   Enum.reduce File.stream!(data_path),
-                        {[], [], %{}, %{}, [], []}, fn line, {cacc, wacc, dacc, kacc, nacc, ccacc} ->
+                        {[], [], %{}, %{}, [], [], []}, fn line, {cacc, wacc, dacc, kacc, nacc, ccacc, wsacc} ->
     [codepoint, _name, category,
      class, _bidi, decomposition,
      numeric_1, numeric_2, numeric_3,
@@ -305,8 +305,16 @@ data_path = Path.join(__DIR__, "UnicodeData.txt")
       else
         ccacc
       end
+
+    # whitespace chars
+    wsacc =
+      if category in ["Zs", "Zl", "Zp"] do
+        [to_binary.(codepoint) | wsacc]
+      else
+        wsacc
+      end
     
-    {cacc, wacc, dacc, kacc, nacc, ccacc}
+    {cacc, wacc, dacc, kacc, nacc, ccacc, wsacc}
   end
 
 defmodule String.Casing do
@@ -417,19 +425,8 @@ defmodule String.Break do
   @moduledoc false
   @whitespace_max_size 3
 
-  # WhiteSpace.txt is extracted from Unicode's PropList.txt (just the White_Space property)
-  prop_path = Path.join(__DIR__, "WhiteSpace.txt")
-
-  whitespace = Enum.reduce File.stream!(prop_path), [], fn line, acc ->
-    case line |> :binary.split(";") |> hd do
-      <<first::4-bytes, "..", last::4-bytes, _::binary>> ->
-        first = String.to_integer(first, 16)
-        last = String.to_integer(last, 16)
-        Enum.map(first..last, fn int -> <<int::utf8>> end) ++ acc
-      <<single::4-bytes, _::binary>> ->
-        [<<String.to_integer(single, 16)::utf8>> | acc]
-    end
-  end
+  # not included in UnicodeData.txt
+  whitespace = whitespace ++ Enum.map(["9", "A", "B", "C", "D", "85"], &to_binary.(&1))
 
   # trim_leading
 
@@ -521,6 +518,15 @@ defmodule String.Break do
       end
     end
   end
+
+
+  # Is whitespace?
+  for codepoint <- whitespace do
+    def is_whitespace?(unquote(codepoint)), do: true
+  end
+  
+  def is_whitespace?(_), do: false
+
 end
 
 defmodule String.Normalizer do
