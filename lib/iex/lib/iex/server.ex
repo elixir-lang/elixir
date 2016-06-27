@@ -144,8 +144,14 @@ defmodule IEx.Server do
     self_leader = Process.group_leader
 
     evaluator = opts[:evaluator] || spawn(fn -> IEx.Evaluator.init(self_pid, self_leader, opts) end)
-
     Process.put(:evaluator, evaluator)
+
+    # Wait for evaluator to load config from dot file.
+    receive do
+      {:configuration_loaded, ^evaluator} -> :ok
+    after 1_000 -> :ok
+    end
+
     loop(run_state(opts), evaluator, Process.monitor(evaluator))
   end
 
