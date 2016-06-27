@@ -524,6 +524,46 @@ defmodule String do
   @spec normalize(t, atom) :: t
   defdelegate normalize(string, form), to: String.Normalizer
 
+
+  @doc ~S"""
+  Indicates whether a Unicode character is categorized as a decimal digit.
+
+  ## Examples
+
+      iex> String.is_digit?("1")
+      true
+
+      iex> String.is_digit?("៣") # KHMER DIGIT THREE
+      true
+
+      iex> String.is_digit?("22")
+      false
+
+  """
+  @spec is_digit?(t) :: boolean
+  defdelegate is_digit?(binary), to: String.Common
+
+
+  @doc ~S"""
+  Indicates whether a specified Unicode character is categorized
+  as a control character.
+
+  ## Examples
+
+      iex> String.is_control?("\n")
+      true
+
+      iex> String.is_control?("\u0007") # BELL
+      true
+
+      iex> String.is_control?("Á")
+      false
+
+  """
+  @spec is_control?(t) :: boolean
+  defdelegate is_control?(binary), to: String.Common
+
+
   @doc """
   Converts all characters in the given string to uppercase.
 

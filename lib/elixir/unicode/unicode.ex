@@ -247,11 +247,12 @@ end
 
 data_path = Path.join(__DIR__, "UnicodeData.txt")
 
-{codes, non_breakable, decompositions, combining_classes} =
-  Enum.reduce File.stream!(data_path), {[], [], %{}, %{}}, fn line, {cacc, wacc, dacc, kacc} ->
-    [codepoint, _name, _category,
+{codes, non_breakable, decompositions, combining_classes, digits, control_chars} =
+  Enum.reduce File.stream!(data_path),
+                        {[], [], %{}, %{}, [], []}, fn line, {cacc, wacc, dacc, kacc, nacc, ccacc} ->
+    [codepoint, _name, category,
      class, _bidi, decomposition,
-     _numeric_1, _numeric_2, _numeric_3,
+     numeric_1, numeric_2, numeric_3,
      _bidi_mirror, _unicode_1, _iso,
      upper, lower, title] = :binary.split(line, ";", [:global])
 
@@ -288,7 +289,24 @@ data_path = Path.join(__DIR__, "UnicodeData.txt")
         {n, ""} -> Map.put(kacc, String.to_integer(codepoint, 16), n)
       end
 
-    {cacc, wacc, dacc, kacc}
+    # decimal digits
+    nacc =
+      if category == "Nd" do
+        [{to_binary.(codepoint), to_binary.(numeric_1), to_binary.(numeric_2),
+          to_binary.(numeric_3)} | nacc]
+      else
+        nacc
+      end
+    
+    # control characters
+    ccacc =
+      if category == "Cc" do
+        [{to_binary.(codepoint)} | ccacc]
+      else
+        ccacc
+      end
+    
+    {cacc, wacc, dacc, kacc, nacc, ccacc}
   end
 
 defmodule String.Casing do
@@ -374,6 +392,25 @@ defmodule String.Casing do
       _ -> false
     end
   end
+end
+
+defmodule String.Common do
+
+  # Is digit?
+  for {digit, _numeric_1, _numeric_2, _numeric_3} <- digits do
+    def is_digit?(unquote(digit)), do: true
+  end
+  
+  def is_digit?(_), do: false
+
+
+  # Is control char?
+  for {cchar} <- control_chars do
+    def is_control?(unquote(cchar)), do: true
+  end
+  
+  def is_control?(_), do: false
+
 end
 
 defmodule String.Break do

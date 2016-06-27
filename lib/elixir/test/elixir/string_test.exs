@@ -171,6 +171,31 @@ defmodule StringTest do
     refute String.is_upper?("ß")
     refute String.is_upper?("ﬁ")
   end
+  
+  test "is_digit?" do
+    assert String.is_digit?("1")
+    assert String.is_digit?("0")
+    assert String.is_digit?("9")
+    assert String.is_digit?("៣") # KHMER DIGIT THREE
+    refute String.is_digit?("A")
+    refute String.is_digit?("b")
+    refute String.is_digit?("Я")
+    refute String.is_digit?("ß")
+    refute String.is_digit?("22")
+  end
+  
+  test "is_control?" do
+    assert String.is_control?(<<10>>) # \n
+    assert String.is_control?(<<13>>) # \r
+    assert String.is_control?(<<0x0007>>) # BELL
+    assert String.is_control?(<<0x007F>>) # DELETE
+    assert String.is_control?(<<0x009C :: utf8>>) # STRING TERMINATOR
+    
+    refute String.is_control?("b")
+    refute String.is_control?("Я")
+    refute String.is_control?("ß")
+    refute String.is_control?("22")
+  end
 
   test "capitalize" do
     assert String.capitalize("") == ""
