@@ -455,6 +455,27 @@ defmodule Kernel.TypespecTest do
            types(module)
   end
 
+  test "@type with module attributes" do
+    module = test_module do
+      @keyword Keyword
+      @type kw :: @keyword.t
+      @type kw(value) :: @keyword.t(value)
+    end
+
+    assert [type: {:kw, {:remote_type, _, [{:atom, _, Keyword}, {:atom, _, :t}, []]}, _},
+            type: {:kw, {:remote_type, _, [{:atom, _, Keyword}, {:atom, _, :t}, [{:var, _, :value}]]}, [{:var, _, :value}]}] =
+      types(module)
+  end
+
+  test "invalid remote @type with module attribute that does not evaluate to a module" do
+    assert_raise CompileError, ~r/\(@foo is "bar"\)/, fn ->
+      test_module do
+        @foo "bar"
+        @type t :: @foo.t
+      end
+    end
+  end
+
   test "defines_type?" do
     test_module do
       @type mytype :: tuple

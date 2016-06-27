@@ -453,9 +453,9 @@ defmodule ExUnit.AssertionsTest do
   rescue
     error in [ExUnit.AssertionError] ->
       "Wrong message for RuntimeError" <>
-      "\nExpected:" <>
+      "\nexpected:" <>
       "\n  \"foo\"" <>
-      "\nGot:" <>
+      "\nactual:" <>
       "\n  \"bar\"" = error.message
   end
 
@@ -466,9 +466,9 @@ defmodule ExUnit.AssertionsTest do
   rescue
     error in [ExUnit.AssertionError] ->
       "Wrong message for RuntimeError" <>
-      "\nExpected:" <>
+      "\nexpected:" <>
       "\n  ~r/ba[zk]/" <>
-      "\nGot:" <>
+      "\nactual:" <>
       "\n  \"bar\"" = error.message
   end
 

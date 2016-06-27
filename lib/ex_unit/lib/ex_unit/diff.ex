@@ -357,26 +357,26 @@ defmodule ExUnit.Diff do
   defp script_map(left, right, name) do
     {surplus, altered, missing, same} = map_difference(left, right)
 
-    keyword? =
+    keywords? =
       Inspect.List.keyword?(surplus) and
       Inspect.List.keyword?(altered) and
       Inspect.List.keyword?(missing) and
       Inspect.List.keyword?(same)
 
     result = Enum.reduce(missing, [], fn({key, val}, acc) ->
-      map_pair = format_key_value(key, val, keyword?)
+      map_pair = format_key_value(key, val, keywords?)
       [[ins: ", ", ins: map_pair] | acc]
     end)
     result = Enum.reduce(surplus, result, fn({key, val}, acc) ->
-      map_pair = format_key_value(key, val, keyword?)
+      map_pair = format_key_value(key, val, keywords?)
       [[del: ", ", del: map_pair] | acc]
     end)
     result = Enum.reduce(altered, result, fn({key, {val1, val2}}, acc) ->
       value_diff = script_inner(val1, val2)
-      [[{:eq, ", "}, {:eq, format_key(key, keyword?)}, value_diff] | acc]
+      [[{:eq, ", "}, {:eq, format_key(key, keywords?)}, value_diff] | acc]
     end)
     result = Enum.reduce(same, result, fn({key, val}, acc) ->
-      map_pair = format_key_value(key, val, keyword?)
+      map_pair = format_key_value(key, val, keywords?)
       [[eq: ", ", eq: map_pair] | acc]
     end)
     [[_ | elem_diff] | rest] = result

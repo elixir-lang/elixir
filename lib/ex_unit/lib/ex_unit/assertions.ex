@@ -476,17 +476,19 @@ defmodule ExUnit.Assertions do
   def assert_raise(exception, message, function) when is_function(function) do
     error = assert_raise(exception, function)
 
-    is_match = cond do
+    match? = cond do
       is_binary(message) -> Exception.message(error) == message
       Regex.regex?(message) -> Exception.message(error) =~ message
     end
 
-    msg = "Wrong message for #{inspect exception}\n" <>
-          "Expected:\n" <>
-          "  #{inspect message}\n" <>
-          "Got:\n" <>
-          "  #{inspect Exception.message(error)}"
-    assert is_match, message: msg
+    message =
+      "Wrong message for #{inspect exception}\n" <>
+      "expected:\n" <>
+      "  #{inspect message}\n" <>
+      "actual:\n" <>
+      "  #{inspect Exception.message(error)}"
+
+    assert match?, message: message
 
     error
   end

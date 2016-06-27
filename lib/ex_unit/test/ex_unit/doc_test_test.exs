@@ -298,7 +298,7 @@ defmodule ExUnit.DocTestTest do
     assert output =~ """
       5) test moduledoc at ExUnit.DocTestTest.Invalid (5) (ExUnit.DocTestTest.ActuallyCompiled)
          test/ex_unit/doc_test_test.exs:248
-         Doctest failed: expected exception WhatIsThis with message "oops" but got RuntimeError with message "oops"
+         Doctest failed: expected exception WhatIsThis but got RuntimeError with message "oops"
          code: raise "oops"
          stacktrace:
            test/ex_unit/doc_test_test.exs:139: ExUnit.DocTestTest.Invalid (module)
@@ -307,7 +307,11 @@ defmodule ExUnit.DocTestTest do
     assert output =~ """
       6) test moduledoc at ExUnit.DocTestTest.Invalid (6) (ExUnit.DocTestTest.ActuallyCompiled)
          test/ex_unit/doc_test_test.exs:248
-         Doctest failed: expected exception RuntimeError with message "hello" but got RuntimeError with message "oops"
+         Doctest failed: wrong message for RuntimeError
+         expected:
+           "hello"
+         actual:
+           "oops"
          code: raise "oops"
          stacktrace:
            test/ex_unit/doc_test_test.exs:142: ExUnit.DocTestTest.Invalid (module)

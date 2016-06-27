@@ -73,12 +73,12 @@ defmodule Mix.Tasks.Deps.Clean do
     apps -- Enum.map(deps, &Atom.to_string(&1.app))
   end
 
-  defp maybe_warn_for_invalid_path(path, dependency) do
-    unless File.dir?(path) do
-      Mix.shell.error "warning: the dependency #{dependency} is not present in the build directory"
-    end
-
-    path
+  defp maybe_warn_for_invalid_path([], dependency) do
+    Mix.shell.error "warning: the dependency #{dependency} is not present in the build directory"
+    []
+  end
+  defp maybe_warn_for_invalid_path(paths, _dependency) do
+    paths
   end
 
   defp do_clean(apps, deps, build_path, deps_path, build_only?) do
@@ -95,8 +95,8 @@ defmodule Mix.Tasks.Deps.Clean do
       # Remove everything from the build directory of dependencies
       build_path
       |> Path.join(to_string(app))
-      |> maybe_warn_for_invalid_path(app)
       |> Path.wildcard
+      |> maybe_warn_for_invalid_path(app)
       |> Enum.each(&File.rm_rf!/1)
 
       # Remove everything from the source directory of dependencies.

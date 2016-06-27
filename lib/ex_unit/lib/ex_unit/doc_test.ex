@@ -330,25 +330,35 @@ defmodule ExUnit.DocTest do
 
     quote do
       stack = unquote(stack)
-      expr  = unquote(String.trim(expr))
-      spec  = inspect(unquote(exception)) <> " with message " <> inspect(unquote(message))
+      expr = unquote(String.trim(expr))
 
       try do
         unquote(expr_ast)
       rescue
         error ->
-          unless error.__struct__ == unquote(exception) and
-                 Exception.message(error) == unquote(message) do
-            got = inspect(error.__struct__) <> " with message " <> inspect(Exception.message(error))
-            reraise ExUnit.AssertionError,
-              [message: "Doctest failed: expected exception #{spec} but got #{got}",
-               expr: expr],
-              stack
+          actual_exception = error.__struct__
+          actual_message = Exception.message(error)
+          message =
+            cond do
+              actual_exception != unquote(exception) ->
+                "Doctest failed: expected exception #{inspect(unquote(exception))} but got #{inspect(actual_exception)} with message #{inspect(actual_message)}"
+              actual_message != unquote(message) ->
+                "Doctest failed: wrong message for #{inspect(actual_exception)}\n" <>
+                  "expected:\n" <>
+                  "  #{inspect(unquote(message))}\n" <>
+                  "actual:\n" <>
+                  "  #{inspect(actual_message)}"
+              true ->
+                nil
+            end
+
+          if message do
+            reraise ExUnit.AssertionError, [message: message, expr: expr], stack
           end
       else
         _ ->
           reraise ExUnit.AssertionError,
-            [message: "Doctest failed: expected exception #{spec} but nothing was raised",
+            [message: "Doctest failed: expected exception #{inspect(unquote(exception))} but nothing was raised",
              expr: expr],
             stack
       end
