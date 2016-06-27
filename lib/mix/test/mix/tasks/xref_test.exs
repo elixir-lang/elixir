@@ -129,21 +129,42 @@ defmodule Mix.Tasks.XrefTest do
 
   test "warnings: handles multiple modules in one file" do
     assert_warnings """
-    defmodule A do
+    defmodule A1 do
       def a, do: A2.no_func
       def b, do: A2.a
     end
 
     defmodule A2 do
-      def a, do: A.no_func
-      def b, do: A.b
+      def a, do: A1.no_func
+      def b, do: A1.b
     end
     """, """
     warning: function A2.no_func/0 is undefined or private
       lib/a.ex:2
 
-    warning: function A.no_func/0 is undefined or private
+    warning: function A1.no_func/0 is undefined or private
       lib/a.ex:7
+
+    """
+  end
+
+  test "warnings: doesn't load unloaded modules" do
+    assert_warnings """
+    defmodule A1 do
+      @compile {:autoload, false}
+      @on_load :init
+      def init do
+        raise "oops"
+      end
+    end
+
+    defmodule A2 do
+      def a, do: A1.no_func
+      def b, do: A1.init
+    end
+    """, """
+    warning: function A1.no_func/0 is undefined or private
+      lib/a.ex:10
 
     """
   end

@@ -160,7 +160,6 @@ defmodule Mix.Tasks.Xref do
 
   defp unreachable(pair_fun) do
     excludes = excludes()
-
     each_source_entries(&source_warnings(&1, excludes), pair_fun)
   end
 
@@ -168,20 +167,38 @@ defmodule Mix.Tasks.Xref do
     source(runtime_dispatches: runtime_dispatches) = source
 
     for {module, func_arity_lines} <- runtime_dispatches,
+        exports = load_exports(module),
         {{func, arity}, lines} <- func_arity_lines,
-        warning = unreachable_mfa(module, func, arity, lines, excludes),
+        warning = unreachable_mfa(exports, module, func, arity, lines, excludes),
         do: warning
   end
 
-  defp unreachable_mfa(module, func, arity, lines, excludes) do
+  defp load_exports(module) do
+    if :code.is_loaded(module) do
+      # If the module is loaded, we will use the faster function_exported?/3 check
+      module
+    else
+      # Otherwise we get all exports from :beam_lib to avoid loading modules
+      with file when is_list(file) <- :code.which(module),
+           {:ok, {^module, [exports: exports]}} <- :beam_lib.chunks(file, [:exports]) do
+        exports
+      else
+        _ -> :unknown_module
+      end
+    end
+  end
+
+  defp unreachable_mfa(exports, module, func, arity, lines, excludes) do
     cond do
       excluded?(module, func, arity, excludes) ->
         nil
       skip?(module, func, arity) ->
         nil
-      not Code.ensure_loaded?(module) ->
+      exports == :unknown_module ->
         {Enum.sort(lines), :unknown_module, module, func, arity}
-      not function_exported?(module, func, arity) ->
+      is_atom(exports) and not function_exported?(module, func, arity) ->
+        {Enum.sort(lines), :unknown_function, module, func, arity}
+      is_list(exports) and not {func, arity} in exports ->
         {Enum.sort(lines), :unknown_function, module, func, arity}
       true ->
         nil
@@ -276,7 +293,7 @@ defmodule Mix.Tasks.Xref do
   defp source_calls_for_filter(source, filter) do
     runtime_dispatches = source(source, :runtime_dispatches)
     compile_dispatches = source(source, :compile_dispatches)
-    dispatches = Stream.concat(runtime_dispatches, compile_dispatches)
+    dispatches = runtime_dispatches ++ compile_dispatches
 
     calls =
       for {module, func_arity_lines} <- dispatches,
