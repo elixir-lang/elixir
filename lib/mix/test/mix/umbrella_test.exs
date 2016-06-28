@@ -364,6 +364,30 @@ defmodule Mix.UmbrellaTest do
     end)
   end
 
+  test "reconsolidates using umbrella information even on shared _build" do
+    in_fixture("umbrella_dep/deps/umbrella", fn ->
+      File.write!("apps/bar/lib/bar.ex", """
+      defprotocol Bar do
+        def bar(arg)
+      end
+      defimpl Bar, for: List do
+        def bar(list), do: list
+      end
+      """)
+
+      Mix.Project.in_project(:foo, "apps/foo", [build_path: "../../_build"], fn _ ->
+        Mix.Task.run("compile.protocols")
+        refute Code.ensure_loaded?(Bar)
+      end)
+
+      Mix.Project.in_project(:umbrella, ".", fn _ ->
+        Mix.Task.run("compile.protocols")
+        Mix.Task.run("app.start")
+        assert Protocol.consolidated?(Bar)
+      end)
+    end)
+  end
+
   defmodule Selective do
     def project do
       [apps_path: "apps",
