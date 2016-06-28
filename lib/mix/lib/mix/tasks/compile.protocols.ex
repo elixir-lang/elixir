@@ -44,10 +44,7 @@ defmodule Mix.Tasks.Compile.Protocols do
     output   = Mix.Project.consolidation_path(config)
     manifest = Path.join(output, @manifest)
 
-    protocols_and_impls =
-      unless Mix.Project.umbrella?(config) do
-        protocols_and_impls(config)
-      end
+    protocols_and_impls = protocols_and_impls(config)
 
     cond do
       opts[:force] || Mix.Utils.stale?(Mix.Project.config_files(), [manifest]) ->
@@ -79,10 +76,15 @@ defmodule Mix.Tasks.Compile.Protocols do
                not scm.fetchable?,
                do: opts[:build])
 
-    app = Mix.Project.app_path(config)
+    app =
+      if Mix.Project.umbrella?(config) do
+        []
+      else
+        [Mix.Project.app_path(config)]
+      end
 
     protocols_and_impls =
-      for path <- [app | deps] do
+      for path <- app ++ deps do
         manifest_path = Path.join(path, ".compile.elixir")
         compile_path = Path.join(path, "ebin")
         Mix.Compilers.Elixir.protocols_and_impls(manifest_path, compile_path)
