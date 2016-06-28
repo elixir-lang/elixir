@@ -85,8 +85,7 @@ defmodule Mix.Tasks.Archive.Build do
     target_path = Path.expand(target)
     dir = Mix.Local.archive_name(target_path) |> String.to_charlist
     {:ok, _} = :zip.create(String.to_charlist(target_path),
-                  files_to_add(source_path, dir),
-                  uncompress: ['.beam', '.app'])
+                  files_to_add(source_path, dir))
     :ok
   end
 
