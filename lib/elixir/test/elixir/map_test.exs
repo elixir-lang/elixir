@@ -147,6 +147,16 @@ defmodule MapTest do
     %^struct{name: "john"} = user
   end
 
+  test "structs when using dynamic modules" do
+    defmodule Module.concat(MapTest, DynamicUser) do
+      defstruct [:name, :age]
+
+      def sample do
+        %__MODULE__{}
+      end
+    end
+  end
+
   test "structs when quoted" do
     assert (quote do
       %User{foo: 1}
