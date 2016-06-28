@@ -268,7 +268,7 @@ end
 
 By restricting hierarchies in favor of named setups, it is straight-forward for the developer to glance at each describe block and know exactly the setup steps involved.
 
-## v1.3.1-dev
+## v1.3.1 (2016-06-28)
 
 ### 1. Enhancements
 
@@ -281,8 +281,10 @@ By restricting hierarchies in favor of named setups, it is straight-forward for 
 
 #### Elixir
 
+  * [Kernel] Ensure structs can be expanded in dynamic module names
   * [Kernel] Ensure aliases warnings are not accidentally discarded when the same module is imported
   * [Kernel.ParallelCompiler] Ensure two modules with cyclic struct dependencies cannot run into a deadlock when compiling
+  * [Kernel.Typespec] Support module attributes in remote types
   * [Module] Do not expect stacktraces to be always present when dispatching to locals during the module compilation
 
 #### IEx
@@ -291,9 +293,11 @@ By restricting hierarchies in favor of named setups, it is straight-forward for 
 
 #### Mix
 
+  * [Mix] Do not load modules for xref purposes, instead use BEAM info
   * [Mix] Ensure `deps.check` does not check archives (that's done in loadpaths)
   * [Mix] Validate application properties before traversing them
   * [Mix] Check for proper Makefile when compiling on Windows
+  * [Mix] Enforce space after comma in `mix do`
 
 ## v1.3.0 (2016-06-21)
 
