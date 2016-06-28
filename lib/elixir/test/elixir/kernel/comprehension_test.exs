@@ -7,7 +7,7 @@ defmodule Kernel.ComprehensionTest do
   import ExUnit.CaptureIO
   require Integer
 
-  defmodule PDict do
+  defmodule Pdict do
     defstruct []
 
     defimpl Collectable do
@@ -121,7 +121,7 @@ defmodule Kernel.ComprehensionTest do
     Process.put(:into_done, false)
     Process.put(:into_halt, false)
 
-    for x <- 1..3, into: %PDict{} do
+    for x <- 1..3, into: %Pdict{} do
       x * 2
     end
 
@@ -136,7 +136,7 @@ defmodule Kernel.ComprehensionTest do
     Process.put(:into_halt, false)
 
     catch_error(
-      for x <- 1..3, into: %PDict{} do
+      for x <- 1..3, into: %Pdict{} do
         if x > 2, do: raise("oops"), else: x
       end
     )
@@ -149,7 +149,7 @@ defmodule Kernel.ComprehensionTest do
   test "for comprehension with into, generators and filters" do
     Process.put(:into_cont, [])
 
-    for x <- 1..3, Integer.is_odd(x), <<y <- "hello">>, into: %PDict{} do
+    for x <- 1..3, Integer.is_odd(x), <<y <- "hello">>, into: %Pdict{} do
       x + y
     end
 
