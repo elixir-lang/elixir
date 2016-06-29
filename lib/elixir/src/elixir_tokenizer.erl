@@ -135,15 +135,15 @@ tokenize([], EndLine, _Column, #elixir_tokenizer{terminators=[{Start, {StartLine
 % Base integers
 
 tokenize([$0, $x, H | T], Line, Column, Scope, Tokens) when ?is_hex(H) ->
-  {Rest, Number, Length} = tokenize_hex([H | T], []),
+  {Rest, Number, Length} = tokenize_hex(T, [H], 1),
   tokenize(Rest, Line, Column + 2 + Length, Scope, [{number, {Line, Column, Column + 2 + Length}, Number} | Tokens]);
 
 tokenize([$0, $b, H | T], Line, Column, Scope, Tokens) when ?is_bin(H) ->
-  {Rest, Number, Length} = tokenize_bin([H | T], []),
+  {Rest, Number, Length} = tokenize_bin(T, [H], 1),
   tokenize(Rest, Line, Column + 2 + Length, Scope, [{number, {Line, Column, Column + 2 + Length}, Number} | Tokens]);
 
 tokenize([$0, $o, H | T], Line, Column, Scope, Tokens) when ?is_octal(H) ->
-  {Rest, Number, Length} = tokenize_octal([H | T], []),
+  {Rest, Number, Length} = tokenize_octal(T, [H], 1),
   tokenize(Rest, Line, Column + 2 + Length, Scope, [{number, {Line, Column, Column + 2 + Length}, Number} | Tokens]);
 
 % Comments
@@ -413,8 +413,8 @@ tokenize([$. | T], Line, Column, Scope, Tokens) ->
 
 % Integers and floats
 
-tokenize([H | _] = String, Line, Column, Scope, Tokens) when ?is_digit(H) ->
-  {Rest, Number, Length} = tokenize_number(String, [], false),
+tokenize([H | T], Line, Column, Scope, Tokens) when ?is_digit(H) ->
+  {Rest, Number, Length} = tokenize_number(T, [H], 1, false),
   tokenize(Rest, Line, Column + Length, Scope, [{number, {Line, Column, Column + Length}, Number} | Tokens]);
 
 % Identifiers (including aliases)
@@ -733,46 +733,55 @@ extract_heredoc_line(Marker, Rest, Buffer, _Counter) ->
 %% At this point, we are at least sure the first digit is a number.
 
 %% Check if we have a point followed by a number;
-tokenize_number([$., H | T], Acc, false) when ?is_digit(H) ->
-  tokenize_number(T, [H, $. | Acc], true);
+tokenize_number([$., H | T], Acc, Length, false) when ?is_digit(H) ->
+  tokenize_number(T, [H, $. | Acc], Length + 2, true);
 
 %% Check if we have an underscore followed by a number;
-tokenize_number([$_, H | T], Acc, Bool) when ?is_digit(H) ->
-  tokenize_number(T, [H | Acc], Bool);
+tokenize_number([$_, H | T], Acc, Length, Bool) when ?is_digit(H) ->
+  tokenize_number(T, [H | Acc], Length + 2, Bool);
 
 %% Check if we have e- followed by numbers (valid only for floats);
-tokenize_number([E, S, H | T], Acc, true)
+tokenize_number([E, S, H | T], Acc, Length, true)
     when (E == $E) or (E == $e), ?is_digit(H), S == $+ orelse S == $- ->
-  tokenize_number(T, [H, S, $e | Acc], true);
+  tokenize_number(T, [H, S, $e | Acc], Length + 3, true);
 
 %% Check if we have e followed by numbers (valid only for floats);
-tokenize_number([E, H | T], Acc, true)
+tokenize_number([E, H | T], Acc, Length, true)
     when (E == $E) or (E == $e), ?is_digit(H) ->
-  tokenize_number(T, [H, $e | Acc], true);
+  tokenize_number(T, [H, $e | Acc], Length + 2, true);
 
 %% Finally just numbers.
-tokenize_number([H | T], Acc, Bool) when ?is_digit(H) ->
-  tokenize_number(T, [H | Acc], Bool);
+tokenize_number([H | T], Acc, Length, Bool) when ?is_digit(H) ->
+  tokenize_number(T, [H | Acc], Length + 1, Bool);
 
 %% Cast to float...
-tokenize_number(Rest, Acc, true) ->
-  {Rest, list_to_float(lists:reverse(Acc)), length(Acc)};
+tokenize_number(Rest, Acc, Length, true) ->
+  {Rest, list_to_float(lists:reverse(Acc)), Length};
 
 %% Or integer.
-tokenize_number(Rest, Acc, false) ->
-  {Rest, list_to_integer(lists:reverse(Acc)), length(Acc)}.
+tokenize_number(Rest, Acc, Length, false) ->
+  {Rest, list_to_integer(lists:reverse(Acc)), Length}.
 
-tokenize_hex([H | T], Acc) when ?is_hex(H) -> tokenize_hex(T, [H | Acc]);
-tokenize_hex([$_, H | T], Acc) when ?is_hex(H) -> tokenize_hex(T, [H | Acc]);
-tokenize_hex(Rest, Acc) -> {Rest, list_to_integer(lists:reverse(Acc), 16), length(Acc)}.
+tokenize_hex([H | T], Acc, Length) when ?is_hex(H) ->
+  tokenize_hex(T, [H | Acc], Length + 1);
+tokenize_hex([$_, H | T], Acc, Length) when ?is_hex(H) ->
+  tokenize_hex(T, [H | Acc], Length + 2);
+tokenize_hex(Rest, Acc, Length) ->
+  {Rest, list_to_integer(lists:reverse(Acc), 16), Length}.
 
-tokenize_octal([H | T], Acc) when ?is_octal(H) -> tokenize_octal(T, [H | Acc]);
-tokenize_octal([$_, H | T], Acc) when ?is_octal(H) -> tokenize_octal(T, [H | Acc]);
-tokenize_octal(Rest, Acc) -> {Rest, list_to_integer(lists:reverse(Acc), 8), length(Acc)}.
+tokenize_octal([H | T], Acc, Length) when ?is_octal(H) ->
+  tokenize_octal(T, [H | Acc], Length + 1);
+tokenize_octal([$_, H | T], Acc, Length) when ?is_octal(H) ->
+  tokenize_octal(T, [H | Acc], Length + 2);
+tokenize_octal(Rest, Acc, Length) ->
+  {Rest, list_to_integer(lists:reverse(Acc), 8), Length}.
 
-tokenize_bin([H | T], Acc) when ?is_bin(H) -> tokenize_bin(T, [H | Acc]);
-tokenize_bin([$_, H | T], Acc) when ?is_bin(H) -> tokenize_bin(T, [H | Acc]);
-tokenize_bin(Rest, Acc) -> {Rest, list_to_integer(lists:reverse(Acc), 2), length(Acc)}.
+tokenize_bin([H | T], Acc, Length) when ?is_bin(H) ->
+  tokenize_bin(T, [H | Acc], Length + 1);
+tokenize_bin([$_, H | T], Acc, Length) when ?is_bin(H) ->
+  tokenize_bin(T, [H | Acc], Length + 2);
+tokenize_bin(Rest, Acc, Length) ->
+  {Rest, list_to_integer(lists:reverse(Acc), 2), Length}.
 
 %% Comments
 
