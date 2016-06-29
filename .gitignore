@@ -15,6 +15,3 @@
 /.release
 .elixir.plt
 erl_crash.dump
-/lib/*/_build
-/lib/*/deps
-mix.lock
