@@ -147,7 +147,6 @@ defmodule Mix.Tasks.Compile.Protocols do
     end
   end
 
-  defp write_manifest(_manifest, nil), do: :om
   defp write_manifest(manifest, metadata) do
     manifest_data =
       [@manifest_vsn | metadata]
