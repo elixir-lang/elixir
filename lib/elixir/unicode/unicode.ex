@@ -331,14 +331,14 @@ defmodule String.Casing do
                                   to_binary.(title)})
   end
 
-  for {codepoint, upper, lower, title} <- codes do
-    def get_codepoint_info(unquote(codepoint)) do
-      if is_nil(unquote(lower)) || unquote(codepoint) == unquote(lower) do
+  for {<<char :: utf8>>, upper, lower, title} <- codes do
+    def get_codepoint_info(unquote(char)) do
+      if is_nil(unquote(lower)) || unquote(<<char :: utf8>>) == unquote(lower) do
         %{case: :lower, upper: unquote(upper),
-                        lower: unquote(codepoint),
+                        lower: unquote(<<char :: utf8>>),
                         title: unquote(title)}
       else
-        %{case: :upper, upper: unquote(codepoint),
+        %{case: :upper, upper: unquote(<<char :: utf8>>),
                         lower: unquote(lower),
                         title: unquote(title)}
       end
@@ -349,25 +349,10 @@ defmodule String.Casing do
 
   # Downcase
 
-  def downcase_orig(string), do: downcase_orig(string, "")
-  
-  for {codepoint, _upper, lower, _title} <- codes, lower && lower != codepoint do
-    defp downcase_orig(unquote(codepoint) <> rest, acc) do
-      downcase_orig(rest, acc <> unquote(lower))
-    end
-  end
-  
-  defp downcase_orig(<<char, rest::binary>>, acc) do
-    downcase_orig(rest, <<acc::binary, char>>)
-  end
-  
-  defp downcase_orig("", acc), do: acc
-
-
   def downcase(string), do: downcase(string, "")
     
   defp downcase(<<char :: utf8, rest::binary>>, acc) do
-    ch_down = case get_codepoint_info(<<char :: utf8>>) do
+    ch_down = case get_codepoint_info(char) do
                 %{case: :upper, lower: lower} -> lower
                 _ -> <<char :: utf8>> # leave unchanged
               end
@@ -376,28 +361,12 @@ defmodule String.Casing do
   
   defp downcase("", acc), do: acc
 
-
   # Upcase
-
-  def upcase_orig(string), do: upcase_orig(string, "")
-  
-  for {codepoint, upper, _lower, _title} <- codes, upper && upper != codepoint do
-    defp upcase_orig(unquote(codepoint) <> rest, acc) do
-      upcase_orig(rest, acc <> unquote(upper))
-    end
-  end
-  
-  defp upcase_orig(<<char, rest::binary>>, acc) do
-    upcase_orig(rest, <<acc::binary, char>>)
-  end
-  
-  defp upcase_orig("", acc), do: acc
-
 
   def upcase(string), do: upcase(string, "")
   
   defp upcase(<<char :: utf8, rest::binary>>, acc) do
-    ch_up = case get_codepoint_info(<<char :: utf8>>) do
+    ch_up = case get_codepoint_info(char) do
                 %{case: :lower, upper: upper} -> upper
                 _ -> <<char :: utf8>> # leave unchanged
               end
@@ -410,24 +379,22 @@ defmodule String.Casing do
   def titlecase_once(""), do: {"", ""}
 
   def titlecase_once(<<char :: utf8, rest :: binary>>) do
-    case get_codepoint_info(<<char :: utf8>>) do
+    case get_codepoint_info(char) do
       %{case: :lower, title: title} -> {title, rest}
       _ -> {<<char :: utf8>>, rest}
     end
   end
 
-
   # lower
-  def is_lower(char) do
+  def is_lower(<<char :: utf8>>) do
     case get_codepoint_info(char) do
       %{case: :lower} -> true
       _ -> false
     end
   end
 
-
   # upper
-  def is_upper(char) do
+  def is_upper(<<char :: utf8>>) do
     case get_codepoint_info(char) do
       %{case: :upper} -> true
       _ -> false
@@ -443,7 +410,6 @@ defmodule String.Common do
   end
   
   def is_digit(_), do: false
-
 
   # control char
   for {cchar} <- control_chars do

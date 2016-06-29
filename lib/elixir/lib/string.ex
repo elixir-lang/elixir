@@ -524,7 +524,6 @@ defmodule String do
   @spec normalize(t, atom) :: t
   defdelegate normalize(string, form), to: String.Normalizer
 
-
   @doc ~S"""
   Indicates whether a Unicode character is categorized as a decimal digit.
 
@@ -542,7 +541,6 @@ defmodule String do
   """
   @spec is_digit(t) :: boolean
   defdelegate is_digit(binary), to: String.Common
-
 
   @doc ~S"""
   Indicates whether a specified Unicode character is categorized
@@ -562,7 +560,6 @@ defmodule String do
   """
   @spec is_control(t) :: boolean
   defdelegate is_control(binary), to: String.Common
-
 
   @doc """
   Converts all characters in the given string to uppercase.
@@ -600,7 +597,6 @@ defmodule String do
   @spec downcase(t) :: t
   defdelegate downcase(binary), to: String.Casing
 
-
   @doc ~S"""
   Indicates whether a Unicode character is categorized as a lowercase letter.
 
@@ -619,7 +615,6 @@ defmodule String do
   @spec is_lower(t) :: boolean
   defdelegate is_lower(binary), to: String.Casing
 
-
   @doc ~S"""
   Indicates whether a Unicode character is categorized as an uppercase letter.
 
@@ -637,7 +632,6 @@ defmodule String do
   """
   @spec is_upper(t) :: boolean
   defdelegate is_upper(binary), to: String.Casing
-
 
   @doc ~S"""
   Indicates whether a Unicode character is categorized as white space.
