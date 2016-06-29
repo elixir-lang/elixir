@@ -530,18 +530,18 @@ defmodule String do
 
   ## Examples
 
-      iex> String.is_digit?("1")
+      iex> String.is_digit("1")
       true
 
-      iex> String.is_digit?("៣") # KHMER DIGIT THREE
+      iex> String.is_digit("៣") # KHMER DIGIT THREE
       true
 
-      iex> String.is_digit?("22")
+      iex> String.is_digit("22")
       false
 
   """
-  @spec is_digit?(t) :: boolean
-  defdelegate is_digit?(binary), to: String.Common
+  @spec is_digit(t) :: boolean
+  defdelegate is_digit(binary), to: String.Common
 
 
   @doc ~S"""
@@ -550,18 +550,18 @@ defmodule String do
 
   ## Examples
 
-      iex> String.is_control?("\n")
+      iex> String.is_control("\n")
       true
 
-      iex> String.is_control?("\u0007") # BELL
+      iex> String.is_control("\u0007") # BELL
       true
 
-      iex> String.is_control?("Á")
+      iex> String.is_control("Á")
       false
 
   """
-  @spec is_control?(t) :: boolean
-  defdelegate is_control?(binary), to: String.Common
+  @spec is_control(t) :: boolean
+  defdelegate is_control(binary), to: String.Common
 
 
   @doc """
@@ -606,18 +606,18 @@ defmodule String do
 
   ## Examples
 
-      iex> String.is_lower?("б")
+      iex> String.is_lower("б")
       true
 
-      iex> String.is_lower?("ﬁ")
+      iex> String.is_lower("ﬁ")
       true
 
-      iex> String.is_lower?("Ç")
+      iex> String.is_lower("Ç")
       false
 
   """
-  @spec is_lower?(t) :: boolean
-  defdelegate is_lower?(binary), to: String.Casing
+  @spec is_lower(t) :: boolean
+  defdelegate is_lower(binary), to: String.Casing
 
 
   @doc ~S"""
@@ -625,18 +625,18 @@ defmodule String do
 
   ## Examples
 
-      iex> String.is_upper?("È")
+      iex> String.is_upper("È")
       true
 
-      iex> String.is_upper?("A")
+      iex> String.is_upper("A")
       true
 
-      iex> String.is_upper?("ß")
+      iex> String.is_upper("ß")
       false
 
   """
-  @spec is_upper?(t) :: boolean
-  defdelegate is_upper?(binary), to: String.Casing
+  @spec is_upper(t) :: boolean
+  defdelegate is_upper(binary), to: String.Casing
 
 
   @doc ~S"""
@@ -644,18 +644,18 @@ defmodule String do
 
   ## Examples
 
-      iex> String.is_whitespace?(" ")
+      iex> String.is_whitespace(" ")
       true
 
-      iex> String.is_whitespace?("\n")
+      iex> String.is_whitespace("\n")
       true
 
-      iex> String.is_whitespace?("@")
+      iex> String.is_whitespace("@")
       false
 
   """
-  @spec is_whitespace?(t) :: t
-  defdelegate is_whitespace?(binary), to: String.Break
+  @spec is_whitespace(t) :: t
+  defdelegate is_whitespace(binary), to: String.Break
 
   @doc """
   Converts the first character in the given string to
