@@ -15,10 +15,10 @@ defmodule ExUnit.CLIFormatter do
       trace: opts[:trace],
       colors: Keyword.put_new(opts[:colors], :enabled, IO.ANSI.enabled?),
       width: get_terminal_width(),
-      tests_counter: %{},
-      failures_counter: 0,
+      test_counter: %{},
+      failure_counter: 0,
       skipped_counter: 0,
-      invalids_counter: 0
+      invalid_counter: 0
     }
     {:ok, config}
   end
@@ -43,12 +43,12 @@ defmodule ExUnit.CLIFormatter do
     else
       IO.write success(".", config)
     end
-    {:ok, %{config | tests_counter: update_tests_counter(config.tests_counter, test)}}
+    {:ok, %{config | test_counter: update_test_counter(config.test_counter, test)}}
   end
 
   def handle_event({:test_finished, %ExUnit.Test{state: {:skip, _}} = test}, config) do
     if config.trace, do: IO.puts trace_test_skip(test)
-    {:ok, %{config | tests_counter: update_tests_counter(config.tests_counter, test),
+    {:ok, %{config | test_counter: update_test_counter(config.test_counter, test),
                      skipped_counter: config.skipped_counter + 1}}
   end
 
@@ -59,8 +59,8 @@ defmodule ExUnit.CLIFormatter do
       IO.write invalid("?", config)
     end
 
-    {:ok, %{config | tests_counter: update_tests_counter(config.tests_counter, test),
-                     invalids_counter: config.invalids_counter + 1}}
+    {:ok, %{config | test_counter: update_test_counter(config.test_counter, test),
+                     invalid_counter: config.invalid_counter + 1}}
   end
 
   def handle_event({:test_finished, %ExUnit.Test{state: {:failed, failures}} = test}, config) do
@@ -68,13 +68,13 @@ defmodule ExUnit.CLIFormatter do
       IO.puts failure(trace_test_result(test), config)
     end
 
-    formatted = format_test_failure(test, failures, config.failures_counter + 1,
+    formatted = format_test_failure(test, failures, config.failure_counter + 1,
                                     config.width, &formatter(&1, &2, config))
     print_failure(formatted, config)
     print_logs(test.logs)
 
-    {:ok, %{config | tests_counter: update_tests_counter(config.tests_counter, test),
-                     failures_counter: config.failures_counter + 1}}
+    {:ok, %{config | test_counter: update_test_counter(config.test_counter, test),
+                     failure_counter: config.failure_counter + 1}}
   end
 
   def handle_event({:case_started, %ExUnit.TestCase{name: name}}, config) do
@@ -90,10 +90,10 @@ defmodule ExUnit.CLIFormatter do
   end
 
   def handle_event({:case_finished, %ExUnit.TestCase{state: {:failed, failures}} = test_case}, config) do
-    formatted = format_test_case_failure(test_case, failures, config.failures_counter + 1,
+    formatted = format_test_case_failure(test_case, failures, config.failure_counter + 1,
                                          config.width, &formatter(&1, &2, config))
     print_failure(formatted, config)
-    {:ok, %{config | failures_counter: config.failures_counter + 1}}
+    {:ok, %{config | failure_counter: config.failure_counter + 1}}
   end
 
   ## Tracing
@@ -120,8 +120,8 @@ defmodule ExUnit.CLIFormatter do
     end
   end
 
-  defp update_tests_counter(tests_counter, %{tags: %{type: type}}) do
-    Map.update(tests_counter, type, 1, &(&1 + 1))
+  defp update_test_counter(test_counter, %{tags: %{type: type}}) do
+    Map.update(test_counter, type, 1, &(&1 + 1))
   end
 
   ## Printing
@@ -132,16 +132,16 @@ defmodule ExUnit.CLIFormatter do
 
     # singular/plural
     test_type_counts = format_test_type_counts(config)
-    failure_pl = pluralize(config.failures_counter, "failure", "failures")
+    failure_pl = pluralize(config.failure_counter, "failure", "failures")
 
     message =
-      "#{test_type_counts}#{config.failures_counter} #{failure_pl}"
+      "#{test_type_counts}#{config.failure_counter} #{failure_pl}"
       |> if_true(config.skipped_counter > 0, & &1 <> ", #{config.skipped_counter} skipped")
-      |> if_true(config.invalids_counter > 0, & &1 <> ", #{config.invalids_counter} invalid")
+      |> if_true(config.invalid_counter > 0, & &1 <> ", #{config.invalid_counter} invalid")
 
     cond do
-      config.failures_counter > 0 -> IO.puts failure(message, config)
-      config.invalids_counter > 0 -> IO.puts invalid(message, config)
+      config.failure_counter > 0 -> IO.puts failure(message, config)
+      config.invalid_counter > 0 -> IO.puts invalid(message, config)
       true                        -> IO.puts success(message, config)
     end
 
@@ -170,8 +170,8 @@ defmodule ExUnit.CLIFormatter do
     IO.puts formatted
   end
 
-  defp format_test_type_counts(%{tests_counter: tests_counter} = _config) do
-    Enum.map tests_counter, fn {type, count} ->
+  defp format_test_type_counts(%{test_counter: test_counter} = _config) do
+    Enum.map test_counter, fn {type, count} ->
       type_pluralized = pluralize(count, type, ExUnit.plural_rule(type |> to_string()))
       "#{count} #{type_pluralized}, "
     end
