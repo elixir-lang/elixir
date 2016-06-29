@@ -18,7 +18,7 @@ defmodule ExUnit.CLIFormatter do
       tests_counter: %{},
       failures_counter: 0,
       skipped_counter: 0,
-      invalids_counter: 0
+      invalid_counter: 0
     }
     {:ok, config}
   end
@@ -60,7 +60,7 @@ defmodule ExUnit.CLIFormatter do
     end
 
     {:ok, %{config | tests_counter: update_tests_counter(config.tests_counter, test),
-                     invalids_counter: config.invalids_counter + 1}}
+                     invalid_counter: config.invalid_counter + 1}}
   end
 
   def handle_event({:test_finished, %ExUnit.Test{state: {:failed, failures}} = test}, config) do
@@ -137,11 +137,11 @@ defmodule ExUnit.CLIFormatter do
     message =
       "#{test_type_counts}#{config.failures_counter} #{failure_pl}"
       |> if_true(config.skipped_counter > 0, & &1 <> ", #{config.skipped_counter} skipped")
-      |> if_true(config.invalids_counter > 0, & &1 <> ", #{config.invalids_counter} invalid")
+      |> if_true(config.invalid_counter > 0, & &1 <> ", #{config.invalid_counter} invalid")
 
     cond do
       config.failures_counter > 0 -> IO.puts failure(message, config)
-      config.invalids_counter > 0 -> IO.puts invalid(message, config)
+      config.invalid_counter > 0 -> IO.puts invalid(message, config)
       true                        -> IO.puts success(message, config)
     end
 
