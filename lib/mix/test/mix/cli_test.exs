@@ -4,7 +4,7 @@ defmodule Mix.CLITest do
   use MixTest.Case
 
   test "default task" do
-    in_fixture "no_mixfile", fn ->
+    in_fixture "no_mix_file", fn ->
       File.write! "mix.exs", """
       defmodule P do
         use Mix.Project

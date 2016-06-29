@@ -97,7 +97,7 @@ defmodule Mix.Tasks.Archive.Install do
     :ok
   end
 
-  def build(_mixfile) do
+  def build(_mix_file) do
     Mix.Task.run("archive.build", [])
   end
 

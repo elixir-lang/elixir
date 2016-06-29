@@ -14,13 +14,13 @@ defmodule Mix.Tasks.CompileTest do
     :ok
   end
 
-  test "compile --list with mixfile" do
+  test "compile --list with Mix file" do
     Mix.Tasks.Compile.run ["--list"]
     assert_received {:mix_shell, :info, ["\nEnabled compilers: yecc, leex, erlang, elixir, xref, app, protocols"]}
     assert_received {:mix_shell, :info, ["mix compile.elixir    # " <> _]}
   end
 
-  test "compile --list with custom mixfile" do
+  test "compile --list with custom Mix file" do
     Mix.Project.push CustomCompilers
     Mix.Tasks.Compile.run ["--list"]
     assert_received {:mix_shell, :info, ["\nEnabled compilers: elixir, app, custom, protocols"]}
@@ -32,8 +32,8 @@ defmodule Mix.Tasks.CompileTest do
            [".compile.elixir"]
   end
 
-  test "compile a project with mixfile" do
-    in_fixture "no_mixfile", fn ->
+  test "compile a project with Mix file" do
+    in_fixture "no_mix_file", fn ->
       assert Mix.Tasks.Compile.run(["--verbose"]) == :ok
       assert File.regular?("_build/dev/lib/sample/ebin/Elixir.A.beam")
       assert File.regular?("_build/dev/lib/sample/ebin/sample.app")
@@ -51,7 +51,7 @@ defmodule Mix.Tasks.CompileTest do
   end
 
   test "compile a project with multiple compilers and a syntax error in an Erlang file" do
-    in_fixture "no_mixfile", fn ->
+    in_fixture "no_mix_file", fn ->
       import ExUnit.CaptureIO
 
       File.mkdir! "src"
@@ -72,7 +72,7 @@ defmodule Mix.Tasks.CompileTest do
 
   test "add logger application metadata" do
     import ExUnit.CaptureLog
-    in_fixture "no_mixfile", fn ->
+    in_fixture "no_mix_file", fn ->
       File.write!("lib/a.ex", """
       defmodule A do
       require Logger

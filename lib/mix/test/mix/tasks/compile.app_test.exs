@@ -34,7 +34,7 @@ defmodule Mix.Tasks.Compile.AppTest do
   test "generates .app file when changes happen" do
     Mix.Project.push MixTest.Case.Sample
 
-    in_fixture "no_mixfile", fn ->
+    in_fixture "no_mix_file", fn ->
       Mix.Tasks.Compile.Elixir.run([])
       assert Mix.Tasks.Compile.App.run([]) == :ok
 
@@ -51,7 +51,7 @@ defmodule Mix.Tasks.Compile.AppTest do
   test "use custom application settings" do
     Mix.Project.push CustomProject
 
-    in_fixture "no_mixfile", fn ->
+    in_fixture "no_mix_file", fn ->
       Mix.Tasks.Compile.Elixir.run([])
       Mix.Tasks.Compile.App.run([])
       contents = File.read!("_build/dev/lib/custom_project/ebin/custom_project.app")
@@ -65,7 +65,7 @@ defmodule Mix.Tasks.Compile.AppTest do
   test "application properties validation" do
     Mix.Project.push InvalidProject
 
-    in_fixture "no_mixfile", fn ->
+    in_fixture "no_mix_file", fn ->
       Process.put(:application, [modules: :invalid])
       message = "Application modules (:modules) should be a list of atoms, got: :invalid"
       assert_raise Mix.Error, message, fn ->
@@ -125,7 +125,7 @@ defmodule Mix.Tasks.Compile.AppTest do
   test ".app contains description and registered (as required by systools)" do
     Mix.Project.push MixTest.Case.Sample
 
-    in_fixture "no_mixfile", fn ->
+    in_fixture "no_mix_file", fn ->
       Mix.Tasks.Compile.Elixir.run([])
       assert Mix.Tasks.Compile.App.run([]) == :ok
 
@@ -141,7 +141,7 @@ defmodule Mix.Tasks.Compile.AppTest do
   test "raise on invalid version" do
     Mix.Project.push InvalidVsnProject
 
-    in_fixture "no_mixfile", fn ->
+    in_fixture "no_mix_file", fn ->
       message = "Expected :version to be a SemVer version, got: \"0.3\""
       assert_raise Mix.Error, message, fn ->
         Mix.Tasks.Compile.App.run([])

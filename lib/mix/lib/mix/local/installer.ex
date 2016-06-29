@@ -32,7 +32,7 @@ defmodule Mix.Local.Installer do
   @doc """
   For installs involving a `fetch`, this will be executed as the `in_package`.
   """
-  @callback build(mixfile :: atom) :: :ok
+  @callback build(mix_file :: atom) :: :ok
 
   @doc """
   The installation itself.
@@ -66,8 +66,8 @@ defmodule Mix.Local.Installer do
           Mix.raise "--sha512 is not supported for #{name} from git/github/hex\n" <> usage(name)
         end
 
-        fetch dep_spec, fn mixfile ->
-          module.build(mixfile)
+        fetch dep_spec, fn mix_file ->
+          module.build(mix_file)
           argv = if opts[:force], do: ["--force"], else: []
           install({module, name}, argv, switches)
         end
@@ -291,7 +291,7 @@ defmodule Mix.Local.Installer do
       File.mkdir_p!(tmp_path)
 
       File.write! Path.join(tmp_path, "mix.exs"), """
-      defmodule Mix.Local.Installer.Fetcher.Mixfile do
+      defmodule Mix.Local.Installer.Fetcher.MixFile do
         use Mix.Project
 
         def project do
@@ -321,7 +321,7 @@ defmodule Mix.Local.Installer do
     :code.delete(Mix.Local.Installer.Fetcher)
   end
 
-  defp in_fetcher(_mixfile) do
+  defp in_fetcher(_mix_file) do
     Mix.Task.run("deps.get", [])
   end
 

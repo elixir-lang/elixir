@@ -1,4 +1,4 @@
-defmodule Foo.Mixfile do
+defmodule Foo.MixFile do
   use Mix.Project
 
   def project do

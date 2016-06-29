@@ -96,7 +96,7 @@ defmodule Mix.SCM do
 
   The lock is sent via `opts[:lock]` but it may not always be
   available. In such cases, if the SCM requires a lock, it must
-  return `:lockmismatch`, otherwise simply `:ok`.
+  return `:lock_mismatch`, otherwise simply `:ok`.
 
   Note the lock may also belong to another SCM and as such, an
   structural check is required. A structural mismatch should always

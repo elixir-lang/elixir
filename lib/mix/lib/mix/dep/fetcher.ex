@@ -76,9 +76,9 @@ defmodule Mix.Dep.Fetcher do
     end
   end
 
-  defp out_of_date?(%Mix.Dep{status: {:lockmismatch, _}}), do: true
-  defp out_of_date?(%Mix.Dep{status: :lockoutdated}),      do: true
-  defp out_of_date?(%Mix.Dep{status: :nolock}),            do: true
+  defp out_of_date?(%Mix.Dep{status: {:lock_mismatch, _}}), do: true
+  defp out_of_date?(%Mix.Dep{status: :lock_outdated}),      do: true
+  defp out_of_date?(%Mix.Dep{status: :no_lock}),            do: true
   defp out_of_date?(%Mix.Dep{status: {:unavailable, _}}),  do: true
   defp out_of_date?(%Mix.Dep{}),                           do: false
 

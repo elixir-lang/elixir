@@ -73,7 +73,7 @@ defmodule Mix.Tasks.Escript.Build do
 
   ## Example
 
-      defmodule MyApp.Mixfile do
+      defmodule MyApp.MixFile do
         def project do
           [app: :myapp,
            version: "0.0.1",

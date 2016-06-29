@@ -8,10 +8,10 @@ defmodule Mix.Tasks.DepsTest do
       [app: :deps, version: "0.1.0",
        deps: [
          {:ok, "0.1.0",         github: "elixir-lang/ok"},
-         {:invalidvsn, "0.2.0", path: "deps/invalidvsn"},
-         {:invalidapp, "0.1.0", path: "deps/invalidapp"},
-         {:noappfile, "0.1.0",  path: "deps/noappfile"},
-         {:nosemver, "~> 0.1",  path: "deps/nosemver"},
+         {:invalid_vsn, "0.2.0", path: "deps/invalid_vsn"},
+         {:invalid_app, "0.1.0", path: "deps/invalid_app"},
+         {:no_app_file, "0.1.0",  path: "deps/no_app_file"},
+         {:no_semver, "~> 0.1",  path: "deps/no_semver"},
        ]]
     end
   end
@@ -30,8 +30,8 @@ defmodule Mix.Tasks.DepsTest do
       [app: :req_deps, version: "0.1.0",
        deps: [
          {:ok, ">= 2.0.0",  path: "deps/ok"},
-         {:noappfile,       path: "deps/noappfile", app: false},
-         {:apppath,         path: "deps/noappfile", app: "../deps/ok/ebin/ok.app"}
+         {:no_app_file,       path: "deps/no_app_file", app: false},
+         {:app_path,         path: "deps/no_app_file", app: "../deps/ok/ebin/ok.app"}
        ]]
     end
   end
@@ -46,13 +46,13 @@ defmodule Mix.Tasks.DepsTest do
 
       assert_received {:mix_shell, :info, ["* ok (https://github.com/elixir-lang/ok.git) (mix)"]}
       assert_received {:mix_shell, :info, ["  the dependency is not available, run \"mix deps.get\""]}
-      assert_received {:mix_shell, :info, ["* invalidvsn (deps/invalidvsn)"]}
+      assert_received {:mix_shell, :info, ["* invalid_vsn (deps/invalid_vsn)"]}
       assert_received {:mix_shell, :info, ["  the app file contains an invalid version: :ok"]}
-      assert_received {:mix_shell, :info, ["* invalidapp (deps/invalidapp) (mix)"]}
-      assert_received {:mix_shell, :info, ["  the app file at _build/dev/lib/invalidapp/ebin/invalidapp.app is invalid"]}
-      assert_received {:mix_shell, :info, ["* noappfile (deps/noappfile)"]}
-      assert_received {:mix_shell, :info, ["  could not find an app file at _build/dev/lib/noappfile/ebin/noappfile.app" <> _]}
-      assert_received {:mix_shell, :info, ["* nosemver (deps/nosemver)"]}
+      assert_received {:mix_shell, :info, ["* invalid_app (deps/invalid_app) (mix)"]}
+      assert_received {:mix_shell, :info, ["  the app file at _build/dev/lib/invalid_app/ebin/invalid_app.app is invalid"]}
+      assert_received {:mix_shell, :info, ["* no_app_file (deps/no_app_file)"]}
+      assert_received {:mix_shell, :info, ["  could not find an app file at _build/dev/lib/no_app_file/ebin/no_app_file.app" <> _]}
+      assert_received {:mix_shell, :info, ["* no_semver (deps/no_semver)"]}
       assert_received {:mix_shell, :info, ["  the app file specified a non Semantic Version: \"0.7\"" <> _]}
     end
   end
@@ -65,10 +65,10 @@ defmodule Mix.Tasks.DepsTest do
 
       assert_received {:mix_shell, :info, ["* ok (deps/ok) (mix)"]}
       assert_received {:mix_shell, :info, ["  the dependency does not match the requirement \">= 2.0.0\", got \"0.1.0\""]}
-      assert_received {:mix_shell, :info, ["* noappfile (deps/noappfile)"]}
-      assert_received {:mix_shell, :info, ["* apppath (deps/noappfile)"]}
-      refute_received {:mix_shell, :info, ["  could not find app file at _build/dev/lib/noappfile/ebin/apppath.app" <> _]}
-      refute_received {:mix_shell, :info, ["  could not find app file at _build/dev/lib/noappfile/ebin/noappfile.app" <> _]}
+      assert_received {:mix_shell, :info, ["* no_app_file (deps/no_app_file)"]}
+      assert_received {:mix_shell, :info, ["* app_path (deps/no_app_file)"]}
+      refute_received {:mix_shell, :info, ["  could not find app file at _build/dev/lib/no_app_file/ebin/app_path.app" <> _]}
+      refute_received {:mix_shell, :info, ["  could not find app file at _build/dev/lib/no_app_file/ebin/no_app_file.app" <> _]}
     end
   end
 
@@ -117,7 +117,7 @@ defmodule Mix.Tasks.DepsTest do
       Mix.Tasks.Deps.run []
 
       assert_received {:mix_shell, :info, ["* ok (https://github.com/elixir-lang/ok.git) (mix)"]}
-      assert_received {:mix_shell, :info, ["  lock outdated: the lock is outdated compared to the options in your mixfile (run \"mix deps.get\" to fetch locked version)"]}
+      assert_received {:mix_shell, :info, ["  lock outdated: the lock is outdated compared to the options in your Mix file (run \"mix deps.get\" to fetch locked version)"]}
     end
   end
 
@@ -153,14 +153,14 @@ defmodule Mix.Tasks.DepsTest do
 
       assert_received {:mix_shell, :error, ["* ok (https://github.com/elixir-lang/ok.git)"]}
       assert_received {:mix_shell, :error, ["  the dependency is not available, run \"mix deps.get\""]}
-      assert_received {:mix_shell, :error, ["* invalidvsn (deps/invalidvsn)"]}
+      assert_received {:mix_shell, :error, ["* invalid_vsn (deps/invalid_vsn)"]}
       assert_received {:mix_shell, :error, ["  the app file contains an invalid version: :ok"]}
-      assert_received {:mix_shell, :error, ["* invalidapp (deps/invalidapp)"]}
-      assert_received {:mix_shell, :error, ["  the app file at _build/dev/lib/invalidapp/ebin/invalidapp.app is invalid"]}
+      assert_received {:mix_shell, :error, ["* invalid_app (deps/invalid_app)"]}
+      assert_received {:mix_shell, :error, ["  the app file at _build/dev/lib/invalid_app/ebin/invalid_app.app is invalid"]}
 
       # This one is compiled automatically
-      refute_received {:mix_shell, :error, ["* noappfile (deps/noappfile)"]}
-      refute_received {:mix_shell, :error, ["  could not find an app file at _build/dev/lib/noappfile/ebin/noappfile.app" <> _]}
+      refute_received {:mix_shell, :error, ["* no_app_file (deps/no_app_file)"]}
+      refute_received {:mix_shell, :error, ["  could not find an app file at _build/dev/lib/no_app_file/ebin/no_app_file.app" <> _]}
     end
   end
 
@@ -471,7 +471,7 @@ defmodule Mix.Tasks.DepsTest do
       assert_received {:mix_shell, :info, [^message]}
     end
   after
-    purge [GitRepo, GitRepo.Mixfile]
+    purge [GitRepo, GitRepo.MixFile]
   end
 
   test "works with overridden dependencies" do
@@ -493,7 +493,7 @@ defmodule Mix.Tasks.DepsTest do
       assert_received {:mix_shell, :info, [^message]}
     end
   after
-    purge [GitRepo, GitRepo.Mixfile]
+    purge [GitRepo, GitRepo.MixFile]
   end
 
   test "converged dependencies errors if not overriding" do
@@ -513,7 +513,7 @@ defmodule Mix.Tasks.DepsTest do
       end
     end
   after
-    purge [GitRepo, GitRepo.Mixfile]
+    purge [GitRepo, GitRepo.MixFile]
   end
 
   test "checks if dependencies are using old elixir version" do

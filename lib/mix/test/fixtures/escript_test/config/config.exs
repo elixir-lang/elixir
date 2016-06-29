@@ -1,3 +1,3 @@
 use Mix.Config
 
-config :escripttest, erlval: "Erlang value"
+config :escript_test, erl_val: "Erlang value"

@@ -7,9 +7,9 @@ defmodule Mix.DepTest do
     def project do
       [deps: [
          {:ok,         "0.1.0", path: "deps/ok"},
-         {:invalidvsn, "0.2.0", path: "deps/invalidvsn"},
-         {:invalidapp, "0.1.0", path: "deps/invalidapp"},
-         {:noappfile,  "0.1.0", path: "deps/noappfile"},
+         {:invalid_vsn, "0.2.0", path: "deps/invalid_vsn"},
+         {:invalid_app, "0.1.0", path: "deps/invalid_app"},
+         {:no_app_file,  "0.1.0", path: "deps/no_app_file"},
          {:uncloned,            git: "https://github.com/elixir-lang/uncloned.git"},
          {:optional,            git: "https://github.com/elixir-lang/optional.git", optional: true}
        ]]
@@ -45,9 +45,9 @@ defmodule Mix.DepTest do
       deps = Mix.Dep.loaded([])
       assert length(deps) == 6
       assert Enum.find deps, &match?(%Mix.Dep{app: :ok, status: {:ok, _}}, &1)
-      assert Enum.find deps, &match?(%Mix.Dep{app: :invalidvsn, status: {:invalidvsn, :ok}}, &1)
-      assert Enum.find deps, &match?(%Mix.Dep{app: :invalidapp, status: {:invalidapp, _}}, &1)
-      assert Enum.find deps, &match?(%Mix.Dep{app: :noappfile, status: {:noappfile, _}}, &1)
+      assert Enum.find deps, &match?(%Mix.Dep{app: :invalid_vsn, status: {:invalid_vsn, :ok}}, &1)
+      assert Enum.find deps, &match?(%Mix.Dep{app: :invalid_app, status: {:invalid_app, _}}, &1)
+      assert Enum.find deps, &match?(%Mix.Dep{app: :no_app_file, status: {:no_app_file, _}}, &1)
       assert Enum.find deps, &match?(%Mix.Dep{app: :uncloned, status: {:unavailable, _}}, &1)
       assert Enum.find deps, &match?(%Mix.Dep{app: :optional, status: {:unavailable, _}}, &1)
     end
@@ -267,9 +267,9 @@ defmodule Mix.DepTest do
   test "pass dependencies to remote converger in defined order" do
     deps = [
       {:ok,         "0.1.0", path: "deps/ok"},
-      {:invalidvsn, "0.2.0", path: "deps/invalidvsn"},
-      {:invalidapp, "0.1.0", path: "deps/invalidapp"},
-      {:noappfile,  "0.1.0", path: "deps/noappfile"}
+      {:invalid_vsn, "0.2.0", path: "deps/invalid_vsn"},
+      {:invalid_app, "0.1.0", path: "deps/invalid_app"},
+      {:no_app_file,  "0.1.0", path: "deps/no_app_file"}
     ]
 
     with_deps deps, fn ->
@@ -279,7 +279,7 @@ defmodule Mix.DepTest do
         Mix.Tasks.Deps.Get.run([])
 
         deps = Process.get(:remote_converger) |> Enum.map(& &1.app)
-        assert deps == [:ok, :invalidvsn, :invalidapp, :noappfile]
+        assert deps == [:ok, :invalid_vsn, :invalid_app, :no_app_file]
       end
     end
   after
@@ -385,15 +385,15 @@ defmodule Mix.DepTest do
       in_fixture "deps_status", fn ->
         loaded = Mix.Dep.loaded([])
         assert [:git_repo, :deps_repo] = Enum.map(loaded, &(&1.app))
-        assert [unavailable: _, noappfile: _] = Enum.map(loaded, &(&1.status))
+        assert [unavailable: _, no_app_file: _] = Enum.map(loaded, &(&1.status))
 
         loaded = Mix.Dep.loaded([env: :dev])
         assert [:deps_repo] = Enum.map(loaded, &(&1.app))
-        assert [noappfile: _] = Enum.map(loaded, &(&1.status))
+        assert [no_app_file: _] = Enum.map(loaded, &(&1.status))
 
         loaded = Mix.Dep.loaded([env: :test])
         assert [:git_repo, :deps_repo] = Enum.map(loaded, &(&1.app))
-        assert [unavailable: _, noappfile: _] = Enum.map(loaded, &(&1.status))
+        assert [unavailable: _, no_app_file: _] = Enum.map(loaded, &(&1.status))
       end
     end
   end
@@ -407,15 +407,15 @@ defmodule Mix.DepTest do
       in_fixture "deps_status", fn ->
         loaded = Mix.Dep.loaded([])
         assert [:git_repo, :deps_repo] = Enum.map(loaded, &(&1.app))
-        assert [divergedonly: _, noappfile: _] = Enum.map(loaded, &(&1.status))
+        assert [diverged_only: _, no_app_file: _] = Enum.map(loaded, &(&1.status))
 
         loaded = Mix.Dep.loaded([env: :dev])
         assert [:git_repo, :deps_repo] = Enum.map(loaded, &(&1.app))
-        assert [divergedonly: _, noappfile: _] = Enum.map(loaded, &(&1.status))
+        assert [diverged_only: _, no_app_file: _] = Enum.map(loaded, &(&1.status))
 
         loaded = Mix.Dep.loaded([env: :test])
         assert [:git_repo, :deps_repo] = Enum.map(loaded, &(&1.app))
-        assert [divergedonly: _, noappfile: _] = Enum.map(loaded, &(&1.status))
+        assert [diverged_only: _, no_app_file: _] = Enum.map(loaded, &(&1.status))
 
         Mix.Tasks.Deps.run([])
         assert_received {:mix_shell, :info, ["* git_repo" <> _]}
@@ -436,15 +436,15 @@ defmodule Mix.DepTest do
       in_fixture "deps_status", fn ->
         loaded = Mix.Dep.loaded([])
         assert [:git_repo, :deps_repo] = Enum.map(loaded, &(&1.app))
-        assert [unavailable: _, noappfile: _] = Enum.map(loaded, &(&1.status))
+        assert [unavailable: _, no_app_file: _] = Enum.map(loaded, &(&1.status))
 
         loaded = Mix.Dep.loaded([env: :dev])
         assert [:deps_repo] = Enum.map(loaded, &(&1.app))
-        assert [noappfile: _] = Enum.map(loaded, &(&1.status))
+        assert [no_app_file: _] = Enum.map(loaded, &(&1.status))
 
         loaded = Mix.Dep.loaded([env: :test])
         assert [:git_repo, :deps_repo] = Enum.map(loaded, &(&1.app))
-        assert [unavailable: _, noappfile: _] = Enum.map(loaded, &(&1.status))
+        assert [unavailable: _, no_app_file: _] = Enum.map(loaded, &(&1.status))
       end
     end
   end
@@ -458,7 +458,7 @@ defmodule Mix.DepTest do
       in_fixture "deps_status", fn ->
         loaded = Mix.Dep.loaded([])
         assert [:git_repo, :deps_repo] = Enum.map(loaded, &(&1.app))
-        assert [unavailable: _, noappfile: _] = Enum.map(loaded, &(&1.status))
+        assert [unavailable: _, no_app_file: _] = Enum.map(loaded, &(&1.status))
 
         loaded = Mix.Dep.loaded([env: :dev])
         assert [] = Enum.map(loaded, &(&1.app))
@@ -469,7 +469,7 @@ defmodule Mix.DepTest do
 
         loaded = Mix.Dep.loaded([env: :prod])
         assert [:git_repo, :deps_repo] = Enum.map(loaded, &(&1.app))
-        assert [unavailable: _, noappfile: _] = Enum.map(loaded, &(&1.status))
+        assert [unavailable: _, no_app_file: _] = Enum.map(loaded, &(&1.status))
       end
     end
   end
@@ -483,11 +483,11 @@ defmodule Mix.DepTest do
       in_fixture "deps_status", fn ->
         loaded = Mix.Dep.loaded([])
         assert [:git_repo, :deps_repo] = Enum.map(loaded, &(&1.app))
-        assert [divergedonly: _, noappfile: _] = Enum.map(loaded, &(&1.status))
+        assert [diverged_only: _, no_app_file: _] = Enum.map(loaded, &(&1.status))
 
         loaded = Mix.Dep.loaded([env: :dev])
         assert [:git_repo, :deps_repo] = Enum.map(loaded, &(&1.app))
-        assert [divergedonly: _, noappfile: _] = Enum.map(loaded, &(&1.status))
+        assert [diverged_only: _, no_app_file: _] = Enum.map(loaded, &(&1.status))
 
         loaded = Mix.Dep.loaded([env: :test])
         assert [:git_repo] = Enum.map(loaded, &(&1.app))
@@ -512,15 +512,15 @@ defmodule Mix.DepTest do
       in_fixture "deps_status", fn ->
         loaded = Mix.Dep.loaded([])
         assert [:git_repo, :deps_repo] = Enum.map(loaded, &(&1.app))
-        assert [unavailable: _, noappfile: _] = Enum.map(loaded, &(&1.status))
+        assert [unavailable: _, no_app_file: _] = Enum.map(loaded, &(&1.status))
 
         loaded = Mix.Dep.loaded([env: :dev])
         assert [:deps_repo] = Enum.map(loaded, &(&1.app))
-        assert [noappfile: _] = Enum.map(loaded, &(&1.status))
+        assert [no_app_file: _] = Enum.map(loaded, &(&1.status))
 
         loaded = Mix.Dep.loaded([env: :test])
         assert [:git_repo, :deps_repo] = Enum.map(loaded, &(&1.app))
-        assert [unavailable: _, noappfile: _] = Enum.map(loaded, &(&1.status))
+        assert [unavailable: _, no_app_file: _] = Enum.map(loaded, &(&1.status))
 
         loaded = Mix.Dep.loaded([env: :prod])
         assert [] = Enum.map(loaded, &(&1.app))

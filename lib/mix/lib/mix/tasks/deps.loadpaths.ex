@@ -118,9 +118,9 @@ defmodule Mix.Tasks.Deps.Loadpaths do
   end
 
   # Can the dependency be compiled automatically without user intervention?
-  defp compilable?(%Mix.Dep{status: {:elixirlock, _}}), do: true
-  defp compilable?(%Mix.Dep{status: {:noappfile, _}}), do: true
-  defp compilable?(%Mix.Dep{status: {:scmlock, _}}), do: true
+  defp compilable?(%Mix.Dep{status: {:elixir_lock, _}}), do: true
+  defp compilable?(%Mix.Dep{status: {:no_app_file, _}}), do: true
+  defp compilable?(%Mix.Dep{status: {:scm_lock, _}}), do: true
   defp compilable?(%Mix.Dep{status: :compile}), do: true
   defp compilable?(%Mix.Dep{} = dep), do: ok?(dep) and local?(dep)
 
