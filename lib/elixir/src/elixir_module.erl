@@ -525,7 +525,7 @@ add_beam_chunk(Bin, Id, ChunkData)
 %% the callback can't be expanded, invokes the given
 %% fun passing a possibly expanded AM:AF(Args).
 expand_callback(Line, M, F, Args, E, Fun) ->
-  Meta = [{line, Line}, {require, false}],
+  Meta = [{line, Line}, {required, true}],
 
   {EE, ET} = elixir_dispatch:dispatch_require(Meta, M, F, Args, E, fun(AM, AF, AA) ->
     Fun(AM, AF, AA),
