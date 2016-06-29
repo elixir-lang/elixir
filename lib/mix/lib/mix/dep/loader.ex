@@ -186,9 +186,7 @@ defmodule Mix.Dep.Loader do
     cond do
       any_of?(dest, ["mix.exs"]) ->
         :mix
-      any_of?(dest, ["rebar", "rebar.config", "rebar.config.script"]) ->
-        :rebar
-      any_of?(dest, ["rebar.lock"]) ->
+      any_of?(dest, ["rebar", "rebar.config", "rebar.config.script", "rebar.lock"]) ->
         :rebar3
       any_of?(dest, ["Makefile", "Makefile.win"]) ->
         :make

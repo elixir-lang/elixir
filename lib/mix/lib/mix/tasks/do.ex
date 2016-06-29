@@ -6,6 +6,8 @@ defmodule Mix.Tasks.Do do
   @moduledoc """
   Executes the tasks separated by comma.
 
+  The comma should be followed by a space.
+
   ## Examples
 
   The example below prints the available compilers and
@@ -27,24 +29,18 @@ defmodule Mix.Tasks.Do do
     gather_commands(args, [], [])
   end
 
-  defp gather_commands([], current, commands) do
-    [current | commands]
-    |> Enum.reject(&(&1 == []))
-    |> Enum.map(&Enum.reverse(&1))
-    |> Enum.reverse
+  defp gather_commands([head | rest], current, acc)
+      when binary_part(head, byte_size(head), -1) == "," do
+    part    = binary_part(head, 0, byte_size(head) - 1)
+    current = Enum.reverse([part | current])
+    gather_commands(rest, [], [current | acc])
   end
 
-  defp gather_commands([arg | rest], current, commands) do
-    case String.split(arg, ",", parts: 2) do
-      [arg] ->
-        gather_commands(rest, [arg | current], commands)
-      [left, right] ->
-        rest    = append_unless_empty(right, rest)
-        current = append_unless_empty(left, current)
-        gather_commands(rest, [], [current | commands])
-    end
+  defp gather_commands([head | rest], current, acc) do
+    gather_commands(rest, [head | current], acc)
   end
 
-  defp append_unless_empty("", list), do: list
-  defp append_unless_empty(h, list),  do: [h | list]
+  defp gather_commands([], current, acc) do
+    Enum.reverse [Enum.reverse(current) | acc]
+  end
 end

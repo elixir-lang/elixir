@@ -5,7 +5,7 @@ defmodule StreamTest do
 
   doctest Stream
 
-  defmodule PDict do
+  defmodule Pdict do
     defstruct []
 
     defimpl Collectable do
@@ -402,7 +402,7 @@ defmodule StreamTest do
     Process.put(:stream_done, false)
     Process.put(:stream_halt, false)
 
-    stream = Stream.into([1, 2, 3], %PDict{})
+    stream = Stream.into([1, 2, 3], %Pdict{})
 
     assert is_lazy(stream)
     assert Stream.run(stream) == :ok
@@ -410,7 +410,7 @@ defmodule StreamTest do
     assert Process.get(:stream_done)
     refute Process.get(:stream_halt)
 
-    stream = Stream.into(fn _, _ -> raise "error" end, %PDict{})
+    stream = Stream.into(fn _, _ -> raise "error" end, %Pdict{})
     catch_error(Stream.run(stream))
     assert Process.get(:stream_halt)
   end
@@ -420,7 +420,7 @@ defmodule StreamTest do
     Process.put(:stream_done, false)
     Process.put(:stream_halt, false)
 
-    stream = Stream.into([1, 2, 3], %PDict{}, fn x -> x*2 end)
+    stream = Stream.into([1, 2, 3], %Pdict{}, fn x -> x*2 end)
 
     assert is_lazy(stream)
     assert Enum.to_list(stream) == [1, 2, 3]
@@ -434,7 +434,7 @@ defmodule StreamTest do
     Process.put(:stream_done, false)
     Process.put(:stream_halt, false)
 
-    stream = Stream.into([1, 2, 3], %PDict{})
+    stream = Stream.into([1, 2, 3], %Pdict{})
 
     assert is_lazy(stream)
     assert Enum.take(stream, 1) == [1]
@@ -906,7 +906,7 @@ defmodule StreamTest do
   end
 
   test "zip/2 closes on inner error" do
-    stream = Stream.into([1, 2, 3], %PDict{})
+    stream = Stream.into([1, 2, 3], %Pdict{})
     stream = Stream.zip(stream, Stream.map([:a, :b, :c], fn _ -> throw(:error) end))
 
     Process.put(:stream_done, false)
@@ -915,7 +915,7 @@ defmodule StreamTest do
   end
 
   test "zip/2 closes on outer error" do
-    stream = Stream.into([1, 2, 3], %PDict{})
+    stream = Stream.into([1, 2, 3], %Pdict{})
              |> Stream.zip([:a, :b, :c])
              |> Stream.map(fn _ -> throw(:error) end)
 

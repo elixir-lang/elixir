@@ -1,6 +1,6 @@
 defmodule List do
   @moduledoc """
-  Functions that works on (linked) lists.
+  Functions that work on (linked) lists.
 
   Lists in Elixir are specified between square brackets:
 

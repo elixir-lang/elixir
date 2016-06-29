@@ -31,7 +31,9 @@ expand_struct(Meta, Left, Right, #{context := Context} = E) ->
   end,
 
   EMeta =
-    case lists:member(ELeft, ?m(E, context_modules)) of
+    %% We also include the current module because it won't be present
+    %% in context module in case the module name is defined dynamically.
+    case lists:member(ELeft, [?m(E, module) | ?m(E, context_modules)]) of
       true  -> [{struct, context} | Meta];
       false -> Meta
     end,

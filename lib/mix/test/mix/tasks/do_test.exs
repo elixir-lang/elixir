@@ -11,15 +11,11 @@ defmodule Mix.Tasks.DoTest do
     end
   end
 
-  test "gather_command ignore spaces and trailing commas" do
+  test "gather_command returns a list of commands" do
     import Mix.Tasks.Do, only: [gather_commands: 1]
     assert gather_commands(["compile", "--list,", "help"]) == [["compile", "--list"], ["help"]]
-    assert gather_commands(["compile", "--list,help"]) == [["compile", "--list"], ["help"]]
-    assert gather_commands(["help", ",compile", "--list"]) == [["help"], ["compile", "--list"]]
-    assert gather_commands(["compile", "--list", ",", "help"]) == [["compile", "--list"], ["help"]]
+    assert gather_commands(["help,", "compile", "--list"]) == [["help"], ["compile", "--list"]]
     assert gather_commands(["compile,", "run", "-e", "IO.puts :hello"]) == [["compile"], ["run", "-e", "IO.puts :hello"]]
-    assert gather_commands(
-      [",", "compile,", "run", "-e", "IO.puts :hello",",foo", "--bar", "--baz", ",", "baz,qux,abc", ","]) ==
-      [["compile"], ["run", "-e", "IO.puts :hello"], ["foo", "--bar", "--baz"], ["baz"], ["qux"], ["abc"]]
+    assert gather_commands(["compile,", "run", "-e", "[1, 2]"]) == [["compile"], ["run", "-e", "[1, 2]"]]
   end
 end
