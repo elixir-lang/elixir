@@ -1,6 +1,6 @@
 defmodule Record do
   @moduledoc """
-  Module to work with, define and import records.
+  Module to work with, define, and import records.
 
   Records are simply tuples where the first element is an atom:
 
@@ -17,15 +17,14 @@ defmodule Record do
     1. to work with short, internal data
     2. to interface with Erlang records
 
-  The macros `defrecord/3` and `defrecordp/3` can be used to create
-  records while `extract/2` can be used to extract records from Erlang
-  files.
+  The macros `defrecord/3` and `defrecordp/3` can be used to create records
+  while `extract/2` and `extract_all/1` can be used to extract records from
+  Erlang files.
 
   ## Types
 
-  Types can be defined for tuples with the `record/2` macro (only available
-  in typespecs). Like with the generated record macros it will expand to
-  a tuple.
+  Types can be defined for tuples with the `record/2` macro (only available in
+  typespecs). This macro will expand to a tuple as seen in the example below:
 
       defmodule MyModule do
         require Record
@@ -34,14 +33,34 @@ defmodule Record do
         @type user :: record(:user, name: String.t, age: integer)
         # expands to: "@type user :: {:user, String.t, integer}"
       end
+
   """
 
   @doc """
   Extracts record information from an Erlang file.
 
   Returns a quoted expression containing the fields as a list
-  of tuples. It expects the record name to be an atom and the
-  library path to be a string at expansion time.
+  of tuples.
+
+  `name`, which is the name of the extracted record, is expected to be an atom
+  *at compile time*.
+
+  ## Options
+
+  This function accepts the following options, which are exclusive to each other
+  (i.e., only one of them can be used in the same call):
+
+    * `:from` - (binary representing a path to a file) path to the Erlang file
+      that contains the record definition to extract; with this option, this
+      function uses the same path lookup used by the `-include` attribute used in
+      Erlang modules.
+    * `:from_lib` - (binary representing a path to a file) path to the Erlang
+      file that contains the record definition to extract; with this option,
+      this function uses the same path lookup used by the `-include_lib`
+      attribute used in Erlang modules.
+
+  These options are expected to be literals (including the binary values) at
+  compile time.
 
   ## Examples
 
@@ -59,18 +78,33 @@ defmodule Record do
   @doc """
   Extracts all records information from an Erlang file.
 
-  Returns a keyword list containing extracted record names as keys, and
-  lists of tuples describing the fields as values. It expects a named
-  argument :from or :from_lib, which correspond to *include* or
-  *include_lib* attribute from Erlang modules, respectively.
+  Returns a keyword list of `{record_name, fields}` tuples where `record_name`
+  is the name of an extracted record and `fields` is a list of `{field, value}`
+  tuples representing the fields for that record.
 
+  ## Options
+
+  This function accepts the following options, which are exclusive to each other
+  (i.e., only one of them can be used in the same call):
+
+    * `:from` - (binary representing a path to a file) path to the Erlang file
+      that contains the record definitions to extract; with this option, this
+      function uses the same path lookup used by the `-include` attribute used in
+      Erlang modules.
+    * `:from_lib` - (binary representing a path to a file) path to the Erlang
+      file that contains the record definitions to extract; with this option,
+      this function uses the same path lookup used by the `-include_lib`
+      attribute used in Erlang modules.
+
+  These options are expected to be literals (including the binary values) at
+  compile time.
   """
   def extract_all(opts) when is_list(opts) do
     Record.Extractor.extract_all(opts)
   end
 
   @doc """
-  Checks if the given `data` is a record of `kind`.
+  Checks if the given `data` is a record of kind `kind`.
 
   This is implemented as a macro so it can be used in guard clauses.
 
@@ -110,6 +144,9 @@ defmodule Record do
       iex> tuple = {}
       iex> Record.is_record(tuple)
       false
+      iex> other_term = "not a record"
+      iex> Record.is_record(other_term)
+      false
 
   """
   defmacro is_record(data) do
@@ -128,11 +165,26 @@ defmodule Record do
   end
 
   @doc """
-  Defines a set of macros to create and access a record.
+  Defines a set of macros to create, access, and pattern match
+  on a record.
 
-  The macros are going to have `name`, a tag (which defaults)
-  to the name if none is given, and a set of fields given by
-  `kv`.
+  The name of the generated macros will be `name` (which has to be an
+  atom). `tag` is also an atom and is used as the "tag" for the record (i.e.,
+  the first element of the record tuple); by default (if `nil`), it's the same
+  as `name`. `kv` is a keyword list of `name: default_value` fields for the
+  new record.
+
+  The following macros are generated:
+
+    * `name/0` to create a new record with default values for all fields
+    * `name/1` to create a new record with the given fields and values or to
+      convert the given record to a keyword list
+    * `name/2` to update an existing record with the given fields and values
+      or to access a given field in a given record
+
+  All these macros are public macros (as defined by `defmacro`).
+
+  See the "Examples" section for examples on how to use these macros.
 
   ## Examples
 
@@ -142,7 +194,7 @@ defmodule Record do
       end
 
   In the example above, a set of macros named `user` but with different
-  arities will be defined to manipulate the underlying record:
+  arities will be defined to manipulate the underlying record.
 
       # To create records
       record = user()        #=> {:user, "meg", 25}
@@ -165,8 +217,8 @@ defmodule Record do
       user(name: name) = record
       name #=> "meg"
 
-  By default, Elixir uses the record name as the first element of
-  the tuple (the tag). But it can be changed to something else:
+  By default, Elixir uses the record name as the first element of the tuple (the
+  "tag"). However, a different tag can be specified when defining a record:
 
       defmodule User do
         require Record
@@ -176,11 +228,11 @@ defmodule Record do
       require User
       User.user() #=> {User, nil}
 
-  ## Defining extracted records with anonymous functions
+  ## Defining extracted records with anonymous functions in the values
 
-  If a record defines an anonymous function, an `ArgumentError`
-  will occur if you attempt to create a record with it.
-  This can occur unintentionally when defining a record after extracting
+  If a record defines an anonymous function in the default values,
+  an `ArgumentError`  will occur if you attempt to create a record with it.
+  This can happen unintentionally when defining a record after extracting
   it from an Erlang library that uses anonymous functions for defaults.
 
       Record.defrecord :my_rec, Record.extract(...)
@@ -195,6 +247,7 @@ defmodule Record do
         Record.defrecord :my_rec, Record.extract(...) |> Keyword.merge(fun_field: &__MODULE__.foo/2)
         def foo(bar, baz), do: IO.inspect({bar, baz})
       end
+
   """
   defmacro defrecord(name, tag \\ nil, kv) do
     quote bind_quoted: [name: name, tag: tag, kv: kv] do
