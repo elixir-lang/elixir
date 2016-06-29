@@ -25,15 +25,16 @@ op_kw_test() ->
   [{atom, {1, 1, 5}, foo}, {dual_op, {1, 5, 6}, '+'}, {atom, {1, 6, 10}, bar}] = tokenize(":foo+:bar").
 
 scientific_test() ->
-  [{number, {1, 1, 7}, 0.1}] = tokenize("1.0e-1").
+  [{number, {1, 1, 7}, 0.1}] = tokenize("1.0e-1"),
+  [{number, {1, 1, 16}, 1.2345678e-7}] = tokenize("1_234.567_8e-10").
 
 hex_bin_octal_test() ->
   [{number, {1, 1, 5}, 255}] = tokenize("0xFF"),
-  [{number, {1, 1, 5}, 255}] = tokenize("0xF_F"),
+  [{number, {1, 1, 6}, 255}] = tokenize("0xF_F"),
   [{number, {1, 1, 5}, 63}] = tokenize("0o77"),
-  [{number, {1, 1, 5}, 63}] = tokenize("0o7_7"),
+  [{number, {1, 1, 6}, 63}] = tokenize("0o7_7"),
   [{number, {1, 1, 5}, 3}] = tokenize("0b11"),
-  [{number, {1, 1, 5}, 3}] = tokenize("0b1_1").
+  [{number, {1, 1, 6}, 3}] = tokenize("0b1_1").
 
 unquoted_atom_test() ->
   [{atom, {1, 1, 3}, '+'}] = tokenize(":+"),

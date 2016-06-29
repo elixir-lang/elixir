@@ -732,13 +732,16 @@ extract_heredoc_line(Marker, Rest, Buffer, _Counter) ->
 %% Integers and floats
 %% At this point, we are at least sure the first digit is a number.
 
+reversed_digits_and_underscores_to_integer(List, Base) ->
+  list_to_integer(lists:reverse(lists:filter(fun(E) -> E /= $_ end, List)), Base).
+
 %% Check if we have a point followed by a number;
 tokenize_number([$., H | T], Acc, false) when ?is_digit(H) ->
   tokenize_number(T, [H, $. | Acc], true);
 
 %% Check if we have an underscore followed by a number;
 tokenize_number([$_, H | T], Acc, Bool) when ?is_digit(H) ->
-  tokenize_number(T, [H | Acc], Bool);
+  tokenize_number(T, [H, $_ | Acc], Bool);
 
 %% Check if we have e- followed by numbers (valid only for floats);
 tokenize_number([E, S, H | T], Acc, true)
@@ -756,23 +759,26 @@ tokenize_number([H | T], Acc, Bool) when ?is_digit(H) ->
 
 %% Cast to float...
 tokenize_number(Rest, Acc, true) ->
-  {Rest, list_to_float(lists:reverse(Acc)), length(Acc)};
+  {Rest, list_to_float(lists:reverse(lists:filter(fun(E) -> E /= $_ end, Acc))), length(Acc)};
 
 %% Or integer.
 tokenize_number(Rest, Acc, false) ->
-  {Rest, list_to_integer(lists:reverse(Acc)), length(Acc)}.
+  {Rest, reversed_digits_and_underscores_to_integer(Acc, 10), length(Acc)}.
 
 tokenize_hex([H | T], Acc) when ?is_hex(H) -> tokenize_hex(T, [H | Acc]);
-tokenize_hex([$_, H | T], Acc) when ?is_hex(H) -> tokenize_hex(T, [H | Acc]);
-tokenize_hex(Rest, Acc) -> {Rest, list_to_integer(lists:reverse(Acc), 16), length(Acc)}.
+tokenize_hex([$_, H | T], Acc) when ?is_hex(H) -> tokenize_hex(T, [H, $_ | Acc]);
+tokenize_hex(Rest, Acc) ->
+  {Rest, reversed_digits_and_underscores_to_integer(Acc, 16), length(Acc)}.
 
 tokenize_octal([H | T], Acc) when ?is_octal(H) -> tokenize_octal(T, [H | Acc]);
-tokenize_octal([$_, H | T], Acc) when ?is_octal(H) -> tokenize_octal(T, [H | Acc]);
-tokenize_octal(Rest, Acc) -> {Rest, list_to_integer(lists:reverse(Acc), 8), length(Acc)}.
+tokenize_octal([$_, H | T], Acc) when ?is_octal(H) -> tokenize_octal(T, [H, $_ | Acc]);
+tokenize_octal(Rest, Acc) ->
+  {Rest, reversed_digits_and_underscores_to_integer(Acc, 8), length(Acc)}.
 
 tokenize_bin([H | T], Acc) when ?is_bin(H) -> tokenize_bin(T, [H | Acc]);
-tokenize_bin([$_, H | T], Acc) when ?is_bin(H) -> tokenize_bin(T, [H | Acc]);
-tokenize_bin(Rest, Acc) -> {Rest, list_to_integer(lists:reverse(Acc), 2), length(Acc)}.
+tokenize_bin([$_, H | T], Acc) when ?is_bin(H) -> tokenize_bin(T, [H, $_ | Acc]);
+tokenize_bin(Rest, Acc) ->
+  {Rest, reversed_digits_and_underscores_to_integer(Acc, 2), length(Acc)}.
 
 %% Comments
 
