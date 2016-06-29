@@ -60,7 +60,8 @@ import_function(Meta, Name, Arity, E) ->
   end.
 
 require_function(Meta, Receiver, Name, Arity, E) ->
-  case is_element({Name, Arity}, get_optional_macros(Receiver)) of
+  Required = is_element(Receiver, ?m(E, requires)),
+  case is_element({Name, Arity}, get_macros(Receiver, Required)) of
     true  -> false;
     false ->
       elixir_lexical:record_remote(Receiver, ?m(E, function), ?m(E, lexical_tracker)),
@@ -146,7 +147,7 @@ do_expand_import(Meta, {Name, Arity} = Tuple, Args, Module, E, Result) ->
       elixir_locals:record_import(Tuple, Receiver, Module, ?m(E, function)),
       {ok, Receiver, expand_macro_named(Meta, Receiver, Name, Arity, Args, E)};
     {import, Receiver} ->
-      case expand_require([{require, false} | Meta], Receiver, Tuple, Args, E) of
+      case expand_require([{required, true} | Meta], Receiver, Tuple, Args, E) of
         {ok, _, _} = Response -> Response;
         error -> {ok, Receiver, Name, Args}
       end;
@@ -161,19 +162,15 @@ do_expand_import(Meta, {Name, Arity} = Tuple, Args, Module, E, Result) ->
 
 expand_require(Meta, Receiver, {Name, Arity} = Tuple, Args, E) ->
   check_deprecation(Meta, Receiver, Name, Arity, E),
-  Module = ?m(E, module),
+  Required = (Receiver == ?m(E, module)) orelse is_element(Receiver, ?m(E, requires)) orelse required(Meta),
 
-  case is_element(Tuple, get_optional_macros(Receiver)) of
+  case is_element(Tuple, get_macros(Receiver, Required)) of
+    true when Required ->
+      elixir_lexical:record_remote(Receiver, Name, Arity, nil, ?line(Meta), ?m(E, lexical_tracker)),
+      {ok, Receiver, expand_macro_named(Meta, Receiver, Name, Arity, Args, E)};
     true ->
-      Requires = ?m(E, requires),
-      case (Receiver == Module) orelse is_element(Receiver, Requires) orelse skip_require(Meta) of
-        true  ->
-          elixir_lexical:record_remote(Receiver, Name, Arity, nil, ?line(Meta), ?m(E, lexical_tracker)),
-          {ok, Receiver, expand_macro_named(Meta, Receiver, Name, Arity, Args, E)};
-        false ->
-          Info = {unrequired_module, {Receiver, Name, length(Args), Requires}},
-          elixir_errors:form_error(Meta, ?m(E, file), ?MODULE, Info)
-      end;
+      Info = {unrequired_module, {Receiver, Name, length(Args), ?m(E, requires)}},
+      elixir_errors:form_error(Meta, ?m(E, file), ?MODULE, Info);
     false ->
       error
   end.
@@ -220,8 +217,8 @@ caller(Line, E) ->
 
 %% Helpers
 
-skip_require(Meta) ->
-  lists:keyfind(require, 1, Meta) == {require, false}.
+required(Meta) ->
+  lists:keyfind(required, 1, Meta) == {required, true}.
 
 find_dispatch(Meta, Tuple, Extra, E) ->
   case is_import(Meta) of
@@ -289,9 +286,20 @@ format_error({ambiguous_call, {Mod1, Mod2, Name, Arity}}) ->
 %% INTROSPECTION
 
 %% Do not try to get macros from Erlang. Speeds up compilation a bit.
-get_optional_macros(erlang) -> [];
+get_macros(erlang, _) -> [];
 
-get_optional_macros(Receiver) ->
+get_macros(Receiver, false) ->
+  case code:is_loaded(Receiver) of
+    {file, _} ->
+      try
+        Receiver:'__info__'(macros)
+      catch
+        error:undef -> []
+      end;
+    false -> []
+  end;
+
+get_macros(Receiver, true) ->
   case code:ensure_loaded(Receiver) of
     {module, Receiver} ->
       try
