@@ -191,7 +191,7 @@ defmodule Mix.Tasks.Deps.Compile do
       else
         "make"
       end
-    do_command(dep, config, command, true)
+    do_command(dep, config, command, true, [{"IS_DEP", "1"}])
   end
 
   defp do_compile(%Mix.Dep{opts: opts} = dep, config) do
