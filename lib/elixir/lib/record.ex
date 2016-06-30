@@ -144,9 +144,6 @@ defmodule Record do
       iex> tuple = {}
       iex> Record.is_record(tuple)
       false
-      iex> other_term = "not a record"
-      iex> Record.is_record(other_term)
-      false
 
   """
   defmacro is_record(data) do
@@ -230,10 +227,10 @@ defmodule Record do
 
   ## Defining extracted records with anonymous functions in the values
 
-  If a record defines an anonymous function in the default values,
-  an `ArgumentError`  will occur if you attempt to create a record with it.
-  This can happen unintentionally when defining a record after extracting
-  it from an Erlang library that uses anonymous functions for defaults.
+  If a record defines an anonymous function in the default values, an
+  `ArgumentError` will be raised. This can happen unintentionally when defining
+  a record after extracting it from an Erlang library that uses anonymous
+  functions for defaults.
 
       Record.defrecord :my_rec, Record.extract(...)
       #=> ** (ArgumentError) invalid value for record field fun_field,
