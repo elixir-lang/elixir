@@ -435,6 +435,13 @@ defmodule Access do
       ...>   prev -> {prev, String.upcase(prev)}
       ...> end)
       {"john", [%{name: "JOHN"}, %{name: "mary"}]}
+
+  `at/1` can also be used to pop elements out of a list or
+  a key inside of a list:
+
+      iex> list = [%{name: "john"}, %{name: "mary"}]
+      iex> pop_in(list, [Access.at(0)])
+      {%{name: "john"}, [%{name: "mary"}]}
       iex> pop_in(list, [Access.at(0), :name])
       {"john", [%{}, %{name: "mary"}]}
 
@@ -477,7 +484,7 @@ defmodule Access do
   defp get_and_update_at([head | rest], 0, next, updates) do
     case next.(head) do
       {get, update} -> {get, :lists.reverse([update | updates], rest)}
-      :pop -> {head, :lists.reverse([head | updates], rest)}
+      :pop -> {head, :lists.reverse(updates, rest)}
     end
   end
 
