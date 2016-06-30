@@ -64,7 +64,6 @@ defmodule Kernel.DialyzerTest do
     assert_dialyze_no_warnings! context
   end
 
-  @tag otp19: false
   test "no warnings on raise", context do
     copy_beam! context, Dialyzer.Raise
     assert_dialyze_no_warnings! context
