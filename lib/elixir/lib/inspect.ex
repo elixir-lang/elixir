@@ -381,8 +381,7 @@ end
 
 defimpl Inspect, for: Integer do
   def inspect(term, %Inspect.Opts{base: :decimal}) do
-    Integer.to_string(term)
-    |> pretty_decimal
+    pretty_decimal(term)
   end
 
   def inspect(term, %Inspect.Opts{base: base}) do
@@ -390,18 +389,15 @@ defimpl Inspect, for: Integer do
     |> prepend_prefix(base)
   end
 
-  def pretty_decimal(string) do
-    split_index = 
-      case rem(byte_size(string), 3) do
-        0 -> 3
-        x -> x
-      end
-    pretty_decimal(string, split_index)
+  def pretty_decimal(n) when n >= 1_000 do
+    left = div(n, 1_000)
+    right = rem(n, 1_000)
+    right_str = :io_lib.format("~3..0B", [right]) |> IO.iodata_to_binary
+    pretty_decimal(left) <> "_" <> right_str
   end
-  def pretty_decimal(string, _) when byte_size(string) <= 3, do: string
-  def pretty_decimal(string, split_index) do
-     {left, right} = String.split_at(string, split_index)
-     left <> "_" <> pretty_decimal(right, 3)
+
+  def pretty_decimal(n) do
+    Integer.to_string(n)
   end
 
   defp base_to_value(base) do
@@ -426,6 +422,7 @@ defimpl Inspect, for: Float do
   def inspect(term, opts) do
     string = IO.iodata_to_binary(:io_lib_format.fwrite_g(term))
     [left, right] = String.split(string, ".")
+    left = String.to_integer(left)
     Inspect.Integer.pretty_decimal(left) <> "." <> right
   end
 end
