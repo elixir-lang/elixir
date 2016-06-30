@@ -12,7 +12,7 @@ defmodule ExUnit.DiffTest do
   test "numbers" do
     int1 = 491512235
     int2 = 490512035
-    expected = [eq: "49", del: "1", ins: "0", eq: "512", del: "2", ins: "0", eq: "35"]
+    expected = [eq: "49", del: "1", ins: "0", eq: "_512_", del: "2", ins: "0", eq: "35"]
     assert script(int1, int2) == expected
     assert script(42.0, 43.0) == [eq: "4", del: "2", ins: "3", eq: ".0"]
     assert script(int1, 43.0) == nil
@@ -175,7 +175,7 @@ defmodule ExUnit.DiffTest do
     keyword2 = [max_connections: 1000, port: 4000]
     expected = [
       {:eq, "["},
-      [del: "port: 4000", del: ", ", eq: "max_connections: 1000", ins: ", ", ins: "port: 4000"],
+      [del: "port: 4_000", del: ", ", eq: "max_connections: 1_000", ins: ", ", ins: "port: 4_000"],
       {:eq, "]"}
     ]
     assert script(keyword1, keyword2) == expected

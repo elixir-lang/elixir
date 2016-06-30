@@ -277,7 +277,7 @@ defmodule Date do
       iex> Date.from_erl!({2000, 1, 1})
       ~D[2000-01-01]
       iex> Date.from_erl!({2000, 13, 1})
-      ** (ArgumentError) cannot convert {2000, 13, 1} to date, reason: :invalid_date
+      ** (ArgumentError) cannot convert {2_000, 13, 1} to date, reason: :invalid_date
   """
   @spec from_erl!(:calendar.date()) :: Date.t | no_return
   def from_erl!(tuple) do
@@ -892,7 +892,7 @@ defmodule NaiveDateTime do
       iex> NaiveDateTime.from_erl!({{2000, 1, 1}, {13, 30, 15}}, {5000, 3})
       ~N[2000-01-01 13:30:15.005]
       iex> NaiveDateTime.from_erl!({{2000, 13, 1}, {13, 30, 15}})
-      ** (ArgumentError) cannot convert {{2000, 13, 1}, {13, 30, 15}} to naive date time, reason: :invalid_date
+      ** (ArgumentError) cannot convert {{2_000, 13, 1}, {13, 30, 15}} to naive date time, reason: :invalid_date
   """
   @spec from_erl!(:calendar.datetime(), Calendar.microsecond) :: NaiveDateTime.t | no_return
   def from_erl!(tuple, microsecond \\ {0, 0}) do

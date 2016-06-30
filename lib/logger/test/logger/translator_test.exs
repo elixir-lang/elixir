@@ -439,7 +439,7 @@ defmodule Logger.TranslatorTest do
     end) =~ ~r"""
     Start Call: Task.start_link\(Logger.TranslatorTest, :sleep, \[#PID<\d+\.\d+\.\d+>\]\)
     Restart: :permanent
-    Shutdown: 5000
+    Shutdown: 5_000
     Type: :worker
     """
   end
@@ -527,7 +527,7 @@ defmodule Logger.TranslatorTest do
     Pid: #PID<\d+\.\d+\.\d+>
     Start Call: Logger.TranslatorTest.abnormal\(\)
     Restart: :permanent
-    Shutdown: 5000
+    Shutdown: 5_000
     Type: :worker
     """
   end

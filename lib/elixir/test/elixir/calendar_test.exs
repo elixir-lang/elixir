@@ -19,7 +19,7 @@ defmodule DateTest do
     assert inspect(~D[2000-01-01]) == "~D[2000-01-01]"
 
     date = Map.put(~D[2000-01-01], :calendar, FakeCalendar)
-    assert inspect(date) == "%Date{calendar: FakeCalendar, day: 1, month: 1, year: 2000}"
+    assert inspect(date) == "%Date{calendar: FakeCalendar, day: 1, month: 1, year: 2_000}"
   end
 end
 
@@ -52,7 +52,7 @@ defmodule NaiveDateTimeTest do
 
     date = Map.put(~N[2000-01-01 23:00:07.005], :calendar, FakeCalendar)
     assert inspect(date) == "%NaiveDateTime{calendar: FakeCalendar, day: 1, hour: 23, " <>
-                            "microsecond: {5000, 3}, minute: 0, month: 1, second: 7, year: 2000}"
+                            "microsecond: {5_000, 3}, minute: 0, month: 1, second: 7, year: 2_000}"
   end
 end
 
