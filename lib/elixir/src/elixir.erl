@@ -14,10 +14,15 @@
 -export_type([charlist/0, char_list/0, struct/0, as_boolean/1, keyword/0, keyword/1]).
 -type charlist() :: string().
 -type char_list() :: string().
--type struct() :: #{'__struct__' => atom()}.
 -type as_boolean(T) :: T.
 -type keyword() :: [{atom(), any()}].
 -type keyword(T) :: [{atom(), T}].
+
+-ifdef(old_map_specs).
+-type struct() :: #{'__struct__' => atom(), atom() => any()}.
+-else.
+-type struct() :: #{'__struct__' := atom(), atom() => any()}.
+-endif.
 
 %% OTP Application API
 
