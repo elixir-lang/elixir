@@ -133,7 +133,8 @@ defmodule Mix.Tasks.Deps.Compile do
       end
 
       try do
-        res = Mix.Task.run("compile", ["--no-deps", "--no-archives-check", "--no-elixir-version-check"])
+        res = Mix.Task.run("compile", ["--no-deps", "--no-archives-check",
+                                       "--no-elixir-version-check", "--no-warnings-as-errors"])
         :ok in List.wrap(res)
       catch
         kind, reason ->
