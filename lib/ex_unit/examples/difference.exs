@@ -38,7 +38,7 @@ defmodule Difference do
   end
 
   test "lists" do
-    list1 = ["One", :ok, make_ref(), {}]
+    list1 = ["Tvo", make_ref(), :ok, {}]
     list2 = ["Two", :ok, self(), {true}]
     assert list1 == list2
   end
