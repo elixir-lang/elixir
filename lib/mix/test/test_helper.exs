@@ -137,9 +137,10 @@ defmodule MixTest.Case do
   end
 
   def mix_port(args, envs \\ []) when is_list(args) do
-    :erlang.open_port({:spawn_executable, elixir_executable()}, [
+    Port.open({:spawn_executable, elixir_executable()}, [
       {:args, ["-r", mix_executable(), "--" | args]},
       {:env, envs},
+      :binary,
       :use_stdio,
       :stderr_to_stdout
     ])
