@@ -716,8 +716,8 @@ defmodule Enum do
 
   """
   @spec fetch(t, integer) :: {:ok, element} | :error
-  def fetch(enumerable, index) when is_list(enumerable)
-  and is_integer(index) and index >= 0 do
+  def fetch(enumerable, index)
+      when is_list(enumerable) and is_integer(index) and index >= 0 do
     do_fetch(enumerable, index)
   end
 
@@ -1105,8 +1105,8 @@ defmodule Enum do
   @spec into(Enumerable.t, Collectable.t, (term -> term))
     :: Collectable.t
 
-  def into(enumerable, collectable, transform) when is_list(collectable)
-    and is_function(transform, 1) do
+  def into(enumerable, collectable, transform)
+      when is_list(collectable) and is_function(transform, 1) do
     collectable ++ map(enumerable, transform)
   end
 
@@ -1715,8 +1715,8 @@ defmodule Enum do
 
   """
   @spec reverse(t, t) :: list
-  def reverse(enumerable, tail) when is_list(enumerable)
-  and is_list(tail) do
+  def reverse(enumerable, tail)
+      when is_list(enumerable) and is_list(tail) do
     :lists.reverse(enumerable, tail)
   end
 
@@ -1740,8 +1740,8 @@ defmodule Enum do
 
   """
   @spec reverse_slice(t, non_neg_integer, non_neg_integer) :: list
-  def reverse_slice(enumerable, start, count) when start >= 0
-  and count >= 0 do
+  def reverse_slice(enumerable, start, count)
+      when is_integer(start) and start >= 0 and is_integer(count) and count >= 0 do
     list = reverse(enumerable)
     length = length(list)
     count = Kernel.min(count, length - start)
@@ -1889,8 +1889,8 @@ defmodule Enum do
 
   def slice(_enumerable, start, 0) when is_integer(start), do: []
 
-  def slice(enumerable, start, count) when is_integer(start)
-  and start < 0 and is_integer(count) and count >= 0 do
+  def slice(enumerable, start, count)
+      when is_integer(start) and start < 0 and is_integer(count) and count >= 0 do
     {list, new_start} = enumerate_and_count(enumerable, start)
     if new_start >= 0 do
       slice(list, new_start, count)
@@ -1899,14 +1899,15 @@ defmodule Enum do
     end
   end
 
-  def slice(enumerable, start, count) when is_list(enumerable)
-  and is_integer(start) and start >= 0 and is_integer(count)
-  and count > 0 do
+  def slice(enumerable, start, count)
+      when is_list(enumerable) and
+           is_integer(start) and start >= 0 and
+           is_integer(count) and count > 0 do
     do_slice(enumerable, start, count)
   end
 
-  def slice(enumerable, start, count) when is_integer(start)
-  and start >= 0 and is_integer(count) and count > 0 do
+  def slice(enumerable, start, count)
+      when is_integer(start) and start >= 0 and is_integer(count) and count > 0 do
     {_, _, list} = Enumerable.reduce(enumerable,
       {:cont, {start, count, []}}, fn
         _entry, {start, count, _list} when start > 0 ->
@@ -2156,8 +2157,8 @@ defmodule Enum do
   def take(_enumerable, 0), do: []
   def take([], _count), do: []
 
-  def take(enumerable, count) when is_list(enumerable)
-  and is_integer(count) and count > 0 do
+  def take(enumerable, count)
+      when is_list(enumerable) and is_integer(count) and count > 0 do
     do_take(enumerable, count, [])
   end
 
@@ -2467,8 +2468,8 @@ defmodule Enum do
 
   """
   @spec zip(t, t) :: [{any, any}]
-  def zip(enumerable1, enumerable2) when is_list(enumerable1)
-  and is_list(enumerable2) do
+  def zip(enumerable1, enumerable2)
+      when is_list(enumerable1) and is_list(enumerable2) do
     do_zip(enumerable1, enumerable2, [])
   end
 
