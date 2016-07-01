@@ -4314,7 +4314,7 @@ defmodule Kernel do
   end
 
   # TODO: Deprecate by v1.5
-  # @doc false
+  @doc false
   defmacro to_char_list(arg) do
     quote do: Kernel.to_charlist(unquote(arg))
   end
