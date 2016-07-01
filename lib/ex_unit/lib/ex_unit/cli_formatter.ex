@@ -142,7 +142,7 @@ defmodule ExUnit.CLIFormatter do
     cond do
       config.failure_counter > 0 -> IO.puts failure(message, config)
       config.invalid_counter > 0 -> IO.puts invalid(message, config)
-      true                        -> IO.puts success(message, config)
+      true -> IO.puts success(message, config)
     end
 
     IO.puts "\nRandomized with seed #{config.seed}"
