@@ -223,7 +223,7 @@ defmodule Mix.Tasks.New do
       end
       ```
 
-  If [published on Hexdocs](https://hex.pm/docs/tasks#hex_docs), the docs can
+  If [published on HexDocs](https://hex.pm/docs/tasks#hex_docs), the docs can
   be found at [https://hexdocs.pm/<%= @app %>](https://hexdocs.pm/<%= @app %>)
   <% end %>
   """
