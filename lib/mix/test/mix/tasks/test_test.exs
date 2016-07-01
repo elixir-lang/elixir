@@ -110,7 +110,7 @@ defmodule Mix.Tasks.TestTest do
 
       assert receive_until_match(port, "seed", []) =~ "2 tests"
 
-      :erlang.port_command(port, "\n")
+      Port.command(port, "\n")
 
       assert receive_until_match(port, "No stale tests.", []) =~ "Restarting..."
     end
@@ -118,11 +118,10 @@ defmodule Mix.Tasks.TestTest do
 
   defp receive_until_match(port, expected, acc) do
     receive do
-      {^port, {:data, charlist}} ->
-        string = to_string(charlist)
-        acc = [acc | string]
+      {^port, {:data, output}} ->
+        acc = [acc | output]
 
-        if string =~ expected do
+        if output =~ expected do
           IO.iodata_to_binary(acc)
         else
           receive_until_match(port, expected, acc)
