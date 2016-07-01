@@ -104,6 +104,32 @@ defmodule Mix.Tasks.TestTest do
     end
   end
 
+  test "--listen-on-stdin: runs tests after input" do
+    in_fixture "test_stale", fn ->
+      port = mix_port(~w[test --stale --listen-on-stdin])
+
+      assert receive_until_match(port, "seed", []) =~ "2 tests"
+
+      :erlang.port_command(port, "\n")
+
+      assert receive_until_match(port, "No stale tests.", []) =~ "Restarting..."
+    end
+  end
+
+  defp receive_until_match(port, expected, acc) do
+    receive do
+      {^port, {:data, charlist}} ->
+        string = to_string(charlist)
+        acc = [acc | string]
+
+        if string =~ expected do
+          IO.iodata_to_binary(acc)
+        else
+          receive_until_match(port, expected, acc)
+        end
+    end
+  end
+
   defp set_all_mtimes(time \\ {{2010, 1, 1}, {0, 0, 0}}) do
     Enum.each(Path.wildcard("**", match_dot: true), &File.touch!(&1, time))
   end

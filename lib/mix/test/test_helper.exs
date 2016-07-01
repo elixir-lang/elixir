@@ -136,6 +136,15 @@ defmodule MixTest.Case do
                env: envs) |> elem(0)
   end
 
+  def mix_port(args, envs \\ []) when is_list(args) do
+    :erlang.open_port({:spawn_executable, elixir_executable()}, [
+      {:args, ["-r", mix_executable(), "--" | args]},
+      {:env, envs},
+      :use_stdio,
+      :stderr_to_stdout
+    ])
+  end
+
   defp mix_executable do
     Path.expand("../../../bin/mix", __DIR__)
   end
