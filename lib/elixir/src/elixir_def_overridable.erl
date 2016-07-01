@@ -50,11 +50,16 @@ store(Module, Function, GenerateName) ->
       {{{def, {Name, Arity}}, Kind, Line, File, _Check,
        Location, {Defaults, _HasBody, _LastDefaults}}, Clauses} = Clause,
 
+      %% We don't support private overridable macros, and this is checked before
+      %% getting here (in Module.make_overridable/2); we don't need to check
+      %% here. We still need to support defps because we only deprecated them,
+      %% but we should drop support for them in 2.0 and remove defp from here.
+      %% TODO: Remove on v2.0
       {FinalKind, FinalName, FinalArity} =
         case GenerateName of
           false ->
             {Kind, Name, Arity};
-          true when Kind == defmacro; Kind == defmacrop ->
+          true when Kind == defmacro ->
             {defp, elixir_utils:macro_name(name(Function, Count)), Arity + 1};
           true when Kind == def; Kind == defp ->
             {defp, name(Function, Count), Arity}
