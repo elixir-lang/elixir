@@ -389,7 +389,11 @@ defimpl Inspect, for: Integer do
     |> prepend_prefix(base)
   end
 
-  def pretty_decimal(n, separator) when n >= 1_000 do
+  def pretty_decimal(n, separator) when n < 0 do
+    "-" <> pretty_decimal(abs(n), separator)
+  end
+
+  def pretty_decimal(n, separator) when n >= 1000 do
     left = div(n, 1_000)
     right = rem(n, 1_000)
     right_str = :io_lib.format("~3..0B", [right]) |> IO.iodata_to_binary

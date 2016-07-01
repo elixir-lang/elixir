@@ -139,6 +139,8 @@ defmodule Inspect.NumberTest do
   test "decimal" do
     assert inspect(100, base: :decimal) == "100"
     assert inspect(1_222_333, base: :decimal) == "1_222_333"
+    assert inspect(-100, base: :decimal) == "-100"
+    assert inspect(-1_222_333, base: :decimal) == "-1_222_333"
   end
 
   test "hex" do
