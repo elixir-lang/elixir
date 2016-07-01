@@ -67,6 +67,9 @@ defmodule Mix.Tasks.Test do
     * `--no-elixir-version-check` - do not check the Elixir version from mix.exs
     * `--stale` - run only tests which reference modules that changed since the
       last `test --stale`. You can read more about this option in the "Stale" section below.
+    * `--listen-on-stdin` - run tests, and then listen on stdin. Receiving a newline will
+      result in the tests being run again. Very useful when combined with `--stale` and
+      external commands which produce output on stdout upon file system modification.
 
   ## Filters
 
@@ -164,7 +167,7 @@ defmodule Mix.Tasks.Test do
              exclude: :keep, seed: :integer, only: :keep, compile: :boolean,
              start: :boolean, timeout: :integer, raise: :boolean,
              deps_check: :boolean, archives_check: :boolean, elixir_version_check: :boolean,
-             stale: :boolean]
+             stale: :boolean, listen_on_stdin: :boolean]
 
   @cover [output: "cover", tool: Cover]
 
@@ -242,6 +245,13 @@ defmodule Mix.Tasks.Test do
 
       :noop ->
         :ok
+    end
+
+    if opts[:listen_on_stdin] do
+      IO.gets(:stdio, '')
+      Mix.shell.info 'Restarting...'
+      :init.restart()
+      :timer.sleep(:infinity)
     end
   end
 
