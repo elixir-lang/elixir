@@ -248,8 +248,8 @@ defmodule Mix.Tasks.Test do
     end
 
     if opts[:listen_on_stdin] do
-      IO.gets(:stdio, '')
-      Mix.shell.info 'Restarting...'
+      IO.gets(:stdio, "")
+      Mix.shell.info "Restarting..."
       :init.restart()
       :timer.sleep(:infinity)
     end
