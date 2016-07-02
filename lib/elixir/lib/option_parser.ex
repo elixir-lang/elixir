@@ -15,13 +15,24 @@ defmodule OptionParser do
   @doc """
   Parses `argv` into a keywords list.
 
-  It returns a three-element tuple as follows:
+  It returns a three-element tuple with the form `{parsed, args, invalid}`, where:
 
-     1. parsed switches,
-     2. remaining arguments,
-     3. invalid options.
+    * `parsed` is a keyword list of parsed switches with `{switch_name, value}`
+      tuples in it; `switch_name` is the atom representing the switch name while
+      `value` is the value for that switch parsed according to `opts` (see the
+      "Examples" section for more information)
+    * `args` is a list of the remaining arguments in `argv` as strings
+    * `invalid` is a list of invalid options as `{option_name, value}` where
+      `option_name` is the raw option and `value` is `nil` if the option wasn't
+      expected or the string value if the value didn't have the expected type for
+      the corresponding option
 
-  ## Examples
+  Elixir converts switches to underscored atoms, so `--source-path` becomes
+  `:source_path`. This is done to better suit Elixir conventions. However, this
+  means that switches can't contain underscores and switches that do contain
+  underscores are always returned in the list of invalid options.
+
+  Without any options, this function will try to parse all switches in the `argv`.
 
       iex> OptionParser.parse(["--debug"])
       {[debug: true], [], []}
@@ -32,65 +43,85 @@ defmodule OptionParser do
       iex> OptionParser.parse(["--source-path", "lib", "test/enum_test.exs", "--verbose"])
       {[source_path: "lib", verbose: true], ["test/enum_test.exs"], []}
 
-  By default, Elixir will try to automatically parse all switches.
   Switches followed by a value will be assigned the value, as a string.
-  Switches without an argument, like `--debug` will automatically
-  be set to `true`.
+  Switches without an argument, like `--debug` in the examples above, will
+  automatically be set to `true`.
 
-  Note: Elixir also converts the switches to underscore atoms, so
-  `--source-path` becomes `:source_path`, to better suit Elixir
-  conventions. This means that option names on the command line cannot
-  contain underscores; such options will be put in the invalid options
-  list.
+  ## Options
 
-  ## Switch Definitions
+  The following options are supported:
+
+    * `:switches` or `:strict` - see the "Switch definitions" section below
+    * `:aliases` - see the "Aliases" section below
+
+  ## Switch definitions
 
   Often it is better to explicitly list the known
-  switches and their formats. The switches can be specified via two
-  alternative options:
+  switches and their formats. The switches can be specified via one of two
+  options:
 
-    * `:switches` - defines some switches. An attempt is still made to parse
-      switches that do not appear in the list.
+    * `:switches` - defines some switches and their types. This function
+      still attempts to parse switches that are not in this list.
+    * `:strict` - defines strict switches. Any switch in `argv` that is not
+      specified in the list is returned in the invalid options list.
 
-    * `:strict` - the switches are strict. Any switch that is not specified
-      in the list is returned in the invalid options list.
+  Both these options accept a keyword list of `{name, type}` tuples where `name`
+  is an atom defining the name of the switch and `type` is an atom that
+  specifies the type for the value of this switch (see the "Types" section below
+  for the possible types and more information about type casting).
 
   Note that you should only supply the `:switches` or `:strict` option.
-  If you supply both, an error will be raised.
+  If you supply both, an `ArgumentError` exception will be raised.
 
   ### Types
 
-  Option parser switches may take 0 or 1 argument.
+  Switches parsed by `OptionParser` may take zero or one arguments.
 
-  The following switches take no argument:
+  The following switches types take no arguments:
 
-    * `:boolean` - sets the value to true when given
-    * `:count`   - counts the number of times the switch is given
+    * `:boolean` - sets the value to `true` when given (see also the
+      "Negation switches" section below)
+    * `:count` - counts the number of times the switch is given
 
-  The following switches take 1 argument:
+  The following switches take one argument:
 
-    * `:integer` - parses the upcoming value as an integer.
-    * `:float`   - parses the upcoming value as a float.
-    * `:string`  - parses the upcoming value as a string.
+    * `:integer` - parses the value as an integer
+    * `:float` - parses the value as a float
+    * `:string` - parses the value as a string
 
-  If a switch can't be parsed, it is returned in the invalid
-  options list.
+  If a switch can't be parsed according to the given type, it is returned
+  in the invalid options list.
 
   ### Modifiers
 
   Switches can be specified with modifiers, which change how
   they behave. The following modifiers are supported:
 
-    * `:keep` - keeps duplicated items instead of overriding them.
-      Works with all types except `:count`.
+    * `:keep` - keeps duplicated items instead of overriding them; works with
+      all types except `:count`. Specifying `switch_name: :keep` assumes the
+      type of `:switch_name` will be `:string`.
 
-  Note: if you want to use `:keep` with a non-string type, use a list, e.g.
-  `[foo: [:integer, :keep]]`.
+  Note that if you want to use `:keep` with a type other than `:string`, use a list
+  as the type for the switch. For example: `[foo: [:integer, :keep]]`.
 
-  ### Examples
+  ### Negation switches
 
-  Here are some examples of option parser working with different types
-  and modifiers:
+  In case a switch `SWITCH` is specified to have type `:boolean`, it may be
+  passed as `--no-SWITCH` as well which will set the option to `false`:
+
+      iex> OptionParser.parse(["--no-op", "path/to/file"], switches: [op: :boolean])
+      {[op: false], ["path/to/file"], []}
+
+  ## Aliases
+
+  A set of aliases can be specified in the `:aliases` option:
+
+      iex> OptionParser.parse(["-d"], aliases: [d: :debug])
+      {[debug: true], [], []}
+
+  ## Examples
+
+  Here are some examples of working with different types and modifiers:
 
       iex> OptionParser.parse(["--unlock", "path/to/file"], strict: [unlock: :boolean])
       {[unlock: true], ["path/to/file"], []}
@@ -121,21 +152,6 @@ defmodule OptionParser do
       iex> OptionParser.parse(["--unlock", "path/to/file", "--unlock", "path/to/another/file"], strict: [unlock: :keep])
       {[unlock: "path/to/file", unlock: "path/to/another/file"], [], []}
 
-  ### Negation switches
-
-  In case a switch is declared as boolean, it may be passed as `--no-SWITCH`
-  which will set the option to `false`:
-
-      iex> OptionParser.parse(["--no-op", "path/to/file"], switches: [op: :boolean])
-      {[op: false], ["path/to/file"], []}
-
-  ## Aliases
-
-  A set of aliases can be given as options too:
-
-      iex> OptionParser.parse(["-d"], aliases: [d: :debug])
-      {[debug: true], [], []}
-
   """
   @spec parse(argv, options) :: {parsed, argv, errors}
   def parse(argv, opts \\ []) when is_list(argv) and is_list(opts) do
@@ -146,13 +162,15 @@ defmodule OptionParser do
   The same as `parse/2` but raises an `OptionParser.ParseError`
   exception if any invalid options are given.
 
-  If there weren't any errors, returns a three-element tuple as follows:
+  If there are no errors, returns a `{parsed, rest}` tuple where:
 
-      1. parsed options,
-      2. remaining arguments,
-      3. empty list.
+    * `parsed` is the list of parsed switches (same as in `parse/2`)
+    * `rest` is the list of arguments (same as in `parse/2`)
 
   ## Examples
+
+      iex> OptionParser.parse!(["--debug", "path/to/file"], strict: [debug: :boolean])
+      {[debug: true], ["path/to/file"]}
 
       iex> OptionParser.parse!(["--limit", "xyz"], strict: [limit: :integer])
       ** (OptionParser.ParseError) 1 error found!
@@ -172,7 +190,7 @@ defmodule OptionParser do
   @spec parse!(argv, options) :: {parsed, argv} | no_return
   def parse!(argv, opts \\ []) when is_list(argv) and is_list(opts) do
     case parse(argv, opts) do
-      {parsed, argv, []} -> {parsed, argv}
+      {parsed, args, []} -> {parsed, args}
       {_, _, errors} -> raise ParseError, format_errors(errors, opts)
     end
   end
@@ -201,13 +219,15 @@ defmodule OptionParser do
   The same as `parse_head/2` but raises an `OptionParser.ParseError`
   exception if any invalid options are given.
 
-  If there weren't any errors, returns a three-element tuple as follows:
+  If there are no errors, returns a `{parsed, rest}` tuple where:
 
-      1. parsed options,
-      2. remaining arguments,
-      3. empty list.
+    * `parsed` is the list of parsed switches (same as in `parse_head/2`)
+    * `rest` is the list of arguments (same as in `parse_head/2`)
 
   ## Examples
+
+      iex> OptionParser.parse_head!(["--source", "lib", "path/to/file", "--verbose"])
+      {[source: "lib"], ["path/to/file", "--verbose"]}
 
       iex> OptionParser.parse_head!(["--number", "lib", "test/enum_test.exs", "--verbose"], strict: [number: :integer])
       ** (OptionParser.ParseError) 1 error found!
@@ -222,7 +242,7 @@ defmodule OptionParser do
   @spec parse_head!(argv, options) :: {parsed, argv, errors} | no_return
   def parse_head!(argv, opts \\ []) when is_list(argv) and is_list(opts) do
     case parse_head(argv, opts) do
-      {parsed, argv, []} -> {parsed, argv}
+      {parsed, args, []} -> {parsed, args}
       {_, _, errors} -> raise ParseError, format_errors(errors, opts)
     end
   end
@@ -250,7 +270,7 @@ defmodule OptionParser do
       {:error, ["--" | rest]} ->
         {Enum.reverse(opts), Enum.reverse(args, rest), Enum.reverse(invalid)}
 
-      {:error, [arg | rest]=remaining_args} ->
+      {:error, [arg | rest] = remaining_args} ->
         # there is no option
         if all? do
           do_parse(rest, config, opts, [arg | args], invalid, all?)
@@ -264,20 +284,20 @@ defmodule OptionParser do
   Low-level function that parses one option.
 
   It accepts the same options as `parse/2` and `parse_head/2`
-  as both functions are built on top of next. This function
+  as both functions are built on top of this function. This function
   may return:
 
     * `{:ok, key, value, rest}` - the option `key` with `value` was
       successfully parsed
 
     * `{:invalid, key, value, rest}` - the option `key` is invalid with `value`
-      (returned when the switch type does not match the one given via the
-      command line)
+      (returned when the value cannot be parsed according to the switch type)
 
     * `{:undefined, key, value, rest}` - the option `key` is undefined
       (returned in strict mode when the switch is unknown)
 
-    * `{:error, rest}` - there are no switches at the top of the given argv
+    * `{:error, rest}` - there are no switches at the head of the given `argv`
+
   """
 
   @spec next(argv, options) ::
@@ -295,15 +315,15 @@ defmodule OptionParser do
     {:error, []}
   end
 
-  defp next(["--" | _]=argv, _aliases, _switches, _strict) do
+  defp next(["--" | _] = argv, _aliases, _switches, _strict) do
     {:error, argv}
   end
 
-  defp next(["-" | _]=argv, _aliases, _switches, _strict) do
+  defp next(["-" | _] = argv, _aliases, _switches, _strict) do
     {:error, argv}
   end
 
-  defp next(["- " <> _ | _]=argv, _aliases, _switches, _strict) do
+  defp next(["- " <> _ | _] = argv, _aliases, _switches, _strict) do
     {:error, argv}
   end
 
@@ -334,8 +354,9 @@ defmodule OptionParser do
   @doc """
   Receives a key-value enumerable and converts it to argv.
 
-  Keys must be atoms. Keys with nil value are discarded,
+  Keys must be atoms. Keys with `nil` value are discarded,
   boolean values are converted to `--key` or `--no-key`
+  (if the value is `true` or `false`, respectively),
   and all other values are converted using `to_string/1`.
 
   ## Examples
@@ -364,6 +385,9 @@ defmodule OptionParser do
   @doc ~S"""
   Splits a string into argv chunks.
 
+  This function splits the given `string` into a list of strings in a similar
+  way to many shells.
+
   ## Examples
 
       iex> OptionParser.split("foo bar")
@@ -371,6 +395,7 @@ defmodule OptionParser do
 
       iex> OptionParser.split("foo \"bar baz\"")
       ["foo", "bar baz"]
+
   """
   @spec split(String.t) :: argv
   def split(string) do
