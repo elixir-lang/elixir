@@ -364,7 +364,7 @@ defmodule Mix.UmbrellaTest do
     end)
   end
 
-  test "reconsolidates using umbrella information even on shared _build" do
+  test "reconsolidates using umbrella parent information on shared _build" do
     in_fixture("umbrella_dep/deps/umbrella", fn ->
       File.write!("apps/bar/lib/bar.ex", """
       defprotocol Bar do
@@ -384,6 +384,29 @@ defmodule Mix.UmbrellaTest do
         Mix.Task.run("compile.protocols")
         Mix.Task.run("app.start")
         assert Protocol.consolidated?(Bar)
+      end)
+    end)
+  end
+
+  test "reconsolidates using umbrella child information on shared _build" do
+    in_fixture("umbrella_dep/deps/umbrella", fn ->
+      File.write!("apps/bar/lib/bar.ex", """
+      defprotocol Bar do
+        def foo(arg)
+      end
+      defimpl Bar, for: List do
+        def foo(list), do: list
+      end
+      """)
+
+      Mix.Project.in_project(:umbrella, ".", fn _ ->
+        Mix.Task.run("compile.protocols")
+      end)
+
+      # Emulate the dependency being removed
+      Mix.Project.in_project(:foo, "apps/foo", [build_path: "../../_build", deps: []], fn _ ->
+        File.rm_rf "../../_build/dev/lib/bar"
+        Mix.Task.run("compile.protocols")
       end)
     end)
   end
