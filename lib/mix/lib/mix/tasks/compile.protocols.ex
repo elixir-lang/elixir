@@ -122,10 +122,24 @@ defmodule Mix.Tasks.Compile.Protocols do
   defp consolidate(protocol, paths, output, opts) do
     impls = Protocol.extract_impls(protocol, paths)
     reload(protocol)
-    {:ok, binary} = Protocol.consolidate(protocol, impls)
-    File.write!(Path.join(output, "#{protocol}.beam"), binary)
-    if opts[:verbose] do
-      Mix.shell.info "Consolidated #{inspect protocol}"
+    case Protocol.consolidate(protocol, impls) do
+      {:ok, binary} ->
+        File.write!(Path.join(output, "#{protocol}.beam"), binary)
+        if opts[:verbose] do
+          Mix.shell.info "Consolidated #{inspect protocol}"
+        end
+
+      # If we remove a dependency and we have implemented one of its
+      # protocols locally, we will mark the protocol as needing to be
+      # reconsolidated when the implementation is removed even though
+      # the protocol no longer exists. Although most times removing a
+      # dependency will trigger a full recompilation, such won't happen
+      # in umbrella apps with shared build.
+      {:error, :no_beam_info} ->
+        remove_consolidated(protocol, output)
+        if opts[:verbose] do
+          Mix.shell.info "Unavailable #{inspect protocol}"
+        end
     end
   end
 
