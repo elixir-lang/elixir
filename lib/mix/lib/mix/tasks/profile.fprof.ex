@@ -27,7 +27,7 @@ defmodule Mix.Tasks.Profile.Fprof do
     * `--config`, `-c`  - loads the given configuration file
     * `--eval`, `-e`    - evaluate the given code
     * `--require`, `-r` - require pattern before running the command
-    * `--parallel-require`, `-pr` - requires pattern in parallel
+    * `--parallel`, `-p` - makes all requires parallel
     * `--no-compile`    - do not compile even if files require compilation
     * `--no-deps-check` - do not check dependencies
     * `--no-archives-check` - do not check archives
@@ -105,16 +105,37 @@ defmodule Mix.Tasks.Profile.Fprof do
   this should give you a more correct insight into your real bottlenecks.
   """
 
-  @switches [parallel_require: :keep, require: :keep, eval: :keep, config: :keep,
+  @switches [parallel: :boolean, require: :keep, eval: :keep, config: :keep,
              compile: :boolean, deps_check: :boolean, start: :boolean, archives_check: :boolean,
              details: :boolean, callers: :boolean, sort: :string, elixir_version_check: :boolean,
-             warmup: :boolean]
+             warmup: :boolean, parallel_require: :keep]
 
   @spec run(OptionParser.argv) :: :ok
   def run(args) do
+    # We do this right now because we still support -pr as an alias for
+    # --parallel-require, we need to implement the translation from -abc to -a
+    # -b -c so that -pr becomes --parallel --require and we have free backwards
+    # compatibility.
+    args = Enum.flat_map(args, fn
+      "-pr" -> ["-p", "-r"]
+      other -> [other]
+    end)
+
     {opts, head} = OptionParser.parse_head!(args,
-      aliases: [r: :require, pr: :parallel_require, e: :eval, c: :config],
+      aliases: [r: :require, p: :parallel, e: :eval, c: :config],
       strict: @switches)
+
+    # TODO: Remove on v2.0
+    {opts, parallel?} =
+      Enum.map_reduce(opts, false, fn
+        {:parallel_require, value}, _parallel? ->
+          IO.warn "the --parallel-require option is deprecated in favour of using " <>
+            "--parallel to make all requires parallel and --require VAL for requiring"
+          {{:require, value}, true}
+        opt, parallel? ->
+          {opt, parallel?}
+      end)
+    opts = if parallel?, do: Keyword.put(opts, :parallel, true), else: opts
 
     {file, argv} =
       case {Keyword.has_key?(opts, :eval), head} do
@@ -154,20 +175,20 @@ defmodule Mix.Tasks.Profile.Fprof do
   end
 
   defp process_load(opts) do
+    require_fun =
+      if opts[:parallel] do
+        &Kernel.ParallelRequire.files/1
+      else
+        fn(files) -> Enum.each(files, &Code.require_file/1) end
+      end
+
     Enum.each opts, fn
-      {:parallel_require, value} ->
-        case filter_patterns(value) do
-          [] ->
-            Mix.raise "No files matched pattern #{inspect value} given to --parallel-require"
-          filtered ->
-            Kernel.ParallelRequire.files(filtered)
-        end
       {:require, value} ->
         case filter_patterns(value) do
           [] ->
             Mix.raise "No files matched pattern #{inspect value} given to --require"
           filtered ->
-            Enum.each(filtered, &Code.require_file(&1))
+            require_fun.(filtered)
         end
       {:eval, value} ->
         profile_code(value, opts)
