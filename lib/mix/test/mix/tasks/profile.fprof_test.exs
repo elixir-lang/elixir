@@ -73,7 +73,7 @@ defmodule Mix.Tasks.Profile.FprofTest do
         capture_io(fn -> Fprof.run ["-r", "non-existent"] end)
       end
 
-      assert_raise Mix.Error, "No files matched pattern \"non-existent\" given to --parallel-require", fn ->
+      assert_raise Mix.Error, "No files matched pattern \"non-existent\" given to --require", fn ->
         capture_io(fn -> Fprof.run ["-pr", "non-existent"] end)
       end
 
