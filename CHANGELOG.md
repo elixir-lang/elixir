@@ -4,6 +4,10 @@
 
 ### 1. Enhancements
 
+#### Elixir
+
+  * [Integer] `digits/2` now accepts negative integers
+
 #### IEx
 
   * [IEx.Helpers] `c/1` now compiles in memory by default to avoid common issue where `.beam` files remain at projects root directory
