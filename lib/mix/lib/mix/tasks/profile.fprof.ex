@@ -127,15 +127,14 @@ defmodule Mix.Tasks.Profile.Fprof do
 
     # TODO: Remove on v2.0
     opts =
-      Enum.reduce(opts, [], fn
-        {:parallel_require, value}, acc ->
+      Enum.flat_map(opts, fn
+        {:parallel_require, value} ->
           IO.warn "the --parallel-require option is deprecated in favour of using " <>
             "--parallel to make all requires parallel and --require VAL for requiring"
-          Keyword.put([{:require, value} | acc], :parallel, true)
-        opt, acc ->
-          [opt | acc]
+          [require: value, parallel: true]
+        opt ->
+          [opt]
       end)
-      |> Enum.reverse
 
     {file, argv} =
       case {Keyword.has_key?(opts, :eval), head} do
