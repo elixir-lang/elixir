@@ -872,7 +872,7 @@ defmodule Stream do
   """
   @spec uniq_by(Enumerable.t, (element -> term)) :: Enumerable.t
   def uniq_by(enum, fun) do
-    lazy enum, %{}, fn f1 -> R.uniq(fun, f1) end
+    lazy enum, %{}, fn f1 -> R.uniq_by(fun, f1) end
   end
 
   @doc """

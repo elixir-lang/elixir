@@ -2398,7 +2398,7 @@ defmodule Enum do
   end
 
   def uniq_by(enumerable, fun) when is_function(fun, 1) do
-    {list, _} = reduce(enumerable, {[], %{}}, R.uniq(fun))
+    {list, _} = reduce(enumerable, {[], %{}}, R.uniq_by(fun))
     :lists.reverse(list)
   end
 
