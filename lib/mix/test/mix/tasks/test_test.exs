@@ -116,6 +116,58 @@ defmodule Mix.Tasks.TestTest do
     end
   end
 
+  test "--listen-on-stdin: does not exit on compilation failure" do
+    in_fixture "test_stale", fn ->
+      File.write!("lib/b.ex", """
+      defmodule B do
+        def f, do: error_not_a_var
+      end
+      """)
+
+      port = mix_port(~w[test --listen-on-stdin])
+
+      assert receive_until_match(port, "error", []) =~ "lib/b.ex"
+
+      File.write!("lib/b.ex", """
+      defmodule B do
+        def f, do: A.f
+      end
+      """)
+
+      Port.command(port, "\n")
+
+      assert receive_until_match(port, "seed", []) =~ "2 tests"
+
+      File.write!("test/b_test_stale.exs", """
+      defmodule BTest do
+        use ExUnit.Case
+
+        test "f" do
+          assert B.f() == error_not_a_var
+        end
+      end
+      """)
+
+      Port.command(port, "\n")
+
+      assert receive_until_match(port, "undefined function error_not_a_var", []) =~ "test/b_test_stale.exs"
+
+      File.write!("test/b_test_stale.exs", """
+      defmodule BTest do
+        use ExUnit.Case
+
+        test "f" do
+          assert B.f() == :ok
+        end
+      end
+      """)
+
+      Port.command(port, "\n")
+
+      assert receive_until_match(port, "seed", []) =~ "2 tests"
+    end
+  end
+
   defp receive_until_match(port, expected, acc) do
     receive do
       {^port, {:data, charlist}} ->
