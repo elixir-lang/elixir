@@ -175,6 +175,24 @@ defmodule Mix.Tasks.Test do
   def run(args) do
     {opts, files} = OptionParser.parse!(args, strict: @switches)
 
+    if opts[:listen_on_stdin] do
+      try do
+        Process.flag(:trap_exit, true)
+        do_run(args, opts, files)
+      catch
+        kind, reason -> IO.puts(Exception.format(kind, reason, System.stacktrace()))
+      end
+
+      IO.gets(:stdio, "")
+      Mix.shell.info "Restarting..."
+      :init.restart()
+      :timer.sleep(:infinity)
+    else
+      do_run(args, opts, files)
+    end
+  end
+
+  def do_run(args, opts, files) do
     unless System.get_env("MIX_ENV") || Mix.env == :test do
       Mix.raise "\"mix test\" is running on environment \"#{Mix.env}\". If you are " <>
                                 "running tests along another task, please set MIX_ENV explicitly"
@@ -245,13 +263,6 @@ defmodule Mix.Tasks.Test do
 
       :noop ->
         :ok
-    end
-
-    if opts[:listen_on_stdin] do
-      IO.gets(:stdio, "")
-      Mix.shell.info "Restarting..."
-      :init.restart()
-      :timer.sleep(:infinity)
     end
   end
 
