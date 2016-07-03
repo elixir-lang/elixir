@@ -16,7 +16,7 @@ defmodule Mix.Tasks.Deps.Unlock do
 
   """
 
-  @switches [all: :boolean, unused: :boolean]
+  @switches [all: :boolean, unused: :boolean, filter: :string]
 
   @spec run(OptionParser.argv) :: :ok
   def run(args) do
@@ -29,6 +29,27 @@ defmodule Mix.Tasks.Deps.Unlock do
       opts[:unused] ->
         apps = Mix.Dep.loaded([]) |> Enum.map(& &1.app)
         Mix.Dep.Lock.read() |> Map.take(apps) |> Mix.Dep.Lock.write()
+      filter = opts[:filter] ->
+        lock = Mix.Dep.Lock.read
+        apps = Map.keys(lock)
+
+        unlock =
+          apps
+          |> Enum.filter(&String.contains?("#{&1}", filter))
+
+        if unlock == [] do
+          Mix.shell.error "warning: no dependencies were matched"
+        else
+          lock =
+            Enum.reject(lock, fn({app, _}) ->
+              app in unlock
+            end)
+          Mix.Dep.Lock.write(lock)
+          Mix.shell.info """
+          Unlocked deps:
+          * #{Enum.join(unlock, "\n* ")}
+          """
+        end
 
       apps != [] ->
         lock =
