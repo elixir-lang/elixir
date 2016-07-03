@@ -60,10 +60,10 @@ defmodule Integer do
   end
 
   @doc """
-  Returns the ordered digits for the given non-negative `integer`.
+  Returns the ordered digits for the given `integer`.
 
   An optional `base` value may be provided representing the radix for the returned
-  digits. This one can be an integer >= 2.
+  digits. This one must be an integer >= 2.
 
   ## Examples
 
@@ -73,20 +73,29 @@ defmodule Integer do
       iex> Integer.digits(170, 2)
       [1, 0, 1, 0, 1, 0, 1, 0]
 
+      iex> Integer.digits(-170, 2)
+      [-1, 0, -1, 0, -1, 0, -1, 0]
+
   """
-  @spec digits(non_neg_integer, pos_integer) :: [non_neg_integer, ...]
+  @spec digits(integer, pos_integer) :: [integer, ...]
   def digits(integer, base \\ 10)
-      when is_integer(integer) and integer >= 0 and is_integer(base) and base >= 2 do
+      when is_integer(integer) and is_integer(base) and base >= 2 do
     do_digits(integer, base, [])
   end
 
-  defp do_digits(0, _base, []), do: [0]
-  defp do_digits(1, _base, []), do: [1]
-  defp do_digits(base, base, []), do: [1, 0]
-  defp do_digits(0, _base, acc), do: acc
-  defp do_digits(integer, base, acc) do
-    do_digits div(integer, base), base, [rem(integer, base) | acc]
+  defp do_digits(digit, base, [])
+      when digit >= 0 and digit < base
+      when digit < 0 and abs(digit) < base do
+    [digit]
   end
+  defp do_digits(digit, base, []) when digit < 0 and abs(digit) == base,
+    do: [-1, 0]
+  defp do_digits(base, base, []),
+    do: [1, 0]
+  defp do_digits(0, _base, acc),
+    do: acc
+  defp do_digits(integer, base, acc),
+    do: do_digits div(integer, base), base, [rem(integer, base) | acc]
 
   @doc """
   Returns the integer represented by the ordered `digits`.
@@ -111,14 +120,19 @@ defmodule Integer do
     do_undigits(digits, base, 0)
   end
 
-  defp do_undigits([], _base, []), do: 0
-  defp do_undigits([0], _base, []), do: 0
-  defp do_undigits([1], _base, []), do: 1
-  defp do_undigits([1, 0], base, []), do: base
-  defp do_undigits([], _base, acc), do: acc
-  defp do_undigits([digit | tail], base, acc) do
-    do_undigits(tail, base, acc * base + digit)
-  end
+  defp do_undigits([], _base, 0),
+    do: 0
+  defp do_undigits([digit], base, 0) when is_integer(digit) and digit < base,
+    do: digit
+  defp do_undigits([1, 0], base, 0),
+    do: base
+  defp do_undigits([0 | tail], base, 0),
+    do: do_undigits(tail, base, 0)
+
+  defp do_undigits([], _base, acc),
+    do: acc
+  defp do_undigits([digit | tail], base, acc) when is_integer(digit),
+    do: do_undigits(tail, base, acc * base + digit)
 
   @doc """
   Parses a text representation of an integer.
