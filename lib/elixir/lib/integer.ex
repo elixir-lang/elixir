@@ -83,19 +83,16 @@ defmodule Integer do
     do_digits(integer, base, [])
   end
 
-  defp do_digits(digit, base, [])
-      when digit >= 0 and digit < base
-      when digit < 0 and abs(digit) < base do
-    [digit]
-  end
-  defp do_digits(digit, base, []) when digit < 0 and abs(digit) == base,
+  defp do_digits(digit, base, []) when abs(digit) < base,
+    do: [digit]
+  defp do_digits(digit, base, []) when digit == -base,
     do: [-1, 0]
   defp do_digits(base, base, []),
     do: [1, 0]
   defp do_digits(0, _base, acc),
     do: acc
   defp do_digits(integer, base, acc),
-    do: do_digits div(integer, base), base, [rem(integer, base) | acc]
+    do: do_digits(div(integer, base), base, [rem(integer, base) | acc])
 
   @doc """
   Returns the integer represented by the ordered `digits`.
