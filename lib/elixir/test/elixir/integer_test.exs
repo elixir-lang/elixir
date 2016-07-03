@@ -45,13 +45,20 @@ defmodule IntegerTest do
     assert Integer.digits(0) == [0]
     assert Integer.digits(0, 2) == [0]
     assert Integer.digits(1) == [1]
+    assert Integer.digits(-1) == [-1]
     assert Integer.digits(123, 123) == [1, 0]
+    assert Integer.digits(-123, 123) == [-1, 0]
+    assert Integer.digits(456, 1000) == [456]
+    assert Integer.digits(-456, 1000) == [-456]
     assert Integer.digits(123) == [1, 2, 3]
+    assert Integer.digits(-123) == [-1, -2, -3]
     assert Integer.digits(58127, 2) == [1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1]
+    assert Integer.digits(-58127, 2) == [-1, -1, -1, 0, 0, 0, -1, -1, 0, 0, 0, 0, -1, -1, -1, -1]
 
     for n <- Enum.to_list(-1..1) do
       assert_raise FunctionClauseError, fn ->
         Integer.digits(10, n)
+        Integer.digits(-10, n)
       end
     end
   end
@@ -67,6 +74,7 @@ defmodule IntegerTest do
     assert Integer.undigits([1, 2, 3, 4, 5]) == 12345
     assert Integer.undigits([1, 0, -5]) == 95
     assert Integer.undigits([-1, -1, -5]) == -115
+    assert Integer.undigits([0, 0, 0, -1, -1, -5]) == -115
 
     for n <- Enum.to_list(-1..1) do
       assert_raise FunctionClauseError, fn ->
