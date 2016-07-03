@@ -837,14 +837,42 @@ defmodule Stream do
       iex> Stream.uniq([1, 2, 3, 3, 2, 1]) |> Enum.to_list
       [1, 2, 3]
 
-      iex> Stream.uniq([{1, :x}, {2, :y}, {2, :z}, {1, :x}], fn {x, _} -> x end) |> Enum.to_list
-      [{1, :x}, {2, :y}]
-
   """
   @spec uniq(Enumerable.t) :: Enumerable.t
-  @spec uniq(Enumerable.t, (element -> term)) :: Enumerable.t
-  def uniq(enum, fun \\ fn x -> x end) do
-    lazy enum, %{}, fn f1 -> R.uniq(fun, f1) end
+  def uniq(enum) do
+    uniq_by(enum, fn x -> x end)
+  end
+
+  @doc false
+  # TODO: Deprecate by 1.4
+  def uniq(enum, fun) do
+    uniq_by(enum, fun)
+  end
+
+  @doc """
+  Creates a stream that only emits elements if they are unique, by removing the
+  elements for which function `fun` returned duplicate items.
+
+  The function `fun` maps every element to a term which is used to
+  determine if two elements are duplicates.
+
+  Keep in mind that, in order to know if an element is unique
+  or not, this function needs to store all unique values emitted
+  by the stream. Therefore, if the stream is infinite, the number
+  of items stored will grow infinitely, never being garbage collected.
+
+  ## Example
+
+      iex> Stream.uniq_by([{1, :x}, {2, :y}, {1, :z}], fn {x, _} -> x end) |> Enum.to_list
+      [{1, :x}, {2, :y}]
+
+      iex> Stream.uniq_by([a: {:tea, 2}, b: {:tea, 2}, c: {:coffee, 1}], fn {_, y} -> y end) |> Enum.to_list
+      [a: {:tea, 2}, c: {:coffee, 1}]
+
+  """
+  @spec uniq_by(Enumerable.t, (element -> term)) :: Enumerable.t
+  def uniq_by(enum, fun) do
+    lazy enum, %{}, fn f1 -> R.uniq_by(fun, f1) end
   end
 
   @doc """
