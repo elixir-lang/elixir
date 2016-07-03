@@ -479,10 +479,9 @@ defmodule Mix.Utils do
   end
 
   defp no_proxy_list(no_proxy_str) do
-    no_proxy_list = String.split(no_proxy_str, ",")
-    for item <- no_proxy_list do
-      to_charlist(item)
-    end
+    no_proxy_str
+    |> String.split(",")
+    |> Enum.map(&to_charlist/1)
   end
 
   defp proxy_setup(scheme, proxy, no_proxy) do
