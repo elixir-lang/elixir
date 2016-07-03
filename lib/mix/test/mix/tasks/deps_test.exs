@@ -238,6 +238,21 @@ defmodule Mix.Tasks.DepsTest do
     end
   end
 
+  test "unlocks filtered deps", context do
+    Mix.Project.push DepsApp
+    in_tmp context.test, fn ->
+      Mix.Dep.Lock.write %{git_repo: "abcdef", another: "hash", another_one: "hash"}
+      Mix.Tasks.Deps.Unlock.run ["--filter", "another"]
+      assert Mix.Dep.Lock.read == %{git_repo: "abcdef"}
+      output = """
+      Unlocked deps:
+      * another
+      * another_one
+      """
+      assert_received {:mix_shell, :info, [^output]}
+    end
+  end
+
   ## Deps environment
 
   defmodule DepsEnvApp do
