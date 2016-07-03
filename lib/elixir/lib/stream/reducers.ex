@@ -195,7 +195,7 @@ defmodule Stream.Reducers do
     end
   end
 
-  defmacro uniq(callback, f \\ nil) do
+  defmacro uniq_by(callback, f \\ nil) do
     quote do
       fn(entry, acc(h, prev, t) = acc) ->
         value = unquote(callback).(entry)

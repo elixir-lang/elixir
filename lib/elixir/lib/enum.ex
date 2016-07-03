@@ -2381,6 +2381,7 @@ defmodule Enum do
 
   The function `fun` maps every element to a term which is used to
   determine if two elements are duplicates.
+
   ## Example
 
       iex> Enum.uniq_by([{1, :x}, {2, :y}, {1, :z}], fn {x, _} -> x end)
@@ -2397,7 +2398,7 @@ defmodule Enum do
   end
 
   def uniq_by(enumerable, fun) when is_function(fun, 1) do
-    {list, _} = reduce(enumerable, {[], %{}}, R.uniq(fun))
+    {list, _} = reduce(enumerable, {[], %{}}, R.uniq_by(fun))
     :lists.reverse(list)
   end
 

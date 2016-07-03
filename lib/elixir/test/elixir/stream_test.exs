@@ -865,12 +865,20 @@ defmodule StreamTest do
     assert Enum.zip(list, list) == Enum.zip(stream, stream)
   end
 
-  test "uniq/1" do
+  test "uniq/1 & uniq/2" do
     assert Stream.uniq([1, 2, 3, 2, 1]) |> Enum.to_list ==
            [1, 2, 3]
 
     assert Stream.uniq([{1, :x}, {2, :y}, {1, :z}], fn {x, _} -> x end) |> Enum.to_list ==
            [{1, :x}, {2, :y}]
+  end
+
+  test "uniq_by/2" do
+    assert Stream.uniq_by([{1, :x}, {2, :y}, {1, :z}], fn {x, _} -> x end) |> Enum.to_list ==
+           [{1, :x}, {2, :y}]
+
+    assert Stream.uniq_by([a: {:tea, 2}, b: {:tea, 2}, c: {:coffee, 1}], fn {_, y} -> y end) |> Enum.to_list ==
+           [a: {:tea, 2}, c: {:coffee, 1}]
   end
 
   test "zip/2" do
