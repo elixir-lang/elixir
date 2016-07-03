@@ -33,9 +33,7 @@ defmodule Mix.Tasks.Deps.Unlock do
         lock = Mix.Dep.Lock.read
         apps = Map.keys(lock)
 
-        unlock =
-          apps
-          |> Enum.filter(&String.contains?("#{&1}", filter))
+        unlock = Enum.filter(apps, &(Atom.to_string(&1) =~ filter))
 
         if unlock == [] do
           Mix.shell.error "warning: no dependencies were matched"
