@@ -1863,7 +1863,7 @@ defmodule Kernel do
   In case any entry returns `nil`, its key will be removed
   and the deletion will be considered a success.
   """
-  @spec pop_in(Access.t, nonempty_list(term)) :: Access.t
+  @spec pop_in(Access.t, nonempty_list(term)) :: {term, Access.t}
   def pop_in(data, keys)
   def pop_in(nil, [h | _]), do: Access.pop(nil, h)
   def pop_in(data, keys), do: do_pop_in(data, keys)
