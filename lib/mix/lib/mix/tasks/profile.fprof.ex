@@ -126,16 +126,16 @@ defmodule Mix.Tasks.Profile.Fprof do
       strict: @switches)
 
     # TODO: Remove on v2.0
-    {opts, parallel?} =
-      Enum.map_reduce(opts, false, fn
-        {:parallel_require, value}, _parallel? ->
+    opts =
+      Enum.reduce(opts, [], fn
+        {:parallel_require, value}, acc ->
           IO.warn "the --parallel-require option is deprecated in favour of using " <>
             "--parallel to make all requires parallel and --require VAL for requiring"
-          {{:require, value}, true}
-        opt, parallel? ->
-          {opt, parallel?}
+          Keyword.put([{:require, value} | acc], :parallel, true)
+        opt, acc ->
+          [opt | acc]
       end)
-    opts = if parallel?, do: Keyword.put(opts, :parallel, true), else: opts
+      |> Enum.reverse
 
     {file, argv} =
       case {Keyword.has_key?(opts, :eval), head} do
@@ -175,7 +175,7 @@ defmodule Mix.Tasks.Profile.Fprof do
   end
 
   defp process_load(opts) do
-    require_fun =
+    require_runner =
       if opts[:parallel] do
         &Kernel.ParallelRequire.files/1
       else
@@ -188,7 +188,7 @@ defmodule Mix.Tasks.Profile.Fprof do
           [] ->
             Mix.raise "No files matched pattern #{inspect value} given to --require"
           filtered ->
-            require_fun.(filtered)
+            require_runner.(filtered)
         end
       {:eval, value} ->
         profile_code(value, opts)
