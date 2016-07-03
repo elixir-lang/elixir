@@ -177,7 +177,6 @@ defmodule Mix.Tasks.Test do
 
     if opts[:listen_on_stdin] do
       try do
-        Process.flag(:trap_exit, true)
         do_run(args, opts, files)
       catch
         kind, reason -> IO.puts(Exception.format(kind, reason, System.stacktrace()))
