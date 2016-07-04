@@ -1542,7 +1542,7 @@ defmodule Enum do
   ## Examples
 
       # Although not necessary, let's seed the random algorithm
-      iex> :rand.seed(:exsplus, {1, 2, 3})
+      iex> :rand.seed(:exsplus, {101, 102, 103})
       iex> Enum.random([1, 2, 3])
       2
       iex> Enum.random([1, 2, 3])
@@ -1550,10 +1550,22 @@ defmodule Enum do
 
   """
   @spec random(t) :: element | no_return
+  def random(enumerable)
+
+  def random(first..last),
+    do: random_integer(first, last)
+
   def random(enumerable) do
-    case take_random(enumerable, 1) do
-      [] -> raise Enum.EmptyError
-      [e] -> e
+    case Enumerable.count(enumerable) do
+      {:ok, 0} ->
+        raise Enum.EmptyError
+      {:ok, count} ->
+        at(enumerable, random_integer(0, count - 1))
+      {:error, _} ->
+        case take_random(enumerable, 1) do
+          []     -> raise Enum.EmptyError
+          [elem] -> elem
+        end
     end
   end
 
@@ -2247,9 +2259,9 @@ defmodule Enum do
       # Although not necessary, let's seed the random algorithm
       iex> :rand.seed(:exsplus, {1, 2, 3})
       iex> Enum.take_random(1..10, 2)
-      [5, 8]
+      [5, 4]
       iex> Enum.take_random(?a..?z, 5)
-      'fhjni'
+      'ipybz'
 
   """
   @spec take_random(t, non_neg_integer) :: list
@@ -2259,14 +2271,10 @@ defmodule Enum do
     do: []
   def take_random(first..first, count) when is_integer(count) and count >= 1,
     do: [first]
-  def take_random(first..last, 1) when first > last,
-    do: take_random(last..first, 1)
-  def take_random(first..last, 1),
-    do: [random_index(last - first) + first]
 
   def take_random(enumerable, count) when is_integer(count) and count > 128 do
     reducer = fn(elem, {idx, sample}) ->
-      jdx = random_index(idx)
+      jdx = random_integer(0, idx)
       cond do
         idx < count ->
           value = Map.get(sample, jdx)
@@ -2286,7 +2294,7 @@ defmodule Enum do
     sample = Tuple.duplicate(nil, count)
 
     reducer = fn(elem, {idx, sample}) ->
-      jdx = random_index(idx)
+      jdx = random_integer(0, idx)
       cond do
         idx < count ->
           value = elem(sample, jdx)
@@ -2495,8 +2503,14 @@ defmodule Enum do
   defp enum_to_string(entry) when is_binary(entry), do: entry
   defp enum_to_string(entry), do: String.Chars.to_string(entry)
 
-  defp random_index(n) do
-    :rand.uniform(n + 1) - 1
+  defp random_integer(limit, limit) when is_integer(limit),
+    do: limit
+
+  defp random_integer(lower_limit, upper_limit) when upper_limit < lower_limit,
+    do: random_integer(upper_limit, lower_limit)
+
+  defp random_integer(lower_limit, upper_limit) do
+    lower_limit + :rand.uniform(upper_limit - lower_limit + 1) - 1
   end
 
   ## Implementations
