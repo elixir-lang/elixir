@@ -225,16 +225,16 @@ defmodule Mix.Dep do
   def format_status(%Mix.Dep{app: app, status: {:divergedonly, other}} = dep) do
     recommendation =
       if Keyword.has_key?(other.opts, :only) do
-        "Ensure the parent dependency specifies a superset of the child one in"
+        "Ensure you specify at least the same environments in :only in your dep"
       else
-        "Remove the :only restriction from"
+        "Remove the :only restriction from your dep"
       end
 
-    "the dependency #{app}\n" <>
+    "the :only option for dependency #{app}\n" <>
     "#{dep_status(dep)}" <>
-    "\n  does not match the environments calculated for\n" <>
+    "\n  does not match the :only option calculated for\n" <>
     "#{dep_status(other)}" <>
-    "\n  #{recommendation} your dep"
+    "\n  #{recommendation}"
   end
 
   def format_status(%Mix.Dep{app: app, status: {:diverged, other}} = dep) do
