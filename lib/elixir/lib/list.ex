@@ -277,7 +277,7 @@ defmodule List do
       false
 
   """
-  @spec keymember?([tuple], any, non_neg_integer) :: any
+  @spec keymember?([tuple], any, non_neg_integer) :: boolean
   def keymember?(list, key, position) do
     :lists.keymember(key, position + 1, list)
   end
