@@ -147,7 +147,7 @@ defmodule Access do
   @doc """
   Invoked when someone wants to access the value stored under `key` in your structure. if `key` is not found, the second argument is returned.
 
-  This is also the method that is used when someone calls `your_structure[some_key]`.
+  This is the method that is used when someone calls `your_structure[some_key]`.
 
   For some data structures, it might be possible to implement it by internally calling `fetch/2`, but for others this is not possible. 
   This is why both `fetch/2` and `get/3` exist.
@@ -161,10 +161,11 @@ defmodule Access do
   
   The implementation should invoke the passed function on the value inside key `key` in the passed structure.
   This function will return a tuple in the form of `{received_value, new_value}`.
-  The returned `new_value` should be used to create an updated structure, where `new_value` is stored under `key` instead of its original value.
+  
+  The returned `new_value` should then be used to create an updated structure, where `new_value` is stored under `key` instead of its original value.
   Finally, the implementation should return the tuple `{received_value, updated_structure}`
 
-  See `Map.get-and_update/3` or `Keyword.get-and_update/3` for example implementations.
+  See `Map.get_and_update/3` or `Keyword.get_and_update/3` for example implementations.
   """
   @callback get_and_update(t, key, (value -> {value, value} | :pop)) :: {value, t}
   
