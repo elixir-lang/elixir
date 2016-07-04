@@ -496,7 +496,7 @@ defmodule Mix.DepTest do
         Mix.Tasks.Deps.run([])
         assert_received {:mix_shell, :info, ["* git_repo" <> _]}
         assert_received {:mix_shell, :info, [msg]}
-        assert msg =~ "Ensure the parent dependency specifies a superset of the child one"
+        assert msg =~ "Ensure you specify at least the same environments in :only in your dep"
       end
     end
   end
