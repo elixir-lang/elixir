@@ -141,9 +141,9 @@ defmodule ExUnit.FormatterTest do
 
          Failure #2
          Assertion with == failed
-         code: 1 == 2
-         lhs:  1
-         rhs:  2
+         code:  1 == 2
+         left:  1
+         right: 2
     """
   end
 
@@ -160,9 +160,9 @@ defmodule ExUnit.FormatterTest do
     assert format_test_case_failure(test_case(), failure, 1, :infinity, &formatter/2) =~ """
       1) Hello: failure on setup_all callback, tests invalidated
          Assertion with == failed
-         code: [1, 2, 3] == [4, 5, 6]
-         lhs:  [1, 2, 3]
-         rhs:  [4, 5, 6]
+         code:  [1, 2, 3] == [4, 5, 6]
+         left:  [1, 2, 3]
+         right: [4, 5, 6]
     """
   end
 
@@ -171,13 +171,13 @@ defmodule ExUnit.FormatterTest do
     assert format_test_case_failure(test_case(), failure, 1, 15, &formatter/2) =~ """
       1) Hello: failure on setup_all callback, tests invalidated
          Assertion with == failed
-         code: [1, 2, 3] == [4, 5, 6]
-         lhs:  [1,
-                2,
-                3]
-         rhs:  [4,
-                5,
-                6]
+         code:  [1, 2, 3] == [4, 5, 6]
+         left:  [1,
+                 2,
+                 3]
+         right: [4,
+                 5,
+                 6]
     """
   end
 
@@ -213,9 +213,9 @@ defmodule ExUnit.FormatterTest do
       1) world (Hello)
          test/ex_unit/formatter_test.exs:1
          Assertion with == failed
-         code: :will_fail == %BadInspect{}
-         lhs:  :will_fail
-         rhs:  %Inspect.Error{message: #{inspect message}}
+         code:  :will_fail == %BadInspect{}
+         left:  :will_fail
+         right: %Inspect.Error{message: #{inspect message}}
     """
   end
 

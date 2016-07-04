@@ -608,8 +608,8 @@ defmodule ExUnit.AssertionsTest do
 
 
       match (=) failed
-      code: :a = :b
-      rhs:  :b
+      code:  :a = :b
+      right: :b
       """ = Exception.message(error)
   end
 
