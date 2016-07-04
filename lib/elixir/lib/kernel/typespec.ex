@@ -448,7 +448,7 @@ defmodule Kernel.Typespec do
   defp translate_spec(kind, meta, name, args, return, guard, caller) when is_atom(args),
     do: translate_spec(kind, meta, name, [], return, guard, caller)
   defp translate_spec(:macrocallback, meta, name, args, return, guard, caller),
-    do: translate_spec(:callback, meta, :"MACRO-#{name}", [quote(do: env :: Macro.Env.t) | args], return, guard, caller)
+    do: translate_spec(:callback, meta, :"MACRO-#{name}", macro_args(args), return, guard, caller)
   defp translate_spec(kind, meta, name, args, return, guard, caller) do
     ensure_no_defaults!(args)
 
@@ -468,6 +468,10 @@ defmodule Kernel.Typespec do
 
     arity = length(args)
     {{kind, {name, arity}, spec}, caller.line}
+  end
+
+  defp macro_args(args) do
+    [quote(do: {line :: Macro.Env.line, env :: Macro.Env.t}) | args]
   end
 
   defp ensure_no_defaults!(args) do
