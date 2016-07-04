@@ -150,11 +150,20 @@ defmodule EnumTest do
   end
 
   test "fetch/2" do
+    assert Enum.fetch([66], 0) == {:ok, 66}
+    assert Enum.fetch([66], -1) == {:ok, 66}
+    assert Enum.fetch([66], 1) == :error
+    assert Enum.fetch([66], -2) == :error
+
     assert Enum.fetch([2, 4, 6], 0) == {:ok, 2}
+    assert Enum.fetch([2, 4, 6], -1) == {:ok, 6}
     assert Enum.fetch([2, 4, 6], 2) == {:ok, 6}
     assert Enum.fetch([2, 4, 6], 4) == :error
     assert Enum.fetch([2, 4, 6], -2) == {:ok, 4}
     assert Enum.fetch([2, 4, 6], -4) == :error
+
+    assert Enum.fetch([], 0) == :error
+    assert Enum.fetch([], 1) == :error
   end
 
   test "fetch!/2" do
@@ -1290,6 +1299,15 @@ defmodule EnumTest.Map do
     assert Enum.reverse([], %{}) == []
     assert Enum.reverse(%{a: 1}, []) == [a: 1]
     assert Enum.reverse(MapSet.new, %{}) == []
+  end
+
+  test "fetch/2" do
+    map = %{a: 1, b: 2, c: 3, d: 4, e: 5}
+    assert Enum.fetch(map, 0) == {:ok, {:a, 1}}
+    assert Enum.fetch(map, -2) == {:ok, {:d, 4}}
+    assert Enum.fetch(map, -6) == :error
+    assert Enum.fetch(map, 5) == :error
+    assert Enum.fetch(%{}, 0) == :error
   end
 end
 

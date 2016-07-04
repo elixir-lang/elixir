@@ -708,6 +708,9 @@ defmodule Enum do
       iex> Enum.fetch([2, 4, 6], 0)
       {:ok, 2}
 
+      iex> Enum.fetch([2, 4, 6], -3)
+      {:ok, 2}
+
       iex> Enum.fetch([2, 4, 6], 2)
       {:ok, 6}
 
@@ -717,32 +720,68 @@ defmodule Enum do
   """
   @spec fetch(t, integer) :: {:ok, element} | :error
   def fetch(enumerable, index)
-  def fetch(first..last, index) when is_integer(index),
-    do: fetch_range(first, last, index)
 
-  def fetch(enumerable, index)
-      when is_list(enumerable) and is_integer(index) and index >= 0 do
-    do_fetch(enumerable, index)
-  end
+  def fetch(enumerable, index) when is_integer(index) and index < 0 do
+    case enumerable do
+      first..last ->
+        fetch_range(first, last, index)
 
-  def fetch(enumerable, index) when is_integer(index) and index >= 0 do
-    res =
-      Enumerable.reduce(enumerable, {:cont, 0}, fn(entry, acc) ->
-        if acc == index do
-          {:halt, entry}
-        else
-          {:cont, acc + 1}
+      _ ->
+        case Enumerable.count(enumerable) do
+          {:ok, count} when (count + index) < 0 ->
+            :error
+
+          {:ok, count} ->
+            fetch_enumerable(enumerable, count + index, Enumerable)
+
+          {:error, _} ->
+            enumerable
+            |> reverse
+            |> fetch_list((-index) - 1)
         end
-      end)
-
-    case res do
-      {:halted, entry} -> {:ok, entry}
-      {:done, _} -> :error
     end
   end
 
-  def fetch(enumerable, index) when is_integer(index) and index < 0 do
-    do_fetch(reverse(enumerable), abs(index + 1))
+  def fetch(enumerable, index) when is_list(enumerable) and is_integer(index) do
+    fetch_list(enumerable, index)
+  end
+
+  def fetch(first..last, index) when is_integer(index) do
+    fetch_range(first, last, index)
+  end
+
+  def fetch(enumerable, index) when is_integer(index) do
+    count_res =
+      case Enumerable.count(enumerable) do
+        {:ok, count} when (count - 1 - index) < 0 ->
+          :error
+        {:ok, _} ->
+          {:ok, Enumerable}
+        {:error, module} ->
+          {:ok, module}
+      end
+
+    case count_res do
+      :error ->
+        :error
+      {:ok, module} ->
+        fetch_enumerable(enumerable, index, module)
+    end
+  end
+
+  defp fetch_enumerable(enumerable, index, module) do
+    reduce_res =
+      module.reduce(enumerable, {:cont, 0}, fn
+        entry, ^index ->
+          {:halt, entry}
+        _entry, acc ->
+         {:cont, acc + 1}
+      end)
+
+    case reduce_res do
+      {:halted, entry} -> {:ok, entry}
+      {:done, _} -> :error
+    end
   end
 
   @doc """
@@ -2572,9 +2611,12 @@ defmodule Enum do
 
   ## fetch
 
-  defp do_fetch([h | _], 0), do: {:ok, h}
-  defp do_fetch([_ | t], n), do: do_fetch(t, n - 1)
-  defp do_fetch([], _),      do: :error
+  defp fetch_list([], _index),
+    do: :error
+  defp fetch_list([head | _], 0),
+    do: {:ok, head}
+  defp fetch_list([_ | tail], index),
+    do: fetch_list(tail, index - 1)
 
   defp fetch_range(first, last, index) when first <= last and index >= 0 do
     item = first + index
