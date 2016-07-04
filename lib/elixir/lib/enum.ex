@@ -717,6 +717,10 @@ defmodule Enum do
   """
   @spec fetch(t, integer) :: {:ok, element} | :error
   def fetch(enumerable, index)
+  def fetch(first..last, index) when is_integer(index),
+    do: fetch_range(first, last, index)
+
+  def fetch(enumerable, index)
       when is_list(enumerable) and is_integer(index) and index >= 0 do
     do_fetch(enumerable, index)
   end
@@ -2576,6 +2580,26 @@ defmodule Enum do
   defp do_fetch([h | _], 0), do: {:ok, h}
   defp do_fetch([_ | t], n), do: do_fetch(t, n - 1)
   defp do_fetch([], _),      do: :error
+
+  defp fetch_range(first, last, index) when first <= last and index >= 0 do
+    item = first + index
+    if item > last, do: :error, else: {:ok, item}
+  end
+
+  defp fetch_range(first, last, index) when first <= last  do
+    item = last + index + 1
+    if item < first, do: :error, else: {:ok, item}
+  end
+
+  defp fetch_range(first, last, index) when index >= 0 do
+    item = first - index
+    if item < last, do: :error, else: {:ok, item}
+  end
+
+  defp fetch_range(first, last, index) do
+    item = last - index - 1
+    if item > first, do: :error, else: {:ok, item}
+  end
 
   ## find
 
