@@ -119,9 +119,50 @@ defmodule Access do
   @type key :: any
   @type value :: any
 
+  @doc """
+  Invoked when someone wants to access the value stored under `key` in your structure.
+
+  This function is supposed to return the tuple `{:ok, value}` if it succeeded, or `:error` if the key does not exist in the structure.
+
+  Many of the functions defined in the `Access` module internally call this function.
+
+  See `Map.fetch/2` and `Keyword.fetch/2` for example implementations.
+
+  """
   @callback fetch(t, key) :: {:ok, value} | :error
+
+  @doc """
+  Invoked when someone wants to access the value stored under `key` in your structure. if `key` is not found, the second argument is returned.
+
+  This is also the method that is used when someone calls `your_structure[some_key]`.
+
+  For some data structures, it might be possible to implement it by internally calling `fetch/2`, but for others this is not possible. 
+  This is why both `fetch/2` and `get/3` exist.
+
+  See `Map.get/3` and `Keyword.get/3` for example implementations.
+  """
   @callback get(t, key, value) :: value
+
+  @doc """
+  Invoked when someone calls `Access.get_and_update/3`
+  
+  The implementation should invoke the passed function on the value inside key `key` in the passed structure.
+  This function will return a tuple in the form of `{received_value, new_value}`.
+  The returned `new_value` should be used to create an updated structure, where `new_value` is stored under `key` instead of its original value.
+  Finally, the implementation should return the tuple `{received_value, updated_structure}`
+
+  See `Map.get-and_update/3` or `Keyword.get-and_update/3` for example implementations.
+  """
   @callback get_and_update(t, key, (value -> {value, value} | :pop)) :: {value, t}
+  
+  @doc """
+  Invoked when someone calls `Access.pop/2`, and also used internally by some functions.
+
+  The implementation should remove `key` and whatever is inside it from the passed structure.
+  The result value should be the tuple `{removed_value, updated_structure}`
+
+  See `Map.pop/2` or `Keyword.pop/2` for example implementations.
+  """
   @callback pop(t, key) :: {value, t}
 
   defmacrop raise_undefined_behaviour(e, struct, top) do
