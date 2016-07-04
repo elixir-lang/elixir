@@ -113,6 +113,19 @@ defmodule Access do
 
   See the functions `key/1`, `key!/1`, `elem/1` and `all/0` for the current
   accessors.
+
+  ## Adding the Access behaviour to your own data structures
+  
+  If you want to be able to use the Access protocol with your own data structures, you can do so by adding
+
+  ```
+  @behaviour Access
+  ```
+
+  inside the module that contains the struct representing your data structure.
+  You will then need to define implementations of `fetch/2`, `get/3`, `get_and_update/3` and `pop/2`,
+  which will be invoked whenever one of the Access functions is used. 
+
   """
 
   @type t :: list | map | nil
