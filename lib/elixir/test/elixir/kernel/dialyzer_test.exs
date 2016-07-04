@@ -21,8 +21,9 @@ defmodule Kernel.DialyzerTest do
       System.put_env("HOME", System.user_home())
     end
 
-    # Add a few key elixir modules for types
-    files = Enum.map([Kernel, String, Keyword, Exception], &:code.which/1)
+    # Add a few key elixir modules for types and macro functions
+    mods = [Kernel, String, Keyword, Exception, Macro, Macro.Env, :elixir_env]
+    files = Enum.map(mods, &:code.which/1)
     :dialyzer.run([analysis_type: :plt_build, output_plt: plt,
                    apps: [:erts], files: files])
 
@@ -66,6 +67,12 @@ defmodule Kernel.DialyzerTest do
 
   test "no warnings on raise", context do
     copy_beam! context, Dialyzer.Raise
+    assert_dialyze_no_warnings! context
+  end
+
+  test "no warnings on macrocallback", context do
+    copy_beam! context, Dialyzer.Macrocallback
+    copy_beam! context, Dialyzer.Macrocallback.Impl
     assert_dialyze_no_warnings! context
   end
 
