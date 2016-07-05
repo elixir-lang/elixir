@@ -306,10 +306,11 @@ defmodule Access do
   end
 
   @doc """
-  Removes the entry with a given key from a struct, map, or keyword list.
-  Returns a tuple containing the value associated with the key and
-  the updated container. `nil` is returned for the value if the key
-  isn't in the container.
+  Removes the entry with a given key from a container: a map, keyword
+  list, or anything that implements the `Access` behaviour. Returns a
+  tuple containing the value associated with the key and the updated
+  container. `nil` is returned for the value if the key isn't in the
+  container.
 
   The name has nothing to do with the `pop` stack operation.
 
