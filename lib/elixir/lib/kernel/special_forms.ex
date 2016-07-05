@@ -29,19 +29,21 @@ defmodule Kernel.SpecialForms do
   @doc """
   Creates a tuple.
 
-  Only two item tuples are considered literals in Elixir.
-  Therefore all other tuples are represented in the AST
-  as a call to the special form `:{}`.
+  More information about the tuple data type and about functions to manipulate
+  tuples can be found in the `Tuple` module; some functions for working with
+  tuples are also available in `Kernel` (such as `Kernel.elem/2` or
+  `Kernel.tuple_size/1`).
 
-  Conveniences for manipulating tuples can be found in the
-  `Tuple` module. Some functions for working with tuples are
-  also available in `Kernel`, namely `Kernel.elem/2`,
-  `Kernel.put_elem/3` and `Kernel.tuple_size/1`.
+  ## AST representation
 
-  ## Examples
+  Only two-item tuples are considered literals in Elixir and return themselves
+  when quoted. Therefore all other tuples are represented in the AST as calls to
+  the `:{}` special form.
 
-      iex> {1, 2, 3}
-      {1, 2, 3}
+      iex> quote do
+      ...>   {1, 2}
+      ...> end
+      {1, 2}
 
       iex> quote do
       ...>   {1, 2, 3}
