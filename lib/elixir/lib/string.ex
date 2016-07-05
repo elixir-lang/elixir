@@ -615,6 +615,7 @@ defmodule String do
       "ola ola world"
 
   """
+  @spec replace_leading(t, t, t) :: t
   def replace_leading(string, match, replacement)
       when is_binary(string) and is_binary(match) and is_binary(replacement) do
     prefix_size = byte_size(match)
@@ -653,6 +654,7 @@ defmodule String do
       "hello mundo mundo"
 
   """
+  @spec replace_trailing(t, t, t) :: t
   def replace_trailing(string, match, replacement)
       when is_binary(string) and is_binary(match) and is_binary(replacement) do
     suffix_size = byte_size(match)
@@ -695,6 +697,7 @@ defmodule String do
       "ola hello world"
 
   """
+  @spec replace_prefix(t, t, t) :: t
   def replace_prefix(string, match, replacement)
       when is_binary(string) and is_binary(match) and is_binary(replacement) do
     prefix_size = byte_size(match)
@@ -730,6 +733,7 @@ defmodule String do
       "hello world mundo"
 
   """
+  @spec replace_suffix(t, t, t) :: t
   def replace_suffix(string, match, replacement)
       when is_binary(string) and is_binary(match) and is_binary(replacement) do
     suffix_size = byte_size(match)
