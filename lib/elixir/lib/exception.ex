@@ -240,7 +240,7 @@ defmodule Exception do
   defp format_exit_reason(:noconnection), do: "no connection"
 
   defp format_exit_reason(:noproc) do
-    "no process"
+    "no process: the process is not alive or there's no process currently associated with the given name, possibly because its application isn't started"
   end
 
   defp format_exit_reason({:nodedown, node_name}) when is_atom(node_name) do
