@@ -1,15 +1,17 @@
-defmodule Mix.Tasks.Deps.Check do
+defmodule Mix.Tasks.Deps.Loadpaths do
   use Mix.Task
 
   import Mix.Dep, only: [loaded_by_name: 2, format_dep: 1, ok?: 1,
                          format_status: 1, check_lock: 1]
 
   @moduledoc """
-  Checks if all dependencies are valid,
-  loading them along the way.
+  Checks and loads all dependencies along the way.
 
   If there is an invalid dependency, its status is printed
   before aborting.
+
+  Although this task does not show up in `mix help`, it is
+  part of Mix public API and can be depended on.
 
   ## Command line options
 

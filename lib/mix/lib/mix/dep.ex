@@ -64,7 +64,7 @@ defmodule Mix.Dep do
   @doc """
   Returns loaded dependencies from the cache for the current environment.
 
-  Because the dependencies are cached during deps.check, their
+  Because the dependencies are cached during deps.loadpaths, their
   status may be outdated (for example, `:compile` did not
   yet become `:ok`). Therefore it is recommended to not rely
   on their status, also given they haven't been checked

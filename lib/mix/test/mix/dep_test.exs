@@ -346,12 +346,12 @@ defmodule Mix.DepTest do
         refute_received {:mix_shell, :info, ["* Getting" <> _]}
 
         assert_raise Mix.Error, "Can't continue due to errors on dependencies", fn ->
-          Mix.Tasks.Deps.Check.run([])
+          Mix.Tasks.Deps.Loadpaths.run([])
         end
 
         Mix.ProjectStack.clear_cache()
         Mix.env(:prod)
-        Mix.Tasks.Deps.Check.run([])
+        Mix.Tasks.Deps.Loadpaths.run([])
       end
     end
   end

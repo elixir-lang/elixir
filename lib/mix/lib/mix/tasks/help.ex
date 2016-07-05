@@ -107,7 +107,7 @@ defmodule Mix.Tasks.Help do
   defp loadpaths! do
     Mix.Task.run "loadpaths", ["--no-elixir-version-check", "--no-deps-check", "--no-archives-check"]
     Mix.Task.reenable "loadpaths"
-    Mix.Task.reenable "deps.check"
+    Mix.Task.reenable "deps.loadpaths"
   end
 
   defp load_tasks() do

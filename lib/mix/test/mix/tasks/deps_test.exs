@@ -121,13 +121,13 @@ defmodule Mix.Tasks.DepsTest do
     end
   end
 
-  ## deps.check
+  ## deps.loadpaths
 
   test "checks list of dependencies and their status with success" do
     Mix.Project.push SuccessfulDepsApp
 
     in_fixture "deps_status", fn ->
-      Mix.Tasks.Deps.Check.run []
+      Mix.Tasks.Deps.Loadpaths.run []
     end
   end
 
@@ -136,7 +136,7 @@ defmodule Mix.Tasks.DepsTest do
 
     in_fixture "deps_status", fn ->
       assert_raise Mix.Error, fn ->
-        Mix.Tasks.Deps.Check.run []
+        Mix.Tasks.Deps.Loadpaths.run []
       end
 
       assert_received {:mix_shell, :error, ["* ok (https://github.com/elixir-lang/ok.git)"]}
@@ -160,7 +160,7 @@ defmodule Mix.Tasks.DepsTest do
       File.rm_rf("_build")
 
       Mix.Tasks.Deps.Compile.run []
-      Mix.Tasks.Deps.Check.run []
+      Mix.Tasks.Deps.Loadpaths.run []
       assert File.exists?("_build/dev/lib/ok/ebin/ok.app")
       assert File.exists?("_build/dev/lib/ok/priv/sample")
 
@@ -174,7 +174,7 @@ defmodule Mix.Tasks.DepsTest do
       Mix.Project.pop
       Mix.Project.push SuccessfulDepsApp
 
-      Mix.Tasks.Deps.Check.run []
+      Mix.Tasks.Deps.Loadpaths.run []
       refute to_charlist(Path.expand("_build/dev/lib/ok/ebin/")) in :code.get_path
       assert File.exists?("_build/dev/lib/ok/ebin/ok.app")
       assert File.exists?("_build/dev/lib/sample/ebin/sample.app")
@@ -185,7 +185,7 @@ defmodule Mix.Tasks.DepsTest do
       Mix.Project.pop
       Mix.Project.push SuccessfulDepsApp
 
-      Mix.Tasks.Deps.Check.run []
+      Mix.Tasks.Deps.Loadpaths.run []
       refute File.exists?("_build/dev/lib/ok/ebin/ok.app")
       assert File.exists?("_build/dev/lib/sample/ebin/sample.app")
     end
@@ -379,7 +379,7 @@ defmodule Mix.Tasks.DepsTest do
 
     in_fixture "deps_status", fn ->
       assert_raise Mix.Error, fn ->
-        Mix.Tasks.Deps.Check.run []
+        Mix.Tasks.Deps.Loadpaths.run []
       end
       assert_received {:mix_shell, :error, ["  the dependency git_repo in mix.exs is overriding a child dependency" <> _]}
 
@@ -400,7 +400,7 @@ defmodule Mix.Tasks.DepsTest do
 
     in_fixture "deps_status", fn ->
       assert_raise Mix.Error, fn ->
-        Mix.Tasks.Deps.Check.run []
+        Mix.Tasks.Deps.Loadpaths.run []
       end
 
       assert_received {:mix_shell, :error, ["  different specs were given for the git_repo app:" <> _ = msg]}
@@ -431,7 +431,7 @@ defmodule Mix.Tasks.DepsTest do
 
       assert_raise Mix.Error, fn ->
         Mix.Tasks.Deps.Get.run []
-        Mix.Tasks.Deps.Check.run []
+        Mix.Tasks.Deps.Loadpaths.run []
       end
 
       assert_received {:mix_shell, :error, ["  the dependency git_repo 0.1.0" <> _ = msg]}
@@ -462,7 +462,7 @@ defmodule Mix.Tasks.DepsTest do
 
       assert_raise Mix.Error, fn ->
         Mix.Tasks.Deps.Get.run []
-        Mix.Tasks.Deps.Check.run []
+        Mix.Tasks.Deps.Loadpaths.run []
       end
 
       assert_received {:mix_shell, :error, ["  the dependency git_repo in mix.exs is overriding" <> _]}
@@ -518,7 +518,7 @@ defmodule Mix.Tasks.DepsTest do
 
     in_fixture "deps_status", fn ->
       assert_raise Mix.Error, fn ->
-        Mix.Tasks.Deps.Check.run []
+        Mix.Tasks.Deps.Loadpaths.run []
       end
 
       receive do
@@ -538,7 +538,7 @@ defmodule Mix.Tasks.DepsTest do
 
     in_fixture "deps_status", fn ->
       Mix.Tasks.Deps.Compile.run []
-      Mix.Tasks.Deps.Check.run []
+      Mix.Tasks.Deps.Loadpaths.run []
 
       File.mkdir_p!("_build/dev/lib/ok/ebin")
       manifest_data = :erlang.term_to_binary({:v1, "the_future", :scm})
@@ -550,8 +550,8 @@ defmodule Mix.Tasks.DepsTest do
       Mix.Tasks.Deps.run []
       assert_received {:mix_shell, :info, [^msg]}
 
-      # deps.check will automatically recompile it
-      Mix.Tasks.Deps.Check.run []
+      # deps.loadpaths will automatically recompile it
+      Mix.Tasks.Deps.Loadpaths.run []
 
       Mix.Tasks.Deps.run []
       refute_received {:mix_shell, :info, [^msg]}
@@ -563,7 +563,7 @@ defmodule Mix.Tasks.DepsTest do
 
     in_fixture "deps_status", fn ->
       Mix.Tasks.Deps.Compile.run []
-      Mix.Tasks.Deps.Check.run []
+      Mix.Tasks.Deps.Loadpaths.run []
 
       File.mkdir_p!("_build/dev/lib/ok/ebin")
       manifest_data = :erlang.term_to_binary({:v1, System.version, :scm})
@@ -575,8 +575,8 @@ defmodule Mix.Tasks.DepsTest do
       Mix.Tasks.Deps.run []
       assert_received {:mix_shell, :info, [^msg]}
 
-      # deps.check will automatically recompile it
-      Mix.Tasks.Deps.Check.run []
+      # deps.loadpaths will automatically recompile it
+      Mix.Tasks.Deps.Loadpaths.run []
 
       Mix.Tasks.Deps.run []
       refute_received {:mix_shell, :info, [^msg]}

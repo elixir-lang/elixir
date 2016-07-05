@@ -14,7 +14,7 @@ defmodule Mix.UmbrellaTest do
 
         # Ensure we can compile and run checks
         Mix.Task.run "deps.compile"
-        Mix.Task.run "deps.check"
+        Mix.Task.run "deps.loadpaths"
         Mix.Task.run "compile", ["--verbose"]
 
         assert_received {:mix_shell, :info, ["==> bar"]}
