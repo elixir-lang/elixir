@@ -305,6 +305,32 @@ defmodule Access do
       "could not put/update key #{inspect key} on a nil value"
   end
 
+  @doc """
+  Removes the entry with a given key from a struct, map, or keyword list.
+  Returns a tuple containing the value associated with the key and
+  the updated container. `nil` is returned for the value if the key
+  isn't in the container.
+
+  The name has nothing to do with the `pop` stack operation.
+
+  ## Examples
+
+  With a map:
+
+      iex> Access.pop(%{name: "Elixir", creator: "Valim"}, :name)
+      {"Elixir", %{creator: "Valim"}}
+
+  A keyword list:
+
+      iex> Access.pop([name: "Elixir", creator: "Valim"], :name)
+      {"Elixir", [creator: "Valim"]}
+
+  An unknown key:
+
+      iex> Access.pop(%{name: "Elixir", creator: "Valim"}, :year)
+      {nil, %{creator: "Valim", name: "Elixir"}}
+
+  """
   def pop(%{__struct__: struct} = container, key) do
     struct.pop(container, key)
   rescue
