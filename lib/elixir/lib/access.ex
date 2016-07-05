@@ -117,11 +117,9 @@ defmodule Access do
   ## Adding the Access behaviour to your own data structures
   
   If you want to be able to use the Access protocol 
-  with your own data structures, you can do so by adding
+  with your own data structures, you can do so by adding:
 
-  ```
-  @behaviour Access
-  ```
+    @behaviour Access
 
   inside the module that contains the struct representing your data structure.
   You will then need to define implementations of 
