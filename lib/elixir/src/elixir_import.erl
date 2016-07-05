@@ -160,7 +160,7 @@ ensure_keyword_list(Meta, File, _Other, Kind) ->
 %% ERROR HANDLING
 
 format_error({invalid_import, {Receiver, Name, Arity}}) ->
-  io_lib:format("cannot import ~ts.~ts/~B because it doesn't exist or is declared as private",
+  io_lib:format("cannot import ~ts.~ts/~B because it is undefined or private",
     [elixir_aliases:inspect(Receiver), Name, Arity]);
 
 format_error({special_form_conflict, {Receiver, Name, Arity}}) ->
