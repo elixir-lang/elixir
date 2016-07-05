@@ -142,7 +142,7 @@ defmodule ExceptionTest do
     assert Exception.format_exit(:noconnection) == "no connection"
     assert Exception.format_exit({:nodedown, :"node@host"}) == "no connection to node@host"
     assert Exception.format_exit(:timeout) == "time out"
-    assert Exception.format_exit(:noproc) == "no process"
+    assert Exception.format_exit(:noproc) |> String.starts_with?("no process:")
     assert Exception.format_exit(:killed) == "killed"
     assert Exception.format_exit(:normal) == "normal"
     assert Exception.format_exit(:shutdown) == "shutdown"
@@ -259,8 +259,8 @@ defmodule ExceptionTest do
       :exit, reason -> reason
     end
 
-    assert Exception.format_exit(reason) ==
-           "exited in: :gen_server.call(:does_not_exist, :hello)\n    ** (EXIT) no process"
+    expected_to_start_with = "exited in: :gen_server.call(:does_not_exist, :hello)\n    ** (EXIT) no process:"
+    assert Exception.format_exit(reason) |> String.starts_with?(expected_to_start_with)
   end
 
   test "format_exit with call with exception" do
