@@ -533,7 +533,7 @@ defmodule Kernel.ErrorsTest do
 
   test "import invalid macro" do
     assert_compile_fail CompileError,
-      "nofile:1: cannot import Kernel.invalid/1 because it doesn't exist",
+      "nofile:1: cannot import Kernel.invalid/1 because it is undefined or private",
       'import Kernel, only: [invalid: 1]'
   end
 
