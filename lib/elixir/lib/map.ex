@@ -15,13 +15,15 @@ defmodule Map do
 
   Maps do not impose any restriction on the key type: anything can be a key in a
   map. As a key-value structure, maps do not allow duplicated keys; keys are
-  compared using the exact-equality operator (`===`).
+  compared using the exact-equality operator (`===`). If colliding keys are defined
+  in a map literal, the last one prevails.
 
   When the key in a key-value pair is an atom, the `key: value` shorthand syntax
-  can be used:
+  can be used (as in many other special forms), provided key-value pairs are put at
+  the end:
 
-      iex> %{a: 1, b: 2}
-      %{a: 1, b: 2}
+      iex> %{"hello" => "world", a: 1, b: 2}
+      %{:a => 1, :b => 2, "hello" => "world"}
 
   Keys in maps can be accessed through some of the functions in this module
   (such as `Map.get/3` or `Map.fetch/2`) or through the `[]` syntax provided by
