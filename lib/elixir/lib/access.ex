@@ -116,14 +116,16 @@ defmodule Access do
 
   ## Adding the Access behaviour to your own data structures
   
-  If you want to be able to use the Access protocol with your own data structures, you can do so by adding
+  If you want to be able to use the Access protocol 
+  with your own data structures, you can do so by adding
 
   ```
   @behaviour Access
   ```
 
   inside the module that contains the struct representing your data structure.
-  You will then need to define implementations of `fetch/2`, `get/3`, `get_and_update/3` and `pop/2`,
+  You will then need to define implementations of 
+  `fetch/2`, `get/3`, `get_and_update/3` and `pop/2`,
   which will be invoked whenever one of the Access functions is used. 
 
   """
@@ -135,7 +137,8 @@ defmodule Access do
   @doc """
   Invoked when someone wants to access the value stored under `key` in your structure.
 
-  This function is supposed to return the tuple `{:ok, value}` if it succeeded, or `:error` if the key does not exist in the structure.
+  This function is supposed to return the tuple `{:ok, value}` if it succeeded,
+  or `:error` if the key does not exist in the structure.
 
   Many of the functions defined in the `Access` module internally call this function.
 
@@ -145,25 +148,32 @@ defmodule Access do
   @callback fetch(t, key) :: {:ok, value} | :error
 
   @doc """
-  Invoked when someone wants to access the value stored under `key` in your structure. if `key` is not found, the second argument is returned.
+  Invoked when someone wants to access the value stored under `key` in your structure. 
+  If `key` is not found, the second argument is returned.
 
   This is the method that is used when someone calls `your_structure[some_key]`.
 
-  For some data structures, it might be possible to implement it by internally calling `fetch/2`, but for others this is not possible. 
-  This is why both `fetch/2` and `get/3` exist.
+  For most data structures, this can be implemented using `fetch/2` internally.
 
   See `Map.get/3` and `Keyword.get/3` for example implementations.
   """
   @callback get(t, key, value) :: value
 
   @doc """
-  Invoked when someone calls `Access.get_and_update/3`
+  Invoked when someone calls `Access.get_and_update/3`.
   
-  The implementation should invoke the passed function on the value inside key `key` in the passed structure.
-  This function will return a tuple in the form of `{received_value, new_value}`.
+  The implementation should invoke the passed function
+  on the value inside key `key` in the passed structure.
+  This function will return a tuple in the form of `{received_value, new_value}`,
+  or it will return `:pop`.
   
-  The returned `new_value` should then be used to create an updated structure, where `new_value` is stored under `key` instead of its original value.
-  Finally, the implementation should return the tuple `{received_value, updated_structure}`
+  When the function returned a tuple,  `new_value` should then
+  be used to create an updated structure,
+  where `new_value` is stored under `key` instead of its original value.
+  Finally, the implementation should return the tuple `{received_value, updated_structure}`.
+
+  When the function returned `:pop`, the implementation should instead 
+  remove the value from the structure. (making it behave similar to `pop/2`.)
 
   See `Map.get_and_update/3` or `Keyword.get_and_update/3` for example implementations.
   """
@@ -173,7 +183,7 @@ defmodule Access do
   Invoked when someone calls `Access.pop/2`, and also used internally by some functions.
 
   The implementation should remove `key` and whatever is inside it from the passed structure.
-  The result value should be the tuple `{removed_value, updated_structure}`
+  The result value should be the tuple `{removed_value, updated_structure}`.
 
   See `Map.pop/2` or `Keyword.pop/2` for example implementations.
   """
