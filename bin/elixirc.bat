@@ -1,12 +1,12 @@
-@if defined ELIXIR_CLI_ECHO (@echo on) else  (@echo off)
+@if defined ELIXIR_CLI_ECHO (@echo on) else (@echo off)
 setlocal
 set argc=0
 for %%A in (%*) do (
-    if /I "%%A"=="--help" goto documentation
-    if /I "%%A"=="-h"     goto documentation
-    if /I "%%A"=="/h"     goto documentation
-    if    "%%A"=="/?"     goto documentation
-    set /A argc+=1
+  if /I "%%A"=="--help" goto documentation
+  if /I "%%A"=="-h"     goto documentation
+  if /I "%%A"=="/h"     goto documentation
+  if    "%%A"=="/?"     goto documentation
+  set /A argc+=1
 )
 if %argc%==0 goto documentation
 goto run
