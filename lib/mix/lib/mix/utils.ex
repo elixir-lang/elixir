@@ -464,16 +464,32 @@ defmodule Mix.Utils do
   defp proxy_env do
     http_proxy  = System.get_env("HTTP_PROXY")  || System.get_env("http_proxy")
     https_proxy = System.get_env("HTTPS_PROXY") || System.get_env("https_proxy")
+    no_proxy    = no_proxy_env()
+                  |> no_proxy_list()
 
-    {proxy_setup(:http, http_proxy), proxy_setup(:https, https_proxy)}
+    {proxy_setup(:http, http_proxy, no_proxy), proxy_setup(:https, https_proxy, no_proxy)}
   end
 
-  defp proxy_setup(scheme, proxy) do
+  defp no_proxy_env() do
+    System.get_env("NO_PROXY") || System.get_env("no_proxy")
+  end
+
+  defp no_proxy_list(nil) do
+    []
+  end
+
+  defp no_proxy_list(no_proxy_str) do
+    no_proxy_str
+    |> String.split(",")
+    |> Enum.map(&to_charlist/1)
+  end
+
+  defp proxy_setup(scheme, proxy, no_proxy) do
     uri = URI.parse(proxy || "")
 
     if uri.host && uri.port do
       host = String.to_charlist(uri.host)
-      :httpc.set_options([{proxy_scheme(scheme), {{host, uri.port}, []}}], :mix)
+      :httpc.set_options([{proxy_scheme(scheme), {{host, uri.port}, no_proxy}}], :mix)
     end
 
     uri
