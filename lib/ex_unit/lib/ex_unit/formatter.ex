@@ -37,9 +37,7 @@ defmodule ExUnit.Formatter do
 
   import Exception, only: [format_stacktrace_entry: 1, format_file_line: 3]
 
-  @label_padding   "      "
   @counter_padding "     "
-  @inspect_padding @counter_padding <> @label_padding
 
   @doc """
   Formats time taken running the test suite.
@@ -120,18 +118,19 @@ defmodule ExUnit.Formatter do
 
   @doc false
   def format_assertion_error(%ExUnit.AssertionError{} = struct, width, formatter, counter_padding) do
-    padding_size = byte_size(@inspect_padding)
+    label_padding_size = if has_value?(struct.right), do: 7, else: 6
+    padding_size = label_padding_size + byte_size(@counter_padding)
     inspect = &inspect_multiline(&1, padding_size, width)
     {left, right} = format_sides(struct, formatter, inspect)
 
     [
       note: if_value(struct.message, &format_banner(&1, formatter)),
       code: if_value(struct.expr, &code_multiline(&1, padding_size)),
-      lhs: left,
-      rhs: right
+      left: left,
+      right: right
     ]
     |> filter_interesting_fields()
-    |> format_each_field(formatter)
+    |> format_each_field(formatter, label_padding_size)
     |> make_into_lines(counter_padding)
   end
 
@@ -177,9 +176,9 @@ defmodule ExUnit.Formatter do
     Enum.filter(fields, fn {_, value} -> has_value?(value) end)
   end
 
-  defp format_each_field(fields, formatter) do
+  defp format_each_field(fields, formatter, padding_size) do
     Enum.map(fields, fn {label, value} ->
-      format_label(label, formatter) <> value
+      format_label(label, formatter, padding_size) <> value
     end)
   end
 
@@ -191,10 +190,10 @@ defmodule ExUnit.Formatter do
     end
   end
 
-  defp format_label(:note, _formatter), do: ""
+  defp format_label(:note, _formatter, _padding_size), do: ""
 
-  defp format_label(label, formatter) do
-    formatter.(:extra_info, String.pad_trailing("#{label}:", byte_size(@label_padding)))
+  defp format_label(label, formatter, padding_size) do
+    formatter.(:extra_info, String.pad_trailing("#{label}:", padding_size))
   end
 
   defp format_banner(value, formatter) do

@@ -269,7 +269,7 @@ defmodule ExUnit.DocTestTest do
          test/ex_unit/doc_test_test.exs:248
          Doctest failed
          code: 1 + hd(List.flatten([1])) === 3
-         lhs:  2
+         left: 2
          stacktrace:
            test/ex_unit/doc_test_test.exs:130: ExUnit.DocTestTest.Invalid (module)
     """
@@ -279,7 +279,7 @@ defmodule ExUnit.DocTestTest do
          test/ex_unit/doc_test_test.exs:248
          Doctest failed
          code: inspect(:oops) === "#MapSet<[]>"
-         lhs:  ":oops"
+         left: ":oops"
          stacktrace:
            test/ex_unit/doc_test_test.exs:133: ExUnit.DocTestTest.Invalid (module)
     """
