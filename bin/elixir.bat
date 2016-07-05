@@ -72,22 +72,22 @@ IF "%par%"==""--werl"" (Set useWerl=1)
 IF "%par%"==""+iex"" (Set runMode="iex")
 rem ******* ELIXIR PARAMETERS **********************
 rem Note: we don't have to do anything with options that don't take an argument
-IF """"=="%par:-e=%"      (shift) 
-IF """"=="%par:-r=%"      (shift) 
-IF """"=="%par:-pr=%"     (shift) 
-IF """"=="%par:-pa=%"     (shift) 
-IF """"=="%par:-pz=%"     (shift) 
-IF """"=="%par:--app=%"   (shift) 
-IF """"=="%par:--remsh=%" (shift) 
+IF """"=="%par:-e=%"      (shift)
+IF """"=="%par:-r=%"      (shift)
+IF """"=="%par:-pr=%"     (shift)
+IF """"=="%par:-pa=%"     (shift)
+IF """"=="%par:-pz=%"     (shift)
+IF """"=="%par:--app=%"   (shift)
+IF """"=="%par:--remsh=%" (shift)
 rem ******* ERLANG PARAMETERS **********************
-IF """"=="%par:--detached=%"            (Set parsErlang=%parsErlang% -detached) 
+IF """"=="%par:--detached=%"            (Set parsErlang=%parsErlang% -detached)
 IF """"=="%par:--hidden=%"              (Set parsErlang=%parsErlang% -hidden)
 IF """"=="%par:--cookie=%"              (Set parsErlang=%parsErlang% -setcookie %1 && shift)
-IF """"=="%par:--sname=%"               (Set parsErlang=%parsErlang% -sname %1 && shift) 
-IF """"=="%par:--name=%"                (Set parsErlang=%parsErlang% -name %1 && shift) 
-IF """"=="%par:--logger-otp-reports=%"  (Set parsErlang=%parsErlang% -logger handle_otp_reports %1 && shift) 
-IF """"=="%par:--logger-sasl-reports=%" (Set parsErlang=%parsErlang% -logger handle_sasl_reports %1 && shift) 
-IF """"=="%par:--erl=%"                 (Set beforeExtra=%beforeExtra% %~1 && shift) 
+IF """"=="%par:--sname=%"               (Set parsErlang=%parsErlang% -sname %1 && shift)
+IF """"=="%par:--name=%"                (Set parsErlang=%parsErlang% -name %1 && shift)
+IF """"=="%par:--logger-otp-reports=%"  (Set parsErlang=%parsErlang% -logger handle_otp_reports %1 && shift)
+IF """"=="%par:--logger-sasl-reports=%" (Set parsErlang=%parsErlang% -logger handle_sasl_reports %1 && shift)
+IF """"=="%par:--erl=%"                 (Set beforeExtra=%beforeExtra% %~1 && shift)
 goto:startloop
 
 rem ******* assume all pre-params are parsed ********************
@@ -99,6 +99,28 @@ for  /d %%d in ("%originPath%..\lib\*.") do (
   set ext_libs=!ext_libs! -pa "%%~fd\ebin"
 )
 SETLOCAL disabledelayedexpansion
+
+rem ******* detect ANSI terminal support ********************
+timeout 0 2>nul >nul || goto :run
+where /Q powershell || goto :run
+
+set ASSERT_ANSI= ^
+  $err = 1; ^
+  $Kernel32 = Add-Type -Name 'Kernel32' -PassThru -MemberDefinition ' ^
+    [DllImport(\"Kernel32.dll\", SetLastError = true)] ^
+    public static extern IntPtr GetStdHandle(int nStdHandle); ^
+    [DllImport(\"Kernel32.dll\", SetLastError = true)] ^
+    public static extern bool GetConsoleMode(IntPtr hWnd, ref UInt32 lpMode); ^
+  '; ^
+  $StdoutHandle = $Kernel32::GetStdHandle(-11); ^
+  $ConsoleMode = New-Object -TypeName UInt32; ^
+  $null = $Kernel32::GetConsoleMode($StdoutHandle, [ref]$ConsoleMode); ^
+  if ($ConsoleMode -band 0x4) { $err = 0 } ^
+  exit $err
+
+powershell -NoProfile -NonInteractive -Command %ASSERT_ANSI% || goto :run
+set parsErlang=%parsErlang% -elixir ansi_enabled true
+
 :run
 IF NOT %runMode% == "iex" (
   set beforeExtra=-noshell -s elixir start_cli %beforeExtra%
