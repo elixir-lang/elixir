@@ -17,7 +17,7 @@ defmodule Access do
 
   ## Dynamic lookups
 
-  Out of the box, Access works with `Keyword` and `Map`:
+  Out of the box, `Access` works with `Keyword` and `Map`:
 
       iex> keywords = [a: 1, b: 2]
       iex> keywords[:a]
@@ -31,7 +31,10 @@ defmodule Access do
       iex> star_ratings[1.5]
       "★☆"
 
-  Access can be combined with `Kernel.put_in/3` to put a value
+  Note that the dynamic lookup syntax (`term[key]`) roughly translates to
+  `Access.get(term, key, nil)`.
+
+  `Access` can be combined with `Kernel.put_in/3` to put a value
   in a given key:
 
       iex> map = %{a: 1, b: 2}
@@ -44,47 +47,51 @@ defmodule Access do
       iex> put_in users["john"][:age], 28
       %{"john" => %{age: 28}, "meg" => %{age: 23}}
 
-  Furthermore, Access transparently ignores `nil` values:
+  Furthermore, `Access` transparently ignores `nil` values:
 
       iex> keywords = [a: 1, b: 2]
       iex> keywords[:c][:unknown]
       nil
 
-  Since Access is a behaviour, it can be implemented to key-value
+  Since `Access` is a behaviour, it can be implemented for key-value
   data structures. The implementation should be added to the
-  module that defines the struct being access. Access requires the
+  module that defines the struct being accessed. `Access` requires the
   key comparison to be implemented using the `===` operator.
 
   ## Static lookups
 
-  The Access syntax (`foo[bar]`) cannot be used to access fields in
-  structs, since structs do not implement the Access behaviour by
-  default. It is also design decision: the dynamic access lookup
+  The `Access` syntax (`foo[bar]`) cannot be used to access fields in
+  structs, since structs do not implement the `Access` behaviour by
+  default. It is also a design decision: the dynamic access lookup
   is meant to be used for dynamic key-value structures, like maps
-  and keywords, and not by static ones like structs.
+  and keywords, and not by static ones like structs (where fields are
+  known and not dynamic).
 
-  Therefore Elixir provides a static lookup for map and structs
-  fields. Imagine a struct named `User` with name and age fields.
+  Therefore Elixir provides a static lookup for struct fields and for atom
+  fields in maps. Imagine a struct named `User` with a `:name` field.
   The following would raise:
 
-      user = %User{name: "john"}
+      user = %User{name: "John"}
       user[:name]
-      ** (UndefinedFunctionError) undefined function User.fetch/2
-         (User does not implement the Access behaviour)
+      # ** (UndefinedFunctionError) undefined function User.fetch/2
+      #    (User does not implement the Access behaviour)
 
-  Structs instead use the `user.name` syntax:
+  Structs instead use the `user.name` syntax to access fields:
 
       user.name
-      #=> "john"
+      #=> "John"
 
   The same `user.name` syntax can also be used by `Kernel.put_in/2`
   to for updating structs fields:
 
-      put_in user.name, "mary"
-      %User{name: "mary"}
+      put_in user.name, "Mary"
+      #=> %User{name: "Mary"}
 
   Differently from `user[:name]`, `user.name` is not extensible via
-  a behaviour and is restricted to only maps and structs.
+  a behaviour and is restricted only to structs and atom keys in maps.
+
+  As mentioned above, this works for atom keys in maps as well. Refer to the
+  `Map` module for more information on this.
 
   Summing up:
 
@@ -111,20 +118,21 @@ defmodule Access do
         languages: [%{name: "ELIXIR", type: :functional},
                     %{name: "C", type: :procedural}]}
 
-  See the functions `key/1`, `key!/1`, `elem/1` and `all/0` for the current
-  accessors.
+  See the functions `key/1`, `key!/1`, `elem/1`, and `all/0` for some of the
+  available accessors.
 
-  ## Adding the Access behaviour to your own data structures
-  
-  If you want to be able to use the Access protocol 
-  with your own data structures, you can do so by adding:
+  ## Implementing the Access behaviour for custom data structures
 
-    @behaviour Access
+  In order to be able to use the `Access` protocol with custom data structures
+  (which have to be structs), such structures have to implement the `Access`
+  behaviour. For example, for a `User` struct, this would have to be done:
 
-  inside the module that contains the struct representing your data structure.
-  You will then need to define implementations of 
-  `fetch/2`, `get/3`, `get_and_update/3` and `pop/2`,
-  which will be invoked whenever one of the Access functions is used. 
+      defmodule User do
+        defstruct [:name, :email]
+
+        @behaviour Access
+        # Implementation of the Access callbacks...
+      end
 
   """
 
@@ -133,59 +141,75 @@ defmodule Access do
   @type value :: any
 
   @doc """
-  Invoked when someone wants to access the value stored under `key` in your structure.
+  Invoked in order to access the value stored under `key` in the given term `term`.
 
-  This function is supposed to return the tuple `{:ok, value}` if it succeeded,
-  or `:error` if the key does not exist in the structure.
+  This function should return `{:ok, value}` where `value` is the value under
+  `key` if it succeeded, or `:error` if the key does not exist in the structure.
 
-  Many of the functions defined in the `Access` module internally call this function.
+  Many of the functions defined in the `Access` module internally call this
+  function. This function is also used when the square-brackets access syntax
+  (`structure[key]`) is used: the `fetch/2` callback implemented by the module
+  that defines the `structure` struct is invoked and if it returns `{:ok,
+  value}` then `value` is returned, or if it returns `:error` then `nil` is
+  returned.
 
-  See `Map.fetch/2` and `Keyword.fetch/2` for example implementations.
 
+  See the `Map.fetch/2` and `Keyword.fetch/2` implementations for examples of
+  how to implement this callback.
   """
-  @callback fetch(t, key) :: {:ok, value} | :error
+  @callback fetch(term :: t, key) :: {:ok, value} | :error
 
   @doc """
-  Invoked when someone wants to access the value stored under `key` in your structure. 
-  If `key` is not found, the second argument is returned.
+  Invoked in order to access the value stored under `key` in the given term `term`,
+  defaulting to `default` if not present.
 
-  This is the method that is used when someone calls `your_structure[some_key]`.
+  This function should return the value under the key `key` in `term` if there's
+  such key, otherwise `default`.
 
-  For most data structures, this can be implemented using `fetch/2` internally.
+  For most data structures, this can be implemented using `fetch/2` internally;
+  for example:
 
-  See `Map.get/3` and `Keyword.get/3` for example implementations.
+      def get(structure, key, default) do
+        case fetch(structure, key) do
+          {:ok, value} -> value
+          :error       -> default
+        end
+      end
+
+  See the `Map.get/3` and `Keyword.get/3` implementations for more examples.
   """
-  @callback get(t, key, value) :: value
+  @callback get(term :: t, key, default :: value) :: value
 
   @doc """
-  Invoked when someone calls `Access.get_and_update/3`.
-  
-  The implementation should invoke the passed function
-  on the value inside key `key` in the passed structure.
-  This function will return a tuple in the form of `{received_value, new_value}`,
-  or it will return `:pop`.
-  
-  When the function returned a tuple,  `new_value` should then
-  be used to create an updated structure,
-  where `new_value` is stored under `key` instead of its original value.
-  Finally, the implementation should return the tuple `{received_value, updated_structure}`.
+  Invoked in order to access the value under `key` and updated it at the same time.
 
-  When the function returned `:pop`, the implementation should instead 
-  remove the value from the structure. (making it behave similar to `pop/2`.)
+  The implementation of this callback should invoke the passed function on the
+  value under key `key` in the passed structure; this function should return
+  either `{value_to_return, new_value}` or `:pop`.
 
-  See `Map.get_and_update/3` or `Keyword.get_and_update/3` for example implementations.
+  If it returns `{value_to_return, new_value}`, the return value of this
+  callback should be `{value_to_return, new_term}` where `new_term` is `term`
+  after updating the value of `key` with `new_value`.
+
+  If it returns `:pop`, the return value of this callback should be `{value,
+  new_term}` where `value` is the value under `key` and `new_term` is `term`
+  after removing the key `key`.
+
+  See the implementations of `Map.get_and_update/3` or `Keyword.get_and_update/3`
+  for more examples.
   """
-  @callback get_and_update(t, key, (value -> {value, value} | :pop)) :: {value, t}
-  
+  @callback get_and_update(term :: t, key, (value -> {value, value} | :pop)) :: {value, t}
+
   @doc """
-  Invoked when someone calls `Access.pop/2`, and also used internally by some functions.
+  Invoked to "pop" the value under `key` out of the given term.
 
-  The implementation should remove `key` and whatever is inside it from the passed structure.
-  The result value should be the tuple `{removed_value, updated_structure}`.
+  The implementation should remove `key` from the given `term` and return a
+  `{value, new_term}` tuple where `value` is the value that was under `key` and
+  `new_term` is `term` without `key`.
 
-  See `Map.pop/2` or `Keyword.pop/2` for example implementations.
+  See the implementations for `Map.pop/2` or `Keyword.pop/2` for more examples.
   """
-  @callback pop(t, key) :: {value, t}
+  @callback pop(term :: t, key) :: {value, t}
 
   defmacrop raise_undefined_behaviour(e, struct, top) do
     quote do
