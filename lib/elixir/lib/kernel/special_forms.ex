@@ -54,56 +54,14 @@ defmodule Kernel.SpecialForms do
   @doc """
   Creates a map.
 
-  Maps are key-value stores where keys are compared
-  using the match operator (`===`). Maps can be created with
-  the `%{}` special form where keys are associated via `=>`:
-
-      %{1 => 2}
-
-  Maps also support the keyword notation, as other special forms,
-  as long as they are at the end of the argument list:
-
-      %{hello: :world, with: :keywords}
-      %{:hello => :world, with: :keywords}
-
-  If a map has duplicated keys, the last key will always have
-  higher precedence:
-
-      iex> %{a: :b, a: :c}
-      %{a: :c}
-
-  Conveniences for manipulating maps can be found in the
-  `Map` module.
-
-  ## Access syntax
-
-  Besides the access functions available in the `Map` module,
-  like `Map.get/3` and `Map.fetch/2`, a map can be accessed using the
-  `.` operator:
-
-      iex> map = %{a: :b}
-      iex> map.a
-      :b
-
-  Note that the `.` operator expects the key `:a` to exist in the map.
-  If not, an `ArgumentError` is raised.
-
-  ## Update syntax
-
-  Maps also support an update syntax:
-
-      iex> map = %{:a => :b}
-      iex> %{map | :a => :c}
-      %{:a => :c}
-
-  Notice the update syntax requires the given keys to exist.
-  Trying to update a key that does not exist will raise an `KeyError`.
+  See the `Map` module for more information about maps, their syntax, and ways to
+  access and manipulate them.
 
   ## AST representation
 
-  Regardless if `=>` or the keywords syntax is used, Maps are
-  always represented internally as a list of two-element tuples
-  for simplicity:
+  Regardless of whether `=>` or the keyword syntax is used, key-value pairs in
+  maps are always represented internally as a list of two-element tuples for
+  simplicity:
 
       iex> quote do
       ...>   %{"a" => :b, c: :d}
