@@ -581,6 +581,35 @@ defmodule Kernel do
   end
 
   @doc """
+  Computes the modulo of an integer division. Output follows the floored
+  division algorithm where the result always has the same sign as the divisor.
+
+  Raises an `ArithmeticError` exception if one of the arguments is not an
+  integer.
+
+  Allowed in guard tests. Inlined by the compiler.
+
+  ## Examples
+
+      iex> mod(5, 3)
+      2
+      iex> mod(-5, 3)
+      1
+      iex> mod(-5, -3)
+      -2
+      iex> mod(5, -3)
+      -1
+
+  """
+  @spec mod(integer, integer) :: integer
+  def mod(left, right) do
+    cond do
+      left * right >= 0 -> :erlang.rem(left, right)
+      true -> right + :erlang.rem(left, right)
+    end
+  end
+
+  @doc """
   Rounds a number to the nearest integer.
 
   Allowed in guard tests. Inlined by the compiler.
