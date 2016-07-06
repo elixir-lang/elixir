@@ -138,10 +138,10 @@ defmodule IO.ANSITest do
     assert IO.ANSI.color_background(1, 1, 1) == "\e[48;5;59m"
     assert IO.ANSI.color_background(5, 5, 5) == "\e[48;5;231m"
     assert_raise FunctionClauseError, fn() ->
-      IO.ANSI.color_background(-1)
+      IO.ANSI.color_background(0, 6, 1)
     end
     assert_raise FunctionClauseError, fn() ->
-      IO.ANSI.color_background(256)
+      IO.ANSI.color_background(5, -1, 1)
     end
   end
 end
