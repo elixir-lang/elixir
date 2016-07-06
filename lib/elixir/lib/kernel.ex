@@ -555,7 +555,8 @@ defmodule Kernel do
   end
 
   @doc """
-  Computes the remainder of an integer division.
+  Computes the remainder of an integer division. Output follows the truncated
+  division algorithm where the result always has the same sign as the divisor.
 
   Raises an `ArithmeticError` exception if one of the arguments is not an
   integer.
@@ -564,8 +565,14 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> rem(5, 2)
-      1
+      iex> rem(5, 3)
+      2
+      iex> rem(-5, 3)
+      -2
+      iex> rem(-5, -3)
+      -2
+      iex> rem(5, -3)
+      2
 
   """
   @spec rem(integer, integer) :: integer
