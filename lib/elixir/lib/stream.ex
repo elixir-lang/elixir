@@ -442,7 +442,7 @@ defmodule Stream do
   This function is often used with `run/1` since any evaluation
   is delayed until the stream is executed. See `run/1` for an example.
   """
-  @spec into(Enumerable.t, Collectable.t) :: Enumerable.t
+  @spec into(Enumerable.t, Collectable.t, (term -> term)) :: Enumerable.t
   def into(enum, collectable, transform \\ fn x -> x end) do
     &do_into(enum, collectable, transform, &1, &2)
   end
