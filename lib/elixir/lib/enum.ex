@@ -1714,7 +1714,7 @@ defmodule Enum do
   end
 
   def reverse(enumerable) do
-    reverse(enumerable, [])
+    do_reverse(enumerable, [])
   end
 
   @doc """
@@ -1737,7 +1737,11 @@ defmodule Enum do
   end
 
   def reverse(enumerable, tail) do
-    reduce(enumerable, to_list(tail), fn(entry, acc) ->
+    do_reverse(enumerable, to_list(tail))
+  end
+
+  defp do_reverse(enumerable, tail) do
+    reduce(enumerable, tail, fn(entry, acc) ->
       [entry | acc]
     end)
   end
