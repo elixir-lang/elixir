@@ -107,8 +107,13 @@ build_else(Meta, ElseClauses) ->
     each_clause_to_error_match(ElseClauses)] ++ [build_raise(Meta)].
 
 each_clause_to_error_match(Clauses) ->
-  [{match, Meta, [{error, Match}], Expr} ||
+  [{match, Meta, [error_match_for_match(Match)], Expr} ||
     {'->', Meta, [[Match], Expr]} <- Clauses].
+
+error_match_for_match({'when', Meta, [Left, Right]}) ->
+  {'when', Meta, [{error, Left}, Right]};
+error_match_for_match(Match) ->
+  {error, Match}.
 
 build_raise(Meta) ->
   Other = {other, Meta, ?MODULE},
