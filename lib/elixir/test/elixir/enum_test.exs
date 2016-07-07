@@ -785,11 +785,37 @@ defmodule EnumTest.Range do
   end
 
   test "fetch/2" do
-    assert Enum.fetch(2..6, 0) == {:ok, 2}
-    assert Enum.fetch(2..6, 2) == {:ok, 4}
-    assert Enum.fetch(2..6, 8) == :error
-    assert Enum.fetch(2..6, -2) == {:ok, 5}
-    assert Enum.fetch(2..6, -6) == :error
+    # ascending order
+    assert Enum.fetch(-10..20, 4)   == {:ok, -6}
+    assert Enum.fetch(-10..20, -4)  == {:ok, 17}
+    # ascending order - first
+    assert Enum.fetch(-10..20, 0)   == {:ok, -10}
+    assert Enum.fetch(-10..20, -31) == {:ok, -10}
+    # ascending order - last
+    assert Enum.fetch(-10..20, -1)  == {:ok, 20}
+    assert Enum.fetch(-10..20, 30)  == {:ok, 20}
+    # ascending order - out of bound
+    assert Enum.fetch(-10..20, 31)  == :error
+    assert Enum.fetch(-10..20, -32) == :error
+
+    # descending order
+    assert Enum.fetch(20..-10, 4)   == {:ok, 16}
+    assert Enum.fetch(20..-10, -4)  == {:ok, -7}
+    # descending order - first
+    assert Enum.fetch(20..-10, 0)   == {:ok, 20}
+    assert Enum.fetch(20..-10, -31) == {:ok, 20}
+    # descending order - last
+    assert Enum.fetch(20..-10, -1)  == {:ok, -10}
+    assert Enum.fetch(20..-10, 30)  == {:ok, -10}
+    # descending order - out of bound
+    assert Enum.fetch(20..-10, 31)  == :error
+    assert Enum.fetch(20..-10, -32) == :error
+
+    # edge cases
+    assert Enum.fetch(42..42, 0)    == {:ok, 42}
+    assert Enum.fetch(42..42, -1)   == {:ok, 42}
+    assert Enum.fetch(42..42, 2)    == :error
+    assert Enum.fetch(42..42, -2)   == :error
   end
 
   test "fetch!/2" do
