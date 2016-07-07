@@ -66,6 +66,7 @@ defmodule Kernel.WithTest do
 
   test "else conditions" do
     assert with({:ok, res} <- 41, do: res, else: ({:error, error} -> error; res -> res + 1)) == 42
+    assert with({:ok, res} <- 41, do: res, else: (res when res == 41 -> res + 1; res -> res)) == 42
     assert with({:ok, res} <- 41, do: res, else: (_ -> :error)) == :error
   end
 
