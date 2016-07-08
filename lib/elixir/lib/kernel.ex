@@ -3817,7 +3817,7 @@ defmodule Kernel do
   the `__using__/1` macro from the `MyModule` module is invoked with the second
   argument passed to `use` as its argument. Since `__using__/1` is a macro, all
   the usual macro rules apply, and its return value should be quoted code
-  that it's then inserted where `use/2` is called.
+  that is then inserted where `use/2` is called.
 
   ## Examples
 
