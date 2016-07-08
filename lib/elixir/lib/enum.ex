@@ -1731,9 +1731,8 @@ defmodule Enum do
 
   """
   @spec reverse(t, t) :: list
-  def reverse(enumerable, tail)
-      when is_list(enumerable) and is_list(tail) do
-    :lists.reverse(enumerable, tail)
+  def reverse(enumerable, tail) when is_list(enumerable) do
+    :lists.reverse(enumerable, to_list(tail))
   end
 
   def reverse(enumerable, tail) do
