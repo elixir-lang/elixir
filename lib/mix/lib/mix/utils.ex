@@ -77,7 +77,7 @@ defmodule Mix.Utils do
   end
 
   defp stale_stream(sources, targets) do
-    modified_target = targets |> Enum.map(&last_modified(&1)) |> Enum.min
+    modified_target = targets |> Enum.map(&last_modified/1) |> Enum.min
 
     Stream.filter(sources, fn(source) ->
       last_modified(source) > modified_target
@@ -269,10 +269,11 @@ defmodule Mix.Utils do
   end
 
   def module_name_to_command(module, nesting) do
-    Regex.split(~r/\./, to_string(module))
+    module
+    |> to_string()
+    |> String.split(".")
     |> Enum.drop(nesting)
-    |> Enum.map(&underscore(&1))
-    |> Enum.join(".")
+    |> Enum.map_join(".", &underscore/1)
   end
 
   @doc """
@@ -284,10 +285,11 @@ defmodule Mix.Utils do
       "Compile.Elixir"
 
   """
-  def command_to_module_name(s) do
-    Regex.split(~r/\./, to_string(s))
-    |> Enum.map(&camelize(&1))
-    |> Enum.join(".")
+  def command_to_module_name(command) do
+    command
+    |> to_string()
+    |> String.split(".")
+    |> Enum.map_join(".", &camelize/1)
   end
 
   @doc """
@@ -464,8 +466,7 @@ defmodule Mix.Utils do
   defp proxy_env do
     http_proxy  = System.get_env("HTTP_PROXY")  || System.get_env("http_proxy")
     https_proxy = System.get_env("HTTPS_PROXY") || System.get_env("https_proxy")
-    no_proxy    = no_proxy_env()
-                  |> no_proxy_list()
+    no_proxy    = no_proxy_env() |> no_proxy_list()
 
     {proxy_setup(:http, http_proxy, no_proxy), proxy_setup(:https, https_proxy, no_proxy)}
   end
@@ -478,10 +479,10 @@ defmodule Mix.Utils do
     []
   end
 
-  defp no_proxy_list(no_proxy_str) do
-    no_proxy_str
+  defp no_proxy_list(no_proxy) do
+    no_proxy
     |> String.split(",")
-    |> Enum.map(&to_charlist/1)
+    |> Enum.map(&String.to_charlist/1)
   end
 
   defp proxy_setup(scheme, proxy, no_proxy) do
