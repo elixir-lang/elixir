@@ -3810,10 +3810,19 @@ defmodule Kernel do
   @doc """
   Uses the given module in the current context.
 
+  When calling:
+
+      use MyModule, some: :options
+
+  the `__using__/1` macro from the `MyModule` module is invoked with the second
+  argument passed to `use` as its argument. Since `__using__/1` is a macro, all
+  the usual macro rules apply, and its return value should be quoted code
+  that it's then inserted where `use/2` is called.
+
   ## Examples
 
-  For example, in order to write tests using the ExUnit framework,
-  a developer should use the `ExUnit.Case` module:
+  For example, in order to write test cases using the `ExUnit` framework
+  provided with Elixir, a developer should `use` the `ExUnit.Case` module:
 
       defmodule AssertionTest do
         use ExUnit.Case, async: true
@@ -3823,10 +3832,8 @@ defmodule Kernel do
         end
       end
 
-  By calling `use/2`, a hook called `__using__/1` will be invoked in
-  `ExUnit.Case` which will then do the proper setup.
-
-  Simply put, `use/2` translates to:
+  In this example, `ExUnit.Case.__using__/1` is called with the keyword list
+  `[async: true]` as its argument; `use/2` translates to:
 
       defmodule AssertionTest do
         require ExUnit.Case
@@ -3837,24 +3844,24 @@ defmodule Kernel do
         end
       end
 
-  Where `__using__/1` is just a regular macro that can be defined
-  in any module:
+  `ExUnit.Case` will then define the `__using__/1` macro:
 
-      defmodule MyModule do
+      defmodule ExUnit.Case do
         defmacro __using__(opts) do
+          # do something with opts
           quote do
-            # code that will run in the module that uses MyModule
+            # return some code to inject in the caller
           end
         end
       end
 
   ## Best practices
 
-  `__using__/1` is typically used when there is a need to set some state
-  (via module attributes) or callbacks (like `@before_compile`)
-  into the caller.
+  `__using__/1` is typically used when there is a need to set some state (via
+  module attributes) or callbacks (like `@before_compile`, see the documentation
+  for `Module` for more information) into the caller.
 
-  `__using__/1` may also be used to alias, require or import functionality
+  `__using__/1` may also be used to alias, require, or import functionality
   from different modules:
 
       defmodule MyModule do
@@ -3870,25 +3877,31 @@ defmodule Kernel do
       end
 
   However, do not provide `__using__/1` if all it does is to import,
-  alias or require the module itself. For example, do not:
+  alias or require the module itself. For example, avoid this:
 
       defmodule MyModule do
-        defmacro __using__(opts) do
+        defmacro __using__(_opts) do
           quote do
             import MyModule
           end
         end
       end
 
-  In such cases, developers must just import or alias the module
-  directly, allowing developers to customize those as they wish,
+  In such cases, developers should just import or alias the module
+  directly, so that they can customize those as they wish,
   without the indirection behind `use/2`.
 
   Finally, developers should also avoid defining functions inside
   the `__using__/1` callback, unless those functions are the default
-  implementation of a previously defined `@callback`. In case you
-  want to provide some existing functionality to the user module,
-  please define it in a module which will be imported accordingly.
+  implementation of a previously defined `@callback` or are functions
+  meant to be overridden (see `defoverridable/1`). Even in these cases,
+  defining functions should be seen as a "last resource".
+
+  In case you want to provide some existing functionality to the user module,
+  please define it in a module which will be imported accordingly; for example,
+  `ExUnit.Case` doesn't define the `test/2` macro in the module that calls
+  `use ExUnit.Case`, but it defines `ExUnit.Case.test/2` and just imports that
+  into the caller when used.
   """
   defmacro use(module, opts \\ []) do
     calls = Enum.map(expand_aliases(module, __CALLER__), fn
