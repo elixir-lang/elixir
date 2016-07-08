@@ -387,11 +387,28 @@ defmodule EnumTest do
 
   test "reverse/1" do
     assert Enum.reverse([]) == []
+    assert Enum.reverse(%{}) == []
+    assert Enum.reverse(MapSet.new) == []
     assert Enum.reverse([1, 2, 3]) == [3, 2, 1]
+    assert Enum.reverse(-3..5) == [5, 4, 3, 2, 1, 0, -1, -2, -3]
+    assert Enum.reverse(5..5) == [5]
+    assert Enum.reverse([5..5]) == [5..5]
+    assert Enum.reverse(%{a: 1, b: 2, c: 3}) == [c: 3, b: 2, a: 1]
   end
 
   test "reverse/2" do
     assert Enum.reverse([1, 2, 3], [4, 5, 6]) == [3, 2, 1, 4, 5, 6]
+    assert Enum.reverse([a: 1, b: 2, c: 3, a: 1], %{x: 1, y: 2, z: 3}) ==
+      [a: 1, c: 3, b: 2, a: 1, x: 1, y: 2, z: 3]
+    assert Enum.reverse([], %{a: 1}) == [a: 1]
+    assert Enum.reverse([], %{}) == []
+    assert Enum.reverse(%{}, []) == []
+    assert Enum.reverse(MapSet.new, %{}) == []
+    assert Enum.reverse([1, 2, 3], []) == [3, 2, 1]
+    assert Enum.reverse(-3..5, MapSet.new([-3, -2])) == [5, 4, 3, 2, 1, 0, -1, -2, -3, -3, -2]
+    assert Enum.reverse(5..5, [5]) == [5, 5]
+    assert Enum.reverse([5..5], [5]) == [5..5, 5]
+    assert Enum.reverse(%{a: 1, b: 2, c: 3}) == [c: 3, b: 2, a: 1]
   end
 
   test "reverse_slice/3" do
@@ -1204,6 +1221,8 @@ defmodule EnumTest.Range do
   end
 
   test "to_list/1" do
+    assert Enum.to_list([1, 2, 3]) == [1, 2, 3]
+    assert Enum.to_list(MapSet.new(1..3)) == [1, 2, 3]
     assert Enum.to_list(1..3) == [1, 2, 3]
   end
 
