@@ -226,8 +226,8 @@ defmodule Access do
   end
 
   @doc """
-  Fetches the value for the given key in a container: a map, keyword
-  list, or anything that implements the `Access` behaviour.
+  Fetches the value for the given key in a container (a map, keyword
+  list, or anything that implements the `Access` behaviour).
   """
   @spec fetch(t, term) :: {:ok, term} | :error
   def fetch(container, key)
@@ -260,8 +260,8 @@ defmodule Access do
   end
 
   @doc """
-  Gets the value for the given key in a container: a map, keyword
-  list, or anything that implements the `Access` behaviour.
+  Gets the value for the given key in a container (a map, keyword
+  list, or anything that implements the `Access` behaviour).
   """
   @spec get(t, term, term) :: term
   def get(container, key, default \\ nil) do
@@ -272,8 +272,8 @@ defmodule Access do
   end
 
   @doc """
-  Gets and updates the given key in a container: a map, keyword
-  list, or anything that implements the `Access` behaviour.
+  Gets and updates the given key in a container (a map, keyword
+  list, or anything that implements the `Access` behaviour).
 
   This `fun` argument receives the value of `key` (or `nil` if `key`
   is not present) and must return a two-element tuple: the "get" value
@@ -309,14 +309,12 @@ defmodule Access do
   end
 
   @doc """
-  Removes the entry with a given key from a container: a map, keyword
-  list, or anything that implements the `Access` behaviour.
-  
+  Removes the entry with a given key from a container (a map, keyword
+  list, or anything that implements the `Access` behaviour).
+
   Returns a tuple containing the value associated with the key and the
   updated container. `nil` is returned for the value if the key isn't
   in the container.
-
-  The name has nothing to do with the `pop` stack operation.
 
   ## Examples
 
