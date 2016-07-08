@@ -719,6 +719,7 @@ defmodule Keyword do
       {[a: 1, c: 3, a: 4], [b: 2]}
 
   """
+  @spec split(t, [key]) :: {t, t}
   def split(keywords, keys) when is_list(keywords) do
     fun = fn {k, v}, {take, drop} ->
       case k in keys do
@@ -746,6 +747,7 @@ defmodule Keyword do
       [a: 1, c: 3, a: 5]
 
   """
+  @spec take(t, [key]) :: t
   def take(keywords, keys) when is_list(keywords) do
     :lists.filter(fn {k, _} -> k in keys end, keywords)
   end
@@ -763,6 +765,7 @@ defmodule Keyword do
       [a: 1, c: 3, a: 5]
 
   """
+  @spec drop(t, [key]) :: t
   def drop(keywords, keys) when is_list(keywords) do
     :lists.filter(fn {k, _} -> not k in keys end, keywords)
   end
@@ -862,6 +865,7 @@ defmodule Keyword do
       [a: 1]
 
   """
+  @spec to_list(t) :: t
   def to_list(keyword) when is_list(keyword) do
     keyword
   end
