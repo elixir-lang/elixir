@@ -209,7 +209,7 @@ rewrite(?enum, DotMeta, 'reverse', Meta, [List], _Env) when is_list(List) ->
 rewrite(?enum, DotMeta, 'reverse', Meta, [List], _Env) ->
   Var   = {'rewrite', Meta, 'Elixir'},
   Guard = {{'.', ?generated, [erlang, is_list]}, ?generated, [Var]},
-  Slow  = remote(?enum, DotMeta, 'reverse', Meta, [Var]),
+  Slow  = remote(?enum, DotMeta, 'reverse', Meta, [Var, []]),
   Fast  = remote(lists, DotMeta, 'reverse', Meta, [Var]),
 
   {'case', ?generated, [List, [{do,
