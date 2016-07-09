@@ -387,28 +387,14 @@ defmodule EnumTest do
 
   test "reverse/1" do
     assert Enum.reverse([]) == []
-    assert Enum.reverse(%{}) == []
-    assert Enum.reverse(MapSet.new) == []
     assert Enum.reverse([1, 2, 3]) == [3, 2, 1]
-    assert Enum.reverse(-3..5) == [5, 4, 3, 2, 1, 0, -1, -2, -3]
-    assert Enum.reverse(5..5) == [5]
     assert Enum.reverse([5..5]) == [5..5]
-    assert Enum.reverse(%{a: 1, b: 2, c: 3}) == [c: 3, b: 2, a: 1]
   end
 
   test "reverse/2" do
     assert Enum.reverse([1, 2, 3], [4, 5, 6]) == [3, 2, 1, 4, 5, 6]
-    assert Enum.reverse([a: 1, b: 2, c: 3, a: 1], %{x: 1, y: 2, z: 3}) ==
-      [a: 1, c: 3, b: 2, a: 1, x: 1, y: 2, z: 3]
-    assert Enum.reverse([], %{a: 1}) == [a: 1]
-    assert Enum.reverse([], %{}) == []
-    assert Enum.reverse(%{}, []) == []
-    assert Enum.reverse(MapSet.new, %{}) == []
     assert Enum.reverse([1, 2, 3], []) == [3, 2, 1]
-    assert Enum.reverse(-3..5, MapSet.new([-3, -2])) == [5, 4, 3, 2, 1, 0, -1, -2, -3, -3, -2]
-    assert Enum.reverse(5..5, [5]) == [5, 5]
     assert Enum.reverse([5..5], [5]) == [5..5, 5]
-    assert Enum.reverse(%{a: 1, b: 2, c: 3}) == [c: 3, b: 2, a: 1]
   end
 
   test "reverse_slice/3" do
@@ -805,26 +791,26 @@ defmodule EnumTest.Range do
     # ascending order
     assert Enum.fetch(-10..20, 4)   == {:ok, -6}
     assert Enum.fetch(-10..20, -4)  == {:ok, 17}
-    # ascending order - first
+    # ascending order, first
     assert Enum.fetch(-10..20, 0)   == {:ok, -10}
     assert Enum.fetch(-10..20, -31) == {:ok, -10}
-    # ascending order - last
+    # ascending order, last
     assert Enum.fetch(-10..20, -1)  == {:ok, 20}
     assert Enum.fetch(-10..20, 30)  == {:ok, 20}
-    # ascending order - out of bound
+    # ascending order, out of bound
     assert Enum.fetch(-10..20, 31)  == :error
     assert Enum.fetch(-10..20, -32) == :error
 
     # descending order
     assert Enum.fetch(20..-10, 4)   == {:ok, 16}
     assert Enum.fetch(20..-10, -4)  == {:ok, -7}
-    # descending order - first
+    # descending order, first
     assert Enum.fetch(20..-10, 0)   == {:ok, 20}
     assert Enum.fetch(20..-10, -31) == {:ok, 20}
-    # descending order - last
+    # descending order, last
     assert Enum.fetch(20..-10, -1)  == {:ok, -10}
     assert Enum.fetch(20..-10, 30)  == {:ok, -10}
-    # descending order - out of bound
+    # descending order, out of bound
     assert Enum.fetch(20..-10, 31)  == :error
     assert Enum.fetch(20..-10, -32) == :error
 
@@ -1023,12 +1009,16 @@ defmodule EnumTest.Range do
   test "reverse/1" do
     assert Enum.reverse(0..0) == [0]
     assert Enum.reverse(1..3) == [3, 2, 1]
+    assert Enum.reverse(-3..5) == [5, 4, 3, 2, 1, 0, -1, -2, -3]
+    assert Enum.reverse(5..5) == [5]
   end
 
   test "reverse/2" do
     assert Enum.reverse(1..3, 4..6) == [3, 2, 1, 4, 5, 6]
     assert Enum.reverse([1, 2, 3], 4..6) == [3, 2, 1, 4, 5, 6]
     assert Enum.reverse(1..3, [4, 5, 6]) == [3, 2, 1, 4, 5, 6]
+    assert Enum.reverse(-3..5, MapSet.new([-3, -2])) == [5, 4, 3, 2, 1, 0, -1, -2, -3, -3, -2]
+    assert Enum.reverse(5..5, [5]) == [5, 5]
   end
 
   test "reverse_slice/3" do
@@ -1263,7 +1253,7 @@ defmodule EnumTest.Map do
   # to verify them using maps or mapsets.
   use ExUnit.Case, async: true
 
-  test "take random" do
+  test "take_random/2" do
     # corner cases, independent of the seed
     assert_raise FunctionClauseError, fn -> Enum.take_random(1..2, -1) end
     assert Enum.take_random(%{a: 1}, 0) == []
@@ -1286,6 +1276,21 @@ defmodule EnumTest.Map do
     assert Enum.take_random(map, 3) == [a: 1, b: 2, c: 3]
     assert Enum.take_random(map, 4) == [b: 2, a: 1, c: 3]
   end
+
+  test "reverse/1" do
+    assert Enum.reverse(%{}) == []
+    assert Enum.reverse(MapSet.new) == []
+    assert Enum.reverse(%{a: 1, b: 2, c: 3}) == [c: 3, b: 2, a: 1]
+  end
+
+  test "reverse/2" do
+    assert Enum.reverse([a: 1, b: 2, c: 3, a: 1], %{x: 1, y: 2, z: 3}) ==
+      [a: 1, c: 3, b: 2, a: 1, x: 1, y: 2, z: 3]
+    assert Enum.reverse([], %{a: 1}) == [a: 1]
+    assert Enum.reverse([], %{}) == []
+    assert Enum.reverse(%{a: 1}, []) == [a: 1]
+    assert Enum.reverse(MapSet.new, %{}) == []
+  end
 end
 
 defmodule EnumTest.SideEffects do
@@ -1294,14 +1299,14 @@ defmodule EnumTest.SideEffects do
   import ExUnit.CaptureIO
   import PathHelpers
 
-  test "take with side effects" do
+  test "take/2 with side effects" do
     stream = Stream.unfold(1, fn x -> IO.puts x; {x, x + 1} end)
     assert capture_io(fn ->
       Enum.take(stream, 1)
     end) == "1\n"
   end
 
-  test "take does not consume next without a need" do
+  test "take/2 does not consume next without a need" do
     path = tmp_path("oneliner.txt")
     File.mkdir(Path.dirname(path))
 
@@ -1318,7 +1323,7 @@ defmodule EnumTest.SideEffects do
     end
   end
 
-  test "take with no item works as no-op" do
+  test "take/2 with no item works as no-op" do
     iterator = File.stream!(fixture_path("unknown.txt"))
 
     assert Enum.take(iterator, 0) == []
