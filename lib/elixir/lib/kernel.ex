@@ -2872,6 +2872,8 @@ defmodule Kernel do
         :lists.foldr(fn x, acc ->
           quote do: :erlang.or(unquote(comp(left, x)), unquote(acc))
         end, comp(left, h), t)
+      {:++, _meta, [h, t]} ->
+        quote do: :erlang.or(unquote(left) in unquote(t), unquote(left) in unquote(h))
       {:%{}, _meta, [__struct__: Elixir.Range, first: first, last: last]} ->
         in_range(left, Macro.expand(first, __CALLER__), Macro.expand(last, __CALLER__))
       _ when in_module? ->
@@ -2922,6 +2924,10 @@ defmodule Kernel do
           )
         end
     end
+  end
+
+  defp comp(left, {:|, _, [h, t]}) do
+    quote(do: :erlang.or(unquote(left) in unquote(t), :erlang."=:="(unquote(left), unquote(h))))
   end
 
   defp comp(left, right) do

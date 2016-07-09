@@ -94,16 +94,28 @@ defmodule KernelTest do
     list = [1, 2, 3]
     assert 2 in list
     refute 4 in list
+
+    assert 2 in [1 | [2, 3]]
+    assert 3 in [1 | list]
+
+    assert 2 in [1] ++ [2, 3]
+    assert 3 in [1] ++ list
   end
 
   @at_list  [4, 5]
   @at_range 6..8
+  @at_list2 [13, 14]
+  @at_list3 [19, 20]
   @doc "fun_in/1"
   "fun_in/1" = @doc
   def fun_in(x) when x in [0],       do: :list
   def fun_in(x) when x in 1..3,      do: :range
   def fun_in(x) when x in @at_list,  do: :at_list
   def fun_in(x) when x in @at_range, do: :at_range
+  def fun_in(x) when x in [9 | [10, 11]], do: :list_cons
+  def fun_in(x) when x in [12 | @at_list2], do: :list_cons_at
+  def fun_in(x) when x in [15] ++ [16, 17], do: :list_append
+  def fun_in(x) when x in [18] ++ @at_list3, do: :list_append_at
   def fun_in(_), do: :none
 
   test "in/2 in function guard" do
@@ -115,6 +127,18 @@ defmodule KernelTest do
     assert fun_in(6) == :at_range
     assert fun_in(7) == :at_range
     assert fun_in(8) == :at_range
+    assert fun_in(9) == :list_cons
+    assert fun_in(10) == :list_cons
+    assert fun_in(11) == :list_cons
+    assert fun_in(12) == :list_cons_at
+    assert fun_in(13) == :list_cons_at
+    assert fun_in(14) == :list_cons_at
+    assert fun_in(15) == :list_append
+    assert fun_in(16) == :list_append
+    assert fun_in(17) == :list_append
+    assert fun_in(18) == :list_append_at
+    assert fun_in(19) == :list_append_at
+    assert fun_in(20) == :list_append_at
 
     assert fun_in(0.0) == :none
     assert fun_in(1.0) == :none
@@ -123,6 +147,18 @@ defmodule KernelTest do
     assert fun_in(6.0) == :none
     assert fun_in(7.0) == :none
     assert fun_in(8.0) == :none
+    assert fun_in(9.0) == :none
+    assert fun_in(10.0) == :none
+    assert fun_in(11.0) == :none
+    assert fun_in(12.0) == :none
+    assert fun_in(13.0) == :none
+    assert fun_in(14.0) == :none
+    assert fun_in(15.0) == :none
+    assert fun_in(16.0) == :none
+    assert fun_in(17.0) == :none
+    assert fun_in(18.0) == :none
+    assert fun_in(19.0) == :none
+    assert fun_in(20.0) == :none
   end
 
   def fun_in(x, y, z) when x in y..z, do: true
@@ -194,6 +230,30 @@ defmodule KernelTest do
     end
   end
 
+  test "in/2 with a non-compile-time list cons in guards" do
+    message = ~r/invalid args for operator "in", .* got: list()/
+    assert_raise ArgumentError, message, fn ->
+      Code.eval_string """
+      defmodule InErrors do
+        def list, do: [1]
+        def foo(x) when x in [1 | list()], do: :ok
+      end
+      """
+    end
+  end
+
+  test "in/2 with a non-compile-time list append in guards" do
+    message = ~r/invalid args for operator "in", .* got: list()/
+    assert_raise ArgumentError, message, fn ->
+      Code.eval_string """
+      defmodule InErrors do
+        def list, do: [1]
+        def foo(x) when x in [1] ++ list(), do: :ok
+      end
+      """
+    end
+  end
+
   test "in/2 with a non-integer range" do
     message = "ranges (first..last) expect both sides to be integers, got: 0..5.0"
     assert_raise ArgumentError, message, fn ->
@@ -203,18 +263,24 @@ defmodule KernelTest do
   end
 
   test "in/2 optimized" do
-    assert expand_to_string(quote(do: foo in [])) == "Elixir.Enum.member?([], foo)"
+    assert expand_to_string(quote(do: foo in [])) == "Enum.member?([], foo)"
 
     assert expand_to_string(quote(do: foo in 1..2)) ==
-           ~S[:erlang.andalso(:erlang.is_integer(foo), :erlang.>=(foo, 1) and :erlang.=<(foo, 2))]
+           ~S[:erlang.andalso(:erlang.is_integer(foo), :erlang.andalso(:erlang.>=(foo, 1), :erlang.=<(foo, 2)))]
 
     assert expand_to_string(quote(do: foo in [1, 2])) ==
+           ~S[:erlang.or(:erlang.=:=(foo, 2), :erlang.=:=(foo, 1))]
+
+    assert expand_to_string(quote(do: foo in [1 | [2]])) ==
+           ~S[:erlang.or(:erlang.=:=(foo, 2), :erlang.=:=(foo, 1))]
+
+    assert expand_to_string(quote(do: foo in [1] ++ [2])) ==
            ~S[:erlang.or(:erlang.=:=(foo, 2), :erlang.=:=(foo, 1))]
   end
 
   defp expand_to_string(ast) do
     ast
-    |> Macro.expand(__ENV__)
+    |> Macro.prewalk(&Macro.expand(&1, __ENV__))
     |> Macro.to_string
   end
 
