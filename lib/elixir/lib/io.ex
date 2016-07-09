@@ -307,7 +307,7 @@ defmodule IO do
     :io.get_chars(map_dev(device), to_chardata(prompt), count)
   end
 
-  @doc """
+  @doc ~S"""
   Reads a line from the IO `device`.
 
   It returns:
