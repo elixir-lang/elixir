@@ -291,7 +291,7 @@ defmodule Task do
   end
 
   @doc """
-  Awaits a task reply.
+  Awaits a task reply and returns it.
 
   A timeout, in milliseconds, can be given with default value
   of `5000`. In case the task process dies, this function will
@@ -315,6 +315,13 @@ defmodule Task do
   It is not recommended to `await` a long-running task inside an OTP
   behaviour such as `GenServer`. Instead, you should match on the message
   coming from a task inside your `handle_info` callback.
+
+  ## Examples
+
+      iex> task = Task.async fn -> 1 + 1 end
+      iex> Task.await task
+      2
+
   """
   @spec await(t, timeout) :: term | no_return
   def await(task, timeout \\ 5000)

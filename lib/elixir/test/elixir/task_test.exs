@@ -2,6 +2,7 @@ Code.require_file "test_helper.exs", __DIR__
 
 defmodule TaskTest do
   use ExUnit.Case
+  doctest Task
 
   setup do
     Logger.remove_backend(:console)
