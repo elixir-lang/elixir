@@ -2924,6 +2924,10 @@ defmodule Kernel do
     end
   end
 
+  defp comp(left, {:|, _, [h, t]}) do
+    quote(do: :erlang.or(:erlang."=:="(unquote(left), unquote(h)), unquote(left) in unquote(t)))
+  end
+
   defp comp(left, right) do
     quote(do: :erlang."=:="(unquote(left), unquote(right)))
   end
