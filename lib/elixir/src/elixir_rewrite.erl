@@ -195,7 +195,7 @@ rewrite(?string_chars, _, 'to_string', _, [{{'.', _, [?kernel, inspect]}, _, _} 
   Call;
 rewrite(?string_chars, DotMeta, 'to_string', Meta, [Call], _Env) ->
   Var   = {'rewrite', Meta, 'Elixir'},
-  Guard = {{'.', ?generated, [erlang, is_binary]}, ?generated, [Var]},
+  Guard = remote(erlang, ?generated, is_binary, ?generated, [Var]),
   Slow  = remote(?string_chars, DotMeta, 'to_string', Meta, [Var]),
   Fast  = Var,
 
@@ -208,7 +208,7 @@ rewrite(?enum, DotMeta, 'reverse', Meta, [List], _Env) when is_list(List) ->
   remote(lists, DotMeta, 'reverse', Meta, [List]);
 rewrite(?enum, DotMeta, 'reverse', Meta, [List], _Env) ->
   Var   = {'rewrite', Meta, 'Elixir'},
-  Guard = {{'.', ?generated, [erlang, is_list]}, ?generated, [Var]},
+  Guard = remote(erlang, ?generated, is_list, ?generated, [Var]),
   Slow  = remote(?enum, DotMeta, 'reverse', Meta, [Var, []]),
   Fast  = remote(lists, DotMeta, 'reverse', Meta, [Var]),
 
@@ -225,6 +225,10 @@ rewrite(Receiver, DotMeta, Right, Meta, Args, _Env) ->
 
 rewrite(?atom, to_string, [Arg]) ->
   {erlang, atom_to_binary, [Arg, utf8]};
+rewrite(?enum, into, [Arg, {'%{}', _, []}]) ->
+  {?map, new, [Arg]};
+rewrite(?enum, into, [Arg, {'%{}', _, []}, Fun]) ->
+  {?map, new, [Arg, Fun]};
 rewrite(?kernel, elem, [Tuple, Index]) ->
   {erlang, element, [increment(Index), Tuple]};
 rewrite(?kernel, put_elem, [Tuple, Index, Value]) ->
