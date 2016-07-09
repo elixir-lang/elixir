@@ -186,7 +186,7 @@ defmodule Map do
 
   """
   @spec new(Enumerable.t, (term -> {key, value})) :: map
-  def new(enumerable, transform) do
+  def new(enumerable, transform) when is_function(transform, 1) do
     enumerable
     |> Enum.to_list
     |> new_transform(transform, [])
@@ -724,7 +724,7 @@ defmodule Map do
 
   """
   @spec get_and_update!(map, key, (value -> {get, value})) :: {get, map} | no_return when get: term
-  def get_and_update!(%{} = map, key, fun) do
+  def get_and_update!(%{} = map, key, fun) when is_function(fun, 1) do
     case :maps.find(key, map) do
       {:ok, value} ->
         case fun.(value) do
