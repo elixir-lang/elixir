@@ -231,7 +231,7 @@ defmodule KernelTest do
   end
 
   test "in/2 with a non-compile-time list cons in guards" do
-    message = ~r/invalid args for operator "in", .* got: list()/
+    message = ~r/invalid args for operator "in", .* got: list\(\)/
     assert_raise ArgumentError, message, fn ->
       Code.eval_string """
       defmodule InErrors do
