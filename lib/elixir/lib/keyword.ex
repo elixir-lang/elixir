@@ -835,13 +835,13 @@ defmodule Keyword do
 
   ## Examples
 
-      iex> Keyword.pop_first [a: 1], :a
+      iex> Keyword.pop_first([a: 1], :a)
       {1, []}
-      iex> Keyword.pop_first [a: 1], :b
+      iex> Keyword.pop_first([a: 1], :b)
       {nil, [a: 1]}
-      iex> Keyword.pop_first [a: 1], :b, 3
+      iex> Keyword.pop_first([a: 1], :b, 3)
       {3, [a: 1]}
-      iex> Keyword.pop_first [a: 1, a: 2], :a
+      iex> Keyword.pop_first([a: 1, a: 2], :a)
       {1, [a: 2]}
 
   """
