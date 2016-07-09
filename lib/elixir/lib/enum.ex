@@ -180,7 +180,7 @@ defmodule Enum do
 
   @type t :: Enumerable.t
   @type element :: any
-  @type index :: non_neg_integer
+  @type index :: integer
   @type default :: any
 
   # Require Stream.Reducers and its callbacks
@@ -310,7 +310,7 @@ defmodule Enum do
       :none
 
   """
-  @spec at(t, integer, default) :: element | default
+  @spec at(t, index, default) :: element | default
   def at(enumerable, index, default \\ nil) do
     case fetch(enumerable, index) do
       {:ok, h} -> h
@@ -715,7 +715,7 @@ defmodule Enum do
       :error
 
   """
-  @spec fetch(t, integer) :: {:ok, element} | :error
+  @spec fetch(t, index) :: {:ok, element} | :error
   def fetch(enumerable, index)
   def fetch(first..last, index) when is_integer(index),
     do: fetch_range(first, last, index)
@@ -766,7 +766,7 @@ defmodule Enum do
       ** (Enum.OutOfBoundsError) out of bounds error
 
   """
-  @spec fetch!(t, integer) :: element | no_return
+  @spec fetch!(t, index) :: element | no_return
   def fetch!(enumerable, index) do
     case fetch(enumerable, index) do
       {:ok, h} -> h
@@ -860,7 +860,7 @@ defmodule Enum do
       1
 
   """
-  @spec find_index(t, (element -> any)) :: index | :nil
+  @spec find_index(t, (element -> any)) :: non_neg_integer | :nil
   def find_index(enumerable, fun) when is_list(enumerable) and is_function(fun, 1) do
     do_find_index(enumerable, 0, fun)
   end
@@ -2452,8 +2452,8 @@ defmodule Enum do
       [a: 3, b: 4, c: 5]
 
   """
-  @spec with_index(t) :: [{element, integer}]
-  @spec with_index(t, integer) :: [{element, integer}]
+  @spec with_index(t) :: [{element, index}]
+  @spec with_index(t, integer) :: [{element, index}]
   def with_index(enumerable, offset \\ 0) do
     map_reduce(enumerable, offset, fn x, acc ->
       {{x, acc}, acc + 1}
