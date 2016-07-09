@@ -102,7 +102,7 @@ defmodule KernelTest do
     assert 3 in [1] ++ list
   end
 
-  @at_list  [4, 5]
+  @at_list1  [4, 5]
   @at_range 6..8
   @at_list2 [13, 14]
   @at_list3 [19, 20]
@@ -110,7 +110,7 @@ defmodule KernelTest do
   "fun_in/1" = @doc
   def fun_in(x) when x in [0],       do: :list
   def fun_in(x) when x in 1..3,      do: :range
-  def fun_in(x) when x in @at_list,  do: :at_list
+  def fun_in(x) when x in @at_list1,  do: :at_list
   def fun_in(x) when x in @at_range, do: :at_range
   def fun_in(x) when x in [9 | [10, 11]], do: :list_cons
   def fun_in(x) when x in [12 | @at_list2], do: :list_cons_at
@@ -243,7 +243,7 @@ defmodule KernelTest do
   end
 
   test "in/2 with a non-compile-time list append in guards" do
-    message = ~r/invalid args for operator "in", .* got: list()/
+    message = ~r/invalid args for operator "in", .* got: list\(\)/
     assert_raise ArgumentError, message, fn ->
       Code.eval_string """
       defmodule InErrors do
