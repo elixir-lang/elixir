@@ -318,8 +318,8 @@ defmodule Task do
 
   ## Examples
 
-      iex> task = Task.async fn -> 1 + 1 end
-      iex> Task.await task
+      iex> task = Task.async(fn -> 1 + 1 end)
+      iex> Task.await(task)
       2
 
   """

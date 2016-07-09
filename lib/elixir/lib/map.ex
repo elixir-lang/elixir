@@ -162,7 +162,7 @@ defmodule Map do
       %{a: 3}
 
   """
-  @spec new(Enum.t) :: map
+  @spec new(Enumerable.t) :: map
   def new(enumerable)
   def new(%{__struct__: _} = struct), do: new_from_enum(struct)
   def new(%{} = map), do: map
@@ -185,20 +185,21 @@ defmodule Map do
       %{a: :a, b: :b}
 
   """
-  @spec new(Enum.t, (term -> {key, value})) :: map
+  @spec new(Enumerable.t, (term -> {key, value})) :: map
   def new(enumerable, transform) do
     enumerable
     |> Enum.to_list
-    |> do_new_transform(transform, [])
+    |> new_transform(transform, [])
   end
 
-  defp do_new_transform([], _fun, acc) do
+  defp new_transform([], _fun, acc) do
     acc
     |> :lists.reverse
     |> :maps.from_list
   end
-  defp do_new_transform([item | rest], fun, acc) do
-    do_new_transform(rest, fun, [fun.(item) | acc])
+
+  defp new_transform([item | rest], fun, acc) do
+    new_transform(rest, fun, [fun.(item) | acc])
   end
 
   @doc """

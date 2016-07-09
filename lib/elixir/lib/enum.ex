@@ -1063,11 +1063,11 @@ defmodule Enum do
     collectable ++ to_list(enumerable)
   end
 
-  def into(%{__struct__: _} = enumerable, collectable) do
+  def into(%_{} = enumerable, collectable) do
     do_into(enumerable, collectable)
   end
 
-  def into(enumerable, %{__struct__: _} = collectable) do
+  def into(enumerable, %_{} = collectable) do
     do_into(enumerable, collectable)
   end
 
@@ -1080,8 +1080,8 @@ defmodule Enum do
   end
 
   def into(enumerable, %{} = collectable) do
-    reduce(enumerable, collectable, fn {k, v}, acc ->
-      Map.put(acc, k, v)
+    reduce(enumerable, collectable, fn {key, val}, acc ->
+      Map.put(acc, key, val)
     end)
   end
 
@@ -1091,8 +1091,8 @@ defmodule Enum do
 
   defp do_into(enumerable, collectable) do
     {initial, fun} = Collectable.into(collectable)
-    into(enumerable, initial, fun, fn x, acc ->
-      fun.(acc, {:cont, x})
+    into(enumerable, initial, fun, fn entry, acc ->
+      fun.(acc, {:cont, entry})
     end)
   end
 
@@ -1115,10 +1115,10 @@ defmodule Enum do
   end
 
   def into(enumerable, collectable, transform)
-  when is_function(transform, 1) do
+      when is_function(transform, 1) do
     {initial, fun} = Collectable.into(collectable)
-    into(enumerable, initial, fun, fn x, acc ->
-      fun.(acc, {:cont, transform.(x)})
+    into(enumerable, initial, fun, fn entry, acc ->
+      fun.(acc, {:cont, transform.(entry)})
     end)
   end
 
