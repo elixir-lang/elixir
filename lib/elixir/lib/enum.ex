@@ -1856,22 +1856,47 @@ defmodule Enum do
   @spec slice(t, Range.t) :: list
   def slice(enumerable, range)
 
-  def slice(enumerable, first..last) when first >= 0 and last >= 0 do
-    # Simple case, which works on infinite enumerables
-    if last - first >= 0 do
-      slice(enumerable, first, last - first + 1)
-    else
-      []
+  def slice(enumerable, first..last) do
+    case {first, last} do
+      {first, last} when first >= 0 and last >= 0 ->
+        # Simple case, which works on infinite enumerables
+        case last - first do
+          0 ->
+            case fetch(enumerable, first) do
+              {:ok, result} ->
+                [result]
+              :error ->
+                []
+            end
+          count when count >= 1 ->
+            slice(enumerable, first, last - first + 1)
+          _ ->
+            []
+        end
+
+      {first, last} ->
+        slice_indexes(enumerable, first, last)
     end
   end
 
-  def slice(enumerable, first..last) do
+  defp slice_indexes(enumerable, first, last) do
     {list, count} = enumerate_and_count(enumerable, 0)
     corr_first = if first >= 0, do: first, else: first + count
     corr_last = if last >= 0, do: last, else: last + count
     length = corr_last - corr_first + 1
+
     if corr_first >= 0 and length > 0 do
-      slice(list, corr_first, length)
+      case length do
+        1 ->
+          case fetch(enumerable, corr_first) do
+            {:ok, result} ->
+              [result]
+            :error ->
+              []
+          end
+        _ ->
+          slice_list(list, corr_first, length)
+      end
     else
       []
     end
@@ -1900,25 +1925,33 @@ defmodule Enum do
 
   def slice(_enumerable, start, 0) when is_integer(start), do: []
 
+  def slice(enumerable, start, 1) when is_integer(start) do
+    case fetch(enumerable, start) do
+      {:ok, result} ->
+        [result]
+      :error ->
+        []
+    end
+  end
+
   def slice(enumerable, start, count)
-      when is_integer(start) and start < 0 and is_integer(count) and count >= 0 do
+      when is_integer(start) and start < 0 and is_integer(count) and count > 1 do
     {list, new_start} = enumerate_and_count(enumerable, start)
     if new_start >= 0 do
-      slice(list, new_start, count)
+      slice_list(list, new_start, count)
     else
       []
     end
   end
 
   def slice(enumerable, start, count)
-      when is_list(enumerable) and
-           is_integer(start) and start >= 0 and
-           is_integer(count) and count > 0 do
-    do_slice(enumerable, start, count)
+      when is_list(enumerable) and is_integer(start) and
+           is_integer(count) and count > 1 do
+    slice_list(enumerable, start, count)
   end
 
   def slice(enumerable, start, count)
-      when is_integer(start) and start >= 0 and is_integer(count) and count > 0 do
+      when is_integer(start) and is_integer(count) and count > 1 do
     {_, _, list} = Enumerable.reduce(enumerable,
       {:cont, {start, count, []}}, fn
         _entry, {start, count, _list} when start > 0 ->
@@ -2662,21 +2695,14 @@ defmodule Enum do
 
   ## slice
 
-  defp do_slice([], _start, _count) do
-    []
-  end
-
-  defp do_slice(_list, _start, 0) do
-    []
-  end
-
-  defp do_slice([h | t], 0, count) do
-    [h | do_slice(t, 0, count-1)]
-  end
-
-  defp do_slice([_ | t], start, count) do
-    do_slice(t, start-1, count)
-  end
+  defp slice_list([], _start, _count),
+    do: []
+  defp slice_list(_list, _start, 0),
+    do: []
+  defp slice_list([head | tail], 0, count),
+    do: [head | slice_list(tail, 0, count - 1)]
+  defp slice_list([_ | tail], start, count),
+    do: slice_list(tail, start - 1, count)
 
   ## sort
 
