@@ -282,6 +282,8 @@ defmodule ExUnit.DiffTest do
     assert script(map2, map1) == expected
     assert script(map1, %{}) == [{:eq, "%{"}, [[del: "baz: 12"]], {:eq, "}"}]
     assert script(%{}, map1) == [{:eq, "%{"}, [[ins: "baz: 12"]], {:eq, "}"}]
+    expected = [{:eq, "%{"}, [[del: "baz: 12"], [ins: "foo: 12"]], {:eq, "}"}]
+    assert script(map1, %{foo: 12}) == expected
 
     assert script(%{}, %{}) == [eq: "%{}"]
   end
