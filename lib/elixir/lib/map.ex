@@ -692,8 +692,12 @@ defmodule Map do
       end
 
     case fun.(current) do
-      {get, update} -> {get, :maps.put(key, update, map)}
-      :pop          -> {current, :maps.remove(key, map)}
+      {get, update} ->
+        {get, :maps.put(key, update, map)}
+      :pop ->
+        {current, :maps.remove(key, map)}
+      other ->
+        raise "the given function must return a two-element tuple or :pop, got: #{inspect(other)}"
     end
   end
 
@@ -728,8 +732,12 @@ defmodule Map do
     case :maps.find(key, map) do
       {:ok, value} ->
         case fun.(value) do
-          {get, update} -> {get, :maps.put(key, update, map)}
-          :pop          -> {value, :maps.remove(key, map)}
+          {get, update} ->
+            {get, :maps.put(key, update, map)}
+          :pop ->
+            {value, :maps.remove(key, map)}
+          other ->
+            raise "the given function must return a two-element tuple or :pop, got: #{inspect(other)}"
         end
       :error ->
         raise KeyError, term: map, key: key
