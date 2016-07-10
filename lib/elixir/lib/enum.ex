@@ -2443,6 +2443,8 @@ defmodule Enum do
   Returns the enumerable with each element wrapped in a tuple
   alongside its index.
 
+  If an `offset` is given, we will index from the given offset instead of from zero.
+
   ## Examples
 
       iex> Enum.with_index([:a, :b, :c])

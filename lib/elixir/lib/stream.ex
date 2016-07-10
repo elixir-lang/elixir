@@ -879,6 +879,8 @@ defmodule Stream do
   Creates a stream where each item in the enumerable will
   be wrapped in a tuple alongside its index.
 
+  If an `offset` is given, we will index from the given offset instead of from zero.
+
   ## Examples
 
       iex> stream = Stream.with_index([1, 2, 3])
