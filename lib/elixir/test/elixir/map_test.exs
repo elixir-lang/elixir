@@ -74,6 +74,12 @@ defmodule MapTest do
     end
   end
 
+  test "get_and_update!/3" do
+    assert_raise RuntimeError, "must return a two-element tuple or :pop, got: 1", fn ->
+      Map.get_and_update!(%{a: 1}, :a, fn value -> value end)
+    end
+  end
+
   test "maps with optional comma" do
     assert %{a: :b,} == %{a: :b}
     assert %{1 => 2,} == %{1 => 2}
