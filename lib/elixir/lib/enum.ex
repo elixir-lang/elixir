@@ -893,7 +893,7 @@ defmodule Enum do
       1
 
   """
-  @spec find_index(t, (element -> any)) :: non_neg_integer | :nil
+  @spec find_index(t, (element -> any)) :: non_neg_integer | nil
   def find_index(enumerable, fun) when is_list(enumerable) and is_function(fun, 1) do
     do_find_index(enumerable, 0, fun)
   end
@@ -926,7 +926,7 @@ defmodule Enum do
       "no bools!"
 
   """
-  @spec find_value(t, any, (element -> any)) :: any | :nil
+  @spec find_value(t, any, (element -> any)) :: any | nil
   def find_value(enumerable, default \\ nil, fun)
 
   def find_value(enumerable, default, fun) when is_list(enumerable) and is_function(fun, 1) do
