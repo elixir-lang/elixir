@@ -1835,8 +1835,8 @@ defmodule Enum do
   The first position (after adding count to negative positions) must be
   smaller or equal to the last position.
 
-  If the start of the range is not a valid offset for the given
-  enumerable or if the range is in reverse order, returns `[]`.
+  If the start of the range is not a valid index for the given
+  enumerable or if the range is in descending order, it returns `[]`.
 
   ## Examples
 
