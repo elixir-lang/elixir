@@ -367,18 +367,29 @@ defmodule ExUnit.Diff do
       map_pair = format_key_value(key, val, keyword?)
       [[ins: ", ", ins: map_pair] | acc]
     end)
+    result =
+      if same == [] and altered == [] and missing != [] and surplus != [] do
+        [[_ | elem_diff] | rest] = result
+        [elem_diff | rest]
+      else
+        result
+      end
+
     result = Enum.reduce(surplus, result, fn({key, val}, acc) ->
       map_pair = format_key_value(key, val, keyword?)
       [[del: ", ", del: map_pair] | acc]
     end)
+
     result = Enum.reduce(altered, result, fn({key, {val1, val2}}, acc) ->
       value_diff = script_inner(val1, val2)
       [[{:eq, ", "}, {:eq, format_key(key, keyword?)}, value_diff] | acc]
     end)
+
     result = Enum.reduce(same, result, fn({key, val}, acc) ->
       map_pair = format_key_value(key, val, keyword?)
       [[eq: ", ", eq: map_pair] | acc]
     end)
+
     [[_ | elem_diff] | rest] = result
     [{:eq, "%" <> name <> "{"}, [elem_diff | rest], {:eq, "}"}]
   end
