@@ -82,7 +82,7 @@ The following literals are also supported in typespecs:
 
                                           ## Tuples
           | {}                            # empty tuple
-          | {:ok, type}                   # two element tuple with an atom and any type
+          | {:ok, type}                   # two-element tuple with an atom and any type
 
 ### Built-in types
 
