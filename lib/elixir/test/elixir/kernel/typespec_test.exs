@@ -326,7 +326,7 @@ defmodule Kernel.TypespecTest do
       @type mytype2 :: [integer, ...]
     end
 
-    assert [type: {:mytype, {:type, _, :nil, []}, []},
+    assert [type: {:mytype, {:type, _, nil, []}, []},
             type: {:mytype1, {:type, _, :list, [{:type, _, :integer, []}]}, []},
             type: {:mytype2, {:type, _, :nonempty_list, [{:type, _, :integer, []}]}, []}] =
            types(module)
