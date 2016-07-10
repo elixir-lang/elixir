@@ -144,7 +144,7 @@ defmodule Kernel.ParallelCompiler do
     # Instead of releasing all files at once, we release them in groups
     # based on the module they are waiting on. We pick the module being
     # depended on with less edges, as it is the mostly likely source of
-    # error (for example, someone made a type). This may not always be
+    # error (for example, someone made a typo). This may not always be
     # true though: for example, if there is a macro injecting code into
     # multiple modules and such code becomes faulty, now multiple modules
     # are waiting on the same module required by the faulty code. However,
