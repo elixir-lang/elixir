@@ -383,6 +383,7 @@ defmodule EnumTest do
   test "reject/2" do
     assert Enum.reject([1, 2, 3], fn(x) -> rem(x, 2) == 0 end) == [1, 3]
     assert Enum.reject([2, 4, 6], fn(x) -> rem(x, 2) == 0 end) == []
+    assert Enum.reject([1, true, nil, false, 2], &(&1)) == [nil, false]
   end
 
   test "reverse/1" do
@@ -682,12 +683,12 @@ defmodule EnumTest.Range do
   end
 
   test "at/3" do
-    assert Enum.at([2, 4, 6], 0) == 2
-    assert Enum.at([2, 4, 6], 2) == 6
-    assert Enum.at([2, 4, 6], 4) == nil
-    assert Enum.at([2, 4, 6], 4, :none) == :none
-    assert Enum.at([2, 4, 6], -2) == 4
-    assert Enum.at([2, 4, 6], -4) == nil
+    assert Enum.at(2..6, 0) == 2
+    assert Enum.at(2..6, 4) == 6
+    assert Enum.at(2..6, 6) == nil
+    assert Enum.at(2..6, 6, :none) == :none
+    assert Enum.at(2..6, -2) == 5
+    assert Enum.at(2..6, -8) == nil
   end
 
   test "chunk/2" do
@@ -894,8 +895,6 @@ defmodule EnumTest.Range do
   end
 
   test "into/2" do
-    assert Enum.into([a: 1, b: 2], %{}) == %{a: 1, b: 2}
-    assert Enum.into(%{a: 1, b: 2}, []) == [a: 1, b: 2]
     assert Enum.into(3..5, [1, 2]) == [1, 2, 3, 4, 5]
     assert Enum.into(1..5, []) == [1, 2, 3, 4, 5]
   end
@@ -1003,7 +1002,6 @@ defmodule EnumTest.Range do
   test "reject/2" do
     assert Enum.reject(1..3, fn(x) -> rem(x, 2) == 0 end) == [1, 3]
     assert Enum.reject(1..6, fn(x) -> rem(x, 2) == 0 end) == [1, 3, 5]
-    assert Enum.reject([1, true, nil, false, 2], & &1) == [nil, false]
   end
 
   test "reverse/1" do
