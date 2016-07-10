@@ -696,7 +696,7 @@ defmodule Map do
       :pop ->
         {current, :maps.remove(key, map)}
       other ->
-        raise "must return a two-element tuple or :pop, got: #{inspect(other)}"
+        raise "the given function must return a two-element tuple or :pop, got: #{inspect(other)}"
     end
   end
 
@@ -736,7 +736,7 @@ defmodule Map do
           :pop ->
             {value, :maps.remove(key, map)}
           other ->
-            raise "must return a two-element tuple or :pop, got: #{inspect(other)}"
+            raise "the given function must return a two-element tuple or :pop, got: #{inspect(other)}"
         end
       :error ->
         raise KeyError, term: map, key: key
