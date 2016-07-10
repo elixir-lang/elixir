@@ -539,7 +539,7 @@ defmodule Enum do
   end
 
   @doc """
-  Drops the first `n` items from then enumerable.
+  Drops the first `n` items from the enumerable.
 
   If a negative value `n` is given, the last `n` values will be dropped.
 
@@ -562,11 +562,11 @@ defmodule Enum do
 
   """
   @spec drop(t, integer) :: list
-  def drop(enumerable, n) when is_list(enumerable) and n >= 0 do
+  def drop(enumerable, n) when is_list(enumerable) and is_integer(n) and n >= 0 do
     do_drop(enumerable, n)
   end
 
-  def drop(enumerable, n) when n >= 0 do
+  def drop(enumerable, n) when is_integer(n) and n >= 0 do
     res =
       reduce(enumerable, n, fn
         x, acc when is_list(acc) -> [x | acc]
@@ -576,7 +576,7 @@ defmodule Enum do
     if is_list(res), do: :lists.reverse(res), else: []
   end
 
-  def drop(enumerable, n) when n < 0 do
+  def drop(enumerable, n) when is_integer(n) and n < 0 do
     do_drop(reverse(enumerable), abs(n)) |> :lists.reverse
   end
 
@@ -606,9 +606,9 @@ defmodule Enum do
 
   def drop_every(_enumerable, 1), do: []
   def drop_every(enumerable, 0), do: to_list(enumerable)
-  def drop_every([], _nth), do: []
+  def drop_every([], nth) when is_integer(nth), do: []
 
-  def drop_every(enumerable, nth) when is_integer(nth) and nth > 0 do
+  def drop_every(enumerable, nth) when is_integer(nth) and nth > 1 do
     {res, _} = reduce(enumerable, {[], :first}, R.drop_every(nth))
     :lists.reverse(res)
   end
@@ -2238,9 +2238,9 @@ defmodule Enum do
 
   def take_every(enumerable, 1), do: to_list(enumerable)
   def take_every(_enumerable, 0), do: []
-  def take_every([], _nth), do: []
+  def take_every([], nth) when is_integer(nth) and nth > 1, do: []
 
-  def take_every(enumerable, nth) when is_integer(nth) and nth > 0 do
+  def take_every(enumerable, nth) when is_integer(nth) and nth > 1 do
     {res, _} = reduce(enumerable, {[], :first}, R.take_every(nth))
     :lists.reverse(res)
   end
