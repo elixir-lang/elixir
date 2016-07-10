@@ -69,7 +69,7 @@ defmodule Mix.Tasks.Deps.Tree do
 
   defp callback(formatter, deps, opts) do
     excluded  = Keyword.get_values(opts, :exclude) |> Enum.map(&String.to_atom/1)
-    top_level = Enum.filter(deps, & &1.top_level)
+    top_level = Enum.filter(deps, &(&1.top_level))
 
     fn
       %Mix.Dep{app: app} = dep ->
@@ -88,7 +88,7 @@ defmodule Mix.Tasks.Deps.Tree do
   end
 
   defp exclude(deps, excluded) do
-    Enum.reject deps, & &1.app in excluded
+    Enum.reject(deps, &(&1.app in excluded))
   end
 
   defp format_dot(%{app: app, requirement: requirement, opts: opts}) do
@@ -119,6 +119,6 @@ defmodule Mix.Tasks.Deps.Tree do
   defp requirement(binary) when is_binary(binary), do: binary
 
   defp find_dep(deps, app) do
-    Enum.find(deps, & &1.app == app)
+    Enum.find(deps, &(&1.app == app))
   end
 end

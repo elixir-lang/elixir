@@ -128,7 +128,7 @@ defmodule Mix.Dep do
 
   defp get_deps_with_children(all_deps, apps) do
     deps = get_children(all_deps, apps)
-    apps = deps |> Enum.map(& &1.app) |> Enum.uniq
+    apps = deps |> Enum.map(&(&1.app)) |> Enum.uniq
     get_deps(all_deps, apps)
   end
 

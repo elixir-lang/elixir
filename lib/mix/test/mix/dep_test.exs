@@ -278,7 +278,7 @@ defmodule Mix.DepTest do
       in_fixture "deps_status", fn ->
         Mix.Tasks.Deps.Get.run([])
 
-        deps = Process.get(:remote_converger) |> Enum.map(& &1.app)
+        deps = Process.get(:remote_converger) |> Enum.map(&(&1.app))
         assert deps == [:ok, :invalidvsn, :invalidapp, :noappfile]
       end
     end

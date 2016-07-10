@@ -268,7 +268,7 @@ defmodule Kernel.ParallelCompiler do
 
     max =
       deadlock
-      |> Enum.map(& &1 |> elem(0) |> String.length)
+      |> Enum.map(&(&1 |> elem(0) |> String.length))
       |> Enum.max
 
     for {file, mod} <- deadlock do
