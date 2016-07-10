@@ -721,24 +721,22 @@ defmodule Enum do
   @spec fetch(t, index) :: {:ok, element} | :error
   def fetch(enumerable, index)
 
+  def fetch(first..last, index) when is_integer(index) do
+    fetch_range(first, last, index)
+  end
+
   def fetch(enumerable, index) when is_integer(index) and index < 0 do
-    case enumerable do
-      first..last ->
-        fetch_range(first, last, index)
+    case Enumerable.count(enumerable) do
+      {:ok, count} when (count + index) < 0 ->
+        :error
 
-      _ ->
-        case Enumerable.count(enumerable) do
-          {:ok, count} when (count + index) < 0 ->
-            :error
+      {:ok, count} ->
+        fetch_enumerable(enumerable, count + index, Enumerable)
 
-          {:ok, count} ->
-            fetch_enumerable(enumerable, count + index, Enumerable)
-
-          {:error, _} ->
-            enumerable
-            |> reverse
-            |> fetch_list((-index) - 1)
-        end
+      {:error, _} ->
+        enumerable
+        |> reverse()
+        |> fetch_list((-index) - 1)
     end
   end
 
@@ -746,12 +744,8 @@ defmodule Enum do
     fetch_list(enumerable, index)
   end
 
-  def fetch(first..last, index) when is_integer(index) do
-    fetch_range(first, last, index)
-  end
-
   def fetch(enumerable, index) when is_integer(index) do
-    count_res =
+    count_result =
       case Enumerable.count(enumerable) do
         {:ok, count} when (count - 1 - index) < 0 ->
           :error
@@ -761,7 +755,7 @@ defmodule Enum do
           {:ok, module}
       end
 
-    case count_res do
+    case count_result do
       :error ->
         :error
       {:ok, module} ->
@@ -770,7 +764,7 @@ defmodule Enum do
   end
 
   defp fetch_enumerable(enumerable, index, module) do
-    reduce_res =
+    reduce_result =
       module.reduce(enumerable, {:cont, 0}, fn
         entry, ^index ->
           {:halt, entry}
@@ -778,7 +772,7 @@ defmodule Enum do
          {:cont, acc + 1}
       end)
 
-    case reduce_res do
+    case reduce_result do
       {:halted, entry} -> {:ok, entry}
       {:done, _} -> :error
     end
@@ -809,7 +803,7 @@ defmodule Enum do
   def fetch!(enumerable, index) do
     case fetch(enumerable, index) do
       {:ok, h} -> h
-      :error     -> raise Enum.OutOfBoundsError
+      :error -> raise Enum.OutOfBoundsError
     end
   end
 
