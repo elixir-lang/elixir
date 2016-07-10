@@ -1,7 +1,7 @@
 defmodule Mix.Tasks.Escript do
   use Mix.Task
 
-  @shortdoc "List installed escripts."
+  @shortdoc "Lists installed escripts"
 
   @moduledoc ~S"""
   Lists all installed escripts.
