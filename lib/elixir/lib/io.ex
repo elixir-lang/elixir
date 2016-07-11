@@ -92,13 +92,13 @@ defmodule IO do
   @doc """
   Reads from the IO `device`. The operation is Unicode unsafe.
 
-  The `device` is iterated by the given number of characters or line by line if
+  The `device` is iterated by the given number of data or line by line if
   `:line` is given.
   Alternatively, if `:all` is given, then whole `device` is returned.
 
   It returns:
 
-    * `data` - the input characters
+    * `data` - the output data
 
     * `:eof` - end of file was encountered
 
