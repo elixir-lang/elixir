@@ -38,4 +38,10 @@ defmodule KeywordTest do
       Keyword.get_and_update([], :a, fn value -> value end)
     end
   end
+
+  test "get_and_update!/3" do
+    assert_raise RuntimeError, "the given function must return a two-element tuple or :pop, got: 1", fn ->
+      Keyword.get_and_update([a: 1], :a, fn value -> value end)
+    end
+  end
 end

@@ -289,6 +289,8 @@ defmodule Keyword do
         {get, :lists.reverse(acc, [{key, value} | delete(keywords, key)])}
       :pop ->
         {value, :lists.reverse(acc, keywords)}
+      other ->
+        raise "the given function must return a two-element tuple or :pop, got: #{inspect(other)}"
     end
   end
 
