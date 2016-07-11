@@ -226,8 +226,12 @@ defmodule Keyword do
 
   defp get_and_update([{key, current} | t], acc, key, fun) do
     case fun.(current) do
-      {get, value} -> {get, :lists.reverse(acc, [{key, value} | t])}
-      :pop         -> {current, :lists.reverse(acc, t)}
+      {get, value} ->
+        {get, :lists.reverse(acc, [{key, value} | t])}
+      :pop ->
+        {current, :lists.reverse(acc, t)}
+      other ->
+        raise "the given function must return a two-element tuple or :pop, got: #{inspect(other)}"
     end
   end
 
@@ -236,8 +240,12 @@ defmodule Keyword do
 
   defp get_and_update([], acc, key, fun) do
     case fun.(nil) do
-      {get, update} -> {get, [{key, update} | :lists.reverse(acc)]}
-      :pop -> {nil, :lists.reverse(acc)}
+      {get, update} ->
+        {get, [{key, update} | :lists.reverse(acc)]}
+      :pop ->
+        {nil, :lists.reverse(acc)}
+      other ->
+        raise "the given function must return a two-element tuple or :pop, got: #{inspect(other)}"
     end
   end
 

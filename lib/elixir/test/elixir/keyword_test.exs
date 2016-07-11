@@ -26,4 +26,16 @@ defmodule KeywordTest do
     assert Map.__info__(:functions) -- Keyword.__info__(:functions) ==
            [from_struct: 1]
   end
+
+  test "get_and_update/3" do
+    assert_raise RuntimeError, "the given function must return a two-element tuple or :pop, got: 1", fn ->
+      Keyword.get_and_update([a: 1], :a, fn value -> value end)
+    end
+  end
+
+  test "get_and_update/3 with empty keyword list" do
+    assert_raise RuntimeError, "the given function must return a two-element tuple or :pop, got: nil", fn ->
+      Keyword.get_and_update([], :a, fn value -> value end)
+    end
+  end
 end
