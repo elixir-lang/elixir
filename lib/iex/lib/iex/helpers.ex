@@ -124,13 +124,13 @@ defmodule IEx.Helpers do
       raise ArgumentError, "expected a binary or a list of binaries as argument"
     end
 
-    {found, not_found} = Enum.partition(files, &File.exists?/1)
+    {found, not_found} = Enum.split_with(files, &File.exists?/1)
 
     unless Enum.empty?(not_found) do
       raise ArgumentError, "could not find files #{Enum.join(not_found, ", ")}"
     end
 
-    {erls, exs} = Enum.partition(found, &String.ends_with?(&1, ".erl"))
+    {erls, exs} = Enum.split_with(found, &String.ends_with?(&1, ".erl"))
 
     modules = Enum.map(erls, fn(source) ->
       {module, binary} = compile_erlang(source)
