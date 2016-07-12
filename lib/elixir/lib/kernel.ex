@@ -3563,7 +3563,7 @@ defmodule Kernel do
       # TODO: Only call Kernel.struct! by Elixir v1.5
       def exception(args) when is_list(args) do
         struct = __struct__()
-        {valid, invalid} = Enum.partition(args, fn {k, _} -> Map.has_key?(struct, k) end)
+        {valid, invalid} = Enum.split_with(args, fn {k, _} -> Map.has_key?(struct, k) end)
 
         case invalid do
           [] ->

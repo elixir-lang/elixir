@@ -22,7 +22,7 @@ defmodule Mix.Dep.Loader do
   Partitions loaded dependencies by environment.
   """
   def partition_by_env(deps, nil), do: {deps, []}
-  def partition_by_env(deps, env), do: Enum.partition(deps, &not skip?(&1, env))
+  def partition_by_env(deps, env), do: Enum.split_with(deps, &not skip?(&1, env))
 
   @doc """
   Checks if a dependency must be skipped according to the environment.
