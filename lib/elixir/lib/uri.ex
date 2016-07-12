@@ -40,7 +40,7 @@ defmodule URI do
       nil
 
   """
-  @spec default_port(binary) :: nil | pos_integer
+  @spec default_port(binary) :: nil | non_neg_integer
   def default_port(scheme) when is_binary(scheme) do
     :elixir_config.get({:uri, scheme})
   end
@@ -57,8 +57,8 @@ defmodule URI do
   application's start callback in case you want to register
   new URIs.
   """
-  @spec default_port(binary, pos_integer) :: :ok
-  def default_port(scheme, port) when is_binary(scheme) and is_integer(port) and port > 0 do
+  @spec default_port(binary, non_neg_integer) :: :ok
+  def default_port(scheme, port) when is_binary(scheme) and is_integer(port) and port >= 0 do
     :elixir_config.put({:uri, scheme}, port)
   end
 
