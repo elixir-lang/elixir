@@ -123,6 +123,12 @@ defmodule IO.ANSI do
   @doc "Blink: off"
   defsequence :blink_off, 25
 
+  @doc "Image: Positive. Normal foreground and background"
+  defsequence :inverse_off, 27
+
+  @doc "Image: Positive. Normal foreground and background"
+  defsequence :reverse_off, 27
+
   colors = [:black, :red, :green, :yellow, :blue, :magenta, :cyan, :white]
 
   for {color, code} <- Enum.with_index(colors) do
