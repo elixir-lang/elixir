@@ -380,8 +380,21 @@ defmodule GenEvent do
         :gen.start(GenEvent, mode, @no_callback, [], [])
       atom when is_atom(atom) ->
         :gen.start(GenEvent, mode, {:local, atom}, @no_callback, [], [])
-      other when is_tuple(other) ->
-        :gen.start(GenEvent, mode, other, @no_callback, [], [])
+      {:global, _term} = tuple ->
+        :gen.start(GenEvent, mode, tuple, @no_callback, [], [])
+      {:via, module, _term} = tuple when is_atom(module) ->
+        :gen.start(GenEvent, mode, tuple, @no_callback, [], [])
+      other ->
+        raise ArgumentError, String.trim_trailing("""
+        expected :name option to be one of:
+
+          * nil
+          * atom
+          * {:global, term}
+          * {:via, module, term}
+
+        Got: #{inspect(other)}
+        """)
     end
   end
 

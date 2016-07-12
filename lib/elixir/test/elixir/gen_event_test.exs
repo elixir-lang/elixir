@@ -148,8 +148,19 @@ defmodule GenEventTest do
     assert {:ok, pid} = GenEvent.start_link(name: :my_gen_event_name)
     assert GenEvent.start_link(name: :my_gen_event_name) ==
            {:error, {:already_started, pid}}
-
     assert GenEvent.stop(pid) == :ok
+
+    assert_raise ArgumentError, ~r"expected :name option to be one of:", fn ->
+      GenEvent.start_link(name: "my_gen_event_name")
+    end
+
+    assert_raise ArgumentError, ~r"expected :name option to be one of:", fn ->
+      GenEvent.start_link(name: {:invalid_tuple, "my_gen_event_name"})
+    end
+
+    assert_raise ArgumentError, ~r"expected :name option to be one of:", fn ->
+      GenEvent.start_link(name: {:via, "Via", "my_gen_event_name"})
+    end
   end
 
   test "handles exit signals" do
