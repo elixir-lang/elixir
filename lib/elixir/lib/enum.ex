@@ -1537,18 +1537,26 @@ defmodule Enum do
   end
 
   @doc """
-  Partitions `enumerable` into two lists, where the first one
-  contains elements for which `fun` returns a truthy value, and the
-  second one – for which `fun` returns `false` or `nil`.
+  Splits the `enumerable` in two lists according to the given function `fun`.
+
+  Splits the given `enumerable` in two lists by calling `fun` with each element
+  in the `enumerable` as its only argument. Returns a tuple with the first list
+  containing all the elements in `enumerable` for which applying `fun` returned
+  a truthy value, and a second list with all the elements for which applying
+  `fun` returned a falsey value (`false` or `nil`).
+
+  The elements in both the returned lists are in the same relative order as they
+  were in the original enumerable (if such enumerable was ordered, e.g., a
+  list); see the examples below.
 
   ## Examples
 
-      iex> Enum.partition([1, 2, 3], fn(x) -> rem(x, 2) == 0 end)
+      iex> Enum.split_with([1, 2, 3], fn(x) -> rem(x, 2) == 0 end)
       {[2], [1, 3]}
 
   """
-  @spec partition(t, (element -> any)) :: {list, list}
-  def partition(enumerable, fun) when is_function(fun, 1) do
+  @spec split_with(t, (element -> any)) :: {list, list}
+  def split_with(enumerable, fun) when is_function(fun, 1) do
     {acc1, acc2} =
       reduce(enumerable, {[], []}, fn(entry, {acc1, acc2}) ->
         if fun.(entry) do
@@ -1559,6 +1567,13 @@ defmodule Enum do
       end)
 
     {:lists.reverse(acc1), :lists.reverse(acc2)}
+  end
+
+  @doc false
+  # TODO: Deprecate by v1.5
+  @spec partition(t, (element -> any)) :: {list, list}
+  def partition(enumerable, fun) when is_function(fun, 1) do
+    split_with(enumerable, fun)
   end
 
   @doc """

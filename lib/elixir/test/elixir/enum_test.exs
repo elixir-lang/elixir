@@ -340,9 +340,9 @@ defmodule EnumTest do
     end
   end
 
-  test "partition/2" do
-    assert Enum.partition([1, 2, 3], fn(x) -> rem(x, 2) == 0 end) == {[2], [1, 3]}
-    assert Enum.partition([2, 4, 6], fn(x) -> rem(x, 2) == 0 end) == {[2, 4, 6], []}
+  test "split_with/2" do
+    assert Enum.split_with([1, 2, 3], fn(x) -> rem(x, 2) == 0 end) == {[2], [1, 3]}
+    assert Enum.split_with([2, 4, 6], fn(x) -> rem(x, 2) == 0 end) == {[2, 4, 6], []}
   end
 
   test "random/1" do
@@ -972,8 +972,8 @@ defmodule EnumTest.Range do
     assert Enum.min_max_by(1..3, fn(x) -> x end) == {1, 3}
   end
 
-  test "partition/2" do
-    assert Enum.partition(1..3, fn(x) -> rem(x, 2) == 0 end) == {[2], [1, 3]}
+  test "split_with/2" do
+    assert Enum.split_with(1..3, fn(x) -> rem(x, 2) == 0 end) == {[2], [1, 3]}
   end
 
   test "random/1" do
