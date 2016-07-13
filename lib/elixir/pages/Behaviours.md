@@ -27,7 +27,9 @@ For more information on typespecs, consult the ["Typespecs"](typespecs.html) pag
 
 ### Optional callbacks
 
-Optional callbacks are callbacks that callback modules may implement if they want to, but are not required to. Usually, behaviour modules provide a default implementation for such callbacks in case the callback module does not implement them. Optional callbacks can be defined through the `@optional_callbacks` module attribute, which has to be a list of `{function_or_macro_name, arity}` tuples. For example:
+Optional callbacks are callbacks that callback modules may implement if they want to, but are not required to.
+Usually, behaviour modules know if they should call those callbacks based on configuration, or they check if the callbacks are defined with `function_exported?/3` or `macro_exported?/3`.
+Optional callbacks can be defined through the `@optional_callbacks` module attribute, which has to be a keyword list with function or macro name as key and arity as value. For example:
 
     defmodule MyBehaviour do
       @callback vital_fun() :: any
