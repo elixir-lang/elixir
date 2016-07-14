@@ -69,9 +69,6 @@ defmodule Mix.Generator do
         Mix.Generator.embed_template(:log, "Log: <%= @log %>")
       end
 
-      Mix.Tasks.MyTask.log_template(log: "creating directory")
-      #=> "Log: creating directory"
-
   """
   defmacro embed_template(name, contents) do
     quote bind_quoted: binding() do
@@ -104,9 +101,6 @@ defmodule Mix.Generator do
         require Mix.Generator
         Mix.Generator.embed_text(:error, "There was an error!")
       end
-
-      Mix.Tasks.MyTask.error_text()
-      #=> "There was an error!"
 
   """
   defmacro embed_text(name, contents) do
