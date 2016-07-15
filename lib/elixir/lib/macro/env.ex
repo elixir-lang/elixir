@@ -41,7 +41,6 @@ defmodule Macro.Env do
       construct (may be `nil`)
     * `lexical_tracker` - PID of the lexical tracker which is responsible for
       keeping user info
-    * `local` - the module to expand local functions to
   """
 
   @type name_arity :: {atom, arity}
@@ -73,8 +72,7 @@ defmodule Macro.Env do
                context_modules: context_modules,
                vars: vars,
                export_vars: export_vars,
-               lexical_tracker: lexical_tracker,
-               local: local}
+               lexical_tracker: lexical_tracker}
 
   def __struct__ do
     %{__struct__: __MODULE__,
