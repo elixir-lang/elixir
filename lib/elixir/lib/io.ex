@@ -233,20 +233,49 @@ defmodule IO do
   @doc """
   Inspects and writes the given `item` to the device.
 
+  It's important to note that it returns the given `item` unchanged.
+  This makes it possible to "spy" on values by inserting an
+  `IO.inspect/2` call almost anywhere in your code, for example,
+  in the middle of a pipeline.
+
   It enables pretty printing by default with width of
   80 characters. The width can be changed by explicitly
   passing the `:width` option.
 
-  The output can be decorated with a tag, by providing a `:tag`
+  The output can be decorated with a label, by providing the `:label`
   option to easily distinguish it from other `IO.inspect/2` calls.
+  The label will be printed before the inspected `item`.
 
   See `Inspect.Opts` for a full list of remaining formatting options.
 
   ## Examples
 
-      IO.inspect Process.list, width: 40
+      IO.inspect <<0, 1, 2>>, width: 40
 
-      IO.inspect Node.list, tag: "nodes"
+  Prints:
+
+      <<0, 1, 2>>
+
+  We can use the `:label` option to decorate the output:
+
+      IO.inspect 1..100, label: "a wonderful range"
+
+  Prints:
+
+      a wonderful range: 1..100
+
+  The `:label` option is especially useful with pipelines:
+
+      [1, 2, 3]
+      |> IO.inspect(label: "before")
+      |> Enum.map(&(&1 * 2))
+      |> IO.inspect(label: "after")
+      |> Enum.sum
+
+  Prints:
+
+      before: [1, 2, 3]
+      after: [2, 4, 6]
 
   """
   @spec inspect(item, Keyword.t) :: item when item: var
