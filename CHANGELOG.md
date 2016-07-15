@@ -268,6 +268,36 @@ end
 
 By restricting hierarchies in favor of named setups, it is straight-forward for the developer to glance at each describe block and know exactly the setup steps involved.
 
+## v1.3.2 (2016-07-15)
+
+### 1. Enhancements
+
+#### Elixir
+
+  * [Kernel] Support guards in `else` clauses in `with`
+
+#### Mix
+
+  * [Mix] Add `MIX_NO_DEPS` env var for disabling dep loading. Used for third-party scripts and tools like Nix package manager
+  * [Mix] Add `mix test --listen-on-stdin` that automatically reruns tests on stdin
+  * [Mix] Disable `--warnings-as-errors` when compiling dependencies
+  * [Mix] Add `--filter` option to `mix deps.unlock` to unlock only matching dependencies
+
+### 2. Bug fixes
+
+#### Elixir
+
+  * [Enum] Return `nil` if enumerable halts in `Enum.find_index/3`
+  * [Kernel] Do not attempt to load modules that have not been required when invoking regular functions, otherwise this invalidates the `@compile {:autoload, false}` directive.
+
+#### Mix
+
+  * [Mix] Ensure missing protocol dependencies are discarded in umbrella projects with shared build
+
+#### ExUnit
+
+  * [ExUnit.Diff] Ensure no leading or trailing when diffing some maps
+
 ## v1.3.1 (2016-06-28)
 
 ### 1. Enhancements
