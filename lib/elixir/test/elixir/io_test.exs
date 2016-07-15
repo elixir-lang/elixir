@@ -178,4 +178,10 @@ defmodule IOTest do
       IO.write input
     end) == ">hello"
   end
+
+  test "inspect" do
+    assert capture_io(fn -> IO.inspect(1) end) == "1\n"
+    assert capture_io(fn -> IO.inspect(1, label: "foo") end) == "foo: 1\n"
+    assert capture_io(fn -> IO.inspect(1, label: :foo) end) == "foo: 1\n"
+  end
 end

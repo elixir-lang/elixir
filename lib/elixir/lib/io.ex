@@ -237,11 +237,16 @@ defmodule IO do
   80 characters. The width can be changed by explicitly
   passing the `:width` option.
 
-  See `Inspect.Opts` for a full list of options.
+  The output can be decorated with a tag, by providing a `:tag`
+  option to easily distinguish it from other `IO.inspect/2` calls.
+
+  See `Inspect.Opts` for a full list of remaining formatting options.
 
   ## Examples
 
       IO.inspect Process.list, width: 40
+
+      IO.inspect Node.list, tag: "nodes"
 
   """
   @spec inspect(item, Keyword.t) :: item when item: var
@@ -252,13 +257,14 @@ defmodule IO do
   @doc """
   Inspects `item` according to the given options using the IO `device`.
 
-  See `Inspect.Opts` for a full list of options.
+  See `inspect/2` for a full list of options.
   """
   @spec inspect(device, item, Keyword.t) :: item when item: var
   def inspect(device, item, opts) when is_list(opts) do
-    opts   = struct(Inspect.Opts, opts)
-    iodata = Inspect.Algebra.format(Inspect.Algebra.to_doc(item, opts), opts.width)
-    puts device, iodata
+    label    = if (label = opts[:label]), do: [to_chardata(label), ": "], else: []
+    opts     = struct(Inspect.Opts, opts)
+    chardata = Inspect.Algebra.format(Inspect.Algebra.to_doc(item, opts), opts.width)
+    puts device, [label, chardata]
     item
   end
 
