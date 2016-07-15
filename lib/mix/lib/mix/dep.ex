@@ -69,6 +69,9 @@ defmodule Mix.Dep do
   yet become `:ok`). Therefore it is recommended to not rely
   on their status, also given they haven't been checked
   against the lock.
+
+  If MIX_NO_DEPS is set, we return an empty list of dependencies
+  without loading them.
   """
   def cached do
     cond do
