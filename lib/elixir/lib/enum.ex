@@ -2008,7 +2008,7 @@ defmodule Enum do
 
   ## Examples
 
-      iex> Enum.sort([1, 2, 3], &(&1 > &2))
+      iex> Enum.sort([1, 2, 3], &(&1 >= &2))
       [3, 2, 1]
 
   The sorting algorithm will be stable as long as the given function
