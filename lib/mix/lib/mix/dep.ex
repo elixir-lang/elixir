@@ -71,12 +71,15 @@ defmodule Mix.Dep do
   against the lock.
   """
   def cached do
-    if project = Mix.Project.get do
-      key = {:cached_deps, project}
-      Mix.ProjectStack.read_cache(key) ||
-        Mix.ProjectStack.write_cache(key, loaded(env: Mix.env))
-    else
-      loaded(env: Mix.env)
+    cond do
+      System.get_env("MIX_NO_DEPS") in ~w(1 true) ->
+        []
+      project = Mix.Project.get ->
+        key = {:cached_deps, project}
+        Mix.ProjectStack.read_cache(key) ||
+          Mix.ProjectStack.write_cache(key, loaded(env: Mix.env))
+      true ->
+        loaded(env: Mix.env)
     end
   end
 
