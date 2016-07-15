@@ -111,7 +111,7 @@ However keep in mind adding `@doc false` does not make the function private. The
 
 Elixir warns if a private function has a `@doc` attribute and discards its content, because `@doc` is intended to be used only for your public interface.
 
-Private functions may still need internal documentation for maintainers, though. That can be accomplished with code commments.
+Private functions may still need internal documentation for maintainers, though. That can be accomplished with code comments.
 
 ## Code.get_docs/2
 
