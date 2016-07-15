@@ -33,7 +33,7 @@ defmodule Mix.Tasks.Deps.Loadpaths do
         path
       end
 
-    prune_deps(load_paths, "--no-deps-check" in args)
+    prune_deps(load_paths, "--no-deps-check" in args or System.get_env("MIX_NO_DEPS") in ~w(1 true))
   end
 
   # If the build is per environment, we should be able to look
