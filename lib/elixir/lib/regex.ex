@@ -456,8 +456,10 @@ defmodule Regex do
 
   The replacement can be either a string or a function. The string
   is used as a replacement for every match and it allows specific
-  captures to be accessed via `\\N` or `\g{N}`, where `N` is the
-  capture. In case `\\0` is used, the whole match is inserted.
+  captures to be accessed via `\N` or `\g{N}`, where `N` is the
+  capture. In case `\0` is used, the whole match is inserted. Note
+  that in regexes the backslash needs to be escaped, hence in practice
+  you'll need to use `\\N` and `\\g{N}`.
 
   When the replacement is a function, the function may have arity
   N where each argument maps to a capture, with the first argument
