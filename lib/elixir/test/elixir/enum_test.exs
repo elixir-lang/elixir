@@ -204,6 +204,8 @@ defmodule EnumTest do
   test "find_index/2" do
     assert Enum.find_index([2, 4, 6], fn(x) -> rem(x, 2) == 1 end) == nil
     assert Enum.find_index([2, 3, 4], fn(x) -> rem(x, 2) == 1 end) == 1
+    assert Stream.take(1..3, 3) |> Enum.find_index(fn _ -> false end) == nil
+    assert Stream.take(1..6, 6) |> Enum.find_index(fn x -> x == 5 end) == 4
   end
 
   test "find_value/2" do
