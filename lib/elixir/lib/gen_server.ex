@@ -159,6 +159,71 @@ defmodule GenServer do
   the GenServer callbacks as doing so will cause the GenServer to misbehave.
   If you want to receive custom messages, always receive them in `handle_info/2`.
 
+  ## Debugging with the :sys module
+
+  GenServers, as [special processes](http://erlang.org/doc/design_principles/spec_proc.html),
+  can be debugged using the `:sys` module. Through various hooks, this module
+  allows developers to introspect the state of the process and trace
+  system events that happen during its execution, such as received messages,
+  sent replies and state changes.
+
+  Let's explore the basic functions from the `:sys` module used for debugging:
+
+    * [`:sys.get_state/2`](http://erlang.org/doc/man/sys.html#get_state-2) -
+      allows retrieval of the state of the process. In the case of
+      a GenServer process, it will be the callback module state, as
+      passed into the callback functions as last argument.
+    * [`:sys.get_status/2`](http://erlang.org/doc/man/sys.html#get_status-2) -
+      allows retrieval of the status of the process. This status includes
+      the process dictionary, if the process is running or is suspended,
+      the parent PID, the debugger state, and the state of the behaviour module,
+      which includes the callback module state (as returned by `:sys.get_state/2`).
+      It's possible to change how this status is represented by defining
+      the optional `c:GenServer.format_status/2` callback.
+    * [`:sys.trace/3`](http://erlang.org/doc/man/sys.html#trace-3) -
+      prints all the system events to `:stdio`.
+    * [`:sys.statistics/3`](http://erlang.org/doc/man/sys.html#statistics-3) -
+      manages collection of process statistics.
+    * [`:sys.no_debug/2`](http://erlang.org/doc/man/sys.html#no_debug-2) -
+      turns off all debug handlers for the given process. It is very important
+      to switch off debugging once we're done. Excessive debug handlers or
+      those that should be turned off, but weren't, can seriously damage
+      the performance of the system.
+
+  Let's see how we could use those functions for debugging the stack server
+  we defined earlier.
+
+      iex> {:ok, pid} = Stack.start_link([])
+      iex> :sys.statistics(pid, true) # turn on collecting process statistics
+      iex> :sys.trace(pid, true) # turn on event printing
+      iex> Stack.push(pid, 1)
+      *DBG* <0.122.0> got cast {push,1}
+      *DBG* <0.122.0> new state [1]
+      :ok
+      iex> :sys.get_state(pid)
+      [1]
+      iex> Stack.pop(pid)
+      *DBG* <0.122.0> got call pop from <0.80.0>
+      *DBG* <0.122.0> sent 1 to <0.80.0>, new state []
+      1
+      iex> :sys.statistics(pid, :get)
+      {:ok,
+       [start_time: {{2016, 7, 16}, {12, 29, 41}},
+        current_time: {{2016, 7, 16}, {12, 29, 50}},
+        reductions: 117, messages_in: 2, messages_out: 0]}
+      iex> :sys.no_debug(pid) # turn off all debug handlers
+      :ok
+      iex> :sys.get_status(pid)
+      {:status, #PID<0.122.0>, {:module, :gen_server},
+       [["$initial_call": {Stack, :init, 1},            # pdict
+         "$ancestors": [#PID<0.80.0>, #PID<0.51.0>]],
+        :running,                                       # :running | :suspended
+        #PID<0.80.0>,                                   # parent
+        [],                                             # debugger state
+        [header: 'Status for generic server <0.122.0>', # module status
+         data: [{'Status', :running}, {'Parent', #PID<0.80.0>},
+           {'Logged events', []}], data: [{'State', [1]}]]]}
+
   ## Learn more
 
   If you wish to find out more about gen servers, the Elixir Getting Started
