@@ -203,7 +203,7 @@ defmodule Integer do
 
   defp do_parse(<<char, rest::binary>>, base) do
     if valid_digit_in_base?(char, base) do
-      do_parse(rest, base, parse_digit(char, base))
+      do_parse(rest, base, parse_digit(char))
     else
       :error
     end
@@ -215,7 +215,7 @@ defmodule Integer do
 
   defp do_parse(<<char, rest::binary>> = bin, base, acc) do
     if valid_digit_in_base?(char, base) do
-      do_parse(rest, base, base * acc + parse_digit(char, base))
+      do_parse(rest, base, base * acc + parse_digit(char))
     else
       {acc, bin}
     end
@@ -225,7 +225,7 @@ defmodule Integer do
     {acc, bitstring}
   end
 
-  defp parse_digit(char, _) do
+  defp parse_digit(char) do
     cond do
       char in ?0..?9 -> char - ?0
       char in ?A..?Z -> char - ?A + 10
