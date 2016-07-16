@@ -1308,6 +1308,9 @@ defmodule EnumTest.Map do
     assert Enum.fetch(map, -6) == :error
     assert Enum.fetch(map, 5) == :error
     assert Enum.fetch(%{}, 0) == :error
+
+    assert Stream.take(map, 3) |> Enum.fetch(3) == :error
+    assert Stream.take(map, 5) |> Enum.fetch(4) == {:ok, {:e, 5}}
   end
 end
 
