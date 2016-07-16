@@ -722,7 +722,11 @@ defmodule Enum do
   def fetch(enumerable, index)
 
   def fetch(enumerable, index) when is_list(enumerable) and is_integer(index) do
-    fetch_list(enumerable, index)
+    if index < 0 do
+      enumerable |> :lists.reverse |> fetch_list((-index) - 1)
+    else
+      fetch_list(enumerable, index)
+    end
   end
 
   def fetch(first..last, index) when is_integer(index) do
