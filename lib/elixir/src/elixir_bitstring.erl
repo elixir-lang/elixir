@@ -161,7 +161,7 @@ build_bitstr_each(Fun, [H | T], Meta, S, Acc) ->
 
 build_bitstr_each(Fun, T, Meta, S, Acc, H, default, Types) when is_binary(H) ->
   Element =
-    case types_allow_splice(Types, []) of
+    case types_allow_splice(Types) of
       true ->
         %% See explanation in elixir_utils:elixir_to_erl/1 to know
         %% why we can simply convert the binary to a list.
@@ -187,13 +187,11 @@ build_bitstr_each(_Fun, _T, Meta, S, _Acc, H, _Size, _Types) when is_list(H); is
 
 build_bitstr_each(Fun, T, Meta, S, Acc, H, Size, Types) ->
   {Expr, NS} = Fun(H, S),
+  Splice = types_allow_splice(Types),
 
   case Expr of
-    {bin, _, Elements} ->
-      case (Size == default) andalso types_allow_splice(Types, Elements) of
-        true  -> build_bitstr_each(Fun, T, Meta, NS, lists:reverse(Elements, Acc));
-        false -> build_bitstr_each(Fun, T, Meta, NS, [{bin_element, ?ann(Meta), Expr, Size, Types} | Acc])
-      end;
+    {bin, _, Elements} when Splice, Size == default, S#elixir_scope.context == match ->
+      build_bitstr_each(Fun, T, Meta, NS, lists:reverse(Elements, Acc));
     _ ->
       build_bitstr_each(Fun, T, Meta, NS, [{bin_element, ?ann(Meta), Expr, Size, Types} | Acc])
   end.
@@ -203,31 +201,12 @@ types_require_conversion([UTF | T]) when UTF == utf8; UTF == utf16; UTF == utf32
 types_require_conversion([]) -> true;
 types_require_conversion(_) -> false.
 
-types_allow_splice([bytes], Elements)  -> is_byte_size(Elements, 0);
-types_allow_splice([binary], Elements) -> is_byte_size(Elements, 0);
-types_allow_splice([bits], _)          -> true;
-types_allow_splice([bitstring], _)     -> true;
-types_allow_splice(default, _)         -> true;
-types_allow_splice(_, _)               -> false.
-
-is_byte_size([Element | T], Acc) ->
-  case elem_size(Element) of
-    {unknown, Unit} when Unit rem 8 == 0 -> is_byte_size(T, Acc);
-    {unknown, _Unit} -> false;
-    {Size, Unit} -> is_byte_size(T, Size*Unit + Acc)
-  end;
-is_byte_size([], Size) ->
-  Size rem 8 == 0.
-
-elem_size({bin_element, _, _, default, _})                -> {0, 0};
-elem_size({bin_element, _, _, {integer, _, Size}, Types}) -> {Size, unit_size(Types, 1)};
-elem_size({bin_element, _, _, _Size, Types})              -> {unknown, unit_size(Types, 1)}.
-
-unit_size([binary | T], _)       -> unit_size(T, 8);
-unit_size([bytes | T], _)        -> unit_size(T, 8);
-unit_size([{unit, Size} | _], _) -> Size;
-unit_size([_ | T], Guess)        -> unit_size(T, Guess);
-unit_size([], Guess)             -> Guess.
+types_allow_splice([bytes])     -> true;
+types_allow_splice([binary])    -> true;
+types_allow_splice([bits])      -> true;
+types_allow_splice([bitstring]) -> true;
+types_allow_splice(default)     -> true;
+types_allow_splice(_)           -> false.
 
 %% Extra bitstring specifiers
 

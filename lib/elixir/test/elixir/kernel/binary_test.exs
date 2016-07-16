@@ -76,11 +76,11 @@ bar \"""
     <<x::24-bits>> <> _ = "foobar"
     assert x == "foo"
 
-    assert_raise CompileError, fn ->
+    assert_raise MatchError, fn ->
       Code.eval_string(~s{<<x::binary-size(3)-unit(4)>> <> _ = "foobar"})
     end
 
-    assert_raise CompileError, fn ->
+    assert_raise MatchError, fn ->
       Code.eval_string(~s{<<x::integer-size(4)>> <> _ = "foobar"})
     end
   end
