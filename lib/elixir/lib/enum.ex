@@ -567,13 +567,13 @@ defmodule Enum do
   end
 
   def drop(enumerable, n) when is_integer(n) and n >= 0 do
-    res =
+    result =
       reduce(enumerable, n, fn
         x, acc when is_list(acc) -> [x | acc]
         x, 0                     -> [x]
         _, acc when acc > 0      -> acc - 1
       end)
-    if is_list(res), do: :lists.reverse(res), else: []
+    if is_list(result), do: :lists.reverse(result), else: []
   end
 
   def drop(enumerable, n) when is_integer(n) and n < 0 do
@@ -765,16 +765,16 @@ defmodule Enum do
 
   defp fetch_enumerable(enumerable, index, module) do
     reduce_result =
-      module.reduce(enumerable, {:cont, 0}, fn
-        entry, ^index ->
-          {:halt, entry}
-        _entry, acc ->
-         {:cont, acc + 1}
+      module.reduce(enumerable, {:cont, {:not_found, 0}}, fn
+        entry, {_, ^index} ->
+          {:halt, {:found, entry}}
+        _entry, {_, index} ->
+         {:cont, {:not_found, index + 1}}
       end)
 
-    case reduce_result do
-      {:halted, entry} -> {:ok, entry}
-      {:done, _} -> :error
+    case elem(reduce_result, 1) do
+      {:found, entry} -> {:ok, entry}
+      {:not_found, _} -> :error
     end
   end
 
@@ -904,9 +904,9 @@ defmodule Enum do
         if fun.(entry), do: {:halt, {:found, index}}, else: {:cont, {:not_found, index + 1}}
       end)
 
-    case result do
-      {_, {:found, index}} -> index
-      {_, {:not_found, _}} -> nil
+    case elem(result, 1) do
+      {:found, index} -> index
+      {:not_found, _} -> nil
     end
   end
 
