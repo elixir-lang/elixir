@@ -42,7 +42,7 @@ defmodule Supervisor do
       # a single argument [:hello] and the default registered
       # name of MyStack.
       children = [
-        worker(Stack, [[:hello], [name: MyStack]])
+        worker(Stack, [[:hello]], [name: MyStack])
       ]
 
       # Start the supervisor with our child
