@@ -1788,7 +1788,9 @@ defmodule Kernel do
   Gets a value and updates a nested structure.
 
   It expects a tuple to be returned, containing the value
-  retrieved and the update one.
+  retrieved and the update one. The `fun` may also
+  return `:pop`, implying the current value shall be removed
+  from the structure and returned.
 
   It uses the `Access` module to traverse the structures
   according to the given `keys`, unless the `key` is a
@@ -1833,7 +1835,7 @@ defmodule Kernel do
   `Access.key/1` and others as examples.
   """
   @spec get_and_update_in(Access.t, nonempty_list(term),
-                          (term -> {get, term})) :: {get, Access.t} when get: var
+                          (term -> {get, term} | :pop)) :: {get, Access.t} when get: var
   def get_and_update_in(data, keys, fun)
 
   def get_and_update_in(data, [h], fun) when is_function(h),
