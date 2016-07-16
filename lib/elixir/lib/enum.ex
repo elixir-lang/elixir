@@ -721,45 +721,41 @@ defmodule Enum do
   @spec fetch(t, index) :: {:ok, element} | :error
   def fetch(enumerable, index)
 
+  def fetch(enumerable, index) when is_list(enumerable) and is_integer(index) do
+    if index < 0 do
+      enumerable |> :lists.reverse |> fetch_list((-index) - 1)
+    else
+      fetch_list(enumerable, index)
+    end
+  end
+
   def fetch(first..last, index) when is_integer(index) do
     fetch_range(first, last, index)
   end
 
   def fetch(enumerable, index) when is_integer(index) and index < 0 do
     case Enumerable.count(enumerable) do
+      {:error, _module} ->
+        enumerable |> reverse |> fetch_list((-index) - 1)
+
       {:ok, count} when (count + index) < 0 ->
         :error
 
       {:ok, count} ->
         fetch_enumerable(enumerable, count + index, Enumerable)
-
-      {:error, _} ->
-        enumerable
-        |> reverse()
-        |> fetch_list((-index) - 1)
     end
   end
 
-  def fetch(enumerable, index) when is_list(enumerable) and is_integer(index) do
-    fetch_list(enumerable, index)
-  end
-
   def fetch(enumerable, index) when is_integer(index) do
-    count_result =
-      case Enumerable.count(enumerable) do
-        {:ok, count} when (count - 1 - index) < 0 ->
-          :error
-        {:ok, _} ->
-          {:ok, Enumerable}
-        {:error, module} ->
-          {:ok, module}
-      end
-
-    case count_result do
-      :error ->
-        :error
-      {:ok, module} ->
+    case Enumerable.count(enumerable) do
+      {:error, module} ->
         fetch_enumerable(enumerable, index, module)
+
+      {:ok, count} when count <= index ->
+        :error
+
+      {:ok, _count} ->
+        fetch_enumerable(enumerable, index, Enumerable)
     end
   end
 
