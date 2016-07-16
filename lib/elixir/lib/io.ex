@@ -233,15 +233,49 @@ defmodule IO do
   @doc """
   Inspects and writes the given `item` to the device.
 
+  It's important to note that it returns the given `item` unchanged.
+  This makes it possible to "spy" on values by inserting an
+  `IO.inspect/2` call almost anywhere in your code, for example,
+  in the middle of a pipeline.
+
   It enables pretty printing by default with width of
   80 characters. The width can be changed by explicitly
   passing the `:width` option.
 
-  See `Inspect.Opts` for a full list of options.
+  The output can be decorated with a label, by providing the `:label`
+  option to easily distinguish it from other `IO.inspect/2` calls.
+  The label will be printed before the inspected `item`.
+
+  See `Inspect.Opts` for a full list of remaining formatting options.
 
   ## Examples
 
-      IO.inspect Process.list, width: 40
+      IO.inspect <<0, 1, 2>>, width: 40
+
+  Prints:
+
+      <<0, 1, 2>>
+
+  We can use the `:label` option to decorate the output:
+
+      IO.inspect 1..100, label: "a wonderful range"
+
+  Prints:
+
+      a wonderful range: 1..100
+
+  The `:label` option is especially useful with pipelines:
+
+      [1, 2, 3]
+      |> IO.inspect(label: "before")
+      |> Enum.map(&(&1 * 2))
+      |> IO.inspect(label: "after")
+      |> Enum.sum
+
+  Prints:
+
+      before: [1, 2, 3]
+      after: [2, 4, 6]
 
   """
   @spec inspect(item, Keyword.t) :: item when item: var
@@ -252,13 +286,14 @@ defmodule IO do
   @doc """
   Inspects `item` according to the given options using the IO `device`.
 
-  See `Inspect.Opts` for a full list of options.
+  See `inspect/2` for a full list of options.
   """
   @spec inspect(device, item, Keyword.t) :: item when item: var
   def inspect(device, item, opts) when is_list(opts) do
-    opts   = struct(Inspect.Opts, opts)
-    iodata = Inspect.Algebra.format(Inspect.Algebra.to_doc(item, opts), opts.width)
-    puts device, iodata
+    label    = if (label = opts[:label]), do: [to_chardata(label), ": "], else: []
+    opts     = struct(Inspect.Opts, opts)
+    chardata = Inspect.Algebra.format(Inspect.Algebra.to_doc(item, opts), opts.width)
+    puts device, [label, chardata]
     item
   end
 
