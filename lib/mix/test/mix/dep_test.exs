@@ -50,7 +50,7 @@ defmodule Mix.DepTest do
       assert length(deps) == 0
     end
   after
-    System.put_env("MIX_NO_DEPS", "")
+    System.delete_env("MIX_NO_DEPS")
   end
 
   test "extracts all dependencies from the given project" do
