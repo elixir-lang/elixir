@@ -1312,6 +1312,62 @@ defmodule EnumTest.Map do
     assert Stream.take(map, 3) |> Enum.fetch(3) == :error
     assert Stream.take(map, 5) |> Enum.fetch(4) == {:ok, {:e, 5}}
   end
+
+  test "slice/2" do
+    map = %{a: 1, b: 2, c: 3, d: 4, e: 5}
+    assert Enum.slice(map, 0..0) == [a: 1]
+    assert Enum.slice(map, 0..1) == [a: 1, b: 2]
+    assert Enum.slice(map, 0..2) == [a: 1, b: 2, c: 3]
+  end
+
+  test "slice/3" do
+    map = %{a: 1, b: 2, c: 3, d: 4, e: 5}
+    assert Enum.slice(map, 1, 2) == [b: 2, c: 3]
+    assert Enum.slice(map, 1, 0) == []
+    assert Enum.slice(map, 2, 5) == [c: 3, d: 4, e: 5]
+    assert Enum.slice(map, 2, 6) == [c: 3, d: 4, e: 5]
+    assert Enum.slice(map, 5, 5) == []
+    assert Enum.slice(map, 6, 5) == []
+    assert Enum.slice(map, 6, 0) == []
+    assert Enum.slice(map, -6, 0) == []
+    assert Enum.slice(map, -6, 5) == []
+    assert Enum.slice(map, -2, 5) == [d: 4, e: 5]
+    assert Enum.slice(map, -3, 1) == [c: 3]
+    assert_raise FunctionClauseError, fn ->
+      Enum.slice(map, 0, -1)
+    end
+    assert_raise FunctionClauseError, fn ->
+      Enum.slice(map, 0.99, 0)
+    end
+    assert_raise FunctionClauseError, fn ->
+      Enum.slice(map, 0, 0.99)
+    end
+
+    assert Enum.slice(map, 0, 0) == []
+    assert Enum.slice(map, 0, 1) == [a: 1]
+    assert Enum.slice(map, 0, 2) == [a: 1, b: 2]
+    assert Enum.slice(map, 1, 2) == [b: 2, c: 3]
+    assert Enum.slice(map, 1, 0) == []
+    assert Enum.slice(map, 2, 5) == [c: 3, d: 4, e: 5]
+    assert Enum.slice(map, 2, 6) == [c: 3, d: 4, e: 5]
+    assert Enum.slice(map, 5, 5) == []
+    assert Enum.slice(map, 6, 5) == []
+    assert Enum.slice(map, 6, 0) == []
+    assert Enum.slice(map, -6, 0) == []
+    assert Enum.slice(map, -6, 5) == []
+    assert Enum.slice(map, -2, 5) == [d: 4, e: 5]
+    assert Enum.slice(map, -3, 1) == [c: 3]
+
+    assert_raise FunctionClauseError, fn ->
+      Enum.slice(map, 0, -1)
+    end
+    assert_raise FunctionClauseError, fn ->
+      Enum.slice(map, 0.99, 0)
+    end
+    assert_raise FunctionClauseError, fn ->
+      Enum.slice(map, 0, 0.99)
+    end
+  end
 end
 
 defmodule EnumTest.SideEffects do
