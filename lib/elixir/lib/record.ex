@@ -311,9 +311,9 @@ defmodule Record do
         case Macro.expand(args, caller) do
           {:{}, _, [^atom | list]} when length(list) == length(fields) ->
             record = List.to_tuple([atom | list])
-            Macro.escape(Record.__keyword__(atom, fields, record))
+            Record.__keyword__(atom, fields, record)
           {^atom, arg} when length(fields) == 1 ->
-            Macro.escape(Record.__keyword__(atom, fields, {atom, arg}))
+            Record.__keyword__(atom, fields, {atom, arg})
           _ ->
             quote do: Record.__keyword__(unquote(atom), unquote(fields), unquote(args))
         end
