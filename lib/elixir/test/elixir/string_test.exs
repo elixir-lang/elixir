@@ -177,6 +177,14 @@ defmodule StringTest do
     assert String.replace_leading("test", "t", "T") == "Test"
     assert String.replace_leading("t", "t", "T") == "T"
     assert String.replace_leading("aaa", "b", "c") == "aaa"
+
+    message = ~r/cannot use an empty string/
+    assert_raise ArgumentError, message, fn ->
+      String.replace_leading("foo", "", "bar")
+    end
+    assert_raise ArgumentError, message, fn ->
+      String.replace_leading("", "", "bar")
+    end
   end
 
   test "replace_trailing" do
@@ -192,6 +200,14 @@ defmodule StringTest do
     assert String.replace_trailing("test", "t", "T") == "tesT"
     assert String.replace_trailing("t", "t", "T") == "T"
     assert String.replace_trailing("aaa", "b", "c") == "aaa"
+
+    message = ~r/cannot use an empty string/
+    assert_raise ArgumentError, message, fn ->
+      String.replace_trailing("foo", "", "bar")
+    end
+    assert_raise ArgumentError, message, fn ->
+      String.replace_trailing("", "", "bar")
+    end
   end
 
   test "trim" do
