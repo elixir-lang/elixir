@@ -1960,7 +1960,7 @@ defmodule Enum do
       []
 
   """
-  @spec slice(t, integer, non_neg_integer) :: list
+  @spec slice(t, index, non_neg_integer) :: list
   def slice(enumerable, start, n)
 
   def slice(enumerable, start, n) when is_integer(start) and is_integer(n) and n >= 0,
