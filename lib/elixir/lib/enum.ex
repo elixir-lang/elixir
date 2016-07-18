@@ -1005,7 +1005,7 @@ defmodule Enum do
   end
 
   @doc """
-  Splits the enumerable into groups based on `fun`.
+  Splits the enumerable into groups based on `key_fun`.
 
   The result is a map where each key is given by `key_fun` and each
   value is a list of elements given by `value_fun`. Ordering is preserved.
