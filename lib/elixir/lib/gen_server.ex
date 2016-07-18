@@ -546,8 +546,21 @@ defmodule GenServer do
         :gen.start(:gen_server, link, module, args, opts)
       {atom, opts} when is_atom(atom) ->
         :gen.start(:gen_server, link, {:local, atom}, module, args, opts)
-      {other, opts} when is_tuple(other) ->
-        :gen.start(:gen_server, link, other, module, args, opts)
+      {{:global, _term} = tuple, opts} ->
+        :gen.start(:gen_server, link, tuple, module, args, opts)
+      {{:via, module, _term} = tuple, opts} when is_atom(module) ->
+        :gen.start(:gen_server, link, tuple, module, args, opts)
+      other ->
+        raise ArgumentError, String.trim_trailing("""
+        expected :name option to be one of:
+
+          * nil
+          * atom
+          * {:global, term}
+          * {:via, module, term}
+
+        Got: #{inspect(other)}
+        """)
     end
   end
 
