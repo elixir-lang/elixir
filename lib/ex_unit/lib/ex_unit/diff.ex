@@ -197,22 +197,22 @@ defmodule ExUnit.Diff do
   defp find_script(envelope, max, paths, keywords?) do
     case each_diagonal(-envelope, envelope, paths, [], keywords?) do
       {:done, edits} ->
-        compact_reverse(edits, [])
+        reverse_compact(edits, [])
       {:next, paths} -> find_script(envelope + 1, max, paths, keywords?)
     end
   end
 
-  defp compact_reverse([], acc),
+  defp reverse_compact([], acc),
     do: acc
 
-  defp compact_reverse([{:diff, _} = fragment | rest], acc),
-    do: compact_reverse(rest, [fragment | acc])
+  defp reverse_compact([{:diff, _} = fragment | rest], acc),
+    do: reverse_compact(rest, [fragment | acc])
 
-  defp compact_reverse([{kind, char} | rest], [{kind, chars} | acc]),
-    do: compact_reverse(rest, [{kind, [char | chars]} | acc])
+  defp reverse_compact([{kind, char} | rest], [{kind, chars} | acc]),
+    do: reverse_compact(rest, [{kind, [char | chars]} | acc])
 
-  defp compact_reverse([{kind, char} | rest], acc),
-    do: compact_reverse(rest, [{kind, [char]} | acc])
+  defp reverse_compact([{kind, char} | rest], acc),
+    do: reverse_compact(rest, [{kind, [char]} | acc])
 
   defp each_diagonal(diag, limit, _paths, next_paths, _keywords?) when diag > limit do
     {:next, Enum.reverse(next_paths)}

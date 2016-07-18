@@ -1986,19 +1986,19 @@ defmodule String do
 
   defp find_script(envelope, max, paths) do
     case each_diagonal(-envelope, envelope, paths, []) do
-      {:done, edits} -> compact_reverse(edits, [])
+      {:done, edits} -> reverse_compact(edits, [])
       {:next, paths} -> find_script(envelope + 1, max, paths)
     end
   end
 
-  defp compact_reverse([], acc), do: acc
+  defp reverse_compact([], acc), do: acc
 
-  defp compact_reverse([{kind, char} | rest], [{kind, chars} | acc]) do
-    compact_reverse(rest, [{kind, char <> chars} | acc])
+  defp reverse_compact([{kind, char} | rest], [{kind, chars} | acc]) do
+    reverse_compact(rest, [{kind, char <> chars} | acc])
   end
 
-  defp compact_reverse([elem | rest], acc) do
-    compact_reverse(rest, [elem | acc])
+  defp reverse_compact([elem | rest], acc) do
+    reverse_compact(rest, [elem | acc])
   end
 
   defp each_diagonal(diag, limit, _paths, next_paths) when diag > limit do
