@@ -105,7 +105,7 @@ defmodule Path do
   defp do_absname_join(<<?/, rest::binary>>, relativename, [?/ | result], os_type), do:
     do_absname_join(rest, relativename, [?/ | result], os_type)
   defp do_absname_join(<<>>, <<>>, result, os_type), do:
-    IO.iodata_to_binary(reverse_maybe_remove_dirsep(result, os_type))
+    IO.iodata_to_binary(reverse_maybe_remove_dir_sep(result, os_type))
   defp do_absname_join(<<>>, relativename, [?: | rest], :win32), do:
     do_absname_join(relativename, <<>>, [?: | rest], :win32)
   defp do_absname_join(<<>>, relativename, [?/ | result], os_type), do:
@@ -115,13 +115,13 @@ defmodule Path do
   defp do_absname_join(<<char, rest::binary>>, relativename, result, os_type), do:
     do_absname_join(rest, relativename, [char | result], os_type)
 
-  defp reverse_maybe_remove_dirsep([?/, ?:, letter], :win32), do:
+  defp reverse_maybe_remove_dir_sep([?/, ?:, letter], :win32), do:
     [letter, ?:, ?/]
-  defp reverse_maybe_remove_dirsep([?/], _), do:
+  defp reverse_maybe_remove_dir_sep([?/], _), do:
     [?/]
-  defp reverse_maybe_remove_dirsep([?/ | name], _), do:
+  defp reverse_maybe_remove_dir_sep([?/ | name], _), do:
     :lists.reverse(name)
-  defp reverse_maybe_remove_dirsep(name, _), do:
+  defp reverse_maybe_remove_dir_sep(name, _), do:
     :lists.reverse(name)
 
   @doc """
@@ -467,16 +467,16 @@ defmodule Path do
   def join(left, right) do
     left    = IO.chardata_to_string(left)
     os_type = major_os_type()
-    do_join(left, right, os_type) |> remove_dirsep(os_type)
+    do_join(left, right, os_type) |> remove_dir_sep(os_type)
   end
 
   defp do_join("", right, os_type),   do: relative(right, os_type)
   defp do_join("/", right, os_type),  do: "/" <> relative(right, os_type)
-  defp do_join(left, right, os_type), do: remove_dirsep(left, os_type) <> "/" <> relative(right, os_type)
+  defp do_join(left, right, os_type), do: remove_dir_sep(left, os_type) <> "/" <> relative(right, os_type)
 
-  defp remove_dirsep("", _os_type), do: ""
-  defp remove_dirsep("/", _os_type), do: "/"
-  defp remove_dirsep(bin, os_type) do
+  defp remove_dir_sep("", _os_type), do: ""
+  defp remove_dir_sep("/", _os_type), do: "/"
+  defp remove_dir_sep(bin, os_type) do
     last = :binary.last(bin)
     if last == ?/ or (last == ?\\ and os_type == :win32) do
       binary_part(bin, 0, byte_size(bin) - 1)
