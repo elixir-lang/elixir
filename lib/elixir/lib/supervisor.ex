@@ -311,8 +311,21 @@ defmodule Supervisor do
         :supervisor.start_link(module, arg)
       atom when is_atom(atom) ->
         :supervisor.start_link({:local, atom}, module, arg)
-      other when is_tuple(other) ->
-        :supervisor.start_link(other, module, arg)
+      {:global, _term} = tuple ->
+        :supervisor.start_link(tuple, module, arg)
+      {:via, via_module, _term} = tuple when is_atom(via_module) ->
+        :supervisor.start_link(tuple, module, arg)
+      other ->
+        raise ArgumentError, String.trim_trailing("""
+        expected :name option to be one of:
+
+          * nil
+          * atom
+          * {:global, term}
+          * {:via, module, term}
+
+        Got: #{inspect(other)}
+        """)
     end
   end
 

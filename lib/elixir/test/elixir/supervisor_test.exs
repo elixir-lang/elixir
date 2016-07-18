@@ -52,6 +52,18 @@ defmodule SupervisorTest do
     wait_until_registered(:dyn_stack)
     assert GenServer.call(:dyn_stack, :pop) == :hello
     Supervisor.stop(pid)
+
+    assert_raise ArgumentError, ~r"expected :name option to be one of:", fn ->
+      Supervisor.start_link(children, name: "my_gen_server_name", strategy: :one_for_one)
+    end
+
+    assert_raise ArgumentError, ~r"expected :name option to be one of:", fn ->
+      Supervisor.start_link(children, name: {:invalid_tuple, "my_gen_server_name"}, strategy: :one_for_one)
+    end
+
+    assert_raise ArgumentError, ~r"expected :name option to be one of:", fn ->
+      Supervisor.start_link(children, name: {:via, "Via", "my_gen_server_name"}, strategy: :one_for_one)
+    end
   end
 
   test "start_link/3" do
