@@ -678,7 +678,8 @@ defmodule String do
   @doc """
   Replaces prefix in `string` by `replacement` if it matches `match`.
 
-  Returns the string untouched if there is no match.
+  Returns the string untouched if there is no match. If `match` is an empty
+  string (`""`), `replacement` is just prepended to `string`.
 
   ## Examples
 
@@ -695,6 +696,9 @@ defmodule String do
       "ola world"
       iex> String.replace_prefix("hello hello world", "hello ", "ola ")
       "ola hello world"
+
+      iex> String.replace_prefix("world", "", "hello ")
+      "hello world"
 
   """
   @spec replace_prefix(t, t, t) :: t
@@ -714,7 +718,8 @@ defmodule String do
   @doc """
   Replaces suffix in `string` by `replacement` if it matches `match`.
 
-  Returns the string untouched if there is no match.
+  Returns the string untouched if there is no match. If `match` is an empty
+  string (`""`), `replacement` is just appended to `string`.
 
   ## Examples
 
@@ -731,6 +736,9 @@ defmodule String do
       "hello mundo"
       iex> String.replace_suffix("hello world world", " world", " mundo")
       "hello world mundo"
+
+      iex> String.replace_suffix("hello", "", " world")
+      "hello world"
 
   """
   @spec replace_suffix(t, t, t) :: t
