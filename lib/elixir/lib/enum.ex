@@ -1020,7 +1020,7 @@ defmodule Enum do
 
   """
   @spec group_by(t, (element -> any), (element -> any)) :: map
-  def group_by(enumerable, key_fun, mapper_fun \\ fn x -> x end)
+  def group_by(enumerable, key_fun, value_fun \\ fn x -> x end)
 
   def group_by(enumerable, key_fun, value_fun)
       when is_function(key_fun, 1) and is_function(value_fun, 1) do
