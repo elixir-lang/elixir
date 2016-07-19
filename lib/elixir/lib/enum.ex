@@ -1868,19 +1868,17 @@ defmodule Enum do
   end
 
   @doc """
-  Returns a subset list of the given enumerable. Drops elements
-  until element position `range.first`, then takes elements until
-  element position `range.last` (inclusive).
+  Returns a subset list of the given enumerable, from `range.first` to `range.last` positions.
 
-  Positions are calculated by adding the number of items in the
-  enumerable to negative positions (e.g. position -3 in an
-  enumerable with 5 elements becomes position 2).
+  Given `enumerable`, it drops elements until element position `range.first`,
+  then takes elements until element position `range.last` (inclusive).
 
-  The first position (after adding the number of elements to negative positions) must be
-  smaller or equal to the last position.
+  Positions are normalized, meaning that negative positions will be counted from the end
+  (e.g. `-1` means the last element of the enumerable).
+  If `range.last` is out of bounds, then it is assigned as the position of the last element.
 
-  If the start of the range is not a valid index for the given
-  enumerable or if the range is in descending order, it returns `[]`.
+  If the normalized `range.first` position is out of bounds of the given enumerable,
+  or this one is greater than the normalized `range.last` position, then `[]` is returned.
 
   ## Examples
 
@@ -1890,9 +1888,19 @@ defmodule Enum do
       iex> Enum.slice(1..10, 5..20)
       [6, 7, 8, 9, 10]
 
+      # last five elements (negative positions)
+      iex> Enum.slice(1..30, -5..-1)
+      [26, 27, 28, 29, 30]
+
+      # last five elements (mixed positive and negative positions)
+      iex> Enum.slice(1..30, 25..-1)
+      [26, 27, 28, 29, 30]
+
+      # out of bounds
       iex> Enum.slice(1..10, 11..20)
       []
 
+      # range.first is greater than range.last
       iex> Enum.slice(1..10, 6..5)
       []
 
@@ -1942,25 +1950,38 @@ defmodule Enum do
   end
 
   @doc """
-  Returns a subset list of the given enumerable. Drops elements
-  until element position `start`, then takes `n` elements.
+  Returns a subset list of the given enumerable, from `start` position with `n` elements if available.
 
-  If `n` is greater than `enumerable` length, it returns as
-  many as possible. If zero, then it returns `[]`.
+  Given `enumerable`, it drops elements until element position `start`,
+  then takes `n` elements until the end of the enumerable.
+
+  If `start` is out of bounds, it returns `[]`.
+
+  If `n` is greater than `enumerable` length, it returns as many elements as possible.
+  If `n` is zero, then `[]` is returned.
 
   ## Examples
 
       iex> Enum.slice(1..100, 5, 10)
       [6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
 
+      # `n` is greater than the number of elements
       iex> Enum.slice(1..10, 5, 100)
       [6, 7, 8, 9, 10]
 
       iex> Enum.slice(1..10, 5, 0)
       []
 
+      # out of bound start position
+      iex> Enum.slice(1..10, 10, 5)
+      []
+
+      # out of bound start position (negative)
+      iex> Enum.slice(1..10, -11, 5)
+      []
+
   """
-  @spec slice(t, integer, non_neg_integer) :: list
+  @spec slice(t, index, non_neg_integer) :: list
   def slice(enumerable, start, n)
 
   def slice(enumerable, start, n) when is_integer(start) and is_integer(n) and n >= 0,
