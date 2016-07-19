@@ -602,6 +602,11 @@ defmodule String do
 
   Returns the string untouched if there are no occurrences.
 
+  If `match` is `""`, this function raises an `ArgumentError` exception: this
+  happens because this function replaces **all** the occurrences of `match` at
+  the beginning of `string`, and it's impossible to replace "multiple"
+  occurrences of `""`.
+
   ## Examples
 
       iex> String.replace_leading("hello world", "hello ", "")
@@ -615,9 +620,13 @@ defmodule String do
       "ola ola world"
 
   """
-  @spec replace_leading(t, t, t) :: t
+  @spec replace_leading(t, t, t) :: t | no_return
   def replace_leading(string, match, replacement)
       when is_binary(string) and is_binary(match) and is_binary(replacement) do
+    if match == "" do
+      raise ArgumentError, "cannot use an empty string as the match to replace"
+    end
+
     prefix_size = byte_size(match)
     suffix_size = byte_size(string) - prefix_size
     replace_leading(string, match, replacement, prefix_size, suffix_size, 0)
@@ -641,6 +650,11 @@ defmodule String do
 
   Returns the string untouched if there are no occurrences.
 
+  If `match` is `""`, this function raises an `ArgumentError` exception: this
+  happens because this function replaces **all** the occurrences of `match` at
+  the end of `string`, and it's impossible to replace "multiple" occurrences of
+  `""`.
+
   ## Examples
 
       iex> String.replace_trailing("hello world", " world", "")
@@ -654,9 +668,13 @@ defmodule String do
       "hello mundo mundo"
 
   """
-  @spec replace_trailing(t, t, t) :: t
+  @spec replace_trailing(t, t, t) :: t | no_return
   def replace_trailing(string, match, replacement)
       when is_binary(string) and is_binary(match) and is_binary(replacement) do
+    if match == "" do
+      raise ArgumentError, "cannot use an empty string as the match to replace"
+    end
+
     suffix_size = byte_size(match)
     prefix_size = byte_size(string) - suffix_size
     replace_trailing(string, match, replacement, prefix_size, suffix_size, 0)
