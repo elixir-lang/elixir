@@ -271,7 +271,7 @@ defmodule Mix.Dep.Loader do
     extra = Mix.Rebar.merge_config(dep.extra, config)
     deps =
       if children do
-        from = Path.absname("rebar.config")
+        from = Path.join(opts[:dest], "rebar.config")
         # Pass the manager because deps of a Rebar project need
         # to default to Rebar if we cannot chose a manager from
         # files in the dependency
