@@ -40,8 +40,8 @@ defmodule Mix.Dep.Loader do
   latest status and children.
   """
   def load(%Mix.Dep{manager: manager, scm: scm, opts: opts} = dep, children) do
-    manager = manager ||
-              scm_manager(scm, opts) ||
+    manager = scm_manager(scm, opts) ||
+              manager ||
               infer_manager(opts[:dest])
 
     dep = %{dep | manager: manager, status: scm_status(scm, opts)}
