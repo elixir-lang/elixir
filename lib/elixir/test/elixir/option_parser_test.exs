@@ -58,9 +58,17 @@ defmodule OptionParserTest do
            == {[s: "from_docs/"], [], []}
   end
 
-  test "does not parse - as a switch" do
-    assert OptionParser.parse(["-source=from_docs/"], aliases: [s: :source])
-           == {[], [], [{"-source", "from_docs/"}]}
+  test "parses -ab as -a -b" do
+    aliases = [a: :first, b: :second]
+
+    assert OptionParser.parse(["-ab"], aliases: aliases)
+           == {[first: true, second: true], [], []}
+
+    assert OptionParser.parse(["-ab=1"], aliases: aliases, switches: [second: :integer])
+           == {[first: true, second: 1], [], []}
+
+    assert OptionParser.parse(["-ab", "1"], aliases: aliases, switches: [second: :integer])
+           == {[first: true, second: 1], [], []}
   end
 
   test "parses configured booleans" do
