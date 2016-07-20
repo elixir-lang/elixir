@@ -2,7 +2,6 @@ defmodule Mix.Tasks.New do
   use Mix.Task
 
   import Mix.Generator
-  import Mix.Utils, only: [camelize: 1]
 
   @shortdoc "Creates a new Elixir project"
 
@@ -55,7 +54,7 @@ defmodule Mix.Tasks.New do
       [path | _] ->
         app = opts[:app] || Path.basename(Path.expand(path))
         check_application_name!(app, !!opts[:app])
-        mod = opts[:module] || camelize(app)
+        mod = opts[:module] || Macro.camelize(app)
         check_mod_name_validity!(mod)
         check_mod_name_availability!(mod)
         File.mkdir_p!(path)
