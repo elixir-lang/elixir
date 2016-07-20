@@ -236,14 +236,14 @@ defmodule Mix.Utils do
   end
 
   @doc false
-  # TODO: Deprecate by 1.4
   def underscore(value) do
+    IO.warn "Mix.Utils.underscore/1 is deprecated, use Macro.underscore/1 instead"
     Macro.underscore(value)
   end
 
   @doc false
-  # TODO: Deprecate by 1.4
   def camelize(value) do
+    IO.warn "Mix.Utils.camelize/1 is deprecated, use Macro.camelize/1 instead"
     Macro.camelize(value)
   end
 
@@ -273,7 +273,7 @@ defmodule Mix.Utils do
     |> to_string()
     |> String.split(".")
     |> Enum.drop(nesting)
-    |> Enum.map_join(".", &underscore/1)
+    |> Enum.map_join(".", &Macro.underscore/1)
   end
 
   @doc """
@@ -289,7 +289,7 @@ defmodule Mix.Utils do
     command
     |> to_string()
     |> String.split(".")
-    |> Enum.map_join(".", &camelize/1)
+    |> Enum.map_join(".", &Macro.camelize/1)
   end
 
   @doc """
