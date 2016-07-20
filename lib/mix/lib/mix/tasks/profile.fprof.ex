@@ -112,15 +112,6 @@ defmodule Mix.Tasks.Profile.Fprof do
 
   @spec run(OptionParser.argv) :: :ok
   def run(args) do
-    # We do this right now because we still support -pr as an alias for
-    # --parallel-require, we need to implement the translation from -abc to -a
-    # -b -c so that -pr becomes --parallel --require and we have free backwards
-    # compatibility.
-    args = Enum.flat_map(args, fn
-      "-pr" -> ["-p", "-r"]
-      other -> [other]
-    end)
-
     {opts, head} = OptionParser.parse_head!(args,
       aliases: [r: :require, p: :parallel, e: :eval, c: :config],
       strict: @switches)
