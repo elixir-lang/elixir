@@ -39,8 +39,9 @@ defmodule Supervisor do
       import Supervisor.Spec
 
       # Supervise the Stack server which will be started with
-      # a single argument [:hello] and the default registered
-      # name of MyStack.
+      # two arguments. The initial stack, [:hello], and a
+      # keyword list containing the GenServer options that
+      # set the registered name of the server to MyStack.
       children = [
         worker(Stack, [[:hello], [name: MyStack]])
       ]
