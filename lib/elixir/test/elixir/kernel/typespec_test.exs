@@ -1,7 +1,7 @@
 Code.require_file "../test_helper.exs", __DIR__
 
 defmodule Kernel.TypespecTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case
 
   alias Kernel.TypespecTest.TestTypespec
 

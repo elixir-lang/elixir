@@ -844,8 +844,8 @@ defmodule Stream do
   end
 
   @doc false
-  # TODO: Deprecate by 1.4
   def uniq(enum, fun) do
+    IO.warn "Stream.uniq/2 is deprecated, use Stream.uniq_by/2 instead"
     uniq_by(enum, fun)
   end
 

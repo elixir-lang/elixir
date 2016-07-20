@@ -214,15 +214,15 @@ defmodule Float do
   @doc false
   def to_char_list(float), do: Float.to_charlist(float)
 
-  # TODO: Deprecate by v1.4
   @doc false
   def to_char_list(float, options) do
+    IO.warn "Float.to_char_list/2 is deprecated, use :erlang.float_to_list/2 instead"
     :erlang.float_to_list(float, expand_compact(options))
   end
 
-  # TODO: Deprecate by v1.4
   @doc false
   def to_string(float, options) do
+    IO.warn "Float.to_string/2 is deprecated, use :erlang.float_to_binary/2 instead"
     :erlang.float_to_binary(float, expand_compact(options))
   end
 

@@ -2450,8 +2450,8 @@ defmodule Enum do
   end
 
   @doc false
-  # TODO: Deprecate by 1.4
   def uniq(enumerable, fun) do
+    IO.warn "Enum.uniq/2 is deprecated, use Enum.uniq_by/2 instead"
     uniq_by(enumerable, fun)
   end
 
