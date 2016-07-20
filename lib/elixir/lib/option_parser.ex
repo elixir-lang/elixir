@@ -251,8 +251,8 @@ defmodule OptionParser do
     {Enum.reverse(opts), Enum.reverse(args), Enum.reverse(invalid)}
   end
 
-  defp do_parse(argv, {aliases, switches, strict}=config, opts, args, invalid, all?) do
-    case next(argv, aliases, switches, strict) do
+  defp do_parse(argv, {aliases, switches, strict?} = config, opts, args, invalid, all?) do
+    case next(argv, aliases, switches, strict?) do
       {:ok, option, value, rest} ->
         # the option exists and it was successfully parsed
         kinds = List.wrap Keyword.get(switches, option)
@@ -307,35 +307,35 @@ defmodule OptionParser do
         {:error, argv}
 
   def next(argv, opts \\ []) when is_list(argv) and is_list(opts) do
-    {aliases, switches, strict} = compile_config(opts)
-    next(argv, aliases, switches, strict)
+    {aliases, switches, strict?} = compile_config(opts)
+    next(argv, aliases, switches, strict?)
   end
 
-  defp next([], _aliases, _switches, _strict) do
+  defp next([], _aliases, _switches, _strict?) do
     {:error, []}
   end
 
-  defp next(["--" | _] = argv, _aliases, _switches, _strict) do
+  defp next(["--" | _] = argv, _aliases, _switches, _strict?) do
     {:error, argv}
   end
 
-  defp next(["-" | _] = argv, _aliases, _switches, _strict) do
+  defp next(["-" | _] = argv, _aliases, _switches, _strict?) do
     {:error, argv}
   end
 
-  defp next(["- " <> _ | _] = argv, _aliases, _switches, _strict) do
+  defp next(["- " <> _ | _] = argv, _aliases, _switches, _strict?) do
     {:error, argv}
   end
 
   # Handles --foo or --foo=bar
-  defp next(["--" <> option | rest], _aliases, switches, strict) do
+  defp next(["--" <> option | rest], _aliases, switches, strict?) do
     {option, value} = split_option(option)
     tagged = tag_option(option, switches)
-    do_next(tagged, value, "--" <> option, rest, switches, strict)
+    do_next(tagged, value, "--" <> option, rest, switches, strict?)
   end
 
   # Handles -a, -abc, -abc=something
-  defp next(["-" <> option = original | rest] = argv, aliases, switches, strict) do
+  defp next(["-" <> option = original | rest] = argv, aliases, switches, strict?) do
     {option, value} = split_option(option)
     original_option = "-" <> option
 
@@ -347,27 +347,27 @@ defmodule OptionParser do
       String.length(option) > 1 ->
         if (opt = get_option(option)) && (alias = aliases[opt]) do
           IO.warn "multi-letter aliases are deprecated, got: #{inspect(opt)}"
-          do_next({:default, alias}, value, original_option, rest, switches, strict)
+          do_next({:default, alias}, value, original_option, rest, switches, strict?)
         else
-          next(expand_multiletter_alias(option, value) ++ rest, aliases, switches, strict)
+          next(expand_multiletter_alias(option, value) ++ rest, aliases, switches, strict?)
         end
       true ->
         # We have a regular one-letter alias here
         tagged = tag_single_letter_alias(option, aliases)
-        do_next(tagged, value, original_option, rest, switches, strict)
+        do_next(tagged, value, original_option, rest, switches, strict?)
     end
   end
 
-  defp next(argv, _aliases, _switches, _strict) do
+  defp next(argv, _aliases, _switches, _strict?) do
     {:error, argv}
   end
 
-  defp do_next(tagged, value, original, rest, switches, strict) do
-    if strict and not option_defined?(tagged, switches) do
+  defp do_next(tagged, value, original, rest, switches, strict?) do
+    if strict? and not option_defined?(tagged, switches) do
       {:undefined, original, value, rest}
     else
       {option, kinds, value} = normalize_option(tagged, value, switches)
-      {value, kinds, rest} = normalize_value(value, kinds, rest, strict)
+      {value, kinds, rest} = normalize_value(value, kinds, rest, strict?)
       case validate_option(value, kinds) do
         {:ok, new_value} -> {:ok, option, new_value, rest}
         :invalid         -> {:invalid, original, value, rest}
@@ -468,7 +468,7 @@ defmodule OptionParser do
   defp compile_config(opts) do
     aliases = opts[:aliases] || []
 
-    {switches, strict} = cond do
+    {switches, strict?} = cond do
       opts[:switches] && opts[:strict] ->
         raise ArgumentError, ":switches and :strict cannot be given together"
       s = opts[:switches] ->
@@ -479,7 +479,7 @@ defmodule OptionParser do
         {[], false}
     end
 
-    {aliases, switches, strict}
+    {aliases, switches, strict?}
   end
 
   defp validate_option(value, kinds) do
@@ -591,7 +591,7 @@ defmodule OptionParser do
     {option, List.wrap(switches[option]), value}
   end
 
-  defp normalize_value(nil, kinds, t, strict) do
+  defp normalize_value(nil, kinds, t, strict?) do
     cond do
       :boolean in kinds ->
         {true, kinds, t}
@@ -600,7 +600,7 @@ defmodule OptionParser do
       value_in_tail?(t) ->
         [h | t] = t
         {h, kinds, t}
-      kinds == [] and strict ->
+      kinds == [] and strict? ->
         {nil, kinds, t}
       kinds == [] ->
         {true, kinds, t}
@@ -609,7 +609,7 @@ defmodule OptionParser do
     end
   end
 
-  defp normalize_value(value, kinds, t, _) do
+  defp normalize_value(value, kinds, t, _strict?) do
     {value, kinds, t}
   end
 
