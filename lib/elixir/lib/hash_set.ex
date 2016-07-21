@@ -5,8 +5,6 @@ defmodule HashSet do
   Use the `MapSet` module instead.
   """
 
-  # TODO: Deprecate every function by 1.4
-
   @node_bitmap 0b111
   @node_shift 3
   @node_size 8
@@ -20,34 +18,51 @@ defmodule HashSet do
   @compile :inline_list_funcs
   @compile {:inline, key_hash: 1, key_mask: 1, key_shift: 1}
 
+  defmacrop warn_deprecated() do
+    quote do
+      {function, arity} = __ENV__.function
+      IO.warn String.trim_trailing("""
+      HashSet.#{function}/#{arity} is deprecated since the HashSet module is
+      deprecated; use the MapSet module instead
+      """)
+    end
+  end
+
   @spec new :: Set.t
   def new do
+    warn_deprecated()
     %HashSet{}
   end
 
   def union(%HashSet{size: size1} = set1, %HashSet{size: size2} = set2) when size1 <= size2 do
+    warn_deprecated()
     set_fold set1, set2, fn v, acc -> put(acc, v) end
   end
 
   def union(%HashSet{} = set1, %HashSet{} = set2) do
+    warn_deprecated()
     set_fold set2, set1, fn v, acc -> put(acc, v) end
   end
 
   def intersection(%HashSet{} = set1, %HashSet{} = set2) do
+    warn_deprecated()
     set_fold set1, %HashSet{}, fn v, acc ->
       if member?(set2, v), do: put(acc, v), else: acc
     end
   end
 
   def difference(%HashSet{} = set1, %HashSet{} = set2) do
+    warn_deprecated()
     set_fold set2, set1, fn v, acc -> delete(acc, v) end
   end
 
   def to_list(set) do
+    warn_deprecated()
     set_fold(set, [], &[&1 | &2]) |> :lists.reverse
   end
 
   def equal?(%HashSet{size: size1} = set1, %HashSet{size: size2} = set2) do
+    warn_deprecated()
     case size1 do
       ^size2 -> subset?(set1, set2)
       _      -> false
@@ -55,6 +70,7 @@ defmodule HashSet do
   end
 
   def subset?(%HashSet{} = set1, %HashSet{} = set2) do
+    warn_deprecated()
     reduce(set1, {:cont, true}, fn member, acc ->
       case member?(set2, member) do
         true -> {:cont, acc}
@@ -64,6 +80,7 @@ defmodule HashSet do
   end
 
   def disjoint?(%HashSet{} = set1, %HashSet{} = set2) do
+    warn_deprecated()
     reduce(set2, {:cont, true}, fn member, acc ->
       case member?(set1, member) do
         false -> {:cont, acc}
@@ -73,15 +90,18 @@ defmodule HashSet do
   end
 
   def member?(%HashSet{root: root}, term) do
+    warn_deprecated()
     do_member?(root, term, key_hash(term))
   end
 
   def put(%HashSet{root: root, size: size}, term) do
+    warn_deprecated()
     {root, counter} = do_put(root, term, key_hash(term))
     %HashSet{root: root, size: size + counter}
   end
 
   def delete(%HashSet{root: root, size: size} = set, term) do
+    warn_deprecated()
     case do_delete(root, term, key_hash(term)) do
       {:ok, root} -> %HashSet{root: root, size: size - 1}
       :error      -> set
@@ -98,6 +118,7 @@ defmodule HashSet do
   end
 
   def size(%HashSet{size: size}) do
+    warn_deprecated()
     size
   end
 
