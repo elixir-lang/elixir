@@ -67,8 +67,8 @@ defmodule Integer do
 
   ## Examples
 
-      iex> Integer.digits(101)
-      [1, 0, 1]
+      iex> Integer.digits(123)
+      [1, 2, 3]
 
       iex> Integer.digits(170, 2)
       [1, 0, 1, 0, 1, 0, 1, 0]
