@@ -616,7 +616,7 @@ defmodule GenServer do
       {{:via, via_module, _term} = tuple, opts} when is_atom(via_module) ->
         :gen.start(:gen_server, link, tuple, module, args, opts)
       other ->
-        raise ArgumentError, String.trim_trailing("""
+        raise ArgumentError, """
         expected :name option to be one of:
 
           * nil
@@ -625,7 +625,7 @@ defmodule GenServer do
           * {:via, module, term}
 
         Got: #{inspect(other)}
-        """)
+        """
     end
   end
 
