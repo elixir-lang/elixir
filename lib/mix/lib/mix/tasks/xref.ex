@@ -13,28 +13,28 @@ defmodule Mix.Tasks.Xref do
   ## Xref modes
 
   The `xref` task expects a mode as first argument:
-  
+
       mix xref MODE
-  
+
   All available modes are discussed below.
-  
+
   ### warnings
 
   Prints warnings for violated cross reference checks:
-  
+
       mix xref warnings
-  
+
   This is the mode used by Mix during compilation.
 
   ### unreachable
 
   Prints all unreachable "file:line: module.function/arity" entries:
-  
+
       mix xref unreachable
-  
+
   The "file:line" represents the file and line a call to an unknown
   "module.function/arity" is made.
-  
+
   ### callers CALLEE
 
   Prints all callers of the given `CALLEE`, which can be one of: `Module`,
@@ -48,7 +48,7 @@ defmodule Mix.Tasks.Xref do
 
   Prints a file dependency graph where an edge from `A` to `B` indicates
   that `A` depends on `B`.
- 
+
       mix xref graph --format dot
 
   The following options are accepted:
@@ -105,6 +105,8 @@ defmodule Mix.Tasks.Xref do
   def run(args) do
     {opts, args} =
       OptionParser.parse!(args, strict: @switches)
+
+    Mix.Task.run("loadpaths")
 
     if Keyword.get(opts, :compile, true) do
       Mix.Task.run("compile")
