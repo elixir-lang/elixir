@@ -41,6 +41,21 @@ defmodule SupervisorTest do
 
   import Supervisor.Spec
 
+  test "start_link/2 with via" do
+    Supervisor.start_link([], strategy: :one_for_one, name: {:via, :global, :my_sup})
+    assert Supervisor.which_children({:via, :global, :my_sup}) == []
+  end
+
+  test "start_link/3 with global" do
+    Supervisor.start_link([], strategy: :one_for_one, name: {:global, :my_sup})
+    assert Supervisor.which_children({:global, :my_sup}) == []
+  end
+
+  test "start_link/3 with local" do
+    Supervisor.start_link([], strategy: :one_for_one, name: :my_sup)
+    assert Supervisor.which_children(:my_sup) == []
+  end
+
   test "start_link/2" do
     children = [worker(Stack, [[:hello], [name: :dyn_stack]])]
     {:ok, pid} = Supervisor.start_link(children, strategy: :one_for_one)
@@ -67,9 +82,8 @@ defmodule SupervisorTest do
   end
 
   test "start_link/3" do
-    {:ok, pid} = Supervisor.start_link(Stack.Sup, {[:hello], [name: :stat_stack]}, name: :stack_sup)
-    wait_until_registered(:stack_sup)
-
+    {:ok, pid} = Supervisor.start_link(Stack.Sup, {[:hello], [name: :stat_stack]})
+    wait_until_registered(:stat_stack)
     assert GenServer.call(:stat_stack, :pop) == :hello
     Supervisor.stop(pid)
   end

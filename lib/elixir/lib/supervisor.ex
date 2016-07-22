@@ -317,7 +317,7 @@ defmodule Supervisor do
       {:via, via_module, _term} = tuple when is_atom(via_module) ->
         :supervisor.start_link(tuple, module, arg)
       other ->
-        raise ArgumentError, String.trim_trailing("""
+        raise ArgumentError, """
         expected :name option to be one of:
 
           * nil
@@ -326,7 +326,7 @@ defmodule Supervisor do
           * {:via, module, term}
 
         Got: #{inspect(other)}
-        """)
+        """
     end
   end
 
