@@ -613,7 +613,7 @@ defmodule GenServer do
         :gen.start(:gen_server, link, {:local, atom}, module, args, opts)
       {{:global, _term} = tuple, opts} ->
         :gen.start(:gen_server, link, tuple, module, args, opts)
-      {{:via, module, _term} = tuple, opts} when is_atom(module) ->
+      {{:via, via_module, _term} = tuple, opts} when is_atom(via_module) ->
         :gen.start(:gen_server, link, tuple, module, args, opts)
       other ->
         raise ArgumentError, String.trim_trailing("""
