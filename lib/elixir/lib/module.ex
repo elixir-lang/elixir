@@ -1099,10 +1099,23 @@ defmodule Module do
   ## Helpers
 
   defp preprocess_attribute(key, value) when key in [:moduledoc, :typedoc, :doc] do
-    unless match?({line, _} when is_integer(line), value) do
-      raise ArgumentError, "expected #{key} attribute given in the {line, doc} format, got: #{inspect(value)}"
+    case value do
+      {line, doc} when is_integer(line) and (is_binary(doc) or is_boolean(doc) or is_nil(doc)) ->
+        value
+      {line, doc} when is_integer(line) ->
+        # Here, either the user used "@moduledoc :not_a_binary" or
+        # "Module.put_attribute(..., {1, :not_a_binary})". By showing just the
+        # "doc" value in the error, it should be clear in both cases.
+        raise ArgumentError,
+          "expected the #{key} attribute to contain a binary, a boolean, or nil, got: #{inspect(doc)}"
+      _other ->
+        # Here, we're sure it's from Module.put_attribute/3 because it's not a
+        # tuple with an int as the first element (which is what we create with
+        # @).
+        raise ArgumentError,
+          "expected the #{key} attribute to be {line, doc} (where \"doc\" is " <>
+          "a binary, a boolean, or nil), got: #{inspect(value)}"
     end
-    value
   end
 
   defp preprocess_attribute(:on_load, atom) when is_atom(atom) do

@@ -660,12 +660,21 @@ defmodule Kernel.ErrorsTest do
   end
 
   test "doc attributes format" do
-    message = "expected moduledoc attribute given in the {line, doc} format, got: \"Other\""
+    message =
+      "expected the moduledoc attribute to be {line, doc} (where \"doc\" is " <>
+      "a binary, a boolean, or nil), got: \"Other\""
     assert_raise ArgumentError, message, fn ->
       defmodule DocAttributesFormat do
         @moduledoc "ModuleTest"
-        {666, "ModuleTest"} = Module.get_attribute(__MODULE__, :moduledoc)
+        {668, "ModuleTest"} = Module.get_attribute(__MODULE__, :moduledoc)
         Module.put_attribute(__MODULE__, :moduledoc, "Other")
+      end
+    end
+
+    message = "expected the moduledoc attribute to contain a binary, a boolean, or nil, got: :not_a_binary"
+    assert_raise ArgumentError, message, fn ->
+      defmodule AtSyntaxDocAttributesFormat do
+        @moduledoc :not_a_binary
       end
     end
   end
