@@ -5,6 +5,8 @@ defmodule HashDict do
   Use the `Map` module instead.
   """
 
+  # TODO: Deprecate every function by 1.4
+
   use Dict
 
   @node_bitmap 0b111
@@ -20,51 +22,35 @@ defmodule HashDict do
   @compile :inline_list_funcs
   @compile {:inline, key_hash: 1, key_mask: 1, key_shift: 1}
 
-  defmacrop warn_deprecated() do
-    quote do
-      {function, arity} = __ENV__.function
-      IO.warn String.trim_trailing("""
-      HashDict.#{function}/#{arity} is deprecated since the HashDict module is
-      deprecated; use maps and the Map module instead
-      """)
-    end
-  end
-
   @doc """
   Creates a new empty dict.
   """
   @spec new :: Dict.t
   def new do
-    warn_deprecated()
     %HashDict{}
   end
 
   def put(%HashDict{root: root, size: size}, key, value) do
-    warn_deprecated()
     {root, counter} = do_put(root, key, value, key_hash(key))
     %HashDict{root: root, size: size + counter}
   end
 
   def update!(%HashDict{root: root, size: size} = dict, key, fun) when is_function(fun, 1) do
-    warn_deprecated()
     {root, counter} = do_update(root, key, fn -> raise KeyError, key: key, term: dict end,
                                 fun, key_hash(key))
     %HashDict{root: root, size: size + counter}
   end
 
   def update(%HashDict{root: root, size: size}, key, initial, fun) when is_function(fun, 1) do
-    warn_deprecated()
     {root, counter} = do_update(root, key, fn -> initial end, fun, key_hash(key))
     %HashDict{root: root, size: size + counter}
   end
 
   def fetch(%HashDict{root: root}, key) do
-    warn_deprecated()
     do_fetch(root, key, key_hash(key))
   end
 
   def delete(dict, key) do
-    warn_deprecated()
     case dict_delete(dict, key) do
       {dict, _value} -> dict
       :error         -> dict
@@ -72,7 +58,6 @@ defmodule HashDict do
   end
 
   def pop(dict, key, default \\ nil) do
-    warn_deprecated()
     case dict_delete(dict, key) do
       {dict, value} -> {value, dict}
       :error        -> {default, dict}
@@ -80,7 +65,6 @@ defmodule HashDict do
   end
 
   def size(%HashDict{size: size}) do
-    warn_deprecated()
     size
   end
 
