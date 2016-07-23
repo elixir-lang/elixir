@@ -347,5 +347,11 @@ deprecation_message(Warning, Message) ->
     Message -> Warning ++ ", " ++ Message
   end.
 
+deprecation('Elixir.HashDict', _, _) ->
+  "use maps and the Map module instead";
+deprecation('Elixir.HashSet', _, _) ->
+  "use the MapSet module instead";
+deprecation('Elixir.Dict', _, _) ->
+  "use the Map module for working with maps or the Keyword module for working with keyword lists";
 deprecation(_, _, _) ->
   false.
