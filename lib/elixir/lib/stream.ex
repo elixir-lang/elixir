@@ -310,6 +310,7 @@ defmodule Stream do
 
   """
   @spec drop_every(Enumerable.t, non_neg_integer) :: Enumerable.t
+  def drop_every(enum, nth)
   def drop_every(enum, 0), do: %Stream{enum: enum}
   def drop_every([], _nth), do: %Stream{enum: []}
 
@@ -625,6 +626,7 @@ defmodule Stream do
 
   """
   @spec take_every(Enumerable.t, non_neg_integer) :: Enumerable.t
+  def take_every(enum, nth)
   def take_every(_enum, 0), do: %Stream{enum: []}
   def take_every([], _nth), do: %Stream{enum: []}
 

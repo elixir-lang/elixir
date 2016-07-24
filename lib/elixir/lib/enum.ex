@@ -601,7 +601,7 @@ defmodule Enum do
       []
 
   """
-  @spec drop_every(t, non_neg_integer) :: list | no_return
+  @spec drop_every(t, non_neg_integer) :: list
   def drop_every(enumerable, nth)
 
   def drop_every(_enumerable, 1), do: []
@@ -2306,7 +2306,7 @@ defmodule Enum do
       [1, 2, 3]
 
   """
-  @spec take_every(t, non_neg_integer) :: list | no_return
+  @spec take_every(t, non_neg_integer) :: list
   def take_every(enumerable, nth)
 
   def take_every(enumerable, 1), do: to_list(enumerable)
