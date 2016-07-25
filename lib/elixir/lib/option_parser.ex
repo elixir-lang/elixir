@@ -345,7 +345,9 @@ defmodule OptionParser do
       String.contains?(option, ["-", "_"]) ->
         {:undefined, original_option, value, rest}
       String.length(option) > 1 ->
-        if (opt = get_option(option)) && (alias = aliases[opt]) do
+        opt = get_option(option)
+        alias = aliases[opt]
+        if opt && alias do
           IO.warn "multi-letter aliases are deprecated, got: #{inspect(opt)}"
           do_next({:default, alias}, value, original_option, rest, switches, strict?)
         else
