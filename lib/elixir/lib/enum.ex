@@ -566,6 +566,10 @@ defmodule Enum do
     do_drop(enumerable, n)
   end
 
+  def drop(first..last, n) do
+    drop_range(first, last, n) |> to_list
+  end
+
   def drop(enumerable, n) when is_integer(n) and n >= 0 do
     result =
       reduce(enumerable, n, fn
@@ -579,6 +583,38 @@ defmodule Enum do
   def drop(enumerable, n) when is_integer(n) and n < 0 do
     do_drop(reverse(enumerable), abs(n)) |> :lists.reverse
   end
+
+  defp drop_range(first, last, 0),
+    do: first..last
+
+  defp drop_range(first, last, n) when first <= last do
+    if n > 0 do
+      case first + n do
+        f when f > last -> []
+        f -> f..last
+      end
+    else
+      case last + n do
+        l when l < first -> []
+        l -> first..l
+      end
+    end
+  end
+
+  defp drop_range(first, last, n) do
+    if n > 0 do
+      case first - n do
+        f when f < last -> []
+        f -> f..last
+      end
+    else
+      case last - n do
+        l when l > first -> []
+        l -> first..l
+      end
+    end
+  end
+
 
   @doc """
   Returns a list of every `nth` item in the enumerable dropped,
