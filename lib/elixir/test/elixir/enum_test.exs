@@ -343,8 +343,16 @@ defmodule EnumTest do
   end
 
   test "split_with/2" do
+    assert Enum.split_with([], fn(x) -> rem(x, 2) == 0 end) == {[], []}
     assert Enum.split_with([1, 2, 3], fn(x) -> rem(x, 2) == 0 end) == {[2], [1, 3]}
     assert Enum.split_with([2, 4, 6], fn(x) -> rem(x, 2) == 0 end) == {[2, 4, 6], []}
+
+    assert Enum.split_with(1..5, fn(x) -> rem(x, 2) == 0 end) == {[2, 4], [1, 3, 5]}
+    assert Enum.split_with(-3..0, fn(x) -> x > 0 end) == {[], [-3, -2, -1, 0]}
+
+    assert Enum.split_with(%{}, fn(x) -> rem(x, 2) == 0 end) == {[], []}
+    assert Enum.split_with(%{a: 1, b: 2, c: 3}, fn({_k, v}) -> rem(v, 2) == 0 end) == {[b: 2], [a: 1, c: 3]}
+    assert Enum.split_with(%{b: 2, d: 4, f: 6}, fn({_k, v}) -> rem(v, 2) == 0 end) == {[b: 2, d: 4, f: 6], []}
   end
 
   test "random/1" do

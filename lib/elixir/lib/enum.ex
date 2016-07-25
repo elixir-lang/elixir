@@ -1547,12 +1547,40 @@ defmodule Enum do
 
   ## Examples
 
-      iex> Enum.split_with([1, 2, 3], fn(x) -> rem(x, 2) == 0 end)
-      {[2], [1, 3]}
+      iex> Enum.split_with([5, 4, 3, 2, 1, 0], fn(x) -> rem(x, 2) == 0 end)
+      {[4, 2, 0], [5, 3, 1]}
+
+      iex> Enum.split_with(%{a: 1, b: -2, c: 1, d: -3}, fn({_k, v}) -> v < 0 end)
+      {[b: -2, d: -3], [a: 1, c: 1]}
+
+      iex> Enum.split_with(%{a: 1, b: -2, c: 1, d: -3}, fn({_k, v}) -> v > 50 end)
+      {[], [a: 1, b: -2, c: 1, d: -3]}
+
+      iex> Enum.split_with(%{}, fn({_k, v}) -> v > 50 end)
+      {[], []}
 
   """
   @spec split_with(t, (element -> any)) :: {list, list}
+  def split_with(enumerable, fun) when is_list(enumerable) and is_function(fun, 1) do
+    do_split_with_list(enumerable, fun, [], [])
+  end
+
   def split_with(enumerable, fun) when is_function(fun, 1) do
+    do_split_with_enumerable(enumerable, fun)
+  end
+
+  defp do_split_with_list([], _fun, acc1, acc2),
+    do: {:lists.reverse(acc1), :lists.reverse(acc2)}
+
+  defp do_split_with_list([head | tail], fun, acc1, acc2) do
+    if fun.(head) do
+      do_split_with_list(tail, fun, [head | acc1], acc2)
+    else
+      do_split_with_list(tail, fun, acc1, [head | acc2])
+    end
+  end
+
+  defp do_split_with_enumerable(enumerable, fun) do
     {acc1, acc2} =
       reduce(enumerable, {[], []}, fn(entry, {acc1, acc2}) ->
         if fun.(entry) do
