@@ -3895,7 +3895,7 @@ defmodule Kernel do
         end
       end
 
-  In such cases, developers should just import or alias the module
+  In such cases, developers should instead import or alias the module
   directly, so that they can customize those as they wish,
   without the indirection behind `use/2`.
 
