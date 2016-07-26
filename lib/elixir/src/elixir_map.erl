@@ -121,9 +121,16 @@ load_struct(Meta, Name, Args, S) ->
   try
     case Local of
       true ->
+        % The module is not loaded but it was defined (and possibly compiled) on the same file as
+        % the one trying to expand its struct
+        % OR
+        % The module is not loaded but it is being defined in another file (and the __struct__/0
+        % function was defined - but not yet compiled)
         try
           apply(elixir_locals:local_for(Name, '__struct__', Arity, def), Args)
         catch
+          % if it is not in the context and the function is not available, we have to try again
+          % because it may have been defined in the meantime
           error:undef when not Context -> apply(Name, '__struct__', Args);
           error:badarg -> apply(Name, '__struct__', Args)
         end;
