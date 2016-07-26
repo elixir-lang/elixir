@@ -512,6 +512,11 @@ defmodule Enum do
 
   """
   @spec dedup(t) :: list
+  def dedup(enumerable)
+
+  def dedup(_.._ = range),
+    do: to_list(range)
+
   def dedup(enumerable) do
     dedup_by(enumerable, fn x -> x end)
   end

@@ -747,6 +747,7 @@ defmodule EnumTest.Range do
   end
 
   test "dedup/1" do
+    assert Enum.dedup(1..1) == [1]
     assert Enum.dedup(1..3) == [1, 2, 3]
   end
 
