@@ -1135,8 +1135,7 @@ defmodule Enum do
       [3, 6, 9]
 
   """
-  @spec into(Enumerable.t, Collectable.t, (term -> term))
-    :: Collectable.t
+  @spec into(Enumerable.t, Collectable.t, (term -> term)) :: Collectable.t
 
   def into(enumerable, collectable, transform)
       when is_list(collectable) and is_function(transform, 1) do
@@ -1561,26 +1560,7 @@ defmodule Enum do
 
   """
   @spec split_with(t, (element -> any)) :: {list, list}
-  def split_with(enumerable, fun) when is_list(enumerable) and is_function(fun, 1) do
-    do_split_with_list(enumerable, fun, [], [])
-  end
-
   def split_with(enumerable, fun) when is_function(fun, 1) do
-    do_split_with_enumerable(enumerable, fun)
-  end
-
-  defp do_split_with_list([], _fun, acc1, acc2),
-    do: {:lists.reverse(acc1), :lists.reverse(acc2)}
-
-  defp do_split_with_list([head | tail], fun, acc1, acc2) do
-    if fun.(head) do
-      do_split_with_list(tail, fun, [head | acc1], acc2)
-    else
-      do_split_with_list(tail, fun, acc1, [head | acc2])
-    end
-  end
-
-  defp do_split_with_enumerable(enumerable, fun) do
     {acc1, acc2} =
       reduce(enumerable, {[], []}, fn(entry, {acc1, acc2}) ->
         if fun.(entry) do
@@ -1589,7 +1569,6 @@ defmodule Enum do
           {acc1, [entry | acc2]}
         end
       end)
-
     {:lists.reverse(acc1), :lists.reverse(acc2)}
   end
 
@@ -2123,8 +2102,8 @@ defmodule Enum do
 
   """
   @spec sort_by(t, (element -> mapped_element),
-    (mapped_element, mapped_element -> boolean))
-    :: list when mapped_element: element
+                (mapped_element, mapped_element -> boolean))
+                :: list when mapped_element: element
 
   def sort_by(enumerable, mapper, sorter \\ &<=/2) when is_function(sorter, 2) do
     enumerable
@@ -2135,9 +2114,10 @@ defmodule Enum do
 
   @doc """
   Splits the `enumerable` into two enumerables, leaving `count`
-  elements in the first one. If `count` is a negative number,
-  it starts counting from the back to the beginning of the
-  enumerable.
+  elements in the first one.
+
+  If `count` is a negative number, it starts counting from the
+  back to the beginning of the enumerable.
 
   Be aware that a negative `count` implies the `enumerable`
   will be enumerated twice: once to calculate the position, and
@@ -2592,7 +2572,7 @@ defmodule Enum do
 
   ## Helpers
 
-  @compile {:inline, enum_to_string: 1}
+  @compile {:inline, enum_to_string: 1, reduce: 3}
 
   defp enum_to_string(entry) when is_binary(entry), do: entry
   defp enum_to_string(entry), do: String.Chars.to_string(entry)
