@@ -124,7 +124,6 @@ load_struct(Meta, Name, Args, S) ->
         try
           apply(elixir_locals:local_for(Name, '__struct__', Arity, def), Args)
         catch
-          error:undef  -> apply(Name, '__struct__', Args);
           error:badarg -> apply(Name, '__struct__', Args)
         end;
       false ->
