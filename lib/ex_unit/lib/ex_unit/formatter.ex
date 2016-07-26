@@ -21,11 +21,11 @@ defmodule ExUnit.Formatter do
     * `{:case_finished, test_case}` -
       a test case has finished. See `ExUnit.TestCase` for details.
 
-    * `{:test_started, test_case}` -
-      a test case has started. See `ExUnit.Test` for details.
+    * `{:test_started, test}` -
+      a test has started. See `ExUnit.Test` for details.
 
-    * `{:test_finished, test_case}` -
-      a test case has finished. See `ExUnit.Test` for details.
+    * `{:test_finished, test}` -
+      a test has finished. See `ExUnit.Test` for details.
 
   """
 
