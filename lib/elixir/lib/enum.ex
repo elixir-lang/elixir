@@ -2199,7 +2199,7 @@ defmodule Enum do
     do_split_while(enumerable, fun, [])
   end
 
-  def split_while(enumerable, fun) do
+  def split_while(enumerable, fun) when is_function(fun, 1) do
     {list1, list2} =
       reduce(enumerable, {[], []}, fn
         entry, {acc1, []} ->
