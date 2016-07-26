@@ -52,7 +52,7 @@ defmodule IEx.Helpers do
 
       h(v/0)
 
-  To learn more about IEx as a whole, just type `h(IEx)`.
+  To learn more about IEx as a whole, type `h(IEx)`.
   """
 
   import IEx, only: [dont_display_result: 0]

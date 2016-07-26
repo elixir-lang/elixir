@@ -60,7 +60,7 @@ defmodule ExUnit.DocTest do
       iex> a + 1  # will fail with a "undefined function a/0" error
       2
 
-  If you don't want to assert for every result in a doctest, you can just omit
+  If you don't want to assert for every result in a doctest, you can omit
   the result:
 
       iex> pid = spawn fn -> :ok end

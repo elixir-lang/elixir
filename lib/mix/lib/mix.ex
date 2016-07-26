@@ -58,7 +58,7 @@ defmodule Mix do
   Another important feature in Mix is that it is able to manage your
   dependencies and integrates nicely with [the Hex package manager](https://hex.pm).
 
-  In order to use dependencies, you just need to add a `:deps` key
+  In order to use dependencies, you need to add a `:deps` key
   to your project configuration. We often extract the dependencies
   listing to its own functions:
 
