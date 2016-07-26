@@ -251,6 +251,13 @@ defmodule Mix.Tasks.DepsTest do
     end
   end
 
+  test "fails with message on missing dependencies" do
+    Mix.Project.push DepsApp
+    assert_raise Mix.Error, ~r/"mix deps\.unlock" expects dependencies as arguments/, fn ->
+      Mix.Tasks.Deps.Unlock.run []
+    end
+  end
+
   ## Deps environment
 
   defmodule DepsEnvApp do
