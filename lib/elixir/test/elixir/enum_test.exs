@@ -90,6 +90,8 @@ defmodule EnumTest do
     assert Enum.dedup([1, 1, 2, 1, 1, 2, 1]) == [1, 2, 1, 2, 1]
     assert Enum.dedup([2, 1, 1, 2, 1]) == [2, 1, 2, 1]
     assert Enum.dedup([1, 2, 3, 4]) == [1, 2, 3, 4]
+    assert Enum.dedup([1, 2, 3, 3]) == [1, 2, 3]
+    assert Enum.dedup([1, 1, 2, 3]) == [1, 2, 3]
     assert Enum.dedup([1, 1.0, 2.0, 2]) == [1, 1.0, 2.0, 2]
     assert Enum.dedup([]) == []
     assert Enum.dedup([nil, nil, true, {:value, true}]) == [nil, true, {:value, true}]
@@ -97,6 +99,7 @@ defmodule EnumTest do
   end
 
   test "dedup_by/2" do
+    assert Enum.dedup_by([], fn x -> x > 2 end) == []
     assert Enum.dedup_by([{1, :x}, {2, :y}, {2, :z}, {1, :x}], fn {x, _} -> x end)
       == [{1, :x}, {2, :y}, {1, :x}]
 
