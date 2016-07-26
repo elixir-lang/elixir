@@ -124,7 +124,7 @@ defmodule Stream do
   @doc """
   Shortcut to `chunk(enum, n, n)`.
   """
-  @spec chunk(Enumerable.t, non_neg_integer) :: Enumerable.t
+  @spec chunk(Enumerable.t, pos_integer) :: Enumerable.t
   def chunk(enum, n), do: chunk(enum, n, n, nil)
 
   @doc """
