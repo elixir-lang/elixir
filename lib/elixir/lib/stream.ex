@@ -352,7 +352,7 @@ defmodule Stream do
 
   """
   @spec each(Enumerable.t, (element -> term)) :: Enumerable.t
-  def each(enum, fun) do
+  def each(enum, fun) when is_function(fun, 1) do
     lazy enum, fn(f1) ->
       fn(x, acc) ->
         fun.(x)
@@ -444,7 +444,7 @@ defmodule Stream do
   is delayed until the stream is executed. See `run/1` for an example.
   """
   @spec into(Enumerable.t, Collectable.t, (term -> term)) :: Enumerable.t
-  def into(enum, collectable, transform \\ fn x -> x end) do
+  def into(enum, collectable, transform \\ fn x -> x end) when is_function(transform, 1) do
     &do_into(enum, collectable, transform, &1, &2)
   end
 
@@ -1291,7 +1291,7 @@ end
 defimpl Enumerable, for: Stream do
   @compile :inline_list_funs
 
-  def reduce(lazy, acc, fun) do
+  def reduce(lazy, acc, fun) when is_function(fun, 2) do
     do_reduce(lazy, acc, fn x, [acc] ->
       {reason, acc} = fun.(x, acc)
       {reason, [acc]}
