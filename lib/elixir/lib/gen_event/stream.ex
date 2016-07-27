@@ -56,7 +56,7 @@ defmodule GenEvent.Stream do
 end
 
 defimpl Enumerable, for: GenEvent.Stream do
-  def reduce(stream, acc, fun) do
+  def reduce(stream, acc, fun) when is_function(fun, 2) do
     start_fun = fn() -> start(stream) end
     next_fun = &next(stream, &1)
     stop_fun = &stop(stream, &1)
