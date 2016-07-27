@@ -512,7 +512,7 @@ defmodule List do
 
   """
   @spec update_at([elem], integer, (elem -> any)) :: list when elem: var
-  def update_at(list, index, fun) do
+  def update_at(list, index, fun) when is_function(fun, 1) do
     if index < 0 do
       do_update_at(list, length(list) + index, fun)
     else
