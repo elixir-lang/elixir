@@ -81,6 +81,10 @@ defmodule IntegerTest do
         Integer.undigits([1, 0, 1], n)
       end
     end
+
+    assert_raise ArgumentError, "invalid digit 17 in base 16", fn ->
+      Integer.undigits([1, 2, 17], 16)
+    end
   end
 
   test "parse/2" do
