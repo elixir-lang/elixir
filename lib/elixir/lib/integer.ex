@@ -128,7 +128,7 @@ defmodule Integer do
 
   defp do_undigits([], _base, acc),
     do: acc
-  defp do_undigits([digit | _], base, _) when is_integer(digit) when digit >= base,
+  defp do_undigits([digit | _], base, _) when is_integer(digit) and digit >= base,
     do: raise ArgumentError, "invalid digit #{digit} in base #{base}"
   defp do_undigits([digit | tail], base, acc) when is_integer(digit),
     do: do_undigits(tail, base, acc * base + digit)
