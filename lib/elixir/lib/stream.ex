@@ -1291,7 +1291,7 @@ end
 defimpl Enumerable, for: Stream do
   @compile :inline_list_funs
 
-  def reduce(lazy, acc, fun) when is_function(fun, 2) do
+  def reduce(lazy, acc, fun) do
     do_reduce(lazy, acc, fn x, [acc] ->
       {reason, acc} = fun.(x, acc)
       {reason, [acc]}
