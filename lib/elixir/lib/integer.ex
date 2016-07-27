@@ -128,8 +128,13 @@ defmodule Integer do
 
   defp do_undigits([], _base, acc),
     do: acc
-  defp do_undigits([digit | tail], base, acc) when is_integer(digit),
-    do: do_undigits(tail, base, acc * base + digit)
+  defp do_undigits([digit | tail], base, acc) when is_integer(digit) do
+    if digit >= base do
+      raise ArgumentError, "invalid digit '#{digit}' in base #{base}"
+    else
+      do_undigits(tail, base, acc * base + digit)
+    end
+  end
 
   @doc """
   Parses a text representation of an integer.
