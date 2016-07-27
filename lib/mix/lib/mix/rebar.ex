@@ -9,10 +9,12 @@ defmodule Mix.Rebar do
   end
 
   @doc """
-  Returns the path to the global copy of `rebar`, if one exists.
+  Returns the path to the global copy of `rebar`, defined by the
+  environment variables `MIX_REBAR` or `MIX_REBAR3`.
   """
   def global_rebar_cmd(manager) do
-    if cmd = System.find_executable(Atom.to_string(manager)) do
+    env = manager_to_env(manager)
+    if cmd = System.get_env(env) do
       wrap_cmd(cmd)
     end
   end
@@ -256,6 +258,9 @@ defmodule Mix.Rebar do
         Mix.raise "Unable to compile version regex: #{inspect req}, #{reason}"
     end
   end
+
+  defp manager_to_env(:rebar), do: "MIX_REBAR"
+  defp manager_to_env(:rebar3), do: "MIX_REBAR3"
 
   defp eval_script(script_path, config) do
     script = Path.basename(script_path) |> String.to_charlist
