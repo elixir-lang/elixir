@@ -257,7 +257,7 @@ defmodule Task do
       process immune to not only exits from the task but from
       any other processes.
 
-      Moreover, even when trapping exists, calling `await` will
+      Moreover, even when trapping exits, calling `await` will
       still exit if the task has terminated without sending its
       result back.
 
