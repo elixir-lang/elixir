@@ -80,7 +80,7 @@ defmodule MapSet do
 
   """
   @spec new(Enum.t, (term -> term)) :: t
-  def new(enumerable, transform) do
+  def new(enumerable, transform) when is_function(transform, 1) do
     map =
       enumerable
       |> Enum.to_list
