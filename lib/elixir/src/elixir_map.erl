@@ -92,9 +92,9 @@ translate_struct(Meta, Name, {'%{}', MapMeta, Args}, S) ->
 
       {TMap, TS} = translate_map(MapMeta, Assocs, Var, VS),
 
-      {{'case', Ann, TUpdate, [
+      {{'case', ?generated, TUpdate, [
         {clause, Ann, [Match], [], [TMap]},
-        {clause, Ann, [Var], [], [elixir_utils:erl_call(Ann, erlang, error, [Error])]}
+        {clause, ?generated, [Var], [], [elixir_utils:erl_call(Ann, erlang, error, [Error])]}
       ]}, TS};
     match ->
       translate_map(MapMeta, Assocs ++ [{'__struct__', Name}], nil, US);
