@@ -155,17 +155,19 @@ defmodule Mix do
 
   ## Environment variables
 
-  Environment variables can be used to modify Mix behaviour.
+  Environment variables can be used to modify Mix's behaviour.
 
   Mix responds to the following variables:
 
-    * `MIX_ARCHIVES` - allows specifying the directory into which the archives should be installed
-    * `MIX_DEBUG`    - outputs debug information about each task before running it
-    * `MIX_ENV`      - allows specifying which environment should be used. see Environments
-    * `MIX_EXS`      - allows changing the full path to the `mix.exs` file
-    * `MIX_HOME`     - stores configuration files and scripts shared by multiple implementations
-    * `MIX_PATH`     - allows expanding the code path
-    * `MIX_QUIET`    - does not print information messages to the terminal
+    * `MIX_ARCHIVES` - specifies the directory into which the archives should be installed
+    * `MIX_DEBUG` - outputs debug information about each task before running it
+    * `MIX_ENV` - specifies which environment should be used. see Environments
+    * `MIX_EXS` - changes the full path to the `mix.exs` file
+    * `MIX_HOME` - path to mix's home directory, stores configuration files and scripts used by mix
+    * `MIX_PATH` - appends extra code paths
+    * `MIX_QUIET` - does not print information messages to the terminal
+    * `MIX_REBAR` - path to rebar command that overrides the one mix installs
+    * `MIX_REBAR3` - path to rebar3 command that overrides the one mix installs
 
   Variables which do not take a value should be set to either `1` or `true`, for example:
 
