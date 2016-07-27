@@ -422,7 +422,7 @@ defmodule Inspect.Algebra do
   def fold_doc(list, fun)
   def fold_doc([], _), do: empty()
   def fold_doc([doc], _), do: doc
-  def fold_doc([d | ds], fun), do: fun.(d, fold_doc(ds, fun))
+  def fold_doc([d | ds], fun) when is_function(fun, 2), do: fun.(d, fold_doc(ds, fun))
 
   # Elixir conveniences
 
@@ -470,7 +470,7 @@ defmodule Inspect.Algebra do
       "[1! 2! 3! ...]"
   """
   @spec surround_many(binary, [any], binary, Inspect.Opts.t, (term, Inspect.Opts.t -> t), binary) :: t
-  def surround_many(left, docs, right, opts, fun, separator \\ @surround_separator) do
+  def surround_many(left, docs, right, opts, fun, separator \\ @surround_separator) when is_function(fun, 2) do
     do_surround_many(left, docs, right, opts.limit, opts, fun, separator)
   end
 

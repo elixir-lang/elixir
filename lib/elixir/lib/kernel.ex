@@ -1782,7 +1782,7 @@ defmodule Kernel do
   an error will be raised when trying to access it next.
   """
   @spec update_in(Access.t, nonempty_list(term), (term -> term)) :: Access.t
-  def update_in(data, keys, fun) do
+  def update_in(data, keys, fun) when is_function(fun, 1) do
     elem(get_and_update_in(data, keys, fn x -> {nil, fun.(x)} end), 1)
   end
 
