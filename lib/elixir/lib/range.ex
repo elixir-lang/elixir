@@ -76,7 +76,7 @@ defmodule Range do
 end
 
 defimpl Enumerable, for: Range do
-  def reduce(first..last, acc, fun) do
+  def reduce(first..last, acc, fun) when is_function(fun, 2) do
     reduce(first, last, acc, fun, last >= first)
   end
 
