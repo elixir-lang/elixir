@@ -342,23 +342,12 @@ defmodule Mix.Compilers.Elixir do
 
   # Similar to read_manifest, but supports data migration.
   defp parse_manifest(manifest, compile_path) do
-    # TODO: No longer support file consult once v1.3 is out
-    manifest =
-      try do
-        {:ok, manifest |> File.read!() |> :erlang.binary_to_term()}
-      rescue
-        _ -> :file.consult(manifest)
-      end
-
-    case manifest do
-      {:ok, [@manifest_vsn | data]} ->
-        do_parse_manifest(data, compile_path)
-      {:ok, [:v2 | data]} ->
-        for {beam, module, _, _, _, _, _, _} <- data,
-            do: remove_and_purge(beam, module)
-        {[], []}
-      _ ->
-        {[], []}
+    try do
+      manifest |> File.read!() |> :erlang.binary_to_term()
+    rescue
+      _ -> {[], []}
+    else
+      [@manifest_vsn | data] -> do_parse_manifest(data, compile_path)
     end
   end
 
