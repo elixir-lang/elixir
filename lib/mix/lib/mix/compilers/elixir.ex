@@ -348,6 +348,7 @@ defmodule Mix.Compilers.Elixir do
       _ -> {[], []}
     else
       [@manifest_vsn | data] -> do_parse_manifest(data, compile_path)
+      _ -> {[], []}
     end
   end
 
