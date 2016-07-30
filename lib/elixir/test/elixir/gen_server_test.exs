@@ -53,13 +53,13 @@ defmodule GenServerTest do
   end
 
   test "start_link/3 with via" do
-    GenServer.start_link(Stack, [:hello], name: {:via, :global, :stack})
-    assert GenServer.call({:via, :global, :stack}, :pop) == :hello
+    GenServer.start_link(Stack, [:hello], name: {:via, :global, :via_stack})
+    assert GenServer.call({:via, :global, :via_stack}, :pop) == :hello
   end
 
   test "start_link/3 with global" do
-    GenServer.start_link(Stack, [:hello], name: {:global, :stack})
-    assert GenServer.call({:global, :stack}, :pop) == :hello
+    GenServer.start_link(Stack, [:hello], name: {:global, :global_stack})
+    assert GenServer.call({:global, :global_stack}, :pop) == :hello
   end
 
   test "start_link/3 with local" do

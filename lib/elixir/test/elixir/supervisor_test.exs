@@ -42,13 +42,13 @@ defmodule SupervisorTest do
   import Supervisor.Spec
 
   test "start_link/2 with via" do
-    Supervisor.start_link([], strategy: :one_for_one, name: {:via, :global, :my_sup})
-    assert Supervisor.which_children({:via, :global, :my_sup}) == []
+    Supervisor.start_link([], strategy: :one_for_one, name: {:via, :global, :via_sup})
+    assert Supervisor.which_children({:via, :global, :via_sup}) == []
   end
 
   test "start_link/3 with global" do
-    Supervisor.start_link([], strategy: :one_for_one, name: {:global, :my_sup})
-    assert Supervisor.which_children({:global, :my_sup}) == []
+    Supervisor.start_link([], strategy: :one_for_one, name: {:global, :global_sup})
+    assert Supervisor.which_children({:global, :global_sup}) == []
   end
 
   test "start_link/3 with local" do
