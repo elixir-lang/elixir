@@ -350,6 +350,7 @@ defmodule String do
   defp parts_to_index(:infinity),                      do: 0
   defp parts_to_index(n) when is_integer(n) and n > 0, do: n
 
+  defp split_each("", _pattern, true, 1), do: []
   defp split_each(string, _pattern, _trim, 1) when is_binary(string), do: [string]
   defp split_each(string, pattern, trim, count) do
     case do_splitter(string, pattern, trim) do

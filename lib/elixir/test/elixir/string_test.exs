@@ -66,6 +66,9 @@ defmodule StringTest do
     assert String.split("abé", "", trim: true, parts: 2) == ["a", "bé"]
 
     assert String.split("noël", "") == ["n", "o", "ë", "l", ""]
+
+    assert String.split("x-", "-", parts: 2, trim: true) == ["x"]
+    assert String.split("x-x-", "-", parts: 3, trim: true) == ["x", "x"]
   end
 
   test "split with regex" do
