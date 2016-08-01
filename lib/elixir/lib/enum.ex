@@ -1928,7 +1928,7 @@ defmodule Enum do
   end
 
   defp do_slice(_enumerable, {start, finish})
-      when start > finish and ((start >= 0 and finish >= 0) or (start < 0 and finish < 0)) do
+      when start > finish and (finish >= 0 or start < 0) do
     []
   end
 
