@@ -65,7 +65,7 @@ defmodule Supervisor do
   However, there is a bug in our stack server. If we call `:pop` and
   the stack is empty, it is going to crash because no clause matches:
 
-      GenServer.call(:sup_stack, :pop)
+      GenServer.call(MyStack, :pop)
       ** (exit) exited in: GenServer.call(MyStack, :pop, 5000)
 
   Luckily, since the server is being supervised by a supervisor, the
