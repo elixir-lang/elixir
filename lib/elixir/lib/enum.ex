@@ -1932,64 +1932,35 @@ defmodule Enum do
   @spec slice(t, Range.t) :: list
   def slice(enumerable, range)
 
-  def slice(enumerable, start..finish),
-    do: do_slice(enumerable, {start, finish})
-
-  defp do_slice(enumerable, {start, start}) do
-    case fetch(enumerable, start) do
-      :error ->
-        []
-      {:ok, result} ->
-        [result]
-    end
-  end
-
-  defp do_slice(_enumerable, {start, finish})
-      when start > finish and (finish >= 0 or start < 0) do
-    []
-  end
-
-  defp do_slice(enumerable, {start, finish}) when start < 0 or finish < 0 do
-    {enumerable, count} = get_enumerable_count(enumerable)
-
-    with  {:ok, normalized_start} when normalized_start < count <- normalize_index(start, count),
-          {:ok, normalized_finish} when normalized_start <= normalized_finish <- normalize_index(finish, count) do
-      do_slice(enumerable, {normalized_start, normalized_finish})
+  def slice(enumerable, first..last) do
+    {enumerable, count} = enumerable_and_count(enumerable, 0)
+    corr_first = if first >= 0, do: first, else: first + count
+    corr_last = if last >= 0, do: last, else: last + count
+    amount = corr_last - corr_first + 1
+    if corr_first >= 0 and amount > 0 do
+      slice(enumerable, corr_first, amount)
     else
-      _ -> []
+      []
     end
-  end
-
-  defp do_slice(enumerable, {start, finish}) when is_list(enumerable) do
-    count = finish - start + 1
-    slice_list(enumerable, start, count)
-  end
-
-  defp do_slice(first..last, {start, finish}) do
-    slice_range({first, last}, {start, finish})
-  end
-
-  defp do_slice(enumerable, {start, finish}) do
-    slice_enumerable(enumerable, {start, finish})
   end
 
   @doc """
-  Returns a subset list of the given enumerable, from `start` position with `n` elements if available.
+  Returns a subset list of the given enumerable, from `start` position with `amount` of elements if available.
 
   Given `enumerable`, it drops elements until element position `start`,
-  then takes `n` elements until the end of the enumerable.
+  then takes `amount` of elements until the end of the enumerable.
 
   If `start` is out of bounds, it returns `[]`.
 
-  If `n` is greater than `enumerable` length, it returns as many elements as possible.
-  If `n` is zero, then `[]` is returned.
+  If `amount` is greater than `enumerable` length, it returns as many elements as possible.
+  If `amount` is zero, then `[]` is returned.
 
   ## Examples
 
       iex> Enum.slice(1..100, 5, 10)
       [6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
 
-      # `n` is greater than the number of elements
+      # amount to take is greater than the number of elements
       iex> Enum.slice(1..10, 5, 100)
       [6, 7, 8, 9, 10]
 
@@ -2006,27 +1977,52 @@ defmodule Enum do
 
   """
   @spec slice(t, index, non_neg_integer) :: list
-  def slice(enumerable, start, n)
+  def slice(_enumerable, start, 0) when is_integer(start), do: []
 
-  def slice(enumerable, start, n) when is_integer(start) and is_integer(n) and n >= 0,
-    do: do_slice(enumerable, start, n)
-
-  defp do_slice(_enumerable, _start, 0),
-    do: []
-
-  defp do_slice(enumerable, start, n) when start < 0 do
-    {enumerable, count} = get_enumerable_count(enumerable)
-    with {:ok, normalized_start} when normalized_start < count <- normalize_index(start, count),
-         finish when normalized_start <= finish <- normalized_start + n - 1 do
-      do_slice(enumerable, {normalized_start, finish})
+  def slice(enumerable, start, count)
+      when is_integer(start) and start < 0 and is_integer(count) and count >= 0 do
+    {enumerable, new_start} = enumerable_and_count(enumerable, start)
+    if new_start >= 0 do
+      slice(enumerable, new_start, count)
     else
-      _ -> []
+      []
     end
   end
 
-  defp do_slice(enumerable, start, n) do
-    finish = start + n - 1
-    do_slice(enumerable, {start, finish})
+  def slice(first..last, start, amount)
+      when is_integer(start) and start >= 0 and is_integer(amount) and amount > 0 do
+    case fetch_range(first, last, start) do
+      {:ok, sliced_first} ->
+        finish = start + amount - 1
+        case fetch_range(first, last, finish) do
+          {:ok, sliced_last} ->
+            reverse(sliced_last..sliced_first)
+          :error ->
+            reverse(last..sliced_first)
+        end
+      :error ->
+        []
+    end
+  end
+
+  def slice(enumerable, start, count)
+      when is_list(enumerable) and is_integer(start) and start >= 0 and is_integer(count) and count > 0 do
+    slice_list(enumerable, start, count)
+  end
+
+  def slice(enumerable, start, count)
+      when is_integer(start) and start >= 0 and is_integer(count) and count > 0 do
+    Enumerable.reduce(enumerable, {:cont, {start, count, []}}, fn
+      _entry, {start, count, _list} when start > 0 ->
+        {:cont, {start - 1, count, []}}
+      entry, {start, count, list} when count > 1 ->
+        {:cont, {start, count - 1, [entry | list]}}
+      entry, {start, count, list} ->
+        {:halt, {start, count, [entry | list]}}
+    end)
+    |> elem(1)
+    |> elem(2)
+    |> :lists.reverse()
   end
 
   @doc """
@@ -2594,25 +2590,16 @@ defmodule Enum do
   defp enum_to_string(entry) when is_binary(entry), do: entry
   defp enum_to_string(entry), do: String.Chars.to_string(entry)
 
-  defp get_enumerable_count(enumerable) when is_list(enumerable) do
-    {enumerable, length(enumerable)}
+  defp enumerable_and_count(enumerable, count) when is_list(enumerable) do
+    {enumerable, length(enumerable) - abs(count)}
   end
 
-  defp get_enumerable_count(enumerable) do
+  defp enumerable_and_count(enumerable, count) do
     case Enumerable.count(enumerable) do
-      {:ok, count} ->
-        {enumerable, count}
+      {:ok, result} ->
+        {enumerable, result - abs(count)}
       {:error, _module} ->
-        map_reduce(enumerable, 0, fn(x, acc) -> {x, acc + 1} end)
-    end
-  end
-
-  defp normalize_index(index, count) do
-    normalized_index = if index >= 0, do: index, else: count + index
-    if normalized_index >= 0 do
-      {:ok, normalized_index}
-    else
-      :error
+        map_reduce(enumerable, -abs(count), fn(elem, acc) -> {elem, acc + 1} end)
     end
   end
 
@@ -2787,32 +2774,6 @@ defmodule Enum do
     do: [head | slice_list(tail, 0, count - 1)]
   defp slice_list([_ | tail], start, count),
     do: slice_list(tail, start - 1, count)
-
-  defp slice_range({first, last}, {start, finish}) do
-    count = last - first + 1
-    corrected_finish = if finish > count - 1, do: count - 1, else: finish
-
-    with {:ok, sliced_first}  <- fetch_range(first, last, start),
-         {:ok, sliced_last} <- fetch_range(first, last, corrected_finish) do
-      reverse(sliced_last..sliced_first)
-    else
-      _ -> []
-    end
-  end
-
-  defp slice_enumerable(enumerable, {start, finish}) do
-    count = finish - start + 1
-    {_, _, list} = Enumerable.reduce(enumerable, {:cont, {start, count, []}}, fn
-      _entry, {start, count, _list} when start > 0 ->
-        {:cont, {start-1, count, []}}
-      entry, {start, count, list} when count > 1 ->
-        {:cont, {start, count-1, [entry | list]}}
-      entry, {start, count, list} ->
-        {:halt, {start, count, [entry | list]}}
-    end) |> elem(1)
-
-    :lists.reverse(list)
-  end
 
   ## sort
 
