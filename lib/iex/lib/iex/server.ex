@@ -107,6 +107,7 @@ defmodule IEx.Server do
   """
   @spec start(list, {module, atom, [any]}) :: :ok
   def start(opts, {m, f, a}) do
+    Process.flag(:trap_exit, true)
     {pid, ref} = spawn_monitor(m, f, a)
     start_loop(opts, pid, ref)
   end
@@ -139,13 +140,17 @@ defmodule IEx.Server do
 
   defp run(opts) when is_list(opts) do
     IO.puts "Interactive Elixir (#{System.version}) - press Ctrl+C to exit (type h() ENTER for help)"
+    evaluator = start_evaluator(opts)
+    loop(run_state(opts), evaluator, Process.monitor(evaluator))
+  end
 
+  defp start_evaluator(opts) do
     self_pid = self()
     self_leader = Process.group_leader
     evaluator = opts[:evaluator] ||
                 :proc_lib.start(IEx.Evaluator, :init, [:ack, self_pid, self_leader, opts])
     Process.put(:evaluator, evaluator)
-    loop(run_state(opts), evaluator, Process.monitor(evaluator))
+    evaluator
   end
 
   defp reset_loop(opts, evaluator, evaluator_ref) do
@@ -179,7 +184,7 @@ defmodule IEx.Server do
     receive do
       {:input, ^input, code} when is_binary(code) ->
         send evaluator, {:eval, self(), code, state}
-        wait_eval(evaluator, evaluator_ref)
+        wait_eval(state, evaluator, evaluator_ref)
       {:input, ^input, {:error, :interrupted}} ->
         io_error "** (EXIT) interrupted"
         loop(%{state | cache: ''}, evaluator, evaluator_ref)
@@ -197,13 +202,21 @@ defmodule IEx.Server do
     end
   end
 
-  defp wait_eval(evaluator, evaluator_ref) do
+  defp wait_eval(state, evaluator, evaluator_ref) do
     receive do
-      {:evaled, ^evaluator, state} ->
-        loop(state, evaluator, evaluator_ref)
+      {:evaled, ^evaluator, new_state} ->
+        loop(new_state, evaluator, evaluator_ref)
+      {:EXIT, _pid, :interrupt} ->
+        # User did ^G while the evaluator was busy or stuck
+        io_error "** (EXIT) interrupted"
+        Process.delete(:evaluator)
+        Process.exit(evaluator, :kill)
+        Process.demonitor(evaluator_ref, [:flush])
+        evaluator = start_evaluator([])
+        loop(%{state | cache: ''}, evaluator, Process.monitor(evaluator))
       msg ->
         handle_take_over(msg, evaluator, evaluator_ref, nil,
-                         fn -> wait_eval(evaluator, evaluator_ref) end)
+                         fn -> wait_eval(state, evaluator, evaluator_ref) end)
     end
   end
 
