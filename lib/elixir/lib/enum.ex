@@ -955,10 +955,28 @@ defmodule Enum do
 
   """
   @spec flat_map(t, (element -> t)) :: list
+  def flat_map(enumerable, fun) when is_list(enumerable) and is_function(fun, 1) do
+    flat_map_list(enumerable, fun)
+  end
+
   def flat_map(enumerable, fun) when is_function(fun, 1) do
     reduce(enumerable, [], fn(entry, acc) ->
-      reduce(fun.(entry), acc, &[&1 | &2])
+      case fun.(entry) do
+        list when is_list(list) -> :lists.reverse(list, acc)
+        other -> reduce(other, acc, &[&1 | &2])
+      end
     end) |> :lists.reverse
+  end
+
+  defp flat_map_list([h | t], fun) do
+    case fun.(h) do
+      list when is_list(list) -> list ++ flat_map_list(t, fun)
+      other -> to_list(other) ++ flat_map_list(t, fun)
+    end
+  end
+
+  defp flat_map_list([], fun) do
+    []
   end
 
   @doc """
