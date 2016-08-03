@@ -38,8 +38,6 @@ defmodule IO do
   @type nodata :: {:error, term} | :eof
   @type chardata() :: :unicode.chardata()
 
-  import :erlang, only: [group_leader: 0]
-
   defmacrop is_iodata(data) do
     quote do
       is_list(unquote(data)) or is_binary(unquote(data))
@@ -67,7 +65,7 @@ defmodule IO do
   empty string in case the device has reached EOF.
   """
   @spec read(device, :all | :line | non_neg_integer) :: chardata | nodata
-  def read(device \\ group_leader(), line_or_chars)
+  def read(device \\ :stdio, line_or_chars)
 
   def read(device, :all) do
     do_read_all(map_dev(device), "")
@@ -113,7 +111,7 @@ defmodule IO do
   as it will return the wrong result.
   """
   @spec binread(device, :all | :line | non_neg_integer) :: iodata | nodata
-  def binread(device \\ group_leader(), line_or_chars)
+  def binread(device \\ :stdio, line_or_chars)
 
   def binread(device, :all) do
     do_binread_all(map_dev(device), "")
@@ -158,7 +156,7 @@ defmodule IO do
 
   """
   @spec write(device, chardata | String.Chars.t) :: :ok
-  def write(device \\ group_leader(), item) do
+  def write(device \\ :stdio, item) do
     :io.put_chars map_dev(device), to_chardata(item)
   end
 
@@ -173,7 +171,7 @@ defmodule IO do
   as it will return the wrong result.
   """
   @spec binwrite(device, iodata) :: :ok | {:error, term}
-  def binwrite(device \\ group_leader(), item) when is_iodata(item) do
+  def binwrite(device \\ :stdio, item) when is_iodata(item) do
     :file.write map_dev(device), item
   end
 
@@ -182,7 +180,7 @@ defmodule IO do
   but adds a newline at the end.
   """
   @spec puts(device, chardata | String.Chars.t) :: :ok
-  def puts(device \\ group_leader(), item) do
+  def puts(device \\ :stdio, item) do
     :io.put_chars map_dev(device), [to_chardata(item), ?\n]
   end
 
@@ -280,7 +278,7 @@ defmodule IO do
   """
   @spec inspect(item, Keyword.t) :: item when item: var
   def inspect(item, opts \\ []) do
-    inspect group_leader(), item, opts
+    inspect :stdio, item, opts
   end
 
   @doc """
@@ -312,7 +310,7 @@ defmodule IO do
   def getn(prompt, count \\ 1)
 
   def getn(prompt, count) when is_integer(count) and count > 0 do
-    getn(group_leader(), prompt, count)
+    getn(:stdio, prompt, count)
   end
 
   def getn(device, prompt) when not is_integer(prompt) do
@@ -364,7 +362,7 @@ defmodule IO do
 
   """
   @spec gets(device, chardata | String.Chars.t) :: chardata | nodata
-  def gets(device \\ group_leader(), prompt) do
+  def gets(device \\ :stdio, prompt) do
     :io.get_line(map_dev(device), to_chardata(prompt))
   end
 
