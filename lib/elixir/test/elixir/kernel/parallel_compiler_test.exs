@@ -28,6 +28,13 @@ defmodule Kernel.ParallelCompilerTest do
     end
   end
 
+  test "emits struct undefined error when local struct is undefined" do
+    fixtures = [fixture_path("parallel_struct/undef.ex")]
+    assert capture_io(fn ->
+      assert catch_exit(Kernel.ParallelCompiler.files(fixtures)) == {:shutdown, 1}
+    end) =~ "Undef.__struct__/1 is undefined, cannot expand struct Undef"
+  end
+
   test "does not hang on missing dependencies" do
     fixtures = [fixture_path("parallel_compiler/bat.ex")]
     assert capture_io(fn ->
