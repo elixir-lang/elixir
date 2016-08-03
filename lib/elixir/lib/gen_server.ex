@@ -132,6 +132,10 @@ defmodule GenServer do
         end
 
         # Server (callbacks)
+        
+        def handle_call(:pop, _from, []) do
+          {:reply, [], []}
+        end
 
         def handle_call(:pop, _from, [h | t]) do
           {:reply, h, t}
