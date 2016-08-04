@@ -14,7 +14,8 @@ defmodule Mix.Tasks.Compile do
       `[:yecc, :leex, :erlang, :elixir, :xref, :app]`
 
     * `:consolidate_protocols` - when `true`, runs protocol
-      consolidation via the `compile.protocols` task. Enabled by default.
+      consolidation via the `compile.protocols` task. The default
+      value is `true`.
 
     * `:build_embedded` - when `true`, activates protocol
       consolidation and does not generate symlinks in builds

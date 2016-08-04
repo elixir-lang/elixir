@@ -20,7 +20,7 @@ defmodule Mix.Tasks.App.Start do
       applications are started in permanent mode
 
     * `:consolidate_protocols` - when `true`, loads consolidated
-      protocols before start. Enabled by default.
+      protocols before start. The default value is `true`.
 
     * `:elixir` - matches the current elixir version against the
       given requirement
