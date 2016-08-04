@@ -619,8 +619,8 @@ defmodule Enum do
 
   ## Examples
 
-      iex> Enum.drop_while([1, 2, 3, 4, 5], fn(x) -> x < 3 end)
-      [3, 4, 5]
+      iex> Enum.drop_while([1, 2, 3, 2, 1], fn(x) -> x < 3 end)
+      [3, 2, 1]
 
   """
   @spec drop_while(t, (element -> as_boolean(term))) :: list
