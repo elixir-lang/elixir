@@ -777,6 +777,8 @@ defmodule Kernel.Typespec do
   end
 
   defp typespec({:%, _, [name, {:%{}, meta, fields}]}, vars, caller) do
+    # We cannot set a function name to avoid tracking
+    # as a compile time dependency, because for structs it actually is one.
     module = Macro.expand(name, caller)
 
     struct =
@@ -813,6 +815,8 @@ defmodule Kernel.Typespec do
   end
 
   defp typespec({:record, meta, [atom, fields]}, vars, caller) do
+    # We cannot set a function name to avoid tracking
+    # as a compile time dependency because for records it actually is one.
     case Macro.expand({atom, [], [{atom, [], []}]}, caller) do
       keyword when is_list(keyword) ->
         types =
@@ -883,7 +887,9 @@ defmodule Kernel.Typespec do
 
   # Handle remote calls
   defp typespec({{:., meta, [remote, name]}, _, args} = orig, vars, caller) do
-    remote = Macro.expand remote, caller
+    # We set a function name to avoid tracking
+    # aliases in typespecs as compile time dependencies.
+    remote = Macro.expand remote, %{caller | function: {:typespec, 0}}
     unless is_atom(remote) do
       compile_error(caller, "invalid remote in typespec: #{Macro.to_string(orig)}")
     end
