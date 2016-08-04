@@ -974,8 +974,7 @@ defmodule Enum do
       other -> to_list(other) ++ flat_map_list(t, fun)
     end
   end
-
-  defp flat_map_list([], fun) do
+  defp flat_map_list([], _fun) do
     []
   end
 

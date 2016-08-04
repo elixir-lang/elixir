@@ -47,21 +47,22 @@ defmodule Kernel.ParallelRequire do
     wait_for_messages(files, waiting, callbacks, schedulers, result)
   end
 
-  defp spawn_requires([h | t], waiting, callbacks, schedulers, result) do
+  defp spawn_requires([file | files], waiting, callbacks, schedulers, result) do
     parent = self()
     {pid, ref} = :erlang.spawn_monitor fn ->
       :erlang.put(:elixir_compiler_pid, parent)
+      :erlang.put(:elixir_compiler_file, file)
 
       exit(try do
-        new = Code.require_file(h) || []
-        {:required, Enum.map(new, &elem(&1, 0)), h}
+        new = Code.require_file(file) || []
+        {:required, Enum.map(new, &elem(&1, 0)), file}
       catch
         kind, reason ->
           {:failure, kind, reason, System.stacktrace}
       end)
     end
 
-    spawn_requires(t, [{pid, ref} | waiting], callbacks, schedulers, result)
+    spawn_requires(files, [{pid, ref} | waiting], callbacks, schedulers, result)
   end
 
   defp wait_for_messages(files, waiting, callbacks, schedulers, result) do
