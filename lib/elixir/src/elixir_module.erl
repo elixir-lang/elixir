@@ -378,7 +378,7 @@ load_form(Line, Data, Forms, Opts, E) ->
             ok;
           PID ->
             Ref = make_ref(),
-            PID ! {module_available, self(), Ref, ?m(E, file), Module, Binary},
+            PID ! {module_available, self(), Ref, get(elixir_compiler_file), Module, Binary},
             receive {Ref, ack} -> ok end
         end;
       _ ->

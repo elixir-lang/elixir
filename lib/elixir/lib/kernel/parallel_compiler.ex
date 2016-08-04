@@ -107,6 +107,7 @@ defmodule Kernel.ParallelCompiler do
       :erlang.spawn_monitor fn ->
         # Set the elixir_compiler_pid used by our custom Kernel.ErrorHandler.
         :erlang.put(:elixir_compiler_pid, parent)
+        :erlang.put(:elixir_compiler_file, file)
         :erlang.process_flag(:error_handler, Kernel.ErrorHandler)
 
         exit(try do
