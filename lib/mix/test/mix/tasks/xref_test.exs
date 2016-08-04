@@ -564,6 +564,32 @@ defmodule Mix.Tasks.XrefTest do
     end
   end
 
+  test "graph: with dynamic module" do
+    in_fixture "no_mixfile", fn ->
+      File.write! "lib/a.ex", """
+      B.define()
+      """
+
+      File.write! "lib/b.ex", """
+      defmodule B do
+        def define do
+          defmodule A do
+          end
+        end
+      end
+      """
+
+      assert Mix.Task.run("xref", ["graph"]) == :ok
+
+      assert """
+      Compiling 2 files (.ex)
+      Generated sample app
+      lib/a.ex
+      lib/b.ex
+      """ = receive_until_no_messages([])
+    end
+  end
+
   defp assert_graph(opts \\ [], dot \\ false, expected) do
     in_fixture "no_mixfile", fn ->
       File.write! "lib/a.ex", """
