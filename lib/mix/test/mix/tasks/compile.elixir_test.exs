@@ -231,4 +231,28 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
     end
   end
+
+  test "does not treat remote typespecs as compile time dependencies" do
+    in_fixture "no_mixfile", fn ->
+      File.write!("lib/b.ex", """
+      defmodule B do
+        @type t :: A.t
+      end
+      """)
+
+      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == :ok
+      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
+
+      Mix.shell.flush
+      purge [A, B]
+
+      future = {{2020, 1, 1}, {0, 0, 0}}
+      File.touch!("lib/a.ex", future)
+      Mix.Tasks.Compile.Elixir.run ["--verbose"]
+
+      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
+    end
+  end
 end
