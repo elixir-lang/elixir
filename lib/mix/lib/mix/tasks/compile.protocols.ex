@@ -9,7 +9,8 @@ defmodule Mix.Tasks.Compile.Protocols do
 
   This task is automatically invoked whenever the project
   enables `:consolidate_protocols` or `:build_embedded` in
-  its configuration.
+  its configuration. As `:consolidate_protocols` is enabled
+  in the default configuration, this is the default case.
 
   ## Consolidation
 
