@@ -636,9 +636,9 @@ defmodule UndefinedFunctionError do
       " is undefined (module #{inspect module} is not available)"
   end
 
-  def message(%{reason: :"function not exported",  module: module, function: function, arity: arity} = e) do
+  def message(%{reason: :"function not exported",  module: module, function: function, arity: arity, exports: exports}) do
     "function " <> Exception.format_mfa(module, function, arity) <>
-    " is undefined or private" <> did_you_mean(module, function, arity, e.exports)
+    " is undefined or private" <> did_you_mean(module, function, arity, exports)
   end
 
   def message(%{reason: :"function not available", module: module, function: function, arity: arity}) do
