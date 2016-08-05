@@ -231,8 +231,6 @@ defmodule Mix.Tasks.Xref do
   end
 
   defp format_warning(file, {lines, :unknown_function, module, function, arity, exports}) do
-    unless exports, do: Code.ensure_loaded?(module)
-
     message =
       [module: module, function: function, arity: arity, reason: :"function not exported", exports: exports]
       |> UndefinedFunctionError.exception()
