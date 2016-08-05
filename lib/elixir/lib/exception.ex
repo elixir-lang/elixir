@@ -618,7 +618,7 @@ defmodule BadArityError do
 end
 
 defmodule UndefinedFunctionError do
-  defexception [module: nil, function: nil, arity: nil, reason: nil]
+  defexception [module: nil, function: nil, arity: nil, reason: nil, exports: nil]
 
   def message(%{reason: nil, module: module, function: function, arity: arity} = e) do
     cond do
@@ -636,9 +636,9 @@ defmodule UndefinedFunctionError do
       " is undefined (module #{inspect module} is not available)"
   end
 
-  def message(%{reason: :"function not exported",  module: module, function: function, arity: arity}) do
+  def message(%{reason: :"function not exported",  module: module, function: function, arity: arity} = e) do
     "function " <> Exception.format_mfa(module, function, arity) <>
-    " is undefined or private" <> did_you_mean(module, function, arity)
+    " is undefined or private" <> did_you_mean(module, function, arity, e.exports)
   end
 
   def message(%{reason: :"function not available", module: module, function: function, arity: arity}) do
@@ -654,8 +654,8 @@ defmodule UndefinedFunctionError do
   @function_threshold 0.77
   @max_suggestions 5
 
-  defp did_you_mean(module, function, _arity) do
-    exports = exports_for(module)
+  defp did_you_mean(module, function, _arity, exports) do
+    exports = exports || exports_for(module)
 
     result =
       case Keyword.take(exports, [function]) do
