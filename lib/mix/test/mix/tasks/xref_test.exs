@@ -42,7 +42,10 @@ defmodule Mix.Tasks.XrefTest do
       def b, do: A.a(1)
     end
     """, """
-    warning: function A.a/1 is undefined or private
+    warning: function A.a/1 is undefined or private. Did you mean one of:
+
+          * a/0
+
       lib/a.ex:3
 
     """
@@ -213,7 +216,11 @@ defmodule Mix.Tasks.XrefTest do
       end
     end
     """, """
-    warning: function List.old_flatten/1 is undefined or private
+    warning: function List.old_flatten/1 is undefined or private. Did you mean one of:
+
+          * flatten/1
+          * flatten/2
+
       lib/a.ex:15
 
     """
@@ -239,7 +246,10 @@ defmodule Mix.Tasks.XrefTest do
       def b, do: &E.map2/2
     end
     """, """
-    warning: function Enum.map2/2 is undefined or private
+    warning: function Enum.map2/2 is undefined or private. Did you mean one of:
+
+          * map/2
+
     Found at 2 locations:
       lib/a.ex:4
       lib/a.ex:5
