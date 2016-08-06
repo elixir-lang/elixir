@@ -85,7 +85,7 @@ defmodule Mix.Generator do
         end
 
       require EEx
-      EEx.function_from_string :defp, :"#{name}_template", "<% _ = assigns %>" <> contents, [:assigns]
+      EEx.function_from_string :def, :"#{name}_template", "<% _ = assigns %>" <> contents, [:assigns]
     end
   end
 

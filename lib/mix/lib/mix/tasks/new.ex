@@ -90,7 +90,7 @@ defmodule Mix.Tasks.New do
     if opts[:sup] do
       create_file "lib/#{app}.ex", lib_sup_template(assigns)
     else
-      create_file "lib/#{app}.ex", lib_template(assigns)
+      create_file "lib/#{app}.ex", Mix.Templates.lib_template(assigns)
     end
 
     create_directory "test"
@@ -405,11 +405,6 @@ defmodule Mix.Tasks.New do
   #       level: :info,
   #       format: "$date $time [$level] $metadata$message\n",
   #       metadata: [:user_id]
-  """
-
-  embed_template :lib, """
-  defmodule <%= @mod %> do
-  end
   """
 
   embed_template :lib_sup, """
