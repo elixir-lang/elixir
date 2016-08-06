@@ -41,6 +41,22 @@ defmodule Stream.Reducers do
     end
   end
 
+  defmacro chunk_by_with_size(callback, f \\ nil) do
+    quote do
+      fn
+        entry, acc(h, {buffer, value, size}, t) ->
+          new_value = unquote(callback).(entry)
+          if new_value == value do
+            skip(acc(h, {[entry|buffer], value, size + 1}, t))
+          else
+            next_with_acc(unquote(f), {:lists.reverse(buffer), size}, h, {[entry], new_value, 1}, t)
+          end
+        entry, acc(h, nil, t) ->
+          skip(acc(h, {[entry], unquote(callback).(entry), 1}, t))
+      end
+    end
+  end
+
   defmacro dedup(callback, f \\ nil) do
     quote do
       fn(entry, acc(h, prev, t) = acc) ->
