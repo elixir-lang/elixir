@@ -329,6 +329,22 @@ defmodule KernelTest do
     assert binding() == [_x: 1]
   end
 
+  test "rem/2" do
+    trunc_div_alg = fn(a,n) -> a-n*trunc(a/n) end
+    assert rem( 5, 3) == trunc_div_alg.( 5, 3)
+    assert rem(-5, 3) == trunc_div_alg.(-5, 3)
+    assert rem( 5,-3) == trunc_div_alg.( 5,-3)
+    assert rem(-5,-3) == trunc_div_alg.(-5,-3)
+  end
+
+  test "mod/2" do
+    floor_div_alg = fn(a,n) -> a-n*(round Float.floor(a/n)) end
+    assert mod( 5, 3) == floor_div_alg.( 5, 3)
+    assert mod(-5, 3) == floor_div_alg.(-5, 3)
+    assert mod( 5,-3) == floor_div_alg.( 5,-3)
+    assert mod(-5,-3) == floor_div_alg.(-5,-3)
+  end
+
   defmodule User do
     assert is_map defstruct name: "john"
   end
