@@ -539,9 +539,9 @@ defmodule Enum do
   end
 
   @doc """
-  Drops the first `n` items from the enumerable.
+  Drops the `amount` of items from the enumerable.
 
-  If a negative value `n` is given, the last `n` values will be dropped.
+  If a negative `amount` is given, the `amount` of last values will be dropped.
 
   The `enumerable` is enumerated once to retrieve the proper index and
   the remaining calculation is performed from the end.
@@ -562,13 +562,14 @@ defmodule Enum do
 
   """
   @spec drop(t, integer) :: list
-  def drop(enumerable, n) when is_list(enumerable) and is_integer(n) and n >= 0 do
-    do_drop(enumerable, n)
+  def drop(enumerable, amount)
+      when is_list(enumerable) and is_integer(amount) and amount >= 0 do
+    do_drop(enumerable, amount)
   end
 
-  def drop(enumerable, n) when is_integer(n) and n >= 0 do
+  def drop(enumerable, amount) when is_integer(amount) and amount >= 0 do
     result =
-      reduce(enumerable, n, fn
+      reduce(enumerable, amount, fn
         x, acc when is_list(acc) -> [x | acc]
         x, 0                     -> [x]
         _, acc when acc > 0      -> acc - 1
@@ -576,8 +577,8 @@ defmodule Enum do
     if is_list(result), do: :lists.reverse(result), else: []
   end
 
-  def drop(enumerable, n) when is_integer(n) and n < 0 do
-    do_drop(reverse(enumerable), -n) |> :lists.reverse
+  def drop(enumerable, amount) when is_integer(amount) and amount < 0 do
+    do_drop(reverse(enumerable), -amount) |> :lists.reverse
   end
 
   @doc """
