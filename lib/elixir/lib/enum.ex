@@ -1979,11 +1979,11 @@ defmodule Enum do
   @spec slice(t, index, non_neg_integer) :: list
   def slice(_enumerable, start, 0) when is_integer(start), do: []
 
-  def slice(enumerable, start, count)
-      when is_integer(start) and start < 0 and is_integer(count) and count >= 0 do
+  def slice(enumerable, start, amount)
+      when is_integer(start) and start < 0 and is_integer(amount) and amount >= 0 do
     {enumerable, new_start} = enumerable_and_count(enumerable, start)
     if new_start >= 0 do
-      slice(enumerable, new_start, count)
+      slice(enumerable, new_start, amount)
     else
       []
     end
@@ -2005,20 +2005,21 @@ defmodule Enum do
     end
   end
 
-  def slice(enumerable, start, count)
-      when is_list(enumerable) and is_integer(start) and start >= 0 and is_integer(count) and count > 0 do
-    slice_list(enumerable, start, count)
+  def slice(enumerable, start, amount)
+      when is_list(enumerable) and
+           is_integer(start) and start >= 0 and is_integer(amount) and amount > 0 do
+    slice_list(enumerable, start, amount)
   end
 
-  def slice(enumerable, start, count)
-      when is_integer(start) and start >= 0 and is_integer(count) and count > 0 do
-    Enumerable.reduce(enumerable, {:cont, {start, count, []}}, fn
-      _entry, {start, count, _list} when start > 0 ->
-        {:cont, {start - 1, count, []}}
-      entry, {start, count, list} when count > 1 ->
-        {:cont, {start, count - 1, [entry | list]}}
-      entry, {start, count, list} ->
-        {:halt, {start, count, [entry | list]}}
+  def slice(enumerable, start, amount)
+      when is_integer(start) and start >= 0 and is_integer(amount) and amount > 0 do
+    Enumerable.reduce(enumerable, {:cont, {start, amount, []}}, fn
+      _entry, {start, amount, _list} when start > 0 ->
+        {:cont, {start - 1, amount, []}}
+      entry, {start, amount, list} when amount > 1 ->
+        {:cont, {start, amount - 1, [entry | list]}}
+      entry, {start, amount, list} ->
+        {:halt, {start, amount, [entry | list]}}
     end)
     |> elem(1)
     |> elem(2)
