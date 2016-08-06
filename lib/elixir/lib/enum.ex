@@ -577,7 +577,7 @@ defmodule Enum do
   end
 
   def drop(enumerable, n) when is_integer(n) and n < 0 do
-    do_drop(reverse(enumerable), abs(n)) |> :lists.reverse
+    do_drop(reverse(enumerable), -n) |> :lists.reverse
   end
 
   @doc """
