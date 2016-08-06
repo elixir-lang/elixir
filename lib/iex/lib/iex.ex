@@ -134,12 +134,13 @@ defmodule IEx do
 
   ## The .iex.exs file
 
-  When starting IEx, it will look for a local `.iex.exs` file (located in the current
-  working directory), then a global one (located at `~/.iex.exs`) and will load the
-  first one it finds (if any). The code in the chosen .iex.exs file will be
-  evaluated in the shell's context. So, for instance, any modules that are
-  loaded or variables that are bound in the .iex.exs file will be available in the
-  shell after it has booted.
+  When starting IEx, it will look for a global `.iex.exs` (located at `~/.iex.exs`),
+  then a local one (located in the current working directory) and will load any
+  it finds (if any). The code in both .iex.exs file(s) will be evaluated in the
+  shell's context. So, for instance, any modules that are loaded or variables
+  that are bound in the .iex.exs file(s) will be available in the shell after
+  it has booted. Since the local is run second, any conflicts in variables bound
+  will be the result of the local `.iex.exs` file.
 
   Sample contents of a local .iex.exs file:
 

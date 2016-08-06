@@ -61,16 +61,11 @@ defmodule IEx.Evaluator do
     candidates = if path do
       [path]
     else
-      Enum.map [".iex.exs", "~/.iex.exs"], &Path.expand/1
+      Enum.map ["~/.iex.exs", ".iex.exs"], &Path.expand/1
     end
 
-    path = Enum.find candidates, &File.regular?/1
-
-    if is_nil(path) do
-      state
-    else
-      eval_dot_iex(state, path)
-    end
+    Stream.filter(candidates, &File.regular?/1)
+    |> Enum.reduce(state, &(eval_dot_iex(&2, &1)))
   end
 
   defp eval_dot_iex(state, path) do
