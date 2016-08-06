@@ -1078,7 +1078,6 @@ defmodule EnumTest.Range do
     assert Enum.slice(1..5, -5..-1) == [1, 2, 3, 4, 5]
     assert Enum.slice(1..5, -5..-3) == [1, 2, 3]
     assert Enum.slice(1..5, -6..-1) == []
-    assert Enum.slice(1..5, -6..-3) == []
     assert_raise ArgumentError, fn ->
       x = 1.1
       Enum.slice(1..5, x..2)
@@ -1104,7 +1103,6 @@ defmodule EnumTest.Range do
     assert Enum.slice(5..1, -5..-1) == [5, 4, 3, 2, 1]
     assert Enum.slice(5..1, -5..-3) == [5, 4, 3]
     assert Enum.slice(5..1, -6..-1) == []
-    assert Enum.slice(5..1, -6..-3) == []
   end
 
   test "slice/3" do
@@ -1113,7 +1111,7 @@ defmodule EnumTest.Range do
     assert Enum.slice(1..5, 0, 2) == [1, 2]
     assert Enum.slice(1..5, 1, 2) == [2, 3]
     assert Enum.slice(1..5, 1, 0) == []
-    assert Enum.slice(1..5, 2, 5) == [3, 4, 5]
+    assert Enum.slice(1..5, 2, 3) == [3, 4, 5]
     assert Enum.slice(1..5, 2, 6) == [3, 4, 5]
     assert Enum.slice(1..5, 5, 5) == []
     assert Enum.slice(1..5, 6, 5) == []
@@ -1137,7 +1135,7 @@ defmodule EnumTest.Range do
     assert Enum.slice(5..1, 0, 2) == [5, 4]
     assert Enum.slice(5..1, 1, 2) == [4, 3]
     assert Enum.slice(5..1, 1, 0) == []
-    assert Enum.slice(5..1, 2, 5) == [3, 2, 1]
+    assert Enum.slice(5..1, 2, 3) == [3, 2, 1]
     assert Enum.slice(5..1, 2, 6) == [3, 2, 1]
     assert Enum.slice(5..1, 4, 4) == [1]
     assert Enum.slice(5..1, 5, 5) == []

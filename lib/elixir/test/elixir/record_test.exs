@@ -137,18 +137,19 @@ defmodule RecordTest do
     charlist: 'abc'
 
   test "records with literal defaults" do
-    assert defaults(defaults()) ==
-      [struct: ~D[2016-01-01],
-       map: %{},
-       tuple_zero: {},
-       tuple_one: {1},
-       tuple_two: {1, 2},
-       tuple_three: {1, 2, 3},
-       list: [1, 2, 3],
-       call: MapSet.new,
-       string: "abc",
-       binary: <<1, 2, 3>>,
-       charlist: 'abc']
+    assert defaults(defaults()) == [
+      struct: ~D[2016-01-01],
+      map: %{},
+      tuple_zero: {},
+      tuple_one: {1},
+      tuple_two: {1, 2},
+      tuple_three: {1, 2, 3},
+      list: [1, 2, 3],
+      call: MapSet.new,
+      string: "abc",
+      binary: <<1, 2, 3>>,
+      charlist: 'abc'
+    ]
     assert defaults(defaults(), :struct) == ~D[2016-01-01]
     assert defaults(defaults(), :map) == %{}
     assert defaults(defaults(), :tuple_zero) == {}
