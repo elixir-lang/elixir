@@ -21,6 +21,8 @@ defmodule Mix.Tasks.Deps.Get do
     Mix.Project.get!
     {opts, _, _} = OptionParser.parse(args, switches: [only: :string])
 
+    Mix.State.put(:quiet, opts[:quiet])
+
     # Fetch all deps by default unless --only is given
     fetch_opts = if only = opts[:only], do: [env: :"#{only}"], else: []
 

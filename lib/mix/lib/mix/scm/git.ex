@@ -79,9 +79,12 @@ defmodule Mix.SCM.Git do
 
     path     = opts[:dest]
     location = opts[:git]
+    quiet    = if Mix.State.get(:quiet), do: " --quiet", else: ""
+
+    opts = opts ++ [quiet: quiet]
 
     _ = File.rm_rf!(path)
-    git!(~s(clone --no-checkout --progress "#{location}" "#{path}"))
+    git!(~s(clone --no-checkout --progress#{quiet} "#{location}" "#{path}"))
 
     File.cd! path, fn -> do_checkout(opts) end
   end
@@ -125,7 +128,7 @@ defmodule Mix.SCM.Git do
     git!("--git-dir=.git checkout --quiet #{rev}")
 
     if opts[:submodules] do
-      git!("--git-dir=.git submodule update --init --recursive")
+      git!("--git-dir=.git submodule update --init --recursive#{opts[:quiet]}")
     end
 
     get_lock(opts)
