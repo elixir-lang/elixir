@@ -217,7 +217,7 @@ defmodule Mix.UmbrellaTest do
     Mix.Project.push CycleDeps
 
     in_fixture "umbrella_dep", fn ->
-      assert Enum.map(Mix.Dep.loaded([]), & &1.app) == [:foo, :bar, :umbrella]
+      assert Enum.map(Mix.Dep.loaded([]), &(&1.app)) == [:foo, :bar, :umbrella]
     end
   end
 
@@ -255,7 +255,7 @@ defmodule Mix.UmbrellaTest do
         end
         """
 
-        assert Enum.map(Mix.Dep.loaded([]), & &1.app) == [:a, :b, :bar, :foo]
+        assert Enum.map(Mix.Dep.loaded([]), &(&1.app)) == [:a, :b, :bar, :foo]
       end
     end
   end

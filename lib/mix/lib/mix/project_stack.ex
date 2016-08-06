@@ -147,7 +147,7 @@ defmodule Mix.ProjectStack do
   @spec recursing? :: boolean
   def recursing? do
     get fn %{stack: stack} ->
-      Enum.any? stack, & &1.recursing?
+      Enum.any?(stack, &(&1.recursing?))
     end
   end
 

@@ -129,7 +129,7 @@ defmodule StreamTest do
 
   test "concat/2 does not intercept wrapped lazy enumeration" do
     # concat returns a lazy enumeration that does not halt
-    assert Stream.concat([[0], Stream.map([1, 2, 3], & &1), [4]])
+    assert Stream.concat([[0], Stream.map([1, 2, 3], &(&1)), [4]])
            |> Stream.take_while(fn x -> x <= 4 end)
            |> Enum.to_list == [0, 1, 2, 3, 4]
 
@@ -308,7 +308,7 @@ defmodule StreamTest do
   test "flat_map/2 does not intercept wrapped lazy enumeration" do
     # flat_map returns a lazy enumeration that does not halt
     assert [1, 2, 3, -1, -2]
-           |> Stream.flat_map(fn x -> Stream.map([x, x+1], & &1) end)
+           |> Stream.flat_map(fn x -> Stream.map([x, x+1], &(&1)) end)
            |> Stream.take_while(fn x -> x >= 0 end)
            |> Enum.to_list == [1, 2, 2, 3, 3, 4]
 
@@ -327,7 +327,7 @@ defmodule StreamTest do
 
   test "flat_map/2 is zippable" do
     stream = [1, 2, 3, -1, -2]
-             |> Stream.flat_map(fn x -> Stream.map([x, x+1], & &1) end)
+             |> Stream.flat_map(fn x -> Stream.map([x, x+1], &(&1)) end)
              |> Stream.take_while(fn x -> x >= 0 end)
     list   = Enum.to_list(stream)
     assert Enum.zip(list, list) == Enum.zip(stream, stream)
@@ -372,7 +372,7 @@ defmodule StreamTest do
     stream = Stream.flat_map(1..5, fn x ->
       Stream.flat_map([x], fn x ->
         x..x * x
-      end) |> Stream.map(& &1 * 1)
+      end) |> Stream.map(&(&1 * 1))
     end)
 
     assert Enum.take(stream, 5) == [1, 2, 3, 4, 3]

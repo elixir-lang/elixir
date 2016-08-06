@@ -83,7 +83,7 @@ defmodule EnumTest do
   test "count/2" do
     assert Enum.count([1, 2, 3], fn(x) -> rem(x, 2) == 0 end) == 1
     assert Enum.count([], fn(x) -> rem(x, 2) == 0 end) == 0
-    assert Enum.count([1, true, false, nil], & &1) == 2
+    assert Enum.count([1, true, false, nil], &(&1)) == 2
   end
 
   test "dedup/1" do
@@ -184,7 +184,7 @@ defmodule EnumTest do
     assert Enum.filter([1, 2, 3], fn(x) -> rem(x, 2) == 0 end) == [2]
     assert Enum.filter([2, 4, 6], fn(x) -> rem(x, 2) == 0 end) == [2, 4, 6]
 
-    assert Enum.filter([1, 2, false, 3, nil], & &1) == [1, 2, 3]
+    assert Enum.filter([1, 2, false, 3, nil], &(&1)) == [1, 2, 3]
     assert Enum.filter([1, 2, 3], &match?(1, &1)) == [1]
     assert Enum.filter([1, 2, 3], &match?(x when x < 3, &1)) == [1, 2]
     assert Enum.filter([1, 2, 3], &match?(_, &1)) == [1, 2, 3]
@@ -1160,7 +1160,7 @@ defmodule EnumTest.Range do
   end
 
   test "sort_by/2" do
-    assert Enum.sort_by(3..1, & &1) == [1, 2, 3]
+    assert Enum.sort_by(3..1, &(&1)) == [1, 2, 3]
   end
 
   test "split/2" do

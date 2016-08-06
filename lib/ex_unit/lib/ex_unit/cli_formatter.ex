@@ -136,8 +136,8 @@ defmodule ExUnit.CLIFormatter do
 
     message =
       "#{test_type_counts}#{config.failure_counter} #{failure_pl}"
-      |> if_true(config.skipped_counter > 0, & &1 <> ", #{config.skipped_counter} skipped")
-      |> if_true(config.invalid_counter > 0, & &1 <> ", #{config.invalid_counter} invalid")
+      |> if_true(config.skipped_counter > 0, &(&1 <> ", #{config.skipped_counter} skipped"))
+      |> if_true(config.invalid_counter > 0, &(&1 <> ", #{config.invalid_counter} invalid"))
 
     cond do
       config.failure_counter > 0 -> IO.puts failure(message, config)

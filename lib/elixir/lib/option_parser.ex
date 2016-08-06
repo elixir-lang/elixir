@@ -524,7 +524,7 @@ defmodule OptionParser do
   defp do_store_option(dict, option, value, kinds) do
     cond do
       :count in kinds ->
-        Keyword.update(dict, option, value, & &1 + 1)
+        Keyword.update(dict, option, value, &(&1 + 1))
       :keep in kinds ->
         [{option, value} | dict]
       true ->

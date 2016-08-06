@@ -630,7 +630,7 @@ defmodule Protocol do
         end
       end, specs)
 
-    :lists.any(& &1 == true, found)
+    :lists.any(&(&1 == true), found)
   end
 
   ## Helpers
