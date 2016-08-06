@@ -18,10 +18,10 @@ defmodule Mix do
       end
 
   The `project/0` function is where the project information is defined
-  and it allows developers to configure many tasks.
+  and tasks are configured.
 
-  After the project above is defined, there are many tasks one can
-  run directly from the command line:
+  Once the project is defined, a number of default Mix tasks can be run
+  directly from the command line:
 
     * `mix compile` - compiles the current project
     * `mix test` - runs tests for the given project
@@ -39,9 +39,9 @@ defmodule Mix do
 
   Tasks are what make Mix extensible.
 
-  Any project can extend Mix behaviour by adding their own tasks. For
-  example, you can add the task below inside your project and it will
-  be available to everyone that uses your project:
+  Projects can extend Mix behaviour by adding their own tasks. For
+  example, adding the task below inside your project will
+  make it available to everyone that uses your project:
 
       defmodule Mix.Tasks.Hello do
         use Mix.Task
@@ -51,16 +51,16 @@ defmodule Mix do
         end
       end
 
-  Now they can invoke it with `mix hello`.
+  The task can now be invoked with `mix hello`.
 
   ## Dependencies
 
   Another important feature in Mix is that it is able to manage your
-  dependencies and integrates nicely with [the Hex package manager](https://hex.pm).
+  dependencies and integrates nicely with the [Hex package manager](https://hex.pm).
 
   In order to use dependencies, you need to add a `:deps` key
-  to your project configuration. We often extract the dependencies
-  listing to its own functions:
+  to your project configuration. We often extract the list of dependencies
+  into its own function:
 
       defmodule MyApp.Mixfile do
         use Mix.Project
@@ -129,8 +129,8 @@ defmodule Mix do
   `mix hello`, which is the equivalent to the `Mix.Tasks.Hello`
   we have defined in the `Mix.Task` section.
 
-  Aliases may also be lists, specifying multiple tasks to run
-  at once:
+  Aliases may also be lists, specifying multiple tasks to be run
+  consecutively:
 
       [all: [&hello/1, "deps.get --only #{Mix.env}", "compile"]]
 
@@ -142,7 +142,7 @@ defmodule Mix do
   of the last task in the list, if the last task is a function
   they will be given as a list of strings to the function.
 
-  Finally, aliases can also be use to augment existing tasks.
+  Finally, aliases can also be used to augment existing tasks.
   Let's suppose you want to augment `mix clean` to clean another
   directory Mix does not know about:
 
@@ -161,7 +161,7 @@ defmodule Mix do
 
     * `MIX_ARCHIVES` - specifies the directory into which the archives should be installed
     * `MIX_DEBUG` - outputs debug information about each task before running it
-    * `MIX_ENV` - specifies which environment should be used. see Environments
+    * `MIX_ENV` - specifies which environment should be used. See [Environments](#environments)
     * `MIX_EXS` - changes the full path to the `mix.exs` file
     * `MIX_HOME` - path to mix's home directory, stores configuration files and scripts used by mix
     * `MIX_PATH` - appends extra code paths
@@ -233,10 +233,10 @@ defmodule Mix do
   Returns the current shell.
 
   `shell/0` can be used as a wrapper for the current shell. It contains
-  conveniences for asking information to the user, printing things and so
+  conveniences for requesting information from the user, printing to the shell and so
   forth. The Mix shell is swappable (see `shell/1`), allowing developers to use
   a test shell that simply sends messages to the current process instead of
-  doing IO (see `Mix.Shell.Process`).
+  performing IO (see `Mix.Shell.Process`).
 
   By default, this returns `Mix.Shell.IO`.
   """
