@@ -20,8 +20,10 @@ defmodule Mix.ShellTest do
 
   test "shell process" do
     Mix.shell.info "abc"
+    Mix.shell.warn "warn"
     Mix.shell.error "def"
     assert_received {:mix_shell, :info, ["abc"]}
+    assert_received {:mix_shell, :warn, ["warn"]}
     assert_received {:mix_shell, :error, ["def"]}
 
     send self(), {:mix_shell_input, :prompt, "world"}
@@ -47,9 +49,15 @@ defmodule Mix.ShellTest do
     if IO.ANSI.enabled? do
       assert capture_io(:stderr, fn -> Mix.shell.error "def" end) ==
              "#{IO.ANSI.red}#{IO.ANSI.bright}def#{IO.ANSI.reset}\n"
+
+      assert capture_io(fn -> Mix.shell.warn "warn" end) ==
+             "#{IO.ANSI.yellow}#{IO.ANSI.bright}warn#{IO.ANSI.reset}\n"
     else
       assert capture_io(:stderr, fn -> Mix.shell.error "def" end) ==
              "def\n"
+
+      assert capture_io(fn -> Mix.shell.warn "warn" end) ==
+             "warn\n"
     end
 
     assert capture_io("world", fn -> assert Mix.shell.prompt("hello?") == "world" end) ==

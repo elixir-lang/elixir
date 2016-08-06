@@ -88,6 +88,14 @@ defmodule Mix.Shell.Process do
   @doc """
   Forwards the message to the current process.
   """
+  def warn(message) do
+    print_app
+    send self, {:mix_shell, :warn, [format(message)]}
+  end
+
+  @doc """
+  Forwards the message to the current process.
+  """
   def error(message) do
     print_app()
     send self(), {:mix_shell, :error, [format(message)]}
