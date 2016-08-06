@@ -1,3 +1,0 @@
-{application, invalidvsn, [
-  {vsn,ok}
-]}.

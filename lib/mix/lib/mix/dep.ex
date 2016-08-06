@@ -188,39 +188,39 @@ defmodule Mix.Dep do
   def format_status(%Mix.Dep{status: {:ok, _vsn}}),
     do: "ok"
 
-  def format_status(%Mix.Dep{status: {:noappfile, path}}),
+  def format_status(%Mix.Dep{status: {:no_app_file, path}}),
     do: "could not find an app file at #{Path.relative_to_cwd(path)}. " <>
         "This may happen if the dependency was not yet compiled, " <>
         "or you specified the wrong application name in your deps, " <>
         "or the dependency indeed has no app file (then you can pass app: false as option)"
 
-  def format_status(%Mix.Dep{status: {:invalidapp, path}}),
+  def format_status(%Mix.Dep{status: {:invalid_app, path}}),
     do: "the app file at #{Path.relative_to_cwd(path)} is invalid"
 
-  def format_status(%Mix.Dep{status: {:invalidvsn, vsn}}),
+  def format_status(%Mix.Dep{status: {:invalid_vsn, vsn}}),
     do: "the app file contains an invalid version: #{inspect vsn}"
 
-  def format_status(%Mix.Dep{status: {:nosemver, vsn}, requirement: req}),
+  def format_status(%Mix.Dep{status: {:no_semver, vsn}, requirement: req}),
     do: "the app file specified a non Semantic Version: #{inspect vsn}. Mix can only match the " <>
         "requirement #{inspect req} against Semantic Versions. Please fix the application version " <>
         "or use a regex as a requirement to match against any version"
 
-  def format_status(%Mix.Dep{status: {:nomatchvsn, vsn}, requirement: req}),
+  def format_status(%Mix.Dep{status: {:no_match_vsn, vsn}, requirement: req}),
     do: "the dependency does not match the requirement #{inspect req}, got #{inspect vsn}"
 
-  def format_status(%Mix.Dep{status: {:lockmismatch, _}}),
+  def format_status(%Mix.Dep{status: {:lock_mismatch, _}}),
     do: "lock mismatch: the dependency is out of date (run \"mix deps.get\" to fetch locked version)"
 
-  def format_status(%Mix.Dep{status: :lockoutdated}),
-    do: "lock outdated: the lock is outdated compared to the options in your mixfile (run \"mix deps.get\" to fetch locked version)"
+  def format_status(%Mix.Dep{status: :lock_outdated}),
+    do: "lock outdated: the lock is outdated compared to the options in your Mix file (run \"mix deps.get\" to fetch locked version)"
 
-  def format_status(%Mix.Dep{status: :nolock}),
+  def format_status(%Mix.Dep{status: :no_lock}),
     do: "the dependency is not locked (run \"mix deps.get\" to generate \"mix.lock\" file)"
 
   def format_status(%Mix.Dep{status: :compile}),
     do: "the dependency build is outdated, please run \"#{mix_env_var()}mix deps.compile\""
 
-  def format_status(%Mix.Dep{app: app, status: {:divergedreq, vsn, other}} = dep) do
+  def format_status(%Mix.Dep{app: app, status: {:diverged_req, vsn, other}} = dep) do
     "the dependency #{app} #{vsn}\n" <>
     "#{dep_status(dep)}" <>
     "\n  does not match the requirement specified\n" <>
@@ -228,7 +228,7 @@ defmodule Mix.Dep do
     "\n  Ensure they match or specify one of the above in your deps and set \"override: true\""
   end
 
-  def format_status(%Mix.Dep{app: app, status: {:divergedonly, other}} = dep) do
+  def format_status(%Mix.Dep{app: app, status: {:diverged_only, other}} = dep) do
     recommendation =
       if Keyword.has_key?(other.opts, :only) do
         "Ensure you specify at least the same environments in :only in your dep"
@@ -263,10 +263,10 @@ defmodule Mix.Dep do
     end
   end
 
-  def format_status(%Mix.Dep{status: {:elixirlock, _}}),
+  def format_status(%Mix.Dep{status: {:elixir_lock, _}}),
     do: "the dependency was built with an out-of-date Elixir version, run \"#{mix_env_var()}mix deps.compile\""
 
-  def format_status(%Mix.Dep{status: {:scmlock, _}}),
+  def format_status(%Mix.Dep{status: {:scm_lock, _}}),
     do: "the dependency was built with another SCM, run \"#{mix_env_var()}mix deps.compile\""
 
   defp dep_status(%Mix.Dep{app: app, requirement: req, manager: manager, opts: opts, from: from}) do
@@ -283,11 +283,11 @@ defmodule Mix.Dep do
     if available?(dep) do
       case scm.lock_status(opts) do
         :mismatch ->
-          status = if rev = opts[:lock], do: {:lockmismatch, rev}, else: :nolock
+          status = if rev = opts[:lock], do: {:lock_mismatch, rev}, else: :no_lock
           %{dep | status: status}
         :outdated ->
           # Don't include the lock in the dependency if it is outdated
-          %{dep | status: :lockoutdated}
+          %{dep | status: :lock_outdated}
         :ok ->
           check_manifest(dep, opts[:build])
       end
@@ -301,9 +301,9 @@ defmodule Mix.Dep do
 
     case Mix.Dep.ElixirSCM.read(build_path) do
       {:ok, old_vsn, _} when old_vsn != vsn ->
-        %{dep | status: {:elixirlock, old_vsn}}
+        %{dep | status: {:elixir_lock, old_vsn}}
       {:ok, _, old_scm} when old_scm != scm ->
-        %{dep | status: {:scmlock, old_scm}}
+        %{dep | status: {:scm_lock, old_scm}}
       _ ->
         dep
     end
@@ -328,8 +328,8 @@ defmodule Mix.Dep do
   """
   def diverged?(%Mix.Dep{status: {:overridden, _}}),   do: true
   def diverged?(%Mix.Dep{status: {:diverged, _}}),     do: true
-  def diverged?(%Mix.Dep{status: {:divergedreq, _}}),  do: true
-  def diverged?(%Mix.Dep{status: {:divergedonly, _}}), do: true
+  def diverged?(%Mix.Dep{status: {:diverged_req, _}}),  do: true
+  def diverged?(%Mix.Dep{status: {:diverged_only, _}}), do: true
   def diverged?(%Mix.Dep{}), do: false
 
   @doc """

@@ -207,7 +207,7 @@ unless File.dir?(target) do
 
   File.write! Path.join(target, "mix.exs"), """
   ## Auto-generated fixture
-  defmodule GitRepo.Mixfile do
+  defmodule GitRepo.MixFile do
     use Mix.Project
 
     def project do
@@ -246,7 +246,7 @@ unless File.dir?(target) do
 
   File.write! Path.join(target, "mix.exs"), """
   ## Auto-generated fixture
-  defmodule DepsOnGitRepo.Mixfile do
+  defmodule DepsOnGitRepo.MixFile do
     use Mix.Project
 
     def project do
@@ -302,7 +302,7 @@ unless File.dir?(target) do
   end
 end
 
-Enum.each [:invalidapp, :invalidvsn, :noappfile, :nosemver, :ok], fn(dep) ->
+Enum.each [:invalid_app, :invalid_vsn, :no_app_file, :no_semver, :ok], fn(dep) ->
   File.mkdir_p! Path.expand("fixtures/deps_status/deps/#{dep}/.git", __DIR__)
 end
 

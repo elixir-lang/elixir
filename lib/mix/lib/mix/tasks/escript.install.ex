@@ -91,7 +91,7 @@ defmodule Mix.Tasks.Escript.Install do
     end
   end
 
-  def build(_mixfile) do
+  def build(_mix_file) do
     Mix.Task.run("escript.build", [])
   end
 

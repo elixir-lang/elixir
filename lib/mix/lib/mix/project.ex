@@ -88,7 +88,7 @@ defmodule Mix.Project do
   Retrieves the current project if there is one.
 
   Otherwise `nil` is returned. It may happen in cases
-  there is no mixfile in the current directory.
+  there is no Mix file in the current directory.
 
   If you expect a project to be defined, i.e. it is a
   requirement of the current task, you should call
@@ -183,16 +183,16 @@ defmodule Mix.Project do
   A `post_config` can be passed that will be merged into
   the project configuration.
 
-  `fun` is called with the `Mixfile` of the given project as
+  `fun` is called with the `MixFile` of the given project as
   its argument. The return value of this function is the return
   value of `fun`.
 
   ## Examples
 
-      Mix.Project.in_project :my_app, "/path/to/my_app", fn mixfile ->
-        "Mixfile is: #{inspect mixfile}"
+      Mix.Project.in_project :my_app, "/path/to/my_app", fn mix_file ->
+        "MixFile is: #{inspect mix_file}"
       end
-      #=> "Mixfile is: MyApp.Mixfile"
+      #=> "MixFile is: MyApp.MixFile"
 
   """
   @spec in_project(atom, Path.t, Keyword.t, (module -> result)) :: result when result: term
@@ -453,7 +453,7 @@ defmodule Mix.Project do
   end
 
   # Loads mix.exs in the current directory or loads the project from the
-  # mixfile cache and pushes the project to the project stack.
+  # Mix file cache and pushes the project to the project stack.
   defp load_project(app, post_config) do
     Mix.ProjectStack.post_config(post_config)
 

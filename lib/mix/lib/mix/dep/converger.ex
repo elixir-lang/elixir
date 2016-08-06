@@ -258,10 +258,10 @@ defmodule Mix.Dep.Converger do
           {:ok, only} ->
             case List.wrap(only) -- List.wrap(other_only) do
               [] -> other
-              _  -> %{other | status: {:divergedonly, dep}}
+              _  -> %{other | status: {:diverged_only, dep}}
             end
           :error ->
-            %{other | status: {:divergedonly, dep}}
+            %{other | status: {:diverged_only, dep}}
         end
       :error ->
         other
@@ -325,7 +325,7 @@ defmodule Mix.Dep.Converger do
       {:ok, vsn} when not is_nil(vsn) ->
         case Mix.Dep.Loader.vsn_match(dep.requirement, vsn, dep.app) do
           {:ok, true} -> other
-          _ -> %{other | status: {:divergedreq, vsn, dep}}
+          _ -> %{other | status: {:diverged_req, vsn, dep}}
         end
       _ ->
         other

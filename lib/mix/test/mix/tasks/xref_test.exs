@@ -258,7 +258,7 @@ defmodule Mix.Tasks.XrefTest do
   end
 
   defp assert_warnings(contents, expected) do
-    in_fixture "no_mixfile", fn ->
+    in_fixture "no_mix_file", fn ->
       File.write!("lib/a.ex", contents)
 
       assert capture_io(:stderr, fn ->
@@ -268,7 +268,7 @@ defmodule Mix.Tasks.XrefTest do
   end
 
   defp assert_no_warnings(contents) do
-    in_fixture "no_mixfile", fn ->
+    in_fixture "no_mix_file", fn ->
       File.write!("lib/a.ex", contents)
 
       assert capture_io(:stderr, fn ->
@@ -291,7 +291,7 @@ defmodule Mix.Tasks.XrefTest do
   end
 
   defp assert_unreachable(contents, expected) do
-    in_fixture "no_mixfile", fn ->
+    in_fixture "no_mix_file", fn ->
       File.write!("lib/a.ex", contents)
 
       assert capture_io(fn ->
@@ -440,7 +440,7 @@ defmodule Mix.Tasks.XrefTest do
   end
 
   test "callers: no argument gives error" do
-    in_fixture "no_mixfile", fn ->
+    in_fixture "no_mix_file", fn ->
       message = "xref doesn't support this command, see mix help xref for more information"
 
       assert_raise Mix.Error, message, fn ->
@@ -450,7 +450,7 @@ defmodule Mix.Tasks.XrefTest do
   end
 
   test "callers: gives nice error for quotable but invalid callers spec" do
-    in_fixture "no_mixfile", fn ->
+    in_fixture "no_mix_file", fn ->
       message =
         "xref callers CALLEE expects Module, Module.function, or Module.function/arity, got: Module.func(arg)"
 
@@ -461,7 +461,7 @@ defmodule Mix.Tasks.XrefTest do
   end
 
   test "callers: gives nice error for unquotable callers spec" do
-    in_fixture "no_mixfile", fn ->
+    in_fixture "no_mix_file", fn ->
       message =
         "xref callers CALLEE expects Module, Module.function, or Module.function/arity, got: %"
 
@@ -472,7 +472,7 @@ defmodule Mix.Tasks.XrefTest do
   end
 
   defp assert_callers(callee, contents_a, contents_b \\ "", expected) do
-    in_fixture "no_mixfile", fn ->
+    in_fixture "no_mix_file", fn ->
       File.write!("lib/a.ex", contents_a)
       File.write!("lib/b.ex", contents_b)
 
@@ -591,7 +591,7 @@ defmodule Mix.Tasks.XrefTest do
   end
 
   defp assert_graph(opts \\ [], dot \\ false, expected) do
-    in_fixture "no_mixfile", fn ->
+    in_fixture "no_mix_file", fn ->
       File.write! "lib/a.ex", """
       defmodule A do
         def a do

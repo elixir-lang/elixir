@@ -29,7 +29,7 @@ defmodule Mix.Tasks.App.StartTest do
   test "compiles and starts the project" do
     Mix.Project.push AppStartSample
 
-    in_fixture "no_mixfile", fn ->
+    in_fixture "no_mix_file", fn ->
       assert_raise Mix.Error, fn ->
         Mix.Tasks.App.Start.run ["--no-compile"]
       end

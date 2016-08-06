@@ -28,7 +28,7 @@ defmodule Mix.Dep.Loader do
   Checks if a dependency must be skipped according to the environment.
   """
   def skip?(_dep, nil), do: false
-  def skip?(%Mix.Dep{status: {:divergedonly, _}}, _), do: false
+  def skip?(%Mix.Dep{status: {:diverged_only, _}}, _), do: false
   def skip?(%Mix.Dep{opts: opts}, env) do
     only = opts[:only]
     validate_only!(only)
@@ -88,7 +88,7 @@ defmodule Mix.Dep.Loader do
               Mix.raise "Invalid requirement #{req} for app #{app}"
           end
         :error ->
-          {:error, :nosemver}
+          {:error, :no_semver}
       end
     end
   end
@@ -256,7 +256,7 @@ defmodule Mix.Dep.Loader do
 
   # If we have a Mix dependency that came from a remote converger,
   # we just use the dependencies given by the remote converger,
-  # we don't need to load the mixfile at all. We can only do this
+  # we don't need to load the Mix file at all. We can only do this
   # because umbrella projects are not supported in remotes.
   defp mix_dep(%Mix.Dep{opts: opts} = dep, children) do
     from = Path.join(opts[:dest], "mix.exs")
@@ -344,16 +344,16 @@ defmodule Mix.Dep.Loader do
             actual = IO.iodata_to_binary(actual)
             case vsn_match(req, actual, app) do
               {:ok, true} -> {:ok, actual}
-              {:ok, false} -> {:nomatchvsn, actual}
+              {:ok, false} -> {:no_match_vsn, actual}
               {:error, error} -> {error, actual}
             end
           {:vsn, actual} ->
-            {:invalidvsn, actual}
+            {:invalid_vsn, actual}
           nil ->
-            {:invalidvsn, nil}
+            {:invalid_vsn, nil}
         end
-      {:ok, _} -> {:invalidapp, app_path}
-      {:error, _} -> {:noappfile, app_path}
+      {:ok, _} -> {:invalid_app, app_path}
+      {:error, _} -> {:no_app_file, app_path}
     end
   end
 end

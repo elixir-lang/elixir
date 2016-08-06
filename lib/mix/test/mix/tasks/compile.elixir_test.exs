@@ -13,7 +13,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     Mix.ProjectStack.post_config [build_per_environment: false]
     Mix.Project.push MixTest.Case.Sample
 
-    in_fixture "no_mixfile", fn ->
+    in_fixture "no_mix_file", fn ->
       Mix.Tasks.Compile.Elixir.run ["--verbose"]
 
       assert File.regular?("_build/shared/lib/sample/ebin/Elixir.A.beam")
@@ -25,7 +25,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
   end
 
   test "compiles a project with per environment build" do
-    in_fixture "no_mixfile", fn ->
+    in_fixture "no_mix_file", fn ->
       Mix.Tasks.Compile.Elixir.run ["--verbose"]
 
       assert File.regular?("_build/dev/lib/sample/ebin/Elixir.A.beam")
@@ -37,7 +37,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
   end
 
   test "recompiles project if elixir version changed" do
-    in_fixture "no_mixfile", fn ->
+    in_fixture "no_mix_file", fn ->
       Mix.Tasks.Compile.run []
       purge [A, B]
 
@@ -59,7 +59,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
   end
 
   test "recompiles project if scm changed" do
-    in_fixture "no_mixfile", fn ->
+    in_fixture "no_mix_file", fn ->
       Mix.Tasks.Compile.run ["--verbose"]
       purge [A, B]
 
@@ -93,7 +93,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
   end
 
   test "removes, purges and deletes old artifacts" do
-    in_fixture "no_mixfile", fn ->
+    in_fixture "no_mix_file", fn ->
       assert Mix.Tasks.Compile.Elixir.run([]) == :ok
       assert File.regular?("_build/dev/lib/sample/ebin/Elixir.A.beam")
       assert Code.ensure_loaded?(A)
@@ -107,7 +107,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
   end
 
   test "compiles only changed files" do
-    in_fixture "no_mixfile", fn ->
+    in_fixture "no_mix_file", fn ->
       assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == :ok
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
@@ -131,7 +131,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
   end
 
   test "compiles dependent changed modules" do
-    in_fixture "no_mixfile", fn ->
+    in_fixture "no_mix_file", fn ->
       File.write!("lib/a.ex", "defmodule A, do: B.module_info")
 
       assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == :ok
@@ -151,7 +151,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
   end
 
   test "compiles dependent changed modules even on removal" do
-    in_fixture "no_mixfile", fn ->
+    in_fixture "no_mix_file", fn ->
       File.write!("lib/a.ex", "defmodule A, do: B.module_info")
 
       assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == :ok
@@ -171,7 +171,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
   end
 
   test "compiles dependent changed files" do
-    in_fixture "no_mixfile", fn ->
+    in_fixture "no_mix_file", fn ->
       File.touch!("lib/a.eex")
       File.write!("lib/a.ex", """
       defmodule A do
@@ -194,7 +194,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
   end
 
   test "does not recompile empty files" do
-    in_fixture "no_mixfile", fn ->
+    in_fixture "no_mix_file", fn ->
       File.write!("lib/a.ex", "")
 
       assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == :ok
@@ -206,7 +206,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
   end
 
   test "compiles files with autoload disabled" do
-    in_fixture "no_mixfile", fn ->
+    in_fixture "no_mix_file", fn ->
       File.write!("lib/a.ex", """
       defmodule A do
         @compile {:autoload, false}
@@ -219,7 +219,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
   end
 
   test "recompiles with --force" do
-    in_fixture "no_mixfile", fn ->
+    in_fixture "no_mix_file", fn ->
       assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == :ok
       purge [A, B]
 

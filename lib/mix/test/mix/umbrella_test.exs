@@ -102,7 +102,7 @@ defmodule Mix.UmbrellaTest do
     in_fixture "umbrella_dep/deps/umbrella", fn ->
       Mix.Project.in_project :umbrella, ".", fn _ ->
         File.write! "apps/bar/mix.exs", """
-        defmodule Bar.Mixfile do
+        defmodule Bar.MixFile do
           use Mix.Project
 
           def project do
@@ -139,7 +139,7 @@ defmodule Mix.UmbrellaTest do
     in_fixture "umbrella_dep/deps/umbrella", fn ->
       Mix.Project.in_project :umbrella, ".", fn _ ->
         File.write! "apps/bar/mix.exs", """
-        defmodule Bar.Mixfile do
+        defmodule Bar.MixFile do
           use Mix.Project
 
           def project do
@@ -161,7 +161,7 @@ defmodule Mix.UmbrellaTest do
     in_fixture "umbrella_dep/deps/umbrella", fn ->
       Mix.Project.in_project :umbrella, ".", fn _ ->
         File.write! "apps/bar/mix.exs", """
-        defmodule Bar.Mixfile do
+        defmodule Bar.MixFile do
           use Mix.Project
 
           def project do
@@ -225,7 +225,7 @@ defmodule Mix.UmbrellaTest do
     in_fixture "umbrella_dep/deps/umbrella", fn ->
       Mix.Project.in_project :umbrella, ".", fn _ ->
         File.write! "apps/foo/mix.exs", """
-        defmodule Foo.Mixfile do
+        defmodule Foo.MixFile do
           use Mix.Project
 
           def project do
@@ -240,7 +240,7 @@ defmodule Mix.UmbrellaTest do
         """
 
         File.write! "apps/bar/mix.exs", """
-        defmodule Bar.Mixfile do
+        defmodule Bar.MixFile do
           use Mix.Project
 
           def project do
@@ -264,7 +264,7 @@ defmodule Mix.UmbrellaTest do
     in_fixture "umbrella_dep/deps/umbrella", fn ->
       Mix.Project.in_project :umbrella, ".", fn _ ->
         File.write! "apps/bar/mix.exs", """
-        defmodule Bar.Mixfile do
+        defmodule Bar.MixFile do
           use Mix.Project
 
           def project do
@@ -435,7 +435,7 @@ defmodule Mix.UmbrellaTest do
     in_fixture("umbrella_dep/deps/umbrella", fn ->
       Mix.Project.in_project :umbrella, ".", fn _ ->
         File.write! "apps/bar/mix.exs", """
-        defmodule Bar.Mixfile do
+        defmodule Bar.MixFile do
           use Mix.Project
 
           def project do

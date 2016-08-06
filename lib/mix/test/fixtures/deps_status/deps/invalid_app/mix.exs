@@ -1,8 +1,8 @@
-defmodule InvalidApp.Mixfile do
+defmodule InvalidApp.MixFile do
   use Mix.Project
 
   def project do
-    [app: :invalidapp,
+    [app: :invalid_app,
      version: "1.0"]
   end
 end

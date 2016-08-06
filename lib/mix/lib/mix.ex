@@ -8,7 +8,7 @@ defmodule Mix do
   The foundation of Mix is a project. A project can be defined by using
   `Mix.Project` in a module, usually placed in a file named `mix.exs`:
 
-      defmodule MyApp.Mixfile do
+      defmodule MyApp.MixFile do
         use Mix.Project
 
         def project do
@@ -62,7 +62,7 @@ defmodule Mix do
   to your project configuration. We often extract the dependencies
   listing to its own functions:
 
-      defmodule MyApp.Mixfile do
+      defmodule MyApp.MixFile do
         use Mix.Project
 
         def project do
@@ -105,7 +105,7 @@ defmodule Mix do
   we wanted the task to only be available for our project? Just
   define an alias:
 
-      defmodule MyApp.Mixfile do
+      defmodule MyApp.MixFile do
         use Mix.Project
 
         def project do
