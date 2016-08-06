@@ -564,7 +564,7 @@ defmodule Enum do
   @spec drop(t, integer) :: list
   def drop(enumerable, amount)
       when is_list(enumerable) and is_integer(amount) and amount >= 0 do
-    do_drop(enumerable, amount)
+    drop_list(enumerable, amount)
   end
 
   def drop(enumerable, amount) when is_integer(amount) and amount >= 0 do
@@ -578,7 +578,7 @@ defmodule Enum do
   end
 
   def drop(enumerable, amount) when is_integer(amount) and amount < 0 do
-    do_drop(reverse(enumerable), -amount) |> :lists.reverse
+    drop_list(reverse(enumerable), -amount) |> :lists.reverse
   end
 
   @doc """
@@ -2647,15 +2647,15 @@ defmodule Enum do
 
   ## drop
 
-  defp do_drop([_ | t], counter) when counter > 0 do
-    do_drop(t, counter - 1)
+  defp drop_list([_ | t], counter) when counter > 0 do
+    drop_list(t, counter - 1)
   end
 
-  defp do_drop(list, 0) do
+  defp drop_list(list, 0) do
     list
   end
 
-  defp do_drop([], _) do
+  defp drop_list([], _) do
     []
   end
 
