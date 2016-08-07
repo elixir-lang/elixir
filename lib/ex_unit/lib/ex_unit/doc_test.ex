@@ -308,7 +308,11 @@ defmodule ExUnit.DocTest do
   end
 
   defp test_case_content(expr, {:inspect, expected}, location, stack) do
-    expr_ast     = quote do: inspect(unquote(string_to_quoted(location, stack, expr))) |> String.replace_suffix("\n", "")
+    expr_ast =
+      quote do
+        inspect(unquote(string_to_quoted(location, stack, expr)))
+        |> String.replace_suffix("\n", "")
+      end
     expected_ast = string_to_quoted(location, stack, expected)
 
     quote do
