@@ -311,7 +311,6 @@ defmodule ExUnit.DocTest do
     expr_ast =
       quote do
         inspect(unquote(string_to_quoted(location, stack, expr)))
-        |> String.replace_suffix("\n", "")
       end
     expected_ast = string_to_quoted(location, stack, expected)
 
