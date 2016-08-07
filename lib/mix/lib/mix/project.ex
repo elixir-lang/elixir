@@ -1,10 +1,10 @@
 defmodule Mix.Project do
   @moduledoc """
-  Defines and manipulate Mix projects.
+  Defines and manipulates Mix projects.
 
-  In order to configure Mix, a developer needs to use
-  `Mix.Project` in a module and define a function named
-  `project` that returns a keyword list with configuration.
+  To configure Mix, the project should include a module that `use`s
+  `Mix.Project` and defines a function named `project` that returns
+  a keyword list of configurations.
 
       defmodule MyApp do
         use Mix.Project
@@ -15,14 +15,14 @@ defmodule Mix.Project do
         end
       end
 
-  After being defined, the configuration for this project can be read
-  as `Mix.Project.config/0`. Notice that `config/0` won't fail if a
+  Once defined, the configuration for the project can be read
+  using `Mix.Project.config/0`. Note that `config/0` won't fail if a
   project is not defined; this allows many Mix tasks to work
   without a project.
 
-  In case the developer needs a project or wants to access a special
-  function in the project, the developer can call `Mix.Project.get!/0`
-  which fails with `Mix.NoProjectError` in case a project is not
+  If a task requires a project to be defined or needs to access a
+  special function within the project, the task can call `Mix.Project.get!/0`
+  which fails with `Mix.NoProjectError` in the case a project is not
   defined.
 
   ## Erlang projects
@@ -124,10 +124,10 @@ defmodule Mix.Project do
   without the need for an underlying project.
 
   Note this configuration is cached once the project is
-  pushed into the stack. Calling it multiple times won't
+  pushed onto the stack. Calling it multiple times won't
   cause it to be recomputed.
 
-  Do not use `Mix.Project.config/0` to rely on runtime configuration.
+  Do not use `Mix.Project.config/0` to find the runtime configuration.
   Use it only to configure aspects of your project (like
   compilation directories) and not your application runtime.
   """
@@ -221,7 +221,7 @@ defmodule Mix.Project do
   end
 
   @doc """
-  Returns the path to store dependencies for this project.
+  Returns the path where dependencies are stored for this project.
 
   The returned path will be expanded.
 
@@ -287,7 +287,7 @@ defmodule Mix.Project do
   end
 
   @doc """
-  The path to store manifests.
+  Returns the path where manifests are stored.
 
   By default they are stored in the app path inside
   the build directory. Umbrella applications have
@@ -354,7 +354,7 @@ defmodule Mix.Project do
   end
 
   @doc """
-  The path where protocol consolidations are stored.
+  Returns the path where protocol consolidations are stored.
   """
   def consolidation_path(config \\ config()) do
     Path.join(build_path(config), "consolidated")
@@ -453,7 +453,7 @@ defmodule Mix.Project do
   end
 
   # Loads mix.exs in the current directory or loads the project from the
-  # mixfile cache and pushes the project to the project stack.
+  # mixfile cache and pushes the project onto the project stack.
   defp load_project(app, post_config) do
     Mix.ProjectStack.post_config(post_config)
 
