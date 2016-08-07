@@ -161,7 +161,7 @@ defmodule Mix do
 
     * `MIX_ARCHIVES` - specifies the directory into which the archives should be installed
     * `MIX_DEBUG` - outputs debug information about each task before running it
-    * `MIX_ENV` - specifies which environment should be used. See [Environments](#environments)
+    * `MIX_ENV` - specifies which environment should be used. See [Environments](#module-environments)
     * `MIX_EXS` - changes the full path to the `mix.exs` file
     * `MIX_HOME` - path to mix's home directory, stores configuration files and scripts used by mix
     * `MIX_PATH` - appends extra code paths
