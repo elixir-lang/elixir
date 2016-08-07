@@ -599,7 +599,7 @@ defmodule ExUnit.DocTest do
         [mod, message] = :binary.split(error, ")")
         {:error, Module.concat([mod]), String.trim_leading(message)}
       _ ->
-        if string =~ ~r/\A#[A-Z][\w\.]*<(.|\n)*?\z/mu do
+        if string =~ ~r/\A#[A-Z][\w\.]*</mu do
           {:inspect, inspect(string)}
         else
           {:test, string}
