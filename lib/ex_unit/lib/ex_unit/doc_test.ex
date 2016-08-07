@@ -308,7 +308,7 @@ defmodule ExUnit.DocTest do
   end
 
   defp test_case_content(expr, {:inspect, expected}, location, stack) do
-    expr_ast     = quote do: inspect(unquote(string_to_quoted(location, stack, expr)))
+    expr_ast     = quote do: inspect(unquote(string_to_quoted(location, stack, expr))) |> String.replace_suffix("\n", "")
     expected_ast = string_to_quoted(location, stack, expected)
 
     quote do
@@ -599,7 +599,7 @@ defmodule ExUnit.DocTest do
         [mod, message] = :binary.split(error, ")")
         {:error, Module.concat([mod]), String.trim_leading(message)}
       _ ->
-        if string =~ ~r/^#[A-Z][\w\.]*<.*>$/ do
+        if string =~ ~r/\A#[A-Z][\w\.]*</mu do
           {:inspect, inspect(string)}
         else
           {:test, string}
