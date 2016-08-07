@@ -221,34 +221,32 @@ defmodule ExUnit.DocTestTest.Haiku do
   @moduledoc """
   This module describes the ancient Japanese poem form known as Haiku.
 
-  The Inspect protocol has been overriden for `%Haiku{}` 
+  The Inspect protocol has been overriden for `%Haiku{}`
   so that Haikus are shown in a pretty-printed fashion.
-  
-  This module is part of the DocTest test suite, 
-  to ensure that DocTest can handle opaque inspect types 
+
+  This module is part of the DocTest test suite,
+  to ensure that DocTest can handle opaque inspect types
   which contain unicode and possibly consist of multiple lines.
   """
 
   defstruct [:first_phrase, :second_phrase, :third_phrase, :author]
-  alias __MODULE__
 
   @doc """
   Creates a new Haiku.
   Optionally pass in the `author` as fourth argument.
-  
+
   ## Examples:
-  
+
       # Simple Haiku, inspect output consists of multiple lines.
-      iex> ExUnit.DocTestTest.Haiku.new( "Haikus are easy","But sometimes they don't make sense","Refrigerator")
+      iex> ExUnit.DocTestTest.Haiku.new("Haikus are easy", "But sometimes they don't make sense", "Refrigerator")
       #Haiku<
         Haikus are easy
         But sometimes they don't make sense
         Refrigerator
       >
 
-
       # Haiku with Unicode characters (Japanese Kanji, em-dash).
-      iex> ExUnit.DocTestTest.Haiku.new("古池や","蛙飛びこむ","水の音", "Matsuo Basho")
+      iex> ExUnit.DocTestTest.Haiku.new("古池や", "蛙飛びこむ", "水の音", "Matsuo Basho")
       #Haiku<
         古池や
         蛙飛びこむ
@@ -256,10 +254,10 @@ defmodule ExUnit.DocTestTest.Haiku do
         ― Matsuo Basho
       >
 
-  
   """
-  def new(first, second, third, author \\ "") when is_binary(first) and is_binary(second) and is_binary(third) and is_binary(author) do
-    %Haiku{
+  def new(first, second, third, author \\ "")
+      when is_binary(first) and is_binary(second) and is_binary(third) and is_binary(author) do
+    %__MODULE__{
       first_phrase: first,
       second_phrase: second,
       third_phrase: third,
@@ -269,18 +267,17 @@ defmodule ExUnit.DocTestTest.Haiku do
 
   defimpl Inspect do
     def inspect(haiku, _opts) do
-      author_str = if haiku.author == "", do: "", else: "\n  ― #{haiku.author}"
+      author = if haiku.author == "", do: "", else: "\n  ― #{haiku.author}"
       """
       #Haiku<
         #{haiku.first_phrase}
         #{haiku.second_phrase}
-        #{haiku.third_phrase}#{author_str}
+        #{haiku.third_phrase}#{author}
       >
       """
     end
   end
 end |> write_beam
-
 
 defmodule ExUnit.DocTestTest do
   use ExUnit.Case
@@ -323,7 +320,7 @@ defmodule ExUnit.DocTestTest do
 
     assert output =~ """
       1) test moduledoc at ExUnit.DocTestTest.Invalid (1) (ExUnit.DocTestTest.ActuallyCompiled)
-         test/ex_unit/doc_test_test.exs:314
+         test/ex_unit/doc_test_test.exs:311
          Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:127: syntax error before: '*'
          code: 1 + * 1
          stacktrace:
@@ -332,7 +329,7 @@ defmodule ExUnit.DocTestTest do
 
     assert output =~ """
       2) test moduledoc at ExUnit.DocTestTest.Invalid (2) (ExUnit.DocTestTest.ActuallyCompiled)
-         test/ex_unit/doc_test_test.exs:314
+         test/ex_unit/doc_test_test.exs:311
          Doctest failed
          code: 1 + hd(List.flatten([1])) === 3
          left: 2
@@ -342,7 +339,7 @@ defmodule ExUnit.DocTestTest do
 
     assert output =~ """
       3) test moduledoc at ExUnit.DocTestTest.Invalid (3) (ExUnit.DocTestTest.ActuallyCompiled)
-         test/ex_unit/doc_test_test.exs:314
+         test/ex_unit/doc_test_test.exs:311
          Doctest failed
          code: inspect(:oops) === "#MapSet<[]>"
          left: ":oops"
@@ -353,7 +350,7 @@ defmodule ExUnit.DocTestTest do
     # The stacktrace points to the cause of the error
     assert output =~ """
       4) test moduledoc at ExUnit.DocTestTest.Invalid (4) (ExUnit.DocTestTest.ActuallyCompiled)
-         test/ex_unit/doc_test_test.exs:314
+         test/ex_unit/doc_test_test.exs:311
          Doctest failed: got UndefinedFunctionError with message "function Hello.world/0 is undefined (module Hello is not available)"
          code: Hello.world
          stacktrace:
@@ -363,7 +360,7 @@ defmodule ExUnit.DocTestTest do
 
     assert output =~ """
       5) test moduledoc at ExUnit.DocTestTest.Invalid (5) (ExUnit.DocTestTest.ActuallyCompiled)
-         test/ex_unit/doc_test_test.exs:314
+         test/ex_unit/doc_test_test.exs:311
          Doctest failed: expected exception WhatIsThis but got RuntimeError with message "oops"
          code: raise "oops"
          stacktrace:
@@ -372,7 +369,7 @@ defmodule ExUnit.DocTestTest do
 
     assert output =~ """
       6) test moduledoc at ExUnit.DocTestTest.Invalid (6) (ExUnit.DocTestTest.ActuallyCompiled)
-         test/ex_unit/doc_test_test.exs:314
+         test/ex_unit/doc_test_test.exs:311
          Doctest failed: wrong message for RuntimeError
          expected:
            "hello"
@@ -385,7 +382,7 @@ defmodule ExUnit.DocTestTest do
 
     assert output =~ """
       7) test doc at ExUnit.DocTestTest.Invalid.a/0 (7) (ExUnit.DocTestTest.ActuallyCompiled)
-         test/ex_unit/doc_test_test.exs:314
+         test/ex_unit/doc_test_test.exs:311
          Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:148: syntax error before: '*'
          code: 1 + * 1
          stacktrace:
@@ -394,7 +391,7 @@ defmodule ExUnit.DocTestTest do
 
     assert output =~ """
       8) test doc at ExUnit.DocTestTest.Invalid.b/0 (8) (ExUnit.DocTestTest.ActuallyCompiled)
-         test/ex_unit/doc_test_test.exs:314
+         test/ex_unit/doc_test_test.exs:311
          Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:154: syntax error before: '*'
          code: 1 + * 1
          stacktrace:
