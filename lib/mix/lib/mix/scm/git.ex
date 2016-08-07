@@ -218,6 +218,13 @@ defmodule Mix.SCM.Git do
 
   defp get_lock_opts(opts) do
     lock_opts = Keyword.take(opts, [:branch, :ref, :tag])
+    lock_opts =
+      if opts[:sparse] do
+        lock_opts ++ [sparse: opts[:sparse]]
+      else
+        lock_opts
+      end
+
     if opts[:submodules] do
       lock_opts ++ [submodules: true]
     else
