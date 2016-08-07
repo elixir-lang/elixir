@@ -510,6 +510,44 @@ defmodule ExUnit.AssertionsTest do
       "assertion" = error.message
   end
 
+  test "assert lack of equality" do
+    try do
+      "This should never be tested" = assert "one" != "one"
+    rescue
+      error in [ExUnit.AssertionError] ->
+        "Assertion with != failed, both sides are exactly equal" = error.message
+        "one" = error.left
+    end
+
+    try do
+      "This should never be tested" = assert 2 != 2.0
+    rescue
+      error in [ExUnit.AssertionError] ->
+        "Assertion with != failed" = error.message
+        2 = error.left
+        2.0 = error.right
+    end
+  end
+
+  test "refute equality" do
+    try do
+      "This should never be tested" = refute "one" == "one"
+    rescue
+      error in [ExUnit.AssertionError] ->
+        "Refute with == failed, both sides are exactly equal" = error.message
+        "one" = error.left
+    end
+
+    try do
+      "This should never be tested" = refute 2 == 2.0
+    rescue
+      error in [ExUnit.AssertionError] ->
+        "Refute with == failed" = error.message
+        2 = error.left
+        2.0 = error.right
+    end
+  end
+
   test "assert in delta" do
     true = assert_in_delta(1.1, 1.2, 0.2)
   end
