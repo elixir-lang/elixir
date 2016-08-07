@@ -58,8 +58,12 @@ defmodule Mix.Tasks.Deps do
     * `:compile` - a command to compile the dependency, defaults to a `mix`,
       `rebar` or `make` command
 
-    * `:optional` - the dependency is optional and used only to specify
-      requirements
+    * `:optional` - marks the dependency as optional. In such cases, the
+      current project will always include the optional dependency but any
+      other project that depends on the current project won't be forced to
+      use the optional dependency. However, if the other project includes
+      the optional dependency on its own, the requirements and options
+      specified here will also be applied.
 
     * `:only` - the dependency will belong only to the given environments,
       useful when declaring dev- or test-only dependencies
