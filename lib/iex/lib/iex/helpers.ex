@@ -398,6 +398,9 @@ defmodule IEx.Helpers do
   ## Examples
 
       iex> i(1..5)
+      
+    Will print:
+    
       Term
         1..5
       Data type
