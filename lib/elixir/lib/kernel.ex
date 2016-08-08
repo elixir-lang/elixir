@@ -172,8 +172,8 @@ defmodule Kernel do
 
   """
   @spec div(integer, integer) :: integer
-  def div(left, right) do
-    :erlang.div(left, right)
+  def div(dividend, divisor) do
+    :erlang.div(dividend, divisor)
   end
 
   @doc """
@@ -556,9 +556,14 @@ defmodule Kernel do
 
   @doc """
   Computes the remainder of an integer division.
+  `rem/2` uses truncated division, which means that 
+  the result will always have the sign of the `dividend`.
 
   Raises an `ArithmeticError` exception if one of the arguments is not an
-  integer.
+  integer, or when the `divisor` is `0`.
+
+  When the only expected input are positive numbers, use `rem/2` over `mod/2` because
+  its implementation is more efficient.
 
   Allowed in guard tests. Inlined by the compiler.
 
@@ -566,12 +571,73 @@ defmodule Kernel do
 
       iex> rem(5, 2)
       1
+      iex> rem(-6, 4)
+      -2
 
   """
   @spec rem(integer, integer) :: integer
-  def rem(left, right) do
-    :erlang.rem(left, right)
+  def rem(dividend, divisor) do
+    :erlang.rem(dividend, divisor)
   end
+
+
+  # guard-safe `max` operation, `a` and `b` need to be integers.
+  defmacrop guard_safe_int_max(a, b) do
+    quote do 
+      div((unquote(a) + unquote(b)) + abs(unquote(a) - unquote(b)), 2)
+    end
+  end
+
+  # guard-safe `sign` operation, as long as both `a` and `b` are integers.
+  # To prevent division-by-zero of the naïve `div(x, abs(x))` solution, observe that:
+  #  x == 0  -> max(abs(0), 1) == 1, and div(0, 1) == 0, which is the desired result
+  #  x != 0  -> max(abs(x), 1) == abs(x), 
+  # so `max(abs(x), 1)` is substituted for `abs(x)`.
+  defmacrop int_sign(x) do
+    quote do
+      div(unquote(x), guard_safe_int_max(abs(unquote(x)), 1))
+    end
+  end
+
+  # Integer Floor Division, 
+  # Erlang's BIF `div/2` rounds towards zero.
+  # `floor_div/2` always rounds down.
+  # see https://en.wikipedia.org/wiki/Modulo_operation
+  defmacrop floor_div(a, n) do
+    quote do
+      div(unquote(a), unquote(n)) + div(int_sign(unquote(a)) - 1, 2)
+    end
+  end
+
+  @doc """
+  Computes the modulo remainder of an integer division.
+  `mod/2` uses floored division, which means that 
+  the result will always have the sign of the `divisor`.
+
+  Raises an `ArithmeticError` exception if one of the arguments is not an
+  integer, or when the `divisor` is `0`.
+
+  When the only expected input are positive numbers, use `rem/2` over `mod/2` because
+  its implementation is more efficient.
+
+  Allowed in guard tests.
+
+  ## Examples
+
+      iex> mod(5, 2)
+      1
+      iex> mod(-6, 4)
+      -2
+
+  """
+  @spec mod(integer, integer) :: integer
+  defmacro mod(dividend, divisor) do
+    quote do
+      unquote(dividend) - (unquote(divisor) * floor_div(unquote(dividend), unquote(divisor)))
+    end
+  end
+
+
 
   @doc """
   Rounds a number to the nearest integer.

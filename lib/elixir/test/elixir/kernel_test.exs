@@ -245,6 +245,38 @@ defmodule KernelTest do
            ~S[:erlang.or(:erlang.=:=(foo, 1), :erlang.=:=(foo, 2))]
   end
 
+  test "mod/2 in function body" do
+    assert mod(3, 2) == 1
+    assert mod(0, 10) == 0
+    assert mod(30000, 2001) == 1986
+    assert mod(-20, 11) == 9
+  end
+
+  test "mod/2 raises ArithmeticError when 0 is divisor" do
+    assert_raise ArithmeticError, fn -> mod(3, 0) end
+    assert_raise ArithmeticError, fn -> mod(-50, 0) end
+  end
+
+  test "mod/2 raises ArithmeticError when non-integers used as parameters" do
+    assert_raise ArithmeticError, fn -> mod(3.0, 2) end
+    assert_raise ArithmeticError, fn -> mod(20, 1.2) end
+  end
+
+  def fun_mod(x) when mod(x, 3) == 0, do: 0
+  def fun_mod(x) when mod(x, 3) == 1, do: 1
+  def fun_mod(x) when mod(x, 3) == 2, do: 2
+
+  test "mod/2 in guard clauses" do
+    assert fun_mod(0) == 0
+    assert fun_mod(1) == 1
+    assert fun_mod(2) == 2
+    assert fun_mod(3) == 0
+    assert fun_mod(-3) == 0
+    assert fun_mod(-10) == 1
+  end
+
+
+
   defp expand_to_string(ast) do
     ast
     |> Macro.prewalk(&Macro.expand(&1, __ENV__))
