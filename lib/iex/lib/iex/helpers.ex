@@ -393,7 +393,7 @@ defmodule IEx.Helpers do
   end
 
   @doc """
-  Prints information about the data type of a given term.
+  Prints information about the data type of the given term.
   
   ## Examples
 
