@@ -558,6 +558,7 @@ defmodule Kernel do
 
   @doc """
   Computes the remainder of an integer division.
+
   `rem/2` uses truncated division, which means that 
   the result will always have the sign of the `dividend`.
 
@@ -613,6 +614,7 @@ defmodule Kernel do
 
   @doc """
   Computes the modulo remainder of an integer division.
+
   `mod/2` uses floored division, which means that 
   the result will always have the sign of the `divisor`.
 
@@ -644,17 +646,15 @@ defmodule Kernel do
       # Normal implementation
       quote do
         bound_divisor = unquote(divisor)
-        case rem(unquote(dividend), bound_divisor) do
-          remainder when remainder * bound_divisor < 0 ->
-            remainder + bound_divisor
-          remainder ->
-            remainder
+        remainder = rem(unquote(dividend), bound_divisor)
+        if remainder * bound_divisor < 0 do
+          remainder + bound_divisor
+        else
+          remainder
         end
       end
     end
   end
-
-
 
   @doc """
   Rounds a number to the nearest integer.
