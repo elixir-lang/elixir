@@ -59,9 +59,6 @@ defmodule Integer do
     quote do: (unquote(integer) &&& 1) == 0
   end
 
-  require Integer.Utils
-
-
   # guard-safe `max` operation, `a` and `b` need to be integers.
   defp guard_safe_int_max(a, b) do
     quote do 
@@ -91,6 +88,7 @@ defmodule Integer do
     IO.inspect(Macro.to_string(res))
     res
   end
+  
   @doc """
   Computes the modulo remainder of an integer division.
 
