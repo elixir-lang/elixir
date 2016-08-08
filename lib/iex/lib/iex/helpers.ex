@@ -30,7 +30,7 @@ defmodule IEx.Helpers do
     * `flush/0`       - flushes all messages sent to the shell
     * `h/0`           - prints this help message
     * `h/1`           - prints help for the given module, function or macro
-    * `i/1`           - prints information about the given data type
+    * `i/1`           - prints information about the data type of a given term
     * `import_file/1` - evaluates the given file in the shell's context
     * `l/1`           - loads the given module's BEAM code
     * `ls/0`          - lists the contents of the current directory
@@ -393,12 +393,14 @@ defmodule IEx.Helpers do
   end
 
   @doc """
-  Prints information about the given data type.
+  Prints information about the data type of a given term.
   
   ## Examples
 
-      i(Int)
-      i(Atom)
+      i([1,2,3])
+      i("Elixir rocks!")
+      i(:some_atom)
+      i(fn x -> x * 2 end)
   """
   def i(term) do
     info = ["Term": inspect(term)] ++ IEx.Info.info(term)
