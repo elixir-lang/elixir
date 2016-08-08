@@ -237,36 +237,64 @@ defmodule ExUnit.Assertions do
 
   @operator [:==, :<, :>, :<=, :>=, :===, :=~, :!==, :!=, :in]
 
-  defp translate_assertion({operator, meta, [left, right]} = expr) when operator in @operator  do
-    expr = Macro.escape(expr)
-    call = {operator, meta, [Macro.var(:left, __MODULE__), Macro.var(:right, __MODULE__)]}
-    quote do
-      left  = unquote(left)
-      right = unquote(right)
-      assert unquote(call),
-             left: left,
-             right: right,
-             expr: unquote(expr),
-             message: unquote("Assertion with #{operator} failed")
-    end
+  defp translate_assertion({operator, meta, [_, _]} = expr) when operator in @operator do
+    left = Macro.var(:left, __MODULE__)
+    right = Macro.var(:right, __MODULE__)
+    call = {operator, meta, [left, right]}
+    equality_check? = operator in [:<, :>, :!==, :!=]
+    message = "Assertion with #{operator} failed"
+    translate_assertion(expr, call, message, equality_check?)
   end
 
-  defp translate_assertion({:!, _, [{operator, meta, [left, right]} = expr]}) when operator in @operator do
-    expr = Macro.escape(expr)
-    call = {operator, meta, [Macro.var(:left, __MODULE__), Macro.var(:right, __MODULE__)]}
-    quote do
-      left  = unquote(left)
-      right = unquote(right)
-      assert not(unquote(call)),
-             left: left,
-             right: right,
-             expr: unquote(expr),
-             message: unquote("Refute with #{operator} failed")
-    end
+  defp translate_assertion({:!, _, [{operator, meta, [_, _]} = expr]}) when operator in @operator do
+    left = Macro.var(:left, __MODULE__)
+    right = Macro.var(:right, __MODULE__)
+    call = {:not, meta, [{operator, meta, [left, right]}]}
+    equality_check? = operator in [:<=, :>=, :===, :==, :=~]
+    message = "Refute with #{operator} failed"
+    translate_assertion(expr, call, message, equality_check?)
   end
 
   defp translate_assertion(_expected) do
     nil
+  end
+
+  defp translate_assertion({_, _, [left, right]} = expr, call, message, true) do
+    expr = Macro.escape(expr)
+    quote do
+      left = unquote(left)
+      right = unquote(right)
+      if ExUnit.Assertions.__equal__?(left, right) do
+        assert false,
+          left: left,
+          expr: unquote(expr),
+          message: unquote(message <> ", both sides are exactly equal")
+      else
+        assert unquote(call),
+          left: left,
+          right: right,
+          expr: unquote(expr),
+          message: unquote(message)
+      end
+    end
+  end
+
+  defp translate_assertion({_, _, [left, right]} = expr, call, message, false) do
+    expr = Macro.escape(expr)
+    quote do
+      left = unquote(left)
+      right = unquote(right)
+      assert unquote(call),
+        left: left,
+        right: right,
+        expr: unquote(expr),
+        message: unquote(message)
+    end
+  end
+
+  @doc false
+  def __equal__?(left, right) do
+    left === right
   end
 
   ## END HELPERS
