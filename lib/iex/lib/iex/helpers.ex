@@ -393,14 +393,19 @@ defmodule IEx.Helpers do
   end
 
   @doc """
-  Prints information about the data type of the given term.
+  Prints information about the data type of any vaild Elixir term.
   
   ## Examples
 
-      i([1,2,3])
-      i("Elixir rocks!")
-      i(:some_atom)
-      i(fn x -> x * 2 end)
+      iex> i(1..5)
+      Term
+        1..5
+      Data type
+        Range
+      Description
+        This is a struct. Structs are maps with a __struct__ key.
+      Reference modules
+        Range, Map
   """
   def i(term) do
     info = ["Term": inspect(term)] ++ IEx.Info.info(term)
