@@ -161,7 +161,7 @@ defmodule Kernel do
   Performs an integer division.
 
   Raises an `ArithmeticError` exception if one of the arguments is not an
-  integer.
+  integer, or when the `divisor` is `0`.
 
   Allowed in guard tests. Inlined by the compiler.
 
@@ -169,6 +169,8 @@ defmodule Kernel do
 
       iex> div(5, 2)
       2
+      iex> div(-99, 2)
+      -49
 
   """
   @spec div(integer, integer) :: integer
