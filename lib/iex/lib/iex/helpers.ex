@@ -104,7 +104,7 @@ defmodule IEx.Helpers do
   the compiled code to (defaults to the current directory). When compiling
   one file, there is no need to wrap it in a list.
 
-  It returns the name of the compiled modules.
+  It returns the names of the compiled modules.
 
   If you want to recompile an existing module, check `r/1` instead.
 
@@ -394,6 +394,11 @@ defmodule IEx.Helpers do
 
   @doc """
   Prints information about the given data type.
+  
+  ## Examples
+
+      i(Int)
+      i(Atom)
   """
   def i(term) do
     info = ["Term": inspect(term)] ++ IEx.Info.info(term)
