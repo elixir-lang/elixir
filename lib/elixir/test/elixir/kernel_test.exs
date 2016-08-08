@@ -249,7 +249,7 @@ defmodule KernelTest do
     assert mod(3, 2) == 1
     assert mod(0, 10) == 0
     assert mod(30000, 2001) == 1986
-    assert mod(-20, 11) == 9
+    assert mod(-20, 11) == 2
   end
 
   test "mod/2 raises ArithmeticError when 0 is divisor" do
@@ -274,6 +274,7 @@ defmodule KernelTest do
     assert fun_mod(-3) == 0
     assert fun_mod(-10) == 1
   end
+
 
 
 

@@ -573,8 +573,8 @@ defmodule Kernel do
 
       iex> rem(5, 2)
       1
-      iex> rem(-6, 4)
-      -2
+      iex> rem(6, -4)
+      2
 
   """
   @spec rem(integer, integer) :: integer
@@ -607,7 +607,7 @@ defmodule Kernel do
   # see https://en.wikipedia.org/wiki/Modulo_operation
   defmacrop floor_div(a, n) do
     quote do
-      div(unquote(a), unquote(n)) + div(int_sign(unquote(a)) - 1, 2)
+      div(unquote(a), unquote(n)) + div(int_sign(unquote(a) * unquote(n)) - 1, 2)
     end
   end
 
@@ -628,7 +628,7 @@ defmodule Kernel do
 
       iex> mod(5, 2)
       1
-      iex> mod(-6, 4)
+      iex> mod(6, -4)
       -2
 
   """
