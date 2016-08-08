@@ -61,6 +61,36 @@ defmodule Integer do
 
   require Integer.Utils
 
+
+  # guard-safe `max` operation, `a` and `b` need to be integers.
+  defp guard_safe_int_max(a, b) do
+    quote do 
+      div((unquote(a) + unquote(b)) + abs(unquote(a) - unquote(b)), 2)
+    end
+  end
+
+  # guard-safe `sign` operation, as long as both `a` and `b` are integers.
+  # To prevent division-by-zero of the naïve `div(x, abs(x))` solution, observe that:
+  #  x == 0  -> max(abs(0), 1) == 1, and div(0, 1) == 0, which is the desired result
+  #  x != 0  -> max(abs(x), 1) == abs(x), 
+  # so `max(abs(x), 1)` is substituted for `abs(x)`.
+  defp int_sign(x) do
+    quote do
+      div(unquote(x), unquote(guard_safe_int_max(quote do abs(unquote(x)) end, 1)))
+    end
+  end
+
+  # Integer Floor Division, 
+  # Erlang's BIF `div/2` rounds towards zero.
+  # `floor_div/2` always rounds down.
+  # see https://en.wikipedia.org/wiki/Modulo_operation
+  defp floor_div(a, n) do
+    res = quote do
+      div(unquote(a), unquote(n)) + div(unquote(int_sign(quote do rem(unquote(a), unquote(n)) * unquote(n) end)) - 1, 2)
+    end
+    IO.inspect(Macro.to_string(res))
+    res
+  end
   @doc """
   Computes the modulo remainder of an integer division.
 
@@ -89,7 +119,7 @@ defmodule Integer do
     if not in_module? do
       # Guard-clause implementation
       quote do
-        unquote(dividend) - (unquote(divisor) * unquote(Integer.Utils.floor_div(dividend, divisor)))
+        unquote(dividend) - (unquote(divisor) * unquote(floor_div(dividend, divisor)))
       end
     else
       # Normal implementation
