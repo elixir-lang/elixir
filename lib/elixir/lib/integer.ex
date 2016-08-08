@@ -60,6 +60,88 @@ defmodule Integer do
   end
 
   @doc """
+  Computes the modulo remainder of an integer division.
+
+  `Integer.mod/2` uses floored division, which means that 
+  the result will always have the sign of the `divisor`.
+
+  Raises an `ArithmeticError` exception if one of the arguments is not an
+  integer, or when the `divisor` is `0`.
+
+  Unlike `rem/2`, `Integer.mod/2` is _not_ allowed in guard tests.
+
+  ## Examples
+
+      iex> Integer.mod(5, 2)
+      1
+      iex> Integer.mod(6, -4)
+      -2
+
+  """
+  @spec mod(integer, integer) :: integer
+  def mod(dividend, divisor) do
+    remainder = rem(dividend, divisor)
+    if remainder * divisor < 0 do
+      remainder + divisor
+    else
+      remainder
+    end
+  end
+
+  @doc """
+  Performs a floored integer division.
+
+  Raises an `ArithmeticError` exception if one of the arguments is not an
+  integer, or when the `divisor` is `0`.
+
+  Unlike `Kernel.div/2`, `Integer.floor_div/2` is _not_ allowed inside guard tests.
+
+  `Integer.floor_div/2` performs _floored_ integer division. This means that
+  the result is always rounded towards negative infinity.
+
+  If you want to perform truncated integer division (rounding towards zero),
+  use `Kernel.div/2` instead.
+
+  ## Examples
+
+      iex> Integer.floor_div(5, 2)
+      2
+      iex> Integer.floor_div(6, -4)
+      -2
+      iex> Integer.floor_div(-99, 2)
+      -50
+  """
+  @spec floor_div(integer, integer) :: integer
+  def floor_div(dividend, divisor) do
+    if (dividend * divisor < 0) && rem(dividend, divisor) != 0 do
+      div(dividend, divisor) - 1
+    else
+      div(dividend, divisor)
+    end
+  end
+
+  # defmacro mod(dividend, divisor) do
+  #   in_module? = (__CALLER__.context == nil)
+  #   if not in_module? do
+  #     # Guard-clause implementation
+  #     quote do
+  #       unquote(dividend) - (unquote(divisor) * unquote(floor_div(dividend, divisor)))
+  #     end
+  #   else
+  #     # Normal implementation
+  #     quote do
+  #       bound_divisor = unquote(divisor)
+  #       remainder = rem(unquote(dividend), bound_divisor)
+  #       if remainder * bound_divisor < 0 do
+  #         remainder + bound_divisor
+  #       else
+  #         remainder
+  #       end
+  #     end
+  #   end
+  # end
+
+  @doc """
   Returns the ordered digits for the given `integer`.
 
   An optional `base` value may be provided representing the radix for the returned
