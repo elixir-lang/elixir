@@ -30,7 +30,7 @@ defmodule IEx.Helpers do
     * `flush/0`       - flushes all messages sent to the shell
     * `h/0`           - prints this help message
     * `h/1`           - prints help for the given module, function or macro
-    * `i/1`           - prints information about the given data type
+    * `i/1`           - prints information about the data type of any given term
     * `import_file/1` - evaluates the given file in the shell's context
     * `l/1`           - loads the given module's BEAM code
     * `ls/0`          - lists the contents of the current directory
@@ -104,7 +104,7 @@ defmodule IEx.Helpers do
   the compiled code to (defaults to the current directory). When compiling
   one file, there is no need to wrap it in a list.
 
-  It returns the name of the compiled modules.
+  It returns the names of the compiled modules.
 
   If you want to recompile an existing module, check `r/1` instead.
 
@@ -393,7 +393,22 @@ defmodule IEx.Helpers do
   end
 
   @doc """
-  Prints information about the given data type.
+  Prints information about the data type of any given term.
+  
+  ## Examples
+
+      iex> i(1..5)
+      
+  Will print:
+    
+      Term
+        1..5
+      Data type
+        Range
+      Description
+        This is a struct. Structs are maps with a __struct__ key.
+      Reference modules
+        Range, Map
   """
   def i(term) do
     info = ["Term": inspect(term)] ++ IEx.Info.info(term)
