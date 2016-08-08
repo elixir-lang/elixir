@@ -272,7 +272,7 @@ defmodule KernelTest do
     assert fun_mod(2) == 2
     assert fun_mod(3) == 0
     assert fun_mod(-3) == 0
-    assert fun_mod(-10) == 1
+    assert fun_mod(-10) == 2
   end
 
 
