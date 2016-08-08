@@ -393,7 +393,7 @@ defmodule IEx.Helpers do
   end
 
   @doc """
-  Prints information about the data type of any vaild Elixir term.
+  Prints information about the data type of any given term.
   
   ## Examples
 
