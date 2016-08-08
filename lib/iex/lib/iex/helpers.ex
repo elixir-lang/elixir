@@ -30,7 +30,7 @@ defmodule IEx.Helpers do
     * `flush/0`       - flushes all messages sent to the shell
     * `h/0`           - prints this help message
     * `h/1`           - prints help for the given module, function or macro
-    * `i/1`           - prints information about the data type of a given term
+    * `i/1`           - prints information about the data type of any given term
     * `import_file/1` - evaluates the given file in the shell's context
     * `l/1`           - loads the given module's BEAM code
     * `ls/0`          - lists the contents of the current directory
