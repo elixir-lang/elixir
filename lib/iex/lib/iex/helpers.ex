@@ -399,7 +399,7 @@ defmodule IEx.Helpers do
 
       iex> i(1..5)
       
-    Will print:
+  Will print:
     
       Term
         1..5
