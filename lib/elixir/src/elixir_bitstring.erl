@@ -192,6 +192,8 @@ build_bitstr_each(Fun, T, Meta, S, Acc, H, Size, Types) ->
   case Expr of
     {bin, _, Elements} when Splice, Size == default, S#elixir_scope.context == match ->
       build_bitstr_each(Fun, T, Meta, NS, lists:reverse(Elements, Acc));
+    {bin, _, _} when Types == default ->
+      build_bitstr_each(Fun, T, Meta, NS, [{bin_element, ?ann(Meta), Expr, Size, [bitstring]} | Acc]);
     _ ->
       build_bitstr_each(Fun, T, Meta, NS, [{bin_element, ?ann(Meta), Expr, Size, Types} | Acc])
   end.
