@@ -85,7 +85,6 @@ defmodule Integer do
     res = quote do
       div(unquote(a), unquote(n)) + div(unquote(int_sign(quote do rem(unquote(a), unquote(n)) * unquote(n) end)) - 1, 2)
     end
-    IO.inspect(Macro.to_string(res))
     res
   end
   
