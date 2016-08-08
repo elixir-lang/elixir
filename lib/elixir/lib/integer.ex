@@ -59,6 +59,85 @@ defmodule Integer do
     quote do: (unquote(integer) &&& 1) == 0
   end
 
+  defmodule Utils do
+    @moduledoc false
+
+
+    # guard-safe `max` operation, `a` and `b` need to be integers.
+    defmacro guard_safe_int_max(a, b) do
+      quote do 
+        div((unquote(a) + unquote(b)) + abs(unquote(a) - unquote(b)), 2)
+      end
+    end
+
+    # guard-safe `sign` operation, as long as both `a` and `b` are integers.
+    # To prevent division-by-zero of the naïve `div(x, abs(x))` solution, observe that:
+    #  x == 0  -> max(abs(0), 1) == 1, and div(0, 1) == 0, which is the desired result
+    #  x != 0  -> max(abs(x), 1) == abs(x), 
+    # so `max(abs(x), 1)` is substituted for `abs(x)`.
+    defmacro int_sign(x) do
+      quote do
+        div(unquote(x), Utils.guard_safe_int_max(abs(unquote(x)), 1))
+      end
+    end
+
+    # Integer Floor Division, 
+    # Erlang's BIF `div/2` rounds towards zero.
+    # `floor_div/2` always rounds down.
+    # see https://en.wikipedia.org/wiki/Modulo_operation
+    defmacro floor_div(a, n) do
+      quote do
+        div(unquote(a), unquote(n)) + div(Utils.int_sign(rem(unquote(a), unquote(n)) * unquote(n)) - 1, 2)
+      end
+    end
+
+  end
+  require Utils
+
+  @doc """
+  Computes the modulo remainder of an integer division.
+
+  `Integer.mod/2` uses floored division, which means that 
+  the result will always have the sign of the `divisor`.
+
+  Raises an `ArithmeticError` exception if one of the arguments is not an
+  integer, or when the `divisor` is `0`.
+
+  When the only expected input are positive numbers, use `rem/2` over `Integer.mod/2` because
+  its implementation is more efficient.
+
+  Allowed in guard tests.
+
+  ## Examples
+
+      iex> Integer.mod(5, 2)
+      1
+      iex> Integer.mod(6, -4)
+      -2
+
+  """
+  @spec mod(integer, integer) :: integer
+  defmacro mod(dividend, divisor) do
+    in_module? = (__CALLER__.context == nil)
+    if not in_module? do
+      # Guard-clause implementation
+      quote do
+        unquote(dividend) - (unquote(divisor) * Utils.floor_div(unquote(dividend), unquote(divisor)))
+      end
+    else
+      # Normal implementation
+      quote do
+        bound_divisor = unquote(divisor)
+        remainder = rem(unquote(dividend), bound_divisor)
+        if remainder * bound_divisor < 0 do
+          remainder + bound_divisor
+        else
+          remainder
+        end
+      end
+    end
+  end
+
   @doc """
   Returns the ordered digits for the given `integer`.
 
