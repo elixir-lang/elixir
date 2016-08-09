@@ -110,36 +110,16 @@ defmodule Integer do
       -2
       iex> Integer.floor_div(-99, 2)
       -50
+      
   """
   @spec floor_div(integer, integer) :: integer
   def floor_div(dividend, divisor) do
-    if (dividend * divisor < 0) && rem(dividend, divisor) != 0 do
+    if (dividend * divisor < 0) and rem(dividend, divisor) != 0 do
       div(dividend, divisor) - 1
     else
       div(dividend, divisor)
     end
   end
-
-  # defmacro mod(dividend, divisor) do
-  #   in_module? = (__CALLER__.context == nil)
-  #   if not in_module? do
-  #     # Guard-clause implementation
-  #     quote do
-  #       unquote(dividend) - (unquote(divisor) * unquote(floor_div(dividend, divisor)))
-  #     end
-  #   else
-  #     # Normal implementation
-  #     quote do
-  #       bound_divisor = unquote(divisor)
-  #       remainder = rem(unquote(dividend), bound_divisor)
-  #       if remainder * bound_divisor < 0 do
-  #         remainder + bound_divisor
-  #       else
-  #         remainder
-  #       end
-  #     end
-  #   end
-  # end
 
   @doc """
   Returns the ordered digits for the given `integer`.

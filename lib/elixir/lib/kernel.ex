@@ -573,9 +573,6 @@ defmodule Kernel do
   Raises an `ArithmeticError` exception if one of the arguments is not an
   integer, or when the `divisor` is `0`.
 
-  When the only expected input are positive numbers, use `rem/2` over `Integer.mod/2` because
-  its implementation is more efficient.
-
   Allowed in guard tests. Inlined by the compiler.
 
   ## Examples
