@@ -146,6 +146,18 @@ defmodule ListTest do
     assert List.delete_at([1, 2, 3], -4) == [1, 2, 3]
   end
 
+  test "pop_at/3" do
+    for index <- [-1, 0, 1] do
+      assert List.pop_at([], index) == {nil, []}
+    end
+    assert List.pop_at([1, 2, 3], 0) == {1, [2, 3]}
+    assert List.pop_at([1, 2, 3], 2) == {3, [1, 2]}
+    assert List.pop_at([1, 2, 3], 3) == {nil, [1, 2, 3]}
+    assert List.pop_at([1, 2, 3], -1) == {3, [1, 2]}
+    assert List.pop_at([1, 2, 3], -3) == {1, [2, 3]}
+    assert List.pop_at([1, 2, 3], -4) == {nil, [1, 2, 3]}
+  end
+
   test "to_string/1" do
     assert List.to_string([?æ, ?ß]) == "æß"
     assert List.to_string([?a, ?b, ?c]) == "abc"

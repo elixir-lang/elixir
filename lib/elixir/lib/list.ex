@@ -547,6 +547,33 @@ defmodule List do
   end
 
   @doc """
+  Returns and removes the value at the specified `index` in the `list`.
+
+  Negative indices indicate an offset from the end of the `list`.
+  If `index` is out of bounds, the original `list` is returned.
+
+  ## Examples
+
+      iex> List.pop_at([1, 2, 3], 0)
+      {1, [2, 3]}
+      iex> List.pop_at([1, 2, 3], 5)
+      {nil, [1, 2, 3]}
+      iex> List.pop_at([1, 2, 3], 5, 10)
+      {10, [1, 2, 3]}
+      iex> List.pop_at([1, 2, 3], -1)
+      {3, [1, 2]}
+
+  """
+  @spec pop_at(list, integer, any) :: {any, list}
+  def pop_at(list, index, default \\ nil) when is_integer(index) do
+    if index < 0 do
+      do_pop_at(list, length(list) + index, default, [])
+    else
+      do_pop_at(list, index, default, [])
+    end
+  end
+
+  @doc """
   Converts a charlist to an atom.
 
   Currently Elixir does not support conversions from charlists
@@ -769,6 +796,24 @@ defmodule List do
 
   defp do_delete_at([h | t], index) do
     [h | do_delete_at(t, index - 1)]
+  end
+
+  # pop_at
+
+  defp do_pop_at([], _index, default, acc) do
+    {default, :lists.reverse(acc)}
+  end
+
+  defp do_pop_at(list, index, default, []) when index < 0 do
+    {default, list}
+  end
+
+  defp do_pop_at([head | tail], 0, _default, acc) do
+    {head, :lists.reverse(acc, tail)}
+  end
+
+  defp do_pop_at([head | tail], index, default, acc) do
+    do_pop_at(tail, index - 1, default, [head | acc])
   end
 
   # zip
