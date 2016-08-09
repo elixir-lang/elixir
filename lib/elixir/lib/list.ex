@@ -454,7 +454,7 @@ defmodule List do
 
   """
   @spec insert_at(list, integer, any) :: list
-  def insert_at(list, index, value) do
+  def insert_at(list, index, value) when is_integer(index) do
     if index < 0 do
       do_insert_at(list, length(list) + index + 1, value)
     else
@@ -483,7 +483,7 @@ defmodule List do
 
   """
   @spec replace_at(list, integer, any) :: list
-  def replace_at(list, index, value) do
+  def replace_at(list, index, value) when is_integer(index) do
     if index < 0 do
       do_replace_at(list, length(list) + index, value)
     else
@@ -512,7 +512,7 @@ defmodule List do
 
   """
   @spec update_at([elem], integer, (elem -> any)) :: list when elem: var
-  def update_at(list, index, fun) when is_function(fun, 1) do
+  def update_at(list, index, fun) when is_function(fun, 1) and is_integer(index) do
     if index < 0 do
       do_update_at(list, length(list) + index, fun)
     else
@@ -538,7 +538,7 @@ defmodule List do
 
   """
   @spec delete_at(list, integer) :: list
-  def delete_at(list, index) do
+  def delete_at(list, index) when is_integer(index) do
     if index < 0 do
       do_delete_at(list, length(list) + index)
     else
