@@ -4,6 +4,8 @@ defmodule Dialyzer.RemoteCall do
     ~c(3.) ++ _ ->
       @dialyzer {:no_return, [map_var: 0]}
       @dialyzer {:no_match, [map_var: 0, mod_var: 0, mod_var: 1]}
+    ~c(2.) ++ _ ->
+      @dialyzer {:no_fail_call, [map_var: 0]}
     _ ->
       :ok
   end
