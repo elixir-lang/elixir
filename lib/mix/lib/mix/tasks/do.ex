@@ -20,7 +20,9 @@ defmodule Mix.Tasks.Do do
   @spec run(OptionParser.argv) :: :ok
   def run(args) do
     Enum.each gather_commands(args), fn
-      [task | args] -> Mix.Task.run task, args
+      [task | args] ->
+        Mix.Task.run task, args
+        Mix.Task.clear
     end
   end
 
