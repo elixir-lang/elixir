@@ -256,7 +256,7 @@ defmodule OptionParser do
       {:ok, option, value, rest} ->
         # the option exists and it was successfully parsed
         kinds = List.wrap Keyword.get(switches, option)
-        new_opts = do_store_option(opts, option, value, kinds)
+        new_opts = store_option(opts, option, value, kinds)
         do_parse(rest, config, new_opts, args, invalid, all?)
 
       {:invalid, option, value, rest} ->
@@ -335,28 +335,28 @@ defmodule OptionParser do
   end
 
   # Handles -a, -abc, -abc=something
-  defp next(["-" <> option = original | rest] = argv, aliases, switches, strict?) do
+  defp next(["-" <> option | rest] = argv, aliases, switches, strict?) do
     {option, value} = split_option(option)
-    original_option = "-" <> option
+    original = "-" <> option
 
     cond do
-      negative_number?(original) ->
+      is_nil(value) and negative_number?(original) ->
         {:error, argv}
       String.contains?(option, ["-", "_"]) ->
-        {:undefined, original_option, value, rest}
+        {:undefined, original, value, rest}
       String.length(option) > 1 ->
         opt = get_option(option)
         alias = aliases[opt]
         if opt && alias do
           IO.warn "multi-letter aliases are deprecated, got: #{inspect(opt)}"
-          do_next({:default, alias}, value, original_option, rest, switches, strict?)
+          do_next({:default, alias}, value, original, rest, switches, strict?)
         else
           next(expand_multiletter_alias(option, value) ++ rest, aliases, switches, strict?)
         end
       true ->
         # We have a regular one-letter alias here
-        tagged = tag_single_letter_alias(option, aliases)
-        do_next(tagged, value, original_option, rest, switches, strict?)
+        tagged = tag_oneletter_alias(option, aliases)
+        do_next(tagged, value, original, rest, switches, strict?)
     end
   end
 
@@ -473,10 +473,10 @@ defmodule OptionParser do
     {switches, strict?} = cond do
       opts[:switches] && opts[:strict] ->
         raise ArgumentError, ":switches and :strict cannot be given together"
-      s = opts[:switches] ->
-        {s, false}
-      s = opts[:strict] ->
-        {s, true}
+      switches = opts[:switches] ->
+        {switches, false}
+      strict = opts[:strict] ->
+        {strict, true}
       true ->
         {[], false}
     end
@@ -521,7 +521,7 @@ defmodule OptionParser do
     end
   end
 
-  defp do_store_option(dict, option, value, kinds) do
+  defp store_option(dict, option, value, kinds) do
     cond do
       :count in kinds ->
         Keyword.update(dict, option, value, & &1 + 1)
@@ -551,7 +551,7 @@ defmodule OptionParser do
     end
   end
 
-  defp tag_single_letter_alias(alias, aliases) when is_binary(alias) do
+  defp tag_oneletter_alias(alias, aliases) when is_binary(alias) do
     if alias = aliases[String.to_atom(alias)] do
       {:default, alias}
     else
@@ -560,9 +560,12 @@ defmodule OptionParser do
   end
 
   defp expand_multiletter_alias(letters, value) when is_binary(letters) do
-    expanded = letters |> String.codepoints() |> Enum.map(&("-" <> &1))
-    last = List.last(expanded) <> if(value, do: "=" <> value, else: "")
-    Enum.drop(expanded, -1) ++ [last]
+    {last, expanded} =
+      letters
+      |> String.codepoints()
+      |> Enum.map(&("-" <> &1))
+      |> List.pop_at(-1)
+    expanded ++ [last <> if(value, do: "=" <> value, else: "")]
   end
 
   defp option_defined?(:unknown, _switches) do
