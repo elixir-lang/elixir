@@ -83,7 +83,7 @@ defmodule Behaviour do
       warning =
         "the Behaviour module is deprecated. Instead of using this module, " <>
         "use the @callback and @macrocallback module attributes. See the " <>
-        "documentation for Module for more information on these attributes."
+        "documentation for Module for more information on these attributes"
       IO.warn(warning)
 
       @doc false
