@@ -55,10 +55,6 @@ defmodule ListTest do
     assert List.foldr([1, 2, 3, 4], 0, fn x, y -> x - y end) == -2
   end
 
-  test "reverse" do
-    assert Enum.reverse([1, 2, 3]) == [3, 2, 1]
-  end
-
   test "duplicate" do
     assert List.duplicate(1, 3) == [1, 1, 1]
     assert List.duplicate([1], 1) == [[1]]
