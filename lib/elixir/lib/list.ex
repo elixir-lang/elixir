@@ -539,11 +539,7 @@ defmodule List do
   """
   @spec delete_at(list, integer) :: list
   def delete_at(list, index) when is_integer(index) do
-    if index < 0 do
-      do_delete_at(list, length(list) + index)
-    else
-      do_delete_at(list, index)
-    end
+    elem(pop_at(list, index), 1)
   end
 
   @doc """
@@ -778,24 +774,6 @@ defmodule List do
 
   defp do_update_at([], _index, _fun) do
     []
-  end
-
-  # delete_at
-
-  defp do_delete_at([], _index) do
-    []
-  end
-
-  defp do_delete_at([_ | t], 0) do
-    t
-  end
-
-  defp do_delete_at(list, index) when index < 0 do
-    list
-  end
-
-  defp do_delete_at([h | t], index) do
-    [h | do_delete_at(t, index - 1)]
   end
 
   # pop_at
