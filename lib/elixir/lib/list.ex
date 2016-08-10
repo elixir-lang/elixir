@@ -100,8 +100,10 @@ defmodule List do
   @compile :inline_list_funcs
 
   @doc """
-  Deletes the given item from the list. Returns a list without
-  the item. If the item occurs more than once in the list, just
+  Deletes the given `item` from the `list`. Returns a new list without
+  the item.
+
+  If the `item` occurs more than once in the `list`, just
   the first occurrence is removed.
 
   ## Examples
@@ -316,9 +318,10 @@ defmodule List do
   end
 
   @doc """
-  Receives a list of tuples and replaces the item
-  identified by `key` at `position`. If the item
-  does not exist, it is added to the end of the list.
+  Receives a `list` of tuples and replaces the item
+  identified by `key` at `position`.
+
+  If the item does not exist, it is added to the end of the `list`.
 
   ## Examples
 
@@ -335,7 +338,7 @@ defmodule List do
   end
 
   @doc """
-  Receives a list of tuples and deletes the first tuple
+  Receives a `list` of tuples and deletes the first tuple
   where the item at `position` matches the
   given `key`. Returns the new list.
 
@@ -385,6 +388,7 @@ defmodule List do
 
   @doc """
   Wraps the argument in a list.
+
   If the argument is already a list, returns the list.
   If the argument is `nil`, returns an empty list.
 
@@ -435,8 +439,9 @@ defmodule List do
 
   @doc """
   Returns a list with `value` inserted at the specified `index`.
+
   Note that `index` is capped at the list length. Negative indices
-  indicate an offset from the end of the list.
+  indicate an offset from the end of the `list`.
 
   ## Examples
 
@@ -464,7 +469,8 @@ defmodule List do
 
   @doc """
   Returns a list with a replaced value at the specified `index`.
-  Negative indices indicate an offset from the end of the list.
+
+  Negative indices indicate an offset from the end of the `list`.
   If `index` is out of bounds, the original `list` is returned.
 
   ## Examples
@@ -493,7 +499,8 @@ defmodule List do
 
   @doc """
   Returns a list with an updated value at the specified `index`.
-  Negative indices indicate an offset from the end of the list.
+
+  Negative indices indicate an offset from the end of the `list`.
   If `index` is out of bounds, the original `list` is returned.
 
   ## Examples
@@ -522,7 +529,8 @@ defmodule List do
 
   @doc """
   Produces a new list by removing the value at the specified `index`.
-  Negative indices indicate an offset from the end of the list.
+
+  Negative indices indicate an offset from the end of the `list`.
   If `index` is out of bounds, the original `list` is returned.
 
   ## Examples
