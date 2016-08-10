@@ -135,8 +135,8 @@ defmodule ListTest do
   end
 
   test "delete_at/2" do
-    Enum.each [-1, 0, 1], fn i ->
-      assert [] = List.delete_at([], i)
+    for index <- [-1, 0, 1] do
+      assert List.delete_at([], index) == []
     end
     assert List.delete_at([1, 2, 3], 0) == [2, 3]
     assert List.delete_at([1, 2, 3], 2) == [1, 2]
@@ -144,6 +144,19 @@ defmodule ListTest do
     assert List.delete_at([1, 2, 3], -1) == [1, 2]
     assert List.delete_at([1, 2, 3], -3) == [2, 3]
     assert List.delete_at([1, 2, 3], -4) == [1, 2, 3]
+  end
+
+  test "pop_at/3" do
+    for index <- [-1, 0, 1] do
+      assert List.pop_at([], index) == {nil, []}
+    end
+    assert List.pop_at([1], 1, 2) == {2, [1]}
+    assert List.pop_at([1, 2, 3], 0) == {1, [2, 3]}
+    assert List.pop_at([1, 2, 3], 2) == {3, [1, 2]}
+    assert List.pop_at([1, 2, 3], 3) == {nil, [1, 2, 3]}
+    assert List.pop_at([1, 2, 3], -1) == {3, [1, 2]}
+    assert List.pop_at([1, 2, 3], -3) == {1, [2, 3]}
+    assert List.pop_at([1, 2, 3], -4) == {nil, [1, 2, 3]}
   end
 
   test "to_string/1" do
