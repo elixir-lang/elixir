@@ -19,10 +19,10 @@ defmodule List do
   they are internally represented in pairs containing the
   head and the tail of a list:
 
-      iex> [h | t] = [1, 2, 3]
-      iex> h
+      iex> [head | tail] = [1, 2, 3]
+      iex> head
       1
-      iex> t
+      iex> tail
       [2, 3]
 
   Similarly, we could write the list `[1, 2, 3]` using only
@@ -218,7 +218,7 @@ defmodule List do
   """
   @spec first([elem]) :: nil | elem when elem: var
   def first([]),      do: nil
-  def first([h | _]), do: h
+  def first([head | _]), do: head
 
   @doc """
   Returns the last element in `list` or `nil` if `list` is empty.
@@ -236,9 +236,9 @@ defmodule List do
 
   """
   @spec last([elem]) :: nil | elem when elem: var
-  def last([]),      do: nil
-  def last([h]),     do: h
-  def last([_ | t]), do: last(t)
+  def last([]), do: nil
+  def last([head]), do: head
+  def last([_ | tail]), do: last(tail)
 
   @doc """
   Receives a list of tuples and returns the first tuple
@@ -748,8 +748,8 @@ defmodule List do
     [value | rest]
   end
 
-  defp do_replace_at([h | t], index, value) do
-    [h | do_replace_at(t, index - 1, value)]
+  defp do_replace_at([head | tail], index, value) do
+    [head | do_replace_at(tail, index - 1, value)]
   end
 
   # insert_at
@@ -762,8 +762,8 @@ defmodule List do
     [value | list]
   end
 
-  defp do_insert_at([h | t], index, value) do
-    [h | do_insert_at(t, index - 1, value)]
+  defp do_insert_at([head | tail], index, value) do
+    [head | do_insert_at(tail, index - 1, value)]
   end
 
   # update_at
@@ -776,8 +776,8 @@ defmodule List do
     list
   end
 
-  defp do_update_at([h | t], index, fun) do
-    [h | do_update_at(t, index - 1, fun)]
+  defp do_update_at([head | tail], index, fun) do
+    [head | do_update_at(tail, index - 1, fun)]
   end
 
   defp do_update_at([], _index, _fun) do
@@ -817,8 +817,8 @@ defmodule List do
     {nil, nil}
   end
 
-  defp do_zip_each([h | t], acc) do
-    {t, [h | acc]}
+  defp do_zip_each([head | tail], acc) do
+    {tail, [head | acc]}
   end
 
   defp do_zip_each([], _) do
