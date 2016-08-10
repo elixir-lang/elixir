@@ -3,13 +3,13 @@ defmodule Mix.Shell.Quiet do
   This is Mix's default shell when the `MIX_QUIET` environment
   variable is set.
 
-  It's just like `Mix.Shell.IO` but prints far less.
+  It's just like `Mix.Shell.IO`, but prints far less.
   """
 
   @behaviour Mix.Shell
 
   @doc """
-  Prints the currently running application if it
+  Prints the current application if it
   was not printed yet.
   """
   defdelegate print_app, to: Mix.Shell.IO
@@ -27,13 +27,13 @@ defmodule Mix.Shell.Quiet do
   def info(_message), do: nil
 
   @doc """
-  Writes an error message to the shell followed by new line.
+  Prints the error to the shell followed by a newline.
   """
   defdelegate error(message), to: Mix.Shell.IO
 
   @doc """
-  Writes a message shell followed by prompting the user for
-  input. Input will be consumed until enter is pressed.
+  Prints a message and prompts the user for
+  input. Input will be consumed until Enter is pressed.
   """
   defdelegate prompt(message), to: Mix.Shell.IO
 
