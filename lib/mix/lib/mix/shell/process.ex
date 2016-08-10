@@ -56,7 +56,7 @@ defmodule Mix.Shell.Process do
   end
 
   @doc """
-  Prints the currently running application if it
+  Prints the current application if it
   was not printed yet.
   """
   def print_app do
@@ -86,7 +86,7 @@ defmodule Mix.Shell.Process do
   end
 
   @doc """
-  Forwards the message to the current process.
+  Forwards the error to the current process.
   """
   def error(message) do
     print_app()

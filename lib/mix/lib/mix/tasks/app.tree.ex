@@ -27,8 +27,7 @@ defmodule Mix.Tasks.App.Tree do
 
       * `dot` - produces a DOT graph description of the application tree
         in `app_tree.dot` in the current directory.
-        Warning: this will override any previously generated file.
-
+        Warning: this will overwrite any previously generated file.
   """
 
   @default_excluded [:kernel, :stdlib, :compiler]
