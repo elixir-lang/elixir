@@ -19,7 +19,7 @@ defmodule ExUnit.RunnerTest do
     {_, config} = ExUnit.Runner.configure(opts)
 
     refute config.trace
-    assert config.max_cases == :erlang.system_info(:schedulers_online) * 2
     assert config.timeout == 60_000
+    assert config.max_cases == :erlang.system_info(:schedulers_online) * 2
   end
 end
