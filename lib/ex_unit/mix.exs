@@ -18,6 +18,7 @@ defmodule ExUnit.Mixfile do
        assert_receive_timeout: 100,
        autorun: true,
        capture_log: false,
+       case_load_timeout: 60_000,
        colors: [],
        exclude: [],
        include: [],

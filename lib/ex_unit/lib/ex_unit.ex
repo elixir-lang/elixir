@@ -180,6 +180,9 @@ defmodule ExUnit do
       and print them on test failure. Can be overridden for individual tests via
       `@tag capture_log: false`. Defaults to `false`.
 
+    * `:case_load_timeout` - the timeout to be used when loading a test case.
+      Defaults to `60_000` milliseconds.
+
     * `:colors` - a keyword list of colors to be used by some formatters.
       The only option so far is `[enabled: boolean]` which defaults to `IO.ANSI.enabled?/0`
 
