@@ -4,12 +4,12 @@ defmodule Mix.Shell do
   """
 
   @doc """
-  Informs the given message.
+  Prints the given message to the shell.
   """
   @callback info(message :: IO.ANSI.ansidata) :: any
 
   @doc """
-  Warns about the given error message.
+  Prints the given error to the shell.
   """
   @callback error(message :: IO.ANSI.ansidata) :: any
 
@@ -19,7 +19,7 @@ defmodule Mix.Shell do
   @callback prompt(message :: String.t) :: String.t
 
   @doc """
-  Asks the user for confirmation.
+  Prompts the user for confirmation.
   """
   @callback yes?(message :: String.t) :: boolean
 
@@ -47,7 +47,7 @@ defmodule Mix.Shell do
   @callback cmd(command :: String.t, options :: Keyword.t) :: integer
 
   @doc """
-  Prints the current application to shell if
+  Prints the current application to the shell if
   it was not printed yet.
   """
   @callback print_app() :: any
@@ -55,12 +55,12 @@ defmodule Mix.Shell do
   @doc """
   Returns the printable app name.
 
-  This function returns the current application name
+  This function returns the current application name,
   but only if the application name should be printed.
 
   Calling this function automatically toggles its value
   to `false` until the current project is re-entered. The
-  goal is to exactly avoid printing the application name
+  goal is to avoid printing the application name
   multiple times.
   """
   def printable_app_name do
