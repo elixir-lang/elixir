@@ -59,8 +59,11 @@ defmodule IEx.Autocomplete do
   defp reduce(expr) do
     Enum.reduce(' ([{', expr, fn token, acc ->
       hd(:string.tokens(acc, [token]))
-    end) |> Enum.reverse |> strip_ampersand
+    end) |> Enum.reverse |> strip_ampersand |> strip_percent
   end
+
+  defp strip_percent([?% | t]), do: t
+  defp strip_percent(expr), do: expr
 
   defp strip_ampersand([?& | t]), do: t
   defp strip_ampersand(expr), do: expr
