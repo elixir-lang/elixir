@@ -29,6 +29,11 @@ defmodule OptionParserTest do
            == {[source: "form_docs/"], [], []}
   end
 
+  test "parses only to existing atoms" do
+    assert OptionParser.parse(["--option-key-does-not-exist"]) ==
+           {[], [], [{"--option-key-does-not-exist", nil}]}
+  end
+
   test "parses --key=value option" do
     assert OptionParser.parse(["--source=form_docs/", "other"])
            == {[source: "form_docs/"], ["other"], []}
