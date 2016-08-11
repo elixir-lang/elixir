@@ -986,6 +986,7 @@ defmodule DateTime do
   Unix times are always in UTC and therefore the DateTime
   will be returned in UTC.
 
+
   ## Examples
 
       iex> DateTime.from_unix(1464096368)
@@ -1004,11 +1005,24 @@ defmodule DateTime do
       {:ok, %DateTime{calendar: Calendar.ISO, day: 23, hour: 22, microsecond: {211914, 3}, minute: 53,
                       month: 1, second: 43, std_offset: 0, time_zone: "Etc/UTC", utc_offset: 0,
                       year: 46302, zone_abbr: "UTC"}}
+  
+  Negative Unix times are supported, up to -62167219200000000 microseconds, 
+  which is equivalent to "0000-01-01T00:00:00Z" or 0 gregorian seconds.
+
+      iex> DateTime.from_unix(-12345678910)
+      {:ok, %DateTime{calendar: Calendar.ISO, day: 13, hour: 4, microsecond: {0, 0}, minute: 44, 
+                      month: 10, second: 50, std_offset: 0, time_zone: "Etc/UTC", utc_offset: 0, 
+                      year: 1578, zone_abbr: "UTC"}}
+
 
   """
   @spec from_unix(non_neg_integer, :native | System.time_unit) :: {:ok, DateTime.t}
-  def from_unix(integer, unit \\ :seconds) when is_integer(integer) and integer >= 0 do
+  def from_unix(integer, unit \\ :seconds) when is_integer(integer) do
     total = System.convert_time_unit(integer, unit, :microseconds)
+    if total < -62167219200000000 do
+      raise ArgumentError, 
+        "Date.from_unix cannot handle unix times lower than -62167219200000000 microseconds, which is equivalent to \"0000-01-01T00:00:00Z\" or 0 gregorian seconds. Got: #{total}"
+    end
     microsecond = rem(total, 1_000_000)
     precision = precision_for_unit(unit)
     {{year, month, day}, {hour, minute, second}} =
