@@ -66,4 +66,13 @@ defmodule DateTimeTest do
                    utc_offset: -12600, std_offset: 3600, time_zone: "Brazil/Manaus"}
     assert to_string(dt) == "2000-02-29 23:00:07-02:30 BRM Brazil/Manaus"
   end
+
+  test "from_unix/2 works with Unix times back to 0 Gregorian Seconds" do
+    assert DateTime.from_unix(-62167219200) == {:ok,
+                    %DateTime{calendar: Calendar.ISO, day: 1, hour: 0, microsecond: {0, 0},
+                              minute: 0, month: 1, second: 0, std_offset: 0, time_zone: "Etc/UTC",
+                              utc_offset: 0, year: 0, zone_abbr: "UTC"}}
+
+    assert DateTime.from_unix(-62167219201) == :error
+  end
 end
