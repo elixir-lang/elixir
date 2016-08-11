@@ -1110,14 +1110,20 @@ defmodule DateTime do
 
   """
   @spec to_unix(DateTime.t, System.time_unit) :: non_neg_integer
+  def to_unix(datetime, unit \\ :seconds)
+  
   def to_unix(%DateTime{calendar: Calendar.ISO, std_offset: std_offset, utc_offset: utc_offset,
                         hour: hour, minute: minute, second: second, microsecond: {microsecond, _},
-                        year: year, month: month, day: day}, unit \\ :seconds) when year >= 0 do
+                        year: year, month: month, day: day}, unit) when year >= 0 do
     seconds =
       :calendar.datetime_to_gregorian_seconds({{year, month, day}, {hour, minute, second}})
       |> Kernel.-(utc_offset)
       |> Kernel.-(std_offset)
     System.convert_time_unit((seconds - @unix_epoch) * 1_000_000 + microsecond, :microseconds, unit)
+  end
+
+  def to_unix(%DateTime{year: year}, _unit) do
+    raise ArgumentError, "Can only convert %DateTime{} to Unix time with a year >= 0, got: #{year}"
   end
 
   @doc """
