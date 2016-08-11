@@ -181,7 +181,7 @@ defmodule Kernel do
       -49
 
   """
-  @spec div(integer, integer) :: integer
+  @spec div(integer, neg_integer | pos_integer) :: integer
   def div(dividend, divisor) do
     :erlang.div(dividend, divisor)
   end
@@ -583,7 +583,7 @@ defmodule Kernel do
       2
 
   """
-  @spec rem(integer, integer) :: integer
+  @spec rem(integer, neg_integer | pos_integer) :: integer
   def rem(dividend, divisor) do
     :erlang.rem(dividend, divisor)
   end
