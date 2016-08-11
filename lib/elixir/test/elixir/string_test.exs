@@ -82,6 +82,14 @@ defmodule StringTest do
     assert String.split("a,b", ~r{\.}) == ["a,b"]
   end
 
+  test "split with compiled pattern" do
+    pattern = :binary.compile_pattern("-")
+
+    assert String.split("x-", pattern) == ["x", ""]
+    assert String.split("x-", pattern, parts: 2, trim: true) == ["x"]
+    assert String.split("x-x-", pattern, parts: 3, trim: true) == ["x", "x"]
+  end
+
   test "splitter" do
     assert String.splitter("a,b,c", ",") |> Enum.to_list == ["a", "b", "c"]
     assert String.splitter("a,b", ".") |> Enum.to_list == ["a,b"]
