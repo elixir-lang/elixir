@@ -986,7 +986,6 @@ defmodule DateTime do
   Unix times are always in UTC and therefore the DateTime
   will be returned in UTC.
 
-
   ## Examples
 
       iex> DateTime.from_unix(1464096368)
