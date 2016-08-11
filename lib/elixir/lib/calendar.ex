@@ -1019,7 +1019,7 @@ defmodule DateTime do
                     std_offset: 0, utc_offset: 0, zone_abbr: "UTC", time_zone: "Etc/UTC"}}
   end
 
-  def precision_for_unit(unit) do
+  defp precision_for_unit(unit) do
     subseconds = div System.convert_time_unit(1, :seconds, unit), 10
     precision_for_unit(subseconds, 0)
   end
