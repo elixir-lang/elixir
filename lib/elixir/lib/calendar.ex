@@ -1005,7 +1005,7 @@ defmodule DateTime do
                       month: 1, second: 43, std_offset: 0, time_zone: "Etc/UTC", utc_offset: 0,
                       year: 46302, zone_abbr: "UTC"}}
   
-  Negative Unix times are supported, up to -62167219200000000 microseconds, 
+  Negative Unix times are supported, up to -#{@unix_epoch} seconds, 
   which is equivalent to "0000-01-01T00:00:00Z" or 0 gregorian seconds.
 
       iex> DateTime.from_unix(-12345678910)
@@ -1018,7 +1018,7 @@ defmodule DateTime do
   @spec from_unix(integer, :native | System.time_unit) :: {:ok, DateTime.t}
   def from_unix(integer, unit \\ :seconds) when is_integer(integer) do
     total = System.convert_time_unit(integer, unit, :microseconds)
-    if total < -62167219200000000 do
+    if total < -@unix_epoch * 1_000_000 do
       :error  
     else
       microsecond = rem(total, 1_000_000)
