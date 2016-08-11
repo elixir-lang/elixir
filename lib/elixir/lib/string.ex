@@ -403,6 +403,7 @@ defmodule String do
   end
 
   defp maybe_compile_pattern(""), do: ""
+  defp maybe_compile_pattern(pattern) when is_tuple(pattern), do: pattern
   defp maybe_compile_pattern(pattern), do: :binary.compile_pattern(pattern)
 
   @doc """
