@@ -179,4 +179,13 @@ defmodule IEx.AutocompleteTest do
     :code.purge(Sample)
     :code.delete(Sample)
   end
+
+
+  defmodule MyStruct do
+    defstruct my_val: "val"
+  end
+
+  test "completion for structs" do
+    assert expand('%IEx.AutocompleteTest.MyStr') == {:yes, 'uct', []}
+  end
 end
