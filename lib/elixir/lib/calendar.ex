@@ -1102,6 +1102,12 @@ defmodule DateTime do
       iex> DateTime.to_unix(dt)
       1416517099
 
+      iex> flamel = %DateTime{calendar: Calendar.ISO, day: 22, hour: 8, microsecond: {527771, 6},
+      ...>                minute: 2, month: 3, second: 25, std_offset: 0, time_zone: "Etc/UTC",
+      ...>                utc_offset: 0, year: 1418, zone_abbr: "UTC"}
+      iex> DateTime.to_unix(flamel)
+      -17412508655
+
   """
   @spec to_unix(DateTime.t, System.time_unit) :: non_neg_integer
   def to_unix(%DateTime{calendar: Calendar.ISO, std_offset: std_offset, utc_offset: utc_offset,
