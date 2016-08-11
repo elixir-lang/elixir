@@ -1,4 +1,13 @@
 defmodule Dialyzer.RemoteCall do
+  _ = Application.load(:dialyzer)
+  case Application.spec(:dialyzer, :vsn) do
+    ~c(3.) ++ _ ->
+      @dialyzer {:no_return, [map_var: 0]}
+      @dialyzer {:no_match, [map_var: 0, mod_var: 0, mod_var: 1]}
+    _ ->
+      :ok
+  end
+
   def map_var() do
     map = %{a: 1}
     map.key
