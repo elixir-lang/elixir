@@ -1123,7 +1123,7 @@ defmodule DateTime do
   end
 
   def to_unix(%DateTime{year: year}, _unit) do
-    raise ArgumentError, "Can only convert %DateTime{} to Unix time with a year >= 0, got: #{year}"
+    raise ArgumentError, "can only convert %DateTime{} to Unix time with a year >= 0, got: #{year}"
   end
 
   @doc """
