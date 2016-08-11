@@ -1,6 +1,6 @@
 defmodule ExUnit.CaptureServer do
   @moduledoc false
-  @timeout 10_000
+  @timeout 30_000
 
   use GenServer
 
