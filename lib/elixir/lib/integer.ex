@@ -68,8 +68,6 @@ defmodule Integer do
   Raises an `ArithmeticError` exception if one of the arguments is not an
   integer, or when the `divisor` is `0`.
 
-  Unlike `rem/2`, `Integer.mod/2` is _not_ allowed in guard tests.
-
   ## Examples
 
       iex> Integer.mod(5, 2)
@@ -94,9 +92,7 @@ defmodule Integer do
   Raises an `ArithmeticError` exception if one of the arguments is not an
   integer, or when the `divisor` is `0`.
 
-  Unlike `Kernel.div/2`, `Integer.floor_div/2` is _not_ allowed inside guard tests.
-
-  `Integer.floor_div/2` performs _floored_ integer division. This means that
+  `Integer.floor_div/2` performs *floored* integer division. This means that
   the result is always rounded towards negative infinity.
 
   If you want to perform truncated integer division (rounding towards zero),

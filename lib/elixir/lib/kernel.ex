@@ -165,7 +165,7 @@ defmodule Kernel do
 
   Allowed in guard tests. Inlined by the compiler.
 
-  `div/2` performs _truncated_ integer division. This means that
+  `div/2` performs *truncated* integer division. This means that
   the result is always rounded towards zero.
 
   If you want to perform floored integer division (rounding towards negative infinity),
