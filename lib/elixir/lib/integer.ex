@@ -59,35 +59,16 @@ defmodule Integer do
     quote do: (unquote(integer) &&& 1) == 0
   end
 
-  @doc """
-  Computes the modulo remainder of an integer division.
-
-  `Integer.mod/2` uses floored division, which means that 
-  the result will always have the sign of the `divisor`.
-
-  Raises an `ArithmeticError` exception if one of the arguments is not an
-  integer, or when the `divisor` is `0`.
-
-  ## Examples
-
-      iex> Integer.mod(5, 2)
-      1
-      iex> Integer.mod(6, -4)
-      -2
-
-  """
-  @spec mod(integer, neg_integer | pos_integer) :: integer
-  def mod(dividend, divisor) do
-    remainder = rem(dividend, divisor)
-    if remainder * divisor < 0 do
-      remainder + divisor
-    else
-      remainder
+  defp do_floor_div(a, n) do
+    quote bind_quoted: [a: a, n: n] do
+      div(a, n) + ((rem(a, n) * n) >>> abs(a * n))
     end
   end
 
   @doc """
   Performs a floored integer division.
+
+  Allowed in guard tests.
 
   Raises an `ArithmeticError` exception if one of the arguments is not an
   integer, or when the `divisor` is `0`.
@@ -109,11 +90,48 @@ defmodule Integer do
       
   """
   @spec floor_div(integer, neg_integer | pos_integer) :: integer
-  def floor_div(dividend, divisor) do
-    if (dividend * divisor < 0) and rem(dividend, divisor) != 0 do
-      div(dividend, divisor) - 1
+  defmacro floor_div(divisor, dividend) do
+      do_floor_div(divisor, dividend)
+  end
+
+  @doc """
+  Computes the modulo remainder of an integer division.
+
+  Allowed in guard tests.
+
+  `Integer.mod/2` uses floored division, which means that 
+  the result will always have the sign of the `divisor`.
+
+  Raises an `ArithmeticError` exception if one of the arguments is not an
+  integer, or when the `divisor` is `0`.
+
+
+  ## Examples
+
+      iex> Integer.mod(5, 2)
+      1
+      iex> Integer.mod(6, -4)
+      -2
+
+  """
+  @spec mod(integer, neg_integer | pos_integer) :: integer
+  defmacro mod(dividend, divisor) do
+    in_module? = (__CALLER__.context == nil)
+    if not in_module? do
+      # Guard-clause implementation
+      quote do
+        unquote(dividend) - (unquote(divisor) * unquote(do_floor_div(dividend, divisor)))
+      end
     else
-      div(dividend, divisor)
+      # Normal implementation
+      quote bind_quoted: [a: dividend, n: divisor] do
+        remainder = rem(a, n)
+        if remainder * n < 0 do
+          remainder + n
+        else
+          remainder
+        end
+      end
     end
   end
 
