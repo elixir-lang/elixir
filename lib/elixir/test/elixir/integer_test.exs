@@ -41,6 +41,40 @@ defmodule IntegerTest do
     assert test_is_even_in_guards(11) == false
   end
 
+  test "mod/2" do
+    assert Integer.mod(3, 2) == 1
+    assert Integer.mod(0, 10) == 0
+    assert Integer.mod(30000, 2001) == 1986
+    assert Integer.mod(-20, 11) == 2
+  end
+
+  test "mod/2 raises ArithmeticError when divisor is 0" do
+    assert_raise ArithmeticError, fn -> Integer.mod(3, 0) end
+    assert_raise ArithmeticError, fn -> Integer.mod(-50, 0) end
+  end
+
+  test "mod/2 raises ArithmeticError when non-integers used as parameters" do
+    assert_raise ArithmeticError, fn -> Integer.mod(3.0, 2) end
+    assert_raise ArithmeticError, fn -> Integer.mod(20, 1.2) end
+  end
+
+  test "floor_div/2" do
+    assert Integer.floor_div(3, 2) == 1
+    assert Integer.floor_div(0, 10) == 0
+    assert Integer.floor_div(30000, 2001) == 14
+    assert Integer.floor_div(-20, 11) == -2
+  end
+
+  test "floor_div/2 raises ArithmeticError when divisor is 0" do
+    assert_raise ArithmeticError, fn -> Integer.floor_div(3, 0) end
+    assert_raise ArithmeticError, fn -> Integer.floor_div(-50, 0) end
+  end
+
+  test "floor_div/2 raises ArithmeticError when non-integers used as parameters" do
+    assert_raise ArithmeticError, fn -> Integer.floor_div(3.0, 2) end
+    assert_raise ArithmeticError, fn -> Integer.floor_div(20, 1.2) end
+  end
+
   test "digits/2" do
     assert Integer.digits(0) == [0]
     assert Integer.digits(0, 2) == [0]
