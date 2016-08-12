@@ -931,7 +931,7 @@ check_terminator({E, {Line, _, _}}, [{Start, {StartLine, _, _}} | _]) when
   End = terminator(Start),
   MessagePrefix = io_lib:format("\"~ts\" is missing terminator \"~ts\". unexpected token: \"",
                                 [Start, End]),
-  MessageSuffix = io_lib:format("\" at line ~B.", [Line]),
+  MessageSuffix = io_lib:format("\" at line ~B", [Line]),
   {error, {StartLine, {MessagePrefix, MessageSuffix}, [atom_to_list(E)]}};
 
 check_terminator({E, Line}, []) when
