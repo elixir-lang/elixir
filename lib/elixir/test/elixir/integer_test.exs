@@ -3,9 +3,9 @@ Code.require_file "test_helper.exs", __DIR__
 defmodule IntegerTest do
   use ExUnit.Case, async: true
 
-  doctest Integer
-
   require Integer
+
+  doctest Integer
 
   def test_is_odd_in_guards(number) when Integer.is_odd(number),
     do: number
@@ -58,6 +58,19 @@ defmodule IntegerTest do
     assert_raise ArithmeticError, fn -> Integer.mod(20, 1.2) end
   end
 
+  def fun_mod(x) when Integer.mod(x, 3) == 0, do: 0
+  def fun_mod(x) when Integer.mod(x, 3) == 1, do: 1
+  def fun_mod(x) when Integer.mod(x, 3) == 2, do: 2
+
+  test "mod/2 in guards" do
+    assert fun_mod(0) == 0
+    assert fun_mod(1) == 1
+    assert fun_mod(2) == 2
+    assert fun_mod(3) == 0
+    assert fun_mod(-3) == 0
+    assert fun_mod(-10) == 2
+  end
+
   test "floor_div/2" do
     assert Integer.floor_div(3, 2) == 1
     assert Integer.floor_div(0, 10) == 0
@@ -73,6 +86,20 @@ defmodule IntegerTest do
   test "floor_div/2 raises ArithmeticError when non-integers used as parameters" do
     assert_raise ArithmeticError, fn -> Integer.floor_div(3.0, 2) end
     assert_raise ArithmeticError, fn -> Integer.floor_div(20, 1.2) end
+  end
+
+  def fun_floor_div(x) when Integer.floor_div(x, 2) > 0, do: "positive"
+  def fun_floor_div(x) when Integer.floor_div(x, 2) = 0, do: "zero"
+  def fun_floor_div(x) when Integer.floor_div(x, 2) < 0, do: "negative"
+  def fun_floor_div(x = -99) when Integer.floor_div(x, 2) == -50, do: "One lower than div(-99, 2)"
+
+  test "floor_div/2 in guards" do
+    assert fun_floor_div(0) == "zero"
+    assert fun_floor_div(1) == "zero"
+    assert fun_floor_div(2) == "positive"
+    assert fun_floor_div(-99) == "One lower than div(-99, 2)"
+    assert fun_floor_div(-3) == "negative"
+    assert fun_floor_div(-10) == "negative"
   end
 
   test "digits/2" do
