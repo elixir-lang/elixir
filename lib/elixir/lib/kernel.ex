@@ -161,19 +161,29 @@ defmodule Kernel do
   Performs an integer division.
 
   Raises an `ArithmeticError` exception if one of the arguments is not an
-  integer.
+  integer, or when the `divisor` is `0`.
 
   Allowed in guard tests. Inlined by the compiler.
+
+  `div/2` performs *truncated* integer division. This means that
+  the result is always rounded towards zero.
+
+  If you want to perform floored integer division (rounding towards negative infinity),
+  use `Integer.floor_div/2` instead.
 
   ## Examples
 
       iex> div(5, 2)
       2
+      iex> div(6, -4)
+      -1
+      iex> div(-99, 2)
+      -49
 
   """
-  @spec div(integer, integer) :: integer
-  def div(left, right) do
-    :erlang.div(left, right)
+  @spec div(integer, neg_integer | pos_integer) :: integer
+  def div(dividend, divisor) do
+    :erlang.div(dividend, divisor)
   end
 
   @doc """
@@ -557,8 +567,11 @@ defmodule Kernel do
   @doc """
   Computes the remainder of an integer division.
 
+  `rem/2` uses truncated division, which means that 
+  the result will always have the sign of the `dividend`.
+
   Raises an `ArithmeticError` exception if one of the arguments is not an
-  integer.
+  integer, or when the `divisor` is `0`.
 
   Allowed in guard tests. Inlined by the compiler.
 
@@ -566,11 +579,13 @@ defmodule Kernel do
 
       iex> rem(5, 2)
       1
+      iex> rem(6, -4)
+      2
 
   """
-  @spec rem(integer, integer) :: integer
-  def rem(left, right) do
-    :erlang.rem(left, right)
+  @spec rem(integer, neg_integer | pos_integer) :: integer
+  def rem(dividend, divisor) do
+    :erlang.rem(dividend, divisor)
   end
 
   @doc """
