@@ -59,9 +59,12 @@ defmodule Integer do
     quote do: (unquote(integer) &&& 1) == 0
   end
 
+  # div(a, n) + ((rem(a, n) * n) >>> abs(a * n))
+  # returns div(a, n) with -1 added only if `a` and `n` have opposite signs and `rem(a, n) != 0`.
+  # This version is possible because `x >>> abs(x)` returns -1 if `x` is negative.
   defp do_floor_div(a, n) do
-    quote bind_quoted: [a: a, n: n] do
-      div(a, n) + ((rem(a, n) * n) >>> abs(a * n))
+    quote do
+      div(unquote(a), unquote(n)) + (rem(unquote(a), unquote(n)) * unquote(n) >>> abs(unquote(a) * unquote(n)))
     end
   end
 
@@ -90,8 +93,23 @@ defmodule Integer do
       
   """
   @spec floor_div(integer, neg_integer | pos_integer) :: integer
-  defmacro floor_div(divisor, dividend) do
-      do_floor_div(divisor, dividend)
+  defmacro floor_div(dividend, divisor)
+
+  defmacro floor_div(a, n) do
+    in_module? = (__CALLER__.context == nil)
+    if not in_module? do
+      # Guard-clause implementation
+      do_floor_div(a, n)
+    else
+      # Normal implementation
+      quote bind_quoted: [a: a, n: n] do
+        if (a * n < 0) and rem(a, n) != 0 do
+          div(a, n) - 1
+        else
+          div(a, n)
+        end
+      end
+    end
   end
 
   @doc """
@@ -115,16 +133,17 @@ defmodule Integer do
 
   """
   @spec mod(integer, neg_integer | pos_integer) :: integer
-  defmacro mod(dividend, divisor) do
+  defmacro mod(dividend, divisor)
+  defmacro mod(a, n) do
     in_module? = (__CALLER__.context == nil)
     if not in_module? do
       # Guard-clause implementation
       quote do
-        unquote(dividend) - (unquote(divisor) * unquote(do_floor_div(dividend, divisor)))
+        unquote(a) - (unquote(n) * unquote(do_floor_div(a, n)))
       end
     else
       # Normal implementation
-      quote bind_quoted: [a: dividend, n: divisor] do
+      quote bind_quoted: [a: a, n: n] do
         remainder = rem(a, n)
         if remainder * n < 0 do
           remainder + n

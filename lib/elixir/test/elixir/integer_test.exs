@@ -88,16 +88,16 @@ defmodule IntegerTest do
     assert_raise ArithmeticError, fn -> Integer.floor_div(20, 1.2) end
   end
 
-  def fun_floor_div(x) when Integer.floor_div(x, 2) > 0, do: "positive"
-  def fun_floor_div(x) when Integer.floor_div(x, 2) = 0, do: "zero"
-  def fun_floor_div(x) when Integer.floor_div(x, 2) < 0, do: "negative"
   def fun_floor_div(x = -99) when Integer.floor_div(x, 2) == -50, do: "One lower than div(-99, 2)"
+  def fun_floor_div(x) when Integer.floor_div(x, 2) >  0, do: "positive"
+  def fun_floor_div(x) when Integer.floor_div(x, 2) == 0, do: "zero"
+  def fun_floor_div(x) when Integer.floor_div(x, 2) <  0, do: "negative"
 
   test "floor_div/2 in guards" do
+    assert fun_floor_div(-99) == "One lower than div(-99, 2)"
+    assert fun_floor_div(2) == "positive"
     assert fun_floor_div(0) == "zero"
     assert fun_floor_div(1) == "zero"
-    assert fun_floor_div(2) == "positive"
-    assert fun_floor_div(-99) == "One lower than div(-99, 2)"
     assert fun_floor_div(-3) == "negative"
     assert fun_floor_div(-10) == "negative"
   end
