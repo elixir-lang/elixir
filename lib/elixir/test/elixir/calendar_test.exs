@@ -83,7 +83,7 @@ defmodule DateTimeTest do
     before_gregorian_0 = %DateTime{gregorian_0 | year: -1}
 
     assert DateTime.to_unix(gregorian_0) == -62167219200
-    assert_raise ArgumentError, "can only convert %DateTime{} to Unix time with a year >= 0, got: -1", fn ->
+    assert_raise FunctionClauseError, fn ->
       DateTime.to_unix(before_gregorian_0)
     end
   end
