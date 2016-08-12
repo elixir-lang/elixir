@@ -103,9 +103,9 @@ Built-in type           | Defined as
 `nonempty_list()`       | `nonempty_list(any())`
 `iolist()`              | `maybe_improper_list(byte() \| binary() \| iolist(), binary() \| [])`
 `iodata()`              | `iolist()` \| `binary()`
-`module()`              | `atom()` \| `tuple()`
+`module()`              | `atom()`
 `arity()`               | `0..255`
-`mfa()`                 | `{atom(), atom(), arity()}`
+`mfa()`                 | `{module(), atom(), arity()}`
 `identifier()`          | `pid()` \| `port()` \| `reference()`
 `node()`                | `atom()`
 `timeout()`             | `:infinity` \| `non_neg_integer()`
