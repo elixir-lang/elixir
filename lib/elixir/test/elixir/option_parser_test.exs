@@ -102,8 +102,8 @@ defmodule OptionParserTest do
   end
 
   test "keeps options on configured keep" do
-    args = ["--require", "foo", "--require", "bar", "baz"]
-    assert OptionParser.parse(args, switches: [require: :keep])
+    argv = ["--require", "foo", "--require", "bar", "baz"]
+    assert OptionParser.parse(argv, switches: [require: :keep])
            == {[require: "foo", require: "bar"], ["baz"], []}
 
     assert OptionParser.parse(["--require"], switches: [require: :keep])
@@ -141,12 +141,12 @@ defmodule OptionParserTest do
   end
 
   test "parses configured integers with keep" do
-    args = ["--value", "1", "--value", "2", "foo"]
-    assert OptionParser.parse(args, switches: [value: [:integer, :keep]])
+    argv = ["--value", "1", "--value", "2", "foo"]
+    assert OptionParser.parse(argv, switches: [value: [:integer, :keep]])
            == {[value: 1, value: 2], ["foo"], []}
 
-    args = ["--value=1", "foo", "--value=2", "bar"]
-    assert OptionParser.parse(args, switches: [value: [:integer, :keep]])
+    argv = ["--value=1", "foo", "--value=2", "bar"]
+    assert OptionParser.parse(argv, switches: [value: [:integer, :keep]])
            == {[value: 1, value: 2], ["foo", "bar"], []}
   end
 
@@ -165,14 +165,14 @@ defmodule OptionParserTest do
   end
 
   test "parses mixed options" do
-    args = ["--source", "from_docs/", "--compile", "-x"]
-    assert OptionParser.parse(args, aliases: [x: :x])
+    argv = ["--source", "from_docs/", "--compile", "-x"]
+    assert OptionParser.parse(argv, aliases: [x: :x])
            == {[source: "from_docs/", compile: true, x: true], [], []}
   end
 
   test "stops on first non option arguments" do
-    args = ["--source", "from_docs/", "test/enum_test.exs", "--verbose"]
-    assert OptionParser.parse_head(args)
+    argv = ["--source", "from_docs/", "test/enum_test.exs", "--verbose"]
+    assert OptionParser.parse_head(argv)
            == {[source: "from_docs/"], ["test/enum_test.exs", "--verbose"], []}
   end
 
@@ -191,8 +191,8 @@ defmodule OptionParserTest do
   end
 
   test "goes beyond the first non option arguments" do
-    args = ["--source", "from_docs/", "test/enum_test.exs", "--verbose"]
-    assert OptionParser.parse(args)
+    argv = ["--source", "from_docs/", "test/enum_test.exs", "--verbose"]
+    assert OptionParser.parse(argv)
            == {[source: "from_docs/", verbose: true], ["test/enum_test.exs"], []}
   end
 
@@ -202,8 +202,8 @@ defmodule OptionParserTest do
   end
 
   test "collects multiple invalid options" do
-    args = ["--bad", "opt", "foo", "-o", "bad", "bar"]
-    assert OptionParser.parse(args, switches: [bad: :integer])
+    argv = ["--bad", "opt", "foo", "-o", "bad", "bar"]
+    assert OptionParser.parse(argv, switches: [bad: :integer])
            == {[], ["foo", "bar"], [{"--bad", "opt"}, {"-o", "bad"}]}
   end
 
@@ -223,22 +223,22 @@ defmodule OptionParserTest do
 
   test "parse!/2 raise an exception for an unknown option using strict" do
     assert_raise OptionParser.ParseError, "1 error found!\n--doc : Unknown option", fn ->
-      args = ["--source", "from_docs/", "--doc", "show"]
-      OptionParser.parse!(args, strict: [source: :string, docs: :string])
+      argv = ["--source", "from_docs/", "--doc", "show"]
+      OptionParser.parse!(argv, strict: [source: :string, docs: :string])
     end
   end
 
   test "parse!/2 raise an exception when an option is of the wrong type" do
     assert_raise OptionParser.ParseError, fn ->
-      args = ["--bad", "opt", "foo", "-o", "bad", "bar"]
-      OptionParser.parse!(args, switches: [bad: :integer])
+      argv = ["--bad", "opt", "foo", "-o", "bad", "bar"]
+      OptionParser.parse!(argv, switches: [bad: :integer])
     end
   end
 
   test "parse_head!/2 raise an exception when an option is of the wrong type" do
     assert_raise OptionParser.ParseError, "1 error found!\n--number : Expected type integer, got \"lib\"", fn ->
-      args = ["--number", "lib", "test/enum_test.exs"]
-      OptionParser.parse_head!(args, strict: [number: :integer])
+      argv = ["--number", "lib", "test/enum_test.exs"]
+      OptionParser.parse_head!(argv, strict: [number: :integer])
     end
   end
 
@@ -260,10 +260,10 @@ defmodule OptionParserTest do
     assert OptionParser.parse(["arg1", "-43"])
       == {[], ["arg1", "-43"], []}
 
-      assert OptionParser.parse(["arg1", "-o", "-43"], switches: [option: :integer], aliases: [o: :option])
+    assert OptionParser.parse(["arg1", "-o", "-43"], switches: [option: :integer], aliases: [o: :option])
       == {[option: -43], ["arg1"], []}
 
-      assert OptionParser.parse(["arg1", "--option=-43"], switches: [option: :integer])
+    assert OptionParser.parse(["arg1", "--option=-43"], switches: [option: :integer])
       == {[option: -43], ["arg1"], []}
   end
 
@@ -271,10 +271,10 @@ defmodule OptionParserTest do
     assert OptionParser.parse(["arg1", "-43.2"])
       == {[], ["arg1", "-43.2"], []}
 
-      assert OptionParser.parse(["arg1", "-o", "-43.2"], switches: [option: :float], aliases: [o: :option])
+    assert OptionParser.parse(["arg1", "-o", "-43.2"], switches: [option: :float], aliases: [o: :option])
       == {[option: -43.2], ["arg1"], []}
 
-      assert OptionParser.parse(["arg1", "--option=-43.2"], switches: [option: :float])
+    assert OptionParser.parse(["arg1", "--option=-43.2"], switches: [option: :float])
       == {[option: -43.2], ["arg1"], []}
   end
 
