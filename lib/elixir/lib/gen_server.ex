@@ -795,7 +795,7 @@ defmodule GenServer do
   @doc """
   Replies to a client.
 
-  This function can be used to explicitely send a reply to a client that called
+  This function can be used to explicitly send a reply to a client that called
   `call/3` or `multi_call/4` when the reply cannot be specified in the return
   value of `handle_call/3`.
 
