@@ -345,11 +345,11 @@ defmodule OptionParser do
       String.contains?(option, ["-", "_"]) ->
         {:undefined, original, value, rest}
       String.length(option) > 1 ->
-        opt = get_option(option)
-        alias = aliases[opt]
-        if opt && alias do
-          IO.warn "multi-letter aliases are deprecated, got: #{inspect(opt)}"
-          do_next({:default, alias}, value, original, rest, switches, strict?)
+        key = get_option_key(option)
+        option_key = aliases[key]
+        if key && option_key do
+          IO.warn "multi-letter aliases are deprecated, got: #{inspect(key)}"
+          do_next({:default, option_key}, value, original, rest, switches, strict?)
         else
           next(expand_multiletter_alias(option, value) ++ rest, aliases, switches, strict?)
         end
@@ -534,26 +534,26 @@ defmodule OptionParser do
 
   defp tag_option("no-" <> option = original, switches) do
     cond do
-      (negated = get_option(option)) && :boolean in List.wrap(switches[negated]) ->
+      (negated = get_option_key(option)) && :boolean in List.wrap(switches[negated]) ->
         {:negated, negated}
-      option = get_option(original) ->
-        {:default, option}
+      option_key = get_option_key(original) ->
+        {:default, option_key}
       true ->
         :unknown
     end
   end
 
   defp tag_option(option, _switches) do
-    if option = get_option(option) do
-      {:default, option}
+    if option_key = get_option_key(option) do
+      {:default, option_key}
     else
       :unknown
     end
   end
 
   defp tag_oneletter_alias(alias, aliases) when is_binary(alias) do
-    if alias = aliases[String.to_atom(alias)] do
-      {:default, alias}
+    if option_key = aliases[to_existing_key(alias)] do
+      {:default, option_key}
     else
       :unknown
     end
@@ -642,9 +642,17 @@ defmodule OptionParser do
   defp to_underscore(<<>>, acc),
     do: acc
 
-  defp get_option(option) do
-    if str = to_underscore(option) do
-      String.to_atom(str)
+  def get_option_key(option) do
+    if string = to_underscore(option) do
+      to_existing_key(string)
+    end
+  end
+
+  defp to_existing_key(option) do
+    try do
+      String.to_existing_atom(option)
+    rescue
+      ArgumentError -> nil
     end
   end
 
@@ -674,12 +682,12 @@ defmodule OptionParser do
   end
 
   defp get_type(option, opts, types) do
-    option_key = option |> String.trim_leading("-") |> get_option()
+    key = option |> String.trim_leading("-") |> get_option_key()
 
-    if option_alias = opts[:aliases][option_key] do
-      types[option_alias]
-    else
+    if option_key = opts[:aliases][key] do
       types[option_key]
+    else
+      types[key]
     end
   end
 end
