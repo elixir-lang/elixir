@@ -1241,6 +1241,39 @@ defmodule Enum do
   end
 
   @doc """
+  Returns a list of results of invoking `fun` on every `nth`
+  item of `enumerable`, starting with the first element.
+
+  The first result is always included, unless `nth` is 0.
+
+  The second argument specifies every `nth` item must be a non-negative
+  integer, otherwise `FunctionClauseError` will be raised.
+
+  ## Examples
+
+      iex> Enum.map_every(1..10, 2, fn(x) -> x * 2 end)
+      [2, 2, 6, 4, 10, 6, 14, 8, 18, 10]
+
+      iex> Enum.map_every(1..10, 0, fn(x) -> x * 2 end)
+      []
+
+      iex> Enum.map_every([1, 2, 3], 1, fn(x) -> x * 2 end)
+      [2, 4, 6]
+
+  """
+  @spec map_every(t, non_neg_integer, (element -> any)) :: list
+  def map_every(enumerable, nth, fun)
+
+  def map_every(enumerable, 1, fun), do: map(enumerable, fun)
+  def map_every(_enumerable, 0, _fun), do: []
+  def map_every([], nth, _fun) when is_integer(nth) and nth > 1, do: []
+
+  def map_every(enumerable, nth, fun) when is_integer(nth) and nth > 1 do
+    {res, _} = reduce(enumerable, {[], :first}, R.map_every(nth, fun))
+    :lists.reverse(res)
+  end
+
+  @doc """
   Maps and joins the given enumerable in one pass.
 
   `joiner` can be either a binary or a list and the result will be of

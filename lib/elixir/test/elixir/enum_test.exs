@@ -268,6 +268,21 @@ defmodule EnumTest do
     assert Enum.map([1, 2, 3], fn x -> x * 2 end) == [2, 4, 6]
   end
 
+  test "map_every/3" do
+    assert Enum.map_every([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 2, fn x -> x * 2 end) == [2, 2, 6, 4, 10, 6, 14, 8, 18, 10]
+    assert Enum.map_every([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 3, fn x -> x * 2 end) == [2, 2, 3, 8, 5, 6, 14, 8, 9, 20]
+    assert Enum.map_every([], 2, fn x -> x * 2 end) == []
+    assert Enum.map_every([1, 2], 2, fn x -> x * 2 end) == [2, 2]
+    assert Enum.map_every([1, 2, 3], 0, fn x -> x * 2 end) == []
+    assert Enum.map_every(1..3, 1, fn x -> x * 2 end) == [2, 4, 6]
+    assert_raise FunctionClauseError, fn ->
+      Enum.map_every([1, 2, 3], -1, fn x -> x * 2 end)
+    end
+    assert_raise FunctionClauseError, fn ->
+      Enum.map_every(1..10, 3.33, fn x -> x * 2 end)
+    end
+  end
+
   test "map_join/3" do
     assert Enum.map_join([], " = ", &(&1 * 2)) == ""
     assert Enum.map_join([1, 2, 3], " = ", &(&1 * 2)) == "2 = 4 = 6"
@@ -932,6 +947,16 @@ defmodule EnumTest.Range do
   test "map/2" do
     assert Enum.map(1..3, fn x -> x * 2 end) == [2, 4, 6]
     assert Enum.map(-1..-3, fn x -> x * 2 end) == [-2, -4, -6]
+  end
+
+  test "map_every/3" do
+    assert Enum.map_every(1..10, 2, fn x -> x * 2 end) == [2, 2, 6, 4, 10, 6, 14, 8, 18, 10]
+    assert Enum.map_every(-1..-10, 2, fn x -> x * 2 end) == [-2, -2, -6, -4, -10, -6, -14, -8, -18, -10]
+    assert Enum.map_every(1..2, 2, fn x -> x * 2 end) == [2, 2]
+    assert Enum.map_every(1..3, 0, fn x -> x * 2 end) == []
+    assert_raise FunctionClauseError, fn ->
+      Enum.map_every(1..3, -1, fn x -> x * 2 end)
+    end
   end
 
   test "map_join/3" do

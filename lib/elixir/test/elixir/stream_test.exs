@@ -502,6 +502,38 @@ defmodule StreamTest do
     assert Stream.map(nats, &(&1 - 2)) |> Stream.map(&(&1 * 2)) |> Enum.take(3) == [-2, 0, 2]
   end
 
+  test "map_every/3" do
+    assert 1..10
+           |> Stream.map_every(2, &(&1 * 2))
+           |> Enum.to_list == [2, 2, 6, 4, 10, 6, 14, 8, 18, 10]
+
+    assert 1..10
+           |> Stream.map_every(3, &(&1 * 2))
+           |> Enum.to_list == [2, 2, 3, 8, 5, 6, 14, 8, 9, 20]
+
+    assert 1..10
+           |> Stream.drop(2)
+           |> Stream.map_every(2, &(&1 * 2))
+           |> Stream.drop(1)
+           |> Enum.to_list == [4, 10, 6, 14, 8, 18, 10]
+
+    assert 1..10
+           |> Stream.map_every(0, &(&1 * 2))
+           |> Enum.to_list == []
+
+    assert []
+           |> Stream.map_every(10, &(&1 * 2))
+           |> Enum.to_list == []
+
+    assert_raise FunctionClauseError, fn ->
+      Stream.map_every(1..10, -1, &(&1 * 2))
+    end
+
+    assert_raise FunctionClauseError, fn ->
+      Stream.map_every(1..10, 3.33, &(&1 * 2))
+    end
+  end
+
   test "reject/2" do
     stream = Stream.reject([1, 2, 3], fn(x) -> rem(x, 2) == 0 end)
     assert is_lazy(stream)
