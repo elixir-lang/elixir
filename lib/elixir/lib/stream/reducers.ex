@@ -120,6 +120,18 @@ defmodule Stream.Reducers do
     end
   end
 
+  defmacro map_every(nth, mapper, f \\ nil) do
+    quote do
+      fn
+        (entry, acc(h, n, t)) when n === :first
+                              when n === unquote(nth) ->
+          next_with_acc(unquote(f), unquote(mapper).(entry), h, 1, t)
+        (entry, acc(h, n, t)) ->
+          skip(acc(h, n+1, t))
+      end
+    end
+  end
+
   defmacro reject(callback, f \\ nil) do
     quote do
       fn(entry, acc) ->

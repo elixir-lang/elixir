@@ -492,6 +492,41 @@ defmodule Stream do
   end
 
   @doc """
+  Creates a stream that will apply the given function on
+  every `nth` item from the enumerable.
+
+  The first item is always included, unless `nth` is 0.
+
+  `nth` must be a non-negative integer, or `FunctionClauseError` will be thrown.
+
+  ## Examples
+
+      iex> stream = Stream.map_every(1..10, 2, fn(x) -> x * 2 end)
+      iex> Enum.to_list(stream)
+      [2, 6, 10, 14, 18]
+
+      iex> stream = Stream.map_every([1, 2, 3, 4, 5], 1, fn(x) -> x * 2 end)
+      iex> Enum.to_list(stream)
+      [2, 4, 6, 8, 10]
+
+      iex> stream = Stream.map_every(1..1000, 0, fn(x) -> x * 2 end)
+      iex> Enum.to_list(stream)
+      []
+
+  """
+  @spec map_every(Enumerable.t, non_neg_integer, (element -> any)) :: Enumerable.t
+  def map_every(enum, nth, fun)
+
+  def map_every(enum, 1, fun), do: map(enum, fun)
+  def map_every(_enum, 0, _fun), do: %Stream{enum: []}
+  def map_every([], _nth, _fun), do: %Stream{enum: []}
+
+  def map_every(enum, nth, fun) when is_integer(nth) and nth > 0 do
+    lazy enum, nth, fn(f1) -> R.map_every(nth, fun, f1) end
+  end
+
+
+  @doc """
   Creates a stream that will reject elements according to
   the given function on enumeration.
 
