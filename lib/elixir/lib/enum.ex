@@ -1252,7 +1252,7 @@ defmodule Enum do
   ## Examples
 
       iex> Enum.map_every(1..10, 2, fn(x) -> x * 2 end)
-      [2, 6, 10, 14, 18]
+      [2, 2, 6, 4, 10, 6, 14, 8, 18, 10]
 
       iex> Enum.map_every(1..10, 0, fn(x) -> x * 2 end)
       []

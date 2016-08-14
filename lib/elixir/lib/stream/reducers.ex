@@ -127,7 +127,7 @@ defmodule Stream.Reducers do
                               when n === unquote(nth) ->
           next_with_acc(unquote(f), unquote(mapper).(entry), h, 1, t)
         (entry, acc(h, n, t)) ->
-          skip(acc(h, n+1, t))
+          next_with_acc(unquote(f), entry, h, n+1, t)
       end
     end
   end

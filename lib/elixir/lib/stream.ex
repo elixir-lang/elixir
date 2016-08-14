@@ -503,7 +503,7 @@ defmodule Stream do
 
       iex> stream = Stream.map_every(1..10, 2, fn(x) -> x * 2 end)
       iex> Enum.to_list(stream)
-      [2, 6, 10, 14, 18]
+      [2, 2, 6, 4, 10, 6, 14, 8, 18, 10]
 
       iex> stream = Stream.map_every([1, 2, 3, 4, 5], 1, fn(x) -> x * 2 end)
       iex> Enum.to_list(stream)
