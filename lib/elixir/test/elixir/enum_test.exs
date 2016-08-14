@@ -314,15 +314,15 @@ defmodule EnumTest do
     assert_raise Enum.EmptyError, fn ->
       Enum.min([])
     end
-    assert_raise Enum.EmptyError, fn ->
-      Enum.min_by(%{}, &(&1))
-    end
   end
 
   test "min_by/2" do
     assert Enum.min_by(["a", "aa", "aaa"], fn(x) -> String.length(x) end) == "a"
     assert_raise Enum.EmptyError, fn ->
       Enum.min_by([], fn(x) -> String.length(x) end)
+    end
+    assert_raise Enum.EmptyError, fn ->
+      Enum.min_by(%{}, &(&1))
     end
   end
 
