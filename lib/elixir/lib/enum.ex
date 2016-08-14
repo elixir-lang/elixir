@@ -1315,17 +1315,21 @@ defmodule Enum do
   If multiple elements are considered maximal, the first one that was found
   is returned.
 
-  Raises `Enum.EmptyError` if `enumerable` is empty.
+  Calls the provided `empty_fallback` and returns its value if `enumerable`
+  is empty. The default `empty_fallback` raises `Enum.EmptyError`.
 
   ## Examples
 
       iex> Enum.max([1, 2, 3])
       3
 
+      iex> Enum.max([], fn -> 0 end)
+      0
+
   """
-  @spec max(t) :: element | no_return
-  def max(enumerable) do
-    reduce(enumerable, &Kernel.max(&1, &2))
+  @spec max(t, (() -> empty_result)) :: element | empty_result | no_return when empty_result: any
+  def max(enumerable, empty_fallback \\ fn -> raise Enum.EmptyError end) do
+    reduce_handling_empty(enumerable, &Kernel.max(&1, &2), empty_fallback)
   end
 
   @doc """
@@ -1419,17 +1423,21 @@ defmodule Enum do
   If multiple elements are considered minimal, the first one that was found
   is returned.
 
-  Raises `Enum.EmptyError` if `enumerable` is empty.
+  Calls the provided `empty_fallback` and returns its value if `enumerable`
+  is empty. The default `empty_fallback` raises `Enum.EmptyError`.
 
   ## Examples
 
       iex> Enum.min([1, 2, 3])
       1
 
+      iex> Enum.min([], fn -> 0 end)
+      0
+
   """
-  @spec min(t) :: element | no_return
-  def min(enumerable) do
-    reduce(enumerable, &Kernel.min(&1, &2))
+  @spec min(t, (() -> empty_result)) :: element | empty_result | no_return when empty_result: any
+  def min(enumerable, empty_fallback \\ fn -> raise Enum.EmptyError end) do
+    reduce_handling_empty(enumerable, &Kernel.min(&1, &2), empty_fallback)
   end
 
   @doc """
@@ -1485,16 +1493,20 @@ defmodule Enum do
   If multiple elements are considered maximal or minimal, the first one
   that was found is returned.
 
-  Raises `Enum.EmptyError` if `enumerable` is empty.
+  Calls the provided `empty_fallback` and returns its value if `enumerable`
+  is empty. The default `empty_fallback` raises `Enum.EmptyError`.
 
   ## Examples
 
       iex> Enum.min_max([2, 3, 1])
       {1, 3}
 
+      iex> Enum.min_max([], fn -> {nil, nil} end)
+      {nil, nil}
+
   """
-  @spec min_max(t) :: {element, element} | no_return
-  def min_max(enumerable) do
+  @spec min_max(t, (() -> empty_result)) :: {element, element} | empty_result | no_return when empty_result: any
+  def min_max(enumerable, empty_fallback \\ fn -> raise Enum.EmptyError end) do
     result =
       Enum.reduce(enumerable, :first, fn
         entry, {min_value, max_value} ->
@@ -1504,7 +1516,7 @@ defmodule Enum do
       end)
 
     case result do
-      :first -> raise Enum.EmptyError
+      :first -> empty_fallback.()
       result -> result
     end
   end
@@ -1722,6 +1734,14 @@ defmodule Enum do
   def reduce(enumerable, acc, fun) when is_function(fun, 2) do
     Enumerable.reduce(enumerable, {:cont, acc},
                       fn x, acc -> {:cont, fun.(x, acc)} end) |> elem(1)
+  end
+
+  defp reduce_handling_empty(enumerable, fun, empty_fallback) do
+    if Enum.empty?(enumerable) do
+      empty_fallback.()
+    else
+      reduce(enumerable, fun)
+    end
   end
 
   @doc """

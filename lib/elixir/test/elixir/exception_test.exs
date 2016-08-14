@@ -366,7 +366,9 @@ defmodule ExceptionTest do
 
                  * map/2
                  * max/1
+                 * max/2
                  * min/1
+                 * min/2
            """
     assert %UndefinedFunctionError{module: :erlang, function: :gt_cookie, arity: 0} |> message == """
            function :erlang.gt_cookie/0 is undefined or private. Did you mean one of:
