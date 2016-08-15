@@ -4,6 +4,17 @@ defmodule EnumTest do
   use ExUnit.Case, async: true
   doctest Enum
 
+  defp assert_runs_enumeration_only_once(enum_fun) do
+    enumerator = Stream.map([:element], fn element ->
+      send(self(), element)
+      element
+    end)
+
+    enum_fun.(enumerator)
+    assert_received :element
+    refute_received :element
+  end
+
   test "all?/2" do
     assert Enum.all?([2, 4, 6])
     refute Enum.all?([2, nil, 4])
@@ -355,17 +366,6 @@ defmodule EnumTest do
     assert Enum.min([], fn -> :empty_value end) == :empty_value
     assert Enum.min(%{}, fn -> :empty_value end) == :empty_value
     assert_runs_enumeration_only_once(&Enum.min(&1, fn -> nil end))
-  end
-
-  defp assert_runs_enumeration_only_once(enum_fun) do
-    enumerator = Stream.map([:element], fn element ->
-      send(self(), element)
-      element
-    end)
-
-    enum_fun.(enumerator)
-    assert_received :element
-    refute_received :element
   end
 
   test "min_by/2" do

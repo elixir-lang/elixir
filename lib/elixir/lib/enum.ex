@@ -1364,7 +1364,7 @@ defmodule Enum do
   def max(enumerable, empty_fallback \\ fn -> raise Enum.EmptyError end)
 
   def max(enumerable, empty_fallback) when is_function(empty_fallback, 0) do
-    reduce_handling_empty(enumerable, &Kernel.max(&1, &2), empty_fallback)
+    aggregate(enumerable, &(&1), &Kernel.max/2, empty_fallback)
   end
 
   @doc """
@@ -1393,11 +1393,10 @@ defmodule Enum do
   def max_by(enumerable, fun, empty_fallback \\ fn -> raise Enum.EmptyError end)
 
   def max_by(enumerable, fun, empty_fallback) when is_function(fun, 1) and is_function(empty_fallback, 0) do
-    reduce_handling_empty(enumerable, fn entry, {_, fun_max} = old ->
+    aggregate_by(enumerable, &{&1, fun.(&1)}, fn entry, {_, fun_max} = old ->
       fun_entry = fun.(entry)
       if(fun_entry > fun_max, do: {entry, fun_entry}, else: old)
-    end, fn -> {empty_fallback.(), nil} end, &{&1, fun.(&1)})
-    |> elem(0)
+    end, empty_fallback)
   end
 
   @doc """
@@ -1461,7 +1460,7 @@ defmodule Enum do
   def min(enumerable, empty_fallback \\ fn -> raise Enum.EmptyError end)
 
   def min(enumerable, empty_fallback) when is_function(empty_fallback, 0) do
-    reduce_handling_empty(enumerable, &Kernel.min(&1, &2), empty_fallback)
+    aggregate(enumerable, &(&1), &Kernel.min/2, empty_fallback)
   end
 
   @doc """
@@ -1490,11 +1489,10 @@ defmodule Enum do
   def min_by(enumerable, fun, empty_fallback \\ fn -> raise Enum.EmptyError end)
 
   def min_by(enumerable, fun, empty_fallback) when is_function(fun, 1) and is_function(empty_fallback, 0) do
-    reduce_handling_empty(enumerable, fn entry, {_, fun_min} = old ->
+    aggregate_by(enumerable, &{&1, fun.(&1)}, fn entry, {_, fun_min} = old ->
       fun_entry = fun.(entry)
       if(fun_entry < fun_min, do: {entry, fun_entry}, else: old)
-    end, fn -> {empty_fallback.(), nil} end, &{&1, fun.(&1)})
-    |> elem(0)
+    end, empty_fallback)
   end
 
   @doc """
@@ -1520,9 +1518,9 @@ defmodule Enum do
   def min_max(enumerable, empty_fallback \\ fn -> raise Enum.EmptyError end)
 
   def min_max(enumerable, empty_fallback) when is_function(empty_fallback, 0) do
-    reduce_handling_empty(enumerable, fn entry, {min_value, max_value} ->
+    aggregate(enumerable, &{&1, &1}, fn entry, {min_value, max_value} ->
       {Kernel.min(entry, min_value), Kernel.max(entry, max_value)}
-    end, empty_fallback, &{&1, &1})
+    end, empty_fallback)
   end
 
   @doc """
@@ -1551,24 +1549,51 @@ defmodule Enum do
   def min_max_by(enumerable, fun, empty_fallback \\ fn -> raise Enum.EmptyError end)
 
   def min_max_by(enumerable, fun, empty_fallback) when is_function(fun, 1) and is_function(empty_fallback, 0) do
-    empty_marker = make_ref()
-
-    result =
-      reduce_handling_empty(enumerable, fn entry, {{_, fun_min} = acc_min, {_, fun_max} = acc_max} ->
+    aggregate_by(enumerable,
+      fn entry ->
         fun_entry = fun.(entry)
-        acc_min = if fun_entry < fun_min, do: {entry, fun_entry}, else: acc_min
-        acc_max = if fun_entry > fun_max, do: {entry, fun_entry}, else: acc_max
-        {acc_min, acc_max}
-      end, fn -> {empty_marker, empty_fallback.()} end, fn entry ->
+        {{entry, entry}, {fun_entry, fun_entry}}
+      end,
+      fn entry, {{prev_min, prev_max}, {fun_min, fun_max}} = acc ->
         fun_entry = fun.(entry)
-        {{entry, fun_entry}, {entry, fun_entry}}
-      end)
-
-    case result do
-      {^empty_marker, empty_result} -> empty_result
-      {{min_entry, _}, {max_entry, _}} -> {min_entry, max_entry}
-    end
+        cond do
+          fun_entry < fun_min ->
+            {{entry, prev_max}, {fun_entry, fun_max}}
+          fun_entry > fun_max ->
+            {{prev_min, entry}, {fun_min, fun_entry}}
+          true ->
+            acc
+        end
+      end,
+      empty_fallback)
   end
+
+  defp aggregate([h | t], first, fun, empty) do
+    :lists.foldl(fun, first.(h), t)
+  end
+  defp aggregate(enumerable, first, fun, empty) do
+    ref = make_ref()
+    reduce(enumerable, ref, fn
+      element, ^ref -> first.(element)
+      element, acc -> fun.(element, acc)
+    end) |> apply_if_ref_or_return(ref, empty)
+  end
+
+  defp apply_if_ref_or_return(ref, ref, fun), do: fun.()
+  defp apply_if_ref_or_return(val, _, _fun), do: val
+
+  defp aggregate_by([h | t], first, fun, empty) do
+    :lists.foldl(fun, first.(h), t) |> elem(0)
+  end
+  defp aggregate_by(enumerable, first, fun, empty) do
+    reduce(enumerable, :empty, fn
+      element, :empty -> first.(element)
+      element, acc -> fun.(element, acc)
+    end) |> apply_if_empty_or_zeroth(empty)
+  end
+
+  defp apply_if_empty_or_zeroth(:empty, fun), do: fun.()
+  defp apply_if_empty_or_zeroth(tuple, _fun) when is_tuple(tuple), do: elem(tuple, 0)
 
   @doc """
   Splits the `enumerable` in two lists according to the given function `fun`.
@@ -1708,7 +1733,7 @@ defmodule Enum do
       end) |> elem(1)
 
     case result do
-      :first        -> raise Enum.EmptyError
+      :first      -> raise Enum.EmptyError
       {:acc, acc} -> acc
     end
   end
@@ -1743,21 +1768,6 @@ defmodule Enum do
   def reduce(enumerable, acc, fun) when is_function(fun, 2) do
     Enumerable.reduce(enumerable, {:cont, acc},
                       fn x, acc -> {:cont, fun.(x, acc)} end) |> elem(1)
-  end
-
-  defp reduce_handling_empty(enumerable, fun, empty_fallback, format_first \\ &(&1)) do
-    empty_accumulator_value = make_ref()
-
-    result =
-      reduce(enumerable, empty_accumulator_value, fn
-        first_element, ^empty_accumulator_value -> format_first.(first_element)
-        element, acc -> fun.(element, acc)
-      end)
-
-    case result do
-      ^empty_accumulator_value -> empty_fallback.()
-      result -> result
-    end
   end
 
   @doc """
