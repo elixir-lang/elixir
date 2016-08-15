@@ -1359,17 +1359,6 @@ defmodule Enum do
   @spec max_by(t, (element -> any), (() -> empty_result)) :: element | empty_result | no_return when empty_result: any
   def max_by(enumerable, fun, empty_fallback \\ fn -> raise Enum.EmptyError end)
 
-  def max_by([h | t], fun, _empty_fallback) when is_function(fun, 1) do
-    reduce(t, {h, fun.(h)}, fn(entry, {_, fun_max} = old) ->
-      fun_entry = fun.(entry)
-      if(fun_entry > fun_max, do: {entry, fun_entry}, else: old)
-    end) |> elem(0)
-  end
-
-  def max_by([], _fun, empty_fallback) when is_function(empty_fallback, 0) do
-    empty_fallback.()
-  end
-
   def max_by(enumerable, fun, empty_fallback) when is_function(fun, 1) and is_function(empty_fallback, 0) do
     reduce_handling_empty(enumerable, fn entry, {_, fun_max} = old ->
       fun_entry = fun.(entry)
@@ -1466,17 +1455,6 @@ defmodule Enum do
   """
   @spec min_by(t, (element -> any), (() -> empty_result)) :: element | empty_result | no_return when empty_result: any
   def min_by(enumerable, fun, empty_fallback \\ fn -> raise Enum.EmptyError end)
-
-  def min_by([h | t], fun, _empty_fallback) when is_function(fun, 1) do
-    reduce(t, {h, fun.(h)}, fn(entry, {_, fun_min} = old) ->
-      fun_entry = fun.(entry)
-      if(fun_entry < fun_min, do: {entry, fun_entry}, else: old)
-    end) |> elem(0)
-  end
-
-  def min_by([], _fun, empty_fallback) when is_function(empty_fallback, 0) do
-    empty_fallback.()
-  end
 
   def min_by(enumerable, fun, empty_fallback) when is_function(fun, 1) and is_function(empty_fallback, 0) do
     reduce_handling_empty(enumerable, fn entry, {_, fun_min} = old ->
