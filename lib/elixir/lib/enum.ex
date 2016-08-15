@@ -1507,18 +1507,9 @@ defmodule Enum do
   """
   @spec min_max(t, (() -> empty_result)) :: {element, element} | empty_result | no_return when empty_result: any
   def min_max(enumerable, empty_fallback \\ fn -> raise Enum.EmptyError end) do
-    result =
-      Enum.reduce(enumerable, :first, fn
-        entry, {min_value, max_value} ->
-          {Kernel.min(entry, min_value), Kernel.max(entry, max_value)}
-        entry, :first ->
-          {entry, entry}
-      end)
-
-    case result do
-      :first -> empty_fallback.()
-      result -> result
-    end
+    reduce_handling_empty(enumerable, fn entry, {min_value, max_value} ->
+      {Kernel.min(entry, min_value), Kernel.max(entry, max_value)}
+    end, empty_fallback, &{&1, &1})
   end
 
   @doc """
@@ -1736,11 +1727,18 @@ defmodule Enum do
                       fn x, acc -> {:cont, fun.(x, acc)} end) |> elem(1)
   end
 
-  defp reduce_handling_empty(enumerable, fun, empty_fallback) do
-    if Enum.empty?(enumerable) do
-      empty_fallback.()
-    else
-      reduce(enumerable, fun)
+  defp reduce_handling_empty(enumerable, fun, empty_fallback, format_first \\ &(&1)) do
+    empty_accumulator_value = make_ref()
+
+    result =
+      reduce(enumerable, empty_accumulator_value, fn
+        first_element, ^empty_accumulator_value -> format_first.(first_element)
+        element, acc -> fun.(element, acc)
+      end)
+
+    case result do
+      ^empty_accumulator_value -> empty_fallback.()
+      result -> result
     end
   end
 
