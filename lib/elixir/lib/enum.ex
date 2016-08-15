@@ -1341,7 +1341,8 @@ defmodule Enum do
   If multiple elements are considered maximal, the first one that was found
   is returned.
 
-  Raises `Enum.EmptyError` if `enumerable` is empty.
+  Calls the provided `empty_fallback` function and returns its value if
+  `enumerable` is empty. The default `empty_fallback` raises `Enum.EmptyError`.
 
   ## Examples
 
@@ -1351,33 +1352,30 @@ defmodule Enum do
       iex> Enum.max_by(["a", "aa", "aaa", "b", "bbb"], &String.length/1)
       "aaa"
 
+      iex> Enum.max_by([], &String.length/1, fn -> nil end)
+      nil
+
   """
-  @spec max_by(t, (element -> any)) :: element | no_return
-  def max_by([h | t], fun) when is_function(fun, 1) do
+  @spec max_by(t, (element -> any), (() -> empty_result)) :: element | empty_result | no_return when empty_result: any
+  def max_by(enumerable, fun, empty_fallback \\ fn -> raise Enum.EmptyError end)
+
+  def max_by([h | t], fun, _empty_fallback) when is_function(fun, 1) do
     reduce(t, {h, fun.(h)}, fn(entry, {_, fun_max} = old) ->
       fun_entry = fun.(entry)
       if(fun_entry > fun_max, do: {entry, fun_entry}, else: old)
     end) |> elem(0)
   end
 
-  def max_by([], _fun) do
-    raise Enum.EmptyError
+  def max_by([], _fun, empty_fallback) when is_function(empty_fallback, 0) do
+    empty_fallback.()
   end
 
-  def max_by(enumerable, fun) when is_function(fun, 1) do
-    result =
-      reduce(enumerable, :first, fn
-        entry, {_, fun_max} = old ->
-          fun_entry = fun.(entry)
-          if(fun_entry > fun_max, do: {entry, fun_entry}, else: old)
-        entry, :first ->
-          {entry, fun.(entry)}
-      end)
-
-    case result do
-      :first       -> raise Enum.EmptyError
-      {entry, _} -> entry
-    end
+  def max_by(enumerable, fun, empty_fallback) when is_function(fun, 1) and is_function(empty_fallback, 0) do
+    reduce_handling_empty(enumerable, fn entry, {_, fun_max} = old ->
+      fun_entry = fun.(entry)
+      if(fun_entry > fun_max, do: {entry, fun_entry}, else: old)
+    end, fn -> {empty_fallback.(), nil} end, &{&1, fun.(&1)})
+    |> elem(0)
   end
 
   @doc """
@@ -1451,7 +1449,8 @@ defmodule Enum do
   If multiple elements are considered minimal, the first one that was found
   is returned.
 
-  Raises `Enum.EmptyError` if `enumerable` is empty.
+  Calls the provided `empty_fallback` function and returns its value if
+  `enumerable` is empty. The default `empty_fallback` raises `Enum.EmptyError`.
 
   ## Examples
 
@@ -1461,33 +1460,30 @@ defmodule Enum do
       iex> Enum.min_by(["a", "aa", "aaa", "b", "bbb"], &String.length/1)
       "a"
 
+      iex> Enum.min_by([], &String.length/1, fn -> nil end)
+      nil
+
   """
-  @spec min_by(t, (element -> any)) :: element | no_return
-  def min_by([h | t], fun) when is_function(fun, 1) do
+  @spec min_by(t, (element -> any), (() -> empty_result)) :: element | empty_result | no_return when empty_result: any
+  def min_by(enumerable, fun, empty_fallback \\ fn -> raise Enum.EmptyError end)
+
+  def min_by([h | t], fun, _empty_fallback) when is_function(fun, 1) do
     reduce(t, {h, fun.(h)}, fn(entry, {_, fun_min} = old) ->
       fun_entry = fun.(entry)
       if(fun_entry < fun_min, do: {entry, fun_entry}, else: old)
     end) |> elem(0)
   end
 
-  def min_by([], _fun) do
-    raise Enum.EmptyError
+  def min_by([], _fun, empty_fallback) when is_function(empty_fallback, 0) do
+    empty_fallback.()
   end
 
-  def min_by(enumerable, fun) when is_function(fun, 1) do
-    result =
-      reduce(enumerable, :first, fn
-        entry, {_, fun_min} = old ->
-          fun_entry = fun.(entry)
-          if(fun_entry < fun_min, do: {entry, fun_entry}, else: old)
-        entry, :first ->
-          {entry, fun.(entry)}
-      end)
-
-    case result do
-      :first       -> raise Enum.EmptyError
-      {entry, _} -> entry
-    end
+  def min_by(enumerable, fun, empty_fallback) when is_function(fun, 1) and is_function(empty_fallback, 0) do
+    reduce_handling_empty(enumerable, fn entry, {_, fun_min} = old ->
+      fun_entry = fun.(entry)
+      if(fun_entry < fun_min, do: {entry, fun_entry}, else: old)
+    end, fn -> {empty_fallback.(), nil} end, &{&1, fun.(&1)})
+    |> elem(0)
   end
 
   @doc """
@@ -1525,7 +1521,8 @@ defmodule Enum do
   If multiple elements are considered maximal or minimal, the first one
   that was found is returned.
 
-  Raises `Enum.EmptyError` if `enumerable` is empty.
+  Calls the provided `empty_fallback` function and returns its value if
+  `enumerable` is empty. The default `empty_fallback` raises `Enum.EmptyError`.
 
   ## Examples
 
@@ -1535,26 +1532,30 @@ defmodule Enum do
       iex> Enum.min_max_by(["aaa", "a", "bb", "c", "ccc"], &String.length/1)
       {"a", "aaa"}
 
+      iex> Enum.min_max_by([], &String.lenth/1, fn -> {nil, nil} end)
+      {nil, nil}
+
   """
-  @spec min_max_by(t, (element -> any)) :: {element, element} | no_return
-  def min_max_by(enumerable, fun) when is_function(fun, 1) do
+  @spec min_max_by(t, (element -> any), (() -> empty_result)) :: {element, element} | empty_result | no_return when empty_result: any
+  def min_max_by(enumerable, fun, empty_fallback \\ fn -> raise Enum.EmptyError end)
+
+  def min_max_by(enumerable, fun, empty_fallback) when is_function(fun, 1) and is_function(empty_fallback, 0) do
+    empty_marker = make_ref()
+
     result =
-      Enum.reduce(enumerable, :first, fn
-        entry, {{_, fun_min} = acc_min, {_, fun_max} = acc_max} ->
-          fun_entry = fun.(entry)
-          acc_min = if fun_entry < fun_min, do: {entry, fun_entry}, else: acc_min
-          acc_max = if fun_entry > fun_max, do: {entry, fun_entry}, else: acc_max
-          {acc_min, acc_max}
-        entry, :first ->
-          fun_entry = fun.(entry)
-          {{entry, fun_entry}, {entry, fun_entry}}
+      reduce_handling_empty(enumerable, fn entry, {{_, fun_min} = acc_min, {_, fun_max} = acc_max} ->
+        fun_entry = fun.(entry)
+        acc_min = if fun_entry < fun_min, do: {entry, fun_entry}, else: acc_min
+        acc_max = if fun_entry > fun_max, do: {entry, fun_entry}, else: acc_max
+        {acc_min, acc_max}
+      end, fn -> {empty_marker, empty_fallback.()} end, fn entry ->
+        fun_entry = fun.(entry)
+        {{entry, fun_entry}, {entry, fun_entry}}
       end)
 
     case result do
-      :first ->
-        raise Enum.EmptyError
-      {{min_entry, _}, {max_entry, _}} ->
-        {min_entry, max_entry}
+      {^empty_marker, empty_result} -> empty_result
+      {{min_entry, _}, {max_entry, _}} -> {min_entry, max_entry}
     end
   end
 

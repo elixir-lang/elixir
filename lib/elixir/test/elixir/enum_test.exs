@@ -310,6 +310,14 @@ defmodule EnumTest do
     end
   end
 
+  test "max_by/3" do
+    assert Enum.max_by(["a", "aa", "aaa"], fn(x) -> String.length(x) end, fn -> nil end) == "aaa"
+    assert Enum.max_by([], fn(x) -> String.length(x) end, fn -> :empty_value end) == :empty_value
+    assert Enum.max_by(%{}, &(&1), fn -> :empty_value end) == :empty_value
+    assert Enum.max_by(%{}, &(&1), fn -> {:a, :tuple} end) == {:a, :tuple}
+    assert_runs_enumeration_only_once(&Enum.max_by(&1, fn e -> e end, fn -> nil end))
+  end
+
   test "member?/2" do
     assert Enum.member?([1, 2, 3], 2)
     refute Enum.member?([], 0)
@@ -355,6 +363,14 @@ defmodule EnumTest do
     end
   end
 
+  test "min_by/3" do
+    assert Enum.min_by(["a", "aa", "aaa"], fn(x) -> String.length(x) end, fn -> nil end) == "a"
+    assert Enum.min_by([], fn(x) -> String.length(x) end, fn -> :empty_value end) == :empty_value
+    assert Enum.min_by(%{}, &(&1), fn -> :empty_value end) == :empty_value
+    assert Enum.min_by(%{}, &(&1), fn -> {:a, :tuple} end) == {:a, :tuple}
+    assert_runs_enumeration_only_once(&Enum.min_by(&1, fn e -> e end, fn -> nil end))
+  end
+
   test "min_max/1" do
     assert Enum.min_max([1]) == {1, 1}
     assert Enum.min_max([2, 3, 1]) == {1, 3}
@@ -378,6 +394,13 @@ defmodule EnumTest do
     assert_raise Enum.EmptyError, fn ->
       Enum.min_max_by([], fn(x) -> String.length(x) end)
     end
+  end
+
+  test "min_max_by/3" do
+    assert Enum.min_max_by(["aaa", "a", "aa"], fn(x) -> String.length(x) end, fn -> nil end) == {"a", "aaa"}
+    assert Enum.min_max_by([], fn(x) -> String.length(x) end, fn -> {:no_min, :no_max} end) == {:no_min, :no_max}
+    assert Enum.min_max_by(%{}, fn(x) -> String.length(x) end, fn -> {:no_min, :no_max} end) == {:no_min, :no_max}
+    assert_runs_enumeration_only_once(&Enum.min_max_by(&1, fn x -> x end, fn -> nil end))
   end
 
   test "split_with/2" do
