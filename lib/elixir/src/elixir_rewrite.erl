@@ -194,27 +194,29 @@ rewrite(?string_chars, _DotMeta, 'to_string', _Meta, [String], _Env) when is_bin
 rewrite(?string_chars, _, 'to_string', _, [{{'.', _, [?kernel, inspect]}, _, _} = Call], _Env) ->
   Call;
 rewrite(?string_chars, DotMeta, 'to_string', Meta, [Call], _Env) ->
+  Generated = ?generated(Meta),
   Var   = {'rewrite', Meta, 'Elixir'},
-  Guard = remote(erlang, ?generated, is_binary, ?generated, [Var]),
+  Guard = remote(erlang, Generated, is_binary, Generated, [Var]),
   Slow  = remote(?string_chars, DotMeta, 'to_string', Meta, [Var]),
   Fast  = Var,
 
-  {'case', ?generated, [Call, [{do,
-    [{'->', ?generated, [[{'when', Meta, [Var, Guard]}], Fast]},
-     {'->', ?generated, [[Var], Slow]}]
+  {'case', Generated, [Call, [{do,
+    [{'->', Generated, [[{'when', Meta, [Var, Guard]}], Fast]},
+     {'->', Generated, [[Var], Slow]}]
   }]]};
 
 rewrite(?enum, DotMeta, 'reverse', Meta, [List], _Env) when is_list(List) ->
   remote(lists, DotMeta, 'reverse', Meta, [List]);
 rewrite(?enum, DotMeta, 'reverse', Meta, [List], _Env) ->
+  Generated = ?generated(Meta),
   Var   = {'rewrite', Meta, 'Elixir'},
-  Guard = remote(erlang, ?generated, is_list, ?generated, [Var]),
+  Guard = remote(erlang, Generated, is_list, Generated, [Var]),
   Slow  = remote(?enum, DotMeta, 'reverse', Meta, [Var, []]),
   Fast  = remote(lists, DotMeta, 'reverse', Meta, [Var]),
 
-  {'case', ?generated, [List, [{do,
-    [{'->', ?generated, [[{'when', Meta, [Var, Guard]}], Fast]},
-     {'->', ?generated, [[Var], Slow]}]
+  {'case', Generated, [List, [{do,
+    [{'->', Generated, [[{'when', Meta, [Var, Guard]}], Fast]},
+     {'->', Generated, [[Var], Slow]}]
   }]]};
 
 rewrite(Receiver, DotMeta, Right, Meta, Args, _Env) ->

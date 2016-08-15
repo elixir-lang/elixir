@@ -82,6 +82,7 @@ translate_struct(Meta, Name, {'%{}', MapMeta, Args}, S) ->
   case Operation of
     update ->
       Ann = ?ann(Meta),
+      Generated = ?generated(Meta),
       {VarName, _, VS} = elixir_scope:build_var('_', US),
 
       Var = {var, Ann, VarName},
@@ -92,9 +93,9 @@ translate_struct(Meta, Name, {'%{}', MapMeta, Args}, S) ->
 
       {TMap, TS} = translate_map(MapMeta, Assocs, Var, VS),
 
-      {{'case', ?generated, TUpdate, [
+      {{'case', Generated, TUpdate, [
         {clause, Ann, [Match], [], [TMap]},
-        {clause, ?generated, [Var], [], [elixir_utils:erl_call(Ann, erlang, error, [Error])]}
+        {clause, Generated, [Var], [], [elixir_utils:erl_call(Ann, erlang, error, [Error])]}
       ]}, TS};
     match ->
       translate_map(MapMeta, Assocs ++ [{'__struct__', Name}], nil, US);

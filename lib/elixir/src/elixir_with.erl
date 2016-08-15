@@ -91,11 +91,12 @@ build_case([{'<-', Meta, [{Name, _, Ctx}, _] = Args} | Rest], DoExpr, Wrapper)
   build_case([{'=', Meta, Args} | Rest], DoExpr, Wrapper);
 build_case([{'<-', Meta, [Left, Right]} | Rest], DoExpr, Wrapper) ->
   Other = {other, Meta, ?MODULE},
+  Generated = ?generated(Meta),
   Clauses = [
-    {'->', ?generated, [[Left], build_case(Rest, DoExpr, Wrapper)]},
-    {'->', ?generated, [[Other], Wrapper(Other)]}
+    {'->', Generated, [[Left], build_case(Rest, DoExpr, Wrapper)]},
+    {'->', Generated, [[Other], Wrapper(Other)]}
   ],
-  {'case', ?generated, [Right, [{do, Clauses}]]};
+  {'case', Generated, [Right, [{do, Clauses}]]};
 build_case([Expr | Rest], DoExpr, Wrapper) ->
   {'__block__', [], [Expr, build_case(Rest, DoExpr, Wrapper)]};
 build_case([], DoExpr, _Wrapper) ->
@@ -117,4 +118,4 @@ error_match_for_match(Match) ->
 
 build_raise(Meta) ->
   Other = {other, Meta, ?MODULE},
-  {match, ?generated, [{error, Other}], {{'.', Meta, [erlang, error]}, Meta, [{with_clause, Other}]}}.
+  {match, ?generated(Meta), [{error, Other}], {{'.', Meta, [erlang, error]}, Meta, [{with_clause, Other}]}}.

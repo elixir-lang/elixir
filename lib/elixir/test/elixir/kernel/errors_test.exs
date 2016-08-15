@@ -991,6 +991,19 @@ defmodule Kernel.ErrorsTest do
       """)
   end
 
+  test "failed remote call stacktrace includes file/line info" do
+    try do
+      bad_remote_call(1)
+    rescue
+      ArgumentError ->
+        stack = System.stacktrace
+        assert [{:erlang, :apply, [1, :foo, []], []},
+                {__MODULE__, :bad_remote_call, 1, [file: _, line: _]} | _] = stack
+    end
+  end
+
+  defp bad_remote_call(x), do: x.foo
+
   defmacro sample(0), do: 0
 
   defmacro before_compile(_) do

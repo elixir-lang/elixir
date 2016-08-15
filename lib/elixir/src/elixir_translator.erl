@@ -242,6 +242,7 @@ translate({{'.', _, [Left, Right]}, Meta, []}, S)
   {Var, _, SV} = elixir_scope:build_var('_', SL),
 
   Ann = ?ann(Meta),
+  Generated = ?generated(Meta),
   TRight = {atom, Ann, Right},
   TVar = {var, Ann, Var},
   TError = {tuple, Ann, [{atom, Ann, badkey}, TRight, TVar]},
@@ -249,8 +250,8 @@ translate({{'.', _, [Left, Right]}, Meta, []}, S)
   %% TODO: there is a bug in Dialyzer that warns about generated matches that
   %% can never match on line 0. The is_map/1 guard is used instead of matching
   %% against an empty map to avoid the warning.
-  {{'case', ?generated, TLeft, [
-    {clause, ?generated,
+  {{'case', Generated, TLeft, [
+    {clause, Generated,
       [{map, Ann, [{map_field_exact, Ann, TRight, TVar}]}],
       [],
       [TVar]},
@@ -258,10 +259,10 @@ translate({{'.', _, [Left, Right]}, Meta, []}, S)
       [TVar],
       [[elixir_utils:erl_call(?generated, erlang, is_map, [TVar])]],
       [elixir_utils:erl_call(Ann, erlang, error, [TError])]},
-    {clause, ?generated,
+    {clause, Generated,
       [TVar],
       [],
-      [{call, ?generated, {remote, ?generated, TVar, TRight}, []}]}
+      [{call, Generated, {remote, Generated, TVar, TRight}, []}]}
   ]}, SV};
 
 translate({{'.', _, [Left, Right]}, Meta, Args}, S)
