@@ -1315,8 +1315,8 @@ defmodule Enum do
   If multiple elements are considered maximal, the first one that was found
   is returned.
 
-  Calls the provided `empty_fallback` and returns its value if `enumerable`
-  is empty. The default `empty_fallback` raises `Enum.EmptyError`.
+  Calls the provided `empty_fallback` function and returns its value if
+  `enumerable` is empty. The default `empty_fallback` raises `Enum.EmptyError`.
 
   ## Examples
 
@@ -1329,6 +1329,7 @@ defmodule Enum do
   """
   @spec max(t, (() -> empty_result)) :: element | empty_result | no_return when empty_result: any
   def max(enumerable, empty_fallback \\ fn -> raise Enum.EmptyError end)
+
   def max(enumerable, empty_fallback) when is_function(empty_fallback, 0) do
     reduce_handling_empty(enumerable, &Kernel.max(&1, &2), empty_fallback)
   end
@@ -1424,8 +1425,8 @@ defmodule Enum do
   If multiple elements are considered minimal, the first one that was found
   is returned.
 
-  Calls the provided `empty_fallback` and returns its value if `enumerable`
-  is empty. The default `empty_fallback` raises `Enum.EmptyError`.
+  Calls the provided `empty_fallback` function and returns its value if
+  `enumerable` is empty. The default `empty_fallback` raises `Enum.EmptyError`.
 
   ## Examples
 
@@ -1438,6 +1439,7 @@ defmodule Enum do
   """
   @spec min(t, (() -> empty_result)) :: element | empty_result | no_return when empty_result: any
   def min(enumerable, empty_fallback \\ fn -> raise Enum.EmptyError end)
+
   def min(enumerable, empty_fallback) when is_function(empty_fallback, 0) do
     reduce_handling_empty(enumerable, &Kernel.min(&1, &2), empty_fallback)
   end
@@ -1495,8 +1497,8 @@ defmodule Enum do
   If multiple elements are considered maximal or minimal, the first one
   that was found is returned.
 
-  Calls the provided `empty_fallback` and returns its value if `enumerable`
-  is empty. The default `empty_fallback` raises `Enum.EmptyError`.
+  Calls the provided `empty_fallback` function and returns its value if
+  `enumerable` is empty. The default `empty_fallback` raises `Enum.EmptyError`.
 
   ## Examples
 
@@ -1509,6 +1511,7 @@ defmodule Enum do
   """
   @spec min_max(t, (() -> empty_result)) :: {element, element} | empty_result | no_return when empty_result: any
   def min_max(enumerable, empty_fallback \\ fn -> raise Enum.EmptyError end)
+
   def min_max(enumerable, empty_fallback) when is_function(empty_fallback, 0) do
     reduce_handling_empty(enumerable, fn entry, {min_value, max_value} ->
       {Kernel.min(entry, min_value), Kernel.max(entry, max_value)}
