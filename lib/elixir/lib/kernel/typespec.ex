@@ -889,7 +889,7 @@ defmodule Kernel.Typespec do
   defp typespec({{:., meta, [remote, name]}, _, args} = orig, vars, caller) do
     # We set a function name to avoid tracking
     # aliases in typespecs as compile time dependencies.
-    remote = Macro.expand remote, %{caller | function: {:typespec, 0}}
+    remote = Macro.expand(remote, %{caller | function: {:typespec, 0}})
     unless is_atom(remote) do
       compile_error(caller, "invalid remote in typespec: #{Macro.to_string(orig)}")
     end

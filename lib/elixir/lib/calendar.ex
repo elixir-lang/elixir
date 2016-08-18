@@ -1004,22 +1004,22 @@ defmodule DateTime do
       {:ok, %DateTime{calendar: Calendar.ISO, day: 23, hour: 22, microsecond: {211914, 3}, minute: 53,
                       month: 1, second: 43, std_offset: 0, time_zone: "Etc/UTC", utc_offset: 0,
                       year: 46302, zone_abbr: "UTC"}}
-  
-  Negative Unix times are supported, up to -#{@unix_epoch} seconds, 
+
+  Negative Unix times are supported, up to -#{@unix_epoch} seconds,
   which is equivalent to "0000-01-01T00:00:00Z" or 0 gregorian seconds.
 
       iex> DateTime.from_unix(-12345678910)
-      {:ok, %DateTime{calendar: Calendar.ISO, day: 13, hour: 4, microsecond: {0, 0}, minute: 44, 
-                      month: 10, second: 50, std_offset: 0, time_zone: "Etc/UTC", utc_offset: 0, 
+      {:ok, %DateTime{calendar: Calendar.ISO, day: 13, hour: 4, microsecond: {0, 0}, minute: 44,
+                      month: 10, second: 50, std_offset: 0, time_zone: "Etc/UTC", utc_offset: 0,
                       year: 1578, zone_abbr: "UTC"}}
-  
+
   When a Unix time before that moment is passed to `from_unix/2`, `:error` will be returned.
   """
   @spec from_unix(integer, :native | System.time_unit) :: {:ok, DateTime.t}
   def from_unix(integer, unit \\ :seconds) when is_integer(integer) do
     total = System.convert_time_unit(integer, unit, :microseconds)
     if total < -@unix_epoch * 1_000_000 do
-      :error  
+      :error
     else
       microsecond = rem(total, 1_000_000)
       precision = precision_for_unit(unit)
@@ -1066,20 +1066,24 @@ defmodule DateTime do
                 month: 5, second: 8, std_offset: 0, time_zone: "Etc/UTC", utc_offset: 0,
                 year: 2015, zone_abbr: "UTC"}
 
-  Negative Unix times are supported, up to -#{@unix_epoch} seconds, 
+  Negative Unix times are supported, up to -#{@unix_epoch} seconds,
   which is equivalent to "0000-01-01T00:00:00Z" or 0 gregorian seconds.
 
       iex> DateTime.from_unix(-12345678910)
-      {:ok, %DateTime{calendar: Calendar.ISO, day: 13, hour: 4, microsecond: {0, 0}, minute: 44, 
-                      month: 10, second: 50, std_offset: 0, time_zone: "Etc/UTC", utc_offset: 0, 
+      {:ok, %DateTime{calendar: Calendar.ISO, day: 13, hour: 4, microsecond: {0, 0}, minute: 44,
+                      month: 10, second: 50, std_offset: 0, time_zone: "Etc/UTC", utc_offset: 0,
                       year: 1578, zone_abbr: "UTC"}}
 
   When a Unix time before that moment is passed to `from_unix!/2`, an ArgumentError will be raised.
   """
   @spec from_unix!(non_neg_integer, :native | System.time_unit) :: DateTime.t
   def from_unix!(integer, unit \\ :seconds) when is_atom(unit) do
-    {:ok, datetime} = from_unix(integer, unit)
-    datetime
+    case from_unix(integer, unit) do
+      {:ok, datetime} ->
+        datetime
+      :error ->
+        raise ArgumentError, "invalid Unix time #{integer}"
+    end
   end
 
   @doc """
@@ -1111,7 +1115,7 @@ defmodule DateTime do
   """
   @spec to_unix(DateTime.t, System.time_unit) :: non_neg_integer
   def to_unix(datetime, unit \\ :seconds)
-  
+
   def to_unix(%DateTime{calendar: Calendar.ISO, std_offset: std_offset, utc_offset: utc_offset,
                         hour: hour, minute: minute, second: second, microsecond: {microsecond, _},
                         year: year, month: month, day: day}, unit) when year >= 0 do

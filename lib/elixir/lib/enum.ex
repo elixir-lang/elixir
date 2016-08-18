@@ -969,10 +969,10 @@ defmodule Enum do
     end) |> :lists.reverse
   end
 
-  defp flat_map_list([h | t], fun) do
-    case fun.(h) do
-      list when is_list(list) -> list ++ flat_map_list(t, fun)
-      other -> to_list(other) ++ flat_map_list(t, fun)
+  defp flat_map_list([head | tail], fun) do
+    case fun.(head) do
+      list when is_list(list) -> list ++ flat_map_list(tail, fun)
+      other -> to_list(other) ++ flat_map_list(tail, fun)
     end
   end
   defp flat_map_list([], _fun) do
