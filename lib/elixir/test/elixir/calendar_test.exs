@@ -61,28 +61,48 @@ defmodule DateTimeTest do
   doctest DateTime
 
   test "to_string/1" do
-    dt = %DateTime{year: 2000, month: 2, day: 29, zone_abbr: "BRM",
-                   hour: 23, minute: 0, second: 7, microsecond: {0, 0},
-                   utc_offset: -12600, std_offset: 3600, time_zone: "Brazil/Manaus"}
-    assert to_string(dt) == "2000-02-29 23:00:07-02:30 BRM Brazil/Manaus"
+    datetime = %DateTime{
+      year: 2000, month: 2, day: 29, zone_abbr: "BRM",
+      hour: 23, minute: 0, second: 7, microsecond: {0, 0},
+      utc_offset: -12600, std_offset: 3600, time_zone: "Brazil/Manaus"
+    }
+    assert to_string(datetime) == "2000-02-29 23:00:07-02:30 BRM Brazil/Manaus"
   end
 
-  test "from_unix/2 works with Unix times back to 0 Gregorian Seconds" do
-    assert DateTime.from_unix(-62167219200) == {:ok,
-                    %DateTime{calendar: Calendar.ISO, day: 1, hour: 0, microsecond: {0, 0},
-                              minute: 0, month: 1, second: 0, std_offset: 0, time_zone: "Etc/UTC",
-                              utc_offset: 0, year: 0, zone_abbr: "UTC"}}
+  test "from_unix/2" do
+    # with Unix times back to 0 Gregorian Seconds
+    datetime = %DateTime{
+      calendar: Calendar.ISO, day: 1, hour: 0, microsecond: {0, 0},
+      minute: 0, month: 1, second: 0, std_offset: 0, time_zone: "Etc/UTC",
+      utc_offset: 0, year: 0, zone_abbr: "UTC"
+    }
+    assert DateTime.from_unix(-62167219200) == {:ok, datetime}
 
     assert DateTime.from_unix(-62167219201) == :error
   end
 
+  test "from_unix!/2" do
+    # with Unix times back to 0 Gregorian Seconds
+    datetime = %DateTime{
+      calendar: Calendar.ISO, day: 1, hour: 0, microsecond: {0, 0},
+      minute: 0, month: 1, second: 0, std_offset: 0, time_zone: "Etc/UTC",
+      utc_offset: 0, year: 0, zone_abbr: "UTC"
+    }
+    assert DateTime.from_unix!(-62167219200) == datetime
+
+    assert_raise ArgumentError, "invalid Unix time -62167219201", fn ->
+      DateTime.from_unix!(-62167219201)
+    end
+  end
+
   test "to_unix/2 works with Unix times back to 0 Gregorian Seconds" do
+    # with Unix times back to 0 Gregorian Seconds
     gregorian_0 = %DateTime{calendar: Calendar.ISO, day: 1, hour: 0, microsecond: {0, 0},
                             minute: 0, month: 1, second: 0, std_offset: 0, time_zone: "Etc/UTC",
                             utc_offset: 0, year: 0, zone_abbr: "UTC"}
-    before_gregorian_0 = %DateTime{gregorian_0 | year: -1}
-
     assert DateTime.to_unix(gregorian_0) == -62167219200
+
+    before_gregorian_0 = %DateTime{gregorian_0 | year: -1}
     assert_raise FunctionClauseError, fn ->
       DateTime.to_unix(before_gregorian_0)
     end

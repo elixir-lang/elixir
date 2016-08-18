@@ -207,8 +207,8 @@ defmodule Kernel.ParallelCompiler do
 
       {:waiting, kind, child, ref, on, defining} ->
         # Oops, we already got it, do not put it on waiting.
-        # OR
-        # We're waiting on ourselves, send :found so that we can crash with a better error
+        # Alternatively, we're waiting on ourselves,
+        # send :found so that we can crash with a better error.
         waiting =
           if :lists.any(&match?({^kind, ^on}, &1), result) or on in defining do
             send child, {ref, :found}
