@@ -588,7 +588,7 @@ defmodule Enum do
   The first item is always dropped, unless `nth` is 0.
 
   The second argument specifying every `nth` item must be a non-negative
-  integer, otherwise `FunctionClauseError` will be raised.
+  integer.
 
   ## Examples
 
@@ -1246,8 +1246,8 @@ defmodule Enum do
 
   The first result is always included, unless `nth` is 0.
 
-  The second argument specifies every `nth` item must be a non-negative
-  integer, otherwise `FunctionClauseError` will be raised.
+  The second argument specifying every `nth` item must be a non-negative
+  integer.
 
   ## Examples
 
@@ -2361,7 +2361,7 @@ defmodule Enum do
   The first item is always included, unless `nth` is 0.
 
   The second argument specifying every `nth` item must be a non-negative
-  integer, otherwise `FunctionClauseError` will be raised.
+  integer.
 
   ## Examples
 

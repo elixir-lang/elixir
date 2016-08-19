@@ -292,7 +292,7 @@ defmodule Stream do
 
   The first item is always dropped, unless `nth` is 0.
 
-  `nth` must be a non-negative integer, or `FunctionClauseError` will be thrown.
+  `nth` must be a non-negative integer.
 
   ## Examples
 
@@ -497,7 +497,7 @@ defmodule Stream do
 
   The first item is always included, unless `nth` is 0.
 
-  `nth` must be a non-negative integer, or `FunctionClauseError` will be thrown.
+  `nth` must be a non-negative integer.
 
   ## Examples
 
@@ -643,7 +643,7 @@ defmodule Stream do
 
   The first item is always included, unless `nth` is 0.
 
-  `nth` must be a non-negative integer, or `FunctionClauseError` will be thrown.
+  `nth` must be a non-negative integer.
 
   ## Examples
 
