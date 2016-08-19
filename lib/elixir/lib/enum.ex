@@ -1568,8 +1568,8 @@ defmodule Enum do
       empty_fallback)
   end
 
-  defp aggregate([h | t], first, fun, empty) do
-    :lists.foldl(fun, first.(h), t)
+  defp aggregate([head | tail], first, fun, _empty) do
+    :lists.foldl(fun, first.(head), tail)
   end
   defp aggregate(enumerable, first, fun, empty) do
     ref = make_ref()
@@ -1582,8 +1582,8 @@ defmodule Enum do
   defp apply_if_ref_or_return(ref, ref, fun), do: fun.()
   defp apply_if_ref_or_return(val, _, _fun), do: val
 
-  defp aggregate_by([h | t], first, fun, empty) do
-    :lists.foldl(fun, first.(h), t) |> elem(0)
+  defp aggregate_by([head | tail], first, fun, _empty) do
+    :lists.foldl(fun, first.(head), tail) |> elem(0)
   end
   defp aggregate_by(enumerable, first, fun, empty) do
     reduce(enumerable, :empty, fn
