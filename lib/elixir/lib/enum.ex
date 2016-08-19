@@ -568,12 +568,7 @@ defmodule Enum do
   end
 
   def drop(enumerable, amount) when is_integer(amount) and amount >= 0 do
-    result =
-      reduce(enumerable, amount, fn
-        x, acc when is_list(acc) -> [x | acc]
-        x, 0                     -> [x]
-        _, acc when acc > 0      -> acc - 1
-      end)
+    {result, _} = reduce(enumerable, {[], amount}, R.drop())
     if is_list(result), do: :lists.reverse(result), else: []
   end
 
