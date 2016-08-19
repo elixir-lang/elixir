@@ -1244,7 +1244,7 @@ defmodule Enum do
   Returns a list of results of invoking `fun` on every `nth`
   item of `enumerable`, starting with the first element.
 
-  The first result is always included, unless `nth` is 0.
+  The first item is always passed to the given function.
 
   The second argument specifying every `nth` item must be a non-negative
   integer.
@@ -1254,8 +1254,8 @@ defmodule Enum do
       iex> Enum.map_every(1..10, 2, fn(x) -> x * 2 end)
       [2, 2, 6, 4, 10, 6, 14, 8, 18, 10]
 
-      iex> Enum.map_every(1..10, 0, fn(x) -> x * 2 end)
-      []
+      iex> Enum.map_every(1..5, 0, fn(x) -> x * 2 end)
+      [1, 2, 3, 4, 5]
 
       iex> Enum.map_every([1, 2, 3], 1, fn(x) -> x * 2 end)
       [2, 4, 6]
@@ -1265,7 +1265,7 @@ defmodule Enum do
   def map_every(enumerable, nth, fun)
 
   def map_every(enumerable, 1, fun), do: map(enumerable, fun)
-  def map_every(_enumerable, 0, _fun), do: []
+  def map_every(enumerable, 0, _fun), do: to_list(enumerable)
   def map_every([], nth, _fun) when is_integer(nth) and nth > 1, do: []
 
   def map_every(enumerable, nth, fun) when is_integer(nth) and nth > 1 do
