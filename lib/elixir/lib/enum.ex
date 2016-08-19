@@ -194,13 +194,13 @@ defmodule Enum do
     quote do: [unquote(entry) | unquote(acc)]
   end
 
-  defmacrop acc(h, n, _) do
-    quote do: {unquote(h), unquote(n)}
+  defmacrop acc(head, state, _) do
+    quote do: {unquote(head), unquote(state)}
   end
 
-  defmacrop next_with_acc(f, entry, h, n, _) do
+  defmacrop next_with_acc(_, entry, head, state, _) do
     quote do
-      {[unquote(entry) | unquote(h)], unquote(n)}
+      {[unquote(entry) | unquote(head)], unquote(state)}
     end
   end
 
