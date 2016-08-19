@@ -517,9 +517,9 @@ defmodule StreamTest do
            |> Stream.drop(1)
            |> Enum.to_list == [4, 10, 6, 14, 8, 18, 10]
 
-    assert 1..10
+    assert 1..5
            |> Stream.map_every(0, &(&1 * 2))
-           |> Enum.to_list == []
+           |> Enum.to_list == [1, 2, 3, 4, 5]
 
     assert []
            |> Stream.map_every(10, &(&1 * 2))

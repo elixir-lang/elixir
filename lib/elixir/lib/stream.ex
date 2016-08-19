@@ -495,7 +495,7 @@ defmodule Stream do
   Creates a stream that will apply the given function on
   every `nth` item from the enumerable.
 
-  The first item is always included, unless `nth` is 0.
+  The first item is always passed to the given function.
 
   `nth` must be a non-negative integer.
 
@@ -509,16 +509,16 @@ defmodule Stream do
       iex> Enum.to_list(stream)
       [2, 4, 6, 8, 10]
 
-      iex> stream = Stream.map_every(1..1000, 0, fn(x) -> x * 2 end)
+      iex> stream = Stream.map_every(1..5, 0, fn(x) -> x * 2 end)
       iex> Enum.to_list(stream)
-      []
+      [1, 2, 3, 4, 5]
 
   """
   @spec map_every(Enumerable.t, non_neg_integer, (element -> any)) :: Enumerable.t
   def map_every(enum, nth, fun)
 
   def map_every(enum, 1, fun), do: map(enum, fun)
-  def map_every(_enum, 0, _fun), do: %Stream{enum: []}
+  def map_every(enum, 0, _fun), do: %Stream{enum: enum}
   def map_every([], _nth, _fun), do: %Stream{enum: []}
 
   def map_every(enum, nth, fun) when is_integer(nth) and nth > 0 do
