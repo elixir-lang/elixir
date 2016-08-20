@@ -30,10 +30,6 @@ defmodule Mix.SCM.GitTest do
     assert_raise Mix.Error, ~r/You should specify only one of branch, ref or tag/, fn ->
       Mix.SCM.Git.accepts_options(nil, [git: "/repo", branch: "master", branch: "develop"])
     end
-
-    assert_raise Mix.Error, ~r/You should specify only one sparse path/, fn ->
-      Mix.SCM.Git.accepts_options(nil, [git: "/repo", sparse: "/a", sparse: "/b", dest: "/repo"])
-    end
   end
 
   defp lock(opts \\ []) do

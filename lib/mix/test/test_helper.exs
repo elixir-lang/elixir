@@ -231,33 +231,9 @@ unless File.dir?(target) do
   end
   """
 
-  File.cd! target, fn ->
-    System.cmd("git", ~w[add .])
-    System.cmd("git", ~w[commit -m "lib"])
-    System.cmd("git", ~w[tag with_module])
-  end
-end
-
-# Git Sparse
-target = Path.expand("fixtures/git_sparse_repo", __DIR__)
-
-unless File.dir?(target) do
+  ## Sparse
   subdir = Path.join(target, "sparse_dir")
-
   File.mkdir_p!(Path.join(subdir, "lib"))
-
-  File.write! Path.join(subdir, "mix.exs"), """
-  ## Auto-generated fixture
-  raise "I was not supposed to be loaded"
-  """
-
-  File.cd! target, fn ->
-    System.cmd("git", ~w[init])
-    System.cmd("git", ~w[config user.email "mix@example.com"])
-    System.cmd("git", ~w[config user.name "mix-repo"])
-    System.cmd("git", ~w[add .])
-    System.cmd("git", ~w[commit -m "bad"])
-  end
 
   File.write! Path.join(subdir, "mix.exs"), """
   ## Auto-generated fixture
@@ -269,12 +245,6 @@ unless File.dir?(target) do
     end
   end
   """
-
-  File.cd! target, fn ->
-    System.cmd("git", ~w[add .])
-    System.cmd("git", ~w[commit -m "ok"])
-    System.cmd("git", ~w[tag without_module])
-  end
 
   File.write! Path.join(subdir, "lib/git_sparse_repo.ex"), """
   ## Auto-generated fixture
