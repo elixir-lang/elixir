@@ -105,10 +105,13 @@ defmodule Mix.SCM.Git do
     update_origin(opts[:git])
 
     # Fetch external data
-    command = IO.iodata_to_binary(["--git-dir=.git fetch --force --quiet",
-                                   progress_switch(git_version()),
-                                   tags_switch(opts[:tag])])
-    git!(command)
+    [
+      "--git-dir=.git fetch --force --quiet",
+      progress_switch(git_version()),
+      tags_switch(opts[:tag])
+    ]
+    |> IO.iodata_to_binary()
+    |> git!()
 
     # Migrate the git repo
     rev = get_lock_rev(opts[:lock], opts) || get_opts_rev(opts)
@@ -155,8 +158,9 @@ defmodule Mix.SCM.Git do
     end
   end
 
-  defp progress_switch(version) when {1, 7, 1} <= version, do: " --progress"
-  defp progress_switch(_),                                 do: ""
+  defp progress_switch(version) do
+    if {1, 7, 1} <= version, do: " --progress", else: ""
+  end
 
   defp tags_switch(nil), do: ""
   defp tags_switch(_), do: " --tags"
