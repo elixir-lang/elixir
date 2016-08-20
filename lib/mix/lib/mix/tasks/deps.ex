@@ -83,7 +83,7 @@ defmodule Mix.Tasks.Deps do
     * `:tag`        - the Git tag to checkout
     * `:submodules` - when `true`, initialize submodules for the repo
     * `:sparse`     - checkout a single directory inside the git repository and use it
-      as your Mix dependency. Search for "sparse git checkouts" for more information.
+      as your Mix dependency. Search "sparse git checkouts" for more information.
 
   ## Path options (`:path`)
 
