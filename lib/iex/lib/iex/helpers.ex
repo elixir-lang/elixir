@@ -327,24 +327,24 @@ defmodule IEx.Helpers do
   Retrieves the nth expression's value from the history.
   Where nth is iex(nth)>
 
-  It is usefull to bound expression on the history to a variable
+  Use negative values to look up expression values relative to the current one.
+
+  For instance, v(-1) returns the result of the last evaluated expression.
 
   ## Examples
 
-      iex(1)> 40 + 2
+      iex(1)> "hello" <> " world"
+      "hello world"
+      iex(2)> 40 + 2
       42
-      iex(2)> [1, 2, third | rest] = [1, 2, 3, 4, 6, 7, 8, 9]
-      [1, 2, 3, 4, 6, 7, 8, 9]
-      iex(3)> third
-      3
-      iex(4)> rest
-      [4, 6, 7, 8, 9]
-      iex(5)> v(2)
-      [1, 2, 3, 4, 6, 7, 8, 9]
-      iex(6)> v(1)
+      iex(3)> foo = "bar"
+      "bar"
+      iex(4)> v(-2)
       42
-      iex(7)> meanning_of_life = v
-      42
+      iex(5)> v(3)
+      "bar"
+      iex(6)> str = v
+      "bar"
   """
   def v(n \\ -1) do
     IEx.History.nth(history(), n) |> elem(2)
