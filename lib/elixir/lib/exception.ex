@@ -511,7 +511,7 @@ defmodule SystemLimitError do
 end
 
 defmodule SyntaxError do
-  defexception [file: nil, line: nil, description: "syntax error"]
+  defexception [:file, :line, description: "syntax error"]
 
   def message(exception) do
     Exception.format_file_line(Path.relative_to_cwd(exception.file), exception.line) <>
@@ -520,7 +520,7 @@ defmodule SyntaxError do
 end
 
 defmodule TokenMissingError do
-  defexception [file: nil, line: nil, description: "expression is incomplete"]
+  defexception [:file, :line, description: "expression is incomplete"]
 
   def message(%{file: file, line: line, description: description}) do
     Exception.format_file_line(file && Path.relative_to_cwd(file), line) <>
@@ -529,7 +529,7 @@ defmodule TokenMissingError do
 end
 
 defmodule CompileError do
-  defexception [file: nil, line: nil, description: "compile error"]
+  defexception [:file, :line, description: "compile error"]
 
   def message(%{file: file, line: line, description: description}) do
     Exception.format_file_line(file && Path.relative_to_cwd(file), line) <>
@@ -538,7 +538,7 @@ defmodule CompileError do
 end
 
 defmodule BadFunctionError do
-  defexception [term: nil]
+  defexception [:term]
 
   def message(exception) do
     "expected a function, got: #{inspect(exception.term)}"
@@ -546,7 +546,7 @@ defmodule BadFunctionError do
 end
 
 defmodule BadStructError do
-  defexception [struct: nil, term: nil]
+  defexception [:struct, :term]
 
   def message(exception) do
     "expected a struct named #{inspect(exception.struct)}, got: #{inspect(exception.term)}"
@@ -554,7 +554,7 @@ defmodule BadStructError do
 end
 
 defmodule BadMapError do
-  defexception [term: nil]
+  defexception [:term]
 
   def message(exception) do
     "expected a map, got: #{inspect(exception.term)}"
@@ -562,7 +562,7 @@ defmodule BadMapError do
 end
 
 defmodule MatchError do
-  defexception [term: nil]
+  defexception [:term]
 
   def message(exception) do
     "no match of right hand side value: #{inspect(exception.term)}"
@@ -570,7 +570,7 @@ defmodule MatchError do
 end
 
 defmodule CaseClauseError do
-  defexception [term: nil]
+  defexception [:term]
 
   def message(exception) do
     "no case clause matching: #{inspect(exception.term)}"
@@ -578,7 +578,7 @@ defmodule CaseClauseError do
 end
 
 defmodule WithClauseError do
-  defexception [term: nil]
+  defexception [:term]
 
   def message(exception) do
     "no with clause matching: #{inspect(exception.term)}"
@@ -594,7 +594,7 @@ defmodule CondClauseError do
 end
 
 defmodule TryClauseError do
-  defexception [term: nil]
+  defexception [:term]
 
   def message(exception) do
     "no try clause matching: #{inspect(exception.term)}"
@@ -602,7 +602,7 @@ defmodule TryClauseError do
 end
 
 defmodule BadArityError do
-  defexception [function: nil, args: nil]
+  defexception [:function, :args]
 
   def message(exception) do
     fun  = exception.function
@@ -618,7 +618,7 @@ defmodule BadArityError do
 end
 
 defmodule UndefinedFunctionError do
-  defexception [module: nil, function: nil, arity: nil, reason: nil, exports: nil]
+  defexception [:module, :function, :arity, :reason, :exports]
 
   def message(%{reason: nil, module: module, function: function, arity: arity} = e) do
     cond do
@@ -696,7 +696,7 @@ defmodule UndefinedFunctionError do
 end
 
 defmodule FunctionClauseError do
-  defexception [module: nil, function: nil, arity: nil]
+  defexception [:module, :function, :arity]
 
   def message(exception) do
     if exception.function do
@@ -718,7 +718,7 @@ defmodule Code.LoadError do
 end
 
 defmodule Protocol.UndefinedError do
-  defexception [protocol: nil, value: nil, description: ""]
+  defexception [:protocol, :value, description: ""]
 
   def message(exception) do
     msg = "protocol #{inspect exception.protocol} not implemented for #{inspect exception.value}"
@@ -730,7 +730,7 @@ defmodule Protocol.UndefinedError do
 end
 
 defmodule KeyError do
-  defexception key: nil, term: nil
+  defexception [:key, :term]
 
   def message(exception) do
     msg = "key #{inspect exception.key} not found"
@@ -774,7 +774,7 @@ defmodule Enum.EmptyError do
 end
 
 defmodule File.Error do
-  defexception [reason: nil, action: "", path: nil]
+  defexception [:reason, :path, action: ""]
 
   def message(exception) do
     formatted = IO.iodata_to_binary(:file.format_error(exception.reason))
@@ -783,7 +783,7 @@ defmodule File.Error do
 end
 
 defmodule File.CopyError do
-  defexception [reason: nil, source: nil, destination: nil, on: "", action: ""]
+  defexception [:reason, :source, :destination, on: "", action: ""]
 
   def message(exception) do
     formatted =
@@ -801,7 +801,7 @@ defmodule File.CopyError do
 end
 
 defmodule ErlangError do
-  defexception [original: nil]
+  defexception [:original]
 
   def message(exception) do
     "erlang error: #{inspect(exception.original)}"
