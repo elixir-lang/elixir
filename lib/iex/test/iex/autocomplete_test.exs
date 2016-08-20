@@ -186,6 +186,6 @@ defmodule IEx.AutocompleteTest do
   end
 
   test "completion for structs" do
-    assert expand('%IEx.AutocompleteTest.MyStr') == {:yes, 'uct', []}
+    assert expand('%IEx.AutocompleteTest.MyStr') == {:yes, 'uct.', []}
   end
 end
