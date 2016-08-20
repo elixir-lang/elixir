@@ -6,11 +6,11 @@
 
 #### Elixir
 
-  * [Enum] Add `Enum.map_every/2` that invokes the given function every n items
+  * [Enum] Add `Enum.map_every/2` that invokes the given function with every nth item
   * [Integer] `Integer.digits/2` now accepts negative integers
   * [Integer] Add `Integer.mod/2` and `Integer.floor_div/2`
   * [List] Add `List.pop_at/3`
-  * [Stream] Add `Stream.map_every/2` that invokes the given function every n items
+  * [Stream] Add `Stream.map_every/2` that invokes the given function with every nth item
 
 #### IEx
 
