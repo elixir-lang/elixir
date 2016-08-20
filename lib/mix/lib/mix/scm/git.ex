@@ -25,6 +25,7 @@ defmodule Mix.SCM.Git do
   end
 
   def accepts_options(_app, opts) do
+    opts = sparse_opts(opts)
     cond do
       gh = opts[:github] ->
         opts
@@ -41,7 +42,9 @@ defmodule Mix.SCM.Git do
 
   def checked_out?(opts) do
     # Are we inside a Git repository?
-    File.regular?(Path.join(opts[:dest], ".git/HEAD"))
+    git_dest(opts)
+    |> Path.join(".git/HEAD")
+    |> File.regular?
   end
 
   def lock_status(opts) do
@@ -50,7 +53,7 @@ defmodule Mix.SCM.Git do
 
     cond do
       lock_rev = get_lock_rev(lock, opts) ->
-        File.cd!(opts[:dest], fn ->
+        File.cd!(git_dest(opts), fn ->
           %{origin: origin, rev: rev} = get_rev_info()
           if get_lock_repo(lock) == origin and lock_rev == rev do
             :ok
@@ -77,19 +80,30 @@ defmodule Mix.SCM.Git do
   def checkout(opts) do
     assert_git!()
 
-    path     = opts[:dest]
+    path     = git_dest(opts)
     location = opts[:git]
 
     _ = File.rm_rf!(path)
-    git!(~s(clone --no-checkout --progress "#{location}" "#{path}"))
 
-    File.cd! path, fn -> do_checkout(opts) end
+    fun =
+      if opts[:sparse] do
+        sparse_check(git_version())
+        File.mkdir_p!(path)
+        fn -> init_sparse(opts) end
+      else
+        git!(~s(clone --no-checkout --progress "#{location}" "#{path}"))
+        fn -> do_checkout(opts) end
+      end
+
+    File.cd! path, fun
   end
 
   def update(opts) do
     assert_git!()
 
-    File.cd! opts[:dest], fn ->
+    File.cd! git_dest(opts), fn ->
+      sparse_toggle(opts)
+
       location = opts[:git]
       update_origin(location)
 
@@ -102,22 +116,79 @@ defmodule Mix.SCM.Git do
     end
   end
 
+  defp sparse_opts(opts) do
+    if opts[:sparse] do
+      dest = Path.join(opts[:dest], opts[:sparse])
+      opts
+      |> Keyword.put(:git_dest, opts[:dest])
+      |> Keyword.put(:dest, dest)
+    else
+      opts
+    end
+  end
+
+  defp sparse_check(version) do
+    unless {1, 7, 0} <= version do
+      version =
+        version
+        |> Tuple.to_list
+        |> Enum.join(".")
+      Mix.raise "Git >= 1.7.0 is required to use sparse checkout. " <>
+                 "You are running version #{version}"
+    end
+  end
+
+  defp sparse_toggle(opts) do
+    git!("config core.sparsecheckout #{opts[:sparse] != nil}")
+  end
+
+
   defp progress_switch(version) when {1, 7, 1} <= version, do: " --progress"
   defp progress_switch(_),                                 do: ""
 
   defp tags_switch(nil), do: ""
   defp tags_switch(_), do: " --tags"
 
+  defp git_dest(opts) do
+    if opts[:git_dest] do
+      opts[:git_dest]
+    else
+      opts[:dest]
+    end
+  end
+
   ## Helpers
 
   defp validate_git_options(opts) do
-    case Keyword.take(opts, [:branch, :ref, :tag]) do
-      []  -> opts
+    err = "You should specify only one of branch, ref or tag, and only once. " <>
+          "Error on Git dependency: #{opts[:git]}"
+    validate_single_uniq(opts, [:branch, :ref, :tag], err)
+
+    err = "You should specify only one sparse path. " <>
+          "Error on Git dependency: #{opts[:git]}"
+    validate_single_uniq(opts, [:sparse], err)
+  end
+
+  defp validate_single_uniq(opts, take, error) do
+    case Keyword.take(opts, take) do
+      [] -> opts
       [_] -> opts
-      _   ->
-        Mix.raise "You should specify only one of branch, ref or tag, and only once. " <>
-                  "Error on Git dependency: #{opts[:git]}"
+      _   -> Mix.raise error
     end
+  end
+
+  defp init_sparse(opts) do
+    git!("init --quiet")
+    git!("remote add origin #{opts[:git]} --fetch")
+    sparse_toggle(opts)
+
+    sparse_info =
+      File.cwd!
+      |> Path.join(".git/info/sparse-checkout")
+
+    File.write(sparse_info, opts[:sparse])
+
+    do_checkout(opts)
   end
 
   defp do_checkout(opts) do
@@ -147,6 +218,13 @@ defmodule Mix.SCM.Git do
 
   defp get_lock_opts(opts) do
     lock_opts = Keyword.take(opts, [:branch, :ref, :tag])
+    lock_opts =
+      if opts[:sparse] do
+        lock_opts ++ [sparse: opts[:sparse]]
+      else
+        lock_opts
+      end
+
     if opts[:submodules] do
       lock_opts ++ [submodules: true]
     else
