@@ -325,10 +325,8 @@ defmodule IEx.Helpers do
 
   @doc """
   Retrieves the nth expression's value from the history.
-  Where nth is iex(nth)>
 
   Use negative values to look up expression values relative to the current one.
-
   For instance, v(-1) returns the result of the last evaluated expression.
 
   ## Examples
@@ -343,7 +341,7 @@ defmodule IEx.Helpers do
       42
       iex(5)> v(3)
       "bar"
-      iex(6)> str = v
+      iex(6)> str = v()
       "bar"
   """
   def v(n \\ -1) do
