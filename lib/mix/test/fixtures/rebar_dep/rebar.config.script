@@ -1,1 +1,1 @@
-CONFIG ++ [{'SCRIPT', SCRIPT}].
+CONFIG ++ [{'SCRIPT', SCRIPT}] ++ [{deps, [{git_rebar, "0.1..*", {git, filename:absname("../../test/fixtures/git_rebar"), master}}]}].

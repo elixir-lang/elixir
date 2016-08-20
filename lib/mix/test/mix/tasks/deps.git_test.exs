@@ -34,16 +34,6 @@ defmodule Mix.Tasks.DepsGitTest do
     end
   end
 
-  defmodule GitSparseApp do
-    def project do
-      [app: :git_app,
-       version: "0.1.0",
-       deps: [
-         {:git_sparse_repo, "0.1.0", git: fixture_path("git_sparse_repo"), sparse: "sparse_dir"}
-       ]]
-    end
-  end
-
   defmodule GitErrorApp do
     def project do
       [deps: [
@@ -80,12 +70,15 @@ defmodule Mix.Tasks.DepsGitTest do
   end
 
   test "gets and updates Git repos with sparse checkout" do
-    Mix.Project.push GitSparseApp
+    Process.put(:git_repo_opts, sparse: "sparse_dir")
+    Mix.Project.push GitApp
 
     in_fixture "no_mixfile", fn ->
       Mix.Tasks.Deps.Get.run []
-      message = "* Getting git_sparse_repo (#{fixture_path("git_sparse_repo")})"
+      message = "* Getting git_repo (#{fixture_path("git_repo")})"
       assert_received {:mix_shell, :info, [^message]}
+      refute File.exists?("deps/git_repo/mix.exs")
+      assert File.exists?("deps/git_repo/sparse_dir/mix.exs")
       assert File.read!("mix.lock") =~ "sparse: \"sparse_dir\""
     end
   end
@@ -286,39 +279,59 @@ defmodule Mix.Tasks.DepsGitTest do
     purge [GitRepo, GitRepo.Mixfile]
   end
 
-  # sparse
-  test "updates the repo when sparse changes" do
-    Mix.Project.push GitSparseApp
-    [ref | _] = get_git_repo_revs("git_sparse_repo")
+  test "updates the repo when sparse is turned off" do
+    Process.put(:git_repo_opts, sparse: "sparse_dir")
+    Mix.Project.push GitApp
 
     in_fixture "no_mixfile", fn ->
-      Mix.Dep.Lock.write %{git_sparse_repo: {:git, fixture_path("git_sparse_repo"), ref, [sparse: "sparse_dir"]}}
-
       Mix.Tasks.Deps.Get.run []
+      refute File.exists?("deps/git_repo/lib/git_repo.ex")
 
-      # Update the lock and now we should get an error
-      Mix.Dep.Lock.write %{git_sparse_repo: {:git, fixture_path("git_sparse_repo"), ref, []}}
-      assert_raise Mix.Error, fn ->
-        Mix.Tasks.Deps.Loadpaths.run []
-      end
+      # Flush the errors we got, move to a clean slate
+      Mix.shell.flush
+      Mix.Task.clear
+      Process.delete(:git_repo_opts)
+      Mix.Project.pop
+      Mix.Project.push GitApp
 
-      # # Flush the errors we got, move to a clean slate
-      # Mix.shell.flush
-      # Mix.Task.clear
-      #
-      # # Calling get should update the dependency
-      # Mix.Tasks.Deps.Get.run []
-      # assert File.exists?("deps/git_repo/lib/git_repo.ex")
-      # assert File.read!("mix.lock") =~ last
-      #
-      # message = "* Updating git_repo (#{fixture_path("git_repo")})"
-      # assert_received {:mix_shell, :info, [^message]}
-      #
-      # # Check we got no error
-      # refute_received {:mix_shell, :error, _}
+      # Calling get should update the dependency
+      Mix.Tasks.Deps.Get.run []
+      refute File.read!("mix.lock") =~ "sparse_dir"
+      assert File.exists?("deps/git_repo/lib/git_repo.ex")
+
+      message = "* Updating git_repo (#{fixture_path("git_repo")})"
+      assert_received {:mix_shell, :info, [^message]}
+
+      # Check we got no error
+      refute_received {:mix_shell, :error, _}
     end
-  after
-    purge [GitSparseRepo, GitSparseRepo.Mixfile]
+  end
+
+  test "updates the repo when sparse is turned on" do
+    Mix.Project.push GitApp
+
+    in_fixture "no_mixfile", fn ->
+      Mix.Tasks.Deps.Get.run []
+      assert File.exists?("deps/git_repo/lib/git_repo.ex")
+
+      # Flush the errors we got, move to a clean slate
+      Mix.shell.flush
+      Mix.Task.clear
+      Process.put(:git_repo_opts, sparse: "sparse_dir")
+      Mix.Project.pop
+      Mix.Project.push GitApp
+
+      # Calling get should update the dependency
+      Mix.Tasks.Deps.Get.run []
+      assert File.read!("mix.lock") =~ "sparse_dir"
+      refute File.exists?("deps/git_repo/lib/git_repo.ex")
+
+      message = "* Updating git_repo (#{fixture_path("git_repo")})"
+      assert_received {:mix_shell, :info, [^message]}
+
+      # Check we got no error
+      refute_received {:mix_shell, :error, _}
+    end
   end
 
   test "updates the repo and the lock when the mixfile updates" do
@@ -360,7 +373,7 @@ defmodule Mix.Tasks.DepsGitTest do
       exception = assert_raise Mix.Error, fn ->
         Mix.Tasks.Deps.Get.run []
       end
-      assert Exception.message(exception) =~ "Command \"git clone"
+      assert Exception.message(exception) =~ "Command \"git --git-dir=.git fetch"
     end
   end
 
@@ -420,8 +433,8 @@ defmodule Mix.Tasks.DepsGitTest do
     Mix.Project.push(name, file)
   end
 
-  defp get_git_repo_revs(fixture \\ "git_repo") do
-    File.cd! fixture_path(fixture), fn ->
+  defp get_git_repo_revs() do
+    File.cd! fixture_path("git_repo"), fn ->
       Regex.split ~r(\r?\n), System.cmd("git", ["log", "--format=%H"]) |> elem(0)
     end
   end
