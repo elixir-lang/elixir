@@ -111,7 +111,7 @@ defmodule Logger.Backends.ConsoleTest do
   end
 
   test "can use colors from metadata" do
-    Logger.configure_backend(:console, [format: "$message", colors: [enabled: true, error: :cyan]])
+    Logger.configure_backend(:console, [format: "$message", colors: [enabled: true]])
 
     assert capture_log(fn ->
       Logger.log(:error, "hello", ansi_color: :yellow)
