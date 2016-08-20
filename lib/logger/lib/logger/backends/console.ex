@@ -86,7 +86,7 @@ defmodule Logger.Backends.Console do
     colors     = configure_colors(config)
     max_buffer = Keyword.get(config, :max_buffer, 32)
     %{state | format: format, metadata: Enum.reverse(metadata),
-      level: level, colors: colors, device: device, max_buffer: max_buffer}
+              level: level, colors: colors, device: device, max_buffer: max_buffer}
   end
 
   defp configure_merge(env, options) do
@@ -149,7 +149,7 @@ defmodule Logger.Backends.Console do
     %{format: format, metadata: keys, colors: colors} = state
     format
     |> Logger.Formatter.format(level, msg, ts, take_metadata(md, keys))
-    |> color_event(level, colors)
+    |> color_event(level, colors, md)
   end
 
   defp take_metadata(metadata, keys) do
@@ -161,10 +161,11 @@ defmodule Logger.Backends.Console do
     end
   end
 
-  defp color_event(data, _level, %{enabled: false}), do: data
+  defp color_event(data, _level, %{enabled: false}, _md), do: data
 
-  defp color_event(data, level, %{enabled: true} = colors) do
-    [IO.ANSI.format_fragment(Map.fetch!(colors, level), true), data | IO.ANSI.reset]
+  defp color_event(data, level, %{enabled: true} = colors, md) do
+    color = md[:ansi_color] || Map.fetch!(colors, level)
+    [IO.ANSI.format_fragment(color, true), data | IO.ANSI.reset]
   end
 
   defp log_buffer(%{buffer_size: 0, buffer: []} = state), do: state
