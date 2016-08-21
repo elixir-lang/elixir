@@ -26,8 +26,8 @@ defmodule Mix.Tasks.Deps do
       {:plug, ">= 0.4.0"}
 
   By specifying such dependencies, Mix will automatically install
-  Hex (if it wasn't previously installed and download a package
-  suitable to your project).
+  Hex (if it wasn't previously installed) and download a package
+  suitable to your project.
 
   Mix also supports Git and path dependencies:
 
@@ -42,11 +42,9 @@ defmodule Mix.Tasks.Deps do
   the parent project whenever they change. While fetchable dependencies
   like the ones using `:git` are recompiled only when fetched/updated.
 
-  The dependencies versions are expected to follow Semantic Versioning
+  The dependencies' versions are expected to follow Semantic Versioning
   and the requirements must be specified as defined in the `Version`
   module.
-
-  Below we provide a more detailed look into the available options.
 
   ## Dependency definition options
 

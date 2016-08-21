@@ -36,7 +36,7 @@ defmodule Mix.Tasks.New do
 
       mix new hello_world --module HelloWorld
 
-  To generate an app with supervisor and application callback:
+  To generate an app with a supervision tree and an application callback:
 
       mix new hello_world --sup
 
