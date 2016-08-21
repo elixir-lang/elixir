@@ -12,8 +12,7 @@ defmodule Mix.Tasks.Cmd do
 
       mix cmd echo pwd
 
-  Aborts when the first command exits with status different
-  than zero.
+  Aborts when a command exits with a non-zero status.
   """
   @spec run(OptionParser.argv) :: :ok
   def run(args) do

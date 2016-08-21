@@ -8,14 +8,14 @@ defmodule Mix.Tasks.Deps.Clean do
   sources.
 
   Since this is a destructive action, cleaning of dependencies
-  can only happen by passing arguments/options:
+  only occurs when passing arguments/options:
 
-    * `dep1 dep2` - the name of dependencies to be deleted separated by a space
+    * `dep1 dep2` - the names of dependencies to be deleted separated by a space
     * `--unlock` - also unlocks the deleted dependencies
     * `--build` - deletes only compiled files (keeps source files)
     * `--all` - deletes all dependencies
     * `--unused` - deletes only unused dependencies
-      (i.e. dependencies no longer mentioned in `mix.exs` are removed)
+      (i.e. dependencies no longer mentioned in `mix.exs`)
 
   By default this task works across all environments,
   unless `--only` is given which will clean all dependencies
@@ -101,7 +101,7 @@ defmodule Mix.Tasks.Deps.Clean do
 
       # Remove everything from the source directory of dependencies.
       # Skip this step if --build option is specified or if
-      # the dependency is local, ie, referenced using :path.
+      # the dependency is local, i.e., referenced using :path.
       if build_only? || app in local do
         :do_not_delete_source
       else

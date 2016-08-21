@@ -6,8 +6,8 @@ defmodule Mix.Tasks.Deps.Unlock do
   @moduledoc """
   Unlocks the given dependencies.
 
-  Since this is a destructive action, unlocking of dependencies
-  can only happen by passing arguments/options:
+  Since this is a destructive action, unlocking dependencies
+  only occurs when passing arguments/options:
 
     * `dep1 dep2` - the name of dependencies to be unlocked
     * `--all` - unlocks all dependencies

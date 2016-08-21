@@ -24,7 +24,7 @@ defmodule Mix.Tasks.Run do
   Before running any command, the task compiles and starts the current
   application. Those can be configured with the options below.
 
-  You may also pass option specific to the `elixir` executable as follows:
+  You may also pass options specific to the `elixir` executable as follows:
 
       elixir --sname hello -S mix run --no-halt
 

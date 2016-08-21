@@ -19,7 +19,7 @@ defmodule Mix.Tasks.Compile.Protocols do
   protocol dispatches by not accounting for code loading.
 
   This task consolidates all protocols in the code path
-  and output the new binary files to the given directory
+  and outputs the new binary files to the given directory
   (defaults to "_build/MIX_ENV/consolidated").
 
   In case you are manually compiling protocols or building
