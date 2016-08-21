@@ -1679,7 +1679,7 @@ defmodule String do
       iex> String.ends_with? "language", ["youth", "elixir"]
       false
 
-  An empty string will always match:
+  An empty suffix will always match:
 
       iex> String.ends_with? "language", ""
       true
