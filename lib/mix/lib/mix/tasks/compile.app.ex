@@ -28,12 +28,12 @@ defmodule Mix.Tasks.Compile.App do
     * `:registered` - the name of all registered processes in the
       application. If your application defines a local GenServer
       with name `MyServer`, it is recommended to add `MyServer`
-      to this list. It is mostly useful to detect conflicts
+      to this list. It is most useful in detecting conflicts
       between applications that register the same names.
 
     * `:mod` - specify a module to invoke when the application
-      is started, it must be in the format `{Mod, args}` where
-      args is often an empty list. The module specified here must
+      is started. It must be in the format `{Mod, args}` where
+      args is often an empty list. The module specified must
       implement the callbacks defined by the `Application`
       module.
 
@@ -49,9 +49,9 @@ defmodule Mix.Tasks.Compile.App do
          applications: [:crypto]]
       end
 
-  Besides the options above, `.app` files also expects other
-  options like `:modules` and `:vsn`, but those are automatically
-  filled by Mix.
+  Besides the options above, `.app` files also expect other
+  options like `:modules` and `:vsn`, but these are automatically
+  added by Mix.
 
   ## Command line options
 

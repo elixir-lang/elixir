@@ -7,13 +7,13 @@ defmodule Mix.Tasks.Compile.Elixir do
   @moduledoc """
   Compiles Elixir source files.
 
-  Elixir is smart enough to recompile only files that changed
+  Elixir is smart enough to recompile only files that have changed
   and their dependencies. This means if `lib/a.ex` is invoking
   a function defined over `lib/b.ex`, whenever `lib/b.ex` changes,
   `lib/a.ex` is also recompiled.
 
-  Note it is important to recompile a file dependencies because
-  often there are compilation time dependencies between them.
+  Note it is important to recompile a file's dependencies as
+  there are often compile time dependencies between them.
 
   ## Command line options
 

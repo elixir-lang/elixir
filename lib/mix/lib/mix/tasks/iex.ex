@@ -2,7 +2,7 @@ defmodule Mix.Tasks.Iex do
   use Mix.Task
 
   @moduledoc """
-  A task that is simply meant to redirect users to `iex -S mix`.
+  A task that simply instructs users to run `iex -S mix`.
   """
 
   @spec run(OptionParser.argv) :: no_return

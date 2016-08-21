@@ -21,7 +21,7 @@ defmodule Mix.Tasks.Help do
   application either inside your project (in `config/config.exs`) or
   by using the local config (in `~/.mix/config.exs`).
 
-  For example, to disable, one may:
+  For example, to disable color, one may use the configuration:
 
       [mix: [colors: [enabled: false]]]
 

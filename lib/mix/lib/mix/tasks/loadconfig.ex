@@ -6,8 +6,8 @@ defmodule Mix.Tasks.Loadconfig do
   @moduledoc """
   Loads and persists the given configuration.
 
-  In case no configuration file is given, it loads the project
-  one at "config/config.exs" if it exists. Keep in mind though
+  If no configuration file is given, it loads the project's
+  configuration file, "config/config.exs", if it exists. Keep in mind that
   the "config/config.exs" file is always loaded by the CLI and
   invoking it is only required in cases you are starting Mix
   manually.
