@@ -264,6 +264,7 @@ defmodule IEx.Helpers do
       t(Enum)
       t(Enum.t/0)
       t(Enum.t)
+
   """
   defmacro t(term)
   defmacro t({:/, _, [{{:., _, [mod, fun]}, _, []}, arity]}) do
@@ -341,8 +342,9 @@ defmodule IEx.Helpers do
       42
       iex(5)> v(3)
       "bar"
-      iex(6)> str = v()
+      iex(6)> v()
       "bar"
+
   """
   def v(n \\ -1) do
     IEx.History.nth(history(), n) |> elem(2)
