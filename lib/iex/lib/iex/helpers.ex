@@ -264,6 +264,7 @@ defmodule IEx.Helpers do
       t(Enum)
       t(Enum.t/0)
       t(Enum.t)
+
   """
   defmacro t(term)
   defmacro t({:/, _, [{{:., _, [mod, fun]}, _, []}, arity]}) do
@@ -328,6 +329,22 @@ defmodule IEx.Helpers do
 
   Use negative values to look up expression values relative to the current one.
   For instance, v(-1) returns the result of the last evaluated expression.
+
+  ## Examples
+
+      iex(1)> "hello" <> " world"
+      "hello world"
+      iex(2)> 40 + 2
+      42
+      iex(3)> foo = "bar"
+      "bar"
+      iex(4)> v(-2)
+      42
+      iex(5)> v(3)
+      "bar"
+      iex(6)> v()
+      "bar"
+
   """
   def v(n \\ -1) do
     IEx.History.nth(history(), n) |> elem(2)
@@ -394,13 +411,13 @@ defmodule IEx.Helpers do
 
   @doc """
   Prints information about the data type of any given term.
-  
+
   ## Examples
 
       iex> i(1..5)
-      
+
   Will print:
-    
+
       Term
         1..5
       Data type
