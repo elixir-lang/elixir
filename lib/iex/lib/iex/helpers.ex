@@ -325,10 +325,13 @@ defmodule IEx.Helpers do
   end
 
   @doc """
-  Retrieves the nth expression's value from the history.
+  Returns the value of the `n`th expression in the history.
 
-  Use negative values to look up expression values relative to the current one.
-  For instance, v(-1) returns the result of the last evaluated expression.
+  `n` can be a negative value: if it is, the corresponding expression value
+  relative to the current one is returned. For example, `v(-2)` returns the
+  value of the expression evaluated before the last evaluated expression. In
+  particular, `v(-1)` returns the result of the last evaluated expression and
+  `v()` does the same.
 
   ## Examples
 
@@ -336,14 +339,12 @@ defmodule IEx.Helpers do
       "hello world"
       iex(2)> 40 + 2
       42
-      iex(3)> foo = "bar"
-      "bar"
-      iex(4)> v(-2)
+      iex(3)> v(-2)
+      "hello world"
+      iex(4)> v(2)
       42
-      iex(5)> v(3)
-      "bar"
-      iex(6)> v()
-      "bar"
+      iex(5)> v()
+      42
 
   """
   def v(n \\ -1) do
@@ -426,6 +427,7 @@ defmodule IEx.Helpers do
         This is a struct. Structs are maps with a __struct__ key.
       Reference modules
         Range, Map
+
   """
   def i(term) do
     info = ["Term": inspect(term)] ++ IEx.Info.info(term)
@@ -641,6 +643,7 @@ defmodule IEx.Helpers do
 
       # In ~/.iex.exs
       import_if_available Ecto.Query
+
   """
   defmacro import_if_available(quoted_module, opts \\ []) do
     module = Macro.expand(quoted_module, __CALLER__)
