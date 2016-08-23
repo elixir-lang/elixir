@@ -159,6 +159,36 @@ defmodule GenServer do
   the GenServer callbacks as doing so will cause the GenServer to misbehave.
   If you want to receive custom messages, always receive them in `handle_info/2`.
 
+  Custom messages are all other messages a server may receive that are not sent via
+  `call/3` or `cast/2`.
+
+  To send custom message use: `Kernel.send/2`,`Process.send_after/3` functions.
+
+  Here is example of handling custom messages, sent via `Process.send_after/3`:
+
+      defmodule MyApp.Periodically do
+        use GenServer
+
+        def start_link do
+          GenServer.start_link(__MODULE__, %{})
+        end
+
+        def init(state) do
+          schedule_work() # Schedule work to be performed at some point
+          {:ok, state}
+        end
+
+        def handle_info(:work, state) do
+          # Do the work you desire here
+          schedule_work() # Reschedule once more
+          {:noreply, state}
+        end
+
+        defp schedule_work() do
+          Process.send_after(self(), :work, 2 * 60 * 60 * 1000) # In 2 hours
+        end
+      end
+
   ## Debugging with the :sys module
 
   GenServers, as [special processes](http://erlang.org/doc/design_principles/spec_proc.html),
