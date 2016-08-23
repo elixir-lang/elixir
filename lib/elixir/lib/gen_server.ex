@@ -151,20 +151,21 @@ defmodule GenServer do
   the same module. If the server and/or client implementations are growing
   complex, you may want to have them in different modules.
 
-  ## Receiving custom messages
+  ## Receiving "regular" messages
 
   The goal of a `GenServer` is to abstract the "receive" loop for developers,
   automatically handling system messages, support code change, synchronous
   calls and more. Therefore, you should never call your own "receive" inside
   the GenServer callbacks as doing so will cause the GenServer to misbehave.
-  If you want to receive custom messages, always receive them in `handle_info/2`.
 
-  Custom messages are all other messages a server may receive that are not sent via
-  `call/3` or `cast/2`.
+  Besides the synchronous and asynchronous communication provided by `call/3`
+  and `cast/2`, "regular" messages sent by functions such `Kernel.send/2`,
+  `Process.send_after/3` and similar, can be handled inside the `handle_info/2`
+  callback.
 
-  To send custom message use: `Kernel.send/2`,`Process.send_after/3` functions.
-
-  Here is example of handling custom messages, sent via `Process.send_after/3`:
+  `handle_info/2` can be used in many situations, such as handling monitor
+  DOWN messages sent by `Process.monitor/2`. Another use case for `handle_info/2`
+  is to perform periodic work, with the help of `Process.send_after/3`:
 
       defmodule MyApp.Periodically do
         use GenServer
@@ -174,18 +175,18 @@ defmodule GenServer do
         end
 
         def init(state) do
-          schedule_work() # Schedule work to be performed at some point
+          schedule_work() # Schedule work to be performed on start
           {:ok, state}
         end
 
         def handle_info(:work, state) do
-          # Do the work you desire here
+          # Do the desired work here
           schedule_work() # Reschedule once more
           {:noreply, state}
         end
 
         defp schedule_work() do
-          Process.send_after(self(), :work, 2 * 60 * 60 * 1000) # In 2 hours
+          Process.send_after(self(), :work, 2 * 60 * 60 * 1000) # Every 2 hours
         end
       end
 
