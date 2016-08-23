@@ -700,8 +700,14 @@ defmodule File do
   """
   @spec write(Path.t, iodata, [mode]) :: :ok | {:error, posix}
   def write(path, content, modes \\ []) do
-    modes = normalize_modes(modes, false)
-    F.write_file(IO.chardata_to_string(path), content, modes)
+    modes = normalize_write_modes(modes)
+    case F.open(IO.chardata_to_string(path), modes) do
+      {:ok, file} ->
+        result = F.write(file, content)
+        F.close(file)
+        result
+      error -> error
+    end
   end
 
   @doc """
@@ -709,11 +715,20 @@ defmodule File do
   """
   @spec write!(Path.t, iodata, [mode]) :: :ok | no_return
   def write!(path, content, modes \\ []) do
-    modes = normalize_modes(modes, false)
-    case F.write_file(path, content, modes) do
-      :ok -> :ok
+    modes = normalize_write_modes(modes)
+    case F.open(IO.chardata_to_string(path), modes) do
+      {:ok, file} ->
+        case F.write(file, content) do
+          :ok ->
+            F.close(file)
+            :ok
+          {:error, reason} ->
+            F.close(file)
+            raise File.Error, reason: reason, action: "write to file",
+              path: IO.chardata_to_string(path)
+        end
       {:error, reason} ->
-        raise File.Error, reason: reason, action: "write to file",
+        raise File.Error, reason: reason, action: "open file for writing",
           path: IO.chardata_to_string(path)
     end
   end
@@ -1339,6 +1354,28 @@ defmodule File do
   end
   defp normalize_modes([], true), do: [:binary]
   defp normalize_modes([], false), do: []
+
+  defp normalize_write_modes(modes) do
+    normalize_modes([:write] ++ modes, true)
+    |> set_raw_unless_encoding_specified
+  end
+
+  # Using raw mode means we get the performance benefit of using `writev`.
+  # However, Erlang will raise a badarg error if a file encoding is specified
+  # and raw mode is also requested.
+  # http://erlang.org/doc/man/file.html#open-2
+  defp set_raw_unless_encoding_specified(modes) do
+    case specifies_encoding?(modes) do
+      true  -> modes
+      false -> modes ++ [:raw]
+    end
+  end
+
+  defp specifies_encoding?(modes) do
+    Enum.any?(modes, fn (mode) ->
+      is_tuple(mode) && elem(mode, 0) == :encoding
+    end)
+  end
 
   defp maybe_to_string(path) when is_pid(path),
     do: path
