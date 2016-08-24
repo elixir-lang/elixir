@@ -701,6 +701,7 @@ defmodule File do
   @spec write(Path.t, iodata, [mode]) :: :ok | {:error, posix}
   def write(path, content, modes \\ []) do
     modes = normalize_write_modes(modes)
+    content = convert_to_binary_unless_raw_mode(content, modes)
     case F.open(IO.chardata_to_string(path), modes) do
       {:ok, file} ->
         result = F.write(file, content)
@@ -716,6 +717,7 @@ defmodule File do
   @spec write!(Path.t, iodata, [mode]) :: :ok | no_return
   def write!(path, content, modes \\ []) do
     modes = normalize_write_modes(modes)
+    content = convert_to_binary_unless_raw_mode(content, modes)
     case F.open(IO.chardata_to_string(path), modes) do
       {:ok, file} ->
         case F.write(file, content) do
@@ -1356,16 +1358,12 @@ defmodule File do
   defp normalize_modes([], false), do: []
 
   defp normalize_write_modes(modes) do
-    normalize_modes([:write] ++ modes, true)
-    |> set_raw_unless_encoding_specified
+    normalize_modes([:write | modes], true)
   end
 
-  # Using raw mode means we get the performance benefit of using `writev`.
-  # However, Erlang will raise a badarg error if a file encoding is specified
-  # and raw mode is also requested.
-  # http://erlang.org/doc/man/file.html#open-2
-  defp set_raw_unless_encoding_specified(modes) do
-    if Keyword.has_key?(modes, :encoding), do: modes, else: [:raw | modes]
+  # For more efficient sending to the file handling process
+  defp convert_to_binary_unless_raw_mode(content, modes) do
+    if Enum.member?(modes, :raw), do: content, else: IO.iodata_to_binary(content)
   end
 
   defp maybe_to_string(path) when is_pid(path),
