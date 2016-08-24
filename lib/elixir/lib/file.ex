@@ -704,9 +704,12 @@ defmodule File do
     content = convert_to_binary_unless_raw_mode(content, modes)
     case F.open(IO.chardata_to_string(path), modes) do
       {:ok, file} ->
-        result = F.write(file, content)
-        F.close(file)
-        result
+        case F.write(file, content) do
+          :ok -> F.close(file)
+          error ->
+            F.close(file)
+            error
+        end
       error -> error
     end
   end
@@ -721,9 +724,7 @@ defmodule File do
     case F.open(IO.chardata_to_string(path), modes) do
       {:ok, file} ->
         case F.write(file, content) do
-          :ok ->
-            F.close(file)
-            :ok
+          :ok -> F.close(file)
           {:error, reason} ->
             F.close(file)
             raise File.Error, reason: reason, action: "write to file",
