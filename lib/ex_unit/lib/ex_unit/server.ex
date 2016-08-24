@@ -1,6 +1,5 @@
 defmodule ExUnit.Server do
   @moduledoc false
-  @timeout 60_000
 
   use GenServer
 
@@ -21,11 +20,13 @@ defmodule ExUnit.Server do
   end
 
   def take_async_cases(count) do
-    GenServer.call(__MODULE__, {:take_async_cases, count}, @timeout)
+    timeout = Application.get_env(:ex_unit, :case_load_timeout)
+    GenServer.call(__MODULE__, {:take_async_cases, count}, timeout)
   end
 
   def take_sync_cases() do
-    GenServer.call(__MODULE__, :take_sync_cases, @timeout)
+    timeout = Application.get_env(:ex_unit, :case_load_timeout)
+    GenServer.call(__MODULE__, :take_sync_cases, timeout)
   end
 
   ## Callbacks
