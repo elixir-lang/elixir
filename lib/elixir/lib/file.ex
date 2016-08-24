@@ -1365,10 +1365,7 @@ defmodule File do
   # and raw mode is also requested.
   # http://erlang.org/doc/man/file.html#open-2
   defp set_raw_unless_encoding_specified(modes) do
-    case Keyword.has_key?(modes, :encoding) do
-      true  -> modes
-      false -> [:raw | modes]
-    end
+    if Keyword.has_key?(modes, :encoding), do: modes, else: [:raw | modes]
   end
 
   defp maybe_to_string(path) when is_pid(path),
