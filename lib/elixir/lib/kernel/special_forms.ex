@@ -37,7 +37,7 @@ defmodule Kernel.SpecialForms do
   ## AST representation
 
   Only two-item tuples are considered literals in Elixir and return themselves
-  when quoted. Therefore all other tuples are represented in the AST as calls to
+  when quoted. Therefore, all other tuples are represented in the AST as calls to
   the `:{}` special form.
 
       iex> quote do
@@ -1743,7 +1743,7 @@ defmodule Kernel.SpecialForms do
             :infinity
         end
 
-  However when an else clause is present but the result of the expression
+  However, when an else clause is present but the result of the expression
   does not match any of the patterns an exception will be raised. This
   exception will not be caught by a catch or rescue in the same try:
 
@@ -1765,7 +1765,7 @@ defmodule Kernel.SpecialForms do
           :error_b
       end
 
-  Similarly an exception inside an else clause is not caught or rescued
+  Similarly, an exception inside an else clause is not caught or rescued
   inside the same try:
 
       try do
