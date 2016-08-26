@@ -48,7 +48,7 @@ defmodule Supervisor do
 
       # Start the supervisor with our child
       {:ok, pid} = Supervisor.start_link(children, strategy: :one_for_one)
-      
+
       # There is one child worker started
       Supervisor.count_children(pid)
       #=> %{active: 1, specs: 1, supervisors: 0, workers: 1}
@@ -164,7 +164,7 @@ defmodule Supervisor do
 
       # Start the supervisor with our one child as a template
       {:ok, sup_pid} = Supervisor.start_link(children, strategy: :simple_one_for_one)
-      
+
       # No child worker is active yet until start_child is called
       Supervisor.count_children(sup_pid)
       #=> %{active: 0, specs: 1, supervisors: 0, workers: 0}
