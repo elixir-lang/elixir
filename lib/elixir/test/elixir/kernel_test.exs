@@ -302,6 +302,7 @@ defmodule KernelTest do
     assert macro_exported?(Kernel, :def, 2) == true
     assert macro_exported?(Kernel, :def, 3) == false
     assert macro_exported?(Kernel, :no_such_macro, 2) == false
+    assert macro_exported?(:erlang, :abs, 1) == false
   end
 
   test "apply/3 and apply/2" do
