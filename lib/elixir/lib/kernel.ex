@@ -2826,18 +2826,21 @@ defmodule Kernel do
   it is not loaded. Check `Code.ensure_loaded/1` for more
   information.
 
+  If `module` is an Erlang module (as opposed to an Elixir module), this
+  function always returns `false`.
+
   ## Examples
 
       iex> macro_exported?(Kernel, :use, 2)
       true
 
+      iex> macro_exported?(:erlang, :abs, 1)
+      false
+
   """
   @spec macro_exported?(atom, atom, integer) :: boolean
   def macro_exported?(module, macro, arity) do
-    case :code.is_loaded(module) do
-      {:file, _} -> :lists.member({macro, arity}, module.__info__(:macros))
-      _ -> false
-    end
+    function_exported?(module, :__info__, 1) and :lists.member({macro, arity}, module.__info__(:macros))
   end
 
   @doc """
