@@ -567,7 +567,7 @@ defmodule Kernel do
   @doc """
   Computes the remainder of an integer division.
 
-  `rem/2` uses truncated division, which means that 
+  `rem/2` uses truncated division, which means that
   the result will always have the sign of the `dividend`.
 
   Raises an `ArithmeticError` exception if one of the arguments is not an
