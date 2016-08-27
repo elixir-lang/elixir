@@ -551,10 +551,22 @@ defmodule Macro do
   @doc """
   Converts the given expression to a binary.
 
+  The given `fun` is called for every node in the AST with two arguments: the
+  AST of the node being printed and the string representation of that same
+  node. The return value of this function is used as the final string
+  representation for that AST node.
+
   ## Examples
 
       iex> Macro.to_string(quote(do: foo.bar(1, 2, 3)))
       "foo.bar(1, 2, 3)"
+
+      iex> Macro.to_string(quote(do: 1 + 2), fn
+      ...>   1, _string -> "one"
+      ...>   2, _string -> "two"
+      ...>   _ast, string -> string
+      ...> end)
+      "one + two"
 
   """
   @spec to_string(Macro.t) :: String.t
