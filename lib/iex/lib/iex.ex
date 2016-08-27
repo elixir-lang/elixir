@@ -134,32 +134,32 @@ defmodule IEx do
 
   ## The .iex.exs file
 
-  When starting IEx, it will look for a local `.iex.exs` file (located in the current
-  working directory), then a global one (located at `~/.iex.exs`) and will load the
-  first one it finds (if any). The code in the chosen .iex.exs file will be
+  When starting, IEx looks for a local `.iex.exs` file (located in the current
+  working directory), then a global one (located at `~/.iex.exs`) and loads the
+  first one it finds (if any). The code in the loaded `.iex.exs` file is
   evaluated in the shell's context. So, for instance, any modules that are
-  loaded or variables that are bound in the .iex.exs file will be available in the
+  loaded or variables that are bound in the `.iex.exs` file will be available in the
   shell after it has booted.
 
-  Sample contents of a local .iex.exs file:
+  For example, take the following `.iex.exs` file:
 
-      # source another ".iex.exs" file
+      # Load another ".iex.exs" file
       import_file "~/.iex.exs"
 
-      # import some module from lib that may not yet have been defined
+      # Import some module from lib that may not yet have been defined
       import_if_available MyApp.Mod
 
-      # print something before the shell starts
+      # Print something before the shell starts
       IO.puts "hello world"
 
-      # bind a variable that'll be accessible in the shell
+      # Bind a variable that'll be accessible in the shell
       value = 13
 
-  Running the shell in the directory where the above .iex.exs file is located
+  Running IEx in the directory where the above `.iex.exs` file is located
   results in:
 
       $ iex
-      Erlang 18 [...]
+      Erlang 19 [...]
 
       hello world
       Interactive Elixir - press Ctrl+C to exit (type h() ENTER for help)
@@ -167,23 +167,23 @@ defmodule IEx do
       13
 
   It is possible to load another file by supplying the `--dot-iex`
-  option to iex. See `iex --help`.
+  option to IEx. See `iex --help`.
 
   ## Configuring the shell
 
-  There are a number of customization options provided by the shell. Take a look
+  There are a number of customization options provided by IEx. Take a look
   at the docs for the `IEx.configure/1` function by typing `h IEx.configure/1`.
 
   Those options can be configured in your project configuration file or globally
-  by calling `IEx.configure/1` from your `~/.iex.exs` file like this:
+  by calling `IEx.configure/1` from your `~/.iex.exs` file. For example:
 
       # .iex.exs
       IEx.configure(inspect: [limit: 3])
 
-      ### now run the shell ###
+  Now run the shell:
 
       $ iex
-      Erlang 17 (erts-5.10.1) [...]
+      Erlang 19 [...]
 
       Interactive Elixir - press Ctrl+C to exit (type h() ENTER for help)
       iex(1)> [1, 2, 3, 4, 5]
@@ -227,8 +227,16 @@ defmodule IEx do
   @doc """
   Configures IEx.
 
-  The supported options are: `:colors`, `:inspect`, `:width`,
-  `:history_size`, `:default_prompt` and `:alive_prompt`.
+  The supported options are:
+
+    * `:colors`
+    * `:inspect`
+    * `:width`
+    * `:history_size`
+    * `:default_prompt`
+    * `:alive_prompt`
+
+  They are discussed individually in the sections below.
 
   ## Colors
 
@@ -236,7 +244,7 @@ defmodule IEx do
   shell. See documentation for the `IO.ANSI` module for the list of
   supported colors and attributes.
 
-  The value is a keyword list. List of supported keys:
+  List of supported keys in the keyword list:
 
     * `:enabled`      - boolean value that allows for switching the coloring on and off
     * `:eval_result`  - color for an expression's resulting value
@@ -248,7 +256,8 @@ defmodule IEx do
     * `:ls_device`    - ... device entries (ls helper)
 
   When printing documentation, IEx will convert the Markdown
-  documentation to ANSI as well. Those can be configured via:
+  documentation to ANSI as well. Colors for this can be configured
+  via:
 
     * `:doc_code`        - the attributes for code blocks (cyan, bright)
     * `:doc_inline_code` - inline code (cyan)
@@ -284,10 +293,10 @@ defmodule IEx do
   This is an option determining the prompt displayed to the user
   when awaiting input.
 
-  The value is a keyword list. Two prompt types:
+  The value is a keyword list with two possible keys representing prompt types:
 
-    * `:default_prompt` - used when `Node.alive?` returns `false`
-    * `:alive_prompt`   - used when `Node.alive?` returns `true`
+    * `:default_prompt` - used when `Node.alive?/0` returns `false`
+    * `:alive_prompt`   - used when `Node.alive?/0` returns `true`
 
   The following values in the prompt string will be replaced appropriately:
 
