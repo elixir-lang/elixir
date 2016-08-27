@@ -86,7 +86,7 @@ defmodule List do
   ## List and Enum modules
 
   This module aims to provide operations that are specific
-  to lists, like convertion between data types, updates,
+  to lists, like conversion between data types, updates,
   deletions and key lookups (for lists of tuples). For traversing
   lists in general, developers should use the functions in the
   `Enum` module that work across a variety of data types.
