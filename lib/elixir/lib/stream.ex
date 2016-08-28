@@ -1010,7 +1010,7 @@ defmodule Stream do
 
   defp do_zip(zips, {:cont, acc}, callback) do
     try do
-      do_zip(zips, acc, callback, [], [])
+      do_zip_next_tuple(zips, acc, callback, [], [])
     catch
       kind, reason ->
         stacktrace = System.stacktrace
@@ -1019,27 +1019,30 @@ defmodule Stream do
     else
       {:next, buffer, acc} ->
         do_zip(buffer, acc, callback)
-      {:done, _} = o ->
-        o
+      {:done, _acc} = other ->
+        other
     end
   end
 
-  defp do_zip([{fun, fun_acc} | t], acc, callback, yielded_elems, buffer) do
+  # do_zip_next_tuple/5 computes the next tuple formed by the next element of
+  # each zipped stream.
+
+  defp do_zip_next_tuple([{fun, fun_acc} | rest] = _zips, acc, callback, yielded_elems, buffer) do
     case fun.({:cont, fun_acc}) do
-      {:suspended, [i | fun_acc], fun} ->
-        do_zip(t, acc, callback, [i | yielded_elems], [{fun, fun_acc} | buffer])
-      {_, _} ->
-        do_zip_close(:lists.reverse(buffer, t))
+      {:suspended, [elem | fun_acc], fun} ->
+        do_zip_next_tuple(rest, acc, callback, [elem | yielded_elems], [{fun, fun_acc} | buffer])
+      {_done_or_halted, _acc} ->
+        # The current zipped stream terminated, so we close all the streams and
+        # return {:done, acc} (which is returned as is by do_zip/3.
+        do_zip_close(:lists.reverse(buffer, rest))
         {:done, acc}
     end
   end
 
-  defp do_zip([], acc, callback, yielded_elems, buffer) do
-    # Here, "list" is the (reversed) list of results of this step of the
-    # enumeration (i.e., if we were zipping three streams, "list" would be a
-    # three-elements list of the elements currently yielded by each stream). We
-    # reverse this to fix the order and convert to tuple since the result of
-    # zipping n streams is a list of n-elements tuples.
+  defp do_zip_next_tuple([] = _zips, acc, callback, yielded_elems, buffer) do
+    # "yielded_elems" is a reversed list of results for the current iteration of
+    # zipping: it needs to be reversed and converted to a tuple to have the next
+    # tuple in the list resulting from zipping.
     zipped = List.to_tuple(:lists.reverse(yielded_elems))
     {:next, :lists.reverse(buffer), callback.(zipped, acc)}
   end
