@@ -352,6 +352,17 @@ defmodule MacroTest do
         z
     end
     """
+
+    assert Macro.to_string(quote do: (fn(x) -> x end).(1)) == "(fn x -> x end).(1)"
+
+    assert Macro.to_string(quote do: (fn %{} -> :map; _ -> :other end).(1)) <> "\n" == """
+    (fn
+      %{} ->
+        :map
+      _ ->
+        :other
+    end).(1)
+    """
   end
 
   test "range to string" do
