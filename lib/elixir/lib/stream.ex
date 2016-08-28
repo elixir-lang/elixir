@@ -996,6 +996,9 @@ defmodule Stream do
     &do_zip([{left_fun, []}, {right_fun, []}], &1, &2)
   end
 
+  # This implementation of do_zip/3 works for any number of streams to zip, even
+  # if right now zip/2 only zips two streams.
+
   defp do_zip(zips, {:halt, acc}, _fun) do
     do_zip_close(zips)
     {:halted, acc}
@@ -1021,25 +1024,28 @@ defmodule Stream do
     end
   end
 
-  defp do_zip([{fun, fun_acc} | t], acc, callback, list, buffer) do
+  defp do_zip([{fun, fun_acc} | t], acc, callback, yielded_elems, buffer) do
     case fun.({:cont, fun_acc}) do
       {:suspended, [i | fun_acc], fun} ->
-        do_zip(t, acc, callback, [i | list], [{fun, fun_acc} | buffer])
+        do_zip(t, acc, callback, [i | yielded_elems], [{fun, fun_acc} | buffer])
       {_, _} ->
         do_zip_close(:lists.reverse(buffer, t))
         {:done, acc}
     end
   end
 
-  defp do_zip([], acc, callback, list, buffer) do
-    zipped = List.to_tuple(:lists.reverse(list))
+  defp do_zip([], acc, callback, yielded_elems, buffer) do
+    # Here, "list" is the (reversed) list of results of this step of the
+    # enumeration (i.e., if we were zipping three streams, "list" would be a
+    # three-elements list of the elements currently yielded by each stream). We
+    # reverse this to fix the order and convert to tuple since the result of
+    # zipping n streams is a list of n-elements tuples.
+    zipped = List.to_tuple(:lists.reverse(yielded_elems))
     {:next, :lists.reverse(buffer), callback.(zipped, acc)}
   end
 
-  defp do_zip_close([]), do: :ok
-  defp do_zip_close([{fun, acc} | t]) do
-    fun.({:halt, acc})
-    do_zip_close(t)
+  defp do_zip_close(zips) do
+    :lists.foreach(fn {fun, acc} -> fun.({:halt, acc}) end, zips)
   end
 
   defp do_zip_step(x, acc) do
