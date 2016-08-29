@@ -108,11 +108,11 @@ defmodule List do
 
   ## Examples
 
-      iex> List.delete([1, 2, 3], 1)
-      [2, 3]
+      iex> List.delete([:a, :b, :c], :a)
+      [:b, :c]
 
-      iex> List.delete([1, 2, 2, 3], 2)
-      [1, 2, 3]
+      iex> List.delete([:a, :b, :b, :c], :b)
+      [:a, :b, :c]
 
   """
   @spec delete(list, any) :: list
