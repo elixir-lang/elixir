@@ -245,6 +245,9 @@ defmodule Mix.Tasks.New do
 
   # Also ignore archive artifacts (built via "mix archive.build").
   *.ez
+
+  # Ignore .fetch files in case you like to edit your project deps locally
+  /.fetch
   """
 
   embed_template :mixfile, """
