@@ -709,7 +709,7 @@ defmodule IEx.Helpers do
   end
 
   @doc """
-  Deloys a given module's BEAM code to a list of nodes.
+  Deploys a given module's BEAM code to a list of nodes.
 
   This function is useful for development and debugging when you have code that
   has been compiled or updated locally that you want to run on other nodes.
