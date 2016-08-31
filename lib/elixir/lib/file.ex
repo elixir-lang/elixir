@@ -135,7 +135,7 @@ defmodule File do
       directories of `path`
     * `:eexist`  - there is already a file or directory named `path`
     * `:enoent`  - a component of `path` does not exist
-    * `:enospc`  - there is a no space left on the device
+    * `:enospc`  - there is no space left on the device
     * `:enotdir` - a component of `path` is not a directory;
       on some platforms, `:enoent` is returned instead
   """
@@ -165,7 +165,7 @@ defmodule File do
 
     * `:eacces`  - missing search or write permissions for the parent
       directories of `path`
-    * `:enospc`  - there is a no space left on the device
+    * `:enospc`  - there is no space left on the device
     * `:enotdir` - a component of `path` is not a directory
   """
   @spec mkdir_p(Path.t) :: :ok | {:error, posix}
@@ -691,7 +691,7 @@ defmodule File do
     * `:enoent`  - a component of the file name does not exist
     * `:enotdir` - a component of the file name is not a directory;
       on some platforms, `:enoent` is returned instead
-    * `:enospc`  - there is a no space left on the device
+    * `:enospc`  - there is no space left on the device
     * `:eacces`  - missing permission for writing the file or searching one of
       the parent directories
     * `:eisdir`  - the named file is a directory
