@@ -3,32 +3,32 @@ defmodule ExUnit.DocTest do
   ExUnit.DocTest implements functionality similar to [Python's
   doctest](https://docs.python.org/2/library/doctest.html).
 
-  In a nutshell, it allows us to generate tests from the code
-  examples existing in a module/function/macro's documentation.
-  In order to do that, one needs to invoke the `doctest/1` macro
-  from their test case and write their examples according
-  to some guidelines.
+  It allows us to generate tests from the code
+  examples in a module/function/macro's documentation.
+  To do this, invoke the `doctest/1` macro from within
+  your test case and ensure your code examples are written
+  according to the syntax and guidelines below.
 
-  The syntax for examples is as follows. Every new test starts
-  on a new line, with an `iex>` prefix. Multiline expressions
-  can be employed if the following lines start with either
-  `...>` (recommended) or `iex>` prefix.
+  ## Syntax
 
-  The expected result should start at the next line after `iex>`
+  Every new test starts on a new line, with an `iex>` prefix.
+  Multiline expressions can be used by prefixing subsequent lines with either
+  `...>` (recommended) or `iex>`.
+
+  The expected result should start at the next line after the `iex>`
   or `...>` line(s) and is terminated either by a newline, new
-  `iex>` prefix or end of the string literal.
+  `iex>` prefix or the end of the string literal.
 
   ## Examples
 
-  Currently, the only way to run doctests is to include them into
-  an ExUnit case with a `doctest` macro:
+  To run doctests include them in an ExUnit case with a `doctest` macro:
 
       defmodule MyModule.Test do
         use ExUnit.Case, async: true
         doctest MyModule
       end
 
-  The `doctest` macro is going to loop through all functions and
+  The `doctest` macro loops through all functions and
   macros defined in `MyModule`, parsing their documentation in
   search of code examples.
 
@@ -77,30 +77,31 @@ defmodule ExUnit.DocTest do
       ...(1)>  3]
       [3, 3]
 
-  This is useful in two use cases:
+  This is useful in two cases:
 
     * being able to refer to specific numbered scenarios
     * copy-pasting examples from an actual IEx session
 
-  We also allow you to select or skip some functions when calling
-  `doctest`. See the documentation for more info.
+  You can also select or skip functions when calling
+  `doctest`. See the documentation on the `:except` and `:only` options below
+  for more info.
 
   ## Opaque types
 
-  Some types internal structure are kept hidden and instead show a
-  user-friendly structure when inspecting the value. The idiom in
-  Elixir is to print those data types as `#Name<...>`. Because those
+  Some types' internal structures are kept hidden and instead show a
+  user-friendly structure when inspected. The idiom in
+  Elixir is to print those data types in the format `#Name<...>`. Because those
   values are treated as comments in Elixir code due to the leading
-  `#` sign, they require special care when used in doctests.
+  `#` sign, they require special care when being used in doctests.
 
-  Imagine you have a map with a MapSet inside which is printed as:
+  Imagine you have a map that contains a MapSet and is printed as:
 
       %{users: #MapSet<[:foo, :bar]>}
 
-  If you try to match on such expression, `doctest` will fail to compile.
-  You have two options to solve this.
+  If you try to match on such an expression, `doctest` will fail to compile.
+  There are two ways to resolve this.
 
-  The first one is to rely on the fact that doctest can compare internal
+  The first is to rely on the fact that doctest can compare internal
   structures as long as they are at the root. So one could write:
 
       iex> map = %{users: Enum.into([:foo, :bar], MapSet.new)}
