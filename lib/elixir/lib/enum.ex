@@ -995,9 +995,9 @@ defmodule Enum do
       {[[1], [2], [3], [4], [5]], 15}
 
   """
-  @spec flat_map_reduce(t, acc, fun) :: {[any], any} when
-        fun: (element, acc -> {t, acc} | {:halt, acc}),
-        acc: any
+  @spec flat_map_reduce(t, acc, fun) :: {[any], any}
+        when fun: (element, acc -> {t, acc} | {:halt, acc}),
+             acc: any
   def flat_map_reduce(enumerable, acc, fun) when is_function(fun, 2) do
     {_, {list, acc}} =
       Enumerable.reduce(enumerable, {:cont, {[], acc}},

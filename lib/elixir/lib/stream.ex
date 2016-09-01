@@ -729,9 +729,9 @@ defmodule Stream do
       [1, 2, 3]
 
   """
-  @spec transform(Enumerable.t, acc, fun) :: Enumerable.t when
-        fun: (element, acc -> {Enumerable.t, acc} | {:halt, acc}),
-        acc: any
+  @spec transform(Enumerable.t, acc, fun) :: Enumerable.t
+        when fun: (element, acc -> {Enumerable.t, acc} | {:halt, acc}),
+             acc: any
   def transform(enum, acc, reducer) when is_function(reducer, 2) do
     &do_transform(enum, fn -> acc end, reducer, &1, &2, nil)
   end
@@ -746,9 +746,9 @@ defmodule Stream do
   This function can be seen as a combination of `Stream.resource/3` with
   `Stream.transform/3`.
   """
-  @spec transform(Enumerable.t, (() -> acc), fun, (acc -> term)) :: Enumerable.t when
-        fun: (element, acc -> {Enumerable.t, acc} | {:halt, acc}),
-        acc: any
+  @spec transform(Enumerable.t, (() -> acc), fun, (acc -> term)) :: Enumerable.t
+        when fun: (element, acc -> {Enumerable.t, acc} | {:halt, acc}),
+             acc: any
   def transform(enum, start_fun, reducer, after_fun)
       when is_function(start_fun, 0) and is_function(reducer, 2) and is_function(after_fun, 1) do
     &do_transform(enum, start_fun, reducer, &1, &2, after_fun)

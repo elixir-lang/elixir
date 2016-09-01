@@ -216,10 +216,10 @@ defmodule Process do
       :noconnect
 
   """
-  @spec send(dest, msg, [option]) :: :ok | :noconnect | :nosuspend when
-        dest: pid | port | atom | {atom, node},
-        msg: any,
-        option: :noconnect | :nosuspend
+  @spec send(dest, msg, [option]) :: :ok | :noconnect | :nosuspend
+        when dest: pid | port | atom | {atom, node},
+             msg: any,
+             option: :noconnect | :nosuspend
   def send(dest, msg, options) do
     :erlang.send(dest, msg, options)
   end
