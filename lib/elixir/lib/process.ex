@@ -239,10 +239,20 @@ defmodule Process do
   which is not alive or when the given PID exits. Note that timers will not be
   automatically canceled when `dest` is an atom (as the atom resolution is done
   on delivery).
+
+  ## Options
+
+    * `:abs` - (boolean) when `false`, `time` is treated as relative to the
+    current monotonic time. When `true`, `time` is the absolute value of the
+    Erlang monotonic time at which `msg` should be delivered to `dest`.
+    To read more about Erlang monotonic time and other time-related concepts,
+    look at the documentation for the `System` module. Defaults to `false`.
+
   """
-  @spec send_after(pid | atom, term, non_neg_integer) :: reference
-  def send_after(dest, msg, time) do
-    :erlang.send_after(time, dest, msg)
+  @spec send_after(pid | atom, term, non_neg_integer, [option]) :: reference
+        when option: {:abs, boolean}
+  def send_after(dest, msg, time, opts \\ []) do
+    :erlang.send_after(time, dest, msg, opts)
   end
 
   @doc """
