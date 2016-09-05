@@ -172,25 +172,43 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
   test "compiles dependent changed files" do
     in_fixture "no_mixfile", fn ->
+      tmp = tmp_path("c.eex")
       File.touch!("lib/a.eex")
+
       File.write!("lib/a.ex", """
       defmodule A do
-        @external_resource "lib/b.eex"
         @external_resource "lib/a.eex"
+        @external_resource #{inspect tmp}
         def a, do: :ok
       end
       """)
 
+      # Compiles with missing external resources
       assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == :ok
+      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == :noop
       Mix.shell.flush
       purge [A, B]
 
+      # Update local existing resource
       File.touch!("lib/a.eex", {{2020, 1, 1}, {0, 0, 0}})
       assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == :ok
+      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
 
+      # Does not update on old existing resource
+      File.touch!("lib/a.eex", {{1970, 1, 1}, {0, 0, 0}})
+      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == :noop
+      Mix.shell.flush
+      purge [A, B]
+
+      # Update external existing resource
+      File.touch!(tmp, {{2020, 1, 1}, {0, 0, 0}})
+      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == :ok
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
     end
+  after
+    File.rm tmp_path("c.eex")
   end
 
   test "does not recompile empty files" do
