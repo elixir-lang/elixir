@@ -246,10 +246,7 @@ defmodule Mix.Compilers.Elixir do
 
   defp get_external_resources(module, cwd) do
     for file <- Module.get_attribute(module, :external_resource),
-        File.regular?(file),
-        relative = Path.relative_to(file, cwd),
-        Path.type(relative) == :relative,
-        do: relative
+        do: Path.relative_to(file, cwd)
   end
 
   defp each_file(source) do
