@@ -69,6 +69,7 @@ defmodule Mix.Tasks.DepsGitTest do
     end
   end
 
+  @tag :git_sparse
   test "gets and updates Git repos with sparse checkout" do
     Process.put(:git_repo_opts, sparse: "sparse_dir")
     Mix.Project.push GitApp
@@ -279,6 +280,7 @@ defmodule Mix.Tasks.DepsGitTest do
     purge [GitRepo, GitRepo.Mixfile]
   end
 
+  @tag :git_sparse
   test "updates the repo when sparse is turned off" do
     Process.put(:git_repo_opts, sparse: "sparse_dir")
     Mix.Project.push GitApp
@@ -307,6 +309,7 @@ defmodule Mix.Tasks.DepsGitTest do
     end
   end
 
+  @tag :git_sparse
   test "updates the repo when sparse is turned on" do
     Mix.Project.push GitApp
 

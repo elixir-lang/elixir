@@ -3,6 +3,12 @@ Mix.shell(Mix.Shell.Process)
 Application.put_env(:mix, :colors, [enabled: false])
 ExUnit.start [trace: "--trace" in System.argv]
 
+
+unless {1, 7, 4} <= Mix.SCM.Git.git_version do
+  IO.puts :stderr, "Skipping tests with git sparse checkouts..."
+  ExUnit.configure(exclude: :git_sparse)
+end
+
 defmodule MixTest.Case do
   use ExUnit.CaseTemplate
 
