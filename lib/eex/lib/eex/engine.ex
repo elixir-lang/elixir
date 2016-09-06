@@ -2,7 +2,7 @@ defmodule EEx.Engine do
   @moduledoc ~S"""
   Basic EEx engine that ships with Elixir.
 
-  An engine needs to implement three functions:
+  An engine needs to implement four functions:
 
     * `init(opts)` - returns the initial buffer
 
