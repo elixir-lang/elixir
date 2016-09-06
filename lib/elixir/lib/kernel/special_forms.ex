@@ -1841,7 +1841,7 @@ defmodule Kernel.SpecialForms do
       end
 
   An optional `after` clause can be given in case the message was not
-  received after the specified timeout period:
+  received after the given timeout period, specified in milliseconds:
 
       receive do
         {:selector, i, value} when is_integer(i) ->
