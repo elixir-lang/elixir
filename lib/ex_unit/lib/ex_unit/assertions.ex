@@ -317,9 +317,10 @@ defmodule ExUnit.Assertions do
   end
 
   @doc """
-  Asserts that a message matching `pattern` was or is going to be received.
+  Asserts that a message matching `pattern` was or is going to be received
+  within the `timeout` period, specified in milliseconds.
 
-  Unlike `assert_received`, it has a default timeout
+  Unlike `assert_received`, it has a default `timeout`
   of 100 milliseconds.
 
   The `pattern` argument must be a match pattern. Flunks with `failure_message`
