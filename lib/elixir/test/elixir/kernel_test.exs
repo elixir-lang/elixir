@@ -253,16 +253,20 @@ defmodule KernelTest do
   end
 
   test "in/2 optimized" do
-    assert expand_to_string(quote(do: foo in [])) == "Enum.member?([], foo)"
+    assert expand_to_string(quote(do: foo in [])) ==
+           "Enum.member?([], foo)"
 
-    assert expand_to_string(quote(do: foo in 1..2)) ==
-           ~S[:erlang.andalso(:erlang.is_integer(foo), :erlang.andalso(:erlang.>=(foo, 1), :erlang.=<(foo, 2)))]
+    assert expand_to_string(quote(do: rand() in 1..2)) =~
+           "var = rand()"
+    assert expand_to_string(quote(do: rand() in 1..2)) =~
+           ~S[:erlang.andalso(:erlang.is_integer(var), :erlang.andalso(:erlang.>=(var, 1), :erlang.=<(var, 2)))]
 
-    assert expand_to_string(quote(do: foo in [1, 2])) ==
-           ~S[:erlang.or(:erlang.=:=(foo, 2), :erlang.=:=(foo, 1))]
-
-    assert expand_to_string(quote(do: foo in [1 | [2]])) ==
-           ~S[:erlang.or(:erlang.=:=(foo, 1), :erlang.=:=(foo, 2))]
+    assert expand_to_string(quote(do: rand() in [1, 2])) =~
+           "var = rand()"
+    assert expand_to_string(quote(do: rand() in [1, 2])) =~
+           ~S[:erlang.or(:erlang.=:=(var, 2), :erlang.=:=(var, 1))]
+    assert expand_to_string(quote(do: rand() in [1 | [2]])) =~
+           ~S[:erlang.or(:erlang.=:=(var, 1), :erlang.=:=(var, 2))]
   end
 
   defp expand_to_string(ast) do
