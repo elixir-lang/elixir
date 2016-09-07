@@ -85,6 +85,26 @@ defmodule KernelTest do
     assert binding() == [a: 0]
   end
 
+  test "rand/0" do
+    x = rand()
+    assert is_float(x)
+    assert x >= 0.0
+    assert x <= 1.0
+
+    mod = Kernel
+    x = mod.rand()
+    assert is_float(x)
+    assert x >= 0.0
+    assert x <= 1.0
+  end
+
+  test "rand/1" do
+    n = rand(10..20)
+    assert is_integer(n)
+    assert n >= 10
+    assert n <= 20
+  end
+
   test "in/2" do
     assert 2 in [1, 2, 3]
     assert 2 in 1..3
