@@ -112,7 +112,15 @@ defmodule System do
   # Tries to run "git rev-parse --short HEAD". In the case of success returns
   # the short revision hash. If that fails, returns an empty string.
   defmacrop get_revision do
-    :os.cmd('git rev-parse --short HEAD 2> /dev/null')
+    null =
+      case :os.type do
+        {:win32, _} -> 'NUL'
+        _ -> '/dev/null'
+      end
+
+    'git rev-parse --short HEAD 2> '
+    |> Kernel.++(null)
+    |> :os.cmd()
     |> strip
   end
 
