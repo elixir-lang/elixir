@@ -2890,20 +2890,36 @@ defmodule Kernel do
     case right do
       [] when not in_module? ->
         false
+
       [h | t] ->
-        :lists.foldr(fn x, acc ->
-          quote do: :erlang.or(unquote(comp(left, x)), unquote(acc))
-        end, comp(left, h), t)
+        in_var(in_module?, left, &in_list(&1, h, t))
+
       {:%{}, _meta, [__struct__: Elixir.Range, first: first, last: last]} ->
-        in_range(left, Macro.expand(first, __CALLER__), Macro.expand(last, __CALLER__))
+        first = Macro.expand(first, __CALLER__)
+        last  = Macro.expand(last, __CALLER__)
+        in_var(in_module?, left, &in_range(&1, first, last))
+
       _ when in_module? ->
         quote do: Elixir.Enum.member?(unquote(right), unquote(left))
+
       %{__struct__: Elixir.Range, first: _, last: _} ->
         raise ArgumentError, "non-literal range in guard should be escaped with Macro.escape/2"
+
       _ ->
         raise ArgumentError, <<"invalid args for operator \"in\", it expects a compile-time list ",
                                "or compile-time range on the right side when used in guard expressions, got: ",
                                Macro.to_string(right)::binary>>
+    end
+  end
+
+  defp in_var(false, ast, fun),
+    do: fun.(ast)
+  defp in_var(true, {atom, _, context} = var, fun) when is_atom(atom) and is_atom(context),
+    do: fun.(var)
+  defp in_var(true, ast, fun) do
+    quote do
+      var = unquote(ast)
+      unquote(fun.(quote(do: var)))
     end
   end
 
@@ -2944,6 +2960,12 @@ defmodule Kernel do
           )
         end
     end
+  end
+
+  defp in_list(left, h, t) do
+    :lists.foldr(fn x, acc ->
+      quote do: :erlang.or(unquote(comp(left, x)), unquote(acc))
+    end, comp(left, h), t)
   end
 
   defp comp(left, {:|, _, [h, t]}) do
