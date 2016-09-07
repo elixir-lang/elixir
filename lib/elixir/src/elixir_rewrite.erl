@@ -248,6 +248,8 @@ rewrite(?process, monitor, [Arg]) ->
   {erlang, monitor, [process, Arg]};
 rewrite(?process, send_after, [Dest, Msg, Time]) ->
   {erlang, send_after, [Time, Dest, Msg]};
+rewrite(?process, send_after, [Dest, Msg, Time, Opts]) ->
+  {erlang, send_after, [Time, Dest, Msg, Opts]};
 rewrite(?string, to_atom, [Arg]) ->
   {erlang, binary_to_atom, [Arg, utf8]};
 rewrite(?string, to_existing_atom, [Arg]) ->
