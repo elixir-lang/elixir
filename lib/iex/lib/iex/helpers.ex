@@ -234,7 +234,6 @@ defmodule IEx.Helpers do
 
       b(Mix.Task.run/1)
       b(Mix.Task.run)
-      b(Dict)
 
   """
   defmacro b(term)
