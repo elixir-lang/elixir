@@ -234,8 +234,7 @@ defmodule IEx.Helpers do
 
       b(Mix.Task.run/1)
       b(Mix.Task.run)
-      b(Dict)
-
+      b(GenServer)
   """
   defmacro b(term)
   defmacro b({:/, _, [{{:., _, [mod, fun]}, _, []}, arity]}) do
