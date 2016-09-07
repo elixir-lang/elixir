@@ -151,9 +151,9 @@ defmodule Mix.SCM.Git do
   end
 
   defp sparse_check(version) do
-    unless {1, 7, 0} <= version do
+    unless {1, 7, 4} <= version do
       version = version |> Tuple.to_list |> Enum.join(".")
-      Mix.raise "Git >= 1.7.0 is required to use sparse checkout. " <>
+      Mix.raise "Git >= 1.7.4 is required to use sparse checkout. " <>
                 "You are running version #{version}"
     end
   end
@@ -249,7 +249,7 @@ defmodule Mix.SCM.Git do
     end
   end
 
-  defp git_version do
+  def git_version do
     case Mix.State.fetch(:git_version) do
       {:ok, version} ->
         version
