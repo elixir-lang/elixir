@@ -316,7 +316,9 @@ defmodule Mix.Utils do
         {:error, :enoent} ->
           do_symlink_or_copy(source, target, link)
         {:error, _} ->
-          _ = File.rm_rf!(target)
+          unless File.dir?(target) do
+            File.rm_rf!(target)
+          end
           do_symlink_or_copy(source, target, link)
       end
     else
@@ -326,8 +328,12 @@ defmodule Mix.Utils do
 
   defp do_symlink_or_copy(source, target, link) do
     case :file.make_symlink(link, target) do
-      :ok -> :ok
-      {:error, _} -> {:ok, File.cp_r!(source, target)}
+      :ok ->
+        :ok
+      {:error, _} ->
+        {:ok, File.cp_r!(source, target, fn(orig, dest) ->
+          File.stat!(orig).mtime > File.stat!(dest).mtime
+        end)}
     end
   end
 
