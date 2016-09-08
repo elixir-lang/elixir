@@ -374,14 +374,14 @@ defmodule String do
 
   ## Examples
 
-    iex> String.splitter("1,2 3,4 5,6 7,8,...,99999", [" ", ","]) |> Enum.take(4)
-    ["1", "2", "3", "4"]
+      iex> String.splitter("1,2 3,4 5,6 7,8,...,99999", [" ", ","]) |> Enum.take(4)
+      ["1", "2", "3", "4"]
 
-    iex> String.splitter("abcd", "") |> Enum.take(10)
-    ["a", "b", "c", "d", ""]
+      iex> String.splitter("abcd", "") |> Enum.take(10)
+      ["a", "b", "c", "d", ""]
 
-    iex> String.splitter("abcd", "", trim: true) |> Enum.take(10)
-    ["a", "b", "c", "d"]
+      iex> String.splitter("abcd", "", trim: true) |> Enum.take(10)
+      ["a", "b", "c", "d"]
 
   """
   @spec splitter(t, pattern, Keyword.t) :: Enumerable.t
