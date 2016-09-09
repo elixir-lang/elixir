@@ -61,9 +61,6 @@ defimpl IEx.Info, for: Atom do
 
   defp default_or_apply(nil, _), do: "no value found"
   defp default_or_apply(data, fun), do: fun.(data)
-
-  defp zeropad(number) when number < 10, do: "0#{number}"
-  defp zeropad(number), do: "#{number}"
 end
 
 defimpl IEx.Info, for: List do
