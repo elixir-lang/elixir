@@ -304,7 +304,10 @@ defmodule Logger do
   end
 
   @doc """
-  Adds the given keyword list to the current process metadata.
+  Alters the current process metadata according the given keyword list.
+
+  This will merge the given keyword list into the existing metadata. With 
+  the exception of setting a key to nil will remove a key from the metadata. 
   """
   def metadata(keywords) do
     {enabled?, metadata} = __metadata__()
