@@ -409,8 +409,8 @@ defmodule Map do
 
   """
   @spec put(map, key, value) :: map
-  def put(map, key, val) do
-    :maps.put(key, val, map)
+  def put(map, key, value) do
+    :maps.put(key, value, map)
   end
 
   @doc """
