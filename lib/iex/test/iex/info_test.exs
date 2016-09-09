@@ -29,6 +29,11 @@ defmodule IEx.InfoTest do
     assert info[:"Description"] == description
   end
 
+  test "atoms: module-like atom (Foo)" do
+    info = Info.info(NonexistentModuleAtom)
+    assert info[:"Raw representation"] == ~s(:"Elixir.NonexistentModuleAtom")
+  end
+
   test "atoms: regular atom" do
     assert Info.info(:foo) == ["Data type": "Atom",
                                "Reference modules": "Atom"]
