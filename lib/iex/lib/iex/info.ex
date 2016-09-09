@@ -30,7 +30,6 @@ defimpl IEx.Info, for: Atom do
     ["Module bytecode": module_object_file(mod),
      "Source": module_source_file(mod_info),
      "Version": module_version(mod_info),
-     "Compile time": module_compile_time(mod_info),
      "Compile options": module_compile_options(mod_info),
      "Description": "#{extra}Call #{inspect mod}.module_info() to access metadata.",
      "Raw representation": ":" <> inspect(Atom.to_string(mod)),
@@ -58,14 +57,6 @@ defimpl IEx.Info, for: Atom do
 
   defp module_compile_options(mod_info) do
     default_or_apply(mod_info[:compile][:options], &inspect/1)
-  end
-
-  defp module_compile_time(mod_info) do
-    default_or_apply(mod_info[:compile][:time], &format_time/1)
-  end
-
-  defp format_time({year, month, day, hour, min, sec}) do
-    "#{year}-#{zeropad(month)}-#{zeropad(day)} #{zeropad(hour)}:#{zeropad(min)}:#{zeropad(sec)}"
   end
 
   defp default_or_apply(nil, _), do: "no value found"
