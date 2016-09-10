@@ -35,17 +35,19 @@ defmodule Mix.TaskTest do
   end
 
   test "run/2 converts OptionParser.ParseError into mix errors" do
-    assert_raise Mix.Error,
-                 "Could not invoke task \"hello\": 1 error found!\n--unknown : Unknown option", fn ->
+    exception = assert_raise Mix.Error, fn ->
       Mix.Task.run("hello", ["--parser", "--unknown"])
     end
+    message = Exception.message(exception)
+    assert message =~ ~s(Could not invoke task "hello")
+    assert message =~ ~s(--unknown : Unknown option)
 
     Mix.Task.clear
 
-    assert_raise Mix.Error,
-                 "Could not invoke task \"hello\": 1 error found!\n--int : Expected type integer, got \"foo\"", fn ->
+    exception = assert_raise Mix.Error, fn ->
       Mix.Task.run("hello", ["--parser", "--int", "foo"])
     end
+    assert Exception.message(exception) =~ ~s(--int : Expected a value of type integer, got: "foo")
   end
 
   test "run/2 outputs task debug info if Mix.debug? is true" do
