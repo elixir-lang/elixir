@@ -803,6 +803,22 @@ defmodule StreamTest do
     assert Enum.to_list(stream) == [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
   end
 
+  test "take/2 does not consume next element on halt" do
+    assert [false, true]
+           |> Stream.each(& &1 && raise "oops")
+           |> Stream.take(1)
+           |> Stream.take_while(& &1)
+           |> Enum.to_list() == []
+  end
+
+  test "take/2 does not consume next element on suspend" do
+    assert [false, true]
+           |> Stream.each(& &1 && raise "oops")
+           |> Stream.take(1)
+           |> Stream.flat_map(&[&1])
+           |> Enum.to_list() == [false]
+  end
+
   test "take/2 with negative count" do
     Process.put(:stream_each, [])
 
