@@ -3146,6 +3146,8 @@ defmodule Kernel do
   current module nor automatically set up an alias.
 
   """
+  defmacro defmodule(alias, do_block)
+
   defmacro defmodule(alias, do: block) do
     env   = __CALLER__
     boot? = bootstrapped?(Macro)
@@ -3835,6 +3837,8 @@ defmodule Kernel do
   a given project, please check the functions in the `Protocol`
   module or the `mix compile.protocols` task.
   """
+  defmacro defprotocol(name, do_block)
+
   defmacro defprotocol(name, do: block) do
     Protocol.__protocol__(name, do: block)
   end
