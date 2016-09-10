@@ -173,18 +173,18 @@ defmodule OptionParser do
       {[debug: true], ["path/to/file"]}
 
       iex> OptionParser.parse!(["--limit", "xyz"], strict: [limit: :integer])
-      ** (OptionParser.ParseError) 1 error found!
-      --limit : Expected type integer, got "xyz"
+      ** (OptionParser.ParseError) found errors:
+      --limit : Expected a value of type integer, got: "xyz"
 
       iex> OptionParser.parse!(["--unknown", "xyz"], strict: [])
-      ** (OptionParser.ParseError) 1 error found!
+      ** (OptionParser.ParseError) found errors:
       --unknown : Unknown option
 
       iex> OptionParser.parse!(["-l", "xyz", "-f", "bar"],
       ...>                     switches: [limit: :integer, foo: :integer], aliases: [l: :limit, f: :foo])
-      ** (OptionParser.ParseError) 2 errors found!
-      -l : Expected type integer, got "xyz"
-      -f : Expected type integer, got "bar"
+      ** (OptionParser.ParseError) found errors:
+      -l : Expected a value of type integer, got: "xyz"
+      -f : Expected a value of type integer, got: "bar"
 
   """
   @spec parse!(argv, options) :: {parsed, argv} | no_return
@@ -230,14 +230,15 @@ defmodule OptionParser do
       {[source: "lib"], ["path/to/file", "--verbose"]}
 
       iex> OptionParser.parse_head!(["--number", "lib", "test/enum_test.exs", "--verbose"], strict: [number: :integer])
-      ** (OptionParser.ParseError) 1 error found!
-      --number : Expected type integer, got "lib"
+      ** (OptionParser.ParseError) found errors:
+      --number : Expected a value of type integer, got: "lib"
 
       iex> OptionParser.parse_head!(["--verbose", "--source", "lib", "test/enum_test.exs", "--unlock"],
       ...>                          strict: [verbose: :integer, source: :integer])
-      ** (OptionParser.ParseError) 2 errors found!
+      ** (OptionParser.ParseError) found errors:
       --verbose : Missing argument of type integer
-      --source : Expected type integer, got "lib"
+      --source : Expected a value of type integer, got: "lib"
+
   """
   @spec parse_head!(argv, options) :: {parsed, argv} | no_return
   def parse_head!(argv, opts \\ []) when is_list(argv) and is_list(opts) do
@@ -660,25 +661,22 @@ defmodule OptionParser do
     match?({_, ""}, Float.parse(arg))
   end
 
-  defp format_errors(errors, opts) do
+  defp format_errors([_ | _] = errors, opts) do
     types = opts[:switches] || opts[:strict]
-    info  = Enum.map(errors, &format_error(&1, opts, types))
-    total = length(errors)
-    error = if total == 1, do: "error", else: "errors"
-    "#{total} #{error} found!#{info}"
+    "found errors:\n" <> Enum.map_join(errors, "\n", &format_error(&1, opts, types))
   end
 
   defp format_error({option, nil}, opts, types) do
     if type = get_type(option, opts, types) do
-      "\n#{option} : Missing argument of type #{type}"
+      "#{option} : Missing argument of type #{type}"
     else
-      "\n#{option} : Unknown option"
+      "#{option} : Unknown option"
     end
   end
 
   defp format_error({option, value}, opts, types) do
     type = get_type(option, opts, types)
-    "\n#{option} : Expected type #{type}, got #{inspect value}"
+    "#{option} : Expected a value of type #{type}, got: #{inspect value}"
   end
 
   defp get_type(option, opts, types) do
