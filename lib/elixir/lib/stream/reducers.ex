@@ -170,10 +170,8 @@ defmodule Stream.Reducers do
           0 ->
             {:halt, original}
           1 ->
-            case next_with_acc(unquote(fun), entry, head, 0, tail) do
-              {:cont, acc} -> {:halt, acc}
-              reason -> reason
-            end
+            {_, acc} = next_with_acc(unquote(fun), entry, head, 0, tail)
+            {:halt, acc}
           _ ->
             next_with_acc(unquote(fun), entry, head, curr - 1, tail)
         end

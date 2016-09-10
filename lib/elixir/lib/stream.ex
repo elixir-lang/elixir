@@ -758,92 +758,100 @@ defmodule Stream do
     inner = &do_transform_each(&1, &2, fun)
     step  = &do_transform_step(&1, &2)
     next  = &Enumerable.reduce(enumerables, &1, step)
-    do_transform(user_acc.(), user, fun, [], next, inner_acc, inner, after_fun)
+    do_transform(user_acc.(), user, fun, :cont, next, inner_acc, inner, after_fun)
   end
 
-  defp do_transform(user_acc, _user, _fun, _next_acc, _next, {:halt, inner_acc}, _inner, after_fun) do
+  defp do_transform(user_acc, _user, _fun, _next_op, _next, {:halt, inner_acc}, _inner, after_fun) do
     do_after(after_fun, user_acc)
     {:halted, inner_acc}
   end
 
-  defp do_transform(user_acc, user, fun, next_acc, next, {:suspend, inner_acc}, inner, after_fun) do
-    {:suspended, inner_acc, &do_transform(user_acc, user, fun, next_acc, next, &1, inner, after_fun)}
+  defp do_transform(user_acc, user, fun, next_op, next, {:suspend, inner_acc}, inner, after_fun) do
+    {:suspended, inner_acc, &do_transform(user_acc, user, fun, next_op, next, &1, inner, after_fun)}
   end
 
-  defp do_transform(user_acc, user, fun, next_acc, next, inner_acc, inner, after_fun) do
-    case next.({:cont, next_acc}) do
-      {:suspended, [val | next_acc], next} ->
-        try do
-          user.(val, user_acc)
-        catch
-          kind, reason ->
-            stacktrace = System.stacktrace
-            next.({:halt, next_acc})
-            do_after(after_fun, user_acc)
-            :erlang.raise(kind, reason, stacktrace)
-        else
-          {[], user_acc} ->
-            do_transform(user_acc, user, fun, next_acc, next, inner_acc, inner, after_fun)
-          {list, user_acc} when is_list(list) ->
-            do_list_transform(user_acc, user, fun, next_acc, next, inner_acc, inner,
-                              &Enumerable.List.reduce(list, &1, fun), after_fun)
-          {:halt, user_acc} ->
-            next.({:halt, next_acc})
-            do_after(after_fun, user_acc)
-            {:halted, elem(inner_acc, 1)}
-          {other, user_acc} ->
-            do_enum_transform(user_acc, user, fun, next_acc, next, inner_acc, inner,
-                              &Enumerable.reduce(other, &1, inner), after_fun)
-        end
-      {reason, _} ->
-        do_after(after_fun, user_acc)
-        {reason, elem(inner_acc, 1)}
+  defp do_transform(user_acc, _user, _fun, :halt, _next, {_, inner_acc}, _inner, after_fun) do
+    do_after(after_fun, user_acc)
+    {:halted, inner_acc}
+  end
+
+  defp do_transform(user_acc, user, fun, :cont, next, inner_acc, inner, after_fun) do
+    case next.({:cont, []}) do
+      {:suspended, [val], next} ->
+        do_transform_user(val, user_acc, user, fun, :cont, next, inner_acc, inner, after_fun)
+      {_, [val]} ->
+        do_transform_user(val, user_acc, user, fun, :halt, next, inner_acc, inner, after_fun)
+      {_, []} ->
+        do_transform(user_acc, user, fun, :halt, next, inner_acc, inner, after_fun)
     end
   end
 
-  defp do_list_transform(user_acc, user, fun, next_acc, next, inner_acc, inner, reduce, after_fun) do
+  defp do_transform_user(val, user_acc, user, fun, next_op, next, inner_acc, inner, after_fun) do
+    user.(val, user_acc)
+  catch
+    kind, reason ->
+      stacktrace = System.stacktrace
+      next.({:halt, []})
+      do_after(after_fun, user_acc)
+      :erlang.raise(kind, reason, stacktrace)
+  else
+    {[], user_acc} ->
+      do_transform(user_acc, user, fun, next_op, next, inner_acc, inner, after_fun)
+    {list, user_acc} when is_list(list) ->
+      do_list_transform(user_acc, user, fun, next_op, next, inner_acc, inner,
+                        &Enumerable.List.reduce(list, &1, fun), after_fun)
+    {:halt, user_acc} ->
+      next.({:halt, []})
+      do_after(after_fun, user_acc)
+      {:halted, elem(inner_acc, 1)}
+    {other, user_acc} ->
+      do_enum_transform(user_acc, user, fun, next_op, next, inner_acc, inner,
+                        &Enumerable.reduce(other, &1, inner), after_fun)
+  end
+
+  defp do_list_transform(user_acc, user, fun, next_op, next, inner_acc, inner, reduce, after_fun) do
     try do
       reduce.(inner_acc)
     catch
       kind, reason ->
         stacktrace = System.stacktrace
-        next.({:halt, next_acc})
+        next.({:halt, []})
         do_after(after_fun, user_acc)
         :erlang.raise(kind, reason, stacktrace)
     else
       {:done, acc} ->
-        do_transform(user_acc, user, fun, next_acc, next, {:cont, acc}, inner, after_fun)
+        do_transform(user_acc, user, fun, next_op, next, {:cont, acc}, inner, after_fun)
       {:halted, acc} ->
-        next.({:halt, next_acc})
+        next.({:halt, []})
         do_after(after_fun, user_acc)
         {:halted, acc}
       {:suspended, acc, c} ->
-        {:suspended, acc, &do_list_transform(user_acc, user, fun, next_acc, next, &1, inner, c, after_fun)}
+        {:suspended, acc, &do_list_transform(user_acc, user, fun, next_op, next, &1, inner, c, after_fun)}
     end
   end
 
-  defp do_enum_transform(user_acc, user, fun, next_acc, next, {op, inner_acc}, inner, reduce, after_fun) do
+  defp do_enum_transform(user_acc, user, fun, next_op, next, {op, inner_acc}, inner, reduce, after_fun) do
     try do
       reduce.({op, [:outer | inner_acc]})
     catch
       kind, reason ->
         stacktrace = System.stacktrace
-        next.({:halt, next_acc})
+        next.({:halt, []})
         do_after(after_fun, user_acc)
         :erlang.raise(kind, reason, stacktrace)
     else
       # Only take into account outer halts when the op is not halt itself.
       # Otherwise, we were the ones wishing to halt, so we should just stop.
       {:halted, [:outer | acc]} when op != :halt ->
-        do_transform(user_acc, user, fun, next_acc, next, {:cont, acc}, inner, after_fun)
+        do_transform(user_acc, user, fun, next_op, next, {:cont, acc}, inner, after_fun)
       {:halted, [_ | acc]} ->
-        next.({:halt, next_acc})
+        next.({:halt, []})
         do_after(after_fun, user_acc)
         {:halted, acc}
       {:done, [_ | acc]} ->
-        do_transform(user_acc, user, fun, next_acc, next, {:cont, acc}, inner, after_fun)
+        do_transform(user_acc, user, fun, next_op, next, {:cont, acc}, inner, after_fun)
       {:suspended, [_ | acc], c} ->
-        {:suspended, acc, &do_enum_transform(user_acc, user, fun, next_acc, next, &1, inner, c, after_fun)}
+        {:suspended, acc, &do_enum_transform(user_acc, user, fun, next_op, next, &1, inner, c, after_fun)}
     end
   end
 
@@ -993,11 +1001,11 @@ defmodule Stream do
     right_fun = &Enumerable.reduce(right, &1, step)
 
     # Return a function as a lazy enumerator.
-    &do_zip([{left_fun, []}, {right_fun, []}], &1, &2)
+    &do_zip([{left_fun, :cont}, {right_fun, :cont}], &1, &2)
   end
 
-  # This implementation of do_zip/3 works for any number of streams to zip, even
-  # if right now zip/2 only zips two streams.
+  # This implementation of do_zip/3 works for any number of
+  # streams to zip, even if right now zip/2 only zips two streams.
 
   defp do_zip(zips, {:halt, acc}, _fun) do
     do_zip_close(zips)
@@ -1024,17 +1032,24 @@ defmodule Stream do
     end
   end
 
-  # do_zip_next_tuple/5 computes the next tuple formed by the next element of
-  # each zipped stream.
+  # do_zip_next_tuple/5 computes the next tuple formed by
+  # the next element of each zipped stream.
 
-  defp do_zip_next_tuple([{fun, fun_acc} | rest] = _zips, acc, callback, yielded_elems, buffer) do
-    case fun.({:cont, fun_acc}) do
-      {:suspended, [elem | fun_acc], fun} ->
-        do_zip_next_tuple(rest, acc, callback, [elem | yielded_elems], [{fun, fun_acc} | buffer])
-      {_done_or_halted, _acc} ->
-        # The current zipped stream terminated, so we close all the streams and
-        # return {:done, acc} (which is returned as is by do_zip/3.
-        do_zip_close(:lists.reverse(buffer, rest))
+  defp do_zip_next_tuple([{_, :halt} | zips], acc, _callback, _yielded_elems, buffer) do
+    do_zip_close(:lists.reverse(buffer, zips))
+    {:done, acc}
+  end
+
+  defp do_zip_next_tuple([{fun, :cont} | zips], acc, callback, yielded_elems, buffer) do
+    case fun.({:cont, []}) do
+      {:suspended, [elem], fun} ->
+        do_zip_next_tuple(zips, acc, callback, [elem | yielded_elems], [{fun, :cont} | buffer])
+      {_, [elem]} ->
+        do_zip_next_tuple(zips, acc, callback, [elem | yielded_elems], [{fun, :halt} | buffer])
+      {_, []} ->
+        # The current zipped stream terminated, so we close all the streams
+        # and return {:halted, acc} (which is returned as is by do_zip/3).
+        do_zip_close(:lists.reverse(buffer, zips))
         {:done, acc}
     end
   end
@@ -1048,11 +1063,11 @@ defmodule Stream do
   end
 
   defp do_zip_close(zips) do
-    :lists.foreach(fn {fun, acc} -> fun.({:halt, acc}) end, zips)
+    :lists.foreach(fn {fun, _} -> fun.({:halt, []}) end, zips)
   end
 
-  defp do_zip_step(x, acc) do
-    {:suspend, [x | acc]}
+  defp do_zip_step(x, []) do
+    {:suspend, [x]}
   end
 
   ## Sources
