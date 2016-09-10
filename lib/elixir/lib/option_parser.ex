@@ -660,25 +660,25 @@ defmodule OptionParser do
     match?({_, ""}, Float.parse(arg))
   end
 
-  defp format_errors(errors, opts) do
+  defp format_errors([_ | _] = errors, opts) do
     types = opts[:switches] || opts[:strict]
-    info  = Enum.map(errors, &format_error(&1, opts, types))
-    total = length(errors)
-    error = if total == 1, do: "error", else: "errors"
-    "#{total} #{error} found!#{info}"
+    error_count = length(errors)
+    error = if error_count == 1, do: "error", else: "errors"
+    "#{error_count} #{error} found!\n" <>
+      Enum.map_join(errors, "\n", &format_error(&1, opts, types))
   end
 
   defp format_error({option, nil}, opts, types) do
     if type = get_type(option, opts, types) do
-      "\n#{option} : Missing argument of type #{type}"
+      "#{option} : Missing argument of type #{type}"
     else
-      "\n#{option} : Unknown option"
+      "#{option} : Unknown option"
     end
   end
 
   defp format_error({option, value}, opts, types) do
     type = get_type(option, opts, types)
-    "\n#{option} : Expected type #{type}, got #{inspect value}"
+    "#{option} : Expected type #{type}, got #{inspect value}"
   end
 
   defp get_type(option, opts, types) do
