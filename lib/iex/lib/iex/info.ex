@@ -14,7 +14,15 @@ end
 
 defimpl IEx.Info, for: Atom do
   def info(atom) do
-    specific_info = if Code.ensure_loaded?(atom), do: info_module(atom), else: info_atom(atom)
+    specific_info =
+      cond do
+        Code.ensure_loaded?(atom) ->
+          info_module(atom)
+        match?("Elixir." <> _, Atom.to_string(atom)) ->
+          info_module_like_atom(atom)
+        true ->
+          info_atom(atom)
+      end
     ["Data type": "Atom"] ++ specific_info
   end
 
@@ -34,6 +42,11 @@ defimpl IEx.Info, for: Atom do
      "Description": "#{extra}Call #{inspect mod}.module_info() to access metadata.",
      "Raw representation": ":" <> inspect(Atom.to_string(mod)),
      "Reference modules": "Module, Atom"]
+  end
+
+  defp info_module_like_atom(atom) do
+    ["Raw representation": ":" <> inspect(Atom.to_string(atom)),
+     "Reference modules": "Atom"]
   end
 
   defp info_atom(_atom) do
