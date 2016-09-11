@@ -403,9 +403,25 @@ defmodule ExUnit.Assertions do
             {received, unquote(vars)}
         after
           timeout ->
-            failure_message = unquote(failure_message) || "No message matching #{unquote(binary)} after #{timeout}ms."
+            {:messages, messages} = Process.info(self(), :messages)
+
+            failure_message = if Enum.any?(messages, fn message -> match?(unquote(pattern), message) end) do
+              "No message matching #{unquote(binary)} after #{timeout}ms, " <>
+              "but a matching message appeared before reading the mailbox for this error message, " <>
+              "which indicates the message is being delivered a few milliseconds after the current timeout or in the same " <>
+              "millisecond, but the timeout triggers before the sending process runs.\n" <>
+              "\n" <>
+              "If your system has time constraints that depend on this timeout, " <>
+              "this failure indicates you are at the edge of timing out in production; however, " <>
+              "if the timeout can safely be increased for this test, you can increase it two ways:\n" <>
+              "1. Increase the timeout to this one `assert_receive`.\n" <>
+              "2. Increase the default timeout to all `assert_receive`: In `config/test.exs` add `config :ex_unit, assert_receive_timeout: <new_timeout>`"
+            else
+              unquote(failure_message) || "No message matching #{unquote(binary)} after #{timeout}ms."
+            end
+
             flunk(failure_message <> ExUnit.Assertions.__pins__(unquote(pins))
-                          <> ExUnit.Assertions.__mailbox__(self()))
+                          <> ExUnit.Assertions.__mailbox__(messages))
         end
 
       received
@@ -416,8 +432,7 @@ defmodule ExUnit.Assertions do
   @max_mailbox_length 10
 
   @doc false
-  def __mailbox__(pid) do
-    {:messages, messages} = Process.info(pid, :messages)
+  def __mailbox__(messages) do
     length = length(messages)
     mailbox =
       messages
