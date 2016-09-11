@@ -17,7 +17,7 @@ defmodule Mix.Tasks.App.Start do
   ## Configuration
 
     * `:start_permanent` - the application and all of its children
-      applications are started in permanent mode
+      applications are started in permanent mode. Defaults to `false`.
 
     * `:consolidate_protocols` - when `true`, loads consolidated
       protocols before start. The default value is `true`.
