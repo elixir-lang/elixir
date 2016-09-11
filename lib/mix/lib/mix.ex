@@ -17,8 +17,7 @@ defmodule Mix do
         end
       end
 
-  The `project/0` function is where the project information is defined
-  and tasks are configured.
+  See the `Mix.Project` module for detailed documentation on Mix projects.
 
   Once the project is defined, a number of default Mix tasks can be run
   directly from the command line:
@@ -55,8 +54,8 @@ defmodule Mix do
 
   ## Dependencies
 
-  Another important feature in Mix is that it is able to manage your
-  dependencies and integrates nicely with the [Hex package manager](https://hex.pm).
+  Mix also manages your dependencies and integrates nicely with the [Hex package
+  manager](https://hex.pm).
 
   In order to use dependencies, you need to add a `:deps` key
   to your project configuration. We often extract the list of dependencies
@@ -81,15 +80,13 @@ defmodule Mix do
 
   ## Environments
 
-  Mix provides environments.
-
-  Environments allow developers to prepare and organize their project
-  specifically for different scenarios. By default, Mix provides three
-  environments:
+  Mix supports different environments. Environments allow developers to prepare
+  and organize their project specifically for different scenarios. By default,
+  Mix provides three environments:
 
     * `:dev` - the default environment
     * `:test` - the environment `mix test` runs on
-    * `:prod` - the environment your dependencies runs on
+    * `:prod` - the environment your dependencies run on
 
   The environment can be changed via the command line by setting
   the `MIX_ENV` environment variable, for example:
@@ -155,7 +152,7 @@ defmodule Mix do
 
   ## Environment variables
 
-  Environment variables can be used to modify Mix's behaviour.
+  Several environment variables can be used to modify Mix's behaviour.
 
   Mix responds to the following variables:
 
@@ -169,9 +166,11 @@ defmodule Mix do
     * `MIX_REBAR` - path to rebar command that overrides the one mix installs
     * `MIX_REBAR3` - path to rebar3 command that overrides the one mix installs
 
-  Variables which do not take a value should be set to either `1` or `true`, for example:
+  Environment variables that are not meant to hold a value (and act basically as
+  flags) should be set to either `1` or `true`, for example:
 
       $ MIX_DEBUG=1 mix compile
+
   """
 
   use Application

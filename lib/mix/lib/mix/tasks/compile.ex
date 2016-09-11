@@ -10,15 +10,16 @@ defmodule Mix.Tasks.Compile do
 
   ## Configuration
 
-    * `:compilers` - compilers to run, defaults to:
-      `[:yecc, :leex, :erlang, :elixir, :xref, :app]`
+    * `:compilers` - compilers to run, defaults to `Mix.compilers/0`,
+      which are `[:yecc, :leex, :erlang, :elixir, :xref, :app]`.
 
     * `:consolidate_protocols` - when `true`, runs protocol
       consolidation via the `compile.protocols` task. The default
       value is `true`.
 
     * `:build_embedded` - when `true`, activates protocol
-      consolidation and does not generate symlinks in builds
+      consolidation and does not generate symlinks in builds. Defaults
+      to `false`.
 
     * `:build_path` - the directory where build artifacts
       should be written to. This option is intended only for
