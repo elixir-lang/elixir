@@ -27,7 +27,7 @@ defmodule Mix.Task do
       on `mix help`
     * `@recursive` - run the task recursively in umbrella projects
     * `@preferred_cli_env` - recommends environment to run task. It is used in absence of
-      mix project recommendation, or explicit MIX_ENV.
+      a Mix project recommendation, or explicit `MIX_ENV`
 
   ## Documentation
 
