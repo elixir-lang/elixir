@@ -158,6 +158,31 @@ defmodule ExUnit.AssertionsTest do
     :hello = assert_receive :hello
   end
 
+  test "assert receive with message in mailbox after timeout, but before reading mailbox tells user to increase timeout" do
+    parent = self()
+    # this is testing a race condition, so it's not guaranteed this works under all loads of the system
+    timeout = 100
+    spawn fn -> Process.send_after parent, :hello, timeout end
+
+    try do
+      assert_receive :hello, timeout
+    rescue
+      error in [ExUnit.AssertionError] ->
+        "No message matching :hello after 100ms, " <>
+        "but a matching message appeared before reading the mailbox for this error message, " <>
+        "which indicates the message is being delivered a few milliseconds after the current timeout or in the same " <>
+        "millisecond, but the timeout triggers before the sending process runs.\n" <>
+        "\n" <>
+        "If your system has time constraints that depend on this timeout, " <>
+        "this failure indicates you are at the edge of timing out in production; however, " <>
+        "if the timeout can safely be increased for this test, you can increase it two ways:\n" <>
+        "1. Increase the timeout to this one `assert_receive`.\n" <>
+        "2. Increase the default timeout to all `assert_receive`: In `config/test.exs` add `config :ex_unit, assert_receive_timeout: <new_timeout>`\n" <>
+        "Process mailbox:\n" <>
+        "  :hello" = error.message
+    end
+  end
+
   test "assert received does not wait" do
     send self(), :hello
     :hello = assert_received :hello
