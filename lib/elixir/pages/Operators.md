@@ -15,14 +15,14 @@ Operator                                                                        
 `+` `-`                                                                                  | Left to right
 `++` `--` `..` `<>`                                                                      | Right to left
 `in`                                                                                     | Left to right
-<code>&#124;></code> `<<<` `>>>` `~>>` `<<~` `~>` `<~` `<~>` <code>&lt;&#124;&gt;</code> | Left to right
+`\|>` `<<<` `>>>` `~>>` `<<~` `~>` `<~` `<~>` `<\|>`                                     | Left to right
 `<` `>` `<=` `>=`                                                                        | Left to right
 `==` `!=` `=~` `===` `!==`                                                               | Left to right
 `&&` `&&&` `and`                                                                         | Left to right
-<code>&#124;&#124;</code> <code>&#124;&#124;&#124;</code> `or`                           | Left to right
+`\|\|` `\|\|\|` `or`                                                                     | Left to right
 `=`                                                                                      | Right to left
 `=>`                                                                                     | Right to left
-<code>&#124;</code>                                                                      | Right to left
+`\|`                                                                                     | Right to left
 `::`                                                                                     | Right to left
 `when`                                                                                   | Right to left
 `<-`, `\\`                                                                               | Left to right
