@@ -168,18 +168,7 @@ defmodule ExUnit.AssertionsTest do
       assert_receive :hello, timeout
     rescue
       error in [ExUnit.AssertionError] ->
-        "No message matching :hello after 100ms, " <>
-        "but a matching message appeared before reading the mailbox for this error message, " <>
-        "which indicates the message is being delivered a few milliseconds after the current timeout or in the same " <>
-        "millisecond, but the timeout triggers before the sending process runs.\n" <>
-        "\n" <>
-        "If your system has time constraints that depend on this timeout, " <>
-        "this failure indicates you are at the edge of timing out in production; however, " <>
-        "if the timeout can safely be increased for this test, you can increase it two ways:\n" <>
-        "1. Increase the timeout to this one `assert_receive`.\n" <>
-        "2. Increase the default timeout to all `assert_receive`: In `config/test.exs` add `config :ex_unit, assert_receive_timeout: <new_timeout>`\n" <>
-        "Process mailbox:\n" <>
-        "  :hello" = error.message
+        "Found message matching :hello after 100ms" <> _ = error.message
     end
   end
 
