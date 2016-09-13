@@ -10,11 +10,11 @@ defmodule IO.ANSI.Docs do
 
     * `:enabled`           - toggles coloring on and off (true)
     * `:doc_bold`          - bold text (bright)
-    * `:doc_code`          - code blocks (cyan, bright)
-    * `:doc_headings`      - h1 and h2 headings (yellow, bright)
+    * `:doc_code`          - code blocks (cyan)
+    * `:doc_headings`      - h1, h2, h3, h4, h5, h6 headings (yellow)
     * `:doc_inline_code`   - inline code (cyan)
     * `:doc_table_heading` - style for table headings
-    * `:doc_title`         - top level heading (reverse, yellow, bright)
+    * `:doc_title`         - top level heading (reverse, yellow)
     * `:doc_underline`     - underlined text (underline)
     * `:width`             - the width to format the text (80)
 
@@ -24,7 +24,7 @@ defmodule IO.ANSI.Docs do
   def default_options do
     [enabled:           true,
      doc_bold:          [:bright],
-     doc_code:          [:cyan, :bright],
+     doc_code:          [:cyan],
      doc_headings:      [:yellow],
      doc_inline_code:   [:cyan],
      doc_table_heading: [:reverse],
@@ -66,22 +66,23 @@ defmodule IO.ANSI.Docs do
     write_text(text, indent, options)
   end
 
-  defp process(["# " <> heading | rest], text, indent, options) do
-    write_text(text, indent, options)
-    write_h1(String.trim(heading), options)
-    process(rest, [], "", options)
+  defp process(["# " <> _ = heading | rest], text, indent, options) do
+    write_heading(heading, rest, text, indent, options)
   end
-
-  defp process(["## " <> heading | rest], text, indent, options) do
-    write_text(text, indent, options)
-    write_h2(String.trim(heading), options)
-    process(rest, [], "", options)
+  defp process(["## " <> _ = heading | rest], text, indent, options) do
+    write_heading(heading, rest, text, indent, options)
   end
-
-  defp process(["### " <> heading | rest], text, indent, options) do
-    write_text(text, indent, options)
-    write_h3(String.trim(heading), indent, options)
-    process(rest, [], "", options)
+  defp process(["### " <> _ = heading | rest], text, indent, options) do
+    write_heading(heading, rest, text, indent, options)
+  end
+  defp process(["#### " <> _ = heading | rest], text, indent, options) do
+    write_heading(heading, rest, text, indent, options)
+  end
+  defp process(["##### " <> _ = heading | rest], text, indent, options) do
+    write_heading(heading, rest, text, indent, options)
+  end
+  defp process(["###### " <> _ = heading | rest], text, indent, options) do
+    write_heading(heading, rest, text, indent, options)
   end
 
   defp process(["" | rest], text, indent, options) do
@@ -118,19 +119,11 @@ defmodule IO.ANSI.Docs do
 
   ## Headings
 
-  defp write_h1(heading, options) do
-    write_h2(String.upcase(heading), options)
-  end
-
-  defp write_h2(heading, options) do
+  defp write_heading(heading, rest, text, indent, options) do
+    write_text(text, indent, options)
     write(:doc_headings, heading, options)
     newline_after_block()
-  end
-
-  defp write_h3(heading, indent, options) do
-    IO.write(indent)
-    write(:doc_headings, heading, options)
-    newline_after_block()
+    process(rest, [], "", options)
   end
 
   ## Lists
@@ -255,7 +248,7 @@ defmodule IO.ANSI.Docs do
   end
 
   defp write_code(code, indent, options) do
-    write(:doc_code, "#{indent}┃ #{Enum.join(Enum.reverse(code), "\n#{indent}┃ ")}", options)
+    write(:doc_code, "#{indent}    #{Enum.join(Enum.reverse(code), "\n#{indent}    ")}", options)
     newline_after_block()
   end
 
