@@ -21,31 +21,31 @@ defmodule IO.ANSI.DocsTest do
 
   test "first level heading is converted" do
     result = format("# wibble\n\ntext\n")
-    assert result == "\e[33mWIBBLE\e[0m\n\e[0m\ntext\n\e[0m"
+    assert result == "\e[33m# wibble\e[0m\n\e[0m\ntext\n\e[0m"
   end
 
   test "second level heading is converted" do
     result = format("## wibble\n\ntext\n")
-    assert result == "\e[33mwibble\e[0m\n\e[0m\ntext\n\e[0m"
+    assert result == "\e[33m## wibble\e[0m\n\e[0m\ntext\n\e[0m"
   end
 
   test "third level heading is converted" do
-    result = format("## wibble\n\ntext\n")
-    assert result == "\e[33mwibble\e[0m\n\e[0m\ntext\n\e[0m"
+    result = format("### wibble\n\ntext\n")
+    assert result == "\e[33m### wibble\e[0m\n\e[0m\ntext\n\e[0m"
   end
 
   test "code block is converted" do
     result = format("line\n\n    code\n    code2\n\nline2\n")
-    assert result == "line\n\e[0m\n\e[36m\e[1m┃ code\n┃ code2\e[0m\n\e[0m\nline2\n\e[0m"
+    assert result == "line\n\e[0m\n\e[36m    code\n    code2\e[0m\n\e[0m\nline2\n\e[0m"
   end
 
   test "fenced code block is converted" do
     result = format("line\n```\ncode\ncode2\n```\nline2\n")
-    assert result == "line\n\e[0m\n\e[36m\e[1m┃ code\n┃ code2\e[0m\n\e[0m\nline2\n\e[0m"
+    assert result == "line\n\e[0m\n\e[36m    code\n    code2\e[0m\n\e[0m\nline2\n\e[0m"
     result = format("line\n```elixir\ncode\ncode2\n```\nline2\n")
-    assert result == "line\n\e[0m\n\e[36m\e[1m┃ code\n┃ code2\e[0m\n\e[0m\nline2\n\e[0m"
+    assert result == "line\n\e[0m\n\e[36m    code\n    code2\e[0m\n\e[0m\nline2\n\e[0m"
     result = format("line\n~~~elixir\ncode\n```\n~~~\nline2\n")
-    assert result == "line\n\e[0m\n\e[36m\e[1m┃ code\n┃ ```\e[0m\n\e[0m\nline2\n\e[0m"
+    assert result == "line\n\e[0m\n\e[36m    code\n    ```\e[0m\n\e[0m\nline2\n\e[0m"
   end
 
   test "* list is converted" do
@@ -75,7 +75,7 @@ defmodule IO.ANSI.DocsTest do
 
   test "* lists with code" do
     result = format("  * one\n        two three")
-    assert result == "  • one\n\e[36m\e[1m    ┃ two three\e[0m\n\e[0m\n\e[0m"
+    assert result == "  • one\n\e[36m        two three\e[0m\n\e[0m\n\e[0m"
   end
 
   test "- list is converted" do
