@@ -37,6 +37,35 @@ defmodule Calendar.ISO do
     end
   end
 
+
+  @doc """
+  Returns the last day of the month for the given year.
+
+  ## Examples
+
+      iex> Calendar.ISO.last_day_of_month(2000, 1)
+      31
+      iex> Calendar.ISO.last_day_of_month(2000, 2)
+      28
+      iex> Calendar.ISO.last_day_of_month(2001, 2)
+      28
+      iex> Calendar.ISO.last_day_of_month(2004, 2)
+      29
+      iex> Calendar.ISO.last_day_of_month(2004, 4)
+      30
+
+  """
+  def last_day_of_the_month(year, month)
+
+  def last_day_of_the_month(year, 2) do
+    if leap_year?(year), do: 29, else: 28
+  end
+  def last_day_of_the_month(_, 4), do: 30
+  def last_day_of_the_month(_, 6), do: 30
+  def last_day_of_the_month(_, 9), do: 30
+  def last_day_of_the_month(_,11), do: 30
+  def last_day_of_the_month(_, month) when month in 1..12, do: 31
+
   @doc """
   Returns if the given year is a leap year.
 
@@ -120,6 +149,31 @@ defmodule Calendar.ISO do
   end
 
   ## Helpers
+
+  @doc false
+  def from_unix(integer, unit) when is_integer(integer) do
+    total = System.convert_time_unit(integer, unit, :microseconds)
+    if total < -@unix_epoch * 1_000_000 do
+      :error
+    else
+      microsecond = rem(total, 1_000_000)
+      precision = precision_for_unit(unit)
+      {date, time} = :calendar.gregorian_seconds_to_datetime(@unix_epoch + div(total, 1_000_000))
+      {:ok, date, time, {microsecond, precision}}
+    end
+  end
+
+  defp precision_for_unit(unit) do
+    subseconds = div System.convert_time_unit(1, :seconds, unit), 10
+    precision_for_unit(subseconds, 0)
+  end
+
+  defp precision_for_unit(0, precision),
+    do: precision
+  defp precision_for_unit(_, 6),
+    do: 6
+  defp precision_for_unit(number, precision),
+    do: precision_for_unit(div(number, 10), precision + 1)
 
   @doc false
   def to_iso8601(%Date{year: year, month: month, day: day}) do
