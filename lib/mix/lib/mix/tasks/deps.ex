@@ -46,14 +46,18 @@ defmodule Mix.Tasks.Deps do
   and the requirements must be specified as defined in the `Version`
   module.
 
-  ## Dependency definition options
+  ## Options
+
+  Below we provide a more detailed look into the available options.
+
+  ### Dependency definition options
 
     * `:app` - when set to `false`, does not read the app file for this
-      dependency
+      dependency. By default, the app file is read
 
-    * `:env` - the environment to run the dependency on, defaults to :prod
+    * `:env` - the environment (as an atom) to run the dependency on; defaults to `:prod`
 
-    * `:compile` - a command to compile the dependency, defaults to a `mix`,
+    * `:compile` - a command (string) to compile the dependency; defaults to a `mix`,
       `rebar` or `make` command
 
     * `:optional` - marks the dependency as optional. In such cases, the
@@ -63,8 +67,11 @@ defmodule Mix.Tasks.Deps do
       the optional dependency on its own, the requirements and options
       specified here will also be applied.
 
-    * `:only` - the dependency will belong only to the given environments,
-      useful when declaring dev- or test-only dependencies
+    * `:only` - the dependency is made available only in the given environments,
+      useful when declaring dev- or test-only dependencies; by default the
+      dependency will be available in all environments. The value of this option
+      can either be a single environment (like `:dev`) or a list of environments
+      (like `[:dev, :test]`)
 
     * `:override` - if set to `true` the dependency will override any other
       definitions of itself by other dependencies
@@ -74,7 +81,7 @@ defmodule Mix.Tasks.Deps do
       try to infer the type of project but it can be overridden with this
       option by setting it to `:mix`, `:rebar`, `:rebar3` or `:make`
 
-  ## Git options (`:git`)
+  ### Git options (`:git`)
 
     * `:git`        - the Git repository URI
     * `:github`     - a shortcut for specifying Git repos from GitHub, uses `git:`
@@ -85,7 +92,7 @@ defmodule Mix.Tasks.Deps do
     * `:sparse`     - checkout a single directory inside the git repository and use it
       as your Mix dependency. Search "sparse git checkouts" for more information.
 
-  ## Path options (`:path`)
+  ### Path options (`:path`)
 
     * `:path`        - the path for the dependency
     * `:in_umbrella` - when `true`, sets a path dependency pointing to
