@@ -56,6 +56,11 @@ defmodule Calendar do
   @callback date(year, month, day) :: {:ok, Date.t} | {:error, atom}
 
   @doc """
+  Returns the last day of the month for the given year-month pair.
+  """
+  @callback last_day_of_month(year, month) :: day
+
+  @doc """
   Returns true if the given year is a leap year.
 
   A leap year is a year of a longer length than normal. The exact meaning
@@ -68,26 +73,6 @@ defmodule Calendar do
   Converts the given structure into a string according to the calendar.
   """
   @callback to_string(structure :: Date.t | DateTime.t | NaiveDateTime.t) :: String.t
-
-  @doc false
-  # TODO: Remove this on 1.4. It exists only to aid migration of those
-  # using the Calendar library.
-  defmacro __using__(_opts) do
-    %{file: file, line: line} = __CALLER__
-    :elixir_errors.warn(line, file, "use Calendar is deprecated as it is now part of Elixir")
-
-    quote do
-      alias Calendar.DateTime
-      alias Calendar.DateTime.Interval
-      alias Calendar.AmbiguousDateTime
-      alias Calendar.NaiveDateTime
-      alias Calendar.Date
-      alias Calendar.Time
-      alias Calendar.TimeZoneData
-      alias Calendar.TzPeriod
-      alias Calendar.Strftime
-    end
-  end
 end
 
 defmodule Date do
@@ -120,6 +105,22 @@ defmodule Date do
 
   @type t :: %__MODULE__{year: Calendar.year, month: Calendar.month,
                          day: Calendar.day, calendar: Calendar.calendar}
+
+  @doc """
+  Returns the current date in UTC.
+
+  ## Examples
+
+      iex> date = Time.utc_now()
+      iex> date.year >= 2016
+      true
+
+  """
+  @spec utc_today() :: Date.t
+  def utc_today() do
+    {:ok, {year, month, day}, _, _} = Calendar.ISO.from_unix(:os.system_time, :native)
+    %Date{year: year, month: month, day: day}
+  end
 
   @doc """
   Builds a new ISO date.
@@ -336,6 +337,22 @@ defmodule Time do
 
   @type t :: %__MODULE__{hour: Calendar.hour, minute: Calendar.minute,
                          second: Calendar.second, microsecond: Calendar.microsecond}
+
+  @doc """
+  Returns the current time in UTC.
+
+  ## Examples
+
+      iex> time = Time.utc_now()
+      iex> time.hour >= 0
+      true
+
+  """
+  @spec utc_now() :: Time.t
+  def utc_now() do
+    {:ok, _, {hour, minute, second}, microsecond} = Calendar.ISO.from_unix(:os.system_time, :native)
+    %Time{hour: hour, minute: minute, second: second, microsecond: microsecond}
+  end
 
   @doc """
   Builds a new time.
@@ -608,6 +625,144 @@ defmodule NaiveDateTime do
   @type t :: %__MODULE__{year: Calendar.year, month: Calendar.month, day: Calendar.day,
                          calendar: Calendar.calendar, hour: Calendar.hour, minute: Calendar.minute,
                          second: Calendar.second, microsecond: Calendar.microsecond}
+
+  @unix_epoch :calendar.datetime_to_gregorian_seconds {{1970, 1, 1}, {0, 0, 0}}
+
+  @doc """
+  Returns the current naive date time in UTC.
+
+  Prefer using `DateTime.utc_now/0` when possible as, opposite
+  to `NaiveDateTime`, it will keep the time zone information.
+
+  ## Examples
+
+      iex> naive_datetime = NaiveDateTime.utc_now()
+      iex> naive_datetime.year >= 2016
+      true
+
+  """
+  @spec utc_now() :: NaiveDateTime.t
+  def utc_now() do
+    :os.system_time |> from_unix!(:native)
+  end
+
+  @doc """
+  Converts the given Unix time to NaiveDateTime.
+
+  The integer can be given in different unit
+  according to `System.convert_time_unit/3` and it will
+  be converted to microseconds internally.
+
+  Even though Unix times are always in UTC, the time zone
+  is not stored in the naive date time.  Prefer using
+  `DateTime.from_unix/2` when possible as, opposite
+  to `NaiveDateTime`, it will keep the time zone information.
+
+  ## Examples
+
+      iex> NaiveDateTime.from_unix(1464096368)
+      {:ok, ~N[2015-05-25 13:26:08]}
+
+      iex> NaiveDateTime.from_unix(1432560368868569, :microseconds)
+      {:ok, ~N[2015-05-25 13:26:08.868569]}
+
+  The unit can also be an integer as in `System.time_unit`:
+
+      iex> NaiveDateTime.from_unix(1432560368868569, 1024)
+      {:ok, %NaiveDateTime{calendar: Calendar.ISO, day: 23, hour: 22, microsecond: {211914, 3},
+                           minute: 53, month: 1, second: 43, year: 46302, zone_abbr: "UTC"}}
+
+  Negative Unix times are supported, up to -#{@unix_epoch} seconds,
+  which is equivalent to "0000-01-01T00:00:00Z" or 0 gregorian seconds.
+
+      iex> NaiveDateTime.from_unix(-12345678910)
+      {:ok, ~N[1578-10-13 04:10:50]}
+
+  When a Unix time before that moment is passed to `from_unix/2`, `:error` will be returned.
+  """
+  @spec from_unix(integer, :native | System.time_unit) :: {:ok, NaiveDateTime.t}
+  def from_unix(integer, unit \\ :seconds) when is_integer(integer) do
+    case Calendar.ISO.from_unix(integer, unit) do
+      {:ok, {year, month, day}, {hour, minute, second}, microsecond} ->
+        {:ok, %DateTime{year: year, month: month, day: day,
+                        hour: hour, minute: minute, second: second, microsecond: microsecond,
+                        std_offset: 0, utc_offset: 0, zone_abbr: "UTC", time_zone: "Etc/UTC"}}
+      :error ->
+        :error
+    end
+  end
+
+  @doc """
+  Converts the given Unix time to NaiveDateTime.
+
+  The integer can be given in different unit
+  according to `System.convert_time_unit/3` and it will
+  be converted to microseconds internally.
+
+  Even though Unix times are always in UTC, the time zone
+  is not stored in the naive date time.  Prefer using
+  `DateTime.from_unix/2` when possible as, opposite
+  to `NaiveDateTime`, it will keep the time zone information.
+
+  ## Examples
+
+      iex> NaiveDateTime.from_unix!(1464096368)
+      ~N[2015-05-25 13:26:08]
+
+      iex> NaiveDateTime.from_unix!(1432560368868569, :microseconds)
+      ~N[2015-05-25 13:26:08.868569]
+
+  Negative Unix times are supported, up to -#{@unix_epoch} seconds,
+  which is equivalent to "0000-01-01T00:00:00Z" or 0 gregorian seconds.
+
+      iex> NaiveDateTime.from_unix!(-12345678910)
+      ~N[1578-10-13 04:10:50]
+
+  When a Unix time before that moment is passed to `from_unix/2`, `:error` will be returned.
+  """
+  @spec from_unix!(non_neg_integer, :native | System.time_unit) :: NaiveDateTime.t
+  def from_unix!(integer, unit \\ :seconds) when is_atom(unit) do
+    case from_unix(integer, unit) do
+      {:ok, datetime} ->
+        datetime
+      :error ->
+        raise ArgumentError, "invalid Unix time #{integer}"
+    end
+  end
+
+  @doc """
+  Converts the given NaiveDateTime to Unix seconds.
+
+  The NaiveDateTime is expected to be using the ISO calendar
+  with a year greater than or equal to 0.
+
+  It will return the integer with the given unit,
+  according to `System.convert_time_unit/3`.
+
+  WARNING: A Unix time is always in UTC. However, NaiveDateTime
+  does not have time zone information, which means there is no
+  guarantee the Unix time retrieved is the one originally intended.
+  This may result in incorrect results. Prefer using `DateTime`
+  when converting to and from Unix time as it includes the time
+  zone data.
+
+  ## Examples
+
+      iex> 1464096368 |> NaiveDateTime.from_unix!() |> NaiveDateTime.to_unix()
+      1464096368
+
+      iex> NaiveDateTime.to_unix(~N[2015-05-25 13:26:08])
+      1464096368
+
+  """
+  @spec to_unix(NaiveDateTime.t, System.time_unit) :: non_neg_integer
+  def to_unix(datetime, unit \\ :seconds)
+
+  def to_unix(%NaiveDateTime{calendar: Calendar.ISO, year: year, month: month, day: day,
+                             hour: hour, minute: minute, second: second, microsecond: {microsecond, _}}, unit) when year >= 0 do
+    seconds = :calendar.datetime_to_gregorian_seconds({{year, month, day}, {hour, minute, second}})
+    System.convert_time_unit((seconds - @unix_epoch) * 1_000_000 + microsecond, :microseconds, unit)
+  end
 
   @doc """
   Builds a new ISO naive date time.
@@ -1017,32 +1172,15 @@ defmodule DateTime do
   """
   @spec from_unix(integer, :native | System.time_unit) :: {:ok, DateTime.t}
   def from_unix(integer, unit \\ :seconds) when is_integer(integer) do
-    total = System.convert_time_unit(integer, unit, :microseconds)
-    if total < -@unix_epoch * 1_000_000 do
-      :error
-    else
-      microsecond = rem(total, 1_000_000)
-      precision = precision_for_unit(unit)
-      {{year, month, day}, {hour, minute, second}} =
-        :calendar.gregorian_seconds_to_datetime(@unix_epoch + div(total, 1_000_000))
-
-      {:ok, %DateTime{year: year, month: month, day: day,
-                      hour: hour, minute: minute, second: second, microsecond: {microsecond, precision},
-                      std_offset: 0, utc_offset: 0, zone_abbr: "UTC", time_zone: "Etc/UTC"}}
+    case Calendar.ISO.from_unix(integer, unit) do
+      {:ok, {year, month, day}, {hour, minute, second}, microsecond} ->
+        {:ok, %DateTime{year: year, month: month, day: day,
+                        hour: hour, minute: minute, second: second, microsecond: microsecond,
+                        std_offset: 0, utc_offset: 0, zone_abbr: "UTC", time_zone: "Etc/UTC"}}
+      :error ->
+        :error
     end
   end
-
-  defp precision_for_unit(unit) do
-    subseconds = div System.convert_time_unit(1, :seconds, unit), 10
-    precision_for_unit(subseconds, 0)
-  end
-
-  defp precision_for_unit(0, precision),
-    do: precision
-  defp precision_for_unit(_, 6),
-    do: 6
-  defp precision_for_unit(number, precision),
-    do: precision_for_unit(div(number, 10), precision + 1)
 
   @doc """
   Converts the given Unix time to DateTime.
@@ -1087,7 +1225,7 @@ defmodule DateTime do
   end
 
   @doc """
-  Converts the given DateTime to Unix time.
+  Converts the given DateTime to Unix seconds.
 
   The DateTime is expected to be using the ISO calendar
   with a year greater than or equal to 0.
