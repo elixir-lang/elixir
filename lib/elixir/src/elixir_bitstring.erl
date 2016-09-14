@@ -21,9 +21,9 @@ expand_bitstr(Fun, [{'::', Meta, [Left, Right]} | T], Acc, E) ->
 
   %% Variables defined outside the binary can be accounted
   %% on subparts, however we can't assign new variables.
-  case E of
-    {ER, _} -> ok;               %% expand_arg,  no assigns
-    _ -> ER = E#{context := nil} %% expand_each, revert assigns
+  ER = case E of
+    {EExtracted, _} -> EExtracted;        %% expand_arg,  no assigns
+    _               -> E#{context := nil} %% expand_each, revert assigns
   end,
 
   ERight = expand_bit_info(Meta, Right, ER),
