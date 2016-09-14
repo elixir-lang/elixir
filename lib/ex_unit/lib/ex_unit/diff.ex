@@ -437,7 +437,8 @@ defmodule ExUnit.Diff do
   end
 
   defp format_key(key, true) do
-    Atom.to_string(key) <> ": "
+    ":" <> result = inspect(key)
+    result <> ": "
   end
 
   defp format_key_value(key, value, keyword?) do
