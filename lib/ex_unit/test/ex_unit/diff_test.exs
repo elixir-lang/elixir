@@ -219,6 +219,8 @@ defmodule ExUnit.DiffTest do
       {:eq, "]"}
     ]
     assert script(keyword1, keyword2) == expected
+
+    assert script(["foo-bar": 1], []) == [{:eq, "["}, [{:del, "\"foo-bar\": 1"}], {:eq, "]"}]
   end
 
   test "improper lists" do
@@ -285,6 +287,7 @@ defmodule ExUnit.DiffTest do
     expected = [{:eq, "%{"}, [[del: "baz: 12"], [ins: "foo: 12"]], {:eq, "}"}]
     assert script(map1, %{foo: 12}) == expected
 
+    assert script(%{"foo-bar": 1}, %{}) == [{:eq, "%{"}, [[del: "\"foo-bar\": 1"]], {:eq, "}"}]
     assert script(%{}, %{}) == [eq: "%{}"]
   end
 
