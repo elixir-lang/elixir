@@ -276,6 +276,10 @@ defmodule String do
   Empty strings are only removed from the result if the
   `trim` option is set to `true` (default is `false`).
 
+  When the pattern used is a regular expression, the string is
+  split using `Regex.split/3`. In that case this function accepts
+  additional options which are documented in `Regex.split/3`.
+
   ## Examples
 
   Splitting with a string pattern:
@@ -303,6 +307,9 @@ defmodule String do
       ["a", "b,c"]
 
       iex> String.split(" a b c ", ~r{\s}, trim: true)
+      ["a", "b", "c"]
+
+      iex> String.split("abc", ~r{b}, include_captures: true)
       ["a", "b", "c"]
 
   Splitting on empty patterns returns graphemes:
