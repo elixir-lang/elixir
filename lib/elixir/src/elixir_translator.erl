@@ -105,12 +105,12 @@ translate({'try', Meta, [Clauses]}, S) ->
   Catch = [Tuple || {X, _} = Tuple <- Clauses, X == 'rescue' orelse X == 'catch'],
   {TCatch, SC} = elixir_try:clauses(Meta, Catch, mergec(SN, SB)),
 
-  case lists:keyfind('after', 1, Clauses) of
+  {TAfter, SA} = case lists:keyfind('after', 1, Clauses) of
     {'after', After} ->
-      {TBlock, SA} = translate(After, mergec(SN, SC)),
-      TAfter = unblock(TBlock);
+      {TBlock, SAExtracted} = translate(After, mergec(SN, SC)),
+      {unblock(TBlock), SAExtracted};
     false ->
-      {TAfter, SA} = {[], mergec(SN, SC)}
+      {[], mergec(SN, SC)}
   end,
 
   Else = elixir_clauses:get_pairs(else, Clauses, match),

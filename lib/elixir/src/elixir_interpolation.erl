@@ -196,9 +196,9 @@ unescape_map(E)  -> E.
 % Extract Helpers
 
 finish_extraction(Line, Column, Buffer, Output, Remaining) ->
-  case build_string(Line, Buffer, Output) of
-    []    -> Final = [<<>>];
-    Final -> []
+  Final = case build_string(Line, Buffer, Output) of
+    [] -> [<<>>];
+    F  -> F
   end,
 
   {Line, Column, lists:reverse(Final), Remaining}.
