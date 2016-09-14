@@ -26,7 +26,7 @@ defmodule Mix.Tasks.Cmd do
     if apps == [] or Mix.Project.config[:app] in apps do
       case Mix.shell.cmd(Enum.join(args, " ")) do
         0 -> :ok
-        s -> exit(s)
+        status -> exit(status)
       end
     end
   end
