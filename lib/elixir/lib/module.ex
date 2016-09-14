@@ -904,6 +904,7 @@ defmodule Module do
       end
 
     :ets.insert(table, {key, new})
+    value
   end
 
   @doc """

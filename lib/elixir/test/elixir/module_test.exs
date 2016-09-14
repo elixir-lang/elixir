@@ -58,6 +58,12 @@ defmodule ModuleTest do
     end
   end
 
+  test "return value" do
+    in_module do
+      assert (@return [:foo, :bar]) == [:foo, :bar]
+    end
+  end
+
   test "in memory" do
     assert :code.which(__MODULE__) == :in_memory
   end
