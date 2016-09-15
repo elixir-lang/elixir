@@ -654,8 +654,11 @@ defmodule NaiveDateTime do
   be converted to microseconds internally.
 
   Even though Unix times are always in UTC, the time zone
-  is not stored in the naive date time.  Prefer using
-  `DateTime.from_unix/2` when possible as, opposite
+  is not stored in the naive date time, occuring in loss
+  of information. For this reason, in order to convert a
+  NaiveDateTime back to Unix time, you first need to call
+  `DateTime.from_naive/2` with a timezone. For such reason,
+  prefer using `DateTime.from_unix/2` when possible as, opposite
   to `NaiveDateTime`, it will keep the time zone information.
 
   ## Examples
