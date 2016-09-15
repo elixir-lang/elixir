@@ -111,7 +111,7 @@ defmodule Date do
 
   ## Examples
 
-      iex> date = Time.utc_now()
+      iex> date = Date.utc_today()
       iex> date.year >= 2016
       true
 
@@ -661,7 +661,7 @@ defmodule NaiveDateTime do
   ## Examples
 
       iex> NaiveDateTime.from_unix(1464096368)
-      {:ok, ~N[2015-05-25 13:26:08]}
+      {:ok, ~N[2016-05-24 13:26:08]}
 
       iex> NaiveDateTime.from_unix(1432560368868569, :microseconds)
       {:ok, ~N[2015-05-25 13:26:08.868569]}
@@ -670,13 +670,13 @@ defmodule NaiveDateTime do
 
       iex> NaiveDateTime.from_unix(1432560368868569, 1024)
       {:ok, %NaiveDateTime{calendar: Calendar.ISO, day: 23, hour: 22, microsecond: {211914, 3},
-                           minute: 53, month: 1, second: 43, year: 46302, zone_abbr: "UTC"}}
+                           minute: 53, month: 1, second: 43, year: 46302}}
 
   Negative Unix times are supported, up to -#{@unix_epoch} seconds,
   which is equivalent to "0000-01-01T00:00:00Z" or 0 gregorian seconds.
 
       iex> NaiveDateTime.from_unix(-12345678910)
-      {:ok, ~N[1578-10-13 04:10:50]}
+      {:ok, ~N[1578-10-13 04:44:50]}
 
   When a Unix time before that moment is passed to `from_unix/2`, `:error` will be returned.
   """
@@ -684,11 +684,10 @@ defmodule NaiveDateTime do
   def from_unix(integer, unit \\ :seconds) when is_integer(integer) do
     case Calendar.ISO.from_unix(integer, unit) do
       {:ok, {year, month, day}, {hour, minute, second}, microsecond} ->
-        {:ok, %DateTime{year: year, month: month, day: day,
-                        hour: hour, minute: minute, second: second, microsecond: microsecond,
-                        std_offset: 0, utc_offset: 0, zone_abbr: "UTC", time_zone: "Etc/UTC"}}
-      :error ->
-        :error
+        {:ok, %NaiveDateTime{year: year, month: month, day: day,
+                             hour: hour, minute: minute, second: second, microsecond: microsecond}}
+      {:error, _} = error ->
+        error
     end
   end
 
@@ -707,7 +706,7 @@ defmodule NaiveDateTime do
   ## Examples
 
       iex> NaiveDateTime.from_unix!(1464096368)
-      ~N[2015-05-25 13:26:08]
+      ~N[2016-05-24 13:26:08]
 
       iex> NaiveDateTime.from_unix!(1432560368868569, :microseconds)
       ~N[2015-05-25 13:26:08.868569]
@@ -716,7 +715,7 @@ defmodule NaiveDateTime do
   which is equivalent to "0000-01-01T00:00:00Z" or 0 gregorian seconds.
 
       iex> NaiveDateTime.from_unix!(-12345678910)
-      ~N[1578-10-13 04:10:50]
+      ~N[1578-10-13 04:44:50]
 
   When a Unix time before that moment is passed to `from_unix/2`, `:error` will be returned.
   """
@@ -725,43 +724,9 @@ defmodule NaiveDateTime do
     case from_unix(integer, unit) do
       {:ok, datetime} ->
         datetime
-      :error ->
+      {:error, :invalid_unix_time} ->
         raise ArgumentError, "invalid Unix time #{integer}"
     end
-  end
-
-  @doc """
-  Converts the given NaiveDateTime to Unix seconds.
-
-  The NaiveDateTime is expected to be using the ISO calendar
-  with a year greater than or equal to 0.
-
-  It will return the integer with the given unit,
-  according to `System.convert_time_unit/3`.
-
-  WARNING: A Unix time is always in UTC. However, NaiveDateTime
-  does not have time zone information, which means there is no
-  guarantee the Unix time retrieved is the one originally intended.
-  This may result in incorrect results. Prefer using `DateTime`
-  when converting to and from Unix time as it includes the time
-  zone data.
-
-  ## Examples
-
-      iex> 1464096368 |> NaiveDateTime.from_unix!() |> NaiveDateTime.to_unix()
-      1464096368
-
-      iex> NaiveDateTime.to_unix(~N[2015-05-25 13:26:08])
-      1464096368
-
-  """
-  @spec to_unix(NaiveDateTime.t, System.time_unit) :: non_neg_integer
-  def to_unix(datetime, unit \\ :seconds)
-
-  def to_unix(%NaiveDateTime{calendar: Calendar.ISO, year: year, month: month, day: day,
-                             hour: hour, minute: minute, second: second, microsecond: {microsecond, _}}, unit) when year >= 0 do
-    seconds = :calendar.datetime_to_gregorian_seconds({{year, month, day}, {hour, minute, second}})
-    System.convert_time_unit((seconds - @unix_epoch) * 1_000_000 + microsecond, :microseconds, unit)
   end
 
   @doc """
@@ -1170,15 +1135,15 @@ defmodule DateTime do
 
   When a Unix time before that moment is passed to `from_unix/2`, `:error` will be returned.
   """
-  @spec from_unix(integer, :native | System.time_unit) :: {:ok, DateTime.t}
+  @spec from_unix(integer, :native | System.time_unit) :: {:ok, DateTime.t} | {:error, atom}
   def from_unix(integer, unit \\ :seconds) when is_integer(integer) do
     case Calendar.ISO.from_unix(integer, unit) do
       {:ok, {year, month, day}, {hour, minute, second}, microsecond} ->
         {:ok, %DateTime{year: year, month: month, day: day,
                         hour: hour, minute: minute, second: second, microsecond: microsecond,
                         std_offset: 0, utc_offset: 0, zone_abbr: "UTC", time_zone: "Etc/UTC"}}
-      :error ->
-        :error
+      {:error, _} = error ->
+        error
     end
   end
 
@@ -1219,8 +1184,56 @@ defmodule DateTime do
     case from_unix(integer, unit) do
       {:ok, datetime} ->
         datetime
-      :error ->
+      {:error, :invalid_unix_time} ->
         raise ArgumentError, "invalid Unix time #{integer}"
+    end
+  end
+
+  @doc """
+  Converts the given NaiveDateTime to DateTime.
+
+  It expects a timezone to put the NaiveDateTime in.
+  Currently it only supports "Etc/UTC" as timezone.
+
+  ## Examples
+
+      iex> DateTime.from_naive(~N[2016-05-24 13:26:08.003], "Etc/UTC")
+      {:ok, %DateTime{calendar: Calendar.ISO, day: 24, hour: 13, microsecond: {3000, 3}, minute: 26,
+                      month: 5, second: 8, std_offset: 0, time_zone: "Etc/UTC", utc_offset: 0,
+                      year: 2016, zone_abbr: "UTC"}}
+
+  """
+  @spec from_naive(NaiveDateTime.t, Calendar.time_zone) :: {:ok, DateTime.t}
+  def from_naive(naive_datetime, time_zone)
+
+  def from_naive(%NaiveDateTime{hour: hour, minute: minute, second: second, microsecond: microsecond,
+                                year: year, month: month, day: day}, "Etc/UTC") do
+    {:ok, %DateTime{year: year, month: month, day: day,
+                    hour: hour, minute: minute, second: second, microsecond: microsecond,
+                    std_offset: 0, utc_offset: 0, zone_abbr: "UTC", time_zone: "Etc/UTC"}}
+  end
+
+  @doc """
+  Converts the given NaiveDateTime to DateTime.
+
+  It expects a timezone to put the NaiveDateTime in.
+  Currently it only supports "Etc/UTC" as timezone.
+
+  ## Examples
+
+      iex> DateTime.from_naive!(~N[2016-05-24 13:26:08.003], "Etc/UTC")
+      %DateTime{calendar: Calendar.ISO, day: 24, hour: 13, microsecond: {3000, 3}, minute: 26,
+                month: 5, second: 8, std_offset: 0, time_zone: "Etc/UTC", utc_offset: 0,
+                year: 2016, zone_abbr: "UTC"}
+
+  """
+  @spec from_naive!(non_neg_integer, :native | System.time_unit) :: DateTime.t
+  def from_naive!(naive_datetime, time_zone) do
+    case from_naive(naive_datetime, time_zone) do
+      {:ok, datetime} ->
+        datetime
+      {:error, reason} ->
+        raise ArgumentError, "cannot parse #{inspect naive_datetime} to datetime, reason: #{inspect reason}"
     end
   end
 
