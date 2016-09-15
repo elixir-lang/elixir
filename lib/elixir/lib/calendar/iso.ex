@@ -43,10 +43,12 @@ defmodule Calendar.ISO do
 
   ## Examples
 
-      iex> Calendar.ISO.last_day_of_month(2000, 1)
+      iex> Calendar.ISO.last_day_of_month(1900, 1)
       31
-      iex> Calendar.ISO.last_day_of_month(2000, 2)
+      iex> Calendar.ISO.last_day_of_month(1900, 2)
       28
+      iex> Calendar.ISO.last_day_of_month(2000, 2)
+      29
       iex> Calendar.ISO.last_day_of_month(2001, 2)
       28
       iex> Calendar.ISO.last_day_of_month(2004, 2)
@@ -55,16 +57,16 @@ defmodule Calendar.ISO do
       30
 
   """
-  def last_day_of_the_month(year, month)
+  def last_day_of_month(year, month)
 
-  def last_day_of_the_month(year, 2) do
+  def last_day_of_month(year, 2) do
     if leap_year?(year), do: 29, else: 28
   end
-  def last_day_of_the_month(_, 4), do: 30
-  def last_day_of_the_month(_, 6), do: 30
-  def last_day_of_the_month(_, 9), do: 30
-  def last_day_of_the_month(_,11), do: 30
-  def last_day_of_the_month(_, month) when month in 1..12, do: 31
+  def last_day_of_month(_, 4), do: 30
+  def last_day_of_month(_, 6), do: 30
+  def last_day_of_month(_, 9), do: 30
+  def last_day_of_month(_,11), do: 30
+  def last_day_of_month(_, month) when month in 1..12, do: 31
 
   @doc """
   Returns if the given year is a leap year.
