@@ -10,6 +10,7 @@ defmodule Calendar.ISO do
   """
 
   @behaviour Calendar
+  @unix_epoch :calendar.datetime_to_gregorian_seconds {{1970, 1, 1}, {0, 0, 0}}
 
   @doc """
   Builds and validates an ISO date.
@@ -36,7 +37,6 @@ defmodule Calendar.ISO do
       {:error, :invalid_date}
     end
   end
-
 
   @doc """
   Returns the last day of the month for the given year.
@@ -154,7 +154,7 @@ defmodule Calendar.ISO do
   def from_unix(integer, unit) when is_integer(integer) do
     total = System.convert_time_unit(integer, unit, :microseconds)
     if total < -@unix_epoch * 1_000_000 do
-      :error
+      {:error, :invalid_unix_time}
     else
       microsecond = rem(total, 1_000_000)
       precision = precision_for_unit(unit)

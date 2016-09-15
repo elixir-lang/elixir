@@ -77,8 +77,7 @@ defmodule DateTimeTest do
       utc_offset: 0, year: 0, zone_abbr: "UTC"
     }
     assert DateTime.from_unix(-62167219200) == {:ok, datetime}
-
-    assert DateTime.from_unix(-62167219201) == :error
+    assert DateTime.from_unix(-62167219201) == {:error, :invalid_unix_time}
   end
 
   test "from_unix!/2" do
