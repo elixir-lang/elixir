@@ -111,7 +111,7 @@ Built-in type           | Defined as
 `timeout()`             | `:infinity` \| `non_neg_integer()`
 `no_return()`           | `none()`
 `fun()`                 | `(... -> any)`
-`struct()`              | `%{__struct__: atom()}`
+`struct()`              | `%{:__struct__ => atom(), optional(atom()) => any()}`
 `as_boolean(t)`         | `t`
 `keyword()`             | `[{atom(), any()}]`
 `keyword(t)`            | `[{atom(), t}]`
