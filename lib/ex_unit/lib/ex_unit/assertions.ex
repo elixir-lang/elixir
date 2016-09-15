@@ -47,7 +47,7 @@ defmodule ExUnit.Assertions do
 
   In general, a developer will want to use the general
   `assert` macro in tests. This macro introspects your code
-  and provide good reporting whenever there is a failure.
+  and provides good reporting whenever there is a failure.
   For example, `assert some_fun() == 10` will fail (assuming
   `some_fun()` returns 13):
 
@@ -65,8 +65,8 @@ defmodule ExUnit.Assertions do
   @doc """
   Asserts its argument is a truthy value.
 
-  `assert` instrospects the underlying expression and provide
-  good  reporting whenever there is a failure. For example,
+  `assert` introspects the underlying expression and provides
+  good reporting whenever there is a failure. For example,
   if the expression uses the comparison operator, the message
   will show the values of the two sides. The assertion
 
