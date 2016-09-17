@@ -5,7 +5,8 @@ defmodule Task.Supervisor do
   This module defines a supervisor which can be used to dynamically
   supervise tasks. Behind the scenes, this module is implemented as a
   `:simple_one_for_one` supervisor where the workers are temporary
-  (i.e. they are not restarted after they die).
+  (i.e. they are not restarted if they exit with reason `:normal`,
+  `:shutdown` or `{:shutdown, term}`).
 
   See the `Task` module for more information.
 
