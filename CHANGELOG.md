@@ -268,6 +268,45 @@ end
 
 By restricting hierarchies in favor of named setups, it is straight-forward for the developer to glance at each describe block and know exactly the setup steps involved.
 
+## v1.3.3 (2016-09-17)
+
+### 1. Enhancements
+
+#### Elixir
+
+  * [DateTime] Support negative integer in `DateTime.from_unix/2`
+  * [Kernel.LexicalTracker] Do not consider remote typespecs as a compile-time dependency
+  * [Kernel.ParallelCompiler] Do not emit deadlock messages when the process is waiting on itself
+  * [Kernel.Typespec] Mark struct update syntax as generated to avoid false positives from dialyzer
+
+#### ExUnit
+
+  * [ExUnit] Make ExUnit server timeout configurable
+
+#### Logger
+
+  * [Logger] Use `:ansi_color` if one is available in metadata
+
+#### Mix
+
+  * [Mix] Add support for the `:sparse` option in `Mix.SCM.Git`
+  * [Mix] Skip dependendency loading if `MIX_NO_DEPS` is set to `1`
+
+### 2. Bug fixes
+
+#### Elixir
+
+  * [System] Use `NUL` instead of `/dev/null` on Windows when building `System.build_info`
+
+#### IEx
+
+  * [IEx.Autocomplete] Resolves issue with autocompletion on structs not working
+
+#### Mix
+
+  * [Mix] Also store external resources that are not part of the current working directory in compilation manifest
+  * [Mix] Always include the compiled file source in manifests
+
 ## v1.3.2 (2016-07-15)
 
 ### 1. Enhancements

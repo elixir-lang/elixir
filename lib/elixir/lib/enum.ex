@@ -861,7 +861,7 @@ defmodule Enum do
 
   def find_index(enumerable, fun) do
     res =
-      Enumerable.reduce(enumerable, {:cont, {:not_found, 0}}, fn(entry, {status, index}) ->
+      Enumerable.reduce(enumerable, {:cont, {:not_found, 0}}, fn(entry, {_status, index}) ->
         if fun.(entry), do: {:halt, {:found, index}}, else: {:cont, {:not_found, index + 1}}
       end)
 
