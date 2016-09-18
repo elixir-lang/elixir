@@ -65,7 +65,7 @@
 
 #### Elixir
 
-  * [Behaviour] The `Behaviour` module is deprecated. Callbacks may not be defined directly via the `@callback` attribute
+  * [Behaviour] The `Behaviour` module is deprecated. Callbacks may now be defined directly via the `@callback` attribute
   * [Enum] Deprecate `Enum.uniq/2` in favor of `Enum.uniq_by/2`
   * [Float] `Float.to_char_list/2` and `Float.to_string/2` are deprecated (use the :erlang functions if such conversions are desired)
   * [Kernel] Deprecate support for making private functions overridable. Overridable functions must always be public as they must be contracts.
