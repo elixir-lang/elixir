@@ -5,7 +5,7 @@ defmodule Calendar do
 
   Currently it defines types and the minimal implementation
   for a calendar behaviour in Elixir. The goal of the Calendar
-  features in Elixir is to provide a base for interoperatibility
+  features in Elixir is to provide a base for interoperability
   instead of full-featured datetime API.
 
   For the actual date, time and datetime structures, see `Date`,
