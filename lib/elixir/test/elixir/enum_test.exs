@@ -72,22 +72,16 @@ defmodule EnumTest do
     assert Enum.concat([[], []]) == []
     assert Enum.concat([[]])     == []
     assert Enum.concat([])       == []
-
-    assert Enum.concat([1..5, fn acc, _ -> acc end, [1]]) == [1, 2, 3, 4, 5, 1]
   end
 
   test "concat/2" do
     assert Enum.concat([], [1]) == [1]
     assert Enum.concat([1, [2], 3], [4, 5]) == [1, [2], 3, 4, 5]
 
-    assert Enum.concat(1..3, 4..5) == [1, 2, 3, 4, 5]
-
-    assert Enum.concat(1..3, [4, 5]) == [1, 2, 3, 4, 5]
     assert Enum.concat([1, 2], 3..5) == [1, 2, 3, 4, 5]
 
     assert Enum.concat([], []) == []
     assert Enum.concat([], 1..3) == [1, 2, 3]
-    assert Enum.concat(1..3, []) == [1, 2, 3]
 
     assert Enum.concat(fn acc, _ -> acc end, [1]) == [1]
   end
@@ -811,12 +805,15 @@ defmodule EnumTest.Range do
   end
 
   test "concat/1" do
-    assert Enum.concat(1..3, []) == [1, 2, 3]
-    assert Enum.concat(1..3, 0..0) == [1, 2, 3, 0]
+    assert Enum.concat([1..2, 4..6]) == [1, 2, 4, 5, 6]
+    assert Enum.concat([1..5, fn acc, _ -> acc end, [1]]) == [1, 2, 3, 4, 5, 1]
   end
 
   test "concat/2" do
     assert Enum.concat(1..3, 4..5) == [1, 2, 3, 4, 5]
+    assert Enum.concat(1..3, [4, 5]) == [1, 2, 3, 4, 5]
+    assert Enum.concat(1..3, []) == [1, 2, 3]
+    assert Enum.concat(1..3, 0..0) == [1, 2, 3, 0]
   end
 
   test "count/1" do
