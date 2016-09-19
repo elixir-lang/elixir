@@ -4,12 +4,14 @@ defmodule Task.Supervisor do
 
   This module defines a supervisor which can be used to dynamically
   supervise tasks. Behind the scenes, this module is implemented as a
-  `:simple_one_for_one` supervisor where the workers are temporary
-  (i.e. they are not restarted after they die).
+  `:simple_one_for_one` supervisor where the workers are temporary by
+  default (that is, they are not restarted after they die; read the docs
+  for `start_link/1` for more information on choosing the restart
+  strategy).
 
   See the `Task` module for more information.
 
-  ## Name Registration
+  ## Name registration
 
   A `Task.Supervisor` is bound to the same name registration rules as a
   `GenServer`. Read more about them in the `GenServer` docs.
