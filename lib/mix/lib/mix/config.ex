@@ -91,20 +91,23 @@ defmodule Mix.Config do
 
   The given `opts` are merged into the existing values for `key`
   in the given `app`. Conflicting keys are overridden by the
-  ones specified in `opts`. For example, the declaration below:
+  ones specified in `opts`. For example, given the two configurations
+  below:
 
       config :ecto, Repo,
-        log_level: :warn
+        log_level: :warn,
+        adapter: Ecto.Adapters.Postgres
 
       config :ecto, Repo,
         log_level: :info,
         pool_size: 10
 
-  Will have a final value for `Repo` of:
+  the final value of the configuration for the `Ecto` key in the `:ecto`
+  application will be:
 
-      [log_level: :info, pool_size: 10]
+      [log_level: :info, pool_size: 10, adapter: Ecto.Adapters.Postgres]
 
-  This final value can be retrieved at run or compile time:
+  This final value can be retrieved at runtime or compile time with:
 
       Application.get_env(:ecto, Repo)
 
