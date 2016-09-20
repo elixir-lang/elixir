@@ -97,6 +97,14 @@ defmodule IO.ANSITest do
     end
   end
 
+  test "colors" do
+    assert IO.ANSI.red       == "\e[31m"
+    assert IO.ANSI.light_red == "\e[91m"
+
+    assert IO.ANSI.red_background       == "\e[41m"
+    assert IO.ANSI.light_red_background == "\e[101m"
+  end
+
   test "color/1" do
     assert IO.ANSI.color(0) == "\e[38;5;0m"
     assert IO.ANSI.color(42) == "\e[38;5;42m"

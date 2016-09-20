@@ -135,8 +135,14 @@ defmodule IO.ANSI do
     @doc "Sets foreground color to #{color}."
     defsequence color, code + 30
 
+    @doc "Sets foreground color to light #{color}."
+    defsequence :"light_#{color}", code + 90
+
     @doc "Sets background color to #{color}."
     defsequence :"#{color}_background", code + 40
+
+    @doc "Sets background color to light #{color}."
+    defsequence :"light_#{color}_background", code + 100
   end
 
   @doc "Default text color."
