@@ -28,7 +28,48 @@ Operator                                                                        
 `<-`, `\\`                                                                               | Left to right
 `&`                                                                                      | Unary
 
-## Defining custom operators
+## Comparison operators
+
+Elixir provides the following built-in comparison operators:
+
+  * `==` - equality
+  * `===` - strict equality
+  * `!=` - inequality
+  * `!==` - strict inequality
+  * `>` - greater than
+  * `<` - less than
+  * `>=` - greater than or equal
+  * `<=` - less than or equal
+
+The only difference between `==` and `===` is that `===` is stricter when it comes to comparing integers and floats:
+
+```elixir
+iex> 1 == 1.0
+true
+iex> 1 === 1.0
+false
+```
+
+`!=` and `!==` act as the negation of `==` and `===`, respectively.
+
+### Term ordering
+
+In Elixir, different data types can be compared using comparison operators:
+
+```elixir
+iex> 1 < :an_atom
+true
+```
+
+The reason we can compare different data types is pragmatism. Sorting algorithms don’t need to worry about different data types in order to sort. For reference, the overall sorting order is defined below:
+
+```
+number < atom < reference < functions < port < pid < tuple < maps < list < bitstring
+```
+
+## Custom and overridden operators
+
+### Defining custom operators
 
 Elixir is capable of parsing a predefined set of operators; this means that it's not possible to define new operators (like one could do in Haskell, for example). However, not all operators that Elixir can parse are *used* by Elixir: for example, `+` and `||` are used by Elixir for addition and boolean *or*, but `<~>` is not used (but valid).
 
@@ -72,7 +113,7 @@ The following is a table of all the operators that Elixir is capable of parsing,
 
 The following operators are used by the `Bitwise` module when imported: `&&&`, `^^^`, `<<<`, `>>>`, `|||`, `~~~`. See the documentation for `Bitwise` for more information.
 
-## Redefining existing operators
+### Redefining existing operators
 
 The operators that Elixir uses (for example, `+`) can be defined by any module and used in place of the ones defined by Elixir, provided they're specifically not imported from `Kernel` (which is imported everywhere by default). For example:
 
@@ -100,6 +141,6 @@ iex> 1 + 2
 -1
 ```
 
-## Final note
+### Final note
 
 While it's possible to defined unused operators (such as `<~>`) and to "override" predefined operators (such as `+`), the Elixir community generally discourages this. Custom-defined operators can be really hard to read and even more to understand, as they don't have a descriptive name like functions do. That said, some specific cases or custom domain specific languages (DSLs) may justify these practices.
