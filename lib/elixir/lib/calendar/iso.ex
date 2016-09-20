@@ -62,10 +62,7 @@ defmodule Calendar.ISO do
   def last_day_of_month(year, 2) do
     if leap_year?(year), do: 29, else: 28
   end
-  def last_day_of_month(_, 4), do: 30
-  def last_day_of_month(_, 6), do: 30
-  def last_day_of_month(_, 9), do: 30
-  def last_day_of_month(_,11), do: 30
+  def last_day_of_month(_, month) when month in [4, 6, 9, 11], do: 30
   def last_day_of_month(_, month) when month in 1..12, do: 31
 
   @doc """
