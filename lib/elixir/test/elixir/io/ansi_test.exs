@@ -98,10 +98,10 @@ defmodule IO.ANSITest do
   end
 
   test "colors" do
-    assert IO.ANSI.red       == "\e[31m"
+    assert IO.ANSI.red == "\e[31m"
     assert IO.ANSI.light_red == "\e[91m"
 
-    assert IO.ANSI.red_background       == "\e[41m"
+    assert IO.ANSI.red_background == "\e[41m"
     assert IO.ANSI.light_red_background == "\e[101m"
   end
 
