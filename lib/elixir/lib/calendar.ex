@@ -1241,7 +1241,7 @@ defmodule DateTime do
   end
 
   @doc """
-  Converts the given DateTime to Unix seconds.
+  Converts the given DateTime to Unix time.
 
   The DateTime is expected to be using the ISO calendar
   with a year greater than or equal to 0.
