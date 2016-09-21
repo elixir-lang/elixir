@@ -429,7 +429,7 @@ defimpl Inspect, for: Regex do
     do: escape(rest, buf <> <<?\\, term>>, term)
 
   # the list of characters is from "String.printable?" impl
-  # minus characters treated specially by regex: \s, \d, \b, \e
+  # minus characters treated especially by regex: \s, \d, \b, \e
 
   defp escape(<<?\n>> <> rest, buf, term),
     do: escape(rest, <<buf::binary, ?\\, ?n>>, term)

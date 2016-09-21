@@ -25,7 +25,7 @@ defmodule Keyword do
   The functions in Keyword do not guarantee any property when
   it comes to ordering. However, since a keyword list is simply a
   list, all the operations defined in `Enum` and `List` can be
-  applied too, specially when ordering is required.
+  applied too, especially when ordering is required.
   """
 
   @compile :inline_list_funcs
