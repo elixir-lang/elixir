@@ -95,7 +95,6 @@ inline(?kernel, max, 2) -> {erlang, max};
 inline(?kernel, min, 2) -> {erlang, min};
 inline(?kernel, node, 0) -> {erlang, node};
 inline(?kernel, node, 1) -> {erlang, node};
-inline(?kernel, rand, 0) -> {rand, uniform};
 inline(?kernel, 'rem', 2) -> {erlang, 'rem'};
 inline(?kernel, round, 1) -> {erlang, round};
 inline(?kernel, self, 0) -> {erlang, self};
