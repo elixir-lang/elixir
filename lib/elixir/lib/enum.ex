@@ -1653,6 +1653,10 @@ defmodule Enum do
   It assumes that the sample being returned can fit into memory;
   the input `enumerable` doesn't have to, as it is traversed just once.
 
+  If a range is passed into the function, this function will pick a
+  random value between the range limits, without traversing the whole
+  range (thus executing in constant time and constant memory).
+
   ## Examples
 
       # Although not necessary, let's seed the random algorithm
@@ -1661,6 +1665,8 @@ defmodule Enum do
       2
       iex> Enum.random([1, 2, 3])
       1
+      iex> Enum.random(1..1_000)
+      776
 
   """
   @spec random(t) :: element | no_return
