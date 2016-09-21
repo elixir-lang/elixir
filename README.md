@@ -24,9 +24,8 @@ If Elixir fails to build (specifically when pulling in a new version via
 `git`), be sure to remove any previous build artifacts by running
 `make clean`, then `make test`.
 
-If tests pass, you are ready to move on to the
-[Getting Started guide][1] or to try Interactive Elixir by running:
-`bin/iex` in your terminal.
+If tests pass, you are ready to move on to the [Getting Started guide][1]
+or to try Interactive Elixir by running `bin/iex` in your terminal.
 
 However, if tests fail, it is likely you have an outdated Erlang version
 (Elixir requires Erlang 18.0 or later). You can check your Erlang version
@@ -39,7 +38,9 @@ you may want to open up a bug report, as explained next.
 
 ## Bug reports
 
-For reporting bugs, [visit our issues tracker][2] and follow the steps for reporting a new issue. Security vulnerabilities must be privately disclosed at elixir-security@googlegroups.com.
+For reporting bugs, [visit our issues tracker][2] and follow the steps
+for reporting a new issue. Please disclose security vulnerabilities
+privately at elixir-security@googlegroups.com.
 
 ## Contributing
 
@@ -94,6 +95,19 @@ For proposing new features, please start a discussion in the
 to argue and explain why a feature is useful and how it will impact the
 codebase and the community. Finally, remember all interactions in our official
 spaces follow our [Code of Conduct][7].
+
+### Reviewing changes
+
+Once a pull request is sent, the Elixir team will review your changes.
+We outline our process below to clarify the roles of everyone involved.
+
+All pull requests must be approved by two comitters before merged into
+the repository. In case any changes are necessary before merging, the
+team will leave appropriate comments requesting changes to the code.
+
+The Elixir team may optionally assign someone to review a pull request.
+In case someone is assigned, they must explicitly approve the code before
+another team member can merge it.
 
 ## Building documentation
 
