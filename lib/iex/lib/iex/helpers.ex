@@ -429,7 +429,10 @@ defmodule IEx.Helpers do
 
   """
   def i(term) do
-    info = ["Term": inspect(term)] ++ IEx.Info.info(term)
+    info =
+      ["Term": inspect(term)] ++
+      IEx.Info.info(term) ++
+      ["Implemented protocols": all_implemented_protocols_for_term(term)]
 
     for {subject, info} <- info do
       info = info |> to_string() |> String.trim() |> String.replace("\n", "\n  ")
@@ -438,6 +441,17 @@ defmodule IEx.Helpers do
     end
 
     dont_display_result()
+  end
+
+  # Given any "term", this function returns all the protocols in
+  # :code.get_path() implemented by the data structure of such term, in the form
+  # of a binary like "Protocol1, Protocol2, Protocol3".
+  defp all_implemented_protocols_for_term(term) do
+    :code.get_path()
+    |> Protocol.extract_protocols()
+    |> Enum.uniq()
+    |> Enum.reject(fn(protocol) -> is_nil(protocol.impl_for(term)) end)
+    |> Enum.map_join(", ", &inspect/1)
   end
 
   @doc """
