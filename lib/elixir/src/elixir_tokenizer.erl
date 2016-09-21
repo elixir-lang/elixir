@@ -554,7 +554,7 @@ handle_dot([$., T | Rest], Line, Column, DotColumn, Scope, Tokens) when
     ?rel_op(T); ?match_op(T); ?pipe_op(T); T == $% ->
   handle_call_identifier(Rest, Line, Column + 1, DotColumn, 1, list_to_atom([T]), Scope, Tokens);
 
-% ## Exception for .( as it needs to be treated especially in the parser
+% ## Exception for .( as it needs to be treated specially in the parser
 handle_dot([$., $( | Rest], Line, Column, DotColumn, Scope, Tokens) ->
   tokenize([$( | Rest], Line, Column + 2, Scope, add_token_with_nl({dot_call_op, {Line, DotColumn, DotColumn + 1}, '.'}, Tokens));
 
@@ -791,7 +791,7 @@ tokenize_comment([_ | Rest])         -> tokenize_comment(Rest);
 tokenize_comment([])                 -> [].
 
 %% Atoms
-%% Handle atoms especially since they support @
+%% Handle atoms specially since they support @
 
 tokenize_atom(T, Acc) ->
   tokenize_atom(T, Acc, 0).
