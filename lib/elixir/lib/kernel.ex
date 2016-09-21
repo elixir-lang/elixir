@@ -2990,42 +2990,6 @@ defmodule Kernel do
     end
   end
 
-  @doc ~S"""
-  Returns a (pseudo) random number as a float between 0 and 1.
-
-  This function delegates to `:rand.uniform/0`. See the `:rand`
-  module for more options, such as setting a `seed` per process
-  or explicitly.
-
-  Inlined by the compiler.
-
-  ## Examples
-
-      iex> is_float(rand())
-      true
-
-  """
-  @spec rand() :: float
-  def rand, do: :rand.uniform
-
-  @doc ~S"""
-  Returns a (pseudo) random number as an integer between the range intervals.
-
-  This function delegates to `:rand.uniform/0`. See the `:rand`
-  module for more options, such as setting a `seed` per process
-  or explicitly.
-
-  ## Examples
-
-      iex> rand(0..1) in [0, 1]
-      true
-
-  """
-  @spec rand(Range.t) :: integer
-  def rand(n1..n2) when is_integer(n1) and is_integer(n2) do
-    :rand.uniform(n2 - n1 + 1) + n1 - 1
-  end
-
   @doc """
   When used inside quoting, marks that the given variable should
   not be hygienized.

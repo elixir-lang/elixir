@@ -12,7 +12,6 @@
   * [Integer] Add `Integer.mod/2` and `Integer.floor_div/2`
   * [List] Add `List.pop_at/3`
   * [OptionParser] Expand multi-letter aliases in OptionParser
-  * [Kernel] Add `Kernel.rand/0` and `Kernel.rand/1`
   * [Process] Add `Process.send_after/4`
   * [Stream] Add `Stream.map_every/2` that invokes the given function with every nth item
   * [URI] Allow 0 as URI scheme default port
