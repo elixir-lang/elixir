@@ -69,7 +69,7 @@ defmodule ProcessTest do
   end
 
   test "send_after/4 with absolute time sends message once expired" do
-    time = System.monotonic_time(:milliseconds) + 10
+    time = System.monotonic_time(:millisecond) + 10
     Process.send_after(self(), :hello, time, abs: true)
     assert_receive :hello
   end
