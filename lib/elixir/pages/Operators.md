@@ -64,7 +64,7 @@ true
 The reason we can compare different data types is pragmatism. Sorting algorithms don’t need to worry about different data types in order to sort. For reference, the overall sorting order is defined below:
 
 ```
-number < atom < reference < functions < port < pid < tuple < map < list < bitstring
+number < atom < reference < function < port < pid < tuple < map < list < bitstring
 ```
 
 When comparing two numbers of different types (a number is either an integer or a float), a conversion to the type with lesser precision will always occur, unless the comparison operator used is either `===` or `!==`. A float will be considered more precise than an integer, unless the float is greater/less than +/-9007199254740992.0, at which point all the significant figures of the float are to the left of the decimal point. This behavior exists so that the comparison of large numbers remains transitive.
