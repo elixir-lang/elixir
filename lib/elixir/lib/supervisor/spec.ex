@@ -81,7 +81,7 @@ defmodule Supervisor.Spec do
   The following shutdown values are supported in the `:shutdown` option:
 
     * `:brutal_kill` - the child process is unconditionally terminated
-      using `exit(child, :kill)`
+      using `Process.exit(child, :kill)`
 
     * `:infinity` - if the child process is a supervisor, this is a mechanism
       to give the subtree enough time to shutdown; it can also be used with
