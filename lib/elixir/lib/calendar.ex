@@ -666,7 +666,7 @@ defmodule NaiveDateTime do
       iex> NaiveDateTime.from_unix(1464096368)
       {:ok, ~N[2016-05-24 13:26:08]}
 
-      iex> NaiveDateTime.from_unix(1432560368868569, :microseconds)
+      iex> NaiveDateTime.from_unix(1432560368868569, :microsecond)
       {:ok, ~N[2015-05-25 13:26:08.868569]}
 
   The unit can also be an integer as in `System.time_unit`:
@@ -684,7 +684,7 @@ defmodule NaiveDateTime do
   When a Unix time before that moment is passed to `from_unix/2`, `:error` will be returned.
   """
   @spec from_unix(integer, :native | System.time_unit) :: {:ok, NaiveDateTime.t}
-  def from_unix(integer, unit \\ :seconds) when is_integer(integer) do
+  def from_unix(integer, unit \\ :second) when is_integer(integer) do
     case Calendar.ISO.from_unix(integer, unit) do
       {:ok, {year, month, day}, {hour, minute, second}, microsecond} ->
         {:ok, %NaiveDateTime{year: year, month: month, day: day,
@@ -711,7 +711,7 @@ defmodule NaiveDateTime do
       iex> NaiveDateTime.from_unix!(1464096368)
       ~N[2016-05-24 13:26:08]
 
-      iex> NaiveDateTime.from_unix!(1432560368868569, :microseconds)
+      iex> NaiveDateTime.from_unix!(1432560368868569, :microsecond)
       ~N[2015-05-25 13:26:08.868569]
 
   Negative Unix times are supported, up to -#{@unix_epoch} seconds,
@@ -723,7 +723,7 @@ defmodule NaiveDateTime do
   When a Unix time before that moment is passed to `from_unix/2`, `:error` will be returned.
   """
   @spec from_unix!(non_neg_integer, :native | System.time_unit) :: NaiveDateTime.t
-  def from_unix!(integer, unit \\ :seconds) when is_atom(unit) do
+  def from_unix!(integer, unit \\ :second) when is_atom(unit) do
     case from_unix(integer, unit) do
       {:ok, datetime} ->
         datetime

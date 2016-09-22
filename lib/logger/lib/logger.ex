@@ -254,7 +254,7 @@ defmodule Logger do
       * the first element is always the atom `Logger`
       * `message` is the actual message (as chardata)
       * `timestamp` is the timestamp for when the message was logged, as a
-        `{{year, month, day}, {hour, minute, second, milliseconds}}` tuple
+        `{{year, month, day}, {hour, minute, second, millisecond}}` tuple
       * `metadata` is a keyword list of metadata used when logging the message
 
   It is recommended that handlers ignore messages where
@@ -306,8 +306,8 @@ defmodule Logger do
   @doc """
   Alters the current process metadata according the given keyword list.
 
-  This will merge the given keyword list into the existing metadata. With 
-  the exception of setting a key to nil will remove a key from the metadata. 
+  This will merge the given keyword list into the existing metadata. With
+  the exception of setting a key to nil will remove a key from the metadata.
   """
   def metadata(keywords) do
     {enabled?, metadata} = __metadata__()

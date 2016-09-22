@@ -150,8 +150,8 @@ defmodule SystemTest do
   end
 
   test "monotonic_time/1" do
-    assert is_integer(System.monotonic_time(:nanoseconds))
-    assert abs(System.monotonic_time(:microseconds)) < abs(System.monotonic_time(:nanoseconds))
+    assert is_integer(System.monotonic_time(:nanosecond))
+    assert abs(System.monotonic_time(:microsecond)) < abs(System.monotonic_time(:nanosecond))
   end
 
   test "system_time/0" do
@@ -159,13 +159,13 @@ defmodule SystemTest do
   end
 
   test "system_time/1" do
-    assert is_integer(System.system_time(:nanoseconds))
-    assert abs(System.system_time(:microseconds)) < abs(System.system_time(:nanoseconds))
+    assert is_integer(System.system_time(:nanosecond))
+    assert abs(System.system_time(:microsecond)) < abs(System.system_time(:nanosecond))
   end
 
   test "time_offset/0 and time_offset/1" do
     assert is_integer(System.time_offset())
-    assert is_integer(System.time_offset(:seconds))
+    assert is_integer(System.time_offset(:second))
   end
 
   test "os_time/0" do
@@ -173,8 +173,8 @@ defmodule SystemTest do
   end
 
   test "os_time/1" do
-    assert is_integer(System.os_time(:nanoseconds))
-    assert abs(System.os_time(:microseconds)) < abs(System.os_time(:nanoseconds))
+    assert is_integer(System.os_time(:nanosecond))
+    assert abs(System.os_time(:microsecond)) < abs(System.os_time(:nanosecond))
   end
 
   test "unique_integer/0 and unique_integer/1" do
@@ -184,8 +184,8 @@ defmodule SystemTest do
   end
 
   test "convert_time_unit/3" do
-    time = System.monotonic_time(:nanoseconds)
-    assert abs(System.convert_time_unit(time, :nanoseconds, :microseconds)) < abs(time)
+    time = System.monotonic_time(:nanosecond)
+    assert abs(System.convert_time_unit(time, :nanosecond, :microsecond)) < abs(time)
   end
 
   test "schedulers/0" do
