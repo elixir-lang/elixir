@@ -151,7 +151,7 @@ defmodule Calendar.ISO do
 
   @doc false
   def from_unix(integer, unit) when is_integer(integer) do
-    total = System.convert_time_unit(integer, unit, :microseconds)
+    total = System.convert_time_unit(integer, unit, :microsecond)
     if total < -@unix_epoch * 1_000_000 do
       {:error, :invalid_unix_time}
     else
@@ -163,7 +163,7 @@ defmodule Calendar.ISO do
   end
 
   defp precision_for_unit(unit) do
-    subseconds = div System.convert_time_unit(1, :seconds, unit), 10
+    subseconds = div System.convert_time_unit(1, :second, unit), 10
     precision_for_unit(subseconds, 0)
   end
 

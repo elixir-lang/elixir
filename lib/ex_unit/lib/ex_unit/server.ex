@@ -52,7 +52,7 @@ defmodule ExUnit.Server do
   end
 
   def handle_call(:cases_loaded, _from, %{loaded: loaded} = state) when is_integer(loaded) do
-    diff = System.convert_time_unit(System.monotonic_time - loaded, :native, :microseconds)
+    diff = System.convert_time_unit(System.monotonic_time - loaded, :native, :microsecond)
     {:reply, diff, take_cases(%{state | loaded: :done})}
   end
 
