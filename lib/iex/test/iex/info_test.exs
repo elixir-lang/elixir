@@ -29,6 +29,14 @@ defmodule IEx.InfoTest do
     assert info[:"Description"] == description
   end
 
+  test "atoms: module that is also a protocol" do
+    info = Info.info(String.Chars)
+    description = info[:"Protocol"]
+    assert description =~ "This module is a protocol"
+    assert description =~ "Atom"
+    assert description =~ "BitString"
+  end
+
   test "atoms: module-like atom (Foo)" do
     info = Info.info(NonexistentModuleAtom)
     assert info[:"Raw representation"] == ~s(:"Elixir.NonexistentModuleAtom")
