@@ -493,7 +493,7 @@ defmodule IEx.HelpersTest do
 
   test "i helper" do
     output = capture_iex ~s[i(:ok)]
-    assert output == String.trim_trailing("""
+    assert output =~ String.trim_trailing("""
     Term
       :ok
     Data type
