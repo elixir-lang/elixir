@@ -22,8 +22,12 @@ defmodule TaskTest do
     receive do: (task -> task)
   end
 
-  defp create_dummy_task do
-    %Task{ref: make_ref(), pid: spawn(fn() -> :ok end), owner: self()}
+  defp create_dummy_task(reason) do
+    {pid, ref} = spawn_monitor(Kernel, :exit, [reason])
+    receive do
+      {:DOWN, ^ref, _, _, _} ->
+        %Task{ref: ref, pid: pid, owner: self()}
+    end
   end
 
   test "async/1" do
@@ -277,7 +281,7 @@ defmodule TaskTest do
   end
 
   test "shutdown/2 returns {:ok, result} when reply and abnormal :DOWN in message queue" do
-    task = create_dummy_task()
+    task = create_dummy_task(:abnormal)
     send(self(), {task.ref, :result})
     send(self(), {:DOWN, task.ref, :process, task.pid, :abnormal})
     assert Task.shutdown(task) == {:ok, :result}
@@ -285,7 +289,7 @@ defmodule TaskTest do
   end
 
   test "shutdown/2 returns {:ok, result} when reply and normal :DOWN in message queue" do
-    task = create_dummy_task()
+    task = create_dummy_task(:normal)
     send(self(), {task.ref, :result})
     send(self(), {:DOWN, task.ref, :process, task.pid, :normal})
     assert Task.shutdown(task) == {:ok, :result}
@@ -293,7 +297,7 @@ defmodule TaskTest do
   end
 
   test "shutdown/2 returns {:ok, result} when reply and shutdown :DOWN in message queue" do
-    task = create_dummy_task()
+    task = create_dummy_task(:shutdown)
     send(self(), {task.ref, :result})
     send(self(), {:DOWN, task.ref, :process, task.pid, :shutdown})
     assert Task.shutdown(task) == {:ok, :result}
@@ -306,31 +310,31 @@ defmodule TaskTest do
   end
 
   test "shutdown/2 return exit on abnormal :DOWN in message queue" do
-    task = create_dummy_task()
+    task = create_dummy_task(:abnormal)
     send(self(), {:DOWN, task.ref, :process, task.pid, :abnormal})
     assert Task.shutdown(task) == {:exit, :abnormal}
   end
 
   test "shutdown/2 return exit on normal :DOWN in message queue" do
-    task = create_dummy_task()
+    task = create_dummy_task(:normal)
     send(self(), {:DOWN, task.ref, :process, task.pid, :normal})
     assert Task.shutdown(task) == {:exit, :normal}
   end
 
   test "shutdown/2 returns nil on shutdown :DOWN in message queue" do
-    task = create_dummy_task()
+    task = create_dummy_task(:shutdown)
     send(self(), {:DOWN, task.ref, :process, task.pid, :shutdown})
     assert Task.shutdown(task) == nil
   end
 
   test "shutdown/2 return exit on killed :DOWN in message queue" do
-    task = create_dummy_task()
+    task = create_dummy_task(:killed)
     send(self(), {:DOWN, task.ref, :process, task.pid, :killed})
     assert Task.shutdown(task) == {:exit, :killed}
   end
 
   test "shutdown/2 exits on noconnection :DOWN in message queue" do
-    task = create_dummy_task()
+    task = create_dummy_task(:noconnection)
     send(self(), {:DOWN, task.ref, :process, task.pid, :noconnection})
     assert catch_exit(Task.shutdown(task)) ==
       {{:nodedown, node()}, {Task, :shutdown, [task, 5000]}}
@@ -349,7 +353,7 @@ defmodule TaskTest do
   end
 
   test "shutdown/2 brutal_ kill returns {:ok, result} when reply and abnormal :DOWN in message queue" do
-    task = create_dummy_task()
+    task = create_dummy_task(:abnormal)
     send(self(), {task.ref, :result})
     send(self(), {:DOWN, task.ref, :process, task.pid, :abnormal})
     assert Task.shutdown(task, :brutal_kill) == {:ok, :result}
@@ -357,7 +361,7 @@ defmodule TaskTest do
   end
 
   test "shutdown/2 brutal kill returns {:ok, result} when reply and normal :DOWN in message queue" do
-    task = create_dummy_task()
+    task = create_dummy_task(:normal)
     send(self(), {task.ref, :result})
     send(self(), {:DOWN, task.ref, :process, task.pid, :normal})
     assert Task.shutdown(task, :brutal_kill) == {:ok, :result}
@@ -365,33 +369,39 @@ defmodule TaskTest do
   end
 
   test "shutdown/2 brutal kill returns {:ok, result} when reply and shutdown :DOWN in message queue" do
-    task = create_dummy_task()
+    task = create_dummy_task(:shutdown)
     send(self(), {task.ref, :result})
     send(self(), {:DOWN, task.ref, :process, task.pid, :shutdown})
     assert Task.shutdown(task, :brutal_kill) == {:ok, :result}
     refute_received {:DOWN, _, _, _, _}
   end
 
+  test "shutdown/2 brutal kill returns nil on killed :DOWN in message queue" do
+    task = create_dummy_task(:killed)
+    send(self(), {:DOWN, task.ref, :process, task.pid, :killed})
+    assert Task.shutdown(task, :brutal_kill) == nil
+  end
+
   test "shutdown/2 brutal kill returns exit on abnormal :DOWN in message queue" do
-    task = create_dummy_task()
+    task = create_dummy_task(:abnormal)
     send(self(), {:DOWN, task.ref, :process, task.pid, :abnormal})
     assert Task.shutdown(task, :brutal_kill) == {:exit, :abnormal}
   end
 
   test "shutdown/2 brutal kill returns exit on normal :DOWN in message queue" do
-    task = create_dummy_task()
+    task = create_dummy_task(:normal)
     send(self(), {:DOWN, task.ref, :process, task.pid, :normal})
     assert Task.shutdown(task, :brutal_kill) == {:exit, :normal}
   end
 
   test "shutdown/2 brutal kill returns exit on shutdown :DOWN in message queue" do
-    task = create_dummy_task()
+    task = create_dummy_task(:shutdown)
     send(self(), {:DOWN, task.ref, :process, task.pid, :shutdown})
     assert Task.shutdown(task, :brutal_kill) == {:exit, :shutdown}
   end
 
   test "shutdown/2 brutal kill exits on noconnection :DOWN in message queue" do
-    task = create_dummy_task()
+    task = create_dummy_task(:noconnection)
     send(self(), {:DOWN, task.ref, :process, task.pid, :noconnection})
     assert catch_exit(Task.shutdown(task, :brutal_kill)) ==
       {{:nodedown, node()}, {Task, :shutdown, [task, :brutal_kill]}}
@@ -423,5 +433,15 @@ defmodule TaskTest do
 
     assert Task.shutdown(task, :brutal_kill) == nil
     refute_received {:DOWN, _, _, _, _}
+  end
+
+  test "shutdown/2 returns {:exit, :noproc} if task handled" do
+    task = create_dummy_task(:noproc)
+    assert Task.shutdown(task) == {:exit, :noproc}
+  end
+
+  test "shutdown/2 brutal kill returns {:exit, :noproc} if task handled" do
+    task = create_dummy_task(:noproc)
+    assert Task.shutdown(task, :brutal_kill) == {:exit, :noproc}
   end
 end
