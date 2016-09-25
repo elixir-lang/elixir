@@ -536,9 +536,9 @@ defmodule Task do
   `:shutdown` to shutdown all of its linked processes, including tasks, that
   are not trapping exits without generating any log messages.
 
-  This function assumes the task's monitor is still active or the monitor's
-  `:DOWN` message is in the message queue. If it has been demonitored, or the
-  message already received, this function will block forever awaiting the message.
+  If a task's monitor has already been demonitored or received  and there is not
+  a response waiting in the message queue this function will return
+  `{:exit, :noproc}` as the result or exit reason can not be determined.
   """
   @spec shutdown(t, timeout | :brutal_kill) :: {:ok, term} | {:exit, term} | nil
   def shutdown(task, shutdown \\ 5_000)
@@ -552,9 +552,10 @@ defmodule Task do
   end
 
   def shutdown(%Task{pid: pid} = task, :brutal_kill) do
+    mon = Process.monitor(pid)
     exit(pid, :kill)
 
-    case shutdown_receive(task, :brutal_kill, :infinity) do
+    case shutdown_receive(task, mon, :brutal_kill, :infinity) do
       {:down, proc, :noconnection} ->
         exit({reason(:noconnection, proc), {__MODULE__, :shutdown, [task, :brutal_kill]}})
       {:down, _, reason} ->
@@ -565,8 +566,9 @@ defmodule Task do
   end
 
   def shutdown(%Task{pid: pid} = task, timeout) do
+    mon = Process.monitor(pid)
     exit(pid, :shutdown)
-    case shutdown_receive(task, :shutdown, timeout) do
+    case shutdown_receive(task, mon, :shutdown, timeout) do
       {:down, proc, :noconnection} ->
         exit({reason(:noconnection, proc), {__MODULE__, :shutdown, [task, timeout]}})
       {:down, _, reason} ->
@@ -604,18 +606,24 @@ defmodule Task do
     end
   end
 
-  defp shutdown_receive(%{ref: ref} = task, type, timeout) do
+  defp shutdown_receive(%{ref: ref} = task, mon, type, timeout) do
     receive do
-      {:DOWN, ^ref, _, _, :shutdown} when type in [:shutdown, :timeout_kill] ->
+      {:DOWN, ^mon, _, _, :shutdown} when type in [:shutdown, :timeout_kill] ->
+        Process.demonitor(ref, [:flush])
         flush_reply(ref)
-      {:DOWN, ^ref, _, _, :killed} when type == :brutal_kill ->
+      {:DOWN, ^mon, _, _, :killed} when type == :brutal_kill ->
+        Process.demonitor(ref, [:flush])
         flush_reply(ref)
-      {:DOWN, ^ref, _, proc, reason} ->
+      {:DOWN, ^mon, _, proc, :noproc} ->
+        reason = flush_noproc(ref, proc, type)
+        flush_reply(ref) || reason
+      {:DOWN, ^mon, _, proc, reason} ->
+        Process.demonitor(ref, [:flush])
         flush_reply(ref) || {:down, proc, reason}
     after
       timeout ->
         Process.exit(task.pid, :kill)
-        shutdown_receive(task, :timeout_kill, :infinity)
+        shutdown_receive(task, mon, :timeout_kill, :infinity)
     end
   end
 
@@ -624,6 +632,21 @@ defmodule Task do
       {^ref, reply} -> {:ok, reply}
     after
       0 -> nil
+    end
+  end
+
+  defp flush_noproc(ref, proc, type) do
+    receive do
+      {:DOWN, ^ref, _, _, :shutdown} when type in [:shutdown, :timeout_kill] ->
+        nil
+      {:DOWN, ^ref, _, _, :killed} when type == :brutal_kill ->
+        nil
+      {:DOWN, ^ref, _, _, reason} ->
+        {:down, proc, reason}
+    after
+      0 ->
+        Process.demonitor(ref, [:flush])
+        {:down, proc, :noproc}
     end
   end
 
