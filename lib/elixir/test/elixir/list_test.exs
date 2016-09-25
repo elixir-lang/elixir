@@ -28,6 +28,13 @@ defmodule ListTest do
     assert List.wrap(nil) == []
   end
 
+  test "unwrap/1" do
+    assert List.unwrap([[[]]]) == []
+    assert List.unwrap([[[1]]]) == [1]
+    assert List.unwrap([1, 2, 3]) == [1, 2, 3]
+    assert List.unwrap([[ [1], [ [2, 3] ], [], [4, [5, 6, [ [7] ] ]] ]]) == [[1], [2, 3], [], [4, [5, 6, [7]]]]
+  end
+
   test "flatten/1" do
     assert List.flatten([1, 2, 3]) == [1, 2, 3]
     assert List.flatten([1, [2], 3]) == [1, 2, 3]
