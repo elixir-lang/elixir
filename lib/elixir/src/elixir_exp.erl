@@ -329,6 +329,23 @@ expand({Atom, Meta, Args}, E) when is_atom(Atom), is_list(Meta), is_list(Args) -
 
 %% Remote calls
 
+expand({{'.', Meta, [erlang, 'andalso']}, _, [Left, Right]}, #{context := nil} = E) ->
+  Generated = ?generated,
+  {ELeft, EL} = expand(Left, E),
+  TrueClause = {'->', Generated, [[true], Right]},
+  FalseClause = {'->', Generated, [[false], false]},
+  Clauses =
+    case elixir_utils:returns_boolean(ELeft) of
+      true ->
+        [TrueClause, FalseClause];
+      false ->
+        Other = {other, Meta, ?MODULE},
+        OtherExpr = {{'.', Meta, [erlang, error]}, Meta, [{badarg, Other}]},
+        [TrueClause, FalseClause, {'->', Generated, [[Other], OtherExpr]}]
+    end,
+  {EClauses, EC} = elixir_exp_clauses:'case'(Meta, [{do, Clauses}], EL),
+  {{'case', Meta, [ELeft, EClauses]}, EC};
+
 expand({{'.', DotMeta, [Left, Right]}, Meta, Args}, E)
     when (is_tuple(Left) orelse is_atom(Left)), is_atom(Right), is_list(Meta), is_list(Args) ->
   {ELeft, EL} = expand(Left, E),
