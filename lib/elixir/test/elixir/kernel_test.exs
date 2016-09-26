@@ -183,10 +183,15 @@ defmodule KernelTest do
   end
 
   test "in/2 in module body" do
-    defmodule In do
+    defmodule InSample do
       @foo [:a, :b]
       true = :a in @foo
     end
+  end
+
+  response = %{code: 200}
+  if is_map(response) and response.code in 200..299 do
+    :pass
   end
 
   test "in/2 with a non-literal non-escaped compile-time range in guards" do
@@ -252,11 +257,6 @@ defmodule KernelTest do
       ":erlang.or(:erlang.=:=(var, 1), :erlang.=:=(var, 2)) " <>
       "end).(rand())"
     assert expand_to_string(quote(do: rand() in [1 | [2]])) == expected
-  end
-
-  response = %{code: 200}
-  if is_map(response) and response.code in 200..299 do
-    :pass
   end
 
   defp expand_to_string(ast) do
