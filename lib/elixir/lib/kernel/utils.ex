@@ -3,6 +3,9 @@ import Kernel, except: [destructure: 2, defdelegate: 2, defstruct: 2]
 defmodule Kernel.Utils do
   @moduledoc false
 
+  @doc """
+  Callback for destructure.
+  """
   def destructure(list, count) when is_list(list), do: destructure_list(list, count)
   def destructure(nil, count), do: destructure_nil(count)
 
@@ -13,6 +16,9 @@ defmodule Kernel.Utils do
   defp destructure_nil(0), do: []
   defp destructure_nil(count), do: [nil | destructure_nil(count - 1)]
 
+  @doc """
+  Callback for defdelegate.
+  """
   def defdelegate(fun, opts) do
     append_first = Keyword.get(opts, :append_first, false)
 
@@ -56,6 +62,9 @@ defmodule Kernel.Utils do
       "defdelegate/2 only accepts function parameters, got: #{Macro.to_string(code)}"
   end
 
+  @doc """
+  Callback for defstruct.
+  """
   def defstruct(module, fields) do
     case fields do
       fs when is_list(fs) ->
@@ -85,10 +94,30 @@ defmodule Kernel.Utils do
      Module.get_attribute(module, :derive)}
   end
 
+  @doc """
+  Announcing callback for defstruct.
+  """
   def announce_struct(module) do
     case :erlang.get(:elixir_compiler_pid) do
       :undefined -> :ok
       pid -> send(pid, {:struct_available, module})
     end
+  end
+
+  @doc """
+  Callback for raise.
+  """
+  def raise(msg) when is_binary(msg) do
+    RuntimeError.exception(msg)
+  end
+  def raise(atom) when is_atom(atom) do
+    atom.exception([])
+  end
+  def raise(%{__struct__: struct, __exception__: true} = exception) when is_atom(struct) do
+    exception
+  end
+  def raise(other) do
+    ArgumentError.exception("raise/1 expects an alias, string or exception as " <>
+                            "the first argument, got: #{inspect other}")
   end
 end
