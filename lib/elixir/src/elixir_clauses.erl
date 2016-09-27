@@ -198,17 +198,17 @@ normalize_vars(Key, {Ref, Counter, _Safe},
 % Generate match vars by checking if they were updated
 % or not and assigning the previous value.
 
-generate_match_vars([{Key, Value, Expr} | T], ClauseVars, Left, Right) ->
+generate_match_vars([{Key, {Value, _, _}, Expr} | T], ClauseVars, Left, Right) ->
   case maps:find(Key, ClauseVars) of
-    {ok, Value} ->
+    {ok, {Value, _, _}} ->
       generate_match_vars(T, ClauseVars, Left, Right);
-    {ok, Clause} ->
+    {ok, {Clause, _, _}} ->
       generate_match_vars(T, ClauseVars,
-        [{var, 0, element(1, Value)} | Left],
-        [{var, 0, element(1, Clause)} | Right]);
+        [{var, 0, Value} | Left],
+        [{var, 0, Clause} | Right]);
     error ->
       generate_match_vars(T, ClauseVars,
-        [{var, 0, element(1, Value)} | Left], [Expr | Right])
+        [{var, 0, Value} | Left], [Expr | Right])
   end;
 
 generate_match_vars([], _ClauseVars, Left, Right) ->
