@@ -61,6 +61,7 @@
 #### Elixir
 
   * [Enum] `Enum.partition/2` has been deprecated in favor of `Enum.split_with/2`
+  * [System] Deprecate plural time units in favor of singular ones to align with future Erlang releases
 
 ### 4. Deprecations
 

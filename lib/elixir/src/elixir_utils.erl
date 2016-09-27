@@ -199,7 +199,8 @@ returns_boolean({{'.', _, [erlang, Op]}, _, [_, _]}) when
   Op == '==';  Op == '/='; Op == '=<';  Op == '>=';
   Op == '<';   Op == '>';  Op == '=:='; Op == '=/=' -> true;
 
-returns_boolean({'__op__', _, [Op, _, Right]}) when Op == 'andalso'; Op == 'orelse' ->
+returns_boolean({{'.', _, [erlang, Op]}, _, [_, Right]}) when
+  Op == 'andalso'; Op == 'orelse' ->
   returns_boolean(Right);
 
 returns_boolean({{'.', _, [erlang, Fun]}, _, [_]}) when
