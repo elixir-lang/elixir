@@ -757,6 +757,12 @@ defmodule ExUnit.Assertions do
     refute diff < delta, message
   end
 
+  defmacro assert_equal(value1, value2) do
+    quote do
+      assert(unquote(value1) == unquote(value2))
+    end
+  end
+
   @doc """
   Fails with a message.
 

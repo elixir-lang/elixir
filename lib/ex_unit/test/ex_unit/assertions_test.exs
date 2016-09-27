@@ -665,6 +665,21 @@ defmodule ExUnit.AssertionsTest do
       """ = Exception.message(error)
   end
 
+  test "assert_equal with non-equality" do
+    try do
+      assert_equal(1,2)
+    rescue
+      error in [ExUnit.AssertionError] ->
+        "1 == 2" = error.expr |> Macro.to_string
+        "Assertion with == failed" = error.message
+    end
+  end
+
+  test "assert_equal with equality" do
+    assert_equal(1,1)
+  end
+
+
   defp ok(val), do: {:ok, val}
   defp error(val), do: {:error, val}
 end
