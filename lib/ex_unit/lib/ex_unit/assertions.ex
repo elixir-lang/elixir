@@ -763,6 +763,12 @@ defmodule ExUnit.Assertions do
     end
   end
 
+  defmacro assert_match(value1, value2) do
+    quote do
+      assert(unquote(value2) = unquote(value1)) 
+    end
+  end
+
   @doc """
   Fails with a message.
 

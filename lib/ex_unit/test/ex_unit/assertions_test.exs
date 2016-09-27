@@ -679,6 +679,20 @@ defmodule ExUnit.AssertionsTest do
     assert_equal(1,1)
   end
 
+  test "assert_match" do
+    try do
+      assert_match(%{foo: 1, bar: 2},%{foo: 2})
+    rescue
+      error in [ExUnit.AssertionError] ->
+        "%{foo: 2} = %{foo: 1, bar: 2}" = error.expr |> Macro.to_string
+        "match (=) failed" = error.message
+    end
+  end
+
+  test "assert_match with match" do
+     assert_match(%{foo: 1, bar: 2},%{foo: 1})
+  end
+
 
   defp ok(val), do: {:ok, val}
   defp error(val), do: {:error, val}
