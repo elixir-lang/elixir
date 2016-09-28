@@ -84,27 +84,21 @@ defmodule ExUnit.CaptureLog do
   end
 
   defp add_capture(pid, opts) do
-    parent = self()
-    {:ok, proxy_pid} = Task.start fn ->
-      case :gen_event.add_sup_handler(Logger, {Console, pid}, {pid, opts}) do
-        :ok ->
-          ref = Process.monitor(parent)
-          send parent, {self(), :ok}
-          receive do
-            {:DOWN, ^ref, :process, ^parent, _reason} -> :ok
-            {:gen_event_EXIT, {Console, ^pid}, _reason} -> :ok
-          end
-        other ->
-          send parent, {self(), other}
-      end
-    end
-    ref = Process.monitor(proxy_pid)
-    receive do
-      {^proxy_pid, result} ->
-        Process.demonitor(ref, [:flush])
-        result
-      {:DOWN, ^ref, :process, ^proxy_pid, reason} ->
-        {:error, reason}
+    :proc_lib.start(__MODULE__, :init_proxy, [pid, opts, self()])
+  end
+
+  @doc false
+  def init_proxy(pid, opts, parent) do
+    case :gen_event.add_sup_handler(Logger, {Console, pid}, {pid, opts}) do
+      :ok ->
+        ref = Process.monitor(parent)
+        :proc_lib.init_ack(:ok)
+        receive do
+          {:DOWN, ^ref, :process, ^parent, _reason} -> :ok
+          {:gen_event_EXIT, {Console, ^pid}, _reason} -> :ok
+        end
+      other ->
+        :proc_lib.init_ack(other)
     end
   end
 
