@@ -228,9 +228,10 @@ defmodule Logger do
   ### Custom backends
 
   Any developer can create their own `Logger` backend.
-  Since `Logger` is an event manager powered by `GenEvent`,
+  Since `Logger` is an event manager powered by `:gen_event`,
   writing a new backend is a matter of creating an event
-  handler, as described in the `GenEvent` module.
+  handler, as described in the [`:gen_event`](http://erlang.org/doc/man/gen_event.html)
+  documentation.
 
   From now on, we will be using the term "event handler" to refer
   to your custom backend, as we head into implementation details.
@@ -291,7 +292,7 @@ defmodule Logger do
   and how to process the existing options.
   """
 
-  @type backend :: GenEvent.handler
+  @type backend :: :gen_event.handler
   @type message :: IO.chardata | String.Chars.t
   @type level :: :error | :info | :warn | :debug
   @levels [:error, :info, :warn, :debug]
@@ -405,8 +406,8 @@ defmodule Logger do
   """
   @spec flush :: :ok
   def flush do
-    _ = GenEvent.which_handlers(:error_logger)
-    GenEvent.sync_notify(Logger, :flush)
+    _ = :gen_event.which_handlers(:error_logger)
+    :gen_event.sync_notify(Logger, :flush)
   end
 
   @doc """
@@ -425,6 +426,8 @@ defmodule Logger do
       {:ok, _} = ok ->
         Logger.Config.add_backend(backend)
         ok
+      {:error, {:already_started, _pid}} ->
+        {:error, :already_present}
       {:error, _} = error ->
         error
     end
@@ -442,7 +445,10 @@ defmodule Logger do
   def remove_backend(backend, opts \\ []) do
     _ = if opts[:flush], do: flush()
     Logger.Config.remove_backend(backend)
-    Logger.Watcher.unwatch(Logger, Logger.Config.translate_backend(backend))
+    case Logger.Watcher.unwatch(Logger, Logger.Config.translate_backend(backend)) do
+      {:error, :module_not_found} -> {:error, :not_found}
+      other -> other
+    end
   end
 
   @doc """
@@ -467,7 +473,7 @@ defmodule Logger do
   """
   @spec configure_backend(backend, Keyword.t) :: term
   def configure_backend(backend, options) when is_list(options) do
-    GenEvent.call(Logger, Logger.Config.translate_backend(backend), {:configure, options})
+    :gen_event.call(Logger, Logger.Config.translate_backend(backend), {:configure, options})
   end
 
   @doc """
@@ -623,8 +629,8 @@ defmodule Logger do
 
   defp form_fa(nil), do: nil
 
-  defp notify(:sync, msg),  do: GenEvent.sync_notify(Logger, msg)
-  defp notify(:async, msg), do: GenEvent.notify(Logger, msg)
+  defp notify(:sync, msg),  do: :gen_event.sync_notify(Logger, msg)
+  defp notify(:async, msg), do: :gen_event.notify(Logger, msg)
 
   defp handle_unused_variable_warnings(data, caller) do
     # We collect all the names of variables (leaving `data` unchanged) with a

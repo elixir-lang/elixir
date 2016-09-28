@@ -84,11 +84,11 @@ defmodule ExUnit.CaptureLog do
   end
 
   defp add_capture(pid, opts) do
-    GenEvent.add_mon_handler(Logger, {Console, pid}, {pid, opts})
+    :gen_event.add_sup_handler(Logger, {Console, pid}, {pid, opts})
   end
 
   defp remove_capture(pid) do
-    case GenEvent.remove_handler(Logger, {Console, pid}, nil) do
+    case :gen_event.delete_handler(Logger, {Console, pid}, :normal) do
       :ok ->
         receive do
           {:gen_event_EXIT, {Console, ^pid}, _reason} -> :ok
