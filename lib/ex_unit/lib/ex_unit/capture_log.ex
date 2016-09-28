@@ -84,27 +84,32 @@ defmodule ExUnit.CaptureLog do
   end
 
   defp add_capture(pid, opts) do
-    :gen_event.add_sup_handler(Logger, {Console, pid}, {pid, opts})
+    parent = self()
+    {:ok, proxy_pid} = Task.start fn ->
+      case :gen_event.add_sup_handler(Logger, {Console, pid}, {pid, opts}) do
+        :ok ->
+          ref = Process.monitor(parent)
+          send parent, {self(), :ok}
+          receive do
+            {:DOWN, ^ref, :process, ^parent, _reason} -> :ok
+            {:gen_event_EXIT, {Console, ^pid}, _reason} -> :ok
+          end
+        other ->
+          send parent, {self(), other}
+      end
+    end
+    receive do
+      {^proxy_pid, result} -> result
+    end
   end
 
   defp remove_capture(pid) do
-    logger_pid = Process.whereis(Logger)
-    result = :gen_event.delete_handler(logger_pid, {Console, pid}, :normal)
-    Process.unlink(logger_pid)
-    case result do
+    case :gen_event.delete_handler(Logger, {Console, pid}, :shutdown) do
       :ok ->
-        receive do
-          {:gen_event_EXIT, {Console, ^pid}, _reason} -> :ok
-        end
-      {:error, :not_found} = error ->
+        :ok
+      {:error, :module_not_found} = error ->
         mfa = {ExUnit.CaptureLog, :remove_capture, [pid]}
-        receive do
-          {:gen_event_EXIT, {Console, ^pid}, reason} -> exit({reason, mfa})
-        after
-          # In case someone accidentally flushed the message,
-          # let's raise not found.
-          0 -> exit({error, mfa})
-        end
+        exit({error, mfa})
     end
   end
 end
