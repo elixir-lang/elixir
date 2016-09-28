@@ -46,7 +46,7 @@ defmodule Logger.Translator do
         end
 
       {'** gen_event handler ' ++ _, [name, manager, last, state, reason]} ->
-        msg = [":gen_event handler #{inspect name} installed in #{inspect manager} terminating"
+        msg = ["GenEvent handler #{inspect name} installed in #{inspect manager} terminating"
                 | format_stop(reason)]
         if min_level == :debug do
           {:ok, [msg, "\nLast message: #{inspect last, opts}" |

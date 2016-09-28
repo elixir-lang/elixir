@@ -114,7 +114,7 @@ defmodule Logger.TranslatorTest do
     assert capture_log(:info, fn ->
       :gen_event.call(pid, MyGenEvent, :error)
     end) =~ """
-    [error] :gen_event handler Logger.TranslatorTest.MyGenEvent installed in #{inspect pid} terminating
+    [error] GenEvent handler Logger.TranslatorTest.MyGenEvent installed in #{inspect pid} terminating
     ** (RuntimeError) oops
     """
   end
@@ -126,7 +126,7 @@ defmodule Logger.TranslatorTest do
     assert capture_log(:debug, fn ->
       :gen_event.call(pid, MyGenEvent, :error)
     end) =~ ~r"""
-    \[error\] :gen_event handler Logger.TranslatorTest.MyGenEvent installed in #PID<\d+\.\d+\.\d+> terminating
+    \[error\] GenEvent handler Logger.TranslatorTest.MyGenEvent installed in #PID<\d+\.\d+\.\d+> terminating
     \*\* \(RuntimeError\) oops
     .*
     Last message: :error
