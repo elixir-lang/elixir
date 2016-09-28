@@ -85,7 +85,8 @@ defmodule ExUnit.CaptureLog do
 
   defp add_capture(pid, opts) do
     case :proc_lib.start(__MODULE__, :init_proxy, [pid, opts, self()]) do
-      :ok -> :ok
+      :ok ->
+        :ok
       other ->
         mfa = {ExUnit.CaptureLog, :add_capture, [pid, opts]}
         exit({other, mfa})
