@@ -445,12 +445,7 @@ defmodule Logger do
   def remove_backend(backend, opts \\ []) do
     _ = if opts[:flush], do: flush()
     Logger.Config.remove_backend(backend)
-    case Logger.Watcher.unwatch(Logger, Logger.Config.translate_backend(backend)) do
-      :ok ->
-        :ok
-      {:error, _} = error ->
-        error
-    end
+    Logger.Watcher.unwatch(Logger, Logger.Config.translate_backend(backend))
   end
 
   @doc """

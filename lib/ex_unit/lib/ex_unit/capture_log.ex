@@ -98,8 +98,13 @@ defmodule ExUnit.CaptureLog do
           send parent, {self(), other}
       end
     end
+    ref = Process.monitor(proxy_pid)
     receive do
-      {^proxy_pid, result} -> result
+      {^proxy_pid, result} ->
+        Process.demonitor(ref, [:flush])
+        result
+      {:DOWN, ^ref, :process, ^proxy_pid, reason} ->
+        {:error, reason}
     end
   end
 

@@ -66,8 +66,13 @@ defmodule Logger.Watcher do
 
   @doc false
   def init({mod, handler, args}) do
-    res = :gen_event.add_sup_handler(mod, handler, args)
-    do_init(res, mod, handler)
+    case :gen_event.delete_handler(mod, handler, :shutdown) do
+      {:error, :module_not_found} ->
+        res = :gen_event.add_sup_handler(mod, handler, args)
+        do_init(res, mod, handler)
+      _ ->
+        init({mod, handler, args})
+    end
   end
 
   defp do_init(res, mod, handler) do
