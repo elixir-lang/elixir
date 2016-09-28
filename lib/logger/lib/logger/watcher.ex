@@ -66,39 +66,32 @@ defmodule Logger.Watcher do
 
   @doc false
   def init({mod, handler, args}) do
-    ref = Process.monitor(mod)
     res = :gen_event.add_sup_handler(mod, handler, args)
-    do_init(res, mod, handler, ref)
+    do_init(res, mod, handler)
   end
 
-  defp do_init(res, mod, handler, ref) do
+  defp do_init(res, mod, handler) do
     case res do
       :ok ->
-        {:ok, {mod, handler, ref}}
+        {:ok, {mod, handler}}
       {:error, :ignore} ->
         # Can't return :ignore as a transient child under a one_for_one.
         # Instead return ok and then immediately exit normally - using a fake
         # message.
         send(self(), {:gen_event_EXIT, handler, :normal})
-        {:ok, {mod, handler, ref}}
+        {:ok, {mod, handler}}
       {:error, reason}  ->
         {:stop, reason}
     end
   end
 
   @doc false
-  def handle_info({:gen_event_EXIT, handler, reason}, {_, handler, _} = state)
+  def handle_info({:gen_event_EXIT, handler, reason}, {_, handler} = state)
       when reason in [:normal, :shutdown] do
     {:stop, reason, state}
   end
 
-  def handle_info({:gen_event_EXIT, handler, reason}, {mod, handler, _} = state) do
-    _ = Logger.error ":gen_event handler #{inspect handler} installed at #{inspect mod}\n" <>
-                 "** (exit) #{format_exit(reason)}"
-    {:stop, reason, state}
-  end
-
-  def handle_info({:DOWN, ref, _, _, reason}, {mod, handler, ref} = state) do
+  def handle_info({:gen_event_EXIT, handler, reason}, {mod, handler} = state) do
     _ = Logger.error ":gen_event handler #{inspect handler} installed at #{inspect mod}\n" <>
                  "** (exit) #{format_exit(reason)}"
     {:stop, reason, state}

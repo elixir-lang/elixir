@@ -88,7 +88,10 @@ defmodule ExUnit.CaptureLog do
   end
 
   defp remove_capture(pid) do
-    case :gen_event.delete_handler(Logger, {Console, pid}, :normal) do
+    logger_pid = Process.whereis(Logger)
+    result = :gen_event.delete_handler(logger_pid, {Console, pid}, :normal)
+    Process.unlink(logger_pid)
+    case result do
       :ok ->
         receive do
           {:gen_event_EXIT, {Console, ^pid}, _reason} -> :ok
