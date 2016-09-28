@@ -26,7 +26,9 @@ defmodule Logger.Watcher do
   Removes the given handler.
   """
   def unwatch(mod, handler) do
-    :gen_event.delete_handler(mod, handler, :ok)
+    result = :gen_event.delete_handler(mod, handler, :ok)
+    _ = Supervisor.terminate_child(@name, {__MODULE__, {mod, handler}})
+    result
   end
 
   @doc """
@@ -69,7 +71,7 @@ defmodule Logger.Watcher do
       :ok ->
         {:ok, {mod, handler, ref}}
       {:error, :ignore} ->
-        # Can't return :ignore as a transient child under a simple_one_for_one.
+        # Can't return :ignore as a transient child under a one_for_one.
         # Instead return ok and then immediately exit normally - using a fake
         # message.
         send(self(), {:gen_event_EXIT, handler, :normal})
