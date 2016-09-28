@@ -207,13 +207,13 @@ returns_boolean({{'.', _, [erlang, Fun]}, _, [_]}) when
   Fun == is_atom;   Fun == is_binary;   Fun == is_bitstring; Fun == is_boolean;
   Fun == is_float;  Fun == is_function; Fun == is_integer;   Fun == is_list;
   Fun == is_number; Fun == is_pid;      Fun == is_port;      Fun == is_reference;
-  Fun == is_tuple;  Fun == is_map -> true;
+  Fun == is_tuple;  Fun == is_map;      Fun == is_record -> true;
 
 returns_boolean({{'.', _, [erlang, Fun]}, _, [_, _]}) when
-  Fun == is_function -> true;
+  Fun == is_function; Fun == is_record -> true;
 
 returns_boolean({{'.', _, [erlang, Fun]}, _, [_, _, _]}) when
-  Fun == function_exported -> true;
+  Fun == function_exported; Fun == is_record -> true;
 
 returns_boolean({'case', _, [_, [{do, Clauses}]]}) ->
   lists:all(fun
