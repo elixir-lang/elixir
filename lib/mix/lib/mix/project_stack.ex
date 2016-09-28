@@ -5,7 +5,7 @@ defmodule Mix.ProjectStack do
 
   @typep file    :: binary
   @typep config  :: Keyword.t
-  @typep project :: {module, config, file}
+  @typep project :: %{name: module, config: config, file: file}
 
   @spec start_link :: {:ok, pid}
   def start_link() do
