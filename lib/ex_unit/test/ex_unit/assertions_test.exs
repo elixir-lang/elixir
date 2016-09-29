@@ -160,7 +160,8 @@ defmodule ExUnit.AssertionsTest do
 
   test "assert receive with message in mailbox after timeout, but before reading mailbox tells user to increase timeout" do
     parent = self()
-    # this is testing a race condition, so it's not guaranteed this works under all loads of the system
+    # This is testing a race condition, so it's not
+    # guaranteed this works under all loads of the system
     timeout = 100
     spawn fn -> Process.send_after parent, :hello, timeout end
 
@@ -168,7 +169,8 @@ defmodule ExUnit.AssertionsTest do
       assert_receive :hello, timeout
     rescue
       error in [ExUnit.AssertionError] ->
-        "Found message matching :hello after 100ms" <> _ = error.message
+        true = error.message =~ "Found message matching :hello after 100ms" or
+               error.message =~ "No message matching :hello after 100ms"
     end
   end
 
