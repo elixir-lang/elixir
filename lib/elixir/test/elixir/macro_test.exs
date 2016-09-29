@@ -279,6 +279,11 @@ defmodule MacroTest do
     assert Macro.to_string(quote do: Foo.bar(<<>>, [])) == "Foo.bar(<<>>, [])"
   end
 
+  test "keyword call to string" do
+    assert Macro.to_string(quote do: Foo.bar(foo: :bar)) == "Foo.bar(foo: :bar)"
+    assert Macro.to_string(quote do: Foo.bar(["Elixir.Foo": :bar])) == "Foo.bar([{Foo, :bar}])"
+  end
+
   test "sigil call to string" do
     assert Macro.to_string(quote do: ~r"123") == ~s/~r"123"/
     assert Macro.to_string(quote do: ~r"123"u) == ~s/~r"123"u/
@@ -408,8 +413,10 @@ defmodule MacroTest do
     assert Macro.to_string(quote do: [])   == "[]"
     assert Macro.to_string(quote do: {1, 2, 3})   == "{1, 2, 3}"
     assert Macro.to_string(quote do: [ 1, 2, 3 ])   == "[1, 2, 3]"
+    assert Macro.to_string(quote do: ["Elixir.Foo": :bar]) == "[{Foo, :bar}]"
     assert Macro.to_string(quote do: %{})  == "%{}"
     assert Macro.to_string(quote do: %{:foo => :bar})  == "%{foo: :bar}"
+    assert Macro.to_string(quote do: %{:"Elixir.Foo" => :bar}) == "%{Foo => :bar}"
     assert Macro.to_string(quote do: %{{1, 2} => [1, 2, 3]})  == "%{{1, 2} => [1, 2, 3]}"
     assert Macro.to_string(quote do: %{map | "a" => "b"})  == "%{map | \"a\" => \"b\"}"
     assert Macro.to_string(quote do: [ 1, 2, 3 ])   == "[1, 2, 3]"

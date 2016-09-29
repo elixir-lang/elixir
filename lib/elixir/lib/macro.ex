@@ -741,7 +741,7 @@ defmodule Macro do
         "[]"
       :io_lib.printable_list(list) ->
         "'" <> Inspect.BitString.escape(IO.chardata_to_string(list), ?') <> "'"
-      Keyword.keyword?(list) ->
+      Inspect.List.keyword?(list) ->
         "[" <> kw_list_to_string(list, fun) <> "]"
       true ->
         "[" <> Enum.map_join(list, ", ", &to_string(&1, fun)) <> "]"
@@ -854,7 +854,7 @@ defmodule Macro do
   defp args_to_string(args, fun) do
     {list, last} = :elixir_utils.split_last(args)
 
-    if last != [] and Keyword.keyword?(last) do
+    if last != [] and Inspect.List.keyword?(last) do
       prefix =
         case list do
           [] -> ""
@@ -899,7 +899,7 @@ defmodule Macro do
 
   defp map_to_string(list, fun) do
     cond do
-      Keyword.keyword?(list) -> kw_list_to_string(list, fun)
+      Inspect.List.keyword?(list) -> kw_list_to_string(list, fun)
       true -> map_list_to_string(list, fun)
     end
   end
