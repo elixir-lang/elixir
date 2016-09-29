@@ -57,7 +57,10 @@ defmodule Mix.Tasks.New do
         mod = opts[:module] || Macro.camelize(app)
         check_mod_name_validity!(mod)
         check_mod_name_availability!(mod)
-        File.mkdir_p!(path)
+        unless path == "." do
+          check_directory_existence!(path)
+          File.mkdir_p!(path)
+        end
 
         File.cd! path, fn ->
           if opts[:umbrella] do
@@ -172,6 +175,12 @@ defmodule Mix.Tasks.New do
     name = Module.concat(Elixir, name)
     if Code.ensure_loaded?(name) do
       Mix.raise "Module name #{inspect name} is already taken, please choose another name"
+    end
+  end
+
+  defp check_directory_existence!(path) do
+    if File.dir?(path) and not Mix.shell.yes?("The directory #{path} already exists. Are you sure you want to continue?") do
+      Mix.raise "Please select another directory for installation."
     end
   end
 
