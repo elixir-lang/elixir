@@ -1,14 +1,5 @@
 defmodule GenEvent.Stream do
-  @moduledoc """
-  Defines a `GenEvent` stream.
-
-  This is a struct returned by `GenEvent.stream/2`. The struct is public and
-  contains the following fields:
-
-    * `:manager`  - the manager reference given to `GenEvent.stream/2`
-    * `:timeout`  - the timeout between events, defaults to `:infinity`
-
-  """
+  @moduledoc false
   defstruct manager: nil, timeout: :infinity
 
   @type t :: %__MODULE__{
