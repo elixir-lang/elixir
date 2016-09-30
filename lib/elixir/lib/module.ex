@@ -42,6 +42,7 @@ defmodule Module do
             @callback default_port() :: integer
           end
 
+
       And then a module may use it as:
 
           defmodule URI.HTTP do
