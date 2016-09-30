@@ -41,10 +41,10 @@ defmodule ExUnit.CaptureLog do
   processes. It is possible to ensure explicit log messages from other
   processes are captured by waiting for their exit or monitor
   signal. This does not guarantee to capture VM generated log messages
-  when a process spawned using a `spawn` BIF does not catch an exception.
-  A `Task`, or other OTP process, will send explicit logs that are sent
-  before its exit or monitor signal and will not cause VM generated log
-  messages.
+  when a process is spawned using a low level `Kernel` spawn function (e.g.
+  `Kernel.spawn/1`) does not catch an exception. A `Task`, or other OTP
+  process, will send explicit logs that are sent before its exit or monitor
+  signal and will not cause VM generated log messages.
 
   Note that when the `async` is set to `true`,
   the messages from another test might be captured.
