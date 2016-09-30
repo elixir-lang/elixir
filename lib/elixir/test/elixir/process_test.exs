@@ -132,6 +132,29 @@ defmodule ProcessTest do
     Process.flag(:trap_exit, trap)
   end
 
+  describe "register/2 error messages" do
+    test "registering dead process" do
+      pid = spawn(fn() -> 1 end)
+      Process.exit(pid, :kill)
+
+      error = assert_raise ArgumentError, fn ->
+        Process.register(pid, :my_process)
+      end
+
+      assert String.contains?(error.message, "is no longer alive")
+    end
+
+    test "registering duplicate name" do
+      Process.register(self(), :my_process)
+
+      error = assert_raise ArgumentError, fn ->
+        Process.register(self(), :my_process)
+      end
+
+      assert String.contains?(error.message, "is already registered")
+    end
+  end
+
   defp expand(expr, env) do
     {expr, _env} = :elixir_exp.expand(expr, env)
     expr

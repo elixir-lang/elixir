@@ -420,13 +420,11 @@ defmodule Process do
   """
   @spec register(pid | port, atom) :: true
   def register(pid, name) when not name in [nil, false, true] and is_atom(name) do
-    try do
-      :erlang.register(name, pid)
-    rescue
-      error in ArgumentError ->
-        message = Process.RegisterError.message(pid, name, error.message)
-        reraise %{ error | message: message }, System.stacktrace
-    end
+    :erlang.register(name, pid)
+  catch
+    :error, :badarg ->
+      message = process_register_error(pid, name)
+      :erlang.error ArgumentError.exception(message), [pid, name]
   end
 
   @doc """
@@ -554,4 +552,16 @@ defmodule Process do
   @compile {:inline, nillify: 1}
   defp nillify(:undefined), do: nil
   defp nillify(other),      do: other
+
+  defp process_register_error(pid, name) do
+    case {alive?(pid), whereis(name)} do
+      { false, _ } ->
+        "Process for #{inspect(pid)} is no longer alive"
+      { true, existing_pid } when is_pid(existing_pid) ->
+        "Process with pid #{inspect(existing_pid)}" <>
+          " is already registered for name #{inspect(name)}"
+      _ ->
+        "argument error"
+    end
+  end
 end
