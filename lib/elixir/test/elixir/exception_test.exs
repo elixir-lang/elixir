@@ -335,6 +335,33 @@ defmodule ExceptionTest do
     assert %ArgumentError{message: "unexpected comté"} |> message == "unexpected comté"
   end
 
+  describe "Process.RegisterError message" do
+
+    test "registering dead process" do
+      error = assert_raise ArgumentError, fn ->
+        pid = spawn(fn() -> 1 end)
+        Process.exit(pid, :kill)
+        Process.register(pid, :my_process)
+      end
+
+      assert String.contains?(error.message, "is no longer alive")
+    end
+
+    test "registering duplicate name" do
+      error = assert_raise ArgumentError, fn ->
+        Process.register(self(), :my_process)
+        Process.register(self(), :my_process)
+      end
+
+      if is_pid(Process.whereis(:my_process)) do
+        Process.unregister(:my_process)
+      end
+
+      assert String.contains?(error.message, "is already registered")
+    end
+
+  end
+
   test "Enum.OutOfBoundsError message" do
     assert %Enum.OutOfBoundsError{} |> message == "out of bounds error"
     assert %Enum.OutOfBoundsError{message: "the brie is not on the table"} |> message == "the brie is not on the table"

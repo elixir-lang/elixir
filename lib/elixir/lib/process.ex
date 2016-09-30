@@ -420,7 +420,13 @@ defmodule Process do
   """
   @spec register(pid | port, atom) :: true
   def register(pid, name) when not name in [nil, false, true] and is_atom(name) do
-    :erlang.register(name, pid)
+    try do
+      :erlang.register(name, pid)
+    rescue
+      error in ArgumentError ->
+        message = Process.RegisterError.message(pid, name, error.message)
+        reraise %{ error | message: message }, System.stacktrace
+    end
   end
 
   @doc """

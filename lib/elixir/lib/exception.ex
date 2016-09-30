@@ -775,6 +775,25 @@ defmodule UnicodeConversionError do
   end
 end
 
+defmodule Process.RegisterError do
+
+  def message(pid, name, original_message) do
+    with true <- Process.alive?(pid),
+         nil <- Process.whereis(name) do
+        original_message
+    else
+      false ->
+        "Process for #{ inspect(pid) } is no longer alive"
+      existing_pid when is_pid(existing_pid) ->
+        "Process with pid #{ inspect(existing_pid) }" <>
+          " is already registered for name #{ inspect(name) }"
+      _ ->
+        original_message
+    end
+  end
+
+end
+
 defmodule Enum.OutOfBoundsError do
   defexception message: "out of bounds error"
 end
