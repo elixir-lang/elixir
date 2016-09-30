@@ -41,11 +41,11 @@ defmodule ExUnit.CaptureLog do
   processes. It is possible to ensure explicit log messages from other
   processes are captured by waiting for their exit or monitor
   signal. This does not guarantee to capture VM generated log messages
-  when a process is spawned using a low level `Kernel` spawn function (e.g.
-  `Kernel.spawn/1`) raises an exception that isn't rescued or a throw that
-  isn't caught. A `Task`, orther OTP process, will send explicit logs that
-  are sent before its exit or monitor signal and will not cause VM generated
-  log messages.
+  when a process that is spawned using a low level `Kernel` spawn function
+  (e.g. `Kernel.spawn/1`) raises an exception that isn't rescued or a throw
+  that isn't caught. A `Task`, or other OTP process, will send explicit logs
+  that are sent before its exit or monitor signal and will not cause VM
+  generated log messages.
 
   Note that when the `async` is set to `true`,
   the messages from another test might be captured.
