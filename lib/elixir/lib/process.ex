@@ -555,9 +555,9 @@ defmodule Process do
 
   defp process_register_error(pid, name) do
     case {alive?(pid), whereis(name)} do
-      { false, _ } ->
+      {false, _} ->
         "Process for #{inspect(pid)} is no longer alive"
-      { true, existing_pid } when is_pid(existing_pid) ->
+      {true, existing_pid} when is_pid(existing_pid) ->
         "Process with pid #{inspect(existing_pid)}" <>
           " is already registered for name #{inspect(name)}"
       _ ->
