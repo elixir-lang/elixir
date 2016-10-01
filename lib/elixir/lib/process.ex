@@ -422,7 +422,7 @@ defmodule Process do
   def register(pid, name) when not name in [nil, false, true] and is_atom(name) do
     :erlang.register(name, pid)
   catch
-    :error, :badarg ->
+    :error, :badarg when is_pid(pid) and node(pid) == node() and name != :undefined ->
       message = "could not register the process #{inspect pid} with" <>
         " name #{inspect name}. Or the process is not alive, or the" <>
         " name is already taken, or the process has already been named"
