@@ -59,10 +59,30 @@ defmodule LoggerTest do
 
   test "add_backend/1 with {module, id}" do
     defmodule MyBackend do
-      use GenEvent
+      @behaviour :gen_event
 
       def init({MyBackend, :hello}) do
         {:ok, :hello}
+      end
+
+      def handle_event(_event, state) do
+        {:ok, state}
+      end
+
+      def handle_call(:error, _) do
+        raise "oops"
+      end
+
+      def handle_info(_msg, state) do
+        {:ok, state}
+      end
+
+      def code_change(_old_vsn, state, _extra) do
+        {:ok, state}
+      end
+
+      def terminate(_reason, _state) do
+        :ok
       end
     end
 

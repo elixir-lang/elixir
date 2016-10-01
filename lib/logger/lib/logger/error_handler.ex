@@ -1,7 +1,7 @@
 defmodule Logger.ErrorHandler do
   @moduledoc false
 
-  use GenEvent
+  @behaviour :gen_event
 
   require Logger
 
@@ -26,6 +26,22 @@ defmodule Logger.ErrorHandler do
     state = check_threshold(state)
     log_event(event, state)
     {:ok, state}
+  end
+
+  def handle_call(request, _state) do
+    exit {:bad_call, request}
+  end
+
+  def handle_info(_msg, state) do
+    {:ok, state}
+  end
+
+  def code_change(_old_vsn, state, _extra) do
+    {:ok, state}
+  end
+
+  def terminate(_reason, _state) do
+    :ok
   end
 
   ## Helpers
@@ -64,7 +80,7 @@ defmodule Logger.ErrorHandler do
 
       # Mode is always async to avoid clogging the error_logger
       meta = [pid: ensure_pid(pid), error_logger: ensure_type(type)]
-      GenEvent.notify(state.logger,
+      :gen_event.notify(state.logger,
         {level, Process.group_leader(),
           {Logger, message, Logger.Utils.timestamp(utc_log?), meta}})
     end

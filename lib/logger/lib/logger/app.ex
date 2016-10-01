@@ -12,13 +12,13 @@ defmodule Logger.App do
     threshold     = Application.get_env(:logger, :discard_threshold_for_error_logger)
 
     options  = [strategy: :rest_for_one, name: Logger.Supervisor]
-    children = [worker(GenEvent, [[name: Logger]]),
+    children = [worker(:gen_event, [{:local, Logger}]),
                 worker(Logger.Watcher, [Logger, Logger.Config, []],
                   [id: Logger.Config, function: :watcher]),
                 supervisor(Logger.Watcher, [Logger.Config, :handlers, []]),
                 worker(Logger.Watcher,
                   [:error_logger, Logger.ErrorHandler,
-                    {otp_reports?, sasl_reports?, threshold}, :link],
+                    {otp_reports?, sasl_reports?, threshold}],
                   [id: Logger.ErrorHandler, function: :watcher])]
 
     config = Logger.Config.new()
