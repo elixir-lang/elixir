@@ -37,7 +37,15 @@ defmodule ExUnit.CaptureLog do
   Returns the binary which is the captured output.
 
   This function mutes the `:console` backend
-  and captures any log messages sent to Logger.
+  and captures any log messages sent to Logger from the calling
+  processes. It is possible to ensure explicit log messages from other
+  processes are captured by waiting for their exit or monitor
+  signal. This does not guarantee to capture VM generated log messages
+  when a process that is spawned using a low level `Kernel` spawn function
+  (e.g. `Kernel.spawn/1`) raises an exception that isn't rescued or a throw
+  that isn't caught. A `Task`, or other OTP process, will send explicit logs
+  that are sent before its exit or monitor signal and will not cause VM
+  generated log messages.
 
   Note that when the `async` is set to `true`,
   the messages from another test might be captured.
@@ -59,6 +67,7 @@ defmodule ExUnit.CaptureLog do
     {:ok, string_io} = StringIO.open("")
 
     try do
+      _ = :gen_event.which_handlers(:error_logger)
       :ok = add_capture(string_io, opts)
       ref = ExUnit.CaptureServer.log_capture_on(self())
 
