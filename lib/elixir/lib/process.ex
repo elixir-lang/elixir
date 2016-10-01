@@ -554,14 +554,24 @@ defmodule Process do
   defp nillify(other),      do: other
 
   defp process_register_error(pid, name) do
-    case {alive?(pid), whereis(name)} do
-      {false, _} ->
-        "Process for #{inspect(pid)} is no longer alive"
-      {true, existing_pid} when is_pid(existing_pid) ->
-        "Process with pid #{inspect(existing_pid)}" <>
-          " is already registered for name #{inspect(name)}"
+    fallback_error = "argument_error"
+
+    case {info(pid), whereis(name)} do
+      {nil, _} ->
+        "process #{inspect(pid)} is no longer alive"
+      {info, nil} ->
+        case info[:registered_name] do
+          nil ->
+            fallback_error
+          existing_name ->
+            "process #{inspect(pid)} is already" <>
+              " registered with name #{inspect(existing_name)}"
+        end
+      {_info, existing_pid} when is_pid(existing_pid) ->
+        "The name #{inspect(name)} is already" <>
+          " registered to process #{inspect(existing_pid)}"
       _ ->
-        "argument error"
+        fallback_error
     end
   end
 end

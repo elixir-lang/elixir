@@ -137,21 +137,25 @@ defmodule ProcessTest do
       pid = spawn(fn() -> 1 end)
       Process.exit(pid, :kill)
 
-      error = assert_raise ArgumentError, fn ->
+      assert_raise ArgumentError, ~r/is no longer alive/, fn ->
         Process.register(pid, :my_process)
       end
-
-      assert String.contains?(error.message, "is no longer alive")
     end
 
     test "registering duplicate name" do
       Process.register(self(), :my_process)
 
-      error = assert_raise ArgumentError, fn ->
+      assert_raise ArgumentError, ~r/is already registered to process/, fn ->
         Process.register(self(), :my_process)
       end
+    end
 
-      assert String.contains?(error.message, "is already registered")
+    test "registering process with existing name" do
+      Process.register(self(), :my_process)
+
+      assert_raise ArgumentError, ~r/is already registered with name/, fn ->
+        Process.register(self(), :test_process)
+      end
     end
   end
 
