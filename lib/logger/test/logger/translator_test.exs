@@ -11,10 +11,30 @@ defmodule Logger.TranslatorTest do
   end
 
   defmodule MyGenEvent do
-    use GenEvent
+    @behaviour :gen_event
+
+    def init(args) do
+      {:ok, args}
+    end
+
+    def handle_event(_event, state) do
+      {:ok, state}
+    end
 
     def handle_call(:error, _) do
       raise "oops"
+    end
+
+    def handle_info(_msg, state) do
+      {:ok, state}
+    end
+
+    def code_change(_old_vsn, state, _extra) do
+      {:ok, state}
+    end
+
+    def terminate(_reason, _state) do
+      :ok
     end
   end
 
@@ -87,24 +107,24 @@ defmodule Logger.TranslatorTest do
     """s
   end
 
-  test "translates GenEvent crashes" do
-    {:ok, pid} = GenEvent.start()
-    :ok = GenEvent.add_handler(pid, MyGenEvent, :ok)
+  test "translates :gen_event crashes" do
+    {:ok, pid} = :gen_event.start()
+    :ok = :gen_event.add_handler(pid, MyGenEvent, :ok)
 
     assert capture_log(:info, fn ->
-      GenEvent.call(pid, MyGenEvent, :error)
+      :gen_event.call(pid, MyGenEvent, :error)
     end) =~ """
     [error] GenEvent handler Logger.TranslatorTest.MyGenEvent installed in #{inspect pid} terminating
     ** (RuntimeError) oops
     """
   end
 
-  test "translates GenEvent crashes on debug" do
-    {:ok, pid} = GenEvent.start()
-    :ok = GenEvent.add_handler(pid, MyGenEvent, :ok)
+  test "translates :gen_event crashes on debug" do
+    {:ok, pid} = :gen_event.start()
+    :ok = :gen_event.add_handler(pid, MyGenEvent, :ok)
 
     assert capture_log(:debug, fn ->
-      GenEvent.call(pid, MyGenEvent, :error)
+      :gen_event.call(pid, MyGenEvent, :error)
     end) =~ ~r"""
     \[error\] GenEvent handler Logger.TranslatorTest.MyGenEvent installed in #PID<\d+\.\d+\.\d+> terminating
     \*\* \(RuntimeError\) oops

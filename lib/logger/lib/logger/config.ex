@@ -1,7 +1,7 @@
 defmodule Logger.Config do
   @moduledoc false
 
-  use GenEvent
+  @behaviour :gen_event
 
   @name __MODULE__
   @table __MODULE__
@@ -13,15 +13,15 @@ defmodule Logger.Config do
   end
 
   def configure(options) do
-    GenEvent.call(Logger, @name, {:configure, options})
+    :gen_event.call(Logger, @name, {:configure, options})
   end
 
   def add_translator(translator) do
-    GenEvent.call(Logger, @name, {:add_translator, translator})
+    :gen_event.call(Logger, @name, {:add_translator, translator})
   end
 
   def remove_translator(translator) do
-    GenEvent.call(Logger, @name, {:remove_translator, translator})
+    :gen_event.call(Logger, @name, {:remove_translator, translator})
   end
 
   def handlers() do
@@ -31,15 +31,15 @@ defmodule Logger.Config do
   end
 
   def backends() do
-    GenEvent.call(Logger, @name, :backends)
+    :gen_event.call(Logger, @name, :backends)
   end
 
   def add_backend(backend) do
-    GenEvent.call(Logger, @name, {:add_backend, backend})
+    :gen_event.call(Logger, @name, {:add_backend, backend})
   end
 
   def remove_backend(backend) do
-    GenEvent.call(Logger, @name, {:remove_backend, backend})
+    :gen_event.call(Logger, @name, {:remove_backend, backend})
   end
 
   def translate_backend(:console), do: Logger.Backends.Console
@@ -69,7 +69,7 @@ defmodule Logger.Config do
   end
 
   def deleted_handlers(handlers) do
-    GenEvent.call(Logger, @name, {:deleted_handlers, handlers})
+    :gen_event.call(Logger, @name, {:deleted_handlers, handlers})
   end
 
   def new() do
@@ -93,7 +93,7 @@ defmodule Logger.Config do
     # Cross node messages are always async which also
     # means this handler won't crash in case there is
     # no logger installed in the other node.
-    GenEvent.notify({Logger, node(gl)}, event)
+    :gen_event.notify({Logger, node(gl)}, event)
     {:ok, state}
   end
 
@@ -141,6 +141,18 @@ defmodule Logger.Config do
     old = deleted_handlers()
     true = :ets.update_element(@table, @deleted_handlers, {2, new})
     {:ok, old, state}
+  end
+
+  def handle_info(_msg, state) do
+    {:ok, state}
+  end
+
+  def terminate(_reason, _state) do
+    :ok
+  end
+
+  def code_change(_old, state, _extra) do
+    {:ok, state}
   end
 
   ## Helpers

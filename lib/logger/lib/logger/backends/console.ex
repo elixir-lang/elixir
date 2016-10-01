@@ -1,7 +1,7 @@
 defmodule Logger.Backends.Console do
   @moduledoc false
 
-  use GenEvent
+  @behaviour :gen_event
 
   defstruct [format: nil, metadata: nil, level: nil, colors: nil, device: nil,
              max_buffer: nil, buffer_size: 0, buffer: [], ref: nil, output: nil]
@@ -61,6 +61,14 @@ defmodule Logger.Backends.Console do
 
   def handle_info(_, state) do
     {:ok, state}
+  end
+
+  def code_change(_old_vsn, state, _extra) do
+    {:ok, state}
+  end
+
+  def terminate(_reason, _state) do
+    :ok
   end
 
   ## Helpers
