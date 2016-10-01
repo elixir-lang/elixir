@@ -9,8 +9,7 @@ defmodule Logger.Watcher do
   Starts the watcher supervisor.
   """
   def start_link(m, f, a) do
-    options  = [strategy: :one_for_one, name: @name,
-                max_restarts: 30, max_seconds: 3]
+    options = [strategy: :one_for_one, name: @name, max_restarts: 30, max_seconds: 3]
     case Supervisor.start_link([], options) do
       {:ok, _} = ok ->
         _ = for {mod, handler, args} <- apply(m, f, a) do
@@ -66,7 +65,7 @@ defmodule Logger.Watcher do
 
   @doc false
   def init({mod, handler, args}) do
-    case :gen_event.delete_handler(mod, handler, :shutdown) do
+    case :gen_event.delete_handler(mod, handler, :ok) do
       {:error, :module_not_found} ->
         res = :gen_event.add_sup_handler(mod, handler, args)
         do_init(res, mod, handler)

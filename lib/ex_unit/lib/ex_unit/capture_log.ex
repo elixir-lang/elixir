@@ -109,7 +109,7 @@ defmodule ExUnit.CaptureLog do
   end
 
   defp remove_capture(pid) do
-    case :gen_event.delete_handler(Logger, {Console, pid}, :shutdown) do
+    case :gen_event.delete_handler(Logger, {Console, pid}, :ok) do
       :ok ->
         :ok
       {:error, :module_not_found} = error ->
