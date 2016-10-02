@@ -411,30 +411,41 @@ defmodule Process do
   end
 
   @doc """
-  Associates the atom `name` with a `pid` or a port identifier.
+  Registers the given `pid_or_port` under the given `name`.
 
-  `name`, can then be used instead of the `pid` / port identifier with the `Kernel.send/2`
-  function. `Process.register/2` will fail with `ArgumentError` if the PID supplied
-  is no longer alive, (check with `alive?/1`) or if the name is already registered
-  (check with `whereis/1`) or if the `pid` is already registered to a different `name`.
+  `name` must be an atom and can then be used instead of the
+  PID/port identifier when sending messages with `Kernel.send/2`.
+
+  `register/2` will fail with `ArgumentError` if the PID/Port is
+  not existing locally and alive, if the name is already registered
+  or if the `pid_or_port` is already registered to a different `name`.
+
+  The following names are reserved and cannot be assigned to
+  processes nor ports: `nil`, `false`, `true` or `:undefined`.
   """
   @spec register(pid | port, atom) :: true
-  def register(pid, name) when not name in [nil, false, true] and is_atom(name) do
-    :erlang.register(name, pid)
+  def register(pid_or_port, name) when is_atom(name) and not name in [nil, false, true, :undefined] do
+    :erlang.register(name, pid_or_port)
   catch
-    :error, :badarg when is_pid(pid) and node(pid) == node() and name != :undefined ->
-      message = "could not register the process #{inspect pid} with" <>
-        " name #{inspect name}. Or the process is not alive, or the" <>
-        " name is already taken, or the process has already been named"
-      :erlang.error ArgumentError.exception(message), [pid, name]
+    :error, :badarg when node(pid_or_port) != node()  ->
+      message = "could not register the #{pid_or_port pid_or_port} because it belongs to another node"
+      :erlang.error ArgumentError.exception(message), [pid_or_port, name]
+    :error, :badarg ->
+      message = "could not register the #{pid_or_port pid_or_port} with " <>
+                "name #{inspect name}. Or it is not alive, or the name is already " <>
+                "taken, or it has already been given another name"
+      :erlang.error ArgumentError.exception(message), [pid_or_port, name]
   end
 
+  defp pid_or_port(pid) when is_pid(pid), do: "pid #{inspect pid}"
+  defp pid_or_port(port) when is_port(port), do: "port #{inspect port}"
+
   @doc """
-  Removes the registered `name`, associated with a PID or a port identifier.
+  Removes the registered `name`, associated with a PID
+  or a port identifier.
 
-  Fails with `ArgumentError` if the name is not registered to any PID or port.
-
-  See [`:erlang.unregister/1`](http://www.erlang.org/doc/man/erlang.html#unregister-1) for more info.
+  Fails with `ArgumentError` if the name is not registered
+  to any PID or port.
   """
   @spec unregister(atom) :: true
   def unregister(name) do
