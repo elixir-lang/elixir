@@ -21,12 +21,17 @@ defmodule URITest do
     assert URI.encode_query([{:foo, :bar}, {:baz, :quux}]) == "foo=bar&baz=quux"
     assert URI.encode_query([{"foo", "bar"}, {"baz", "quux"}]) == "foo=bar&baz=quux"
     assert URI.encode_query([{"foo z", :bar}]) == "foo+z=bar"
+    assert URI.encode_query(foo: ["bar", "baz"]) == "foo%5B%5D=bar&foo%5B%5D=baz"
+    assert URI.encode_query([{:foo, {:bar, :baz}}]) == "foo%5Bbar%5D=baz"
+    assert URI.encode_query([{:foo, [{:bar, :baz}, {:qux, :quux}]}]) == "foo%5Bbar%5D=baz&foo%5Bqux%5D=quux"
+    assert URI.encode_query([{:foo, {:bar, {:baz, :quux}}}]) == "foo%5Bbar%5D%5Bbaz%5D=quux"
+    assert URI.encode_query([{:foo, [{:bar, ["baz", "quux"]}, {:quux, :corge}]}, {:grault, :garply}]) == "foo%5Bbar%5D%5B%5D=baz&foo%5Bbar%5D%5B%5D=quux&foo%5Bquux%5D=corge&grault=garply"
+    assert URI.encode_query(%{user: %{name: "John Doe", email: "test@example.com"}}) == "user%5Bemail%5D=test%40example.com&user%5Bname%5D=John+Doe"
+    assert URI.encode_query([{:foo, {:bar, ["baz", "qux"]}}]) == "foo%5Bbar%5D%5B%5D=baz&foo%5Bbar%5D%5B%5D=qux"
+    assert URI.encode_query(%{user: %{name: "John Doe", meta: %{foo: "bar", baz: "qux"}}}) == "user%5Bmeta%5D%5Bbaz%5D=qux&user%5Bmeta%5D%5Bfoo%5D=bar&user%5Bname%5D=John+Doe"
+    assert URI.encode_query(%{user: %{name: "John Doe", meta: %{test: "Example", data: ["foo", "bar"]}}}) == "user%5Bmeta%5D%5Bdata%5D%5B%5D=foo&user%5Bmeta%5D%5Bdata%5D%5B%5D=bar&user%5Bmeta%5D%5Btest%5D=Example&user%5Bname%5D=John+Doe"
 
-    assert_raise ArgumentError, fn ->
-      URI.encode_query([{"foo", 'bar'}])
-    end
-
-    assert_raise ArgumentError, fn ->
+    assert_raise ArgumentError, "encode_query/1 keys cannot be lists, got: 'foo'", fn ->
       URI.encode_query([{'foo', "bar"}])
     end
   end
