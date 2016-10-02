@@ -36,7 +36,7 @@ defmodule Mix.Tasks.Deps do
 
   And also in umbrella dependencies:
 
-      {:myapp, in_umbrella: true}
+      {:my_app, in_umbrella: true}
 
   Path and in umbrella dependencies are automatically recompiled by
   the parent project whenever they change. While fetchable dependencies

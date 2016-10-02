@@ -17,7 +17,7 @@ defmodule Mix.Tasks.Escript.Install do
 
       mix escript.install escript
       mix escript.install path/to/escript
-      mix escript.install https://example.com/myescript
+      mix escript.install https://example.com/my_escript
       mix escript.install git https://path/to/git/repo
       mix escript.install git https://path/to/git/repo branch git_branch
       mix escript.install git https://path/to/git/repo tag git_tag
