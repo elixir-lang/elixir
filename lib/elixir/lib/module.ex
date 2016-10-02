@@ -60,9 +60,9 @@ defmodule Module do
   added by external tools. For example:
 
       defmodule M do
-        @compile {:inline, myfun: 1}
+        @compile {:inline, my_fun: 1}
 
-        def myfun(arg) do
+        def my_fun(arg) do
           to_string(arg)
         end
       end
@@ -101,9 +101,9 @@ defmodule Module do
   Accepts an atom, a tuple, or a list of atoms and tuples. For example:
 
       defmodule M do
-        @dialyzer {:nowarn_function, myfun: 1}
+        @dialyzer {:nowarn_function, my_fun: 1}
 
-        def myfun(arg) do
+        def my_fun(arg) do
           M.not_a_function(arg)
         end
       end

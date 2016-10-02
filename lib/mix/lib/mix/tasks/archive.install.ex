@@ -17,7 +17,7 @@ defmodule Mix.Tasks.Archive.Install do
 
       mix archive.install archive.ez
       mix archive.install path/to/archive.ez
-      mix archive.install https://example.com/myarchive.ez
+      mix archive.install https://example.com/my_archive.ez
       mix archive.install git https://path/to/git/repo
       mix archive.install git https://path/to/git/repo branch git_branch
       mix archive.install git https://path/to/git/repo tag git_tag
