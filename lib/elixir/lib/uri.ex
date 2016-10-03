@@ -73,6 +73,9 @@ defmodule URI do
   Keys and values can be any term that implements the `String.Chars`
   protocol, except lists which are explicitly forbidden.
 
+  To encode a list use keyword list with multiple mentions of a key
+  with each element of the list. Square brackets can be appended to the key.
+
   ## Examples
 
       iex> hd = %{"foo" => 1, "bar" => 2}
@@ -86,6 +89,13 @@ defmodule URI do
       iex> URI.encode_query %{key: [:a, :list]}
       ** (ArgumentError) encode_query/1 values cannot be lists, got: [:a, :list]
 
+      iex> query = [a: 1, a: 2, a: 3]
+      iex> URI.encode_query(query)
+      "a=1&a=2&a=3"
+
+      iex> query = [{"a[]", 1}, {"a[]", 2}, {"a[]", 3}]
+      iex> URI.encode_query(query)
+      "a%5B%5D=1&a%5B%5D=2&a%5B%5D=3"
   """
   @spec encode_query(term) :: binary
   def encode_query(enumerable) do
