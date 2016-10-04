@@ -760,6 +760,20 @@ defmodule EnumTest do
     assert Enum.zip([1], []) == []
     assert Enum.zip([], [])  == []
   end
+
+  test "zip/1" do
+    assert Enum.zip([[:a, :b], [1, 2], ["foo", "bar"]]) == [{:a, 1, "foo"}, {:b, 2, "bar"}]
+    assert Enum.zip([[:a, :b], [1, 2, 3, 4], ["foo", "bar", "baz", "qux"]]) == [{:a, 1, "foo"}, {:b, 2, "bar"}]
+    assert Enum.zip([[:a, :b, :c, :d], [1, 2], ["foo", "bar", "baz", "qux"]]) == [{:a, 1, "foo"}, {:b, 2, "bar"}]
+    assert Enum.zip([[:a, :b, :c, :d], [1, 2, 3, 4], ["foo", "bar"]]) == [{:a, 1, "foo"}, {:b, 2, "bar"}]
+    assert Enum.zip([1..10, ["foo", "bar"]]) == [{1, "foo"}, {2, "bar"}]
+
+    assert Enum.zip([]) == []
+    assert Enum.zip([[]]) == []
+    assert Enum.zip([[1]]) == [{1}]
+
+    assert Enum.zip([[], [], [], []])  == []
+  end
 end
 
 defmodule EnumTest.Range do

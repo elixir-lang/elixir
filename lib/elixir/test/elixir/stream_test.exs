@@ -932,43 +932,49 @@ defmodule StreamTest do
            [{1, :a}, {2, :b}, {3, :c}, {4, :a}, {5, :b}, {6, :c}]
   end
 
-  test "zip/2 does not leave streams suspended" do
+  test "zip/1" do
+    concat = Stream.concat(1..3, 4..6)
+    cycle  = Stream.cycle([:a, :b, :c])
+    assert Stream.zip([concat, cycle]) |> Enum.to_list ==
+           [{1, :a}, {2, :b}, {3, :c}, {4, :a}, {5, :b}, {6, :c}]
+  end
+
+  test "zip/1 does not leave streams suspended" do
     stream = Stream.resource(fn -> 1 end,
                              fn acc -> {[acc], acc + 1} end,
                              fn _ -> Process.put(:stream_zip, true) end)
 
     Process.put(:stream_zip, false)
-    assert Stream.zip([:a, :b, :c], stream) |> Enum.to_list == [a: 1, b: 2, c: 3]
+    assert Stream.zip([[:a, :b, :c], stream]) |> Enum.to_list == [a: 1, b: 2, c: 3]
     assert Process.get(:stream_zip)
 
     Process.put(:stream_zip, false)
-    assert Stream.zip(stream, [:a, :b, :c]) |> Enum.to_list == [{1, :a}, {2, :b}, {3, :c}]
+    assert Stream.zip([stream, [:a, :b, :c]]) |> Enum.to_list == [{1, :a}, {2, :b}, {3, :c}]
     assert Process.get(:stream_zip)
   end
 
-  test "zip/2 does not leave streams suspended on halt" do
+  test "zip/1 does not leave streams suspended on halt" do
     stream = Stream.resource(fn -> 1 end,
                              fn acc -> {[acc], acc + 1} end,
                              fn _ -> Process.put(:stream_zip, :done) end)
 
-    assert Stream.zip([:a, :b, :c, :d, :e], stream) |> Enum.take(3) ==
+    assert Stream.zip([[:a, :b, :c, :d, :e], stream]) |> Enum.take(3) ==
            [a: 1, b: 2, c: 3]
 
     assert Process.get(:stream_zip) == :done
   end
 
-  test "zip/2 closes on inner error" do
+  test "zip/1 closes on inner error" do
     stream = Stream.into([1, 2, 3], %Pdict{})
-    stream = Stream.zip(stream, Stream.map([:a, :b, :c], fn _ -> throw(:error) end))
+    stream = Stream.zip([stream, Stream.map([:a, :b, :c], fn _ -> throw(:error) end)])
 
     Process.put(:stream_done, false)
     assert catch_throw(Enum.to_list(stream)) == :error
     assert Process.get(:stream_done)
   end
 
-  test "zip/2 closes on outer error" do
-    stream = Stream.into([1, 2, 3], %Pdict{})
-             |> Stream.zip([:a, :b, :c])
+  test "zip/1 closes on outer error" do
+    stream = Stream.zip([Stream.into([1, 2, 3], %Pdict{}), [:a, :b, :c]])
              |> Stream.map(fn _ -> throw(:error) end)
 
     Process.put(:stream_done, false)
