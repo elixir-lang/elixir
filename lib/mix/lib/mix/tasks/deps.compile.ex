@@ -187,10 +187,13 @@ defmodule Mix.Tasks.Deps.Compile do
 
   defp do_make(%{opts: opts} = dep, config) do
     command =
-      if match?({:win32, _}, :os.type) and File.regular?(Path.join(opts[:dest], "Makefile.win")) do
-        "nmake /F Makefile.win"
-      else
-        "make"
+      cond do
+        match?({:win32, _}, :os.type) and File.regular?(Path.join(opts[:dest], "Makefile.win")) ->
+          "nmake /F Makefile.win"
+        match?({:unix, :freebsd}, :os.type) ->
+          "gmake"
+        true ->
+          "make"
       end
     do_command(dep, config, command, true, [{"IS_DEP", "1"}])
   end
