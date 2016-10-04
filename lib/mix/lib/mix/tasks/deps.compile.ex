@@ -186,11 +186,13 @@ defmodule Mix.Tasks.Deps.Compile do
   end
 
   defp do_make(%{opts: opts} = dep, config) do
+    os_type = :os.type
+
     command =
       cond do
-        match?({:win32, _}, :os.type) and File.regular?(Path.join(opts[:dest], "Makefile.win")) ->
+        match?({:win32, _}, os_type) and File.regular?(Path.join(opts[:dest], "Makefile.win")) ->
           "nmake /F Makefile.win"
-        match?({:unix, :freebsd}, :os.type) or match?({:unix, :openbsd}, :os.type) ->
+        match?({:unix, type} when type in [:freebsd, :openbsd], os_type) ->
           "gmake"
         true ->
           "make"
