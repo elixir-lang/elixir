@@ -2625,7 +2625,30 @@ defmodule Enum do
   end
 
   def zip(enumerable1, enumerable2) do
-    Stream.zip(enumerable1, enumerable2).({:cont, []}, &{:cont, [&1 | &2]})
+    zip([enumerable1, enumerable2])
+  end
+
+  @doc """
+  Zips corresponding elements from a collection of enumerables
+  into one list of tuples.
+
+  The zipping finishes as soon as any enumerable completes.
+
+  ## Examples
+
+      iex> Enum.zip([[1, 2, 3], [:a, :b, :c], ["foo", "bar", "baz"]])
+      [{1, :a, "foo"}, {2, :b, "bar"}, {3, :c, "baz"}]
+
+      iex> Enum.zip([[1, 2, 3, 4, 5], [:a, :b, :c]])
+      [{1, :a}, {2, :b}, {3, :c}]
+
+  """
+  @spec zip([t]) :: t
+
+  def zip([]), do: []
+
+  def zip(enumerables) do
+    Stream.zip(enumerables).({:cont, []}, &{:cont, [&1 | &2]})
     |> elem(1)
     |> :lists.reverse
   end
