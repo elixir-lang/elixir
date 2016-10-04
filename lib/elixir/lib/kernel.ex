@@ -2904,25 +2904,7 @@ defmodule Kernel do
   defp in_range(left, first, last) do
     case is_integer(first) and is_integer(last) do
       true  ->
-        case first < last do
-          true ->
-            quote do
-              :erlang.is_integer(unquote(left)) and
-                unquote(increasing_compare(left, first, last))
-            end
-          false ->
-            case first > last do
-              true ->
-                quote do
-                  :erlang.is_integer(unquote(left)) and
-                    unquote(decreasing_compare(left, first, last))
-                end
-              false ->
-                quote do
-                  unquote(left) === unquote(first)
-                end
-            end
-        end
+        in_range_literal(left, first, last)
       false ->
         quote do
           (:erlang.is_integer(unquote(left)) and
@@ -2937,6 +2919,26 @@ defmodule Kernel do
              unquote(decreasing_compare(left, first, last)))
           )
         end
+    end
+  end
+
+  defp in_range_literal(left, first, first) do
+    quote do
+      unquote(left) === unquote(first)
+    end
+  end
+
+  defp in_range_literal(left, first, last) when first < last do
+    quote do
+      :erlang.is_integer(unquote(left)) and
+        unquote(increasing_compare(left, first, last))
+    end
+  end
+
+  defp in_range_literal(left, first, last) do
+    quote do
+      :erlang.is_integer(unquote(left)) and
+        unquote(decreasing_compare(left, first, last))
     end
   end
 
@@ -2957,14 +2959,14 @@ defmodule Kernel do
   defp increasing_compare(var, first, last) do
     quote do
       :erlang.">="(unquote(var), unquote(first)) and
-      :erlang."=<"(unquote(var), unquote(last))
+        :erlang."=<"(unquote(var), unquote(last))
     end
   end
 
   defp decreasing_compare(var, first, last) do
     quote do
       :erlang."=<"(unquote(var), unquote(first)) and
-      :erlang.">="(unquote(var), unquote(last))
+        :erlang.">="(unquote(var), unquote(last))
     end
   end
 
