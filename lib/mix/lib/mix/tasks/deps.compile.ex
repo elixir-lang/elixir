@@ -15,7 +15,7 @@ defmodule Mix.Tasks.Deps.Compile do
     * `mix.exs`      - invokes `mix compile`
     * `rebar.config` - invokes `rebar compile`
     * `Makefile.win` - invokes `nmake /F Makefile.win` (only on Windows)
-    * `Makefile`     - invokes `make` (except on Windows)
+    * `Makefile`     - invokes `gmake` on FreeBSD and OpenBSD, invokes `make` on any other OS (except on Windows)
 
   The compilation can be customized by passing a `compile` option
   in the dependency:
@@ -187,10 +187,13 @@ defmodule Mix.Tasks.Deps.Compile do
 
   defp do_make(%{opts: opts} = dep, config) do
     command =
-      if match?({:win32, _}, :os.type) and File.regular?(Path.join(opts[:dest], "Makefile.win")) do
-        "nmake /F Makefile.win"
-      else
-        "make"
+      cond do
+        match?({:win32, _}, :os.type) and File.regular?(Path.join(opts[:dest], "Makefile.win")) ->
+          "nmake /F Makefile.win"
+        match?({:unix, :freebsd}, :os.type) or match?({:unix, :openbsd}, :os.type) ->
+          "gmake"
+        true ->
+          "make"
       end
     do_command(dep, config, command, true, [{"IS_DEP", "1"}])
   end
