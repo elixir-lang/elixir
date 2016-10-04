@@ -451,6 +451,16 @@ defmodule Protocol do
         end
       end, builtin)
 
+      # Define a catch-all impl_for/1 clause to pacify Dialyzer (since
+      # destructuring opaque types is illegal, Dialyzer will think none of the
+      # previous clauses matches opaque types, and without this clause, will
+      # conclude that impl_for can't handle an opaque argument). This is a hack
+      # since it relies on Dialyzer not being smart enough to conclude that all
+      # opaque types will get the any_impl_for/0 implementation.
+      Kernel.def impl_for(_) do
+        any_impl_for()
+      end
+
       @doc false
       @spec impl_for!(term) :: atom | no_return
       Kernel.def impl_for!(data) do
