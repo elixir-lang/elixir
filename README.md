@@ -102,12 +102,15 @@ Once a pull request is sent, the Elixir team will review your changes.
 We outline our process below to clarify the roles of everyone involved.
 
 All pull requests must be approved by two comitters before being merged into
-the repository. In case any changes are necessary before merging, the
-team will leave appropriate comments requesting changes to the code.
+the repository. In case any changes are necessary, the team will leave
+appropriate comments requesting changes to the code.
 
 The Elixir team may optionally assign someone to review a pull request.
 In case someone is assigned, they must explicitly approve the code before
 another team member can merge it.
+
+When review is completed, your pull request will be squashed and merged
+into the repository.
 
 ## Building documentation
 
