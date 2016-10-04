@@ -268,7 +268,7 @@ defmodule GenServer do
   """
 
   @doc """
-  Invoked when the server is started. `start_link/3` (or `start/3`) will
+  Invoked when the server is started. `start_link/3` or `start/3` will
   block until it returns.
 
   `args` is the argument term (second argument) passed to `start_link/3`.
