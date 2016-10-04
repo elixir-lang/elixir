@@ -1014,8 +1014,9 @@ defmodule Stream do
   @spec zip([Enumerable.t]) :: Enumerable.t
   def zip(enumerables) do
     step      = &do_zip_step(&1, &2)
-    enum_funs = enumerables
-    |> Enum.map(fn enum -> {&Enumerable.reduce(enum, &1, step), :cont} end)
+    enum_funs = Enum.map(enumerables, fn enum ->
+      {&Enumerable.reduce(enum, &1, step), :cont}
+    end)
 
     &do_zip(enum_funs, &1, &2)
   end
