@@ -925,6 +925,13 @@ defmodule StreamTest do
            [a: {:tea, 2}, c: {:coffee, 1}]
   end
 
+  test "zip/2" do
+    concat = Stream.concat(1..3, 4..6)
+    cycle  = Stream.cycle([:a, :b, :c])
+    assert Stream.zip(concat, cycle) |> Enum.to_list ==
+           [{1, :a}, {2, :b}, {3, :c}, {4, :a}, {5, :b}, {6, :c}]
+  end
+
   test "zip/1" do
     concat = Stream.concat(1..3, 4..6)
     cycle  = Stream.cycle([:a, :b, :c])
