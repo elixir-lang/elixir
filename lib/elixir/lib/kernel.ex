@@ -2909,15 +2909,11 @@ defmodule Kernel do
         quote do
           (:erlang.is_integer(unquote(left)) and
            :erlang.is_integer(unquote(first)) and
-           :erlang.is_integer(unquote(last)))
-          and
-          (
-            (:erlang."=<"(unquote(first), unquote(last)) and
-             unquote(increasing_compare(left, first, last)))
-            or
-            (:erlang."<"(unquote(last), unquote(first)) and
-             unquote(decreasing_compare(left, first, last)))
-          )
+           :erlang.is_integer(unquote(last))) and
+            ((:erlang."=<"(unquote(first), unquote(last)) and
+              unquote(increasing_compare(left, first, last))) or
+               (:erlang."<"(unquote(last), unquote(first)) and
+                unquote(decreasing_compare(left, first, last))))
         end
     end
   end
