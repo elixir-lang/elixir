@@ -995,13 +995,31 @@ defmodule Stream do
 
   """
   @spec zip(Enumerable.t, Enumerable.t) :: Enumerable.t
-  def zip(left, right) do
-    step      = &do_zip_step(&1, &2)
-    left_fun  = &Enumerable.reduce(left, &1, step)
-    right_fun = &Enumerable.reduce(right, &1, step)
+  def zip(left, right), do: zip([left, right])
 
-    # Return a function as a lazy enumerator.
-    &do_zip([{left_fun, :cont}, {right_fun, :cont}], &1, &2)
+  @doc """
+  Zips corresponding elements from a collection of enumerables
+  into one stream of tuples.
+
+  The zipping finishes as soon as any enumerable completes.
+
+  ## Examples
+
+      iex> concat = Stream.concat(1..3, 4..6)
+      iex> cycle = Stream.cycle(["foo", "bar", "baz"])
+      iex> Stream.zip([concat, [:a, :b, :c], cycle]) |> Enum.to_list
+      [{1, :a, "foo"}, {2, :b, "bar"}, {3, :c, "baz"}]
+
+  """
+  @spec zip([Enumerable.t]) :: Enumerable.t
+  def zip(enumerables) do
+    step      = &do_zip_step(&1, &2)
+    enum_funs = enumerables
+    |> map(fn enum -> &Enumerable.reduce(enum, &1, step) end)
+    |> map(fn enum_fun -> {enum_fun, :cont} end)
+    |> Enum.to_list
+
+    &do_zip(enum_funs, &1, &2)
   end
 
   # This implementation of do_zip/3 works for any number of
