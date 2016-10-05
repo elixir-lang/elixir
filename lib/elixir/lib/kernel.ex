@@ -2920,7 +2920,7 @@ defmodule Kernel do
 
   defp in_range_literal(left, first, first) do
     quote do
-      unquote(left) === unquote(first)
+      :erlang."=:="(unquote(left), unquote(first))
     end
   end
 
