@@ -7,7 +7,7 @@
 #### Elixir
 
   * [Enum] Add `Enum.map_every/2` that invokes the given function with every nth item
-  * [Enum] Add `min/2`, `max/2` and `min_max/2` that allow a function specifying the default value to `Enum`
+  * [Enum] Add `min/2`, `max/2`, `min_max/2`, `min_by/3`, `max_by/3`, and `min_max_by/3` that allow a function specifying the default value when the enumerable is empty
   * [Integer] `Integer.digits/2` now accepts negative integers
   * [Integer] Add `Integer.mod/2` and `Integer.floor_div/2`
   * [List] Add `List.pop_at/3`
