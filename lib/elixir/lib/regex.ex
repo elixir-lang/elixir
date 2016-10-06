@@ -290,7 +290,7 @@ defmodule Regex do
     names
   end
 
-  @doc """
+  @doc ~S"""
   Same as `run/3`, but scans the target several times collecting all
   matches of the regular expression.
 
@@ -313,6 +313,9 @@ defmodule Regex do
 
       iex> Regex.scan(~r/e/, "abcd")
       []
+
+      iex> Regex.scan(~r/\p{Sc}/u, "$, £, and €")
+      [["$"], ["£"], ["€"]]
 
   """
   @spec scan(t, String.t, [term]) :: [[String.t]]
