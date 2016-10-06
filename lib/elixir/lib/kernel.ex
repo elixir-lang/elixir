@@ -2896,8 +2896,7 @@ defmodule Kernel do
     do: fun.(var)
   defp in_var(true, ast, fun) do
     quote do
-      var = unquote(ast)
-      unquote(fun.(quote(do: var)))
+      (fn var -> unquote(fun.(quote(do: var))) end).(unquote(ast))
     end
   end
 
