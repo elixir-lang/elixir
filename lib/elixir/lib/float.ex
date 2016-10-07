@@ -88,7 +88,7 @@ defmodule Float do
       iex> Float.floor(12.52, 2)
       12.51
 
-  One may have expected it to floor to 12.51. This is not a bug.
+  One may have expected it to floor to 12.52. This is not a bug.
   Most decimal fractions cannot be represented as a binary floating point
   and therefore the number above is internally represented as 12.51999999,
   which explains the behaviour above.
@@ -233,6 +233,7 @@ defmodule Float do
         num = rounding(rounding, sign, num, div)
 
         # Convert back to float without loss
+        # http://www.exploringbinary.com/correct-decimal-to-floating-point-using-big-integers/
         den = power_of_10(precision)
 
         case num / den do
