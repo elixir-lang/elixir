@@ -7,6 +7,8 @@ defmodule Float do
 
   import Bitwise
 
+  @power_of_2_to_52 4503599627370496
+
   @doc """
   Parses a binary into a float.
 
@@ -182,6 +184,8 @@ defmodule Float do
       -5.567
       iex> Float.round(-5.5675)
       -6.0
+      iex> Float.round(12.341444444444441, 15)
+      12.341444444444441
 
   """
   @spec round(float, 0..15) :: float
@@ -225,10 +229,40 @@ defmodule Float do
 
         # Move to the given precision - 1
         num = div(num, power_of_10)
-
         div = div(num, 10)
         num = rounding(rounding, sign, num, div)
-        sign(sign, num / power_of_10(precision))
+
+        # Convert back to float without loss
+        den = power_of_10(precision)
+
+        case num / den do
+          0.0 ->
+            0.0
+          val ->
+            exp = trunc(floor(:math.log2(val)))
+
+            {num, den} =
+              if exp > 52 do
+                {num, shift_left_until_zero(den, exp - 52)}
+              else
+                {shift_left_until_zero(num, 52 - exp), den}
+              end
+
+            quo = div(num, den)
+            rem = num - quo * den
+
+            tmp =
+              case den >>> 1 do
+                den when rem > den -> quo + 1
+                den when rem < den -> quo
+                _ when quo &&& 1 === 1 -> quo + 1
+                _ -> quo
+              end
+
+            tmp = tmp - @power_of_2_to_52
+            <<tmp::float>> = <<sign::size(1), (exp+1023)::size(11), tmp::size(52)>>
+            tmp
+        end
     end
   end
 
