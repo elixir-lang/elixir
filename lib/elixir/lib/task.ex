@@ -372,7 +372,7 @@ defmodule Task do
     nil
   end
 
-  @doc """
+  @doc ~S"""
   Temporarily blocks the current process waiting for a task reply.
 
   Returns `{:ok, reply}` if the reply is received, `nil` if
@@ -395,6 +395,20 @@ defmodule Task do
   monitor's `:DOWN` message is in the message queue. If it has been
   demonitored or the message already received, this function will wait
   for the duration of the timeout awaiting the message.
+
+  If you intend to shut the task down if it has not responded within `timeout`
+  milliseconds, you should chain this together with `shutdown/1`, like so:
+
+      case Task.yield(task, timeout) || Task.shutdown(task) do
+        {:ok, result} -> result
+        nil ->
+          Logger.warn "Failed to get a result in #{timeout} ms
+          nil
+      end
+
+  That ensures that if the task completes after the `timeout` but before `shutdown/1`
+  has been called, you will still get the result, since `shutdown/1` is designed to
+  handle this case and return the result.
   """
   @spec yield(t, timeout) :: {:ok, term} | {:exit, term} | nil
   def yield(task, timeout \\ 5_000)
