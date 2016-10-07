@@ -5,6 +5,8 @@ defmodule Float do
   Functions for working with floating point numbers.
   """
 
+  import Bitwise
+
   @doc """
   Parses a binary into a float.
 
@@ -22,10 +24,8 @@ defmodule Float do
 
       iex> Float.parse("34")
       {34.0, ""}
-
       iex> Float.parse("34.25")
       {34.25, ""}
-
       iex> Float.parse("56.5xyz")
       {56.5, "xyz"}
 
@@ -78,6 +78,18 @@ defmodule Float do
 
   `floor/2` also accepts a precision to round a floating point value down
   to an arbitrary number of fractional digits (between 0 and 15).
+  The operation is performed on the binary floating point, without a
+  conversion to decimal.
+
+  The behaviour of `floor/2` for floats can be surprising. For example:
+
+      iex> Float.floor(12.52, 2)
+      12.51
+
+  One may have expected it to floor to 12.51. This is not a bug.
+  Most decimal fractions cannot be represented as a binary floating point
+  and therefore the number above is internally represented as 12.51999999,
+  which explains the behaviour above.
 
   This function always returns a float. `Kernel.trunc/1` may be used instead to
   truncate the result to an integer afterwards.
@@ -86,21 +98,15 @@ defmodule Float do
 
       iex> Float.floor(34.25)
       34.0
-
       iex> Float.floor(-56.5)
       -57.0
-
       iex> Float.floor(34.259, 2)
       34.25
 
   """
   @spec floor(float, 0..15) :: float
   def floor(number, precision \\ 0) when is_float(number) and precision in 0..15 do
-    power     = power_of_10(precision)
-    number    = number * power
-    truncated = trunc(number)
-    variance  = if number - truncated < 0, do: -1.0, else: 0.0
-    (truncated + variance) / power
+    round(number, precision, :floor)
   end
 
   @doc """
@@ -109,6 +115,19 @@ defmodule Float do
   `ceil/2` also accepts a precision to round a floating point value down
   to an arbitrary number of fractional digits (between 0 and 15).
 
+  The operation is performed on the binary floating point, without a
+  conversion to decimal.
+
+  The behaviour of `ceil/2` for floats can be surprising. For example:
+
+      iex> Float.ceil(-12.52, 2)
+      -12.51
+
+  One may have expected it to ceil to -12.52. This is not a bug.
+  Most decimal fractions cannot be represented as a binary floating point
+  and therefore the number above is internally represented as -12.51999999,
+  which explains the behaviour above.
+
   This function always returns floats. `Kernel.trunc/1` may be used instead to
   truncate the result to an integer afterwards.
 
@@ -116,59 +135,174 @@ defmodule Float do
 
       iex> Float.ceil(34.25)
       35.0
-
       iex> Float.ceil(-56.5)
       -56.0
-
       iex> Float.ceil(34.251, 2)
       34.26
 
   """
   @spec ceil(float, 0..15) :: float
   def ceil(number, precision \\ 0) when is_float(number) and precision in 0..15 do
-    power     = power_of_10(precision)
-    number    = number * power
-    truncated = trunc(number)
-    variance  = if number - truncated > 0, do: 1.0, else: 0.0
-    (truncated + variance) / power
+    round(number, precision, :ceil)
   end
 
   @doc """
-  Rounds a floating point value to an arbitrary number of fractional digits
-  (between 0 and 15).
+  Rounds a floating point value to an arbitrary number of fractional
+  digits (between 0 and 15).
+
+  The rounding direction always ties to half up. The operation is
+  performed on the binary floating point, without a conversion to decimal.
 
   This function only accepts floats and always returns a float. Use
-  `Kernel.round/1` if you want a function that accepts both floats and integers
-  and always returns an integer.
+  `Kernel.round/1` if you want a function that accepts both floats
+  and integers and always returns an integer.
+
+  The behaviour of `round/2` for floats can be surprising. For example:
+
+      iex> Float.round(5.5675, 3)
+      5.567
+
+  One may have expected it to round to the half up 5.568. This is not a bug.
+  Most decimal fractions cannot be represented as a binary floating point
+  and therefore the number above is internally represented as 5.567499999,
+  which explains the behaviour above. If you want exact rounding for decimals,
+  you must use a decimal library. The behaviour above is also in accordance
+  to reference implementations, such as "Correctly Rounded Binary-Decimal and
+  Decimal-Binary Conversions" by David M. Gay.
 
   ## Examples
 
+      iex> Float.round(12.5)
+      13.0
       iex> Float.round(5.5674, 3)
       5.567
-
       iex> Float.round(5.5675, 3)
-      5.568
-
+      5.567
       iex> Float.round(-5.5674, 3)
       -5.567
-
-      iex> Float.round(-5.5675, 3)
-      -5.568
-
       iex> Float.round(-5.5675)
       -6.0
 
   """
   @spec round(float, 0..15) :: float
-  def round(number, precision \\ 0) when is_float(number) and precision in 0..15 do
-    power = power_of_10(precision)
-    Kernel.round(number * power) / power
+
+  # This implementation is slow since it relies on big integers.
+  # Faster implementations are available on more recent papers
+  # and could be implemented in the future.
+  def round(float, precision \\ 0) when is_float(float) and precision in 0..15 do
+    round(float, precision, :half_up)
   end
 
-  Enum.reduce 0..15, 1, fn x, acc ->
+  defp round(float, precision, rounding) do
+    <<sign::size(1), exp::size(11), significant::size(52)-bitstring>> = <<float::float>>
+    {num, count, _} = decompose(significant)
+    count = count - exp + 1023
+
+    cond do
+      count <= 0 -> # There is no decimal precision
+        float
+
+      count >= 104 -> # Precision beyond 15 digits
+        case rounding do
+          :ceil when sign === 0 -> 1 / power_of_10(precision)
+          :floor when sign === 1 -> -1 / power_of_10(precision)
+          _ -> 0.0
+        end
+
+      count <= precision -> # We are asking more precision than we have
+        float
+
+      true ->
+        # Difference in precision between float and asked precision
+        # We subtract 1 because we need to calculate the remainder too
+        diff = count - precision - 1
+
+        # Get up to latest so we calculate the remainder
+        power_of_10 = power_of_10(diff)
+
+        # Convert the numerand to decimal base
+        num = num * power_of_5(count)
+
+        # Move to the given precision - 1
+        num = div(num, power_of_10)
+
+        div = div(num, 10)
+        num = rounding(rounding, sign, num, div)
+        sign(sign, num / power_of_10(precision))
+    end
+  end
+
+  defp rounding(:floor, 1, _num, div), do: div + 1
+  defp rounding(:ceil, 0, _num, div), do: div + 1
+  defp rounding(:half_up, _sign, num, div) do
+    case rem(num, 10) do
+      rem when rem < 5 -> div
+      rem when rem >= 5 -> div + 1
+    end
+  end
+  defp rounding(_, _, _, div), do: div
+
+  Enum.reduce 0..104, 1, fn x, acc ->
     defp power_of_10(unquote(x)), do: unquote(acc)
     acc * 10
   end
+
+  Enum.reduce 0..104, 1, fn x, acc ->
+    defp power_of_5(unquote(x)), do: unquote(acc)
+    acc * 5
+  end
+
+  @doc """
+  Returns a pair of integers whose ratio is exactly equal
+  to the original float and with a positive denominator.
+
+  ## Examples
+
+      iex> Float.ratio(3.14)
+      {7070651414971679, 2251799813685248}
+      iex> Float.ratio(1.5)
+      {3, 2}
+      iex> Float.ratio(-1.5)
+      {-3, 2}
+
+  """
+  def ratio(float) do
+    <<sign::size(1), exp::size(11), significant::size(52)-bitstring>> = <<float::float>>
+    {num, _, den} = decompose(significant)
+
+    num = sign(sign, num)
+    den =
+      case exp - 1023 do
+        exp when exp > 0 -> shift_right_until_zero(den, exp)
+        exp when exp < 0 -> shift_left_until_zero(den, abs(exp))
+        0 -> den
+      end
+
+    {num, den}
+  end
+
+  defp decompose(significant) do
+    decompose(significant, 1, 0, 2, 1, 1)
+  end
+
+  defp decompose(<<1::size(1), bits::bitstring>>, count, last_count, power, _last_power, acc) do
+    decompose(bits, count + 1, count, power <<< 1, power, shift_left_until_zero(acc, count - last_count) + 1)
+  end
+  defp decompose(<<0::size(1), bits::bitstring>>, count, last_count, power, last_power, acc) do
+    decompose(bits, count + 1, last_count, power <<< 1, last_power, acc)
+  end
+  defp decompose(<<>>, _count, last_count, _power, last_power, acc) do
+    {acc, last_count, last_power}
+  end
+
+  defp sign(0, num), do: num
+  defp sign(1, num), do: -num
+
+  defp shift_left_until_zero(num, 0), do: num
+  defp shift_left_until_zero(num, x), do: shift_left_until_zero(num <<< 1, x - 1)
+
+  defp shift_right_until_zero(num, 0), do: num
+  defp shift_right_until_zero(num, x), do: shift_right_until_zero(num >>> 1, x - 1)
 
   @doc """
   Returns a charlist which corresponds to the text representation
