@@ -158,7 +158,7 @@ defmodule Mix.Tasks.New do
                 "letters, numbers and underscore, got: #{inspect name}" <>
                 (if !from_app_flag do
                   ". The application name is inferred from the path, if you'd like to " <>
-                  "explicitly name the application then use the \"--app APP\" option."
+                  "explicitly name the application then use the \"--app APP\" option"
                 else
                   ""
                 end)
@@ -180,7 +180,7 @@ defmodule Mix.Tasks.New do
 
   defp check_directory_existence!(path) do
     if File.dir?(path) and not Mix.shell.yes?("The directory #{path} already exists. Are you sure you want to continue?") do
-      Mix.raise "Please select another directory for installation."
+      Mix.raise "Please select another directory for installation"
     end
   end
 

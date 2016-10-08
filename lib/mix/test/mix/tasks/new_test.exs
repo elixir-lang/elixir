@@ -157,7 +157,7 @@ defmodule Mix.Tasks.NewTest do
     in_tmp "new_with_existent_directory", fn ->
       File.mkdir_p!("my_app")
       send self(), {:mix_shell_input, :yes?, false}
-      assert_raise Mix.Error, ~r"Please select another directory for installation.", fn ->
+      assert_raise Mix.Error, "Please select another directory for installation", fn ->
         Mix.Tasks.New.run ["my_app"]
       end
     end
