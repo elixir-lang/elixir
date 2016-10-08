@@ -2,6 +2,7 @@
 -define(ann(Opts), elixir_utils:get_ann(Opts)).
 -define(line(Opts), elixir_utils:get_line(Opts)).
 -define(generated(Opts), [{generated, true}, {location, ?line(Opts)}]).
+%% TODO: Remove once we drop Erlang 18 support
 -define(generated, [{generated, true}, {location, 0}]).
 
 -record(elixir_scope, {
