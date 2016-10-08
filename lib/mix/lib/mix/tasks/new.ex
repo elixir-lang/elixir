@@ -11,7 +11,7 @@ defmodule Mix.Tasks.New do
 
       mix new PATH [--sup] [--module MODULE] [--app APP] [--umbrella]
 
-  A project at the given PATH  will be created. The
+  A project at the given PATH will be created. The
   application name and module name will be retrieved
   from the path, unless `--module` or `--app` is given.
 
@@ -53,7 +53,7 @@ defmodule Mix.Tasks.New do
         Mix.raise "Expected PATH to be given, please use \"mix new PATH\""
       [path | _] ->
         app = opts[:app] || Path.basename(Path.expand(path))
-        check_application_name!(app, !!opts[:app])
+        check_application_name!(app, !opts[:app])
         mod = opts[:module] || Macro.camelize(app)
         check_mod_name_validity!(mod)
         check_mod_name_availability!(mod)
@@ -152,11 +152,11 @@ defmodule Mix.Tasks.New do
     |> Mix.shell.info
   end
 
-  defp check_application_name!(name, from_app_flag) do
+  defp check_application_name!(name, inferred?) do
     unless name =~ ~r/^[a-z][\w_]*$/ do
       Mix.raise "Application name must start with a letter and have only lowercase " <>
                 "letters, numbers and underscore, got: #{inspect name}" <>
-                (if !from_app_flag do
+                (if inferred? do
                   ". The application name is inferred from the path, if you'd like to " <>
                   "explicitly name the application then use the \"--app APP\" option"
                 else
