@@ -256,12 +256,12 @@ defmodule Float do
               case den >>> 1 do
                 den when rem > den -> quo + 1
                 den when rem < den -> quo
-                _ when quo &&& 1 === 1 -> quo + 1
+                _ when (quo &&& 1) === 1 -> quo + 1
                 _ -> quo
               end
 
             tmp = tmp - @power_of_2_to_52
-            <<tmp::float>> = <<sign::size(1), (exp+1023)::size(11), tmp::size(52)>>
+            <<tmp::float>> = <<sign::size(1), (exp + 1023)::size(11), tmp::size(52)>>
             tmp
         end
     end
