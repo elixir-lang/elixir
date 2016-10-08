@@ -179,7 +179,7 @@ defmodule Mix.Tasks.New do
   end
 
   defp check_directory_existence!(path) do
-    if File.dir?(path) and not Mix.shell.yes?("The directory #{path} already exists. Are you sure you want to continue?") do
+    if File.dir?(path) and not Mix.shell.yes?("The directory #{inspect(path)} already exists. Are you sure you want to continue?") do
       Mix.raise "Please select another directory for installation"
     end
   end
