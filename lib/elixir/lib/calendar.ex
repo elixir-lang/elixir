@@ -710,6 +710,49 @@ defmodule NaiveDateTime do
   end
 
   @doc """
+  Adds a specified amount of time to a `NaiveDateTime`.
+
+  Accepts an `integer` in any `unit` available from `System.time_unit`.
+  Negative values will be move backwards in time.
+
+  ## Examples
+
+      # adds seconds by default
+      iex> NaiveDateTime.add(~N[2014-10-02 00:29:10], 2)
+      ~N[2014-10-02 00:29:12]
+      # accepts negative offsets
+      iex> NaiveDateTime.add(~N[2014-10-02 00:29:10], -2)
+      ~N[2014-10-02 00:29:08]
+      # can work with other units
+      iex> NaiveDateTime.add(~N[2014-10-02 00:29:10], 2_000, :milliseconds)
+      ~N[2014-10-02 00:29:12]
+      # doesn't lose precision
+      iex> NaiveDateTime.add(~N[2014-10-02 00:29:10.021], 21, :milliseconds)
+      ~N[2014-10-02 00:29:10.042]
+  """
+  def add(%NaiveDateTime{calendar: Calendar.ISO, year: year, month: month,
+                         day: day, hour: hour, minute: minute, second: second,
+                         microsecond: {microsecond, _precision}},
+          integer, unit \\ :seconds) when is_integer(integer) do
+    ndt_seconds = :calendar.datetime_to_gregorian_seconds(
+        {{year, month, day}, {hour, minute, second}}
+    )
+    ndt_microseconds = ndt_seconds * 1_000_000 + microsecond
+
+    added_microseconds = System.convert_time_unit(integer, unit, :microseconds)
+
+    added = ndt_microseconds + added_microseconds
+    new_microsecond = rem(added, 1_000_000)
+    new_precision =
+      if new_microsecond == 0, do: 0, else: Calendar.ISO.precision_for_unit(unit)
+    {{new_year, new_month, new_day}, {new_hour, new_minute, new_second}} =
+      added |> div(1_000_000) |> :calendar.gregorian_seconds_to_datetime
+    %NaiveDateTime{year: new_year, month: new_month, day: new_day,
+                   hour: new_hour, minute: new_minute, second: new_second,
+                   microsecond: {new_microsecond, new_precision}}
+  end
+
+  @doc """
   Converts a `NaiveDateTime` into a `Date`.
 
   Because `Date` does not hold time information,
