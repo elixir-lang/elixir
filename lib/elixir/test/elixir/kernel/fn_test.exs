@@ -19,15 +19,16 @@ defmodule Kernel.FnTest do
   end
 
   test "case function hoisting does not affect anonymous fns" do
-    assert :undefined =
-             (if is_a?(:atom, 0) do
-                user = :defined
-              else
-                (fn() ->
-                  user = :undefined
-                  user
-                end).()
-              end)
+    result =
+      if is_a?(:atom, 0) do
+        user = :defined
+      else
+        (fn() ->
+           user = :undefined
+           user
+         end).()
+      end
+    assert result == :undefined
   end
 
   test "capture with access" do
