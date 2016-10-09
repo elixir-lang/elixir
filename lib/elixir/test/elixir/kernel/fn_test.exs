@@ -22,6 +22,7 @@ defmodule Kernel.FnTest do
     result =
       if is_a?(:atom, 0) do
         user = :defined
+        user
       else
         (fn() ->
            user = :undefined
