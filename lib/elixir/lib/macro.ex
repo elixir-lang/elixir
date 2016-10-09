@@ -504,7 +504,7 @@ defmodule Macro do
       def unescape_map(e),  do: e
 
   If the `unescape_map` function returns `false`. The char is
-  not escaped and `\` is kept in the charlist.
+  not escaped and the backslash is kept in the string.
 
   Hexadecimals and Unicode codepoints will be escaped if the map
   function returns `true` for `?x`. Unicode codepoints if the map
