@@ -729,6 +729,9 @@ defmodule NaiveDateTime do
       # doesn't lose precision
       iex> NaiveDateTime.add(~N[2014-10-02 00:29:10.021], 21, :milliseconds)
       ~N[2014-10-02 00:29:10.042]
+      # from gregorian seconds
+      iex> NaiveDateTime.add(~N[0000-01-01 00:00:00], 63579428950)
+      ~N[2014-10-02 00:29:10]
   """
   @spec add(NaiveDateTime.t, integer, System.time_unit) :: NaiveDateTime.t
   def add(%NaiveDateTime{} = naive_datetime,
@@ -761,6 +764,9 @@ defmodule NaiveDateTime do
       2_000_000
       iex> NaiveDateTime.diff(~N[2014-10-02 00:29:10.042], ~N[2014-10-02 00:29:10.021], :millisecond)
       21
+      # to gregorian seconds
+      iex> NaiveDateTime.diff(~N[2014-10-02 00:29:10], ~N[0000-01-01 00:00:00])
+      63579428950
   """
   @spec diff(NaiveDateTime.t, NaiveDateTime.t, System.time_unit) :: integer
   def diff(%NaiveDateTime{} = naive_datetime_1,
