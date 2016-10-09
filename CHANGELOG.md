@@ -8,12 +8,17 @@
 
   * [Enum] Add `Enum.map_every/2` that invokes the given function with every nth item
   * [Enum] Add `min/2`, `max/2`, `min_max/2`, `min_by/3`, `max_by/3`, and `min_max_by/3` that allow a function specifying the default value when the enumerable is empty
+  * [Enum] Introduce `Enum.zip/1` to zip multiple entries at once
+  * [Float] Introduce `Float.ratio/1` that returns a tuple with the numerator and denominator to retrieve the given float
+  * [GenServer] Log error on default `handle_info/2` implementation
   * [Integer] `Integer.digits/2` now accepts negative integers
   * [Integer] Add `Integer.mod/2` and `Integer.floor_div/2`
   * [List] Add `List.pop_at/3`
   * [OptionParser] Expand multi-letter aliases in OptionParser
   * [Process] Add `Process.send_after/4`
+  * [Process] Improve error messages on `Process.register` errors
   * [Stream] Add `Stream.map_every/2` that invokes the given function with every nth item
+  * [Stream] Introduce `Stream.zip/1` to lazily zip multiple entries at once
   * [URI] Allow 0 as URI scheme default port
 
 #### ExUnit
@@ -31,19 +36,22 @@
 
 #### Mix
 
-  * [Mix] Add warning for invalid paths on `mix deps.clean`
   * [Mix] Provide "did you mean?" suggestions for `mix xref`
   * [Mix] Add the ability to specify one or more apps in `mix cmd`
   * [Mix] Compress archive files built by `mix archive` as they are now unzipped during installation
+  * [Mix] Check directory existence in `mix new` and ask how to proceed if one exists
+  * [Mix.Dep] Add warning for invalid paths on `mix deps.clean`
   * [Mix.Rebar] Add `MIX_REBAR` environment variable for overriding local rebar
 
 ### 2. Bug fixes
 
 #### Elixir
 
+  * [Float] Avoid multiple roundings in `Float.{ceil/2, floor/2, round/2}`
   * [Kernel] Don't crash in `macro_exported?/3` when dealing with Erlang modules
   * [Kernel.SpecialForms] Produce meaningful warning when with's else clauses have no effect
   * [Macro] Wrap fn calls in parens in `Macro.to_string/1`
+  * [Macro] Do not print aliases as keys inside keyword lists in `Macro.to_string/1`
   * [Stream] Ensure `Stream.take/2` does not consume next element on `:suspend`
   * [String] Fix infinite recursion in `String.replace_leading/3` and `String.replace_trailing/3` when given an empty string
   * [Task] Fix `Task.shutdown/1,2` infinite block when task has no monitor
@@ -54,7 +62,9 @@
 
 ### Mix
 
+  * [Mix.Dep] Use `gmake` on FreeBSD instead of `make` when compiling make dependencies
   * [Mix.Project] Only copy files from source when they're newer than destination (for Windows machines)
+  * [Mix.Task] Ensure non-recursive tasks inside umbrella are reenabled
 
 ### 3. Soft deprecations (no warnings emitted)
 
