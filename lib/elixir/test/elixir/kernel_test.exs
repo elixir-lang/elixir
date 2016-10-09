@@ -183,10 +183,24 @@ defmodule KernelTest do
   end
 
   test "in/2 in module body" do
-    defmodule In do
+    defmodule InSample do
       @foo [:a, :b]
       true = :a in @foo
     end
+  after
+    purge(InSample)
+  end
+
+  test "in/2 inside and/2" do
+    response = %{code: 200}
+    if is_map(response) and response.code in 200..299 do
+      :pass
+    end
+
+    # This module definition copies internal variable
+    # defined during in/2 expansion.
+    Module.create(InVarCopy, nil, __ENV__)
+    purge(InVarCopy)
   end
 
   test "in/2 with a non-literal non-escaped compile-time range in guards" do
@@ -840,8 +854,12 @@ defmodule KernelTest do
           """, [], __ENV__)
       end) == "B\nA\n"
     after
-      :code.purge(UseMacro.TestMod)
-      :code.delete(UseMacro.TestMod)
+      KernelTest.purge(UseMacro.TestMod)
     end
+  end
+
+  def purge(module) do
+    :code.delete(module)
+    :code.purge(module)
   end
 end
