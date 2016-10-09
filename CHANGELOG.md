@@ -268,6 +268,20 @@ end
 
 By restricting hierarchies in favor of named setups, it is straight-forward for the developer to glance at each describe block and know exactly the setup steps involved.
 
+## v1.3.4 (2016-10-09)
+
+### 1. Bug fixes
+
+#### Elixir
+
+  * [Kernel] Ensure the compiler does not generate unecessary variable bindings inside case statements. This improves the code emitted and make sure "unused variable warnings" are not mistakenly silenced
+  * [Kernel] Move `raise` checks to runtime to avoid crashing cover on Erlang 19.1
+  * [Protocol] Do not emit warnings when using protocols on opaque types
+
+#### ExUnit
+
+  * [ExUnit.CaptureLog] Flush Erlang's `:error_logger` before capturing to avoid mixed messages
+
 ## v1.3.3 (2016-09-17)
 
 ### 1. Enhancements
