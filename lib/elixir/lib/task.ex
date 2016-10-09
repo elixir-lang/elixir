@@ -400,9 +400,10 @@ defmodule Task do
   milliseconds, you should chain this together with `shutdown/1`, like so:
 
       case Task.yield(task, timeout) || Task.shutdown(task) do
-        {:ok, result} -> result
+        {:ok, result} ->
+          result
         nil ->
-          Logger.warn "Failed to get a result in #{timeout} ms
+          Logger.warn "Failed to get a result in #{timeout}ms"
           nil
       end
 
