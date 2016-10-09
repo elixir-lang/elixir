@@ -730,26 +730,46 @@ defmodule NaiveDateTime do
       iex> NaiveDateTime.add(~N[2014-10-02 00:29:10.021], 21, :milliseconds)
       ~N[2014-10-02 00:29:10.042]
   """
-  def add(%NaiveDateTime{calendar: Calendar.ISO, year: year, month: month,
-                         day: day, hour: hour, minute: minute, second: second,
-                         microsecond: {microsecond, _precision}},
-          integer, unit \\ :seconds) when is_integer(integer) do
-    ndt_seconds = :calendar.datetime_to_gregorian_seconds(
-        {{year, month, day}, {hour, minute, second}}
-    )
-    ndt_microseconds = ndt_seconds * 1_000_000 + microsecond
-
+  @spec add(NaiveDateTime.t, integer, System.time_unit) :: NaiveDateTime.t
+  def add(%NaiveDateTime{} = naive_datetime,
+          integer,
+          unit \\ :seconds) when is_integer(integer) do
+    ndt_microseconds = to_microseconds(naive_datetime)
     added_microseconds = System.convert_time_unit(integer, unit, :microseconds)
+    sum = ndt_microseconds + added_microseconds
 
-    added = ndt_microseconds + added_microseconds
-    new_microsecond = rem(added, 1_000_000)
-    new_precision =
-      if new_microsecond == 0, do: 0, else: Calendar.ISO.precision_for_unit(unit)
-    {{new_year, new_month, new_day}, {new_hour, new_minute, new_second}} =
-      added |> div(1_000_000) |> :calendar.gregorian_seconds_to_datetime
-    %NaiveDateTime{year: new_year, month: new_month, day: new_day,
-                   hour: new_hour, minute: new_minute, second: new_second,
-                   microsecond: {new_microsecond, new_precision}}
+    microsecond = rem(sum, 1_000_000)
+    precision =
+      if microsecond == 0, do: 0, else: Calendar.ISO.precision_for_unit(unit)
+    {{year, month, day}, {hour, minute, second}} =
+      sum |> div(1_000_000) |> :calendar.gregorian_seconds_to_datetime
+    %NaiveDateTime{year: year, month: month, day: day,
+                   hour: hour, minute: minute, second: second,
+                   microsecond: {microsecond, precision}}
+  end
+
+  @doc """
+  Subtract `naive_datetime_2` from `naive_datetime_1`.
+
+  The answer can be returned in any `unit` available from `System.time_unit`.
+
+  ## Examples
+
+      iex> NaiveDateTime.diff(~N[2014-10-02 00:29:12], ~N[2014-10-02 00:29:10])
+      2
+      iex> NaiveDateTime.diff(~N[2014-10-02 00:29:12], ~N[2014-10-02 00:29:10], :microsecond)
+      2_000_000
+      iex> NaiveDateTime.diff(~N[2014-10-02 00:29:10.042], ~N[2014-10-02 00:29:10.021], :millisecond)
+      21
+  """
+  @spec diff(NaiveDateTime.t, NaiveDateTime.t, System.time_unit) :: integer
+  def diff(%NaiveDateTime{} = naive_datetime_1,
+           %NaiveDateTime{} = naive_datetime_2,
+           unit \\ :seconds) do
+    ndt1_microseconds = to_microseconds(naive_datetime_1)
+    ndt2_microseconds = to_microseconds(naive_datetime_2)
+    difference = ndt1_microseconds - ndt2_microseconds
+    System.convert_time_unit(difference, :microsecond, unit)
   end
 
   @doc """
@@ -982,6 +1002,18 @@ defmodule NaiveDateTime do
       {:error, reason} ->
         raise ArgumentError, "cannot convert #{inspect tuple} to naive date time, reason: #{inspect reason}"
     end
+  end
+
+  ## Helpers
+
+  defp to_microseconds(%NaiveDateTime{calendar: Calendar.ISO, year: year,
+                                      month: month, day: day, hour: hour,
+                                      minute: minute, second: second,
+                                      microsecond: {microsecond, _precision}}) do
+    seconds = :calendar.datetime_to_gregorian_seconds(
+      {{year, month, day}, {hour, minute, second}}
+    )
+    seconds * 1_000_000 + microsecond
   end
 
   defimpl String.Chars do
