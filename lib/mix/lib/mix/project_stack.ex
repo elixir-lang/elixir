@@ -141,13 +141,14 @@ defmodule Mix.ProjectStack do
   end
 
   @doc """
-  Returns true if any of the projects in the stack is
-  recursing.
+  Returns the module that started the recursion.
+
+  Returns nil if not recursive.
   """
-  @spec recursing? :: boolean
-  def recursing? do
+  @spec recursing :: module | nil
+  def recursing do
     get fn %{stack: stack} ->
-      Enum.any? stack, & &1.recursing?
+      Enum.find_value stack, & &1.recursing? and &1.name
     end
   end
 

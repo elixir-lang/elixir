@@ -280,12 +280,12 @@ defmodule Mix.Task do
     recursive = recursive(module)
 
     cond do
-      recursive == true and Mix.Project.umbrella? ->
+      recursive && Mix.Project.umbrella? ->
         Mix.ProjectStack.recur fn ->
           recur(fn _ -> run(task, args) end)
         end
 
-      recursive == false and Mix.ProjectStack.recursing? ->
+      not recursive && Mix.ProjectStack.recursing() ->
         Mix.ProjectStack.root(fn -> run(task, args) end)
 
       true ->
@@ -362,15 +362,24 @@ defmodule Mix.Task do
   def reenable(task) when is_binary(task) or is_atom(task) do
     task = to_string(task)
     proj = Mix.Project.get
+    recursive = (module = get(task)) && recursive(module)
 
     Mix.TasksServer.delete_many([{:task, task, proj},
                                  {:alias, task, proj}])
 
-   _ = if (module = get(task)) && recursive(module) && Mix.Project.umbrella? do
-      recur fn proj ->
+    cond do
+      recursive && Mix.Project.umbrella? ->
+        recur fn proj ->
+          Mix.TasksServer.delete_many([{:task, task, proj},
+                                       {:alias, task, proj}])
+        end
+
+      proj = !recursive && Mix.ProjectStack.recursing() ->
         Mix.TasksServer.delete_many([{:task, task, proj},
                                      {:alias, task, proj}])
-      end
+
+      true ->
+        :ok
     end
 
     :ok
