@@ -9,13 +9,21 @@ defmodule Kernel.WarningTest do
   end
 
   test "unused variable" do
-    assert capture_err(fn ->
+    output = capture_err(fn ->
       Code.eval_string """
       defmodule Sample do
         def hello(arg), do: nil
+
+        if true do
+          user = :warning
+        else
+          :nothing
+        end
       end
       """
-    end) =~ "variable arg is unused"
+    end)
+    assert output =~ "variable arg is unused"
+    assert output =~ "variable user is unused"
   after
     purge Sample
   end
