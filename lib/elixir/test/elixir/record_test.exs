@@ -63,22 +63,22 @@ defmodule RecordTest do
     refute record?({})
   end
 
-  def is_record_in_guard(term) when Record.is_record(term),
+  def record_in_guard?(term) when Record.is_record(term),
     do: true
-  def is_record_in_guard(_),
+  def record_in_guard?(_),
     do: false
 
-  def is_record_in_guard(term, kind) when Record.is_record(term, kind),
+  def record_in_guard?(term, kind) when Record.is_record(term, kind),
     do: true
-  def is_record_in_guard(_, _),
+  def record_in_guard?(_, _),
     do: false
 
   test "is_record/1/2 (in guard)" do
-    assert is_record_in_guard({User, "john", 27})
-    refute is_record_in_guard({"user", "john", 27})
+    assert record_in_guard?({User, "john", 27})
+    refute record_in_guard?({"user", "john", 27})
 
-    assert is_record_in_guard({User, "john", 27}, User)
-    refute is_record_in_guard({"user", "john", 27}, "user")
+    assert record_in_guard?({User, "john", 27}, User)
+    refute record_in_guard?({"user", "john", 27}, "user")
   end
 
   Record.defrecord :timestamp, [:date, :time]

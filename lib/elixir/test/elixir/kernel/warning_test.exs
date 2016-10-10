@@ -343,8 +343,8 @@ defmodule Kernel.WarningTest do
   test "unused guard" do
     assert capture_err(fn ->
       Code.eval_string """
-      defmodule Sample1 do
-        def is_atom_case do
+      defmodule Sample do
+        def atom_case do
           v = "bc"
           case v do
             _ when is_atom(v) -> :ok
@@ -354,11 +354,15 @@ defmodule Kernel.WarningTest do
       end
       """
     end) =~ "this check/guard will always yield the same result"
+  after
+    purge Sample
+  end
 
+  test "previous clause always matches" do
     assert capture_err(fn ->
       Code.eval_string """
-      defmodule Sample2 do
-        def is_binary_cond do
+      defmodule Sample do
+        def binary_cond do
           v = "bc"
           cond do
             is_binary(v) -> :bin
@@ -369,7 +373,7 @@ defmodule Kernel.WarningTest do
       """
     end) =~ "this clause cannot match because a previous clause at line 5 always matches"
   after
-    purge [Sample1, Sample2]
+    purge Sample
   end
 
   test "empty clause" do
