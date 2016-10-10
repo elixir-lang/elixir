@@ -786,9 +786,16 @@ end
 defmodule File.Error do
   defexception [:reason, :path, action: ""]
 
-  def message(exception) do
-    formatted = IO.iodata_to_binary(:file.format_error(exception.reason))
-    "could not #{exception.action} #{inspect(exception.path)}: #{formatted}"
+  def message(%{action: action, reason: reason, path: path}) do
+    formatted =
+      case {action, reason} do
+        {"remove directory", :eexist} ->
+          "directory is not empty"
+        _ ->
+          IO.iodata_to_binary(:file.format_error(reason))
+      end
+
+    "could not #{action} #{inspect(path)}: #{formatted}"
   end
 end
 
