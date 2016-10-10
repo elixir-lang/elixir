@@ -101,7 +101,7 @@ spaces follow our [Code of Conduct][7].
 Once a pull request is sent, the Elixir team will review your changes.
 We outline our process below to clarify the roles of everyone involved.
 
-All pull requests must be approved by two comitters before being merged into
+All pull requests must be approved by two committers before being merged into
 the repository. In case any changes are necessary, the team will leave
 appropriate comments requesting changes to the code.
 
