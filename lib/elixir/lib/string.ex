@@ -174,7 +174,7 @@ defmodule String do
   In other words, this module expects invalid data to be detected
   elsewhere, usually when retrieving data from the external source.
   For example, a driver that reads strings from a database will be
-  responsible to check the validity of the encoding. `String.chunk/1`
+  responsible to check the validity of the encoding. `String.chunk/2`
   can be used for breaking a string into valid and invalid parts.
 
   ## Patterns

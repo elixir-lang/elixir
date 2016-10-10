@@ -234,14 +234,13 @@ defmodule Mix.Project do
   A `post_config` can be passed that will be merged into
   the project configuration.
 
-  `fun` is called with the `Mixfile` of the given project as
-  its argument. The return value of this function is the return
-  value of `fun`.
+  `fun` is called with the module name of the given `Mix.Project`.
+  The return value of this function is the return value of `fun`.
 
   ## Examples
 
-      Mix.Project.in_project :my_app, "/path/to/my_app", fn mixfile ->
-        "Mixfile is: #{inspect mixfile}"
+      Mix.Project.in_project :my_app, "/path/to/my_app", fn module ->
+        "Mixfile is: #{inspect module}"
       end
       #=> "Mixfile is: MyApp.Mixfile"
 

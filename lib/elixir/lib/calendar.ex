@@ -669,7 +669,7 @@ defmodule NaiveDateTime do
       iex> NaiveDateTime.from_unix(1432560368868569, :microsecond)
       {:ok, ~N[2015-05-25 13:26:08.868569]}
 
-  The unit can also be an integer as in `System.time_unit`:
+  The unit can also be an integer as in `t:System.time_unit/0`:
 
       iex> NaiveDateTime.from_unix(1432560368868569, 1024)
       {:ok, %NaiveDateTime{calendar: Calendar.ISO, day: 23, hour: 22, microsecond: {211914, 3},
@@ -1121,7 +1121,7 @@ defmodule DateTime do
                       month: 5, second: 8, std_offset: 0, time_zone: "Etc/UTC", utc_offset: 0,
                       year: 2015, zone_abbr: "UTC"}}
 
-  The unit can also be an integer as in `System.time_unit`:
+  The unit can also be an integer as in `t:System.time_unit/0`:
 
       iex> DateTime.from_unix(1432560368868569, 1024)
       {:ok, %DateTime{calendar: Calendar.ISO, day: 23, hour: 22, microsecond: {211914, 3}, minute: 53,

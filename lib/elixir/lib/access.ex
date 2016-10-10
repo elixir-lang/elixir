@@ -207,7 +207,7 @@ defmodule Access do
   `{value, new_term}` tuple where `value` is the value that was under `key` and
   `new_term` is `term` without `key`.
 
-  See the implementations for `Map.pop/2` or `Keyword.pop/2` for more examples.
+  See the implementations for `Map.pop/3` or `Keyword.pop/3` for more examples.
   """
   @callback pop(term :: t, key) :: {value, t}
 

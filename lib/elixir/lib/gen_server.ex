@@ -160,12 +160,12 @@ defmodule GenServer do
 
   Besides the synchronous and asynchronous communication provided by `call/3`
   and `cast/2`, "regular" messages sent by functions such `Kernel.send/2`,
-  `Process.send_after/3` and similar, can be handled inside the `handle_info/2`
+  `Process.send_after/4` and similar, can be handled inside the `handle_info/2`
   callback.
 
   `handle_info/2` can be used in many situations, such as handling monitor
-  DOWN messages sent by `Process.monitor/2`. Another use case for `handle_info/2`
-  is to perform periodic work, with the help of `Process.send_after/3`:
+  DOWN messages sent by `Process.monitor/1`. Another use case for `handle_info/2`
+  is to perform periodic work, with the help of `Process.send_after/4`:
 
       defmodule MyApp.Periodically do
         use GenServer
@@ -446,7 +446,7 @@ defmodule GenServer do
   exits. For such reasons, we usually recommend important clean-up rules to
   happen in separated processes either by use of monitoring or by links
   themselves. For example if the `GenServer` controls a `port` (e.g.
-  `:gen_tcp.socket`) or `File.io_device`, they will be closed on receiving a
+  `:gen_tcp.socket`) or `t:File.io_device/0`, they will be closed on receiving a
   `GenServer`'s exit signal and do not need to be closed in `terminate/2`.
 
   If `reason` is not `:normal`, `:shutdown` nor `{:shutdown, term}` an error is
@@ -483,7 +483,7 @@ defmodule GenServer do
 
   This callback can be useful to control the *appearance* of the status of the
   `GenServer`. For example, it can be used to return a compact representation of
-  the `GenServers`'s state to avoid having large state terms printed.
+  the `GenServer`'s state to avoid having large state terms printed.
 
     * one of `:sys.get_status/1` or `:sys.get_status/2` is invoked to get the
       status of the `GenServer`; in such cases, `reason` is `:normal`
