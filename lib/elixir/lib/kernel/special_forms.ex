@@ -7,10 +7,8 @@ defmodule Kernel.SpecialForms do
   `alias/2`, `case/2`, etc). The macros `{}` and `<<>>` are also special
   forms used to define tuple and binary data structures respectively.
 
-  This module also documents Elixir's pseudo variables (`__ENV__`,
-  `__MODULE__`, `__DIR__` and `__CALLER__`). Pseudo variables return
-  information about Elixir's compilation environment and can only
-  be read, never assigned to.
+  This module also documents macros that return information about Elixir's
+  compilation environment, such as (`__ENV__/0`, `__MODULE__/0`, `__DIR__/0` and `__CALLER__/0`).
 
   Finally, it also documents two special forms, `__block__/1` and
   `__aliases__/1`, which are not intended to be called directly by the
@@ -614,7 +612,7 @@ defmodule Kernel.SpecialForms do
   @doc """
   Returns the current module name as an atom or `nil` otherwise.
 
-  Although the module can be accessed in the `__ENV__`, this macro
+  Although the module can be accessed in the `__ENV__/0`, this macro
   is a convenient shortcut.
   """
   defmacro __MODULE__, do: error!([])
