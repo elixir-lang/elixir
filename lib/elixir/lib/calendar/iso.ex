@@ -164,8 +164,8 @@ defmodule Calendar.ISO do
 
   @doc false
   def precision_for_unit(unit) do
-    subseconds = div System.convert_time_unit(1, :second, unit), 10
-    precision_for_unit(subseconds, 0)
+    subsecond = div System.convert_time_unit(1, :second, unit), 10
+    precision_for_unit(subsecond, 0)
   end
 
   defp precision_for_unit(0, precision),
