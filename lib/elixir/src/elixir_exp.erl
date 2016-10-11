@@ -116,7 +116,7 @@ expand({import, Meta, [Ref, KV]}, E) ->
         ['Elixir.Macro':to_string(Ref)])
   end;
 
-%% Pseudo vars
+%% Compilation environment macros
 
 expand({'__MODULE__', _, Atom}, E) when is_atom(Atom) ->
   {?m(E, module), E};

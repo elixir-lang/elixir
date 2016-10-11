@@ -972,7 +972,7 @@ defmodule Macro do
 
     * Macros (local or remote)
     * Aliases are expanded (if possible) and return atoms
-    * Pseudo-variables (`__ENV__`, `__MODULE__` and `__DIR__`)
+    * Compilation environment macros (`__ENV__`, `__MODULE__` and `__DIR__`)
     * Module attributes reader (`@foo`)
 
   If the expression cannot be expanded, it returns the expression
@@ -1064,7 +1064,7 @@ defmodule Macro do
     end
   end
 
-  # Expand pseudo-variables
+  # Expand compilation environment macros
   defp do_expand_once({:__MODULE__, _, atom}, env) when is_atom(atom),
     do: {env.module, true}
   defp do_expand_once({:__DIR__, _, atom}, env) when is_atom(atom),

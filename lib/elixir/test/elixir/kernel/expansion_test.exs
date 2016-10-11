@@ -78,7 +78,7 @@ defmodule Kernel.ExpansionTest do
     assert env.vars == []
   end
 
-  ## Pseudo vars
+  ## Compilation environment macros
 
   test "__MODULE__" do
     assert expand(quote do: __MODULE__) == __MODULE__
