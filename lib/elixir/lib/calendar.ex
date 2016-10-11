@@ -16,6 +16,9 @@ defmodule Calendar do
   calendars may have a different number of days per month, months per year and so on.
   """
 
+  @typedoc "A calendar implementation"
+  @type calendar    :: module
+
   @type year        :: integer
   @type month       :: integer
   @type day         :: integer
@@ -35,20 +38,17 @@ defmodule Calendar do
   """
   @type microsecond :: {0..999_999, 0..6}
 
-  @typedoc "A calendar implementation"
-  @type calendar    :: module
+  @typedoc "The time zone standard offset in seconds (not zero in summer times)"
+  @type std_offset  :: integer
+
+  @typedoc "The time zone UTC offset in seconds"
+  @type utc_offset  :: integer
 
   @typedoc "The time zone ID according to the IANA tz database (e.g. Europe/Zurich)"
   @type time_zone   :: String.t
 
   @typedoc "The time zone abbreviation (e.g. CET or CEST or BST etc.)"
   @type zone_abbr   :: String.t
-
-  @typedoc "The time zone UTC offset in seconds"
-  @type utc_offset  :: integer
-
-  @typedoc "The time zone standard offset in seconds (not zero in summer times)"
-  @type std_offset  :: integer
 
   @doc """
   Builds a new date from proleptic year, month and day of month.
@@ -103,8 +103,8 @@ defmodule Date do
   @enforce_keys [:year, :month, :day]
   defstruct [:year, :month, :day, calendar: Calendar.ISO]
 
-  @type t :: %__MODULE__{year: Calendar.year, month: Calendar.month,
-                         day: Calendar.day, calendar: Calendar.calendar}
+  @type t :: %__MODULE__{calendar: Calendar.calendar,
+                         year: Calendar.year, month: Calendar.month, day: Calendar.day}
 
   @doc """
   Returns the current date in UTC.
@@ -622,8 +622,9 @@ defmodule NaiveDateTime do
   @enforce_keys [:year, :month, :day, :hour, :minute, :second]
   defstruct [:year, :month, :day, :hour, :minute, :second, microsecond: {0, 0}, calendar: Calendar.ISO]
 
-  @type t :: %__MODULE__{year: Calendar.year, month: Calendar.month, day: Calendar.day,
-                         calendar: Calendar.calendar, hour: Calendar.hour, minute: Calendar.minute,
+  @type t :: %__MODULE__{calendar: Calendar.calendar,
+                         year: Calendar.year, month: Calendar.month, day: Calendar.day,
+                         hour: Calendar.hour, minute: Calendar.minute,
                          second: Calendar.second, microsecond: Calendar.microsecond}
 
   @unix_epoch :calendar.datetime_to_gregorian_seconds {{1970, 1, 1}, {0, 0, 0}}
@@ -807,8 +808,8 @@ defmodule NaiveDateTime do
       ~D[2002-01-13]
 
   """
-  def to_date(%NaiveDateTime{year: year, month: month, day: day, calendar: calendar}) do
-    %Date{year: year, month: month, day: day, calendar: calendar}
+  def to_date(%NaiveDateTime{calendar: calendar, year: year, month: month, day: day}) do
+    %Date{calendar: calendar, year: year, month: month, day: day}
   end
 
   @doc """
@@ -1072,15 +1073,17 @@ defmodule DateTime do
   """
 
   @enforce_keys [:year, :month, :day, :hour, :minute, :second,
-                 :time_zone, :zone_abbr, :utc_offset, :std_offset]
-  defstruct [:year, :month, :day, :hour, :minute, :second, :time_zone,
-             :zone_abbr, :utc_offset, :std_offset, microsecond: {0, 0}, calendar: Calendar.ISO]
+                 :std_offset, :utc_offset, :time_zone, :zone_abbr]
+  defstruct [:year, :month, :day, :hour, :minute, :second,
+             :std_offset, :utc_offset, :time_zone, :zone_abbr,
+             calendar: Calendar.ISO, microsecond: {0, 0}]
 
-  @type t :: %__MODULE__{year: Calendar.year, month: Calendar.month, day: Calendar.day,
-                         calendar: Calendar.calendar, hour: Calendar.hour, minute: Calendar.minute,
+  @type t :: %__MODULE__{calendar: Calendar.calendar,
+                         year: Calendar.year, month: Calendar.month, day: Calendar.day,
+                         hour: Calendar.hour, minute: Calendar.minute,
                          second: Calendar.second, microsecond: Calendar.microsecond,
-                         time_zone: Calendar.time_zone, zone_abbr: Calendar.zone_abbr,
-                         utc_offset: Calendar.utc_offset, std_offset: Calendar.std_offset}
+                         std_offset: Calendar.std_offset, utc_offset: Calendar.utc_offset,
+                         time_zone: Calendar.time_zone, zone_abbr: Calendar.zone_abbr}
 
   @unix_epoch :calendar.datetime_to_gregorian_seconds {{1970, 1, 1}, {0, 0, 0}}
 
@@ -1144,7 +1147,7 @@ defmodule DateTime do
       {:ok, {year, month, day}, {hour, minute, second}, microsecond} ->
         {:ok, %DateTime{year: year, month: month, day: day,
                         hour: hour, minute: minute, second: second, microsecond: microsecond,
-                        std_offset: 0, utc_offset: 0, zone_abbr: "UTC", time_zone: "Etc/UTC"}}
+                        std_offset: 0, utc_offset: 0, time_zone: "Etc/UTC", zone_abbr: "UTC"}}
       {:error, _} = error ->
         error
     end
@@ -1270,9 +1273,10 @@ defmodule DateTime do
   @spec to_unix(DateTime.t, System.time_unit) :: non_neg_integer
   def to_unix(datetime, unit \\ :seconds)
 
-  def to_unix(%DateTime{calendar: Calendar.ISO, std_offset: std_offset, utc_offset: utc_offset,
+  def to_unix(%DateTime{calendar: Calendar.ISO,
+                        year: year, month: month, day: day,
                         hour: hour, minute: minute, second: second, microsecond: {microsecond, _},
-                        year: year, month: month, day: day}, unit) when year >= 0 do
+                        std_offset: std_offset, utc_offset: utc_offset}, unit) when year >= 0 do
     seconds =
       :calendar.datetime_to_gregorian_seconds({{year, month, day}, {hour, minute, second}})
       |> Kernel.-(utc_offset)
@@ -1295,9 +1299,9 @@ defmodule DateTime do
       ~N[2000-02-29 23:00:07.0]
 
   """
-  def to_naive(%DateTime{year: year, month: month, day: day, calendar: calendar,
+  def to_naive(%DateTime{calendar: calendar, year: year, month: month, day: day,
                          hour: hour, minute: minute, second: second, microsecond: microsecond}) do
-    %NaiveDateTime{year: year, month: month, day: day, calendar: calendar,
+    %NaiveDateTime{calendar: calendar, year: year, month: month, day: day,
                    hour: hour, minute: minute, second: second, microsecond: microsecond}
   end
 
@@ -1316,8 +1320,8 @@ defmodule DateTime do
       ~D[2000-02-29]
 
   """
-  def to_date(%DateTime{year: year, month: month, day: day, calendar: calendar}) do
-    %Date{year: year, month: month, day: day, calendar: calendar}
+  def to_date(%DateTime{calendar: calendar, year: year, month: month, day: day}) do
+    %Date{calendar: calendar, year: year, month: month, day: day}
   end
 
   @doc """
