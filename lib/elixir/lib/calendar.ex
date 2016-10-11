@@ -730,15 +730,19 @@ defmodule NaiveDateTime do
       # can work with other units
       iex> NaiveDateTime.add(~N[2014-10-02 00:29:10], 2_000, :milliseconds)
       ~N[2014-10-02 00:29:12]
-      # doesn't lose precision
-      iex> NaiveDateTime.add(~N[2014-10-02 00:29:10.021], 21, :milliseconds)
-      ~N[2014-10-02 00:29:10.042]
+      # keeps the same precision
+      iex> NaiveDateTime.add(~N[2014-10-02 00:29:10.021], 21, :seconds)
+      ~N[2014-10-02 00:29:31.021]
+      # changes below the precision will not be visible
+      iex> hidden = NaiveDateTime.add(~N[2014-10-02 00:29:10], 21, :milliseconds)
+      iex> hidden.microsecond  # ~N[2014-10-02 00:29:10]
+      {21000, 0}
       # from gregorian seconds
       iex> NaiveDateTime.add(~N[0000-01-01 00:00:00], 63579428950)
       ~N[2014-10-02 00:29:10]
   """
   @spec add(NaiveDateTime.t, integer, System.time_unit) :: NaiveDateTime.t
-  def add(%NaiveDateTime{} = naive_datetime,
+  def add(%NaiveDateTime{microsecond: {_microsecond, precision}} = naive_datetime,
           integer,
           unit \\ :seconds) when is_integer(integer) do
     ndt_microseconds = to_microseconds(naive_datetime)
@@ -746,8 +750,6 @@ defmodule NaiveDateTime do
     sum = ndt_microseconds + added_microseconds
 
     microsecond = rem(sum, 1_000_000)
-    precision =
-      if microsecond == 0, do: 0, else: Calendar.ISO.precision_for_unit(unit)
     {{year, month, day}, {hour, minute, second}} =
       sum |> div(1_000_000) |> :calendar.gregorian_seconds_to_datetime
     %NaiveDateTime{year: year, month: month, day: day,
