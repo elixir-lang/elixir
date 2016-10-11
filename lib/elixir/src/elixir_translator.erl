@@ -53,7 +53,7 @@ translate({{'.', _, [erlang, 'orelse']}, Meta, [Left, Right]}, S) ->
 translate({Lexical, _, [Module, _]}, S) when Lexical == import; Lexical == alias; Lexical == require ->
   {{atom, 0, Module}, S};
 
-%% Pseudo variables
+%% Compilation environment macros
 
 translate({'__CALLER__', Meta, Atom}, S) when is_atom(Atom) ->
   {{var, ?ann(Meta), '__CALLER__'}, S#elixir_scope{caller=true}};
