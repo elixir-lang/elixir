@@ -12,8 +12,8 @@ defmodule Kernel.SpecialForms do
   information about Elixir's compilation environment and can only
   be read, never assigned to.
 
-  Finally, it also documents two special forms, `__block__` and
-  `__aliases__`, which are not intended to be called directly by the
+  Finally, it also documents two special forms, `__block__/1` and
+  `__aliases__/1`, which are not intended to be called directly by the
   developer but they appear in quoted contents since they are essential
   in Elixir's constructs.
   """
@@ -399,7 +399,7 @@ defmodule Kernel.SpecialForms do
       ...> end
       {:__aliases__, [alias: false], [:Hello, :World]}
 
-  We go into more details about aliases in the `__aliases__` special form
+  We go into more details about aliases in the `__aliases__/1` special form
   documentation.
 
   ## Unquoting
