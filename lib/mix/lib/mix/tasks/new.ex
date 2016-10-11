@@ -89,11 +89,10 @@ defmodule Mix.Tasks.New do
     create_file "config/config.exs", config_template(assigns)
 
     create_directory "lib"
+    create_file "lib/#{app}.ex", lib_template(assigns)
 
     if opts[:sup] do
-      create_file "lib/#{app}.ex", lib_sup_template(assigns)
-    else
-      create_file "lib/#{app}.ex", lib_template(assigns)
+      create_file "lib/#{app}/application.ex", lib_app_template(assigns)
     end
 
     create_directory "test"
@@ -119,7 +118,7 @@ defmodule Mix.Tasks.New do
   end
 
   defp otp_app(mod, true) do
-    "    [applications: [:logger],\n     mod: {#{mod}, []}]"
+    "    [applications: [:logger],\n     mod: {#{mod}.Application, []}]"
   end
 
   defp generate_umbrella(_app, mod, path, _opts) do
@@ -231,8 +230,9 @@ defmodule Mix.Tasks.New do
       end
       ```
 
-  If [published on HexDocs](https://hex.pm/docs/tasks#hex_docs), the docs can
-  be found at [https://hexdocs.pm/<%= @app %>](https://hexdocs.pm/<%= @app %>)
+  Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
+  and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
+  be found at [https://hexdocs.pm/<%= @app %>](https://hexdocs.pm/<%= @app %>).
   <% end %>
   """
 
@@ -421,15 +421,33 @@ defmodule Mix.Tasks.New do
 
   embed_template :lib, """
   defmodule <%= @mod %> do
+    @moduledoc \"""
+    Documentation for <%= @mod %>.
+    \"""
+
+    @doc \"""
+    Hello world.
+
+    ## Examples
+
+        iex> <%= @mod %>.hello
+        :world
+
+    \"""
+    def hello do
+      :world
+    end
   end
   """
 
-  embed_template :lib_sup, """
-  defmodule <%= @mod %> do
-    use Application
-
+  embed_template :lib_app, """
+  defmodule <%= @mod %>.Application do
     # See http://elixir-lang.org/docs/stable/elixir/Application.html
     # for more information on OTP Applications
+    @moduledoc false
+
+    use Application
+
     def start(_type, _args) do
       import Supervisor.Spec, warn: false
 

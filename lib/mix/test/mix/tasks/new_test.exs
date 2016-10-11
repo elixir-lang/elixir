@@ -32,7 +32,7 @@ defmodule Mix.Tasks.NewTest do
       assert_file "hello_world/mix.exs", fn(file) ->
         assert file =~ "app: :hello_world"
         assert file =~ "version: \"0.1.0\""
-        assert file =~ "mod: {HelloWorld, []}"
+        assert file =~ "mod: {HelloWorld.Application, []}"
       end
 
       assert_file "hello_world/README.md", ~r/# HelloWorld\n/
@@ -40,6 +40,11 @@ defmodule Mix.Tasks.NewTest do
 
       assert_file "hello_world/lib/hello_world.ex", fn(file) ->
         assert file =~ "defmodule HelloWorld do"
+        assert file =~ "def hello do"
+      end
+
+      assert_file "hello_world/lib/hello_world/application.ex", fn(file) ->
+        assert file =~ "defmodule HelloWorld.Application do"
         assert file =~ "use Application"
         assert file =~ "Supervisor.start_link(children, opts)"
       end
