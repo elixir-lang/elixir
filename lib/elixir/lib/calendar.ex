@@ -1116,7 +1116,7 @@ defmodule DateTime do
                       month: 5, second: 8, std_offset: 0, time_zone: "Etc/UTC", utc_offset: 0,
                       year: 2016, zone_abbr: "UTC"}}
 
-      iex> DateTime.from_unix(1432560368868569, :microseconds)
+      iex> DateTime.from_unix(1432560368868569, :microsecond)
       {:ok, %DateTime{calendar: Calendar.ISO, day: 25, hour: 13, microsecond: {868569, 6}, minute: 26,
                       month: 5, second: 8, std_offset: 0, time_zone: "Etc/UTC", utc_offset: 0,
                       year: 2015, zone_abbr: "UTC"}}
@@ -1139,7 +1139,7 @@ defmodule DateTime do
   When a Unix time before that moment is passed to `from_unix/2`, `:error` will be returned.
   """
   @spec from_unix(integer, :native | System.time_unit) :: {:ok, DateTime.t} | {:error, atom}
-  def from_unix(integer, unit \\ :seconds) when is_integer(integer) do
+  def from_unix(integer, unit \\ :second) when is_integer(integer) do
     case Calendar.ISO.from_unix(integer, unit) do
       {:ok, {year, month, day}, {hour, minute, second}, microsecond} ->
         {:ok, %DateTime{year: year, month: month, day: day,
@@ -1167,7 +1167,7 @@ defmodule DateTime do
                 month: 5, second: 8, std_offset: 0, time_zone: "Etc/UTC", utc_offset: 0,
                 year: 2016, zone_abbr: "UTC"}
 
-      iex> DateTime.from_unix!(1432560368868569, :microseconds)
+      iex> DateTime.from_unix!(1432560368868569, :microsecond)
       %DateTime{calendar: Calendar.ISO, day: 25, hour: 13, microsecond: {868569, 6}, minute: 26,
                 month: 5, second: 8, std_offset: 0, time_zone: "Etc/UTC", utc_offset: 0,
                 year: 2015, zone_abbr: "UTC"}
@@ -1183,7 +1183,7 @@ defmodule DateTime do
   When a Unix time before that moment is passed to `from_unix!/2`, an ArgumentError will be raised.
   """
   @spec from_unix!(non_neg_integer, :native | System.time_unit) :: DateTime.t
-  def from_unix!(integer, unit \\ :seconds) when is_atom(unit) do
+  def from_unix!(integer, unit \\ :second) when is_atom(unit) do
     case from_unix(integer, unit) do
       {:ok, datetime} ->
         datetime
@@ -1268,7 +1268,7 @@ defmodule DateTime do
 
   """
   @spec to_unix(DateTime.t, System.time_unit) :: non_neg_integer
-  def to_unix(datetime, unit \\ :seconds)
+  def to_unix(datetime, unit \\ :second)
 
   def to_unix(%DateTime{calendar: Calendar.ISO, std_offset: std_offset, utc_offset: utc_offset,
                         hour: hour, minute: minute, second: second, microsecond: {microsecond, _},
@@ -1277,7 +1277,7 @@ defmodule DateTime do
       :calendar.datetime_to_gregorian_seconds({{year, month, day}, {hour, minute, second}})
       |> Kernel.-(utc_offset)
       |> Kernel.-(std_offset)
-    System.convert_time_unit((seconds - @unix_epoch) * 1_000_000 + microsecond, :microseconds, unit)
+    System.convert_time_unit((seconds - @unix_epoch) * 1_000_000 + microsecond, :microsecond, unit)
   end
 
   @doc """
