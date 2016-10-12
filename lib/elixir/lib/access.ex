@@ -136,7 +136,7 @@ defmodule Access do
 
   """
 
-  @type t :: list | map | nil
+  @type t :: list | map | nil | any
   @type key :: any
   @type value :: any
 
