@@ -82,7 +82,7 @@ defmodule GenServer do
       for keeping the list of names of processes and their  associated PIDs
       that are available globally for a network of Erlang nodes.
 
-  For example, we could start and register our Stack server locally as follows:
+  For example, we could start and register our `Stack` server locally as follows:
 
       # Start the server and register it locally with name MyStack
       {:ok, _} = GenServer.start_link(Stack, [:hello], name: MyStack)
