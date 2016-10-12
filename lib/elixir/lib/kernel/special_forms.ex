@@ -1042,7 +1042,7 @@ defmodule Kernel.SpecialForms do
   Calling this new `return_length` will still return 3 as result.
 
   Elixir is smart enough to delay the resolution to the latest
-  moment possible. So, if you call `length([1, 2, 3])` inside quote,
+  possible moment. So, if you call `length([1, 2, 3])` inside quote,
   but no `length/1` function is available, it is then expanded in
   the caller:
 
