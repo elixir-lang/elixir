@@ -70,7 +70,7 @@ defmodule ExUnit.CaptureIO do
   As seen in the examples above, `capture_io` returns the captured output.
   If you want to also capture the result of the function executed inside
   the `capture_io`, you can use `Kernel.send/2` to send yourself a message
-  and use `ExUnit.Assertions.assert_received/1` to match on the results:
+  and use `ExUnit.Assertions.assert_received/2` to match on the results:
 
       capture_io([input: "this is input", capture_prompt: false], fn ->
         send self(), {:block_result, 42}

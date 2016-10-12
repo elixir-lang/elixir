@@ -438,7 +438,7 @@ defmodule ExUnit.Case do
 
   The attribute values will be available as a key/value pair in
   `context.registered`. The key/value pairs will be cleared
-  after each `ExUnit.Case.test` similar to `@tag`.
+  after each `ExUnit.Case.test/3` similar to `@tag`.
 
   `Module.register_attribute/3` is used to register the attribute,
   this function takes the same options.

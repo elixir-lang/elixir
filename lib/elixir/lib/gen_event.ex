@@ -254,7 +254,7 @@ defmodule GenEvent do
   Care should be taken to cleanup because the `GenEvent` can continue to loop
   after removing the handler. This is different to most other OTP behaviours.
   For example if the handler controls a `port` (e.g. `:gen_tcp.socket`) or
-  `File.io_device`, it will be need to be closed in `terminate/2` as the
+  `t:File.io_device/0`, it will be need to be closed in `terminate/2` as the
   process is not exiting so will not be automatically cleaned up.
   """
   @callback terminate(reason, state :: term) ::
