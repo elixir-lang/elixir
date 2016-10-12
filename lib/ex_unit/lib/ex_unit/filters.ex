@@ -82,10 +82,12 @@ defmodule ExUnit.Filters do
   """
   @spec eval(t, t, map, [ExUnit.Test.t]) :: :ok | {:error, binary}
   def eval(include, exclude, tags, collection) when is_map(tags) do
+    skip? = not Enum.any?(include, &has_tag(&1, %{skip: true}, collection))
+
     case Map.fetch(tags, :skip) do
-      {:ok, msg} when is_binary(msg) ->
+      {:ok, msg} when is_binary(msg) and skip? ->
         {:error, msg}
-      {:ok, true} ->
+      {:ok, true} when skip? ->
         {:error, "due to skip tag"}
       _ ->
         excluded = Enum.find_value exclude, &has_tag(&1, tags, collection)
@@ -97,7 +99,7 @@ defmodule ExUnit.Filters do
     end
   end
 
-  defp has_tag({:line, line}, tags, collection) do
+  defp has_tag({:line, line}, %{line: _} = tags, collection) do
     line = to_integer(line)
     tags.line <= line and
       closest_test_before_line(line, collection).tags.line == tags.line
