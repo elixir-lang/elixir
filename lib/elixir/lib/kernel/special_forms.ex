@@ -7,13 +7,11 @@ defmodule Kernel.SpecialForms do
   `alias/2`, `case/2`, etc). The macros `{}` and `<<>>` are also special
   forms used to define tuple and binary data structures respectively.
 
-  This module also documents Elixir's pseudo variables (`__ENV__`,
-  `__MODULE__`, `__DIR__` and `__CALLER__`). Pseudo variables return
-  information about Elixir's compilation environment and can only
-  be read, never assigned to.
+  This module also documents macros that return information about Elixir's
+  compilation environment, such as (`__ENV__/0`, `__MODULE__/0`, `__DIR__/0` and `__CALLER__/0`).
 
-  Finally, it also documents two special forms, `__block__` and
-  `__aliases__`, which are not intended to be called directly by the
+  Finally, it also documents two special forms, `__block__/1` and
+  `__aliases__/1`, which are not intended to be called directly by the
   developer but they appear in quoted contents since they are essential
   in Elixir's constructs.
   """
@@ -357,7 +355,7 @@ defmodule Kernel.SpecialForms do
       iex> Kernel.'+'(1, 2)
       3
 
-  Note that `Kernel."HELLO"` will be treated as a remote call and not an alias.
+  Note that `Kernel."FUNCTION_NAME"` will be treated as a remote call and not an alias.
   This choice was done so every time single- or double-quotes are used, we have
   a remote call regardless of the quote contents. This decision is also reflected
   in the quoted expressions discussed below.
@@ -399,7 +397,7 @@ defmodule Kernel.SpecialForms do
       ...> end
       {:__aliases__, [alias: false], [:Hello, :World]}
 
-  We go into more details about aliases in the `__aliases__` special form
+  We go into more details about aliases in the `__aliases__/1` special form
   documentation.
 
   ## Unquoting
@@ -412,7 +410,7 @@ defmodule Kernel.SpecialForms do
       ...> end
       {{:., [], [{:__aliases__, [alias: false], [:String]}, :downcase]}, [], ["FOO"]}
 
-  Similar to `Kernel."HELLO"`, `unquote(x)` will always generate a remote call,
+  Similar to `Kernel."FUNCTION_NAME"`, `unquote(x)` will always generate a remote call,
   independent of the value of `x`. To generate an alias via the quoted expression,
   one needs to rely on `Module.concat/2`:
 
@@ -614,7 +612,7 @@ defmodule Kernel.SpecialForms do
   @doc """
   Returns the current module name as an atom or `nil` otherwise.
 
-  Although the module can be accessed in the `__ENV__`, this macro
+  Although the module can be accessed in the `__ENV__/0`, this macro
   is a convenient shortcut.
   """
   defmacro __MODULE__, do: error!([])
