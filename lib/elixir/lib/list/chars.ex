@@ -6,7 +6,7 @@ defprotocol List.Chars do
   `to_charlist` which does the conversion.
 
   The `to_charlist` function automatically imported
-  by Kernel invokes this protocol.
+  by `Kernel` invokes this protocol.
   """
 
   def to_charlist(term)

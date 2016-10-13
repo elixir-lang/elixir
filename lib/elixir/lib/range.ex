@@ -11,7 +11,7 @@ defmodule Range do
 
   A Range is represented internally as a struct. However,
   the most common form of creating and matching on ranges
-  is via the `../2` macro, auto-imported from Kernel:
+  is via the `../2` macro, auto-imported from `Kernel`:
 
       iex> range = 1..3
       1..3
