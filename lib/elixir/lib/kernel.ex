@@ -3927,8 +3927,8 @@ defmodule Kernel do
 
   In case you want to provide some existing functionality to the user module,
   please define it in a module which will be imported accordingly; for example,
-  `ExUnit.Case` doesn't define the `test/2` macro in the module that calls
-  `use ExUnit.Case`, but it defines `ExUnit.Case.test/2` and just imports that
+  `ExUnit.Case` doesn't define the `test/3` macro in the module that calls
+  `use ExUnit.Case`, but it defines `ExUnit.Case.test/3` and just imports that
   into the caller when used.
   """
   defmacro use(module, opts \\ []) do
