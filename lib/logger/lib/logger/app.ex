@@ -26,7 +26,7 @@ defmodule Logger.App do
     case Supervisor.start_link(children, options) do
       {:ok, sup} ->
         handlers = [error_logger_tty_h: otp_reports?,
-                    sasl_logger_tty_h: sasl_reports?]
+                    sasl_report_tty_h: sasl_reports?]
         delete_handlers(handlers)
         {:ok, sup, config}
       {:error, _} = error ->
