@@ -732,6 +732,36 @@ defmodule List do
     end
   end
 
+  @doc"""
+  Returns true if given data is in given list.
+
+  ## Examples
+
+  iex> List.include?([1, 2, 3, 4, 5], 3)
+  true
+
+  iex> List.include?([1, 2, 3, 4, 5], 0)
+  false
+
+  iex> List.include?([foo: "bar", fu: "baz"], {:foo, "bar"})
+  true
+
+  iex> List.include?([foo: "bar", fu: "baz"], {:qux, "norf"})
+  false
+  """
+
+  @spec include?(list, any) :: boolean
+  def include?([] = list, _data) when is_list(list) do
+    false
+  end
+
+  def include?([h|t] = list, data) when is_list(list) do
+    cond do
+      h === data -> true
+      true -> include?(t, data)
+    end
+  end
+
   ## Helpers
 
   # replace_at
