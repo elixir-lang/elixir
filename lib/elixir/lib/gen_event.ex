@@ -60,7 +60,7 @@ defmodule GenEvent do
 
   We start a new event manager by calling `GenEvent.start_link/1`.
   Notifications can be sent to the event manager which will then
-  invoke `handle_event/2` for each registered handler.
+  invoke `c:handle_event/2` for each registered handler.
 
   We can add new handlers with `add_handler/3` and `add_mon_handler/3`.
   Calls can also be made to specific handlers by using `call/3`.
@@ -144,7 +144,7 @@ defmodule GenEvent do
 
   Returning `{:ok, state, :hibernate}` is similar to
   `{:ok, state}` except the `GenEvent` process is hibernated before continuing
-  its loop. See `handle_event/2` for more information on hibernation.
+  its loop. See `c:handle_event/2` for more information on hibernation.
 
   Returning `{:error, reason}` will cause `add_handler/3` to return
   `{:error, reason}` and the handler is not added to `GenEvent` loop.
@@ -175,7 +175,7 @@ defmodule GenEvent do
   beneficial.
 
   Returning `:remove_handler` removes the handler from the `GenEvent` loop and
-  calls `terminate/2` with reason `:remove_handler` and state `state`.
+  calls `c:terminate/2` with reason `:remove_handler` and state `state`.
   """
   @callback handle_event(event :: term, state :: term) ::
     {:ok, new_state} |
@@ -193,10 +193,10 @@ defmodule GenEvent do
 
   Returning `{:ok, reply, new_state, :hibernate}` is similar to
   `{:ok, reply, new_state}` except the process is hibernated. See
-  `handle_event/2` for more information on hibernation.
+  `c:handle_event/2` for more information on hibernation.
 
   Returning `{:remove_handler, reply}` sends `reply` as a response to the call,
-  removes the handler from the `GenEvent` loop and calls `terminate/2` with
+  removes the handler from the `GenEvent` loop and calls `c:terminate/2` with
   reason `:remove_handler` and state `state`.
   """
 
@@ -212,7 +212,7 @@ defmodule GenEvent do
 
   `msg` is the message and `state` is the current state of the handler.
 
-  Return values are the same as `handle_event/2`.
+  Return values are the same as `c:handle_event/2`.
   """
   @callback handle_info(msg :: term, state :: term) ::
     {:ok, new_state} |
@@ -238,23 +238,23 @@ defmodule GenEvent do
   If part of a supervision tree, a `GenEvent`'s `Supervisor` will send an exit
   signal when shutting it down. The exit signal is based on the shutdown
   strategy in the child's specification. If it is `:brutal_kill` the `GenEvent`
-  is killed and so `terminate/2` is not called for its handlers. However if it is
+  is killed and so `c:terminate/2` is not called for its handlers. However if it is
   a timeout the `Supervisor` will send the exit signal `:shutdown` and the
-  `GenEvent` will have the duration of the timeout to call `terminate/2` on all
+  `GenEvent` will have the duration of the timeout to call `c:terminate/2` on all
   of its handlers - if the process is still alive after the timeout it is
   killed.
 
   If the `GenEvent` receives an exit signal (that is not `:normal`) from any
   process when it is not trapping exits it will exit abruptly with the same
-  reason and so not call the handlers' `terminate/2`. Note that a process does
+  reason and so not call the handlers' `c:terminate/2`. Note that a process does
   *NOT* trap exits by default and an exit signal is sent when a linked process
   exits or its node is disconnected. Therefore it is not guaranteed that
-  `terminate/2` is called when a `GenEvent` exits.
+  `c:terminate/2` is called when a `GenEvent` exits.
 
   Care should be taken to cleanup because the `GenEvent` can continue to loop
   after removing the handler. This is different to most other OTP behaviours.
   For example if the handler controls a `port` (e.g. `:gen_tcp.socket`) or
-  `t:File.io_device/0`, it will be need to be closed in `terminate/2` as the
+  `t:File.io_device/0`, it will be need to be closed in `c:terminate/2` as the
   process is not exiting so will not be automatically cleaned up.
   """
   @callback terminate(reason, state :: term) ::
@@ -273,7 +273,7 @@ defmodule GenEvent do
   Returning `{:ok, new_state}` changes the state to `new_state` and the code
   change is successful.
 
-  If `code_change/3` raises, the code change fails and the handler will continue
+  If `c:code_change/3` raises, the code change fails and the handler will continue
   with its previous state. Therefore this callback does not usually contain side
   effects.
   """
@@ -423,10 +423,10 @@ defmodule GenEvent do
   @doc """
   Adds a new event handler to the event `manager`.
 
-  The event manager will call the `init/1` callback with `args` to
+  The event manager will call the `c:init/1` callback with `args` to
   initiate the event handler and its internal state.
 
-  If `init/1` returns a correct value indicating successful completion,
+  If `c:init/1` returns a correct value indicating successful completion,
   the event manager adds the event handler and this function returns
   `:ok`. If the callback fails with `reason` or returns `{:error, reason}`,
   the event handler is ignored and this function returns `{:error, reason}`.
@@ -454,7 +454,7 @@ defmodule GenEvent do
   by the GenEvent manager.
 
   If the calling process later terminates with `reason`, the event manager
-  will delete the event handler by calling the `terminate/2` callback with
+  will delete the event handler by calling the `c:terminate/2` callback with
   `{:stop, reason}` as argument. If the event handler later is deleted,
   the event manager sends a message `{:gen_event_EXIT, handler, reason}`
   to the calling process. Reason is one of the following:
@@ -491,7 +491,7 @@ defmodule GenEvent do
   @doc """
   Sends an event notification to the event `manager`.
 
-  The event manager will call `handle_event/2` for each
+  The event manager will call `c:handle_event/2` for each
   installed event handler.
 
   `notify` is asynchronous and will return immediately after the
@@ -528,7 +528,7 @@ defmodule GenEvent do
   Sends a sync event notification to the event `manager`.
 
   In other words, this function only returns `:ok` after the event manager
-  invokes the `handle_event/2` callback on each installed event handler.
+  invokes the `c:handle_event/2` callback on each installed event handler.
 
   See `notify/2` for more info.
   """
@@ -556,10 +556,10 @@ defmodule GenEvent do
   Makes a synchronous call to the event `handler` installed in `manager`.
 
   The given `request` is sent and the caller waits until a reply arrives or
-  a timeout occurs. The event manager will call `handle_call/2` to handle
+  a timeout occurs. The event manager will call `c:handle_call/2` to handle
   the request.
 
-  The return value `reply` is defined in the return value of `handle_call/2`.
+  The return value `reply` is defined in the return value of `c:handle_call/2`.
   If the specified event handler is not installed, the function returns
   `{:error, :not_found}`.
   """
@@ -578,7 +578,7 @@ defmodule GenEvent do
   @doc """
   Removes an event handler from the event `manager`.
 
-  The event manager will call `terminate/2` to terminate the event handler
+  The event manager will call `c:terminate/2` to terminate the event handler
   and return the callback value. If the specified event handler is not
   installed, the function returns `{:error, :not_found}`.
   """
@@ -590,17 +590,17 @@ defmodule GenEvent do
   @doc """
   Replaces an old event handler with a new one in the event `manager`.
 
-  First, the old event handler is deleted by calling `terminate/2` with
+  First, the old event handler is deleted by calling `c:terminate/2` with
   the given `args1` and collects the return value. Then the new event handler
   is added and initiated by calling `init({args2, term})`, where `term` is the
-  return value of calling `terminate/2` in the old handler. This makes it
+  return value of calling `c:terminate/2` in the old handler. This makes it
   possible to transfer information from one handler to another.
 
   The new handler will be added even if the specified old event handler
   is not installed or if the handler fails to terminate with a given reason
   in which case `state = {:error, term}`.
 
-  If `init/1` in the second handler returns a correct value, this
+  If `c:init/1` in the second handler returns a correct value, this
   function returns `:ok`.
   """
   @spec swap_handler(manager, handler, term, handler, term) :: :ok | {:error, term}
