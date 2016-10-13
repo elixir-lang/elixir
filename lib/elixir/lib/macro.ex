@@ -231,7 +231,7 @@ defmodule Macro do
 
   In order to build a variable, a context is expected.
   Most of the times, in order to preserve hygiene, the
-  context must be `__MODULE__`:
+  context must be `__MODULE__/0`:
 
       iex> Macro.var(:foo, __MODULE__)
       {:foo, [], __MODULE__}
@@ -972,7 +972,7 @@ defmodule Macro do
 
     * Macros (local or remote)
     * Aliases are expanded (if possible) and return atoms
-    * Compilation environment macros (`__ENV__`, `__MODULE__` and `__DIR__`)
+    * Compilation environment macros (`__ENV__/0`, `__MODULE__/0` and `__DIR__/0`)
     * Module attributes reader (`@foo`)
 
   If the expression cannot be expanded, it returns the expression

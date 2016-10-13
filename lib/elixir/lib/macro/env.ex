@@ -3,8 +3,8 @@ defmodule Macro.Env do
   A struct that holds compile time environment information.
 
   The current environment can be accessed at any time as
-  `__ENV__`. Inside macros, the caller environment can be
-  accessed as `__CALLER__`.
+  `__ENV__/0`. Inside macros, the caller environment can be
+  accessed as `__CALLER__/0`.
 
   An instance of `Macro.Env` must not be modified by hand. If you need to
   create a custom environment to pass to `Code.eval_quoted/3`, use the

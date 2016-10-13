@@ -50,8 +50,8 @@
   * [Float] Avoid multiple roundings in `Float.{ceil/2, floor/2, round/2}`
   * [Kernel] Don't crash in `macro_exported?/3` when dealing with Erlang modules
   * [Kernel.SpecialForms] Produce meaningful warning when with's else clauses have no effect
-  * [Macro] Wrap fn calls in parens in `Macro.to_string/1`
-  * [Macro] Do not print aliases as keys inside keyword lists in `Macro.to_string/1`
+  * [Macro] Wrap fn calls in parens in `Macro.to_string/2`
+  * [Macro] Do not print aliases as keys inside keyword lists in `Macro.to_string/2`
   * [Stream] Ensure `Stream.take/2` does not consume next element on `:suspend`
   * [String] Fix infinite recursion in `String.replace_leading/3` and `String.replace_trailing/3` when given an empty string
   * [Task] Fix `Task.shutdown/1,2` infinite block when task has no monitor

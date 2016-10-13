@@ -1027,8 +1027,8 @@ defmodule Kernel.SpecialForms do
 
       Hygiene.return_length #=> 3
 
-  Notice how `return_length` returns 3 even though the `length/1`
-  function is not imported. In fact, even if `return_length`
+  Notice how `Hygiene.return_length/0` returns `3` even though the `Kernel.length/1`
+  function is not imported. In fact, even if `return_length/0`
   imported a function with the same name and arity from another
   module, it wouldn't affect the function result:
 
@@ -1037,7 +1037,7 @@ defmodule Kernel.SpecialForms do
         get_length
       end
 
-  Calling this new `return_length` will still return 3 as result.
+  Calling this new `return_length/0` will still return `3` as result.
 
   Elixir is smart enough to delay the resolution to the latest
   possible moment. So, if you call `length([1, 2, 3])` inside quote,

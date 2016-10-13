@@ -100,7 +100,7 @@ defmodule Inspect.Algebra do
 
   The functions `nest/2`, `space/2` and `line/2` help you put the
   document together into a rigid structure. However, the document
-  algebra gets interesting when using functions like `break/2`, which
+  algebra gets interesting when using functions like `break/1`, which
   converts the given string into a line break depending on how much space
   there is to print. Let's glue two docs together with a break and then
   render it:
