@@ -145,9 +145,9 @@ defmodule Mix.Tasks.Test do
       test_coverage: [tool: CoverModule]
 
   `CoverModule` can be any module that exports `start/2`, receiving the
-  compilation path and the `test_coverage` options as arguments. It must
-  return an anonymous function of zero arity that will be run after the
-  test suite is done or `nil`.
+  compilation path and the `test_coverage` options as arguments.
+  It must return either `nil` or an anonymous function of zero arity that will
+  be run after the test suite is done.
 
   ## "Stale"
 
