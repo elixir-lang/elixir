@@ -643,7 +643,11 @@ defmodule NaiveDateTime do
   """
   @spec utc_now() :: NaiveDateTime.t
   def utc_now() do
-    :os.system_time |> from_unix!(:native)
+    {:ok, {year, month, day}, {hour, minute, second}, microsecond} =
+      Calendar.ISO.from_unix(:os.system_time, :native)
+    %NaiveDateTime{year: year, month: month, day: day,
+                   hour: hour, minute: minute, second: second, 
+                   microsecond: microsecond}
   end
 
   @doc """
