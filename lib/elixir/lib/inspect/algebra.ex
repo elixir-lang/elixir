@@ -42,6 +42,9 @@ defmodule Inspect.Opts do
       is useful when debugging failures and crashes for custom inspect
       implementations
 
+    * `:label` - The output can be decorated with a label to easily distinguish
+      it from other `IO.inspect/2` calls. The label will be printed before the
+      inspected `item`.
   """
 
   # TODO: Deprecate char_lists key by v1.5
@@ -53,7 +56,8 @@ defmodule Inspect.Opts do
             width: 80,
             base: :decimal,
             pretty: false,
-            safe: true
+            safe: true,
+            label: ""
 
   # TODO: Deprecate char_lists key and :as_char_lists value by v1.5
   @type t :: %__MODULE__{
@@ -65,7 +69,8 @@ defmodule Inspect.Opts do
                width: pos_integer | :infinity,
                base: :decimal | :binary | :hex | :octal,
                pretty: boolean,
-               safe: boolean}
+               safe: boolean,
+               label: :as_binaries}
 end
 
 defmodule Inspect.Error do
