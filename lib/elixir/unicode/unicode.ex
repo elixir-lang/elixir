@@ -247,11 +247,12 @@ end
 
 data_path = Path.join(__DIR__, "UnicodeData.txt")
 
-{codes, non_breakable, decompositions, combining_classes} =
-  Enum.reduce File.stream!(data_path), {[], [], %{}, %{}}, fn line, {cacc, wacc, dacc, kacc} ->
-    [codepoint, _name, _category,
+{codes, non_breakable, decompositions, combining_classes, digits, control_chars, whitespace} =
+  Enum.reduce File.stream!(data_path),
+                        {[], [], %{}, %{}, [], [], []}, fn line, {cacc, wacc, dacc, kacc, nacc, ccacc, wsacc} ->
+    [codepoint, _name, category,
      class, _bidi, decomposition,
-     _numeric_1, _numeric_2, _numeric_3,
+     numeric_1, numeric_2, numeric_3,
      _bidi_mirror, _unicode_1, _iso,
      upper, lower, title] = :binary.split(line, ";", [:global])
 
@@ -288,7 +289,32 @@ data_path = Path.join(__DIR__, "UnicodeData.txt")
         {n, ""} -> Map.put(kacc, String.to_integer(codepoint, 16), n)
       end
 
-    {cacc, wacc, dacc, kacc}
+    # decimal digits
+    nacc =
+      if category == "Nd" do
+        [{to_binary.(codepoint), to_binary.(numeric_1), to_binary.(numeric_2),
+          to_binary.(numeric_3)} | nacc]
+      else
+        nacc
+      end
+    
+    # control characters
+    ccacc =
+      if category == "Cc" do
+        [{to_binary.(codepoint)} | ccacc]
+      else
+        ccacc
+      end
+
+    # whitespace chars
+    wsacc =
+      if category in ["Zs", "Zl", "Zp"] do
+        [to_binary.(codepoint) | wsacc]
+      else
+        wsacc
+      end
+    
+    {cacc, wacc, dacc, kacc, nacc, ccacc, wsacc}
   end
 
 defmodule String.Casing do
@@ -305,70 +331,101 @@ defmodule String.Casing do
                                   to_binary.(title)})
   end
 
+  for {<<char :: utf8>>, upper, lower, title} <- codes do
+    def get_codepoint_info(unquote(char)) do
+      if is_nil(unquote(lower)) || unquote(<<char :: utf8>>) == unquote(lower) do
+        %{case: :lower, upper: unquote(upper),
+                        lower: unquote(<<char :: utf8>>),
+                        title: unquote(title)}
+      else
+        %{case: :upper, upper: unquote(<<char :: utf8>>),
+                        lower: unquote(lower),
+                        title: unquote(title)}
+      end
+    end
+  end
+  
+  def get_codepoint_info(_), do: %{}
+
   # Downcase
 
   def downcase(string), do: downcase(string, "")
-
-  for {codepoint, _upper, lower, _title} <- codes, lower && lower != codepoint do
-    defp downcase(unquote(codepoint) <> rest, acc) do
-      downcase(rest, acc <> unquote(lower))
-    end
+    
+  defp downcase(<<char :: utf8, rest::binary>>, acc) do
+    ch_down = case get_codepoint_info(char) do
+                %{case: :upper, lower: lower} -> lower
+                _ -> <<char :: utf8>> # leave unchanged
+              end
+    downcase(rest, <<acc :: binary, ch_down :: binary>>)
   end
-
-  defp downcase(<<char, rest::binary>>, acc) do
-    downcase(rest, <<acc::binary, char>>)
-  end
-
+  
   defp downcase("", acc), do: acc
 
   # Upcase
 
   def upcase(string), do: upcase(string, "")
-
-  for {codepoint, upper, _lower, _title} <- codes, upper && upper != codepoint do
-    defp upcase(unquote(codepoint) <> rest, acc) do
-      upcase(rest, acc <> unquote(upper))
-    end
+  
+  defp upcase(<<char :: utf8, rest::binary>>, acc) do
+    ch_up = case get_codepoint_info(char) do
+                %{case: :lower, upper: upper} -> upper
+                _ -> <<char :: utf8>> # leave unchanged
+              end
+    upcase(rest, <<acc :: binary, ch_up :: binary>>)
   end
-
-  defp upcase(<<char, rest::binary>>, acc) do
-    upcase(rest, <<acc::binary, char>>)
-  end
-
+  
   defp upcase("", acc), do: acc
 
   # Titlecase once
-
   def titlecase_once(""), do: {"", ""}
 
-  for {codepoint, _upper, _lower, title} <- codes, title && title != codepoint do
-    def titlecase_once(unquote(codepoint) <> rest) do
-      {unquote(title), rest}
+  def titlecase_once(<<char :: utf8, rest :: binary>>) do
+    case get_codepoint_info(char) do
+      %{case: :lower, title: title} -> {title, rest}
+      _ -> {<<char :: utf8>>, rest}
     end
   end
 
-  def titlecase_once(<<char, rest::binary>>) do
-    {<<char>>, rest}
+  # lower
+  def is_lower(<<char :: utf8>>) do
+    case get_codepoint_info(char) do
+      %{case: :lower} -> true
+      _ -> false
+    end
   end
+
+  # upper
+  def is_upper(<<char :: utf8>>) do
+    case get_codepoint_info(char) do
+      %{case: :upper} -> true
+      _ -> false
+    end
+  end
+end
+
+defmodule String.Common do
+
+  # decimal digit
+  for {digit, _numeric_1, _numeric_2, _numeric_3} <- digits do
+    def is_digit(unquote(digit)), do: true
+  end
+  
+  def is_digit(_), do: false
+
+  # control char
+  for {cchar} <- control_chars do
+    def is_control(unquote(cchar)), do: true
+  end
+  
+  def is_control(_), do: false
+
 end
 
 defmodule String.Break do
   @moduledoc false
   @whitespace_max_size 3
 
-  # WhiteSpace.txt is extracted from Unicode's PropList.txt (just the White_Space property)
-  prop_path = Path.join(__DIR__, "WhiteSpace.txt")
-
-  whitespace = Enum.reduce File.stream!(prop_path), [], fn line, acc ->
-    case line |> :binary.split(";") |> hd do
-      <<first::4-bytes, "..", last::4-bytes, _::binary>> ->
-        first = String.to_integer(first, 16)
-        last = String.to_integer(last, 16)
-        Enum.map(first..last, fn int -> <<int::utf8>> end) ++ acc
-      <<single::4-bytes, _::binary>> ->
-        [<<String.to_integer(single, 16)::utf8>> | acc]
-    end
-  end
+  # not included in UnicodeData.txt
+  whitespace = whitespace ++ Enum.map(["9", "A", "B", "C", "D", "85"], &to_binary.(&1))
 
   # trim_leading
 
@@ -460,6 +517,15 @@ defmodule String.Break do
       end
     end
   end
+
+
+  # whitespace
+  for codepoint <- whitespace do
+    def is_whitespace(unquote(codepoint)), do: true
+  end
+  
+  def is_whitespace(_), do: false
+
 end
 
 defmodule String.Normalizer do

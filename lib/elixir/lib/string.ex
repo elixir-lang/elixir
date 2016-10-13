@@ -533,6 +533,43 @@ defmodule String do
   @spec normalize(t, atom) :: t
   defdelegate normalize(string, form), to: String.Normalizer
 
+  @doc ~S"""
+  Indicates whether a Unicode character is categorized as a decimal digit.
+
+  ## Examples
+
+      iex> String.is_digit("1")
+      true
+
+      iex> String.is_digit("៣") # KHMER DIGIT THREE
+      true
+
+      iex> String.is_digit("22")
+      false
+
+  """
+  @spec is_digit(t) :: boolean
+  defdelegate is_digit(binary), to: String.Common
+
+  @doc ~S"""
+  Indicates whether a specified Unicode character is categorized
+  as a control character.
+
+  ## Examples
+
+      iex> String.is_control("\n")
+      true
+
+      iex> String.is_control("\u0007") # BELL
+      true
+
+      iex> String.is_control("Á")
+      false
+
+  """
+  @spec is_control(t) :: boolean
+  defdelegate is_control(binary), to: String.Common
+
   @doc """
   Converts all characters in the given string to uppercase.
 
@@ -568,6 +605,60 @@ defmodule String do
   """
   @spec downcase(t) :: t
   defdelegate downcase(binary), to: String.Casing
+
+  @doc ~S"""
+  Indicates whether a Unicode character is categorized as a lowercase letter.
+
+  ## Examples
+
+      iex> String.is_lower("б")
+      true
+
+      iex> String.is_lower("ﬁ")
+      true
+
+      iex> String.is_lower("Ç")
+      false
+
+  """
+  @spec is_lower(t) :: boolean
+  defdelegate is_lower(binary), to: String.Casing
+
+  @doc ~S"""
+  Indicates whether a Unicode character is categorized as an uppercase letter.
+
+  ## Examples
+
+      iex> String.is_upper("È")
+      true
+
+      iex> String.is_upper("A")
+      true
+
+      iex> String.is_upper("ß")
+      false
+
+  """
+  @spec is_upper(t) :: boolean
+  defdelegate is_upper(binary), to: String.Casing
+
+  @doc ~S"""
+  Indicates whether a Unicode character is categorized as white space.
+
+  ## Examples
+
+      iex> String.is_whitespace(" ")
+      true
+
+      iex> String.is_whitespace("\n")
+      true
+
+      iex> String.is_whitespace("@")
+      false
+
+  """
+  @spec is_whitespace(t) :: t
+  defdelegate is_whitespace(binary), to: String.Break
 
   @doc """
   Converts the first character in the given string to

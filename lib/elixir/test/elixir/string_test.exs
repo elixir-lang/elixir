@@ -154,6 +154,76 @@ defmodule StringTest do
     assert String.downcase("ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝÞ") == "àáâãäåæçèéêëìíîïðñòóôõöøùúûüýþ"
     assert String.downcase("áüÈß") == "áüèß"
   end
+  
+  test "is_lower" do
+    refute String.is_lower("A")
+    refute String.is_lower("È")
+    refute String.is_lower("Ç")
+    refute String.is_lower("4")
+    refute String.is_lower("%")
+    refute String.is_lower("#")
+    refute String.is_lower(" ")
+    
+    assert String.is_lower("б")
+    assert String.is_lower("ß")
+    assert String.is_lower("ﬁ")
+  end
+  
+  test "is_upper" do
+    assert String.is_upper("A")
+    assert String.is_upper("È")
+    assert String.is_upper("Ç")
+    refute String.is_upper("4")
+    refute String.is_upper("%")
+    refute String.is_upper("#")
+    refute String.is_upper(" ")
+    
+    refute String.is_upper("б")
+    refute String.is_upper("ß")
+    refute String.is_upper("ﬁ")
+  end
+  
+  test "is_digit" do
+    assert String.is_digit("1")
+    assert String.is_digit("0")
+    assert String.is_digit("9")
+    assert String.is_digit("៣") # KHMER DIGIT THREE
+    refute String.is_digit("A")
+    refute String.is_digit("b")
+    refute String.is_digit("Я")
+    refute String.is_digit("ß")
+    refute String.is_digit("22")
+  end
+  
+  test "is_control" do
+    assert String.is_control(<<10>>) # \n
+    assert String.is_control(<<13>>) # \r
+    assert String.is_control(<<0x0007>>) # BELL
+    assert String.is_control(<<0x007F>>) # DELETE
+    assert String.is_control(<<0x009C :: utf8>>) # STRING TERMINATOR
+    
+    refute String.is_control("b")
+    refute String.is_control("Я")
+    refute String.is_control("ß")
+    refute String.is_control("22")
+  end
+  
+  test "whitespace" do
+    assert String.is_whitespace(<<9>>) # CHARACTER TAB
+    assert String.is_whitespace(<<10 :: utf8>>) # \n
+    assert String.is_whitespace(<<13 :: utf8>>) # \r
+    assert String.is_whitespace(" ") # SPACE
+    assert String.is_whitespace("\u2008") # PUNCTATION SPACE
+    assert String.is_whitespace("\u2028") # LINE SEPARATOR
+    assert String.is_whitespace("\u2029") # PARAGRAPH SEPARATOR
+    
+    refute String.is_whitespace("b")
+    refute String.is_whitespace("Я")
+    refute String.is_whitespace("ß")
+    refute String.is_whitespace("9")
+    refute String.is_whitespace("#")
+    refute String.is_whitespace(")")
+  end
 
   test "capitalize" do
     assert String.capitalize("") == ""
