@@ -929,8 +929,9 @@ defmodule Kernel do
 
   The complexity of `a ++ b` is proportional to `length(a)`, so avoid repeatedly
   appending to lists of arbitrary length, e.g. `list ++ [item]`.
-
   Instead, consider prepending via `[item | rest]` and then reversing.
+
+  If the `right` operand is not a list, it returns an improper list.
 
   Inlined by the compiler.
 
@@ -942,6 +943,13 @@ defmodule Kernel do
       iex> 'foo' ++ 'bar'
       'foobar'
 
+      # returns an improper list
+      iex> [1] ++ 2
+      [1 | 2]
+
+      # returns a proper list
+      iex> [1] ++ [2]
+      [1, 2]
   """
   @spec (list ++ term) :: maybe_improper_list
   def left ++ right do
