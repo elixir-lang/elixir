@@ -2221,7 +2221,7 @@ defmodule Enum do
   end
 
   def split(enumerable, count) when count < 0 do
-    do_split_reverse(reverse(enumerable), abs(count), [])
+    do_reverse_split(reverse(enumerable), abs(count), [])
   end
 
   @doc """
@@ -2961,15 +2961,15 @@ defmodule Enum do
     {:lists.reverse(acc), []}
   end
 
-  defp do_split_reverse([h | t], counter, acc) when counter > 0 do
-    do_split_reverse(t, counter - 1, [h | acc])
+  defp do_reverse_split([h | t], counter, acc) when counter > 0 do
+    do_reverse_split(t, counter - 1, [h | acc])
   end
 
-  defp do_split_reverse(list, 0, acc) do
+  defp do_reverse_split(list, 0, acc) do
     {:lists.reverse(list), acc}
   end
 
-  defp do_split_reverse([], _, acc) do
+  defp do_reverse_split([], _, acc) do
     {[], acc}
   end
 
