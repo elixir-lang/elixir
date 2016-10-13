@@ -187,6 +187,24 @@ defmodule Kernel do
   end
 
   @doc """
+  Performs an integer division and returns both the quotient and remainder
+  as a tuple.
+
+  Raises an `ArithmeticError` exception if one of the arguments is not an
+  integer.
+
+  ## Examples
+
+      iex> divrem(5, 2)
+      {2, 1}
+
+  """
+  @spec divrem(integer, integer) :: {integer, integer}
+  def divrem(left, right) do
+    {:erlang.div(left, right), :erlang.rem(left, right)}
+  end
+
+  @doc """
   Stops the execution of the calling process with the given reason.
 
   Since evaluating this function causes the process to terminate,
