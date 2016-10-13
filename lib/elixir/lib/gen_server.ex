@@ -540,7 +540,7 @@ defmodule GenServer do
       end
 
       @doc false
-      def handle_call(msg, _from, state) do
+      def handle_call(msg, {pid, _tag} = _from, state) when is_pid(pid) do
         # We do this to trick Dialyzer to not complain about non-local returns.
         reason = {:bad_call, msg}
         case :erlang.phash2(1, 1) do
