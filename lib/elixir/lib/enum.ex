@@ -1431,6 +1431,43 @@ defmodule Enum do
   end
 
   @doc """
+  Enumerates the `enumerable`, merging all duplicated elements 
+  into one using the function `merge_fun`.
+  ## Examples
+      iex> Enum.merge([1, 2, 3, 3, 2, 1], fn (x, y) -> x + y end)
+      [2, 4, 6]
+
+      # This is simmilar to `Enum.uniq/1`
+      iex> Enum.merge([1, 2, 3, 3, 2, 1], fn (x, _y) -> x end)
+      [1, 2, 3]
+  """
+  @spec merge(t, (element, element -> term)) :: list
+  def merge(enumerable, merge_fun) do
+    do_merge(enumerable, %{}, merge_fun, fn x -> x end, [])
+  end
+
+  @doc """
+  Enumerates the `enumerable`, by merging the elements for which
+  function `fun` returned duplicate items.
+  The function `fun` maps every element to a term which is used to
+  determine if two elements are duplicates.
+  Merging applies by using the function `merge_fun`.
+  ## Example
+      iex> Enum.merge_by([{1, :x}, {2, :y}, {1, :z}], fn (x, _) -> x end, fn {x, _} -> x end)
+      [{1, :x}, {2, :y}]
+      iex> Enum.merge_by([a: {:tea, 2}, b: {:tea, 2}, c: {:coffee, 1}], fn (x, _) -> x end, fn {_, y} -> y end)
+      [a: {:tea, 2}, c: {:coffee, 1}]
+      iex> Enum.merge_by([%{k: "a", v: 1}, %{k: "b", v: 2}, %{k: "a", v: 3}, %{k: "b", v: 4}], \
+           fn(t1, t2) -> %{t1 | v: t1.v + t2.v} end, fn s -> s.k end)
+      [%{k: "a", v: 4}, %{k: "b", v: 6}]
+
+  """
+  @spec merge_by(t, (element, element -> term), (element -> term)) :: list
+  def merge_by(enumerable, merge_fun, fun) do
+    do_merge(enumerable, %{}, merge_fun, fun, [])
+  end
+
+  @doc """
   Returns the minimal element in the enumerable according
   to Erlang's term ordering.
 
@@ -2806,6 +2843,21 @@ defmodule Enum do
 
   defp do_find_value([], default, _) do
     default
+  end
+
+  ## merge
+
+  defp do_merge([h | t], set, merge_fun, fun, acc) do
+    value = fun.(h)
+    case set do
+      %{^value => index} -> 
+        acc = List.update_at(acc, index, &(merge_fun.(&1, h)))
+        do_merge(t, set, merge_fun, fun, acc)
+      %{} -> do_merge(t, Map.put(set, value, Enum.count(acc)), merge_fun, fun, acc ++ [h])
+    end
+  end
+  defp do_merge([], _set, _merge_fun, _fun, acc) do
+    acc
   end
 
   ## shuffle
