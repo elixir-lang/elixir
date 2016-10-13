@@ -37,6 +37,9 @@ defmodule Inspect.Opts do
       to :decimal. When inspecting binaries any `:base` other than `:decimal`
       implies `binaries: :as_binaries`.
 
+    * `digit_separator` - separates groups of digits in integers and floats,
+      defaults to `"_"`.
+
     * `:safe` - when `false`, failures while inspecting structs will be raised
       as errors instead of being wrapped in the `Inspect.Error` exception. This
       is useful when debugging failures and crashes for custom inspect
@@ -52,6 +55,7 @@ defmodule Inspect.Opts do
             limit: 50,
             width: 80,
             base: :decimal,
+            digit_separator: "_",
             pretty: false,
             safe: true
 
@@ -64,6 +68,7 @@ defmodule Inspect.Opts do
                limit: pos_integer | :infinity,
                width: pos_integer | :infinity,
                base: :decimal | :binary | :hex | :octal,
+               digit_separator: binary,
                pretty: boolean,
                safe: boolean}
 end

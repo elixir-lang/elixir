@@ -380,21 +380,38 @@ defimpl Inspect, for: Map do
 end
 
 defimpl Inspect, for: Integer do
+  def inspect(term, %Inspect.Opts{base: :decimal, digit_separator: separator}) do
+    pretty_decimal(term, separator)
+  end
+
   def inspect(term, %Inspect.Opts{base: base}) do
     Integer.to_string(term, base_to_value(base))
     |> prepend_prefix(base)
   end
 
+  def pretty_decimal(n, separator) when n < 0 do
+    "-" <> pretty_decimal(abs(n), separator)
+  end
+
+  def pretty_decimal(n, separator) when n >= 1000 do
+    left = div(n, 1_000)
+    right = rem(n, 1_000)
+    right_str = :io_lib.format("~3..0B", [right]) |> IO.iodata_to_binary
+    pretty_decimal(left, separator) <> separator <> right_str
+  end
+
+  def pretty_decimal(n, _) do
+    Integer.to_string(n)
+  end
+
   defp base_to_value(base) do
     case base do
       :binary  -> 2
-      :decimal -> 10
       :octal   -> 8
       :hex     -> 16
     end
   end
 
-  defp prepend_prefix(value, :decimal), do: value
   defp prepend_prefix(value, base) do
     prefix = case base do
       :binary -> "0b"
@@ -406,8 +423,11 @@ defimpl Inspect, for: Integer do
 end
 
 defimpl Inspect, for: Float do
-  def inspect(term, _opts) do
-    IO.iodata_to_binary(:io_lib_format.fwrite_g(term))
+  def inspect(term, %Inspect.Opts{digit_separator: separator}) do
+    string = IO.iodata_to_binary(:io_lib_format.fwrite_g(term))
+    [left, right] = String.split(string, ".")
+    left = String.to_integer(left)
+    Inspect.Integer.pretty_decimal(left, separator) <> "." <> right
   end
 end
 

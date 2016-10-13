@@ -138,6 +138,13 @@ defmodule Inspect.NumberTest do
 
   test "decimal" do
     assert inspect(100, base: :decimal) == "100"
+    assert inspect(1_000, base: :decimal) == "1_000"
+    assert inspect(100_000, base: :decimal) == "100_000"
+    assert inspect(1_222_333, base: :decimal) == "1_222_333"
+    assert inspect(-100, base: :decimal) == "-100"
+    assert inspect(-1_222_333, base: :decimal) == "-1_222_333"
+
+    assert inspect(1_222_333, base: :decimal, digit_separator: ",") == "1,222,333"
   end
 
   test "hex" do
@@ -154,6 +161,7 @@ defmodule Inspect.NumberTest do
 
   test "float" do
     assert inspect(1.0) == "1.0"
+    assert inspect(1234.0001) == "1_234.0001"
     assert inspect(1.0E10) == "1.0e10"
     assert inspect(1.0e10) == "1.0e10"
     assert inspect(1.0e-10) == "1.0e-10"
