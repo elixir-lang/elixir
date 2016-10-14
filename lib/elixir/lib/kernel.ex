@@ -1380,8 +1380,8 @@ defmodule Kernel do
   attributes in order to retrieve the exception struct.
 
   Any module that contains a call to the `defexception/1` macro automatically
-  implements the `exception/1` callback expected by `raise/2`. See the docs for
-  `defexception/1` for more information.
+  implements the `c:Exception.exception/1` callback expected by `raise/2`.
+  For more information, see `defexception/1`.
 
   ## Examples
 
@@ -3546,7 +3546,7 @@ defmodule Kernel do
         message: "did not get what was expected, got: #{inspect value}"
 
   In many cases it is more convenient to pass the expected value to
-  `raise/2` and generate the message in the `exception/1` callback:
+  `raise/2` and generate the message in the `c:Exception.exception/1` callback:
 
       defmodule MyAppError do
         defexception [:message]
@@ -3927,8 +3927,8 @@ defmodule Kernel do
 
   In case you want to provide some existing functionality to the user module,
   please define it in a module which will be imported accordingly; for example,
-  `ExUnit.Case` doesn't define the `test/2` macro in the module that calls
-  `use ExUnit.Case`, but it defines `ExUnit.Case.test/2` and just imports that
+  `ExUnit.Case` doesn't define the `test/3` macro in the module that calls
+  `use ExUnit.Case`, but it defines `ExUnit.Case.test/3` and just imports that
   into the caller when used.
   """
   defmacro use(module, opts \\ []) do

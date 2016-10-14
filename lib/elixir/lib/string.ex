@@ -105,8 +105,8 @@ defmodule String do
 
   While this is much better (we don't traverse `full` twice),
   it could still be improved. In this case, since we want to
-  extract a substring from a string, we can use `byte_size/1`
-  and `binary_part/3` as there is no chance we will slice in
+  extract a substring from a string, we can use `Kernel.byte_size/1`
+  and `Kernel.binary_part/3` as there is no chance we will slice in
   the middle of a codepoint made of more than one byte:
 
       iex> take_prefix = fn full, prefix ->

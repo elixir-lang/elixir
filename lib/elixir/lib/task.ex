@@ -77,7 +77,7 @@ defmodule Task do
   By default, most supervision strategies will try to restart
   a worker after it exits regardless of the reason. If you design the
   task to terminate normally (as in the example with `IO.puts/2` above),
-  consider passing `restart: :transient` in the options to `worker/3`.
+  consider passing `restart: :transient` in the options to `Supervisor.Spec.worker/3`.
 
   ## Dynamically supervised tasks
 
@@ -127,8 +127,8 @@ defmodule Task do
       Task.Supervisor.async({MyApp.DistSupervisor, :remote@local},
                             MyMod, :my_fun, [arg1, arg2, arg3])
 
-  Note that, when working with distributed tasks, one should use the `async/4` function
-  that expects explicit module, function and arguments, instead of `async/2` that
+  Note that, when working with distributed tasks, one should use the `Task.Supervisor.async/4` function
+  that expects explicit module, function and arguments, instead of `Task.Supervisor.async/2` that
   works with anonymous functions. That's because anonymous functions expect
   the same module version to exist on all involved nodes. Check the `Agent` module
   documentation for more information on distributed processes as the limitations
