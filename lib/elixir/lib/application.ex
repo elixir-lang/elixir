@@ -119,7 +119,7 @@ defmodule Application do
   startup is successful. `pid` should be the PID of the top supervisor. `state`
   can be an arbitrary term, and if omitted will default to `[]`; if the
   application is later stopped, `state` is passed to the `stop/1` callback (see
-  the documentation for the `stop/2` callback for more information).
+  the documentation for the `c:stop/1` callback for more information).
 
   `use Application` provides no default implementation for the `start/2`
   callback.
