@@ -35,12 +35,12 @@ Function names may also start with an underscore. Such functions are never impor
     iex> _wont_be_imported()
     ** (CompileError) iex:1: undefined function _wont_be_imported/0
 
-Due to this property, Elixir relies on functions starting with underscore to attach compile-time metadata to modules. Such functions are most often in the `__foo__` format. For example, every module in Elixir has an `__info__` function:
+Due to this property, Elixir relies on functions starting with underscore to attach compile-time metadata to modules. Such functions are most often in the `__foo__` format. For example, every module in Elixir has an `__info__/1` function:
 
     iex> String.__info__(:functions)
     [at: 2, capitalize: 1, chunk: 2, ...]
 
-Elixir also includes 4 special variables that follow the double underscore format. These forms retrieve compile-time information about the current environment: `__MODULE__`, `__DIR__`, `__ENV__` and `__CALLER__`.
+Elixir also includes 4 special variables that follow the double underscore format. These forms retrieve compile-time information about the current environment: `__MODULE__/0`, `__DIR__/0`, `__ENV__/0` and `__CALLER__/0`.
 
 ## Trailing bang (foo!)
 

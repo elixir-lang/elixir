@@ -378,12 +378,12 @@ defmodule OptionParser do
   end
 
   @doc """
-  Receives a key-value enumerable and converts it to argv.
+  Receives a key-value enumerable and converts it to `t:argv/0`.
 
   Keys must be atoms. Keys with `nil` value are discarded,
   boolean values are converted to `--key` or `--no-key`
   (if the value is `true` or `false`, respectively),
-  and all other values are converted using `to_string/1`.
+  and all other values are converted using `Kernel.to_string/1`.
 
   ## Examples
 
@@ -409,7 +409,7 @@ defmodule OptionParser do
   end
 
   @doc ~S"""
-  Splits a string into argv chunks.
+  Splits a string into `t:argv/0` chunks.
 
   This function splits the given `string` into a list of strings in a similar
   way to many shells.

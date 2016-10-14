@@ -148,7 +148,7 @@ defmodule Code do
       iex> Code.eval_string("a = a + b", [a: 1, b: 2])
       {3, [a: 3, b: 2]}
 
-  For convenience, you can pass `__ENV__` as the `opts` argument and
+  For convenience, you can pass `__ENV__/0` as the `opts` argument and
   all imports, requires and aliases defined in the current environment
   will be automatically carried over:
 
@@ -180,7 +180,7 @@ defmodule Code do
       iex> Code.eval_quoted(contents, [a: 1, b: 2], file: __ENV__.file, line: __ENV__.line)
       {3, [a: 1, b: 2]}
 
-  For convenience, you can pass `__ENV__` as the `opts` argument and
+  For convenience, you can pass `__ENV__/0` as the `opts` argument and
   all options will be automatically extracted from the current environment:
 
       iex> contents = quote(do: var!(a) + var!(b))
@@ -247,9 +247,9 @@ defmodule Code do
   ## Options
 
     * `:file` - the filename to be used in stacktraces
-      and the file reported in the `__ENV__` variable
+      and the file reported in the `__ENV__/0` macro
 
-    * `:line` - the line reported in the `__ENV__` variable
+    * `:line` - the line reported in the `__ENV__/0` macro
 
     * `:existing_atoms_only` - when `true`, raises an error
       when non-existing atoms are found by the tokenizer

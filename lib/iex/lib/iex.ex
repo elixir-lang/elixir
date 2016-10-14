@@ -435,7 +435,7 @@ defmodule IEx do
 
   You can invoke this function directly when you are not able to invoke
   `IEx.pry/1` as a macro. This function expects the binding (from
-  `Kernel.binding/0`), the environment (from `__ENV__`) and the timeout
+  `Kernel.binding/0`), the environment (from `__ENV__/0`) and the timeout
   (a sensible default is 5000).
   """
   def pry(binding, env, timeout) do
