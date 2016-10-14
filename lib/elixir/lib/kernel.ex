@@ -925,13 +925,14 @@ defmodule Kernel do
   end
 
   @doc """
-  Concatenates two lists.
+  Concatenates a proper list and a term, returning a list.
 
   The complexity of `a ++ b` is proportional to `length(a)`, so avoid repeatedly
   appending to lists of arbitrary length, e.g. `list ++ [item]`.
   Instead, consider prepending via `[item | rest]` and then reversing.
 
-  If the `right` operand is not a list, it returns an improper list.
+  If the `right` operand is not a proper list, it returns an improper list.
+  If the `left` operand it not a proper list, it raises `ArgumentError`.
 
   Inlined by the compiler.
 
@@ -950,6 +951,15 @@ defmodule Kernel do
       # returns a proper list
       iex> [1] ++ [2]
       [1, 2]
+
+      # not a proper list on the left will raises an error
+      iex> [1 | 2] ++ 3
+      ** (ArgumentError) argument error
+
+      # improper list on the right will return an improper list
+      iex> [1] ++ [2 | 3]
+      [1, 2 | 3]
+
   """
   @spec (list ++ term) :: maybe_improper_list
   def left ++ right do
