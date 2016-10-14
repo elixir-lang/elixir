@@ -87,7 +87,7 @@ defmodule Calendar.ISO do
   @doc """
   Converts the given structure into a string.
 
-  It uses the ISO8601 standard except for DateTime where the
+  It uses the ISO 8601 standard except for DateTime where the
   timezone information is added between brackets.
   """
   def to_string(%Date{year: year, month: month, day: day}) do

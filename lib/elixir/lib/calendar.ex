@@ -163,7 +163,8 @@ defmodule Date do
   end
 
   @doc """
-  Parses the extended "Date and time of day" format described by ISO8601:2004.
+  Parses the extended "Date and time of day" format described by
+  [ISO 8601:2004](https://en.wikipedia.org/wiki/ISO_8601).
 
   Timezone offset may be included in the string but they will be
   simply discarded as such information is not included in naive date
@@ -198,7 +199,8 @@ defmodule Date do
   end
 
   @doc """
-  Parses the extended "Date and time of day" format described by ISO8601:2004.
+  Parses the extended "Date and time of day" format described by
+  [ISO 8601:2004](https://en.wikipedia.org/wiki/ISO_8601).
 
   Raises if the format is invalid.
 
@@ -220,7 +222,8 @@ defmodule Date do
   end
 
   @doc """
-  Converts the given date time to ISO8601.
+  Converts the given date time to
+  [ISO 8601:2004](https://en.wikipedia.org/wiki/ISO_8601).
 
   Only supports converting date times which are in the ISO calendar,
   attempting to convert date times from other calendars will raise.
@@ -423,7 +426,8 @@ defmodule Time do
   end
 
   @doc """
-  Parses the extended "Local time" format described by ISO8601:2004.
+  Parses the extended "Local time" format described by
+  [ISO 8601:2004](https://en.wikipedia.org/wiki/ISO_8601).
 
   Timezone offset may be included in the string but they will be
   simply discarded as such information is not included in times.
@@ -478,7 +482,8 @@ defmodule Time do
   end
 
   @doc """
-  Parses the extended "Local time" format described by ISO8601:2004.
+  Parses the extended "Local time" format described by
+  [ISO 8601:2004](https://en.wikipedia.org/wiki/ISO_8601).
 
   Raises if the format is invalid.
 
@@ -500,7 +505,8 @@ defmodule Time do
   end
 
   @doc """
-  Converts the given time to ISO8601.
+  Converts the given time to
+  [ISO 8601:2004](https://en.wikipedia.org/wiki/ISO_8601).
 
   ### Examples
 
@@ -646,7 +652,7 @@ defmodule NaiveDateTime do
     {:ok, {year, month, day}, {hour, minute, second}, microsecond} =
       Calendar.ISO.from_unix(:os.system_time, :native)
     %NaiveDateTime{year: year, month: month, day: day,
-                   hour: hour, minute: minute, second: second, 
+                   hour: hour, minute: minute, second: second,
                    microsecond: microsecond}
   end
 
@@ -834,7 +840,8 @@ defmodule NaiveDateTime do
   end
 
   @doc """
-  Parses the extended "Date and time of day" format described by ISO8601:2004.
+  Parses the extended "Date and time of day" format described by
+  [ISO 8601:2004](https://en.wikipedia.org/wiki/ISO_8601).
 
   Timezone offset may be included in the string but they will be
   simply discarded as such information is not included in naive date
@@ -908,7 +915,8 @@ defmodule NaiveDateTime do
   end
 
   @doc """
-  Parses the extended "Date and time of day" format described by ISO8601:2004.
+  Parses the extended "Date and time of day" format described by
+  [ISO 8601:2004](https://en.wikipedia.org/wiki/ISO_8601).
 
   Raises if the format is invalid.
 
@@ -931,7 +939,8 @@ defmodule NaiveDateTime do
   end
 
   @doc """
-  Converts the given naive date time to ISO8601.
+  Converts the given naive date time to
+  [ISO 8601:2004](https://en.wikipedia.org/wiki/ISO_8601).
 
   Only supports converting naive date times which are in the ISO calendar,
   attempting to convert naive date times from other calendars will raise.
@@ -1341,16 +1350,17 @@ defmodule DateTime do
   end
 
   @doc """
-  Converts the given date time to ISO8601.
+  Converts the given date time to
+  [ISO 8601:2004](https://en.wikipedia.org/wiki/ISO_8601).
 
   Only supports converting date times which are in the ISO calendar,
   attempting to convert date times from other calendars will raise.
 
-  WARNING: the ISO8601 does not contain the time zone nor its abbreviation,
+  WARNING: the ISO 8601 does not contain the time zone nor its abbreviation,
   which means information is lost when converting to such format. This
   is also why this module does not provide a `from_iso8601/1` function,
   as it is impossible to build a proper `DateTime` from only the
-  information in the ISO8601 string.
+  information in the ISO 8601 string.
 
   ### Examples
 
