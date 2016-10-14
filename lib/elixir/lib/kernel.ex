@@ -1458,7 +1458,7 @@ defmodule Kernel do
   Raises an exception preserving a previous stacktrace.
 
   `reraise/3` works like `reraise/2`, except it passes arguments to the
-  `exception/1` function like explained in `raise/2`.
+  `exception/1` function as explained in `raise/2`.
 
   ## Examples
 
