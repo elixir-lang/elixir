@@ -1074,6 +1074,25 @@ defmodule FileTest do
       end
     end
 
+    test "rmdir! error messages" do
+      fixture = tmp_path("tmp_test")
+      File.mkdir_p(fixture)
+      File.touch(fixture <> "/file")
+
+      # directory is not empty
+      assert_raise File.Error, "could not remove directory #{inspect fixture}: directory is not empty", fn ->
+        File.rmdir!(fixture)
+      end
+
+      # directory does not exist
+      non_existent_dir = fixture <> "/non_existent_dir"
+      assert_raise File.Error, ~r"\Acould not remove directory #{inspect non_existent_dir}: (not a directory|no such file or directory)", fn ->
+        File.rmdir!(non_existent_dir)
+      end
+
+      File.rm_rf(fixture)
+    end
+
     test "rm_rf" do
       fixture = tmp_path("tmp")
       File.mkdir(fixture)
