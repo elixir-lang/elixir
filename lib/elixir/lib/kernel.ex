@@ -952,10 +952,6 @@ defmodule Kernel do
       iex> [1] ++ [2]
       [1, 2]
 
-      # not a proper list on the left will raises an error
-      iex> [1 | 2] ++ 3
-      ** (ArgumentError) argument error
-
       # improper list on the right will return an improper list
       iex> [1] ++ [2 | 3]
       [1, 2 | 3]
