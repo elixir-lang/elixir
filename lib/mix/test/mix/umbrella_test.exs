@@ -5,6 +5,27 @@ defmodule Mix.UmbrellaTest do
 
   @moduletag apps: [:foo, :bar]
 
+  test "apps_paths" do
+    in_fixture "umbrella_dep/deps/umbrella", fn ->
+      assert Mix.Project.apps_paths == nil
+      Mix.Project.in_project(:umbrella, ".", fn _ ->
+        assert Mix.Project.apps_paths ==
+               %{bar: "apps/bar", foo: "apps/foo"}
+      end)
+    end
+  end
+
+  test "apps_paths with selection" do
+    in_fixture "umbrella_dep/deps/umbrella", fn ->
+      Mix.Project.in_project(:umbrella, ".", [apps: [:foo, :bar]], fn _ ->
+        File.mkdir_p! "apps/errors"
+        File.write! "apps/errors/mix.exs", "raise :oops"
+        assert Mix.Project.apps_paths ==
+               %{bar: "apps/bar", foo: "apps/foo"}
+      end)
+    end
+  end
+
   test "compiles umbrella" do
     in_fixture "umbrella_dep/deps/umbrella", fn ->
       Mix.Project.in_project(:umbrella, ".", fn _ ->
@@ -408,26 +429,6 @@ defmodule Mix.UmbrellaTest do
         File.rm_rf "../../_build/dev/lib/bar"
         Mix.Task.run("compile.protocols")
       end)
-    end)
-  end
-
-  defmodule Selective do
-    def project do
-      [apps_path: "apps",
-       apps: [:foo, :bar]]
-    end
-  end
-
-  test "can select which apps to use" do
-    in_fixture("umbrella_dep/deps/umbrella", fn ->
-      Mix.Project.push Selective
-
-      File.mkdir_p! "apps/errors/lib"
-      File.write! "apps/errors/lib/always_fail.ex", "raise ~s[oops]"
-
-      assert Mix.Task.run("compile.elixir", ["--verbose"]) == [:ok, :ok]
-      assert_received {:mix_shell, :info, ["Compiled lib/bar.ex"]}
-      assert_received {:mix_shell, :info, ["Compiled lib/foo.ex"]}
     end)
   end
 
