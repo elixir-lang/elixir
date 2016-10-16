@@ -390,7 +390,7 @@ defmodule Mix.Task do
     # as we leave the control of the deps path still to the
     # umbrella child.
     config = Mix.Project.deps_config |> Keyword.delete(:deps_path)
-    for %Mix.Dep{app: app, opts: opts} <- Mix.Dep.Umbrella.loaded do
+    for %Mix.Dep{app: app, opts: opts} <- Mix.Dep.Umbrella.cached do
       Mix.Project.in_project(app, opts[:path], config, fun)
     end
   end
