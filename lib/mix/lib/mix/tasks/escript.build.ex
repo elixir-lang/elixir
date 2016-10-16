@@ -46,7 +46,7 @@ defmodule Mix.Tasks.Escript.Build do
 
     * `:embed_elixir` - if `true` embed elixir and its children apps
       (`ex_unit`, `mix`, etc.) mentioned in the `:applications` list inside the
-      `application` function in `mix.exs`.
+      `application/0` function in `mix.exs`.
 
       Defaults to `true` for Elixir projects, `false` for Erlang projects.
 

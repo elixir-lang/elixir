@@ -674,7 +674,7 @@ defmodule System do
   The result is rounded via the floor function.
 
   `convert_time_unit/3` accepts an additional time unit (other than the
-  ones in the `time_unit` type) called `:native`. `:native` is the time
+  ones in the `t:time_unit/0` type) called `:native`. `:native` is the time
   unit used by the Erlang runtime system. It's determined when the runtime
   starts and stays the same until the runtime is stopped. To determine what
   the `:native` unit amounts to in a system, you can call this function to

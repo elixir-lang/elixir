@@ -255,7 +255,7 @@ defmodule URI do
   @doc """
   Percent-escapes the given string.
 
-  This function accepts a `predicate` function as an optional argument; if
+  This function accepts a predicate function as an optional argument; if
   passed, this function will be called with each character (byte) in `str` as
   its argument and should return `true` if that character should not be escaped
   and left as is.

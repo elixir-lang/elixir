@@ -27,7 +27,7 @@ defprotocol Inspect do
         end
       end
 
-  The `concat` function comes from `Inspect.Algebra` and it
+  The `concat/1` function comes from `Inspect.Algebra` and it
   concatenates algebra documents together. In the example above,
   it is concatenating the string `"MapSet<"` (all strings are
   valid algebra documents that keep their formatting when pretty
