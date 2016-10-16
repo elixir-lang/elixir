@@ -2165,7 +2165,8 @@ defmodule Enum do
                 (mapped_element, mapped_element -> boolean))
                 :: list when mapped_element: element
 
-  def sort_by(enumerable, mapper, sorter \\ &<=/2) when is_function(sorter, 2) do
+  def sort_by(enumerable, mapper, sorter \\ &<=/2)
+      when is_function(mapper, 1) and is_function(sorter, 2) do
     enumerable
     |> map(&{&1, mapper.(&1)})
     |> sort(&sorter.(elem(&1, 1), elem(&2, 1)))
