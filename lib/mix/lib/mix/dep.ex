@@ -78,7 +78,7 @@ defmodule Mix.Dep do
       System.get_env("MIX_NO_DEPS") in ~w(1 true) ->
         []
       project = Mix.Project.get ->
-        key = {:cached_deps, project}
+        key = {:cached_deps, Mix.env, project}
         Mix.ProjectStack.read_cache(key) ||
           Mix.ProjectStack.write_cache(key, loaded(env: Mix.env))
       true ->

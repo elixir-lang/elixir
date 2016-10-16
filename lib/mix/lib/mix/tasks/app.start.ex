@@ -86,7 +86,7 @@ defmodule Mix.Tasks.App.Start do
     apps =
       cond do
         Mix.Project.umbrella?(config) ->
-          for %Mix.Dep{app: app} <- Mix.Dep.Umbrella.loaded, do: app
+          for %Mix.Dep{app: app} <- Mix.Dep.Umbrella.cached, do: app
         app = config[:app] ->
           [app]
         true ->

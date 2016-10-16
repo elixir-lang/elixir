@@ -24,6 +24,18 @@ defmodule Mix.Dep.Umbrella do
   end
 
   @doc """
+  Gets all umbrella dependencies in the loaded format from cache (if available).
+  """
+  def cached do
+    if project = Mix.Project.get do
+      key = {:umbrella_deps, Mix.env, project}
+      Mix.ProjectStack.read_cache(key) || Mix.ProjectStack.write_cache(key, loaded())
+    else
+      loaded()
+    end
+  end
+
+  @doc """
   Gets all umbrella dependencies in the loaded format.
   """
   def loaded do
