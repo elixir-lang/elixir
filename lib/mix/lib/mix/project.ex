@@ -224,6 +224,37 @@ defmodule Mix.Project do
     config[:apps_path] != nil
   end
 
+  @doc """
+  Returns a map with the umbrella child applications
+  paths based on `:apps_path` and `:apps` configurations.
+
+  Returns `nil` if not an umbrella project.
+  """
+  @spec apps_paths() :: %{atom => Path.t} | nil
+  def apps_paths(config \\ config()) do
+    if apps_path = config[:apps_path] do
+      apps_path
+      |> Path.join("*/mix.exs")
+      |> Path.wildcard()
+      |> Enum.map(&Path.dirname/1)
+      |> extract_umbrella
+      |> filter_umbrella(config[:apps])
+      |> Map.new
+    end
+  end
+
+  defp extract_umbrella(paths) do
+    for path <- paths do
+      app = path |> Path.basename |> String.downcase |> String.to_atom
+      {app, path}
+    end
+  end
+
+  defp filter_umbrella(pairs, nil), do: pairs
+  defp filter_umbrella(pairs, apps) when is_list(apps) do
+    for {app, _} = pair <- pairs, app in apps, do: pair
+  end
+
   @doc ~S"""
   Runs the given `fun` inside the given project.
 
