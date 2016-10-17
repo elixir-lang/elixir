@@ -24,22 +24,22 @@ The syntax Elixir provides for type specifications is similar to [the one in Erl
 
     type :: any()                   # the top type, the set of all terms
           | none()                  # the bottom type, contains no terms
-          | pid()
-          | port()
-          | reference()
-          | tuple()
           | atom()
+          | float()
           | integer()
+          | neg_integer()           # ..., -3, -2, -1
           | non_neg_integer()       # 0, 1, 2, 3, ...
           | pos_integer()           # 1, 2, 3, ...
-          | neg_integer()           # ..., -3, -2, -1
-          | float()
-          | map()                   # any map
-          | struct()                # any struct
           | list(type)
           | nonempty_list(type)
           | improper_list(type1, type2)
           | maybe_improper_list(type1, type2)
+          | map()                   # any map
+          | pid()
+          | port()
+          | reference()
+          | struct()                # any struct
+          | tuple()
           | Literals                # Described in section "Literals"
           | Builtin                 # Described in section "Built-in types"
           | Remotes                 # Described in section "Remote types"
@@ -49,9 +49,9 @@ The syntax Elixir provides for type specifications is similar to [the one in Erl
 The following literals are also supported in typespecs:
 
     type :: :atom                         ## Atoms
+          | 1.0                           ## Floats
           | 1                             ## Integers
           | 1..10                         ## Integers from 1 to 10
-          | 1.0                           ## Floats
 
                                           ## Bitstrings
           | <<>>                          # empty bitstring
@@ -59,17 +59,17 @@ The following literals are also supported in typespecs:
           | <<_::_ * unit>>               # unit is an integer from 1 to 256
           | <<_::size, _::_*unit>>
 
+                                          ## Functions
+          | (... -> type)                 # any arity, returns type
+          | (() -> type)                  # 0-arity, returns type
+          | (type1, type2 -> type)        # 2-arity, returns type
+
                                           ## Lists
           | [type]                        # list with any number of type elements
           | []                            # empty list
           | [...]                         # shorthand for nonempty_list(any())
           | [type, ...]                   # shorthand for nonempty_list(type)
           | [key: type]                   # keyword lists
-
-                                          ## Functions
-          | (... -> type)                 # any arity, returns type
-          | (() -> type)                  # 0-arity, returns type
-          | (type1, type2 -> type)        # 2-arity, returns type
 
                                           ## Maps
           | %{}                           # empty map
@@ -91,30 +91,30 @@ The following types are also provided by Elixir as shortcuts on top of the basic
 Built-in type           | Defined as
 :---------------------- | :---------
 `term()`                | `any()`
+`arity()`               | `0..255`
+`as_boolean(t)`         | `t`
 `binary()`              | `<<_::_ * 8>>`
 `bitstring()`           | `<<_::_ * 1>>`
 `boolean()`             | `false` \| `true`
 `byte()`                | `0..255`
 `char()`                | `0..0x10FFFF`
-`number()`              | `integer()` \| `float()`
 `charlist()`            | `[char()]`
-`list()`                | `[any()]`
-`maybe_improper_list()` | `maybe_improper_list(any(), any())`
-`nonempty_list()`       | `nonempty_list(any())`
-`iolist()`              | `maybe_improper_list(byte() \| binary() \| iolist(), binary() \| [])`
-`iodata()`              | `iolist()` \| `binary()`
-`module()`              | `atom()`
-`arity()`               | `0..255`
-`mfa()`                 | `{module(), atom(), arity()}`
-`identifier()`          | `pid()` \| `port()` \| `reference()`
-`node()`                | `atom()`
-`timeout()`             | `:infinity` \| `non_neg_integer()`
-`no_return()`           | `none()`
 `fun()`                 | `(... -> any)`
-`struct()`              | `%{:__struct__ => atom(), optional(atom()) => any()}`
-`as_boolean(t)`         | `t`
+`identifier()`          | `pid()` \| `port()` \| `reference()`
+`iodata()`              | `iolist()` \| `binary()`
+`iolist()`              | `maybe_improper_list(byte() \| binary() \| iolist(), binary() \| [])`
 `keyword()`             | `[{atom(), any()}]`
 `keyword(t)`            | `[{atom(), t}]`
+`list()`                | `[any()]`
+`nonempty_list()`       | `nonempty_list(any())`
+`maybe_improper_list()` | `maybe_improper_list(any(), any())`
+`mfa()`                 | `{module(), atom(), arity()}`
+`module()`              | `atom()`
+`no_return()`           | `none()`
+`node()`                | `atom()`
+`number()`              | `integer()` \| `float()`
+`struct()`              | `%{:__struct__ => atom(), optional(atom()) => any()}`
+`timeout()`             | `:infinity` \| `non_neg_integer()`
 
 ### Remote types
 
