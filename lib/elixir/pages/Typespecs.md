@@ -118,7 +118,7 @@ Built-in type           | Defined as
 
 ### Remote types
 
-Any module is also able to define its own types and the modules in Elixir are no exception. For example, the `Range` module defines a `t` type that represents a range: this type can be referred to as `Range.t`. In a similar fashion, a string is `String.t`, any enumerable can be `Enum.t`, and so on.
+Any module is also able to define its own types and the modules in Elixir are no exception. For example, the `Range` module defines a `t/0` type that represents a range: this type can be referred to as `t:Range.t/0`. In a similar fashion, a string is `t:String.t/0`, any enumerable can be `t:Enum.t/0`, and so on.
 
 ### Maps
 
@@ -170,6 +170,6 @@ Specifications can be overloaded just like ordinary functions.
 
 ## Notes
 
-Elixir discourages the use of type `string` as it might be confused with binaries which are referred to as "strings" in Elixir (as opposed to character lists). In order to use the type that is called `string` in Erlang, one has to use the `charlist` type which is a synonym for `string`. If you use `string`, you'll get a warning from the compiler.
+Elixir discourages the use of type `t:string/0` as it might be confused with binaries which are referred to as "strings" in Elixir (as opposed to character lists). In order to use the type that is called `t:string/0` in Erlang, one has to use the `t:charlist/0` type which is a synonym for `string`. If you use `string`, you'll get a warning from the compiler.
 
-If you want to refer to the "string" type (the one operated on by functions in the `String` module), use `String.t` type instead.
+If you want to refer to the "string" type (the one operated on by functions in the `String` module), use `t:String.t/0` type instead.

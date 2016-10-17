@@ -3,7 +3,7 @@ defmodule ExUnit.Callbacks do
   Defines ExUnit Callbacks.
 
   This module defines both `setup_all` and `setup` callbacks, as well as
-  the `on_exit` facility.
+  the `on_exit/2` facility.
 
   The setup callbacks are defined via macros and each one can optionally
   receive a map with metadata, usually referred to as `context`. The
@@ -14,17 +14,17 @@ defmodule ExUnit.Callbacks do
   test is run and all `setup` callbacks are run before each test. No callback
   runs if the test case has no tests or all tests have been filtered out.
 
-  `on_exit` callbacks are registered on demand, usually to undo an action
-  performed by a setup callback. `on_exit` may also take a reference,
-  allowing callback to be overridden in the future. A registered `on_exit`
+  `on_exit/2` callbacks are registered on demand, usually to undo an action
+  performed by a setup callback. `on_exit/2` may also take a reference,
+  allowing callback to be overridden in the future. A registered `on_exit/2`
   callback always runs, while failures in `setup` and `setup_all` will stop
   all remaining setup callbacks from executing.
 
   Finally, `setup_all` callbacks run in the test case process, while all
-  `setup` callbacks run in the same process as the test itself. `on_exit`
+  `setup` callbacks run in the same process as the test itself. `on_exit/2`
   callbacks always run in a separate process than the test case or the
   test itself. Since the test process exits with reason `:shutdown`, most
-  of times `on_exit/1` can be avoided as processes are going to clean
+  of times `on_exit/2` can be avoided as processes are going to clean
   up on their own.
 
   ## Context
@@ -198,11 +198,11 @@ defmodule ExUnit.Callbacks do
   @doc """
   Defines a callback that runs on the test (or test case) exit.
 
-  An `on_exit` callback is a function that receives no arguments and
+  `callback` is a function that receives no arguments and
   runs in a separate process than the caller.
 
   `on_exit/2` is usually called from `setup` and `setup_all` callbacks,
-  often to undo the action performed during `setup`. However, `on_exit`
+  often to undo the action performed during `setup`. However, `on_exit/2`
   may also be called dynamically, where a reference can be used to
   guarantee the callback will be invoked only once.
   """
@@ -211,7 +211,7 @@ defmodule ExUnit.Callbacks do
     case ExUnit.OnExitHandler.add(self(), ref, callback) do
       :ok -> :ok
       :error ->
-        raise ArgumentError, "on_exit/1 callback can only be invoked from the test process"
+        raise ArgumentError, "on_exit/2 callback can only be invoked from the test process"
     end
   end
 
