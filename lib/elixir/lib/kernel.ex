@@ -1840,7 +1840,7 @@ defmodule Kernel do
   accordingly (be it by failing or providing a sane default).
 
   The `Access` module ships with many convenience accessor functions,
-  like the `all` function defined above. See `Access.all/0`,
+  like the `all` anonymous function defined above. See `Access.all/0`,
   `Access.key/2` and others as examples.
   """
   @spec get_and_update_in(Access.t, nonempty_list(term),

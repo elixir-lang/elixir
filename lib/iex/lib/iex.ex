@@ -80,7 +80,7 @@ defmodule IEx do
       iex(foo@HOST)1>
 
   The string between the parentheses in the prompt is the name
-  of your node. We can retrieve it by calling the `node()`
+  of your node. We can retrieve it by calling the `node/0`
   function:
 
       iex(foo@HOST)1> node()

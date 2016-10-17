@@ -8,14 +8,14 @@ defmodule IEx.Helpers do
   This message was triggered by invoking the helper `h()`,
   usually referred to as `h/0` (since it expects 0 arguments).
 
-  You can use the `h` function to invoke the documentation
+  You can use the `h/1` function to invoke the documentation
   for any Elixir module or function:
 
       h Enum
       h Enum.map
       h Enum.reverse/1
 
-  You can also use the `i` function to introspect any value
+  You can also use the `i/1` function to introspect any value
   you have in the shell:
 
       i "hello"
@@ -48,7 +48,7 @@ defmodule IEx.Helpers do
     * `v/1`           - retrieves the nth value from the history
 
   Help for all of those functions can be consulted directly from
-  the command line using the `h` helper itself. Try:
+  the command line using the `h/1` helper itself. Try:
 
       h(v/0)
 

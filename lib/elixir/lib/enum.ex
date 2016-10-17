@@ -206,7 +206,7 @@ defmodule Enum do
 
   @doc """
   Returns true if the given `fun` evaluates to true on all of the items in the enumerable.
-  
+
   It stops the iteration at the first invocation that returns `false` or `nil`.
 
   ## Examples
@@ -244,7 +244,7 @@ defmodule Enum do
 
   @doc """
   Returns true if the given `fun` evaluates to true on any of the items in the enumerable.
-  
+
   It stops the iteration at the first invocation that returns a truthy value (not `false` or `nil`).
 
   ## Examples
@@ -2128,10 +2128,10 @@ defmodule Enum do
   end
 
   @doc """
-  Sorts the mapped results of the enumerable according to the `sorter`
+  Sorts the mapped results of the enumerable according to the provided `sorter`
   function.
 
-  This function maps each element of the enumerable using the `mapper`
+  This function maps each element of the enumerable using the provided `mapper`
   function.  The enumerable is then sorted by the mapped elements
   using the `sorter` function, which defaults to `Kernel.<=/2`
 

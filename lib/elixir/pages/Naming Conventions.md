@@ -105,4 +105,4 @@ When you see `length`, the operation runs in linear time ("O(n) time") because t
 
 Examples: `Kernel.length/1`, `String.length/1`
 
-In other words, `size` functions will take the same amount of time whether the data structure is tiny or huge. `length` functions will take more time as the data structure grows in size.
+In other words, functions using the word "size" in its name will take the same amount of time whether the data structure is tiny or huge. Conversely, functions having "length" in its name will take more time as the data structure grows in size.
