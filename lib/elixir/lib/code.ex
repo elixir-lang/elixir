@@ -509,6 +509,8 @@ defmodule Code do
       {:error, :nofile}
 
   """
+  @spec ensure_loaded(module) ::
+        {:module, module} | {:error, :embedded | :badfile | :nofile | :on_load_failure}
   def ensure_loaded(module) when is_atom(module) do
     :code.ensure_loaded(module)
   end
@@ -526,7 +528,7 @@ defmodule Code do
       true
 
   """
-  def ensure_loaded?(module) do
+  def ensure_loaded?(module) when is_atom(module) do
     match?({:module, ^module}, ensure_loaded(module))
   end
 
@@ -543,6 +545,8 @@ defmodule Code do
   Check `ensure_loaded/1` for more information on module loading
   and when to use `ensure_loaded/1` or `ensure_compiled/1`.
   """
+  @spec ensure_compiled(module) ::
+        {:module, module} | {:error, :embedded | :badfile | :nofile | :on_load_failure}
   def ensure_compiled(module) when is_atom(module) do
     case :code.ensure_loaded(module) do
       {:error, :nofile} = error ->
@@ -563,7 +567,8 @@ defmodule Code do
   is already loaded or was successfully loaded and compiled.
   Returns `false` otherwise.
   """
-  def ensure_compiled?(module) do
+  @spec ensure_compiled?(module) :: boolean
+  def ensure_compiled?(module) when is_atom(module) do
     match?({:module, ^module}, ensure_compiled(module))
   end
 
