@@ -3194,13 +3194,13 @@ defmodule Kernel do
   #
   # Examples:
   #
-  #     module_nesting('Elixir.Foo.Bar', 'Elixir.Foo.Bar.Baz.Bat')
-  #     {'Elixir.Baz', 'Elixir.Foo.Bar.Baz'}
+  #     module_nesting(:"Elixir.Foo.Bar", :"Elixir.Foo.Bar.Baz.Bat")
+  #     {:"Elixir.Baz", :"Elixir.Foo.Bar.Baz"}
   #
   # In case there is no nesting/no module:
   #
-  #     module_nesting(nil, 'Elixir.Foo.Bar.Baz.Bat')
-  #     {false, 'Elixir.Foo.Bar.Baz.Bat'}
+  #     module_nesting(nil, :"Elixir.Foo.Bar.Baz.Bat")
+  #     {nil, :"Elixir.Foo.Bar.Baz.Bat"}
   #
   defp module_nesting(nil, full),
     do: {nil, full}
