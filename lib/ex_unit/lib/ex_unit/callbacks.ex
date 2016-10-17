@@ -12,7 +12,7 @@ defmodule ExUnit.Callbacks do
 
   The `setup_all` callbacks are invoked once to setup the test case before any
   test is run and all `setup` callbacks are run before each test. No callback
-  runs if the test case has no tests or all tests were filtered out.
+  runs if the test case has no tests or all tests have been filtered out.
 
   `on_exit` callbacks are registered on demand, usually to undo an action
   performed by a setup callback. `on_exit` may also take a reference,
@@ -206,8 +206,8 @@ defmodule ExUnit.Callbacks do
   may also be called dynamically, where a reference can be used to
   guarantee the callback will be invoked only once.
   """
-  @spec on_exit(term, (() -> term)) :: :ok
-  def on_exit(ref \\ make_ref(), callback) do
+  @spec on_exit(term, (() -> term)) :: :ok | no_return
+  def on_exit(ref \\ make_ref(), callback) when is_function(callback, 0) do
     case ExUnit.OnExitHandler.add(self(), ref, callback) do
       :ok -> :ok
       :error ->
