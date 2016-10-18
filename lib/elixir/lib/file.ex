@@ -456,7 +456,7 @@ defmodule File do
   specify the `destination` filename, it is not sufficient to simply specify
   its directory.
 
-  It returns `:ok` in case of success, returns `{:error, reason}` otherwise.
+  Returns `:ok` in case of success, `{:error, reason}` otherwise.
 
   Note: The command `mv` in Unix systems behaves differently depending
   if `source` is a file and the `destination` is an existing directory.
@@ -1013,7 +1013,7 @@ defmodule File do
   automatically closed after the function returns, regardless
   if there was an error when executing the function.
 
-  It returns `{:ok, function_result}` in case of success,
+  Returns `{:ok, function_result}` in case of success,
   `{:error, reason}` otherwise.
 
   This function expects the file to be closed with success,
@@ -1151,7 +1151,7 @@ defmodule File do
   @doc """
   Returns the list of files in the given directory.
 
-  It returns `{:ok, [files]}` in case of success,
+  Returns `{:ok, [files]}` in case of success,
   `{:error, reason}` otherwise.
   """
   @spec ls(Path.t) :: {:ok, [binary]} | {:error, posix}
@@ -1221,7 +1221,7 @@ defmodule File do
 
       # Read in 2048 byte chunks rather than lines
       File.stream!("./test/test.data", [], 2048)
-      #=>  %File.Stream{line_or_bytes: 2048, modes: [:raw, :read_ahead, :binary],
+      #=> %File.Stream{line_or_bytes: 2048, modes: [:raw, :read_ahead, :binary],
       #=> path: "./test/test.data", raw: true}
 
   See `Stream.run/1` for an example of streaming into a file.
