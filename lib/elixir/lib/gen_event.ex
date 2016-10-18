@@ -510,7 +510,7 @@ defmodule GenEvent do
     end
   end
 
-  def notify({:via, mod, name}, msg) do
+  def notify({:via, mod, name}, msg) when is_atom(mod) do
     try do
       mod.send(name, {:notify, msg})
       :ok
@@ -519,8 +519,12 @@ defmodule GenEvent do
     end
   end
 
-  def notify(other, msg) do
-    send(other, {:notify, msg})
+  def notify(manager, msg)
+      when is_pid(manager)
+      when is_atom(manager)
+      when tuple_size(manager) == 2 and
+        is_atom(elem(manager, 0)) and is_atom(elem(manager, 1)) do
+    send(manager, {:notify, msg})
     :ok
   end
 
@@ -659,7 +663,7 @@ defmodule GenEvent do
     init_it(starter, self(), name, mod, args, options)
   end
 
-  def init_it(starter, parent, name, _, _, options) do
+  def init_it(starter, parent, name, _mod, _args, options) do
     Process.put(:"$initial_call", {__MODULE__, :init_it, 6})
     debug =
       if function_exported?(:gen, :debug_options, 2) do
