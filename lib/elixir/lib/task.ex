@@ -33,7 +33,7 @@ defmodule Task do
 
   There are two important things to consider when using `async`:
 
-    1. If you are using async tasks, you must await a reply
+    1. If you are using async tasks, you **must await** a reply
        as they are *always* sent. If you are not expecting a reply,
        consider using `Task.start_link/1` detailed below.
 
