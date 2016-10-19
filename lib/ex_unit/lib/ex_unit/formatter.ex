@@ -298,7 +298,7 @@ defmodule ExUnit.Formatter do
   defp with_counter(counter, msg) when counter < 100 do  " #{counter}) #{msg}" end
   defp with_counter(counter, msg)                    do   "#{counter}) #{msg}" end
 
-  defp test_case_info(msg, nil),       do: msg <> "failure on setup_all callback, tests invalidated\n"
+  defp test_case_info(msg, nil),       do: msg <> "failure on setup_all callback, test invalidated\n"
   defp test_case_info(msg, formatter), do: test_case_info(formatter.(:test_case_info, msg), nil)
 
   defp test_info(msg, nil),       do: msg <> "\n"
