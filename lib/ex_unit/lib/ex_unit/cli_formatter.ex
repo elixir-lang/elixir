@@ -18,7 +18,8 @@ defmodule ExUnit.CLIFormatter do
       test_counter: %{},
       failure_counter: 0,
       skipped_counter: 0,
-      invalid_counter: 0
+      invalid_counter: 0,
+      failures: []
     }
     {:ok, config}
   end
@@ -73,8 +74,13 @@ defmodule ExUnit.CLIFormatter do
     print_failure(formatted, config)
     print_logs(test.logs)
 
+    %{file: file, line: line} = test.tags
+    location = "#{file}:#{line}"
+
     {:ok, %{config | test_counter: update_test_counter(config.test_counter, test),
-                     failure_counter: config.failure_counter + 1}}
+                     failure_counter: config.failure_counter + 1,
+                     failures: [location | config.failures]
+    }}
   end
 
   def handle_event({:case_started, %ExUnit.TestCase{name: name}}, config) do
@@ -140,7 +146,16 @@ defmodule ExUnit.CLIFormatter do
       |> if_true(config.invalid_counter > 0, & &1 <> ", #{config.invalid_counter} invalid")
 
     cond do
-      config.failure_counter > 0 -> IO.puts failure(message, config)
+      config.failure_counter > 0 ->
+        IO.puts ""
+        IO.puts failure("Failed tests:", config)
+        Enum.map(config.failures, fn(failure) ->
+          IO.puts(failure("mix test " <> Path.relative_to_cwd(failure), config))
+        end)
+        IO.puts ""
+
+        IO.puts failure(message, config)
+
       config.invalid_counter > 0 -> IO.puts invalid(message, config)
       true -> IO.puts success(message, config)
     end
