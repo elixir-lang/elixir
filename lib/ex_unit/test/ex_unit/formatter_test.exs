@@ -150,7 +150,7 @@ defmodule ExUnit.FormatterTest do
   test "formats test case errors" do
     failure = [{:error, catch_error(raise "oops"), []}]
     assert format_test_case_failure(test_case(), failure, 1, 80, &formatter/2) =~ """
-      1) Hello: failure on setup_all callback, tests invalidated
+      1) Hello: failure on setup_all callback, test invalidated
          ** (RuntimeError) oops
     """
   end
@@ -158,7 +158,7 @@ defmodule ExUnit.FormatterTest do
   test "formats assertions with operators with no limit" do
     failure = [{:error, catch_assertion(assert [1, 2, 3] == [4, 5, 6]), []}]
     assert format_test_case_failure(test_case(), failure, 1, :infinity, &formatter/2) =~ """
-      1) Hello: failure on setup_all callback, tests invalidated
+      1) Hello: failure on setup_all callback, test invalidated
          Assertion with == failed
          code:  [1, 2, 3] == [4, 5, 6]
          left:  [1, 2, 3]
@@ -169,7 +169,7 @@ defmodule ExUnit.FormatterTest do
   test "formats assertions with operators with column limit" do
     failure = [{:error, catch_assertion(assert [1, 2, 3] == [4, 5, 6]), []}]
     assert format_test_case_failure(test_case(), failure, 1, 15, &formatter/2) =~ """
-      1) Hello: failure on setup_all callback, tests invalidated
+      1) Hello: failure on setup_all callback, test invalidated
          Assertion with == failed
          code:  [1, 2, 3] == [4, 5, 6]
          left:  [1,
@@ -185,7 +185,7 @@ defmodule ExUnit.FormatterTest do
     message = "Some meaningful error:\nuseful info\nanother useful info"
     failure = [{:error, catch_assertion(assert(false, message)), []}]
     assert format_test_case_failure(test_case(), failure, 1, :infinity, &formatter/2) =~ """
-      1) Hello: failure on setup_all callback, tests invalidated
+      1) Hello: failure on setup_all callback, test invalidated
          Some meaningful error:
          useful info
          another useful info
