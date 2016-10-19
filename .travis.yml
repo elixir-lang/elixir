@@ -6,6 +6,7 @@ otp_release:
   - 18.2
   - 18.3
   - 19.0
+  - 19.1
 
 sudo: false
 
