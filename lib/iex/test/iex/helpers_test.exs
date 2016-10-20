@@ -146,6 +146,14 @@ defmodule IEx.HelpersTest do
     assert capture_io(fn -> b Exception.message/1 end) == "* @callback message(t()) :: String.t()\n\n\n"
   end
 
+  test "q helper function" do
+    assert false
+    # This is kinda tough to test since it exits the VM
+    # assert capture_iex("q()") =~ "\n:ok"
+    # assert capture_io(fn -> q() end)
+    #        == "\n:ok"
+  end
+
   test "t helper" do
     assert capture_io(fn -> t IEx end) == "No type information for IEx was found\n"
 
