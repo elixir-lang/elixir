@@ -3462,7 +3462,7 @@ defmodule Kernel do
       end
 
   It is recommended to only use the struct syntax when defining the struct's
-  type. When referring to another struct it's better to use `User.t`instead of
+  type. When referring to another struct it's better to use `User.t` instead of
   `%User{}`.
 
   The types of the struct fields that are not included in `%User{}` default to
