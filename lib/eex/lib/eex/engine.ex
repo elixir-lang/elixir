@@ -72,6 +72,8 @@ defmodule EEx.Engine do
       end
 
   """
+  @spec handle_assign({:@, Keyword.t, [{atom, term, atom}]}) :: Macro.t
+  @spec handle_assign(arg) :: arg when arg: Macro.t
   def handle_assign({:@, meta, [{name, _, atom}]}) when is_atom(name) and is_atom(atom) do
     line = meta[:line] || 0
     quote line: line, do: EEx.Engine.fetch_assign!(var!(assigns), unquote(name))
@@ -82,6 +84,7 @@ defmodule EEx.Engine do
 
   @doc false
   # TODO: Raise on 2.0
+  @spec fetch_assign!(map, Map.key) :: term | nil
   def fetch_assign!(assigns, key) do
     case Access.fetch(assigns, key) do
       {:ok, val} ->
@@ -124,7 +127,6 @@ defmodule EEx.Engine do
 
   All other markers are not implemented by this engine.
   """
-  @spec handle_expr(Macro.t, String.t, Macro.t) :: Macro.t
   def handle_expr(buffer, "=", expr) do
     quote do
       tmp1 = unquote(buffer)

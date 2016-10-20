@@ -1,26 +1,34 @@
 defmodule EEx.Tokenizer do
   @moduledoc false
 
+  @type content :: IO.chardata
+  @type line :: non_neg_integer
+  @type token :: {:text, content} |
+                 {:expr | :start_expr | :middle_expr | :end_expr, line, '=' | '', content}
+
   @doc """
   Tokenizes the given charlist or binary.
 
   It returns {:ok, list} with the following tokens:
 
-    * `{:text, contents}`
-    * `{:expr, line, marker, contents}`
-    * `{:start_expr, line, marker, contents}`
-    * `{:middle_expr, line, marker, contents}`
-    * `{:end_expr, line, marker, contents}`
+    * `{:text, content}`
+    * `{:expr, line, marker, content}`
+    * `{:start_expr, line, marker, content}`
+    * `{:middle_expr, line, marker, content}`
+    * `{:end_expr, line, marker, content}`
 
   Or `{:error, line, error}` in case of errors.
   """
+  @spec tokenize(binary | charlist, line, Keyword.t) :: {:ok, [token]} | {:error, line, String.t}
   def tokenize(bin, line, opts \\ [])
 
-  def tokenize(bin, line, opts) when is_binary(bin) do
+  def tokenize(bin, line, opts)
+      when is_binary(bin) and is_integer(line) and line >= 0 and is_list(opts) do
     tokenize(String.to_charlist(bin), line, opts)
   end
 
-  def tokenize(list, line, opts) do
+  def tokenize(list, line, opts)
+      when is_list(list) and is_integer(line) and line >= 0 and is_list(opts) do
     tokenize(list, line, opts, [], [])
   end
 
