@@ -255,12 +255,12 @@ defmodule URI do
   @doc """
   Percent-escapes the given string.
 
-  This function accepts a predicate function as an optional argument; if
-  passed, this function will be called with each character (byte) in `str` as
+  This function accepts a `predicate` function as an optional argument; if
+  passed, this function will be called with each character (byte) in `string` as
   its argument and should return `true` if that character should not be escaped
   and left as is.
 
-  ## Example
+  ## Examples
 
       iex> URI.encode("ftp://s-ite.tld/?value=put it+й")
       "ftp://s-ite.tld/?value=put%20it+%D0%B9"
