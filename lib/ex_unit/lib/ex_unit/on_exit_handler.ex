@@ -25,7 +25,7 @@ defmodule ExUnit.OnExitHandler do
 
   @spec run(pid, non_neg_integer | :infinity) :: :ok | {Exception.kind, term, Exception.stacktrace}
   def run(pid, timeout) do
-    callbacks = Agent.get_and_update(@name, &Map.pop(&1, pid))
+    callbacks = Agent.get_and_update(@name, &Map.pop(&1, pid, []))
     exec_on_exit_callbacks(Enum.reverse(callbacks), timeout)
   end
 
