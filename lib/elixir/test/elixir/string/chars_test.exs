@@ -57,6 +57,8 @@ defmodule String.Chars.RegexTest do
 
   test "regex" do
     assert to_string(~r/@/) == "@"
+    assert to_string(~r//) == ""
+    assert to_string(~r/foo/iu) == "foo"
   end
 end
 
