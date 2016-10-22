@@ -1675,11 +1675,11 @@ defmodule Kernel do
   end
 
   defp struct(struct, [], _fun) when is_atom(struct) do
-    apply(struct, :__struct__, [])
+    struct.__struct__()
   end
 
   defp struct(struct, kv, fun) when is_atom(struct) do
-    struct(apply(struct, :__struct__, []), kv, fun)
+    struct(struct.__struct__(), kv, fun)
   end
 
   defp struct(%{__struct__: _} = struct, [], _fun) do
