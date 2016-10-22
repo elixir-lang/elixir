@@ -3,15 +3,25 @@ Code.require_file "../test_helper.exs", __DIR__
 defmodule Kernel.DocsTest do
   use ExUnit.Case
 
-  @moduledoc "foo"
-  "foo" = @moduledoc
+  test "attributes format" do
+    defmodule DocAttributes do
+      @moduledoc "Module doc"
+      assert @moduledoc == "Module doc"
+      assert Module.get_attribute(__MODULE__, :moduledoc) == {8, "Module doc"}
 
-  @typedoc "foo"
-  "foo" = @typedoc
-  @type foo :: term
+      @typedoc "Type doc"
+      assert @typedoc == "Type doc"
+      assert Module.get_attribute(__MODULE__, :typedoc) == {12, "Type doc"}
+      @type foobar :: any
 
-  @doc "foo"
-  "foo" = @doc
+      @doc "Function doc"
+      assert @doc == "Function doc"
+      assert Module.get_attribute(__MODULE__, :doc) == {17, "Function doc"}
+      def foobar() do
+        :ok
+      end
+    end
+  end
 
   test "compiled with docs" do
     deftestmodule(SampleDocs)
