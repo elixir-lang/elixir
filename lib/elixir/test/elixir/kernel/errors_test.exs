@@ -539,12 +539,14 @@ defmodule Kernel.ErrorsTest do
 
   test "import with invalid options" do
     assert_compile_fail CompileError,
-      "nofile:1: invalid :only option for import, expected a keyword list",
-      'import Kernel, only: [:invalid]'
+      "nofile:1: invalid :only option for import, " <>
+      "expected a keyword list with integer values",
+      'import Kernel, only: [invalid: nil]'
 
     assert_compile_fail CompileError,
-      "nofile:1: invalid :except option for import, expected a keyword list",
-      'import Kernel, except: [:invalid]'
+      "nofile:1: invalid :except option for import, " <>
+      "expected a keyword list with integer values",
+      'import Kernel, except: [invalid: nil]'
   end
 
   test "import with conflicting options" do
