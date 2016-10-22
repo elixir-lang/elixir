@@ -34,9 +34,14 @@ import_functions(Meta, Ref, Opts, E) ->
 
 import_macros(Force, Meta, Ref, Opts, E) ->
   calculate(Meta, Ref, Opts, ?m(E, macros), ?m(E, file), fun() ->
-    case Force of
-      true  -> get_macros(Meta, Ref, E);
-      false -> get_optional_macros(Ref)
+    case fetch_macros(Ref) of
+      {ok, Macros} ->
+        Macros;
+      error when Force ->
+        Tuple = {no_macros, Ref},
+        elixir_errors:form_error(Meta, ?m(E, file), ?MODULE, Tuple);
+      error ->
+        []
     end
   end).
 
@@ -109,11 +114,7 @@ calculate(Meta, Key, Opts, Old, File, Existing) ->
 %% Retrieve functions and macros from modules
 
 get_exports(Module) ->
-  try
-    Module:'__info__'(functions) ++ Module:'__info__'(macros)
-  catch
-    error:undef -> Module:module_info(exports)
-  end.
+  get_functions(Module) ++ get_macros(Module).
 
 get_functions(Module) ->
   try
@@ -122,24 +123,19 @@ get_functions(Module) ->
     error:undef -> Module:module_info(exports)
   end.
 
-get_macros(Meta, Module, E) ->
-  try
-    Module:'__info__'(macros)
-  catch
-    error:undef ->
-      Tuple = {no_macros, Module},
-      elixir_errors:form_error(Meta, ?m(E, file), ?MODULE, Tuple)
+get_macros(Module) ->
+  case fetch_macros(Module) of
+    {ok, Macros} ->
+      Macros;
+    error ->
+      []
   end.
 
-get_optional_macros(Module)  ->
-  case code:ensure_loaded(Module) of
-    {module, Module} ->
-      try
-        Module:'__info__'(macros)
-      catch
-        error:undef -> []
-      end;
-    {error, _} -> []
+fetch_macros(Module) ->
+  try
+    {ok, Module:'__info__'(macros)}
+  catch
+    error:undef -> error
   end.
 
 %% VALIDATION HELPERS
