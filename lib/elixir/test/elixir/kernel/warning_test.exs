@@ -22,8 +22,8 @@ defmodule Kernel.WarningTest do
       end
       """
     end)
-    assert output =~ "variable arg is unused"
-    assert output =~ "variable user is unused"
+    assert output =~ "variable \"arg\" is unused"
+    assert output =~ "variable \"user\" is unused"
   after
     purge Sample
   end
@@ -632,7 +632,7 @@ defmodule Kernel.WarningTest do
       end
       """
     end)
-    assert output =~ "variable x is unused"
+    assert output =~ "variable \"x\" is unused"
     assert output =~ "sample:3"
   after
     purge Sample
