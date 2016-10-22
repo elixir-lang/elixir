@@ -31,6 +31,10 @@ defmodule Mix.Tasks.TestTest do
     assert ex_unit_opts([color: true]) == [autorun: false, colors: [enabled: true]]
   end
 
+  test "ex_unit_opts translates :format options into list of modules" do
+    assert ex_unit_opts([formatter: "A.B"]) == [autorun: false, formatters: [A.B]]
+  end
+
   test "--stale: runs all tests for first run, then none on second" do
     in_fixture "test_stale", fn ->
       assert_stale_run_output "2 tests, 0 failures"

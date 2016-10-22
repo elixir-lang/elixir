@@ -70,6 +70,7 @@ defmodule Mix.Tasks.Test do
     * `--listen-on-stdin` - run tests, and then listen on stdin. Receiving a newline will
       result in the tests being run again. Very useful when combined with `--stale` and
       external commands which produce output on stdout upon file system modification.
+    * `--formatter`  - formatter module
 
   ## Filters
 
@@ -167,7 +168,7 @@ defmodule Mix.Tasks.Test do
              exclude: :keep, seed: :integer, only: :keep, compile: :boolean,
              start: :boolean, timeout: :integer, raise: :boolean,
              deps_check: :boolean, archives_check: :boolean, elixir_version_check: :boolean,
-             stale: :boolean, listen_on_stdin: :boolean]
+             stale: :boolean, listen_on_stdin: :boolean, formatter: :keep]
 
   @cover [output: "cover", tool: Cover]
 
@@ -270,9 +271,10 @@ defmodule Mix.Tasks.Test do
       |> filter_opts(:include)
       |> filter_opts(:exclude)
       |> filter_only_opts()
+      |> formatter_opts()
 
     default_opts(opts) ++
-      Keyword.take(opts, [:trace, :max_cases, :include, :exclude, :seed, :timeout])
+      Keyword.take(opts, [:trace, :max_cases, :include, :exclude, :seed, :timeout, :formatters])
   end
 
   defp merge_helper_opts(opts) do
@@ -314,6 +316,19 @@ defmodule Mix.Tasks.Test do
   defp filter_opts(opts, key) do
     if filters = parse_filters(opts, key) do
       Keyword.put(opts, key, filters)
+    else
+      opts
+    end
+  end
+
+  def formatter_opts(opts) do
+    if Keyword.has_key?(opts, :formatter) do
+      formatters =
+        opts
+        |> Keyword.get_values(:formatter)
+        |> Enum.map(&(Module.concat(String.split(&1, "."))))
+
+      Keyword.put(opts, :formatters, formatters)
     else
       opts
     end
