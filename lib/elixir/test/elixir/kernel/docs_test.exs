@@ -25,7 +25,12 @@ defmodule Kernel.DocsTest do
 
   test "compiled with docs" do
     deftestmodule(SampleDocs)
+
     docs = Code.get_docs(SampleDocs, :all)
+    assert Code.get_docs(SampleDocs, :docs) == docs[:docs]
+    assert Code.get_docs(SampleDocs, :moduledoc) == docs[:moduledoc]
+    assert Code.get_docs(SampleDocs, :type_docs) == docs[:type_docs]
+    assert Code.get_docs(SampleDocs, :callback_docs) == docs[:callback_docs]
 
     assert [{{:argnames, 5}, _, :def, [
               {:list1, [], Elixir},
