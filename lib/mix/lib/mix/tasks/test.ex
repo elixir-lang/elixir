@@ -326,7 +326,7 @@ defmodule Mix.Tasks.Test do
       formatters =
         opts
         |> Keyword.get_values(:formatter)
-        |> Enum.map(&(Module.concat(String.split(&1, "."))))
+        |> Enum.map(&Module.concat([&1]))
 
       Keyword.put(opts, :formatters, formatters)
     else
