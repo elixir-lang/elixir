@@ -78,7 +78,7 @@ parse_error(Line, File, <<"syntax error before: ">>, <<"{sigil,", _Rest/binary>>
     true -> Content;
     false -> <<>>
   end,
-  Message = <<"syntax error before: sigil ~", Sigil, " starting with content '", Content2/binary, "'">>,
+  Message = <<"syntax error before: sigil \~", Sigil, " starting with content '", Content2/binary, "'">>,
   do_raise(Line, File, 'Elixir.SyntaxError', Message);
 
 %% Aliases are wrapped in ['']
@@ -165,8 +165,7 @@ handle_file_warning(_, File, {Line, erl_lint, {undefined_behaviour, Module}}) ->
   case elixir_compiler:get_opt(internal) of
     true  -> ok;
     false ->
-      Message = io_lib:format("behaviour ~ts undefined", [elixir_aliases:inspect(Module)]),
-      warn(Line, File, Message)
+      warn(Line, File, ["behaviour ", elixir_aliases:inspect(Module), " is undefined"])
   end;
 
 %% Ignore unused vars at "weird" lines (<= 0)
@@ -186,8 +185,7 @@ handle_file_warning(_, File, {Line, sys_core_fold, nomatch_guard}) ->
 
 %% Properly format other unused vars
 handle_file_warning(_, File, {Line, erl_lint, {unused_var, Var}}) ->
-  Message = format_error(erl_lint, {unused_var, format_var(Var)}),
-  warn(Line, File, Message);
+  warn(Line, File, ["variable \"", format_var(Var), "\" is unused"]);
 
 %% Handle literal eval failures
 handle_file_warning(_, File, {Line, sys_core_fold, {eval_failure, Error}}) ->
@@ -210,7 +208,7 @@ handle_file_error(File, {Line, erl_lint, {unsafe_var, Var, {In, _Where}}}) ->
     'andalso' -> 'and';
     _ -> In
   end,
-  Message = io_lib:format("cannot define variable ~ts inside ~ts", [format_var(Var), Translated]),
+  Message = io_lib:format("cannot define variable \"~ts\" inside ~ts", [format_var(Var), Translated]),
   do_raise(Line, File, 'Elixir.CompileError', elixir_utils:characters_to_binary(Message));
 
 handle_file_error(File, {Line, erl_lint, {undefined_function, {F, A}}}) ->
@@ -242,11 +240,11 @@ file_format(Line, File) ->
   io_lib:format("~ts:~w", [elixir_utils:relative_to_cwd(File), Line]).
 
 format_var(Var) ->
-  list_to_atom(lists:takewhile(fun(X) -> X /= $@ end, atom_to_list(Var))).
+  lists:takewhile(fun(X) -> X /= $@ end, atom_to_list(Var)).
 
 %% TODO: Remove this clause when we depend only on Erlang 19.
 format_error(erl_lint, {bittype_mismatch, Val1, Val2, Kind}) ->
-  Desc = "conflict in ~s specification for bit field: '~p' and '~p'",
+  Desc = "conflict in ~s specification for bit field: \"~p\" and \"~p\"",
   io_lib:format(Desc, [Kind, Val1, Val2]);
 
 format_error([], Desc) ->
