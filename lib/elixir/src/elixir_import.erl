@@ -157,11 +157,14 @@ ensure_no_special_form_conflict(_Meta, _File, _Key, []) -> ok.
 
 ensure_keyword_list(_Meta, _File, [], _Kind) -> ok;
 
-ensure_keyword_list(Meta, File, [{Key, _} | Rest], Kind) when is_atom(Key) ->
+ensure_keyword_list(Meta, File, [{Key, Value} | Rest], Kind) when is_atom(Key), is_integer(Value) ->
   ensure_keyword_list(Meta, File, Rest, Kind);
 
 ensure_keyword_list(Meta, File, _Other, Kind) ->
-  elixir_errors:compile_error(Meta, File, "invalid :~s option for import, expected a keyword list", [Kind]).
+  Message =
+    "invalid :~s option for import, "
+    "expected a keyword list with integer values",
+  elixir_errors:compile_error(Meta, File, Message, [Kind]).
 
 %% ERROR HANDLING
 
