@@ -665,8 +665,6 @@ defmodule Kernel.ErrorsTest do
       "a binary, a boolean, or nil), got: \"Other\""
     assert_raise ArgumentError, message, fn ->
       defmodule DocAttributesFormat do
-        @moduledoc "ModuleTest"
-        {668, "ModuleTest"} = Module.get_attribute(__MODULE__, :moduledoc)
         Module.put_attribute(__MODULE__, :moduledoc, "Other")
       end
     end

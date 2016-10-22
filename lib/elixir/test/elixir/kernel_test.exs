@@ -102,8 +102,6 @@ defmodule KernelTest do
   @at_list1  [4, 5]
   @at_range 6..8
   @at_list2 [13, 14]
-  @doc "fun_in/1"
-  "fun_in/1" = @doc
   def fun_in(x) when x in [0],       do: :list
   def fun_in(x) when x in 1..3,      do: :range
   def fun_in(x) when x in @at_list1,  do: :at_list
