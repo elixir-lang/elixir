@@ -63,7 +63,8 @@ calculate(Meta, Key, Opts, Old, File, Existing) ->
     {only, Only} when is_list(Only) ->
       ok = ensure_keyword_list(Meta, File, Only, only),
       case keyfind(except, Opts) of
-        false -> ok;
+        false ->
+          ok;
         _ ->
           elixir_errors:compile_error(Meta, File,
             ":only and :except can only be given together to import"
@@ -78,9 +79,14 @@ calculate(Meta, Key, Opts, Old, File, Existing) ->
       end;
     _ ->
       case keyfind(except, Opts) of
-        false -> remove_underscored(Existing());
+        false ->
+          remove_underscored(Existing());
         {except, Except} when is_list(Except) ->
           ok = ensure_keyword_list(Meta, File, Except, except),
+          %% We are not checking existence of exports listed in :except option
+          %% on purpose: to support backwards compatible code.
+          %% For example, "import String, except: [trim: 1]"
+          %% should work across all Elixir versions.
           case keyfind(Key, Old) of
             false -> remove_underscored(Existing()) -- Except;
             {Key, OldImports} -> OldImports -- Except
