@@ -26,10 +26,10 @@ defmodule Inspect.AlgebraTest do
   end
 
   test "empty doc" do
-    # Consistence with definitions
+    # Consistent with definitions
     assert empty() == :doc_nil
 
-    # Consistence of corresponding sdoc
+    # Consistent of corresponding sdoc
     assert sdoc(empty()) == []
 
     # Consistent formatting
@@ -37,14 +37,14 @@ defmodule Inspect.AlgebraTest do
   end
 
   test "break doc" do
-    # Consistence with definitions
+    # Consistent with definitions
     assert break("break") == {:doc_break, "break"}
     assert break("") == {:doc_break, ""}
 
     # Wrong argument type
     assert_raise FunctionClauseError, fn -> break(42) end
 
-    # Consistence of corresponding sdoc
+    # Consistent with corresponding sdoc
     assert sdoc(break("_")) == ["_"]
 
     # Consistent formatting
@@ -52,7 +52,7 @@ defmodule Inspect.AlgebraTest do
   end
 
   test "glue doc" do
-    # Consistence with definitions
+    # Consistent with definitions
     assert glue("a", "->", "b") == {:doc_cons,
       "a", {:doc_cons, {:doc_break, "->"}, "b"}
    }
@@ -63,7 +63,7 @@ defmodule Inspect.AlgebraTest do
   end
 
   test "text doc" do
-    # Consistence of corresponding sdoc
+    # Consistent with corresponding sdoc
     assert sdoc("_") == ["_"]
 
     # Consistent formatting
@@ -71,21 +71,21 @@ defmodule Inspect.AlgebraTest do
   end
 
   test "space doc" do
-    # Consistency with definitions
+    # Consistent with definitions
     assert space("a", "b") == {:doc_cons,
       "a", {:doc_cons, " ", "b"}
    }
   end
 
   test "nest doc" do
-    # Consistence with definitions
+    # Consistent with definitions
     assert nest(empty(), 1) == {:doc_nest, empty(), 1}
     assert nest(empty(), 0) == :doc_nil
 
     # Wrong argument type
     assert_raise FunctionClauseError, fn -> nest("foo", empty()) end
 
-    # Consistence of corresponding sdoc
+    # Consistent with corresponding sdoc
     assert sdoc(nest("a", 1))  == ["a"]
 
     # Consistent formatting
@@ -93,12 +93,42 @@ defmodule Inspect.AlgebraTest do
     assert render(nest(glue("a", "b"), 1), 2) == "a\n b"
   end
 
+  test "color doc" do
+    # Consistent with definitions
+    opts = %Inspect.Opts{}
+    assert color(empty(), :atom, opts) == empty()
+
+    opts = %Inspect.Opts{syntax_colors: [regex: :red]}
+    assert color(empty(), :atom, opts) == empty()
+
+    opts = %Inspect.Opts{syntax_colors: [atom: :red]}
+    assert color("Hi", :atom, opts) == concat(
+      {:doc_color, "Hi", [:red]},
+      {:doc_color, empty(), [:reset]}
+    )
+
+    opts = %Inspect.Opts{syntax_colors: [reset: :red]}
+    assert color(empty(), :atom, opts) == empty()
+
+    opts = %Inspect.Opts{syntax_colors: [number: :cyan, reset: :red]}
+    assert color("123", :number, opts) == concat(
+      {:doc_color, "123", [:cyan]},
+      {:doc_color, empty(), [:red]}
+    )
+
+    # Consistent formatting
+    opts = %Inspect.Opts{syntax_colors: [atom: :cyan]}
+    assert render(glue(color("AA", :atom, opts), "BB"), 5) == "\e[36mAA\e[0m BB"
+    assert render(glue(color("AA", :atom, opts), "BB"), 3) == "\e[36mAA\e[0m\nBB"
+    assert render(glue("AA", color("BB", :atom, opts)), 6) == "AA \e[36mBB\e[0m"
+  end
+
   test "line doc" do
-    # Consistency with definitions
+    # Consistent with definitions
     assert line("a", "b") ==
       {:doc_cons, "a", {:doc_cons, :doc_line, "b"}}
 
-    # Consistence of corresponding sdoc
+    # Consistent with corresponding sdoc
     assert sdoc(line("a", "b")) == ["a", "\n", "b"]
 
     # Consistent formatting
@@ -107,12 +137,12 @@ defmodule Inspect.AlgebraTest do
   end
 
   test "group doc" do
-    # Consistency with definitions
+    # Consistent with definitions
     assert group(glue("a", "b")) ==
       {:doc_group, {:doc_cons, "a", concat(break(), "b")}}
     assert group(empty()) == {:doc_group, empty()}
 
-    # Consistence of corresponding sdoc
+    # Consistent with corresponding sdoc
     assert sdoc(glue("a", "b")) == ["a", " ", "b"]
 
     # Consistent formatting

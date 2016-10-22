@@ -42,6 +42,11 @@ defmodule Inspect.Opts do
       is useful when debugging failures and crashes for custom inspect
       implementations
 
+    * `:syntax_colors` - when set to a keyword list of colors the output will
+      be colorized. The keys are types and the values are the colors to use for
+      each type. e.g. `[number: :red, atom: :blue]`. Types can include
+      `:number`, `:atom`, `regex`, `:tuple`, `:map`, `:list`, and `:reset`.
+      Colors can be any `t:IO.ANSI.ansidata/0` as accepted by `IO.ANSI.format/1`.
   """
 
   # TODO: Deprecate char_lists key by v1.5
@@ -53,7 +58,8 @@ defmodule Inspect.Opts do
             width: 80,
             base: :decimal,
             pretty: false,
-            safe: true
+            safe: true,
+            syntax_colors: []
 
   # TODO: Deprecate char_lists key and :as_char_lists value by v1.5
   @type t :: %__MODULE__{
@@ -65,7 +71,9 @@ defmodule Inspect.Opts do
                width: pos_integer | :infinity,
                base: :decimal | :binary | :hex | :octal,
                pretty: boolean,
-               safe: boolean}
+               safe: boolean,
+               syntax_colors: [{atom, IO.ANSI.ansidata}]
+  }
 end
 
 defmodule Inspect.Error do
@@ -153,7 +161,9 @@ defmodule Inspect.Algebra do
 
   # Functional interface to "doc" records
 
-  @type t :: :doc_nil | :doc_line | doc_cons | doc_nest | doc_break | doc_group | binary
+  @type t :: :doc_nil | :doc_line | doc_cons | doc_nest | doc_break | doc_group | doc_color | binary
+
+  @type color_identifier :: atom
 
   @typep doc_cons :: {:doc_cons, t, t}
   defmacrop doc_cons(left, right) do
@@ -175,6 +185,11 @@ defmodule Inspect.Algebra do
     quote do: {:doc_group, unquote(group)}
   end
 
+  @typep doc_color :: {:doc_color, t, IO.ANSI.ansidata}
+  defmacrop doc_color(doc, color) do
+    quote do: {:doc_color, unquote(doc), unquote(color)}
+  end
+
   defmacrop is_doc(doc) do
     if Macro.Env.in_guard?(__CALLER__) do
       do_is_doc(doc)
@@ -192,7 +207,7 @@ defmodule Inspect.Algebra do
       is_binary(unquote(doc)) or
       unquote(doc) in [:doc_nil, :doc_line] or
       (is_tuple(unquote(doc)) and
-       elem(unquote(doc), 0) in [:doc_cons, :doc_nest, :doc_break, :doc_group])
+       elem(unquote(doc), 0) in [:doc_cons, :doc_nest, :doc_break, :doc_group, :doc_color])
     end
   end
 
@@ -282,6 +297,23 @@ defmodule Inspect.Algebra do
   def concat(docs) do
     fold_doc(docs, &concat(&1, &2))
   end
+
+  @doc """
+  Colors a document if a the identifier has a color in the options.
+  """
+  @spec color(t, color_identifier, Inspect.Opts.t) :: doc_color
+  def color(doc, identifier, %Inspect.Opts{syntax_colors: syntax_colors}) when is_doc(doc) do
+    precolor = Keyword.get(syntax_colors, identifier)
+    if precolor do
+      postcolor = Keyword.get(syntax_colors, :reset, :reset)
+      concat(
+        doc_color(doc, List.wrap(precolor)),
+        doc_color(empty(), List.wrap(postcolor)))
+    else
+      doc
+    end
+  end
+
 
   @doc ~S"""
   Nests document entity `x` positions deep.
@@ -540,10 +572,11 @@ defmodule Inspect.Algebra do
   defp fits?(_, [{_, _, :doc_line} | _]),           do: true
   defp fits?(w, [{_, _, :doc_nil} | t]),            do: fits?(w, t)
   defp fits?(w, [{i, m, doc_cons(x, y)} | t]),      do: fits?(w, [{i, m, x} | [{i, m, y} | t]])
+  defp fits?(w, [{i, m, doc_color(x, _)} | t]),    do: fits?(w, [{i, m, x} | t])
   defp fits?(w, [{i, m, doc_nest(x, j)} | t]),      do: fits?(w, [{i + j, m, x} | t])
   defp fits?(w, [{i, _, doc_group(x)} | t]),        do: fits?(w, [{i, :flat, x} | t])
-  defp fits?(w, [{_, _, s} | t]) when is_binary(s), do: fits?((w - byte_size s), t)
-  defp fits?(w, [{_, :flat, doc_break(s)} | t]),    do: fits?((w - byte_size s), t)
+  defp fits?(w, [{_, _, s} | t]) when is_binary(s), do: fits?((w - byte_size(s)), t)
+  defp fits?(w, [{_, :flat, doc_break(s)} | t]),    do: fits?((w - byte_size(s)), t)
   defp fits?(_, [{_, :break, doc_break(_)} | _]),   do: true
 
   @spec format(integer | :infinity, integer, [{integer, mode, t}]) :: [binary]
@@ -553,8 +586,9 @@ defmodule Inspect.Algebra do
   defp format(w, k, [{i, m, doc_cons(x, y)} | t]),      do: format(w, k, [{i, m, x} | [{i, m, y} | t]])
   defp format(w, k, [{i, m, doc_nest(x, j)} | t]),      do: format(w, k, [{i + j, m, x} | t])
   defp format(w, k, [{i, m, doc_group(x)} | t]),        do: format(w, k, [{i, m, x} | t])
-  defp format(w, k, [{_, _, s} | t]) when is_binary(s), do: [s | format(w, (k + byte_size s), t)]
-  defp format(w, k, [{_, :flat, doc_break(s)} | t]),    do: [s | format(w, (k + byte_size s), t)]
+  defp format(w, k, [{i, m, doc_color(x, c)} | t]),     do: [ansi(c) | format(w, k, [{i, m, x} | t])]
+  defp format(w, k, [{_, _, s} | t]) when is_binary(s), do: [s | format(w, (k + byte_size(s)), t)]
+  defp format(w, k, [{_, :flat, doc_break(s)} | t]),    do: [s | format(w, (k + byte_size(s)), t)]
   defp format(w, k, [{i, :break, doc_break(s)} | t]) do
     k = k + byte_size(s)
 
@@ -563,6 +597,10 @@ defmodule Inspect.Algebra do
     else
       [indent(i) | format(w, i, t)]
     end
+  end
+
+  defp ansi(color) do
+    color |> IO.ANSI.format_fragment(true)
   end
 
   defp indent(0), do: @newline
