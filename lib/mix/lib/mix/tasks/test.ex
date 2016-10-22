@@ -342,10 +342,8 @@ defmodule Mix.Tasks.Test do
   defp filter_only_opts(opts) do
     if filters = parse_filters(opts, :only) do
       opts
-      |> Keyword.put_new(:include, [])
-      |> Keyword.put_new(:exclude, [])
-      |> Keyword.update!(:include, &(filters ++ &1))
-      |> Keyword.update!(:exclude, &[:test | &1])
+      |> Keyword.update(:include, filters, &(filters ++ &1))
+      |> Keyword.update(:exclude, [:test], &[:test | &1])
     else
       opts
     end
