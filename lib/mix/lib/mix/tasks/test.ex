@@ -264,31 +264,29 @@ defmodule Mix.Tasks.Test do
     end
   end
 
+  @option_keys [:trace, :max_cases, :include, :exclude,
+                :seed, :timeout, :formatters, :colors]
+
   @doc false
   def ex_unit_opts(opts) do
-    opts =
-      opts
-      |> filter_opts(:include)
-      |> filter_opts(:exclude)
-      |> filter_only_opts()
-      |> formatter_opts()
-
-    default_opts(opts) ++
-      Keyword.take(opts, [:trace, :max_cases, :include, :exclude, :seed, :timeout, :formatters])
+    opts
+    |> filter_opts(:include)
+    |> filter_opts(:exclude)
+    |> filter_opts(:only)
+    |> formatter_opts()
+    |> color_opts()
+    |> Keyword.take(@option_keys)
+    |> default_opts()
   end
 
   defp merge_helper_opts(opts) do
-    opts
-    |> merge_opts(:exclude)
+    merge_opts(opts, :exclude)
   end
 
   defp default_opts(opts) do
     # Set autorun to false because Mix
     # automatically runs the test suite for us.
-    case Keyword.fetch(opts, :color) do
-      {:ok, enabled?} -> [autorun: false, colors: [enabled: enabled?]]
-      :error -> [autorun: false]
-    end
+    [autorun: false] ++ opts
   end
 
   defp parse_files([], test_paths) do
@@ -313,6 +311,16 @@ defmodule Mix.Tasks.Test do
     end
   end
 
+  defp filter_opts(opts, :only) do
+    if filters = parse_filters(opts, :only) do
+      opts
+      |> Keyword.update(:include, filters, &(filters ++ &1))
+      |> Keyword.update(:exclude, [:test], &[:test | &1])
+    else
+      opts
+    end
+  end
+
   defp filter_opts(opts, key) do
     if filters = parse_filters(opts, key) do
       Keyword.put(opts, key, filters)
@@ -334,19 +342,18 @@ defmodule Mix.Tasks.Test do
     end
   end
 
+  defp color_opts(opts) do
+    case Keyword.fetch(opts, :color) do
+      {:ok, enabled?} ->
+        Keyword.put(opts, :colors, [enabled: enabled?])
+      :error ->
+        opts
+    end
+  end
+
   defp merge_opts(opts, key) do
     value = List.wrap Application.get_env(:ex_unit, key, [])
     Keyword.update(opts, key, value, &Enum.uniq(&1 ++ value))
-  end
-
-  defp filter_only_opts(opts) do
-    if filters = parse_filters(opts, :only) do
-      opts
-      |> Keyword.update(:include, filters, &(filters ++ &1))
-      |> Keyword.update(:exclude, [:test], &[:test | &1])
-    else
-      opts
-    end
   end
 
   defp require_test_helper(dir) do
