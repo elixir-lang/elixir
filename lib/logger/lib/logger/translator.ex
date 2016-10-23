@@ -37,20 +37,19 @@ defmodule Logger.Translator do
 
     case message do
       {'** Generic server ' ++ _, [name, last, state, reason]} ->
-        msg = ["GenServer #{inspect name} terminating" | format_stop(reason)]
+        msg = ["GenServer #{inspect name} terminating", format_stop(reason),
+               "\nLast message: #{inspect last, opts}"]
         if min_level == :debug do
-          {:ok, [msg, "\nLast message: #{inspect last, opts}" |
-                      "\nState: #{inspect state, opts}"]}
+          {:ok, [msg | "\nState: #{inspect state, opts}"]}
         else
           {:ok, msg}
         end
 
       {'** gen_event handler ' ++ _, [name, manager, last, state, reason]} ->
-        msg = ["GenEvent handler #{inspect name} installed in #{inspect manager} terminating"
-                | format_stop(reason)]
+        msg = ["GenEvent handler #{inspect name} installed in #{inspect manager} terminating",
+               format_stop(reason), "\nLast message: #{inspect last, opts}"]
         if min_level == :debug do
-          {:ok, [msg, "\nLast message: #{inspect last, opts}" |
-                      "\nState: #{inspect state, opts}"]}
+          {:ok, [msg | "\nState: #{inspect state, opts}"]}
         else
           {:ok, msg}
         end
@@ -94,7 +93,7 @@ defmodule Logger.Translator do
   end
 
   defp translate_supervisor(min_level,
-                           [supervisor: sup, errorContext: context,
+                            [supervisor: sup, errorContext: context,
                              reason: reason,
                              offender: [{:pid, pid}, {name_or_id, name} | offender]])
                            when is_pid(pid) and context !== :shutdown and name_or_id in [:name, :id] do
