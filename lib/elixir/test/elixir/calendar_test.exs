@@ -21,6 +21,14 @@ defmodule DateTest do
     date = Map.put(~D[2000-01-01], :calendar, FakeCalendar)
     assert inspect(date) == "%Date{calendar: FakeCalendar, day: 1, month: 1, year: 2000}"
   end
+
+  test "compare/2" do
+    date1 = Date.from_erl!({2000, 1, 1})
+    date2 = Date.from_erl!({2000, 1, 2})
+    assert :eq == Date.compare(date1, date1)
+    assert :lt == Date.compare(date1, date2)
+    assert :gt == Date.compare(date2, date1)
+  end
 end
 
 defmodule TimeTest do
@@ -33,6 +41,16 @@ defmodule TimeTest do
 
   test "inspect/1" do
     assert inspect(~T[23:00:07.005]) == "~T[23:00:07.005]"
+  end
+
+  test "compare/2" do
+    time1 = Time.from_erl!({1, 1, 1}, {5000, 3})
+    time2 = Time.from_erl!({1, 1, 1}, {5000, 6})
+    time3 = Time.from_erl!({23, 1, 1}, {5000, 6})
+    assert :eq == Time.compare(time1, time1)
+    assert :eq == Time.compare(time1, time2)
+    assert :lt == Time.compare(time1, time3)
+    assert :gt == Time.compare(time3, time2)
   end
 end
 
@@ -53,6 +71,14 @@ defmodule NaiveDateTimeTest do
     date = Map.put(~N[2000-01-01 23:00:07.005], :calendar, FakeCalendar)
     assert inspect(date) == "%NaiveDateTime{calendar: FakeCalendar, day: 1, hour: 23, " <>
                             "microsecond: {5000, 3}, minute: 0, month: 1, second: 7, year: 2000}"
+  end
+
+  test "compare/2" do
+    ndt1 = NaiveDateTime.from_erl!({{2000, 4, 16}, {13, 30, 15}}, {4999, 3})
+    ndt2 = NaiveDateTime.from_erl!({{2000, 4, 16}, {13, 30, 15}}, {5000, 3})
+    assert :eq == NaiveDateTime.compare(ndt1, ndt1)
+    assert :lt == NaiveDateTime.compare(ndt1, ndt2)
+    assert :gt == NaiveDateTime.compare(ndt2, ndt1)
   end
 end
 
@@ -105,5 +131,18 @@ defmodule DateTimeTest do
     assert_raise FunctionClauseError, fn ->
       DateTime.to_unix(before_gregorian_0)
     end
+  end
+
+  test "compare/2" do
+    datetime1 = %DateTime{year: 2000, month: 2, day: 29, zone_abbr: "CET",
+                          hour: 23, minute: 0, second: 7, microsecond: {0, 0},
+                          utc_offset: 3600, std_offset: 0, time_zone: "Europe/Warsaw"}
+    datetime2 = %DateTime{year: 2000, month: 2, day: 29, zone_abbr: "AMT",
+                    hour: 23, minute: 0, second: 7, microsecond: {0, 0},
+                    utc_offset: -14400, std_offset: 0, time_zone: "America/Manaus"}
+
+    assert :eq == DateTime.compare(datetime1, datetime1)
+    assert :lt == DateTime.compare(datetime1, datetime2)
+    assert :gt == DateTime.compare(datetime2, datetime1)
   end
 end
