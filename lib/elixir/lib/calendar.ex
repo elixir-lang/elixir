@@ -312,13 +312,9 @@ defmodule Date do
 
   ## Helpers
 
-  defp do_compare(date1, date2) do
-    cond do
-      date1 > date2 -> :gt
-      date1 < date2 -> :lt
-      true -> :eq
-    end
-  end
+  defp do_compare(first, first), do: :eq
+  defp do_compare(first, second) when first > second, do: :gt
+  defp do_compare(first, second) when first < second, do: :lt
 
   defimpl String.Chars do
     def to_string(%Date{calendar: calendar} = date) do
@@ -626,13 +622,9 @@ defmodule Time do
     {hour, minute, second, microsecond}
   end
 
-  defp do_compare(time1, time2) do
-    cond do
-      time1 > time2 -> :gt
-      time1 < time2 -> :lt
-      true -> :eq
-    end
-  end
+  defp do_compare(first, first), do: :eq
+  defp do_compare(first, second) when first > second, do: :gt
+  defp do_compare(first, second) when first < second, do: :lt
 
   defimpl String.Chars do
     def to_string(time) do
@@ -1123,13 +1115,9 @@ defmodule NaiveDateTime do
     {year, month, day, hour, minute, second, microsecond}
   end
 
-  defp do_compare(naive_tuple_1, naive_tuple_2) do
-    cond do
-      naive_tuple_1 > naive_tuple_2 -> :gt
-      naive_tuple_1 < naive_tuple_2 -> :lt
-      true -> :eq
-    end
-  end
+  defp do_compare(first, first), do: :eq
+  defp do_compare(first, second) when first > second, do: :gt
+  defp do_compare(first, second) when first < second, do: :lt
 
   defimpl String.Chars do
     def to_string(%NaiveDateTime{calendar: calendar} = naive) do
@@ -1541,11 +1529,7 @@ defmodule DateTime do
     do_compare(to_unix(datetime1, :microsecond), to_unix(datetime2, :microsecond))
   end
 
-  def do_compare(datetime_usec1, datetime_usec2) do
-    cond do
-      datetime_usec1 > datetime_usec2 -> :gt
-      datetime_usec1 < datetime_usec2 -> :lt
-      true -> :eq
-    end
-  end
+  defp do_compare(first, first), do: :eq
+  defp do_compare(first, second) when first > second, do: :gt
+  defp do_compare(first, second) when first < second, do: :lt
 end
