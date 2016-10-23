@@ -294,17 +294,20 @@ defmodule Date do
   end
 
   @doc """
-  Compares two `Date` structs. Returns :gt if first date is later than the second
-  and :lt for vice versa. If the two dates are equal :eq is returned
+  Compares two `Date` structs.
+
+  Returns :gt if first date is later than the second
+  and :lt for vice versa. If the two dates are equal
+  :eq is returned
 
   ## Examples
 
-    iex> Date.compare(Date.from_erl!({2016, 4, 16}), Date.from_erl!({2016, 4, 28}))
-    :lt
+      iex> Date.compare(Date.from_erl!({2016, 4, 16}), Date.from_erl!({2016, 4, 28}))
+      :lt
   """
   @spec compare(Date.t, Date.t) :: :lt | :eq | :gt
-  def compare(%Date{} = date_1, %Date{} = date_2) do
-    do_compare(to_erl(date_1), to_erl(date_2))
+  def compare(%Date{} = date1, %Date{} = date2) do
+    do_compare(to_erl(date1), to_erl(date2))
   end
 
   ## Helpers
@@ -601,17 +604,20 @@ defmodule Time do
   end
 
   @doc """
-  Compares two `Time` structs. Returns :gt if first time is later than the second
-  and :lt for vice versa. If the two times are equal :eq is returned
+  Compares two `Time` structs.
+
+  Returns :gt if first time is later than the second
+  and :lt for vice versa. If the two times are equal
+  :eq is returned
 
   ## Examples
 
-    iex> Time.compare(Time.from_erl!({16, 4, 16}), Time.from_erl!({16, 4, 28}))
-    :lt
+      iex> Time.compare(Time.from_erl!({16, 4, 16}), Time.from_erl!({16, 4, 28}))
+      :lt
   """
   @spec compare(Time.t, Time.t) :: :lt | :eq | :gt
-  def compare(%Time{} = time_1, %Time{} = time_2) do
-    do_compare(to_time_tuple(time_1), to_time_tuple(time_2))
+  def compare(%Time{} = time1, %Time{} = time2) do
+    do_compare(to_time_tuple(time1), to_time_tuple(time2))
   end
 
   ## Helpers
@@ -620,10 +626,10 @@ defmodule Time do
     {hour, minute, second, microsecond}
   end
 
-  defp do_compare(time_1, time_2) do
+  defp do_compare(time1, time2) do
     cond do
-      time_1 > time_2 -> :gt
-      time_1 < time_2 -> :lt
+      time1 > time2 -> :gt
+      time1 < time2 -> :lt
       true -> :eq
     end
   end
@@ -1078,21 +1084,24 @@ defmodule NaiveDateTime do
   end
 
   @doc """
-  Compares two `NaiveDateTime` structs. Returns :gt if first is later than the second
-  and :lt for vice versa. If the two NaiveDateTime are equal :eq is returned
+  Compares two `NaiveDateTime` structs.
+
+  Returns :gt if first is later than the second
+  and :lt for vice versa. If the two NaiveDateTime
+  are equal :eq is returned
 
   ## Examples
 
-    iex> ndt1 = NaiveDateTime.from_erl!({{2016, 4, 16}, {13, 30, 15}})
-    ~N[2016-04-16 13:30:15]
-    iex> ndt2 = NaiveDateTime.from_erl!({{2016, 4, 28}, {16, 19, 25}})
-    ~N[2016-04-28 16:19:25]
-    iex> NaiveDateTime.compare(ndt1, ndt2)
-    :lt
+      iex> ndt1 = NaiveDateTime.from_erl!({{2016, 4, 16}, {13, 30, 15}})
+      ~N[2016-04-16 13:30:15]
+      iex> ndt2 = NaiveDateTime.from_erl!({{2016, 4, 28}, {16, 19, 25}})
+      ~N[2016-04-28 16:19:25]
+      iex> NaiveDateTime.compare(ndt1, ndt2)
+      :lt
   """
   @spec compare(NaiveDateTime.t, NaiveDateTime.t) :: :lt | :eq | :gt
-  def compare(%NaiveDateTime{} = naive_datetime_1, %NaiveDateTime{} = naive_datetime_2) do
-    do_compare(to_naive_tuple(naive_datetime_1), to_naive_tuple(naive_datetime_2))
+  def compare(%NaiveDateTime{} = naive_datetime1, %NaiveDateTime{} = naive_datetime2) do
+    do_compare(to_naive_tuple(naive_datetime1), to_naive_tuple(naive_datetime2))
   end
 
   ## Helpers
@@ -1507,30 +1516,35 @@ defmodule DateTime do
   end
 
   @doc """
-  Compares two `DateTime` structs. Returns :gt if first datetime is later than the second
-  and :lt for vice versa. If the two datetimes are equal :eq is returned
-  Note that both utc and stc offsets will be taken into account when comparison is done.
+  Compares two `DateTime` structs.
+
+  Returns :gt if first datetime is later than the second
+  and :lt for vice versa. If the two datetimes are equal
+  :eq is returned.
+
+  Note that both utc and stc offsets will be taken into
+  account when comparison is done.
 
   ## Examples
 
-     iex> dt1 = %DateTime{year: 2000, month: 2, day: 29, zone_abbr: "AMT",
-     ...>                hour: 23, minute: 0, second: 7, microsecond: {0, 0},
-     ...>                utc_offset: -14400, std_offset: 0, time_zone: "America/Manaus"}
-     iex> dt2 = %DateTime{year: 2000, month: 2, day: 29, zone_abbr: "CET",
-     ...>                hour: 23, minute: 0, second: 7, microsecond: {0, 0},
-     ...>                utc_offset: 3600, std_offset: 0, time_zone: "Europe/Warsaw"}
-     iex> DateTime.compare(dt1, dt2)
-     :gt
+      iex> dt1 = %DateTime{year: 2000, month: 2, day: 29, zone_abbr: "AMT",
+      ...>                 hour: 23, minute: 0, second: 7, microsecond: {0, 0},
+      ...>                 utc_offset: -14400, std_offset: 0, time_zone: "America/Manaus"}
+      iex> dt2 = %DateTime{year: 2000, month: 2, day: 29, zone_abbr: "CET",
+      ...>                 hour: 23, minute: 0, second: 7, microsecond: {0, 0},
+      ...>                 utc_offset: 3600, std_offset: 0, time_zone: "Europe/Warsaw"}
+      iex> DateTime.compare(dt1, dt2)
+      :gt
   """
   @spec compare(DateTime.t, DateTime.t) :: :lt | :eq | :gt
-  def compare(%DateTime{} = datetime_1, %DateTime{} = datetime_2) do
-    do_compare(to_unix(datetime_1, :microsecond), to_unix(datetime_2, :microsecond))
+  def compare(%DateTime{} = datetime1, %DateTime{} = datetime2) do
+    do_compare(to_unix(datetime1, :microsecond), to_unix(datetime2, :microsecond))
   end
 
-  def do_compare(datetime_usec_1, datetime_usec_2) do
+  def do_compare(datetime_usec1, datetime_usec2) do
     cond do
-      datetime_usec_1 > datetime_usec_2 -> :gt
-      datetime_usec_1 < datetime_usec_2 -> :lt
+      datetime_usec1 > datetime_usec2 -> :gt
+      datetime_usec1 < datetime_usec2 -> :lt
       true -> :eq
     end
   end
