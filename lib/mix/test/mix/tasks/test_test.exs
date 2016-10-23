@@ -20,10 +20,10 @@ defmodule Mix.Tasks.TestTest do
 
   test "ex_unit_opts/1 translates :only into includes and excludes" do
     assert ex_unit_opts([only: "focus"]) ==
-           [autorun: false, exclude: [:test], include: [:focus]]
+           [autorun: false, include: [:focus], exclude: [:test]]
 
     assert ex_unit_opts([only: "focus", include: "special"]) ==
-           [autorun: false, exclude: [:test], include: [:focus, :special]]
+           [autorun: false, include: [:focus, :special], exclude: [:test]]
   end
 
   test "ex_unit_opts/1 translates :color into list containing an enabled key/value pair" do
