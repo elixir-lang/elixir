@@ -302,7 +302,7 @@ defmodule Date do
     iex> Date.compare(Date.from_erl!({2016, 4, 16}), Date.from_erl!({2016, 4, 28}))
     :lt
   """
-  @spec compare(Date.t, Date.t) :: :gt | :eq | :lt
+  @spec compare(Date.t, Date.t) :: :lt | :eq | :gt
   def compare(%Date{} = date_1, %Date{} = date_2) do
     do_compare(to_erl(date_1), to_erl(date_2))
   end
@@ -609,7 +609,7 @@ defmodule Time do
     iex> Time.compare(Time.from_erl!({16, 4, 16}), Time.from_erl!({16, 4, 28}))
     :lt
   """
-  @spec compare(Time.t, Time.t) :: :gt | :eq | :lt
+  @spec compare(Time.t, Time.t) :: :lt | :eq | :gt
   def compare(%Time{} = time_1, %Time{} = time_2) do
     do_compare(to_time_tuple(time_1), to_time_tuple(time_2))
   end
@@ -1090,7 +1090,7 @@ defmodule NaiveDateTime do
     iex> NaiveDateTime.compare(ndt1, ndt2)
     :lt
   """
-  @spec compare(NaiveDateTime.t, NaiveDateTime.t) :: :gt | :eq | :lt
+  @spec compare(NaiveDateTime.t, NaiveDateTime.t) :: :lt | :eq | :gt
   def compare(%NaiveDateTime{} = naive_datetime_1, %NaiveDateTime{} = naive_datetime_2) do
     do_compare(to_naive_tuple(naive_datetime_1), to_naive_tuple(naive_datetime_2))
   end
@@ -1522,7 +1522,7 @@ defmodule DateTime do
      iex> DateTime.compare(dt1, dt2)
      :gt
   """
-  @spec compare(DateTime.t, DateTime.t) :: :gt | :eq | :lt
+  @spec compare(DateTime.t, DateTime.t) :: :lt | :eq | :gt
   def compare(%DateTime{} = datetime_1, %DateTime{} = datetime_2) do
     do_compare(to_unix(datetime_1, :microsecond), to_unix(datetime_2, :microsecond))
   end
