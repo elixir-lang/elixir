@@ -302,7 +302,7 @@ defmodule Date do
 
   ## Examples
 
-      iex> Date.compare(Date.from_erl!({2016, 4, 16}), Date.from_erl!({2016, 4, 28}))
+      iex> Date.compare(~D[2016-04-16], ~D[2016-04-28])
       :lt
   """
   @spec compare(Date.t, Date.t) :: :lt | :eq | :gt
@@ -608,7 +608,7 @@ defmodule Time do
 
   ## Examples
 
-      iex> Time.compare(Time.from_erl!({16, 4, 16}), Time.from_erl!({16, 4, 28}))
+      iex> Time.compare(~T[16:04:16], ~T[16:04:28])
       :lt
   """
   @spec compare(Time.t, Time.t) :: :lt | :eq | :gt
@@ -1084,11 +1084,7 @@ defmodule NaiveDateTime do
 
   ## Examples
 
-      iex> ndt1 = NaiveDateTime.from_erl!({{2016, 4, 16}, {13, 30, 15}})
-      ~N[2016-04-16 13:30:15]
-      iex> ndt2 = NaiveDateTime.from_erl!({{2016, 4, 28}, {16, 19, 25}})
-      ~N[2016-04-28 16:19:25]
-      iex> NaiveDateTime.compare(ndt1, ndt2)
+      iex> NaiveDateTime.compare(~N[2016-04-16 13:30:15], ~N[2016-04-28 16:19:25])
       :lt
   """
   @spec compare(NaiveDateTime.t, NaiveDateTime.t) :: :lt | :eq | :gt
