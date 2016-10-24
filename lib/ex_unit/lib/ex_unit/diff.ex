@@ -69,8 +69,8 @@ defmodule ExUnit.Diff do
     length1 = String.length(string1)
     length2 = String.length(string2)
     if bag_distance(string1, string2) / max(length1, length2) <= 0.6 do
-      string1 = Inspect.BitString.escape(string1, token)
-      string2 = Inspect.BitString.escape(string2, token)
+      string1 = IO.iodata_to_binary Inspect.BitString.escape(string1, token)
+      string2 = IO.iodata_to_binary Inspect.BitString.escape(string2, token)
       [{:eq, <<token>>}, script_string(string1, string2), {:eq, <<token>>}]
     end
   end
