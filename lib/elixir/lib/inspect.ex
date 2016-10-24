@@ -161,73 +161,73 @@ defimpl Inspect, for: BitString do
   end
 
   defp escape(<<char, t::binary>>, char, acc) do
-    escape(t, char, [char, ?\\ | acc])
+    escape(t, char, [acc | [?\\, char]])
   end
   defp escape(<<?#, ?{, t::binary>>, char, acc) do
-    escape(t, char, [?{, ?#, ?\\ | acc])
+    escape(t, char, [acc | '\\\#{'])
   end
   defp escape(<<?\a, t::binary>>, char, acc) do
-    escape(t, char, [?a, ?\\ | acc])
+    escape(t, char, [acc | '\\a'])
   end
   defp escape(<<?\b, t::binary>>, char, acc) do
-    escape(t, char, [?b, ?\\ | acc])
+    escape(t, char, [acc | '\\b'])
   end
   defp escape(<<?\d, t::binary>>, char, acc) do
-    escape(t, char, [?d, ?\\ | acc])
+    escape(t, char, [acc | '\\d'])
   end
   defp escape(<<?\e, t::binary>>, char, acc) do
-    escape(t, char, [?e, ?\\ | acc])
+    escape(t, char, [acc | '\\e'])
   end
   defp escape(<<?\f, t::binary>>, char, acc) do
-    escape(t, char, [?f, ?\\ | acc])
+    escape(t, char, [acc | '\\f'])
   end
   defp escape(<<?\n, t::binary>>, char, acc) do
-    escape(t, char, [?n, ?\\ | acc])
+    escape(t, char, [acc | '\\n'])
   end
   defp escape(<<?\r, t::binary>>, char, acc) do
-    escape(t, char, [?r, ?\\ | acc])
+    escape(t, char, [acc | '\\r'])
   end
   defp escape(<<?\\, t::binary>>, char, acc) do
-    escape(t, char, [?\\, ?\\ | acc])
+    escape(t, char, [acc | '\\\\'])
   end
   defp escape(<<?\t, t::binary>>, char, acc) do
-    escape(t, char, [?t, ?\\ | acc])
+    escape(t, char, [acc | '\\t'])
   end
   defp escape(<<?\v, t::binary>>, char, acc) do
-    escape(t, char, [?v, ?\\ | acc])
+    escape(t, char, [acc | '\\v'])
   end
   defp escape(<<h::utf8, t::binary>>, char, acc)
        when h in 0x20..0x7E
        when h in 0xA0..0xD7FF
        when h in 0xE000..0xFFFD
        when h in 0x10000..0x10FFFF do
-    escape(t, char, [<<h::utf8>> | acc])
+    escape(t, char, [acc | <<h::utf8>>])
   end
   defp escape(<<h, t::binary>>, char, acc) do
-    escape(t, char, [escape_char(h) | acc])
+    escape(t, char, [acc | escape_char(h)])
   end
-  defp escape(<<>>, _char, acc), do: :lists.reverse(acc)
+  defp escape(<<>>, _char, acc), do: acc
 
   @doc false
   # Also used by Regex
   def escape_char(0) do
-    [?\\, ?0]
+    '\\0'
   end
 
   def escape_char(char) when char < 0x100 do
     <<a::4, b::4>> = <<char::8>>
-    [?\\, ?x, to_hex(a), to_hex(b)]
+    ['\\x', to_hex(a), to_hex(b)]
   end
 
   def escape_char(char) when char < 0x10000 do
     <<a::4, b::4, c::4, d::4>> = <<char::16>>
-    [?\\, ?x, ?{, to_hex(a), to_hex(b), to_hex(c), to_hex(d), ?}]
+    ['\\x{', to_hex(a), to_hex(b), to_hex(c), to_hex(d), ?}]
   end
 
   def escape_char(char) when char < 0x1000000 do
     <<a::4, b::4, c::4, d::4, e::4, f::4>> = <<char::24>>
-    [?\\, ?x, ?{, to_hex(a), to_hex(b), to_hex(c),
-                  to_hex(d), to_hex(e), to_hex(f), ?}]
+    ['\\x{', to_hex(a), to_hex(b), to_hex(c),
+             to_hex(d), to_hex(e), to_hex(f), ?}]
   end
 
   defp to_hex(c) when c in 0..9, do: ?0+c
@@ -407,50 +407,50 @@ end
 
 defimpl Inspect, for: Regex do
   def inspect(regex, _opts) do
-    IO.iodata_to_binary ["~r", ?/, escape(regex.source, ?/), ?/, regex.opts]
+    IO.iodata_to_binary ['~r/', escape(regex.source, ?/), ?/, regex.opts]
   end
 
   defp escape(bin, term),
     do: escape(bin, [], term)
 
   defp escape(<<?\\, term>> <> rest, buf, term),
-    do: escape(rest, [term , ?\\ | buf], term)
+    do: escape(rest, [buf | [?\\, term]], term)
 
   defp escape(<<term>> <> rest, buf, term),
-    do: escape(rest, [term, ?\\ | buf], term)
+    do: escape(rest, [buf | [?\\, term]], term)
 
-  # The list of characters is from "String.printable?" implementation
+  # The list of characters is from 'String.printable?' implementation
   # minus characters treated specially by regex: \s, \d, \b, \e
 
   defp escape(<<?\n>> <> rest, buf, term),
-    do: escape(rest, [?n, ?\\ | buf], term)
+    do: escape(rest, [buf | '\\n'], term)
 
   defp escape(<<?\r>> <> rest, buf, term),
-    do: escape(rest, [?r, ?\\ | buf], term)
+    do: escape(rest, [buf | '\\r'], term)
 
   defp escape(<<?\t>> <> rest, buf, term),
-    do: escape(rest, [?t, ?\\ | buf], term)
+    do: escape(rest, [buf | '\\t'], term)
 
   defp escape(<<?\v>> <> rest, buf, term),
-    do: escape(rest, [?v, ?\\ | buf], term)
+    do: escape(rest, [buf | '\\v'], term)
 
   defp escape(<<?\f>> <> rest, buf, term),
-    do: escape(rest, [?f, ?\\ | buf], term)
+    do: escape(rest, [buf | '\\f'], term)
 
   defp escape(<<?\a>> <> rest, buf, term),
-    do: escape(rest, [?a, ?\\ | buf], term)
+    do: escape(rest, [buf | '\\a'], term)
 
   defp escape(<<c::utf8, rest::binary>>, buf, term)
        when c in 0x20..0x7E
        when c in 0xA0..0xD7FF
        when c in 0xE000..0xFFFD
        when c in 0x10000..0x10FFFF,
-    do: escape(rest, [<<c::utf8>> | buf], term)
+    do: escape(rest, [buf | <<c::utf8>>], term)
 
   defp escape(<<c, rest::binary>>, buf, term),
-    do: escape(rest, [Inspect.BitString.escape_char(c) | buf], term)
+    do: escape(rest, [buf | Inspect.BitString.escape_char(c)], term)
 
-  defp escape(<<>>, buf, _), do: :lists.reverse(buf)
+  defp escape(<<>>, buf, _), do: buf
 end
 
 defimpl Inspect, for: Function do
