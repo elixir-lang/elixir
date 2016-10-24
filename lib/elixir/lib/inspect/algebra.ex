@@ -600,7 +600,7 @@ defmodule Inspect.Algebra do
   end
 
   defp ansi(color) do
-    color |> IO.ANSI.format_fragment(true)
+    IO.ANSI.format_fragment(color, true)
   end
 
   defp indent(0), do: @newline
