@@ -217,14 +217,11 @@ defmodule String do
   @spec printable?(t) :: boolean
   def printable?(string)
 
-  def printable?(<<h::utf8, t::binary>>)
-      when h in 0x20..0x7E
-      when h in 0xA0..0xD7FF
-      when h in 0xE000..0xFFFD
-      when h in 0x10000..0x10FFFF do
-    printable?(t)
+  for h <- 0x20..0x7E do
+    def printable?(<<unquote(h), t::binary>>) do
+      printable?(t)
+    end
   end
-
   def printable?(<<?\n, t::binary>>), do: printable?(t)
   def printable?(<<?\r, t::binary>>), do: printable?(t)
   def printable?(<<?\t, t::binary>>), do: printable?(t)
@@ -234,6 +231,13 @@ defmodule String do
   def printable?(<<?\e, t::binary>>), do: printable?(t)
   def printable?(<<?\d, t::binary>>), do: printable?(t)
   def printable?(<<?\a, t::binary>>), do: printable?(t)
+
+  def printable?(<<h::utf8, t::binary>>)
+      when h in 0xA0..0xD7FF
+      when h in 0xE000..0xFFFD
+      when h in 0x10000..0x10FFFF do
+    printable?(t)
+  end
 
   def printable?(<<>>), do: true
   def printable?(binary) when is_binary(binary), do: false
