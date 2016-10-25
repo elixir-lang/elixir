@@ -217,26 +217,26 @@ defmodule String do
   @spec printable?(t) :: boolean
   def printable?(string)
 
-  for h <- 0x20..0x7E do
-    def printable?(<<unquote(h), t::binary>>) do
-      printable?(t)
+  for char <- 0x20..0x7E do
+    def printable?(<<unquote(char), rest::binary>>) do
+      printable?(rest)
     end
   end
-  def printable?(<<?\n, t::binary>>), do: printable?(t)
-  def printable?(<<?\r, t::binary>>), do: printable?(t)
-  def printable?(<<?\t, t::binary>>), do: printable?(t)
-  def printable?(<<?\v, t::binary>>), do: printable?(t)
-  def printable?(<<?\b, t::binary>>), do: printable?(t)
-  def printable?(<<?\f, t::binary>>), do: printable?(t)
-  def printable?(<<?\e, t::binary>>), do: printable?(t)
-  def printable?(<<?\d, t::binary>>), do: printable?(t)
-  def printable?(<<?\a, t::binary>>), do: printable?(t)
+  def printable?(<<?\n, rest::binary>>), do: printable?(rest)
+  def printable?(<<?\r, rest::binary>>), do: printable?(rest)
+  def printable?(<<?\t, rest::binary>>), do: printable?(rest)
+  def printable?(<<?\v, rest::binary>>), do: printable?(rest)
+  def printable?(<<?\b, rest::binary>>), do: printable?(rest)
+  def printable?(<<?\f, rest::binary>>), do: printable?(rest)
+  def printable?(<<?\e, rest::binary>>), do: printable?(rest)
+  def printable?(<<?\d, rest::binary>>), do: printable?(rest)
+  def printable?(<<?\a, rest::binary>>), do: printable?(rest)
 
-  def printable?(<<h::utf8, t::binary>>)
-      when h in 0xA0..0xD7FF
-      when h in 0xE000..0xFFFD
-      when h in 0x10000..0x10FFFF do
-    printable?(t)
+  def printable?(<<char::utf8, rest::binary>>)
+      when char in 0xA0..0xD7FF
+      when char in 0xE000..0xFFFD
+      when char in 0x10000..0x10FFFF do
+    printable?(rest)
   end
 
   def printable?(<<>>), do: true
