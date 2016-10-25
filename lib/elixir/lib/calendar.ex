@@ -307,14 +307,14 @@ defmodule Date do
   """
   @spec compare(Date.t, Date.t) :: :lt | :eq | :gt
   def compare(%Date{} = date1, %Date{} = date2) do
-    do_compare(to_erl(date1), to_erl(date2))
+    case {to_erl(date1), to_erl(date2)} do
+      {first, second} when first > second -> :gt
+      {first, second} when first < second -> :lt
+      _ -> :eq
+    end
   end
 
   ## Helpers
-
-  defp do_compare(first, second) when first > second, do: :gt
-  defp do_compare(first, second) when first < second, do: :lt
-  defp do_compare(_, _), do: :eq
 
   defimpl String.Chars do
     def to_string(%Date{calendar: calendar} = date) do
@@ -613,7 +613,11 @@ defmodule Time do
   """
   @spec compare(Time.t, Time.t) :: :lt | :eq | :gt
   def compare(%Time{} = time1, %Time{} = time2) do
-    do_compare(to_tuple(time1), to_tuple(time2))
+    case {to_erl(time1), to_erl(time2)} do
+      {first, second} when first > second -> :gt
+      {first, second} when first < second -> :lt
+      _ -> :eq
+    end
   end
 
   ## Helpers
@@ -621,10 +625,6 @@ defmodule Time do
   defp to_tuple(%Time{hour: hour, minute: minute, second: second, microsecond: {microsecond, _precision}}) do
     {hour, minute, second, microsecond}
   end
-
-  defp do_compare(first, second) when first > second, do: :gt
-  defp do_compare(first, second) when first < second, do: :lt
-  defp do_compare(_, _), do: :eq
 
   defimpl String.Chars do
     def to_string(time) do
@@ -1089,7 +1089,11 @@ defmodule NaiveDateTime do
   """
   @spec compare(NaiveDateTime.t, NaiveDateTime.t) :: :lt | :eq | :gt
   def compare(%NaiveDateTime{} = naive_datetime1, %NaiveDateTime{} = naive_datetime2) do
-    do_compare(to_tuple(naive_datetime1), to_tuple(naive_datetime2))
+    case {to_tuple(naive_datetime1), to_tuple(naive_datetime2)} do
+      {first, second} when first > second -> :gt
+      {first, second} when first < second -> :lt
+      _ -> :eq
+    end
   end
 
   ## Helpers
@@ -1110,10 +1114,6 @@ defmodule NaiveDateTime do
                                microsecond: {microsecond, _precision}}) do
     {year, month, day, hour, minute, second, microsecond}
   end
-
-  defp do_compare(first, second) when first > second, do: :gt
-  defp do_compare(first, second) when first < second, do: :lt
-  defp do_compare(_, _), do: :eq
 
   defimpl String.Chars do
     def to_string(%NaiveDateTime{calendar: calendar} = naive) do
@@ -1522,10 +1522,10 @@ defmodule DateTime do
   """
   @spec compare(DateTime.t, DateTime.t) :: :lt | :eq | :gt
   def compare(%DateTime{} = datetime1, %DateTime{} = datetime2) do
-    do_compare(to_unix(datetime1, :microsecond), to_unix(datetime2, :microsecond))
+    case {to_unix(datetime1, :microsecond), to_unix(datetime2, :microsecond)} do
+      {first, second} when first > second -> :gt
+      {first, second} when first < second -> :lt
+      _ -> :eq
+    end
   end
-
-  defp do_compare(first, second) when first > second, do: :gt
-  defp do_compare(first, second) when first < second, do: :lt
-  defp do_compare(_, _), do: :eq
 end
