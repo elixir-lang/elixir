@@ -2,6 +2,7 @@
 =========
 [![Build Status](https://secure.travis-ci.org/elixir-lang/elixir.svg?branch=master
 "Build Status")](https://travis-ci.org/elixir-lang/elixir)
+[![Slack Chat](https://img.shields.io/badge/Chat-Slack-ff69b4.svg "Join us. Anyone is welcome!")](https://elixir-slackin.herokuapp.com/)
 
 For more about Elixir, installation and documentation,
 [check Elixir's website](http://elixir-lang.org/).
