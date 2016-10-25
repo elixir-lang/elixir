@@ -613,12 +613,12 @@ defmodule Time do
   """
   @spec compare(Time.t, Time.t) :: :lt | :eq | :gt
   def compare(%Time{} = time1, %Time{} = time2) do
-    do_compare(to_time_tuple(time1), to_time_tuple(time2))
+    do_compare(to_tuple(time1), to_tuple(time2))
   end
 
   ## Helpers
 
-  defp to_time_tuple(%Time{hour: hour, minute: minute, second: second, microsecond: {microsecond, _precision}}) do
+  defp to_tuple(%Time{hour: hour, minute: minute, second: second, microsecond: {microsecond, _precision}}) do
     {hour, minute, second, microsecond}
   end
 
@@ -1089,7 +1089,7 @@ defmodule NaiveDateTime do
   """
   @spec compare(NaiveDateTime.t, NaiveDateTime.t) :: :lt | :eq | :gt
   def compare(%NaiveDateTime{} = naive_datetime1, %NaiveDateTime{} = naive_datetime2) do
-    do_compare(to_naive_tuple(naive_datetime1), to_naive_tuple(naive_datetime2))
+    do_compare(to_tuple(naive_datetime1), to_tuple(naive_datetime2))
   end
 
   ## Helpers
@@ -1104,10 +1104,10 @@ defmodule NaiveDateTime do
     second * 1_000_000 + microsecond
   end
 
-  defp to_naive_tuple(%NaiveDateTime{calendar: Calendar.ISO, year: year,
-                                     month: month, day: day, hour: hour,
-                                     minute: minute, second: second,
-                                     microsecond: {microsecond, _precision}}) do
+  defp to_tuple(%NaiveDateTime{calendar: Calendar.ISO, year: year,
+                               month: month, day: day, hour: hour,
+                               minute: minute, second: second,
+                               microsecond: {microsecond, _precision}}) do
     {year, month, day, hour, minute, second, microsecond}
   end
 
