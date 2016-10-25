@@ -61,16 +61,16 @@ defmodule NaiveDateTimeTest do
   test "to_string/1" do
     assert to_string(~N[2000-01-01 23:00:07.005]) == "2000-01-01 23:00:07.005"
 
-    date = Map.put(~N[2000-01-01 23:00:07.005], :calendar, FakeCalendar)
-    assert to_string(date) == "boom"
+    ndt = Map.put(~N[2000-01-01 23:00:07.005], :calendar, FakeCalendar)
+    assert to_string(ndt) == "boom"
   end
 
   test "inspect/1" do
     assert inspect(~N[2000-01-01 23:00:07.005]) == "~N[2000-01-01 23:00:07.005]"
 
-    date = Map.put(~N[2000-01-01 23:00:07.005], :calendar, FakeCalendar)
-    assert inspect(date) == "%NaiveDateTime{calendar: FakeCalendar, day: 1, hour: 23, " <>
-                            "microsecond: {5000, 3}, minute: 0, month: 1, second: 7, year: 2000}"
+    ndt = Map.put(~N[2000-01-01 23:00:07.005], :calendar, FakeCalendar)
+    assert inspect(ndt) == "%NaiveDateTime{calendar: FakeCalendar, day: 1, hour: 23, " <>
+                           "microsecond: {5000, 3}, minute: 0, month: 1, second: 7, year: 2000}"
   end
 
   test "compare/2" do
