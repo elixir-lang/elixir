@@ -23,8 +23,8 @@ defmodule DateTest do
   end
 
   test "compare/2" do
-    date1 = Date.from_erl!({2000, 1, 1})
-    date2 = Date.from_erl!({2000, 1, 2})
+    date1 = ~D[2000-01-01]
+    date2 = ~D[2000-01-02]
     assert Date.compare(date1, date1) == :eq
     assert Date.compare(date1, date2) == :lt
     assert Date.compare(date2, date1) == :gt
@@ -44,9 +44,9 @@ defmodule TimeTest do
   end
 
   test "compare/2" do
-    time1 = Time.from_erl!({1, 1, 1}, {5000, 3})
-    time2 = Time.from_erl!({1, 1, 1}, {5000, 6})
-    time3 = Time.from_erl!({23, 1, 1}, {5000, 6})
+    time1 = ~T[01:01:01.005]
+    time2 = ~T[01:01:01.0050]
+    time3 = ~T[23:01:01.0050]
     assert Time.compare(time1, time1) == :eq
     assert Time.compare(time1, time2) == :eq
     assert Time.compare(time1, time3) == :lt
@@ -74,8 +74,8 @@ defmodule NaiveDateTimeTest do
   end
 
   test "compare/2" do
-    ndt1 = NaiveDateTime.from_erl!({{2000, 4, 16}, {13, 30, 15}}, {4999, 3})
-    ndt2 = NaiveDateTime.from_erl!({{2000, 4, 16}, {13, 30, 15}}, {5000, 3})
+    ndt1 = ~N[2000-04-16 13:30:15.0049]
+    ndt2 = ~N[2000-04-16 13:30:15.0050]
     assert NaiveDateTime.compare(ndt1, ndt1) == :eq
     assert NaiveDateTime.compare(ndt1, ndt2) == :lt
     assert NaiveDateTime.compare(ndt2, ndt1) == :gt
@@ -138,8 +138,8 @@ defmodule DateTimeTest do
                           hour: 23, minute: 0, second: 7, microsecond: {0, 0},
                           utc_offset: 3600, std_offset: 0, time_zone: "Europe/Warsaw"}
     datetime2 = %DateTime{year: 2000, month: 2, day: 29, zone_abbr: "AMT",
-                    hour: 23, minute: 0, second: 7, microsecond: {0, 0},
-                    utc_offset: -14400, std_offset: 0, time_zone: "America/Manaus"}
+                          hour: 23, minute: 0, second: 7, microsecond: {0, 0},
+                          utc_offset: -14400, std_offset: 0, time_zone: "America/Manaus"}
 
     assert DateTime.compare(datetime1, datetime1) == :eq
     assert DateTime.compare(datetime1, datetime2) == :lt
