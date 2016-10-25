@@ -25,9 +25,9 @@ defmodule DateTest do
   test "compare/2" do
     date1 = Date.from_erl!({2000, 1, 1})
     date2 = Date.from_erl!({2000, 1, 2})
-    assert :eq == Date.compare(date1, date1)
-    assert :lt == Date.compare(date1, date2)
-    assert :gt == Date.compare(date2, date1)
+    assert Date.compare(date1, date1) == :eq
+    assert Date.compare(date1, date2) == :lt
+    assert Date.compare(date2, date1) == :gt
   end
 end
 
@@ -47,10 +47,10 @@ defmodule TimeTest do
     time1 = Time.from_erl!({1, 1, 1}, {5000, 3})
     time2 = Time.from_erl!({1, 1, 1}, {5000, 6})
     time3 = Time.from_erl!({23, 1, 1}, {5000, 6})
-    assert :eq == Time.compare(time1, time1)
-    assert :eq == Time.compare(time1, time2)
-    assert :lt == Time.compare(time1, time3)
-    assert :gt == Time.compare(time3, time2)
+    assert Time.compare(time1, time1) == :eq
+    assert Time.compare(time1, time2) == :eq
+    assert Time.compare(time1, time3) == :lt
+    assert Time.compare(time3, time2) == :gt
   end
 end
 
@@ -76,9 +76,9 @@ defmodule NaiveDateTimeTest do
   test "compare/2" do
     ndt1 = NaiveDateTime.from_erl!({{2000, 4, 16}, {13, 30, 15}}, {4999, 3})
     ndt2 = NaiveDateTime.from_erl!({{2000, 4, 16}, {13, 30, 15}}, {5000, 3})
-    assert :eq == NaiveDateTime.compare(ndt1, ndt1)
-    assert :lt == NaiveDateTime.compare(ndt1, ndt2)
-    assert :gt == NaiveDateTime.compare(ndt2, ndt1)
+    assert NaiveDateTime.compare(ndt1, ndt1) == :eq
+    assert NaiveDateTime.compare(ndt1, ndt2) == :lt
+    assert NaiveDateTime.compare(ndt2, ndt1) == :gt
   end
 end
 
@@ -141,8 +141,8 @@ defmodule DateTimeTest do
                     hour: 23, minute: 0, second: 7, microsecond: {0, 0},
                     utc_offset: -14400, std_offset: 0, time_zone: "America/Manaus"}
 
-    assert :eq == DateTime.compare(datetime1, datetime1)
-    assert :lt == DateTime.compare(datetime1, datetime2)
-    assert :gt == DateTime.compare(datetime2, datetime1)
+    assert DateTime.compare(datetime1, datetime1) == :eq
+    assert DateTime.compare(datetime1, datetime2) == :lt
+    assert DateTime.compare(datetime2, datetime1) == :gt
   end
 end
