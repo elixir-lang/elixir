@@ -317,15 +317,15 @@ defimpl Inspect, for: List do
   def keyword?(_other), do: false
 
   @doc false
-  def printable?([c | cs]) when c in 32..126, do: printable?(cs)
-  def printable?([?\n | cs]), do: printable?(cs)
-  def printable?([?\r | cs]), do: printable?(cs)
-  def printable?([?\t | cs]), do: printable?(cs)
-  def printable?([?\v | cs]), do: printable?(cs)
-  def printable?([?\b | cs]), do: printable?(cs)
-  def printable?([?\f | cs]), do: printable?(cs)
-  def printable?([?\e | cs]), do: printable?(cs)
-  def printable?([?\a | cs]), do: printable?(cs)
+  def printable?([char | rest]) when char in 32..126, do: printable?(rest)
+  def printable?([?\n | rest]), do: printable?(rest)
+  def printable?([?\r | rest]), do: printable?(rest)
+  def printable?([?\t | rest]), do: printable?(rest)
+  def printable?([?\v | rest]), do: printable?(rest)
+  def printable?([?\b | rest]), do: printable?(rest)
+  def printable?([?\f | rest]), do: printable?(rest)
+  def printable?([?\e | rest]), do: printable?(rest)
+  def printable?([?\a | rest]), do: printable?(rest)
   def printable?([]), do: true
   def printable?(_), do: false
 
@@ -440,15 +440,15 @@ defimpl Inspect, for: Regex do
   defp escape(<<?\a>> <> rest, buf, term),
     do: escape(rest, [buf | '\\a'], term)
 
-  defp escape(<<c::utf8, rest::binary>>, buf, term)
-       when c in 0x20..0x7E
-       when c in 0xA0..0xD7FF
-       when c in 0xE000..0xFFFD
-       when c in 0x10000..0x10FFFF,
-    do: escape(rest, [buf | <<c::utf8>>], term)
+  defp escape(<<char::utf8, rest::binary>>, buf, term)
+       when char in 0x20..0x7E
+       when char in 0xA0..0xD7FF
+       when char in 0xE000..0xFFFD
+       when char in 0x10000..0x10FFFF,
+    do: escape(rest, [buf | <<char::utf8>>], term)
 
-  defp escape(<<c, rest::binary>>, buf, term),
-    do: escape(rest, [buf | Inspect.BitString.escape_char(c)], term)
+  defp escape(<<char, rest::binary>>, buf, term),
+    do: escape(rest, [buf | Inspect.BitString.escape_char(char)], term)
 
   defp escape(<<>>, buf, _), do: buf
 end
