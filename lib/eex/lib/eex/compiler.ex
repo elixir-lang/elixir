@@ -9,7 +9,8 @@ defmodule EEx.Compiler do
   and the engine together by handling the tokens and invoking
   the engine every time a full expression or text is received.
   """
-  def compile(source, opts) do
+  @spec compile(String.t, Keyword.t) :: Macro.t | no_return
+  def compile(source, opts) when is_binary(source) and is_list(opts) do
     file   = opts[:file] || "nofile"
     line   = opts[:line] || 1
     trim   = opts[:trim] || false
@@ -23,7 +24,8 @@ defmodule EEx.Compiler do
     end
   end
 
-  # Generates the buffers by handling each expression from the tokenizer
+  # Generates the buffers by handling each expression from the tokenizer.
+  # It returns Macro.t/0 or it raises.
 
   defp generate_buffer([{:text, chars} | t], buffer, scope, state) do
     buffer = state.engine.handle_text(buffer, IO.chardata_to_string(chars))
