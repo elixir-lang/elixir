@@ -13,7 +13,7 @@ defmodule Mix.Tasks.Deps.Tree do
 
   ## Command line options
 
-    * `--only` - the enviroment to show dependencies for
+    * `--only` - the environment to show dependencies for
 
     * `--exclude` - exclude dependencies which you do not want to see printed.
 
