@@ -166,7 +166,8 @@ defmodule EEx do
   Gets a string `source` and generate a quoted expression
   that can be evaluated by Elixir or compiled to a function.
   """
-  def compile_string(source, options \\ []) do
+  @spec compile_string(String.t, Keyword.t) :: Macro.t | no_return
+  def compile_string(source, options \\ []) when is_binary(source) and is_list(options) do
     EEx.Compiler.compile(source, options)
   end
 
@@ -174,7 +175,8 @@ defmodule EEx do
   Gets a `filename` and generate a quoted expression
   that can be evaluated by Elixir or compiled to a function.
   """
-  def compile_file(filename, options \\ []) do
+  @spec compile_file(String.t, Keyword.t) :: Macro.t | no_return
+  def compile_file(filename, options \\ []) when is_binary(filename) and is_list(options) do
     options = Keyword.merge options, [file: filename, line: 1]
     compile_string(File.read!(filename), options)
   end
@@ -188,7 +190,9 @@ defmodule EEx do
       "foo baz"
 
   """
-  def eval_string(source, bindings \\ [], options \\ []) do
+  @spec eval_string(String.t, Keyword.t, Keyword.t) :: any
+  def eval_string(source, bindings \\ [], options \\ [])
+      when is_binary(source) and is_list(bindings) and is_list(options) do
     compiled = compile_string(source, options)
     do_eval(compiled, bindings, options)
   end
@@ -205,7 +209,9 @@ defmodule EEx do
       EEx.eval_file "sample.eex", [bar: "baz"] #=> "foo baz"
 
   """
-  def eval_file(filename, bindings \\ [], options \\ []) do
+  @spec eval_file(String.t, Keyword.t, Keyword.t) :: any
+  def eval_file(filename, bindings \\ [], options \\ [])
+      when is_binary(filename) and is_list(bindings) and is_list(options) do
     options  = Keyword.put options, :file, filename
     compiled = compile_file(filename, options)
     do_eval(compiled, bindings, options)
