@@ -26,7 +26,7 @@ defmodule MapSet do
       true
 
   Note that, however, the struct fields are private and must not be accessed
-  directly; use the functions in this module to perfom operations on sets.
+  directly; use the functions in this module to perform operations on sets.
 
   Sets can also be constructed starting from other collection-type data
   structures: for example, see `MapSet.new/1` or `Enum.into/2`.
