@@ -733,10 +733,17 @@ defmodule List do
   end
 
   @doc """
-  Returns a keyword list that represents an edit script.
+  Returns a keyword list that represents an *edit script*.
 
   The algorithm is outlined in the
   "An O(ND) Difference Algorithm and Its Variations" paper by E. Myers.
+
+  An *edit script* is a keyword list. Each key describes the "editing action" to
+  take in order to bring `list1` closer to being equal to `list2`; a key can be
+  `:eq`, `:ins`, or `:del`. Each value is a sublist of either `list1` or `list2`
+  that should be inserted (if the corresponding key `:ins`), deleted (if the
+  corresponding key is `:del`), or left alone (if the corresponding key is
+  `:eq`) in `list1` in order to be closer to `list2`.
 
   ## Examples
 
