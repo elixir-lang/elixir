@@ -176,4 +176,15 @@ defmodule ListTest do
       List.to_string([:a, :b])
     end
   end
+
+  test "myers_difference/2" do
+    assert List.myers_difference([], []) == []
+    assert List.myers_difference([], [1, 2, 3]) == [ins: [1, 2, 3]]
+    assert List.myers_difference([1, 2, 3], []) == [del: [1, 2, 3]]
+    assert List.myers_difference([1, 2, 3], [1, 2, 3]) == [eq: [1, 2, 3]]
+    assert List.myers_difference([1, 2, 3], [1, 4, 2, 3]) == [eq: [1], ins: [4], eq: [2, 3]]
+    assert List.myers_difference([1, 4, 2, 3], [1, 2, 3]) == [eq: [1], del: [4], eq: [2, 3]]
+    assert List.myers_difference([1], [[1]]) == [del: [1], ins: [[1]]]
+    assert List.myers_difference([[1]], [1]) == [del: [[1]], ins: [1]]
+  end
 end
