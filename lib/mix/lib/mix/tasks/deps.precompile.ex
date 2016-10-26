@@ -13,7 +13,7 @@ defmodule Mix.Tasks.Deps.Precompile do
   By default, this task's single responsibility
   is to load all dependency paths. Dependency
   loading is deliberately ad-hoc, loading as much as
-  possbile without validating the files.
+  possible without validating the files.
   """
   def run(_) do
     config = Mix.Project.config
