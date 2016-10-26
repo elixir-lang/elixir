@@ -1999,8 +1999,7 @@ defmodule String do
   @doc """
   Returns a keyword list that represents an edit script.
 
-  The algorithm is outlined in the
-  "An O(ND) Difference Algorithm and Its Variations" paper by E. Myers.
+  Check `List.myers_difference/2` for more information.
 
   ## Examples
 
@@ -2011,90 +2010,11 @@ defmodule String do
 
   """
   @spec myers_difference(t, t) :: [{:eq | :ins | :del, t}] | nil
-  def myers_difference(str1, str2) do
-    {chars1, len1} = chars_and_length(str1)
-    {chars2, len2} = chars_and_length(str2)
-
-    path = {0, 0, chars1, chars2, []}
-    find_script(0, len1 + len2, [path])
-  end
-
-  defp find_script(envelope, max, _paths) when envelope > max do
-    nil
-  end
-
-  defp find_script(envelope, max, paths) do
-    case each_diagonal(-envelope, envelope, paths, []) do
-      {:done, edits} -> compact_reverse(edits, [])
-      {:next, paths} -> find_script(envelope + 1, max, paths)
-    end
-  end
-
-  defp compact_reverse([], acc), do: acc
-
-  defp compact_reverse([{kind, char} | rest], [{kind, chars} | acc]) do
-    compact_reverse(rest, [{kind, char <> chars} | acc])
-  end
-
-  defp compact_reverse([elem | rest], acc) do
-    compact_reverse(rest, [elem | acc])
-  end
-
-  defp each_diagonal(diag, limit, _paths, next_paths) when diag > limit do
-    {:next, Enum.reverse(next_paths)}
-  end
-
-  defp each_diagonal(diag, limit, paths, next_paths) do
-    {path, rest} = proceed_path(diag, limit, paths)
-    with {:cont, path} <- follow_snake(path) do
-      each_diagonal(diag + 2, limit, rest, [path | next_paths])
-    end
-  end
-
-  defp proceed_path(0, 0, [path]), do: {path, []}
-
-  defp proceed_path(diag, limit, [path | _] = paths) when diag == -limit do
-    {move_down(path), paths}
-  end
-
-  defp proceed_path(diag, limit, [path]) when diag == limit do
-    {move_right(path), []}
-  end
-
-  defp proceed_path(_diag, _limit, [path1, path2 | rest]) do
-    if elem(path1, 1) > elem(path2, 1) do
-      {move_right(path1), [path2 | rest]}
-    else
-      {move_down(path2), [path2 | rest]}
-    end
-  end
-
-  defp move_right({x, y, chars1, [char | rest], edits}) do
-    {x + 1, y, chars1, rest, [{:ins, char} | edits]}
-  end
-
-  defp move_right({x, y, chars1, [], edits}) do
-    {x + 1, y, chars1, [], edits}
-  end
-
-  defp move_down({x, y, [char | rest], chars2, edits}) do
-    {x, y + 1, rest, chars2, [{:del, char} | edits]}
-  end
-
-  defp move_down({x, y, [], chars2, edits}) do
-    {x, y + 1, [], chars2, edits}
-  end
-
-  defp follow_snake({x, y, [char | rest1], [char | rest2], edits}) do
-    follow_snake({x + 1, y + 1, rest1, rest2, [{:eq, char} | edits]})
-  end
-
-  defp follow_snake({_x, _y, [], [], edits}) do
-    {:done, edits}
-  end
-
-  defp follow_snake(path) do
-    {:cont, path}
+  def myers_difference(string1, string2) do
+    List.myers_difference(graphemes(string1), graphemes(string2))
+    |> Enum.map(fn {kind, chars} ->
+      {kind, IO.iodata_to_binary(chars)}
+    end)
   end
 
   # TODO: Deprecate by v1.5
