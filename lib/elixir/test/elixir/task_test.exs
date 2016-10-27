@@ -455,8 +455,15 @@ defmodule TaskTest do
     end
   end
 
-  for {desc, concurrency} <- ["same concurrency": 4, "less concurrency": 2, "more concurrency": 8] do
-    describe "pmap/2 with #{desc}" do
+  describe "pmap/2" do
+    test "timeout" do
+      assert catch_exit([:infinity] |> Task.pmap(&sleep/1, [timeout: 0]) |> Enum.to_list) ==
+             {:timeout, {Task.Supervised, :pmap, [0]}}
+    end
+  end
+
+  for {desc, concurrency} <- ["same": 4, "less": 2, "more": 8] do
+    describe "pmap/2 with #{desc} concurrency than tasks" do
       @opts [max_concurrency: concurrency]
 
       test "maps an enumerable with fun" do
