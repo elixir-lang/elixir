@@ -638,7 +638,7 @@ defmodule Kernel.TypespecTest do
   # This is a test that implements all types specified in lib/elixir/pages/Typespecs.md
   test "test documented types and their AST" do
     defmodule SomeStruct do
-      defstruct key: nil
+      defstruct [:key]
     end
 
     quoted = [
@@ -652,13 +652,13 @@ defmodule Kernel.TypespecTest do
       (quote do: @type basic_reference() :: reference()),
       (quote do: @type basic_struct() :: struct()),
       (quote do: @type basic_tuple() :: tuple()),
-      # numbers
+      # Numbers
       (quote do: @type basic_float() :: float()),
       (quote do: @type basic_integer() :: integer()),
       (quote do: @type basic_neg_integer() :: neg_integer()),
       (quote do: @type basic_non_neg_integer() :: non_neg_integer()),
       (quote do: @type basic_pos_integer() :: pos_integer()),
-      # lists
+      # Lists
       (quote do: @type basic_list_type() :: list(integer())),
       (quote do: @type basic_nonempty_list_type() :: nonempty_list(integer())),
       (quote do: @type basic_maybe_improper_list_type() :: maybe_improper_list(integer(), atom())),
@@ -670,9 +670,9 @@ defmodule Kernel.TypespecTest do
       (quote do: @type literal_integer() :: 1),
       (quote do: @type literal_integers() :: 1..10),
       (quote do: @type literal_empty_bitstring() :: <<>>),
-      (quote do: @type literal_size_0() :: (<<_::0>>)),
-      (quote do: @type literal_unit_1() :: (<<_::_ * 1>>)),
-      (quote do: @type literal_size_1_unit_8() :: (<<_::100, _::_ * 256>>)),
+      (quote do: @type literal_size_0() :: <<_::0>>),
+      (quote do: @type literal_unit_1() :: <<_::_*1>>),
+      (quote do: @type literal_size_1_unit_8() :: <<_::100, _::_*256>>),
       (quote do: @type literal_function_arity_any() :: (... -> integer())),
       (quote do: @type literal_function_arity_0() :: (() -> integer())),
       (quote do: @type literal_function_arity_2() :: (integer(), atom() -> integer())),
@@ -687,7 +687,7 @@ defmodule Kernel.TypespecTest do
       (quote do: @type literal_map_with_key() :: %{key: integer()}),
       (quote do: @type literal_map_with_required_key() :: %{required(bitstring()) => integer()}),
       (quote do: @type literal_map_with_optional_key() :: %{optional(bitstring()) => integer()}),
-      # TODO: Remove by 1.5
+      # TODO: Remove by 1.5, when the following line with give a warning
       (quote do: @type literal_map_with_arrow() :: %{any() => any()}),
       (quote do: @type literal_struct_all_fields_any_type() :: %SomeStruct{}),
       (quote do: @type literal_struct_all_fields_key_type() :: %SomeStruct{key: integer()}),
@@ -695,32 +695,32 @@ defmodule Kernel.TypespecTest do
       (quote do: @type literal_2_element_tuple() :: {1, 2}),
 
       ## Built-in types
-      (quote do: @type built_in_term() :: term()),
-      (quote do: @type built_in_arity() :: arity()),
-      (quote do: @type built_in_as_boolean() :: as_boolean(:t)),
-      (quote do: @type built_in_binary() :: binary()),
-      (quote do: @type built_in_bitstring() :: bitstring()),
-      (quote do: @type built_in_boolean() :: boolean()),
-      (quote do: @type built_in_byte() :: byte()),
-      (quote do: @type built_in_char() :: char()),
-      (quote do: @type built_in_charlist() :: charlist()),
-      (quote do: @type built_in_fun() :: fun()),
-      (quote do: @type built_in_identifier() :: identifier()),
-      (quote do: @type built_in_iodata() :: iodata()),
-      (quote do: @type built_in_iolist() :: iolist()),
-      (quote do: @type built_in_keyword() :: keyword()),
-      (quote do: @type built_in_keyword_value_type() :: keyword(:t)),
-      (quote do: @type built_in_list() :: list()),
-      (quote do: @type built_in_nonempty_list() :: nonempty_list()),
-      (quote do: @type built_in_maybe_improper_list() :: maybe_improper_list()),
-      (quote do: @type built_in_nonempty_maybe_improper_list() :: nonempty_maybe_improper_list()),
-      (quote do: @type built_in_mfa() :: mfa()),
-      (quote do: @type built_in_module() :: module()),
-      (quote do: @type built_in_no_return() :: no_return()),
-      (quote do: @type built_in_node() :: node()),
-      (quote do: @type built_in_number() :: number()),
-      (quote do: @type built_in_struct() :: struct()),
-      (quote do: @type built_in_timeout() :: timeout()),
+      (quote do: @type builtin_term() :: term()),
+      (quote do: @type builtin_arity() :: arity()),
+      (quote do: @type builtin_as_boolean() :: as_boolean(:t)),
+      (quote do: @type builtin_binary() :: binary()),
+      (quote do: @type builtin_bitstring() :: bitstring()),
+      (quote do: @type builtin_boolean() :: boolean()),
+      (quote do: @type builtin_byte() :: byte()),
+      (quote do: @type builtin_char() :: char()),
+      (quote do: @type builtin_charlist() :: charlist()),
+      (quote do: @type builtin_fun() :: fun()),
+      (quote do: @type builtin_identifier() :: identifier()),
+      (quote do: @type builtin_iodata() :: iodata()),
+      (quote do: @type builtin_iolist() :: iolist()),
+      (quote do: @type builtin_keyword() :: keyword()),
+      (quote do: @type builtin_keyword_value_type() :: keyword(:t)),
+      (quote do: @type builtin_list() :: list()),
+      (quote do: @type builtin_nonempty_list() :: nonempty_list()),
+      (quote do: @type builtin_maybe_improper_list() :: maybe_improper_list()),
+      (quote do: @type builtin_nonempty_maybe_improper_list() :: nonempty_maybe_improper_list()),
+      (quote do: @type builtin_mfa() :: mfa()),
+      (quote do: @type builtin_module() :: module()),
+      (quote do: @type builtin_no_return() :: no_return()),
+      (quote do: @type builtin_node() :: node()),
+      (quote do: @type builtin_number() :: number()),
+      (quote do: @type builtin_struct() :: struct()),
+      (quote do: @type builtin_timeout() :: timeout()),
 
       ## Remote types
       (quote do: @type remote_enum_t0() :: Enum.t()),
@@ -738,7 +738,7 @@ defmodule Kernel.TypespecTest do
       ast_string = Macro.to_string(quote do: @type unquote(ast))
 
       case type do
-        # these cases do not translate directly to the string version
+        # these cases do not translate directly to their own string version
         {:basic_list_type, _, _} ->
           assert ast_string == "@type(basic_list_type() :: [integer()])"
 
@@ -754,6 +754,10 @@ defmodule Kernel.TypespecTest do
         {:literal_keyword_list_fixed_key2, _, _} ->
           assert ast_string == "@type(literal_keyword_list_fixed_key2() :: [{:key, integer()}])"
 
+        # TODO: Remove by 1.5
+        {:literal_map_with_arrow, _, _} ->
+          assert ast_string == "@type(literal_map_with_arrow() :: %{optional(any()) => any()})"
+
         {:literal_struct_all_fields_any_type, _, _} ->
           assert ast_string ==
             "@type(literal_struct_all_fields_any_type() :: %Kernel.TypespecTest.SomeStruct{key: term()})"
@@ -762,14 +766,14 @@ defmodule Kernel.TypespecTest do
           assert ast_string ==
             "@type(literal_struct_all_fields_key_type() :: %Kernel.TypespecTest.SomeStruct{key: integer()})"
 
-        {:built_in_fun, _, _} ->
-          assert ast_string == "@type(built_in_fun() :: (... -> any()))"
+        {:builtin_fun, _, _} ->
+          assert ast_string == "@type(builtin_fun() :: (... -> any()))"
 
-        {:built_in_nonempty_list, _, _} ->
-          assert ast_string == "@type(built_in_nonempty_list() :: [...])"
+        {:builtin_nonempty_list, _, _} ->
+          assert ast_string == "@type(builtin_nonempty_list() :: [...])"
 
         _ ->
-          assert Macro.to_string(quote do: @type unquote(ast)) == Macro.to_string(definition)
+          assert ast_string == Macro.to_string(definition)
       end
     end)
   end

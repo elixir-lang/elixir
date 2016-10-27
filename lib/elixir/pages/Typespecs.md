@@ -47,7 +47,7 @@ The syntax Elixir provides for type specifications is similar to [the one in Erl
           | nonempty_maybe_improper_list(type1, type2)  # non-empty proper or improper list
 
           | Literals                # Described in section "Literals"
-          | BuiltIn                 # Described in section "Built-in types"
+          | Builtin                 # Described in section "Built-in types"
           | Remotes                 # Described in section "Remote types"
 
 ### Literals
@@ -59,8 +59,8 @@ The following literals are also supported in typespecs:
                                           ## Bitstrings
           | <<>>                          # empty bitstring
           | <<_::size>>                   # size is 0 or a positive integer
-          | <<_::_ * unit>>               # unit is an integer from 1 to 256
-          | <<_::size, _::_ * unit>>
+          | <<_::_*unit>>                 # unit is an integer from 1 to 256
+          | <<_::size, _::_*unit>>
 
                                           ## Functions
           | (... -> type)                 # any arity, returns type
@@ -69,27 +69,26 @@ The following literals are also supported in typespecs:
 
                                           ## Integers
           | 1                             # integer
-          | 1..10                         # integers from 1 to 10
+          | 1..10                         # integer from 1 to 10
 
                                           ## Lists
           | [type]                        # list with any number of type elements
           | []                            # empty list
           | [...]                         # shorthand for nonempty_list(any())
           | [type, ...]                   # shorthand for nonempty_list(type)
-          | [key: value_type]             # keyword list with key is atom :key and value of value_type
+          | [key: value_type]             # keyword list with key :key of value_type
 
                                                   ## Maps
           | %{}                                   # empty map
-          | %{key: value_type}                    # map with required key :key and value of value_type
-          | %{required(key_type) => value_type}   # map with required types for keys and values
-          | %{optional(key_type) => value_type}   # map with optional types for keys and values
+          | %{key: value_type}                    # map with required key :key of value_type
+          | %{required(key_type) => value_type}   # map with required pairs of key_type and value_type
+          | %{optional(key_type) => value_type}   # map with optional pairs of key_type and value_type
           | %SomeStruct{}                         # struct with all fields of any type
           | %SomeStruct{key: value_type}          # struct with required key :key and type
 
                                           ## Tuples
           | {}                            # empty tuple
           | {:ok, type}                   # two-element tuple with an atom and any type
-
 
 ### Built-in types
 
@@ -100,8 +99,8 @@ Built-in type           | Defined as
 `term()`                | `any()`
 `arity()`               | `0..255`
 `as_boolean(t)`         | `t`
-`binary()`              | `<<_::_ * 8>>`
-`bitstring()`           | `<<_::_ * 1>>`
+`binary()`              | `<<_::_*8>>`
+`bitstring()`           | `<<_::_*1>>`
 `boolean()`             | `false` \| `true`
 `byte()`                | `0..255`
 `char()`                | `0..0x10FFFF`
