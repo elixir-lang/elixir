@@ -578,7 +578,7 @@ defmodule Kernel.Typespec do
   defp typespec_to_ast({:type, line, :map, fields}) do
     fields = Enum.map fields, fn
       {:type, _, :map_field_assoc, :any} ->
-        {:..., [line: line], nil}
+        {{:optional, [], [{:any, [], []}]}, {:any, [], []}}
       {:type, _, :map_field_exact, [{:atom, _, k}, v]} ->
         {k, typespec_to_ast(v)}
       {:type, _, :map_field_exact, [k, v]} ->
@@ -750,8 +750,6 @@ defmodule Kernel.Typespec do
   defp typespec({:%{}, meta, fields} = map, vars, caller) do
     fields =
       :lists.map(fn
-        :... ->
-          {:type, line(meta), :map_field_assoc, :any}
         {k, v} when is_atom(k) ->
           {:type, line(meta), :map_field_exact, [typespec(k, vars, caller), typespec(v, vars, caller)]}
         {{:required, meta2, [k]}, v} ->

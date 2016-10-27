@@ -687,6 +687,8 @@ defmodule Kernel.TypespecTest do
       (quote do: @type literal_map_with_key() :: %{key: integer()}),
       (quote do: @type literal_map_with_required_key() :: %{required(bitstring()) => integer()}),
       (quote do: @type literal_map_with_optional_key() :: %{optional(bitstring()) => integer()}),
+      # TODO: Remove by 1.5
+      (quote do: @type literal_map_with_arrow() :: %{any() => any()}),
       (quote do: @type literal_struct_all_fields_any_type() :: %SomeStruct{}),
       (quote do: @type literal_struct_all_fields_key_type() :: %SomeStruct{key: integer()}),
       (quote do: @type literal_empty_tuple() :: {}),
