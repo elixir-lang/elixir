@@ -254,13 +254,21 @@ defmodule Task.Supervised do
   end
 
   defp pmap_close(waiting, monitor_pid, monitor_ref) do
-    Process.demonitor(monitor_ref, [:flush])
     Process.unlink(monitor_pid)
     Process.exit(monitor_pid, :kill)
 
-    for {_, {:running, pid}} <- waiting do
+    receive do
+      {:DOWN, ^monitor_ref, _, _, _} -> :ok
+    end
+
+    for {position, {:running, pid}} <- waiting do
       Process.unlink(pid)
       Process.exit(pid, :kill)
+      receive do
+        {:DOWN, {^monitor_ref, ^position}, _} -> :ok
+      after
+        0 -> :ok
+      end
     end
 
     pmap_cleanup_inbox(monitor_ref)
