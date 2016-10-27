@@ -124,7 +124,7 @@ defmodule MapSet do
       #MapSet<[1, 3]>
 
   """
-  @spec delete(t(val), val) :: t(val) when val: value
+  @spec delete(t(val1), val2) :: t(val1) when val1: value, val2: value
   def delete(%MapSet{map: map} = set, value) do
     %{set | map: Map.delete(map, value)}
   end
