@@ -35,7 +35,7 @@ defmodule MapSet do
   @type value :: term
 
   @opaque t(value) :: %__MODULE__{map: %{optional(value) => true}}
-  @opaque t :: t(value)
+  @opaque t :: t(term)
 
   defstruct map: %{}
 
@@ -124,7 +124,7 @@ defmodule MapSet do
       #MapSet<[1, 3]>
 
   """
-  @spec delete(t(val), val) :: t(val) when val: term
+  @spec delete(t(val), val) :: t(val) when val: value
   def delete(%MapSet{map: map} = set, value) do
     %{set | map: Map.delete(map, value)}
   end
@@ -231,7 +231,7 @@ defmodule MapSet do
       #MapSet<[]>
 
   """
-  @spec intersection(t(val1), t(val2)) :: t(val1 | val2) when val1: value, val2: value
+  @spec intersection(t(val), t(val)) :: t(val) when val: value
   def intersection(%MapSet{map: map1}, %MapSet{map: map2}) do
     {map1, map2} = order_by_size(map1, map2)
 
