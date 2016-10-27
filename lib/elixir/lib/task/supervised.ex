@@ -1,6 +1,5 @@
 defmodule Task.Supervised do
   @moduledoc false
-
   @ref_timeout 5_000
 
   def start(info, fun) do
@@ -105,9 +104,9 @@ defmodule Task.Supervised do
   end
 
   defp exit(_info, _mfa, _log_reason, reason)
-      when reason == :normal
-      when reason == :shutdown
-      when tuple_size(reason) == 2 and elem(reason, 0) == :shutdown do
+       when reason == :normal
+       when reason == :shutdown
+       when tuple_size(reason) == 2 and elem(reason, 0) == :shutdown do
     exit(reason)
   end
 
@@ -132,7 +131,7 @@ defmodule Task.Supervised do
   defp get_running({mod, fun, args}), do: {:erlang.make_fun(mod, fun, length(args)), args}
 
   defp get_reason({:undef, [{mod, fun, args, _info} | _] = stacktrace} = reason)
-  when is_atom(mod) and is_atom(fun) do
+       when is_atom(mod) and is_atom(fun) do
     cond do
       :code.is_loaded(mod) === false ->
         {:"module could not be loaded", stacktrace}
@@ -147,5 +146,166 @@ defmodule Task.Supervised do
 
   defp get_reason(reason) do
     reason
+  end
+
+  ## Pmap
+
+  def pmap(enumerable, acc, reducer, mfa, options, spawn) do
+    next = &Enumerable.reduce(enumerable, &1, fn x, acc -> {:suspend, [x | acc]} end)
+    max_concurrency = Keyword.get(options, :max_concurrency, System.schedulers_online)
+    timeout = Keyword.get(options, :timeout, 5000)
+    parent = self()
+
+    # Start a process responsible for translating down messages.
+    {monitor_pid, monitor_ref} = spawn_monitor(fn -> pmap_monitor(parent) end)
+    send(monitor_pid, {parent, monitor_ref})
+
+    pmap_reduce(acc, max_concurrency, 0, 0, %{}, next,
+                reducer, mfa, spawn, monitor_pid, monitor_ref, timeout)
+  end
+
+  defp pmap_reduce({:halt, acc}, _max, _spawned, _delivered, waiting, next,
+                   _reducer, _mfa, _spawn, monitor_pid, monitor_ref, _timeout) do
+    is_function(next) && next.({:halt, []})
+    pmap_close(waiting, monitor_pid, monitor_ref)
+    {:halted, acc}
+  end
+
+  defp pmap_reduce({:suspend, acc}, max, spawned, delivered, waiting, next,
+                   reducer, mfa, spawn, monitor_pid, monitor_ref, timeout) do
+    {:suspended, acc, &pmap_reduce(&1, max, spawned, delivered, waiting, next,
+                                   reducer, mfa, spawn, monitor_pid, monitor_ref, timeout)}
+  end
+
+  # All spawned, all delivered, next is done.
+  defp pmap_reduce({:cont, acc}, _max, spawned, delivered, _, next,
+                   _reducer, _mfa, _spawn, _monitor_pid, _monitor_ref, _timeout)
+       when spawned == delivered and next == :done do
+    {:done, acc}
+  end
+
+  # No more tasks to spawn because max == 0 or next is done.
+  defp pmap_reduce({:cont, acc}, max, spawned, delivered, waiting, next,
+                   reducer, mfa, spawn, monitor_pid, monitor_ref, timeout)
+       when max == 0
+       when next == :done do
+    receive do
+      {{^monitor_ref, position}, value} ->
+        waiting = Map.put(waiting, position, {:ok, value})
+        pmap_deliver(acc, max + 1, spawned, delivered, waiting, next,
+                     reducer, mfa, spawn, monitor_pid, monitor_ref, timeout)
+      {:DOWN, {^monitor_ref, position}, reason} ->
+        waiting = Map.put(waiting, position, {:exit, reason})
+        pmap_deliver(acc, max + 1, spawned, delivered, waiting, next,
+                     reducer, mfa, spawn, monitor_pid, monitor_ref, timeout)
+      {:DOWN, ^monitor_ref, _, ^monitor_pid, reason} ->
+        exit({reason, {__MODULE__, :pmap, [timeout]}})
+    after
+      timeout ->
+        exit({:timeout, {__MODULE__, :pmap, [timeout]}})
+    end
+  end
+
+  defp pmap_reduce({:cont, acc}, max, spawned, delivered, waiting, next,
+                   reducer, mfa, spawn, monitor_pid, monitor_ref, timeout) do
+    try do
+      next.({:cont, []})
+    catch
+      kind, reason ->
+        stacktrace = System.stacktrace
+        pmap_close(waiting, monitor_pid, monitor_ref)
+        :erlang.raise(kind, reason, stacktrace)
+    else
+      {:suspended, [value], next} ->
+        waiting = pmap_spawn(value, spawned, waiting, mfa, spawn, monitor_pid, monitor_ref)
+        pmap_reduce({:cont, acc}, max - 1, spawned + 1, delivered, waiting, next,
+                    reducer, mfa, spawn, monitor_pid, monitor_ref, timeout)
+      {_, [value]} ->
+        waiting = pmap_spawn(value, spawned, waiting, mfa, spawn, monitor_pid, monitor_ref)
+        pmap_reduce({:cont, acc}, max - 1, spawned + 1, delivered, waiting, :done,
+                    reducer, mfa, spawn, monitor_pid, monitor_ref, timeout)
+      {_, []} ->
+        pmap_reduce({:cont, acc}, max, spawned, delivered, waiting, :done,
+                    reducer, mfa, spawn, monitor_pid, monitor_ref, timeout)
+    end
+  end
+
+  defp pmap_deliver(acc, max, spawned, delivered, waiting, next,
+                    reducer, mfa, spawn, monitor_pid, monitor_ref, timeout) do
+    case waiting do
+      %{^delivered => {kind, value}} when kind in [:ok, :exit] ->
+        try do
+          reducer.({kind, value}, acc)
+        catch
+          kind, reason ->
+            stacktrace = System.stacktrace
+            is_function(next) && next.({:halt, []})
+            pmap_close(waiting, monitor_pid, monitor_ref)
+            :erlang.raise(kind, reason, stacktrace)
+        else
+          {key, acc} ->
+            pmap_reduce({key, acc}, max, spawned, delivered + 1, Map.delete(waiting, delivered), next,
+                        reducer, mfa, spawn, monitor_pid, monitor_ref, timeout)
+        end
+      %{} ->
+        pmap_reduce({:cont, acc}, max, spawned, delivered, waiting, next,
+                    reducer, mfa, spawn, monitor_pid, monitor_ref, timeout)
+    end
+  end
+
+  defp pmap_close(waiting, monitor_pid, monitor_ref) do
+    Process.demonitor(monitor_ref, [:flush])
+    Process.unlink(monitor_pid)
+    Process.exit(monitor_pid, :kill)
+
+    for {_, {:running, pid}} <- waiting do
+      Process.unlink(pid)
+      Process.exit(pid, :kill)
+    end
+
+    pmap_cleanup_inbox(monitor_ref)
+  end
+
+  defp pmap_cleanup_inbox(monitor_ref) do
+    receive do
+      {:DOWN, {^monitor_ref, _}, _} ->
+        pmap_cleanup_inbox(monitor_ref)
+    after
+      0 ->
+        :ok
+    end
+  end
+
+  defp pmap_mfa({mod, fun, args}, arg), do: {mod, fun, [arg | args]}
+  defp pmap_mfa(fun, arg), do: {:erlang, :apply, [fun, [arg]]}
+
+  defp pmap_spawn(value, spawned, waiting, mfa, spawn, monitor_pid, monitor_ref) do
+    pid = spawn.(pmap_mfa(mfa, value), {monitor_ref, spawned})
+    send(monitor_pid, {:UP, monitor_ref, pid, spawned})
+    Map.put(waiting, spawned, {:running, pid})
+  end
+
+  defp pmap_monitor(parent_pid) do
+    parent_ref = Process.monitor(parent_pid)
+    receive do
+      {^parent_pid, monitor_ref} ->
+        pmap_monitor(parent_pid, parent_ref, monitor_ref, %{})
+      {:DOWN, ^parent_ref, _, _, reason} ->
+        exit(reason)
+    end
+  end
+
+  defp pmap_monitor(parent_pid, parent_ref, monitor_ref, counters) do
+    receive do
+      {:UP, ^monitor_ref, pid, counter} ->
+        ref = Process.monitor(pid)
+        pmap_monitor(parent_pid, parent_ref, monitor_ref, Map.put(counters, ref, counter))
+      {:DOWN, ^parent_ref, _, _, reason} ->
+        exit(reason)
+      {:DOWN, ref, _, _, reason} ->
+        {counter, counters} = Map.pop(counters, ref)
+        send(parent_pid, {:DOWN, {monitor_ref, counter}, reason})
+        pmap_monitor(parent_pid, parent_ref, monitor_ref, counters)
+    end
   end
 end

@@ -282,6 +282,70 @@ defmodule Task do
     %Task{pid: pid, ref: ref, owner: owner}
   end
 
+  @doc """
+  Receives an `enumerable` and returns a stream that will process each
+  entry in parallel with `module`, `function` and `args`.
+
+  When streamed, it returns `{:ok, val}` or `{:exit, val}` for each
+  element in the same order.
+
+  The level of concurrency can be controlled via the `:max_concurrency`
+  option and defaults to `System.schedulers_online/1`. The timeout
+  can also be given as option and defaults to 5000 and it defaults to
+  the maximum amount of time to wait without a task reply.
+
+  The tasks will be linked to the current process similar to `async/1`.
+  A different behaviour can be chosen by using `Task.Supervisor.async/1`.
+
+  ## Options
+
+    * `:max_concurrency` - sets the maximum number of tasks to run
+      at the same time. Defaults to `System.schedulers_online/1`.
+    * `:timeout` - the maximum amount of time to wait without
+      receiving a task reply (across all running tasks).
+
+  ## Example
+
+  Build a stream and then enumerate it:
+
+      stream = Task.pmap(collection, Mod, :expensive_fun, [])
+      Enum.to_list(stream)
+
+  The concurrency can be increased or decreased using the `:max_concurrency`
+  option. For example, if the tasks are IO heavy, the value can be increased:
+
+      max_concurrency = System.schedulers_online * 2
+      stream = Task.pmap(collection, Mod, :expensive_fun, [], max_concurrency: max_concurrency)
+      Enum.to_list(stream)
+
+  """
+  @spec pmap(Enumerable.t, module, atom, [term], Keyword.t) :: Enumerable.t
+  def pmap(enumerable, module, function, args, options \\ [])
+      when is_atom(module) and is_atom(function) and is_list(args) do
+    build_pmap(enumerable, {module, function, args}, options)
+  end
+
+  @doc """
+  Receives an `enumerable` and returns a stream that will process each
+  entry in parallel with `fun`.
+
+  See `pmap/5` for discussion and examples.
+  """
+  @spec pmap(Enumerable.t, (term -> term), Keyword.t) :: Enumerable.t
+  def pmap(enumerable, fun, options \\ []) when is_function(fun, 1) do
+    build_pmap(enumerable, fun, options)
+  end
+
+  defp build_pmap(enumerable, fun, options) do
+    owner = self()
+    info = get_info(owner)
+    &Task.Supervised.pmap(enumerable, &1, &2, fun, options, fn mfa, ref ->
+      pid = Task.Supervised.spawn_link(owner, info, mfa)
+      send(pid, {owner, ref})
+      pid
+    end)
+  end
+
   defp get_info(self) do
     {node(),
      case Process.info(self, :registered_name) do

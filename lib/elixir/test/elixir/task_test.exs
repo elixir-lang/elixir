@@ -359,7 +359,7 @@ defmodule TaskTest do
       assert_raise ArgumentError, message, fn -> Task.shutdown(task) end
     end
 
-    test "shutdown/2 returns nil on killing task" do
+    test "returns nil on killing task" do
       caller = self()
 
       task = Task.async(fn() ->
@@ -374,7 +374,7 @@ defmodule TaskTest do
       refute_received {:DOWN, _, _, _, _}
     end
 
-    test "shutdown/2 returns {:exit, :noproc} if task handled" do
+    test "returns {:exit, :noproc} if task handled" do
       task = create_dummy_task(:noproc)
       assert Task.shutdown(task) == {:exit, :noproc}
     end
@@ -449,9 +449,96 @@ defmodule TaskTest do
       assert Task.shutdown(task, 1) == {:exit, :killed}
     end
 
-    test "shutdown/2 returns {:exit, :noproc} if task handled" do
+    test "returns {:exit, :noproc} if task handled" do
       task = create_dummy_task(:noproc)
       assert Task.shutdown(task, :brutal_kill) == {:exit, :noproc}
     end
+  end
+
+  for {desc, concurrency} <- ["same concurrency": 4, "less concurrency": 2, "more concurrency": 8] do
+    describe "pmap/2 with #{desc}" do
+      @opts [max_concurrency: concurrency]
+
+      test "maps an enumerable with fun" do
+        assert 1..4 |> Task.pmap(&sleep/1, @opts) |> Enum.to_list ==
+               [ok: 1, ok: 2, ok: 3, ok: 4]
+      end
+
+      test "maps an enumerable with mfa" do
+        assert 1..4 |> Task.pmap(__MODULE__, :sleep, [], @opts) |> Enum.to_list ==
+               [ok: 1, ok: 2, ok: 3, ok: 4]
+      end
+
+      test "maps an enumerable without leaking tasks" do
+        assert 1..4 |> Task.pmap(&sleep/1, @opts) |> Enum.to_list ==
+               [ok: 1, ok: 2, ok: 3, ok: 4]
+        refute_received _
+      end
+
+      test "returns errors for failures" do
+        Process.flag(:trap_exit, true)
+        assert 101..104 |> Task.pmap(&Process.sleep(&1) && exit(&1), @opts) |> Enum.to_list ==
+               [exit: 101, exit: 102, exit: 103, exit: 104]
+      end
+
+      test "shuts down unused tasks" do
+        assert [0, :infinity, :infinity, :infinity] |> Task.pmap(&sleep/1, @opts) |> Enum.take(1) ==
+               [ok: 0]
+        assert Process.info(self(), :links) == {:links, []}
+      end
+
+      test "shuts down unused tasks without leaking messages" do
+        assert [0, :infinity, :infinity, :infinity] |> Task.pmap(&sleep/1, @opts) |> Enum.take(1) ==
+               [ok: 0]
+        refute_received _
+      end
+
+      test "is zippable" do
+        task = 1..4 |> Task.pmap(&sleep/1, @opts) |> Stream.map(&elem(&1, 1))
+        assert Enum.zip(task, task) ==
+               [{1, 1}, {2, 2}, {3, 3}, {4, 4}]
+      end
+
+      test "with inner halt" do
+        assert 1..8 |> Enum.take(4) |> Task.pmap(&sleep/1, @opts) |> Enum.to_list ==
+               [ok: 1, ok: 2, ok: 3, ok: 4]
+      end
+
+      test "with outer halt" do
+        assert 1..8 |> Task.pmap(&sleep/1, @opts) |> Enum.take(4) ==
+               [ok: 1, ok: 2, ok: 3, ok: 4]
+      end
+
+      test "terminates inner effect" do
+        stream =
+          1..4
+          |> Task.pmap(&sleep/1, @opts)
+          |> Stream.transform(fn -> :ok end,
+                              fn x, acc -> {[x], acc} end,
+                              fn _ -> Process.put(:stream_transform, true) end)
+
+        Process.put(:stream_transform, false)
+        assert Enum.to_list(stream) == [ok: 1, ok: 2, ok: 3, ok: 4]
+        assert Process.get(:stream_transform)
+      end
+
+      test "terminates outer effect" do
+        stream =
+          1..4
+          |> Stream.transform(fn -> :ok end,
+                              fn x, acc -> {[x], acc} end,
+                              fn _ -> Process.put(:stream_transform, true) end)
+          |> Task.pmap(&sleep/1, @opts)
+
+        Process.put(:stream_transform, false)
+        assert Enum.to_list(stream) == [ok: 1, ok: 2, ok: 3, ok: 4]
+        assert Process.get(:stream_transform)
+      end
+    end
+  end
+
+  def sleep(number) do
+    Process.sleep(number)
+    number
   end
 end
