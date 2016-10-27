@@ -761,7 +761,8 @@ defmodule Stream do
     do_transform(user_acc.(), user, fun, :cont, next, inner_acc, inner, after_fun)
   end
 
-  defp do_transform(user_acc, _user, _fun, _next_op, _next, {:halt, inner_acc}, _inner, after_fun) do
+  defp do_transform(user_acc, _user, _fun, _next_op, next, {:halt, inner_acc}, _inner, after_fun) do
+    next.({:halt, []})
     do_after(after_fun, user_acc)
     {:halted, inner_acc}
   end
@@ -776,7 +777,14 @@ defmodule Stream do
   end
 
   defp do_transform(user_acc, user, fun, :cont, next, inner_acc, inner, after_fun) do
-    case next.({:cont, []}) do
+    try do
+      next.({:cont, []})
+    catch
+      kind, reason ->
+        stacktrace = System.stacktrace
+        do_after(after_fun, user_acc)
+        :erlang.raise(kind, reason, stacktrace)
+    else
       {:suspended, [val], next} ->
         do_transform_user(val, user_acc, user, fun, :cont, next, inner_acc, inner, after_fun)
       {_, [val]} ->
