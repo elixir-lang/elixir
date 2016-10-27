@@ -462,8 +462,8 @@ defmodule TaskTest do
     end
   end
 
-  for {desc, concurrency} <- ["same": 4, "less": 2, "more": 8] do
-    describe "pmap/2 with #{desc} concurrency than tasks" do
+  for {desc, concurrency} <- ["==": 4, "<": 2, ">": 8] do
+    describe "pmap/2 with max_concurrency #{desc} tasks" do
       @opts [max_concurrency: concurrency]
 
       test "maps an enumerable with fun" do

@@ -178,9 +178,10 @@ defmodule Task.Supervised do
   end
 
   # All spawned, all delivered, next is done.
-  defp pmap_reduce({:cont, acc}, _max, spawned, delivered, _, next,
-                   _reducer, _mfa, _spawn, _monitor_pid, _monitor_ref, _timeout)
+  defp pmap_reduce({:cont, acc}, _max, spawned, delivered, waiting, next,
+                   _reducer, _mfa, _spawn, monitor_pid, monitor_ref, _timeout)
        when spawned == delivered and next == :done do
+    pmap_close(waiting, monitor_pid, monitor_ref)
     {:done, acc}
   end
 
@@ -199,9 +200,11 @@ defmodule Task.Supervised do
         pmap_deliver(acc, max + 1, spawned, delivered, waiting, next,
                      reducer, mfa, spawn, monitor_pid, monitor_ref, timeout)
       {:DOWN, ^monitor_ref, _, ^monitor_pid, reason} ->
+        pmap_close(waiting, monitor_pid, monitor_ref)
         exit({reason, {__MODULE__, :pmap, [timeout]}})
     after
       timeout ->
+        pmap_close(waiting, monitor_pid, monitor_ref)
         exit({:timeout, {__MODULE__, :pmap, [timeout]}})
     end
   end
