@@ -772,7 +772,7 @@ defmodule NaiveDateTime do
   @doc """
   Adds a specified amount of time to a `NaiveDateTime`.
 
-  Accepts an `integer` in any `unit` available from `System.time_unit`.
+  Accepts an `integer` in any `unit` available from `t:System.time_unit/0`.
   Negative values will be move backwards in time.
 
   ## Examples
@@ -814,9 +814,9 @@ defmodule NaiveDateTime do
   end
 
   @doc """
-  Subtract `naive_datetime_2` from `naive_datetime_1`.
+  Subtract `naive_datetime2` from `naive_datetime1`.
 
-  The answer can be returned in any `unit` available from `System.time_unit`.
+  The answer can be returned in any `unit` available from `t:System.time_unit/0`.
 
   ## Examples
 
@@ -831,11 +831,11 @@ defmodule NaiveDateTime do
       63579428950
   """
   @spec diff(NaiveDateTime.t, NaiveDateTime.t, System.time_unit) :: integer
-  def diff(%NaiveDateTime{} = naive_datetime_1,
-           %NaiveDateTime{} = naive_datetime_2,
+  def diff(%NaiveDateTime{} = naive_datetime1,
+           %NaiveDateTime{} = naive_datetime2,
            unit \\ :second) do
-    ndt1_microsecond = to_microsecond(naive_datetime_1)
-    ndt2_microsecond = to_microsecond(naive_datetime_2)
+    ndt1_microsecond = to_microsecond(naive_datetime1)
+    ndt2_microsecond = to_microsecond(naive_datetime2)
     difference = ndt1_microsecond - ndt2_microsecond
     System.convert_time_unit(difference, :microsecond, unit)
   end
