@@ -363,20 +363,22 @@ defmodule Access do
   The returned function is typically passed as an accessor to `Kernel.get_in/2`,
   `Kernel.get_and_update_in/3`, and friends.
 
-  Uses the default value if the key does not exist or if the value being
-  accessed is `nil`.
+  The returned function uses the default value if the key does not exist.
+  This can be used to specify defaults and safely traverse missing keys:
+
+      iex> get_in(%{}, [Access.key(:user, %{}), Access.key(:name)])
+      nil
+
+  Such is also useful when using update functions, allowing us to introduce
+  values as we traverse the data-structure for updates:
+
+      iex> put_in(%{}, [Access.key(:user, %{}), Access.key(:name)], "Mary")
+      %{user: %{name: "Mary"}}
 
   ## Examples
 
-      iex> get_in(%{}, [Access.key(:unknown), Access.key(:name)])
-      nil
-      iex> get_in(%{}, [Access.key(:unknown, %{name: "john"}), Access.key(:name)])
-      "john"
-      iex> get_in(%{}, [Access.key(:unknown), Access.key(:name, "john")])
-      "john"
-
       iex> map = %{user: %{name: "john"}}
-      iex> get_in(map, [Access.key(:unknown), Access.key(:name, "john")])
+      iex> get_in(map, [Access.key(:unknown, %{}), Access.key(:name, "john")])
       "john"
       iex> get_and_update_in(map, [Access.key(:user), Access.key(:name)], fn
       ...>   prev -> {prev, String.upcase(prev)}
@@ -385,28 +387,27 @@ defmodule Access do
       iex> pop_in(map, [Access.key(:user), Access.key(:name)])
       {"john", %{user: %{}}}
 
-  An error is raised if the accessed structure is not a map/struct/nil:
+  An error is raised if the accessed structure is not a map or a struct:
+
+      iex> get_in(nil, [Access.key(:foo)])
+      ** (BadMapError) expected a map, got: nil
 
       iex> get_in([], [Access.key(:foo)])
-      ** (RuntimeError) Access.key/1 expected a map/struct or nil, got: []
+      ** (BadMapError) expected a map, got: []
 
   """
   def key(key, default \\ nil) do
     fn
       :get, data, next ->
-        next.(Map.get(to_map(data), key, default))
+        next.(Map.get(data, key, default))
       :get_and_update, data, next ->
-        value = Map.get(to_map(data), key, default)
+        value = Map.get(data, key, default)
         case next.(value) do
           {get, update} -> {get, Map.put(data, key, update)}
           :pop -> {value, Map.delete(data, key)}
         end
     end
   end
-
-  defp to_map(nil), do: %{}
-  defp to_map(%{} = map), do: map
-  defp to_map(data), do: raise "Access.key/1 expected a map/struct or nil, got: #{inspect data}"
 
   @doc """
   Returns a function that accesses the given key in a map/struct.
