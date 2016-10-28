@@ -376,7 +376,7 @@ defmodule IO do
   The `device` is iterated by the given number of characters or line by line if
   `:line` is given.
 
-  This reads from the IO as utf-8. Check out
+  This reads from the IO as UTF-8. Check out
   `IO.binstream/2` to handle the IO as a raw binary.
 
   Note that an IO stream has side effects and every time

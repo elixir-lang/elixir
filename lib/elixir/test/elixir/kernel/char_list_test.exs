@@ -17,7 +17,7 @@ bar \'\'\'
 '''
   end
 
-  test "utf8" do
+  test "UTF-8" do
     assert length(' ゆんゆん') == 5
   end
 
