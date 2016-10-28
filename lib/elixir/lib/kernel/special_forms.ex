@@ -131,10 +131,10 @@ defmodule Kernel.SpecialForms do
 
   - `integer`
   - `float`
-  - `bits` (alias for bitstring)
+  - `bits` (alias for `bitstring`)
   - `bitstring`
   - `binary`
-  - `bytes` (alias for binary)
+  - `bytes` (alias for `binary`)
   - `utf8`
   - `utf16`
   - `utf32`
@@ -156,13 +156,13 @@ defmodule Kernel.SpecialForms do
       iex> <<102, rest>>
       ** (ArgumentError) argument error
 
-  We can solve this by explicitly tagging it as a binary:
+  We can solve this by explicitly tagging it as `binary`:
 
       iex> rest = "oo"
       iex> <<102, rest::binary>>
       "foo"
 
-  The utf8, utf16, and utf32 types are for Unicode codepoints. They
+  The `utf8`, `utf16`, and `utf32` types are for Unicode codepoints. They
   can also be applied to literal strings and charlists:
 
       iex> <<"foo"::utf16>>
