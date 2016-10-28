@@ -463,13 +463,22 @@ defmodule MacroTest do
   end
 
   test "bit syntax to string" do
+    ast = quote(do: <<1::8*4>>)
+    assert Macro.to_string(ast) == "<<1::8*4>>"
+
+    ast = quote(do: @type foo :: <<_::8, _::_*4>>)
+    assert Macro.to_string(ast) == "@type(foo :: <<_::8, _::_*4>>)"
+
     ast = quote(do: <<69 - 4::bits-size(8 - 4)-unit(1), 65>>)
     assert Macro.to_string(ast) == "<<69 - 4::bits-size(8 - 4)-unit(1), 65>>"
+
     ast = quote(do: << <<65>>, 65>>)
     assert Macro.to_string(ast) == "<<(<<65>>), 65>>"
+
     ast = quote(do: <<65, <<65>> >>)
     assert Macro.to_string(ast) == "<<65, (<<65>>)>>"
-    ast = quote do: for <<a::4 <- <<1, 2>> >>, do: a
+
+    ast = quote(do: (for <<a::4 <- <<1, 2>> >>, do: a))
     assert Macro.to_string(ast) == "for(<<(a :: 4 <- <<1, 2>>)>>) do\n  a\nend"
   end
 
