@@ -44,9 +44,11 @@ defmodule TimeTest do
   end
 
   test "compare/2" do
+    time0 = ~T[01:01:01.0]
     time1 = ~T[01:01:01.005]
     time2 = ~T[01:01:01.0050]
     time3 = ~T[23:01:01.0050]
+    assert Time.compare(time0, time1) == :lt
     assert Time.compare(time1, time1) == :eq
     assert Time.compare(time1, time2) == :eq
     assert Time.compare(time1, time3) == :lt
@@ -76,9 +78,12 @@ defmodule NaiveDateTimeTest do
   test "compare/2" do
     ndt1 = ~N[2000-04-16 13:30:15.0049]
     ndt2 = ~N[2000-04-16 13:30:15.0050]
+    ndt3 = ~N[2001-04-16 13:30:15.0050]
     assert NaiveDateTime.compare(ndt1, ndt1) == :eq
     assert NaiveDateTime.compare(ndt1, ndt2) == :lt
     assert NaiveDateTime.compare(ndt2, ndt1) == :gt
+    assert NaiveDateTime.compare(ndt3, ndt1) == :gt
+    assert NaiveDateTime.compare(ndt3, ndt2) == :gt
   end
 end
 
