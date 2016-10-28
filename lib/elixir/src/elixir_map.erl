@@ -77,7 +77,7 @@ translate_struct(Meta, Name, {'%{}', MapMeta, Args}, S) ->
     _ -> load_struct(Meta, Name, [], S)
   end,
 
-  assert_struct_keys(Meta, Name, Struct, Assocs, S),
+  assert_struct_keys(Meta, Name, Struct, Assocs, S, Operation),
 
   case Operation of
     update ->
@@ -204,8 +204,13 @@ extract_key_val_op(TUpdate, S) ->
 build_map(Ann, nil, TArgs, SA) -> {{map, Ann, TArgs}, SA};
 build_map(Ann, TUpdate, TArgs, SA) -> {{map, Ann, TUpdate, TArgs}, SA}.
 
-assert_struct_keys(Meta, Name, Struct, Assocs, S) ->
+assert_struct_keys(Meta, Name, Struct, Assocs, S, Operation) ->
   [begin
      compile_error(Meta, S#elixir_scope.file, "unknown key ~ts for struct ~ts",
                    ['Elixir.Kernel':inspect(Key), elixir_aliases:inspect(Name)])
-   end || {Key, _} <- Assocs, not maps:is_key(Key, Struct)].
+   end || {Key, _} <- Assocs, not struct_member(Operation, Key, Struct)].
+
+struct_member(match, {'^', _, [_]}, _Struct) ->
+    true;
+struct_member(_, Key, Struct) ->
+    maps:is_key(Key, Struct).
