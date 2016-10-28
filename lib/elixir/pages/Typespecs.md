@@ -25,21 +25,27 @@ The syntax Elixir provides for type specifications is similar to [the one in Erl
     type :: any()                   # the top type, the set of all terms
           | none()                  # the bottom type, contains no terms
           | atom()
-          | float()
-          | integer()
-          | neg_integer()           # ..., -3, -2, -1
-          | non_neg_integer()       # 0, 1, 2, 3, ...
-          | pos_integer()           # 1, 2, 3, ...
-          | list(type)
-          | nonempty_list(type)
-          | improper_list(type1, type2)
-          | maybe_improper_list(type1, type2)
           | map()                   # any map
           | pid()
           | port()
           | reference()
           | struct()                # any struct
-          | tuple()
+          | tuple()                 # tuple of any size
+
+                                    ## Numbers
+          | float()                 # float
+          | integer()               # integer
+          | neg_integer()           # ..., -3, -2, -1
+          | non_neg_integer()       # 0, 1, 2, 3, ...
+          | pos_integer()           # 1, 2, 3, ...
+
+                                                        ## Lists
+          | list(type)                                  # proper list ([]-terminated)
+          | nonempty_list(type)                         # non-empty proper list
+          | maybe_improper_list(type1, type2)           # proper or improper list
+          | nonempty_improper_list(type1, type2)        # improper list
+          | nonempty_maybe_improper_list(type1, type2)  # non-empty proper or improper list
+
           | Literals                # Described in section "Literals"
           | Builtin                 # Described in section "Built-in types"
           | Remotes                 # Described in section "Remote types"
@@ -49,14 +55,11 @@ The syntax Elixir provides for type specifications is similar to [the one in Erl
 The following literals are also supported in typespecs:
 
     type :: :atom                         ## Atoms
-          | 1.0                           ## Floats
-          | 1                             ## Integers
-          | 1..10                         ## Integers from 1 to 10
 
                                           ## Bitstrings
           | <<>>                          # empty bitstring
           | <<_::size>>                   # size is 0 or a positive integer
-          | <<_::_ * unit>>               # unit is an integer from 1 to 256
+          | <<_::_*unit>>                 # unit is an integer from 1 to 256
           | <<_::size, _::_*unit>>
 
                                           ## Functions
@@ -64,21 +67,24 @@ The following literals are also supported in typespecs:
           | (() -> type)                  # 0-arity, returns type
           | (type1, type2 -> type)        # 2-arity, returns type
 
+                                          ## Integers
+          | 1                             # integer
+          | 1..10                         # integer from 1 to 10
+
                                           ## Lists
           | [type]                        # list with any number of type elements
           | []                            # empty list
           | [...]                         # shorthand for nonempty_list(any())
           | [type, ...]                   # shorthand for nonempty_list(type)
-          | [key: type]                   # keyword lists
+          | [key: value_type]             # keyword list with key :key of value_type
 
-                                          ## Maps
-          | %{}                           # empty map
-          | %{...}                        # any map
-          | %{key: type}                  # map with required key :key with value of type
-          | %{required(type1) => type2}   # map with required keys of type1 with values of type2
-          | %{optional(type1) => type2}   # map with optional keys of type1 with values of type2
-          | %SomeStruct{}                 # struct with all fields of any type
-          | %SomeStruct{key: type}        # struct with :key field of type
+                                                  ## Maps
+          | %{}                                   # empty map
+          | %{key: value_type}                    # map with required key :key of value_type
+          | %{required(key_type) => value_type}   # map with required pairs of key_type and value_type
+          | %{optional(key_type) => value_type}   # map with optional pairs of key_type and value_type
+          | %SomeStruct{}                         # struct with all fields of any type
+          | %SomeStruct{key: value_type}          # struct with required key :key and type
 
                                           ## Tuples
           | {}                            # empty tuple
@@ -93,8 +99,8 @@ Built-in type           | Defined as
 `term()`                | `any()`
 `arity()`               | `0..255`
 `as_boolean(t)`         | `t`
-`binary()`              | `<<_::_ * 8>>`
-`bitstring()`           | `<<_::_ * 1>>`
+`binary()`              | `<<_::_*8>>`
+`bitstring()`           | `<<_::_*1>>`
 `boolean()`             | `false` \| `true`
 `byte()`                | `0..255`
 `char()`                | `0..0x10FFFF`
@@ -108,6 +114,7 @@ Built-in type           | Defined as
 `list()`                | `[any()]`
 `nonempty_list()`       | `nonempty_list(any())`
 `maybe_improper_list()` | `maybe_improper_list(any(), any())`
+`nonempty_maybe_improper_list()` | `nonempty_maybe_improper_list(any(), any())`
 `mfa()`                 | `{module(), atom(), arity()}`
 `module()`              | `atom()`
 `no_return()`           | `none()`
@@ -122,11 +129,13 @@ Any module is also able to define its own types and the modules in Elixir are no
 
 ### Maps
 
-The key types in maps are allowed to overlap, and if they do, the leftmost key takes precedence. A map value does not belong to this type if it contains a key that is not in the maps allowed keys.
+The key types in maps are allowed to overlap, and if they do, the leftmost key takes precedence.
+A map value does not belong to this type if it contains a key that is not in the allowed map keys.
 
-Because it is common to end a map type with `optional(any) => any` to denote that keys that do not belong to any other key in the map type are allowed, and may map to any value, the shorthand notation `...` is allowed as the last element of a map type.
+If you want to denote that keys that were not previously defined in the map are allowed,
+it is common to end a map type with `optional(any) => any`.
 
-Notice that the syntactic representation of `map()` is `%{...}` (or `%{optional(any) => any}`), not `%{}`. The notation `%{}` specifies the singleton type for the empty map.
+Notice that the syntactic representation of `map()` is `%{optional(any) => any}`, not `%{}`. The notation `%{}` specifies the singleton type for the empty map.
 
 ## Defining a type
 
