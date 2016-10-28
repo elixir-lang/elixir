@@ -151,7 +151,7 @@ elixir_to_erl(Tree) when is_float(Tree) ->
   {float, 0, Tree};
 
 elixir_to_erl(Tree) when is_binary(Tree) ->
-  %% Note that our binaries are utf-8 encoded and we are converting
+  %% Note that our binaries are UTF-8 encoded and we are converting
   %% to a list using binary_to_list. The reason for this is that Erlang
   %% considers a string in a binary to be encoded in latin1, so the bytes
   %% are not changed in any fashion.

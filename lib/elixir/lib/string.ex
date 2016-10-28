@@ -1380,7 +1380,7 @@ defmodule String do
   defdelegate next_grapheme_size(string), to: String.Unicode
 
   @doc """
-  Returns the first grapheme from a utf8 string,
+  Returns the first grapheme from a UTF-8 string,
   `nil` if the string is empty.
 
   ## Examples
@@ -1401,7 +1401,7 @@ defmodule String do
   end
 
   @doc """
-  Returns the last grapheme from a utf8 string,
+  Returns the last grapheme from a UTF-8 string,
   `nil` if the string is empty.
 
   ## Examples
@@ -1425,7 +1425,7 @@ defmodule String do
   defp do_last(nil, last_char), do: last_char
 
   @doc """
-  Returns the number of Unicode graphemes in a utf8 string.
+  Returns the number of Unicode graphemes in a UTF-8 string.
 
   ## Examples
 
@@ -1440,7 +1440,7 @@ defmodule String do
   defdelegate length(string), to: String.Unicode
 
   @doc """
-  Returns the grapheme at the `position` of the given utf8 `string`.
+  Returns the grapheme at the `position` of the given UTF-8 `string`.
   If `position` is greater than `string` length, then it returns `nil`.
 
   ## Examples

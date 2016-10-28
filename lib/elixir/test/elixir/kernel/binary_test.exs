@@ -41,11 +41,11 @@ bar \"""
     """, "bar")
   end
 
-  test "utf8" do
+  test "UTF-8" do
     assert byte_size(" ゆんゆん") == 13
   end
 
-  test "utf8 char" do
+  test "UTF-8 char" do
     assert ?ゆ == 12422
     assert ?\ゆ == 12422
   end

@@ -8,7 +8,7 @@ defmodule PathTest do
   import PathHelpers
 
   if :file.native_name_encoding == :utf8 do
-    test "wildcard with utf8" do
+    test "wildcard with UTF-8" do
       File.mkdir_p(tmp_path("héllò"))
       assert Path.wildcard(tmp_path("héllò")) == [tmp_path("héllò")]
     after
