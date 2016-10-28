@@ -193,11 +193,17 @@ defmodule Task.Supervised do
     receive do
       {{^monitor_ref, position}, value} ->
         waiting = Map.put(waiting, position, {:ok, value})
-        pmap_deliver(acc, max + 1, spawned, delivered, waiting, next,
+        pmap_deliver({:cont, acc}, max + 1, spawned, delivered, waiting, next,
                      reducer, mfa, spawn, monitor_pid, monitor_ref, timeout)
       {:DOWN, {^monitor_ref, position}, reason} ->
-        waiting = Map.put(waiting, position, {:exit, reason})
-        pmap_deliver(acc, max + 1, spawned, delivered, waiting, next,
+        waiting =
+          case waiting do
+            # We update the entry only if it is running.
+            # If it is ok or removed, we are done.
+            %{^position => {:running, _}} -> Map.put(waiting, position, {:exit, reason})
+            %{} -> waiting
+          end
+        pmap_deliver({:cont, acc}, max + 1, spawned, delivered, waiting, next,
                      reducer, mfa, spawn, monitor_pid, monitor_ref, timeout)
       {:DOWN, ^monitor_ref, _, ^monitor_pid, reason} ->
         pmap_close(waiting, monitor_pid, monitor_ref)
@@ -233,7 +239,17 @@ defmodule Task.Supervised do
     end
   end
 
-  defp pmap_deliver(acc, max, spawned, delivered, waiting, next,
+  defp pmap_deliver({:suspend, acc}, max, spawned, delivered, waiting, next,
+                    reducer, mfa, spawn, monitor_pid, monitor_ref, timeout) do
+    {:suspended, acc, &pmap_deliver(&1, max, spawned, delivered, waiting, next,
+                                    reducer, mfa, spawn, monitor_pid, monitor_ref, timeout)}
+  end
+  defp pmap_deliver({:halt, acc}, max, spawned, delivered, waiting, next,
+                    reducer, mfa, spawn, monitor_pid, monitor_ref, timeout) do
+    pmap_reduce({:halt, acc}, max, spawned, delivered, waiting, next,
+                reducer, mfa, spawn, monitor_pid, monitor_ref, timeout)
+  end
+  defp pmap_deliver({:cont, acc}, max, spawned, delivered, waiting, next,
                     reducer, mfa, spawn, monitor_pid, monitor_ref, timeout) do
     case waiting do
       %{^delivered => {kind, value}} when kind in [:ok, :exit] ->
@@ -246,9 +262,9 @@ defmodule Task.Supervised do
             pmap_close(waiting, monitor_pid, monitor_ref)
             :erlang.raise(kind, reason, stacktrace)
         else
-          {key, acc} ->
-            pmap_reduce({key, acc}, max, spawned, delivered + 1, Map.delete(waiting, delivered), next,
-                        reducer, mfa, spawn, monitor_pid, monitor_ref, timeout)
+          pair ->
+            pmap_deliver(pair, max, spawned, delivered + 1, Map.delete(waiting, delivered), next,
+                         reducer, mfa, spawn, monitor_pid, monitor_ref, timeout)
         end
       %{} ->
         pmap_reduce({:cont, acc}, max, spawned, delivered, waiting, next,
@@ -291,8 +307,9 @@ defmodule Task.Supervised do
   defp pmap_mfa(fun, arg), do: {:erlang, :apply, [fun, [arg]]}
 
   defp pmap_spawn(value, spawned, waiting, mfa, spawn, monitor_pid, monitor_ref) do
-    pid = spawn.(pmap_mfa(mfa, value), {monitor_ref, spawned})
-    send(monitor_pid, {:UP, monitor_ref, pid, spawned})
+    owner = self()
+    pid = spawn.(owner, pmap_mfa(mfa, value))
+    send(monitor_pid, {:UP, owner, monitor_ref, spawned, pid})
     Map.put(waiting, spawned, {:running, pid})
   end
 
@@ -308,8 +325,9 @@ defmodule Task.Supervised do
 
   defp pmap_monitor(parent_pid, parent_ref, monitor_ref, counters) do
     receive do
-      {:UP, ^monitor_ref, pid, counter} ->
+      {:UP, owner, ^monitor_ref, counter, pid} ->
         ref = Process.monitor(pid)
+        send(pid, {owner, {monitor_ref, counter}})
         pmap_monitor(parent_pid, parent_ref, monitor_ref, Map.put(counters, ref, counter))
       {:DOWN, ^parent_ref, _, _, reason} ->
         exit(reason)

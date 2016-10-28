@@ -30,6 +30,11 @@ defmodule TaskTest do
     end
   end
 
+  def sleep(number) do
+    Process.sleep(number)
+    number
+  end
+
   test "async/1" do
     parent = self()
     fun = fn -> wait_and_send(parent, :done) end
@@ -466,26 +471,32 @@ defmodule TaskTest do
     describe "pmap/2 with max_concurrency #{desc} tasks" do
       @opts [max_concurrency: concurrency]
 
-      test "maps an enumerable with fun" do
+      test "streams an enumerable with fun" do
         assert 1..4 |> Task.pmap(&sleep/1, @opts) |> Enum.to_list ==
                [ok: 1, ok: 2, ok: 3, ok: 4]
       end
 
-      test "maps an enumerable with mfa" do
+      test "streams an enumerable with mfa" do
         assert 1..4 |> Task.pmap(__MODULE__, :sleep, [], @opts) |> Enum.to_list ==
                [ok: 1, ok: 2, ok: 3, ok: 4]
       end
 
-      test "maps an enumerable without leaking tasks" do
+      test "streams an enumerable without leaking tasks" do
         assert 1..4 |> Task.pmap(&sleep/1, @opts) |> Enum.to_list ==
                [ok: 1, ok: 2, ok: 3, ok: 4]
         refute_received _
       end
 
-      test "returns errors for failures" do
+      test "streams an enumerable with slowest first" do
         Process.flag(:trap_exit, true)
-        assert 101..104 |> Task.pmap(&Process.sleep(&1) && exit(&1), @opts) |> Enum.to_list ==
-               [exit: 101, exit: 102, exit: 103, exit: 104]
+        assert 4..1 |> Task.pmap(&sleep/1, @opts) |> Enum.to_list ==
+               [ok: 4, ok: 3, ok: 2, ok: 1]
+      end
+
+      test "streams an enumerable with exits" do
+        Process.flag(:trap_exit, true)
+        assert 1..4 |> Task.pmap(&exit/1, @opts) |> Enum.to_list ==
+               [exit: 1, exit: 2, exit: 3, exit: 4]
       end
 
       test "shuts down unused tasks" do
@@ -500,20 +511,39 @@ defmodule TaskTest do
         refute_received _
       end
 
-      test "is zippable" do
+      test "is zippable on success" do
         task = 1..4 |> Task.pmap(&sleep/1, @opts) |> Stream.map(&elem(&1, 1))
         assert Enum.zip(task, task) ==
                [{1, 1}, {2, 2}, {3, 3}, {4, 4}]
       end
 
-      test "with inner halt" do
-        assert 1..8 |> Enum.take(4) |> Task.pmap(&sleep/1, @opts) |> Enum.to_list ==
+      test "is zippable on failure" do
+        Process.flag(:trap_exit, true)
+        task = 1..4 |> Task.pmap(&exit/1, @opts) |> Stream.map(&elem(&1, 1))
+        assert Enum.zip(task, task) ==
+               [{1, 1}, {2, 2}, {3, 3}, {4, 4}]
+      end
+
+      test "with inner halt on success" do
+        assert 1..8 |> Stream.take(4) |> Task.pmap(&sleep/1, @opts) |> Enum.to_list ==
                [ok: 1, ok: 2, ok: 3, ok: 4]
       end
 
-      test "with outer halt" do
+      test "with inner halt on failure" do
+        Process.flag(:trap_exit, true)
+        assert 1..8 |> Stream.take(4) |> Task.pmap(&exit/1, @opts) |> Enum.to_list ==
+               [exit: 1, exit: 2, exit: 3, exit: 4]
+      end
+
+      test "with outer halt on success" do
         assert 1..8 |> Task.pmap(&sleep/1, @opts) |> Enum.take(4) ==
                [ok: 1, ok: 2, ok: 3, ok: 4]
+      end
+
+      test "with outer halt on failure" do
+        Process.flag(:trap_exit, true)
+        assert 1..8 |> Task.pmap(&exit/1, @opts) |> Enum.take(4) ==
+               [exit: 1, exit: 2, exit: 3, exit: 4]
       end
 
       test "terminates inner effect" do
@@ -542,10 +572,5 @@ defmodule TaskTest do
         assert Process.get(:stream_transform)
       end
     end
-  end
-
-  def sleep(number) do
-    Process.sleep(number)
-    number
   end
 end

@@ -337,12 +337,8 @@ defmodule Task do
   end
 
   defp build_pmap(enumerable, fun, options) do
-    owner = self()
-    info = get_info(owner)
-    &Task.Supervised.pmap(enumerable, &1, &2, fun, options, fn mfa, ref ->
-      pid = Task.Supervised.spawn_link(owner, info, mfa)
-      send(pid, {owner, ref})
-      pid
+    &Task.Supervised.pmap(enumerable, &1, &2, fun, options, fn owner, mfa ->
+      Task.Supervised.spawn_link(owner, get_info(owner), mfa)
     end)
   end
 
