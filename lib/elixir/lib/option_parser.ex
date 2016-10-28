@@ -13,7 +13,7 @@ defmodule OptionParser do
   end
 
   @doc """
-  Parses `argv` into a keywords list.
+  Parses `argv` into a keyword list.
 
   It returns a three-element tuple with the form `{parsed, args, invalid}`, where:
 
