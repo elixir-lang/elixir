@@ -49,7 +49,7 @@ defmodule ExUnit.Assertions do
   `assert` macro in tests. This macro introspects your code
   and provides good reporting whenever there is a failure.
   For example, `assert some_fun() == 10` will fail (assuming
-  `some_fun()` returns 13):
+  `some_fun()` returns `13`):
 
       Comparison (using ==) failed in:
       code: some_fun() == 10
