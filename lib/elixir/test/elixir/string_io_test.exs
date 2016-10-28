@@ -54,7 +54,7 @@ defmodule StringIOTest do
     assert contents(pid) == {"", ""}
   end
 
-  test "IO.read :line with invalid utf8" do
+  test "IO.read :line with invalid UTF-8" do
     pid = start(<<130, 227, 129, 132, 227, 129, 134>>)
     assert IO.read(pid, :line) == {:error, :collect_line}
     assert contents(pid) == {<<130, 227, 129, 132, 227, 129, 134>>, ""}
@@ -68,7 +68,7 @@ defmodule StringIOTest do
     assert contents(pid) == {"", ""}
   end
 
-  test "IO.read count with utf8" do
+  test "IO.read count with UTF-8" do
     pid = start("あいう")
     assert IO.read(pid, 2) == "あい"
     assert IO.read(pid, 8) == "う"
@@ -76,7 +76,7 @@ defmodule StringIOTest do
     assert contents(pid) == {"", ""}
   end
 
-  test "IO.read count with invalid utf8" do
+  test "IO.read count with invalid UTF-8" do
     pid = start(<<130, 227, 129, 132, 227, 129, 134>>)
     assert IO.read(pid, 2) == {:error, :invalid_unicode}
     assert contents(pid) == {<<130, 227, 129, 132, 227, 129, 134>>, ""}
@@ -111,7 +111,7 @@ defmodule StringIOTest do
     assert contents(pid) == {"", ""}
   end
 
-  test "IO.binread count with utf8" do
+  test "IO.binread count with UTF-8" do
     pid = start("あいう")
     assert IO.binread(pid, 2) == <<227, 129>>
     assert IO.binread(pid, 8) == <<130, 227, 129, 132, 227, 129, 134>>
@@ -125,7 +125,7 @@ defmodule StringIOTest do
     assert contents(pid) == {"", "foo"}
   end
 
-  test "IO.write with utf8" do
+  test "IO.write with UTF-8" do
     pid = start("")
     assert IO.write(pid, "あいう") == :ok
     assert contents(pid) == {"", "あいう"}
@@ -137,7 +137,7 @@ defmodule StringIOTest do
     assert contents(pid) == {"", "foo"}
   end
 
-  test "IO.binwrite with utf8" do
+  test "IO.binwrite with UTF-8" do
     pid = start("")
     assert IO.binwrite(pid, "あいう") == :ok
     assert contents(pid) == {"", <<195, 163, 194, 129, 194, 130, 195, 163, 194, 129, 194, 132, 195, 163, 194, 129, 194, 134>>}
@@ -161,13 +161,13 @@ defmodule StringIOTest do
     assert contents(pid) == {"c", ""}
   end
 
-  test "IO.getn with utf8" do
+  test "IO.getn with UTF-8" do
     pid = start("あいう")
     assert IO.getn(pid, ">", 2) == "あい"
     assert contents(pid) == {"う", ""}
   end
 
-  test "IO.getn with invalid utf8" do
+  test "IO.getn with invalid UTF-8" do
     pid = start(<<130, 227, 129, 132, 227, 129, 134>>)
     assert IO.getn(pid, ">", 2) == {:error, :invalid_unicode}
     assert contents(pid) == {<<130, 227, 129, 132, 227, 129, 134>>, ""}
@@ -197,7 +197,7 @@ defmodule StringIOTest do
     assert contents(pid) == {"", ""}
   end
 
-  test "IO.gets with invalid utf8" do
+  test "IO.gets with invalid UTF-8" do
     pid = start(<<130, 227, 129, 132, 227, 129, 134>>)
     assert IO.gets(pid, ">") == {:error, :collect_line}
     assert contents(pid) == {<<130, 227, 129, 132, 227, 129, 134>>, ""}
@@ -221,7 +221,7 @@ defmodule StringIOTest do
     assert contents(pid) == {"", ""}
   end
 
-  test "IO.stream with invalid utf8" do
+  test "IO.stream with invalid UTF-8" do
     pid = start(<<130, 227, 129, 132, 227, 129, 134>>)
     assert_raise IO.StreamError, fn->
       IO.stream(pid, 2) |> Enum.to_list

@@ -84,7 +84,7 @@ defmodule ExUnit.Case do
         end
 
         @tag cd: "fixtures"
-        test "reads utf-8 fixtures" do
+        test "reads UTF-8 fixtures" do
           File.read("hello")
         end
       end

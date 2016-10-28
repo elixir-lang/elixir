@@ -28,7 +28,7 @@ defmodule SystemTest do
   end
 
   if :file.native_name_encoding == :utf8 do
-    test "cwd/0 with utf8" do
+    test "cwd/0 with UTF-8" do
       File.mkdir_p(tmp_path("héllò"))
 
       File.cd!(tmp_path("héllò"), fn ->

@@ -90,7 +90,7 @@ defmodule Inspect.BitStringTest do
     assert inspect("f\ao") == "\"f\\ao\""
   end
 
-  test "utf8" do
+  test "UTF-8" do
     assert inspect(" ゆんゆん") == "\" ゆんゆん\""
   end
 
