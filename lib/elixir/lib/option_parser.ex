@@ -70,7 +70,7 @@ defmodule OptionParser do
   specifies the type for the value of this switch (see the "Types" section below
   for the possible types and more information about type casting).
 
-  Note that you should only supply the `:switches` or `:strict` option.
+  Note that you should only supply the `:switches` or the`:strict` option.
   If you supply both, an `ArgumentError` exception will be raised.
 
   ### Types

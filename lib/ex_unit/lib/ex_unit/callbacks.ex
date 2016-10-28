@@ -1,6 +1,6 @@
 defmodule ExUnit.Callbacks do
   @moduledoc ~S"""
-  Defines ExUnit Callbacks.
+  Defines ExUnit callbacks.
 
   This module defines both `setup_all` and `setup` callbacks, as well as
   the `on_exit/2` facility.
