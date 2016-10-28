@@ -1433,13 +1433,13 @@ defmodule DateTime do
   end
 
   @doc """
-  Converts the given date time to
+  Converts the given date time format to
   [ISO 8601:2004](https://en.wikipedia.org/wiki/ISO_8601).
 
-  Only supports converting date times which are in the ISO calendar,
+  Only supports converting date time formats which are in the ISO calendar,
   attempting to convert date times from other calendars will raise.
 
-  WARNING: the ISO 8601 does not contain the time zone nor its abbreviation,
+  WARNING: the ISO 8601 date time format does not contain the time zone nor its abbreviation,
   which means information is lost when converting to such format. This
   is also why this module does not provide a `from_iso8601/1` function,
   as it is impossible to build a proper `DateTime` from only the
@@ -1466,8 +1466,8 @@ defmodule DateTime do
       "2000-02-29T23:00:07-04:00"
   """
   @spec to_iso8601(DateTime.t) :: String.t
-  def to_iso8601(%DateTime{calendar: Calendar.ISO} = dt) do
-    Calendar.ISO.to_iso8601(dt)
+  def to_iso8601(%DateTime{calendar: Calendar.ISO} = date_time) do
+    Calendar.ISO.to_iso8601(date_time)
   end
 
   @doc """
@@ -1494,13 +1494,13 @@ defmodule DateTime do
       "2000-02-29 23:00:07-04:00 AMT America/Manaus"
   """
   @spec to_string(DateTime.t) :: String.t
-  def to_string(%DateTime{calendar: calendar} = dt) do
-    calendar.to_string(dt)
+  def to_string(%DateTime{calendar: calendar} = date_time) do
+    calendar.to_string(date_time)
   end
 
   defimpl String.Chars do
-    def to_string(%DateTime{calendar: calendar} = dt) do
-      calendar.to_string(dt)
+    def to_string(%DateTime{calendar: calendar} = date_time) do
+      calendar.to_string(date_time)
     end
   end
 
