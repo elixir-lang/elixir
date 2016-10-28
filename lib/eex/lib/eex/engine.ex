@@ -72,8 +72,7 @@ defmodule EEx.Engine do
       end
 
   """
-  @spec handle_assign({:@, Keyword.t, [{atom, term, atom}]}) :: Macro.t
-  @spec handle_assign(arg) :: arg when arg: Macro.t
+  @spec handle_assign(Macro.t) :: Macro.t
   def handle_assign({:@, meta, [{name, _, atom}]}) when is_atom(name) and is_atom(atom) do
     line = meta[:line] || 0
     quote line: line, do: EEx.Engine.fetch_assign!(var!(assigns), unquote(name))

@@ -763,11 +763,11 @@ defmodule Macro do
     to_string(ast, fun)
   end
 
-  defp bitmods_to_string({atom, _, [left, right]} = ast, fun, _, _) when atom in [:*, :-] do
+  defp bitmods_to_string({op, _, [left, right]} = ast, fun, _, _) when op in [:*, :-] do
     result =
-      bitmods_to_string(left, fun, atom, :left) <>
-      Atom.to_string(atom) <>
-      bitmods_to_string(right, fun, atom, :right)
+      bitmods_to_string(left, fun, op, :left) <>
+      Atom.to_string(op) <>
+      bitmods_to_string(right, fun, op, :right)
     fun.(ast, result)
   end
 

@@ -686,6 +686,24 @@ defmodule StreamTest do
     assert Process.get(:stream_transform)
   end
 
+test "transform/4 closes on nested errors" do
+    stream =
+      1..10
+      |> Stream.transform(fn -> 0 end,
+                          fn 3, _ -> throw(:error)
+                             x, acc -> {[x + acc], x} end,
+                          fn _ -> Process.put(:stream_transform_inner, true) end)
+      |> Stream.transform(fn -> 0 end,
+                          fn x, acc -> {[x], acc} end,
+                          fn 0 -> Process.put(:stream_transform_outer, true) end)
+
+    Process.put(:stream_transform_inner, false)
+    Process.put(:stream_transform_outer, false)
+    assert catch_throw(Enum.to_list(stream)) == :error
+    assert Process.get(:stream_transform_inner)
+    assert Process.get(:stream_transform_outer)
+  end
+
   test "transform/4 is zippable" do
     stream = Stream.transform(1..20, fn -> 0 end,
                               fn 10, acc -> {:halt, acc}
