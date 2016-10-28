@@ -610,10 +610,13 @@ defmodule Time do
 
       iex> Time.compare(~T[16:04:16], ~T[16:04:28])
       :lt
+      iex> Time.compare(~T[16:04:16.01], ~T[16:04:16.001])
+      :gt
+
   """
   @spec compare(Time.t, Time.t) :: :lt | :eq | :gt
   def compare(%Time{} = time1, %Time{} = time2) do
-    case {to_erl(time1), to_erl(time2)} do
+    case {to_tuple(time1), to_tuple(time2)} do
       {first, second} when first > second -> :gt
       {first, second} when first < second -> :lt
       _ -> :eq
@@ -1086,6 +1089,8 @@ defmodule NaiveDateTime do
 
       iex> NaiveDateTime.compare(~N[2016-04-16 13:30:15], ~N[2016-04-28 16:19:25])
       :lt
+      iex> NaiveDateTime.compare(~N[2016-04-16 13:30:15.1], ~N[2016-04-16 13:30:15.01])
+      :gt
   """
   @spec compare(NaiveDateTime.t, NaiveDateTime.t) :: :lt | :eq | :gt
   def compare(%NaiveDateTime{} = naive_datetime1, %NaiveDateTime{} = naive_datetime2) do
