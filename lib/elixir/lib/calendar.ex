@@ -622,10 +622,6 @@ defmodule Time do
 
   ## Helpers
 
-  defp to_tuple(%Time{hour: hour, minute: minute, second: second, microsecond: {microsecond, _precision}}) do
-    {hour, minute, second, microsecond}
-  end
-
   defimpl String.Chars do
     def to_string(time) do
       Calendar.ISO.to_string(time)
