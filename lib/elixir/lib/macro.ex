@@ -400,7 +400,7 @@ defmodule Macro do
   @doc """
   Validates the given expressions are valid quoted expressions.
 
-  Checks the `type:Macro.t` for the specification of a valid
+  Checks the `t:Macro.t/0` for the specification of a valid
   quoted expression.
 
   It returns `:ok` if the expression is valid. Otherwise it returns a tuple in the form of
