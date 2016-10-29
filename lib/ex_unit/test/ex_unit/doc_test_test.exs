@@ -217,6 +217,15 @@ defmodule ExUnit.DocTestTest.Numbered do
   def test_fun(), do: :ok
 end |> write_beam()
 
+defmodule ExUnit.DocTestTest.Host do
+  @doc """
+  iex(foo@bar.com)1> 1 +
+  ...(foo@bar.com)1> 2
+  3
+  """
+  def test_fun(), do: :ok
+end |> write_beam()
+
 defmodule ExUnit.DocTestTest.Haiku do
   @moduledoc """
   This module describes the ancient Japanese poem form known as Haiku.
