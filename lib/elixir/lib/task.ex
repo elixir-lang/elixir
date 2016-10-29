@@ -286,16 +286,23 @@ defmodule Task do
   Returns a stream that runs the given `module`, `function` and `args`
   concurrently on each item in `enumerable`.
 
-  Each item will be appended to the given `args`. When streamed, it returns
-  `{:ok, val}` or `{:exit, val}` for each element keeping the original order.
+  Each item will be appended to the given `args` and processed by its
+  own task. The tasks will be linked to the current process similar to
+  `async/3`.
+
+  When streamed, each task will emit `{:ok, val}` upon successful
+  completion or `{:exit, val}` if the caller is trapping exits. Results
+  are emitted in the same order as the original `enumerable`.
 
   The level of concurrency can be controlled via the `:max_concurrency`
   option and defaults to `System.schedulers_online/1`. The timeout
   can also be given as option and defaults to 5000 and it defaults to
   the maximum amount of time to wait without a task reply.
 
-  The tasks will be linked to the current process similar to `async/1`.
-  A different behaviour can be chosen by using `Task.Supervisor.async/1`.
+  Finally, consider using `Task.Supervisor.async_stream/6` to start tasks
+  under a supervisor. If you find yourself trapping exits to handle exits
+  inside the async stream, consider using `Task.Supervisor.async_stream_nolink/6`
+  to start tasks that are not linked to the current process.
 
   ## Options
 
@@ -329,7 +336,9 @@ defmodule Task do
   Returns a stream that runs the given `function` concurrently on each
   item in `enumerable`.
 
-  Each `enumerable` item is passed as argument to the `function`.
+  Each `enumerable` item is passed as argument to the `function` and
+  processed by its own task. The tasks will be linked to the current
+  process, similar to `async/1`.
 
   See `async_stream/5` for discussion and examples.
   """

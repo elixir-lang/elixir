@@ -468,7 +468,7 @@ defmodule TaskTest do
   end
 
   for {desc, concurrency} <- ["==": 4, "<": 2, ">": 8] do
-    describe "async_stream/2 with max_concurrency #{desc} tasks" do
+    describe "async_stream with max_concurrency #{desc} tasks" do
       @opts [max_concurrency: concurrency]
 
       test "streams an enumerable with fun" do
