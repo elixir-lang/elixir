@@ -47,30 +47,30 @@ defmodule Mix.Tasks.Test do
 
   ## Command line options
 
-    * `--trace`      - run tests with detailed reporting; automatically sets `--max-cases` to 1
-    * `--max-cases`  - set the maximum number of cases running async
-    * `--cover`      - the directory to include coverage results
-    * `--raise`      - raise if the test suit failed
-    * `--force`      - forces compilation regardless of modification times
-    * `--no-compile` - do not compile, even if files require compilation
-    * `--no-start`   - do not start applications after compilation
-    * `--no-color`   - disable color in the output
-    * `--color`      - enable color in the output
-    * `--include`    - include tests that match the filter
-    * `--exclude`    - exclude tests that match the filter
-    * `--only`       - run only tests that match the filter
-    * `--seed`       - seeds the random number generator used to randomize tests order;
-      `--seed 0` disables randomization
-    * `--timeout`    - set the timeout for the tests
-    * `--no-deps-check` - do not check dependencies
-    * `--no-archives-check` - do not check archives
-    * `--no-elixir-version-check` - do not check the Elixir version from mix.exs
-    * `--stale` - run only tests which reference modules that changed since the
-      last `test --stale`. You can read more about this option in the "Stale" section below.
+    * `--color` - enables color in the output
+    * `--cover` - the directory to include coverage results
+    * `--exclude` - excludes tests that match the filter
+    * `--force` - forces compilation regardless of modification times
+    * `--formatter` - formatter module
+    * `--include` - includes tests that match the filter
     * `--listen-on-stdin` - run tests, and then listen on stdin. Receiving a newline will
       result in the tests being run again. Very useful when combined with `--stale` and
       external commands which produce output on stdout upon file system modification.
-    * `--formatter`  - formatter module
+    * `--max-cases` - sets the maximum number of cases running async
+    * `--no-archives-check` - do not check archives
+    * `--no-color` - disables color in the output
+    * `--no-compile` - do not compile, even if files require compilation
+    * `--no-deps-check` - do not check dependencies
+    * `--no-elixir-version-check` - do not check the Elixir version from mix.exs
+    * `--no-start` - do not start applications after compilation
+    * `--only` - runs only tests that match the filter
+    * `--raise` - raises if the test suit failed
+    * `--seed` - seeds the random number generator used to randomize tests order;
+      `--seed 0` disables randomization
+    * `--stale` - runs only tests which reference modules that changed since the
+      last `test --stale`. You can read more about this option in the "Stale" section below.
+    * `--timeout` - sets the timeout for the tests
+    * `--trace` - runs tests with detailed reporting; automatically sets `--max-cases` to 1
 
   ## Filters
 
