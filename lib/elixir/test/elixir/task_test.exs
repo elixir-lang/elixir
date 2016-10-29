@@ -524,6 +524,12 @@ defmodule TaskTest do
                [{1, 1}, {2, 2}, {3, 3}, {4, 4}]
       end
 
+      test "is zippable with slowest first" do
+        task = 4..1 |> Task.pmap(&sleep/1, @opts) |> Stream.map(&elem(&1, 1))
+        assert Enum.zip(task, task) ==
+               [{4, 4}, {3, 3}, {2, 2}, {1, 1}]
+      end
+
       test "with inner halt on success" do
         assert 1..8 |> Stream.take(4) |> Task.pmap(&sleep/1, @opts) |> Enum.to_list ==
                [ok: 1, ok: 2, ok: 3, ok: 4]
@@ -535,6 +541,11 @@ defmodule TaskTest do
                [exit: 1, exit: 2, exit: 3, exit: 4]
       end
 
+      test "with inner halt and slowest first" do
+        assert 8..1 |> Stream.take(4) |> Task.pmap(&sleep/1, @opts) |> Enum.to_list ==
+               [ok: 8, ok: 7, ok: 6, ok: 5]
+      end
+
       test "with outer halt on success" do
         assert 1..8 |> Task.pmap(&sleep/1, @opts) |> Enum.take(4) ==
                [ok: 1, ok: 2, ok: 3, ok: 4]
@@ -544,6 +555,11 @@ defmodule TaskTest do
         Process.flag(:trap_exit, true)
         assert 1..8 |> Task.pmap(&exit/1, @opts) |> Enum.take(4) ==
                [exit: 1, exit: 2, exit: 3, exit: 4]
+      end
+
+      test "with outer halt and slowest first" do
+        assert 8..1 |> Task.pmap(&sleep/1, @opts) |> Enum.take(4) ==
+               [ok: 8, ok: 7, ok: 6, ok: 5]
       end
 
       test "terminates inner effect" do
