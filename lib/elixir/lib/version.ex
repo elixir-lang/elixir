@@ -172,16 +172,30 @@ defmodule Version do
   end
 
   @doc """
-  Compares two versions. Returns `:gt` if first version is greater than
-  the second and `:lt` for vice versa. If the two versions are equal `:eq`
-  is returned
+  Compares two versions. Returns `:gt` if the first version is greater than
+  the second one, and `:lt` for vice versa. If the two versions are equal `:eq`
+  is returned.
 
-  Raises a `Version.InvalidVersionError` exception if `version` is not parsable.
-  If given an already parsed version this function won't raise.
+  Pre-releases are strictly less than their corresponding release versions.
+
+  Patch segments are compared lexicographically if they are alphanumeric, and
+  numerically otherwise.
+
+  Build segments are ignored, if two versions differ only in their build segment
+  they are considered to be equal.
+
+  Raises a `Version.InvalidVersionError` exception if any of the two are not
+  parsable. If given an already parsed version this function won't raise.
 
   ## Examples
 
       iex> Version.compare("2.0.1-alpha1", "2.0.0")
+      :gt
+
+      iex> Version.compare("1.0.0-beta", "1.0.0-rc1")
+      :lt
+
+      iex> Version.compare("1.0.0-10", "1.0.0-2")
       :gt
 
       iex> Version.compare("2.0.1+build0", "2.0.1")
