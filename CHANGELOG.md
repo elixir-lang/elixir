@@ -277,3 +277,6 @@ available.
 
   * [Mix] `Mix.Utils.camelize/1` and `Mix.Utils.underscore/1` are soft deprecated in favor of `Macro.camelize/1` and `Macro.underscore/1`
 
+## v1.1
+
+The CHANGELOG for v1.1 releases can be found [in the v1.1 branch](https://github.com/elixir-lang/elixir/blob/v1.1/CHANGELOG.md).
