@@ -148,53 +148,53 @@ defmodule Task.Supervised do
     reason
   end
 
-  ## Pmap
+  ## Stream
 
-  def pmap(enumerable, acc, reducer, mfa, options, spawn) do
+  def stream(enumerable, acc, reducer, mfa, options, spawn) do
     next = &Enumerable.reduce(enumerable, &1, fn x, acc -> {:suspend, [x | acc]} end)
     max_concurrency = Keyword.get(options, :max_concurrency, System.schedulers_online)
     timeout = Keyword.get(options, :timeout, 5000)
     parent = self()
 
     # Start a process responsible for translating down messages.
-    {monitor_pid, monitor_ref} = spawn_monitor(fn -> pmap_monitor(parent) end)
+    {monitor_pid, monitor_ref} = spawn_monitor(fn -> stream_monitor(parent) end)
     send(monitor_pid, {parent, monitor_ref})
 
-    pmap_reduce(acc, max_concurrency, 0, 0, %{}, next,
-                reducer, mfa, spawn, monitor_pid, monitor_ref, timeout)
+    stream_reduce(acc, max_concurrency, 0, 0, %{}, next,
+                  reducer, mfa, spawn, monitor_pid, monitor_ref, timeout)
   end
 
-  defp pmap_reduce({:halt, acc}, _max, _spawned, _delivered, waiting, next,
-                   _reducer, _mfa, _spawn, monitor_pid, monitor_ref, _timeout) do
+  defp stream_reduce({:halt, acc}, _max, _spawned, _delivered, waiting, next,
+                     _reducer, _mfa, _spawn, monitor_pid, monitor_ref, _timeout) do
     is_function(next) && next.({:halt, []})
-    pmap_close(waiting, monitor_pid, monitor_ref)
+    stream_close(waiting, monitor_pid, monitor_ref)
     {:halted, acc}
   end
 
-  defp pmap_reduce({:suspend, acc}, max, spawned, delivered, waiting, next,
-                   reducer, mfa, spawn, monitor_pid, monitor_ref, timeout) do
-    {:suspended, acc, &pmap_reduce(&1, max, spawned, delivered, waiting, next,
-                                   reducer, mfa, spawn, monitor_pid, monitor_ref, timeout)}
+  defp stream_reduce({:suspend, acc}, max, spawned, delivered, waiting, next,
+                     reducer, mfa, spawn, monitor_pid, monitor_ref, timeout) do
+    {:suspended, acc, &stream_reduce(&1, max, spawned, delivered, waiting, next,
+                                     reducer, mfa, spawn, monitor_pid, monitor_ref, timeout)}
   end
 
   # All spawned, all delivered, next is done.
-  defp pmap_reduce({:cont, acc}, _max, spawned, delivered, waiting, next,
-                   _reducer, _mfa, _spawn, monitor_pid, monitor_ref, _timeout)
+  defp stream_reduce({:cont, acc}, _max, spawned, delivered, waiting, next,
+                     _reducer, _mfa, _spawn, monitor_pid, monitor_ref, _timeout)
        when spawned == delivered and next == :done do
-    pmap_close(waiting, monitor_pid, monitor_ref)
+    stream_close(waiting, monitor_pid, monitor_ref)
     {:done, acc}
   end
 
   # No more tasks to spawn because max == 0 or next is done.
-  defp pmap_reduce({:cont, acc}, max, spawned, delivered, waiting, next,
-                   reducer, mfa, spawn, monitor_pid, monitor_ref, timeout)
+  defp stream_reduce({:cont, acc}, max, spawned, delivered, waiting, next,
+                     reducer, mfa, spawn, monitor_pid, monitor_ref, timeout)
        when max == 0
        when next == :done do
     receive do
       {{^monitor_ref, position}, value} ->
         waiting = Map.put(waiting, position, {:ok, value})
-        pmap_deliver({:cont, acc}, max + 1, spawned, delivered, waiting, next,
-                     reducer, mfa, spawn, monitor_pid, monitor_ref, timeout)
+        stream_deliver({:cont, acc}, max + 1, spawned, delivered, waiting, next,
+                       reducer, mfa, spawn, monitor_pid, monitor_ref, timeout)
       {:DOWN, {^monitor_ref, position}, reason} ->
         waiting =
           case waiting do
@@ -203,54 +203,54 @@ defmodule Task.Supervised do
             %{^position => {:running, _}} -> Map.put(waiting, position, {:exit, reason})
             %{} -> waiting
           end
-        pmap_deliver({:cont, acc}, max + 1, spawned, delivered, waiting, next,
-                     reducer, mfa, spawn, monitor_pid, monitor_ref, timeout)
+        stream_deliver({:cont, acc}, max + 1, spawned, delivered, waiting, next,
+                       reducer, mfa, spawn, monitor_pid, monitor_ref, timeout)
       {:DOWN, ^monitor_ref, _, ^monitor_pid, reason} ->
-        pmap_close(waiting, monitor_pid, monitor_ref)
-        exit({reason, {__MODULE__, :pmap, [timeout]}})
+        stream_close(waiting, monitor_pid, monitor_ref)
+        exit({reason, {__MODULE__, :stream, [timeout]}})
     after
       timeout ->
-        pmap_close(waiting, monitor_pid, monitor_ref)
-        exit({:timeout, {__MODULE__, :pmap, [timeout]}})
+        stream_close(waiting, monitor_pid, monitor_ref)
+        exit({:timeout, {__MODULE__, :stream, [timeout]}})
     end
   end
 
-  defp pmap_reduce({:cont, acc}, max, spawned, delivered, waiting, next,
-                   reducer, mfa, spawn, monitor_pid, monitor_ref, timeout) do
+  defp stream_reduce({:cont, acc}, max, spawned, delivered, waiting, next,
+                     reducer, mfa, spawn, monitor_pid, monitor_ref, timeout) do
     try do
       next.({:cont, []})
     catch
       kind, reason ->
         stacktrace = System.stacktrace
-        pmap_close(waiting, monitor_pid, monitor_ref)
+        stream_close(waiting, monitor_pid, monitor_ref)
         :erlang.raise(kind, reason, stacktrace)
     else
       {:suspended, [value], next} ->
-        waiting = pmap_spawn(value, spawned, waiting, mfa, spawn, monitor_pid, monitor_ref)
-        pmap_reduce({:cont, acc}, max - 1, spawned + 1, delivered, waiting, next,
-                    reducer, mfa, spawn, monitor_pid, monitor_ref, timeout)
+        waiting = stream_spawn(value, spawned, waiting, mfa, spawn, monitor_pid, monitor_ref)
+        stream_reduce({:cont, acc}, max - 1, spawned + 1, delivered, waiting, next,
+                      reducer, mfa, spawn, monitor_pid, monitor_ref, timeout)
       {_, [value]} ->
-        waiting = pmap_spawn(value, spawned, waiting, mfa, spawn, monitor_pid, monitor_ref)
-        pmap_reduce({:cont, acc}, max - 1, spawned + 1, delivered, waiting, :done,
-                    reducer, mfa, spawn, monitor_pid, monitor_ref, timeout)
+        waiting = stream_spawn(value, spawned, waiting, mfa, spawn, monitor_pid, monitor_ref)
+        stream_reduce({:cont, acc}, max - 1, spawned + 1, delivered, waiting, :done,
+                      reducer, mfa, spawn, monitor_pid, monitor_ref, timeout)
       {_, []} ->
-        pmap_reduce({:cont, acc}, max, spawned, delivered, waiting, :done,
-                    reducer, mfa, spawn, monitor_pid, monitor_ref, timeout)
+        stream_reduce({:cont, acc}, max, spawned, delivered, waiting, :done,
+                      reducer, mfa, spawn, monitor_pid, monitor_ref, timeout)
     end
   end
 
-  defp pmap_deliver({:suspend, acc}, max, spawned, delivered, waiting, next,
-                    reducer, mfa, spawn, monitor_pid, monitor_ref, timeout) do
-    {:suspended, acc, &pmap_deliver(&1, max, spawned, delivered, waiting, next,
-                                    reducer, mfa, spawn, monitor_pid, monitor_ref, timeout)}
+  defp stream_deliver({:suspend, acc}, max, spawned, delivered, waiting, next,
+                      reducer, mfa, spawn, monitor_pid, monitor_ref, timeout) do
+    {:suspended, acc, &stream_deliver(&1, max, spawned, delivered, waiting, next,
+                                      reducer, mfa, spawn, monitor_pid, monitor_ref, timeout)}
   end
-  defp pmap_deliver({:halt, acc}, max, spawned, delivered, waiting, next,
-                    reducer, mfa, spawn, monitor_pid, monitor_ref, timeout) do
-    pmap_reduce({:halt, acc}, max, spawned, delivered, waiting, next,
-                reducer, mfa, spawn, monitor_pid, monitor_ref, timeout)
+  defp stream_deliver({:halt, acc}, max, spawned, delivered, waiting, next,
+                      reducer, mfa, spawn, monitor_pid, monitor_ref, timeout) do
+    stream_reduce({:halt, acc}, max, spawned, delivered, waiting, next,
+                  reducer, mfa, spawn, monitor_pid, monitor_ref, timeout)
   end
-  defp pmap_deliver({:cont, acc}, max, spawned, delivered, waiting, next,
-                    reducer, mfa, spawn, monitor_pid, monitor_ref, timeout) do
+  defp stream_deliver({:cont, acc}, max, spawned, delivered, waiting, next,
+                      reducer, mfa, spawn, monitor_pid, monitor_ref, timeout) do
     case waiting do
       %{^delivered => {kind, value}} when kind in [:ok, :exit] ->
         try do
@@ -259,20 +259,20 @@ defmodule Task.Supervised do
           kind, reason ->
             stacktrace = System.stacktrace
             is_function(next) && next.({:halt, []})
-            pmap_close(waiting, monitor_pid, monitor_ref)
+            stream_close(waiting, monitor_pid, monitor_ref)
             :erlang.raise(kind, reason, stacktrace)
         else
           pair ->
-            pmap_deliver(pair, max, spawned, delivered + 1, Map.delete(waiting, delivered), next,
-                         reducer, mfa, spawn, monitor_pid, monitor_ref, timeout)
+            stream_deliver(pair, max, spawned, delivered + 1, Map.delete(waiting, delivered), next,
+                           reducer, mfa, spawn, monitor_pid, monitor_ref, timeout)
         end
       %{} ->
-        pmap_reduce({:cont, acc}, max, spawned, delivered, waiting, next,
-                    reducer, mfa, spawn, monitor_pid, monitor_ref, timeout)
+        stream_reduce({:cont, acc}, max, spawned, delivered, waiting, next,
+                      reducer, mfa, spawn, monitor_pid, monitor_ref, timeout)
     end
   end
 
-  defp pmap_close(waiting, monitor_pid, monitor_ref) do
+  defp stream_close(waiting, monitor_pid, monitor_ref) do
     Process.unlink(monitor_pid)
     Process.exit(monitor_pid, :kill)
 
@@ -290,51 +290,51 @@ defmodule Task.Supervised do
       end
     end
 
-    pmap_cleanup_inbox(monitor_ref)
+    stream_cleanup_inbox(monitor_ref)
   end
 
-  defp pmap_cleanup_inbox(monitor_ref) do
+  defp stream_cleanup_inbox(monitor_ref) do
     receive do
       {:DOWN, {^monitor_ref, _}, _} ->
-        pmap_cleanup_inbox(monitor_ref)
+        stream_cleanup_inbox(monitor_ref)
     after
       0 ->
         :ok
     end
   end
 
-  defp pmap_mfa({mod, fun, args}, arg), do: {mod, fun, [arg | args]}
-  defp pmap_mfa(fun, arg), do: {:erlang, :apply, [fun, [arg]]}
+  defp stream_mfa({mod, fun, args}, arg), do: {mod, fun, [arg | args]}
+  defp stream_mfa(fun, arg), do: {:erlang, :apply, [fun, [arg]]}
 
-  defp pmap_spawn(value, spawned, waiting, mfa, spawn, monitor_pid, monitor_ref) do
+  defp stream_spawn(value, spawned, waiting, mfa, spawn, monitor_pid, monitor_ref) do
     owner = self()
-    pid = spawn.(owner, pmap_mfa(mfa, value))
+    pid = spawn.(owner, stream_mfa(mfa, value))
     send(monitor_pid, {:UP, owner, monitor_ref, spawned, pid})
     Map.put(waiting, spawned, {:running, pid})
   end
 
-  defp pmap_monitor(parent_pid) do
+  defp stream_monitor(parent_pid) do
     parent_ref = Process.monitor(parent_pid)
     receive do
       {^parent_pid, monitor_ref} ->
-        pmap_monitor(parent_pid, parent_ref, monitor_ref, %{})
+        stream_monitor(parent_pid, parent_ref, monitor_ref, %{})
       {:DOWN, ^parent_ref, _, _, reason} ->
         exit(reason)
     end
   end
 
-  defp pmap_monitor(parent_pid, parent_ref, monitor_ref, counters) do
+  defp stream_monitor(parent_pid, parent_ref, monitor_ref, counters) do
     receive do
       {:UP, owner, ^monitor_ref, counter, pid} ->
         ref = Process.monitor(pid)
         send(pid, {owner, {monitor_ref, counter}})
-        pmap_monitor(parent_pid, parent_ref, monitor_ref, Map.put(counters, ref, counter))
+        stream_monitor(parent_pid, parent_ref, monitor_ref, Map.put(counters, ref, counter))
       {:DOWN, ^parent_ref, _, _, reason} ->
         exit(reason)
       {:DOWN, ref, _, _, reason} ->
         {counter, counters} = Map.pop(counters, ref)
         send(parent_pid, {:DOWN, {monitor_ref, counter}, reason})
-        pmap_monitor(parent_pid, parent_ref, monitor_ref, counters)
+        stream_monitor(parent_pid, parent_ref, monitor_ref, counters)
     end
   end
 end

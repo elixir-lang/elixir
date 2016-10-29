@@ -460,112 +460,112 @@ defmodule TaskTest do
     end
   end
 
-  describe "pmap/2" do
+  describe "async_stream/2" do
     test "timeout" do
-      assert catch_exit([:infinity] |> Task.pmap(&sleep/1, [timeout: 0]) |> Enum.to_list) ==
-             {:timeout, {Task.Supervised, :pmap, [0]}}
+      assert catch_exit([:infinity] |> Task.async_stream(&sleep/1, [timeout: 0]) |> Enum.to_list) ==
+             {:timeout, {Task.Supervised, :stream, [0]}}
     end
   end
 
   for {desc, concurrency} <- ["==": 4, "<": 2, ">": 8] do
-    describe "pmap/2 with max_concurrency #{desc} tasks" do
+    describe "async_stream/2 with max_concurrency #{desc} tasks" do
       @opts [max_concurrency: concurrency]
 
       test "streams an enumerable with fun" do
-        assert 1..4 |> Task.pmap(&sleep/1, @opts) |> Enum.to_list ==
+        assert 1..4 |> Task.async_stream(&sleep/1, @opts) |> Enum.to_list ==
                [ok: 1, ok: 2, ok: 3, ok: 4]
       end
 
       test "streams an enumerable with mfa" do
-        assert 1..4 |> Task.pmap(__MODULE__, :sleep, [], @opts) |> Enum.to_list ==
+        assert 1..4 |> Task.async_stream(__MODULE__, :sleep, [], @opts) |> Enum.to_list ==
                [ok: 1, ok: 2, ok: 3, ok: 4]
       end
 
       test "streams an enumerable without leaking tasks" do
-        assert 1..4 |> Task.pmap(&sleep/1, @opts) |> Enum.to_list ==
+        assert 1..4 |> Task.async_stream(&sleep/1, @opts) |> Enum.to_list ==
                [ok: 1, ok: 2, ok: 3, ok: 4]
         refute_received _
       end
 
       test "streams an enumerable with slowest first" do
         Process.flag(:trap_exit, true)
-        assert 4..1 |> Task.pmap(&sleep/1, @opts) |> Enum.to_list ==
+        assert 4..1 |> Task.async_stream(&sleep/1, @opts) |> Enum.to_list ==
                [ok: 4, ok: 3, ok: 2, ok: 1]
       end
 
       test "streams an enumerable with exits" do
         Process.flag(:trap_exit, true)
-        assert 1..4 |> Task.pmap(&exit/1, @opts) |> Enum.to_list ==
+        assert 1..4 |> Task.async_stream(&exit/1, @opts) |> Enum.to_list ==
                [exit: 1, exit: 2, exit: 3, exit: 4]
       end
 
       test "shuts down unused tasks" do
-        assert [0, :infinity, :infinity, :infinity] |> Task.pmap(&sleep/1, @opts) |> Enum.take(1) ==
+        assert [0, :infinity, :infinity, :infinity] |> Task.async_stream(&sleep/1, @opts) |> Enum.take(1) ==
                [ok: 0]
         assert Process.info(self(), :links) == {:links, []}
       end
 
       test "shuts down unused tasks without leaking messages" do
-        assert [0, :infinity, :infinity, :infinity] |> Task.pmap(&sleep/1, @opts) |> Enum.take(1) ==
+        assert [0, :infinity, :infinity, :infinity] |> Task.async_stream(&sleep/1, @opts) |> Enum.take(1) ==
                [ok: 0]
         refute_received _
       end
 
       test "is zippable on success" do
-        task = 1..4 |> Task.pmap(&sleep/1, @opts) |> Stream.map(&elem(&1, 1))
+        task = 1..4 |> Task.async_stream(&sleep/1, @opts) |> Stream.map(&elem(&1, 1))
         assert Enum.zip(task, task) ==
                [{1, 1}, {2, 2}, {3, 3}, {4, 4}]
       end
 
       test "is zippable on failure" do
         Process.flag(:trap_exit, true)
-        task = 1..4 |> Task.pmap(&exit/1, @opts) |> Stream.map(&elem(&1, 1))
+        task = 1..4 |> Task.async_stream(&exit/1, @opts) |> Stream.map(&elem(&1, 1))
         assert Enum.zip(task, task) ==
                [{1, 1}, {2, 2}, {3, 3}, {4, 4}]
       end
 
       test "is zippable with slowest first" do
-        task = 4..1 |> Task.pmap(&sleep/1, @opts) |> Stream.map(&elem(&1, 1))
+        task = 4..1 |> Task.async_stream(&sleep/1, @opts) |> Stream.map(&elem(&1, 1))
         assert Enum.zip(task, task) ==
                [{4, 4}, {3, 3}, {2, 2}, {1, 1}]
       end
 
       test "with inner halt on success" do
-        assert 1..8 |> Stream.take(4) |> Task.pmap(&sleep/1, @opts) |> Enum.to_list ==
+        assert 1..8 |> Stream.take(4) |> Task.async_stream(&sleep/1, @opts) |> Enum.to_list ==
                [ok: 1, ok: 2, ok: 3, ok: 4]
       end
 
       test "with inner halt on failure" do
         Process.flag(:trap_exit, true)
-        assert 1..8 |> Stream.take(4) |> Task.pmap(&exit/1, @opts) |> Enum.to_list ==
+        assert 1..8 |> Stream.take(4) |> Task.async_stream(&exit/1, @opts) |> Enum.to_list ==
                [exit: 1, exit: 2, exit: 3, exit: 4]
       end
 
       test "with inner halt and slowest first" do
-        assert 8..1 |> Stream.take(4) |> Task.pmap(&sleep/1, @opts) |> Enum.to_list ==
+        assert 8..1 |> Stream.take(4) |> Task.async_stream(&sleep/1, @opts) |> Enum.to_list ==
                [ok: 8, ok: 7, ok: 6, ok: 5]
       end
 
       test "with outer halt on success" do
-        assert 1..8 |> Task.pmap(&sleep/1, @opts) |> Enum.take(4) ==
+        assert 1..8 |> Task.async_stream(&sleep/1, @opts) |> Enum.take(4) ==
                [ok: 1, ok: 2, ok: 3, ok: 4]
       end
 
       test "with outer halt on failure" do
         Process.flag(:trap_exit, true)
-        assert 1..8 |> Task.pmap(&exit/1, @opts) |> Enum.take(4) ==
+        assert 1..8 |> Task.async_stream(&exit/1, @opts) |> Enum.take(4) ==
                [exit: 1, exit: 2, exit: 3, exit: 4]
       end
 
       test "with outer halt and slowest first" do
-        assert 8..1 |> Task.pmap(&sleep/1, @opts) |> Enum.take(4) ==
+        assert 8..1 |> Task.async_stream(&sleep/1, @opts) |> Enum.take(4) ==
                [ok: 8, ok: 7, ok: 6, ok: 5]
       end
 
       test "terminates inner effect" do
         stream =
           1..4
-          |> Task.pmap(&sleep/1, @opts)
+          |> Task.async_stream(&sleep/1, @opts)
           |> Stream.transform(fn -> :ok end,
                               fn x, acc -> {[x], acc} end,
                               fn _ -> Process.put(:stream_transform, true) end)
@@ -581,7 +581,7 @@ defmodule TaskTest do
           |> Stream.transform(fn -> :ok end,
                               fn x, acc -> {[x], acc} end,
                               fn _ -> Process.put(:stream_transform, true) end)
-          |> Task.pmap(&sleep/1, @opts)
+          |> Task.async_stream(&sleep/1, @opts)
 
         Process.put(:stream_transform, false)
         assert Enum.to_list(stream) == [ok: 1, ok: 2, ok: 3, ok: 4]

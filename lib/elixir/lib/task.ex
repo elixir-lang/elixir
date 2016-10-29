@@ -283,11 +283,11 @@ defmodule Task do
   end
 
   @doc """
-  Receives an `enumerable` and returns a stream that will process each
-  entry in parallel with `module`, `function` and `args`.
+  Returns a stream that runs the given `module`, `function` and `args`
+  concurrently on each item in `enumerable`.
 
-  When streamed, it returns `{:ok, val}` or `{:exit, val}` for each
-  element in the same order.
+  Each item will be appended to the given `args`. When streamed, it returns
+  `{:ok, val}` or `{:exit, val}` for each element keeping the original order.
 
   The level of concurrency can be controlled via the `:max_concurrency`
   option and defaults to `System.schedulers_online/1`. The timeout
@@ -306,38 +306,40 @@ defmodule Task do
 
   ## Example
 
-  Build a stream and then enumerate it:
+  Let's build a stream and then enumerate it:
 
-      stream = Task.pmap(collection, Mod, :expensive_fun, [])
+      stream = Task.async_stream(collection, Mod, :expensive_fun, [])
       Enum.to_list(stream)
 
   The concurrency can be increased or decreased using the `:max_concurrency`
   option. For example, if the tasks are IO heavy, the value can be increased:
 
       max_concurrency = System.schedulers_online * 2
-      stream = Task.pmap(collection, Mod, :expensive_fun, [], max_concurrency: max_concurrency)
+      stream = Task.async_stream(collection, Mod, :expensive_fun, [], max_concurrency: max_concurrency)
       Enum.to_list(stream)
 
   """
-  @spec pmap(Enumerable.t, module, atom, [term], Keyword.t) :: Enumerable.t
-  def pmap(enumerable, module, function, args, options \\ [])
+  @spec async_stream(Enumerable.t, module, atom, [term], Keyword.t) :: Enumerable.t
+  def async_stream(enumerable, module, function, args, options \\ [])
       when is_atom(module) and is_atom(function) and is_list(args) do
-    build_pmap(enumerable, {module, function, args}, options)
+    build_stream(enumerable, {module, function, args}, options)
   end
 
   @doc """
-  Receives an `enumerable` and returns a stream that will process each
-  entry in parallel with `fun`.
+  Returns a stream that runs the given `function` concurrently on each
+  item in `enumerable`.
 
-  See `pmap/5` for discussion and examples.
+  Each `enumerable` item is passed as argument to the `function`.
+
+  See `async_stream/5` for discussion and examples.
   """
-  @spec pmap(Enumerable.t, (term -> term), Keyword.t) :: Enumerable.t
-  def pmap(enumerable, fun, options \\ []) when is_function(fun, 1) do
-    build_pmap(enumerable, fun, options)
+  @spec async_stream(Enumerable.t, (term -> term), Keyword.t) :: Enumerable.t
+  def async_stream(enumerable, fun, options \\ []) when is_function(fun, 1) do
+    build_stream(enumerable, fun, options)
   end
 
-  defp build_pmap(enumerable, fun, options) do
-    &Task.Supervised.pmap(enumerable, &1, &2, fun, options, fn owner, mfa ->
+  defp build_stream(enumerable, fun, options) do
+    &Task.Supervised.stream(enumerable, &1, &2, fun, options, fn owner, mfa ->
       Task.Supervised.spawn_link(owner, get_info(owner), mfa)
     end)
   end
