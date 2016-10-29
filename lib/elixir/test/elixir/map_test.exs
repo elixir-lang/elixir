@@ -150,6 +150,9 @@ defmodule MapTest do
     %ExternalUser{name: name} = %ExternalUser{}
     assert name == "john"
 
+    key = :name
+    assert %ExternalUser{^key => "john"} = %ExternalUser{}
+
     map = %{}
     assert_raise BadStructError, "expected a struct named MapTest.ExternalUser, got: %{}", fn ->
       %ExternalUser{map | name: "meg"}
