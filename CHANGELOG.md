@@ -517,3 +517,7 @@ This release deprecates many APIs that have been soft-deprecated in previous Eli
   * [String] `String.valid_character?/1` is deprecated in favor of `String.valid?/1` with pattern matching
   * [Task] `Task.find/2` is deprecated in favor of explicit message matching
   * [URI] Passing a non-map to `URI.decode_query/2` is deprecated
+
+## v1.2
+
+The CHANGELOG for v1.2 releases can be found [in the v1.2 branch](https://github.com/elixir-lang/elixir/blob/v1.2/CHANGELOG.md).
