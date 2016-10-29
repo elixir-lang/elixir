@@ -207,3 +207,7 @@ and is using Erlang 17.1, remember to update to at least Erlang 17.3.
   * [Kernel] `?\xHEX` is deprecated in favor of `0xHEX`. There is no situation where the former should be used in favor of the latter and the latter is always cleaner
   * [Kernel] Giving `as: true | false` to `alias/2` and `require/2` have been deprecated (it was undocumented behaviour)
   * [String] Passing an empty string to `starts_with?`, `contains?` and `ends_with?` had dubious behaviour and have been deprecated to help developers identify possible bugs in their source code
+
+## v1.0
+
+The CHANGELOG for v1.0 releases can be found [in the v1.0 branch](https://github.com/elixir-lang/elixir/blob/v1.0/CHANGELOG.md).
