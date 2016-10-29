@@ -466,7 +466,7 @@ defmodule Application do
     try do
       do_format_error(reason)
     catch
-      # A user could create an error that looks like a builtin one
+      # A user could create an error that looks like a built-in one
       # causing an error.
       :error, _ ->
         inspect(reason)

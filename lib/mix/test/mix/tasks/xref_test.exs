@@ -87,7 +87,7 @@ defmodule Mix.Tasks.XrefTest do
     """
   end
 
-  test "warnings: protocols are checked, ignoring missing builtin impls" do
+  test "warnings: protocols are checked, ignoring missing built-in impls" do
     assert_warnings """
     defprotocol AProtocol do
       def func(arg)

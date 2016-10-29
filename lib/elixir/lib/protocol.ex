@@ -439,7 +439,7 @@ defmodule Protocol do
         struct_impl_for(struct)
       end
 
-      # Define the implementation for builtins.
+      # Define the implementation for built-ins
       :lists.foreach(fn {guard, mod} ->
         target = Module.concat(__MODULE__, mod)
 
