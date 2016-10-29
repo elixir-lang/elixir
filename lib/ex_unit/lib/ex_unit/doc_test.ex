@@ -581,7 +581,7 @@ defmodule ExUnit.DocTest do
     extract_tests(lines, expr_acc, expected_acc <> "\n" <> expected, acc, newtest)
   end
 
-  defp skip_iex_number(")>" <> string) do
+  defp skip_iex_number(">" <> string) do
     ">" <> string
   end
 

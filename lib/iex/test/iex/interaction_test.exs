@@ -92,6 +92,9 @@ defmodule IEx.InteractionTest do
   test "prompt" do
     opts = [default_prompt: "prompt(%counter)>"]
     assert capture_iex("1\n", opts, [], true) == "prompt(1)> 1\nprompt(2)>"
+
+    opts = [default_prompt: "prompt(%counter)>"]
+    assert capture_iex("1\n", opts, [], true) == "prompt(1)> 1\nprompt(2)>"
   end
 
   unless match?({:win32, _}, :os.type) do
