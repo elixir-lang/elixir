@@ -32,8 +32,11 @@ defmodule MapSet do
   structures: for example, see `MapSet.new/1` or `Enum.into/2`.
   """
 
-  @opaque t :: %__MODULE__{map: map}
   @type value :: term
+
+  @opaque t(value) :: %__MODULE__{map: %{optional(value) => true}}
+  @type t :: t(term)
+
   defstruct map: %{}
 
   @doc """
@@ -79,7 +82,7 @@ defmodule MapSet do
       #MapSet<[2, 4]>
 
   """
-  @spec new(Enum.t, (term -> term)) :: t
+  @spec new(Enum.t, (term -> val)) :: t(val) when val: value
   def new(enumerable, transform) when is_function(transform, 1) do
     map =
       enumerable
@@ -121,7 +124,7 @@ defmodule MapSet do
       #MapSet<[1, 3]>
 
   """
-  @spec delete(t, value) :: t
+  @spec delete(t(val1), val2) :: t(val1) when val1: value, val2: value
   def delete(%MapSet{map: map} = set, value) do
     %{set | map: Map.delete(map, value)}
   end
@@ -135,12 +138,14 @@ defmodule MapSet do
       #MapSet<[1]>
 
   """
-  @spec difference(t, t) :: t
+  @spec difference(t(val1), t(val2)) :: t(val1) when val1: value, val2: value
+  def difference(mapset1, mapset2)
+
   # If the first set is less than twice the size of the second map,
   # it is fastest to re-accumulate items in the first set that are not
   # present in the second set.
   def difference(%MapSet{map: map1}, %MapSet{map: map2})
-  when map_size(map1) < map_size(map2) * 2 do
+      when map_size(map1) < map_size(map2) * 2 do
     map = map1
     |> Map.keys
     |> filter_not_in(map2)
@@ -226,7 +231,7 @@ defmodule MapSet do
       #MapSet<[]>
 
   """
-  @spec intersection(t, t) :: t
+  @spec intersection(t(val), t(val)) :: t(val) when val: value
   def intersection(%MapSet{map: map1}, %MapSet{map: map2}) do
     {map1, map2} = order_by_size(map1, map2)
 
@@ -260,7 +265,7 @@ defmodule MapSet do
       #MapSet<[1, 2, 3, 4]>
 
   """
-  @spec put(t, value) :: t
+  @spec put(t(val), new_val) :: t(val | new_val) when val: value, new_val: value
   def put(%MapSet{map: map} = set, value) do
     %{set | map: Map.put(map, value, true)}
   end
@@ -321,7 +326,7 @@ defmodule MapSet do
       [1, 2, 3]
 
   """
-  @spec to_list(t) :: list
+  @spec to_list(t(val)) :: [val] when val: value
   def to_list(%MapSet{map: map}) do
     Map.keys(map)
   end
@@ -335,7 +340,7 @@ defmodule MapSet do
       #MapSet<[1, 2, 3, 4]>
 
   """
-  @spec union(t, t) :: t
+  @spec union(t(val1), t(val2)) :: t(val1 | val2) when val1: value, val2: value
   def union(%MapSet{map: map1}, %MapSet{map: map2}) do
     %MapSet{map: Map.merge(map1, map2)}
   end
