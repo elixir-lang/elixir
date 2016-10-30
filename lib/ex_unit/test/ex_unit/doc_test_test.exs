@@ -373,6 +373,11 @@ defmodule ExUnit.DocTestTest do
   end
 
   test "doctest failures" do
+
+    # When adding or removing lines in this file above this line,
+    # the second line number in the raw stacktrace tests (test/ex_unit/doc_test_test.exs:xxx)
+    # below this line must be adjusted to the `doctest` line number in `ActuallyCompiled`.
+
     defmodule ActuallyCompiled do
       use ExUnit.Case
       doctest ExUnit.DocTestTest.Invalid
@@ -387,7 +392,7 @@ defmodule ExUnit.DocTestTest do
 
     assert output =~ """
       1) test moduledoc at ExUnit.DocTestTest.Invalid (1) (ExUnit.DocTestTest.ActuallyCompiled)
-         test/ex_unit/doc_test_test.exs:312
+         test/ex_unit/doc_test_test.exs:383
          Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:127: syntax error before: '*'
          code: 1 + * 1
          stacktrace:
@@ -396,7 +401,7 @@ defmodule ExUnit.DocTestTest do
 
     assert output =~ """
       2) test moduledoc at ExUnit.DocTestTest.Invalid (2) (ExUnit.DocTestTest.ActuallyCompiled)
-         test/ex_unit/doc_test_test.exs:312
+         test/ex_unit/doc_test_test.exs:383
          Doctest failed
          code: 1 + hd(List.flatten([1])) === 3
          left: 2
@@ -406,7 +411,7 @@ defmodule ExUnit.DocTestTest do
 
     assert output =~ """
       3) test moduledoc at ExUnit.DocTestTest.Invalid (3) (ExUnit.DocTestTest.ActuallyCompiled)
-         test/ex_unit/doc_test_test.exs:312
+         test/ex_unit/doc_test_test.exs:383
          Doctest failed
          code: inspect(:oops) === "#MapSet<[]>"
          left: ":oops"
@@ -417,7 +422,7 @@ defmodule ExUnit.DocTestTest do
     # The stacktrace points to the cause of the error
     assert output =~ """
       4) test moduledoc at ExUnit.DocTestTest.Invalid (4) (ExUnit.DocTestTest.ActuallyCompiled)
-         test/ex_unit/doc_test_test.exs:312
+         test/ex_unit/doc_test_test.exs:383
          Doctest failed: got UndefinedFunctionError with message "function Hello.world/0 is undefined (module Hello is not available)"
          code: Hello.world
          stacktrace:
@@ -427,7 +432,7 @@ defmodule ExUnit.DocTestTest do
 
     assert output =~ """
       5) test moduledoc at ExUnit.DocTestTest.Invalid (5) (ExUnit.DocTestTest.ActuallyCompiled)
-         test/ex_unit/doc_test_test.exs:312
+         test/ex_unit/doc_test_test.exs:383
          Doctest failed: expected exception WhatIsThis but got RuntimeError with message "oops"
          code: raise "oops"
          stacktrace:
@@ -436,7 +441,7 @@ defmodule ExUnit.DocTestTest do
 
     assert output =~ """
       6) test moduledoc at ExUnit.DocTestTest.Invalid (6) (ExUnit.DocTestTest.ActuallyCompiled)
-         test/ex_unit/doc_test_test.exs:312
+         test/ex_unit/doc_test_test.exs:383
          Doctest failed: wrong message for RuntimeError
          expected:
            "hello"
@@ -449,7 +454,7 @@ defmodule ExUnit.DocTestTest do
 
     assert output =~ """
       7) test doc at ExUnit.DocTestTest.Invalid.a/0 (7) (ExUnit.DocTestTest.ActuallyCompiled)
-         test/ex_unit/doc_test_test.exs:312
+         test/ex_unit/doc_test_test.exs:383
          Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:148: syntax error before: '*'
          code: 1 + * 1
          stacktrace:
@@ -458,7 +463,7 @@ defmodule ExUnit.DocTestTest do
 
     assert output =~ """
       8) test doc at ExUnit.DocTestTest.Invalid.b/0 (8) (ExUnit.DocTestTest.ActuallyCompiled)
-         test/ex_unit/doc_test_test.exs:312
+         test/ex_unit/doc_test_test.exs:383
          Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:154: syntax error before: '*'
          code: 1 + * 1
          stacktrace:
