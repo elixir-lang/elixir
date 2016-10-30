@@ -258,12 +258,12 @@ defmodule Task.Supervisor do
     %Task{pid: pid, ref: ref, owner: owner}
   end
 
-  defp build_stream(supervisor, link_type, enumerable, fun, options) do
+  defp build_stream(supervisor, type, enumerable, fun, options) do
     &Task.Supervised.stream(enumerable, &1, &2, fun, options, fn owner, mfa ->
-      args = [owner, link_type, get_info(owner), mfa]
+      args = [owner, type, get_info(owner), mfa]
       {:ok, pid} = Supervisor.start_child(supervisor, args)
-      if link_type == :link, do: Process.link(pid)
-      pid
+      if type == :link, do: Process.link(pid)
+      {type, pid}
     end)
   end
 end

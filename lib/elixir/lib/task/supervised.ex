@@ -273,21 +273,17 @@ defmodule Task.Supervised do
   end
 
   defp stream_close(waiting, monitor_pid, monitor_ref) do
-    Process.unlink(monitor_pid)
+    for {_position, {:running, pid}} <- waiting do
+      Process.unlink(pid)
+      Process.exit(pid, :kill)
+    end
+
+    # Kill the monitor process after killing pending tasks
+    # since it guarantees proper termination.
     Process.exit(monitor_pid, :kill)
 
     receive do
       {:DOWN, ^monitor_ref, _, _, _} -> :ok
-    end
-
-    for {position, {:running, pid}} <- waiting do
-      Process.unlink(pid)
-      Process.exit(pid, :kill)
-      receive do
-        {:DOWN, {^monitor_ref, ^position}, _} -> :ok
-      after
-        0 -> :ok
-      end
     end
 
     stream_cleanup_inbox(monitor_ref)
@@ -308,8 +304,8 @@ defmodule Task.Supervised do
 
   defp stream_spawn(value, spawned, waiting, mfa, spawn, monitor_pid, monitor_ref) do
     owner = self()
-    pid = spawn.(owner, stream_mfa(mfa, value))
-    send(monitor_pid, {:UP, owner, monitor_ref, spawned, pid})
+    {type, pid} = spawn.(owner, stream_mfa(mfa, value))
+    send(monitor_pid, {:UP, owner, monitor_ref, spawned, type, pid})
     Map.put(waiting, spawned, {:running, pid})
   end
 
@@ -325,14 +321,18 @@ defmodule Task.Supervised do
 
   defp stream_monitor(parent_pid, parent_ref, monitor_ref, counters) do
     receive do
-      {:UP, owner, ^monitor_ref, counter, pid} ->
+      {:UP, owner, ^monitor_ref, counter, type, pid} ->
         ref = Process.monitor(pid)
         send(pid, {owner, {monitor_ref, counter}})
-        stream_monitor(parent_pid, parent_ref, monitor_ref, Map.put(counters, ref, counter))
+        counters = Map.put(counters, ref, {counter, type, pid})
+        stream_monitor(parent_pid, parent_ref, monitor_ref, counters)
       {:DOWN, ^parent_ref, _, _, reason} ->
+        for {_ref, {_counter, :link, pid}} <- counters do
+          Process.exit(pid, reason)
+        end
         exit(reason)
       {:DOWN, ref, _, _, reason} ->
-        {counter, counters} = Map.pop(counters, ref)
+        {{counter, _, _}, counters} = Map.pop(counters, ref)
         send(parent_pid, {:DOWN, {monitor_ref, counter}, reason})
         stream_monitor(parent_pid, parent_ref, monitor_ref, counters)
     end
