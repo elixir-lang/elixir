@@ -165,9 +165,9 @@ defmodule Task.Supervised do
   end
 
   defp stream_reduce({:halt, acc}, _max, _spawned, _delivered, waiting, next,
-                     _reducer, _mfa, _spawn, monitor_pid, monitor_ref, _timeout) do
+                     _reducer, _mfa, _spawn, monitor_pid, monitor_ref, timeout) do
     is_function(next) && next.({:halt, []})
-    stream_close(waiting, monitor_pid, monitor_ref)
+    stream_close(waiting, monitor_pid, monitor_ref, timeout)
     {:halted, acc}
   end
 
@@ -179,9 +179,9 @@ defmodule Task.Supervised do
 
   # All spawned, all delivered, next is done.
   defp stream_reduce({:cont, acc}, _max, spawned, delivered, waiting, next,
-                     _reducer, _mfa, _spawn, monitor_pid, monitor_ref, _timeout)
+                     _reducer, _mfa, _spawn, monitor_pid, monitor_ref, timeout)
        when spawned == delivered and next == :done do
-    stream_close(waiting, monitor_pid, monitor_ref)
+    stream_close(waiting, monitor_pid, monitor_ref, timeout)
     {:done, acc}
   end
 
@@ -206,11 +206,11 @@ defmodule Task.Supervised do
         stream_deliver({:cont, acc}, max + 1, spawned, delivered, waiting, next,
                        reducer, mfa, spawn, monitor_pid, monitor_ref, timeout)
       {:DOWN, ^monitor_ref, _, ^monitor_pid, reason} ->
-        stream_close(waiting, monitor_pid, monitor_ref)
+        stream_close(waiting, monitor_pid, monitor_ref, timeout)
         exit({reason, {__MODULE__, :stream, [timeout]}})
     after
       timeout ->
-        stream_close(waiting, monitor_pid, monitor_ref)
+        stream_close(waiting, monitor_pid, monitor_ref, timeout)
         exit({:timeout, {__MODULE__, :stream, [timeout]}})
     end
   end
@@ -222,7 +222,7 @@ defmodule Task.Supervised do
     catch
       kind, reason ->
         stacktrace = System.stacktrace
-        stream_close(waiting, monitor_pid, monitor_ref)
+        stream_close(waiting, monitor_pid, monitor_ref, timeout)
         :erlang.raise(kind, reason, stacktrace)
     else
       {:suspended, [value], next} ->
@@ -259,7 +259,7 @@ defmodule Task.Supervised do
           kind, reason ->
             stacktrace = System.stacktrace
             is_function(next) && next.({:halt, []})
-            stream_close(waiting, monitor_pid, monitor_ref)
+            stream_close(waiting, monitor_pid, monitor_ref, timeout)
             :erlang.raise(kind, reason, stacktrace)
         else
           pair ->
@@ -272,14 +272,26 @@ defmodule Task.Supervised do
     end
   end
 
-  defp stream_close(waiting, monitor_pid, monitor_ref) do
-    for {_position, {:running, pid}} <- waiting do
+  defp stream_close(waiting, monitor_pid, monitor_ref, timeout) do
+    # We first terminate all running tasks and wait
+    # until their DOWN messages are redirected.
+    #
+    # We unlink from the task but that's fine as the monitor
+    # will guarantee tasks termination in case of crashes.
+    for {position, {:running, pid}} <- waiting do
       Process.unlink(pid)
       Process.exit(pid, :kill)
+
+      # Let's not forget to exit though if the monitor crashes.
+      receive do
+        {:DOWN, {^monitor_ref, ^position}, _} ->
+          :ok
+        {:DOWN, ^monitor_ref, _, ^monitor_pid, reason} ->
+          exit({reason, {__MODULE__, :stream, [timeout]}})
+      end
     end
 
-    # Kill the monitor process after killing pending tasks
-    # since it guarantees proper termination.
+    # Now let's kill the monitor process and make sure it is down.
     Process.exit(monitor_pid, :kill)
 
     receive do
