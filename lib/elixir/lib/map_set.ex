@@ -35,7 +35,7 @@ defmodule MapSet do
   @type value :: term
 
   @opaque t(value) :: %__MODULE__{map: %{optional(value) => true}}
-  @opaque t :: t(term)
+  @type t :: t(term)
 
   defstruct map: %{}
 

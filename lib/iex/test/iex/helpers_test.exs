@@ -158,7 +158,7 @@ defmodule IEx.HelpersTest do
            = capture_io(fn -> t Enum.t end)
     assert capture_io(fn -> t Enum.t end) == capture_io(fn -> t Enum.t/0 end)
 
-    assert "@opaque t(value)\n@opaque t()\n" = capture_io(fn -> t MapSet.t end)
+    assert "@opaque t(value)\n@type t() :: t(term())\n" = capture_io(fn -> t MapSet.t end)
 
     assert capture_io(fn -> t URI.t end) == capture_io(fn -> t URI.t/0 end)
 
