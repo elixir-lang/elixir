@@ -200,6 +200,71 @@ defmodule ExUnit.DocTestTest.IndentationNotEnough do
   def test_fun, do: :ok
 end |> write_beam
 
+defmodule ExUnit.DocTestTest.FencedHeredocs do
+  @doc ~S'''
+  Receives a test and formats its failure.
+
+  ## Examples
+
+  ```
+  iex> 1 + 2
+  3
+  ```
+
+      ```
+      iex> 1 + 2
+      3
+      ```
+
+  ```
+      iex> 1 + 2
+      3
+  ```
+  '''
+  def heredocs, do: :ok
+end |> write_beam
+
+defmodule ExUnit.DocTestTest.FencedMismatchedPrompt do
+  @doc ~S'''
+  ```
+  iex> foo = 1
+   iex> bar = 2
+  iex> foo + bar
+  3
+  ```
+  '''
+  def mismatched, do: :ok
+end |> write_beam
+
+defmodule ExUnit.DocTestTest.FencedIndentationTooMuch do
+  @doc ~S'''
+  ```
+  iex> 1 + 2
+    3
+  ```
+  '''
+  def too_much, do: :ok
+end |> write_beam
+
+defmodule ExUnit.DocTestTest.FencedIndentationNotEnough do
+  @doc ~S'''
+  ```
+    iex> 1 + 2
+  3
+  ```
+  '''
+  def test_fun, do: :ok
+end |> write_beam
+
+defmodule ExUnit.DocTestTest.FencedIncomplete do
+  @doc ~S'''
+  ```
+  iex> 1 + 2
+
+  '''
+  def test_fun, do: :ok
+end |> write_beam
+
 defmodule ExUnit.DocTestTest.Incomplete do
   @doc ~S'''
       iex> 1 + 2
@@ -292,6 +357,7 @@ defmodule ExUnit.DocTestTest do
   doctest ExUnit.DocTestTest.SomewhatGoodModuleWithExcept, except: [:moduledoc, test_fun2: 0], import: true
   doctest ExUnit.DocTestTest.NoImport
   doctest ExUnit.DocTestTest.IndentationHeredocs
+  doctest ExUnit.DocTestTest.FencedHeredocs
   doctest ExUnit.DocTestTest.Haiku
 
   import ExUnit.CaptureIO
@@ -458,6 +524,7 @@ defmodule ExUnit.DocTestTest do
       defmodule NeverCompiled do
         import ExUnit.DocTest
         doctest ExUnit.DocTestTest.IndentationMismatchedPrompt
+        doctest ExUnit.DocTestTest.FencedMismatchedPrompt
       end
     end
 
@@ -466,6 +533,7 @@ defmodule ExUnit.DocTestTest do
       defmodule NeverCompiled do
         import ExUnit.DocTest
         doctest ExUnit.DocTestTest.IndentationTooMuch
+        doctest ExUnit.DocTestTest.FencedIndentationTooMuch
       end
     end
 
@@ -474,6 +542,7 @@ defmodule ExUnit.DocTestTest do
       defmodule NeverCompiled do
         import ExUnit.DocTest
         doctest ExUnit.DocTestTest.IndentationNotEnough
+        doctest ExUnit.DocTestTest.FencedIndentationNotEnough
       end
     end
 
@@ -482,6 +551,7 @@ defmodule ExUnit.DocTestTest do
       defmodule NeverCompiled do
         import ExUnit.DocTest
         doctest ExUnit.DocTestTest.Incomplete
+        doctest ExUnit.DocTestTest.FencedIncomplete
       end
     end
   end
