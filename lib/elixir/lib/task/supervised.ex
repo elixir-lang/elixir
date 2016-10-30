@@ -291,6 +291,8 @@ defmodule Task.Supervised do
 
   defp stream_cleanup_inbox(monitor_ref) do
     receive do
+      {{^monitor_ref, _}, _} ->
+        stream_cleanup_inbox(monitor_ref)
       {:DOWN, {^monitor_ref, _}, _} ->
         stream_cleanup_inbox(monitor_ref)
     after
