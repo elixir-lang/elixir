@@ -273,31 +273,16 @@ defmodule Task.Supervised do
   end
 
   defp stream_close(waiting, monitor_pid, monitor_ref, timeout) do
-    # We first terminate all running tasks and wait
-    # until their DOWN messages are redirected.
-    #
-    # We unlink from the task but that's fine as the monitor
-    # will guarantee tasks termination in case of crashes.
-    for {position, {:running, pid}} <- waiting do
+    for {_, {:running, pid}} <- waiting do
       Process.unlink(pid)
-      Process.exit(pid, :kill)
-
-      # Let's not forget to exit though if the monitor crashes.
-      receive do
-        {:DOWN, {^monitor_ref, ^position}, _} ->
-          :ok
-        {:DOWN, ^monitor_ref, _, ^monitor_pid, reason} ->
-          exit({reason, {__MODULE__, :stream, [timeout]}})
-      end
     end
-
-    # Now let's kill the monitor process and make sure it is down.
-    Process.exit(monitor_pid, :kill)
-
+    send(monitor_pid, {:DOWN, monitor_ref})
     receive do
-      {:DOWN, ^monitor_ref, _, _, _} -> :ok
+      {:DOWN, ^monitor_ref, _, _, {:shutdown, ^monitor_ref}} ->
+        :ok
+      {:DOWN, ^monitor_ref, _, _, reason} ->
+        exit({reason, {__MODULE__, :stream, [timeout]}})
     end
-
     stream_cleanup_inbox(monitor_ref)
   end
 
@@ -340,6 +325,14 @@ defmodule Task.Supervised do
         send(pid, {owner, {monitor_ref, counter}})
         counters = Map.put(counters, ref, {counter, type, pid})
         stream_monitor(parent_pid, parent_ref, monitor_ref, counters)
+      {:DOWN, ^monitor_ref} ->
+        for {ref, {_counter, _, pid}} <- counters do
+          Process.exit(pid, :kill)
+          receive do
+            {:DOWN, ^ref, _, _, _} -> :ok
+          end
+        end
+        exit({:shutdown, monitor_ref})
       {:DOWN, ^parent_ref, _, _, reason} ->
         for {_ref, {_counter, :link, pid}} <- counters do
           Process.exit(pid, reason)
