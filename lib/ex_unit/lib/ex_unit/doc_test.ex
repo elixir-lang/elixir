@@ -509,7 +509,7 @@ defmodule ExUnit.DocTest do
     end
   end
 
-  @fence ["```", "~~~"]
+  @fences ["```", "~~~"]
 
   defp extract_tests([], "", "", [], _) do
     []
@@ -569,7 +569,7 @@ defmodule ExUnit.DocTest do
   end
 
   # Encountered end of fenced code block, store pending test
-  defp extract_tests([{<<fence::bytes-size(3)>> <> _, _} | lines], expr_acc, expected_acc, [test | t], _) when fence in @fence and expr_acc != "" do
+  defp extract_tests([{<<fence::3-bytes>> <> _, _} | lines], expr_acc, expected_acc, [test | t], _) when fence in @fences and expr_acc != "" do
     test = add_expr(test, expr_acc, expected_acc)
     extract_tests(lines, "", "", [test | t], true)
   end
