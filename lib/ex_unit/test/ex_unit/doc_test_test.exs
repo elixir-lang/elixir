@@ -549,7 +549,7 @@ defmodule ExUnit.DocTestTest do
 
   test "fails in fenced indentation mismatch" do
     assert_raise ExUnit.DocTest.Error,
-      ~r[test/ex_unit/doc_test_test.exs:\d+: indentation level mismatch: " iex> bar = 2", should have been 0 spaces], fn ->
+      ~r[test/ex_unit/doc_test_test\.exs:\d+: indentation level mismatch: " iex> bar = 2", should have been 0 spaces], fn ->
       defmodule NeverCompiled do
         import ExUnit.DocTest
         doctest ExUnit.DocTestTest.FencedIndentationMismatchedPrompt
@@ -557,7 +557,7 @@ defmodule ExUnit.DocTestTest do
     end
 
     assert_raise ExUnit.DocTest.Error,
-      ~r[test/ex_unit/doc_test_test.exs:\d+: indentation level mismatch: "  3", should have been 0 spaces], fn ->
+      ~r[test/ex_unit/doc_test_test\.exs:\d+: indentation level mismatch: "  3", should have been 0 spaces], fn ->
       defmodule NeverCompiled do
         import ExUnit.DocTest
         doctest ExUnit.DocTestTest.FencedIndentationTooMuch
@@ -565,7 +565,7 @@ defmodule ExUnit.DocTestTest do
     end
 
     assert_raise ExUnit.DocTest.Error,
-      ~r[test/ex_unit/doc_test_test.exs:\d+: indentation level mismatch: \"3\", should have been 2 spaces], fn ->
+      ~r[test/ex_unit/doc_test_test\.exs:\d+: indentation level mismatch: \"3\", should have been 2 spaces], fn ->
       defmodule NeverCompiled do
         import ExUnit.DocTest
         doctest ExUnit.DocTestTest.FencedIndentationNotEnough
@@ -583,7 +583,7 @@ defmodule ExUnit.DocTestTest do
     end
 
     assert_raise ExUnit.DocTest.Error,
-      ~r[test/ex_unit/doc_test_test.exs:\d+: expected non-blank line to follow iex> prompt], fn ->
+      ~r[test/ex_unit/doc_test_test\.exs:\d+: expected non-blank line to follow iex> prompt], fn ->
       defmodule NeverCompiled do
         import ExUnit.DocTest
         doctest ExUnit.DocTestTest.FenceIncomplete
