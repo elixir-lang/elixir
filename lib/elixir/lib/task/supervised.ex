@@ -192,15 +192,16 @@ defmodule Task.Supervised do
        when next == :done do
     receive do
       {{^monitor_ref, position}, value} ->
-        waiting = Map.put(waiting, position, {:ok, value})
-        stream_deliver({:cont, acc}, max + 1, spawned, delivered, waiting, next,
-                       reducer, mfa, spawn, monitor_pid, monitor_ref, timeout)
+        %{^position => {pid, :running}} = waiting
+        waiting = Map.put(waiting, position, {pid, {:ok, value}})
+        stream_reduce({:cont, acc}, max, spawned, delivered, waiting, next,
+                      reducer, mfa, spawn, monitor_pid, monitor_ref, timeout)
       {:DOWN, {^monitor_ref, position}, reason} ->
         waiting =
           case waiting do
             # We update the entry only if it is running.
             # If it is ok or removed, we are done.
-            %{^position => {:running, _}} -> Map.put(waiting, position, {:exit, reason})
+            %{^position => {pid, :running}} -> Map.put(waiting, position, {pid, {:exit, reason}})
             %{} -> waiting
           end
         stream_deliver({:cont, acc}, max + 1, spawned, delivered, waiting, next,
@@ -252,9 +253,9 @@ defmodule Task.Supervised do
   defp stream_deliver({:cont, acc}, max, spawned, delivered, waiting, next,
                       reducer, mfa, spawn, monitor_pid, monitor_ref, timeout) do
     case waiting do
-      %{^delivered => {kind, value}} when kind in [:ok, :exit] ->
+      %{^delivered => {_, {_, _} = reply}} ->
         try do
-          reducer.({kind, value}, acc)
+          reducer.(reply, acc)
         catch
           kind, reason ->
             stacktrace = System.stacktrace
@@ -273,7 +274,7 @@ defmodule Task.Supervised do
   end
 
   defp stream_close(waiting, monitor_pid, monitor_ref, timeout) do
-    for {_, {:running, pid}} <- waiting do
+    for {_, {pid, _}} <- waiting do
       Process.unlink(pid)
     end
     send(monitor_pid, {:DOWN, monitor_ref})
@@ -305,7 +306,7 @@ defmodule Task.Supervised do
     owner = self()
     {type, pid} = spawn.(owner, stream_mfa(mfa, value))
     send(monitor_pid, {:UP, owner, monitor_ref, spawned, type, pid})
-    Map.put(waiting, spawned, {:running, pid})
+    Map.put(waiting, spawned, {pid, :running})
   end
 
   defp stream_monitor(parent_pid) do
