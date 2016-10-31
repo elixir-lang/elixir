@@ -20,6 +20,11 @@ defmodule Task.SupervisorTest do
     send caller, atom
   end
 
+  def sleep(number) do
+    Process.sleep(number)
+    number
+  end
+
   test "async/1", config do
     parent = self()
     fun = fn -> wait_and_send(parent, :done) end
@@ -145,24 +150,139 @@ defmodule Task.SupervisorTest do
     assert Task.Supervisor.terminate_child(config[:supervisor], pid) == :ok
   end
 
-  test "await/1 exits on task throw", config do
-    Process.flag(:trap_exit, true)
-    task = Task.Supervisor.async(config[:supervisor], fn -> throw :unknown end)
-    assert {{{:nocatch, :unknown}, _}, {Task, :await, [^task, 5000]}} =
-           catch_exit(Task.await(task))
+  describe "await/1" do
+    test "exits on task throw", config do
+      Process.flag(:trap_exit, true)
+      task = Task.Supervisor.async(config[:supervisor], fn -> throw :unknown end)
+      assert {{{:nocatch, :unknown}, _}, {Task, :await, [^task, 5000]}} =
+             catch_exit(Task.await(task))
+    end
+
+    test "exits on task error", config do
+      Process.flag(:trap_exit, true)
+      task = Task.Supervisor.async(config[:supervisor], fn -> raise "oops" end)
+      assert {{%RuntimeError{}, _}, {Task, :await, [^task, 5000]}} =
+             catch_exit(Task.await(task))
+    end
+
+    test "exits on task exit", config do
+      Process.flag(:trap_exit, true)
+      task = Task.Supervisor.async(config[:supervisor], fn -> exit :unknown end)
+      assert {:unknown, {Task, :await, [^task, 5000]}} =
+             catch_exit(Task.await(task))
+    end
   end
 
-  test "await/1 exits on task error", config do
-    Process.flag(:trap_exit, true)
-    task = Task.Supervisor.async(config[:supervisor], fn -> raise "oops" end)
-    assert {{%RuntimeError{}, _}, {Task, :await, [^task, 5000]}} =
-           catch_exit(Task.await(task))
+  describe "async_stream" do
+    @opts []
+    test "streams an enumerable with fun", %{supervisor: supervisor} do
+      assert supervisor
+             |> Task.Supervisor.async_stream(1..4, &sleep/1, @opts)
+             |> Enum.to_list ==
+             [ok: 1, ok: 2, ok: 3, ok: 4]
+    end
+
+    test "streams an enumerable with mfa", %{supervisor: supervisor} do
+      assert supervisor
+             |> Task.Supervisor.async_stream(1..4, __MODULE__, :sleep, [], @opts)
+             |> Enum.to_list ==
+             [ok: 1, ok: 2, ok: 3, ok: 4]
+    end
+
+    test "streams an enumerable without leaking tasks", %{supervisor: supervisor} do
+      assert supervisor
+             |> Task.Supervisor.async_stream(1..4, &sleep/1, @opts)
+             |> Enum.to_list ==
+             [ok: 1, ok: 2, ok: 3, ok: 4]
+      refute_received _
+    end
+
+    test "streams an enumerable with slowest first", %{supervisor: supervisor} do
+      Process.flag(:trap_exit, true)
+      assert supervisor
+             |> Task.Supervisor.async_stream(4..1, &sleep/1, @opts)
+             |> Enum.to_list ==
+             [ok: 4, ok: 3, ok: 2, ok: 1]
+    end
+
+    test "streams an enumerable with exits", %{supervisor: supervisor} do
+      Process.flag(:trap_exit, true)
+      assert supervisor
+             |> Task.Supervisor.async_stream(1..4, &exit/1, @opts)
+             |> Enum.to_list ==
+             [exit: 1, exit: 2, exit: 3, exit: 4]
+    end
+
+    test "shuts down unused tasks", %{supervisor: supervisor} do
+      assert supervisor
+             |> Task.Supervisor.async_stream([0, :infinity, :infinity, :infinity], &sleep/1, @opts)
+             |> Enum.take(1) ==
+             [ok: 0]
+      assert Process.info(self(), :links) == {:links, [supervisor]}
+    end
+
+    test "shuts down unused tasks without leaking messages", %{supervisor: supervisor} do
+      assert supervisor
+             |> Task.Supervisor.async_stream([0, :infinity, :infinity, :infinity], &sleep/1, @opts)
+             |> Enum.take(1) ==
+             [ok: 0]
+      refute_received _
+    end
   end
 
-  test "await/1 exits on task exit", config do
-    Process.flag(:trap_exit, true)
-    task = Task.Supervisor.async(config[:supervisor], fn -> exit :unknown end)
-    assert {:unknown, {Task, :await, [^task, 5000]}} =
-           catch_exit(Task.await(task))
+  describe "async_stream_nolink" do
+    @opts [max_concurrency: 4]
+
+    test "streams an enumerable with fun", %{supervisor: supervisor} do
+      assert supervisor
+             |> Task.Supervisor.async_stream_nolink(1..4, &sleep/1, @opts)
+             |> Enum.to_list ==
+             [ok: 1, ok: 2, ok: 3, ok: 4]
+    end
+
+    test "streams an enumerable with mfa", %{supervisor: supervisor} do
+      assert supervisor
+             |> Task.Supervisor.async_stream_nolink(1..4, __MODULE__, :sleep, [], @opts)
+             |> Enum.to_list ==
+             [ok: 1, ok: 2, ok: 3, ok: 4]
+    end
+
+    test "streams an enumerable without leaking tasks", %{supervisor: supervisor} do
+      assert supervisor
+             |> Task.Supervisor.async_stream_nolink(1..4, &sleep/1, @opts)
+             |> Enum.to_list ==
+             [ok: 1, ok: 2, ok: 3, ok: 4]
+      refute_received _
+    end
+
+    test "streams an enumerable with slowest first", %{supervisor: supervisor} do
+      assert supervisor
+             |> Task.Supervisor.async_stream_nolink(4..1, &sleep/1, @opts)
+             |> Enum.to_list ==
+             [ok: 4, ok: 3, ok: 2, ok: 1]
+    end
+
+    test "streams an enumerable with exits", %{supervisor: supervisor} do
+      assert supervisor
+             |> Task.Supervisor.async_stream_nolink(1..4, &exit/1, @opts)
+             |> Enum.to_list ==
+             [exit: 1, exit: 2, exit: 3, exit: 4]
+    end
+
+    test "shuts down unused tasks", %{supervisor: supervisor} do
+      assert supervisor
+             |> Task.Supervisor.async_stream_nolink([0, :infinity, :infinity, :infinity], &sleep/1, @opts)
+             |> Enum.take(1) ==
+             [ok: 0]
+      assert Process.info(self(), :links) == {:links, [supervisor]}
+    end
+
+    test "shuts down unused tasks without leaking messages", %{supervisor: supervisor} do
+      assert supervisor
+             |> Task.Supervisor.async_stream_nolink([0, :infinity, :infinity, :infinity], &sleep/1, @opts)
+             |> Enum.take(1) ==
+             [ok: 0]
+      refute_received _
+    end
   end
 end
