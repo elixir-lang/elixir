@@ -263,7 +263,7 @@ defmodule Kernel do
       1
 
   """
-  @spec hd(maybe_improper_list) :: term
+  @spec hd(nonempty_maybe_improper_list) :: term
   def hd(list) do
     :erlang.hd(list)
   end
@@ -516,7 +516,7 @@ defmodule Kernel do
       :b
 
   """
-  @spec max(term, term) :: term
+  @spec max(first, second) :: (first | second) when first: term, second: term
   def max(first, second) do
     :erlang.max(first, second)
   end
@@ -536,7 +536,7 @@ defmodule Kernel do
       "bar"
 
   """
-  @spec min(term, term) :: term
+  @spec min(first, second) :: (first | second) when first: term, second: term
   def min(first, second) do
     :erlang.min(first, second)
   end
@@ -559,7 +559,7 @@ defmodule Kernel do
 
   Allowed in guard tests. Inlined by the compiler.
   """
-  @spec node(pid | reference | port) :: node
+  @spec node(pid | reference | port) :: node | :nonode@nohost
   def node(arg) do
     :erlang.node(arg)
   end
@@ -603,7 +603,8 @@ defmodule Kernel do
       -10
 
   """
-  @spec round(number) :: integer
+  @spec round(float) :: integer
+  @spec round(arg) :: arg when arg: integer
   def round(number) do
     :erlang.round(number)
   end
@@ -780,8 +781,9 @@ defmodule Kernel do
 
       iex> tl([1, 2, 3, :go])
       [2, 3, :go]
+
   """
-  @spec tl(maybe_improper_list) :: maybe_improper_list
+  @spec tl(nonempty_maybe_improper_list) :: maybe_improper_list | term
   def tl(list) do
     :erlang.tl(list)
   end
@@ -795,11 +797,13 @@ defmodule Kernel do
 
       iex> trunc(5.4)
       5
+
       iex> trunc(5.99)
       5
 
   """
-  @spec trunc(number) :: integer
+  @spec trunc(arg) :: arg when arg: integer
+  @spec trunc(float) :: integer
   def trunc(number) do
     :erlang.trunc(number)
   end
@@ -833,7 +837,10 @@ defmodule Kernel do
       3
 
   """
-  @spec (number + number) :: number
+  @spec (integer + integer) :: integer
+  @spec (float + float) :: float
+  @spec (integer + float) :: float
+  @spec (float + integer) :: float
   def left + right do
     :erlang.+(left, right)
   end
@@ -849,7 +856,10 @@ defmodule Kernel do
       -1
 
   """
-  @spec (number - number) :: number
+  @spec (integer - integer) :: integer
+  @spec (float - float) :: float
+  @spec (integer - float) :: float
+  @spec (float - integer) :: float
   def left - right do
     :erlang.-(left, right)
   end
@@ -865,7 +875,7 @@ defmodule Kernel do
       1
 
   """
-  @spec (+number) :: number
+  @spec (+arg) :: arg when arg: number
   def (+value) do
     :erlang.+(value)
   end
@@ -881,7 +891,8 @@ defmodule Kernel do
       -2
 
   """
-  @spec (-number) :: number
+  @spec (-float) :: float
+  @spec (-integer) :: integer
   def (-value) do
     :erlang.-(value)
   end
@@ -897,7 +908,10 @@ defmodule Kernel do
       2
 
   """
-  @spec (number * number) :: number
+  @spec (integer * integer) :: integer
+  @spec (float * float) :: float
+  @spec (integer * float) :: float
+  @spec (float * integer) :: float
   def left * right do
     :erlang.*(left, right)
   end
@@ -957,7 +971,10 @@ defmodule Kernel do
       [1, 2 | 3]
 
   """
-  @spec (list ++ term) :: maybe_improper_list
+  @spec (nonempty_list ++ nonempty_list) :: nonempty_list
+  @spec (left ++ []) :: left when left: nonempty_list
+  @spec ([] ++ right) :: right when right: term
+  @spec (list ++ nonempty_improper_list(any, any)) :: nonempty_improper_list(any(), any())
   def left ++ right do
     :erlang.++(left, right)
   end
@@ -1000,7 +1017,8 @@ defmodule Kernel do
       true
 
   """
-  @spec not(boolean) :: boolean
+  @spec not(true) :: false
+  @spec not(false) :: true
   def not(arg) do
     :erlang.not(arg)
   end
@@ -1146,6 +1164,7 @@ defmodule Kernel do
       false
 
   """
+  @spec (arg === arg) :: true when arg: term
   @spec (term === term) :: boolean
   def left === right do
     :erlang."=:="(left, right)
@@ -1515,7 +1534,6 @@ defmodule Kernel do
       true
 
   """
-
   @spec (String.t =~ (String.t | Regex.t)) :: boolean
   def left =~ "" when is_binary(left), do: true
 
@@ -1630,7 +1648,7 @@ defmodule Kernel do
       #=> %User{name: "john"}
 
   """
-  @spec struct(module | map, Enum.t) :: map
+  @spec struct(module | struct, Enum.t) :: struct
   def struct(struct, kv \\ []) do
     struct(struct, kv, fn({key, val}, acc) ->
       case :maps.is_key(key, acc) and key != :__struct__ do
@@ -1659,7 +1677,7 @@ defmodule Kernel do
       only when building;
 
   """
-  @spec struct!(module | map, Enum.t) :: map | no_return
+  @spec struct!(module | struct, Enum.t) :: struct | no_return
   def struct!(struct, kv \\ [])
 
   def struct!(struct, kv) when is_atom(struct) do
@@ -1843,8 +1861,8 @@ defmodule Kernel do
   like the `all` anonymous function defined above. See `Access.all/0`,
   `Access.key/2` and others as examples.
   """
-  @spec get_and_update_in(Access.t, nonempty_list(term),
-                          (term -> {get, term} | :pop)) :: {get, Access.t} when get: var
+  @spec get_and_update_in(Access.t, nonempty_list(term), (term -> {get, term} | :pop)) ::
+                          {get, Access.t} when get: var
   def get_and_update_in(data, keys, fun)
 
   def get_and_update_in(data, [h], fun) when is_function(h),
@@ -2805,7 +2823,7 @@ defmodule Kernel do
       true
 
   """
-  @spec function_exported?(atom | tuple, atom, arity) :: boolean
+  @spec function_exported?(module, atom, arity) :: boolean
   def function_exported?(module, function, arity) do
     :erlang.function_exported(module, function, arity)
   end
@@ -2830,8 +2848,10 @@ defmodule Kernel do
       false
 
   """
-  @spec macro_exported?(atom, atom, integer) :: boolean
-  def macro_exported?(module, macro, arity) do
+  @spec macro_exported?(module, atom, arity) :: boolean
+  def macro_exported?(module, macro, arity)
+      when :erlang.is_atom(module) and :erlang.is_atom(macro) and
+           :erlang.is_integer(arity) and (arity >= 0 and arity <= 255) do
     function_exported?(module, :__info__, 1) and :lists.member({macro, arity}, module.__info__(:macros))
   end
 
@@ -3015,8 +3035,6 @@ defmodule Kernel do
 
   Check `Kernel.SpecialForms.quote/2` for more information.
   """
-  defmacro alias!(alias)
-
   defmacro alias!(alias) when is_atom(alias) do
     alias
   end
