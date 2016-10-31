@@ -146,7 +146,7 @@ defmodule Node do
   `:ignored` if the local node is not alive.
 
   For more information, see
-  [`:erlang.connect_node/1`](http://www.erlang.org/doc/man/net_kernel.html#connect_node-1).
+  [`:net_kernel.connect_node/1`](http://www.erlang.org/doc/man/net_kernel.html#connect_node-1).
   """
   @spec connect(t) :: boolean | :ignored
   def connect(node) do
