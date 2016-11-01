@@ -509,6 +509,8 @@ defmodule ExUnit.DocTest do
     end
   end
 
+  @fences ["```", "~~~"]
+
   defp extract_tests([], "", "", [], _) do
     []
   end
@@ -564,6 +566,13 @@ defmodule ExUnit.DocTest do
   # Skip empty or documentation line.
   defp extract_tests([_ | lines], "", "", acc, _) do
     extract_tests(lines, "", "", acc, true)
+  end
+
+  # Encountered end of fenced code block, store pending test
+  defp extract_tests([{<<fence::3-bytes>> <> _, _} | lines], expr_acc, expected_acc, [test | t], _)
+      when fence in @fences and expr_acc != "" do
+    test = add_expr(test, expr_acc, expected_acc)
+    extract_tests(lines, "", "", [test | t], true)
   end
 
   # Encountered an empty line, store pending test
