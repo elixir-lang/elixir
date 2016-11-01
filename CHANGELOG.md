@@ -6,6 +6,8 @@
 
 #### Elixir
 
+  * [Calendar] Add `Date.compare/2`, `Time.compare/2`, `NaiveDateTime.compare/2` and `DateTime.compare/2`
+  * [Calendar] Support `NaiveDateTime.add/3` and `NaiveDateTime.diff/3` for adding seconds (up to microseconds) as well as the difference between two NaiveDateTimes in seconds (up to microseconds)
   * [Enum] Add `Enum.map_every/2` that invokes the given function with every nth item
   * [Enum] Add `min/2`, `max/2`, `min_max/2`, `min_by/3`, `max_by/3`, and `min_max_by/3` that allow a function specifying the default value when the enumerable is empty
   * [Enum] Introduce `Enum.zip/1` to zip multiple entries at once
@@ -14,11 +16,13 @@
   * [Integer] `Integer.digits/2` now accepts negative integers
   * [Integer] Add `Integer.mod/2` and `Integer.floor_div/2`
   * [List] Add `List.pop_at/3`
-  * [OptionParser] Expand multi-letter aliases in OptionParser
+  * [List] Add `List.myers_difference/2`
+  * [OptionParser] Expand multi-letter aliases in `OptionParser`
   * [Process] Add `Process.send_after/4`
   * [Process] Improve error messages on `Process.register` errors
   * [Stream] Add `Stream.map_every/2` that invokes the given function with every nth item
   * [Stream] Introduce `Stream.zip/1` to lazily zip multiple entries at once
+  * [Task] Add `Task.async_stream/3` and `Task.async_stream/5` as well as the supervised versions `Task.Supervisor.async_stream/4` and `Task.Supervisor.async_stream/6`
   * [URI] Allow 0 as URI scheme default port
 
 #### ExUnit
@@ -40,7 +44,10 @@
   * [Mix] Add the ability to specify one or more apps in `mix cmd`
   * [Mix] Compress archive files built by `mix archive` as they are now unzipped during installation
   * [Mix] Check directory existence in `mix new` and ask how to proceed if one exists
+  * [Mix] Applications built with the `--sup` flag now have an individual module to work as application callback
+  * [Mix] Add `--formatter` option to `mix test`
   * [Mix.Dep] Add warning for invalid paths on `mix deps.clean`
+  * [Mix.Project] Add `Mix.Project.apps_paths` that returns the paths to children applications in umbrella projects
   * [Mix.Rebar] Add `MIX_REBAR` environment variable for overriding local rebar
 
 ### 2. Bug fixes
