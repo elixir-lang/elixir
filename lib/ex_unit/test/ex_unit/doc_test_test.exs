@@ -373,7 +373,7 @@ defmodule ExUnit.DocTestTest do
   test "doctest failures" do
     # When adding or removing lines above this line, the tests below will
     # fail because we are explicitly asserting some doctest lines from
-    # ActuallCompiled in the format of test/ex_unit/doc_test_test.exs:<LINE>.
+    # ActuallyCompiled in the format of test/ex_unit/doc_test_test.exs:<LINE>.
     defmodule ActuallyCompiled do
       use ExUnit.Case
       doctest ExUnit.DocTestTest.Invalid
