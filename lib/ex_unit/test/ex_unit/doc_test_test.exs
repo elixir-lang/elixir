@@ -371,9 +371,9 @@ defmodule ExUnit.DocTestTest do
   end
 
   test "doctest failures" do
-    # When adding or removing lines in this file above this line,
-    # the line number in the second line of the doctest failure output tests (test/ex_unit/doc_test_test.exs:)
-    # below this line must be adjusted to the line number of the doctest invocation in ActuallyCompiled.
+    # When adding or removing lines above this line, the tests below will
+    # fail because we are explicitly asserting some doctest lines from
+    # ActuallCompiled in the format of test/ex_unit/doc_test_test.exs:<LINE>.
     defmodule ActuallyCompiled do
       use ExUnit.Case
       doctest ExUnit.DocTestTest.Invalid
