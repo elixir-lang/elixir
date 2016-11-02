@@ -263,7 +263,7 @@ defmodule Kernel do
       1
 
   """
-  @spec hd(nonempty_maybe_improper_list) :: term
+  @spec hd(nonempty_maybe_improper_list(elem, any)) :: elem when elem: term
   def hd(list) do
     :erlang.hd(list)
   end
@@ -559,7 +559,7 @@ defmodule Kernel do
 
   Allowed in guard tests. Inlined by the compiler.
   """
-  @spec node(pid | reference | port) :: node | :nonode@nohost
+  @spec node(pid | reference | port) :: node
   def node(arg) do
     :erlang.node(arg)
   end
@@ -783,7 +783,8 @@ defmodule Kernel do
       [2, 3, :go]
 
   """
-  @spec tl(nonempty_maybe_improper_list) :: maybe_improper_list | term
+  @spec tl(nonempty_maybe_improper_list(elem, tail)) ::
+        maybe_improper_list(elem, tail) | tail when elem: term, tail: term
   def tl(list) do
     :erlang.tl(list)
   end
@@ -875,7 +876,7 @@ defmodule Kernel do
       1
 
   """
-  @spec (+arg) :: arg when arg: number
+  @spec (+value) :: value when value: number
   def (+value) do
     :erlang.+(value)
   end
@@ -891,8 +892,10 @@ defmodule Kernel do
       -2
 
   """
+  @spec (-0) :: 0
+  @spec (-pos_integer) :: neg_integer
+  @spec (-neg_integer) :: pos_integer
   @spec (-float) :: float
-  @spec (-integer) :: integer
   def (-value) do
     :erlang.-(value)
   end
@@ -971,10 +974,7 @@ defmodule Kernel do
       [1, 2 | 3]
 
   """
-  @spec (nonempty_list ++ nonempty_list) :: nonempty_list
-  @spec (left ++ []) :: left when left: nonempty_list
-  @spec ([] ++ right) :: right when right: term
-  @spec (list ++ nonempty_improper_list(any, any)) :: nonempty_improper_list(any(), any())
+  @spec (list ++ term) :: maybe_improper_list
   def left ++ right do
     :erlang.++(left, right)
   end
@@ -1164,7 +1164,6 @@ defmodule Kernel do
       false
 
   """
-  @spec (arg === arg) :: true when arg: term
   @spec (term === term) :: boolean
   def left === right do
     :erlang."=:="(left, right)
@@ -2850,9 +2849,10 @@ defmodule Kernel do
   """
   @spec macro_exported?(module, atom, arity) :: boolean
   def macro_exported?(module, macro, arity)
-      when :erlang.is_atom(module) and :erlang.is_atom(macro) and
-           :erlang.is_integer(arity) and (arity >= 0 and arity <= 255) do
-    function_exported?(module, :__info__, 1) and :lists.member({macro, arity}, module.__info__(:macros))
+      when is_atom(module) and is_atom(macro) and is_integer(arity) and
+           (arity >= 0 and arity <= 255) do
+    function_exported?(module, :__info__, 1) and
+      :lists.member({macro, arity}, module.__info__(:macros))
   end
 
   @doc """

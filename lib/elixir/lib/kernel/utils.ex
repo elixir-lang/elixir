@@ -112,15 +112,12 @@ defmodule Kernel.Utils do
   def raise(msg) when is_binary(msg) do
     RuntimeError.exception(msg)
   end
-
   def raise(atom) when is_atom(atom) do
     atom.exception([])
   end
-
   def raise(%{__struct__: struct, __exception__: true} = exception) when is_atom(struct) do
     exception
   end
-
   def raise(other) do
     ArgumentError.exception("raise/1 expects an alias, string or exception as " <>
                             "the first argument, got: #{inspect other}")
