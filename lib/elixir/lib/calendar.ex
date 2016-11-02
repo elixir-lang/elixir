@@ -1592,10 +1592,10 @@ defmodule DateTime do
   end
 
   @doc """
-  Converts the given date time format to
-  [ISO 8601:2004](https://en.wikipedia.org/wiki/ISO_8601).
+  Converts the given date time to
+  [ISO 8601:2004](https://en.wikipedia.org/wiki/ISO_8601) format.
 
-  Only supports converting date time formats which are in the ISO calendar,
+  Only supports converting date times which are in the ISO calendar,
   attempting to convert date times from other calendars will raise.
 
   WARNING: the ISO 8601 date time format does not contain the time zone nor
