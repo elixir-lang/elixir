@@ -126,7 +126,7 @@ defmodule Registry do
 
   The third argument given to `register/3` is a value associated to the
   current process. While in the previous section we used it when dispatching,
-  in this particular example we are not interested on it, so we have set it
+  in this particular example we are not interested in it, so we have set it
   to an empty list. You could store a more meaningful value if necessary.
 
   ## Registrations
@@ -134,7 +134,7 @@ defmodule Registry do
   Looking up, dispatching and registering are efficient and immediate at
   the cost of delayed unsubscription. For example, if a process crashes,
   its keys are automatically removed from the registry but the change may
-  not propagate immediately. This means certain operations may return process
+  not propagate immediately. This means certain operations may return processes
   that are already dead. When such may happen, it will be explicitly stated
   in the function documentation.
 
