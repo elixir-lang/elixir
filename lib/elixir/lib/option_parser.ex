@@ -400,21 +400,18 @@ defmodule OptionParser do
       {_key, nil}  -> []
       {key, true}  -> [to_switch(key)]
       {key, false} -> [to_switch(key, "--no-")]
-      {key, value} -> to_argv(key, value, opts)
+      {key, value} -> 
+        switches = Keyword.get(opts, :switches, [])
+        to_argv(key, value, switches)
     end)
   end
 
-  # If no options were provided consider the argv a simple pair
-  defp to_argv(key, value, []) do
-    [to_switch(key), to_string(value)]
-  end
-
-  defp to_argv(key, value, opts) do
-    {_, switches, _} = compile_config(opts)
-    if switches[:"#{key}"] == :count do
+  defp to_argv(key, value, switches) do
+    if switches[key] == :count do
       List.duplicate(to_switch(key), value)
     else
-      to_argv(key, value, [])
+      # If no options were provided consider the argv a simple pair
+      [to_switch(key), to_string(value)]
     end
   end
 
