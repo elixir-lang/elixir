@@ -414,7 +414,6 @@ defmodule OptionParser do
     end
   end
 
-
   defp to_switch(key, prefix \\ "--") when is_atom(key) do
     prefix <> String.replace(Atom.to_string(key), "_", "-")
   end
