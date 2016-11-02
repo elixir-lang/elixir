@@ -863,6 +863,7 @@ defmodule GenServer do
 
       def handle_info({:reply, from}, state) do
         GenServer.reply(from, :one_second_has_passed)
+        {:noreply, state}
       end
 
   """
