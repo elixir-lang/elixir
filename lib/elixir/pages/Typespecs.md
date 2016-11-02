@@ -85,7 +85,7 @@ The following literals are also supported in typespecs:
           | %{required(key_type) => value_type}   # map with required pairs of key_type and value_type
           | %{optional(key_type) => value_type}   # map with optional pairs of key_type and value_type
           | %SomeStruct{}                         # struct with all fields of any type
-          | %SomeStruct{key: value_type}          # struct with required key :key and type
+          | %SomeStruct{key: value_type}          # struct with required key :key of value_type
 
                                           ## Tuples
           | {}                            # empty tuple
