@@ -149,6 +149,7 @@ defmodule Mix do
   with extra clean up logic.
 
   Note aliases do not show up on `mix help`.
+  Aliases defined in the current project do not affect its dependencies and aliases defined in dependencies are not accessible from the current project.
 
   ## Environment variables
 
