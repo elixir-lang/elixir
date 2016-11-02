@@ -385,13 +385,24 @@ defmodule OptionParser do
   (if the value is `true` or `false`, respectively),
   and all other values are converted using `Kernel.to_string/1`.
 
+  It is advised to pass to `to_argv/2` the same set of `options`
+  given to `parse/2`. Some switches can only be reconstructed
+  correctly with the `switches` information in hand.
+
   ## Examples
 
       iex>  OptionParser.to_argv([foo_bar: "baz"])
       ["--foo-bar", "baz"]
-
       iex>  OptionParser.to_argv([bool: true, bool: false, discarded: nil])
       ["--bool", "--no-bool"]
+
+  Some switches will output different values based on the switches
+  flag:
+
+      iex> OptionParser.to_argv([number: 2], switches: [])
+      ["--number", "2"]
+      iex> OptionParser.to_argv([number: 2], switches: [number: :count])
+      ["--number", "--number"]
 
   """
   @spec to_argv(Enumerable.t, options) :: argv
