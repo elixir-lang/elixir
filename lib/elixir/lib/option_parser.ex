@@ -394,15 +394,30 @@ defmodule OptionParser do
       ["--bool", "--no-bool"]
 
   """
-  @spec to_argv(Enumerable.t) :: argv
-  def to_argv(enum) do
+  @spec to_argv(Enumerable.t, options) :: argv
+  def to_argv(enum, opts \\ []) do
     Enum.flat_map(enum, fn
       {_key, nil}  -> []
       {key, true}  -> [to_switch(key)]
       {key, false} -> [to_switch(key, "--no-")]
-      {key, value} -> [to_switch(key), to_string(value)]
+      {key, value} -> to_argv(key, value, opts)
     end)
   end
+
+  # If no options were provided consider the argv a simple pair
+  defp to_argv(key, value, []) do
+    [to_switch(key), to_string(value)]
+  end
+
+  defp to_argv(key, value, opts) do
+    {_, switches, _} = compile_config(opts)
+    if switches[:"#{key}"] == :count do
+      List.duplicate(to_switch(key), value)
+    else
+      to_argv(key, value, [])
+    end
+  end
+
 
   defp to_switch(key, prefix \\ "--") when is_atom(key) do
     prefix <> String.replace(Atom.to_string(key), "_", "-")
