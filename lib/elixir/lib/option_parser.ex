@@ -396,13 +396,12 @@ defmodule OptionParser do
   """
   @spec to_argv(Enumerable.t, options) :: argv
   def to_argv(enum, opts \\ []) do
+    switches = Keyword.get(opts, :switches, [])
     Enum.flat_map(enum, fn
       {_key, nil}  -> []
       {key, true}  -> [to_switch(key)]
       {key, false} -> [to_switch(key, "--no-")]
-      {key, value} -> 
-        switches = Keyword.get(opts, :switches, [])
-        to_argv(key, value, switches)
+      {key, value} -> to_argv(key, value, switches)
     end)
   end
 
