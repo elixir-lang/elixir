@@ -148,7 +148,9 @@ defmodule Mix do
   Where `&clean_extra/1` would be a function in your `mix.exs`
   with extra clean up logic.
 
-  Note aliases do not show up on `mix help`.
+  Note: 
+    * aliases do not show up on `mix help`
+    * aliases are not merged in from the `mix.ex` files of dependent project definitions.
 
   ## Environment variables
 
