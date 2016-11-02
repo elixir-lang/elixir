@@ -79,8 +79,10 @@ defmodule GenServer do
       mechanism and name. The `:via` option expects a module that exports
       `register_name/2`, `unregister_name/1`, `whereis_name/1` and `send/2`.
       One such example is the `:global` module which uses these functions
-      for keeping the list of names of processes and their  associated PIDs
-      that are available globally for a network of Erlang nodes.
+      for keeping the list of names of processes and their associated PIDs
+      that are available globally for a network of Elixir nodes. Elixir also
+      ships with a local, decentralized and scalable registry called `Registry`
+      for locally storing names that are generated dynamically.
 
   For example, we could start and register our `Stack` server locally as follows:
 
@@ -100,6 +102,11 @@ defmodule GenServer do
     * `{:global, term}` if the server is globally registered
     * `{:via, module, name}` if the server is registered through an alternative
       registry
+
+  If there is an interest to register dynamic names locally, do not use
+  atoms, as atoms are never garbage collected and therefore dynamically
+  generated atoms won't be garbage collected. For such cases, you can
+  set up your own local registry by using the `Registry` module.
 
   ## Client / Server APIs
 
