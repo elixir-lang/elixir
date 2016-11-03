@@ -1002,7 +1002,7 @@ defmodule File do
     F.open(IO.chardata_to_string(path), normalize_modes(modes, true))
   end
 
-  def open(path, function) when is_function(function) do
+  def open(path, function) when is_function(function, 1) do
     open(path, [], function)
   end
 
@@ -1027,43 +1027,50 @@ defmodule File do
         IO.read(file, :line)
       end)
 
+  See `open/2` for the list of available `modes`.
   """
   @spec open(Path.t, [mode | :ram], (io_device -> res)) :: {:ok, res} | {:error, posix} when res: var
-  def open(path, modes, function) do
+  def open(path, modes, function) when is_list(modes) and is_function(function, 1) do
     case open(path, modes) do
-      {:ok, device} ->
+      {:ok, io_device} ->
         try do
-          {:ok, function.(device)}
+          {:ok, function.(io_device)}
         after
-          :ok = close(device)
+          :ok = close(io_device)
         end
       other -> other
     end
   end
 
   @doc """
-  Same as `open/2` but raises an error if file could not be opened.
+  Similar to `open/2` but raises an error if file could not be opened.
 
-  Returns the `io_device` otherwise.
+  Returns the IO device otherwise.
+
+  See `open/2` for the list of available `modes`.
   """
-  @spec open!(Path.t, [mode]) :: io_device | no_return
+  @spec open!(Path.t, [mode | :ram]) :: io_device | no_return
   def open!(path, modes \\ []) do
     case open(path, modes) do
-      {:ok, device}    -> device
+      {:ok, io_device} ->
+        io_device
       {:error, reason} ->
         raise File.Error, reason: reason, action: "open", path: IO.chardata_to_string(path)
     end
   end
 
   @doc """
-  Same as `open/3` but raises an error if file could not be opened.
+  Similar to `open/3` but raises an error if file could not be opened.
 
-  Returns the function result otherwise.
+  If it succeeds opening the file, it returns the `function` result on the IO device.
+
+  See `open/2` for the list of available `modes`.
   """
   @spec open!(Path.t, [mode | :ram], (io_device -> res)) :: res | no_return when res: var
   def open!(path, modes, function) do
     case open(path, modes, function) do
-      {:ok, device}    -> device
+      {:ok, function_result} ->
+        function_result
       {:error, reason} ->
         raise File.Error, reason: reason, action: "open", path: IO.chardata_to_string(path)
     end
@@ -1182,7 +1189,7 @@ defmodule File do
 
   Note that if the option `:delayed_write` was used when opening the file,
   `close/1` might return an old write error and not even try to close the file.
-  See `open/2`.
+  See `open/2` for more information.
   """
   @spec close(io_device) :: :ok | {:error, posix | :badarg | :terminated}
   def close(io_device) do
