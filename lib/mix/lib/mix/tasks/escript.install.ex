@@ -45,10 +45,10 @@ defmodule Mix.Tasks.Escript.Install do
     * `--force` - forces installation without a shell prompt; primarily
       intended for automation in build systems like make
 
-    * `--submodules` - fetch repository submodules before building escript from
+    * `--submodules` - fetches repository submodules before building escript from
       git or github
 
-    * `--app` - specify a custom app name to be used for building the escript
+    * `--app` - specifies a custom app name to be used for building the escript
       from git, github, or hex
   """
 

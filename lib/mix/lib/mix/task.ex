@@ -25,7 +25,7 @@ defmodule Mix.Task do
 
     * `@shortdoc`  - makes the task public with a short description that appears
       on `mix help`
-    * `@recursive` - run the task recursively in umbrella projects
+    * `@recursive` - runs the task recursively in umbrella projects
     * `@preferred_cli_env` - recommends environment to run task. It is used in absence of
       a Mix project recommendation, or explicit `MIX_ENV`
 

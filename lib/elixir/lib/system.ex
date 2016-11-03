@@ -505,7 +505,7 @@ defmodule System do
     * `:into` - injects the result into the given collectable, defaults to `""`
     * `:cd` - the directory to run the command in
     * `:env` - an enumerable of tuples containing environment key-value as binary
-    * `:arg0` - set the command arg0
+    * `:arg0` - sets the command arg0
     * `:stderr_to_stdout` - redirects stderr to stdout when `true`
     * `:parallelism` - when `true`, the VM will schedule port tasks to improve
       parallelism in the system. If set to `false`, the VM will try to perform

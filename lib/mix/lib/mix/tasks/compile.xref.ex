@@ -16,7 +16,7 @@ defmodule Mix.Tasks.Compile.Xref do
   ## Command line options
 
     * `--force` - forces checking regardless of modification time
-    * `--warnings-as-errors` - treat warnings as errors and return a non-zero exit code
+    * `--warnings-as-errors` - treats warnings as errors and returns a non-zero exit code
 
   """
 

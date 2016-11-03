@@ -193,16 +193,16 @@ defmodule ExUnit do
       defaults to `:erlang.system_info(:schedulers_online) * 2` to
       optimize both CPU-bound and IO-bound tests
 
-    * `:trace` - set ExUnit into trace mode, this sets `:max_cases` to `1` and
+    * `:trace` - sets ExUnit into trace mode, this sets `:max_cases` to `1` and
       prints each test case and test while running
 
     * `:autorun` - if ExUnit should run by default on exit; defaults to `true`
 
-    * `:include` - specify which tests are run by skipping tests that do not
+    * `:include` - specifies which tests are run by skipping tests that do not
       match the filter. Keep in mind that all tests are included by default, so unless they are
       excluded first, the `:include` option has no effect.
 
-    * `:exclude` - specify which tests are run by skipping tests that match the
+    * `:exclude` - specifies which tests are run by skipping tests that match the
       filter
 
     * `:refute_receive_timeout` - the timeout to be used on `refute_receive`
@@ -213,7 +213,7 @@ defmodule ExUnit do
     * `:stacktrace_depth` - configures the stacktrace depth to be used
       on formatting and reporters (defaults to 20)
 
-    * `:timeout` - set the timeout for the tests (default 60_000ms)
+    * `:timeout` - sets the timeout for the tests (default 60_000ms)
 
   """
   def configure(options) do
