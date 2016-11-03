@@ -51,11 +51,6 @@ defmodule Calendar do
   @type std_offset  :: integer
 
   @doc """
-  Builds a new date from proleptic year, month and day of month.
-  """
-  @callback date(year, month, day) :: {:ok, Date.t} | {:error, atom}
-
-  @doc """
   Returns the last day of the month for the given year-month pair.
   """
   @callback last_day_of_month(year, month) :: day
@@ -120,6 +115,25 @@ defmodule Date do
   def utc_today() do
     {:ok, {year, month, day}, _, _} = Calendar.ISO.from_unix(:os.system_time, :native)
     %Date{year: year, month: month, day: day}
+  end
+
+  @doc """
+  Returns true if the year in `date` is a leap year.
+
+  ## Examples
+
+      iex> Date.leap_year?(~D[2000-01-01])
+      true
+      iex> Date.leap_year?(~D[2001-01-01])
+      false
+      iex> Date.leap_year?(~D[2004-01-01])
+      true
+      iex> Date.leap_year?(~D[1900-01-01])
+      false
+  """
+  @spec leap_year?(t) :: boolean()
+  def leap_year?(%Date{calendar: calendar, year: year}) do
+    calendar.leap_year?(year)
   end
 
   @doc """
