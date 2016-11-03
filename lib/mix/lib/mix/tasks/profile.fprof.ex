@@ -28,12 +28,12 @@ defmodule Mix.Tasks.Profile.Fprof do
     * `--eval`, `-e` - evaluates the given code
     * `--require`, `-r` - requires pattern before running the command
     * `--parallel`, `-p` - makes all requires parallel
-    * `--no-compile`    - do not compile even if files require compilation
-    * `--no-deps-check` - do not check dependencies
-    * `--no-archives-check` - do not check archives
-    * `--no-start`      - do not start applications after compilation
-    * `--no-elixir-version-check` - do not check the Elixir version from mix.exs
-    * `--no-warmup`     - do not execute code once before profiling
+    * `--no-compile`    - does not compile even if files require compilation
+    * `--no-deps-check` - does not check dependencies
+    * `--no-archives-check` - does not check archives
+    * `--no-start` - does not start applications after compilation
+    * `--no-elixir-version-check` - does not check the Elixir version from mix.exs
+    * `--no-warmup` - does not execute code once before profiling
 
   ## Profile output
 

@@ -70,7 +70,7 @@ defmodule Regex do
       explicitly captured subpatterns, but not the complete matching part of
       the string
 
-    * `:none` - do not return matching subpatterns at all
+    * `:none` - does not return matching subpatterns at all
 
     * `:all_names` - captures all names in the Regex
 

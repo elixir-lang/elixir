@@ -10,7 +10,7 @@ defmodule Mix.Tasks.Deps.Get do
   ## Command line options
 
     * `--only` - only fetches dependencies for given environment
-    * `--no-archives-check` - do not check archives before fetching deps
+    * `--no-archives-check` - does not check archives before fetching deps
   """
   @spec run(OptionParser.argv) :: :ok
   def run(args) do

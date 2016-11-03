@@ -22,7 +22,7 @@ defmodule Mix.Tasks.Deps.Tree do
       * `pretty` - uses Unicode codepoints for formatting the tree.
         This is the default except on Windows.
 
-      * `plain` - do not use Unicode codepoints for formatting the tree.
+      * `plain` - does not use Unicode codepoints for formatting the tree.
         This is the default on Windows.
 
       * `dot` - produces a DOT graph description of the dependency tree
