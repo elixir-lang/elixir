@@ -199,10 +199,8 @@ defmodule Task.Supervised do
       {:DOWN, {^monitor_ref, position}, reason} ->
         waiting =
           case waiting do
-            # We update the entry only if it is running.
-            # If it is ok or removed, we are done.
-            %{^position => {pid, :running}} -> Map.put(waiting, position, {pid, {:exit, reason}})
-            %{} -> waiting
+            %{^position => {_, {:ok, _} = ok}} -> Map.put(waiting, position, {nil, ok})
+            %{^position => {_, :running}} -> Map.put(waiting, position, {nil, {:exit, reason}})
           end
         stream_deliver({:cont, acc}, max + 1, spawned, delivered, waiting, next,
                        reducer, mfa, spawn, monitor_pid, monitor_ref, timeout)
@@ -253,7 +251,7 @@ defmodule Task.Supervised do
   defp stream_deliver({:cont, acc}, max, spawned, delivered, waiting, next,
                       reducer, mfa, spawn, monitor_pid, monitor_ref, timeout) do
     case waiting do
-      %{^delivered => {_, {_, _} = reply}} ->
+      %{^delivered => {nil, reply}} ->
         try do
           reducer.(reply, acc)
         catch
@@ -275,7 +273,7 @@ defmodule Task.Supervised do
 
   defp stream_close(waiting, monitor_pid, monitor_ref, timeout) do
     for {_, {pid, _}} <- waiting do
-      Process.unlink(pid)
+      pid && Process.unlink(pid)
     end
     send(monitor_pid, {:DOWN, monitor_ref})
     receive do
