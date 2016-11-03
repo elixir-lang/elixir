@@ -53,7 +53,7 @@ defmodule Registry do
       {:ok, _} = Registry.start_link(:duplicate, Registry.DispatcherTest)
 
   By calling `register/3`, different processes can register under a given key
-  and associate any value udner that key. In this case, let's register the
+  and associate any value under that key. In this case, let's register the
   current process under the key `"hello"` and attach the `{IO, :inspect}` tuple
   to it:
 
