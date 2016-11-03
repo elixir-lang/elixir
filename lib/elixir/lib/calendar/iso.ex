@@ -91,24 +91,24 @@ defmodule Calendar.ISO do
 
   ## Examples
 
-      iex> Calendar.ISO.day_of_the_week(2016, 10, 31)
+      iex> Calendar.ISO.day_of_week(2016, 10, 31)
       1
-      iex> Calendar.ISO.day_of_the_week(2016, 11, 01)
+      iex> Calendar.ISO.day_of_week(2016, 11, 01)
       2
-      iex> Calendar.ISO.day_of_the_week(2016, 11, 02)
+      iex> Calendar.ISO.day_of_week(2016, 11, 02)
       3
-      iex> Calendar.ISO.day_of_the_week(2016, 11, 03)
+      iex> Calendar.ISO.day_of_week(2016, 11, 03)
       4
-      iex> Calendar.ISO.day_of_the_week(2016, 11, 04)
+      iex> Calendar.ISO.day_of_week(2016, 11, 04)
       5
-      iex> Calendar.ISO.day_of_the_week(2016, 11, 05)
+      iex> Calendar.ISO.day_of_week(2016, 11, 05)
       6
-      iex> Calendar.ISO.day_of_the_week(2016, 11, 06)
+      iex> Calendar.ISO.day_of_week(2016, 11, 06)
       7
   """
-  def day_of_the_week(year, month, day)
+  def day_of_week(year, month, day)
     when is_integer(year) and is_integer(month) and is_integer(day) do
-    :calendar.day_of_the_week(year, month, day)
+    :calendar.day_of_week(year, month, day)
   end
 
   @doc """

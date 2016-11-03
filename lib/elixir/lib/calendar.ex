@@ -321,14 +321,14 @@ defmodule Date do
 
   ## Examples
 
-      iex> Date.day_of_the_week(~D[2016-10-31])
+      iex> Date.day_of_week(~D[2016-10-31])
       1
-      iex> Date.day_of_the_week(~D[2016-11-01])
+      iex> Date.day_of_week(~D[2016-11-01])
       2
   """
-  @spec day_of_the_week(Date.t) :: integer
-  def day_of_the_week(%Date{calendar: calendar, year: year, month: month, day: day}) do
-    calendar.day_of_the_week(year, month, day)
+  @spec day_of_week(Date.t) :: integer
+  def day_of_week(%Date{calendar: calendar, year: year, month: month, day: day}) do
+    calendar.day_of_week(year, month, day)
   end
 
   ## Helpers
