@@ -65,6 +65,13 @@ defmodule Calendar do
   @callback leap_year?(year) :: boolean
 
   @doc """
+  Calculates the day of the week from the given `year`, `month`, and `day`.
+
+  Returns the day of the week as an integer, Monday being 1, Tuesday 2, and so on.
+  """
+  @callback day_of_week(year, month, day) :: non_neg_integer()
+
+  @doc """
   Converts the given structure into a string according to the calendar.
   """
   @callback to_string(structure :: Date.t | DateTime.t | NaiveDateTime.t) :: String.t
@@ -326,6 +333,23 @@ defmodule Date do
       {first, second} when first < second -> :lt
       _ -> :eq
     end
+  end
+
+  @doc """
+  Calculates the day of the week of a given `Date` struct.
+
+  Returns the day of the week as an integer, Monday being 1, Tuesday 2, and so on.
+
+  ## Examples
+
+      iex> Date.day_of_week(~D[2016-10-31])
+      1
+      iex> Date.day_of_week(~D[2016-11-01])
+      2
+  """
+  @spec day_of_week(Date.t) :: non_neg_integer() 
+  def day_of_week(%Date{calendar: calendar, year: year, month: month, day: day}) do
+    calendar.day_of_week(year, month, day)
   end
 
   ## Helpers
