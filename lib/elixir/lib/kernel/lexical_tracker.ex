@@ -52,32 +52,32 @@ defmodule Kernel.LexicalTracker do
   end
 
   @doc false
-  def add_import(pid, module, fas, line, warn) do
+  def add_import(pid, module, fas, line, warn) when is_atom(module) do
     :gen_server.cast(pid, {:add_import, module, fas, line, warn})
   end
 
   @doc false
-  def add_alias(pid, module, line, warn) do
+  def add_alias(pid, module, line, warn) when is_atom(module) do
     :gen_server.cast(pid, {:add_alias, module, line, warn})
   end
 
   @doc false
-  def remote_reference(pid, module, mode) do
+  def remote_reference(pid, module, mode) when is_atom(module) do
     :gen_server.cast(pid, {:remote_reference, module, mode})
   end
 
   @doc false
-  def remote_dispatch(pid, module, fa, line, mode) do
+  def remote_dispatch(pid, module, fa, line, mode) when is_atom(module) do
     :gen_server.cast(pid, {:remote_dispatch, module, fa, line, mode})
   end
 
   @doc false
-  def import_dispatch(pid, module, fa, line, mode) do
+  def import_dispatch(pid, module, fa, line, mode) when is_atom(module) do
     :gen_server.cast(pid, {:import_dispatch, module, fa, line, mode})
   end
 
   @doc false
-  def alias_dispatch(pid, module) do
+  def alias_dispatch(pid, module) when is_atom(module) do
     :gen_server.cast(pid, {:alias_dispatch, module})
   end
 
@@ -147,7 +147,7 @@ defmodule Kernel.LexicalTracker do
     {:noreply, %{state | directives: add_dispatch(state.directives, module, :alias)}}
   end
 
-  def handle_cast({:add_import, module, fas, line, warn}, state) when is_atom(module) do
+  def handle_cast({:add_import, module, fas, line, warn}, state) do
     directives =
       state.directives
       |> Enum.reject(&match?({{:import, {^module, _, _}}, _}, &1))
