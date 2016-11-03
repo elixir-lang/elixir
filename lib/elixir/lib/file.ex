@@ -922,7 +922,7 @@ defmodule File do
   end
 
   @doc ~S"""
-  Opens the given `path` according to the given list of `modes`.
+  Opens the given `path`.
 
   In order to write and read files, one must use the functions
   in the `IO` module. By default, a file is opened in `:binary` mode,
@@ -930,6 +930,12 @@ defmodule File do
   to interact with the file. A developer may pass `:utf8` as an
   option when opening the file and then all other functions from
   `IO` are available, since they work directly with Unicode data.
+
+  `modes_or_function` can either be a list of modes or a function. If it's a
+  list, it's considered to be a list of modes (that are documented below). If
+  it's a function, then it's equivalent to calling `open(path, [],
+  modes_or_function)`. See the documentation for `open/3` for more information
+  on this function.
 
   The allowed modes:
 
@@ -996,7 +1002,7 @@ defmodule File do
   """
   @spec open(Path.t, [mode | :ram]) :: {:ok, io_device} | {:error, posix}
   @spec open(Path.t, (io_device -> res)) :: {:ok, res} | {:error, posix} when res: var
-  def open(path, modes \\ [])
+  def open(path, modes_or_function \\ [])
 
   def open(path, modes) when is_list(modes) do
     F.open(IO.chardata_to_string(path), normalize_modes(modes, true))
@@ -1047,13 +1053,14 @@ defmodule File do
 
   Returns the IO device otherwise.
 
-  See `open/2` for the list of available `modes`.
+  See `open/2` for the list of available modes.
   """
   @spec open!(Path.t, [mode | :ram]) :: io_device | no_return
-  def open!(path, modes \\ []) do
-    case open(path, modes) do
-      {:ok, io_device} ->
-        io_device
+  @spec open!(Path.t, (io_device -> res)) :: res | no_return when res: var
+  def open!(path, modes_or_function \\ []) do
+    case open(path, modes_or_function) do
+      {:ok, io_device_or_function_result} ->
+        io_device_or_function_result
       {:error, reason} ->
         raise File.Error, reason: reason, action: "open", path: IO.chardata_to_string(path)
     end
