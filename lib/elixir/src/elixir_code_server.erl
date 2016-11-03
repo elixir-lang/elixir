@@ -37,6 +37,9 @@ handle_call({defmodule, Pid, Tuple}, _From, Config) ->
   {Ref, New} = defmodule(Pid, Tuple, Config),
   {reply, Ref, New};
 
+handle_call({lookup, Module}, _From, Config) ->
+  {reply, ets:lookup(elixir_modules, Module), Config};
+
 handle_call({undefmodule, Ref}, _From, Config) ->
   {reply, ok, undefmodule(Ref, Config)};
 
@@ -63,7 +66,7 @@ handle_call({compilation_status, CompilerPid}, _From, Config) ->
   {reply, CompilationStatus,
    Config#elixir_code_server{compilation_status=CompilationStatusListNew}};
 
-handle_call(retrieve_module_name, _From, Config) ->
+handle_call(retrieve_compiler_module, _From, Config) ->
   case Config#elixir_code_server.mod_pool of
     {[H | T], Counter} ->
       {reply, module_tuple(H), Config#elixir_code_server{mod_pool={T, Counter}}};
@@ -107,7 +110,7 @@ handle_cast({unload_files, Files}, Config) ->
   Unloaded = maps:without(Files, Current),
   {noreply, Config#elixir_code_server{loaded=Unloaded}};
 
-handle_cast({return_module_name, H}, #elixir_code_server{mod_pool={T, Counter}} = Config) ->
+handle_cast({return_compiler_module, H}, #elixir_code_server{mod_pool={T, Counter}} = Config) ->
   {noreply, Config#elixir_code_server{mod_pool={[H | T], Counter}}};
 
 handle_cast(Request, Config) ->
