@@ -12,6 +12,10 @@ defmodule Calendar.ISO do
   @behaviour Calendar
   @unix_epoch :calendar.datetime_to_gregorian_seconds {{1970, 1, 1}, {0, 0, 0}}
 
+  @type year  :: 0..9999
+  @type month :: 1..12
+  @type day   :: 1..31
+
   @doc """
   Returns the last day of the month for the given year.
 
@@ -31,6 +35,7 @@ defmodule Calendar.ISO do
       30
 
   """
+  @spec last_day_of_month(year, month) :: 28..31
   def last_day_of_month(year, month)
 
   def last_day_of_month(year, 2) do
@@ -54,6 +59,7 @@ defmodule Calendar.ISO do
       false
 
   """
+  @spec leap_year?(year) :: boolean()
   def leap_year?(year) when is_integer(year) and year >= 0 do
     rem(year, 4) === 0 and (rem(year, 100) > 0 or rem(year, 400) === 0)
   end
@@ -61,7 +67,7 @@ defmodule Calendar.ISO do
   @doc """
   Calculates the day of the week from the given `year`, `month`, and `day`.
 
-  Returns the day of the week as an integer, Monday being 1, Tuesday 2, and so on.
+  It is an integer from 1 to 7, where 1 is Monday and 7 is Sunday.
 
   ## Examples
 
@@ -80,6 +86,7 @@ defmodule Calendar.ISO do
       iex> Calendar.ISO.day_of_week(2016, 11, 06)
       7
   """
+  @spec day_of_week(year, month, day) :: 1..7
   def day_of_week(year, month, day)
       when is_integer(year) and is_integer(month) and is_integer(day) do
     :calendar.day_of_the_week(year, month, day)

@@ -66,8 +66,6 @@ defmodule Calendar do
 
   @doc """
   Calculates the day of the week from the given `year`, `month`, and `day`.
-
-  Returns the day of the week as an integer, Monday being 1, Tuesday 2, and so on.
   """
   @callback day_of_week(year, month, day) :: non_neg_integer()
 
@@ -338,7 +336,9 @@ defmodule Date do
   @doc """
   Calculates the day of the week of a given `Date` struct.
 
-  Returns the day of the week as an integer, Monday being 1, Tuesday 2, and so on.
+  Returns the day of the week as an integer. For the ISO 8601
+  calendar (the default), it is an integer from 1 to 7, where
+  1 is Monday and 7 is Sunday.
 
   ## Examples
 
