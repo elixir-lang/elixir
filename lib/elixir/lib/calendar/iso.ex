@@ -85,9 +85,9 @@ defmodule Calendar.ISO do
   end
 
   @doc """
-  Computes the day of the week from the specified `year`, `month`, and `day`.
+  Calculates the day of the week from the given `year`, `month`, and `day`.
 
-  Returns the day of the week as 1: Monday, 2: Tuesday, and so on.
+  Returns the day of the week as an integer, Monday being 1, Tuesday 2, and so on.
 
   ## Examples
 
