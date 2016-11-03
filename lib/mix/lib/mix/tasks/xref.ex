@@ -55,13 +55,13 @@ defmodule Mix.Tasks.Xref do
 
     * `--exclude` - paths to exclude
 
-    * `--source` - display all files that the given source file references (directly or indirectly)
+    * `--source` - displays all files that the given source file references (directly or indirectly)
 
-    * `--sink` - display all files that reference the given file (directly or indirectly)
+    * `--sink` - displays all files that reference the given file (directly or indirectly)
 
     * `--format` - can be set to one of:
 
-      * `pretty` - use Unicode codepoints for formatting the graph.
+      * `pretty` - uses Unicode codepoints for formatting the graph.
         This is the default except on Windows
 
       * `plain` - do not use Unicode codepoints for formatting the graph.

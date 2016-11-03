@@ -40,10 +40,10 @@ defmodule Mix.Tasks.Archive.Install do
     * `--force` - forces installation without a shell prompt; primarily
       intended for automation in build systems like `make`
 
-    * `--submodules` - fetch repository submodules before building archive from
+    * `--submodules` - fetches repository submodules before building archive from
       git or github
 
-    * `--app` - specify a custom app name to be used for building the archive
+    * `--app` - specifies a custom app name to be used for building the archive
       from git, github, or hex
   """
 

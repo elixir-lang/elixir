@@ -2024,10 +2024,10 @@ defmodule Kernel do
   A path may start with a variable, local or remote call, and must be
   followed by one or more:
 
-    * `foo[bar]` - access the key `bar` in `foo`; in case `foo` is nil,
+    * `foo[bar]` - accesses the key `bar` in `foo`; in case `foo` is nil,
       `nil` is returned
 
-    * `foo.bar` - access a map/struct field; in case the field is not
+    * `foo.bar` - accesses a map/struct field; in case the field is not
       present, an error is raised
 
   Here are some valid paths:

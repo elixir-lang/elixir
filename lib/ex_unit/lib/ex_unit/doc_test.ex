@@ -168,10 +168,10 @@ defmodule ExUnit.DocTest do
 
   Options can also be given:
 
-    * `:except` - generate tests for all functions except those listed
+    * `:except` - generates tests for all functions except those listed
       (list of `{function, arity}` tuples, and/or `:moduledoc`).
 
-    * `:only`   - generate tests only for functions listed
+    * `:only` - generates tests only for functions listed
       (list of `{function, arity}` tuples, and/or `:moduledoc`).
 
     * `:import` - when `true`, one can test a function defined in the module

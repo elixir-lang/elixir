@@ -32,7 +32,7 @@ defmodule Mix.Tasks.Run do
 
     * `--config`, `-c`  - loads the given configuration file
     * `--eval`, `-e` - evaluate the given code
-    * `--require`, `-r` - require pattern before running the command
+    * `--require`, `-r` - requires pattern before running the command
     * `--parallel`, `-p` - makes all requires parallel
     * `--no-compile` - do not compile even if files require compilation
     * `--no-deps-check` - do not check dependencies

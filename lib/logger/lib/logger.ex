@@ -51,7 +51,7 @@ defmodule Logger do
     * `:backends` - the backends to be used. Defaults to `[:console]`.
       See the "Backends" section for more information.
 
-    * `:compile_time_purge_level` - purge *at compilation time* all calls that
+    * `:compile_time_purge_level` - purges *at compilation time* all calls that
       have log level lower than the value of this option. This means that
       `Logger` calls with level lower than this option will be completely
       removed at compile time, accruing no overhead at runtime. Defaults to

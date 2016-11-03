@@ -21,12 +21,12 @@ defmodule Mix.Tasks.Profile.Fprof do
 
   ## Command line options
 
-    * `--callers`       - print detailed information about immediate callers and called functions
-    * `--details`       - include profile data for each profiled process
-    * `--sort key`      - sort the output by given key: `acc` (default) or `own`
+    * `--callers` - prints detailed information about immediate callers and called functions
+    * `--details` - includes profile data for each profiled process
+    * `--sort key` - sorts the output by given key: `acc` (default) or `own`
     * `--config`, `-c`  - loads the given configuration file
-    * `--eval`, `-e`    - evaluate the given code
-    * `--require`, `-r` - require pattern before running the command
+    * `--eval`, `-e` - evaluates the given code
+    * `--require`, `-r` - requires pattern before running the command
     * `--parallel`, `-p` - makes all requires parallel
     * `--no-compile`    - do not compile even if files require compilation
     * `--no-deps-check` - do not check dependencies

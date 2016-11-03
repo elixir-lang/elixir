@@ -18,10 +18,10 @@ defmodule Mix.Tasks.Compile.Elixir do
   ## Command line options
 
     * `--force` - forces compilation regardless of modification times
-    * `--docs` (`--no-docs`) - attach (or not) documentation to compiled modules
-    * `--debug-info` (`--no-debug-info`) - attach (or not) debug info to compiled modules
+    * `--docs` (`--no-docs`) - attaches (or does not) documentation to compiled modules
+    * `--debug-info` (`--no-debug-info`) - attaches (or does not) debug info to compiled modules
     * `--ignore-module-conflict` - do not emit warnings if a module was previously defined
-    * `--warnings-as-errors` - treat warnings as errors and return a non-zero exit code
+    * `--warnings-as-errors` - treats warnings as errors and return a non-zero exit code
     * `--long-compilation-threshold N` - sets the "long compilation" threshold
       (in seconds) to `N` (see the docs for `Kernel.ParallelCompiler.files/2`)
 

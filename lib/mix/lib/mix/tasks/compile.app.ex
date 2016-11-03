@@ -31,7 +31,7 @@ defmodule Mix.Tasks.Compile.App do
       to this list. It is most useful in detecting conflicts
       between applications that register the same names.
 
-    * `:mod` - specify a module to invoke when the application
+    * `:mod` - specifies a module to invoke when the application
       is started. It must be in the format `{Mod, args}` where
       args is often an empty list. The module specified must
       implement the callbacks defined by the `Application`

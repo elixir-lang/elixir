@@ -19,7 +19,7 @@ defmodule Mix.Tasks.Deps.Tree do
 
     * `--format` - Can be set to one of either:
 
-      * `pretty` - use Unicode codepoints for formatting the tree.
+      * `pretty` - uses Unicode codepoints for formatting the tree.
         This is the default except on Windows.
 
       * `plain` - do not use Unicode codepoints for formatting the tree.

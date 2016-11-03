@@ -132,7 +132,7 @@ defmodule ExUnit.Case do
     * `:capture_log` - see the "Log Capture" section below
     * `:skip` - skips the test with the given reason
     * `:timeout` - customizes the test timeout in milliseconds (defaults to 60000)
-    * `:report` - include the given tags and context keys on error reports,
+    * `:report` - includes the given tags and context keys on error reports,
       see the "Reporting tags" section
 
   ### Reporting tags

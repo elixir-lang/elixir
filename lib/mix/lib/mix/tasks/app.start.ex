@@ -27,9 +27,9 @@ defmodule Mix.Tasks.App.Start do
 
   ## Command line options
 
-    * `--force` - force compilation regardless of compilation times
-    * `--temporary` - start the application as temporary
-    * `--permanent` - start the application as permanent
+    * `--force` - forces compilation regardless of compilation times
+    * `--temporary` - starts the application as temporary
+    * `--permanent` - starts the application as permanent
     * `--no-compile` - do not compile even if files require compilation
     * `--no-protocols` - do not load consolidated protocols
     * `--no-archives-check` - do not check archives

@@ -53,7 +53,7 @@ defmodule Mix.Tasks.Test do
     * `--force` - forces compilation regardless of modification times
     * `--formatter` - formatter module
     * `--include` - includes tests that match the filter
-    * `--listen-on-stdin` - run tests, and then listen on stdin. Receiving a newline will
+    * `--listen-on-stdin` - runs tests, and then listens on stdin. Receiving a newline will
       result in the tests being run again. Very useful when combined with `--stale` and
       external commands which produce output on stdout upon file system modification.
     * `--max-cases` - sets the maximum number of cases running async

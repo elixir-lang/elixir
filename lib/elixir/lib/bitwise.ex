@@ -14,8 +14,8 @@ defmodule Bitwise do
   If you prefer to use only operators or skip them, you can
   pass the following options:
 
-    * `:only_operators` - include only operators
-    * `:skip_operators` - skip operators
+    * `:only_operators` - includes only operators
+    * `:skip_operators` - skips operators
 
   For example:
 
