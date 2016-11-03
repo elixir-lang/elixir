@@ -30,14 +30,14 @@ defmodule DateTest do
     assert Date.compare(date2, date1) == :gt
   end
 
-  test "day_of_the_week/1" do
-    assert Date.day_of_the_week(~D[2016-10-31]) == 1
-    assert Date.day_of_the_week(~D[2016-11-01]) == 2
-    assert Date.day_of_the_week(~D[2016-11-02]) == 3
-    assert Date.day_of_the_week(~D[2016-11-03]) == 4
-    assert Date.day_of_the_week(~D[2016-11-04]) == 5
-    assert Date.day_of_the_week(~D[2016-11-05]) == 6
-    assert Date.day_of_the_week(~D[2016-11-06]) == 7
+  test "day_of_week/1" do
+    assert Date.day_of_week(~D[2016-10-31]) == 1
+    assert Date.day_of_week(~D[2016-11-01]) == 2
+    assert Date.day_of_week(~D[2016-11-02]) == 3
+    assert Date.day_of_week(~D[2016-11-03]) == 4
+    assert Date.day_of_week(~D[2016-11-04]) == 5
+    assert Date.day_of_week(~D[2016-11-05]) == 6
+    assert Date.day_of_week(~D[2016-11-06]) == 7
   end
 end
 

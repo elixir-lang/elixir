@@ -108,7 +108,7 @@ defmodule Calendar.ISO do
   """
   def day_of_week(year, month, day)
       when is_integer(year) and is_integer(month) and is_integer(day) do
-    :calendar.day_of_week(year, month, day)
+    :calendar.day_of_the_week(year, month, day)
   end
 
   @doc """
