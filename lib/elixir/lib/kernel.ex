@@ -932,7 +932,7 @@ defmodule Kernel do
   Instead, consider prepending via `[item | rest]` and then reversing.
 
   If the `right` operand is not a proper list, it returns an improper list.
-  If the `left` operand it not a proper list, it raises `ArgumentError`.
+  If the `left` operand is not a proper list, it raises `ArgumentError`.
 
   Inlined by the compiler.
 
