@@ -604,7 +604,7 @@ defmodule Kernel do
 
   """
   @spec round(float) :: integer
-  @spec round(arg) :: arg when arg: integer
+  @spec round(value) :: value when value: integer
   def round(number) do
     :erlang.round(number)
   end
@@ -803,7 +803,7 @@ defmodule Kernel do
       5
 
   """
-  @spec trunc(arg) :: arg when arg: integer
+  @spec trunc(value) :: value when value: integer
   @spec trunc(float) :: integer
   def trunc(number) do
     :erlang.trunc(number)

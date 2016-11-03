@@ -335,7 +335,6 @@ defmodule Kernel.Typespec do
   ## Macro callbacks
 
   @doc false
-  @spec defspec(atom, Macro.t, Macro.Env.t) :: Keyword.t
   def defspec(kind, expr, caller) when kind in [:callback, :macrocallback] do
     case spec_to_signature(expr) do
       {name, arity} ->
