@@ -35,11 +35,11 @@ defmodule Module do
   For example, you can specify the `URI.Parser` behaviour as follows:
 
       defmodule URI.Parser do
-        @doc "Parses the given URL"
-        @callback parse(uri_info :: URI.t) :: URI.t
-
         @doc "Defines a default port"
         @callback default_port() :: integer
+
+        @doc "Parses the given URL"
+        @callback parse(uri_info :: URI.t) :: URI.t
       end
 
   And then a module may use it as:
