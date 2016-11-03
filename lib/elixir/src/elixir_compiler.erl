@@ -71,7 +71,7 @@ code_loading_compilation(Forms, Vars, #{line := Line} = E) ->
   S = elixir_env:env_to_scope_with_vars(E, Dict),
   {Expr, EE, _S} = elixir:quoted_to_erl(Forms, E, S),
 
-  {Module, I} = retrieve_module_name(),
+  {Module, I} = retrieve_compiler_module(),
   Fun  = code_fun(?m(E, module)),
   Form = code_mod(Fun, Expr, Line, ?m(E, file), Module, Vars),
   Args = list_to_tuple([V || {_, _, _, V} <- Vars]),
@@ -126,7 +126,7 @@ dispatch_loaded(Module, Fun, Args, Purgeable, I, E) ->
   code:delete(Module),
   if Purgeable ->
       code:purge(Module),
-      return_module_name(I);
+      return_compiler_module(I);
      true ->
        ok
   end,
@@ -151,11 +151,11 @@ code_mod(Fun, Expr, Line, File, Module, Vars) when is_binary(File), is_integer(L
     ]}
   ].
 
-retrieve_module_name() ->
-  elixir_code_server:call(retrieve_module_name).
+retrieve_compiler_module() ->
+  elixir_code_server:call(retrieve_compiler_module).
 
-return_module_name(I) ->
-  elixir_code_server:cast({return_module_name, I}).
+return_compiler_module(I) ->
+  elixir_code_server:cast({return_compiler_module, I}).
 
 allows_fast_compilation({'__block__', _, Exprs}) ->
   lists:all(fun allows_fast_compilation/1, Exprs);

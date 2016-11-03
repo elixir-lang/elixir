@@ -148,7 +148,7 @@ compile_undef(Module, Fun, Arity, Stack) ->
 %% Hook that builds both attribute and functions and set up common hooks.
 
 build(Line, File, Module, Docs, Lexical) ->
-  case ets:lookup(elixir_modules, Module) of
+  case elixir_code_server:call({lookup, Module}) of
     [{Module, _, _, OldLine, OldFile}] ->
       Error = {module_in_definition, Module, OldFile, OldLine},
       elixir_errors:form_error([{line, Line}], File, ?MODULE, Error);
