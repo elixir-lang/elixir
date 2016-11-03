@@ -207,5 +207,5 @@ build_map(Ann, TUpdate, TArgs, SA) -> {{map, Ann, TUpdate, TArgs}, SA}.
 assert_struct_keys(Meta, Name, Struct, Assocs, S) ->
   [begin
      compile_error(Meta, S#elixir_scope.file, "unknown key ~ts for struct ~ts",
-                   ['Elixir.Kernel':inspect(Key), elixir_aliases:inspect(Name)])
+                   ['Elixir.Macro':to_string(Key), elixir_aliases:inspect(Name)])
    end || {Key, _} <- Assocs, not maps:is_key(Key, Struct)].
