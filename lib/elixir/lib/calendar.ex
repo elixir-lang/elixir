@@ -70,6 +70,13 @@ defmodule Calendar do
   @callback leap_year?(year) :: boolean
 
   @doc """
+  Computes the day of the week from the specified `year`, `month`, and `day`.
+
+  Returns the day of the week as 1: Monday, 2: Tuesday, and so on.
+  """
+  @callback day_of_week(year, month, day) :: non_neg_integer()
+
+  @doc """
   Converts the given structure into a string according to the calendar.
   """
   @callback to_string(structure :: Date.t | DateTime.t | NaiveDateTime.t) :: String.t
