@@ -314,6 +314,23 @@ defmodule Date do
     end
   end
 
+  @doc """
+  Computes the day of the week of a given `Date` struct.
+
+  Returns the day of the week as 1: Monday, 2: Tuesday, and so on.
+
+  ## Examples
+
+      iex> Date.day_of_the_week(~D[2016-10-31])
+      1
+      iex> Date.day_of_the_week(~D[2016-11-01])
+      2
+  """
+  @spec day_of_the_week(Date.t) :: integer
+  def day_of_the_week(%Date{calendar: calendar} = date) do
+    calendar.day_of_the_week(date.year, date.month, date.day)
+  end
+
   ## Helpers
 
   defimpl String.Chars do
