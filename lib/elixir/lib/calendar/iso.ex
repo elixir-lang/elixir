@@ -59,6 +59,33 @@ defmodule Calendar.ISO do
   end
 
   @doc """
+  Calculates the day of the week from the given `year`, `month`, and `day`.
+
+  Returns the day of the week as an integer, Monday being 1, Tuesday 2, and so on.
+
+  ## Examples
+
+      iex> Calendar.ISO.day_of_week(2016, 10, 31)
+      1
+      iex> Calendar.ISO.day_of_week(2016, 11, 01)
+      2
+      iex> Calendar.ISO.day_of_week(2016, 11, 02)
+      3
+      iex> Calendar.ISO.day_of_week(2016, 11, 03)
+      4
+      iex> Calendar.ISO.day_of_week(2016, 11, 04)
+      5
+      iex> Calendar.ISO.day_of_week(2016, 11, 05)
+      6
+      iex> Calendar.ISO.day_of_week(2016, 11, 06)
+      7
+  """
+  def day_of_week(year, month, day)
+      when is_integer(year) and is_integer(month) and is_integer(day) do
+    :calendar.day_of_the_week(year, month, day)
+  end
+
+  @doc """
   Converts the given structure into a string.
 
   It uses the ISO 8601 standard except for DateTime where the
