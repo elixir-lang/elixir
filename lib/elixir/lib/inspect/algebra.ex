@@ -33,7 +33,7 @@ defmodule Inspect.Opts do
       printing to IO devices. Set to 0 to force each item to be printed on its
       own line.
 
-    * `:base` - print integers as :binary, :octal, :decimal, or :hex, defaults
+    * `:base` - prints integers as :binary, :octal, :decimal, or :hex, defaults
       to :decimal. When inspecting binaries any `:base` other than `:decimal`
       implies `binaries: :as_binaries`.
 

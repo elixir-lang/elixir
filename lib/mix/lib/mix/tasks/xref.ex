@@ -55,16 +55,16 @@ defmodule Mix.Tasks.Xref do
 
     * `--exclude` - paths to exclude
 
-    * `--source` - display all files that the given source file references (directly or indirectly)
+    * `--source` - displays all files that the given source file references (directly or indirectly)
 
-    * `--sink` - display all files that reference the given file (directly or indirectly)
+    * `--sink` - displays all files that reference the given file (directly or indirectly)
 
     * `--format` - can be set to one of:
 
-      * `pretty` - use Unicode codepoints for formatting the graph.
+      * `pretty` - uses Unicode codepoints for formatting the graph.
         This is the default except on Windows
 
-      * `plain` - do not use Unicode codepoints for formatting the graph.
+      * `plain` - does not use Unicode codepoints for formatting the graph.
         This is the default on Windows
 
       * `dot` - produces a DOT graph description in `xref_graph.dot` in the
@@ -77,13 +77,13 @@ defmodule Mix.Tasks.Xref do
 
   Those options are shared across all modes:
 
-    * `--no-compile` - do not compile even if files require compilation
+    * `--no-compile` - does not compile even if files require compilation
 
-    * `--no-deps-check` - do not check dependencies
+    * `--no-deps-check` - does not check dependencies
 
-    * `--no-archives-check` - do not check archives
+    * `--no-archives-check` - does not check archives
 
-    * `--no-elixir-version-check` - do not check the Elixir version from mix.exs
+    * `--no-elixir-version-check` - does not check the Elixir version from mix.exs
 
   ## Configuration
 

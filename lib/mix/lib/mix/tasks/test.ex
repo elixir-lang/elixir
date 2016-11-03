@@ -53,16 +53,16 @@ defmodule Mix.Tasks.Test do
     * `--force` - forces compilation regardless of modification times
     * `--formatter` - formatter module
     * `--include` - includes tests that match the filter
-    * `--listen-on-stdin` - run tests, and then listen on stdin. Receiving a newline will
+    * `--listen-on-stdin` - runs tests, and then listens on stdin. Receiving a newline will
       result in the tests being run again. Very useful when combined with `--stale` and
       external commands which produce output on stdout upon file system modification.
     * `--max-cases` - sets the maximum number of cases running async
-    * `--no-archives-check` - do not check archives
+    * `--no-archives-check` - does not check archives
     * `--no-color` - disables color in the output
-    * `--no-compile` - do not compile, even if files require compilation
-    * `--no-deps-check` - do not check dependencies
-    * `--no-elixir-version-check` - do not check the Elixir version from mix.exs
-    * `--no-start` - do not start applications after compilation
+    * `--no-compile` - does not compile, even if files require compilation
+    * `--no-deps-check` - does not check dependencies
+    * `--no-elixir-version-check` - does not check the Elixir version from mix.exs
+    * `--no-start` - does not start applications after compilation
     * `--only` - runs only tests that match the filter
     * `--raise` - raises if the test suit failed
     * `--seed` - seeds the random number generator used to randomize tests order;

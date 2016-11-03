@@ -27,7 +27,7 @@ defmodule Regex do
       modifiers like `\w`, `\W`, `\s` and friends to also match on Unicode.
       It expects valid Unicode strings to be given on match
 
-    * `caseless` (i) - add case insensitivity
+    * `caseless` (i) - adds case insensitivity
 
     * `dotall` (s) - causes dot to match newlines and also set newline to
       anycrlf; the new line setting can be overridden by setting `(*CR)` or
@@ -70,7 +70,7 @@ defmodule Regex do
       explicitly captured subpatterns, but not the complete matching part of
       the string
 
-    * `:none` - do not return matching subpatterns at all
+    * `:none` - does not return matching subpatterns at all
 
     * `:all_names` - captures all names in the Regex
 
@@ -184,7 +184,7 @@ defmodule Regex do
 
   ## Options
 
-    * `:return`  - set to `:index` to return indexes. Defaults to `:binary`.
+    * `:return`  - sets to `:index` to return indexes. Defaults to `:binary`.
     * `:capture` - what to capture in the result. Check the moduledoc for `Regex`
       to see the possible capture values.
 
@@ -299,7 +299,7 @@ defmodule Regex do
 
   ## Options
 
-    * `:return`  - set to `:index` to return indexes. Defaults to `:binary`.
+    * `:return`  - sets to `:index` to return indexes. Defaults to `:binary`.
     * `:capture` - what to capture in the result. Check the moduledoc for `Regex`
       to see the possible capture values.
 

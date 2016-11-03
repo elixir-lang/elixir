@@ -32,14 +32,14 @@ defmodule Mix.Tasks.Run do
 
     * `--config`, `-c`  - loads the given configuration file
     * `--eval`, `-e` - evaluate the given code
-    * `--require`, `-r` - require pattern before running the command
+    * `--require`, `-r` - requires pattern before running the command
     * `--parallel`, `-p` - makes all requires parallel
-    * `--no-compile` - do not compile even if files require compilation
-    * `--no-deps-check` - do not check dependencies
-    * `--no-archives-check` - do not check archives
-    * `--no-halt` - do not halt the system after running the command
-    * `--no-start` - do not start applications after compilation
-    * `--no-elixir-version-check` - do not check the Elixir version from mix.exs
+    * `--no-compile` - does not compile even if files require compilation
+    * `--no-deps-check` - does not check dependencies
+    * `--no-archives-check` - does not check archives
+    * `--no-halt` - does not halt the system after running the command
+    * `--no-start` - does not start applications after compilation
+    * `--no-elixir-version-check` - does not check the Elixir version from mix.exs
 
   """
 

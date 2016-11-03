@@ -108,7 +108,7 @@ defmodule Mix.Tasks.Deps do
 
   It supports the following options:
 
-    * `--all` - check all dependencies, regardless of specified environment
+    * `--all` - checks all dependencies, regardless of specified environment
 
   """
   @spec run(OptionParser.argv) :: :ok

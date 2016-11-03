@@ -43,10 +43,10 @@ defmodule Mix.Tasks.Compile do
 
   ## Command line options
 
-    * `--list`              - list all enabled compilers
-    * `--no-archives-check` - skip checking of archives
-    * `--no-deps-check`     - skip checking of dependencies
-    * `--force`             - force compilation
+    * `--list`              - lists all enabled compilers
+    * `--no-archives-check` - skips checking of archives
+    * `--no-deps-check`     - skips checking of dependencies
+    * `--force`             - forces compilation
 
   """
   @spec run(OptionParser.argv) :: :ok | :noop

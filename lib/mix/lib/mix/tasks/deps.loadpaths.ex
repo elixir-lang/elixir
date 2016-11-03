@@ -15,8 +15,8 @@ defmodule Mix.Tasks.Deps.Loadpaths do
 
   ## Command line options
 
-    * `--no-deps-check` - do not check or compile deps, only load available ones
-    * `--no-compile` - do not compile dependencies
+    * `--no-deps-check` - does not check or compile deps, only load available ones
+    * `--no-compile` - does not compile dependencies
 
   """
   @spec run(OptionParser.argv) :: :ok

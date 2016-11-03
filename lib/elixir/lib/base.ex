@@ -158,8 +158,8 @@ defmodule Base do
 
   The values for `:case` can be:
 
-    * `:upper` - use upper case characters (default)
-    * `:lower` - use lower case characters
+    * `:upper` - uses upper case characters (default)
+    * `:lower` - uses lower case characters
 
   ## Examples
 
@@ -188,9 +188,9 @@ defmodule Base do
 
   The values for `:case` can be:
 
-    * `:upper` - only allow upper case characters (default)
-    * `:lower` - only allow lower case characters
-    * `:mixed` - allow mixed case characters
+    * `:upper` - only allows upper case characters (default)
+    * `:lower` - only allows lower case characters
+    * `:mixed` - allows mixed case characters
 
   ## Examples
 
@@ -223,9 +223,9 @@ defmodule Base do
 
   The values for `:case` can be:
 
-    * `:upper` - only allow upper case characters (default)
-    * `:lower` - only allow lower case characters
-    * `:mixed` - allow mixed case characters
+    * `:upper` - only allows upper case characters (default)
+    * `:lower` - only allows lower case characters
+    * `:mixed` - allows mixed case characters
 
   An `ArgumentError` exception is raised if the padding is incorrect or
   a non-alphabet character is present in the string.
@@ -443,8 +443,8 @@ defmodule Base do
 
   The values for `:case` can be:
 
-    * `:upper` - use upper case characters (default)
-    * `:lower` - use lower case characters
+    * `:upper` - uses upper case characters (default)
+    * `:lower` - uses lower case characters
 
   The values for `:padding` can be:
 
@@ -483,14 +483,14 @@ defmodule Base do
 
   The values for `:case` can be:
 
-    * `:upper` - only allow  upper case characters (default)
-    * `:lower` - only allow lower case characters
-    * `:mixed` - allow mixed case characters
+    * `:upper` - only allows  upper case characters (default)
+    * `:lower` - only allows lower case characters
+    * `:mixed` - allows mixed case characters
 
   The values for `:padding` can be:
 
-    * `true` - require the input string to be padded to the nearest multiple of 8 (default)
-    * `false` - ignore padding from the input string
+    * `true` - requires the input string to be padded to the nearest multiple of 8 (default)
+    * `false` - ignores padding from the input string
 
   ## Examples
 
@@ -530,14 +530,14 @@ defmodule Base do
 
   The values for `:case` can be:
 
-    * `:upper` - only allow upper case characters (default)
-    * `:lower` - only allow lower case characters
-    * `:mixed` - allow mixed case characters
+    * `:upper` - only allows upper case characters (default)
+    * `:lower` - only allows lower case characters
+    * `:mixed` - allows mixed case characters
 
   The values for `:padding` can be:
 
-    * `true` - require the input string to be padded to the nearest multiple of 8 (default)
-    * `false` - ignore padding from the input string
+    * `true` - requires the input string to be padded to the nearest multiple of 8 (default)
+    * `false` - ignores padding from the input string
 
   ## Examples
 
@@ -575,8 +575,8 @@ defmodule Base do
 
   The values for `:case` can be:
 
-    * `:upper` - use upper case characters (default)
-    * `:lower` - use lower case characters
+    * `:upper` - uses upper case characters (default)
+    * `:lower` - uses lower case characters
 
   The values for `:padding` can be:
 
@@ -616,14 +616,14 @@ defmodule Base do
 
   The values for `:case` can be:
 
-    * `:upper` - only allow upper case characters (default)
-    * `:lower` - only allow lower case characters
-    * `:mixed` - allow mixed case characters
+    * `:upper` - only allows upper case characters (default)
+    * `:lower` - only allows lower case characters
+    * `:mixed` - allows mixed case characters
 
   The values for `:padding` can be:
 
-    * `true` - require the input string to be padded to the nearest multiple of 8 (default)
-    * `false` - ignore padding from the input string
+    * `true` - requires the input string to be padded to the nearest multiple of 8 (default)
+    * `false` - ignores padding from the input string
 
   ## Examples
 
@@ -664,14 +664,14 @@ defmodule Base do
 
   The values for `:case` can be:
 
-    * `:upper` - only allow upper case characters (default)
-    * `:lower` - only allow lower case characters
-    * `:mixed` - allow mixed case characters
+    * `:upper` - only allows upper case characters (default)
+    * `:lower` - only allows lower case characters
+    * `:mixed` - allows mixed case characters
 
   The values for `:padding` can be:
 
-    * `true` - require the input string to be padded to the nearest multiple of 8 (default)
-    * `false` - ignore padding from the input string
+    * `true` - requires the input string to be padded to the nearest multiple of 8 (default)
+    * `false` - ignores padding from the input string
 
   ## Examples
 
