@@ -108,6 +108,7 @@ defmodule Kernel.Typespec do
   @doc """
   Defines a `spec` by receiving a typespec expression.
   """
+  @spec define_spec(atom, Macro.t, Macro.Env.t) :: Keyword.t
   def define_spec(kind, expr, env) do
     defspec(kind, expr, env)
   end
@@ -117,7 +118,9 @@ defmodule Kernel.Typespec do
   (private, opaque or not). This function is only available
   for modules being compiled.
   """
-  def defines_type?(module, name, arity) do
+  @spec defines_type?(module, atom, arity) :: boolean
+  def defines_type?(module, name, arity)
+      when is_atom(module) and is_atom(name) and arity in 0..255 do
     finder = fn {_kind, expr, _caller} ->
       type_to_signature(expr) == {name, arity}
     end
@@ -129,7 +132,9 @@ defmodule Kernel.Typespec do
   Returns `true` if the current module defines a given spec.
   This function is only available for modules being compiled.
   """
-  def defines_spec?(module, name, arity) do
+  @spec defines_spec?(module, atom, arity) :: boolean
+  def defines_spec?(module, name, arity)
+      when is_atom(module) and is_atom(name) and arity in 0..255 do
     finder = fn {_kind, expr, _caller} ->
       spec_to_signature(expr) == {name, arity}
     end
@@ -140,7 +145,9 @@ defmodule Kernel.Typespec do
   Returns `true` if the current module defines a callback.
   This function is only available for modules being compiled.
   """
-  def defines_callback?(module, name, arity) do
+  @spec defines_callback?(module, atom, arity) :: boolean
+  def defines_callback?(module, name, arity)
+      when is_atom(module) and is_atom(name) and arity in 0..255 do
     finder = fn {_kind, expr, _caller} ->
       spec_to_signature(expr) == {name, arity}
     end
@@ -150,8 +157,10 @@ defmodule Kernel.Typespec do
   @doc """
   Converts a spec clause back to Elixir AST.
   """
+  @spec spec_to_ast(atom, tuple) :: {atom, Keyword.t, [Macro.t]}
   def spec_to_ast(name, spec)
-  def spec_to_ast(name, {:type, line, :fun, [{:type, _, :product, args}, result]}) do
+  def spec_to_ast(name, {:type, line, :fun, [{:type, _, :product, args}, result]})
+      when is_atom(name) do
     meta = [line: line]
     body = {name, meta, Enum.map(args, &typespec_to_ast/1)}
 
@@ -169,11 +178,12 @@ defmodule Kernel.Typespec do
     end
   end
 
-  def spec_to_ast(name, {:type, line, :fun, []}) do
+  def spec_to_ast(name, {:type, line, :fun, []}) when is_atom(name) do
     {:::, [line: line], [{name, [line: line], []}, quote(do: term)]}
   end
 
-  def spec_to_ast(name, {:type, line, :bounded_fun, [{:type, _, :fun, [{:type, _, :product, args}, result]}, constraints]}) do
+  def spec_to_ast(name, {:type, line, :bounded_fun, [{:type, _, :fun, [{:type, _, :product, args}, result]}, constraints]})
+      when is_atom(name) do
     guards =
       for {:type, _, :constraint, [{:atom, _, :is_subtype}, [{:var, _, var}, type]]} <- constraints do
         {var, typespec_to_ast(type)}
@@ -206,7 +216,7 @@ defmodule Kernel.Typespec do
     quote do: unquote(record)(unquote_splicing(args)) :: unquote(type)
   end
 
-  def type_to_ast({name, type, args}) do
+  def type_to_ast({name, type, args}) when is_atom(name) do
     args = for arg <- args, do: typespec_to_ast(arg)
     quote do: unquote(name)(unquote_splicing(args)) :: unquote(typespec_to_ast(type))
   end

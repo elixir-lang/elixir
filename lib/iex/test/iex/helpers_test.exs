@@ -199,7 +199,7 @@ defmodule IEx.HelpersTest do
     assert capture_io(fn -> s Enum.all?/1 end) ==
            "@spec all?(t()) :: boolean()\n"
     assert capture_io(fn -> s struct end) ==
-           "@spec struct(module() | map(), Enum.t()) :: map()\n"
+           "@spec struct(module() | struct(), Enum.t()) :: struct()\n"
   end
 
   test "v helper" do

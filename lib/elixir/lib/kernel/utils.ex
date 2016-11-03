@@ -6,8 +6,10 @@ defmodule Kernel.Utils do
   @doc """
   Callback for destructure.
   """
-  def destructure(list, count) when is_list(list), do: destructure_list(list, count)
-  def destructure(nil, count), do: destructure_nil(count)
+  def destructure(list, count) when is_list(list) and is_integer(count) and count >= 0,
+    do: destructure_list(list, count)
+  def destructure(nil, count) when is_integer(count) and count >= 0,
+    do: destructure_nil(count)
 
   defp destructure_list(_, 0), do: []
   defp destructure_list([], count), do: destructure_nil(count)
@@ -19,7 +21,7 @@ defmodule Kernel.Utils do
   @doc """
   Callback for defdelegate.
   """
-  def defdelegate(fun, opts) do
+  def defdelegate(fun, opts) when is_list(opts) do
     append_first = Keyword.get(opts, :append_first, false)
 
     {name, args} =
