@@ -327,8 +327,8 @@ defmodule Date do
       2
   """
   @spec day_of_the_week(Date.t) :: integer
-  def day_of_the_week(%Date{calendar: calendar} = date) do
-    calendar.day_of_the_week(date.year, date.month, date.day)
+  def day_of_the_week(%Date{calendar: calendar, year: year, month: month, day: day}) do
+    calendar.day_of_the_week(year, month, day)
   end
 
   ## Helpers
