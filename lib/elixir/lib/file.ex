@@ -1027,7 +1027,7 @@ defmodule File do
         IO.read(file, :line)
       end)
 
-  See `open/2` for a list of `modes`.
+  See `open/2` for the list of available `modes`.
   """
   @spec open(Path.t, [mode | :ram], (io_device -> res)) :: {:ok, res} | {:error, posix} when res: var
   def open(path, modes, function) when is_list(modes) and is_function(function, 1) do
@@ -1047,13 +1047,13 @@ defmodule File do
 
   Returns the IO device otherwise.
 
-  See `open/2` for a list of `modes`.
+  See `open/2` for the list of available `modes`.
   """
   @spec open!(Path.t, [mode | :ram]) :: io_device | no_return
-  def open!(path, modes \\ []) when is_list(modes) or is_function(modes) do
+  def open!(path, modes \\ []) do
     case open(path, modes) do
       {:ok, io_device} ->
-          io_device
+        io_device
       {:error, reason} ->
         raise File.Error, reason: reason, action: "open", path: IO.chardata_to_string(path)
     end
@@ -1064,10 +1064,10 @@ defmodule File do
 
   If it succeeds opening the file, it returns the `function` result on the IO device.
 
-  See `open/2` for a list of `modes`.
+  See `open/2` for the list of available `modes`.
   """
   @spec open!(Path.t, [mode | :ram], (io_device -> res)) :: res | no_return when res: var
-  def open!(path, modes, function) when is_list(modes) and is_function(function, 1) do
+  def open!(path, modes, function) do
     case open(path, modes, function) do
       {:ok, function_result} ->
         function_result
@@ -1189,7 +1189,7 @@ defmodule File do
 
   Note that if the option `:delayed_write` was used when opening the file,
   `close/1` might return an old write error and not even try to close the file.
-  See `open/2`.
+  See `open/2` for more information.
   """
   @spec close(io_device) :: :ok | {:error, posix | :badarg | :terminated}
   def close(io_device) do
