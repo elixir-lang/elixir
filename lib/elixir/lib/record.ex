@@ -174,7 +174,8 @@ defmodule Record do
   The following macros are generated:
 
     * `name/0` to create a new record with default values for all fields
-    * `name/1` to create a new record with the given fields and values or to
+    * `name/1` to create a new record with the given fields and values,
+      to get zero-based index of the given field in a record or to
       convert the given record to a keyword list
     * `name/2` to update an existing record with the given fields and values
       or to access a given field in a given record
@@ -205,6 +206,10 @@ defmodule Record do
 
       # To update the record
       user(record, age: 26) #=> {:user, "meg", 26}
+
+      # To get zero-based index of the field in record tuple (index 0 is
+      # occupied by the record "tag")
+      user(:name) #=> 1
 
       # Convert a record to a keyword list
       user(record) #=> [name: "meg", age: 26]
