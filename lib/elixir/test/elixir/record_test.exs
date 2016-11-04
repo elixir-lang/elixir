@@ -178,15 +178,15 @@ defmodule RecordTest do
     end
 
     pretender = {RecordTest, "john"}
-    msg = "expected argument can be a RecordTest record with 2 fields, " <>
-          "while got: {RecordTest, \"john\"}"
+    msg = "expected argument to be a RecordTest record with 2 fields, " <>
+          "got: {RecordTest, \"john\"}"
     assert_raise ArgumentError, msg, fn ->
       user(pretender)
     end
 
     pretender = {RecordTest, "john", 25, []}
-    msg = "expected argument can be a RecordTest record with 2 fields, " <>
-          "while got: {RecordTest, \"john\", 25, []}"
+    msg = "expected argument to be a RecordTest record with 2 fields, " <>
+          "got: {RecordTest, \"john\", 25, []}"
     assert_raise ArgumentError, msg, fn ->
       user(pretender)
     end
