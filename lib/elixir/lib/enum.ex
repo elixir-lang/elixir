@@ -1891,7 +1891,7 @@ defmodule Enum do
   """
   @spec scan(t, (element, any -> any)) :: list
   def scan(enumerable, fun) when is_function(fun, 2) do
-    {res, _} = reduce(enumerable, {[], :first}, R.scan_2(fun))
+    {res, _} = reduce(enumerable, {[], :first}, R.scan2(fun))
     :lists.reverse(res)
   end
 
@@ -1908,7 +1908,7 @@ defmodule Enum do
   """
   @spec scan(t, any, (element, any -> any)) :: list
   def scan(enumerable, acc, fun) when is_function(fun, 2) do
-    {res, _} = reduce(enumerable, {[], acc}, R.scan_3(fun))
+    {res, _} = reduce(enumerable, {[], acc}, R.scan3(fun))
     :lists.reverse(res)
   end
 
@@ -2901,10 +2901,10 @@ defmodule Enum do
     sort_merge(list, [], fun, false)
 
   defp sort_merge([t1, [h2 | t2] | l], acc, fun, true), do:
-    sort_merge(l, [sort_merge_1(t1, h2, t2, [], fun, false) | acc], fun, true)
+    sort_merge(l, [sort_merge1(t1, h2, t2, [], fun, false) | acc], fun, true)
 
   defp sort_merge([[h2 | t2], t1 | l], acc, fun, false), do:
-    sort_merge(l, [sort_merge_1(t1, h2, t2, [], fun, false) | acc], fun, false)
+    sort_merge(l, [sort_merge1(t1, h2, t2, [], fun, false) | acc], fun, false)
 
   defp sort_merge([l], [], _fun, _bool), do: l
 
@@ -2915,10 +2915,10 @@ defmodule Enum do
     reverse_sort_merge(acc, [], fun, bool)
 
   defp reverse_sort_merge([[h2 | t2], t1 | l], acc, fun, true), do:
-    reverse_sort_merge(l, [sort_merge_1(t1, h2, t2, [], fun, true) | acc], fun, true)
+    reverse_sort_merge(l, [sort_merge1(t1, h2, t2, [], fun, true) | acc], fun, true)
 
   defp reverse_sort_merge([t1, [h2 | t2] | l], acc, fun, false), do:
-    reverse_sort_merge(l, [sort_merge_1(t1, h2, t2, [], fun, true) | acc], fun, false)
+    reverse_sort_merge(l, [sort_merge1(t1, h2, t2, [], fun, true) | acc], fun, false)
 
   defp reverse_sort_merge([l], acc, fun, bool), do:
     sort_merge([:lists.reverse(l, []) | acc], [], fun, bool)
@@ -2926,26 +2926,26 @@ defmodule Enum do
   defp reverse_sort_merge([], acc, fun, bool), do:
     sort_merge(acc, [], fun, bool)
 
-  defp sort_merge_1([h1 | t1], h2, t2, m, fun, bool) do
+  defp sort_merge1([h1 | t1], h2, t2, m, fun, bool) do
     if fun.(h1, h2) == bool do
-      sort_merge_2(h1, t1, t2, [h2 | m], fun, bool)
+      sort_merge2(h1, t1, t2, [h2 | m], fun, bool)
     else
-      sort_merge_1(t1, h2, t2, [h1 | m], fun, bool)
+      sort_merge1(t1, h2, t2, [h1 | m], fun, bool)
     end
   end
 
-  defp sort_merge_1([], h2, t2, m, _fun, _bool), do:
+  defp sort_merge1([], h2, t2, m, _fun, _bool), do:
     :lists.reverse(t2, [h2 | m])
 
-  defp sort_merge_2(h1, t1, [h2 | t2], m, fun, bool) do
+  defp sort_merge2(h1, t1, [h2 | t2], m, fun, bool) do
     if fun.(h1, h2) == bool do
-      sort_merge_2(h1, t1, t2, [h2 | m], fun, bool)
+      sort_merge2(h1, t1, t2, [h2 | m], fun, bool)
     else
-      sort_merge_1(t1, h2, t2, [h1 | m], fun, bool)
+      sort_merge1(t1, h2, t2, [h1 | m], fun, bool)
     end
   end
 
-  defp sort_merge_2(h1, t1, [], m, _fun, _bool), do:
+  defp sort_merge2(h1, t1, [], m, _fun, _bool), do:
     :lists.reverse(t1, [h1 | m])
 
   ## split

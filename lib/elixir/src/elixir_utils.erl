@@ -139,7 +139,7 @@ elixir_to_erl(<<>>) ->
   {bin, 0, []};
 
 elixir_to_erl(Tree) when is_list(Tree) ->
-  elixir_to_erl_cons_1(Tree, []);
+  elixir_to_erl_cons1(Tree, []);
 
 elixir_to_erl(Tree) when is_atom(Tree) ->
   {atom, 0, Tree};
@@ -180,12 +180,12 @@ elixir_to_erl(Pid) when is_pid(Pid) ->
 elixir_to_erl(_Other) ->
   error(badarg).
 
-elixir_to_erl_cons_1([H | T], Acc) -> elixir_to_erl_cons_1(T, [H | Acc]);
-elixir_to_erl_cons_1(Other, Acc) -> elixir_to_erl_cons_2(Acc, elixir_to_erl(Other)).
+elixir_to_erl_cons1([H | T], Acc) -> elixir_to_erl_cons1(T, [H | Acc]);
+elixir_to_erl_cons1(Other, Acc) -> elixir_to_erl_cons2(Acc, elixir_to_erl(Other)).
 
-elixir_to_erl_cons_2([H | T], Acc) ->
-  elixir_to_erl_cons_2(T, {cons, 0, elixir_to_erl(H), Acc});
-elixir_to_erl_cons_2([], Acc) ->
+elixir_to_erl_cons2([H | T], Acc) ->
+  elixir_to_erl_cons2(T, {cons, 0, elixir_to_erl(H), Acc});
+elixir_to_erl_cons2([], Acc) ->
   Acc.
 
 %% Boolean checks
