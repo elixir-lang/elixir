@@ -48,6 +48,7 @@ defmodule Mix.Dep.Converger do
   """
   def converge(acc, lock, opts, callback) do
     {deps, acc, lock} = all(acc, lock, opts, callback)
+    if remote = Mix.RemoteConverger.get, do: remote.post_converge()
     {topsort(deps), acc, lock}
   end
 
