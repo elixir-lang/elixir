@@ -196,7 +196,7 @@ defmodule Task.Supervised do
         waiting = Map.put(waiting, position, {pid, {:ok, value}})
         stream_reduce({:cont, acc}, max, spawned, delivered, waiting, next,
                       reducer, mfa, spawn, monitor_pid, monitor_ref, timeout)
-      {:DOWN, {^monitor_ref, position}, reason} ->
+      {:down, {^monitor_ref, position}, reason} ->
         waiting =
           case waiting do
             %{^position => {_, {:ok, _} = ok}} -> Map.put(waiting, position, {nil, ok})
@@ -275,7 +275,7 @@ defmodule Task.Supervised do
     for {_, {pid, _}} <- waiting do
       pid && Process.unlink(pid)
     end
-    send(monitor_pid, {:DOWN, monitor_ref})
+    send(monitor_pid, {:down, monitor_ref})
     receive do
       {:DOWN, ^monitor_ref, _, _, {:shutdown, ^monitor_ref}} ->
         :ok
@@ -303,7 +303,7 @@ defmodule Task.Supervised do
   defp stream_spawn(value, spawned, waiting, mfa, spawn, monitor_pid, monitor_ref) do
     owner = self()
     {type, pid} = spawn.(owner, stream_mfa(mfa, value))
-    send(monitor_pid, {:UP, owner, monitor_ref, spawned, type, pid})
+    send(monitor_pid, {:up, owner, monitor_ref, spawned, type, pid})
     Map.put(waiting, spawned, {pid, :running})
   end
 
@@ -319,12 +319,12 @@ defmodule Task.Supervised do
 
   defp stream_monitor(parent_pid, parent_ref, monitor_ref, counters) do
     receive do
-      {:UP, owner, ^monitor_ref, counter, type, pid} ->
+      {:up, owner, ^monitor_ref, counter, type, pid} ->
         ref = Process.monitor(pid)
         send(pid, {owner, {monitor_ref, counter}})
         counters = Map.put(counters, ref, {counter, type, pid})
         stream_monitor(parent_pid, parent_ref, monitor_ref, counters)
-      {:DOWN, ^monitor_ref} ->
+      {:down, ^monitor_ref} ->
         for {ref, {_counter, _, pid}} <- counters do
           Process.exit(pid, :kill)
           receive do
@@ -339,7 +339,7 @@ defmodule Task.Supervised do
         exit(reason)
       {:DOWN, ref, _, _, reason} ->
         {{counter, _, _}, counters} = Map.pop(counters, ref)
-        send(parent_pid, {:DOWN, {monitor_ref, counter}, reason})
+        send(parent_pid, {:down, {monitor_ref, counter}, reason})
         stream_monitor(parent_pid, parent_ref, monitor_ref, counters)
     end
   end
