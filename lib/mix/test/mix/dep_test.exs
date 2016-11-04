@@ -248,15 +248,14 @@ defmodule Mix.DepTest do
     @behaviour Mix.RemoteConverger
 
     def remote?(_app), do: true
+    def deps(_dep, _lock), do: []
+    def post_converge, do: :ok
 
     def converge(deps, lock) do
       Process.put(:remote_converger, deps)
       lock
     end
 
-    def deps(_dep, _lock) do
-      []
-    end
   end
 
   test "remote converger" do
@@ -305,14 +304,12 @@ defmodule Mix.DepTest do
     @behaviour Mix.RemoteConverger
 
     def remote?(_app), do: false
+    def deps(_dep, _lock), do: :ok
+    def post_converge, do: :ok
 
     def converge(_deps, lock) do
       Process.put(:remote_converger, true)
       lock
-    end
-
-    def deps(_dep, _lock) do
-      []
     end
   end
 

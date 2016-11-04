@@ -25,6 +25,12 @@ defmodule Mix.RemoteConverger do
   @callback deps(Mix.Dep.t, map) :: [atom]
 
   @doc """
+  Called after all convergers have run so that the remote
+  converger can perform clean up.
+  """
+  @callback post_converge() :: any
+
+  @doc """
   Gets registered remote converger.
   """
   def get do

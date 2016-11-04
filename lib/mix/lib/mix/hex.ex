@@ -1,6 +1,6 @@
 defmodule Mix.Hex do
   @moduledoc false
-  @hex_requirement  ">= 0.5.0"
+  @hex_requirement  ">= 0.14.0"
   @hex_mirror       "https://repo.hex.pm"
 
   @doc """
