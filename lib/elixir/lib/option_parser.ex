@@ -420,7 +420,6 @@ defmodule OptionParser do
     if switches[key] == :count do
       List.duplicate(to_switch(key), value)
     else
-      # If no options were provided consider the argv a simple pair
       [to_switch(key), to_string(value)]
     end
   end
