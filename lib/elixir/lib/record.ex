@@ -422,7 +422,7 @@ defmodule Record do
         kv when is_list(kv) ->
           kv
         expected_fields ->
-          msg = "expected argument can be a #{inspect atom} record with #{expected_fields} fields, while got: #{inspect record}"
+          msg = "expected argument to be a #{inspect atom} record with #{expected_fields} fields, got: #{inspect record}"
           raise ArgumentError, msg
       end
     else
