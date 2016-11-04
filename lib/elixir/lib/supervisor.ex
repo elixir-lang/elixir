@@ -95,6 +95,7 @@ defmodule Supervisor do
   explicitly defining a supervision module:
 
       defmodule MyApp.Supervisor do
+        # Automatically imports Supervisor.Spec
         use Supervisor
 
         def start_link do

@@ -1,4 +1,6 @@
 defmodule GenEvent do
+  # TODO: Deprecate by 1.5
+
   @moduledoc """
   A behaviour module for implementing event handling functionality.
 
