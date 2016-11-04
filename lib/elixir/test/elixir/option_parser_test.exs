@@ -397,9 +397,9 @@ defmodule OptionParserTest do
            ["--bool", "--no-bool"]
   end
 
-  test ":count opts can be translated back" do
+  test ":count switch type can be translated back" do
     original = ["--counter", "--counter"]
-    {opts, [], []} = OptionParser.parse(original,  [switches: [counter: :count] ])
+    {opts, [], []} = OptionParser.parse(original,  [switches: [counter: :count]])
     assert original == OptionParser.to_argv(opts, [switches: [counter: :count]])
   end
 end
