@@ -227,7 +227,7 @@ defmodule Registry do
       supervisor(Registry, [:unique, MyApp.Registry])
 
   For intensive workloads, the registry may also be partitioned (by specifying
-  the `:partitions` option). If partioning is required then a good default is to
+  the `:partitions` option). If partitioning is required then a good default is to
   set the number of partitions to the number of schedulers available:
 
       Registry.start_link(:unique, MyApp.Registry, partitions: System.schedulers_online())
