@@ -100,14 +100,14 @@ defmodule Calendar.ISO do
   end
 
   @doc """
-  Converts the date time (without time zone) into a string.
+  Converts the datetime (without time zone) into a string.
   """
   def naive_datetime_to_string(year, month, day, hour, minute, second, microsecond) do
     date_to_string(year, month, day) <> " " <> time_to_string(hour, minute, second, microsecond)
   end
 
   @doc """
-  Convers the date time (with time zone) into a string.
+  Convers the datetime (with time zone) into a string.
   """
   def datetime_to_string(year, month, day, hour, minute, second, microsecond,
                          time_zone, zone_abbr, utc_offset, std_offset) do
