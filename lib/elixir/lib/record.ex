@@ -193,6 +193,9 @@ defmodule Record do
   In the example above, a set of macros named `user` but with different
   arities will be defined to manipulate the underlying record.
 
+      # Import the module to make the user macros locally available
+      import User
+
       # To create records
       record = user()        #=> {:user, "meg", 25}
       record = user(age: 26) #=> {:user, "meg", 26}
