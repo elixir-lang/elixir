@@ -418,17 +418,26 @@ defmodule Record do
   def __keyword__(atom, fields, record) do
     if is_record(record, atom) do
       [_tag | values] = Tuple.to_list(record)
-      join_keyword(fields, values, [])
+      case join_keyword(fields, values, []) do
+        kv when is_list(kv) ->
+          kv
+        expected_fields ->
+          msg = "expected argument can be a #{inspect atom} record with #{expected_fields} fields, while got: #{inspect record}"
+          raise ArgumentError, msg
+      end
     else
       msg = "expected argument to be a literal atom, literal keyword or a #{inspect atom} record, got runtime: #{inspect record}"
       raise ArgumentError, msg
     end
   end
 
+  # Returns a keyword list, or expected number of fields on size mismatch
   defp join_keyword([{field, _default} | fields], [value | values], acc),
     do: join_keyword(fields, values, [{field, value} | acc])
   defp join_keyword([], [], acc),
     do: :lists.reverse(acc)
+  defp join_keyword(rest_fields, _rest_values, acc),
+    do: length(acc) + length(rest_fields) # expected fields
 
   defp apply_underscore(fields, keyword) do
     case Keyword.fetch(keyword, :_) do
