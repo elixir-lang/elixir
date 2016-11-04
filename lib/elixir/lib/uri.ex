@@ -343,8 +343,8 @@ defmodule URI do
     unpercent(tail, <<acc::binary, ?\s>>, spaces)
   end
 
-  defp unpercent(<<?%, hex_1, hex_2, tail::binary>>, acc, spaces) do
-    unpercent(tail, <<acc::binary, bsl(hex_to_dec(hex_1), 4) + hex_to_dec(hex_2)>>, spaces)
+  defp unpercent(<<?%, hex1, hex2, tail::binary>>, acc, spaces) do
+    unpercent(tail, <<acc::binary, bsl(hex_to_dec(hex1), 4) + hex_to_dec(hex2)>>, spaces)
   end
   defp unpercent(<<?%, _::binary>>, _acc, _spaces), do: throw(:malformed_uri)
 
