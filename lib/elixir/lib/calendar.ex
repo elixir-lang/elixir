@@ -277,11 +277,11 @@ defmodule Date do
   end
 
   @doc """
-  Converts the given date time to
+  Converts the given datetime to
   [ISO 8601:2004](https://en.wikipedia.org/wiki/ISO_8601).
 
-  Only supports converting date times which are in the ISO calendar,
-  attempting to convert date times from other calendars will raise.
+  Only supports converting datetimes which are in the ISO calendar,
+  attempting to convert datetimes from other calendars will raise.
 
   ### Examples
 
@@ -763,7 +763,7 @@ defmodule NaiveDateTime do
   A NaiveDateTime struct (without a time zone) and functions.
 
   The NaiveDateTime struct contains the fields year, month, day, hour,
-  minute, second, microsecond and calendar. New naive date times can be
+  minute, second, microsecond and calendar. New naive datetimes can be
   built with the `new/7` function or using the `~N` sigil:
 
       iex> ~N[2000-01-01 23:00:07]
@@ -804,7 +804,7 @@ defmodule NaiveDateTime do
   @unix_epoch :calendar.datetime_to_gregorian_seconds {{1970, 1, 1}, {0, 0, 0}}
 
   @doc """
-  Returns the current naive date time in UTC.
+  Returns the current naive datetime in UTC.
 
   Prefer using `DateTime.utc_now/0` when possible as, opposite
   to `NaiveDateTime`, it will keep the time zone information.
@@ -826,7 +826,7 @@ defmodule NaiveDateTime do
   end
 
   @doc """
-  Builds a new ISO naive date time.
+  Builds a new ISO naive datetime.
 
   Expects all values to be integers. Returns `{:ok, naive_datetime}`
   if each entry fits its appropriate range, returns `{:error, reason}`
@@ -871,7 +871,7 @@ defmodule NaiveDateTime do
   end
 
   @doc """
-  Builds a naive date time from date and time structs.
+  Builds a naive datetime from date and time structs.
 
   ## Examples
 
@@ -993,7 +993,7 @@ defmodule NaiveDateTime do
   end
 
   @doc """
-  Converts the given naive date time to a string according to its calendar.
+  Converts the given naive datetime to a string according to its calendar.
 
   ### Examples
 
@@ -1104,7 +1104,7 @@ defmodule NaiveDateTime do
       iex> NaiveDateTime.from_iso8601!("2015-01-23T23:50:07.123Z")
       ~N[2015-01-23 23:50:07.123]
       iex> NaiveDateTime.from_iso8601!("2015-01-23P23:50:07")
-      ** (ArgumentError) cannot parse "2015-01-23P23:50:07" as naive date time, reason: :invalid_format
+      ** (ArgumentError) cannot parse "2015-01-23P23:50:07" as naive datetime, reason: :invalid_format
 
   """
   @spec from_iso8601!(String.t) :: t | no_return
@@ -1113,16 +1113,16 @@ defmodule NaiveDateTime do
       {:ok, value} ->
         value
       {:error, reason} ->
-        raise ArgumentError, "cannot parse #{inspect string} as naive date time, reason: #{inspect reason}"
+        raise ArgumentError, "cannot parse #{inspect string} as naive datetime, reason: #{inspect reason}"
     end
   end
 
   @doc """
-  Converts the given naive date time to
+  Converts the given naive datetime to
   [ISO 8601:2004](https://en.wikipedia.org/wiki/ISO_8601).
 
-  Only supports converting naive date times which are in the ISO calendar,
-  attempting to convert naive date times from other calendars will raise.
+  Only supports converting naive datetimes which are in the ISO calendar,
+  attempting to convert naive datetimes from other calendars will raise.
 
   ### Examples
 
@@ -1151,8 +1151,8 @@ defmodule NaiveDateTime do
   @doc """
   Converts a `NaiveDateTime` struct to an Erlang datetime tuple.
 
-  Only supports converting naive date times which are in the ISO calendar,
-  attempting to convert naive date times from other calendars will raise.
+  Only supports converting naive datetimes which are in the ISO calendar,
+  attempting to convert naive datetimes from other calendars will raise.
 
   WARNING: Loss of precision may occur, as Erlang time tuples only store
   hour/minute/second.
@@ -1212,7 +1212,7 @@ defmodule NaiveDateTime do
       iex> NaiveDateTime.from_erl!({{2000, 1, 1}, {13, 30, 15}}, {5000, 3})
       ~N[2000-01-01 13:30:15.005]
       iex> NaiveDateTime.from_erl!({{2000, 13, 1}, {13, 30, 15}})
-      ** (ArgumentError) cannot convert {{2000, 13, 1}, {13, 30, 15}} to naive date time, reason: :invalid_date
+      ** (ArgumentError) cannot convert {{2000, 13, 1}, {13, 30, 15}} to naive datetime, reason: :invalid_date
   """
   @spec from_erl!(:calendar.datetime, Calendar.microsecond) :: t | no_return
   def from_erl!(tuple, microsecond \\ {0, 0}) do
@@ -1220,7 +1220,7 @@ defmodule NaiveDateTime do
       {:ok, value} ->
         value
       {:error, reason} ->
-        raise ArgumentError, "cannot convert #{inspect tuple} to naive date time, reason: #{inspect reason}"
+        raise ArgumentError, "cannot convert #{inspect tuple} to naive datetime, reason: #{inspect reason}"
     end
   end
 
@@ -1592,13 +1592,13 @@ defmodule DateTime do
   end
 
   @doc """
-  Converts the given date time to
+  Converts the given datetime to
   [ISO 8601:2004](https://en.wikipedia.org/wiki/ISO_8601) format.
 
-  Only supports converting date times which are in the ISO calendar,
-  attempting to convert date times from other calendars will raise.
+  Only supports converting datetimes which are in the ISO calendar,
+  attempting to convert datetimes from other calendars will raise.
 
-  WARNING: the ISO 8601 date time format does not contain the time zone nor
+  WARNING: the ISO 8601 datetime format does not contain the time zone nor
   its abbreviation, which means information is lost when converting to such
   format. This is also why this module does not provide a `from_iso8601/1`
   function, as it is impossible to build a proper `DateTime` from only the
@@ -1633,7 +1633,7 @@ defmodule DateTime do
   end
 
   @doc """
-  Converts the given date time to a string according to its calendar.
+  Converts the given datetime to a string according to its calendar.
 
   ### Examples
 
