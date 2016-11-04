@@ -170,3 +170,7 @@ capture_test() ->
    {identifier, {1, 2, 4}, 'or'},
    {mult_op,    {1, 4, 5}, '/'},
    {number,     {1, 5, 6}, 2}] = tokenize("&or/2").
+
+vc_merge_conflict_test() ->
+  {1, "found an unexpected version control marker, please resolve the conflicts: ", "<<<<<<< HEAD"} =
+    tokenize_error("<<<<<<< HEAD\n[1, 2, 3]").
