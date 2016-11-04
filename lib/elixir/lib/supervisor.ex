@@ -295,7 +295,7 @@ defmodule Supervisor do
   end
 
   @doc """
-  Starts a supervisor module with the given `arg`.
+  Starts a supervisor process with the given `module` and `arg`.
 
   To start the supervisor, the `c:init/1` callback will be invoked in the given
   `module`, with `arg` as its argument. The `c:init/1` callback must return a
