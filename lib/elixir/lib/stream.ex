@@ -581,7 +581,7 @@ defmodule Stream do
   """
   @spec scan(Enumerable.t, (element, acc -> any)) :: Enumerable.t
   def scan(enum, fun) do
-    lazy enum, :first, fn(f1) -> R.scan_2(fun, f1) end
+    lazy enum, :first, fn(f1) -> R.scan2(fun, f1) end
   end
 
   @doc """
@@ -598,7 +598,7 @@ defmodule Stream do
   """
   @spec scan(Enumerable.t, acc, (element, acc -> any)) :: Enumerable.t
   def scan(enum, acc, fun) do
-    lazy enum, acc, fn(f1) -> R.scan_3(fun, f1) end
+    lazy enum, acc, fn(f1) -> R.scan3(fun, f1) end
   end
 
   @doc """
