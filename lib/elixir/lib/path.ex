@@ -522,11 +522,6 @@ defmodule Path do
       call({:read_link_info, file})
     end
 
-    # For compatibility with buggy Erlang 17.1.
-    def read_file_info(file) do
-      call({:read_link_info, file})
-    end
-
     def list_dir(dir) do
       case call({:list_dir, dir})  do
         {:ok, files} ->
