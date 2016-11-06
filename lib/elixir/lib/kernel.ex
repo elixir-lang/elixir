@@ -1813,8 +1813,13 @@ defmodule Kernel do
   @doc """
   Gets a value and updates a nested structure.
 
-  It expects a tuple to be returned, containing the value
-  retrieved and the update one. The `fun` may also
+  `data` is a nested structure (ie. a map, keyword
+  list, or struct that implements the `Access` behaviour).
+
+  The `fun` argument receives the value of `key` (or `nil` if `key`
+  is not present) and must return a two-element tuple: the "get" value
+  (the retrieved value, which can be operated on before being returned)
+  and the new value to be stored under `key`. The `fun` may also
   return `:pop`, implying the current value shall be removed
   from the structure and returned.
 
@@ -1860,19 +1865,21 @@ defmodule Kernel do
   like the `all` anonymous function defined above. See `Access.all/0`,
   `Access.key/2` and others as examples.
   """
-  @spec get_and_update_in(Access.t, nonempty_list(term), (term -> {get, term} | :pop)) ::
-                          {get, Access.t} when get: var
+  @spec get_and_update_in(structure :: Access.t, keys, (term -> {get_value, update_value} | :pop)) ::
+        {get_value, structure :: Access.t} when keys: nonempty_list(any), get_value: var, update_value: term
   def get_and_update_in(data, keys, fun)
 
-  def get_and_update_in(data, [h], fun) when is_function(h),
-    do: h.(:get_and_update, data, fun)
-  def get_and_update_in(data, [h | t], fun) when is_function(h),
-    do: h.(:get_and_update, data, &get_and_update_in(&1, t, fun))
+  def get_and_update_in(data, [head], fun) when is_function(head, 3),
+    do: head.(:get_and_update, data, fun)
 
-  def get_and_update_in(data, [h], fun),
-    do: Access.get_and_update(data, h, fun)
-  def get_and_update_in(data, [h | t], fun),
-    do: Access.get_and_update(data, h, &get_and_update_in(&1, t, fun))
+  def get_and_update_in(data, [head | tail], fun) when is_function(head, 3),
+    do: head.(:get_and_update, data, &get_and_update_in(&1, tail, fun))
+
+  def get_and_update_in(data, [head], fun) when is_function(fun, 1),
+    do: Access.get_and_update(data, head, fun)
+
+  def get_and_update_in(data, [head | tail], fun) when is_function(fun, 1),
+    do: Access.get_and_update(data, head, &get_and_update_in(&1, tail, fun))
 
   @doc """
   Pops a key from the given nested structure.
