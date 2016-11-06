@@ -132,6 +132,12 @@ tokenize([], EndLine, _Column, #elixir_tokenizer{terminators=[{Start, {StartLine
   Message = io_lib:format("missing terminator: ~ts (for \"~ts\" starting at line ~B)", [End, Start, StartLine]),
   {error, {EndLine, Message, []}, [], Tokens};
 
+% VC merge conflict
+
+tokenize(("<<<<<<<" ++ _) = Original, Line, 1, _Scope, Tokens) ->
+  FirstLine = lists:takewhile(fun(C) -> C =/= $\n andalso C =/= $\r end, Original),
+  {error, {Line, "found an unexpected version control marker, please resolve the conflicts: ", FirstLine}, Original, Tokens};
+
 % Base integers
 
 tokenize([$0, $x, H | T], Line, Column, Scope, Tokens) when ?is_hex(H) ->
