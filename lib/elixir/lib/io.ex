@@ -276,7 +276,7 @@ defmodule IO do
       after: [2, 4, 6]
 
   """
-  @spec inspect(item, Keyword.t) :: item when item: var
+  @spec inspect(item, Keyword.t) :: item when item: term
   def inspect(item, opts \\ []) do
     inspect :stdio, item, opts
   end
@@ -286,7 +286,7 @@ defmodule IO do
 
   See `inspect/2` for a full list of options.
   """
-  @spec inspect(device, item, Keyword.t) :: item when item: var
+  @spec inspect(device, item, Keyword.t) :: item when item: term
   def inspect(device, item, opts) when is_list(opts) do
     label    = if (label = opts[:label]), do: [to_chardata(label), ": "], else: []
     opts     = struct(Inspect.Opts, opts)

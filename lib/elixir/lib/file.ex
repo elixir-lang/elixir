@@ -1001,7 +1001,7 @@ defmodule File do
 
   """
   @spec open(Path.t, [mode | :ram]) :: {:ok, io_device} | {:error, posix}
-  @spec open(Path.t, (io_device -> res)) :: {:ok, res} | {:error, posix} when res: var
+  @spec open(Path.t, (io_device -> result)) :: {:ok, result} | {:error, posix} when result: term
   def open(path, modes_or_function \\ [])
 
   def open(path, modes) when is_list(modes) do
@@ -1035,7 +1035,7 @@ defmodule File do
 
   See `open/2` for the list of available `modes`.
   """
-  @spec open(Path.t, [mode | :ram], (io_device -> res)) :: {:ok, res} | {:error, posix} when res: var
+  @spec open(Path.t, [mode | :ram], (io_device -> result)) :: {:ok, result} | {:error, posix} when result: term
   def open(path, modes, function) when is_list(modes) and is_function(function, 1) do
     case open(path, modes) do
       {:ok, io_device} ->
@@ -1056,7 +1056,7 @@ defmodule File do
   See `open/2` for the list of available modes.
   """
   @spec open!(Path.t, [mode | :ram]) :: io_device | no_return
-  @spec open!(Path.t, (io_device -> res)) :: res | no_return when res: var
+  @spec open!(Path.t, (io_device -> result)) :: result | no_return when result: term
   def open!(path, modes_or_function \\ []) do
     case open(path, modes_or_function) do
       {:ok, io_device_or_function_result} ->
@@ -1073,7 +1073,7 @@ defmodule File do
 
   See `open/2` for the list of available `modes`.
   """
-  @spec open!(Path.t, [mode | :ram], (io_device -> res)) :: res | no_return when res: var
+  @spec open!(Path.t, [mode | :ram], (io_device -> result)) :: result | no_return when result: term
   def open!(path, modes, function) do
     case open(path, modes, function) do
       {:ok, function_result} ->
@@ -1151,7 +1151,7 @@ defmodule File do
   Raises an error if retrieving or changing the current
   directory fails.
   """
-  @spec cd!(Path.t, (() -> res)) :: res | no_return when res: var
+  @spec cd!(Path.t, (() -> result)) :: result | no_return when result: term
   def cd!(path, function) do
     old = cwd!()
     cd!(path)

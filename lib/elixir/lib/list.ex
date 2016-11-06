@@ -133,7 +133,7 @@ defmodule List do
 
 
   """
-  @spec duplicate(elem, non_neg_integer) :: [elem] when elem: var
+  @spec duplicate(elem, non_neg_integer) :: [elem] when elem: term
   def duplicate(elem, n) do
     :lists.duplicate(n, elem)
   end
@@ -163,7 +163,7 @@ defmodule List do
       [1, 2, 3, 4, 5]
 
   """
-  @spec flatten(deep_list, [elem]) :: [elem] when elem: var, deep_list: [elem | deep_list]
+  @spec flatten(deep_list, [elem]) :: [elem] when elem: term, deep_list: [elem | deep_list]
   def flatten(list, tail) do
     :lists.flatten(list, tail)
   end
@@ -181,7 +181,7 @@ defmodule List do
       2
 
   """
-  @spec foldl([elem], acc, (elem, acc -> acc)) :: acc when elem: var, acc: var
+  @spec foldl([elem], acc, (elem, acc -> acc)) :: acc when elem: term, acc: term
   def foldl(list, acc, function) when is_list(list) and is_function(function) do
     :lists.foldl(function, acc, list)
   end
@@ -196,7 +196,7 @@ defmodule List do
       -2
 
   """
-  @spec foldr([elem], acc, (elem, acc -> acc)) :: acc when elem: var, acc: var
+  @spec foldr([elem], acc, (elem, acc -> acc)) :: acc when elem: term, acc: term
   def foldr(list, acc, function) when is_list(list) and is_function(function) do
     :lists.foldr(function, acc, list)
   end
@@ -216,7 +216,7 @@ defmodule List do
       1
 
   """
-  @spec first([elem]) :: nil | elem when elem: var
+  @spec first([elem]) :: nil | elem when elem: term
   def first([]),      do: nil
   def first([head | _]), do: head
 
@@ -235,7 +235,7 @@ defmodule List do
       3
 
   """
-  @spec last([elem]) :: nil | elem when elem: var
+  @spec last([elem]) :: nil | elem when elem: term
   def last([]), do: nil
   def last([head]), do: head
   def last([_ | tail]), do: last(tail)
@@ -518,7 +518,7 @@ defmodule List do
       [1, 2, 3]
 
   """
-  @spec update_at([elem], integer, (elem -> any)) :: list when elem: var
+  @spec update_at([elem], integer, (elem -> any)) :: list when elem: term
   def update_at(list, index, fun) when is_function(fun, 1) and is_integer(index) do
     if index < 0 do
       do_update_at(list, length(list) + index, fun)

@@ -1860,8 +1860,8 @@ defmodule Kernel do
   like the `all` anonymous function defined above. See `Access.all/0`,
   `Access.key/2` and others as examples.
   """
-  @spec get_and_update_in(Access.t, nonempty_list(term), (term -> {get, term} | :pop)) ::
-                          {get, Access.t} when get: var
+  @spec get_and_update_in(Access.t, nonempty_list(any), (term -> {get, term} | :pop)) ::
+                          {get, Access.t} when get: term
   def get_and_update_in(data, keys, fun)
 
   def get_and_update_in(data, [h], fun) when is_function(h),

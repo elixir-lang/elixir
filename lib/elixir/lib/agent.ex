@@ -198,7 +198,7 @@ defmodule Agent do
 
   A timeout can also be specified (it has a default value of 5000).
   """
-  @spec get(agent, (state -> a), timeout) :: a when a: var
+  @spec get(agent, (state -> value), timeout) :: value when value: term
   def get(agent, fun, timeout \\ 5000) when is_function(fun, 1) do
     GenServer.call(agent, {:get, fun}, timeout)
   end
@@ -225,7 +225,7 @@ defmodule Agent do
 
   A timeout can also be specified (it has a default value of 5000).
   """
-  @spec get_and_update(agent, (state -> {a, state}), timeout) :: a when a: var
+  @spec get_and_update(agent, (state -> {value, state}), timeout) :: value when value: term
   def get_and_update(agent, fun, timeout \\ 5000) when is_function(fun, 1) do
     GenServer.call(agent, {:get_and_update, fun}, timeout)
   end

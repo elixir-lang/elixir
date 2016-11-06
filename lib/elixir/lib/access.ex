@@ -286,7 +286,7 @@ defmodule Access do
   The returned value is a tuple with the "get" value returned by
   `fun` and a new map with the updated value under `key`.
   """
-  @spec get_and_update(t, key, (value -> {get, value})) :: {get, t} when get: var
+  @spec get_and_update(t, key, (value -> {get, value})) :: {get, t} when get: term
   def get_and_update(container, key, fun)
 
   def get_and_update(%{__struct__: struct} = container, key, fun) do
