@@ -164,6 +164,10 @@ Guards can be used to restrict type variables given as arguments to the function
 
     @spec function(arg) :: [arg] when arg: atom
 
+If you want to specify more than one variable, you separate them by a comma.
+
+    @spec function(arg1, arg2) :: [arg1, arg2] when arg1: atom, arg2: integer
+
 Type variables with no restriction can also be defined.
 
     @spec function(arg) :: [arg] when arg: var
