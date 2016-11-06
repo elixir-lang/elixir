@@ -253,7 +253,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns the head of a list; raises `ArgumentError` if the list is empty.
+  Returns the head of a list. Raises `ArgumentError` if the list is empty.
 
   Allowed in guard tests. Inlined by the compiler.
 
@@ -597,10 +597,15 @@ defmodule Kernel do
 
       iex> round(5.6)
       6
+
       iex> round(5.2)
       5
+
       iex> round(-9.9)
       -10
+
+      iex> round(-9)
+      -9
 
   """
   @spec round(float) :: integer
@@ -763,7 +768,9 @@ defmodule Kernel do
   end
 
   @doc """
-  A non-local return from a function. Check `Kernel.SpecialForms.try/1` for more information.
+  A non-local return from a function.
+
+  Check `Kernel.SpecialForms.try/1` for more information.
 
   Inlined by the compiler.
   """
@@ -799,8 +806,11 @@ defmodule Kernel do
       iex> trunc(5.4)
       5
 
-      iex> trunc(5.99)
-      5
+      iex> trunc(-5.99)
+      -5
+
+      iex> trunc(-5)
+      -5
 
   """
   @spec trunc(value) :: value when value: integer
@@ -932,8 +942,11 @@ defmodule Kernel do
       iex> 1 / 2
       0.5
 
-      iex> 2 / 1
-      2.0
+      iex> -3.0 / 2.0
+      -1.5
+
+      iex> 5 / 1
+      5.0
 
   """
   @spec (number / number) :: float
