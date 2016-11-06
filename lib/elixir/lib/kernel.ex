@@ -173,14 +173,17 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> div(5, 2)
-      2
-      iex> div(6, -4)
-      -1
-      iex> div(-99, 2)
-      -49
-      iex> 100 / 0
-      ** (ArgumentError) argument error
+      div(5, 2)
+      #=> 2
+
+      div(6, -4)
+      #=> -1
+
+      div(-99, 2)
+      #=> -49
+
+      100 / 0
+      #=> ** (ArgumentError) argument error
 
   """
   @spec div(integer, neg_integer | pos_integer) :: integer
@@ -261,11 +264,11 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> hd([1, 2, 3, 4])
-      1
+      hd([1, 2, 3, 4])
+      #=> 1
 
-      iex> hd([])
-      ** (ArgumentError) argument error
+      hd([])
+      #=> ** (ArgumentError) argument error
 
   """
   @spec hd(nonempty_maybe_improper_list(elem, any)) :: elem when elem: term
@@ -797,11 +800,11 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> tl([1, 2, 3, :go])
-      [2, 3, :go]
+      tl([1, 2, 3, :go])
+      #=> [2, 3, :go]
 
-      iex> tl([])
-      ** (ArgumentError) argument error
+      tl([])
+      #=> ** (ArgumentError) argument error
 
   """
   @spec tl(nonempty_maybe_improper_list(elem, tail)) ::
@@ -955,17 +958,17 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> 1 / 2
-      0.5
+      1 / 2
+      #=> 0.5
 
-      iex> -3.0 / 2.0
-      -1.5
+      -3.0 / 2.0
+      #=> -1.5
 
-      iex> 5 / 1
-      5.0
+      5 / 1
+      #=> 5.0
 
-      iex> 7 / 0
-      ** (ArgumentError) argument error
+      7 / 0
+      #=> ** (ArgumentError) argument error
 
   """
   @spec (number / number) :: float
@@ -1231,15 +1234,15 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> tuple = {:foo, :bar, 3}
-      iex> elem(tuple, 1)
-      :bar
+      tuple = {:foo, :bar, 3}
+      elem(tuple, 1)
+      #=> :bar
 
-      iex> elem({}, 0)
-      ** (ArgumentError) argument error
+      elem({}, 0)
+      #=> ** (ArgumentError) argument error
 
-      iex> elem({:foo, :bar}, 2)
-      ** (ArgumentError) argument error
+      elem({:foo, :bar}, 2)
+      #=> ** (ArgumentError) argument error
 
   """
   @spec elem(tuple, non_neg_integer) :: term
