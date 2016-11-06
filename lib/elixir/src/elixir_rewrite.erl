@@ -116,6 +116,8 @@ inline(?map, size, 1) -> {maps, size};
 inline(?map, values, 1) -> {maps, values};
 inline(?map, to_list, 1) -> {maps, to_list};
 
+inline(?node, list, 0) -> {erlang, nodes};
+inline(?node, list, 1) -> {erlang, nodes};
 inline(?node, spawn, 2) -> {erlang, spawn};
 inline(?node, spawn, 3) -> {erlang, spawn_opt};
 inline(?node, spawn, 4) -> {erlang, spawn};

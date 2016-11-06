@@ -783,7 +783,7 @@ defmodule GenServer do
   See `multi_call/4` for more information.
   """
   @spec abcast([node], name :: atom, term) :: :abcast
-  def abcast(nodes \\ nodes(), name, request) when is_list(nodes) and is_atom(name) do
+  def abcast(nodes \\ [node() | Node.list()], name, request) when is_list(nodes) and is_atom(name) do
     msg = cast_msg(request)
     _   = for node <- nodes, do: do_send({name, node}, msg)
     :abcast
@@ -833,7 +833,7 @@ defmodule GenServer do
   """
   @spec multi_call([node], name :: atom, term, timeout) ::
                   {replies :: [{node, term}], bad_nodes :: [node]}
-  def multi_call(nodes \\ nodes(), name, request, timeout \\ :infinity) do
+  def multi_call(nodes \\ [node() | Node.list()], name, request, timeout \\ :infinity) do
     :gen_server.multi_call(nodes, name, request, timeout)
   end
 
@@ -914,11 +914,5 @@ defmodule GenServer do
   end
   def whereis({name, node} = server) when is_atom(name) and is_atom(node) do
     server
-  end
-
-  @compile {:inline, [nodes: 0]}
-
-  defp nodes do
-    [node() | :erlang.nodes()]
   end
 end
