@@ -55,6 +55,7 @@ The syntax Elixir provides for type specifications is similar to [the one in Erl
 The following literals are also supported in typespecs:
 
     type :: :atom                         ## Atoms
+          | true | false | nil            # Special atom literals
 
                                           ## Bitstrings
           | <<>>                          # empty bitstring
