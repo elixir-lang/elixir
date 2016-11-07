@@ -17,9 +17,8 @@ defmodule Mix.Tasks.Compile do
       consolidation via the `compile.protocols` task. The default
       value is `true`.
 
-    * `:build_embedded` - when `true`, activates protocol
-      consolidation and does not generate symlinks in builds. Defaults
-      to `false`.
+    * `:build_embedded` - when `true`, does not generate symlinks in
+      builds. Defaults to `false`.
 
     * `:build_path` - the directory where build artifacts
       should be written to. This option is intended only for
