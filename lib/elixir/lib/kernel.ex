@@ -3537,8 +3537,8 @@ defmodule Kernel do
           "#{Kernel.inspect(__MODULE__)}, defstruct can only be called once per module"
       end
 
-      {fields, keys, derive} = Kernel.Utils.defstruct(__MODULE__, unquote(fields))
-      @struct fields
+      {struct, keys, derive} = Kernel.Utils.defstruct(__MODULE__, unquote(fields))
+      @struct struct
       @enforce_keys keys
 
       case derive do
@@ -3552,7 +3552,7 @@ defmodule Kernel do
 
       unquote(builder)
       Kernel.Utils.announce_struct(__MODULE__)
-      fields
+      struct
     end
   end
 
