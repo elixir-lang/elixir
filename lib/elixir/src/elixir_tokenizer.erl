@@ -1035,7 +1035,7 @@ invalid_do_error(Prefix) ->
   "    else\n"
   "      :that\n"
   "    end\n\n"
-  "is syntax sugar for the Elixir construct:\n\n"
+  "is syntactic sugar for the Elixir construct:\n\n"
   "    if(some_condition?, do: :this, else: :that)\n\n"
   "where \"some_condition?\" is the first argument and the second argument is a keyword list.\n\n"
   "Syntax error before: ".
