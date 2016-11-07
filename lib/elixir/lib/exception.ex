@@ -80,7 +80,7 @@ defmodule Exception do
   an empty stacktrace, `[]`, must be used.
   """
   @spec normalize(:error, any, stacktrace) :: t
-  @spec normalize(kind, payload, stacktrace) :: payload when payload: var
+  @spec normalize(kind, payload, stacktrace) :: payload when payload: term
 
   # Generating a stacktrace is expensive, default to nil
   # to only fetch it when needed.

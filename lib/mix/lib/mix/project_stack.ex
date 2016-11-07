@@ -125,7 +125,7 @@ defmodule Mix.ProjectStack do
   Enables the recursion for the project at the top of the stack
   during the given function.
   """
-  @spec recur((... -> result)) :: result when result: var
+  @spec recur((... -> result)) :: result when result: term
   def recur(fun) do
     cast fn %{stack: [h | t]} = state ->
       %{state | stack: [%{h | recursing?: true} | t]}
