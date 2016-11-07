@@ -2282,18 +2282,10 @@ defmodule Kernel do
       []
 
   """
-  defmacro match?(pattern, expr)
-
-  # Special case where underscore, which always matches, is passed as the first
-  # argument.
-  defmacro match?({:_, _, atom}, _right) when is_atom(atom) do
-    true
-  end
-
-  defmacro match?(left, right) do
+  defmacro match?(pattern, expr) do
     quote do
-      case unquote(right) do
-        unquote(left) ->
+      case unquote(expr) do
+        unquote(pattern) ->
           true
         _ ->
           false
