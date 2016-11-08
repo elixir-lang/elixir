@@ -281,12 +281,13 @@ defmodule Access do
   (the retrieved value, which can be operated on before being returned)
   and the new value to be stored under `key`. The `fun` may also
   return `:pop`, implying the current value shall be removed
-  from the map and returned.
+  from the container and returned.
 
-  The returned value is a tuple with the "get" value returned by
-  `fun` and a new map with the updated value under `key`.
+  The returned value is a two-element tuple with the "get" value returned by
+  `fun` and a new container with the updated value under `key`.
   """
-  @spec get_and_update(t, key, (value -> {get, value})) :: {get, t} when get: var
+  @spec get_and_update(container :: t, key, (value -> {get_value, update_value} | :pop)) ::
+        {get_value, container :: t} when get_value: var, update_value: value
   def get_and_update(container, key, fun)
 
   def get_and_update(%{__struct__: struct} = container, key, fun) do
