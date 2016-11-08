@@ -342,7 +342,7 @@ defmodule Date do
       iex> Date.from_erl!({2000, 13, 1})
       ** (ArgumentError) cannot convert {2000, 13, 1} to date, reason: :invalid_date
   """
-  @spec from_erl!(:calendar.date()) :: t | no_return
+  @spec from_erl!(:calendar.date) :: t | no_return
   def from_erl!(tuple) do
     case from_erl(tuple) do
       {:ok, value} ->
@@ -665,7 +665,7 @@ defmodule Time do
       {23, 30, 15}
 
   """
-  @spec to_erl(Calendar.time) :: :calendar.time()
+  @spec to_erl(Calendar.time) :: :calendar.time
   def to_erl(%{hour: hour, minute: minute, second: second}) do
     {hour, minute, second}
   end
@@ -680,7 +680,7 @@ defmodule Time do
       iex> Time.from_erl({24, 30, 15})
       {:error, :invalid_time}
   """
-  @spec from_erl(:calendar.time(), Calendar.microsecond) :: {:ok, t} | {:error, atom}
+  @spec from_erl(:calendar.time, Calendar.microsecond) :: {:ok, t} | {:error, atom}
   def from_erl({hour, minute, second}, microsecond \\ {0, 0}) do
     new(hour, minute, second, microsecond)
   end
@@ -697,7 +697,7 @@ defmodule Time do
       iex> Time.from_erl!({24, 30, 15})
       ** (ArgumentError) cannot convert {24, 30, 15} to time, reason: :invalid_time
   """
-  @spec from_erl!(:calendar.time(), Calendar.microsecond) :: t | no_return
+  @spec from_erl!(:calendar.time, Calendar.microsecond) :: t | no_return
   def from_erl!(tuple, microsecond \\ {0, 0}) do
     case from_erl(tuple, microsecond) do
       {:ok, value} ->
@@ -710,9 +710,9 @@ defmodule Time do
   @doc """
   Compares two `Time` structs.
 
-  Returns :gt if first time is later than the second
-  and :lt for vice versa. If the two times are equal
-  :eq is returned
+  Returns `:gt` if first time is later than the second
+  and `:lt` for vice versa. If the two times are equal
+  `:eq` is returned
 
   ## Examples
 
@@ -1172,7 +1172,7 @@ defmodule NaiveDateTime do
       {{2000, 2, 29}, {23, 00, 07}}
 
   """
-  @spec to_erl(t) :: :calendar.datetime()
+  @spec to_erl(t) :: :calendar.datetime
   def to_erl(%{calendar: Calendar.ISO, year: year, month: month, day: day,
                hour: hour, minute: minute, second: second}) do
     {{year, month, day}, {hour, minute, second}}
@@ -1194,7 +1194,7 @@ defmodule NaiveDateTime do
       iex> NaiveDateTime.from_erl({{2000, 13, 1},{13, 30, 15}})
       {:error, :invalid_date}
   """
-  @spec from_erl(:calendar.datetime(), Calendar.microsecond) :: {:ok, t} | {:error, atom}
+  @spec from_erl(:calendar.datetime, Calendar.microsecond) :: {:ok, t} | {:error, atom}
   def from_erl({{year, month, day}, {hour, minute, second}}, microsecond \\ {0, 0}) do
     new(year, month, day, hour, minute, second, microsecond)
   end
@@ -1214,7 +1214,7 @@ defmodule NaiveDateTime do
       iex> NaiveDateTime.from_erl!({{2000, 13, 1}, {13, 30, 15}})
       ** (ArgumentError) cannot convert {{2000, 13, 1}, {13, 30, 15}} to naive date time, reason: :invalid_date
   """
-  @spec from_erl!(:calendar.datetime(), Calendar.microsecond) :: t | no_return
+  @spec from_erl!(:calendar.datetime, Calendar.microsecond) :: t | no_return
   def from_erl!(tuple, microsecond \\ {0, 0}) do
     case from_erl(tuple, microsecond) do
       {:ok, value} ->
@@ -1227,9 +1227,9 @@ defmodule NaiveDateTime do
   @doc """
   Compares two `NaiveDateTime` structs.
 
-  Returns :gt if first is later than the second
-  and :lt for vice versa. If the two NaiveDateTime
-  are equal :eq is returned
+  Returns `:gt` if first is later than the second
+  and `:lt` for vice versa. If the two NaiveDateTime
+  are equal `:eq` is returned
 
   ## Examples
 
@@ -1675,9 +1675,9 @@ defmodule DateTime do
   @doc """
   Compares two `DateTime` structs.
 
-  Returns :gt if first datetime is later than the second
-  and :lt for vice versa. If the two datetimes are equal
-  :eq is returned.
+  Returns `:gt` if first datetime is later than the second
+  and `:lt` for vice versa. If the two datetimes are equal
+  `:eq` is returned.
 
   Note that both utc and stc offsets will be taken into
   account when comparison is done.
