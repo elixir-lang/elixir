@@ -1,7 +1,10 @@
 Code.require_file "test_helper.exs", __DIR__
 
 defmodule FakeCalendar do
-  def to_string(_), do: "boom"
+  def date_to_string(_, _, _), do: "boom"
+  def time_to_string(_, _, _, _), do: "boom"
+  def naive_datetime_to_string(_, _, _, _, _, _, _), do: "boom"
+  def datetime_to_string(_, _, _, _, _, _, _, _, _, _), do: "boom"
 end
 
 defmodule DateTest do
