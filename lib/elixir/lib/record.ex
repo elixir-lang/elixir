@@ -174,7 +174,8 @@ defmodule Record do
   The following macros are generated:
 
     * `name/0` to create a new record with default values for all fields
-    * `name/1` to create a new record with the given fields and values or to
+    * `name/1` to create a new record with the given fields and values,
+      to get the zero-based index of the given field in a record or to
       convert the given record to a keyword list
     * `name/2` to update an existing record with the given fields and values
       or to access a given field in a given record
@@ -205,6 +206,10 @@ defmodule Record do
 
       # To update the record
       user(record, age: 26) #=> {:user, "meg", 26}
+
+      # To get the zero-based index of the field in record tuple
+      # (index 0 is occupied by the record "tag")
+      user(:name) #=> 1
 
       # Convert a record to a keyword list
       user(record) #=> [name: "meg", age: 26]
@@ -413,17 +418,26 @@ defmodule Record do
   def __keyword__(atom, fields, record) do
     if is_record(record, atom) do
       [_tag | values] = Tuple.to_list(record)
-      join_keyword(fields, values, [])
+      case join_keyword(fields, values, []) do
+        kv when is_list(kv) ->
+          kv
+        expected_fields ->
+          msg = "expected argument to be a #{inspect atom} record with #{expected_fields} fields, got: #{inspect record}"
+          raise ArgumentError, msg
+      end
     else
       msg = "expected argument to be a literal atom, literal keyword or a #{inspect atom} record, got runtime: #{inspect record}"
       raise ArgumentError, msg
     end
   end
 
+  # Returns a keyword list, or expected number of fields on size mismatch
   defp join_keyword([{field, _default} | fields], [value | values], acc),
     do: join_keyword(fields, values, [{field, value} | acc])
   defp join_keyword([], [], acc),
     do: :lists.reverse(acc)
+  defp join_keyword(rest_fields, _rest_values, acc),
+    do: length(acc) + length(rest_fields) # expected fields
 
   defp apply_underscore(fields, keyword) do
     case Keyword.fetch(keyword, :_) do

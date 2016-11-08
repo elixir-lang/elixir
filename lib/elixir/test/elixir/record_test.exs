@@ -176,6 +176,20 @@ defmodule RecordTest do
     assert_raise ArgumentError, msg, fn ->
       file_info(record)
     end
+
+    pretender = {RecordTest, "john"}
+    msg = "expected argument to be a RecordTest record with 2 fields, " <>
+          "got: {RecordTest, \"john\"}"
+    assert_raise ArgumentError, msg, fn ->
+      user(pretender)
+    end
+
+    pretender = {RecordTest, "john", 25, []}
+    msg = "expected argument to be a RecordTest record with 2 fields, " <>
+          "got: {RecordTest, \"john\", 25, []}"
+    assert_raise ArgumentError, msg, fn ->
+      user(pretender)
+    end
   end
 
   test "records visibility" do
