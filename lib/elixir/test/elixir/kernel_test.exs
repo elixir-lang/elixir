@@ -74,9 +74,6 @@ defmodule KernelTest do
   end
 
   test "match?/2" do
-    assert match?(_, List.first(1)) == true
-    assert binding() == []
-
     a = List.first([0])
     assert match?(b when b > a, 1) == true
     assert binding() == [a: 0]
