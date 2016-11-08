@@ -4008,28 +4008,17 @@ defmodule Kernel do
 
   ## Options
 
-    * `:to` - the expression to delegate to. Any expression
-      is allowed and its results will be evaluated at runtime. Usually
-      evaluates to the name of a module.
+    * `:to` - the module to dispatch to.
 
     * `:as` - the function to call on the target given in `:to`.
       This parameter is optional and defaults to the name being
       delegated (`funs`).
-
-    * `:append_first` - if `true`, when delegated, the first argument
-      passed to the delegated function will be relocated to the end of the
-      arguments when dispatched to the target.
-
-      The motivation behind this is because Elixir normalizes
-      the "handle" as the first argument while some Erlang modules
-      expect it as the last argument.
 
   ## Examples
 
       defmodule MyList do
         defdelegate reverse(list), to: :lists
         defdelegate other_reverse(list), to: :lists, as: :reverse
-        defdelegate [reverse(list), map(list, callback)], to: :lists, append_first: true
       end
 
       MyList.reverse([1, 2, 3])
@@ -4037,9 +4026,6 @@ defmodule Kernel do
 
       MyList.other_reverse([1, 2, 3])
       #=> [3, 2, 1]
-
-      MyList.map([1, 2, 3], &(&1 * 2))
-      #=> [2, 4, 6]
 
   """
   defmacro defdelegate(funs, opts) do
