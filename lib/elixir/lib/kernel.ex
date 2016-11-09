@@ -3377,11 +3377,11 @@ defmodule Kernel do
     assert_no_function_scope(env, kind, 2)
     line = env.line
 
-    {call, uc} = :elixir_quote.escape(call, true)
-    {expr, ue} = :elixir_quote.escape(expr, true)
+    {call, unquoted_call} = :elixir_quote.escape(call, true)
+    {expr, unquoted_expr} = :elixir_quote.escape(expr, true)
 
     # Do not check clauses if any expression was unquoted
-    check_clauses = not(ue or uc)
+    check_clauses = not(unquoted_expr or unquoted_call)
     pos = :elixir_locals.cache_env(env)
 
     quote do
