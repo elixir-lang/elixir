@@ -3506,7 +3506,7 @@ defmodule Kernel do
       %User{age: 21}
       ** (ArgumentError) the following keys must also be given when building struct User: [:name]
 
-  Keep in mind `@enforce_keys` is a simply a compile-time guarantee
+  Keep in mind `@enforce_keys` is simply a compile-time guarantee
   to aid developers when building structs. It is not enforced on
   updates and it does not provide any sort of value-validation.
 
