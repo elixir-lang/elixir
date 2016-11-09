@@ -658,7 +658,7 @@ defmodule Kernel do
   Check the `Process` and `Node` modules for other functions
   to handle processes, including spawning functions in nodes.
 
-  The anonymous function receives 0 arguments, and may return any expression.
+  The anonymous function receives 0 arguments, and may return any value.
 
   Inlined by the compiler.
 
@@ -702,7 +702,7 @@ defmodule Kernel do
   Check the `Process` and `Node` modules for other functions
   to handle processes, including spawning functions in nodes.
 
-  The anonymous function receives 0 arguments, and may return any expression.
+  The anonymous function receives 0 arguments, and may return any value.
 
   Inlined by the compiler.
 
@@ -747,7 +747,7 @@ defmodule Kernel do
   Check the `Process` and `Node` modules for other functions
   to handle processes, including spawning functions in nodes.
 
-  The anonymous function receives 0 arguments, and may return any expression.
+  The anonymous function receives 0 arguments, and may return any value.
 
   Inlined by the compiler.
 
