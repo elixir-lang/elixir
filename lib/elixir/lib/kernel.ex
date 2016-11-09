@@ -3217,7 +3217,7 @@ defmodule Kernel do
     []
   end
 
-  # Gets two modules’ names and returns an alias
+  # Gets two modules' names and returns an alias
   # which can be passed down to the alias directive
   # and it will create a proper shortcut representing
   # the given nesting.
