@@ -91,9 +91,14 @@ defmodule Mix.Tasks.ArchiveTest do
       refute File.regular? tmp_path("userhome/.mix/archives/archive-0.2.0.ez")
       assert File.dir? tmp_path("userhome/.mix/archives/archive-0.2.0/archive-0.2.0/ebin")
 
-      # Re-install current version should not change system
-      send self(), {:mix_shell_input, :yes?, true}
+      # Re-installing current version should avoid installation
       Mix.Tasks.Archive.Install.run []
+      assert_received {:mix_shell, :info, ["Found archive already installed in \"" <> _]}
+      refute File.regular? tmp_path("userhome/.mix/archives/archive-0.2.0.ez")
+      assert File.dir? tmp_path("userhome/.mix/archives/archive-0.2.0/archive-0.2.0/ebin")
+
+      # Re-install current version with "--force" should not change system
+      Mix.Tasks.Archive.Install.run ["--force"]
       refute File.regular? tmp_path("userhome/.mix/archives/archive-0.2.0.ez")
       assert File.dir? tmp_path("userhome/.mix/archives/archive-0.2.0/archive-0.2.0/ebin")
 
@@ -101,7 +106,6 @@ defmodule Mix.Tasks.ArchiveTest do
       assert_raise Mix.Error, fn ->
         Mix.Tasks.Archive.Install.run ["./archive-0.0.0.ez"]
       end
-
       assert File.dir? tmp_path("userhome/.mix/archives/archive-0.2.0/archive-0.2.0/ebin")
       refute File.regular? tmp_path("userhome/.mix/archives/archive-0.1.0.ez")
 
@@ -111,6 +115,7 @@ defmodule Mix.Tasks.ArchiveTest do
 
       # Check uninstall confirmation
       send self(), {:mix_shell_input, :yes?, false}
+      assert File.dir? tmp_path("userhome/.mix/archives/archive-0.2.0/archive-0.2.0/ebin")
       Mix.Tasks.Archive.Uninstall.run ["archive-0.2.0"]
       assert File.dir? tmp_path("userhome/.mix/archives/archive-0.2.0/archive-0.2.0/ebin")
 
