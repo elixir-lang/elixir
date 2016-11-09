@@ -173,12 +173,17 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> div(5, 2)
-      2
-      iex> div(6, -4)
-      -1
-      iex> div(-99, 2)
-      -49
+      div(5, 2)
+      #=> 2
+
+      div(6, -4)
+      #=> -1
+
+      div(-99, 2)
+      #=> -49
+
+      100 / 0
+      #=> ** (ArgumentError) argument error
 
   """
   @spec div(integer, neg_integer | pos_integer) :: integer
@@ -259,8 +264,11 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> hd([1, 2, 3, 4])
-      1
+      hd([1, 2, 3, 4])
+      #=> 1
+
+      hd([])
+      #=> ** (ArgumentError) argument error
 
   """
   @spec hd(nonempty_maybe_improper_list(elem, any)) :: elem when elem: term
@@ -650,6 +658,8 @@ defmodule Kernel do
   Check the `Process` and `Node` modules for other functions
   to handle processes, including spawning functions in nodes.
 
+  The anonymous function receives 0 arguments, and may return any expression.
+
   Inlined by the compiler.
 
   ## Examples
@@ -691,6 +701,8 @@ defmodule Kernel do
 
   Check the `Process` and `Node` modules for other functions
   to handle processes, including spawning functions in nodes.
+
+  The anonymous function receives 0 arguments, and may return any expression.
 
   Inlined by the compiler.
 
@@ -734,6 +746,8 @@ defmodule Kernel do
 
   Check the `Process` and `Node` modules for other functions
   to handle processes, including spawning functions in nodes.
+
+  The anonymous function receives 0 arguments, and may return any expression.
 
   Inlined by the compiler.
 
@@ -786,8 +800,11 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> tl([1, 2, 3, :go])
-      [2, 3, :go]
+      tl([1, 2, 3, :go])
+      #=> [2, 3, :go]
+
+      tl([])
+      #=> ** (ArgumentError) argument error
 
   """
   @spec tl(nonempty_maybe_improper_list(elem, tail)) ::
@@ -935,18 +952,23 @@ defmodule Kernel do
   The result is always a float. Use `div/2` and `rem/2` if you want
   an integer division or the remainder.
 
+  Raises `ArithmeticError` if `right` is 0 or 0.0.
+
   Allowed in guard tests. Inlined by the compiler.
 
   ## Examples
 
-      iex> 1 / 2
-      0.5
+      1 / 2
+      #=> 0.5
 
-      iex> -3.0 / 2.0
-      -1.5
+      -3.0 / 2.0
+      #=> -1.5
 
-      iex> 5 / 1
-      5.0
+      5 / 1
+      #=> 5.0
+
+      7 / 0
+      #=> ** (ArgumentError) argument error
 
   """
   @spec (number / number) :: float
@@ -1206,13 +1228,21 @@ defmodule Kernel do
   @doc """
   Gets the element at the zero-based `index` in `tuple`.
 
+  It raises `ArgumentError` when index is negative or it is out of range of the tuple elements.
+
   Allowed in guard tests. Inlined by the compiler.
 
   ## Examples
 
-      iex> tuple = {:foo, :bar, 3}
-      iex> elem(tuple, 1)
-      :bar
+      tuple = {:foo, :bar, 3}
+      elem(tuple, 1)
+      #=> :bar
+
+      elem({}, 0)
+      #=> ** (ArgumentError) argument error
+
+      elem({:foo, :bar}, 2)
+      #=> ** (ArgumentError) argument error
 
   """
   @spec elem(tuple, non_neg_integer) :: term
