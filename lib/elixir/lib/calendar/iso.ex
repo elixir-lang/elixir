@@ -202,7 +202,7 @@ defmodule Calendar.ISO do
 
   @doc false
   def datetime_to_iso8601(year, month, day, hour, minute, second, microsecond,
-                          time_zone, zone_abbr, utc_offset, std_offset) do
+                          time_zone, _zone_abbr, utc_offset, std_offset) do
     date_to_string(year, month, day) <> "T" <>
       time_to_string(hour, minute, second, microsecond) <>
       offset_to_string(utc_offset, std_offset, time_zone)
