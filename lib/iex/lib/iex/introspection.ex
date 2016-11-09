@@ -184,7 +184,7 @@ defmodule IEx.Introspection do
   """
   def b(mod) when is_atom(mod) do
     printer = fn heading, _doc -> puts_info(heading) end
-    case print_callback_docs(mod, &match?(_, &1), printer) do
+    case print_callback_docs(mod, fn _ -> true end, printer) do
       :ok        -> :ok
       :no_beam   -> no_beam(mod)
       :no_docs   -> puts_error("#{inspect mod} was not compiled with docs")
