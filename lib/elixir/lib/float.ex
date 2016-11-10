@@ -300,25 +300,31 @@ defmodule Float do
 
       iex> Float.ratio(3.14)
       {7070651414971679, 2251799813685248}
+      iex> Float.ratio(-3.14)
+      {-7070651414971679, 2251799813685248}
       iex> Float.ratio(1.5)
       {3, 2}
       iex> Float.ratio(-1.5)
       {-3, 2}
+      iex> Float.ratio(16.0)
+      {16, 1}
+      iex> Float.ratio(-16.0)
+      {-16, 1}
 
   """
-  def ratio(float) do
+  def ratio(float) when is_float(float) do
     <<sign::size(1), exp::size(11), significant::size(52)-bitstring>> = <<float::float>>
     {num, _, den} = decompose(significant)
-
     num = sign(sign, num)
-    den =
-      case exp - 1023 do
-        exp when exp > 0 -> shift_right_until_zero(den, exp)
-        exp when exp < 0 -> shift_left_until_zero(den, abs(exp))
-        0 -> den
-      end
-
-    {num, den}
+    case exp - 1023 do
+      exp when exp > 0 ->
+        {den, exp} = shift_right_until_zero(den, exp)
+        {shift_left_until_zero(num, exp), den}
+      exp when exp < 0 ->
+        {num, shift_left_until_zero(den, abs(exp))}
+      0 ->
+        {num, den}
+    end
   end
 
   defp decompose(significant) do
@@ -341,7 +347,8 @@ defmodule Float do
   defp shift_left_until_zero(num, 0), do: num
   defp shift_left_until_zero(num, x), do: shift_left_until_zero(num <<< 1, x - 1)
 
-  defp shift_right_until_zero(num, 0), do: num
+  defp shift_right_until_zero(num, 0), do: {num, 0}
+  defp shift_right_until_zero(1, x),   do: {1, x}
   defp shift_right_until_zero(num, x), do: shift_right_until_zero(num >>> 1, x - 1)
 
   @doc """
