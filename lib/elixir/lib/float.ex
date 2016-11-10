@@ -235,42 +235,43 @@ defmodule Float do
         # Convert back to float without loss
         # http://www.exploringbinary.com/correct-decimal-to-floating-point-using-big-integers/
         den = power_of_10(precision)
+        boundary = @power_of_2_to_52 * den
 
-        case num / den do
-          0.0 ->
+        cond do
+          num == 0 ->
             0.0
-          val ->
-            # Use floor rounding by subtracting by 1 before truncating for numbers < 0
-            exp = floor_to_integer(:math.log2(val))
-
-            {num, den} =
-              if exp > 52 do
-                {num, shift_left_until_zero(den, exp - 52)}
-              else
-                {shift_left_until_zero(num, 52 - exp), den}
-              end
-
-            quo = div(num, den)
-            rem = num - quo * den
-
-            tmp =
-              case den >>> 1 do
-                den when rem > den -> quo + 1
-                den when rem < den -> quo
-                _ when (quo &&& 1) === 1 -> quo + 1
-                _ -> quo
-              end
-
-            tmp = tmp - @power_of_2_to_52
-            <<tmp::float>> = <<sign::size(1), (exp + 1023)::size(11), tmp::size(52)>>
-            tmp
+          num >= boundary ->
+            {den, exp} = scale_down(num, boundary, 52)
+            decimal_to_float(sign, num, den, exp)
+          true ->
+            {num, exp} = scale_up(num, boundary, 52)
+            decimal_to_float(sign, num, den, exp)
         end
     end
   end
 
-  # Use floor rounding by subtracting by 1 before truncating for numbers < 0
-  defp floor_to_integer(number) when number < 0, do: trunc(number - 1)
-  defp floor_to_integer(number), do: trunc(number)
+  defp scale_up(num, boundary, exp) when num >= boundary, do: {num, exp}
+  defp scale_up(num, boundary, exp), do: scale_up(num <<< 1, boundary, exp - 1)
+
+  defp scale_down(num, boundary, exp) when num <= boundary, do: exp
+  defp scale_down(num, boundary, exp), do: scale_down(num, boundary <<< 1, exp + 1)
+
+  defp decimal_to_float(sign, num, den, exp) do
+    quo = div(num, den)
+    rem = num - quo * den
+
+    tmp =
+      case den >>> 1 do
+        den when rem > den -> quo + 1
+        den when rem < den -> quo
+        _ when (quo &&& 1) === 1 -> quo + 1
+        _ -> quo
+      end
+
+    tmp = tmp - @power_of_2_to_52
+    <<tmp::float>> = <<sign::size(1), (exp + 1023)::size(11), tmp::size(52)>>
+    tmp
+  end
 
   defp rounding(:floor, 1, _num, div), do: div + 1
   defp rounding(:ceil, 0, _num, div), do: div + 1
