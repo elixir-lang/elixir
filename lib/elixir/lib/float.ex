@@ -240,7 +240,8 @@ defmodule Float do
           0.0 ->
             0.0
           val ->
-            exp = trunc(floor(:math.log2(val)))
+            # Use floor rounding by subtracting by 1 before truncating for numbers < 0
+            exp = floor_to_integer(:math.log2(val))
 
             {num, den} =
               if exp > 52 do
@@ -266,6 +267,10 @@ defmodule Float do
         end
     end
   end
+
+  # Use floor rounding by subtracting by 1 before truncating for numbers < 0
+  defp floor_to_integer(number) when number < 0, do: trunc(number - 1)
+  defp floor_to_integer(number), do: trunc(number)
 
   defp rounding(:floor, 1, _num, div), do: div + 1
   defp rounding(:ceil, 0, _num, div), do: div + 1
