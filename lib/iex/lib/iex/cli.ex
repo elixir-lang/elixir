@@ -68,12 +68,10 @@ defmodule IEx.CLI do
   # driver twice, it would be nice and appropriate if we had
   # to do it just once.
   defp tty_works? do
-    try do
-      port = Port.open {:spawn, 'tty_sl -c -e'}, [:eof]
-      Port.close(port)
-    catch
-      _, _ -> false
-    end
+    port = Port.open {:spawn, 'tty_sl -c -e'}, [:eof]
+    Port.close(port)
+  catch
+    _, _ -> false
   end
 
   defp tty_args do

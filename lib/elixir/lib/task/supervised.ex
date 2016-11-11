@@ -89,18 +89,16 @@ defmodule Task.Supervised do
   end
 
   defp do_apply(info, {module, fun, args} = mfa) do
-    try do
-      apply(module, fun, args)
-    catch
-      :error, value ->
-        reason = {value, System.stacktrace()}
-        exit(info, mfa, reason, reason)
-      :throw, value ->
-        reason = {{:nocatch, value}, System.stacktrace()}
-        exit(info, mfa, reason, reason)
-      :exit, value ->
-        exit(info, mfa, {value, System.stacktrace()}, value)
-    end
+    apply(module, fun, args)
+  catch
+    :error, value ->
+      reason = {value, System.stacktrace()}
+      exit(info, mfa, reason, reason)
+    :throw, value ->
+      reason = {{:nocatch, value}, System.stacktrace()}
+      exit(info, mfa, reason, reason)
+    :exit, value ->
+      exit(info, mfa, {value, System.stacktrace()}, value)
   end
 
   defp exit(_info, _mfa, _log_reason, reason)
@@ -216,26 +214,24 @@ defmodule Task.Supervised do
 
   defp stream_reduce({:cont, acc}, max, spawned, delivered, waiting, next,
                      reducer, mfa, spawn, monitor_pid, monitor_ref, timeout) do
-    try do
-      next.({:cont, []})
-    catch
-      kind, reason ->
-        stacktrace = System.stacktrace
-        stream_close(waiting, monitor_pid, monitor_ref, timeout)
-        :erlang.raise(kind, reason, stacktrace)
-    else
-      {:suspended, [value], next} ->
-        waiting = stream_spawn(value, spawned, waiting, mfa, spawn, monitor_pid, monitor_ref)
-        stream_reduce({:cont, acc}, max - 1, spawned + 1, delivered, waiting, next,
-                      reducer, mfa, spawn, monitor_pid, monitor_ref, timeout)
-      {_, [value]} ->
-        waiting = stream_spawn(value, spawned, waiting, mfa, spawn, monitor_pid, monitor_ref)
-        stream_reduce({:cont, acc}, max - 1, spawned + 1, delivered, waiting, :done,
-                      reducer, mfa, spawn, monitor_pid, monitor_ref, timeout)
-      {_, []} ->
-        stream_reduce({:cont, acc}, max, spawned, delivered, waiting, :done,
-                      reducer, mfa, spawn, monitor_pid, monitor_ref, timeout)
-    end
+    next.({:cont, []})
+  catch
+    kind, reason ->
+      stacktrace = System.stacktrace
+      stream_close(waiting, monitor_pid, monitor_ref, timeout)
+      :erlang.raise(kind, reason, stacktrace)
+  else
+    {:suspended, [value], next} ->
+      waiting = stream_spawn(value, spawned, waiting, mfa, spawn, monitor_pid, monitor_ref)
+      stream_reduce({:cont, acc}, max - 1, spawned + 1, delivered, waiting, next,
+                    reducer, mfa, spawn, monitor_pid, monitor_ref, timeout)
+    {_, [value]} ->
+      waiting = stream_spawn(value, spawned, waiting, mfa, spawn, monitor_pid, monitor_ref)
+      stream_reduce({:cont, acc}, max - 1, spawned + 1, delivered, waiting, :done,
+                    reducer, mfa, spawn, monitor_pid, monitor_ref, timeout)
+    {_, []} ->
+      stream_reduce({:cont, acc}, max, spawned, delivered, waiting, :done,
+                    reducer, mfa, spawn, monitor_pid, monitor_ref, timeout)
   end
 
   defp stream_deliver({:suspend, acc}, max, spawned, delivered, waiting, next,

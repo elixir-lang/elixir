@@ -46,26 +46,22 @@ defmodule Logger.Config do
   def translate_backend(other),    do: other
 
   def __data__() do
-    try do
-      :ets.lookup_element(@table, @data, 2)
-    rescue
-      ArgumentError ->
-        raise "cannot use Logger, the :logger application is not running"
-    else
-      nil ->
-        raise "cannot use Logger, the :logger application is not running"
-      data ->
-        data
-    end
+    :ets.lookup_element(@table, @data, 2)
+  rescue
+    ArgumentError ->
+      raise "cannot use Logger, the :logger application is not running"
+  else
+    nil ->
+      raise "cannot use Logger, the :logger application is not running"
+    data ->
+      data
   end
 
   def deleted_handlers() do
-    try do
-      :ets.lookup_element(@table, @deleted_handlers, 2)
-    rescue
-      ArgumentError ->
-        []
-    end
+    :ets.lookup_element(@table, @deleted_handlers, 2)
+  rescue
+    ArgumentError ->
+      []
   end
 
   def deleted_handlers(handlers) do

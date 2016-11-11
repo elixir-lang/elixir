@@ -504,21 +504,17 @@ defmodule GenEvent do
   def notify(manager, event)
 
   def notify({:global, name}, msg) do
-    try do
-      :global.send(name, {:notify, msg})
-      :ok
-    catch
-      _, _ -> :ok
-    end
+    :global.send(name, {:notify, msg})
+    :ok
+  catch
+    _, _ -> :ok
   end
 
   def notify({:via, mod, name}, msg) when is_atom(mod) do
-    try do
-      mod.send(name, {:notify, msg})
-      :ok
-    catch
-      _, _ -> :ok
-    end
+    mod.send(name, {:notify, msg})
+    :ok
+  catch
+    _, _ -> :ok
   end
 
   def notify(manager, msg)
@@ -571,14 +567,12 @@ defmodule GenEvent do
   """
   @spec call(manager, handler, term, timeout) ::  term | {:error, term}
   def call(manager, handler, request, timeout \\ 5000) do
-    try do
-      :gen.call(manager, self(), {:call, handler, request}, timeout)
-    catch
-      :exit, reason ->
-        exit({reason, {__MODULE__, :call, [manager, handler, request, timeout]}})
-    else
-      {:ok, res} -> res
-    end
+    :gen.call(manager, self(), {:call, handler, request}, timeout)
+  catch
+    :exit, reason ->
+      exit({reason, {__MODULE__, :call, [manager, handler, request, timeout]}})
+  else
+    {:ok, res} -> res
   end
 
   @doc """
@@ -1119,15 +1113,13 @@ defmodule GenEvent do
   end
 
   defp do_handler(mod, fun, args) do
-    try do
-      apply(mod, fun, args)
-    catch
-      :throw, val -> {:ok, val}
-      :error, val -> {:error, {val, System.stacktrace}}
-      :exit, val  -> {:error, val}
-    else
-      res -> {:ok, res}
-    end
+    apply(mod, fun, args)
+  catch
+    :throw, val -> {:ok, val}
+    :error, val -> {:error, {val, System.stacktrace}}
+    :exit,  val -> {:error, val}
+  else
+    res -> {:ok, res}
   end
 
   defp report_terminate(handler, reason, state, last_in, name) do

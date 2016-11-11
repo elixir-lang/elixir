@@ -50,11 +50,9 @@ defmodule IEx.History.State do
   # Checks val and each of its elements (if it is a list or a tuple)
   # recursively to see if it has any large binaries (outside of the heap).
   defp has_binary(val) do
-    try do
-      has_bin(val)
-    catch
-      :throw, :found -> true
-    end
+    has_bin(val)
+  catch
+    :throw, :found -> true
   end
 
   defp has_bin(val) when is_tuple(val),
@@ -129,10 +127,8 @@ defmodule IEx.History do
   end
 
   defp collect_proc_garbage(process) do
-    try do
-      :erlang.garbage_collect(process)
-    catch
-      _, _ -> nil
-    end
+    :erlang.garbage_collect(process)
+  catch
+    _, _ -> nil
   end
 end

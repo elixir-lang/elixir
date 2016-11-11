@@ -703,33 +703,31 @@ defmodule List do
   """
   @spec to_string(:unicode.charlist) :: String.t
   def to_string(list) when is_list(list) do
-    try do
-      :unicode.characters_to_binary(list)
-    rescue
-      ArgumentError ->
-        raise ArgumentError, """
-        cannot convert the given list to a string.
+    :unicode.characters_to_binary(list)
+  rescue
+    ArgumentError ->
+      raise ArgumentError, """
+      cannot convert the given list to a string.
 
-        To be converted to a string, a list must contain only:
+      To be converted to a string, a list must contain only:
 
-          * strings
-          * integers representing Unicode codepoints
-          * or a list containing one of these three elements
+        * strings
+        * integers representing Unicode codepoints
+        * or a list containing one of these three elements
 
-        Please check the given list or call inspect/1 to get the list representation, got:
+      Please check the given list or call inspect/1 to get the list representation, got:
 
-        #{inspect list}
-        """
-    else
-      result when is_binary(result) ->
-        result
+      #{inspect list}
+      """
+  else
+    result when is_binary(result) ->
+      result
 
-      {:error, encoded, rest} ->
-        raise UnicodeConversionError, encoded: encoded, rest: rest, kind: :invalid
+    {:error, encoded, rest} ->
+      raise UnicodeConversionError, encoded: encoded, rest: rest, kind: :invalid
 
-      {:incomplete, encoded, rest} ->
-        raise UnicodeConversionError, encoded: encoded, rest: rest, kind: :incomplete
-    end
+    {:incomplete, encoded, rest} ->
+      raise UnicodeConversionError, encoded: encoded, rest: rest, kind: :incomplete
   end
 
   @doc """

@@ -459,20 +459,18 @@ defmodule Stream do
   end
 
   defp do_into(reduce, collectable, into, {command, acc}) do
-    try do
-      reduce.({command, [acc | collectable]})
-    catch
-      kind, reason ->
-        stacktrace = System.stacktrace
-        into.(collectable, :halt)
-        :erlang.raise(kind, reason, stacktrace)
-    else
-      {:suspended, [acc | collectable], continuation} ->
-        {:suspended, acc, &do_into(continuation, collectable, into, &1)}
-      {reason, [acc | collectable]} ->
-        into.(collectable, :done)
-        {reason, acc}
-    end
+    reduce.({command, [acc | collectable]})
+  catch
+    kind, reason ->
+      stacktrace = System.stacktrace
+      into.(collectable, :halt)
+      :erlang.raise(kind, reason, stacktrace)
+  else
+    {:suspended, [acc | collectable], continuation} ->
+      {:suspended, acc, &do_into(continuation, collectable, into, &1)}
+    {reason, [acc | collectable]} ->
+      into.(collectable, :done)
+      {reason, acc}
   end
 
   @doc """
@@ -777,21 +775,19 @@ defmodule Stream do
   end
 
   defp do_transform(user_acc, user, fun, :cont, next, inner_acc, inner, after_fun) do
-    try do
-      next.({:cont, []})
-    catch
-      kind, reason ->
-        stacktrace = System.stacktrace
-        do_after(after_fun, user_acc)
-        :erlang.raise(kind, reason, stacktrace)
-    else
-      {:suspended, [val], next} ->
-        do_transform_user(val, user_acc, user, fun, :cont, next, inner_acc, inner, after_fun)
-      {_, [val]} ->
-        do_transform_user(val, user_acc, user, fun, :halt, next, inner_acc, inner, after_fun)
-      {_, []} ->
-        do_transform(user_acc, user, fun, :halt, next, inner_acc, inner, after_fun)
-    end
+    next.({:cont, []})
+  catch
+    kind, reason ->
+      stacktrace = System.stacktrace
+      do_after(after_fun, user_acc)
+      :erlang.raise(kind, reason, stacktrace)
+  else
+    {:suspended, [val], next} ->
+      do_transform_user(val, user_acc, user, fun, :cont, next, inner_acc, inner, after_fun)
+    {_, [val]} ->
+      do_transform_user(val, user_acc, user, fun, :halt, next, inner_acc, inner, after_fun)
+    {_, []} ->
+      do_transform(user_acc, user, fun, :halt, next, inner_acc, inner, after_fun)
   end
 
   defp do_transform_user(val, user_acc, user, fun, next_op, next, inner_acc, inner, after_fun) do
@@ -818,49 +814,45 @@ defmodule Stream do
   end
 
   defp do_list_transform(user_acc, user, fun, next_op, next, inner_acc, inner, reduce, after_fun) do
-    try do
-      reduce.(inner_acc)
-    catch
-      kind, reason ->
-        stacktrace = System.stacktrace
-        next.({:halt, []})
-        do_after(after_fun, user_acc)
-        :erlang.raise(kind, reason, stacktrace)
-    else
-      {:done, acc} ->
-        do_transform(user_acc, user, fun, next_op, next, {:cont, acc}, inner, after_fun)
-      {:halted, acc} ->
-        next.({:halt, []})
-        do_after(after_fun, user_acc)
-        {:halted, acc}
-      {:suspended, acc, c} ->
-        {:suspended, acc, &do_list_transform(user_acc, user, fun, next_op, next, &1, inner, c, after_fun)}
-    end
+    reduce.(inner_acc)
+  catch
+    kind, reason ->
+      stacktrace = System.stacktrace
+      next.({:halt, []})
+      do_after(after_fun, user_acc)
+      :erlang.raise(kind, reason, stacktrace)
+  else
+    {:done, acc} ->
+      do_transform(user_acc, user, fun, next_op, next, {:cont, acc}, inner, after_fun)
+    {:halted, acc} ->
+      next.({:halt, []})
+      do_after(after_fun, user_acc)
+      {:halted, acc}
+    {:suspended, acc, c} ->
+      {:suspended, acc, &do_list_transform(user_acc, user, fun, next_op, next, &1, inner, c, after_fun)}
   end
 
   defp do_enum_transform(user_acc, user, fun, next_op, next, {op, inner_acc}, inner, reduce, after_fun) do
-    try do
-      reduce.({op, [:outer | inner_acc]})
-    catch
-      kind, reason ->
-        stacktrace = System.stacktrace
-        next.({:halt, []})
-        do_after(after_fun, user_acc)
-        :erlang.raise(kind, reason, stacktrace)
-    else
-      # Only take into account outer halts when the op is not halt itself.
-      # Otherwise, we were the ones wishing to halt, so we should just stop.
-      {:halted, [:outer | acc]} when op != :halt ->
-        do_transform(user_acc, user, fun, next_op, next, {:cont, acc}, inner, after_fun)
-      {:halted, [_ | acc]} ->
-        next.({:halt, []})
-        do_after(after_fun, user_acc)
-        {:halted, acc}
-      {:done, [_ | acc]} ->
-        do_transform(user_acc, user, fun, next_op, next, {:cont, acc}, inner, after_fun)
-      {:suspended, [_ | acc], c} ->
-        {:suspended, acc, &do_enum_transform(user_acc, user, fun, next_op, next, &1, inner, c, after_fun)}
-    end
+    reduce.({op, [:outer | inner_acc]})
+  catch
+    kind, reason ->
+      stacktrace = System.stacktrace
+      next.({:halt, []})
+      do_after(after_fun, user_acc)
+      :erlang.raise(kind, reason, stacktrace)
+  else
+    # Only take into account outer halts when the op is not halt itself.
+    # Otherwise, we were the ones wishing to halt, so we should just stop.
+    {:halted, [:outer | acc]} when op != :halt ->
+      do_transform(user_acc, user, fun, next_op, next, {:cont, acc}, inner, after_fun)
+    {:halted, [_ | acc]} ->
+      next.({:halt, []})
+      do_after(after_fun, user_acc)
+      {:halted, acc}
+    {:done, [_ | acc]} ->
+      do_transform(user_acc, user, fun, next_op, next, {:cont, acc}, inner, after_fun)
+    {:suspended, [_ | acc], c} ->
+      {:suspended, acc, &do_enum_transform(user_acc, user, fun, next_op, next, &1, inner, c, after_fun)}
   end
 
   defp do_after(nil, _user_acc), do: :ok
@@ -1042,19 +1034,17 @@ defmodule Stream do
   end
 
   defp do_zip(zips, {:cont, acc}, callback) do
-    try do
-      do_zip_next_tuple(zips, acc, callback, [], [])
-    catch
-      kind, reason ->
-        stacktrace = System.stacktrace
-        do_zip_close(zips)
-        :erlang.raise(kind, reason, stacktrace)
-    else
-      {:next, buffer, acc} ->
-        do_zip(buffer, acc, callback)
-      {:done, _acc} = other ->
-        other
-    end
+    do_zip_next_tuple(zips, acc, callback, [], [])
+  catch
+    kind, reason ->
+      stacktrace = System.stacktrace
+      do_zip_close(zips)
+      :erlang.raise(kind, reason, stacktrace)
+  else
+    {:next, buffer, acc} ->
+      do_zip(buffer, acc, callback)
+    {:done, _acc} = other ->
+      other
   end
 
   # do_zip_next_tuple/5 computes the next tuple formed by
@@ -1135,17 +1125,15 @@ defmodule Stream do
   end
 
   defp do_cycle(reduce, cycle, acc) do
-    try do
-      reduce.(acc)
-    catch
-      {:stream_cycle, acc} ->
-        {:halted, acc}
-    else
-      {state, acc} when state in [:done, :halted] ->
-        do_cycle(cycle, cycle, {:cont, acc})
-      {:suspended, acc, continuation} ->
-        {:suspended, acc, &do_cycle(continuation, cycle, &1)}
-    end
+    reduce.(acc)
+  catch
+    {:stream_cycle, acc} ->
+      {:halted, acc}
+  else
+    {state, acc} when state in [:done, :halted] ->
+      do_cycle(cycle, cycle, {:cont, acc})
+    {:suspended, acc, continuation} ->
+      {:suspended, acc, &do_cycle(continuation, cycle, &1)}
   end
 
   defp do_cycle_each(x, acc, f) do
@@ -1247,69 +1235,63 @@ defmodule Stream do
   end
 
   defp do_resource(next_acc, next_fun, {:cont, acc}, fun, after_fun) do
-    try do
-      # Optimize the most common cases
-      case next_fun.(next_acc) do
-        {[], next_acc}  -> {:opt, {:cont, acc}, next_acc}
-        {[v], next_acc} -> {:opt, fun.(v, acc), next_acc}
-        {_, _} = other  -> other
-      end
-    catch
-      kind, reason ->
-        stacktrace = System.stacktrace
-        after_fun.(next_acc)
-        :erlang.raise(kind, reason, stacktrace)
-    else
-      {:opt, acc, next_acc} ->
-        do_resource(next_acc, next_fun, acc, fun, after_fun)
-      {:halt, next_acc} ->
-        do_resource(next_acc, next_fun, {:halt, acc}, fun, after_fun)
-      {list, next_acc} when is_list(list) ->
-        do_list_resource(next_acc, next_fun, {:cont, acc}, fun, after_fun,
-                         &Enumerable.List.reduce(list, &1, fun))
-      {enum, next_acc} ->
-        inner = &do_resource_each(&1, &2, fun)
-        do_enum_resource(next_acc, next_fun, {:cont, acc}, fun, after_fun,
-                         &Enumerable.reduce(enum, &1, inner))
+    # Optimize the most common cases
+    case next_fun.(next_acc) do
+      {[], next_acc}  -> {:opt, {:cont, acc}, next_acc}
+      {[v], next_acc} -> {:opt, fun.(v, acc), next_acc}
+      {_, _} = other  -> other
     end
+  catch
+    kind, reason ->
+      stacktrace = System.stacktrace
+      after_fun.(next_acc)
+      :erlang.raise(kind, reason, stacktrace)
+  else
+    {:opt, acc, next_acc} ->
+      do_resource(next_acc, next_fun, acc, fun, after_fun)
+    {:halt, next_acc} ->
+      do_resource(next_acc, next_fun, {:halt, acc}, fun, after_fun)
+    {list, next_acc} when is_list(list) ->
+      do_list_resource(next_acc, next_fun, {:cont, acc}, fun, after_fun,
+                       &Enumerable.List.reduce(list, &1, fun))
+    {enum, next_acc} ->
+      inner = &do_resource_each(&1, &2, fun)
+      do_enum_resource(next_acc, next_fun, {:cont, acc}, fun, after_fun,
+                       &Enumerable.reduce(enum, &1, inner))
   end
 
   defp do_list_resource(next_acc, next_fun, acc, fun, after_fun, reduce) do
-    try do
-      reduce.(acc)
-    catch
-      kind, reason ->
-        stacktrace = System.stacktrace
-        after_fun.(next_acc)
-        :erlang.raise(kind, reason, stacktrace)
-    else
-      {:done, acc} ->
-        do_resource(next_acc, next_fun, {:cont, acc}, fun, after_fun)
-      {:halted, acc} ->
-        do_resource(next_acc, next_fun, {:halt, acc}, fun, after_fun)
-      {:suspended, acc, c} ->
-        {:suspended, acc, &do_list_resource(next_acc, next_fun, &1, fun, after_fun, c)}
-    end
+    reduce.(acc)
+  catch
+    kind, reason ->
+      stacktrace = System.stacktrace
+      after_fun.(next_acc)
+      :erlang.raise(kind, reason, stacktrace)
+  else
+    {:done, acc} ->
+      do_resource(next_acc, next_fun, {:cont, acc}, fun, after_fun)
+    {:halted, acc} ->
+      do_resource(next_acc, next_fun, {:halt, acc}, fun, after_fun)
+    {:suspended, acc, c} ->
+      {:suspended, acc, &do_list_resource(next_acc, next_fun, &1, fun, after_fun, c)}
   end
 
   defp do_enum_resource(next_acc, next_fun, {op, acc}, fun, after_fun, reduce) do
-    try do
-      reduce.({op, [:outer | acc]})
-    catch
-      kind, reason ->
-        stacktrace = System.stacktrace
-        after_fun.(next_acc)
-        :erlang.raise(kind, reason, stacktrace)
-    else
-      {:halted, [:outer | acc]} ->
-        do_resource(next_acc, next_fun, {:cont, acc}, fun, after_fun)
-      {:halted, [:inner | acc]} ->
-        do_resource(next_acc, next_fun, {:halt, acc}, fun, after_fun)
-      {:done, [_ | acc]} ->
-        do_resource(next_acc, next_fun, {:cont, acc}, fun, after_fun)
-      {:suspended, [_ | acc], c} ->
-        {:suspended, acc, &do_enum_resource(next_acc, next_fun, &1, fun, after_fun, c)}
-    end
+    reduce.({op, [:outer | acc]})
+  catch
+    kind, reason ->
+      stacktrace = System.stacktrace
+      after_fun.(next_acc)
+      :erlang.raise(kind, reason, stacktrace)
+  else
+    {:halted, [:outer | acc]} ->
+      do_resource(next_acc, next_fun, {:cont, acc}, fun, after_fun)
+    {:halted, [:inner | acc]} ->
+      do_resource(next_acc, next_fun, {:halt, acc}, fun, after_fun)
+    {:done, [_ | acc]} ->
+      do_resource(next_acc, next_fun, {:cont, acc}, fun, after_fun)
+    {:suspended, [_ | acc], c} ->
+      {:suspended, acc, &do_enum_resource(next_acc, next_fun, &1, fun, after_fun, c)}
   end
 
   defp do_resource_each(x, [:outer | acc], f) do

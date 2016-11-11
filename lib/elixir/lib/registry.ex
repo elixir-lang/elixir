@@ -654,15 +654,13 @@ defmodule Registry do
   """
   @spec meta(registry, meta_key) :: {:ok, meta_value} | :error
   def meta(registry, key) when is_atom(registry) and (is_atom(key) or is_tuple(key)) do
-    try do
-      :ets.lookup(registry, key)
-    catch
-      :error, :badarg ->
-        raise ArgumentError, "unknown registry: #{inspect registry}"
-    else
-      [{^key, value}] -> {:ok, value}
-      _ -> :error
-    end
+    :ets.lookup(registry, key)
+  catch
+    :error, :badarg ->
+      raise ArgumentError, "unknown registry: #{inspect registry}"
+  else
+    [{^key, value}] -> {:ok, value}
+    _ -> :error
   end
 
   @doc """
@@ -685,13 +683,11 @@ defmodule Registry do
   """
   @spec put_meta(registry, meta_key, meta_value) :: :ok
   def put_meta(registry, key, value) when is_atom(registry) and (is_atom(key) or is_tuple(key)) do
-    try do
-      :ets.insert(registry, {key, value})
-      :ok
-    catch
-      :error, :badarg ->
-        raise ArgumentError, "unknown registry: #{inspect registry}"
-    end
+    :ets.insert(registry, {key, value})
+    :ok
+  catch
+    :error, :badarg ->
+      raise ArgumentError, "unknown registry: #{inspect registry}"
   end
 
   ## Helpers
@@ -703,21 +699,17 @@ defmodule Registry do
   end
 
   defp info!(registry) do
-    try do
-      :ets.lookup_element(registry, @all_info, 2)
-    catch
-      :error, :badarg ->
-        raise ArgumentError, "unknown registry: #{inspect registry}"
-    end
+    :ets.lookup_element(registry, @all_info, 2)
+  catch
+    :error, :badarg ->
+      raise ArgumentError, "unknown registry: #{inspect registry}"
   end
 
   defp key_info!(registry) do
-    try do
-      :ets.lookup_element(registry, @key_info, 2)
-    catch
-      :error, :badarg ->
-        raise ArgumentError, "unknown registry: #{inspect registry}"
-    end
+    :ets.lookup_element(registry, @key_info, 2)
+  catch
+    :error, :badarg ->
+      raise ArgumentError, "unknown registry: #{inspect registry}"
   end
 
   defp key_ets!(registry, key, partitions) do
@@ -737,11 +729,9 @@ defmodule Registry do
   end
 
   defp safe_lookup_second(ets, key) do
-    try do
-      :ets.lookup_element(ets, key, 2)
-    catch
-      :error, :badarg -> []
-    end
+    :ets.lookup_element(ets, key, 2)
+  catch
+    :error, :badarg -> []
   end
 
   defp partitions(:unique, key, pid, partitions) do

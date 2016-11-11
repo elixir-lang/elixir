@@ -79,14 +79,12 @@ defimpl Enumerable, for: GenEvent.Stream do
   end
 
   defp start(%{manager: manager} = stream) do
-    try do
-      {:ok, {pid, ref}} = :gen.call(manager, self(),
-                                    {:add_process_handler, self(), self()}, :infinity)
-      mon_ref = Process.monitor(pid)
-      {pid, ref, mon_ref}
-    catch
-      :exit, reason -> exit({reason, {__MODULE__, :start, [stream]}})
-    end
+    {:ok, {pid, ref}} = :gen.call(manager, self(),
+                                  {:add_process_handler, self(), self()}, :infinity)
+    mon_ref = Process.monitor(pid)
+    {pid, ref, mon_ref}
+  catch
+    :exit, reason -> exit({reason, {__MODULE__, :start, [stream]}})
   end
 
   defp next(%{timeout: timeout} = stream, {pid, ref, mon_ref} = acc) do

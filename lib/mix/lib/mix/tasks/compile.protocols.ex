@@ -149,16 +149,14 @@ defmodule Mix.Tasks.Compile.Protocols do
   end
 
   defp read_manifest(manifest, output) do
-    try do
-      [@manifest_vsn | metadata] =
-        manifest |> File.read! |> :erlang.binary_to_term()
-      metadata
-    rescue
-      _ ->
-        # If there is no manifest or it is out of date, remove old files
-        File.rm_rf(output)
-        []
-    end
+    [@manifest_vsn | metadata] =
+      manifest |> File.read! |> :erlang.binary_to_term()
+    metadata
+  rescue
+    _ ->
+      # If there is no manifest or it is out of date, remove old files
+      File.rm_rf(output)
+      []
   end
 
   defp write_manifest(manifest, metadata) do

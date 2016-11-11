@@ -308,16 +308,14 @@ defmodule Logger.Translator do
   end
 
   defp format_stop({maybe_exception, [_ | _ ] = maybe_stacktrace} = reason) do
-    try do
-      format_stacktrace(maybe_stacktrace)
-    catch
-      :error, _ ->
-        format_stop_banner(reason)
-    else
-      formatted_stacktrace ->
-        [format_stop_banner(maybe_exception, maybe_stacktrace) |
-          formatted_stacktrace]
-    end
+    format_stacktrace(maybe_stacktrace)
+  catch
+    :error, _ ->
+      format_stop_banner(reason)
+  else
+    formatted_stacktrace ->
+      [format_stop_banner(maybe_exception, maybe_stacktrace) |
+       formatted_stacktrace]
   end
 
   defp format_stop(reason) do

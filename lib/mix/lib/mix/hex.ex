@@ -49,15 +49,13 @@ defmodule Mix.Hex do
   Ensures `Hex` is started.
   """
   def start do
-    try do
-      Hex.start
-    catch
-      kind, reason ->
-        stacktrace = System.stacktrace
-        Mix.shell.error "Could not start Hex. Try fetching a new version with " <>
-                        "\"mix local.hex\" or uninstalling it with \"mix archive.uninstall hex.ez\""
-        :erlang.raise(kind, reason, stacktrace)
-    end
+    Hex.start
+  catch
+    kind, reason ->
+      stacktrace = System.stacktrace
+      Mix.shell.error "Could not start Hex. Try fetching a new version with " <>
+                      "\"mix local.hex\" or uninstalling it with \"mix archive.uninstall hex.ez\""
+      :erlang.raise(kind, reason, stacktrace)
   end
 
   @doc """

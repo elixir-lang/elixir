@@ -172,24 +172,22 @@ defmodule Mix.Config do
   will be raised.
   """
   def read!(file, loaded_paths \\ []) do
-    try do
-      if file in loaded_paths do
-        raise ArgumentError, message: "recursive load of #{file} detected"
-      end
-
-      {config, binding} = Code.eval_string File.read!(file), [{{:loaded_paths, Mix.Config}, [file | loaded_paths]}], [file: file, line: 1]
-
-      config = case List.keyfind(binding, {:config_agent, Mix.Config}, 0) do
-        {_, agent} -> get_config_and_stop_agent(agent)
-        nil        -> config
-      end
-
-      validate!(config)
-      config
-    rescue
-      e in [LoadError] -> reraise(e, System.stacktrace)
-      e -> reraise(LoadError, [file: file, error: e], System.stacktrace)
+    if file in loaded_paths do
+      raise ArgumentError, message: "recursive load of #{file} detected"
     end
+
+    {config, binding} = Code.eval_string File.read!(file), [{{:loaded_paths, Mix.Config}, [file | loaded_paths]}], [file: file, line: 1]
+
+    config = case List.keyfind(binding, {:config_agent, Mix.Config}, 0) do
+      {_, agent} -> get_config_and_stop_agent(agent)
+      nil        -> config
+    end
+
+    validate!(config)
+    config
+  rescue
+    e in LoadError -> reraise(e, System.stacktrace)
+    e -> reraise(LoadError, [file: file, error: e], System.stacktrace)
   end
 
   defp get_config_and_stop_agent(agent) do

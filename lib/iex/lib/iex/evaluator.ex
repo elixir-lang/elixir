@@ -74,21 +74,19 @@ defmodule IEx.Evaluator do
   end
 
   defp eval_dot_iex(state, path) do
-    try do
-      code = File.read!(path)
-      env  = :elixir.env_for_eval(state.env, file: path, line: 1)
+    code = File.read!(path)
+    env  = :elixir.env_for_eval(state.env, file: path, line: 1)
 
-      # Evaluate the contents in the same environment server_loop will run in
-      {_result, binding, env, _scope} =
-        :elixir.eval(String.to_charlist(code), state.binding, env)
+    # Evaluate the contents in the same environment server_loop will run in
+    {_result, binding, env, _scope} =
+      :elixir.eval(String.to_charlist(code), state.binding, env)
 
-      %{state | binding: binding, env: :elixir.env_for_eval(env, file: "iex", line: 1)}
-    catch
-      kind, error ->
-        io_result "Error while evaluating: #{path}"
-        print_error(kind, error, System.stacktrace)
-        System.halt(1)
-    end
+    %{state | binding: binding, env: :elixir.env_for_eval(env, file: "iex", line: 1)}
+  catch
+    kind, error ->
+      io_result "Error while evaluating: #{path}"
+      print_error(kind, error, System.stacktrace)
+      System.halt(1)
   end
 
   # Instead of doing just :elixir.eval, we first parse the expression to see
@@ -107,13 +105,11 @@ defmodule IEx.Evaluator do
   @break_trigger '#iex:break\n'
 
   defp eval(code, iex_state, history, state) do
-    try do
-      do_eval(String.to_charlist(code), iex_state, history, state)
-    catch
-      kind, error ->
-        print_error(kind, error, System.stacktrace)
-        {%{iex_state | cache: ''}, history, state}
-    end
+    do_eval(String.to_charlist(code), iex_state, history, state)
+  catch
+    kind, error ->
+      print_error(kind, error, System.stacktrace)
+      {%{iex_state | cache: ''}, history, state}
   end
 
   defp do_eval(@break_trigger, %IEx.State{cache: ''} = iex_state, history, state) do

@@ -417,11 +417,9 @@ defmodule Mix.Utils do
   end
 
   defp read_file(path) do
-    try do
-      {:ok, File.read!(path)}
-    rescue
-      e in [File.Error] -> {:local, Exception.message(e)}
-    end
+    {:ok, File.read!(path)}
+  rescue
+    e in File.Error -> {:local, Exception.message(e)}
   end
 
   defp read_httpc(path) do

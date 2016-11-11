@@ -56,17 +56,15 @@ defmodule Logger.App do
   Stops the application without sending messages to error logger.
   """
   def stop() do
-    try do
-      Logger.Config.deleted_handlers([])
-    catch
-      :exit, {:noproc, _} ->
-        {:error, {:not_started, :logger}}
-    else
-      deleted_handlers ->
-        result = Application.stop(:logger)
-        add_handlers(deleted_handlers)
-        result
-    end
+    Logger.Config.deleted_handlers([])
+  catch
+    :exit, {:noproc, _} ->
+      {:error, {:not_started, :logger}}
+  else
+    deleted_handlers ->
+      result = Application.stop(:logger)
+      add_handlers(deleted_handlers)
+      result
   end
 
   defp delete_handlers(handlers) do

@@ -142,18 +142,16 @@ defmodule ExUnit.CaptureIO do
   end
 
   defp do_capture_io(string_io, fun) do
-    try do
-       _ = fun.()
-      :ok
-    catch
-      kind, reason ->
-        stack = System.stacktrace()
-        _ = StringIO.close(string_io)
-        :erlang.raise(kind, reason, stack)
-    else
-      :ok ->
-        {:ok, output} = StringIO.close(string_io)
-        elem(output, 1)
-    end
+    _ = fun.()
+    :ok
+  catch
+    kind, reason ->
+      stack = System.stacktrace()
+      _ = StringIO.close(string_io)
+      :erlang.raise(kind, reason, stack)
+  else
+    :ok ->
+      {:ok, output} = StringIO.close(string_io)
+      elem(output, 1)
   end
 end
