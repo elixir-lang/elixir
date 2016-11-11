@@ -55,7 +55,20 @@ defmodule RegistryTest do
         assert Registry.lookup(registry, "hello") == [{self(), :other}]
       end
 
-      test "compares using matches", %{registry: registry} do
+      test "supports match patterns", %{registry: registry} do
+        value = {1, :atom, 1}
+        {:ok, _} = Registry.register(registry, "hello", value)
+        assert Registry.match(registry, "hello", {1, :_, :_}) ==
+               [{self(), value}]
+        assert Registry.match(registry, "hello", {1.0, :_, :_}) ==
+               []
+        assert Registry.match(registry, "hello", {:_, :atom, :_}) ==
+               [{self(), value}]
+        assert Registry.match(registry, "hello", {:"$1", :_, :"$1"}) ==
+               [{self(), value}]
+      end
+
+      test "compares using ===", %{registry: registry} do
         {:ok, _} = Registry.register(registry, 1.0, :value)
         {:ok, _} = Registry.register(registry, 1, :value)
         assert Registry.keys(registry, self()) |> Enum.sort() == [1, 1.0]
@@ -234,6 +247,26 @@ defmodule RegistryTest do
 
       test "allows unregistering with no entries", %{registry: registry} do
         assert Registry.unregister(registry, "hello") == :ok
+      end
+
+      test "supports match patterns", %{registry: registry} do
+        value1 = {1, :atom, 1}
+        {:ok, _} = Registry.register(registry, "hello", value1)
+        value2 = {2, :atom, 2}
+        {:ok, _} = Registry.register(registry, "hello", value2)
+
+        assert Registry.match(registry, "hello", {1, :_, :_}) |> Enum.sort() ==
+               [{self(), value1}]
+        assert Registry.match(registry, "hello", {1.0, :_, :_}) |> Enum.sort() ==
+               []
+        assert Registry.match(registry, "hello", {:_, :atom, :_}) |> Enum.sort() ==
+               [{self(), value1}, {self(), value2}]
+        assert Registry.match(registry, "hello", {:"$1", :_, :"$1"}) |> Enum.sort() ==
+               [{self(), value1}, {self(), value2}]
+        assert Registry.match(registry, "hello", {2, :_, :_}) |> Enum.sort() ==
+               [{self(), value2}]
+        assert Registry.match(registry, "hello", {2.0, :_, :_}) |> Enum.sort() ==
+               []
       end
 
       @tag listener: :"duplicate_listener_#{partitions}"
