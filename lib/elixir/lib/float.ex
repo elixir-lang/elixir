@@ -235,7 +235,7 @@ defmodule Float do
         # Convert back to float without loss
         # http://www.exploringbinary.com/correct-decimal-to-floating-point-using-big-integers/
         den = power_of_10(precision)
-        boundary = @power_of_2_to_52 * den
+        boundary = den <<< 52
 
         cond do
           num == 0 ->
@@ -253,8 +253,14 @@ defmodule Float do
   defp scale_up(num, boundary, exp) when num >= boundary, do: {num, exp}
   defp scale_up(num, boundary, exp), do: scale_up(num <<< 1, boundary, exp - 1)
 
-  defp scale_down(num, boundary, exp) when num <= boundary, do: exp
-  defp scale_down(num, boundary, exp), do: scale_down(num, boundary <<< 1, exp + 1)
+  defp scale_down(num, den, exp) do
+    new_den = den <<< 1
+    if num < new_den do
+      {den >>> 52, exp}
+    else
+      scale_down(num, new_den, exp + 1)
+    end
+  end
 
   defp decimal_to_float(sign, num, den, exp) do
     quo = div(num, den)
