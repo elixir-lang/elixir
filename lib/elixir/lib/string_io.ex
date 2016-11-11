@@ -247,18 +247,16 @@ defmodule StringIO do
   end
 
   defp do_get_chars(input, encoding, n) do
-    try do
-      case :file_io_server.count_and_find(input, n, encoding) do
-        {buf_count, split_pos} when buf_count < n or split_pos == :none ->
-          {input, ""}
-        {_buf_count, split_pos} ->
-          <<chars::binary-size(split_pos), rest::binary>> = input
-          {chars, rest}
-      end
-    catch
-      :exit, :invalid_unicode ->
-        {:error, :invalid_unicode}
+    case :file_io_server.count_and_find(input, n, encoding) do
+      {buf_count, split_pos} when buf_count < n or split_pos == :none ->
+        {input, ""}
+      {_buf_count, split_pos} ->
+        <<chars::binary-size(split_pos), rest::binary>> = input
+        {chars, rest}
     end
+  catch
+    :exit, :invalid_unicode ->
+      {:error, :invalid_unicode}
   end
 
   ## get_line

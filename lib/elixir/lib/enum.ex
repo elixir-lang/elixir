@@ -1162,16 +1162,14 @@ defmodule Enum do
   end
 
   defp into(enumerable, initial, fun, callback) do
-    try do
-      reduce(enumerable, initial, callback)
-    catch
-      kind, reason ->
-        stacktrace = System.stacktrace
-        fun.(initial, :halt)
-        :erlang.raise(kind, reason, stacktrace)
-    else
-      acc -> fun.(acc, :done)
-    end
+    reduce(enumerable, initial, callback)
+  catch
+    kind, reason ->
+      stacktrace = System.stacktrace
+      fun.(initial, :halt)
+      :erlang.raise(kind, reason, stacktrace)
+  else
+    acc -> fun.(acc, :done)
   end
 
   @doc """

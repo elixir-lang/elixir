@@ -49,19 +49,17 @@ defmodule Exception do
   Gets the message for an `exception`.
   """
   def message(%{__struct__: module, __exception__: true} = exception) when is_atom(module) do
-    try do
-      module.message(exception)
-    rescue
-      e ->
-        "got #{inspect e.__struct__} with message #{inspect message(e)} " <>
-        "while retrieving Exception.message/1 for #{inspect(exception)}"
-    else
-      x when is_binary(x) -> x
-      x ->
-        "got #{inspect(x)} " <>
+    module.message(exception)
+  rescue
+    e ->
+      "got #{inspect e.__struct__} with message #{inspect message(e)} " <>
+      "while retrieving Exception.message/1 for #{inspect(exception)}"
+  else
+    x when is_binary(x) -> x
+    x ->
+      "got #{inspect(x)} " <>
         "while retrieving Exception.message/1 for #{inspect(exception)} " <>
         "(expected a string)"
-    end
   end
 
   @doc """
@@ -174,20 +172,18 @@ defmodule Exception do
   # 2-Tuple could be caused by an error if the second element is a stacktrace.
   defp format_exit({exception, maybe_stacktrace} = reason, joiner)
       when is_list(maybe_stacktrace) and maybe_stacktrace !== [] do
-    try do
-      Enum.map(maybe_stacktrace, &format_stacktrace_entry/1)
-    else
-      formatted_stacktrace ->
-        # Assume a non-empty list formattable as stacktrace is a
-        # stacktrace, so exit was caused by an error.
-        message = "an exception was raised:" <> joiner <>
-          format_banner(:error, exception, maybe_stacktrace)
-        Enum.join([message | formatted_stacktrace], joiner <> <<"    ">>)
-    catch
-      :error, _ ->
-        # Not a stacktrace, was an exit.
-        format_exit_reason(reason)
-    end
+    Enum.map(maybe_stacktrace, &format_stacktrace_entry/1)
+  catch
+    :error, _ ->
+      # Not a stacktrace, was an exit.
+      format_exit_reason(reason)
+  else
+    formatted_stacktrace ->
+      # Assume a non-empty list formattable as stacktrace is a
+      # stacktrace, so exit was caused by an error.
+      message = "an exception was raised:" <> joiner <>
+        format_banner(:error, exception, maybe_stacktrace)
+      Enum.join([message | formatted_stacktrace], joiner <> <<"    ">>)
   end
 
   # :supervisor.start_link returns this error reason when it fails to init
@@ -208,19 +204,17 @@ defmodule Exception do
   # must be a list of arguments - max length 255 due to max arity.
   defp format_exit({reason2, {mod, fun, args}} = reason, joiner)
       when length(args) < 256 do
-    try do
-      format_mfa(mod, fun, args)
-    else
-      mfa ->
-        # Assume tuple formattable as an mfa is an mfa, so exit was caused by
-        # failed mfa.
-        "exited in: " <> mfa <> joiner <>
-          "** (EXIT) " <> format_exit(reason2, joiner <> <<"    ">>)
-    catch
-      :error, _ ->
-        # Not an mfa, was an exit.
-        format_exit_reason(reason)
-    end
+    format_mfa(mod, fun, args)
+  else
+    mfa ->
+      # Assume tuple formattable as an mfa is an mfa, so exit was caused by
+      # failed mfa.
+      "exited in: " <> mfa <> joiner <>
+        "** (EXIT) " <> format_exit(reason2, joiner <> <<"    ">>)
+  catch
+    :error, _ ->
+      # Not an mfa, was an exit.
+      format_exit_reason(reason)
   end
 
   defp format_exit(reason, _joiner) do

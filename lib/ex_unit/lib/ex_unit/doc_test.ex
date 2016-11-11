@@ -375,18 +375,16 @@ defmodule ExUnit.DocTest do
   end
 
   defp string_to_quoted(location, stack, expr) do
-    try do
-      Code.string_to_quoted!(expr, location)
-    rescue
-      e ->
-        message = "(#{inspect e.__struct__}) #{Exception.message(e)}"
-        quote do
-          reraise ExUnit.AssertionError,
-            [message: "Doctest did not compile, got: #{unquote(message)}",
-             expr: unquote(String.trim(expr))],
-            unquote(stack)
-        end
-    end
+    Code.string_to_quoted!(expr, location)
+  rescue
+    e ->
+      message = "(#{inspect e.__struct__}) #{Exception.message(e)}"
+      quote do
+        reraise ExUnit.AssertionError,
+          [message: "Doctest did not compile, got: #{unquote(message)}",
+           expr: unquote(String.trim(expr))],
+          unquote(stack)
+      end
   end
 
   ## Extraction of the tests

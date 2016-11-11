@@ -52,24 +52,22 @@ defmodule Mix.CLI do
   end
 
   defp run_task(name, args) do
-    try do
-      ensure_no_slashes(name)
-      Mix.Task.run "loadconfig"
-      Mix.Task.run name, args
-    rescue
-      # We only rescue exceptions in the Mix namespace, all
-      # others pass through and will explode on the users face
-      exception ->
-        stacktrace = System.stacktrace
+    ensure_no_slashes(name)
+    Mix.Task.run "loadconfig"
+    Mix.Task.run name, args
+  rescue
+    # We only rescue exceptions in the Mix namespace, all
+    # others pass through and will explode on the users face
+    exception ->
+      stacktrace = System.stacktrace
 
-        if Map.get(exception, :mix) && not Mix.debug? do
-          mod = exception.__struct__ |> Module.split() |> Enum.at(0, "Mix")
-          Mix.shell.error "** (#{mod}) #{Exception.message(exception)}"
-          exit({:shutdown, 1})
-        else
-          reraise exception, stacktrace
-        end
-    end
+      if Map.get(exception, :mix) && not Mix.debug? do
+        mod = exception.__struct__ |> Module.split() |> Enum.at(0, "Mix")
+        Mix.shell.error "** (#{mod}) #{Exception.message(exception)}"
+        exit({:shutdown, 1})
+      else
+        reraise exception, stacktrace
+      end
   end
 
   defp env_variable_activated?(name) do

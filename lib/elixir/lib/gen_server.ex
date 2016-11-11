@@ -751,21 +751,17 @@ defmodule GenServer do
   def cast(server, request)
 
   def cast({:global, name}, request) do
-    try do
-      :global.send(name, cast_msg(request))
-      :ok
-    catch
-      _, _ -> :ok
-    end
+    :global.send(name, cast_msg(request))
+    :ok
+  catch
+    _, _ -> :ok
   end
 
   def cast({:via, mod, name}, request) do
-    try do
-      mod.send(name, cast_msg(request))
-      :ok
-    catch
-      _, _ -> :ok
-    end
+    mod.send(name, cast_msg(request))
+    :ok
+  catch
+    _, _ -> :ok
   end
 
   def cast({name, node}, request) when is_atom(name) and is_atom(node),
@@ -794,12 +790,10 @@ defmodule GenServer do
   end
 
   defp do_send(dest, msg) do
-    try do
-      send(dest, msg)
-      :ok
-    catch
-      _, _ -> :ok
-    end
+    send(dest, msg)
+    :ok
+  catch
+    _, _ -> :ok
   end
 
   @doc """
@@ -871,12 +865,10 @@ defmodule GenServer do
   def reply(client, reply)
 
   def reply({to, tag}, reply) when is_pid(to) do
-    try do
-      send(to, {tag, reply})
-      :ok
-    catch
-      _, _ -> :ok
-    end
+    send(to, {tag, reply})
+    :ok
+  catch
+    _, _ -> :ok
   end
 
   @doc """

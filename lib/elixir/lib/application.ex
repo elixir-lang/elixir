@@ -463,14 +463,12 @@ defmodule Application do
   """
   @spec format_error(any) :: String.t
   def format_error(reason) do
-    try do
-      do_format_error(reason)
-    catch
-      # A user could create an error that looks like a built-in one
-      # causing an error.
-      :error, _ ->
-        inspect(reason)
-    end
+    do_format_error(reason)
+  catch
+    # A user could create an error that looks like a built-in one
+    # causing an error.
+    :error, _ ->
+      inspect(reason)
   end
 
   # exit(:normal) call is special cased, undo the special case.

@@ -118,16 +118,14 @@ defmodule Mix.Compilers.Elixir do
   Reads the manifest.
   """
   def read_manifest(manifest, compile_path) do
-    try do
-      manifest |> File.read!() |> :erlang.binary_to_term()
-    else
-      [@manifest_vsn | data] ->
-        expand_beam_paths(data, compile_path)
-      _ ->
-        []
-    rescue
-      _ -> []
-    end
+    manifest |> File.read!() |> :erlang.binary_to_term()
+  rescue
+    _ -> []
+  else
+    [@manifest_vsn | data] ->
+      expand_beam_paths(data, compile_path)
+    _ ->
+      []
   end
 
   defp compile_manifest(manifest, modules, sources, stale, dest, timestamp, opts) do
@@ -339,14 +337,12 @@ defmodule Mix.Compilers.Elixir do
 
   # Similar to read_manifest, but supports data migration.
   defp parse_manifest(manifest, compile_path) do
-    try do
-      manifest |> File.read!() |> :erlang.binary_to_term()
-    rescue
-      _ -> {[], []}
-    else
-      [@manifest_vsn | data] -> do_parse_manifest(data, compile_path)
-      _ -> {[], []}
-    end
+    manifest |> File.read!() |> :erlang.binary_to_term()
+  rescue
+    _ -> {[], []}
+  else
+    [@manifest_vsn | data] -> do_parse_manifest(data, compile_path)
+    _ -> {[], []}
   end
 
   defp do_parse_manifest(data, compile_path) do

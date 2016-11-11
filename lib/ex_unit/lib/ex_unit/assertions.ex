@@ -557,24 +557,22 @@ defmodule ExUnit.Assertions do
 
   """
   def assert_raise(exception, function) when is_function(function) do
-    try do
-      function.()
-    rescue
-      error ->
-        stacktrace = System.stacktrace
-        name = error.__struct__
+    function.()
+  rescue
+    error ->
+      stacktrace = System.stacktrace
+      name = error.__struct__
 
-        cond do
-          name == exception ->
-            error
-          name == ExUnit.AssertionError ->
-            reraise(error, stacktrace)
-          true ->
-            reraise ExUnit.AssertionError, [message: "Expected exception #{inspect exception} but got #{inspect name} (#{Exception.message(error)})"], stacktrace
-        end
-    else
-      _ -> flunk "Expected exception #{inspect exception} but nothing was raised"
-    end
+      cond do
+        name == exception ->
+          error
+        name == ExUnit.AssertionError ->
+          reraise(error, stacktrace)
+        true ->
+          reraise ExUnit.AssertionError, [message: "Expected exception #{inspect exception} but got #{inspect name} (#{Exception.message(error)})"], stacktrace
+      end
+  else
+    _ -> flunk "Expected exception #{inspect exception} but nothing was raised"
   end
 
   @doc """

@@ -669,11 +669,9 @@ defmodule OptionParser do
   end
 
   defp to_existing_key(option) do
-    try do
-      String.to_existing_atom(option)
-    rescue
-      ArgumentError -> nil
-    end
+    String.to_existing_atom(option)
+  rescue
+    ArgumentError -> nil
   end
 
   defp negative_number?(arg) do

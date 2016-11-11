@@ -23,16 +23,14 @@ defmodule Logger.Case do
   end
 
   def wait_for_logger() do
-    try do
-      :gen_event.which_handlers(Logger)
-    else
-      _ ->
-        :ok
-    catch
-      :exit, _ ->
-        :timer.sleep(10)
-        wait_for_logger()
-    end
+    :gen_event.which_handlers(Logger)
+  catch
+    :exit, _ ->
+      :timer.sleep(10)
+      wait_for_logger()
+  else
+    _ ->
+      :ok
   end
 
   def capture_log(level \\ :debug, fun) do
