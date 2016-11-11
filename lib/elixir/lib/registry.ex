@@ -382,8 +382,7 @@ defmodule Registry do
   @doc """
   Finds the `{pid, value}` pair for the given `key` in `registry` in no particular order.
 
-  The pid-value pair is only returned if the pid is alive. An empty list
-  will be returned if there is no alive pid registered under this key.
+  An empty list if there is no match.
 
   For unique registries, a single partition lookup is necessary. For
   duplicate registries, all partitions must be looked up.
@@ -421,19 +420,68 @@ defmodule Registry do
       {:unique, partitions, key_ets} ->
         key_ets = key_ets || key_ets!(registry, key, partitions)
         case safe_lookup_second(key_ets, key) do
-          {pid, _} = pair ->
+          {_, _} = pair ->
             [pair]
           _ ->
             []
         end
 
       {:duplicate, 1, key_ets} ->
-        for {pid, _} = pair <- safe_lookup_second(key_ets, key),
-            do: pair
+        safe_lookup_second(key_ets, key)
 
       {:duplicate, partitions, _key_ets} ->
         for i <- :lists.seq(0, partitions-1),
-            {pid, _} = pair <- safe_lookup_second(key_ets!(registry, i), key),
+            pair <- safe_lookup_second(key_ets!(registry, i), key),
+            do: pair
+    end
+  end
+
+  @doc """
+  Returns `{pid, value}` pairs under the given `key` in `registry` that match `pattern`.
+
+  Pattern must be an atom or a tuple that will match the structure of the
+  value stored in the registry. The atom `:_` can be used to ignore a given
+  value or tuple element, while :"$1" can be used to temporarily assign part
+  of pattern to a variable for a subsequent comparison.
+
+  An empty list will be returned if there is no match.
+
+  For unique registries, a single partition lookup is necessary. For
+  duplicate registries, all partitions must be looked up.
+
+  ## Examples
+
+  In the example below we register the current process under the same
+  key in a duplicate registry but with different values:
+
+      iex> Registry.start_link(:duplicate, Registry.MatchTest)
+      iex> {:ok, _} = Registry.register(Registry.MatchTest, "hello", {1, :atom, 1})
+      iex> {:ok, _} = Registry.register(Registry.MatchTest, "hello", {2, :atom, 2})
+      iex> Registry.match(Registry.MatchTest, "hello", {1, :_, :_})
+      [{self(), {1, :atom, 1}}]
+      iex> Registry.match(Registry.MatchTest, "hello", {2, :_, :_})
+      [{self(), {2, :atom, 2}}]
+      iex> Registry.match(Registry.MatchTest, "hello", {:_, :atom, :_}) |> Enum.sort()
+      [{self(), {1, :atom, 1}}, {self(), {2, :atom, 2}}]
+      iex> Registry.match(Registry.MatchTest, "hello", {:"$1", :_, :"$1"}) |> Enum.sort()
+      [{self(), {1, :atom, 1}}, {self(), {2, :atom, 2}}]
+
+  """
+  @spec match(registry, key, match_pattern :: atom() | tuple()) :: [{pid, term}]
+  def match(registry, key, pattern) when is_atom(registry) do
+    spec = [{{key, {:_, pattern}}, [], [{:element, 2, :"$_"}]}]
+
+    case key_info!(registry) do
+      {:unique, partitions, key_ets} ->
+        key_ets = key_ets || key_ets!(registry, key, partitions)
+        :ets.select(key_ets, spec)
+
+      {:duplicate, 1, key_ets} ->
+        :ets.select(key_ets, spec)
+
+      {:duplicate, partitions, _key_ets} ->
+        for i <- :lists.seq(0, partitions-1),
+            pair <- :ets.select(key_ets!(registry, i), spec),
             do: pair
     end
   end
