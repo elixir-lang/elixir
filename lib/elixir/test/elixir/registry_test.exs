@@ -72,26 +72,6 @@ defmodule RegistryTest do
         assert Registry.lookup(registry, "world") == [{self(), 2}]
       end
 
-      test "looks up process considering liveness", %{registry: registry} do
-        assert Registry.lookup(registry, "hello") == []
-        {owner, task} = register_task(registry, "hello", :value)
-        assert Registry.lookup(registry, "hello") == [{task, :value}]
-
-        :sys.suspend(owner)
-        kill_and_assert_down(task)
-        assert Registry.lookup(registry, "hello") == []
-      end
-
-      test "returns process keys considering liveness", %{registry: registry} do
-        assert Registry.keys(registry, self()) == []
-        {owner, task} = register_task(registry, "hello", :value)
-        assert Registry.keys(registry, task) == ["hello"]
-
-        :sys.suspend(owner)
-        kill_and_assert_down(task)
-        assert Registry.keys(registry, task) == []
-      end
-
       test "dispatches to a single key", %{registry: registry} do
         assert Registry.dispatch(registry, "hello", fn _ ->
           raise "will never be invoked"
@@ -211,30 +191,6 @@ defmodule RegistryTest do
         {:ok, _} = Registry.register(registry, 1.0, :value)
         {:ok, _} = Registry.register(registry, 1, :value)
         assert Registry.keys(registry, self()) |> Enum.sort() == [1, 1.0]
-      end
-
-      test "looks up process considering liveness", %{registry: registry} do
-        assert Registry.lookup(registry, "hello") == []
-        {owner, task} = register_task(registry, "hello", :value)
-        assert Registry.lookup(registry, "hello") == [{task, :value}]
-
-        Registry.register(registry, "hello", :local)
-        assert Registry.lookup(registry, "hello") |> Enum.sort ==
-               [{self(), :local}, {task, :value}]
-
-        :sys.suspend(owner)
-        kill_and_assert_down(task)
-        assert Registry.lookup(registry, "hello") == [{self(), :local}]
-      end
-
-      test "returns process keys considering liveness", %{registry: registry} do
-        assert Registry.keys(registry, self()) == []
-        {owner, task} = register_task(registry, "hello", :value)
-        assert Registry.keys(registry, task) == ["hello"]
-
-        :sys.suspend(owner)
-        kill_and_assert_down(task)
-        assert Registry.keys(registry, task) == []
       end
 
       test "dispatches to multiple keys", %{registry: registry} do

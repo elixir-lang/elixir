@@ -329,12 +329,6 @@ defmodule Registry do
   caller. The callback, however, is only invoked if there are entries for that
   partition.
 
-  Keep in mind the `dispatch/3` function may return entries that have died
-  but have not yet been removed from the table. If this can be an issue,
-  consider explicitly checking if the process is alive in the entries
-  list. Remember there are no guarantees the process will remain alive, after
-  all the process may also crash right after the `Process.alive?/1` check.
-
   See the module documentation for examples of using the `dispatch/3`
   function for building custom dispatching or a pubsub system.
   """
@@ -428,20 +422,18 @@ defmodule Registry do
         key_ets = key_ets || key_ets!(registry, key, partitions)
         case safe_lookup_second(key_ets, key) do
           {pid, _} = pair ->
-            if Process.alive?(pid), do: [pair], else: []
+            [pair]
           _ ->
             []
         end
 
       {:duplicate, 1, key_ets} ->
         for {pid, _} = pair <- safe_lookup_second(key_ets, key),
-            Process.alive?(pid),
             do: pair
 
       {:duplicate, partitions, _key_ets} ->
         for i <- :lists.seq(0, partitions-1),
             {pid, _} = pair <- safe_lookup_second(key_ets!(registry, i), key),
-            Process.alive?(pid),
             do: pair
     end
   end
@@ -485,7 +477,6 @@ defmodule Registry do
     keys = safe_lookup_second(pid_ets, pid)
 
     cond do
-      not Process.alive?(pid) -> []
       kind == :unique -> Enum.uniq(keys)
       true -> keys
     end
