@@ -33,8 +33,8 @@ defmodule Inspect.Opts do
       printing to IO devices. Set to 0 to force each item to be printed on its
       own line.
 
-    * `:base` - prints integers as :binary, :octal, :decimal, or :hex, defaults
-      to :decimal. When inspecting binaries any `:base` other than `:decimal`
+    * `:base` - prints integers as `:binary`, `:octal`, `:decimal`, or `:hex`, defaults
+      to `:decimal`. When inspecting binaries any `:base` other than `:decimal`
       implies `binaries: :as_binaries`.
 
     * `:safe` - when `false`, failures while inspecting structs will be raised
@@ -261,7 +261,7 @@ defmodule Inspect.Algebra do
   def empty, do: :doc_nil
 
   @doc """
-  Concatenates two document entities.
+  Concatenates two document entities returning a new document.
 
   ## Examples
 
@@ -276,7 +276,14 @@ defmodule Inspect.Algebra do
   end
 
   @doc """
-  Concatenates a list of documents.
+  Concatenates a list of documents returning a new document.
+
+  ## Examples
+
+      iex> doc = Inspect.Algebra.concat(["a", "b", "c"])
+      iex> Inspect.Algebra.format(doc, 80)
+      ["a", "b", "c"]
+
   """
   @spec concat([t]) :: doc_cons
   def concat(docs) do
@@ -305,24 +312,27 @@ defmodule Inspect.Algebra do
   end
 
   @doc ~S"""
-  Document entity representing a break.
+  Returns a document entity representing a break based on the given
+  string `s`.
 
-  This break can be rendered as a linebreak or as spaces,
+  This break can be rendered as a linebreak or as the given `s`,
   depending on the `mode` of the chosen layout or the provided
   separator.
 
   ## Examples
 
-  Let's glue two docs together with a break and then render it:
+  Let's create a document by concatenating two strings with a break between
+  them:
 
-      iex> doc = Inspect.Algebra.glue("a", " ", "b")
+      iex> doc = Inspect.Algebra.concat(["a", Inspect.Algebra.break("\t"), "b"])
       iex> Inspect.Algebra.format(doc, 80)
-      ["a", " ", "b"]
+      ["a", "\t", "b"]
 
-  Notice the break was represented as is, because we haven't reached
-  a line limit. Once we do, it is replaced by a newline:
+  Notice the break was represented with the given string `s`, because we didn't
+  reach a line limit. Once we do, it is replaced by a newline:
 
-      iex> doc = Inspect.Algebra.glue(String.duplicate("a", 20), " ", "b")
+      iex> break = Inspect.Algebra.break("\t")
+      iex> doc = Inspect.Algebra.concat([String.duplicate("a", 20), break, "b"])
       iex> Inspect.Algebra.format(doc, 10)
       ["aaaaaaaaaaaaaaaaaaaa", "\n", "b"]
 
@@ -330,18 +340,42 @@ defmodule Inspect.Algebra do
   @spec break(binary) :: doc_break
   def break(s) when is_binary(s), do: doc_break(s)
 
+  @doc """
+  Returns a document entity representing the default break.
+
+  Same as calling `break/1` with the default break.
+  """
   @spec break() :: doc_break
   def break(), do: doc_break(@break)
 
   @doc """
-  Inserts a break between two docs. See `break/1` for more info.
+  Glues two documents together inserting the default break between them.
+
+  The break that is inserted between `x` and `y` is the one returned by
+  `break/0`.
+
+  ## Examples
+
+      iex> doc = Inspect.Algebra.glue("hello", "world")
+      iex> Inspect.Algebra.format(doc, 80)
+      ["hello", " ", "world"]
+
   """
   @spec glue(t, t) :: doc_cons
   def glue(x, y), do: concat(x, concat(break(), y))
 
   @doc """
-  Inserts a break, passed as the second argument, between two docs,
-  the first and the third arguments.
+  Glues two docs (`x` and `y`) together inserting the given break `g` between
+  them.
+
+  For more information on how the break is inserted, see `break/1`.
+
+  ## Examples
+
+      iex> doc = Inspect.Algebra.glue("hello", "\t", "world")
+      iex> Inspect.Algebra.format(doc, 80)
+      ["hello", "\t", "world"]
+
   """
   @spec glue(t, binary, t) :: doc_cons
   def glue(x, g, y) when is_binary(g), do: concat(x, concat(break(g), y))
@@ -384,7 +418,7 @@ defmodule Inspect.Algebra do
   ## Examples
 
       iex> doc = Inspect.Algebra.space "Hughes", "Wadler"
-      iex> Inspect.Algebra.format(doc, 80)
+      iex> Inspect.Algebra.format(doc, 5)
       ["Hughes", " ", "Wadler"]
 
   """
@@ -406,16 +440,20 @@ defmodule Inspect.Algebra do
 
   @doc """
   Folds a list of document entities into a document entity
-  using a function that is passed as the first argument.
+  using the given folder function.
+
+  The list of document is folded "from the right"; in that, this function is
+  similar to `List.foldr/3`, except that it doesn't expect an initial
+  accumulator and uses the last element of `docs` as the initial accumulator.
 
   ## Examples
 
-      iex> doc = ["A", "B"]
-      iex> doc = Inspect.Algebra.fold_doc(doc, fn(x, y) ->
-      ...>   Inspect.Algebra.concat [x, "!", y]
+      iex> doc = ["A", "B", "C"]
+      iex> doc = Inspect.Algebra.fold_doc(doc, fn(d, acc) ->
+      ...>   Inspect.Algebra.concat([d, "!", acc])
       ...> end)
       iex> Inspect.Algebra.format(doc, 80)
-      ["A", "!", "B"]
+      ["A", "!", "B", "!", "C"]
 
   """
   @spec fold_doc([t], ((t, t) -> t)) :: t
@@ -429,9 +467,9 @@ defmodule Inspect.Algebra do
   @doc ~S"""
   Surrounds a document with characters.
 
-  Puts the document between left and right enclosing and nesting it.
-  The document is marked as a group, to show the maximum as possible
-  concisely together.
+  Puts the given document `doc` between the `left` and `right` strings enclosing
+  and nesting it. The document is marked as a group, to show the maximum as
+  possible concisely together.
 
   ## Examples
 
@@ -448,9 +486,9 @@ defmodule Inspect.Algebra do
   @doc ~S"""
   Maps and glues a collection of items.
 
-  It uses the given left and right as surrounding and a separator for
-  each item. A limit can be passed which, once reached, stops gluing
-  and outputs "..." instead.
+  It uses the given `left` and `right` strings as surrounding and a separator for
+  each item in `docs`. A limit can be passed which, once reached, stops gluing
+  and outputs `"..."` instead.
 
   ## Examples
 
@@ -516,12 +554,21 @@ defmodule Inspect.Algebra do
   defp decrement(:infinity), do: :infinity
   defp decrement(counter),   do: counter - 1
 
-  @doc """
-  The formatting function.
+  @doc ~S"""
+  Formats a given document for a given width.
 
   Takes the maximum width and a document to print as its arguments
   and returns an IO data representation of the best layout for the
   document to fit in the given width.
+
+  ## Examples
+
+      iex> doc = Inspect.Algebra.glue("hello", " ", "world")
+      iex> Inspect.Algebra.format(doc, 30) |> IO.iodata_to_binary()
+      "hello world"
+      iex> Inspect.Algebra.format(doc, 10) |> IO.iodata_to_binary()
+      "hello\nworld"
+
   """
   @spec format(t, non_neg_integer | :infinity) :: iodata
   def format(d, w) when w == :infinity or w >= 0 do
