@@ -282,7 +282,7 @@ defmodule LoggerTest do
   test "bare_log/3 merges function returned metadata" do
     assert capture_log(fn ->
       assert Logger.bare_log(:debug, fn -> {"timber.io", [user_id: 2]} end, [user_id: 1, another: :value]) == :ok
-    end) =~ "user_id=2 another=value [debug] timber.io"
+    end) =~ msg("user_id=2 another=value [debug] timber.io")
   end
 
   test "log/2 truncates messages" do
