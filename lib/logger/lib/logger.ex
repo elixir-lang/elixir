@@ -524,7 +524,7 @@ defmodule Logger do
 
       Logger.warn "knob turned too far to the right"
       Logger.warn fn -> "expensive to calculate warning" end
-      Logger.warn fn -> {"expensive to calculate warning", [additional: :metadata] end
+      Logger.warn fn -> {"expensive to calculate warning", [additional: :metadata]} end
 
   """
   defmacro warn(chardata_or_fn, metadata \\ []) do
@@ -540,7 +540,7 @@ defmodule Logger do
 
       Logger.info "mission accomplished"
       Logger.info fn -> "expensive to calculate info" end
-      Logger.info fn -> {"expensive to calculate info", [additional: :metadata] end
+      Logger.info fn -> {"expensive to calculate info", [additional: :metadata]} end
 
   """
   defmacro info(chardata_or_fn, metadata \\ []) do
@@ -556,7 +556,7 @@ defmodule Logger do
 
       Logger.error "oops"
       Logger.error fn -> "expensive to calculate error" end
-      Logger.error fn -> {"expensive to calculate error", [additional: :metadata] end
+      Logger.error fn -> {"expensive to calculate error", [additional: :metadata]} end
 
   """
   defmacro error(chardata_or_fn, metadata \\ []) do
@@ -572,7 +572,7 @@ defmodule Logger do
 
       Logger.debug "hello?"
       Logger.debug fn -> "expensive to calculate debug" end
-      Logger.debug fn -> {"expensive to calculate debug", [additional: :metadata] end
+      Logger.debug fn -> {"expensive to calculate debug", [additional: :metadata]} end
 
   """
   defmacro debug(chardata_or_fn, metadata \\ []) do
