@@ -481,7 +481,7 @@ defmodule Logger do
   """
   @spec bare_log(level, message | (() -> message) | (() -> {message, Keyword.t}), Keyword.t) ::
         :ok | {:error, :noproc} | {:error, term}
-  def bare_log(level, chardata_or_fn, metadata \\ [])
+  def bare_log(level, chardata_or_fun, metadata \\ [])
       when level in @levels and is_list(metadata) do
     case __metadata__() do
       {true, pdict} ->
@@ -489,13 +489,9 @@ defmodule Logger do
           level: min_level, utc_log: utc_log?} = Logger.Config.__data__
 
         if compare_levels(level, min_level) != :lt do
-          {message, fn_metdata} = normalize_message(chardata_or_fn)
+          metadata = [pid: self()] ++ Keyword.merge(pdict, metadata)
+          {message, metadata} = normalize_message(chardata_or_fun, metadata)
           truncated = truncate(message, truncate)
-          metadata =
-            [pid: self()]
-            |> Keyword.merge(pdict)
-            |> Keyword.merge(metadata)
-            |> Keyword.merge(fn_metdata)
 
           tuple = {Logger, truncated, Logger.Utils.timestamp(utc_log?), metadata}
 
@@ -622,14 +618,12 @@ defmodule Logger do
     end
   end
 
-  # `bare_log/3` accepts a function that can String.t or {String.t, Keyword.t}. We
-  # want to normalize that return to simplify processing the message.
-  defp normalize_message(data) when is_function(data, 0),
-    do: normalize_message(data.())
-  defp normalize_message({_message, metadata} = result) when is_list(metadata),
-    do: result
-  defp normalize_message(message),
-    do: {message, []}
+  defp normalize_message(fun, metadata) when is_function(fun, 0),
+    do: normalize_message(data.(), metadata)
+  defp normalize_message({message, fun_metadata}, metadata) when is_list(fun_metadata),
+    do: {message, Keyword.merge(metadata, fun_metadata)}
+  defp normalize_message(message, metadata),
+    do: {message, metadata}
 
   defp truncate(data, n) when is_list(data) or is_binary(data),
     do: Logger.Utils.truncate(data, n)
