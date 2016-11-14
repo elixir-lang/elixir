@@ -141,12 +141,10 @@ inline(?process, spawn, 4) -> {erlang, spawn_opt};
 inline(?process, unlink, 1) -> {erlang, unlink};
 
 inline(?port, open, 2) -> {erlang, open_port};
-inline(?port, call, 3) -> {erlang, port_call};
 inline(?port, close, 1) -> {erlang, port_close};
 inline(?port, command, 2) -> {erlang, port_command};
 inline(?port, command, 3) -> {erlang, port_command};
 inline(?port, connect, 2) -> {erlang, port_connect};
-inline(?port, control, 3) -> {erlang, port_control};
 inline(?port, list, 0) -> {erlang, ports};
 
 inline(?string, to_float, 1) -> {erlang, binary_to_float};
