@@ -122,7 +122,7 @@ defmodule LoggerTest do
     end) =~ msg("application= module=LoggerTest [info]  ok")
   end
 
-  test "metadat merge with function returned metadata" do
+  test "metadata merge with function returned metadata" do
     assert Logger.metadata([module: Sample]) == :ok
 
     assert capture_log(fn ->
