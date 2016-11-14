@@ -619,7 +619,7 @@ defmodule Logger do
   end
 
   defp normalize_message(fun, metadata) when is_function(fun, 0),
-    do: normalize_message(data.(), metadata)
+    do: normalize_message(fun.(), metadata)
   defp normalize_message({message, fun_metadata}, metadata) when is_list(fun_metadata),
     do: {message, Keyword.merge(metadata, fun_metadata)}
   defp normalize_message(message, metadata),
