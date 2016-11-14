@@ -523,8 +523,8 @@ defmodule Logger do
       Logger.warn fn -> {"expensive to calculate warning", [additional: :metadata]} end
 
   """
-  defmacro warn(chardata_or_fn, metadata \\ []) do
-    maybe_log(:warn, chardata_or_fn, metadata, __CALLER__)
+  defmacro warn(chardata_or_fun, metadata \\ []) do
+    maybe_log(:warn, chardata_or_fun, metadata, __CALLER__)
   end
 
   @doc """
@@ -539,8 +539,8 @@ defmodule Logger do
       Logger.info fn -> {"expensive to calculate info", [additional: :metadata]} end
 
   """
-  defmacro info(chardata_or_fn, metadata \\ []) do
-    maybe_log(:info, chardata_or_fn, metadata, __CALLER__)
+  defmacro info(chardata_or_fun, metadata \\ []) do
+    maybe_log(:info, chardata_or_fun, metadata, __CALLER__)
   end
 
   @doc """
@@ -555,8 +555,8 @@ defmodule Logger do
       Logger.error fn -> {"expensive to calculate error", [additional: :metadata]} end
 
   """
-  defmacro error(chardata_or_fn, metadata \\ []) do
-    maybe_log(:error, chardata_or_fn, metadata, __CALLER__)
+  defmacro error(chardata_or_fun, metadata \\ []) do
+    maybe_log(:error, chardata_or_fun, metadata, __CALLER__)
   end
 
   @doc """
@@ -571,8 +571,8 @@ defmodule Logger do
       Logger.debug fn -> {"expensive to calculate debug", [additional: :metadata]} end
 
   """
-  defmacro debug(chardata_or_fn, metadata \\ []) do
-    maybe_log(:debug, chardata_or_fn, metadata, __CALLER__)
+  defmacro debug(chardata_or_fun, metadata \\ []) do
+    maybe_log(:debug, chardata_or_fun, metadata, __CALLER__)
   end
 
   @doc """
@@ -585,8 +585,8 @@ defmodule Logger do
   of this macro as they can automatically eliminate
   the Logger call altogether at compile time if desired.
   """
-  defmacro log(level, chardata_or_fn, metadata \\ []) do
-    macro_log(level, chardata_or_fn, metadata, __CALLER__)
+  defmacro log(level, chardata_or_fun, metadata \\ []) do
+    macro_log(level, chardata_or_fun, metadata, __CALLER__)
   end
 
   defp macro_log(level, data, metadata, caller) do
