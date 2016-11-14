@@ -311,8 +311,7 @@ defmodule Inspect.Algebra do
     doc
   end
 
-  def nest(doc, positions)
-      when is_doc(doc) and is_integer(positions) and positions > 0 do
+  def nest(doc, positions) when is_doc(doc) and is_integer(positions) and positions > 0 do
     doc_nest(doc, positions)
   end
 
@@ -367,7 +366,7 @@ defmodule Inspect.Algebra do
 
   """
   @spec glue(t, t) :: t
-  def glue(doc1, doc2) when is_doc(doc2) and is_doc(doc2), do: concat(doc1, concat(break(), doc2))
+  def glue(doc1, doc2), do: concat(doc1, concat(break(), doc2))
 
   @doc """
   Glues two documents (`doc1` and `doc2`) together inserting the given
@@ -383,7 +382,7 @@ defmodule Inspect.Algebra do
 
   """
   @spec glue(t, binary, t) :: t
-  def glue(doc1, break_string, doc2) when is_doc(doc1) and is_binary(break_string) and is_doc(doc2),
+  def glue(doc1, break_string, doc2) when is_binary(break_string),
     do: concat(doc1, concat(break(break_string), doc2))
 
   @doc ~S"""
@@ -429,7 +428,7 @@ defmodule Inspect.Algebra do
 
   """
   @spec space(t, t) :: t
-  def space(doc1, doc2) when is_doc(doc1) and is_doc(doc2), do: concat(doc1, concat(" ", doc2))
+  def space(doc1, doc2), do: concat(doc1, concat(" ", doc2))
 
   @doc ~S"""
   Inserts a mandatory linebreak between two documents.
@@ -442,7 +441,7 @@ defmodule Inspect.Algebra do
 
   """
   @spec line(t, t) :: t
-  def line(doc1, doc2) when is_doc(doc1) and is_doc(doc2), do: concat(doc1, concat(:doc_line, doc2))
+  def line(doc1, doc2), do: concat(doc1, concat(:doc_line, doc2))
 
   @doc """
   Folds a list of documents into a document using the given folder function.
