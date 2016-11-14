@@ -479,9 +479,9 @@ defmodule Logger do
   Use this function only when there is a need to
   explicitly avoid embedding metadata.
   """
-  @spec bare_log(level, message | (() -> message), Keyword.t) ::
+  @spec bare_log(level, message | (() -> message | {message, Keyword.t}), Keyword.t) ::
         :ok | {:error, :noproc} | {:error, term}
-  def bare_log(level, chardata_or_fn, metadata \\ [])
+  def bare_log(level, chardata_or_fun, metadata \\ [])
       when level in @levels and is_list(metadata) do
     case __metadata__() do
       {true, pdict} ->
@@ -489,8 +489,9 @@ defmodule Logger do
           level: min_level, utc_log: utc_log?} = Logger.Config.__data__
 
         if compare_levels(level, min_level) != :lt do
-          truncated = truncate(chardata_or_fn, truncate)
           metadata = [pid: self()] ++ Keyword.merge(pdict, metadata)
+          {message, metadata} = normalize_message(chardata_or_fun, metadata)
+          truncated = truncate(message, truncate)
 
           tuple = {Logger, truncated, Logger.Utils.timestamp(utc_log?), metadata}
 
@@ -519,10 +520,11 @@ defmodule Logger do
 
       Logger.warn "knob turned too far to the right"
       Logger.warn fn -> "expensive to calculate warning" end
+      Logger.warn fn -> {"expensive to calculate warning", [additional: :metadata]} end
 
   """
-  defmacro warn(chardata_or_fn, metadata \\ []) do
-    maybe_log(:warn, chardata_or_fn, metadata, __CALLER__)
+  defmacro warn(chardata_or_fun, metadata \\ []) do
+    maybe_log(:warn, chardata_or_fun, metadata, __CALLER__)
   end
 
   @doc """
@@ -534,10 +536,11 @@ defmodule Logger do
 
       Logger.info "mission accomplished"
       Logger.info fn -> "expensive to calculate info" end
+      Logger.info fn -> {"expensive to calculate info", [additional: :metadata]} end
 
   """
-  defmacro info(chardata_or_fn, metadata \\ []) do
-    maybe_log(:info, chardata_or_fn, metadata, __CALLER__)
+  defmacro info(chardata_or_fun, metadata \\ []) do
+    maybe_log(:info, chardata_or_fun, metadata, __CALLER__)
   end
 
   @doc """
@@ -549,10 +552,11 @@ defmodule Logger do
 
       Logger.error "oops"
       Logger.error fn -> "expensive to calculate error" end
+      Logger.error fn -> {"expensive to calculate error", [additional: :metadata]} end
 
   """
-  defmacro error(chardata_or_fn, metadata \\ []) do
-    maybe_log(:error, chardata_or_fn, metadata, __CALLER__)
+  defmacro error(chardata_or_fun, metadata \\ []) do
+    maybe_log(:error, chardata_or_fun, metadata, __CALLER__)
   end
 
   @doc """
@@ -564,10 +568,11 @@ defmodule Logger do
 
       Logger.debug "hello?"
       Logger.debug fn -> "expensive to calculate debug" end
+      Logger.debug fn -> {"expensive to calculate debug", [additional: :metadata]} end
 
   """
-  defmacro debug(chardata_or_fn, metadata \\ []) do
-    maybe_log(:debug, chardata_or_fn, metadata, __CALLER__)
+  defmacro debug(chardata_or_fun, metadata \\ []) do
+    maybe_log(:debug, chardata_or_fun, metadata, __CALLER__)
   end
 
   @doc """
@@ -580,8 +585,8 @@ defmodule Logger do
   of this macro as they can automatically eliminate
   the Logger call altogether at compile time if desired.
   """
-  defmacro log(level, chardata_or_fn, metadata \\ []) do
-    macro_log(level, chardata_or_fn, metadata, __CALLER__)
+  defmacro log(level, chardata_or_fun, metadata \\ []) do
+    macro_log(level, chardata_or_fun, metadata, __CALLER__)
   end
 
   defp macro_log(level, data, metadata, caller) do
@@ -613,8 +618,13 @@ defmodule Logger do
     end
   end
 
-  defp truncate(data, n) when is_function(data, 0),
-    do: truncate(data.(), n)
+  defp normalize_message(fun, metadata) when is_function(fun, 0),
+    do: normalize_message(fun.(), metadata)
+  defp normalize_message({message, fun_metadata}, metadata) when is_list(fun_metadata),
+    do: {message, Keyword.merge(metadata, fun_metadata)}
+  defp normalize_message(message, metadata),
+    do: {message, metadata}
+
   defp truncate(data, n) when is_list(data) or is_binary(data),
     do: Logger.Utils.truncate(data, n)
   defp truncate(data, n),
