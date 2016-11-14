@@ -50,7 +50,7 @@ defmodule Port do
     * `{pid, {:command, binary}}` - sends the given data to the port.
       See `command/3`.
 
-    * `{pid, :close} - closes the port. Unless the port is already closed,
+    * `{pid, :close}` - closes the port. Unless the port is already closed,
       the port will reply with `{port, :closed}` message once it has flushed
       its buffers and effectively closed. See `close/1`.
 
@@ -150,13 +150,13 @@ defmodule Port do
 
   Now instead of:
 
-      Port.spawn_executable({:spawn_executable, "/path/to/program"},
-                            [args: ["a", "b", "c"]])
+      Port.open({:spawn_executable, "/path/to/program"},
+                [args: ["a", "b", "c"]])
 
   You may invoke:
 
-      Port.spawn_executable({:spawn_executable, "/path/to/wrapper"},
-                            [args: ["/path/to/program", "a", "b", "c"]])
+      Port.open({:spawn_executable, "/path/to/wrapper"},
+                [args: ["/path/to/program", "a", "b", "c"]])
 
   """
 
@@ -181,7 +181,7 @@ defmodule Port do
       opened by the VM.
 
   For more information and the list of options, see
-  [`:erlang.open_port/2`(http://www.erlang.org/doc/man/erlang.html#open_port-2).
+  [`:erlang.open_port/2`](http://www.erlang.org/doc/man/erlang.html#open_port-2).
 
   Inlined by the compiler.
   """
