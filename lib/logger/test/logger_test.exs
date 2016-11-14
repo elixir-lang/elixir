@@ -283,7 +283,7 @@ defmodule LoggerTest do
     assert Logger.metadata([user_id: 3]) == :ok
 
     assert capture_log(fn ->
-      assert Logger.bare_log(:info, fn -> {"timber.io", [user_id: 2]} end, [user_id: 1, another: :value]) == :ok
+      assert Logger.bare_log(:info, "ok", [user_id: 1, another: :value]) == :ok
     end) =~ msg("user_id=2 another=value [info] timber.io")
   end
 
