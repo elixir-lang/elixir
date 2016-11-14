@@ -622,6 +622,8 @@ defmodule Logger do
     end
   end
 
+  # `bare_log/3` accepts a function that can String.t or {String.t, Keyword.t}. We
+  # want to normalize that return to simplify processing the message.
   defp normalize_message(data) when is_function(data, 0),
     do: normalize_message(data.())
   defp normalize_message({_message, metadata} = result) when is_list(metadata),
