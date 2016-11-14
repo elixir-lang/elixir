@@ -126,8 +126,8 @@ defmodule LoggerTest do
     assert Logger.metadata([module: Sample]) == :ok
 
     assert capture_log(fn ->
-      assert Logger.bare_log(:info, "ok", [application: nil, module: LoggerTest]) == :ok
-    end) =~ msg("application= module=LoggerTest [info]  ok")
+      assert Logger.bare_log(:info, fn -> {"ok", [module: "Function"]} end, [application: nil, module: LoggerTest]) == :ok
+    end) =~ msg("application= module=Function [info]  ok")
   end
 
   test "enable/1 and disable/1" do
