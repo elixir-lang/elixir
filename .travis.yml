@@ -11,3 +11,10 @@ otp_release:
 sudo: false
 
 script: "make compile && rm -rf .git && make test"
+
+notifications:
+  irc: "irc.freenode.org#elixir-lang"
+  recipients:
+    - jose.valim@plataformatec.com.br
+    - eric.meadows.jonsson@gmail.com
+
