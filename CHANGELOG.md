@@ -15,6 +15,7 @@
   * [GenServer] Log error on default `handle_info/2` implementation
   * [Integer] `Integer.digits/2` now accepts negative integers
   * [Integer] Add `Integer.mod/2` and `Integer.floor_div/2`
+  * [Logger] Functions passed to `Logger.bare_log/3` can now return a tuple containing additional metdata `{String.t, Keyword.t}`. Through delegation, `Logger.debug/2`, `Logger.info/2`, `Logger.warn/2`, and `Logger.error/2` also respect the new return signature.
   * [List] Add `List.pop_at/3`
   * [List] Add `List.myers_difference/2`
   * [OptionParser] Expand multi-letter aliases in `OptionParser`
