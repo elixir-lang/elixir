@@ -479,7 +479,7 @@ defmodule Logger do
   Use this function only when there is a need to
   explicitly avoid embedding metadata.
   """
-  @spec bare_log(level, message | (() -> message) | (() -> {message, Keyword.t}), Keyword.t) ::
+  @spec bare_log(level, message | (() -> message | {message, Keyword.t}), Keyword.t) ::
         :ok | {:error, :noproc} | {:error, term}
   def bare_log(level, chardata_or_fun, metadata \\ [])
       when level in @levels and is_list(metadata) do
