@@ -479,7 +479,7 @@ defmodule Logger do
   Use this function only when there is a need to
   explicitly avoid embedding metadata.
   """
-  @spec bare_log(level, message | (() -> message), Keyword.t) ::
+  @spec bare_log(level, message | (() -> message) | (() -> {message, Keyword.t}), Keyword.t) ::
         :ok | {:error, :noproc} | {:error, term}
   def bare_log(level, chardata_or_fn, metadata \\ [])
       when level in @levels and is_list(metadata) do
@@ -489,8 +489,13 @@ defmodule Logger do
           level: min_level, utc_log: utc_log?} = Logger.Config.__data__
 
         if compare_levels(level, min_level) != :lt do
-          truncated = truncate(chardata_or_fn, truncate)
-          metadata = [pid: self()] ++ Keyword.merge(pdict, metadata)
+          {message, fn_metdata} = normalize_message(chardata_or_fn)
+          truncated = truncate(message, truncate)
+          metadata =
+            [pid: self()]
+            |> Keyword.merge(pdict)
+            |> Keyword.merge(metadata)
+            |> Keyword.merge(fn_metdata)
 
           tuple = {Logger, truncated, Logger.Utils.timestamp(utc_log?), metadata}
 
@@ -519,6 +524,7 @@ defmodule Logger do
 
       Logger.warn "knob turned too far to the right"
       Logger.warn fn -> "expensive to calculate warning" end
+      Logger.warn fn -> {"expensive to calculate warning", [additional: :metadata] end
 
   """
   defmacro warn(chardata_or_fn, metadata \\ []) do
@@ -534,6 +540,7 @@ defmodule Logger do
 
       Logger.info "mission accomplished"
       Logger.info fn -> "expensive to calculate info" end
+      Logger.info fn -> {"expensive to calculate info", [additional: :metadata] end
 
   """
   defmacro info(chardata_or_fn, metadata \\ []) do
@@ -549,6 +556,7 @@ defmodule Logger do
 
       Logger.error "oops"
       Logger.error fn -> "expensive to calculate error" end
+      Logger.error fn -> {"expensive to calculate error", [additional: :metadata] end
 
   """
   defmacro error(chardata_or_fn, metadata \\ []) do
@@ -564,6 +572,7 @@ defmodule Logger do
 
       Logger.debug "hello?"
       Logger.debug fn -> "expensive to calculate debug" end
+      Logger.debug fn -> {"expensive to calculate debug", [additional: :metadata] end
 
   """
   defmacro debug(chardata_or_fn, metadata \\ []) do
@@ -613,8 +622,13 @@ defmodule Logger do
     end
   end
 
-  defp truncate(data, n) when is_function(data, 0),
-    do: truncate(data.(), n)
+  defp normalize_message(data) when is_function(data, 0),
+    do: normalize_message(data.())
+  defp normalize_message({_message, metadata} = result) when is_list(metadata),
+    do: result
+  defp normalize_message(message),
+    do: {message, []}
+
   defp truncate(data, n) when is_list(data) or is_binary(data),
     do: Logger.Utils.truncate(data, n)
   defp truncate(data, n),
