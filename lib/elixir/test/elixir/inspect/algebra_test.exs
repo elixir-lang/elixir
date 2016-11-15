@@ -175,4 +175,13 @@ defmodule Inspect.AlgebraTest do
     assert sm.(["a" | empty()]) |> render(80) == "[a]"
     assert sm.([empty() | "b"]) |> render(80) == "[b]"
   end
+
+  test "surround_many with docs as the wrappers and as the separator" do
+    opts = %Inspect.Opts{}
+    fun = fn(d, _) -> d end
+
+    doc = surround_many(break("["), ["a", "b", "c"], break("]"), opts, fun, break(","))
+    assert render(doc, 80) == "[a, b, c]"
+    assert render(doc, 5) == "[a, b\n  c]"
+  end
 end
