@@ -517,8 +517,7 @@ defmodule Inspect.Algebra do
   """
   @spec surround_many(binary, [any], binary, Inspect.Opts.t, (term, Inspect.Opts.t -> t), binary) :: t
   def surround_many(left, docs, right, %Inspect.Opts{} = opts, fun, separator \\ @surround_separator)
-      when is_binary(left) and is_list(docs) and is_binary(right) and
-           is_function(fun, 2) and is_binary(separator) do
+      when is_function(fun, 2) do
     do_surround_many(left, docs, right, opts.limit, opts, fun, separator)
   end
 
