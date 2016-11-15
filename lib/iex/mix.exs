@@ -13,7 +13,7 @@ defmodule IEx.Mixfile do
      env: [
       autocomplete_server: IEx.Server,
       colors: [],
-      inspect: [],
+      inspect: [pretty: true],
       history_size: 20,
       default_prompt: "%prefix(%counter)>",
       alive_prompt: "%prefix(%node)%counter>"]]

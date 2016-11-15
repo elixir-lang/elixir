@@ -266,6 +266,22 @@ defmodule IEx do
     * `:doc_bold`        - (bright)
     * `:doc_underline`   - (underline)
 
+  IEx will also color inspected expressions using the `:syntax_colors`
+  option. Such can be disabled with:
+
+      IEx.configure [colors: [syntax_colors: false]]
+
+  You can also configure the syntax colors, however, as desired:
+
+      IEx.configure [colors: [syntax_colors: [atom: :red]]]
+
+  Configuration for most built-in data types are supported: `:atom`,
+  `:string`, `:binary`, `:list`, `:number`, `:boolean`, `:nil`, etc.
+  The default is:
+
+      [number: :magenta, atom: :cyan, string: :green,
+       boolean: :magenta, nil: :magenta]
+
   ## Inspect
 
   A keyword list containing inspect options used by the shell
