@@ -62,8 +62,12 @@ defimpl Inspect, for: Atom do
   require Macro
 
   def inspect(atom, opts) do
-    color(inspect(atom), :atom, opts)
+    color(inspect(atom), color_key(atom), opts)
   end
+
+  defp color_key(atom) when is_boolean(atom), do: :boolean
+  defp color_key(nil), do: :nil
+  defp color_key(_), do: :atom
 
   def inspect(false),  do: "false"
   def inspect(true),   do: "true"
@@ -236,12 +240,14 @@ defimpl Inspect, for: BitString do
 
   ## Bitstrings
 
-  defp inspect_bitstring("", _opts) do
-    "<<>>"
+  defp inspect_bitstring("", opts) do
+    color("<<>>", :binary, opts)
   end
 
   defp inspect_bitstring(bitstring, opts) do
-    nest surround("<<", each_bit(bitstring, opts.limit, opts), ">>"), 1
+    left = color("<<", :binary, opts)
+    right = color(">>", :binary, opts)
+    nest surround(left, each_bit(bitstring, opts.limit, opts), right), 1
   end
 
   defp each_bit(_, 0, _) do

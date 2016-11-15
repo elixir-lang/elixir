@@ -98,11 +98,11 @@ defmodule IEx.InteractionTest do
     test "color" do
       opts = [colors: [enabled: true, eval_result: [:red]]]
       assert capture_iex("1 + 2", opts) ==
-        "\e[31m\e[1m\e[34m3\e[22m\e[31m\e[0m"
+        "\e[31m\e[35m3\e[0m\e[31m\e[0m"
       assert capture_iex("IO.ANSI.blue", opts) ==
-        "\e[31m\e[36m\"\\e[34m\"\e[22m\e[31m\e[0m"
+        "\e[31m\e[32m\"\\e[34m\"\e[0m\e[31m\e[0m"
       assert capture_iex("{:ok}", opts) ==
-        "\e[31m{\e[1m\e[32m:ok\e[22m\e[31m}\e[0m"
+        "\e[31m{\e[36m:ok\e[0m\e[31m}\e[0m"
     end
   end
   test "inspect opts" do
