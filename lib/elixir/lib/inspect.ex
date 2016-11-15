@@ -61,8 +61,8 @@ end
 defimpl Inspect, for: Atom do
   require Macro
 
-  def inspect(atom, _opts) do
-    inspect(atom)
+  def inspect(atom, opts) do
+    color(inspect(atom), :atom, opts)
   end
 
   def inspect(false),  do: "false"
@@ -143,7 +143,8 @@ end
 defimpl Inspect, for: BitString do
   def inspect(term, %Inspect.Opts{binaries: bins, base: base} = opts) when is_binary(term) do
     if base == :decimal and (bins == :as_strings or (bins == :infer and String.printable?(term))) do
-      IO.iodata_to_binary([?", escape(term, ?"), ?"])
+      inspected = IO.iodata_to_binary([?", escape(term, ?"), ?"])
+      color(inspected, :string, opts)
     else
       inspect_bitstring(term, opts)
     end
@@ -271,7 +272,9 @@ defimpl Inspect, for: BitString do
 end
 
 defimpl Inspect, for: List do
-  def inspect([], _opts), do: "[]"
+  def inspect([], opts) do
+    color("[]", :list, opts)
+  end
 
   # TODO: Deprecate :char_lists and :as_char_lists keys in v1.5
   def inspect(term, %Inspect.Opts{charlists: lists, char_lists: lists_deprecated} = opts) do
@@ -287,22 +290,24 @@ defimpl Inspect, for: List do
         lists
       end
 
+    open = color("[", :list, opts)
+    sep = color(",", :list, opts)
+    close = color("]", :list, opts)
+
     cond do
       lists == :as_charlists or (lists == :infer and printable?(term)) ->
         IO.iodata_to_binary [?', Inspect.BitString.escape(IO.chardata_to_string(term), ?'), ?']
       keyword?(term) ->
-        surround_many("[", term, "]", opts, &keyword/2)
+        surround_many(open, term, close, opts, &keyword/2, sep)
       true ->
-        surround_many("[", term, "]", opts, &to_doc/2)
+        surround_many(open, term, close, opts, &to_doc/2, sep)
     end
   end
 
   @doc false
   def keyword({key, value}, opts) do
-    concat(
-      key_to_binary(key) <> ": ",
-      to_doc(value, opts)
-    )
+    key = color(key_to_binary(key) <> ": ", :atom, opts)
+    concat(key, to_doc(value, opts))
   end
 
   @doc false
@@ -340,10 +345,11 @@ defimpl Inspect, for: List do
 end
 
 defimpl Inspect, for: Tuple do
-  def inspect({}, _opts), do: "{}"
-
   def inspect(tuple, opts) do
-    surround_many("{", Tuple.to_list(tuple), "}", opts, &to_doc/2)
+    open = color("{", :tuple, opts)
+    sep = color(",", :tuple, opts)
+    close = color("}", :tuple, opts)
+    surround_many(open, Tuple.to_list(tuple), close, opts, &to_doc/2, sep)
   end
 end
 
@@ -354,7 +360,10 @@ defimpl Inspect, for: Map do
 
   def inspect(map, name, opts) do
     map = :maps.to_list(map)
-    surround_many("%" <> name <> "{", map, "}", opts, traverse_fun(map))
+    open = color("%" <> name <> "{", :map, opts)
+    sep = color(",", :map, opts)
+    close = color("}", :map, opts)
+    surround_many(open, map, close, opts, traverse_fun(map), sep)
   end
 
   defp traverse_fun(list) do
@@ -374,9 +383,9 @@ defimpl Inspect, for: Map do
 end
 
 defimpl Inspect, for: Integer do
-  def inspect(term, %Inspect.Opts{base: base}) do
-    Integer.to_string(term, base_to_value(base))
-    |> prepend_prefix(base)
+  def inspect(term, %Inspect.Opts{base: base} = opts) do
+    inspected = Integer.to_string(term, base_to_value(base)) |> prepend_prefix(base)
+    color(inspected, :number, opts)
   end
 
   defp base_to_value(base) do
@@ -400,14 +409,16 @@ defimpl Inspect, for: Integer do
 end
 
 defimpl Inspect, for: Float do
-  def inspect(term, _opts) do
-    IO.iodata_to_binary(:io_lib_format.fwrite_g(term))
+  def inspect(term, opts) do
+    inspected = IO.iodata_to_binary(:io_lib_format.fwrite_g(term))
+    color(inspected, :number, opts)
   end
 end
 
 defimpl Inspect, for: Regex do
-  def inspect(regex, _opts) do
-    IO.iodata_to_binary ['~r/', escape(regex.source, ?/), ?/, regex.opts]
+  def inspect(regex, opts) do
+    source = IO.iodata_to_binary(['~r/', escape(regex.source, ?/), ?/, regex.opts])
+    color(source, :regex, opts)
   end
 
   defp escape(bin, term),
@@ -505,7 +516,7 @@ end
 
 defimpl Inspect, for: Port do
   def inspect(port, _opts) do
-    IO.iodata_to_binary :erlang.port_to_list(port)
+    IO.iodata_to_binary(:erlang.port_to_list(port))
   end
 end
 
@@ -524,9 +535,11 @@ defimpl Inspect, for: Any do
       _ -> Inspect.Map.inspect(map, opts)
     else
       dunder ->
-        if :maps.keys(dunder) == :maps.keys(map) do
+        is_struct = :maps.keys(dunder) == :maps.keys(map)
+        if is_struct do
           pruned = :maps.remove(:__exception__, :maps.remove(:__struct__, map))
-          Inspect.Map.inspect(pruned, Inspect.Atom.inspect(struct, opts), opts)
+          colorless_opts = %{opts | syntax_colors: []}
+          Inspect.Map.inspect(pruned, Inspect.Atom.inspect(struct, colorless_opts), opts)
         else
           Inspect.Map.inspect(map, opts)
         end

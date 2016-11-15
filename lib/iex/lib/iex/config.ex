@@ -6,6 +6,9 @@ defmodule IEx.Config do
   @keys [:colors, :inspect, :history_size, :default_prompt, :alive_prompt, :width]
   @colors [:eval_interrupt, :eval_result, :eval_error, :eval_info, :stack_app,
     :stack_info, :ls_directory, :ls_device]
+  @syntax_colors [number: [:bright, :blue], atom: [:bright, :green],
+                  regex: [:bright, :magenta], string: :cyan]
+
 
   def new() do
     tab = :ets.new(@table, [:named_table, :public])
@@ -131,7 +134,9 @@ defmodule IEx.Config do
       Keyword.has_key?(inspect_options, :width) ->
         inspect_options
       colors_enabled?() ->
-        [width: width()] ++ inspect_options
+        eval_color = List.flatten([:normal, color(:eval_result)])
+        syntax_colors = [{:reset, eval_color} | @syntax_colors]
+        [width: width(), syntax_colors: syntax_colors] ++ inspect_options
       true ->
         inspect_options
     end
