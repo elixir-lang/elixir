@@ -507,7 +507,7 @@ defmodule Inspect.Algebra do
   @doc ~S"""
   Surrounds a document with characters.
 
-  Puts the given document `doc` between the `left` and `right` strings enclosing
+  Puts the given document `doc` between the `left` and `right` documents enclosing
   and nesting it. The document is marked as a group, to show the maximum as
   possible concisely together.
 
@@ -518,17 +518,18 @@ defmodule Inspect.Algebra do
       ["[", "a", "\n ", "b", "]"]
 
   """
-  @spec surround(binary, t, binary) :: t
-  def surround(left, doc, right) when is_doc(doc) do
+  @spec surround(t, t, t) :: t
+  def surround(left, doc, right) when is_doc(left) and is_doc(doc) and is_doc(right) do
     group(concat(left, concat(nest(doc, @nesting), right)))
   end
 
   @doc ~S"""
   Maps and glues a collection of items.
 
-  It uses the given `left` and `right` strings as surrounding and the separator
-  `separator` to separate items in `docs`. A limit can be passed: when this
-  limit is reached, this function stops gluing and outputs `"..."` instead.
+  It uses the given `left` and `right` documents as surrounding and the
+  separator document `separator` to separate items in `docs`. A limit can be
+  passed: when this limit is reached, this function stops gluing and outputs
+  `"..."` instead.
 
   ## Examples
 
@@ -546,10 +547,11 @@ defmodule Inspect.Algebra do
       ...>         %Inspect.Opts{limit: 3}, fn i, _opts -> to_string(i) end, "!")
       iex> Inspect.Algebra.format(doc, 20) |> IO.iodata_to_binary
       "[1! 2! 3! ...]"
+
   """
-  @spec surround_many(binary, [any], binary, Inspect.Opts.t, (term, Inspect.Opts.t -> t), binary) :: t
+  @spec surround_many(t, [any], t, Inspect.Opts.t, (term, Inspect.Opts.t -> t), t) :: t
   def surround_many(left, docs, right, %Inspect.Opts{} = opts, fun, separator \\ @surround_separator)
-      when is_function(fun, 2) do
+      when is_doc(left) and is_list(docs) and is_doc(right) and is_function(fun, 2) and is_doc(separator) do
     do_surround_many(left, docs, right, opts.limit, opts, fun, separator)
   end
 
