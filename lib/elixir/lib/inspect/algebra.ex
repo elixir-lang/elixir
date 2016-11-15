@@ -212,10 +212,12 @@ defmodule Inspect.Algebra do
   end
 
   @doc """
-  Converts an Elixir structure to an algebra document
-  according to the inspect protocol.
+  Converts an Elixir term to an algebra document
+  according to the `Inspect` protocol.
   """
   @spec to_doc(any, Inspect.Opts.t) :: t
+  def to_doc(term, opts)
+
   def to_doc(%{__struct__: struct} = map, %Inspect.Opts{} = opts) when is_atom(struct) do
     if opts.structs do
       try do
@@ -280,14 +282,14 @@ defmodule Inspect.Algebra do
 
   ## Examples
 
-      iex> doc = Inspect.Algebra.concat "hello", "world"
+      iex> doc = Inspect.Algebra.concat("hello", "world")
       iex> Inspect.Algebra.format(doc, 80)
       ["hello", "world"]
 
   """
-  @spec concat(t, t) :: doc_cons
-  def concat(x, y) when is_doc(x) and is_doc(y) do
-    doc_cons(x, y)
+  @spec concat(t, t) :: t
+  def concat(doc1, doc2) when is_doc(doc1) and is_doc(doc2) do
+    doc_cons(doc1, doc2)
   end
 
   @doc """
@@ -300,8 +302,8 @@ defmodule Inspect.Algebra do
       ["a", "b", "c"]
 
   """
-  @spec concat([t]) :: doc_cons
-  def concat(docs) do
+  @spec concat([t]) :: t
+  def concat(docs) when is_list(docs) do
     fold_doc(docs, &concat(&1, &2))
   end
 
@@ -323,7 +325,7 @@ defmodule Inspect.Algebra do
 
 
   @doc ~S"""
-  Nests document entity `x` positions deep.
+  Nests the given document at the given `level`.
 
   Nesting will be appended to the line breaks.
 
@@ -335,19 +337,21 @@ defmodule Inspect.Algebra do
 
   """
   @spec nest(t, non_neg_integer) :: doc_nest
-  def nest(x, 0) when is_doc(x) do
-    x
+  def nest(doc, level)
+
+  def nest(doc, 0) when is_doc(doc) do
+    doc
   end
 
-  def nest(x, i) when is_doc(x) and is_integer(i) do
-    doc_nest(x, i)
+  def nest(doc, level) when is_doc(doc) and is_integer(level) and level > 0 do
+    doc_nest(doc, level)
   end
 
   @doc ~S"""
   Returns a document entity representing a break based on the given
-  string `s`.
+  `string`.
 
-  This break can be rendered as a linebreak or as the given `s`,
+  This break can be rendered as a linebreak or as the given `string`,
   depending on the `mode` of the chosen layout or the provided
   separator.
 
@@ -360,7 +364,7 @@ defmodule Inspect.Algebra do
       iex> Inspect.Algebra.format(doc, 80)
       ["a", "\t", "b"]
 
-  Notice the break was represented with the given string `s`, because we didn't
+  Notice the break was represented with the given string, because we didn't
   reach a line limit. Once we do, it is replaced by a newline:
 
       iex> break = Inspect.Algebra.break("\t")
@@ -370,7 +374,7 @@ defmodule Inspect.Algebra do
 
   """
   @spec break(binary) :: doc_break
-  def break(s) when is_binary(s), do: doc_break(s)
+  def break(string) when is_binary(string), do: doc_break(string)
 
   @doc """
   Returns a document entity representing the default break.
@@ -383,7 +387,7 @@ defmodule Inspect.Algebra do
   @doc """
   Glues two documents together inserting the default break between them.
 
-  The break that is inserted between `x` and `y` is the one returned by
+  The break that is inserted between `left` and `right` is the one returned by
   `break/0`.
 
   ## Examples
@@ -393,12 +397,12 @@ defmodule Inspect.Algebra do
       ["hello", " ", "world"]
 
   """
-  @spec glue(t, t) :: doc_cons
-  def glue(x, y), do: concat(x, concat(break(), y))
+  @spec glue(t, t) :: t
+  def glue(doc1, doc2), do: concat(doc1, concat(break(), doc2))
 
   @doc """
-  Glues two docs (`x` and `y`) together inserting the given break `g` between
-  them.
+  Glues two documents (`doc1` and `doc2`) together inserting the given
+  break `break_string` between them.
 
   For more information on how the break is inserted, see `break/1`.
 
@@ -409,11 +413,12 @@ defmodule Inspect.Algebra do
       ["hello", "\t", "world"]
 
   """
-  @spec glue(t, binary, t) :: doc_cons
-  def glue(x, g, y) when is_binary(g), do: concat(x, concat(break(g), y))
+  @spec glue(t, binary, t) :: t
+  def glue(doc1, break_string, doc2) when is_binary(break_string),
+    do: concat(doc1, concat(break(break_string), doc2))
 
   @doc ~S"""
-  Returns a group containing the specified document.
+  Returns a group containing the specified document `doc`.
 
   ## Examples
 
@@ -440,59 +445,62 @@ defmodule Inspect.Algebra do
 
   """
   @spec group(t) :: doc_group
-  def group(d) when is_doc(d) do
-    doc_group(d)
+  def group(doc) when is_doc(doc) do
+    doc_group(doc)
   end
 
   @doc """
-  Inserts a mandatory single space between two document entities.
+  Inserts a mandatory single space between two documents.
 
   ## Examples
 
-      iex> doc = Inspect.Algebra.space "Hughes", "Wadler"
+      iex> doc = Inspect.Algebra.space("Hughes", "Wadler")
       iex> Inspect.Algebra.format(doc, 5)
       ["Hughes", " ", "Wadler"]
 
   """
-  @spec space(t, t) :: doc_cons
-  def space(x, y), do: concat(x, concat(" ", y))
+  @spec space(t, t) :: t
+  def space(doc1, doc2), do: concat(doc1, concat(" ", doc2))
 
   @doc ~S"""
-  Inserts a mandatory linebreak between two document entities.
+  Inserts a mandatory linebreak between two documents.
 
   ## Examples
 
-      iex> doc = Inspect.Algebra.line "Hughes", "Wadler"
+      iex> doc = Inspect.Algebra.line("Hughes", "Wadler")
       iex> Inspect.Algebra.format(doc, 80)
       ["Hughes", "\n", "Wadler"]
 
   """
-  @spec line(t, t) :: doc_cons
-  def line(x, y), do: concat(x, concat(:doc_line, y))
+  @spec line(t, t) :: t
+  def line(doc1, doc2), do: concat(doc1, concat(:doc_line, doc2))
 
   @doc """
-  Folds a list of document entities into a document entity
-  using the given folder function.
+  Folds a list of documents into a document using the given folder function.
 
-  The list of document is folded "from the right"; in that, this function is
+  The list of documents is folded "from the right"; in that, this function is
   similar to `List.foldr/3`, except that it doesn't expect an initial
   accumulator and uses the last element of `docs` as the initial accumulator.
 
   ## Examples
 
-      iex> doc = ["A", "B", "C"]
-      iex> doc = Inspect.Algebra.fold_doc(doc, fn(d, acc) ->
-      ...>   Inspect.Algebra.concat([d, "!", acc])
+      iex> docs = ["A", "B", "C"]
+      iex> docs = Inspect.Algebra.fold_doc(docs, fn(doc, acc) ->
+      ...>   Inspect.Algebra.concat([doc, "!", acc])
       ...> end)
-      iex> Inspect.Algebra.format(doc, 80)
+      iex> Inspect.Algebra.format(docs, 80)
       ["A", "!", "B", "!", "C"]
 
   """
   @spec fold_doc([t], ((t, t) -> t)) :: t
-  def fold_doc(list, fun)
-  def fold_doc([], _), do: empty()
-  def fold_doc([doc], _), do: doc
-  def fold_doc([d | ds], fun) when is_function(fun, 2), do: fun.(d, fold_doc(ds, fun))
+  def fold_doc(docs, folder_fun)
+
+  def fold_doc([], _folder_fun),
+    do: empty()
+  def fold_doc([doc], _folder_fun),
+    do: doc
+  def fold_doc([doc | docs], folder_fun) when is_function(folder_fun, 2),
+    do: folder_fun.(doc, fold_doc(docs, folder_fun))
 
   # Elixir conveniences
 
@@ -505,22 +513,22 @@ defmodule Inspect.Algebra do
 
   ## Examples
 
-      iex> doc = Inspect.Algebra.surround "[", Inspect.Algebra.glue("a", "b"), "]"
+      iex> doc = Inspect.Algebra.surround("[", Inspect.Algebra.glue("a", "b"), "]")
       iex> Inspect.Algebra.format(doc, 3)
       ["[", "a", "\n ", "b", "]"]
 
   """
   @spec surround(binary, t, binary) :: t
-  def surround(left, doc, right) do
-    group concat left, concat(nest(doc, @nesting), right)
+  def surround(left, doc, right) when is_doc(doc) do
+    group(concat(left, concat(nest(doc, @nesting), right)))
   end
 
   @doc ~S"""
   Maps and glues a collection of items.
 
-  It uses the given `left` and `right` strings as surrounding and a separator for
-  each item in `docs`. A limit can be passed which, once reached, stops gluing
-  and outputs `"..."` instead.
+  It uses the given `left` and `right` strings as surrounding and the separator
+  `separator` to separate items in `docs`. A limit can be passed: when this
+  limit is reached, this function stops gluing and outputs `"..."` instead.
 
   ## Examples
 
@@ -540,7 +548,8 @@ defmodule Inspect.Algebra do
       "[1! 2! 3! ...]"
   """
   @spec surround_many(binary, [any], binary, Inspect.Opts.t, (term, Inspect.Opts.t -> t), binary) :: t
-  def surround_many(left, docs, right, opts, fun, separator \\ @surround_separator) when is_function(fun, 2) do
+  def surround_many(left, docs, right, %Inspect.Opts{} = opts, fun, separator \\ @surround_separator)
+      when is_function(fun, 2) do
     do_surround_many(left, docs, right, opts.limit, opts, fun, separator)
   end
 
@@ -603,8 +612,8 @@ defmodule Inspect.Algebra do
 
   """
   @spec format(t, non_neg_integer | :infinity) :: iodata
-  def format(d, w) when w == :infinity or w >= 0 do
-    format(w, 0, [{0, default_mode(w), doc_group(d)}])
+  def format(doc, width) when is_doc(doc) and (width == :infinity or width >= 0) do
+    format(width, 0, [{0, default_mode(width), doc_group(doc)}])
   end
 
   defp default_mode(:infinity), do: :flat
