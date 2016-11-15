@@ -487,7 +487,7 @@ defmodule Inspect.Algebra do
 
   """
   @spec surround(binary, t, binary) :: t
-  def surround(left, doc, right) when is_binary(left) and is_doc(doc) and is_binary(right) do
+  def surround(left, doc, right) when is_doc(doc) do
     group(concat(left, concat(nest(doc, @nesting), right)))
   end
 
