@@ -96,7 +96,7 @@ defmodule KernelTest do
     assert 3 in [1 | list]
   end
 
-  @at_list1  [4, 5]
+  @at_list1 [4, 5]
   @at_range 6..8
   @at_list2 [13, 14]
   def fun_in(x) when x in [0], do: :list
