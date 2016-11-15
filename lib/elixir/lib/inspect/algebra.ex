@@ -293,7 +293,7 @@ defmodule Inspect.Algebra do
   end
 
   @doc ~S"""
-  Nests the given document `positions` positions deep.
+  Nests the given document at the given `level`.
 
   Nesting will be appended to the line breaks.
 
@@ -305,14 +305,14 @@ defmodule Inspect.Algebra do
 
   """
   @spec nest(t, non_neg_integer) :: doc_nest
-  def nest(doc, positions)
+  def nest(doc, level)
 
   def nest(doc, 0) when is_doc(doc) do
     doc
   end
 
-  def nest(doc, positions) when is_doc(doc) and is_integer(positions) and positions > 0 do
-    doc_nest(doc, positions)
+  def nest(doc, level) when is_doc(doc) and is_integer(level) and level > 0 do
+    doc_nest(doc, level)
   end
 
   @doc ~S"""
