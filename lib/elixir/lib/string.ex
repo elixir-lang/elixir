@@ -1064,7 +1064,7 @@ defmodule String do
   string.
 
   When the pattern is a string, a developer can use the replaced part inside
-  the `replacement` by using the `:insert_replace` option and specifying the
+  the `replacement` by using the `:insert_replaced` option and specifying the
   position(s) inside the `replacement` where the string pattern will be
   inserted:
 
@@ -1077,7 +1077,7 @@ defmodule String do
       iex> String.replace("a,b,c", ",", "[]", insert_replaced: [1, 1])
       "a[,,]b[,,]c"
 
-  If any position given in the `:insert_replace` option is larger than the
+  If any position given in the `:insert_replaced` option is larger than the
   replacement string, or is negative, an `ArgumentError` is raised.
   """
   @spec replace(t, pattern | Regex.t, t, Keyword.t) :: t
