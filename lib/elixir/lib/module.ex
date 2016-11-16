@@ -396,20 +396,10 @@ defmodule Module do
 
       Foo.sum(1, 2) #=> 3
 
-  For convenience, you can pass any `Macro.Env` instance, such
-  as  `__ENV__/0`, as an argument and all options will be
-  automatically extracted from the environment:
-
-      defmodule Foo do
-        contents = quote do: (def sum(a, b), do: a + b)
-        Module.eval_quoted __MODULE__, contents, [], __ENV__
-      end
-
-      Foo.sum(1, 2) #=> 3
-
-  You can also pass a `Macro.Env` instance as the first argument,
-  which will have both the module and all options extracted from
-  the environment:
+  For convenience, you can pass any `Macro.Env` struct, such
+  as  `__ENV__/0`, as the first argument or as options. Both
+  the module and all options will be automatically extracted
+  from the environment:
 
       defmodule Foo do
         contents = quote do: (def sum(a, b), do: a + b)
