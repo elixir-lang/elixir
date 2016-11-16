@@ -406,6 +406,17 @@ defmodule Module do
 
       Foo.sum(1, 2) #=> 3
 
+  You can also pass `__ENV__/0` as the first argument, which will
+  use the module from the environment as the first argument, and have
+  all options extracted from the environment:
+
+      defmodule Foo do
+        contents = quote do: (def sum(a, b), do: a + b)
+        Module.eval_quoted __ENV__, contents
+      end
+
+      Foo.sum(1, 2) #=> 3
+
   """
   def eval_quoted(module, quoted, binding \\ [], opts \\ [])
 
