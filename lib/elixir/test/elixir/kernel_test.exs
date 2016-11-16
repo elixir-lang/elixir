@@ -272,10 +272,9 @@ defmodule KernelTest do
   test "paren as nil" do
     assert is_nil(()) == true
     assert (_ = (); ();) == nil
-    assert [ 1, (), 3 ] == [1, nil, 3 ]
+    assert [1, (), 3] == [1, nil, 3]
     assert [do: ()] == [do: nil]
     assert {1, (), 3} == {1, nil, 3}
-    assert (Kernel.&& nil, ()) == nil
     assert (Kernel.&& nil, ()) == nil
     assert (() && ()) == nil
     assert (if(() && ()) do
