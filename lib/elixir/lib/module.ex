@@ -408,6 +408,10 @@ defmodule Module do
 
       Foo.sum(1, 2) #=> 3
 
+  Note that if you pass a `Macro.Env` struct as first argument
+  while also passing `opts`, they will be merged with `opts`
+  having precedence.
+
   """
   def eval_quoted(module_or_env, quoted, binding \\ [], opts \\ [])
 
