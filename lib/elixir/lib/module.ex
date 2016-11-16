@@ -419,7 +419,7 @@ defmodule Module do
       Foo.sum(1, 2) #=> 3
 
   """
-  def eval_quoted(module, quoted, binding \\ [], opts \\ [])
+  def eval_quoted(module_or_env, quoted, binding \\ [], opts \\ [])
 
   def eval_quoted(%Macro.Env{} = env, quoted, binding, opts) do
     eval_quoted(env.module, quoted, binding, Keyword.merge(Map.to_list(env), opts))
