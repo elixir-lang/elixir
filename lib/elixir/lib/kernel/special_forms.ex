@@ -454,6 +454,16 @@ defmodule Kernel.SpecialForms do
 
       alias Foo.Bar.Baz, as: Baz
 
+  We can also alias multiple modules in one line:
+
+      alias Foo.{Bar, Baz, Biz}
+
+  Is the same as:
+
+      alias Foo.Bar
+      alias Foo.Baz
+      alias Foo.Biz
+
   ## Lexical scope
 
   `import/2`, `require/2` and `alias/2` are called directives and all
