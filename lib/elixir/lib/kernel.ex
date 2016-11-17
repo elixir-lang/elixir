@@ -968,7 +968,7 @@ defmodule Kernel do
       #=> 5.0
 
       7 / 0
-      #=> ** (ArgumentError) argument error
+      #=> ** (ArithmeticError) bad argument in arithmetic expression
 
   """
   @spec (number / number) :: float
