@@ -120,11 +120,11 @@ defmodule Mix.Tasks.New do
     "    [applications: [:logger],\n     mod: {#{mod}.Application, []}]"
   end
   
-  def cd_path(".") do
+  defp cd_path(".") do
     ""
   end
   
-  def cd_path(path) do
+  defp cd_path(path) do
     "cd #{path}\n    "
   end
 
