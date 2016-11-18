@@ -94,21 +94,22 @@ defmodule IEx.InteractionTest do
     assert capture_iex("1\n", opts, [], true) == "prompt(1)> 1\nprompt(2)>"
   end
 
-  unless match?({:win32, _}, :os.type) do
+  if IO.ANSI.enabled? do
     test "color" do
       opts = [colors: [enabled: true, eval_result: [:red]]]
       assert capture_iex("1 + 2", opts) ==
-        "\e[31m\e[35m3\e[0m\e[31m\e[0m"
+             "\e[31m3\e[0m"
       assert capture_iex("IO.ANSI.blue", opts) ==
-        "\e[31m\e[32m\"\\e[34m\"\e[0m\e[31m\e[0m"
+             "\e[31m\e[32m\"\\e[34m\"\e[0m\e[31m\e[0m"
       assert capture_iex("{:ok}", opts) ==
-        "\e[31m{\e[36m:ok\e[0m\e[31m}\e[0m"
+             "\e[31m\e[39m{\e[0m\e[31m\e[36m:ok\e[0m\e[31m\e[39m}\e[0m\e[31m\e[0m"
     end
   end
+
   test "inspect opts" do
     opts = [inspect: [binaries: :as_binaries, charlists: :as_lists, structs: false, limit: 4]]
     assert capture_iex("<<45, 46, 47>>\n[45, 46, 47]\n%IO.Stream{}", opts) ==
-              "<<45, 46, 47>>\n[45, 46, 47]\n%{__struct__: IO.Stream, device: nil, line_or_bytes: :line, raw: true}"
+           "<<45, 46, 47>>\n[45, 46, 47]\n%{__struct__: IO.Stream, device: nil, line_or_bytes: :line, raw: true}"
   end
 
   test "history size" do
