@@ -82,8 +82,9 @@ defmodule IEx.Config do
 
   # Used by inspect
   defp default_color(:syntax_colors) do
-    [number: :magenta, atom: :cyan, string: :green,
-     boolean: :magenta, nil: :magenta]
+    [atom: :cyan, string: :green, list: :default_color,
+     boolean: :magenta, nil: :magenta, tuple: :default_color,
+     binary: :default_color, map: :default_color]
   end
 
   # Used by ansi docs
