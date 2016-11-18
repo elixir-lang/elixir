@@ -309,7 +309,6 @@ expand({Name, Meta, Kind} = Var, #{vars := Vars} = E) when is_atom(Name), is_ato
           compile_error(Meta, ?m(E, file), "expected variable \"~ts\"~ts to expand to an existing variable "
                         "or be part of a match", [Name, elixir_scope:context_info(Kind)]);
         _ ->
-          %% TODO: Consider making it an error on Elixir 2.0
           Message =
             io_lib:format("variable \"~ts\" does not exist and is being expanded to \"~ts()\","
               " please use parentheses to remove the ambiguity or change the variable name", [Name, Name]),

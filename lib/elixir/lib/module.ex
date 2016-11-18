@@ -1062,6 +1062,7 @@ defmodule Module do
           :lists.member(key, acc) ->
             []
           is_list(stack) ->
+            # TODO: Consider making this an error on 2.0 as it usually cascades
             IO.warn "undefined module attribute @#{key}, " <>
                     "please remove access to @#{key} or explicitly set it before access", stack
             nil
