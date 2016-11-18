@@ -680,6 +680,9 @@ defmodule File do
   contents are overwritten. Returns `:ok` if successful, or `{:error, reason}`
   if an error occurs.
 
+  `content` must be `iodata` (a list of bytes or a binary). Setting the
+  encoding for this function has no effect.
+
   **Warning:** Every time this function is invoked, a file descriptor is opened
   and a new process is spawned to write to the file. For this reason, if you are
   doing multiple writes in a loop, opening the file via `File.open/2` and using
