@@ -495,16 +495,16 @@ defmodule Kernel.ExpansionTest do
     assert expand(quote do: <<x::13>>) ==
            quote do: <<x()::size(13)>>
 
-    assert expand(quote do: <<x::13 * 6>>) ==
+    assert expand(quote do: <<x::13*6>>) ==
            quote do: <<x()::unit(6)-size(13)>>
 
-    assert expand(quote do: <<x::_ * 6>>) ==
+    assert expand(quote do: <<x::_*6>>) ==
            quote do: <<x()::unit(6)>>
 
-    assert expand(quote do: <<x::13 * 6-binary>>) ==
+    assert expand(quote do: <<x::13*6-binary>>) ==
            quote do: <<x()::unit(6)-binary()-size(13) >>
 
-    assert expand(quote do: <<x::binary-13 * 6>>) ==
+    assert expand(quote do: <<x::binary-13*6>>) ==
            quote do: <<x()::binary()-unit(6)-size(13)>>
   end
 
