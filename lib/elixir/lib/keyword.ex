@@ -235,7 +235,7 @@ defmodule Keyword do
     end
   end
 
-  defp get_and_update([h | t], acc, key, fun),
+  defp get_and_update([{_, _} = h | t], acc, key, fun),
     do: get_and_update(t, [h | acc], key, fun)
 
   defp get_and_update([], acc, key, fun) do
