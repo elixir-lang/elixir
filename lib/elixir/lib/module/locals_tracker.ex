@@ -83,8 +83,7 @@ defmodule Module.LocalsTracker do
   defp to_pid(pid) when is_pid(pid),  do: pid
   defp to_pid(mod) when is_atom(mod) do
     table = :elixir_module.data_table(mod)
-    [{_, val}] = :ets.lookup(table, {:elixir, :locals_tracker})
-    val
+    :ets.lookup_element(table, {:elixir, :locals_tracker}, 2)
   end
 
   # Internal API
