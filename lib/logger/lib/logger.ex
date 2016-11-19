@@ -459,7 +459,7 @@ defmodule Logger do
   @doc """
   Adds a new translator.
   """
-  @spec add_translator({module :: atom, function :: atom}) :: :ok
+  @spec add_translator({module, function :: atom}) :: :ok
   def add_translator({mod, fun} = translator) when is_atom(mod) and is_atom(fun) do
     Logger.Config.add_translator(translator)
   end
@@ -467,7 +467,7 @@ defmodule Logger do
   @doc """
   Removes a translator.
   """
-  @spec remove_translator({module :: atom, function :: atom}) :: :ok
+  @spec remove_translator({module, function :: atom}) :: :ok
   def remove_translator({mod, fun} = translator) when is_atom(mod) and is_atom(fun) do
     Logger.Config.remove_translator(translator)
   end
