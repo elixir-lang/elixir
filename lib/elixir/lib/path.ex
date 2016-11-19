@@ -523,7 +523,7 @@ defmodule Path do
     end
 
     def list_dir(dir) do
-      case call({:list_dir, dir})  do
+      case call({:list_dir, dir}) do
         {:ok, files} ->
           {:ok, for(file <- files, hd(file) != ?., do: file)}
         other ->
