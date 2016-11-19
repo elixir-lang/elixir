@@ -1,14 +1,16 @@
-# CompositionExclusions-8.0.0.txt
-# Date: 2015-02-19, 00:30:00 GMT [KW, LI]
+# CompositionExclusions-9.0.0.txt
+# Date: 2016-01-21, 22:00:00 GMT [KW, LI]
+# © 2016 Unicode®, Inc.
+# For terms of use, see http://www.unicode.org/terms_of_use.html
+#
+# Unicode Character Database
+# For documentation, see http://www.unicode.org/reports/tr44/
 #
 # This file lists the characters for the Composition Exclusion Table
 # defined in UAX #15, Unicode Normalization Forms.
 #
 # This file is a normative contributory data file in the
 # Unicode Character Database.
-#
-# Copyright (c) 1991-2015 Unicode, Inc.
-# For terms of use, see http://www.unicode.org/terms_of_use.html
 #
 # For more information, see
 # http://www.unicode.org/unicode/reports/tr15/#Primary_Exclusion_List_Table
