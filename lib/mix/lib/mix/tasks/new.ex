@@ -104,8 +104,7 @@ defmodule Mix.Tasks.New do
     Your Mix project was created successfully.
     You can use "mix" to compile it, test it, and more:
 
-        cd #{path}
-        mix test
+        #{cd_path(path)}mix test
 
     Run "mix help" for more commands.
     """
@@ -119,6 +118,14 @@ defmodule Mix.Tasks.New do
 
   defp otp_app(mod, true) do
     "    [applications: [:logger],\n     mod: {#{mod}.Application, []}]"
+  end
+  
+  defp cd_path(".") do
+    ""
+  end
+  
+  defp cd_path(path) do
+    "cd #{path}\n    "
   end
 
   defp generate_umbrella(_app, mod, path, _opts) do
@@ -139,8 +146,7 @@ defmodule Mix.Tasks.New do
     Inside your project, you will find an apps/ directory
     where you can create and host many apps:
 
-        cd #{path}
-        cd apps
+        #{cd_path(path)}cd apps
         mix new my_app
 
     Commands like "mix compile" and "mix test" when executed
