@@ -4,10 +4,7 @@
   take_definition/2, store_definition/6, unwrap_definitions/2,
   store_each/7, format_error/1]).
 -include("elixir.hrl").
-
 -define(last_def, {elixir, last_def}).
--define(attr, {elixir, def_table}).
--define(clauses_attr, {elixir, clauses_table}).
 
 %% Table management functions. Called internally.
 
@@ -111,7 +108,7 @@ store_definition(Meta, Line, Kind, CheckClauses, Name, Args, Guards, Body, KeepL
 
 run_on_definition_callbacks(Kind, Line, Module, Name, Args, Guards, Expr, E) ->
   Env = elixir_env:linify({Line, E}),
-  Callbacks = elixir_module:get_attribute(Module, on_definition),
+  Callbacks = ets:lookup_element(elixir_module:data_table(Module), on_definition, 2),
   _ = [Mod:Fun(Env, Kind, Name, Args, Guards, Expr) || {Mod, Fun} <- Callbacks],
   ok.
 
@@ -119,22 +116,19 @@ run_on_definition_callbacks(Kind, Line, Module, Name, Args, Guards, Expr, E) ->
 %% or @file, otherwise nil
 
 retrieve_location(Location, Module) ->
-  case get_location_attribute(Module) of
-    nil when is_tuple(Location) ->
+  case ets:take(elixir_module:data_table(Module), file) of
+    [] when is_tuple(Location) ->
       {File, Line} = Location,
       {normalize_location(File), Line};
-    nil ->
+    [] ->
       nil;
-    File when is_binary(File) ->
+    [{file, File, _, _}] when is_binary(File) ->
       'Elixir.Module':delete_attribute(Module, file),
       {normalize_location(File), 0};
-    {File, Line} when is_binary(File) andalso is_integer(Line) ->
+    [{file, {File, Line}, _, _}] when is_binary(File) andalso is_integer(Line) ->
       'Elixir.Module':delete_attribute(Module, file),
       {normalize_location(File), Line}
   end.
-
-get_location_attribute(Module) ->
-  elixir_module:get_attribute(Module, file).
 
 normalize_location(File) ->
   elixir_utils:characters_to_list(elixir_utils:relative_to_cwd(File)).

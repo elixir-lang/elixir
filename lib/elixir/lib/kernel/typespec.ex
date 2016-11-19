@@ -358,7 +358,7 @@ defmodule Kernel.Typespec do
 
   defp get_doc_info(table, attr, caller) do
     case :ets.take(table, attr) do
-      [{^attr, {line, doc}}] -> {line, doc}
+      [{^attr, {line, doc}, _, _}] -> {line, doc}
       [] -> {caller.line, nil}
     end
   end

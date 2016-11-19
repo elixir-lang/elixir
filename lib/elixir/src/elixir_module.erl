@@ -1,14 +1,11 @@
 -module(elixir_module).
--export([data_table/1, defs_table/1, is_open/1, get_attribute/2, delete_doc/6,
+-export([data_table/1, defs_table/1, is_open/1, delete_doc/6,
          compile/4, expand_callback/6, add_beam_chunk/3, format_error/1,
          compiler_modules/0]).
 -include("elixir.hrl").
 
--define(acc_attr, {elixir, acc_attributes}).
 -define(lexical_attr, {elixir, lexical_tracker}).
 -define(persisted_attr, {elixir, persisted_attributes}).
--define(overridable_attr, {elixir, overridable}).
--define(location_attr, {elixir, location}).
 
 %% Stores modules currently being defined by the compiler
 
@@ -34,14 +31,6 @@ defs_table(Module) ->
 is_open(Module) ->
   ets:lookup(elixir_modules, Module) /= [].
 
-%% Simple version of get_attribute.
-get_attribute(Module, Key) ->
-  case ets:lookup(data_table(Module), Key) of
-    [{Key, Value}] -> Value;
-    [] -> nil
-  end.
-
-%% Delete docs to avoid warnings.
 delete_doc(#{module := Module}, _, _, _, _, _) ->
   ets:delete(data_table(Module), doc),
   ok.
@@ -81,11 +70,9 @@ do_compile(Line, Module, Block, Vars, E) ->
     put_compiler_modules([Module|CompilerModules]),
     {Result, NE} = eval_form(Line, Module, Data, Block, Vars, E),
 
-    _ = case ets:lookup(Data, 'on_load') of
-      [] -> ok;
-      [{on_load, OnLoad}] ->
-        [elixir_locals:record_local(Tuple, Module) || Tuple <- OnLoad]
-    end,
+    CompileOpts = ets:lookup_element(Data, compile, 2),
+    OnLoad = ets:lookup_element(Data, 'on_load', 2),
+    [elixir_locals:record_local(Tuple, Module) || Tuple <- OnLoad],
 
     {Def, Defp, Defmacro, Defmacrop, Exports, Functions, Unreachable} =
       elixir_def:unwrap_definitions(File, Module),
@@ -98,6 +85,7 @@ do_compile(Line, Module, Block, Vars, E) ->
 
     elixir_locals:ensure_no_import_conflict(Line, File, Module, All),
 
+    %% TODO: Remove this at it will apply for all attributes.
     case Docs of
       true  -> warn_unused_docs(Line, File, Data, doc);
       false -> false
@@ -110,7 +98,7 @@ do_compile(Line, Module, Block, Vars, E) ->
       {attribute, Line, module, Module} | Forms3
     ],
 
-    Binary = load_form(Line, Data, Final, compile_opts(Module), NE),
+    Binary = load_form(Line, Data, Final, lists:flatten(CompileOpts), NE),
     {module, Module, Binary, Result}
   catch
     error:undef ->
@@ -161,22 +149,37 @@ build(Line, File, Module, Docs, Lexical) ->
   Ref  = elixir_code_server:call({defmodule, self(),
                                  {Module, Data, Defs, Line, File}}),
 
-  ets:insert(Data, {before_compile, []}),
-  ets:insert(Data, {after_compile, []}),
-  ets:insert(Data, {moduledoc, nil}),
-
   OnDefinition =
     case Docs of
       true -> [{'Elixir.Module', compile_doc}];
       _    -> [{elixir_module, delete_doc}]
     end,
-  ets:insert(Data, {on_definition, OnDefinition}),
 
-  Attributes = [behaviour, on_load, compile, external_resource, dialyzer],
-  ets:insert(Data, {?acc_attr, [before_compile, after_compile, on_definition, derive,
-                                spec, type, typep, opaque, callback, macrocallback,
-                                optional_callbacks | Attributes]}),
-  ets:insert(Data, {?persisted_attr, [vsn | Attributes]}),
+  ets:insert(Data, [
+    % {Key, Value, Accumulate?, Read?}
+    {after_compile, [], true, true},
+    {before_compile, [], true, true},
+    {behaviour, [], true, true},
+    {compile, [], true, true},
+    {derive, [], true, true},
+    {dialyzer, [], true, true},
+    {external_resource, [], true, true},
+    {moduledoc, nil, false, true},
+    {on_definition, OnDefinition, true, true},
+    {on_load, [], true, true},
+
+    % Types
+    {callback, [], true, true},
+    {opaque, [], true, true},
+    {optional_callbacks, [], true, true},
+    {macrocallback, [], true, true},
+    {spec, [], true, true},
+    {type, [], true, true},
+    {typep, [], true, true}
+  ]),
+
+  Persisted = [behaviour, on_load, compile, external_resource, dialyzer, vsn],
+  ets:insert(Data, {?persisted_attr, Persisted}),
   ets:insert(Data, {?lexical_attr, Lexical}),
 
   %% Setup definition related modules
@@ -217,46 +220,39 @@ functions_form(Line, File, Module, Def, Defp, Defmacro, Defmacrop, Exports, Body
 %% Add attributes handling to the form
 
 attributes_form(Line, File, Data, Current) ->
-  AccAttrs = ets:lookup_element(Data, ?acc_attr, 2),
   PersistedAttrs = ets:lookup_element(Data, ?persisted_attr, 2),
-
-  Transform = fun({Key, Value}, Acc) when is_atom(Key) ->
-    case lists:member(Key, PersistedAttrs) of
-      false -> Acc;
-      true  ->
-        Values =
-          case lists:member(Key, AccAttrs) of
-            true  -> Value;
-            false -> [Value]
-          end,
-
+  Transform = fun(Key, Acc) when is_atom(Key) ->
+    case ets:lookup(Data, Key) of
+      [{Key, Values, true, _}] ->
         lists:foldl(fun(X, Final) ->
           [{attribute, Line, Key, X} | Final]
-        end, Acc, process_attribute(Line, File, Key, Values))
+        end, Acc, process_accumulated(Line, File, Key, Values));
+      [{Key, Value, false, _}] ->
+        [{attribute, Line, Key, Value} | Acc];
+      [] ->
+        Acc
     end
   end,
+  lists:foldl(Transform, Current, PersistedAttrs).
 
-  Results = ets:select(Data, [{{'$1', '_'}, [{is_atom, '$1'}], ['$_']}]),
-  lists:foldl(Transform, Current, Results).
-
-process_attribute(Line, File, external_resource, Values) ->
+process_accumulated(Line, File, external_resource, Values) ->
   lists:usort([process_external_resource(Line, File, Value) || Value <- Values]);
-process_attribute(_Line, _File, _Key, Values) ->
+process_accumulated(_Line, _File, _Key, Values) ->
   Values.
 
 process_external_resource(_Line, _File, Value) when is_binary(Value) ->
   Value;
 process_external_resource(Line, File, Value) ->
-  elixir_errors:form_error([{line, Line}], File,
-    ?MODULE, {invalid_external_resource, Value}).
+  elixir_errors:form_error([{line, Line}], File, ?MODULE, {invalid_external_resource, Value}).
 
 %% Types
 
 types_form(Line, File, Data, Forms0) ->
   case elixir_compiler:get_opt(internal) of
     false ->
-      Types0 = get_typespec(Data, type) ++ get_typespec(Data, typep)
-                                        ++ get_typespec(Data, opaque),
+      Types0 = take_type_spec(Data, type) ++
+               take_type_spec(Data, typep) ++
+               take_type_spec(Data, opaque),
 
       Types1 = ['Elixir.Kernel.Typespec':translate_type(Kind, Expr, Caller) ||
                 {Kind, Expr, Caller} <- Types0],
@@ -290,9 +286,9 @@ export_types_attributes(Types, Forms) ->
 specs_form(Data, Defmacro, Defmacrop, Unreachable, Forms) ->
   case elixir_compiler:get_opt(internal) of
     false ->
-      Specs0 = get_typespec(Data, spec) ++
-               get_typespec(Data, callback) ++
-               get_typespec(Data, macrocallback),
+      Specs0 = take_type_spec(Data, spec) ++
+               take_type_spec(Data, callback) ++
+               take_type_spec(Data, macrocallback),
       Specs1 = ['Elixir.Kernel.Typespec':translate_spec(Kind, Expr, Caller) ||
                 {Kind, Expr, Caller} <- Specs0],
       Specs2 = lists:flatmap(fun(Spec) ->
@@ -301,7 +297,7 @@ specs_form(Data, Defmacro, Defmacrop, Unreachable, Forms) ->
       Specs3 = lists:filter(fun({{_Kind, NameArity, _Spec}, _Line}) ->
                                 not lists:member(NameArity, Unreachable)
                             end, Specs2),
-      optional_callbacks_attributes(get_typespec(Data, optional_callbacks), Specs3) ++
+      optional_callbacks_attributes(take_type_spec(Data, optional_callbacks), Specs3) ++
         specs_attributes(Forms, Specs3);
     true ->
       Forms
@@ -357,12 +353,6 @@ macroify_callback_names(NamesArities, Callbacks) ->
 
 %% Loads the form into the code server.
 
-compile_opts(Module) ->
-  case ets:lookup(data_table(Module), compile) of
-    [{compile, Opts}] when is_list(Opts) -> lists:flatten(Opts);
-    [] -> []
-  end.
-
 load_form(Line, Data, Forms, Opts, E) ->
   elixir_compiler:module(Forms, Opts, E, fun(Module, Binary0) ->
     Docs = elixir_compiler:get_opt(docs),
@@ -399,15 +389,15 @@ add_docs_chunk(Bin, Data, Line, true) ->
 
 add_docs_chunk(Bin, _, _, _) -> Bin.
 
-get_docs(Data) ->
-  lists:usort(ets:select(Data, [{{{doc, '$1'}, '$2', '$3', '$4', '$5'},
-                                 [], [{{'$1', '$2', '$3', '$4', '$5'}}]}])).
-
 get_moduledoc(Line, Data) ->
   case ets:lookup_element(Data, moduledoc, 2) of
     nil -> {Line, nil};
     {DocLine, Doc} -> {DocLine, Doc}
   end.
+
+get_docs(Data) ->
+  lists:usort(ets:select(Data, [{{{doc, '$1'}, '$2', '$3', '$4', '$5'},
+                                 [], [{{'$1', '$2', '$3', '$4', '$5'}}]}])).
 
 get_callback_docs(Data) ->
   lists:usort(ets:select(Data, [{{{callbackdoc, '$1'}, '$2', '$3', '$4'},
@@ -417,9 +407,9 @@ get_type_docs(Data) ->
   lists:usort(ets:select(Data, [{{{typedoc, '$1'}, '$2', '$3', '$4'},
                                  [], [{{'$1', '$2', '$3', '$4'}}]}])).
 
-get_typespec(Data, Key) ->
-  case ets:lookup(Data, Key) of
-    [{Key, Value}] -> Value;
+take_type_spec(Data, Key) ->
+  case ets:take(Data, Key) of
+    [{Key, Value, _, _}] -> Value;
     [] -> []
   end.
 
