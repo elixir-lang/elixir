@@ -198,7 +198,7 @@ defmodule Float do
   end
 
   defp round(float, precision, rounding) do
-    <<sign::size(1), exp::size(11), significant::size(52)-bitstring>> = <<float::float>>
+    <<sign::1, exp::11, significant::52-bitstring>> = <<float::float>>
     {num, count, _} = decompose(significant)
     count = count - exp + 1023
 
@@ -275,7 +275,7 @@ defmodule Float do
       end
 
     tmp = tmp - @power_of_2_to_52
-    <<tmp::float>> = <<sign::size(1), (exp + 1023)::size(11), tmp::size(52)>>
+    <<tmp::float>> = <<sign::1, (exp + 1023)::11, tmp::52>>
     tmp
   end
 
@@ -320,7 +320,7 @@ defmodule Float do
 
   """
   def ratio(float) when is_float(float) do
-    <<sign::size(1), exp::size(11), significant::size(52)-bitstring>> = <<float::float>>
+    <<sign::1, exp::11, significant::52-bitstring>> = <<float::float>>
     {num, _, den} = decompose(significant)
     num = sign(sign, num)
     case exp - 1023 do
@@ -338,10 +338,10 @@ defmodule Float do
     decompose(significant, 1, 0, 2, 1, 1)
   end
 
-  defp decompose(<<1::size(1), bits::bitstring>>, count, last_count, power, _last_power, acc) do
+  defp decompose(<<1::1, bits::bitstring>>, count, last_count, power, _last_power, acc) do
     decompose(bits, count + 1, count, power <<< 1, power, shift_left(acc, count - last_count) + 1)
   end
-  defp decompose(<<0::size(1), bits::bitstring>>, count, last_count, power, last_power, acc) do
+  defp decompose(<<0::1, bits::bitstring>>, count, last_count, power, last_power, acc) do
     decompose(bits, count + 1, last_count, power <<< 1, last_power, acc)
   end
   defp decompose(<<>>, _count, last_count, _power, last_power, acc) do

@@ -155,7 +155,7 @@ bar \"""
     end
 
     assert_raise ArgumentError, fn ->
-      Code.eval_string(~s[<<1::size(4)>> <> "foo"])
+      Code.eval_string(~s[<<1::4>> <> "foo"])
     end
   end
 
