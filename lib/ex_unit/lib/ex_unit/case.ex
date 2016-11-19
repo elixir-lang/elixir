@@ -402,7 +402,7 @@ defmodule ExUnit.Case do
     registered_attributes = Module.get_attribute(mod, :ex_unit_registered)
     registered = Map.new(registered_attributes, &{&1, Module.get_attribute(mod, &1)})
 
-    tag = Module.get_attribute(mod, :tag)
+    tag = Module.delete_attribute(mod, :tag)
     async = Module.get_attribute(mod, :ex_unit_async)
 
     {name, describe, describetag} =
@@ -426,7 +426,7 @@ defmodule ExUnit.Case do
     test = %ExUnit.Test{name: name, case: mod, tags: tags}
     Module.put_attribute(mod, :ex_unit_tests, test)
 
-    Enum.each [:tag | registered_attributes], fn(attribute) ->
+    Enum.each registered_attributes, fn(attribute) ->
       Module.delete_attribute(mod, attribute)
     end
 

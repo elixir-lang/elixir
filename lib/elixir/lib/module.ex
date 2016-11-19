@@ -596,7 +596,7 @@ defmodule Module do
           kind,
           merge_signatures(old_sign, signature, 1),
           if(is_nil(doc), do: old_doc, else: doc)
-       })
+        })
         :ok
     end
   end
@@ -842,11 +842,9 @@ defmodule Module do
   end
 
   @doc """
-  Puts an Erlang attribute to the given module with the given
-  key and value.
+  Puts a module attribute with key and value in the given module.
 
-  The semantics of putting the attribute depends
-  if the attribute was registered or not via `register_attribute/3`.
+  It returns the value of the attribute after normalization.
 
   ## Examples
 
@@ -855,46 +853,25 @@ defmodule Module do
       end
 
   """
+  @spec put_attribute(module, key :: atom, value :: term) :: term
   def put_attribute(module, key, value) do
     put_attribute(module, key, value, nil)
-  end
-
-  @doc false
-  def put_attribute(module, key, value, stack) when is_atom(key) do
-    assert_not_compiled!(:put_attribute, module)
-    table = data_table_for(module)
-    value = preprocess_attribute(key, value)
-    acc   = :ets.lookup_element(table, {:elixir, :acc_attributes}, 2)
-    warn_if_redefining_doc_attribute(stack, table, key)
-
-    new =
-      if :lists.member(key, acc) do
-        case :ets.lookup(table, key) do
-          [{^key, old}] -> [value | old]
-          [] -> [value]
-        end
-      else
-        value
-      end
-
-    :ets.insert(table, {key, new})
-    value
   end
 
   @doc """
   Gets the given attribute from a module.
 
   If the attribute was marked with `accumulate` with
-  `Module.register_attribute/3`, a list is always returned. `nil` is returned
-  if the attribute has not been marked with `accumulate` and has not been set
-  to any value.
+  `Module.register_attribute/3`, a list is always returned.
+  `nil` is returned if the attribute has not been marked with
+  `accumulate` and has not been set to any value.
 
   The `@` macro compiles to a call to this function. For example,
   the following code:
 
       @foo
 
-  Expands close to:
+  Expands to something akin to:
 
       Module.get_attribute(__MODULE__, :foo)
 
@@ -910,13 +887,15 @@ defmodule Module do
       end
 
   """
-  @spec get_attribute(atom, atom) :: term
+  @spec get_attribute(module, atom) :: term
   def get_attribute(module, key) do
     get_attribute(module, key, nil)
   end
 
   @doc """
-  Deletes all attributes that match the given key.
+  Deletes the module attribute that matches the given key.
+
+  It returns the deleted attribute value (or `nil` if nothing was set).
 
   ## Examples
 
@@ -926,12 +905,19 @@ defmodule Module do
       end
 
   """
-  @spec delete_attribute(atom, atom) :: :ok
+  @spec delete_attribute(module, key :: atom) :: (value :: term)
   def delete_attribute(module, key) when is_atom(key) do
     assert_not_compiled!(:delete_attribute, module)
     table = data_table_for(module)
-    :ets.delete(table, key)
-    :ok
+    case :ets.take(table, key) do
+      [{_, value, true, _}] ->
+        :ets.insert(table, {key, [], true, true})
+        value
+      [{_, value, _, _}] ->
+        value
+      [] ->
+        nil
+    end
   end
 
   @doc """
@@ -975,9 +961,11 @@ defmodule Module do
     end
 
     if Keyword.get(opts, :accumulate) do
-      old = :ets.lookup_element(table, {:elixir, :acc_attributes}, 2)
-      :ets.insert(table, {{:elixir, :acc_attributes}, [new | old]})
+      :ets.insert_new(table, {new, [], true, true}) ||
+        :ets.update_element(table, new, {3, true})
     end
+
+    :ok
   end
 
   @doc """
@@ -998,8 +986,8 @@ defmodule Module do
   end
 
   @doc false
-  # Used internally to compile documentation. This function
-  # is private and must be used only internally.
+  # Used internally to compile documentation.
+  # This function is private and must be used only internally.
   def compile_doc(env, kind, name, args, _guards, _body) do
     module = env.module
     table  = data_table_for(module)
@@ -1032,44 +1020,64 @@ defmodule Module do
   end
 
   @doc false
-  # Used internally to compile types. This function
-  # is private and must be used only internally.
+  # Used internally to compile types.
+  # This function is private and must be used only internally.
   def store_typespec(module, key, value) when is_atom(key) do
     assert_not_compiled!(:put_attribute, module)
     table = data_table_for(module)
 
     new =
       case :ets.lookup(table, key) do
-        [{^key, old}] -> [value | old]
+        [{^key, old, _, _}] -> [value | old]
         [] -> [value]
       end
 
-    :ets.insert(table, {key, new})
+    :ets.insert(table, {key, new, true, true})
   end
 
   @doc false
-  def get_attribute(module, key, stack) when is_atom(key) and (is_list(stack) or is_nil(stack)) do
+  # Used internally by Kernel's @.
+  # This function is private and must be used only internally.
+  def get_attribute(module, key, stack) when is_atom(key) do
     assert_not_compiled!(:get_attribute, module)
     table = data_table_for(module)
 
     case :ets.lookup(table, key) do
-      [{^key, val}] ->
+      [{^key, val, _, _}] ->
+        :ets.update_element(table, key, {4, true})
         val
+      [] when is_list(stack) ->
+        # TODO: Consider raising instead of warning on v2.0 as it usually cascades
+        IO.warn "undefined module attribute @#{key}, " <>
+                "please remove access to @#{key} or explicitly set it before access", stack
+        nil
       [] ->
-        acc = :ets.lookup_element(table, {:elixir, :acc_attributes}, 2)
-
-        cond do
-          :lists.member(key, acc) ->
-            []
-          is_list(stack) ->
-            # TODO: Consider making this an error on 2.0 as it usually cascades
-            IO.warn "undefined module attribute @#{key}, " <>
-                    "please remove access to @#{key} or explicitly set it before access", stack
-            nil
-          true ->
-            nil
-        end
+        nil
     end
+  end
+
+  @doc false
+  # Used internally by Kernel's @.
+  # This function is private and must be used only internally.
+  def put_attribute(module, key, value, stack) when is_atom(key) do
+    assert_not_compiled!(:put_attribute, module)
+    table = data_table_for(module)
+    value = preprocess_attribute(key, value)
+
+    case :ets.lookup(table, key) do
+      [{^key, {line, <<_::binary>>}, acc, _read?}]
+          when key in [:doc, :typedoc, :moduledoc] and is_list(stack) ->
+        IO.warn "redefining @#{key} attribute previously set at line #{line}", stack
+        :ets.insert(table, {key, value, acc, false})
+
+      [{^key, current, true, _read?}] ->
+        :ets.insert(table, {key, [value | current], true, false})
+
+      _ ->
+        :ets.insert(table, {key, value, false, false})
+    end
+
+    value
   end
 
   ## Helpers
@@ -1079,15 +1087,9 @@ defmodule Module do
       {line, doc} when is_integer(line) and (is_binary(doc) or is_boolean(doc) or is_nil(doc)) ->
         value
       {line, doc} when is_integer(line) ->
-        # Here, either the user used "@moduledoc :not_a_binary" or
-        # "Module.put_attribute(..., {1, :not_a_binary})". By showing just the
-        # "doc" value in the error, it should be clear in both cases.
         raise ArgumentError,
           "expected the #{key} attribute to contain a binary, a boolean, or nil, got: #{inspect(doc)}"
       _other ->
-        # Here, we're sure it's from Module.put_attribute/3 because it's not a
-        # tuple with an int as the first element (which is what we create with
-        # @).
         raise ArgumentError,
           "expected the #{key} attribute to be {line, doc} (where \"doc\" is " <>
           "a binary, a boolean, or nil), got: #{inspect(value)}"
@@ -1126,7 +1128,7 @@ defmodule Module do
 
   defp get_doc_info(table, env) do
     case :ets.take(table, :doc) do
-      [doc: {_, _} = pair] -> pair
+      [{:doc, {_, _} = pair, _, _}] -> pair
       [] -> {env.line, nil}
     end
   end
@@ -1144,16 +1146,4 @@ defmodule Module do
       raise ArgumentError,
         "could not call #{fun} on module #{inspect module} because it was already compiled"
   end
-
-  defp warn_if_redefining_doc_attribute(stack, table, key)
-      when is_list(stack) and key in [:doc, :typedoc, :moduledoc] do
-    case :ets.lookup(table, key) do
-      [{_, {line, val}}] when val != false ->
-        IO.warn "redefining @#{key} attribute previously set at line #{line}", stack
-      _ ->
-        false
-    end
-  end
-
-  defp warn_if_redefining_doc_attribute(nil, _table, _key), do: false
 end
