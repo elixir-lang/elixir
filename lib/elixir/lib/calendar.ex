@@ -801,8 +801,6 @@ defmodule NaiveDateTime do
                             calendar: Calendar.calendar, hour: Calendar.hour, minute: Calendar.minute,
                             second: Calendar.second, microsecond: Calendar.microsecond}
 
-  @unix_epoch :calendar.datetime_to_gregorian_seconds {{1970, 1, 1}, {0, 0, 0}}
-
   @doc """
   Returns the current naive datetime in UTC.
 

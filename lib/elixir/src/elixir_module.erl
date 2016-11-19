@@ -70,6 +70,7 @@ do_compile(Line, Module, Block, Vars, E) ->
     put_compiler_modules([Module|CompilerModules]),
     {Result, NE} = eval_form(Line, Module, Data, Block, Vars, E),
 
+    PersistedAttrs = ets:lookup_element(Data, ?persisted_attr, 2),
     CompileOpts = ets:lookup_element(Data, compile, 2),
     OnLoad = ets:lookup_element(Data, 'on_load', 2),
     [elixir_locals:record_local(Tuple, Module) || Tuple <- OnLoad],
@@ -80,16 +81,11 @@ do_compile(Line, Module, Block, Vars, E) ->
     {All, Forms0} = functions_form(Line, File, Module, Def, Defp,
                                    Defmacro, Defmacrop, Exports, Functions),
     Forms1 = specs_form(Data, Defmacro, Defmacrop, Unreachable, Forms0),
-    Forms2 = types_form(Line, File, Data, Forms1),
-    Forms3 = attributes_form(Line, File, Data, Forms2),
+    Forms2 = types_form(Data, Forms1),
+    Forms3 = attributes_form(Line, File, Data, PersistedAttrs, Forms2),
 
     elixir_locals:ensure_no_import_conflict(Line, File, Module, All),
-
-    %% TODO: Remove this at it will apply for all attributes.
-    case Docs of
-      true  -> warn_unused_docs(Line, File, Data, doc);
-      false -> false
-    end,
+    warn_unused_attributes(Line, File, Data, PersistedAttrs),
 
     Location = {elixir_utils:characters_to_list(elixir_utils:relative_to_cwd(File)), Line},
 
@@ -200,9 +196,8 @@ eval_form(Line, Module, Data, Block, Vars, E) ->
   {Value, EC}.
 
 eval_callbacks(Line, Data, Name, Args, E) ->
-  Callbacks = lists:reverse(ets:lookup_element(Data, Name, 2)),
-
-  lists:foldl(fun({M, F}, Acc) ->
+  Callbacks = ets:lookup_element(Data, Name, 2),
+  lists:foldr(fun({M, F}, Acc) ->
     expand_callback(Line, M, F, Args, Acc#{vars := [], export_vars := nil},
                     fun(AM, AF, AA) -> apply(AM, AF, AA) end)
   end, E, Callbacks).
@@ -219,8 +214,7 @@ functions_form(Line, File, Module, Def, Defp, Defmacro, Defmacrop, Exports, Body
 
 %% Add attributes handling to the form
 
-attributes_form(Line, File, Data, Current) ->
-  PersistedAttrs = ets:lookup_element(Data, ?persisted_attr, 2),
+attributes_form(Line, File, Data, PersistedAttrs, Current) ->
   Transform = fun(Key, Acc) when is_atom(Key) ->
     case ets:lookup(Data, Key) of
       [{Key, Values, true, _}] ->
@@ -247,21 +241,18 @@ process_external_resource(Line, File, Value) ->
 
 %% Types
 
-types_form(Line, File, Data, Forms0) ->
+types_form(Data, Forms0) ->
   case elixir_compiler:get_opt(internal) of
     false ->
       Types0 = take_type_spec(Data, type) ++
                take_type_spec(Data, typep) ++
                take_type_spec(Data, opaque),
-
       Types1 = ['Elixir.Kernel.Typespec':translate_type(Kind, Expr, Caller) ||
                 {Kind, Expr, Caller} <- Types0],
 
-      warn_unused_docs(Line, File, Data, typedoc),
       Forms1 = types_attributes(Types1, Forms0),
       Forms2 = export_types_attributes(Types1, Forms1),
       Forms2;
-
     true ->
       Forms0
   end.
@@ -332,8 +323,8 @@ translate_macro_spec({{callback, NameArity, Spec}, Line}, _Defmacro, _Defmacrop)
 spec_for_macro({type, Line, 'fun', [{type, _, product, Args} | T]}) ->
   NewArgs = [{type, Line, term, []} | Args],
   {type, Line, 'fun', [{type, Line, product, NewArgs} | T]};
-
-spec_for_macro(Else) -> Else.
+spec_for_macro(Else) ->
+  Else.
 
 optional_callbacks_attributes(OptionalCallbacksTypespec, Specs) ->
   % We only take the specs of the callbacks (which are both callbacks and
@@ -434,13 +425,11 @@ check_module_availability(Line, File, Module) ->
       ok
   end.
 
-warn_unused_docs(Line, File, Data, Attribute) ->
-  case ets:member(Data, Attribute) of
-    true ->
-      elixir_errors:form_warn([{line, Line}], File, ?MODULE, {unused_doc, Attribute});
-    _ ->
-      ok
-  end.
+warn_unused_attributes(Line, File, Data, PersistedAttrs) ->
+  ReservedAttrs = [after_compile, before_compile, moduledoc, on_definition | PersistedAttrs],
+  Keys = ets:select(Data, [{{'$1', '_', '_', false}, [{is_atom, '$1'}], ['$1']}]),
+  [elixir_errors:form_warn([{line, Line}], File, ?MODULE, {unused_attribute, Key}) ||
+   Key <- Keys, not lists:member(Key, ReservedAttrs)].
 
 % __INFO__
 
@@ -554,10 +543,12 @@ prune_stacktrace(Info, []) ->
 format_error({invalid_external_resource, Value}) ->
   io_lib:format("expected a string value for @external_resource, got: ~p",
     ['Elixir.Kernel':inspect(Value)]);
-format_error({unused_doc, typedoc}) ->
-  "@typedoc provided but no type follows it";
-format_error({unused_doc, doc}) ->
-  "@doc provided but no definition follows it";
+format_error({unused_attribute, typedoc}) ->
+  "module attribute @typedoc was set but no type follows it";
+format_error({unused_attribute, doc}) ->
+  "module attribute @doc was set but no definition follows it";
+format_error({unused_attribute, Attr}) ->
+  io_lib:format("module attribute @~ts was set but never used", [Attr]);
 format_error({internal_function_overridden, {Name, Arity}}) ->
   io_lib:format("function ~ts/~B is internal and should not be overridden", [Name, Arity]);
 format_error({invalid_module, Module}) ->

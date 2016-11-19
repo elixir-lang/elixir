@@ -680,6 +680,21 @@ defmodule Kernel.WarningTest do
     purge Sample
   end
 
+  test "attribute with no use" do
+    content = capture_err(fn ->
+      Code.eval_string """
+      defmodule Sample do
+        @at "Something"
+        Module.put_attribute(__MODULE__, :put_attribute, "Something")
+      end
+      """
+    end)
+    assert content =~ "module attribute @at was set but never used"
+    assert content =~ "module attribute @put_attribute was set but never used"
+  after
+    purge Sample
+  end
+
   test "typedoc with no type" do
     assert capture_err(fn ->
       Code.eval_string """
@@ -687,7 +702,7 @@ defmodule Kernel.WarningTest do
         @typedoc "Something"
       end
       """
-    end) =~ "@typedoc provided but no type follows it"
+    end) =~ "module attribute @typedoc was set but no type follows it"
   after
     purge Sample
   end
@@ -699,7 +714,7 @@ defmodule Kernel.WarningTest do
         @doc "Something"
       end
       """
-    end) =~ "@doc provided but no definition follows it"
+    end) =~ "module attribute @doc was set but no definition follows it"
   after
     purge Sample
   end

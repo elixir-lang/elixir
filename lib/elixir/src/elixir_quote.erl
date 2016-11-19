@@ -3,7 +3,7 @@
 -export([dot/5, tail_list/3, list/2]). %% Quote callbacks
 
 -include("elixir.hrl").
--define(defs(Kind), Kind == def; Kind == defp; Kind == defmacro; Kind == defmacrop).
+-define(defs(Kind), Kind == def; Kind == defp; Kind == defmacro; Kind == defmacrop; Kind == '@').
 -define(lexical(Kind), Kind == import; Kind == alias; Kind == require).
 -compile({inline, [keyfind/2, keystore/3, keydelete/2, keyreplace/3, keynew/3]}).
 
