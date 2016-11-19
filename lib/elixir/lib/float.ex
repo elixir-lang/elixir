@@ -325,10 +325,10 @@ defmodule Float do
     num = sign(sign, num)
     case exp - 1023 do
       exp when exp > 0 ->
-        {den, exp} = shift_right_until_zero(den, exp)
-        {shift_left_until_zero(num, exp), den}
+        {den, exp} = shift_right(den, exp)
+        {shift_left(num, exp), den}
       exp when exp < 0 ->
-        {num, shift_left_until_zero(den, abs(exp))}
+        {num, shift_left(den, -exp)}
       0 ->
         {num, den}
     end
@@ -339,7 +339,7 @@ defmodule Float do
   end
 
   defp decompose(<<1::size(1), bits::bitstring>>, count, last_count, power, _last_power, acc) do
-    decompose(bits, count + 1, count, power <<< 1, power, shift_left_until_zero(acc, count - last_count) + 1)
+    decompose(bits, count + 1, count, power <<< 1, power, shift_left(acc, count - last_count) + 1)
   end
   defp decompose(<<0::size(1), bits::bitstring>>, count, last_count, power, last_power, acc) do
     decompose(bits, count + 1, last_count, power <<< 1, last_power, acc)
@@ -351,12 +351,12 @@ defmodule Float do
   defp sign(0, num), do: num
   defp sign(1, num), do: -num
 
-  defp shift_left_until_zero(num, 0), do: num
-  defp shift_left_until_zero(num, x), do: shift_left_until_zero(num <<< 1, x - 1)
+  defp shift_left(num, 0), do: num
+  defp shift_left(num, times), do: shift_left(num <<< 1, times - 1)
 
-  defp shift_right_until_zero(num, 0), do: {num, 0}
-  defp shift_right_until_zero(1, x),   do: {1, x}
-  defp shift_right_until_zero(num, x), do: shift_right_until_zero(num >>> 1, x - 1)
+  defp shift_right(num, 0), do: {num, 0}
+  defp shift_right(1, times), do: {1, times}
+  defp shift_right(num, times), do: shift_right(num >>> 1, times - 1)
 
   @doc """
   Returns a charlist which corresponds to the text representation
