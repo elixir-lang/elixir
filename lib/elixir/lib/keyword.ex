@@ -571,11 +571,23 @@ defmodule Keyword do
       iex> Keyword.merge([a: 1, b: 2], [a: 3, d: 4, a: 5])
       [b: 2, a: 3, d: 4, a: 5]
 
+      iex> Keyword.merge([a: 1], [2, 3])
+      ** (ArgumentError) expected a keyword list as the second argument, got: [2, 3]
+
   """
   @spec merge(t, t) :: t
   def merge(keywords1, keywords2) when is_list(keywords1) and is_list(keywords2) do
-    fun = fn {k, _v} -> not has_key?(keywords2, k) end
-    :lists.filter(fun, keywords1) ++ keywords2
+    if keyword?(keywords2) do
+      fun = fn
+        {key, _value} when is_atom(key) ->
+          not has_key?(keywords2, key)
+        _ ->
+          raise ArgumentError, message: "expected a keyword list as the first argument, got: #{inspect keywords1}"
+      end
+      :lists.filter(fun, keywords1) ++ keywords2
+    else
+      raise ArgumentError, message: "expected a keyword list as the second argument, got: #{inspect keywords2}"
+    end
   end
 
   @doc """
