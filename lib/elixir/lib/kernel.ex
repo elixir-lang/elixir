@@ -2373,63 +2373,65 @@ defmodule Kernel do
   """
   defmacro @(expr)
 
-  defmacro @({name, _, args}) do
-    # Check for Module as it is compiled later than Kernel
-    case bootstrapped?(Module) do
-      false -> nil
-      true  ->
-        assert_module_scope(__CALLER__, :@, 1)
-        function? = __CALLER__.function != nil
+  defmacro @({name, meta, args}) do
+    assert_module_scope(__CALLER__, :@, 1)
+    function? = __CALLER__.function != nil
 
-        case not function? and __CALLER__.context == :match do
+    cond do
+      # Check for Module as it is compiled later than Kernel
+      not bootstrapped?(Module) ->
+        nil
+
+      not function? and __CALLER__.context == :match ->
+        raise ArgumentError, "invalid write attribute syntax, you probably meant to use: @#{name} expression"
+
+      # Typespecs attributes are currently special cased by the compiler
+      macro = is_list(args) and length(args) == 1 and typespec(name) ->
+        case bootstrapped?(Kernel.Typespec) do
           false -> nil
-          true  ->
-            raise ArgumentError, "invalid write attribute syntax, you probably meant to use: @#{name} expression"
+          true  -> quote do: Kernel.Typespec.unquote(macro)(unquote(hd(args)))
         end
 
-        # Typespecs attributes are special cased by the compiler so far
-        case is_list(args) and length(args) == 1 and typespec(name) do
-          false ->
-            do_at(args, name, function?, __CALLER__)
-          macro ->
-            case bootstrapped?(Kernel.Typespec) do
-              false -> nil
-              true  -> quote do: Kernel.Typespec.unquote(macro)(unquote(hd(args)))
-            end
-        end
+      true ->
+        do_at(args, meta, name, function?, __CALLER__)
     end
   end
 
   # @attribute(value)
-  defp do_at([arg], name, function?, env) do
-    case function? do
-      true ->
+  defp do_at([arg], meta, name, function?, env) do
+    read? = :lists.keymember(:context, 1, meta)
+
+    cond do
+      function? ->
         raise ArgumentError, "cannot set attribute @#{name} inside function/macro"
-      false ->
-        cond do
-          name == :behavior ->
-            :elixir_errors.warn env.line, env.file,
-                                "@behavior attribute is not supported, please use @behaviour instead"
-          :lists.member(name, [:moduledoc, :typedoc, :doc]) ->
-            {stack, _} = :elixir_quote.escape(env_stacktrace(env), false)
-            arg = {env.line, arg}
-            quote do: Module.put_attribute(__MODULE__, unquote(name), unquote(arg), unquote(stack))
-          true ->
-            quote do: Module.put_attribute(__MODULE__, unquote(name), unquote(arg))
-        end
+
+      name == :behavior ->
+        :elixir_errors.warn env.line, env.file,
+                            "@behavior attribute is not supported, please use @behaviour instead"
+
+      :lists.member(name, [:moduledoc, :typedoc, :doc]) ->
+        {stack, _} = :elixir_quote.escape(env_stacktrace(env), false)
+        arg = {env.line, arg}
+        quote do: Module.put_attribute(__MODULE__, unquote(name), unquote(arg),
+                                       unquote(stack), unquote(read?))
+
+      true ->
+        quote do: Module.put_attribute(__MODULE__, unquote(name), unquote(arg),
+                                       nil, unquote(read?))
     end
   end
 
   # @attribute or @attribute()
-  defp do_at(args, name, function?, env) when is_atom(args) or args == [] do
+  defp do_at(args, _meta, name, function?, env) when is_atom(args) or args == [] do
     stack = env_stacktrace(env)
-
     doc_attr? = :lists.member(name, [:moduledoc, :typedoc, :doc])
+
     case function? do
       true ->
         value =
-          with {_, doc} when doc_attr? <- Module.get_attribute(env.module, name, stack),
-            do: doc
+          with {_, doc} when doc_attr? <-
+                 Module.get_attribute(env.module, name, stack),
+               do: doc
         try do
           :elixir_quote.escape(value, false)
         rescue
@@ -2438,17 +2440,19 @@ defmodule Kernel do
         else
           {val, _} -> val
         end
+
       false ->
         {escaped, _} = :elixir_quote.escape(stack, false)
         quote do
-          with {_, doc} when unquote(doc_attr?) <- Module.get_attribute(__MODULE__, unquote(name), unquote(escaped)),
-            do: doc
+          with {_, doc} when unquote(doc_attr?) <-
+                 Module.get_attribute(__MODULE__, unquote(name), unquote(escaped)),
+               do: doc
         end
     end
   end
 
   # All other cases
-  defp do_at(args, name, _function?, _env) do
+  defp do_at(args, _meta, name, _function?, _env) do
     raise ArgumentError, "expected 0 or 1 argument for @#{name}, got: #{length(args)}"
   end
 
@@ -3571,6 +3575,7 @@ defmodule Kernel do
           end
         false ->
           quote do
+            _ = @enforce_keys
             def __struct__(kv) do
               :lists.foldl(fn {key, val}, acc ->
                 :maps.update(key, val, acc)

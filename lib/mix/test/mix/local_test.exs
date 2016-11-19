@@ -66,6 +66,9 @@ defmodule Mix.LocalTest do
   llLXgJJE2tGpDhEXBA3idg==
   """
 
+  # We don't actually use it but it exists for documentation purposes.
+  _ = @private_key
+
   setup_all do
     File.mkdir_p!(Mix.PublicKey.public_keys_path)
 

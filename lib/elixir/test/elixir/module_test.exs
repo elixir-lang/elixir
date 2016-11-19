@@ -58,34 +58,35 @@ defmodule ModuleTest do
     end
   end
 
-  test "return value" do
+  test "module attributes returns value" do
     in_module do
       assert (@return [:foo, :bar]) == [:foo, :bar]
+      _ = @return
     end
   end
 
-  test "in memory" do
+  test "in memory modules are tagged as so" do
     assert :code.which(__MODULE__) == :in_memory
   end
 
   ## Eval
 
-  test "eval quoted" do
+  test "executes eval_quoted definitions" do
     assert eval_quoted_info() == {ModuleTest, "sample.ex", 13}
   end
 
-  test "line from macro" do
+  test "retrieves line from macros" do
     assert ModuleTest.ToUse.line == 36
   end
 
   ## Callbacks
 
-  test "compile callback hook" do
+  test "executes custom before_compile callback" do
     assert ModuleTest.ToUse.callback_value(true) == true
     assert ModuleTest.ToUse.callback_value(false) == false
   end
 
-  test "before compile callback hook" do
+  test "executes default before_compile callback" do
     assert ModuleTest.ToUse.before_compile == []
   end
 
@@ -99,7 +100,7 @@ defmodule ModuleTest do
     assert {:+, _, [{:foo, _, nil}, {:bar, _, nil}]} = expr
   end
 
-  test "on definition" do
+  test "executes on definition callback" do
     defmodule OnDefinition do
       @on_definition ModuleTest
 
@@ -118,7 +119,7 @@ defmodule ModuleTest do
     end
   end
 
-  test "overridable inside before compile" do
+  test "may set overridable inside before_compile callback" do
     defmodule OverridableWithBeforeCompile do
       @before_compile ModuleTest
     end

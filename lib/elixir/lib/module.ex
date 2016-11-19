@@ -855,7 +855,7 @@ defmodule Module do
   """
   @spec put_attribute(module, key :: atom, value :: term) :: term
   def put_attribute(module, key, value) do
-    put_attribute(module, key, value, nil)
+    put_attribute(module, key, value, nil, false)
   end
 
   @doc """
@@ -910,7 +910,7 @@ defmodule Module do
     assert_not_compiled!(:delete_attribute, module)
     table = data_table_for(module)
     case :ets.take(table, key) do
-      [{_, value, true, _}] ->
+      [{_, value, _accumulated? = true, _}] ->
         :ets.insert(table, {key, [], true, true})
         value
       [{_, value, _, _}] ->
@@ -961,7 +961,7 @@ defmodule Module do
     end
 
     if Keyword.get(opts, :accumulate) do
-      :ets.insert_new(table, {new, [], true, true}) ||
+      :ets.insert_new(table, {new, [], _accumulated? = true, _read? = true}) ||
         :ets.update_element(table, new, {3, true})
     end
 
@@ -1059,22 +1059,22 @@ defmodule Module do
   @doc false
   # Used internally by Kernel's @.
   # This function is private and must be used only internally.
-  def put_attribute(module, key, value, stack) when is_atom(key) do
+  def put_attribute(module, key, value, stack, read?) when is_atom(key) do
     assert_not_compiled!(:put_attribute, module)
     table = data_table_for(module)
     value = preprocess_attribute(key, value)
 
     case :ets.lookup(table, key) do
-      [{^key, {line, <<_::binary>>}, acc, _read?}]
+      [{^key, {line, <<_::binary>>}, accumulated?, _read?}]
           when key in [:doc, :typedoc, :moduledoc] and is_list(stack) ->
         IO.warn "redefining @#{key} attribute previously set at line #{line}", stack
-        :ets.insert(table, {key, value, acc, false})
+        :ets.insert(table, {key, value, accumulated?, read?})
 
-      [{^key, current, true, _read?}] ->
-        :ets.insert(table, {key, [value | current], true, false})
+      [{^key, current, _accumulated? = true, _read?}] ->
+        :ets.insert(table, {key, [value | current], true, read?})
 
       _ ->
-        :ets.insert(table, {key, value, false, false})
+        :ets.insert(table, {key, value, false, read?})
     end
 
     value

@@ -112,8 +112,6 @@ defmodule GenEventTest do
     end
   end
 
-  @receive_timeout 1000
-
   test "start/1" do
     assert {:ok, pid} = GenEvent.start()
     assert GenEvent.which_handlers(pid) == []

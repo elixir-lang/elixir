@@ -4,8 +4,6 @@ defmodule IEx.Config do
   @table __MODULE__
   @agent __MODULE__
   @keys [:colors, :inspect, :history_size, :default_prompt, :alive_prompt, :width]
-  @colors [:eval_interrupt, :eval_result, :eval_error, :eval_info,
-           :stack_app, :stack_info, :ls_directory, :ls_device]
 
   # Read API
 
