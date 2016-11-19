@@ -1,5 +1,35 @@
 # Changelog for Elixir v1.4
 
+## Standard library improvements
+
+### Registry
+
+TODO
+
+### Syntax coloring
+
+TODO
+
+How to disable: `IEx.configure [colors: [syntax_colors: []]]`
+
+### Calendar
+
+TODO
+
+### Task.async_stream
+
+TODO
+
+## Mix improvements
+
+### Protocol resolution
+
+TODO
+
+### Application inflection
+
+TODO
+
 ## v1.4.0-dev
 
 ### 1. Enhancements
@@ -8,20 +38,27 @@
 
   * [Calendar] Add `Date.compare/2`, `Time.compare/2`, `NaiveDateTime.compare/2` and `DateTime.compare/2`
   * [Calendar] Support `NaiveDateTime.add/3` and `NaiveDateTime.diff/3` for adding seconds (up to microseconds) as well as the difference between two NaiveDateTimes in seconds (up to microseconds)
+  * [Calendar] Add `Date.leap_year?/1` and `Date.day_of_week/1`
+  * [Calendar] Generate `Date`, `Time` and `NaiveDateTime` APIs so they work with any struct that provides the same set of fields as their respective struct. For example, a `NaiveDateTime` can be given to `Date` since it contains a superset of the fields in the `Date` struct
   * [Enum] Add `Enum.map_every/2` that invokes the given function with every nth item
   * [Enum] Add `min/2`, `max/2`, `min_max/2`, `min_by/3`, `max_by/3`, and `min_max_by/3` that allow a function specifying the default value when the enumerable is empty
   * [Enum] Introduce `Enum.zip/1` to zip multiple entries at once
   * [Float] Introduce `Float.ratio/1` that returns a tuple with the numerator and denominator to retrieve the given float
   * [GenServer] Log error on default `handle_info/2` implementation
+  * [Inspect] Support syntax coloring via the `:syntax_color` option
   * [Integer] `Integer.digits/2` now accepts negative integers
   * [Integer] Add `Integer.mod/2` and `Integer.floor_div/2`
+  * [Kernel] Recognize merge conflict markers in source and provide a readable error message
+  * [Kernel] Warn on unused module attributes
   * [List] Add `List.pop_at/3`
   * [List] Add `List.myers_difference/2`
   * [OptionParser] Expand multi-letter aliases in `OptionParser`
   * [Process] Add `Process.send_after/4`
-  * [Process] Improve error messages on `Process.register` errors
+  * [Process] Improve error messages on `Process.register/2` errors
+  * [Registry] Add a local, decentralized and scalable key-value process storage
   * [Stream] Add `Stream.map_every/2` that invokes the given function with every nth item
   * [Stream] Introduce `Stream.zip/1` to lazily zip multiple entries at once
+  * [String] Update to Unicode 9.0.0
   * [Task] Add `Task.async_stream/3` and `Task.async_stream/5` as well as the supervised versions `Task.Supervisor.async_stream/4` and `Task.Supervisor.async_stream/6`
   * [URI] Allow 0 as URI scheme default port
 
@@ -59,6 +96,7 @@
   * [Kernel.SpecialForms] Produce meaningful warning when with's else clauses have no effect
   * [Macro] Wrap fn calls in parens in `Macro.to_string/2`
   * [Macro] Do not print aliases as keys inside keyword lists in `Macro.to_string/2`
+  * [OptionParser] Support options in `OptionParser.to_argv/2` to ensure `:count` switches are correctly encoded
   * [Stream] Ensure `Stream.take/2` does not consume next element on `:suspend`
   * [String] Fix infinite recursion in `String.replace_leading/3` and `String.replace_trailing/3` when given an empty string
   * [Task] Fix `Task.shutdown/1,2` infinite block when task has no monitor
