@@ -295,6 +295,7 @@ defmodule Logger do
   @type backend :: :gen_event.handler
   @type message :: IO.chardata | String.Chars.t
   @type level :: :error | :info | :warn | :debug
+  @type metadata :: Keyword.t(String.Chars.t)
   @levels [:error, :info, :warn, :debug]
 
   @metadata :logger_metadata
@@ -310,6 +311,7 @@ defmodule Logger do
   This will merge the given keyword list into the existing metadata. With
   the exception of setting a key to nil will remove a key from the metadata.
   """
+  @spec metadata(metadata) :: :ok
   def metadata(keywords) do
     {enabled?, metadata} = __metadata__()
     metadata =
@@ -324,6 +326,7 @@ defmodule Logger do
   @doc """
   Reads the current process metadata.
   """
+  @spec metadata() :: metadata
   def metadata() do
     __metadata__() |> elem(1)
   end
@@ -331,6 +334,7 @@ defmodule Logger do
   @doc """
   Resets the current process metadata to the given keyword list.
   """
+  @spec reset_metadata(metadata) :: :ok
   def reset_metadata(keywords \\ []) do
     {enabled?, _metadata} = __metadata__()
     Process.put(@metadata, {enabled?, []})
@@ -342,6 +346,7 @@ defmodule Logger do
 
   Currently the only accepted process is self().
   """
+  @spec enable(pid) :: :ok
   def enable(pid) when pid == self() do
     Process.put(@metadata, {true, metadata()})
     :ok
@@ -352,6 +357,7 @@ defmodule Logger do
 
   Currently the only accepted process is self().
   """
+  @spec disable(pid) :: :ok
   def disable(pid) when pid == self() do
     Process.put(@metadata, {false, metadata()})
     :ok
@@ -392,7 +398,7 @@ defmodule Logger do
   documentation for the available options.
   """
   @valid_options [:compile_time_purge_level, :compile_time_application, :sync_threshold, :truncate, :level, :utc_log]
-
+  @spec configure(Keyword.t) :: :ok
   def configure(options) do
     Logger.Config.configure(Keyword.take(options, @valid_options))
   end
@@ -420,6 +426,7 @@ defmodule Logger do
       the backend is added
 
   """
+  @spec add_backend(atom, Keyword.t) :: Supervisor.on_start_child
   def add_backend(backend, opts \\ []) do
     _ = if opts[:flush], do: flush()
     case Logger.Watcher.watch(Logger, Logger.Config.translate_backend(backend), backend) do
@@ -442,6 +449,7 @@ defmodule Logger do
       to both Logger and Erlang's `error_logger` are processed before
       the backend is removed
   """
+  @spec remove_backend(atom, Keyword.t) :: :ok | {:error, term}
   def remove_backend(backend, opts \\ []) do
     _ = if opts[:flush], do: flush()
     Logger.Config.remove_backend(backend)
@@ -451,6 +459,7 @@ defmodule Logger do
   @doc """
   Adds a new translator.
   """
+  @spec add_translator({module, function :: atom}) :: :ok
   def add_translator({mod, fun} = translator) when is_atom(mod) and is_atom(fun) do
     Logger.Config.add_translator(translator)
   end
@@ -458,6 +467,7 @@ defmodule Logger do
   @doc """
   Removes a translator.
   """
+  @spec remove_translator({module, function :: atom}) :: :ok
   def remove_translator({mod, fun} = translator) when is_atom(mod) and is_atom(fun) do
     Logger.Config.remove_translator(translator)
   end
