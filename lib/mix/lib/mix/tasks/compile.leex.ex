@@ -44,10 +44,16 @@ defmodule Mix.Tasks.Compile.Leex do
   def run(args) do
     {opts, _, _} = OptionParser.parse(args, switches: [force: :boolean, verbose: :boolean])
 
-    project      = Mix.Project.config
+    project = Mix.Project.config
+
     source_paths = project[:erlc_paths]
-    mappings     = Enum.zip(source_paths, source_paths)
-    options      = project[:leex_options] || []
+    Mix.Compilers.Erlang.assert_valid_erlc_paths(source_paths)
+    mappings = Enum.zip(source_paths, source_paths)
+
+    options = project[:leex_options] || []
+    unless is_list(options) do
+      Mix.raise ":leex_options should be a list of options, got: #{inspect(options)}"
+    end
 
     Erlang.compile(manifest(), mappings, :xrl, :erl, opts, fn
       input, output ->
