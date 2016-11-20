@@ -159,6 +159,12 @@ bar \"""
     end
   end
 
+  @bitstring <<"foo", 16::4>>
+
+  test "bitstring attribute" do
+    assert @bitstring == <<"foo", 16::4>>
+  end
+
   @binary "new "
 
   test "bitsyntax expansion" do
