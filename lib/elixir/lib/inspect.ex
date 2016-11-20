@@ -541,8 +541,7 @@ defimpl Inspect, for: Any do
       _ -> Inspect.Map.inspect(map, opts)
     else
       dunder ->
-        is_struct = :maps.keys(dunder) == :maps.keys(map)
-        if is_struct do
+        if :maps.keys(dunder) == :maps.keys(map) do
           pruned = :maps.remove(:__exception__, :maps.remove(:__struct__, map))
           colorless_opts = %{opts | syntax_colors: []}
           Inspect.Map.inspect(pruned, Inspect.Atom.inspect(struct, colorless_opts), opts)

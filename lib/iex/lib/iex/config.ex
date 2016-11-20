@@ -175,7 +175,7 @@ defmodule IEx.Config do
   defp merge_option(:default_prompt, _old, new) when is_binary(new), do: new
   defp merge_option(:alive_prompt, _old, new) when is_binary(new), do: new
   defp merge_option(:width, _old, new) when is_integer(new), do: new
-  defp merge_option(k, _old, new) do
-    raise ArgumentError, "invalid configuration or value for pair #{inspect k} - #{inspect new}"
+  defp merge_option(key, _old, new) do
+    raise ArgumentError, "invalid configuration or value for pair #{inspect key} - #{inspect new}"
   end
 end
