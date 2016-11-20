@@ -161,6 +161,18 @@ defmodule CodeTest do
     assert Code.ensure_compiled?(__MODULE__)
     refute Code.ensure_compiled?(Code.NoFile)
   end
+
+  test "compiler_options/1 validates options" do
+    message = "unknown compiler option: :not_a_valid_option"
+    assert_raise RuntimeError, message, fn ->
+      Code.compiler_options(not_a_valid_option: :foo)
+    end
+
+    message = "compiler option :debug_info should be a boolean, got: :not_a_boolean"
+    assert_raise RuntimeError, message, fn ->
+      Code.compiler_options(debug_info: :not_a_boolean)
+    end
+  end
 end
 
 defmodule Code.SyncTest do
