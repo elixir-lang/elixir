@@ -42,4 +42,36 @@ defmodule KeywordTest do
       Keyword.get_and_update!([a: 1], :a, fn value -> value end)
     end
   end
+
+  test "merge/2" do
+    assert Keyword.merge([a: 1, b: 2], [c: 11, d: 12]) == [a: 1, b: 2, c: 11, d: 12]
+    assert Keyword.merge([], [c: 11, d: 12]) == [c: 11, d: 12]
+    assert Keyword.merge([a: 1, b: 2], []) == [a: 1, b: 2]
+
+    assert_raise ArgumentError, "expected a keyword list as the first argument, got: [1, 2]", fn ->
+      Keyword.merge([1, 2], [c: 11, d: 12])
+    end
+
+    assert_raise ArgumentError, "expected a keyword list as the first argument, got: [1 | 2]", fn ->
+      Keyword.merge([1 | 2], [c: 11, d: 12])
+    end
+
+    assert_raise ArgumentError, "expected a keyword list as the second argument, got: [11, 12, 0]", fn ->
+      Keyword.merge([a: 1, b: 2], [11, 12, 0])
+    end
+
+    assert_raise ArgumentError, "expected a keyword list as the second argument, got: [11 | 12]", fn ->
+      Keyword.merge([a: 1, b: 2], [11 | 12])
+    end
+
+    # duplicate keys in keywords1 are kept if key is not present in keywords2
+    assert Keyword.merge([a: 1, b: 2, a: 3], [c: 11, d: 12]) == [a: 1, b: 2, a: 3, c: 11, d: 12]
+    assert Keyword.merge([a: 1, b: 2, a: 3], [a: 11]) == [b: 2, a: 11]
+
+    # duplicate keys in keywords2 are always kept
+    assert Keyword.merge([a: 1, b: 2], [c: 11, c: 12, d: 13]) == [a: 1, b: 2, c: 11, c: 12, d: 13]
+
+    # any key in keywords1 is removed if key is present in keyword2
+    assert Keyword.merge([a: 1, b: 2, c: 3, c: 4], [c: 11, c: 12, d: 13]) == [a: 1, b: 2, c: 11, c: 12, d: 13]
+  end
 end
