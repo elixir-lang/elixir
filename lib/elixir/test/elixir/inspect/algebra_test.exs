@@ -29,7 +29,7 @@ defmodule Inspect.AlgebraTest do
     # Consistent with definitions
     assert empty() == :doc_nil
 
-    # Consistent of corresponding sdoc
+    # Consistent with corresponding sdoc
     assert sdoc(empty()) == []
 
     # Consistent formatting
@@ -102,19 +102,17 @@ defmodule Inspect.AlgebraTest do
     assert color(empty(), :atom, opts) == empty()
 
     opts = %Inspect.Opts{syntax_colors: [atom: :red]}
-    assert color("Hi", :atom, opts) == concat(
-      {:doc_color, "Hi", [:red]},
-      {:doc_color, empty(), [:reset]}
-    )
+    doc1 = {:doc_color, "Hi", :red}
+    doc2 = {:doc_color, empty(), :reset}
+    assert color("Hi", :atom, opts) == concat(doc1, doc2)
 
     opts = %Inspect.Opts{syntax_colors: [reset: :red]}
     assert color(empty(), :atom, opts) == empty()
 
     opts = %Inspect.Opts{syntax_colors: [number: :cyan, reset: :red]}
-    assert color("123", :number, opts) == concat(
-      {:doc_color, "123", [:cyan]},
-      {:doc_color, empty(), [:red]}
-    )
+    doc1 = {:doc_color, "123", :cyan}
+    doc2 = {:doc_color, empty(), :red}
+    assert color("123", :number, opts) == concat(doc1, doc2)
 
     # Consistent formatting
     opts = %Inspect.Opts{syntax_colors: [atom: :cyan]}

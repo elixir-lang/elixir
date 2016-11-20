@@ -203,21 +203,21 @@ defmodule Inspect.TupleTest do
 
     opts = [syntax_colors: [reset: :cyan]]
     assert inspect({}, opts) == "{}"
-    assert inspect({:X, :Y}, opts) == "{:X, :Y}"
+    assert inspect({:x, :y}, opts) == "{:x, :y}"
 
     opts = [syntax_colors: [reset: :cyan, atom: :red]]
     assert inspect({}, opts) == "{}"
-    assert inspect({:X, :Y}, opts) ==
-      "{\e[31m:X\e[36m, \e[31m:Y\e[36m}"
+    assert inspect({:x, :y}, opts) ==
+      "{\e[31m:x\e[36m, \e[31m:y\e[36m}"
 
     opts = [syntax_colors: [tuple: :green, reset: :cyan, atom: :red]]
     assert inspect({}, opts) == "\e[32m{\e[36m\e[32m}\e[36m"
-    assert inspect({:X, :Y}, opts) ==
-      "\e[32m{\e[36m" <>
-      "\e[31m:X\e[36m" <>
-      "\e[32m,\e[36m " <>
-      "\e[31m:Y\e[36m" <>
-      "\e[32m}\e[36m"
+    assert inspect({:x, :y}, opts) ==
+           "\e[32m{\e[36m" <>
+           "\e[31m:x\e[36m" <>
+           "\e[32m,\e[36m " <>
+           "\e[31m:y\e[36m" <>
+           "\e[32m}\e[36m"
   end
 end
 
@@ -296,51 +296,51 @@ defmodule Inspect.ListTest do
 
     opts = [syntax_colors: [reset: :cyan]]
     assert inspect([], opts) == "[]"
-    assert inspect([:X, :Y], opts) ==
-      "[:X, :Y]"
+    assert inspect([:x, :y], opts) ==
+           "[:x, :y]"
 
     opts = [syntax_colors: [reset: :cyan, atom: :red]]
     assert inspect([], opts) == "[]"
-    assert inspect([:X, :Y], opts) ==
-      "[\e[31m:X\e[36m, \e[31m:Y\e[36m]"
+    assert inspect([:x, :y], opts) ==
+           "[\e[31m:x\e[36m, \e[31m:y\e[36m]"
 
     opts = [syntax_colors: [reset: :cyan, atom: :red, list: :green]]
     assert inspect([], opts) == "\e[32m[]\e[36m"
-    assert inspect([:X, :Y], opts) ==
-      "\e[32m[\e[36m" <>
-      "\e[31m:X\e[36m" <>
-      "\e[32m,\e[36m " <>
-      "\e[31m:Y\e[36m" <>
-      "\e[32m]\e[36m"
+    assert inspect([:x, :y], opts) ==
+           "\e[32m[\e[36m" <>
+           "\e[31m:x\e[36m" <>
+           "\e[32m,\e[36m " <>
+           "\e[31m:y\e[36m" <>
+           "\e[32m]\e[36m"
   end
 
   test "keyword with colors" do
     opts = [syntax_colors: [reset: :cyan, list: :green, number: :blue]]
     assert inspect([], opts) == "\e[32m[]\e[36m"
     assert inspect([a: 9999], opts) ==
-      "\e[32m[\e[36m" <>
-      "a: " <>
-      "\e[34m9999\e[36m" <>
-      "\e[32m]\e[36m"
+           "\e[32m[\e[36m" <>
+           "a: " <>
+           "\e[34m9999\e[36m" <>
+           "\e[32m]\e[36m"
 
     opts = [syntax_colors: [reset: :cyan, atom: :red, list: :green, number: :blue]]
     assert inspect([], opts) == "\e[32m[]\e[36m"
     assert inspect([a: 9999], opts) ==
-      "\e[32m[\e[36m" <>
-      "\e[31ma: \e[36m" <>
-      "\e[34m9999\e[36m" <>
-      "\e[32m]\e[36m"
+           "\e[32m[\e[36m" <>
+           "\e[31ma: \e[36m" <>
+           "\e[34m9999\e[36m" <>
+           "\e[32m]\e[36m"
   end
 
   test "limit with colors" do
     opts = [limit: 1, syntax_colors: [reset: :cyan, list: :green, atom: :red]]
     assert inspect([], opts) == "\e[32m[]\e[36m"
-    assert inspect([:X, :Y], opts) ==
-      "\e[32m[\e[36m" <>
-      "\e[31m:X\e[36m" <>
-      "\e[32m,\e[36m " <>
-      "..." <>
-      "\e[32m]\e[36m"
+    assert inspect([:x, :y], opts) ==
+           "\e[32m[\e[36m" <>
+           "\e[31m:x\e[36m" <>
+           "\e[32m,\e[36m " <>
+           "..." <>
+           "\e[32m]\e[36m"
   end
 end
 
@@ -422,20 +422,20 @@ defmodule Inspect.MapTest do
   test "colors" do
     opts = [syntax_colors: [reset: :cyan, atom: :red, number: :magenta]]
     assert inspect(%{1 => 2}, opts) ==
-      "%{\e[35m1\e[36m => \e[35m2\e[36m}"
+           "%{\e[35m1\e[36m => \e[35m2\e[36m}"
 
     assert inspect(%{a: 1}, opts) ==
-      "%{\e[31ma: \e[36m\e[35m1\e[36m}"
+           "%{\e[31ma: \e[36m\e[35m1\e[36m}"
 
     assert inspect(%Public{key: 1}, opts) ==
-      "%Inspect.MapTest.Public{\e[31mkey: \e[36m\e[35m1\e[36m}"
+           "%Inspect.MapTest.Public{\e[31mkey: \e[36m\e[35m1\e[36m}"
 
     opts = [syntax_colors: [reset: :cyan, atom: :red, map: :green, number: :blue]]
     assert inspect(%{a: 9999}, opts) ==
-      "\e[32m%{\e[36m" <>
-      "\e[31ma: \e[36m" <>
-      "\e[34m9999\e[36m" <>
-      "\e[32m}\e[36m"
+           "\e[32m%{\e[36m" <>
+           "\e[31ma: \e[36m" <>
+           "\e[34m9999\e[36m" <>
+           "\e[32m}\e[36m"
   end
 end
 
@@ -485,8 +485,8 @@ defmodule Inspect.OthersTest do
     opts = [syntax_colors: []]
     assert "#Function<" <> _ = inspect(fun(), opts)
     opts = [syntax_colors: [reset: :red]]
-    assert "#Function<" <> _ = inspect(fun(), opts)
-    assert String.ends_with?(inspect(fun(), opts), ">")
+    assert "#Function<" <> rest = inspect(fun(), opts)
+    assert String.ends_with?(rest, ">")
   end
 
   test "map set" do
@@ -498,8 +498,8 @@ defmodule Inspect.OthersTest do
     opts = [syntax_colors: []]
     assert "#PID<" <> _ = inspect(self(), opts)
     opts = [syntax_colors: [reset: :cyan]]
-    assert "#PID" <> _ = inspect(self(), opts)
-    assert String.ends_with?(inspect(self(), opts), ">")
+    assert "#PID<" <> rest = inspect(self(), opts)
+    assert String.ends_with?(rest, ">")
   end
 
   test "references" do
@@ -509,11 +509,11 @@ defmodule Inspect.OthersTest do
   test "regex" do
     assert inspect(~r(foo)m) == "~r/foo/m"
     assert inspect(Regex.compile!("\a\b\d\e\f\n\r\s\t\v/")) ==
-      "~r/\\a\\x08\\x7F\\x1B\\f\\n\\r \\t\\v\\//"
+           "~r/\\a\\x08\\x7F\\x1B\\f\\n\\r \\t\\v\\//"
     assert inspect(~r<\a\b\d\e\f\n\r\s\t\v/>) ==
-      "~r/\\a\\b\\d\\e\\f\\n\\r\\s\\t\\v\\//"
+           "~r/\\a\\b\\d\\e\\f\\n\\r\\s\\t\\v\\//"
     opts = [syntax_colors: [regex: :red]]
     assert inspect(~r/hi/, opts) ==
-      "\e[31m~r/hi/\e[0m"
+           "\e[31m~r/hi/\e[0m"
   end
 end

@@ -61,6 +61,8 @@ defmodule Inspect.Opts do
             safe: true,
             syntax_colors: []
 
+  @type color_key :: atom
+
   # TODO: Deprecate char_lists key and :as_char_lists value by v1.5
   @type t :: %__MODULE__{
                structs: boolean,
@@ -72,8 +74,8 @@ defmodule Inspect.Opts do
                base: :decimal | :binary | :hex | :octal,
                pretty: boolean,
                safe: boolean,
-               syntax_colors: [{atom, IO.ANSI.ansidata}]
-  }
+               syntax_colors: [{color_key, IO.ANSI.ansidata}]
+             }
 end
 
 defmodule Inspect.Error do
@@ -162,8 +164,6 @@ defmodule Inspect.Algebra do
   # Functional interface to "doc" records
 
   @type t :: :doc_nil | :doc_line | doc_cons | doc_nest | doc_break | doc_group | doc_color | binary
-
-  @type color_identifier :: atom
 
   @typep doc_cons :: {:doc_cons, t, t}
   defmacrop doc_cons(left, right) do
@@ -308,21 +308,17 @@ defmodule Inspect.Algebra do
   end
 
   @doc """
-  Colors a document if a the identifier has a color in the options.
+  Colors a document if the `color_key` has a color in the options.
   """
-  @spec color(t, color_identifier, Inspect.Opts.t) :: doc_color
-  def color(doc, identifier, %Inspect.Opts{syntax_colors: syntax_colors}) when is_doc(doc) do
-    precolor = Keyword.get(syntax_colors, identifier)
-    if precolor do
+  @spec color(t, Inspect.Opts.color_key, Inspect.Opts.t) :: doc_color
+  def color(doc, color_key, %Inspect.Opts{syntax_colors: syntax_colors}) when is_doc(doc) do
+    if precolor = Keyword.get(syntax_colors, color_key) do
       postcolor = Keyword.get(syntax_colors, :reset, :reset)
-      concat(
-        doc_color(doc, List.wrap(precolor)),
-        doc_color(empty(), List.wrap(postcolor)))
+      concat(doc_color(doc, precolor), doc_color(empty(), postcolor))
     else
       doc
     end
   end
-
 
   @doc ~S"""
   Nests the given document at the given `level`.
