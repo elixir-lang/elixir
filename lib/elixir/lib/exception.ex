@@ -561,6 +561,14 @@ defmodule BadMapError do
   end
 end
 
+defmodule BadBooleanError do
+  defexception [:term, :operator]
+
+  def message(exception) do
+    "expected a boolean on left-side of \"#{exception.operator}\", got: #{inspect(exception.term)}"
+  end
+end
+
 defmodule MatchError do
   defexception [:term]
 
@@ -859,6 +867,10 @@ defmodule ErlangError do
 
   def normalize({:badmap, term}, _stacktrace) do
     %BadMapError{term: term}
+  end
+
+  def normalize({:badbool, op, term}, _stacktrace) do
+    %BadBooleanError{operator: op, term: term}
   end
 
   def normalize({:badkey, key}, stacktrace) do

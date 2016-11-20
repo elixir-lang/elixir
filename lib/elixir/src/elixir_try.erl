@@ -166,6 +166,11 @@ erl_rescue_guard_for(Meta, Var, 'Elixir.BadMapError') ->
           erl_tuple_size(Meta, Var, 2),
           erl_record_compare(Meta, Var, badmap));
 
+erl_rescue_guard_for(Meta, Var, 'Elixir.BadBooleanError') ->
+  erl_and(Meta,
+          erl_tuple_size(Meta, Var, 3),
+          erl_record_compare(Meta, Var, badbool));
+
 erl_rescue_guard_for(Meta, Var, 'Elixir.KeyError') ->
   erl_and(Meta,
           erl_or(Meta,

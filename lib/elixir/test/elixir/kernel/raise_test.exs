@@ -333,6 +333,16 @@ defmodule Kernel.RaiseTest do
     assert result == "expected a map, got: 0"
   end
 
+  test "bad boolean error" do
+    result = try do
+      1 and true
+    rescue
+      x in [BadBooleanError] -> Exception.message(x)
+    end
+
+    assert result == "expected a boolean on left-side of \"and\", got: 1"
+  end
+
   test "case clause error" do
     x = :example
     result = try do

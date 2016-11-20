@@ -229,6 +229,28 @@ defmodule KernelTest do
     end
   end
 
+  test "and/2" do
+    assert (true and false) == false
+    assert (true and true) == true
+    assert (true and 0) == 0
+    assert (false and false) == false
+    assert (false and true) == false
+    assert (false and 0) == false
+    assert (false and raise "oops") == false
+    assert_raise BadBooleanError, fn -> 0 and 1 end
+  end
+
+  test "or/2" do
+    assert (true or false) == true
+    assert (true or true) == true
+    assert (true or 0) == true
+    assert (true or raise "foo") == true
+    assert (false or false) == false
+    assert (false or true) == true
+    assert (false or 0) == 0
+    assert_raise BadBooleanError, fn -> 0 or 1 end
+  end
+
   describe "in/2" do
     test "with literals on right side" do
       assert 2 in [1, 2, 3]
