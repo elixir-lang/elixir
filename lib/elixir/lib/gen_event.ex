@@ -314,11 +314,16 @@ defmodule GenEvent do
 
       @doc false
       def handle_call(msg, state) do
+        proc =
+          case Process.info(self(), :registered_name) do
+            {_, []}   -> self()
+            {_, name} -> name
+          end
+
         # We do this to trick Dialyzer to not complain about non-local returns.
-        reason = {:bad_call, msg}
         case :erlang.phash2(1, 1) do
-          0 -> exit(reason)
-          1 -> {:remove_handler, reason}
+          0 -> raise "attempted to call GenEvent #{inspect proc} but no handle_call/2 clause was provided"
+          1 -> {:remove_handler, {:bad_call, msg}}
         end
       end
 
