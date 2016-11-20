@@ -16,21 +16,24 @@ defmodule ExUnit.Runner do
       end
 
     EM.suite_finished(config.manager, run_us, load_us)
-    EM.call(config.manager, ExUnit.RunnerStats, :stop, :infinity)
+    result = ExUnit.RunnerStats.stats(config.stats)
+    EM.stop(config.manager)
+    result
   end
 
   def configure(opts) do
     opts = normalize_opts(opts)
 
-    {:ok, pid} = EM.start_link
-    formatters = [ExUnit.RunnerStats | opts[:formatters]]
-    Enum.each formatters, &(:ok = EM.add_handler(pid, &1, opts))
+    {:ok, manager} = EM.start_link
+    {:ok, stats} = EM.add_handler(manager, ExUnit.RunnerStats, opts)
+    Enum.each opts[:formatters], &EM.add_handler(manager, &1, opts)
 
     config = %{
       capture_log: opts[:capture_log],
       exclude: opts[:exclude],
       include: opts[:include],
-      manager: pid,
+      manager: manager,
+      stats: stats,
       max_cases: opts[:max_cases],
       seed: opts[:seed],
       cases: :async,

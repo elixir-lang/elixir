@@ -1,10 +1,9 @@
 defmodule ExUnit.Formatter do
   @moduledoc """
-  This module holds helper functions related to formatting and contains
-  documentation about the formatting protocol.
+  Helper functions for formatting and the formatting protocols.
 
-  Formatters are registered at the `ExUnit.EventManager` event manager and
-  will be send events by the runner.
+  Formatters are `GenServer`s specified during ExUnit configuration
+  that receives a series of events as cast messages.
 
   The following events are possible:
 
