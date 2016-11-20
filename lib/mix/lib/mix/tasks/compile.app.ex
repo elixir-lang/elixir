@@ -81,7 +81,8 @@ defmodule Mix.Tasks.Compile.App do
       best_guess = [
         vsn: to_charlist(version),
         modules: mods,
-        applications: []
+        applications: [],
+        registered: [],
       ]
 
       properties = if function_exported?(project, :application, 0) do
@@ -150,7 +151,6 @@ defmodule Mix.Tasks.Compile.App do
   defp ensure_correct_properties(app, config, properties) do
     properties
     |> Keyword.put_new(:description, to_charlist(config[:description] || app))
-    |> Keyword.put_new(:registered, [])
     |> validate_properties
   end
 
