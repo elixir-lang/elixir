@@ -273,4 +273,17 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
     end
   end
+
+  test "options returned from project/0 are validated" do
+    Mix.Project.pop
+    Mix.ProjectStack.post_config [elixirc_paths: :not_a_path]
+    Mix.Project.push MixTest.Case.Sample
+
+    in_fixture "no_mixfile", fn ->
+      message = ":elixirc_paths should be a list of paths, got: :not_a_path"
+      assert_raise Mix.Error, message, fn ->
+        Mix.Tasks.Compile.Elixir.run([])
+      end
+    end
+  end
 end
