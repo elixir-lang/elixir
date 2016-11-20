@@ -152,6 +152,21 @@ defmodule Mix.Compilers.Erlang do
     to_charlist(file)
   end
 
+  @doc """
+  Asserts that the `:erlc_paths` configuration option that many Mix tasks
+  rely on is valid.
+
+  Raises a `Mix.Error` exception if the option is not valid, returns `:ok`
+  otherwise.
+  """
+  def assert_valid_erlc_paths(erlc_paths) do
+    if is_list(erlc_paths) do
+      :ok
+    else
+      Mix.raise ":erlc_paths should be a list of paths, got: #{inspect(erlc_paths)}"
+    end
+  end
+
   defp extract_targets(src_dir, src_ext, dest_dir, dest_ext, force) do
     files = Mix.Utils.extract_files(List.wrap(src_dir), List.wrap(src_ext))
 

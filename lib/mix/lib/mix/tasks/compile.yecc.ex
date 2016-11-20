@@ -44,10 +44,16 @@ defmodule Mix.Tasks.Compile.Yecc do
   def run(args) do
     {opts, _, _} = OptionParser.parse(args, switches: [force: :boolean])
 
-    project      = Mix.Project.config
+    project = Mix.Project.config
+
     source_paths = project[:erlc_paths]
-    mappings     = Enum.zip(source_paths, source_paths)
-    options      = project[:yecc_options] || []
+    Mix.Compilers.Erlang.assert_valid_erlc_paths(source_paths)
+    mappings = Enum.zip(source_paths, source_paths)
+
+    options = project[:yecc_options] || []
+    unless is_list(options) do
+      Mix.raise ":yecc_options should be a list of options, got: #{inspect(options)}"
+    end
 
     Erlang.compile(manifest(), mappings, :yrl, :erl, opts, fn
       input, output ->
