@@ -27,6 +27,13 @@ defmodule Kernel.MacrosTest do
     quote do: 1 + unquote(value)
   end
 
+  defp by_two(x), do: x * 2
+
+  defmacro my_macro_with_local(value) do
+    value = by_two(by_two(value))
+    quote do: 1 + unquote(value)
+  end
+
   test "require" do
     assert Kernel.MacrosTest.Nested.value == 1
   end
@@ -41,6 +48,10 @@ defmodule Kernel.MacrosTest do
 
   test "local with defaults macro" do
     assert my_macro_with_default() == 6
+  end
+
+  test "local with local call" do
+    assert my_macro_with_local(4) == 17
   end
 
   test "macros cannot be called dynamically" do
