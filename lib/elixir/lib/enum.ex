@@ -1755,6 +1755,10 @@ defmodule Enum do
     :lists.foldl(fun, acc, enumerable)
   end
 
+  def reduce(first..last, acc, fun) when is_function(fun, 2) do
+    reduce_range(first, last, acc, fun, last >= first)
+  end
+
   def reduce(%{__struct__: _} = enumerable, acc, fun) when is_function(fun, 2) do
     Enumerable.reduce(enumerable, {:cont, acc},
                       fn x, acc -> {:cont, fun.(x, acc)} end) |> elem(1)
@@ -1767,6 +1771,18 @@ defmodule Enum do
   def reduce(enumerable, acc, fun) when is_function(fun, 2) do
     Enumerable.reduce(enumerable, {:cont, acc},
                       fn x, acc -> {:cont, fun.(x, acc)} end) |> elem(1)
+  end
+
+  defp reduce_range(x, y, acc, fun, true) when x <= y do
+    reduce_range(x + 1, y, fun.(x, acc), fun, true)
+  end
+
+  defp reduce_range(x, y, acc, fun, false) when x >= y do
+    reduce_range(x - 1, y, fun.(x, acc), fun, false)
+  end
+
+  defp reduce_range(_, _, acc, _, _) do
+    acc
   end
 
   @doc """
