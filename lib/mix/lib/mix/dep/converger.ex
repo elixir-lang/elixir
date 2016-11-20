@@ -114,6 +114,7 @@ defmodule Mix.Dep.Converger do
 
   defp all(main, apps, callback, rest, lock, env, cache) do
     {deps, rest, lock} = all(main, [], [], apps, callback, rest, lock, env, cache)
+    deps = Enum.reverse(deps)
     # When traversing dependencies, we keep skipped ones to
     # find conflicts. We remove them now after traversal.
     {deps, _} = Mix.Dep.Loader.partition_by_env(deps, env)
@@ -191,7 +192,7 @@ defmodule Mix.Dep.Converger do
   end
 
   defp all([], acc, _upper, _current, _callback, rest, lock, _env, _cache) do
-    {Enum.reverse(acc), rest, lock}
+    {acc, rest, lock}
   end
 
   defp put_lock(%Mix.Dep{app: app} = dep, lock) do
