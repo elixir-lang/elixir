@@ -1024,7 +1024,7 @@ keyword('catch')  -> block;
 keyword(_) -> false.
 
 invalid_character_error(Char) ->
-  "invalid character '" ++ [Char] ++ "' in identifier: ".
+  io_lib:format("invalid character \"~ts\" (codepoint U+~4.16.0B) in token: ", [[Char], Char]).
 
 invalid_do_error(Prefix) ->
   Prefix ++ ". In case you wanted to write a \"do\" expression, "

@@ -67,6 +67,11 @@ parse_error(Line, File, Error, <<>>) ->
   end,
   do_raise(Line, File, 'Elixir.TokenMissingError', Message);
 
+%% Show a nicer message for end of line
+parse_error(Line, File, <<"syntax error before: ">>, <<"eol">>) ->
+  do_raise(Line, File, 'Elixir.SyntaxError',
+           <<"unexpectedly reached end of line. The current expression is invalid or incomplete">>);
+
 %% Show a nicer message for missing end tokens
 parse_error(Line, File, <<"syntax error before: ">>, <<"'end'">>) ->
   do_raise(Line, File, 'Elixir.SyntaxError', <<"unexpected token: end">>);

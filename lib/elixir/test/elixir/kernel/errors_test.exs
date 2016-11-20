@@ -39,12 +39,12 @@ defmodule Kernel.ErrorsTest do
   end
 
   test "invalid identifier" do
-    msg = fn char, name -> "nofile:1: invalid character '#{char}' in identifier: #{name}" end
+    msg = fn name -> "nofile:1: invalid character \"@\" (codepoint U+0040) in token: #{name}" end
 
-    assert_compile_fail SyntaxError, msg.(:@, "foo@"), 'foo@'
-    assert_compile_fail SyntaxError, msg.(:@, "foo@"), 'foo@ '
-    assert_compile_fail SyntaxError, msg.(:@, "foo@bar"), 'foo@bar'
-    assert_compile_fail SyntaxError, msg.(:!, "Foo!"), 'Foo!'
+    assert_compile_fail SyntaxError, msg.("foo@"), 'foo@'
+    assert_compile_fail SyntaxError, msg.("foo@"), 'foo@ '
+    assert_compile_fail SyntaxError, msg.("foo@bar"), 'foo@bar'
+    assert_compile_fail SyntaxError, msg.("Foo@"), 'Foo@'
   end
 
   test "invalid fn" do
@@ -834,7 +834,7 @@ defmodule Kernel.ErrorsTest do
 
   test "new line error" do
     assert_compile_fail SyntaxError,
-      "nofile:3: syntax error before: eol",
+      "nofile:3: unexpectedly reached end of line. The current expression is invalid or incomplete",
       'if true do\n  foo = [],\n  baz\nend'
   end
 
