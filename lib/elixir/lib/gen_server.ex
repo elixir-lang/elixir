@@ -548,11 +548,16 @@ defmodule GenServer do
 
       @doc false
       def handle_call(msg, _from, state) do
+        proc =
+          case Process.info(self(), :registered_name) do
+            {_, []}   -> self()
+            {_, name} -> name
+          end
+
         # We do this to trick Dialyzer to not complain about non-local returns.
-        reason = {:bad_call, msg}
         case :erlang.phash2(1, 1) do
-          0 -> exit(reason)
-          1 -> {:stop, reason, state}
+          0 -> raise "attempted to call GenServer #{inspect proc} but no handle_call/3 clause was provided"
+          1 -> {:stop, {:bad_call, msg}, state}
         end
       end
 
@@ -570,11 +575,16 @@ defmodule GenServer do
 
       @doc false
       def handle_cast(msg, state) do
+        proc =
+          case Process.info(self(), :registered_name) do
+            {_, []}   -> self()
+            {_, name} -> name
+          end
+
         # We do this to trick Dialyzer to not complain about non-local returns.
-        reason = {:bad_cast, msg}
         case :erlang.phash2(1, 1) do
-          0 -> exit(reason)
-          1 -> {:stop, reason, state}
+          0 -> raise "attempted to cast GenServer #{inspect proc} but no handle_cast/2 clause was provided"
+          1 -> {:stop, {:bad_cast, msg}, state}
         end
       end
 
