@@ -440,9 +440,16 @@ defmodule Code do
   def compiler_options(opts) do
     available = available_compiler_options()
 
-    for {k, _} <- opts,
-        not k in available,
-        do: raise "unknown compiler options: #{k}"
+    Enum.each(opts, fn({key, value}) ->
+      cond do
+        not key in available ->
+          raise "unknown compiler option: #{inspect(key)}"
+        not is_boolean(value) ->
+          raise "compiler option #{inspect(key)} should be a boolean, got: #{inspect(value)}"
+        true ->
+          :ok
+      end
+    end)
 
     :elixir_config.update :compiler_options, &Enum.into(opts, &1)
   end
