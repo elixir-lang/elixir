@@ -77,8 +77,20 @@ defmodule IEx.Helpers do
   def recompile do
     if mix_started?() do
       config = Mix.Project.config
+      consolidation = Mix.Project.consolidation_path(config)
       reenable_tasks(config)
-      Mix.Task.run("compile")
+
+      # No longer allow consolidations to be accessed.
+      Code.delete_path(consolidation)
+      purge_protocols(consolidation)
+
+      result = Mix.Task.run("compile")
+
+      # Reenable consolidation and allow them to be loaded.
+      Code.prepend_path(consolidation)
+      purge_protocols(consolidation)
+
+      result
     else
       IO.puts IEx.color(:eval_error, "Mix is not running. Please start IEx with: iex -S mix")
       :error
@@ -95,6 +107,20 @@ defmodule IEx.Helpers do
     Mix.Task.reenable("compile.protocols")
     compilers = config[:compilers] || Mix.compilers
     Enum.each compilers, &Mix.Task.reenable("compile.#{&1}")
+  end
+
+  defp purge_protocols(path) do
+    case File.ls(path) do
+      {:ok, beams} ->
+        for beam <- beams do
+          module = beam |> Path.rootname |> String.to_atom
+          :code.purge(module)
+          :code.delete(module)
+        end
+        :ok
+      {:error, _} ->
+        :ok
+    end
   end
 
   @doc """
