@@ -430,8 +430,8 @@ defmodule Registry do
         safe_lookup_second(key_ets, key)
 
       {:duplicate, partitions, _key_ets} ->
-        for i <- :lists.seq(0, partitions-1),
-            pair <- safe_lookup_second(key_ets!(registry, i), key),
+        for partition <- 0..(partitions - 1),
+            pair <- safe_lookup_second(key_ets!(registry, partition), key),
             do: pair
     end
   end
@@ -480,8 +480,8 @@ defmodule Registry do
         :ets.select(key_ets, spec)
 
       {:duplicate, partitions, _key_ets} ->
-        for i <- :lists.seq(0, partitions-1),
-            pair <- :ets.select(key_ets!(registry, i), spec),
+        for partition <- 0..(partitions - 1),
+            pair <- :ets.select(key_ets!(registry, partition), spec),
             do: pair
     end
   end
