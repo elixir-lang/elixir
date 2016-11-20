@@ -66,6 +66,12 @@ defmodule Mix.Tasks.Compile.AppTest do
     Mix.Project.push InvalidProject
 
     in_fixture "no_mixfile", fn ->
+      Process.put(:application, [:not_a_keyword, applications: []])
+      message = "Application configuration returned from application/0 should be a keyword list"
+      assert_raise Mix.Error, message, fn ->
+        Mix.Tasks.Compile.App.run([])
+      end
+
       Process.put(:application, [modules: :invalid])
       message = "Application modules (:modules) should be a list of atoms, got: :invalid"
       assert_raise Mix.Error, message, fn ->

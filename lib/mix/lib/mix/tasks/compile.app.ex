@@ -86,7 +86,11 @@ defmodule Mix.Tasks.Compile.App do
       ]
 
       properties = if function_exported?(project, :application, 0) do
-        Keyword.merge(best_guess, project.application)
+        project_application = project.application()
+        unless Keyword.keyword?(project_application) do
+          Mix.raise "Application configuration returned from application/0 should be a keyword list"
+        end
+        Keyword.merge(best_guess, project_application)
       else
         best_guess
       end
