@@ -57,7 +57,7 @@ rewrite_clause({call, Ann1, {atom, Ann2, RawName}, Args}, Module) ->
   FunCall = {call, Ann1, Remote, [
     {atom, Ann2, Module}, {atom, Ann2, Name}, {integer, Ann2, Arity}
   ]},
-  {call, Ann1, FunCall, Args};
+  {call, Ann1, FunCall, rewrite_clause(Args, Module)};
 
 rewrite_clause(Tuple, Module) when is_tuple(Tuple) ->
   list_to_tuple(rewrite_clause(tuple_to_list(Tuple), Module));
