@@ -103,25 +103,25 @@ defmodule URITest do
   end
 
   test "parse FTP" do
-    assert %URI{scheme: "ftp", host: "private.ftp-servers.example.com",
-                userinfo: "user001:secretpassword", authority: "user001:secretpassword@private.ftp-servers.example.com",
-                path: "/mydirectory/myfile.txt", query: nil, fragment: nil,
+    assert %URI{scheme: "ftp", host: "private.ftp-server.example.com",
+                userinfo: "user001:password", authority: "user001:password@private.ftp-server.example.com",
+                path: "/my_directory/my_file.txt", query: nil, fragment: nil,
                 port: 21} ==
-           URI.parse("ftp://user001:secretpassword@private.ftp-servers.example.com/mydirectory/myfile.txt")
+           URI.parse("ftp://user001:password@private.ftp-server.example.com/my_directory/my_file.txt")
   end
 
   test "parse SFTP" do
-    assert %URI{scheme: "sftp", host: "private.ftp-servers.example.com",
-                userinfo: "user001:secretpassword", authority: "user001:secretpassword@private.ftp-servers.example.com",
-                path: "/mydirectory/myfile.txt", query: nil, fragment: nil, port: 22} ==
-           URI.parse("sftp://user001:secretpassword@private.ftp-servers.example.com/mydirectory/myfile.txt")
+    assert %URI{scheme: "sftp", host: "private.ftp-server.example.com",
+                userinfo: "user001:password", authority: "user001:password@private.ftp-server.example.com",
+                path: "/my_directory/my_file.txt", query: nil, fragment: nil, port: 22} ==
+           URI.parse("sftp://user001:password@private.ftp-server.example.com/my_directory/my_file.txt")
   end
 
   test "parse TFTP" do
-    assert %URI{scheme: "tftp", host: "private.ftp-servers.example.com",
-                userinfo: "user001:secretpassword", authority: "user001:secretpassword@private.ftp-servers.example.com",
-                path: "/mydirectory/myfile.txt", query: nil, fragment: nil, port: 69} ==
-           URI.parse("tftp://user001:secretpassword@private.ftp-servers.example.com/mydirectory/myfile.txt")
+    assert %URI{scheme: "tftp", host: "private.ftp-server.example.com",
+                userinfo: "user001:password", authority: "user001:password@private.ftp-server.example.com",
+                path: "/my_directory/my_file.txt", query: nil, fragment: nil, port: 69} ==
+           URI.parse("tftp://user001:password@private.ftp-server.example.com/my_directory/my_file.txt")
   end
 
 
