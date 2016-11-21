@@ -360,10 +360,13 @@ defmodule Mix.Project do
   defp env_path(config) do
     build = config[:build_path] || "_build"
 
-    if config[:build_per_environment] do
-      Path.expand("#{build}/#{Mix.env}")
-    else
-      Path.expand("#{build}/shared")
+    case config[:build_per_environment] do
+      true ->
+        Path.expand("#{build}/#{Mix.env}")
+      false ->
+        Path.expand("#{build}/shared")
+      other ->
+        Mix.raise "The :build_per_environment option should be a boolean, got: #{inspect(other)}"
     end
   end
 
