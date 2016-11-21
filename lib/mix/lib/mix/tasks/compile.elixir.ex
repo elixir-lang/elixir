@@ -54,6 +54,10 @@ defmodule Mix.Tasks.Compile.Elixir do
     dest = Mix.Project.compile_path(project)
     srcs = project[:elixirc_paths]
 
+    unless is_list(srcs) do
+      Mix.raise ":elixirc_paths should be a list of paths, got: #{inspect(srcs)}"
+    end
+
     manifest = manifest()
     configs  = Mix.Project.config_files ++ Mix.Tasks.Compile.Erlang.manifests
     force    = opts[:force] || Mix.Utils.stale?(configs, [manifest])
