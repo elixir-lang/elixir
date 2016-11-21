@@ -252,11 +252,17 @@ defmodule ExUnit.Formatter do
   end
 
   defp colorize_diff({:del, content}, formatter, {left, right}) do
-    {[left | formatter.(:diff_delete, content)], right}
+    format = colorize_format(content, :diff_delete, :diff_delete_whitespace)
+    {[left | formatter.(format, content)], right}
   end
 
   defp colorize_diff({:ins, content}, formatter, {left, right}) do
-    {left, [right | formatter.(:diff_insert, content)]}
+    format = colorize_format(content, :diff_insert, :diff_insert_whitespace)
+    {left, [right | formatter.(format, content)]}
+  end
+
+  defp colorize_format(content, normal, whitespace) do
+    if String.trim_leading(content) == "", do: whitespace, else: normal
   end
 
   defp edit_script(left, right) do

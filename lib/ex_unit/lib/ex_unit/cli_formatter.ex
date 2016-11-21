@@ -179,9 +179,13 @@ defmodule ExUnit.CLIFormatter do
   # Color styles
 
   defp colorize(escape, string, %{colors: colors}) do
-    [escape | string]
-    |> IO.ANSI.format(colors[:enabled])
-    |> IO.iodata_to_binary
+    if colors[:enabled] do
+      [escape, string, :reset]
+      |> IO.ANSI.format_fragment(true)
+      |> IO.iodata_to_binary
+    else
+      string
+    end
   end
 
   defp success(msg, config) do
@@ -211,8 +215,14 @@ defmodule ExUnit.CLIFormatter do
   defp formatter(:diff_delete, msg, config),
     do: colorize(:red, msg, config)
 
+  defp formatter(:diff_delete_whitespace, msg, config),
+    do: colorize(IO.ANSI.color_background(2, 0, 0), msg, config)
+
   defp formatter(:diff_insert, msg, config),
     do: colorize(:green, msg, config)
+
+  defp formatter(:diff_insert_whitespace, msg, config),
+    do: colorize(IO.ANSI.color_background(0, 2, 0), msg, config)
 
   defp formatter(_,  msg, _config),
     do: msg
