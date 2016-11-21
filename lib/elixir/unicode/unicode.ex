@@ -361,7 +361,6 @@ defmodule String.Break do
   @moduledoc false
   @whitespace_max_size 3
 
-  # WhiteSpace.txt is extracted from Unicode's PropList.txt (just the White_Space property)
   prop_path = Path.join(__DIR__, "WhiteSpace.txt")
 
   whitespace = Enum.reduce File.stream!(prop_path), [], fn line, acc ->
@@ -377,14 +376,10 @@ defmodule String.Break do
 
   # trim_leading
 
-  def trim_leading(""), do: ""
-
   for codepoint <- whitespace do
-    def trim_leading(unquote(codepoint) <> rest) do
-      trim_leading(rest)
-    end
+    def trim_leading(unquote(codepoint) <> rest), do: trim_leading(rest)
   end
-
+  def trim_leading(""), do: ""
   def trim_leading(string) when is_binary(string), do: string
 
   # trim_trailing
@@ -430,30 +425,11 @@ defmodule String.Break do
 
   # Split
 
-  def split(""), do: []
-
-  def split(string) when is_binary(string) do
-    :lists.reverse do_split(string, "", [])
+  def split(string) do
+    for piece <- :binary.split(string, unquote(whitespace -- non_breakable), [:global]),
+        piece != "",
+        do: piece
   end
-
-  for codepoint <- whitespace -- non_breakable do
-    defp do_split(unquote(codepoint) <> rest, buffer, acc) do
-      do_split(rest, "", add_buffer_to_acc(buffer, acc))
-    end
-  end
-
-  defp do_split(<<char, rest::binary>>, buffer, acc) do
-    do_split(rest, <<buffer::binary, char>>, acc)
-  end
-
-  defp do_split(<<>>, buffer, acc) do
-    add_buffer_to_acc(buffer, acc)
-  end
-
-  @compile {:inline, add_buffer_to_acc: 2}
-
-  defp add_buffer_to_acc("", acc),     do: acc
-  defp add_buffer_to_acc(buffer, acc), do: [buffer | acc]
 
   # Decompose
 
