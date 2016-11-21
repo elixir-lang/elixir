@@ -113,11 +113,11 @@ defmodule Mix.Tasks.New do
   end
 
   defp otp_app(_mod, false) do
-    "    [applications: [:logger]]"
+    "    [extra_applications: [:logger]]"
   end
 
   defp otp_app(mod, true) do
-    "    [applications: [:logger],\n     mod: {#{mod}.Application, []}]"
+    "    [extra_applications: [:logger],\n     mod: {#{mod}.Application, []}]"
   end
   
   defp cd_path(".") do
@@ -218,23 +218,14 @@ defmodule Mix.Tasks.New do
   <%= if @app do %>
   ## Installation
 
-  If [available in Hex](https://hex.pm/docs/publish), the package can be installed as:
+  If [available in Hex](https://hex.pm/docs/publish), the package can be installed
+  by adding `<%= @app %>` to your list of dependencies in `mix.exs`:
 
-    1. Add `<%= @app %>` to your list of dependencies in `mix.exs`:
-
-      ```elixir
-      def deps do
-        [{:<%= @app %>, "~> 0.1.0"}]
-      end
-      ```
-
-    2. Ensure `<%= @app %>` is started before your application:
-
-      ```elixir
-      def application do
-        [applications: [:<%= @app %>]]
-      end
-      ```
+  ```elixir
+  def deps do
+    [{:<%= @app %>, "~> 0.1.0"}]
+  end
+  ```
 
   Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
   and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
@@ -255,14 +246,14 @@ defmodule Mix.Tasks.New do
   # Where 3rd-party dependencies like ExDoc output generated docs.
   /doc
 
+  # Ignore .fetch files in case you like to edit your project deps locally.
+  /.fetch
+
   # If the VM crashes, it generates a dump, let's ignore it too.
   erl_crash.dump
 
   # Also ignore archive artifacts (built via "mix archive.build").
   *.ez
-
-  # Ignore .fetch files in case you like to edit your project deps locally.
-  /.fetch
   """
 
   embed_template :mixfile, """
@@ -282,6 +273,7 @@ defmodule Mix.Tasks.New do
     #
     # Type "mix help compile.app" for more information
     def application do
+      # Specify extra applications you'll use from Erlang/Elixir
   <%= @otp_app %>
     end
 
@@ -321,6 +313,7 @@ defmodule Mix.Tasks.New do
     #
     # Type "mix help compile.app" for more information
     def application do
+      # Specify extra applications you'll use from Erlang/Elixir
   <%= @otp_app %>
     end
 

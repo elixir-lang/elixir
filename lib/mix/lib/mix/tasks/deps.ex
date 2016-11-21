@@ -81,6 +81,10 @@ defmodule Mix.Tasks.Deps do
       try to infer the type of project but it can be overridden with this
       option by setting it to `:mix`, `:rebar`, `:rebar3` or `:make`
 
+    * `:runtime` - whether the dependency is part of runtime applications.
+      Defaults to `true` which automatically adds the application to the list
+      of apps that are started automatically and included in releases
+
   ### Git options (`:git`)
 
     * `:git`        - the Git repository URI
