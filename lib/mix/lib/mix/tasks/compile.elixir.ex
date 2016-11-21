@@ -54,7 +54,9 @@ defmodule Mix.Tasks.Compile.Elixir do
     dest = Mix.Project.compile_path(project)
     srcs = project[:elixirc_paths]
 
-    assert_valid_elixirc_paths(srcs)
+    unless is_list(srcs) do
+      Mix.raise ":elixirc_paths should be a list of paths, got: #{inspect(srcs)}"
+    end
 
     manifest = manifest()
     configs  = Mix.Project.config_files ++ Mix.Tasks.Compile.Erlang.manifests
@@ -75,11 +77,5 @@ defmodule Mix.Tasks.Compile.Elixir do
   def clean do
     dest = Mix.Project.compile_path
     Mix.Compilers.Elixir.clean(manifest(), dest)
-  end
-
-  defp assert_valid_elixirc_paths(paths) do
-    unless is_list(paths) do
-      Mix.raise ":elixirc_paths should be a list of paths, got: #{inspect(paths)}"
-    end
   end
 end
