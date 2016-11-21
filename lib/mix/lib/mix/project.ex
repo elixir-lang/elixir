@@ -233,26 +233,46 @@ defmodule Mix.Project do
   @spec apps_paths() :: %{atom => Path.t} | nil
   def apps_paths(config \\ config()) do
     if apps_path = config[:apps_path] do
-      apps_path
-      |> Path.join("*/mix.exs")
-      |> Path.wildcard()
-      |> Enum.map(&Path.dirname/1)
-      |> extract_umbrella
-      |> filter_umbrella(config[:apps])
-      |> Map.new
+      Mix.ProjectStack.read_cache(:apps_path) ||
+        Mix.ProjectStack.write_cache(:apps_path,
+          config[:apps] |> umbrella_apps(apps_path) |> to_apps_path(apps_path))
     end
   end
 
-  defp extract_umbrella(paths) do
-    for path <- paths do
-      app = path |> Path.basename |> String.downcase |> String.to_atom
-      {app, path}
+  defp umbrella_apps(nil, apps_path) do
+    case File.ls(apps_path) do
+      {:ok, apps} -> Enum.map(apps, &String.to_atom/1)
+      {:error, _} -> []
     end
   end
+  defp umbrella_apps(apps, _apps_path) when is_list(apps) do
+    apps
+  end
 
-  defp filter_umbrella(pairs, nil), do: pairs
-  defp filter_umbrella(pairs, apps) when is_list(apps) do
-    for {app, _} = pair <- pairs, app in apps, do: pair
+  defp to_apps_path(apps, apps_path) do
+    for app <- apps,
+        path = path_with_mix_exs_otherwise_warn(app, apps_path),
+        do: {app, path},
+        into: %{}
+  end
+
+  defp path_with_mix_exs_otherwise_warn(app, apps_path) do
+    path = Path.join(apps_path, Atom.to_string(app))
+    cond do
+      File.regular?(Path.join(path, "mix.exs")) ->
+        path
+
+      File.dir?(path) ->
+        Mix.shell.error "warning: path #{inspect Path.relative_to_cwd(path)} is a directory but " <>
+                        "it has no mix.exs. Mix won't consider this directory as part of your " <>
+                        "umbrella application. Please add a \"mix.exs\" or set the \":apps\" key " <>
+                        "in your umbrella configuration with all relevant apps names as atoms"
+        nil
+
+      true ->
+        # If it is a stray file, we just ignore it.
+        nil
+    end
   end
 
   @doc ~S"""

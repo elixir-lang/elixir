@@ -11,6 +11,8 @@ defmodule Mix.UmbrellaTest do
       Mix.Project.in_project(:umbrella, ".", fn _ ->
         assert Mix.Project.apps_paths ==
                %{bar: "apps/bar", foo: "apps/foo"}
+        assert_received {:mix_shell, :error, ["warning: path \"apps/dont_error_on_missing_mixfile\"" <> _]}
+        refute_received {:mix_shell, :error, ["warning: path \"apps/dont_error_on_files\"" <> _]}
       end)
     end
   end
