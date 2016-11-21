@@ -210,7 +210,7 @@ unwrap_definition([[Tuple] | T], File, Module, Table, All, Private) ->
 
   case [Clause || {_, Clause} <- ets:lookup(Table, {clauses, Tuple})] of
     [] ->
-      warn_bodyless_function(Ann, File, Module, Kind, Tuple),
+      warn_bodyless_function(Check, Ann, File, Module, Kind, Tuple),
       unwrap_definition(T, File, Module, Table, All, Private);
     Clauses ->
       Unwrapped = {Tuple, Kind, Ann, Location,
@@ -283,9 +283,10 @@ default_function_for(Kind, Name, {clause, Ann, Args, _Guards, _Exprs} = Clause)
 default_function_for(_, Name, {clause, Ann, Args, _Guards, _Exprs} = Clause) ->
   {function, Ann, Name, length(Args), [Clause]}.
 
-warn_bodyless_function(_Ann, _File, 'Elixir.Module', _Kind, _Tuple) ->
-  ok; %% Documentation for __info__
-warn_bodyless_function(Ann, File, _Module, Kind, Tuple) ->
+warn_bodyless_function(Check, _Ann, _File, Module, _Kind, _Tuple)
+    when Check == false; Module == 'Elixir.Module' ->
+  ok;
+warn_bodyless_function(_Check, Ann, File, _Module, Kind, Tuple) ->
   elixir_errors:form_warn([{line, erl_anno:line(Ann)}], File, ?MODULE, {bodyless_clause, Kind, Tuple}),
   ok.
 
@@ -385,7 +386,7 @@ assert_valid_name(_Meta, _Kind, _Name, _Args, _S) ->
 %% Format errors
 
 format_error({bodyless_clause, Kind, {Name, Arity}}) ->
-  io_lib:format("bodyless clause provided for nonexistent ~ts ~ts/~B", [Kind, Name, Arity]);
+  io_lib:format("implementation not provided for predefined ~ts ~ts/~B", [Kind, Name, Arity]);
 
 format_error({no_module, {Kind, Name, Arity}}) ->
   io_lib:format("cannot define function outside module, invalid scope for ~ts ~ts/~B", [Kind, Name, Arity]);
@@ -400,7 +401,7 @@ format_error({defs_with_defaults, Name, {Kind, Arity}, {K, A}}) when Arity < A -
 
 format_error({clauses_with_defaults, {Kind, Name, Arity}}) ->
   io_lib:format(""
-    "definitions with multiple clauses and default values require a function head. Instead of:\n"
+    "definitions with multiple clauses and default values require a header. Instead of:\n"
     "\n"
     "    def foo(:first_clause, b \\\\ :default) do ... end\n"
     "    def foo(:second_clause, b) do ... end\n"
@@ -411,7 +412,7 @@ format_error({clauses_with_defaults, {Kind, Name, Arity}}) ->
     "    def foo(:first_clause, b) do ... end\n"
     "    def foo(:second_clause, b) do ... end\n"
     "\n"
-   "~ts ~ts/~B has multiple clauses and defines defaults in a clause with a body", [Kind, Name, Arity]);
+   "~ts ~ts/~B has multiple clauses and defines defaults in one or more clauses", [Kind, Name, Arity]);
 
 format_error({ungrouped_clause, {Kind, Name, Arity, OrigLine, OrigFile}}) ->
   io_lib:format("clauses for the same ~ts should be grouped together, ~ts ~ts/~B was previously defined (~ts:~B)",
@@ -427,7 +428,7 @@ format_error({invalid_def, Kind, NameAndArgs}) ->
   io_lib:format("invalid syntax in ~ts ~ts", [Kind, 'Elixir.Macro':to_string(NameAndArgs)]);
 
 format_error(invalid_args_for_bodyless_clause) ->
-  "can use only variables and \\\\ as arguments in function heads";
+  "can use only variables and \\\\ as arguments in definition header";
 
 format_error({is_record, Kind}) ->
   io_lib:format("cannot define function named ~ts is_record/2 due to compability "
