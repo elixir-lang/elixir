@@ -68,7 +68,7 @@ defmodule Registry do
 
       Registry.dispatch(Registry.DispatcherTest, "hello", fn entries ->
         for {pid, {module, function}} <- entries, do: apply(module, function, [pid])
-      end
+      end)
       # Prints #PID<...> where the pid is for the process that called register/3 above
       #=> :ok
 
