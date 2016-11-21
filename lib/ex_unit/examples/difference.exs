@@ -25,6 +25,12 @@ defmodule Difference do
     assert string1 == string2
   end
 
+  test "whitespace" do
+    list1 = [%{a: "abc "}, %{a: "def"}, %{c: "gh"}]
+    list2 = [%{a: "abc"}, %{a: " def"}, %{c: "hi"}]
+    assert list1 == list2
+  end
+
   test "large strings" do
     string1 = "short"
     string2 = "really long string that should not emit diff"
