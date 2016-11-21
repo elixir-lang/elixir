@@ -180,7 +180,7 @@ defmodule String do
   ## Patterns
 
   Many functions in this module work with patterns. For example,
-  String.split/2 can split a string into multiple patterns given
+  `String.split/2` can split a string into multiple patterns given
   a pattern. This pattern can be a string, a list of strings or
   a compiled pattern:
 
