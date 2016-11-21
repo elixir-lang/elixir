@@ -391,7 +391,7 @@ defmodule Kernel.WarningTest do
         def hello
       end
       """
-    end) =~ "bodyless clause provided for nonexistent def hello/0"
+    end) =~ "implementation not provided for predefined def hello/0"
   after
     purge Sample1
   end
@@ -438,7 +438,7 @@ defmodule Kernel.WarningTest do
         def hello(arg \\ 0), do: nil
       end
       """
-    end) =~ "definitions with multiple clauses and default values require a function head"
+    end) =~ "definitions with multiple clauses and default values require a header"
   after
     purge Sample
   end
@@ -451,7 +451,7 @@ defmodule Kernel.WarningTest do
         def hello(arg), do: nil
       end
       """
-    end) =~ "definitions with multiple clauses and default values require a function head"
+    end) =~ "definitions with multiple clauses and default values require a header"
   after
     purge Sample
   end

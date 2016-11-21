@@ -228,6 +228,9 @@ defmodule Supervisor do
     quote location: :keep do
       @behaviour Supervisor
       import Supervisor.Spec
+
+      @doc false
+      def init(arg)
     end
   end
 

@@ -44,7 +44,7 @@ When documenting a function, argument names are inferred by the compiler. For ex
       size
     end
 
-The compiler will infer this argument as `map`. Sometimes the inference will be suboptimal, especially if the function contains multiple clauses with the argument matching on different values each time. You can specify the proper names for documentation by declaring before a bodyless clause:
+The compiler will infer this argument as `map`. Sometimes the inference will be suboptimal, especially if the function contains multiple clauses with the argument matching on different values each time. You can specify the proper names for documentation by declaring only the function head at any moment before the implementation:
 
     def size(map)
     def size(%{size: size}) do
