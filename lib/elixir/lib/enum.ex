@@ -1756,7 +1756,11 @@ defmodule Enum do
   end
 
   def reduce(first..last, acc, fun) when is_function(fun, 2) do
-    reduce_range(first, last, acc, fun, last >= first)
+    if first <= last do
+      reduce_range_inc(first, last, acc, fun)
+    else
+      reduce_range_dec(first, last, acc, fun)
+    end
   end
 
   def reduce(%{__struct__: _} = enumerable, acc, fun) when is_function(fun, 2) do
@@ -1773,16 +1777,20 @@ defmodule Enum do
                       fn x, acc -> {:cont, fun.(x, acc)} end) |> elem(1)
   end
 
-  defp reduce_range(x, y, acc, fun, true) when x <= y do
-    reduce_range(x + 1, y, fun.(x, acc), fun, true)
+  defp reduce_range_inc(first, first, acc, fun) do
+    fun.(first, acc)
   end
 
-  defp reduce_range(x, y, acc, fun, false) when x >= y do
-    reduce_range(x - 1, y, fun.(x, acc), fun, false)
+  defp reduce_range_inc(first, last, acc, fun) do
+    reduce_range_inc(first + 1, last, fun.(first, acc), fun)
   end
 
-  defp reduce_range(_, _, acc, _, _) do
-    acc
+  defp reduce_range_dec(first, first, acc, fun) do
+    fun.(first, acc)
+  end
+
+  defp reduce_range_dec(first, last, acc, fun)  do
+    reduce_range_dec(first - 1, last, fun.(first, acc), fun)
   end
 
   @doc """
