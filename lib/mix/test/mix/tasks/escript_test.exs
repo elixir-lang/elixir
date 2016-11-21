@@ -45,6 +45,10 @@ defmodule Mix.Tasks.EscriptTest do
        escript: [main_module: :escripttest],
        deps: [{:ok, path: fixture_path("deps_status/deps/ok")}]]
     end
+
+    def application do
+      [applications: []]
+    end
   end
 
   defmodule EscriptWithUnknownMainModule do
