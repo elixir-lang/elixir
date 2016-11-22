@@ -107,7 +107,7 @@ defmodule CodeTest do
   end
 
   test "string to quoted existing atoms only" do
-    assert :badarg = catch_error(Code.string_to_quoted!(":thereisnosuchatom", existing_atoms_only: true))
+    assert :badarg = catch_error(Code.string_to_quoted!(":there_is_no_such_atom", existing_atoms_only: true))
   end
 
   test "string_to_quoted!" do
