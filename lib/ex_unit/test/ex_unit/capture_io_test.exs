@@ -67,7 +67,7 @@ defmodule ExUnit.CaptureIOTest do
 
     assert capture_io(fn ->
       spawn(fn -> :io.put_chars("a") end)
-      :timer.sleep(10)
+      Process.sleep(10)
     end) == "a"
 
     assert capture_io(fn ->
@@ -311,7 +311,7 @@ defmodule ExUnit.CaptureIOTest do
     {_pid, ref} = spawn_monitor(fn ->
       capture_io(:stderr, fn ->
         spawn_link(Kernel, :exit, [:shutdown])
-        :timer.sleep(:infinity)
+        Process.sleep(:infinity)
       end)
     end)
 
@@ -335,12 +335,12 @@ defmodule ExUnit.CaptureIOTest do
   end
 
   test "capture :stderr by two processes" do
-    spawn(fn -> capture_io(:stderr, fn -> :timer.sleep(100) end) end)
-    :timer.sleep(10)
+    spawn(fn -> capture_io(:stderr, fn -> Process.sleep(100) end) end)
+    Process.sleep(10)
     assert_raise RuntimeError, "IO device registered at :standard_error is already captured", fn ->
       capture_io(:stderr, fn -> nil end)
     end
-    :timer.sleep(100)
+    Process.sleep(100)
   end
 
   defp send_and_receive_io(req) do

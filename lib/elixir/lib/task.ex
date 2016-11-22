@@ -533,7 +533,7 @@ defmodule Task do
       tasks =
         for i <- 1..10 do
           Task.async(fn ->
-            :timer.sleep(i * 1000)
+            Process.sleep(i * 1000)
             i
           end)
         end

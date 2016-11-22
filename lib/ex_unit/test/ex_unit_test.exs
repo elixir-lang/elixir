@@ -50,7 +50,7 @@ defmodule ExUnitTest do
 
       @tag timeout: 10
       test "ok" do
-        :timer.sleep(:infinity)
+        Process.sleep(:infinity)
       end
     end
 
@@ -58,7 +58,7 @@ defmodule ExUnitTest do
 
     output = capture_io(fn -> ExUnit.run end)
     assert output =~ "** (ExUnit.TimeoutError) test timed out after 10ms"
-    assert output =~ ~r"\(stdlib\) timer\.erl:\d+: :timer\.sleep/1"
+    assert output =~ ~r"\(elixir\) lib/process\.ex:\d+: Process\.sleep/1"
   end
 
   test "it supports configured timeout" do
@@ -66,7 +66,7 @@ defmodule ExUnitTest do
       use ExUnit.Case
 
       test "ok" do
-        :timer.sleep(:infinity)
+        Process.sleep(:infinity)
       end
     end
 

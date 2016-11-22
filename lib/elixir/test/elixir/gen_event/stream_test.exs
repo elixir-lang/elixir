@@ -7,7 +7,7 @@ defmodule GenEvent.StreamTest do
     use GenEvent
 
     def handle_event(_event, _state) do
-      :timer.sleep(100)
+      Process.sleep(100)
       :remove_handler
     end
   end
@@ -37,7 +37,7 @@ defmodule GenEvent.StreamTest do
 
     spawn_link fn ->
       Enum.each GenEvent.stream(pid), fn _ ->
-        :timer.sleep(:infinity)
+        Process.sleep(:infinity)
       end
     end
 
@@ -72,7 +72,7 @@ defmodule GenEvent.StreamTest do
 
     spawn_link fn ->
       Enum.each GenEvent.stream(pid), fn _ ->
-        :timer.sleep(:infinity)
+        Process.sleep(:infinity)
       end
     end
 
@@ -93,7 +93,7 @@ defmodule GenEvent.StreamTest do
 
     spawn_link fn ->
       Enum.each(GenEvent.stream(pid), fn _ ->
-        :timer.sleep(:infinity)
+        Process.sleep(:infinity)
       end)
     end
 
