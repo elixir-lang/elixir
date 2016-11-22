@@ -423,6 +423,10 @@ defmodule Stream do
   This operation will block the caller by the given interval
   every time a new item is streamed.
 
+  Do not use this function to generate a sequence of numbers.
+  If blocking the caller process is not necessary, use
+  `Stream.iterate(0, & &1 + 1)` instead.
+
   ## Examples
 
       iex> Stream.interval(10) |> Enum.take(10)
