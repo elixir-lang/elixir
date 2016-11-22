@@ -74,4 +74,75 @@ defmodule KeywordTest do
     # any key in keywords1 is removed if key is present in keyword2
     assert Keyword.merge([a: 1, b: 2, c: 3, c: 4], [c: 11, c: 12, d: 13]) == [a: 1, b: 2, c: 11, c: 12, d: 13]
   end
+
+  test "merge/3" do
+    fun = fn _key, value1, value2 -> value1 + value2 end
+
+    assert Keyword.merge([a: 1, b: 2], [c: 11, d: 12], fun) == [a: 1, b: 2, c: 11, d: 12]
+    assert Keyword.merge([], [c: 11, d: 12], fun) == [c: 11, d: 12]
+    assert Keyword.merge([a: 1, b: 2], [], fun) == [a: 1, b: 2]
+
+    assert_raise ArgumentError, "expected a keyword list as the first argument, got: [1, 2]", fn ->
+      Keyword.merge([1, 2], [c: 11, d: 12], fun)
+    end
+
+    assert_raise ArgumentError, "expected a keyword list as the first argument, got: [1 | 2]", fn ->
+      Keyword.merge([1 | 2], [c: 11, d: 12], fun)
+    end
+
+    assert_raise ArgumentError, "expected a keyword list as the second argument, got: [{:x, 1}, :y, :z]", fn ->
+      Keyword.merge([a: 1, b: 2], [{:x, 1}, :y, :z], fun)
+    end
+
+    assert_raise ArgumentError, "expected a keyword list as the second argument, got: [:x | :y]", fn ->
+      Keyword.merge([a: 1, b: 2], [:x | :y], fun)
+    end
+
+    assert_raise ArgumentError, "expected a keyword list as the second argument, got: [{:x, 1} | :y]", fn ->
+      Keyword.merge([a: 1, b: 2], [{:x, 1} | :y], fun)
+    end
+
+    # duplicate keys in keywords1 are left untouched if key is not present in keywords2
+    assert Keyword.merge([a: 1, b: 2, a: 3], [c: 11, d: 12], fun) == [a: 1, b: 2, a: 3, c: 11, d: 12]
+    assert Keyword.merge([a: 1, b: 2, a: 3], [a: 11], fun) == [b: 2, a: 12]
+
+    # duplicate keys in keywords2 are always kept
+    assert Keyword.merge([a: 1, b: 2], [c: 11, c: 12, d: 13], fun) == [a: 1, b: 2, c: 11, c: 12, d: 13]
+
+    # every key in keywords1 is replaced with fun result if key is present in keyword2
+    assert Keyword.merge([a: 1, b: 2, c: 3, c: 4], [c: 11, c: 50, d: 13], fun) == [a: 1, b: 2, c: 14, c: 54, d: 13]
+  end
+
+  test "merge/2 and merge/3 behave exactly the same way" do
+    fun = fn _key, _value1, value2 -> value2 end
+
+    args = [
+      {[a: 1, b: 2], [c: 11, d: 12]},
+      {[], [c: 11, d: 12]},
+      {[a: 1, b: 2], []},
+      {[a: 1, b: 2, a: 3], [c: 11, d: 12]},
+      {[a: 1, b: 2, a: 3], [a: 11]},
+      {[a: 1, b: 2], [c: 11, c: 12, d: 13]},
+      {[a: 1, b: 2, c: 3, c: 4], [c: 11, c: 12, d: 13]},
+    ]
+
+    args_error = [
+      {[1, 2], [c: 11, d: 12]},
+      {[1 | 2], [c: 11, d: 12]},
+      {[a: 1, b: 2], [11, 12, 0]},
+      {[a: 1, b: 2], [11 | 12]},
+      {[a: 1, b: 2], [{:x, 1}, :y, :z]},
+      {[a: 1, b: 2], [:x | :y]},
+      {[a: 1, b: 2], [{:x, 1} | :y]},
+    ]
+
+    for {arg1, arg2} <- args do
+      assert Keyword.merge(arg1, arg2) == Keyword.merge(arg1, arg2, fun)
+    end
+
+    for {arg1, arg2} <- args_error do
+      error = assert_raise ArgumentError, fn -> Keyword.merge(arg1, arg2) end
+      assert_raise ArgumentError, error.message, fn -> Keyword.merge(arg1, arg2, fun) end
+    end
+  end
 end
