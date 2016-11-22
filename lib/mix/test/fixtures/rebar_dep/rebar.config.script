@@ -1,1 +1,4 @@
-CONFIG ++ [{'SCRIPT', SCRIPT}] ++ [{deps, [{git_rebar, "0.1..*", {git, filename:absname("../../test/fixtures/git_rebar"), master}}]}].
+CONFIG ++
+  [{'SCRIPT', SCRIPT}] ++
+  [{erl_opts, [warnings_as_errors]}] ++
+  [{deps, [{git_rebar, "0.1..*", {git, filename:absname("../../test/fixtures/git_rebar"), master}}]}].

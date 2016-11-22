@@ -171,6 +171,20 @@ defmodule Mix.Rebar do
   end
 
   @doc """
+  Update Rebar configuration to be more suitable for dependencies.
+
+  Drops `warnings_as_errors` from `erl_opts`.
+  """
+  def dependency_config(config) do
+    Enum.map(config, fn
+      {:erl_opts, opts} ->
+        {:erl_opts, Enum.reject(opts, &(&1 == :warnings_as_errors))}
+      other ->
+        other
+    end)
+  end
+
+  @doc """
   Parses the dependencies in given `rebar.config` to Mix's dependency format.
   """
   def deps(app, config, overrides) do
