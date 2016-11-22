@@ -98,6 +98,14 @@ defmodule Mix.RebarTest do
 
   end
 
+  test "convert rebar config to dependency config" do
+    config = Mix.Rebar.load_config(fixture_path("rebar_dep"))
+    dep_config = Mix.Rebar.dependency_config(config)
+
+    assert config[:erl_opts] == [:warnings_as_errors]
+    assert dep_config[:erl_opts] == []
+  end
+
   test "parse Rebar dependencies from rebar.config" do
     Mix.Project.push(RebarAsDep)
 

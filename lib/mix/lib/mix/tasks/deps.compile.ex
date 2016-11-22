@@ -163,8 +163,14 @@ defmodule Mix.Tasks.Deps.Compile do
     cmd = "#{rebar_cmd(dep)} bare compile --paths #{inspect lib_path}"
 
     File.mkdir_p!(dep_path)
-    File.write!(config_path, Mix.Rebar.serialize_config(dep.extra))
+    File.write!(config_path, rebar_config(dep))
     do_command dep, config, cmd, false, env
+  end
+
+  defp rebar_config(dep) do
+    dep.extra
+    |> Mix.Rebar.dependency_config
+    |> Mix.Rebar.serialize_config
   end
 
   defp rebar_cmd(%Mix.Dep{manager: manager} = dep) do
