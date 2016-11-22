@@ -370,7 +370,7 @@ defmodule TaskTest do
       task = Task.async(fn() ->
         Process.flag(:trap_exit, true)
         wait_and_send(caller, :ready)
-        :timer.sleep(:infinity)
+        Process.sleep(:infinity)
       end)
 
       receive do: (:ready -> :ok)
@@ -447,7 +447,7 @@ defmodule TaskTest do
       task = Task.async(fn() ->
         Process.flag(:trap_exit, true)
         wait_and_send(caller, :ready)
-        :timer.sleep(:infinity)
+        Process.sleep(:infinity)
       end)
 
       receive do: (:ready -> :ok)

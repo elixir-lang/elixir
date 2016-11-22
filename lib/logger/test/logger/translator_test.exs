@@ -268,7 +268,7 @@ defmodule Logger.TranslatorTest do
       receive do: ({:DOWN, ^ref, _, _, _} -> :ok)
       # Even though the monitor has been received the emulator may not have
       # sent the message to the error logger
-      :timer.sleep(200)
+      Process.sleep(200)
     end) =~ ~r"""
     \[error\] Process #PID<\d+\.\d+\.\d+>\ raised an exception
     \*\* \(RuntimeError\) oops

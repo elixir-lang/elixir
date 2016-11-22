@@ -112,7 +112,7 @@ defmodule IEx.InfoTest do
   end
 
   test "PIDs" do
-    pid = spawn_link(fn -> :timer.sleep(1000) end)
+    pid = spawn_link(fn -> Process.sleep(1000) end)
 
     info = Info.info(pid)
     assert info[:"Alive"] == true

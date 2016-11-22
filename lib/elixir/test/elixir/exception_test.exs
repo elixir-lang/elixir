@@ -268,7 +268,8 @@ defmodule ExceptionTest do
     fsm_reason = {%ArgumentError{}, [{:not_a_real_module, :function, 0, []}]}
     reason = try do
       :gen_fsm.sync_send_event(spawn(fn() ->
-          :timer.sleep(200) ; exit(fsm_reason)
+        Process.sleep(200)
+        exit(fsm_reason)
       end), :hello)
     catch
       :exit, reason -> reason
@@ -283,7 +284,10 @@ defmodule ExceptionTest do
 
   test "format_exit with nested calls" do
     # Fake reason to prevent error_logger printing to stdout
-    event_fun = fn() -> :timer.sleep(200) ; exit(:normal) end
+    event_fun = fn() ->
+      Process.sleep(200)
+      exit(:normal)
+    end
     server_pid = spawn(fn()-> :gen_event.call(spawn(event_fun), :handler, :hello) end)
     reason = try do
       :gen_server.call(server_pid, :hi)
@@ -300,7 +304,10 @@ defmodule ExceptionTest do
   test "format_exit with nested calls and exception" do
     # Fake reason to prevent error_logger printing to stdout
     event_reason = {%ArgumentError{}, [{:not_a_real_module, :function, 0, []}]}
-    event_fun = fn() -> :timer.sleep(200) ; exit(event_reason) end
+    event_fun = fn() ->
+      Process.sleep(200)
+      exit(event_reason)
+    end
     server_pid = spawn(fn()-> :gen_event.call(spawn(event_fun), :handler, :hello) end)
     reason = try do
       :gen_server.call(server_pid, :hi)

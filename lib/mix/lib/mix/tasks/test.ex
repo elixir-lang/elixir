@@ -181,7 +181,7 @@ defmodule Mix.Tasks.Test do
         IO.gets(:stdio, "")
         Mix.shell.info "Restarting..."
         :init.restart()
-        :timer.sleep(:infinity)
+        Process.sleep(:infinity)
       end
     end
 

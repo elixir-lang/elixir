@@ -85,7 +85,7 @@ defmodule Mix.Tasks.Run do
       end
     end
 
-    unless Keyword.get(opts, :halt, true), do: :timer.sleep(:infinity)
+    unless Keyword.get(opts, :halt, true), do: Process.sleep(:infinity)
     :ok
   end
 
