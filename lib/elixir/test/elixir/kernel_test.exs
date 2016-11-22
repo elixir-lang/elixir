@@ -143,7 +143,7 @@ defmodule KernelTest do
   end
 
   defmodule UserTuple do
-    def __struct__({ UserTuple, :ok }) do
+    def __struct__({UserTuple, :ok}) do
       %User{}
     end
   end
