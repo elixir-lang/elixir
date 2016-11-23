@@ -131,7 +131,6 @@ defmodule List do
       iex> List.duplicate([1, 2], 2)
       [[1, 2], [1, 2]]
 
-
   """
   @spec duplicate(elem, non_neg_integer) :: [elem] when elem: var
   def duplicate(elem, n) do
