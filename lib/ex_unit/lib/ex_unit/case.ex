@@ -264,11 +264,10 @@ defmodule ExUnit.Case do
   @doc """
   Defines a not implemented test with a string.
 
-  Provides a convenient macro that allows a test to be
-  defined with a string, but not yet implemented. The
-  resulting test will always fail and print "Not yet
-  implemented" error message. The resulting test case is
-  also tagged with :not_implemented.
+  Provides a convenient macro that allows a test to be defined
+  with a string, but not yet implemented. The resulting test will
+  always fail and print "Not implemented" error message. The
+  resulting test case is also tagged with `:not_implemented`.
 
   ## Examples
 
@@ -278,7 +277,7 @@ defmodule ExUnit.Case do
   defmacro test(message) do
     quote bind_quoted: binding() do
       name = ExUnit.Case.register_test(__ENV__, :test, message, [:not_implemented])
-      def unquote(name)(_), do: flunk("Not yet implemented")
+      def unquote(name)(_), do: flunk("Not implemented")
     end
   end
 
