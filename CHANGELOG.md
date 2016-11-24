@@ -1,34 +1,91 @@
 # Changelog for Elixir v1.4
 
-## Standard library improvements
+Elixir v1.4 brings new features, enhancements and bug fixes into Elixir. The most notable changes are the addition of the `Registry` module and the `Task.async_stream/3` and `Task.async_stream/5` which aids developers in writing concurrent software. Those two features and a couple other improvements are described in detail below.
 
-### Registry
+Overall this is the smallest release since Elixir v1.0 was launched. This aligns well with our goals and the community expectations of Elixir being a stable language with incremental improvements.
 
-TODO
+## Registry
 
-### Syntax coloring
+The registry is a local, decentralized and scalable key-value process storage:
 
-TODO
+  * Local because keys and values are only accessible to the current node (opposite to distributed)
+  * Decentralized because there is no single entity responsible for managing the registry
+  * Scalable because performance scales linearly with the addition of more cores upon partitioning
 
-How to disable: `IEx.configure [colors: [syntax_colors: []]]`
+A registry is chosen upon start to have unique or duplicate keys. Every key-value pair is associated to the process registering the key. Keys are automatically removed once the owner process terminates.
 
-### Calendar
+    iex> Registry.start_link(:unique, MyRegistry)
+    iex> {:ok, _} = Registry.register(MyRegistry, "hello", 1)
+    iex> Registry.lookup(MyRegistry, "hello")
+    [{self(), 1}]
 
-TODO
+With the registry, developers can provide dynamic process names, module-function dispatch or even a local pubsub system. See the `Registry` documentation for more information.
 
-### Task.async_stream
+## Syntax coloring
 
-TODO
+Elixir v1.4 introduces the ability to syntax color inspected data structures:
 
-## Mix improvements
+    iex> IO.puts inspect([hello: 1, world: "!"], syntax_colors: [atom: :cyan])
+    [hello: 1, world: "!"]
 
-### Protocol resolution
+Coloring is done with ANSI colors as specified in the `IO.ANSI` module.
 
-TODO
+IEx automatically relies on this feature to provide syntax coloring for evaluated shell results. This behaviour can be configured via the `:syntax_colors` coloring option:
 
-### Application inflection
+    IEx.configure [colors: [syntax_colors: [atom: :cyan, string: :green]]]
 
-TODO
+To disable coloring altogether, pass an empty list to `:syntax_colors`.
+
+## Calendar
+
+Elixir v1.3 introduced new calendar types. This release continues evolving the Calendar APIs by adding functions for comparing, adding and calculating the difference between types, retrieve the `day_of_week/1`, check if the current date is a `leap_year?/1` and more.
+
+## Task.async_stream
+
+When there is a need to traverse a collection of items concurrently, Elixir developers often resort to tasks:
+
+    collection
+    |> Enum.map(&Task.async(SomeMod, :function, [&1]))
+    |> Enum.map(&Task.await/1)
+
+While the snippet above works fine in my occasions, for large collections it may be problem as it will spawn as many tasks as there are items in the collection. In many situations, you may want to set a limit of how many tasks will be running concurrently.
+
+`Task.async_stream/3` and `Task.async_stream/5` allows developers to process collections concurrently while controlling the maximum amount of concurrent tasks:
+
+    collection
+    |> Task.async_stream(SomeMod, :function, [], max_concurrency: System.schedulers_online)
+
+Note `Task.async_stream/3` is lazy, allowing developers to partially consume the stream until a condition is reached. Furthermore, `Task.Supervisor.async_stream/4` and `Task.Supervisor.async_stream/6` can be used to ensure the concurrent tasks are spawned under the given supervisor.
+
+## Application inflection
+
+Mix v1.4 now automatically inflects the list of applications that are used on runtime from your dependencies list.
+
+In previous Mix versions, most of your dependencies had to be added both to your dependencies list and applications list. Here is how a `mix.exs` could look like:
+
+    def application do
+      [applications: [:logger, :plug, :postgrex]]
+    end
+
+    def deps do
+      [{:plug, "~> 1.2"},
+       {:postgrex, "~> 1.0"}]
+    end
+
+This was error prone as many developers would not list their dependencies in their applications list. Mix v1.4 now automatically inflects your applications list as long as you leave the `:applications` key empty. The `mix.exs` above can be rewritten to:
+
+    def application do
+      [extra_applications: [:logger]]
+    end
+
+    def deps do
+      [{:plug, "~> 1.2"},
+       {:postgrex, "~> 1.0"}]
+    end
+
+As shown in the example above, any dependency that comes from Erlang or Elixir that is required at runtime can be added to the `:extra_applications` list. Finally, if there is a dependency you don't want to include in the application runtime list, you can do so by specifying the `runtime: false` option:
+
+    {:distillery, "> 0.0.0", runtime: false}
 
 ## v1.4.0-dev
 
@@ -50,6 +107,8 @@ TODO
   * [Integer] Add `Integer.mod/2` and `Integer.floor_div/2`
   * [Kernel] Recognize merge conflict markers in source and provide a readable error message
   * [Kernel] Warn on unused module attributes
+  * [Kernel] Improve compiler message on unexpected end of line
+  * [Kernel] Raise `BadBooleanError` when a non-boolean is given on the left-hand side of `and`/`or`
   * [List] Add `List.pop_at/3`
   * [List] Add `List.myers_difference/2`
   * [OptionParser] Expand multi-letter aliases in `OptionParser`
@@ -64,6 +123,7 @@ TODO
 
 #### ExUnit
 
+  * [ExUnit.Diff] Use red or green background for whitespace-only diffs
   * [ExUnit.Doctest] Allow inspected structures with multiples lines and unicode characters in the doctest result
   * [ExUnit.Formatter] Replace lhs/rhs with left/right in the formatter for clarity
 
@@ -83,6 +143,8 @@ TODO
   * [Mix] Check directory existence in `mix new` and ask how to proceed if one exists
   * [Mix] Applications built with the `--sup` flag now have an individual module to work as application callback
   * [Mix] Add `--formatter` option to `mix test`
+  * [Mix] Warn if there are non-applications in the `apps` directory for umbrella projects
+  * [Mix] Automatically inflect the list of applications for Mix projects
   * [Mix.Dep] Add warning for invalid paths on `mix deps.clean`
   * [Mix.Project] Add `Mix.Project.apps_paths` that returns the paths to children applications in umbrella projects
   * [Mix.Rebar] Add `MIX_REBAR` environment variable for overriding local rebar
@@ -93,6 +155,7 @@ TODO
 
   * [Float] Avoid multiple roundings in `Float.{ceil/2, floor/2, round/2}`
   * [Kernel] Don't crash in `macro_exported?/3` when dealing with Erlang modules
+  * [Kernel] Ensure locals calls are rewritten when calling a local function or macro from inside a module
   * [Kernel.SpecialForms] Produce meaningful warning when with's else clauses have no effect
   * [Macro] Wrap fn calls in parens in `Macro.to_string/2`
   * [Macro] Do not print aliases as keys inside keyword lists in `Macro.to_string/2`
@@ -104,6 +167,10 @@ TODO
 #### ExUnit
 
   * [ExUnit] Fix a race condition in `assert_receive` where we would assert a message was not received but show it in the list of messages when the message is delivered right after the timeout value
+
+### IEx
+
+  * [IEx.Helpers] Purge consolidated protocols before and after `recompile/0`
 
 ### Mix
 
@@ -117,6 +184,10 @@ TODO
 
   * [Enum] `Enum.partition/2` has been deprecated in favor of `Enum.split_with/2`
   * [System] Deprecate plural time units in favor of singular ones to align with future Erlang releases
+
+#### ExUnit
+
+  * [ExUnit] Using GenEvent to implement ExUnit formatters is deprecated. Please use the new `GenServer` based formatters instead
 
 ### 4. Deprecations
 

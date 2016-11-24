@@ -236,7 +236,7 @@ defmodule ExUnitTest do
       assert ExUnit.run == %{failures: 1, skipped: 0, total: 1}
     end)
 
-    assert output =~ "Not yet implemented"
+    assert output =~ "Not implemented"
     assert output =~ "1 test, 1 failure"
   end
 
