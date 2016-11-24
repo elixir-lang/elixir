@@ -106,7 +106,7 @@ defmodule ExUnit.CaptureLog do
 
   @doc false
   def init_proxy(pid, opts, parent) do
-    case :gen_event.add_sup_handler(Logger, {Console, pid}, {pid, opts}) do
+    case :gen_event.add_sup_handler(Logger, {Console, pid}, {Console, [device: pid] ++ opts}) do
       :ok ->
         ref = Process.monitor(parent)
         :proc_lib.init_ack(:ok)

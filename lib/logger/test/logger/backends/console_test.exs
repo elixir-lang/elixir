@@ -1,11 +1,13 @@
 defmodule Logger.Backends.ConsoleTest do
   use Logger.Case
+
   require Logger
+  import ExUnit.CaptureIO
 
   setup do
     on_exit fn ->
       :ok = Logger.configure_backend(:console,
-              [format: nil, level: nil, metadata: [], colors: [enabled: false]])
+              [format: nil, device: :user, level: nil, metadata: [], colors: [enabled: false]])
     end
   end
 
@@ -22,6 +24,15 @@ defmodule Logger.Backends.ConsoleTest do
     end
   after
     {:ok, _} = Logger.add_backend(:console)
+  end
+
+  test "may use another device" do
+    Logger.configure_backend(:console, device: :standard_error)
+
+    assert capture_io(:standard_error, fn ->
+      Logger.debug("hello")
+      Logger.flush()
+    end) =~ "hello"
   end
 
   test "can configure format" do
