@@ -48,7 +48,7 @@ When there is a need to traverse a collection of items concurrently, Elixir deve
     |> Enum.map(&Task.async(SomeMod, :function, [&1]))
     |> Enum.map(&Task.await/1)
 
-While the snippet above works fine in my occasions, for large collections it may be problem as it will spawn as many tasks as there are items in the collection. In many situations, you may want to set a limit of how many tasks will be running concurrently.
+While the snippet above works fine in many occasions, for large collections it may be problem as it will spawn as many tasks as there are items in the collection. In many situations, you may want to set a limit of how many tasks will be running concurrently.
 
 `Task.async_stream/3` and `Task.async_stream/5` allows developers to process collections concurrently while controlling the maximum amount of concurrent tasks:
 
