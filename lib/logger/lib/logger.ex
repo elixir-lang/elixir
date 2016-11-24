@@ -183,6 +183,9 @@ defmodule Logger do
 
     * `:colors` - a keyword list of coloring options.
 
+    * `:device` - the device to log error messages to. Defaults to
+      `:user` but can be changed to something else such as `:standard_error`.
+
     * `:max_buffer` - maximum events to buffer while waiting
       for a confirmation from the IO device (default: 32).
       Once the buffer is full, the backend will block until

@@ -81,6 +81,7 @@ defmodule Logger.Config do
   def delete(@table) do
     :ets.delete(@table)
   end
+
   ## Callbacks
 
   def init(_) do
