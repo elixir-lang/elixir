@@ -138,15 +138,14 @@ defmodule Port do
   you can wrap the application in a script that checks for stdin. Here is such
   script in bash:
 
-      #!/bin/bash
-      name=$1
-      shift
-      $name $*
+      #!/bin/sh
+      "$@"
       pid=$!
       while read line ; do
         :
-      done < /dev/stdin
+      done
       kill -KILL $pid
+
 
   Now instead of:
 
