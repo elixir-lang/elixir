@@ -618,24 +618,38 @@ defmodule Keyword do
       ...> end)
       [b: 2, a: 4, d: 4, a: 8]
 
+      iex> Keyword.merge([a: 1, b: 2], [:a, :b], fn :a, v1, v2 ->
+      ...>  v1 + v2
+      ...> end)
+      ** (ArgumentError) expected a keyword list as the second argument, got: [:a, :b]
+
   """
   @spec merge(t, t, (key, value, value -> value)) :: t
-  def merge(keywords1, keywords2, fun) when is_list(keywords1) and is_list(keywords2) do
-    do_merge(keywords2, [], keywords1, keywords1, fun)
-  end
-
-  defp do_merge([{k, v2} | t], acc, rest, original, fun) do
-    case :lists.keyfind(k, 1, original) do
-      {^k, v1} ->
-        do_merge(t, [{k, fun.(k, v1, v2)} | acc],
-                 delete(rest, k), :lists.keydelete(k, 1, original), fun)
-      false ->
-        do_merge(t, [{k, v2} | acc], rest, original, fun)
+  def merge(keywords1, keywords2, fun) when is_list(keywords1) and is_list(keywords2) and is_function(fun, 3) do
+    if keyword?(keywords1) do
+      do_merge(keywords2, [], keywords1, keywords1, fun, keywords2)
+    else
+      raise ArgumentError, message: "expected a keyword list as the first argument, got: #{inspect keywords1}"
     end
   end
 
-  defp do_merge([], acc, rest, _original, _fun) do
+  defp do_merge([{key, value2} | tail], acc, rest, original, fun, keywords2) when is_atom(key) do
+    case :lists.keyfind(key, 1, original) do
+      {^key, value1} ->
+        do_merge(tail, [{key, fun.(key, value1, value2)} | acc],
+                 delete(rest, key), :lists.keydelete(key, 1, original), fun, keywords2)
+
+      false ->
+        do_merge(tail, [{key, value2} | acc], rest, original, fun, keywords2)
+    end
+  end
+
+  defp do_merge([], acc, rest, _original, _fun, _keywords2) do
     rest ++ :lists.reverse(acc)
+  end
+
+  defp do_merge(_other, _acc, _rest, _original, _fun, keywords2) do
+    raise ArgumentError, message: "expected a keyword list as the second argument, got: #{inspect keywords2}"
   end
 
   @doc """
