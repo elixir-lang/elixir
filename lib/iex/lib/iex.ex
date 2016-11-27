@@ -288,6 +288,10 @@ defmodule IEx do
   when printing results of expression evaluation. Default to
   pretty formatting with a limit of 50 entries.
 
+  To show all entries, configure the limit to `:infinity`:
+
+      IEx.configure [inspect: [limit: :infinity]]
+
   See `Inspect.Opts` for the full list of options.
 
   ## Width
