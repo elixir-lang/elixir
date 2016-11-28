@@ -106,7 +106,7 @@ defmodule Task.Supervisor do
   """
   @spec async_nolink(Supervisor.supervisor, module, atom, [term]) :: Task.t
   def async_nolink(supervisor, module, fun, args) do
-    do_async(supervisor, :monitor, module, fun, args)
+    do_async(supervisor, :nolink, module, fun, args)
   end
 
   @doc """
@@ -181,7 +181,7 @@ defmodule Task.Supervisor do
         Enumerable.t
   def async_stream_nolink(supervisor, enumerable, module, function, args, options \\ [])
       when is_atom(module) and is_atom(function) and is_list(args) do
-    build_stream(supervisor, :monitor, enumerable, {module, function, args}, options)
+    build_stream(supervisor, :nolink, enumerable, {module, function, args}, options)
   end
 
   @doc """
@@ -197,7 +197,7 @@ defmodule Task.Supervisor do
   @spec async_stream_nolink(Supervisor.supervisor, Enumerable.t, (term -> term), Keyword.t) ::
         Enumerable.t
   def async_stream_nolink(supervisor, enumerable, fun, options \\ []) when is_function(fun, 1) do
-    build_stream(supervisor, :monitor, enumerable, fun, options)
+    build_stream(supervisor, :nolink, enumerable, fun, options)
   end
 
   @doc """
@@ -250,7 +250,7 @@ defmodule Task.Supervisor do
 
   defp do_async(supervisor, link_type, module, fun, args) do
     owner = self()
-    args = [owner, link_type, get_info(owner), {module, fun, args}]
+    args = [owner, :monitor, get_info(owner), {module, fun, args}]
     {:ok, pid} = Supervisor.start_child(supervisor, args)
     if link_type == :link, do: Process.link(pid)
     ref = Process.monitor(pid)
@@ -258,12 +258,12 @@ defmodule Task.Supervisor do
     %Task{pid: pid, ref: ref, owner: owner}
   end
 
-  defp build_stream(supervisor, type, enumerable, fun, options) do
+  defp build_stream(supervisor, link_type, enumerable, fun, options) do
     &Task.Supervised.stream(enumerable, &1, &2, fun, options, fn owner, mfa ->
-      args = [owner, type, get_info(owner), mfa]
+      args = [owner, :monitor, get_info(owner), mfa]
       {:ok, pid} = Supervisor.start_child(supervisor, args)
-      if type == :link, do: Process.link(pid)
-      {type, pid}
+      if link_type == :link, do: Process.link(pid)
+      {link_type, pid}
     end)
   end
 end

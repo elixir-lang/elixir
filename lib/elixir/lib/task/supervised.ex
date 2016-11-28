@@ -10,29 +10,21 @@ defmodule Task.Supervised do
     {:ok, :proc_lib.spawn_link(__MODULE__, :noreply, [info, fun])}
   end
 
-  def start_link(caller, link, info, fun) do
-    {:ok, spawn_link(caller, link, info, fun)}
+  def start_link(caller, monitor, info, fun) do
+    {:ok, spawn_link(caller, monitor, info, fun)}
   end
 
-  def spawn_link(caller, link \\ :nolink, info, fun) do
-    :proc_lib.spawn_link(__MODULE__, :reply, [caller, link, info, fun])
+  def spawn_link(caller, monitor \\ :nomonitor, info, fun) do
+    :proc_lib.spawn_link(__MODULE__, :reply, [caller, monitor, info, fun])
   end
 
-  def reply(caller, link, info, mfa) do
+  def reply(caller, monitor, info, mfa) do
     initial_call(mfa)
-    case link do
-      :link ->
-        try do
-          Process.link(caller)
-        catch
-          :error, :noproc ->
-            exit({:shutdown, :noproc})
-        end
-        reply(caller, nil, @ref_timeout, info, mfa)
+    case monitor do
       :monitor ->
         mref = Process.monitor(caller)
         reply(caller, mref, @ref_timeout, info, mfa)
-      :nolink ->
+      :nomonitor ->
         reply(caller, nil, :infinity, info, mfa)
     end
   end
