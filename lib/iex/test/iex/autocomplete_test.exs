@@ -7,26 +7,21 @@ defmodule IEx.AutocompleteTest do
     previous_line = context[:previous_line]
 
     if previous_line do
+      Application.put_env(:iex, :autocomplete_server, __MODULE__.MyServer)
+
       ExUnit.CaptureIO.capture_io(fn ->
         evaluator = IEx.Server.start_evaluator([])
+        Process.put(:evaluator, evaluator)
         send evaluator, {:eval, self(), previous_line <> "\n", %IEx.State{}}
         assert_receive {:evaled, _, _}
-        send self(), {:evaluator, evaluator}
       end)
-
-      evaluator = receive do: ({:evaluator, evaluator} -> evaluator)
-      %{evaluator: evaluator}
-    else
-      :ok
     end
+
+    :ok
   end
 
   def expand(expr) do
     IEx.Autocomplete.expand(Enum.reverse expr)
-  end
-
-  def expand(expr, context) do
-    IEx.Autocomplete.expand(Enum.reverse(expr), context.evaluator)
   end
 
   test "Erlang module completion" do
@@ -116,52 +111,59 @@ defmodule IEx.AutocompleteTest do
   end
 
   @tag previous_line: "mod = String"
-  test "function completion using a variable bound to a module", context do
-    assert expand('mod.print', context) == {:yes, 'able?', []}
+  test "function completion using a variable bound to a module" do
+    assert expand('mod.print') == {:yes, 'able?', []}
   end
 
   @tag previous_line: "map = %{foo: 1, bar_1: 23, bar_2: 14}"
-  test "map atom key completion is supported", context do
-    assert expand('map.f', context) == {:yes, 'oo', []}
-    assert expand('map.b', context) == {:yes, 'ar_', []}
-    assert expand('map.bar_', context) == {:yes, '', ['bar_1', 'bar_2']}
-    assert expand('map.c', context) == {:no, '', []}
-    assert expand('map.', context) == {:yes, '', ['bar_1', 'bar_2', 'foo']}
-    assert expand('map.foo', context) == {:no, '', []}
+  test "map atom key completion is supported" do
+    assert expand('map.f') == {:yes, 'oo', []}
+    assert expand('map.b') == {:yes, 'ar_', []}
+    assert expand('map.bar_') == {:yes, '', ['bar_1', 'bar_2']}
+    assert expand('map.c') == {:no, '', []}
+    assert expand('map.') == {:yes, '', ['bar_1', 'bar_2', 'foo']}
+    assert expand('map.foo') == {:no, '', []}
   end
 
   @tag previous_line: "map = %{nested: %{deeply: %{foo: 1, bar_1: 23, bar_2: 14, mod: String, num: 1}}}"
-  test "nested map atom key completion is supported", context do
-    assert expand('map.nested.deeply.f', context) == {:yes, 'oo', []}
-    assert expand('map.nested.deeply.b', context) == {:yes, 'ar_', []}
-    assert expand('map.nested.deeply.bar_', context) == {:yes, '', ['bar_1', 'bar_2']}
-    assert expand('map.nested.deeply.', context) == {:yes, '', ['bar_1', 'bar_2', 'foo', 'mod', 'num']}
-    assert expand('map.nested.deeply.mod.print', context) == {:yes, 'able?', []}
+  test "nested map atom key completion is supported" do
+    assert expand('map.nested.deeply.f') == {:yes, 'oo', []}
+    assert expand('map.nested.deeply.b') == {:yes, 'ar_', []}
+    assert expand('map.nested.deeply.bar_') == {:yes, '', ['bar_1', 'bar_2']}
+    assert expand('map.nested.deeply.') == {:yes, '', ['bar_1', 'bar_2', 'foo', 'mod', 'num']}
+    assert expand('map.nested.deeply.mod.print') == {:yes, 'able?', []}
 
-    assert expand('map.nested', context) == {:yes, '.', []}
-    assert expand('map.nested.deeply', context) == {:yes, '.', []}
-    assert expand('map.nested.deeply.foo', context) == {:no, '', []}
+    assert expand('map.nested') == {:yes, '.', []}
+    assert expand('map.nested.deeply') == {:yes, '.', []}
+    assert expand('map.nested.deeply.foo') == {:no, '', []}
 
-    assert expand('map.nested.deeply.c', context) == {:no, '', []}
-    assert expand('map.a.b.c.f', context) == {:no, '', []}
+    assert expand('map.nested.deeply.c') == {:no, '', []}
+    assert expand('map.a.b.c.f') == {:no, '', []}
   end
 
   @tag previous_line: ~s(map = %{"foo" => 1})
-  test "map string key completion is not supported", context do
-    assert expand('map.f', context) == {:no, '', []}
+  test "map string key completion is not supported" do
+    assert expand('map.f') == {:no, '', []}
   end
 
   @tag previous_line: "num = 5; map = %{nested: %{num: 23}}"
-  test "autocompletion off a bound variable only works for modules and maps", context do
-    assert expand('num.print', context) == {:no, '', []}
-    assert expand('map.nested.num.f', context) == {:no, '', []}
-    assert expand('map.nested.num.key.f', context) == {:no, '', []}
+  test "autocompletion off a bound variable only works for modules and maps" do
+    assert expand('num.print') == {:no, '', []}
+    assert expand('map.nested.num.f') == {:no, '', []}
+    assert expand('map.nested.num.key.f') == {:no, '', []}
+  end
+
+  @tag previous_line: "map = %{nested: %{deeply: %{num: 23}}}"
+  test "autocompletion using access syntax does is not supported" do
+    assert expand('map[:nested][:deeply].n') == {:no, '', []}
+    assert expand('map[:nested].deeply.n') == {:no, '', []}
+    assert expand('map.nested.[:deeply].n') == {:no, '', []}
   end
 
   @tag previous_line: "num = 5"
-  test "autocompletion off of unbound variables is not supported", context do
-    assert expand('other_var.f', context) == {:no, '', []}
-    assert expand('a.b.c.d', context) == {:no, '', []}
+  test "autocompletion off of unbound variables is not supported" do
+    assert expand('other_var.f') == {:no, '', []}
+    assert expand('a.b.c.d') == {:no, '', []}
   end
 
   test "macro completion" do
@@ -210,6 +212,10 @@ defmodule IEx.AutocompleteTest do
   defmodule MyServer do
     def current_env do
       %Macro.Env{aliases: [{MyList, List}, {EList, :lists}]}
+    end
+
+    def evaluator do
+      Process.get(:evaluator)
     end
   end
 

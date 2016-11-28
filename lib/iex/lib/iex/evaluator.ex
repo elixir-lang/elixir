@@ -25,15 +25,17 @@ defmodule IEx.Evaluator do
   end
 
   @doc """
-  Gets the binding from the evaluator, for use by autocompletion.
+  Gets a value out of the binding, using the provided
+  variable name and map key path.
   """
-  def get_binding(evaluator) do
-    send evaluator, {:peek_binding, self()}
+  @spec value_from_binding(pid, atom, [atom]) :: {:ok, any} | :error
+  def value_from_binding(evaluator, var_name, map_key_path) do
+    send evaluator, {:value_from_binding, self(), var_name, map_key_path}
 
     receive do
-      {:peek_binding, binding} -> binding
+      {:value_from_binding, result} -> result
     after
-      5000 -> []
+      5000 -> :error
     end
   end
 
@@ -46,11 +48,21 @@ defmodule IEx.Evaluator do
       {:peek_env, receiver} ->
         send receiver, {:peek_env, state.env}
         loop(server, history, state)
-      {:peek_binding, receiver} ->
-        send receiver, {:peek_binding, state.binding}
+      {:value_from_binding, receiver, var_name, map_key_path} ->
+        value = traverse_binding(state.binding, var_name, map_key_path)
+        send receiver, {:value_from_binding, value}
         loop(server, history, state)
       {:done, ^server} ->
         :ok
+    end
+  end
+
+  defp traverse_binding(binding, var_name, map_key_path) do
+    with {:ok, var_value} <- Keyword.fetch(binding, var_name) do
+      Enum.reduce map_key_path, {:ok, var_value}, fn
+        key, {:ok, map} when is_map(map) -> Map.fetch(map, key)
+        _key, _acc -> :error
+      end
     end
   end
 

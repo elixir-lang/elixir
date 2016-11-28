@@ -43,6 +43,23 @@ defmodule IEx.Server do
   end
 
   @doc """
+  Returns the PID of the IEx evaluator process if it exists.
+  """
+  @spec evaluator :: pid | nil
+  def evaluator() do
+    case IEx.Server.whereis() do
+      nil -> nil
+      server ->
+        send server, {:get_evaluator, self()}
+        receive do
+          {:evaluator, evaluator} when is_pid(evaluator) -> evaluator
+        after
+          5000 -> nil
+        end
+    end
+  end
+
+  @doc """
   Returns the current session environment if a session exists.
   """
   @spec current_env :: Macro.Env.t
@@ -198,6 +215,9 @@ defmodule IEx.Server do
         exit_loop(evaluator, evaluator_ref)
       {:peek_env, receiver} ->
         send evaluator, {:peek_env, receiver}
+        wait_input(state, evaluator, evaluator_ref, input)
+      {:get_evaluator, receiver} ->
+        send receiver, {:evaluator, evaluator}
         wait_input(state, evaluator, evaluator_ref, input)
       msg ->
         handle_take_over(msg, evaluator, evaluator_ref, input, fn ->

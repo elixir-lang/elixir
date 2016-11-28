@@ -1,22 +1,20 @@
 defmodule IEx.Autocomplete do
   @moduledoc false
 
-  def expand(expr, evaluator \\ get_evaluator())
-
-  def expand('', _evaluator) do
+  def expand('') do
     expand_import("")
   end
 
-  def expand([h | t]=expr, evaluator) do
+  def expand([h | t]=expr) do
     cond do
       h === ?. and t != [] ->
-        expand_dot(reduce(t), evaluator)
+        expand_dot(reduce(t))
       h === ?: and t == [] ->
         expand_erlang_modules()
       identifier?(h) ->
-        expand_expr(reduce(expr), evaluator)
+        expand_expr(reduce(expr))
       (h == ?/) and t != [] and identifier?(hd(t)) ->
-        expand_expr(reduce(t), evaluator)
+        expand_expr(reduce(t))
       h in '([{' ->
         expand('')
       true ->
@@ -28,20 +26,20 @@ defmodule IEx.Autocomplete do
     (h in ?a..?z) or (h in ?A..?Z) or (h in ?0..?9) or h in [?_, ??, ?!]
   end
 
-  defp expand_dot(expr, evaluator) do
+  defp expand_dot(expr) do
     case Code.string_to_quoted expr do
       {:ok, atom} when is_atom(atom) ->
-        expand_call(atom, "", evaluator)
+        expand_call(atom, "")
       {:ok, {:__aliases__, _, list}} ->
         expand_elixir_modules(list, "")
       {:ok, {_, _, _} = ast_node} ->
-        expand_call(ast_node, "", evaluator)
+        expand_call(ast_node, "")
       _ ->
         no()
     end
   end
 
-  defp expand_expr(expr, evaluator) do
+  defp expand_expr(expr) do
     case Code.string_to_quoted expr do
       {:ok, atom} when is_atom(atom) ->
         expand_erlang_modules(Atom.to_string(atom))
@@ -54,7 +52,7 @@ defmodule IEx.Autocomplete do
         list = Enum.take(list, length(list) - 1)
         expand_elixir_modules(list, hint)
       {:ok, {{:., _, [ast_node, fun]}, _, []}} when is_atom(fun) ->
-        expand_call(ast_node, Atom.to_string(fun), evaluator)
+        expand_call(ast_node, Atom.to_string(fun))
       _ ->
         no()
     end
@@ -109,21 +107,21 @@ defmodule IEx.Autocomplete do
   ## Expand calls
 
   # :atom.fun
-  defp expand_call(mod, hint, _evaluator) when is_atom(mod) do
+  defp expand_call(mod, hint) when is_atom(mod) do
     expand_require(mod, hint)
   end
 
   # Elixir.fun
-  defp expand_call({:__aliases__, _, list}, hint, _evaluator) do
+  defp expand_call({:__aliases__, _, list}, hint) do
     expand_alias(list)
     |> normalize_module
     |> expand_require(hint)
   end
 
   # variable.fun_or_key
-  defp expand_call({_, _, _} = ast_node, hint, evaluator) when is_pid(evaluator) do
-    case get_variable_value(ast_node, evaluator) do
-      {:ok, mod} when is_atom(mod) -> expand_call(mod, hint, nil)
+  defp expand_call({_, _, _} = ast_node, hint) do
+    case value_from_binding(ast_node) do
+      {:ok, mod} when is_atom(mod) -> expand_call(mod, hint)
       {:ok, map} when is_map(map) -> expand_map_field_access(map, hint)
       _otherwise -> no()
     end
@@ -198,6 +196,10 @@ defmodule IEx.Autocomplete do
 
   defp env_aliases do
     Application.get_env(:iex, :autocomplete_server).current_env.aliases
+  end
+
+  defp get_evaluator do
+    Application.get_env(:iex, :autocomplete_server).evaluator
   end
 
   defp match_aliases(hint) do
@@ -290,11 +292,11 @@ defmodule IEx.Autocomplete do
   end
 
   defp match_map_fields(map, hint) do
-    map
-    |> Stream.filter(fn {key, _value} -> is_atom(key) end)
-    |> Stream.map(fn {key, value} -> {to_string(key), value} end)
-    |> Stream.filter(fn {key, _value} -> String.starts_with?(key, hint) end)
-    |> Enum.map(fn {key, value} -> %{kind: :map_key, name: key, value_is_map: is_map(value)} end)
+    for {key, value} <- map,
+        is_atom(key),
+        key = to_string(key),
+        String.starts_with?(key, hint),
+        do: %{kind: :map_key, name: key, value_is_map: is_map(value)}
   end
 
   defp get_module_funs(mod) do
@@ -385,29 +387,28 @@ defmodule IEx.Autocomplete do
     :binary.part(name, hint_size, byte_size(name) - hint_size)
   end
 
-  defp get_evaluator do
-    case IEx.Server.local do
-      nil -> nil
-      pid ->
-        {:dictionary, dictionary} = Process.info(pid, :dictionary)
-        dictionary[:evaluator]
+  defp value_from_binding(ast_node) do
+    with evaluator when is_pid(evaluator) <- get_evaluator(),
+         {var, map_key_path} <- extract_from_ast(ast_node, []) do
+      IEx.Evaluator.value_from_binding(evaluator, var, map_key_path)
+    else
+      _ -> :error
     end
   end
 
-  defp get_variable_value(ast_node, evaluator) do
-    binding = IEx.Evaluator.get_binding(evaluator)
+  defp extract_from_ast(var_name, acc) when is_atom(var_name) do
+    {var_name, acc}
+  end
 
-    {_, value} = Macro.postwalk(ast_node, {:binding, binding}, fn
-      {var_name, _, _} = ast_node, {:binding, binding} when is_atom(var_name) ->
-        {ast_node, Keyword.fetch(binding, var_name)}
+  defp extract_from_ast({var_name, _, nil}, acc) when is_atom(var_name) do
+    {var_name, acc}
+  end
 
-      {:., _, [_, key_name]} = ast_node, {:ok, var_map} when is_map(var_map) and is_atom(key_name) ->
-        {ast_node, Map.fetch(var_map, key_name)}
+  defp extract_from_ast({{:., _, [ast_node, fun]}, _, []}, acc) when is_atom(fun) do
+    extract_from_ast(ast_node, [fun | acc])
+  end
 
-      ast_node, acc ->
-        {ast_node, acc}
-    end)
-
-    value
+  defp extract_from_ast(_ast_node, _acc) do
+    :error
   end
 end
