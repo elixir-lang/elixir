@@ -3,12 +3,7 @@ Code.require_file "test_helper.exs", __DIR__
 defmodule TaskTest do
   use ExUnit.Case
   doctest Task
-
-  setup do
-    Logger.remove_backend(:console)
-    on_exit fn -> Logger.add_backend(:console, flush: true) end
-    :ok
-  end
+  @moduletag :capture_log
 
   def wait_and_send(caller, atom) do
     send caller, :ready

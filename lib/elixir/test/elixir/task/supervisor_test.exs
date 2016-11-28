@@ -4,16 +4,11 @@ defmodule Task.SupervisorTest do
   use ExUnit.Case
 
   @moduletag report: [:supervisor]
+  @moduletag :capture_log
 
   setup do
     {:ok, pid} = Task.Supervisor.start_link()
     {:ok, supervisor: pid}
-  end
-
-  setup do
-    Logger.remove_backend(:console)
-    on_exit fn -> Logger.add_backend(:console, flush: true) end
-    :ok
   end
 
   def wait_and_send(caller, atom) do
