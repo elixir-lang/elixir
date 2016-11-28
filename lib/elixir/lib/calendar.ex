@@ -1598,9 +1598,7 @@ defmodule DateTime do
 
   WARNING: the ISO 8601 datetime format does not contain the time zone nor
   its abbreviation, which means information is lost when converting to such
-  format. This is also why this module does not provide a `from_iso8601/1`
-  function, as it is impossible to build a proper `DateTime` from only the
-  information in the ISO 8601 string.
+  format.
 
   ### Examples
 
@@ -1628,6 +1626,86 @@ defmodule DateTime do
                   time_zone: time_zone, zone_abbr: zone_abbr, utc_offset: utc_offset, std_offset: std_offset}) do
     Calendar.ISO.datetime_to_iso8601(year, month, day, hour, minute, second, microsecond,
                                      time_zone, zone_abbr, utc_offset, std_offset)
+  end
+
+  @doc """
+  Parses the extended "Date and time of day" format described by
+  [ISO 8601:2004](https://en.wikipedia.org/wiki/ISO_8601).
+
+  Since ISO8601 does not include the proper time zone, the given
+  string will be converted to UTC and its offset in seconds will be
+  returned as part of this function. Therefore offset information
+  must be present in the string.
+
+  As specified in the standard, the separator "T" may be omitted if
+  desired as there is no ambiguity within this function.
+
+  Time representations with reduced accuracy are not supported.
+
+  ## Examples
+
+      iex> DateTime.from_iso8601("2015-01-23T23:50:07Z")
+      {:ok, %DateTime{calendar: Calendar.ISO, day: 23, hour: 23, microsecond: {0, 0}, minute: 50, month: 1, second: 7, std_offset: 0,
+                      time_zone: "Etc/UTC", utc_offset: 0, year: 2015, zone_abbr: "UTC"}, 0}
+      iex> DateTime.from_iso8601("2015-01-23T23:50:07.123+02:30")
+      {:ok, %DateTime{calendar: Calendar.ISO, day: 23, hour: 21, microsecond: {123000, 3}, minute: 20, month: 1, second: 7, std_offset: 0,
+                      time_zone: "Etc/UTC", utc_offset: 0, year: 2015, zone_abbr: "UTC"}, 9000}
+
+      iex> DateTime.from_iso8601("2015-01-23P23:50:07")
+      {:error, :invalid_format}
+      iex> DateTime.from_iso8601("2015-01-23 23:50:07A")
+      {:error, :invalid_format}
+      iex> DateTime.from_iso8601("2015-01-23T23:50:07")
+      {:error, :missing_offset}
+      iex> DateTime.from_iso8601("2015-01-23 23:50:61")
+      {:error, :invalid_time}
+      iex> DateTime.from_iso8601("2015-01-32 23:50:07")
+      {:error, :invalid_date}
+
+      iex> DateTime.from_iso8601("2015-01-23T23:50:07.123-00:00")
+      {:error, :invalid_format}
+      iex> DateTime.from_iso8601("2015-01-23T23:50:07.123-00:60")
+      {:error, :invalid_format}
+
+  """
+  @spec from_iso8601(String.t) :: {:ok, t, Calendar.utc_offset} | {:error, atom}
+  def from_iso8601(<<year::4-bytes, ?-, month::2-bytes, ?-, day::2-bytes, sep,
+                     hour::2-bytes, ?:, min::2-bytes, ?:, sec::2-bytes, rest::binary>>) when sep in [?\s, ?T] do
+    with {year, ""}       <- Integer.parse(year),
+         {month, ""}      <- Integer.parse(month),
+         {day, ""}        <- Integer.parse(day),
+         {hour, ""}       <- Integer.parse(hour),
+         {min, ""}        <- Integer.parse(min),
+         {sec, ""}        <- Integer.parse(sec),
+         {microsec, rest} <- Calendar.ISO.parse_microsecond(rest),
+         {:ok, date}      <- Calendar.ISO.date(year, month, day),
+         {:ok, time}      <- Time.new(hour, min, sec, microsec),
+         {:ok, offset}    <- parse_offset(rest) do
+      %{year: year, month: month, day: day} = date
+      %{hour: hour, minute: minute, second: second, microsecond: microsecond} = time
+
+      erl = {{year, month, day}, {hour, minute, second}}
+      seconds = :calendar.datetime_to_gregorian_seconds(erl)
+      {{year, month, day}, {hour, minute, second}} =
+        :calendar.gregorian_seconds_to_datetime(seconds - offset)
+
+      {:ok, %DateTime{year: year, month: month, day: day,
+                      hour: hour, minute: minute, second: second, microsecond: microsecond,
+                      std_offset: 0, utc_offset: 0, zone_abbr: "UTC", time_zone: "Etc/UTC"}, offset}
+    else
+      {:error, reason} -> {:error, reason}
+      _ -> {:error, :invalid_format}
+    end
+  end
+  def from_iso8601(_) do
+    {:error, :invalid_format}
+  end
+  defp parse_offset(rest) do
+    case Calendar.ISO.parse_offset(rest) do
+      {offset, ""} when is_integer(offset) -> {:ok, offset}
+      {nil, ""} -> {:error, :missing_offset}
+      _ -> {:error, :invalid_format}
+    end
   end
 
   @doc """
