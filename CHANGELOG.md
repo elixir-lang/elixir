@@ -1,8 +1,6 @@
 # Changelog for Elixir v1.4
 
-Elixir v1.4 brings new features, enhancements and bug fixes into Elixir. The most notable changes are the addition of the `Registry` module and the `Task.async_stream/3` and `Task.async_stream/5` which aids developers in writing concurrent software. Those two features and a couple other improvements are described in detail below.
-
-Overall this is the smallest release since Elixir v1.0 was launched. This aligns well with our goals and the community expectations of Elixir being a stable language with incremental improvements.
+Elixir v1.4 brings new features, enhancements and bug fixes into Elixir. The most notable changes are the addition of the `Registry` module and the `Task.async_stream/3` and `Task.async_stream/5` which aids developers in writing concurrent software. Those two features and a couple other improvements are described in detail below followed by the complete list of changes.
 
 ## Registry
 
@@ -48,20 +46,20 @@ When there is a need to traverse a collection of items concurrently, Elixir deve
     |> Enum.map(&Task.async(SomeMod, :function, [&1]))
     |> Enum.map(&Task.await/1)
 
-While the snippet above works fine in many occasions, for large collections it may be problem as it will spawn as many tasks as there are items in the collection. In many situations, you may want to set a limit of how many tasks will be running concurrently.
+While the snippet above works fine in many occasions, for large collections it will spawn and run concurrently as many tasks as there are items in the collection.
 
 `Task.async_stream/3` and `Task.async_stream/5` allows developers to process collections concurrently while controlling the maximum amount of concurrent tasks:
 
     collection
     |> Task.async_stream(SomeMod, :function, [], max_concurrency: System.schedulers_online)
 
-Note `Task.async_stream/3` is lazy, allowing developers to partially consume the stream until a condition is reached. Furthermore, `Task.Supervisor.async_stream/4` and `Task.Supervisor.async_stream/6` can be used to ensure the concurrent tasks are spawned under the given supervisor.
+The `Task.async_stream` functions are also lazy, allowing developers to partially consume the stream until a condition is reached. Furthermore, `Task.Supervisor.async_stream/4` and `Task.Supervisor.async_stream/6` can be used to ensure the concurrent tasks are spawned under a given supervisor.
 
 ## Application inflection
 
-Mix v1.4 now automatically inflects the list of applications that are used on runtime from your dependencies list.
+Mix v1.4 now automatically inflects the list of applications that are required on runtime from your dependencies list.
 
-In previous Mix versions, most of your dependencies had to be added both to your dependencies list and applications list. Here is how a `mix.exs` could look like:
+In previous Mix versions, most of your dependencies had to be added both to your dependencies list and applications list. Here is how a `mix.exs` would look like:
 
     def application do
       [applications: [:logger, :plug, :postgrex]]
@@ -72,7 +70,9 @@ In previous Mix versions, most of your dependencies had to be added both to your
        {:postgrex, "~> 1.0"}]
     end
 
-This was error prone as many developers would not list their dependencies in their applications list. Mix v1.4 now automatically inflects your applications list as long as you leave the `:applications` key empty. The `mix.exs` above can be rewritten to:
+This was error prone as many developers would not list their dependencies in their applications list.
+
+Mix v1.4 now automatically inflects your applications list as long as you leave the `:applications` key empty. The `mix.exs` above can be rewritten to:
 
     def application do
       [extra_applications: [:logger]]
@@ -83,11 +83,15 @@ This was error prone as many developers would not list their dependencies in the
        {:postgrex, "~> 1.0"}]
     end
 
-As shown in the example above, any dependency that comes from Erlang or Elixir that is required at runtime can be added to the `:extra_applications` list. Finally, if there is a dependency you don't want to include in the application runtime list, you can do so by specifying the `runtime: false` option:
+With the above, Mix will automatically build your application list based on your dependencies. Applications that are part of Erlang or Elixir that are required at runtime, such as `:logger`, must be added to the `:extra_applications` list. All extra applications will be included in the application list.
+
+Finally, if there is a dependency you don't want to include in the application runtime list, you can do so by specifying the `runtime: false` option:
 
     {:distillery, "> 0.0.0", runtime: false}
 
-## v1.4.0-dev
+We hope this feature provides a more streamlined workflow for developers who are building releases for their Elixir projects.
+
+## v1.4.0-rc.0 (2016-11-28)
 
 ### 1. Enhancements
 
@@ -96,11 +100,11 @@ As shown in the example above, any dependency that comes from Erlang or Elixir t
   * [Calendar] Add `Date.compare/2`, `Time.compare/2`, `NaiveDateTime.compare/2` and `DateTime.compare/2`
   * [Calendar] Support `NaiveDateTime.add/3` and `NaiveDateTime.diff/3` for adding seconds (up to microseconds) as well as the difference between two NaiveDateTimes in seconds (up to microseconds)
   * [Calendar] Add `Date.leap_year?/1` and `Date.day_of_week/1`
-  * [Calendar] Generate `Date`, `Time` and `NaiveDateTime` APIs so they work with any struct that provides the same set of fields as their respective struct. For example, a `NaiveDateTime` can be given to `Date` since it contains a superset of the fields in the `Date` struct
+  * [Calendar] Ensure `Date`, `Time` and `NaiveDateTime` APIs work with any struct that provides the same set of fields as their respective struct. For example, a `NaiveDateTime` can be given to `Date` since it contains a superset of the fields in the `Date` struct
   * [Enum] Add `Enum.map_every/2` that invokes the given function with every nth item
   * [Enum] Add `min/2`, `max/2`, `min_max/2`, `min_by/3`, `max_by/3`, and `min_max_by/3` that allow a function specifying the default value when the enumerable is empty
   * [Enum] Introduce `Enum.zip/1` to zip multiple entries at once
-  * [Float] Introduce `Float.ratio/1` that returns a tuple with the numerator and denominator to retrieve the given float
+  * [Float] Introduce `Float.ratio/1` that returns a tuple with the numerator and denominator as integers to retrieve the given float
   * [GenServer] Log error on default `handle_info/2` implementation
   * [Inspect] Support syntax coloring via the `:syntax_color` option
   * [Integer] `Integer.digits/2` now accepts negative integers
@@ -129,31 +133,31 @@ As shown in the example above, any dependency that comes from Erlang or Elixir t
 
 #### IEx
 
-  * [IEx.Helpers] `c/1` now compiles in memory by default to avoid common issue where `.beam` files remain at projects root directory
-  * [IEx.Helpers] Add info about protocols in `i/1`
   * [IEx.Autocomplete] Stop appending a trailing dot when autocompleting modules in IEx
   * [IEx.Autocomplete] Support autocompletion for structs
+  * [IEx.Helpers] `c/1` now compiles in memory by default to avoid common issue where `.beam` files remain at projects root directory
+  * [IEx.Helpers] Add info about protocols in `i/1`
   * [IEx.Server] Support interrupting IEx evaluation through the Ctrl+G prompt
 
 #### Mix
 
-  * [Mix] Provide "did you mean?" suggestions for `mix xref`
-  * [Mix] Add the ability to specify one or more apps in `mix cmd`
-  * [Mix] Compress archive files built by `mix archive` as they are now unzipped during installation
-  * [Mix] Check directory existence in `mix new` and ask how to proceed if one exists
-  * [Mix] Applications built with the `--sup` flag now have an individual module to work as application callback
-  * [Mix] Add `--formatter` option to `mix test`
-  * [Mix] Warn if there are non-applications in the `apps` directory for umbrella projects
-  * [Mix] Automatically inflect the list of applications for Mix projects
-  * [Mix.Dep] Add warning for invalid paths on `mix deps.clean`
-  * [Mix.Project] Add `Mix.Project.apps_paths` that returns the paths to children applications in umbrella projects
-  * [Mix.Rebar] Add `MIX_REBAR` environment variable for overriding local rebar
+  * [mix archive] Compress archive files built by `mix archive` as they are now unzipped during installation
+  * [mix compile] Automatically inflect the list of applications for Mix projects
+  * [mix cmd] Add the ability to specify one or more apps in `mix cmd`
+  * [mix deps] Warn if there are non-applications in the `apps` directory for umbrella projects
+  * [mix deps] Add warning for invalid paths on `mix deps.clean`
+  * [mix deps] Add `Mix.Project.apps_paths` that returns the paths to children applications in umbrella projects
+  * [mix deps] Add `MIX_REBAR` environment variable for overriding local rebar
+  * [mix new] Check directory existence in `mix new` and ask how to proceed if one exists
+  * [mix new] Applications built with the `--sup` flag now have an individual module to work as application callback
+  * [mix test] Add `--formatter` option to `mix test`
+  * [mix xref] Provide "did you mean?" suggestions for `mix xref`
 
 ### 2. Bug fixes
 
 #### Elixir
 
-  * [Float] Avoid multiple roundings in `Float.{ceil/2, floor/2, round/2}`
+  * [Float] Avoid multiple roundings in `Float.ceil/2`, `Float.floor/2` and `Float.round/2`
   * [Kernel] Don't crash in `macro_exported?/3` when dealing with Erlang modules
   * [Kernel] Ensure locals calls are rewritten when calling a local function or macro from inside a module
   * [Kernel.SpecialForms] Produce meaningful warning when with's else clauses have no effect
