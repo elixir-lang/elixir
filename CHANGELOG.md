@@ -1,6 +1,6 @@
 # Changelog for Elixir v1.4
 
-Elixir v1.4 brings new features, enhancements and bug fixes into Elixir. The most notable changes are the addition of the `Registry` module and the `Task.async_stream/3` and `Task.async_stream/5` which aids developers in writing concurrent software. Those two features and a couple other improvements are described in detail below followed by the complete list of changes.
+Elixir v1.4 brings new features, enhancements and bug fixes into Elixir. The most notable changes are the addition of the `Registry` module and the `Task.async_stream/3` and `Task.async_stream/5` which aid developers in writing concurrent software. Those two features and a couple other improvements are described in detail below followed by the complete list of changes.
 
 ## Registry
 
@@ -90,6 +90,8 @@ Finally, if there is a dependency you don't want to include in the application r
     {:distillery, "> 0.0.0", runtime: false}
 
 We hope this feature provides a more streamlined workflow for developers who are building releases for their Elixir projects.
+
+## v1.4.0-rc.1
 
 ## v1.4.0-rc.0 (2016-11-28)
 

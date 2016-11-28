@@ -1,7 +1,7 @@
 REBAR ?= "$(CURDIR)/rebar"
 PREFIX ?= /usr/local
 SHARE_PREFIX ?= $(PREFIX)/share
-CANONICAL := master/
+CANONICAL :=
 ELIXIRC := bin/elixirc --verbose --ignore-module-conflict
 ERLC := erlc -I lib/elixir/include
 ERL := erl -I lib/elixir/include -noshell -pa lib/elixir/ebin
