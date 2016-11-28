@@ -144,7 +144,11 @@ defmodule IEx.Server do
     loop(run_state(opts), evaluator, Process.monitor(evaluator))
   end
 
-  defp start_evaluator(opts) do
+  @doc """
+  Starst an evaluator using the provided options.
+  """
+  @spec start_evaluator(Keyword.t) :: pid
+  def start_evaluator(opts) do
     self_pid = self()
     self_leader = Process.group_leader
     evaluator = opts[:evaluator] ||

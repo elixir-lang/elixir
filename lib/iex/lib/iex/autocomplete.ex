@@ -1,20 +1,22 @@
 defmodule IEx.Autocomplete do
   @moduledoc false
 
-  def expand('') do
+  def expand(expr, evaluator \\ get_evaluator())
+
+  def expand('', _evaluator) do
     expand_import("")
   end
 
-  def expand([h | t]=expr) do
+  def expand([h | t]=expr, evaluator) do
     cond do
       h === ?. and t != [] ->
-        expand_dot(reduce(t))
+        expand_dot(reduce(t), evaluator)
       h === ?: and t == [] ->
         expand_erlang_modules()
       identifier?(h) ->
-        expand_expr(reduce(expr))
+        expand_expr(reduce(expr), evaluator)
       (h == ?/) and t != [] and identifier?(hd(t)) ->
-        expand_expr(reduce(t))
+        expand_expr(reduce(t), evaluator)
       h in '([{' ->
         expand('')
       true ->
@@ -26,18 +28,20 @@ defmodule IEx.Autocomplete do
     (h in ?a..?z) or (h in ?A..?Z) or (h in ?0..?9) or h in [?_, ??, ?!]
   end
 
-  defp expand_dot(expr) do
+  defp expand_dot(expr, evaluator) do
     case Code.string_to_quoted expr do
       {:ok, atom} when is_atom(atom) ->
-        expand_call(atom, "")
+        expand_call(atom, "", evaluator)
       {:ok, {:__aliases__, _, list}} ->
         expand_elixir_modules(list, "")
+      {:ok, {_, _, _} = ast_node} ->
+        expand_call(ast_node, "", evaluator)
       _ ->
         no()
     end
   end
 
-  defp expand_expr(expr) do
+  defp expand_expr(expr, evaluator) do
     case Code.string_to_quoted expr do
       {:ok, atom} when is_atom(atom) ->
         expand_erlang_modules(Atom.to_string(atom))
@@ -49,8 +53,8 @@ defmodule IEx.Autocomplete do
         hint = Atom.to_string(List.last(list))
         list = Enum.take(list, length(list) - 1)
         expand_elixir_modules(list, hint)
-      {:ok, {{:., _, [mod, fun]}, _, []}} when is_atom(fun) ->
-        expand_call(mod, Atom.to_string(fun))
+      {:ok, {{:., _, [ast_node, fun]}, _, []}} when is_atom(fun) ->
+        expand_call(ast_node, Atom.to_string(fun), evaluator)
       _ ->
         no()
     end
@@ -105,19 +109,35 @@ defmodule IEx.Autocomplete do
   ## Expand calls
 
   # :atom.fun
-  defp expand_call(mod, hint) when is_atom(mod) do
+  defp expand_call(mod, hint, _evaluator) when is_atom(mod) do
     expand_require(mod, hint)
   end
 
   # Elixir.fun
-  defp expand_call({:__aliases__, _, list}, hint) do
+  defp expand_call({:__aliases__, _, list}, hint, _evaluator) do
     expand_alias(list)
     |> normalize_module
     |> expand_require(hint)
   end
 
-  defp expand_call(_, _) do
+  # variable.fun_or_key
+  defp expand_call({_, _, _} = ast_node, hint, evaluator) when is_pid(evaluator) do
+    case get_variable_value(ast_node, evaluator) do
+      {:ok, mod} when is_atom(mod) -> expand_call(mod, hint, nil)
+      {:ok, map} when is_map(map) -> expand_map_field_access(map, hint)
+      _otherwise -> no()
+    end
+  end
+
+  defp expand_call(_, _, _) do
     no()
+  end
+
+  defp expand_map_field_access(map, hint) do
+    case match_map_fields(map, hint) do
+      [%{kind: :map_key, name: name, value_is_map: false}] when name == hint -> no()
+      map_fields when is_list(map_fields) -> format_expansion(map_fields, hint)
+    end
   end
 
   defp expand_require(mod, hint) do
@@ -269,6 +289,14 @@ defmodule IEx.Autocomplete do
     end
   end
 
+  defp match_map_fields(map, hint) do
+    map
+    |> Stream.filter(fn {key, _value} -> is_atom(key) end)
+    |> Stream.map(fn {key, value} -> {to_string(key), value} end)
+    |> Stream.filter(fn {key, _value} -> String.starts_with?(key, hint) end)
+    |> Enum.map(fn {key, value} -> %{kind: :map_key, name: key, value_is_map: is_map(value)} end)
+  end
+
   defp get_module_funs(mod) do
     docs = Code.get_docs(mod, :docs) || []
     module_info_funs(mod) |> Enum.reject(&hidden_fun?(&1, docs))
@@ -316,12 +344,20 @@ defmodule IEx.Autocomplete do
     for a <- :lists.sort(arities), do: "#{name}/#{a}"
   end
 
+  defp to_entries(%{kind: :map_key, name: name}) do
+    [name]
+  end
+
   defp to_uniq_entries(%{kind: :module}) do
     []
   end
 
   defp to_uniq_entries(%{kind: :function} = fun) do
     to_entries(fun)
+  end
+
+  defp to_uniq_entries(%{kind: :map_key}) do
+    []
   end
 
   defp to_hint(%{kind: :module, name: name}, hint) when name == hint do
@@ -336,8 +372,42 @@ defmodule IEx.Autocomplete do
     format_hint(name, hint)
   end
 
+  defp to_hint(%{kind: :map_key, name: name, value_is_map: true}, hint) when name == hint do
+    format_hint(name, hint) <> "."
+  end
+
+  defp to_hint(%{kind: :map_key, name: name}, hint) do
+    format_hint(name, hint)
+  end
+
   defp format_hint(name, hint) do
     hint_size = byte_size(hint)
     :binary.part(name, hint_size, byte_size(name) - hint_size)
+  end
+
+  defp get_evaluator do
+    case IEx.Server.local do
+      nil -> nil
+      pid ->
+        {:dictionary, dictionary} = Process.info(pid, :dictionary)
+        dictionary[:evaluator]
+    end
+  end
+
+  defp get_variable_value(ast_node, evaluator) do
+    binding = IEx.Evaluator.get_binding(evaluator)
+
+    {_, value} = Macro.postwalk(ast_node, {:binding, binding}, fn
+      {var_name, _, _} = ast_node, {:binding, binding} when is_atom(var_name) ->
+        {ast_node, Keyword.fetch(binding, var_name)}
+
+      {:., _, [_, key_name]} = ast_node, {:ok, var_map} when is_map(var_map) and is_atom(key_name) ->
+        {ast_node, Map.fetch(var_map, key_name)}
+
+      ast_node, acc ->
+        {ast_node, acc}
+    end)
+
+    value
   end
 end

@@ -24,6 +24,19 @@ defmodule IEx.Evaluator do
     end
   end
 
+  @doc """
+  Gets the binding from the evaluator, for use by autocompletion.
+  """
+  def get_binding(evaluator) do
+    send evaluator, {:peek_binding, self()}
+
+    receive do
+      {:peek_binding, binding} -> binding
+    after
+      5000 -> []
+    end
+  end
+
   defp loop(server, history, state) do
     receive do
       {:eval, ^server, code, iex_state} ->
@@ -32,6 +45,9 @@ defmodule IEx.Evaluator do
         loop(server, history, state)
       {:peek_env, receiver} ->
         send receiver, {:peek_env, state.env}
+        loop(server, history, state)
+      {:peek_binding, receiver} ->
+        send receiver, {:peek_binding, state.binding}
         loop(server, history, state)
       {:done, ^server} ->
         :ok
