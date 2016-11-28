@@ -18,19 +18,13 @@ This document simply outlines the release process:
 
 7. Push branch and the new tag
 
-8. Publish new docs with `make publish_docs`, copy docs to `docs/stable` if appropriate, and push to GitHub Pages
+8. If a new `vMAJOR.MINOR`, create a new branch "vMAJOR.MINOR" and set `CANONICAL=` in Makefile before building docs
 
-9. Publish new zips with `make publish_zips`, upload `Precompiled.zip` and `Docs.zip` to GitHub Releases
+9. Publish new zips with `make zips`, upload `Precompiled.zip` and `Docs.zip` to GitHub Releases
 
 10. Add the release to `elixir.csv` file in `elixir-lang/elixir-lang.github.com`
 
-## New vMAJOR.MINOR releases
-
-11. Create a new branch "vMAJOR.MINOR"
-
-12. Set `DOCS=vMAJOR.MINOR` and `CANONICAL=stable` in Makefile and copy them to `docs/stable` (change index.html accordingly)
-
-13. In master, bump versions, start new CHANGELOG, add `-dev` back and commit "Start vVERSION+1"
+11. After a new `vMAJOR.MINOR`, move back to master, bump versions, start new CHANGELOG, add `-dev` back and commit "Start vMAJOR.MINOR+1"
 
 ## Places where version is mentioned
 
