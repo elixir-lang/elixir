@@ -205,7 +205,7 @@ defmodule Task.Supervised do
         stream_deliver({:cont, acc}, max + 1, spawned, delivered, waiting, next,
                        reducer, mfa, spawn, monitor_pid, monitor_ref, timeout)
       {:DOWN, ^monitor_ref, _, ^monitor_pid, reason} ->
-        stream_close(waiting, monitor_pid, monitor_ref, timeout)
+        stream_cleanup_inbox(monitor_ref)
         exit({reason, {__MODULE__, :stream, [timeout]}})
     after
       timeout ->

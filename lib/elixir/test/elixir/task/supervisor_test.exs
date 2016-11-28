@@ -3,6 +3,8 @@ Code.require_file "../test_helper.exs", __DIR__
 defmodule Task.SupervisorTest do
   use ExUnit.Case
 
+  @moduletag report: [:supervisor]
+
   setup do
     {:ok, pid} = Task.Supervisor.start_link()
     {:ok, supervisor: pid}
