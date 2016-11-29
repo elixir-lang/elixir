@@ -296,7 +296,7 @@ defmodule Mix.Rebar do
   end
 
   defp eval_binds(binds) do
-    Enum.reduce(binds, :erl_eval.new_bindings, fn ({k, v}, binds) ->
+    Enum.reduce(binds, :erl_eval.new_bindings, fn({k, v}, binds) ->
       :erl_eval.add_binding(k, v, binds)
     end)
   end
