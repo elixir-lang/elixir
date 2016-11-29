@@ -5,7 +5,7 @@ defmodule Mix.Local.Installer do
   # tasks.
 
   @typedoc """
-  Install types supported by `Mix.Local.Installer`.
+  Installs types supported by `Mix.Local.Installer`.
 
     * `:project` - installs the current Mix project's artifact
     * `:local` - installs the artifact located at `path`

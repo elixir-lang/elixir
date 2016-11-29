@@ -171,7 +171,7 @@ defmodule Mix.Rebar do
   end
 
   @doc """
-  Update Rebar configuration to be more suitable for dependencies.
+  Updates Rebar configuration to be more suitable for dependencies.
 
   Drops `warnings_as_errors` from `erl_opts`.
   """
