@@ -6,8 +6,8 @@ Elixir treats documentation as a first-class citizen. This means documentation s
 
 Elixir documentation is written using Markdown. There are plenty of guides on Markdown online, we recommend the ones available at GitHub as a getting started point:
 
-  * https://help.github.com/articles/markdown-basics/
-  * https://help.github.com/articles/github-flavored-markdown/
+  * [Basic writing and formatting syntax](https://help.github.com/articles/basic-writing-and-formatting-syntax/)
+  * [Mastering Markdown](https://guides.github.com/features/mastering-markdown/)
 
 ## Module Attributes
 
