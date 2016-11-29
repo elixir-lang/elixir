@@ -18,8 +18,14 @@ defmodule IEx.AutocompleteTest do
     :ok
   end
 
+  defmodule MyServer do
+    def evaluator do
+      Process.get(:evaluator)
+    end
+  end
+
   def expand(expr) do
-    IEx.Autocomplete.expand(Enum.reverse(expr), __MODULE__.MyServer)
+    IEx.Autocomplete.expand(Enum.reverse(expr), MyServer)
   end
 
   test "Erlang module completion" do
@@ -207,22 +213,14 @@ defmodule IEx.AutocompleteTest do
     assert expand('IEx.AutocompleteTest.SublevelTest.') == {:yes, 'LevelA', []}
   end
 
-  defmodule MyServer do
-    def current_env do
-      %Macro.Env{aliases: [{MyList, List}, {EList, :lists}]}
-    end
-
-    def evaluator do
-      Process.get(:evaluator)
-    end
-  end
-
+  @tag previous_line: "alias List, as: MyList"
   test "complete aliases of Elixir modules" do
     assert expand('MyL') == {:yes, 'ist', []}
     assert expand('MyList') == {:yes, '.', []}
     assert expand('MyList.to_integer') == {:yes, [], ['to_integer/1', 'to_integer/2']}
   end
 
+  @tag previous_line: "alias :lists, as: EList"
   test "complete aliases of Erlang modules" do
     assert expand('EL') == {:yes, 'ist', []}
     assert expand('EList') == {:yes, '.', []}
