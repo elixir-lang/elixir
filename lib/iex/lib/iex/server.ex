@@ -56,23 +56,6 @@ defmodule IEx.Server do
   end
 
   @doc """
-  Returns the current session environment if a session exists.
-  """
-  @spec current_env :: Macro.Env.t
-  def current_env() do
-    case IEx.Server.whereis() do
-      nil -> %Macro.Env{}
-      server ->
-        send(server, {:peek_env, self()})
-        receive do
-          {:peek_env, %Macro.Env{} = env} -> env
-        after
-          5000 -> %Macro.Env{}
-        end
-    end
-  end
-
-  @doc """
   Requests to take over the given shell from the
   current process.
   """
@@ -209,9 +192,6 @@ defmodule IEx.Server do
         exit_loop(evaluator, evaluator_ref)
       {:input, ^input, {:error, :terminated}} ->
         exit_loop(evaluator, evaluator_ref)
-      {:peek_env, receiver} ->
-        send evaluator, {:peek_env, receiver}
-        wait_input(state, evaluator, evaluator_ref, input)
       msg ->
         handle_take_over(msg, evaluator, evaluator_ref, input, fn ->
           wait_input(state, evaluator, evaluator_ref, input)

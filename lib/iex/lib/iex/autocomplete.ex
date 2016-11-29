@@ -185,7 +185,7 @@ defmodule IEx.Autocomplete do
 
   defp expand_alias([name | rest] = list, server) do
     module = Module.concat(Elixir, name)
-    Enum.find_value env_aliases(server), list, fn {alias, mod} ->
+    Enum.find_value aliases_from_env(server), list, fn {alias, mod} ->
       if alias === module do
         case Atom.to_string(mod) do
           "Elixir." <> mod ->
@@ -197,12 +197,8 @@ defmodule IEx.Autocomplete do
     end
   end
 
-  defp env_aliases(server), do: server.current_env.aliases
-
-  defp get_evaluator(server), do: server.evaluator
-
   defp match_aliases(hint, server) do
-    for {alias, _mod} <- env_aliases(server),
+    for {alias, _mod} <- aliases_from_env(server),
         [name] = Module.split(alias),
         starts_with?(name, hint) do
       %{kind: :module, type: :alias, name: name}
@@ -386,8 +382,17 @@ defmodule IEx.Autocomplete do
     :binary.part(name, hint_size, byte_size(name) - hint_size)
   end
 
+  defp aliases_from_env(server) do
+    with evaluator when is_pid(evaluator) <- server.evaluator,
+         {:ok, aliases} <- IEx.Evaluator.value_from_env(evaluator, :aliases) do
+      aliases
+    else
+      _ -> []
+    end
+  end
+
   defp value_from_binding(ast_node, server) do
-    with evaluator when is_pid(evaluator) <- get_evaluator(server),
+    with evaluator when is_pid(evaluator) <- server.evaluator(),
          {var, map_key_path} <- extract_from_ast(ast_node, []) do
       IEx.Evaluator.value_from_binding(evaluator, var, map_key_path)
     else
