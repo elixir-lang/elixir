@@ -30,10 +30,11 @@ defmodule IEx.Evaluator do
   """
   @spec value_from_binding(pid, atom, [atom]) :: {:ok, any} | :error
   def value_from_binding(evaluator, var_name, map_key_path) do
-    send evaluator, {:value_from_binding, self(), var_name, map_key_path}
+    ref = make_ref()
+    send evaluator, {:value_from_binding, ref, self(), var_name, map_key_path}
 
     receive do
-      {:value_from_binding, result} -> result
+      {^ref, result} -> result
     after
       5000 -> :error
     end
@@ -48,9 +49,9 @@ defmodule IEx.Evaluator do
       {:peek_env, receiver} ->
         send receiver, {:peek_env, state.env}
         loop(server, history, state)
-      {:value_from_binding, receiver, var_name, map_key_path} ->
+      {:value_from_binding, ref, receiver, var_name, map_key_path} ->
         value = traverse_binding(state.binding, var_name, map_key_path)
-        send receiver, {:value_from_binding, value}
+        send receiver, {ref, value}
         loop(server, history, state)
       {:done, ^server} ->
         :ok
@@ -58,11 +59,11 @@ defmodule IEx.Evaluator do
   end
 
   defp traverse_binding(binding, var_name, map_key_path) do
-    with {:ok, var_value} <- Keyword.fetch(binding, var_name) do
-      Enum.reduce map_key_path, {:ok, var_value}, fn
-        key, {:ok, map} when is_map(map) -> Map.fetch(map, key)
-        _key, _acc -> :error
-      end
+    accumulator = Keyword.fetch(binding, var_name)
+
+    Enum.reduce map_key_path, accumulator, fn
+      key, {:ok, map} when is_map(map) -> Map.fetch(map, key)
+      _key, _acc -> :error
     end
   end
 

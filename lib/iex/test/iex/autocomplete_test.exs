@@ -7,8 +7,6 @@ defmodule IEx.AutocompleteTest do
     previous_line = context[:previous_line]
 
     if previous_line do
-      Application.put_env(:iex, :autocomplete_server, __MODULE__.MyServer)
-
       ExUnit.CaptureIO.capture_io(fn ->
         evaluator = IEx.Server.start_evaluator([])
         Process.put(:evaluator, evaluator)
@@ -21,7 +19,7 @@ defmodule IEx.AutocompleteTest do
   end
 
   def expand(expr) do
-    IEx.Autocomplete.expand(Enum.reverse expr)
+    IEx.Autocomplete.expand(Enum.reverse(expr), __MODULE__.MyServer)
   end
 
   test "Erlang module completion" do
@@ -220,16 +218,12 @@ defmodule IEx.AutocompleteTest do
   end
 
   test "complete aliases of Elixir modules" do
-    Application.put_env(:iex, :autocomplete_server, MyServer)
-
     assert expand('MyL') == {:yes, 'ist', []}
     assert expand('MyList') == {:yes, '.', []}
     assert expand('MyList.to_integer') == {:yes, [], ['to_integer/1', 'to_integer/2']}
   end
 
   test "complete aliases of Erlang modules" do
-    Application.put_env(:iex, :autocomplete_server, MyServer)
-
     assert expand('EL') == {:yes, 'ist', []}
     assert expand('EList') == {:yes, '.', []}
     assert expand('EList.map') == {:yes, [], ['map/2', 'mapfoldl/3', 'mapfoldr/3']}
