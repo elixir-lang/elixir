@@ -202,7 +202,7 @@ defmodule URI do
   Checks if the character is a "reserved" character in a URI.
 
   Reserved characters are specified in
-  [RFC 3986, section 2.2](http://tools.ietf.org/html/rfc3986#section-2.2).
+  [RFC 3986, section 2.2](https://tools.ietf.org/html/rfc3986#section-2.2).
 
   ## Examples
 
@@ -219,7 +219,7 @@ defmodule URI do
   Checks if the character is a "unreserved" character in a URI.
 
   Unreserved characters are specified in
-  [RFC 3986, section 2.3](http://tools.ietf.org/html/rfc3986#section-2.3).
+  [RFC 3986, section 2.3](https://tools.ietf.org/html/rfc3986#section-2.3).
 
   ## Examples
 
@@ -366,7 +366,7 @@ defmodule URI do
   `URI.parse/1` can be used to parse a wide range of URIs.
 
   This function uses the parsing regular expression as defined
-  in [RFC 3986, Appendix B](http://tools.ietf.org/html/rfc3986#appendix-B).
+  in [RFC 3986, Appendix B](https://tools.ietf.org/html/rfc3986#appendix-B).
 
   When a URI is given without a port, the value returned by
   `URI.default_port/1` for the URI's scheme is used for the `:port` field.
@@ -400,7 +400,7 @@ defmodule URI do
   def parse(%URI{} = uri), do: uri
 
   def parse(string) when is_binary(string) do
-    # From http://tools.ietf.org/html/rfc3986#appendix-B
+    # From https://tools.ietf.org/html/rfc3986#appendix-B
     regex = ~r/^(([a-z][a-z0-9\+\-\.]*):)?(\/\/([^\/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?/i
     parts = nillify(Regex.run(regex, string))
 
@@ -453,7 +453,7 @@ defmodule URI do
   Merges two URIs.
 
   This function merges two URIs as per
-  [RFC 3986, section 5.2](http://tools.ietf.org/html/rfc3986#section-5.2).
+  [RFC 3986, section 5.2](https://tools.ietf.org/html/rfc3986#section-5.2).
 
   ## Examples
 
@@ -533,7 +533,7 @@ defimpl String.Chars, for: URI do
         _     -> uri
       end
 
-    # Based on http://tools.ietf.org/html/rfc3986#section-5.3
+    # Based on https://tools.ietf.org/html/rfc3986#section-5.3
     authority = extract_authority(uri)
 
     if(scheme, do: scheme <> ":", else: "") <>
