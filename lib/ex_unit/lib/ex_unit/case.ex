@@ -472,7 +472,7 @@ defmodule ExUnit.Case do
     end
 
     unless is_atom(tags[:type]),
-      do: raise "value for tag `:type` must be an atom"
+      do: raise "value for tag \":type\" must be an atom"
 
     tags
   end
