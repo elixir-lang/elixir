@@ -27,7 +27,7 @@ defmodule Mix.Tasks.Help do
 
   The available color options are:
 
-    * `:enabled`         - shows ANSI formatting (defaults to `IO.ANSI.enabled?`)
+    * `:enabled`         - shows ANSI formatting (defaults to `IO.ANSI.enabled?/0`)
     * `:doc_code`        - the attributes for code blocks (cyan, bright)
     * `:doc_inline_code` - inline code (cyan)
     * `:doc_headings`    - h1 and h2 (yellow, bright)
