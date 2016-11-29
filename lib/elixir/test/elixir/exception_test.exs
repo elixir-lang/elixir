@@ -401,6 +401,6 @@ defmodule ExceptionTest do
 
   test "ErlangError message" do
     assert %ErlangError{original: :sample} |> message ==
-           "erlang error: :sample"
+           "Erlang error: :sample"
   end
 end

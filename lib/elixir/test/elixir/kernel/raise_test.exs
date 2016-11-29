@@ -216,7 +216,7 @@ defmodule Kernel.RaiseTest do
       x in [RuntimeError, ErlangError] -> Exception.message(x)
     end
 
-    assert result == "erlang error: :sample"
+    assert result == "Erlang error: :sample"
   end
 
   test "undefined function error" do
