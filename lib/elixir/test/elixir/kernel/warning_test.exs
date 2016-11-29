@@ -685,12 +685,11 @@ defmodule Kernel.WarningTest do
       Code.eval_string """
       defmodule Sample do
         @at "Something"
-        Module.put_attribute(__MODULE__, :put_attribute, "Something")
       end
       """
     end)
     assert content =~ "module attribute @at was set but never used"
-    assert content =~ "module attribute @put_attribute was set but never used"
+    assert content =~ "nofile:2"
   after
     purge Sample
   end

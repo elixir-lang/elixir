@@ -2399,7 +2399,11 @@ defmodule Kernel do
 
   # @attribute(value)
   defp do_at([arg], meta, name, function?, env) do
-    read? = :lists.keymember(:context, 1, meta)
+    line =
+      case :lists.keymember(:context, 1, meta) do
+        true -> nil
+        false -> env.line
+      end
 
     cond do
       function? ->
@@ -2413,11 +2417,11 @@ defmodule Kernel do
         {stack, _} = :elixir_quote.escape(env_stacktrace(env), false)
         arg = {env.line, arg}
         quote do: Module.put_attribute(__MODULE__, unquote(name), unquote(arg),
-                                       unquote(stack), unquote(read?))
+                                       unquote(stack), unquote(line))
 
       true ->
         quote do: Module.put_attribute(__MODULE__, unquote(name), unquote(arg),
-                                       nil, unquote(read?))
+                                       nil, unquote(line))
     end
   end
 

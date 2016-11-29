@@ -854,7 +854,7 @@ defmodule Module do
   """
   @spec put_attribute(module, key :: atom, value :: term) :: term
   def put_attribute(module, key, value) do
-    put_attribute(module, key, value, nil, false)
+    put_attribute(module, key, value, nil, nil)
   end
 
   @doc """
@@ -910,7 +910,7 @@ defmodule Module do
     table = data_table_for(module)
     case :ets.take(table, key) do
       [{_, value, _accumulated? = true, _}] ->
-        :ets.insert(table, {key, [], true, true})
+        :ets.insert(table, {key, [], true, nil})
         value
       [{_, value, _, _}] ->
         value
@@ -960,7 +960,7 @@ defmodule Module do
     end
 
     if Keyword.get(opts, :accumulate) do
-      :ets.insert_new(table, {new, [], _accumulated? = true, _read? = true}) ||
+      :ets.insert_new(table, {new, [], _accumulated? = true, _unread_line = nil}) ||
         :ets.update_element(table, new, {3, true})
     end
 
@@ -1031,7 +1031,7 @@ defmodule Module do
         [] -> [value]
       end
 
-    :ets.insert(table, {key, new, true, true})
+    :ets.insert(table, {key, new, true, nil})
   end
 
   @doc false
@@ -1043,7 +1043,7 @@ defmodule Module do
 
     case :ets.lookup(table, key) do
       [{^key, val, _, _}] ->
-        :ets.update_element(table, key, {4, true})
+        :ets.update_element(table, key, {4, nil})
         val
       [] when is_list(stack) ->
         # TODO: Consider raising instead of warning on v2.0 as it usually cascades
@@ -1058,22 +1058,22 @@ defmodule Module do
   @doc false
   # Used internally by Kernel's @.
   # This function is private and must be used only internally.
-  def put_attribute(module, key, value, stack, read?) when is_atom(key) do
+  def put_attribute(module, key, value, stack, unread_line) when is_atom(key) do
     assert_not_compiled!(:put_attribute, module)
     table = data_table_for(module)
     value = preprocess_attribute(key, value)
 
     case :ets.lookup(table, key) do
-      [{^key, {line, <<_::binary>>}, accumulated?, _read?}]
+      [{^key, {line, <<_::binary>>}, accumulated?, _unread_line}]
           when key in [:doc, :typedoc, :moduledoc] and is_list(stack) ->
         IO.warn "redefining @#{key} attribute previously set at line #{line}", stack
-        :ets.insert(table, {key, value, accumulated?, read?})
+        :ets.insert(table, {key, value, accumulated?, unread_line})
 
       [{^key, current, _accumulated? = true, _read?}] ->
-        :ets.insert(table, {key, [value | current], true, read?})
+        :ets.insert(table, {key, [value | current], true, unread_line})
 
       _ ->
-        :ets.insert(table, {key, value, false, read?})
+        :ets.insert(table, {key, value, false, unread_line})
     end
 
     value
