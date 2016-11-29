@@ -14,7 +14,7 @@ defmodule Map do
   in the example above has a different order than the map that was created).
 
   Maps do not impose any restriction on the key type: anything can be a key in a
-  map. As a key-value structure, maps do not allow duplicated keys; keys are
+  map. As a key-value structure, maps do not allow duplicated keys. Keys are
   compared using the exact-equality operator (`===`). If colliding keys are defined
   in a map literal, the last one prevails.
 

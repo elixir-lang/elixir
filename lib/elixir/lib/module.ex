@@ -32,7 +32,7 @@ defmodule Module do
   Behaviours can be referenced by modules to ensure they implement
   required specific function signatures defined by `@callback`.
 
-  For example, you can specify the `URI.Parser` behaviour as follows:
+  For example, you could specify a `URI.Parser` behaviour as follows:
 
       defmodule URI.Parser do
         @doc "Defines a default port"
