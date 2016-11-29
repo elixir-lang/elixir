@@ -3,7 +3,7 @@ defmodule Base do
 
   @moduledoc """
   This module provides data encoding and decoding functions
-  according to [RFC 4648](http://tools.ietf.org/html/rfc4648).
+  according to [RFC 4648](https://tools.ietf.org/html/rfc4648).
 
   This document defines the commonly used base 16, base 32, and base
   64 encoding schemes.
