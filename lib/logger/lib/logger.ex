@@ -49,7 +49,7 @@ defmodule Logger do
   `config/config.exs`) before the `:logger` application is started.
 
     * `:backends` - the backends to be used. Defaults to `[:console]`.
-      See the "Backends" section for more information.
+      See the [Backends](#module-backends) section for more information.
 
     * `:compile_time_purge_level` - purges *at compilation time* all calls that
       have log level lower than the value of this option. This means that
