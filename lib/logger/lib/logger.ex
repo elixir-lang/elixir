@@ -207,7 +207,7 @@ defmodule Logger do
   The supported keys in the `:colors` keyword list are:
 
     * `:enabled` - boolean value that allows for switching the
-      coloring on and off. Defaults to: `IO.ANSI.enabled?`
+      coloring on and off. Defaults to: `IO.ANSI.enabled?/0`
 
     * `:debug` - color for debug messages. Defaults to: `:cyan`
 
