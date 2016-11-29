@@ -930,7 +930,7 @@ defmodule NaiveDateTime do
   end
 
   @doc """
-  Subtract `naive_datetime2` from `naive_datetime1`.
+  Subtracts `naive_datetime2` from `naive_datetime1`.
 
   The answer can be returned in any `unit` available from `t:System.time_unit/0`.
 
