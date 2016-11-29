@@ -24,6 +24,22 @@ defmodule IEx.Evaluator do
     end
   end
 
+  @doc """
+  Gets a value out of the binding, using the provided
+  variable name and map key path.
+  """
+  @spec value_from_binding(pid, atom, [atom]) :: {:ok, any} | :error
+  def value_from_binding(evaluator, var_name, map_key_path) do
+    ref = make_ref()
+    send evaluator, {:value_from_binding, ref, self(), var_name, map_key_path}
+
+    receive do
+      {^ref, result} -> result
+    after
+      5000 -> :error
+    end
+  end
+
   defp loop(server, history, state) do
     receive do
       {:eval, ^server, code, iex_state} ->
@@ -33,8 +49,21 @@ defmodule IEx.Evaluator do
       {:peek_env, receiver} ->
         send receiver, {:peek_env, state.env}
         loop(server, history, state)
+      {:value_from_binding, ref, receiver, var_name, map_key_path} ->
+        value = traverse_binding(state.binding, var_name, map_key_path)
+        send receiver, {ref, value}
+        loop(server, history, state)
       {:done, ^server} ->
         :ok
+    end
+  end
+
+  defp traverse_binding(binding, var_name, map_key_path) do
+    accumulator = Keyword.fetch(binding, var_name)
+
+    Enum.reduce map_key_path, accumulator, fn
+      key, {:ok, map} when is_map(map) -> Map.fetch(map, key)
+      _key, _acc -> :error
     end
   end
 

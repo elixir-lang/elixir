@@ -43,6 +43,19 @@ defmodule IEx.Server do
   end
 
   @doc """
+  Returns the PID of the IEx evaluator process if it exists.
+  """
+  @spec evaluator :: pid | nil
+  def evaluator() do
+    case IEx.Server.local do
+      nil -> nil
+      pid ->
+        {:dictionary, dictionary} = Process.info(pid, :dictionary)
+        dictionary[:evaluator]
+    end
+  end
+
+  @doc """
   Returns the current session environment if a session exists.
   """
   @spec current_env :: Macro.Env.t
@@ -144,7 +157,11 @@ defmodule IEx.Server do
     loop(run_state(opts), evaluator, Process.monitor(evaluator))
   end
 
-  defp start_evaluator(opts) do
+  @doc """
+  Starst an evaluator using the provided options.
+  """
+  @spec start_evaluator(Keyword.t) :: pid
+  def start_evaluator(opts) do
     self_pid = self()
     self_leader = Process.group_leader
     evaluator = opts[:evaluator] ||

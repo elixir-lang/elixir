@@ -11,7 +11,6 @@ defmodule IEx.Mixfile do
     [registered: [IEx.Supervisor, IEx.Config],
      mod: {IEx.App, []},
      env: [
-      autocomplete_server: IEx.Server,
       colors: [],
       inspect: [pretty: true],
       history_size: 20,
