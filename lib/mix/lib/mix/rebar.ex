@@ -51,7 +51,7 @@ defmodule Mix.Rebar do
         []
       {:error, error} ->
         reason = :file.format_error(error)
-        Mix.raise "Error consulting rebar config #{inspect config_path}: #{reason}"
+        Mix.raise "Error consulting Rebar config #{inspect config_path}: #{reason}"
     end
 
     if File.exists?(script_path) do

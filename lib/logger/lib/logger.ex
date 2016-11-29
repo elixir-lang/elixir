@@ -117,7 +117,7 @@ defmodule Logger do
         level: :warn,
         truncate: 4096
 
-  ### Error Logger configuration
+  ### Error logger configuration
 
   The following configuration applies to `Logger`'s wrapper around
   Erlang's `error_logger`. All the configurations below must be set

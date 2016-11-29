@@ -212,7 +212,7 @@ defmodule Mix.Local.Installer do
   end
 
   def parse_args(["hex" | [_package_name | rest]], _opts) do
-    {:error, "received invalid hex package spec: #{Enum.join(rest, " ")}"}
+    {:error, "received invalid Hex package spec: #{Enum.join(rest, " ")}"}
   end
 
   defp ref_to_config("branch", branch), do: [branch: branch]

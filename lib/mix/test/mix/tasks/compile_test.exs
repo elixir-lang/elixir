@@ -70,7 +70,7 @@ defmodule Mix.Tasks.CompileTest do
     end
   end
 
-  test "add logger application metadata" do
+  test "add Logger application metadata" do
     import ExUnit.CaptureLog
     in_fixture "no_mixfile", fn ->
       File.write!("lib/a.ex", """

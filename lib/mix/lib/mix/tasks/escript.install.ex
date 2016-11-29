@@ -13,7 +13,7 @@ defmodule Mix.Tasks.Escript.Install do
       mix do escript.build, escript.install
 
   If an argument is provided, it should be a local path or a URL to a prebuilt escript,
-  a git repository, a github repository, or a hex package.
+  a Git repository, a GitHub repository, or a Hex package.
 
       mix escript.install escript
       mix escript.install path/to/escript
@@ -43,13 +43,13 @@ defmodule Mix.Tasks.Escript.Install do
       applies to installations via URL or local path.
 
     * `--force` - forces installation without a shell prompt; primarily
-      intended for automation in build systems like make
+      intended for automation in build systems like Make.
 
     * `--submodules` - fetches repository submodules before building escript from
-      git or github
+      Git or GitHub.
 
     * `--app` - specifies a custom app name to be used for building the escript
-      from git, github, or hex
+      from Git, GitHub, or Hex.
   """
 
   @behaviour Mix.Local.Installer
