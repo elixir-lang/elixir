@@ -85,7 +85,7 @@ do_compile(Line, Module, Block, Vars, E) ->
     Forms3 = attributes_form(Line, File, Data, PersistedAttrs, Forms2),
 
     elixir_locals:ensure_no_import_conflict(Line, File, Module, All),
-    warn_unused_attributes(Line, File, Data, PersistedAttrs),
+    warn_unused_attributes(File, Data, PersistedAttrs),
 
     Location = {elixir_utils:characters_to_list(elixir_utils:relative_to_cwd(File)), Line},
 
@@ -152,26 +152,26 @@ build(Line, File, Module, Docs, Lexical) ->
     end,
 
   ets:insert(Data, [
-    % {Key, Value, Accumulate?, Read?}
-    {after_compile, [], true, true},
-    {before_compile, [], true, true},
-    {behaviour, [], true, true},
-    {compile, [], true, true},
-    {derive, [], true, true},
-    {dialyzer, [], true, true},
-    {external_resource, [], true, true},
-    {moduledoc, nil, false, true},
-    {on_definition, OnDefinition, true, true},
-    {on_load, [], true, true},
+    % {Key, Value, Accumulate?, UnreadLine}
+    {after_compile, [], true, nil},
+    {before_compile, [], true, nil},
+    {behaviour, [], true, nil},
+    {compile, [], true, nil},
+    {derive, [], true, nil},
+    {dialyzer, [], true, nil},
+    {external_resource, [], true, nil},
+    {moduledoc, nil, false, nil},
+    {on_definition, OnDefinition, true, nil},
+    {on_load, [], true, nil},
 
     % Types
-    {callback, [], true, true},
-    {opaque, [], true, true},
-    {optional_callbacks, [], true, true},
-    {macrocallback, [], true, true},
-    {spec, [], true, true},
-    {type, [], true, true},
-    {typep, [], true, true}
+    {callback, [], true, nil},
+    {opaque, [], true, nil},
+    {optional_callbacks, [], true, nil},
+    {macrocallback, [], true, nil},
+    {spec, [], true, nil},
+    {type, [], true, nil},
+    {typep, [], true, nil}
   ]),
 
   Persisted = [behaviour, on_load, compile, external_resource, dialyzer, vsn],
@@ -425,11 +425,11 @@ check_module_availability(Line, File, Module) ->
       ok
   end.
 
-warn_unused_attributes(Line, File, Data, PersistedAttrs) ->
+warn_unused_attributes(File, Data, PersistedAttrs) ->
   ReservedAttrs = [after_compile, before_compile, moduledoc, on_definition | PersistedAttrs],
-  Keys = ets:select(Data, [{{'$1', '_', '_', false}, [{is_atom, '$1'}], ['$1']}]),
+  Keys = ets:select(Data, [{{'$1', '_', '_', '$2'}, [{is_atom, '$1'}, {is_integer, '$2'}], [['$1', '$2']]}]),
   [elixir_errors:form_warn([{line, Line}], File, ?MODULE, {unused_attribute, Key}) ||
-   Key <- Keys, not lists:member(Key, ReservedAttrs)].
+   [Key, Line] <- Keys, not lists:member(Key, ReservedAttrs)].
 
 % __INFO__
 
