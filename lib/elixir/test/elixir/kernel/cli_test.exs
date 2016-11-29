@@ -68,7 +68,7 @@ defmodule Kernel.CLI.ErrorTest do
 
   test "properly format errors" do
     assert :string.str('** (throw) 1', elixir('-e "throw 1"')) == 0
-    assert :string.str('** (ErlangError) erlang error: 1', elixir('-e "error 1"')) == 0
+    assert :string.str('** (ErlangError) Erlang error: 1', elixir('-e "error 1"')) == 0
     assert elixir('-e "IO.puts(Process.flag(:trap_exit, false)); exit({:shutdown, 1})"') == 'false\n'
   end
 end
