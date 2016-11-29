@@ -124,7 +124,7 @@ defmodule Date do
   The functions on this module work with the `Date` struct as well
   as any struct that contains the same fields as the `Date` struct,
   such as `NaiveDateTime` and `DateTime`. Such functions expect
-  `Calendar.date` in their typespecs (instead of `t`).
+  `t:Calendar.date/0` in their typespecs (instead of `t:t/0`).
 
   Developers should avoid creating the Date struct directly and
   instead rely on the functions provided by this module as well as
@@ -447,7 +447,7 @@ defmodule Time do
   The functions on this module work with the `Time` struct as well
   as any struct that contains the same fields as the `Time` struct,
   such as `NaiveDateTime` and `DateTime`. Such functions expect
-  `Calendar.time` in their typespecs (instead of `t`).
+  `t:Calendar.time/0` in their typespecs (instead of `t:t/0`).
 
   Developers should avoid creating the Time struct directly and
   instead rely on the functions provided by this module as well as

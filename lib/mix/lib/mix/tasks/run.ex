@@ -12,7 +12,7 @@ defmodule Mix.Tasks.Run do
       mix run my_script.exs
 
   This task provides a subset of the functionality available in the
-  `elixir` executable, including setting up the `System.argv`:
+  `elixir` executable, including setting up the `System.argv/0` arguments:
 
       mix run my_script.exs arg1 arg2 arg3
 
