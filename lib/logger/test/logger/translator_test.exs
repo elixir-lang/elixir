@@ -191,7 +191,7 @@ defmodule Logger.TranslatorTest do
       receive do: ({:DOWN, ^ref, _, _, _} -> :ok)
     end) =~ ~r"""
     \[error\] Task #PID<\d+\.\d+\.\d+> started from #PID<\d+\.\d+\.\d+> terminating
-    \*\* \(ErlangError\) erlang error: :foo
+    \*\* \(ErlangError\) Erlang error: :foo
     .*
     Function: &:erlang\.error/1
         Args: \[%ErlangError{.*}\]

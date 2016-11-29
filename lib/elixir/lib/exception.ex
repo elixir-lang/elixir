@@ -829,7 +829,7 @@ defmodule ErlangError do
   defexception [:original]
 
   def message(exception) do
-    "erlang error: #{inspect(exception.original)}"
+    "Erlang error: #{inspect(exception.original)}"
   end
 
   @doc false
