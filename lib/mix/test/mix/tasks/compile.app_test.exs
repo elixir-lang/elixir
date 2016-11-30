@@ -85,7 +85,7 @@ defmodule Mix.Tasks.Compile.AppTest do
     end
   end
 
-  test "automatically inflects applications" do
+  test "automatically infers applications" do
     Mix.Project.push CustomDeps
 
     in_fixture "no_mixfile", fn ->

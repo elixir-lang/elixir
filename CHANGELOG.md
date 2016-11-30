@@ -55,9 +55,9 @@ While the snippet above works fine in many occasions, for large collections it w
 
 The `Task.async_stream` functions are also lazy, allowing developers to partially consume the stream until a condition is reached. Furthermore, `Task.Supervisor.async_stream/4` and `Task.Supervisor.async_stream/6` can be used to ensure the concurrent tasks are spawned under a given supervisor.
 
-## Application inflection
+## Application inference
 
-Mix v1.4 now automatically inflects the list of applications that are required on runtime from your dependencies list.
+Mix v1.4 now automatically infers the list of applications that are required on runtime from your dependencies list.
 
 In previous Mix versions, most of your dependencies had to be added both to your dependencies list and applications list. Here is how a `mix.exs` would look like:
 
@@ -72,7 +72,7 @@ In previous Mix versions, most of your dependencies had to be added both to your
 
 This was error prone as many developers would not list their dependencies in their applications list.
 
-Mix v1.4 now automatically inflects your applications list as long as you leave the `:applications` key empty. The `mix.exs` above can be rewritten to:
+Mix v1.4 now automatically infers your applications list as long as you leave the `:applications` key empty. The `mix.exs` above can be rewritten to:
 
     def application do
       [extra_applications: [:logger]]
@@ -144,7 +144,7 @@ We hope this feature provides a more streamlined workflow for developers who are
 #### Mix
 
   * [mix archive] Compress archive files built by `mix archive` as they are now unzipped during installation
-  * [mix compile] Automatically inflect the list of applications for Mix projects
+  * [mix compile] Automatically infer the list of applications for Mix projects
   * [mix cmd] Add the ability to specify one or more apps in `mix cmd`
   * [mix deps] Warn if there are non-applications in the `apps` directory for umbrella projects
   * [mix deps] Add warning for invalid paths on `mix deps.clean`
