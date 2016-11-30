@@ -4,16 +4,16 @@ defmodule IEx.AutocompleteTest do
   use ExUnit.Case, async: true
 
   setup context do
-    previous_line = context[:previous_line]
+    ExUnit.CaptureIO.capture_io(fn ->
+      evaluator = IEx.Server.start_evaluator([])
+      Process.put(:evaluator, evaluator)
 
-    if previous_line do
-      ExUnit.CaptureIO.capture_io(fn ->
-        evaluator = IEx.Server.start_evaluator([])
-        Process.put(:evaluator, evaluator)
+      previous_line = context[:previous_line]
+      if previous_line do
         send evaluator, {:eval, self(), previous_line <> "\n", %IEx.State{}}
         assert_receive {:evaled, _, _}
-      end)
-    end
+      end
+    end)
 
     :ok
   end
@@ -185,14 +185,21 @@ defmodule IEx.AutocompleteTest do
 
   test "kernel import completion" do
     assert expand('defstru') == {:yes, 'ct', []}
-    assert expand('put_') == {:yes, '', ['put_elem/3', 'put_in/2', 'put_in/3']}
+    assert expand('put_') == {:yes, '', ['put_elem/3', 'put_in/3', 'put_in/2']}
   end
 
   @tag previous_line: "numeral = 3; number = 3; nothing = nil"
   test "variable name completion" do
     assert expand('numb') == {:yes, 'er', []}
     assert expand('num') == {:yes, '', ['number', 'numeral']}
-    assert expand('no') == {:yes, '', ['nothing', 'not/1', 'node/0', 'node/1']}
+    assert expand('no') == {:yes, '', ['nothing', 'node/0', 'node/1', 'not/1']}
+  end
+
+  @tag previous_line: "import Enum; import Supervisor, only: [count_children: 1]; import Protocol"
+  test "completion of manually imported functions and macros" do
+    assert expand('take') == {:yes, '', ['take/2', 'take_every/2', 'take_random/2', 'take_while/2']}
+    assert expand('count') == {:yes, '', ['count_children/1', 'count/1', 'count/2']}
+    assert expand('der') == {:yes, 'ive', []}
   end
 
   defmacro define_var do

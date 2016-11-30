@@ -57,17 +57,17 @@ defmodule IEx.Evaluator do
   end
 
   @doc """
-  Returns the current session environment if a session exists.
+  Returns the named fields from the current session environment.
   """
-  @spec value_from_env(pid, atom) :: {:ok, term} | :error
-  def value_from_env(evaluator, key) do
+  @spec fields_from_env(pid, [atom]) :: %{atom => term}
+  def fields_from_env(evaluator, fields) do
     ref = make_ref()
-    send evaluator, {:value_from_env, ref, self(), key}
+    send evaluator, {:fields_from_env, ref, self(), fields}
 
     receive do
       {^ref, result} -> result
     after
-      5000 -> :error
+      5000 -> %{}
     end
   end
 
@@ -77,8 +77,8 @@ defmodule IEx.Evaluator do
         {result, history, state} = eval(code, iex_state, history, state)
         send server, {:evaled, self(), result}
         loop(server, history, state)
-      {:value_from_env, ref, receiver, key} ->
-        send receiver, {ref, Map.fetch(state.env, key)}
+      {:fields_from_env, ref, receiver, fields} ->
+        send receiver, {ref, Map.take(state.env, fields)}
         loop(server, history, state)
       {:value_from_binding, ref, receiver, var_name, map_key_path} ->
         value = traverse_binding(state.binding, var_name, map_key_path)

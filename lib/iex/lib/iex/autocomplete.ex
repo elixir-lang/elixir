@@ -147,8 +147,7 @@ defmodule IEx.Autocomplete do
   defp expand_variable_or_import(hint, server) do
     Enum.concat([
       match_variables(server, hint),
-      match_module_funs(IEx.Helpers, hint),
-      match_module_funs(Kernel, hint),
+      match_imports(server, hint),
       match_module_funs(Kernel.SpecialForms, hint),
     ])
     |> format_expansion(hint)
@@ -299,6 +298,20 @@ defmodule IEx.Autocomplete do
     end
   end
 
+  defp match_imports(server, hint) do
+    with evaluator when is_pid(evaluator) <- server.evaluator(),
+         env_fields = IEx.Evaluator.fields_from_env(evaluator, [:functions, :macros]),
+         %{functions: funs, macros: macros} <- env_fields do
+      for {_mod, mod_funs} <- funs ++ macros,
+          {fun_name, arity} <- mod_funs,
+          fun_name = Atom.to_string(fun_name),
+          String.starts_with?(fun_name, hint),
+          do: %{kind: :function, name: fun_name, arities: [arity]}
+    else
+      _ -> []
+    end
+  end
+
   defp match_map_fields(map, hint) do
     for {key, value} <- map,
         is_atom(key),
@@ -384,7 +397,7 @@ defmodule IEx.Autocomplete do
 
   defp aliases_from_env(server) do
     with evaluator when is_pid(evaluator) <- server.evaluator,
-         {:ok, aliases} <- IEx.Evaluator.value_from_env(evaluator, :aliases) do
+         %{aliases: aliases} <- IEx.Evaluator.fields_from_env(evaluator, [:aliases]) do
       aliases
     else
       _ -> []
