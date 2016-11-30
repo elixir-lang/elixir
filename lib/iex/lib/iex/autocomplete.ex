@@ -292,7 +292,7 @@ defmodule IEx.Autocomplete do
   defp match_variables(server, hint) do
     with evaluator when is_pid(evaluator) <- server.evaluator() do
       IEx.Evaluator.variables_from_binding(evaluator, hint)
-      |> Stream.map(&%{kind: :var_name, name: &1})
+      |> Stream.map(&%{kind: :variable, name: &1})
       |> Enum.sort_by(&(&1.name))
     else
       _ -> []
@@ -347,7 +347,7 @@ defmodule IEx.Autocomplete do
   ## Ad-hoc conversions
 
   defp to_entries(%{kind: kind, name: name}) when
-       kind in [:map_key, :module, :var_name] do
+       kind in [:map_key, :module, :variable] do
     [name]
   end
 
@@ -356,7 +356,7 @@ defmodule IEx.Autocomplete do
   end
 
   defp to_uniq_entries(%{kind: kind}) when
-       kind in [:map_key, :module, :var_name] do
+       kind in [:map_key, :module, :variable] do
     []
   end
 
@@ -373,7 +373,7 @@ defmodule IEx.Autocomplete do
   end
 
   defp to_hint(%{kind: kind, name: name}, hint) when
-       kind in [:function, :map_key, :module, :var_name] do
+       kind in [:function, :map_key, :module, :variable] do
     format_hint(name, hint)
   end
 
