@@ -573,7 +573,7 @@ defmodule Task do
     end
   end
 
-  defp yield_many([%Task{ref: ref, owner: owner}=task | rest], timeout_ref, timeout) do
+  defp yield_many([%Task{ref: ref, owner: owner} = task | rest], timeout_ref, timeout) do
     if owner != self() do
       raise ArgumentError, invalid_owner_error(task)
     end
