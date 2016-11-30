@@ -103,7 +103,8 @@ defmodule IEx.Evaluator do
   end
 
   defp find_matched_variables(binding, var_prefix) do
-    for {var_name, _value} when is_atom(var_name) <- binding,
+    for {var_name, _value} <- binding,
+        is_atom(var_name),
         var_name = Atom.to_string(var_name),
         String.starts_with?(var_name, var_prefix),
         do: var_name
