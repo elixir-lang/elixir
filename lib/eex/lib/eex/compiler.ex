@@ -83,7 +83,7 @@ defmodule EEx.Compiler do
 
   # Look text ahead on expressions
 
-  defp look_ahead_text([{:text, text}, {:middle_expr, line, _, chars} | t]=list, start, contents) do
+  defp look_ahead_text([{:text, text}, {:middle_expr, line, _, chars} | t] = list, start, contents) do
     if only_spaces?(text) do
       {contents ++ text ++ chars, line, t}
     else
