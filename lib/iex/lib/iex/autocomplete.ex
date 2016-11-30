@@ -3,8 +3,8 @@ defmodule IEx.Autocomplete do
 
   def expand(expr, server \\ IEx.Server)
 
-  def expand('', _server) do
-    expand_import("")
+  def expand('', server) do
+    expand_variable_or_import("", server)
   end
 
   def expand([h | t]=expr, server) do
@@ -46,7 +46,7 @@ defmodule IEx.Autocomplete do
       {:ok, atom} when is_atom(atom) ->
         expand_erlang_modules(Atom.to_string(atom))
       {:ok, {atom, _, nil}} when is_atom(atom) ->
-        expand_import(Atom.to_string(atom))
+        expand_variable_or_import(Atom.to_string(atom), server)
       {:ok, {:__aliases__, _, [root]}} ->
         expand_elixir_modules([], Atom.to_string(root), server)
       {:ok, {:__aliases__, _, [h | _] = list}} when is_atom(h) ->
@@ -144,11 +144,14 @@ defmodule IEx.Autocomplete do
     format_expansion match_module_funs(mod, hint), hint
   end
 
-  defp expand_import(hint) do
-    funs = match_module_funs(IEx.Helpers, hint) ++
-           match_module_funs(Kernel, hint) ++
-           match_module_funs(Kernel.SpecialForms, hint)
-    format_expansion funs, hint
+  defp expand_variable_or_import(hint, server) do
+    Enum.concat([
+      match_variables(server, hint),
+      match_module_funs(IEx.Helpers, hint),
+      match_module_funs(Kernel, hint),
+      match_module_funs(Kernel.SpecialForms, hint),
+    ])
+    |> format_expansion(hint)
   end
 
   ## Erlang modules
@@ -286,6 +289,16 @@ defmodule IEx.Autocomplete do
     end
   end
 
+  defp match_variables(server, hint) do
+    with evaluator when is_pid(evaluator) <- server.evaluator() do
+      IEx.Evaluator.variables_from_binding(evaluator, hint)
+      |> Stream.map(&%{kind: :var_name, name: &1})
+      |> Enum.sort_by(&(&1.name))
+    else
+      _ -> []
+    end
+  end
+
   defp match_map_fields(map, hint) do
     for {key, value} <- map,
         is_atom(key),
@@ -333,7 +346,8 @@ defmodule IEx.Autocomplete do
 
   ## Ad-hoc conversions
 
-  defp to_entries(%{kind: :module, name: name}) do
+  defp to_entries(%{kind: kind, name: name})
+  when kind in [:map_key, :module, :var_name] do
     [name]
   end
 
@@ -341,11 +355,8 @@ defmodule IEx.Autocomplete do
     for a <- :lists.sort(arities), do: "#{name}/#{a}"
   end
 
-  defp to_entries(%{kind: :map_key, name: name}) do
-    [name]
-  end
-
-  defp to_uniq_entries(%{kind: :module}) do
+  defp to_uniq_entries(%{kind: kind})
+  when kind in [:map_key, :module, :var_name] do
     []
   end
 
@@ -353,27 +364,16 @@ defmodule IEx.Autocomplete do
     to_entries(fun)
   end
 
-  defp to_uniq_entries(%{kind: :map_key}) do
-    []
-  end
-
   defp to_hint(%{kind: :module, name: name}, hint) when name == hint do
     format_hint(name, name) <> "."
-  end
-
-  defp to_hint(%{kind: :module, name: name}, hint) do
-    format_hint(name, hint)
-  end
-
-  defp to_hint(%{kind: :function, name: name}, hint) do
-    format_hint(name, hint)
   end
 
   defp to_hint(%{kind: :map_key, name: name, value_is_map: true}, hint) when name == hint do
     format_hint(name, hint) <> "."
   end
 
-  defp to_hint(%{kind: :map_key, name: name}, hint) do
+  defp to_hint(%{kind: kind, name: name}, hint)
+  when kind in [:function, :map_key, :module, :var_name] do
     format_hint(name, hint)
   end
 
