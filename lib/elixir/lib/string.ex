@@ -1038,10 +1038,22 @@ defmodule String do
   Returns a new string created by replacing occurrences of `pattern` in
   `subject` with `replacement`.
 
-  By default, it replaces all occurrences, unless the `global` option is
-  set to `false`, where it will only replace the first one
-
   The `pattern` may be a string or a regular expression.
+
+  By default it replaces all occurrences but this behaviour can be controlled
+  through the `:global` option; see the "Options" section below.
+
+  ## Options
+
+    * `:global` - (boolean) if `true`, all occurrences of `pattern` are replaced
+      with `replacement`, otherwise only the first occurrence is
+      replaced. Defaults to `true`
+
+    * `:insert_replaced` - (integer or list of integers) specifies the position
+      where to insert the replaced part inside the `replacement`. If any
+      position given in the `:insert_replaced` option is larger than the
+      replacement string, or is negative, an `ArgumentError` is raised. See the
+      examples below
 
   ## Examples
 
@@ -1077,8 +1089,6 @@ defmodule String do
       iex> String.replace("a,b,c", ",", "[]", insert_replaced: [1, 1])
       "a[,,]b[,,]c"
 
-  If any position given in the `:insert_replaced` option is larger than the
-  replacement string, or is negative, an `ArgumentError` is raised.
   """
   @spec replace(t, pattern | Regex.t, t, Keyword.t) :: t
   def replace(subject, pattern, replacement, options \\ []) when is_binary(replacement) do
