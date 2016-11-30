@@ -18,7 +18,7 @@ defmodule Mix.Tasks.Compile.App do
   function in your `mix.exs` with the following options:
 
     * `:applications` - all applications your application depends
-      on at runtime. By default, this list is automatically inflected
+      on at runtime. By default, this list is automatically inferred
       from your dependencies. Any extra Erlang/Elixir dependency
       must be specified in `:extra_applications`. Mix and other tools
       use the application list in order to start your dependencies
