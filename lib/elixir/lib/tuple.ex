@@ -2,7 +2,7 @@ defmodule Tuple do
   @moduledoc """
   Functions for working with tuples.
 
-  Tuples are ordered collection of elements; tuples can contain elements of any
+  Tuples are ordered collections of elements; tuples can contain elements of any
   type, and a tuple can contain elements of different types. Curly braces can be
   used to create tuples:
 
