@@ -540,7 +540,7 @@ defmodule Registry do
 
   ## Examples
 
-  It unregister all entries for `key` for unique registries:
+  For unique registries:
 
       iex> Registry.start_link(:unique, Registry.UniqueUnregisterTest)
       iex> Registry.register(Registry.UniqueUnregisterTest, "hello", :world)
@@ -551,7 +551,7 @@ defmodule Registry do
       iex> Registry.keys(Registry.UniqueUnregisterTest, self())
       []
 
-  As well as duplicate registries:
+  For duplicate registries:
 
       iex> Registry.start_link(:duplicate, Registry.DuplicateUnregisterTest)
       iex> Registry.register(Registry.DuplicateUnregisterTest, "hello", :world)
@@ -595,7 +595,7 @@ defmodule Registry do
   lookup.
 
   This function returns `{:ok, owner}` or `{:error, reason}`.
-  The `owner` is the pid is the registry partition responsible for
+  The `owner` is the pid in the registry partition responsible for
   the pid. The owner is automatically linked to the caller.
 
   If the registry has unique keys, it will return `{:ok, owner}` unless
