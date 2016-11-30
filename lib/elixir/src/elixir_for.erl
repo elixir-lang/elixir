@@ -114,7 +114,9 @@ translate_gen(_Meta, Left, Right, T, S) ->
   SF = SL#elixir_scope{extra=S#elixir_scope.extra, extra_guards=nil},
 
   {TT, {TFilters, TS}} = translate_filters(T, SF),
-  Guards = ExtraGuards ++ translate_guards(TLeftGuards) ++ TFilters,
+
+  %% The list of guards is kept in reverse order
+  Guards = TFilters ++ translate_guards(TLeftGuards) ++ ExtraGuards,
   {TLeft, TRight, Guards, TT, TS}.
 
 translate_guards([]) ->
