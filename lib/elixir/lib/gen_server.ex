@@ -420,7 +420,7 @@ defmodule GenServer do
   `use GenServer` will return `{:noreply, state}`.
 
   The default implementation catches all messages. If you override it,
-  make sure to add a catch-all as final function variant as well,
+  make sure to add a catch-all as final function clause as well,
   to ensure that a message that your GenServer does not understand
   is still removed from its inbox.
   """
