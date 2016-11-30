@@ -51,6 +51,12 @@ defmodule Kernel.ComprehensionTest do
     assert for(x when x == 3 when x == 7 <- 1..10, do: x) == [3, 7]
   end
 
+  test "for comprehensions with guards and filters" do
+    assert for({var, _} when is_atom(var) <- [{:foo, 1}, {2, :bar}],
+               var = Atom.to_string(var),
+               do: var) == ["foo"]
+  end
+
   test "for comprehensions with map key matching" do
     maps = [%{x: 1}, %{y: 2}, %{x: 3}]
     assert for(%{x: v} <- maps, do: v * 2) == [2, 6]
