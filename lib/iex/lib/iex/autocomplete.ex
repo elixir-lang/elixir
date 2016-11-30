@@ -7,7 +7,7 @@ defmodule IEx.Autocomplete do
     expand_import("")
   end
 
-  def expand([h | t]=expr, server) do
+  def expand([h | t] = expr, server) do
     cond do
       h === ?. and t != [] ->
         expand_dot(reduce(t), server)
@@ -95,7 +95,7 @@ defmodule IEx.Autocomplete do
     end
   end
 
-  defp format_expansion([first | _]=entries, hint) do
+  defp format_expansion([first | _] = entries, hint) do
     binary = Enum.map(entries, &(&1.name))
     length = byte_size(hint)
     prefix = :binary.longest_common_prefix(binary)

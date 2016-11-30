@@ -1151,7 +1151,7 @@ defmodule GenEvent do
   defp report_error(handler, reason, state, last_in, name) do
     reason =
       case reason do
-        {:undef, [{m, f, a, _} | _]=mfas} ->
+        {:undef, [{m, f, a, _} | _] = mfas} ->
           cond do
             :code.is_loaded(m) === false ->
               {:"module could not be loaded", mfas}
