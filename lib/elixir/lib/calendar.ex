@@ -16,14 +16,14 @@ defmodule Calendar do
   calendars may have a different number of days per month, months per year and so on.
   """
 
-  @type year        :: integer
-  @type month       :: integer
-  @type day         :: integer
-  @type hour        :: 0..23
-  @type minute      :: 0..59
+  @type year :: integer
+  @type month :: integer
+  @type day :: integer
+  @type hour :: 0..23
+  @type minute :: 0..59
 
   @typedoc "From 0 to 60 to account for leap seconds"
-  @type second      :: 0..60
+  @type second :: 0..60
 
   @typedoc """
   Microseconds with stored precision.
@@ -36,19 +36,19 @@ defmodule Calendar do
   @type microsecond :: {0..999_999, 0..6}
 
   @typedoc "A calendar implementation"
-  @type calendar    :: module
+  @type calendar :: module
 
   @typedoc "The time zone ID according to the IANA tz database (e.g. Europe/Zurich)"
-  @type time_zone   :: String.t
+  @type time_zone :: String.t
 
   @typedoc "The time zone abbreviation (e.g. CET or CEST or BST etc.)"
-  @type zone_abbr   :: String.t
+  @type zone_abbr :: String.t
 
   @typedoc "The time zone UTC offset in seconds"
-  @type utc_offset  :: integer
+  @type utc_offset :: integer
 
   @typedoc "The time zone standard offset in seconds (not zero in summer times)"
-  @type std_offset  :: integer
+  @type std_offset :: integer
 
   @typedoc "Any map/struct that contains the date fields"
   @type date :: %{calendar: calendar, year: year, month: month, day: day}
@@ -240,9 +240,9 @@ defmodule Date do
   """
   @spec from_iso8601(String.t) :: {:ok, t} | {:error, atom}
   def from_iso8601(<<year::4-bytes, ?-, month::2-bytes, ?-, day::2-bytes>>) do
-    with {year, ""}  <- Integer.parse(year),
+    with {year, ""} <- Integer.parse(year),
          {month, ""} <- Integer.parse(month),
-         {day, ""}   <- Integer.parse(day) do
+         {day, ""} <- Integer.parse(day) do
       new(year, month, day)
     else
       _ -> {:error, :invalid_format}
@@ -591,16 +591,17 @@ defmodule Time do
   end
 
   def from_iso8601(<<hour::2-bytes, ?:, min::2-bytes, ?:, sec::2-bytes, rest::binary>>) do
-    with {hour, ""}       <- Integer.parse(hour),
-         {min, ""}        <- Integer.parse(min),
-         {sec, ""}        <- Integer.parse(sec),
+    with {hour, ""} <- Integer.parse(hour),
+         {min, ""} <- Integer.parse(min),
+         {sec, ""} <- Integer.parse(sec),
          {microsec, rest} <- Calendar.ISO.parse_microsecond(rest),
-         {_offset, ""}    <- Calendar.ISO.parse_offset(rest) do
+         {_offset, ""} <- Calendar.ISO.parse_offset(rest) do
       new(hour, min, sec, microsec)
     else
       _ -> {:error, :invalid_format}
     end
   end
+
   def from_iso8601(<<_::binary>>) do
     {:error, :invalid_format}
   end
@@ -1073,14 +1074,14 @@ defmodule NaiveDateTime do
   @spec from_iso8601(String.t) :: {:ok, t} | {:error, atom}
   def from_iso8601(<<year::4-bytes, ?-, month::2-bytes, ?-, day::2-bytes, sep,
                      hour::2-bytes, ?:, min::2-bytes, ?:, sec::2-bytes, rest::binary>>) when sep in [?\s, ?T] do
-    with {year, ""}       <- Integer.parse(year),
-         {month, ""}      <- Integer.parse(month),
-         {day, ""}        <- Integer.parse(day),
-         {hour, ""}       <- Integer.parse(hour),
-         {min, ""}        <- Integer.parse(min),
-         {sec, ""}        <- Integer.parse(sec),
+    with {year, ""} <- Integer.parse(year),
+         {month, ""} <- Integer.parse(month),
+         {day, ""} <- Integer.parse(day),
+         {hour, ""} <- Integer.parse(hour),
+         {min, ""} <- Integer.parse(min),
+         {sec, ""} <- Integer.parse(sec),
          {microsec, rest} <- Calendar.ISO.parse_microsecond(rest),
-         {_offset, ""}    <- Calendar.ISO.parse_offset(rest) do
+         {_offset, ""} <- Calendar.ISO.parse_offset(rest) do
       new(year, month, day, hour, min, sec, microsec)
     else
       _ -> {:error, :invalid_format}
@@ -1671,16 +1672,16 @@ defmodule DateTime do
   @spec from_iso8601(String.t) :: {:ok, t, Calendar.utc_offset} | {:error, atom}
   def from_iso8601(<<year::4-bytes, ?-, month::2-bytes, ?-, day::2-bytes, sep,
                      hour::2-bytes, ?:, min::2-bytes, ?:, sec::2-bytes, rest::binary>>) when sep in [?\s, ?T] do
-    with {year, ""}       <- Integer.parse(year),
-         {month, ""}      <- Integer.parse(month),
-         {day, ""}        <- Integer.parse(day),
-         {hour, ""}       <- Integer.parse(hour),
-         {min, ""}        <- Integer.parse(min),
-         {sec, ""}        <- Integer.parse(sec),
+    with {year, ""} <- Integer.parse(year),
+         {month, ""} <- Integer.parse(month),
+         {day, ""} <- Integer.parse(day),
+         {hour, ""} <- Integer.parse(hour),
+         {min, ""} <- Integer.parse(min),
+         {sec, ""} <- Integer.parse(sec),
          {microsec, rest} <- Calendar.ISO.parse_microsecond(rest),
-         {:ok, date}      <- Calendar.ISO.date(year, month, day),
-         {:ok, time}      <- Time.new(hour, min, sec, microsec),
-         {:ok, offset}    <- parse_offset(rest) do
+         {:ok, date} <- Calendar.ISO.date(year, month, day),
+         {:ok, time} <- Time.new(hour, min, sec, microsec),
+         {:ok, offset} <- parse_offset(rest) do
       %{year: year, month: month, day: day} = date
       %{hour: hour, minute: minute, second: second, microsecond: microsecond} = time
 
@@ -1697,9 +1698,11 @@ defmodule DateTime do
       _ -> {:error, :invalid_format}
     end
   end
+
   def from_iso8601(_) do
     {:error, :invalid_format}
   end
+
   defp parse_offset(rest) do
     case Calendar.ISO.parse_offset(rest) do
       {offset, ""} when is_integer(offset) -> {:ok, offset}
