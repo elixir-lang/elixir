@@ -540,7 +540,7 @@ defmodule Registry do
 
   ## Examples
 
-  For unique registries, it unregisters all entries for the given `key`:
+  For unique registries:
 
       iex> Registry.start_link(:unique, Registry.UniqueUnregisterTest)
       iex> Registry.register(Registry.UniqueUnregisterTest, "hello", :world)
@@ -551,8 +551,7 @@ defmodule Registry do
       iex> Registry.keys(Registry.UniqueUnregisterTest, self())
       []
 
-  For duplicate registries, it unregisters only the entries for the given 
-  key registered by the current process:
+  For duplicate registries:
 
       iex> Registry.start_link(:duplicate, Registry.DuplicateUnregisterTest)
       iex> Registry.register(Registry.DuplicateUnregisterTest, "hello", :world)
