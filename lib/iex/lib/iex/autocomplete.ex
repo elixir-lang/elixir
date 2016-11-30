@@ -346,8 +346,8 @@ defmodule IEx.Autocomplete do
 
   ## Ad-hoc conversions
 
-  defp to_entries(%{kind: kind, name: name})
-  when kind in [:map_key, :module, :var_name] do
+  defp to_entries(%{kind: kind, name: name}) when
+       kind in [:map_key, :module, :var_name] do
     [name]
   end
 
@@ -355,8 +355,8 @@ defmodule IEx.Autocomplete do
     for a <- :lists.sort(arities), do: "#{name}/#{a}"
   end
 
-  defp to_uniq_entries(%{kind: kind})
-  when kind in [:map_key, :module, :var_name] do
+  defp to_uniq_entries(%{kind: kind}) when
+       kind in [:map_key, :module, :var_name] do
     []
   end
 
@@ -372,8 +372,8 @@ defmodule IEx.Autocomplete do
     format_hint(name, hint) <> "."
   end
 
-  defp to_hint(%{kind: kind, name: name}, hint)
-  when kind in [:function, :map_key, :module, :var_name] do
+  defp to_hint(%{kind: kind, name: name}, hint) when
+       kind in [:function, :map_key, :module, :var_name] do
     format_hint(name, hint)
   end
 
