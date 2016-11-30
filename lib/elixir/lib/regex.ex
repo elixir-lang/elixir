@@ -3,7 +3,7 @@ defmodule Regex do
   Provides regular expressions for Elixir. Built on top of Erlang's `:re`
   module.
 
-  As the `:re` module, Regex is based on PCRE
+  As the [`:re` module](http://www.erlang.org/doc/man/re.html), Regex is based on PCRE
   (Perl Compatible Regular Expressions). More information can be
   found in the [`:re` module documentation](http://www.erlang.org/doc/man/re.html).
 

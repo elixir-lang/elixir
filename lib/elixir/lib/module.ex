@@ -348,7 +348,7 @@ defmodule Module do
       it is dispatched to
 
   You can see a handful more options used by the Erlang compiler in
-  the documentation for the `:compile` module.
+  the documentation for the [`:compile` module](http://www.erlang.org/doc/man/compile.html).
   '''
 
   @doc """
