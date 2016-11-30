@@ -91,6 +91,24 @@ Finally, if there is a dependency you don't want to include in the application r
 
 We hope this feature provides a more streamlined workflow for developers who are building releases for their Elixir projects.
 
+## Mix install from SCM
+
+Mix v1.4 can now install escripts and archives from both Git and Hex, providing you with even more options for distributing Elixir code.
+
+This makes it possible to distribute CLI applications written in Elixir by publishing a package which builds an escript to Hex. [`ex_doc`](https://hex.pm/packages/ex_doc) has been updated to serve as an example of how to use this new functionality.
+
+Simply running:
+
+    mix escript.install hex ex_doc
+
+will fetch `ex_doc` and its dependencies, build them, and then install `ex_doc` to `~/.mix/escripts` (by default). After adding `~/.mix/escripts` to your `PATH`, running `ex_doc` is as simple as:
+
+    ex_doc
+
+You can now also install archives from Hex in this way. Since they are fetched and built on the user's machine, they do not have the same limitations as pre-built archives. However, keep in mind archives run alongside every Mix project, which may lead to conflicts. For this reason, escripts is the preferred format.
+
+It is also possible to install escripts and archives by providing a Git/GitHub repo. See `mix help escript.install` and `mix help archive.install` for more details.
+
 ## v1.4.0-rc.1 (2016-12-05)
 
 ### 1. Enhancements
@@ -143,12 +161,14 @@ We hope this feature provides a more streamlined workflow for developers who are
 #### Mix
 
   * [mix archive] Compress archive files built by `mix archive` as they are now unzipped during installation
+  * [mix archive] Install from SCM
   * [mix compile] Automatically infer the list of applications for Mix projects
   * [mix cmd] Add the ability to specify one or more apps in `mix cmd`
   * [mix deps] Warn if there are non-applications in the `apps` directory for umbrella projects
   * [mix deps] Add warning for invalid paths on `mix deps.clean`
   * [mix deps] Add `Mix.Project.apps_paths` that returns the paths to children applications in umbrella projects
   * [mix deps] Add `MIX_REBAR` environment variable for overriding local rebar
+  * [mix escript] Install from SCM
   * [mix new] Check directory existence in `mix new` and ask how to proceed if one exists
   * [mix new] Applications built with the `--sup` flag now have an individual module to work as application callback
   * [mix test] Add `--formatter` option to `mix test`
