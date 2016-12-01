@@ -5,7 +5,8 @@ defmodule HashSet do
   Use the `MapSet` module instead.
   """
 
-  # TODO: Deprecate every function by 1.4
+  # TODO: Remove by 2.0
+  # (hard-deprecated in elixir_dispatch)
 
   @node_bitmap 0b111
   @node_shift 3
