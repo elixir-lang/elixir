@@ -1630,7 +1630,7 @@ defmodule Enum do
   end
 
   @doc false
-  # TODO: Deprecate by v1.5
+  # TODO: Deprecate by v1.6 (hard-deprecation)
   @spec partition(t, (element -> any)) :: {list, list}
   def partition(enumerable, fun) when is_function(fun, 1) do
     split_with(enumerable, fun)
