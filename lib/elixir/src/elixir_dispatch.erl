@@ -378,6 +378,16 @@ deprecation('Elixir.String', ljust, 2) ->
   "use String.pad_trailing/2";
 deprecation('Elixir.String', ljust, 3) ->
   "use String.pad_trailing/3 with a binary padding";
+deprecation('Elixir.Atom', to_char_list, 1) ->
+  "use Atom.to_charlist/1";
+deprecation('Elixir.Float', to_char_list, 1) ->
+  "use Float.to_charlist/1";
+deprecation('Elixir.Integer', to_char_list, 1) ->
+  "use Integer.to_charlist/1";
+deprecation('Elixir.String', to_char_list, 1) ->
+  "use String.to_charlist/1";
+deprecation('Elixir.List.Chars', to_char_list, 1) ->
+  "use List.Chars.to_charlist/1";
 
 deprecation(_, _, _) ->
   false.

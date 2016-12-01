@@ -37,7 +37,8 @@ defmodule Atom do
     :erlang.atom_to_list(atom)
   end
 
-  # TODO: Deprecate by v1.5
+  # TODO: Remove by 2.0
+  # (hard-deprecated in elixir_dispatch)
   @doc false
   @spec to_char_list(atom) :: charlist
   def to_char_list(atom), do: Atom.to_charlist(atom)

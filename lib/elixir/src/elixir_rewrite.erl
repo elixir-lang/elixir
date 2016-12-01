@@ -29,7 +29,7 @@
 %% number and order of arguments and show up on captures.
 
 inline(?atom, to_charlist, 1) -> {erlang, atom_to_list};
-%% TODO: Deprecate to_char_list function by v1.5
+%% TODO: Remove to_char_list by 2.0
 inline(?atom, to_char_list, 1) -> {erlang, atom_to_list};
 inline(?io, iodata_length, 1) -> {erlang, iolist_size};
 inline(?io, iodata_to_binary, 1) -> {erlang, iolist_to_binary};
@@ -37,7 +37,7 @@ inline(?integer, to_string, 1) -> {erlang, integer_to_binary};
 inline(?integer, to_string, 2) -> {erlang, integer_to_binary};
 inline(?integer, to_charlist, 1) -> {erlang, integer_to_list};
 inline(?integer, to_charlist, 2) -> {erlang, integer_to_list};
-%% TODO: Deprecate to_char_list function by v1.5
+%% TODO: Remove to_char_list by 2.0
 inline(?integer, to_char_list, 1) -> {erlang, integer_to_list};
 inline(?integer, to_char_list, 2) -> {erlang, integer_to_list};
 inline(?list, to_atom, 1) -> {erlang, list_to_atom};
@@ -186,7 +186,7 @@ rewrite(?access, _DotMeta, 'get', Meta, [Arg, _], Env)
     ['Elixir.Macro':to_string(Arg)]);
 rewrite(?list_chars, _DotMeta, 'to_charlist', _Meta, [List], _Env) when is_list(List) ->
   List;
-%% TODO: Deprecate to_char_list function by v1.5
+%% TODO: Remove to_char_list function by 2.0
 rewrite(?list_chars, _DotMeta, 'to_char_list', _Meta, [List], _Env) when is_list(List) ->
   List;
 rewrite(?string_chars, _DotMeta, 'to_string', _Meta, [String], _Env) when is_binary(String) ->

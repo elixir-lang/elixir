@@ -11,8 +11,9 @@ defprotocol List.Chars do
 
   def to_charlist(term)
 
-  # TODO: Deprecate by v1.5
   @doc false
+  # TODO: Remove by 2.0
+  # (hard-deprecated in elixir_dispatch)
   Kernel.def to_char_list(term) do
     __MODULE__.to_charlist(term)
   end
