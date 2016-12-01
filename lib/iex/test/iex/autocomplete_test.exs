@@ -188,6 +188,22 @@ defmodule IEx.AutocompleteTest do
     assert expand('put_') == {:yes, '', ['put_elem/3', 'put_in/2', 'put_in/3']}
   end
 
+  @tag previous_line: "numeral = 3; number = 3; nothing = nil"
+  test "variable name completion" do
+    assert expand('numb') == {:yes, 'er', []}
+    assert expand('num') == {:yes, '', ['number', 'numeral']}
+    assert expand('no') == {:yes, '', ['nothing', 'not/1', 'node/0', 'node/1']}
+  end
+
+  defmacro define_var do
+    quote do: var!(my_var_1, Elixir) = 1
+  end
+
+  @tag previous_line: "require #{__MODULE__}; #{__MODULE__}.define_var(); my_var_2 = 2"
+  test "ignores quoted variables when performing variable completion" do
+    assert expand('my_var') == {:yes, '_2', []}
+  end
+
   test "kernel special form completion" do
     assert expand('unquote_spl') == {:yes, 'icing', []}
   end
