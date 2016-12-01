@@ -354,6 +354,8 @@ deprecation('Elixir.HashSet', _, _) ->
   "use the MapSet module instead";
 deprecation('Elixir.Dict', _, _) ->
   "use the Map module for working with maps or the Keyword module for working with keyword lists";
+deprecation('Elixir.Set', _, _) ->
+  "use the MapSet module for working with sets";
 
 %% Single functions
 deprecation('Elixir.String', strip, 1) ->
