@@ -282,14 +282,18 @@ defimpl Inspect, for: List do
     color("[]", :list, opts)
   end
 
-  # TODO: Deprecate :char_lists and :as_char_lists keys in v1.5
+  # TODO: Remove :char_list and :as_char_lists handling in 2.0
   def inspect(term, %Inspect.Opts{charlists: lists, char_lists: lists_deprecated} = opts) do
     lists =
       if lists == :infer and lists_deprecated != :infer do
         case lists_deprecated do
           :as_char_lists ->
+            IO.warn "the :char_lists inspect option and its :as_char_lists " <>
+              "value are deprecated, use the :charlists option and its " <>
+              ":as_charlists value instead"
             :as_charlists
           _ ->
+            IO.warn "the :char_lists inspect option is deprecated, use :charlists instead"
             lists_deprecated
         end
       else
