@@ -219,38 +219,6 @@ rewrite(?enum, DotMeta, 'reverse', Meta, [List], _Env) ->
      {'->', Generated, [[Var], Slow]}]
   }]]};
 
-%% Deprecations
-
-%% String.*strip/1 functions
-rewrite(?string, DotMeta, strip, Meta, [String], Env) ->
-  Warning = "String.strip/1 is deprecated, use String.trim/1",
-  elixir_errors:warn(?line(Meta), ?m(Env, file), Warning),
-  remote(?string, DotMeta, trim, Meta, [String]);
-rewrite(?string, DotMeta, lstrip, Meta, [String], Env) ->
-  Warning = "String.lstrip/1 is deprecated, use String.trim_leading/1",
-  elixir_errors:warn(?line(Meta), ?m(Env, file), Warning),
-  remote(?string, DotMeta, trim_leading, Meta, [String]);
-rewrite(?string, DotMeta, rstrip, Meta, [String], Env) ->
-  Warning = "String.rstrip/1 is deprecated, use String.trim_trailing/1",
-  elixir_errors:warn(?line(Meta), ?m(Env, file), Warning),
-  remote(?string, DotMeta, trim_trailing, Meta, [String]);
-
-%% String.*strip/2 functions
-rewrite(?string, DotMeta, strip, Meta, [String, Char], Env) ->
-  Warning = "String.strip/2 is deprecated, use String.trim/2 with a binary replacement",
-  elixir_errors:warn(?line(Meta), ?m(Env, file), Warning),
-  remote(?string, DotMeta, trim, Meta, [String, <<Char/utf8>>]);
-rewrite(?string, DotMeta, lstrip, Meta, [String, Char], Env) when is_integer(Char) ->
-  Warning = ["String.lstrip/2 is deprecated, use String.replace_leading/3 ",
-             "with a binary patter and an empty replacement"],
-  elixir_errors:warn(?line(Meta), ?m(Env, file), Warning),
-  remote(?string, DotMeta, replace_leading, Meta, [String, <<Char/utf8>>, <<>>]);
-rewrite(?string, DotMeta, rstrip, Meta, [String, Char], Env) when is_integer(Char) ->
-  Warning = ["String.rstrip/2 is deprecated, use String.replace_trailing/3 ",
-             "with a binary patter and an empty replacement"],
-  elixir_errors:warn(?line(Meta), ?m(Env, file), Warning),
-  remote(?string, DotMeta, replace_trailing, Meta, [String, <<Char/utf8>>, <<>>]);
-
 rewrite(Receiver, DotMeta, Right, Meta, Args, _Env) ->
   {EReceiver, ERight, EArgs} = rewrite(Receiver, Right, Args),
   remote(EReceiver, DotMeta, ERight, Meta, EArgs).
