@@ -1,5 +1,5 @@
 defmodule GenEvent do
-  # TODO: Deprecate by 1.5 (hard deprecation)
+  # TODO: Deprecate by 1.6 (hard deprecation)
 
   @moduledoc """
   WARNING: this module is deprecated.
