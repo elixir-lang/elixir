@@ -347,11 +347,27 @@ deprecation_message(Warning, Message) ->
     Message -> Warning ++ ", " ++ Message
   end.
 
+%% Modules
 deprecation('Elixir.HashDict', _, _) ->
   "use maps and the Map module instead";
 deprecation('Elixir.HashSet', _, _) ->
   "use the MapSet module instead";
 deprecation('Elixir.Dict', _, _) ->
   "use the Map module for working with maps or the Keyword module for working with keyword lists";
+
+%% Single functions
+deprecation('Elixir.String', strip, 1) ->
+  "use String.trim/1";
+deprecation('Elixir.String', lstrip, 1) ->
+  "use String.trim_leading/1";
+deprecation('Elixir.String', rstrip, 1) ->
+  "use String.trim_trailing/1";
+deprecation('Elixir.String', strip, 2) ->
+  "use String.trim/2 with a binary second argument";
+deprecation('Elixir.String', lstrip, 2) ->
+  "use String.trim_leading/2 with a binary second argument";
+deprecation('Elixir.String', rstrip, 2) ->
+  "use String.trim_trailing/2 with a binary second argument";
+
 deprecation(_, _, _) ->
   false.
