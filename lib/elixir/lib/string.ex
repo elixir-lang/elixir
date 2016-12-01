@@ -2035,7 +2035,8 @@ defmodule String do
     end)
   end
 
-  # TODO: Deprecate by v1.5
+  # TODO: Remove by 2.0
+  # (hard-deprecated in elixir_dispatch)
   @doc false
   @spec to_char_list(t) :: charlist
   def to_char_list(string), do: String.to_charlist(string)

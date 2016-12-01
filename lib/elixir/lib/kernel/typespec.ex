@@ -425,7 +425,7 @@ defmodule Kernel.Typespec do
   defp elixir_builtin_type?(:as_boolean, 1), do: true
   defp elixir_builtin_type?(:struct, 0), do: true
   defp elixir_builtin_type?(:charlist, 0), do: true
-  # TODO: Deprecate char_list type by v1.5
+  # TODO: Remove char_list type by 2.0
   defp elixir_builtin_type?(:char_list, 0), do: true
   defp elixir_builtin_type?(:keyword, 0), do: true
   defp elixir_builtin_type?(:keyword, 1), do: true
@@ -659,7 +659,7 @@ defmodule Kernel.Typespec do
   end
 
   # Special shortcut(s)
-  # TODO: Deprecate char_list type by v1.5
+  # TODO: Remove char_list type by 2.0
   defp typespec_to_ast({:remote_type, line, [{:atom, _, :elixir}, {:atom, _, type}, []]})
       when type in [:charlist, :char_list] do
     typespec_to_ast({:type, line, :charlist, []})
@@ -940,8 +940,11 @@ defmodule Kernel.Typespec do
     {:type, line(meta), type, arguments}
   end
 
-  # TODO: Deprecate char_list type by v1.5
+  # TODO: Remove char_list type by 2.0
   defp typespec({type, _meta, []}, vars, caller) when type in [:charlist, :char_list] do
+    if type == :char_list do
+      :elixir_errors.warn caller.line, caller.file, "the char_list() type is deprecated, use charlist()"
+    end
     typespec((quote do: :elixir.charlist()), vars, caller)
   end
 

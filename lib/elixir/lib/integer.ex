@@ -401,7 +401,8 @@ defmodule Integer do
     :erlang.integer_to_list(integer, base)
   end
 
-  # TODO: Deprecate by v1.5
+  # TODO: Remove by 2.0
+  # (hard-deprecated in elixir_dispatch)
   @doc false
   @spec to_char_list(integer) :: charlist
   def to_char_list(integer), do: Integer.to_charlist(integer)

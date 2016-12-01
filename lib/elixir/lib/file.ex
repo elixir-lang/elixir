@@ -1347,8 +1347,11 @@ defmodule File do
   defp normalize_modes([:read_ahead | rest], binary?) do
     [read_ahead: @read_ahead_size] ++ normalize_modes(rest, binary?)
   end
-  # TODO: Deprecate :char_list mode by v1.5
+  # TODO: Remove :char_list mode by 2.0
   defp normalize_modes([mode | rest], _binary?) when mode in [:charlist, :char_list] do
+    if mode == :char_list do
+      IO.warn "the :char_list mode is deprecated, use :charlist"
+    end
     normalize_modes(rest, false)
   end
   defp normalize_modes([mode | rest], binary?) do

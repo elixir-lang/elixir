@@ -49,7 +49,7 @@ defmodule Inspect.Opts do
       Colors can be any `t:IO.ANSI.ansidata/0` as accepted by `IO.ANSI.format/1`.
   """
 
-  # TODO: Deprecate char_lists key by v1.5
+  # TODO: Remove :char_lists key by 2.0
   defstruct structs: true,
             binaries: :infer,
             charlists: :infer,
@@ -63,7 +63,7 @@ defmodule Inspect.Opts do
 
   @type color_key :: atom
 
-  # TODO: Deprecate char_lists key and :as_char_lists value by v1.5
+  # TODO: Remove :char_lists key and :as_char_lists value by 2.0
   @type t :: %__MODULE__{
                structs: boolean,
                binaries: :infer | :as_binaries | :as_strings,
