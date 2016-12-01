@@ -1029,13 +1029,15 @@ defmodule String do
   end
 
   @doc false
-  # TODO: Deprecate by 1.5
+  # TODO: Remove by 2.0
+  # (hard-deprecated in elixir_dispatch)
   def rjust(subject, len, pad \\ ?\s) when is_integer(pad) and is_integer(len) and len >= 0 do
     pad(:leading, subject, len, [<<pad::utf8>>])
   end
 
   @doc false
-  # TODO: Deprecate by 1.5
+  # TODO: Remove by 2.0
+  # (hard-deprecated in elixir_dispatch)
   def ljust(subject, len, pad \\ ?\s) when is_integer(pad) and is_integer(len) and len >= 0 do
     pad(:trailing, subject, len, [<<pad::utf8>>])
   end
