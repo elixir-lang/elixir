@@ -41,6 +41,22 @@ defmodule IEx.Evaluator do
   end
 
   @doc """
+  Gets a list of variables out of the binding that match the passed
+  variable prefix.
+  """
+  @spec variables_from_binding(pid, String.t) :: [String.t]
+  def variables_from_binding(evaluator, variable_prefix) do
+    ref = make_ref()
+    send evaluator, {:variables_from_binding, ref, self(), variable_prefix}
+
+    receive do
+      {^ref, result} -> result
+    after
+      5000 -> []
+    end
+  end
+
+  @doc """
   Returns the current session environment if a session exists.
   """
   @spec value_from_env(pid, atom) :: {:ok, term} | :error
@@ -68,6 +84,10 @@ defmodule IEx.Evaluator do
         value = traverse_binding(state.binding, var_name, map_key_path)
         send receiver, {ref, value}
         loop(server, history, state)
+      {:variables_from_binding, ref, receiver, var_prefix} ->
+        value = find_matched_variables(state.binding, var_prefix)
+        send receiver, {ref, value}
+        loop(server, history, state)
       {:done, ^server} ->
         :ok
     end
@@ -80,6 +100,14 @@ defmodule IEx.Evaluator do
       key, {:ok, map} when is_map(map) -> Map.fetch(map, key)
       _key, _acc -> :error
     end
+  end
+
+  defp find_matched_variables(binding, var_prefix) do
+    for {var_name, _value} <- binding,
+        is_atom(var_name),
+        var_name = Atom.to_string(var_name),
+        String.starts_with?(var_name, var_prefix),
+        do: var_name
   end
 
   defp loop_state(opts) do
