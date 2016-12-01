@@ -388,6 +388,8 @@ deprecation('Elixir.String', to_char_list, 1) ->
   "use String.to_charlist/1";
 deprecation('Elixir.List.Chars', to_char_list, 1) ->
   "use List.Chars.to_charlist/1";
+deprecation('Kernel', to_char_list, 1) ->
+  "use Kernel.to_charlist/1";
 
 deprecation(_, _, _) ->
   false.

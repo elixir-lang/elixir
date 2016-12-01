@@ -4451,9 +4451,8 @@ defmodule Kernel do
 
   @doc false
   # TODO: Remove by 2.0
+  # (hard-deprecated in elixir_dispatch)
   defmacro to_char_list(arg) do
-    %{file: file, line: line} = __CALLER__
-    :elixir_errors.warn(line, file, "to_char_list/1 is deprecated, use to_charlist/1")
     quote do: Kernel.to_charlist(unquote(arg))
   end
 end
