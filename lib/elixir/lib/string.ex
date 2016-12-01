@@ -601,11 +601,13 @@ defmodule String do
   end
 
   @doc false
-  # TODO: Deprecate by 1.5
+  # TODO: Remove by 2.0
+  # (hard-deprecated in elixir_dispatch)
   defdelegate rstrip(binary), to: String.Break, as: :trim_trailing
 
   @doc false
-  # TODO: Deprecate by 1.5
+  # TODO: Remove by 2.0
+  # (hard-deprecated in elixir_dispatch)
   def rstrip(string, char) when is_integer(char) do
     replace_trailing(string, <<char::utf8>>, "")
   end
@@ -787,23 +789,27 @@ defmodule String do
   end
 
   @doc false
-  # TODO: Deprecate by 1.5
+  # TODO: Remove by 2.0
+  # (hard-deprecated in elixir_dispatch)
   defdelegate lstrip(binary), to: String.Break, as: :trim_leading
 
   @doc false
-  # TODO: Deprecate by 1.5
+  # TODO: Remove by 2.0
+  # (hard-deprecated in elixir_dispatch)
   def lstrip(string, char) when is_integer(char) do
     replace_leading(string, <<char::utf8>>, "")
   end
 
   @doc false
-  # TODO: Deprecate by 1.5
+  # TODO: Remove by 2.0
+  # (hard-deprecated in elixir_dispatch)
   def strip(string) do
     trim(string)
   end
 
   @doc false
-  # TODO: Deprecate by 1.5
+  # TODO: Remove by 2.0
+  # (hard-deprecated in elixir_dispatch)
   def strip(string, char) do
     trim(string, <<char::utf8>>)
   end
