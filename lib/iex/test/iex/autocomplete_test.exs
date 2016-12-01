@@ -185,7 +185,7 @@ defmodule IEx.AutocompleteTest do
 
   test "kernel import completion" do
     assert expand('defstru') == {:yes, 'ct', []}
-    assert expand('put_') == {:yes, '', ['put_elem/3', 'put_in/3', 'put_in/2']}
+    assert expand('put_') == {:yes, '', ['put_elem/3', 'put_in/2', 'put_in/3']}
   end
 
   @tag previous_line: "numeral = 3; number = 3; nothing = nil"
@@ -198,7 +198,7 @@ defmodule IEx.AutocompleteTest do
   @tag previous_line: "import Enum; import Supervisor, only: [count_children: 1]; import Protocol"
   test "completion of manually imported functions and macros" do
     assert expand('take') == {:yes, '', ['take/2', 'take_every/2', 'take_random/2', 'take_while/2']}
-    assert expand('count') == {:yes, '', ['count_children/1', 'count/1', 'count/2']}
+    assert expand('count') == {:yes, '', ['count/1', 'count/2', 'count_children/1']}
     assert expand('der') == {:yes, 'ive', []}
   end
 
