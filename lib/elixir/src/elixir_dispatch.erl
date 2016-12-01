@@ -370,6 +370,8 @@ deprecation('Elixir.String', lstrip, 2) ->
   "use String.trim_leading/2 with a binary second argument";
 deprecation('Elixir.String', rstrip, 2) ->
   "use String.trim_trailing/2 with a binary second argument";
+deprecation('Elixir.Enum', partition, 2) ->
+  "use Enum.split_with/2";
 
 deprecation(_, _, _) ->
   false.
