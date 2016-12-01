@@ -3,6 +3,9 @@ defmodule GenEvent do
 
   @moduledoc """
   WARNING: this module is deprecated.
+
+  If you need the same functionality, you can use the `:gen_event` Erlang
+  module.
   """
 
   @callback init(args :: term) ::
