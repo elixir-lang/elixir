@@ -141,16 +141,19 @@ defmodule IEx.Autocomplete do
   end
 
   defp expand_require(mod, hint) do
-    format_expansion match_module_funs(mod, hint), hint
+    format_expansion match_module_funs(get_module_funs(mod), hint), hint
   end
 
   defp expand_variable_or_import(hint, server) do
-    Enum.concat([
-      match_variables(server, hint),
-      match_imports(server, hint),
-      match_module_funs(Kernel.SpecialForms, hint),
-    ])
-    |> format_expansion(hint)
+    variables = expand_variable(hint, server)
+    funs = match_module_funs(imports_from_env(server) ++ get_module_funs(Kernel.SpecialForms), hint)
+    format_expansion(variables ++ funs, hint)
+  end
+
+  defp expand_variable(hint, server) do
+    variables_from_binding(hint, server)
+    |> Enum.sort()
+    |> Enum.map(&%{kind: :variable, name: &1})
   end
 
   ## Erlang modules
@@ -181,7 +184,7 @@ defmodule IEx.Autocomplete do
   defp expand_elixir_modules_from_aliases(mod, hint, aliases) do
     aliases
     |> Kernel.++(match_elixir_modules(mod, hint))
-    |> Kernel.++(match_module_funs(mod, hint))
+    |> Kernel.++(match_module_funs(get_module_funs(mod), hint))
     |> format_expansion(hint)
   end
 
@@ -202,7 +205,7 @@ defmodule IEx.Autocomplete do
   defp match_aliases(hint, server) do
     for {alias, _mod} <- aliases_from_env(server),
         [name] = Module.split(alias),
-        starts_with?(name, hint) do
+        String.starts_with?(name, hint) do
       %{kind: :module, type: :alias, name: name}
     end
   end
@@ -233,8 +236,8 @@ defmodule IEx.Autocomplete do
   defp match_modules(hint, root) do
     get_modules(root)
     |> :lists.usort()
-    |> Enum.drop_while(& not starts_with?(&1, hint))
-    |> Enum.take_while(& starts_with?(&1, hint))
+    |> Enum.drop_while(& not String.starts_with?(&1, hint))
+    |> Enum.take_while(& String.starts_with?(&1, hint))
   end
 
   defp get_modules(true) do
@@ -266,63 +269,32 @@ defmodule IEx.Autocomplete do
     :ets.match(:ac_tab, {{:loaded, :"$1"}, :_})
   end
 
-  defp match_module_funs(mod, hint) do
-    case ensure_loaded(mod) do
-      {:module, _} ->
-        falist = get_module_funs(mod)
-
-        list = Enum.reduce falist, [], fn {f, a}, acc ->
-          case :lists.keyfind(f, 1, acc) do
-            {f, aa} -> :lists.keyreplace(f, 1, acc, {f, [a | aa]})
-            false -> [{f, [a]} | acc]
-          end
-        end
-
-        for {fun, arities} <- list,
-            name = Atom.to_string(fun),
-            starts_with?(name, hint) do
-          %{kind: :function, name: name, arities: arities}
-        end |> :lists.sort()
-
-      _otherwise -> []
-    end
-  end
-
-  defp match_variables(server, hint) do
-    with evaluator when is_pid(evaluator) <- server.evaluator() do
-      IEx.Evaluator.variables_from_binding(evaluator, hint)
-      |> Stream.map(&%{kind: :variable, name: &1})
-      |> Enum.sort_by(&(&1.name))
-    else
-      _ -> []
-    end
-  end
-
-  defp match_imports(server, hint) do
-    with evaluator when is_pid(evaluator) <- server.evaluator(),
-         env_fields = IEx.Evaluator.fields_from_env(evaluator, [:functions, :macros]),
-         %{functions: funs, macros: macros} <- env_fields do
-      for {_mod, mod_funs} <- funs ++ macros,
-          {fun_name, arity} <- mod_funs,
-          fun_name = Atom.to_string(fun_name),
-          String.starts_with?(fun_name, hint),
-          do: %{kind: :function, name: fun_name, arities: [arity]}
-    else
-      _ -> []
-    end
+  defp match_module_funs(funs, hint) do
+    for({fun, arity} <- funs,
+        name = Atom.to_string(fun),
+        String.starts_with?(name, hint),
+        do: %{kind: :function, name: name, arity: arity})
+    |> Enum.sort_by(&{&1.name, &1.arity})
   end
 
   defp match_map_fields(map, hint) do
-    for {key, value} <- map,
-        is_atom(key),
-        key = to_string(key),
-        String.starts_with?(key, hint),
-        do: %{kind: :map_key, name: key, value_is_map: is_map(value)}
+    for({key, value} <- map,
+         is_atom(key),
+         key = Atom.to_string(key),
+         String.starts_with?(key, hint),
+         do: %{kind: :map_key, name: key, value_is_map: is_map(value)})
+    |> Enum.sort_by(& &1.name)
   end
 
   defp get_module_funs(mod) do
-    docs = Code.get_docs(mod, :docs) || []
-    module_info_funs(mod) |> Enum.reject(&hidden_fun?(&1, docs))
+    cond do
+      not ensure_loaded?(mod) ->
+        []
+      docs = Code.get_docs(mod, :docs) ->
+        module_info_funs(mod) |> Enum.reject(&hidden_fun?(&1, docs))
+      true ->
+        module_info_funs(mod)
+    end
   end
 
   defp module_info_funs(mod) do
@@ -350,12 +322,8 @@ defmodule IEx.Autocomplete do
   defp underscored_fun?({name, _}),
     do: hd(Atom.to_charlist(name)) == ?_
 
-  defp ensure_loaded(Elixir), do: {:error, :nofile}
-  defp ensure_loaded(mod),
-    do: Code.ensure_compiled(mod)
-
-  defp starts_with?(_string, ""),  do: true
-  defp starts_with?(string, hint), do: String.starts_with?(string, hint)
+  defp ensure_loaded?(Elixir), do: false
+  defp ensure_loaded?(mod), do: Code.ensure_loaded?(mod)
 
   ## Ad-hoc conversions
 
@@ -364,8 +332,8 @@ defmodule IEx.Autocomplete do
     [name]
   end
 
-  defp to_entries(%{kind: :function, name: name, arities: arities}) do
-    for a <- :lists.sort(arities), do: "#{name}/#{a}"
+  defp to_entries(%{kind: :function, name: name, arity: arity}) do
+    ["#{name}/#{arity}"]
   end
 
   defp to_uniq_entries(%{kind: kind}) when
@@ -395,10 +363,30 @@ defmodule IEx.Autocomplete do
     :binary.part(name, hint_size, byte_size(name) - hint_size)
   end
 
+  ## Evaluator interface
+
+  defp imports_from_env(server) do
+    with evaluator when is_pid(evaluator) <- server.evaluator(),
+         env_fields = IEx.Evaluator.fields_from_env(evaluator, [:functions, :macros]),
+         %{functions: funs, macros: macros} <- env_fields do
+      Enum.flat_map(funs ++ macros, &elem(&1, 1))
+    else
+      _ -> []
+    end
+  end
+
   defp aliases_from_env(server) do
     with evaluator when is_pid(evaluator) <- server.evaluator,
          %{aliases: aliases} <- IEx.Evaluator.fields_from_env(evaluator, [:aliases]) do
       aliases
+    else
+      _ -> []
+    end
+  end
+
+  defp variables_from_binding(hint, server) do
+    with evaluator when is_pid(evaluator) <- server.evaluator() do
+      IEx.Evaluator.variables_from_binding(evaluator, hint)
     else
       _ -> []
     end
