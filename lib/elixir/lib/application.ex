@@ -93,7 +93,7 @@ defmodule Application do
   @doc """
   Called when an application is started.
 
-  This function is called when an the application is started using
+  This function is called when an application is started using
   `Application.start/2` (and functions on top of that, such as
   `Application.ensure_started/2`). This function should start the top-level
   process of the application (which should be the top supervisor of the
