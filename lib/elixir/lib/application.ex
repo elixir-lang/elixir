@@ -419,7 +419,7 @@ defmodule Application do
       #=> "bar-123"
 
   For more information on code paths, check the `Code` module in
-  Elixir and also Erlang's `:code` module.
+  Elixir and also Erlang's [`:code` module](http://www.erlang.org/doc/man/code.html).
   """
   @spec app_dir(app) :: String.t
   def app_dir(app) when is_atom(app) do
