@@ -104,7 +104,7 @@ defmodule Application do
 
     * `:normal` - used if the startup is a normal startup or if the application
       is distributed and is started on the current node because of a failover
-      from another mode and the application specification key `:start_phases`
+      from another node and the application specification key `:start_phases`
       is `:undefined`.
     * `{:takeover, node}` - used if the application is distributed and is
       started on the current node because of a failover on the node `node`.
