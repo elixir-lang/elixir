@@ -55,7 +55,7 @@ For reference, the following is a comprehensive list of all expressions allowed 
     * `bsr/1` or the `>>>` operator
     * `bxor/2` or the `^^^` operator
 
-Macros constructed out of any combination of the above guards are also valid guards - e.g., `Integer.is_even/1`. (Please see the section "Defining custom guard expressions below".)
+Macros constructed out of any combination of the above guards are also valid guards - for example, `Integer.is_even/1`. See the section "Defining custom guard expressions" below.
 
 ## Why guards
 
