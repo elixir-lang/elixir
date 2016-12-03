@@ -388,7 +388,7 @@ deprecation('Elixir.String', to_char_list, 1) ->
   "use String.to_charlist/1";
 deprecation('Elixir.List.Chars', to_char_list, 1) ->
   "use List.Chars.to_charlist/1";
-deprecation('Kernel', to_char_list, 1) ->
+deprecation('Elixir.Kernel', to_char_list, 1) ->
   "use Kernel.to_charlist/1";
 deprecation('Elixir.Float', to_char_list, 2) ->
   "use :erlang.float_to_list/2";
