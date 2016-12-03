@@ -390,6 +390,22 @@ deprecation('Elixir.List.Chars', to_char_list, 1) ->
   "use List.Chars.to_charlist/1";
 deprecation('Kernel', to_char_list, 1) ->
   "use Kernel.to_charlist/1";
+deprecation('Elixir.Float', to_char_list, 2) ->
+  "use :erlang.float_to_list/2";
+deprecation('Elixir.Float', to_string, 2) ->
+  "use :erlang.float_to_binary/2";
+deprecation('Elixir.Enum', uniq, 2) ->
+  "use Enum.uniq_by/2";
+deprecation('Elixir.Keyword', size, 1) ->
+  "use Kernel.length/1";
+deprecation('Elixir.Map', size, 1) ->
+  "use Kernel.map_size/1";
+deprecation('Elixir.Stream', uniq, 2) ->
+  "use Stream.uniq_by/2";
+deprecation('Elixir.String', 'valid_character?', 1) ->
+  "use String.valid?/1";
+deprecation('Elixir.Task', find, 2) ->
+  "match on the message directly";
 
 deprecation(_, _, _) ->
   false.

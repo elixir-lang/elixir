@@ -417,8 +417,8 @@ defmodule Task do
 
   @doc false
   # TODO: Remove on 2.0
+  # (hard-deprecated in elixir_dispatch)
   def find(tasks, msg) do
-    IO.warn "Task.find/2 is deprecated, please match on the message directly"
     do_find(tasks, msg)
   end
 

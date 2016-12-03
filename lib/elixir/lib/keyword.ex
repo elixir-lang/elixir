@@ -908,8 +908,8 @@ defmodule Keyword do
 
   @doc false
   # TODO: Remove on 2.0
+  # (hard-deprecated in elixir_dispatch)
   def size(keyword) do
-    IO.warn "Keyword.size/1 is deprecated, please use Kernel.length/1"
     length(keyword)
   end
 end
