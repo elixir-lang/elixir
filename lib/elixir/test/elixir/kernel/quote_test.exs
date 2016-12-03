@@ -434,4 +434,18 @@ defmodule Kernel.QuoteTest.ImportsHygieneTest do
   test "explicitly overridden imports" do
     assert with_length() == 5
   end
+
+  defmodule BinaryUtils do
+    defmacro int32 do
+      quote do
+        integer-size(32)
+      end
+    end
+  end
+
+  test "checks the context also for variables to zero-arity functions" do
+    import BinaryUtils
+    {:int32, meta, __MODULE__} =  quote do: int32
+    assert meta[:import] == BinaryUtils
+  end
 end
