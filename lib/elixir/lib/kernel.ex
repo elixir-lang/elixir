@@ -656,8 +656,12 @@ defmodule Kernel do
   @doc """
   Spawns the given function and returns its PID.
 
-  Check the `Process` and `Node` modules for other functions
-  to handle processes, including spawning functions in nodes.
+  Typically developers do not use the `spawn` functions, instead they use
+  abstractions such as `Task`, `GenServer` and `Agent`, built on top of
+  `spawn`, that spawns processes with more conveniences in terms of
+  introspection and debugging.
+
+  Check the `Process` module for more process related functions,
 
   The anonymous function receives 0 arguments, and may return any value.
 
@@ -682,8 +686,12 @@ defmodule Kernel do
   Spawns the given module and function passing the given args
   and returns its PID.
 
-  Check the `Process` and `Node` modules for other functions
-  to handle processes, including spawning functions in nodes.
+  Typically developers do not use the `spawn` functions, instead they use
+  abstractions such as `Task`, `GenServer` and `Agent`, built on top of
+  `spawn`, that spawns processes with more conveniences in terms of
+  introspection and debugging.
+
+  Check the `Process` module for more process related functions,
 
   Inlined by the compiler.
 
@@ -700,8 +708,12 @@ defmodule Kernel do
   @doc """
   Spawns the given function, links it to the current process and returns its PID.
 
-  Check the `Process` and `Node` modules for other functions
-  to handle processes, including spawning functions in nodes.
+  Typically developers do not use the `spawn` functions, instead they use
+  abstractions such as `Task`, `GenServer` and `Agent`, built on top of
+  `spawn`, that spawns processes with more conveniences in terms of
+  introspection and debugging.
+
+  Check the `Process` module for more process related functions,
 
   The anonymous function receives 0 arguments, and may return any value.
 
@@ -726,8 +738,12 @@ defmodule Kernel do
   Spawns the given module and function passing the given args,
   links it to the current process and returns its PID.
 
-  Check the `Process` and `Node` modules for other functions
-  to handle processes, including spawning functions in nodes.
+  Typically developers do not use the `spawn` functions, instead they use
+  abstractions such as `Task`, `GenServer` and `Agent`, built on top of
+  `spawn`, that spawns processes with more conveniences in terms of
+  introspection and debugging.
+
+  Check the `Process` module for more process related functions,
 
   Inlined by the compiler.
 
@@ -745,8 +761,12 @@ defmodule Kernel do
   Spawns the given function, monitors it and returns its PID
   and monitoring reference.
 
-  Check the `Process` and `Node` modules for other functions
-  to handle processes, including spawning functions in nodes.
+  Typically developers do not use the `spawn` functions, instead they use
+  abstractions such as `Task`, `GenServer` and `Agent`, built on top of
+  `spawn`, that spawns processes with more conveniences in terms of
+  introspection and debugging.
+
+  Check the `Process` module for more process related functions,
 
   The anonymous function receives 0 arguments, and may return any value.
 
@@ -767,8 +787,12 @@ defmodule Kernel do
   Spawns the given module and function passing the given args,
   monitors it and returns its PID and monitoring reference.
 
-  Check the `Process` and `Node` modules for other functions
-  to handle processes, including spawning functions in nodes.
+  Typically developers do not use the `spawn` functions, instead they use
+  abstractions such as `Task`, `GenServer` and `Agent`, built on top of
+  `spawn`, that spawns processes with more conveniences in terms of
+  introspection and debugging.
+
+  Check the `Process` module for more process related functions,
 
   Inlined by the compiler.
 

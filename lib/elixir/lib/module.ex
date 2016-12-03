@@ -295,10 +295,10 @@ defmodule Module do
   If the function/macro being defined has multiple clauses, the hook will
   be called for each clause.
 
-  Unlike other hooks, `@on_definition` will only invoke functions
-  and never macros. This is because the hook is invoked inside the context
-  of the function (and nested function definitions are not allowed in
-  Elixir).
+  Unlike other hooks, `@on_definition` will only invoke functions and
+  never macros. This is to avoid `@on_definition` callbacks from
+  redefining functions that have just been defined in favor of more
+  explicit approaches.
 
   When just a module is provided, the function is assumed to be
   `__on_definition__/6`.
