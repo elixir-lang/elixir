@@ -901,8 +901,9 @@ defmodule Stream do
   end
 
   @doc false
+  # TODO: Remove on 2.0
+  # (hard-deprecated in elixir_dispatch)
   def uniq(enum, fun) do
-    IO.warn "Stream.uniq/2 is deprecated, use Stream.uniq_by/2 instead"
     uniq_by(enum, fun)
   end
 
