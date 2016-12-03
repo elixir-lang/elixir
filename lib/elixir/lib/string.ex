@@ -1268,8 +1268,8 @@ defmodule String do
 
   @doc false
   # TODO: Remove on 2.0
+  # (hard-deprecated in elixir_dispatch)
   def valid_character?(string) do
-    IO.warn "String.valid_character?/1 is deprecated, please use valid?/1 instead"
     case string do
       <<_::utf8>> -> valid?(string)
       _ -> false

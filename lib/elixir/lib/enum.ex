@@ -2543,8 +2543,9 @@ defmodule Enum do
   end
 
   @doc false
+  # TODO: Remove on 2.0
+  # (hard-deprecated in elixir_dispatch)
   def uniq(enumerable, fun) do
-    IO.warn "Enum.uniq/2 is deprecated, use Enum.uniq_by/2 instead"
     uniq_by(enumerable, fun)
   end
 

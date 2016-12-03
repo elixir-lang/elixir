@@ -794,8 +794,8 @@ defmodule Map do
 
   @doc false
   # TODO: Remove on 2.0
+  # (hard-deprecated in elixir_dispatch)
   def size(map) do
-    IO.warn "Map.size/1 is deprecated, please use Kernel.map_size/1"
     map_size(map)
   end
 end
