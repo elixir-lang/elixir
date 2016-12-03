@@ -189,12 +189,15 @@ do_quote({'__aliases__', Meta, [H | T]} = Alias, #elixir_quote{aliases_hygiene=t
       Aliases when is_list(Aliases) -> false
     end,
   AliasMeta = keystore(alias, keydelete(counter, Meta), Annotation),
-  do_quote_tuple({'__aliases__', AliasMeta, [H | T]}, Q, E);
+  do_quote_tuple('__aliases__', AliasMeta, [H | T], Q, E);
 
 %% Vars
 
+do_quote({Left, Meta, nil}, #elixir_quote{vars_hygiene=true, imports_hygiene=true} = Q, E) when is_atom(Left) ->
+  do_quote_import(Left, Meta, Q#elixir_quote.context, Q, E);
+
 do_quote({Left, Meta, nil}, #elixir_quote{vars_hygiene=true} = Q, E) when is_atom(Left) ->
-  do_quote_tuple({Left, Meta, Q#elixir_quote.context}, Q, E);
+  do_quote_tuple(Left, Meta, Q#elixir_quote.context, Q, E);
 
 %% Unquote
 
@@ -207,28 +210,11 @@ do_quote({{'.', Meta, [Left, unquote]}, _, [Expr]}, #elixir_quote{unquote=true} 
 %% Imports
 
 do_quote({'&', Meta, [{'/', _, [{F, _, C}, A]}] = Args},
-    #elixir_quote{imports_hygiene=true} = Q, E) when is_atom(F), is_integer(A), is_atom(C) ->
+         #elixir_quote{imports_hygiene=true} = Q, E) when is_atom(F), is_integer(A), is_atom(C) ->
   do_quote_fa('&', Meta, Args, F, A, Q, E);
 
 do_quote({Name, Meta, ArgsOrAtom}, #elixir_quote{imports_hygiene=true} = Q, E) when is_atom(Name) ->
-  Arity = case is_atom(ArgsOrAtom) of
-    true  -> 0;
-    false -> length(ArgsOrAtom)
-  end,
-
-  NewMeta = case (keyfind(import, Meta) == false) andalso
-      elixir_dispatch:find_import(Meta, Name, Arity, E) of
-    false ->
-      case (Arity == 1) andalso keyfind(ambiguous_op, Meta) of
-        {ambiguous_op, nil} -> keystore(ambiguous_op, Meta, Q#elixir_quote.context);
-        _ -> Meta
-      end;
-    Receiver ->
-      keystore(import, keystore(context, Meta, Q#elixir_quote.context), Receiver)
-  end,
-
-  Annotated = annotate({Name, NewMeta, ArgsOrAtom}, Q#elixir_quote.context),
-  do_quote_tuple(Annotated, Q, E);
+  do_quote_import(Name, Meta, ArgsOrAtom, Q, E);
 
 do_quote({_, _, _} = Tuple, #elixir_quote{escape=false} = Q, E) ->
   Annotated = annotate(Tuple, Q#elixir_quote.context),
@@ -300,6 +286,26 @@ bad_escape(Arg) ->
                    "The supported values are: lists, tuples, maps, atoms, numbers, bitstrings, ",
                    "PIDs and remote functions in the format &Mod.fun/arity">>).
 
+do_quote_import(Name, Meta, ArgsOrAtom, #elixir_quote{imports_hygiene=true} = Q, E) ->
+  Arity = case is_atom(ArgsOrAtom) of
+    true  -> 0;
+    false -> length(ArgsOrAtom)
+  end,
+
+  NewMeta = case (keyfind(import, Meta) == false) andalso
+      elixir_dispatch:find_import(Meta, Name, Arity, E) of
+    false ->
+      case (Arity == 1) andalso keyfind(ambiguous_op, Meta) of
+        {ambiguous_op, nil} -> keystore(ambiguous_op, Meta, Q#elixir_quote.context);
+        _ -> Meta
+      end;
+    Receiver ->
+      keystore(import, keystore(context, Meta, Q#elixir_quote.context), Receiver)
+  end,
+
+  Annotated = annotate({Name, NewMeta, ArgsOrAtom}, Q#elixir_quote.context),
+  do_quote_tuple(Annotated, Q, E).
+
 do_quote_call(Left, Meta, Expr, Args, Q, E) ->
   All  = [meta(Meta, Q), Left, {unquote, Meta, [Expr]}, Args,
           Q#elixir_quote.context],
@@ -313,13 +319,16 @@ do_quote_fa(Target, Meta, Args, F, A, Q, E) ->
       false    -> Meta;
       Receiver -> keystore(import_fa, Meta, {Receiver, Q#elixir_quote.context})
     end,
-  do_quote_tuple({Target, NewMeta, Args}, Q, E).
+  do_quote_tuple(Target, NewMeta, Args, Q, E).
+
+do_quote_tuple({Left, Meta, Right}, Q, E) ->
+  do_quote_tuple(Left, Meta, Right, Q, E).
 
 % In a def unquote(name)(args) expression name will be an atom literal,
 % thus location: :keep will not have enough information to generate the proper file/line annotation.
 % This alters metadata to force Elixir to show the file to which the definition is added
 % instead of the file where definition is quoted (i.e. we behave the opposite to location: :keep).
-do_quote_tuple({Left, Meta, [{{unquote, _, _}, _, _}, _] = Right}, Q, E) when ?defs(Left) ->
+do_quote_tuple(Left, Meta, [{{unquote, _, _}, _, _}, _] = Right, Q, E) when ?defs(Left) ->
   {TLeft, LQ}  = do_quote(Left, Q, E),
   {[Head, Body], RQ} = do_quote(Right, LQ, E),
   {'{}', [], [HLeft, HMeta, HRight]} = Head,
@@ -327,7 +336,7 @@ do_quote_tuple({Left, Meta, [{{unquote, _, _}, _, _}, _] = Right}, Q, E) when ?d
   NewHead = {'{}', [], [HLeft, NewMeta, HRight]},
   {{'{}', [], [TLeft, meta(Meta, Q), [NewHead, Body]]}, RQ};
 
-do_quote_tuple({Left, Meta, Right}, Q, E) ->
+do_quote_tuple(Left, Meta, Right, Q, E) ->
   {TLeft, LQ}  = do_quote(Left, Q, E),
   {TRight, RQ} = do_quote(Right, LQ, E),
   {{'{}', [], [TLeft, meta(Meta, Q), TRight]}, RQ}.
