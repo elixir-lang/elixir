@@ -197,7 +197,7 @@ defmodule Mix.Tasks.Escript.Build do
 
     extra_apps =
       if function_exported?(mod, :application, 0) do
-        mod.application[:applications]
+        mod.application()[:extra_applications]
       end
 
     Enum.filter(extra_apps || [], &(&1 in [:eex, :ex_unit, :mix, :iex, :logger]))
