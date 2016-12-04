@@ -13,7 +13,7 @@ defmodule SystemTest do
     assert is_binary build_info[:version]
 
     if build_info[:revision] != "" do
-      assert String.length(build_info[:revision]) == 7
+      assert String.length(build_info[:revision]) >= 7
     end
 
     version_file = Path.join([__DIR__, "../../../..", "VERSION"]) |> Path.expand
