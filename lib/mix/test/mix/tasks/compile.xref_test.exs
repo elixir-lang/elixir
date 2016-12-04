@@ -10,7 +10,7 @@ defmodule Mix.Tasks.Compile.XrefTest do
     :ok
   end
 
-  test "doesn't do anything if no elixir manifest" do
+  test "doesn't do anything if no Elixir manifest" do
     in_fixture "no_mixfile", fn ->
       write_no_func()
 

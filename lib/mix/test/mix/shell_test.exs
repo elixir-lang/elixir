@@ -38,7 +38,7 @@ defmodule Mix.ShellTest do
     assert_received {:mix_shell, :run, ["first" <> ^nl]}
   end
 
-  test "shell io" do
+  test "shell IO" do
     Mix.shell Mix.Shell.IO
 
     assert capture_io(fn -> Mix.shell.info "abc" end) ==

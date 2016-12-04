@@ -6,7 +6,7 @@ defmodule Logger.ErrorHandler do
   require Logger
 
   def init({otp?, sasl?, threshold}) do
-    # We store the logger PID in the state because when we are shutting
+    # We store the Logger PID in the state because when we are shutting
     # down the Logger application, the Logger process may be terminated
     # and then trying to reach it will lead to crashes. So we send a
     # message to a PID, instead of named process, to avoid crashes on

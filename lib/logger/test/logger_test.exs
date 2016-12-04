@@ -241,7 +241,7 @@ defmodule LoggerTest do
   test "unused variable warnings suppressed when we remove macros from the AST" do
     Logger.configure(compile_time_purge_level: :info)
 
-    # This should not warn, even if the logger call is purged from the AST.
+    # This should not warn, even if the Logger call is purged from the AST.
     assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
       Code.eval_string """
       defmodule Unused do
@@ -305,7 +305,7 @@ defmodule LoggerTest do
     Logger.configure(truncate: 8096)
   end
 
-  test "log/2 does not fails when the Logger is off" do
+  test "log/2 does not fails when the logger is off" do
     logger = Process.whereis(Logger)
     Process.unregister(Logger)
 

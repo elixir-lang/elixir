@@ -117,7 +117,7 @@ defmodule Logger do
         level: :warn,
         truncate: 4096
 
-  ### Error Logger configuration
+  ### Error logger configuration
 
   The following configuration applies to `Logger`'s wrapper around
   Erlang's `error_logger`. All the configurations below must be set
@@ -407,10 +407,10 @@ defmodule Logger do
   end
 
   @doc """
-  Flushes the Logger.
+  Flushes the logger.
 
-  This basically guarantees all messages sent to the
-  Logger prior to this call will be processed. This is useful
+  This basically guarantees all messages sent to
+  `Logger` prior to this call will be processed. This is useful
   for testing and it should not be called in production code.
   """
   @spec flush :: :ok

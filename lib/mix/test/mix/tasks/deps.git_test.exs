@@ -219,7 +219,7 @@ defmodule Mix.Tasks.DepsGitTest do
   test "updates the lock when the repo updates" do
     Mix.Project.push GitApp
 
-    # Get git repo first revision
+    # Get Git repo first revision
     [last, first | _] = get_git_repo_revs()
 
     in_fixture "no_mixfile", fn ->

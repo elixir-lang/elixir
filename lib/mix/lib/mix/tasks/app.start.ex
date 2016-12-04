@@ -22,7 +22,7 @@ defmodule Mix.Tasks.App.Start do
     * `:consolidate_protocols` - when `true`, loads consolidated
       protocols before start. The default value is `true`.
 
-    * `:elixir` - matches the current elixir version against the
+    * `:elixir` - matches the current Elixir version against the
       given requirement
 
   ## Command line options
@@ -59,7 +59,7 @@ defmodule Mix.Tasks.App.Start do
       end
     end
 
-    # Stop the Logger when starting the application as it is
+    # Stop Logger when starting the application as it is
     # up to the application to decide if it should be restarted
     # or not.
     #
@@ -70,7 +70,7 @@ defmodule Mix.Tasks.App.Start do
     end
 
     if "--no-start" in args do
-      # Start the Logger again if the application won't be starting it
+      # Start Logger again if the application won't be starting it
       if logger do
         :ok = Logger.App.start
       end

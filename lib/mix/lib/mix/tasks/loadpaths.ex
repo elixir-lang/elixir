@@ -6,7 +6,7 @@ defmodule Mix.Tasks.Loadpaths do
 
   ## Configuration
 
-    * `:elixir` - matches the current elixir version against the
+    * `:elixir` - matches the current Elixir version against the
       given requirement
 
   ## Command line options

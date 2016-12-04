@@ -21,7 +21,7 @@ defmodule Kernel.DialyzerTest do
       System.put_env("HOME", System.user_home())
     end
 
-    # Add a few key elixir modules for types and macro functions
+    # Add a few key Elixir modules for types and macro functions
     mods = [Kernel, String, Keyword, Exception, Macro, Macro.Env, :elixir_env]
     files = Enum.map(mods, &:code.which/1)
     :dialyzer.run([analysis_type: :plt_build, output_plt: plt,

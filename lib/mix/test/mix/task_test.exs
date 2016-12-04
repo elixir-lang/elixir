@@ -34,7 +34,7 @@ defmodule Mix.TaskTest do
     end
   end
 
-  test "run/2 converts OptionParser.ParseError into mix errors" do
+  test "run/2 converts OptionParser.ParseError into Mix errors" do
     assert_raise Mix.Error,
                  "Could not invoke task \"hello\": 1 error found!\n--unknown : Unknown option", fn ->
       Mix.Task.run("hello", ["--parser", "--unknown"])

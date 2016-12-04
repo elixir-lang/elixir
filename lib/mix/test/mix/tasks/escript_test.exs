@@ -200,7 +200,7 @@ defmodule Mix.Tasks.EscriptTest do
     end
   end
 
-  test "escript.install from git" do
+  test "escript.install from Git" do
     in_fixture "git_repo", fn ->
       File.write! "lib/git_repo.ex", """
       defmodule GitRepo do
