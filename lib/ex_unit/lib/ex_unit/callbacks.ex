@@ -29,13 +29,14 @@ defmodule ExUnit.Callbacks do
 
   ## Context
 
-  If you return `{:ok, keywords}` from `setup_all`, the keyword
-  will be merged into the current context and be available in all
-  subsequent `setup_all`, `setup` and the test itself.
+  If you return a keyword list, a map, or `{:ok, keywords | map}` from
+  `setup_all`, the keyword list/map will be merged into the current context and
+  be available in all subsequent `setup_all`, `setup`, and the test itself.
 
-  Similarly, returning `{:ok, keywords}` from `setup`, the keyword
-  returned will be merged into the current context and be available
-  in all subsequent `setup` and the `test` itself.
+  Similarly, returning a keyword list, map, or `{:ok, keywords | map}` from
+  `setup` means that the returned keyword list/map will be merged into the
+  current context and be available in all subsequent `setup` and the `test`
+  itself.
 
   Returning `:ok` leaves the context unchanged in both cases.
 
@@ -236,7 +237,6 @@ defmodule ExUnit.Callbacks do
     context
   end
 
-  # TODO: Deprecate tagged tuple result on v1.5
   def __merge__(mod, context, {:ok, value}) do
     __merge__(mod, context, value)
   end
