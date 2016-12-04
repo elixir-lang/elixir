@@ -183,7 +183,7 @@ defmodule Mix.Tasks.ArchiveTest do
     Base.encode16 :crypto.hash(:sha512, File.read!(file)), case: :lower
   end
 
-  test "archive.install from git" do
+  test "archive.install from Git" do
     in_fixture "git_repo", fn ->
       send self(), {:mix_shell_input, :yes?, true}
       Mix.Tasks.Archive.Install.run ["git", File.cwd!()]

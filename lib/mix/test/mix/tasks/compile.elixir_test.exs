@@ -36,7 +36,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     end
   end
 
-  test "recompiles project if elixir version changed" do
+  test "recompiles project if Elixir version changed" do
     in_fixture "no_mixfile", fn ->
       Mix.Tasks.Compile.run []
       purge [A, B]

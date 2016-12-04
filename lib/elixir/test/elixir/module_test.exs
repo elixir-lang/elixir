@@ -228,7 +228,7 @@ defmodule ModuleTest do
     assert ModuleCreateSample.world
   end
 
-  test "create with elixir as a name" do
+  test "create with Elixir as a name" do
     contents =
       quote do
         def world, do: true

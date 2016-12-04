@@ -446,7 +446,7 @@ defmodule Inspect.OthersTest do
     fn() -> :ok end
   end
 
-  test "external elixir funs" do
+  test "external Elixir funs" do
     bin = inspect(&Enum.map/2)
     assert bin == "&Enum.map/2"
   end

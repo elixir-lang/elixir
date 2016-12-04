@@ -32,7 +32,7 @@ defmodule Logger.Formatter do
 
   ## Metadata
 
-  Metadata to be sent to the Logger can be read and written with
+  Metadata to be sent to the logger can be read and written with
   the `Logger.metadata/0` and `Logger.metadata/1` functions. For example,
   you can set `Logger.metadata([user_id: 13])` to add user_id metadata
   to the current process. The user can configure the backend to chose

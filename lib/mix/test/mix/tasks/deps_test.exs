@@ -72,7 +72,7 @@ defmodule Mix.Tasks.DepsTest do
     end
   end
 
-  test "prints elixir req mismatches" do
+  test "prints Elixir req mismatches" do
     Mix.Project.push ReqDepsApp
 
     in_fixture "deps_status", fn ->
@@ -538,7 +538,7 @@ defmodule Mix.Tasks.DepsTest do
     purge [GitRepo, GitRepo.Mixfile]
   end
 
-  test "checks if dependencies are using old elixir version" do
+  test "checks if dependencies are using old Elixir version" do
     Mix.Project.push SuccessfulDepsApp
 
     in_fixture "deps_status", fn ->

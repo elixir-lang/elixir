@@ -13,7 +13,7 @@ defmodule Mix.Tasks.Archive.Install do
       mix do archive.build, archive.install
 
   If an argument is provided, it should be a local path or a URL to a
-  prebuilt archive, a git repository, a github repository, or a hex
+  prebuilt archive, a Git repository, a GitHub repository, or a Hex
   package.
 
       mix archive.install archive.ez

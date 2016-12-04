@@ -113,7 +113,7 @@ defmodule Mix.SCM.Git do
     |> IO.iodata_to_binary()
     |> git!()
 
-    # Migrate the git repo
+    # Migrate the Git repo
     rev = get_lock_rev(opts[:lock], opts) || get_opts_rev(opts)
     git!("--git-dir=.git checkout --quiet #{rev}")
 

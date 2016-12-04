@@ -98,7 +98,7 @@ defmodule Mix.RebarTest do
 
   end
 
-  test "convert rebar config to dependency config" do
+  test "convert Rebar config to dependency config" do
     config = Mix.Rebar.load_config(fixture_path("rebar_dep"))
     dep_config = Mix.Rebar.dependency_config(config)
 

@@ -107,11 +107,11 @@ defmodule SystemTest do
       File.rm_rf! Path.dirname(tmp_path(@echo))
     end
   else
-    test "cmd/2 unix" do
+    test "cmd/2 Unix" do
       assert {"hello\n", 0} = System.cmd "echo", ["hello"]
     end
 
-    test "cmd/3 (with options) unix" do
+    test "cmd/3 (with options) Unix" do
       assert {["hello\n"], 0} = System.cmd "echo", ["hello"],
                                   into: [], cd: System.cwd!, env: %{"foo" => "bar", "baz" => nil},
                                   arg0: "echo", stderr_to_stdout: true, parallelism: true
@@ -119,7 +119,7 @@ defmodule SystemTest do
 
     @echo "echo-elixir-test"
 
-    test "cmd/2 with absolute and relative paths unix" do
+    test "cmd/2 with absolute and relative paths Unix" do
       echo = tmp_path(@echo)
       File.mkdir_p! Path.dirname(echo)
       File.cp! System.find_executable("echo"), echo
