@@ -203,7 +203,17 @@ defmodule Mix.Tasks.Escript.Build do
         []
       end
 
-    Enum.filter(extra_apps, &(&1 in [:eex, :ex_unit, :mix, :iex, :logger]))
+    apps_from_deps = Enum.flat_map(Mix.Dep.cached(), &apps_for_dep/1)
+
+    (extra_apps ++ apps_from_deps)
+    |> Enum.filter(&(&1 in [:eex, :ex_unit, :mix, :iex, :logger]))
+    |> Enum.uniq
+  end
+
+  defp apps_for_dep(%Mix.Dep{app: app}) do
+    {:ok, [{:application, ^app, config}]} =
+      :file.consult(:code.where_is_file('#{app}.app'))
+    config[:applications] || []
   end
 
   defp app_files(app) do
