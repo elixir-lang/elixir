@@ -852,6 +852,14 @@ defmodule Kernel.ErrorsTest do
       ':ok ?す'
   end
 
+  test "good error message on \"fn do expr end\"" do
+    assert_compile_fail SyntaxError,
+      "nofile:1: unexpected token \"do\". Anonymous functions are written as:\n\n" <>
+        "    fn pattern -> expression end\n\n" <>
+        "Syntax error before: do",
+      'fn do :ok end'
+  end
+
   test "invalid var or function on guard" do
     assert_compile_fail CompileError,
       "nofile:4: unknown variable something_that_does_not_exist or " <>

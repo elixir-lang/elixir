@@ -972,6 +972,8 @@ check_keyword(_Line, _Column, _Length, Atom, [{capture_op, _, _} | _]) when ?ope
 check_keyword(DoLine, DoColumn, _Length, do, [{Identifier, {Line, Column, EndColumn}, Atom} | T]) when Identifier == identifier ->
   {ok, add_token_with_nl({do, {DoLine, DoColumn, DoColumn + 2}},
        [{do_identifier, {Line, Column, EndColumn}, Atom} | T])};
+check_keyword(_Line, _Column, _Length, do, [{'fn', _} | _]) ->
+  {error, do_with_fn_error("unexpected token \"do\""), "do"};
 check_keyword(Line, Column, _Length, do, Tokens) ->
   case do_keyword_valid(Tokens) of
     true  -> {ok, add_token_with_nl({do, {Line, Column, Column + 2}}, Tokens)};
@@ -1038,4 +1040,9 @@ invalid_do_error(Prefix) ->
   "is syntactic sugar for the Elixir construct:\n\n"
   "    if(some_condition?, do: :this, else: :that)\n\n"
   "where \"some_condition?\" is the first argument and the second argument is a keyword list.\n\n"
+  "Syntax error before: ".
+
+do_with_fn_error(Prefix) ->
+  Prefix ++ ". Anonymous functions are written as:\n\n"
+  "    fn pattern -> expression end\n\n"
   "Syntax error before: ".
