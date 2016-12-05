@@ -197,10 +197,13 @@ defmodule Mix.Tasks.Escript.Build do
 
     extra_apps =
       if function_exported?(mod, :application, 0) do
-        mod.application()[:extra_applications]
+        app = mod.application()
+        Keyword.get(app, :applications, []) ++ Keyword.get(app, :extra_applications, [])
+      else
+        []
       end
 
-    Enum.filter(extra_apps || [], &(&1 in [:eex, :ex_unit, :mix, :iex, :logger]))
+    Enum.filter(extra_apps, &(&1 in [:eex, :ex_unit, :mix, :iex, :logger]))
   end
 
   defp app_files(app) do
