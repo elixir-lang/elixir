@@ -193,8 +193,6 @@ defmodule Mix.Tasks.Escript.Build do
   end
 
   defp extra_apps() do
-    _ = Mix.Project.get!()
-
     Mix.Project.config()[:app]
     |> extra_apps_in_app_tree()
     |> Enum.uniq()
