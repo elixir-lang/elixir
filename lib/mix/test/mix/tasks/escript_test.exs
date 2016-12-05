@@ -47,7 +47,7 @@ defmodule Mix.Tasks.EscriptTest do
     end
 
     def application do
-      [applications: []]
+      [applications: [], extra_applications: [:crypto]]
     end
   end
 
