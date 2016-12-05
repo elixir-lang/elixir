@@ -113,6 +113,10 @@ defmodule Mix.Tasks.Escript.Build do
   defp escriptize(project, language, force) do
     escript_opts = project[:escript] || []
 
+    if Mix.Project.umbrella?() do
+      Mix.raise "Building escripts for umbrella projects is unsupported"
+    end
+
     script_name  = Mix.Local.name_for(:escript, project)
     filename     = escript_opts[:path] || script_name
     main         = escript_opts[:main_module]
