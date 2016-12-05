@@ -193,27 +193,31 @@ defmodule Mix.Tasks.Escript.Build do
   end
 
   defp extra_apps() do
-    mod = Mix.Project.get!
+    _ = Mix.Project.get!()
 
-    extra_apps =
-      if function_exported?(mod, :application, 0) do
-        app = mod.application()
-        Keyword.get(app, :applications, []) ++ Keyword.get(app, :extra_applications, [])
-      else
-        []
-      end
-
-    apps_from_deps = Enum.flat_map(Mix.Dep.cached(), &apps_for_dep/1)
-
-    (extra_apps ++ apps_from_deps)
-    |> Enum.filter(&(&1 in [:eex, :ex_unit, :mix, :iex, :logger]))
-    |> Enum.uniq
+    Mix.Project.config()[:app]
+    |> extra_apps_in_app_tree()
+    |> Enum.uniq()
   end
 
-  defp apps_for_dep(%Mix.Dep{app: app}) do
-    {:ok, [{:application, ^app, config}]} =
-      :file.consult(:code.where_is_file('#{app}.app'))
-    config[:applications] || []
+  defp extra_apps_in_app_tree(app) when app in [:kernel, :stdlib, :elixir] do
+    []
+  end
+
+  defp extra_apps_in_app_tree(app) when app in [:eex, :ex_unit, :iex, :logger, :mix] do
+    [app]
+  end
+
+  defp extra_apps_in_app_tree(app) do
+    _ = Application.load(app)
+    case Application.spec(app) do
+      nil ->
+        []
+      spec ->
+        applications = Keyword.get(spec, :applications, []) ++
+                       Keyword.get(spec, :included_applications, [])
+        Enum.flat_map(applications, &extra_apps_in_app_tree/1)
+    end
   end
 
   defp app_files(app) do
