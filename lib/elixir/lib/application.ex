@@ -334,7 +334,7 @@ defmodule Application do
   started before this application is. If not, `{:error, {:not_started, app}}` is
   returned, where `app` is the name of the missing application.
 
-  In case you want to automatically  load **and start** all of `app`'s dependencies,
+  In case you want to automatically load **and start** all of `app`'s dependencies,
   see `ensure_all_started/2`.
 
   The `type` argument specifies the type of the application:
