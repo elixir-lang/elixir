@@ -20,9 +20,8 @@ defmodule Kernel do
   cannot be skipped. These are described in `Kernel.SpecialForms`.
 
   Some of the functions described in this module are inlined by
-  the Elixir compiler into their Erlang counterparts in the
-  [`:erlang` module](http://www.erlang.org/doc/man/erlang.html).
-  Those functions are called BIFs (built-in internal functions)
+  the Elixir compiler into their Erlang counterparts in the `:erlang`
+  module. Those functions are called BIFs (built-in internal functions)
   in Erlang-land and they exhibit interesting properties, as some of
   them are allowed in guards and others are used for compiler
   optimizations.
@@ -656,12 +655,8 @@ defmodule Kernel do
   @doc """
   Spawns the given function and returns its PID.
 
-  Typically developers do not use the `spawn` functions, instead they use
-  abstractions such as `Task`, `GenServer` and `Agent`, built on top of
-  `spawn`, that spawns processes with more conveniences in terms of
-  introspection and debugging.
-
-  Check the `Process` module for more process related functions,
+  Check the `Process` and `Node` modules for other functions
+  to handle processes, including spawning functions in nodes.
 
   The anonymous function receives 0 arguments, and may return any value.
 
@@ -686,12 +681,8 @@ defmodule Kernel do
   Spawns the given module and function passing the given args
   and returns its PID.
 
-  Typically developers do not use the `spawn` functions, instead they use
-  abstractions such as `Task`, `GenServer` and `Agent`, built on top of
-  `spawn`, that spawns processes with more conveniences in terms of
-  introspection and debugging.
-
-  Check the `Process` module for more process related functions,
+  Check the `Process` and `Node` modules for other functions
+  to handle processes, including spawning functions in nodes.
 
   Inlined by the compiler.
 
@@ -708,12 +699,8 @@ defmodule Kernel do
   @doc """
   Spawns the given function, links it to the current process and returns its PID.
 
-  Typically developers do not use the `spawn` functions, instead they use
-  abstractions such as `Task`, `GenServer` and `Agent`, built on top of
-  `spawn`, that spawns processes with more conveniences in terms of
-  introspection and debugging.
-
-  Check the `Process` module for more process related functions,
+  Check the `Process` and `Node` modules for other functions
+  to handle processes, including spawning functions in nodes.
 
   The anonymous function receives 0 arguments, and may return any value.
 
@@ -738,12 +725,8 @@ defmodule Kernel do
   Spawns the given module and function passing the given args,
   links it to the current process and returns its PID.
 
-  Typically developers do not use the `spawn` functions, instead they use
-  abstractions such as `Task`, `GenServer` and `Agent`, built on top of
-  `spawn`, that spawns processes with more conveniences in terms of
-  introspection and debugging.
-
-  Check the `Process` module for more process related functions,
+  Check the `Process` and `Node` modules for other functions
+  to handle processes, including spawning functions in nodes.
 
   Inlined by the compiler.
 
@@ -761,12 +744,8 @@ defmodule Kernel do
   Spawns the given function, monitors it and returns its PID
   and monitoring reference.
 
-  Typically developers do not use the `spawn` functions, instead they use
-  abstractions such as `Task`, `GenServer` and `Agent`, built on top of
-  `spawn`, that spawns processes with more conveniences in terms of
-  introspection and debugging.
-
-  Check the `Process` module for more process related functions,
+  Check the `Process` and `Node` modules for other functions
+  to handle processes, including spawning functions in nodes.
 
   The anonymous function receives 0 arguments, and may return any value.
 
@@ -787,12 +766,8 @@ defmodule Kernel do
   Spawns the given module and function passing the given args,
   monitors it and returns its PID and monitoring reference.
 
-  Typically developers do not use the `spawn` functions, instead they use
-  abstractions such as `Task`, `GenServer` and `Agent`, built on top of
-  `spawn`, that spawns processes with more conveniences in terms of
-  introspection and debugging.
-
-  Check the `Process` module for more process related functions,
+  Check the `Process` and `Node` modules for other functions
+  to handle processes, including spawning functions in nodes.
 
   Inlined by the compiler.
 
@@ -4474,9 +4449,8 @@ defmodule Kernel do
     end
   end
 
+  # TODO: Deprecate by v1.5
   @doc false
-  # TODO: Remove by 2.0
-  # (hard-deprecated in elixir_dispatch)
   defmacro to_char_list(arg) do
     quote do: Kernel.to_charlist(unquote(arg))
   end
