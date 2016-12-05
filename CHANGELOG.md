@@ -95,16 +95,15 @@ We hope this feature provides a more streamlined workflow for developers who are
 
 Mix v1.4 can now install escripts and archives from both Git and Hex, providing you with even more options for distributing Elixir code.
 
-This makes it possible to distribute CLI applications written in Elixir by publishing a package which builds an escript to Hex. The [`serve_this`](https://hex.pm/packages/serve_this) package, which quickly serves the current directory over HTTP using Plug, was created as an example of how to use this new functionality.
+This makes it possible to distribute CLI applications written in Elixir by publishing a package which builds an escript to Hex. [`ex_doc`](https://hex.pm/packages/ex_doc) has been updated to serve as an example of how to use this new functionality.
 
 Simply running:
 
-    mix escript.install hex serve_this
+    mix escript.install hex ex_doc
 
-will fetch `serve_this` and its dependencies, build them, and then install `serve_this` to `~/.mix/escripts` (by default). After adding `~.mix/escripts` to your `PATH`, running `serve_this` is as simple as:
+will fetch `ex_doc` and its dependencies, build them, and then install `ex_doc` to `~/.mix/escripts` (by default). After adding `~.mix/escripts` to your `PATH`, running `ex_doc` is as simple as:
 
-    serve_this
-    # Serving HTTP on port 8000...
+    ex_doc
 
 You can now also install archives from Hex in this way. Since they are fetched and built on the user's machine, they do not have the same limitations as pre-built archives.
 
