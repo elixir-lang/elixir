@@ -296,12 +296,11 @@ defmodule IEx do
 
   ## Width
 
-  An integer indicating the number of columns to use in documentation
-  output. Default is 80 columns or result of `:io.columns`, whichever
-  is smaller. The configured value will be used unless it is too large,
-  which in that case `:io.columns` is used. This way you can configure
-  IEx to be your largest screen size and it should always take up the
-  full width of your terminal screen.
+  An integer indicating the maximum number of columns to use in output.
+  The default value is 80 columns. The actual output width is the minimum
+  of this number and result of `:io.columns`. This way you can configure IEx
+  to be your largest screen size and it should always take up the full width
+  of your current terminal screen.
 
   ## History size
 
@@ -374,7 +373,7 @@ defmodule IEx do
   @doc """
   Gets the IEx width for printing.
 
-  Used by helpers and it has a maximum cap of 80 chars.
+  Used by helpers and it has a default maximum cap of 80 chars.
   """
   def width do
     IEx.Config.width()
