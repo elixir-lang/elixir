@@ -91,9 +91,7 @@ Finally, if there is a dependency you don't want to include in the application r
 
 We hope this feature provides a more streamlined workflow for developers who are building releases for their Elixir projects.
 
-## v1.4.0-rc.1
-
-## v1.4.0-rc.0 (2016-11-28)
+## v1.4.0-rc.1 (2016-12-05)
 
 ### 1. Enhancements
 
@@ -137,6 +135,7 @@ We hope this feature provides a more streamlined workflow for developers who are
 
   * [IEx.Autocomplete] Stop appending a trailing dot when autocompleting modules in IEx
   * [IEx.Autocomplete] Support autocompletion for structs
+  * [IEx.Autocomplete] Improve IEx autocomplete to support navigating map atom keys
   * [IEx.Helpers] `c/1` now compiles in memory by default to avoid common issue where `.beam` files remain at projects root directory
   * [IEx.Helpers] Add info about protocols in `i/1`
   * [IEx.Server] Support interrupting IEx evaluation through the Ctrl+G prompt
@@ -162,6 +161,8 @@ We hope this feature provides a more streamlined workflow for developers who are
   * [Float] Avoid multiple roundings in `Float.ceil/2`, `Float.floor/2` and `Float.round/2`
   * [Kernel] Don't crash in `macro_exported?/3` when dealing with Erlang modules
   * [Kernel] Ensure locals calls are rewritten when calling a local function or macro from inside a module
+  * [Kernel] Annotate the context for variables as zero-arity funs in quotes
+  * [Kernel.SpecialForms] Ensure comprehensions with guards and filters keep proper ordering,
   * [Kernel.SpecialForms] Produce meaningful warning when with's else clauses have no effect
   * [Macro] Wrap fn calls in parens in `Macro.to_string/2`
   * [Macro] Do not print aliases as keys inside keyword lists in `Macro.to_string/2`
@@ -169,6 +170,7 @@ We hope this feature provides a more streamlined workflow for developers who are
   * [Stream] Ensure `Stream.take/2` does not consume next element on `:suspend`
   * [String] Fix infinite recursion in `String.replace_leading/3` and `String.replace_trailing/3` when given an empty string
   * [Task] Fix `Task.shutdown/1,2` infinite block when task has no monitor
+  * [Task] Ensure task cannot link after parents unlinks
 
 #### ExUnit
 
@@ -205,6 +207,7 @@ We hope this feature provides a more streamlined workflow for developers who are
   * [Kernel] Deprecate support for making private functions overridable. Overridable functions must always be public as they must be contracts
   * [Kernel] Warn if variable is used as a function call
   * [OptionParser] Deprecate aliases with multiple letters, such as `-abc`
+  * [Set] Deprecate the `Set` module
   * [Stream] Deprecate `Stream.uniq/2` in favor of `Stream.uniq_by/2`
 
 #### IEx
