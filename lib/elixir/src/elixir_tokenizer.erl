@@ -1043,6 +1043,6 @@ invalid_do_error(Prefix) ->
   "Syntax error before: ".
 
 do_with_fn_error(Prefix) ->
-  Prefix ++ ". Anonymous function literals do not accept do...end blocks. Their syntax is:\n\n"
-  "    fn -> :result end\n\n"
+  Prefix ++ ". Anonymous functions are written as:\n\n"
+  "    fn pattern -> expression end\n\n"
   "Syntax error before: ".
