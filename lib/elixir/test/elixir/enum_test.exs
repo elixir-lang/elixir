@@ -66,6 +66,12 @@ defmodule EnumTest do
     assert Enum.chunk_by([1], fn _ -> true end) == [[1]]
   end
 
+  test "compact/1" do
+    assert Enum.compact([]) == []
+    assert Enum.compact([1, 2, nil, 4, :five, "six"]) == [1, 2, 4, :five, "six"]
+    assert Enum.compact(%{here: true, gone: nil}) == %{here: true}
+  end
+
   test "concat/1" do
     assert Enum.concat([[1, [2], 3], [4], [5, 6]]) == [1, [2], 3, 4, 5, 6]
 
