@@ -4,7 +4,7 @@ defmodule Process do
 
   Besides the functions available in this module, the `Kernel` module
   exposes and auto-imports some basic functionality related to processes
-  available through the functions:
+  available through the following functions:
 
     * `Kernel.spawn/1` and `Kernel.spawn/3`
     * `Kernel.spawn_link/1` and `Kernel.spawn_link/3`
@@ -15,10 +15,13 @@ defmodule Process do
   """
 
   @doc """
-  Returns `true` if the process exists and is alive (i.e. it is not exiting
-  and has not exited yet). Otherwise, returns `false`.
+  Tells whether the given process is alive.
 
-  `pid` must refer to a process at the local node.
+  If the process identified by `pid` is alive (that is, it's not exiting and has
+  not exited yet) than this function returns `true`. Otherwise, it returns
+  `false`.
+
+  `pid` must refer to a process running on the local node.
 
   Inlined by the compiler.
   """
@@ -38,7 +41,8 @@ defmodule Process do
   end
 
   @doc """
-  Returns the value for the given `key` or `default` if `key` is not set.
+  Returns the value for the given `key` in the process dictionary,
+  or `default` if `key` is not set.
   """
   @spec get(term) :: term
   @spec get(term, default :: term) :: term
@@ -62,7 +66,7 @@ defmodule Process do
   end
 
   @doc """
-  Returns all keys that have the given `value`.
+  Returns all keys in the process dictionary that have the given `value`.
 
   Inlined by the compiler.
   """
@@ -74,8 +78,17 @@ defmodule Process do
   @doc """
   Stores the given `key`-`value` pair in the process dictionary.
 
-  The return value is the value that was previously stored under the key `key`
-  (or `nil` in case no value was stored under `key`).
+  The return value of this function is the value that was previously stored
+  under the key `key`, or `nil` in case no value was stored under `key`.
+
+  ## Examples
+
+      # Assuming :locale was not set
+      Process.put(:locale, "en")
+      #=> nil
+      Process.put(:locale, "fr")
+      #=> "en"
+
   """
   @spec put(term, term) :: term | nil
   def put(key, value) do
@@ -91,7 +104,7 @@ defmodule Process do
   end
 
   @doc """
-  Sends an exit signal with the given `reason` to the `pid`.
+  Sends an exit signal with the given `reason` to `pid`.
 
   The following behaviour applies if `reason` is any term except `:normal`
   or `:kill`:
@@ -108,7 +121,7 @@ defmodule Process do
   If it is trapping exits, the exit signal is transformed into a message
   `{:EXIT, from, :normal}` and delivered to its message queue.
 
-  If `reason` is the atom `:kill`, that is if `exit(pid, :kill)` is called,
+  If `reason` is the atom `:kill`, that is if `Process.exit(pid, :kill)` is called,
   an untrappable exit signal is sent to `pid` which will unconditionally exit
   with reason `:killed`.
 
@@ -117,6 +130,7 @@ defmodule Process do
   ## Examples
 
       Process.exit(pid, :kill)
+      #=> true
 
   """
   @spec exit(pid, term) :: true
@@ -125,7 +139,7 @@ defmodule Process do
   end
 
   @doc """
-  Sleeps the current process by `timeout`.
+  Sleeps the current process for the given `timeout`.
 
   `timeout` is either the number of milliseconds to sleep as an
   integer or the atom `:infinity`. When `:infinity` is given,
@@ -133,11 +147,12 @@ defmodule Process do
 
   **Use this function with extreme care**. For almost all situations
   where you would use `sleep/1` in Elixir, there is likely a
-  more correct, faster and precise way of achieving it with
+  more correct, faster and precise way of achieving the same with
   message passing.
 
   For example, if you are waiting a process to perform some
-  action, it is better to communicate.
+  action, it is better to communicate the progress of such action
+  with messages.
 
   In other words, **do not**:
 
@@ -164,11 +179,11 @@ defmodule Process do
         30_000 -> :timeout # Optional timeout
       end
 
-  Or even use `Task.async/1` and `Task.await/2` in the example
-  above.
+  For cases like the one above, `Task.async/1` and `Task.await/2` are
+  preferred.
 
   Similarly, if you are waiting for a process to terminate,
-  use monitor instead of sleep. **Do not**:
+  monitor that process instead of sleeping. **Do not**:
 
       Task.start_link fn ->
         ...
@@ -201,18 +216,20 @@ defmodule Process do
   @doc """
   Sends a message to the given process.
 
-  If the option `:noconnect` is used and sending the message would require an
-  auto-connection to another node the message is not sent and `:noconnect` is
-  returned.
+  ## Options
 
-  If the option `:nosuspend` is used and sending the message would cause the
-  sender to be suspended the message is not sent and `:nosuspend` is returned.
+    * `:noconnect` - when used, if sending the message would require an
+      auto-connection to another node the message is not sent and `:noconnect` is
+      returned.
+
+    * `:nosuspend` - when used, if sending the message would cause the sender to
+      be suspended the message is not sent and `:nosuspend` is returned.
 
   Otherwise the message is sent and `:ok` is returned.
 
   ## Examples
 
-      iex> Process.send({:name, :node_does_not_exist}, :hi, [:noconnect])
+      iex> Process.send({:name, :node_that_does_not_exist}, :hi, [:noconnect])
       :noconnect
 
   """
@@ -229,13 +246,13 @@ defmodule Process do
 
   If `dest` is a PID, it must be the PID of a local process, dead or alive.
   If `dest` is an atom, it must be the name of a registered process
-  which is looked up at the time of delivery. No error is given if the name does
+  which is looked up at the time of delivery. No error is produced if the name does
   not refer to a process.
 
-  This function returns a timer reference, which can be read or canceled with
-  `read_timer/1` and `cancel_timer/1`.
+  This function returns a timer reference, which can be read with `read_timer/1`
+  or canceled with `cancel_timer/1`.
 
-  Finally, the timer will be automatically canceled if the given `dest` is a PID
+  The timer will be automatically canceled if the given `dest` is a PID
   which is not alive or when the given PID exits. Note that timers will not be
   automatically canceled when `dest` is an atom (as the atom resolution is done
   on delivery).
@@ -248,6 +265,10 @@ defmodule Process do
     To read more about Erlang monotonic time and other time-related concepts,
     look at the documentation for the `System` module. Defaults to `false`.
 
+  ## Examples
+
+      timer_ref = Process.send_after(pid, :hi, 1000)
+
   """
   @spec send_after(pid | atom, term, non_neg_integer, [option]) :: reference
         when option: {:abs, boolean}
@@ -256,17 +277,17 @@ defmodule Process do
   end
 
   @doc """
-  Cancels a timer created by `send_after/3`.
+  Cancels a timer returned by `send_after/3`.
 
   When the result is an integer, it represents the time in milliseconds
   left until the timer would have expired.
 
-  When the result is `false`, a timer corresponding to `timer_ref` could
-  not be found. This can be either because the timer expired, already has
-  been canceled, or because `timer_ref` never corresponded to a timer.
+  When the result is `false`, a timer corresponding to `timer_ref` could not be
+  found. This can happen either because the timer expired, because it has
+  already been canceled, or because `timer_ref` never corresponded to a timer.
 
-  If the timer has expired, the timeout message has been sent, but it does
-  not tell you whether or not it has arrived at its destination yet.
+  Even if the timer had expired and the message was sent, this function does not
+  tell you if the timeout message has arrived at its destination yet.
 
   Inlined by the compiler.
   """
@@ -281,12 +302,12 @@ defmodule Process do
   When the result is an integer, it represents the time in milliseconds
   left until the timer will expire.
 
-  When the result is `false`, a timer corresponding to `timer_ref` could
-  not be found. This can be either because the timer expired, already has
+  When the result is `false`, a timer corresponding to `timer_ref` could not be
+  found. This can be either because the timer expired, because it has already
   been canceled, or because `timer_ref` never corresponded to a timer.
 
-  If the timer has expired, the timeout message has been sent, but it does
-  not tell you whether or not it has arrived at its destination yet.
+  Even if the timer had expired and the message was sent, this function does not
+  tell you if the timeout message has arrived at its destination yet.
 
   Inlined by the compiler.
   """
@@ -309,7 +330,7 @@ defmodule Process do
   containing the PID and the monitoring reference, otherwise
   just the spawned process PID.
 
-  It also accepts extra options, for the list of available options
+  More options are available; for the comprehensive list of available options
   check [`:erlang.spawn_opt/4`](http://www.erlang.org/doc/man/erlang.html#spawn_opt-4).
 
   Inlined by the compiler.
@@ -320,7 +341,7 @@ defmodule Process do
   end
 
   @doc """
-  Spawns the given function from module `mod`, passing the given `args`
+  Spawns the given function `fun` from module `mod`, passing the given `args`
   according to the given options.
 
   The result depends on the given options. In particular,
@@ -339,8 +360,9 @@ defmodule Process do
   end
 
   @doc """
-  The calling process starts monitoring the given `item`.
-  It returns the monitor reference.
+  Starts monitoring the given `item` from the calling process.
+
+  This function returns the monitor reference.
 
   See [the need for monitoring](http://elixir-lang.org/getting-started/mix-otp/genserver.html#the-need-for-monitoring)
   for an example.
@@ -354,8 +376,10 @@ defmodule Process do
   end
 
   @doc """
+  Demonitors the monitor identifies by the given `reference`.
+
   If `monitor_ref` is a reference which the calling process
-  obtained by calling `monitor/1`, this monitoring is turned off.
+  obtained by calling `monitor/1`, that monitoring is turned off.
   If the monitoring is already turned off, nothing happens.
 
   See [`:erlang.demonitor/2`](http://www.erlang.org/doc/man/erlang.html#demonitor-2) for more info.
@@ -369,12 +393,12 @@ defmodule Process do
   end
 
   @doc """
-  Returns a list of process identifiers corresponding to all the
+  Returns a list of PIDs corresponding to all the
   processes currently existing on the local node.
 
-  Note that a process that is exiting, exists but is not alive, i.e.,
-  `alive?/1` will return `false` for a process that is exiting,
-  but its process identifier will be part of the result returned.
+  Note that if a process is exiting, it is considered to exist but not be
+  alive. This means that for such process, `alive?/1` will return `false` but
+  its PID will be part of the list of PIDs returned by this function.
 
   See [`:erlang.processes/0`](http://www.erlang.org/doc/man/erlang.html#processes-0) for more info.
   """
@@ -384,30 +408,37 @@ defmodule Process do
   end
 
   @doc """
-  Creates a link between the calling process and another process
-  (or port) `pid`, if there is not such a link already.
+  Creates a link between the calling process and the given item (process or
+  port).
+
+  If such a link exists already, this function does nothing.
 
   See [`:erlang.link/1`](http://www.erlang.org/doc/man/erlang.html#link-1) for more info.
 
   Inlined by the compiler.
   """
   @spec link(pid | port) :: true
-  def link(pid) do
-    :erlang.link(pid)
+  def link(pid_or_port) do
+    :erlang.link(pid_or_port)
   end
 
   @doc """
-  Removes the link, if there is one, between the calling process and
-  the process or port referred to by `pid`. Returns `true` and does not
-  fail, even if there is no link or `id` does not exist
+
+  Removes the link between the calling process and the given item (process or
+  port).
+
+  If there is no such link, this function does nothing. If `pid_or_port` does
+  not exist, this function does not produce any errors and simply does nothing.
+
+  The return value of this function is always `true`.
 
   See [`:erlang.unlink/1`](http://www.erlang.org/doc/man/erlang.html#unlink-1) for more info.
 
   Inlined by the compiler.
   """
   @spec unlink(pid | port) :: true
-  def unlink(pid) do
-    :erlang.unlink(pid)
+  def unlink(pid_or_port) do
+    :erlang.unlink(pid_or_port)
   end
 
   @doc """
@@ -416,12 +447,20 @@ defmodule Process do
   `name` must be an atom and can then be used instead of the
   PID/port identifier when sending messages with `Kernel.send/2`.
 
-  `register/2` will fail with `ArgumentError` if the PID/Port is
-  not existing locally and alive, if the name is already registered
-  or if the `pid_or_port` is already registered to a different `name`.
+  `register/2` will fail with `ArgumentError` in any of the following cases:
+
+    * the PID/Port is not existing locally and alive
+    * the name is already registered
+    * the `pid_or_port` is already registered under a different `name`
 
   The following names are reserved and cannot be assigned to
-  processes nor ports: `nil`, `false`, `true` or `:undefined`.
+  processes nor ports:
+
+    * `nil`
+    * `false`
+    * `true`
+    * `:undefined`
+
   """
   @spec register(pid | port, atom) :: true
   def register(pid_or_port, name) when is_atom(name) and not name in [nil, false, true, :undefined] do
@@ -453,8 +492,8 @@ defmodule Process do
   end
 
   @doc """
-  Returns the PID or port identifier with the registered `name`.
-  Returns `nil` if the name is not registered.
+  Returns the PID or port identifier registered under `name` or `nil` if the
+  name is not registered.
 
   See [`:erlang.whereis/1`](http://www.erlang.org/doc/man/erlang.html#whereis-1) for more info.
   """
@@ -464,7 +503,7 @@ defmodule Process do
   end
 
   @doc """
-  Returns the PID of the group leader for the process which evaluates the function.
+  Returns the PID of the group leader for the calling process.
   """
   @spec group_leader :: pid
   def group_leader do
@@ -472,8 +511,10 @@ defmodule Process do
   end
 
   @doc """
-  Sets the group leader of `pid` to `leader`. Typically, this is used when a process
-  started from a certain shell should have a group leader other than `:init`.
+  Sets the group leader of the given `pid` to `leader`.
+
+  Typically, this is used when a process started from a certain shell should
+  have a group leader other than `:init`.
   """
   @spec group_leader(pid, leader :: pid) :: true
   def group_leader(pid, leader) do
@@ -492,8 +533,9 @@ defmodule Process do
                          :min_bin_vheap_size | :priority | :save_calls |
                          :sensitive
   @doc """
-  Sets certain flags for the process which calls this function.
-  Returns the old value of the `flag`.
+  Sets the given `flag` to `value` for the calling process.
+
+  Returns the old value of `flag`.
 
   See [`:erlang.process_flag/2`](http://www.erlang.org/doc/man/erlang.html#process_flag-2) for more info.
   """
@@ -503,9 +545,12 @@ defmodule Process do
   end
 
   @doc """
-  Sets certain flags for the process `pid`, in the same manner as `flag/2`.
-  Returns the old value of the `flag`. The allowed values for `flag` are
-  only a subset of those allowed in `flag/2`, namely `:save_calls`.
+  Sets the given `flag` to `value` for the given process `pid`.
+
+  Returns the old value of `flag`.
+
+  The allowed values for `flag` are only a subset of those allowed in `flag/2`,
+  namely `:save_calls`.
 
   See [`:erlang.process_flag/3`](http://www.erlang.org/doc/man/erlang.html#process_flag-3) for more info.
   """
@@ -517,6 +562,7 @@ defmodule Process do
   @doc """
   Returns information about the process identified by `pid`, or returns `nil` if the process
   is not alive.
+
   Use this only for debugging information.
 
   See [`:erlang.process_info/1`](http://www.erlang.org/doc/man/erlang.html#process_info-1) for more info.
@@ -548,7 +594,9 @@ defmodule Process do
   end
 
   @doc """
-  Puts the calling process into a wait state
+  Puts the calling process into a "hibernation" state.
+
+  The calling process is put into a waiting state
   where its memory allocation has been reduced as much as possible,
   which is useful if the process does not expect to receive any messages
   in the near future.
