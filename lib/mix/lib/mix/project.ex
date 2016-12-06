@@ -138,10 +138,11 @@ defmodule Mix.Project do
   @doc """
   Retrieves the current project if there is one.
 
-  Otherwise `nil` is returned. It may happen in cases
-  there is no mixfile in the current directory.
+  If there is no current project, `nil` is returned. This
+  may happen in casesthere is no mixfile in the current
+  directory.
 
-  If you expect a project to be defined, i.e. it is a
+  If you expect a project to be defined, i.e., it is a
   requirement of the current task, you should call
   `get!/0` instead.
   """
@@ -159,8 +160,8 @@ defmodule Mix.Project do
   This is usually called by tasks that need additional
   functions on the project to be defined. Since such
   tasks usually depend on a project being defined, this
-  function raises `Mix.NoProjectError` in case no project
-  is available.
+  function raises a `Mix.NoProjectError` exception in
+  case no project is available.
   """
   @spec get!() :: module | no_return
   def get! do
@@ -196,8 +197,9 @@ defmodule Mix.Project do
   This function is usually used in compilation tasks to trigger
   a full recompilation whenever such configuration files change.
 
-  By default it includes the mix.exs file, the lock manifest and
-  all config files in the `config` directory.
+  It returns the `mix.exs` file, the lock manifest, and all config
+  files in the `config` directory that do not start with a trailing
+  period (for example, `.my_config.exs`).
   """
   @spec config_files() :: [Path.t]
   def config_files do
@@ -217,7 +219,10 @@ defmodule Mix.Project do
   end
 
   @doc """
-  Returns `true` if project is an umbrella project.
+  Returns `true` if `config` is the configuration for an umbrella project.
+
+  When called with no arguments, tells whether the current project is
+  an umbrella project.
   """
   @spec umbrella?() :: boolean
   def umbrella?(config \\ config()) do
@@ -225,10 +230,22 @@ defmodule Mix.Project do
   end
 
   @doc """
-  Returns a map with the umbrella child applications
-  paths based on `:apps_path` and `:apps` configurations.
+  Returns a map with the umbrella child applications paths.
 
-  Returns `nil` if not an umbrella project.
+  These paths are based on the `:apps_path` and `:apps` configurations.
+
+  If the given project configuration identifies an umbrella project, the return
+  value is a map of `app => path` where `app` is a child app of the umbrella and
+  `path` is its path relative to the root of the umbrella project.
+
+  If the given project configuration does not identify an umbrella project,
+  `nil` is returned.
+
+  ## Examples
+
+      Mix.Project.apps_path()
+      #=> %{my_app1: "apps/my_app1", my_app2: "apps/my_app2"}
+
   """
   @spec apps_paths() :: %{atom => Path.t} | nil
   def apps_paths(config \\ config()) do
@@ -322,7 +339,9 @@ defmodule Mix.Project do
   end
 
   @doc """
-  Returns the path where dependencies are stored for this project.
+  Returns the path where dependencies are stored for the given project.
+
+  If no configuration is given, the one for the current project is used.
 
   The returned path will be expanded.
 
@@ -354,7 +373,9 @@ defmodule Mix.Project do
   end
 
   @doc """
-  Returns the build path for this project.
+  Returns the build path for the given project.
+
+  If no configuration is given, the one for the current project is used.
 
   The returned path will be expanded.
 
@@ -442,7 +463,9 @@ defmodule Mix.Project do
   end
 
   @doc """
-  Returns the paths this project compiles to.
+  Returns the paths the given project compiles to.
+
+  If no configuration is given, the one for the current project will be used.
 
   The returned path will be expanded.
 
@@ -459,6 +482,14 @@ defmodule Mix.Project do
 
   @doc """
   Returns the path where protocol consolidations are stored.
+
+  The returned path will be expanded.
+
+  ## Examples
+
+      Mix.Project.consolidation_path
+      #=> "/path/to/project/_build/dev/consolidated"
+
   """
   def consolidation_path(config \\ config()) do
     Path.join(build_path(config), "consolidated")
@@ -469,7 +500,7 @@ defmodule Mix.Project do
 
   It will run the compile task unless the project
   is in build embedded mode, which may fail as an
-  explicit command to `mix compile` is required.
+  explicit execution of `mix compile` is required.
   """
   @spec compile([term], Keyword.t) :: term
   def compile(args, config \\ config()) do
@@ -489,7 +520,7 @@ defmodule Mix.Project do
   end
 
   @doc """
-  Builds the project structure for the current application.
+  Builds the project structure for the given application.
 
   ## Options
 
@@ -531,7 +562,7 @@ defmodule Mix.Project do
   end
 
   @doc """
-  Ensures the project structure exists.
+  Ensures the project structure for the given project exists.
 
   In case it does exist, it is a no-op. Otherwise, it is built.
   """
@@ -545,7 +576,7 @@ defmodule Mix.Project do
   end
 
   @doc """
-  Returns all load paths for this project.
+  Returns all load paths for the given project.
   """
   @spec load_paths(Keyword.t) :: [Path.t]
   def load_paths(config \\ config()) do
