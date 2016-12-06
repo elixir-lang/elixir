@@ -5,4 +5,8 @@ defmodule Ok.Mixfile do
     [app: :ok,
      version: "0.1.0"]
   end
+
+  def application do
+    [extra_applications: [:logger]]
+  end
 end
