@@ -131,6 +131,18 @@ defmodule Mix.Tasks.EscriptTest do
     purge [Ok.Mixfile]
   end
 
+  test "generating escript for umbrella projects fails with a nice error" do
+    message = "Building escripts for umbrella projects is unsupported"
+
+    in_fixture "umbrella_dep/deps/umbrella", fn ->
+      Mix.Project.in_project(:umbrella, ".", fn _ ->
+        assert_raise Mix.Error, message, fn ->
+          Mix.Tasks.Escript.Build.run []
+        end
+      end)
+    end
+  end
+
   test "generate escript with consolidated protocols" do
     Mix.Project.push EscriptConsolidated
 
