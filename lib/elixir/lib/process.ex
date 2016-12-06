@@ -472,7 +472,7 @@ defmodule Process do
   end
 
   @doc """
-  Sets the group leader of `pid` to `leader`. Typically, this is used when a processes
+  Sets the group leader of `pid` to `leader`. Typically, this is used when a process
   started from a certain shell should have a group leader other than `:init`.
   """
   @spec group_leader(pid, leader :: pid) :: true
