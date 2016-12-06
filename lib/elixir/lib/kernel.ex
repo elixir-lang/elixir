@@ -3733,7 +3733,7 @@ defmodule Kernel do
     end
   end
 
-  @doc """
+  @doc ~S"""
   Defines a protocol.
 
   A protocol specifies an API that should be defined by its
