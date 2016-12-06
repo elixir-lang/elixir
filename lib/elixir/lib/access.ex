@@ -515,7 +515,7 @@ defmodule Access do
       {["john", "mary"], [%{}, %{}]}
 
   Here is an example that traverses the list dropping even
-  numbers and multipling odd numbers by 2:
+  numbers and multiplying odd numbers by 2:
 
       iex> require Integer
       iex> get_and_update_in([1, 2, 3, 4, 5], [Access.all], fn
