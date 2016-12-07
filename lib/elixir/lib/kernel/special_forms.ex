@@ -222,7 +222,7 @@ defmodule Kernel.SpecialForms do
       iex> x = 1
       iex> <<x::8>> == <<x::size(8)>>
       true
-      iex> <<x::8 * 4>> == <<x::size(8)-unit(4)>>
+      iex> <<x::8*4>> == <<x::size(8)-unit(4)>>
       true
 
   This syntax reflects the fact the effective size is given by
@@ -293,7 +293,7 @@ defmodule Kernel.SpecialForms do
 
       defmodule ImageTyper
         @png_signature <<137::size(8), 80::size(8), 78::size(8), 71::size(8),
-                      13::size(8), 10::size(8), 26::size(8), 10::size(8)>>
+                         13::size(8), 10::size(8), 26::size(8), 10::size(8)>>
         @jpg_signature <<255::size(8), 216::size(8)>>
 
         def type(<<@png_signature, rest::binary>>), do: :png
@@ -1241,7 +1241,7 @@ defmodule Kernel.SpecialForms do
       [2, 4, 6, 8]
 
       # A comprehension with two generators
-      iex> for x <- [1, 2], y <- [2, 3], do: x*y
+      iex> for x <- [1, 2], y <- [2, 3], do: x * y
       [2, 3, 4, 6]
 
   Filters can also be given:
@@ -1263,7 +1263,7 @@ defmodule Kernel.SpecialForms do
   need to organize bitstring streams:
 
       iex> pixels = <<213, 45, 132, 64, 76, 32, 76, 0, 0, 234, 32, 15>>
-      iex> for <<r::8, g::8, b::8 <- pixels >>, do: {r, g, b}
+      iex> for <<r::8, g::8, b::8 <- pixels>>, do: {r, g, b}
       [{213, 45, 132}, {64, 76, 32}, {76, 0, 0}, {234, 32, 15}]
 
   Variable assignments inside the comprehension, be it in generators,
@@ -1301,7 +1301,7 @@ defmodule Kernel.SpecialForms do
       iex> opts = %{width: 10, height: 15}
       iex> with {:ok, width} <- Map.fetch(opts, :width),
       ...>      {:ok, height} <- Map.fetch(opts, :height),
-      ...>   do: {:ok, width * height}
+      ...>      do: {:ok, width * height}
       {:ok, 150}
 
   If all clauses match, the `do` block is executed, returning its result.
@@ -1310,14 +1310,14 @@ defmodule Kernel.SpecialForms do
       iex> opts = %{width: 10}
       iex> with {:ok, width} <- Map.fetch(opts, :width),
       ...>      {:ok, height} <- Map.fetch(opts, :height),
-      ...>   do: {:ok, width * height}
+      ...>      do: {:ok, width * height}
       :error
 
   Guards can be used in patterns as well:
 
       iex> users = %{"melany" => "guest", "bob" => :admin}
       iex> with {:ok, role} when not is_binary(role) <- Map.fetch(users, "bob"),
-      ...>   do: {:ok, to_string(role)}
+      ...>      do: {:ok, to_string(role)}
       {:ok, "admin"}
 
   As in `for/1`, variables bound inside `with/1` won't leak;
@@ -1328,7 +1328,7 @@ defmodule Kernel.SpecialForms do
       iex> with {:ok, width} <- Map.fetch(opts, :width),
       ...>      double_width = width * 2,
       ...>      {:ok, height} <- Map.fetch(opts, :height),
-      ...>   do: {:ok, double_width * height}
+      ...>      do: {:ok, double_width * height}
       {:ok, 300}
       iex> width
       nil
