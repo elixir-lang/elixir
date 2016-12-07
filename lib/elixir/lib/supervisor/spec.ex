@@ -76,9 +76,9 @@ defmodule Supervisor.Spec do
       terminates abnormally, i.e., with an exit reason other than
       `:normal`, `:shutdown` or `{:shutdown, term}`
   
-  Notice that whenever supervisor with `:transient` restart value reaches `max_restart_intensity`,
-  it would not be restarted, since exit reason in this case is `:shutdown` and it is not considered 
-  to be abnormal.
+  Notice that supervisor that reached `max_restart_intensity` will exit with `:shutdown` reason. 
+  In this cases childs that have `:transient` restart value in their child spec will not be restarted, 
+  because this reason it is not considered to be abnormal.
 
   ### Shutdown values (:shutdown)
 
