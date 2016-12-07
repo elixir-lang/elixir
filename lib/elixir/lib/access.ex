@@ -361,7 +361,8 @@ defmodule Access do
   @doc false
   def key(key) do
     IO.warn "Access.key/1 is deprecated due to erratic behaviour for missing keys, " <>
-            "please use Access.key/2 instead with proper default values"
+            "please use Access.key/2 instead with proper default values " <>
+            "(or Access.key!/1 if you expect the key to always be available)"
 
     fn
       :get, data, next ->

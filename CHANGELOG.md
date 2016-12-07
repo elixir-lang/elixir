@@ -179,7 +179,7 @@ It is also possible to install escripts and archives by providing a Git/GitHub r
 
 #### Elixir
 
-  * [Access] Do not accept nils in `Access.key/1` and `Access.key/2` in favor of explicit default values
+  * [Access] Do not accept nils in `Access.key/1` and `Access.key/2` in favor of explicit default values (or Access.key!/1 if you expect the key to always be available)
   * [Float] Avoid multiple roundings in `Float.ceil/2`, `Float.floor/2` and `Float.round/2`
   * [Kernel] Don't crash in `macro_exported?/3` when dealing with Erlang modules
   * [Kernel] Ensure locals calls are rewritten when calling a local function or macro from inside a module
