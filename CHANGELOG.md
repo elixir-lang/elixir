@@ -127,6 +127,7 @@ It is also possible to install escripts and archives by providing a Git/GitHub r
   * [Inspect] Support syntax coloring via the `:syntax_color` option
   * [Integer] `Integer.digits/2` now accepts negative integers
   * [Integer] Add `Integer.mod/2` and `Integer.floor_div/2`
+  * [IO] Add `:label` option to `IO.inspect/2` to help distinguish multiple `IO.inspect/2` calls.
   * [Kernel] Recognize merge conflict markers in source and provide a readable error message
   * [Kernel] Warn on unused module attributes
   * [Kernel] Improve compiler message on unexpected end of line
