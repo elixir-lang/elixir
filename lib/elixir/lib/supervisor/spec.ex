@@ -78,7 +78,7 @@ defmodule Supervisor.Spec do
   
   Notice that supervisor that reached maximum restart intensity will exit with `:shutdown` reason. 
   In this case the supervisor will only be restarted if its child specification was defined with 
-  a `:restart` of `:permanent` (the default).
+  the `:restart` option set to `:permanent` (the default).
 
   ### Shutdown values (:shutdown)
 
