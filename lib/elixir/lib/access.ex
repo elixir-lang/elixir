@@ -358,6 +358,27 @@ defmodule Access do
 
   ## Accessors
 
+  @doc false
+  def key(key) do
+    IO.warn "Access.key/1 is deprecated due to erratic behaviour for missing keys, " <>
+            "please use Access.key/2 instead with proper default values"
+
+    fn
+      :get, data, next ->
+        next.(Map.get(to_map(data), key))
+      :get_and_update, data, next ->
+        value = Map.get(to_map(data), key)
+        case next.(value) do
+          {get, update} -> {get, Map.put(data, key, update)}
+          :pop -> {value, Map.delete(data, key)}
+        end
+    end
+  end
+
+  defp to_map(nil), do: %{}
+  defp to_map(%{} = map), do: map
+  defp to_map(data), do: raise "Access.key/1 expected a map/struct or nil, got: #{inspect data}"
+
   @doc """
   Returns a function that accesses the given key in a map/struct.
 
@@ -397,7 +418,7 @@ defmodule Access do
       ** (BadMapError) expected a map, got: []
 
   """
-  def key(key, default \\ nil) do
+  def key(key, default) do
     fn
       :get, data, next ->
         next.(Map.get(data, key, default))
