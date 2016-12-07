@@ -69,10 +69,10 @@ defimpl Inspect, for: Atom do
   defp color_key(nil), do: :nil
   defp color_key(_), do: :atom
 
-  def inspect(false),  do: "false"
-  def inspect(true),   do: "true"
-  def inspect(nil),    do: "nil"
-  def inspect(:""),    do: ":\"\""
+  def inspect(false), do: "false"
+  def inspect(true), do: "true"
+  def inspect(nil), do: "nil"
+  def inspect(:""), do: ":\"\""
 
   def inspect(atom) do
     binary = Atom.to_string(atom)
