@@ -77,8 +77,8 @@ defmodule Supervisor.Spec do
       `:normal`, `:shutdown` or `{:shutdown, term}`
   
   Notice that supervisor that reached max restart intensity will exit with `:shutdown` reason. 
-  In this case children that have `:transient` restart value in their child spec will not be restarted, 
-  because this reason it is not considered to be abnormal.
+  In this case the supervisor will only be restarted if its child specification was defined with 
+  a `:restart` of `:permanent` (the default).
 
   ### Shutdown values (:shutdown)
 
