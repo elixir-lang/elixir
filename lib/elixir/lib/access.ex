@@ -389,13 +389,13 @@ defmodule Access do
   The returned function uses the default value if the key does not exist.
   This can be used to specify defaults and safely traverse missing keys:
 
-      iex> get_in(%{}, [Access.key(:user, %{}), Access.key(:name)])
+      iex> get_in(%{}, [Access.key(:user, %{}), Access.key(:name, nil)])
       nil
 
   Such is also useful when using update functions, allowing us to introduce
   values as we traverse the data-structure for updates:
 
-      iex> put_in(%{}, [Access.key(:user, %{}), Access.key(:name)], "Mary")
+      iex> put_in(%{}, [Access.key(:user, %{}), Access.key(:name, nil)], "Mary")
       %{user: %{name: "Mary"}}
 
   ## Examples
@@ -403,19 +403,19 @@ defmodule Access do
       iex> map = %{user: %{name: "john"}}
       iex> get_in(map, [Access.key(:unknown, %{}), Access.key(:name, "john")])
       "john"
-      iex> get_and_update_in(map, [Access.key(:user), Access.key(:name)], fn
+      iex> get_and_update_in(map, [Access.key!(:user), Access.key!(:name)], fn
       ...>   prev -> {prev, String.upcase(prev)}
       ...> end)
       {"john", %{user: %{name: "JOHN"}}}
-      iex> pop_in(map, [Access.key(:user), Access.key(:name)])
+      iex> pop_in(map, [Access.key!(:user), Access.key!(:name)])
       {"john", %{user: %{}}}
 
   An error is raised if the accessed structure is not a map or a struct:
 
-      iex> get_in(nil, [Access.key(:foo)])
+      iex> get_in(nil, [Access.key(:foo, nil)])
       ** (BadMapError) expected a map, got: nil
 
-      iex> get_in([], [Access.key(:foo)])
+      iex> get_in([], [Access.key(:foo, nil)])
       ** (BadMapError) expected a map, got: []
 
   """
