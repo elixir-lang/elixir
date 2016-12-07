@@ -75,6 +75,10 @@ defmodule Supervisor.Spec do
     * `:transient` - the child process is restarted only if it
       terminates abnormally, i.e., with an exit reason other than
       `:normal`, `:shutdown` or `{:shutdown, term}`
+  
+  Notice that whenever supervisor with `:transient` restart value reaches `max_restart_intensity`,
+  it would not be restarted, since exit reason in this case is `:shutdown` and it is not considered 
+  to be abnormal.
 
   ### Shutdown values (:shutdown)
 
