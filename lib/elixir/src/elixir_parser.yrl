@@ -620,7 +620,6 @@ meta_from_location({Line, Column, EndColumn})
 
 build_op({_Kind, Location, 'in'}, {UOp, _, [Left]}, Right) when ?rearrange_uop(UOp) ->
   {UOp, meta_from_location(Location), [{'in', meta_from_location(Location), [Left, Right]}]};
-
 build_op({_Kind, Location, Op}, Left, Right) ->
   {Op, meta_from_location(Location), [Left, Right]}.
 
@@ -646,20 +645,21 @@ build_map_update(Marker, {Pipe, Left, Right}, Extra) ->
 
 %% Blocks
 
-build_block([{Op, _, [_]}]=Exprs) when ?rearrange_uop(Op) -> {'__block__', [], Exprs};
-build_block([{unquote_splicing, _, Args}]=Exprs) when
-                                      length(Args) =< 2 -> {'__block__', [], Exprs};
-build_block([Expr])                                     -> Expr;
-build_block(Exprs)                                      -> {'__block__', [], Exprs}.
+build_block([{Op, _, [_]}]=Exprs) when ?rearrange_uop(Op) ->
+  {'__block__', [], Exprs};
+build_block([{unquote_splicing, _, Args}]=Exprs) when length(Args) =< 2 ->
+  {'__block__', [], Exprs};
+build_block([Expr]) ->
+  Expr;
+build_block(Exprs) ->
+  {'__block__', [], Exprs}.
 
 %% Dots
 
 build_dot_alias(Dot, {'__aliases__', _, Left}, {'aliases', _, Right}) ->
   {'__aliases__', meta_from_token(Dot), Left ++ Right};
-
 build_dot_alias(_Dot, Atom, {'aliases', _, _} = Token) when is_atom(Atom) ->
   throw_bad_atom(Token);
-
 build_dot_alias(Dot, Other, {'aliases', _, Right}) ->
   {'__aliases__', meta_from_token(Dot), [Other | Right]}.
 
