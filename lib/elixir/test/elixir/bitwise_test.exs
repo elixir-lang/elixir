@@ -7,27 +7,27 @@ defmodule Bitwise.FunctionsTest do
 
   use Bitwise, skip_operators: true
 
-  test "bnot" do
+  test "bnot/1" do
     assert bnot(1) == -2
   end
 
-  test "band" do
+  test "band/2" do
     assert band(1, 1) == 1
   end
 
-  test "bor" do
+  test "bor/2" do
     assert bor(0, 1) == 1
   end
 
-  test "bxor" do
+  test "bxor/2" do
     assert bxor(1, 1) == 0
   end
 
-  test "bsl" do
+  test "bsl/2" do
     assert bsl(1, 1) == 2
   end
 
-  test "bsr" do
+  test "bsr/2" do
     assert bsr(1, 1) == 0
   end
 end
@@ -36,27 +36,27 @@ defmodule Bitwise.OperatorsTest do
   use ExUnit.Case, async: true
   use Bitwise, only_operators: true
 
-  test "bnot" do
+  test "bnot (~~~)" do
     assert ~~~1 == -2
   end
 
-  test "band" do
+  test "band (&&&)" do
     assert (1 &&& 1) == 1
   end
 
-  test "bor" do
+  test "bor (|||)" do
     assert (0 ||| 1) == 1
   end
 
-  test "bxor" do
+  test "bxor (^^^)" do
     assert 1 ^^^ 1 == 0
   end
 
-  test "bsl" do
+  test "bsl (<<<)" do
     assert (1 <<< 1) == 2
   end
 
-  test "bsr" do
+  test "bsr (>>>)" do
     assert (1 >>> 1) == 0
   end
 end
