@@ -264,16 +264,16 @@ defmodule ExceptionTest do
   end
 
   test "format_exit with call with exception" do
+    Process.flag(:trap_exit, true)
     # Fake reason to prevent error_logger printing to stdout
-    fsm_reason = {%ArgumentError{}, [{:not_a_real_module, :function, 0, []}]}
-    reason = try do
-      :gen_fsm.sync_send_event(spawn(fn() ->
-        Process.sleep(200)
-        exit(fsm_reason)
-      end), :hello)
-    catch
-      :exit, reason -> reason
-    end
+    exit_reason = {%ArgumentError{}, [{:not_a_real_module, :function, 0, []}]}
+    exit_fun = fn() -> receive do: (_ -> exit(exit_reason)) end
+    reason =
+      try do
+        :gen_fsm.sync_send_event(spawn_link(exit_fun), :hello)
+      catch
+        :exit, reason -> reason
+      end
 
     formatted = Exception.format_exit(reason)
     assert formatted =~ ~r"exited in: :gen_fsm\.sync_send_event\(#PID<\d+\.\d+\.\d+>, :hello\)"
@@ -283,14 +283,16 @@ defmodule ExceptionTest do
   end
 
   test "format_exit with nested calls" do
+    Process.flag(:trap_exit, true)
     # Fake reason to prevent error_logger printing to stdout
-    event_fun = fn() ->
-      Process.sleep(200)
-      exit(:normal)
-    end
-    server_pid = spawn(fn()-> :gen_event.call(spawn(event_fun), :handler, :hello) end)
+    exit_fun = fn() -> receive do: (_ -> exit(:normal)) end
+    outer_pid =
+      spawn_link(fn()->
+        Process.flag(:trap_exit, true)
+        :gen_event.call(spawn_link(exit_fun), :handler, :hello)
+      end)
     reason = try do
-      :gen_server.call(server_pid, :hi)
+      :gen_server.call(outer_pid, :hi)
     catch
       :exit, reason -> reason
     end
@@ -302,15 +304,17 @@ defmodule ExceptionTest do
   end
 
   test "format_exit with nested calls and exception" do
+    Process.flag(:trap_exit, true)
     # Fake reason to prevent error_logger printing to stdout
-    event_reason = {%ArgumentError{}, [{:not_a_real_module, :function, 0, []}]}
-    event_fun = fn() ->
-      Process.sleep(200)
-      exit(event_reason)
-    end
-    server_pid = spawn(fn()-> :gen_event.call(spawn(event_fun), :handler, :hello) end)
+    exit_reason = {%ArgumentError{}, [{:not_a_real_module, :function, 0, []}]}
+    exit_fun = fn() -> receive do: (_ -> exit(exit_reason)) end
+    outer_pid =
+      spawn_link(fn()->
+        Process.flag(:trap_exit, true)
+        :gen_event.call(spawn_link(exit_fun), :handler, :hello)
+      end)
     reason = try do
-      :gen_server.call(server_pid, :hi)
+      :gen_server.call(outer_pid, :hi)
     catch
       :exit, reason -> reason
     end
