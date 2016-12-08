@@ -329,9 +329,15 @@ defmodule RegistryTest do
         kill_and_assert_down(task1)
         kill_and_assert_down(task2)
 
+        # pid might be in different parition to key so need to sync with all
+        # paritions before checking ets tables are empty.
         for i <- 0..7 do
-          [{_, key, {partition, pid}}] = :ets.lookup(registry, i)
+          [{_, _, {partition, _}}] = :ets.lookup(registry, i)
           GenServer.call(partition, :sync)
+        end
+
+        for i <- 0..7 do
+          [{_, key, {_, pid}}] = :ets.lookup(registry, i)
           assert :ets.tab2list(key) == []
           assert :ets.tab2list(pid) == []
         end
