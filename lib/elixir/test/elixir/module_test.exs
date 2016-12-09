@@ -60,7 +60,7 @@ defmodule ModuleTest do
 
   test "module attributes returns value" do
     in_module do
-      assert (@return [:foo, :bar]) == [:foo, :bar]
+      assert (@return [:foo, :bar]) == :ok
       _ = @return
     end
   end

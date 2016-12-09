@@ -90,7 +90,7 @@ defmodule Calendar do
   @callback date_to_string(year, month, day) :: String.t
 
   @doc """
-  Coverts the date time (without time zone) into a string according to the calendar.
+  Converts the date time (without time zone) into a string according to the calendar.
   """
   @callback naive_datetime_to_string(year, month, day, hour, minute, second, microsecond) :: String.t
 
