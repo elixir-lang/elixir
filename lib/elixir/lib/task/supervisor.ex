@@ -110,21 +110,21 @@ defmodule Task.Supervisor do
   end
 
   @doc """
-  Returns a stream that runs the given `module`, `function` and `args`
+  Returns a stream that runs the given `module`, `function`, and `args`
   concurrently on each item in `enumerable`.
 
   Each item will be appended to the given `args` and processed by its
   own task. The tasks will be spawned under the given `supervisor` and
-  linked to the current process, similar to `async/4`.
+  linked to the current process, similarly to `async/4`.
 
   When streamed, each task will emit `{:ok, val}` upon successful
   completion or `{:exit, val}` if the caller is trapping exits. Results
   are emitted in the same order as the original `enumerable`.
 
   The level of concurrency can be controlled via the `:max_concurrency`
-  option and defaults to `System.schedulers_online/1`. The timeout
-  can also be given as option and defaults to 5000 and it defaults to
-  the maximum amount of time to wait without a task reply.
+  option and defaults to `System.schedulers_online/1`. A timeout
+  can also be given as an option representing the maximum amount of
+  time to wait without a task reply.
 
   Finally, if you find yourself trapping exits to handle exits inside
   the async stream, consider using `async_stream_nolink/6` to start tasks
@@ -134,8 +134,9 @@ defmodule Task.Supervisor do
 
     * `:max_concurrency` - sets the maximum number of tasks to run
       at the same time. Defaults to `System.schedulers_online/1`.
-    * `:timeout` - the maximum amount of time to wait without
-      receiving a task reply (across all running tasks).
+    * `:timeout` - the maximum amount of time to wait (in milliseconds)
+      without receiving a task reply (across all running tasks).
+      Defaults to `5000`.
 
   ## Examples
 
@@ -143,6 +144,7 @@ defmodule Task.Supervisor do
 
       stream = Task.Supervisor.async_stream(MySupervisor, collection, Mod, :expensive_fun, [])
       Enum.to_list(stream)
+
   """
   @spec async_stream(Supervisor.supervisor, Enumerable.t, module, atom, [term], Keyword.t) ::
         Enumerable.t
@@ -152,14 +154,14 @@ defmodule Task.Supervisor do
   end
 
   @doc """
-  Returns a stream that runs the given `function` concurrently on each
-  item in `enumerable`.
+  Returns a stream that runs the given function `fun` concurrently
+  on each item in `enumerable`.
 
-  Each item will be appended to the given `args` and processed by its
-  own task. The tasks will be spawned under the given `supervisor` and
-  are linked to the current process, similar to `async/2`.
+  Each item in `enumerable` is passed as argument to the given function `fun`
+  and processed by its own task. The tasks will be spawned under the given
+  `supervisor` and linked to the current process, similarly to `async/2`.
 
-  See `async_stream/6` for discussion and examples.
+  See `async_stream/6` for discussion, options, and examples.
   """
   @spec async_stream(Supervisor.supervisor, Enumerable.t, (term -> term), Keyword.t) ::
         Enumerable.t
@@ -168,14 +170,14 @@ defmodule Task.Supervisor do
   end
 
   @doc """
-  Returns a stream that runs the given `module`, `function` and `args`
+  Returns a stream that runs the given `module`, `function`, and `args`
   concurrently on each item in `enumerable`.
 
-  Each item will be appended to the given `args` and processed by its
-  own task. The tasks will be spawned under the given `supervisor` and
-  are not linked to the current process, similar to `async_nolink/4`.
+  Each item in `enumerable` will be appended to the given `args` and processed
+  by its own task. The tasks will be spawned under the given `supervisor` and
+  will not be linked to the current process, similarly to `async_nolink/4`.
 
-  See `async_stream/6` for discussion and examples.
+  See `async_stream/6` for discussion, options, and examples.
   """
   @spec async_stream_nolink(Supervisor.supervisor, Enumerable.t, module, atom, [term], Keyword.t) ::
         Enumerable.t
@@ -188,9 +190,9 @@ defmodule Task.Supervisor do
   Returns a stream that runs the given `function` concurrently on each
   item in `enumerable`.
 
-  Each item will be appended to the given `args` and processed by its
-  own task. The tasks will be spawned under the given `supervisor` and
-  are not linked to the current process, similar to `async_nolink/2`.
+  Each item in `enumerable` is passed as argument to the given function `fun`
+  and processed by its own task. The tasks will be spawned under the given
+  `supervisor` and linked to the current process, similarly to `async_nolink/2`.
 
   See `async_stream/6` for discussion and examples.
   """

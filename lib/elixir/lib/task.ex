@@ -283,11 +283,11 @@ defmodule Task do
   end
 
   @doc """
-  Returns a stream that runs the given `module`, `function` and `args`
+  Returns a stream that runs the given `module`, `function`, and `args`
   concurrently on each item in `enumerable`.
 
   Each item will be appended to the given `args` and processed by its
-  own task. The tasks will be linked to the current process similar to
+  own task. The tasks will be linked to the current process similarly to
   `async/3`.
 
   When streamed, each task will emit `{:ok, val}` upon successful
@@ -295,9 +295,9 @@ defmodule Task do
   are emitted in the same order as the original `enumerable`.
 
   The level of concurrency can be controlled via the `:max_concurrency`
-  option and defaults to `System.schedulers_online/1`. The timeout
-  can also be given as option and defaults to 5000 and it defaults to
-  the maximum amount of time to wait without a task reply.
+  option and defaults to `System.schedulers_online/1`. A timeout
+  can also be given as an option representing the maximum amount of
+  time to wait without a task reply.
 
   Finally, consider using `Task.Supervisor.async_stream/6` to start tasks
   under a supervisor. If you find yourself trapping exits to handle exits
@@ -308,8 +308,9 @@ defmodule Task do
 
     * `:max_concurrency` - sets the maximum number of tasks to run
       at the same time. Defaults to `System.schedulers_online/1`.
-    * `:timeout` - the maximum amount of time to wait without
-      receiving a task reply (across all running tasks).
+    * `:timeout` - the maximum amount of time to wait (in milliseconds)
+      without receiving a task reply (across all running tasks).
+      Defaults to `5000`.
 
   ## Example
 
@@ -333,14 +334,14 @@ defmodule Task do
   end
 
   @doc """
-  Returns a stream that runs the given `function` concurrently on each
-  item in `enumerable`.
+  Returns a stream that runs the given function `fun` concurrently
+  on each item in `enumerable`.
 
-  Each `enumerable` item is passed as argument to the `function` and
-  processed by its own task. The tasks will be linked to the current
-  process, similar to `async/1`.
+  Each `enumerable` item is passed as argument to the given function `fun` and
+  processed by its own task. The tasks will be linked to the current process,
+  similarly to `async/1`.
 
-  See `async_stream/5` for discussion and examples.
+  See `async_stream/5` for discussion, options, and examples.
   """
   @spec async_stream(Enumerable.t, (term -> term), Keyword.t) :: Enumerable.t
   def async_stream(enumerable, fun, options \\ []) when is_function(fun, 1) do
