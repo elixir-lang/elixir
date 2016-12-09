@@ -100,8 +100,4 @@ defmodule Logger.UtilsTest do
     time = {12, 30, 10, 10}
     assert format_time(time) == ["12", ?:, "30", ?:, "10", ?., [?0, "10"]]
   end
-
-  test "extract_files/2 with empty string returns empty list" do
-    assert extract_files([""], ".ex") == []
-  end
 end
