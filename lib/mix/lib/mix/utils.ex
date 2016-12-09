@@ -138,7 +138,11 @@ defmodule Mix.Utils do
 
   def extract_files(paths, pattern) do
     Enum.flat_map(paths, fn path ->
-      if File.regular?(path), do: [path], else: Path.wildcard("#{path}/**/#{pattern}")
+      case :elixir_utils.read_file_type(path) do
+        {:ok, :directory} -> Path.wildcard("#{path}/**/#{pattern}")
+        {:ok, :regular} -> [path]
+        _ -> []
+      end
     end) |> Enum.uniq
   end
 
