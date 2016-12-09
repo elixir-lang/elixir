@@ -843,8 +843,6 @@ defmodule Module do
   @doc """
   Puts a module attribute with key and value in the given module.
 
-  It returns the value of the attribute after normalization.
-
   ## Examples
 
       defmodule MyModule do
@@ -852,7 +850,7 @@ defmodule Module do
       end
 
   """
-  @spec put_attribute(module, key :: atom, value :: term) :: term
+  @spec put_attribute(module, key :: atom, value :: term) :: :ok
   def put_attribute(module, key, value) do
     put_attribute(module, key, value, nil, nil)
   end
@@ -920,9 +918,10 @@ defmodule Module do
   end
 
   @doc """
-  Registers an attribute. By registering an attribute, a developer
-  is able to customize how Elixir will store and accumulate the
-  attribute values.
+  Registers an attribute.
+
+  By registering an attribute, a developer is able to customize
+  how Elixir will store and accumulate the attribute values.
 
   ## Options
 
@@ -1076,7 +1075,7 @@ defmodule Module do
         :ets.insert(table, {key, value, false, unread_line})
     end
 
-    value
+    :ok
   end
 
   ## Helpers
