@@ -139,7 +139,7 @@ defmodule Port do
   script in bash:
 
       #!/bin/sh
-      "$@"
+      "$@" &
       pid=$!
       while read line ; do
         :
