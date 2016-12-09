@@ -33,6 +33,11 @@ defmodule Mix.UtilsTest do
     assert Path.basename(hd(files)) == "local.sample.ex"
   end
 
+
+  test "extract files with empty string returns empty list" do
+    assert Mix.Utils.extract_files([""], ".ex") == []
+  end
+
   test "extract stale" do
     time = {{2030, 1, 1}, {0, 0, 0}}
     assert Mix.Utils.extract_stale([__ENV__.file], [time]) == []
