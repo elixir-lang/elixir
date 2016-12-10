@@ -42,9 +42,9 @@ defmodule Mix.Tasks.Deps do
   the parent project whenever they change. While fetchable dependencies
   like the ones using `:git` are recompiled only when fetched/updated.
 
-  The dependencies' versions are expected to follow Semantic Versioning
-  and the requirements must be specified as defined in the `Version`
-  module.
+  The dependencies' versions are expected to be formatted according to
+  Semantic Versioning and the requirements must be specified as defined
+  in the `Version` module.
 
   ## Options
 
