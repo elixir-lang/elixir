@@ -505,7 +505,7 @@ defmodule Supervisor do
   end
 
   @doc """
-  Stops the given supervisor with the given `reason`.
+  Stops synchronously the given supervisor with the given `reason`.
 
   It returns `:ok` if the supervisor terminates with the given
   reason. If it terminates with another reason, the call exits.
