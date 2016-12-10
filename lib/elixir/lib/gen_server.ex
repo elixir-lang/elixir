@@ -684,7 +684,7 @@ defmodule GenServer do
   end
 
   @doc """
-  Stops the server with the given `reason`.
+  Stops synchronously the server with the given `reason`.
 
   The `c:terminate/2` callback of the given `server` will be invoked before
   exiting. This function returns `:ok` if the server terminates with the

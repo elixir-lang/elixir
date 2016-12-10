@@ -295,7 +295,7 @@ defmodule Agent do
   end
 
   @doc """
-  Stops the agent with the given `reason`.
+  Stops synchronously the agent with the given `reason`.
 
   It returns `:ok` if the server terminates with the given
   reason, if it terminates with another reason, the call will
