@@ -13,7 +13,10 @@ defmodule ExUnit.Case do
 
     * `:async` - configure this specific test case to able to run in parallel
       with other test cases. May be used for performance when this test case
-      does not change any global state. Defaults to `false`.
+      does not change any global state. Defaults to `false`. It's usually a good
+      idea to avoid making a test case async if tests in it capture the IO or
+      the logs (via `ExUnit.CaptureIO` or `ExUnit.CaptureLog`) since that could
+      cause unwanted IO/logs to be captured and race conditions to happen.
 
   This module automatically includes all callbacks defined in
   `ExUnit.Callbacks`. See that module's documentation for more
