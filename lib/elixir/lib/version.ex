@@ -25,7 +25,7 @@ defmodule Version do
   ## Struct
 
   The version is represented by the Version struct and fields
-  are named according to Semver: `:major`, `:minor`, `:patch`,
+  are named according to SemVer: `:major`, `:minor`, `:patch`,
   `:pre` and `:build`.
 
   ## Requirements
