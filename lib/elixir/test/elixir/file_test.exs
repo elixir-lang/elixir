@@ -26,21 +26,21 @@ defmodule FileTest do
     # Renaming files
     # :ok               -> rename file to existing file default behaviour
     # {:error, :eisdir} -> rename file to existing empty dir
-    # {:error, :eisdir} -> rename file to existing non empty dir
-    # :ok               -> rename file to non existing location
+    # {:error, :eisdir} -> rename file to existing non-empty dir
+    # :ok               -> rename file to non-existing location
     # {:error, :eexist} -> rename file to existing file
     # :ok               -> rename file to itself
 
     # Renaming dirs
     # {:error, :enotdir} -> rename dir to existing file
-    # :ok                -> rename dir to non existing leaf location
-    # {:error, ??}       -> rename dir to non existing parent location
+    # :ok                -> rename dir to non-existing leaf location
+    # {:error, ??}       -> rename dir to non-existing parent location
     # :ok                -> rename dir to itself
     # :ok                -> rename dir to existing empty dir default behaviour
     # {:error, :eexist}  -> rename dir to existing empty dir
     # {:error, :einval}  -> rename parent dir to existing sub dir
-    # {:error, :einval}  -> rename parent dir to non existing sub dir
-    # {:error, :eexist}  -> rename dir to existing non empty dir
+    # {:error, :einval}  -> rename parent dir to non-existing sub dir
+    # {:error, :eexist}  -> rename dir to existing non-empty dir
 
     # other tests
     # {:error, :enoent} -> rename unknown source
@@ -79,7 +79,7 @@ defmodule FileTest do
       end
     end
 
-    test "rename file to existing non empty dir" do
+    test "rename file to existing non-empty dir" do
       src  = tmp_fixture_path("file.txt")
       dest = tmp_path("tmp")
 
@@ -94,7 +94,7 @@ defmodule FileTest do
       end
     end
 
-    test "rename file to non existing location" do
+    test "rename file to non-existing location" do
       src  = tmp_fixture_path("file.txt")
       dest = tmp_path("tmp.file")
 
@@ -152,7 +152,7 @@ defmodule FileTest do
       end
     end
 
-    test "rename dir to non existing leaf location" do
+    test "rename dir to non-existing leaf location" do
       src  = tmp_fixture_path("cp_r")
       dest = tmp_path("tmp")
 
@@ -181,7 +181,7 @@ defmodule FileTest do
       end
     end
 
-    test "rename dir to non existing parent location" do
+    test "rename dir to non-existing parent location" do
       src  = tmp_fixture_path("cp_r")
       dest = tmp_path("tmp/a/b")
 
@@ -222,7 +222,7 @@ defmodule FileTest do
       end
     end
 
-    test "rename parent dir to non existing sub dir" do
+    test "rename parent dir to non-existing sub dir" do
       src  = tmp_fixture_path("cp_r")
       dest = tmp_path("cp_r/x")
       try do
@@ -282,7 +282,7 @@ defmodule FileTest do
       end
     end
 
-    test "rename dir to existing non empty dir" do
+    test "rename dir to existing non-empty dir" do
       src  = tmp_fixture_path("cp_r")
       dest = tmp_path("tmp")
 

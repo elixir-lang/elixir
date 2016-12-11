@@ -416,7 +416,7 @@ defmodule Kernel.ErrorsTest do
       '(bar -> baz)'
   end
 
-  test "undefined non local function" do
+  test "undefined non-local function" do
     assert_compile_fail CompileError,
       "nofile:1: undefined function call/2",
       'call foo, do: :foo'
