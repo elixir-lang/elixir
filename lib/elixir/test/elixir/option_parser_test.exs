@@ -170,7 +170,7 @@ defmodule OptionParserTest do
            == {[source: "from_docs/", compile: true, x: true], [], []}
   end
 
-  test "stops on first non option arguments" do
+  test "stops on first non-option arguments" do
     argv = ["--source", "from_docs/", "test/enum_test.exs", "--verbose"]
     assert OptionParser.parse_head(argv)
            == {[source: "from_docs/"], ["test/enum_test.exs", "--verbose"], []}
@@ -190,7 +190,7 @@ defmodule OptionParserTest do
     assert options == {[source: "foo"], ["bar", "--", "-x"], []}
   end
 
-  test "goes beyond the first non option arguments" do
+  test "goes beyond the first non-option arguments" do
     argv = ["--source", "from_docs/", "test/enum_test.exs", "--verbose"]
     assert OptionParser.parse(argv)
            == {[source: "from_docs/", verbose: true], ["test/enum_test.exs"], []}

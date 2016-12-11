@@ -11,7 +11,7 @@ defmodule Mix.SCM do
   or it is meant to be previously available in the
   filesystem.
 
-  Local dependencies (i.e. non fetchable ones) are automatically
+  Local dependencies (i.e. non-fetchable ones) are automatically
   recompiled every time the parent project is compiled.
   """
   @callback fetchable? :: boolean

@@ -100,7 +100,7 @@ defmodule Kernel.ImportTest do
     assert __underscore__(3) == 3
   end
 
-  test "import non underscored" do
+  test "import non-underscored" do
     import ExplicitUnderscored, only: [__underscore__: 1]
     import Underscored
     assert hello(2) == 2

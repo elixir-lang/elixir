@@ -681,7 +681,7 @@ defmodule BaseTest do
     assert "fo" == hex_decode32!("cPNg====", case: :mixed)
   end
 
-  test "decode16!/1 errors on non UTF-8 char" do
+  test "decode16!/1 errors on non-UTF-8 char" do
     assert_raise ArgumentError, "non-alphabet digit found: \"\\0\" (byte 0)", fn ->
       decode16!("012" <> <<0>>)
     end

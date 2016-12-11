@@ -733,7 +733,7 @@ defmodule IEx.Helpers do
   end
 
   @doc """
-  Creates a PID with 3 non negative integers passed as arguments
+  Creates a PID with 3 non-negative integers passed as arguments
   to the function.
 
   ## Examples
