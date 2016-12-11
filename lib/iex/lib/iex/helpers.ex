@@ -11,14 +11,14 @@ defmodule IEx.Helpers do
   You can use the `h/1` function to invoke the documentation
   for any Elixir module or function:
 
-      iex> h Enum
-      iex> h Enum.map
-      iex> h Enum.reverse/1
+      iex> h(Enum)
+      iex> h(Enum.map)
+      iex> h(Enum.reverse/1)
 
   You can also use the `i/1` function to introspect any value
   you have in the shell:
 
-      iex> i "hello"
+      iex> i("hello")
 
   There are many other helpers available:
 
@@ -30,6 +30,7 @@ defmodule IEx.Helpers do
     * `flush/0`       - flushes all messages sent to the shell
     * `h/0`           - prints this help message
     * `h/1`           - prints help for the given module, function or macro
+    * `i/0`           - prints information about the last value
     * `i/1`           - prints information about the data type of any given term
     * `import_file/1` - evaluates the given file in the shell's context
     * `l/1`           - loads the given module's BEAM code
@@ -69,7 +70,7 @@ defmodule IEx.Helpers do
   and restart such servers.
 
   If you want to reload a single module, consider using
-  `r ModuleName` instead.
+  `r(ModuleName)` instead.
 
   This function is meant to be used for development and
   debugging purposes. Do not depend on it in production code.
@@ -136,10 +137,10 @@ defmodule IEx.Helpers do
 
   ## Examples
 
-      iex> c ["foo.ex", "bar.ex"], "ebin"
+      iex> c(["foo.ex", "bar.ex"], "ebin")
       [Foo, Bar]
 
-      iex> c "baz.ex"
+      iex> c("baz.ex")
       [Baz]
 
   """
@@ -177,7 +178,7 @@ defmodule IEx.Helpers do
   on the shell, which means this function is by default
   unavailable on Windows machines.
   """
-  def clear do
+  def clear() do
     if IO.ANSI.enabled? do
       IO.write [IO.ANSI.home, IO.ANSI.clear]
     else
@@ -445,6 +446,9 @@ defmodule IEx.Helpers do
   @doc """
   Prints information about the data type of any given term.
 
+  If no argument is given, the value of the previous expression
+  is used.
+
   ## Examples
 
       iex> i(1..5)
@@ -461,7 +465,7 @@ defmodule IEx.Helpers do
         Range, Map
 
   """
-  def i(term) do
+  def i(term \\ v(-1)) do
     info =
       ["Term": inspect(term)] ++
       IEx.Info.info(term) ++
