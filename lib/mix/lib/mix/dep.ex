@@ -201,8 +201,8 @@ defmodule Mix.Dep do
     do: "the app file contains an invalid version: #{inspect vsn}"
 
   def format_status(%Mix.Dep{status: {:nosemver, vsn}, requirement: req}),
-    do: "the app file specified a non-Semantic Version format: #{inspect vsn}. Mix can only match the " <>
-        "requirement #{inspect req} against Semantic Versions. Please fix the application version " <>
+    do: "the app file specified a non-Semantic Versioning format: #{inspect vsn}. Mix can only match the " <>
+        "requirement #{inspect req} against semantic versions. Please fix the application version " <>
         "or use a regex as a requirement to match against any version"
 
   def format_status(%Mix.Dep{status: {:nomatchvsn, vsn}, requirement: req}),

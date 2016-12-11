@@ -53,7 +53,7 @@ defmodule Mix.Tasks.DepsTest do
       assert_received {:mix_shell, :info, ["* noappfile (deps/noappfile)"]}
       assert_received {:mix_shell, :info, ["  could not find an app file at _build/dev/lib/noappfile/ebin/noappfile.app" <> _]}
       assert_received {:mix_shell, :info, ["* nosemver (deps/nosemver)"]}
-      assert_received {:mix_shell, :info, ["  the app file specified a non-Semantic Version format: \"0.7\"" <> _]}
+      assert_received {:mix_shell, :info, ["  the app file specified a non-Semantic Versioning format: \"0.7\"" <> _]}
     end
   end
 
