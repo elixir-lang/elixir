@@ -77,7 +77,7 @@ defmodule Mix.Tasks.Escript.Build do
         def project do
           [app: :my_app,
            version: "0.0.1",
-           escript: escript]
+           escript: escript()]
         end
 
         def escript do
