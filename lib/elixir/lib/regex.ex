@@ -236,7 +236,7 @@ defmodule Regex do
     names = names(regex)
     options = Keyword.put(options, :capture, names)
     results = run(regex, string, options)
-    if results, do: Enum.zip(names, results) |> Enum.into(%{})
+    if results, do: names |> Enum.zip(results) |> Enum.into(%{})
   end
 
   @doc """

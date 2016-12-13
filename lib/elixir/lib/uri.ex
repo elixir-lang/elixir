@@ -490,7 +490,9 @@ defmodule URI do
     do: rel_path
   defp merge_paths(base_path, rel_path) do
     [_ | base_segments] = path_to_segments(base_path)
-    path_to_segments(rel_path)
+
+    rel_path
+    |> path_to_segments
     |> Kernel.++(base_segments)
     |> remove_dot_segments([])
     |> Enum.join("/")
