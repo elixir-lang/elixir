@@ -2374,9 +2374,9 @@ defmodule Enum do
   defp do_take_last([], [], _, acc),
     do: acc
   defp do_take_last([], [h | t], count, acc),
-    do: do_take_last([], t, count-1, [h | acc])
+    do: do_take_last([], t, count - 1, [h | acc])
   defp do_take_last([h | t], buf2, count, acc),
-    do: do_take_last(t, buf2, count-1, [h | acc])
+    do: do_take_last(t, buf2, count - 1, [h | acc])
 
   @doc """
   Returns a list of every `nth` item in the enumerable,

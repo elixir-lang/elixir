@@ -608,7 +608,7 @@ defmodule Module do
     signature
   end
 
-  defp simplify_signature({:\\, _, [left, right ]}, acc) do
+  defp simplify_signature({:\\, _, [left, right]}, acc) do
     {left, acc} = simplify_signature(left, acc)
     {{:\\, [], [left, right]}, acc}
   end
