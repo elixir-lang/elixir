@@ -713,6 +713,9 @@ defmodule Module do
 
   Use `defines?/3` to assert for a specific type.
 
+  This function can only be used on modules that have not yet been compiled.
+  Use `Kernel.function_exported?/3` to check compiled modules.
+
   ## Examples
 
       defmodule Example do
@@ -733,6 +736,9 @@ defmodule Module do
   given `kind`.
 
   `kind` can be any of `:def`, `:defp`, `:defmacro` or `:defmacrop`.
+
+  This function can only be used on modules that have not yet been compiled.
+  Use `Kernel.function_exported?/3` to check compiled modules.
 
   ## Examples
 
