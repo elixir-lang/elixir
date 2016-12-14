@@ -1362,12 +1362,12 @@ defmodule Stream do
   @compile {:inline, lazy: 2, lazy: 3, lazy: 4}
 
   defp lazy(%Stream{done: nil, funs: funs} = lazy, fun),
-    do: %{lazy | funs: [fun | funs] }
+    do: %{lazy | funs: [fun | funs]}
   defp lazy(enum, fun),
     do: %Stream{enum: enum, funs: [fun]}
 
   defp lazy(%Stream{done: nil, funs: funs, accs: accs} = lazy, acc, fun),
-    do: %{lazy | funs: [fun | funs], accs: [acc | accs] }
+    do: %{lazy | funs: [fun | funs], accs: [acc | accs]}
   defp lazy(enum, acc, fun),
     do: %Stream{enum: enum, funs: [fun], accs: [acc]}
 

@@ -103,7 +103,7 @@ defmodule IO.ANSI.Docs do
     process_fenced_code_block(rest, text, indent, options, _delimiter = "~~~")
   end
 
-  defp process(all=[line | rest], text, indent, options) do
+  defp process(all = [line | rest], text, indent, options) do
     {stripped, count} = strip_spaces(line, 0, :infinity)
     cond do
       link_label?(stripped, count) ->
