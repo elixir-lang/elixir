@@ -255,7 +255,7 @@ defmodule Mix.Local.Installer do
       path = Path.join(root, name)
       cond do
         not File.exists?(path) ->
-          Mix.shell.error "Could not find a local #{item_name} named #{inspect name}. "<>
+          Mix.shell.error "Could not find a local #{item_name} named #{inspect name}. " <>
                           "Existing #{item_plural} are:"
           Mix.Task.run item_name
           nil
