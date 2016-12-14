@@ -102,7 +102,7 @@ defmodule IEx.Autocomplete do
     if prefix in [0, length] do
       yes("", Enum.flat_map(entries, &to_entries/1))
     else
-      yes(:binary.part(first.name, prefix, length-prefix), [])
+      yes(:binary.part(first.name, prefix, length - prefix), [])
     end
   end
 
@@ -218,7 +218,7 @@ defmodule IEx.Autocomplete do
     for mod <- match_modules(base, module === Elixir),
         parts = String.split(mod, "."),
         depth <= length(parts) do
-      %{kind: :module, type: :elixir, name: Enum.at(parts, depth-1)}
+      %{kind: :module, type: :elixir, name: Enum.at(parts, depth - 1)}
     end
     |> Enum.uniq
   end
