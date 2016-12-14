@@ -3273,7 +3273,7 @@ defmodule Kernel do
 
     under = String.to_atom(<<"_@", :erlang.integer_to_binary(counter)::binary>>)
     args  = [key, kind, under, var]
-    [{:{}, [], args} | module_vars(vars, counter+1)]
+    [{:{}, [], args} | module_vars(vars, counter + 1)]
   end
 
   defp module_vars([], _counter) do

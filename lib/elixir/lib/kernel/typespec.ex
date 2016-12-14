@@ -634,7 +634,7 @@ defmodule Kernel.Typespec do
   end
 
   defp typespec_to_ast({:type, line, :fun, []}) do
-    typespec_to_ast({:type, line, :fun, [{:type, line, :any}, {:type, line, :any, []} ]})
+    typespec_to_ast({:type, line, :fun, [{:type, line, :any}, {:type, line, :any, []}]})
   end
 
   defp typespec_to_ast({:type, line, :range, [left, right]}) do
@@ -1017,7 +1017,7 @@ defmodule Kernel.Typespec do
 
   defp remote_type({remote, meta, name, arguments}, vars, caller) do
     arguments = for arg <- arguments, do: typespec(arg, vars, caller)
-    {:remote_type, line(meta), [ remote, name, arguments ]}
+    {:remote_type, line(meta), [remote, name, arguments]}
   end
 
   defp collect_union({:|, _, [a, b]}), do: [a | collect_union(b)]

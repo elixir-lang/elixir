@@ -172,7 +172,7 @@ defmodule Inspect.Algebra do
 
   @typep doc_nest :: {:doc_nest, t, non_neg_integer}
   defmacrop doc_nest(doc, indent) do
-    quote do: {:doc_nest, unquote(doc), unquote(indent) }
+    quote do: {:doc_nest, unquote(doc), unquote(indent)}
   end
 
   @typep doc_break :: {:doc_break, binary}

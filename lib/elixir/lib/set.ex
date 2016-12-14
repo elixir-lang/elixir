@@ -6,7 +6,7 @@ defmodule Set do
   """
 
   @type value :: any
-  @type values :: [ value ]
+  @type values :: [value]
   @type t :: map
 
   # TODO: Remove by 2.0

@@ -235,8 +235,8 @@ defimpl Inspect, for: BitString do
              to_hex(d), to_hex(e), to_hex(f), ?}]
   end
 
-  defp to_hex(c) when c in 0..9, do: ?0+c
-  defp to_hex(c) when c in 10..15, do: ?A+c-10
+  defp to_hex(c) when c in 0..9, do: ?0 + c
+  defp to_hex(c) when c in 10..15, do: ?A + c - 10
 
   ## Bitstrings
 

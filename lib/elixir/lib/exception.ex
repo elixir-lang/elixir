@@ -436,7 +436,7 @@ defmodule Exception do
       end
 
     case match?("\"-" <> _, fun) and String.split(fun, "-") do
-      [ "\"", outer_fun, "fun", _count, "\"" ] ->
+      ["\"", outer_fun, "fun", _count, "\""] ->
         "anonymous fn#{format_arity(arity)} in #{inspect module}.#{outer_fun}"
       _ ->
         "#{inspect module}.#{fun}#{format_arity(arity)}"
