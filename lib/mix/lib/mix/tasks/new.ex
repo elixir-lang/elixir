@@ -119,11 +119,11 @@ defmodule Mix.Tasks.New do
   defp otp_app(mod, true) do
     "    [extra_applications: [:logger],\n     mod: {#{mod}.Application, []}]"
   end
-  
+
   defp cd_path(".") do
     ""
   end
-  
+
   defp cd_path(path) do
     "cd #{path}\n    "
   end

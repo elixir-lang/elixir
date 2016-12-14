@@ -78,7 +78,7 @@ defmodule Mix.Generator do
             @file file
             File.read!(file)
           c when is_binary(c) ->
-            @file {__ENV__.file, __ENV__.line+1}
+            @file {__ENV__.file, __ENV__.line + 1}
             c
           _ ->
             raise ArgumentError, "expected string or from_file: file"

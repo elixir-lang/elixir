@@ -308,7 +308,7 @@ defmodule Logger.Translator do
       crash_info(min_level, info, [?\n, indent | indent])]
   end
 
-  defp format_stop({maybe_exception, [_ | _ ] = maybe_stacktrace} = reason) do
+  defp format_stop({maybe_exception, [_ | _] = maybe_stacktrace} = reason) do
     try do
       format_stacktrace(maybe_stacktrace)
     catch
@@ -332,7 +332,7 @@ defmodule Logger.Translator do
   # OTP processes rewrite the :undef error to these reasons when logging
   @gen_undef [:"module could not be loaded", :"function not exported"]
 
-  defp format_stop_banner(undef, [{mod, fun, args, _info} | _ ]  = stacktrace)
+  defp format_stop_banner(undef, [{mod, fun, args, _info} | _]  = stacktrace)
   when undef in @gen_undef and is_atom(mod) and is_atom(fun) do
     cond do
       is_list(args) ->

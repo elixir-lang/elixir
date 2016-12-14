@@ -32,10 +32,10 @@ defmodule Logger.Utils do
     end
   end
 
-  defp truncate_n(int, n) when int in 0..127,                      do: {int, n-1}
-  defp truncate_n(int, n) when int in 127..0x07FF,                 do: {int, n-2}
-  defp truncate_n(int, n) when int in 0x800..0xFFFF,               do: {int, n-3}
-  defp truncate_n(int, n) when int >= 0x10000 and is_integer(int), do: {int, n-4}
+  defp truncate_n(int, n) when int in 0..127,                      do: {int, n - 1}
+  defp truncate_n(int, n) when int in 127..0x07FF,                 do: {int, n - 2}
+  defp truncate_n(int, n) when int in 0x800..0xFFFF,               do: {int, n - 3}
+  defp truncate_n(int, n) when int >= 0x10000 and is_integer(int), do: {int, n - 4}
 
   defp truncate_n(list, n) when is_list(list) do
     truncate_n_list(list, n, [])

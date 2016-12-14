@@ -11,7 +11,7 @@ defmodule ExUnit.OnExitHandler do
     Agent.update(@name, &Map.put(&1, pid, []))
   end
 
-  @spec add(pid, term, (()-> term)) :: :ok | :error
+  @spec add(pid, term, (() -> term)) :: :ok | :error
   def add(pid, name_or_ref, callback) when is_pid(pid) and is_function(callback, 0) do
     Agent.get_and_update(@name, fn map ->
       if entries = Map.get(map, pid) do
