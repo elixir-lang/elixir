@@ -122,8 +122,8 @@ defmodule Mix.Tasks.Test do
   ## Configuration
 
     * `:test_paths` - list of paths containing test files, defaults to
-      `["test"]`. It is expected all test paths to contain a `test_helper.exs`
-      file.
+      `["test"]` if the `test` directory exists, otherwise it defaults to `[]`.
+      It is expected all test paths to contain a `test_helper.exs` file.
 
     * `:test_pattern` - a pattern to load test files, defaults to `*_test.exs`.
 
@@ -225,7 +225,7 @@ defmodule Mix.Tasks.Test do
     ex_unit_opts = ex_unit_opts(opts)
     ExUnit.configure(ex_unit_opts)
 
-    test_paths = project[:test_paths] || ["test"]
+    test_paths = project[:test_paths] || default_test_paths()
     Enum.each(test_paths, &require_test_helper(&1))
     ExUnit.configure(merge_helper_opts(ex_unit_opts))
 
@@ -363,6 +363,14 @@ defmodule Mix.Tasks.Test do
       Code.require_file file
     else
       Mix.raise "Cannot run tests because test helper file #{inspect file} does not exist"
+    end
+  end
+
+  defp default_test_paths do
+    if File.dir?("test") do
+      ["test"]
+    else
+      []
     end
   end
 end
