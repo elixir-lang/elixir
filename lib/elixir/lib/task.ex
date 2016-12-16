@@ -297,7 +297,7 @@ defmodule Task do
   are emitted in the same order as the original `enumerable`.
 
   The level of concurrency can be controlled via the `:max_concurrency`
-  option and defaults to `System.schedulers_online/1`. The timeout
+  option and defaults to `System.schedulers_online/0`. The timeout
   can also be given as option and defaults to 5000 and it defaults to
   the maximum amount of time to wait without a task reply.
 
@@ -309,9 +309,10 @@ defmodule Task do
   ## Options
 
     * `:max_concurrency` - sets the maximum number of tasks to run
-      at the same time. Defaults to `System.schedulers_online/1`.
+      at the same time. Defaults to `System.schedulers_online/0`.
     * `:timeout` - the maximum amount of time to wait without
       receiving a task reply (across all running tasks).
+      Defaults to `5000`.
 
   ## Example
 
