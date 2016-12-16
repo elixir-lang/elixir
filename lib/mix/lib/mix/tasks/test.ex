@@ -64,7 +64,7 @@ defmodule Mix.Tasks.Test do
     * `--no-elixir-version-check` - does not check the Elixir version from mix.exs
     * `--no-start` - does not start applications after compilation
     * `--only` - runs only tests that match the filter
-    * `--raise` - raises if the test suit failed
+    * `--raise` - raises if the test suite failed
     * `--seed` - seeds the random number generator used to randomize tests order;
       `--seed 0` disables randomization
     * `--stale` - runs only tests which reference modules that changed since the
