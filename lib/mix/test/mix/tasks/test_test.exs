@@ -108,6 +108,14 @@ defmodule Mix.Tasks.TestTest do
     end
   end
 
+  test "logs test absence for a project with no test paths" do
+    in_fixture "test_stale", fn ->
+      File.rm_rf! "test"
+
+      assert_run_output "There are no tests to run"
+    end
+  end
+
   test "--listen-on-stdin: runs tests after input" do
     in_fixture "test_stale", fn ->
       port = mix_port(~w[test --stale --listen-on-stdin])
@@ -190,6 +198,10 @@ defmodule Mix.Tasks.TestTest do
   end
 
   defp assert_stale_run_output(opts \\ [], expected) do
-    assert mix(~w[test --stale] ++ opts) =~ expected
+    assert_run_output(["--stale" | opts], expected)
+  end
+
+  defp assert_run_output(opts \\ [], expected) do
+    assert mix(["test" | opts]) =~ expected
   end
 end

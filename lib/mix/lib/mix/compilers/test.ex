@@ -36,6 +36,10 @@ defmodule Mix.Compilers.Test do
         Mix.shell.info "No stale tests."
         :noop
 
+      [] when test_patterns == [] ->
+        Mix.shell.info "There are no tests to run"
+        :noop
+
       [] ->
         Mix.shell.error "Test patterns did not match any file: " <> Enum.join(test_patterns, ", ")
         :noop
