@@ -486,9 +486,9 @@ defmodule Enum do
   """
   @spec count(t, (element -> as_boolean(term))) :: non_neg_integer
   def count(enumerable, fun) when is_function(fun, 1) do
-    Enumerable.reduce(enumerable, {:cont, 0}, fn(entry, acc) ->
-      {:cont, if(fun.(entry), do: acc + 1, else: acc)}
-    end) |> elem(1)
+    reduce(enumerable, 0, fn(entry, acc) ->
+      if(fun.(entry), do: acc + 1, else: acc)
+    end)
   end
 
   @doc """
