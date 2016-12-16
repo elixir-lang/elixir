@@ -62,11 +62,11 @@ defmodule Mix.Project do
     * `:lockfile` - the name of the lockfile used by the `mix deps.*` family of
       tasks. Defaults to `"mix.lock"`.
 
-    * `:preferred_cli_env` - a keyword list of `{task, env}` tuples here `task`
+    * `:preferred_cli_env` - a keyword list of `{task, env}` tuples where `task`
       is the task name as an atom (for example, `:"deps.get"`) and `env` is the
       preferred environment (for example, `:test`). This option overrides what
-      specified by the single tasks with the `@preferred_cli_env` attribute (see
-      `Mix.Task`). Defaults to `[]`.
+      specified by the tasks with the `@preferred_cli_env` attribute (see the
+      docs for `Mix.Task`). Defaults to `[]`.
 
   For more options, keep an eye on the documentation for single Mix tasks; good
   examples are the `Mix.Tasks.Compile` task and all the specific compiler tasks
