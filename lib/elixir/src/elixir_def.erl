@@ -431,7 +431,7 @@ format_error(invalid_args_for_bodyless_clause) ->
   "can use only variables and \\\\ as arguments in definition header";
 
 format_error({is_record, Kind}) ->
-  io_lib:format("cannot define function named ~ts is_record/2 due to compability "
+  io_lib:format("cannot define function named ~ts is_record/2 due to compatibility "
                 "issues with the Erlang compiler (it is a known bug)", [Kind]);
 
 format_error({missing_do, Kind}) ->
