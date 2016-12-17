@@ -161,7 +161,7 @@ defmodule IO.ANSI.DocsTest do
     assert result == "\e[36mhello world\e[0m unit test \e[36mhello world\e[0m\n\e[0m"
   end
 
-  test "star/underscore preceeded by space doesn't get interpreted" do
+  test "star/underscore preceded by space doesn't get interpreted" do
     result = format("_unit _size")
     assert result == "_unit _size\n\e[0m"
 
@@ -172,7 +172,7 @@ defmodule IO.ANSI.DocsTest do
     assert result == "*unit *size\n\e[0m"
   end
 
-  test "star/underscore/backtick preceeded by non-space delimiters gets interpreted" do
+  test "star/underscore/backtick preceded by non-space delimiters gets interpreted" do
     result = format("(`hello world`)")
     assert result == "(\e[36mhello world\e[0m)\n\e[0m"
     result = format("<`hello world`>")
@@ -209,7 +209,7 @@ defmodule IO.ANSI.DocsTest do
     assert result == "foo*bar*\n\e[0m"
   end
 
-  test "backtick preceeded by space gets interpreted" do
+  test "backtick preceded by space gets interpreted" do
     result = format("`unit `size")
     assert result == "\e[36munit \e[0msize\n\e[0m"
   end
