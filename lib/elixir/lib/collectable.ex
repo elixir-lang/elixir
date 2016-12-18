@@ -24,23 +24,54 @@ defprotocol Collectable do
   `Enumerable` protocol. `into/1` can be seen as the opposite of
   `Enumerable.reduce/3`. If `Enumerable` is about taking values out,
   `Collectable.into/1` is about collecting those values into a structure.
+
+  ## Examples
+
+  To show how to manually use the `Collectable` protocol, let's play with its
+  implementation for `MapSet`.
+
+      iex> {initial_acc, collector_fun} = Collectable.into(MapSet.new())
+      iex> updated_acc = Enum.reduce([1, 2, 3], initial_acc, fn(elem, acc) ->
+      ...>   collector_fun.(acc, {:cont, elem})
+      ...> end)
+      iex> collector_fun.(updated_acc, :done)
+      #MapSet<[1, 2, 3]>
+
+  To show how the protocol can be implemented, we can take again a look at the
+  implementation for `MapSet`. In this implementation "collecting" elements
+  simply means inserting them in the set through `MapSet.put/2`.
+
+      defimpl Collectable do
+        def into(original) do
+          collector_fun = fn
+            set, {:cont, elem} -> MapSet.put(set, elem)
+            set, :done -> set
+            _set, :halt -> :ok
+          end
+
+          {original, collector_fun}
+        end
+      end
+
   """
 
   @type command :: {:cont, term} | :done | :halt
 
   @doc """
-  Returns a function that collects values alongside
-  the initial accumulation value.
+  Returns an initial accumulator and a "collector" function.
 
-  The returned function receives a collectable and injects a given
-  value into it for every `{:cont, term}` instruction.
+  The returned function receives a term and a command and injects the term into
+  the collectable on every `{:cont, term}` command.
 
-  `:done` is passed when no further values will be injected, useful
-  for closing resources and normalizing values. A collectable must
-  be returned on `:done`.
+  `:done` is passed as a command when no further values will be injected. This
+  is useful when there's a need to close resources or normalizing values. A
+  collectable must be returned when the command is `:done`.
 
-  If injection is suddenly interrupted, `:halt` is passed and it can
-  return any value, as it won't be used.
+  If injection is suddenly interrupted, `:halt` is passed and the function
+  can return any value as it won't be used.
+
+  For examples on how to use the `Collectable` protocol and `into/1` see the
+  module documentation.
   """
   @spec into(t) :: {term, (term, command -> t | term)}
   def into(collectable)
