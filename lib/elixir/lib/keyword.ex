@@ -42,7 +42,7 @@ defmodule Keyword do
   duplicated entries for a given key are removed when invoked.
   Note that operations that require keys to be found in the keyword
   list (like `Keyword.get/3`) need to traverse the list in order
-  to find keys, so these operations may result slower than their map
+  to find keys, so these operations may be slower than their map
   counterparts.
 
   A handful of functions exist to handle duplicated keys, in
