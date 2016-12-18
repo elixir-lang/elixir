@@ -31,7 +31,7 @@ defprotocol Collectable do
   implementation for `MapSet`.
 
       iex> {initial_acc, collector_fun} = Collectable.into(MapSet.new())
-      iex> updated_acc = Enum.reduce([1, 2, 3], initial_acc, fn(elem, acc) ->
+      iex> updated_acc = Enum.reduce([1, 2, 3], initial_acc, fn elem, acc ->
       ...>   collector_fun.(acc, {:cont, elem})
       ...> end)
       iex> collector_fun.(updated_acc, :done)
