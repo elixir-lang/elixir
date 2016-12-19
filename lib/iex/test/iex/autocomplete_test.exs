@@ -252,21 +252,21 @@ defmodule IEx.AutocompleteTest do
 
   test "completion for functions added when compiled module is reloaded" do
     {:module, _, bytecode, _} =
-      defmodule Elixir.Sample do
+      defmodule Sample do
         def foo(), do: 0
       end
-    File.write!("Elixir.Sample.beam", bytecode)
+    File.write!("Elixir.IEx.AutocompleteTest.Sample.beam", bytecode)
     assert Code.get_docs(Sample, :docs)
-    assert expand('Sample.foo') == {:yes, '', ['foo/0']}
+    assert expand('IEx.AutocompleteTest.Sample.foo') == {:yes, '', ['foo/0']}
 
     Code.compiler_options(ignore_module_conflict: true)
-    defmodule Elixir.Sample do
+    defmodule Sample do
       def foo(), do: 0
       def foobar(), do: 0
     end
-    assert expand('Sample.foo') == {:yes, '', ['foo/0', 'foobar/0']}
+    assert expand('IEx.AutocompleteTest.Sample.foo') == {:yes, '', ['foo/0', 'foobar/0']}
   after
-    File.rm("Elixir.Sample.beam")
+    File.rm("Elixir.IEx.AutocompleteTest.Sample.beam")
     Code.compiler_options(ignore_module_conflict: false)
     :code.purge(Sample)
     :code.delete(Sample)
@@ -276,7 +276,12 @@ defmodule IEx.AutocompleteTest do
     defstruct [:my_val]
   end
 
-  test "completion for structs" do
+  test "completion for struct names" do
     assert expand('%IEx.AutocompleteTest.MyStr') == {:yes, 'uct', []}
+  end
+
+  @tag previous_line: "struct = %IEx.AutocompleteTest.MyStruct{}"
+  test "completion for struct keys" do
+    assert expand('struct.my') == {:yes, '_val', []}
   end
 end
