@@ -66,9 +66,9 @@ defmodule Calendar do
                        time_zone: time_zone, zone_abbr: zone_abbr, utc_offset: utc_offset, std_offset: std_offset}
 
   @doc """
-  Returns the last day of the month for the given year-month pair.
+  Returns how many days there are in the given year-month.
   """
-  @callback last_day_of_month(year, month) :: day
+  @callback days_in_month(year, month) :: day
 
   @doc """
   Returns true if the given year is a leap year.
@@ -173,6 +173,24 @@ defmodule Date do
   @spec leap_year?(Calendar.date) :: boolean()
   def leap_year?(%{calendar: calendar, year: year}) do
     calendar.leap_year?(year)
+  end
+
+  @doc """
+  Returns the number of days in the given date month.
+
+  ## Examples
+
+      iex> Date.days_in_month(~D[1900-01-13])
+      31
+      iex> Date.days_in_month(~D[1900-02-09])
+      28
+      iex> Date.days_in_month(~N[2000-02-20 01:23:45])
+      29
+
+  """
+  @spec days_in_month(Calendar.date) :: Calendar.day
+  def days_in_month(%{calendar: calendar, year: year, month: month}) do
+    calendar.days_in_month(year, month)
   end
 
   @doc """
