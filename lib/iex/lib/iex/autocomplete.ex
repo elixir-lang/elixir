@@ -135,7 +135,7 @@ defmodule IEx.Autocomplete do
 
   defp expand_map_field_access(map, hint) do
     case match_map_fields(map, hint) do
-      [%{kind: :map_key, name: name, value_is_map: false}] when name == hint -> no()
+      [%{kind: :map_key, name: ^hint, value_is_map: false}] -> no()
       map_fields when is_list(map_fields) -> format_expansion(map_fields, hint)
     end
   end
@@ -278,11 +278,10 @@ defmodule IEx.Autocomplete do
   end
 
   defp match_map_fields(map, hint) do
-    for({key, value} <- Map.to_list(map),
-         is_atom(key),
-         key = Atom.to_string(key),
-         String.starts_with?(key, hint),
-         do: %{kind: :map_key, name: key, value_is_map: is_map(value)})
+    for({key, value} when is_atom(key) <- Map.to_list(map),
+        key = Atom.to_string(key),
+        String.starts_with?(key, hint),
+        do: %{kind: :map_key, name: key, value_is_map: is_map(value)})
     |> Enum.sort_by(& &1.name)
   end
 
