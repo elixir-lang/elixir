@@ -278,7 +278,7 @@ defmodule IEx.Autocomplete do
   end
 
   defp match_map_fields(map, hint) do
-    for({key, value} <- map,
+    for({key, value} <- Map.to_list(map),
          is_atom(key),
          key = Atom.to_string(key),
          String.starts_with?(key, hint),
