@@ -318,25 +318,10 @@ defmodule Map do
 
   """
   @spec take(map, Enumerable.t) :: map
-  def take(map, keys)
-
-  def take(map, keys) when is_map(map) do
+  def take(map, keys) do
     keys
     |> Enum.to_list
-    |> do_take(map, [])
-  end
-
-  def take(non_map, _keys) do
-    :erlang.error({:badmap, non_map})
-  end
-
-  defp do_take([], _map, acc), do: :maps.from_list(acc)
-  defp do_take([key | rest], map, acc) do
-    acc = case fetch(map, key) do
-      {:ok, value} -> [{key, value} | acc]
-      :error -> acc
-    end
-    do_take(rest, map, acc)
+    |> :maps.with(map)
   end
 
   @doc """
