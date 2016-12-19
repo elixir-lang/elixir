@@ -24,7 +24,7 @@ defmodule IEx.AutocompleteTest do
     end
   end
 
-  def expand(expr) do
+  defp expand(expr) do
     IEx.Autocomplete.expand(Enum.reverse(expr), MyServer)
   end
 
