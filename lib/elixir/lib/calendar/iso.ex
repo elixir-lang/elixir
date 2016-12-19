@@ -17,32 +17,32 @@ defmodule Calendar.ISO do
   @type day   :: 1..31
 
   @doc """
-  Returns the last day of the month for the given year.
+  Returns how many days there are in the given year-month.
 
   ## Examples
 
-      iex> Calendar.ISO.last_day_of_month(1900, 1)
+      iex> Calendar.ISO.days_in_month(1900, 1)
       31
-      iex> Calendar.ISO.last_day_of_month(1900, 2)
+      iex> Calendar.ISO.days_in_month(1900, 2)
       28
-      iex> Calendar.ISO.last_day_of_month(2000, 2)
+      iex> Calendar.ISO.days_in_month(2000, 2)
       29
-      iex> Calendar.ISO.last_day_of_month(2001, 2)
+      iex> Calendar.ISO.days_in_month(2001, 2)
       28
-      iex> Calendar.ISO.last_day_of_month(2004, 2)
+      iex> Calendar.ISO.days_in_month(2004, 2)
       29
-      iex> Calendar.ISO.last_day_of_month(2004, 4)
+      iex> Calendar.ISO.days_in_month(2004, 4)
       30
 
   """
-  @spec last_day_of_month(year, month) :: 28..31
-  def last_day_of_month(year, month)
+  @spec days_in_month(year, month) :: 28..31
+  def days_in_month(year, month)
 
-  def last_day_of_month(year, 2) do
+  def days_in_month(year, 2) do
     if leap_year?(year), do: 29, else: 28
   end
-  def last_day_of_month(_, month) when month in [4, 6, 9, 11], do: 30
-  def last_day_of_month(_, month) when month in 1..12, do: 31
+  def days_in_month(_, month) when month in [4, 6, 9, 11], do: 30
+  def days_in_month(_, month) when month in 1..12, do: 31
 
   @doc """
   Returns if the given year is a leap year.
