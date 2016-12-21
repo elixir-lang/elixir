@@ -222,6 +222,15 @@ defmodule IEx do
       ...(1)> #iex:break
       ** (TokenMissingError) iex:1: incomplete expression
 
+  ## Exiting the shell
+
+  There are a few ways to quit the IEx shell:
+
+    * via the `BREAK` menu (available via `Ctrl+C`) by typing `q`, `Enter`
+    * by hitting `Ctrl+C`, `Ctrl+C`
+    * by hitting `Ctrl+\`
+
+  If you are connected to remote shell, it remains alive after disconnection.
   """
 
   @doc """
