@@ -433,10 +433,13 @@ defmodule System do
   end
 
   @doc """
-  Halts the Erlang runtime system.
+  Immediately halts the Erlang runtime system.
 
-  Halts the Erlang runtime system where the argument `status` must be a
-  non-negative integer, the atom `:abort` or a binary.
+  Terminates the Erlang runtime system without properly shutting down
+  applications and ports. Please see `stop/1` for a careful shutdown of the
+  system.
+
+  `status` must be a non-negative integer, the atom `:abort` or a binary.
 
     * If an integer, the runtime system exits with the integer value which
       is returned to the operating system.
@@ -469,6 +472,38 @@ defmodule System do
 
   def halt(status) when is_binary(status) do
     :erlang.halt(String.to_charlist(status))
+  end
+
+  @doc """
+  Carefully stops the Erlang runtime system.
+
+  All applications are taken down smoothly, all code is unloaded, and all ports
+  are closed before the system terminates by calling `halt/1`.
+
+  `status` must be a non-negative integer value which is returned by the
+  runtime system to the operating system.
+
+  Note that on many platforms, only the status codes 0-255 are supported
+  by the operating system.
+
+  For more information, see [`:init.stop/1`](http://erlang.org/doc/man/init.html#stop-1).
+
+  ## Examples
+
+      System.stop(0)
+      System.stop(1)
+
+  """
+  @spec stop() :: no_return
+  @spec stop(non_neg_integer | binary) :: no_return
+  def stop(status \\ 0)
+
+  def stop(status) when is_integer(status) do
+    :init.stop(status)
+  end
+
+  def stop(status) when is_binary(status) do
+    :init.stop(String.to_charlist(status))
   end
 
   @doc ~S"""
