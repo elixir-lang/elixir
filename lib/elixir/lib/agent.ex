@@ -150,6 +150,13 @@ defmodule Agent do
 
   If the given function callback fails with `reason`, the function returns
   `{:error, reason}`.
+
+  ## Examples
+
+      iex> {:ok, pid} = Agent.start_link(fn -> 42 end)
+      iex> Agent.get(pid, fn(state) -> state end)
+      42
+
   """
   @spec start_link((() -> term), GenServer.options) :: on_start
   def start_link(fun, options \\ []) when is_function(fun, 0) do
@@ -172,6 +179,13 @@ defmodule Agent do
   Starts an agent process without links (outside of a supervision tree).
 
   See `start_link/2` for more information.
+
+  ## Examples
+
+      iex> {:ok, pid} = Agent.start(fn -> 42 end)
+      iex> Agent.get(pid, fn(state) -> state end)
+      42
+
   """
   @spec start((() -> term), GenServer.options) :: on_start
   def start(fun, options \\ []) when is_function(fun, 0) do
@@ -197,6 +211,13 @@ defmodule Agent do
   returned.
 
   A timeout can also be specified (it has a default value of 5000).
+
+  ## Examples
+
+      iex> {:ok, pid} = Agent.start_link(fn -> 42 end)
+      iex> Agent.get(pid, fn(state) -> state end)
+      42
+
   """
   @spec get(agent, (state -> a), timeout) :: a when a: var
   def get(agent, fun, timeout \\ 5000) when is_function(fun, 1) do
@@ -224,6 +245,15 @@ defmodule Agent do
   and the second one is the new state.
 
   A timeout can also be specified (it has a default value of 5000).
+
+  ## Examples
+
+      iex> {:ok, pid} = Agent.start_link(fn -> 42 end)
+      iex> Agent.get_and_update(pid, fn(state) -> {state, state + 1} end)
+      42
+      iex> Agent.get(pid, fn(state) -> state end)
+      43
+
   """
   @spec get_and_update(agent, (state -> {a, state}), timeout) :: a when a: var
   def get_and_update(agent, fun, timeout \\ 5000) when is_function(fun, 1) do
@@ -250,6 +280,15 @@ defmodule Agent do
 
   A timeout can also be specified (it has a default value of 5000).
   This function always returns `:ok`.
+
+  ## Examples
+
+      iex> {:ok, pid} = Agent.start_link(fn -> 42 end)
+      iex> Agent.update(pid, fn(state) -> state + 1 end)
+      :ok
+      iex> Agent.get(pid, fn(state) -> state end)
+      43
+
   """
   @spec update(agent, (state -> state), timeout) :: :ok
   def update(agent, fun, timeout \\ 5000) when is_function(fun, 1) do
@@ -304,6 +343,13 @@ defmodule Agent do
   This function keeps OTP semantics regarding error reporting.
   If the reason is any other than `:normal`, `:shutdown` or
   `{:shutdown, _}`, an error report will be logged.
+
+  ## Examples
+
+      iex> {:ok, pid} = Agent.start_link(fn -> 42 end)
+      iex> Agent.stop(pid)
+      :ok
+
   """
   @spec stop(agent, reason :: term, timeout) :: :ok
   def stop(agent, reason \\ :normal, timeout \\ :infinity) do
