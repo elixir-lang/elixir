@@ -153,8 +153,8 @@ defmodule Agent do
 
   ## Examples
 
-      iex> {:ok, pid} = Agent.start_link fn -> 42 end
-      iex> Agent.get pid, fn(state) -> state end
+      iex> {:ok, pid} = Agent.start_link(fn -> 42 end)
+      iex> Agent.get(pid, fn(state) -> state end)
       42
 
   """
@@ -182,8 +182,8 @@ defmodule Agent do
 
   ## Examples
 
-      iex> {:ok, pid} = Agent.start fn -> 42 end
-      iex> Agent.get pid, fn(state) -> state end
+      iex> {:ok, pid} = Agent.start(fn -> 42 end)
+      iex> Agent.get(pid, fn(state) -> state end)
       42
 
   """
@@ -214,8 +214,8 @@ defmodule Agent do
 
   ## Examples
 
-      iex> {:ok, pid} = Agent.start_link fn -> 42 end
-      iex> Agent.get pid, fn(state) -> state end
+      iex> {:ok, pid} = Agent.start_link(fn -> 42 end)
+      iex> Agent.get(pid, fn(state) -> state end)
       42
 
   """
@@ -248,10 +248,10 @@ defmodule Agent do
 
   ## Examples
 
-      iex> {:ok, pid} = Agent.start_link fn -> 42 end
-      iex> Agent.get_and_update pid, fn(state) -> {state, state + 1} end
+      iex> {:ok, pid} = Agent.start_link(fn -> 42 end)
+      iex> Agent.get_and_update(pid, fn(state) -> {state, state + 1} end)
       42
-      iex> Agent.get pid, fn(state) -> state end
+      iex> Agent.get(pid, fn(state) -> state end)
       43
 
   """
@@ -283,10 +283,10 @@ defmodule Agent do
 
   ## Examples
 
-      iex> {:ok, pid} = Agent.start_link fn -> 42 end
-      iex> Agent.update pid, fn(state) -> state + 1 end
+      iex> {:ok, pid} = Agent.start_link(fn -> 42 end)
+      iex> Agent.update(pid, fn(state) -> state + 1 end)
       :ok
-      iex> Agent.get pid, fn(state) -> state end
+      iex> Agent.get(pid, fn(state) -> state end)
       43
 
   """
@@ -346,8 +346,8 @@ defmodule Agent do
 
   ## Examples
 
-      iex> {:ok, pid} = Agent.start_link fn -> 42 end
-      iex> Agent.stop pid
+      iex> {:ok, pid} = Agent.start_link(fn -> 42 end)
+      iex> Agent.stop(pid)
       :ok
 
   """
