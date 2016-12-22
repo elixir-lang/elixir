@@ -96,7 +96,21 @@ defmodule File do
   end
 
   @doc """
-  Returns `true` if the path is a directory.
+  Returns `true` if the path points to a directory.
+  It works with absolute and relative paths. Shell expansions like `~` are not
+  allowed.
+
+  ## Examples:
+
+      File.dir?("../")
+      #=> true
+
+      File.dir?("/")
+      #=> true
+
+      File.dir?("~")
+      #=> false
+
   """
   @spec dir?(Path.t) :: boolean
   def dir?(path) do
