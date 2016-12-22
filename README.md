@@ -62,7 +62,9 @@ code is divided in applications inside the `lib` folder:
 
 You can run all tests in the root directory with `make test` and you can
 also run tests for a specific framework `make test_#{NAME}`, for example,
-`make test_ex_unit`.
+`make test_ex_unit`. If you just changed something in the elixir standard
+library you can run only that portion through `make test_stdlib`, as
+`test_elixir` also runs tests for the other projects (eex, exunit etc.).
 
 In case you are changing a single file, you can compile and run tests only
 for that particular file for fast development cycles. For example, if you
