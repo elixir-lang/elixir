@@ -58,7 +58,7 @@ defmodule Agent do
 
       # Compute in the agent/client
       def get_something(agent) do
-        Agent.get(agent, &(&1)) |> do_something_expensive()
+        Agent.get(agent) |> do_something_expensive()
       end
 
   The first function blocks the agent. The second function copies
@@ -208,7 +208,8 @@ defmodule Agent do
 
   The function `fun` is sent to the `agent` which invokes the function
   passing the agent state. The result of the function invocation is
-  returned.
+  returned. The default function is &(&1), which simply returns the
+  agent's state.
 
   A timeout can also be specified (it has a default value of 5000).
 
@@ -220,7 +221,7 @@ defmodule Agent do
 
   """
   @spec get(agent, (state -> a), timeout) :: a when a: var
-  def get(agent, fun, timeout \\ 5000) when is_function(fun, 1) do
+  def get(agent, fun \\ &(&1), timeout \\ 5000) when is_function(fun, 1) do
     GenServer.call(agent, {:get, fun}, timeout)
   end
 

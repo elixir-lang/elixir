@@ -20,7 +20,7 @@ defmodule AgentTest do
     assert Agent.update(pid, &Map.put(&1, :hello, :world)) == :ok
     assert Agent.get(pid, &Map.get(&1, :hello), 3000) == :world
     assert Agent.get_and_update(pid, &Map.pop(&1, :hello), 3000) == :world
-    assert Agent.get(pid, &(&1)) == %{}
+    assert Agent.get(pid) == %{}
     assert Agent.stop(pid) == :ok
     wait_until_dead(pid)
   end
@@ -53,7 +53,7 @@ defmodule AgentTest do
     mfa = { :erlang, :error, [] }
     assert match?({ :error, _ }, :sys.change_code(pid, __MODULE__, "vsn", mfa))
     :ok = :sys.resume(pid)
-    assert Agent.get(pid, &(&1)) == %{}
+    assert Agent.get(pid) == %{}
     assert Agent.stop(pid) == :ok
   end
 
