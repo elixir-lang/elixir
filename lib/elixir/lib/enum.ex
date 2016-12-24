@@ -510,9 +510,27 @@ defmodule Enum do
 
   """
   @spec dedup(t) :: list
+  def dedup(enumerable)
+
+  def dedup(_.._ = range),
+    do: to_list(range)
+
+  def dedup([]),
+    do: []
+
+  def dedup([head | tail]),
+    do: dedup_list(tail, head, [head])
+
   def dedup(enumerable) do
     dedup_by(enumerable, fn x -> x end)
   end
+
+  defp dedup_list([], _prev, acc),
+    do: :lists.reverse(acc)
+  defp dedup_list([head | tail], head, acc),
+    do: dedup_list(tail, head, acc)
+  defp dedup_list([head | tail], _prev, acc),
+    do: dedup_list(tail, head, [head | acc])
 
   @doc """
   Enumerates the `enumerable`, returning a list where all consecutive
@@ -531,9 +549,29 @@ defmodule Enum do
 
   """
   @spec dedup_by(t, (element -> term)) :: list
+  def dedup_by(enumerable, fun) when is_list(enumerable) and is_function(fun, 1) do
+    case enumerable do
+      [] ->
+        []
+      [head | tail] ->
+        dedup_by_list(tail, fun, fun.(head), [head])
+    end
+  end
+
   def dedup_by(enumerable, fun) when is_function(fun, 1) do
     {list, _} = reduce(enumerable, {[], []}, R.dedup(fun))
     :lists.reverse(list)
+  end
+
+  defp dedup_by_list([], _fun, _prev, acc),
+    do: :lists.reverse(acc)
+  defp dedup_by_list([head | tail], fun, prev_fun_head, acc) do
+    case fun.(head) do
+      fun_head when fun_head === prev_fun_head ->
+        dedup_by_list(tail, fun, prev_fun_head, acc)
+      fun_head ->
+        dedup_by_list(tail, fun, fun_head, [head | acc])
+    end
   end
 
   @doc """
