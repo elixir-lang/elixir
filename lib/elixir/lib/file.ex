@@ -10,6 +10,12 @@ defmodule File do
   via `cp/3` and remove files and directories recursively
   via `rm_rf/1`.
 
+  Paths given to functions in this module can be either relative to the
+  current working directory (as returned by `File.cwd/0`), or absolute
+  paths. Shell conventions like `~` are not expanded automatically.
+  To use paths like `~/Downloads`, you can use `Path.expand/1` or
+  `Path.expand/2` to expand your path to an absolute path.
+
   ## Encoding
 
   In order to write and read files, one must use the functions
@@ -96,7 +102,25 @@ defmodule File do
   end
 
   @doc """
-  Returns `true` if the path is a directory.
+  Returns `true` if the given path is a directory.
+
+  ## Examples
+
+      File.dir("./test")
+      #=> true
+
+      File.dir("test")
+      #=> true
+
+      File.dir("/usr/bin")
+      #=> true
+
+      File.dir("~/Downloads")
+      #=> false
+
+      "~/Downloads" |> Path.expand |> File.dir?
+      #=> true
+
   """
   @spec dir?(Path.t) :: boolean
   def dir?(path) do
