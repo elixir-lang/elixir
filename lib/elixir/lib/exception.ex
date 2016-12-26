@@ -647,7 +647,7 @@ defmodule UndefinedFunctionError do
   def message(%{reason: :"function not exported",  module: module, function: function, arity: arity, exports: exports}) do
     suffix =
       if macro_exported?(module, function, arity) do
-        " but #{inspect(module)} defines a macro with the same name and arity." <>
+        ". However there is a macro with the same name and arity." <>
           " Be sure to require #{inspect(module)} if you intend to invoke this macro"
       else
         did_you_mean(module, function, arity, exports)
