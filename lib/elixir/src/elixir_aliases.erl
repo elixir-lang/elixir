@@ -10,8 +10,8 @@ inspect(Atom) when is_atom(Atom) ->
   end.
 
 %% Store an alias in the given scope
-store(_Meta, New, New, _TKV, Aliases, MacroAliases, _Lexical) ->
-  {Aliases, MacroAliases};
+store(Meta, New, New, _TKV, Aliases, MacroAliases, _Lexical) ->
+  {remove_alias(New, Aliases), remove_macro_alias(Meta, New, MacroAliases)};
 store(Meta, New, Old, TKV, Aliases, MacroAliases, Lexical) ->
   record_warn(Meta, New, TKV, Lexical),
   {store_alias(New, Old, Aliases),
@@ -19,10 +19,22 @@ store(Meta, New, Old, TKV, Aliases, MacroAliases, Lexical) ->
 
 store_alias(New, Old, Aliases) ->
   lists:keystore(New, 1, Aliases, {New, Old}).
+
 store_macro_alias(Meta, New, Old, Aliases) ->
   case lists:keyfind(counter, 1, Meta) of
     {counter, Counter} when is_integer(Counter) ->
       lists:keystore(New, 1, Aliases, {New, {Counter, Old}});
+    false ->
+      Aliases
+  end.
+
+remove_alias(Atom, Aliases) ->
+  lists:keydelete(Atom, 1, Aliases).
+
+remove_macro_alias(Meta, Atom, Aliases) ->
+  case lists:keyfind(counter, 1, Meta) of
+    {counter, Counter} when is_integer(Counter) ->
+      lists:keydelete(Atom, 1, Aliases);
     false ->
       Aliases
   end.
