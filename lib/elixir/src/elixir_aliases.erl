@@ -20,11 +20,10 @@ store(Meta, New, Old, TKV, Aliases, MacroAliases, Lexical) ->
 store_alias(New, Old, Aliases) ->
   lists:keystore(New, 1, Aliases, {New, Old}).
 store_macro_alias(Meta, New, Old, Aliases) ->
-  case lists:keymember(context, 1, Meta) andalso
-       lists:keyfind(counter, 1, Meta) of
+  case lists:keyfind(counter, 1, Meta) of
     {counter, Counter} when is_integer(Counter) ->
       lists:keystore(New, 1, Aliases, {New, {Counter, Old}});
-    _ ->
+    false ->
       Aliases
   end.
 
