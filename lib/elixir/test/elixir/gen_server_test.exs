@@ -3,6 +3,8 @@ Code.require_file "test_helper.exs", __DIR__
 defmodule GenServerTest do
   use ExUnit.Case, async: true
 
+  import ExUnit.CaptureLog
+
   defmodule Stack do
     use GenServer
 
@@ -160,5 +162,14 @@ defmodule GenServerTest do
 
     {:ok, _} = GenServer.start(Stack, [], name: :stack_for_stop)
     assert GenServer.stop(:stack_for_stop, :normal) == :ok
+  end
+
+  test "handle_info/2 warning" do
+    {:ok, pid} = GenServer.start(Stack, [])
+    log = capture_log(fn ->
+      send(pid, :foo)
+      GenServer.stop(pid)
+    end)
+    assert log =~ "[warn]  GenServerTest.Stack #{inspect pid} received unexpected message in handle_info/2: :foo"
   end
 end
