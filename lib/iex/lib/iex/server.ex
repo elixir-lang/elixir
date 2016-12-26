@@ -141,7 +141,7 @@ defmodule IEx.Server do
   end
 
   @doc """
-  Starst an evaluator using the provided options.
+  Starts an evaluator using the provided options.
   """
   @spec start_evaluator(Keyword.t) :: pid
   def start_evaluator(opts) do
