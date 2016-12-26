@@ -390,8 +390,9 @@ defmodule ExceptionTest do
   end
 
   test "UndefinedFunctionError when the mfa is a macro but require wasn't called" do
+    _ = Code.ensure_loaded(Integer)
     assert %UndefinedFunctionError{module: Integer, function: :is_odd, arity: 1} |> message ==
-           "function Integer.is_odd/1 is undefined or private but Integer defines " <>
+           "function Integer.is_odd/1 is undefined or private. However there is " <>
            "a macro with the same name and arity. Be sure to require Integer if " <>
            "you intend to invoke this macro"
   end
