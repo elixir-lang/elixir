@@ -18,12 +18,12 @@ defmodule Kernel.AliasTest do
 
   test "double alias" do
     alias Kernel.AliasTest.Nested, as: Nested2
-    assert Nested.value  == 1
+    assert Nested.value == 1
     assert Nested2.value == 1
   end
 
   test "overwriten alias" do
-    assert List = alias List, as: Nested
+    assert alias(List, as: Nested) == List
     assert Nested.flatten([[13]]) == [13]
   end
 
@@ -52,6 +52,14 @@ defmodule Kernel.AliasTest do
     assert result == [Inspect.Opts, Inspect.Algebra]
     assert %Opts{} == %Inspect.Opts{}
     assert Algebra.empty == :doc_nil
+  end
+
+  test "alias removal" do
+    alias __MODULE__.Foo
+    assert Foo == __MODULE__.Foo
+    alias Elixir.Foo
+    assert Foo == Elixir.Foo
+    alias Elixir.Bar
   end
 end
 
