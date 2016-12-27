@@ -80,6 +80,7 @@ defmodule FloatTest do
     assert Float.ceil(0.32453e-10) === 1.0
     assert Float.ceil(-0.32453e-10) === 0.0
     assert Float.ceil(1.32453e-10) === 1.0
+    assert Float.ceil(0.0) === 0.0
   end
 
   test "ceil/2 with precision" do
@@ -94,6 +95,8 @@ defmodule FloatTest do
 
     assert Float.ceil(12.32453e-20, 2) === 0.01
     assert Float.ceil(-12.32453e-20, 2) === 0.0
+
+    assert Float.ceil(0.0, 2) === 0.0
   end
 
   test "round/2" do
