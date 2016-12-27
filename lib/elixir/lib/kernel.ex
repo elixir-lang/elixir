@@ -2683,7 +2683,7 @@ defmodule Kernel do
 
   If last is larger than first, the range will be increasing from
   first to last. If first is larger than last, the range will be
-  decresing from first to last. If first is equal to last, the range
+  decreasing from first to last. If first is equal to last, the range
   will contain one element, which is the number itself.
 
   ## Examples
