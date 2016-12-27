@@ -742,6 +742,10 @@ defmodule Kernel.ErrorsTest do
     assert_compile_fail CompileError,
       "nofile:1: invalid argument for alias, expected a compile time atom or alias, got: 1 + 2",
       'alias 1 + 2'
+
+    assert_compile_fail CompileError,
+      "nofile:1: invalid value for keyword :as, expected an alias, got: :\"bar.baz\"",
+      'alias :lists, as: :"bar.baz"'
   end
 
   test "invalid alias expansion" do
