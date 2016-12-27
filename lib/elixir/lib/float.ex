@@ -203,7 +203,8 @@ defmodule Float do
     count = count - exp + 1023
 
     cond do
-      count <= 0 -> # There is no decimal precision
+      count <= 0 or  # There is no decimal precision
+      (0 == exp and <<0::52>> == significant) -> #zero or minus zero
         float
 
       count >= 104 -> # Precision beyond 15 digits
