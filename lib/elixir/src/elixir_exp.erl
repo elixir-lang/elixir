@@ -69,8 +69,7 @@ expand({alias, Meta, [Ref, KV]}, E) ->
 
   if
     is_atom(ERef) ->
-      {{alias, Meta, [ERef, EKV]},
-        expand_alias(Meta, true, ERef, EKV, ET)};
+      {ERef, expand_alias(Meta, true, ERef, EKV, ET)};
     true ->
       compile_error(Meta, ?m(E, file),
         "invalid argument for alias, expected a compile time atom or alias, got: ~ts",
@@ -88,8 +87,7 @@ expand({require, Meta, [Ref, KV]}, E) ->
   if
     is_atom(ERef) ->
       elixir_aliases:ensure_loaded(Meta, ERef, ET),
-      {{require, Meta, [ERef, EKV]},
-        expand_require(Meta, ERef, EKV, ET)};
+      {ERef, expand_require(Meta, ERef, EKV, ET)};
     true ->
       compile_error(Meta, ?m(E, file),
         "invalid argument for require, expected a compile time atom or alias, got: ~ts",
@@ -108,8 +106,7 @@ expand({import, Meta, [Ref, KV]}, E) ->
     is_atom(ERef) ->
       elixir_aliases:ensure_loaded(Meta, ERef, ET),
       {Functions, Macros} = elixir_import:import(Meta, ERef, EKV, ET),
-      {{import, Meta, [ERef, EKV]},
-        expand_require(Meta, ERef, EKV, ET#{functions := Functions, macros := Macros})};
+      {ERef, expand_require(Meta, ERef, EKV, ET#{functions := Functions, macros := Macros})};
     true ->
       compile_error(Meta, ?m(E, file),
         "invalid argument for import, expected a compile time atom or alias, got: ~ts",
