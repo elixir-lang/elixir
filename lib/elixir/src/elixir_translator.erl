@@ -48,11 +48,6 @@ translate({{'.', _, [erlang, 'orelse']}, Meta, [Left, Right]}, S) ->
   {[TLeft, TRight], NS}  = translate_args([Left, Right], S),
   {{op, ?ann(Meta), 'orelse', TLeft, TRight}, NS};
 
-%% Lexical
-
-translate({Lexical, _, [Module, _]}, S) when Lexical == import; Lexical == alias; Lexical == require ->
-  {{atom, 0, Module}, S};
-
 %% Compilation environment macros
 
 translate({'__CALLER__', Meta, Atom}, S) when is_atom(Atom) ->

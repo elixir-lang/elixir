@@ -33,7 +33,7 @@ defmodule Kernel.ExpansionTest do
     input = quote do: (alias :hello, as: World, warn: True)
     {output, env} = expand_env(input, __ENV__)
 
-    assert output == quote do: (alias :hello, as: :"Elixir.World", warn: true)
+    assert output == :hello
     assert env.aliases == [{:"Elixir.True", true}, {:"Elixir.World", :hello}]
   end
 
@@ -69,7 +69,7 @@ defmodule Kernel.ExpansionTest do
 
   test "=: does not carry rhs imports" do
     assert expand(quote do: (flatten([1, 2, 3]) = import List)) ==
-           quote do: (flatten([1, 2, 3]) = import :"Elixir.List", [])
+           quote do: (flatten([1, 2, 3]) = :"Elixir.List")
   end
 
   test "=: does not define _" do
@@ -159,7 +159,7 @@ defmodule Kernel.ExpansionTest do
 
   test "locals: custom imports" do
     assert expand(quote do: (import Kernel.ExpansionTarget; seventeen)) ==
-           quote do: (import :"Elixir.Kernel.ExpansionTarget", []; 17)
+           quote do: (:"Elixir.Kernel.ExpansionTarget"; 17)
   end
 
   ## Tuples
@@ -234,7 +234,7 @@ defmodule Kernel.ExpansionTest do
 
   test "remote calls: modules must be required for macros" do
     assert expand(quote do: (require Kernel.ExpansionTarget; Kernel.ExpansionTarget.seventeen)) ==
-           quote do: (require :"Elixir.Kernel.ExpansionTarget", []; 17)
+           quote do: (:"Elixir.Kernel.ExpansionTarget"; 17)
   end
 
   test "remote calls: raises when not required" do
@@ -309,7 +309,7 @@ defmodule Kernel.ExpansionTest do
   test "&: expands macros" do
 
     assert expand(quote do: (require Kernel.ExpansionTarget; &Kernel.ExpansionTarget.seventeen/0)) ==
-           quote do: (require :"Elixir.Kernel.ExpansionTarget", []; fn -> 17 end)
+           quote do: (:"Elixir.Kernel.ExpansionTarget"; fn -> 17 end)
   end
 
   ## fn
@@ -321,7 +321,7 @@ defmodule Kernel.ExpansionTest do
 
   test "fn: does not share lexical scope between clauses" do
     assert expand(quote do: fn 1 -> import List; 2 -> flatten([1, 2, 3]) end) ==
-           quote do: fn 1 -> import :"Elixir.List", []; 2 -> flatten([1, 2, 3]) end
+           quote do: fn 1 -> :"Elixir.List"; 2 -> flatten([1, 2, 3]) end
   end
 
   test "fn: expands guards" do
@@ -343,7 +343,7 @@ defmodule Kernel.ExpansionTest do
 
   test "cond: does not share lexical scope between clauses" do
     assert expand(quote do: (cond do 1 -> import List; 2 -> flatten([1, 2, 3]) end)) ==
-           quote do: (cond do 1 -> import :"Elixir.List", []; 2 -> flatten([1, 2, 3]) end)
+           quote do: (cond do 1 -> :"Elixir.List"; 2 -> flatten([1, 2, 3]) end)
   end
 
   test "cond: does not leaks vars on head" do
@@ -371,7 +371,7 @@ defmodule Kernel.ExpansionTest do
 
   test "case: does not share lexical scope between clauses" do
     assert expand(quote do: (case w do 1 -> import List; 2 -> flatten([1, 2, 3]) end)) ==
-           quote do: (case w() do 1 -> import :"Elixir.List", []; 2 -> flatten([1, 2, 3]) end)
+           quote do: (case w() do 1 -> :"Elixir.List"; 2 -> flatten([1, 2, 3]) end)
   end
 
   test "case: expands guards" do
@@ -404,7 +404,7 @@ defmodule Kernel.ExpansionTest do
 
   test "receive: does not share lexical scope between clauses" do
     assert expand(quote do: (receive do 1 -> import List; 2 -> flatten([1, 2, 3]) end)) ==
-           quote do: (receive do 1 -> import :"Elixir.List", []; 2 -> flatten([1, 2, 3]) end)
+           quote do: (receive do 1 -> :"Elixir.List"; 2 -> flatten([1, 2, 3]) end)
   end
 
   test "receive: expands guards" do
@@ -510,16 +510,16 @@ defmodule Kernel.ExpansionTest do
 
   test "bitstrings: expands modifiers" do
     assert expand(quote do: (import Kernel.ExpansionTarget; <<x::seventeen>>)) ==
-           quote do: (import :"Elixir.Kernel.ExpansionTarget", []; <<x()::size(17)>>)
+           quote do: (:"Elixir.Kernel.ExpansionTarget"; <<x()::size(17)>>)
 
     assert expand(quote do: (import Kernel.ExpansionTarget; <<seventeen::seventeen, x::size(seventeen)>> = 1)) ==
-           quote do: (import :"Elixir.Kernel.ExpansionTarget", [];
+           quote do: (:"Elixir.Kernel.ExpansionTarget";
                       <<seventeen::size(17), x::size(seventeen)>> = 1)
   end
 
   test "bitstrings: expands modifiers args" do
     assert expand(quote do: (require Kernel.ExpansionTarget; <<x::size(Kernel.ExpansionTarget.seventeen)>>)) ==
-           quote do: (require :"Elixir.Kernel.ExpansionTarget", []; <<x()::size(17)>>)
+           quote do: (:"Elixir.Kernel.ExpansionTarget"; <<x()::size(17)>>)
   end
 
   ## Invalid
