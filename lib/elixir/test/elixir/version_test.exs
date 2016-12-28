@@ -1,7 +1,7 @@
 Code.require_file "test_helper.exs", __DIR__
 
 defmodule VersionTest do
-  use   ExUnit.Case, async: true
+  use ExUnit.Case, async: true
 
   doctest Version
 
