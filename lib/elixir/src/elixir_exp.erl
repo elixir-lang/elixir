@@ -609,12 +609,18 @@ expand_alias(Meta, IncludeByDefault, Ref, KV, #{context_modules := Context} = E)
 expand_as({as, nil}, _Meta, _IncludeByDefault, Ref, _E) ->
   Ref;
 expand_as({as, Atom}, Meta, _IncludeByDefault, _Ref, E) when is_atom(Atom), not is_boolean(Atom) ->
-  case length(string:tokens(atom_to_list(Atom), ".")) of
-    1 -> compile_error(Meta, ?m(E, file),
-           "invalid value for keyword :as, expected an alias, got: ~ts", [elixir_aliases:inspect(Atom)]);
-    2 -> Atom;
-    _ -> compile_error(Meta, ?m(E, file),
-           "invalid value for keyword :as, expected a simple alias, got nested alias: ~ts", [elixir_aliases:inspect(Atom)])
+  case atom_to_list(Atom) of
+    "Elixir." ++ Rest ->
+      case string:tokens(Rest, ".") of
+        [Rest] ->
+          Atom;
+        _ ->
+          Message = "invalid value for keyword :as, expected a simple alias, got nested alias: ~ts",
+          compile_error(Meta, ?m(E, file), Message, [elixir_aliases:inspect(Atom)])
+      end;
+    _ ->
+      Message = "invalid value for keyword :as, expected an alias, got: ~ts",
+      compile_error(Meta, ?m(E, file), Message, [elixir_aliases:inspect(Atom)])
   end;
 expand_as(false, _Meta, IncludeByDefault, Ref, _E) ->
   if IncludeByDefault -> elixir_aliases:last(Ref);
