@@ -32,9 +32,10 @@ defmodule ExUnit.CaptureIO do
   Returns the binary which is the captured output.
 
   By default, `capture_io` replaces the `group_leader` (`:stdio`)
-  for the current process. However, the capturing of any other
-  named device, such as `:stderr`, is also possible globally by
-  giving the registered device name explicitly as an argument.
+  for the current process or for another process by passing that process's PID.
+  However, the capturing of any other named device, such as `:stderr`, is also
+  possible globally by giving the registered device name explicitly as an
+  argument.
 
   Note that when capturing something other than `:stdio`,
   the test should run with async false.
@@ -81,7 +82,11 @@ defmodule ExUnit.CaptureIO do
 
   """
   def capture_io(fun) do
-    do_capture_io(:standard_io, [], fun)
+    do_capture_io(self(), :standard_io, [], fun)
+  end
+
+  def capture_io(pid, fun) when is_pid(pid) do
+    do_capture_io(pid, :standard_io, [], fun)
   end
 
   def capture_io(device, fun) when is_atom(device) do
@@ -89,11 +94,19 @@ defmodule ExUnit.CaptureIO do
   end
 
   def capture_io(input, fun) when is_binary(input) do
-    capture_io(:standard_io, [input: input], fun)
+    do_capture_io(self(), :standard_io, [input: input], fun)
   end
 
   def capture_io(options, fun) when is_list(options) do
-    capture_io(:standard_io, options, fun)
+    do_capture_io(self(), :standard_io, options, fun)
+  end
+
+  def capture_io(pid, input, fun) when is_pid(pid) and is_binary(input) do
+    do_capture_io(pid, :standard_io, [input: input], fun)
+  end
+
+  def capture_io(pid, options, fun) when is_pid(pid) do
+    do_capture_io(pid, :standard_io, options, fun)
   end
 
   def capture_io(device, input, fun) when is_binary(input) do
@@ -108,17 +121,19 @@ defmodule ExUnit.CaptureIO do
   defp map_dev(:stderr), do: :standard_error
   defp map_dev(other),   do: other
 
-  defp do_capture_io(:standard_io, options, fun) do
+  defp do_capture_io(pid, :standard_io, options, fun) do
     prompt_config = Keyword.get(options, :capture_prompt, true)
     input = Keyword.get(options, :input, "")
 
     original_gl = Process.group_leader()
     {:ok, capture_gl} = StringIO.open(input, capture_prompt: prompt_config)
     try do
-      Process.group_leader(self(), capture_gl)
+      Process.group_leader(pid, capture_gl)
       do_capture_io(capture_gl, fun)
     after
-      Process.group_leader(self(), original_gl)
+      if Process.alive?(pid) do
+        Process.group_leader(pid, original_gl)
+      end
     end
   end
 

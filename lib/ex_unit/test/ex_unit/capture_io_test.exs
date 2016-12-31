@@ -1,5 +1,26 @@
 Code.require_file "../test_helper.exs", __DIR__
 
+defmodule TestServer do
+  use GenServer
+
+  def handle_call(:puts_to_stdout, from, nil) do
+    IO.puts "from stdout"
+    GenServer.reply from, :ok
+    {:noreply, nil}
+  end
+
+  def handle_call(:puts_to_stderr, from, nil) do
+    IO.puts :stderr, "from stderr"
+    GenServer.reply from, :ok
+    {:noreply, nil}
+  end
+
+  def handle_call(:get_line, from, nil) do
+    GenServer.reply from, {:ok, :io.get_line(">")}
+    {:noreply, nil}
+  end
+end
+
 defmodule ExUnit.CaptureIOTest do
   use ExUnit.Case
 
@@ -49,6 +70,33 @@ defmodule ExUnit.CaptureIOTest do
 
   test "with no output" do
     assert capture_io(fn -> nil end) == ""
+  end
+
+  describe "child processes" do
+    setup do
+      {:ok, pid} = GenServer.start_link(TestServer, nil)
+
+      on_exit fn -> Process.exit(pid, :normal) end
+
+      [pid: pid]
+    end
+
+    test "can be captured", context do
+      assert capture_io(context[:pid], fn ->
+        :ok = GenServer.call(context[:pid], :puts_to_stdout)
+      end) == "from stdout\n"
+
+      assert capture_io(:stderr, fn ->
+        :ok = GenServer.call(context[:pid], :puts_to_stderr)
+      end) == "from stderr\n"
+
+      capture_io(context[:pid], [input: "my input\n"], fn ->
+        {:ok, line} = GenServer.call(context[:pid], :get_line)
+        send self(), {:result, line}
+      end)
+
+      assert_received {:result, "my input\n"}
+    end
   end
 
   test "with put chars" do
