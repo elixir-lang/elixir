@@ -80,6 +80,16 @@ defmodule Calendar do
   @callback leap_year?(year) :: boolean
 
   @doc """
+  for converting a unix epoch to it's equivalant destination calendar datetime
+  """
+  @callback from_unix(Integer.t, atom) :: {:ok, {year, month, day}, {hour, minute, second}, {microsecond, Integer.t}}
+
+  @doc """
+  for converting date time to it's equivalant unix epoch
+  """
+  @callback to_unix({year, month, day}, {hour, minute, second}, {microsecond, Integer.t}) :: {:ok, Integer.t} | {:error, atom}
+
+  @doc """
   Calculates the day of the week from the given `year`, `month`, and `day`.
   """
   @callback day_of_week(year, month, day) :: non_neg_integer()
@@ -148,9 +158,9 @@ defmodule Date do
 
   """
   @spec utc_today() :: t
-  def utc_today() do
-    {:ok, {year, month, day}, _, _} = Calendar.ISO.from_unix(:os.system_time, :native)
-    %Date{year: year, month: month, day: day}
+  def utc_today(calendar \\ Calendar.ISO) do
+    {:ok, {year, month, day}, _, _} = calendar.from_unix(:os.system_time, :native)
+    %Date{year: year, month: month, day: day, calendar: calendar}
   end
 
   @doc """
@@ -215,8 +225,8 @@ defmodule Date do
 
   """
   @spec new(Calendar.year, Calendar.month, Calendar.day) :: {:ok, t} | {:error, atom}
-  def new(year, month, day) do
-    Calendar.ISO.date(year, month, day)
+  def new(year, month, day, calendar \\ Calendar.ISO) do
+    calendar.date(year, month, day)
   end
 
   @doc """
@@ -1408,12 +1418,12 @@ defmodule DateTime do
   When a Unix time before that moment is passed to `from_unix/2`, `:error` will be returned.
   """
   @spec from_unix(integer, :native | System.time_unit) :: {:ok, DateTime.t} | {:error, atom}
-  def from_unix(integer, unit \\ :second) when is_integer(integer) do
-    case Calendar.ISO.from_unix(integer, unit) do
+  def from_unix(integer, unit \\ :second, calendar \\ Calendar.ISO) when is_integer(integer) do
+    case calendar.from_unix(integer, unit) do
       {:ok, {year, month, day}, {hour, minute, second}, microsecond} ->
         {:ok, %DateTime{year: year, month: month, day: day,
                         hour: hour, minute: minute, second: second, microsecond: microsecond,
-                        std_offset: 0, utc_offset: 0, zone_abbr: "UTC", time_zone: "Etc/UTC"}}
+                        std_offset: 0, utc_offset: 0, zone_abbr: "UTC", time_zone: "Etc/UTC", calendar: calendar}}
       {:error, _} = error ->
         error
     end
@@ -1539,14 +1549,10 @@ defmodule DateTime do
   @spec to_unix(DateTime.t, System.time_unit) :: non_neg_integer
   def to_unix(datetime, unit \\ :second)
 
-  def to_unix(%DateTime{calendar: Calendar.ISO, std_offset: std_offset, utc_offset: utc_offset,
-                        hour: hour, minute: minute, second: second, microsecond: {microsecond, _},
+  def to_unix(%DateTime{calendar: calendar, std_offset: std_offset, utc_offset: utc_offset,
+                        hour: hour, minute: minute, second: second, microsecond: {microsecond, precision},
                         year: year, month: month, day: day}, unit) when year >= 0 do
-    seconds =
-      :calendar.datetime_to_gregorian_seconds({{year, month, day}, {hour, minute, second}})
-      |> Kernel.-(utc_offset)
-      |> Kernel.-(std_offset)
-    System.convert_time_unit((seconds - @unix_epoch) * 1_000_000 + microsecond, :microsecond, unit)
+    calendar.to_unix({year, month, day}, {hour, minute, second}, {microsecond, precision}, std_offset, utc_offset, unit)
   end
 
   @doc """

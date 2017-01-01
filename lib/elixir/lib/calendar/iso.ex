@@ -173,6 +173,15 @@ defmodule Calendar.ISO do
     end
   end
 
+  @doc false
+  def to_unix({year, month, day}, {hour, minute, second}, {microsecond, _precision}, std_offset, utc_offset, unit) do
+    seconds =
+      :calendar.datetime_to_gregorian_seconds({{year, month, day}, {hour, minute, second}})
+      |> Kernel.-(utc_offset)
+      |> Kernel.-(std_offset)
+    System.convert_time_unit((seconds - @unix_epoch) * 1_000_000 + microsecond, :microsecond, unit)
+  end
+
   defp precision_for_unit(unit) do
     subsecond = div System.convert_time_unit(1, :second, unit), 10
     precision_for_unit(subsecond, 0)
