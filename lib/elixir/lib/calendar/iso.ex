@@ -11,10 +11,163 @@ defmodule Calendar.ISO do
 
   @behaviour Calendar
   @unix_epoch :calendar.datetime_to_gregorian_seconds {{1970, 1, 1}, {0, 0, 0}}
+  @gregorian_epoch 1
 
   @type year  :: 0..9999
   @type month :: 1..12
   @type day   :: 1..31
+
+  import Integer, only: [floor_div: 2]
+
+  @doc """
+  Returns the start of the epoch for the ISO calendar which is
+  the elapsed number of days since January 1st, Year 1 in the
+  proleptic Gregorian calendar.
+  """
+  @spec epoch :: 1
+  def epoch do
+    @gregorian_epoch
+  end
+
+  @doc """
+  Returns the ordinal `integer date` of the specified date.
+
+  To enable conversion between dates in different calendars a standard integer
+  date is defined that normalizes the differences.
+
+  ## Examples
+
+      iex> Calendar.ISO.to_integer_date(~D[0001-01-01])
+      1
+      iex> Calendar.ISO.to_integer_date(~D[2000-01-01])
+      730120
+      iex> Calendar.ISO.to_integer_date(~D[2016-09-18])
+      736225
+  """
+  @spec to_integer_date(Calendar.Date | Calendar.DateTime | Calendar.NaiveDateTime | year, month, day) :: integer
+  def to_integer_date(%{calendar: _calendar, year: year, month: month, day: day}) do
+    to_integer_date(year, month, day)
+  end
+
+  def to_integer_date(year, month, day) do
+    # Baseline to epoch.  This will be zero for a Gregorian calendar
+    (epoch() - 1) +
+
+    # Normal year arithmetic with 365 days in a year
+    (365 * (year - 1)) +
+
+    # Adjust for leap years.
+    floor_div(year - 1, 4) - floor_div(year - 1, 100) + floor_div(year - 1, 400) +
+
+    # At this point we have the number of days from the start of the epoch
+    # for the given number of years.  Now calculate add the days held by the
+    # month
+    floor_div((367 * month) - 362, 12) +
+
+    # And ajust by zero, minus one or -minus two days depending on whether
+    # leap_year? and if month is January or later (since February is either 28
+    # or 29 days)
+    integer_date_adjust_for_leap_year(year, month, day) +
+
+    # And then the day of the month is added
+    day
+  end
+
+  @doc """
+  Returns a `date` converted from an integer date.
+
+  ## Examples
+
+      iex> Calendar.ISO.from_integer_date(1)
+      ~D[0001-01-01]
+      iex> Calendar.ISO.from_integer_date(736328)
+      ~D[2016-12-30]
+  """
+  def from_integer_date(date) when is_integer(date) do
+    year        = year_from_integer_date(date)
+    prior_days  = date - to_integer_date(year, 1, 1)
+    correction  = date_adjust_for_leap_year(date, year)
+    month       = floor_div((12 * (prior_days + correction)) + 373, 367)
+    day         = 1 + date - to_integer_date(year, month, 1)
+
+    {:ok, date} = date(year, month, day)
+    date
+  end
+
+  @doc """
+  Returns the start of the epoch for the ISO calendar which is
+  the elapsed number of days since January 1st, Year 1 in the
+  proleptic Gregorian calendar.
+  """
+  @spec epoch :: 1
+  def epoch do
+    @gregorian_epoch
+  end
+
+  @doc """
+  Returns the ordinal `integer date` of the specified date.
+
+  To enable conversion between dates in different calendars a standard integer
+  date is defined that normalizes the differences.
+
+  ## Examples
+
+      iex> Calendar.ISO.to_integer_date(~D[0001-01-01])
+      1
+      iex> Calendar.ISO.to_integer_date(~D[2000-01-01])
+      730120
+      iex> Calendar.ISO.to_integer_date(~D[2016-09-18])
+      736225
+  """
+  @spec to_integer_date(Calendar.Date | Calendar.DateTime | Calendar.NaiveDateTime | year, month, day) :: integer
+  def to_integer_date(%{calendar: _calendar, year: year, month: month, day: day}) do
+    to_integer_date(year, month, day)
+  end
+
+  def to_integer_date(year, month, day) do
+    # Baseline to epoch.  This will be zero for a Gregorian calendar
+    (epoch() - 1) +
+
+    # Normal year arithmetic with 365 days in a year
+    (365 * (year - 1)) +
+
+    # Adjust for leap years.
+    floor_div(year - 1, 4) - floor_div(year - 1, 100) + floor_div(year - 1, 400) +
+
+    # At this point we have the number of days from the start of the epoch
+    # for the given number of years.  Now calculate add the days held by the
+    # month
+    floor_div((367 * month) - 362, 12) +
+
+    # And ajust by zero, minus one or -minus two days depending on whether
+    # leap_year? and if month is January or later (since February is either 28
+    # or 29 days)
+    integer_date_adjust_for_leap_year(year, month, day) +
+
+    # And then the day of the month is added
+    day
+  end
+
+  @doc """
+  Returns a `date` converted from an integer date.
+
+  ## Examples
+
+      iex> Calendar.ISO.from_integer_date(1)
+      ~D[0001-01-01]
+      iex> Calendar.ISO.from_integer_date(736328)
+      ~D[2016-12-30]
+  """
+  def from_integer_date(date) when is_integer(date) do
+    year        = year_from_integer_date(date)
+    prior_days  = date - to_integer_date(year, 1, 1)
+    correction  = date_adjust_for_leap_year(date, year)
+    month       = floor_div((12 * (prior_days + correction)) + 373, 367)
+    day         = 1 + date - to_integer_date(year, month, 1)
+
+    {:ok, date} = date(year, month, day)
+    date
+  end
 
   @doc """
   Returns how many days there are in the given year-month.
@@ -85,6 +238,7 @@ defmodule Calendar.ISO do
       6
       iex> Calendar.ISO.day_of_week(2016, 11, 06)
       7
+
   """
   @spec day_of_week(year, month, day) :: 1..7
   def day_of_week(year, month, day)
@@ -107,7 +261,7 @@ defmodule Calendar.ISO do
   end
 
   @doc """
-  Convers the datetime (with time zone) into a string.
+  Converts the datetime (with time zone) into a string.
   """
   def datetime_to_string(year, month, day, hour, minute, second, microsecond,
                          time_zone, zone_abbr, utc_offset, std_offset) do
@@ -250,5 +404,39 @@ defmodule Calendar.ISO do
     else
       _ -> :error
     end
+  end
+
+  defp integer_date_adjust_for_leap_year(year, month, _day) do
+    cond do
+      month <= 2       ->  0
+      leap_year?(year) -> -1
+      true             -> -2
+    end
+  end
+
+  defp year_from_integer_date(date) when is_integer(date) do
+    d0   = date - epoch()
+    {n400, d1} = div_mod(d0, 146_097)
+    {n100, d2} = div_mod(d1, 36_524)
+    {n4, d3}   = div_mod(d2, 1_461)
+    n1         = div(d3, 365)
+
+    year = (400 * n400) + (100 * n100) + (4 * n4) + n1
+    if (n100 == 4) or (n1 == 4), do: year, else: year + 1
+  end
+
+  defp date_adjust_for_leap_year(date, year) do
+    {:ok, march_first} = date(year, 3, 1)
+    cond do
+      date < to_integer_date(march_first) -> 0
+      leap_year?(year) -> 1
+      true             -> 2
+    end
+  end
+
+  def div_mod(x, y) when is_integer(x) and is_integer(y) do
+    div = div(x, y)
+    mod = x - (div * y)
+    {div, mod}
   end
 end
