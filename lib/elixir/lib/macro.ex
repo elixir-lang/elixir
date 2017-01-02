@@ -840,8 +840,10 @@ defmodule Macro do
     do: "(" <> module_to_string(arg, fun) <> ")."
   defp call_to_string({:., _, [arg]}, fun),
     do: module_to_string(arg, fun) <> "."
+  defp call_to_string({:., _, [left, right]}, fun) when is_atom(right),
+    do: module_to_string(left, fun) <> "." <> call_to_string_for_atom(right)
   defp call_to_string({:., _, [left, right]}, fun),
-    do: module_to_string(left, fun) <> "." <> if(is_atom(right), do: call_to_string_for_atom(right), else: call_to_string(right, fun))
+    do: module_to_string(left, fun) <> "." <> call_to_string(right, fun)
   defp call_to_string(other, fun),
     do: to_string(other, fun)
 
