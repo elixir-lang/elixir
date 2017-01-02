@@ -3,21 +3,18 @@ Code.require_file "../test_helper.exs", __DIR__
 defmodule TestServer do
   use GenServer
 
-  def handle_call(:puts_to_stdout, from, nil) do
+  def handle_call(:puts_to_stdout, _from, nil) do
     IO.puts "from stdout"
-    GenServer.reply from, :ok
-    {:noreply, nil}
+    {:reply, :ok, nil}
   end
 
-  def handle_call(:puts_to_stderr, from, nil) do
+  def handle_call(:puts_to_stderr, _from, nil) do
     IO.puts :stderr, "from stderr"
-    GenServer.reply from, :ok
-    {:noreply, nil}
+    {:reply, :ok, nil}
   end
 
-  def handle_call(:get_line, from, nil) do
-    GenServer.reply from, {:ok, :io.get_line(">")}
-    {:noreply, nil}
+  def handle_call(:get_line, _from, nil) do
+    {:reply, {:ok, :io.get_line(">")}, nil}
   end
 end
 
