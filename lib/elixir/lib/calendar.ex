@@ -87,7 +87,7 @@ defmodule Calendar do
   @doc """
   for converting date time to it's equivalant unix epoch
   """
-  @callback to_unix({year, month, day}, {hour, minute, second}, {microsecond, Integer.t}) :: {:ok, Integer.t} | {:error, atom}
+  @callback to_unix({year, month, day}, {hour, minute, second}, {microsecond, Integer.t}, Calendar.utc_offset, Calendar.std_offset, atom) :: {:ok, Integer.t} | {:error, atom}
 
   @doc """
   Calculates the day of the week from the given `year`, `month`, and `day`.
@@ -183,6 +183,20 @@ defmodule Date do
   @spec leap_year?(Calendar.date) :: boolean()
   def leap_year?(%{calendar: calendar, year: year}) do
     calendar.leap_year?(year)
+  end
+
+  @doc """
+  Returns a new date based on `dst_calendar` chronology
+
+  ## Parameters
+    - arg1: a Date struct
+    - dst_calendar: destination calendar to convert date to
+  """
+  @spec convert(Date.t, Calendar.calendar) :: Date.t
+  def convert(%Date{calendar: org_calendar, year: year, month: month, day: day}, dst_calendar) do
+     {:ok, date} = org_calendar.to_unix({year, month, day}, {0, 0, 0}, {0, 0}, 0, 0, :millisecond)
+     {:ok, {year, month, day}, _, _} = dst_calendar.from_unix(date, :millisecond)
+     %Date{calendar: dst_calendar, year: year, month: month, day: day}
   end
 
   @doc """
@@ -1288,6 +1302,22 @@ defmodule NaiveDateTime do
     end
   end
 
+  @doc """
+  Returns a new DateTime based on `dst_calendar` chronology
+
+  ## Parameters
+    - arg1: a DateTime struct
+    - dst_calendar: destination calendar to convert DateTime to
+  """
+  @spec convert(NaiveDateTime.t, Calendar.calendar) :: NaiveDateTime.t
+  def convert(%NaiveDateTime{calendar: org_calendar, year: year, month: month, day: day,
+                  hour: hour, minute: minute, second: second, microsecond: {microsecond, precision}}, dst_calendar) do
+     {:ok, date} = org_calendar.to_unix({year, month, day}, {hour, minute, second}, {microsecond, precision}, 0, 0, :microsecond)
+     {:ok, {year, month, day}, {hour, minute, second}, {microsecond, precision}} = dst_calendar.from_unix(date, :microsecond)
+     %NaiveDateTime{calendar: dst_calendar, year: year, month: month, day: day,
+                     hour: hour, minute: minute, second: second, microsecond: {microsecond, precision}}
+  end
+
   ## Helpers
 
   defp to_microsecond(%{calendar: Calendar.ISO, year: year, month: month, day: day,
@@ -1803,5 +1833,23 @@ defmodule DateTime do
       {first, second} when first < second -> :lt
       _ -> :eq
     end
+  end
+
+  @doc """
+  Returns a new DateTime based on `dst_calendar` chronology
+
+  ## Parameters
+    - arg1: a DateTime struct
+    - dst_calendar: destination calendar to convert DateTime to
+  """
+  @spec convert(DateTime.t, Calendar.calendar) :: DateTime.t
+  def convert(%DateTime{calendar: org_calendar, year: year, month: month, day: day,
+                  hour: hour, minute: minute, second: second, microsecond: {microsecond, precision},
+                  time_zone: time_zone, zone_abbr: zone_abbr, utc_offset: utc_offset, std_offset: std_offset}, dst_calendar) do
+     {:ok, date} = org_calendar.to_unix({year, month, day}, {hour, minute, second}, {microsecond, precision}, std_offset, utc_offset, :microsecond)
+     {:ok, {year, month, day}, {hour, minute, second}, {microsecond, precision}} = dst_calendar.from_unix(date, :microsecond)
+     %DateTime{calendar: dst_calendar, year: year, month: month, day: day,
+                     hour: hour, minute: minute, second: second, microsecond: {microsecond, precision},
+                     time_zone: time_zone, zone_abbr: zone_abbr, utc_offset: utc_offset, std_offset: std_offset}
   end
 end
