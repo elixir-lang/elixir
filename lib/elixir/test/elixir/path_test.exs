@@ -71,6 +71,7 @@ defmodule PathTest do
       assert Path.relative("usr/local/bin")    == "usr/local/bin"
       assert Path.relative("../usr/local/bin") == "../usr/local/bin"
       assert Path.relative("/") == "."
+      assert Path.relative('/') == "."
       assert Path.relative(['/usr', ?/, "local/bin"]) == "usr/local/bin"
     end
 

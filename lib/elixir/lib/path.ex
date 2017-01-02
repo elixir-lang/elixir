@@ -238,6 +238,8 @@ defmodule Path do
     {:absolute, "."}
   defp unix_pathtype(<<?/, relative::binary>>), do:
     {:absolute, relative}
+  defp unix_pathtype([?/]), do:
+    {:absolute, '.'}
   defp unix_pathtype([?/ | relative]), do:
     {:absolute, relative}
   defp unix_pathtype([list | rest]) when is_list(list), do:
