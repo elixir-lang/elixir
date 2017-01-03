@@ -234,18 +234,16 @@ defmodule Path do
     end
   end
 
-  defp unix_pathtype(<<?/>>), do:
-    {:absolute, "."}
-  defp unix_pathtype(<<?/, relative::binary>>), do:
-    {:absolute, relative}
-  defp unix_pathtype([?/]), do:
-    {:absolute, '.'}
-  defp unix_pathtype([?/ | relative]), do:
-    {:absolute, relative}
-  defp unix_pathtype([list | rest]) when is_list(list), do:
-    unix_pathtype(list ++ rest)
-  defp unix_pathtype(relative), do:
-    {:relative, relative}
+  defp unix_pathtype(path) when path in ["/", '/'],
+    do: {:absolute, "."}
+  defp unix_pathtype(<<?/, relative::binary>>),
+    do: {:absolute, relative}
+  defp unix_pathtype([?/ | relative]),
+    do: {:absolute, relative}
+  defp unix_pathtype([list | rest]) when is_list(list),
+    do: unix_pathtype(list ++ rest)
+  defp unix_pathtype(relative),
+    do: {:relative, relative}
 
   @slash [?/, ?\\]
 
