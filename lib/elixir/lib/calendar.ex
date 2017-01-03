@@ -113,7 +113,7 @@ defmodule Calendar do
   @doc """
   Checks if a date valid in specified calendar
   """
-  @callback is_valid_date(year, month day) :: boolean
+  @callback is_valid_date(year, month, day) :: boolean
 end
 
 defmodule Date do
