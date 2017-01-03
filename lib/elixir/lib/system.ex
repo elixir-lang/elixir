@@ -346,10 +346,10 @@ defmodule System do
   end
 
   @doc """
-  System environment variables.
+  Returns all system environment variables.
 
-  Returns a list of all environment variables. Each variable is given as a
-  `{name, value}` tuple where both `name` and `value` are strings.
+  The returned value is a map containing name-value pairs.
+  Variable names and their values are strings.
   """
   @spec get_env() :: %{optional(String.t) => String.t}
   def get_env do
@@ -361,10 +361,10 @@ defmodule System do
   end
 
   @doc """
-  Environment variable value.
+  Returns the value of the given environment variable.
 
-  Returns the value of the environment variable
-  `varname` as a binary, or `nil` if the environment
+  The returned value of the environment variable
+  `varname` is a string, or `nil` if the environment
   variable is undefined.
   """
   @spec get_env(binary) :: binary | nil
