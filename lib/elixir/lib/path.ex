@@ -247,31 +247,31 @@ defmodule Path do
 
   @slash [?/, ?\\]
 
-  defp win32_pathtype([list | rest]) when is_list(list), do:
-    win32_pathtype(list ++ rest)
-  defp win32_pathtype([char, list | rest]) when is_list(list), do:
-    win32_pathtype([char | list ++ rest])
-  defp win32_pathtype(<<c1, c2, relative::binary>>) when c1 in @slash and c2 in @slash, do:
-    {:absolute, relative}
-  defp win32_pathtype(<<c, relative::binary>>) when c in @slash, do:
-    {:volumerelative, relative}
-  defp win32_pathtype(<<_letter, ?:, c, relative::binary>>) when c in @slash, do:
-    {:absolute, relative}
-  defp win32_pathtype(<<_letter, ?:, relative::binary>>), do:
-    {:volumerelative, relative}
+  defp win32_pathtype([list | rest]) when is_list(list),
+    do: win32_pathtype(list ++ rest)
+  defp win32_pathtype([char, list | rest]) when is_list(list),
+    do: win32_pathtype([char | list ++ rest])
+  defp win32_pathtype(<<c1, c2, relative::binary>>) when c1 in @slash and c2 in @slash,
+    do: {:absolute, relative}
+  defp win32_pathtype(<<char, relative::binary>>) when char in @slash,
+    do: {:volumerelative, relative}
+  defp win32_pathtype(<<_letter, ?:, char, relative::binary>>) when char in @slash,
+    do: {:absolute, relative}
+  defp win32_pathtype(<<_letter, ?:, relative::binary>>),
+    do: {:volumerelative, relative}
 
-  defp win32_pathtype([c1, c2 | relative]) when c1 in @slash and c2 in @slash, do:
-    {:absolute, relative}
-  defp win32_pathtype([c | relative]) when c in @slash, do:
-    {:volumerelative, relative}
-  defp win32_pathtype([c1, c2, list | rest]) when is_list(list), do:
-    win32_pathtype([c1, c2 | list ++ rest])
-  defp win32_pathtype([_letter, ?:, c | relative]) when c in @slash, do:
-    {:absolute, relative}
-  defp win32_pathtype([_letter, ?: | relative]), do:
-    {:volumerelative, relative}
-  defp win32_pathtype(relative), do:
-    {:relative, relative}
+  defp win32_pathtype([c1, c2 | relative]) when c1 in @slash and c2 in @slash,
+    do: {:absolute, relative}
+  defp win32_pathtype([char | relative]) when char in @slash,
+    do: {:volumerelative, relative}
+  defp win32_pathtype([c1, c2, list | rest]) when is_list(list),
+    do: win32_pathtype([c1, c2 | list ++ rest])
+  defp win32_pathtype([_letter, ?:, char | relative]) when char in @slash,
+    do: {:absolute, relative}
+  defp win32_pathtype([_letter, ?: | relative]),
+    do: {:volumerelative, relative}
+  defp win32_pathtype(relative),
+    do: {:relative, relative}
 
   @doc """
   Returns the given `path` relative to the given `from` path.
