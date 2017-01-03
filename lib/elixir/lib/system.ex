@@ -369,9 +369,39 @@ defmodule System do
   """
   @spec get_env(binary) :: binary | nil
   def get_env(varname) when is_binary(varname) do
+    case fetch_env(varname) do
+      :error -> nil
+      {:ok, value} -> value
+    end
+  end
+
+  @doc """
+  Environment variable value.
+
+  Returns the value of the environment variable
+  `varname` as a binary, or :error if the environment
+  variable is undefined.
+  """
+  @spec fetch_env(binary) :: {:ok, binary} | :error
+  def fetch_env(varname) when is_binary(varname) do
     case :os.getenv(String.to_charlist(varname)) do
-      false -> nil
-      other -> List.to_string(other)
+      false -> :error
+      other -> {:ok, List.to_string(other)}
+    end
+  end
+
+  @doc """
+  Environment variable value.
+
+  Returns the value of the environment variable
+  `varname` as a binary, or raise an error if the environment
+  variable is undefined.
+  """
+  @spec fetch_env!(binary) :: binary | no_return
+  def fetch_env!(varname) when is_binary(varname) do
+    case fetch_env(varname) do
+      :error -> raise RuntimeError, message: "no environment variable with the name " <> varname <> " exists"
+      {:ok, value} -> value
     end
   end
 
