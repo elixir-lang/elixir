@@ -1742,7 +1742,7 @@ defmodule DateTime do
          {min, ""} <- Integer.parse(min),
          {sec, ""} <- Integer.parse(sec),
          {microsec, rest} <- Calendar.ISO.parse_microsecond(rest),
-         {:ok, date} <- Calendar.ISO.date(year, month, day),
+         {:ok, date} <- Date.new(year, month, day),
          {:ok, time} <- Time.new(hour, min, sec, microsec),
          {:ok, offset} <- parse_offset(rest) do
       %{year: year, month: month, day: day} = date
