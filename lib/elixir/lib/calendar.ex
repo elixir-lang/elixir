@@ -80,16 +80,6 @@ defmodule Calendar do
   @callback leap_year?(year) :: boolean
 
   @doc """
-  for converting a unix epoch to it's equivalant destination calendar datetime
-  """
-  @callback from_unix(Integer.t, atom) :: {:ok, {year, month, day}, {hour, minute, second}, {microsecond, Integer.t}}
-
-  @doc """
-  for converting date time to it's equivalant unix epoch
-  """
-  @callback to_unix({year, month, day}, {hour, minute, second}, {microsecond, Integer.t}, Calendar.utc_offset, Calendar.std_offset, atom) :: {:ok, Integer.t} | {:error, atom}
-
-  @doc """
   Calculates the day of the week from the given `year`, `month`, and `day`.
   """
   @callback day_of_week(year, month, day) :: non_neg_integer()
@@ -109,6 +99,21 @@ defmodule Calendar do
   """
   @callback datetime_to_string(year, month, day, hour, minute, second, microsecond,
                                time_zone, zone_abbr, utc_offset, std_offset) :: String.t
+
+  @doc """
+  for converting a unix epoch to it's equivalant destination calendar datetime
+  """
+  @callback from_unix(Integer.t, atom) :: {:ok, {year, month, day}, {hour, minute, second}, {microsecond, Integer.t}}
+
+  @doc """
+  for converting date time to it's equivalant unix epoch
+  """
+  @callback to_unix({year, month, day}, {hour, minute, second}, {microsecond, Integer.t}, Calendar.utc_offset, Calendar.std_offset, atom) :: {:ok, Integer.t} | {:error, atom}
+
+  @doc """
+  Checks if a date valid in specified calendar
+  """
+  @callback is_valid_date(year, month day) :: boolean
 end
 
 defmodule Date do
@@ -240,7 +245,11 @@ defmodule Date do
   """
   @spec new(Calendar.year, Calendar.month, Calendar.day) :: {:ok, t} | {:error, atom}
   def new(year, month, day, calendar \\ Calendar.ISO) do
-    calendar.date(year, month, day)
+    if calendar.is_valid_date(year, month, day) do
+      {:ok, %Date{year: year, month: month, day: day}}
+    else
+      {:error, :invalid_date}
+    end
   end
 
   @doc """
@@ -905,8 +914,8 @@ defmodule NaiveDateTime do
   @spec new(Calendar.year, Calendar.month, Calendar.day,
             Calendar.hour, Calendar.minute, Calendar.second, Calendar.microsecond) ::
         {:ok, t} | {:error, atom}
-  def new(year, month, day, hour, minute, second, microsecond \\ {0, 0}) do
-    with {:ok, date} <- Calendar.ISO.date(year, month, day),
+  def new(year, month, day, hour, minute, second, microsecond \\ {0, 0}, calendar \\ Calendar.ISO) do
+    with {:ok, date} <- Date.new(year, month, day, calendar),
          {:ok, time} <- Time.new(hour, minute, second, microsecond),
          do: new(date, time)
   end

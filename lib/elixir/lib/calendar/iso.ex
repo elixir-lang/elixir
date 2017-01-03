@@ -151,13 +151,9 @@ defmodule Calendar.ISO do
     zero_pad(hour, 2) <> ":" <> zero_pad(minute, 2) <> ":" <> zero_pad(second, 2)
   end
 
-  @doc false
-  def date(year, month, day) when is_integer(year) and is_integer(month) and is_integer(day) do
-    if :calendar.valid_date(year, month, day) and year <= 9999 do
-      {:ok, %Date{year: year, month: month, day: day}}
-    else
-      {:error, :invalid_date}
-    end
+  @doc "Checks if an ISO date is valid or not"
+  def is_valid_date(year, month, day) do
+    :calendar.valid_date(year, month, day) and year <= 9999
   end
 
   @doc false
