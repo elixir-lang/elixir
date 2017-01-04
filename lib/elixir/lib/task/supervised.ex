@@ -149,9 +149,11 @@ defmodule Task.Supervised do
     parent = self()
 
     # Start a process responsible for translating down messages.
-    {:trap_exit, trap_exit} = Process.info(self(), :trap_exit)
-    monitor_pid = spawn_link(fn -> stream_monitor(parent, mfa, spawn, trap_exit) end)
-    monitor_ref = Process.monitor(monitor_pid)
+    {:trap_exit, trap_exit} =
+      Process.info(self(), :trap_exit)
+    {monitor_pid, monitor_ref} =
+      Process.spawn(fn -> stream_monitor(parent, mfa, spawn, trap_exit) end, [:link, :monitor])
+
     send(monitor_pid, {parent, monitor_ref})
 
     stream_reduce(acc, max_concurrency, 0, 0, %{}, next,
@@ -160,8 +162,8 @@ defmodule Task.Supervised do
 
   defp stream_reduce({:halt, acc}, _max, _spawned, _delivered, _waiting, next,
                      _reducer, monitor_pid, monitor_ref, timeout) do
-    is_function(next) && next.({:halt, []})
     stream_close(monitor_pid, monitor_ref, timeout)
+    is_function(next) && next.({:halt, []})
     {:halted, acc}
   end
 
@@ -269,11 +271,12 @@ defmodule Task.Supervised do
     send(monitor_pid, {:stop, monitor_ref})
     receive do
       {:DOWN, ^monitor_ref, _, _, :normal} ->
+        stream_cleanup_inbox(monitor_pid, monitor_ref)
         :ok
       {:DOWN, ^monitor_ref, _, _, reason} ->
+        stream_cleanup_inbox(monitor_pid, monitor_ref)
         exit({reason, {__MODULE__, :stream, [timeout]}})
     end
-    stream_cleanup_inbox(monitor_pid, monitor_ref)
   end
 
   defp stream_cleanup_inbox(monitor_pid, monitor_ref) do
