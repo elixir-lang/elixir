@@ -492,6 +492,7 @@ defmodule TaskTest do
         Process.flag(:trap_exit, true)
         assert 1..4 |> Task.async_stream(&exit/1, @opts) |> Enum.to_list ==
                [exit: 1, exit: 2, exit: 3, exit: 4]
+        refute_received {:EXIT, _, _}
       end
 
       test "shuts down unused tasks" do

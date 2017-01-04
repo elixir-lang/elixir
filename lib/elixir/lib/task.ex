@@ -287,8 +287,10 @@ defmodule Task do
   concurrently on each item in `enumerable`.
 
   Each item will be appended to the given `args` and processed by its
-  own task. The tasks will be linked to the current process similarly to
-  `async/3`.
+  own task. The tasks will be linked to an intermediate process that is
+  then linked to the current process. This means a failure in a task
+  terminates the current process and a failure in the current process
+  terminates all tasks.
 
   When streamed, each task will emit `{:ok, val}` upon successful
   completion or `{:exit, val}` if the caller is trapping exits. Results
