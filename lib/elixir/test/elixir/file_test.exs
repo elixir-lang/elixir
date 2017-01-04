@@ -1310,6 +1310,18 @@ defmodule FileTest do
     assert stream.line_or_bytes == 10
   end
 
+  test "stream count" do
+    src = fixture_path("file.txt")
+    stream = File.stream!(src)
+    assert Enum.count(stream) == 1
+
+    stream = File.stream!(src, [:utf8])
+    assert Enum.count(stream) == 1
+
+    stream = File.stream!(src, [], 2)
+    assert Enum.count(stream) == 2
+  end
+
   test "stream line UTF-8" do
     src  = fixture_path("file.txt")
     dest = tmp_path("tmp_test.txt")
