@@ -335,8 +335,8 @@ defmodule Task.Supervised do
         counters = Map.put(counters, ref, {counter, type, pid})
         stream_monitor(parent_pid, parent_ref, mfa, spawn, monitor_ref, counters)
       {:stop, ^monitor_ref} ->
+        Process.flag(:trap_exit, true)
         for {ref, {_counter, _, pid}} <- counters do
-          Process.unlink(pid)
           Process.exit(pid, :kill)
           receive do
             {:DOWN, ^ref, _, _, _} -> :ok
