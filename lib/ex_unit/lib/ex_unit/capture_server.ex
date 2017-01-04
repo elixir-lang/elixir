@@ -24,11 +24,20 @@ defmodule ExUnit.CaptureServer do
     GenServer.call(__MODULE__, {:log_capture_off, ref}, @timeout)
   end
 
+  def process_capture_on(pid) do
+    GenServer.call(__MODULE__, {:process_capture_on, pid}, @timeout)
+  end
+
+  def process_capture_off(pid) do
+    GenServer.call(__MODULE__, {:process_capture_off, pid}, @timeout)
+  end
+
   ## Callbacks
 
   def init(:ok) do
     {:ok, %{
       devices: {%{}, %{}},
+      processes: {%{}, %{}},
       log_captures: %{},
       log_status: nil
     }}
@@ -72,9 +81,27 @@ defmodule ExUnit.CaptureServer do
     {:reply, :ok, config}
   end
 
+  def handle_call({:process_capture_on, pid}, _from, config) do
+    {pids, refs} = config.processes
+    if Map.has_key?(pids, pid) do
+      {:reply, {:error, :already_captured}, config}
+    else
+      ref = Process.monitor(pid)
+      refs = Map.put(refs, ref, pid)
+      pids = Map.put(pids, pid, true)
+      {:reply, {:ok, ref}, %{config | processes: {pids, refs}}}
+    end
+  end
+
+  def handle_call({:process_capture_off, ref}, _from, config) do
+    config = remove_process_capture(ref, config)
+    {:reply, :ok, config}
+  end
+
   def handle_info({:DOWN, ref, _, _, _}, config) do
     config = remove_log_capture(ref, config)
     config = release_device(ref, config)
+    config = remove_process_capture(ref, config)
     {:noreply, config}
   end
 
@@ -98,6 +125,16 @@ defmodule ExUnit.CaptureServer do
         end
         %{config | devices: {names, refs}}
       {nil, _refs} -> config
+    end
+  end
+
+  defp remove_process_capture(ref, %{processes: {pids, refs}} = config) do
+    case Map.pop(refs, ref) do
+      {nil, _refs} -> config
+      {pid, refs} ->
+        pids = Map.delete(pids, pid)
+        Process.demonitor(ref, [:flush])
+        %{config | processes: {pids, refs}}
     end
   end
 

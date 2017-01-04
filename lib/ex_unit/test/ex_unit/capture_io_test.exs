@@ -115,6 +115,14 @@ defmodule ExUnit.CaptureIOTest do
 
       assert_received {:result, "my input\n"}
     end
+
+    test "concurrent captures raise an error", context do
+      spawn(fn -> capture_io(context[:pid], fn -> Process.sleep(100) end) end)
+      Process.sleep(10)
+      assert_raise RuntimeError,
+        "The process with PID #{inspect context[:pid]} is already captured",
+        fn -> capture_io(context[:pid], fn -> nil end) end
+    end
   end
 
   test "with put chars" do

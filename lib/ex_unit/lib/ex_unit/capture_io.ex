@@ -82,7 +82,7 @@ defmodule ExUnit.CaptureIO do
 
   """
   def capture_io(fun) do
-    do_capture_io(self(), :standard_io, [], fun)
+    do_capture_io(:standard_io, [], fun)
   end
 
   def capture_io(pid, fun) when is_pid(pid) do
@@ -94,11 +94,11 @@ defmodule ExUnit.CaptureIO do
   end
 
   def capture_io(input, fun) when is_binary(input) do
-    do_capture_io(self(), :standard_io, [input: input], fun)
+    do_capture_io(:standard_io, [input: input], fun)
   end
 
   def capture_io(options, fun) when is_list(options) do
-    do_capture_io(self(), :standard_io, options, fun)
+    do_capture_io(:standard_io, options, fun)
   end
 
   def capture_io(pid, input, fun) when is_pid(pid) and is_binary(input) do
@@ -121,19 +121,17 @@ defmodule ExUnit.CaptureIO do
   defp map_dev(:stderr), do: :standard_error
   defp map_dev(other),   do: other
 
-  defp do_capture_io(pid, :standard_io, options, fun) do
+  defp do_capture_io(:standard_io, options, fun) do
     prompt_config = Keyword.get(options, :capture_prompt, true)
     input = Keyword.get(options, :input, "")
 
     original_gl = Process.group_leader()
     {:ok, capture_gl} = StringIO.open(input, capture_prompt: prompt_config)
     try do
-      Process.group_leader(pid, capture_gl)
+      Process.group_leader(self(), capture_gl)
       do_capture_io(capture_gl, fun)
     after
-      if Process.alive?(pid) do
-        Process.group_leader(pid, original_gl)
-      end
+      Process.group_leader(self(), original_gl)
     end
   end
 
@@ -153,6 +151,29 @@ defmodule ExUnit.CaptureIO do
       {:error, :already_captured} ->
         _ = StringIO.close(string_io)
         raise "IO device registered at #{inspect device} is already captured"
+    end
+  end
+
+  defp do_capture_io(pid, :standard_io, options, fun) do
+    prompt_config = Keyword.get(options, :capture_prompt, true)
+    input = Keyword.get(options, :input, "")
+
+    original_gl = Process.group_leader()
+    {:ok, capture_gl} = StringIO.open(input, capture_prompt: prompt_config)
+    case ExUnit.CaptureServer.process_capture_on(pid) do
+      {:ok, ref} ->
+        try do
+          Process.group_leader(pid, capture_gl)
+          do_capture_io(capture_gl, fun)
+        after
+          if Process.alive?(pid) do
+            Process.group_leader(pid, original_gl)
+          end
+          ExUnit.CaptureServer.process_capture_off(ref)
+        end
+      {:error, :already_captured} ->
+        _ = StringIO.close(capture_gl)
+        raise "The process with PID #{inspect pid} is already captured"
     end
   end
 
