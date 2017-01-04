@@ -367,7 +367,7 @@ defmodule System do
   `varname` is a string, or `nil` if the environment
   variable is undefined.
   """
-  @spec get_env(binary) :: binary | nil
+  @spec get_env(String.t) :: String.t | nil
   def get_env(varname) when is_binary(varname) do
     case :os.getenv(String.to_charlist(varname)) do
       false -> nil
