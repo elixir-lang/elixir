@@ -109,7 +109,7 @@ You can now also install archives from Hex in this way. Since they are fetched a
 
 It is also possible to install escripts and archives by providing a Git/GitHub repo. See `mix help escript.install` and `mix help archive.install` for more details.
 
-## v1.4.0-rc.1 (2016-12-05)
+## v1.4.0 (2017-01-05)
 
 ### 1. Enhancements
 
@@ -123,7 +123,7 @@ It is also possible to install escripts and archives by providing a Git/GitHub r
   * [Enum] Add `min/2`, `max/2`, `min_max/2`, `min_by/3`, `max_by/3`, and `min_max_by/3` that allow a function specifying the default value when the enumerable is empty
   * [Enum] Introduce `Enum.zip/1` to zip multiple entries at once
   * [Float] Introduce `Float.ratio/1` that returns a tuple with the numerator and denominator as integers to retrieve the given float
-  * [GenServer] Log error on default `handle_info/2` implementation
+  * [GenServer] Log warn on default `handle_info/2` implementation
   * [Inspect] Support syntax coloring via the `:syntax_color` option
   * [Integer] `Integer.digits/2` now accepts negative integers
   * [Integer] Add `Integer.mod/2` and `Integer.floor_div/2`
