@@ -69,6 +69,27 @@ defmodule ExUnit.CaptureIOTest do
     assert capture_io(fn -> nil end) == ""
   end
 
+  test "concurrent stdio captures" do
+    for i <- 0..3 do
+      wait = :rand.uniform(10)
+      test_pid = self()
+      spawn(fn ->
+        result = capture_io(fn ->
+          for _j <- 0..3 do
+            Process.sleep(wait)
+            IO.puts i
+          end
+        end)
+        send test_pid, {i, result}
+      end)
+    end
+
+    assert_receive {0, "0\n0\n0\n0\n"}
+    assert_receive {1, "1\n1\n1\n1\n"}
+    assert_receive {2, "2\n2\n2\n2\n"}
+    assert_receive {3, "3\n3\n3\n3\n"}
+  end
+
   describe "child processes" do
     setup do
       {:ok, pid} = GenServer.start_link(TestServer, nil)
