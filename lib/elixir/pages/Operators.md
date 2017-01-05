@@ -14,7 +14,7 @@ Operator                                                                        
 `*` `/`                                                                                  | Left to right
 `+` `-`                                                                                  | Left to right
 `++` `--` `..` `<>`                                                                      | Right to left
-`in`                                                                                     | Left to right
+`in` `not in`                                                                            | Left to right
 `\|>` `<<<` `>>>` `~>>` `<<~` `~>` `<~` `<~>` `<\|>`                                     | Left to right
 `<` `>` `<=` `>=`                                                                        | Left to right
 `==` `!=` `=~` `===` `!==`                                                               | Left to right

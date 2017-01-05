@@ -192,7 +192,7 @@ defmodule IEx.AutocompleteTest do
     eval("numeral = 3; number = 3; nothing = nil")
     assert expand('numb') == {:yes, 'er', []}
     assert expand('num') == {:yes, '', ['number', 'numeral']}
-    assert expand('no') == {:yes, '', ['nothing', 'node/0', 'node/1', 'not/1']}
+    assert expand('no') == {:yes, '', ['nothing', 'node/0', 'node/1', 'not/1', 'not in/2']}
   end
 
   test "completion of manually imported functions and macros" do

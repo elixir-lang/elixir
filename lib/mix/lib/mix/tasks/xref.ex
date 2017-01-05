@@ -200,7 +200,7 @@ defmodule Mix.Tasks.Xref do
         {Enum.sort(lines), :unknown_module, module, func, arity, nil}
       is_atom(exports) and not function_exported?(module, func, arity) ->
         {Enum.sort(lines), :unknown_function, module, func, arity, nil}
-      is_list(exports) and not {func, arity} in exports ->
+      is_list(exports) and {func, arity} not in exports ->
         {Enum.sort(lines), :unknown_function, module, func, arity, exports}
       true ->
         nil

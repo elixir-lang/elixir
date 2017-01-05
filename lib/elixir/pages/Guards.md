@@ -11,7 +11,7 @@ For reference, the following is a comprehensive list of all expressions allowed 
   * arithmetic binary operators (`+`, `-`, `*`, `/`)
   * arithmetic unary operators (`+`, `-`)
   * binary concatenation operator (`<>`)
-  * `in` operator (as long as the right-hand side is a list or a range)
+  * `in` and `not in` operators (as long as the right-hand side is a list or a range)
   * the following "type-check" functions (all documented in the `Kernel` module):
     * `is_atom/1`
     * `is_binary/1`

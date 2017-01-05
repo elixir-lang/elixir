@@ -6,7 +6,7 @@ Nonterminals
   unmatched_op_expr matched_op_expr no_parens_op_expr no_parens_many_expr
   comp_op_eol at_op_eol unary_op_eol and_op_eol or_op_eol capture_op_eol
   add_op_eol mult_op_eol two_op_eol three_op_eol pipe_op_eol stab_op_eol
-  arrow_op_eol match_op_eol when_op_eol in_op_eol in_match_op_eol
+  arrow_op_eol match_op_eol when_op_eol in_op_eol not_in_op_eol in_match_op_eol
   type_op_eol rel_op_eol
   open_paren close_paren empty_paren eoe
   list list_args open_bracket close_bracket
@@ -34,7 +34,7 @@ Terminals
   fn 'end' aliases
   number char atom atom_safe atom_unsafe bin_string list_string sigil
   dot_call_op op_identifier
-  comp_op at_op unary_op and_op or_op arrow_op match_op in_op in_match_op
+  comp_op at_op unary_op and_op or_op arrow_op match_op in_op not_in_op in_match_op
   type_op dual_op add_op mult_op two_op three_op pipe_op stab_op when_op assoc_op
   capture_op rel_op
   'true' 'false' 'nil' 'do' eol ';' ',' '.'
@@ -65,6 +65,7 @@ Left     150 comp_op_eol.     %% ==, !=, =~, ===, !==
 Left     160 rel_op_eol.      %% <, >, <=, >=
 Left     170 arrow_op_eol.    %% |>, <<<, >>>, ~>>, <<~, ~>, <~, <~>, <|>
 Left     180 in_op_eol.       %% in
+Left     180 not_in_op_eol.   %% not in
 Left     190 three_op_eol.    %% ^^^
 Right    200 two_op_eol.      %% ++, --, .., <>
 Left     210 add_op_eol.      %% +, -
@@ -169,6 +170,7 @@ matched_op_expr -> three_op_eol matched_expr : {'$1', '$2'}.
 matched_op_expr -> and_op_eol matched_expr : {'$1', '$2'}.
 matched_op_expr -> or_op_eol matched_expr : {'$1', '$2'}.
 matched_op_expr -> in_op_eol matched_expr : {'$1', '$2'}.
+matched_op_expr -> not_in_op_eol matched_expr : {'$1', '$2'}.
 matched_op_expr -> in_match_op_eol matched_expr : {'$1', '$2'}.
 matched_op_expr -> type_op_eol matched_expr : {'$1', '$2'}.
 matched_op_expr -> when_op_eol matched_expr : {'$1', '$2'}.
@@ -187,6 +189,7 @@ unmatched_op_expr -> three_op_eol unmatched_expr : {'$1', '$2'}.
 unmatched_op_expr -> and_op_eol unmatched_expr : {'$1', '$2'}.
 unmatched_op_expr -> or_op_eol unmatched_expr : {'$1', '$2'}.
 unmatched_op_expr -> in_op_eol unmatched_expr : {'$1', '$2'}.
+unmatched_op_expr -> not_in_op_eol unmatched_expr : {'$1', '$2'}.
 unmatched_op_expr -> in_match_op_eol unmatched_expr : {'$1', '$2'}.
 unmatched_op_expr -> type_op_eol unmatched_expr : {'$1', '$2'}.
 unmatched_op_expr -> when_op_eol unmatched_expr : {'$1', '$2'}.
@@ -203,6 +206,7 @@ no_parens_op_expr -> three_op_eol no_parens_expr : {'$1', '$2'}.
 no_parens_op_expr -> and_op_eol no_parens_expr : {'$1', '$2'}.
 no_parens_op_expr -> or_op_eol no_parens_expr : {'$1', '$2'}.
 no_parens_op_expr -> in_op_eol no_parens_expr : {'$1', '$2'}.
+no_parens_op_expr -> not_in_op_eol no_parens_expr : {'$1', '$2'}.
 no_parens_op_expr -> in_match_op_eol no_parens_expr : {'$1', '$2'}.
 no_parens_op_expr -> type_op_eol no_parens_expr : {'$1', '$2'}.
 no_parens_op_expr -> when_op_eol no_parens_expr : {'$1', '$2'}.
@@ -392,6 +396,9 @@ or_op_eol -> or_op eol : '$1'.
 
 in_op_eol -> in_op : '$1'.
 in_op_eol -> in_op eol : '$1'.
+
+not_in_op_eol -> not_in_op : '$1'.
+not_in_op_eol -> not_in_op eol : '$1'.
 
 in_match_op_eol -> in_match_op : '$1'.
 in_match_op_eol -> in_match_op eol : '$1'.
@@ -619,7 +626,10 @@ meta_from_location({Line, Column, EndColumn})
 %% Operators
 
 build_op({_Kind, Location, 'in'}, {UOp, _, [Left]}, Right) when ?rearrange_uop(UOp) ->
+  %% TODO: Deprecate `not left in right` rearrangement
   {UOp, meta_from_location(Location), [{'in', meta_from_location(Location), [Left, Right]}]};
+build_op({_Kind, Location, 'not in'}, Left, Right) ->
+  {'not', meta_from_location(Location), [{'in', meta_from_location(Location), [Left, Right]}]};
 build_op({_Kind, Location, Op}, Left, Right) ->
   {Op, meta_from_location(Location), [Left, Right]}.
 

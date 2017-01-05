@@ -64,7 +64,7 @@ defmodule Macro do
     :&&, :||, :<>, :++, :--, :\\, :::, :<-, :.., :|>, :=~,
     :<, :>, :->,
     :+, :-, :*, :/, :=, :|, :.,
-    :and, :or, :when, :in,
+    :and, :or, :when, :in, :"not in",
     :~>>, :<<~, :~>, :<~, :<~>, :<|>,
     :<<<, :>>>, :|||, :&&&, :^^^, :~~~]
 
@@ -690,6 +690,11 @@ defmodule Macro do
 
   def to_string({:&, _, [arg]} = ast, fun) when not is_integer(arg) do
     fun.(ast, "&(" <> to_string(arg, fun) <> ")")
+  end
+
+  # left not in right
+  def to_string({:not, _, [{:in, meta, args}]}, fun)  do
+    to_string({:"not in", meta, args}, fun)
   end
 
   # Unary ops

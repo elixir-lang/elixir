@@ -36,7 +36,7 @@ defmodule File.Stream do
 
   defimpl Collectable do
     def into(%{path: path, modes: modes, raw: raw} = stream) do
-      modes = for mode <- modes, not mode in [:read], do: mode
+      modes = for mode <- modes, mode not in [:read], do: mode
 
       case :file.open(path, [:write | modes]) do
         {:ok, device} ->
@@ -116,7 +116,7 @@ defmodule File.Stream do
     end
 
     defp read_modes(modes) do
-      for mode <- modes, not mode in [:write, :append], do: mode
+      for mode <- modes, mode not in [:write, :append], do: mode
     end
 
     defp count_lines(device, path, pattern, read, count) do
