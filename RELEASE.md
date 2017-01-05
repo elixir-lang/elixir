@@ -24,7 +24,9 @@ This document simply outlines the release process:
 
 10. Add the release to `elixir.csv` file in `elixir-lang/elixir-lang.github.com`
 
-11. After a new `vMAJOR.MINOR`, move back to master, bump versions, start new CHANGELOG, add `-dev` back and commit "Start vMAJOR.MINOR+1"
+11. Update Docs page in `elixir-lang/elixir-lang.github.com`. If a new `vMAJOR.MINOR`, create a section containing the links to each library documentation. If a `vMAJOR.MINOR.PATCH`, update the doc links in the corresponding section
+
+12. After a new `vMAJOR.MINOR`, move back to master, bump versions, start new CHANGELOG, add `-dev` back and commit "Start vMAJOR.MINOR+1"
 
 ## Places where version is mentioned
 
