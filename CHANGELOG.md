@@ -119,6 +119,7 @@ It is also possible to install escripts and archives by providing a Git/GitHub r
   * [Calendar] Support `NaiveDateTime.add/3` and `NaiveDateTime.diff/3` for adding seconds (up to microseconds) as well as the difference between two NaiveDateTimes in seconds (up to microseconds)
   * [Calendar] Add `Date.leap_year?/1` and `Date.day_of_week/1`
   * [Calendar] Ensure `Date`, `Time` and `NaiveDateTime` APIs work with any struct that provides the same set of fields as their respective struct. For example, a `NaiveDateTime` can be given to `Date` since it contains a superset of the fields in the `Date` struct
+  * [Calendar] Add `Time.utc_now/0` and `NaiveDateTime.utc_now/0`
   * [Enum] Add `Enum.map_every/2` that invokes the given function with every nth item
   * [Enum] Add `min/2`, `max/2`, `min_max/2`, `min_by/3`, `max_by/3`, and `min_max_by/3` that allow a function specifying the default value when the enumerable is empty
   * [Enum] Introduce `Enum.zip/1` to zip multiple entries at once
