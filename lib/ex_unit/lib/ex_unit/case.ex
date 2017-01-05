@@ -11,7 +11,7 @@ defmodule ExUnit.Case do
 
   When used, it accepts the following options:
 
-    * `:async` - configure this specific test case to able to run in parallel
+    * `:async` - configure this specific test case to run in parallel
       with other test cases. May be used for performance when this test case
       does not change any global state. Defaults to `false`.
 
