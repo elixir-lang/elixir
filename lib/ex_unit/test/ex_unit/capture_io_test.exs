@@ -123,6 +123,33 @@ defmodule ExUnit.CaptureIOTest do
         "The process with PID #{inspect context[:pid]} is already captured",
         fn -> capture_io(context[:pid], fn -> nil end) end
     end
+
+    test "the group leader gets reset correctly", context do
+      {:group_leader, pre_gl} = Process.info(context[:pid], :group_leader)
+
+      spawn(fn -> capture_io(context[:pid], fn -> nil end) end)
+
+      Process.sleep(10)
+      {:group_leader, post_gl} = Process.info(context[:pid], :group_leader)
+
+      assert pre_gl == post_gl
+    end
+
+    test "the group leader gets reset even if the caller dies", context do
+      {:group_leader, pre_gl} = Process.info(context[:pid], :group_leader)
+
+      {_pid, ref} = spawn_monitor(fn ->
+        capture_io(context[:pid], fn ->
+          Kernel.exit(:shutdown)
+        end)
+      end)
+
+      assert_receive {:DOWN, ^ref, _, _, :shutdown}
+
+      {:group_leader, post_gl} = Process.info(context[:pid], :group_leader)
+
+      assert pre_gl == post_gl
+    end
   end
 
   test "with put chars" do

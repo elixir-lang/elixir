@@ -158,17 +158,13 @@ defmodule ExUnit.CaptureIO do
     prompt_config = Keyword.get(options, :capture_prompt, true)
     input = Keyword.get(options, :input, "")
 
-    original_gl = Process.group_leader()
+    {:group_leader, original_gl} = Process.info(pid, :group_leader)
     {:ok, capture_gl} = StringIO.open(input, capture_prompt: prompt_config)
-    case ExUnit.CaptureServer.process_capture_on(pid) do
+    case ExUnit.CaptureServer.process_capture_on(pid, original_gl, capture_gl) do
       {:ok, ref} ->
         try do
-          Process.group_leader(pid, capture_gl)
           do_capture_io(capture_gl, fun)
         after
-          if Process.alive?(pid) do
-            Process.group_leader(pid, original_gl)
-          end
           ExUnit.CaptureServer.process_capture_off(ref)
         end
       {:error, :already_captured} ->

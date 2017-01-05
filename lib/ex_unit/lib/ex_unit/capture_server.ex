@@ -24,12 +24,12 @@ defmodule ExUnit.CaptureServer do
     GenServer.call(__MODULE__, {:log_capture_off, ref}, @timeout)
   end
 
-  def process_capture_on(pid) do
-    GenServer.call(__MODULE__, {:process_capture_on, pid}, @timeout)
+  def process_capture_on(pid, original_gl, capture_pid) do
+    GenServer.call(__MODULE__, {:process_capture_on, pid, original_gl, capture_pid}, @timeout)
   end
 
-  def process_capture_off(pid) do
-    GenServer.call(__MODULE__, {:process_capture_off, pid}, @timeout)
+  def process_capture_off(ref) do
+    GenServer.call(__MODULE__, {:process_capture_off, ref}, @timeout)
   end
 
   ## Callbacks
@@ -81,13 +81,14 @@ defmodule ExUnit.CaptureServer do
     {:reply, :ok, config}
   end
 
-  def handle_call({:process_capture_on, pid}, _from, config) do
+  def handle_call({:process_capture_on, pid, original_gl, capture_pid}, _from, config) do
     {pids, refs} = config.processes
     if Map.has_key?(pids, pid) do
       {:reply, {:error, :already_captured}, config}
     else
-      ref = Process.monitor(pid)
-      refs = Map.put(refs, ref, pid)
+      Process.group_leader(pid, capture_pid)
+      ref = Process.monitor(self())
+      refs = Map.put(refs, ref, {pid, original_gl})
       pids = Map.put(pids, pid, true)
       {:reply, {:ok, ref}, %{config | processes: {pids, refs}}}
     end
@@ -131,8 +132,13 @@ defmodule ExUnit.CaptureServer do
   defp remove_process_capture(ref, %{processes: {pids, refs}} = config) do
     case Map.pop(refs, ref) do
       {nil, _refs} -> config
-      {pid, refs} ->
+      {{pid, original_gl}, refs} ->
         pids = Map.delete(pids, pid)
+        try do
+          Process.group_leader(pid, original_gl)
+        rescue
+          ArgumentError -> nil
+        end
         Process.demonitor(ref, [:flush])
         %{config | processes: {pids, refs}}
     end
