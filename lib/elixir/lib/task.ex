@@ -56,18 +56,16 @@ defmodule Task do
 
   ## Supervised tasks
 
-  It is also possible to spawn a task under a supervisor
-  with `start_link/1` and `start_link/3`:
-
-      Task.start_link(fn -> IO.puts "ok" end)
-
-  Such tasks can be mounted in your supervision tree as:
+  It is also possible to spawn a task under a supervisor:
 
       import Supervisor.Spec
 
       children = [
+        #
         worker(Task, [fn -> IO.puts "ok" end])
       ]
+
+  Internally the supervisor will invoke `Task.start_link/1`.
 
   Since these tasks are supervised and not directly linked to
   the caller, they cannot be awaited on. Note `start_link/1`,
@@ -75,9 +73,10 @@ defmodule Task do
   the result expected by supervision trees).
 
   By default, most supervision strategies will try to restart
-  a worker after it exits regardless of the reason. If you design the
-  task to terminate normally (as in the example with `IO.puts/2` above),
-  consider passing `restart: :transient` in the options to `Supervisor.Spec.worker/3`.
+  a worker after it exits regardless of the reason. If you design
+  the task to terminate normally (as in the example with `IO.puts/2`
+  above), consider passing `restart: :transient` in the options
+  to `Supervisor.Spec.worker/3`.
 
   ## Dynamically supervised tasks
 
