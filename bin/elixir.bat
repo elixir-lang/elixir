@@ -100,27 +100,6 @@ for  /d %%d in ("%originPath%..\lib\*.") do (
 )
 setlocal disabledelayedexpansion
 
-rem ******* detect ANSI terminal support ********************
-timeout 0 2>nul >nul || goto run
-where /Q powershell || goto run
-
-set ASSERT_ANSI= ^
-  $err = 1; ^
-  $Kernel32 = Add-Type -Name 'Kernel32' -PassThru -MemberDefinition ' ^
-    [DllImport(\"Kernel32.dll\", SetLastError = true)] ^
-    public static extern IntPtr GetStdHandle(int nStdHandle); ^
-    [DllImport(\"Kernel32.dll\", SetLastError = true)] ^
-    public static extern bool GetConsoleMode(IntPtr hWnd, ref UInt32 lpMode); ^
-  '; ^
-  $StdoutHandle = $Kernel32::GetStdHandle(-11); ^
-  $ConsoleMode = New-Object -TypeName UInt32; ^
-  $null = $Kernel32::GetConsoleMode($StdoutHandle, [ref]$ConsoleMode); ^
-  if ($ConsoleMode -band 0x4) { $err = 0 } ^
-  exit $err
-
-powershell -NoProfile -NonInteractive -Command %ASSERT_ANSI% || goto run
-set parsErlang=%parsErlang% -elixir ansi_enabled true
-
 :run
 if not %runMode% == "iex" (
   set beforeExtra=-noshell -s elixir start_cli %beforeExtra%
