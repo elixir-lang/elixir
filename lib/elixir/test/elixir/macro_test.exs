@@ -314,7 +314,7 @@ defmodule MacroTest do
   end
 
   test "not in to string" do
-    assert Macro.to_string(quote do: false not in []) == "false not in []"
+    assert Macro.to_string(quote do: (false not in [])) == "false not in []"
   end
 
   test "if else to string" do
