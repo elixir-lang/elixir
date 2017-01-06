@@ -40,6 +40,7 @@ defmodule IEx.Helpers do
     * `pid/1`         - creates a PID from a string
     * `pid/3`         - creates a PID with the 3 integer arguments passed
     * `pwd/0`         - prints the current working directory
+    * `q/0`           - quits the current interactive elixir session
     * `r/1`           - recompiles the given module's source file
     * `recompile/0`   - recompiles the current project
     * `respawn/0`     - respawns the current shell
@@ -756,6 +757,22 @@ defmodule IEx.Helpers do
              Integer.to_charlist(y) ++ '.' ++
              Integer.to_charlist(z) ++ '>'
     )
+  end
+
+  @doc """
+  Quits the current interactive elixir session.
+
+  ## Examples
+
+      iex> q()
+      ok
+      iex>
+      $
+
+  """
+  def q() do
+    :init.stop
+    :ok
   end
 
   @doc """
