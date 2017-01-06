@@ -619,7 +619,7 @@ meta_from_location({Line, Column, EndColumn})
 %% Operators
 
 build_op({_Kind, Location, 'in'}, {UOp, _, [Left]}, Right) when ?rearrange_uop(UOp) ->
-  %% TODO: Deprecate `not left in right` rearrangement
+  %% TODO: Deprecate "not left in right" rearrangement.
   {UOp, meta_from_location(Location), [{'in', meta_from_location(Location), [Left, Right]}]};
 build_op({_Kind, Location, 'not in'}, Left, Right) ->
   {'not', meta_from_location(Location), [{'in', meta_from_location(Location), [Left, Right]}]};

@@ -129,7 +129,7 @@ not_test() ->
   ?assertError(badarg, eval("not 1")).
 
 rearrange_not_left_in_right_test() ->
-  %% TODO: Deprecate `not left in right` rearrangement
+  %% TODO: Deprecate "not left in right" rearrangement.
   {true, _} = eval("not false in []"),
   {false, _} = eval("not true in [true]").
 
