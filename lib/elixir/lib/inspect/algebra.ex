@@ -159,7 +159,7 @@ defmodule Inspect.Algebra do
   @tail_separator " |"
   @newline "\n"
   @nesting 1
-  @break " "
+  @space " "
 
   # Functional interface to "doc" records
 
@@ -277,7 +277,7 @@ defmodule Inspect.Algebra do
   @spec empty() :: :doc_nil
   def empty, do: :doc_nil
 
-  @doc """
+  @doc ~S"""
   Concatenates two document entities returning a new document.
 
   ## Examples
@@ -292,7 +292,7 @@ defmodule Inspect.Algebra do
     doc_cons(doc1, doc2)
   end
 
-  @doc """
+  @doc ~S"""
   Concatenates a list of documents returning a new document.
 
   ## Examples
@@ -307,7 +307,7 @@ defmodule Inspect.Algebra do
     fold_doc(docs, &concat(&1, &2))
   end
 
-  @doc """
+  @doc ~S"""
   Colors a document if the `color_key` has a color in the options.
   """
   @spec color(t, Inspect.Opts.color_key, Inspect.Opts.t) :: doc_color
@@ -372,19 +372,19 @@ defmodule Inspect.Algebra do
   @spec break(binary) :: doc_break
   def break(string) when is_binary(string), do: doc_break(string)
 
-  @doc """
-  Returns a document entity representing the default break.
+  @doc ~S"""
+  Returns a document entity with the `" "` string as break.
 
-  Same as calling `break/1` with the default break.
+  See `break/1` for more information.
   """
   @spec break() :: doc_break
-  def break(), do: doc_break(@break)
+  def break(), do: doc_break(@space)
 
-  @doc """
-  Glues two documents together inserting the default break between them.
+  @doc ~S"""
+  Glues two documents together inserting `" "` as a break between them.
 
-  The break that is inserted between `left` and `right` is the one returned by
-  `break/0`.
+  This means the two documents will be separeted by `" "` in case they
+  fit in the same line. Otherwise a line break is used.
 
   ## Examples
 
@@ -396,7 +396,7 @@ defmodule Inspect.Algebra do
   @spec glue(t, t) :: t
   def glue(doc1, doc2), do: concat(doc1, concat(break(), doc2))
 
-  @doc """
+  @doc ~S"""
   Glues two documents (`doc1` and `doc2`) together inserting the given
   break `break_string` between them.
 
@@ -415,6 +415,9 @@ defmodule Inspect.Algebra do
 
   @doc ~S"""
   Returns a group containing the specified document `doc`.
+
+  Documents in a group are attempted to be rendered together
+  to the best of the renderer ability.
 
   ## Examples
 
@@ -445,7 +448,7 @@ defmodule Inspect.Algebra do
     doc_group(doc)
   end
 
-  @doc """
+  @doc ~S"""
   Inserts a mandatory single space between two documents.
 
   ## Examples
@@ -471,7 +474,7 @@ defmodule Inspect.Algebra do
   @spec line(t, t) :: t
   def line(doc1, doc2), do: concat(doc1, concat(:doc_line, doc2))
 
-  @doc """
+  @doc ~S"""
   Folds a list of documents into a document using the given folder function.
 
   The list of documents is folded "from the right"; in that, this function is
