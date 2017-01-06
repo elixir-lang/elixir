@@ -64,7 +64,7 @@ defmodule Macro do
     :&&, :||, :<>, :++, :--, :\\, :::, :<-, :.., :|>, :=~,
     :<, :>, :->,
     :+, :-, :*, :/, :=, :|, :.,
-    :and, :or, :when, :in, :"not in",
+    :and, :or, :when, :in,
     :~>>, :<<~, :~>, :<~, :<~>, :<|>,
     :<<<, :>>>, :|||, :&&&, :^^^, :~~~]
 
@@ -693,8 +693,8 @@ defmodule Macro do
   end
 
   # left not in right
-  def to_string({:not, _, [{:in, meta, args}]}, fun)  do
-    to_string({:"not in", meta, args}, fun)
+  def to_string({:not, _, [{:in, _, [left, right]}]} = ast, fun)  do
+    fun.(ast, to_string(left, fun) <> " not in " <> to_string(right, fun))
   end
 
   # Unary ops
