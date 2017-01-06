@@ -135,13 +135,30 @@ defmodule ExUnit.CaptureServer do
       {{pid, original_gl}, refs} ->
         pids = Map.delete(pids, pid)
         try do
+          {:group_leader, capture_gl} = Process.info(pid, :group_leader)
           Process.group_leader(pid, original_gl)
+          fix_spawned_processes(Process.list(), capture_gl, original_gl)
         rescue
           ArgumentError -> nil
+          MatchError -> nil
         end
         Process.demonitor(ref, [:flush])
         %{config | processes: {pids, refs}}
     end
+  end
+
+  defp fix_spawned_processes([], _capture_gl, _original_gl) do
+  end
+  defp fix_spawned_processes([pid | pids], capture_gl, original_gl) do
+    {:group_leader, process_gl} = Process.info(pid, :group_leader)
+    if process_gl == capture_gl do
+      try do
+        Process.group_leader(pid, original_gl)
+      rescue
+        ArgumentError -> nil
+      end
+    end
+    fix_spawned_processes(pids, capture_gl, original_gl)
   end
 
   defp remove_log_capture(ref, %{log_captures: refs} = config) do
