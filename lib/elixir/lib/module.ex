@@ -818,7 +818,10 @@ defmodule Module do
 
           # TODO: Remove on v2.0
           if kind == :defp do
-            IO.warn "making private functions (#{name}/#{arity} in this case) overridable is deprecated"
+            message =
+              "making private functions (#{name}/#{arity} in #{inspect module} in this case) " <>
+              "overridable is deprecated"
+            IO.warn(message, [])
           end
 
           neighbours =
