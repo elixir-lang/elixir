@@ -698,7 +698,7 @@ defmodule Base do
 
   defp remove_ignored(string, nil), do: string
   defp remove_ignored(string, :whitespace) do
-    for <<c::8 <- string>>, c not in '\s\t\r\n', into: <<>>, do: <<c::8>>
+    for <<char::8 <- string>>, char not in '\s\t\r\n', into: <<>>, do: <<char::8>>
   end
 
   defp do_encode16(_, <<>>), do: <<>>
