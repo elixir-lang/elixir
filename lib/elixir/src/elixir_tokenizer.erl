@@ -869,7 +869,7 @@ tokenize_kw_or_other(Rest, Kind, Line, Column, Length, Atom, Tokens) ->
     nomatch ->
       {identifier, Rest, check_call_identifier(Kind, Line, Column, Length, Atom, Rest)};
     {ok, [{in_op, {_, _, InEndColumn}, in} | [{unary_op, {NotLine, NotColumn, _}, 'not'} | T]]} ->
-      {keyword, Rest, {not_in_op, {NotLine, NotColumn, InEndColumn}, 'not in'}, T};
+      {keyword, Rest, {in_op, {NotLine, NotColumn, InEndColumn}, 'not in'}, T};
     {ok, [Check | T]} ->
       {keyword, Rest, Check, T};
     {error, Message, Token} ->
