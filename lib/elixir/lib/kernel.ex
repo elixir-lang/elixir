@@ -2975,23 +2975,16 @@ defmodule Kernel do
 
       when x >= 1 and x <= 3
 
-  ### Special AST Considerations
+  ### AST considerations
 
-  `not in` is rewritten in the Elixir compiler, so `:left not in :right` appears
-  the same as `not(:left in :right)` does in the AST:
+  `left not in right` is parsed by the compiler into the AST:
 
-      quote do: :left not in :right
-      #=> {:not, [...], [{:in, [...], [:left, :right]}]}
+      {:not, _, [{:in, _, [left, right]}]}
 
-      quote do: not(:left in :right)
-      #=> {:not, [...], [{:in, [...], [:left, :right]}]}
+  This is the same AST as `not(left in right)`.
 
   Additionally, `Macro.to_string/2` will translate all occurrences of
-  `not(:left in :right)` to `:left not in :right`.
-
-      Macro.to_string quote do: not(:left in :right)
-      #=> ":left not in :right"
-
+  this AST to `left not in right`.
   """
   defmacro left in right do
     in_module? = (__CALLER__.context == nil)
