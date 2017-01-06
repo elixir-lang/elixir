@@ -2948,11 +2948,18 @@ defmodule Kernel do
 
       Enum.member?([1, 2, 3], x)
 
+  Elixir also supports a `left not in right` syntax, which evaluates to
+  `not(left in right)`:
+
+      iex> x = 1
+      iex> x not in [1, 2, 3]
+      false
+
   ## Guards
 
-  The `in/2` operator can be used in guard clauses as long as the
-  right-hand side is a range or a list. In such cases, Elixir will expand the
-  operator to a valid guard expression. For example:
+  The `in/2` operator (as well as `not in`) can be used in guard clauses as
+  long as the right-hand side is a range or a list. In such cases, Elixir will
+  expand the operator to a valid guard expression. For example:
 
       when x in [1, 2, 3]
 
@@ -2967,6 +2974,23 @@ defmodule Kernel do
   translates to:
 
       when x >= 1 and x <= 3
+
+  ### Special AST Considerations
+
+  `not in` is rewritten in the Elixir compiler, so `:left not in :right` appears
+  the same as `not(:left in :right)` does in the AST:
+
+      quote do: :left not in :right
+      #=> {:not, [...], [{:in, [...], [:left, :right]}]}
+
+      quote do: not(:left in :right)
+      #=> {:not, [...], [{:in, [...], [:left, :right]}]}
+
+  Additionally, `Macro.to_string/2` will translate all occurrences of
+  `not(:left in :right)` to `:left not in :right`.
+
+      Macro.to_string quote do: not(:left in :right)
+      #=> ":left not in :right"
 
   """
   defmacro left in right do
