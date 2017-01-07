@@ -692,6 +692,11 @@ defmodule Macro do
     fun.(ast, "&(" <> to_string(arg, fun) <> ")")
   end
 
+  # left not in right
+  def to_string({:not, _, [{:in, _, [left, right]}]} = ast, fun)  do
+    fun.(ast, to_string(left, fun) <> " not in " <> to_string(right, fun))
+  end
+
   # Unary ops
   def to_string({unary, _, [{binary, _, [_, _]} = arg]} = ast, fun)
       when unary in unquote(@unary_ops) and binary in unquote(@binary_ops) do

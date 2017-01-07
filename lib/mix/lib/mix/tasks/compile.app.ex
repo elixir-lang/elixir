@@ -222,7 +222,7 @@ defmodule Mix.Tasks.Compile.App do
         Keyword.get(opts, :app, true),
         Keyword.get(opts, :runtime, true),
         not Keyword.get(opts, :optional, false),
-        not app in included_applications,
+        app not in included_applications,
         do: app
   end
 

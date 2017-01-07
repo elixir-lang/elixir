@@ -32,7 +32,7 @@ defmodule Mix.Dep.Loader do
   def skip?(%Mix.Dep{opts: opts}, env) do
     only = opts[:only]
     validate_only!(only)
-    only != nil and not env in List.wrap(only)
+    only != nil and env not in List.wrap(only)
   end
 
   @doc """

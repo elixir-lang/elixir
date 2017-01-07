@@ -128,6 +128,15 @@ not_test() ->
   {true, _} = eval("not false"),
   ?assertError(badarg, eval("not 1")).
 
+rearrange_not_left_in_right_test() ->
+  %% TODO: Deprecate "not left in right" rearrangement.
+  {true, _} = eval("not false in []"),
+  {false, _} = eval("not true in [true]").
+
+rearrange_left_not_in_right_test() ->
+  {true, _} = eval("false not in []"),
+  {false, _} = eval("true not in [true]").
+
 andand_test() ->
   F = fun() ->
     eval("defmodule Bar do\ndef foo, do: true\ndef bar, do: false\n def baz(x), do: x == 1\nend"),

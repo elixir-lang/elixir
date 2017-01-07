@@ -64,7 +64,7 @@ Left     140 and_op_eol.      %% &&, &&&, and
 Left     150 comp_op_eol.     %% ==, !=, =~, ===, !==
 Left     160 rel_op_eol.      %% <, >, <=, >=
 Left     170 arrow_op_eol.    %% |>, <<<, >>>, ~>>, <<~, ~>, <~, <~>, <|>
-Left     180 in_op_eol.       %% in
+Left     180 in_op_eol.       %% in, not in
 Left     190 three_op_eol.    %% ^^^
 Right    200 two_op_eol.      %% ++, --, .., <>
 Left     210 add_op_eol.      %% +, -
@@ -619,7 +619,10 @@ meta_from_location({Line, Column, EndColumn})
 %% Operators
 
 build_op({_Kind, Location, 'in'}, {UOp, _, [Left]}, Right) when ?rearrange_uop(UOp) ->
+  %% TODO: Deprecate "not left in right" rearrangement.
   {UOp, meta_from_location(Location), [{'in', meta_from_location(Location), [Left, Right]}]};
+build_op({_Kind, Location, 'not in'}, Left, Right) ->
+  {'not', meta_from_location(Location), [{'in', meta_from_location(Location), [Left, Right]}]};
 build_op({_Kind, Location, Op}, Left, Right) ->
   {Op, meta_from_location(Location), [Left, Right]}.
 

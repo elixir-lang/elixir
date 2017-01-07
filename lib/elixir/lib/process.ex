@@ -463,7 +463,7 @@ defmodule Process do
 
   """
   @spec register(pid | port, atom) :: true
-  def register(pid_or_port, name) when is_atom(name) and not name in [nil, false, true, :undefined] do
+  def register(pid_or_port, name) when is_atom(name) and name not in [nil, false, true, :undefined] do
     :erlang.register(name, pid_or_port)
   catch
     :error, :badarg when node(pid_or_port) != node()  ->

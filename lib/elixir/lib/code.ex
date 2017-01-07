@@ -442,7 +442,7 @@ defmodule Code do
 
     Enum.each(opts, fn({key, value}) ->
       cond do
-        not key in available ->
+        key not in available ->
           raise "unknown compiler option: #{inspect(key)}"
         not is_boolean(value) ->
           raise "compiler option #{inspect(key)} should be a boolean, got: #{inspect(value)}"
