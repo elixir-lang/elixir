@@ -222,7 +222,7 @@ defmodule Mix.Compilers.Test do
   defp find_all_dependant_on(modules, sources, all_modules, resolved \\ MapSet.new()) do
     new_modules =
       for module <- modules,
-          not module in resolved,
+          module not in resolved,
           dependant_module <- dependant_modules(module, all_modules, sources),
           do: dependant_module,
           into: modules
