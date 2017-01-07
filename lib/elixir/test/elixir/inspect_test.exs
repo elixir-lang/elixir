@@ -13,22 +13,24 @@ defmodule Inspect.AtomTest do
     assert inspect(:"") == ":\"\""
   end
 
-  test "true false nil" do
+  test "true, false, nil" do
     assert inspect(false) == "false"
     assert inspect(true) == "true"
     assert inspect(nil) == "nil"
   end
 
-  test "with uppercase" do
+  test "with uppercase letters" do
     assert inspect(:fOO) == ":fOO"
     assert inspect(:FOO) == ":FOO"
   end
 
-  test "alias atom" do
+  test "aliases" do
     assert inspect(Foo) == "Foo"
     assert inspect(Foo.Bar) == "Foo.Bar"
     assert inspect(Elixir) == "Elixir"
+    assert inspect(Elixir.Foo) == "Foo"
     assert inspect(Elixir.Elixir) == "Elixir.Elixir"
+    assert inspect(Elixir.Elixir.Foo) == "Elixir.Foo"
   end
 
   test "with integers" do
@@ -36,12 +38,13 @@ defmodule Inspect.AtomTest do
     assert inspect(:user1) == ":user1"
   end
 
-  test "with punctuation" do
+  test "with trailing ? or !" do
     assert inspect(:foo?) == ":foo?"
     assert inspect(:bar!) == ":bar!"
+    assert inspect(:Foo?) == ":Foo?"
   end
 
-  test "op" do
+  test "operators" do
     assert inspect(:+) == ":+"
     assert inspect(:<~) == ":<~"
     assert inspect(:~>) == ":~>"
@@ -53,11 +56,7 @@ defmodule Inspect.AtomTest do
     assert inspect(:<|>) == ":<|>"
   end
 
-  test :... do
-    assert inspect(:...) == ":..."
-  end
-
-  test :@ do
+  test "with @" do
     assert inspect(:@) == ":@"
     assert inspect(:foo@bar) == ":foo@bar"
     assert inspect(:foo@bar@) == ":foo@bar@"
@@ -65,10 +64,18 @@ defmodule Inspect.AtomTest do
   end
 
   test "others" do
+    assert inspect(:...) == ":..."
     assert inspect(:<<>>) == ":<<>>"
-    assert inspect(:{})   == ":{}"
-    assert inspect(:%{})  == ":%{}"
-    assert inspect(:%)    == ":%"
+    assert inspect(:{}) == ":{}"
+    assert inspect(:%{}) == ":%{}"
+    assert inspect(:%) == ":%"
+  end
+
+  test "escaping" do
+    assert inspect(:"hy-phen") == ~s(:"hy-phen")
+    assert inspect(:"@hello") == ~s(:"@hello")
+    assert inspect(:"Wat!?") == ~s(:"Wat!?")
+    assert inspect(:"'quotes' and \"double quotes\"") == ~S(:"'quotes' and \"double quotes\"")
   end
 
   test "colors" do
