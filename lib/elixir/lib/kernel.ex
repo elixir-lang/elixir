@@ -2948,7 +2948,7 @@ defmodule Kernel do
 
       Enum.member?([1, 2, 3], x)
 
-  Elixir also supports a `left not in right` syntax, which evaluates to
+  Elixir also supports `left not in right`, which evaluates to
   `not(left in right)`:
 
       iex> x = 1
