@@ -69,15 +69,13 @@ defimpl Inspect, for: Atom do
   defp color_key(nil), do: :nil
   defp color_key(_), do: :atom
 
-  def inspect(false), do: "false"
-  def inspect(true), do: "true"
-  def inspect(nil), do: "nil"
-
   def inspect(atom) do
     binary = Atom.to_string(atom)
 
-    cond do
-      valid_alias?(binary) ->
+    case classify(atom) do
+      :boolean_or_nil ->
+        binary
+      :alias ->
         # If the given binary is just a succession like "Elixir.Elixir.Elixir",
         # inspect it as is, otherwise, strip the leading "Elixir".
         if only_elixir?(binary) do
@@ -86,15 +84,56 @@ defimpl Inspect, for: Atom do
           "Elixir." <> rest = binary
           rest
         end
-      valid_atom_identifier?(binary) ->
+      type when type in [:callable, :non_callable] ->
         ":" <> binary
-      atom in [:%{}, :{}, :<<>>, :..., :%] ->
-        ":" <> binary
-      atom in Macro.binary_ops or atom in Macro.unary_ops ->
-        ":" <> binary
-      true ->
-        IO.iodata_to_binary [?:, ?", Inspect.BitString.escape(binary, ?"), ?"]
+      :atom ->
+        ":" <> escape(binary)
     end
+  end
+
+  # Classifies the given atom into one of five categories:
+  #
+  #   * :boolean_or_nil - the atoms true, false, nil
+  #
+  #   * :alias - a valid Elixir alias, like Foo, Foo.Bar and so on
+  #
+  #   * :callable - an atom that can be used as a function call after the
+  #     . operator (for example, :<> is callable because Foo.<>(1, 2, 3) is valid
+  #     syntax); this category includes identifiers like :foo
+  #
+  #   * :non_callable - an atom that cannot be used as a function call after the
+  #     . operator (for example, :<<>> is not callable because Foo.<<>> is a
+  #     syntax error); this category includes atoms like :Foo, since they are
+  #     valid identifiers but they need quotes to be used in function calls
+  #     (Foo."Bar")
+  #
+  #   * :atom - any other atom (these are usually escaped when inspected, like
+  #     :"foo and bar")
+  def classify(atom) do
+    binary = Atom.to_string(atom)
+
+    cond do
+      is_boolean(atom) or is_nil(atom) ->
+        :boolean_or_nil
+      valid_alias?(binary) ->
+        :alias
+      valid_atom_identifier?(binary) ->
+        if :binary.first(binary) in ?A..?Z do
+          :non_callable
+        else
+          :callable
+        end
+      atom in [:%{}, :{}, :<<>>, :..., :.., :.] ->
+        :non_callable
+      atom == :% or atom in Macro.binary_ops or atom in Macro.unary_ops ->
+        :callable
+      true ->
+        :atom
+    end
+  end
+
+  def escape(binary) do
+    IO.iodata_to_binary [?", Inspect.BitString.escape(binary, ?"), ?"]
   end
 
   defp only_elixir?("Elixir." <> rest), do: only_elixir?(rest)
@@ -350,9 +389,12 @@ defimpl Inspect, for: List do
   ## Private
 
   defp key_to_binary(key) do
-    case Inspect.Atom.inspect(key) do
-      ":" <> right -> right
-      other -> other
+    case Inspect.Atom.classify(key) do
+      :alias ->
+        Inspect.Atom.inspect(key)
+      _other ->
+        ":" <> right = Inspect.Atom.inspect(key)
+        right
     end
   end
 end

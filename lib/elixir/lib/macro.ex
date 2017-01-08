@@ -845,6 +845,8 @@ defmodule Macro do
     do: "(" <> module_to_string(arg, fun) <> ")."
   defp call_to_string({:., _, [arg]}, fun),
     do: module_to_string(arg, fun) <> "."
+  defp call_to_string({:., _, [left, right]}, fun) when is_atom(right),
+    do: module_to_string(left, fun) <> "." <> call_to_string_for_atom(right)
   defp call_to_string({:., _, [left, right]}, fun),
     do: module_to_string(left, fun) <> "." <> call_to_string(right, fun)
   defp call_to_string(other, fun),
@@ -854,6 +856,19 @@ defmodule Macro do
     target = call_to_string(target, fun)
     args = args_to_string(args, fun)
     target <> "(" <> args <> ")"
+  end
+
+  defp call_to_string_for_atom(atom) do
+    binary = Atom.to_string(atom)
+
+    case Inspect.Atom.classify(atom) do
+      type when type in [:boolean_or_nil, :callable] ->
+        binary
+      type when type in [:alias, :non_callable] ->
+        "\"" <> binary <> "\""
+      :atom ->
+        Inspect.Atom.escape(binary)
+    end
   end
 
   defp args_to_string(args, fun) do

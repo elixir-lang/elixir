@@ -979,7 +979,7 @@ defmodule Kernel.ErrorsTest do
       'alias Elixir.{Map}, as: Dict'
 
     assert_compile_fail UndefinedFunctionError,
-      "function List.{}/1 is undefined or private",
+      "function List.\"{}\"/1 is undefined or private",
       '[List.{Chars}, "one"]'
   end
 

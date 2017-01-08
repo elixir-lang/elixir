@@ -128,6 +128,10 @@ defmodule ExceptionTest do
     assert Exception.format_mfa(:foo, :bar, [1, 2]) == ":foo.bar(1, 2)"
     assert Exception.format_mfa(Foo, :"bar baz", 1) == "Foo.\"bar baz\"/1"
     assert Exception.format_mfa(Foo, :"-func/2-fun-0-", 4) == "anonymous fn/4 in Foo.func/2"
+    assert Exception.format_mfa(Foo, :"42", 1) == "Foo.\"42\"/1"
+    assert Exception.format_mfa(Foo, :Bar, [1, 2]) == "Foo.\"Bar\"(1, 2)"
+    assert Exception.format_mfa(Foo, :%{}, [1, 2]) == "Foo.\"%{}\"(1, 2)"
+    assert Exception.format_mfa(Foo, :..., 1) == "Foo.\"...\"/1"
   end
 
   test "format_fa/2" do
