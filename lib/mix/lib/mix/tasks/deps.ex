@@ -18,7 +18,7 @@ defmodule Mix.Tasks.Deps do
   Where:
 
     * app is an atom
-    * requirement is a version requirement or a regular expression
+    * requirement is a `Version` requirement or a regular expression
     * opts is a keyword list of options
 
   By default, dependencies are fetched using the [Hex package manager](https://hex.pm/):
