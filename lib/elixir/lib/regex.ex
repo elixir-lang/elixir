@@ -629,7 +629,7 @@ defmodule Regex do
     [get_index(string, h) | get_indexes(string, t, arity - 1)]
   end
 
-  {:ok, pattern} = :re.compile(~S"[.^$*+?()\[\]{}\\\|\s#]", [:unicode])
+  {:ok, pattern} = :re.compile(~S"[.^$*+?()\[\]{}\\\|\s#-]", [:unicode])
   @escape_pattern pattern
 
   @doc ~S"""
