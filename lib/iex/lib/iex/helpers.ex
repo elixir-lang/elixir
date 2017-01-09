@@ -678,6 +678,7 @@ defmodule IEx.Helpers do
     raise ArgumentError, "import_file/1 expects a literal binary as its argument"
   end
 
+  @doc false
   defmacro import_file(path, opts) when is_binary(path) and is_list(opts) do
     IO.warn "import_file/2 is deprecated, please use import_file_if_available/1 instead"
     import_file_if_available(path, Keyword.get(opts, :optional, false))
