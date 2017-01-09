@@ -20,41 +20,36 @@ defmodule IEx.Helpers do
 
       iex> i("hello")
 
-  There are many other helpers available:
+  There are many other helpers available, here are some examples:
 
-    * `b/1`           - prints callbacks info and docs for a given module
-    * `c/1`           - compiles a file into the current directory
-    * `c/2`           - compiles a file to the given path
-    * `cd/1`          - changes the current directory
-    * `clear/0`       - clears the screen
-    * `flush/0`       - flushes all messages sent to the shell
-    * `h/0`           - prints this help message
-    * `h/1`           - prints help for the given module, function or macro
-    * `i/0`           - prints information about the last value
-    * `i/1`           - prints information about the data type of any given term
-    * `import_file/1` - evaluates the given file in the shell's context
-    * `import_file_if_available/1` - evaluates the given file in the shell's context if it is available.
-    * `l/1`           - loads the given module's BEAM code
-    * `ls/0`          - lists the contents of the current directory
-    * `ls/1`          - lists the contents of the specified directory
-    * `nl/2`          - deploys local BEAM code to a list of nodes
-    * `pid/1`         - creates a PID from a string
-    * `pid/3`         - creates a PID with the 3 integer arguments passed
-    * `pwd/0`         - prints the current working directory
-    * `r/1`           - recompiles the given module's source file
-    * `recompile/0`   - recompiles the current project
-    * `respawn/0`     - respawns the current shell
-    * `s/1`           - prints spec information
-    * `t/1`           - prints type information
-    * `v/0`           - retrieves the last value from the history
-    * `v/1`           - retrieves the nth value from the history
+    * `b/1`         - prints callbacks info and docs for a given module
+    * `c/1`         - compiles a file into the current directory
+    * `c/2`         - compiles a file to the given path
+    * `cd/1`        - changes the current directory
+    * `clear/0`     - clears the screen
+    * `flush/0`     - flushes all messages sent to the shell
+    * `h/0`         - prints this help message
+    * `h/1`         - prints help for the given module, function or macro
+    * `i/0`         - prints information about the last value
+    * `i/1`         - prints information about the given term
+    * `ls/0`        - lists the contents of the current directory
+    * `ls/1`        - lists the contents of the specified directory
+    * `pid/1`       - creates a PID from a string
+    * `pid/3`       - creates a PID with the 3 integer arguments passed
+    * `pwd/0`       - prints the current working directory
+    * `r/1`         - recompiles the given module's source file
+    * `recompile/0` - recompiles the current project
+    * `respawn/0`   - respawns the current shell
+    * `v/0`         - retrieves the last value from the history
+    * `v/1`         - retrieves the nth value from the history
 
   Help for all of those functions can be consulted directly from
   the command line using the `h/1` helper itself. Try:
 
       iex> h(v/0)
 
-  To learn more about IEx as a whole, type `h(IEx)`.
+  To learn about all IEx helpers, see `IEx.Helpers`. To learn more
+  about IEx as a whole, type `h(IEx)`.
   """
 
   import IEx, only: [dont_display_result: 0]
@@ -586,7 +581,7 @@ defmodule IEx.Helpers do
         else
           len
         end
-      IO.write format_item(Path.join(path, item), String.pad_leading(item, width))
+      IO.write format_item(Path.join(path, item), String.pad_trailing(item, width))
       len + width
     end)
 
