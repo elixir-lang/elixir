@@ -549,7 +549,7 @@ defimpl String.Chars, for: URI do
   defp extract_authority(%{host: host, userinfo: userinfo, port: port}) do
     # According to the grammar at
     # https://tools.ietf.org/html/rfc3986#appendix-A, a "host" can have a colon
-    # in it only if it's an IPv6 or "IPvFuture" address), so if there's a colon
+    # in it only if it's an IPv6 or "IPvFuture" address, so if there's a colon
     # in the host we can safely surround it with [].
     if(userinfo, do: userinfo <> "@", else: "") <>
       if(String.contains?(host, ":"), do: "[" <> host <> "]", else: host) <>
