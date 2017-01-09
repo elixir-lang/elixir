@@ -33,6 +33,7 @@ defmodule IEx.Helpers do
     * `i/0`           - prints information about the last value
     * `i/1`           - prints information about the data type of any given term
     * `import_file/1` - evaluates the given file in the shell's context
+    * `import_file_if_available/1` - evaluates the given file in the shell's context if it is available.
     * `l/1`           - loads the given module's BEAM code
     * `ls/0`          - lists the contents of the current directory
     * `ls/1`          - lists the contents of the specified directory
