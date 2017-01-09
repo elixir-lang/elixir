@@ -51,17 +51,17 @@ defmodule Calendar do
   @type std_offset :: integer
 
   @typedoc "Any map/struct that contains the date fields"
-  @type date :: %{calendar: calendar, year: year, month: month, day: day}
+  @type date :: %{optional(any) => any, calendar: calendar, year: year, month: month, day: day}
 
   @typedoc "Any map/struct that contains the time fields"
-  @type time :: %{hour: hour, minute: minute, second: second, microsecond: microsecond}
+  @type time :: %{optional(any) => any, hour: hour, minute: minute, second: second, microsecond: microsecond}
 
   @typedoc "Any map/struct that contains the naive_datetime fields"
-  @type naive_date_time :: %{calendar: calendar, year: year, month: month, day: day,
+  @type naive_date_time :: %{optional(any) => any, calendar: calendar, year: year, month: month, day: day,
                              hour: hour, minute: minute, second: second, microsecond: microsecond}
 
   @typedoc "Any map/struct that contains the datetime fields"
-  @type date_time :: %{calendar: calendar, year: year, month: month, day: day,
+  @type date_time :: %{optional(any) => any, calendar: calendar, year: year, month: month, day: day,
                        hour: hour, minute: minute, second: second, microsecond: microsecond,
                        time_zone: time_zone, zone_abbr: zone_abbr, utc_offset: utc_offset, std_offset: std_offset}
 
