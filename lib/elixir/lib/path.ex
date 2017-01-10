@@ -428,10 +428,10 @@ defmodule Path do
   end
 
   @doc """
-  Joins a list of strings.
+  Joins a list of paths.
 
-  This function should be used to convert a list of strings to a path.
-  Note that any trailing slash is removed on join.
+  This function should be used to convert a list of paths to a path.
+  Note that any trailing slash is removed when joining.
 
   ## Examples
 
@@ -445,11 +445,11 @@ defmodule Path do
       "/foo/bar"
 
   """
-  @spec join([t]) :: binary
+  @spec join(nonempty_list(t)) :: binary
   def join([name1, name2 | rest]), do:
     join([join(name1, name2) | rest])
   def join([name]), do:
-    name
+    IO.chardata_to_string(name)
 
   @doc """
   Joins two paths.
