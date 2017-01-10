@@ -534,6 +534,18 @@ defmodule IEx.Helpers do
   end
 
   @doc """
+  Produces a simple list of all exports in a module.
+  """
+  def e(module \\ Kernel) do
+    IEx.Autocomplete.exports(module) |> print_exports()
+  end
+
+  defp print_exports(functions) do
+    list = Enum.map(functions, fn({name, arity}) -> Atom.to_string(name) <> "/" <> Integer.to_string(arity) end)
+    print_table(list)
+  end
+
+  @doc """
   Produces a simple list of a directory's contents.
 
   If `path` points to a file, prints its full path.
@@ -543,7 +555,10 @@ defmodule IEx.Helpers do
     case File.ls(path) do
       {:ok, items} ->
         sorted_items = Enum.sort(items)
-        ls_print(path, sorted_items)
+        printer = fn(item, width) ->
+          format_item(Path.join(path, item), String.pad_trailing(item, width))
+        end
+        print_table(sorted_items, printer)
 
       {:error, :enoent} ->
         IO.puts IEx.color(:eval_error, "No such file or directory #{path}")
@@ -560,19 +575,20 @@ defmodule IEx.Helpers do
 
   defp expand_home(other), do: other
 
-  defp ls_print(_, []) do
+  defp print_table(list, printer \\ &String.pad_trailing/2)
+  defp print_table([], _printer) do
     :ok
   end
 
-  defp ls_print(path, list) do
+  defp print_table(list, printer) do
     # print items in multiple columns (2 columns in the worst case)
     lengths = Enum.map(list, &String.length(&1))
     maxlen = maxlength(lengths)
-    width = min(maxlen, 30) + 5
-    ls_print(path, list, width)
+    offset = min(maxlen, 30) + 5
+    print_table(list, printer, offset)
   end
 
-  defp ls_print(path, list, width) do
+  defp print_table(list, printer, offset) do
     Enum.reduce(list, 0, fn(item, len) ->
       len =
         if len >= 80 do
@@ -581,8 +597,8 @@ defmodule IEx.Helpers do
         else
           len
         end
-      IO.write format_item(Path.join(path, item), String.pad_trailing(item, width))
-      len + width
+      IO.write printer.(item, offset)
+      len + offset
     end)
 
     IO.puts ""
