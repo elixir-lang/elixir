@@ -585,7 +585,7 @@ defmodule Map do
   end
 
   @doc """
-  Takes all entries corresponding to the given `keys` in `maps` and extracts
+  Takes all entries corresponding to the given `keys` in `map` and extracts
   them into a separate map.
 
   Returns a tuple with the new map and the old map with removed keys.
