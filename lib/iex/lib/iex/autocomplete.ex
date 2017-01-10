@@ -23,6 +23,15 @@ defmodule IEx.Autocomplete do
         no()
     end
   end
+  
+  @doc false
+  def exports(mod) do
+    if function_exported?(mod, :__info__, 1) do
+      mod.__info__(:macros) ++ (mod.__info__(:functions) -- [__info__: 1])
+    else
+      mod.module_info(:exports)
+    end
+  end
 
   defp identifier?(h) do
     (h in ?a..?z) or (h in ?A..?Z) or (h in ?0..?9) or h in [?_, ??, ?!]
@@ -290,17 +299,9 @@ defmodule IEx.Autocomplete do
       not ensure_loaded?(mod) ->
         []
       docs = Code.get_docs(mod, :docs) ->
-        module_info_funs(mod) |> Enum.reject(&hidden_fun?(&1, docs))
+        exports(mod) |> Enum.reject(&hidden_fun?(&1, docs))
       true ->
-        module_info_funs(mod)
-    end
-  end
-
-  defp module_info_funs(mod) do
-    if function_exported?(mod, :__info__, 1) do
-      mod.__info__(:macros) ++ (mod.__info__(:functions) -- [__info__: 1])
-    else
-      mod.module_info(:exports)
+        exports(mod)
     end
   end
 
