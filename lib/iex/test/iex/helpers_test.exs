@@ -234,6 +234,11 @@ defmodule IEx.HelpersTest do
     end
   end
 
+  test "e helper" do
+    exports = capture_io(fn -> e(IEx.Autocomplete) end)
+    assert exports == "expand/1      expand/2      exports/1     \n"
+  end
+
   test "import_file helper" do
     with_file "dot-iex", "variable = :hello\nimport IO", fn ->
       capture_io(:stderr, fn ->
