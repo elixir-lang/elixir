@@ -534,7 +534,7 @@ defmodule IEx.Helpers do
   end
 
   @doc """
-  Produces a simple list of all exports in a module.
+  Returns a list of all the functions and macros exported by the given module.
   """
   def e(module \\ Kernel) do
     IEx.Autocomplete.exports(module) |> print_exports()
@@ -546,7 +546,7 @@ defmodule IEx.Helpers do
   end
 
   @doc """
-  Produces a simple list of a directory's contents.
+  Returns a list of the given directory's contents.
 
   If `path` points to a file, prints its full path.
   """
