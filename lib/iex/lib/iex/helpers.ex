@@ -534,12 +534,12 @@ defmodule IEx.Helpers do
   end
 
   @doc """
-  Produces a simple list of  all exports in a module
+  Produces a simple list of all exports in a module.
   """
   def e(module \\ Kernel) do
     IEx.Autocomplete.exports(module) |> print_exports()
   end
-  
+
   defp print_exports(functions) do
     list = Enum.map(functions, fn({name, arity}) -> Atom.to_string(name) <> "/" <> Integer.to_string(arity) end)
     print_table(list)
@@ -555,8 +555,8 @@ defmodule IEx.Helpers do
     case File.ls(path) do
       {:ok, items} ->
         sorted_items = Enum.sort(items)
-        printer = fn(item, width) -> 
-          format_item(Path.join(path, item), String.pad_trailing(item, width)) 
+        printer = fn(item, width) ->
+          format_item(Path.join(path, item), String.pad_trailing(item, width))
         end
         print_table(sorted_items, printer)
 
