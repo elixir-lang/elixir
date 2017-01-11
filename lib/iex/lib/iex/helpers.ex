@@ -552,7 +552,7 @@ defmodule IEx.Helpers do
   end
 
   @doc """
-  Returns a list of the given directory's contents.
+  Prints a list of the given directory's contents.
 
   If `path` points to a file, prints its full path.
   """
