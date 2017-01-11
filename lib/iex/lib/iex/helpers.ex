@@ -534,10 +534,11 @@ defmodule IEx.Helpers do
   end
 
   @doc """
-  Returns a list of all the functions and macros exported by the given module.
+  Prints a list of all the functions and macros exported by the given module.
   """
   def e(module \\ Kernel) do
     IEx.Autocomplete.exports(module) |> print_exports()
+    dont_display_result()
   end
 
   defp print_exports(functions) do
