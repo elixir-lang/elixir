@@ -27,6 +27,7 @@ defmodule IEx.Helpers do
     * `c/2`         - compiles a file to the given path
     * `cd/1`        - changes the current directory
     * `clear/0`     - clears the screen
+    * `e/1`         - show all exports (functions + macros) in a module
     * `flush/0`     - flushes all messages sent to the shell
     * `h/0`         - prints this help message
     * `h/1`         - prints help for the given module, function or macro
@@ -48,8 +49,12 @@ defmodule IEx.Helpers do
 
       iex> h(v/0)
 
-  To learn about all IEx helpers, see `IEx.Helpers`. To learn more
-  about IEx as a whole, type `h(IEx)`.
+  To list all IEx helpers available, which is effectively all
+  exports (functions and macros) in the `IEx.Helpers` module:
+
+      iex> e(IEx.Helpers)
+
+  To learn more about IEx as a whole, type `h(IEx)`.
   """
 
   import IEx, only: [dont_display_result: 0]
