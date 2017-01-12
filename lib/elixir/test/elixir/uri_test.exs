@@ -216,7 +216,7 @@ defmodule URITest do
     assert URI.default_port("unknown") == 13
   end
 
-  test "to_stirng/1 and Kernel.to_string/1" do
+  test "to_string/1 and Kernel.to_string/1" do
     assert to_string(URI.parse("http://google.com")) == "http://google.com"
     assert to_string(URI.parse("http://google.com:443")) == "http://google.com:443"
     assert to_string(URI.parse("https://google.com:443")) == "https://google.com"
