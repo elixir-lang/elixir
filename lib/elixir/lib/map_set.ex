@@ -63,6 +63,8 @@ defmodule MapSet do
 
   """
   @spec new(Enum.t) :: t
+  def new(enumerable)
+
   def new(%__MODULE__{} = mapset), do: mapset
   def new(enumerable) do
     map =
