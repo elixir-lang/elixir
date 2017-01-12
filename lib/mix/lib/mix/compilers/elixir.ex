@@ -32,16 +32,17 @@ defmodule Mix.Compilers.Elixir do
     # change to files are still picked up by the compiler. This
     # timestamp is used when writing BEAM files and the manifest.
     timestamp = :calendar.universal_time()
-    all_paths = Mix.Utils.extract_files(srcs, [:ex])
-    |> MapSet.new
+    all_paths = MapSet.new(Mix.Utils.extract_files(srcs, [:ex]))
 
     {all_modules, all_sources} = parse_manifest(manifest, dest)
     modified = Mix.Utils.last_modified(manifest)
-    prev_sources_paths =
+    prev_paths =
       for source(source: source) <- all_sources, into: MapSet.new(), do: source
 
-    removed = MapSet.difference(prev_sources_paths, all_paths)
-    |> MapSet.to_list
+    removed =
+      prev_paths
+      |> MapSet.difference(all_paths)
+      |> MapSet.to_list
 
     changed =
       if force do
@@ -52,14 +53,16 @@ defmodule Mix.Compilers.Elixir do
         sources_mtimes = mtimes(all_sources)
 
         # Otherwise let's start with the new sources
-        new_paths = MapSet.difference(all_paths, prev_sources_paths)
-        |> MapSet.to_list
+        new_paths =
+          all_paths
+          |> MapSet.difference(prev_paths)
+          |> MapSet.to_list
         # Plus the sources that have changed in disk
-        changed_mtime = for(source(source: source, external: external) <- all_sources,
+        for(source(source: source, external: external) <- all_sources,
             times = Enum.map([source | external], &Map.fetch!(sources_mtimes, &1)),
             Mix.Utils.stale?(times, [modified]),
+            into: new_paths,
             do: source)
-        new_paths ++ changed_mtime
       end
 
     {modules, changed} =
