@@ -165,7 +165,7 @@ defmodule String.Unicode do
       next_prepend_size(rest, size + unquote(byte_size(codepoint)))
     end
   end
-  
+
   defp next_prepend_size(rest, size) do
     {size, rest}
   end
