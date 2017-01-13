@@ -23,7 +23,7 @@ defmodule IEx.Autocomplete do
         no()
     end
   end
-  
+
   @doc false
   def exports(mod) do
     if function_exported?(mod, :__info__, 1) do
