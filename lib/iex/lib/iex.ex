@@ -450,7 +450,7 @@ defmodule IEx do
       Interactive Elixir - press Ctrl+C to exit (type h() ENTER for help)
 
   Setting variables or importing modules in IEx does not
-  affect the caller the environment (hence it is called `pry`).
+  affect the caller's environment (hence it is called `pry`).
   """
   defmacro pry(timeout \\ 5000) do
     quote do
