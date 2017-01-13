@@ -430,12 +430,17 @@ defmodule GenServer do
   `reason` is exit reason and `state` is the current state of the `GenServer`.
   The return value is ignored.
 
-  `c:terminate/2` is called if a callback (except `c:init/1`) returns a `:stop`
-  tuple, raises, calls `Kernel.exit/1` or returns an invalid value. It may also
-  be called if the `GenServer` traps exits using `Process.flag/2` *and* the
-  parent process sends an exit signal.
+  `c:terminate/2` is called if a callback (except `c:init/1`) does one of the
+  following:
 
-  If part of a supervision tree a `GenServer`'s `Supervisor` will send an exit
+    * returns a `:stop` tuple
+    * raises
+    * calls `Kernel.exit/1`
+    * returns an invalid value
+    * the `GenServer` traps exits (using `Process.flag/2`) *and* the parent
+      process sends an exit signal
+
+  If part of a supervision tree, a `GenServer`'s `Supervisor` will send an exit
   signal when shutting it down. The exit signal is based on the shutdown
   strategy in the child's specification. If it is `:brutal_kill` the `GenServer`
   is killed and so `c:terminate/2` is not called. However if it is a timeout the
@@ -456,7 +461,7 @@ defmodule GenServer do
   `:gen_tcp.socket`) or `t:File.io_device/0`, they will be closed on receiving a
   `GenServer`'s exit signal and do not need to be closed in `c:terminate/2`.
 
-  If `reason` is not `:normal`, `:shutdown` nor `{:shutdown, term}` an error is
+  If `reason` is not `:normal`, `:shutdown`, nor `{:shutdown, term}` an error is
   logged.
   """
   @callback terminate(reason, state :: term) ::
