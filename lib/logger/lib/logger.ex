@@ -24,7 +24,7 @@ defmodule Logger do
 
       def delete_user(user) do
         Logger.info fn ->
-          "Deleting user from the system: #{user}"
+          "Deleting user from the system: #{inspect(user)}"
         end
         # ...
       end
