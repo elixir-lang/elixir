@@ -20,13 +20,11 @@ defmodule Logger do
       overflowing.
 
   Logging is useful for tracking when an event of interest happens in your
-  system. For example, logging incoming synchronous calls in a `GenServer`
-  behaviour can provide valuable insight.
+  system. For example, it may be helpful to log whenever a user is deleted.
 
-      def handle_call(request, from, state) do
+      def delete_user(user) do
         Logger.info fn ->
-          "handle_call/3: #{inspect request} request received " <>
-          "from #{inspect from} with state #{inspect state}."
+          "Deleting user from the system: #{user}"
         end
         # ...
       end
