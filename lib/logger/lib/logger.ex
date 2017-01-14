@@ -19,6 +19,27 @@ defmodule Logger do
     * Wraps OTP's `error_logger` to prevent it from
       overflowing.
 
+  A common use case is tracking when an important function is called.
+
+      def solve(problem) do
+        Logger.info fn ->
+          "solve/1 called with problem #{inspect problem}"
+        end
+        solve(problem, [])
+      end
+
+  The `Logger.info/2` macro emits the provided message at the `:info`
+  level. There are additional macros for other levels. Refer to the `:level` and
+  `:compile_time_purge_level` configuration options for more details on how
+  levels work.
+
+  Notice the argument passed to `Logger.info` in the above example is a zero
+  argument function. Although the `Logger` macros accept strings which aren't
+  wrapped in functions, it's not recommended in this case. Calling `"... #{inspect
+  problem}"` without wrapping it in a zero argument function will hurt
+  performance, even when then `:info` level is blocked by the configured runtime
+  logging level.
+
   ## Levels
 
   The supported levels are:
@@ -83,12 +104,14 @@ defmodule Logger do
   `config/config.exs`) but also changed dynamically during runtime via
   `Logger.configure/1`.
 
-    * `:level` - the logging level. Attempting to log any message
-      with severity less than the configured level will simply
-      cause the message to be ignored. Keep in mind that each backend
-      may have its specific level, too. Note that, unlike what happens with the
-      `:compile_time_purge_level` option, the argument passed to `Logger` calls
-      is evaluated even if the level of the call is lower than `:level`.
+    * `:level` - the logging level. Attempting to log any message with severity
+      less than the configured level will simply cause the message to be
+      ignored. Keep in mind that each backend may have its specific level,
+      too. Note that, unlike what happens with the `:compile_time_purge_level`
+      option, the argument passed to `Logger` calls is evaluated even if the
+      level of the call is lower than `:level`. For expensive to compute
+      messages it's a good idea to wrap them in a zero argument function, so the
+      computation only occurs when this option demands it.
 
     * `:utc_log` - when `true`, uses UTC in logs. By default it uses
       local time (i.e., it defaults to `false`).
