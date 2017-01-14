@@ -931,6 +931,35 @@ defmodule Enum do
   end
 
   @doc """
+  Finds the first element in the enumerable that return true
+  for the finder function and updates it with the updater function.
+
+  ## Examples
+
+      iex> Enum.find_and_update([1, 2, 3, 4], fn(x) -> rem(x, 2) == 0 end, &(&1 * 2))
+      [1, 4, 3, 4]
+
+  """
+  @spec find_and_update(t, (element -> as_boolean(term)),
+    (element -> element)) :: list
+  def find_and_update(enumerable, finder, updater)
+
+  def find_and_update(enumerable, finder, updater)
+      when is_list(enumerable) and is_function(finder, 1) and is_function(updater, 1) do
+    case find_index(enumerable, finder) do
+      nil -> enumerable
+      index -> List.replace_at(enumerable, index, updater.(at(enumerable, index)))
+    end
+  end
+
+  def find_and_update(enumerable, finder, updater)
+      when is_function(finder, 1) and is_function(updater, 1) do
+    enumerable
+    |> to_list
+    |> find_and_update(finder, updater)
+  end
+
+  @doc """
   Returns a new enumerable appending the result of invoking `fun` on
   each corresponding item of `enumerable`.
 

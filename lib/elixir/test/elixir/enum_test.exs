@@ -226,6 +226,13 @@ defmodule EnumTest do
     assert Enum.find_value([2, 3, 4], fn(x) -> rem(x, 2) == 1 end)
   end
 
+  test "find_and_update/3" do
+    assert Enum.find_and_update([1, 2, 3, 4], fn(x) -> rem(x, 2) == 0 end, &(&1 * 2)) == [1, 4, 3, 4]
+    assert Enum.find_and_update(1..4, fn(x) -> rem(x, 2) == 0 end, &(&1 * 2)) == [1, 4, 3, 4]
+    assert Enum.find_and_update([1, 2, 3, 4], fn(x) -> x > 5 end, &(&1 * 2)) == [1, 2, 3, 4]
+    assert Enum.find_and_update(["Hi", "There"], fn(x) -> String.length(x) > 3 end,  &(String.downcase(&1))) == ["Hi", "there"]
+  end
+
   test "flat_map/2" do
     assert Enum.flat_map([], fn(x) -> [x, x] end) == []
     assert Enum.flat_map([1, 2, 3], fn(x) -> [x, x] end) == [1, 1, 2, 2, 3, 3]
