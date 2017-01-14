@@ -190,6 +190,11 @@ extract_assoc_update([{'|', _Meta, [Update, Args]}], S) ->
   {Args, TArg, SA};
 extract_assoc_update(Args, SA) -> {Args, nil, SA}.
 
+extract_key_val_op(_TUpdate, #elixir_scope{extra=map_key}) ->
+  {map_field_assoc,
+    fun(X, Acc) -> elixir_translator:translate(X, Acc#elixir_scope{extra=map_key}) end,
+    fun elixir_translator:translate/2};
+
 extract_key_val_op(_TUpdate, #elixir_scope{context=match}) ->
   {map_field_exact,
     fun(X, Acc) -> elixir_translator:translate(X, Acc#elixir_scope{extra=map_key}) end,
