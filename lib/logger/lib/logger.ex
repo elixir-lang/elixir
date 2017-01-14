@@ -19,26 +19,31 @@ defmodule Logger do
     * Wraps OTP's `error_logger` to prevent it from
       overflowing.
 
-  A common use case is tracking when an important function is called.
+  Logging is useful for tracking when an event of interest happens in your
+  system. For example, logging incoming synchronous calls in a `GenServer`
+  behaviour can provide valuable insight.
 
-      def solve(problem) do
+      def handle_call(request, from, state) do
         Logger.info fn ->
-          "solve/1 called with problem #{inspect problem}"
+          "handle_call/3: #{inspect request} request received " <>
+          "from #{inspect from} with state #{inspect state}."
         end
-        solve(problem, [])
+        # ...
       end
 
   The `Logger.info/2` macro emits the provided message at the `:info`
-  level. There are additional macros for other levels. Refer to the `:level` and
-  `:compile_time_purge_level` configuration options for more details on how
-  levels work.
+  level. There are additional macros for other levels. Notice the argument
+  passed to `Logger.info` in the above example is a zero argument function.
 
-  Notice the argument passed to `Logger.info` in the above example is a zero
-  argument function. Although the `Logger` macros accept strings which aren't
-  wrapped in functions, it's not recommended in this case. Calling `"... #{inspect
-  problem}"` without wrapping it in a zero argument function will hurt
-  performance, even when then `:info` level is blocked by the configured runtime
-  logging level.
+  Although the Logger macros accept messages as strings as well as functions,
+  it's recommended to use functions whenever the message is expensive to
+  compute. In the example above, the message will be evaluated (and thus the
+  interpolation inside it) whatever the level is, even if the message will not
+  be actually logged at runtime; the only way of avoiding evaluation of such
+  message is purging the log call at compile-time through the
+  `:compile_time_purge_level` option (see below), or using a function that is
+  evaluated to generate the message only if the message needs to be logged
+  according to the runtime level.
 
   ## Levels
 
@@ -104,14 +109,15 @@ defmodule Logger do
   `config/config.exs`) but also changed dynamically during runtime via
   `Logger.configure/1`.
 
-    * `:level` - the logging level. Attempting to log any message with severity
-      less than the configured level will simply cause the message to be
-      ignored. Keep in mind that each backend may have its specific level,
-      too. Note that, unlike what happens with the `:compile_time_purge_level`
-      option, the argument passed to `Logger` calls is evaluated even if the
-      level of the call is lower than `:level`. For expensive to compute
-      messages it's a good idea to wrap them in a zero argument function, so the
-      computation only occurs when this option demands it.
+    * `:level` - the logging level. Attempting to log any message
+      with severity less than the configured level will simply
+      cause the message to be ignored. Keep in mind that each backend
+      may have its specific level, too. Note that, unlike what happens with the
+      `:compile_time_purge_level` option, the argument passed to `Logger` calls
+      is evaluated even if the level of the call is lower than
+      `:level`. For this reason, messages that are expensive to
+      compute should be wrapped in 0-arity anonymous functions that are
+      evaluated only when the `:label` option demands it.
 
     * `:utc_log` - when `true`, uses UTC in logs. By default it uses
       local time (i.e., it defaults to `false`).
