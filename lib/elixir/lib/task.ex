@@ -285,7 +285,7 @@ defmodule Task do
   Returns a stream that runs the given `module`, `function` and `args`
   concurrently on each item in `enumerable`.
 
-  Each item will be appended to the given `args` and processed by its
+  Each item will be prepended to the given `args` and processed by its
   own task. The tasks will be linked to an intermediate process that is
   then linked to the current process. This means a failure in a task
   terminates the current process and a failure in the current process
