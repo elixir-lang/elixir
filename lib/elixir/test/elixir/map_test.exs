@@ -39,6 +39,11 @@ defmodule MapTest do
     assert %{(try do 1 else a -> a end) => 1} == %{1 => 1}
   end
 
+  test "matching with map as a key" do
+    assert %{%{1 => 2} => x} = %{%{1 => 2} => 3}
+    assert x == 3
+  end
+
   test "is_map/1" do
     assert is_map(Map.new)
     refute is_map(Enum.to_list(%{}))
