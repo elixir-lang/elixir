@@ -526,7 +526,7 @@ defmodule System do
   Internally, this function uses a `Port` for interacting with the
   outside world. However, if you plan to run a long-running program,
   ports guarantee stdin/stdout devices will be closed but it does not
-  automatically terminate the problem. The documentation for the
+  automatically terminate the program. The documentation for the
   `Port` module describes this problem and possible solutions under
   the "Zombie processes" section.
 
