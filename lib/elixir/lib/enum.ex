@@ -931,11 +931,11 @@ defmodule Enum do
   end
 
   @doc """
-  Returns a new enumerable appending the result of invoking `fun` on
-  each corresponding item of `enumerable` and flattening
-  the given results (only one level deep).
+  Maps the given `fun` over `enumerable` and flattens the result.
 
-  The given function must return an enumerable.
+  This function returns a new enumerable built by appending the result of invoking `fun`
+  on each element of `enumerable` together; conceptually, this is similar to a
+  combination of `map/3` and `concat/1`.
 
   ## Examples
 
