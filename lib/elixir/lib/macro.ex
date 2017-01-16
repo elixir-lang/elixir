@@ -1260,27 +1260,24 @@ defmodule Macro do
     do: camelize(t)
 
   def camelize(<<h, t::binary>>),
-    do: <<to_upper_char(h)>> <> do_camelize(t)
+    do: <<to_upper_char(h)>> <> do_camelize(t, h)
 
-  defp do_camelize(<<?_, ?_, t::binary>>),
-    do: do_camelize(<<?_, t::binary >>)
+  defp do_camelize(<<?_, t::binary>>, _),
+    do: do_camelize(t, ?_)
 
-  defp do_camelize(<<?_, h, t::binary>>) when h >= ?a and h <= ?z,
-    do: <<to_upper_char(h)>> <> do_camelize(t)
+  defp do_camelize(<<h, t::binary>>, prev) when prev >= ?a and prev <= ?z and h >= ?A and h <= ?Z,
+    do: <<h>> <> do_camelize(t, h)
 
-  defp do_camelize(<<?_, h, t::binary>>) when h >= ?0 and h <= ?9,
-    do: <<h>> <> do_camelize(t)
+  defp do_camelize(<<h, t::binary>>, prev) when prev == ?_ or prev == ?.,
+    do: <<to_upper_char(h)>> <> do_camelize(t, h)
 
-  defp do_camelize(<<?_>>),
-    do: <<>>
+  defp do_camelize(<<?/, t::binary>>, _),
+    do: <<?.>> <> do_camelize(t, ?.)
 
-  defp do_camelize(<<?/, t::binary>>),
-    do: <<?.>> <> camelize(t)
+  defp do_camelize(<<h, t::binary>>, _),
+    do: <<to_lower_char(h)>> <> do_camelize(t, h)
 
-  defp do_camelize(<<h, t::binary>>),
-    do: <<h>> <> do_camelize(t)
-
-  defp do_camelize(<<>>),
+  defp do_camelize(<<>>, _),
     do: <<>>
 
   defp to_upper_char(char) when char >= ?a and char <= ?z, do: char - 32
