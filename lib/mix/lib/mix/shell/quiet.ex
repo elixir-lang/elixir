@@ -40,7 +40,7 @@ defmodule Mix.Shell.Quiet do
   @doc """
   Receives a message and asks the user if they want to proceed.
   The user must press enter or type anything that matches the "yes"
-  regex `~r/^Y(es)?$/i`.
+  regex `~r/^(Y(es)?)?$/i`.
   """
   defdelegate yes?(message), to: Mix.Shell.IO
 end
