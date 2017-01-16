@@ -1263,16 +1263,13 @@ defmodule Macro do
     do: <<to_upper_char(h)>> <> do_camelize(t, h)
 
   defp do_camelize(<<?_, t::binary>>, _),
-    do: do_camelize(t, ?_)
+    do: camelize(t)
+
+  defp do_camelize(<<?/, t::binary>>, _),
+    do: <<?.>> <> camelize(t)
 
   defp do_camelize(<<h, t::binary>>, prev) when prev >= ?a and prev <= ?z and h >= ?A and h <= ?Z,
     do: <<h>> <> do_camelize(t, h)
-
-  defp do_camelize(<<h, t::binary>>, prev) when prev == ?_ or prev == ?.,
-    do: <<to_upper_char(h)>> <> do_camelize(t, h)
-
-  defp do_camelize(<<?/, t::binary>>, _),
-    do: <<?.>> <> do_camelize(t, ?.)
 
   defp do_camelize(<<h, t::binary>>, _),
     do: <<to_lower_char(h)>> <> do_camelize(t, h)
