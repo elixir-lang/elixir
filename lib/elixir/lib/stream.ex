@@ -365,8 +365,7 @@ defmodule Stream do
   Maps the given `fun` over `enumerable` and flattens the result.
 
   This function returns a new stream built by appending the result of invoking `fun`
-  on each element of `enumerable` together; conceptually, this is similar to a
-  combination of `map/3` and `Enum.concat/1`.
+  on each element of `enumerable` together.
 
   ## Examples
 
