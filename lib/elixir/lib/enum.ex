@@ -933,7 +933,7 @@ defmodule Enum do
   @doc """
   Returns a new enumerable appending the result of invoking `fun` on
   each corresponding item of `enumerable` and flattening
-  the given results (only one level deep)..
+  the given results (only one level deep).
 
   The given function must return an enumerable.
 
