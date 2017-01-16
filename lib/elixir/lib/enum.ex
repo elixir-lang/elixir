@@ -935,7 +935,7 @@ defmodule Enum do
 
   This function returns a new enumerable built by appending the result of invoking `fun`
   on each element of `enumerable` together; conceptually, this is similar to a
-  combination of `map/3` and `concat/1`.
+  combination of `map/2` and `concat/1`.
 
   ## Examples
 
