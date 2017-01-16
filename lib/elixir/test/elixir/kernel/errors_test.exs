@@ -223,7 +223,8 @@ defmodule Kernel.ErrorsTest do
 
   test "invalid match pattern" do
     assert_compile_fail CompileError,
-    "nofile:2: invalid pattern in match",
+    "nofile:2: invalid pattern in match: Patterns may not be functions. " <>
+      "If you want complex conditions evaluate them outside of the case",
     '''
     case true do
       true && true -> true
