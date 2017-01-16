@@ -362,8 +362,11 @@ defmodule Stream do
   end
 
   @doc """
-  Creates a stream that will apply the given function on enumeration and
-  flatten the result, but only one level deep.
+  Maps the given `fun` over `enumerable` and flattens the result.
+
+  This function returns a new stream built by appending the result of invoking `fun`
+  on each element of `enumerable` together; conceptually, this is similar to a
+  combination of `map/3` and `Enum.concat/1`.
 
   ## Examples
 
