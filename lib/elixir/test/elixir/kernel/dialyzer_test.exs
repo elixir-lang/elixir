@@ -24,8 +24,8 @@ defmodule Kernel.DialyzerTest do
     # Add a few key Elixir modules for types and macro functions
     mods = [Kernel, String, Keyword, Exception, Macro, Macro.Env, :elixir_env]
     files = Enum.map(mods, &:code.which/1)
-    :dialyzer.run([analysis_type: :plt_build, output_plt: plt,
-                   apps: [:erts], files: files])
+    dialyzer_run([analysis_type: :plt_build, output_plt: plt,
+                  apps: [:erts], files: files])
 
     # Compile Dialyzer fixtures
     assert '' = elixirc("#{fixture_path("dialyzer")} -o #{dir}")
@@ -99,11 +99,20 @@ defmodule Kernel.DialyzerTest do
   end
 
   defp assert_dialyze_no_warnings!(context) do
-    case :dialyzer.run(context[:dialyzer]) do
+    case dialyzer_run(context[:dialyzer]) do
       [] ->
         :ok
       warnings ->
         flunk IO.chardata_to_string(for warn <- warnings, do: [:dialyzer.format_warning(warn), ?\n])
+    end
+  end
+
+  defp dialyzer_run(opts) do
+    try do
+      :dialyzer.run(opts)
+    catch
+      :throw, {:dialyzer_error, chardata} ->
+        raise "dialyzer error: " <> IO.chardata_to_string(chardata)
     end
   end
 end
