@@ -240,8 +240,12 @@ defmodule Mix.Tasks.Xref do
   end
 
   defp format_warning(file, {lines, :unknown_module, module, function, arity, _}) do
-    ["function ", Exception.format_mfa(module, function, arity),
-     " is undefined (module #{inspect module} is not available)\n" | format_file_lines(file, lines)]
+    message =
+      [module: module, function: function, arity: arity, reason: :"module could not be loaded"]
+      |> UndefinedFunctionError.exception()
+      |> Exception.message()
+
+    [message, "\n" | format_file_lines(file, lines)]
   end
 
   defp format_file_lines(file, [line]) do

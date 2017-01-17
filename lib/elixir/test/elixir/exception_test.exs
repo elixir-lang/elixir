@@ -387,6 +387,13 @@ defmodule ExceptionTest do
                  * get_cookie/0
                  * set_cookie/2
            """
+    assert %UndefinedFunctionError{module: Genserver, function: :start_link, arity: 3} |> message == """
+           function Genserver.start_link/3 is undefined (module Genserver is not available). Did you mean:
+
+                 * GenServer.start_link/3
+           """
+    assert %UndefinedFunctionError{module: Genserver, function: :start_link, arity: 1} |> message ==
+           "function Genserver.start_link/1 is undefined (module Genserver is not available). Did you mean GenServer?"
   end
 
   test "UndefinedFunctionError when the mfa is a macro but require wasn't called" do

@@ -640,8 +640,26 @@ defmodule UndefinedFunctionError do
   end
 
   def message(%{reason: :"module could not be loaded", module: module, function: function, arity: arity}) do
+    suffix =
+      case :code.get_object_code(module) do
+        {_, _, path} ->
+          case :beam_lib.info(path) do
+            info when is_list(info) ->
+              alt_module = Keyword.get(info, :module)
+              exports = exports_for(alt_module)
+              if {function, arity} in exports do
+                ". Did you mean:\n\n      * " <>
+                  Exception.format_mfa(alt_module, function, arity) <> "\n"
+              else
+                ". Did you mean #{inspect alt_module}?"
+              end
+            _ -> ""
+          end
+        _ -> ""
+      end
     "function " <> Exception.format_mfa(module, function, arity) <>
-      " is undefined (module #{inspect module} is not available)"
+      " is undefined (module #{inspect module} is not available)" <>
+      suffix
   end
 
   def message(%{reason: :"function not exported",  module: module, function: function, arity: arity, exports: exports}) do
