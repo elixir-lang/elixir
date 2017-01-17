@@ -223,7 +223,7 @@ defmodule Kernel.ErrorsTest do
 
   test "invalid match pattern" do
     assert_compile_fail CompileError,
-    "nofile:2: invalid pattern matching: Patterns cannot contain evaluations",
+    "nofile:2: invalid pattern matching: Patterns cannot contain expressions",
     '''
     case true do
       true && true -> true

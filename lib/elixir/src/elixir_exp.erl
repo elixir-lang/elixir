@@ -684,7 +684,7 @@ assert_no_match_or_guard_scope(Meta, Kind, E) ->
   assert_no_match_scope(Meta, Kind, E),
   assert_no_guard_scope(Meta, Kind, E).
 assert_no_match_scope(Meta, _Kind, #{context := match, file := File}) ->
-  compile_error(Meta, File, "invalid pattern matching: Patterns cannot contain evaluations");
+  compile_error(Meta, File, "invalid pattern matching: Patterns cannot contain expressions");
 assert_no_match_scope(_Meta, _Kind, _E) -> [].
 assert_no_guard_scope(Meta, _Kind, #{context := guard, file := File}) ->
   compile_error(Meta, File, "invalid expression in guard");
