@@ -925,6 +925,22 @@ defmodule Kernel.ErrorsTest do
       'case [] do; [] when Hello.something_that_does_not_exist == [] -> :ok; end'
   end
 
+  test "invalid :erlang call on match" do
+    assert_compile_fail CompileError,
+      "nofile:1: cannot invoke remote function :erlang.make_ref/0 inside match",
+      'case [] do; :erlang.make_ref() -> :ok; end'
+
+    assert_compile_fail CompileError,
+      "nofile:1: cannot invoke remote function :erlang.self/0 inside match",
+      'case [] do; self() -> :ok; end'
+  end
+
+  test "invalid :erlang call on guard" do
+    assert_compile_fail CompileError,
+      "nofile:1: cannot invoke remote function :erlang.make_ref/0 inside match",
+      'case [] do; :erlang.make_ref() -> :ok; end'
+  end
+
   test "typespec errors" do
     assert_compile_fail CompileError,
       "nofile:2: type foo() undefined",
