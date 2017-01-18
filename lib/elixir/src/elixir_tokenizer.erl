@@ -557,7 +557,7 @@ handle_dot([$., T1, T2 | Rest], Line, Column, DotColumn, Scope, Tokens) when
 % ## Single Token Operators
 handle_dot([$., T | Rest], Line, Column, DotColumn, Scope, Tokens) when
     ?at_op(T); ?unary_op(T); ?capture_op(T); ?dual_op(T); ?mult_op(T);
-    ?rel_op(T); ?match_op(T); ?pipe_op(T); T == $% ->
+    ?rel_op(T); ?match_op(T); ?pipe_op(T) ->
   handle_call_identifier(Rest, Line, Column + 1, DotColumn, 1, list_to_atom([T]), Scope, Tokens);
 
 % ## Exception for .( as it needs to be treated specially in the parser
