@@ -49,6 +49,29 @@ defmodule GenServer.Loop do
     loop(parent, dbg, mod, state, await)
   end
 
+  def system_get_state({_, state, _}) do
+    {:ok, state}
+  end
+
+  def system_replace_state(replace, {mod, state, await}) do
+    state = replace.(state)
+    {:ok, state, {mod, state, await}}
+  end
+
+  def system_code_change({mod, state, await}, _, oldvsn, extra) do
+    try do
+      apply(mod, :code_change, [oldvsn, state, extra])
+    catch
+      :throw, value ->
+        :erlang.raise(:error, {:nocatch, value}, System.stacktrace())
+    else
+      {:ok, state} ->
+        {:ok, {mod, state, await}}
+    end
+  end
+
+  # TODO: add format_status/2 for :sys.get_status
+
   def system_terminate(reason, _, _, {mod, state, _}) do
     try do
       throw(:terminate)
@@ -92,6 +115,7 @@ defmodule GenServer.Loop do
   defp loop(parent, dbg, mod, state, timeout) do
     receive do
       msg ->
+        # TODO: handle events with dbg
         handle(msg, parent, dbg, mod, state, timeout)
     after
       timeout ->
@@ -209,6 +233,7 @@ defmodule GenServer.Loop do
   end
 
   defp log_exit(exit_reason, log_reason, msg, state) do
+    # TODO: log dbg events
     format = '** Generic server ~p terminating~n' ++
              '** Last message in was ~p~n' ++
              '** When Server state == ~p~n' ++
