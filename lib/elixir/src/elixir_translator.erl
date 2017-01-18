@@ -436,7 +436,7 @@ assert_function_scope(_Meta, _Kind, #elixir_scope{function=Function}) -> Functio
 
 assert_allowed_in_context(Meta, Left, Right, Arity, #elixir_scope{context=Context} = S)
     when (Context == match) orelse (Context == guard) ->
-  case (Left == erlang) andalso erl_internal:guard_bif(Right, Arity) of
+  case (Left == erlang) andalso is_erlang_allowed(Context, Right, Arity) of
     true  -> ok;
     false ->
       compile_error(Meta, S#elixir_scope.file, "cannot invoke remote function ~ts.~ts/~B inside ~ts",
@@ -444,3 +444,8 @@ assert_allowed_in_context(Meta, Left, Right, Arity, #elixir_scope{context=Contex
   end;
 assert_allowed_in_context(_, _, _, _, _) ->
   ok.
+
+is_erlang_allowed(match, Right, Arity) ->
+  erl_internal:arith_op(Right, Arity);
+is_erlang_allowed(guard, Right, Arity) ->
+  erl_internal:guard_bif(Right, Arity).
