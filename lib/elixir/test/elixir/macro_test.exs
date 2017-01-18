@@ -677,6 +677,7 @@ defmodule MacroTest do
     assert Macro.underscore("FooBar") == "foo_bar"
     assert Macro.underscore("FOOBar") == "foo_bar"
     assert Macro.underscore("FooBAR") == "foo_bar"
+    assert Macro.underscore("FOO_BAR") == "foo_bar"
     assert Macro.underscore("FoBaZa") == "fo_ba_za"
     assert Macro.underscore("Foo10") == "foo10"
     assert Macro.underscore("10Foo") == "10_foo"
