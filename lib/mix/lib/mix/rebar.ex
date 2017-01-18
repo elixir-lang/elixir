@@ -218,16 +218,14 @@ defmodule Mix.Rebar do
     [fun.(config) | subs]
   end
 
+  # Translate a rebar dependency declaration to a mix declaration
+  # From http://www.rebar3.org/docs/dependencies#section-declaring-dependencies
   defp parse_dep(app) when is_atom(app) do
     {app, ">= 0.0.0"}
   end
 
   defp parse_dep({app, req}) when is_list(req) do
     {app, List.to_string(req)}
-  end
-
-  defp parse_dep({app, req, {:pkg, package}}) when is_list(req) do
-    {app, List.to_string(req), hex: package}
   end
 
   defp parse_dep({app, source}) when is_tuple(source) do
@@ -239,25 +237,33 @@ defmodule Mix.Rebar do
   end
 
   defp parse_dep({app, req, source, opts}) do
-    [scm, url | source] = Tuple.to_list(source)
-
-    ref =
-      case source do
-        ["" | _]                -> [branch: "HEAD"]
-        [{:branch, branch} | _] -> [branch: to_string(branch)]
-        [{:tag, tag} | _]       -> [tag: to_string(tag)]
-        [{:ref, ref} | _]       -> [ref: to_string(ref)]
-        [ref | _]               -> [ref: to_string(ref)]
-        _                       -> []
-      end
+    source = parse_source(source)
 
     compile =
       if :proplists.get_value(:raw, opts, false),
         do: [compile: false],
         else: []
 
-    mix_opts = [{scm, to_string(url)}] ++ ref ++ compile
-    {app, compile_req(req), mix_opts}
+    {app, compile_req(req), source ++ compile}
+  end
+
+  defp parse_source({:pkg, pkg}) do
+    [hex: pkg]
+  end
+  defp parse_source(source) do
+    [scm, url | source] = Tuple.to_list(source)
+
+    ref =
+      case source do
+        ["" | _] -> [branch: "HEAD"]
+        [{:branch, branch} | _] -> [branch: to_string(branch)]
+        [{:tag, tag} | _] -> [tag: to_string(tag)]
+        [{:ref, ref} | _] -> [ref: to_string(ref)]
+        [ref | _] -> [ref: to_string(ref)]
+        _ -> []
+      end
+
+    [{scm, to_string(url)}] ++ ref
   end
 
   defp compile_req(nil) do
@@ -265,11 +271,18 @@ defmodule Mix.Rebar do
   end
 
   defp compile_req(req) do
-    case Regex.compile(List.to_string(req)) do
-      {:ok, re} ->
-        re
-      {:error, reason} ->
-        Mix.raise "Unable to compile version regex: #{inspect req}, #{reason}"
+    req = List.to_string(req)
+
+    case Version.parse_requirement(req) do
+      {:ok, _} ->
+        req
+      :error ->
+        case Regex.compile(req) do
+          {:ok, re} ->
+            re
+          {:error, reason} ->
+            Mix.raise "Unable to compile version regex: #{inspect req}, #{reason}"
+        end
     end
   end
 
