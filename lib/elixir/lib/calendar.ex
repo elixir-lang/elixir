@@ -25,6 +25,9 @@ defmodule Calendar do
   @typedoc "From 0 to 60 to account for leap seconds"
   @type second :: 0..60
 
+  @typedoc "From 1 to 7 where 1 is Monday and 7 is Sunday"
+  @type day_of_week :: 1..7
+
   @typedoc """
   Microseconds with stored precision.
 
@@ -53,6 +56,13 @@ defmodule Calendar do
   @typedoc "Any map/struct that contains the date fields"
   @type date :: %{optional(any) => any, calendar: calendar, year: year, month: month, day: day}
 
+  @typedoc """
+  An integer representing the number of days after a common epoch that
+  allows comparison between dates from different calendars and conversion of date
+  from one calendar to another
+  """
+  @type integer_date :: integer
+
   @typedoc "Any map/struct that contains the time fields"
   @type time :: %{optional(any) => any, hour: hour, minute: minute, second: second, microsecond: microsecond}
 
@@ -69,6 +79,36 @@ defmodule Calendar do
   Returns how many days there are in the given year-month.
   """
   @callback days_in_month(year, month) :: day
+
+  @doc """
+  Returns a date converted to an integer number of days since
+  an epoch common across all calendars.
+
+  A universal date is an integer representing a date that can
+  be directly compared with other dates from calendars that do
+  not share the same meaning of `{year, month, day}`.
+
+  For proleptic Gregorian calendars such as `Calendar.ISO` or
+  calendars that share the same meaning of `{year, month, day}`
+  the function `Calendar.ISO.to_universal_date/3` can act as
+  a delegate.
+  """
+  @callback to_integer_date(year, month, day | date | date_time | naive_date_time) :: integer
+
+  @doc """
+  Returns a date converted from an integer number of days since
+  an epoch common across all calendars.
+
+  A universal date is an integer representing a date that can
+  be directly compared with other dates from calendars that do
+  not share the same meaning of {year, month, day}.
+
+  For proleptic Gregorian calendars such as `Calendar.ISO` or
+  calendars that share the same meaning of `{year, month, day}`
+  the function `Calendar.ISO.from_universal_date/1` can act as
+  a delegate.
+  """
+  @callback from_integer_date(integer) :: date
 
   @doc """
   Returns true if the given year is a leap year.
@@ -191,6 +231,16 @@ defmodule Date do
   @spec days_in_month(Calendar.date) :: Calendar.day
   def days_in_month(%{calendar: calendar, year: year, month: month}) do
     calendar.days_in_month(year, month)
+  end
+
+  @doc """
+  Returns the number of days in a week.
+
+  Always returns 7 days in a week irrespective of the
+  calendar in use.
+  """
+  def days_in_a_week() do
+    7
   end
 
   @doc """
@@ -333,6 +383,12 @@ defmodule Date do
     {year, month, day}
   end
 
+  def to_erl(%{calendar: calendar, year: year, month: month, day: day}) do
+    calendar.to_universal_date(year, month, day)
+    |> Calendar.ISO.from_integer_date
+    |> to_erl
+  end
+
   @doc """
   Converts an Erlang date tuple to a `Date` struct.
 
@@ -403,6 +459,22 @@ defmodule Date do
   end
 
   @doc """
+  Return the difference in days between two dates
+
+  ## Examples
+
+      iex> Date.diff(~D[2016-12-31], ~D[2017-01-01])
+      1
+      iex> Date.diff(~D[2016-01-01], ~D[2016-12-31])
+      365
+
+  """
+  @spec diff(Calendar.date, Calendar.date) :: integer
+  def diff(%Date{calendar: calendar1} = date1, %Date{calendar: calendar2} = date2) do
+    calendar2.to_integer_date(date2) - calendar1.to_integer_date(date1)
+  end
+
+  @doc """
   Calculates the day of the week of a given `Date` struct.
 
   Returns the day of the week as an integer. For the ISO 8601
@@ -417,10 +489,271 @@ defmodule Date do
       2
       iex> Date.day_of_week(~N[2016-11-01 01:23:45])
       2
+
   """
-  @spec day_of_week(Calendar.date) :: non_neg_integer()
+  @spec day_of_week(Calendar.date | Calendar.integer_date) :: non_neg_integer()
   def day_of_week(%{calendar: calendar, year: year, month: month, day: day}) do
     calendar.day_of_week(year, month, day)
+  end
+
+  def day_of_week(date) when is_integer(date) do
+    Calendar.ISO.from_integer_date(date)
+    |> day_of_week
+  end
+
+  @doc """
+  Returns the integer date representation for a date in any calendar
+
+  ## Example
+
+      iex> Date.to_integer_date(~D[2017-01-01])
+      736330
+
+  """
+  def to_integer_date(%{calendar: calendar} = date) do
+    calendar.to_integer_date(date)
+  end
+
+  # K-day calculations
+
+  @doc """
+  Return the date of the `day_of_the_week` on or before the
+  specified `Date`.
+
+  ## Examples
+
+      iex> Date.kday_on_or_before ~D[2017-01-01], 7
+      ~D[2017-01-01]
+      iex> Date.kday_on_or_before ~D[2017-01-01], 1
+      ~D[2016-12-26]
+
+  """
+  @spec kday_on_or_before(Calendar.date | Calendar.integer_date, Calendar.day) :: Calendar.date | Calendar.integer_date
+  def kday_on_or_before(date, day_of_week) when is_integer(date) do
+    date - rem(day_of_week(date - day_of_week), 7)
+  end
+
+  def kday_on_or_before(%Date{calendar: calendar} = date, day_of_week) do
+    date
+    |> calendar.to_integer_date
+    |> kday_on_or_before(day_of_week)
+    |> calendar.from_integer_date
+  end
+
+  @doc """
+  Return the date of the `day_of_the_week` on or after the
+  specified `date`.
+
+  ## Examples
+
+      iex> Date.kday_on_or_after ~D[2017-01-01], 7
+      ~D[2017-01-01]
+      iex> Date.kday_on_or_after ~D[2017-01-01], 1
+      ~D[2017-01-02]
+
+  """
+  @spec kday_on_or_after(Calendar.date | Calendar.integer_date, Calendar.day) :: Calendar.date | Calendar.integer_date
+  def kday_on_or_after(date, day_of_week) when is_integer(date) do
+    kday_on_or_before(date + 6, day_of_week)
+  end
+
+  def kday_on_or_after(%Date{calendar: calendar} = date, day_of_week) do
+    date
+    |> calendar.to_integer_date
+    |> kday_on_or_after(day_of_week)
+    |> calendar.from_integer_date
+  end
+
+  @doc """
+  Return the date of the `day_of_the_week` nearest the
+  specified `date`.
+
+  ## Examples
+
+      iex> Date.kday_nearest ~D[2017-01-01], 7
+      ~D[2017-01-01]
+      iex> Date.kday_nearest ~D[2017-01-01], 6
+      ~D[2016-12-31]
+      iex> Date.kday_nearest ~D[2017-01-01], 5
+      ~D[2016-12-30]
+      iex> Date.kday_nearest ~D[2017-01-01], 1
+      ~D[2017-01-02]
+      iex> Date.kday_nearest ~D[2017-01-01], 2
+      ~D[2017-01-03]
+
+  """
+  @spec kday_nearest(Calendar.date | Calendar.integer_date, Calendar.day) :: Calendar.date | Calendar.integer_date
+  def kday_nearest(date, day_of_week) when is_integer(date) do
+    kday_on_or_before(date + 3, day_of_week)
+  end
+
+  def kday_nearest(%Date{calendar: calendar} = date, day_of_week) do
+    date
+    |> calendar.to_integer_date
+    |> kday_nearest(day_of_week)
+    |> calendar.from_integer_date
+  end
+
+  @doc """
+  Return the date of the `day_of_the_week` before the
+  specified `date`.
+
+  ## Examples
+
+      iex> Date.kday_before ~D[2017-01-01], 7
+      ~D[2016-12-25]
+      iex> Date.kday_before ~D[2017-01-01], 6
+      ~D[2016-12-31]
+
+  """
+  @spec kday_before(Calendar.date | Calendar.integer_date, Calendar.day_of_week) :: Calendar.date | Calendar.integer_date
+  def kday_before(date, day_of_week) when is_integer(date) do
+    kday_on_or_before(date - 1, day_of_week)
+  end
+
+  def kday_before(%Date{calendar: calendar} = date, day_of_week) do
+    date
+    |> calendar.to_integer_date
+    |> kday_before(day_of_week)
+    |> calendar.from_integer_date
+  end
+
+  @doc """
+  Return the date of the `day_of_the_week` after the
+  specified `date`.
+
+  ## Examples
+
+      iex> Date.kday_after ~D[2017-01-01], 7
+      ~D[2017-01-08]
+      iex> Date.kday_after ~D[2017-01-01], 6
+      ~D[2017-01-07]
+
+  """
+  @spec kday_after(Calendar.date | Calendar.integer_date, Calendar.day_of_week) :: Calendar.date | Calendar.integer_date
+  def kday_after(date, day_of_week) when is_integer(date) do
+    kday_on_or_before(date + 7, day_of_week)
+  end
+
+  def kday_after(%Date{calendar: calendar} = date, day_of_week) do
+    date
+    |> calendar.to_integer_date
+    |> kday_after(day_of_week)
+    |> calendar.from_integer_date
+  end
+
+  @doc """
+  Return the date of the `nth` `day_of_the_week` on or before/after the
+  specified `date`.
+
+  ## Examples
+
+      iex> Date.nth_kday ~D[2017-01-01], 1, 1
+      ~D[2017-01-02]
+      iex> Date.nth_kday ~D[2017-01-01], 2, 1
+      ~D[2017-01-09]
+
+  """
+  @spec nth_kday(Calendar.date | Calendar.integer_date, integer, Calendar.day_of_week) :: Calendar.date | Calendar.integer_date
+  def nth_kday(date, n, day_of_week) when is_integer(date) and n > 0 do
+    days_in_a_week() * n + kday_before(date, day_of_week)
+  end
+
+  def nth_kday(date, n, day_of_week) when is_integer(date) do
+    days_in_a_week() * n + kday_after(date, day_of_week)
+  end
+
+  def nth_kday(%Date{calendar: calendar} = date, n, day_of_week) do
+    date
+    |> calendar.to_integer_date
+    |> nth_kday(n, day_of_week)
+    |> calendar.from_integer_date
+  end
+
+  @doc """
+  Return the date of the first `day_of_the_week` on or after the
+  specified `date`.
+
+  ## Examples
+
+      iex> Date.first_kday ~D[2017-01-01], 1
+      ~D[2017-01-02]
+      iex> Date.first_kday ~D[2017-01-01], 5
+      ~D[2017-01-06]
+
+  """
+  @spec first_kday(Calendar.date | Calendar.integer_date, Calendar.day_of_week) :: Calendar.date | Calendar.integer_date
+  def first_kday(date, day_of_week) when is_integer(date) do
+    nth_kday(date, 1, day_of_week)
+  end
+
+  def first_kday(%Date{calendar: calendar} = date, day_of_week) do
+    date
+    |> calendar.to_integer_date
+    |> first_kday(day_of_week)
+    |> calendar.from_integer_date
+  end
+
+  @doc """
+  Return the date of the last `day_of_the_week` on or before the
+  specified `date`.
+
+  ## Examples
+
+      iex> Date.last_kday ~D[2017-01-01], 1
+      ~D[2016-12-26]
+      iex> Date.last_kday ~D[2017-01-01], 5
+      ~D[2016-12-30]
+
+  """
+  @spec last_kday(Calendar.date | Calendar.integer_date, Calendar.day_of_week) :: Calendar.date | Calendar.integer_date
+  def last_kday(date, day_of_week)  when is_integer(date)do
+    nth_kday(date, -1, day_of_week)
+  end
+
+  def last_kday(%Date{calendar: calendar} = date, day_of_week) do
+    date
+    |> calendar.to_integer_date
+    |> last_kday(day_of_week)
+    |> calendar.from_integer_date
+  end
+
+  @doc """
+  Returns the date of the next day after `date`
+
+  ## Examples
+
+      iex> Date.next ~D[2017-01-01]
+      ~D[2017-01-02]
+      iex> Date.next ~D[2017-02-28]
+      ~D[2017-03-01]
+      iex> Date.next ~D[2016-02-28]
+      ~D[2016-02-29]
+
+  """
+  def next(%Date{calendar: calendar} = date) do
+    date
+    |> calendar.to_integer_date
+    |> increment_by_one
+    |> calendar.from_integer_date
+  end
+
+  @doc """
+  Returns the date of the next day after `date`
+
+  ## Examples
+
+      iex> Date.previous ~D[2016-03-01]
+      ~D[2016-02-29]
+      iex> Date.previous ~D[2017-03-01]
+      ~D[2017-02-28]
+
+  """
+  def previous(%Date{calendar: calendar} = date) do
+    date
+    |> calendar.to_integer_date
+    |> decrement_by_one
+    |> calendar.from_integer_date
   end
 
   ## Helpers
@@ -440,6 +773,85 @@ defmodule Date do
       Inspect.Any.inspect(date, opts)
     end
   end
+
+  defp increment_by_one(integer_date) do
+    integer_date + 1
+  end
+
+  defp decrement_by_one(integer_date) do
+    integer_date - 1
+  end
+end
+
+defmodule DateRange do
+  defstruct first: nil, last: nil
+
+  def new(%{calendar: _, year: _, month: _, day: _} = date1, %{calendar: _, year: _, month: _, day: _} = date2) do
+    %__MODULE__{first: date1, last: date2}
+  end
+
+  defimpl Enumerable, for: DateRange do
+    def reduce(%DateRange{first: %{calendar: calendar1} = first, last: %{calendar: calendar2} = last}, acc, fun) do
+      last  = calendar1.to_integer_date(last)
+      first = calendar2.to_integer_date(first)
+      reduce(first, last, acc, fun, last >= first)
+    end
+
+    defp reduce(_x, _y, {:halt, acc}, _fun, _up) do
+      {:halted, acc}
+    end
+
+    defp reduce(x, y, {:suspend, acc}, fun, up) do
+      {:suspended, acc, &reduce(x, y, &1, fun, up)}
+    end
+
+    defp reduce(x, y, {:cont, acc}, fun, true) when x <= y do
+      reduce(x + 1, y, fun.(Calendar.ISO.from_integer_date(x), acc), fun, true)
+    end
+
+    defp reduce(x, y, {:cont, acc}, fun, false) when x >= y do
+      reduce(x - 1, y, fun.(Calendar.ISO.from_integer_date(x), acc), fun, false)
+    end
+
+    defp reduce(_, _, {:cont, acc}, _fun, _up) do
+      {:done, acc}
+    end
+
+    def member?(first..last, value) when is_integer(value) do
+      if first <= last do
+        {:ok, first <= value and value <= last}
+      else
+        {:ok, last <= value and value <= first}
+      end
+    end
+
+    def member?(_.._, _value) do
+      {:ok, false}
+    end
+
+    def member?(%DateRange{first: %{calendar: calendar1} = first, last: %{calendar: calendar2} = last},
+        %{calendar: calendar3} = value) do
+      first = calendar1.to_integer_date(first)
+      last  = calendar2.to_integer_date(last)
+      value = calendar3.to_integer_date(value)
+      member?(first..last, value)
+    end
+
+    def count(first..last) do
+      if first <= last do
+        {:ok, last - first + 1}
+      else
+        {:ok, first - last + 1}
+      end
+    end
+
+    def count(%DateRange{first: %{calendar: calendar1} = first, last: %{calendar: calendar2} = last}) do
+      first = calendar1.to_integer_date(first)
+      last = calendar2.to_integer_date(last)
+      count(first..last)
+    end
+  end
+
 end
 
 defmodule Time do

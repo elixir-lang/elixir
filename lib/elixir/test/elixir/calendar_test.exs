@@ -44,6 +44,33 @@ defmodule DateTest do
   end
 end
 
+defmodule JulianCalendarTest do
+  use ExUnit.Case, async: true
+
+  doctest Calendar.Julian
+end
+
+defmodule DateRangeTest do
+  use ExUnit.Case, async: true
+
+  test "Enum.count DateRange" do
+    assert Enum.count(DateRange.new(~D[2017-01-01], ~D[2017-01-31])) == 31
+    assert Enum.count(DateRange.new(~D[2017-02-01], ~D[2017-02-28])) == 28
+    assert Enum.count(DateRange.new(~D[2016-02-01], ~D[2016-02-29])) == 29
+    assert Enum.count(DateRange.new(~D[2017-01-01], ~D[2017-12-31])) == 365
+  end
+
+  test "Enum.member? DateRange" do
+    assert Enum.member?(DateRange.new(~D[2017-01-01], ~D[2017-01-31]), ~D[2017-01-01]) == true
+    assert Enum.member?(DateRange.new(~D[2017-01-01], ~D[2017-01-31]), ~D[2017-02-01]) == false
+  end
+
+  test "Enum.reduce DateRange" do
+    assert Enum.reduce(DateRange.new(~D[2017-01-01], ~D[2017-01-31]), 0, fn(%Date{}, acc) ->
+      acc + 1 end) == 31
+  end
+end
+
 defmodule TimeTest do
   use ExUnit.Case, async: true
   doctest Time
