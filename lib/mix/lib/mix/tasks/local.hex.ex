@@ -30,10 +30,12 @@ defmodule Mix.Tasks.Local.Hex do
   def run(argv) do
     {opts, _} = OptionParser.parse!(argv, switches: [if_missing: :boolean,
                                                      force: :boolean])
-    should_install = case opts do
-      %{force: true}      -> true;
-      %{if_missing: true} -> Code.ensure_loaded?(Hex);
-      _                   -> true
+    force = opts[:force] || false
+    if_missing = opts[:if_missing] || false
+
+    should_install = case {force, if_missing} do
+      {false, true} -> Code.ensure_loaded?(Hex);
+      _             -> true
     end
 
     if should_install do
