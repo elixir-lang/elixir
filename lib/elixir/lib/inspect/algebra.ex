@@ -24,8 +24,8 @@ defmodule Inspect.Opts do
       is printable, otherwise as list.
 
     * `:limit` - limits the number of items that are printed for tuples,
-      bitstrings, and lists, does not apply to strings nor charlists, defaults
-      to 50.
+      bitstrings, maps, lists and any other collection of items. It does not
+      apply to strings nor charlists and defaults to 50.
 
     * `:pretty` - if set to `true` enables pretty printing, defaults to `false`.
 
