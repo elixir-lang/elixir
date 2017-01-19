@@ -346,13 +346,8 @@ defmodule Task do
   
   Count the graphemes in each string asynchronously, then add the counts together using reduce.
   
-      iex> stream = Task.async_stream(["long string", "longer string", "there are many of these"],
-                                      fn text -> text |> String.graphemes |> Enum.count end)
-                                 
-      iex> Enum.reduce(stream,
-                       0,
-                       fn {:ok, num}, acc -> num + acc end)
-                       
+      iex> stream = Task.async_stream(["long string", "longer string", "there are many of these"], fn text -> text |> String.graphemes |> Enum.count end)
+      iex> Enum.reduce(stream, 0, fn {:ok, num}, acc -> num + acc end)
       47
 
   See `async_stream/5` for discussion, options, and more examples.
