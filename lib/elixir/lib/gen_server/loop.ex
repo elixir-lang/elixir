@@ -288,28 +288,30 @@ defmodule GenServer.Loop do
       kind, reason ->
         stack = System.stacktrace()
         exit_reason = exit_reason(kind, reason, stack)
-        log_exit(exit_reason, log_reason(kind, reason, stack), msg, dbg, state)
+        log_reason = log_reason(kind, reason, stack)
+        log_exit(exit_reason, log_reason, msg, dbg, name, state)
     else
       _ ->
-        handle_exit(exit_reason, log_reason, msg, dbg, state)
+        handle_exit(exit_reason, log_reason, msg, dbg, name, state)
     end
   end
 
-  defp handle_exit(:normal, _, _, _, _),                   do: exit(:normal)
-  defp handle_exit(:shutdown, _, _, _, _),                 do: exit(:shutdown)
-  defp handle_exit(shutdown = {:shutdown, _}, _, _, _, _), do: exit(shutdown)
-  defp handle_exit(exit_reason, log_reason, msg, dbg, state) do
-    log_exit(exit_reason, log_reason, msg, dbg, state)
+  defp handle_exit(exit_reason, log_reason, msg, dbg, name, state) do
+    case exit_reason do
+      :normal        -> exit(:normal)
+      :shutdown      -> exit(:shutdown)
+      {:shutdown, _} -> exit(exit_reason)
+      _              -> log_exit(exit_reason, log_reason, msg, dbg, name, state)
+    end
   end
 
-  defp log_exit(exit_reason, log_reason, msg, dbg, state) do
+  defp log_exit(exit_reason, log_reason, msg, dbg, name, state) do
     format = '** Generic server ~p terminating~n' ++
              '** Last message in was ~p~n' ++
              '** When Server state == ~p~n' ++
              '** Reason for termination == ~n** ~p~n'
-    # TODO: log name
     # TODO: format status on state
-    :error_logger.format(format, [self(), msg, state, log_reason])
+    :error_logger.format(format, [name, msg, state, log_reason])
     :sys.print_log(dbg)
     exit(exit_reason)
   end
