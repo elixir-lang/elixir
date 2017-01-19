@@ -333,6 +333,19 @@ defmodule Protocol do
                     [{:function, line, :struct_impl_for, 1, clauses} | acc])
   end
 
+  defp change_impl_for([{:attribute, line, :spec, {{:__protocol__, 1}, funspecs}} | t], protocol, types, structs, is_protocol, acc) do
+    newspecs = for spec <- funspecs do
+      case spec do
+        {:type, line, :fun, [{:type, _, :product, [{:atom, _, :consolidated?}]}, _]} ->
+          {:type, line, :fun,
+           [{:type, line, :product, [{:atom, 0, :consolidated?}]},
+            {:atom, 0, true}]}
+        other -> other
+      end
+    end
+    change_impl_for(t, protocol, types, structs, is_protocol, [{:attribute, line, :spec, {{:__protocol__, 1}, newspecs}}|acc])
+  end
+
   defp change_impl_for([h | t], protocol, info, types, is_protocol, acc) do
     change_impl_for(t, protocol, info, types, is_protocol, [h | acc])
   end
@@ -504,7 +517,7 @@ defmodule Protocol do
       @doc false
       @spec __protocol__(:module) :: __MODULE__
       @spec __protocol__(:functions) :: unquote(Protocol.__functions_spec__(@functions))
-      @spec __protocol__(:consolidated?) :: boolean
+      @spec __protocol__(:consolidated?) :: false
       Kernel.def __protocol__(:module), do: __MODULE__
       Kernel.def __protocol__(:functions), do: unquote(:lists.sort(@functions))
       Kernel.def __protocol__(:consolidated?), do: false
