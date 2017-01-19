@@ -3784,7 +3784,7 @@ defmodule Kernel do
   Now that the protocol can be implemented for every data structure
   the protocol may have a compliant implementation for:
 
-      defimpl Size, for: Binary do
+      defimpl Size, for: BitString do
         def size(binary), do: byte_size(binary)
       end
 
