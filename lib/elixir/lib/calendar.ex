@@ -171,6 +171,8 @@ defmodule Date do
 
   """
   @spec leap_year?(Calendar.date) :: boolean()
+  def leap_year?(date)
+
   def leap_year?(%{calendar: calendar, year: year}) do
     calendar.leap_year?(year)
   end
@@ -189,6 +191,8 @@ defmodule Date do
 
   """
   @spec days_in_month(Calendar.date) :: Calendar.day
+  def days_in_month(date)
+
   def days_in_month(%{calendar: calendar, year: year, month: month}) do
     calendar.days_in_month(year, month)
   end
@@ -231,6 +235,8 @@ defmodule Date do
 
   """
   @spec to_string(Calendar.date) :: String.t
+  def to_string(date)
+
   def to_string(%{calendar: calendar, year: year, month: month, day: day}) do
     calendar.date_to_string(year, month, day)
   end
@@ -257,6 +263,8 @@ defmodule Date do
 
   """
   @spec from_iso8601(String.t) :: {:ok, t} | {:error, atom}
+  def from_iso8601(string)
+
   def from_iso8601(<<year::4-bytes, ?-, month::2-bytes, ?-, day::2-bytes>>) do
     with {year, ""} <- Integer.parse(year),
          {month, ""} <- Integer.parse(month),
@@ -310,6 +318,8 @@ defmodule Date do
 
   """
   @spec to_iso8601(Calendar.date) :: String.t
+  def to_iso8601(date)
+
   def to_iso8601(%{calendar: Calendar.ISO, year: year, month: month, day: day}) do
     Calendar.ISO.date_to_iso8601(year, month, day)
   end
@@ -329,6 +339,8 @@ defmodule Date do
 
   """
   @spec to_erl(Calendar.date) :: :calendar.date
+  def to_erl(date)
+
   def to_erl(%{calendar: Calendar.ISO, year: year, month: month, day: day}) do
     {year, month, day}
   end
@@ -346,6 +358,8 @@ defmodule Date do
       {:error, :invalid_date}
   """
   @spec from_erl(:calendar.date) :: {:ok, t} | {:error, atom}
+  def from_erl(tuple)
+
   def from_erl({year, month, day}) do
     new(year, month, day)
   end
@@ -419,6 +433,8 @@ defmodule Date do
       2
   """
   @spec day_of_week(Calendar.date) :: non_neg_integer()
+  def day_of_week(date)
+
   def day_of_week(%{calendar: calendar, year: year, month: month, day: day}) do
     calendar.day_of_week(year, month, day)
   end
@@ -563,6 +579,8 @@ defmodule Time do
 
   """
   @spec to_string(Calendar.time) :: String.t
+  def to_string(time)
+
   def to_string(%{hour: hour, minute: minute, second: second, microsecond: microsecond}) do
     Calendar.ISO.time_to_string(hour, minute, second, microsecond)
   end
@@ -604,6 +622,8 @@ defmodule Time do
 
   """
   @spec from_iso8601(String.t) :: {:ok, t} | {:error, atom}
+  def from_iso8601(string)
+
   def from_iso8601(<<?T, h, rest::binary>>) when h in ?0..?9 do
     from_iso8601(<<h, rest::binary>>)
   end
@@ -665,6 +685,8 @@ defmodule Time do
 
   """
   @spec to_iso8601(Calendar.time) :: String.t
+  def to_iso8601(time)
+
   def to_iso8601(%{hour: hour, minute: minute, second: second, microsecond: microsecond}) do
     Calendar.ISO.time_to_iso8601(hour, minute, second, microsecond)
   end
@@ -685,6 +707,8 @@ defmodule Time do
 
   """
   @spec to_erl(Calendar.time) :: :calendar.time
+  def to_erl(time)
+
   def to_erl(%{hour: hour, minute: minute, second: second}) do
     {hour, minute, second}
   end
@@ -700,7 +724,9 @@ defmodule Time do
       {:error, :invalid_time}
   """
   @spec from_erl(:calendar.time, Calendar.microsecond) :: {:ok, t} | {:error, atom}
-  def from_erl({hour, minute, second}, microsecond \\ {0, 0}) do
+  def from_erl(tuple, microsecond \\ {0, 0})
+
+  def from_erl({hour, minute, second}, microsecond) do
     new(hour, minute, second, microsecond)
   end
 
@@ -1029,7 +1055,9 @@ defmodule NaiveDateTime do
       "2000-02-29 23:00:07"
 
   """
-  @spec to_string(Calendar.naive_datetime) :: String.t
+  @spec to_string(Calendar.naive_date_time) :: String.t
+  def to_string(naive_datetime)
+
   def to_string(%{calendar: calendar, year: year, month: month, day: day,
                   hour: hour, minute: minute, second: second, microsecond: microsecond}) do
     calendar.naive_datetime_to_string(year, month, day, hour, minute, second, microsecond)
@@ -1090,6 +1118,8 @@ defmodule NaiveDateTime do
 
   """
   @spec from_iso8601(String.t) :: {:ok, t} | {:error, atom}
+  def from_iso8601(string)
+
   def from_iso8601(<<year::4-bytes, ?-, month::2-bytes, ?-, day::2-bytes, sep,
                      hour::2-bytes, ?:, min::2-bytes, ?:, sec::2-bytes, rest::binary>>) when sep in [?\s, ?T] do
     with {year, ""} <- Integer.parse(year),
@@ -1159,7 +1189,9 @@ defmodule NaiveDateTime do
       "2000-02-29T23:00:07"
 
   """
-  @spec to_iso8601(Calendar.naive_datetime) :: String.t
+  @spec to_iso8601(Calendar.naive_date_time) :: String.t
+  def to_iso8601(naive_datetime)
+
   def to_iso8601(%{year: year, month: month, day: day,
                    hour: hour, minute: minute, second: second, microsecond: microsecond}) do
     Calendar.ISO.naive_datetime_to_iso8601(year, month, day, hour, minute, second, microsecond)
@@ -1190,6 +1222,8 @@ defmodule NaiveDateTime do
 
   """
   @spec to_erl(t) :: :calendar.datetime
+  def to_erl(naive_datetime)
+
   def to_erl(%{calendar: Calendar.ISO, year: year, month: month, day: day,
                hour: hour, minute: minute, second: second}) do
     {{year, month, day}, {hour, minute, second}}
@@ -1212,7 +1246,9 @@ defmodule NaiveDateTime do
       {:error, :invalid_date}
   """
   @spec from_erl(:calendar.datetime, Calendar.microsecond) :: {:ok, t} | {:error, atom}
-  def from_erl({{year, month, day}, {hour, minute, second}}, microsecond \\ {0, 0}) do
+  def from_erl(tuple, microsecond \\ {0, 0})
+
+  def from_erl({{year, month, day}, {hour, minute, second}}, microsecond) do
     new(year, month, day, hour, minute, second, microsecond)
   end
 
@@ -1269,7 +1305,7 @@ defmodule NaiveDateTime do
       :lt
 
   """
-  @spec compare(Calendar.naive_datetime, Calendar.naive_datetime) :: :lt | :eq | :gt
+  @spec compare(Calendar.naive_date_time, Calendar.naive_date_time) :: :lt | :eq | :gt
   def compare(naive_datetime1, naive_datetime2) do
     case {to_tuple(naive_datetime1), to_tuple(naive_datetime2)} do
       {first, second} when first > second -> :gt
@@ -1639,7 +1675,9 @@ defmodule DateTime do
       iex> DateTime.to_iso8601(dt)
       "2000-02-29T23:00:07-04:00"
   """
-  @spec to_iso8601(DateTime.t) :: String.t
+  @spec to_iso8601(Calendar.date_time) :: String.t
+  def to_iso8601(datetime)
+
   def to_iso8601(%{calendar: Calendar.ISO, year: year, month: month, day: day,
                   hour: hour, minute: minute, second: second, microsecond: microsecond,
                   time_zone: time_zone, zone_abbr: zone_abbr, utc_offset: utc_offset, std_offset: std_offset}) do
@@ -1688,6 +1726,8 @@ defmodule DateTime do
 
   """
   @spec from_iso8601(String.t) :: {:ok, t, Calendar.utc_offset} | {:error, atom}
+  def from_iso8601(string)
+
   def from_iso8601(<<year::4-bytes, ?-, month::2-bytes, ?-, day::2-bytes, sep,
                      hour::2-bytes, ?:, min::2-bytes, ?:, sec::2-bytes, rest::binary>>) when sep in [?\s, ?T] do
     with {year, ""} <- Integer.parse(year),
@@ -1752,7 +1792,9 @@ defmodule DateTime do
       iex> DateTime.to_string(dt)
       "2000-02-29 23:00:07-04:00 AMT America/Manaus"
   """
-  @spec to_string(DateTime.t) :: String.t
+  @spec to_string(Calendar.date_time) :: String.t
+  def to_string(datetime)
+
   def to_string(%{calendar: calendar, year: year, month: month, day: day,
                   hour: hour, minute: minute, second: second, microsecond: microsecond,
                   time_zone: time_zone, zone_abbr: zone_abbr, utc_offset: utc_offset, std_offset: std_offset}) do
