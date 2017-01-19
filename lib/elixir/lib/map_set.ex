@@ -352,8 +352,8 @@ defmodule MapSet do
 
   defimpl Enumerable do
     def reduce(map_set, acc, fun), do: Enumerable.List.reduce(MapSet.to_list(map_set), acc, fun)
-    def member?(map_set, val),     do: {:ok, MapSet.member?(map_set, val)}
-    def count(map_set),            do: {:ok, MapSet.size(map_set)}
+    def member?(map_set, val), do: {:ok, MapSet.member?(map_set, val)}
+    def count(map_set), do: {:ok, MapSet.size(map_set)}
   end
 
   defimpl Collectable do
