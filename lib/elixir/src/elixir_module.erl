@@ -426,7 +426,7 @@ check_module_availability(Line, File, Module) ->
   end.
 
 warn_unused_attributes(File, Data, PersistedAttrs) ->
-  ReservedAttrs = [after_compile, before_compile, moduledoc, on_definition, override | PersistedAttrs],
+  ReservedAttrs = [after_compile, before_compile, moduledoc, on_definition, impl | PersistedAttrs],
   Keys = ets:select(Data, [{{'$1', '_', '_', '$2'}, [{is_atom, '$1'}, {is_integer, '$2'}], [['$1', '$2']]}]),
   [elixir_errors:form_warn([{line, Line}], File, ?MODULE, {unused_attribute, Key}) ||
    [Key, Line] <- Keys, not lists:member(Key, ReservedAttrs)].
