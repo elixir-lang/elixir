@@ -279,7 +279,7 @@ defmodule Mix.Dep.Loader do
         # files in the dependency
         Enum.map(children, &to_dep(&1, from, manager))
       else
-        rebar_children(app, config, manager)
+        rebar_children(config, manager)
       end
 
     {%{dep | extra: config}, deps}
@@ -304,7 +304,7 @@ defmodule Mix.Dep.Loader do
     |> elem(0)
   end
 
-  defp rebar_children(_app, root_config, manager) do
+  defp rebar_children(root_config, manager) do
     from = Path.absname("rebar.config")
     Mix.Rebar.recur(root_config, fn config ->
       overrides = overrides(manager, config)

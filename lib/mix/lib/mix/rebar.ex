@@ -98,6 +98,10 @@ defmodule Mix.Rebar do
   @doc """
   Runs `fun` for the given config and for each `sub_dirs` in the
   given Rebar config.
+
+  `sub_dirs` is only supported in Rebar 2. In Rebar 3, the equivalent
+  to umbrella apps cannot be used as dependencies, so we don't need
+  to worry about such cases in Mix.
   """
   def recur(config, fun) do
     subs =
