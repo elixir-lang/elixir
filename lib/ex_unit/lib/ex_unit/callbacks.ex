@@ -3,14 +3,14 @@ defmodule ExUnit.Callbacks do
   Defines ExUnit callbacks.
 
   This module defines both `setup_all` and `setup` callbacks, as well as
-  the `on_exit/2` facility.
+  the `on_exit/2` function.
 
   The setup callbacks are defined via macros and each one can optionally
   receive a map with metadata, usually referred to as `context`. The
-  callback may optionally put extra data into `context` to be used in
+  callback may optionally put extra data into the `context` to be used in
   the tests.
 
-  The `setup_all` callbacks are invoked once to setup the test case before any
+  The `setup_all` callbacks are invoked only once to setup the test case before any
   test is run and all `setup` callbacks are run before each test. No callback
   runs if the test case has no tests or all tests have been filtered out.
 
@@ -38,7 +38,8 @@ defmodule ExUnit.Callbacks do
   current context and be available in all subsequent `setup` and the `test`
   itself.
 
-  Returning `:ok` leaves the context unchanged in both cases.
+  Returning `:ok` leaves the context unchanged (both in `setup` and `setup_all`
+  callbacks).
 
   Returning anything else from `setup_all` will force all tests to fail,
   while a bad response from `setup` causes the current test to fail.
@@ -52,7 +53,7 @@ defmodule ExUnit.Callbacks do
         setup_all do
           IO.puts "Starting AssertionTest"
 
-          # No metadata
+          # No context is returned here
           :ok
         end
 
@@ -75,7 +76,7 @@ defmodule ExUnit.Callbacks do
           :ok
         end
 
-        # Setups can also invoke a local or imported function
+        # Setups can also invoke a local or imported function that can return a context
         setup :invoke_local_or_imported_function
 
         test "always pass" do
