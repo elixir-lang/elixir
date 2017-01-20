@@ -49,11 +49,11 @@ defmodule Mix.RebarTest do
   test "parse Rebar dependencies" do
     config = [deps: [{:git_rebar, '~> 1.0'}]]
     assert [{:git_rebar, "~> 1.0"}] ==
-           Mix.Rebar.deps(:foo, config, [])
+           Mix.Rebar.deps(config)
 
     config = [deps: [{:git_rebar, '~> 1.0', {:pkg, :rebar_fork}}]]
     assert [{:git_rebar, "~> 1.0", hex: :rebar_fork}] ==
-           Mix.Rebar.deps(:foo, config, [])
+           Mix.Rebar.deps(config)
 
     config = [deps: [{:git_rebar, {:pkg, :rebar_fork}}]]
     assert [{:git_rebar, ">= 0.0.0", hex: :rebar_fork}] ==
@@ -61,45 +61,19 @@ defmodule Mix.RebarTest do
 
     config = [deps: [{:git_rebar, '0.1..*', {:git, '../../test/fixtures/git_rebar', :master}}]]
     assert [{:git_rebar, ~r"0.1..*", [git: "../../test/fixtures/git_rebar", ref: "master"]}] ==
-           Mix.Rebar.deps(:foo, config, [])
+           Mix.Rebar.deps(config)
 
     config = [deps: [{:git_rebar, {:git, '../../test/fixtures/git_rebar', :master}}]]
     assert [{:git_rebar, ">= 0.0.0", [git: "../../test/fixtures/git_rebar", ref: "master"]}] ==
-           Mix.Rebar.deps(:foo, config, [])
+           Mix.Rebar.deps(config)
 
     config = [deps: [{:git_rebar, '0.1..*', {:git, '../../test/fixtures/git_rebar'}, [:raw]}]]
     assert [{:git_rebar, ~r"0.1..*", [git: "../../test/fixtures/git_rebar", compile: false]}] ==
-           Mix.Rebar.deps(:foo, config, [])
+           Mix.Rebar.deps(config)
 
     config = [deps: [{:git_rebar, '', {:git, '../../test/fixtures/git_rebar', {:ref, '64691eb'}}}]]
     assert [{:git_rebar, ~r"", [git: "../../test/fixtures/git_rebar", ref: "64691eb"]}] ==
-           Mix.Rebar.deps(:foo, config, [])
-
-    config = [deps: {:git_rebar, '~> 2.0'}]
-    overrides = [{:override, [deps: [{:git_rebar, '~> 1.0'}]]}]
-    assert [{:git_rebar, "~> 1.0"}] ==
-           Mix.Rebar.deps(:foo, config, overrides)
-
-    config = [deps: [{:git_rebar, '~> 2.0'}]]
-    overrides = [{:override, [deps: [{:git_rebar, '~> 1.0'}]]}]
-    assert [{:git_rebar, "~> 1.0"}] ==
-           Mix.Rebar.deps(:foo, config, overrides)
-
-    config = [deps: [{:git_rebar, '~> 2.0'}]]
-    overrides = [{:override, :bar, [deps: [{:git_rebar, '~> 1.0'}]]}]
-    assert [{:git_rebar, "~> 2.0"}] ==
-           Mix.Rebar.deps(:foo, config, overrides)
-
-    config = [deps: [{:git_rebar, '~> 2.0'}]]
-    overrides = [{:override, :foo, [deps: [{:git_rebar, '~> 1.0'}]]}]
-    assert [{:git_rebar, "~> 1.0"}] ==
-           Mix.Rebar.deps(:foo, config, overrides)
-
-    config = [deps: [{:git_rebar, '~> 1.0'}]]
-    overrides = [{:add, :foo, [deps: [{:git_rebar2, '~> 2.0'}]]}]
-    assert [{:git_rebar2, "~> 2.0"}, {:git_rebar, "~> 1.0"}] ==
-           Mix.Rebar.deps(:foo, config, overrides)
-
+           Mix.Rebar.deps(config)
   end
 
   test "convert Rebar config to dependency config" do
