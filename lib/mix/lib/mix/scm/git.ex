@@ -139,6 +139,7 @@ defmodule Mix.SCM.Git do
       sparse = opts[:sparse] ->
         sparse_check(git_version())
         git!("--git-dir=.git config core.sparsecheckout true")
+        File.mkdir_p!(".git/info")
         File.write!(".git/info/sparse-checkout", sparse)
       File.exists?(".git/info/sparse-checkout") ->
         File.write!(".git/info/sparse-checkout", "*")
