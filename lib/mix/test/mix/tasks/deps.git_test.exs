@@ -282,6 +282,16 @@ defmodule Mix.Tasks.DepsGitTest do
 
   @tag :git_sparse
   test "updates the repo when sparse is turned off" do
+    old_template_dir = System.get_env("GIT_TEMPLATE_DIR")
+    if old_template_dir do
+      on_exit(fn -> System.put_env("GIT_TEMPLATE_DIR", old_template_dir) end)
+    else
+      on_exit(fn -> System.delete_env("GIT_TEMPLATE_DIR") end)
+    end
+    template_without_info = fixture_path("git_template_without_info")
+    File.mkdir_p!(template_without_info)
+    System.put_env("GIT_TEMPLATE_DIR", template_without_info)
+
     Process.put(:git_repo_opts, sparse: "sparse_dir")
     Mix.Project.push GitApp
 
