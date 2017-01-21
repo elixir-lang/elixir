@@ -72,63 +72,22 @@ defimpl Inspect, for: Atom do
   def inspect(atom) do
     binary = Atom.to_string(atom)
 
-    case classify(atom) do
+    case Macro.classify_atom(binary) do
       :boolean_or_nil ->
         binary
       :alias ->
-        # If the given binary is just a succession like "Elixir.Elixir.Elixir",
-        # inspect it as is, otherwise, strip the leading "Elixir".
-        if only_elixir?(binary) do
-          binary
-        else
-          "Elixir." <> rest = binary
-          rest
+        case binary do
+          binary when binary in ["Elixir", "Elixir.Elixir"] ->
+            binary
+          "Elixir.Elixir." <> _rest ->
+            binary
+          "Elixir." <> rest ->
+            rest
         end
       type when type in [:callable, :non_callable] ->
         ":" <> binary
       :atom ->
         ":" <> escape(binary)
-    end
-  end
-
-  # Classifies the given atom into one of five categories:
-  #
-  #   * :boolean_or_nil - the atoms true, false, nil
-  #
-  #   * :alias - a valid Elixir alias, like Foo, Foo.Bar and so on
-  #
-  #   * :callable - an atom that can be used as a function call after the
-  #     . operator (for example, :<> is callable because Foo.<>(1, 2, 3) is valid
-  #     syntax); this category includes identifiers like :foo
-  #
-  #   * :non_callable - an atom that cannot be used as a function call after the
-  #     . operator (for example, :<<>> is not callable because Foo.<<>> is a
-  #     syntax error); this category includes atoms like :Foo, since they are
-  #     valid identifiers but they need quotes to be used in function calls
-  #     (Foo."Bar")
-  #
-  #   * :atom - any other atom (these are usually escaped when inspected, like
-  #     :"foo and bar")
-  def classify(atom) do
-    binary = Atom.to_string(atom)
-
-    cond do
-      is_boolean(atom) or is_nil(atom) ->
-        :boolean_or_nil
-      valid_alias?(binary) ->
-        :alias
-      valid_atom_identifier?(binary) ->
-        if :binary.first(binary) in ?A..?Z do
-          :non_callable
-        else
-          :callable
-        end
-      atom in [:%{}, :{}, :<<>>, :..., :.., :.] ->
-        :non_callable
-      atom == :% or atom in Macro.binary_ops or atom in Macro.unary_ops ->
-        :callable
-      true ->
-        :atom
     end
   end
 
@@ -139,51 +98,6 @@ defimpl Inspect, for: Atom do
   defp only_elixir?("Elixir." <> rest), do: only_elixir?(rest)
   defp only_elixir?("Elixir"), do: true
   defp only_elixir?(_), do: false
-
-  # Detect if atom is an atom alias (Elixir.Foo.Bar.Baz)
-
-  defp valid_alias?("Elixir" <> rest), do: valid_alias_piece?(rest)
-  defp valid_alias?(_other), do: false
-
-  # Detects if the given binary is a valid "ref" piece, that is, a valid
-  # successor of "Elixir" in atoms like "Elixir.String.Chars".
-  defp valid_alias_piece?(<<?., char, rest::binary>>) when char in ?A..?Z,
-    do: valid_alias_piece?(trim_leading_while_valid_identifier(rest))
-  defp valid_alias_piece?(<<>>),
-    do: true
-  defp valid_alias_piece?(_other),
-    do: false
-
-  defp valid_atom_identifier?(<<char, rest::binary>>)
-       when char in ?a..?z or char in ?A..?Z or char == ?_,
-    do: valid_atom_piece?(rest)
-  defp valid_atom_identifier?(_other),
-    do: false
-
-  defp valid_atom_piece?(binary) do
-    case trim_leading_while_valid_identifier(binary) do
-      rest when rest in ["", "?", "!"] ->
-        true
-      "@" <> rest ->
-        valid_atom_piece?(rest)
-      _other ->
-        false
-    end
-  end
-
-  # Takes a binary and trims all the valid identifier characters (alphanumeric
-  # and _) from its beginning.
-  defp trim_leading_while_valid_identifier(<<char, rest::binary>>)
-      when char in ?a..?z
-      when char in ?A..?Z
-      when char in ?0..?9
-      when char == ?_ do
-    trim_leading_while_valid_identifier(rest)
-  end
-
-  defp trim_leading_while_valid_identifier(other) do
-    other
-  end
 end
 
 defimpl Inspect, for: BitString do
@@ -389,12 +303,9 @@ defimpl Inspect, for: List do
   ## Private
 
   defp key_to_binary(key) do
-    case Inspect.Atom.classify(key) do
-      :alias ->
-        Inspect.Atom.inspect(key)
-      _other ->
-        ":" <> right = Inspect.Atom.inspect(key)
-        right
+    case Inspect.Atom.inspect(key) do
+      ":" <> right -> right
+      other -> other
     end
   end
 end
@@ -520,12 +431,15 @@ defimpl Inspect, for: Regex do
 end
 
 defimpl Inspect, for: Function do
+  require Macro
+
   def inspect(function, _opts) do
     fun_info = :erlang.fun_info(function)
     mod = fun_info[:module]
+    name = fun_info[:name]
 
     if fun_info[:type] == :external and fun_info[:env] == [] do
-      "&#{Inspect.Atom.inspect(mod)}.#{fun_info[:name]}/#{fun_info[:arity]}"
+      "&#{Inspect.Atom.inspect(mod)}.#{escape_name(name)}/#{fun_info[:arity]}"
     else
       case Atom.to_charlist(mod) do
         'elixir_compiler_' ++ _ ->
@@ -540,6 +454,32 @@ defimpl Inspect, for: Function do
     end
   end
 
+  def escape_name(name) when is_atom(name) do
+    escape_name(Atom.to_string(name))
+  end
+
+  def escape_name(string_name) when is_binary(string_name) do
+    case Macro.classify_atom(string_name) do
+      type when type in [:boolean_or_nil, :callable] ->
+        string_name
+      type when type in [:non_callable, :alias] ->
+        "\"" <> string_name <> "\""
+      :atom ->
+        Inspect.Atom.escape(string_name)
+    end
+  end
+
+  # Example of this format: -func/arity-fun-count-
+  def extract_nested_function_name_and_arity("-" <> rest) do
+    ["-", count, "-", "fun", "-", arity, "/" | reversed_function] =
+      rest
+      |> :re.split("([/-])")
+      |> Enum.reject(&(&1 == ""))
+      |> Enum.reverse()
+
+    {Enum.join(Enum.reverse(reversed_function)), arity}
+  end
+
   defp default_inspect(mod, fun_info) do
     "#Function<#{uniq(fun_info)}/#{fun_info[:arity]} in " <>
       "#{Inspect.Atom.inspect(mod)}#{extract_name(fun_info[:name])}>"
@@ -550,10 +490,12 @@ defimpl Inspect, for: Function do
   end
 
   defp extract_name(name) do
-    name = Atom.to_string(name)
-    case :binary.split(name, "-", [:global]) do
-      ["", name | _] -> "." <> name
-      _ -> "." <> name
+    case Atom.to_string(name) do
+      "-" <> _rest = string_name ->
+        {string_name, arity} = extract_nested_function_name_and_arity(string_name)
+        "." <> escape_name(string_name) <> "/" <> arity
+      string_name ->
+        "." <> escape_name(string_name)
     end
   end
 

@@ -121,6 +121,10 @@ defmodule ExceptionTest do
   end
 
   test "format_mfa/3" do
+    # Let's create this atom so that String.to_existing_atom/1 inside
+    # format_mfa/3 doesn't raise.
+    _ = :"some function"
+
     assert Exception.format_mfa(Foo, nil, 1) == "Foo.nil/1"
     assert Exception.format_mfa(Foo, :bar, 1) == "Foo.bar/1"
     assert Exception.format_mfa(Foo, :bar, []) == "Foo.bar()"
@@ -128,6 +132,7 @@ defmodule ExceptionTest do
     assert Exception.format_mfa(:foo, :bar, [1, 2]) == ":foo.bar(1, 2)"
     assert Exception.format_mfa(Foo, :"bar baz", 1) == "Foo.\"bar baz\"/1"
     assert Exception.format_mfa(Foo, :"-func/2-fun-0-", 4) == "anonymous fn/4 in Foo.func/2"
+    assert Exception.format_mfa(Foo, :"-some function/2-fun-0-", 4) == "anonymous fn/4 in Foo.\"some function\"/2"
     assert Exception.format_mfa(Foo, :"42", 1) == "Foo.\"42\"/1"
     assert Exception.format_mfa(Foo, :Bar, [1, 2]) == "Foo.\"Bar\"(1, 2)"
     assert Exception.format_mfa(Foo, :%{}, [1, 2]) == "Foo.\"%{}\"(1, 2)"
@@ -136,7 +141,7 @@ defmodule ExceptionTest do
 
   test "format_fa/2" do
     assert Exception.format_fa(fn -> nil end, 1) =~
-           ~r"#Function<\d+\.\d+/0 in ExceptionTest\.test format_fa/2/1>/1"
+           ~r"#Function<\d+\.\d+/0 in ExceptionTest\.\"test format_fa/2\"/1>/1"
   end
 
   ## Format exits

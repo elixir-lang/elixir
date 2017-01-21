@@ -98,6 +98,103 @@ defmodule Macro do
     end
   end
 
+  # Classifies the given atom into one of five categories:
+  #
+  #   * :boolean_or_nil - the atoms true, false, nil
+  #
+  #   * :alias - a valid Elixir alias, like Foo, Foo.Bar and so on
+  #
+  #   * :callable - an atom that can be used as a function call after the
+  #     . operator (for example, :<> is callable because Foo.<>(1, 2, 3) is valid
+  #     syntax); this category includes identifiers like :foo
+  #
+  #   * :non_callable - an atom that cannot be used as a function call after the
+  #     . operator (for example, :<<>> is not callable because Foo.<<>> is a
+  #     syntax error); this category includes atoms like :Foo, since they are
+  #     valid identifiers but they need quotes to be used in function calls
+  #     (Foo."Bar")
+  #
+  #   * :atom - any other atom (these are usually escaped when inspected, like
+  #     :"foo and bar")
+  @doc false
+  def classify_atom(atom_or_string)
+
+  unary_ops_as_strings = :lists.map(&:erlang.atom_to_binary(&1, :utf8), @unary_ops)
+  binary_ops_as_strings = :lists.map(&:erlang.atom_to_binary(&1, :utf8), @binary_ops)
+
+  def classify_atom(atom) when is_atom(atom) do
+    classify_atom(Atom.to_string(atom))
+  end
+
+  def classify_atom(string) when is_binary(string) do
+    cond do
+      string in ["nil", "true", "false"] ->
+        :boolean_or_nil
+      valid_alias?(string) ->
+        :alias
+      valid_atom_identifier?(string) ->
+        first = :binary.first(string)
+        if first >= ?A and first <= ?Z do
+          :non_callable
+        else
+          :callable
+        end
+      string in ["%", "%{}", "{}", "<<>>", "...", "..", "."] ->
+        :non_callable
+      string in unquote(unary_ops_as_strings) or string in unquote(binary_ops_as_strings) ->
+        :callable
+      true ->
+        :atom
+    end
+  end
+
+  # Detect if atom is an atom alias (Elixir.Foo.Bar.Baz)
+
+  defp valid_alias?("Elixir" <> rest), do: valid_alias_piece?(rest)
+  defp valid_alias?(_other), do: false
+
+  # Detects if the given binary is a valid "ref" piece, that is, a valid
+  # successor of "Elixir" in atoms like "Elixir.String.Chars".
+  defp valid_alias_piece?(<<?., char, rest::binary>>) when char >= ?A and char <= ?Z,
+    do: valid_alias_piece?(trim_leading_while_valid_identifier(rest))
+  defp valid_alias_piece?(<<>>),
+    do: true
+  defp valid_alias_piece?(_other),
+    do: false
+
+  defp valid_atom_identifier?(<<char, rest::binary>>)
+       when char >= ?a and char <= ?z
+       when char >= ?A and char <= ?Z
+       when char == ?_,
+    do: valid_atom_piece?(rest)
+  defp valid_atom_identifier?(_other),
+    do: false
+
+  defp valid_atom_piece?(binary) do
+    case trim_leading_while_valid_identifier(binary) do
+      rest when rest in ["", "?", "!"] ->
+        true
+      "@" <> rest ->
+        valid_atom_piece?(rest)
+      _other ->
+        false
+    end
+  end
+
+  # Takes a binary and trims all the valid identifier characters (alphanumeric
+  # and _) from its beginning.
+  defp trim_leading_while_valid_identifier(<<char, rest::binary>>)
+       when char >= ?a and char <= ?z
+       when char >= ?A and char <= ?Z
+       when char >= ?0 and char <= ?9
+       when char == ?_ do
+    trim_leading_while_valid_identifier(rest)
+  end
+
+  defp trim_leading_while_valid_identifier(other) do
+    other
+  end
+
   @doc """
   Breaks a pipeline expression into a list.
 
@@ -859,16 +956,7 @@ defmodule Macro do
   end
 
   defp call_to_string_for_atom(atom) do
-    binary = Atom.to_string(atom)
-
-    case Inspect.Atom.classify(atom) do
-      type when type in [:boolean_or_nil, :callable] ->
-        binary
-      type when type in [:alias, :non_callable] ->
-        "\"" <> binary <> "\""
-      :atom ->
-        Inspect.Atom.escape(binary)
-    end
+    Inspect.Function.escape_name(atom)
   end
 
   defp args_to_string(args, fun) do
