@@ -475,7 +475,7 @@ defimpl Inspect, for: Function do
     # "-"s (this is what the "(" and ")" in the regex do). We want to keep them
     # because we want to rebuild part of this split list (the function name)
     # later on.
-    ["-", count, "-", "fun", "-", arity, "/" | reversed_function] =
+    ["-", _count, "-", "fun", "-", arity, "/" | reversed_function] =
       rest
       |> :re.split("([/-])")
       |> Enum.reject(&(&1 == ""))
