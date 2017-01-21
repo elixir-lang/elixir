@@ -485,7 +485,7 @@ defimpl Inspect, for: Function do
     end
   end
 
-  def extract_anonymous_fun_parent(_other), do: :error
+  def extract_anonymous_fun_parent(other) when is_binary(other), do: :error
 
   defp default_inspect(mod, fun_info) do
     "#Function<#{uniq(fun_info)}/#{fun_info[:arity]} in " <>
