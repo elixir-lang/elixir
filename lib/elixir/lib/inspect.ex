@@ -466,7 +466,7 @@ defimpl Inspect, for: Function do
   end
 
   # Example of this format: -func/arity-fun-count-
-  def maybe_extract_anonymous_fun_parent("-" <> rest) do
+  def extract_anonymous_fun_parent("-" <> rest) do
     # We use :re instead of String.split/3 because we want to keep the "/"s and
     # "-"s (this is what the "(" and ")" in the regex do). We want to keep them
     # because we want to rebuild part of this split list (the function name)
@@ -485,7 +485,7 @@ defimpl Inspect, for: Function do
     end
   end
 
-  def maybe_extract_anonymous_fun_parent(_other), do: :error
+  def extract_anonymous_fun_parent(_other), do: :error
 
   defp default_inspect(mod, fun_info) do
     "#Function<#{uniq(fun_info)}/#{fun_info[:arity]} in " <>
@@ -498,7 +498,7 @@ defimpl Inspect, for: Function do
 
   defp extract_name(name) do
     name = Atom.to_string(name)
-    case maybe_extract_anonymous_fun_parent(name) do
+    case extract_anonymous_fun_parent(name) do
       {name, arity} ->
         "." <> escape_name(name) <> "/" <> arity
       :error ->
