@@ -30,7 +30,7 @@ defmodule Inspect.AtomTest do
     assert inspect(Elixir) == "Elixir"
     assert inspect(Elixir.Foo) == "Foo"
     assert inspect(Elixir.Elixir) == "Elixir.Elixir"
-    assert inspect(Elixir.Elixir.Foo) == "Elixir.Foo"
+    assert inspect(Elixir.Elixir.Foo) == "Elixir.Elixir.Foo"
   end
 
   test "with integers" do
@@ -453,9 +453,16 @@ defmodule Inspect.OthersTest do
     fn() -> :ok end
   end
 
+  def unquote(:"weirdly named/fun-")() do
+    fn() -> :ok end
+  end
+
   test "external Elixir funs" do
     bin = inspect(&Enum.map/2)
     assert bin == "&Enum.map/2"
+
+    assert inspect(&__MODULE__."weirdly named/fun-"/0) ==
+           ~s(&Inspect.OthersTest."weirdly named/fun-"/0)
   end
 
   test "external Erlang funs" do
@@ -494,6 +501,9 @@ defmodule Inspect.OthersTest do
     opts = [syntax_colors: [reset: :red]]
     assert "#Function<" <> rest = inspect(fun(), opts)
     assert String.ends_with?(rest, ">")
+
+    inspected = inspect(__MODULE__."weirdly named/fun-"())
+    assert inspected =~ ~r(#Function<\d+\.\d+/0 in Inspect\.OthersTest\."weirdly named/fun-"/0>)
   end
 
   test "map set" do

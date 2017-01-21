@@ -429,17 +429,14 @@ defmodule Exception do
   "anonymous fn in func/arity"
   """
   def format_mfa(module, fun, arity) when is_atom(module) and is_atom(fun) do
-    fun =
-      case inspect(fun) do
-        ":" <> fun -> fun
-        fun -> fun
-      end
+    fun = Atom.to_string(fun)
 
-    case match?("\"-" <> _, fun) and String.split(fun, "-") do
-      ["\"", outer_fun, "fun", _count, "\""] ->
-        "anonymous fn#{format_arity(arity)} in #{inspect module}.#{outer_fun}"
-      _ ->
-        "#{inspect module}.#{fun}#{format_arity(arity)}"
+    case Inspect.Function.extract_anonymous_fun_parent(fun) do
+      {outer_name, outer_arity} ->
+        "anonymous fn#{format_arity(arity)} in " <>
+          "#{inspect(module)}.#{Inspect.Function.escape_name(outer_name)}/#{outer_arity}"
+      :error ->
+        "#{inspect(module)}.#{Inspect.Function.escape_name(fun)}#{format_arity(arity)}"
     end
   end
 

@@ -69,81 +69,32 @@ defimpl Inspect, for: Atom do
   defp color_key(nil), do: :nil
   defp color_key(_), do: :atom
 
-  def inspect(false), do: "false"
-  def inspect(true), do: "true"
-  def inspect(nil), do: "nil"
+  def inspect(atom) when is_nil(atom) or is_boolean(atom) do
+    Atom.to_string(atom)
+  end
 
   def inspect(atom) do
     binary = Atom.to_string(atom)
 
-    cond do
-      valid_alias?(binary) ->
-        # If the given binary is just a succession like "Elixir.Elixir.Elixir",
-        # inspect it as is, otherwise, strip the leading "Elixir".
-        if only_elixir?(binary) do
-          binary
-        else
-          "Elixir." <> rest = binary
-          rest
+    case Macro.classify_identifier(binary) do
+      :alias ->
+        case binary do
+          binary when binary in ["Elixir", "Elixir.Elixir"] ->
+            binary
+          "Elixir.Elixir." <> _rest ->
+            binary
+          "Elixir." <> rest ->
+            rest
         end
-      valid_atom_identifier?(binary) ->
+      type when type in [:callable, :not_callable] ->
         ":" <> binary
-      atom in [:%{}, :{}, :<<>>, :..., :%] ->
-        ":" <> binary
-      atom in Macro.binary_ops or atom in Macro.unary_ops ->
-        ":" <> binary
-      true ->
-        IO.iodata_to_binary [?:, ?", Inspect.BitString.escape(binary, ?"), ?"]
+      :other ->
+        ":" <> escape(binary)
     end
   end
 
-  defp only_elixir?("Elixir." <> rest), do: only_elixir?(rest)
-  defp only_elixir?("Elixir"), do: true
-  defp only_elixir?(_), do: false
-
-  # Detect if atom is an atom alias (Elixir.Foo.Bar.Baz)
-
-  defp valid_alias?("Elixir" <> rest), do: valid_alias_piece?(rest)
-  defp valid_alias?(_other), do: false
-
-  # Detects if the given binary is a valid "ref" piece, that is, a valid
-  # successor of "Elixir" in atoms like "Elixir.String.Chars".
-  defp valid_alias_piece?(<<?., char, rest::binary>>) when char in ?A..?Z,
-    do: valid_alias_piece?(trim_leading_while_valid_identifier(rest))
-  defp valid_alias_piece?(<<>>),
-    do: true
-  defp valid_alias_piece?(_other),
-    do: false
-
-  defp valid_atom_identifier?(<<char, rest::binary>>)
-       when char in ?a..?z or char in ?A..?Z or char == ?_,
-    do: valid_atom_piece?(rest)
-  defp valid_atom_identifier?(_other),
-    do: false
-
-  defp valid_atom_piece?(binary) do
-    case trim_leading_while_valid_identifier(binary) do
-      rest when rest in ["", "?", "!"] ->
-        true
-      "@" <> rest ->
-        valid_atom_piece?(rest)
-      _other ->
-        false
-    end
-  end
-
-  # Takes a binary and trims all the valid identifier characters (alphanumeric
-  # and _) from its beginning.
-  defp trim_leading_while_valid_identifier(<<char, rest::binary>>)
-      when char in ?a..?z
-      when char in ?A..?Z
-      when char in ?0..?9
-      when char == ?_ do
-    trim_leading_while_valid_identifier(rest)
-  end
-
-  defp trim_leading_while_valid_identifier(other) do
-    other
+  def escape(binary) do
+    IO.iodata_to_binary [?", Inspect.BitString.escape(binary, ?"), ?"]
   end
 end
 
@@ -481,9 +432,10 @@ defimpl Inspect, for: Function do
   def inspect(function, _opts) do
     fun_info = :erlang.fun_info(function)
     mod = fun_info[:module]
+    name = fun_info[:name]
 
     if fun_info[:type] == :external and fun_info[:env] == [] do
-      "&#{Inspect.Atom.inspect(mod)}.#{fun_info[:name]}/#{fun_info[:arity]}"
+      "&#{Inspect.Atom.inspect(mod)}.#{escape_name(name)}/#{fun_info[:arity]}"
     else
       case Atom.to_charlist(mod) do
         'elixir_compiler_' ++ _ ->
@@ -498,6 +450,43 @@ defimpl Inspect, for: Function do
     end
   end
 
+  def escape_name(name) when is_atom(name) do
+    escape_name(Atom.to_string(name))
+  end
+
+  def escape_name(name) when is_binary(name) do
+    case Macro.classify_identifier(name) do
+      :callable ->
+        name
+      type when type in [:not_callable, :alias] ->
+        "\"" <> name <> "\""
+      :other ->
+        Inspect.Atom.escape(name)
+    end
+  end
+
+  # Example of this format: -func/arity-fun-count-
+  def extract_anonymous_fun_parent("-" <> rest) do
+    # We use :re instead of String.split/3 because we want to keep the "/"s and
+    # "-"s (this is what the "(" and ")" in the regex do). We want to keep them
+    # because we want to rebuild part of this split list (the function name)
+    # later on.
+    result =
+      rest
+      |> :re.split("([/-])")
+      |> Enum.reject(&(&1 == ""))
+      |> Enum.reverse()
+
+    case result do
+      ["-", _count, "-", _inner, "-", arity, "/" | reversed_function] ->
+        {Enum.join(Enum.reverse(reversed_function)), arity}
+      _other ->
+        :error
+    end
+  end
+
+  def extract_anonymous_fun_parent(other) when is_binary(other), do: :error
+
   defp default_inspect(mod, fun_info) do
     "#Function<#{uniq(fun_info)}/#{fun_info[:arity]} in " <>
       "#{Inspect.Atom.inspect(mod)}#{extract_name(fun_info[:name])}>"
@@ -509,9 +498,11 @@ defimpl Inspect, for: Function do
 
   defp extract_name(name) do
     name = Atom.to_string(name)
-    case :binary.split(name, "-", [:global]) do
-      ["", name | _] -> "." <> name
-      _ -> "." <> name
+    case extract_anonymous_fun_parent(name) do
+      {name, arity} ->
+        "." <> escape_name(name) <> "/" <> arity
+      :error ->
+        "." <> escape_name(name)
     end
   end
 
