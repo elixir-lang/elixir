@@ -418,15 +418,15 @@ defmodule KernelTest do
 
       result = expand_to_string(quote(do: rand() in 1..2))
       assert result =~ "var = rand()"
-      assert result =~ ":erlang.andalso(:erlang.is_integer(var), :erlang.andalso(:erlang.>=(var, 1), :erlang.=<(var, 2)))"
+      assert result =~ ":erlang.andalso(:erlang.is_integer(var), :erlang.andalso(:erlang.>=(var, 1), :erlang.\"=<\"(var, 2)))"
 
       result = expand_to_string(quote(do: rand() in [1, 2]))
       assert result =~ "var = rand()"
-      assert result =~ ":erlang.or(:erlang.=:=(var, 2), :erlang.=:=(var, 1))"
+      assert result =~ ":erlang.or(:erlang.\"=:=\"(var, 2), :erlang.\"=:=\"(var, 1))"
 
       result = expand_to_string(quote(do: rand() in [1 | [2]]))
       assert result =~ "var = rand()"
-      assert result =~ ":erlang.or(:erlang.=:=(var, 1), :erlang.=:=(var, 2))"
+      assert result =~ ":erlang.or(:erlang.\"=:=\"(var, 1), :erlang.\"=:=\"(var, 2))"
     end
 
     defp expand_to_string(ast) do

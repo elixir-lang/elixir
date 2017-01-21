@@ -98,6 +98,99 @@ defmodule Macro do
     end
   end
 
+  # Classifies the given atom or string into one of the following categories:
+  #
+  #   * :alias - a valid Elixir alias, like Foo, Foo.Bar and so on
+  #
+  #   * :callable - an atom that can be used as a function call after the
+  #     . operator (for example, :<> is callable because Foo.<>(1, 2, 3) is valid
+  #     syntax); this category includes identifiers like :foo
+  #
+  #   * :not_callable - an atom that cannot be used as a function call after the
+  #     . operator (for example, :<<>> is not callable because Foo.<<>> is a
+  #     syntax error); this category includes atoms like :Foo, since they are
+  #     valid identifiers but they need quotes to be used in function calls
+  #     (Foo."Bar")
+  #
+  #   * :atom - any other atom (these are usually escaped when inspected, like
+  #     :"foo and bar")
+  @doc false
+  def classify_identifier(atom_or_string)
+
+  unary_ops_as_strings = :lists.map(&:erlang.atom_to_binary(&1, :utf8), @unary_ops)
+  binary_ops_as_strings = :lists.map(&:erlang.atom_to_binary(&1, :utf8), @binary_ops)
+
+  def classify_identifier(atom) when is_atom(atom) do
+    classify_identifier(Atom.to_string(atom))
+  end
+
+  def classify_identifier(string) when is_binary(string) do
+    cond do
+      valid_alias?(string) ->
+        :alias
+      valid_atom_identifier?(string) ->
+        first = :binary.first(string)
+        if first >= ?A and first <= ?Z do
+          :not_callable
+        else
+          :callable
+        end
+      string in ["%", "%{}", "{}", "<<>>", "...", "..", "."] ->
+        :not_callable
+      string in unquote(unary_ops_as_strings) or string in unquote(binary_ops_as_strings) ->
+        :callable
+      true ->
+        :other
+    end
+  end
+
+  # Detect if atom is an atom alias (Elixir.Foo.Bar.Baz)
+
+  defp valid_alias?("Elixir" <> rest), do: valid_alias_piece?(rest)
+  defp valid_alias?(_other), do: false
+
+  # Detects if the given binary is a valid "ref" piece, that is, a valid
+  # successor of "Elixir" in atoms like "Elixir.String.Chars".
+  defp valid_alias_piece?(<<?., char, rest::binary>>) when char >= ?A and char <= ?Z,
+    do: valid_alias_piece?(trim_leading_while_valid_identifier(rest))
+  defp valid_alias_piece?(<<>>),
+    do: true
+  defp valid_alias_piece?(_other),
+    do: false
+
+  defp valid_atom_identifier?(<<char, rest::binary>>)
+       when char >= ?a and char <= ?z
+       when char >= ?A and char <= ?Z
+       when char == ?_,
+    do: valid_atom_piece?(rest)
+  defp valid_atom_identifier?(_other),
+    do: false
+
+  defp valid_atom_piece?(binary) do
+    case trim_leading_while_valid_identifier(binary) do
+      rest when rest in ["", "?", "!"] ->
+        true
+      "@" <> rest ->
+        valid_atom_piece?(rest)
+      _other ->
+        false
+    end
+  end
+
+  # Takes a binary and trims all the valid identifier characters (alphanumeric
+  # and _) from its beginning.
+  defp trim_leading_while_valid_identifier(<<char, rest::binary>>)
+       when char >= ?a and char <= ?z
+       when char >= ?A and char <= ?Z
+       when char >= ?0 and char <= ?9
+       when char == ?_ do
+    trim_leading_while_valid_identifier(rest)
+  end
+
+  defp trim_leading_while_valid_identifier(other) do
+    other
+  end
+
   @doc """
   Breaks a pipeline expression into a list.
 
@@ -845,6 +938,8 @@ defmodule Macro do
     do: "(" <> module_to_string(arg, fun) <> ")."
   defp call_to_string({:., _, [arg]}, fun),
     do: module_to_string(arg, fun) <> "."
+  defp call_to_string({:., _, [left, right]}, fun) when is_atom(right),
+    do: module_to_string(left, fun) <> "." <> call_to_string_for_atom(right)
   defp call_to_string({:., _, [left, right]}, fun),
     do: module_to_string(left, fun) <> "." <> call_to_string(right, fun)
   defp call_to_string(other, fun),
@@ -854,6 +949,10 @@ defmodule Macro do
     target = call_to_string(target, fun)
     args = args_to_string(args, fun)
     target <> "(" <> args <> ")"
+  end
+
+  defp call_to_string_for_atom(atom) do
+    Inspect.Function.escape_name(atom)
   end
 
   defp args_to_string(args, fun) do

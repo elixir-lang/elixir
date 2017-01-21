@@ -267,6 +267,14 @@ defmodule MacroTest do
     assert Macro.to_string(quote do: foo.bar.([1, 2, 3])) == "foo.bar().([1, 2, 3])"
   end
 
+  test "unusual remote atom fun call to string" do
+    assert Macro.to_string(quote do: Foo."42") == ~s/Foo."42"()/
+    assert Macro.to_string(quote do: Foo.'Bar') == ~s/Foo."Bar"()/
+    assert Macro.to_string(quote do: Foo."bar baz"."") == ~s/Foo."bar baz"().""()/
+    assert Macro.to_string(quote do: Foo."%{}") == ~s/Foo."%{}"()/
+    assert Macro.to_string(quote do: Foo."...") == ~s/Foo."..."()/
+  end
+
   test "atom fun call to string" do
     assert Macro.to_string(quote do: :foo.(1, 2, 3)) == ":foo.(1, 2, 3)"
   end
