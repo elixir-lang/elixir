@@ -845,6 +845,8 @@ defmodule Macro do
     do: "(" <> module_to_string(arg, fun) <> ")."
   defp call_to_string({:., _, [arg]}, fun),
     do: module_to_string(arg, fun) <> "."
+  defp call_to_string({:., _, [left, right]}, fun) when is_atom(right),
+    do: module_to_string(left, fun) <> "." <> call_to_string_for_atom(right)
   defp call_to_string({:., _, [left, right]}, fun),
     do: module_to_string(left, fun) <> "." <> call_to_string(right, fun)
   defp call_to_string(other, fun),
@@ -854,6 +856,25 @@ defmodule Macro do
     target = call_to_string(target, fun)
     args = args_to_string(args, fun)
     target <> "(" <> args <> ")"
+  end
+
+  # This function ensures that when we have an atom in a call, it will work
+  # correctly. We inspect the given atom because inspect/1 takes care of atoms
+  # that need quotes around them (for example, :"foo bar") but leaves "simple"
+  # atoms as is (such as :foo, which is inspected as ":foo"). This way,
+  # "regular" function calls (such as List.first([1, 2, 3])) will still be
+  # inspected correctly. The only special case that we need to take care of is
+  # atoms like :Foo, which are inspected as is (:Foo) and without quotes: in
+  # those cases, we add the quotes manually here so that Foo."Bar"() is not
+  # shown as Foo.Bar().
+  defp call_to_string_for_atom(atom) do
+    ":" <> string = inspect(atom)
+    case string do
+      <<char>> <> _ = string when char >= ?A and char <= ?Z ->
+        "\"" <> string <> "\""
+      string ->
+        string
+    end
   end
 
   defp args_to_string(args, fun) do
