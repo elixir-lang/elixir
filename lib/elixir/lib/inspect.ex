@@ -431,8 +431,6 @@ defimpl Inspect, for: Regex do
 end
 
 defimpl Inspect, for: Function do
-  require Macro
-
   def inspect(function, _opts) do
     fun_info = :erlang.fun_info(function)
     mod = fun_info[:module]
