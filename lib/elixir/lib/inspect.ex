@@ -458,14 +458,14 @@ defimpl Inspect, for: Function do
     escape_name(Atom.to_string(name))
   end
 
-  def escape_name(string_name) when is_binary(string_name) do
-    case Macro.classify_identifier(string_name) do
+  def escape_name(name) when is_binary(name) do
+    case Macro.classify_identifier(name) do
       :callable ->
-        string_name
+        name
       type when type in [:not_callable, :alias] ->
-        "\"" <> string_name <> "\""
+        "\"" <> name <> "\""
       :other ->
-        Inspect.Atom.escape(string_name)
+        Inspect.Atom.escape(name)
     end
   end
 
@@ -495,11 +495,11 @@ defimpl Inspect, for: Function do
 
   defp extract_name(name) do
     case Atom.to_string(name) do
-      "-" <> _rest = string_name ->
-        {string_name, arity} = extract_anonymous_fun_parent(string_name)
-        "." <> escape_name(string_name) <> "/" <> arity
-      string_name ->
-        "." <> escape_name(string_name)
+      "-" <> _rest = name ->
+        {name, arity} = extract_anonymous_fun_parent(name)
+        "." <> escape_name(name) <> "/" <> arity
+      name ->
+        "." <> escape_name(name)
     end
   end
 
