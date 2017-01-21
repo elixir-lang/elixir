@@ -470,7 +470,11 @@ defimpl Inspect, for: Function do
   end
 
   # Example of this format: -func/arity-fun-count-
-  def extract_nested_function_name_and_arity("-" <> rest) do
+  def extract_anonymous_fun_parent("-" <> rest) do
+    # We use :re instead of String.split/3 because we want to keep the "/"s and
+    # "-"s (this is what the "(" and ")" in the regex do). We want to keep them
+    # because we want to rebuild part of this split list (the function name)
+    # later on.
     ["-", count, "-", "fun", "-", arity, "/" | reversed_function] =
       rest
       |> :re.split("([/-])")
@@ -492,7 +496,7 @@ defimpl Inspect, for: Function do
   defp extract_name(name) do
     case Atom.to_string(name) do
       "-" <> _rest = string_name ->
-        {string_name, arity} = extract_nested_function_name_and_arity(string_name)
+        {string_name, arity} = extract_anonymous_fun_parent(string_name)
         "." <> escape_name(string_name) <> "/" <> arity
       string_name ->
         "." <> escape_name(string_name)
