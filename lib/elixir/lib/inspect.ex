@@ -96,10 +96,6 @@ defimpl Inspect, for: Atom do
   def escape(binary) do
     IO.iodata_to_binary [?", Inspect.BitString.escape(binary, ?"), ?"]
   end
-
-  defp only_elixir?("Elixir." <> rest), do: only_elixir?(rest)
-  defp only_elixir?("Elixir"), do: true
-  defp only_elixir?(_), do: false
 end
 
 defimpl Inspect, for: BitString do
@@ -470,19 +466,26 @@ defimpl Inspect, for: Function do
   end
 
   # Example of this format: -func/arity-fun-count-
-  def extract_anonymous_fun_parent("-" <> rest) do
+  def maybe_extract_anonymous_fun_parent("-" <> rest) do
     # We use :re instead of String.split/3 because we want to keep the "/"s and
     # "-"s (this is what the "(" and ")" in the regex do). We want to keep them
     # because we want to rebuild part of this split list (the function name)
     # later on.
-    ["-", _count, "-", "fun", "-", arity, "/" | reversed_function] =
+    result =
       rest
       |> :re.split("([/-])")
       |> Enum.reject(&(&1 == ""))
       |> Enum.reverse()
 
-    {Enum.join(Enum.reverse(reversed_function)), arity}
+    case result do
+      ["-", _count, "-", _inner, "-", arity, "/" | reversed_function] ->
+        {Enum.join(Enum.reverse(reversed_function)), arity}
+      _other ->
+        :error
+    end
   end
+
+  def maybe_extract_anonymous_fun_parent(_other), do: :error
 
   defp default_inspect(mod, fun_info) do
     "#Function<#{uniq(fun_info)}/#{fun_info[:arity]} in " <>
@@ -494,11 +497,11 @@ defimpl Inspect, for: Function do
   end
 
   defp extract_name(name) do
-    case Atom.to_string(name) do
-      "-" <> _rest = name ->
-        {name, arity} = extract_anonymous_fun_parent(name)
+    name = Atom.to_string(name)
+    case maybe_extract_anonymous_fun_parent(name) do
+      {name, arity} ->
         "." <> escape_name(name) <> "/" <> arity
-      name ->
+      :error ->
         "." <> escape_name(name)
     end
   end
