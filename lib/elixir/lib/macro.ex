@@ -98,9 +98,7 @@ defmodule Macro do
     end
   end
 
-  # Classifies the given atom into one of five categories:
-  #
-  #   * :boolean_or_nil - the atoms true, false, nil
+  # Classifies the given atom or string into one of the following categories:
   #
   #   * :alias - a valid Elixir alias, like Foo, Foo.Bar and so on
   #
@@ -108,7 +106,7 @@ defmodule Macro do
   #     . operator (for example, :<> is callable because Foo.<>(1, 2, 3) is valid
   #     syntax); this category includes identifiers like :foo
   #
-  #   * :non_callable - an atom that cannot be used as a function call after the
+  #   * :not_callable - an atom that cannot be used as a function call after the
   #     . operator (for example, :<<>> is not callable because Foo.<<>> is a
   #     syntax error); this category includes atoms like :Foo, since they are
   #     valid identifiers but they need quotes to be used in function calls
@@ -117,34 +115,32 @@ defmodule Macro do
   #   * :atom - any other atom (these are usually escaped when inspected, like
   #     :"foo and bar")
   @doc false
-  def classify_atom(atom_or_string)
+  def classify_identifier(atom_or_string)
 
   unary_ops_as_strings = :lists.map(&:erlang.atom_to_binary(&1, :utf8), @unary_ops)
   binary_ops_as_strings = :lists.map(&:erlang.atom_to_binary(&1, :utf8), @binary_ops)
 
-  def classify_atom(atom) when is_atom(atom) do
-    classify_atom(Atom.to_string(atom))
+  def classify_identifier(atom) when is_atom(atom) do
+    classify_identifier(Atom.to_string(atom))
   end
 
-  def classify_atom(string) when is_binary(string) do
+  def classify_identifier(string) when is_binary(string) do
     cond do
-      string in ["nil", "true", "false"] ->
-        :boolean_or_nil
       valid_alias?(string) ->
         :alias
       valid_atom_identifier?(string) ->
         first = :binary.first(string)
         if first >= ?A and first <= ?Z do
-          :non_callable
+          :not_callable
         else
           :callable
         end
       string in ["%", "%{}", "{}", "<<>>", "...", "..", "."] ->
-        :non_callable
+        :not_callable
       string in unquote(unary_ops_as_strings) or string in unquote(binary_ops_as_strings) ->
         :callable
       true ->
-        :atom
+        :other
     end
   end
 

@@ -430,8 +430,8 @@ defmodule Exception do
   """
   def format_mfa(module, fun, arity) when is_atom(module) and is_atom(fun) do
     case Atom.to_string(fun) do
-      "-" <> _rest = outer ->
-        {outer_name, outer_arity} = Inspect.Function.extract_nested_function_name_and_arity(outer)
+      "-" <> _rest = root ->
+        {outer_name, outer_arity} = Inspect.Function.extract_nested_function_name_and_arity(root)
         "anonymous fn#{format_arity(arity)} in " <>
           "#{inspect(module)}.#{Inspect.Function.escape_name(outer_name)}/#{outer_arity}"
       fun ->

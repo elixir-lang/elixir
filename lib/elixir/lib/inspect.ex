@@ -69,12 +69,14 @@ defimpl Inspect, for: Atom do
   defp color_key(nil), do: :nil
   defp color_key(_), do: :atom
 
+  def inspect(atom) when is_nil(atom) or is_boolean(atom) do
+    Atom.to_string(atom)
+  end
+
   def inspect(atom) do
     binary = Atom.to_string(atom)
 
-    case Macro.classify_atom(binary) do
-      :boolean_or_nil ->
-        binary
+    case Macro.classify_identifier(binary) do
       :alias ->
         case binary do
           binary when binary in ["Elixir", "Elixir.Elixir"] ->
@@ -84,9 +86,9 @@ defimpl Inspect, for: Atom do
           "Elixir." <> rest ->
             rest
         end
-      type when type in [:callable, :non_callable] ->
+      type when type in [:callable, :not_callable] ->
         ":" <> binary
-      :atom ->
+      :other ->
         ":" <> escape(binary)
     end
   end
@@ -457,12 +459,12 @@ defimpl Inspect, for: Function do
   end
 
   def escape_name(string_name) when is_binary(string_name) do
-    case Macro.classify_atom(string_name) do
-      type when type in [:boolean_or_nil, :callable] ->
+    case Macro.classify_identifier(string_name) do
+      :callable ->
         string_name
-      type when type in [:non_callable, :alias] ->
+      type when type in [:not_callable, :alias] ->
         "\"" <> string_name <> "\""
-      :atom ->
+      :other ->
         Inspect.Atom.escape(string_name)
     end
   end
