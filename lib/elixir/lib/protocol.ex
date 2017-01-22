@@ -50,7 +50,7 @@ defmodule Protocol do
   end
 
   defmacro def(_) do
-    raise ArgumentError, "invalid args for def inside defprotocol"
+    raise ArgumentError, "invalid arguments for def inside defprotocol"
   end
 
   @doc """
