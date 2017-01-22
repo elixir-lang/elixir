@@ -1242,7 +1242,6 @@ defmodule Enum do
       iex> characters = [%{name: "Santiago", occupation: "Shepherd", hometown: "Andalusia"}, %{name: "Melchizedek", occupation: "King of Salem ", hometown: "Salem"}]
       iex> Enum.map_by(characters, :name)
       ["Santiago", "Melchizedek"]
-
       iex> Enum.map_by(characters, [:name, :hometown])
       [%{name: "Santiago", hometown: "Andalusia"}, %{name: "Melchizedek", hometown: "Salem"}]
   """
