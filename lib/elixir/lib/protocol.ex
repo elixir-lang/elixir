@@ -25,7 +25,7 @@ defmodule Protocol do
 
     call_args = :lists.map(fn i -> {String.to_atom(<<?x, i + 64>>), [], __MODULE__} end,
                            :lists.seq(2, arity))
-    call_args = [quote(do: t) | call_args]
+    call_args = [quote(do: term) | call_args]
 
     quote do
       name  = unquote(name)
@@ -39,7 +39,7 @@ defmodule Protocol do
 
       # Generate the actual implementation
       Kernel.def unquote(name)(unquote_splicing(call_args)) do
-        impl_for!(t).unquote(name)(unquote_splicing(call_args))
+        impl_for!(term).unquote(name)(unquote_splicing(call_args))
       end
 
       # Convert the spec to callback if possible,
@@ -298,7 +298,7 @@ defmodule Protocol do
     end
   end
 
-  defp change_impl_for([{:function, line, :__protocol__, 1, clauses} | t], protocol, types, structs, _, acc) do
+  defp change_impl_for([{:function, line, :__protocol__, 1, clauses} | tail], protocol, types, structs, _, acc) do
     clauses = :lists.map(fn
       {:clause, l, [{:atom, _, :consolidated?}], [], [{:atom, _, _}]} ->
         {:clause, l, [{:atom, 0, :consolidated?}], [], [{:atom, 0, true}]}
@@ -306,11 +306,11 @@ defmodule Protocol do
         c
     end, clauses)
 
-    change_impl_for(t, protocol, types, structs, true,
+    change_impl_for(tail, protocol, types, structs, true,
                     [{:function, line, :__protocol__, 1, clauses} | acc])
   end
 
-  defp change_impl_for([{:function, line, :impl_for, 1, _} | t], protocol, types, structs, is_protocol, acc) do
+  defp change_impl_for([{:function, line, :impl_for, 1, _} | tail], protocol, types, structs, protocol?, acc) do
     fallback = if Any in types, do: load_impl(protocol, Any)
 
     clauses = for {guard, mod} <- __builtin__(),
@@ -320,21 +320,21 @@ defmodule Protocol do
     clauses = [struct_clause_for(line) | clauses] ++
               [fallback_clause_for(fallback, protocol, line)]
 
-    change_impl_for(t, protocol, types, structs, is_protocol,
+    change_impl_for(tail, protocol, types, structs, protocol?,
                     [{:function, line, :impl_for, 1, clauses} | acc])
   end
 
-  defp change_impl_for([{:function, line, :struct_impl_for, 1, _} | t], protocol, types, structs, is_protocol, acc) do
+  defp change_impl_for([{:function, line, :struct_impl_for, 1, _} | tail], protocol, types, structs, protocol?, acc) do
     fallback = if Any in types, do: load_impl(protocol, Any)
     clauses = for struct <- structs, do: each_struct_clause_for(struct, protocol, line)
     clauses = clauses ++ [fallback_clause_for(fallback, protocol, line)]
 
-    change_impl_for(t, protocol, types, structs, is_protocol,
+    change_impl_for(tail, protocol, types, structs, protocol?,
                     [{:function, line, :struct_impl_for, 1, clauses} | acc])
   end
 
-  defp change_impl_for([{:attribute, line, :spec, {{:__protocol__, 1}, funspecs}} | t], protocol, types, structs, is_protocol, acc) do
-    newspecs = for spec <- funspecs do
+  defp change_impl_for([{:attribute, line, :spec, {{:__protocol__, 1}, funspecs}} | tail], protocol, types, structs, protocol?, acc) do
+    new_specs = for spec <- funspecs do
       case spec do
         {:type, line, :fun, [{:type, _, :product, [{:atom, _, :consolidated?}]}, _]} ->
           {:type, line, :fun,
@@ -343,15 +343,15 @@ defmodule Protocol do
         other -> other
       end
     end
-    change_impl_for(t, protocol, types, structs, is_protocol, [{:attribute, line, :spec, {{:__protocol__, 1}, newspecs}}|acc])
+    change_impl_for(tail, protocol, types, structs, protocol?, [{:attribute, line, :spec, {{:__protocol__, 1}, new_specs}} | acc])
   end
 
-  defp change_impl_for([h | t], protocol, info, types, is_protocol, acc) do
-    change_impl_for(t, protocol, info, types, is_protocol, [h | acc])
+  defp change_impl_for([head | tail], protocol, info, types, protocol?, acc) do
+    change_impl_for(tail, protocol, info, types, protocol?, [head | acc])
   end
 
-  defp change_impl_for([], protocol, _info, _types, is_protocol, acc) do
-    if is_protocol do
+  defp change_impl_for([], protocol, _info, _types, protocol?, acc) do
+    if protocol? do
       {:ok, {protocol, Enum.reverse(acc)}}
     else
       {:error, :not_a_protocol}
@@ -527,8 +527,8 @@ defmodule Protocol do
   @doc false
   def __functions_spec__([]),
     do: []
-  def __functions_spec__([h | t]),
-    do: [:lists.foldl(&{:|, [], [&1, &2]}, h, t), quote(do: ...)]
+  def __functions_spec__([head | tail]),
+    do: [:lists.foldl(&{:|, [], [&1, &2]}, head, tail), quote(do: ...)]
 
   @doc false
   def __impl__(protocol, opts) do
