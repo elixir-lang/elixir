@@ -23,7 +23,7 @@ defmodule Protocol do
                            :lists.seq(2, arity))
     type_args = [quote(do: t) | type_args]
 
-    call_args = :lists.map(fn i -> {String.to_atom(<<?x, i + 64>>), [], __MODULE__} end,
+    call_args = :lists.map(fn pos -> Macro.var(String.to_atom("var" <> Integer.to_string(pos)), __MODULE__) end,
                            :lists.seq(2, arity))
     call_args = [quote(do: term) | call_args]
 
