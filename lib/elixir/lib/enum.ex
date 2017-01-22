@@ -1235,6 +1235,33 @@ defmodule Enum do
   end
 
   @doc """
+  Returns a list from a list of maps. If the operation needs multiple keys, the function returns a
+  list of maps. Otherwise the function returns a list of values from the specified key of every map in the list.
+
+  ## Examples
+      iex> characters = [%{name: "Santiago", occupation: "Shepherd", hometown: "Andalusia"}, %{name: "Melchizedek", occupation: "King of Salem ", hometown: "Salem"}]
+      iex> Enum.map_by(characters, :name)
+      ["Santiago", "Melchizedek"]
+
+      iex> Enum.map_by(characters, [:name, :hometown])
+      [%{name: "Santiago", hometown: "Andalusia"}, %{name: "Melchizedek", hometown: "Salem"}]
+  """
+  @spec map_by(list_of_maps, key) :: list_of_values
+  @spec map_by(list_of_maps, list_of_keys) :: list_of_maps
+  def map_by(enumerable, list_of_keys) when is_list(enumerable) and is_list(list_of_keys) do
+    map(enumerable, fn(element) ->
+      list_of_keys |> reduce(%{}, fn(key, acc) ->
+        value = Map.get(element, key)
+        Map.put(acc, key, value)
+      end)
+    end)
+  end
+
+  def map_by(enumerable, key) when is_list(enumerable) and is_atom(key) do
+    map(enumerable, fn(el) -> Map.get(el, key) end)
+  end
+
+  @doc """
   Returns a list of results of invoking `fun` on every `nth`
   item of `enumerable`, starting with the first element.
 
