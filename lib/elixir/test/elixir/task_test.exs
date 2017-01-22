@@ -262,7 +262,7 @@ defmodule TaskTest do
     test "exits on :noconnection" do
       ref  = make_ref()
       task = %Task{ref: ref, pid: self(), owner: self()}
-      send self(), {:DOWN, ref, self(), self(), :noconnection}
+      send self(), {:DOWN, ref, :process, self(), :noconnection}
       assert catch_exit(Task.yield_many([task])) |> elem(0) == {:nodedown, :nonode@nohost}
     end
 
@@ -275,11 +275,10 @@ defmodule TaskTest do
     test "returns results from multiple tasks" do
       task1 = %Task{ref: make_ref(), owner: self()}
       task2 = %Task{ref: make_ref(), owner: self()}
-      task3 = Task.async(fn -> exit :normal end)
+      task3 = %Task{ref: make_ref(), owner: self()}
 
       send(self(), {task1.ref, :result})
-      ref = Process.monitor(task3.pid)
-      assert_receive {:DOWN, ^ref, _, _, :normal}
+      send(self(), {:DOWN, task3.ref, :process, self(), :normal})
 
       assert Task.yield_many([task1, task2, task3], 0) ==
              [{task1, {:ok, :result}}, {task2, nil}, {task3, {:exit, :normal}}]
