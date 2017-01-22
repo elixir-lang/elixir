@@ -154,6 +154,18 @@ defmodule EExTest do
         EEx.compile_string "foo <% if true do %><% end %><% end %>"
       end
     end
+
+    test "when middle expression has a modifier" do
+      assert_raise EEx.SyntaxError, "nofile:1: unexpected token '=' on <%= else %>", fn ->
+        EEx.compile_string "foo <%= if true do %>true<%= else %>false<% end %>"
+      end
+    end
+
+    test "when end expression has a modifier" do
+      assert_raise EEx.SyntaxError, "nofile:1: unexpected token '=' on <%= end %>", fn ->
+        EEx.compile_string "foo <%= if true do %>true<% else %>false<%= end %>"
+      end
+    end
   end
 
   describe "environment" do

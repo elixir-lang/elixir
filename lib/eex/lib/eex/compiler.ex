@@ -46,20 +46,31 @@ defmodule EEx.Compiler do
     generate_buffer(t, buffer, scope, state)
   end
 
-  defp generate_buffer([{:middle_expr, line, _, chars} | t], buffer, [current | scope], state) do
+  defp generate_buffer([{:middle_expr, line, '', chars} | t], buffer, [current | scope], state) do
     {wrapped, state} = wrap_expr(current, line, buffer, chars, state)
     generate_buffer(t, "", [wrapped | scope], %{state | line: line})
   end
 
-  defp generate_buffer([{:end_expr, line, _, chars} | t], buffer, [current | _], state) do
+  defp generate_buffer([{:middle_expr, line, modifier, chars} | _], _buffer, _, state) do
+    raise EEx.SyntaxError, message: "unexpected token #{inspect modifier} on <%#{modifier}#{chars}%>",
+                           file: state.file, line: line
+  end
+
+  defp generate_buffer([{:end_expr, line, '', chars} | t], buffer, [current | _], state) do
     {wrapped, state} = wrap_expr(current, line, buffer, chars, state)
     tuples = Code.string_to_quoted!(wrapped, [line: state.start_line, file: state.file])
     buffer = insert_quoted(tuples, state.quoted)
     {buffer, t}
   end
 
+  defp generate_buffer([{:end_expr, line, modifier, chars} | _], _buffer, [_ | _], state) do
+    raise EEx.SyntaxError, message: "unexpected token #{inspect modifier} on <%#{modifier}#{chars}%>",
+                           file: state.file, line: line
+  end
+
   defp generate_buffer([{:end_expr, line, _, chars} | _], _buffer, [], state) do
-    raise EEx.SyntaxError, message: "unexpected token #{inspect chars}", file: state.file, line: line
+    raise EEx.SyntaxError, message: "unexpected token #{inspect chars}",
+                           file: state.file, line: line
   end
 
   defp generate_buffer([], buffer, [], state) do
