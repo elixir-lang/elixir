@@ -28,7 +28,7 @@ defmodule EEx.SmartEngineTest do
     assert_eval "1\n2\n3\n", "<%= for x <- [1, 2, 3] do %><%= x %>\n<% end %>"
   end
 
-  test "compiled preserved line numbers" do
+  test "preserves line numbers" do
     result = EEx.compile_string("<%= @hello %>", engine: EEx.SmartEngine)
     Macro.prewalk(result, fn
       {_left, meta, _right} ->
@@ -39,7 +39,7 @@ defmodule EEx.SmartEngineTest do
   end
 
   defp assert_eval(expected, actual, binding \\ []) do
-    result = EEx.eval_string(actual, binding, file: __ENV__.file)
+    result = EEx.eval_string(actual, binding, file: __ENV__.file, engine: EEx.SmartEngine)
     assert result == expected
   end
 end
