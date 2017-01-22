@@ -8,15 +8,15 @@ defmodule MapSet do
       iex> MapSet.new
       #MapSet<[]>
 
-  A set can contain any kind of elements and elements in a set don't have to be
+  A set can contain any kind of elements, and elements in a set don't have to be
   of the same type. By definition, sets can't contain duplicate elements: when
   inserting an element in a set where it's already present, the insertion is
   simply a no-op.
 
-      iex> set = MapSet.new
-      iex> MapSet.put(set, "foo")
+      iex> map_set = MapSet.new
+      iex> MapSet.put(map_set, "foo")
       #MapSet<["foo"]>
-      iex> set |> MapSet.put("foo") |> MapSet.put("foo")
+      iex> map_set |> MapSet.put("foo") |> MapSet.put("foo")
       #MapSet<["foo"]>
 
   A `MapSet` is represented internally using the `%MapSet{}` struct. This struct
@@ -28,7 +28,7 @@ defmodule MapSet do
   Note that, however, the struct fields are private and must not be accessed
   directly; use the functions in this module to perform operations on sets.
 
-  Sets can also be constructed starting from other collection-type data
+  `MapSet`s can also be constructed starting from other collection-type data
   structures: for example, see `MapSet.new/1` or `Enum.into/2`.
   """
 
@@ -65,7 +65,7 @@ defmodule MapSet do
   @spec new(Enum.t) :: t
   def new(enumerable)
 
-  def new(%__MODULE__{} = mapset), do: mapset
+  def new(%__MODULE__{} = map_set), do: map_set
   def new(enumerable) do
     map =
       enumerable
@@ -76,7 +76,7 @@ defmodule MapSet do
   end
 
   @doc """
-  Creates a mapset from an enumerable via the transformation function.
+  Creates a set from an enumerable via the transformation function.
 
   ## Examples
 
@@ -113,26 +113,26 @@ defmodule MapSet do
   end
 
   @doc """
-  Deletes `value` from `set`.
+  Deletes `value` from `map_set`.
 
-  Returns a new set which is a copy of `set` but without `value`.
+  Returns a new set which is a copy of `map_set` but without `value`.
 
   ## Examples
 
-      iex> set = MapSet.new([1, 2, 3])
-      iex> MapSet.delete(set, 4)
+      iex> map_set = MapSet.new([1, 2, 3])
+      iex> MapSet.delete(map_set, 4)
       #MapSet<[1, 2, 3]>
-      iex> MapSet.delete(set, 2)
+      iex> MapSet.delete(map_set, 2)
       #MapSet<[1, 3]>
 
   """
   @spec delete(t(val1), val2) :: t(val1) when val1: value, val2: value
-  def delete(%MapSet{map: map} = set, value) do
-    %{set | map: Map.delete(map, value)}
+  def delete(%MapSet{map: map} = map_set, value) do
+    %{map_set | map: Map.delete(map, value)}
   end
 
   @doc """
-  Returns a set that is `set1` without the members of `set2`.
+  Returns a set that is `map_set1` without the members of `map_set2`.
 
   ## Examples
 
@@ -141,7 +141,7 @@ defmodule MapSet do
 
   """
   @spec difference(t(val1), t(val2)) :: t(val1) when val1: value, val2: value
-  def difference(mapset1, mapset2)
+  def difference(map_set1, map_set2)
 
   # If the first set is less than twice the size of the second map,
   # it is fastest to re-accumulate items in the first set that are not
@@ -174,7 +174,7 @@ defmodule MapSet do
   end
 
   @doc """
-  Checks if `set1` and `set2` have no members in common.
+  Checks if `map_set1` and `map_set2` have no members in common.
 
   ## Examples
 
@@ -222,7 +222,7 @@ defmodule MapSet do
   end
 
   @doc """
-  Returns a set containing only members that `set1` and `set2` have in common.
+  Returns a set containing only members that `map_set1` and `map_set2` have in common.
 
   ## Examples
 
@@ -241,7 +241,7 @@ defmodule MapSet do
   end
 
   @doc """
-  Checks if `set` contains `value`.
+  Checks if `map_set` contains `value`.
 
   ## Examples
 
@@ -257,7 +257,7 @@ defmodule MapSet do
   end
 
   @doc """
-  Inserts `value` into `set` if `set` doesn't already contain it.
+  Inserts `value` into `map_set` if `map_set` doesn't already contain it.
 
   ## Examples
 
@@ -268,12 +268,12 @@ defmodule MapSet do
 
   """
   @spec put(t(val), new_val) :: t(val | new_val) when val: value, new_val: value
-  def put(%MapSet{map: map} = set, value) do
-    %{set | map: Map.put(map, value, true)}
+  def put(%MapSet{map: map} = map_set, value) do
+    %{map_set | map: Map.put(map, value, true)}
   end
 
   @doc """
-  Returns the number of elements in `set`.
+  Returns the number of elements in `map_set`.
 
   ## Examples
 
@@ -287,9 +287,9 @@ defmodule MapSet do
   end
 
   @doc """
-  Checks if `set1`'s members are all contained in `set2`.
+  Checks if `map_set1`'s members are all contained in `map_set2`.
 
-  This function checks if `set1` is a subset of `set2`.
+  This function checks if `map_set1` is a subset of `map_set2`.
 
   ## Examples
 
@@ -320,7 +320,7 @@ defmodule MapSet do
   end
 
   @doc """
-  Converts `set` to a list.
+  Converts `map_set` to a list.
 
   ## Examples
 
@@ -334,7 +334,7 @@ defmodule MapSet do
   end
 
   @doc """
-  Returns a set containing all members of `set1` and `set2`.
+  Returns a set containing all members of `map_set1` and `map_set2`.
 
   ## Examples
 
@@ -351,16 +351,16 @@ defmodule MapSet do
   defp order_by_size(map1, map2), do: {map1, map2}
 
   defimpl Enumerable do
-    def reduce(set, acc, fun), do: Enumerable.List.reduce(MapSet.to_list(set), acc, fun)
-    def member?(set, val),     do: {:ok, MapSet.member?(set, val)}
-    def count(set),            do: {:ok, MapSet.size(set)}
+    def reduce(map_set, acc, fun), do: Enumerable.List.reduce(MapSet.to_list(map_set), acc, fun)
+    def member?(map_set, val), do: {:ok, MapSet.member?(map_set, val)}
+    def count(map_set), do: {:ok, MapSet.size(map_set)}
   end
 
   defimpl Collectable do
     def into(original) do
       {original, fn
-        set, {:cont, x} -> MapSet.put(set, x)
-        set, :done -> set
+        map_set, {:cont, x} -> MapSet.put(map_set, x)
+        map_set, :done -> map_set
         _, :halt -> :ok
       end}
     end
@@ -369,8 +369,8 @@ defmodule MapSet do
   defimpl Inspect do
     import Inspect.Algebra
 
-    def inspect(set, opts) do
-      concat ["#MapSet<", Inspect.List.inspect(MapSet.to_list(set), opts), ">"]
+    def inspect(map_set, opts) do
+      concat ["#MapSet<", Inspect.List.inspect(MapSet.to_list(map_set), opts), ">"]
     end
   end
 end
