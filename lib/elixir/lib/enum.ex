@@ -1246,8 +1246,8 @@ defmodule Enum do
       iex> Enum.map_by(characters, [:name, :hometown])
       [%{name: "Santiago", hometown: "Andalusia"}, %{name: "Melchizedek", hometown: "Salem"}]
   """
-  @spec map_by(list_of_maps, key) :: list_of_values
-  @spec map_by(list_of_maps, list_of_keys) :: list_of_maps
+  @spec map_by(list, atom) :: list
+  @spec map_by(list, list) :: list
   def map_by(enumerable, list_of_keys) when is_list(enumerable) and is_list(list_of_keys) do
     map(enumerable, fn(element) ->
       list_of_keys |> reduce(%{}, fn(key, acc) ->
