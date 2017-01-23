@@ -70,7 +70,12 @@ defmodule GenServer.Loop do
     end
   end
 
-  # TODO: add format_status/2 for :sys.get_status
+  def format_status(opt, [pdict, status, parent, dbg, {name, mod, state, _}]) do
+    header = 'Status for generic server: #{inspect(name)}'
+    events = :sys.get_debug(:log, dbg, [])
+    data = [{'Status', status}, {'Parent', parent}, {'Logged events', events}]
+    [header: header, data: data] ++ format_status(mod, opt, pdict, state)
+  end
 
   def system_terminate(reason, _, dbg, {name, mod, state, _}) do
     try do
@@ -289,30 +294,60 @@ defmodule GenServer.Loop do
         stack = System.stacktrace()
         exit_reason = exit_reason(kind, reason, stack)
         log_reason = log_reason(kind, reason, stack)
-        log_exit(exit_reason, log_reason, msg, dbg, name, state)
+        log_exit(exit_reason, log_reason, msg, dbg, name, mod, state)
     else
       _ ->
-        handle_exit(exit_reason, log_reason, msg, dbg, name, state)
+        handle_exit(exit_reason, log_reason, msg, dbg, name, mod, state)
     end
   end
 
-  defp handle_exit(exit_reason, log_reason, msg, dbg, name, state) do
+  defp handle_exit(exit_reason, log_reason, msg, dbg, name, mod, state) do
     case exit_reason do
-      :normal        -> exit(:normal)
-      :shutdown      -> exit(:shutdown)
-      {:shutdown, _} -> exit(exit_reason)
-      _              -> log_exit(exit_reason, log_reason, msg, dbg, name, state)
+      :normal ->
+        exit(:normal)
+      :shutdown ->
+        exit(:shutdown)
+      {:shutdown, _} ->
+        exit(exit_reason)
+      _ ->
+        log_exit(exit_reason, log_reason, msg, dbg, name, mod, state)
     end
   end
 
-  defp log_exit(exit_reason, log_reason, msg, dbg, name, state) do
+  defp log_exit(exit_reason, log_reason, msg, dbg, name, mod, state) do
     format = '** Generic server ~p terminating~n' ++
              '** Last message in was ~p~n' ++
              '** When Server state == ~p~n' ++
              '** Reason for termination == ~n** ~p~n'
-    # TODO: format status on state
+    state = format_status(mod, :terminate, Process.get(), state)
     :error_logger.format(format, [name, msg, state, log_reason])
     :sys.print_log(dbg)
     exit(exit_reason)
+  end
+
+  defp format_status(mod, :normal, pdict, state) do
+    default = [data: [{'Status', state}]]
+    status = format_status(mod, :normal, pdict, state, default)
+    List.wrap(status)
+  end
+  defp format_status(mod, :terminate, pdict, state) do
+    format_status(mod, :terminate, pdict, state, state)
+  end
+
+  defp format_status(mod, opt, pdict, state, default) do
+    if function_exported?(mod, :format_status, 2) do
+      safe_format_status(mod, opt, pdict, state, default)
+    else
+      default
+    end
+  end
+
+  defp safe_format_status(mod, opt, pdict, state, default) do
+    try do
+      apply(mod, :format_status, [opt, [pdict, state]])
+    catch
+      _, _ ->
+        default
+    end
   end
 end
