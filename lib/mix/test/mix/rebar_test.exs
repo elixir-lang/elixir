@@ -55,6 +55,10 @@ defmodule Mix.RebarTest do
     assert [{:git_rebar, "~> 1.0", hex: :rebar_fork}] ==
            Mix.Rebar.deps(:foo, config, [])
 
+    config = [deps: [{:git_rebar, {:pkg, :rebar_fork}}]]
+    assert [{:git_rebar, ">= 0.0.0", hex: :rebar_fork}] ==
+           Mix.Rebar.deps(:foo, config, [])
+
     config = [deps: [{:git_rebar, '0.1..*', {:git, '../../test/fixtures/git_rebar', :master}}]]
     assert [{:git_rebar, ~r"0.1..*", [git: "../../test/fixtures/git_rebar", ref: "master"]}] ==
            Mix.Rebar.deps(:foo, config, [])
