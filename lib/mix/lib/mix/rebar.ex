@@ -225,7 +225,6 @@ defmodule Mix.Rebar do
   """
   def apply_overrides(app, config, overrides) do
     # Inefficient. We want the order we get here though.
-
     config =
       Enum.reduce(overrides, config, fn
         {:override, overrides}, config ->
@@ -238,7 +237,7 @@ defmodule Mix.Rebar do
 
     config =
       Enum.reduce(overrides, config, fn
-        {:override, oapp, overrides}, config when oapp == app ->
+        {:override, ^app, overrides}, config ->
           Enum.reduce(overrides, config, fn {key, value}, config ->
             Keyword.put(config, key, value)
           end)
@@ -246,14 +245,17 @@ defmodule Mix.Rebar do
           config
       end)
 
-    Enum.reduce(overrides, config, fn
-      {:add, oapp, overrides}, config when oapp == app ->
-        Enum.reduce(overrides, config, fn {key, value}, config ->
-          old_value = Keyword.get(config, key, [])
-          Keyword.put(config, key, value ++ old_value)
+    config =
+      Enum.reduce(overrides, config, fn
+        {:add, ^app, overrides}, config ->
+          Enum.reduce(overrides, config, fn {key, value}, config ->
+            old_value = Keyword.get(config, key, [])
+            Keyword.put(config, key, value ++ old_value)
+          end)
+        _, config ->
+          config
       end)
-      _, config ->
-        config
-    end)
+
+    Keyword.update(config, :overrides, overrides, &(overrides ++ &1))
   end
 end
