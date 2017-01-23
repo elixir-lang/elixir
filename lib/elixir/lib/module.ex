@@ -809,18 +809,7 @@ defmodule Module do
         false ->
           raise ArgumentError,
             "cannot make function #{name}/#{arity} overridable because it was not defined"
-        {{_def, :defmacrop, _line, _file, _check, _location, _defaults}, _clauses} ->
-          raise ArgumentError,
-            "cannot make private macro #{name}/#{arity} overridable, overriding " <>
-            "private macros is not supported"
         clause ->
-          {{_def, kind, _line, _file, _check, _location, _defaults}, _clauses} = clause
-
-          # TODO: Remove on v2.0
-          if kind == :defp do
-            IO.warn "making private functions (#{name}/#{arity} in this case) overridable is deprecated"
-          end
-
           neighbours =
             if :elixir_compiler.get_opt(:internal) do
               []

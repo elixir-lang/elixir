@@ -1,10 +1,6 @@
 Code.require_file "../test_helper.exs", __DIR__
 
 defmodule Kernel.Overridable do
-  defmacrop super? do
-    Module.overridable?(__CALLER__.module, __CALLER__.function)
-  end
-
   def sample do
     1
   end
@@ -17,37 +13,7 @@ defmodule Kernel.Overridable do
     1
   end
 
-  def explicit_nested_super do
-    {super?(), 2}
-  end
-
-  false = Module.overridable? __MODULE__, {:explicit_nested_super, 0}
-
-  defoverridable [sample: 0, with_super: 0, without_super: 0, explicit_nested_super: 0]
-
-  true = Module.overridable? __MODULE__, {:explicit_nested_super, 0}
-
-  def explicit_nested_super do
-    {super(), super?(), 1}
-  end
-
-  true = Module.overridable? __MODULE__, {:explicit_nested_super, 0}
-
-  defoverridable [explicit_nested_super: 0]
-
-  true = Module.overridable? __MODULE__, {:explicit_nested_super, 0}
-
-  def implicit_nested_super do
-    {super?(), 1}
-  end
-
-  defoverridable [implicit_nested_super: 0]
-
-  def implicit_nested_super do
-    {super(), super?(), 0}
-  end
-
-  def super_with_explicit_args(x, y) do
+  def super_with_multiple_args(x, y) do
     x + y
   end
 
@@ -59,8 +25,11 @@ defmodule Kernel.Overridable do
     13
   end
 
-  defoverridable [implicit_nested_super: 0,
-    super_with_explicit_args: 2, many_clauses: 1]
+  defoverridable [sample: 0, with_super: 0, without_super: 0,
+                  super_with_multiple_args: 2, many_clauses: 1]
+
+  true = Module.overridable? __MODULE__, {:without_super, 0}
+  true = Module.overridable? __MODULE__, {:with_super, 0}
 
   def without_super do
     :without_super
@@ -70,15 +39,7 @@ defmodule Kernel.Overridable do
     super() + 2
   end
 
-  def no_overridable do
-    {:no_overridable, super?()}
-  end
-
-  def explicit_nested_super do
-    {super(), super?(), 0}
-  end
-
-  def super_with_explicit_args(x, y) do
+  def super_with_multiple_args(x, y) do
     super x, y * 2
   end
 
@@ -104,6 +65,20 @@ defmodule Kernel.Overridable do
 
   defmacro overridable_macro(x) do
     super(x) + 1_000
+  end
+
+  defmacrop private_macro(x) do
+    x + 100
+  end
+
+  defoverridable private_macro: 1
+
+  defmacrop private_macro(x) do
+    super(x) + 1_000
+  end
+
+  def private_macro_call() do
+    private_macro(11)
   end
 end
 
@@ -144,20 +119,8 @@ defmodule Kernel.OverridableTest do
     assert Overridable.without_super == :without_super
   end
 
-  test "overridable overridden with nested super" do
-    assert Overridable.explicit_nested_super == {{{false, 2}, true, 1}, true, 0}
-  end
-
-  test "overridable node overridden with nested super" do
-    assert Overridable.implicit_nested_super == {{false, 1}, true, 0}
-  end
-
-  test "calling super with explicit args" do
-    assert Overridable.super_with_explicit_args(1, 2) == 5
-  end
-
-  test "function without overridable returns false for super?" do
-    assert Overridable.no_overridable == {:no_overridable, false}
+  test "calling super with multiple args" do
+    assert Overridable.super_with_multiple_args(1, 2) == 5
   end
 
   test "overridable with many clauses" do
@@ -169,6 +132,12 @@ defmodule Kernel.OverridableTest do
 
   test "overridable definitions are private" do
     refute {:"with_super (overridable 0)", 0} in Overridable.module_info(:exports)
+    refute {:"with_super (overridable 1)", 0} in Overridable.module_info(:exports)
+  end
+
+  test "overridable macros" do
+    assert Overridable.overridable_macro(11) == 1111
+    assert Overridable.private_macro_call() == 1111
   end
 
   test "invalid super call" do
@@ -186,30 +155,12 @@ defmodule Kernel.OverridableTest do
     end
   end
 
-  test "overridable macros" do
-    assert Overridable.overridable_macro(1) == 1101
-  end
-
   test "undefined functions can't be marked as overridable" do
     message = "cannot make function foo/2 overridable because it was not defined"
     assert_raise ArgumentError, message, fn ->
       Code.eval_string """
       defmodule Foo do
         defoverridable foo: 2
-      end
-      """
-    end
-  end
-
-  test "private macros can't be overridden" do
-    message =
-      "cannot make private macro foo/0 overridable, overriding " <>
-      "private macros is not supported"
-    assert_raise ArgumentError, message, fn ->
-      Code.eval_string """
-      defmodule Foo do
-        defmacrop foo, do: 1
-        defoverridable foo: 0
       end
       """
     end

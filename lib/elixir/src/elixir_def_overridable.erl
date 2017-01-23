@@ -23,14 +23,14 @@ ensure_defined(Meta, Module, Tuple, S) ->
     _ -> elixir_errors:form_error(Meta, S#elixir_scope.file, ?MODULE, {no_super, Module, Tuple})
   end.
 
-%% Builds a function name based on how many times the function has been
-%% overridden.
+%% Builds a function name based on how many times the function
+%% has been overridden.
 
 name({Name, _} = _Function, Count) when is_integer(Count) ->
   elixir_utils:atom_concat([Name, " (overridable ", Count, ")"]).
 
-%% Returns the kind (def, defp, and so on) of the given overridable function and
-%% its overridable name.
+%% Returns the kind (def, defp, and so on) of the given overridable function
+%% and its overridable name.
 
 kind_and_name(Module, FunctionOrMacro) ->
   Overridable = overridable(Module),
@@ -40,7 +40,7 @@ kind_and_name(Module, FunctionOrMacro) ->
 
 %% Store
 
-store(Module, Function, GenerateName) ->
+store(Module, Function, Hidden) ->
   Overridable = overridable(Module),
   case maps:get(Function, Overridable) of
     {_Count, _Clause, _Neighbours, true} ->
@@ -50,19 +50,10 @@ store(Module, Function, GenerateName) ->
       {{{def, {Name, Arity}}, Kind, Line, File, _Check,
        Location, {Defaults, _HasBody, _LastDefaults}}, Clauses} = Clause,
 
-      %% We don't support private overridable macros, and this is checked before
-      %% getting here (in Module.make_overridable/2); we don't need to check
-      %% here. We still need to support defps because we only deprecated them,
-      %% but we should drop support for them in 2.0 and remove defp from here.
-      %% TODO: Remove on v2.0
-      {FinalKind, FinalName, FinalArity} =
-        case GenerateName of
-          false ->
-            {Kind, Name, Arity};
-          true when Kind == defmacro ->
-            {defp, elixir_utils:macro_name(name(Function, Count)), Arity + 1};
-          true when Kind == def; Kind == defp ->
-            {defp, name(Function, Count), Arity}
+      {FinalKind, FinalName} =
+        case Hidden of
+          false -> {Kind, Name};
+          true -> {to_private(Kind), name(Function, Count)}
         end,
 
       case elixir_compiler:get_opt(internal) of
@@ -72,7 +63,7 @@ store(Module, Function, GenerateName) ->
           ok
       end,
 
-      Def = {function, Line, FinalName, FinalArity, Clauses},
+      Def = {function, Line, FinalName, Arity, Clauses},
       elixir_def:store_each(false, FinalKind, File, Location, Module, Defaults, Def)
   end.
 
@@ -83,6 +74,11 @@ store_pending(Module) ->
   _ = [store(Module, X, false) || {X, {_, _, _, false}} <- maps:to_list(overridable(Module)),
     not 'Elixir.Module':'defines?'(Module, X)],
   ok.
+
+to_private(def) -> defp;
+to_private(defp) -> defp;
+to_private(defmacro) -> defmacrop;
+to_private(defmacrop) -> defmacrop.
 
 %% Error handling
 
