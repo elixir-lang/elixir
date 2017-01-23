@@ -341,8 +341,17 @@ defmodule Task do
   Each `enumerable` item is passed as argument to the given function `fun` and
   processed by its own task. The tasks will be linked to the current process,
   similarly to `async/1`.
+  
+  ## Example
+  
+  Count the codepoints in each string asynchronously, then add the counts together using reduce.
+  
+      iex> strings = ["long string", "longer string", "there are many of these"]
+      iex> stream = Task.async_stream(strings, fn text -> text |> String.codepoints |> Enum.count end)
+      iex> Enum.reduce(stream, 0, fn {:ok, num}, acc -> num + acc end)
+      47
 
-  See `async_stream/5` for discussion, options, and examples.
+  See `async_stream/5` for discussion, options, and more examples.
   """
   @spec async_stream(Enumerable.t, (term -> term), Keyword.t) :: Enumerable.t
   def async_stream(enumerable, fun, options \\ []) when is_function(fun, 1) do
