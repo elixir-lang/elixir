@@ -316,6 +316,10 @@ defmodule Macro do
     other
   end
 
+  def generate_arguments(number_of_args) do
+    for id <- 1..number_of_args, do: Macro.var(String.to_atom("variable#{id}"), __MODULE__)
+  end
+
   @doc """
   Generates an AST node representing the variable given
   by the atoms `var` and `context`.
