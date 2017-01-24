@@ -49,7 +49,7 @@ defmodule Mix.Tasks.Compile.App do
       included applications are started.
 
     * `:included_applications` - specifies a list of applications
-      that will be included in the application.  A process in an
+      that will be included in the application. A process in an
       included application considers itself belonging to the
       primary application.
 
@@ -72,7 +72,7 @@ defmodule Mix.Tasks.Compile.App do
 
   In this example, the order that the application callbacks are called in is:
 
-      iex> Application.start(MyApp)
+      Application.start(MyApp)
       MyApp.start(:normal, [])
       MyApp.start_phase(:init, :normal, [])
       MyApp.start_phase(:go, :normal, [])
