@@ -675,7 +675,7 @@ defmodule MacroTest do
   end
 
   test "generate_arguments" do
-    [{_,_,_}] = Macro.generate_arguments(1)
+    [{:variable1, []  , __MODULE__}] = Macro.generate_arguments(1, __MODULE__)
     assert Macro.generate_arguments(4) |> length  ==  4
   end
 

@@ -315,9 +315,19 @@ defmodule Macro do
   def update_meta(other, _fun) do
     other
   end
+  @doc """
+  Generates AST nodes for a given number of required argument variables using
+  `Macro.var/2`.
 
-  def generate_arguments(number_of_args) do
-    for id <- 1..number_of_args, do: Macro.var(String.to_atom("variable#{id}"), __MODULE__)
+  ## Examples
+
+      iex> Macro.generate_arguments(2, __MODULE__)
+      [{:variable1, [], __MODULE__}, {:variable2, [], __MODULE__}]
+
+  """
+  def generate_arguments(number_of_args), do: generate_arguments(number_of_args, __MODULE__)
+  def generate_arguments(number_of_args, module) do 
+    for id <- 1..number_of_args, do: Macro.var(String.to_atom("variable#{id}"), module)
   end
 
   @doc """
