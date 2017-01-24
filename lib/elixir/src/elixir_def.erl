@@ -236,13 +236,7 @@ split_definition([{Tuple, def, Ann, Location, Body} | T], Unreachable,
                    [export(def, Tuple) | Exports],
                    add_definition(Ann, Location, Body, Functions));
 
-split_definition([{Tuple, defmacro, Ann, Location, Body} | T], Unreachable,
-                 Def, Defp, Defmacro, Defmacrop, Exports, Functions) ->
-  split_definition(T, Unreachable, Def, Defp, [Tuple | Defmacro], Defmacrop,
-                   [export(defmacro, Tuple) | Exports],
-                   add_definition(Ann, Location, Body, Functions));
-
-split_definition([{Tuple, _, Ann, Location, Body} | T], Unreachable,
+split_definition([{Tuple, defp, Ann, Location, Body} | T], Unreachable,
                  Def, Defp, Defmacro, Defmacrop, Exports, Functions) ->
   case lists:member(Tuple, Unreachable) of
     false ->
@@ -252,6 +246,17 @@ split_definition([{Tuple, _, Ann, Location, Body} | T], Unreachable,
       split_definition(T, Unreachable, Def, [Tuple | Defp], Defmacro, Defmacrop,
                        Exports, Functions)
   end;
+
+split_definition([{Tuple, defmacro, Ann, Location, Body} | T], Unreachable,
+                 Def, Defp, Defmacro, Defmacrop, Exports, Functions) ->
+  split_definition(T, Unreachable, Def, Defp, [Tuple | Defmacro], Defmacrop,
+                   [export(defmacro, Tuple) | Exports],
+                   add_definition(Ann, Location, Body, Functions));
+
+split_definition([{Tuple, defmacrop, _Ann, _Location, _Body} | T], Unreachable,
+                 Def, Defp, Defmacro, Defmacrop, Exports, Functions) ->
+  split_definition(T, Unreachable, Def, [Tuple | Defp], Defmacro, Defmacrop,
+                   Exports, Functions);
 
 split_definition([], Unreachable, Def, Defp, Defmacro, Defmacrop, Exports, {Head, Tail}) ->
   {Def, Defp, Defmacro, Defmacrop, Exports, Head ++ Tail, Unreachable}.

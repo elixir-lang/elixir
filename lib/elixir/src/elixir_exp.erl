@@ -267,10 +267,25 @@ expand({with, Meta, [_ | _] = Args}, E) ->
 
 %% Super
 
-expand({super, Meta, Args}, E) when is_list(Args) ->
-  assert_no_match_or_guard_scope(Meta, super, E),
-  {EArgs, EA} = expand_args(Args, E),
-  {{super, Meta, EArgs}, EA};
+expand({super, Meta, Args}, #{file := File} = E) when is_list(Args) ->
+  Module = assert_module_scope(Meta, super, E),
+  Function = assert_function_scope(Meta, super, E),
+  {_, Arity} = Function,
+
+  case length(Args) of
+    Arity ->
+      {OName, OArity} = elixir_def_overridable:super(Meta, File, Module, Function),
+      {EArgs, EA} = expand_args(Args, E),
+      OArgs =
+        if
+          OArity > Arity -> [{'__CALLER__', [], nil} | EArgs];
+          true -> EArgs
+        end,
+      {{OName, Meta, OArgs}, EA};
+    _ ->
+      compile_error(Meta, File, "super must be called with the same number of "
+                    "arguments as the current definition")
+  end;
 
 %% Vars
 
@@ -679,6 +694,14 @@ rewrite_case_clauses([{do, [
   ]}];
 rewrite_case_clauses(Clauses) ->
   Clauses.
+
+assert_module_scope(Meta, Kind, #{module := nil, file := File}) ->
+  compile_error(Meta, File, "cannot invoke ~ts outside module", [Kind]);
+assert_module_scope(_Meta, _Kind, #{module:=Module}) -> Module.
+
+assert_function_scope(Meta, Kind, #{function := nil, file := File}) ->
+  compile_error(Meta, File, "cannot invoke ~ts outside function", [Kind]);
+assert_function_scope(_Meta, _Kind, #{function := Function}) -> Function.
 
 assert_no_match_or_guard_scope(Meta, Kind, E) ->
   assert_no_match_scope(Meta, Kind, E),

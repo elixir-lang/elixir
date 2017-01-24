@@ -58,27 +58,37 @@ defmodule Kernel.Overridable do
   ## Macros
 
   defmacro overridable_macro(x) do
-    x + 100
+    quote do
+      unquote(x) + 100
+    end
   end
 
   defoverridable overridable_macro: 1
 
   defmacro overridable_macro(x) do
-    super(x) + 1_000
+    quote do
+      unquote(super(x)) + 1_000
+    end
   end
 
+  defmacrop private_macro(x \\ raise "never called")
+
   defmacrop private_macro(x) do
-    x + 100
+    quote do
+      unquote(x) + 100
+    end
   end
 
   defoverridable private_macro: 1
 
   defmacrop private_macro(x) do
-    super(x) + 1_000
+    quote do
+      unquote(super(x)) + 1_000
+    end
   end
 
-  def private_macro_call() do
-    private_macro(11)
+  def private_macro_call(val \\ 11) do
+    private_macro(val)
   end
 end
 
@@ -136,7 +146,8 @@ defmodule Kernel.OverridableTest do
   end
 
   test "overridable macros" do
-    assert Overridable.overridable_macro(11) == 1111
+    a = 11
+    assert Overridable.overridable_macro(a) == 1111
     assert Overridable.private_macro_call() == 1111
   end
 
