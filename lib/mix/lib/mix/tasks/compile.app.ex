@@ -44,10 +44,15 @@ defmodule Mix.Tasks.Compile.App do
       The application environment is one of the most common ways
       to configure applications.
 
+    * `:start_phases` - specifies a list of phases and their arguments to be
+      called after the application is started and before any included
+      applications are started.
+
   Let's see an example `application/0` function:
 
       def application do
         [mod: {MyApp, []},
+         start_phases: [init: [], go: []],
          env: [default: :value],
          applications: [:crypto]]
       end
