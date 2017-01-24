@@ -44,18 +44,39 @@ defmodule Mix.Tasks.Compile.App do
       The application environment is one of the most common ways
       to configure applications.
 
-    * `:start_phases` - specifies a list of phases and their arguments to be
-      called after the application is started and before any included
-      applications are started.
+    * `:start_phases` - specifies a list of phases and their arguments
+      to be called after the application is started and before any
+      included applications are started.
 
-  Let's see an example `application/0` function:
+    * `:included_applications` - specifies a list of applications
+      that will be included in the application.  A process in an
+      included application considers itself belonging to the
+      primary application.
+
+  Let's see an example `MyApp.application/0` function:
 
       def application do
         [mod: {MyApp, []},
          start_phases: [init: [], go: []],
          env: [default: :value],
-         applications: [:crypto]]
+         applications: [:crypto],
+         included_applications: [MyIncludedApp]]
       end
+
+  And an example `MyIncludedApp.application/0` function:
+
+      def application do
+        [mod: {MyIncludedApp, []},
+         start_phases: [go: []]]
+      end
+
+  In this example, the order that the application callbacks are called in is:
+
+      iex> Application.start(MyApp)
+      MyApp.start(:normal, [])
+      MyApp.start_phase(:init, :normal, [])
+      MyApp.start_phase(:go, :normal, [])
+      MyIncludedApp.start_phase(:go, :normal, [])
 
   Besides the options above, `.app` files also expect other
   options like `:modules` and `:vsn`, but these are automatically
