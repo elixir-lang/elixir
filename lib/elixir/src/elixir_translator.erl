@@ -139,33 +139,6 @@ translate({for, Meta, [_ | _] = Args}, S) ->
 translate({with, Meta, [_ | _] = Args}, S) ->
   elixir_with:translate(Meta, Args, S);
 
-%% Super
-
-translate({super, Meta, Args}, S) when is_list(Args) ->
-  Module = assert_module_scope(Meta, super, S),
-  Function = assert_function_scope(Meta, super, S),
-  elixir_def_overridable:ensure_defined(Meta, Module, Function, S),
-
-  {_, Arity} = Function,
-
-  {TArgs, TS} = if
-    length(Args) == Arity ->
-      translate_args(Args, S);
-    true ->
-      compile_error(Meta, S#elixir_scope.file, "super must be called with the same number of "
-                    "arguments as the current function")
-  end,
-
-  {FinalName, FinalArgs} =
-    case elixir_def_overridable:kind_and_name(Module, Function) of
-      {Kind, Name} when Kind == def; Kind == defp ->
-        {Name, TArgs};
-      {Kind, Name} when Kind == defmacro; Kind == defmacrop ->
-        {elixir_utils:macro_name(Name), [{var, ?ann(Meta), '_@CALLER'} | TArgs]}
-    end,
-
-  {{call, ?ann(Meta), {atom, ?ann(Meta), FinalName}, FinalArgs}, TS#elixir_scope{super=true}};
-
 %% Variables
 
 translate({'^', Meta, [{Name, VarMeta, Kind}]}, #elixir_scope{context=match, file=File} = S) when is_atom(Name), is_atom(Kind) ->
@@ -425,14 +398,6 @@ returns_boolean(Condition, Body) ->
   end.
 
 %% Assertions
-
-assert_module_scope(Meta, Kind, #elixir_scope{module=nil, file=File}) ->
-  compile_error(Meta, File, "cannot invoke ~ts outside module", [Kind]);
-assert_module_scope(_Meta, _Kind, #elixir_scope{module=Module}) -> Module.
-
-assert_function_scope(Meta, Kind, #elixir_scope{function=nil, file=File}) ->
-  compile_error(Meta, File, "cannot invoke ~ts outside function", [Kind]);
-assert_function_scope(_Meta, _Kind, #elixir_scope{function=Function}) -> Function.
 
 assert_allowed_in_context(Meta, Left, Right, Arity, #elixir_scope{context=Context} = S)
     when (Context == match) orelse (Context == guard) ->
