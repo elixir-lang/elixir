@@ -109,6 +109,25 @@ You can now also install archives from Hex in this way. Since they are fetched a
 
 It is also possible to install escripts and archives by providing a Git/GitHub repo. See `mix help escript.install` and `mix help archive.install` for more details.
 
+## v1.4.1-dev
+
+### 1. Bug fixes
+
+#### Elixir
+
+  * [Kernel] Remove warning when making private functions overridable
+  * [Path] Ensure `Path.join/1` returns strings for lists of one element
+  * [Regex] Ensure `Regex.escape/1` also escapes `-`
+
+#### IEx
+
+  * [IEx] Disable ANSI detection for powershell to avoid false positives
+
+#### Mix
+
+  * [Mix.Rebar] Support all of rebar3 dependency package declaration
+  * [Mix.Rebar] Only pass overrides from parent to child in Rebar dep
+
 ## v1.4.0 (2017-01-05)
 
 ### 1. Enhancements
