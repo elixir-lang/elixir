@@ -80,7 +80,7 @@ defmodule Mix.Tasks.Compile.App do
       MyApp.start_phase(:init, :normal, [])
       MyApp.start_phase(:go, :normal, [])
       MyIncludedApp.start_phase(:go, :normal, [])
-      MyApp.start_phase(:finish, [])
+      MyApp.start_phase(:finish, :normal, [])
 
   Besides the options above, `.app` files also expect other
   options like `:modules` and `:vsn`, but these are automatically
