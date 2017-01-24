@@ -45,8 +45,9 @@ defmodule Mix.Tasks.Compile.App do
       to configure applications.
 
     * `:start_phases` - specifies a list of phases and their arguments
-      to be called after the application is started and before any
-      included applications are started.
+      to be called after the application is started. Phases will be called, in
+      order, for the application and all included applications. If a phase is
+      not defined for an included application, that application is skipped.
 
     * `:included_applications` - specifies a list of applications
       that will be included in the application. It is the responsability of
