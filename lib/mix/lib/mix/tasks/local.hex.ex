@@ -20,7 +20,7 @@ defmodule Mix.Tasks.Local.Hex do
       intended for automation when sctips can be run multiple times to avoid
       reinstalling Hex.
 
-    If both options are set `--force` takes precedence
+  If both options are set `--force` takes precedence
 
   ## Mirrors
 
@@ -34,20 +34,16 @@ defmodule Mix.Tasks.Local.Hex do
     force = opts[:force] || false
     if_missing = opts[:if_missing] || false
 
-    should_install = case {force, if_missing} do
-      {false, true} -> Code.ensure_loaded?(Hex)
-      _ -> true
-    end
+    should_install? =
+      case {force, if_missing} do
+        {false, true} -> Code.ensure_loaded?(Hex)
+        _ -> true
+      end
 
-    if should_install do
-      do_install(argv)
-    else
-      true
-    end
+    should_install? && do_install(argv)
   end
 
-  @spec do_install(OptionParser.argv) :: boolean
-  def do_install(argv) do
+  defp do_install(argv) do
     hex_mirror = Mix.Hex.mirror
 
     {elixir_version, hex_version, sha512} =
