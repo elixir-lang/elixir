@@ -20,30 +20,31 @@ defmodule Mix.Tasks.Local.Hex do
       intended for automation when sctips can be run multiple times to avoid
       reinstalling Hex.
 
-  If both options are set `--force` takes precedence
+  If both options are set, `--force` takes precedence.
 
   ## Mirrors
 
   If you want to change the [default mirror](https://repo.hex.pm)
   used for fetching Hex, set the `HEX_MIRROR` environment variable.
   """
+  @switches [if_missing: :boolean, force: :boolean]
+
   @spec run(OptionParser.argv) :: boolean
   def run(argv) do
-    {opts, _} = OptionParser.parse!(argv, switches: [if_missing: :boolean,
-                                                     force: :boolean])
-    force = opts[:force] || false
-    if_missing = opts[:if_missing] || false
+    {opts, _} = OptionParser.parse!(argv, switches: @switches)
+    force? = Keyword.get(opts, :force, false)
+    if_missing? = Keyword.get(opts, :if_missing, false)
 
     should_install? =
-      case {force, if_missing} do
+      case {force?, if_missing?} do
         {false, true} -> Code.ensure_loaded?(Hex)
         _ -> true
       end
 
-    should_install? && do_install(argv)
+    should_install? && run_install(argv)
   end
 
-  defp do_install(argv) do
+  defp run_install(argv) do
     hex_mirror = Mix.Hex.mirror
 
     {elixir_version, hex_version, sha512} =
