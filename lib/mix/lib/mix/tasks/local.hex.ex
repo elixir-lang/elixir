@@ -17,9 +17,10 @@ defmodule Mix.Tasks.Local.Hex do
       intended for automation in build systems like `make`
 
     * `--if-missing` - performs installation only if Hex is not installed yet;
-      intended for automation as a replacement of `--force` to not reinstall
-      Hex every time scripts are run.
-      If both options are set `--force` takes precedence
+      intended for automation when sctips can be run multiple times to avoid
+      reinstalling Hex.
+
+    If both options are set `--force` takes precedence
 
   ## Mirrors
 
@@ -34,8 +35,8 @@ defmodule Mix.Tasks.Local.Hex do
     if_missing = opts[:if_missing] || false
 
     should_install = case {force, if_missing} do
-      {false, true} -> Code.ensure_loaded?(Hex);
-      _             -> true
+      {false, true} -> Code.ensure_loaded?(Hex)
+      _ -> true
     end
 
     if should_install do
