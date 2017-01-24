@@ -322,12 +322,13 @@ defmodule Macro do
   ## Examples
 
       iex> Macro.generate_arguments(2, __MODULE__)
-      [{:variable1, [], __MODULE__}, {:variable2, [], __MODULE__}]
+      [{:var1, [], __MODULE__}, {:var2, [], __MODULE__}]
 
   """
+  def generate_arguments(0, _), do: []
   def generate_arguments(number_of_args), do: generate_arguments(number_of_args, __MODULE__)
-  def generate_arguments(number_of_args, module) do 
-    for id <- 1..number_of_args, do: Macro.var(String.to_atom("variable#{id}"), module)
+  def generate_arguments(number_of_args, module) do
+    for id <- 1..number_of_args, do: Macro.var(String.to_atom("var"<>Integer.to_string(id)), module)
   end
 
   @doc """
