@@ -59,7 +59,7 @@ defmodule Mix.Tasks.Compile.App do
 
       def application do
         [mod: {MyApp, []},
-         start_phases: [init: [], go: []],
+         start_phases: [init: [], go: [], finish: []],
          env: [default: :value],
          applications: [:crypto],
          included_applications: [MyIncludedApp]]
@@ -79,6 +79,7 @@ defmodule Mix.Tasks.Compile.App do
       MyApp.start_phase(:init, :normal, [])
       MyApp.start_phase(:go, :normal, [])
       MyIncludedApp.start_phase(:go, :normal, [])
+      MyApp.start_phase(:finish, [])
 
   Besides the options above, `.app` files also expect other
   options like `:modules` and `:vsn`, but these are automatically
