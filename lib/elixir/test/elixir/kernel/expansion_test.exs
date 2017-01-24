@@ -105,12 +105,6 @@ defmodule Kernel.ExpansionTest do
            {quote(do: unquote({:%{}, [], Map.to_list(env)}).unknown), env}
   end
 
-  ## Super
-
-  test "super: expand args" do
-    assert expand(quote do: super(a, b)) == quote do: super(a(), b())
-  end
-
   ## Vars
 
   test "vars: expand to local call" do
