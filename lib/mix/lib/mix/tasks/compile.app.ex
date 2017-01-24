@@ -49,8 +49,10 @@ defmodule Mix.Tasks.Compile.App do
       included applications are started.
 
     * `:included_applications` - specifies a list of applications
-      that will be included in the application. A process in an
-      included application considers itself belonging to the
+      that will be included in the application. It is the responsability of
+      the primary application to start the supervision tree of any included
+      applications, as only the primary application will be started. A process
+      in an included application considers itself belonging to the
       primary application.
 
   Let's see an example `MyApp.application/0` function:

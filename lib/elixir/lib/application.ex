@@ -146,11 +146,12 @@ defmodule Application do
   @callback stop(state) :: term
 
   @doc """
-  Called after an application starts.
+  Start an application in synchronous phases.
 
-  This function is called after an application starts and before any included
-  applications are started. It will be called once for every start phase defined
-  in the application's specification, in the order they are listed in.
+  This function is called after `start/2` finishes but before
+  `Application.start/2` returns. It will be called once for every start phase
+  defined in the application's (and any included applications') specification,
+  in the order they are listed in.
   """
   @callback start_phase(phase :: term, start_type, phase_args :: term) ::
     :ok |
