@@ -242,6 +242,20 @@ defmodule MacroTest do
     assert Macro.var(:foo, Other) == {:foo, [], Other}
   end
 
+  test "generate_arguments" do
+    assert Macro.generate_arguments(2, __MODULE__) == [
+      {:var1, [], MacroTest},
+      {:var2, [], MacroTest}
+    ]
+    assert Macro.generate_arguments(4, __MODULE__) == [
+      {:var1, [], MacroTest},
+      {:var2, [], MacroTest},
+      {:var3, [], MacroTest},
+      {:var4, [], MacroTest}
+    ]
+    assert Macro.generate_arguments(-1, __MODULE__) == []
+  end
+
   ## to_string
 
   test "var to string" do

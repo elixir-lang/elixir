@@ -342,6 +342,22 @@ defmodule Macro do
   end
 
   @doc """
+  Generates AST nodes for a given number of required argument variables using
+  `Macro.var/2`.
+
+  ## Examples
+
+      iex> Macro.generate_arguments(2, __MODULE__)
+      [{:var1, [], __MODULE__}, {:var2, [], __MODULE__}]
+  """
+  @spec generate_arguments(integer, atom) :: [{atom, list, atom}]
+  def generate_arguments(num, context)
+    when is_integer(num) and is_atom(context) and num > 0 do
+    for v <- 1..num, do: var(String.to_atom("var" <> Integer.to_string(v)), context)
+  end
+  def generate_arguments(_, _), do: []
+
+  @doc """
   Performs a depth-first traversal of quoted expressions
   using an accumulator.
   """
