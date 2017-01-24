@@ -6,8 +6,27 @@ defmodule GenServerTest do
   defmodule Stack do
     use GenServer
 
+    @timeout 1
+
     def handle_call(:pop, _from, [h | t]) do
       {:reply, h, t}
+    end
+
+    def handle_call(:pop_timeout, {pid, _}, [h | t]) do
+      {:reply, h, [{:timeout, pid} | t], @timeout}
+    end
+
+    def handle_call(:pop_hibernate, _, [h | t]) do
+      {:reply, h, t, :hibernate}
+    end
+
+    def handle_call(:pop_stop, _, [h | t]) do
+      {:stop, :normal, h, t}
+    end
+
+    def handle_call(:pop_noreply, from, [h | t]) do
+      GenServer.reply(from, h)
+      {:noreply, t}
     end
 
     def handle_call(:noreply, _from, h) do
@@ -26,15 +45,9 @@ defmodule GenServerTest do
       super(request, state)
     end
 
-    def terminate(_reason, _state) do
-      # There is a race condition if the agent is
-      # restarted too fast and it is registered.
-      try do
-        self() |> Process.info(:registered_name) |> elem(1) |> Process.unregister
-      rescue
-        _ -> :ok
-      end
-      :ok
+    def handle_info(:timeout, [{:timeout, pid} | t]) do
+      send(pid, :timeout)
+      {:noreply, t}
     end
   end
 
@@ -81,6 +94,34 @@ defmodule GenServerTest do
     assert GenServer.cast({:global, :foo}, {:push, :world}) == :ok
     assert GenServer.cast({:via, :foo, :bar}, {:push, :world}) == :ok
     assert GenServer.cast(:foo, {:push, :world}) == :ok
+  end
+
+  test "call/2 with handle_call timeout" do
+    {:ok, pid} = GenServer.start_link(Stack, [:hello, :world])
+    assert GenServer.call(pid, :pop_timeout) == :hello
+    assert_receive :timeout
+    assert GenServer.call(pid, :pop) == :world
+  end
+
+  test "call/2 with handle_call :hibernate" do
+    {:ok, pid} = GenServer.start_link(Stack, [:hello])
+    assert GenServer.call(pid, :pop_hibernate) == :hello
+    assert await_hibernate(pid)
+    assert GenServer.cast(pid, {:push, :world}) == :ok
+    assert GenServer.call(pid, :pop) == :world
+  end
+
+  test "call/2 with handle_call :stop" do
+    {:ok, pid} = GenServer.start_link(Stack, [:hello])
+    ref = Process.monitor(pid)
+    assert GenServer.call(pid, :pop_stop) == :hello
+    assert_receive {:DOWN, ^ref, _, _, :normal}
+  end
+
+  test "call/2 with handle_call :noreply" do
+    {:ok, pid} = GenServer.start_link(Stack, [:hello, :world])
+    assert GenServer.call(pid, :pop_noreply) == :hello
+    assert GenServer.call(pid, :pop) == :world
   end
 
   @tag capture_log: true
@@ -160,5 +201,17 @@ defmodule GenServerTest do
 
     {:ok, _} = GenServer.start(Stack, [], name: :stack_for_stop)
     assert GenServer.stop(:stack_for_stop, :normal) == :ok
+  end
+
+  ## Helpers
+
+  defp await_hibernate(pid) do
+    case Process.info(pid, :current_function) do
+      {:current_function, {:erlang, :hibernate, 3}} ->
+        true
+      {:current_function, _} ->
+        :erlang.yield()
+        await_hibernate(pid)
+    end
   end
 end
