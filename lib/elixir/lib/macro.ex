@@ -315,6 +315,7 @@ defmodule Macro do
   def update_meta(other, _fun) do
     other
   end
+
   @doc """
   Generates AST nodes for a given number of required argument variables using
   `Macro.var/2`.
