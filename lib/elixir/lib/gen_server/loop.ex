@@ -215,6 +215,9 @@ defmodule GenServer.Loop do
     try do
       apply(mod, :handle_call, [req, from, state])
     catch
+      :error, :undef ->
+        stack = System.stacktrace()
+        handle_undef(stack, :handle_call, req, dbg, name, mod, state)
       kind, reason ->
         stack = System.stacktrace()
         handle_exception(kind, reason, stack, req, dbg, name, mod, state)
@@ -240,6 +243,8 @@ defmodule GenServer.Loop do
     try do
       apply(mod, fun, [msg, state])
     catch
+      :error, :undef ->
+        handle_undef(System.stacktrace(), fun, msg, dbg, name, mod, state)
       kind, reason ->
         stack = System.stacktrace()
         handle_exception(kind, reason, stack, msg, dbg, name, mod, state)
@@ -271,6 +276,12 @@ defmodule GenServer.Loop do
     end
   end
 
+  defp handle_undef(stack, callback, msg, dbg, name, mod, state) do
+    exit_reason = exit_reason(:error, :undef, stack)
+    log_reason = undef_reason(stack, mod, callback)
+    terminate(exit_reason, log_reason, msg, dbg, name, mod, state)
+  end
+
   defp handle_exception(kind, reason, stack, msg, dbg, name, mod, state) do
     exit_reason = exit_reason(kind, reason, stack)
     log_reason = log_reason(kind, reason, stack)
@@ -281,6 +292,29 @@ defmodule GenServer.Loop do
     terminate(reason, reason, msg, dbg, name, mod, state)
   end
 
+  defp undef_reason([{m, f, a, _} | _] = stack, mod, callback) do
+    arity = length(a)
+    cond do
+      :code.is_loaded(m) == :false ->
+        {:"module could not be loaded", stack}
+      function_exported?(m, f, arity) ->
+        {:undef, stack}
+      m == mod and f == callback and callback?(f, arity) ->
+        {:"callback not exported", stack}
+      true ->
+        {:"function not exported", stack}
+    end
+  end
+  defp undef_reason(stack, _, _) do
+    {:undef, stack}
+  end
+
+  defp callback?(:handle_call, 3), do: true
+  defp callback?(:handle_cast, 2), do: true
+  defp callback?(:handle_info, 2), do: true
+  defp callback?(:terminate, 2),   do: true
+  defp callback?(_, _),            do: false
+
   defp log_reason(:exit, reason, stack),  do: {reason, stack}
   defp log_reason(:error, reason, stack), do: {reason, stack}
   defp log_reason(:throw, value, stack),  do: {{:nocatch, value}, stack}
@@ -290,6 +324,11 @@ defmodule GenServer.Loop do
     try do
       apply(mod, :terminate, [exit_reason, state])
     catch
+      :error, :undef ->
+        stack = System.stacktrace()
+        exit_reason = exit_reason(:error, :undef, stack)
+        log_reason = undef_reason(stack, mod, :terminate)
+        log_exit(exit_reason, log_reason, msg, dbg, name, mod, state)
       kind, reason ->
         stack = System.stacktrace()
         exit_reason = exit_reason(kind, reason, stack)

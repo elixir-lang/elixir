@@ -650,10 +650,25 @@ defmodule UndefinedFunctionError do
         ". However there is a macro with the same name and arity." <>
           " Be sure to require #{inspect(module)} if you intend to invoke this macro"
       else
-        did_you_mean(module, function, arity, exports)
+        did_you_mean_fun(module, function, exports)
       end
 
     "function " <>
+      Exception.format_mfa(module, function, arity) <>
+      " is undefined or private" <>
+      suffix
+  end
+
+  def message(%{reason: :"callback not exported",  module: module, function: function, arity: arity, exports: exports}) do
+    suffix =
+      if macro_exported?(module, function, arity) do
+        ". However there is a macro with the same name and arity." <>
+          " A behaviour is requiring this to be a function"
+      else
+        did_you_mean_callback(module, function, exports)
+      end
+
+    "callback " <>
       Exception.format_mfa(module, function, arity) <>
       " is undefined or private" <>
       suffix
@@ -669,31 +684,39 @@ defmodule UndefinedFunctionError do
     "function " <> Exception.format_mfa(module, function, arity) <> " is undefined (#{reason})"
   end
 
-  @function_threshold 0.77
-  @max_suggestions 5
-
-  defp did_you_mean(module, function, _arity, exports) do
-    exports = exports || exports_for(module)
-
-    result =
-      case Keyword.take(exports, [function]) do
-        [] ->
-          base = Atom.to_string(function)
-          for {key, val} <- exports,
-              dist = String.jaro_distance(base, Atom.to_string(key)),
-              dist >= @function_threshold,
-            do: {dist, key, val}
-        arities ->
-          for {key, val} <- arities, do: {1.0, key, val}
-      end
-      |> Enum.sort(&elem(&1, 0) >= elem(&2, 0))
-      |> Enum.take(@max_suggestions)
-      |> Enum.sort(&elem(&1, 1) <= elem(&2, 1))
-
-    case result do
+  defp did_you_mean_fun(module, function, exports) do
+    case fun_suggestions(module, function, exports) do
       []          -> ""
       suggestions -> ". Did you mean one of:\n\n#{Enum.map(suggestions, &format_fa/1)}"
     end
+  end
+
+  defp did_you_mean_callback(module, function, exports) do
+    case fun_suggestions(module, function, exports) do
+      []          -> ""
+      suggestions -> ". Should one of these be that callback:\n\n#{Enum.map(suggestions, &format_fa/1)}"
+    end
+  end
+
+  @function_threshold 0.77
+  @max_suggestions 5
+
+  defp fun_suggestions(module, function, exports) do
+    exports = exports || exports_for(module)
+
+    case Keyword.take(exports, [function]) do
+      [] ->
+        base = Atom.to_string(function)
+        for {key, val} <- exports,
+            dist = String.jaro_distance(base, Atom.to_string(key)),
+            dist >= @function_threshold,
+          do: {dist, key, val}
+      arities ->
+        for {key, val} <- arities, do: {1.0, key, val}
+    end
+    |> Enum.sort(&elem(&1, 0) >= elem(&2, 0))
+    |> Enum.take(@max_suggestions)
+    |> Enum.sort(&elem(&1, 1) <= elem(&2, 1))
   end
 
   defp format_fa({_dist, fun, arity}) do

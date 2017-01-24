@@ -329,7 +329,8 @@ defmodule Logger.Translator do
   end
 
   # OTP processes rewrite the :undef error to these reasons when logging
-  @gen_undef [:"module could not be loaded", :"function not exported"]
+  @gen_undef [:"module could not be loaded", :"function not exported",
+              :"callback not exported"]
 
   defp format_stop_banner(undef, [{mod, fun, args, _info} | _]  = stacktrace)
   when undef in @gen_undef and is_atom(mod) and is_atom(fun) do
