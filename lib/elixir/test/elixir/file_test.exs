@@ -1322,6 +1322,15 @@ defmodule FileTest do
     assert Enum.count(stream) == 2
   end
 
+  test "stream line UTF-8 with BOM" do
+    src = fixture_path("utf8_bom.txt")
+    bom_line = src
+    |> File.stream!()
+    |> Enum.take(1)
+
+    assert ["﻿Русский\n"] = bom_line
+  end
+
   test "stream line UTF-8" do
     src  = fixture_path("file.txt")
     dest = tmp_path("tmp_test.txt")
