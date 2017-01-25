@@ -327,8 +327,8 @@ defmodule Macro do
 
   """
   def generate_arguments(0, _), do: []
-  def generate_arguments(amoung, context) when is_integer(amoung) and amoung > 0 and is_atom(context) do
-    for id <- 1..amoung, do: Macro.var(String.to_atom("var" <> Integer.to_string(id)), context)
+  def generate_arguments(amount, context) when is_integer(amount) and amount > 0 and is_atom(context) do
+    for id <- 1..amount, do: Macro.var(String.to_atom("var" <> Integer.to_string(id)), context)
   end
 
   @doc """
