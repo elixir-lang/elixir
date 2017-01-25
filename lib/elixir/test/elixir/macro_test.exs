@@ -677,7 +677,7 @@ defmodule MacroTest do
   test "generate_arguments/2" do
     [] = Macro.generate_arguments(0, __MODULE__)
     [{:var1, [] , __MODULE__}] = Macro.generate_arguments(1, __MODULE__)
-    assert Macro.generate_arguments(4) |> length == 4
+    assert Macro.generate_arguments(4, __MODULE__) |> length == 4
   end
 
   defp postwalk(ast) do
