@@ -1593,7 +1593,7 @@ defmodule Kernel.SpecialForms do
   defmacro cond(clauses), do: error!([clauses])
 
   @doc ~S"""
-  Evaluates the given expressions and handles any error, exit
+  Evaluates the given expressions and handles any error, exit,
   or throw that may have happened.
 
   ## Examples
@@ -1605,28 +1605,29 @@ defmodule Kernel.SpecialForms do
           IO.puts "Invalid argument given"
       catch
         value ->
-          IO.puts "caught #{value}"
+          IO.puts "Caught #{inspect(value)}"
       else
         value ->
-          IO.puts "Success! The result was #{value}"
+          IO.puts "Success! The result was #{inspect(value)}"
       after
         IO.puts "This is printed regardless if it failed or succeed"
       end
 
-  The rescue clause is used to handle exceptions, while the catch
-  clause can be used to catch thrown values. The else clause can
-  be used to control flow based on the result of the expression.
-  Catch, rescue and else clauses work based on pattern matching.
+  The `rescue` clause is used to handle exceptions, while the `catch`
+  clause can be used to catch thrown values and exits.
+  The `else` clause can be used to control flow based on the result of
+  the expression. `catch`, `rescue`, and `else` clauses work based on
+  pattern matching (similar to the `case` special form).
 
   Note that calls inside `try/1` are not tail recursive since the VM
   needs to keep the stacktrace in case an exception happens.
 
-  ## Rescue clauses
+  ## `rescue` clauses
 
-  Besides relying on pattern matching, rescue clauses provides some
-  conveniences around exceptions that allows one to rescue an
-  exception by its name. All the following formats are valid rescue
-  expressions:
+  Besides relying on pattern matching, `rescue` clauses provide some
+  conveniences around exceptions that allow one to rescue an
+  exception by its name. All the following formats are valid patterns
+  in `rescue` clauses:
 
       try do
         UndefinedModule.undefined_function
@@ -1656,7 +1657,7 @@ defmodule Kernel.SpecialForms do
 
   ## Erlang errors
 
-  Erlang errors are transformed into Elixir ones during rescue:
+  Erlang errors are transformed into Elixir ones when rescuing:
 
       try do
         :erlang.error(:badarg)
@@ -1675,7 +1676,7 @@ defmodule Kernel.SpecialForms do
       end
 
   In fact, `ErlangError` can be used to rescue any error that is
-  not an Elixir error proper. For example, it can be used to rescue
+  not a proper Elixir error. For example, it can be used to rescue
   the earlier `:badarg` error too, prior to transformation:
 
       try do
@@ -1686,25 +1687,45 @@ defmodule Kernel.SpecialForms do
 
   ## Catching throws and exits
 
-  The catch clause can be used to catch throws values and exits.
+  The `catch` clause can be used to catch thrown values and exits.
 
       try do
         exit(:shutdown)
       catch
-        :exit, :shutdown -> IO.puts "Exited with shutdown reason"
+        :exit, :shutdown ->
+          IO.puts "Exited with shutdown reason"
       end
 
       try do
         throw(:sample)
       catch
         :throw, :sample ->
-          IO.puts "sample thrown"
+          IO.puts ":sample was thrown"
       end
 
-  catch values also support `:error`, as in Erlang, although it is
-  commonly avoided in favor of raise/rescue control mechanisms.
+  The `catch` clause also supports `:error` alongside `:exit` and `:throw`, as
+  in Erlang, although it is commonly avoided in favor of `raise`/`rescue` control
+  mechanisms. One reason for this is that when catching `:error`, the error is
+  not automatically transformed into an Elixir error:
 
-  ## After clauses
+      try do
+        :erlang.error(:badarg)
+      catch
+        :error, :badarg ->
+          :ok
+      end
+
+  Note that it is possible to match both on the caught value as well as the *kind*
+  of such value:
+
+      try do
+        exit(:shutdown)
+      catch
+        kind, value when kind in [:exit, :throw] ->
+          IO.puts "Exited with or thrown value #{inspect(value)}"
+      end
+
+  ## `after` clauses
 
   An `after` clause allows you to define cleanup logic that will be invoked both
   when the tried block of code succeeds and also when an error is raised. Note
@@ -1721,9 +1742,9 @@ defmodule Kernel.SpecialForms do
         File.rm("tmp/story.txt")
       end
 
-  ## Else clauses
+  ## `else` clauses
 
-  Else clauses allow the result of the expression to be pattern
+  `else` clauses allow the result of the tried expression to be pattern
   matched on:
 
       x = 2
@@ -1739,7 +1760,7 @@ defmodule Kernel.SpecialForms do
           :large
       end
 
-  If an else clause is not present and no exceptions are raised,
+  If an `else` clause is not present and no exceptions are raised,
   the result of the expression will be returned:
 
       x = 1
@@ -1751,9 +1772,9 @@ defmodule Kernel.SpecialForms do
             :infinity
         end
 
-  However, when an else clause is present but the result of the expression
-  does not match any of the patterns an exception will be raised. This
-  exception will not be caught by a catch or rescue in the same try:
+  However, when an `else` clause is present but the result of the expression
+  does not match any of the patterns then an exception will be raised. This
+  exception will not be caught by a `catch` or `rescue` in the same `try`:
 
       x = 1
       try do
@@ -1773,8 +1794,8 @@ defmodule Kernel.SpecialForms do
           :error_b
       end
 
-  Similarly, an exception inside an else clause is not caught or rescued
-  inside the same try:
+  Similarly, an exception inside an `else` clause is not caught or rescued
+  inside the same `try`:
 
       try do
         try do
@@ -1794,9 +1815,24 @@ defmodule Kernel.SpecialForms do
       end
 
   This means the VM no longer needs to keep the stacktrace once inside
-  an else clause and so tail recursion is possible when using a `try`
-  with a tail call as the final call inside an else clause. The same
+  an `else` clause and so tail recursion is possible when using a `try`
+  with a tail call as the final call inside an `else` clause. The same
   is true for `rescue` and `catch` clauses.
+
+  Only the result of the tried expression falls down to the `else` clause.
+  If the `try` ends up in the `rescue` or `catch` clauses, their result
+  will not fall down to `else`:
+
+      try do
+        throw(:catch_this)
+      catch
+        :throw, :catch_this ->
+          :it_was_caught
+      else
+        # :it_was_caught will not fall down to this "else" clause.
+        other ->
+          {:else, other}
+      end
 
   ## Variable handling
 
