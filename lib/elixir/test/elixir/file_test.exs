@@ -1328,7 +1328,7 @@ defmodule FileTest do
     |> File.stream!()
     |> Enum.take(1)
 
-    assert ["﻿Русский\n"] = bom_line
+    assert ["Русский\n"] = bom_line
   end
 
   test "stream line UTF-8" do
