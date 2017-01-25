@@ -1327,8 +1327,9 @@ defmodule FileTest do
     bom_line = src
     |> File.stream!()
     |> Enum.take(1)
+    |> List.first()
 
-    assert ["Русский\n"] = bom_line
+    assert <<239, 187, 191>> <> "Русский\n" = bom_line
   end
 
   test "stream line UTF-8" do
