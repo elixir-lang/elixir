@@ -317,6 +317,21 @@ defmodule Macro do
   end
 
   @doc """
+  Generates AST nodes for a given number of required argument variables using
+  `Macro.var/2`.
+
+  ## Examples
+
+      iex> Macro.generate_arguments(2, __MODULE__)
+      [{:var1, [], __MODULE__}, {:var2, [], __MODULE__}]
+
+  """
+  def generate_arguments(0, _), do: []
+  def generate_arguments(amount, context) when is_integer(amount) and amount > 0 and is_atom(context) do
+    for id <- 1..amount, do: Macro.var(String.to_atom("var" <> Integer.to_string(id)), context)
+  end
+
+  @doc """
   Generates an AST node representing the variable given
   by the atoms `var` and `context`.
 

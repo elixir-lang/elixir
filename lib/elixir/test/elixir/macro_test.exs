@@ -674,6 +674,12 @@ defmodule MacroTest do
            [1, 2, 3, [1, 2, 3], 4, 5, 6, [4, 5, 6], {[1, 2, 3], [4, 5, 6]}]
   end
 
+  test "generate_arguments/2" do
+    assert Macro.generate_arguments(0, __MODULE__) == []
+    assert Macro.generate_arguments(1, __MODULE__) == [{:var1, [], __MODULE__}]
+    assert Macro.generate_arguments(4, __MODULE__) |> length == 4
+  end
+
   defp postwalk(ast) do
     Macro.postwalk(ast, [], &{&1, [&1 | &2]}) |> elem(1) |> Enum.reverse
   end
