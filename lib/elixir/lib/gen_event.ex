@@ -6,6 +6,11 @@ defmodule GenEvent do
   @moduledoc """
   WARNING: this module is deprecated.
 
+  If you are interested in implementing an event manager, please read the
+  "Alternatives" section below. If you have to implement an event handler to
+  integrate with an existing system, such as Elixir's Logger, please use
+  `:gen_event` instead.
+
   ## Alternatives
 
   There are a few suitable alternatives to replace GenEvent. Each of them can be
@@ -28,13 +33,14 @@ defmodule GenEvent do
   [GenStage](https://github.com/elixir-lang/gen_stage) provides a great
   alternative. GenStage is an external Elixir library maintained by the Elixir
   team; it provides tool to implement systems that exchange events in a
-  deman-driven way with built-in support for backpressure. See the [GenStage
+  demand-driven way with built-in support for backpressure. See the [GenStage
   documentation](https://hexdocs.pm/gen_stage) for more information.
 
   ### `:gen_event`
 
-  If your use case requires exactly what GenEvent provided, you can still use
-  the [`:gen_event`](http://erlang.org/doc/man/gen_event.html) Erlang module.
+  If your use case requires exactly what GenEvent provided, or you have to
+  integrate with an existing `:gen_event`-based system, you can still use the
+  [`:gen_event`](http://erlang.org/doc/man/gen_event.html) Erlang module.
   """
 
   @callback init(args :: term) ::
