@@ -658,12 +658,22 @@ defmodule StreamTest do
     assert [1, 2, 3, 4] |> Stream.transform(fn -> [] end,
       fn i, acc ->
         case i do
-          :done -> {[acc], nil}
           i when rem(i, 2) == 0 -> {[acc], [i]}
           _ -> {[], acc ++ [i]}
           end
       end,
       fn rest -> fn acc -> [rest | acc] end  end) |> Enum.to_list == [[1], [2, 3], [4]]
+  end
+
+  test "transform/4 with a completely changed accumulator" do
+    assert [1, 2, 3, 4] |> Stream.transform(fn -> [] end,
+      fn i, acc ->
+        case i do
+          i when rem(i, 2) == 0 -> {[acc], [i]}
+          _ -> {[], acc ++ [i]}
+          end
+      end,
+      fn rest -> fn acc -> rest end  end) |> Enum.to_list == [4]
   end
 
   test "transform/4 with early halt" do

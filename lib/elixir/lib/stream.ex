@@ -742,6 +742,30 @@ defmodule Stream do
   allows an after function to be given which is invoked when the stream
   halts or completes.
 
+  After function has an option to return a function of arity 1, in which
+  case this function will be called back with a current state of an
+  accumulator given. The value returned by this function will be assigned
+  to the whole result of `transform/4`. Any other returned value
+  will be safely ignored, and the accumulated value will be returned as is.
+
+  ## Examples
+
+      iex> [1, 2, 3, 4]
+      ...> |> Stream.transform(
+      ...>   fn -> [] end,
+      ...>   fn i, acc ->
+      ...>     case i do
+      ...>       i when rem(i, 2) == 0 -> {[acc], [i]}
+      ...>       _ -> {[], acc ++ [i]}
+      ...>       end
+      ...>   end,
+      ...>   fn rest ->                   # call me back
+      ...>     fn acc -> [rest | acc] end # append the tail
+      ...>   end)
+      ...> |> Enum.to_list
+      [[1], [2, 3], [4]]
+
+
   This function can be seen as a combination of `Stream.resource/3` with
   `Stream.transform/3`.
   """
