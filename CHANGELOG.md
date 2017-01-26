@@ -109,7 +109,7 @@ You can now also install archives from Hex in this way. Since they are fetched a
 
 It is also possible to install escripts and archives by providing a Git/GitHub repo. See `mix help escript.install` and `mix help archive.install` for more details.
 
-## v1.4.1-dev
+## v1.4.1 (2017-01-26)
 
 ### 1. Bug fixes
 
@@ -125,6 +125,7 @@ It is also possible to install escripts and archives by providing a Git/GitHub r
 
 #### Mix
 
+  * [Mix.Make] Run `make clean` for `erlang.mk`
   * [Mix.Rebar] Support all of rebar3 dependency package declaration
   * [Mix.Rebar] Only pass overrides from parent to child in Rebar dep
 
