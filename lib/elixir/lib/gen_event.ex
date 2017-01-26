@@ -1,11 +1,40 @@
 defmodule GenEvent do
-  # TODO: Deprecate by 1.6 (hard deprecation)
+  # TODO: Remove by 2.0
+
+  # Functions from this module are deprecated in elixir_dispatch.
 
   @moduledoc """
   WARNING: this module is deprecated.
 
-  If you need the same functionality, you can use the `:gen_event` Erlang
-  module.
+  ## Alternatives
+
+  There are a few suitable alternatives to replace GenEvent. Each of them can be
+  the most beneficial based on the use case.
+
+  ### Supervisor and GenServers
+
+  One alternative to GenEvent is a very minimal solution consisting of using a
+  supervisor and multiple GenServers started under it. The supervisor acts as
+  the "event manager" and the children GenServers act as the "event handlers".
+  This approach has some shortcomings (it provides no backpressure for example)
+  but can still replace GenEvent for low-profile usages of it. [This blog post
+  by José
+  Valim](http://blog.plataformatec.com.br/2016/11/replacing-genevent-by-a-supervisor-genserver/)
+  has more detailed information on this approach.
+
+  ### GenStage
+
+  If the use case where you were using GenEvent requires more complex logic,
+  [GenStage](https://github.com/elixir-lang/gen_stage) provides a great
+  alternative. GenStage is an external Elixir library maintained by the Elixir
+  team; it provides tool to implement systems that exchange events in a
+  deman-driven way with built-in support for backpressure. See the [GenStage
+  documentation](https://hexdocs.pm/gen_stage) for more information.
+
+  ### `:gen_event`
+
+  If your use case requires exactly what GenEvent provided, you can still use
+  the [`:gen_event`](http://erlang.org/doc/man/gen_event.html) Erlang module.
   """
 
   @callback init(args :: term) ::
@@ -46,6 +75,10 @@ defmodule GenEvent do
 
   @doc false
   defmacro __using__(_) do
+    %{file: file, line: line} = __CALLER__
+    deprecation_message = "the GenEvent module is deprecated, see its documentation for alternatives"
+    :elixir_errors.warn(line, file, deprecation_message)
+
     quote location: :keep do
       @behaviour :gen_event
 
@@ -94,11 +127,13 @@ defmodule GenEvent do
     end
   end
 
+  @doc false
   @spec start_link(options) :: on_start
   def start_link(options \\ []) when is_list(options) do
     do_start(:link, options)
   end
 
+  @doc false
   @spec start(options) :: on_start
   def start(options \\ []) when is_list(options) do
     do_start(:nolink, options)
@@ -130,6 +165,7 @@ defmodule GenEvent do
     end
   end
 
+  @doc false
   @spec stream(manager, Keyword.t) :: GenEvent.Stream.t
   def stream(manager, options \\ []) do
     %GenEvent.Stream{
@@ -137,16 +173,19 @@ defmodule GenEvent do
       timeout: Keyword.get(options, :timeout, :infinity)}
   end
 
+  @doc false
   @spec add_handler(manager, handler, term) :: :ok | {:error, term}
   def add_handler(manager, handler, args) do
     rpc(manager, {:add_handler, handler, args})
   end
 
+  @doc false
   @spec add_mon_handler(manager, handler, term) :: :ok | {:error, term}
   def add_mon_handler(manager, handler, args) do
     rpc(manager, {:add_mon_handler, handler, args, self()})
   end
 
+  @doc false
   @spec notify(manager, term) :: :ok
   def notify(manager, event)
 
@@ -177,16 +216,19 @@ defmodule GenEvent do
     :ok
   end
 
+  @doc false
   @spec sync_notify(manager, term) :: :ok
   def sync_notify(manager, event) do
     rpc(manager, {:sync_notify, event})
   end
 
+  @doc false
   @spec ack_notify(manager, term) :: :ok
   def ack_notify(manager, event) do
     rpc(manager, {:ack_notify, event})
   end
 
+  @doc false
   @spec call(manager, handler, term, timeout) ::  term | {:error, term}
   def call(manager, handler, request, timeout \\ 5000) do
     try do
@@ -199,26 +241,31 @@ defmodule GenEvent do
     end
   end
 
+  @doc false
   @spec remove_handler(manager, handler, term) :: term | {:error, term}
   def remove_handler(manager, handler, args) do
     rpc(manager, {:delete_handler, handler, args})
   end
 
+  @doc false
   @spec swap_handler(manager, handler, term, handler, term) :: :ok | {:error, term}
   def swap_handler(manager, handler1, args1, handler2, args2) do
     rpc(manager, {:swap_handler, handler1, args1, handler2, args2})
   end
 
+  @doc false
   @spec swap_mon_handler(manager, handler, term, handler, term) :: :ok | {:error, term}
   def swap_mon_handler(manager, handler1, args1, handler2, args2) do
     rpc(manager, {:swap_mon_handler, handler1, args1, handler2, args2, self()})
   end
 
+  @doc false
   @spec which_handlers(manager) :: [handler]
   def which_handlers(manager) do
     rpc(manager, :which_handlers)
   end
 
+  @doc false
   @spec stop(manager, reason :: term, timeout) :: :ok
   def stop(manager, reason \\ :normal, timeout \\ :infinity) do
     :gen.stop(manager, reason, timeout)
