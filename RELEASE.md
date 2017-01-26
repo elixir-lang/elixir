@@ -22,7 +22,7 @@ This document simply outlines the release process:
 
 9. Publish new zips with `make zips`, upload `Precompiled.zip` and `Docs.zip` to GitHub Releases
 
-10. Add the release to `elixir.csv` file in `elixir-lang/elixir-lang.github.com`
+10. Add the release to `elixir.csv` and `_data/elixir-versions.yml` files in `elixir-lang/elixir-lang.github.com`
 
 11. After a new `vMAJOR.MINOR`, move back to master, bump versions, start new CHANGELOG, add `-dev` back and commit "Start vMAJOR.MINOR+1"
 
