@@ -57,13 +57,13 @@ defmodule Calendar do
   @type time :: %{optional(any) => any, hour: hour, minute: minute, second: second, microsecond: microsecond}
 
   @typedoc "Any map/struct that contains the naive_datetime fields"
-  @type naive_date_time :: %{optional(any) => any, calendar: calendar, year: year, month: month, day: day,
-                             hour: hour, minute: minute, second: second, microsecond: microsecond}
+  @type naive_datetime :: %{optional(any) => any, calendar: calendar, year: year, month: month, day: day,
+                            hour: hour, minute: minute, second: second, microsecond: microsecond}
 
   @typedoc "Any map/struct that contains the datetime fields"
-  @type date_time :: %{optional(any) => any, calendar: calendar, year: year, month: month, day: day,
-                       hour: hour, minute: minute, second: second, microsecond: microsecond,
-                       time_zone: time_zone, zone_abbr: zone_abbr, utc_offset: utc_offset, std_offset: std_offset}
+  @type datetime :: %{optional(any) => any, calendar: calendar, year: year, month: month, day: day,
+                      hour: hour, minute: minute, second: second, microsecond: microsecond,
+                      time_zone: time_zone, zone_abbr: zone_abbr, utc_offset: utc_offset, std_offset: std_offset}
 
   @doc """
   Returns how many days there are in the given year-month.
@@ -1055,7 +1055,7 @@ defmodule NaiveDateTime do
       "2000-02-29 23:00:07"
 
   """
-  @spec to_string(Calendar.naive_date_time) :: String.t
+  @spec to_string(Calendar.naive_datetime) :: String.t
   def to_string(naive_datetime)
 
   def to_string(%{calendar: calendar, year: year, month: month, day: day,
@@ -1189,7 +1189,7 @@ defmodule NaiveDateTime do
       "2000-02-29T23:00:07"
 
   """
-  @spec to_iso8601(Calendar.naive_date_time) :: String.t
+  @spec to_iso8601(Calendar.naive_datetime) :: String.t
   def to_iso8601(naive_datetime)
 
   def to_iso8601(%{year: year, month: month, day: day,
@@ -1305,7 +1305,7 @@ defmodule NaiveDateTime do
       :lt
 
   """
-  @spec compare(Calendar.naive_date_time, Calendar.naive_date_time) :: :lt | :eq | :gt
+  @spec compare(Calendar.naive_datetime, Calendar.naive_datetime) :: :lt | :eq | :gt
   def compare(naive_datetime1, naive_datetime2) do
     case {to_tuple(naive_datetime1), to_tuple(naive_datetime2)} do
       {first, second} when first > second -> :gt
@@ -1675,7 +1675,7 @@ defmodule DateTime do
       iex> DateTime.to_iso8601(dt)
       "2000-02-29T23:00:07-04:00"
   """
-  @spec to_iso8601(Calendar.date_time) :: String.t
+  @spec to_iso8601(Calendar.datetime) :: String.t
   def to_iso8601(datetime)
 
   def to_iso8601(%{calendar: Calendar.ISO, year: year, month: month, day: day,
@@ -1792,7 +1792,7 @@ defmodule DateTime do
       iex> DateTime.to_string(dt)
       "2000-02-29 23:00:07-04:00 AMT America/Manaus"
   """
-  @spec to_string(Calendar.date_time) :: String.t
+  @spec to_string(Calendar.datetime) :: String.t
   def to_string(datetime)
 
   def to_string(%{calendar: calendar, year: year, month: month, day: day,
