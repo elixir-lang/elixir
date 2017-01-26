@@ -111,7 +111,7 @@ defmodule Kernel do
       "llo"
 
   """
-  @spec binary_part(binary, pos_integer, integer) :: binary
+  @spec binary_part(binary, non_neg_integer, integer) :: binary
   def binary_part(binary, start, length) do
     :erlang.binary_part(binary, start, length)
   end
