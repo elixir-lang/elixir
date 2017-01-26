@@ -57,13 +57,13 @@ defmodule Calendar do
   @type time :: %{optional(any) => any, hour: hour, minute: minute, second: second, microsecond: microsecond}
 
   @typedoc "Any map/struct that contains the naive_datetime fields"
-  @type naive_date_time :: %{optional(any) => any, calendar: calendar, year: year, month: month, day: day,
-                             hour: hour, minute: minute, second: second, microsecond: microsecond}
+  @type naive_datetime :: %{optional(any) => any, calendar: calendar, year: year, month: month, day: day,
+                            hour: hour, minute: minute, second: second, microsecond: microsecond}
 
   @typedoc "Any map/struct that contains the datetime fields"
-  @type date_time :: %{optional(any) => any, calendar: calendar, year: year, month: month, day: day,
-                       hour: hour, minute: minute, second: second, microsecond: microsecond,
-                       time_zone: time_zone, zone_abbr: zone_abbr, utc_offset: utc_offset, std_offset: std_offset}
+  @type datetime :: %{optional(any) => any, calendar: calendar, year: year, month: month, day: day,
+                      hour: hour, minute: minute, second: second, microsecond: microsecond,
+                      time_zone: time_zone, zone_abbr: zone_abbr, utc_offset: utc_offset, std_offset: std_offset}
 
   @doc """
   Returns how many days there are in the given year-month.
