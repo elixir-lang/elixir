@@ -25,9 +25,9 @@ defmodule IO.ANSI do
 
   import IO.ANSI.Sequence
 
-  @typep ansicode :: atom
-  @typep ansilist :: maybe_improper_list(char | ansicode | binary | ansilist, binary | ansicode | [])
-  @type  ansidata :: ansilist | ansicode | binary
+  @type ansicode :: atom
+  @type ansilist :: maybe_improper_list(char | ansicode | binary | ansilist, binary | ansicode | [])
+  @type ansidata :: ansilist | ansicode | binary
 
   @doc """
   Checks if ANSI coloring is supported and enabled on this machine.
