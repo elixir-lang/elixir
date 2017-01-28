@@ -158,7 +158,7 @@ defmodule Mix.Tasks.New do
   end
 
   defp check_application_name!(name, inferred?) do
-    unless name =~ ~r/^[a-z][\w_]*$/ do
+    unless name =~ ~r/^[a-z][a-z0-9_]*$/ do
       Mix.raise "Application name must start with a letter and have only lowercase " <>
                 "letters, numbers and underscore, got: #{inspect name}" <>
                 (if inferred? do
