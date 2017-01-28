@@ -119,6 +119,10 @@ defmodule Mix.Tasks.NewTest do
       assert_raise Mix.Error, ~r"Application name must start with a letter and ", fn ->
         Mix.Tasks.New.run ["007invalid"]
       end
+
+      assert_raise Mix.Error, ~r"only lowercase letters, numbers and underscore", fn ->
+        Mix.Tasks.New.run ["invAlid"]
+      end
     end
 
     in_tmp "new with an invalid application name from the app option", fn ->
