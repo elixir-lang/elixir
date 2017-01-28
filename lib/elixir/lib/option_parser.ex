@@ -53,7 +53,7 @@ defmodule OptionParser do
 
     * `:switches` or `:strict` - see the "Switch definitions" section below
     * `:aliases` - see the "Aliases" section below
-    * `:allow_nonexistent_atoms` - see "Parsing undefined switches" section below
+    * `:allow_nonexistent_atoms` - see the "Parsing undefined switches" section below
 
   ## Switch definitions
 
@@ -120,7 +120,7 @@ defmodule OptionParser do
   but you still can force parse them by passing `allow_nonexistent_atoms: true`
   to the list of function options.
 
-  This is useful when you building CLI tool that receives dynamically named arguments.
+  This is useful when you are building command-line applications that receive dynamically-named arguments.
 
   ## Aliases
 
