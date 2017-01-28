@@ -1260,8 +1260,8 @@ defmodule File do
 
   ## Byte order marks
 
-  If you pass `:skip_bom` in the modes parameter, the stream will
-  skip UTF-8, UTF-16 and UTF-32 byte order marks when reading from file.
+  If you pass `:trim_bom` in the modes parameter, the stream will
+  trim UTF-8, UTF-16 and UTF-32 byte order marks when reading from file.
 
   ## Examples
 
@@ -1393,18 +1393,4 @@ defmodule File do
     do: path
   defp maybe_to_string(path),
     do: IO.chardata_to_string(path)
-
-  @doc false
-  def bom_length(<<239, 187, 191, _rest::binary>>),
-    do: 3
-  def bom_length(<<254, 255, _rest::binary>>),
-    do: 2
-  def bom_length(<<255, 254, _rest::binary>>),
-    do: 2
-  def bom_length(<<0, 0, 254, 255, _rest::binary>>),
-    do: 4
-  def bom_length(<<254, 255, 0, 0, _rest::binary>>),
-    do: 4
-  def bom_length(_binary),
-    do: 0
 end

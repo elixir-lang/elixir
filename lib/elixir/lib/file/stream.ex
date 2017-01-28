@@ -73,8 +73,8 @@ defmodule File.Stream do
       start_fun =
         fn ->
           case :file.open(path, read_modes(modes)) do
-            {:ok, device}    ->
-              if :strip_bom in modes, do: strip_bom(device), else: device
+            {:ok, device} ->
+              if :trim_bom in modes, do: trim_bom(device), else: device
             {:error, reason} ->
               raise File.Error, reason: reason, action: "stream", path: path
           end
@@ -116,14 +116,27 @@ defmodule File.Stream do
       {:error, __MODULE__}
     end
 
-    defp strip_bom(device) do
+    defp trim_bom(device) do
       header = IO.binread(device, 4)
-      {:ok, _new_pos} = :file.position(device, File.bom_length(header))
+      {:ok, _new_pos} = :file.position(device, bom_length(header))
       device
     end
 
+    defp bom_length(<<239, 187, 191, _rest::binary>>),
+      do: 3
+    defp bom_length(<<254, 255, _rest::binary>>),
+      do: 2
+    defp bom_length(<<255, 254, _rest::binary>>),
+      do: 2
+    defp bom_length(<<0, 0, 254, 255, _rest::binary>>),
+      do: 4
+    defp bom_length(<<254, 255, 0, 0, _rest::binary>>),
+      do: 4
+    defp bom_length(_binary),
+      do: 0
+
     defp read_modes(modes) do
-      for mode <- modes, mode not in [:write, :append, :strip_bom], do: mode
+      for mode <- modes, mode not in [:write, :append, :trim_bom], do: mode
     end
 
     defp count_lines(device, path, pattern, read, count) do

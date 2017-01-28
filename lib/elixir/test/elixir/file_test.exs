@@ -1324,22 +1324,22 @@ defmodule FileTest do
 
   test "stream keeps BOM" do
     src = fixture_path("utf8_bom.txt")
-    bom_line = src
-    |> File.stream!()
-    |> Enum.take(1)
-    |> List.first()
+    bom_line =
+      src
+      |> File.stream!()
+      |> Enum.take(1)
 
-    assert <<239, 187, 191>> <> "Русский\n" = bom_line
+    assert [<<239, 187, 191>> <> "Русский\n"] == bom_line
   end
 
-  test "strip BOM option" do
+  test "trim BOM via option" do
     src = fixture_path("utf8_bom.txt")
-    bom_line = src
-    |> File.stream!([:strip_bom])
-    |> Enum.take(1)
-    |> List.first()
+    bom_line =
+      src
+      |> File.stream!([:trim_bom])
+      |> Enum.take(1)
 
-    assert "Русский\n" = bom_line
+    assert ["Русский\n"] == bom_line
   end
 
   test "stream line UTF-8" do
