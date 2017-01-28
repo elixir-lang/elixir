@@ -64,6 +64,7 @@ defmodule SystemTest do
 
   test "*_env/*" do
     assert System.get_env(@test_var) == nil
+    assert_raise RuntimeError, fn -> System.get_env!(@test_var) end
     System.put_env(@test_var, "SAMPLE")
     assert System.get_env(@test_var) == "SAMPLE"
     assert System.get_env()[@test_var] == "SAMPLE"
