@@ -86,7 +86,6 @@ defmodule File.Stream do
           false -> &IO.each_stream(&1, line_or_bytes)
         end
 
-      ## Read first 3 bytes and put cursor back
       Stream.resource(start_fun, next_fun, &:file.close/1).(acc, fun)
     end
 
