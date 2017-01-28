@@ -256,8 +256,8 @@ defmodule OptionParserTest do
            == {[foo: true, boo: "-"], ["-"], []}
   end
 
-  test "allow inexistent atoms" do
-    opts = [switches: [a: :string], allow_inexistent_atoms: true]
+  test "allow nonexistent atoms" do
+    opts = [switches: [a: :string], allow_nonexistent_atoms: true]
     assert OptionParser.parse(["--a", "b", "--c", "d", "--ee", "f"], opts)
            == {[a: "b", c: "d", ee: "f"], [], []}
   end
