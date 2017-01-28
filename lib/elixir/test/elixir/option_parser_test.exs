@@ -258,8 +258,8 @@ defmodule OptionParserTest do
 
   test "allow nonexistent atoms" do
     opts = [switches: [a: :string], allow_nonexistent_atoms: true]
-    assert OptionParser.parse(["--option-key-creates-atom", "f"], opts) ==
-           {[{String.to_atom("option_key_creates_atom"), "f"}], [], []}
+    assert OptionParser.parse(["--option-key-creates-atom"], opts) ==
+           {[{String.to_atom("option_key_creates_atom"), true}], [], []}
   end
 
   test "correctly handles negative integers" do
