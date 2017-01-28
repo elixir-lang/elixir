@@ -145,6 +145,20 @@ defmodule Application do
   """
   @callback stop(state) :: term
 
+  @doc """
+  Start an application in synchronous phases.
+
+  This function is called after `start/2` finishes but before
+  `Application.start/2` returns. It will be called once for every start phase
+  defined in the application's (and any included applications') specification,
+  in the order they are listed in.
+  """
+  @callback start_phase(phase :: term, start_type, phase_args :: term) ::
+    :ok |
+    {:error, reason :: term}
+
+  @optional_callbacks start_phase: 3
+
   @doc false
   defmacro __using__(_) do
     quote location: :keep do
