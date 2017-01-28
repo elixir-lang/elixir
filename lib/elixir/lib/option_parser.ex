@@ -115,8 +115,12 @@ defmodule OptionParser do
 
   ### Parsing undefined switches
 
-  By-default, only switches with defined atoms will be parsed. If you want to dynamically add
-  atoms at run-time, use `allow_nonexistent_atoms: true` option.
+  By default, only arguments that have defined atom representation will be parsed.
+  This happens because creating atoms at run-time is considered to be unsafe,
+  but you still can force parse them by passing `allow_nonexistent_atoms: true`
+  to the list of function options.
+
+  This is useful when you building CLI tool that receives dynamically named arguments.
 
   ## Aliases
 
