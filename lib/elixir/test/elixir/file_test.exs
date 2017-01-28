@@ -1322,7 +1322,7 @@ defmodule FileTest do
     assert Enum.count(stream) == 2
   end
 
-  test "stream line UTF-8 with BOM" do
+  test "stream keeps BOM" do
     src = fixture_path("utf8_bom.txt")
     bom_line = src
     |> File.stream!()
@@ -1330,6 +1330,16 @@ defmodule FileTest do
     |> List.first()
 
     assert <<239, 187, 191>> <> "Русский\n" = bom_line
+  end
+
+  test "strip BOM option" do
+    src = fixture_path("utf8_bom.txt")
+    bom_line = src
+    |> File.stream!([:strip_bom])
+    |> Enum.take(1)
+    |> List.first()
+
+    assert "Русский\n" = bom_line
   end
 
   test "stream line UTF-8" do

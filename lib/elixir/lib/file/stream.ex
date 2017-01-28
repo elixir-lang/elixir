@@ -73,7 +73,8 @@ defmodule File.Stream do
       start_fun =
         fn ->
           case :file.open(path, read_modes(modes)) do
-            {:ok, device}    -> device
+            {:ok, device}    ->
+              if :strip_bom in modes, do: strip_bom(device), else: device
             {:error, reason} ->
               raise File.Error, reason: reason, action: "stream", path: path
           end
@@ -85,6 +86,7 @@ defmodule File.Stream do
           false -> &IO.each_stream(&1, line_or_bytes)
         end
 
+      ## Read first 3 bytes and put cursor back
       Stream.resource(start_fun, next_fun, &:file.close/1).(acc, fun)
     end
 
@@ -115,8 +117,14 @@ defmodule File.Stream do
       {:error, __MODULE__}
     end
 
+    defp strip_bom(device) do
+      header = IO.binread(device, 4)
+      {:ok, _new_pos} = :file.position(device, File.bom_length(header))
+      device
+    end
+
     defp read_modes(modes) do
-      for mode <- modes, mode not in [:write, :append], do: mode
+      for mode <- modes, mode not in [:write, :append, :strip_bom], do: mode
     end
 
     defp count_lines(device, path, pattern, read, count) do
