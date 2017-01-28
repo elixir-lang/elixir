@@ -1258,6 +1258,11 @@ defmodule File do
   One may also consider passing the `:delayed_write` option if the stream
   is meant to be written to under a tight loop.
 
+  ## Byte order marks
+
+  If you pass `:skip_bom` in the modes parameter, the stream will
+  skip UTF-8, UTF-16 and UTF-32 byte order marks when reading from file.
+
   ## Examples
 
       # Read in 2048 byte chunks rather than lines
