@@ -116,8 +116,8 @@ defmodule OptionParser do
   ### Parsing undefined switches
 
   By default, only arguments that have defined atom representation will be parsed.
-  This happens because creating atoms at run-time is considered to be unsafe,
-  but you still can force parse them by passing `allow_nonexistent_atoms: true`
+  This happens because creating atoms at runtime is considered to be unsafe,
+  but you still can enable force parsing for them by passing `allow_nonexistent_atoms: true`
   to the list of function options.
 
   This is useful when you are building command-line applications that receive dynamically-named arguments.

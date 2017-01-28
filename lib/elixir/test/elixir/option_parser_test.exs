@@ -257,8 +257,7 @@ defmodule OptionParserTest do
   end
 
   test "allow nonexistent atoms" do
-    opts = [switches: [a: :string], allow_nonexistent_atoms: true]
-    assert OptionParser.parse(["--option-key-creates-atom"], opts) ==
+    assert OptionParser.parse(["--option-key-creates-atom"], allow_nonexistent_atoms: true) ==
            {[{String.to_atom("option_key_creates_atom"), true}], [], []}
   end
 
