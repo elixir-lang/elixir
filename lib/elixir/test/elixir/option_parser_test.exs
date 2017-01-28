@@ -256,6 +256,11 @@ defmodule OptionParserTest do
            == {[foo: true, boo: "-"], ["-"], []}
   end
 
+  test "allow nonexistent atoms" do
+    assert OptionParser.parse(["--option-key-creates-atom"], allow_nonexistent_atoms: true) ==
+           {[{String.to_atom("option_key_creates_atom"), true}], [], []}
+  end
+
   test "correctly handles negative integers" do
     assert OptionParser.parse(["arg1", "-43"])
       == {[], ["arg1", "-43"], []}
