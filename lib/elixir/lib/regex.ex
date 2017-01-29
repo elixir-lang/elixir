@@ -23,7 +23,7 @@ defmodule Regex do
 
       ~r/(?<foo>.)(?<bar>.)/ == ~r/(?<foo>.)(?<bar>.)/
 
-  may return true or false depending on your machine, endianess, available
+  may return `true` or `false` depending on your machine, endianess, available
   optimizations and others. You can, however, retrieve the source of a
   compiled regular expression by accessing the `source` field, and then
   compare those directly:

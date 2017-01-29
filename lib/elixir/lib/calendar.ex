@@ -90,12 +90,12 @@ defmodule Calendar do
   @callback date_to_string(year, month, day) :: String.t
 
   @doc """
-  Converts the date time (without time zone) into a string according to the calendar.
+  Converts the datetime (without time zone) into a string according to the calendar.
   """
   @callback naive_datetime_to_string(year, month, day, hour, minute, second, microsecond) :: String.t
 
   @doc """
-  Coverts the date time (with time zone) into a string according to the calendar.
+  Coverts the datetime (with time zone) into a string according to the calendar.
   """
   @callback datetime_to_string(year, month, day, hour, minute, second, microsecond,
                                time_zone, zone_abbr, utc_offset, std_offset) :: String.t
@@ -126,7 +126,7 @@ defmodule Date do
   such as `NaiveDateTime` and `DateTime`. Such functions expect
   `t:Calendar.date/0` in their typespecs (instead of `t:t/0`).
 
-  Remember comparisons in Elixir using `==`, `>`, `<` and friends
+  Remember, comparisons in Elixir using `==`, `>`, `<` and friends
   are structural and based on the Date struct fields. For proper
   comparison between dates, use the `compare/2` function.
 
@@ -487,7 +487,7 @@ defmodule Time do
   such as `NaiveDateTime` and `DateTime`. Such functions expect
   `t:Calendar.time/0` in their typespecs (instead of `t:t/0`).
 
-  Remember comparisons in Elixir using `==`, `>`, `<` and friends
+  Remember, comparisons in Elixir using `==`, `>`, `<` and friends
   are structural and based on the Time struct fields. For proper
   comparison between times, use the `compare/2` function.
 
@@ -842,9 +842,9 @@ defmodule NaiveDateTime do
   may occur more than once. Since `NaiveDateTime` is not
   validated against a time zone, such errors would go unnoticed.
 
-  Remember comparisons in Elixir using `==`, `>`, `<` and friends
+  Remember, comparisons in Elixir using `==`, `>`, `<` and friends
   are structural and based on the NaiveDateTime struct fields. For
-  proper comparison between naive date times, use the `compare/2`
+  proper comparison between naive datetimes, use the `compare/2`
   function.
 
   Developers should avoid creating the NaiveDateTime struct directly
@@ -1372,9 +1372,9 @@ defmodule DateTime do
   well as the zone abbreviation field used exclusively
   for formatting purposes.
 
-  Remember comparisons in Elixir using `==`, `>`, `<` and friends
+  Remember, comparisons in Elixir using `==`, `>`, `<` and friends
   are structural and based on the DateTime struct fields. For proper
-  comparison between date times, use the `compare/2` function.
+  comparison between datetimes, use the `compare/2` function.
 
   Developers should avoid creating the DateTime struct directly
   and instead rely on the functions provided by this module as
