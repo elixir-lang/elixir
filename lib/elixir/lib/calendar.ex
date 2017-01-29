@@ -126,6 +126,10 @@ defmodule Date do
   such as `NaiveDateTime` and `DateTime`. Such functions expect
   `t:Calendar.date/0` in their typespecs (instead of `t:t/0`).
 
+  Remember comparisons in Elixir using `==`, `>`, `<` and friends
+  are structural and based on the Date struct fields. For proper
+  comparison between dates, use the `compare/2` function.
+
   Developers should avoid creating the Date struct directly and
   instead rely on the functions provided by this module as well as
   the ones in 3rd party calendar libraries.
@@ -483,6 +487,10 @@ defmodule Time do
   such as `NaiveDateTime` and `DateTime`. Such functions expect
   `t:Calendar.time/0` in their typespecs (instead of `t:t/0`).
 
+  Remember comparisons in Elixir using `==`, `>`, `<` and friends
+  are structural and based on the Time struct fields. For proper
+  comparison between times, use the `compare/2` function.
+
   Developers should avoid creating the Time struct directly and
   instead rely on the functions provided by this module as well as
   the ones in 3rd party calendar libraries.
@@ -833,6 +841,11 @@ defmodule NaiveDateTime do
   by one hour. This means certain datetimes never occur or
   may occur more than once. Since `NaiveDateTime` is not
   validated against a time zone, such errors would go unnoticed.
+
+  Remember comparisons in Elixir using `==`, `>`, `<` and friends
+  are structural and based on the NaiveDateTime struct fields. For
+  proper comparison between naive date times, use the `compare/2`
+  function.
 
   Developers should avoid creating the NaiveDateTime struct directly
   and instead rely on the functions provided by this module as well
@@ -1358,6 +1371,10 @@ defmodule DateTime do
   it also includes both UTC and Standard offsets, as
   well as the zone abbreviation field used exclusively
   for formatting purposes.
+
+  Remember comparisons in Elixir using `==`, `>`, `<` and friends
+  are structural and based on the DateTime struct fields. For proper
+  comparison between date times, use the `compare/2` function.
 
   Developers should avoid creating the DateTime struct directly
   and instead rely on the functions provided by this module as

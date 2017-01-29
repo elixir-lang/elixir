@@ -3,8 +3,8 @@ defmodule Regex do
   Provides regular expressions for Elixir. Built on top of Erlang's `:re`
   module.
 
-  As the [`:re` module](http://www.erlang.org/doc/man/re.html), Regex is based on PCRE
-  (Perl Compatible Regular Expressions). More information can be
+  As the [`:re` module](http://www.erlang.org/doc/man/re.html), Regex is based
+  on PCRE (Perl Compatible Regular Expressions). More information can be
   found in the [`:re` module documentation](http://www.erlang.org/doc/man/re.html).
 
   Regular expressions in Elixir can be created using `Regex.compile!/2`
@@ -18,6 +18,17 @@ defmodule Regex do
 
   A Regex is represented internally as the `Regex` struct. Therefore,
   `%Regex{}` can be used whenever there is a need to match on them.
+  Keep in mind it is not guaranteed two regular expressions from the
+  same source are equal, for example:
+
+      ~r/(?<foo>.)(?<bar>.)/ == ~r/(?<foo>.)(?<bar>.)/
+
+  may return true or false depending on your machine, endianess, available
+  optimizations and others. You can, however, retrieve the source of a
+  compiled regular expression by accessing the `source` field, and then
+  compare those directly:
+
+      ~r/(?<foo>.)(?<bar>.)/.source == ~r/(?<foo>.)(?<bar>.)/.source
 
   ## Modifiers
 
