@@ -335,6 +335,25 @@ defmodule Mix.DepTest do
     Mix.RemoteConverger.register(nil)
   end
 
+  test "remote converger is not invoked if deps graph has cycles" do
+    deps = [{:app1, "0.1.0", path: "app1"},
+            {:app2, "0.1.0", path: "app2"}]
+
+    with_deps deps, fn ->
+      Mix.RemoteConverger.register(RaiseRemoteConverger)
+
+      in_fixture "deps_cycle", fn ->
+        assert_raise Mix.Error, ~r/cycles in the dependency graph/, fn ->
+          Mix.Tasks.Deps.Get.run([])
+        end
+
+        refute Process.get(:remote_converger)
+      end
+    end
+  after
+    Mix.RemoteConverger.register(nil)
+  end
+
   ## Only handling
 
   test "only extract deps matching environment" do
