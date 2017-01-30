@@ -93,26 +93,20 @@ defmodule String.Unicode do
   end
 
   # Handle Hangul L
-  for codepoint <- cluster["L"] do
-    defp next_hangul_l_size(<<unquote(codepoint), rest::binary>>, size) do
-      next_hangul_l_size(rest, size + unquote(byte_size(codepoint)))
-    end
-  end
 
-  for codepoint <- cluster["LV"] do
-    defp next_hangul_l_size(<<unquote(codepoint), rest::binary>>, size) do
-      next_hangul_v_size(rest, size + unquote(byte_size(codepoint)))
-    end
-  end
+  @cluster_reverse_map (for {class, list} <- cluster, class == "L" or class == "LV" or class == "LVT", codepoint <- list, into: %{} do
+    {codepoint, String.to_atom(class)}
+  end)
 
-  for codepoint <- cluster["LVT"] do
-    defp next_hangul_l_size(<<unquote(codepoint), rest::binary>>, size) do
-      next_hangul_t_size(rest, size + unquote(byte_size(codepoint)))
+  defp next_hangul_l_size(<<unicode_cp::utf8, rest::binary>> = string, size) do
+    codepoint = <<unicode_cp::utf8>>
+    class_for_codepoint = Map.get(@cluster_reverse_map, codepoint)
+    case class_for_codepoint do
+      :L ->   next_hangul_l_size(rest, size + byte_size(codepoint))
+      :LV ->  next_hangul_v_size(rest, size + byte_size(codepoint))
+      :LVT -> next_hangul_t_size(rest, size + byte_size(codepoint))
+      _ ->     next_hangul_v_size(string, size)
     end
-  end
-
-  defp next_hangul_l_size(rest, size) do
-    next_hangul_v_size(rest, size)
   end
 
   # Handle Hangul V
