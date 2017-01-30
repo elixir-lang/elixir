@@ -84,6 +84,9 @@ defmodule Mix.Dep.Converger do
     use_remote? = !!remote and Enum.any?(deps, &remote.remote?/1)
 
     if not diverged? and use_remote? do
+      # Make sure there are no cycles before calling remote converge
+      topsort(deps)
+
       # If there is a lock, it means we are doing a get/update
       # and we need to hit the remote converger which do external
       # requests and what not. In case of deps.loadpaths, deps and so
