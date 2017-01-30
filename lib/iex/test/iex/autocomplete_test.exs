@@ -90,6 +90,7 @@ defmodule IEx.AutocompleteTest do
     assert expand('.')   == {:no, '', []}
     assert expand('Xyz') == {:no, '', []}
     assert expand('x.Foo') == {:no, '', []}
+    assert expand('x.Foo.get_by') == {:no, '', []}
   end
 
   test "Elixir root submodule completion" do

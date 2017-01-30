@@ -115,9 +115,10 @@ defmodule IEx.Autocomplete do
 
   # Elixir.fun
   defp expand_call({:__aliases__, _, list}, hint, server) do
-    expand_alias(list, server)
-    |> normalize_module
-    |> expand_require(hint)
+    case expand_alias(list, server) do
+      {:ok, alias} -> expand_require(alias, hint)
+      :error -> no()
+    end
   end
 
   # variable.fun_or_key
@@ -171,9 +172,10 @@ defmodule IEx.Autocomplete do
   end
 
   defp expand_elixir_modules(list, hint, server) do
-    expand_alias(list, server)
-    |> normalize_module
-    |> expand_elixir_modules_from_aliases(hint, [])
+    case expand_alias(list, server) do
+      {:ok, alias} -> expand_elixir_modules_from_aliases(alias, hint, [])
+      :error -> no()
+    end
   end
 
   defp expand_elixir_modules_from_aliases(mod, hint, aliases) do
@@ -183,18 +185,15 @@ defmodule IEx.Autocomplete do
     |> format_expansion(hint)
   end
 
-  defp expand_alias([name | rest] = list, server) do
-    module = Module.concat(Elixir, name)
-    Enum.find_value aliases_from_env(server), list, fn {alias, mod} ->
-      if alias === module do
-        case Atom.to_string(mod) do
-          "Elixir." <> mod ->
-            Module.concat [mod | rest]
-          _ ->
-            mod
-        end
-      end
+  defp expand_alias([name | rest], server) when is_atom(name) do
+    case Keyword.fetch(aliases_from_env(server), Module.concat(Elixir, name)) do
+      {:ok, name} when rest == [] -> {:ok, name}
+      {:ok, name} -> {:ok, Module.concat([name | rest])}
+      :error -> {:ok, Module.concat([name | rest])}
     end
+  end
+  defp expand_alias([_ | _], _) do
+    :error
   end
 
   defp match_aliases(hint, server) do
@@ -219,14 +218,6 @@ defmodule IEx.Autocomplete do
   end
 
   ## Helpers
-
-  defp normalize_module(mod) do
-    if is_list(mod) do
-      Module.concat(mod)
-    else
-      mod
-    end
-  end
 
   defp match_modules(hint, root) do
     get_modules(root)
