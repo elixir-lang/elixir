@@ -303,12 +303,12 @@ store_each(Check, Kind, File, Location, Module, Defaults, {function, Ann, Name, 
 
   {FinalAnn, FinalLocation, FinalDefaults} = case ets:take(Defs, {def, Tuple}) of
     [{_, StoredKind, StoredAnn, StoredFile, StoredCheck,
-        StoredLocation, {StoredDefaults, LastHasBody, LastDefaults}}] ->
+        _StoredLocation, {StoredDefaults, LastHasBody, LastDefaults}}] ->
       check_valid_kind(Ann, File, Name, Arity, Kind, StoredKind),
       (Check and StoredCheck) andalso
         check_valid_clause(Ann, File, Name, Arity, Kind, Data, StoredAnn, StoredFile),
       check_valid_defaults(Ann, File, Name, Arity, Kind, Defaults, StoredDefaults, LastDefaults, LastHasBody),
-      {StoredAnn, StoredLocation, {max(Defaults, StoredDefaults), HasBody, Defaults}};
+      {StoredAnn, Location, {max(Defaults, StoredDefaults), HasBody, Defaults}};
     [] ->
       {Ann, Location, {Defaults, HasBody, Defaults}}
   end,
