@@ -30,36 +30,33 @@ defmodule OptionParser do
   Elixir converts switches to underscored atoms, so `--source-path` becomes
   `:source_path`. This is done to better suit Elixir conventions. However, this
   means that switches can't contain underscores and switches that do contain
-  underscores are always returned in the list of invalid options.
+  underscores are always returned in the list of invalid switches.
 
-  Without any options, this function will try to parse all switches in the `argv`.
+  When parsing, it is common to list switches and their expected types:
 
-      iex> OptionParser.parse(["--debug"])
+      iex> OptionParser.parse(["--debug"], switches: [debug: :boolean])
       {[debug: true], [], []}
 
-      iex> OptionParser.parse(["--source", "lib"])
+      iex> OptionParser.parse(["--source", "lib"], switches: [source: :string])
       {[source: "lib"], [], []}
 
-      iex> OptionParser.parse(["--source-path", "lib", "test/enum_test.exs", "--verbose"])
+      iex> OptionParser.parse(["--source-path", "lib", "test/enum_test.exs", "--verbose"],
+      ...>                    switches: [source_path: :string, verbose: :boolean])
       {[source_path: "lib", verbose: true], ["test/enum_test.exs"], []}
 
-  Switches followed by a value will be assigned the value, as a string.
-  Switches without an argument, like `--debug` in the examples above, will
-  automatically be set to `true`.
+  We will explore the valid switches and operation modes of option parser below.
 
   ## Options
 
   The following options are supported:
 
     * `:switches` or `:strict` - see the "Switch definitions" section below
+    * `:allow_nonexistent_atoms` - see the "Parsing dynamic switches" section below
     * `:aliases` - see the "Aliases" section below
-    * `:allow_nonexistent_atoms` - see the "Parsing undefined switches" section below
 
   ## Switch definitions
 
-  Often it is better to explicitly list the known
-  switches and their formats. The switches can be specified via one of two
-  options:
+  Switches can be specified via one of two options:
 
     * `:switches` - defines some switches and their types. This function
       still attempts to parse switches that are not in this list.
@@ -90,20 +87,20 @@ defmodule OptionParser do
     * `:float` - parses the value as a float
     * `:string` - parses the value as a string
 
-  If a switch can't be parsed according to the given type, it is returned
-  in the invalid options list.
+  If a switch can't be parsed according to the given type, it is
+  returned in the invalid options list.
 
   ### Modifiers
 
   Switches can be specified with modifiers, which change how
   they behave. The following modifiers are supported:
 
-    * `:keep` - keeps duplicated items instead of overriding them; works with
-      all types except `:count`. Specifying `switch_name: :keep` assumes the
-      type of `:switch_name` will be `:string`.
+    * `:keep` - keeps duplicated items instead of overriding them;
+      works with all types except `:count`. Specifying `switch_name: :keep`
+      assumes the type of `:switch_name` will be `:string`.
 
-  Note that if you want to use `:keep` with a type other than `:string`, use a list
-  as the type for the switch. For example: `[foo: [:integer, :keep]]`.
+  To use `:keep` with a type other than `:string`, use a list as the type
+  for the switch. For example: `[foo: [:integer, :keep]]`.
 
   ### Negation switches
 
@@ -113,14 +110,45 @@ defmodule OptionParser do
       iex> OptionParser.parse(["--no-op", "path/to/file"], switches: [op: :boolean])
       {[op: false], ["path/to/file"], []}
 
-  ### Parsing undefined switches
+  ### Parsing dynamic switches
 
-  By default, only arguments that have defined atom representation will be parsed.
-  This happens because creating atoms at runtime is considered to be unsafe,
-  but you can still force creation of atoms by passing `allow_nonexistent_atoms: true`
-  to the list of function options.
+  `OptionParser` also includes a dynamic mode where it will attempt to parse
+  switches dynamically. Such can be done by not specifying the `:switches` or
+  `:strict` option.
 
-  This is useful when you are building command-line applications that receive dynamically-named arguments.
+      iex> OptionParser.parse(["--debug"])
+      {[debug: true], [], []}
+
+
+  Switches followed by a value will be assigned the value, as a string. Switches
+  without an argument, like `--debug` in the examples above, will automatically be
+  set to `true`.
+
+  Since Elixir converts switches to atoms, the dynamic mode will only parse
+  switches that translates to atoms used by the runtime. Therefore, the code below
+  likely won't parse the given option since the `:option_parser_example` atom is
+  never used anywhere:
+
+      OptionParser.parse(["--option-parser-example"])
+      # Does nothing more...
+
+  However, the code below does since the `:option_parser_example` atom is used
+  at some point later (or earlier) on:
+
+      {opts, _, _} = OptionParser.parse(["--option-parser-example"])
+      opts[:option_parser_example]
+
+  In other words, when using dynamic mode, Elixir will do the correct thing and
+  only parse options that are used by the runtime, ignoring all others. If you
+  would like to parse all switches, regardless if they exist or not, you can
+  force creation of atoms by passing `allow_nonexistent_atoms: true` as option.
+  Such option is useful when you are building command-line applications that
+  receive dynamically-named arguments but must be used with care on long-running
+  systems.
+
+  Switches followed by a value will be assigned the value, as a string.
+  Switches without an argument, like `--debug` in the examples above, will
+  automatically be set to `true`.
 
   ## Aliases
 
@@ -213,10 +241,12 @@ defmodule OptionParser do
 
   ## Example
 
-      iex> OptionParser.parse_head(["--source", "lib", "test/enum_test.exs", "--verbose"])
+      iex> OptionParser.parse_head(["--source", "lib", "test/enum_test.exs", "--verbose"],
+      ...>                         switches: [source: :string, verbose: :boolean])
       {[source: "lib"], ["test/enum_test.exs", "--verbose"], []}
 
-      iex> OptionParser.parse_head(["--verbose", "--source", "lib", "test/enum_test.exs", "--unlock"])
+      iex> OptionParser.parse_head(["--verbose", "--source", "lib", "test/enum_test.exs", "--unlock"],
+      ...>                         switches: [source: :string, verbose: :boolean, unlock: :boolean])
       {[verbose: true, source: "lib"], ["test/enum_test.exs", "--unlock"], []}
 
   """
@@ -236,10 +266,12 @@ defmodule OptionParser do
 
   ## Examples
 
-      iex> OptionParser.parse_head!(["--source", "lib", "path/to/file", "--verbose"])
+      iex> OptionParser.parse_head!(["--source", "lib", "path/to/file", "--verbose"],
+      ...>                         switches: [source: :string, verbose: :boolean])
       {[source: "lib"], ["path/to/file", "--verbose"]}
 
-      iex> OptionParser.parse_head!(["--number", "lib", "test/enum_test.exs", "--verbose"], strict: [number: :integer])
+      iex> OptionParser.parse_head!(["--number", "lib", "test/enum_test.exs", "--verbose"],
+      ...>                          strict: [number: :integer])
       ** (OptionParser.ParseError) 1 error found!
       --number : Expected type integer, got "lib"
 
@@ -309,7 +341,6 @@ defmodule OptionParser do
     * `{:error, rest}` - there are no switches at the head of the given `argv`
 
   """
-
   @spec next(argv, options) ::
         {:ok, key :: atom, value :: term, argv} |
         {:invalid, String.t, String.t | nil, argv} |
