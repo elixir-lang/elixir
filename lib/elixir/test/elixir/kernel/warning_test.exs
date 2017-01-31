@@ -28,6 +28,31 @@ defmodule Kernel.WarningTest do
     purge Sample
   end
 
+  test "unused variable in redefined function in different file" do
+    output = capture_err(fn ->
+      Code.eval_string """
+      defmodule Sample do
+        defmacro __using__(_) do
+          quote location: :keep do
+            def function(arg)
+          end
+        end
+      end
+      """
+      Code.eval_string("""
+      defmodule RedefineSample do
+        use Sample
+        def function(var123), do: nil
+      end
+      """, [], file: "redefine_sample.ex")
+    end)
+    assert output =~ "redefine_sample.ex:3"
+    assert output =~ "variable \"var123\" is unused"
+  after
+    purge Sample
+    purge RedefineSample
+  end
+
   test "useless literal" do
     message = "code block contains unused literal \"oops\""
 
