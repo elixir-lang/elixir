@@ -263,7 +263,7 @@ defmodule Map do
   ## Examples
 
       iex> Map.put_new(%{a: 1}, :b, 2)
-      %{b: 2, a: 1}
+      %{a: 1, b: 2}
       iex> Map.put_new(%{a: 1, b: 2}, :a, 3)
       %{a: 1, b: 2}
 
