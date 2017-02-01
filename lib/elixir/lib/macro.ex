@@ -56,6 +56,7 @@ defmodule Macro do
   """
 
   @typedoc "Abstract Syntax Tree (AST)"
+  _ = @typedoc # To avoid bootstrap warnings
   @type t :: expr | {t, t} | atom | number | binary | pid | fun | [t]
   @type expr :: {expr | atom, Keyword.t, atom | [t]}
 
