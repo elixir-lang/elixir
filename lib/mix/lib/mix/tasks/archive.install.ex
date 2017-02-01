@@ -106,7 +106,7 @@ defmodule Mix.Tasks.Archive.Install do
 
   defp archives(name) do
     Mix.Local.path_for(:archive)
-    |> Path.join(name)
+    |> Path.join(name <> "{,*.ez}")
     |> Path.wildcard
   end
 
