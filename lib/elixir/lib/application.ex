@@ -88,6 +88,12 @@ defmodule Application do
   by `use Application`) which does any application cleanup. It receives the
   application state and can return any value. Note that shutting down the
   supervisor is automatically handled by the VM.
+
+  An application without a supervision tree doesn't define an application
+  module callback in the application definition in `mix.exs` file. Even though
+  there is no module with application callbacks such as `start/2` and
+  `stop/1`, the application can be started and stopped the same way as an
+  application with a supervision tree.
   """
 
   @doc """
