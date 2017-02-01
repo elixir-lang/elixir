@@ -372,7 +372,7 @@ defmodule OptionParser do
   defp next(["--" <> option | rest], _aliases, switches, strict?, allow_nonexistent_atoms?) do
     {option, value} = split_option(option)
     tagged = tag_option(option, switches, allow_nonexistent_atoms?)
-    do_next(tagged, value, "--" <> option, rest, switches, strict?, allow_nonexistent_atoms?)
+    next_tagged(tagged, value, "--" <> option, rest, switches, strict?)
   end
 
   # Handles -a, -abc, -abc=something
@@ -390,14 +390,14 @@ defmodule OptionParser do
         option_key = aliases[key]
         if key && option_key do
           IO.warn "multi-letter aliases are deprecated, got: #{inspect(key)}"
-          do_next({:default, option_key}, value, original, rest, switches, strict?, allow_nonexistent_atoms?)
+          next_tagged({:default, option_key}, value, original, rest, switches, strict?)
         else
           next(expand_multiletter_alias(option, value) ++ rest, aliases, switches, strict?, allow_nonexistent_atoms?)
         end
       true ->
         # We have a regular one-letter alias here
         tagged = tag_oneletter_alias(option, aliases, allow_nonexistent_atoms?)
-        do_next(tagged, value, original, rest, switches, strict?, allow_nonexistent_atoms?)
+        next_tagged(tagged, value, original, rest, switches, strict?)
     end
   end
 
@@ -405,7 +405,7 @@ defmodule OptionParser do
     {:error, argv}
   end
 
-  defp do_next(tagged, value, original, rest, switches, strict?, allow_nonexistent_atoms?) do
+  defp next_tagged(tagged, value, original, rest, switches, strict?) do
     if strict? and not option_defined?(tagged, switches) do
       {:undefined, original, value, rest}
     else
