@@ -630,17 +630,12 @@ defmodule OptionParser do
     expanded ++ [last <> if(value, do: "=" <> value, else: "")]
   end
 
-  defp option_defined?(:unknown, _switches) do
-    false
-  end
-
-  defp option_defined?({:negated, option}, switches) do
-    Keyword.has_key?(switches, option)
-  end
-
-  defp option_defined?({:default, option}, switches) do
-    Keyword.has_key?(switches, option)
-  end
+  defp option_defined?(:unknown, _switches),
+    do: false
+  defp option_defined?({:negated, option}, switches),
+    do: Keyword.has_key?(switches, option)
+  defp option_defined?({:default, option}, switches),
+    do: Keyword.has_key?(switches, option)
 
   defp normalize_option(:unknown, value, _switches) do
     {nil, [:invalid], value}
@@ -712,6 +707,7 @@ defmodule OptionParser do
 
   defp to_existing_key(option, true),
     do: String.to_atom(option)
+
   defp to_existing_key(option, false) do
     try do
       String.to_existing_atom(option)
