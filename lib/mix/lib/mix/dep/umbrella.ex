@@ -48,6 +48,6 @@ defmodule Mix.Dep.Umbrella do
         Mix.Dep.available?(dep) and dep.app in apps
       end)
       %{umbrella_dep | deps: deps}
-    end) |> Mix.Dep.Converger.topsort
+    end) |> Mix.Dep.Converger.topological_sort
   end
 end

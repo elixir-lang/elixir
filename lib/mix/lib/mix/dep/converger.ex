@@ -5,9 +5,9 @@ defmodule Mix.Dep.Converger do
   @moduledoc false
 
   @doc """
-  Topsorts the given dependencies.
+  Topologically sorts the given dependencies.
   """
-  def topsort(deps) do
+  def topological_sort(deps) do
     graph = :digraph.new
 
     try do
@@ -49,7 +49,7 @@ defmodule Mix.Dep.Converger do
   def converge(acc, lock, opts, callback) do
     {deps, acc, lock} = all(acc, lock, opts, callback)
     if remote = Mix.RemoteConverger.get, do: remote.post_converge()
-    {topsort(deps), acc, lock}
+    {topological_sort(deps), acc, lock}
   end
 
   defp all(acc, lock, opts, callback) do
@@ -85,7 +85,7 @@ defmodule Mix.Dep.Converger do
 
     if not diverged? and use_remote? do
       # Make sure there are no cycles before calling remote converge
-      topsort(deps)
+      topological_sort(deps)
 
       # If there is a lock, it means we are doing a get/update
       # and we need to hit the remote converger which do external
