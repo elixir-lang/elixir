@@ -50,8 +50,8 @@ defmodule Mix.Tasks.Compile.App do
       not defined for an included application, that application is skipped.
 
     * `:included_applications` - specifies a list of applications
-      that will be included in the application. It is the responsability of
-      the primary application to start the supervision tree of any included
+      that will be included in the application. It is the responsibility of
+      the primary application to start the supervision tree of all included
       applications, as only the primary application will be started. A process
       in an included application considers itself belonging to the
       primary application.
