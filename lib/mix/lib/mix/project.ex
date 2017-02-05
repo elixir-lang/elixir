@@ -250,9 +250,10 @@ defmodule Mix.Project do
   @spec apps_paths() :: %{atom => Path.t} | nil
   def apps_paths(config \\ config()) do
     if apps_path = config[:apps_path] do
-      Mix.ProjectStack.read_cache(:apps_path) ||
-        Mix.ProjectStack.write_cache(:apps_path,
-          config[:apps] |> umbrella_apps(apps_path) |> to_apps_path(apps_path))
+      key = {:apps_paths, Mix.Project.get!}
+      Mix.ProjectStack.read_cache(key) ||
+        Mix.ProjectStack.write_cache(key,
+          config[:apps] |> umbrella_apps(apps_path) |> to_apps_paths(apps_path))
     end
   end
 
@@ -266,7 +267,7 @@ defmodule Mix.Project do
     apps
   end
 
-  defp to_apps_path(apps, apps_path) do
+  defp to_apps_paths(apps, apps_path) do
     for app <- apps,
         path = path_with_mix_exs_otherwise_warn(app, apps_path),
         do: {app, path},
