@@ -18,7 +18,7 @@ defmodule Mix.ProjectStack do
     get_and_update fn %{stack: stack} = state ->
       # Consider the first children to always have io_done
       # because we don't need to print anything unless another
-      # project talks ahold of the shell.
+      # project takes ahold of the shell.
       io_done? = stack == []
 
       config  = Keyword.merge(config, state.post_config)
