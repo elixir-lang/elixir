@@ -1267,6 +1267,26 @@ defmodule Enum do
     :lists.reverse(res)
   end
 
+
+  @doc """
+  Maps the enumerable and filter resultant elements in one pass.
+
+  ## Examples
+
+      iex> Enum.map_filter([1, 2, 3], &(&1 + 1), fn(x) -> rem(x, 2) == 0 end)
+      [2, 4]
+
+  """
+  @spec map_filter(t, (element -> element),
+    (element -> as_boolean(term))) :: list
+
+  def map_filter(enumerable, mapper, filter)
+      when is_function(mapper, 1) and is_function(filter, 1) do
+    reduce(enumerable, [], R.map_filter(mapper, filter))
+    |> :lists.reverse
+  end
+
+
   @doc """
   Maps and joins the given enumerable in one pass.
 

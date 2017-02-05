@@ -295,6 +295,11 @@ defmodule EnumTest do
     end
   end
 
+  test "map_filter/3" do
+    assert Enum.map_filter([1, 2, 3], &(&1 + 1), fn(x) -> rem(x, 2) == 0 end) == [2, 4]
+    assert Enum.map_filter([2, 4, 6], &(&1 + 1), fn(x) -> rem(x, 2) == 0 end) == []
+  end
+
   test "map_join/3" do
     assert Enum.map_join([], " = ", &(&1 * 2)) == ""
     assert Enum.map_join([1, 2, 3], " = ", &(&1 * 2)) == "2 = 4 = 6"
