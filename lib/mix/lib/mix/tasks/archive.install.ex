@@ -105,6 +105,7 @@ defmodule Mix.Tasks.Archive.Install do
   ### Private helpers
 
   defp archives(name) do
+    # TODO: We can remove the .ez extension on Elixir 2.0 since we always unzip since 1.3
     Mix.Local.path_for(:archive)
     |> Path.join(name <> "{,*.ez}")
     |> Path.wildcard
