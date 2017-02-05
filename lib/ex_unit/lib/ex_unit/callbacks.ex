@@ -31,7 +31,7 @@ defmodule ExUnit.Callbacks do
 
   If you return a keyword list, a map, or `{:ok, keywords | map}` from
   `setup_all`, the keyword list/map will be merged into the current context and
-  be available in all subsequent `setup_all`, `setup`, and the test itself.
+  be available in all subsequent `setup_all`, `setup`, and the `test` itself.
 
   Similarly, returning a keyword list, map, or `{:ok, keywords | map}` from
   `setup` means that the returned keyword list/map will be merged into the
