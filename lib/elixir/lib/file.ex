@@ -361,12 +361,14 @@ defmodule File do
   end
 
   @doc """
-  Reads the symbolic link at `path`. If path exists and is a symlink, returns `{:ok, target}`,
-  otherwise returns `{:error, reason}`.
+  Reads the symbolic link at `path`.
+
+  If path exists and is a symlink, returns `{:ok, target}`, otherwise returns `{:error, reason}`.
 
   For more details, see [`:file.read_link/1`](http://erlang.org/doc/man/file.html#read_link-1)
 
   Typical error reasons are:
+  
     * `:einval` - path is not a symbolic link
     * `:enoent` - path does not exist
     * `:enotsup` - symbolic links are not supported on the current platform
