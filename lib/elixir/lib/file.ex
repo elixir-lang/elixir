@@ -365,7 +365,7 @@ defmodule File do
 
   If path exists and is a symlink, returns `{:ok, target}`, otherwise returns `{:error, reason}`.
 
-  For more details, see [`:file.read_link/1`](http://erlang.org/doc/man/file.html#read_link-1)
+  For more details, see [`:file.read_link/1`](http://erlang.org/doc/man/file.html#read_link-1).
 
   Typical error reasons are:
   
