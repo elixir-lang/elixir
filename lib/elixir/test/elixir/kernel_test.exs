@@ -42,39 +42,39 @@ defmodule KernelTest do
     assert ("" =~ ~r/abcd/) == false
     assert ("" =~ ~R/abcd/) == false
 
-    assert_raise FunctionClauseError, "no function clause matching in Kernel.=~/2", fn ->
+    assert_raise FunctionClauseError, "there is no definition of Kernel.=~/2 that expects the arguments at positions:\n\nKernel.=~(1234, \"hello\")", fn ->
       1234 =~ "hello"
     end
 
-    assert_raise FunctionClauseError, "no function clause matching in Kernel.=~/2", fn ->
+    assert_raise FunctionClauseError, "there is no definition of Kernel.=~/2 that expects the arguments at positions:\n\nKernel.=~(1234, ~r/hello/)", fn ->
       1234 =~ ~r"hello"
     end
 
-    assert_raise FunctionClauseError, "no function clause matching in Kernel.=~/2", fn ->
+    assert_raise FunctionClauseError, "there is no definition of Kernel.=~/2 that expects the arguments at positions:\n\nKernel.=~(1234, ~r/hello/)", fn ->
       1234 =~ ~R"hello"
     end
 
-    assert_raise FunctionClauseError, "no function clause matching in Kernel.=~/2", fn ->
+    assert_raise FunctionClauseError, "there is no definition of Kernel.=~/2 that expects the arguments at positions:\n\nKernel.=~(~r/hello/, \"hello\")", fn ->
       ~r"hello" =~ "hello"
     end
 
-    assert_raise FunctionClauseError, "no function clause matching in Kernel.=~/2", fn ->
+    assert_raise FunctionClauseError, "there is no definition of Kernel.=~/2 that expects the arguments at positions:\n\nKernel.=~(~r/hello/, ~r/hello/)", fn ->
       ~r"hello" =~ ~r"hello"
     end
 
-    assert_raise FunctionClauseError, "no function clause matching in Kernel.=~/2", fn ->
+    assert_raise FunctionClauseError, "there is no definition of Kernel.=~/2 that expects the arguments at positions:\n\nKernel.=~(:abcd, ~r//)", fn ->
       :abcd =~ ~r//
     end
 
-    assert_raise FunctionClauseError, "no function clause matching in Kernel.=~/2", fn ->
+    assert_raise FunctionClauseError, "there is no definition of Kernel.=~/2 that expects the arguments at positions:\n\nKernel.=~(:abcd, \"\")", fn ->
       :abcd =~ ""
     end
 
-    assert_raise FunctionClauseError, "no function clause matching in Regex.match?/2", fn ->
+    assert_raise FunctionClauseError, "there is no definition of Regex.match?/2 that expects the arguments at positions:\n\nRegex.match?(nil, \"abcd\")", fn ->
       "abcd" =~ nil
     end
 
-    assert_raise FunctionClauseError, "no function clause matching in Regex.match?/2", fn ->
+    assert_raise FunctionClauseError, "there is no definition of Regex.match?/2 that expects the arguments at positions:\n\nRegex.match?(:abcd, \"abcd\")", fn ->
       "abcd" =~ :abcd
     end
   end

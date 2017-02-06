@@ -236,7 +236,7 @@ defmodule Kernel.RaiseTest do
       x in [FunctionClauseError] -> Exception.message(x)
     end
 
-    assert result == "no function clause matching in Kernel.RaiseTest.zero/1"
+    assert result == "there is no definition of Kernel.RaiseTest.zero/1 that expects the arguments at positions:\n\nKernel.RaiseTest.zero(1)"
   end
 
   test "badarg error" do

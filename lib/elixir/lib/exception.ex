@@ -714,12 +714,17 @@ defmodule UndefinedFunctionError do
 end
 
 defmodule FunctionClauseError do
-  defexception [:module, :function, :arity]
+  defexception [:module, :function, :arity, :args]
 
   def message(exception) do
     if exception.function do
       formatted = Exception.format_mfa exception.module, exception.function, exception.arity
-      "no function clause matching in #{formatted}"
+      if exception.args do
+        formatted_call = Exception.format_mfa exception.module, exception.function, exception.args
+        "there is no definition of #{formatted} that expects the arguments at positions:\n\n#{formatted_call}"
+      else
+        "no function clause matching in #{formatted}"
+      end
     else
       "no function clause matches"
     end
@@ -903,13 +908,13 @@ defmodule ErlangError do
 
   def normalize(:undef, stacktrace) do
     stacktrace = stacktrace || :erlang.get_stacktrace
-    {mod, fun, arity} = from_stacktrace(stacktrace)
+    {mod, fun, arity, _} = from_stacktrace(stacktrace)
     %UndefinedFunctionError{module: mod, function: fun, arity: arity}
   end
 
   def normalize(:function_clause, stacktrace) do
-    {mod, fun, arity} = from_stacktrace(stacktrace || :erlang.get_stacktrace)
-    %FunctionClauseError{module: mod, function: fun, arity: arity}
+    {mod, fun, arity, args} = from_stacktrace(stacktrace || :erlang.get_stacktrace)
+    %FunctionClauseError{module: mod, function: fun, arity: arity, args: args}
   end
 
   def normalize({:badarg, payload}, _stacktrace) do
@@ -921,14 +926,14 @@ defmodule ErlangError do
   end
 
   defp from_stacktrace([{module, function, args, _} | _]) when is_list(args) do
-    {module, function, length(args)}
+    {module, function, length(args), args}
   end
 
   defp from_stacktrace([{module, function, arity, _} | _]) do
-    {module, function, arity}
+    {module, function, arity, nil}
   end
 
   defp from_stacktrace(_) do
-    {nil, nil, nil}
+    {nil, nil, nil, nil}
   end
 end
