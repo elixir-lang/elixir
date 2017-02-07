@@ -614,9 +614,7 @@ defmodule Logger.TranslatorTest do
   test "handles :undefined MFA properly" do
     defmodule WeirdFunctionNamesGenServer do
       use GenServer
-
       def unquote(:"start link")(), do: GenServer.start_link(__MODULE__, [])
-
       def handle_call(_call, _from, _state), do: raise("oops")
     end
 
