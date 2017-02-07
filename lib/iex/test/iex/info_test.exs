@@ -9,6 +9,16 @@ defmodule IEx.InfoTest do
     defstruct [:foo]
   end
 
+  defmodule Bar do
+    defstruct [:bar]
+  end
+
+  defimpl Inspect, for: Bar do
+    def inspect(%{bar: bar}, _opts) do
+      "#Bar<#{bar}>"
+    end
+  end
+
   test "tuples" do
     assert Info.info({:ok, "good!"}) == ["Data type": "Tuple",
                                          "Reference modules": "Tuple"]
@@ -148,5 +158,24 @@ defmodule IEx.InfoTest do
     assert info[:"Data type"] == "IEx.InfoTest.Foo"
     assert info[:"Description"] == "This is a struct. Structs are maps with a __struct__ key."
     assert info[:"Reference modules"] == "IEx.InfoTest.Foo, Map"
+  end
+
+  test "structs overriding Inspect protocol" do
+    info = Info.info(%Bar{})
+    assert info[:"Data type"] == "IEx.InfoTest.Bar"
+    assert info[:"Description"] == "This is a struct. Structs are maps with a __struct__ key."
+    assert info[:"Reference modules"] == "IEx.InfoTest.Bar, Map"
+    assert info[:"Raw representation"] == "%IEx.InfoTest.Bar{bar: nil}"
+  end
+
+  test "opaque structs in standard library" do
+    info = Info.info(%MapSet{})
+    refute info[:"Raw representation"]
+
+    info = Info.info(%HashSet{})
+    refute info[:"Raw representation"]
+
+    info = Info.info(%HashDict{})
+    refute info[:"Raw representation"]
   end
 end
