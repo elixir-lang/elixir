@@ -620,6 +620,27 @@ defmodule Logger.TranslatorTest do
       catch_exit(GenServer.call(pid, :error))
       [] = Supervisor.which_children(sup)
     end) =~ "Start Call: GenServer.start_link/?"
+
+    defmodule WeirdFunctionNamesGenServer do
+      use GenServer
+
+      def unquote(:"start link")(), do: GenServer.start_link(__MODULE__, [])
+
+      def handle_call(_call, _from, _state), do: raise("oops")
+    end
+
+    child_opts = [restart: :temporary, function: :"start link"]
+    children = [Supervisor.Spec.worker(WeirdFunctionNamesGenServer, [], child_opts)]
+    {:ok, sup} = Supervisor.start_link(children, strategy: :simple_one_for_one)
+
+    assert capture_log(:info, fn ->
+      {:ok, pid} = Supervisor.start_child(sup, [])
+      catch_exit(GenServer.call(pid, :error))
+      [] = Supervisor.which_children(sup)
+    end) =~ ~s(Start Call: Logger.TranslatorTest.WeirdFunctionNamesGenServer."start link"/?)
+  after
+    :code.purge(WeirdFunctionNamesGenServer)
+    :code.delete(WeirdFunctionNamesGenServer)
   end
 
   def task(parent, fun \\ (fn() -> raise "oops" end)) do
