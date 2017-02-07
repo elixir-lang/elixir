@@ -375,6 +375,8 @@ defmodule Logger.Translator do
     end
   end
 
-  defp format_mfa(mod, fun, :undefined), do: [inspect(mod), ?., to_string(fun) | "/?"]
-  defp format_mfa(mod, fun, args), do: Exception.format_mfa(mod, fun, args)
+  defp format_mfa(mod, fun, :undefined),
+    do: [inspect(mod), ?., Inspect.Function.escape_name(fun) | "/?"]
+  defp format_mfa(mod, fun, args),
+    do: Exception.format_mfa(mod, fun, args)
 end
