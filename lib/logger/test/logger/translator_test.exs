@@ -612,15 +612,6 @@ defmodule Logger.TranslatorTest do
   end
 
   test "handles :undefined MFA properly" do
-    children = [Supervisor.Spec.worker(GenServer, [], restart: :temporary)]
-    opts = [strategy: :simple_one_for_one]
-    {:ok, sup} = Supervisor.start_link(children, opts)
-    assert capture_log(:info, fn ->
-      {:ok, pid} = Supervisor.start_child(sup, [MyGenServer, []])
-      catch_exit(GenServer.call(pid, :error))
-      [] = Supervisor.which_children(sup)
-    end) =~ "Start Call: GenServer.start_link/?"
-
     defmodule WeirdFunctionNamesGenServer do
       use GenServer
 
@@ -633,11 +624,13 @@ defmodule Logger.TranslatorTest do
     children = [Supervisor.Spec.worker(WeirdFunctionNamesGenServer, [], child_opts)]
     {:ok, sup} = Supervisor.start_link(children, strategy: :simple_one_for_one)
 
-    assert capture_log(:info, fn ->
+    log = capture_log(:info, fn ->
       {:ok, pid} = Supervisor.start_child(sup, [])
       catch_exit(GenServer.call(pid, :error))
       [] = Supervisor.which_children(sup)
-    end) =~ ~s(Start Call: Logger.TranslatorTest.WeirdFunctionNamesGenServer."start link"/?)
+    end)
+
+    assert log =~ ~s(Start Call: Logger.TranslatorTest.WeirdFunctionNamesGenServer."start link"/?)
   after
     :code.purge(WeirdFunctionNamesGenServer)
     :code.delete(WeirdFunctionNamesGenServer)
