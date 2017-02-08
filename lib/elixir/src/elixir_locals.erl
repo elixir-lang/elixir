@@ -45,7 +45,7 @@ rewrite_clause({call, Ann1, {atom, Ann2, RawName}, Args}, Module) ->
   Remote = {remote, Ann1,
     {atom, Ann2, ?MODULE},
     {atom, Ann2, local_for}
- },
+  },
 
   %% If we have a macro, its arity in the table is
   %% actually one less than in the function call

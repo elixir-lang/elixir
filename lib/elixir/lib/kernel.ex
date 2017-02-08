@@ -2404,7 +2404,7 @@ defmodule Kernel do
 
     cond do
       # Check for Module as it is compiled later than Kernel
-      not bootstrapped?(Module) ->
+      not bootstrapped?(Macro) ->
         nil
 
       not function? and __CALLER__.context == :match ->
