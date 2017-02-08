@@ -218,6 +218,11 @@ defmodule Mix.Dep.Converger do
     {acc, match} =
       Enum.map_reduce list, false, fn(other, match) ->
         %Mix.Dep{app: other_app, opts: other_opts} = other
+        if other_app == app and other.top_level and dep.top_level do
+          Mix.shell.error "warning: the dependency #{inspect dep.app} is " <>
+                          "duplicated at the top level, please remove one " <>
+                          "of them"
+        end
 
         cond do
           app != other_app ->
