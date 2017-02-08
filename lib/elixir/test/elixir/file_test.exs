@@ -771,6 +771,17 @@ defmodule FileTest do
       end
     end
 
+    test "write utf8 from a charlist" do
+      fixture = tmp_path("tmp_test.txt")
+      try do
+        refute File.exists?(fixture)
+        assert File.write(fixture, [74, 111, 115, 233, 10], [:utf8]) == :ok
+        assert {:ok, "José\n"} == File.read(fixture)
+      after
+        File.rm(fixture)
+      end
+    end
+
     test "write with options" do
       fixture = tmp_path("tmp_test.txt")
       try do

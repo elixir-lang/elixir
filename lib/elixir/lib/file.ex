@@ -727,8 +727,18 @@ defmodule File do
   """
   @spec write(Path.t, iodata, [mode]) :: :ok | {:error, posix}
   def write(path, content, modes \\ []) do
-    modes = normalize_modes(modes, false)
-    F.write_file(IO.chardata_to_string(path), content, modes)
+    modes = normalize_write_modes(modes)
+    content = convert_to_binary_unless_raw_mode(content, modes)
+    case F.open(IO.chardata_to_string(path), modes) do
+      {:ok, file} ->
+        case F.write(file, content) do
+          :ok -> F.close(file)
+          error ->
+            F.close(file)
+            error
+        end
+      error -> error
+    end
   end
 
   @doc """
@@ -736,11 +746,19 @@ defmodule File do
   """
   @spec write!(Path.t, iodata, [mode]) :: :ok | no_return
   def write!(path, content, modes \\ []) do
-    modes = normalize_modes(modes, false)
-    case F.write_file(path, content, modes) do
-      :ok -> :ok
+    modes = normalize_write_modes(modes)
+    content = convert_to_binary_unless_raw_mode(content, modes)
+    case F.open(IO.chardata_to_string(path), modes) do
+      {:ok, file} ->
+        case F.write(file, content) do
+          :ok -> F.close(file)
+          {:error, reason} ->
+            F.close(file)
+            raise File.Error, reason: reason, action: "write to file",
+              path: IO.chardata_to_string(path)
+        end
       {:error, reason} ->
-        raise File.Error, reason: reason, action: "write to file",
+        raise File.Error, reason: reason, action: "open file for writing",
           path: IO.chardata_to_string(path)
     end
   end
@@ -1388,6 +1406,15 @@ defmodule File do
   end
   defp normalize_modes([], true), do: [:binary]
   defp normalize_modes([], false), do: []
+
+  defp normalize_write_modes(modes) do
+    normalize_modes([:write | modes], true)
+  end
+
+  # For more efficient sending to the file handling process
+  defp convert_to_binary_unless_raw_mode(content, modes) do
+    if Enum.member?(modes, :raw), do: content, else: IO.iodata_to_binary(content)
+  end
 
   defp maybe_to_string(path) when is_pid(path),
     do: path
