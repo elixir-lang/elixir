@@ -123,7 +123,6 @@ mergev(S1, S2) ->
 mergec(S1, S2) ->
   S1#elixir_scope{
     counter=S2#elixir_scope.counter,
-    super=S2#elixir_scope.super,
     caller=S2#elixir_scope.caller
  }.
 
