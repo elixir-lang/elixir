@@ -62,7 +62,14 @@ translate({'&', Meta, [Arg]}, S) when is_integer(Arg) ->
   compile_error(Meta, S#elixir_scope.file, "unhandled &~B outside of a capture", [Arg]);
 
 translate({fn, Meta, Clauses}, S) ->
-  elixir_fn:translate(Meta, Clauses, S);
+  Transformer = fun({'->', CMeta, [ArgsWithGuards, Expr]}, Acc) ->
+    {Args, Guards} = elixir_clauses:extract_splat_guards(ArgsWithGuards),
+    {TClause, TS } = elixir_clauses:clause(CMeta, fun translate_fn_match/2,
+                                            Args, Expr, Guards, Acc),
+    {TClause, elixir_scope:mergec(S, TS)}
+  end,
+  {TClauses, NS} = lists:mapfoldl(Transformer, S, Clauses),
+  {{'fun', ?ann(Meta), {clauses, TClauses}}, NS};
 
 %% Cond
 
@@ -315,6 +322,10 @@ var_kind(Meta, Kind) ->
 %% Pack a list of expressions from a block.
 unblock({'block', _, Exprs}) -> Exprs;
 unblock(Expr)                -> [Expr].
+
+translate_fn_match(Arg, S) ->
+  {TArg, TS} = elixir_translator:translate_args(Arg, S#elixir_scope{extra=pin_guard}),
+  {TArg, TS#elixir_scope{extra=S#elixir_scope.extra}}.
 
 %% Translate args
 

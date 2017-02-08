@@ -794,7 +794,7 @@ defmodule Kernel.ErrorsTest do
 
   test "fun different arities" do
     assert_compile_fail CompileError,
-      "nofile:1: cannot mix clauses with different arities in function definition",
+      "nofile:1: cannot mix clauses with different arities in anonymous functions",
       'fn x -> x; x, y -> x + y end'
   end
 
