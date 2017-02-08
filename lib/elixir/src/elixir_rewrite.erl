@@ -29,17 +29,12 @@
 %% number and order of arguments and show up on captures.
 
 inline(?atom, to_charlist, 1) -> {erlang, atom_to_list};
-%% TODO: Remove to_char_list by 2.0
-inline(?atom, to_char_list, 1) -> {erlang, atom_to_list};
 inline(?io, iodata_length, 1) -> {erlang, iolist_size};
 inline(?io, iodata_to_binary, 1) -> {erlang, iolist_to_binary};
 inline(?integer, to_string, 1) -> {erlang, integer_to_binary};
 inline(?integer, to_string, 2) -> {erlang, integer_to_binary};
 inline(?integer, to_charlist, 1) -> {erlang, integer_to_list};
 inline(?integer, to_charlist, 2) -> {erlang, integer_to_list};
-%% TODO: Remove to_char_list by 2.0
-inline(?integer, to_char_list, 1) -> {erlang, integer_to_list};
-inline(?integer, to_char_list, 2) -> {erlang, integer_to_list};
 inline(?list, to_atom, 1) -> {erlang, list_to_atom};
 inline(?list, to_existing_atom, 1) -> {erlang, list_to_existing_atom};
 inline(?list, to_float, 1) -> {erlang, list_to_float};
@@ -176,6 +171,10 @@ inline(_, _, _) -> false.
 
 %% Complex rewrite rules
 
+%% TODO: Move rewrite rules to Erlang pass as those are
+%% optimizations specific to the Erlang backend. They also
+%% affect code such as guard validation.
+
 rewrite(?access, _DotMeta, 'get', _Meta, [nil, Arg], _Env)
     when ?is_literal(Arg) orelse (is_atom(element(1, Arg)) andalso element(3, Arg) == nil) ->
   nil;
@@ -185,9 +184,6 @@ rewrite(?access, _DotMeta, 'get', Meta, [Arg, _], Env)
     "the Access syntax and calls to Access.get/2 are not available for the value: ~ts",
     ['Elixir.Macro':to_string(Arg)]);
 rewrite(?list_chars, _DotMeta, 'to_charlist', _Meta, [List], _Env) when is_list(List) ->
-  List;
-%% TODO: Remove to_char_list function by 2.0
-rewrite(?list_chars, _DotMeta, 'to_char_list', _Meta, [List], _Env) when is_list(List) ->
   List;
 rewrite(?string_chars, _DotMeta, 'to_string', _Meta, [String], _Env) when is_binary(String) ->
   String;

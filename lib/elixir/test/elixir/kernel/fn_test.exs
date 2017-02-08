@@ -5,8 +5,6 @@ defmodule Kernel.FnTest do
   import CompileAssertion
 
   test "arithmetic constants on match" do
-    assert (fn 1 + 2 -> true end).(3)
-    assert (fn 1 - 2 -> true end).(-1)
     assert (fn -1 -> true end).(-1)
     assert (fn +1 -> true end).(1)
   end
