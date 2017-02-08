@@ -2973,7 +2973,9 @@ defmodule Kernel do
 
   translates to:
 
-      when x >= 1 and x <= 3
+      when is_integer(x) and x >= 1 and x <= 3
+
+  Note that only integers can be considered inside a range by `in`.
 
   ### AST considerations
 
