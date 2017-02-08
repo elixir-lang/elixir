@@ -88,13 +88,11 @@ store_definition(Meta, Line, Kind, CheckClauses, Name, Args, Guards, Body, KeepL
   elixir_locals:record_definition(Tuple, Kind, Module),
 
   WrappedBody = expr_from_body(Line, Body),
-  {Function, Defaults, Super} = translate_definition(Kind, Meta, Name, Args, Guards, Body, WrappedBody, E),
+  {Function, Defaults} = translate_definition(Kind, Meta, Name, Args, Guards, Body, WrappedBody, E),
   run_on_definition_callbacks(Kind, Line, Module, Name, Args, Guards, WrappedBody, E),
 
   DefaultsLength = length(Defaults),
   elixir_locals:record_defaults(Tuple, Kind, Module, DefaultsLength),
-
-  compile_super(Module, Super, E),
   check_previous_defaults(Line, Module, Name, Arity, Kind, DefaultsLength, E),
 
   %% Retrieve the file before we changed it based on @file
@@ -133,12 +131,6 @@ retrieve_location(Location, Module) ->
 normalize_location(File) ->
   elixir_utils:characters_to_list(elixir_utils:relative_to_cwd(File)).
 
-%% Compile super
-
-compile_super(Module, true, #{function := Function}) ->
-  elixir_def_overridable:super(Module, Function);
-compile_super(_Module, _, _E) -> ok.
-
 %% Translate the given call and expression given
 %% and then store it in memory.
 
@@ -150,14 +142,13 @@ translate_definition(Kind, Meta, Name, Args, Guards, Body, WrappedBody, E) ->
 
   S = elixir_env:env_to_scope(E),
   {Unpacked, Defaults} = elixir_def_defaults:unpack(Kind, Name, EArgs, S),
-  {Clauses, Super} = translate_clause(Body, Kind, Meta, Unpacked, EGuards, EBody, S),
-
+  Clauses = translate_clause(Body, Kind, Meta, Unpacked, EGuards, EBody, S),
   Function = {function, ?ann(Meta), Name, Arity, Clauses},
-  {Function, Defaults, Super}.
+  {Function, Defaults}.
 
 translate_clause(nil, _Kind, Meta, Args, [], _Body, S) ->
   check_args_for_bodyless_clause(Meta, Args, S),
-  {[], false};
+  [];
 translate_clause(nil, Kind, Meta, _Args, _Guards, _Body, #elixir_scope{file=File}) ->
   elixir_errors:form_error(Meta, File, ?MODULE, {missing_do, Kind});
 translate_clause(_, Kind, Meta, Args, Guards, Body, S) ->
@@ -184,7 +175,7 @@ translate_clause(_, Kind, Meta, Args, Guards, Body, S) ->
       TClause
   end,
 
-  {[FClause], TS#elixir_scope.super}.
+  [FClause].
 
 expr_from_body(_Line, nil)          -> nil;
 expr_from_body(_Line, [{do, Expr}]) -> Expr;
