@@ -38,16 +38,6 @@ translate({'__block__', Meta, Args}, S) when is_list(Args) ->
   {TArgs, SA} = translate_block(Args, [], S),
   {{block, ?ann(Meta), TArgs}, SA};
 
-%% Erlang op
-
-translate({{'.', _, [erlang, 'andalso']}, Meta, [Left, Right]}, S) ->
-  {[TLeft, TRight], NS}  = translate_args([Left, Right], S),
-  {{op, ?ann(Meta), 'andalso', TLeft, TRight}, NS};
-
-translate({{'.', _, [erlang, 'orelse']}, Meta, [Left, Right]}, S) ->
-  {[TLeft, TRight], NS}  = translate_args([Left, Right], S),
-  {{op, ?ann(Meta), 'orelse', TLeft, TRight}, NS};
-
 %% Compilation environment macros
 
 translate({'__CALLER__', Meta, Atom}, S) when is_atom(Atom) ->
@@ -211,8 +201,6 @@ translate({Name, Meta, Args} = Call, S) when is_atom(Name), is_list(Meta), is_li
 
 translate({{'.', _, [Left, Right]}, Meta, []}, S)
     when is_tuple(Left), is_atom(Right), is_list(Meta) ->
-  assert_allowed_in_context(Meta, Left, Right, 0, S),
-
   {TLeft, SL}  = translate(Left, S),
   {Var, _, SV} = elixir_scope:build_var('_', SL),
 
@@ -252,14 +240,13 @@ translate({{'.', _, [Left, Right]}, Meta, Args}, S)
 
   %% Rewrite Erlang function calls as operators so they
   %% work on guards, matches and so on.
-  case (Left == erlang) andalso guard_op(Right, Arity) of
+  case (Left == erlang) andalso elixir_utils:guard_op(Right, Arity) of
     true ->
       case TArgs of
         [TOne]       -> {{op, Ann, Right, TOne}, SC};
         [TOne, TTwo] -> {{op, Ann, Right, TOne, TTwo}, SC}
       end;
     false ->
-      assert_allowed_in_context(Meta, Left, Right, Arity, S),
       {{call, Ann, {remote, Ann, TLeft, TRight}, TArgs}, SC}
   end;
 
@@ -287,17 +274,6 @@ translate(Other, S) ->
   {elixir_utils:elixir_to_erl(Other), S}.
 
 %% Helpers
-
-guard_op(Op, Arity) ->
-  try erl_internal:op_type(Op, Arity) of
-    arith -> true;
-    list  -> true;
-    comp  -> true;
-    bool  -> true;
-    send  -> false
-  catch
-    _:_ -> false
-  end.
 
 translate_list([{'|', _, [_, _]=Args}], Fun, Acc, List) ->
   {[TLeft, TRight], TAcc} = lists:mapfoldl(Fun, Acc, Args),
@@ -407,21 +383,3 @@ returns_boolean(Condition, Body) ->
     true  -> {Condition, Body};
     false -> false
   end.
-
-%% Assertions
-
-assert_allowed_in_context(Meta, Left, Right, Arity, #elixir_scope{context=Context} = S)
-    when (Context == match) orelse (Context == guard) ->
-  case (Left == erlang) andalso is_erlang_allowed(Context, Right, Arity) of
-    true  -> ok;
-    false ->
-      compile_error(Meta, S#elixir_scope.file, "cannot invoke remote function ~ts.~ts/~B inside ~ts",
-        ['Elixir.Macro':to_string(Left), Right, Arity, Context])
-  end;
-assert_allowed_in_context(_, _, _, _, _) ->
-  ok.
-
-is_erlang_allowed(match, Right, Arity) ->
-  erl_internal:arith_op(Right, Arity);
-is_erlang_allowed(guard, Right, Arity) ->
-  erl_internal:guard_bif(Right, Arity).

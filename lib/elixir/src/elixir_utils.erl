@@ -6,7 +6,7 @@
   convert_to_boolean/4, returns_boolean/1, atom_concat/1,
   read_file_type/1, read_link_type/1, relative_to_cwd/1, caller/4,
   read_mtime/1, change_universal_time/2, erl_call/4, meta_location/1,
-  noop/0]).
+  noop/0, guard_op/2, match_op/2]).
 -include("elixir.hrl").
 -include_lib("kernel/include/file.hrl").
 
@@ -15,6 +15,26 @@ macro_name(Macro) ->
 
 atom_concat(Atoms) ->
   list_to_atom(lists:concat(Atoms)).
+
+match_op('++', 2) -> true;
+match_op('+', 1) -> true;
+match_op('-', 1) -> true;
+match_op(_, _) -> false.
+
+guard_op('andalso', 2) ->
+  true;
+guard_op('orelse', 2) ->
+  true;
+guard_op(Op, Arity) ->
+  try erl_internal:op_type(Op, Arity) of
+    arith -> true;
+    list  -> true;
+    comp  -> true;
+    bool  -> true;
+    send  -> false
+  catch
+    _:_ -> false
+  end.
 
 %% No-op function that can be used for stuff like preventing tail-call
 %% optimization to kick in.

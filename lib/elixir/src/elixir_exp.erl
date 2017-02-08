@@ -491,6 +491,27 @@ is_useless_building({Var, Meta, Ctx}, {Var, _, Ctx}, _) when is_atom(Ctx) ->
 is_useless_building(_, _, _) ->
   false.
 
+%% Optimizations for known booleans.
+rewrite_case_clauses([{do, [
+  {'->', FalseMeta, [
+    [{'when', _, [Var, {{'.', _, [erlang, 'or']}, _, [
+      {{'.', _, [erlang, '=:=']}, _, [Var, nil]},
+      {{'.', _, [erlang, '=:=']}, _, [Var, false]}
+    ]}]}],
+    FalseExpr
+  ]},
+  {'->', TrueMeta, [
+    [{'_', _, _}],
+    TrueExpr
+  ]}
+]}]) ->
+  [{do, [
+    {'->', FalseMeta, [[false], FalseExpr]},
+    {'->', TrueMeta, [[true], TrueExpr]}
+  ]}];
+rewrite_case_clauses(Clauses) ->
+  Clauses.
+
 %% Variables in arguments are not propagated from one
 %% argument to the other. For instance:
 %%
@@ -555,16 +576,31 @@ expand_local(Meta, Name, Args, #{module := Module, function := Function} = E) ->
 
 %% Remote
 
-expand_remote(Receiver, DotMeta, Right, Meta, Args, E, EL) ->
-  if
-    is_atom(Receiver) ->
-      elixir_lexical:record_remote(Receiver, Right, length(Args), ?m(E, function), ?line(Meta), ?m(E, lexical_tracker));
-    true ->
-      ok
-  end,
+expand_remote(Receiver, DotMeta, Right, Meta, Args, #{context := Context} = E, EL) ->
+  Arity = length(Args),
+  is_atom(Receiver) andalso
+    elixir_lexical:record_remote(Receiver, Right, Arity,
+                                 ?m(E, function), ?line(Meta), ?m(E, lexical_tracker)),
   {EArgs, EA} = expand_args(Args, E),
-  {elixir_rewrite:rewrite(Receiver, DotMeta, Right, Meta, EArgs, EA),
-   elixir_env:mergev(EL, EA)}.
+  Rewritten = elixir_rewrite:rewrite(Receiver, DotMeta, Right, Meta, EArgs, EA),
+  case allowed_in_context(Rewritten, Arity, Context) of
+    true ->
+      {Rewritten, elixir_env:mergev(EL, EA)};
+    false ->
+      compile_error(Meta, ?m(E, file), "cannot invoke remote function ~ts.~ts/~B inside ~ts",
+                    ['Elixir.Macro':to_string(Receiver), Right, Arity, Context])
+  end.
+
+allowed_in_context({{'.', _, [erlang, Right]}, _, _}, Arity, match) ->
+  elixir_utils:match_op(Right, Arity);
+allowed_in_context(_, _Arity, match) ->
+  false;
+allowed_in_context({{'.', _, [erlang, Right]}, _, _}, Arity, guard) ->
+  erl_internal:guard_bif(Right, Arity) orelse elixir_utils:guard_op(Right, Arity);
+allowed_in_context(_, _Arity, guard) ->
+  false;
+allowed_in_context(_, _, _) ->
+  true.
 
 %% Lexical helpers
 
@@ -674,26 +710,6 @@ expand_aliases({'__aliases__', Meta, _} = Alias, E, Report) ->
   end.
 
 %% Assertions
-
-rewrite_case_clauses([{do, [
-  {'->', FalseMeta, [
-    [{'when', _, [Var, {{'.', _, [erlang, 'or']}, _, [
-      {{'.', _, [erlang, '=:=']}, _, [Var, nil]},
-      {{'.', _, [erlang, '=:=']}, _, [Var, false]}
-    ]}]}],
-    FalseExpr
-  ]},
-  {'->', TrueMeta, [
-    [{'_', _, _}],
-    TrueExpr
-  ]}
-]}]) ->
-  [{do, [
-    {'->', FalseMeta, [[false], FalseExpr]},
-    {'->', TrueMeta, [[true], TrueExpr]}
-  ]}];
-rewrite_case_clauses(Clauses) ->
-  Clauses.
 
 assert_module_scope(Meta, Kind, #{module := nil, file := File}) ->
   compile_error(Meta, File, "cannot invoke ~ts outside module", [Kind]);

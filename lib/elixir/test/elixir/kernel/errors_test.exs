@@ -275,8 +275,8 @@ defmodule Kernel.ErrorsTest do
 
   test "unbound expr" do
     assert_compile_fail CompileError,
-      "nofile:1: invalid argument for unary operator ^, expected an existing variable, got: ^is_atom(:foo)",
-      '^is_atom(:foo) = true'
+      "nofile:1: invalid argument for unary operator ^, expected an existing variable, got: ^+1",
+      '^+1 = true'
   end
 
   test "literal on map and struct" do
@@ -894,7 +894,7 @@ defmodule Kernel.ErrorsTest do
       "nofile:2: can use only variables and \\\\ as arguments in definition header",
       '''
       defmodule Kernel.ErrorsTest.InvalidArgsForBodylessClause do
-        def foo(arg // nil)
+        def foo(nil)
         def foo(_), do: :ok
       end
       '''
