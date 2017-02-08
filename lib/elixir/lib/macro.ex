@@ -60,22 +60,22 @@ defmodule Macro do
   @type t :: expr | {t, t} | atom | number | binary | pid | fun | [t]
   @type expr :: {expr | atom, Keyword.t, atom | [t]}
 
-  @binary_ops [:===, :!==,
-    :==, :!=, :<=, :>=,
-    :&&, :||, :<>, :++, :--, :\\, :::, :<-, :.., :|>, :=~,
-    :<, :>, :->,
-    :+, :-, :*, :/, :=, :|, :.,
-    :and, :or, :when, :in,
-    :~>>, :<<~, :~>, :<~, :<~>, :<|>,
-    :<<<, :>>>, :|||, :&&&, :^^^, :~~~]
+  binary_ops =
+    [:===, :!==, :==, :!=, :<=, :>=,
+     :&&, :||, :<>, :++, :--, :\\, :::, :<-, :.., :|>, :=~,
+     :<, :>, :->,
+     :+, :-, :*, :/, :=, :|, :.,
+     :and, :or, :when, :in,
+     :~>>, :<<~, :~>, :<~, :<~>, :<|>,
+     :<<<, :>>>, :|||, :&&&, :^^^, :~~~]
 
   @doc false
-  defmacro binary_ops, do: @binary_ops
+  defmacro binary_ops, do: unquote(binary_ops)
 
-  @unary_ops [:!, :@, :^, :not, :+, :-, :~~~, :&]
+  unary_ops = [:!, :@, :^, :not, :+, :-, :~~~, :&]
 
   @doc false
-  defmacro unary_ops, do: @unary_ops
+  defmacro unary_ops, do: unquote(unary_ops)
 
   @spec binary_op_props(atom) :: {:left | :right, precedence :: integer}
   defp binary_op_props(o) do
@@ -118,8 +118,8 @@ defmodule Macro do
   @doc false
   def classify_identifier(atom_or_string)
 
-  unary_ops_as_strings = :lists.map(&:erlang.atom_to_binary(&1, :utf8), @unary_ops)
-  binary_ops_as_strings = :lists.map(&:erlang.atom_to_binary(&1, :utf8), @binary_ops)
+  unary_ops_as_strings = :lists.map(&:erlang.atom_to_binary(&1, :utf8), unary_ops)
+  binary_ops_as_strings = :lists.map(&:erlang.atom_to_binary(&1, :utf8), binary_ops)
 
   def classify_identifier(atom) when is_atom(atom) do
     classify_identifier(Atom.to_string(atom))
@@ -253,7 +253,7 @@ defmodule Macro do
   end
 
   def pipe(expr, {call, _, [_, _]} = call_args, _integer)
-      when call in unquote(@binary_ops) do
+      when call in unquote(binary_ops) do
     raise ArgumentError, "cannot pipe #{to_string expr} into #{to_string call_args}, " <>
                          "the #{to_string call} operator can only take two arguments"
   end
@@ -286,7 +286,7 @@ defmodule Macro do
   end
 
   @doc false
-  def pipe_warning({call, _, _}) when call in unquote(@unary_ops) do
+  def pipe_warning({call, _, _}) when call in unquote(unary_ops) do
     "piping into a unary operator is deprecated. You could use e.g. Kernel.+(5) instead of +5"
   end
   def pipe_warning(_), do: nil
@@ -776,7 +776,7 @@ defmodule Macro do
   end
 
   # Binary ops
-  def to_string({op, _, [left, right]} = ast, fun) when op in unquote(@binary_ops) do
+  def to_string({op, _, [left, right]} = ast, fun) when op in unquote(binary_ops) do
     fun.(ast, op_to_string(left, fun, op, :left) <> " #{op} " <> op_to_string(right, fun, op, :right))
   end
 
@@ -808,7 +808,7 @@ defmodule Macro do
 
   # Unary ops
   def to_string({unary, _, [{binary, _, [_, _]} = arg]} = ast, fun)
-      when unary in unquote(@unary_ops) and binary in unquote(@binary_ops) do
+      when unary in unquote(unary_ops) and binary in unquote(binary_ops) do
     fun.(ast, Atom.to_string(unary) <> "(" <> to_string(arg, fun) <> ")")
   end
 
@@ -816,13 +816,13 @@ defmodule Macro do
     fun.(ast, "not " <> to_string(arg, fun))
   end
 
-  def to_string({op, _, [arg]} = ast, fun) when op in unquote(@unary_ops) do
+  def to_string({op, _, [arg]} = ast, fun) when op in unquote(unary_ops) do
     fun.(ast, Atom.to_string(op) <> to_string(arg, fun))
   end
 
   # Access
   def to_string({{:., _, [Access, :get]}, _, [{op, _, _} = left, right]} = ast, fun)
-      when op in unquote(@binary_ops) do
+      when op in unquote(binary_ops) do
     fun.(ast, "(" <> to_string(left, fun) <> ")" <> to_string([right], fun))
   end
 
@@ -890,10 +890,10 @@ defmodule Macro do
   end
 
   # Block keywords
-  @kw_keywords [:do, :catch, :rescue, :after, :else]
+  kw_keywords = [:do, :catch, :rescue, :after, :else]
 
   defp kw_blocks?([{:do, _} | _] = kw) do
-    Enum.all?(kw, &match?({x, _} when x in unquote(@kw_keywords), &1))
+    Enum.all?(kw, &match?({x, _} when x in unquote(kw_keywords), &1))
   end
   defp kw_blocks?(_), do: false
 
@@ -987,7 +987,7 @@ defmodule Macro do
   end
 
   defp kw_blocks_to_string(kw, fun) do
-    Enum.reduce(@kw_keywords, " ", fn(x, acc) ->
+    Enum.reduce(unquote(kw_keywords), " ", fn(x, acc) ->
       case Keyword.has_key?(kw, x) do
         true  -> acc <> kw_block_to_string(x, Keyword.get(kw, x), fun)
         false -> acc
@@ -1044,7 +1044,7 @@ defmodule Macro do
     "(" <> to_string(expr, fun) <> ")"
   end
 
-  defp op_to_string({op, _, [_, _]} = expr, fun, parent_op, side) when op in unquote(@binary_ops) do
+  defp op_to_string({op, _, [_, _]} = expr, fun, parent_op, side) when op in unquote(binary_ops) do
     {parent_assoc, parent_prec} = binary_op_props(parent_op)
     {_, prec}                   = binary_op_props(op)
     cond do
