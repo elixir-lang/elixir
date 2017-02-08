@@ -1,39 +1,27 @@
 -module(elixir_fn).
--export([translate/3, capture/3, expand/3]).
+-export([capture/3, expand/3]).
 -import(elixir_errors, [compile_error/3, compile_error/4]).
 -include("elixir.hrl").
-
-translate(Meta, Clauses, S) ->
-  Transformer = fun({'->', CMeta, [ArgsWithGuards, Expr]}, Acc) ->
-    {Args, Guards} = elixir_clauses:extract_splat_guards(ArgsWithGuards),
-    {TClause, TS } = elixir_clauses:clause(CMeta, fun translate_fn_match/2,
-                                            Args, Expr, Guards, Acc),
-    {TClause, elixir_scope:mergec(S, TS)}
-  end,
-
-  {TClauses, NS} = lists:mapfoldl(Transformer, S, Clauses),
-  Arities = [length(Args) || {clause, _Line, Args, _Guards, _Exprs} <- TClauses],
-
-  case lists:usort(Arities) of
-    [_] ->
-      {{'fun', ?ann(Meta), {clauses, TClauses}}, NS};
-    _ ->
-      compile_error(Meta, S#elixir_scope.file,
-                    "cannot mix clauses with different arities in function definition")
-  end.
-
-translate_fn_match(Arg, S) ->
-  {TArg, TS} = elixir_translator:translate_args(Arg, S#elixir_scope{extra=pin_guard}),
-  {TArg, TS#elixir_scope{extra=S#elixir_scope.extra}}.
-
-%% Expansion
 
 expand(Meta, Clauses, E) when is_list(Clauses) ->
   Transformer = fun(Clause) ->
     {EClause, _} = elixir_exp_clauses:clause(Meta, fn, fun elixir_exp_clauses:head/2, Clause, E),
     EClause
   end,
-  {{fn, Meta, lists:map(Transformer, Clauses)}, E}.
+
+  EClauses = lists:map(Transformer, Clauses),
+  EArities = [fn_arity(Args) || {'->', _, [Args, _]} <- EClauses],
+
+  case lists:usort(EArities) of
+    [_] ->
+      {{fn, Meta, EClauses}, E};
+    _ ->
+      compile_error(Meta, ?m(E, file),
+                    "cannot mix clauses with different arities in anonymous functions")
+  end.
+
+fn_arity([{'when', _, Args}]) -> length(Args) - 1;
+fn_arity(Args) -> length(Args).
 
 %% Capture
 
