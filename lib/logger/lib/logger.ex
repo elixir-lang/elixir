@@ -204,6 +204,9 @@ defmodule Logger do
 
     * `:format` - the format message used to print logs.
       Defaults to: `"$time $metadata[$level] $levelpad$message\n"`.
+      It may also be a `{module, function}` tuple that is invoked
+      with the log level, the message, the current timestamp and
+      the metadata.
 
     * `:metadata` - the metadata to be printed by `$metadata`.
       Defaults to an empty list (no metadata).
