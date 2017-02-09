@@ -403,7 +403,7 @@ defmodule IEx do
   is temporarily changed to trap exits (i.e. the process flag
   `:trap_exit` is set to `true`) and has the `group_leader` changed
   to support ANSI escape codes. Those values are reverted by
-  calling `respawn`, which starts a new IEx shell, freeing up
+  calling `respawn/0`, which starts a new IEx shell, freeing up
   the pried one.
 
   When a process is pried, all code runs inside IEx and, as
@@ -441,10 +441,10 @@ defmodule IEx do
 
   Keep in mind that `IEx.pry/1` runs in the caller process,
   blocking the caller during the evaluation cycle. The caller
-  process can be freed by calling `respawn`, which starts a
+  process can be freed by calling `respawn/0`, which starts a
   new IEx evaluation cycle, letting this one go:
 
-      pry(2)> respawn
+      pry(2)> respawn()
       true
 
       Interactive Elixir - press Ctrl+C to exit (type h() ENTER for help)
