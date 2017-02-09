@@ -90,7 +90,9 @@ defmodule EEx.Compiler do
       {contents, start, list}
     end
   end
-
+  defp look_ahead_text([{:middle_expr, line, _, chars} | t], _start, contents) do
+    {contents ++ chars, line, t}
+  end
   defp look_ahead_text(t, start, contents) do
     {contents, start, t}
   end

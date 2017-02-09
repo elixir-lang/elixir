@@ -331,6 +331,19 @@ foo
     assert_eval expected, string, [], trim: true
   end
 
+  test "trim mode with middle expression" do
+    string = """
+    <%= cond do %>
+    <% false -> %>
+      this
+    <% true -> %>
+      that
+    <% end %>
+    """
+    expected = "  that\n"
+    assert_eval expected, string, [], trim: true
+  end
+
   test "evaluates the source from a given file" do
     filename = Path.join(__DIR__, "fixtures/eex_template.eex")
     result = EEx.eval_file(filename)

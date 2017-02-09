@@ -181,7 +181,6 @@ defmodule EEx.Tokenizer do
   # If trim mode is enabled and the token is on a line with
   # only itself and whitespace, trim the whitespace around it,
   # including the line break following it if there is one.
-
   defp trim_if_needed(rest, line, opts, buffer, acc) do
     original = {rest, line, buffer}
     if opts[:trim] do
