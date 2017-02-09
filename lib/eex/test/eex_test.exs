@@ -72,6 +72,19 @@ defmodule EExTest do
       assert_eval expected, string, [], trim: true
     end
 
+    test "trim mode with middle expression" do
+      string = """
+      <%= cond do %>
+      <% false -> %>
+        this
+      <% true -> %>
+        that
+      <% end %>
+      """
+      expected = "  that\n"
+      assert_eval expected, string, [], trim: true
+    end
+
     test "embedded code" do
       assert_eval "foo bar", "foo <%= :bar %>"
     end
