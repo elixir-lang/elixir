@@ -2359,10 +2359,10 @@ defmodule Kernel do
   Reads and writes attributes of the current module.
 
   The canonical example for attributes is annotating that a module
-  implements the OTP behaviour called `gen_server`:
+  implements an OTP behaviour, such as `GenServer`:
 
       defmodule MyServer do
-        @behaviour :gen_server
+        @behaviour GenServer
         # ... callbacks ...
       end
 
