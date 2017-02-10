@@ -1450,6 +1450,23 @@ defmodule FileTest do
     end
   end
 
+  test "ln" do
+    existing  = fixture_path("file.txt")
+    new = tmp_path("tmp_test.txt")
+    try do
+      refute File.exists?(new)
+      assert File.ln(existing, new) == :ok
+      assert File.read(new) == {:ok, "FOO\n"}
+    after
+      File.rm(new)
+    end
+  end
+
+  test "ln with existing destination" do
+    existing  = fixture_path("file.txt")
+    assert File.ln(existing, existing) == {:error, :eexist}
+  end
+
   test "ln s" do
     existing  = fixture_path("file.txt")
     new = tmp_path("tmp_test.txt")
