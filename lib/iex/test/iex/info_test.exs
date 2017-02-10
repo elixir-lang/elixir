@@ -143,6 +143,36 @@ defmodule IEx.InfoTest do
     assert Info.info(make_ref()) == ["Data type": "Reference"]
   end
 
+  test "date" do
+    {:ok, date} = Date.new(2017, 1, 1)
+    info = Info.info(date)
+    assert info[:"Data type"] == "Date"
+    assert info[:"Raw representation"] == "%Date{calendar: Calendar.ISO, day: 1, month: 1, year: 2017}"
+    assert info[:"Reference modules"] == "Date, Calendar, Map"
+    assert info[:"Description"] =~ "a date"
+    assert info[:"Description"] =~ "`~D`"
+  end
+
+  test "time" do
+    {:ok, time} = Time.new(23, 59, 59)
+    info = Info.info(time)
+    assert info[:"Data type"] == "Time"
+    assert info[:"Raw representation"] == "%Time{hour: 23, microsecond: {0, 0}, minute: 59, second: 59}"
+    assert info[:"Reference modules"] == "Time, Calendar, Map"
+    assert info[:"Description"] =~ "a time"
+    assert info[:"Description"] =~ "`~T`"
+  end
+
+  test "naive datetime" do
+    {:ok, time} = NaiveDateTime.new(2017, 1, 1, 23, 59, 59)
+    info = Info.info(time)
+    assert info[:"Data type"] == "NaiveDateTime"
+    assert info[:"Raw representation"] == "%NaiveDateTime{calendar: Calendar.ISO, day: 1, hour: 23, microsecond: {0, 0}, minute: 59, month: 1, second: 59, year: 2017}"
+    assert info[:"Reference modules"] == "NaiveDateTime, Calendar, Map"
+    assert info[:"Description"] =~ ~S{a "naive" datetime (that is, a datetime without a timezone)}
+    assert info[:"Description"] =~ "`~N`"
+  end
+
   test "structs" do
     info = Info.info(%Foo{})
     assert info[:"Data type"] == "IEx.InfoTest.Foo"

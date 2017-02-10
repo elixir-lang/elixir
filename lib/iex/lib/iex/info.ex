@@ -290,6 +290,33 @@ defimpl IEx.Info, for: Reference do
   end
 end
 
+defimpl IEx.Info, for: [Date, Time, NaiveDateTime] do
+  {sigil, repr} =
+    case @for do
+      Date -> {"D", "date"}
+      Time -> {"T", "time"}
+      NaiveDateTime -> {"N", ~S{"naive" datetime (that is, a datetime without a timezone)}}
+    end
+
+  def info(value) do
+    desc = """
+    This is a struct representing a #{unquote(repr)}. It is commonly represented
+    using the `~#{unquote(sigil)}` sigil syntax, that is defined in the `Kernel.sigil_#{unquote(sigil)}/2` macro.
+    """
+    ["Data type": inspect(@for),
+     "Description": desc,
+     "Raw representation": raw_inspect(value),
+     "Reference modules": inspect(@for) <> ", Calendar, Map"]
+  end
+
+  defp raw_inspect(value) do
+    value
+    |> Inspect.Any.inspect(%Inspect.Opts{})
+    |> Inspect.Algebra.format(:infinity)
+    |> IO.iodata_to_binary
+  end
+end
+
 defimpl IEx.Info, for: Any do
   def info(%{__struct__: mod}) do
     ["Data type": inspect(mod),
