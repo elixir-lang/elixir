@@ -1,49 +1,52 @@
-% A bunch of helpers to help to deal with errors in Elixir source code.
-% This is not exposed in the Elixir language.
+%% Compilation warnings and errors dispatcher
+%%
 -module(elixir_errors).
--export([compile_error/3, compile_error/4,
-  form_error/4, form_warn/4, parse_error/4, warn/1, warn/3,
-  handle_file_warning/2, handle_file_warning/3, handle_file_error/2]).
+
+-export([compile_error/3,
+         compile_error/4,
+         form_error/4,
+         form_warn/4,
+         parse_error/4,
+         %% warn/1,                  %% JP: could not find any usage in code
+         warn/3,
+         handle_file_warning/2,
+         handle_file_warning/3,
+         handle_file_error/2]).
 -include("elixir.hrl").
 
 -spec warn(non_neg_integer() | none, unicode:chardata(), unicode:chardata()) -> ok.
 
+-type elixir_error_type() :: 'Elixir.CompileError'
+                           | 'Elixir.TokenMissingError'
+                           | 'ElixirSyntaxError'
+                           | 'Elixir.CompileWarn'.
+-callback handle_warn(File :: binary(), Line :: integer(),
+                      Type :: elixir_error_type(), Msg :: binary()) -> ok.
+-callback handle_error(File :: binary(), Line :: integer(),
+                      Type :: elixir_error_type(), Msg :: binary()) -> ok.
+
+
 %% Erlang may set line to none in some occasions,
 %% so we convert it to 0 accordingly.
 warn(none, File, Warning) ->
-  warn(0, File, Warning);
+  do_warn(0, File, Warning);
 warn(Line, File, Warning) when is_integer(Line), is_binary(File) ->
-  warn([Warning, "\n  ", file_format(Line, File), $\n]).
-
--spec warn(unicode:chardata()) -> ok.
-warn(Message) ->
-  CompilerPid = get(elixir_compiler_pid),
-  if
-    CompilerPid =/= undefined ->
-      elixir_code_server:cast({register_warning, CompilerPid});
-    true -> ok
-  end,
-  io:put_chars(standard_error, [warning_prefix(), Message, $\n]),
-  ok.
-
-warning_prefix() ->
-  case application:get_env(elixir, ansi_enabled) of
-    {ok, true} -> <<"\e[33mwarning: \e[0m">>;
-    _ -> <<"warning: ">>
-  end.
+  do_warn(Line, File, Warning).
 
 %% General forms handling.
-
 -spec form_error(list(), binary(), module(), any()) -> no_return().
 
 form_error(Meta, File, Module, Desc) ->
-  compile_error(Meta, File, format_error(Module, Desc)).
+  {MetaFile, MetaLine} = meta_location(Meta, File),
+  Msg = format_error(Module, Desc),
+  do_error(MetaLine, MetaFile, 'Elixir.CompileError', Msg).
 
 -spec form_warn(list(), binary(), module(), any()) -> ok.
 
 form_warn(Meta, File, Module, Desc) when is_list(Meta) ->
   {MetaFile, MetaLine} = meta_location(Meta, File),
-  warn(MetaLine, MetaFile, format_error(Module, Desc)).
+  Msg = format_error(Module, Desc),
+  do_warn(MetaLine, MetaFile, Msg).
 
 %% Compilation error.
 
@@ -51,7 +54,8 @@ form_warn(Meta, File, Module, Desc) when is_list(Meta) ->
 -spec compile_error(list(), binary(), string(), list()) -> no_return().
 
 compile_error(Meta, File, Message) when is_list(Message) ->
-  raise(Meta, File, 'Elixir.CompileError', elixir_utils:characters_to_binary(Message)).
+  {MetaFile, MetaLine} = meta_location(Meta, File),
+  do_error(MetaLine, MetaFile, 'Elixir.CompileError', Message).
 
 compile_error(Meta, File, Format, Args) when is_list(Format)  ->
   compile_error(Meta, File, io_lib:format(Format, Args)).
@@ -62,19 +66,19 @@ compile_error(Meta, File, Format, Args) when is_list(Format)  ->
 
 parse_error(Line, File, Error, <<>>) ->
   Message = case Error of
-    <<"syntax error before: ">> -> <<"syntax error: expression is incomplete">>;
-    _ -> Error
-  end,
-  do_raise(Line, File, 'Elixir.TokenMissingError', Message);
+              <<"syntax error before: ">> -> <<"syntax error: expression is incomplete">>;
+              _ -> Error
+            end,
+  do_error(Line, File, 'Elixir.TokenMissingError', Message);
 
 %% Show a nicer message for end of line
 parse_error(Line, File, <<"syntax error before: ">>, <<"eol">>) ->
-  do_raise(Line, File, 'Elixir.SyntaxError',
+  do_error(Line, File, 'Elixir.SyntaxError',
            <<"unexpectedly reached end of line. The current expression is invalid or incomplete">>);
 
 %% Show a nicer message for missing end tokens
 parse_error(Line, File, <<"syntax error before: ">>, <<"'end'">>) ->
-  do_raise(Line, File, 'Elixir.SyntaxError', <<"unexpected token: end">>);
+  do_error(Line, File, 'Elixir.SyntaxError', <<"unexpected token: end">>);
 
 %% Produce a human-readable message for errors before a sigil
 parse_error(Line, File, <<"syntax error before: ">>, <<"{sigil,", _Rest/binary>> = Full) ->
@@ -84,13 +88,13 @@ parse_error(Line, File, <<"syntax error before: ">>, <<"{sigil,", _Rest/binary>>
     false -> <<>>
   end,
   Message = <<"syntax error before: sigil \~", Sigil, " starting with content '", Content2/binary, "'">>,
-  do_raise(Line, File, 'Elixir.SyntaxError', Message);
+  do_error(Line, File, 'Elixir.SyntaxError', Message);
 
 %% Aliases are wrapped in ['']
 parse_error(Line, File, Error, <<"['", _/binary>> = Full) when is_binary(Error) ->
   [AliasAtom] = parse_erl_term(Full),
   Alias = atom_to_binary(AliasAtom, utf8),
-  do_raise(Line, File, 'Elixir.SyntaxError', <<Error/binary, Alias/binary>>);
+  do_error(Line, File, 'Elixir.SyntaxError', <<Error/binary, Alias/binary>>);
 
 %% Binaries (and interpolation) are wrapped in [<<...>>]
 parse_error(Line, File, Error, <<"[", _/binary>> = Full) when is_binary(Error) ->
@@ -98,12 +102,12 @@ parse_error(Line, File, Error, <<"[", _/binary>> = Full) when is_binary(Error) -
     [H | _] when is_binary(H) -> <<$", H/binary, $">>;
     _ -> <<$">>
   end,
-  do_raise(Line, File, 'Elixir.SyntaxError', <<Error/binary, Term/binary>>);
+  do_error(Line, File, 'Elixir.SyntaxError', <<Error/binary, Term/binary>>);
 
 %% Given a string prefix and suffix to insert the token inside the error message rather than append it
 parse_error(Line, File, {ErrorPrefix, ErrorSuffix}, Token) when is_binary(ErrorPrefix), is_binary(ErrorSuffix), is_binary(Token) ->
   Message = <<ErrorPrefix/binary, Token/binary, ErrorSuffix/binary >>,
-  do_raise(Line, File, 'Elixir.SyntaxError', Message);
+  do_error(Line, File, 'Elixir.SyntaxError', Message);
 
 %% Misplaced char tokens (e.g., {char, _, 97}) are translated by Erlang into
 %% the char literal (i.e., the token in the previous example becomes $a),
@@ -112,18 +116,12 @@ parse_error(Line, File, {ErrorPrefix, ErrorSuffix}, Token) when is_binary(ErrorP
 %% syntax.
 parse_error(Line, File, <<"syntax error before: ">>, <<$$, Char/binary>>) ->
   Message = <<"syntax error before: ?", Char/binary>>,
-  do_raise(Line, File, 'Elixir.SyntaxError', Message);
+  do_error(Line, File, 'Elixir.SyntaxError', Message);
 
 %% Everything else is fine as is
 parse_error(Line, File, Error, Token) when is_binary(Error), is_binary(Token) ->
   Message = <<Error/binary, Token/binary >>,
-  do_raise(Line, File, 'Elixir.SyntaxError', Message).
-
-%% Helper to parse terms which have been converted to binaries
-parse_erl_term(Term) ->
-  {ok, Tokens, _} = erl_scan:string(binary_to_list(Term)),
-  {ok, Parsed} = erl_parse:parse_term(Tokens ++ [{dot, 1}]),
-  Parsed.
+  do_error(Line, File, 'Elixir.SyntaxError', Message).
 
 %% Handle warnings and errors from Erlang land (called during module compilation)
 
@@ -151,7 +149,7 @@ handle_file_warning(_, File, {Line, sys_core_fold, {no_effect, {erlang, F, A}}})
       end
   end,
   Message = io_lib:format(Fmt, Args),
-  warn(Line, File, Message);
+  do_warn(Line, File, Message);
 
 %% Rewrite undefined behaviour to check for protocols
 handle_file_warning(_, File, {Line, erl_lint, {undefined_behaviour_func, {Fun, Arity}, Module}}) ->
@@ -164,13 +162,13 @@ handle_file_warning(_, File, {Line, erl_lint, {undefined_behaviour_func, {Fun, A
   Kind    = protocol_or_behaviour(Module),
   Raw     = "undefined ~ts ~ts ~ts/~B (for ~ts ~ts)",
   Message = io_lib:format(Raw, [Kind, DefKind, Def, DefArity, Kind, elixir_aliases:inspect(Module)]),
-  warn(Line, File, Message);
+  do_warn(Line, File, Message);
 
 handle_file_warning(_, File, {Line, erl_lint, {undefined_behaviour, Module}}) ->
   case elixir_compiler:get_opt(internal) of
     true  -> ok;
     false ->
-      warn(Line, File, ["behaviour ", elixir_aliases:inspect(Module), " is undefined"])
+      do_warn(Line, File, ["behaviour ", elixir_aliases:inspect(Module), " is undefined"])
   end;
 
 %% Ignore unused vars at "weird" lines (<= 0)
@@ -186,21 +184,21 @@ handle_file_warning(_, _File, {_Line, erl_lint, {exported_var, _Var, _Where}}) -
 
 %% Rewrite nomatch_guard to be more generic it can happen inside if, unless, etc
 handle_file_warning(_, File, {Line, sys_core_fold, nomatch_guard}) ->
-  warn(Line, File, "this check/guard will always yield the same result");
+  do_warn(Line, File, "this check/guard will always yield the same result");
 
 %% Properly format other unused vars
 handle_file_warning(_, File, {Line, erl_lint, {unused_var, Var}}) ->
-  warn(Line, File, ["variable \"", format_var(Var), "\" is unused"]);
+  do_warn(Line, File, ["variable \"", format_var(Var), "\" is unused"]);
 
 %% Handle literal eval failures
 handle_file_warning(_, File, {Line, sys_core_fold, {eval_failure, Error}}) ->
   #{'__struct__' := Struct} = 'Elixir.Exception':normalize(error, Error),
-  warn(Line, File, ["this expression will fail with ", elixir_aliases:inspect(Struct)]);
+  do_warn(Line, File, ["this expression will fail with ", elixir_aliases:inspect(Struct)]);
 
 %% Default behaviour
 handle_file_warning(_, File, {Line, Module, Desc}) ->
   Message = format_error(Module, Desc),
-  warn(Line, File, Message).
+  do_warn(Line, File, Message).
 
 handle_file_warning(File, Desc) ->
   handle_file_warning(false, File, Desc).
@@ -214,35 +212,57 @@ handle_file_error(File, {Line, erl_lint, {unsafe_var, Var, {In, _Where}}}) ->
     _ -> In
   end,
   Message = io_lib:format("cannot define variable \"~ts\" inside ~ts", [format_var(Var), Translated]),
-  do_raise(Line, File, 'Elixir.CompileError', elixir_utils:characters_to_binary(Message));
+  do_error(Line, File, 'Elixir.CompileError', elixir_utils:characters_to_binary(Message));
 
 handle_file_error(File, {Line, erl_lint, {undefined_function, {F, A}}}) ->
   Message = io_lib:format("undefined function ~ts/~B", [F, A]),
-  do_raise(Line, File, 'Elixir.CompileError', elixir_utils:characters_to_binary(Message));
+  do_error(Line, File, 'Elixir.CompileError', elixir_utils:characters_to_binary(Message));
 
 handle_file_error(File, {Line, erl_lint, {spec_fun_undefined, {M, F, A}}}) ->
   Message = io_lib:format("spec for undefined function ~ts.~ts/~B", [elixir_aliases:inspect(M), F, A]),
-  do_raise(Line, File, 'Elixir.CompileError', elixir_utils:characters_to_binary(Message));
+  do_error(Line, File, 'Elixir.CompileError', elixir_utils:characters_to_binary(Message));
 
 handle_file_error(File, {beam_validator, Rest}) ->
   Message = beam_validator:format_error(Rest),
-  do_raise(0, File, 'Elixir.CompileError', elixir_utils:characters_to_binary(Message));
+  do_error(0, File, 'Elixir.CompileError', elixir_utils:characters_to_binary(Message));
 
 handle_file_error(File, {Line, Module, Desc}) ->
   Message = format_error(Module, Desc),
-  do_raise(Line, File, 'Elixir.CompileError', elixir_utils:characters_to_binary(Message)).
+  do_error(Line, File, 'Elixir.CompileError', elixir_utils:characters_to_binary(Message)).
+
+%%
+%% Private
+%%
+
+%% Primitives
+do_warn(Line, File, Msg) ->
+  do_warn(Line, File, 'Elixir.CompileWarn', Msg).
+
+do_warn(Line, File, Type, Msg) ->
+  do_handle(handle_warn, Line, File, Type, Msg).
+
+
+do_error(Line, File, Type, Msg) when is_binary(File) andalso is_integer(Line) ->
+  do_handle(handle_error, Line, File, Type, Msg).
+
+
+do_handle(Fun, Line, File, Type, Msg) ->
+  Handlers = case get(elixir_compiler_handlers) of
+               undefined -> [elixir_errors_default];
+               V -> V
+             end,
+  lists:foreach(fun (Handler) ->
+                    apply(Handler, Fun, [File, Line, Type, Msg])
+                end, Handlers).
+
+
+%% Helper to parse terms which have been converted to binaries
+parse_erl_term(Term) ->
+  {ok, Tokens, _} = erl_scan:string(binary_to_list(Term)),
+  {ok, Parsed} = erl_parse:parse_term(Tokens ++ [{dot, 1}]),
+  Parsed.
 
 %% Helpers
-
-raise(Meta, File, Kind, Message) when is_list(Meta) ->
-  {MetaFile, MetaLine} = meta_location(Meta, File),
-  do_raise(MetaLine, MetaFile, Kind, Message).
-
-file_format(0, File) ->
-  io_lib:format("~ts", [elixir_utils:relative_to_cwd(File)]);
-
-file_format(Line, File) ->
-  io_lib:format("~ts:~w", [elixir_utils:relative_to_cwd(File), Line]).
 
 format_var(Var) ->
   lists:takewhile(fun(X) -> X /= $@ end, atom_to_list(Var)).
@@ -284,17 +304,3 @@ meta_location(Meta, File) ->
     {F, L} -> {F, L};
     nil    -> {File, ?line(Meta)}
   end.
-
-do_raise(none, File, Kind, Message) ->
-  do_raise(0, File, Kind, Message);
-do_raise({Line, _, _}, File, Kind, Message) when is_integer(Line) ->
-  do_raise(Line, File, Kind, Message);
-do_raise(Line, File, Kind, Message) when is_integer(Line), is_binary(File), is_binary(Message) ->
-  try
-    throw(ok)
-  catch
-    ok -> ok
-  end,
-  Stacktrace = erlang:get_stacktrace(),
-  Exception = Kind:exception([{description, Message}, {file, File}, {line, Line}]),
-  erlang:raise(error, Exception, tl(Stacktrace)).
