@@ -1145,6 +1145,9 @@ defmodule Enum do
 
       iex> Enum.into([2, 3], [3], fn x -> x * 3 end)
       [3, 6, 9]
+      
+      iex> Enum.into(%{a: 1, b: 2}, %{c: 3}, fn {k, v} -> {k, v * 2} end)
+      %{a: 2, b: 4, c: 3}
 
   """
   @spec into(Enumerable.t, Collectable.t, (term -> term)) :: Collectable.t
