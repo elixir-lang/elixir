@@ -422,6 +422,17 @@ defmodule File do
   end
 
   @doc """
+  Creates a hard link `new` to the file `existing`.
+
+  Returns `:ok` if successful, `{:error, reason}` otherwise.
+  If the operating system does not support hard links, returns
+  `{:error, :enotsup}`.
+  """
+  def ln(existing, new) do
+    F.make_link(existing, new)
+  end
+
+  @doc """
   Creates a symbolic link `new` to the file or directory `existing`.
 
   Returns `:ok` if successful, `{:error, reason}` otherwise.
