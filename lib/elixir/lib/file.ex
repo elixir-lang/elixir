@@ -429,7 +429,22 @@ defmodule File do
   `{:error, :enotsup}`.
   """
   def ln(existing, new) do
-    F.make_link(existing, new)
+    F.make_link(IO.chardata_to_string(existing), IO.chardata_to_string(new))
+  end
+
+  @doc """
+  Same as `ln/2` but raises an exception if it fails.
+
+  Returns `:ok` otherwise
+  """
+  def ln!(existing, new) do
+    case ln(existing, new) do
+      :ok -> :ok
+      {:error, reason} ->
+        raise File.LinkError, reason: reason, action: "create hard link",
+          existing: IO.chardata_to_string(existing),
+          new: IO.chardata_to_string(new)
+    end
   end
 
   @doc """
@@ -440,7 +455,22 @@ defmodule File do
   `{:error, :enotsup}`.
   """
   def ln_s(existing, new) do
-    F.make_symlink(existing, new)
+    F.make_symlink(IO.chardata_to_string(existing), IO.chardata_to_string(new))
+  end
+
+  @doc """
+  Same as `ln_s/2` but raises an exception if it fails.
+
+  Returns `:ok` otherwise
+  """
+  def ln_s!(existing, new) do
+    case ln_s(existing, new) do
+      :ok -> :ok
+      {:error, reason} ->
+        raise File.LinkError, reason: reason, action: "create symlink",
+          existing: IO.chardata_to_string(existing),
+          new: IO.chardata_to_string(new)
+    end
   end
 
   @doc """

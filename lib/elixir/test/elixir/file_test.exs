@@ -1463,12 +1463,19 @@ defmodule FileTest do
   end
 
   test "ln with existing destination" do
-    existing  = fixture_path("file.txt")
+    existing = fixture_path("file.txt")
     assert File.ln(existing, existing) == {:error, :eexist}
   end
 
-  test "ln s" do
-    existing  = fixture_path("file.txt")
+  test "ln! with existing destination" do
+    assert_raise File.LinkError, fn ->
+      existing = fixture_path("file.txt")
+      File.ln!(existing, existing)
+    end
+  end
+
+  test "ln_s" do
+    existing = fixture_path("file.txt")
     new = tmp_path("tmp_test.txt")
     try do
       refute File.exists?(new)
@@ -1479,9 +1486,16 @@ defmodule FileTest do
     end
   end
 
-  test "ln s with existing destination" do
-    existing  = fixture_path("file.txt")
+  test "ln_s with existing destination" do
+    existing = fixture_path("file.txt")
     assert File.ln_s(existing, existing) == {:error, :eexist}
+  end
+
+  test "ln_s! with existing destination" do
+    existing = fixture_path("file.txt")
+    assert_raise File.LinkError, fn ->
+      File.ln_s!(existing, existing)
+    end
   end
 
   test "copy" do
