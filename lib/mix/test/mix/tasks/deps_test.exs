@@ -623,11 +623,15 @@ defmodule Mix.Tasks.DepsTest do
     end
   end
 
-  test "converges duplicated deps at the same level" do
+  test "warns and converges duplicated deps at the same level" do
     Mix.Project.push DupDeps
 
     in_fixture "deps_status", fn ->
       Mix.Tasks.Deps.run []
+
+      assert_received {:mix_shell, :error,
+        ["warning: the dependency :ok is duplicated at the top level, " <>
+         "please remove one of them"]}
 
       msg = "* ok 0.1.0 (deps/ok) (mix)"
       assert_received {:mix_shell, :info, [^msg]}
