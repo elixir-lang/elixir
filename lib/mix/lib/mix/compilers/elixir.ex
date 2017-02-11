@@ -18,10 +18,9 @@ defmodule Mix.Compilers.Elixir do
   @doc """
   Compiles stale Elixir files.
 
-  It expects a `manifest` file, the source directories, the source directories to skip,
-  the extensions to read in sources, the destination directory, a flag to know if
-  compilation is being forced or not and a callback to be invoked
-  once (and only if) compilation starts.
+  It expects a `manifest` file, the source directories, the destination
+  directory, a flag to know if compilation is being forced or not, and a
+  list of any additional compiler options.
 
   The `manifest` is written down with information including dependencies
   between modules, which helps it recompile only the modules that
