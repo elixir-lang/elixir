@@ -24,7 +24,7 @@ defmodule Registry do
   ## Using in `:via`
 
   Once the registry is started with a given name using
-  `Registry.start_link/2`, it can be used to register and access named
+  `Registry.start_link/3`, it can be used to register and access named
   processes using the `{:via, Registry, {registry, key}}` tuple:
 
       {:ok, _} = Registry.start_link(:unique, Registry.ViaTest)
