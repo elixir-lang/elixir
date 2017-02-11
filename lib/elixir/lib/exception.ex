@@ -822,6 +822,17 @@ defmodule File.CopyError do
   end
 end
 
+defmodule File.LinkError do
+  defexception [:reason, :existing, :new, action: ""]
+
+  def message(exception) do
+    formatted =
+      IO.iodata_to_binary(:file.format_error(exception.reason))
+    "could not #{exception.action} from #{inspect(exception.existing)} to " <>
+      "#{inspect(exception.new)}: #{formatted}"
+  end
+end
+
 defmodule ErlangError do
   defexception [:original]
 
