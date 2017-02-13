@@ -12,7 +12,6 @@ defmodule Path do
   that require it (like `wildcard/2` and `expand/1`).
   """
 
-  alias :filename, as: FN
   @type t :: :unicode.chardata()
 
   @doc """
@@ -347,7 +346,7 @@ defmodule Path do
   """
   @spec basename(t) :: binary
   def basename(path) do
-    FN.basename(IO.chardata_to_string(path))
+    :filename.basename(IO.chardata_to_string(path))
   end
 
   @doc """
@@ -371,7 +370,7 @@ defmodule Path do
   """
   @spec basename(t, t) :: binary
   def basename(path, extension) do
-    FN.basename(IO.chardata_to_string(path), IO.chardata_to_string(extension))
+    :filename.basename(IO.chardata_to_string(path), IO.chardata_to_string(extension))
   end
 
   @doc """
@@ -391,7 +390,7 @@ defmodule Path do
   """
   @spec dirname(t) :: binary
   def dirname(path) do
-    FN.dirname(IO.chardata_to_string(path))
+    :filename.dirname(IO.chardata_to_string(path))
   end
 
   @doc """
@@ -408,7 +407,7 @@ defmodule Path do
   """
   @spec extname(t) :: binary
   def extname(path) do
-    FN.extension(IO.chardata_to_string(path))
+    :filename.extension(IO.chardata_to_string(path))
   end
 
   @doc """
@@ -425,7 +424,7 @@ defmodule Path do
   """
   @spec rootname(t) :: binary
   def rootname(path) do
-    FN.rootname(IO.chardata_to_string(path))
+    :filename.rootname(IO.chardata_to_string(path))
   end
 
   @doc """
@@ -445,7 +444,7 @@ defmodule Path do
   """
   @spec rootname(t, t) :: binary
   def rootname(path, extension) do
-    FN.rootname(IO.chardata_to_string(path), IO.chardata_to_string(extension))
+    :filename.rootname(IO.chardata_to_string(path), IO.chardata_to_string(extension))
   end
 
   @doc """
@@ -536,7 +535,7 @@ defmodule Path do
   def split(""), do: []
 
   def split(path) do
-    FN.split(IO.chardata_to_string(path))
+    :filename.split(IO.chardata_to_string(path))
   end
 
   defmodule Wildcard do
