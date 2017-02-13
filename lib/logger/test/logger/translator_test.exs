@@ -195,7 +195,8 @@ defmodule Logger.TranslatorTest do
 
   test "translates Task raising ErlangError" do
     assert capture_log(fn ->
-      exception = try do
+      exception =
+        try do
           :erlang.error(:foo)
         rescue
          x ->
@@ -243,7 +244,7 @@ defmodule Logger.TranslatorTest do
 
   test "translates application stop" do
     assert capture_log(fn ->
-    :ok = Application.start(:eex)
+      :ok = Application.start(:eex)
       Application.stop(:eex)
     end) =~ """
     Application eex exited: :stopped
@@ -482,8 +483,8 @@ defmodule Logger.TranslatorTest do
   test "translates Supervisor reports start error" do
     assert capture_log(:info, fn ->
       trap = Process.flag(:trap_exit, true)
-      Supervisor.start_link([worker(__MODULE__, [], [function: :error])],
-        [strategy: :one_for_one])
+      children = [worker(__MODULE__, [], function: :error)]
+      Supervisor.start_link(children, strategy: :one_for_one)
       receive do: ({:EXIT, _, {:shutdown, {:failed_to_start_child, _, _}}} -> :ok)
       Process.flag(:trap_exit, trap)
     end) =~ ~r"""
@@ -496,8 +497,8 @@ defmodule Logger.TranslatorTest do
   test "translates Supervisor reports start error with raise" do
     assert capture_log(:info, fn ->
       trap = Process.flag(:trap_exit, true)
-      Supervisor.start_link([worker(__MODULE__, [], [function: :undef])],
-        [strategy: :one_for_one])
+      children = [worker(__MODULE__, [], function: :undef)]
+      Supervisor.start_link(children, strategy: :one_for_one)
       receive do: ({:EXIT, _, {:shutdown, {:failed_to_start_child, _, _}}} -> :ok)
       Process.flag(:trap_exit, trap)
     end) =~ ~r"""
@@ -512,8 +513,8 @@ defmodule Logger.TranslatorTest do
   test "translates Supervisor reports terminated" do
     assert capture_log(:info, fn ->
       trap = Process.flag(:trap_exit, true)
-      {:ok, pid} = Supervisor.start_link([worker(Task, [Kernel, :exit, [:stop]])],
-        [strategy: :one_for_one, max_restarts: 0])
+      children = [worker(Task, [Kernel, :exit, [:stop]])]
+      {:ok, pid} = Supervisor.start_link(children, strategy: :one_for_one, max_restarts: 0)
       receive do: ({:EXIT, ^pid, _} -> :ok)
       Process.flag(:trap_exit, trap)
     end) =~ ~r"""
@@ -527,8 +528,8 @@ defmodule Logger.TranslatorTest do
   test "translates Supervisor reports max restarts shutdown" do
     assert capture_log(:info, fn ->
       trap = Process.flag(:trap_exit, true)
-      {:ok, pid} = Supervisor.start_link([worker(Task, [Kernel, :exit, [:stop]])],
-        [strategy: :one_for_one, max_restarts: 0])
+      children = [worker(Task, [Kernel, :exit, [:stop]])]
+      {:ok, pid} = Supervisor.start_link(children, strategy: :one_for_one, max_restarts: 0)
       receive do: ({:EXIT, ^pid, _} -> :ok)
       Process.flag(:trap_exit, trap)
     end) =~ ~r"""
@@ -540,8 +541,8 @@ defmodule Logger.TranslatorTest do
 
   test "translates Supervisor reports abnormal shutdown" do
     assert capture_log(:info, fn ->
-      {:ok, pid} = Supervisor.start_link([worker(__MODULE__, [], [function: :abnormal])],
-        [strategy: :one_for_one])
+      children = [worker(__MODULE__, [], function: :abnormal)]
+      {:ok, pid} = Supervisor.start_link(children, strategy: :one_for_one)
       :ok = Supervisor.terminate_child(pid, __MODULE__)
     end) =~ ~r"""
     \[error\] Child Logger.TranslatorTest of Supervisor #PID<\d+\.\d+\.\d+> \(Supervisor\.Default\) shutdown abnormally
@@ -553,9 +554,8 @@ defmodule Logger.TranslatorTest do
 
   test "translates Supervisor reports abnormal shutdown on debug" do
     assert capture_log(:debug, fn ->
-      {:ok, pid} = Supervisor.start_link([worker(__MODULE__, [],
-          [function: :abnormal, restart: :permanent, shutdown: 5000])],
-        [strategy: :one_for_one])
+      children = [worker(__MODULE__, [], function: :abnormal, restart: :permanent, shutdown: 5000)]
+      {:ok, pid} = Supervisor.start_link(children, strategy: :one_for_one)
       :ok = Supervisor.terminate_child(pid, __MODULE__)
     end) =~ ~r"""
     \*\* \(exit\) :stop
@@ -570,8 +570,8 @@ defmodule Logger.TranslatorTest do
   test "translates Supervisor reports abnormal shutdown in simple_one_for_one" do
     assert capture_log(:info, fn ->
       trap = Process.flag(:trap_exit, true)
-      {:ok, pid} = Supervisor.start_link([worker(__MODULE__, [], [function: :abnormal])],
-        [strategy: :simple_one_for_one])
+      children = [worker(__MODULE__, [], function: :abnormal)]
+      {:ok, pid} = Supervisor.start_link(children, strategy: :simple_one_for_one)
       {:ok, _pid2} = Supervisor.start_child(pid, [])
       Process.exit(pid, :normal)
       receive do: ({:EXIT, ^pid, _} -> :ok)
