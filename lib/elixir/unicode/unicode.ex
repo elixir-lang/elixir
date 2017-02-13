@@ -52,20 +52,6 @@ defmodule String.Unicode do
     end
   end
 
-  # Handle Hangul L
-  for codepoint <- cluster["L"] do
-    def next_grapheme_size(<<unquote(codepoint), rest::binary>>) do
-      next_hangul_l_size(rest, unquote(byte_size(codepoint)))
-    end
-  end
-
-  # Handle Hangul T
-  for codepoint <- cluster["T"] do
-    def next_grapheme_size(<<unquote(codepoint), rest::binary>>) do
-      next_hangul_t_size(rest, unquote(byte_size(codepoint)))
-    end
-  end
-
   # Handle Regional
   for codepoint <- cluster["Regional_Indicator"] do
     def next_grapheme_size(<<unquote(codepoint), rest::binary>>) do
@@ -73,14 +59,48 @@ defmodule String.Unicode do
     end
   end
 
-  # Handle extended entries
+  # Handle Hangul L
+  for codepoint <- cluster["L"] do
+    def next_grapheme_size(<<unquote(codepoint), rest::binary>>) do
+      next_hangul_l_size(rest, unquote(byte_size(codepoint)))
+    end
+  end
 
+  # Handle Hangul V
+  for codepoint <- cluster["LV"] ++ cluster["V"]  do
+    def next_grapheme_size(<<unquote(codepoint), rest::binary>>) do
+      next_hangul_v_size(rest, unquote(byte_size(codepoint)))
+    end
+  end
+
+  # Handle Hangul T
+  for codepoint <- cluster["LVT"] ++ cluster["T"] do
+    def next_grapheme_size(<<unquote(codepoint), rest::binary>>) do
+      next_hangul_t_size(rest, unquote(byte_size(codepoint)))
+    end
+  end
+
+  # Handle E_Base
+  for codepoint <- cluster["E_Base"] ++ cluster["E_Base_GAZ"] do
+    def next_grapheme_size(<<unquote(codepoint), rest::binary>>) do
+      next_extend_size(rest, unquote(byte_size(codepoint)), :e_base)
+    end
+  end
+
+  # Handle ZWJ
+  for codepoint <- cluster["ZWJ"] do
+    def next_grapheme_size(<<unquote(codepoint), rest::binary>>) do
+      next_extend_size(rest, unquote(byte_size(codepoint)), :zwj)
+    end
+  end
+
+  # Handle extended entries
   def next_grapheme_size(<<cp::utf8, rest::binary>>) do
     case cp do
-      x when x <= 0x007F -> next_extend_size(rest, 1)
-      x when x <= 0x07FF -> next_extend_size(rest, 2)
-      x when x <= 0xFFFF -> next_extend_size(rest, 3)
-      _                  -> next_extend_size(rest, 4)
+      x when x <= 0x007F -> next_extend_size(rest, 1, :other)
+      x when x <= 0x07FF -> next_extend_size(rest, 2, :other)
+      x when x <= 0xFFFF -> next_extend_size(rest, 3, :other)
+      _                  -> next_extend_size(rest, 4, :other)
     end
   end
 
@@ -92,72 +112,119 @@ defmodule String.Unicode do
     nil
   end
 
-  # Handle Hangul L
-  for codepoint <- cluster["L"] do
-    defp next_hangul_l_size(<<unquote(codepoint), rest::binary>>, size) do
-      next_hangul_l_size(rest, size + unquote(byte_size(codepoint)))
-    end
-  end
-
-  for codepoint <- cluster["LV"] do
-    defp next_hangul_l_size(<<unquote(codepoint), rest::binary>>, size) do
-      next_hangul_v_size(rest, size + unquote(byte_size(codepoint)))
-    end
-  end
-
-  for codepoint <- cluster["LVT"] do
-    defp next_hangul_l_size(<<unquote(codepoint), rest::binary>>, size) do
-      next_hangul_t_size(rest, size + unquote(byte_size(codepoint)))
-    end
-  end
-
+  # Handle hanguls
   defp next_hangul_l_size(rest, size) do
-    next_hangul_v_size(rest, size)
-  end
-
-  # Handle Hangul V
-  for codepoint <- cluster["V"] do
-    defp next_hangul_v_size(<<unquote(codepoint), rest::binary>>, size) do
-      next_hangul_v_size(rest, size + unquote(byte_size(codepoint)))
+    case next_hangul(rest, size) do
+      {:l, rest, size} -> next_hangul_l_size(rest, size)
+      {:v, rest, size} -> next_hangul_v_size(rest, size)
+      {:lv, rest, size} -> next_hangul_v_size(rest, size)
+      {:lvt, rest, size} -> next_hangul_t_size(rest, size)
+      _ -> next_extend_size(rest, size, :other)
     end
   end
 
   defp next_hangul_v_size(rest, size) do
-    next_hangul_t_size(rest, size)
-  end
-
-  # Handle Hangul T
-  for codepoint <- cluster["T"] do
-    defp next_hangul_t_size(<<unquote(codepoint), rest::binary>>, size) do
-      next_hangul_t_size(rest, size + unquote(byte_size(codepoint)))
+    case next_hangul(rest, size) do
+      {:v, rest, size} -> next_hangul_v_size(rest, size)
+      {:t, rest, size} -> next_hangul_t_size(rest, size)
+      _ -> next_extend_size(rest, size, :other)
     end
   end
 
   defp next_hangul_t_size(rest, size) do
-    next_extend_size(rest, size)
+    case next_hangul(rest, size) do
+      {:t, rest, size} -> next_hangul_t_size(rest, size)
+      _ -> next_extend_size(rest, size, :other)
+    end
+  end
+
+  for codepoint <- cluster["L"] do
+    defp next_hangul(<<unquote(codepoint), rest::binary>>, size) do
+      {:l, rest, size + unquote(byte_size(codepoint))}
+    end
+  end
+
+  for codepoint <- cluster["V"] do
+    defp next_hangul(<<unquote(codepoint), rest::binary>>, size) do
+      {:v, rest, size + unquote(byte_size(codepoint))}
+    end
+  end
+
+  for codepoint <- cluster["T"] do
+    defp next_hangul(<<unquote(codepoint), rest::binary>>, size) do
+      {:t, rest, size + unquote(byte_size(codepoint))}
+    end
+  end
+
+  for codepoint <- cluster["LV"] do
+    defp next_hangul(<<unquote(codepoint), rest::binary>>, size) do
+      {:lv, rest, size + unquote(byte_size(codepoint))}
+    end
+  end
+
+  for codepoint <- cluster["LVT"] do
+    defp next_hangul(<<unquote(codepoint), rest::binary>>, size) do
+      {:lvt, rest, size + unquote(byte_size(codepoint))}
+    end
+  end
+
+  defp next_hangul(_, _) do
+    false
   end
 
   # Handle regional
   for codepoint <- cluster["Regional_Indicator"] do
     defp next_regional_size(<<unquote(codepoint), rest::binary>>, size) do
-      next_regional_size(rest, size + unquote(byte_size(codepoint)))
+      next_extend_size(rest, size + unquote(byte_size(codepoint)), :other)
     end
   end
-
   defp next_regional_size(rest, size) do
-    next_extend_size(rest, size)
+    next_extend_size(rest, size, :other)
   end
 
-  # Handle Extend+SpacingMark
-  for codepoint <- cluster["Extend"] ++ cluster["SpacingMark"]  do
-    defp next_extend_size(<<unquote(codepoint), rest::binary>>, size) do
-      next_extend_size(rest, size + unquote(byte_size(codepoint)))
+  # Handle Extend+SpacingMark+ZWJ
+  for codepoint <- cluster["Extend"] do
+    defp next_extend_size(<<unquote(codepoint), rest::binary>>, size, marker) do
+      next_extend_size(rest, size + unquote(byte_size(codepoint)), keep_ebase(marker))
     end
   end
 
-  defp next_extend_size(rest, size) do
+  for codepoint <- cluster["SpacingMark"] do
+    defp next_extend_size(<<unquote(codepoint), rest::binary>>, size, _marker) do
+      next_extend_size(rest, size + unquote(byte_size(codepoint)), :other)
+    end
+  end
+
+  for codepoint <- cluster["ZWJ"] do
+    defp next_extend_size(<<unquote(codepoint), rest::binary>>, size, _marker) do
+      next_extend_size(rest, size + unquote(byte_size(codepoint)), :zwj)
+    end
+  end
+
+  for codepoint <- cluster["E_Modifier"] do
+    defp next_extend_size(<<unquote(codepoint), rest::binary>>, size, :e_base) do
+      next_extend_size(rest, size + unquote(byte_size(codepoint)), :other)
+    end
+  end
+
+  for codepoint <- cluster["Glue_After_Zwj"] do
+    defp next_extend_size(<<unquote(codepoint), rest::binary>>, size, :zwj) do
+      next_extend_size(rest, size + unquote(byte_size(codepoint)), :other)
+    end
+  end
+
+  for codepoint <- cluster["E_Base_GAZ"] do
+    defp next_extend_size(<<unquote(codepoint), rest::binary>>, size, :zwj) do
+      next_extend_size(rest, size + unquote(byte_size(codepoint)), :e_base)
+    end
+  end
+
+  defp next_extend_size(rest, size, _) do
     {size, rest}
   end
+
+  defp keep_ebase(:e_base), do: :e_base
+  defp keep_ebase(_), do: :other
 
   # Handle Prepend
   for codepoint <- cluster["Prepend"] do
@@ -166,8 +233,18 @@ defmodule String.Unicode do
     end
   end
 
+  # However, if we see a control character, we have to break it
+  for codepoint <- cluster["CR"] ++ cluster["LF"] ++ cluster["Control"] do
+    defp next_prepend_size(<<unquote(codepoint), _::binary>> = rest, size) do
+      {size, rest}
+    end
+  end
+
   defp next_prepend_size(rest, size) do
-    {size, rest}
+    case next_grapheme_size(rest) do
+      {more, rest} ->  {more + size, rest}
+      nil -> {size, rest}
+    end
   end
 
   # Graphemes
