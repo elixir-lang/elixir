@@ -569,6 +569,12 @@ assert_no_ambiguous_op(_Atom, _Meta, _Args, _E) ->
 
 expand_local(Meta, Name, Args, #{function := nil} = E) ->
   compile_error(Meta, ?m(E, file), "undefined function ~ts/~B", [Name, length(Args)]);
+expand_local(Meta, Name, Args, #{context := match} = E) ->
+  Message = "cannot invoke local ~ts/~B inside match, called as: ~ts",
+  FormattedCall = 'Elixir.Macro':to_string({Name, Meta, Args}),
+  compile_error(Meta, ?m(E, file), Message, [Name, length(Args), FormattedCall]);
+expand_local(Meta, Name, Args, #{context := guard} = E) ->
+  compile_error(Meta, ?m(E, file), "cannot invoke local ~ts/~B inside guard", [Name, length(Args)]);
 expand_local(Meta, Name, Args, #{module := Module, function := Function} = E) ->
   elixir_locals:record_local({Name, length(Args)}, Module, Function),
   {EArgs, EA} = expand_args(Args, E),

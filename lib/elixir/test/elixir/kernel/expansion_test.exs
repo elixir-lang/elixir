@@ -67,11 +67,6 @@ defmodule Kernel.ExpansionTest do
     assert {:a, __MODULE__} in env.vars
   end
 
-  test "=: does not carry rhs imports" do
-    assert expand(quote do: (flatten([1, 2, 3]) = import List)) ==
-           quote do: (flatten([1, 2, 3]) = :"Elixir.List")
-  end
-
   test "=: does not define _" do
     {output, env} = expand_env(quote(do: _ = 1), __ENV__)
     assert output == quote(do: _ = 1)
@@ -146,9 +141,19 @@ defmodule Kernel.ExpansionTest do
           expand(quote do: a =~ b)
   end
 
+  test "locals: in matches" do
+    assert_raise CompileError, ~r"cannot invoke local foo/1 inside match, called as: foo\(:bar\)", fn ->
+      expand(quote do: foo(:bar) = :bar)
+    end
+  end
+
   test "locals: in guards" do
     assert expand_and_clean(quote(do: fn pid when :erlang.==(pid, self) -> pid end), [:import, :context]) ==
            quote(do: fn pid when :erlang.==(pid, :erlang.self()) -> pid end)
+
+    assert_raise CompileError, ~r"cannot invoke local foo/1 inside guard", fn ->
+      expand(quote do: fn arg when foo(arg) -> arg end)
+    end
   end
 
   test "locals: custom imports" do
