@@ -4,8 +4,8 @@
 # 2. Update GraphemeBreakProperty.txt by copying original as is
 # 3. Update SpecialCasing.txt by removing comments and conditional mappings from original
 # 4. Update WhiteSpace.txt by copying the proper excerpt from PropList.txt
-# 5. Update String.Unicode.version/0
-# 6. Update Unicode version on String module docs
+# 5. Update GraphemeBreakTest.txt and run graphemes_test.exs
+# 6. Update String.Unicode.version/0 and on String module docs
 #
 defmodule String.Unicode do
   @moduledoc false
