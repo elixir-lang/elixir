@@ -419,7 +419,11 @@ format_error({invalid_def, Kind, NameAndArgs}) ->
   io_lib:format("invalid syntax in ~ts ~ts", [Kind, 'Elixir.Macro':to_string(NameAndArgs)]);
 
 format_error(invalid_args_for_bodyless_clause) ->
-  "can use only variables and \\\\ as arguments in definition header";
+  "only variables and \\\\ are allowed as arguments in definition header.\n"
+  "\n"
+  "If you did not intend to define a header, make sure your function "
+  "definition has the proper syntax by wrapping the arguments in parentheses "
+  "and ensuring there is no space between the function name and arguments.";
 
 format_error({is_record, Kind}) ->
   io_lib:format("cannot define function named ~ts is_record/2 due to compatibility "
