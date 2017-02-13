@@ -866,8 +866,7 @@ defmodule Kernel.ErrorsTest do
 
   test "invalid var or function on guard" do
     assert_compile_fail CompileError,
-      "nofile:4: unknown variable something_that_does_not_exist or " <>
-      "cannot invoke local something_that_does_not_exist/0 inside guard",
+      "nofile:4: cannot invoke local something_that_does_not_exist/0 inside guard",
       '''
       defmodule Kernel.ErrorsTest.InvalidVarOrFunctionOnGuard do
         def bar do
