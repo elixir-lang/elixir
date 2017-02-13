@@ -176,26 +176,10 @@ translate({Name, Meta, Kind}, S) when is_atom(Name), is_atom(Kind) ->
 
 %% Local calls
 
-translate({Name, Meta, Args} = Call, S) when is_atom(Name), is_list(Meta), is_list(Args) ->
-  if
-    S#elixir_scope.context == match ->
-      compile_error(Meta, S#elixir_scope.file,
-                    "cannot invoke local ~ts/~B inside match, called as: ~ts",
-                    [Name, length(Args), 'Elixir.Macro':to_string(Call)]);
-    S#elixir_scope.context == guard ->
-      Arity = length(Args),
-      File  = S#elixir_scope.file,
-      case Arity of
-        0 -> compile_error(Meta, File, "unknown variable ~ts or cannot invoke "
-                           "local ~ts/~B inside guard", [Name, Name, Arity]);
-        _ -> compile_error(Meta, File, "cannot invoke local ~ts/~B inside guard",
-                           [Name, Arity])
-      end;
-    true ->
-      Ann = ?ann(Meta),
-      {TArgs, NS} = translate_args(Args, S),
-      {{call, Ann, {atom, Ann, Name}, TArgs}, NS}
-  end;
+translate({Name, Meta, Args}, S) when is_atom(Name), is_list(Meta), is_list(Args) ->
+  Ann = ?ann(Meta),
+  {TArgs, NS} = translate_args(Args, S),
+  {{call, Ann, {atom, Ann, Name}, TArgs}, NS};
 
 %% Remote calls
 
