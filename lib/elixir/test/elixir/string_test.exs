@@ -449,7 +449,8 @@ defmodule StringTest do
     # CLRF
     assert String.graphemes("\r\n\f") == ["\r\n", "\f"]
     # Regional indicator
-    assert String.graphemes("\u{1F1E6}\u{1F1E7}\u{1F1E8}") == ["\u{1F1E6}\u{1F1E7}\u{1F1E8}"]
+    assert String.graphemes("\u{1F1E6}\u{1F1E7}") == ["\u{1F1E6}\u{1F1E7}"]
+    assert String.graphemes("\u{1F1E6}\u{1F1E7}\u{1F1E8}") == ["\u{1F1E6}\u{1F1E7}", "\u{1F1E8}"]
     # Hangul
     assert String.graphemes("\u1100\u115D\uB4A4") == ["ᄀᅝ뒤"]
     # Special Marking with Extended
