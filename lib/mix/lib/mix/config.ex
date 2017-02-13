@@ -102,7 +102,7 @@ defmodule Mix.Config do
         log_level: :info,
         pool_size: 10
 
-  the final value of the configuration for the `Ecto` key in the `:ecto`
+  the final value of the configuration for the `Repo` key in the `:ecto`
   application will be:
 
       [log_level: :info, pool_size: 10, adapter: Ecto.Adapters.Postgres]
