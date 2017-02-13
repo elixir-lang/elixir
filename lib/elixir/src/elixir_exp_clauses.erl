@@ -18,10 +18,6 @@ def(Fun, Args, Guards, Body, E) ->
 
 clause(Meta, Kind, Fun, {'->', ClauseMeta, [_, _]} = Clause, E) when is_function(Fun, 3) ->
   clause(Meta, Kind, fun(X, Acc) -> Fun(ClauseMeta, X, Acc) end, Clause, E);
-clause(Meta, 'cond', _Fun, {'->', _, [[{'_', _, Atom}], _]}, E) when is_atom(Atom) ->
-  Message = "unbound variable _ inside cond. If you want the last clause to always match, "
-            "you probably meant to use: true ->",
-  compile_error(Meta, ?m(E, file), Message);
 clause(_Meta, _Kind, Fun, {'->', Meta, [Left, Right]}, #{export_vars := ExportVars} = E) ->
   {ELeft, EL}  = Fun(Left, E),
   {ERight, ER} = elixir_exp:expand(Right, EL#{export_vars := ExportVars}),

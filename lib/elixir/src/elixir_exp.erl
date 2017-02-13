@@ -230,8 +230,16 @@ expand({fn, Meta, Pairs}, E) ->
 
 expand({'cond', Meta, [KV]}, E) ->
   assert_no_match_or_guard_scope(Meta, 'cond', E),
-  {EClauses, EC} = elixir_exp_clauses:'cond'(Meta, KV, E),
-  {{'cond', Meta, [EClauses]}, EC};
+  {EBody, EC} = elixir_exp_clauses:'cond'(Meta, KV, E),
+  [{do, EClauses}] = EBody,
+  case lists:last(EClauses) of
+    {'->', _, [[{'_', _, Atom}], _]} when is_atom(Atom) ->
+      Message = "unbound variable _ inside cond. If you want the last clause to always match, "
+                "you probably meant to use: true ->",
+      compile_error(Meta, ?m(E, file), Message);
+    _Other ->
+      {{'cond', Meta, [EBody]}, EC}
+  end;
 
 expand({'case', Meta, [Expr, KV]}, E) ->
   assert_no_match_or_guard_scope(Meta, 'case', E),
