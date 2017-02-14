@@ -174,12 +174,16 @@ defmodule Kernel.ExpansionTest do
     assert expand(quote(do: %{a: a = 1, b: a})) == quote do: %{a: a = 1, b: a()}
   end
 
-  test "structs: expanded as arguments" do
-    assert expand(quote(do: %:elixir{a: a = 1, b: a})) ==
-           quote do: %:elixir{a: a = 1, b: a()}
+  defmodule User do
+    defstruct name: "", age: 0
+  end
 
-    assert expand(quote(do: %:"Elixir.Kernel"{a: a = 1, b: a})) ==
-           quote do: %:"Elixir.Kernel"{a: a = 1, b: a()}
+  test "structs: expanded as arguments" do
+    assert expand(quote(do: %User{})) ==
+           quote do: %:"Elixir.Kernel.ExpansionTest.User"{age: 0, name: ""}
+
+    assert expand(quote(do: %User{name: "john doe"})) ==
+           quote do: %:"Elixir.Kernel.ExpansionTest.User"{age: 0, name: "john doe"}
   end
 
   test "structs: expects atoms" do
@@ -195,6 +199,14 @@ defmodule Kernel.ExpansionTest do
 
     assert_raise CompileError, ~r"expected struct name in a match to be a compile time atom, alias or a variable", fn ->
       expand(quote do: %unquote(1){a: 1} = x)
+    end
+  end
+
+  test "structs: update syntax" do
+    expand(quote do: %{%{a: 0} | a: 1})
+
+    assert_raise CompileError, ~r"cannot use map/struct update syntax in match", fn ->
+      expand(quote do: %{%{a: 0} | a: 1} = %{})
     end
   end
 
