@@ -68,9 +68,6 @@ translate({'cond', CondMeta, [[{do, Pairs}]]}, S) ->
 
   Case =
     case Condition of
-      {'_', _, Atom} when is_atom(Atom) ->
-        compile_error(Meta, S#elixir_scope.file, "unbound variable _ inside cond. "
-          "If you want the last clause to always match, you probably meant to use: true ->");
       X when is_atom(X) and (X /= false) and (X /= nil) ->
         build_cond_clauses(T, Body, Meta);
       _ ->
