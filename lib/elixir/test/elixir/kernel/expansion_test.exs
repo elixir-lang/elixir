@@ -611,7 +611,7 @@ defmodule Kernel.ExpansionTest do
 
     test "expands rescue" do
       assert expand(quote do: (try do x rescue x -> x; Error -> x end; x)) ==
-             quote do: (try do x() rescue unquote(:in)(x, _) -> x; unquote(:in)(_, [:"Elixir.Error"]) -> x() end; x())
+             quote do: (try do x() rescue x -> x; unquote(:in)(_, [:"Elixir.Error"]) -> x() end; x())
     end
 
     test "expects more than do" do

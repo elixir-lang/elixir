@@ -162,9 +162,9 @@ expand_rescue(Meta, [Arg], E) ->
 expand_rescue(Meta, _, E) ->
   compile_error(Meta, ?m(E, file), "expected one arg for rescue clauses (->) in try").
 
-%% rescue var => var in _
+%% rescue var
 expand_rescue({Name, _, Atom} = Var, E) when is_atom(Name), is_atom(Atom) ->
-  expand_rescue({in, [], [Var, {'_', [], ?m(E, module)}]}, E);
+  match(fun elixir_exp:expand/2, Var, E);
 
 %% rescue var in [Exprs]
 expand_rescue({in, Meta, [Left, Right]}, E) ->
