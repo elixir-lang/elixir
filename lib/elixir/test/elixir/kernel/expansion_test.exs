@@ -364,6 +364,12 @@ defmodule Kernel.ExpansionTest do
         expand(quote do: (for do: :foo))
       end
     end
+
+    test "require do keyword" do
+      assert_raise CompileError,
+        ~r"missing do keyword in for comprehension",
+        fn -> expand(quote do: for x <- 1..2) end
+    end
   end
 
   describe "with" do
@@ -405,6 +411,48 @@ defmodule Kernel.ExpansionTest do
     test "expands macros" do
       assert expand(quote do: (require Kernel.ExpansionTarget; &Kernel.ExpansionTarget.seventeen/0)) ==
              quote do: (:"Elixir.Kernel.ExpansionTarget"; fn -> 17 end)
+    end
+
+    test "fails on non-continuous" do
+      assert_raise CompileError,
+        ~r"capture &0 is not allowed",
+        fn -> expand(quote do: &foo(&0)) end
+      assert_raise CompileError,
+        ~r"capture &2 cannot be defined without &1",
+        fn -> expand(quote do: &(&2)) end
+      assert_raise CompileError,
+        ~r"capture &255 cannot be defined without &1",
+        fn -> expand(quote do: &(&255)) end
+    end
+
+    test "fails on block" do
+      assert_raise CompileError,
+        ~r"invalid args for &, block expressions are not allowed, got: \(\n  1\n  2\n\)",
+        fn -> expand(quote do: &(1;2)) end
+    end
+
+    test "fails on other types" do
+      assert_raise CompileError,
+        ~r"invalid args for &, expected an expression in the format of &Mod.fun/arity, &local/arity or a capture containing at least one argument as &1, got: :foo",
+        fn -> expand(quote do: &:foo) end
+    end
+
+    test "fails on invalid arity" do
+      assert_raise CompileError,
+        ~r"invalid arity for &, expected a number between 0 and 255, got: 256",
+        fn -> expand(quote do: &Mod.fun/256) end
+    end
+
+    test "fails when no captures" do
+      assert_raise CompileError,
+        ~r"invalid args for &, expected an expression in the format of &Mod.fun/arity, &local/arity or a capture containing at least one argument as &1, got: foo()",
+        fn -> expand(quote do: &foo()) end
+    end
+
+    test "fails on nested capture" do
+      assert_raise CompileError,
+        ~r"nested captures via & are not allowed: &\(nil\)",
+        fn -> expand(quote do: &(&())) end
     end
   end
 

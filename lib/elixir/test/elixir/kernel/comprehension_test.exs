@@ -3,7 +3,6 @@ Code.require_file "../test_helper.exs", __DIR__
 defmodule Kernel.ComprehensionTest do
   use ExUnit.Case, async: true
 
-  import CompileAssertion
   import ExUnit.CaptureIO
   require Integer
 
@@ -262,11 +261,5 @@ defmodule Kernel.ComprehensionTest do
       for(<<x <- bin>>, do: IO.puts x)
       nil
     end) == "1\n2\n3\n"
-  end
-
-  test "failure on missing do" do
-    assert_compile_fail CompileError,
-      "nofile:1: missing do keyword in for comprehension",
-      "for x <- 1..2"
   end
 end
