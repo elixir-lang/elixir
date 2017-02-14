@@ -230,16 +230,9 @@ expand({fn, Meta, Pairs}, E) ->
 
 expand({'cond', Meta, [KV]}, E) ->
   assert_no_match_or_guard_scope(Meta, 'cond', E),
-  {EBody, EC} = elixir_exp_clauses:'cond'(Meta, KV, E),
-  [{do, EClauses}] = EBody,
-  case lists:last(EClauses) of
-    {'->', _, [[{'_', _, Atom}], _]} when is_atom(Atom) ->
-      Message = "unbound variable _ inside cond. If you want the last clause to always match, "
-                "you probably meant to use: true ->",
-      compile_error(Meta, ?m(E, file), Message);
-    _Other ->
-      {{'cond', Meta, [EBody]}, EC}
-  end;
+  {EClauses, EC} = elixir_exp_clauses:'cond'(Meta, KV, E),
+  assert_no_underscore_clause_in_cond(EClauses, E),
+  {{'cond', Meta, [EClauses]}, EC};
 
 expand({'case', Meta, [Expr, KV]}, E) ->
   assert_no_match_or_guard_scope(Meta, 'case', E),
@@ -742,6 +735,16 @@ assert_no_match_scope(_Meta, _Kind, _E) -> [].
 assert_no_guard_scope(Meta, _Kind, #{context := guard, file := File}) ->
   compile_error(Meta, File, "invalid expression in guard");
 assert_no_guard_scope(_Meta, _Kind, _E) -> [].
+
+assert_no_underscore_clause_in_cond([{do, Clauses}], E) ->
+  case lists:last(Clauses) of
+    {'->', Meta, [[{'_', _, Atom}], _]} when is_atom(Atom) ->
+      Message = "unbound variable _ inside cond. If you want the last clause to always match, "
+                "you probably meant to use: true ->",
+      compile_error(Meta, ?m(E, file), Message);
+    _Other ->
+      ok
+  end.
 
 format_error({useless_literal, Term}) ->
   io_lib:format("code block contains unused literal ~ts "
