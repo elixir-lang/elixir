@@ -2,7 +2,6 @@ Code.require_file "../test_helper.exs", __DIR__
 
 defmodule Kernel.ErrorsTest do
   use ExUnit.Case, async: true
-  import CompileAssertion
 
   defmacro hello do
     quote location: :keep do
@@ -49,11 +48,17 @@ defmodule Kernel.ErrorsTest do
 
   test "invalid fn" do
     assert_compile_fail SyntaxError,
-                        "nofile:1: expected clauses to be defined with -> inside: 'fn'",
-                        'fn 1 end'
+      "nofile:1: expected clauses to be defined with -> inside: 'fn'",
+      'fn 1 end'
   end
 
-  test "invalid Access" do
+  test "invalid capture" do
+    assert_compile_fail CompileError,
+      "nofile:1: unhandled &1 outside of a capture",
+      '&1'
+  end
+
+  test "invalid access" do
     msg = fn(val) ->
       "nofile:1: the Access syntax and calls to Access.get/2" <>
       " are not available for the value: " <> val
@@ -931,14 +936,40 @@ defmodule Kernel.ErrorsTest do
 
   ## Helpers
 
+  defp assert_compile_fail(given_exception, string) do
+    case format_rescue(string) do
+      {^given_exception, _, _} -> :ok
+      {exception, _, _} ->
+        raise ExUnit.AssertionError,
+          left: inspect(exception),
+          right: inspect(given_exception),
+          message: "Expected match"
+    end
+  end
+
+  defp assert_compile_fail(given_exception, given_message, string) do
+    {exception, message, _} = format_rescue(string)
+
+    unless exception == given_exception and message =~ given_message do
+      raise ExUnit.AssertionError,
+        left: "#{inspect exception}[message: #{inspect message}]",
+        right: "#{inspect given_exception}[message: #{inspect given_message}]",
+        message: "Expected match"
+    end
+  end
+
   defp rescue_stacktrace(expr) do
+    expr |> format_rescue() |> elem(2)
+  end
+
+  defp format_rescue(expr) do
     result = try do
       :elixir.eval(to_charlist(expr), [])
       nil
     rescue
-      _ -> System.stacktrace
+      error -> {error.__struct__, Exception.message(error), System.stacktrace}
     end
 
-    result || raise(ExUnit.AssertionError, message: "Expected function given to rescue_stacktrace to fail")
+    result || flunk("Expected expression to fail")
   end
 end
