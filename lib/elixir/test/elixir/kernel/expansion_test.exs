@@ -336,8 +336,8 @@ defmodule Kernel.ExpansionTest do
   ## Cond
 
   test "cond: expands each clause" do
-    assert expand(quote do: (cond do x = 1 -> x; _ -> x end)) ==
-           quote do: (cond do x = 1 -> x; _ -> x() end)
+    assert expand(quote do: (cond do x = 1 -> x; true -> x end)) ==
+           quote do: (cond do x = 1 -> x; true -> x() end)
   end
 
   test "cond: does not share lexical scope between clauses" do
@@ -358,6 +358,12 @@ defmodule Kernel.ExpansionTest do
   test "cond: expects at most one do" do
     assert_raise CompileError, ~r"duplicated do clauses given for cond", fn ->
       expand(quote(do: (cond do: (x -> x), do: (y -> y))))
+    end
+  end
+
+  test "cond: raises for _ in clauses" do
+    assert_raise CompileError, ~r"unbound variable _ inside cond\. If you want the last clause", fn ->
+      expand(quote(do: (cond do x -> x; _ -> :raise end)))
     end
   end
 
