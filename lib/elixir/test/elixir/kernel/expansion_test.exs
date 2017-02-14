@@ -7,539 +7,628 @@ end
 defmodule Kernel.ExpansionTest do
   use ExUnit.Case, async: false
 
-  ## __block__
+  describe "__block__" do
+    test "expands to nil when empty" do
+      assert expand(quote do: __block__()) == nil
+    end
 
-  test "__block__: expands to nil when empty" do
-    assert expand(quote do: __block__()) == nil
-  end
+    test "expands to argument when arity is 1" do
+      assert expand(quote do: __block__(1)) == 1
+    end
 
-  test "__block__: expands to argument when arity is 1" do
-    assert expand(quote do: __block__(1)) == 1
-  end
+    test "is recursive to argument when arity is 1" do
+      assert expand(quote do: __block__(_ = 1, __block__(2))) == quote do: __block__(_ = 1, 2)
+    end
 
-  test "__block__: is recursive to argument when arity is 1" do
-    assert expand(quote do: __block__(_ = 1, __block__(2))) == quote do: __block__(_ = 1, 2)
-  end
-
-  test "__block__: accumulates vars" do
-    assert expand(quote(do: (a = 1; a))) == quote do: (a = 1; a)
-  end
-
-  ## alias
-
-  test "alias: expand args, defines alias and returns itself" do
-    alias true, as: True
-
-    input = quote do: (alias :hello, as: World, warn: True)
-    {output, env} = expand_env(input, __ENV__)
-
-    assert output == :hello
-    assert env.aliases == [{:"Elixir.True", true}, {:"Elixir.World", :hello}]
-  end
-
-  ## __aliases__
-
-  test "__aliases__: expands even if no alias" do
-    assert expand(quote do: World) == :"Elixir.World"
-    assert expand(quote do: Elixir.World) == :"Elixir.World"
-  end
-
-  test "__aliases__: expands with alias" do
-    alias Hello, as: World
-    assert expand_env(quote(do: World), __ENV__) |> elem(0) == :"Elixir.Hello"
-  end
-
-  test "__aliases__: expands with alias is recursive" do
-    alias Source, as: Hello
-    alias Hello, as: World
-    assert expand_env(quote(do: World), __ENV__) |> elem(0) == :"Elixir.Source"
-  end
-
-  ## =
-
-  test "=: sets context to match" do
-    assert expand(quote do: __ENV__.context = :match) == quote do: :match = :match
-  end
-
-  test "=: defines vars" do
-    {output, env} = expand_env(quote(do: a = 1), __ENV__)
-    assert output == quote(do: a = 1)
-    assert {:a, __MODULE__} in env.vars
-  end
-
-  test "=: does not define _" do
-    {output, env} = expand_env(quote(do: _ = 1), __ENV__)
-    assert output == quote(do: _ = 1)
-    assert env.vars == []
-  end
-
-  ## Compilation environment macros
-
-  test "__MODULE__" do
-    assert expand(quote do: __MODULE__) == __MODULE__
-  end
-
-  test "__DIR__" do
-    assert expand(quote do: __DIR__) == __DIR__
-  end
-
-  test "__CALLER__" do
-    assert expand(quote do: __CALLER__) == quote do: __CALLER__
-  end
-
-  test "__ENV__" do
-    env = %{__ENV__ | line: 0}
-    assert expand_env(quote(do: __ENV__), env) ==
-           {{:%{}, [], Map.to_list(env)}, env}
-  end
-
-  test "__ENV__.accessor" do
-    env = %{__ENV__ | line: 0}
-    assert expand_env(quote(do: __ENV__.file), env) == {__ENV__.file, env}
-    assert expand_env(quote(do: __ENV__.unknown), env) ==
-           {quote(do: unquote({:%{}, [], Map.to_list(env)}).unknown), env}
-  end
-
-  ## Vars
-
-  test "vars: expand to local call" do
-    {output, env} = expand_env(quote(do: a), __ENV__)
-    assert output == quote(do: a())
-    assert env.vars == []
-  end
-
-  test "vars: forces variable to exist" do
-    assert expand(quote do: (var!(a) = 1; var!(a)))
-
-    message = ~r"expected variable \"a\" to expand to an existing variable or be part of a match"
-    assert_raise CompileError, message, fn -> expand(quote do: var!(a)) end
-
-    message = ~r"expected variable \"a\" \(context Unknown\) to expand to an existing variable or be part of a match"
-    assert_raise CompileError, message, fn -> expand(quote do: var!(a, Unknown)) end
-  end
-
-  test "^: expands args" do
-    assert expand(quote do: ^a = 1) == quote do: ^a = 1
-  end
-
-  test "^: raises outside match" do
-    assert_raise CompileError, ~r"cannot use \^a outside of match clauses", fn ->
-      expand(quote do: ^a)
+    test "accumulates vars" do
+      assert expand(quote(do: (a = 1; a))) == quote do: (a = 1; a)
     end
   end
 
-  test "^: raises without var" do
-    assert_raise CompileError, ~r"invalid argument for unary operator \^, expected an existing variable, got: \^1", fn ->
-      expand(quote do: ^1 = 1)
+  describe "alias" do
+    test "expand args, defines alias and returns itself" do
+      alias true, as: True
+
+      input = quote do: (alias :hello, as: World, warn: True)
+      {output, env} = expand_env(input, __ENV__)
+
+      assert output == :hello
+      assert env.aliases == [{:"Elixir.True", true}, {:"Elixir.World", :hello}]
+    end
+
+    test "invalid alias" do
+      assert_raise CompileError, ~r"invalid value for keyword :as, expected a simple alias, got nested alias: Sample.Lists", fn ->
+        expand(quote do: (alias :lists, as: Sample.Lists))
+      end
+
+      assert_raise CompileError, ~r"invalid argument for alias, expected a compile time atom or alias, got: 1 \+ 2", fn ->
+        expand(quote do: (alias 1 + 2))
+      end
+
+      assert_raise CompileError, ~r"invalid value for keyword :as, expected an alias, got: :\"bar.baz\"", fn ->
+        expand(quote do: (alias :lists, as: :"bar.baz"))
+      end
+    end
+
+    test "invalid expansion" do
+      assert_raise CompileError, ~r"invalid alias: \"foo\.Foo\"", fn ->
+        expand(quote do: (foo = :foo; foo.Foo))
+      end
     end
   end
 
-  ## Locals
+  describe "__aliases__" do
+    test "expands even if no alias" do
+      assert expand(quote do: World) == :"Elixir.World"
+      assert expand(quote do: Elixir.World) == :"Elixir.World"
+    end
 
-  test "locals: expands to remote calls" do
-    assert {{:., _, [Kernel, :=~]}, _, [{:a, _, []}, {:b, _, []}]} =
-          expand(quote do: a =~ b)
-  end
+    test "expands with alias" do
+      alias Hello, as: World
+      assert expand_env(quote(do: World), __ENV__) |> elem(0) == :"Elixir.Hello"
+    end
 
-  test "locals: in matches" do
-    assert_raise CompileError, ~r"cannot invoke local foo/1 inside match, called as: foo\(:bar\)", fn ->
-      expand(quote do: foo(:bar) = :bar)
+    test "expands with alias is recursive" do
+      alias Source, as: Hello
+      alias Hello, as: World
+      assert expand_env(quote(do: World), __ENV__) |> elem(0) == :"Elixir.Source"
     end
   end
 
-  test "locals: in guards" do
-    assert expand_and_clean(quote(do: fn pid when :erlang.==(pid, self) -> pid end), [:import, :context]) ==
-           quote(do: fn pid when :erlang.==(pid, :erlang.self()) -> pid end)
+  describe "import" do
+    test "raises on invalid macro" do
+      assert_raise CompileError,
+        ~r"cannot import Kernel.invalid/1 because it is undefined or private",
+        fn -> expand(quote do: (import Kernel, only: [invalid: 1])) end
+    end
 
-    assert_raise CompileError, ~r"cannot invoke local foo/1 inside guard", fn ->
-      expand(quote do: fn arg when foo(arg) -> arg end)
+    test "raises on invalid options" do
+      assert_raise CompileError,
+        ~r"invalid :only option for import, expected a keyword list with integer values",
+        fn -> expand(quote do: (import Kernel, only: [invalid: nil])) end
+
+      assert_raise CompileError,
+        ~r"invalid :except option for import, expected a keyword list with integer values",
+        fn -> expand(quote do: (import Kernel, except: [invalid: nil])) end
+    end
+
+    test "raises on conflicting options" do
+      assert_raise CompileError,
+        ~r":only and :except can only be given together to import when :only is either :functions or :macros",
+        fn -> expand(quote do: (import Kernel, only: [], except: [])) end
+    end
+
+    test "invalid import option" do
+      assert_raise CompileError,
+        ~r"unsupported option :ops given to import",
+        fn -> expand(quote do: (import :lists, [ops: 1])) end
     end
   end
 
-  test "locals: custom imports" do
-    assert expand(quote do: (import Kernel.ExpansionTarget; seventeen)) ==
-           quote do: (:"Elixir.Kernel.ExpansionTarget"; 17)
+  describe "=" do
+    test "sets context to match" do
+      assert expand(quote do: __ENV__.context = :match) == quote do: :match = :match
+    end
+
+    test "defines vars" do
+      {output, env} = expand_env(quote(do: a = 1), __ENV__)
+      assert output == quote(do: a = 1)
+      assert {:a, __MODULE__} in env.vars
+    end
+
+    test "does not define _" do
+      {output, env} = expand_env(quote(do: _ = 1), __ENV__)
+      assert output == quote(do: _ = 1)
+      assert env.vars == []
+    end
   end
 
-  ## Tuples
+  describe "environment macros" do
+    test "__MODULE__" do
+      assert expand(quote do: __MODULE__) == __MODULE__
+    end
 
-  test "tuples: expanded as arguments" do
-    assert expand(quote(do: {a = 1, a})) == quote do: {a = 1, a()}
-    assert expand(quote(do: {b, a = 1, a})) == quote do: {b(), a = 1, a()}
+    test "__DIR__" do
+      assert expand(quote do: __DIR__) == __DIR__
+    end
+
+    test "__CALLER__" do
+      assert expand(quote do: __CALLER__) == quote do: __CALLER__
+    end
+
+    test "__ENV__" do
+      env = %{__ENV__ | line: 0}
+      assert expand_env(quote(do: __ENV__), env) ==
+             {{:%{}, [], Map.to_list(env)}, env}
+    end
+
+    test "__ENV__.accessor" do
+      env = %{__ENV__ | line: 0}
+      assert expand_env(quote(do: __ENV__.file), env) == {__ENV__.file, env}
+      assert expand_env(quote(do: __ENV__.unknown), env) ==
+             {quote(do: unquote({:%{}, [], Map.to_list(env)}).unknown), env}
+    end
+  end
+
+  describe "vars" do
+    test "expand to local call" do
+      {output, env} = expand_env(quote(do: a), __ENV__)
+      assert output == quote(do: a())
+      assert env.vars == []
+    end
+
+    test "forces variable to exist" do
+      assert expand(quote do: (var!(a) = 1; var!(a)))
+
+      message = ~r"expected variable \"a\" to expand to an existing variable or be part of a match"
+      assert_raise CompileError, message, fn -> expand(quote do: var!(a)) end
+
+      message = ~r"expected variable \"a\" \(context Unknown\) to expand to an existing variable or be part of a match"
+      assert_raise CompileError, message, fn -> expand(quote do: var!(a, Unknown)) end
+    end
+  end
+
+  describe "^" do
+    test "expands args" do
+      assert expand(quote do: ^a = 1) == quote do: ^a = 1
+    end
+
+    test "raises outside match" do
+      assert_raise CompileError, ~r"cannot use \^a outside of match clauses", fn ->
+        expand(quote do: ^a)
+      end
+    end
+
+    test "raises without var" do
+      assert_raise CompileError, ~r"invalid argument for unary operator \^, expected an existing variable, got: \^1", fn ->
+        expand(quote do: ^1 = 1)
+      end
+    end
+  end
+
+  describe "locals" do
+    test "expands to remote calls" do
+      assert {{:., _, [Kernel, :=~]}, _, [{:a, _, []}, {:b, _, []}]} =
+            expand(quote do: a =~ b)
+    end
+
+    test "in matches" do
+      assert_raise CompileError, ~r"cannot invoke local foo/1 inside match, called as: foo\(:bar\)", fn ->
+        expand(quote do: foo(:bar) = :bar)
+      end
+    end
+
+    test "in guards" do
+      assert expand_and_clean(quote(do: fn pid when :erlang.==(pid, self) -> pid end), [:import, :context]) ==
+             quote(do: fn pid when :erlang.==(pid, :erlang.self()) -> pid end)
+
+      assert_raise CompileError, ~r"cannot invoke local foo/1 inside guard", fn ->
+        expand(quote do: fn arg when foo(arg) -> arg end)
+      end
+    end
+
+    test "custom imports" do
+      assert expand(quote do: (import Kernel.ExpansionTarget; seventeen)) ==
+             quote do: (:"Elixir.Kernel.ExpansionTarget"; 17)
+    end
+  end
+
+  describe "tuples" do
+    test "expanded as arguments" do
+      assert expand(quote(do: {a = 1, a})) == quote do: {a = 1, a()}
+      assert expand(quote(do: {b, a = 1, a})) == quote do: {b(), a = 1, a()}
+    end
   end
 
   ## Maps & structs
 
-  test "maps: expanded as arguments" do
-    assert expand(quote(do: %{a: a = 1, b: a})) == quote do: %{a: a = 1, b: a()}
+  describe "maps" do
+    test "expanded as arguments" do
+      assert expand(quote(do: %{a: a = 1, b: a})) == quote do: %{a: a = 1, b: a()}
+    end
   end
 
   defmodule User do
     defstruct name: "", age: 0
   end
 
-  test "structs: expanded as arguments" do
-    assert expand(quote(do: %User{})) ==
-           quote do: %:"Elixir.Kernel.ExpansionTest.User"{age: 0, name: ""}
+  describe "structs" do
+    test "expanded as arguments" do
+      assert expand(quote(do: %User{})) ==
+             quote do: %:"Elixir.Kernel.ExpansionTest.User"{age: 0, name: ""}
 
-    assert expand(quote(do: %User{name: "john doe"})) ==
-           quote do: %:"Elixir.Kernel.ExpansionTest.User"{age: 0, name: "john doe"}
-  end
-
-  test "structs: expects atoms" do
-    expand(quote do: %unknown{a: 1} = x)
-
-    assert_raise CompileError, ~r"expected struct name to be a compile time atom or alias", fn ->
-      expand(quote do: %unknown{a: 1})
+      assert expand(quote(do: %User{name: "john doe"})) ==
+             quote do: %:"Elixir.Kernel.ExpansionTest.User"{age: 0, name: "john doe"}
     end
 
-    assert_raise CompileError, ~r"expected struct name to be a compile time atom or alias", fn ->
-      expand(quote do: %unquote(1){a: 1})
+    test "expects atoms" do
+      expand(quote do: %unknown{a: 1} = x)
+
+      assert_raise CompileError, ~r"expected struct name to be a compile time atom or alias", fn ->
+        expand(quote do: %unknown{a: 1})
+      end
+
+      assert_raise CompileError, ~r"expected struct name to be a compile time atom or alias", fn ->
+        expand(quote do: %unquote(1){a: 1})
+      end
+
+      assert_raise CompileError, ~r"expected struct name in a match to be a compile time atom, alias or a variable", fn ->
+        expand(quote do: %unquote(1){a: 1} = x)
+      end
     end
 
-    assert_raise CompileError, ~r"expected struct name in a match to be a compile time atom, alias or a variable", fn ->
-      expand(quote do: %unquote(1){a: 1} = x)
-    end
-  end
+    test "update syntax" do
+      expand(quote do: %{%{a: 0} | a: 1})
 
-  test "structs: update syntax" do
-    expand(quote do: %{%{a: 0} | a: 1})
-
-    assert_raise CompileError, ~r"cannot use map/struct update syntax in match", fn ->
-      expand(quote do: %{%{a: 0} | a: 1} = %{})
-    end
-  end
-
-  ## quote
-
-  test "quote: expanded to raw forms" do
-    assert expand(quote do: (quote do: hello)) == {:{}, [], [:hello, [], __MODULE__]}
-  end
-
-  ## Anonymous calls
-
-  test "anonymous calls: expands base and args" do
-    assert expand(quote do: a.(b)) == quote do: a().(b())
-  end
-
-  test "anonymous calls: raises on atom base" do
-    assert_raise CompileError, ~r"invalid function call :foo.()", fn ->
-      expand(quote do: :foo.(a))
+      assert_raise CompileError, ~r"cannot use map/struct update syntax in match", fn ->
+        expand(quote do: %{%{a: 0} | a: 1} = %{})
+      end
     end
   end
 
-  ## Remote calls
-
-  test "remote calls: expands to Erlang" do
-    assert expand(quote do: Kernel.is_atom(a)) == quote do: :erlang.is_atom(a())
-  end
-
-  test "remote calls: expands macros" do
-    assert expand(quote do: Kernel.ExpansionTest.thirteen) == 13
-  end
-
-  test "remote calls: expands receiver and args" do
-    assert expand(quote do: a.is_atom(b)) == quote do: a().is_atom(b())
-    assert expand(quote do: (a = :foo).is_atom(a)) == quote do: (a = :foo).is_atom(a())
-  end
-
-  test "remote calls: modules must be required for macros" do
-    assert expand(quote do: (require Kernel.ExpansionTarget; Kernel.ExpansionTarget.seventeen)) ==
-           quote do: (:"Elixir.Kernel.ExpansionTarget"; 17)
-  end
-
-  test "remote calls: raises when not required" do
-    msg = ~r"you must require Kernel\.ExpansionTarget before invoking the macro Kernel\.ExpansionTarget\.seventeen/0"
-    assert_raise CompileError, msg, fn ->
-      expand(quote do: Kernel.ExpansionTarget.seventeen)
+  describe "quote" do
+    test "expanded to raw forms" do
+      assert expand(quote do: (quote do: hello)) == {:{}, [], [:hello, [], __MODULE__]}
     end
   end
 
-  ## Comprehensions
+  describe "anonymous calls" do
+    test "expands base and args" do
+      assert expand(quote do: a.(b)) == quote do: a().(b())
+    end
 
-  test "variables inside comprehensions do not leak with enums" do
-    assert expand(quote do: (for(a <- b, do: c = 1); c)) ==
-           quote do: (for(a <- b(), do: c = 1); c())
-  end
-
-  test "variables inside comprehensions do not leak with binaries" do
-    assert expand(quote do: (for(<<a <- b>>, do: c = 1); c)) ==
-           quote do: (for(<< <<a>> <- b() >>, do: c = 1); c())
-  end
-
-  test "variables inside filters are available in blocks" do
-    assert expand(quote do: for(a <- b, c = a, do: c)) ==
-           quote do: (for(a <- b(), c = a, do: c))
-  end
-
-  test "variables inside comprehensions options do not leak" do
-    assert expand(quote do: (for(a <- c = b, into: [], do: 1); c)) ==
-           quote do: (for(a <- c = b(), do: 1, into: []); c())
-
-    assert expand(quote do: (for(a <- b, into: c = [], do: 1); c)) ==
-           quote do: (for(a <- b(), do: 1, into: c = []); c())
-  end
-
-  ## With
-
-  test "variables inside with do not leak" do
-    assert expand(quote do: (with(a <- b, do: c = 1); c)) ==
-           quote do: (with(a <- b(), do: c = 1); c())
-
-    assert expand(quote do: (with(a = b, do: a); a)) ==
-           quote do: (with(a = b(), do: a); a())
-  end
-
-  test "variables inside with are available in blocks" do
-    assert expand(quote do: with(a <- b, c = a, do: c)) ==
-           quote do: (with(a <- b(), c = a, do: c))
-  end
-
-  test "with: variables inside else do not leak" do
-    assert expand(quote do: (with(a <- b, do: 1, else: (a -> a)); a)) ==
-           quote do: (with(a <- b(), do: 1, else: (a -> a)); a())
-  end
-
-  ## Capture
-
-  test "&: keeps locals" do
-    assert expand(quote do: &unknown/2) ==
-           {:&, [], [{:/, [], [{:unknown, [], nil}, 2]}]}
-    assert expand(quote do: &unknown(&1, &2)) ==
-           {:&, [], [{:/, [], [{:unknown, [], nil}, 2]}]}
-  end
-
-  test "&: expands remotes" do
-    assert expand(quote do: &List.flatten/2) ==
-           quote do: :erlang.make_fun(:"Elixir.List", :flatten, 2)
-
-    assert expand(quote do: &Kernel.is_atom/1) ==
-           quote do: :erlang.make_fun(:erlang, :is_atom, 1)
-  end
-
-  test "&: expands macros" do
-
-    assert expand(quote do: (require Kernel.ExpansionTarget; &Kernel.ExpansionTarget.seventeen/0)) ==
-           quote do: (:"Elixir.Kernel.ExpansionTarget"; fn -> 17 end)
-  end
-
-  ## fn
-
-  test "fn: expands each clause" do
-    assert expand(quote do: fn x -> x; _ -> x end) ==
-           quote do: fn x -> x; _ -> x() end
-  end
-
-  test "fn: does not share lexical scope between clauses" do
-    assert expand(quote do: fn 1 -> import List; 2 -> flatten([1, 2, 3]) end) ==
-           quote do: fn 1 -> :"Elixir.List"; 2 -> flatten([1, 2, 3]) end
-  end
-
-  test "fn: expands guards" do
-    assert expand(quote do: fn x when x when __ENV__.context -> true end) ==
-           quote do: fn x when x when :guard -> true end
-  end
-
-  test "fn: does not leak vars" do
-    assert expand(quote do: (fn x -> x end; x)) ==
-           quote do: (fn x -> x end; x())
-  end
-
-  ## Cond
-
-  test "cond: expands each clause" do
-    assert expand(quote do: (cond do x = 1 -> x; true -> x end)) ==
-           quote do: (cond do x = 1 -> x; true -> x() end)
-  end
-
-  test "cond: does not share lexical scope between clauses" do
-    assert expand(quote do: (cond do 1 -> import List; 2 -> flatten([1, 2, 3]) end)) ==
-           quote do: (cond do 1 -> :"Elixir.List"; 2 -> flatten([1, 2, 3]) end)
-  end
-
-  test "cond: does not leaks vars on head" do
-    assert expand(quote do: (cond do x = 1 -> x; y = 2 -> y end; :erlang.+(x, y))) ==
-           quote do: (cond do x = 1 -> x; y = 2 -> y end; :erlang.+(x(), y()))
-  end
-
-  test "cond: leaks vars" do
-    assert expand(quote do: (cond do 1 -> x = 1; 2 -> y = 2 end; :erlang.+(x, y))) ==
-           quote do: (cond do 1 -> x = 1; 2 -> y = 2 end; :erlang.+(x, y))
-  end
-
-  test "cond: expects at most one do" do
-    assert_raise CompileError, ~r"duplicated do clauses given for cond", fn ->
-      expand(quote(do: (cond do: (x -> x), do: (y -> y))))
+    test "raises on atom base" do
+      assert_raise CompileError, ~r"invalid function call :foo.()", fn ->
+        expand(quote do: :foo.(a))
+      end
     end
   end
 
-  test "cond: raises for _ in clauses" do
-    assert_raise CompileError, ~r"unbound variable _ inside cond\. If you want the last clause", fn ->
-      expand(quote(do: (cond do x -> x; _ -> :raise end)))
+  describe "remotes" do
+    test "expands to Erlang" do
+      assert expand(quote do: Kernel.is_atom(a)) == quote do: :erlang.is_atom(a())
+    end
+
+    test "expands macros" do
+      assert expand(quote do: Kernel.ExpansionTest.thirteen) == 13
+    end
+
+    test "expands receiver and args" do
+      assert expand(quote do: a.is_atom(b)) == quote do: a().is_atom(b())
+      assert expand(quote do: (a = :foo).is_atom(a)) == quote do: (a = :foo).is_atom(a())
+    end
+
+    test "modules must be required for macros" do
+      assert expand(quote do: (require Kernel.ExpansionTarget; Kernel.ExpansionTarget.seventeen)) ==
+             quote do: (:"Elixir.Kernel.ExpansionTarget"; 17)
+    end
+
+    test "raises when not required" do
+      msg = ~r"you must require Kernel\.ExpansionTarget before invoking the macro Kernel\.ExpansionTarget\.seventeen/0"
+      assert_raise CompileError, msg, fn ->
+        expand(quote do: Kernel.ExpansionTarget.seventeen)
+      end
+    end
+
+    test "in matches" do
+      assert_raise CompileError,
+        ~r"cannot invoke remote function Hello.something_that_does_not_exist/0 inside match",
+        fn -> expand(quote(do: Hello.something_that_does_not_exist() = :foo)) end
+
+      assert_raise CompileError,
+        ~r"cannot invoke remote function :erlang.make_ref/0 inside match",
+        fn -> expand(quote(do: make_ref() = :foo)) end
+    end
+
+    test "in guards" do
+      assert_raise CompileError,
+        ~r"cannot invoke remote function Hello.something_that_does_not_exist/1 inside guard",
+        fn -> expand(quote do: fn arg when Hello.something_that_does_not_exist(arg) -> arg end) end
+
+      assert_raise CompileError,
+        ~r"cannot invoke remote function :erlang.make_ref/0 inside guard",
+        fn -> expand(quote do: fn arg when make_ref() -> arg end) end
     end
   end
 
-  ## Case
+  describe "comprehensions" do
+    test "variables do not leak with enums" do
+      assert expand(quote do: (for(a <- b, do: c = 1); c)) ==
+             quote do: (for(a <- b(), do: c = 1); c())
+    end
 
-  test "case: expands each clause" do
-    assert expand(quote do: (case w do x -> x; _ -> x end)) ==
-           quote do: (case w() do x -> x; _ -> x() end)
-  end
+    test "variables do not leak with binaries" do
+      assert expand(quote do: (for(<<a <- b>>, do: c = 1); c)) ==
+             quote do: (for(<< <<a>> <- b() >>, do: c = 1); c())
+    end
 
-  test "case: does not share lexical scope between clauses" do
-    assert expand(quote do: (case w do 1 -> import List; 2 -> flatten([1, 2, 3]) end)) ==
-           quote do: (case w() do 1 -> :"Elixir.List"; 2 -> flatten([1, 2, 3]) end)
-  end
+    test "variables inside filters are available in blocks" do
+      assert expand(quote do: for(a <- b, c = a, do: c)) ==
+             quote do: (for(a <- b(), c = a, do: c))
+    end
 
-  test "case: expands guards" do
-    assert expand(quote do: (case w do x when x when __ENV__.context -> true end)) ==
-           quote do: (case w() do x when x when :guard -> true end)
-  end
+    test "variables inside options do not leak" do
+      assert expand(quote do: (for(a <- c = b, into: [], do: 1); c)) ==
+             quote do: (for(a <- c = b(), do: 1, into: []); c())
 
-  test "case: does not leaks vars on head" do
-    assert expand(quote do: (case w do x -> x; y -> y end; :erlang.+(x, y))) ==
-           quote do: (case w() do x -> x; y -> y end; :erlang.+(x(), y()))
-  end
+      assert expand(quote do: (for(a <- b, into: c = [], do: 1); c)) ==
+             quote do: (for(a <- b(), do: 1, into: c = []); c())
+    end
 
-  test "case: leaks vars" do
-    assert expand(quote do: (case w do x -> x = x; y -> y = y end; :erlang.+(x, y))) ==
-           quote do: (case w() do x -> x = x; y -> y = y end; :erlang.+(x, y))
-  end
+    test "must start with generators" do
+      assert_raise CompileError, ~r"for comprehensions must start with a generator", fn ->
+        expand(quote do: (for is_atom(:foo), do: :foo))
+      end
 
-  test "case: expects at most one do" do
-    assert_raise CompileError, ~r"duplicated do clauses given for case", fn ->
-      expand(quote(do: (case e, do: (x -> x), do: (y -> y))))
+      assert_raise CompileError, ~r"for comprehensions must start with a generator", fn ->
+        expand(quote do: (for do: :foo))
+      end
     end
   end
 
-  ## Receive
+  describe "with" do
+    test "variables do not leak" do
+      assert expand(quote do: (with(a <- b, do: c = 1); c)) ==
+             quote do: (with(a <- b(), do: c = 1); c())
 
-  test "receive: expands each clause" do
-    assert expand(quote do: (receive do x -> x; _ -> x end)) ==
-           quote do: (receive do x -> x; _ -> x() end)
-  end
-
-  test "receive: does not share lexical scope between clauses" do
-    assert expand(quote do: (receive do 1 -> import List; 2 -> flatten([1, 2, 3]) end)) ==
-           quote do: (receive do 1 -> :"Elixir.List"; 2 -> flatten([1, 2, 3]) end)
-  end
-
-  test "receive: expands guards" do
-    assert expand(quote do: (receive do x when x when __ENV__.context -> true end)) ==
-           quote do: (receive do x when x when :guard -> true end)
-  end
-
-  test "receive: does not leaks clause vars" do
-    assert expand(quote do: (receive do x -> x; y -> y end; :erlang.+(x, y))) ==
-           quote do: (receive do x -> x; y -> y end; :erlang.+(x(), y()))
-  end
-
-  test "receive: leaks vars" do
-    assert expand(quote do: (receive do x -> x = x; y -> y = y end; :erlang.+(x, y))) ==
-           quote do: (receive do x -> x = x; y -> y = y end; :erlang.+(x, y))
-  end
-
-  test "receive: leaks vars on after" do
-    assert expand(quote do: (receive do x -> x = x after y -> y; w = y end; :erlang.+(x, w))) ==
-           quote do: (receive do x -> x = x after y() -> y(); w = y() end; :erlang.+(x, w))
-  end
-
-  test "receive: expects at most one clause" do
-    assert_raise CompileError, ~r"duplicated do clauses given for receive", fn ->
-      expand(quote(do: (receive do: (x -> x), do: (y -> y))))
+      assert expand(quote do: (with(a = b, do: a); a)) ==
+             quote do: (with(a = b(), do: a); a())
     end
 
-    assert_raise CompileError, ~r"duplicated after clauses given for receive", fn ->
-      expand(quote(do: (receive do x -> x after y -> y after z -> z end)))
+    test "variables are available in blocks" do
+      assert expand(quote do: with(a <- b, c = a, do: c)) ==
+             quote do: (with(a <- b(), c = a, do: c))
+    end
+
+    test "variables inside else do not leak" do
+      assert expand(quote do: (with(a <- b, do: 1, else: (a -> a)); a)) ==
+             quote do: (with(a <- b(), do: 1, else: (a -> a)); a())
     end
   end
 
-  ## Try
+  describe "&" do
+    test "keeps locals" do
+      assert expand(quote do: &unknown/2) ==
+             {:&, [], [{:/, [], [{:unknown, [], nil}, 2]}]}
+      assert expand(quote do: &unknown(&1, &2)) ==
+             {:&, [], [{:/, [], [{:unknown, [], nil}, 2]}]}
+    end
 
-  test "try: expands catch" do
-    assert expand(quote do: (try do x catch x, y -> z = :erlang.+(x, y) end; z)) ==
-           quote do: (try do x() catch x, y -> z = :erlang.+(x, y) end; z())
-  end
+    test "expands remotes" do
+      assert expand(quote do: &List.flatten/2) ==
+             quote do: :erlang.make_fun(:"Elixir.List", :flatten, 2)
 
-  test "try: expands after" do
-    assert expand(quote do: (try do x after z = y end; z)) ==
-           quote do: (try do x() after z = y() end; z())
-  end
+      assert expand(quote do: &Kernel.is_atom/1) ==
+             quote do: :erlang.make_fun(:erlang, :is_atom, 1)
+    end
 
-  test "try: expands else" do
-    assert expand(quote do: (try do x else z -> z end; z)) ==
-           quote do: (try do x() else z -> z end; z())
-  end
-
-  test "try: expands rescue" do
-    assert expand(quote do: (try do x rescue x -> x; Error -> x end; x)) ==
-           quote do: (try do x() rescue unquote(:in)(x, _) -> x; unquote(:in)(_, [:"Elixir.Error"]) -> x() end; x())
-  end
-
-  test "try: expects more than do" do
-    assert_raise CompileError, ~r"missing catch/rescue/after/else keyword in try", fn ->
-      expand(quote do: (try do x = y end; x))
+    test "expands macros" do
+      assert expand(quote do: (require Kernel.ExpansionTarget; &Kernel.ExpansionTarget.seventeen/0)) ==
+             quote do: (:"Elixir.Kernel.ExpansionTarget"; fn -> 17 end)
     end
   end
 
-  test "try: expects at most one clause" do
-    assert_raise CompileError, ~r"duplicated do clauses given for try", fn ->
-      expand(quote(do: (try do: e, do: f)))
+  describe "fn" do
+    test "expands each clause" do
+      assert expand(quote do: fn x -> x; _ -> x end) ==
+             quote do: fn x -> x; _ -> x() end
     end
 
-    assert_raise CompileError, ~r"duplicated rescue clauses given for try", fn ->
-      expand(quote(do: (try do e rescue x -> x rescue y -> y end)))
+    test "does not share lexical scope between clauses" do
+      assert expand(quote do: fn 1 -> import List; 2 -> flatten([1, 2, 3]) end) ==
+             quote do: fn 1 -> :"Elixir.List"; 2 -> flatten([1, 2, 3]) end
     end
 
-    assert_raise CompileError, ~r"duplicated after clauses given for try", fn ->
-      expand(quote(do: (try do e after x = y after x = y end)))
+    test "expands guards" do
+      assert expand(quote do: fn x when x when __ENV__.context -> true end) ==
+             quote do: fn x when x when :guard -> true end
     end
 
-    assert_raise CompileError, ~r"duplicated else clauses given for try", fn ->
-      expand(quote(do: (try do e else x -> x else y -> y end)))
+    test "does not leak vars" do
+      assert expand(quote do: (fn x -> x end; x)) ==
+             quote do: (fn x -> x end; x())
     end
 
-    assert_raise CompileError, ~r"duplicated catch clauses given for try", fn ->
-      expand(quote(do: (try do e catch x -> x catch y -> y end)))
+    test "raises on mixed arities" do
+      assert_raise CompileError, ~r"cannot mix clauses with different arities in anonymous functions", fn ->
+        expand(quote do: (fn x -> x; x, y -> x + y end))
+      end
     end
   end
 
-  ## Binaries
+  describe "cond" do
+    test "expands each clause" do
+      assert expand(quote do: (cond do x = 1 -> x; true -> x end)) ==
+             quote do: (cond do x = 1 -> x; true -> x() end)
+    end
 
-  test "bitstrings: size * unit" do
-    import Kernel, except: [-: 2]
+    test "does not share lexical scope between clauses" do
+      assert expand(quote do: (cond do 1 -> import List; 2 -> flatten([1, 2, 3]) end)) ==
+             quote do: (cond do 1 -> :"Elixir.List"; 2 -> flatten([1, 2, 3]) end)
+    end
 
-    assert expand(quote do: <<x::13>>) ==
-           quote do: <<x()::size(13)>>
+    test "does not leaks vars on head" do
+      assert expand(quote do: (cond do x = 1 -> x; y = 2 -> y end; :erlang.+(x, y))) ==
+             quote do: (cond do x = 1 -> x; y = 2 -> y end; :erlang.+(x(), y()))
+    end
 
-    assert expand(quote do: <<x::13*6>>) ==
-           quote do: <<x()::unit(6)-size(13)>>
+    test "leaks vars" do
+      assert expand(quote do: (cond do 1 -> x = 1; 2 -> y = 2 end; :erlang.+(x, y))) ==
+             quote do: (cond do 1 -> x = 1; 2 -> y = 2 end; :erlang.+(x, y))
+    end
 
-    assert expand(quote do: <<x::_*6>>) ==
-           quote do: <<x()::unit(6)>>
+    test "expects at most one do" do
+      assert_raise CompileError, ~r"duplicated do clauses given for cond", fn ->
+        expand(quote(do: (cond do: (x -> x), do: (y -> y))))
+      end
+    end
 
-    assert expand(quote do: <<x::13*6-binary>>) ==
-           quote do: <<x()::unit(6)-binary()-size(13) >>
-
-    assert expand(quote do: <<x::binary-13*6>>) ==
-           quote do: <<x()::binary()-unit(6)-size(13)>>
+    test "raises for _ in clauses" do
+      assert_raise CompileError, ~r"unbound variable _ inside cond\. If you want the last clause", fn ->
+        expand(quote(do: (cond do x -> x; _ -> :raise end)))
+      end
+    end
   end
 
-  test "bitstrings: expands modifiers" do
-    assert expand(quote do: (import Kernel.ExpansionTarget; <<x::seventeen>>)) ==
-           quote do: (:"Elixir.Kernel.ExpansionTarget"; <<x()::size(17)>>)
+  describe "case" do
+    test "expands each clause" do
+      assert expand(quote do: (case w do x -> x; _ -> x end)) ==
+             quote do: (case w() do x -> x; _ -> x() end)
+    end
 
-    assert expand(quote do: (import Kernel.ExpansionTarget; <<seventeen::seventeen, x::size(seventeen)>> = 1)) ==
-           quote do: (:"Elixir.Kernel.ExpansionTarget";
-                      <<seventeen::size(17), x::size(seventeen)>> = 1)
+    test "does not share lexical scope between clauses" do
+      assert expand(quote do: (case w do 1 -> import List; 2 -> flatten([1, 2, 3]) end)) ==
+             quote do: (case w() do 1 -> :"Elixir.List"; 2 -> flatten([1, 2, 3]) end)
+    end
+
+    test "expands guards" do
+      assert expand(quote do: (case w do x when x when __ENV__.context -> true end)) ==
+             quote do: (case w() do x when x when :guard -> true end)
+    end
+
+    test "does not leaks vars on head" do
+      assert expand(quote do: (case w do x -> x; y -> y end; :erlang.+(x, y))) ==
+             quote do: (case w() do x -> x; y -> y end; :erlang.+(x(), y()))
+    end
+
+    test "leaks vars" do
+      assert expand(quote do: (case w do x -> x = x; y -> y = y end; :erlang.+(x, y))) ==
+             quote do: (case w() do x -> x = x; y -> y = y end; :erlang.+(x, y))
+    end
+
+    test "expects at most one do" do
+      assert_raise CompileError, ~r"duplicated do clauses given for case", fn ->
+        expand(quote(do: (case e, do: (x -> x), do: (y -> y))))
+      end
+    end
   end
 
-  test "bitstrings: expands modifiers args" do
-    assert expand(quote do: (require Kernel.ExpansionTarget; <<x::size(Kernel.ExpansionTarget.seventeen)>>)) ==
-           quote do: (:"Elixir.Kernel.ExpansionTarget"; <<x()::size(17)>>)
+  describe "receive" do
+    test "expands each clause" do
+      assert expand(quote do: (receive do x -> x; _ -> x end)) ==
+             quote do: (receive do x -> x; _ -> x() end)
+    end
+
+    test "does not share lexical scope between clauses" do
+      assert expand(quote do: (receive do 1 -> import List; 2 -> flatten([1, 2, 3]) end)) ==
+             quote do: (receive do 1 -> :"Elixir.List"; 2 -> flatten([1, 2, 3]) end)
+    end
+
+    test "expands guards" do
+      assert expand(quote do: (receive do x when x when __ENV__.context -> true end)) ==
+             quote do: (receive do x when x when :guard -> true end)
+    end
+
+    test "does not leaks clause vars" do
+      assert expand(quote do: (receive do x -> x; y -> y end; :erlang.+(x, y))) ==
+             quote do: (receive do x -> x; y -> y end; :erlang.+(x(), y()))
+    end
+
+    test "leaks vars" do
+      assert expand(quote do: (receive do x -> x = x; y -> y = y end; :erlang.+(x, y))) ==
+             quote do: (receive do x -> x = x; y -> y = y end; :erlang.+(x, y))
+    end
+
+    test "leaks vars on after" do
+      assert expand(quote do: (receive do x -> x = x after y -> y; w = y end; :erlang.+(x, w))) ==
+             quote do: (receive do x -> x = x after y() -> y(); w = y() end; :erlang.+(x, w))
+    end
+
+    test "expects at most one clause" do
+      assert_raise CompileError, ~r"duplicated do clauses given for receive", fn ->
+        expand(quote(do: (receive do: (x -> x), do: (y -> y))))
+      end
+
+      assert_raise CompileError, ~r"duplicated after clauses given for receive", fn ->
+        expand(quote(do: (receive do x -> x after y -> y after z -> z end)))
+      end
+    end
   end
 
-  ## Invalid
+  describe "try" do
+    test "expands catch" do
+      assert expand(quote do: (try do x catch x, y -> z = :erlang.+(x, y) end; z)) ==
+             quote do: (try do x() catch x, y -> z = :erlang.+(x, y) end; z())
+    end
+
+    test "expands after" do
+      assert expand(quote do: (try do x after z = y end; z)) ==
+             quote do: (try do x() after z = y() end; z())
+    end
+
+    test "expands else" do
+      assert expand(quote do: (try do x else z -> z end; z)) ==
+             quote do: (try do x() else z -> z end; z())
+    end
+
+    test "expands rescue" do
+      assert expand(quote do: (try do x rescue x -> x; Error -> x end; x)) ==
+             quote do: (try do x() rescue unquote(:in)(x, _) -> x; unquote(:in)(_, [:"Elixir.Error"]) -> x() end; x())
+    end
+
+    test "expects more than do" do
+      assert_raise CompileError, ~r"missing catch/rescue/after/else keyword in try", fn ->
+        expand(quote do: (try do x = y end; x))
+      end
+    end
+
+    test "expects at most one clause" do
+      assert_raise CompileError, ~r"duplicated do clauses given for try", fn ->
+        expand(quote(do: (try do: e, do: f)))
+      end
+
+      assert_raise CompileError, ~r"duplicated rescue clauses given for try", fn ->
+        expand(quote(do: (try do e rescue x -> x rescue y -> y end)))
+      end
+
+      assert_raise CompileError, ~r"duplicated after clauses given for try", fn ->
+        expand(quote(do: (try do e after x = y after x = y end)))
+      end
+
+      assert_raise CompileError, ~r"duplicated else clauses given for try", fn ->
+        expand(quote(do: (try do e else x -> x else y -> y end)))
+      end
+
+      assert_raise CompileError, ~r"duplicated catch clauses given for try", fn ->
+        expand(quote(do: (try do e catch x -> x catch y -> y end)))
+      end
+    end
+  end
+
+  describe "bitstrings" do
+    test "bitstrings: size * unit" do
+      import Kernel, except: [-: 2]
+
+      assert expand(quote do: <<x::13>>) ==
+             quote do: <<x()::size(13)>>
+
+      assert expand(quote do: <<x::13*6>>) ==
+             quote do: <<x()::unit(6)-size(13)>>
+
+      assert expand(quote do: <<x::_*6>>) ==
+             quote do: <<x()::unit(6)>>
+
+      assert expand(quote do: <<x::13*6-binary>>) ==
+             quote do: <<x()::unit(6)-binary()-size(13) >>
+
+      assert expand(quote do: <<x::binary-13*6>>) ==
+             quote do: <<x()::binary()-unit(6)-size(13)>>
+    end
+
+    test "expands modifiers" do
+      assert expand(quote do: (import Kernel.ExpansionTarget; <<x::seventeen>>)) ==
+             quote do: (:"Elixir.Kernel.ExpansionTarget"; <<x()::size(17)>>)
+
+      assert expand(quote do: (import Kernel.ExpansionTarget; <<seventeen::seventeen, x::size(seventeen)>> = 1)) ==
+             quote do: (:"Elixir.Kernel.ExpansionTarget";
+                        <<seventeen::size(17), x::size(seventeen)>> = 1)
+    end
+
+    test "expands modifiers args" do
+      assert expand(quote do: (require Kernel.ExpansionTarget; <<x::size(Kernel.ExpansionTarget.seventeen)>>)) ==
+             quote do: (:"Elixir.Kernel.ExpansionTarget"; <<x()::size(17)>>)
+    end
+  end
 
   test "handles invalid expressions" do
     assert_raise CompileError, ~r"invalid quoted expression: {1, 2, 3}", fn ->

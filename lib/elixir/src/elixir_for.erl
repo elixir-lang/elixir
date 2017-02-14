@@ -27,9 +27,10 @@ expand(Meta, Args, E) ->
           "missing do keyword in for comprehension")
     end,
 
-  {EOpts, EO}  = elixir_exp:expand(Opts, E),
+  {EOpts, EO} = elixir_exp:expand(Opts, E),
   {ECases, EC} = lists:mapfoldl(fun expand/2, EO, Cases),
-  {EExpr, _}   = elixir_exp:expand(Expr, EC),
+  {EExpr, _} = elixir_exp:expand(Expr, EC),
+  assert_generator_start(Meta, ECases, E),
   {{for, Meta, ECases ++ [[{do, EExpr} | EOpts]]}, E}.
 
 expand({'<-', Meta, [Left, Right]}, E) ->
@@ -42,12 +43,20 @@ expand({'<<>>', Meta, Args} = X, E) when is_list(Args) ->
       {ERight, ER} = elixir_exp:expand(Right, E),
       Left = {'<<>>', Meta, LeftStart ++ [LeftEnd]},
       {ELeft, EL}  = elixir_exp_clauses:match(fun elixir_exp:expand/2, Left, E),
-      {{'<<>>', [], [ {'<-', OpMeta, [ELeft, ERight]}]}, elixir_env:mergev(EL, ER)};
+      {{'<<>>', [], [{'<-', OpMeta, [ELeft, ERight]}]}, elixir_env:mergev(EL, ER)};
     _ ->
       elixir_exp:expand(X, E)
   end;
 expand(X, E) ->
   elixir_exp:expand(X, E).
+
+
+assert_generator_start(_, [{'<-', _, [_, _]} | _], _) ->
+  ok;
+assert_generator_start(_, [{'<<>>', _, [{'<-', _, [_, _]}]} | _], _) ->
+  ok;
+assert_generator_start(Meta, _, E) ->
+  elixir_errors:compile_error(Meta, ?m(E, file), "for comprehensions must start with a generator").
 
 %% Translation
 
@@ -88,7 +97,7 @@ translate_gen(ForMeta, [{'<-', Meta, [Left, Right]} | T], Acc, S) ->
   {TLeft, TRight, TFilters, TT, TS} = translate_gen(Meta, Left, Right, T, S),
   TAcc = [{enum, Meta, TLeft, TRight, TFilters} | Acc],
   translate_gen(ForMeta, TT, TAcc, TS);
-translate_gen(ForMeta, [{'<<>>', _, [ {'<-', Meta, [Left, Right]} ]} | T], Acc, S) ->
+translate_gen(ForMeta, [{'<<>>', _, [{'<-', Meta, [Left, Right]}]} | T], Acc, S) ->
   {TLeft, TRight, TFilters, TT, TS} = translate_gen(Meta, Left, Right, T, S),
   TAcc = [{bin, Meta, TLeft, TRight, TFilters} | Acc],
   case elixir_bitstring:has_size(TLeft) of
@@ -98,10 +107,7 @@ translate_gen(ForMeta, [{'<<>>', _, [ {'<-', Meta, [Left, Right]} ]} | T], Acc, 
         "bitstring fields without size are not allowed in bitstring generators")
   end;
 translate_gen(_ForMeta, [], Acc, S) ->
-  {lists:reverse(Acc), S};
-translate_gen(ForMeta, _, _, S) ->
-  elixir_errors:compile_error(ForMeta, S#elixir_scope.file,
-    "for comprehensions must start with a generator").
+  {lists:reverse(Acc), S}.
 
 translate_gen(_Meta, Left, Right, T, S) ->
   {TRight, SR} = elixir_translator:translate(Right, S),
