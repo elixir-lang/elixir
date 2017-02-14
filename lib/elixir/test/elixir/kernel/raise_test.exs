@@ -199,11 +199,11 @@ defmodule Kernel.RaiseTest do
     assert result
   end
 
-  test "rescue named with underscore" do
+  test "rescue named without aliases" do
     result = try do
       raise "an exception"
     rescue
-      x in _ -> Exception.message(x)
+      x -> Exception.message(x)
     end
 
     assert result == "an exception"

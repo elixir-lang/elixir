@@ -30,27 +30,28 @@ each_clause({rescue, Meta, [{in, _, [Left, Right]}], Expr}, S) ->
   {VarName, _, CS} = elixir_scope:build_var('_', S),
   Var = {VarName, Meta, nil},
   {Parts, Safe, FS} = rescue_guards(Meta, Var, Right, CS),
-
-  Body =
-    case Left of
-      {'_', _, Atom} when is_atom(Atom) ->
-        Expr;
-      _ ->
-        Normalized =
-          case Safe of
-            true  -> Var;
-            false -> {{'.', Meta, ['Elixir.Exception', normalize]}, Meta, [error, Var]}
-          end,
-        prepend_to_block(Meta, {'=', Meta, [Left, Normalized]}, Expr)
-    end,
-
+  Body = rescue_clause_body(Left, Expr, Safe, Var, Meta),
   build_rescue(Meta, Parts, Body, FS);
+
+each_clause({rescue, Meta, [{VarName, _, Atom} = Var], Expr}, S) when is_atom(VarName), is_atom(Atom) ->
+  Body = rescue_clause_body(Var, Expr, false, Var, Meta),
+  build_rescue(Meta, _Parts = [{Var, []}], Body, S);
 
 each_clause({rescue, Meta, _, _}, S) ->
   elixir_errors:compile_error(Meta, S#elixir_scope.file, "invalid arguments for rescue in try");
 
 each_clause({Key, Meta, _, _}, S) ->
   elixir_errors:compile_error(Meta, S#elixir_scope.file, "invalid key ~ts in try", [Key]).
+
+rescue_clause_body({'_', _, Atom}, Expr, _Safe, _Var, _Meta) when is_atom(Atom) ->
+  Expr;
+rescue_clause_body(Pattern, Expr, Safe, Var, Meta) ->
+  Normalized =
+    case Safe of
+      true -> Var;
+      false -> {{'.', Meta, ['Elixir.Exception', normalize]}, Meta, [error, Var]}
+    end,
+  prepend_to_block(Meta, {'=', Meta, [Pattern, Normalized]}, Expr).
 
 %% Helpers
 
@@ -70,9 +71,7 @@ build_rescue(Meta, Parts, Body, S) ->
 
   {TClauses, TS}.
 
-%% Convert rescue clauses into guards.
-rescue_guards(_, Var, {'_', _, _}, S) -> {[{Var, []}], false, S};
-
+%% Convert rescue clauses ("var in [alias1, alias2]") into guards.
 rescue_guards(Meta, Var, Aliases, S) ->
   {Elixir, Erlang} = rescue_each_ref(Meta, Var, Aliases, [], [], S),
 
