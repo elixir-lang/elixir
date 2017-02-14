@@ -24,10 +24,10 @@ translate({'{}', Meta, Args}, S) when is_list(Args) ->
   {{tuple, ?ann(Meta), TArgs}, SE};
 
 translate({'%{}', Meta, Args}, S) when is_list(Args) ->
-  elixir_map:translate_map(Meta, Args, S);
+  translate_map(Meta, Args, S);
 
 translate({'%', Meta, [Left, Right]}, S) ->
-  elixir_map:translate_struct(Meta, Left, Right, S);
+  translate_struct(Meta, Left, Right, S);
 
 translate({'<<>>', Meta, Args}, S) when is_list(Args) ->
   elixir_bitstring:translate(Meta, Args, S);
@@ -364,3 +364,62 @@ returns_boolean(Condition, Body) ->
     true  -> {Condition, Body};
     false -> false
   end.
+
+%% Maps and structs
+
+translate_map(Meta, [{'|', _Meta, [Update, Assocs]}], S) ->
+  {TUpdate, US} = translate_arg(Update, S, S),
+  translate_map(Meta, Assocs, {ok, TUpdate}, US);
+translate_map(Meta, Assocs, S) ->
+  translate_map(Meta, Assocs, none, S).
+
+translate_struct(Meta, Name, {'%{}', _, [{'|', _, [Update, Assocs]}]}, S) ->
+  Ann = ?ann(Meta),
+  Generated = ?generated(Meta),
+  {VarName, _, VS} = elixir_scope:build_var('_', S),
+
+  Var = {var, Ann, VarName},
+  Map = {map, Ann, [{map_field_exact, Ann, {atom, Ann, '__struct__'}, {atom, Ann, Name}}]},
+
+  Match = {match, Ann, Var, Map},
+  Error = {tuple, Ann, [{atom, Ann, badstruct}, {atom, Ann, Name}, Var]},
+
+  {TUpdate, US} = translate_arg(Update, VS, VS),
+  {TAssocs, TS} = translate_map(Meta, Assocs, {ok, Var}, US),
+
+  {{'case', Generated, TUpdate, [
+    {clause, Ann, [Match], [], [TAssocs]},
+    {clause, Generated, [Var], [], [elixir_utils:erl_call(Ann, erlang, error, [Error])]}
+  ]}, TS};
+translate_struct(Meta, Name, {'%{}', _, Assocs}, S) ->
+  translate_map(Meta, Assocs ++ [{'__struct__', Name}], none, S).
+
+translate_map(Meta, Assocs, TUpdate, #elixir_scope{extra=Extra} = S) ->
+  {Op, KeyFun, ValFun} = translate_key_val_op(TUpdate, S),
+  Ann = ?ann(Meta),
+
+  {TArgs, SA} = lists:mapfoldl(fun({Key, Value}, Acc) ->
+    {TKey, Acc1}   = KeyFun(Key, Acc),
+    {TValue, Acc2} = ValFun(Value, Acc1#elixir_scope{extra=Extra}),
+    {{Op, ?ann(Meta), TKey, TValue}, Acc2}
+  end, S, Assocs),
+
+  build_map(Ann, TUpdate, TArgs, SA).
+
+translate_key_val_op(_TUpdate, #elixir_scope{extra=map_key}) ->
+  {map_field_assoc,
+    fun(X, Acc) -> translate(X, Acc#elixir_scope{extra=map_key}) end,
+    fun translate/2};
+translate_key_val_op(_TUpdate, #elixir_scope{context=match}) ->
+  {map_field_exact,
+    fun(X, Acc) -> translate(X, Acc#elixir_scope{extra=map_key}) end,
+    fun translate/2};
+translate_key_val_op(TUpdate, S) ->
+  KS = S#elixir_scope{extra=map_key},
+  Op = if TUpdate == none -> map_field_assoc; true -> map_field_exact end,
+  {Op,
+    fun(X, Acc) -> translate_arg(X, Acc, KS) end,
+    fun(X, Acc) -> translate_arg(X, Acc, S) end}.
+
+build_map(Ann, {ok, TUpdate}, TArgs, SA) -> {{map, Ann, TUpdate, TArgs}, SA};
+build_map(Ann, none, TArgs, SA) -> {{map, Ann, TArgs}, SA}.
