@@ -256,6 +256,31 @@ defmodule Logger do
         format: "\n$time $metadata[$level] $levelpad$message\n"
         metadata: [:user_id]
 
+  #### Custom Formatting
+
+  The console backend allows you to customize the format of your log messages
+  with the `:format` option.
+
+  You may set `:format` to either a string or a `{module, function}` tuple if
+  you wish to provide your own format function. The `{module, function}` will be
+  invoked with the log level, the message, the current timestamp and the
+  metadata.
+
+  Here is an example of how to configure the `:console` backend in a
+  `config/config.exs` file:
+
+      config :logger, :console,
+        format: {MyConsoleLogger, :format}
+
+  And here is an example of how you can define `MyConsoleLogger.format/4` from the
+  above configuration.
+
+      defmodule MyConsoleLogger do
+        def format(level, message, timestamp, metadata) do
+          # Custom formatting logic...
+        end
+      end
+
   You can read more about formatting in `Logger.Formatter`.
 
   ### Custom backends
