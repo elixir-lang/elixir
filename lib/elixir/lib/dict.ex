@@ -83,21 +83,24 @@ defmodule Dict do
       end
 
       def to_list(dict) do
-        reduce(dict, {:cont, []}, fn
-          kv, acc -> {:cont, [kv | acc]}
-        end) |> elem(1) |> :lists.reverse
+        dict
+        |> reduce({:cont, []}, fn kv, acc -> {:cont, [kv | acc]} end)
+        |> elem(1)
+        |> :lists.reverse
       end
 
       def keys(dict) do
-        reduce(dict, {:cont, []}, fn
-          {k, _}, acc -> {:cont, [k | acc]}
-        end) |> elem(1) |> :lists.reverse
+        dict
+        |> reduce({:cont, []}, fn {k, _}, acc -> {:cont, [k | acc]} end)
+        |> elem(1)
+        |> :lists.reverse
       end
 
       def values(dict) do
-        reduce(dict, {:cont, []}, fn
-          {_, v}, acc -> {:cont, [v | acc]}
-        end) |> elem(1) |> :lists.reverse
+        dict
+        |> reduce({:cont, []}, fn {_, v}, acc -> {:cont, [v | acc]} end)
+        |> elem(1)
+        |> :lists.reverse
       end
 
       def equal?(dict1, dict2) do

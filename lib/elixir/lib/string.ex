@@ -1010,7 +1010,8 @@ defmodule String do
 
   defp build_filler(count, source, [], size, filler) do
     rem_filler =
-      rem(count, size)
+      count
+      |> rem(size)
       |> build_filler(source, source, 0, [])
     filler =
       filler

@@ -501,7 +501,9 @@ defmodule Supervisor do
         %{specs: non_neg_integer, active: non_neg_integer,
           supervisors: non_neg_integer, workers: non_neg_integer}
   def count_children(supervisor) do
-    call(supervisor, :count_children) |> :maps.from_list
+    supervisor
+    |> call(:count_children)
+    |> :maps.from_list
   end
 
   @doc """

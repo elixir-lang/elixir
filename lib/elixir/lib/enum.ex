@@ -446,7 +446,10 @@ defmodule Enum do
 
   defp do_concat(enumerable) do
     fun = &[&1 | &2]
-    reduce(enumerable, [], &reduce(&1, &2, fun)) |> :lists.reverse
+
+    enumerable
+    |> reduce([], &reduce(&1, &2, fun))
+    |> :lists.reverse
   end
 
   @doc """
@@ -571,7 +574,10 @@ defmodule Enum do
   end
 
   def drop(enumerable, amount) when is_integer(amount) and amount < 0 do
-    drop_list(reverse(enumerable), -amount) |> :lists.reverse
+    enumerable
+    |> reverse
+    |> drop_list(-amount)
+    |> :lists.reverse
   end
 
   @doc """
@@ -837,7 +843,8 @@ defmodule Enum do
 
   def filter_map(enumerable, filter, mapper)
       when is_function(filter, 1) and is_function(mapper, 1) do
-    reduce(enumerable, [], R.filter_map(filter, mapper))
+    enumerable
+    |> reduce([], R.filter_map(filter, mapper))
     |> :lists.reverse
   end
 
@@ -1071,9 +1078,9 @@ defmodule Enum do
   @spec intersperse(t, element) :: list
   def intersperse(enumerable, element) do
     list =
-      reduce(enumerable, [], fn(x, acc) ->
-        [x, element | acc]
-      end) |> :lists.reverse()
+      enumerable
+      |> reduce([], fn(x, acc) -> [x, element | acc] end)
+      |> :lists.reverse()
 
     case list do
       []      -> []
@@ -1234,7 +1241,9 @@ defmodule Enum do
   end
 
   def map(enumerable, fun) when is_function(fun, 1) do
-    reduce(enumerable, [], R.map(fun)) |> :lists.reverse
+    enumerable
+    |> reduce([], R.map(fun))
+    |> :lists.reverse
   end
 
   @doc """
@@ -1768,8 +1777,9 @@ defmodule Enum do
   end
 
   def reduce(%{__struct__: _} = enumerable, acc, fun) when is_function(fun, 2) do
-    Enumerable.reduce(enumerable, {:cont, acc},
-                      fn x, acc -> {:cont, fun.(x, acc)} end) |> elem(1)
+    enumerable
+    |> Enumerable.reduce({:cont, acc}, fn x, acc -> {:cont, fun.(x, acc)} end)
+    |> elem(1)
   end
 
   def reduce(%{} = enumerable, acc, fun) when is_function(fun, 2) do
@@ -1777,8 +1787,9 @@ defmodule Enum do
   end
 
   def reduce(enumerable, acc, fun) when is_function(fun, 2) do
-    Enumerable.reduce(enumerable, {:cont, acc},
-                      fn x, acc -> {:cont, fun.(x, acc)} end) |> elem(1)
+    enumerable
+    |> Enumerable.reduce({:cont, acc}, fn x, acc -> {:cont, fun.(x, acc)} end)
+    |> elem(1)
   end
 
   defp reduce_range_inc(first, first, acc, fun) do
@@ -1817,7 +1828,9 @@ defmodule Enum do
   """
   @spec reduce_while(t, any, (element, any -> {:cont, any} | {:halt, any})) :: any
   def reduce_while(enumerable, acc, fun) when is_function(fun, 2) do
-    Enumerable.reduce(enumerable, {:cont, acc}, fun) |> elem(1)
+    enumerable
+    |> Enumerable.reduce({:cont, acc}, fun)
+    |> elem(1)
   end
 
   @doc """
@@ -1838,7 +1851,9 @@ defmodule Enum do
   end
 
   def reject(enumerable, fun) when is_function(fun, 1) do
-    reduce(enumerable, [], R.reject(fun)) |> :lists.reverse
+    enumerable
+    |> reduce([], R.reject(fun))
+    |> :lists.reverse
   end
 
   @doc """
@@ -2151,7 +2166,8 @@ defmodule Enum do
   end
 
   def sort(enumerable, fun) when is_function(fun, 2) do
-    reduce(enumerable, [], &sort_reducer(&1, &2, fun))
+    enumerable
+    |> reduce([], &sort_reducer(&1, &2, fun))
     |> sort_terminator(fun)
   end
 
@@ -2529,7 +2545,9 @@ defmodule Enum do
   end
 
   def to_list(enumerable) do
-    reverse(enumerable) |> :lists.reverse
+    enumerable
+    |> reverse
+    |> :lists.reverse
   end
 
   @doc """
@@ -2630,9 +2648,9 @@ defmodule Enum do
   @spec with_index(t) :: [{element, index}]
   @spec with_index(t, integer) :: [{element, index}]
   def with_index(enumerable, offset \\ 0) do
-    map_reduce(enumerable, offset, fn x, acc ->
-      {{x, acc}, acc + 1}
-    end) |> elem(0)
+    enumerable
+    |> map_reduce(offset, fn x, acc -> {{x, acc}, acc + 1} end)
+    |> elem(0)
   end
 
   @doc """
