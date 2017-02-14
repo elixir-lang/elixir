@@ -9,8 +9,6 @@
   context=nil,             %% can be match, guards or nil
   extra=nil,               %% extra information about the context, like pin_guard and map_key
   caller=false,            %% when true, it means caller was invoked
-  module=nil,              %% the current module
-  function=nil,            %% the current function
   vars=#{},                %% a map of defined variables and their alias
   backup_vars=nil,         %% a copy of vars to be used on ^var
   match_vars=nil,          %% a set of all variables defined in a particular match

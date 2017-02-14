@@ -23,8 +23,8 @@ new() ->
 linify({Line, Env}) ->
   Env#{line := Line}.
 
-env_to_scope(#{module := Module, file := File, function := Function, context := Context}) ->
-  #elixir_scope{module=Module, file=File, function=Function, context=Context}.
+env_to_scope(#{file := File, context := Context}) ->
+  #elixir_scope{file=File, context=Context}.
 
 env_to_scope_with_vars(Env, Vars) ->
   Map = maps:from_list(Vars),
