@@ -75,22 +75,24 @@ capture_import(Meta, {Atom, ImportMeta, Args} = Expr, E, Sequential) ->
         elixir_dispatch:import_function(ImportMeta, Atom, length(Args), E),
   handle_capture(Res, Meta, Expr, E, Sequential).
 
-capture_require(Meta, {{'.', _, [Left, Right]}, RequireMeta, Args} = Expr, E, Sequential) ->
+capture_require(Meta, {{'.', DotMeta, [Left, Right]}, RequireMeta, Args}, E, Sequential) ->
   Counter = erlang:unique_integer(),
   case escape(Left, Counter, E, []) of
-    {Escaped, []} ->
-      {Mod, EE} = elixir_exp:expand(Escaped, E),
-      Res = Sequential andalso case Mod of
+    {EscLeft, []} ->
+      {ELeft, EE} = elixir_exp:expand(EscLeft, E),
+      Res = Sequential andalso case ELeft of
         {Name, _, Context} when is_atom(Name), is_atom(Context) ->
-          {remote, Mod, Right, length(Args)};
-        _ when is_atom(Mod) ->
-          elixir_dispatch:require_function(RequireMeta, Mod, Right, length(Args), EE);
+          {remote, ELeft, Right, length(Args)};
+        _ when is_atom(ELeft) ->
+          elixir_dispatch:require_function(RequireMeta, ELeft, Right, length(Args), EE);
         _ ->
           false
       end,
-      handle_capture(Res, Meta, Expr, EE, Sequential);
-    {_, Escaped} ->
-      capture_expr(Meta, Expr, Counter, E, Escaped, Sequential)
+      handle_capture(Res, Meta, {{'.', DotMeta, [ELeft, Right]}, RequireMeta, Args},
+                     EE, Sequential);
+    {EscLeft, Escaped} ->
+      capture_expr(Meta, {{'.', DotMeta, [EscLeft, Right]}, RequireMeta, Args},
+                   Counter, E, Escaped, Sequential)
   end.
 
 handle_capture(false, Meta, Expr, E, Sequential) ->
