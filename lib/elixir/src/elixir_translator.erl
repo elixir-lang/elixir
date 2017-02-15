@@ -3,7 +3,7 @@
 -module(elixir_translator).
 -export([translate/2, translate_arg/3, translate_args/2]).
 -import(elixir_scope, [mergev/2, mergec/2]).
--import(elixir_errors, [compile_error/3, compile_error/4]).
+-import(elixir_errors, [compile_error/4]).
 -include("elixir.hrl").
 
 %% =
