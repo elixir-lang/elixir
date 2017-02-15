@@ -96,10 +96,8 @@ translate({'cond', CondMeta, [[{do, Clauses}]]}, S) ->
 %% Case
 
 translate({'case', Meta, [Expr, KV]}, S) ->
-  Clauses = elixir_clauses:get_clauses(do, KV, match),
-  {TExpr, NS} = translate(Expr, S),
-  {TClauses, TS} = elixir_clauses:clauses(Meta, Clauses, NS#elixir_scope{extra=nil}),
-  {{'case', ?ann(Meta), TExpr, TClauses}, TS#elixir_scope{extra=NS#elixir_scope.extra}};
+  ShouldExportVars = proplists:get_value(export_vars, Meta, true),
+  translate_case(ShouldExportVars, Meta, Expr, KV, S);
 
 %% Try
 
@@ -242,6 +240,15 @@ translate(Other, S) ->
   {elixir_utils:elixir_to_erl(Other), S}.
 
 %% Helpers
+
+translate_case(true, Meta, Expr, KV, S) ->
+  Clauses = elixir_clauses:get_clauses(do, KV, match),
+  {TExpr, SE} = translate(Expr, S),
+  {TClauses, SC} = elixir_clauses:clauses(Meta, Clauses, SE#elixir_scope{extra=nil}),
+  {{'case', ?ann(Meta), TExpr, TClauses}, SC#elixir_scope{extra=SE#elixir_scope.extra}};
+translate_case(false, Meta, Expr, KV, S) ->
+  {Case, SC} = translate_case(true, Meta, Expr, KV, S#elixir_scope{extra=nil}),
+  {Case, elixir_scope:mergec(S, SC)}.
 
 translate_list([{'|', _, [_, _]=Args}], Fun, Acc, List) ->
   {[TLeft, TRight], TAcc} = lists:mapfoldl(Fun, Acc, Args),
