@@ -2,7 +2,7 @@ defmodule ExUnit.EventManager do
   @moduledoc false
   @timeout 30_000
 
-  # TODO: Deprecate GenEvent callbacks on Elixir v1.5 alongside GenEvent
+  # TODO: Remove support for GenEvent formatters on 2.0
 
   @doc """
   Starts an event manager that publishes events during the suite run.
@@ -23,11 +23,15 @@ defmodule ExUnit.EventManager do
       GenServer.stop(pid, :normal, @timeout)
     end
     Supervisor.stop(sup)
-    GenEvent.stop(event)
+    :gen_event.stop(event)
   end
 
   def add_handler({sup, event}, handler, opts) do
     if Code.ensure_loaded?(handler) and function_exported?(handler, :handle_call, 2) do
+      IO.warn "passing GenEvent handlers (#{inspect(handler)} in this case) in " <>
+              "the :formatters option of ExUnit is deprecated, please pass a " <>
+              "GenServer instead. Check the documentation for the ExUnit.Formatter " <>
+              "module for more information"
       :gen_event.add_handler(event, handler, opts)
     else
       Supervisor.start_child(sup, [handler, opts])
