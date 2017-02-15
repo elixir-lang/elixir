@@ -667,6 +667,24 @@ defmodule Kernel.ExpansionTest do
         expand(quote(do: (try do e catch x -> x catch y -> y end)))
       end
     end
+
+    test "expects exactly one argument in rescue clauses" do
+      assert_raise CompileError, ~r"expected one arg for rescue clauses \(->\) in try", fn ->
+        expand(quote do: (try do x rescue _, _ -> :ok end))
+      end
+    end
+
+    test "expects an alias, a variable, or \"var in [alias]\" as the argument of rescue clauses" do
+      assert_raise CompileError, ~r"invalid rescue clause\. The clause should match", fn ->
+        expand(quote do: (try do x rescue function(:call) -> :ok end))
+      end
+    end
+
+    test "expects one or two args for catch clauses" do
+      assert_raise CompileError, ~r"expected one or two args for catch clauses \(->\) in try", fn ->
+        expand(quote do: (try do x catch _, _, _ -> :ok end))
+      end
+    end
   end
 
   describe "bitstrings" do
