@@ -82,7 +82,7 @@ defmodule ExUnit.CaptureLogTest do
   end
 
   defp wait_capture_removal() do
-    case GenEvent.which_handlers(Logger) do
+    case :gen_event.which_handlers(Logger) do
       [Logger.Config] -> :ok
       _otherwise ->
         Process.sleep(20)
