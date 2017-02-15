@@ -35,13 +35,7 @@ each_clause({rescue, Meta, [{in, _, [Left, Right]}], Expr}, S) ->
 
 each_clause({rescue, Meta, [{VarName, _, Atom} = Var], Expr}, S) when is_atom(VarName), is_atom(Atom) ->
   Body = rescue_clause_body(Var, Expr, false, Var, Meta),
-  build_rescue(Meta, _Parts = [{Var, []}], Body, S);
-
-each_clause({rescue, Meta, _, _}, S) ->
-  elixir_errors:compile_error(Meta, S#elixir_scope.file, "invalid arguments for rescue in try");
-
-each_clause({Key, Meta, _, _}, S) ->
-  elixir_errors:compile_error(Meta, S#elixir_scope.file, "invalid key ~ts in try", [Key]).
+  build_rescue(Meta, _Parts = [{Var, []}], Body, S).
 
 rescue_clause_body({'_', _, Atom}, Expr, _Safe, _Var, _Meta) when is_atom(Atom) ->
   Expr;
