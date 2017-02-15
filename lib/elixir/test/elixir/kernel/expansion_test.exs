@@ -176,7 +176,7 @@ defmodule Kernel.ExpansionTest do
 
   describe "^" do
     test "expands args" do
-      assert expand(quote do: ^a = 1) == quote do: ^a = 1
+      assert expand(quote do: (a = 1; ^a = 1)) == quote do: (a = 1; ^a = 1)
     end
 
     test "raises outside match" do
@@ -188,6 +188,12 @@ defmodule Kernel.ExpansionTest do
     test "raises without var" do
       assert_raise CompileError, ~r"invalid argument for unary operator \^, expected an existing variable, got: \^1", fn ->
         expand(quote do: ^1 = 1)
+      end
+    end
+
+    test "raises when the var is undefined" do
+      assert_raise CompileError, ~r"unbound variable \^foo", fn ->
+        expand(quote do: ^foo = :foo)
       end
     end
   end
@@ -266,6 +272,16 @@ defmodule Kernel.ExpansionTest do
 
       assert_raise CompileError, ~r"cannot use map/struct update syntax in match", fn ->
         expand(quote do: %{%{a: 0} | a: 1} = %{})
+      end
+    end
+
+    test "unknown ^keys in structs" do
+      message = ~r"unknown key \^my_key for struct Kernel\.ExpansionTest\.User"
+      assert_raise CompileError, message, fn ->
+        expand(quote do
+          my_key = :my_key
+          %User{^my_key => :my_value} = %{}
+        end)
       end
     end
   end

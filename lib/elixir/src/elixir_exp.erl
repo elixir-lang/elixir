@@ -294,8 +294,16 @@ expand({super, Meta, Args}, #{file := File} = E) when is_list(Args) ->
 
 expand({'^', Meta, [Arg]}, #{context := match} = E) ->
   case expand(Arg, E) of
-    {{Name, _, Kind} = EArg, EA} when is_atom(Name), is_atom(Kind) ->
-      {{'^', Meta, [EArg]}, EA};
+    {{VarName, VarMeta, Kind} = Var, EA} when is_atom(VarName), is_atom(Kind) ->
+      %% If the variable was defined, then we return the expanded ^, otherwise
+      %% we raise. We cannot use the expanded env because it would contain the
+      %% variable.
+      case lists:member({VarName, var_kind(VarMeta, Kind)}, ?m(E, vars)) of
+        true ->
+          {{'^', Meta, [Var]}, EA};
+        false ->
+          compile_error(Meta, ?m(EA, file), "unbound variable ^~ts", [VarName])
+      end;
     _ ->
       Msg = "invalid argument for unary operator ^, expected an existing variable, got: ^~ts",
       compile_error(Meta, ?m(E, file), Msg, ['Elixir.Macro':to_string(Arg)])
