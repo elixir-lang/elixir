@@ -3,6 +3,9 @@
 -export([extract/6, unescape_chars/1, unescape_chars/2,
 unescape_tokens/1, unescape_tokens/2, unescape_map/1]).
 -include("elixir.hrl").
+-define(is_hex(S), ((S >= $0 andalso S =< $9) orelse
+                    (S >= $A andalso S =< $F) orelse
+                    (S >= $a andalso S =< $f))).
 
 %% Extract string interpolations
 
