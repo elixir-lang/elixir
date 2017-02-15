@@ -46,7 +46,7 @@ capture(Meta, {{'.', _, [_, Fun]}, _, Args} = Expr, E) when is_atom(Fun), is_lis
   capture_require(Meta, Expr, E, is_sequential_and_not_empty(Args));
 
 capture(Meta, {{'.', _, [_]}, _, Args} = Expr, E) when is_list(Args) ->
-  do_capture(Meta, Expr, E, false);
+  capture_expr(Meta, Expr, E, false);
 
 capture(Meta, {'__block__', _, [Expr]}, E) ->
   capture(Meta, Expr, E);
@@ -62,7 +62,10 @@ capture(Meta, {Left, Right}, E) ->
   capture(Meta, {'{}', Meta, [Left, Right]}, E);
 
 capture(Meta, List, E) when is_list(List) ->
-  do_capture(Meta, List, E, is_sequential_and_not_empty(List));
+  capture_expr(Meta, List, E, is_sequential_and_not_empty(List));
+
+capture(Meta, Integer, E) when is_integer(Integer) ->
+  compile_error(Meta, ?m(E, file), "unhandled &~B outside of a capture", [Integer]);
 
 capture(Meta, Arg, E) ->
   invalid_capture(Meta, Arg, E).
@@ -73,39 +76,38 @@ capture_import(Meta, {Atom, ImportMeta, Args} = Expr, E, Sequential) ->
   handle_capture(Res, Meta, Expr, E, Sequential).
 
 capture_require(Meta, {{'.', _, [Left, Right]}, RequireMeta, Args} = Expr, E, Sequential) ->
-  {Mod, EE} = elixir_exp:expand(Left, E),
-  Res = Sequential andalso case Mod of
-    {Name, _, Context} when is_atom(Name), is_atom(Context) ->
-      {remote, Mod, Right, length(Args)};
-    _ when is_atom(Mod) ->
-      elixir_dispatch:require_function(RequireMeta, Mod, Right, length(Args), EE);
-    _ ->
-      false
-  end,
-  handle_capture(Res, Meta, Expr, EE, Sequential).
+  Counter = erlang:unique_integer(),
+  case escape(Left, Counter, E, []) of
+    {Escaped, []} ->
+      {Mod, EE} = elixir_exp:expand(Escaped, E),
+      Res = Sequential andalso case Mod of
+        {Name, _, Context} when is_atom(Name), is_atom(Context) ->
+          {remote, Mod, Right, length(Args)};
+        _ when is_atom(Mod) ->
+          elixir_dispatch:require_function(RequireMeta, Mod, Right, length(Args), EE);
+        _ ->
+          false
+      end,
+      handle_capture(Res, Meta, Expr, EE, Sequential);
+    {_, Escaped} ->
+      capture_expr(Meta, Expr, Counter, E, Escaped, Sequential)
+  end.
 
-handle_capture({local, Fun, Arity}, _Meta, _Expr, _E, _Sequential) ->
-  {local, Fun, Arity};
-handle_capture({remote, Receiver, Fun, Arity}, Meta, _Expr, E, _Sequential) ->
-  if
-    is_atom(Receiver) ->
-      elixir_lexical:record_remote(Receiver, Fun, Arity, ?m(E, function), ?line(Meta), ?m(E, lexical_tracker));
-    true ->
-      ok
-  end,
-  Tree = {{'.', [], [erlang, make_fun]}, Meta, [Receiver, Fun, Arity]},
-  {expanded, Tree, E};
 handle_capture(false, Meta, Expr, E, Sequential) ->
-  do_capture(Meta, Expr, E, Sequential).
+  capture_expr(Meta, Expr, E, Sequential);
+handle_capture(LocalOrRemote, _Meta, _Expr, _E, _Sequential) ->
+  LocalOrRemote.
 
-do_capture(Meta, Expr, E, Sequential) ->
-  case do_escape(Expr, erlang:unique_integer(), E, []) of
+capture_expr(Meta, Expr, E, Sequential) ->
+  capture_expr(Meta, Expr, erlang:unique_integer(), E, [], Sequential).
+capture_expr(Meta, Expr, Counter, E, Escaped, Sequential) ->
+  case escape(Expr, Counter, E, Escaped) of
     {_, []} when not Sequential ->
       invalid_capture(Meta, Expr, E);
     {EExpr, EDict} ->
       EVars = validate(Meta, EDict, 1, E),
       Fn = {fn, Meta, [{'->', Meta, [EVars, EExpr]}]},
-      {expanded, Fn, E}
+      {expand, Fn, E}
   end.
 
 invalid_capture(Meta, Arg, E) ->
@@ -115,38 +117,30 @@ invalid_capture(Meta, Arg, E) ->
 
 validate(Meta, [{Pos, Var} | T], Pos, E) ->
   [Var | validate(Meta, T, Pos + 1, E)];
-
 validate(Meta, [{Pos, _} | _], Expected, E) ->
   compile_error(Meta, ?m(E, file), "capture &~B cannot be defined without &~B", [Pos, Expected]);
-
 validate(_Meta, [], _Pos, _E) ->
   [].
 
-do_escape({'&', _, [Pos]}, Counter, _E, Dict) when is_integer(Pos), Pos > 0 ->
+escape({'&', _, [Pos]}, Counter, _E, Dict) when is_integer(Pos), Pos > 0 ->
   Var = {list_to_atom([$x | integer_to_list(Pos)]), [{counter, Counter}], elixir_fn},
   {Var, orddict:store(Pos, Var, Dict)};
-
-do_escape({'&', Meta, [Pos]}, _Counter, E, _Dict) when is_integer(Pos) ->
+escape({'&', Meta, [Pos]}, _Counter, E, _Dict) when is_integer(Pos) ->
   compile_error(Meta, ?m(E, file), "capture &~B is not allowed", [Pos]);
-
-do_escape({'&', Meta, _} = Arg, _Counter, E, _Dict) ->
+escape({'&', Meta, _} = Arg, _Counter, E, _Dict) ->
   Message = "nested captures via & are not allowed: ~ts",
   compile_error(Meta, ?m(E, file), Message, ['Elixir.Macro':to_string(Arg)]);
-
-do_escape({Left, Meta, Right}, Counter, E, Dict0) ->
-  {TLeft, Dict1}  = do_escape(Left, Counter, E, Dict0),
-  {TRight, Dict2} = do_escape(Right, Counter, E, Dict1),
+escape({Left, Meta, Right}, Counter, E, Dict0) ->
+  {TLeft, Dict1}  = escape(Left, Counter, E, Dict0),
+  {TRight, Dict2} = escape(Right, Counter, E, Dict1),
   {{TLeft, Meta, TRight}, Dict2};
-
-do_escape({Left, Right}, Counter, E, Dict0) ->
-  {TLeft, Dict1}  = do_escape(Left, Counter, E, Dict0),
-  {TRight, Dict2} = do_escape(Right, Counter, E, Dict1),
+escape({Left, Right}, Counter, E, Dict0) ->
+  {TLeft, Dict1}  = escape(Left, Counter, E, Dict0),
+  {TRight, Dict2} = escape(Right, Counter, E, Dict1),
   {{TLeft, TRight}, Dict2};
-
-do_escape(List, Counter, E, Dict) when is_list(List) ->
-  lists:mapfoldl(fun(X, Acc) -> do_escape(X, Counter, E, Acc) end, Dict, List);
-
-do_escape(Other, _Counter, _E, Dict) ->
+escape(List, Counter, E, Dict) when is_list(List) ->
+  lists:mapfoldl(fun(X, Acc) -> escape(X, Counter, E, Acc) end, Dict, List);
+escape(Other, _Counter, _E, Dict) ->
   {Other, Dict}.
 
 args_from_arity(_Meta, A, _E) when is_integer(A), A >= 0, A =< 255 ->
@@ -158,7 +152,6 @@ args_from_arity(Meta, A, E) ->
 is_sequential_and_not_empty([])   -> false;
 is_sequential_and_not_empty(List) -> is_sequential(List, 1).
 
-is_sequential([{'&', _, [Int]} | T], Int) ->
-  is_sequential(T, Int + 1);
+is_sequential([{'&', _, [Int]} | T], Int) -> is_sequential(T, Int + 1);
 is_sequential([], _Int) -> true;
 is_sequential(_, _Int) -> false.

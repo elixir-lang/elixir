@@ -211,14 +211,16 @@ expand({quote, Meta, [_, _]}, E) ->
 
 %% Functions
 
-expand({'&', _, [Arg]} = Original, E) when is_integer(Arg) ->
-  {Original, E};
 expand({'&', Meta, [Arg]}, E) ->
   assert_no_match_or_guard_scope(Meta, '&', E),
   case elixir_fn:capture(Meta, Arg, E) of
+    {remote, Remote, Fun, Arity} ->
+      is_atom(Remote) andalso
+        elixir_lexical:record_remote(Remote, Fun, Arity, ?m(E, function), ?line(Meta), ?m(E, lexical_tracker)),
+      {{'&', Meta, [{'/', [], [{{'.', [], [Remote, Fun]}, [], []}, Arity]}]}, E};
     {local, Fun, Arity} ->
       {{'&', Meta, [{'/', [], [{Fun, [], nil}, Arity]}]}, E};
-    {expanded, Expr, EE} ->
+    {expand, Expr, EE} ->
       expand(Expr, EE)
   end;
 
