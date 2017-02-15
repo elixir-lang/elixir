@@ -361,10 +361,6 @@ defmodule Kernel.ErrorsTest do
     assert_compile_fail CompileError,
       "nofile:1: unknown key :age for struct Kernel.ErrorsTest.GoodStruct",
       '%#{GoodStruct}{age: 27} = %{}'
-
-    assert_compile_fail CompileError,
-      "nofile:1: unknown key ^field for struct Kernel.ErrorsTest.GoodStruct",
-      '%#{GoodStruct}{^field => 27} = %{}'
   end
 
   test "name for defmodule" do

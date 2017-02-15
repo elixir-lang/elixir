@@ -137,24 +137,20 @@ translate({with, Meta, [_ | _] = Args}, S) ->
 
 translate({'^', Meta, [{Name, VarMeta, Kind}]}, #elixir_scope{context=match, file=File} = S) when is_atom(Name), is_atom(Kind) ->
   Tuple = {Name, var_kind(VarMeta, Kind)},
-  case maps:find(Tuple, S#elixir_scope.backup_vars) of
-    {ok, {Value, _Counter, Safe}} ->
-      elixir_scope:warn_underscored_var_access(VarMeta, File, Name),
-      elixir_scope:warn_unsafe_var(VarMeta, File, Name, Safe),
+  {ok, {Value, _Counter, Safe}} = maps:find(Tuple, S#elixir_scope.backup_vars),
+  elixir_scope:warn_underscored_var_access(VarMeta, File, Name),
+  elixir_scope:warn_unsafe_var(VarMeta, File, Name, Safe),
 
-      PAnn = ?ann(Meta),
-      PVar = {var, PAnn, Value},
+  PAnn = ?ann(Meta),
+  PVar = {var, PAnn, Value},
 
-      case S#elixir_scope.extra of
-        pin_guard ->
-          {TVar, TS} = elixir_scope:translate_var(VarMeta, Name, var_kind(VarMeta, Kind), S),
-          Guard = {op, PAnn, '=:=', PVar, TVar},
-          {TVar, TS#elixir_scope{extra_guards=[Guard | TS#elixir_scope.extra_guards]}};
-        _ ->
-          {PVar, S}
-      end;
-    error ->
-      compile_error(Meta, S#elixir_scope.file, "unbound variable ^~ts", [Name])
+  case S#elixir_scope.extra of
+    pin_guard ->
+      {TVar, TS} = elixir_scope:translate_var(VarMeta, Name, var_kind(VarMeta, Kind), S),
+      Guard = {op, PAnn, '=:=', PVar, TVar},
+      {TVar, TS#elixir_scope{extra_guards=[Guard | TS#elixir_scope.extra_guards]}};
+    _ ->
+      {PVar, S}
   end;
 
 translate({Name, Meta, Kind}, #elixir_scope{extra=map_key, context=match} = S) when is_atom(Name), is_atom(Kind) ->

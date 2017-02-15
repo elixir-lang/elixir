@@ -176,7 +176,7 @@ defmodule Kernel.ExpansionTest do
 
   describe "^" do
     test "expands args" do
-      assert expand(quote do: ^a = 1) == quote do: ^a = 1
+      assert expand(quote do: (a = 1; ^a = 1)) == quote do: (a = 1; ^a = 1)
     end
 
     test "raises outside match" do
@@ -188,6 +188,12 @@ defmodule Kernel.ExpansionTest do
     test "raises without var" do
       assert_raise CompileError, ~r"invalid argument for unary operator \^, expected an existing variable, got: \^1", fn ->
         expand(quote do: ^1 = 1)
+      end
+    end
+
+    test "raises when the var is undefined" do
+      assert_raise CompileError, ~r"unbound variable \^foo", fn ->
+        expand(quote do: ^foo = :foo)
       end
     end
   end
