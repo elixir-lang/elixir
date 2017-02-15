@@ -17,17 +17,6 @@ matrix:
       otp_release: 19.1
     - os: linux
       otp_release: 19.2
-    - os: osx
-      language: generic
-  allow_failures:
-    - os: osx
-      language: generic
-
-before_script:
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update; fi
-  ## should eventually use a tap that has previous erlang versions here
-  ## as this only uses the latest erlang available via brew
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install erlang; fi
 
 script: "make compile && rm -rf .git && make test"
 
