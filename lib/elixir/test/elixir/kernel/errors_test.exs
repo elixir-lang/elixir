@@ -315,16 +315,6 @@ defmodule Kernel.ErrorsTest do
       '''
   end
 
-  test "unbound map key var" do
-    assert_compile_fail CompileError,
-      ~r"nofile:1: illegal use of variable x inside map key match,",
-      '%{x => 1} = %{}'
-
-    assert_compile_fail CompileError,
-      ~r"nofile:1: illegal use of variable x inside map key match,",
-      '%{x = 1 => 1}'
-  end
-
   test "struct errors" do
     assert_compile_fail CompileError,
       "nofile:1: BadStruct.__struct__/1 is undefined, cannot expand struct BadStruct",

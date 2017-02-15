@@ -4,16 +4,29 @@
 -include("elixir.hrl").
 
 expand_map(Meta, [{'|', UpdateMeta, [Left, Right]}], #{context := nil} = E) ->
-  {[ELeft | ERight], EA} = elixir_exp:expand_args([Left | Right], E),
+  {[ELeft | ERight], EE} = elixir_exp:expand_args([Left | Right], E),
   validate_kv(Meta, ERight, Right, E),
-  {{'%{}', Meta, [{'|', UpdateMeta, [ELeft, ERight]}]}, EA};
+  {{'%{}', Meta, [{'|', UpdateMeta, [ELeft, ERight]}]}, EE};
 expand_map(Meta, [{'|', _, [_, _]}] = Args, #{context := Context, file := File}) ->
   compile_error(Meta, File, "cannot use map/struct update syntax in ~ts, got: ~ts",
                 [Context, 'Elixir.Macro':to_string({'%{}', Meta, Args})]);
-expand_map(Meta, Args, E) ->
-  {EArgs, EA} = elixir_exp:expand_args(Args, E),
+expand_map(Meta, Args, #{context := match} = E) ->
+  {EArgs, EE} =
+    lists:mapfoldl(fun
+      ({Key, Value}, EA) ->
+        {EKey, EK} = elixir_exp:expand(Key, EA),
+        validate_match_key(Meta, EKey, EK),
+        {EValue, EV} = elixir_exp:expand(Value, EK),
+        {{EKey, EValue}, EV};
+      (Other, EA) ->
+        elixir_exp:expand(Other, EA)
+      end, E, Args),
   validate_kv(Meta, EArgs, Args, E),
-  {{'%{}', Meta, EArgs}, EA}.
+  {{'%{}', Meta, EArgs}, EE};
+expand_map(Meta, Args, E) ->
+  {EArgs, EE} = elixir_exp:expand_args(Args, E),
+  validate_kv(Meta, EArgs, Args, E),
+  {{'%{}', Meta, EArgs}, EE}.
 
 expand_struct(Meta, Left, Right, #{context := Context} = E) ->
   {[ELeft, ERight], EE} = elixir_exp:expand_args([Left, Right], E),
@@ -56,9 +69,27 @@ expand_struct(Meta, Left, Right, #{context := Context} = E) ->
         "time atom or alias, got: ~ts", ['Elixir.Macro':to_string(ELeft)])
   end.
 
+validate_match_key(_Meta, {'^', _, [_]}, _E) ->
+  ok;
+validate_match_key(Meta, {Name, _, Context}, E) when is_atom(Name), is_atom(Context) ->
+  Message = "illegal use of variable ~ts inside map key match, "
+            "maps can only match on existing variable by using ^~ts",
+  compile_error(Meta, ?m(E, file), Message, [Name, Name]);
+validate_match_key(Meta, {Left, _, Right}, E) ->
+  validate_match_key(Meta, Left, E),
+  validate_match_key(Meta, Right, E);
+validate_match_key(Meta, {Left, Right}, E) ->
+  validate_match_key(Meta, Left, E),
+  validate_match_key(Meta, Right, E);
+validate_match_key(Meta, List, E) when is_list(List) ->
+  [validate_match_key(Meta, Each, E) || Each <- List];
+validate_match_key(_, _, _) ->
+  ok.
+
 validate_kv(Meta, KV, Original, E) ->
   lists:foldl(fun
-    ({_K, _V}, Acc) -> Acc + 1;
+    ({_K, _V}, Acc) ->
+      Acc + 1;
     (_, Acc) ->
       compile_error(Meta, ?m(E, file),
         "expected key-value pairs in a map, got: ~ts",

@@ -3,7 +3,6 @@
 -module(elixir_translator).
 -export([translate/2, translate_arg/3, translate_args/2]).
 -import(elixir_scope, [mergev/2, mergec/2]).
--import(elixir_errors, [compile_error/4]).
 -include("elixir.hrl").
 
 %% =
@@ -157,11 +156,6 @@ translate({'^', Meta, [{Name, VarMeta, Kind}]}, #elixir_scope{context=match, fil
     _ ->
       {PVar, S}
   end;
-
-translate({Name, Meta, Kind}, #elixir_scope{extra=map_key, context=match} = S) when is_atom(Name), is_atom(Kind) ->
-  Message = "illegal use of variable ~ts inside map key match, "
-            "maps can only match on existing variable by using ^~ts",
-  compile_error(Meta, S#elixir_scope.file, Message, [Name, Name]);
 
 translate({'_', Meta, Kind}, #elixir_scope{context=match} = S) when is_atom(Kind) ->
   {{var, ?ann(Meta), '_'}, S};
