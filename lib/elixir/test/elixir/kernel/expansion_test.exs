@@ -276,6 +276,16 @@ defmodule Kernel.ExpansionTest do
         expand(quote do: %{%{a: 0} | a: 1} = %{})
       end
     end
+
+    test "unknown ^keys in structs" do
+      message = ~r"unknown key \^my_key for struct Kernel\.ExpansionTest\.User"
+      assert_raise CompileError, message, fn ->
+        expand(quote do
+          my_key = :my_key
+          %User{^my_key => :my_value} = %{}
+        end)
+      end
+    end
   end
 
   describe "quote" do
