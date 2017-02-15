@@ -230,8 +230,8 @@ expand({fn, Meta, Pairs}, E) ->
 
 expand({'cond', Meta, [KV]}, E) ->
   assert_no_match_or_guard_scope(Meta, 'cond', E),
+  assert_no_underscore_clause_in_cond(KV, E),
   {EClauses, EC} = elixir_exp_clauses:'cond'(Meta, KV, E),
-  assert_no_underscore_clause_in_cond(EClauses, E),
   {{'cond', Meta, [EClauses]}, EC};
 
 expand({'case', Meta, [Expr, KV]}, E) ->
@@ -302,8 +302,11 @@ expand({'^', Meta, [Arg]}, E) ->
   compile_error(Meta, ?m(E, file),
     "cannot use ^~ts outside of match clauses", ['Elixir.Macro':to_string(Arg)]);
 
-expand({'_', _, Kind} = Var, E) when is_atom(Kind) ->
+expand({'_', _Meta, Kind} = Var, #{context := match} = E) when is_atom(Kind) ->
   {Var, E};
+expand({'_', Meta, Kind}, E) when is_atom(Kind) ->
+  compile_error(Meta, ?m(E, file), "unbound variable _");
+
 expand({Name, Meta, Kind} = Var, #{context := match, export_vars := Export} = E) when is_atom(Name), is_atom(Kind) ->
   Pair      = {Name, var_kind(Meta, Kind)},
   NewVars   = ordsets:add_element(Pair, ?m(E, vars)),
@@ -736,6 +739,12 @@ assert_no_guard_scope(Meta, _Kind, #{context := guard, file := File}) ->
   compile_error(Meta, File, "invalid expression in guard");
 assert_no_guard_scope(_Meta, _Kind, _E) -> [].
 
+%% Here we look into the Clauses "optimistically", that is, we don't check for
+%% multiple "do"s and similar stuff. After all, the error we're gonna give here
+%% is just a friendlier version of the "undefined variable _" error that we
+%% would raise if we found a "_ -> ..." clause in a "cond". For this reason, if
+%% Clauses has a bad shape, we just do nothing and let future functions catch
+%% this.
 assert_no_underscore_clause_in_cond([{do, Clauses}], E) ->
   case lists:last(Clauses) of
     {'->', Meta, [[{'_', _, Atom}], _]} when is_atom(Atom) ->
@@ -744,7 +753,9 @@ assert_no_underscore_clause_in_cond([{do, Clauses}], E) ->
       compile_error(Meta, ?m(E, file), Message);
     _Other ->
       ok
-  end.
+  end;
+assert_no_underscore_clause_in_cond(_BadBody, _E) ->
+  ok.
 
 format_error({useless_literal, Term}) ->
   io_lib:format("code block contains unused literal ~ts "
