@@ -40,12 +40,10 @@ defmodule Macro.Env do
     * `lexical_tracker` - PID of the lexical tracker which is responsible for
       keeping user info
 
-  The following fields are private and must not be accessed and relied on:
+  The following fields are private and must not be accessed or relied on:
 
     * `export_vars` - a list keeping all variables to be exported in a
       construct (may be `nil`)
-    * `private` - a field containing private information
-
   """
 
   @type name_arity :: {atom, arity}
@@ -63,10 +61,8 @@ defmodule Macro.Env do
   @type local :: atom | nil
 
   @opaque export_vars :: vars | nil
-  @opaque private :: term
 
   @type t :: %{__struct__: __MODULE__,
-               private: private,
                module: atom,
                file: file,
                line: line,
@@ -97,8 +93,7 @@ defmodule Macro.Env do
       context_modules: [],
       vars: [],
       lexical_tracker: nil,
-      export_vars: nil,
-      private: nil}
+      export_vars: nil}
   end
 
   def __struct__(kv) do

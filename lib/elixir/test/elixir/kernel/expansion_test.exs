@@ -236,6 +236,15 @@ defmodule Kernel.ExpansionTest do
     test "expanded as arguments" do
       assert expand(quote(do: %{a: a = 1, b: a})) == quote do: %{a: a = 1, b: a()}
     end
+
+    test "with variables on keys" do
+      assert expand(quote(do: %{x = 1 => 1})) ==
+             quote(do: %{x = 1 => 1})
+
+      assert_raise CompileError,
+        ~r"illegal use of variable x inside map key match,",
+        fn -> expand(quote do: (%{x => 1} = %{})) end
+    end
   end
 
   defmodule User do

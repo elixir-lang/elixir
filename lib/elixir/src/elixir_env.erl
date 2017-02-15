@@ -18,7 +18,6 @@ new() ->
     context_modules => [],                 %% modules defined in the current context
     vars => [],                            %% a set of defined variables
     lexical_tracker => nil,                %% holds the lexical tracker PID
-    private => nil,                        %% private information to the compiler
     export_vars => nil}.                   %% a set of variables to be exported in some constructs
 
 linify({Line, Env}) ->
