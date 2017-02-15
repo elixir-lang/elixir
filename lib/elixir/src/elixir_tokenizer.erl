@@ -3,6 +3,34 @@
 -export([tokenize/3, tokenize/4, invalid_do_error/1]).
 -import(elixir_interpolation, [unescape_tokens/1]).
 
+%% Numbers
+-define(is_hex(S), (?is_digit(S) orelse (S >= $A andalso S =< $F) orelse (S >= $a andalso S =< $f))).
+-define(is_bin(S), (S >= $0 andalso S =< $1)).
+-define(is_octal(S), (S >= $0 andalso S =< $7)).
+
+%% Digits and letters
+-define(is_digit(S), (S >= $0 andalso S =< $9)).
+-define(is_upcase(S), (S >= $A andalso S =< $Z)).
+-define(is_downcase(S), (S >= $a andalso S =< $z)).
+
+%% Atoms
+-define(is_atom_start(S), (?is_quote(S) orelse ?is_upcase(S) orelse ?is_downcase(S) orelse (S == $_))).
+-define(is_atom(S), (?is_identifier(S) orelse (S == $@))).
+
+-define(is_identifier_start(S), (?is_upcase(S) orelse ?is_downcase(S) orelse (S == $_))).
+-define(is_identifier(S), (?is_digit(S) orelse ?is_identifier_start(S))).
+-define(is_sigil(S), ((S == $/) orelse (S == $<) orelse (S == $") orelse (S == $') orelse
+                      (S == $[) orelse (S == $() orelse (S == ${) orelse (S == $|))).
+
+%% Quotes
+-define(is_quote(S), (S == $" orelse S == $')).
+
+%% Spaces
+-define(is_horizontal_space(S), ((S == $\s) orelse (S == $\t))).
+-define(is_vertical_space(S), ((S == $\r) orelse (S == $\n))).
+-define(is_space(S), (?is_horizontal_space(S) orelse ?is_vertical_space(S))).
+
+%% Operators
 -define(at_op(T),
   T == $@).
 
