@@ -824,7 +824,7 @@ defmodule Kernel.ErrorsTest do
 
   test "invalid args for bodyless clause" do
     assert_compile_fail CompileError,
-      "nofile:2: can use only variables and \\\\ as arguments in definition header",
+      "nofile:2: only variables and \\\\ are allowed as arguments in definition header.",
       '''
       defmodule Kernel.ErrorsTest.InvalidArgsForBodylessClause do
         def foo(nil)
