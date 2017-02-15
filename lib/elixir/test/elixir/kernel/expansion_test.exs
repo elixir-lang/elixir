@@ -166,6 +166,12 @@ defmodule Kernel.ExpansionTest do
       message = ~r"expected variable \"a\" \(context Unknown\) to expand to an existing variable or be part of a match"
       assert_raise CompileError, message, fn -> expand(quote do: var!(a, Unknown)) end
     end
+
+    test "raises for _ used outside of a match" do
+      assert_raise CompileError, ~r"unbound variable _", fn ->
+        expand(quote do: {1, 2, _})
+      end
+    end
   end
 
   describe "^" do
