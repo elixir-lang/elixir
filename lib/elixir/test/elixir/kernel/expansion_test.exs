@@ -205,7 +205,7 @@ defmodule Kernel.ExpansionTest do
     end
 
     test "in guards" do
-      assert expand_and_clean(quote(do: fn pid when :erlang.==(pid, self) -> pid end), [:import, :context]) ==
+      assert expand(quote(do: fn pid when :erlang.==(pid, self) -> pid end)) |> clean([:import, :context]) ==
              quote(do: fn pid when :erlang.==(pid, :erlang.self()) -> pid end)
 
       assert_raise CompileError, ~r"cannot invoke local foo/1 inside guard", fn ->
@@ -225,8 +225,6 @@ defmodule Kernel.ExpansionTest do
       assert expand(quote(do: {b, a = 1, a})) == quote do: {b(), a = 1, a()}
     end
   end
-
-  ## Maps & structs
 
   describe "maps" do
     test "expanded as arguments" do
@@ -408,10 +406,10 @@ defmodule Kernel.ExpansionTest do
 
     test "expands remotes" do
       assert expand(quote do: &List.flatten/2) ==
-             quote do: :erlang.make_fun(:"Elixir.List", :flatten, 2)
+             quote(do: &:"Elixir.List".flatten/2) |> clean([:import, :context])
 
       assert expand(quote do: &Kernel.is_atom/1) ==
-             quote do: :erlang.make_fun(:erlang, :is_atom, 1)
+             quote(do: &:erlang.is_atom/1) |> clean([:import, :context])
     end
 
     test "expands macros" do
@@ -459,6 +457,12 @@ defmodule Kernel.ExpansionTest do
       assert_raise CompileError,
         ~r"nested captures via & are not allowed: &\(nil\)",
         fn -> expand(quote do: &(&())) end
+    end
+
+    test "fails on integers" do
+      assert_raise CompileError,
+        ~r"unhandled &1 outside of a capture",
+        fn -> expand(quote do: &1) end
     end
   end
 
@@ -700,12 +704,9 @@ defmodule Kernel.ExpansionTest do
     13
   end
 
-  defp expand_and_clean(expr, vars) do
+  defp clean(expr, vars) do
     cleaner = &Keyword.drop(&1, vars)
-    expr
-    |> expand_env(__ENV__)
-    |> elem(0)
-    |> Macro.prewalk(&Macro.update_meta(&1, cleaner))
+    Macro.prewalk(expr, &Macro.update_meta(&1, cleaner))
   end
 
   defp expand(expr) do

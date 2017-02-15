@@ -52,12 +52,6 @@ defmodule Kernel.ErrorsTest do
       'fn 1 end'
   end
 
-  test "invalid capture" do
-    assert_compile_fail CompileError,
-      "nofile:1: unhandled &1 outside of a capture",
-      '&1'
-  end
-
   test "invalid access" do
     msg = fn(val) ->
       "nofile:1: the Access syntax and calls to Access.get/2" <>

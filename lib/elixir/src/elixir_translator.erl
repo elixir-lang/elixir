@@ -45,11 +45,16 @@ translate({'__CALLER__', Meta, Atom}, S) when is_atom(Atom) ->
 
 %% Functions
 
-translate({'&', Meta, [{'/', [], [{Fun, [], Atom}, Arity]}]}, S)
+translate({'&', Meta, [{'/', _, [{{'.', _, [Remote, Fun]}, _, []}, Arity]}]}, S)
+    when is_atom(Fun), is_integer(Arity) ->
+  {TRemote, SR} = translate(Remote, S),
+  Ann = ?ann(Meta),
+  TFun = {atom, Ann, Fun},
+  TArity = {integer, Ann, Arity},
+  {{'fun', Ann, {function, TRemote, TFun, TArity}}, SR};
+translate({'&', Meta, [{'/', _, [{Fun, _, Atom}, Arity]}]}, S)
     when is_atom(Fun), is_atom(Atom), is_integer(Arity) ->
   {{'fun', ?ann(Meta), {function, Fun, Arity}}, S};
-translate({'&', Meta, [Arg]}, S) when is_integer(Arg) ->
-  compile_error(Meta, S#elixir_scope.file, "unhandled &~B outside of a capture", [Arg]);
 
 translate({fn, Meta, Clauses}, S) ->
   Transformer = fun({'->', CMeta, [ArgsWithGuards, Expr]}, Acc) ->
