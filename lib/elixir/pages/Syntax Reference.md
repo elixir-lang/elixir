@@ -94,7 +94,7 @@ Notice that `.` is also an operator. Remote calls use the dot in the AST with tw
 quote do
   foo.bar(1, 2, 3)
 end
-#=> {{:., [], [{:foo, [], Elixir}, :bar]}, [], [1, 2]}
+#=> {{:., [], [{:foo, [], Elixir}, :bar]}, [], [1, 2, 3]}
 ```
 
 Calling anonymous functions uses the dot in the AST with a single argument, mirroring the fact the second argument is "missing":
@@ -103,7 +103,7 @@ Calling anonymous functions uses the dot in the AST with a single argument, mirr
 quote do
   foo.(1, 2, 3)
 end
-#=> {{:., [], [{:foo, [], Elixir}]}, [], [1, 2]}
+#=> {{:., [], [{:foo, [], Elixir}]}, [], [1, 2, 3]}
 ```
 
 Many other Elixir constructs, such as `=`, `when`, `&` and `@` are simply treated as operators. See [the Operators page](operators.html) for a full reference.
