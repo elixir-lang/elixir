@@ -754,7 +754,7 @@ assert_no_underscore_clause_in_cond([{do, Clauses}], E) ->
     _Other ->
       ok
   end;
-assert_no_underscore_clause_in_cond(_BadBody, _E) ->
+assert_no_underscore_clause_in_cond(_Other, _E) ->
   ok.
 
 format_error({useless_literal, Term}) ->
