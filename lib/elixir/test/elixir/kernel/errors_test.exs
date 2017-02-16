@@ -52,20 +52,6 @@ defmodule Kernel.ErrorsTest do
       'fn 1 end'
   end
 
-  test "invalid access" do
-    msg = fn(val) ->
-      "nofile:1: the Access syntax and calls to Access.get/2" <>
-      " are not available for the value: " <> val
-    end
-
-    assert_compile_fail CompileError, msg.("1"), "1[:foo]"
-    assert_compile_fail CompileError, msg.("1.1"), "1.1[:foo]"
-    assert_compile_fail CompileError, msg.("{}"), "{}[:foo]"
-    assert_compile_fail CompileError, msg.(":foo"), ":foo[:foo]"
-    assert_compile_fail CompileError, msg.("\"\""), "\"\"[:foo]"
-    assert_compile_fail CompileError, msg.("<<>>"), "<<>>[:foo]"
-  end
-
   test "kw missing space" do
     msg = "nofile:1: keyword argument must be followed by space after: foo:"
 

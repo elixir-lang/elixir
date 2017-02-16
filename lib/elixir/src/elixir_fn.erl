@@ -125,7 +125,7 @@ validate(_Meta, [], _Pos, _E) ->
   [].
 
 escape({'&', _, [Pos]}, Counter, _E, Dict) when is_integer(Pos), Pos > 0 ->
-  Var = {list_to_atom([$x | integer_to_list(Pos)]), [{counter, Counter}], elixir_fn},
+  Var = {list_to_atom([$x | integer_to_list(Pos)]), [{counter, Counter}], 'Elixir'},
   {Var, orddict:store(Pos, Var, Dict)};
 escape({'&', Meta, [Pos]}, _Counter, E, _Dict) when is_integer(Pos) ->
   compile_error(Meta, ?m(E, file), "capture &~B is not allowed", [Pos]);
