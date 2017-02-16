@@ -300,7 +300,7 @@ defmodule File do
   end
 
   @doc """
-  Same as `stat/2` but returns the `File.Stat` directly and
+  Same as `stat/2` but returns the `File.Stat` directly, or
   throws `File.Error` if an error is returned.
   """
   @spec stat!(Path.t, stat_options) :: File.Stat.t | no_return
@@ -345,7 +345,7 @@ defmodule File do
   end
 
   @doc """
-  Same as `lstat/2` but returns the `File.Stat` struct directly and
+  Same as `lstat/2` but returns the `File.Stat` struct directly, or
   throws `File.Error` if an error is returned.
   """
   @spec lstat!(Path.t, stat_options) :: File.Stat.t | no_return
@@ -355,6 +355,41 @@ defmodule File do
       {:error, reason} ->
         raise File.Error, reason: reason, action: "read file stats",
           path: IO.chardata_to_string(path)
+    end
+  end
+
+  @doc """
+  Reads the symbolic link at `path`.
+
+  If path exists and is a symlink, returns `{:ok, target}`, otherwise returns `{:error, reason}`.
+
+  For more details, see [`:file.read_link/1`](http://erlang.org/doc/man/file.html#read_link-1).
+
+  Typical error reasons are:
+  
+    * `:einval` - path is not a symbolic link
+    * `:enoent` - path does not exist
+    * `:enotsup` - symbolic links are not supported on the current platform
+  """
+  @spec read_link(Path.t) :: {:ok, binary} | {:error, posix}
+  def read_link(path) do
+    case path |> IO.chardata_to_string |> F.read_link do
+      {:ok, target} -> {:ok, IO.chardata_to_string(target)}
+      error -> error
+    end
+  end
+
+  @doc """
+  Same as `read_link/1` but returns the target directly, or throws `File.Error` if an error is
+  returned.
+  """
+  @spec read_link!(Path.t) :: binary | no_return
+  def read_link!(path) do
+    case read_link(path) do
+      {:ok, resolved} ->
+        resolved
+      {:error, reason} ->
+        raise File.Error, reason: reason, action: "read link", path: IO.chardata_to_string(path)
     end
   end
 
