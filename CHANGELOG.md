@@ -109,6 +109,31 @@ You can now also install archives from Hex in this way. Since they are fetched a
 
 It is also possible to install escripts and archives by providing a Git/GitHub repo. See `mix help escript.install` and `mix help archive.install` for more details.
 
+## v1.4.2 (2017-02-16)
+
+### 1. Bug fixes
+
+#### EEx
+
+  * [EEx] Support middle expressions on trim mode
+
+#### Elixir
+
+  * [Calendar] Correct typo on Calendar types
+  * [Kernel] Ensure redefined functions point to the proper source
+  * [OptionParser] Add `:allow_inexistent_atoms` to support unsafe behaviour prior to v1.4
+  * [Stream] Allow consuming multiple items from suspended enumerable in `Stream.transform/3`
+  * [String] Incorporate new grapheme rules in Unicode 9
+
+#### IEx
+
+  * [IEx.Autocomplete] Do not crash on aliases which are not known at compile time
+
+#### Mix
+
+  * [Mix.Umbrella] Ensure umbrella projects can depend on other umbrella projects
+  * [Mix.Archive] Ensure previous archives with `.ez` extension are deleted
+
 ## v1.4.1 (2017-01-26)
 
 ### 1. Bug fixes
