@@ -50,7 +50,6 @@ expand({'<<>>', Meta, Args} = X, E) when is_list(Args) ->
 expand(X, E) ->
   elixir_exp:expand(X, E).
 
-
 assert_generator_start(_, [{'<-', _, [_, _]} | _], _) ->
   ok;
 assert_generator_start(_, [{'<<>>', _, [{'<-', _, [_, _]}]} | _], _) ->

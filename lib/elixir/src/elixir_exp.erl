@@ -602,7 +602,7 @@ expand_remote(Receiver, DotMeta, Right, Meta, Args, #{context := Context} = E, E
     elixir_lexical:record_remote(Receiver, Right, Arity,
                                  ?m(E, function), ?line(Meta), ?m(E, lexical_tracker)),
   {EArgs, EA} = expand_args(Args, E),
-  Rewritten = elixir_rewrite:rewrite(Receiver, DotMeta, Right, Meta, EArgs, EA),
+  Rewritten = elixir_rewrite:rewrite(Receiver, DotMeta, Right, Meta, EArgs),
   case allowed_in_context(Rewritten, Arity, Context) of
     true ->
       {Rewritten, elixir_env:mergev(EL, EA)};

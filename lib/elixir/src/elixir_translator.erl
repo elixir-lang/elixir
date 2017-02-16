@@ -203,25 +203,7 @@ translate({{'.', _, [Left, Right]}, Meta, []}, S)
 
 translate({{'.', _, [Left, Right]}, Meta, Args}, S)
     when (is_tuple(Left) orelse is_atom(Left)), is_atom(Right), is_list(Meta), is_list(Args) ->
-  {TLeft, SL} = translate(Left, S),
-  {TArgs, SA} = translate_args(Args, mergec(S, SL)),
-
-  Ann    = ?ann(Meta),
-  Arity  = length(Args),
-  TRight = {atom, Ann, Right},
-  SC = mergev(SL, SA),
-
-  %% Rewrite Erlang function calls as operators so they
-  %% work on guards, matches and so on.
-  case (Left == erlang) andalso elixir_utils:guard_op(Right, Arity) of
-    true ->
-      case TArgs of
-        [TOne]       -> {{op, Ann, Right, TOne}, SC};
-        [TOne, TTwo] -> {{op, Ann, Right, TOne, TTwo}, SC}
-      end;
-    false ->
-      {{call, Ann, {remote, Ann, TLeft, TRight}, TArgs}, SC}
-  end;
+  translate_remote(Left, Right, Meta, Args, S);
 
 %% Anonymous function calls
 
@@ -367,7 +349,7 @@ translate_map(Meta, Assocs, S) ->
 
 translate_struct(Meta, Name, {'%{}', _, [{'|', _, [Update, Assocs]}]}, S) ->
   Ann = ?ann(Meta),
-  Generated = ?generated(Meta),
+  Generated = ?generated,
   {VarName, _, VS} = elixir_scope:build_var('_', S),
 
   Var = {var, Ann, VarName},
@@ -415,3 +397,41 @@ translate_key_val_op(TUpdate, S) ->
 
 build_map(Ann, {ok, TUpdate}, TArgs, SA) -> {{map, Ann, TUpdate, TArgs}, SA};
 build_map(Ann, none, TArgs, SA) -> {{map, Ann, TArgs}, SA}.
+
+%% Optimizations that are specific to Erlang and change
+%% the format of the AST.
+
+translate_remote('Elixir.String.Chars', to_string, Meta, [Arg], S) ->
+  {TArg, TS} = translate(Arg, S),
+  {VarName, _, VS} = elixir_scope:build_var(rewrite, TS),
+
+  Generated = ?ann(?generated(Meta)),
+  Var   = {var, Generated, VarName},
+  Guard = elixir_utils:erl_call(Generated, erlang, is_binary, [Var]),
+  Slow  = elixir_utils:erl_call(Generated, 'Elixir.String.Chars', to_string, [Var]),
+  Fast  = Var,
+
+  {{'case', Generated, TArg, [
+    {clause, Generated, [Var], [[Guard]], [Fast]},
+    {clause, Generated, [Var], [], [Slow]}
+  ]}, VS};
+translate_remote(Left, Right, Meta, Args, S) ->
+  {TLeft, SL} = translate(Left, S),
+  {TArgs, SA} = translate_args(Args, mergec(S, SL)),
+
+  Ann    = ?ann(Meta),
+  Arity  = length(Args),
+  TRight = {atom, Ann, Right},
+  SC = mergev(SL, SA),
+
+  %% Rewrite Erlang function calls as operators so they
+  %% work on guards, matches and so on.
+  case (Left == erlang) andalso elixir_utils:guard_op(Right, Arity) of
+    true ->
+      case TArgs of
+        [TOne]       -> {{op, Ann, Right, TOne}, SC};
+        [TOne, TTwo] -> {{op, Ann, Right, TOne, TTwo}, SC}
+      end;
+    false ->
+      {{call, Ann, {remote, Ann, TLeft, TRight}, TArgs}, SC}
+  end.

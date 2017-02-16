@@ -1,8 +1,6 @@
 -module(elixir_rewrite).
--export([rewrite/6, inline/3]).
+-export([rewrite/5, inline/3]).
 -include("elixir.hrl").
-
--define(is_literal(Arg), (is_binary(Arg) orelse is_number(Arg) orelse is_atom(Arg))).
 
 %% Convenience variables
 
@@ -161,65 +159,18 @@ inline(_, _, _) -> false.
 
 %% Rewrite rules
 %%
-%% Rewrite rules are more complex than regular inlining code.
-%% It receives all remote call arguments and return quoted
-%% expressions with the new environment.
-%%
-%% Notice we use the given Meta in rewritten code so we
-%% get proper coverage report. However, we mark the enclosing
-%% cases as hidden to avoid warnings.
+%% Rewrite rules are more complex than regular inlining code
+%% as they may change the number of arguments. However, they
+%% don't add new code (such as case statements), at best they
+%% perform dead code removal.
 
-%% Complex rewrite rules
-
-%% TODO: Move rewrite rules to Erlang pass as those are
-%% optimizations specific to the Erlang backend. They also
-%% affect code such as guard validation.
-
-rewrite(?access, _DotMeta, 'get', _Meta, [nil, Arg], _Env)
-    when ?is_literal(Arg) orelse (is_atom(element(1, Arg)) andalso element(3, Arg) == nil) ->
-  nil;
-rewrite(?access, _DotMeta, 'get', Meta, [Arg, _], Env)
-    when ?is_literal(Arg) orelse element(1, Arg) == '{}' orelse element(1, Arg) == '<<>>' ->
-  elixir_errors:compile_error(Meta, ?m(Env, file),
-    "the Access syntax and calls to Access.get/2 are not available for the value: ~ts",
-    ['Elixir.Macro':to_string(Arg)]);
-rewrite(?list_chars, _DotMeta, 'to_charlist', _Meta, [List], _Env) when is_list(List) ->
-  List;
-rewrite(?string_chars, _DotMeta, 'to_string', _Meta, [String], _Env) when is_binary(String) ->
+rewrite(?string_chars, _DotMeta, 'to_string', _Meta, [String]) when is_binary(String) ->
   String;
-rewrite(?string_chars, _, 'to_string', _, [{{'.', _, [?kernel, inspect]}, _, _} = Call], _Env) ->
+rewrite(?string_chars, _, 'to_string', _, [{{'.', _, [?kernel, inspect]}, _, _} = Call]) ->
   Call;
-rewrite(?string_chars, DotMeta, 'to_string', Meta, [Call], _Env) ->
-  Generated = ?generated(Meta),
-  Var   = {'rewrite', Meta, 'Elixir'},
-  Guard = remote(erlang, Generated, is_binary, Generated, [Var]),
-  Slow  = remote(?string_chars, DotMeta, 'to_string', Meta, [Var]),
-  Fast  = Var,
-
-  {'case', Generated, [Call, [{do,
-    [{'->', Generated, [[{'when', Meta, [Var, Guard]}], Fast]},
-     {'->', Generated, [[Var], Slow]}]
-  }]]};
-
-rewrite(?enum, DotMeta, 'reverse', Meta, [List], _Env) when is_list(List) ->
-  remote(lists, DotMeta, 'reverse', Meta, [List]);
-rewrite(?enum, DotMeta, 'reverse', Meta, [List], _Env) ->
-  Generated = ?generated(Meta),
-  Var   = {'rewrite', Meta, 'Elixir'},
-  Guard = remote(erlang, Generated, is_list, Generated, [Var]),
-  Slow  = remote(?enum, DotMeta, 'reverse', Meta, [Var, []]),
-  Fast  = remote(lists, DotMeta, 'reverse', Meta, [Var]),
-
-  {'case', Generated, [List, [{do,
-    [{'->', Generated, [[{'when', Meta, [Var, Guard]}], Fast]},
-     {'->', Generated, [[Var], Slow]}]
-  }]]};
-
-rewrite(Receiver, DotMeta, Right, Meta, Args, _Env) ->
+rewrite(Receiver, DotMeta, Right, Meta, Args) ->
   {EReceiver, ERight, EArgs} = rewrite(Receiver, Right, Args),
-  remote(EReceiver, DotMeta, ERight, Meta, EArgs).
-
-%% Simple rewrite rules
+  {{'.', DotMeta, [EReceiver, ERight]}, Meta, EArgs}.
 
 rewrite(?atom, to_string, [Arg]) ->
   {erlang, atom_to_binary, [Arg, utf8]};
@@ -257,11 +208,6 @@ rewrite(?tuple, duplicate, [Data, Size]) ->
   {erlang, make_tuple, [Size, Data]};
 rewrite(Receiver, Fun, Args) ->
   {Receiver, Fun, Args}.
-
-%% Rewrite helpers
-
-remote(Receiver, DotMeta, Right, Meta, Args) ->
-  {{'.', DotMeta, [Receiver, Right]}, Meta, Args}.
 
 increment(Number) when is_number(Number) ->
   Number + 1;

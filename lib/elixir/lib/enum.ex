@@ -1851,9 +1851,11 @@ defmodule Enum do
 
   """
   @spec reverse(t) :: list
-  def reverse(enumerable) do
-    reverse(enumerable, [])
-  end
+  def reverse([]), do: []
+  def reverse([_] = l), do: l
+  def reverse([a, b]), do: [b, a]
+  def reverse([a, b | l]), do: :lists.reverse(l, [b, a])
+  def reverse(enumerable), do: reduce(enumerable, [], &[&1 | &2])
 
   @doc """
   Reverses the elements in `enumerable`, appends the tail, and returns
