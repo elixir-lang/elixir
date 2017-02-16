@@ -473,6 +473,9 @@ defmodule URI do
   def merge(_base, %URI{scheme: rel_scheme} = rel) when rel_scheme != nil do
     rel
   end
+  def merge(base, %URI{authority: authority} = rel) when authority != nil do
+    %{rel | scheme: base.scheme}
+  end
   def merge(%URI{} = base, %URI{path: rel_path} = rel) when rel_path in ["", nil] do
     %{base | query: rel.query || base.query, fragment: rel.fragment}
   end
