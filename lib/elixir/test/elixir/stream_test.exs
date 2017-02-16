@@ -481,6 +481,14 @@ defmodule StreamTest do
     assert Process.get(:stream_transform)
   end
 
+  test "transform/3 (via flat_map) handles multiple returns from suspension" do
+    assert [false]
+           |> Stream.take(1)
+           |> Stream.concat([true])
+           |> Stream.flat_map(&[&1])
+           |> Enum.to_list() == [false, true]
+  end
+
   test "iterate/2" do
     stream = Stream.iterate(0, &(&1+2))
     assert Enum.take(stream, 5) == [0, 2, 4, 6, 8]
