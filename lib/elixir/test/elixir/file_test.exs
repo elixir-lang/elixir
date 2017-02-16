@@ -1306,7 +1306,6 @@ defmodule FileTest do
     assert_raise File.Error, fn -> File.read_link!(dest) end
   end
 
-
   test "IO stream UTF-8" do
     src  = File.open! fixture_path("file.txt"), [:utf8]
     dest = tmp_path("tmp_test.txt")

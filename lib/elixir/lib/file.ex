@@ -361,26 +361,29 @@ defmodule File do
   @doc """
   Reads the symbolic link at `path`.
 
-  If path exists and is a symlink, returns `{:ok, target}`, otherwise returns `{:error, reason}`.
+  If `path` exists and is a symlink, returns `{:ok, target}`, otherwise returns
+  `{:error, reason}`.
 
-  For more details, see [`:file.read_link/1`](http://erlang.org/doc/man/file.html#read_link-1).
+  For more details, see
+  [`:file.read_link/1`](http://erlang.org/doc/man/file.html#read_link-1).
 
   Typical error reasons are:
-  
+
     * `:einval` - path is not a symbolic link
     * `:enoent` - path does not exist
     * `:enotsup` - symbolic links are not supported on the current platform
+
   """
   @spec read_link(Path.t) :: {:ok, binary} | {:error, posix}
   def read_link(path) do
-    case path |> IO.chardata_to_string |> F.read_link do
+    case path |> IO.chardata_to_string |> :file.read_link do
       {:ok, target} -> {:ok, IO.chardata_to_string(target)}
       error -> error
     end
   end
 
   @doc """
-  Same as `read_link/1` but returns the target directly, or throws `File.Error` if an error is
+  Same as `read_link/1` but returns the target directly or throws `File.Error` if an error is
   returned.
   """
   @spec read_link!(Path.t) :: binary | no_return
