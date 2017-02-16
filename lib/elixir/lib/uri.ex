@@ -509,7 +509,7 @@ defmodule URI do
   defp remove_dot_segments([head | tail], acc),
     do: remove_dot_segments(tail, [head | acc])
 
-  def path_to_segments(path) do
+  defp path_to_segments(path) do
     [head | tail] = String.split(path, "/")
     reverse_and_discard_empty(tail, [head])
   end
