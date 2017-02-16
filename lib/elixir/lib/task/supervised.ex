@@ -148,12 +148,16 @@ defmodule Task.Supervised do
     timeout = Keyword.get(options, :timeout, 5000)
     parent = self()
 
-    # Start a process responsible for translating down messages.
-    {:trap_exit, trap_exit} =
-      Process.info(self(), :trap_exit)
+    # Start a process responsible for spawning processes and translating "down"
+    # messages. This process will trap exits if the current process is trapping
+    # exit, or it won't trap exits otherwise.
+    {:trap_exit, trap_exit?} = Process.info(self(), :trap_exit)
     {monitor_pid, monitor_ref} =
-      Process.spawn(fn -> stream_monitor(parent, mfa, spawn, trap_exit) end, [:link, :monitor])
+      Process.spawn(fn -> stream_monitor(parent, mfa, spawn, trap_exit?) end, [:link, :monitor])
 
+    # Now that we have the pid of the "monitor" process and the reference of the
+    # monitor we use to monitor such process, we can inform the monitor process
+    # about our reference to it.
     send(monitor_pid, {parent, monitor_ref})
 
     stream_reduce(acc, max_concurrency, 0, 0, %{}, next,
@@ -302,6 +306,8 @@ defmodule Task.Supervised do
   defp stream_mfa({mod, fun, args}, arg), do: {mod, fun, [arg | args]}
   defp stream_mfa(fun, arg), do: {:erlang, :apply, [fun, [arg]]}
 
+  # This function spawns a task for the given "value", and puts the pid of this
+  # new task in the map of "waiting" tasks, which is returned.
   defp stream_spawn(value, spawned, waiting, monitor_pid, monitor_ref, timeout) do
     send(monitor_pid, {:spawn, spawned, value})
 
@@ -315,25 +321,35 @@ defmodule Task.Supervised do
     end
   end
 
-  defp stream_monitor(parent_pid, mfa, spawn, trap_exit) do
-    Process.flag(:trap_exit, trap_exit)
+  defp stream_monitor(parent_pid, mfa, spawn, trap_exit?) do
+    Process.flag(:trap_exit, trap_exit?)
+
+    # Let's wait for the parent process to tell this process the monitor ref
+    # it's using to monitor this process. If the parent process dies while this
+    # process waits, this process dies with the same reason.
     parent_ref = Process.monitor(parent_pid)
     receive do
       {^parent_pid, monitor_ref} ->
-        stream_monitor(parent_pid, parent_ref, mfa, spawn, monitor_ref, %{})
+        stream_monitor_loop(parent_pid, parent_ref, mfa, spawn, monitor_ref, _counters = %{})
       {:DOWN, ^parent_ref, _, _, reason} ->
         exit(reason)
     end
   end
 
-  defp stream_monitor(parent_pid, parent_ref, mfa, spawn, monitor_ref, counters) do
+  defp stream_monitor_loop(parent_pid, parent_ref, mfa, spawn, monitor_ref, counters) do
     receive do
+      # The parent process is telling us to spawn a new task to process
+      # "value". We spawn it and notify the parent about its pid.
       {:spawn, counter, value} ->
         {type, pid} = spawn.(parent_pid, stream_mfa(mfa, value))
         ref = Process.monitor(pid)
         send(parent_pid, {:spawned, {monitor_ref, counter}, pid})
         counters = Map.put(counters, ref, {counter, type, pid})
-        stream_monitor(parent_pid, parent_ref, mfa, spawn, monitor_ref, counters)
+        stream_monitor_loop(parent_pid, parent_ref, mfa, spawn, monitor_ref, counters)
+
+      # The parent process is telling us to stop because the stream is being
+      # closed. In this case, we forcely kill all spawned processes and then
+      # exit gracefully ourself.
       {:stop, ^monitor_ref} ->
         Process.flag(:trap_exit, true)
         for {ref, {_counter, _, pid}} <- counters do
@@ -343,17 +359,24 @@ defmodule Task.Supervised do
           end
         end
         exit(:normal)
+
+      # The parent process went down with a given reason. We kill all the
+      # spawned processes (that are also linked) with the same reason, and then
+      # exit ourself with the same reason.
       {:DOWN, ^parent_ref, _, _, reason} ->
         for {_ref, {_counter, :link, pid}} <- counters do
           Process.exit(pid, reason)
         end
         exit(reason)
+
+      # One of the spawned processes went down. We inform the parent process of
+      # this and keep going.
       {:DOWN, ref, _, _, reason} ->
         {{counter, _, _}, counters} = Map.pop(counters, ref)
         send(parent_pid, {:down, {monitor_ref, counter}, reason})
-        stream_monitor(parent_pid, parent_ref, mfa, spawn, monitor_ref, counters)
+        stream_monitor_loop(parent_pid, parent_ref, mfa, spawn, monitor_ref, counters)
       {:EXIT, _, _} ->
-        stream_monitor(parent_pid, parent_ref, mfa, spawn, monitor_ref, counters)
+        stream_monitor_loop(parent_pid, parent_ref, mfa, spawn, monitor_ref, counters)
     end
   end
 end

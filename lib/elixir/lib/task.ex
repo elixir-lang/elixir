@@ -341,11 +341,11 @@ defmodule Task do
   Each `enumerable` item is passed as argument to the given function `fun` and
   processed by its own task. The tasks will be linked to the current process,
   similarly to `async/1`.
-  
+
   ## Example
-  
+
   Count the codepoints in each string asynchronously, then add the counts together using reduce.
-  
+
       iex> strings = ["long string", "longer string", "there are many of these"]
       iex> stream = Task.async_stream(strings, fn text -> text |> String.codepoints |> Enum.count end)
       iex> Enum.reduce(stream, 0, fn {:ok, num}, acc -> num + acc end)
@@ -364,12 +364,17 @@ defmodule Task do
     end)
   end
 
-  defp get_info(self) do
-    {node(),
-     case Process.info(self, :registered_name) do
-       {:registered_name, []} -> self()
-       {:registered_name, name} -> name
-     end}
+  # Returns a tuple with the node where this is executed and either the
+  # registered name of the given pid or the pid of where this is executed. Used
+  # when exiting from tasks to print out from where the task was started.
+  defp get_info(pid) do
+    self_or_name =
+      case Process.info(pid, :registered_name) do
+        {:registered_name, []} -> self()
+        {:registered_name, name} -> name
+      end
+
+    {node(), self_or_name}
   end
 
   @doc """
