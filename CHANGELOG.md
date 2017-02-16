@@ -121,7 +121,7 @@ It is also possible to install escripts and archives by providing a Git/GitHub r
 
   * [Calendar] Correct typo on Calendar types
   * [Kernel] Ensure redefined functions point to the proper source
-  * [OptionParser] Add `:allow_inexistent_atoms` to support unsafe behaviour prior to v1.4
+  * [OptionParser] Add `:allow_nonexistent_atoms` to support unsafe behaviour prior to v1.4
   * [Stream] Allow consuming multiple items from suspended enumerable in `Stream.transform/3`
   * [String] Incorporate new grapheme rules in Unicode 9
 
