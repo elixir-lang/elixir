@@ -2,11 +2,11 @@
 -define(ann(Opts), elixir_utils:get_ann(Opts)).
 -define(line(Opts), elixir_utils:get_line(Opts)).
 
-%% TODO: Not we are passing the location on generated opts but
+%% TODO: Now we are passing the location on generated opts but
 %% it is dropped when we convert to Erlang AST. Although that is
 %% a problem, dropping the location is what makes it work Erlang 18.
-%% Once Erlang 18 is dropped it would be best to have two generated
-%% definitions. One for ann and another for metas.
+%% Once Erlang 18 is dropped it would be best to drop generated/0
+%% and have two generated definitions: one for ann and another for metas.
 -define(generated, [{generated, true}, {location, 0}]).
 -define(generated(Opts), [{generated, true}, {location, ?line(Opts)}]).
 
