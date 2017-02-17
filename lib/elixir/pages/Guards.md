@@ -191,4 +191,32 @@ def foo(_other) do
 end
 ```
 
-The two forms are exactly the same semantically but there are cases where the latter one may be more aesthetically pleasing.
+For most cases, the two forms are exactly the same. However, there exists a subtle difference in the case of failing guards, as discussed in the section above.
+In case of a boolean expression guard, a failed element means the whole guard fails. In case of multiple guards it means the next one will be evaluated.
+The difference can be highlighted with an example:
+
+```elixir
+def multiguard(value)
+    when map_size(value) < 1
+    when tuple_size(value) < 1 do
+  :guard_passed
+end
+def multiguard(_value) do
+  :guard_failed
+end
+
+def boolean(value) when map_size(value) < 1 or tuple_size(value) < 1 do
+  :guard_passed
+end
+def boolean(value) do
+  :guard_failed
+end
+
+multiguard(%{}) #=> :guard_passed
+multiguard({})  #=> :guard_passed
+
+boolean(%{}) #=> :guard_passed
+boolean({})  #=> :guard_failed
+```
+
+For cases where guards do not rely on the failing guard behavior the two forms are exactly the same semantically but there are cases where multiple guard clauses may be more aesthetically pleasing.
