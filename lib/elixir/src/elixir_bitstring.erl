@@ -26,7 +26,7 @@ expand_bitstr(Fun, [{'::', Meta, [Left, Right]} | T], Acc, E) ->
     _               -> E#{context := nil} %% expand_each, revert assigns
   end,
 
-  ERight = expand_bit_info(Meta, Right, ER),
+  ERight = expand_bit_info(ELeft, Meta, Right, ER),
   expand_bitstr(Fun, T, [{'::', Meta, [ELeft, ERight]} | Acc], EL);
 
 expand_bitstr(Fun, [H | T], Acc, E) ->
@@ -35,12 +35,17 @@ expand_bitstr(Fun, [H | T], Acc, E) ->
 
 %% Expand bit info
 
-expand_bit_info(Meta, Info, E) ->
-  expand_bit_info(Meta, unpack_bit_info(Info, []), default, [], E).
+expand_bit_info(Left, Meta, Info, E) ->
+  expand_bit_info(Left, Meta, unpack_bit_info(Info, []), default, [], E).
 
-expand_bit_info(Meta, [{size, _, [_]=Args} | T], Size, Types, E) ->
-  case Size of
-    default ->
+expand_bit_info(Left, Meta, [{size, _, [_] = Args} | T], Size, Types, E) ->
+  case {Left, Size} of
+    %% If we see a "size" part but the LHS of :: is a literal binary, then we can
+    %% safely raise; we're sure that this is the first size we encountered
+    %% (default) otherwise we would have raised before.
+    {Bin, default} when is_binary(Bin) ->
+      elixir_errors:compile_error(Meta, ?m(E, file), "size is not supported for literal string in <<>>");
+    {_, default} ->
       {[EArg], EE} = elixir_exp:expand_args(Args, E),
 
       case EArg of
@@ -54,27 +59,27 @@ expand_bit_info(Meta, [{size, _, [_]=Args} | T], Size, Types, E) ->
             ['Elixir.Macro':to_string(EArg)])
       end,
 
-      expand_bit_info(Meta, T, {size, [], [EArg]}, Types, EE);
+      expand_bit_info(Left, Meta, T, {size, [], [EArg]}, Types, EE);
     _ ->
       elixir_errors:compile_error(Meta, ?m(E, file),
         "duplicated size definition in bitstring")
   end;
 
-expand_bit_info(Meta, [{Expr, ExprMeta, Args} | T], Size, Types, E) when is_atom(Expr) ->
+expand_bit_info(Left, Meta, [{Expr, ExprMeta, Args} | T], Size, Types, E) when is_atom(Expr) ->
   case expand_bit_type(Expr, Args) of
     type ->
       {EArgs, EE} = elixir_exp:expand_args(Args, E),
       validate_bit_type_args(Meta, Expr, EArgs, EE),
-      expand_bit_info(Meta, T, Size, [{Expr, [], EArgs} | Types], EE);
+      expand_bit_info(Left, Meta, T, Size, [{Expr, [], EArgs} | Types], EE);
     none ->
-      handle_unknown_bit_info(Meta, {Expr, ExprMeta, Args}, T, Size, Types, E)
+      handle_unknown_bit_info(Left, Meta, {Expr, ExprMeta, Args}, T, Size, Types, E)
   end;
 
-expand_bit_info(Meta, [Expr | _], _Size, _Types, E) ->
+expand_bit_info(_Left, Meta, [Expr | _], _Size, _Types, E) ->
   elixir_errors:compile_error(Meta, ?m(E, file),
     "unknown bitstring specifier ~ts", ['Elixir.Kernel':inspect(Expr)]);
 
-expand_bit_info(Meta, [], Size, Types, _) ->
+expand_bit_info(_Left, Meta, [], Size, Types, _) ->
   [H | T] = case Size of
     default -> lists:reverse(Types);
     _       -> lists:reverse(Types, [Size])
@@ -105,13 +110,13 @@ validate_bit_type_args(Meta, unit, [Unit], E) when not is_integer(Unit) ->
 validate_bit_type_args(_Meta, _Expr, _Args, _E) ->
   ok.
 
-handle_unknown_bit_info(Meta, Expr, T, Size, Types, E) ->
+handle_unknown_bit_info(Left, Meta, Expr, T, Size, Types, E) ->
   case 'Elixir.Macro':expand(Expr, elixir_env:linify({?line(Meta), E})) of
     Expr ->
       elixir_errors:compile_error(Meta, ?m(E, file),
         "unknown bitstring specifier ~ts", ['Elixir.Macro':to_string(Expr)]);
     Info ->
-      expand_bit_info(Meta, unpack_bit_info(Info, []) ++ T, Size, Types, E)
+      expand_bit_info(Left, Meta, unpack_bit_info(Info, []) ++ T, Size, Types, E)
   end.
 
 unpack_bit_info({'-', _, [H, T]}, Acc) ->
@@ -177,9 +182,6 @@ build_bitstr_each(Fun, T, Meta, S, Acc, H, default, Types) when is_binary(H) ->
     end,
 
   build_bitstr_each(Fun, T, Meta, S, [Element | Acc]);
-
-build_bitstr_each(_Fun, _T, Meta, S, _Acc, H, _Size, _Types) when is_binary(H) ->
-  elixir_errors:compile_error(Meta, S#elixir_scope.file, "size is not supported for literal string in <<>>");
 
 build_bitstr_each(_Fun, _T, Meta, S, _Acc, H, _Size, _Types) when is_list(H); is_atom(H) ->
   elixir_errors:compile_error(Meta, S#elixir_scope.file, "invalid literal ~ts in <<>>",

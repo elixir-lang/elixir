@@ -729,6 +729,12 @@ defmodule Kernel.ExpansionTest do
       assert expand(quote do: (require Kernel.ExpansionTarget; <<x::size(Kernel.ExpansionTarget.seventeen)>>)) ==
              quote do: (:"Elixir.Kernel.ExpansionTarget"; <<x()::size(17)>>)
     end
+
+    test "raises if a size is provided with a literal binary" do
+      assert_raise CompileError, ~r"size is not supported for literal string in <<>>", fn ->
+        expand(quote do: <<"foo"::binary-size(3)>>)
+      end
+    end
   end
 
   test "handles invalid expressions" do
