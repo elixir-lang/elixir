@@ -223,7 +223,7 @@ defmodule Mix.Tasks.New do
 
   ```elixir
   def deps do
-    [{:<%= @app %>, "~> 0.1.0"}]
+    [{:<%= @app %>, "~> 0.1"}]
   end
   ```
 
