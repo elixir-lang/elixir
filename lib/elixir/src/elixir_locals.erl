@@ -4,39 +4,32 @@
   setup/1, cleanup/1, cache_env/1, get_cached_env/1,
   record_local/2, record_local/3, record_import/4,
   record_definition/3, record_defaults/4,
-  ensure_no_import_conflict/4, warn_unused_local/3, format_error/1
+  ensure_no_import_conflict/4, warn_unused_local/3,
+  local_for/4, format_error/1
 ]).
--export([macro_for/3, local_for/4]).
 
 -include("elixir.hrl").
 -define(attr, {elixir, locals_tracker}).
 -define(tracker, 'Elixir.Module.LocalsTracker').
 
-macro_for(Module, Name, Arity) ->
+local_for(Module, Name, Arity, Kinds) ->
   Tuple = {Name, Arity},
-  try elixir_def:lookup_clauses(Module, Tuple) of
-    {Kind, Ann, [_ | _] = Clauses} when Kind == defmacro; Kind == defmacrop ->
-      fun() -> get_function(Ann, Module, Clauses) end;
-    _ ->
+  try elixir_def:lookup_definition(Module, Tuple) of
+    {{_, Kind, Ann, _, _, _, _}, Clauses} ->
+      case (Kinds == all) orelse (lists:member(Kind, Kinds)) of
+        true -> local_to_fun(Ann, Module, Clauses);
+        false -> false
+      end;
+    false ->
       false
   catch
     error:badarg -> false
   end.
 
-local_for(Module, Name, Arity, Given) ->
-  Tuple = {Name, Arity},
-  case elixir_def:lookup_clauses(Module, Tuple) of
-    {Kind, Ann, [_ | _] = Clauses} when Given == nil; Kind == Given ->
-      get_function(Ann, Module, Clauses);
-    _ ->
-      {current_stacktrace, [_ | T]} = erlang:process_info(self(), current_stacktrace),
-      erlang:raise(error, undef, [{Module, Name, Arity, []} | T])
-  end.
-
-get_function(Ann, Module, Clauses) ->
+local_to_fun(Ann, Module, Clauses) ->
   Fun = {'fun', Ann, {clauses, Clauses}},
-  {value, Result, _Binding} =
-    erl_eval:expr(Fun, [], {value, fun(Name, Args) -> invoke_local(Module, Name, Args) end}),
+  LocalHandler = {value, fun(Name, Args) -> invoke_local(Module, Name, Args) end},
+  {value, Result, _Binding} = erl_eval:expr(Fun, [], LocalHandler),
   Result.
 
 invoke_local(Module, RawName, Args) ->
@@ -46,8 +39,14 @@ invoke_local(Module, RawName, Args) ->
     "MACRO-" ++ Rest -> {list_to_atom(Rest), length(Args) - 1};
     _ -> {RawName, length(Args)}
   end,
-  apply(local_for(Module, Name, Arity, nil), Args).
 
+  case local_for(Module, Name, Arity, all) of
+    false ->
+      {current_stacktrace, [_ | T]} = erlang:process_info(self(), current_stacktrace),
+      erlang:raise(error, undef, [{Module, Name, Arity, []} | T]);
+    Fun ->
+      apply(Fun, Args)
+  end.
 
 %% TRACKING
 

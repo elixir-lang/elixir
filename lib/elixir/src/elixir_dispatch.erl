@@ -106,31 +106,34 @@ dispatch_require(_Meta, Receiver, Name, Args, _E, Callback) ->
 %% Macros expansion
 
 expand_import(Meta, {Name, Arity} = Tuple, Args, E, Extra, External) ->
-  Module      = ?m(E, module),
-  Dispatch    = find_dispatch(Meta, Tuple, Extra, E),
-  Function    = ?m(E, function),
-  AllowLocals = External orelse ((Function /= nil) andalso (Function /= Tuple)),
-  Local       = AllowLocals andalso elixir_locals:macro_for(Module, Name, Arity),
+  Module = ?m(E, module),
+  Function = ?m(E, function),
+  Dispatch = find_dispatch(Meta, Tuple, Extra, E),
 
   case Dispatch of
-    %% In case it is an import, we dispatch the import.
     {import, _} ->
       do_expand_import(Meta, Tuple, Args, Module, E, Dispatch);
-
-    %% There is a local and an import. This is a conflict unless
-    %% the receiver is the same as module (happens on bootstrap).
-    {_, Receiver} when Local /= false, Receiver /= Module ->
-      Error = {macro_conflict, {Receiver, Name, Arity}},
-      elixir_errors:form_error(Meta, ?m(E, file), ?MODULE, Error);
-
-    %% There is no local. Dispatch the import.
-    _ when Local == false ->
-      do_expand_import(Meta, Tuple, Args, Module, E, Dispatch);
-
-    %% Dispatch to the local.
     _ ->
-      elixir_locals:record_local(Tuple, Module, Function),
-      {ok, Module, expand_macro_fun(Meta, Local(), Module, Name, Args, E)}
+      AllowLocals = External orelse ((Function /= nil) andalso (Function /= Tuple)),
+      Local = AllowLocals andalso
+                elixir_locals:local_for(Module, Name, Arity, [defmacro, defmacrop]),
+
+      case Dispatch of
+        %% There is a local and an import. This is a conflict unless
+        %% the receiver is the same as module (happens on bootstrap).
+        {_, Receiver} when Local /= false, Receiver /= Module ->
+          Error = {macro_conflict, {Receiver, Name, Arity}},
+          elixir_errors:form_error(Meta, ?m(E, file), ?MODULE, Error);
+
+        %% There is no local. Dispatch the import.
+        _ when Local == false ->
+          do_expand_import(Meta, Tuple, Args, Module, E, Dispatch);
+
+        %% Dispatch to the local.
+        _ ->
+          elixir_locals:record_local(Tuple, Module, Function),
+          {ok, Module, expand_macro_fun(Meta, Local, Module, Name, Args, E)}
+      end
   end.
 
 do_expand_import(Meta, {Name, Arity} = Tuple, Args, Module, E, Result) ->
