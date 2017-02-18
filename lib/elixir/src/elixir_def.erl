@@ -226,7 +226,9 @@ unwrap_definition([[Tuple] | T], File, Module, Table, All, Private) ->
       NewPrivate =
         if
           Kind == defp; Kind == defmacrop ->
-            [{Tuple, Kind, Ann, Check, Defaults} | Private];
+            %% TODO: This should be the actual meta
+            AnnCheck = case Check of true -> [{line, Ann}]; false -> false end,
+            [{Tuple, Kind, AnnCheck, Defaults} | Private];
           true ->
             Private
         end,

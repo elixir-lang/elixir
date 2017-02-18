@@ -46,18 +46,22 @@ store(Module, Function, Hidden) ->
             {defp, name(Name, Count), Arity}
         end,
 
+      Tuple = {FinalName, FinalArity},
+
       case Overridden of
         false ->
           overridable(Module, maps:put(Function, {Count, Clause, Neighbours, true}, Overridable)),
           (not elixir_compiler:get_opt(internal)) andalso
             'Elixir.Module.LocalsTracker':reattach(Module, Kind, Function, Neighbours),
           Def = {function, Line, FinalName, FinalArity, Clauses},
-          elixir_def:store_each(false, FinalKind, File, Location, Module, Defaults, Def);
+          elixir_def:store_each(false, FinalKind, File, Location, Module, Defaults, Def),
+          elixir_locals:record_definition(Tuple, FinalKind, Module),
+          elixir_locals:record_local(Tuple, Module, Function);
         true ->
           ok
       end,
 
-      {ok, {FinalName, FinalArity}};
+      {ok, Tuple};
     error ->
       error
   end.
