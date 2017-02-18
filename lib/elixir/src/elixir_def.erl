@@ -6,8 +6,6 @@
 -include("elixir.hrl").
 -define(last_def, {elixir, last_def}).
 
-%% Table management functions. Called internally.
-
 setup(Module) ->
   reset_last(Module),
   ok.
@@ -32,9 +30,6 @@ take_definition(Module, Tuple) ->
     [] ->
       false
   end.
-
-% Invoked by the wrap definition with the function abstract tree.
-% Each function is then added to the function table.
 
 store_definition(Line, Kind, CheckClauses, Call, Body, Pos) when is_integer(Line) ->
   E = (elixir_locals:get_cached_env(Pos))#{line := Line},
@@ -71,10 +66,10 @@ store_definition(Line, Kind, CheckClauses, Call, Body, Pos) when is_integer(Line
 
   assert_no_aliases_name(LinifyMeta, Name, Args, E),
   assert_valid_name(LinifyMeta, Kind, Name, Args, E),
-  store_definition(LinifyMeta, Line, Kind, DoCheckClauses, Name,
+  store_definition(LinifyMeta, Kind, DoCheckClauses, Name,
                    LinifyArgs, LinifyGuards, LinifyBody, Location, E).
 
-store_definition(Meta, Line, Kind, CheckClauses, Name, Args, Guards, Body, KeepLocation,
+store_definition(Meta, Kind, CheckClauses, Name, Args, Guards, Body, KeepLocation,
                  #{module := Module} = ER) ->
   Arity = length(Args),
   Tuple = {Name, Arity},
@@ -87,13 +82,13 @@ store_definition(Meta, Line, Kind, CheckClauses, Name, Args, Guards, Body, KeepL
 
   elixir_locals:record_definition(Tuple, Kind, Module),
 
-  WrappedBody = expr_from_body(Line, Body),
-  {Function, Defaults} = translate_definition(Kind, Meta, Name, Args, Guards, Body, WrappedBody, E),
-  run_on_definition_callbacks(Kind, Line, Module, Name, Args, Guards, WrappedBody, E),
+  WrappedBody = expr_from_body(Meta, Kind, Args, Guards, Body, E),
+  {Function, Defaults} = translate_definition(Kind, Meta, Name, Args, Guards, WrappedBody, Body, E),
+  run_on_definition_callbacks(Kind, Module, Name, Args, Guards, WrappedBody, E),
 
   DefaultsLength = length(Defaults),
   elixir_locals:record_defaults(Tuple, Kind, Module, DefaultsLength),
-  check_previous_defaults(Line, Module, Name, Arity, Kind, DefaultsLength, E),
+  check_previous_defaults(Meta, Module, Name, Arity, Kind, DefaultsLength, E),
 
   %% Retrieve the file before we changed it based on @file
   File = ?m(ER, file),
@@ -104,10 +99,9 @@ store_definition(Meta, Line, Kind, CheckClauses, Name, Args, Guards, Body, KeepL
 
 %% @on_definition
 
-run_on_definition_callbacks(Kind, Line, Module, Name, Args, Guards, Expr, E) ->
-  Env = elixir_env:linify({Line, E}),
+run_on_definition_callbacks(Kind, Module, Name, Args, Guards, Expr, E) ->
   Callbacks = ets:lookup_element(elixir_module:data_table(Module), on_definition, 2),
-  _ = [Mod:Fun(Env, Kind, Name, Args, Guards, Expr) || {Mod, Fun} <- Callbacks],
+  _ = [Mod:Fun(E, Kind, Name, Args, Guards, Expr) || {Mod, Fun} <- Callbacks],
   ok.
 
 %% Retrieve location from meta file (if Key == keep)
@@ -134,28 +128,32 @@ normalize_location(File) ->
 %% Translate the given call and expression given
 %% and then store it in memory.
 
-translate_definition(Kind, Meta, Name, Args, Guards, Body, WrappedBody, E) ->
+translate_definition(Kind, Meta, Name, Args, Guards, Body, CheckedBody, E) ->
   Arity = length(Args),
 
   {EArgs, EGuards, EBody, _} = elixir_exp_clauses:def(fun elixir_def_defaults:expand/2,
-                                Args, Guards, WrappedBody, E),
+                                Args, Guards, Body, E),
 
-  S = elixir_env:env_to_scope(E),
-  {Unpacked, Defaults} = elixir_def_defaults:unpack(Kind, Name, EArgs, S),
-  Clauses = translate_clause(Body, Kind, Meta, Unpacked, EGuards, EBody, S),
-  Function = {function, ?ann(Meta), Name, Arity, Clauses},
-  {Function, Defaults}.
+  S = (elixir_env:env_to_scope(E))#elixir_scope{def = {Kind, Name, Arity}},
+  {Unpacked, Defaults} = elixir_def_defaults:unpack(Kind, Name, EArgs),
+  TDefaults = [translate_clause(Kind, Meta, DArgs, [], DBody, S) ||
+               {DArgs, DBody} <- Defaults],
 
-translate_clause(nil, _Kind, Meta, Args, [], _Body, S) ->
-  check_args_for_bodyless_clause(Meta, Args, S),
-  [];
-translate_clause(nil, Kind, Meta, _Args, _Guards, _Body, #elixir_scope{file=File}) ->
-  elixir_errors:form_error(Meta, File, ?MODULE, {missing_do, Kind});
-translate_clause(_, Kind, Meta, Args, Guards, Body, S) ->
+  %% TODO: Remove this check
+  TClauses =
+    case CheckedBody of
+      nil -> [];
+      _   -> [translate_clause(Kind, Meta, Unpacked, EGuards, EBody, S)]
+    end,
+
+  TFunction = {function, ?ann(Meta), Name, Arity, TClauses},
+  {TFunction, TDefaults}.
+
+translate_clause(Kind, Meta, Args, Guards, Body, S) ->
   {TClause, TS} = elixir_clauses:clause(Meta,
                     fun elixir_translator:translate_args/2, Args, Body, Guards, S),
 
-  FClause = case is_macro(Kind) of
+  case is_macro(Kind) of
     true ->
       Ann = ?ann(Meta),
       FArgs = {var, Ann, '_@CALLER'},
@@ -173,13 +171,31 @@ translate_clause(_, Kind, Meta, Args, Guards, Body, S) ->
       end;
     false ->
       TClause
-  end,
+  end.
 
-  [FClause].
+%% Unpacking of body and arguents
 
-expr_from_body(_Line, nil)          -> nil;
-expr_from_body(_Line, [{do, Expr}]) -> Expr;
-expr_from_body(Line, Else)          -> {'try', [{line, Line}], [Else]}.
+expr_from_body(Meta, _Kind, Args, [], nil, E) ->
+  check_args_for_bodyless_clause(Meta, Args, E),
+  [];
+expr_from_body(Meta, Kind, _Args, _Guards, nil, E) ->
+  elixir_errors:form_error(Meta, ?m(E, file), ?MODULE, {missing_do, Kind});
+expr_from_body(_Meta, _Kind, _Args, _Guards, [{do, Expr}], _E) ->
+  Expr;
+expr_from_body(Meta, _Kind, _Args, _Guards, Body, _E) ->
+  {'try', Meta, [Body]}.
+
+check_args_for_bodyless_clause(Meta, Args, E) ->
+  [begin
+     elixir_errors:form_error(Meta, ?m(E, file), ?MODULE, invalid_args_for_bodyless_clause)
+   end || Arg <- Args, invalid_arg(Arg)].
+
+invalid_arg({Name, _, Kind}) when is_atom(Name), is_atom(Kind) ->
+  false;
+invalid_arg({'\\\\', _, [{Name, _, Kind}, _]}) when is_atom(Name), is_atom(Kind) ->
+  false;
+invalid_arg(_) ->
+  true.
 
 is_macro(defmacro)  -> true;
 is_macro(defmacrop) -> true;
@@ -339,30 +355,17 @@ check_valid_defaults(Ann, File, Name, Arity, Kind, 0, _, LastDefaults, true) whe
 % Clause without defaults
 check_valid_defaults(_Ann, _File, _Name, _Arity, _Kind, 0, _, _, _) -> [].
 
-check_previous_defaults(Ann, Module, Name, Arity, Kind, Defaults, E) ->
+check_previous_defaults(Meta, Module, Name, Arity, Kind, Defaults, E) ->
   Matches = ets:match(elixir_module:defs_table(Module),
                       {{def, {Name, '$2'}}, '$1', '_', '_', '_', '_', {'$3', '_', '_'}}),
-  [ begin
-      elixir_errors:form_error([{line, erl_anno:line(Ann)}], ?m(E, file), ?MODULE,
-        {defs_with_defaults, Name, {Kind, Arity}, {K, A}})
-    end || [K, A, D] <- Matches, A /= Arity, D /= 0, defaults_conflict(A, D, Arity, Defaults)].
+  [begin
+     elixir_errors:form_error(Meta, ?m(E, file), ?MODULE,
+       {defs_with_defaults, Name, {Kind, Arity}, {K, A}})
+   end || [K, A, D] <- Matches, A /= Arity, D /= 0, defaults_conflict(A, D, Arity, Defaults)].
 
 defaults_conflict(A, D, Arity, Defaults) ->
   ((Arity >= (A - D)) andalso (Arity < A)) orelse
     ((A >= (Arity - Defaults)) andalso (A < Arity)).
-
-check_args_for_bodyless_clause(Meta, Args, S) ->
-  [ begin
-      elixir_errors:form_error(Meta, S#elixir_scope.file, ?MODULE,
-        invalid_args_for_bodyless_clause)
-    end || Arg <- Args, invalid_arg(Arg) ].
-
-invalid_arg({Name, _, Kind}) when is_atom(Name), is_atom(Kind) ->
-  false;
-invalid_arg({'\\\\', _, [{Name, _, Kind}, _]}) when is_atom(Name), is_atom(Kind) ->
-  false;
-invalid_arg(_) ->
-  true.
 
 assert_no_aliases_name(Meta, '__aliases__', [Atom], #{file := File}) when is_atom(Atom) ->
   elixir_errors:form_error(Meta, File, ?MODULE, {no_alias, Atom});

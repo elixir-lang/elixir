@@ -441,7 +441,7 @@ add_info_function(Line, File, Module, All, Def, Defmacro) ->
     false ->
       AllowedArgs =
         lists:map(fun(Atom) -> {atom, Line, Atom} end,
-                  [attributes, compile, exports, functions, macros, md5, module, native_addresses]),
+                  [attributes, compile, exports, functions, macros, md5, module]),
       Spec =
         {attribute, Line, spec, {Pair,
           [{type, Line, 'fun', [

@@ -3,7 +3,7 @@
 -module(elixir_utils).
 -export([elixir_to_erl/1, get_ann/1, get_line/1, split_last/1,
   characters_to_list/1, characters_to_binary/1, macro_name/1,
-  convert_to_boolean/4, returns_boolean/1, atom_concat/1,
+  convert_to_boolean/4, returns_boolean/1,
   read_file_type/1, read_link_type/1, relative_to_cwd/1, caller/4,
   read_mtime/1, change_universal_time/2, erl_call/4, meta_location/1,
   noop/0, guard_op/2, match_op/2]).
@@ -11,10 +11,7 @@
 -include_lib("kernel/include/file.hrl").
 
 macro_name(Macro) ->
-  list_to_atom(lists:concat(['MACRO-', Macro])).
-
-atom_concat(Atoms) ->
-  list_to_atom(lists:concat(Atoms)).
+  list_to_atom("MACRO-" ++ atom_to_list(Macro)).
 
 match_op('++', 2) -> true;
 match_op('+', 1) -> true;

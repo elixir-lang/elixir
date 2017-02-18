@@ -63,7 +63,7 @@ store(Module, Function, Hidden) ->
   end.
 
 name(Name, Count) when is_integer(Count) ->
-  elixir_utils:atom_concat([Name, " (overridable ", Count, ")"]).
+  list_to_atom(atom_to_list(Name) ++ " (overridable " ++ integer_to_list(Count) ++ ")").
 
 %% Error handling
 

@@ -42,6 +42,19 @@ translate({'__block__', Meta, Args}, S) when is_list(Args) ->
 translate({'__CALLER__', Meta, Atom}, S) when is_atom(Atom) ->
   {{var, ?ann(Meta), '__CALLER__'}, S#elixir_scope{caller=true}};
 
+translate({'super', Meta, Args}, #elixir_scope{def={Kind, Name, _}} = S) ->
+  %% In the expanded AST, super is used to invoke a function
+  %% with the same name but possibly different arity.
+  {TArgs, SA} = translate_args(Args, S),
+  Ann = ?ann(Meta),
+  if
+    Kind == defmacro; Kind == defmacrop ->
+      MacroName = elixir_utils:macro_name(Name),
+      {{call, Ann, {atom, Ann, MacroName}, [{var, Ann, '_@CALLER'} | TArgs]}, SA};
+    Kind == def; Kind == defp ->
+      {{call, Ann, {atom, Ann, Name}, TArgs}, SA}
+  end;
+
 %% Functions
 
 translate({'&', Meta, [{'/', _, [{{'.', _, [Remote, Fun]}, _, []}, Arity]}]}, S)
