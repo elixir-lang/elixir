@@ -7,17 +7,17 @@
 expand(Meta, Args, E) ->
   case ?m(E, context) of
     match ->
-      {EArgs, EA} = expand_bitstr(fun elixir_exp:expand/2, Args, [], E),
+      {EArgs, EA} = expand_bitstr(Meta, fun elixir_exp:expand/2, Args, [], E),
       {{'<<>>', Meta, EArgs}, EA};
     _ ->
-      {EArgs, {EC, EV}} = expand_bitstr(fun elixir_exp:expand_arg/2, Args, [], {E, E}),
+      {EArgs, {EC, EV}} = expand_bitstr(Meta, fun elixir_exp:expand_arg/2, Args, [], {E, E}),
       {{'<<>>', Meta, EArgs}, elixir_env:mergea(EV, EC)}
   end.
 
-expand_bitstr(_Fun, [], Acc, E) ->
+expand_bitstr(_BitstrMeta, _Fun, [], Acc, E) ->
   {lists:reverse(Acc), E};
-expand_bitstr(Fun, [{'::', Meta, [Left, Right]} | T], Acc, E) ->
-  {ELeft, EL} = Fun(Left, E),
+expand_bitstr(BitstrMeta, Fun, [{'::', Meta, [Left, Right]} | T], Acc, E) ->
+  {ELeft, EL} = expand_bitstr_component(Meta, Left, Fun, E),
 
   %% Variables defined outside the binary can be accounted
   %% on subparts, however we can't assign new variables.
@@ -27,11 +27,28 @@ expand_bitstr(Fun, [{'::', Meta, [Left, Right]} | T], Acc, E) ->
   end,
 
   ERight = expand_bit_info(ELeft, Meta, Right, ER),
-  expand_bitstr(Fun, T, [{'::', Meta, [ELeft, ERight]} | Acc], EL);
+  expand_bitstr(BitstrMeta, Fun, T, [{'::', Meta, [ELeft, ERight]} | Acc], EL);
+expand_bitstr(BitstrMeta, Fun, [{_, Meta, _} = H | T], Acc, E) ->
+  {Expr, ES} = expand_bitstr_component(Meta, H, Fun, E),
+  expand_bitstr(BitstrMeta, Fun, T, [Expr | Acc], ES);
+expand_bitstr(Meta, Fun, [H | T], Acc, E) ->
+  {Expr, ES} = expand_bitstr_component(Meta, H, Fun, E),
+  expand_bitstr(Meta, Fun, T, [Expr | Acc], ES).
 
-expand_bitstr(Fun, [H | T], Acc, E) ->
-  {Expr, ES} = Fun(H, E),
-  expand_bitstr(Fun, T, [Expr | Acc], ES).
+%% Expands a "component" of the bitstring, that is, either the LHS of a :: or an
+%% argument of the bitstring (such as "foo" in "<<foo>>").
+expand_bitstr_component(Meta, Component, Fun, E) ->
+  case Fun(Component, E) of
+    {EComponent, _} when is_list(EComponent); is_atom(EComponent) ->
+      ErrorE = env_for_error(E),
+      Message = "invalid literal ~ts in <<>>",
+      elixir_errors:compile_error(Meta, ?m(ErrorE, file), Message, ['Elixir.Macro':to_string(EComponent)]);
+    {_, _} = Expanded ->
+      Expanded
+  end.
+
+env_for_error({E, _}) -> E;
+env_for_error(E) -> E.
 
 %% Expand bit info
 
@@ -182,10 +199,6 @@ build_bitstr_each(Fun, T, Meta, S, Acc, H, default, Types) when is_binary(H) ->
     end,
 
   build_bitstr_each(Fun, T, Meta, S, [Element | Acc]);
-
-build_bitstr_each(_Fun, _T, Meta, S, _Acc, H, _Size, _Types) when is_list(H); is_atom(H) ->
-  elixir_errors:compile_error(Meta, S#elixir_scope.file, "invalid literal ~ts in <<>>",
-    ['Elixir.Macro':to_string(H)]);
 
 build_bitstr_each(Fun, T, Meta, S, Acc, H, Size, Types) ->
   {Expr, NS} = Fun(H, S),
