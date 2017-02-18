@@ -2,9 +2,9 @@
 -export([clauses/3]).
 -include("elixir.hrl").
 
-clauses(_Meta, Clauses, S) ->
-  Catch  = elixir_clauses:get_pairs('catch', Clauses, 'catch'),
-  Rescue = elixir_clauses:get_pairs(rescue, Clauses, rescue),
+clauses(_Meta, Args, S) ->
+  Catch = elixir_clauses:get_clauses('catch', Args, 'catch'),
+  Rescue = elixir_clauses:get_clauses(rescue, Args, rescue),
   reduce_clauses(Rescue ++ Catch, [], S, S).
 
 reduce_clauses([H | T], Acc, SAcc, S) ->
