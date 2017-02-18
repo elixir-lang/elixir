@@ -383,7 +383,7 @@ defmodule Inspect.Algebra do
   @doc ~S"""
   Glues two documents together inserting `" "` as a break between them.
 
-  This means the two documents will be separeted by `" "` in case they
+  This means the two documents will be separated by `" "` in case they
   fit in the same line. Otherwise a line break is used.
 
   ## Examples
