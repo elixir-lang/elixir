@@ -735,6 +735,16 @@ defmodule Kernel.ExpansionTest do
         expand(quote do: <<"foo"::binary-size(3)>>)
       end
     end
+
+    test "raises for invalid literals" do
+      assert_raise CompileError, ~r"invalid literal :foo in <<>>", fn ->
+        expand(quote do: <<:foo>>)
+      end
+
+      assert_raise CompileError, ~r"invalid literal \[\] in <<>>", fn ->
+        expand(quote do: <<[]::size(8)>>)
+      end
+    end
   end
 
   test "handles invalid expressions" do
