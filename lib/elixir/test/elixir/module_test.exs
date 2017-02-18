@@ -97,7 +97,7 @@ defmodule ModuleTest do
     assert name == :hello
     assert [{:foo, _, _}, {:bar, _, _}] = args
     assert [] = guards
-    assert {:+, _, [{:foo, _, nil}, {:bar, _, nil}]} = expr
+    assert [do: {:+, _, [{:foo, _, nil}, {:bar, _, nil}]}] = expr
   end
 
   test "executes on definition callback" do
