@@ -736,6 +736,12 @@ defmodule Kernel.ExpansionTest do
       end
     end
 
+    test "raises for types that are not valid with a literal binary" do
+      assert_raise CompileError, ~r"invalid types for literal string in <<>>", fn ->
+        expand(quote do: <<"foo"::integer>>)
+      end
+    end
+
     test "raises for invalid literals" do
       assert_raise CompileError, ~r"invalid literal :foo in <<>>", fn ->
         expand(quote do: <<:foo>>)
