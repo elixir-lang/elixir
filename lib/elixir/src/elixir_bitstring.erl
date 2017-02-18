@@ -87,6 +87,7 @@ expand_bit_info(Left, Meta, [{Expr, ExprMeta, Args} | T], Size, Types, E) when i
     type ->
       {EArgs, EE} = elixir_exp:expand_args(Args, E),
       validate_bit_type_args(Meta, Expr, EArgs, EE),
+      validate_bit_type_if_literal_bin(Left, Meta, Expr, E),
       expand_bit_info(Left, Meta, T, Size, [{Expr, [], EArgs} | Types], EE);
     none ->
       handle_unknown_bit_info(Left, Meta, {Expr, ExprMeta, Args}, T, Size, Types, E)
@@ -126,6 +127,31 @@ validate_bit_type_args(Meta, unit, [Unit], E) when not is_integer(Unit) ->
     ['Elixir.Macro':to_string(Unit)]);
 validate_bit_type_args(_Meta, _Expr, _Args, _E) ->
   ok.
+
+validate_bit_type_if_literal_bin(Left, Meta, Type, E) when is_binary(Left) ->
+  case valid_bit_type_for_literal_bin(Type) of
+    true ->
+      ok;
+    false ->
+      Message =
+        "invalid types for literal string in <<>>. Accepted types are: "
+        "little, big, utf8, utf16, utf32, bits, bytes, binary, bitstring",
+      elixir_errors:compile_error(Meta, ?m(E, file), Message)
+  end;
+validate_bit_type_if_literal_bin(_Left, _Meta, _Type, _E) ->
+  ok.
+
+valid_bit_type_for_literal_bin(little) -> true;
+valid_bit_type_for_literal_bin(big) -> true;
+valid_bit_type_for_literal_bin(utf8) -> true;
+valid_bit_type_for_literal_bin(utf16) -> true;
+valid_bit_type_for_literal_bin(utf32) -> true;
+valid_bit_type_for_literal_bin(bytes) -> true;
+valid_bit_type_for_literal_bin(binary) -> true;
+valid_bit_type_for_literal_bin(bits) -> true;
+valid_bit_type_for_literal_bin(bitstring) -> true;
+valid_bit_type_for_literal_bin(default) -> true;
+valid_bit_type_for_literal_bin(_) -> false.
 
 handle_unknown_bit_info(Left, Meta, Expr, T, Size, Types, E) ->
   case 'Elixir.Macro':expand(Expr, elixir_env:linify({?line(Meta), E})) of
@@ -189,13 +215,9 @@ build_bitstr_each(Fun, T, Meta, S, Acc, H, default, Types) when is_binary(H) ->
         %% why we can simply convert the binary to a list.
         {bin_element, ?ann(Meta), {string, 0, binary_to_list(H)}, default, default};
       false ->
-        case types_require_conversion(Types) of
-          true ->
-            {bin_element, ?ann(Meta), {string, 0, elixir_utils:characters_to_list(H)}, default, Types};
-          false ->
-            elixir_errors:compile_error(Meta, S#elixir_scope.file, "invalid types for literal string in <<>>. "
-              "Accepted types are: little, big, utf8, utf16, utf32, bits, bytes, binary, bitstring")
-        end
+        %% The Types must require conversion at this point (for example, utf
+        %% types).
+        {bin_element, ?ann(Meta), {string, 0, elixir_utils:characters_to_list(H)}, default, Types}
     end,
 
   build_bitstr_each(Fun, T, Meta, S, [Element | Acc]);
@@ -212,11 +234,6 @@ build_bitstr_each(Fun, T, Meta, S, Acc, H, Size, Types) ->
     _ ->
       build_bitstr_each(Fun, T, Meta, NS, [{bin_element, ?ann(Meta), Expr, Size, Types} | Acc])
   end.
-
-types_require_conversion([End | T]) when End == little; End == big -> types_require_conversion(T);
-types_require_conversion([UTF | T]) when UTF == utf8; UTF == utf16; UTF == utf32 -> types_require_conversion(T);
-types_require_conversion([]) -> true;
-types_require_conversion(_) -> false.
 
 types_allow_splice([bytes])     -> true;
 types_allow_splice([binary])    -> true;
