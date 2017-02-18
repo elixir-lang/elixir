@@ -236,17 +236,9 @@ expand({'cond', Meta, [KV]}, E) ->
   {EClauses, EC} = elixir_exp_clauses:'cond'(Meta, KV, E),
   {{'cond', Meta, [EClauses]}, EC};
 
-expand({'case', Meta, [Expr, KV]}, E) ->
-  assert_no_match_or_guard_scope(Meta, 'case', E),
-  {EExpr, EE} = expand(Expr, E),
-  {EClauses, EC} = elixir_exp_clauses:'case'(Meta, KV, EE),
-  FClauses =
-    case (lists:keyfind(optimize_boolean, 1, Meta) == {optimize_boolean, true}) and
-         elixir_utils:returns_boolean(EExpr) of
-      true  -> rewrite_case_clauses(EClauses);
-      false -> EClauses
-    end,
-  {{'case', Meta, [EExpr, FClauses]}, EC};
+expand({'case', Meta, [Expr, Options]}, Env) ->
+  ShouldExportVars = proplists:get_value(export_vars, Meta, true),
+  expand_case(ShouldExportVars, Meta, Expr, Options, Env);
 
 expand({'receive', Meta, [KV]}, E) ->
   assert_no_match_or_guard_scope(Meta, 'receive', E),
@@ -427,6 +419,21 @@ expand(Other, E) ->
     "invalid quoted expression: ~ts", ['Elixir.Kernel':inspect(Other)]).
 
 %% Helpers
+
+expand_case(true, Meta, Expr, KV, E) ->
+  assert_no_match_or_guard_scope(Meta, 'case', E),
+  {EExpr, EE} = expand(Expr, E),
+  {EKV, EK} = elixir_exp_clauses:'case'(Meta, KV, EE),
+  RKV =
+    case proplists:get_value(optimize_boolean, Meta, false) andalso
+         elixir_utils:returns_boolean(EExpr) of
+      true -> rewrite_case_clauses(EKV);
+      false -> EKV
+    end,
+  {{'case', Meta, [EExpr, RKV]}, EK};
+expand_case(false, Meta, Expr, KV, E) ->
+  {Case, _} = expand_case(true, Meta, Expr, KV, E),
+  {Case, E}.
 
 expand_boolean_check(Op, Expr, TrueClause, FalseClause, Meta, Env) ->
   {EExpr, EnvExpr} = expand(Expr, Env),

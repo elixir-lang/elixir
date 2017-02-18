@@ -211,7 +211,7 @@ defmodule Kernel.ExpansionTest do
     end
 
     test "in guards" do
-      assert expand(quote(do: fn pid when :erlang.==(pid, self) -> pid end)) |> clean([:import, :context]) ==
+      assert expand(quote(do: fn pid when :erlang.==(pid, self) -> pid end)) |> clean_meta([:import, :context]) ==
              quote(do: fn pid when :erlang.==(pid, :erlang.self()) -> pid end)
 
       assert_raise CompileError, ~r"cannot invoke local foo/1 inside guard", fn ->
@@ -403,21 +403,56 @@ defmodule Kernel.ExpansionTest do
 
   describe "with" do
     test "variables do not leak" do
-      assert expand(quote do: (with(a <- b, do: c = 1); c)) ==
-             quote do: (with(a <- b(), do: c = 1); c())
+      input = quote(do: (with({foo} <- {bar}, do: baz = :ok); baz))
+      other = Macro.var(:other, Elixir)
+      result = quote do
+        case {bar()} do
+          {foo} -> baz = :ok
+          unquote(other) -> unquote(other)
+        end
+        baz()
+      end
 
-      assert expand(quote do: (with(a = b, do: a); a)) ==
-             quote do: (with(a = b(), do: a); a())
+      assert input |> expand() |> clean_meta([:export_vars, :generated, :location]) == result
     end
 
-    test "variables are available in blocks" do
-      assert expand(quote do: with(a <- b, c = a, do: c)) ==
-             quote do: (with(a <- b(), c = a, do: c))
+    test "variables are available in do option" do
+      input = quote(do: (with({foo} <- {bar}, do: baz = foo); baz))
+      other = Macro.var(:other, Elixir)
+      result = quote do
+        case {bar()} do
+          {foo} -> baz = foo
+          unquote(other) -> unquote(other)
+        end
+        baz()
+      end
+
+      assert input |> expand() |> clean_meta([:export_vars, :generated, :location]) == result
     end
 
     test "variables inside else do not leak" do
-      assert expand(quote do: (with(a <- b, do: 1, else: (a -> a)); a)) ==
-             quote do: (with(a <- b(), do: 1, else: (a -> a)); a())
+      input = quote(do: (with({foo} <- {bar}, do: :ok, else: (baz -> baz)); baz))
+      other = Macro.var(:other, Elixir)
+      return = Macro.var(:return, Elixir)
+      result = quote do
+        case(case {bar()} do
+          {foo} -> {:ok, :ok}
+          unquote(other) -> {:error, unquote(other)}
+        end) do
+          {:ok, unquote(return)} -> unquote(return)
+          {:error, baz} -> baz
+          {:error, unquote(other)} -> :erlang.error({:with_clause, unquote(other)})
+        end
+        baz()
+      end
+
+      assert input |> expand() |> clean_meta([:export_vars, :generated, :location]) == result
+    end
+
+    test "fails on invalid else option" do
+      assert_raise CompileError, ~r"expected -> clauses for else in with", fn ->
+        expand(quote(do: with(_ <- true, do: :ok, else: [:error])))
+      end
     end
   end
 
@@ -431,10 +466,10 @@ defmodule Kernel.ExpansionTest do
 
     test "expands remotes" do
       assert expand(quote do: &List.flatten/2) ==
-             quote(do: &:"Elixir.List".flatten/2) |> clean([:import, :context])
+             quote(do: &:"Elixir.List".flatten/2) |> clean_meta([:import, :context])
 
       assert expand(quote do: &Kernel.is_atom/1) ==
-             quote(do: &:erlang.is_atom/1) |> clean([:import, :context])
+             quote(do: &:erlang.is_atom/1) |> clean_meta([:import, :context])
     end
 
     test "expands macros" do
@@ -769,7 +804,7 @@ defmodule Kernel.ExpansionTest do
     13
   end
 
-  defp clean(expr, vars) do
+  defp clean_meta(expr, vars) do
     cleaner = &Keyword.drop(&1, vars)
     Macro.prewalk(expr, &Macro.update_meta(&1, cleaner))
   end

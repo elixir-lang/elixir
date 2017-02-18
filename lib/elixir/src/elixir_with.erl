@@ -1,135 +1,104 @@
 -module(elixir_with).
--export([expand/3, translate/3]).
+-export([expand/3]).
 -include("elixir.hrl").
 
 %% Expansion
 
-expand(Meta, Args, E) ->
-  {Cases, Block} =
+expand(Meta, Args, Env) ->
+  {Exprs, Opts} =
     case elixir_utils:split_last(Args) of
-      {OuterCases, OuterOpts} when is_list(OuterOpts) ->
-        case elixir_utils:split_last(OuterCases) of
-          {InnerCases, InnerOpts} when is_list(InnerOpts) ->
-            {InnerCases, InnerOpts ++ OuterOpts};
-          _ ->
-            {OuterCases, OuterOpts}
-        end;
+      {_, LastArg} = SplitResult when is_list(LastArg) ->
+        SplitResult;
       _ ->
         {Args, []}
     end,
 
-  {DoExpr, DoOpts} =
-    case lists:keytake(do, 1, Block) of
-      {value, {do, Do}, DoRest} ->
-        {Do, DoRest};
+  {DoExpr, OtherOpts} =
+    case lists:keytake(do, 1, Opts) of
+      {value, {do, DoValue}, RestOpts} ->
+        {DoValue, RestOpts};
       false ->
-        elixir_errors:compile_error(Meta, ?m(E, file),
-          "missing do keyword in with")
+        elixir_errors:compile_error(Meta, ?m(Env, file), "missing do keyword in with")
     end,
 
-  {ElseExpr, ElseOpts} =
-    case lists:keytake(else, 1, DoOpts) of
-      {value, {else, Else}, ElseRest} ->
-        {Else, ElseRest};
+  ElseExpr =
+    case lists:keytake(else, 1, OtherOpts) of
+      {value, {else, ElseValue}, []} ->
+        ElseValue;
+      {value, _, [{Key, _} | _]} ->
+        elixir_errors:compile_error(Meta, ?m(Env, file),
+          "unexpected keyword ~ts in with", [Key]);
       false ->
-        {nil, DoOpts}
+        nil
     end,
 
-  case ElseOpts of
-    [{Key, _} | _] ->
-      elixir_errors:compile_error(Meta, ?m(E, file),
-        "unexpected keyword ~ts in with", [Key]);
-    [] ->
-      ok
-  end,
+  ResultCase =
+    case ElseExpr of
+      nil ->
+        {MainCase, _} = build_main_case(Exprs, DoExpr, fun(Ret) -> Ret end, false),
+        MainCase;
+      _ ->
+        ok = assert_clauses(Meta, ElseExpr, Env),
+        Wrapper = fun(Ret) -> {error, Ret} end,
+        case build_main_case(Exprs, {ok, DoExpr}, Wrapper, false) of
+          {MainCase, false} ->
+            Message =
+              "\"else\" clauses will never match"
+              " because all patterns in \"with\" will always match",
+            elixir_errors:warn(?line(Meta), ?m(Env, file), Message),
+            {{'.', Meta, [erlang, element]}, Meta, [MainCase, 2]};
+          {MainCase, true} ->
+            build_else_case(Meta, MainCase, ElseExpr, Wrapper)
+        end
+    end,
+  elixir_exp:expand(ResultCase, Env).
 
-  {ECases, EC} = lists:mapfoldl(fun expand/2, E, Cases),
-  {EDoExpr, _} = elixir_exp:expand(DoExpr, EC),
-  {EElseExpr, _} = expand_else(Meta, ElseExpr, E),
-  {{with, Meta, ECases ++ [[{do, EDoExpr} | EElseExpr]]}, E}.
+%% Helpers
 
-expand({'<-', Meta, [Left, Right]}, E) ->
-  {ERight, ER} = elixir_exp:expand(Right, E),
-  {[ELeft], EL}  = elixir_exp_clauses:head([Left], E),
-  {{'<-', Meta, [ELeft, ERight]}, elixir_env:mergev(EL, ER)};
-expand(X, E) ->
-  elixir_exp:expand(X, E).
-
-expand_else(_Meta, KV, E) when is_list(KV) ->
-  {[{do, EClauses}], EC} = elixir_exp_clauses:'case'([], [{do, KV}], E),
-  {[{else, EClauses}], EC};
-expand_else(_Meta, nil, E) ->
-  {[], E};
-expand_else(Meta, _KV, E) ->
+assert_clauses(_Meta, [], _Env) ->
+  ok;
+assert_clauses(Meta, [{'->', _, [_, _]} | Rest], Env) ->
+  assert_clauses(Meta, Rest, Env);
+assert_clauses(Meta, _Other, Env) ->
   Message = "expected -> clauses for else in with",
-  elixir_errors:compile_error(Meta, ?m(E, file), Message, []).
+  elixir_errors:compile_error(Meta, ?m(Env, file), Message, []).
 
-%% Translation
-
-translate(Meta, Args, S) ->
-  {Parts, [{do, Expr} | ExprList]} = elixir_utils:split_last(Args),
-  case ExprList of
-    [{else, ElseExpr}] ->
-      {TCase, TS, HasMatch} = translate_case(Parts, {ok, Expr}, fun(X) -> {error, X} end, S),
-      translate_else(Meta, TCase, ElseExpr, TS, HasMatch);
-    [] ->
-      {TCase, TS, _HasMatch} = translate_case(Parts, Expr, fun(X) -> X end, S),
-      {TCase, TS}
-  end.
-
-translate_case(Parts, DoExpr, Wrapper, S) ->
-  {Case, HasMatch} = build_case(Parts, DoExpr, Wrapper, false),
-  {TCase, TS} = elixir_translator:translate(Case, S#elixir_scope{extra=nil}),
-  {TCase, elixir_scope:mergec(S, TS), HasMatch}.
-
-translate_else(Meta, WithCases, _ElseExpr, S, false) ->
-  Warning =
-    "\"else\" clauses will never match"
-    " because all patterns in \"with\" will always match",
-  elixir_errors:warn(?line(Meta), S#elixir_scope.file, Warning),
-  Ann = ?ann(Meta),
-  Call = {call, Ann,
-    {remote, Ann, {atom, Ann, erlang}, {atom, Ann, element}},
-    [{integer, Ann, 2}, WithCases]
-  },
-  {Call, S};
-translate_else(Meta, WithCases, ElseExpr, S, true) ->
-  ElseClauses = build_else(Meta, ElseExpr),
-  {TClauses, TS} = elixir_clauses:clauses(Meta, ElseClauses, S#elixir_scope{extra=nil}),
-  {{'case', ?ann(Meta), WithCases, TClauses}, elixir_scope:mergec(S, TS)}.
-
-build_case([{'<-', Meta, [{Name, _, Ctx}, _] = Args} | Rest], DoExpr, Wrapper, HasMatch)
+build_main_case([{'<-', Meta, [{Name, _, Ctx}, _] = Args} | Rest], DoExpr, Wrapper, HasMatch)
     when is_atom(Name) andalso is_atom(Ctx) ->
-  build_case([{'=', Meta, Args} | Rest], DoExpr, Wrapper, HasMatch);
-build_case([{'<-', Meta, [Left, Right]} | Rest], DoExpr, Wrapper, _HasMatch) ->
-  {InnerCase, true} = build_case(Rest, DoExpr, Wrapper, true),
-  Other = {other, Meta, ?MODULE},
+  build_main_case([{'=', Meta, Args} | Rest], DoExpr, Wrapper, HasMatch);
+build_main_case([{'<-', Meta, [Left, Right]} | Rest], DoExpr, Wrapper, _HasMatch) ->
+  {InnerCase, true} = build_main_case(Rest, DoExpr, Wrapper, true),
   Generated = ?generated(Meta),
+  Other = {other, Generated, 'Elixir'},
   Clauses = [
     {'->', Generated, [[Left], InnerCase]},
     {'->', Generated, [[Other], Wrapper(Other)]}
   ],
-  {{'case', Generated, [Right, [{do, Clauses}]]}, true};
-build_case([Expr | Rest], DoExpr, Wrapper, HasMatch) ->
-  {InnerCase, InnerHasMatch} = build_case(Rest, DoExpr, Wrapper, HasMatch),
+  {{'case', [{export_vars, false} | Meta], [Right, [{do, Clauses}]]}, true};
+build_main_case([Expr | Rest], DoExpr, Wrapper, HasMatch) ->
+  {InnerCase, InnerHasMatch} = build_main_case(Rest, DoExpr, Wrapper, HasMatch),
   {{'__block__', [], [Expr, InnerCase]}, InnerHasMatch};
-build_case([], DoExpr, _Wrapper, HasMatch) ->
+build_main_case([], DoExpr, _Wrapper, HasMatch) ->
   {DoExpr, HasMatch}.
 
-build_else(Meta, ElseClauses) ->
-  Result = {result, Meta, ?MODULE},
-  [{match, Meta, [{ok, Result}], Result} |
-    each_clause_to_error_match(ElseClauses)] ++ [build_raise(Meta)].
+build_else_case(Meta, MainCase, Clauses, Wrapper) ->
+  Generated = ?generated(Meta),
 
-each_clause_to_error_match(Clauses) ->
-  [{match, Meta, [error_match_for_match(Match)], Expr} ||
-    {'->', Meta, [[Match], Expr]} <- Clauses].
+  Return = {return, Generated, 'Elixir'},
+  ReturnClause = {'->', Generated, [[{ok, Return}], Return]},
 
-error_match_for_match({'when', Meta, [Left, Right]}) ->
-  {'when', Meta, [{error, Left}, Right]};
-error_match_for_match(Match) ->
-  {error, Match}.
+  Other = {other, Generated, 'Elixir'},
+  RaiseError = {{'.', Generated, [erlang, error]}, Meta, [{with_clause, Other}]},
+  RaiseErrorClause = {'->', Generated, [[Wrapper(Other)], RaiseError]},
 
-build_raise(Meta) ->
-  Other = {other, Meta, ?MODULE},
-  {match, ?generated(Meta), [{error, Other}], {{'.', Meta, [erlang, error]}, Meta, [{with_clause, Other}]}}.
+  ClauseWrapper = fun(Clause) -> wrap_clause_pattern(Clause, Wrapper) end,
+  ResultClauses = [ReturnClause] ++ lists:map(ClauseWrapper, Clauses) ++ [RaiseErrorClause],
+  {'case', [{export_vars, false} | Meta], [MainCase, [{do, ResultClauses}]]}.
+
+wrap_clause_pattern({'->', Meta, [[Left], Right]}, Wrapper) ->
+  {'->', Meta, [[wrap_pattern(Left, Wrapper)], Right]}.
+
+wrap_pattern({'when', Meta, [Left, Right]}, Wrapper) ->
+  {'when', Meta, [Wrapper(Left), Right]};
+wrap_pattern(Expr, Wrapper) ->
+  Wrapper(Expr).
