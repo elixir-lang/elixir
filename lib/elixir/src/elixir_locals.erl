@@ -142,16 +142,8 @@ ensure_no_import_conflict(Line, File, Module, All) ->
 
 warn_unused_local(File, Module, Private) ->
   if_tracker(Module, [], fun(Pid) ->
-    Args = [{Fun, Kind, Defaults} ||
-            {Fun, Kind, _Line, true, Defaults} <- Private],
-
-    {Unreachable, Warnings} = ?tracker:collect_unused_locals(Pid, Args),
-
-    [begin
-      {_, _, Line, _, _} = lists:keyfind(element(2, Error), 1, Private),
-      elixir_errors:form_warn([{line, Line}], File, ?MODULE, Error)
-     end || Error <- Warnings ],
-
+    {Unreachable, Warnings} = ?tracker:collect_unused_locals(Pid, Private),
+    [elixir_errors:form_warn(Meta, File, ?MODULE, Error) || {Meta, Error} <- Warnings],
     Unreachable
   end).
 

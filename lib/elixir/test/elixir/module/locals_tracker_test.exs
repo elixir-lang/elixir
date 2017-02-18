@@ -69,14 +69,14 @@ defmodule Module.LocalsTrackerTest do
   end
 
   @unused [
-    {{:private, 1}, :defp, 0}
+    {{:private, 1}, :defp, [], 0}
   ]
 
   test "unused private definitions are marked as so", config do
     D.add_definition(config[:pid], :def, {:public, 1})
 
     unused = D.collect_unused_locals(config[:pid], @unused)
-    assert unused == {[private: 1], [{:unused_def, {:private, 1}, :defp}]}
+    assert unused == {[private: 1], [{[], {:unused_def, {:private, 1}, :defp}}]}
 
     D.add_local(config[:pid], {:public, 1}, {:private, 1})
     unused = D.collect_unused_locals(config[:pid], @unused)
@@ -84,25 +84,25 @@ defmodule Module.LocalsTrackerTest do
   end
 
   @unused [
-    {{:private, 3}, :defp, 3}
+    {{:private, 3}, :defp, [], 3}
   ]
 
   test "private definitions with unused default arguments", config do
     D.add_definition(config[:pid], :def, {:public, 1})
 
     unused = D.collect_unused_locals(config[:pid], @unused)
-    assert unused == {[private: 3], [{:unused_def, {:private, 3}, :defp}]}
+    assert unused == {[private: 3], [{[], {:unused_def, {:private, 3}, :defp}}]}
 
     D.add_local(config[:pid], {:public, 1}, {:private, 3})
     unused = D.collect_unused_locals(config[:pid], @unused)
-    assert unused == {[], [unused_args: {:private, 3}]}
+    assert unused == {[], [{[], {:unused_args, {:private, 3}}}]}
   end
 
   test "private definitions with some unused default arguments", config do
     D.add_definition(config[:pid], :def, {:public, 1})
     D.add_local(config[:pid], {:public, 1}, {:private, 1})
     unused = D.collect_unused_locals(config[:pid], @unused)
-    assert unused == {[private: 3], [{:unused_args, {:private, 3}, 1}]}
+    assert unused == {[private: 3], [{[], {:unused_args, {:private, 3}, 1}}]}
   end
 
   test "private definitions with all used default arguments", config do

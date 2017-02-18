@@ -161,10 +161,10 @@ defmodule Module.LocalsTracker do
   end
 
   defp unreachable(d, private) do
-    unreachable = for {tuple, _, _} <- private, do: tuple
+    unreachable = for {tuple, _, _, _} <- private, do: tuple
 
     private =
-      for {tuple, :defp, _} <- private do
+      for {tuple, :defp, _, _} <- private do
         neighbours = :digraph.in_neighbours(d, tuple)
         neighbours = for {_, _} = t <- neighbours, do: t
         {tuple, :sets.from_list(neighbours)}
@@ -190,15 +190,19 @@ defmodule Module.LocalsTracker do
     :lists.foldl(&collect_warnings(&1, &2, reachable), [], private)
   end
 
-  defp collect_warnings({tuple, kind, 0}, acc, reachable) do
+  defp collect_warnings({_, _, false, _}, acc, _reachable) do
+    acc
+  end
+
+  defp collect_warnings({tuple, kind, meta, 0}, acc, reachable) do
     if :lists.member(tuple, reachable) do
       acc
     else
-      [{:unused_def, tuple, kind} | acc]
+      [{meta, {:unused_def, tuple, kind}} | acc]
     end
   end
 
-  defp collect_warnings({tuple, kind, default}, acc, reachable) when default > 0 do
+  defp collect_warnings({tuple, kind, meta, default}, acc, reachable) when default > 0 do
     {name, arity} = tuple
     min = arity - default
     max = arity
@@ -206,12 +210,12 @@ defmodule Module.LocalsTracker do
     invoked = for {n, a} <- reachable, n == name, a in min..max, do: a
 
     if invoked == [] do
-      [{:unused_def, tuple, kind} | acc]
+      [{meta, {:unused_def, tuple, kind}} | acc]
     else
       case :lists.min(invoked) - min do
         0 -> acc
-        ^default -> [{:unused_args, tuple} | acc]
-        unused_args -> [{:unused_args, tuple, unused_args} | acc]
+        ^default -> [{meta, {:unused_args, tuple}} | acc]
+        unused_args -> [{meta, {:unused_args, tuple, unused_args}} | acc]
       end
     end
   end
