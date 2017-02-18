@@ -83,22 +83,22 @@ translate({'cond', CondMeta, [[{do, Pairs}]]}, S) ->
 %% Case
 
 translate({'case', Meta, [Expr, KV]}, S) ->
-  Clauses = elixir_clauses:get_pairs(do, KV, match),
+  Clauses = elixir_clauses:get_clauses(do, KV, match),
   {TExpr, NS} = translate(Expr, S),
   {TClauses, TS} = elixir_clauses:clauses(Meta, Clauses, NS#elixir_scope{extra=nil}),
   {{'case', ?ann(Meta), TExpr, TClauses}, TS#elixir_scope{extra=NS#elixir_scope.extra}};
 
 %% Try
 
-translate({'try', Meta, [Clauses]}, S) ->
+translate({'try', Meta, [Args]}, S) ->
   SN = S#elixir_scope{extra=nil},
-  Do = proplists:get_value('do', Clauses, nil),
+  Do = proplists:get_value('do', Args, nil),
   {TDo, SB} = elixir_translator:translate(Do, SN),
 
-  Catch = [Tuple || {X, _} = Tuple <- Clauses, X == 'rescue' orelse X == 'catch'],
+  Catch = [Tuple || {X, _} = Tuple <- Args, X == 'rescue' orelse X == 'catch'],
   {TCatch, SC} = elixir_try:clauses(Meta, Catch, mergec(SN, SB)),
 
-  {TAfter, SA} = case lists:keyfind('after', 1, Clauses) of
+  {TAfter, SA} = case lists:keyfind('after', 1, Args) of
     {'after', After} ->
       {TBlock, SAExtracted} = translate(After, mergec(SN, SC)),
       {unblock(TBlock), SAExtracted};
@@ -106,21 +106,21 @@ translate({'try', Meta, [Clauses]}, S) ->
       {[], mergec(SN, SC)}
   end,
 
-  Else = elixir_clauses:get_pairs(else, Clauses, match),
+  Else = elixir_clauses:get_clauses(else, Args, match),
   {TElse, SE} = elixir_clauses:clauses(Meta, Else, mergec(SN, SA)),
   {{'try', ?ann(Meta), unblock(TDo), TElse, TCatch, TAfter}, mergec(S, SE)};
 
 %% Receive
 
 translate({'receive', Meta, [KV]}, S) ->
-  Do = elixir_clauses:get_pairs(do, KV, match, true),
+  Do = elixir_clauses:get_clauses(do, KV, match, true),
 
   case lists:keyfind('after', 1, KV) of
     false ->
       {TClauses, SC} = elixir_clauses:clauses(Meta, Do, S),
       {{'receive', ?ann(Meta), TClauses}, SC};
     _ ->
-      After = elixir_clauses:get_pairs('after', KV, expr),
+      After = elixir_clauses:get_clauses('after', KV, expr),
       {TClauses, SC} = elixir_clauses:clauses(Meta, Do ++ After, S),
       {FClauses, TAfter} = elixir_utils:split_last(TClauses),
       {_, _, [FExpr], _, FAfter} = TAfter,

@@ -1,18 +1,18 @@
 %% Handle code related to args, guard and -> matching for case,
 %% fn, receive and friends. try is handled in elixir_try.
 -module(elixir_clauses).
--export([match/3, clause/6, clauses/3, guards/3, get_pairs/3, get_pairs/4,
+-export([match/3, clause/6, clauses/3, guards/3, get_clauses/3, get_clauses/4,
   extract_splat_guards/1, extract_guards/1]).
 -include("elixir.hrl").
 
-%% Get pairs from a clause.
+%% Get clauses under the given key.
 
-get_pairs(Key, Clauses, As) ->
-  get_pairs(Key, Clauses, As, false).
-get_pairs(Key, Clauses, As, AllowNil) ->
-  case lists:keyfind(Key, 1, Clauses) of
-    {Key, Pairs} when is_list(Pairs) ->
-      [{As, Meta, Left, Right} || {'->', Meta, [Left, Right]} <- Pairs];
+get_clauses(Key, Keyword, As) ->
+  get_clauses(Key, Keyword, As, false).
+get_clauses(Key, Keyword, As, AllowNil) ->
+  case lists:keyfind(Key, 1, Keyword) of
+    {Key, Clauses} when is_list(Clauses) ->
+      [{As, Meta, Left, Right} || {'->', Meta, [Left, Right]} <- Clauses];
     {Key, nil} when AllowNil ->
       [];
     false ->
