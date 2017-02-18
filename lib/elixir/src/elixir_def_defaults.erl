@@ -1,46 +1,51 @@
 %% Handle default clauses for function definitions.
 -module(elixir_def_defaults).
--export([expand/2, unpack/3]).
+-export([unpack/4]).
 -include("elixir.hrl").
 
-expand(Args, E) ->
-  NoContext = E#{context := nil},
-  lists:mapfoldl(fun
-    ({'\\\\', Meta, [Left, Right]}, Acc) ->
-      {ELeft, EL} = elixir_exp:expand(Left, Acc),
-      {ERight, _} = elixir_exp:expand(Right, NoContext),
-      {{'\\\\', Meta, [ELeft, ERight]}, EL};
-    (Left, Acc) ->
-      elixir_exp:expand(Left, Acc)
-  end, E, Args).
+unpack(Kind, Name, Args, E) ->
+  Expanded = expand_defaults(Args, E#{context := nil}),
+  unpack(Kind, Name, Expanded, [], []).
 
-unpack(Kind, Name, Args) ->
-  unpack_each(Kind, Name, Args, [], []).
-
-unpack_each(Kind, Name, [{'\\\\', Meta, [Expr, _]} | T] = List, Acc, Clauses) ->
-  Base = build_match(Acc, []),
+unpack(Kind, Name, [{'\\\\', Meta, [Expr, _]} | T] = List, Acc, Clauses) ->
+  Base = match_defaults(Acc, length(Acc), []),
   {Args, Invoke} = extract_defaults(List, length(Base), [], []),
-  Clause = {Base ++ Args, {super, Meta, Base ++ Invoke}},
-  unpack_each(Kind, Name, T, [Expr | Acc], [Clause | Clauses]);
-unpack_each(Kind, Name, [H | T], Acc, Clauses) ->
-  unpack_each(Kind, Name, T, [H | Acc], Clauses);
-unpack_each(_Kind, _Name, [], Acc, Clauses) ->
+  Clause = {Base ++ Args, [], {super, Meta, Base ++ Invoke}},
+  unpack(Kind, Name, T, [Expr | Acc], [Clause | Clauses]);
+unpack(Kind, Name, [H | T], Acc, Clauses) ->
+  unpack(Kind, Name, T, [H | Acc], Clauses);
+unpack(_Kind, _Name, [], Acc, Clauses) ->
   {lists:reverse(Acc), lists:reverse(Clauses)}.
 
-%% Extract default values from args following the current default clause.
+%% Expand the right side of default arguments
+
+expand_defaults([{'\\\\', Meta, [Expr, Default]} | Args], E) ->
+  {ExpandedDefault, _} = elixir_exp:expand(Default, E),
+  [{'\\\\', Meta, [Expr, ExpandedDefault]} | expand_defaults(Args, E)];
+expand_defaults([Arg | Args], E) ->
+  [Arg | expand_defaults(Args, E)];
+expand_defaults([], _E) ->
+  [].
+
+%% Extract default values from args following the current default clause
 
 extract_defaults([{'\\\\', _, [_Expr, Default]} | T], Counter, NewArgs, NewInvoke) ->
   extract_defaults(T, Counter, NewArgs, [Default | NewInvoke]);
 extract_defaults([_ | T], Counter, NewArgs, NewInvoke) ->
-  H = {list_to_atom([$x | integer_to_list(Counter)]), [], 'Elixir'},
+  H = default_var(Counter),
   extract_defaults(T, Counter + 1, [H | NewArgs], [H | NewInvoke]);
 extract_defaults([], _Counter, NewArgs, NewInvoke) ->
   {lists:reverse(NewArgs), lists:reverse(NewInvoke)}.
 
-%% Build matches for all the previous argument until the current default clause.
+%% Build matches for all the previous argument until the current default clause
 
-build_match([], Acc) ->
+match_defaults([], 0, Acc) ->
   Acc;
-build_match([_ | T], Acc) ->
-  Var = {list_to_atom([$x | integer_to_list(length(T))]), [], 'Elixir'},
-  build_match(T, [Var | Acc]).
+match_defaults([_ | T], Counter, Acc) ->
+  NewCounter = Counter - 1,
+  match_defaults(T, NewCounter, [default_var(NewCounter) | Acc]).
+
+%% Helpers
+
+default_var(Counter) ->
+  {list_to_atom([$x | integer_to_list(Counter)]), [{generated, true}], 'Elixir'}.
