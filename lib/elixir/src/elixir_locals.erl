@@ -6,7 +6,7 @@
   record_definition/3, record_defaults/4,
   ensure_no_import_conflict/4, warn_unused_local/3, format_error/1
 ]).
--export([macro_for/3, local_for/3, local_for/4]).
+-export([macro_for/3, local_for/4]).
 
 -include("elixir.hrl").
 -define(attr, {elixir, locals_tracker}).
@@ -23,8 +23,6 @@ macro_for(Module, Name, Arity) ->
     error:badarg -> false
   end.
 
-local_for(Module, Name, Arity) ->
-  local_for(Module, Name, Arity, nil).
 local_for(Module, Name, Arity, Given) ->
   Tuple = {Name, Arity},
   case elixir_def:lookup_clauses(Module, Tuple) of
@@ -36,36 +34,20 @@ local_for(Module, Name, Arity, Given) ->
   end.
 
 get_function(Ann, Module, Clauses) ->
-  RewrittenClauses = [rewrite_clause(Clause, Module) || Clause <- Clauses],
-  Fun = {'fun', Ann, {clauses, RewrittenClauses}},
-  {value, Result, _Binding} = erl_eval:exprs([Fun], []),
+  Fun = {'fun', Ann, {clauses, Clauses}},
+  {value, Result, _Binding} =
+    erl_eval:expr(Fun, [], {value, fun(Name, Args) -> invoke_local(Module, Name, Args) end}),
   Result.
 
-rewrite_clause({call, Ann1, {atom, Ann2, RawName}, Args}, Module) ->
-  Remote = {remote, Ann1,
-    {atom, Ann2, ?MODULE},
-    {atom, Ann2, local_for}
-  },
-
+invoke_local(Module, RawName, Args) ->
   %% If we have a macro, its arity in the table is
   %% actually one less than in the function call
   {Name, Arity} = case atom_to_list(RawName) of
     "MACRO-" ++ Rest -> {list_to_atom(Rest), length(Args) - 1};
     _ -> {RawName, length(Args)}
   end,
+  apply(local_for(Module, Name, Arity, nil), Args).
 
-  FunCall = {call, Ann1, Remote, [
-    {atom, Ann2, Module}, {atom, Ann2, Name}, {integer, Ann2, Arity}
-  ]},
-  {call, Ann1, FunCall, rewrite_clause(Args, Module)};
-
-rewrite_clause(Tuple, Module) when is_tuple(Tuple) ->
-  list_to_tuple(rewrite_clause(tuple_to_list(Tuple), Module));
-
-rewrite_clause(List, Module) when is_list(List) ->
-  [rewrite_clause(Item, Module) || Item <- List];
-
-rewrite_clause(Else, _) -> Else.
 
 %% TRACKING
 
