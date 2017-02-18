@@ -24,6 +24,7 @@ expand(Meta, Args, Env) ->
   ElseExpr =
     case lists:keytake(else, 1, OtherOpts) of
       {value, {else, ElseValue}, []} ->
+        assert_clauses(Meta, ElseValue, Env),
         ElseValue;
       {value, _, [{Key, _} | _]} ->
         elixir_errors:compile_error(Meta, ?m(Env, file),
@@ -38,7 +39,6 @@ expand(Meta, Args, Env) ->
         {MainCase, _} = build_main_case(Exprs, DoExpr, fun(Ret) -> Ret end, false),
         MainCase;
       _ ->
-        ok = assert_clauses(Meta, ElseExpr, Env),
         Wrapper = fun(Ret) -> {error, Ret} end,
         case build_main_case(Exprs, {ok, DoExpr}, Wrapper, false) of
           {MainCase, false} ->

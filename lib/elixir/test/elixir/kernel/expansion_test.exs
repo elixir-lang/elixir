@@ -453,6 +453,10 @@ defmodule Kernel.ExpansionTest do
       assert_raise CompileError, ~r"expected -> clauses for else in with", fn ->
         expand(quote(do: with(_ <- true, do: :ok, else: [:error])))
       end
+
+      assert_raise CompileError, ~r"expected -> clauses for else in with", fn ->
+        expand(quote(do: with(_ <- true, do: :ok, else: ())))
+      end
     end
   end
 
