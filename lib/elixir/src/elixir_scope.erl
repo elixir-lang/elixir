@@ -65,7 +65,7 @@ build_var(Key, #elixir_scope{counter=Counter} = S) ->
       {ok, Val} -> Val + 1;
       error -> 1
     end,
-  {elixir_utils:atom_concat([Key, "@", Cnt]),
+  {list_to_atom(atom_to_list(Key) ++ "@" ++ integer_to_list(Cnt)),
    Cnt,
    S#elixir_scope{counter=maps:put(Key, Cnt, Counter)}}.
 
@@ -165,7 +165,7 @@ load_binding([{Key, Value} | T], Binding, Keys, Vars, Counter) ->
     {_Name, _Kind} -> Key;
     Name when is_atom(Name) -> {Name, nil}
   end,
-  InternalName = elixir_utils:atom_concat(["_@", Counter]),
+  InternalName = list_to_atom("_@" ++ integer_to_list(Counter)),
   load_binding(T,
     orddict:store(InternalName, Value, Binding),
     ordsets:add_element(Actual, Keys),

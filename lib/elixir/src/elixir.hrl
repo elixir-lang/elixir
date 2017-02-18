@@ -11,6 +11,7 @@
 -define(generated(Opts), [{generated, true}, {location, ?line(Opts)}]).
 
 -record(elixir_scope, {
+  def=nil,                 %% a tuple with the current definition {def | ..., name, arity}
   context=nil,             %% can be match, guards or nil
   extra=nil,               %% extra information about the context, like pin_guard and map_key
   caller=false,            %% when true, it means caller was invoked
