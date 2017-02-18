@@ -1,7 +1,7 @@
 %% Handle code related to args, guard and -> matching for case,
 %% fn, receive and friends. try is handled in elixir_try.
 -module(elixir_exp_clauses).
--export([match/3, clause/5, def/5, head/2,
+-export([match/3, clause/5, def/2, head/2,
          'case'/3, 'receive'/3, 'try'/3, 'cond'/3]).
 -import(elixir_errors, [compile_error/3, compile_error/4]).
 -include("elixir.hrl").
@@ -10,11 +10,11 @@ match(Fun, Expr, #{context := Context} = E) ->
   {EExpr, EE} = Fun(Expr, E#{context := match}),
   {EExpr, EE#{context := Context}}.
 
-def(Fun, Args, Guards, Body, E) ->
-  {EArgs, EA}   = match(Fun, Args, E),
+def({Args, Guards, Body}, E) ->
+  {EArgs, EA}   = elixir_exp:expand(Args, E#{context := match}),
   {EGuards, EG} = guard(Guards, EA#{context := guard}),
-  {EBody, EB}   = elixir_exp:expand(Body, EG#{context := ?m(E, context)}),
-  {EArgs, EGuards, EBody, EB}.
+  {EBody, _}    = elixir_exp:expand(Body, EG#{context := ?m(E, context)}),
+  {EArgs, EGuards, EBody}.
 
 clause(Meta, Kind, Fun, {'->', ClauseMeta, [_, _]} = Clause, E) when is_function(Fun, 3) ->
   clause(Meta, Kind, fun(X, Acc) -> Fun(ClauseMeta, X, Acc) end, Clause, E);

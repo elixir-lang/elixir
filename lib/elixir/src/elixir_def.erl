@@ -81,10 +81,8 @@ store_definition(Meta, Kind, CheckClauses, Name, Args, Guards, Body, KeepLocatio
   end,
 
   elixir_locals:record_definition(Tuple, Kind, Module),
-
-  WrappedBody = expr_from_body(Meta, Kind, Args, Guards, Body, E),
-  {Function, Defaults} = translate_definition(Kind, Meta, Name, Args, Guards, WrappedBody, Body, E),
-  run_on_definition_callbacks(Kind, Module, Name, Args, Guards, WrappedBody, E),
+  {Function, Defaults} = translate_definition(Kind, Meta, Name, Arity, Args, Guards, Body, E),
+  run_on_definition_callbacks(Kind, Module, Name, Args, Guards, Body, E),
 
   DefaultsLength = length(Defaults),
   elixir_locals:record_defaults(Tuple, Kind, Module, DefaultsLength),
@@ -128,28 +126,18 @@ normalize_location(File) ->
 %% Translate the given call and expression given
 %% and then store it in memory.
 
-translate_definition(Kind, Meta, Name, Args, Guards, Body, CheckedBody, E) ->
-  Arity = length(Args),
-
-  {EArgs, EGuards, EBody, _} = elixir_exp_clauses:def(fun elixir_def_defaults:expand/2,
-                                Args, Guards, Body, E),
+translate_definition(Kind, Meta, Name, Arity, DefaultsArgs, Guards, Body, E) ->
+  {Args, EDefaults} = elixir_def_defaults:unpack(Kind, Name, DefaultsArgs, E),
+  EClauses =
+    [elixir_exp_clauses:def(Clause, E) ||
+     Clause <- def_to_clauses(Kind, Meta, Args, Guards, Body, E)],
 
   S = (elixir_env:env_to_scope(E))#elixir_scope{def = {Kind, Name, Arity}},
-  {Unpacked, Defaults} = elixir_def_defaults:unpack(Kind, Name, EArgs),
-  TDefaults = [translate_clause(Kind, Meta, DArgs, [], DBody, S) ||
-               {DArgs, DBody} <- Defaults],
+  Clauses = [translate_clause(Kind, Meta, EClause, S) || EClause <- EClauses],
+  Defaults = [translate_clause(Kind, Meta, EDefault, S) || EDefault <- EDefaults],
+  {{function, ?ann(Meta), Name, Arity, Clauses}, Defaults}.
 
-  %% TODO: Remove this check
-  TClauses =
-    case CheckedBody of
-      nil -> [];
-      _   -> [translate_clause(Kind, Meta, Unpacked, EGuards, EBody, S)]
-    end,
-
-  TFunction = {function, ?ann(Meta), Name, Arity, TClauses},
-  {TFunction, TDefaults}.
-
-translate_clause(Kind, Meta, Args, Guards, Body, S) ->
+translate_clause(Kind, Meta, {Args, Guards, Body}, S) ->
   {TClause, TS} = elixir_clauses:clause(Meta,
                     fun elixir_translator:translate_args/2, Args, Body, Guards, S),
 
@@ -173,29 +161,25 @@ translate_clause(Kind, Meta, Args, Guards, Body, S) ->
       TClause
   end.
 
-%% Unpacking of body and arguents
+%% Convers the definition to the internal clauses representation.
 
-expr_from_body(Meta, _Kind, Args, [], nil, E) ->
+def_to_clauses(_Kind, Meta, Args, [], nil, E) ->
   check_args_for_bodyless_clause(Meta, Args, E),
   [];
-expr_from_body(Meta, Kind, _Args, _Guards, nil, E) ->
+def_to_clauses(Kind, Meta, _Args, _Guards, nil, E) ->
   elixir_errors:form_error(Meta, ?m(E, file), ?MODULE, {missing_do, Kind});
-expr_from_body(_Meta, _Kind, _Args, _Guards, [{do, Expr}], _E) ->
-  Expr;
-expr_from_body(Meta, _Kind, _Args, _Guards, Body, _E) ->
-  {'try', Meta, [Body]}.
+def_to_clauses(_Kind, _Meta, Args, Guards, [{do, Body}], _E) ->
+  [{Args, Guards, Body}];
+def_to_clauses(_Kind, Meta, Args, Guards, Body, _E) ->
+  [{Args, Guards, {'try', Meta, [Body]}}].
 
 check_args_for_bodyless_clause(Meta, Args, E) ->
   [begin
      elixir_errors:form_error(Meta, ?m(E, file), ?MODULE, invalid_args_for_bodyless_clause)
    end || Arg <- Args, invalid_arg(Arg)].
 
-invalid_arg({Name, _, Kind}) when is_atom(Name), is_atom(Kind) ->
-  false;
-invalid_arg({'\\\\', _, [{Name, _, Kind}, _]}) when is_atom(Name), is_atom(Kind) ->
-  false;
-invalid_arg(_) ->
-  true.
+invalid_arg({Name, _, Kind}) when is_atom(Name), is_atom(Kind) -> false;
+invalid_arg(_) -> true.
 
 is_macro(defmacro)  -> true;
 is_macro(defmacrop) -> true;
