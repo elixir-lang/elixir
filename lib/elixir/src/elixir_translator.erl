@@ -80,8 +80,8 @@ translate({fn, Meta, Clauses}, S) ->
 
 %% Cond
 
-translate({'cond', CondMeta, [[{do, Pairs}]]}, S) ->
-  [{'->', Meta, [[Condition], Body]} = H | T] = lists:reverse(Pairs),
+translate({'cond', CondMeta, [[{do, Clauses}]]}, S) ->
+  [{'->', Meta, [[Condition], Body]} = H | T] = lists:reverse(Clauses),
 
   Case =
     case Condition of
@@ -103,15 +103,15 @@ translate({'case', Meta, [Expr, KV]}, S) ->
 
 %% Try
 
-translate({'try', Meta, [Args]}, S) ->
+translate({'try', Meta, [KV]}, S) ->
   SN = S#elixir_scope{extra=nil},
-  Do = proplists:get_value('do', Args, nil),
+  Do = proplists:get_value('do', KV, nil),
   {TDo, SB} = elixir_translator:translate(Do, SN),
 
-  Catch = [Tuple || {X, _} = Tuple <- Args, X == 'rescue' orelse X == 'catch'],
+  Catch = [Tuple || {X, _} = Tuple <- KV, X == 'rescue' orelse X == 'catch'],
   {TCatch, SC} = elixir_try:clauses(Meta, Catch, mergec(SN, SB)),
 
-  {TAfter, SA} = case lists:keyfind('after', 1, Args) of
+  {TAfter, SA} = case lists:keyfind('after', 1, KV) of
     {'after', After} ->
       {TBlock, SAExtracted} = translate(After, mergec(SN, SC)),
       {unblock(TBlock), SAExtracted};
@@ -119,7 +119,7 @@ translate({'try', Meta, [Args]}, S) ->
       {[], mergec(SN, SC)}
   end,
 
-  Else = elixir_clauses:get_clauses(else, Args, match),
+  Else = elixir_clauses:get_clauses(else, KV, match),
   {TElse, SE} = elixir_clauses:clauses(Meta, Else, mergec(SN, SA)),
   {{'try', ?ann(Meta), unblock(TDo), TElse, TCatch, TAfter}, mergec(S, SE)};
 
