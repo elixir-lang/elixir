@@ -530,8 +530,8 @@ rewrite_case_clauses([{do, [
     {'->', FalseMeta, [[false], FalseExpr]},
     {'->', TrueMeta, [[true], TrueExpr]}
   ]}];
-rewrite_case_clauses(Clauses) ->
-  Clauses.
+rewrite_case_clauses(Other) ->
+  Other.
 
 %% Variables in arguments are not propagated from one
 %% argument to the other. For instance:
