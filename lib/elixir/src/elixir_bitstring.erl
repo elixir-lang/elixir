@@ -1,5 +1,6 @@
 -module(elixir_bitstring).
--export([translate/3, expand/3, has_size/1]).
+-export([translate/3, expand/3, has_size/1, format_error/1]).
+-import(elixir_errors, [form_error/4]).
 -include("elixir.hrl").
 
 %% Expansion
@@ -41,8 +42,7 @@ expand_bitstr_component(Meta, Component, Fun, E) ->
   case Fun(Component, E) of
     {EComponent, _} when is_list(EComponent); is_atom(EComponent) ->
       ErrorE = env_for_error(E),
-      Message = "invalid literal ~ts in <<>>",
-      elixir_errors:compile_error(Meta, ?m(ErrorE, file), Message, ['Elixir.Macro':to_string(EComponent)]);
+      form_error(Meta, ?m(ErrorE, file), ?MODULE, {invalid_literal, EComponent});
     {_, _} = Expanded ->
       Expanded
   end.
@@ -61,7 +61,7 @@ expand_bit_info(Left, Meta, [{size, _, [_] = Args} | T], Size, Types, E) ->
     %% safely raise; we're sure that this is the first size we encountered
     %% (default) otherwise we would have raised before.
     {Bin, default} when is_binary(Bin) ->
-      elixir_errors:compile_error(Meta, ?m(E, file), "size is not supported for literal string in <<>>");
+      form_error(Meta, ?m(E, file), ?MODULE, size_for_literal_string);
     {_, default} ->
       {[EArg], EE} = elixir_exp:expand_args(Args, E),
 
@@ -71,16 +71,13 @@ expand_bit_info(Left, Meta, [{size, _, [_] = Args} | T], Size, Types, E) ->
         _ when is_integer(EArg) ->
           ok;
         _ ->
-          elixir_errors:compile_error(Meta, ?m(E, file),
-            "size in bitstring expects an integer or a variable as argument, got: ~ts",
-            ['Elixir.Macro':to_string(EArg)])
+          form_error(Meta, ?m(E, file), ?MODULE, {bad_bitsize, EArg})
       end,
 
       expand_bit_info(Left, Meta, T, {size, [], [EArg]}, Types, EE);
     _ ->
-      elixir_errors:compile_error(Meta, ?m(E, file),
-        "duplicated size definition in bitstring")
-  end;
+      form_error(Meta, ?m(E, file), ?MODULE, duplicated_size_definition)
+ end;
 
 expand_bit_info(Left, Meta, [{Expr, ExprMeta, Args} | T], Size, Types, E) when is_atom(Expr) ->
   case expand_bit_type(Expr, Args) of
@@ -94,9 +91,7 @@ expand_bit_info(Left, Meta, [{Expr, ExprMeta, Args} | T], Size, Types, E) when i
   end;
 
 expand_bit_info(_Left, Meta, [Expr | _], _Size, _Types, E) ->
-  elixir_errors:compile_error(Meta, ?m(E, file),
-    "unknown bitstring specifier ~ts", ['Elixir.Kernel':inspect(Expr)]);
-
+  form_error(Meta, ?m(E, file), ?MODULE, {undefined_bittype, Expr});
 expand_bit_info(_Left, Meta, [], Size, Types, _) ->
   [H | T] = case Size of
     default -> lists:reverse(Types);
@@ -122,9 +117,7 @@ expand_bit_type(unit, [_])     -> type;
 expand_bit_type(_, _)          -> none.
 
 validate_bit_type_args(Meta, unit, [Unit], E) when not is_integer(Unit) ->
-  elixir_errors:compile_error(Meta, ?m(E, file),
-    "unit in bitstring expects an integer as argument, got: ~ts",
-    ['Elixir.Macro':to_string(Unit)]);
+  form_error(Meta, ?m(E, file), ?MODULE, {bad_unit_argument, Unit});
 validate_bit_type_args(_Meta, _Expr, _Args, _E) ->
   ok.
 
@@ -133,10 +126,7 @@ validate_bit_type_if_literal_bin(Left, Meta, Type, E) when is_binary(Left) ->
     true ->
       ok;
     false ->
-      Message =
-        "invalid types for literal string in <<>>. Accepted types are: "
-        "little, big, utf8, utf16, utf32, bits, bytes, binary, bitstring",
-      elixir_errors:compile_error(Meta, ?m(E, file), Message)
+      form_error(Meta, ?m(E, file), ?MODULE, invalid_type_for_literal_string)
   end;
 validate_bit_type_if_literal_bin(_Left, _Meta, _Type, _E) ->
   ok.
@@ -156,8 +146,7 @@ valid_bit_type_for_literal_bin(_) -> false.
 handle_unknown_bit_info(Left, Meta, Expr, T, Size, Types, E) ->
   case 'Elixir.Macro':expand(Expr, elixir_env:linify({?line(Meta), E})) of
     Expr ->
-      elixir_errors:compile_error(Meta, ?m(E, file),
-        "unknown bitstring specifier ~ts", ['Elixir.Macro':to_string(Expr)]);
+      form_error(Meta, ?m(E, file), ?MODULE, {undefined_bittype, Expr});
     Info ->
       expand_bit_info(Left, Meta, unpack_bit_info(Info, []) ++ T, Size, Types, E)
   end.
@@ -175,6 +164,24 @@ unpack_bit_info({Expr, Meta, Args}, Acc) when is_atom(Expr) ->
   [{Expr, Meta, ListArgs} | Acc];
 unpack_bit_info(Other, Acc) ->
   [Other | Acc].
+
+format_error({invalid_literal, Literal}) ->
+  io_lib:format("invalid literal ~ts in <<>>", ['Elixir.Macro':to_string(Literal)]);
+format_error(size_for_literal_string) ->
+  "size is not supported for literal string in <<>>";
+format_error({bad_bitsize, Expr}) ->
+  io_lib:format("size in bitstring expects an integer or a variable as argument, got: ~ts",
+                ['Elixir.Macro':to_string(Expr)]);
+format_error(duplicated_size_definition) ->
+  "duplicated size definition in bitstring";
+format_error({bad_unit_argument, Unit}) ->
+  io_lib:format("unit in bitstring expects an integer as argument, got: ~ts",
+                ['Elixir.Macro':to_string(Unit)]);
+format_error(invalid_type_for_literal_string) ->
+  "invalid types for literal string in <<>>. Accepted types are: "
+    "little, big, utf8, utf16, utf32, bits, bytes, binary, bitstring";
+format_error({undefined_bittype, Expr}) ->
+  io_lib:format("unknown bitstring specifier ~ts", ['Elixir.Macro':to_string(Expr)]).
 
 %% Translation
 
