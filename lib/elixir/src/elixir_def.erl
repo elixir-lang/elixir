@@ -1,6 +1,6 @@
 % Holds the logic responsible for function definitions (def(p) and defmacro(p)).
 -module(elixir_def).
--export([setup/1, reset_last/1, lookup_clauses/2,
+-export([setup/1, reset_last/1, lookup_definition/2,
   take_definition/2, store_definition/6, unwrap_definitions/2,
   store_each/7, format_error/1]).
 -include("elixir.hrl").
@@ -13,11 +13,11 @@ setup(Module) ->
 reset_last(Module) ->
   ets:insert(elixir_module:data_table(Module), {?last_def, []}).
 
-lookup_clauses(Module, Tuple) ->
+lookup_definition(Module, Tuple) ->
   Table = elixir_module:defs_table(Module),
   case ets:lookup(Table, {def, Tuple}) of
-    [{_, Kind, Ann, _, _, _, _}] ->
-      {Kind, Ann, [Clause || {_, Clause} <- ets:lookup(Table, {clauses, Tuple})]};
+    [Result] ->
+      {Result, [Clause || {_, Clause} <- ets:lookup(Table, {clauses, Tuple})]};
     _ ->
       false
   end.
