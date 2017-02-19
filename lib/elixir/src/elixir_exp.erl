@@ -162,7 +162,7 @@ expand({quote, Meta, [KV, Do]}, E) when is_list(Do) ->
       Ctx;
     {context, Ctx} ->
       compile_error(Meta, ?m(E, file), "invalid :context for quote, "
-        "expected non-nil compile time atom or alias, got: ~ts", ['Elixir.Kernel':inspect(Ctx)]);
+        "expected non-nil compile time atom or alias, got: ~ts", ['Elixir.Macro':to_string(Ctx)]);
     false ->
       case ?m(E, module) of
         nil -> 'Elixir';
