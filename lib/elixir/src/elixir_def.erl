@@ -221,7 +221,7 @@ unpack_defaults(_Kind, _Meta, _Name, [], Acc, Clauses) ->
   {lists:reverse(Acc), lists:reverse(Clauses)}.
 
 expand_defaults([{'\\\\', Meta, [Expr, Default]} | Args], E) ->
-  {ExpandedDefault, _} = elixir_exp:expand(Default, E),
+  {ExpandedDefault, _} = elixir_expand:expand(Default, E),
   [{'\\\\', Meta, [Expr, ExpandedDefault]} | expand_defaults(Args, E)];
 expand_defaults([Arg | Args], E) ->
   [Arg | expand_defaults(Args, E)];

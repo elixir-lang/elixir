@@ -11,34 +11,34 @@ match(Fun, Expr, #{context := Context} = E) ->
   {EExpr, EE#{context := Context}}.
 
 def({Meta, Args, Guards, Body}, E) ->
-  {EArgs, EA}   = elixir_exp:expand(Args, E#{context := match}),
+  {EArgs, EA}   = elixir_expand:expand(Args, E#{context := match}),
   {EGuards, EG} = guard(Guards, EA#{context := guard}),
-  {EBody, _}    = elixir_exp:expand(Body, EG#{context := ?key(E, context)}),
+  {EBody, _}    = elixir_expand:expand(Body, EG#{context := ?key(E, context)}),
   {Meta, EArgs, EGuards, EBody}.
 
 clause(Meta, Kind, Fun, {'->', ClauseMeta, [_, _]} = Clause, E) when is_function(Fun, 3) ->
   clause(Meta, Kind, fun(X, Acc) -> Fun(ClauseMeta, X, Acc) end, Clause, E);
 clause(_Meta, _Kind, Fun, {'->', Meta, [Left, Right]}, #{export_vars := ExportVars} = E) ->
   {ELeft, EL}  = Fun(Left, E),
-  {ERight, ER} = elixir_exp:expand(Right, EL#{export_vars := ExportVars}),
+  {ERight, ER} = elixir_expand:expand(Right, EL#{export_vars := ExportVars}),
   {{'->', Meta, [ELeft, ERight]}, ER};
 clause(Meta, Kind, _Fun, _, E) ->
   compile_error(Meta, ?key(E, file), "expected -> clauses in ~ts", [Kind]).
 
 head([{'when', Meta, [_, _ | _] = All}], E) ->
   {Args, Guard} = elixir_utils:split_last(All),
-  {EArgs, EA}   = match(fun elixir_exp:expand_args/2, Args, E),
+  {EArgs, EA}   = match(fun elixir_expand:expand_args/2, Args, E),
   {EGuard, EG}  = guard(Guard, EA#{context := guard}),
   {[{'when', Meta, EArgs ++ [EGuard]}], EG#{context := ?key(E, context)}};
 head(Args, E) ->
-  match(fun elixir_exp:expand_args/2, Args, E).
+  match(fun elixir_expand:expand_args/2, Args, E).
 
 guard({'when', Meta, [Left, Right]}, E) ->
   {ELeft, EL}  = guard(Left, E),
   {ERight, ER} = guard(Right, EL),
   {{'when', Meta, [ELeft, ERight]}, ER};
 guard(Other, E) ->
-  elixir_exp:expand(Other, E).
+  elixir_expand:expand(Other, E).
 
 %% Case
 
@@ -75,7 +75,7 @@ do_case(Meta, {Key, _}, _Acc, E) ->
   {EClauses, elixir_env:mergev(EVars, E)}.
 
 do_cond(Meta, {'do', _} = Do, Acc, E) ->
-  Fun = expand_one(Meta, 'cond', 'do', fun elixir_exp:expand_args/2),
+  Fun = expand_one(Meta, 'cond', 'do', fun elixir_expand:expand_args/2),
   expand_with_export(Meta, 'cond', Fun, Do, Acc, E);
 do_cond(Meta, {Key, _}, _Acc, E) ->
   compile_error(Meta, ?key(E, file), "unexpected keyword ~ts in cond", [Key]).
@@ -102,7 +102,7 @@ do_receive(Meta, {'do', _} = Do, Acc, E) ->
   Fun = expand_one(Meta, 'receive', 'do', fun head/2),
   expand_with_export(Meta, 'receive', Fun, Do, Acc, E);
 do_receive(Meta, {'after', [_]} = After, Acc, E) ->
-  Fun = expand_one(Meta, 'receive', 'after', fun elixir_exp:expand_args/2),
+  Fun = expand_one(Meta, 'receive', 'after', fun elixir_expand:expand_args/2),
   expand_with_export(Meta, 'receive', Fun, After, Acc, E);
 do_receive(Meta, {'after', _}, _Acc, E) ->
   compile_error(Meta, ?key(E, file), "expected a single -> clause for after in receive");
@@ -129,10 +129,10 @@ do_receive(Meta, {Key, _}, _Acc, E) ->
   {lists:map(fun(X) -> do_try(Meta, X, E) end, KV), E}.
 
 do_try(_Meta, {'do', Expr}, E) ->
-  {EExpr, _} = elixir_exp:expand(Expr, E),
+  {EExpr, _} = elixir_expand:expand(Expr, E),
   {'do', EExpr};
 do_try(_Meta, {'after', Expr}, E) ->
-  {EExpr, _} = elixir_exp:expand(Expr, E),
+  {EExpr, _} = elixir_expand:expand(Expr, E),
   {'after', EExpr};
 do_try(Meta, {'else', _} = Else, E) ->
   Fun = expand_one(Meta, 'try', 'else', fun head/2),
@@ -164,12 +164,12 @@ expand_rescue(Meta, _, E) ->
 
 %% rescue var
 expand_rescue({Name, _, Atom} = Var, E) when is_atom(Name), is_atom(Atom) ->
-  match(fun elixir_exp:expand/2, Var, E);
+  match(fun elixir_expand:expand/2, Var, E);
 
 %% rescue var in [Exprs]
 expand_rescue({in, Meta, [Left, Right]}, E) ->
-  {ELeft, EL}  = match(fun elixir_exp:expand/2, Left, E),
-  {ERight, ER} = elixir_exp:expand(Right, EL),
+  {ELeft, EL}  = match(fun elixir_expand:expand/2, Left, E),
+  {ERight, ER} = elixir_expand:expand(Right, EL),
 
   case ELeft of
     {Name, _, Atom} when is_atom(Name), is_atom(Atom) ->

@@ -908,7 +908,7 @@ defmodule Kernel.ExpansionTest do
 
   defp expand_env(expr, env) do
     ExUnit.CaptureIO.capture_io(:stderr, fn ->
-      send self(), {:expand_env, :elixir_exp.expand(expr, env)}
+      send self(), {:expand_env, :elixir_expand.expand(expr, env)}
     end)
     receive do
       {:expand_env, result} -> result

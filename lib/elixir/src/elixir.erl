@@ -252,7 +252,7 @@ quoted_to_erl(Quoted, Env) ->
   quoted_to_erl(Quoted, Env, elixir_env:env_to_scope(Env)).
 
 quoted_to_erl(Quoted, Env, Scope) ->
-  {Expanded, NewEnv} = elixir_exp:expand(Quoted, Env),
+  {Expanded, NewEnv} = elixir_expand:expand(Quoted, Env),
   {Erl, NewScope}    = elixir_erl_pass:translate(Expanded, Scope),
   {Erl, NewEnv, NewScope}.
 

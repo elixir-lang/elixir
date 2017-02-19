@@ -49,7 +49,7 @@ expand(Meta, Args, Env) ->
             build_else_case(Meta, MainCase, ElseExpr, Wrapper)
         end
     end,
-  elixir_exp:expand(ResultCase, Env).
+  elixir_expand:expand(ResultCase, Env).
 
 %% Helpers
 
