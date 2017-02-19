@@ -7,7 +7,7 @@
 %% Expansion
 
 expand(Meta, Args, E) ->
-  case ?m(E, context) of
+  case ?key(E, context) of
     match ->
       {EArgs, EA} = expand_bitstr(Meta, fun elixir_exp:expand/2, Args, [], E),
       {{'<<>>', Meta, EArgs}, EA};
@@ -43,7 +43,7 @@ expand_bitstr_component(Meta, Component, Fun, E) ->
   case Fun(Component, E) of
     {EComponent, _} when is_list(EComponent); is_atom(EComponent) ->
       ErrorE = env_for_error(E),
-      form_error(Meta, ?m(ErrorE, file), ?MODULE, {invalid_literal, EComponent});
+      form_error(Meta, ?key(ErrorE, file), ?MODULE, {invalid_literal, EComponent});
     {_, _} = Expanded ->
       Expanded
   end.
@@ -62,7 +62,7 @@ expand_bit_info(Left, Meta, [{size, _, [_] = Args} | T], Size, Types, E) ->
     %% safely raise; we're sure that this is the first size we encountered
     %% (default) otherwise we would have raised before.
     {Bin, default} when is_binary(Bin) ->
-      form_error(Meta, ?m(E, file), ?MODULE, size_for_literal_string);
+      form_error(Meta, ?key(E, file), ?MODULE, size_for_literal_string);
     {_, default} ->
       {[EArg], EE} = elixir_exp:expand_args(Args, E),
 
@@ -72,12 +72,12 @@ expand_bit_info(Left, Meta, [{size, _, [_] = Args} | T], Size, Types, E) ->
         _ when is_integer(EArg) ->
           ok;
         _ ->
-          form_error(Meta, ?m(E, file), ?MODULE, {bad_bitsize, EArg})
+          form_error(Meta, ?key(E, file), ?MODULE, {bad_bitsize, EArg})
       end,
 
       expand_bit_info(Left, Meta, T, {size, [], [EArg]}, Types, EE);
     _ ->
-      form_error(Meta, ?m(E, file), ?MODULE, duplicated_size_definition)
+      form_error(Meta, ?key(E, file), ?MODULE, duplicated_size_definition)
  end;
 
 expand_bit_info(Left, Meta, [{Expr, ExprMeta, Args} | T], Size, Types, E) when is_atom(Expr) ->
@@ -92,7 +92,7 @@ expand_bit_info(Left, Meta, [{Expr, ExprMeta, Args} | T], Size, Types, E) when i
   end;
 
 expand_bit_info(_Left, Meta, [Expr | _], _Size, _Types, E) ->
-  form_error(Meta, ?m(E, file), ?MODULE, {undefined_bittype, Expr});
+  form_error(Meta, ?key(E, file), ?MODULE, {undefined_bittype, Expr});
 expand_bit_info(_Left, Meta, [], Size, Types, _) ->
   [H | T] = case Size of
     default -> lists:reverse(Types);
@@ -118,7 +118,7 @@ expand_bit_type(unit, [_])     -> type;
 expand_bit_type(_, _)          -> none.
 
 validate_bit_type_args(Meta, unit, [Unit], E) when not is_integer(Unit) ->
-  form_error(Meta, ?m(E, file), ?MODULE, {bad_unit_argument, Unit});
+  form_error(Meta, ?key(E, file), ?MODULE, {bad_unit_argument, Unit});
 validate_bit_type_args(_Meta, _Expr, _Args, _E) ->
   ok.
 
@@ -127,7 +127,7 @@ validate_bit_type_if_literal_bin(Left, Meta, Type, E) when is_binary(Left) ->
     true ->
       ok;
     false ->
-      form_error(Meta, ?m(E, file), ?MODULE, invalid_type_for_literal_string)
+      form_error(Meta, ?key(E, file), ?MODULE, invalid_type_for_literal_string)
   end;
 validate_bit_type_if_literal_bin(_Left, _Meta, _Type, _E) ->
   ok.
@@ -147,7 +147,7 @@ valid_bit_type_for_literal_bin(_) -> false.
 handle_unknown_bit_info(Left, Meta, Expr, T, Size, Types, E) ->
   case 'Elixir.Macro':expand(Expr, elixir_env:linify({?line(Meta), E})) of
     Expr ->
-      form_error(Meta, ?m(E, file), ?MODULE, {undefined_bittype, Expr});
+      form_error(Meta, ?key(E, file), ?MODULE, {undefined_bittype, Expr});
     Info ->
       expand_bit_info(Left, Meta, unpack_bit_info(Info, []) ++ T, Size, Types, E)
   end.

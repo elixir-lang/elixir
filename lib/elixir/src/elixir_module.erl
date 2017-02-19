@@ -42,14 +42,14 @@ compile(Module, Block, Vars, #{line := Line} = Env) when is_atom(Module) ->
   %% In case we are generating a module from inside a function,
   %% we get rid of the lexical tracker information as, at this
   %% point, the lexical tracker process is long gone.
-  LexEnv = case ?m(Env, function) of
+  LexEnv = case ?key(Env, function) of
     nil -> Env#{module := Module};
     _   -> Env#{lexical_tracker := nil, function := nil, module := Module}
   end,
 
-  case ?m(LexEnv, lexical_tracker) of
+  case ?key(LexEnv, lexical_tracker) of
     nil ->
-      elixir_lexical:run(?m(LexEnv, file), nil, fun(Pid) ->
+      elixir_lexical:run(?key(LexEnv, file), nil, fun(Pid) ->
         compile(Line, Module, Block, Vars, LexEnv#{lexical_tracker := Pid})
       end);
     _ ->
@@ -59,12 +59,12 @@ compile(Module, _Block, _Vars, #{line := Line, file := File}) ->
   elixir_errors:form_error([{line, Line}], File, ?MODULE, {invalid_module, Module}).
 
 compile(Line, Module, Block, Vars, E) ->
-  File = ?m(E, file),
+  File = ?key(E, file),
   check_module_availability(Line, File, Module),
 
   CompilerModules = compiler_modules(),
   Docs = elixir_compiler:get_opt(docs),
-  {Data, Defs, Ref} = build(Line, File, Module, Docs, ?m(E, lexical_tracker)),
+  {Data, Defs, Ref} = build(Line, File, Module, Docs, ?key(E, lexical_tracker)),
 
   try
     put_compiler_modules([Module | CompilerModules]),
@@ -518,7 +518,7 @@ expand_callback(Line, M, F, Args, E, Fun) ->
   end.
 
 location(Line, E) ->
-  [{file, elixir_utils:characters_to_list(?m(E, file))}, {line, Line}].
+  [{file, elixir_utils:characters_to_list(?key(E, file))}, {line, Line}].
 
 %% We've reached the elixir_module or eval internals, skip it with the rest
 prune_stacktrace(Info, [{elixir, eval_forms, _, _} | _]) ->

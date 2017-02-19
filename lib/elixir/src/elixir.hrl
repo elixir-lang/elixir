@@ -1,5 +1,4 @@
-%% TODO: Rename to ?key
--define(m(M, K), maps:get(K, M)).
+-define(key(M, K), maps:get(K, M)).
 -define(ann(Opts), elixir_erl:get_ann(Opts)).
 -define(line(Opts), elixir_utils:get_line(Opts)).
 

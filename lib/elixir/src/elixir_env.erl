@@ -38,13 +38,13 @@ env_to_scope_with_vars(Env, Vars) ->
 %% with their variables merged.
 mergev(E1, E2) when is_list(E1) ->
   E2#{
-    vars := merge_vars(E1, ?m(E2, vars)),
-    export_vars := merge_opt_vars(E1, ?m(E2, export_vars))
+    vars := merge_vars(E1, ?key(E2, vars)),
+    export_vars := merge_opt_vars(E1, ?key(E2, export_vars))
   };
 mergev(E1, E2) ->
   E2#{
-    vars := merge_vars(?m(E1, vars), ?m(E2, vars)),
-    export_vars := merge_opt_vars(?m(E1, export_vars), ?m(E2, export_vars))
+    vars := merge_vars(?key(E1, vars), ?key(E2, vars)),
+    export_vars := merge_opt_vars(?key(E1, export_vars), ?key(E2, export_vars))
   }.
 
 %% Receives two scopes and return the later scope
@@ -52,7 +52,7 @@ mergev(E1, E2) ->
 %% and everything else are passed forward).
 
 mergea(E1, E2) ->
-  E2#{vars := ?m(E1, vars)}.
+  E2#{vars := ?key(E1, vars)}.
 
 merge_vars(V1, V2) -> ordsets:union(V1, V2).
 

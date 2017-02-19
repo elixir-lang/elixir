@@ -91,15 +91,15 @@ ensure_loaded(Meta, Ref, E) ->
     Ref:module_info(compile)
   catch
     error:undef ->
-      Kind = case lists:member(Ref, ?m(E, context_modules)) of
+      Kind = case lists:member(Ref, ?key(E, context_modules)) of
         true  ->
-          case ?m(E, module) of
+          case ?key(E, module) of
             Ref -> circular_module;
             _ -> scheduled_module
           end;
         false -> unloaded_module
       end,
-      elixir_errors:form_error(Meta, ?m(E, file), ?MODULE, {Kind, Ref})
+      elixir_errors:form_error(Meta, ?key(E, file), ?MODULE, {Kind, Ref})
   end.
 
 %% Receives an atom and returns the last bit as an alias.

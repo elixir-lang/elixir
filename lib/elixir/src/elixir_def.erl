@@ -89,7 +89,7 @@ store_definition(Line, Kind, CheckClauses, Call, Body, Pos) when is_integer(Line
   {Name, Args} = case NameAndArgs of
     {N, _, A} when is_atom(N), is_atom(A) -> {N, []};
     {N, _, A} when is_atom(N), is_list(A) -> {N, A};
-    _ -> elixir_errors:form_error([{line, Line}], ?m(E, file), ?MODULE,
+    _ -> elixir_errors:form_error([{line, Line}], ?key(E, file), ?MODULE,
                                   {invalid_def, Kind, NameAndArgs})
   end,
 
@@ -117,7 +117,7 @@ store_definition(Line, Kind, CheckClauses, Call, Body, Pos) when is_integer(Line
   LinifyBody   = elixir_quote:linify(Line, Key, Body),
 
   {EL, MetaLocation} =
-    case retrieve_location(Location, ?m(E, module)) of
+    case retrieve_location(Location, ?key(E, module)) of
       {F, L} ->
         {E#{file := F}, [{line, Line}, {location, {F, L}}]};
       nil ->
@@ -127,10 +127,10 @@ store_definition(Line, Kind, CheckClauses, Call, Body, Pos) when is_integer(Line
   assert_no_aliases_name(MetaLocation, Name, Args, EL),
   assert_valid_name(MetaLocation, Kind, Name, Args, EL),
   store_definition(MetaLocation, Kind, DoCheckClauses, Name, Arity,
-                   LinifyArgs, LinifyGuards, LinifyBody, ?m(E, file), EL).
+                   LinifyArgs, LinifyGuards, LinifyBody, ?key(E, file), EL).
 
 store_definition(Meta, Kind, CheckClauses, Name, Arity, DefaultsArgs, Guards, Body, File, ER) ->
-  Module = ?m(ER, module),
+  Module = ?key(ER, module),
   Tuple = {Name, Arity},
   E = ER#{function := Tuple},
 
@@ -169,7 +169,7 @@ def_to_clauses(_Kind, Meta, Args, [], nil, E) ->
   check_args_for_bodyless_clause(Meta, Args, E),
   [];
 def_to_clauses(Kind, Meta, _Args, _Guards, nil, E) ->
-  elixir_errors:form_error(Meta, ?m(E, file), ?MODULE, {missing_do, Kind});
+  elixir_errors:form_error(Meta, ?key(E, file), ?MODULE, {missing_do, Kind});
 def_to_clauses(_Kind, Meta, Args, Guards, [{do, Body}], _E) ->
   [{Meta, Args, Guards, Body}];
 def_to_clauses(_Kind, Meta, Args, Guards, Body, _E) ->
@@ -283,7 +283,7 @@ warn_bodyless_function(_Check, Meta, File, _Module, Kind, Tuple) ->
 
 check_args_for_bodyless_clause(Meta, Args, E) ->
   [begin
-     elixir_errors:form_error(Meta, ?m(E, file), ?MODULE, invalid_args_for_bodyless_clause)
+     elixir_errors:form_error(Meta, ?key(E, file), ?MODULE, invalid_args_for_bodyless_clause)
    end || Arg <- Args, invalid_arg(Arg)].
 
 invalid_arg({Name, _, Kind}) when is_atom(Name), is_atom(Kind) -> false;
@@ -293,7 +293,7 @@ check_previous_defaults(Meta, Module, Name, Arity, Kind, Defaults, E) ->
   Matches = ets:match(elixir_module:defs_table(Module),
                       {{def, {Name, '$2'}}, '$1', '_', '_', '_', {'$3', '_', '_'}}),
   [begin
-     elixir_errors:form_error(Meta, ?m(E, file), ?MODULE,
+     elixir_errors:form_error(Meta, ?key(E, file), ?MODULE,
        {defs_with_defaults, Name, {Kind, Arity}, {K, A}})
    end || [K, A, D] <- Matches, A /= Arity, D /= 0, defaults_conflict(A, D, Arity, Defaults)].
 
