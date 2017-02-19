@@ -1,7 +1,7 @@
 %% Translate Elixir quoted expressions to Erlang Abstract Format.
 -module(elixir_erl_pass).
 -export([translate/2, translate_arg/3, translate_args/2]).
--import(elixir_scope, [mergev/2, mergec/2]).
+-import(elixir_erl_var, [mergev/2, mergec/2]).
 -include("elixir.hrl").
 
 %% =
