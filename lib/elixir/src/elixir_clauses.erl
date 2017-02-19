@@ -44,14 +44,14 @@ guard(Other, E) ->
 
 'case'(Meta, [], E) ->
   compile_error(Meta, ?key(E, file), "missing do keyword in case");
-'case'(Meta, KV, E) when not is_list(KV) ->
+'case'(Meta, Opts, E) when not is_list(Opts) ->
   compile_error(Meta, ?key(E, file), "invalid arguments for case");
-'case'(Meta, KV, E) ->
-  ok = assert_at_most_once('do', KV, 0, fun(Kind) ->
+'case'(Meta, Opts, E) ->
+  ok = assert_at_most_once('do', Opts, 0, fun(Kind) ->
     compile_error(Meta, ?key(E, file), "duplicated ~ts clauses given for case", [Kind])
   end),
   EE = E#{export_vars := []},
-  {EClauses, EVars} = lists:mapfoldl(fun(X, Acc) -> do_case(Meta, X, Acc, EE) end, [], KV),
+  {EClauses, EVars} = lists:mapfoldl(fun(X, Acc) -> do_case(Meta, X, Acc, EE) end, [], Opts),
   {EClauses, elixir_env:mergev(EVars, E)}.
 
 do_case(Meta, {'do', _} = Do, Acc, E) ->
@@ -64,14 +64,14 @@ do_case(Meta, {Key, _}, _Acc, E) ->
 
 'cond'(Meta, [], E) ->
   compile_error(Meta, ?key(E, file), "missing do keyword in cond");
-'cond'(Meta, KV, E) when not is_list(KV) ->
+'cond'(Meta, Opts, E) when not is_list(Opts) ->
   compile_error(Meta, ?key(E, file), "invalid arguments for cond");
-'cond'(Meta, KV, E) ->
-  ok = assert_at_most_once('do', KV, 0, fun(Kind) ->
+'cond'(Meta, Opts, E) ->
+  ok = assert_at_most_once('do', Opts, 0, fun(Kind) ->
     compile_error(Meta, ?key(E, file), "duplicated ~ts clauses given for cond", [Kind])
   end),
   EE = E#{export_vars := []},
-  {EClauses, EVars} = lists:mapfoldl(fun(X, Acc) -> do_cond(Meta, X, Acc, EE) end, [], KV),
+  {EClauses, EVars} = lists:mapfoldl(fun(X, Acc) -> do_cond(Meta, X, Acc, EE) end, [], Opts),
   {EClauses, elixir_env:mergev(EVars, E)}.
 
 do_cond(Meta, {'do', _} = Do, Acc, E) ->
@@ -84,16 +84,16 @@ do_cond(Meta, {Key, _}, _Acc, E) ->
 
 'receive'(Meta, [], E) ->
   compile_error(Meta, ?key(E, file), "missing do or after keyword in receive");
-'receive'(Meta, KV, E) when not is_list(KV) ->
+'receive'(Meta, Opts, E) when not is_list(Opts) ->
   compile_error(Meta, ?key(E, file), "invalid arguments for receive");
-'receive'(Meta, KV, E) ->
+'receive'(Meta, Opts, E) ->
   RaiseError = fun(Kind) ->
     compile_error(Meta, ?key(E, file), "duplicated ~ts clauses given for receive", [Kind])
   end,
-  ok = assert_at_most_once('do', KV, 0, RaiseError),
-  ok = assert_at_most_once('after', KV, 0, RaiseError),
+  ok = assert_at_most_once('do', Opts, 0, RaiseError),
+  ok = assert_at_most_once('after', Opts, 0, RaiseError),
   EE = E#{export_vars := []},
-  {EClauses, EVars} = lists:mapfoldl(fun(X, Acc) -> do_receive(Meta, X, Acc, EE) end, [], KV),
+  {EClauses, EVars} = lists:mapfoldl(fun(X, Acc) -> do_receive(Meta, X, Acc, EE) end, [], Opts),
   {EClauses, elixir_env:mergev(EVars, E)}.
 
 do_receive(_Meta, {'do', nil} = Do, Acc, _E) ->
@@ -115,18 +115,18 @@ do_receive(Meta, {Key, _}, _Acc, E) ->
   compile_error(Meta, ?key(E, file), "missing do keyword in try");
 'try'(Meta, [{do, _}], E) ->
   compile_error(Meta, ?key(E, file), "missing catch/rescue/after/else keyword in try");
-'try'(Meta, KV, E) when not is_list(KV) ->
+'try'(Meta, Opts, E) when not is_list(Opts) ->
   compile_error(Meta, ?key(E, file), "invalid arguments for try");
-'try'(Meta, KV, E) ->
+'try'(Meta, Opts, E) ->
   RaiseError = fun(Kind) ->
     compile_error(Meta, ?key(E, file), "duplicated ~ts clauses given for try", [Kind])
   end,
-  ok = assert_at_most_once('do', KV, 0, RaiseError),
-  ok = assert_at_most_once('rescue', KV, 0, RaiseError),
-  ok = assert_at_most_once('catch', KV, 0, RaiseError),
-  ok = assert_at_most_once('else', KV, 0, RaiseError),
-  ok = assert_at_most_once('after', KV, 0, RaiseError),
-  {lists:map(fun(X) -> do_try(Meta, X, E) end, KV), E}.
+  ok = assert_at_most_once('do', Opts, 0, RaiseError),
+  ok = assert_at_most_once('rescue', Opts, 0, RaiseError),
+  ok = assert_at_most_once('catch', Opts, 0, RaiseError),
+  ok = assert_at_most_once('else', Opts, 0, RaiseError),
+  ok = assert_at_most_once('after', Opts, 0, RaiseError),
+  {lists:map(fun(X) -> do_try(Meta, X, E) end, Opts), E}.
 
 do_try(_Meta, {'do', Expr}, E) ->
   {EExpr, _} = elixir_expand:expand(Expr, E),

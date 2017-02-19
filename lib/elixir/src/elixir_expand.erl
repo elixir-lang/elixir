@@ -61,30 +61,30 @@ expand({Kind, Meta, [{{'.', _, [Base, '{}']}, _, Refs} | Rest]}, E)
   end;
 expand({alias, Meta, [Ref]}, E) ->
   expand({alias, Meta, [Ref, []]}, E);
-expand({alias, Meta, [Ref, KV]}, E) ->
+expand({alias, Meta, [Ref, Opts]}, E) ->
   assert_no_match_or_guard_scope(Meta, alias, E),
   {ERef, ER} = expand_without_aliases_report(Ref, E),
-  {EKV, ET}  = expand_opts(Meta, alias, [as, warn], no_alias_opts(KV), ER),
+  {EOpts, ET}  = expand_opts(Meta, alias, [as, warn], no_alias_opts(Opts), ER),
 
   if
     is_atom(ERef) ->
-      {ERef, expand_alias(Meta, true, ERef, EKV, ET)};
+      {ERef, expand_alias(Meta, true, ERef, EOpts, ET)};
     true ->
       form_error(Meta, ?key(E, file), ?MODULE, {expected_compile_time_module, alias, Ref})
   end;
 
 expand({require, Meta, [Ref]}, E) ->
   expand({require, Meta, [Ref, []]}, E);
-expand({require, Meta, [Ref, KV]}, E) ->
+expand({require, Meta, [Ref, Opts]}, E) ->
   assert_no_match_or_guard_scope(Meta, require, E),
 
   {ERef, ER} = expand_without_aliases_report(Ref, E),
-  {EKV, ET}  = expand_opts(Meta, require, [as, warn], no_alias_opts(KV), ER),
+  {EOpts, ET}  = expand_opts(Meta, require, [as, warn], no_alias_opts(Opts), ER),
 
   if
     is_atom(ERef) ->
       elixir_aliases:ensure_loaded(Meta, ERef, ET),
-      {ERef, expand_require(Meta, ERef, EKV, ET)};
+      {ERef, expand_require(Meta, ERef, EOpts, ET)};
     true ->
       form_error(Meta, ?key(E, file), ?MODULE, {expected_compile_time_module, require, Ref})
   end;
@@ -92,16 +92,16 @@ expand({require, Meta, [Ref, KV]}, E) ->
 expand({import, Meta, [Left]}, E) ->
   expand({import, Meta, [Left, []]}, E);
 
-expand({import, Meta, [Ref, KV]}, E) ->
+expand({import, Meta, [Ref, Opts]}, E) ->
   assert_no_match_or_guard_scope(Meta, import, E),
   {ERef, ER} = expand_without_aliases_report(Ref, E),
-  {EKV, ET}  = expand_opts(Meta, import, [only, except, warn], KV, ER),
+  {EOpts, ET}  = expand_opts(Meta, import, [only, except, warn], Opts, ER),
 
   if
     is_atom(ERef) ->
       elixir_aliases:ensure_loaded(Meta, ERef, ET),
-      {Functions, Macros} = elixir_import:import(Meta, ERef, EKV, ET),
-      {ERef, expand_require(Meta, ERef, EKV, ET#{functions := Functions, macros := Macros})};
+      {Functions, Macros} = elixir_import:import(Meta, ERef, EOpts, ET),
+      {ERef, expand_require(Meta, ERef, EOpts, ET#{functions := Functions, macros := Macros})};
     true ->
       form_error(Meta, ?key(E, file), ?MODULE, {expected_compile_time_module, import, Ref})
   end;
@@ -140,7 +140,7 @@ expand({quote, Meta, [Opts]}, E) when is_list(Opts) ->
 expand({quote, Meta, [_]}, E) ->
   form_error(Meta, ?key(E, file), ?MODULE, invalid_args_for_quote);
 
-expand({quote, Meta, [KV, Do]}, E) when is_list(Do) ->
+expand({quote, Meta, [Opts, Do]}, E) when is_list(Do) ->
   Exprs =
     case lists:keyfind(do, 1, Do) of
       {do, Expr} -> Expr;
@@ -148,9 +148,9 @@ expand({quote, Meta, [KV, Do]}, E) when is_list(Do) ->
     end,
 
   ValidOpts = [context, location, line, file, unquote, bind_quoted, generated],
-  {EKV, ET} = expand_opts(Meta, quote, ValidOpts, KV, E),
+  {EOpts, ET} = expand_opts(Meta, quote, ValidOpts, Opts, E),
 
-  Context = case lists:keyfind(context, 1, EKV) of
+  Context = case lists:keyfind(context, 1, EOpts) of
     {context, Ctx} when is_atom(Ctx) and (Ctx /= nil) ->
       Ctx;
     {context, Ctx} ->
@@ -162,32 +162,32 @@ expand({quote, Meta, [KV, Do]}, E) when is_list(Do) ->
       end
   end,
 
-  {File, Line} = case lists:keyfind(location, 1, EKV) of
+  {File, Line} = case lists:keyfind(location, 1, EOpts) of
     {location, keep} ->
       {elixir_utils:relative_to_cwd(?key(E, file)), false};
     false ->
-      { case lists:keyfind(file, 1, EKV) of
+      { case lists:keyfind(file, 1, EOpts) of
           {file, F} -> F;
           false -> nil
         end,
 
-        case lists:keyfind(line, 1, EKV) of
+        case lists:keyfind(line, 1, EOpts) of
           {line, L} -> L;
           false -> false
         end }
   end,
 
-  {Binding, DefaultUnquote} = case lists:keyfind(bind_quoted, 1, EKV) of
+  {Binding, DefaultUnquote} = case lists:keyfind(bind_quoted, 1, EOpts) of
     {bind_quoted, BQ} -> {BQ, false};
     false -> {nil, true}
   end,
 
-  Unquote = case lists:keyfind(unquote, 1, EKV) of
+  Unquote = case lists:keyfind(unquote, 1, EOpts) of
     {unquote, U} when is_boolean(U) -> U;
     false -> DefaultUnquote
   end,
 
-  Generated = lists:keyfind(generated, 1, EKV) == {generated, true},
+  Generated = lists:keyfind(generated, 1, EOpts) == {generated, true},
 
   %% TODO: Do not allow negative line numbers once Erlang 18
   %% support is dropped as it only allows negative line
@@ -222,24 +222,24 @@ expand({fn, Meta, Pairs}, E) ->
 
 %% Case/Receive/Try
 
-expand({'cond', Meta, [KV]}, E) ->
+expand({'cond', Meta, [Opts]}, E) ->
   assert_no_match_or_guard_scope(Meta, 'cond', E),
-  assert_no_underscore_clause_in_cond(KV, E),
-  {EClauses, EC} = elixir_clauses:'cond'(Meta, KV, E),
+  assert_no_underscore_clause_in_cond(Opts, E),
+  {EClauses, EC} = elixir_clauses:'cond'(Meta, Opts, E),
   {{'cond', Meta, [EClauses]}, EC};
 
 expand({'case', Meta, [Expr, Options]}, Env) ->
   ShouldExportVars = proplists:get_value(export_vars, Meta, true),
   expand_case(ShouldExportVars, Meta, Expr, Options, Env);
 
-expand({'receive', Meta, [KV]}, E) ->
+expand({'receive', Meta, [Opts]}, E) ->
   assert_no_match_or_guard_scope(Meta, 'receive', E),
-  {EClauses, EC} = elixir_clauses:'receive'(Meta, KV, E),
+  {EClauses, EC} = elixir_clauses:'receive'(Meta, Opts, E),
   {{'receive', Meta, [EClauses]}, EC};
 
-expand({'try', Meta, [KV]}, E) ->
+expand({'try', Meta, [Opts]}, E) ->
   assert_no_match_or_guard_scope(Meta, 'try', E),
-  {EClauses, EC} = elixir_clauses:'try'(Meta, KV, E),
+  {EClauses, EC} = elixir_clauses:'try'(Meta, Opts, E),
   {{'try', Meta, [EClauses]}, EC};
 
 %% Comprehensions
@@ -543,19 +543,19 @@ var_kind(Meta, Kind) ->
 
 %% Case
 
-expand_case(true, Meta, Expr, KV, E) ->
+expand_case(true, Meta, Expr, Opts, E) ->
   assert_no_match_or_guard_scope(Meta, 'case', E),
   {EExpr, EE} = expand(Expr, E),
-  {EKV, EK} = elixir_clauses:'case'(Meta, KV, EE),
-  RKV =
+  {EOpts, EO} = elixir_clauses:'case'(Meta, Opts, EE),
+  ROpts =
     case proplists:get_value(optimize_boolean, Meta, false) andalso
          elixir_utils:returns_boolean(EExpr) of
-      true -> rewrite_case_clauses(EKV);
-      false -> EKV
+      true -> rewrite_case_clauses(EOpts);
+      false -> EOpts
     end,
-  {{'case', Meta, [EExpr, RKV]}, EK};
-expand_case(false, Meta, Expr, KV, E) ->
-  {Case, _} = expand_case(true, Meta, Expr, KV, E),
+  {{'case', Meta, [EExpr, ROpts]}, EO};
+expand_case(false, Meta, Expr, Opts, E) ->
+  {Case, _} = expand_case(true, Meta, Expr, Opts, E),
   {Case, E}.
 
 rewrite_case_clauses([{do, [
@@ -646,27 +646,27 @@ validate_opts(Meta, Kind, Allowed, Opts, E) when is_list(Opts) ->
 validate_opts(Meta, Kind, _Allowed, _Opts, E) ->
   form_error(Meta, ?key(E, file), ?MODULE, {opts_are_not_a_keyword, Kind}).
 
-no_alias_opts(KV) when is_list(KV) ->
-  case lists:keyfind(as, 1, KV) of
-    {as, As} -> lists:keystore(as, 1, KV, {as, no_alias_expansion(As)});
-    false -> KV
+no_alias_opts(Opts) when is_list(Opts) ->
+  case lists:keyfind(as, 1, Opts) of
+    {as, As} -> lists:keystore(as, 1, Opts, {as, no_alias_expansion(As)});
+    false -> Opts
   end;
-no_alias_opts(KV) -> KV.
+no_alias_opts(Opts) -> Opts.
 
 no_alias_expansion({'__aliases__', _, [H | T]}) when is_atom(H) ->
   elixir_aliases:concat([H | T]);
 no_alias_expansion(Other) ->
   Other.
 
-expand_require(Meta, Ref, KV, E) ->
+expand_require(Meta, Ref, Opts, E) ->
   %% We always record requires when they are defined
   %% as they expect the reference at compile time.
   elixir_lexical:record_remote(Ref, nil, ?key(E, lexical_tracker)),
   RE = E#{requires := ordsets:add_element(Ref, ?key(E, requires))},
-  expand_alias(Meta, false, Ref, KV, RE).
+  expand_alias(Meta, false, Ref, Opts, RE).
 
-expand_alias(Meta, IncludeByDefault, Ref, KV, #{context_modules := Context} = E) ->
-  New = expand_as(lists:keyfind(as, 1, KV), Meta, IncludeByDefault, Ref, E),
+expand_alias(Meta, IncludeByDefault, Ref, Opts, #{context_modules := Context} = E) ->
+  New = expand_as(lists:keyfind(as, 1, Opts), Meta, IncludeByDefault, Ref, E),
 
   %% Add the alias to context_modules if defined is set.
   %% This is used by defmodule in order to store the defined
@@ -677,7 +677,7 @@ expand_alias(Meta, IncludeByDefault, Ref, KV, #{context_modules := Context} = E)
       false -> Context
     end,
 
-  {Aliases, MacroAliases} = elixir_aliases:store(Meta, New, Ref, KV, ?key(E, aliases),
+  {Aliases, MacroAliases} = elixir_aliases:store(Meta, New, Ref, Opts, ?key(E, aliases),
                                 ?key(E, macro_aliases), ?key(E, lexical_tracker)),
 
   E#{aliases := Aliases, macro_aliases := MacroAliases, context_modules := NewContext}.
