@@ -143,11 +143,11 @@ defmodule Module.LocalsTracker do
   def collect_imports_conflicts(pid, all_defined) do
     d = :gen_server.call(pid, :digraph, @timeout)
 
-    for {name, arity} <- all_defined,
+    for {{name, arity}, _, meta, _} <- all_defined,
         :digraph.in_neighbours(d, {:import, name, arity}) != [],
         n = :digraph.out_neighbours(d, {:import, name, arity}),
         n != [] do
-      {n, name, arity}
+      {meta, {n, name, arity}}
     end
   end
 

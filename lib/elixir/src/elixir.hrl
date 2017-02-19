@@ -1,3 +1,4 @@
+%% TODO: Rename to ?key
 -define(m(M, K), maps:get(K, M)).
 -define(ann(Opts), elixir_utils:get_ann(Opts)).
 -define(line(Opts), elixir_utils:get_line(Opts)).
@@ -10,6 +11,7 @@
 -define(generated, [{generated, true}, {location, 0}]).
 -define(generated(Opts), [{generated, true}, {location, ?line(Opts)}]).
 
+%% TODO: Rename to #elixir_erl
 -record(elixir_scope, {
   def=nil,                 %% a tuple with the current definition {def | ..., name, arity}
   context=nil,             %% can be match, guards or nil

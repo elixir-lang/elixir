@@ -75,16 +75,16 @@ do_compile(Line, Module, Block, Vars, E) ->
     OnLoad = ets:lookup_element(Data, 'on_load', 2),
     [elixir_locals:record_local(Tuple, Module) || Tuple <- OnLoad],
 
-    {Def, Defp, Defmacro, Defmacrop, Exports, Functions, Unreachable} =
-      elixir_def:unwrap_definitions(File, Module),
+    {AllDefinitions, Unreachable} =
+      elixir_def:fetch_definitions(File, Module),
+    {Def, Defp, Defmacro, Defmacrop, Exports, Functions} =
+      elixir_erl:split_definition(File, Module, AllDefinitions, Unreachable),
 
-    {All, Forms0} = functions_form(Line, File, Module, Def, Defp,
-                                   Defmacro, Defmacrop, Exports, Functions),
+    Forms0 = functions_form(Line, File, Module, Def, Defp,
+                            Defmacro, Defmacrop, Exports, Functions),
     Forms1 = specs_form(Data, Defmacro, Defmacrop, Unreachable, Forms0),
     Forms2 = types_form(Data, Forms1),
     Forms3 = attributes_form(Line, File, Data, PersistedAttrs, Forms2),
-
-    elixir_locals:ensure_no_import_conflict(Line, File, Module, All),
     warn_unused_attributes(File, Data, PersistedAttrs),
 
     Location = {elixir_utils:characters_to_list(elixir_utils:relative_to_cwd(File)), Line},
@@ -205,12 +205,15 @@ eval_callbacks(Line, Data, Name, Args, E) ->
 %% Return the form with exports and function declarations.
 
 functions_form(Line, File, Module, Def, Defp, Defmacro, Defmacrop, Exports, Body) ->
-  All = Def ++ Defmacro ++ Defp ++ Defmacrop,
-  {Spec, Info} = add_info_function(Line, File, Module, All, Def, Defmacro),
-
-  {[{'__info__', 1} | All],
-   [{attribute, Line, export, lists:sort([{'__info__', 1} | Exports])},
-    Spec, Info | Body]}.
+  Pair = {'__info__', 1},
+  case lists:member(Pair, Def) or lists:member(Pair, Defp) or
+       lists:member(Pair, Defmacro) or lists:member(Pair, Defmacrop) of
+    true  ->
+      elixir_errors:form_error([{line, Line}], File, ?MODULE, {internal_function_overridden, Pair});
+    false ->
+      {Spec, Info} = add_info_function(Line, Module, Def, Defmacro),
+      [{attribute, Line, export, lists:sort([{'__info__', 1} | Exports])}, Spec, Info | Body]
+  end.
 
 %% Add attributes handling to the form
 
@@ -433,49 +436,44 @@ warn_unused_attributes(File, Data, PersistedAttrs) ->
 
 % __INFO__
 
-add_info_function(Line, File, Module, All, Def, Defmacro) ->
-  Pair = {'__info__', 1},
-  case lists:member(Pair, All) of
-    true  ->
-      elixir_errors:form_error([{line, Line}], File, ?MODULE, {internal_function_overridden, Pair});
-    false ->
-      AllowedArgs =
-        lists:map(fun(Atom) -> {atom, Line, Atom} end,
-                  [attributes, compile, exports, functions, macros, md5, module]),
-      Spec =
-        {attribute, Line, spec, {Pair,
-          [{type, Line, 'fun', [
-            {type, Line, product, [
-              {type, Line, union, AllowedArgs}
-            ]},
+add_info_function(Line, Module, Def, Defmacro) ->
+  AllowedArgs =
+    lists:map(fun(Atom) -> {atom, Line, Atom} end,
+              [attributes, compile, exports, functions, macros, md5, module]),
+
+  Spec =
+    {attribute, Line, spec, {{'__info__', 1},
+      [{type, Line, 'fun', [
+        {type, Line, product, [
+          {type, Line, union, AllowedArgs}
+        ]},
+        {type, Line, union, [
+          {type, Line, atom, []},
+          {type, Line, list, [
             {type, Line, union, [
-              {type, Line, atom, []},
-              {type, Line, list, [
-                {type, Line, union, [
-                  {type, Line, tuple, [
-                    {type, Line, atom, []},
-                    {type, Line, any, []}
-                  ]},
-                  {type, Line, tuple, [
-                    {type, Line, atom, []},
-                    {type, Line, byte, []},
-                    {type, Line, integer, []}
-                  ]}
-                ]}
+              {type, Line, tuple, [
+                {type, Line, atom, []},
+                {type, Line, any, []}
+              ]},
+              {type, Line, tuple, [
+                {type, Line, atom, []},
+                {type, Line, byte, []},
+                {type, Line, integer, []}
               ]}
             ]}
-          ]}]
-        }},
+          ]}
+        ]}
+      ]}]
+    }},
 
-      Info =
-        {function, 0, '__info__', 1, [
-          functions_clause(Def),
-          macros_clause(Defmacro),
-          info_clause(Module)
-        ]},
+  Info =
+    {function, 0, '__info__', 1, [
+      functions_clause(Def),
+      macros_clause(Defmacro),
+      info_clause(Module)
+    ]},
 
-      {Spec, Info}
-  end.
+  {Spec, Info}.
 
 functions_clause(Def) ->
   {clause, 0, [{atom, 0, functions}], [], [elixir_utils:elixir_to_erl(lists:sort(Def))]}.
