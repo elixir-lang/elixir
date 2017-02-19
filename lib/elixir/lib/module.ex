@@ -753,7 +753,7 @@ defmodule Module do
     assert_not_compiled!(:defines?, module)
     table = defs_table_for(module)
     case :ets.lookup(table, {:def, tuple}) do
-      [{_, ^kind, _, _, _, _, _}] -> true
+      [{_, ^kind, _, _, _, _}] -> true
       _ -> false
     end
   end
@@ -772,7 +772,7 @@ defmodule Module do
   def definitions_in(module) do
     assert_not_compiled!(:definitions_in, module)
     table = defs_table_for(module)
-    :lists.concat :ets.match(table, {{:def, :'$1'}, :_, :_, :_, :_, :_, :_})
+    :lists.concat :ets.match(table, {{:def, :'$1'}, :_, :_, :_, :_, :_})
   end
 
   @doc """
@@ -791,7 +791,7 @@ defmodule Module do
   def definitions_in(module, kind) do
     assert_not_compiled!(:definitions_in, module)
     table = defs_table_for(module)
-    :lists.concat :ets.match(table, {{:def, :'$1'}, kind, :_, :_, :_, :_, :_})
+    :lists.concat :ets.match(table, {{:def, :'$1'}, kind, :_, :_, :_, :_})
   end
 
   @doc """

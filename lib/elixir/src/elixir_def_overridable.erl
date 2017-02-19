@@ -34,7 +34,7 @@ store(Module, Function, Hidden) ->
   case maps:find(Function, Overridable) of
     {ok, {Count, Def, Neighbours, Overridden}} ->
       {{{def, {Name, Arity}}, Kind, Meta, File, _Check,
-       Location, {Defaults, _HasBody, _LastDefaults}}, Clauses} = Def,
+       {Defaults, _HasBody, _LastDefaults}}, Clauses} = Def,
 
       {FinalKind, FinalName, FinalArity, FinalClauses} =
         case Hidden of
@@ -54,7 +54,7 @@ store(Module, Function, Hidden) ->
           (not elixir_compiler:get_opt(internal)) andalso
             'Elixir.Module.LocalsTracker':reattach(Module, Kind, Function, Neighbours),
           elixir_def:store_definition(false, FinalKind, Meta, FinalName, FinalArity,
-                                      File, Location, Module, Defaults, FinalClauses),
+                                      File, Module, Defaults, FinalClauses),
           elixir_locals:record_definition(Tuple, FinalKind, Module),
           elixir_locals:record_local(Tuple, Module, Function);
         true ->
@@ -67,7 +67,8 @@ store(Module, Function, Hidden) ->
   end.
 
 rewrite_clauses(Clauses) ->
-  [{[{'__CALLER__', [], nil} | Args], Guards, Body} || {Args, Guards, Body} <- Clauses].
+  [{Meta, [{'__CALLER__', [], nil} | Args], Guards, Body} ||
+   {Meta, Args, Guards, Body} <- Clauses].
 
 name(Name, Count) when is_integer(Count) ->
   list_to_atom(atom_to_list(Name) ++ " (overridable " ++ integer_to_list(Count) ++ ")").

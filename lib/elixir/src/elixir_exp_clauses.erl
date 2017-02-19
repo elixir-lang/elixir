@@ -10,11 +10,11 @@ match(Fun, Expr, #{context := Context} = E) ->
   {EExpr, EE} = Fun(Expr, E#{context := match}),
   {EExpr, EE#{context := Context}}.
 
-def({Args, Guards, Body}, E) ->
+def({Meta, Args, Guards, Body}, E) ->
   {EArgs, EA}   = elixir_exp:expand(Args, E#{context := match}),
   {EGuards, EG} = guard(Guards, EA#{context := guard}),
   {EBody, _}    = elixir_exp:expand(Body, EG#{context := ?m(E, context)}),
-  {EArgs, EGuards, EBody}.
+  {Meta, EArgs, EGuards, EBody}.
 
 clause(Meta, Kind, Fun, {'->', ClauseMeta, [_, _]} = Clause, E) when is_function(Fun, 3) ->
   clause(Meta, Kind, fun(X, Acc) -> Fun(ClauseMeta, X, Acc) end, Clause, E);
