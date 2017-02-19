@@ -51,13 +51,13 @@ guard(Other, E) ->
     compile_error(Meta, ?key(E, file), "duplicated ~ts clauses given for case", [Kind])
   end),
   EE = E#{export_vars := []},
-  {EClauses, EVars} = lists:mapfoldl(fun(X, Acc) -> do_case(Meta, X, Acc, EE) end, [], Opts),
+  {EClauses, EVars} = lists:mapfoldl(fun(X, Acc) -> expand_case(Meta, X, Acc, EE) end, [], Opts),
   {EClauses, elixir_env:mergev(EVars, E)}.
 
-do_case(Meta, {'do', _} = Do, Acc, E) ->
+expand_case(Meta, {'do', _} = Do, Acc, E) ->
   Fun = expand_one(Meta, 'case', 'do', fun head/2),
   expand_with_export(Meta, 'case', Fun, Do, Acc, E);
-do_case(Meta, {Key, _}, _Acc, E) ->
+expand_case(Meta, {Key, _}, _Acc, E) ->
   compile_error(Meta, ?key(E, file), "unexpected keyword ~ts in case", [Key]).
 
 %% Cond
@@ -71,13 +71,13 @@ do_case(Meta, {Key, _}, _Acc, E) ->
     compile_error(Meta, ?key(E, file), "duplicated ~ts clauses given for cond", [Kind])
   end),
   EE = E#{export_vars := []},
-  {EClauses, EVars} = lists:mapfoldl(fun(X, Acc) -> do_cond(Meta, X, Acc, EE) end, [], Opts),
+  {EClauses, EVars} = lists:mapfoldl(fun(X, Acc) -> expand_cond(Meta, X, Acc, EE) end, [], Opts),
   {EClauses, elixir_env:mergev(EVars, E)}.
 
-do_cond(Meta, {'do', _} = Do, Acc, E) ->
+expand_cond(Meta, {'do', _} = Do, Acc, E) ->
   Fun = expand_one(Meta, 'cond', 'do', fun elixir_expand:expand_args/2),
   expand_with_export(Meta, 'cond', Fun, Do, Acc, E);
-do_cond(Meta, {Key, _}, _Acc, E) ->
+expand_cond(Meta, {Key, _}, _Acc, E) ->
   compile_error(Meta, ?key(E, file), "unexpected keyword ~ts in cond", [Key]).
 
 %% Receive
@@ -93,20 +93,20 @@ do_cond(Meta, {Key, _}, _Acc, E) ->
   ok = assert_at_most_once('do', Opts, 0, RaiseError),
   ok = assert_at_most_once('after', Opts, 0, RaiseError),
   EE = E#{export_vars := []},
-  {EClauses, EVars} = lists:mapfoldl(fun(X, Acc) -> do_receive(Meta, X, Acc, EE) end, [], Opts),
+  {EClauses, EVars} = lists:mapfoldl(fun(X, Acc) -> expand_receive(Meta, X, Acc, EE) end, [], Opts),
   {EClauses, elixir_env:mergev(EVars, E)}.
 
-do_receive(_Meta, {'do', nil} = Do, Acc, _E) ->
+expand_receive(_Meta, {'do', nil} = Do, Acc, _E) ->
   {Do, Acc};
-do_receive(Meta, {'do', _} = Do, Acc, E) ->
+expand_receive(Meta, {'do', _} = Do, Acc, E) ->
   Fun = expand_one(Meta, 'receive', 'do', fun head/2),
   expand_with_export(Meta, 'receive', Fun, Do, Acc, E);
-do_receive(Meta, {'after', [_]} = After, Acc, E) ->
+expand_receive(Meta, {'after', [_]} = After, Acc, E) ->
   Fun = expand_one(Meta, 'receive', 'after', fun elixir_expand:expand_args/2),
   expand_with_export(Meta, 'receive', Fun, After, Acc, E);
-do_receive(Meta, {'after', _}, _Acc, E) ->
+expand_receive(Meta, {'after', _}, _Acc, E) ->
   compile_error(Meta, ?key(E, file), "expected a single -> clause for after in receive");
-do_receive(Meta, {Key, _}, _Acc, E) ->
+expand_receive(Meta, {Key, _}, _Acc, E) ->
   compile_error(Meta, ?key(E, file), "unexpected keyword ~ts in receive", [Key]).
 
 %% Try
@@ -126,22 +126,22 @@ do_receive(Meta, {Key, _}, _Acc, E) ->
   ok = assert_at_most_once('catch', Opts, 0, RaiseError),
   ok = assert_at_most_once('else', Opts, 0, RaiseError),
   ok = assert_at_most_once('after', Opts, 0, RaiseError),
-  {lists:map(fun(X) -> do_try(Meta, X, E) end, Opts), E}.
+  {lists:map(fun(X) -> expand_try(Meta, X, E) end, Opts), E}.
 
-do_try(_Meta, {'do', Expr}, E) ->
+expand_try(_Meta, {'do', Expr}, E) ->
   {EExpr, _} = elixir_expand:expand(Expr, E),
   {'do', EExpr};
-do_try(_Meta, {'after', Expr}, E) ->
+expand_try(_Meta, {'after', Expr}, E) ->
   {EExpr, _} = elixir_expand:expand(Expr, E),
   {'after', EExpr};
-do_try(Meta, {'else', _} = Else, E) ->
+expand_try(Meta, {'else', _} = Else, E) ->
   Fun = expand_one(Meta, 'try', 'else', fun head/2),
   expand_without_export(Meta, 'try', Fun, Else, E);
-do_try(Meta, {'catch', _} = Catch, E) ->
+expand_try(Meta, {'catch', _} = Catch, E) ->
   expand_without_export(Meta, 'try', fun expand_catch/3, Catch, E);
-do_try(Meta, {'rescue', _} = Rescue, E) ->
+expand_try(Meta, {'rescue', _} = Rescue, E) ->
   expand_without_export(Meta, 'try', fun expand_rescue/3, Rescue, E);
-do_try(Meta, {Key, _}, E) ->
+expand_try(Meta, {Key, _}, E) ->
   compile_error(Meta, ?key(E, file), "unexpected keyword ~ts in try", [Key]).
 
 expand_catch(_Meta, [_] = Args, E) ->
