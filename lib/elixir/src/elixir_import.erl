@@ -10,10 +10,10 @@ import(Meta, Ref, Opts, E) ->
     case keyfind(only, Opts) of
       {only, functions} ->
         {Added1, Funs} = import_functions(Meta, Ref, Opts, E),
-        {Funs, keydelete(Ref, ?m(E, macros)), Added1};
+        {Funs, keydelete(Ref, ?key(E, macros)), Added1};
       {only, macros} ->
         {Added2, Macs} = import_macros(true, Meta, Ref, Opts, E),
-        {keydelete(Ref, ?m(E, functions)), Macs, Added2};
+        {keydelete(Ref, ?key(E, functions)), Macs, Added2};
       {only, List} when is_list(List) ->
         {Added1, Funs} = import_functions(Meta, Ref, Opts, E),
         {Added2, Macs} = import_macros(false, Meta, Ref, Opts, E),
@@ -28,18 +28,18 @@ import(Meta, Ref, Opts, E) ->
   {Functions, Macros}.
 
 import_functions(Meta, Ref, Opts, E) ->
-  calculate(Meta, Ref, Opts, ?m(E, functions), ?m(E, file), fun() ->
+  calculate(Meta, Ref, Opts, ?key(E, functions), ?key(E, file), fun() ->
     get_functions(Ref)
   end).
 
 import_macros(Force, Meta, Ref, Opts, E) ->
-  calculate(Meta, Ref, Opts, ?m(E, macros), ?m(E, file), fun() ->
+  calculate(Meta, Ref, Opts, ?key(E, macros), ?key(E, file), fun() ->
     case fetch_macros(Ref) of
       {ok, Macros} ->
         Macros;
       error when Force ->
         Tuple = {no_macros, Ref},
-        elixir_errors:form_error(Meta, ?m(E, file), ?MODULE, Tuple);
+        elixir_errors:form_error(Meta, ?key(E, file), ?MODULE, Tuple);
       error ->
         []
     end
@@ -59,7 +59,7 @@ record_warn(Meta, Ref, Opts, Added, E) ->
       _ -> []
     end,
 
-  elixir_lexical:record_import(Ref, Only, ?line(Meta), Added and Warn, ?m(E, lexical_tracker)).
+  elixir_lexical:record_import(Ref, Only, ?line(Meta), Added and Warn, ?key(E, lexical_tracker)).
 
 %% Calculates the imports based on only and except
 

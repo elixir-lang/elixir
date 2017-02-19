@@ -27,7 +27,7 @@ expand({'<<>>', Meta, Args}, E) ->
   elixir_bitstring:expand(Meta, Args, E);
 
 expand({'->', Meta, _Args}, E) ->
-  form_error(Meta, ?m(E, file), ?MODULE, unhandled_arrow_op);
+  form_error(Meta, ?key(E, file), ?MODULE, unhandled_arrow_op);
 
 %% __block__
 
@@ -54,7 +54,7 @@ expand({Kind, Meta, [{{'.', _, [Base, '{}']}, _, Refs} | Rest]}, E)
     [Opts] ->
       case lists:keymember(as, 1, Opts) of
         true ->
-          form_error(Meta, ?m(E, file), ?MODULE, as_in_multi_alias_call);
+          form_error(Meta, ?key(E, file), ?MODULE, as_in_multi_alias_call);
         false ->
           expand_multi_alias_call(Kind, Meta, Base, Refs, Opts, E)
       end
@@ -70,7 +70,7 @@ expand({alias, Meta, [Ref, KV]}, E) ->
     is_atom(ERef) ->
       {ERef, expand_alias(Meta, true, ERef, EKV, ET)};
     true ->
-      form_error(Meta, ?m(E, file), ?MODULE, {expected_compile_time_module, alias, Ref})
+      form_error(Meta, ?key(E, file), ?MODULE, {expected_compile_time_module, alias, Ref})
   end;
 
 expand({require, Meta, [Ref]}, E) ->
@@ -86,7 +86,7 @@ expand({require, Meta, [Ref, KV]}, E) ->
       elixir_aliases:ensure_loaded(Meta, ERef, ET),
       {ERef, expand_require(Meta, ERef, EKV, ET)};
     true ->
-      form_error(Meta, ?m(E, file), ?MODULE, {expected_compile_time_module, require, Ref})
+      form_error(Meta, ?key(E, file), ?MODULE, {expected_compile_time_module, require, Ref})
   end;
 
 expand({import, Meta, [Left]}, E) ->
@@ -103,15 +103,15 @@ expand({import, Meta, [Ref, KV]}, E) ->
       {Functions, Macros} = elixir_import:import(Meta, ERef, EKV, ET),
       {ERef, expand_require(Meta, ERef, EKV, ET#{functions := Functions, macros := Macros})};
     true ->
-      form_error(Meta, ?m(E, file), ?MODULE, {expected_compile_time_module, import, Ref})
+      form_error(Meta, ?key(E, file), ?MODULE, {expected_compile_time_module, import, Ref})
   end;
 
 %% Compilation environment macros
 
 expand({'__MODULE__', _, Atom}, E) when is_atom(Atom) ->
-  {?m(E, module), E};
+  {?key(E, module), E};
 expand({'__DIR__', _, Atom}, E) when is_atom(Atom) ->
-  {filename:dirname(?m(E, file)), E};
+  {filename:dirname(?key(E, file)), E};
 expand({'__CALLER__', _, Atom} = Caller, E) when is_atom(Atom) ->
   {Caller, E};
 expand({'__ENV__', Meta, Atom}, E) when is_atom(Atom) ->
@@ -127,24 +127,24 @@ expand({{'.', DotMeta, [{'__ENV__', Meta, Atom}, Field]}, CallMeta, []}, E) when
 %% Quote
 
 expand({Unquote, Meta, [_]}, E) when Unquote == unquote; Unquote == unquote_splicing ->
-  form_error(Meta, ?m(E, file), ?MODULE, {unquote_outside_quote, Unquote});
+  form_error(Meta, ?key(E, file), ?MODULE, {unquote_outside_quote, Unquote});
 
 expand({quote, Meta, [Opts]}, E) when is_list(Opts) ->
   case lists:keyfind(do, 1, Opts) of
     {do, Do} ->
       expand({quote, Meta, [lists:keydelete(do, 1, Opts), [{do, Do}]]}, E);
     false ->
-      form_error(Meta, ?m(E, file), ?MODULE, missing_do_in_quote)
+      form_error(Meta, ?key(E, file), ?MODULE, missing_do_in_quote)
   end;
 
 expand({quote, Meta, [_]}, E) ->
-  form_error(Meta, ?m(E, file), ?MODULE, invalid_args_for_quote);
+  form_error(Meta, ?key(E, file), ?MODULE, invalid_args_for_quote);
 
 expand({quote, Meta, [KV, Do]}, E) when is_list(Do) ->
   Exprs =
     case lists:keyfind(do, 1, Do) of
       {do, Expr} -> Expr;
-      false -> form_error(Meta, ?m(E, file), ?MODULE, missing_do_in_quote)
+      false -> form_error(Meta, ?key(E, file), ?MODULE, missing_do_in_quote)
     end,
 
   ValidOpts = [context, location, line, file, unquote, bind_quoted, generated],
@@ -154,9 +154,9 @@ expand({quote, Meta, [KV, Do]}, E) when is_list(Do) ->
     {context, Ctx} when is_atom(Ctx) and (Ctx /= nil) ->
       Ctx;
     {context, Ctx} ->
-      form_error(Meta, ?m(E, file), ?MODULE, {invalid_context_opt_for_quote, Ctx});
+      form_error(Meta, ?key(E, file), ?MODULE, {invalid_context_opt_for_quote, Ctx});
     false ->
-      case ?m(E, module) of
+      case ?key(E, module) of
         nil -> 'Elixir';
         Mod -> Mod
       end
@@ -164,7 +164,7 @@ expand({quote, Meta, [KV, Do]}, E) when is_list(Do) ->
 
   {File, Line} = case lists:keyfind(location, 1, EKV) of
     {location, keep} ->
-      {elixir_utils:relative_to_cwd(?m(E, file)), false};
+      {elixir_utils:relative_to_cwd(?key(E, file)), false};
     false ->
       { case lists:keyfind(file, 1, EKV) of
           {file, F} -> F;
@@ -199,7 +199,7 @@ expand({quote, Meta, [KV, Do]}, E) when is_list(Do) ->
   expand(Quoted, ET);
 
 expand({quote, Meta, [_, _]}, E) ->
-  form_error(Meta, ?m(E, file), ?MODULE, invalid_args_for_quote);
+  form_error(Meta, ?key(E, file), ?MODULE, invalid_args_for_quote);
 
 %% Functions
 
@@ -208,7 +208,7 @@ expand({'&', Meta, [Arg]}, E) ->
   case elixir_fn:capture(Meta, Arg, E) of
     {remote, Remote, Fun, Arity} ->
       is_atom(Remote) andalso
-        elixir_lexical:record_remote(Remote, Fun, Arity, ?m(E, function), ?line(Meta), ?m(E, lexical_tracker)),
+        elixir_lexical:record_remote(Remote, Fun, Arity, ?key(E, function), ?line(Meta), ?key(E, lexical_tracker)),
       {{'&', Meta, [{'/', [], [{{'.', [], [Remote, Fun]}, [], []}, Arity]}]}, E};
     {local, Fun, Arity} ->
       {{'&', Meta, [{'/', [], [{Fun, [], nil}, Arity]}]}, E};
@@ -263,7 +263,7 @@ expand({for, Meta, [_ | _] = Args}, E) ->
       {value, {do, Do}, DoOpts} ->
         {Do, DoOpts};
       false ->
-        elixir_errors:compile_error(Meta, ?m(E, file),
+        elixir_errors:compile_error(Meta, ?key(E, file),
           "missing do keyword in for comprehension")
     end,
 
@@ -307,26 +307,26 @@ expand({'^', Meta, [Arg]}, #{context := match} = E) ->
       %% If the variable was defined, then we return the expanded ^, otherwise
       %% we raise. We cannot use the expanded env because it would contain the
       %% variable.
-      case lists:member({VarName, var_kind(VarMeta, Kind)}, ?m(E, vars)) of
+      case lists:member({VarName, var_kind(VarMeta, Kind)}, ?key(E, vars)) of
         true ->
           {{'^', Meta, [Var]}, EA};
         false ->
-          form_error(Meta, ?m(EA, file), ?MODULE, {unbound_variable_hat, VarName})
+          form_error(Meta, ?key(EA, file), ?MODULE, {unbound_variable_hat, VarName})
       end;
     _ ->
-      form_error(Meta, ?m(E, file), ?MODULE, {invalid_arg_for_hat, Arg})
+      form_error(Meta, ?key(E, file), ?MODULE, {invalid_arg_for_hat, Arg})
   end;
 expand({'^', Meta, [Arg]}, E) ->
-  form_error(Meta, ?m(E, file), ?MODULE, {hat_outside_of_match, Arg});
+  form_error(Meta, ?key(E, file), ?MODULE, {hat_outside_of_match, Arg});
 
 expand({'_', _Meta, Kind} = Var, #{context := match} = E) when is_atom(Kind) ->
   {Var, E};
 expand({'_', Meta, Kind}, E) when is_atom(Kind) ->
-  form_error(Meta, ?m(E, file), ?MODULE, unbound_underscore);
+  form_error(Meta, ?key(E, file), ?MODULE, unbound_underscore);
 
 expand({Name, Meta, Kind} = Var, #{context := match, export_vars := Export} = E) when is_atom(Name), is_atom(Kind) ->
   Pair      = {Name, var_kind(Meta, Kind)},
-  NewVars   = ordsets:add_element(Pair, ?m(E, vars)),
+  NewVars   = ordsets:add_element(Pair, ?key(E, vars)),
   NewExport = case (Export /= nil) of
     true  -> ordsets:add_element(Pair, Export);
     false -> Export
@@ -339,12 +339,12 @@ expand({Name, Meta, Kind} = Var, #{vars := Vars} = E) when is_atom(Name), is_ato
     false ->
       case lists:keyfind(var, 1, Meta) of
         {var, true} ->
-          form_error(Meta, ?m(E, file), ?MODULE, {undefined_var, Name, Kind});
+          form_error(Meta, ?key(E, file), ?MODULE, {undefined_var, Name, Kind});
         _ ->
           Message =
             io_lib:format("variable \"~ts\" does not exist and is being expanded to \"~ts()\","
               " please use parentheses to remove the ambiguity or change the variable name", [Name, Name]),
-          elixir_errors:warn(?line(Meta), ?m(E, file), Message),
+          elixir_errors:warn(?line(Meta), ?key(E, file), Message),
           expand({Name, Meta, []}, E)
       end
   end;
@@ -386,7 +386,7 @@ expand({{'.', DotMeta, [Expr]}, Meta, Args}, E) when is_list(Args) ->
   {EExpr, EE} = expand(Expr, E),
   if
     is_atom(EExpr) ->
-      form_error(Meta, ?m(E, file), ?MODULE, {invalid_function_call, EExpr});
+      form_error(Meta, ?key(E, file), ?MODULE, {invalid_function_call, EExpr});
     true ->
       {EArgs, EA} = expand_args(Args, elixir_env:mergea(E, EE)),
       {{{'.', DotMeta, [EExpr]}, Meta, EArgs}, elixir_env:mergev(EE, EA)}
@@ -395,10 +395,10 @@ expand({{'.', DotMeta, [Expr]}, Meta, Args}, E) when is_list(Args) ->
 %% Invalid calls
 
 expand({_, Meta, Args} = Invalid, E) when is_list(Meta) and is_list(Args) ->
-  form_error(Meta, ?m(E, file), ?MODULE, {invalid_call, Invalid});
+  form_error(Meta, ?key(E, file), ?MODULE, {invalid_call, Invalid});
 
 expand({_, _, _} = Tuple, E) ->
-  form_error([{line, 0}], ?m(E, file), ?MODULE, {invalid_quoted_expr, Tuple});
+  form_error([{line, 0}], ?key(E, file), ?MODULE, {invalid_quoted_expr, Tuple});
 
 %% Literals
 
@@ -419,14 +419,14 @@ expand(Function, E) when is_function(Function) ->
     true ->
       {Function, E};
     false ->
-      form_error([{line, 0}], ?m(E, file), ?MODULE, {invalid_quoted_expr, Function})
+      form_error([{line, 0}], ?key(E, file), ?MODULE, {invalid_quoted_expr, Function})
   end;
 
 expand(Other, E) when is_number(Other); is_atom(Other); is_binary(Other); is_pid(Other) ->
   {Other, E};
 
 expand(Other, E) ->
-  form_error([{line, 0}], ?m(E, file), ?MODULE, {invalid_quoted_expr, Other}).
+  form_error([{line, 0}], ?key(E, file), ?MODULE, {invalid_quoted_expr, Other}).
 
 %% Helpers
 
@@ -452,7 +452,7 @@ expand_multi_alias_call(Kind, Meta, Base, Refs, Opts, E) ->
     (Ref, ER) when is_atom(Ref) ->
       expand({Kind, Meta, [elixir_aliases:concat([BaseRef, Ref]), Opts]}, ER);
     (Other, _ER) ->
-      form_error(Meta, ?m(E, file), ?MODULE, {expected_compile_time_module, Kind, Other})
+      form_error(Meta, ?key(E, file), ?MODULE, {expected_compile_time_module, Kind, Other})
   end,
   lists:mapfoldl(Fun, EB, Refs).
 
@@ -485,7 +485,7 @@ expand_block([H | T], Acc, Meta, E) ->
   %% simply returning something as replacement.
   case is_useless_building(H, EH, Meta) of
     {UselessMeta, UselessTerm} ->
-      elixir_errors:form_warn(UselessMeta, ?m(E, file), ?MODULE, UselessTerm);
+      elixir_errors:form_warn(UselessMeta, ?key(E, file), ?MODULE, UselessTerm);
     false ->
       ok
   end,
@@ -583,9 +583,9 @@ rewrite_case_clauses(Other) ->
 assert_no_ambiguous_op(Name, Meta, [Arg], E) ->
   case lists:keyfind(ambiguous_op, 1, Meta) of
     {ambiguous_op, Kind} ->
-      case lists:member({Name, Kind}, ?m(E, vars)) of
+      case lists:member({Name, Kind}, ?key(E, vars)) of
         true ->
-          form_error(Meta, ?m(E, file), ?MODULE, {op_ambiguity, Name, Arg});
+          form_error(Meta, ?key(E, file), ?MODULE, {op_ambiguity, Name, Arg});
         false ->
           ok
       end;
@@ -596,11 +596,11 @@ assert_no_ambiguous_op(_Atom, _Meta, _Args, _E) ->
   ok.
 
 expand_local(Meta, Name, Args, #{function := nil} = E) ->
-  form_error(Meta, ?m(E, file), ?MODULE, {undefined_function, Name, Args});
+  form_error(Meta, ?key(E, file), ?MODULE, {undefined_function, Name, Args});
 expand_local(Meta, Name, Args, #{context := match} = E) ->
-  form_error(Meta, ?m(E, file), ?MODULE, {local_invocation_in_match, {Name, Meta, Args}});
+  form_error(Meta, ?key(E, file), ?MODULE, {local_invocation_in_match, {Name, Meta, Args}});
 expand_local(Meta, Name, Args, #{context := guard} = E) ->
-  form_error(Meta, ?m(E, file), ?MODULE, {local_invocation_in_guard, Name, Args});
+  form_error(Meta, ?key(E, file), ?MODULE, {local_invocation_in_guard, Name, Args});
 expand_local(Meta, Name, Args, #{module := Module, function := Function} = E) ->
   elixir_locals:record_local({Name, length(Args)}, Module, Function),
   {EArgs, EA} = expand_args(Args, E),
@@ -612,14 +612,14 @@ expand_remote(Receiver, DotMeta, Right, Meta, Args, #{context := Context} = E, E
   Arity = length(Args),
   is_atom(Receiver) andalso
     elixir_lexical:record_remote(Receiver, Right, Arity,
-                                 ?m(E, function), ?line(Meta), ?m(E, lexical_tracker)),
+                                 ?key(E, function), ?line(Meta), ?key(E, lexical_tracker)),
   {EArgs, EA} = expand_args(Args, E),
   Rewritten = elixir_rewrite:rewrite(Receiver, DotMeta, Right, Meta, EArgs),
   case allowed_in_context(Rewritten, Arity, Context) of
     true ->
       {Rewritten, elixir_env:mergev(EL, EA)};
     false ->
-      form_error(Meta, ?m(E, file), ?MODULE, {invalid_remote_invocation, Context, Receiver, Right, Arity})
+      form_error(Meta, ?key(E, file), ?MODULE, {invalid_remote_invocation, Context, Receiver, Right, Arity})
   end.
 
 allowed_in_context({{'.', _, [erlang, Right]}, _, _}, Arity, match) ->
@@ -642,11 +642,11 @@ expand_opts(Meta, Kind, Allowed, Opts, E) ->
 
 validate_opts(Meta, Kind, Allowed, Opts, E) when is_list(Opts) ->
   [begin
-    form_error(Meta, ?m(E, file), ?MODULE, {unsupported_opt, Kind, Key})
+    form_error(Meta, ?key(E, file), ?MODULE, {unsupported_opt, Kind, Key})
   end || {Key, _} <- Opts, not lists:member(Key, Allowed)];
 
 validate_opts(Meta, Kind, _Allowed, _Opts, E) ->
-  form_error(Meta, ?m(E, file), ?MODULE, {opts_are_not_a_keyword, Kind}).
+  form_error(Meta, ?key(E, file), ?MODULE, {opts_are_not_a_keyword, Kind}).
 
 no_alias_opts(KV) when is_list(KV) ->
   case lists:keyfind(as, 1, KV) of
@@ -663,8 +663,8 @@ no_alias_expansion(Other) ->
 expand_require(Meta, Ref, KV, E) ->
   %% We always record requires when they are defined
   %% as they expect the reference at compile time.
-  elixir_lexical:record_remote(Ref, nil, ?m(E, lexical_tracker)),
-  RE = E#{requires := ordsets:add_element(Ref, ?m(E, requires))},
+  elixir_lexical:record_remote(Ref, nil, ?key(E, lexical_tracker)),
+  RE = E#{requires := ordsets:add_element(Ref, ?key(E, requires))},
   expand_alias(Meta, false, Ref, KV, RE).
 
 expand_alias(Meta, IncludeByDefault, Ref, KV, #{context_modules := Context} = E) ->
@@ -679,8 +679,8 @@ expand_alias(Meta, IncludeByDefault, Ref, KV, #{context_modules := Context} = E)
       false -> Context
     end,
 
-  {Aliases, MacroAliases} = elixir_aliases:store(Meta, New, Ref, KV, ?m(E, aliases),
-                                ?m(E, macro_aliases), ?m(E, lexical_tracker)),
+  {Aliases, MacroAliases} = elixir_aliases:store(Meta, New, Ref, KV, ?key(E, aliases),
+                                ?key(E, macro_aliases), ?key(E, lexical_tracker)),
 
   E#{aliases := Aliases, macro_aliases := MacroAliases, context_modules := NewContext}.
 
@@ -693,17 +693,17 @@ expand_as({as, Atom}, Meta, _IncludeByDefault, _Ref, E) when is_atom(Atom), not 
         [Rest] ->
           Atom;
         _ ->
-          form_error(Meta, ?m(E, file), ?MODULE, {invalid_alias_for_as, nested_alias, Atom})
+          form_error(Meta, ?key(E, file), ?MODULE, {invalid_alias_for_as, nested_alias, Atom})
       end;
     _ ->
-      form_error(Meta, ?m(E, file), ?MODULE, {invalid_alias_for_as, not_alias, Atom})
+      form_error(Meta, ?key(E, file), ?MODULE, {invalid_alias_for_as, not_alias, Atom})
   end;
 expand_as(false, _Meta, IncludeByDefault, Ref, _E) ->
   if IncludeByDefault -> elixir_aliases:last(Ref);
      true -> Ref
   end;
 expand_as({as, Other}, Meta, _IncludeByDefault, _Ref, E) ->
-  form_error(Meta, ?m(E, file), ?MODULE, {invalid_alias_for_as, not_alias, Other}).
+  form_error(Meta, ?key(E, file), ?MODULE, {invalid_alias_for_as, not_alias, Other}).
 
 %% Aliases
 
@@ -713,10 +713,10 @@ expand_without_aliases_report(Other, E) ->
   expand(Other, E).
 
 expand_aliases({'__aliases__', Meta, _} = Alias, E, Report) ->
-  case elixir_aliases:expand(Alias, ?m(E, aliases), ?m(E, macro_aliases), ?m(E, lexical_tracker)) of
+  case elixir_aliases:expand(Alias, ?key(E, aliases), ?key(E, macro_aliases), ?key(E, lexical_tracker)) of
     Receiver when is_atom(Receiver) ->
       Report andalso
-        elixir_lexical:record_remote(Receiver, ?m(E, function), ?m(E, lexical_tracker)),
+        elixir_lexical:record_remote(Receiver, ?key(E, function), ?key(E, lexical_tracker)),
       {Receiver, E};
     Aliases ->
       {EAliases, EA} = expand_args(Aliases, E),
@@ -725,10 +725,10 @@ expand_aliases({'__aliases__', Meta, _} = Alias, E, Report) ->
         true ->
           Receiver = elixir_aliases:concat(EAliases),
           Report andalso
-            elixir_lexical:record_remote(Receiver, ?m(E, function), ?m(E, lexical_tracker)),
+            elixir_lexical:record_remote(Receiver, ?key(E, function), ?key(E, lexical_tracker)),
           {Receiver, EA};
         false ->
-          form_error(Meta, ?m(E, file), ?MODULE, {invalid_alias, Alias})
+          form_error(Meta, ?key(E, file), ?MODULE, {invalid_alias, Alias})
       end
   end.
 
@@ -756,7 +756,7 @@ assert_generator_start(_, [{'<-', _, [_, _]} | _], _) ->
 assert_generator_start(_, [{'<<>>', _, [{'<-', _, [_, _]}]} | _], _) ->
   ok;
 assert_generator_start(Meta, _, E) ->
-  elixir_errors:form_error(Meta, ?m(E, file), ?MODULE, for_generator_start).
+  elixir_errors:form_error(Meta, ?key(E, file), ?MODULE, for_generator_start).
 
 %% Assertions
 
@@ -787,7 +787,7 @@ assert_no_guard_scope(_Meta, _Kind, _E) -> [].
 assert_no_underscore_clause_in_cond([{do, Clauses}], E) ->
   case lists:last(Clauses) of
     {'->', Meta, [[{'_', _, Atom}], _]} when is_atom(Atom) ->
-      form_error(Meta, ?m(E, file), ?MODULE, underscore_in_cond);
+      form_error(Meta, ?key(E, file), ?MODULE, underscore_in_cond);
     _Other ->
       ok
   end;

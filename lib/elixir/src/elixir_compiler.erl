@@ -56,7 +56,7 @@ file_to_path(File, Dest) when is_binary(File), is_binary(Dest) ->
 %% Evaluation
 
 eval_forms(Forms, Vars, E) ->
-  case (?m(E, module) == nil) andalso allows_fast_compilation(Forms) of
+  case (?key(E, module) == nil) andalso allows_fast_compilation(Forms) of
     true  -> eval_compilation(Forms, Vars, E);
     false -> code_loading_compilation(Forms, Vars, E)
   end.
@@ -72,8 +72,8 @@ code_loading_compilation(Forms, Vars, #{line := Line} = E) ->
   {Expr, EE, _S} = elixir:quoted_to_erl(Forms, E, S),
 
   {Module, I} = retrieve_compiler_module(),
-  Fun  = code_fun(?m(E, module)),
-  Form = code_mod(Fun, Expr, Line, ?m(E, file), Module, Vars),
+  Fun  = code_fun(?key(E, module)),
+  Form = code_mod(Fun, Expr, Line, ?key(E, file), Module, Vars),
   Args = list_to_tuple([V || {_, _, _, V} <- Vars]),
 
   %% Pass {native, false} to speed up bootstrap

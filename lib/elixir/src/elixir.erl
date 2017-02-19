@@ -134,32 +134,32 @@ env_for_eval(Opts) ->
 env_for_eval(Env, Opts) ->
   Line = case lists:keyfind(line, 1, Opts) of
     {line, LineOpt} when is_integer(LineOpt) -> LineOpt;
-    false -> ?m(Env, line)
+    false -> ?key(Env, line)
   end,
 
   File = case lists:keyfind(file, 1, Opts) of
     {file, FileOpt} when is_binary(FileOpt) -> FileOpt;
-    false -> ?m(Env, file)
+    false -> ?key(Env, file)
   end,
 
   Aliases = case lists:keyfind(aliases, 1, Opts) of
     {aliases, AliasesOpt} when is_list(AliasesOpt) -> AliasesOpt;
-    false -> ?m(Env, aliases)
+    false -> ?key(Env, aliases)
   end,
 
   Requires = case lists:keyfind(requires, 1, Opts) of
     {requires, RequiresOpt} when is_list(RequiresOpt) -> ordsets:from_list(RequiresOpt);
-    false -> ?m(Env, requires)
+    false -> ?key(Env, requires)
   end,
 
   Functions = case lists:keyfind(functions, 1, Opts) of
     {functions, FunctionsOpt} when is_list(FunctionsOpt) -> FunctionsOpt;
-    false -> ?m(Env, functions)
+    false -> ?key(Env, functions)
   end,
 
   Macros = case lists:keyfind(macros, 1, Opts) of
     {macros, MacrosOpt} when is_list(MacrosOpt) -> MacrosOpt;
-    false -> ?m(Env, macros)
+    false -> ?key(Env, macros)
   end,
 
   Module = case lists:keyfind(module, 1, Opts) of
@@ -216,7 +216,7 @@ eval_forms(Tree, Binding, Env, Scope) ->
 erl_eval(Erl, ParsedBinding, E) ->
   case erl_eval:check_command([Erl], ParsedBinding) of
     ok -> ok;
-    {error, Desc} -> elixir_errors:handle_file_error(?m(E, file), Desc)
+    {error, Desc} -> elixir_errors:handle_file_error(?key(E, file), Desc)
   end,
 
   % Below must be all one line for locations to be the same when the stacktrace

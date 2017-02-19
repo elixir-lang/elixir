@@ -26,10 +26,10 @@ find_import(Meta, Name, Arity, E) ->
 
   case find_dispatch(Meta, Tuple, [], E) of
     {function, Receiver} ->
-      elixir_lexical:record_import(Receiver, Name, Arity, ?m(E, function), ?line(Meta), ?m(E, lexical_tracker)),
+      elixir_lexical:record_import(Receiver, Name, Arity, ?key(E, function), ?line(Meta), ?key(E, lexical_tracker)),
       Receiver;
     {macro, Receiver} ->
-      elixir_lexical:record_import(Receiver, Name, Arity, nil, ?line(Meta), ?m(E, lexical_tracker)),
+      elixir_lexical:record_import(Receiver, Name, Arity, nil, ?line(Meta), ?key(E, lexical_tracker)),
       Receiver;
     _ ->
       false
@@ -41,8 +41,8 @@ import_function(Meta, Name, Arity, E) ->
   Tuple = {Name, Arity},
   case find_dispatch(Meta, Tuple, [], E) of
     {function, Receiver} ->
-      elixir_lexical:record_import(Receiver, Name, Arity, ?m(E, function), ?line(Meta), ?m(E, lexical_tracker)),
-      elixir_locals:record_import(Tuple, Receiver, ?m(E, module), ?m(E, function)),
+      elixir_lexical:record_import(Receiver, Name, Arity, ?key(E, function), ?line(Meta), ?key(E, lexical_tracker)),
+      elixir_locals:record_import(Tuple, Receiver, ?key(E, module), ?key(E, function)),
       remote_function(Meta, Receiver, Name, Arity, E);
     {macro, _Receiver} ->
       false;
@@ -52,17 +52,17 @@ import_function(Meta, Name, Arity, E) ->
       case elixir_import:special_form(Name, Arity) of
         true  -> false;
         false ->
-          elixir_locals:record_local(Tuple, ?m(E, module), ?m(E, function)),
+          elixir_locals:record_local(Tuple, ?key(E, module), ?key(E, function)),
           {local, Name, Arity}
       end
   end.
 
 require_function(Meta, Receiver, Name, Arity, E) ->
-  Required = is_element(Receiver, ?m(E, requires)),
+  Required = is_element(Receiver, ?key(E, requires)),
   case is_element({Name, Arity}, get_macros(Receiver, Required)) of
     true  -> false;
     false ->
-      elixir_lexical:record_remote(Receiver, ?m(E, function), ?m(E, lexical_tracker)),
+      elixir_lexical:record_remote(Receiver, ?key(E, function), ?key(E, lexical_tracker)),
       remote_function(Meta, Receiver, Name, Arity, E)
   end.
 
@@ -106,8 +106,8 @@ dispatch_require(_Meta, Receiver, Name, Args, _E, Callback) ->
 %% Macros expansion
 
 expand_import(Meta, {Name, Arity} = Tuple, Args, E, Extra, External) ->
-  Module = ?m(E, module),
-  Function = ?m(E, function),
+  Module = ?key(E, module),
+  Function = ?key(E, function),
   Dispatch = find_dispatch(Meta, Tuple, Extra, E),
 
   case Dispatch of
@@ -123,7 +123,7 @@ expand_import(Meta, {Name, Arity} = Tuple, Args, E, Extra, External) ->
         %% the receiver is the same as module (happens on bootstrap).
         {_, Receiver} when Local /= false, Receiver /= Module ->
           Error = {macro_conflict, {Receiver, Name, Arity}},
-          elixir_errors:form_error(Meta, ?m(E, file), ?MODULE, Error);
+          elixir_errors:form_error(Meta, ?key(E, file), ?MODULE, Error);
 
         %% There is no local. Dispatch the import.
         _ when Local == false ->
@@ -139,13 +139,13 @@ expand_import(Meta, {Name, Arity} = Tuple, Args, E, Extra, External) ->
 do_expand_import(Meta, {Name, Arity} = Tuple, Args, Module, E, Result) ->
   case Result of
     {function, Receiver} ->
-      elixir_lexical:record_import(Receiver, Name, Arity, ?m(E, function), ?line(Meta), ?m(E, lexical_tracker)),
-      elixir_locals:record_import(Tuple, Receiver, Module, ?m(E, function)),
+      elixir_lexical:record_import(Receiver, Name, Arity, ?key(E, function), ?line(Meta), ?key(E, lexical_tracker)),
+      elixir_locals:record_import(Tuple, Receiver, Module, ?key(E, function)),
       {ok, Receiver, Name, Args};
     {macro, Receiver} ->
       check_deprecation(Meta, Receiver, Name, Arity, E),
-      elixir_lexical:record_import(Receiver, Name, Arity, nil, ?line(Meta), ?m(E, lexical_tracker)),
-      elixir_locals:record_import(Tuple, Receiver, Module, ?m(E, function)),
+      elixir_lexical:record_import(Receiver, Name, Arity, nil, ?line(Meta), ?key(E, lexical_tracker)),
+      elixir_locals:record_import(Tuple, Receiver, Module, ?key(E, function)),
       {ok, Receiver, expand_macro_named(Meta, Receiver, Name, Arity, Args, E)};
     {import, Receiver} ->
       case expand_require([{required, true} | Meta], Receiver, Tuple, Args, E) of
@@ -163,15 +163,15 @@ do_expand_import(Meta, {Name, Arity} = Tuple, Args, Module, E, Result) ->
 
 expand_require(Meta, Receiver, {Name, Arity} = Tuple, Args, E) ->
   check_deprecation(Meta, Receiver, Name, Arity, E),
-  Required = (Receiver == ?m(E, module)) orelse is_element(Receiver, ?m(E, requires)) orelse required(Meta),
+  Required = (Receiver == ?key(E, module)) orelse is_element(Receiver, ?key(E, requires)) orelse required(Meta),
 
   case is_element(Tuple, get_macros(Receiver, Required)) of
     true when Required ->
-      elixir_lexical:record_remote(Receiver, Name, Arity, nil, ?line(Meta), ?m(E, lexical_tracker)),
+      elixir_lexical:record_remote(Receiver, Name, Arity, nil, ?line(Meta), ?key(E, lexical_tracker)),
       {ok, Receiver, expand_macro_named(Meta, Receiver, Name, Arity, Args, E)};
     true ->
-      Info = {unrequired_module, {Receiver, Name, length(Args), ?m(E, requires)}},
-      elixir_errors:form_error(Meta, ?m(E, file), ?MODULE, Info);
+      Info = {unrequired_module, {Receiver, Name, length(Args), ?key(E, requires)}},
+      elixir_errors:form_error(Meta, ?key(E, file), ?MODULE, Info);
     false ->
       error
   end.
@@ -214,7 +214,7 @@ expand_quoted(Meta, Receiver, Name, Arity, Quoted, E) ->
   end.
 
 caller(Line, E) ->
-  elixir_utils:caller(Line, ?m(E, file), ?m(E, module), ?m(E, function)).
+  elixir_utils:caller(Line, ?key(E, file), ?key(E, module), ?key(E, function)).
 
 %% Helpers
 
@@ -226,8 +226,8 @@ find_dispatch(Meta, Tuple, Extra, E) ->
     {import, _} = Import ->
       Import;
     false ->
-      Funs = ?m(E, functions),
-      Macs = Extra ++ ?m(E, macros),
+      Funs = ?key(E, functions),
+      Macs = Extra ++ ?key(E, macros),
       FunMatch = find_dispatch(Tuple, Funs),
       MacMatch = find_dispatch(Tuple, Macs),
 
@@ -239,7 +239,7 @@ find_dispatch(Meta, Tuple, Extra, E) ->
           {Name, Arity} = Tuple,
           [First, Second | _] = FunMatch ++ MacMatch,
           Error = {ambiguous_call, {First, Second, Name, Arity}},
-          elixir_errors:form_error(Meta, ?m(E, file), ?MODULE, Error)
+          elixir_errors:form_error(Meta, ?key(E, file), ?MODULE, Error)
       end
   end.
 

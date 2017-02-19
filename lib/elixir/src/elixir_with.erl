@@ -16,7 +16,7 @@ expand(Meta, Args, Env) ->
       {value, {do, DoValue}, RestOpts} ->
         {DoValue, RestOpts};
       false ->
-        elixir_errors:compile_error(Meta, ?m(Env, file), "missing do keyword in with")
+        elixir_errors:compile_error(Meta, ?key(Env, file), "missing do keyword in with")
     end,
 
   ElseExpr =
@@ -25,7 +25,7 @@ expand(Meta, Args, Env) ->
         assert_clauses(Meta, ElseValue, Env),
         ElseValue;
       {value, _, [{Key, _} | _]} ->
-        elixir_errors:compile_error(Meta, ?m(Env, file),
+        elixir_errors:compile_error(Meta, ?key(Env, file),
           "unexpected keyword ~ts in with", [Key]);
       false ->
         nil
@@ -43,7 +43,7 @@ expand(Meta, Args, Env) ->
             Message =
               "\"else\" clauses will never match"
               " because all patterns in \"with\" will always match",
-            elixir_errors:warn(?line(Meta), ?m(Env, file), Message),
+            elixir_errors:warn(?line(Meta), ?key(Env, file), Message),
             {{'.', Meta, [erlang, element]}, Meta, [MainCase, 2]};
           {MainCase, true} ->
             build_else_case(Meta, MainCase, ElseExpr, Wrapper)
@@ -59,7 +59,7 @@ assert_clauses(Meta, [{'->', _, [_, _]} | Rest], Env) ->
   assert_clauses(Meta, Rest, Env);
 assert_clauses(Meta, _Other, Env) ->
   Message = "expected -> clauses for else in with",
-  elixir_errors:compile_error(Meta, ?m(Env, file), Message, []).
+  elixir_errors:compile_error(Meta, ?key(Env, file), Message, []).
 
 build_main_case([{'<-', Meta, [{Name, _, Ctx}, _] = Args} | Rest], DoExpr, Wrapper, HasMatch)
     when is_atom(Name) andalso is_atom(Ctx) ->
