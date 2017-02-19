@@ -9,10 +9,10 @@
 expand(Meta, Args, E) ->
   case ?key(E, context) of
     match ->
-      {EArgs, EA} = expand_bitstr(Meta, fun elixir_exp:expand/2, Args, [], E),
+      {EArgs, EA} = expand_bitstr(Meta, fun elixir_expand:expand/2, Args, [], E),
       {{'<<>>', Meta, EArgs}, EA};
     _ ->
-      {EArgs, {EC, EV}} = expand_bitstr(Meta, fun elixir_exp:expand_arg/2, Args, [], {E, E}),
+      {EArgs, {EC, EV}} = expand_bitstr(Meta, fun elixir_expand:expand_arg/2, Args, [], {E, E}),
       {{'<<>>', Meta, EArgs}, elixir_env:mergea(EV, EC)}
   end.
 
@@ -64,7 +64,7 @@ expand_bit_info(Left, Meta, [{size, _, [_] = Args} | T], Size, Types, E) ->
     {Bin, default} when is_binary(Bin) ->
       form_error(Meta, ?key(E, file), ?MODULE, size_for_literal_string);
     {_, default} ->
-      {[EArg], EE} = elixir_exp:expand_args(Args, E),
+      {[EArg], EE} = elixir_expand:expand_args(Args, E),
 
       case EArg of
         {Var, _, Context} when is_atom(Var) and is_atom(Context) ->
@@ -83,7 +83,7 @@ expand_bit_info(Left, Meta, [{size, _, [_] = Args} | T], Size, Types, E) ->
 expand_bit_info(Left, Meta, [{Expr, ExprMeta, Args} | T], Size, Types, E) when is_atom(Expr) ->
   case expand_bit_type(Expr, Args) of
     type ->
-      {EArgs, EE} = elixir_exp:expand_args(Args, E),
+      {EArgs, EE} = elixir_expand:expand_args(Args, E),
       validate_bit_type_args(Meta, Expr, EArgs, EE),
       validate_bit_type_if_literal_bin(Left, Meta, Expr, E),
       expand_bit_info(Left, Meta, T, Size, [{Expr, [], EArgs} | Types], EE);

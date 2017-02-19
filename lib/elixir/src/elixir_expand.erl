@@ -1,4 +1,4 @@
--module(elixir_exp).
+-module(elixir_expand).
 -export([expand/2, expand_args/2, expand_arg/2, format_error/1]).
 -import(elixir_errors, [form_error/4]).
 -include("elixir.hrl").

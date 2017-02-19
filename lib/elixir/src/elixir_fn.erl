@@ -81,7 +81,7 @@ capture_require(Meta, {{'.', DotMeta, [Left, Right]}, RequireMeta, Args}, E, Seq
   Counter = erlang:unique_integer(),
   case escape(Left, Counter, E, []) of
     {EscLeft, []} ->
-      {ELeft, EE} = elixir_exp:expand(EscLeft, E),
+      {ELeft, EE} = elixir_expand:expand(EscLeft, E),
       Res = Sequential andalso case ELeft of
         {Name, _, Context} when is_atom(Name), is_atom(Context) ->
           {remote, ELeft, Right, length(Args)};

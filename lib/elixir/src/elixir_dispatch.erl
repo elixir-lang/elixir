@@ -82,7 +82,7 @@ dispatch_import(Meta, Name, Args, E, Callback) ->
     {ok, Receiver, Quoted} ->
       expand_quoted(Meta, Receiver, Name, Arity, Quoted, E);
     {ok, Receiver, NewName, NewArgs} ->
-      elixir_exp:expand({{'.', [], [Receiver, NewName]}, Meta, NewArgs}, E);
+      elixir_expand:expand({{'.', [], [Receiver, NewName]}, Meta, NewArgs}, E);
     error ->
       Callback()
   end.
@@ -203,7 +203,7 @@ expand_quoted(Meta, Receiver, Name, Arity, Quoted, E) ->
   Next = erlang:unique_integer(),
 
   try
-    elixir_exp:expand(
+    elixir_expand:expand(
       elixir_quote:linify_with_context_counter(Line, {Receiver, Next}, Quoted),
       E)
   catch

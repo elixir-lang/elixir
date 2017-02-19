@@ -4,7 +4,7 @@
 -include("elixir.hrl").
 
 expand_map(Meta, [{'|', UpdateMeta, [Left, Right]}], #{context := nil} = E) ->
-  {[ELeft | ERight], EE} = elixir_exp:expand_args([Left | Right], E),
+  {[ELeft | ERight], EE} = elixir_expand:expand_args([Left | Right], E),
   validate_kv(Meta, ERight, Right, E),
   {{'%{}', Meta, [{'|', UpdateMeta, [ELeft, ERight]}]}, EE};
 expand_map(Meta, [{'|', _, [_, _]}] = Args, #{context := Context, file := File}) ->
@@ -14,22 +14,22 @@ expand_map(Meta, Args, #{context := match} = E) ->
   {EArgs, EE} =
     lists:mapfoldl(fun
       ({Key, Value}, EA) ->
-        {EKey, EK} = elixir_exp:expand(Key, EA),
+        {EKey, EK} = elixir_expand:expand(Key, EA),
         validate_match_key(Meta, EKey, EK),
-        {EValue, EV} = elixir_exp:expand(Value, EK),
+        {EValue, EV} = elixir_expand:expand(Value, EK),
         {{EKey, EValue}, EV};
       (Other, EA) ->
-        elixir_exp:expand(Other, EA)
+        elixir_expand:expand(Other, EA)
       end, E, Args),
   validate_kv(Meta, EArgs, Args, E),
   {{'%{}', Meta, EArgs}, EE};
 expand_map(Meta, Args, E) ->
-  {EArgs, EE} = elixir_exp:expand_args(Args, E),
+  {EArgs, EE} = elixir_expand:expand_args(Args, E),
   validate_kv(Meta, EArgs, Args, E),
   {{'%{}', Meta, EArgs}, EE}.
 
 expand_struct(Meta, Left, Right, #{context := Context} = E) ->
-  {[ELeft, ERight], EE} = elixir_exp:expand_args([Left, Right], E),
+  {[ELeft, ERight], EE} = elixir_expand:expand_args([Left, Right], E),
 
   case validate_struct(ELeft, Context) of
     true when is_atom(ELeft) ->
