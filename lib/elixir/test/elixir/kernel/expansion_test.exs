@@ -518,6 +518,18 @@ defmodule Kernel.ExpansionTest do
         expand(quote(do: with(_ <- true, do: :ok, else: ())))
       end
     end
+
+    test "fails for invalid options" do
+      # Only the required "do" is present alongside the unexpected option.
+      assert_raise CompileError, ~r"unexpected keyword foo in with", fn ->
+        expand(quote do: with(_ <- true, foo: :bar, do: :ok))
+      end
+
+      # More options are present alongside the unexpected option.
+      assert_raise CompileError, ~r"unexpected keyword foo in with", fn ->
+        expand(quote do: with(_ <- true, do: :ok, else: (_ -> :ok), foo: :bar))
+      end
+    end
   end
 
   describe "&" do

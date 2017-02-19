@@ -11,25 +11,30 @@ expand(Meta, Args, Env) ->
         {Args, []}
     end,
 
-  {DoExpr, OtherOpts} =
+  {DoExpr, OtherOpts1} =
     case lists:keytake(do, 1, Opts) of
-      {value, {do, DoValue}, RestOpts} ->
-        {DoValue, RestOpts};
+      {value, {do, DoValue}, RestOpts1} ->
+        {DoValue, RestOpts1};
       false ->
         elixir_errors:compile_error(Meta, ?key(Env, file), "missing do keyword in with")
     end,
 
-  ElseExpr =
-    case lists:keytake(else, 1, OtherOpts) of
-      {value, {else, ElseValue}, []} ->
+  {ElseExpr, OtherOpts2} =
+    case lists:keytake(else, 1, OtherOpts1) of
+      {value, {else, ElseValue}, RestOpts2} ->
         assert_clauses(Meta, ElseValue, Env),
-        ElseValue;
-      {value, _, [{Key, _} | _]} ->
-        elixir_errors:compile_error(Meta, ?key(Env, file),
-          "unexpected keyword ~ts in with", [Key]);
+        {ElseValue, RestOpts2};
       false ->
-        nil
+        {nil, OtherOpts1}
     end,
+
+  case OtherOpts2 of
+    [{Key, _} | _] ->
+      elixir_errors:compile_error(Meta, ?key(Env, file),
+        "unexpected keyword ~ts in with", [Key]);
+    [] ->
+      ok
+  end,
 
   ResultCase =
     case ElseExpr of
