@@ -112,6 +112,7 @@ store_definition(Line, Kind, CheckClauses, Call, Body, Pos) when is_integer(Line
     end,
 
   Arity        = length(Args),
+  Generated    = proplists:lookup_all(generated, Meta),
   LinifyArgs   = elixir_quote:linify(Line, Key, Args),
   LinifyGuards = elixir_quote:linify(Line, Key, Guards),
   LinifyBody   = elixir_quote:linify(Line, Key, Body),
@@ -119,9 +120,9 @@ store_definition(Line, Kind, CheckClauses, Call, Body, Pos) when is_integer(Line
   {EL, MetaLocation} =
     case retrieve_location(Location, ?key(E, module)) of
       {F, L} ->
-        {E#{file := F}, [{line, Line}, {location, {F, L}}]};
+        {E#{file := F}, [{line, Line}, {location, {F, L}} | Generated]};
       nil ->
-        {E, [{line, Line}]}
+        {E, [{line, Line} | Generated]}
     end,
 
   assert_no_aliases_name(MetaLocation, Name, Args, EL),
