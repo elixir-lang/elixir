@@ -597,10 +597,8 @@ assert_no_ambiguous_op(_Atom, _Meta, _Args, _E) ->
 
 expand_local(Meta, Name, Args, #{function := nil} = E) ->
   form_error(Meta, ?key(E, file), ?MODULE, {undefined_function, Name, Args});
-expand_local(Meta, Name, Args, #{context := match} = E) ->
-  form_error(Meta, ?key(E, file), ?MODULE, {local_invocation_in_match, {Name, Meta, Args}});
-expand_local(Meta, Name, Args, #{context := guard} = E) ->
-  form_error(Meta, ?key(E, file), ?MODULE, {local_invocation_in_guard, Name, Args});
+expand_local(Meta, Name, Args, #{context := Context} = E) when Context == match; Context == guard ->
+  form_error(Meta, ?key(E, file), ?MODULE, {invalid_local_invocation, Context, {Name, Meta, Args}});
 expand_local(Meta, Name, Args, #{module := Module, function := Function} = E) ->
   elixir_locals:record_local({Name, length(Args)}, Module, Function),
   {EArgs, EA} = expand_args(Args, E),
@@ -879,11 +877,9 @@ format_error({invalid_call, Call}) ->
   io_lib:format("invalid call ~ts", ['Elixir.Macro':to_string(Call)]);
 format_error({invalid_quoted_expr, Expr}) ->
   io_lib:format("invalid quoted expression: ~ts", ['Elixir.Kernel':inspect(Expr, [])]);
-format_error({local_invocation_in_match, {Name, _, Args} = Call}) ->
-  io_lib:format("cannot invoke local ~ts/~B inside match, called as: ~ts",
-                [Name, length(Args), 'Elixir.Macro':to_string(Call)]);
-format_error({local_invocation_in_guard, Name, Args}) ->
-  io_lib:format("cannot invoke local ~ts/~B inside guard", [Name, length(Args)]);
+format_error({invalid_local_invocation, Context, {Name, _, Args} = Call}) ->
+  io_lib:format("cannot invoke local ~ts/~B inside ~ts, called as: ~ts",
+                [Name, length(Args), Context, 'Elixir.Macro':to_string(Call)]);
 format_error({invalid_remote_invocation, Context, Receiver, Right, Arity}) ->
   io_lib:format("cannot invoke remote function ~ts.~ts/~B inside ~ts",
                 ['Elixir.Macro':to_string(Receiver), Right, Arity, Context]);
