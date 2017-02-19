@@ -293,7 +293,7 @@ defmodule Module.LocalsTracker do
   def handle_cast({:add_defaults, kind, {name, arity}, defaults}, {d, _} = state) do
     for i <- :lists.seq(arity - defaults, arity - 1) do
       handle_add_definition(d, kind, {name, i})
-      handle_add_local(d, {name, i}, {name, i + 1})
+      handle_add_local(d, {name, i}, {name, arity})
     end
     {:noreply, state}
   end
