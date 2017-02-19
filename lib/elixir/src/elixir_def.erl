@@ -84,7 +84,7 @@ fetch_definition([], _File, _Module, _Table, All, Private) ->
 
 store_definition(Line, Kind, CheckClauses, Call, Body, Pos) when is_integer(Line) ->
   E = (elixir_locals:get_cached_env(Pos))#{line := Line},
-  {NameAndArgs, Guards} = elixir_clauses:extract_guards(Call),
+  {NameAndArgs, Guards} = elixir_utils:extract_guards(Call),
 
   {Name, Args} = case NameAndArgs of
     {N, _, A} when is_atom(N), is_atom(A) -> {N, []};

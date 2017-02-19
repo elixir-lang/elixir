@@ -1,6 +1,6 @@
 %% Convenience functions used to manipulate scope and its variables.
--module(elixir_scope).
--export([translate_var/4, build_var/2, context_info/1,
+-module(elixir_erl_var).
+-export([translate/4, build/2, context_info/1,
   load_binding/2, dump_binding/2,
   mergev/2, mergec/2, merge_vars/2, merge_opt_vars/2,
   warn_unsafe_var/4, warn_underscored_var_access/3, format_error/1
@@ -9,10 +9,10 @@
 
 %% VAR HANDLING
 
-translate_var(Meta, Name, Kind, S) when is_atom(Kind); is_integer(Kind) ->
+translate(Meta, Name, Kind, S) when is_atom(Kind); is_integer(Kind) ->
   Ann = ?ann(Meta),
   Tuple = {Name, Kind},
-  Vars = S#elixir_scope.vars,
+  Vars = S#elixir_erl.vars,
 
   {Current, Exists, Safe} =
     case maps:find({Name, Kind}, Vars) of
@@ -20,13 +20,13 @@ translate_var(Meta, Name, Kind, S) when is_atom(Kind); is_integer(Kind) ->
       error -> {nil, false, true}
     end,
 
-  case S#elixir_scope.context of
+  case S#elixir_erl.context of
     match ->
-      MatchVars = S#elixir_scope.match_vars,
+      MatchVars = S#elixir_erl.match_vars,
 
       case Exists andalso maps:get(Tuple, MatchVars, false) of
         true ->
-          warn_underscored_var_repeat(Meta, S#elixir_scope.file, Name, Kind),
+          warn_underscored_var_repeat(Meta, S#elixir_erl.file, Name, Kind),
           {{var, Ann, Current}, S};
         false ->
           %% We attempt to give vars a nice name because we
@@ -37,15 +37,15 @@ translate_var(Meta, Name, Kind, S) when is_atom(Kind); is_integer(Kind) ->
           {NewVar, Counter, NS} =
             if
               Kind /= nil ->
-                build_var('_', S);
+                build('_', S);
               true ->
-                build_var(Name, S)
+                build(Name, S)
             end,
 
-          FS = NS#elixir_scope{
+          FS = NS#elixir_erl{
             vars=maps:put(Tuple, {NewVar, Counter, true}, Vars),
             match_vars=maps:put(Tuple, true, MatchVars),
-            export_vars=case S#elixir_scope.export_vars of
+            export_vars=case S#elixir_erl.export_vars of
               nil -> nil;
               EV  -> maps:put(Tuple, {NewVar, Counter, true}, EV)
             end
@@ -54,12 +54,12 @@ translate_var(Meta, Name, Kind, S) when is_atom(Kind); is_integer(Kind) ->
           {{var, Ann, NewVar}, FS}
       end;
     _  when Exists ->
-      warn_underscored_var_access(Meta, S#elixir_scope.file, Name),
-      warn_unsafe_var(Meta, S#elixir_scope.file, Name, Safe),
+      warn_underscored_var_access(Meta, S#elixir_erl.file, Name),
+      warn_unsafe_var(Meta, S#elixir_erl.file, Name, Safe),
       {{var, Ann, Current}, S}
   end.
 
-build_var(Key, #elixir_scope{counter=Counter} = S) ->
+build(Key, #elixir_erl{counter=Counter} = S) ->
   Cnt =
     case maps:find(Key, Counter) of
       {ok, Val} -> Val + 1;
@@ -67,7 +67,7 @@ build_var(Key, #elixir_scope{counter=Counter} = S) ->
     end,
   {list_to_atom(atom_to_list(Key) ++ "@" ++ integer_to_list(Cnt)),
    Cnt,
-   S#elixir_scope{counter=maps:put(Key, Cnt, Counter)}}.
+   S#elixir_erl{counter=maps:put(Key, Cnt, Counter)}}.
 
 context_info(Kind) when Kind == nil; is_integer(Kind) -> "";
 context_info(Kind) -> io_lib:format(" (context ~ts)", [elixir_aliases:inspect(Kind)]).
@@ -112,18 +112,18 @@ should_warn(Meta) ->
 %% the second with their variables merged.
 
 mergev(S1, S2) ->
-  S2#elixir_scope{
-    vars=merge_vars(S1#elixir_scope.vars, S2#elixir_scope.vars),
-    export_vars=merge_opt_vars(S1#elixir_scope.export_vars, S2#elixir_scope.export_vars)
+  S2#elixir_erl{
+    vars=merge_vars(S1#elixir_erl.vars, S2#elixir_erl.vars),
+    export_vars=merge_opt_vars(S1#elixir_erl.export_vars, S2#elixir_erl.export_vars)
  }.
 
 %% Receives two scopes and return the first scope with
 %% counters and flags from the later.
 
 mergec(S1, S2) ->
-  S1#elixir_scope{
-    counter=S2#elixir_scope.counter,
-    caller=S2#elixir_scope.caller
+  S1#elixir_erl{
+    counter=S2#elixir_erl.counter,
+    caller=S2#elixir_erl.caller
  }.
 
 %% Mergers.
@@ -155,7 +155,7 @@ merge_maps(Fun, Map1, Map2) ->
 
 load_binding(Binding, Scope) ->
   {NewBinding, NewKeys, NewVars, NewCounter} = load_binding(Binding, [], [], #{}, 0),
-  {NewBinding, NewKeys, Scope#elixir_scope{
+  {NewBinding, NewKeys, Scope#elixir_erl{
     vars=NewVars,
     counter=#{'_' => NewCounter}
  }}.
@@ -173,7 +173,7 @@ load_binding([{Key, Value} | T], Binding, Keys, Vars, Counter) ->
 load_binding([], Binding, Keys, Vars, Counter) ->
   {Binding, Keys, Vars, Counter}.
 
-dump_binding(Binding, #elixir_scope{vars=Vars}) ->
+dump_binding(Binding, #elixir_erl{vars=Vars}) ->
   maps:fold(fun
     ({Var, Kind} = Key, {InternalName, _, _}, Acc) when is_atom(Kind) ->
       Actual = case Kind of

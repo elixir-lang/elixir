@@ -2,8 +2,6 @@
 -export([expand/3]).
 -include("elixir.hrl").
 
-%% Expansion
-
 expand(Meta, Args, Env) ->
   {Exprs, Opts} =
     case elixir_utils:split_last(Args) of

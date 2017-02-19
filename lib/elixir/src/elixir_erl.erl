@@ -86,14 +86,14 @@ translate_clause(Kind, Name, Arity, {Meta, Args, Guards, Body}, File) ->
     %% TODO: We only need to do this dance because some
     %% warnings are raised in elixir_scope. Once we remove
     %% all warnings from the Erlang pass, we can remove the
-    %% file field from #elixir_scope and clean up the code.
+    %% file field from #elixir_erl and clean up the code.
     case lists:keyfind(location, 1, Meta) of
-      {location, {F, _}} -> #elixir_scope{def = {Kind, Name, Arity}, file = F};
-      false -> #elixir_scope{def = {Kind, Name, Arity}, file = File}
+      {location, {F, _}} -> #elixir_erl{def = {Kind, Name, Arity}, file = F};
+      false -> #elixir_erl{def = {Kind, Name, Arity}, file = File}
     end,
 
-  {TClause, TS} = elixir_clauses:clause(Meta,
-                    fun elixir_translator:translate_args/2, Args, Body, Guards, S),
+  {TClause, TS} = elixir_erl_clauses:clause(Meta,
+                    fun elixir_erl_pass:translate_args/2, Args, Body, Guards, S),
 
   case is_macro(Kind) of
     true ->
@@ -101,7 +101,7 @@ translate_clause(Kind, Name, Arity, {Meta, Args, Guards, Body}, File) ->
       FArgs = {var, Ann, '_@CALLER'},
       MClause = setelement(3, TClause, [FArgs | element(3, TClause)]),
 
-      case TS#elixir_scope.caller of
+      case TS#elixir_erl.caller of
         true  ->
           FBody = {'match', Ann,
             {'var', Ann, '__CALLER__'},

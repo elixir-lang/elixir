@@ -24,11 +24,11 @@ linify({Line, Env}) ->
   Env#{line := Line}.
 
 env_to_scope(#{file := File, context := Context}) ->
-  #elixir_scope{file=File, context=Context}.
+  #elixir_erl{file=File, context=Context}.
 
 env_to_scope_with_vars(Env, Vars) ->
   Map = maps:from_list(Vars),
-  (env_to_scope(Env))#elixir_scope{
+  (env_to_scope(Env))#elixir_erl{
     vars=Map, counter=#{'_' => map_size(Map)}
   }.
 

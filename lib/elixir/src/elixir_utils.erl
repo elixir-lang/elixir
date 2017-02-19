@@ -1,3 +1,4 @@
+%% TODO: Split into elixir and elixir_erl
 %% Convenience functions used throughout elixir source code
 %% for ast manipulation and querying.
 -module(elixir_utils).
@@ -6,7 +7,7 @@
   convert_to_boolean/4, returns_boolean/1,
   read_file_type/1, read_link_type/1, relative_to_cwd/1, caller/4,
   read_mtime/1, change_universal_time/2, erl_call/4, meta_location/1,
-  noop/0, guard_op/2, match_op/2]).
+  noop/0, guard_op/2, match_op/2, extract_splat_guards/1, extract_guards/1]).
 -include("elixir.hrl").
 -include_lib("kernel/include/file.hrl").
 
@@ -32,6 +33,22 @@ guard_op(Op, Arity) ->
   catch
     _:_ -> false
   end.
+
+% Extract guards
+
+extract_guards({'when', _, [Left, Right]}) -> {Left, extract_or_guards(Right)};
+extract_guards(Else) -> {Else, []}.
+
+extract_or_guards({'when', _, [Left, Right]}) -> [Left | extract_or_guards(Right)];
+extract_or_guards(Term) -> [Term].
+
+% Extract guards when multiple left side args are allowed.
+
+extract_splat_guards([{'when', _, [_, _ | _] = Args}]) ->
+  {Left, Right} = elixir_utils:split_last(Args),
+  {Left, extract_or_guards(Right)};
+extract_splat_guards(Else) ->
+  {Else, []}.
 
 %% No-op function that can be used for stuff like preventing tail-call
 %% optimization to kick in.
@@ -258,7 +275,7 @@ convert_to_boolean(Line, Expr, Bool, S) when is_integer(Line) ->
 %% and false checks in the same clause since
 %% it makes Dialyzer happy.
 do_convert_to_boolean(Line, Expr, Bool, S) ->
-  {Name, _, TS} = elixir_scope:build_var('_', S),
+  {Name, _, TS} = elixir_erl_var:build('_', S),
   Var = {var, Line, Name},
   Any = {var, Line, '_'},
   OrElse = do_guarded_convert_to_boolean(Line, Var, 'orelse', '=='),
