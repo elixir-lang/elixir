@@ -32,29 +32,29 @@ store_pending(Module) ->
 store(Module, Function, Hidden) ->
   Overridable = overridable(Module),
   case maps:find(Function, Overridable) of
-    {ok, {Count, Clause, Neighbours, Overridden}} ->
-      {{{def, {Name, Arity}}, Kind, Line, File, _Check,
-       Location, {Defaults, _HasBody, _LastDefaults}}, Clauses} = Clause,
+    {ok, {Count, Def, Neighbours, Overridden}} ->
+      {{{def, {Name, Arity}}, Kind, Meta, File, _Check,
+       Location, {Defaults, _HasBody, _LastDefaults}}, Clauses} = Def,
 
-      {FinalKind, FinalName, FinalArity} =
+      {FinalKind, FinalName, FinalArity, FinalClauses} =
         case Hidden of
           false ->
-            {Kind, Name, Arity};
+            {Kind, Name, Arity, Clauses};
           true when Kind == defmacro; Kind == defmacrop ->
-            {defp, name(Name, Count), Arity + 1};
+            {defp, name(Name, Count), Arity + 1, rewrite_clauses(Clauses)};
           true ->
-            {defp, name(Name, Count), Arity}
+            {defp, name(Name, Count), Arity, Clauses}
         end,
 
       Tuple = {FinalName, FinalArity},
 
       case Overridden of
         false ->
-          overridable(Module, maps:put(Function, {Count, Clause, Neighbours, true}, Overridable)),
+          overridable(Module, maps:put(Function, {Count, Def, Neighbours, true}, Overridable)),
           (not elixir_compiler:get_opt(internal)) andalso
             'Elixir.Module.LocalsTracker':reattach(Module, Kind, Function, Neighbours),
-          Def = {function, Line, FinalName, FinalArity, Clauses},
-          elixir_def:store_each(false, FinalKind, File, Location, Module, Defaults, Def),
+          elixir_def:store_definition(false, FinalKind, Meta, FinalName, FinalArity,
+                                      File, Location, Module, Defaults, FinalClauses),
           elixir_locals:record_definition(Tuple, FinalKind, Module),
           elixir_locals:record_local(Tuple, Module, Function);
         true ->
@@ -65,6 +65,9 @@ store(Module, Function, Hidden) ->
     error ->
       error
   end.
+
+rewrite_clauses(Clauses) ->
+  [{[{'__CALLER__', [], nil} | Args], Guards, Body} || {Args, Guards, Body} <- Clauses].
 
 name(Name, Count) when is_integer(Count) ->
   list_to_atom(atom_to_list(Name) ++ " (overridable " ++ integer_to_list(Count) ++ ")").

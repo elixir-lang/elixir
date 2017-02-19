@@ -116,7 +116,7 @@ expand_import(Meta, {Name, Arity} = Tuple, Args, E, Extra, External) ->
     _ ->
       AllowLocals = External orelse ((Function /= nil) andalso (Function /= Tuple)),
       Local = AllowLocals andalso
-                elixir_locals:local_for(Module, Name, Arity, [defmacro, defmacrop]),
+                elixir_def:local_for(Module, Name, Arity, [defmacro, defmacrop]),
 
       case Dispatch of
         %% There is a local and an import. This is a conflict unless

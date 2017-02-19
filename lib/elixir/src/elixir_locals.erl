@@ -5,50 +5,12 @@
   record_local/2, record_local/3, record_import/4,
   record_definition/3, record_defaults/4,
   ensure_no_import_conflict/4, warn_unused_local/3,
-  local_for/4, format_error/1
+  format_error/1
 ]).
 
 -include("elixir.hrl").
 -define(attr, {elixir, locals_tracker}).
 -define(tracker, 'Elixir.Module.LocalsTracker').
-
-local_for(Module, Name, Arity, Kinds) ->
-  Tuple = {Name, Arity},
-  try elixir_def:lookup_definition(Module, Tuple) of
-    {{_, Kind, Ann, _, _, _, _}, Clauses} ->
-      case (Kinds == all) orelse (lists:member(Kind, Kinds)) of
-        true -> local_to_fun(Ann, Module, Clauses);
-        false -> false
-      end;
-    false ->
-      false
-  catch
-    error:badarg -> false
-  end.
-
-local_to_fun(Ann, Module, Clauses) ->
-  Fun = {'fun', Ann, {clauses, Clauses}},
-  LocalHandler = {value, fun(Name, Args) -> invoke_local(Module, Name, Args) end},
-  {value, Result, _Binding} = erl_eval:expr(Fun, [], LocalHandler),
-  Result.
-
-invoke_local(Module, RawName, Args) ->
-  %% If we have a macro, its arity in the table is
-  %% actually one less than in the function call
-  {Name, Arity} = case atom_to_list(RawName) of
-    "MACRO-" ++ Rest -> {list_to_atom(Rest), length(Args) - 1};
-    _ -> {RawName, length(Args)}
-  end,
-
-  case local_for(Module, Name, Arity, all) of
-    false ->
-      {current_stacktrace, [_ | T]} = erlang:process_info(self(), current_stacktrace),
-      erlang:raise(error, undef, [{Module, Name, Arity, []} | T]);
-    Fun ->
-      apply(Fun, Args)
-  end.
-
-%% TRACKING
 
 setup(Module) ->
   case elixir_compiler:get_opt(internal) of
