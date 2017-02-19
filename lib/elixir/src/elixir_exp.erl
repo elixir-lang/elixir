@@ -1,6 +1,6 @@
 -module(elixir_exp).
 -export([expand/2, expand_args/2, expand_arg/2, format_error/1]).
--import(elixir_errors, [compile_error/3, compile_error/4]).
+-import(elixir_errors, [form_error/4]).
 -include("elixir.hrl").
 
 %% =
@@ -27,7 +27,7 @@ expand({'<<>>', Meta, Args}, E) ->
   elixir_bitstring:expand(Meta, Args, E);
 
 expand({'->', Meta, _Args}, E) ->
-  compile_error(Meta, ?m(E, file), "unhandled operator ->");
+  form_error(Meta, ?m(E, file), ?MODULE, unhandled_arrow_op);
 
 %% __block__
 
@@ -54,8 +54,7 @@ expand({Kind, Meta, [{{'.', _, [Base, '{}']}, _, Refs} | Rest]}, E)
     [Opts] ->
       case lists:keymember(as, 1, Opts) of
         true ->
-          compile_error(Meta, ?m(E, file),
-            ":as option is not supported by multi-alias call");
+          form_error(Meta, ?m(E, file), ?MODULE, as_in_multi_alias_call);
         false ->
           expand_multi_alias_call(Kind, Meta, Base, Refs, Opts, E)
       end
@@ -71,9 +70,7 @@ expand({alias, Meta, [Ref, KV]}, E) ->
     is_atom(ERef) ->
       {ERef, expand_alias(Meta, true, ERef, EKV, ET)};
     true ->
-      compile_error(Meta, ?m(E, file),
-        "invalid argument for alias, expected a compile time atom or alias, got: ~ts",
-        ['Elixir.Macro':to_string(Ref)])
+      form_error(Meta, ?m(E, file), ?MODULE, {expected_compile_time_module, alias, Ref})
   end;
 
 expand({require, Meta, [Ref]}, E) ->
@@ -89,9 +86,7 @@ expand({require, Meta, [Ref, KV]}, E) ->
       elixir_aliases:ensure_loaded(Meta, ERef, ET),
       {ERef, expand_require(Meta, ERef, EKV, ET)};
     true ->
-      compile_error(Meta, ?m(E, file),
-        "invalid argument for require, expected a compile time atom or alias, got: ~ts",
-        ['Elixir.Macro':to_string(Ref)])
+      form_error(Meta, ?m(E, file), ?MODULE, {expected_compile_time_module, require, Ref})
   end;
 
 expand({import, Meta, [Left]}, E) ->
@@ -108,9 +103,7 @@ expand({import, Meta, [Ref, KV]}, E) ->
       {Functions, Macros} = elixir_import:import(Meta, ERef, EKV, ET),
       {ERef, expand_require(Meta, ERef, EKV, ET#{functions := Functions, macros := Macros})};
     true ->
-      compile_error(Meta, ?m(E, file),
-        "invalid argument for import, expected a compile time atom or alias, got: ~ts",
-        ['Elixir.Macro':to_string(Ref)])
+      form_error(Meta, ?m(E, file), ?MODULE, {expected_compile_time_module, import, Ref})
   end;
 
 %% Compilation environment macros
@@ -134,24 +127,24 @@ expand({{'.', DotMeta, [{'__ENV__', Meta, Atom}, Field]}, CallMeta, []}, E) when
 %% Quote
 
 expand({Unquote, Meta, [_]}, E) when Unquote == unquote; Unquote == unquote_splicing ->
-  compile_error(Meta, ?m(E, file), "~p called outside quote", [Unquote]);
+  form_error(Meta, ?m(E, file), ?MODULE, {unquote_outside_quote, Unquote});
 
 expand({quote, Meta, [Opts]}, E) when is_list(Opts) ->
   case lists:keyfind(do, 1, Opts) of
     {do, Do} ->
       expand({quote, Meta, [lists:keydelete(do, 1, Opts), [{do, Do}]]}, E);
     false ->
-      compile_error(Meta, ?m(E, file), "missing do keyword in quote")
+      form_error(Meta, ?m(E, file), ?MODULE, missing_do_in_quote)
   end;
 
 expand({quote, Meta, [_]}, E) ->
-  compile_error(Meta, ?m(E, file), "invalid arguments for quote");
+  form_error(Meta, ?m(E, file), ?MODULE, invalid_args_for_quote);
 
 expand({quote, Meta, [KV, Do]}, E) when is_list(Do) ->
   Exprs =
     case lists:keyfind(do, 1, Do) of
       {do, Expr} -> Expr;
-      false -> compile_error(Meta, ?m(E, file), "missing do keyword in quote")
+      false -> form_error(Meta, ?m(E, file), ?MODULE, missing_do_in_quote)
     end,
 
   ValidOpts = [context, location, line, file, unquote, bind_quoted, generated],
@@ -161,8 +154,7 @@ expand({quote, Meta, [KV, Do]}, E) when is_list(Do) ->
     {context, Ctx} when is_atom(Ctx) and (Ctx /= nil) ->
       Ctx;
     {context, Ctx} ->
-      compile_error(Meta, ?m(E, file), "invalid :context for quote, "
-        "expected non-nil compile time atom or alias, got: ~ts", ['Elixir.Macro':to_string(Ctx)]);
+      form_error(Meta, ?m(E, file), ?MODULE, {invalid_context_opt_for_quote, Ctx});
     false ->
       case ?m(E, module) of
         nil -> 'Elixir';
@@ -207,7 +199,7 @@ expand({quote, Meta, [KV, Do]}, E) when is_list(Do) ->
   expand(Quoted, ET);
 
 expand({quote, Meta, [_, _]}, E) ->
-  compile_error(Meta, ?m(E, file), "invalid arguments for quote");
+  form_error(Meta, ?m(E, file), ?MODULE, invalid_args_for_quote);
 
 %% Functions
 
@@ -278,8 +270,7 @@ expand({super, Meta, Args}, #{file := File} = E) when is_list(Args) ->
         end,
       {{OName, Meta, OArgs}, EA};
     _ ->
-      compile_error(Meta, File, "super must be called with the same number of "
-                    "arguments as the current definition")
+      form_error(Meta, File, ?MODULE, wrong_number_of_args_for_super)
   end;
 
 %% Vars
@@ -294,20 +285,18 @@ expand({'^', Meta, [Arg]}, #{context := match} = E) ->
         true ->
           {{'^', Meta, [Var]}, EA};
         false ->
-          compile_error(Meta, ?m(EA, file), "unbound variable ^~ts", [VarName])
+          form_error(Meta, ?m(EA, file), ?MODULE, {unbound_variable_hat, VarName})
       end;
     _ ->
-      Msg = "invalid argument for unary operator ^, expected an existing variable, got: ^~ts",
-      compile_error(Meta, ?m(E, file), Msg, ['Elixir.Macro':to_string(Arg)])
+      form_error(Meta, ?m(E, file), ?MODULE, {invalid_arg_for_hat, Arg})
   end;
 expand({'^', Meta, [Arg]}, E) ->
-  compile_error(Meta, ?m(E, file),
-    "cannot use ^~ts outside of match clauses", ['Elixir.Macro':to_string(Arg)]);
+  form_error(Meta, ?m(E, file), ?MODULE, {hat_outside_of_match, Arg});
 
 expand({'_', _Meta, Kind} = Var, #{context := match} = E) when is_atom(Kind) ->
   {Var, E};
 expand({'_', Meta, Kind}, E) when is_atom(Kind) ->
-  compile_error(Meta, ?m(E, file), "unbound variable _");
+  form_error(Meta, ?m(E, file), ?MODULE, unbound_underscore);
 
 expand({Name, Meta, Kind} = Var, #{context := match, export_vars := Export} = E) when is_atom(Name), is_atom(Kind) ->
   Pair      = {Name, var_kind(Meta, Kind)},
@@ -324,8 +313,7 @@ expand({Name, Meta, Kind} = Var, #{vars := Vars} = E) when is_atom(Name), is_ato
     false ->
       case lists:keyfind(var, 1, Meta) of
         {var, true} ->
-          compile_error(Meta, ?m(E, file), "expected variable \"~ts\"~ts to expand to an existing variable "
-                        "or be part of a match", [Name, elixir_scope:context_info(Kind)]);
+          form_error(Meta, ?m(E, file), ?MODULE, {undefined_var, Name, Kind});
         _ ->
           Message =
             io_lib:format("variable \"~ts\" does not exist and is being expanded to \"~ts()\","
@@ -372,7 +360,7 @@ expand({{'.', DotMeta, [Expr]}, Meta, Args}, E) when is_list(Args) ->
   {EExpr, EE} = expand(Expr, E),
   if
     is_atom(EExpr) ->
-      compile_error(Meta, ?m(E, file), "invalid function call :~ts.()", [EExpr]);
+      form_error(Meta, ?m(E, file), ?MODULE, {invalid_function_call, EExpr});
     true ->
       {EArgs, EA} = expand_args(Args, elixir_env:mergea(E, EE)),
       {{{'.', DotMeta, [EExpr]}, Meta, EArgs}, elixir_env:mergev(EE, EA)}
@@ -381,12 +369,10 @@ expand({{'.', DotMeta, [Expr]}, Meta, Args}, E) when is_list(Args) ->
 %% Invalid calls
 
 expand({_, Meta, Args} = Invalid, E) when is_list(Meta) and is_list(Args) ->
-  compile_error(Meta, ?m(E, file), "invalid call ~ts",
-    ['Elixir.Macro':to_string(Invalid)]);
+  form_error(Meta, ?m(E, file), ?MODULE, {invalid_call, Invalid});
 
 expand({_, _, _} = Tuple, E) ->
-  compile_error([{line, 0}], ?m(E, file), "invalid quoted expression: ~ts",
-    ['Elixir.Kernel':inspect(Tuple, [])]);
+  form_error([{line, 0}], ?m(E, file), ?MODULE, {invalid_quoted_expr, Tuple});
 
 %% Literals
 
@@ -407,16 +393,14 @@ expand(Function, E) when is_function(Function) ->
     true ->
       {Function, E};
     false ->
-      compile_error([{line, 0}], ?m(E, file),
-        "invalid quoted expression: ~ts", ['Elixir.Kernel':inspect(Function)])
+      form_error([{line, 0}], ?m(E, file), ?MODULE, {invalid_quoted_expr, Function})
   end;
 
 expand(Other, E) when is_number(Other); is_atom(Other); is_binary(Other); is_pid(Other) ->
   {Other, E};
 
 expand(Other, E) ->
-  compile_error([{line, 0}], ?m(E, file),
-    "invalid quoted expression: ~ts", ['Elixir.Kernel':inspect(Other)]).
+  form_error([{line, 0}], ?m(E, file), ?MODULE, {invalid_quoted_expr, Other}).
 
 %% Helpers
 
@@ -457,9 +441,7 @@ expand_multi_alias_call(Kind, Meta, Base, Refs, Opts, E) ->
     (Ref, ER) when is_atom(Ref) ->
       expand({Kind, Meta, [elixir_aliases:concat([BaseRef, Ref]), Opts]}, ER);
     (Other, _ER) ->
-      compile_error(Meta, ?m(E, file),
-        "invalid argument for ~ts, expected a compile time atom or alias, got: ~ts",
-        [atom_to_list(Kind), 'Elixir.Macro':to_string(Other)])
+      form_error(Meta, ?m(E, file), ?MODULE, {expected_compile_time_module, Kind, Other})
   end,
   lists:mapfoldl(Fun, EB, Refs).
 
@@ -576,9 +558,7 @@ assert_no_ambiguous_op(Name, Meta, [Arg], E) ->
     {ambiguous_op, Kind} ->
       case lists:member({Name, Kind}, ?m(E, vars)) of
         true ->
-          compile_error(Meta, ?m(E, file), "\"~ts ~ts\" looks like a function call but "
-                        "there is a variable named \"~ts\", please use explicit parentheses or even spaces",
-                        [Name, 'Elixir.Macro':to_string(Arg), Name]);
+          form_error(Meta, ?m(E, file), ?MODULE, {op_ambiguity, Name, Arg});
         false ->
           ok
       end;
@@ -589,13 +569,11 @@ assert_no_ambiguous_op(_Atom, _Meta, _Args, _E) ->
   ok.
 
 expand_local(Meta, Name, Args, #{function := nil} = E) ->
-  compile_error(Meta, ?m(E, file), "undefined function ~ts/~B", [Name, length(Args)]);
+  form_error(Meta, ?m(E, file), ?MODULE, {undefined_function, Name, Args});
 expand_local(Meta, Name, Args, #{context := match} = E) ->
-  Message = "cannot invoke local ~ts/~B inside match, called as: ~ts",
-  FormattedCall = 'Elixir.Macro':to_string({Name, Meta, Args}),
-  compile_error(Meta, ?m(E, file), Message, [Name, length(Args), FormattedCall]);
+  form_error(Meta, ?m(E, file), ?MODULE, {local_invocation_in_match, {Name, Meta, Args}});
 expand_local(Meta, Name, Args, #{context := guard} = E) ->
-  compile_error(Meta, ?m(E, file), "cannot invoke local ~ts/~B inside guard", [Name, length(Args)]);
+  form_error(Meta, ?m(E, file), ?MODULE, {local_invocation_in_guard, Name, Args});
 expand_local(Meta, Name, Args, #{module := Module, function := Function} = E) ->
   elixir_locals:record_local({Name, length(Args)}, Module, Function),
   {EArgs, EA} = expand_args(Args, E),
@@ -614,8 +592,7 @@ expand_remote(Receiver, DotMeta, Right, Meta, Args, #{context := Context} = E, E
     true ->
       {Rewritten, elixir_env:mergev(EL, EA)};
     false ->
-      compile_error(Meta, ?m(E, file), "cannot invoke remote function ~ts.~ts/~B inside ~ts",
-                    ['Elixir.Macro':to_string(Receiver), Right, Arity, Context])
+      form_error(Meta, ?m(E, file), ?MODULE, {invalid_remote_invocation, Context, Receiver, Right, Arity})
   end.
 
 allowed_in_context({{'.', _, [erlang, Right]}, _, _}, Arity, match) ->
@@ -638,12 +615,11 @@ expand_opts(Meta, Kind, Allowed, Opts, E) ->
 
 validate_opts(Meta, Kind, Allowed, Opts, E) when is_list(Opts) ->
   [begin
-    compile_error(Meta, ?m(E, file),
-                  "unsupported option ~ts given to ~s", ['Elixir.Macro':to_string(Key), Kind])
+    form_error(Meta, ?m(E, file), ?MODULE, {unsupported_opt, Kind, Key})
   end || {Key, _} <- Opts, not lists:member(Key, Allowed)];
 
 validate_opts(Meta, Kind, _Allowed, _Opts, E) ->
-  compile_error(Meta, ?m(E, file), "invalid options for ~s, expected a keyword list", [Kind]).
+  form_error(Meta, ?m(E, file), ?MODULE, {opts_are_not_a_keyword, Kind}).
 
 no_alias_opts(KV) when is_list(KV) ->
   case lists:keyfind(as, 1, KV) of
@@ -690,20 +666,17 @@ expand_as({as, Atom}, Meta, _IncludeByDefault, _Ref, E) when is_atom(Atom), not 
         [Rest] ->
           Atom;
         _ ->
-          Message = "invalid value for keyword :as, expected a simple alias, got nested alias: ~ts",
-          compile_error(Meta, ?m(E, file), Message, [elixir_aliases:inspect(Atom)])
+          form_error(Meta, ?m(E, file), ?MODULE, {invalid_alias_for_as, nested_alias, Atom})
       end;
     _ ->
-      Message = "invalid value for keyword :as, expected an alias, got: ~ts",
-      compile_error(Meta, ?m(E, file), Message, [elixir_aliases:inspect(Atom)])
+      form_error(Meta, ?m(E, file), ?MODULE, {invalid_alias_for_as, not_alias, Atom})
   end;
 expand_as(false, _Meta, IncludeByDefault, Ref, _E) ->
   if IncludeByDefault -> elixir_aliases:last(Ref);
      true -> Ref
   end;
 expand_as({as, Other}, Meta, _IncludeByDefault, _Ref, E) ->
-  compile_error(Meta, ?m(E, file),
-    "invalid value for keyword :as, expected an alias, got: ~ts", ['Elixir.Macro':to_string(Other)]).
+  form_error(Meta, ?m(E, file), ?MODULE, {invalid_alias_for_as, not_alias, Other}).
 
 %% Aliases
 
@@ -728,32 +701,28 @@ expand_aliases({'__aliases__', Meta, _} = Alias, E, Report) ->
             elixir_lexical:record_remote(Receiver, ?m(E, function), ?m(E, lexical_tracker)),
           {Receiver, EA};
         false ->
-          compile_error(Meta, ?m(E, file),
-            "invalid alias: \"~ts\". If you wanted to define an alias, an alias must expand "
-            "to an atom at compile time but it did not, you may use Module.concat/2 to build "
-            "it at runtime. If instead you wanted to invoke a function or access a field, "
-            "wrap the function or field name in double quotes", ['Elixir.Macro':to_string(Alias)])
+          form_error(Meta, ?m(E, file), ?MODULE, {invalid_alias, Alias})
       end
   end.
 
 %% Assertions
 
 assert_module_scope(Meta, Kind, #{module := nil, file := File}) ->
-  compile_error(Meta, File, "cannot invoke ~ts outside module", [Kind]);
+  form_error(Meta, File, ?MODULE, {invalid_expr_in_scope, "module", Kind});
 assert_module_scope(_Meta, _Kind, #{module:=Module}) -> Module.
 
 assert_function_scope(Meta, Kind, #{function := nil, file := File}) ->
-  compile_error(Meta, File, "cannot invoke ~ts outside function", [Kind]);
+  form_error(Meta, File, ?MODULE, {invalid_expr_in_scope, "function", Kind});
 assert_function_scope(_Meta, _Kind, #{function := Function}) -> Function.
 
 assert_no_match_or_guard_scope(Meta, Kind, E) ->
   assert_no_match_scope(Meta, Kind, E),
   assert_no_guard_scope(Meta, Kind, E).
 assert_no_match_scope(Meta, _Kind, #{context := match, file := File}) ->
-  compile_error(Meta, File, "invalid pattern in match");
+  form_error(Meta, File, ?MODULE, invalid_pattern_in_match);
 assert_no_match_scope(_Meta, _Kind, _E) -> [].
 assert_no_guard_scope(Meta, _Kind, #{context := guard, file := File}) ->
-  compile_error(Meta, File, "invalid expression in guard");
+  form_error(Meta, File, ?MODULE, invalid_expr_in_guard);
 assert_no_guard_scope(_Meta, _Kind, _E) -> [].
 
 %% Here we look into the Clauses "optimistically", that is, we don't check for
@@ -765,15 +734,14 @@ assert_no_guard_scope(_Meta, _Kind, _E) -> [].
 assert_no_underscore_clause_in_cond([{do, Clauses}], E) ->
   case lists:last(Clauses) of
     {'->', Meta, [[{'_', _, Atom}], _]} when is_atom(Atom) ->
-      Message = "unbound variable _ inside cond. If you want the last clause to always match, "
-                "you probably meant to use: true ->",
-      compile_error(Meta, ?m(E, file), Message);
+      form_error(Meta, ?m(E, file), ?MODULE, underscore_in_cond);
     _Other ->
       ok
   end;
 assert_no_underscore_clause_in_cond(_Other, _E) ->
   ok.
 
+%% Warnings.
 format_error({useless_literal, Term}) ->
   io_lib:format("code block contains unused literal ~ts "
                 "(remove the literal or assign it to _ to avoid warnings)",
@@ -785,4 +753,89 @@ format_error({useless_var, Var}) ->
 format_error({useless_attr, Attr}) ->
   io_lib:format("module attribute @~ts in code block has no effect as it is never returned "
                 "(remove the attribute or assign it to _ to avoid warnings)",
-                [Attr]).
+                [Attr]);
+
+%% Errors.
+format_error(unhandled_arrow_op) ->
+  "unhandled operator ->";
+format_error(as_in_multi_alias_call) ->
+  ":as option is not supported by multi-alias call";
+format_error({expected_compile_time_module, Kind, GivenTerm}) ->
+  io_lib:format("invalid argument for ~ts, expected a compile time atom or alias, got: ~ts",
+                [Kind, 'Elixir.Macro':to_string(GivenTerm)]);
+format_error({unquote_outside_quote, Unquote}) ->
+  %% Unquote can be "unquote" or "unquote_splicing".
+  io_lib:format("~p called outside quote", [Unquote]);
+format_error(missing_do_in_quote) ->
+  "missing do keyword in quote";
+format_error(invalid_args_for_quote) ->
+  "invalid arguments for quote";
+format_error({invalid_context_opt_for_quote, Context}) ->
+  io_lib:format("invalid :context for quote, expected non-nil compile time atom or alias, got: ~ts",
+                ['Elixir.Macro':to_string(Context)]);
+format_error(wrong_number_of_args_for_super) ->
+  "super must be called with the same number of arguments as the current definition";
+format_error({unbound_variable_hat, VarName}) ->
+  io_lib:format("unbound variable ^~ts", [VarName]);
+format_error({invalid_arg_for_hat, Arg}) ->
+  io_lib:format("invalid argument for unary operator ^, expected an existing variable, got: ^~ts",
+                ['Elixir.Macro':to_string(Arg)]);
+format_error({hat_outside_of_match, Arg}) ->
+  io_lib:format("cannot use ^~ts outside of match clauses", ['Elixir.Macro':to_string(Arg)]);
+format_error(unbound_underscore) ->
+  "unbound variable _";
+format_error({undefined_var, Name, Kind}) ->
+  Message =
+    "expected variable \"~ts\"~ts to expand to an existing variable "
+    "or be part of a match",
+  io_lib:format(Message, [Name, elixir_scope:context_info(Kind)]);
+format_error(underscore_in_cond) ->
+  "unbound variable _ inside cond. If you want the last clause to always match, "
+    "you probably meant to use: true ->";
+format_error(invalid_expr_in_guard) ->
+  "invalid expression in guard";
+format_error(invalid_pattern_in_match) ->
+  "invalid pattern in match";
+format_error({invalid_expr_in_scope, Scope, Kind}) ->
+  io_lib:format("cannot invoke ~ts outside ~ts", [Kind, Scope]);
+format_error({invalid_alias, Expr}) ->
+  Message =
+    "invalid alias: \"~ts\". If you wanted to define an alias, an alias must expand "
+    "to an atom at compile time but it did not, you may use Module.concat/2 to build "
+    "it at runtime. If instead you wanted to invoke a function or access a field, "
+    "wrap the function or field name in double quotes",
+  io_lib:format(Message, ['Elixir.Macro':to_string(Expr)]);
+format_error({op_ambiguity, Name, Arg}) ->
+  Message =
+    "\"~ts ~ts\" looks like a function call but there is a variable named \"~ts\", "
+    "please use explicit parentheses or even spaces",
+  io_lib:format(Message, [Name, 'Elixir.Macro':to_string(Arg), Name]);
+format_error({invalid_alias_for_as, Reason, Value}) ->
+  ExpectedGot =
+    case Reason of
+      not_alias -> "expected an alias, got";
+      nested_alias -> "expected a simple alias, got nested alias"
+    end,
+  io_lib:format("invalid value for keyword :as, ~ts: ~ts",
+                [ExpectedGot, 'Elixir.Macro':to_string(Value)]);
+format_error({invalid_function_call, Expr}) ->
+  io_lib:format("invalid function call :~ts.()", [Expr]);
+format_error({invalid_call, Call}) ->
+  io_lib:format("invalid call ~ts", ['Elixir.Macro':to_string(Call)]);
+format_error({invalid_quoted_expr, Expr}) ->
+  io_lib:format("invalid quoted expression: ~ts", ['Elixir.Kernel':inspect(Expr, [])]);
+format_error({local_invocation_in_match, {Name, _, Args} = Call}) ->
+  io_lib:format("cannot invoke local ~ts/~B inside match, called as: ~ts",
+                [Name, length(Args), 'Elixir.Macro':to_string(Call)]);
+format_error({local_invocation_in_guard, Name, Args}) ->
+  io_lib:format("cannot invoke local ~ts/~B inside guard", [Name, length(Args)]);
+format_error({invalid_remote_invocation, Context, Receiver, Right, Arity}) ->
+  io_lib:format("cannot invoke remote function ~ts.~ts/~B inside ~ts",
+                ['Elixir.Macro':to_string(Receiver), Right, Arity, Context]);
+format_error({unsupported_opt, Kind, Key}) ->
+  io_lib:format("unsupported option ~ts given to ~s",
+                ['Elixir.Macro':to_string(Key), Kind]);
+format_error({opts_are_not_a_keyword, Kind}) ->
+  io_lib:format("invalid options for ~s, expected a keyword list", [Kind]);
+format_error({undefined_function, Name, Args}) ->
+  io_lib:format("undefined function ~ts/~B", [Name, length(Args)]).
