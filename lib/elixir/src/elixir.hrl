@@ -1,6 +1,6 @@
 %% TODO: Rename to ?key
 -define(m(M, K), maps:get(K, M)).
--define(ann(Opts), elixir_utils:get_ann(Opts)).
+-define(ann(Opts), elixir_erl:get_ann(Opts)).
 -define(line(Opts), elixir_utils:get_line(Opts)).
 
 %% TODO: Now we are passing the location on generated opts but

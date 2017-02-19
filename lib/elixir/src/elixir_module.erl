@@ -1,7 +1,7 @@
 %% TODO: Split into elixir and elixir_erl
 -module(elixir_module).
 -export([data_table/1, defs_table/1, is_open/1, delete_doc/6,
-         compile/4, expand_callback/6, add_beam_chunk/3, format_error/1,
+         compile/4, expand_callback/6, format_error/1,
          compiler_modules/0]).
 -include("elixir.hrl").
 
@@ -21,7 +21,7 @@ put_compiler_modules([]) ->
 put_compiler_modules(M) when is_list(M) ->
   erlang:put(elixir_compiler_modules, M).
 
-%% TABLE METHODS
+%% Table functions
 
 data_table(Module) ->
   ets:lookup_element(elixir_modules, Module, 2).
@@ -50,16 +50,15 @@ compile(Module, Block, Vars, #{line := Line} = Env) when is_atom(Module) ->
   case ?m(LexEnv, lexical_tracker) of
     nil ->
       elixir_lexical:run(?m(LexEnv, file), nil, fun(Pid) ->
-        do_compile(Line, Module, Block, Vars, LexEnv#{lexical_tracker := Pid})
+        compile(Line, Module, Block, Vars, LexEnv#{lexical_tracker := Pid})
       end);
     _ ->
-      do_compile(Line, Module, Block, Vars, LexEnv)
+      compile(Line, Module, Block, Vars, LexEnv)
   end;
-
 compile(Module, _Block, _Vars, #{line := Line, file := File}) ->
   elixir_errors:form_error([{line, Line}], File, ?MODULE, {invalid_module, Module}).
 
-do_compile(Line, Module, Block, Vars, E) ->
+compile(Line, Module, Block, Vars, E) ->
   File = ?m(E, file),
   check_module_availability(Line, File, Module),
 
@@ -68,7 +67,7 @@ do_compile(Line, Module, Block, Vars, E) ->
   {Data, Defs, Ref} = build(Line, File, Module, Docs, ?m(E, lexical_tracker)),
 
   try
-    put_compiler_modules([Module|CompilerModules]),
+    put_compiler_modules([Module | CompilerModules]),
     {Result, NE} = eval_form(Line, Module, Data, Block, Vars, E),
 
     PersistedAttrs = ets:lookup_element(Data, ?persisted_attr, 2),
@@ -79,7 +78,7 @@ do_compile(Line, Module, Block, Vars, E) ->
     {AllDefinitions, Unreachable} =
       elixir_def:fetch_definitions(File, Module),
     {Def, Defp, Defmacro, Defmacrop, Exports, Functions} =
-      elixir_erl:split_definition(File, Module, AllDefinitions, Unreachable),
+      elixir_erl:compile(File, Module, AllDefinitions, Unreachable),
 
     Forms0 = functions_form(Line, File, Module, Def, Defp,
                             Defmacro, Defmacrop, Exports, Functions),
@@ -182,7 +181,7 @@ build(Line, File, Module, Docs, Lexical) ->
   %% Setup definition related modules
   elixir_def:setup(Module),
   elixir_locals:setup(Module),
-  elixir_def_overridable:setup(Module),
+  elixir_overridable:setup(Module),
 
   {Data, Defs, Ref}.
 
@@ -190,18 +189,21 @@ build(Line, File, Module, Docs, Lexical) ->
 
 eval_form(Line, Module, Data, Block, Vars, E) ->
   {Value, EE} = elixir_compiler:eval_forms(Block, Vars, E),
-  elixir_def_overridable:store_pending(Module),
-  EV = elixir_env:linify({Line, EE#{vars := [], export_vars := nil}}),
+  elixir_overridable:store_pending(Module),
+  EV = elixir_env:linify({Line, reset_env(EE)}),
   EC = eval_callbacks(Line, Data, before_compile, [EV], EV),
-  elixir_def_overridable:store_pending(Module),
+  elixir_overridable:store_pending(Module),
   {Value, EC}.
 
 eval_callbacks(Line, Data, Name, Args, E) ->
   Callbacks = ets:lookup_element(Data, Name, 2),
   lists:foldr(fun({M, F}, Acc) ->
-    expand_callback(Line, M, F, Args, Acc#{vars := [], export_vars := nil},
+    expand_callback(Line, M, F, Args, reset_env(Acc),
                     fun(AM, AF, AA) -> apply(AM, AF, AA) end)
   end, E, Callbacks).
+
+reset_env(Env) ->
+  Env#{vars := [], export_vars := nil}.
 
 %% Return the form with exports and function declarations.
 
@@ -380,7 +382,7 @@ add_docs_chunk(Bin, Data, Line, true) ->
     {callback_docs, get_callback_docs(Data)},
     {type_docs, get_type_docs(Data)}
   ]}),
-  add_beam_chunk(Bin, "ExDc", ChunkData);
+  elixir_erl:add_beam_chunk(Bin, "ExDc", ChunkData);
 
 add_docs_chunk(Bin, _, _, _) -> Bin.
 
@@ -477,10 +479,10 @@ add_info_function(Line, Module, Def, Defmacro) ->
   {Spec, Info}.
 
 functions_clause(Def) ->
-  {clause, 0, [{atom, 0, functions}], [], [elixir_utils:elixir_to_erl(lists:sort(Def))]}.
+  {clause, 0, [{atom, 0, functions}], [], [elixir_erl:elixir_to_erl(lists:sort(Def))]}.
 
 macros_clause(Defmacro) ->
-  {clause, 0, [{atom, 0, macros}], [], [elixir_utils:elixir_to_erl(lists:sort(Defmacro))]}.
+  {clause, 0, [{atom, 0, macros}], [], [elixir_erl:elixir_to_erl(lists:sort(Defmacro))]}.
 
 info_clause(Module) ->
   Info = {call, 0,
@@ -489,15 +491,6 @@ info_clause(Module) ->
   {clause, 0, [{var, 0, info}], [], [Info]}.
 
 % HELPERS
-
-%% Adds custom chunk to a .beam binary
-add_beam_chunk(Bin, Id, ChunkData)
-        when is_binary(Bin), is_list(Id), is_binary(ChunkData) ->
-  {ok, _, Chunks0} = beam_lib:all_chunks(Bin),
-  NewChunk = {Id, ChunkData},
-  Chunks = [NewChunk | Chunks0],
-  {ok, NewBin} = beam_lib:build_module(Chunks),
-  NewBin.
 
 %% Expands a callback given by M:F(Args). In case
 %% the callback can't be expanded, invokes the given

@@ -403,7 +403,7 @@ defmodule Protocol do
     {:ok,
       case docs do
         :missing_chunk -> binary
-        _ -> :elixir_module.add_beam_chunk(binary, @docs_chunk, docs)
+        _ -> :elixir_erl.add_beam_chunk(binary, @docs_chunk, docs)
       end}
   end
 

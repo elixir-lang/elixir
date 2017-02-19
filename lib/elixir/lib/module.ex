@@ -817,13 +817,13 @@ defmodule Module do
               Module.LocalsTracker.yank(module, tuple)
             end
 
-          old   = :elixir_def_overridable.overridable(module)
+          old   = :elixir_overridable.overridable(module)
           count = case :maps.find(tuple, old) do
             {:ok, {count, _, _, _}} -> count + 1
             :error -> 1
           end
           new = :maps.put(tuple, {count, clause, neighbours, false}, old)
-          :elixir_def_overridable.overridable(module, new)
+          :elixir_overridable.overridable(module, new)
       end
     end, tuples)
   end
@@ -832,7 +832,7 @@ defmodule Module do
   Returns `true` if `tuple` in `module` is marked as overridable.
   """
   def overridable?(module, tuple) do
-    :maps.is_key(tuple, :elixir_def_overridable.overridable(module))
+    :maps.is_key(tuple, :elixir_overridable.overridable(module))
   end
 
   @doc """

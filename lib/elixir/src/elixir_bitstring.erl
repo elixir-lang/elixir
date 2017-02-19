@@ -219,7 +219,7 @@ build_bitstr_each(Fun, T, Meta, S, Acc, H, default, Types) when is_binary(H) ->
   Element =
     case types_allow_splice(Types) of
       true ->
-        %% See explanation in elixir_utils:elixir_to_erl/1 to know
+        %% See explanation in elixir_erl:elixir_to_erl/1 to know
         %% why we can simply convert the binary to a list.
         {bin_element, ?ann(Meta), {string, 0, binary_to_list(H)}, default, default};
       false ->

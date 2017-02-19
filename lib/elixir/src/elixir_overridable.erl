@@ -1,5 +1,5 @@
 % Holds the logic responsible for defining overridable functions and handling super.
--module(elixir_def_overridable).
+-module(elixir_overridable).
 -export([setup/1, overridable/1, overridable/2, super/4, store_pending/1, format_error/1]).
 -include("elixir.hrl").
 -define(attr, {elixir, overridable}).
