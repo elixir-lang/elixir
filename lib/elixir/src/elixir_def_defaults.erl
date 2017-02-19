@@ -1,20 +1,20 @@
 %% Handle default clauses for function definitions.
 -module(elixir_def_defaults).
--export([unpack/4]).
+-export([unpack/5]).
 -include("elixir.hrl").
 
-unpack(Kind, Name, Args, E) ->
+unpack(Kind, Meta, Name, Args, E) ->
   Expanded = expand_defaults(Args, E#{context := nil}),
-  unpack(Kind, Name, Expanded, [], []).
+  unpack(Kind, Meta, Name, Expanded, [], []).
 
-unpack(Kind, Name, [{'\\\\', Meta, [Expr, _]} | T] = List, Acc, Clauses) ->
+unpack(Kind, Meta, Name, [{'\\\\', DefaultMeta, [Expr, _]} | T] = List, Acc, Clauses) ->
   Base = match_defaults(Acc, length(Acc), []),
   {Args, Invoke} = extract_defaults(List, length(Base), [], []),
-  Clause = {Base ++ Args, [], {super, Meta, Base ++ Invoke}},
-  unpack(Kind, Name, T, [Expr | Acc], [Clause | Clauses]);
-unpack(Kind, Name, [H | T], Acc, Clauses) ->
-  unpack(Kind, Name, T, [H | Acc], Clauses);
-unpack(_Kind, _Name, [], Acc, Clauses) ->
+  Clause = {Meta, Base ++ Args, [], {super, DefaultMeta, Base ++ Invoke}},
+  unpack(Kind, Meta, Name, T, [Expr | Acc], [Clause | Clauses]);
+unpack(Kind, Meta, Name, [H | T], Acc, Clauses) ->
+  unpack(Kind, Meta, Name, T, [H | Acc], Clauses);
+unpack(_Kind, _Meta, _Name, [], Acc, Clauses) ->
   {lists:reverse(Acc), lists:reverse(Clauses)}.
 
 %% Expand the right side of default arguments
