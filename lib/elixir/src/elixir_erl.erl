@@ -84,7 +84,7 @@ function_form(Kind, Meta, File, {Name, Arity}, Clauses) ->
 translate_clause(Kind, Name, Arity, {Meta, Args, Guards, Body}, File) ->
   S =
     %% TODO: We only need to do this dance because some
-    %% warnings are raised in elixir_scope. Once we remove
+    %% warnings are raised in elixir_erl_pass. Once we remove
     %% all warnings from the Erlang pass, we can remove the
     %% file field from #elixir_erl and clean up the code.
     case lists:keyfind(location, 1, Meta) of
