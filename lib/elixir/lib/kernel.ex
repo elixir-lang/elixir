@@ -2438,6 +2438,13 @@ defmodule Kernel do
         :elixir_errors.warn env.line, env.file,
                             "@behavior attribute is not supported, please use @behaviour instead"
 
+      # TODO: Remove :compile check once on 2.0 as we no longer
+      # need to warn on parse transforms in Module.put_attribute.
+      name == :compile ->
+        {stack, _} = :elixir_quote.escape(env_stacktrace(env), false)
+        quote do: Module.put_attribute(__MODULE__, unquote(name), unquote(arg),
+                                       unquote(stack), unquote(line))
+
       :lists.member(name, [:moduledoc, :typedoc, :doc]) ->
         {stack, _} = :elixir_quote.escape(env_stacktrace(env), false)
         arg = {env.line, arg}

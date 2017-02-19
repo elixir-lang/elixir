@@ -71,7 +71,7 @@ compile(Line, Module, Block, Vars, E) ->
     {Result, NE} = eval_form(Line, Module, Data, Block, Vars, E),
 
     PersistedAttrs = ets:lookup_element(Data, ?persisted_attr, 2),
-    CompileOpts = ets:lookup_element(Data, compile, 2),
+    CompileOpts = lists:flatten(ets:lookup_element(Data, compile, 2)),
     OnLoad = ets:lookup_element(Data, 'on_load', 2),
     [elixir_locals:record_local(Tuple, Module) || Tuple <- OnLoad],
 
@@ -94,7 +94,7 @@ compile(Line, Module, Block, Vars, E) ->
       {attribute, Line, module, Module} | Forms3
     ],
 
-    Binary = load_form(Line, Data, Final, lists:flatten(CompileOpts), NE),
+    Binary = load_form(Line, Data, Final, CompileOpts, NE),
     {module, Module, Binary, Result}
   catch
     error:undef ->
