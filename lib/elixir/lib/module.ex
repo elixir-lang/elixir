@@ -1057,6 +1057,15 @@ defmodule Module do
     table = data_table_for(module)
     value = preprocess_attribute(key, value)
 
+    # TODO: Remove on Elixir v2.0
+    case value do
+      {:parse_transform, _} when key == :compile and is_list(stack) ->
+        IO.warn "@compile {:parse_transform, _} is deprecated. " <>
+                "Elixir will no longer support Erlang-based transforms in future versions", stack
+      _ ->
+        :ok
+    end
+
     case :ets.lookup(table, key) do
       [{^key, {line, <<_::binary>>}, accumulated?, _unread_line}]
           when key in [:doc, :typedoc, :moduledoc] and is_list(stack) ->
