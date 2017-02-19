@@ -301,11 +301,11 @@ defmodule Kernel.ExpansionTest do
     end
 
     test "raises if the :context option is nil or not a compile-time module" do
-      assert_raise CompileError, ~r"invalid :context for quote, .* :erlang\.self\(\)", fn ->
+      assert_raise CompileError, ~r"invalid :context for quote, .*, got: :erlang\.self\(\)", fn ->
         expand(quote do: (quote context: self(), do: :ok))
       end
 
-      assert_raise CompileError, ~r"invalid :context for quote, .* nil", fn ->
+      assert_raise CompileError, ~r"invalid :context for quote, .*, got: nil", fn ->
         expand(quote do: (quote context: nil, do: :ok))
       end
     end
