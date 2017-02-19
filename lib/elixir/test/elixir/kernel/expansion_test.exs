@@ -55,6 +55,18 @@ defmodule Kernel.ExpansionTest do
         expand(quote do: (foo = :foo; foo.Foo))
       end
     end
+
+    test "raises if :as is passed to multi-alias aliases" do
+      assert_raise CompileError, ~r":as option is not supported by multi-alias call", fn ->
+        expand(quote do: (alias Foo.{Bar, Baz}, as: BarBaz))
+      end
+    end
+
+    test "invalid options" do
+      assert_raise CompileError, ~r"unsupported option :ops given to alias", fn ->
+        expand(quote do: (alias Foo, ops: 1))
+      end
+    end
   end
 
   describe "__aliases__" do
@@ -102,6 +114,26 @@ defmodule Kernel.ExpansionTest do
       assert_raise CompileError,
         ~r"unsupported option :ops given to import",
         fn -> expand(quote do: (import :lists, [ops: 1])) end
+    end
+
+    test "raises for non-compile-time module" do
+      assert_raise CompileError, ~r"invalid argument for import, .*, got: {:a, :tuple}", fn ->
+        expand(quote do: (import {:a, :tuple}))
+      end
+    end
+  end
+
+  describe "require" do
+    test "raises for non-compile-time module" do
+      assert_raise CompileError, ~r"invalid argument for require, .*, got: {:a, :tuple}", fn ->
+        expand(quote do: (require {:a, :tuple}))
+      end
+    end
+
+    test "invalid options" do
+      assert_raise CompileError, ~r"unsupported option :ops given to require", fn ->
+        expand(quote do: (require Foo, ops: 1))
+      end
     end
   end
 
@@ -307,6 +339,24 @@ defmodule Kernel.ExpansionTest do
 
       assert_raise CompileError, ~r"invalid :context for quote, .*, got: nil", fn ->
         expand(quote do: (quote context: nil, do: :ok))
+      end
+    end
+
+    test "raises for missing do" do
+      assert_raise CompileError, ~r"missing do keyword in quote", fn ->
+        expand(quote do: (quote context: Foo))
+      end
+    end
+
+    test "raises for invalid arguments" do
+      assert_raise CompileError, ~r"invalid arguments for quote", fn ->
+        expand(quote do: (quote 1 + 1))
+      end
+    end
+
+    test "raises unless its options are a keyword list" do
+      assert_raise CompileError, ~r"invalid options for quote, expected a keyword list", fn ->
+        expand(quote do: (quote :foo, do: :foo))
       end
     end
   end
@@ -802,6 +852,15 @@ defmodule Kernel.ExpansionTest do
     end
   end
 
+  describe "op ambiguity" do
+    test "raises when a call is ambiguous" do
+      message = ~r["a -1" looks like a function call but there is a variable named "a"]
+      assert_raise CompileError, message, fn ->
+        expand(quote do: (a = 1; a -1))
+      end
+    end
+  end
+
   test "handles invalid expressions" do
     assert_raise CompileError, ~r"invalid quoted expression: {1, 2, 3}", fn ->
       expand(quote do: unquote({1, 2, 3}))
@@ -809,6 +868,26 @@ defmodule Kernel.ExpansionTest do
 
     assert_raise CompileError, ~r"invalid quoted expression: #Function<", fn ->
       expand(quote do: unquote({:sample, fn -> nil end}))
+    end
+
+    assert_raise CompileError, ~r"invalid pattern in match", fn ->
+      expand(quote do
+        case true do
+          true && true -> true
+        end
+      end)
+    end
+
+    assert_raise CompileError, ~r"invalid call foo\(1\)\(2\)", fn ->
+      expand(quote do: foo(1)(2))
+    end
+
+    assert_raise CompileError, ~r"invalid call 1\.foo\(\)", fn ->
+      expand(quote do: 1.foo)
+    end
+
+    assert_raise CompileError, ~r"unhandled operator ->", fn ->
+      expand(quote do: (foo -> bar))
     end
   end
 

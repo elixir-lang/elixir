@@ -118,11 +118,7 @@ defmodule Kernel.ErrorsTest do
     assert_compile_fail SyntaxError, msg.(""), '~s(foo) ~s(\#{:bar} baz)'
   end
 
-  test "compile error on op ambiguity" do
-    msg = "nofile:1: \"a -1\" looks like a function call but there is a variable named \"a\", " <>
-          "please use explicit parentheses or even spaces"
-    assert_compile_fail CompileError, msg, 'a = 1; a -1'
-
+  test "op ambiguity" do
     max = 1
     assert max == 1
     assert (max 1, 2) == 2
@@ -206,16 +202,6 @@ defmodule Kernel.ErrorsTest do
       '''
   end
 
-  test "invalid match pattern" do
-    assert_compile_fail CompileError,
-    "nofile:2: invalid pattern in match",
-    '''
-    case true do
-      true && true -> true
-    end
-    '''
-  end
-
   test "different defs with defaults" do
     assert_compile_fail CompileError,
       "nofile:3: def hello/3 defaults conflicts with def hello/2",
@@ -244,24 +230,6 @@ defmodule Kernel.ErrorsTest do
         def foo, do: bar()
       end
       '''
-  end
-
-  test "unbound var" do
-    assert_compile_fail CompileError,
-      "nofile:1: unbound variable ^x",
-      '^x = 1'
-  end
-
-  test "unbound not match" do
-    assert_compile_fail CompileError,
-      "nofile:1: cannot use ^x outside of match clauses",
-      '^x'
-  end
-
-  test "unbound expr" do
-    assert_compile_fail CompileError,
-      "nofile:1: invalid argument for unary operator ^, expected an existing variable, got: ^+1",
-      '^+1 = true'
   end
 
   test "literal on map and struct" do
@@ -360,31 +328,6 @@ defmodule Kernel.ErrorsTest do
         end
       end
       '''
-  end
-
-  test "invalid quote args" do
-    assert_compile_fail CompileError,
-      "nofile:1: invalid arguments for quote",
-      'quote 1'
-    assert_compile_fail CompileError,
-      "nofile:1: invalid options for quote, expected a keyword list",
-      'quote(:foo, do: foo)'
-  end
-
-  test "invalid calls" do
-    assert_compile_fail CompileError,
-      "nofile:1: invalid call foo(1)(2)",
-      'foo(1)(2)'
-
-    assert_compile_fail CompileError,
-      "nofile:1: invalid call 1.foo()",
-      '1.foo'
-  end
-
-  test "unhandled stab" do
-    assert_compile_fail CompileError,
-      "nofile:1: unhandled operator ->",
-      '(bar -> baz)'
   end
 
   test "undefined non-local function" do
@@ -758,20 +701,6 @@ defmodule Kernel.ErrorsTest do
       'fn do :ok end'
   end
 
-  test "invalid var or function on guard" do
-    assert_compile_fail CompileError,
-      "nofile:4: cannot invoke local something_that_does_not_exist/0 inside guard",
-      '''
-      defmodule Kernel.ErrorsTest.InvalidVarOrFunctionOnGuard do
-        def bar do
-          case [] do
-            [] when something_that_does_not_exist() == [] -> :ok
-          end
-        end
-      end
-      '''
-  end
-
   test "bodyless function with guard" do
     assert_compile_fail CompileError,
       "nofile:2: missing do keyword in def",
@@ -807,16 +736,6 @@ defmodule Kernel.ErrorsTest do
       '''
       defmodule Kernel.ErrorsTest.TypespecErrors2 do
         @spec omg :: atom
-      end
-      '''
-  end
-
-  test "bad unquoting" do
-    assert_compile_fail CompileError,
-      "nofile: invalid quoted expression: {:foo, 0, 1}",
-      '''
-      defmodule Kernel.ErrorsTest.BadUnquoting do
-        def range(unquote({:foo, 0, 1})), do: :ok
       end
       '''
   end
