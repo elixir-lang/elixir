@@ -299,6 +299,16 @@ defmodule Kernel.ExpansionTest do
     test "expanded to raw forms" do
       assert expand(quote do: (quote do: hello)) == {:{}, [], [:hello, [], __MODULE__]}
     end
+
+    test "raises if the :context option is nil or not a compile-time module" do
+      assert_raise CompileError, ~r"invalid :context for quote, .* :erlang\.self\(\)", fn ->
+        expand(quote do: (quote context: self(), do: :ok))
+      end
+
+      assert_raise CompileError, ~r"invalid :context for quote, .* nil", fn ->
+        expand(quote do: (quote context: nil, do: :ok))
+      end
+    end
   end
 
   describe "anonymous calls" do
