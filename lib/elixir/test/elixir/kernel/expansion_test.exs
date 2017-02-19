@@ -246,7 +246,7 @@ defmodule Kernel.ExpansionTest do
       assert expand(quote(do: fn pid when :erlang.==(pid, self) -> pid end)) |> clean_meta([:import, :context]) ==
              quote(do: fn pid when :erlang.==(pid, :erlang.self()) -> pid end)
 
-      assert_raise CompileError, ~r"cannot invoke local foo/1 inside guard", fn ->
+      assert_raise CompileError, ~r"cannot invoke local foo/1 inside guard, called as: foo\(arg\)", fn ->
         expand(quote do: fn arg when foo(arg) -> arg end)
       end
     end
