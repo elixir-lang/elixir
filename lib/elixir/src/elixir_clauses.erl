@@ -1,6 +1,6 @@
 %% Handle code related to args, guard and -> matching for case,
 %% fn, receive and friends. try is handled in elixir_try.
--module(elixir_exp_clauses).
+-module(elixir_clauses).
 -export([match/3, clause/5, def/2, head/2,
          'case'/3, 'receive'/3, 'try'/3, 'cond'/3]).
 -import(elixir_errors, [compile_error/3, compile_error/4]).

@@ -8,7 +8,7 @@
 expand({'=', Meta, [Left, Right]}, E) ->
   assert_no_guard_scope(Meta, '=', E),
   {ERight, ER} = expand(Right, E),
-  {ELeft, EL}  = elixir_exp_clauses:match(fun expand/2, Left, E),
+  {ELeft, EL}  = elixir_clauses:match(fun expand/2, Left, E),
   {{'=', Meta, [ELeft, ERight]}, elixir_env:mergev(EL, ER)};
 
 %% Literal operators
@@ -225,7 +225,7 @@ expand({fn, Meta, Pairs}, E) ->
 expand({'cond', Meta, [KV]}, E) ->
   assert_no_match_or_guard_scope(Meta, 'cond', E),
   assert_no_underscore_clause_in_cond(KV, E),
-  {EClauses, EC} = elixir_exp_clauses:'cond'(Meta, KV, E),
+  {EClauses, EC} = elixir_clauses:'cond'(Meta, KV, E),
   {{'cond', Meta, [EClauses]}, EC};
 
 expand({'case', Meta, [Expr, Options]}, Env) ->
@@ -234,12 +234,12 @@ expand({'case', Meta, [Expr, Options]}, Env) ->
 
 expand({'receive', Meta, [KV]}, E) ->
   assert_no_match_or_guard_scope(Meta, 'receive', E),
-  {EClauses, EC} = elixir_exp_clauses:'receive'(Meta, KV, E),
+  {EClauses, EC} = elixir_clauses:'receive'(Meta, KV, E),
   {{'receive', Meta, [EClauses]}, EC};
 
 expand({'try', Meta, [KV]}, E) ->
   assert_no_match_or_guard_scope(Meta, 'try', E),
-  {EClauses, EC} = elixir_exp_clauses:'try'(Meta, KV, E),
+  {EClauses, EC} = elixir_clauses:'try'(Meta, KV, E),
   {{'try', Meta, [EClauses]}, EC};
 
 %% Comprehensions
@@ -441,7 +441,7 @@ expand_boolean_check(Op, Expr, TrueClause, FalseClause, Meta, Env) ->
         OtherExpr = {{'.', Meta, [erlang, error]}, Meta, [{'{}', [], [badbool, Op, Other]}]},
         [TrueClause, FalseClause, {'->', ?generated(Meta), [[Other], OtherExpr]}]
     end,
-  {EClauses, EnvCase} = elixir_exp_clauses:'case'(Meta, [{do, Clauses}], EnvExpr),
+  {EClauses, EnvCase} = elixir_clauses:'case'(Meta, [{do, Clauses}], EnvExpr),
   {{'case', Meta, [EExpr, EClauses]}, EnvCase}.
 
 expand_multi_alias_call(Kind, Meta, Base, Refs, Opts, E) ->
@@ -546,7 +546,7 @@ var_kind(Meta, Kind) ->
 expand_case(true, Meta, Expr, KV, E) ->
   assert_no_match_or_guard_scope(Meta, 'case', E),
   {EExpr, EE} = expand(Expr, E),
-  {EKV, EK} = elixir_exp_clauses:'case'(Meta, KV, EE),
+  {EKV, EK} = elixir_clauses:'case'(Meta, KV, EE),
   RKV =
     case proplists:get_value(optimize_boolean, Meta, false) andalso
          elixir_utils:returns_boolean(EExpr) of
@@ -736,14 +736,14 @@ expand_aliases({'__aliases__', Meta, _} = Alias, E, Report) ->
 
 expand_for({'<-', Meta, [Left, Right]}, E) ->
   {ERight, ER} = expand(Right, E),
-  {[ELeft], EL}  = elixir_exp_clauses:head([Left], E),
+  {[ELeft], EL}  = elixir_clauses:head([Left], E),
   {{'<-', Meta, [ELeft, ERight]}, elixir_env:mergev(EL, ER)};
 expand_for({'<<>>', Meta, Args} = X, E) when is_list(Args) ->
   case elixir_utils:split_last(Args) of
     {LeftStart, {'<-', OpMeta, [LeftEnd, Right]}} ->
       {ERight, ER} = expand(Right, E),
       Left = {'<<>>', Meta, LeftStart ++ [LeftEnd]},
-      {ELeft, EL}  = elixir_exp_clauses:match(fun expand/2, Left, E),
+      {ELeft, EL}  = elixir_clauses:match(fun expand/2, Left, E),
       {{'<<>>', [], [{'<-', OpMeta, [ELeft, ERight]}]}, elixir_env:mergev(EL, ER)};
     _ ->
       expand(X, E)

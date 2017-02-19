@@ -7,7 +7,7 @@
 
 expand(Meta, Clauses, E) when is_list(Clauses) ->
   Transformer = fun(Clause) ->
-    {EClause, _} = elixir_exp_clauses:clause(Meta, fn, fun elixir_exp_clauses:head/2, Clause, E),
+    {EClause, _} = elixir_clauses:clause(Meta, fn, fun elixir_clauses:head/2, Clause, E),
     EClause
   end,
 

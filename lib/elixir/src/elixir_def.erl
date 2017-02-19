@@ -136,7 +136,7 @@ store_definition(Meta, Kind, CheckClauses, Name, Arity, DefaultsArgs, Guards, Bo
 
   elixir_locals:record_definition(Tuple, Kind, Module),
   {Args, Defaults} = unpack_defaults(Kind, Meta, Name, DefaultsArgs, E),
-  Clauses = [elixir_exp_clauses:def(Clause, E) ||
+  Clauses = [elixir_clauses:def(Clause, E) ||
              Clause <- def_to_clauses(Kind, Meta, Args, Guards, Body, E)],
 
   DefaultsLength = length(Defaults),
