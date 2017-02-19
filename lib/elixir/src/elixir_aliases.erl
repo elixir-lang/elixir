@@ -10,10 +10,10 @@ inspect(Atom) when is_atom(Atom) ->
   end.
 
 %% Store an alias in the given scope
-store(Meta, New, New, _TKV, Aliases, MacroAliases, _Lexical) ->
+store(Meta, New, New, _TOpts, Aliases, MacroAliases, _Lexical) ->
   {remove_alias(New, Aliases), remove_macro_alias(Meta, New, MacroAliases)};
-store(Meta, New, Old, TKV, Aliases, MacroAliases, Lexical) ->
-  record_warn(Meta, New, TKV, Lexical),
+store(Meta, New, Old, TOpts, Aliases, MacroAliases, Lexical) ->
+  record_warn(Meta, New, TOpts, Lexical),
   {store_alias(New, Old, Aliases),
     store_macro_alias(Meta, New, Old, MacroAliases)}.
 
