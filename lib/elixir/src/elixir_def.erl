@@ -135,7 +135,7 @@ store_definition(Meta, Kind, CheckClauses, Name, Arity, DefaultsArgs, Guards, Bo
   E = ER#{function := Tuple},
 
   elixir_locals:record_definition(Tuple, Kind, Module),
-  {Args, Defaults} = elixir_def_defaults:unpack(Kind, Meta, Name, DefaultsArgs, E),
+  {Args, Defaults} = unpack_defaults(Kind, Meta, Name, DefaultsArgs, E),
   Clauses = [elixir_exp_clauses:def(Clause, E) ||
              Clause <- def_to_clauses(Kind, Meta, Args, Guards, Body, E)],
 
@@ -203,6 +203,47 @@ store_definition(Check, Kind, Meta, Name, Arity, File, Module, Defaults, Clauses
   Check andalso ets:insert(Data, {?last_def, Tuple}),
   ets:insert(Defs, [{{clauses, Tuple}, Clause} || Clause <- Clauses]),
   ets:insert(Defs, {{def, Tuple}, Kind, Meta, File, Check, MaxDefaults}).
+
+%% Handling of defaults
+
+unpack_defaults(Kind, Meta, Name, Args, E) ->
+  Expanded = expand_defaults(Args, E#{context := nil}),
+  unpack_defaults(Kind, Meta, Name, Expanded, [], []).
+
+unpack_defaults(Kind, Meta, Name, [{'\\\\', DefaultMeta, [Expr, _]} | T] = List, Acc, Clauses) ->
+  Base = match_defaults(Acc, length(Acc), []),
+  {Args, Invoke} = extract_defaults(List, length(Base), [], []),
+  Clause = {Meta, Base ++ Args, [], {super, DefaultMeta, Base ++ Invoke}},
+  unpack_defaults(Kind, Meta, Name, T, [Expr | Acc], [Clause | Clauses]);
+unpack_defaults(Kind, Meta, Name, [H | T], Acc, Clauses) ->
+  unpack_defaults(Kind, Meta, Name, T, [H | Acc], Clauses);
+unpack_defaults(_Kind, _Meta, _Name, [], Acc, Clauses) ->
+  {lists:reverse(Acc), lists:reverse(Clauses)}.
+
+expand_defaults([{'\\\\', Meta, [Expr, Default]} | Args], E) ->
+  {ExpandedDefault, _} = elixir_exp:expand(Default, E),
+  [{'\\\\', Meta, [Expr, ExpandedDefault]} | expand_defaults(Args, E)];
+expand_defaults([Arg | Args], E) ->
+  [Arg | expand_defaults(Args, E)];
+expand_defaults([], _E) ->
+  [].
+
+extract_defaults([{'\\\\', _, [_Expr, Default]} | T], Counter, NewArgs, NewInvoke) ->
+  extract_defaults(T, Counter, NewArgs, [Default | NewInvoke]);
+extract_defaults([_ | T], Counter, NewArgs, NewInvoke) ->
+  H = default_var(Counter),
+  extract_defaults(T, Counter + 1, [H | NewArgs], [H | NewInvoke]);
+extract_defaults([], _Counter, NewArgs, NewInvoke) ->
+  {lists:reverse(NewArgs), lists:reverse(NewInvoke)}.
+
+match_defaults([], 0, Acc) ->
+  Acc;
+match_defaults([_ | T], Counter, Acc) ->
+  NewCounter = Counter - 1,
+  match_defaults(T, NewCounter, [default_var(NewCounter) | Acc]).
+
+default_var(Counter) ->
+  {list_to_atom([$x | integer_to_list(Counter)]), [{generated, true}], 'Elixir'}.
 
 %% Validations
 

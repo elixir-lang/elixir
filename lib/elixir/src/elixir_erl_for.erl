@@ -122,7 +122,7 @@ build_into(Ann, Clauses, Expr, Into, Fun, Acc, S) ->
   IntoExpr  = {call, Ann, Fun, [Acc, pair(Ann, cont, Expr)]},
   MatchExpr = {match, Ann,
     {tuple, Ann, [Acc, Fun]},
-    elixir_utils:erl_call(Ann, 'Elixir.Collectable', into, [Into])
+    elixir_erl:remote(Ann, 'Elixir.Collectable', into, [Into])
   },
 
   TryExpr =
@@ -135,9 +135,9 @@ build_into(Ann, Clauses, Expr, Into, Fun, Acc, S) ->
       [{clause, Ann,
         [{tuple, Ann, [Kind, Reason, {var, Ann, '_'}]}],
         [],
-        [{match, Ann, Stack, elixir_utils:erl_call(Ann, erlang, get_stacktrace, [])},
+        [{match, Ann, Stack, elixir_erl:remote(Ann, erlang, get_stacktrace, [])},
          {call, Ann, Fun, [Acc, {atom, Ann, halt}]},
-         elixir_utils:erl_call(Ann, erlang, raise, [Kind, Reason, Stack])]}],
+         elixir_erl:remote(Ann, erlang, raise, [Kind, Reason, Stack])]}],
       []},
 
   {{block, Ann, [MatchExpr, TryExpr]}, SD}.
@@ -148,7 +148,7 @@ build_reduce(Clauses, Expr, false, Acc, S) ->
   build_reduce_clause(Clauses, Expr, {nil, 0}, Acc, S);
 build_reduce(Clauses, Expr, {nil, Ann} = Into, Acc, S) ->
   ListExpr = {cons, Ann, Expr, Acc},
-  elixir_utils:erl_call(Ann, lists, reverse,
+  elixir_erl:remote(Ann, lists, reverse,
     [build_reduce_clause(Clauses, ListExpr, Into, Acc, S)]);
 build_reduce(Clauses, Expr, {bin, _, _} = Into, Acc, S) ->
   {bin, Ann, Elements} = Expr,
@@ -176,7 +176,7 @@ build_reduce_clause([{enum, Meta, Left, Right, Filters} | T], Expr, Arg, Acc, S)
       [join_filters(Ann, Filters, True, False)]} | Clauses0],
 
   Args  = [Right, Arg, {'fun', Ann, {clauses, Clauses1}}],
-  elixir_utils:erl_call(Ann, 'Elixir.Enum', reduce, Args);
+  elixir_erl:remote(Ann, 'Elixir.Enum', reduce, Args);
 
 build_reduce_clause([{bin, Meta, Left, Right, Filters} | T], Expr, Arg, Acc, S) ->
   Ann = ?ann(Meta),
@@ -206,7 +206,7 @@ build_reduce_clause([{bin, Meta, Left, Right, Filters} | T], Expr, Arg, Acc, S) 
       [Acc]},
      {clause, Generated,
       [Tail, {var, Ann, '_'}], [],
-      [elixir_utils:erl_call(Ann, erlang, error, [pair(Ann, badarg, Tail)])]}],
+      [elixir_erl:remote(Ann, erlang, error, [pair(Ann, badarg, Tail)])]}],
 
   {call, Ann,
     {named_fun, Ann, element(3, Fun), Clauses},

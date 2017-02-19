@@ -147,7 +147,7 @@ code_mod(Fun, Expr, Line, File, Module, Vars) when is_binary(File), is_integer(L
       {clause, Line, [Tuple], [], [Expr]}
     ]},
     {function, Line, '__RELATIVE__', 0, [
-      {clause, Line, [], [], [elixir_utils:elixir_to_erl(Relative)]}
+      {clause, Line, [], [], [elixir_erl:elixir_to_erl(Relative)]}
     ]}
   ].
 

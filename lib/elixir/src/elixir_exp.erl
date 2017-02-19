@@ -287,7 +287,7 @@ expand({super, Meta, Args}, #{file := File} = E) when is_list(Args) ->
 
   case length(Args) of
     Arity ->
-      {OName, OArity} = elixir_def_overridable:super(Meta, File, Module, Function),
+      {OName, OArity} = elixir_overridable:super(Meta, File, Module, Function),
       {EArgs, EA} = expand_args(Args, E),
       OArgs =
         if

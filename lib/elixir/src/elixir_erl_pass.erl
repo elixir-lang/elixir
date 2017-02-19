@@ -203,8 +203,8 @@ translate({{'.', _, [Left, Right]}, Meta, []}, S)
       [TVar]},
     {clause, ?generated,
       [TVar],
-      [[elixir_utils:erl_call(?generated, erlang, is_map, [TVar])]],
-      [elixir_utils:erl_call(Ann, erlang, error, [TError])]},
+      [[elixir_erl:remote(?generated, erlang, is_map, [TVar])]],
+      [elixir_erl:remote(Ann, erlang, error, [TError])]},
     {clause, Generated,
       [TVar],
       [],
@@ -236,7 +236,7 @@ translate({Left, Right}, S) ->
   {{tuple, 0, TArgs}, SE};
 
 translate(Other, S) ->
-  {elixir_utils:elixir_to_erl(Other), S}.
+  {elixir_erl:elixir_to_erl(Other), S}.
 
 %% Helpers
 
@@ -382,7 +382,7 @@ translate_struct(Meta, Name, {'%{}', _, [{'|', _, [Update, Assocs]}]}, S) ->
 
   {{'case', Generated, TUpdate, [
     {clause, Ann, [Match], [], [TAssocs]},
-    {clause, Generated, [Var], [], [elixir_utils:erl_call(Ann, erlang, error, [Error])]}
+    {clause, Generated, [Var], [], [elixir_erl:remote(Ann, erlang, error, [Error])]}
   ]}, TS};
 translate_struct(Meta, Name, {'%{}', _, Assocs}, S) ->
   translate_map(Meta, Assocs ++ [{'__struct__', Name}], none, S).
@@ -426,8 +426,8 @@ translate_remote('Elixir.String.Chars', to_string, Meta, [Arg], S) ->
 
   Generated = ?ann(?generated(Meta)),
   Var   = {var, Generated, VarName},
-  Guard = elixir_utils:erl_call(Generated, erlang, is_binary, [Var]),
-  Slow  = elixir_utils:erl_call(Generated, 'Elixir.String.Chars', to_string, [Var]),
+  Guard = elixir_erl:remote(Generated, erlang, is_binary, [Var]),
+  Slow  = elixir_erl:remote(Generated, 'Elixir.String.Chars', to_string, [Var]),
   Fast  = Var,
 
   {{'case', Generated, TArg, [
