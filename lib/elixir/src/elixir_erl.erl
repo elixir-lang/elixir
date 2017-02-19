@@ -33,7 +33,7 @@ remote(Ann, Module, Function, Args) when is_atom(Module), is_atom(Function), is_
     Args
   }.
 
-%% Retrieves an anonymous function.
+%% Converts an Elixir definition to an anonymous function.
 
 definition_to_anonymous(File, Module, {Name, Arity}, Kind, Meta, Clauses) ->
   ErlClauses = [translate_clause(Kind, Name, Arity, Clause, File) || Clause <- Clauses],
