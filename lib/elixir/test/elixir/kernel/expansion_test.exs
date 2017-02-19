@@ -509,6 +509,12 @@ defmodule Kernel.ExpansionTest do
       assert input |> expand() |> clean_meta([:export_vars, :generated, :location]) == result
     end
 
+    test "fails if \"do\" is missing" do
+      assert_raise CompileError, ~r"missing do keyword in with", fn ->
+        expand(quote do: with(_ <- true, []))
+      end
+    end
+
     test "fails on invalid else option" do
       assert_raise CompileError, ~r"expected -> clauses for else in with", fn ->
         expand(quote(do: with(_ <- true, do: :ok, else: [:error])))
