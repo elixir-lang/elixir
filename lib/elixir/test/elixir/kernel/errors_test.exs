@@ -378,7 +378,7 @@ defmodule Kernel.ErrorsTest do
 
   test "function local conflict" do
     assert_compile_fail CompileError,
-      "nofile:1: imported Kernel.&&/2 conflicts with local function",
+      "nofile:3: imported Kernel.&&/2 conflicts with local function",
       '''
       defmodule Kernel.ErrorsTest.FunctionLocalConflict do
         def other, do: 1 && 2

@@ -1,8 +1,8 @@
 % Holds the logic responsible for function definitions (def(p) and defmacro(p)).
 -module(elixir_def).
--export([setup/1, reset_last/1, lookup_definition/2,
-  take_definition/2, store_definition/6, unwrap_definitions/2,
-  store_definition/9, local_for/4, format_error/1]).
+-export([setup/1, reset_last/1, local_for/4,
+  take_definition/2, store_definition/6, store_definition/9,
+  fetch_definitions/2, format_error/1]).
 -include("elixir.hrl").
 -define(last_def, {elixir, last_def}).
 
@@ -13,14 +13,28 @@ setup(Module) ->
 reset_last(Module) ->
   ets:insert(elixir_module:data_table(Module), {?last_def, []}).
 
-lookup_definition(Module, Tuple) ->
-  Table = elixir_module:defs_table(Module),
-  case ets:lookup(Table, {def, Tuple}) of
-    [Result] ->
-      {Result, [Clause || {_, Clause} <- ets:lookup(Table, {clauses, Tuple})]};
-    _ ->
+local_for(Module, Name, Arity, Kinds) ->
+  Tuple = {Name, Arity},
+
+  try
+    T = elixir_module:defs_table(Module),
+    {T, ets:lookup(T, {def, Tuple})}
+  of
+    {Table, [{_, Kind, Meta, File, _, _}]} ->
+      case (Kinds == all) orelse (lists:member(Kind, Kinds)) of
+        true ->
+          Clauses = [Clause || {_, Clause} <- ets:lookup(Table, {clauses, Tuple})],
+          elixir_erl:definition_to_anonymous(File, Module, Tuple, Kind, Meta, Clauses);
+        false ->
+          false
+      end;
+    {_Table, []} ->
       false
+  catch
+    error:badarg -> false
   end.
+
+%% Take a definition out of the table
 
 take_definition(Module, Tuple) ->
   Table = elixir_module:defs_table(Module),
@@ -31,47 +45,40 @@ take_definition(Module, Tuple) ->
       false
   end.
 
-%% Temporarily here
+%% Fetch all available definitions
 
-local_for(Module, Name, Arity, Kinds) ->
-  Tuple = {Name, Arity},
-  try lookup_definition(Module, Tuple) of
-    {{_, Kind, Meta, File, _, _}, Clauses} ->
-      case (Kinds == all) orelse (lists:member(Kind, Kinds)) of
-        true ->
-          function_to_anonymous(
-            Module, function_for_stored_definition(Kind, Meta, File, Tuple, Clauses)
-          );
-        false ->
-          false
-      end;
-    false ->
-      false
+fetch_definitions(File, Module) ->
+  Table = elixir_module:defs_table(Module),
+  Entries = ets:match(Table, {{def, '$1'}, '_', '_', '_', '_', '_'}),
+  {All, Private} = fetch_definition(lists:sort(Entries), File, Module, Table, [], []),
+  Unreachable = elixir_locals:warn_unused_local(File, Module, Private),
+  elixir_locals:ensure_no_import_conflict(File, Module, All),
+  {All, Unreachable}.
+
+fetch_definition([[Tuple] | T], File, Module, Table, All, Private) ->
+  [{_, Kind, Meta, _, Check, {Defaults, _, _}}] = ets:lookup(Table, {def, Tuple}),
+
+  try ets:lookup_element(Table, {clauses, Tuple}, 2) of
+    Clauses ->
+      Unwrapped =
+        {Tuple, Kind, Meta, Clauses},
+      NewPrivate =
+        case (Kind == defp) orelse (Kind == defmacrop) of
+          true ->
+            WarnMeta = case Check of true -> Meta; false -> false end,
+            [{Tuple, Kind, WarnMeta, Defaults} | Private];
+          false ->
+            Private
+        end,
+      fetch_definition(T, File, Module, Table, [Unwrapped | All], NewPrivate)
   catch
-    error:badarg -> false
-  end.
+    error:badarg ->
+      warn_bodyless_function(Check, Meta, File, Module, Kind, Tuple),
+      fetch_definition(T, File, Module, Table, All, Private)
+  end;
 
-function_to_anonymous(Module, {function, Ann, _Name, _Arity, Clauses}) ->
-  Fun = {'fun', Ann, {clauses, Clauses}},
-  LocalHandler = {value, fun(Name, Args) -> invoke_local(Module, Name, Args) end},
-  {value, Result, _Binding} = erl_eval:expr(Fun, [], LocalHandler),
-  Result.
-
-invoke_local(Module, RawName, Args) ->
-  %% If we have a macro, its arity in the table is
-  %% actually one less than in the function call
-  {Name, Arity} = case atom_to_list(RawName) of
-    "MACRO-" ++ Rest -> {list_to_atom(Rest), length(Args) - 1};
-    _ -> {RawName, length(Args)}
-  end,
-
-  case local_for(Module, Name, Arity, all) of
-    false ->
-      {current_stacktrace, [_ | T]} = erlang:process_info(self(), current_stacktrace),
-      erlang:raise(error, undef, [{Module, Name, Arity, []} | T]);
-    Fun ->
-      apply(Fun, Args)
-  end.
+fetch_definition([], _File, _Module, _Table, All, Private) ->
+  {All, Private}.
 
 %% Section for storing definitions
 
@@ -112,9 +119,9 @@ store_definition(Line, Kind, CheckClauses, Call, Body, Pos) when is_integer(Line
   {EL, MetaLocation} =
     case retrieve_location(Location, ?m(E, module)) of
       {F, L} ->
-        {E#{file := F}, [{line, Line}, {location, {F, L}}, {generated, DoCheckClauses}]};
+        {E#{file := F}, [{line, Line}, {location, {F, L}}]};
       nil ->
-        {E, [{line, Line}, {generated, DoCheckClauses}]}
+        {E, [{line, Line}]}
     end,
 
   assert_no_aliases_name(MetaLocation, Name, Args, EL),
@@ -172,135 +179,6 @@ run_on_definition_callbacks(Kind, Module, Name, Args, Guards, Body, E) ->
   Callbacks = ets:lookup_element(elixir_module:data_table(Module), on_definition, 2),
   _ = [Mod:Fun(E, Kind, Name, Args, Guards, Body) || {Mod, Fun} <- Callbacks],
   ok.
-
-%% Section for unwrapping definitions for module definition.
-
-% Unwrap the functions stored in the functions table.
-% It returns a list of all functions to be exported, plus the macros,
-% and the body of all functions.
-unwrap_definitions(File, Module) ->
-  Table = elixir_module:defs_table(Module),
-  Entries = ets:match(Table, {{def, '$1'}, '_', '_', '_', '_', '_'}),
-  {All, Private} = unwrap_definition(lists:sort(Entries), File, Module, Table, [], []),
-  Unreachable = elixir_locals:warn_unused_local(File, Module, Private),
-  split_definition(All, Unreachable, [], [], [], [], [], {[], []}).
-
-unwrap_definition([[Tuple] | T], File, Module, Table, All, Private) ->
-  [{_, Kind, Meta, _, Check, {Defaults, _, _}}] = ets:lookup(Table, {def, Tuple}),
-
-  try ets:lookup_element(Table, {clauses, Tuple}, 2) of
-    Clauses ->
-      Unwrapped = {Tuple, Kind, Meta,
-                   function_for_stored_definition(Kind, Meta, File, Tuple, Clauses)},
-
-      NewPrivate =
-        if
-          Kind == defp; Kind == defmacrop ->
-            WarnMeta = case Check of true -> Meta; false -> false end,
-            [{Tuple, Kind, WarnMeta, Defaults} | Private];
-          true ->
-            Private
-        end,
-
-      unwrap_definition(T, File, Module, Table, [Unwrapped | All], NewPrivate)
-  catch
-    error:badarg ->
-      warn_bodyless_function(Check, Meta, File, Module, Kind, Tuple),
-      unwrap_definition(T, File, Module, Table, All, Private)
-  end;
-
-unwrap_definition([], _File, _Module, _Table, All, Private) ->
-  {All, Private}.
-
-split_definition([{Tuple, def, Meta, {_, _, N, A, _} = Body} | T], Unreachable,
-                 Def, Defp, Defmacro, Defmacrop, Exports, Functions) ->
-  split_definition(T, Unreachable, [Tuple | Def], Defp, Defmacro, Defmacrop,
-                   [{N, A} | Exports],
-                   add_definition(Meta, Body, Functions));
-
-split_definition([{Tuple, defp, Meta, Body} | T], Unreachable,
-                 Def, Defp, Defmacro, Defmacrop, Exports, Functions) ->
-  case lists:member(Tuple, Unreachable) of
-    false ->
-      split_definition(T, Unreachable, Def, [Tuple | Defp], Defmacro, Defmacrop,
-                       Exports, add_definition(Meta, Body, Functions));
-    true ->
-      split_definition(T, Unreachable, Def, [Tuple | Defp], Defmacro, Defmacrop,
-                       Exports, Functions)
-  end;
-
-split_definition([{Tuple, defmacro, Meta, {_, _, N, A, _} = Body} | T], Unreachable,
-                 Def, Defp, Defmacro, Defmacrop, Exports, Functions) ->
-  split_definition(T, Unreachable, Def, Defp, [Tuple | Defmacro], Defmacrop,
-                   [{N, A} | Exports],
-                   add_definition(Meta, Body, Functions));
-
-split_definition([{Tuple, defmacrop, _Meta, _Body} | T], Unreachable,
-                 Def, Defp, Defmacro, Defmacrop, Exports, Functions) ->
-  split_definition(T, Unreachable, Def, [Tuple | Defp], Defmacro, Defmacrop,
-                   Exports, Functions);
-
-split_definition([], Unreachable, Def, Defp, Defmacro, Defmacrop, Exports, {Head, Tail}) ->
-  {Def, Defp, Defmacro, Defmacrop, Exports, Head ++ Tail, Unreachable}.
-
-add_definition(Meta, Body, {Head, Tail}) ->
-  case lists:keyfind(location, 1, Meta) of
-    {location, {F, L}} ->
-      Attr = {attribute, ?ann(Meta), file, {elixir_utils:characters_to_list(F), L}},
-      {Head, [Attr, Body | Tail]};
-    false ->
-      {[Body | Head], Tail}
-  end.
-
-function_for_stored_definition(Kind, Meta, File, {Name, Arity}, Clauses) ->
-  ErlClauses = [translate_clause(Kind, Name, Arity, Clause, File) || Clause <- Clauses],
-
-  case is_macro(Kind) of
-    true -> {function, ?ann(Meta), elixir_utils:macro_name(Name), Arity + 1, ErlClauses};
-    false -> {function, ?ann(Meta), Name, Arity, ErlClauses}
-  end.
-
-translate_clause(Kind, Name, Arity, {Meta, Args, Guards, Body}, File) ->
-  S =
-    %% TODO: We only need to do this dance because some
-    %% warnings are raised in elixir_scope. Once we remove
-    %% all warnings from the Erlang pass, we can remove the
-    %% file field from #elixir_scope and clean up the code.
-    case lists:keyfind(location, 1, Meta) of
-      {location, {F, _}} -> #elixir_scope{def = {Kind, Name, Arity}, file = F};
-      false -> #elixir_scope{def = {Kind, Name, Arity}, file = File}
-    end,
-
-  {TClause, TS} = elixir_clauses:clause(Meta,
-                    fun elixir_translator:translate_args/2, Args, Body, Guards, S),
-
-  case is_macro(Kind) of
-    true ->
-      Ann = ?ann(Meta),
-      FArgs = {var, Ann, '_@CALLER'},
-      MClause = setelement(3, TClause, [FArgs | element(3, TClause)]),
-
-      case TS#elixir_scope.caller of
-        true  ->
-          FBody = {'match', Ann,
-            {'var', Ann, '__CALLER__'},
-            elixir_utils:erl_call(Ann, elixir_env, linify, [{var, Ann, '_@CALLER'}])
-          },
-          setelement(5, MClause, [FBody | element(5, TClause)]);
-        false ->
-          MClause
-      end;
-    false ->
-      TClause
-  end.
-
-is_macro(defmacro)  -> true;
-is_macro(defmacrop) -> true;
-is_macro(_)         -> false.
-
-%% Store each definition in the table.
-%% This function also checks and emit warnings in case
-%% the kind, of the visibility of the function changes.
 
 store_definition(Check, Kind, Meta, Name, Arity, File, Module, Defaults, Clauses) ->
   Data = elixir_module:data_table(Module),

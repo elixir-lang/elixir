@@ -313,9 +313,9 @@ defmodule Kernel.ParallelCompiler do
     IO.puts Exception.format(:exit, reason, [])
   end
 
-  @elixir_internals [:elixir, :elixir_exp, :elixir_compiler, :elixir_module, :elixir_clauses,
-                     :elixir_translator, :elixir_expand, :elixir_lexical, :elixir_exp_clauses,
-                     :elixir_def, :elixir_map, Kernel.ErrorHandler]
+  @elixir_internals [:elixir, :elixir_expand, :elixir_compiler, :elixir_module,
+                     :elixir_clauses, :elixir_lexical, :elixir_def, :elixir_map,
+                     :elixir_erl, :elixir_erl_clauses, :elixir_erl_expand, Kernel.ErrorHandler]
 
   defp prune_stacktrace([{mod, _, _, _} | t]) when mod in @elixir_internals do
     prune_stacktrace(t)
