@@ -657,9 +657,31 @@ defmodule Kernel.ExpansionTest do
              quote do: (cond do 1 -> x = 1; 2 -> y = 2 end; :erlang.+(x, y))
     end
 
-    test "expects at most one do" do
+    test "expects exactly one do" do
+      assert_raise CompileError, ~r"missing do keyword in cond", fn ->
+        expand(quote do: (cond []))
+      end
+
       assert_raise CompileError, ~r"duplicated do clauses given for cond", fn ->
         expand(quote(do: (cond do: (x -> x), do: (y -> y))))
+      end
+    end
+
+    test "expects one argument in clauses" do
+      assert_raise CompileError, ~r"expected one arg for do clauses \(->\) in cond", fn ->
+        expand(quote do: (cond do _, _ -> :ok end))
+      end
+    end
+
+    test "raises for invalid arguments" do
+      assert_raise CompileError, ~r"invalid arguments for cond", fn ->
+        expand(quote do: (cond :foo))
+      end
+    end
+
+    test "raises with invalid keywords" do
+      assert_raise CompileError, ~r"unexpected keyword foo in cond", fn ->
+        expand(quote do: (cond do: (1 -> 1), foo: :bar))
       end
     end
 
@@ -696,9 +718,37 @@ defmodule Kernel.ExpansionTest do
              quote do: (case w() do x -> x = x; y -> y = y end; :erlang.+(x, y))
     end
 
-    test "expects at most one do" do
+    test "expects exactly one do" do
+      assert_raise CompileError, ~r"missing do keyword in case", fn ->
+        expand(quote(do: (case e, [])))
+      end
+
       assert_raise CompileError, ~r"duplicated do clauses given for case", fn ->
         expand(quote(do: (case e, do: (x -> x), do: (y -> y))))
+      end
+    end
+
+    test "expects clauses" do
+      assert_raise CompileError, ~r"expected -> clauses for do in case", fn ->
+        expand(quote do: (case e do x end))
+      end
+    end
+
+    test "expects exactly one argument in clauses" do
+      assert_raise CompileError, ~r"expected one arg for do clauses \(->\) in case", fn ->
+        expand(quote do: (case e do _, _ -> :ok end))
+      end
+    end
+
+    test "fails with invalid arguments" do
+      assert_raise CompileError, ~r"invalid arguments for case", fn ->
+        expand(quote do: (case :foo, :bar))
+      end
+    end
+
+    test "fails for invalid keywords" do
+      assert_raise CompileError, ~r"unexpected keyword foo in case", fn ->
+        expand(quote do: (case e, do: (x -> x), foo: :bar))
       end
     end
   end
@@ -734,13 +784,51 @@ defmodule Kernel.ExpansionTest do
              quote do: (receive do x -> x = x after y() -> y(); w = y() end; :erlang.+(x, w))
     end
 
-    test "expects at most one clause" do
+    test "expects exactly one do or after" do
+      assert_raise CompileError, ~r"missing do or after keyword in receive", fn ->
+        expand(quote do: (receive []))
+      end
+
       assert_raise CompileError, ~r"duplicated do clauses given for receive", fn ->
         expand(quote(do: (receive do: (x -> x), do: (y -> y))))
       end
 
       assert_raise CompileError, ~r"duplicated after clauses given for receive", fn ->
         expand(quote(do: (receive do x -> x after y -> y after z -> z end)))
+      end
+    end
+
+    test "expects clauses" do
+      assert_raise CompileError, ~r"expected -> clauses for do in receive", fn ->
+        expand(quote do: (receive do x end))
+      end
+    end
+
+    test "expects on argument for do/after clauses" do
+      assert_raise CompileError, ~r"expected one arg for do clauses \(->\) in receive", fn ->
+        expand(quote do: (receive do _, _ -> :ok end))
+      end
+
+      assert_raise CompileError, ~r"expected one arg for after clauses \(->\) in receive", fn ->
+        expand(quote do: (receive do x -> x after _, _ -> :ok end))
+      end
+    end
+
+    test "expects a single clause for \"after\"" do
+      assert_raise CompileError, ~r"expected a single -> clause for after in receive", fn ->
+        expand(quote do: (receive do x -> x after 1 -> y; 2 -> z end))
+      end
+    end
+
+    test "raises for invalid arguments" do
+      assert_raise CompileError, ~r"invalid arguments for receive", fn ->
+        expand(quote do: (receive :foo))
+      end
+    end
+
+    test "raises with invalid keywords" do
+      assert_raise CompileError, ~r"unexpected keyword foo in receive", fn ->
+        expand(quote do: (receive do: (x -> x), foo: :bar))
       end
     end
   end
@@ -772,6 +860,18 @@ defmodule Kernel.ExpansionTest do
       end
     end
 
+    test "raises if do is missing" do
+      assert_raise CompileError, ~r"missing do keyword in try", fn ->
+        expand(quote do: (try []))
+      end
+    end
+
+    test "raises if do is not accompanied by catch/rescue/after/else" do
+      assert_raise CompileError, ~r"missing catch/rescue/after/else keyword in try", fn ->
+        expand(quote do: (try do x end))
+      end
+    end
+
     test "expects at most one clause" do
       assert_raise CompileError, ~r"duplicated do clauses given for try", fn ->
         expand(quote(do: (try do: e, do: f)))
@@ -794,6 +894,18 @@ defmodule Kernel.ExpansionTest do
       end
     end
 
+    test "raises with invalid arguments" do
+      assert_raise CompileError, ~r"invalid arguments for try", fn ->
+        expand(quote do: (try :foo))
+      end
+    end
+
+    test "raises with invalid keywords" do
+      assert_raise CompileError, ~r"unexpected keyword foo in try", fn ->
+        expand(quote do: (try do: x, foo: :bar))
+      end
+    end
+
     test "expects exactly one argument in rescue clauses" do
       assert_raise CompileError, ~r"expected one arg for rescue clauses \(->\) in try", fn ->
         expand(quote do: (try do x rescue _, _ -> :ok end))
@@ -809,6 +921,20 @@ defmodule Kernel.ExpansionTest do
     test "expects one or two args for catch clauses" do
       assert_raise CompileError, ~r"expected one or two args for catch clauses \(->\) in try", fn ->
         expand(quote do: (try do x catch _, _, _ -> :ok end))
+      end
+    end
+
+    test "expects clauses for rescue, else, catch" do
+      assert_raise CompileError, ~r"expected -> clauses for rescue in try", fn ->
+        expand(quote do: (try do e rescue x end))
+      end
+
+      assert_raise CompileError, ~r"expected -> clauses for catch in try", fn ->
+        expand(quote do: (try do e catch x end))
+      end
+
+      assert_raise CompileError, ~r"expected -> clauses for else in try", fn ->
+        expand(quote do: (try do e else x end))
       end
     end
   end
