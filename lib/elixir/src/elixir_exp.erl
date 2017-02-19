@@ -151,7 +151,7 @@ expand({quote, Meta, [KV, Do]}, E) when is_list(Do) ->
   Exprs =
     case lists:keyfind(do, 1, Do) of
       {do, Expr} -> Expr;
-      false -> compile_error(Meta, E#elixir_scope.file, "missing do keyword in quote")
+      false -> compile_error(Meta, ?m(E, file), "missing do keyword in quote")
     end,
 
   ValidOpts = [context, location, line, file, unquote, bind_quoted, generated],

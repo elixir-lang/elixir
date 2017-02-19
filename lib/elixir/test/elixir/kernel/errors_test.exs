@@ -530,7 +530,7 @@ defmodule Kernel.ErrorsTest do
 
   test "def defp clause change from another file" do
     assert_compile_fail CompileError,
-      "nofile:4: def hello/0 already defined as defp",
+      ~r"errors_test.exs:\d+: def hello/0 already defined as defp",
       '''
       defmodule Kernel.ErrorsTest.DefDefmacroClauseChange do
         require Kernel.ErrorsTest

@@ -118,7 +118,7 @@ load_struct(Meta, Name, Args, InContext, E) ->
       (InContext orelse wait_for_struct(Name)),
 
   try
-    case Local andalso elixir_locals:local_for(Name, '__struct__', Arity, [def]) of
+    case Local andalso elixir_def:local_for(Name, '__struct__', Arity, [def]) of
       false -> apply(Name, '__struct__', Args);
       LocalFun -> apply(LocalFun, Args)
     end

@@ -141,7 +141,7 @@ build(Line, File, Module, Docs, Lexical) ->
   end,
 
   Data = ets:new(Module, [set, public]),
-  Defs = ets:new(Module, [bag, public]),
+  Defs = ets:new(Module, [duplicate_bag, public]),
   Ref  = elixir_code_server:call({defmodule, self(),
                                  {Module, Data, Defs, Line, File}}),
 
