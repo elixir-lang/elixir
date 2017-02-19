@@ -133,12 +133,12 @@ defmodule Module.LocalsTrackerTest do
     refute {:foo, 3} in D.reachable(config[:pid])
   end
 
-  test "defaults are connected", config do
+  test "defaults are connected to last clause only", config do
     D.add_definition(config[:pid], :defp, {:foo, 4})
     D.add_defaults(config[:pid], :defp, {:foo, 4}, 2)
     D.add_local(config[:pid], {:foo, 2})
     assert {:foo, 2} in D.reachable(config[:pid])
-    assert {:foo, 3} in D.reachable(config[:pid])
+    refute {:foo, 3} in D.reachable(config[:pid])
     assert {:foo, 4} in D.reachable(config[:pid])
   end
 
