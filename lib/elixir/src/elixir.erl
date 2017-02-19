@@ -201,7 +201,7 @@ eval_forms(Tree, Binding, Opts) when is_list(Opts) ->
 eval_forms(Tree, Binding, E) ->
   eval_forms(Tree, Binding, E, elixir_env:env_to_scope(E)).
 eval_forms(Tree, Binding, Env, Scope) ->
-  {ParsedBinding, ParsedVars, ParsedScope} = elixir_scope:load_binding(Binding, Scope),
+  {ParsedBinding, ParsedVars, ParsedScope} = elixir_erl_var:load_binding(Binding, Scope),
   ParsedEnv = Env#{vars := ParsedVars},
   {Erl, NewEnv, NewScope} = quoted_to_erl(Tree, ParsedEnv, ParsedScope),
 
@@ -210,7 +210,7 @@ eval_forms(Tree, Binding, Env, Scope) ->
       {Atom, Binding, NewEnv, NewScope};
     _  ->
       {value, Value, NewBinding} = erl_eval(Erl, ParsedBinding, Env),
-      {Value, elixir_scope:dump_binding(NewBinding, NewScope), NewEnv, NewScope}
+      {Value, elixir_erl_var:dump_binding(NewBinding, NewScope), NewEnv, NewScope}
   end.
 
 erl_eval(Erl, ParsedBinding, E) ->
@@ -253,7 +253,7 @@ quoted_to_erl(Quoted, Env) ->
 
 quoted_to_erl(Quoted, Env, Scope) ->
   {Expanded, NewEnv} = elixir_exp:expand(Quoted, Env),
-  {Erl, NewScope}    = elixir_translator:translate(Expanded, Scope),
+  {Erl, NewScope}    = elixir_erl_pass:translate(Expanded, Scope),
   {Erl, NewEnv, NewScope}.
 
 %% Converts a given string (charlist) into quote expression

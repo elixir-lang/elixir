@@ -1,67 +1,10 @@
--module(elixir_for).
--export([expand/3, translate/4]).
+-module(elixir_erl_for).
+-export([translate/4]).
 -include("elixir.hrl").
 
-%% Expansion
-
-expand(Meta, Args, E) ->
-  {Cases, Block} =
-    case elixir_utils:split_last(Args) of
-      {OuterCases, OuterOpts} when is_list(OuterOpts) ->
-        case elixir_utils:split_last(OuterCases) of
-          {InnerCases, InnerOpts} when is_list(InnerOpts) ->
-            {InnerCases, InnerOpts ++ OuterOpts};
-          _ ->
-            {OuterCases, OuterOpts}
-        end;
-      _ ->
-        {Args, []}
-    end,
-
-  {Expr, Opts} =
-    case lists:keytake(do, 1, Block) of
-      {value, {do, Do}, DoOpts} ->
-        {Do, DoOpts};
-      false ->
-        elixir_errors:compile_error(Meta, ?m(E, file),
-          "missing do keyword in for comprehension")
-    end,
-
-  {EOpts, EO} = elixir_exp:expand(Opts, E),
-  {ECases, EC} = lists:mapfoldl(fun expand/2, EO, Cases),
-  {EExpr, _} = elixir_exp:expand(Expr, EC),
-  assert_generator_start(Meta, ECases, E),
-  {{for, Meta, ECases ++ [[{do, EExpr} | EOpts]]}, E}.
-
-expand({'<-', Meta, [Left, Right]}, E) ->
-  {ERight, ER} = elixir_exp:expand(Right, E),
-  {[ELeft], EL}  = elixir_exp_clauses:head([Left], E),
-  {{'<-', Meta, [ELeft, ERight]}, elixir_env:mergev(EL, ER)};
-expand({'<<>>', Meta, Args} = X, E) when is_list(Args) ->
-  case elixir_utils:split_last(Args) of
-    {LeftStart, {'<-', OpMeta, [LeftEnd, Right]}} ->
-      {ERight, ER} = elixir_exp:expand(Right, E),
-      Left = {'<<>>', Meta, LeftStart ++ [LeftEnd]},
-      {ELeft, EL}  = elixir_exp_clauses:match(fun elixir_exp:expand/2, Left, E),
-      {{'<<>>', [], [{'<-', OpMeta, [ELeft, ERight]}]}, elixir_env:mergev(EL, ER)};
-    _ ->
-      elixir_exp:expand(X, E)
-  end;
-expand(X, E) ->
-  elixir_exp:expand(X, E).
-
-assert_generator_start(_, [{'<-', _, [_, _]} | _], _) ->
-  ok;
-assert_generator_start(_, [{'<<>>', _, [{'<-', _, [_, _]}]} | _], _) ->
-  ok;
-assert_generator_start(Meta, _, E) ->
-  elixir_errors:compile_error(Meta, ?m(E, file), "for comprehensions must start with a generator").
-
-%% Translation
-
 translate(Meta, Args, Return, S) ->
-  {AccName, _, SA} = elixir_scope:build_var('_', S),
-  {VarName, _, SV} = elixir_scope:build_var('_', SA),
+  {AccName, _, SA} = elixir_erl_var:build('_', S),
+  {VarName, _, SV} = elixir_erl_var:build('_', SA),
 
   Ann = ?ann(Meta),
   Acc  = {var, Ann, AccName},
@@ -71,14 +14,14 @@ translate(Meta, Args, Return, S) ->
 
   {TInto, SI} =
     case lists:keyfind(into, 1, Opts) of
-      {into, Into} -> elixir_translator:translate(Into, SV);
+      {into, Into} -> elixir_erl_pass:translate(Into, SV);
       false when Return -> {{nil, Ann}, SV};
       false -> {false, SV}
     end,
 
   {TCases, SC} = translate_gen(Meta, Cases, [], SI),
-  {TExpr, SE}  = elixir_translator:translate(wrap_expr(Expr, TInto), SC),
-  SF = elixir_scope:mergec(SI, SE),
+  {TExpr, SE}  = elixir_erl_pass:translate(wrap_expr(Expr, TInto), SC),
+  SF = elixir_erl_var:mergec(SI, SE),
 
   case comprehension_expr(TInto, TExpr) of
     {inline, TIntoExpr} ->
@@ -102,21 +45,21 @@ translate_gen(ForMeta, [{'<<>>', _, [{'<-', Meta, [Left, Right]}]} | T], Acc, S)
   case elixir_bitstring:has_size(TLeft) of
     true  -> translate_gen(ForMeta, TT, TAcc, TS);
     false ->
-      elixir_errors:compile_error(Meta, S#elixir_scope.file,
+      elixir_errors:compile_error(Meta, S#elixir_erl.file,
         "bitstring fields without size are not allowed in bitstring generators")
   end;
 translate_gen(_ForMeta, [], Acc, S) ->
   {lists:reverse(Acc), S}.
 
 translate_gen(_Meta, Left, Right, T, S) ->
-  {TRight, SR} = elixir_translator:translate(Right, S),
-  {LeftArgs, LeftGuards} = elixir_clauses:extract_guards(Left),
-  {TLeft, SL} = elixir_clauses:match(fun elixir_translator:translate/2, LeftArgs,
-                                     SR#elixir_scope{extra=pin_guard, extra_guards=[]}),
+  {TRight, SR} = elixir_erl_pass:translate(Right, S),
+  {LeftArgs, LeftGuards} = elixir_utils:extract_guards(Left),
+  {TLeft, SL} = elixir_erl_clauses:match(fun elixir_erl_pass:translate/2, LeftArgs,
+                                     SR#elixir_erl{extra=pin_guard, extra_guards=[]}),
 
-  TLeftGuards = elixir_clauses:guards(LeftGuards, [], SL),
-  ExtraGuards = [{nil, X} || X <- SL#elixir_scope.extra_guards],
-  SF = SL#elixir_scope{extra=S#elixir_scope.extra, extra_guards=nil},
+  TLeftGuards = elixir_erl_clauses:guards(LeftGuards, [], SL),
+  ExtraGuards = [{nil, X} || X <- SL#elixir_erl.extra_guards],
+  SF = SL#elixir_erl{extra=S#elixir_erl.extra, extra_guards=nil},
 
   {TT, {TFilters, TS}} = translate_filters(T, SF),
 
@@ -136,12 +79,12 @@ translate_filters(T, S) ->
   {Rest, lists:mapfoldr(fun translate_filter/2, S, Filters)}.
 
 translate_filter(Filter, S) ->
-  {TFilter, TS} = elixir_translator:translate(Filter, S),
+  {TFilter, TS} = elixir_erl_pass:translate(Filter, S),
   case elixir_utils:returns_boolean(Filter) of
     true ->
       {{nil, TFilter}, TS};
     false ->
-      {Name, _, VS} = elixir_scope:build_var('_', TS),
+      {Name, _, VS} = elixir_erl_var:build('_', TS),
       {{{var, 0, Name}, TFilter}, VS}
   end.
 
@@ -279,7 +222,7 @@ pair(Ann, Atom, Arg) ->
   {tuple, Ann, [{atom, Ann, Atom}, Arg]}.
 
 build_var(Ann, S) ->
-  {Name, _, ST} = elixir_scope:build_var('_', S),
+  {Name, _, ST} = elixir_erl_var:build('_', S),
   {{var, Ann, Name}, ST}.
 
 no_var(Elements) ->

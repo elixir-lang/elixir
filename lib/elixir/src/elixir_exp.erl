@@ -245,7 +245,33 @@ expand({'try', Meta, [KV]}, E) ->
 %% Comprehensions
 
 expand({for, Meta, [_ | _] = Args}, E) ->
-  elixir_for:expand(Meta, Args, E);
+  {Cases, Block} =
+    case elixir_utils:split_last(Args) of
+      {OuterCases, OuterOpts} when is_list(OuterOpts) ->
+        case elixir_utils:split_last(OuterCases) of
+          {InnerCases, InnerOpts} when is_list(InnerOpts) ->
+            {InnerCases, InnerOpts ++ OuterOpts};
+          _ ->
+            {OuterCases, OuterOpts}
+        end;
+      _ ->
+        {Args, []}
+    end,
+
+  {Expr, Opts} =
+    case lists:keytake(do, 1, Block) of
+      {value, {do, Do}, DoOpts} ->
+        {Do, DoOpts};
+      false ->
+        elixir_errors:compile_error(Meta, ?m(E, file),
+          "missing do keyword in for comprehension")
+    end,
+
+  {EOpts, EO} = expand(Opts, E),
+  {ECases, EC} = lists:mapfoldl(fun expand_for/2, EO, Cases),
+  {EExpr, _} = expand(Expr, EC),
+  assert_generator_start(Meta, ECases, E),
+  {{for, Meta, ECases ++ [[{do, EExpr} | EOpts]]}, E};
 
 %% With
 
@@ -404,21 +430,6 @@ expand(Other, E) ->
 
 %% Helpers
 
-expand_case(true, Meta, Expr, KV, E) ->
-  assert_no_match_or_guard_scope(Meta, 'case', E),
-  {EExpr, EE} = expand(Expr, E),
-  {EKV, EK} = elixir_exp_clauses:'case'(Meta, KV, EE),
-  RKV =
-    case proplists:get_value(optimize_boolean, Meta, false) andalso
-         elixir_utils:returns_boolean(EExpr) of
-      true -> rewrite_case_clauses(EKV);
-      false -> EKV
-    end,
-  {{'case', Meta, [EExpr, RKV]}, EK};
-expand_case(false, Meta, Expr, KV, E) ->
-  {Case, _} = expand_case(true, Meta, Expr, KV, E),
-  {Case, E}.
-
 expand_boolean_check(Op, Expr, TrueClause, FalseClause, Meta, Env) ->
   {EExpr, EnvExpr} = expand(Expr, Env),
   Clauses =
@@ -494,27 +505,6 @@ is_useless_building({Var, Meta, Ctx}, {Var, _, Ctx}, _) when is_atom(Ctx) ->
 is_useless_building(_, _, _) ->
   false.
 
-%% Optimizations for known booleans.
-rewrite_case_clauses([{do, [
-  {'->', FalseMeta, [
-    [{'when', _, [Var, {{'.', _, [erlang, 'or']}, _, [
-      {{'.', _, [erlang, '=:=']}, _, [Var, nil]},
-      {{'.', _, [erlang, '=:=']}, _, [Var, false]}
-    ]}]}],
-    FalseExpr
-  ]},
-  {'->', TrueMeta, [
-    [{'_', _, _}],
-    TrueExpr
-  ]}
-]}]) ->
-  [{do, [
-    {'->', FalseMeta, [[false], FalseExpr]},
-    {'->', TrueMeta, [[true], TrueExpr]}
-  ]}];
-rewrite_case_clauses(Other) ->
-  Other.
-
 %% Variables in arguments are not propagated from one
 %% argument to the other. For instance:
 %%
@@ -550,6 +540,43 @@ var_kind(Meta, Kind) ->
     {counter, Counter} -> Counter;
     false -> Kind
   end.
+
+%% Case
+
+expand_case(true, Meta, Expr, KV, E) ->
+  assert_no_match_or_guard_scope(Meta, 'case', E),
+  {EExpr, EE} = expand(Expr, E),
+  {EKV, EK} = elixir_exp_clauses:'case'(Meta, KV, EE),
+  RKV =
+    case proplists:get_value(optimize_boolean, Meta, false) andalso
+         elixir_utils:returns_boolean(EExpr) of
+      true -> rewrite_case_clauses(EKV);
+      false -> EKV
+    end,
+  {{'case', Meta, [EExpr, RKV]}, EK};
+expand_case(false, Meta, Expr, KV, E) ->
+  {Case, _} = expand_case(true, Meta, Expr, KV, E),
+  {Case, E}.
+
+rewrite_case_clauses([{do, [
+  {'->', FalseMeta, [
+    [{'when', _, [Var, {{'.', _, [erlang, 'or']}, _, [
+      {{'.', _, [erlang, '=:=']}, _, [Var, nil]},
+      {{'.', _, [erlang, '=:=']}, _, [Var, false]}
+    ]}]}],
+    FalseExpr
+  ]},
+  {'->', TrueMeta, [
+    [{'_', _, _}],
+    TrueExpr
+  ]}
+]}]) ->
+  [{do, [
+    {'->', FalseMeta, [[false], FalseExpr]},
+    {'->', TrueMeta, [[true], TrueExpr]}
+  ]}];
+rewrite_case_clauses(Other) ->
+  Other.
 
 %% Locals
 
@@ -705,6 +732,32 @@ expand_aliases({'__aliases__', Meta, _} = Alias, E, Report) ->
       end
   end.
 
+%% Comprehensions
+
+expand_for({'<-', Meta, [Left, Right]}, E) ->
+  {ERight, ER} = expand(Right, E),
+  {[ELeft], EL}  = elixir_exp_clauses:head([Left], E),
+  {{'<-', Meta, [ELeft, ERight]}, elixir_env:mergev(EL, ER)};
+expand_for({'<<>>', Meta, Args} = X, E) when is_list(Args) ->
+  case elixir_utils:split_last(Args) of
+    {LeftStart, {'<-', OpMeta, [LeftEnd, Right]}} ->
+      {ERight, ER} = expand(Right, E),
+      Left = {'<<>>', Meta, LeftStart ++ [LeftEnd]},
+      {ELeft, EL}  = elixir_exp_clauses:match(fun expand/2, Left, E),
+      {{'<<>>', [], [{'<-', OpMeta, [ELeft, ERight]}]}, elixir_env:mergev(EL, ER)};
+    _ ->
+      expand(X, E)
+  end;
+expand_for(X, E) ->
+  expand(X, E).
+
+assert_generator_start(_, [{'<-', _, [_, _]} | _], _) ->
+  ok;
+assert_generator_start(_, [{'<<>>', _, [{'<-', _, [_, _]}]} | _], _) ->
+  ok;
+assert_generator_start(Meta, _, E) ->
+  elixir_errors:form_error(Meta, ?m(E, file), ?MODULE, for_generator_start).
+
 %% Assertions
 
 assert_module_scope(Meta, Kind, #{module := nil, file := File}) ->
@@ -756,6 +809,8 @@ format_error({useless_attr, Attr}) ->
                 [Attr]);
 
 %% Errors.
+format_error(for_generator_start) ->
+  "for comprehensions must start with a generator";
 format_error(unhandled_arrow_op) ->
   "unhandled operator ->";
 format_error(as_in_multi_alias_call) ->
@@ -788,7 +843,7 @@ format_error({undefined_var, Name, Kind}) ->
   Message =
     "expected variable \"~ts\"~ts to expand to an existing variable "
     "or be part of a match",
-  io_lib:format(Message, [Name, elixir_scope:context_info(Kind)]);
+  io_lib:format(Message, [Name, elixir_erl_var:context_info(Kind)]);
 format_error(underscore_in_cond) ->
   "unbound variable _ inside cond. If you want the last clause to always match, "
     "you probably meant to use: true ->";

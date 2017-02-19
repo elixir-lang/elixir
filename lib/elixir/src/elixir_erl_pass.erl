@@ -1,6 +1,5 @@
 %% Translate Elixir quoted expressions to Erlang Abstract Format.
-%% Expects the tree to be expanded.
--module(elixir_translator).
+-module(elixir_erl_pass).
 -export([translate/2, translate_arg/3, translate_args/2]).
 -import(elixir_scope, [mergev/2, mergec/2]).
 -include("elixir.hrl").
@@ -13,7 +12,7 @@ translate({'=', Meta, [{'_', _, Atom}, Right]}, S) when is_atom(Atom) ->
 
 translate({'=', Meta, [Left, Right]}, S) ->
   {TRight, SR} = translate(Right, S),
-  {TLeft, SL} = elixir_clauses:match(fun translate/2, Left, SR),
+  {TLeft, SL} = elixir_erl_clauses:match(fun translate/2, Left, SR),
   {{match, ?ann(Meta), TLeft, TRight}, SL};
 
 %% Containers
@@ -40,9 +39,9 @@ translate({'__block__', Meta, Args}, S) when is_list(Args) ->
 %% Compilation environment macros
 
 translate({'__CALLER__', Meta, Atom}, S) when is_atom(Atom) ->
-  {{var, ?ann(Meta), '__CALLER__'}, S#elixir_scope{caller=true}};
+  {{var, ?ann(Meta), '__CALLER__'}, S#elixir_erl{caller=true}};
 
-translate({'super', Meta, Args}, #elixir_scope{def={Kind, Name, _}} = S) ->
+translate({'super', Meta, Args}, #elixir_erl{def={Kind, Name, _}} = S) ->
   %% In the expanded AST, super is used to invoke a function
   %% with the same name but possibly different arity.
   {TArgs, SA} = translate_args(Args, S),
@@ -70,10 +69,10 @@ translate({'&', Meta, [{'/', _, [{Fun, _, Atom}, Arity]}]}, S)
 
 translate({fn, Meta, Clauses}, S) ->
   Transformer = fun({'->', CMeta, [ArgsWithGuards, Expr]}, Acc) ->
-    {Args, Guards} = elixir_clauses:extract_splat_guards(ArgsWithGuards),
-    {TClause, TS } = elixir_clauses:clause(CMeta, fun translate_fn_match/2,
+    {Args, Guards} = elixir_utils:extract_splat_guards(ArgsWithGuards),
+    {TClause, TS } = elixir_erl_clauses:clause(CMeta, fun translate_fn_match/2,
                                             Args, Expr, Guards, Acc),
-    {TClause, elixir_scope:mergec(S, TS)}
+    {TClause, elixir_erl_var:mergec(S, TS)}
   end,
   {TClauses, NS} = lists:mapfoldl(Transformer, S, Clauses),
   {{'fun', ?ann(Meta), {clauses, TClauses}}, NS};
@@ -102,12 +101,12 @@ translate({'case', Meta, [Expr, KV]}, S) ->
 %% Try
 
 translate({'try', Meta, [KV]}, S) ->
-  SN = S#elixir_scope{extra=nil},
+  SN = S#elixir_erl{extra=nil},
   Do = proplists:get_value('do', KV, nil),
-  {TDo, SB} = elixir_translator:translate(Do, SN),
+  {TDo, SB} = elixir_erl_pass:translate(Do, SN),
 
   Catch = [Tuple || {X, _} = Tuple <- KV, X == 'rescue' orelse X == 'catch'],
-  {TCatch, SC} = elixir_try:clauses(Meta, Catch, mergec(SN, SB)),
+  {TCatch, SC} = elixir_erl_try:clauses(Meta, Catch, mergec(SN, SB)),
 
   {TAfter, SA} = case lists:keyfind('after', 1, KV) of
     {'after', After} ->
@@ -117,22 +116,22 @@ translate({'try', Meta, [KV]}, S) ->
       {[], mergec(SN, SC)}
   end,
 
-  Else = elixir_clauses:get_clauses(else, KV, match),
-  {TElse, SE} = elixir_clauses:clauses(Meta, Else, mergec(SN, SA)),
+  Else = elixir_erl_clauses:get_clauses(else, KV, match),
+  {TElse, SE} = elixir_erl_clauses:clauses(Meta, Else, mergec(SN, SA)),
   {{'try', ?ann(Meta), unblock(TDo), TElse, TCatch, TAfter}, mergec(S, SE)};
 
 %% Receive
 
 translate({'receive', Meta, [KV]}, S) ->
-  Do = elixir_clauses:get_clauses(do, KV, match, true),
+  Do = elixir_erl_clauses:get_clauses(do, KV, match, true),
 
   case lists:keyfind('after', 1, KV) of
     false ->
-      {TClauses, SC} = elixir_clauses:clauses(Meta, Do, S),
+      {TClauses, SC} = elixir_erl_clauses:clauses(Meta, Do, S),
       {{'receive', ?ann(Meta), TClauses}, SC};
     _ ->
-      After = elixir_clauses:get_clauses('after', KV, expr),
-      {TClauses, SC} = elixir_clauses:clauses(Meta, Do ++ After, S),
+      After = elixir_erl_clauses:get_clauses('after', KV, expr),
+      {TClauses, SC} = elixir_erl_clauses:clauses(Meta, Do ++ After, S),
       {FClauses, TAfter} = elixir_utils:split_last(TClauses),
       {_, _, [FExpr], _, FAfter} = TAfter,
       {{'receive', ?ann(Meta), FClauses, FExpr, FAfter}, SC}
@@ -141,7 +140,7 @@ translate({'receive', Meta, [KV]}, S) ->
 %% Comprehensions
 
 translate({for, Meta, [_ | _] = Args}, S) ->
-  elixir_for:translate(Meta, Args, true, S);
+  elixir_erl_for:translate(Meta, Args, true, S);
 
 %% With
 
@@ -150,29 +149,29 @@ translate({with, Meta, [_ | _] = Args}, S) ->
 
 %% Variables
 
-translate({'^', Meta, [{Name, VarMeta, Kind}]}, #elixir_scope{context=match, file=File} = S) when is_atom(Name), is_atom(Kind) ->
+translate({'^', Meta, [{Name, VarMeta, Kind}]}, #elixir_erl{context=match, file=File} = S) when is_atom(Name), is_atom(Kind) ->
   Tuple = {Name, var_kind(VarMeta, Kind)},
-  {ok, {Value, _Counter, Safe}} = maps:find(Tuple, S#elixir_scope.backup_vars),
-  elixir_scope:warn_underscored_var_access(VarMeta, File, Name),
-  elixir_scope:warn_unsafe_var(VarMeta, File, Name, Safe),
+  {ok, {Value, _Counter, Safe}} = maps:find(Tuple, S#elixir_erl.backup_vars),
+  elixir_erl_var:warn_underscored_var_access(VarMeta, File, Name),
+  elixir_erl_var:warn_unsafe_var(VarMeta, File, Name, Safe),
 
   PAnn = ?ann(Meta),
   PVar = {var, PAnn, Value},
 
-  case S#elixir_scope.extra of
+  case S#elixir_erl.extra of
     pin_guard ->
-      {TVar, TS} = elixir_scope:translate_var(VarMeta, Name, var_kind(VarMeta, Kind), S),
+      {TVar, TS} = elixir_erl_var:translate(VarMeta, Name, var_kind(VarMeta, Kind), S),
       Guard = {op, PAnn, '=:=', PVar, TVar},
-      {TVar, TS#elixir_scope{extra_guards=[Guard | TS#elixir_scope.extra_guards]}};
+      {TVar, TS#elixir_erl{extra_guards=[Guard | TS#elixir_erl.extra_guards]}};
     _ ->
       {PVar, S}
   end;
 
-translate({'_', Meta, Kind}, #elixir_scope{context=match} = S) when is_atom(Kind) ->
+translate({'_', Meta, Kind}, #elixir_erl{context=match} = S) when is_atom(Kind) ->
   {{var, ?ann(Meta), '_'}, S};
 
 translate({Name, Meta, Kind}, S) when is_atom(Name), is_atom(Kind) ->
-  elixir_scope:translate_var(Meta, Name, var_kind(Meta, Kind), S);
+  elixir_erl_var:translate(Meta, Name, var_kind(Meta, Kind), S);
 
 %% Local calls
 
@@ -186,7 +185,7 @@ translate({Name, Meta, Args}, S) when is_atom(Name), is_list(Meta), is_list(Args
 translate({{'.', _, [Left, Right]}, Meta, []}, S)
     when is_tuple(Left), is_atom(Right), is_list(Meta) ->
   {TLeft, SL}  = translate(Left, S),
-  {Var, _, SV} = elixir_scope:build_var('_', SL),
+  {Var, _, SV} = elixir_erl_var:build('_', SL),
 
   Ann = ?ann(Meta),
   Generated = ?generated(Meta),
@@ -226,7 +225,7 @@ translate({{'.', _, [Expr]}, Meta, Args}, S) when is_list(Args) ->
 %% Literals
 
 translate(List, S) when is_list(List) ->
-  Fun = case S#elixir_scope.context of
+  Fun = case S#elixir_erl.context of
     match -> fun translate/2;
     _     -> fun(X, Acc) -> translate_arg(X, Acc, S) end
   end,
@@ -242,13 +241,13 @@ translate(Other, S) ->
 %% Helpers
 
 translate_case(true, Meta, Expr, KV, S) ->
-  Clauses = elixir_clauses:get_clauses(do, KV, match),
+  Clauses = elixir_erl_clauses:get_clauses(do, KV, match),
   {TExpr, SE} = translate(Expr, S),
-  {TClauses, SC} = elixir_clauses:clauses(Meta, Clauses, SE#elixir_scope{extra=nil}),
-  {{'case', ?ann(Meta), TExpr, TClauses}, SC#elixir_scope{extra=SE#elixir_scope.extra}};
+  {TClauses, SC} = elixir_erl_clauses:clauses(Meta, Clauses, SE#elixir_erl{extra=nil}),
+  {{'case', ?ann(Meta), TExpr, TClauses}, SC#elixir_erl{extra=SE#elixir_erl.extra}};
 translate_case(false, Meta, Expr, KV, S) ->
-  {Case, SC} = translate_case(true, Meta, Expr, KV, S#elixir_scope{extra=nil}),
-  {Case, elixir_scope:mergec(S, SC)}.
+  {Case, SC} = translate_case(true, Meta, Expr, KV, S#elixir_erl{extra=nil}),
+  {Case, elixir_erl_var:mergec(S, SC)}.
 
 translate_list([{'|', _, [_, _]=Args}], Fun, Acc, List) ->
   {[TLeft, TRight], TAcc} = lists:mapfoldl(Fun, Acc, Args),
@@ -275,8 +274,8 @@ unblock({'block', _, Exprs}) -> Exprs;
 unblock(Expr)                -> [Expr].
 
 translate_fn_match(Arg, S) ->
-  {TArg, TS} = elixir_translator:translate_args(Arg, S#elixir_scope{extra=pin_guard}),
-  {TArg, TS#elixir_scope{extra=S#elixir_scope.extra}}.
+  {TArg, TS} = elixir_erl_pass:translate_args(Arg, S#elixir_erl{extra=pin_guard}),
+  {TArg, TS#elixir_erl{extra=S#elixir_erl.extra}}.
 
 %% Translate args
 
@@ -287,7 +286,7 @@ translate_arg(Arg, Acc, S) ->
   {TArg, TAcc} = translate(Arg, mergec(S, Acc)),
   {TArg, mergev(Acc, TAcc)}.
 
-translate_args(Args, #elixir_scope{context=match} = S) ->
+translate_args(Args, #elixir_erl{context=match} = S) ->
   lists:mapfoldl(fun translate/2, S, Args);
 
 translate_args(Args, S) ->
@@ -303,10 +302,10 @@ translate_block([H], Acc, S) ->
 translate_block([{'__block__', _Meta, Args} | T], Acc, S) when is_list(Args) ->
   translate_block(Args ++ T, Acc, S);
 translate_block([{for, Meta, [_ | _] = Args} | T], Acc, S) ->
-  {TH, TS} = elixir_for:translate(Meta, Args, false, S),
+  {TH, TS} = elixir_erl_for:translate(Meta, Args, false, S),
   translate_block(T, [TH | Acc], TS);
 translate_block([{'=', _, [{'_', _, Ctx}, {for, Meta, [_ | _] = Args}]} | T], Acc, S) when is_atom(Ctx) ->
-  {TH, TS} = elixir_for:translate(Meta, Args, false, S),
+  {TH, TS} = elixir_erl_for:translate(Meta, Args, false, S),
   translate_block(T, [TH | Acc], TS);
 translate_block([H | T], Acc, S) ->
   {TH, TS} = translate(H, S),
@@ -370,7 +369,7 @@ translate_map(Meta, Assocs, S) ->
 translate_struct(Meta, Name, {'%{}', _, [{'|', _, [Update, Assocs]}]}, S) ->
   Ann = ?ann(Meta),
   Generated = ?generated,
-  {VarName, _, VS} = elixir_scope:build_var('_', S),
+  {VarName, _, VS} = elixir_erl_var:build('_', S),
 
   Var = {var, Ann, VarName},
   Map = {map, Ann, [{map_field_exact, Ann, {atom, Ann, '__struct__'}, {atom, Ann, Name}}]},
@@ -388,28 +387,28 @@ translate_struct(Meta, Name, {'%{}', _, [{'|', _, [Update, Assocs]}]}, S) ->
 translate_struct(Meta, Name, {'%{}', _, Assocs}, S) ->
   translate_map(Meta, Assocs ++ [{'__struct__', Name}], none, S).
 
-translate_map(Meta, Assocs, TUpdate, #elixir_scope{extra=Extra} = S) ->
+translate_map(Meta, Assocs, TUpdate, #elixir_erl{extra=Extra} = S) ->
   {Op, KeyFun, ValFun} = translate_key_val_op(TUpdate, S),
   Ann = ?ann(Meta),
 
   {TArgs, SA} = lists:mapfoldl(fun({Key, Value}, Acc) ->
     {TKey, Acc1}   = KeyFun(Key, Acc),
-    {TValue, Acc2} = ValFun(Value, Acc1#elixir_scope{extra=Extra}),
+    {TValue, Acc2} = ValFun(Value, Acc1#elixir_erl{extra=Extra}),
     {{Op, ?ann(Meta), TKey, TValue}, Acc2}
   end, S, Assocs),
 
   build_map(Ann, TUpdate, TArgs, SA).
 
-translate_key_val_op(_TUpdate, #elixir_scope{extra=map_key}) ->
+translate_key_val_op(_TUpdate, #elixir_erl{extra=map_key}) ->
   {map_field_assoc,
-    fun(X, Acc) -> translate(X, Acc#elixir_scope{extra=map_key}) end,
+    fun(X, Acc) -> translate(X, Acc#elixir_erl{extra=map_key}) end,
     fun translate/2};
-translate_key_val_op(_TUpdate, #elixir_scope{context=match}) ->
+translate_key_val_op(_TUpdate, #elixir_erl{context=match}) ->
   {map_field_exact,
-    fun(X, Acc) -> translate(X, Acc#elixir_scope{extra=map_key}) end,
+    fun(X, Acc) -> translate(X, Acc#elixir_erl{extra=map_key}) end,
     fun translate/2};
 translate_key_val_op(TUpdate, S) ->
-  KS = S#elixir_scope{extra=map_key},
+  KS = S#elixir_erl{extra=map_key},
   Op = if TUpdate == none -> map_field_assoc; true -> map_field_exact end,
   {Op,
     fun(X, Acc) -> translate_arg(X, Acc, KS) end,
@@ -423,7 +422,7 @@ build_map(Ann, none, TArgs, SA) -> {{map, Ann, TArgs}, SA}.
 
 translate_remote('Elixir.String.Chars', to_string, Meta, [Arg], S) ->
   {TArg, TS} = translate(Arg, S),
-  {VarName, _, VS} = elixir_scope:build_var(rewrite, TS),
+  {VarName, _, VS} = elixir_erl_var:build(rewrite, TS),
 
   Generated = ?ann(?generated(Meta)),
   Var   = {var, Generated, VarName},

@@ -168,8 +168,7 @@ defmodule IEx.Evaluator do
   #
   # If parsing fails, this might be a TokenMissingError which we treat in
   # a special way (to allow for continuation of an expression on the next
-  # line in IEx). In case of any other error, we let :elixir_translator
-  # to re-raise it.
+  # line in IEx).
   #
   # Returns updated state.
   #

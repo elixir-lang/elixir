@@ -1,3 +1,4 @@
+%% TODO: Split into elixir and elixir_erl
 -module(elixir_module).
 -export([data_table/1, defs_table/1, is_open/1, delete_doc/6,
          compile/4, expand_callback/6, add_beam_chunk/3, format_error/1,

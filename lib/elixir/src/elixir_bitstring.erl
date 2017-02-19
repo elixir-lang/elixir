@@ -1,3 +1,4 @@
+%% TODO: Split into elixir and elixir_erl
 -module(elixir_bitstring).
 -export([translate/3, expand/3, has_size/1, format_error/1]).
 -import(elixir_errors, [form_error/4]).
@@ -193,11 +194,11 @@ has_size({bin, _, Elements}) ->
   end, Elements).
 
 translate(Meta, Args, S) ->
-  case S#elixir_scope.context of
+  case S#elixir_erl.context of
     match ->
-      build_bitstr(fun elixir_translator:translate/2, Args, Meta, S);
+      build_bitstr(fun elixir_erl_pass:translate/2, Args, Meta, S);
     _ ->
-      build_bitstr(fun(X, Acc) -> elixir_translator:translate_arg(X, Acc, S) end, Args, Meta, S)
+      build_bitstr(fun(X, Acc) -> elixir_erl_pass:translate_arg(X, Acc, S) end, Args, Meta, S)
   end.
 
 build_bitstr(Fun, Exprs, Meta, S) ->
@@ -208,7 +209,7 @@ build_bitstr_each(_Fun, [], _Meta, S, Acc) ->
   {Acc, S};
 
 build_bitstr_each(Fun, [{'::', _, [H, V]} | T], Meta, S, Acc) ->
-  {Size, Types} = extract_bit_info(V, S#elixir_scope{context=nil}),
+  {Size, Types} = extract_bit_info(V, S#elixir_erl{context=nil}),
   build_bitstr_each(Fun, T, Meta, S, Acc, H, Size, Types);
 
 build_bitstr_each(Fun, [H | T], Meta, S, Acc) ->
@@ -234,7 +235,7 @@ build_bitstr_each(Fun, T, Meta, S, Acc, H, Size, Types) ->
   Splice = types_allow_splice(Types),
 
   case Expr of
-    {bin, _, Elements} when Splice, Size == default, S#elixir_scope.context == match ->
+    {bin, _, Elements} when Splice, Size == default, S#elixir_erl.context == match ->
       build_bitstr_each(Fun, T, Meta, NS, lists:reverse(Elements, Acc));
     {bin, _, _} when Types == default ->
       build_bitstr_each(Fun, T, Meta, NS, [{bin_element, ?ann(Meta), Expr, Size, [bitstring]} | Acc]);
@@ -259,7 +260,7 @@ extract_bit_info(L, _S) ->
   {default, extract_bit_type(L, [])}.
 
 extract_bit_size(Size, S) ->
-  {TSize, _} = elixir_translator:translate(Size, S),
+  {TSize, _} = elixir_erl_pass:translate(Size, S),
   TSize.
 
 extract_bit_type({'-', _, [L, R]}, Acc) ->

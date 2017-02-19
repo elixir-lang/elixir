@@ -1,20 +1,20 @@
--module(elixir_try).
+-module(elixir_erl_try).
 -export([clauses/3]).
 -include("elixir.hrl").
 
 clauses(_Meta, Args, S) ->
-  Catch = elixir_clauses:get_clauses('catch', Args, 'catch'),
-  Rescue = elixir_clauses:get_clauses(rescue, Args, rescue),
+  Catch = elixir_erl_clauses:get_clauses('catch', Args, 'catch'),
+  Rescue = elixir_erl_clauses:get_clauses(rescue, Args, rescue),
   reduce_clauses(Rescue ++ Catch, [], S, S).
 
 reduce_clauses([H | T], Acc, SAcc, S) ->
   {TH, TS} = each_clause(H, SAcc),
-  reduce_clauses(T, TH ++ Acc, elixir_scope:mergec(S, TS), S);
+  reduce_clauses(T, TH ++ Acc, elixir_erl_var:mergec(S, TS), S);
 reduce_clauses([], Acc, SAcc, _S) ->
   {lists:reverse(Acc), SAcc}.
 
 each_clause({'catch', Meta, Raw, Expr}, S) ->
-  {Args, Guards} = elixir_clauses:extract_splat_guards(Raw),
+  {Args, Guards} = elixir_utils:extract_splat_guards(Raw),
 
   Final = case Args of
     [X]   -> [throw, X, {'_', Meta, nil}];
@@ -22,12 +22,12 @@ each_clause({'catch', Meta, Raw, Expr}, S) ->
   end,
 
   Condition = [{'{}', Meta, Final}],
-  {TC, TS} = elixir_clauses:clause(Meta, fun elixir_translator:translate_args/2,
+  {TC, TS} = elixir_erl_clauses:clause(Meta, fun elixir_erl_pass:translate_args/2,
                                    Condition, Expr, Guards, S),
   {[TC], TS};
 
 each_clause({rescue, Meta, [{in, _, [Left, Right]}], Expr}, S) ->
-  {VarName, _, CS} = elixir_scope:build_var('_', S),
+  {VarName, _, CS} = elixir_erl_var:build('_', S),
   Var = {VarName, Meta, nil},
   {Parts, Safe, FS} = rescue_guards(Meta, Var, Right, CS),
   Body = rescue_clause_body(Left, Expr, Safe, Var, Meta),
@@ -53,13 +53,13 @@ build_rescue(Meta, Parts, Body, S) ->
   Matches = [Match || {Match, _} <- Parts],
 
   {{clause, Line, TMatches, _, TBody}, TS} =
-    elixir_clauses:clause(Meta, fun elixir_translator:translate_args/2,
+    elixir_erl_clauses:clause(Meta, fun elixir_erl_pass:translate_args/2,
                           Matches, Body, [], S),
 
   TClauses =
     [begin
       TArgs   = [{tuple, Line, [{atom, Line, error}, TMatch, {var, Line, '_'}]}],
-      TGuards = elixir_clauses:guards(Guards, [], TS),
+      TGuards = elixir_erl_clauses:guards(Guards, [], TS),
       {clause, Line, TArgs, TGuards, TBody}
      end || {TMatch, {_, Guards}} <- lists:zip(TMatches, Parts)],
 
@@ -73,7 +73,7 @@ rescue_guards(Meta, Var, Aliases, S) ->
     case Elixir of
       [] -> {[], S};
       _  ->
-        {VarName, _, CS} = elixir_scope:build_var('_', S),
+        {VarName, _, CS} = elixir_erl_var:build('_', S),
         StructVar = {VarName, Meta, nil},
         Map = {'%{}', Meta, [{'__struct__', StructVar}, {'__exception__', true}]},
         Match = {'=', Meta, [Map, Var]},
