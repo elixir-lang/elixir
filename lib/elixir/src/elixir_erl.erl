@@ -17,13 +17,12 @@ add_beam_chunk(Bin, Id, ChunkData)
 %% Builds Erlang AST annotation.
 
 get_ann(Opts) when is_list(Opts) ->
-  get_ann(Opts, [], 0).
+  get_ann(Opts, false, 0).
 
-get_ann([{generated, Gen} | T], Acc, Line) -> get_ann(T, [{generated, Gen} | Acc], Line);
-get_ann([{line, Line} | T], Acc, _) -> get_ann(T, Acc, Line);
-get_ann([_ | T], Acc, Line) -> get_ann(T, Acc, Line);
-get_ann([], [], Line) -> Line;
-get_ann([], Acc, Line) -> [{location, Line} | Acc].
+get_ann([{generated, true} | T], _, Line) -> get_ann(T, true, Line);
+get_ann([{line, Line} | T], Gen, _) -> get_ann(T, Gen, Line);
+get_ann([_ | T], Gen, Line) -> get_ann(T, Gen, Line);
+get_ann([], Gen, Line) -> erl_anno:set_generated(Gen, Line).
 
 %% Builds a remote call annotation.
 

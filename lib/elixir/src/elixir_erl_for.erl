@@ -156,10 +156,10 @@ build_reduce(Clauses, Expr, {bin, _, _} = Into, Acc, S) ->
   build_reduce_clause(Clauses, BinExpr, Into, Acc, S).
 
 build_reduce_clause([{enum, Meta, Left, Right, Filters} | T], Expr, Arg, Acc, S) ->
-  Generated = ?generated(Meta),
-  Ann   = ?ann(Meta),
-  True  = build_reduce_clause(T, Expr, Acc, Acc, S),
+  Ann = ?ann(Meta),
+  True = build_reduce_clause(T, Expr, Acc, Acc, S),
   False = Acc,
+  Generated = erl_anno:set_generated(true, Ann),
 
   Clauses0 =
     case is_var(Left) of
@@ -180,7 +180,7 @@ build_reduce_clause([{enum, Meta, Left, Right, Filters} | T], Expr, Arg, Acc, S)
 
 build_reduce_clause([{bin, Meta, Left, Right, Filters} | T], Expr, Arg, Acc, S) ->
   Ann = ?ann(Meta),
-  Generated = ?generated(Meta),
+  Generated  = erl_anno:set_generated(true, Ann),
   {Tail, ST} = build_var(Ann, S),
   {Fun, SF}  = build_var(Ann, ST),
 
@@ -198,7 +198,7 @@ build_reduce_clause([{bin, Meta, Left, Right, Filters} | T], Expr, Arg, Acc, S) 
     [{clause, Ann,
       [BinMatch, Acc], [],
       [{call, Ann, Fun, [Tail, join_filters(Ann, Filters, True, False)]}]},
-     {clause, ?generated,
+     {clause, Generated,
       [NoVarMatch, Acc], [],
       [{call, Ann, Fun, [Tail, False]}]},
      {clause, Generated,

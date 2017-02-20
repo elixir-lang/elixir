@@ -57,7 +57,6 @@ extract_splat_guards(Else) ->
 noop() ->
   ok.
 
-
 split_last([])           -> {[], []};
 split_last(List)         -> split_last(List, []).
 split_last([H], Acc)     -> {lists:reverse(Acc), H};

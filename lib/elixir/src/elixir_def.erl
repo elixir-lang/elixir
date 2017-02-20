@@ -112,10 +112,10 @@ store_definition(Line, Kind, CheckClauses, Call, Body, Pos) when is_integer(Line
     end,
 
   Arity        = length(Args),
-  Generated    = proplists:lookup_all(generated, Meta),
   LinifyArgs   = elixir_quote:linify(Line, Key, Args),
   LinifyGuards = elixir_quote:linify(Line, Key, Guards),
   LinifyBody   = elixir_quote:linify(Line, Key, Body),
+  Generated    = case DoCheckClauses of true -> []; false -> [{generated, true}] end,
 
   {EL, MetaLocation} =
     case retrieve_location(Location, ?key(E, module)) of
