@@ -44,9 +44,9 @@ guard(Other, E) ->
 %% Case
 
 'case'(Meta, [], E) ->
-  form_error(Meta, ?key(E, file), ?MODULE, {missing_do, 'case'});
+  form_error(Meta, ?key(E, file), elixir_expand, {missing_option, 'case', [do]});
 'case'(Meta, Opts, E) when not is_list(Opts) ->
-  form_error(Meta, ?key(E, file), ?MODULE, {invalid_args, 'case'});
+  form_error(Meta, ?key(E, file), elixir_expand, {invalid_args, 'case'});
 'case'(Meta, Opts, E) ->
   ok = assert_at_most_once('do', Opts, 0, fun(Key) ->
     form_error(Meta, ?key(E, file), ?MODULE, {duplicated_clauses, 'case', Key})
@@ -59,14 +59,14 @@ expand_case(Meta, {'do', _} = Do, Acc, E) ->
   Fun = expand_one(Meta, 'case', 'do', fun head/2),
   expand_with_export(Meta, 'case', Fun, Do, Acc, E);
 expand_case(Meta, {Key, _}, _Acc, E) ->
-  form_error(Meta, ?key(E, file), ?MODULE, {unexpected_keyword, 'case', Key}).
+  form_error(Meta, ?key(E, file), ?MODULE, {unexpected_option, 'case', Key}).
 
 %% Cond
 
 'cond'(Meta, [], E) ->
-  form_error(Meta, ?key(E, file), ?MODULE, {missing_do, 'cond'});
+  form_error(Meta, ?key(E, file), elixir_expand, {missing_option, 'cond', [do]});
 'cond'(Meta, Opts, E) when not is_list(Opts) ->
-  form_error(Meta, ?key(E, file), ?MODULE, {invalid_args, 'cond'});
+  form_error(Meta, ?key(E, file), elixir_expand, {invalid_args, 'cond'});
 'cond'(Meta, Opts, E) ->
   ok = assert_at_most_once('do', Opts, 0, fun(Key) ->
     form_error(Meta, ?key(E, file), ?MODULE, {duplicated_clauses, 'cond', Key})
@@ -79,14 +79,14 @@ expand_cond(Meta, {'do', _} = Do, Acc, E) ->
   Fun = expand_one(Meta, 'cond', 'do', fun elixir_expand:expand_args/2),
   expand_with_export(Meta, 'cond', Fun, Do, Acc, E);
 expand_cond(Meta, {Key, _}, _Acc, E) ->
-  form_error(Meta, ?key(E, file), ?MODULE, {unexpected_keyword, 'cond', Key}).
+  form_error(Meta, ?key(E, file), ?MODULE, {unexpected_option, 'cond', Key}).
 
 %% Receive
 
 'receive'(Meta, [], E) ->
-  form_error(Meta, ?key(E, file), ?MODULE, missing_do_or_after_in_receive);
+  form_error(Meta, ?key(E, file), elixir_expand, {missing_option, 'receive', [do, 'after']});
 'receive'(Meta, Opts, E) when not is_list(Opts) ->
-  form_error(Meta, ?key(E, file), ?MODULE, {invalid_args, 'receive'});
+  form_error(Meta, ?key(E, file), elixir_expand, {invalid_args, 'receive'});
 'receive'(Meta, Opts, E) ->
   RaiseError = fun(Key) ->
     form_error(Meta, ?key(E, file), ?MODULE, {duplicated_clauses, 'receive', Key})
@@ -108,16 +108,16 @@ expand_receive(Meta, {'after', [_]} = After, Acc, E) ->
 expand_receive(Meta, {'after', _}, _Acc, E) ->
   form_error(Meta, ?key(E, file), ?MODULE, multiple_after_clauses_in_receive);
 expand_receive(Meta, {Key, _}, _Acc, E) ->
-  form_error(Meta, ?key(E, file), ?MODULE, {unexpected_keyword, 'receive', Key}).
+  form_error(Meta, ?key(E, file), ?MODULE, {unexpected_option, 'receive', Key}).
 
 %% Try
 
 'try'(Meta, [], E) ->
-  form_error(Meta, ?key(E, file), ?MODULE, {missing_do, 'try'});
+  form_error(Meta, ?key(E, file), elixir_expand, {missing_option, 'try', [do]});
 'try'(Meta, [{do, _}], E) ->
-  form_error(Meta, ?key(E, file), ?MODULE, missing_keyword_in_try);
+  form_error(Meta, ?key(E, file), elixir_expand, {missing_option, 'try', ['catch', 'rescue', 'after', 'else']});
 'try'(Meta, Opts, E) when not is_list(Opts) ->
-  form_error(Meta, ?key(E, file), ?MODULE, {invalid_args, 'try'});
+  form_error(Meta, ?key(E, file), elixir_expand, {invalid_args, 'try'});
 'try'(Meta, Opts, E) ->
   RaiseError = fun(Key) ->
     form_error(Meta, ?key(E, file), ?MODULE, {duplicated_clauses, 'try', Key})
@@ -143,7 +143,7 @@ expand_try(Meta, {'catch', _} = Catch, E) ->
 expand_try(Meta, {'rescue', _} = Rescue, E) ->
   expand_without_export(Meta, 'try', fun expand_rescue/3, Rescue, E);
 expand_try(Meta, {Key, _}, E) ->
-  form_error(Meta, ?key(E, file), ?MODULE, {unexpected_keyword, 'try', Key}).
+  form_error(Meta, ?key(E, file), ?MODULE, {unexpected_option, 'try', Key}).
 
 expand_catch(_Meta, [_] = Args, E) ->
   head(Args, E);
@@ -232,25 +232,22 @@ assert_at_most_once(Kind, [_ | Rest], Count, Fun) ->
   assert_at_most_once(Kind, Rest, Count, Fun).
 
 format_error({bad_or_missing_clauses, {Kind, Key}}) ->
-  io_lib:format("expected -> clauses for ~ts in ~ts", [Key, Kind]);
+  io_lib:format("expected -> clauses for :~ts in \"~ts\"", [Key, Kind]);
 format_error({bad_or_missing_clauses, Kind}) ->
-  io_lib:format("expected -> clauses in ~ts", [Kind]);
-format_error({missing_do, Kind}) ->
-  io_lib:format("missing do keyword in ~ts", [Kind]);
-format_error({invalid_args, Kind}) ->
-  io_lib:format("invalid arguments for ~ts", [Kind]);
+  io_lib:format("expected -> clauses in \"~ts\"", [Kind]);
+
 format_error({duplicated_clauses, Kind, Key}) ->
-  io_lib:format("duplicated ~ts clauses given for ~ts", [Key, Kind]);
-format_error({unexpected_keyword, Kind, Keyword}) ->
-  io_lib:format("unexpected keyword ~ts in ~ts", [Keyword, Kind]);
+  io_lib:format("duplicated :~ts clauses given for \"~ts\"", [Key, Kind]);
+
+format_error({unexpected_option, Kind, Option}) ->
+  io_lib:format("unexpected option ~ts in \"~ts\"", ['Elixir.Macro':to_string(Option), Kind]);
+
 format_error({wrong_number_of_args_for_clause, Expected, Kind, Key}) ->
-  io_lib:format("expected ~ts for ~ts clauses (->) in ~ts", [Expected, Key, Kind]);
+  io_lib:format("expected ~ts for :~ts clauses (->) in \"~ts\"", [Expected, Key, Kind]);
+
 format_error(multiple_after_clauses_in_receive) ->
-  "expected a single -> clause for after in receive";
-format_error(missing_do_or_after_in_receive) ->
-  "missing do or after keyword in receive";
-format_error(missing_keyword_in_try) ->
-  "missing catch/rescue/after/else keyword in try";
+  "expected a single -> clause for :after in \"receive\"";
+
 format_error(invalid_rescue_clause) ->
-  "invalid rescue clause. The clause should match on an alias, a variable "
+  "invalid \"rescue\" clause. The clause should match on an alias, a variable "
     "or be in the \"var in [alias]\" format".
