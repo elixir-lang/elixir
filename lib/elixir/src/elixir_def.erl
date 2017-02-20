@@ -170,7 +170,7 @@ def_to_clauses(_Kind, Meta, Args, [], nil, E) ->
   check_args_for_bodyless_clause(Meta, Args, E),
   [];
 def_to_clauses(Kind, Meta, _Args, _Guards, nil, E) ->
-  elixir_errors:form_error(Meta, ?key(E, file), elixir_expand, {missing_options, Kind, [do]});
+  elixir_errors:form_error(Meta, ?key(E, file), elixir_expand, {missing_option, Kind, [do]});
 def_to_clauses(_Kind, Meta, Args, Guards, [{do, Body}], _E) ->
   [{Meta, Args, Guards, Body}];
 def_to_clauses(_Kind, Meta, Args, Guards, Body, _E) ->

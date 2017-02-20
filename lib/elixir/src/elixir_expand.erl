@@ -134,7 +134,7 @@ expand({quote, Meta, [Opts]}, E) when is_list(Opts) ->
     {do, Do} ->
       expand({quote, Meta, [lists:keydelete(do, 1, Opts), [{do, Do}]]}, E);
     false ->
-      form_error(Meta, ?key(E, file), ?MODULE, {missing_options, 'quote', [do]})
+      form_error(Meta, ?key(E, file), ?MODULE, {missing_option, 'quote', [do]})
   end;
 
 expand({quote, Meta, [_]}, E) ->
@@ -144,7 +144,7 @@ expand({quote, Meta, [Opts, Do]}, E) when is_list(Do) ->
   Exprs =
     case lists:keyfind(do, 1, Do) of
       {do, Expr} -> Expr;
-      false -> form_error(Meta, ?key(E, file), ?MODULE, {missing_options, 'quote', [do]})
+      false -> form_error(Meta, ?key(E, file), ?MODULE, {missing_option, 'quote', [do]})
     end,
 
   ValidOpts = [context, location, line, file, unquote, bind_quoted, generated],
@@ -263,7 +263,7 @@ expand({for, Meta, [_ | _] = Args}, E) ->
       {value, {do, Do}, DoOpts} ->
         {Do, DoOpts};
       false ->
-        form_error(Meta, ?key(E, file), ?MODULE, {missing_options, for, [do]})
+        form_error(Meta, ?key(E, file), ?MODULE, {missing_option, for, [do]})
     end,
 
   {EOpts, EO} = expand(Opts, E),
@@ -806,7 +806,7 @@ format_error({useless_attr, Attr}) ->
                 [Attr]);
 
 %% Errors.
-format_error({missing_options, Construct, Opts}) when is_list(Opts) ->
+format_error({missing_option, Construct, Opts}) when is_list(Opts) ->
   StringOpts = lists:map(fun(Opt) -> [$: | atom_to_list(Opt)] end, Opts),
   io_lib:format("missing ~ts option in \"~ts\"", [string:join(StringOpts, "/"), Construct]);
 format_error({invalid_args, Construct}) ->

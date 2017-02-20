@@ -44,7 +44,7 @@ guard(Other, E) ->
 %% Case
 
 'case'(Meta, [], E) ->
-  form_error(Meta, ?key(E, file), elixir_expand, {missing_options, 'case', [do]});
+  form_error(Meta, ?key(E, file), elixir_expand, {missing_option, 'case', [do]});
 'case'(Meta, Opts, E) when not is_list(Opts) ->
   form_error(Meta, ?key(E, file), elixir_expand, {invalid_args, 'case'});
 'case'(Meta, Opts, E) ->
@@ -64,7 +64,7 @@ expand_case(Meta, {Key, _}, _Acc, E) ->
 %% Cond
 
 'cond'(Meta, [], E) ->
-  form_error(Meta, ?key(E, file), elixir_expand, {missing_options, 'cond', [do]});
+  form_error(Meta, ?key(E, file), elixir_expand, {missing_option, 'cond', [do]});
 'cond'(Meta, Opts, E) when not is_list(Opts) ->
   form_error(Meta, ?key(E, file), elixir_expand, {invalid_args, 'cond'});
 'cond'(Meta, Opts, E) ->
@@ -84,7 +84,7 @@ expand_cond(Meta, {Key, _}, _Acc, E) ->
 %% Receive
 
 'receive'(Meta, [], E) ->
-  form_error(Meta, ?key(E, file), elixir_expand, {missing_options, 'receive', [do, 'after']});
+  form_error(Meta, ?key(E, file), elixir_expand, {missing_option, 'receive', [do, 'after']});
 'receive'(Meta, Opts, E) when not is_list(Opts) ->
   form_error(Meta, ?key(E, file), elixir_expand, {invalid_args, 'receive'});
 'receive'(Meta, Opts, E) ->
@@ -113,9 +113,9 @@ expand_receive(Meta, {Key, _}, _Acc, E) ->
 %% Try
 
 'try'(Meta, [], E) ->
-  form_error(Meta, ?key(E, file), elixir_expand, {missing_options, 'try', [do]});
+  form_error(Meta, ?key(E, file), elixir_expand, {missing_option, 'try', [do]});
 'try'(Meta, [{do, _}], E) ->
-  form_error(Meta, ?key(E, file), elixir_expand, {missing_options, 'try', ['catch', 'rescue', 'after', 'else']});
+  form_error(Meta, ?key(E, file), elixir_expand, {missing_option, 'try', ['catch', 'rescue', 'after', 'else']});
 'try'(Meta, Opts, E) when not is_list(Opts) ->
   form_error(Meta, ?key(E, file), elixir_expand, {invalid_args, 'try'});
 'try'(Meta, Opts, E) ->

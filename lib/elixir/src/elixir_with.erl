@@ -16,7 +16,7 @@ expand(Meta, Args, Env) ->
       {value, {do, DoValue}, RestOpts1} ->
         {DoValue, RestOpts1};
       false ->
-        elixir_errors:form_error(Meta, ?key(Env, file), elixir_expand, {missing_options, 'with', [do]})
+        elixir_errors:form_error(Meta, ?key(Env, file), elixir_expand, {missing_option, 'with', [do]})
     end,
 
   {ElseExpr, OtherOpts2} =
