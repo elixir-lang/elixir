@@ -1,6 +1,6 @@
 -module(elixir_fn).
--export([capture/3, expand/3]).
--import(elixir_errors, [compile_error/3, compile_error/4]).
+-export([capture/3, expand/3, format_error/1]).
+-import(elixir_errors, [form_error/4]).
 -include("elixir.hrl").
 
 %% Anonymous functions
@@ -18,8 +18,7 @@ expand(Meta, Clauses, E) when is_list(Clauses) ->
     [_] ->
       {{fn, Meta, EClauses}, E};
     _ ->
-      compile_error(Meta, ?key(E, file),
-                    "cannot mix clauses with different arities in anonymous functions")
+      form_error(Meta, ?key(E, file), ?MODULE, clauses_with_different_arities)
   end.
 
 fn_arity([{'when', _, Args}]) -> length(Args) - 1;
@@ -54,8 +53,7 @@ capture(Meta, {'__block__', _, [Expr]}, E) ->
   capture(Meta, Expr, E);
 
 capture(Meta, {'__block__', _, _} = Expr, E) ->
-  Message = "invalid args for &, block expressions are not allowed, got: ~ts",
-  compile_error(Meta, ?key(E, file), Message, ['Elixir.Macro':to_string(Expr)]);
+  form_error(Meta, ?key(E, file), ?MODULE, {block_expr_in_capture, Expr});
 
 capture(Meta, {Atom, _, Args} = Expr, E) when is_atom(Atom), is_list(Args) ->
   capture_import(Meta, Expr, E, is_sequential_and_not_empty(Args));
@@ -67,7 +65,7 @@ capture(Meta, List, E) when is_list(List) ->
   capture_expr(Meta, List, E, is_sequential_and_not_empty(List));
 
 capture(Meta, Integer, E) when is_integer(Integer) ->
-  compile_error(Meta, ?key(E, file), "unhandled &~B outside of a capture", [Integer]);
+  form_error(Meta, ?key(E, file), ?MODULE, {capture_arg_outside_of_capture, Integer});
 
 capture(Meta, Arg, E) ->
   invalid_capture(Meta, Arg, E).
@@ -115,14 +113,12 @@ capture_expr(Meta, Expr, Counter, E, Escaped, Sequential) ->
   end.
 
 invalid_capture(Meta, Arg, E) ->
-  Message = "invalid args for &, expected an expression in the format of &Mod.fun/arity, "
-            "&local/arity or a capture containing at least one argument as &1, got: ~ts",
-  compile_error(Meta, ?key(E, file), Message, ['Elixir.Macro':to_string(Arg)]).
+  form_error(Meta, ?key(E, file), ?MODULE, {invalid_args_for_capture, Arg}).
 
 validate(Meta, [{Pos, Var} | T], Pos, E) ->
   [Var | validate(Meta, T, Pos + 1, E)];
 validate(Meta, [{Pos, _} | _], Expected, E) ->
-  compile_error(Meta, ?key(E, file), "capture &~B cannot be defined without &~B", [Pos, Expected]);
+  form_error(Meta, ?key(E, file), ?MODULE, {capture_arg_without_predecessor, Pos, Expected});
 validate(_Meta, [], _Pos, _E) ->
   [].
 
@@ -130,10 +126,9 @@ escape({'&', _, [Pos]}, Counter, _E, Dict) when is_integer(Pos), Pos > 0 ->
   Var = {list_to_atom([$x | integer_to_list(Pos)]), [{counter, Counter}], 'Elixir'},
   {Var, orddict:store(Pos, Var, Dict)};
 escape({'&', Meta, [Pos]}, _Counter, E, _Dict) when is_integer(Pos) ->
-  compile_error(Meta, ?key(E, file), "capture &~B is not allowed", [Pos]);
+  form_error(Meta, ?key(E, file), ?MODULE, {unallowed_capture_arg, Pos});
 escape({'&', Meta, _} = Arg, _Counter, E, _Dict) ->
-  Message = "nested captures via & are not allowed: ~ts",
-  compile_error(Meta, ?key(E, file), Message, ['Elixir.Macro':to_string(Arg)]);
+  form_error(Meta, ?key(E, file), ?MODULE, {nested_capture, Arg});
 escape({Left, Meta, Right}, Counter, E, Dict0) ->
   {TLeft, Dict1}  = escape(Left, Counter, E, Dict0),
   {TRight, Dict2} = escape(Right, Counter, E, Dict1),
@@ -150,8 +145,7 @@ escape(Other, _Counter, _E, Dict) ->
 args_from_arity(_Meta, A, _E) when is_integer(A), A >= 0, A =< 255 ->
   [{'&', [], [X]} || X <- lists:seq(1, A)];
 args_from_arity(Meta, A, E) ->
-  Message = "invalid arity for &, expected a number between 0 and 255, got: ~b",
-  compile_error(Meta, ?key(E, file), Message, [A]).
+  form_error(Meta, ?key(E, file), ?MODULE, {invalid_arity_for_capture, A}).
 
 is_sequential_and_not_empty([])   -> false;
 is_sequential_and_not_empty(List) -> is_sequential(List, 1).
@@ -159,3 +153,24 @@ is_sequential_and_not_empty(List) -> is_sequential(List, 1).
 is_sequential([{'&', _, [Int]} | T], Int) -> is_sequential(T, Int + 1);
 is_sequential([], _Int) -> true;
 is_sequential(_, _Int) -> false.
+
+format_error(clauses_with_different_arities) ->
+  "cannot mix clauses with different arities in anonymous functions";
+format_error({block_expr_in_capture, Expr}) ->
+  io_lib:format("invalid args for &, block expressions are not allowed, got: ~ts",
+                ['Elixir.Macro':to_string(Expr)]);
+format_error({nested_capture, Arg}) ->
+  io_lib:format("nested captures via & are not allowed: ~ts", ['Elixir.Macro':to_string(Arg)]);
+format_error({invalid_arity_for_capture, Arity}) ->
+  io_lib:format("invalid arity for &, expected a number between 0 and 255, got: ~b", [Arity]);
+format_error({capture_arg_outside_of_capture, Integer}) ->
+  io_lib:format("unhandled &~B outside of a capture", [Integer]);
+format_error({capture_arg_without_predecessor, Pos, Expected}) ->
+  io_lib:format("capture &~B cannot be defined without &~B", [Pos, Expected]);
+format_error({unallowed_capture_arg, Integer}) ->
+  io_lib:format("capture &~B is not allowed", [Integer]);
+format_error({invalid_args_for_capture, Arg}) ->
+  Message =
+    "invalid args for &, expected an expression in the format of &Mod.fun/arity, "
+    "&local/arity or a capture containing at least one argument as &1, got: ~ts",
+  io_lib:format(Message, ['Elixir.Macro':to_string(Arg)]).
