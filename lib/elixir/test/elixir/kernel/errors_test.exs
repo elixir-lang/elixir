@@ -703,7 +703,7 @@ defmodule Kernel.ErrorsTest do
 
   test "bodyless function with guard" do
     assert_compile_fail CompileError,
-      "nofile:2: missing :do option in \"def\"",
+      "nofile:2: missing :do in \"def\"",
       '''
       defmodule Kernel.ErrorsTest.BodyessFunctionWithGuard do
         def foo(n) when is_number(n)

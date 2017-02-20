@@ -44,7 +44,7 @@ guard(Other, E) ->
 %% Case
 
 'case'(Meta, [], E) ->
-  form_error(Meta, ?key(E, file), elixir_expand, {missing_do, 'case'});
+  form_error(Meta, ?key(E, file), elixir_expand, {missing_options, 'case', [do]});
 'case'(Meta, Opts, E) when not is_list(Opts) ->
   form_error(Meta, ?key(E, file), elixir_expand, {invalid_args, 'case'});
 'case'(Meta, Opts, E) ->
@@ -64,7 +64,7 @@ expand_case(Meta, {Key, _}, _Acc, E) ->
 %% Cond
 
 'cond'(Meta, [], E) ->
-  form_error(Meta, ?key(E, file), elixir_expand, {missing_do, 'cond'});
+  form_error(Meta, ?key(E, file), elixir_expand, {missing_options, 'cond', [do]});
 'cond'(Meta, Opts, E) when not is_list(Opts) ->
   form_error(Meta, ?key(E, file), elixir_expand, {invalid_args, 'cond'});
 'cond'(Meta, Opts, E) ->
@@ -84,7 +84,7 @@ expand_cond(Meta, {Key, _}, _Acc, E) ->
 %% Receive
 
 'receive'(Meta, [], E) ->
-  form_error(Meta, ?key(E, file), ?MODULE, missing_do_or_after_in_receive);
+  form_error(Meta, ?key(E, file), elixir_expand, {missing_options, 'receive', [do, 'after']});
 'receive'(Meta, Opts, E) when not is_list(Opts) ->
   form_error(Meta, ?key(E, file), elixir_expand, {invalid_args, 'receive'});
 'receive'(Meta, Opts, E) ->
@@ -113,9 +113,9 @@ expand_receive(Meta, {Key, _}, _Acc, E) ->
 %% Try
 
 'try'(Meta, [], E) ->
-  form_error(Meta, ?key(E, file), elixir_expand, {missing_do, 'try'});
+  form_error(Meta, ?key(E, file), elixir_expand, {missing_options, 'try', [do]});
 'try'(Meta, [{do, _}], E) ->
-  form_error(Meta, ?key(E, file), ?MODULE, missing_keyword_in_try);
+  form_error(Meta, ?key(E, file), elixir_expand, {missing_options, 'try', ['catch', 'rescue', 'after', 'else']});
 'try'(Meta, Opts, E) when not is_list(Opts) ->
   form_error(Meta, ?key(E, file), elixir_expand, {invalid_args, 'try'});
 'try'(Meta, Opts, E) ->
@@ -247,12 +247,6 @@ format_error({wrong_number_of_args_for_clause, Expected, Kind, Key}) ->
 
 format_error(multiple_after_clauses_in_receive) ->
   "expected a single -> clause for :after in \"receive\"";
-
-format_error(missing_do_or_after_in_receive) ->
-  "missing :do or :after in \"receive\"";
-
-format_error(missing_keyword_in_try) ->
-  "missing :catch/:rescue/:after/:else in \"try\"";
 
 format_error(invalid_rescue_clause) ->
   "invalid \"rescue\" clause. The clause should match on an alias, a variable "

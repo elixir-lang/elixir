@@ -134,7 +134,7 @@ expand({quote, Meta, [Opts]}, E) when is_list(Opts) ->
     {do, Do} ->
       expand({quote, Meta, [lists:keydelete(do, 1, Opts), [{do, Do}]]}, E);
     false ->
-      form_error(Meta, ?key(E, file), ?MODULE, {missing_do, 'quote'})
+      form_error(Meta, ?key(E, file), ?MODULE, {missing_options, 'quote', [do]})
   end;
 
 expand({quote, Meta, [_]}, E) ->
@@ -144,7 +144,7 @@ expand({quote, Meta, [Opts, Do]}, E) when is_list(Do) ->
   Exprs =
     case lists:keyfind(do, 1, Do) of
       {do, Expr} -> Expr;
-      false -> form_error(Meta, ?key(E, file), ?MODULE, {missing_do, 'quote'})
+      false -> form_error(Meta, ?key(E, file), ?MODULE, {missing_options, 'quote', [do]})
     end,
 
   ValidOpts = [context, location, line, file, unquote, bind_quoted, generated],
@@ -807,8 +807,10 @@ format_error({useless_attr, Attr}) ->
                 [Attr]);
 
 %% Errors.
-format_error({missing_do, Construct}) ->
-  io_lib:format("missing :do option in \"~ts\"", [Construct]);
+format_error({missing_options, Construct, Opts}) when is_list(Opts) ->
+  StringOpts = lists:map(fun 'Elixir.Macro':to_string/1, Opts),
+  FormattedOpts = iolist_to_binary(lists:join($/, StringOpts)),
+  io_lib:format("missing ~ts in \"~ts\"", [FormattedOpts, Construct]);
 format_error({invalid_args, Construct}) ->
   io_lib:format("invalid arguments for \"~ts\"", [Construct]);
 format_error(for_generator_start) ->
@@ -843,7 +845,7 @@ format_error({undefined_var, Name, Kind}) ->
     "or be part of a match",
   io_lib:format(Message, [Name, elixir_erl_var:context_info(Kind)]);
 format_error(underscore_in_cond) ->
-  "unbound variable _ inside cond. If you want the last clause to always match, "
+  "unbound variable _ inside \"cond\". If you want the last clause to always match, "
     "you probably meant to use: true ->";
 format_error(invalid_expr_in_guard) ->
   "invalid expression in guard";
