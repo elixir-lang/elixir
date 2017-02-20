@@ -349,13 +349,13 @@ defmodule Kernel.ExpansionTest do
     end
 
     test "raises for missing do" do
-      assert_raise CompileError, ~r"missing do keyword in quote", fn ->
+      assert_raise CompileError, ~r"missing :do option in \"quote\"", fn ->
         expand(quote do: (quote context: Foo))
       end
     end
 
     test "raises for invalid arguments" do
-      assert_raise CompileError, ~r"invalid arguments for quote", fn ->
+      assert_raise CompileError, ~r"invalid arguments for \"quote\"", fn ->
         expand(quote do: (quote 1 + 1))
       end
     end
@@ -516,29 +516,29 @@ defmodule Kernel.ExpansionTest do
     end
 
     test "fails if \"do\" is missing" do
-      assert_raise CompileError, ~r"missing do keyword in with", fn ->
+      assert_raise CompileError, ~r"missing :do option in \"with\"", fn ->
         expand(quote do: with(_ <- true, []))
       end
     end
 
     test "fails on invalid else option" do
-      assert_raise CompileError, ~r"expected -> clauses for else in with", fn ->
+      assert_raise CompileError, ~r"expected -> clauses for :else in \"with\"", fn ->
         expand(quote(do: with(_ <- true, do: :ok, else: [:error])))
       end
 
-      assert_raise CompileError, ~r"expected -> clauses for else in with", fn ->
+      assert_raise CompileError, ~r"expected -> clauses for :else in \"with\"", fn ->
         expand(quote(do: with(_ <- true, do: :ok, else: ())))
       end
     end
 
     test "fails for invalid options" do
       # Only the required "do" is present alongside the unexpected option.
-      assert_raise CompileError, ~r"unexpected keyword foo in with", fn ->
+      assert_raise CompileError, ~r"unexpected option :foo in \"with\"", fn ->
         expand(quote do: with(_ <- true, foo: :bar, do: :ok))
       end
 
       # More options are present alongside the unexpected option.
-      assert_raise CompileError, ~r"unexpected keyword foo in with", fn ->
+      assert_raise CompileError, ~r"unexpected option :foo in \"with\"", fn ->
         expand(quote do: with(_ <- true, do: :ok, else: (_ -> :ok), foo: :bar))
       end
     end
@@ -664,39 +664,39 @@ defmodule Kernel.ExpansionTest do
     end
 
     test "expects exactly one do" do
-      assert_raise CompileError, ~r"missing do keyword in cond", fn ->
+      assert_raise CompileError, ~r"missing :do option in \"cond\"", fn ->
         expand(quote do: (cond []))
       end
 
-      assert_raise CompileError, ~r"duplicated do clauses given for cond", fn ->
+      assert_raise CompileError, ~r"duplicated :do clauses given for \"cond\"", fn ->
         expand(quote(do: (cond do: (x -> x), do: (y -> y))))
       end
     end
 
     test "expects clauses" do
-      assert_raise CompileError, ~r"expected -> clauses for do in cond", fn ->
+      assert_raise CompileError, ~r"expected -> clauses for :do in \"cond\"", fn ->
         expand(quote do: (cond do: :ok))
       end
 
-      assert_raise CompileError, ~r"expected -> clauses for do in cond", fn ->
+      assert_raise CompileError, ~r"expected -> clauses for :do in \"cond\"", fn ->
         expand(quote do: (cond do: [:not, :clauses]))
       end
     end
 
     test "expects one argument in clauses" do
-      assert_raise CompileError, ~r"expected one arg for do clauses \(->\) in cond", fn ->
+      assert_raise CompileError, ~r"expected one arg for :do clauses \(->\) in \"cond\"", fn ->
         expand(quote do: (cond do _, _ -> :ok end))
       end
     end
 
     test "raises for invalid arguments" do
-      assert_raise CompileError, ~r"invalid arguments for cond", fn ->
+      assert_raise CompileError, ~r"invalid arguments for \"cond\"", fn ->
         expand(quote do: (cond :foo))
       end
     end
 
     test "raises with invalid keywords" do
-      assert_raise CompileError, ~r"unexpected keyword foo in cond", fn ->
+      assert_raise CompileError, ~r"unexpected option :foo in \"cond\"", fn ->
         expand(quote do: (cond do: (1 -> 1), foo: :bar))
       end
     end
@@ -735,39 +735,39 @@ defmodule Kernel.ExpansionTest do
     end
 
     test "expects exactly one do" do
-      assert_raise CompileError, ~r"missing do keyword in case", fn ->
+      assert_raise CompileError, ~r"missing :do option in \"case\"", fn ->
         expand(quote(do: (case e, [])))
       end
 
-      assert_raise CompileError, ~r"duplicated do clauses given for case", fn ->
+      assert_raise CompileError, ~r"duplicated :do clauses given for \"case\"", fn ->
         expand(quote(do: (case e, do: (x -> x), do: (y -> y))))
       end
     end
 
     test "expects clauses" do
-      assert_raise CompileError, ~r"expected -> clauses for do in case", fn ->
+      assert_raise CompileError, ~r"expected -> clauses for :do in \"case\"", fn ->
         expand(quote do: (case e do x end))
       end
 
-      assert_raise CompileError, ~r"expected -> clauses for do in case", fn ->
+      assert_raise CompileError, ~r"expected -> clauses for :do in \"case\"", fn ->
         expand(quote do: (case e do [:not, :clauses] end))
       end
     end
 
     test "expects exactly one argument in clauses" do
-      assert_raise CompileError, ~r"expected one arg for do clauses \(->\) in case", fn ->
+      assert_raise CompileError, ~r"expected one arg for :do clauses \(->\) in \"case\"", fn ->
         expand(quote do: (case e do _, _ -> :ok end))
       end
     end
 
     test "fails with invalid arguments" do
-      assert_raise CompileError, ~r"invalid arguments for case", fn ->
+      assert_raise CompileError, ~r"invalid arguments for \"case\"", fn ->
         expand(quote do: (case :foo, :bar))
       end
     end
 
     test "fails for invalid keywords" do
-      assert_raise CompileError, ~r"unexpected keyword foo in case", fn ->
+      assert_raise CompileError, ~r"unexpected option :foo in \"case\"", fn ->
         expand(quote do: (case e, do: (x -> x), foo: :bar))
       end
     end
@@ -805,53 +805,53 @@ defmodule Kernel.ExpansionTest do
     end
 
     test "expects exactly one do or after" do
-      assert_raise CompileError, ~r"missing do or after keyword in receive", fn ->
+      assert_raise CompileError, ~r"missing :do or :after in \"receive\"", fn ->
         expand(quote do: (receive []))
       end
 
-      assert_raise CompileError, ~r"duplicated do clauses given for receive", fn ->
+      assert_raise CompileError, ~r"duplicated :do clauses given for \"receive\"", fn ->
         expand(quote(do: (receive do: (x -> x), do: (y -> y))))
       end
 
-      assert_raise CompileError, ~r"duplicated after clauses given for receive", fn ->
+      assert_raise CompileError, ~r"duplicated :after clauses given for \"receive\"", fn ->
         expand(quote(do: (receive do x -> x after y -> y after z -> z end)))
       end
     end
 
     test "expects clauses" do
-      assert_raise CompileError, ~r"expected -> clauses for do in receive", fn ->
+      assert_raise CompileError, ~r"expected -> clauses for :do in \"receive\"", fn ->
         expand(quote do: (receive do x end))
       end
 
-      assert_raise CompileError, ~r"expected -> clauses for do in receive", fn ->
+      assert_raise CompileError, ~r"expected -> clauses for :do in \"receive\"", fn ->
         expand(quote do: (receive do [:not, :clauses] end))
       end
     end
 
     test "expects on argument for do/after clauses" do
-      assert_raise CompileError, ~r"expected one arg for do clauses \(->\) in receive", fn ->
+      assert_raise CompileError, ~r"expected one arg for :do clauses \(->\) in \"receive\"", fn ->
         expand(quote do: (receive do _, _ -> :ok end))
       end
 
-      assert_raise CompileError, ~r"expected one arg for after clauses \(->\) in receive", fn ->
+      assert_raise CompileError, ~r"expected one arg for :after clauses \(->\) in \"receive\"", fn ->
         expand(quote do: (receive do x -> x after _, _ -> :ok end))
       end
     end
 
     test "expects a single clause for \"after\"" do
-      assert_raise CompileError, ~r"expected a single -> clause for after in receive", fn ->
+      assert_raise CompileError, ~r"expected a single -> clause for :after in \"receive\"", fn ->
         expand(quote do: (receive do x -> x after 1 -> y; 2 -> z end))
       end
     end
 
     test "raises for invalid arguments" do
-      assert_raise CompileError, ~r"invalid arguments for receive", fn ->
+      assert_raise CompileError, ~r"invalid arguments for \"receive\"", fn ->
         expand(quote do: (receive :foo))
       end
     end
 
     test "raises with invalid keywords" do
-      assert_raise CompileError, ~r"unexpected keyword foo in receive", fn ->
+      assert_raise CompileError, ~r"unexpected option :foo in \"receive\"", fn ->
         expand(quote do: (receive do: (x -> x), foo: :bar))
       end
     end
@@ -879,97 +879,91 @@ defmodule Kernel.ExpansionTest do
     end
 
     test "expects more than do" do
-      assert_raise CompileError, ~r"missing catch/rescue/after/else keyword in try", fn ->
+      assert_raise CompileError, ~r"missing :catch/:rescue/:after/:else in \"try\"", fn ->
         expand(quote do: (try do x = y end; x))
       end
     end
 
     test "raises if do is missing" do
-      assert_raise CompileError, ~r"missing do keyword in try", fn ->
+      assert_raise CompileError, ~r"missing :do option in \"try\"", fn ->
         expand(quote do: (try []))
       end
     end
 
-    test "raises if do is not accompanied by catch/rescue/after/else" do
-      assert_raise CompileError, ~r"missing catch/rescue/after/else keyword in try", fn ->
-        expand(quote do: (try do x end))
-      end
-    end
-
     test "expects at most one clause" do
-      assert_raise CompileError, ~r"duplicated do clauses given for try", fn ->
+      assert_raise CompileError, ~r"duplicated :do clauses given for \"try\"", fn ->
         expand(quote(do: (try do: e, do: f)))
       end
 
-      assert_raise CompileError, ~r"duplicated rescue clauses given for try", fn ->
+      assert_raise CompileError, ~r"duplicated :rescue clauses given for \"try\"", fn ->
         expand(quote(do: (try do e rescue x -> x rescue y -> y end)))
       end
 
-      assert_raise CompileError, ~r"duplicated after clauses given for try", fn ->
+      assert_raise CompileError, ~r"duplicated :after clauses given for \"try\"", fn ->
         expand(quote(do: (try do e after x = y after x = y end)))
       end
 
-      assert_raise CompileError, ~r"duplicated else clauses given for try", fn ->
+      assert_raise CompileError, ~r"duplicated :else clauses given for \"try\"", fn ->
         expand(quote(do: (try do e else x -> x else y -> y end)))
       end
 
-      assert_raise CompileError, ~r"duplicated catch clauses given for try", fn ->
+      assert_raise CompileError, ~r"duplicated :catch clauses given for \"try\"", fn ->
         expand(quote(do: (try do e catch x -> x catch y -> y end)))
       end
     end
 
     test "raises with invalid arguments" do
-      assert_raise CompileError, ~r"invalid arguments for try", fn ->
+      assert_raise CompileError, ~r"invalid arguments for \"try\"", fn ->
         expand(quote do: (try :foo))
       end
     end
 
     test "raises with invalid keywords" do
-      assert_raise CompileError, ~r"unexpected keyword foo in try", fn ->
+      assert_raise CompileError, ~r"unexpected option :foo in \"try\"", fn ->
         expand(quote do: (try do: x, foo: :bar))
       end
     end
 
     test "expects exactly one argument in rescue clauses" do
-      assert_raise CompileError, ~r"expected one arg for rescue clauses \(->\) in try", fn ->
+      assert_raise CompileError, ~r"expected one arg for :rescue clauses \(->\) in \"try\"", fn ->
         expand(quote do: (try do x rescue _, _ -> :ok end))
       end
     end
 
     test "expects an alias, a variable, or \"var in [alias]\" as the argument of rescue clauses" do
-      assert_raise CompileError, ~r"invalid rescue clause\. The clause should match", fn ->
+      assert_raise CompileError, ~r"invalid \"rescue\" clause\. The clause should match", fn ->
         expand(quote do: (try do x rescue function(:call) -> :ok end))
       end
     end
 
     test "expects one or two args for catch clauses" do
-      assert_raise CompileError, ~r"expected one or two args for catch clauses \(->\) in try", fn ->
+      assert_raise CompileError, ~r"expected one or two args for :catch clauses \(->\) in \"try\"", fn ->
         expand(quote do: (try do x catch _, _, _ -> :ok end))
       end
     end
 
     test "expects clauses for rescue, else, catch" do
-      assert_raise CompileError, ~r"expected -> clauses for rescue in try", fn ->
+      assert_raise CompileError, ~r"expected -> clauses for :rescue in \"try\"", fn ->
         expand(quote do: (try do e rescue x end))
       end
 
-      assert_raise CompileError, ~r"expected -> clauses for rescue in try", fn ->
+      assert_raise CompileError, ~r"expected -> clauses for :rescue in \"try\"", fn ->
         expand(quote do: (try do e rescue [:not, :clauses] end))
       end
 
-      assert_raise CompileError, ~r"expected -> clauses for catch in try", fn ->
+      assert_raise CompileError, ~r"expected -> clauses for :catch in \"try\"", fn ->
         expand(quote do: (try do e catch x end))
       end
 
-      assert_raise CompileError, ~r"expected -> clauses for catch in try", fn ->
+      assert_raise CompileError, ~r"expected -> clauses for :catch in \"try\"", fn ->
         expand(quote do: (try do e catch [:not, :clauses] end))
       end
 
-      assert_raise CompileError, ~r"expected -> clauses for else in try", fn ->
+      assert_raise CompileError, ~r"expected -> clauses for :else in \"try\"", fn ->
         expand(quote do: (try do e else x end))
       end
 
-      assert_raise CompileError, ~r"expected -> clauses for else in try", fn ->
+      assert_raise CompileError, ~r"expected -> clauses for :else in \"try\"", fn ->
         expand(quote do: (try do e else [:not, :clauses] end))
       end
     end

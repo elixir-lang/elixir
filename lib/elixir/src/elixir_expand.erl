@@ -134,17 +134,17 @@ expand({quote, Meta, [Opts]}, E) when is_list(Opts) ->
     {do, Do} ->
       expand({quote, Meta, [lists:keydelete(do, 1, Opts), [{do, Do}]]}, E);
     false ->
-      form_error(Meta, ?key(E, file), ?MODULE, missing_do_in_quote)
+      form_error(Meta, ?key(E, file), ?MODULE, {missing_do, 'quote'})
   end;
 
 expand({quote, Meta, [_]}, E) ->
-  form_error(Meta, ?key(E, file), ?MODULE, invalid_args_for_quote);
+  form_error(Meta, ?key(E, file), ?MODULE, {invalid_args, 'quote'});
 
 expand({quote, Meta, [Opts, Do]}, E) when is_list(Do) ->
   Exprs =
     case lists:keyfind(do, 1, Do) of
       {do, Expr} -> Expr;
-      false -> form_error(Meta, ?key(E, file), ?MODULE, missing_do_in_quote)
+      false -> form_error(Meta, ?key(E, file), ?MODULE, {missing_do, 'quote'})
     end,
 
   ValidOpts = [context, location, line, file, unquote, bind_quoted, generated],
@@ -199,7 +199,7 @@ expand({quote, Meta, [Opts, Do]}, E) when is_list(Do) ->
   expand(Quoted, ET);
 
 expand({quote, Meta, [_, _]}, E) ->
-  form_error(Meta, ?key(E, file), ?MODULE, invalid_args_for_quote);
+  form_error(Meta, ?key(E, file), ?MODULE, {invalid_args, 'quote'});
 
 %% Functions
 
@@ -807,6 +807,10 @@ format_error({useless_attr, Attr}) ->
                 [Attr]);
 
 %% Errors.
+format_error({missing_do, Construct}) ->
+  io_lib:format("missing :do option in \"~ts\"", [Construct]);
+format_error({invalid_args, Construct}) ->
+  io_lib:format("invalid arguments for \"~ts\"", [Construct]);
 format_error(for_generator_start) ->
   "for comprehensions must start with a generator";
 format_error(unhandled_arrow_op) ->
@@ -819,10 +823,6 @@ format_error({expected_compile_time_module, Kind, GivenTerm}) ->
 format_error({unquote_outside_quote, Unquote}) ->
   %% Unquote can be "unquote" or "unquote_splicing".
   io_lib:format("~p called outside quote", [Unquote]);
-format_error(missing_do_in_quote) ->
-  "missing do keyword in quote";
-format_error(invalid_args_for_quote) ->
-  "invalid arguments for quote";
 format_error({invalid_context_opt_for_quote, Context}) ->
   io_lib:format("invalid :context for quote, expected non-nil compile time atom or alias, got: ~ts",
                 ['Elixir.Macro':to_string(Context)]);
