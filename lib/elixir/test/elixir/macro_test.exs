@@ -708,7 +708,6 @@ defmodule MacroTest do
     assert Macro.camelize("FooBar") == "FooBar"
     assert Macro.camelize("foo") == "Foo"
     assert Macro.camelize("foo_bar") == "FooBar"
-    assert Macro.camelize("FOO_BAR") == "FooBar"
     assert Macro.camelize("foo_") == "Foo"
     assert Macro.camelize("_foo") == "Foo"
     assert Macro.camelize("foo10") == "Foo10"
@@ -717,6 +716,9 @@ defmodule MacroTest do
     assert Macro.camelize("foo__10") == "Foo10"
     assert Macro.camelize("foo__bar") == "FooBar"
     assert Macro.camelize("foo/bar") == "Foo.Bar"
+    assert Macro.camelize("Foo.Bar") == "Foo.Bar"
+    assert Macro.camelize("FOO_BAR") == "FOO_BAR"
+    assert Macro.camelize("FOO.BAR") == "FOO.BAR"
     assert Macro.camelize("") == ""
   end
 end
