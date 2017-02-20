@@ -1,7 +1,7 @@
 %% Compiler backend to Erlang.
 -module(elixir_erl).
--export([elixir_to_erl/1, definition_to_anonymous/6, compile/4,
-         get_ann/1, remote/4, add_beam_chunk/3]).
+-export([elixir_to_erl/1, definition_to_anonymous/6, compile/6,
+         get_ann/1, remote/4, add_beam_chunk/3, format_error/1]).
 -include("elixir.hrl").
 
 %% Adds custom chunk to a .beam binary
@@ -111,19 +111,38 @@ elixir_to_erl_cons2([], Acc) ->
 
 %% Compilation hook.
 
-compile(File, _Module, Functions, Unreachable) ->
-  split_definition(Functions, File, Unreachable, [], [], [], [], [], {[], []}).
+compile(Line, File, Module, Attributes, Definitions, Unreachable) ->
+  Data = elixir_module:data_table(Module),
+
+  {Def, Defp, Defmacro, Defmacrop, Exports, Functions} =
+    split_definition(Definitions, File, Unreachable, [], [], [], [], [], {[], []}),
+
+  Forms0 =
+    functions_form(Line, File, Module, Def, Defp, Defmacro, Defmacrop, Exports, Functions),
+  Forms1 =
+    attributes_form(Line, Attributes, Forms0),
+  Forms2 =
+    case elixir_compiler:get_opt(internal) of
+      true -> Forms1;
+      false -> specs_form(Data, Defmacro, Unreachable, types_form(Data, Forms1))
+    end,
+
+  Location = {elixir_utils:characters_to_list(elixir_utils:relative_to_cwd(File)), Line},
+
+  [{attribute, Line, file, Location},
+   {attribute, Line, module, Module} | Forms2].
+
+% Definitions
 
 split_definition([{Tuple, def, Meta, Clauses} | T], File, Unreachable,
                  Def, Defp, Defmacro, Defmacrop, Exports, Functions) ->
-  {_, _, N, A, _} = Function = function_form(def, Meta, File, Tuple, Clauses),
+  {_, _, N, A, _} = Function = translate_definition(def, Meta, File, Tuple, Clauses),
   split_definition(T, File, Unreachable, [Tuple | Def], Defp, Defmacro, Defmacrop,
-                   [{N, A} | Exports],
-                   add_definition(Meta, Function, Functions));
+                   [{N, A} | Exports], add_definition(Meta, Function, Functions));
 
 split_definition([{Tuple, defp, Meta, Clauses} | T], File, Unreachable,
                  Def, Defp, Defmacro, Defmacrop, Exports, Functions) ->
-  Function = function_form(defp, Meta, File, Tuple, Clauses),
+  Function = translate_definition(defp, Meta, File, Tuple, Clauses),
   case lists:member(Tuple, Unreachable) of
     false ->
       split_definition(T, File, Unreachable, Def, [Tuple | Defp], Defmacro, Defmacrop,
@@ -135,14 +154,12 @@ split_definition([{Tuple, defp, Meta, Clauses} | T], File, Unreachable,
 
 split_definition([{Tuple, defmacro, Meta, Clauses} | T], File, Unreachable,
                  Def, Defp, Defmacro, Defmacrop, Exports, Functions) ->
-  {_, _, N, A, _} = Function = function_form(defmacro, Meta, File, Tuple, Clauses),
+  {_, _, N, A, _} = Function = translate_definition(defmacro, Meta, File, Tuple, Clauses),
   split_definition(T, File, Unreachable, Def, Defp, [Tuple | Defmacro], Defmacrop,
-                   [{N, A} | Exports],
-                   add_definition(Meta, Function, Functions));
+                   [{N, A} | Exports], add_definition(Meta, Function, Functions));
 
-split_definition([{Tuple, defmacrop, Meta, Clauses} | T], File, Unreachable,
+split_definition([{Tuple, defmacrop, _Meta, _Clauses} | T], File, Unreachable,
                  Def, Defp, Defmacro, Defmacrop, Exports, Functions) ->
-  _ = function_form(defp, Meta, File, Tuple, Clauses),
   split_definition(T, File, Unreachable, Def, [Tuple | Defp], Defmacro, Defmacrop,
                    Exports, Functions);
 
@@ -158,7 +175,7 @@ add_definition(Meta, Body, {Head, Tail}) ->
       {[Body | Head], Tail}
   end.
 
-function_form(Kind, Meta, File, {Name, Arity}, Clauses) ->
+translate_definition(Kind, Meta, File, {Name, Arity}, Clauses) ->
   ErlClauses = [translate_clause(Kind, Name, Arity, Clause, File) || Clause <- Clauses],
 
   case is_macro(Kind) of
@@ -203,3 +220,168 @@ translate_clause(Kind, Name, Arity, {Meta, Args, Guards, Body}, File) ->
 is_macro(defmacro)  -> true;
 is_macro(defmacrop) -> true;
 is_macro(_)         -> false.
+
+% Functions
+
+functions_form(Line, File, Module, Def, Defp, Defmacro, Defmacrop, Exports, Body) ->
+  Pair = {'__info__', 1},
+  case lists:member(Pair, Def) or lists:member(Pair, Defp) or
+       lists:member(Pair, Defmacro) or lists:member(Pair, Defmacrop) of
+    true  ->
+      elixir_errors:form_error([{line, Line}], File, ?MODULE, {internal_function_overridden, Pair});
+    false ->
+      {Spec, Info} = add_info_function(Line, Module, Def, Defmacro),
+      [{attribute, Line, export, lists:sort([{'__info__', 1} | Exports])}, Spec, Info | Body]
+  end.
+
+add_info_function(Line, Module, Def, Defmacro) ->
+  AllowedArgs =
+    lists:map(fun(Atom) -> {atom, Line, Atom} end,
+              [attributes, compile, exports, functions, macros, md5, module]),
+
+  Spec =
+    {attribute, Line, spec, {{'__info__', 1},
+      [{type, Line, 'fun', [
+        {type, Line, product, [
+          {type, Line, union, AllowedArgs}
+        ]},
+        {type, Line, union, [
+          {type, Line, atom, []},
+          {type, Line, list, [
+            {type, Line, union, [
+              {type, Line, tuple, [
+                {type, Line, atom, []},
+                {type, Line, any, []}
+              ]},
+              {type, Line, tuple, [
+                {type, Line, atom, []},
+                {type, Line, byte, []},
+                {type, Line, integer, []}
+              ]}
+            ]}
+          ]}
+        ]}
+      ]}]
+    }},
+
+  Info =
+    {function, 0, '__info__', 1, [
+      functions_info(Def),
+      macros_info(Defmacro),
+      others_info(Module)
+    ]},
+
+  {Spec, Info}.
+
+functions_info(Def) ->
+  {clause, 0, [{atom, 0, functions}], [], [elixir_erl:elixir_to_erl(lists:sort(Def))]}.
+
+macros_info(Defmacro) ->
+  {clause, 0, [{atom, 0, macros}], [], [elixir_erl:elixir_to_erl(lists:sort(Defmacro))]}.
+
+others_info(Module) ->
+  Info = {call, 0,
+            {remote, 0, {atom, 0, erlang}, {atom, 0, get_module_info}},
+            [{atom, 0, Module}, {var, 0, info}]},
+  {clause, 0, [{var, 0, info}], [], [Info]}.
+
+% Types
+
+types_form(Data, Forms) ->
+  Types0 = take_type_spec(Data, type) ++
+           take_type_spec(Data, typep) ++
+           take_type_spec(Data, opaque),
+  Types1 = ['Elixir.Kernel.Typespec':translate_type(Kind, Expr, Caller) ||
+            {Kind, Expr, Caller} <- Types0],
+
+  Fun = fun
+    ({{Kind, NameArity, Expr}, Line, true}, Acc) ->
+      [{attribute, Line, export_type, [NameArity]}, {attribute, Line, Kind, Expr} | Acc];
+    ({{Kind, _NameArity, Expr}, Line, false}, Acc) ->
+      [{attribute, Line, Kind, Expr} | Acc]
+  end,
+  lists:foldl(Fun, Forms, Types1).
+
+take_type_spec(Data, Key) ->
+  case ets:take(Data, Key) of
+    [{Key, Value, _, _}] -> Value;
+    [] -> []
+  end.
+
+% Specs
+
+specs_form(Data, Defmacro, Unreachable, Forms) ->
+  Specs =
+    [Spec || {Kind, Expr, Caller} <- take_type_spec(Data, spec),
+              Spec <- skip_unreachable(
+                'Elixir.Kernel.Typespec':translate_spec(Kind, Expr, Caller), Unreachable
+              )],
+
+  Callbacks =
+    ['Elixir.Kernel.Typespec':translate_spec(Kind, Expr, Caller) ||
+     {Kind, Expr, Caller} <- take_type_spec(Data, callback)],
+
+  Macrocallbacks =
+    ['Elixir.Kernel.Typespec':translate_spec(Kind, Expr, Caller) ||
+     {Kind, Expr, Caller} <- take_type_spec(Data, macrocallback)],
+
+  Optional = lists:flatten(take_type_spec(Data, optional_callbacks)),
+  SpecsForms = specs_form(spec, Specs, [], Defmacro, Forms),
+  specs_form(callback, Callbacks ++ Macrocallbacks, Optional,
+             [NameArity || {{_, NameArity, _}, _} <- Macrocallbacks], SpecsForms).
+
+specs_form(_Kind, [], _Optional, _Macros, Forms) ->
+  Forms;
+specs_form(Kind, Entries, Optional, Macros, Forms) ->
+  Dict =
+    lists:foldl(fun({{_, NameArity, Spec}, Line}, Acc) ->
+      dict:append(NameArity, {Spec, Line}, Acc)
+    end, dict:new(), Entries),
+
+  dict:fold(fun(NameArity, ExprsLines, Acc) ->
+    {Exprs, Lines} = lists:unzip(ExprsLines),
+    Line = lists:min(Lines),
+
+    {Key, Value} =
+      case lists:member(NameArity, Macros) of
+        true ->
+          {Name, Arity} = NameArity,
+          {{elixir_utils:macro_name(Name), Arity + 1},
+           lists:map(fun spec_for_macro/1, Exprs)};
+        false ->
+          {NameArity, Exprs}
+      end,
+
+    case lists:member(NameArity, Optional) of
+      true ->
+        [{attribute, Line, Kind, {Key, Value}},
+         {attribute, Line, optional_callbacks, Key} | Acc];
+      false ->
+        [{attribute, Line, Kind, {Key, Value}} | Acc]
+    end
+  end, Forms, Dict).
+
+skip_unreachable({{spec, NameArity, _}, _} = Spec, Unreachable) ->
+  case lists:member(NameArity, Unreachable) of
+    true  -> [];
+    false -> [Spec]
+  end.
+
+spec_for_macro({type, Line, 'fun', [{type, _, product, Args} | T]}) ->
+  NewArgs = [{type, Line, term, []} | Args],
+  {type, Line, 'fun', [{type, Line, product, NewArgs} | T]};
+spec_for_macro(Else) ->
+  Else.
+
+% Attributes
+
+attributes_form(Line, Attributes, Forms) ->
+  Fun = fun({Key, Value}, Acc) ->
+    [{attribute, Line, Key, Value} | Acc]
+  end,
+  lists:foldl(Fun, Forms, Attributes).
+
+%% Errors
+
+format_error({internal_function_overridden, {Name, Arity}}) ->
+  io_lib:format("function ~ts/~B is internal and should not be overridden", [Name, Arity]).

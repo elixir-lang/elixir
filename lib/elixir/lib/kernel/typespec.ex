@@ -76,7 +76,6 @@ defmodule Kernel.Typespec do
     end
   end
 
-
   @doc """
   Defines a macro callback.
   This macro is responsible for handling the attribute `@macrocallback`.
@@ -90,27 +89,6 @@ defmodule Kernel.Typespec do
     quote do
       Kernel.Typespec.defspec(:macrocallback, unquote(Macro.escape(spec, unquote: true)), __ENV__)
     end
-  end
-
-  defmacro defoptional_callbacks(callbacks) do
-    quote do
-      Module.store_typespec(__ENV__.module, :optional_callbacks, {__ENV__.line, unquote(callbacks)})
-    end
-  end
-
-  @doc """
-  Defines a `type`, `typep` or `opaque` by receiving a typespec expression.
-  """
-  def define_type(kind, expr, doc \\ nil, env) do
-    Module.store_typespec(env.module, kind, {kind, expr, doc, env})
-  end
-
-  @doc """
-  Defines a `spec` by receiving a typespec expression.
-  """
-  @spec define_spec(atom, Macro.t, Macro.Env.t) :: Keyword.t
-  def define_spec(kind, expr, env) do
-    defspec(kind, expr, env)
   end
 
   @doc """
@@ -457,8 +435,6 @@ defmodule Kernel.Typespec do
 
   defp translate_spec(kind, meta, name, args, return, guard, caller) when is_atom(args),
     do: translate_spec(kind, meta, name, [], return, guard, caller)
-  defp translate_spec(:macrocallback, meta, name, args, return, guard, caller),
-    do: translate_spec(:callback, meta, :"MACRO-#{name}", macro_args(args), return, guard, caller)
   defp translate_spec(kind, meta, name, args, return, guard, caller) do
     ensure_no_defaults!(args)
 
@@ -478,10 +454,6 @@ defmodule Kernel.Typespec do
 
     arity = length(args)
     {{kind, {name, arity}, spec}, caller.line}
-  end
-
-  defp macro_args(args) do
-    [quote(do: {line :: Macro.Env.line, env :: Macro.Env.t}) | args]
   end
 
   defp ensure_no_defaults!(args) do
