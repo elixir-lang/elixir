@@ -2,8 +2,9 @@
 %% fn, receive and friends. try is handled in elixir_try.
 -module(elixir_clauses).
 -export([match/3, clause/5, def/2, head/2,
-         'case'/3, 'receive'/3, 'try'/3, 'cond'/3]).
--import(elixir_errors, [compile_error/3, compile_error/4]).
+         'case'/3, 'receive'/3, 'try'/3, 'cond'/3,
+         format_error/1]).
+-import(elixir_errors, [form_error/4]).
 -include("elixir.hrl").
 
 match(Fun, Expr, #{context := Context} = E) ->
@@ -22,10 +23,8 @@ clause(_Meta, _Kind, Fun, {'->', Meta, [Left, Right]}, #{export_vars := ExportVa
   {ELeft, EL}  = Fun(Left, E),
   {ERight, ER} = elixir_expand:expand(Right, EL#{export_vars := ExportVars}),
   {{'->', Meta, [ELeft, ERight]}, ER};
-clause(Meta, {Kind, Key}, _Fun, _, E) ->
-  compile_error(Meta, ?key(E, file), "expected -> clauses for ~ts in ~ts", [Key, Kind]);
 clause(Meta, Kind, _Fun, _, E) ->
-  compile_error(Meta, ?key(E, file), "expected -> clauses in ~ts", [Kind]).
+  form_error(Meta, ?key(E, file), ?MODULE, {bad_or_missing_clauses, Kind}).
 
 head([{'when', Meta, [_, _ | _] = All}], E) ->
   {Args, Guard} = elixir_utils:split_last(All),
@@ -45,12 +44,12 @@ guard(Other, E) ->
 %% Case
 
 'case'(Meta, [], E) ->
-  compile_error(Meta, ?key(E, file), "missing do keyword in case");
+  form_error(Meta, ?key(E, file), ?MODULE, {missing_do, 'case'});
 'case'(Meta, Opts, E) when not is_list(Opts) ->
-  compile_error(Meta, ?key(E, file), "invalid arguments for case");
+  form_error(Meta, ?key(E, file), ?MODULE, {invalid_args, 'case'});
 'case'(Meta, Opts, E) ->
-  ok = assert_at_most_once('do', Opts, 0, fun(Kind) ->
-    compile_error(Meta, ?key(E, file), "duplicated ~ts clauses given for case", [Kind])
+  ok = assert_at_most_once('do', Opts, 0, fun(Key) ->
+    form_error(Meta, ?key(E, file), ?MODULE, {duplicated_clauses, 'case', Key})
   end),
   EE = E#{export_vars := []},
   {EClauses, EVars} = lists:mapfoldl(fun(X, Acc) -> expand_case(Meta, X, Acc, EE) end, [], Opts),
@@ -60,17 +59,17 @@ expand_case(Meta, {'do', _} = Do, Acc, E) ->
   Fun = expand_one(Meta, 'case', 'do', fun head/2),
   expand_with_export(Meta, 'case', Fun, Do, Acc, E);
 expand_case(Meta, {Key, _}, _Acc, E) ->
-  compile_error(Meta, ?key(E, file), "unexpected keyword ~ts in case", [Key]).
+  form_error(Meta, ?key(E, file), ?MODULE, {unexpected_keyword, 'case', Key}).
 
 %% Cond
 
 'cond'(Meta, [], E) ->
-  compile_error(Meta, ?key(E, file), "missing do keyword in cond");
+  form_error(Meta, ?key(E, file), ?MODULE, {missing_do, 'cond'});
 'cond'(Meta, Opts, E) when not is_list(Opts) ->
-  compile_error(Meta, ?key(E, file), "invalid arguments for cond");
+  form_error(Meta, ?key(E, file), ?MODULE, {invalid_args, 'cond'});
 'cond'(Meta, Opts, E) ->
-  ok = assert_at_most_once('do', Opts, 0, fun(Kind) ->
-    compile_error(Meta, ?key(E, file), "duplicated ~ts clauses given for cond", [Kind])
+  ok = assert_at_most_once('do', Opts, 0, fun(Key) ->
+    form_error(Meta, ?key(E, file), ?MODULE, {duplicated_clauses, 'cond', Key})
   end),
   EE = E#{export_vars := []},
   {EClauses, EVars} = lists:mapfoldl(fun(X, Acc) -> expand_cond(Meta, X, Acc, EE) end, [], Opts),
@@ -80,17 +79,17 @@ expand_cond(Meta, {'do', _} = Do, Acc, E) ->
   Fun = expand_one(Meta, 'cond', 'do', fun elixir_expand:expand_args/2),
   expand_with_export(Meta, 'cond', Fun, Do, Acc, E);
 expand_cond(Meta, {Key, _}, _Acc, E) ->
-  compile_error(Meta, ?key(E, file), "unexpected keyword ~ts in cond", [Key]).
+  form_error(Meta, ?key(E, file), ?MODULE, {unexpected_keyword, 'cond', Key}).
 
 %% Receive
 
 'receive'(Meta, [], E) ->
-  compile_error(Meta, ?key(E, file), "missing do or after keyword in receive");
+  form_error(Meta, ?key(E, file), ?MODULE, missing_do_or_after_in_receive);
 'receive'(Meta, Opts, E) when not is_list(Opts) ->
-  compile_error(Meta, ?key(E, file), "invalid arguments for receive");
+  form_error(Meta, ?key(E, file), ?MODULE, {invalid_args, 'receive'});
 'receive'(Meta, Opts, E) ->
-  RaiseError = fun(Kind) ->
-    compile_error(Meta, ?key(E, file), "duplicated ~ts clauses given for receive", [Kind])
+  RaiseError = fun(Key) ->
+    form_error(Meta, ?key(E, file), ?MODULE, {duplicated_clauses, 'receive', Key})
   end,
   ok = assert_at_most_once('do', Opts, 0, RaiseError),
   ok = assert_at_most_once('after', Opts, 0, RaiseError),
@@ -107,21 +106,21 @@ expand_receive(Meta, {'after', [_]} = After, Acc, E) ->
   Fun = expand_one(Meta, 'receive', 'after', fun elixir_expand:expand_args/2),
   expand_with_export(Meta, 'receive', Fun, After, Acc, E);
 expand_receive(Meta, {'after', _}, _Acc, E) ->
-  compile_error(Meta, ?key(E, file), "expected a single -> clause for after in receive");
+  form_error(Meta, ?key(E, file), ?MODULE, multiple_after_clauses_in_receive);
 expand_receive(Meta, {Key, _}, _Acc, E) ->
-  compile_error(Meta, ?key(E, file), "unexpected keyword ~ts in receive", [Key]).
+  form_error(Meta, ?key(E, file), ?MODULE, {unexpected_keyword, 'receive', Key}).
 
 %% Try
 
 'try'(Meta, [], E) ->
-  compile_error(Meta, ?key(E, file), "missing do keyword in try");
+  form_error(Meta, ?key(E, file), ?MODULE, {missing_do, 'try'});
 'try'(Meta, [{do, _}], E) ->
-  compile_error(Meta, ?key(E, file), "missing catch/rescue/after/else keyword in try");
+  form_error(Meta, ?key(E, file), ?MODULE, missing_keyword_in_try);
 'try'(Meta, Opts, E) when not is_list(Opts) ->
-  compile_error(Meta, ?key(E, file), "invalid arguments for try");
+  form_error(Meta, ?key(E, file), ?MODULE, {invalid_args, 'try'});
 'try'(Meta, Opts, E) ->
-  RaiseError = fun(Kind) ->
-    compile_error(Meta, ?key(E, file), "duplicated ~ts clauses given for try", [Kind])
+  RaiseError = fun(Key) ->
+    form_error(Meta, ?key(E, file), ?MODULE, {duplicated_clauses, 'try', Key})
   end,
   ok = assert_at_most_once('do', Opts, 0, RaiseError),
   ok = assert_at_most_once('rescue', Opts, 0, RaiseError),
@@ -144,25 +143,24 @@ expand_try(Meta, {'catch', _} = Catch, E) ->
 expand_try(Meta, {'rescue', _} = Rescue, E) ->
   expand_without_export(Meta, 'try', fun expand_rescue/3, Rescue, E);
 expand_try(Meta, {Key, _}, E) ->
-  compile_error(Meta, ?key(E, file), "unexpected keyword ~ts in try", [Key]).
+  form_error(Meta, ?key(E, file), ?MODULE, {unexpected_keyword, 'try', Key}).
 
 expand_catch(_Meta, [_] = Args, E) ->
   head(Args, E);
 expand_catch(_Meta, [_, _] = Args, E) ->
   head(Args, E);
 expand_catch(Meta, _, E) ->
-  compile_error(Meta, ?key(E, file), "expected one or two args for catch clauses (->) in try").
+  form_error(Meta, ?key(E, file), ?MODULE, {wrong_number_of_args_for_clause, "one or two args", 'try', 'catch'}).
 
 expand_rescue(Meta, [Arg], E) ->
   case expand_rescue(Arg, E) of
     {EArg, EA} ->
       {[EArg], EA};
     false ->
-      compile_error(Meta, ?key(E, file), "invalid rescue clause. The clause should "
-        "match on an alias, a variable or be in the \"var in [alias]\" format")
+      form_error(Meta, ?key(E, file), ?MODULE, invalid_rescue_clause)
   end;
 expand_rescue(Meta, _, E) ->
-  compile_error(Meta, ?key(E, file), "expected one arg for rescue clauses (->) in try").
+  form_error(Meta, ?key(E, file), ?MODULE, {wrong_number_of_args_for_clause, "one arg", 'try', 'rescue'}).
 
 %% rescue var
 expand_rescue({Name, _, Atom} = Var, E) when is_atom(Name), is_atom(Atom) ->
@@ -201,8 +199,7 @@ expand_one(Meta, Kind, Key, Fun) ->
     ([_] = Args, E) ->
       Fun(Args, E);
     (_, E) ->
-      compile_error(Meta, ?key(E, file),
-        "expected one arg for ~ts clauses (->) in ~ts", [Key, Kind])
+      form_error(Meta, ?key(E, file), ?MODULE, {wrong_number_of_args_for_clause, "one arg", Kind, Key})
   end.
 
 %% Expands all -> pairs in a given key keeping the overall vars.
@@ -214,7 +211,7 @@ expand_with_export(Meta, Kind, Fun, {Key, Clauses}, Acc, E) when is_list(Clauses
   {EClauses, EVars} = lists:mapfoldl(Transformer, Acc, Clauses),
   {{Key, EClauses}, EVars};
 expand_with_export(Meta, Kind, _Fun, {Key, _}, _Acc, E) ->
-  compile_error(Meta, ?key(E, file), "expected -> clauses for ~ts in ~ts", [Key, Kind]).
+  form_error(Meta, ?key(E, file), ?MODULE, {bad_or_missing_clauses, {Kind, Key}}).
 
 %% Expands all -> pairs in a given key but do not keep the overall vars.
 expand_without_export(Meta, Kind, Fun, {Key, Clauses}, E) when is_list(Clauses) ->
@@ -224,7 +221,7 @@ expand_without_export(Meta, Kind, Fun, {Key, Clauses}, E) when is_list(Clauses) 
   end,
   {Key, lists:map(Transformer, Clauses)};
 expand_without_export(Meta, Kind, _Fun, {Key, _}, E) ->
-  compile_error(Meta, ?key(E, file), "expected -> clauses for ~ts in ~ts", [Key, Kind]).
+  form_error(Meta, ?key(E, file), ?MODULE, {bad_or_missing_clauses, {Kind, Key}}).
 
 assert_at_most_once(_Kind, [], _Count, _Fun) -> ok;
 assert_at_most_once(Kind, [{Kind, _} | _], 1, ErrorFun) ->
@@ -233,3 +230,27 @@ assert_at_most_once(Kind, [{Kind, _} | Rest], Count, Fun) ->
   assert_at_most_once(Kind, Rest, Count + 1, Fun);
 assert_at_most_once(Kind, [_ | Rest], Count, Fun) ->
   assert_at_most_once(Kind, Rest, Count, Fun).
+
+format_error({bad_or_missing_clauses, {Kind, Key}}) ->
+  io_lib:format("expected -> clauses for ~ts in ~ts", [Key, Kind]);
+format_error({bad_or_missing_clauses, Kind}) ->
+  io_lib:format("expected -> clauses in ~ts", [Kind]);
+format_error({missing_do, Kind}) ->
+  io_lib:format("missing do keyword in ~ts", [Kind]);
+format_error({invalid_args, Kind}) ->
+  io_lib:format("invalid arguments for ~ts", [Kind]);
+format_error({duplicated_clauses, Kind, Key}) ->
+  io_lib:format("duplicated ~ts clauses given for ~ts", [Key, Kind]);
+format_error({unexpected_keyword, Kind, Keyword}) ->
+  io_lib:format("unexpected keyword ~ts in ~ts", [Keyword, Kind]);
+format_error({wrong_number_of_args_for_clause, Expected, Kind, Key}) ->
+  io_lib:format("expected ~ts for ~ts clauses (->) in ~ts", [Expected, Key, Kind]);
+format_error(multiple_after_clauses_in_receive) ->
+  "expected a single -> clause for after in receive";
+format_error(missing_do_or_after_in_receive) ->
+  "missing do or after keyword in receive";
+format_error(missing_keyword_in_try) ->
+  "missing catch/rescue/after/else keyword in try";
+format_error(invalid_rescue_clause) ->
+  "invalid rescue clause. The clause should match on an alias, a variable "
+    "or be in the \"var in [alias]\" format".
