@@ -22,6 +22,8 @@ clause(_Meta, _Kind, Fun, {'->', Meta, [Left, Right]}, #{export_vars := ExportVa
   {ELeft, EL}  = Fun(Left, E),
   {ERight, ER} = elixir_expand:expand(Right, EL#{export_vars := ExportVars}),
   {{'->', Meta, [ELeft, ERight]}, ER};
+clause(Meta, {Kind, Key}, _Fun, _, E) ->
+  compile_error(Meta, ?key(E, file), "expected -> clauses for ~ts in ~ts", [Key, Kind]);
 clause(Meta, Kind, _Fun, _, E) ->
   compile_error(Meta, ?key(E, file), "expected -> clauses in ~ts", [Kind]).
 
@@ -206,7 +208,7 @@ expand_one(Meta, Kind, Key, Fun) ->
 %% Expands all -> pairs in a given key keeping the overall vars.
 expand_with_export(Meta, Kind, Fun, {Key, Clauses}, Acc, E) when is_list(Clauses) ->
   Transformer = fun(Clause, Vars) ->
-    {EClause, EC} = clause(Meta, Kind, Fun, Clause, E),
+    {EClause, EC} = clause(Meta, {Kind, Key}, Fun, Clause, E),
     {EClause, elixir_env:merge_vars(Vars, ?key(EC, export_vars))}
   end,
   {EClauses, EVars} = lists:mapfoldl(Transformer, Acc, Clauses),
@@ -217,7 +219,7 @@ expand_with_export(Meta, Kind, _Fun, {Key, _}, _Acc, E) ->
 %% Expands all -> pairs in a given key but do not keep the overall vars.
 expand_without_export(Meta, Kind, Fun, {Key, Clauses}, E) when is_list(Clauses) ->
   Transformer = fun(Clause) ->
-    {EClause, _} = clause(Meta, Kind, Fun, Clause, E),
+    {EClause, _} = clause(Meta, {Kind, Key}, Fun, Clause, E),
     EClause
   end,
   {Key, lists:map(Transformer, Clauses)};
