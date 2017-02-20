@@ -70,31 +70,17 @@ compile(Line, Module, Block, Vars, E) ->
     put_compiler_modules([Module | CompilerModules]),
     {Result, NE} = eval_form(Line, Module, Data, Block, Vars, E),
 
-    PersistedAttrs = ets:lookup_element(Data, ?persisted_attr, 2),
-    CompileOpts = lists:flatten(ets:lookup_element(Data, compile, 2)),
+    PersistedAttributes = ets:lookup_element(Data, ?persisted_attr, 2),
+    Attributes = attributes(Line, File, Data, PersistedAttributes),
     OnLoad = ets:lookup_element(Data, 'on_load', 2),
     [elixir_locals:record_local(Tuple, Module) || Tuple <- OnLoad],
 
-    {AllDefinitions, Unreachable} =
-      elixir_def:fetch_definitions(File, Module),
-    {Def, Defp, Defmacro, Defmacrop, Exports, Functions} =
-      elixir_erl:compile(File, Module, AllDefinitions, Unreachable),
+    {AllDefinitions, Unreachable} = elixir_def:fetch_definitions(File, Module),
+    Forms = elixir_erl:compile(Line, File, Module, Attributes, AllDefinitions, Unreachable),
 
-    Forms0 = functions_form(Line, File, Module, Def, Defp,
-                            Defmacro, Defmacrop, Exports, Functions),
-    Forms1 = specs_form(Data, Defmacro, Defmacrop, Unreachable, Forms0),
-    Forms2 = types_form(Data, Forms1),
-    Forms3 = attributes_form(Line, File, Data, PersistedAttrs, Forms2),
-    warn_unused_attributes(File, Data, PersistedAttrs),
-
-    Location = {elixir_utils:characters_to_list(elixir_utils:relative_to_cwd(File)), Line},
-
-    Final = [
-      {attribute, Line, file, Location},
-      {attribute, Line, module, Module} | Forms3
-    ],
-
-    Binary = load_form(Line, Data, Final, CompileOpts, NE),
+    CompileOpts = lists:flatten(ets:lookup_element(Data, compile, 2)),
+    Binary = load_form(Line, Data, Forms, CompileOpts, NE),
+    warn_unused_attributes(File, Data, PersistedAttributes),
     {module, Module, Binary, Result}
   catch
     error:undef ->
@@ -205,148 +191,28 @@ eval_callbacks(Line, Data, Name, Args, E) ->
 reset_env(Env) ->
   Env#{vars := [], export_vars := nil}.
 
-%% Return the form with exports and function declarations.
-
-functions_form(Line, File, Module, Def, Defp, Defmacro, Defmacrop, Exports, Body) ->
-  Pair = {'__info__', 1},
-  case lists:member(Pair, Def) or lists:member(Pair, Defp) or
-       lists:member(Pair, Defmacro) or lists:member(Pair, Defmacrop) of
-    true  ->
-      elixir_errors:form_error([{line, Line}], File, ?MODULE, {internal_function_overridden, Pair});
-    false ->
-      {Spec, Info} = add_info_function(Line, Module, Def, Defmacro),
-      [{attribute, Line, export, lists:sort([{'__info__', 1} | Exports])}, Spec, Info | Body]
-  end.
-
 %% Add attributes handling to the form
 
-attributes_form(Line, File, Data, PersistedAttrs, Current) ->
-  Transform = fun(Key, Acc) when is_atom(Key) ->
-    case ets:lookup(Data, Key) of
-      [{Key, Values, true, _}] ->
-        lists:foldl(fun(X, Final) ->
-          [{attribute, Line, Key, X} | Final]
-        end, Acc, process_accumulated(Line, File, Key, Values));
-      [{Key, Value, false, _}] ->
-        [{attribute, Line, Key, Value} | Acc];
-      [] ->
-        Acc
-    end
-  end,
-  lists:foldl(Transform, Current, PersistedAttrs).
+attributes(Line, File, Data, PersistedAttributes) ->
+  [{Key, Value} || Key <- PersistedAttributes,
+                   Value <- lookup_attribute(Line, File, Data, Key)].
 
-process_accumulated(Line, File, external_resource, Values) ->
-  lists:usort([process_external_resource(Line, File, Value) || Value <- Values]);
-process_accumulated(_Line, _File, _Key, Values) ->
-  Values.
+lookup_attribute(Line, File, Data, Key) when is_atom(Key) ->
+  case ets:lookup(Data, Key) of
+    [{resource, Values, true, _}] ->
+      lists:usort([validate_external_resource(Line, File, Value) || Value <- Values]);
+    [{Key, Values, true, _}] ->
+      Values;
+    [{Key, Value, false, _}] ->
+      [Value];
+    [] ->
+      []
+  end.
 
-process_external_resource(_Line, _File, Value) when is_binary(Value) ->
+validate_external_resource(_Line, _File, Value) when is_binary(Value) ->
   Value;
-process_external_resource(Line, File, Value) ->
+validate_external_resource(Line, File, Value) ->
   elixir_errors:form_error([{line, Line}], File, ?MODULE, {invalid_external_resource, Value}).
-
-%% Types
-
-types_form(Data, Forms0) ->
-  case elixir_compiler:get_opt(internal) of
-    false ->
-      Types0 = take_type_spec(Data, type) ++
-               take_type_spec(Data, typep) ++
-               take_type_spec(Data, opaque),
-      Types1 = ['Elixir.Kernel.Typespec':translate_type(Kind, Expr, Caller) ||
-                {Kind, Expr, Caller} <- Types0],
-
-      Forms1 = types_attributes(Types1, Forms0),
-      Forms2 = export_types_attributes(Types1, Forms1),
-      Forms2;
-    true ->
-      Forms0
-  end.
-
-types_attributes(Types, Forms) ->
-  Fun = fun({{Kind, _NameArity, Expr}, Line, _Export}, Acc) ->
-    [{attribute, Line, Kind, Expr} | Acc]
-  end,
-  lists:foldl(Fun, Forms, Types).
-
-export_types_attributes(Types, Forms) ->
-  Fun = fun
-    ({{_Kind, NameArity, _Expr}, Line, true}, Acc) ->
-      [{attribute, Line, export_type, [NameArity]} | Acc];
-    ({_Type, _Line, false}, Acc) ->
-      Acc
-  end,
-  lists:foldl(Fun, Forms, Types).
-
-%% Specs
-
-specs_form(Data, Defmacro, Defmacrop, Unreachable, Forms) ->
-  case elixir_compiler:get_opt(internal) of
-    false ->
-      Specs0 = take_type_spec(Data, spec) ++
-               take_type_spec(Data, callback) ++
-               take_type_spec(Data, macrocallback),
-      Specs1 = ['Elixir.Kernel.Typespec':translate_spec(Kind, Expr, Caller) ||
-                {Kind, Expr, Caller} <- Specs0],
-      Specs2 = lists:flatmap(fun(Spec) ->
-                               translate_macro_spec(Spec, Defmacro, Defmacrop)
-                             end, Specs1),
-      Specs3 = lists:filter(fun({{_Kind, NameArity, _Spec}, _Line}) ->
-                                not lists:member(NameArity, Unreachable)
-                            end, Specs2),
-      optional_callbacks_attributes(take_type_spec(Data, optional_callbacks), Specs3) ++
-        specs_attributes(Forms, Specs3);
-    true ->
-      Forms
-  end.
-
-specs_attributes(Forms, Specs) ->
-  Dict = lists:foldl(fun({{Kind, NameArity, Spec}, Line}, Acc) ->
-                       dict:append({Kind, NameArity}, {Spec, Line}, Acc)
-                     end, dict:new(), Specs),
-  dict:fold(fun({Kind, NameArity}, ExprsLines, Acc) ->
-    {Exprs, Lines} = lists:unzip(ExprsLines),
-    Line = lists:min(Lines),
-    [{attribute, Line, Kind, {NameArity, Exprs}} | Acc]
-  end, Forms, Dict).
-
-translate_macro_spec({{spec, NameArity, Spec}, Line}, Defmacro, Defmacrop) ->
-  case lists:member(NameArity, Defmacrop) of
-    true  -> [];
-    false ->
-      case lists:member(NameArity, Defmacro) of
-        true ->
-          {Name, Arity} = NameArity,
-          [{{spec, {elixir_utils:macro_name(Name), Arity + 1}, spec_for_macro(Spec)}, Line}];
-        false ->
-          [{{spec, NameArity, Spec}, Line}]
-      end
-  end;
-
-translate_macro_spec({{callback, NameArity, Spec}, Line}, _Defmacro, _Defmacrop) ->
-  [{{callback, NameArity, Spec}, Line}].
-
-spec_for_macro({type, Line, 'fun', [{type, _, product, Args} | T]}) ->
-  NewArgs = [{type, Line, term, []} | Args],
-  {type, Line, 'fun', [{type, Line, product, NewArgs} | T]};
-spec_for_macro(Else) ->
-  Else.
-
-optional_callbacks_attributes(OptionalCallbacksTypespec, Specs) ->
-  % We only take the specs of the callbacks (which are both callbacks and
-  % macrocallbacks).
-  Callbacks = [NameArity || {{callback, NameArity, _Spec}, _Line} <- Specs],
-  [{attribute, Line, optional_callbacks, macroify_callback_names(NamesArities, Callbacks)} ||
-    {Line, NamesArities} <- OptionalCallbacksTypespec].
-
-macroify_callback_names(NamesArities, Callbacks) ->
-  lists:map(fun({Name, Arity} = NameArity) ->
-                MacroNameArity = {elixir_utils:macro_name(Name), Arity + 1},
-                case lists:member(MacroNameArity, Callbacks) of
-                  true -> MacroNameArity;
-                  false -> NameArity
-                end
-            end, NamesArities).
 
 %% Loads the form into the code server.
 
@@ -404,12 +270,6 @@ get_type_docs(Data) ->
   lists:usort(ets:select(Data, [{{{typedoc, '$1'}, '$2', '$3', '$4'},
                                  [], [{{'$1', '$2', '$3', '$4'}}]}])).
 
-take_type_spec(Data, Key) ->
-  case ets:take(Data, Key) of
-    [{Key, Value, _, _}] -> Value;
-    [] -> []
-  end.
-
 check_module_availability(Line, File, Module) ->
   Reserved = ['Elixir.Any', 'Elixir.BitString', 'Elixir.Function', 'Elixir.PID',
               'Elixir.Reference', 'Elixir.Elixir', 'Elixir'],
@@ -436,59 +296,6 @@ warn_unused_attributes(File, Data, PersistedAttrs) ->
   Keys = ets:select(Data, [{{'$1', '_', '_', '$2'}, [{is_atom, '$1'}, {is_integer, '$2'}], [['$1', '$2']]}]),
   [elixir_errors:form_warn([{line, Line}], File, ?MODULE, {unused_attribute, Key}) ||
    [Key, Line] <- Keys, not lists:member(Key, ReservedAttrs)].
-
-% __INFO__
-
-add_info_function(Line, Module, Def, Defmacro) ->
-  AllowedArgs =
-    lists:map(fun(Atom) -> {atom, Line, Atom} end,
-              [attributes, compile, exports, functions, macros, md5, module]),
-
-  Spec =
-    {attribute, Line, spec, {{'__info__', 1},
-      [{type, Line, 'fun', [
-        {type, Line, product, [
-          {type, Line, union, AllowedArgs}
-        ]},
-        {type, Line, union, [
-          {type, Line, atom, []},
-          {type, Line, list, [
-            {type, Line, union, [
-              {type, Line, tuple, [
-                {type, Line, atom, []},
-                {type, Line, any, []}
-              ]},
-              {type, Line, tuple, [
-                {type, Line, atom, []},
-                {type, Line, byte, []},
-                {type, Line, integer, []}
-              ]}
-            ]}
-          ]}
-        ]}
-      ]}]
-    }},
-
-  Info =
-    {function, 0, '__info__', 1, [
-      functions_clause(Def),
-      macros_clause(Defmacro),
-      info_clause(Module)
-    ]},
-
-  {Spec, Info}.
-
-functions_clause(Def) ->
-  {clause, 0, [{atom, 0, functions}], [], [elixir_erl:elixir_to_erl(lists:sort(Def))]}.
-
-macros_clause(Defmacro) ->
-  {clause, 0, [{atom, 0, macros}], [], [elixir_erl:elixir_to_erl(lists:sort(Defmacro))]}.
-
-info_clause(Module) ->
-  Info = {call, 0,
-            {remote, 0, {atom, 0, erlang}, {atom, 0, get_module_info}},
-            [{atom, 0, Module}, {var, 0, info}]},
-  {clause, 0, [{var, 0, info}], [], [Info]}.
 
 % HELPERS
 
@@ -541,8 +348,6 @@ format_error({unused_attribute, doc}) ->
   "module attribute @doc was set but no definition follows it";
 format_error({unused_attribute, Attr}) ->
   io_lib:format("module attribute @~ts was set but never used", [Attr]);
-format_error({internal_function_overridden, {Name, Arity}}) ->
-  io_lib:format("function ~ts/~B is internal and should not be overridden", [Name, Arity]);
 format_error({invalid_module, Module}) ->
   io_lib:format("invalid module name: ~ts", ['Elixir.Kernel':inspect(Module)]);
 format_error({module_defined, Module}) ->

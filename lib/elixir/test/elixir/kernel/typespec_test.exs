@@ -830,13 +830,13 @@ defmodule Kernel.TypespecTest do
   end
 
   test "callbacks" do
-    assert SampleCallbacks.behaviour_info(:callbacks) ==
-           ["MACRO-last": 1, first: 1, guarded: 1, "MACRO-last": 2, literal: 5, orr: 1, foo: 2, bar: 2]
+    assert SampleCallbacks.behaviour_info(:callbacks) |> Enum.sort() ==
+           ["MACRO-last": 1, "MACRO-last": 2, bar: 2, first: 1, foo: 2, guarded: 1, literal: 5, orr: 1]
   end
 
   test "optional callbacks" do
-    assert SampleCallbacks.behaviour_info(:optional_callbacks) ==
-           [bar: 2, "MACRO-last": 1]
+    assert SampleCallbacks.behaviour_info(:optional_callbacks) |> Enum.sort() ==
+           ["MACRO-last": 1, bar: 2]
   end
 
   test "default is not supported" do
