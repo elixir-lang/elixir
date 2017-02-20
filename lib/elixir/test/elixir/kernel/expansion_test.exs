@@ -479,7 +479,7 @@ defmodule Kernel.ExpansionTest do
         baz()
       end
 
-      assert input |> expand() |> clean_meta([:export_vars, :generated, :location]) == result
+      assert input |> expand() |> clean_meta([:export_vars, :generated]) == result
     end
 
     test "variables are available in do option" do
@@ -493,7 +493,7 @@ defmodule Kernel.ExpansionTest do
         baz()
       end
 
-      assert input |> expand() |> clean_meta([:export_vars, :generated, :location]) == result
+      assert input |> expand() |> clean_meta([:export_vars, :generated]) == result
     end
 
     test "variables inside else do not leak" do
@@ -512,7 +512,7 @@ defmodule Kernel.ExpansionTest do
         baz()
       end
 
-      assert input |> expand() |> clean_meta([:export_vars, :generated, :location]) == result
+      assert input |> expand() |> clean_meta([:export_vars, :generated]) == result
     end
 
     test "fails if \"do\" is missing" do
