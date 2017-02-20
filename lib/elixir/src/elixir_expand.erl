@@ -134,17 +134,17 @@ expand({quote, Meta, [Opts]}, E) when is_list(Opts) ->
     {do, Do} ->
       expand({quote, Meta, [lists:keydelete(do, 1, Opts), [{do, Do}]]}, E);
     false ->
-      form_error(Meta, ?key(E, file), ?MODULE, missing_do_in_quote)
+      form_error(Meta, ?key(E, file), ?MODULE, {missing_option, 'quote', [do]})
   end;
 
 expand({quote, Meta, [_]}, E) ->
-  form_error(Meta, ?key(E, file), ?MODULE, invalid_args_for_quote);
+  form_error(Meta, ?key(E, file), ?MODULE, {invalid_args, 'quote'});
 
 expand({quote, Meta, [Opts, Do]}, E) when is_list(Do) ->
   Exprs =
     case lists:keyfind(do, 1, Do) of
       {do, Expr} -> Expr;
-      false -> form_error(Meta, ?key(E, file), ?MODULE, missing_do_in_quote)
+      false -> form_error(Meta, ?key(E, file), ?MODULE, {missing_option, 'quote', [do]})
     end,
 
   ValidOpts = [context, location, line, file, unquote, bind_quoted, generated],
@@ -199,7 +199,7 @@ expand({quote, Meta, [Opts, Do]}, E) when is_list(Do) ->
   expand(Quoted, ET);
 
 expand({quote, Meta, [_, _]}, E) ->
-  form_error(Meta, ?key(E, file), ?MODULE, invalid_args_for_quote);
+  form_error(Meta, ?key(E, file), ?MODULE, {invalid_args, 'quote'});
 
 %% Functions
 
@@ -263,8 +263,7 @@ expand({for, Meta, [_ | _] = Args}, E) ->
       {value, {do, Do}, DoOpts} ->
         {Do, DoOpts};
       false ->
-        elixir_errors:compile_error(Meta, ?key(E, file),
-          "missing do keyword in for comprehension")
+        form_error(Meta, ?key(E, file), ?MODULE, {missing_option, for, [do]})
     end,
 
   {EOpts, EO} = expand(Opts, E),
@@ -807,6 +806,11 @@ format_error({useless_attr, Attr}) ->
                 [Attr]);
 
 %% Errors.
+format_error({missing_option, Construct, Opts}) when is_list(Opts) ->
+  StringOpts = lists:map(fun(Opt) -> [$: | atom_to_list(Opt)] end, Opts),
+  io_lib:format("missing ~ts option in \"~ts\"", [string:join(StringOpts, "/"), Construct]);
+format_error({invalid_args, Construct}) ->
+  io_lib:format("invalid arguments for \"~ts\"", [Construct]);
 format_error(for_generator_start) ->
   "for comprehensions must start with a generator";
 format_error(unhandled_arrow_op) ->
@@ -819,10 +823,6 @@ format_error({expected_compile_time_module, Kind, GivenTerm}) ->
 format_error({unquote_outside_quote, Unquote}) ->
   %% Unquote can be "unquote" or "unquote_splicing".
   io_lib:format("~p called outside quote", [Unquote]);
-format_error(missing_do_in_quote) ->
-  "missing do keyword in quote";
-format_error(invalid_args_for_quote) ->
-  "invalid arguments for quote";
 format_error({invalid_context_opt_for_quote, Context}) ->
   io_lib:format("invalid :context for quote, expected non-nil compile time atom or alias, got: ~ts",
                 ['Elixir.Macro':to_string(Context)]);
@@ -843,7 +843,7 @@ format_error({undefined_var, Name, Kind}) ->
     "or be part of a match",
   io_lib:format(Message, [Name, elixir_erl_var:context_info(Kind)]);
 format_error(underscore_in_cond) ->
-  "unbound variable _ inside cond. If you want the last clause to always match, "
+  "unbound variable _ inside \"cond\". If you want the last clause to always match, "
     "you probably meant to use: true ->";
 format_error(invalid_expr_in_guard) ->
   "invalid expression in guard";

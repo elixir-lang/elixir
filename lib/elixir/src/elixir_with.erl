@@ -1,5 +1,5 @@
 -module(elixir_with).
--export([expand/3, format_error/1]).
+-export([expand/3]).
 -include("elixir.hrl").
 
 expand(Meta, Args, Env) ->
@@ -16,7 +16,7 @@ expand(Meta, Args, Env) ->
       {value, {do, DoValue}, RestOpts1} ->
         {DoValue, RestOpts1};
       false ->
-        elixir_errors:form_error(Meta, ?key(Env, file), ?MODULE, missing_do_in_with)
+        elixir_errors:form_error(Meta, ?key(Env, file), elixir_expand, {missing_option, 'with', [do]})
     end,
 
   {ElseExpr, OtherOpts2} =
@@ -30,7 +30,7 @@ expand(Meta, Args, Env) ->
 
   case OtherOpts2 of
     [{Key, _} | _] ->
-      elixir_errors:form_error(Meta, ?key(Env, file), ?MODULE, {unexpected_keyword, Key});
+      elixir_errors:form_error(Meta, ?key(Env, file), elixir_clauses, {unexpected_option, with, Key});
     [] ->
       ok
   end,
@@ -62,7 +62,7 @@ assert_clauses(_Meta, [], _Env) ->
 assert_clauses(Meta, [{'->', _, [_, _]} | Rest], Env) ->
   assert_clauses(Meta, Rest, Env);
 assert_clauses(Meta, _Other, Env) ->
-  elixir_errors:form_error(Meta, ?key(Env, file), ?MODULE, expected_clauses_for_else).
+  elixir_errors:form_error(Meta, ?key(Env, file), elixir_clauses, {bad_or_missing_clauses, {with, else}}).
 
 build_main_case([{'<-', Meta, [{Name, _, Ctx}, _] = Args} | Rest], DoExpr, Wrapper, HasMatch)
     when is_atom(Name) andalso is_atom(Ctx) ->
@@ -103,10 +103,3 @@ wrap_pattern({'when', Meta, [Left, Right]}, Wrapper) ->
   {'when', Meta, [Wrapper(Left), Right]};
 wrap_pattern(Expr, Wrapper) ->
   Wrapper(Expr).
-
-format_error(missing_do_in_with) ->
-  "missing do keyword in with";
-format_error({unexpected_keyword, Key}) ->
-  io_lib:format("unexpected keyword ~ts in with", [Key]);
-format_error(expected_clauses_for_else) ->
-  "expected -> clauses for else in with".

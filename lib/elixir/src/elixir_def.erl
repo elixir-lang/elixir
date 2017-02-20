@@ -170,7 +170,7 @@ def_to_clauses(_Kind, Meta, Args, [], nil, E) ->
   check_args_for_bodyless_clause(Meta, Args, E),
   [];
 def_to_clauses(Kind, Meta, _Args, _Guards, nil, E) ->
-  elixir_errors:form_error(Meta, ?key(E, file), ?MODULE, {missing_do, Kind});
+  elixir_errors:form_error(Meta, ?key(E, file), elixir_expand, {missing_option, Kind, [do]});
 def_to_clauses(_Kind, Meta, Args, Guards, [{do, Body}], _E) ->
   [{Meta, Args, Guards, Body}];
 def_to_clauses(_Kind, Meta, Args, Guards, Body, _E) ->
@@ -365,7 +365,4 @@ format_error(invalid_args_for_bodyless_clause) ->
 
 format_error({is_record, Kind}) ->
   io_lib:format("cannot define function named ~ts is_record/2 due to compatibility "
-                "issues with the Erlang compiler (it is a known bug)", [Kind]);
-
-format_error({missing_do, Kind}) ->
-  io_lib:format("missing do keyword in ~ts", [Kind]).
+                "issues with the Erlang compiler (it is a known bug)", [Kind]).
