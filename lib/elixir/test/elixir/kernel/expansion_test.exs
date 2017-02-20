@@ -349,7 +349,7 @@ defmodule Kernel.ExpansionTest do
     end
 
     test "raises for missing do" do
-      assert_raise CompileError, ~r"missing :do in \"quote\"", fn ->
+      assert_raise CompileError, ~r"missing :do option in \"quote\"", fn ->
         expand(quote do: (quote context: Foo))
       end
     end
@@ -462,7 +462,7 @@ defmodule Kernel.ExpansionTest do
 
     test "require do keyword" do
       assert_raise CompileError,
-        ~r"missing do keyword in for comprehension",
+        ~r"missing :do option in \"for\"",
         fn -> expand(quote do: for x <- 1..2) end
     end
   end
@@ -516,7 +516,7 @@ defmodule Kernel.ExpansionTest do
     end
 
     test "fails if \"do\" is missing" do
-      assert_raise CompileError, ~r"missing :do in \"with\"", fn ->
+      assert_raise CompileError, ~r"missing :do option in \"with\"", fn ->
         expand(quote do: with(_ <- true, []))
       end
     end
@@ -664,7 +664,7 @@ defmodule Kernel.ExpansionTest do
     end
 
     test "expects exactly one do" do
-      assert_raise CompileError, ~r"missing :do in \"cond\"", fn ->
+      assert_raise CompileError, ~r"missing :do option in \"cond\"", fn ->
         expand(quote do: (cond []))
       end
 
@@ -735,7 +735,7 @@ defmodule Kernel.ExpansionTest do
     end
 
     test "expects exactly one do" do
-      assert_raise CompileError, ~r"missing :do in \"case\"", fn ->
+      assert_raise CompileError, ~r"missing :do option in \"case\"", fn ->
         expand(quote(do: (case e, [])))
       end
 
@@ -805,7 +805,7 @@ defmodule Kernel.ExpansionTest do
     end
 
     test "expects exactly one do or after" do
-      assert_raise CompileError, ~r"missing :do/:after in \"receive\"", fn ->
+      assert_raise CompileError, ~r"missing :do/:after option in \"receive\"", fn ->
         expand(quote do: (receive []))
       end
 
@@ -879,13 +879,13 @@ defmodule Kernel.ExpansionTest do
     end
 
     test "expects more than do" do
-      assert_raise CompileError, ~r"missing :catch/:rescue/:after/:else in \"try\"", fn ->
+      assert_raise CompileError, ~r"missing :catch/:rescue/:after/:else option in \"try\"", fn ->
         expand(quote do: (try do x = y end; x))
       end
     end
 
     test "raises if do is missing" do
-      assert_raise CompileError, ~r"missing :do in \"try\"", fn ->
+      assert_raise CompileError, ~r"missing :do option in \"try\"", fn ->
         expand(quote do: (try []))
       end
     end

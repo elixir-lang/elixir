@@ -263,8 +263,7 @@ expand({for, Meta, [_ | _] = Args}, E) ->
       {value, {do, Do}, DoOpts} ->
         {Do, DoOpts};
       false ->
-        elixir_errors:compile_error(Meta, ?key(E, file),
-          "missing do keyword in for comprehension")
+        form_error(Meta, ?key(E, file), ?MODULE, {missing_options, for, [do]})
     end,
 
   {EOpts, EO} = expand(Opts, E),
@@ -808,9 +807,8 @@ format_error({useless_attr, Attr}) ->
 
 %% Errors.
 format_error({missing_options, Construct, Opts}) when is_list(Opts) ->
-  StringOpts = lists:map(fun 'Elixir.Macro':to_string/1, Opts),
-  FormattedOpts = iolist_to_binary(lists:join($/, StringOpts)),
-  io_lib:format("missing ~ts in \"~ts\"", [FormattedOpts, Construct]);
+  StringOpts = lists:map(fun(Opt) -> [$: | atom_to_list(Opt)] end, Opts),
+  io_lib:format("missing ~ts option in \"~ts\"", [string:join(StringOpts, "/"), Construct]);
 format_error({invalid_args, Construct}) ->
   io_lib:format("invalid arguments for \"~ts\"", [Construct]);
 format_error(for_generator_start) ->
