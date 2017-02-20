@@ -188,22 +188,19 @@ translate({{'.', _, [Left, Right]}, Meta, []}, S)
   {Var, _, SV} = elixir_erl_var:build('_', SL),
 
   Ann = ?ann(Meta),
-  Generated = ?generated(Meta),
+  Generated = erl_anno:set_generated(true, Ann),
   TRight = {atom, Ann, Right},
   TVar = {var, Ann, Var},
   TError = {tuple, Ann, [{atom, Ann, badkey}, TRight, TVar]},
 
-  %% TODO: there is a bug in Dialyzer that warns about generated matches that
-  %% can never match on line 0. The is_map/1 guard is used instead of matching
-  %% against an empty map to avoid the warning.
   {{'case', Generated, TLeft, [
     {clause, Generated,
       [{map, Ann, [{map_field_exact, Ann, TRight, TVar}]}],
       [],
       [TVar]},
-    {clause, ?generated,
+    {clause, Generated,
       [TVar],
-      [[elixir_erl:remote(?generated, erlang, is_map, [TVar])]],
+      [[elixir_erl:remote(Generated, erlang, is_map, [TVar])]],
       [elixir_erl:remote(Ann, erlang, error, [TError])]},
     {clause, Generated,
       [TVar],
@@ -368,7 +365,7 @@ translate_map(Meta, Assocs, S) ->
 
 translate_struct(Meta, Name, {'%{}', _, [{'|', _, [Update, Assocs]}]}, S) ->
   Ann = ?ann(Meta),
-  Generated = ?generated,
+  Generated = erl_anno:set_generated(true, Ann),
   {VarName, _, VS} = elixir_erl_var:build('_', S),
 
   Var = {var, Ann, VarName},
@@ -424,7 +421,7 @@ translate_remote('Elixir.String.Chars', to_string, Meta, [Arg], S) ->
   {TArg, TS} = translate(Arg, S),
   {VarName, _, VS} = elixir_erl_var:build(rewrite, TS),
 
-  Generated = ?ann(?generated(Meta)),
+  Generated = erl_anno:set_generated(true, ?ann(Meta)),
   Var   = {var, Generated, VarName},
   Guard = elixir_erl:remote(Generated, erlang, is_binary, [Var]),
   Slow  = elixir_erl:remote(Generated, 'Elixir.String.Chars', to_string, [Var]),
