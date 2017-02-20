@@ -68,11 +68,17 @@ defmodule Mix.Task do
     # entire load path so make sure we only return unique modules.
 
     for(dir <- dirs,
-        {:ok, files} = :erl_prim_loader.list_dir(to_charlist(dir)),
-        file <- files,
+        file <- safe_list_dir(to_charlist(dir)),
         mod = task_from_path(file),
         do: mod)
     |> Enum.uniq
+  end
+
+  defp safe_list_dir(path) do
+    case :erl_prim_loader.list_dir(path) do
+      {:ok, paths} -> paths
+      {:error, _} -> []
+    end
   end
 
   @prefix_size byte_size("Elixir.Mix.Tasks.")
