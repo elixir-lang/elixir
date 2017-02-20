@@ -782,7 +782,7 @@ assert_no_guard_scope(_Meta, _Kind, _E) -> [].
 %% would raise if we found a "_ -> ..." clause in a "cond". For this reason, if
 %% Clauses has a bad shape, we just do nothing and let future functions catch
 %% this.
-assert_no_underscore_clause_in_cond([{do, Clauses}], E) ->
+assert_no_underscore_clause_in_cond([{do, Clauses}], E) when is_list(Clauses) ->
   case lists:last(Clauses) of
     {'->', Meta, [[{'_', _, Atom}], _]} when is_atom(Atom) ->
       form_error(Meta, ?key(E, file), ?MODULE, underscore_in_cond);
