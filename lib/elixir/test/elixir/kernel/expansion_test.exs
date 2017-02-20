@@ -667,6 +667,16 @@ defmodule Kernel.ExpansionTest do
       end
     end
 
+    test "expects clauses" do
+      assert_raise CompileError, ~r"expected -> clauses for do in cond", fn ->
+        expand(quote do: (cond do: :ok))
+      end
+
+      assert_raise CompileError, ~r"expected -> clauses for do in cond", fn ->
+        expand(quote do: (cond do: [:not, :clauses]))
+      end
+    end
+
     test "expects one argument in clauses" do
       assert_raise CompileError, ~r"expected one arg for do clauses \(->\) in cond", fn ->
         expand(quote do: (cond do _, _ -> :ok end))
@@ -731,6 +741,10 @@ defmodule Kernel.ExpansionTest do
     test "expects clauses" do
       assert_raise CompileError, ~r"expected -> clauses for do in case", fn ->
         expand(quote do: (case e do x end))
+      end
+
+      assert_raise CompileError, ~r"expected -> clauses for do in case", fn ->
+        expand(quote do: (case e do [:not, :clauses] end))
       end
     end
 
@@ -801,6 +815,10 @@ defmodule Kernel.ExpansionTest do
     test "expects clauses" do
       assert_raise CompileError, ~r"expected -> clauses for do in receive", fn ->
         expand(quote do: (receive do x end))
+      end
+
+      assert_raise CompileError, ~r"expected -> clauses for do in receive", fn ->
+        expand(quote do: (receive do [:not, :clauses] end))
       end
     end
 
@@ -929,12 +947,24 @@ defmodule Kernel.ExpansionTest do
         expand(quote do: (try do e rescue x end))
       end
 
+      assert_raise CompileError, ~r"expected -> clauses for rescue in try", fn ->
+        expand(quote do: (try do e rescue [:not, :clauses] end))
+      end
+
       assert_raise CompileError, ~r"expected -> clauses for catch in try", fn ->
         expand(quote do: (try do e catch x end))
       end
 
+      assert_raise CompileError, ~r"expected -> clauses for catch in try", fn ->
+        expand(quote do: (try do e catch [:not, :clauses] end))
+      end
+
       assert_raise CompileError, ~r"expected -> clauses for else in try", fn ->
         expand(quote do: (try do e else x end))
+      end
+
+      assert_raise CompileError, ~r"expected -> clauses for else in try", fn ->
+        expand(quote do: (try do e else [:not, :clauses] end))
       end
     end
   end
