@@ -16,9 +16,10 @@ defmodule EEx.Compiler do
     trim   = opts[:trim] || false
     case EEx.Tokenizer.tokenize(source, line, trim: trim) do
       {:ok, tokens} ->
-        state = %{engine: opts[:engine] || @default_engine,
+        state = %{engine: opts[:engine] || @default_engine, init: nil,
                   file: file, line: line, quoted: [], start_line: nil}
-        generate_buffer(tokens, state.engine.init(opts), [], state)
+        init = state.engine.init(opts)
+        generate_buffer(tokens, init, [], %{state | init: init})
       {:error, line, message} ->
         raise EEx.SyntaxError, line: line, file: file, message: message
     end
@@ -40,15 +41,16 @@ defmodule EEx.Compiler do
 
   defp generate_buffer([{:start_expr, start_line, mark, chars} | t], buffer, scope, state) do
     {contents, line, t} = look_ahead_text(t, start_line, chars)
-    {contents, t} = generate_buffer(t, "", [contents | scope],
-                                    %{state | quoted: [], line: line, start_line: start_line})
+    {contents, t} =
+      generate_buffer(t, state.init, [contents | scope],
+                      %{state | quoted: [], line: line, start_line: start_line})
     buffer = state.engine.handle_expr(buffer, IO.chardata_to_string(mark), contents)
     generate_buffer(t, buffer, scope, state)
   end
 
   defp generate_buffer([{:middle_expr, line, '', chars} | t], buffer, [current | scope], state) do
     {wrapped, state} = wrap_expr(current, line, buffer, chars, state)
-    generate_buffer(t, "", [wrapped | scope], %{state | line: line})
+    generate_buffer(t, state.init, [wrapped | scope], %{state | line: line})
   end
 
   defp generate_buffer([{:middle_expr, line, modifier, chars} | _], _buffer, _, state) do
