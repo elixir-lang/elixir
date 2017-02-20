@@ -505,7 +505,7 @@ defmodule ExUnit.Assertions do
 
   defp no_warning({name, meta, [expr, [do: clauses]]}) do
     clauses = Enum.map clauses, fn {:->, meta, args} ->
-      {:->, [generated: true] ++ Keyword.put(meta, :line, -1), args}
+      {:->, [generated: true] ++ meta, args}
     end
     {name, meta, [expr, [do: clauses]]}
   end
