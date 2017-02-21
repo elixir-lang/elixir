@@ -151,13 +151,9 @@ defmodule Calendar.ISO do
     zero_pad(hour, 2) <> ":" <> zero_pad(minute, 2) <> ":" <> zero_pad(second, 2)
   end
 
-  @doc false
-  def date(year, month, day) when is_integer(year) and is_integer(month) and is_integer(day) do
-    if :calendar.valid_date(year, month, day) and year <= 9999 do
-      {:ok, %Date{year: year, month: month, day: day}}
-    else
-      {:error, :invalid_date}
-    end
+  @doc "Checks if an ISO date is valid or not"
+  def is_valid_date(year, month, day) do
+    :calendar.valid_date(year, month, day) and year <= 9999
   end
 
   @doc false
@@ -171,6 +167,15 @@ defmodule Calendar.ISO do
       {date, time} = :calendar.gregorian_seconds_to_datetime(@unix_epoch + div(total, 1_000_000))
       {:ok, date, time, {microsecond, precision}}
     end
+  end
+
+  @doc false
+  def to_unix({year, month, day}, {hour, minute, second}, {microsecond, _precision}, std_offset, utc_offset, unit) do
+    seconds =
+      :calendar.datetime_to_gregorian_seconds({{year, month, day}, {hour, minute, second}})
+      |> Kernel.-(utc_offset)
+      |> Kernel.-(std_offset)
+    System.convert_time_unit((seconds - @unix_epoch) * 1_000_000 + microsecond, :microsecond, unit)
   end
 
   defp precision_for_unit(unit) do

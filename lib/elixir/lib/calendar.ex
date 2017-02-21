@@ -99,6 +99,21 @@ defmodule Calendar do
   """
   @callback datetime_to_string(year, month, day, hour, minute, second, microsecond,
                                time_zone, zone_abbr, utc_offset, std_offset) :: String.t
+
+  @doc """
+  for converting a unix epoch to it's equivalant destination calendar datetime
+  """
+  @callback from_unix(Integer.t, atom) :: {:ok, {year, month, day}, {hour, minute, second}, {microsecond, Integer.t}}
+
+  @doc """
+  for converting date time to it's equivalant unix epoch
+  """
+  @callback to_unix({year, month, day}, {hour, minute, second}, {microsecond, Integer.t}, Calendar.utc_offset, Calendar.std_offset, atom) :: {:ok, Integer.t} | {:error, atom}
+
+  @doc """
+  Checks if a date valid in specified calendar
+  """
+  @callback is_valid_date(year, month, day) :: boolean
 end
 
 defmodule Date do
@@ -152,9 +167,9 @@ defmodule Date do
 
   """
   @spec utc_today() :: t
-  def utc_today() do
-    {:ok, {year, month, day}, _, _} = Calendar.ISO.from_unix(:os.system_time, :native)
-    %Date{year: year, month: month, day: day}
+  def utc_today(calendar \\ Calendar.ISO) do
+    {:ok, {year, month, day}, _, _} = calendar.from_unix(:os.system_time, :native)
+    %Date{year: year, month: month, day: day, calendar: calendar}
   end
 
   @doc """
@@ -179,6 +194,20 @@ defmodule Date do
 
   def leap_year?(%{calendar: calendar, year: year}) do
     calendar.leap_year?(year)
+  end
+
+  @doc """
+  Returns a new date based on `dst_calendar` chronology
+
+  ## Parameters
+    - arg1: a Date struct
+    - dst_calendar: destination calendar to convert date to
+  """
+  @spec convert(Date.t, Calendar.calendar) :: Date.t
+  def convert(%Date{calendar: org_calendar, year: year, month: month, day: day}, dst_calendar) do
+     {:ok, date} = org_calendar.to_unix({year, month, day}, {0, 0, 0}, {0, 0}, 0, 0, :millisecond)
+     {:ok, {year, month, day}, _, _} = dst_calendar.from_unix(date, :millisecond)
+     %Date{calendar: dst_calendar, year: year, month: month, day: day}
   end
 
   @doc """
@@ -223,8 +252,12 @@ defmodule Date do
 
   """
   @spec new(Calendar.year, Calendar.month, Calendar.day) :: {:ok, t} | {:error, atom}
-  def new(year, month, day) do
-    Calendar.ISO.date(year, month, day)
+  def new(year, month, day, calendar \\ Calendar.ISO) do
+    if calendar.is_valid_date(year, month, day) do
+      {:ok, %Date{year: year, month: month, day: day}}
+    else
+      {:error, :invalid_date}
+    end
   end
 
   @doc """
@@ -920,8 +953,8 @@ defmodule NaiveDateTime do
   @spec new(Calendar.year, Calendar.month, Calendar.day,
             Calendar.hour, Calendar.minute, Calendar.second, Calendar.microsecond) ::
         {:ok, t} | {:error, atom}
-  def new(year, month, day, hour, minute, second, microsecond \\ {0, 0}) do
-    with {:ok, date} <- Calendar.ISO.date(year, month, day),
+  def new(year, month, day, hour, minute, second, microsecond \\ {0, 0}, calendar \\ Calendar.ISO) do
+    with {:ok, date} <- Date.new(year, month, day, calendar),
          {:ok, time} <- Time.new(hour, minute, second, microsecond),
          do: new(date, time)
   end
@@ -1327,6 +1360,22 @@ defmodule NaiveDateTime do
     end
   end
 
+  @doc """
+  Returns a new DateTime based on `dst_calendar` chronology
+
+  ## Parameters
+    - arg1: a DateTime struct
+    - dst_calendar: destination calendar to convert DateTime to
+  """
+  @spec convert(NaiveDateTime.t, Calendar.calendar) :: NaiveDateTime.t
+  def convert(%NaiveDateTime{calendar: org_calendar, year: year, month: month, day: day,
+                  hour: hour, minute: minute, second: second, microsecond: {microsecond, precision}}, dst_calendar) do
+     {:ok, date} = org_calendar.to_unix({year, month, day}, {hour, minute, second}, {microsecond, precision}, 0, 0, :microsecond)
+     {:ok, {year, month, day}, {hour, minute, second}, {microsecond, precision}} = dst_calendar.from_unix(date, :microsecond)
+     %NaiveDateTime{calendar: dst_calendar, year: year, month: month, day: day,
+                     hour: hour, minute: minute, second: second, microsecond: {microsecond, precision}}
+  end
+
   ## Helpers
 
   defp to_microsecond(%{calendar: Calendar.ISO, year: year, month: month, day: day,
@@ -1461,12 +1510,12 @@ defmodule DateTime do
   When a Unix time before that moment is passed to `from_unix/2`, `:error` will be returned.
   """
   @spec from_unix(integer, :native | System.time_unit) :: {:ok, DateTime.t} | {:error, atom}
-  def from_unix(integer, unit \\ :second) when is_integer(integer) do
-    case Calendar.ISO.from_unix(integer, unit) do
+  def from_unix(integer, unit \\ :second, calendar \\ Calendar.ISO) when is_integer(integer) do
+    case calendar.from_unix(integer, unit) do
       {:ok, {year, month, day}, {hour, minute, second}, microsecond} ->
         {:ok, %DateTime{year: year, month: month, day: day,
                         hour: hour, minute: minute, second: second, microsecond: microsecond,
-                        std_offset: 0, utc_offset: 0, zone_abbr: "UTC", time_zone: "Etc/UTC"}}
+                        std_offset: 0, utc_offset: 0, zone_abbr: "UTC", time_zone: "Etc/UTC", calendar: calendar}}
       {:error, _} = error ->
         error
     end
@@ -1592,14 +1641,10 @@ defmodule DateTime do
   @spec to_unix(DateTime.t, System.time_unit) :: non_neg_integer
   def to_unix(datetime, unit \\ :second)
 
-  def to_unix(%DateTime{calendar: Calendar.ISO, std_offset: std_offset, utc_offset: utc_offset,
-                        hour: hour, minute: minute, second: second, microsecond: {microsecond, _},
+  def to_unix(%DateTime{calendar: calendar, std_offset: std_offset, utc_offset: utc_offset,
+                        hour: hour, minute: minute, second: second, microsecond: {microsecond, precision},
                         year: year, month: month, day: day}, unit) when year >= 0 do
-    seconds =
-      :calendar.datetime_to_gregorian_seconds({{year, month, day}, {hour, minute, second}})
-      |> Kernel.-(utc_offset)
-      |> Kernel.-(std_offset)
-    System.convert_time_unit((seconds - @unix_epoch) * 1_000_000 + microsecond, :microsecond, unit)
+    calendar.to_unix({year, month, day}, {hour, minute, second}, {microsecond, precision}, std_offset, utc_offset, unit)
   end
 
   @doc """
@@ -1754,7 +1799,7 @@ defmodule DateTime do
          {min, ""} <- Integer.parse(min),
          {sec, ""} <- Integer.parse(sec),
          {microsec, rest} <- Calendar.ISO.parse_microsecond(rest),
-         {:ok, date} <- Calendar.ISO.date(year, month, day),
+         {:ok, date} <- Date.new(year, month, day),
          {:ok, time} <- Time.new(hour, min, sec, microsec),
          {:ok, offset} <- parse_offset(rest) do
       %{year: year, month: month, day: day} = date
@@ -1856,5 +1901,23 @@ defmodule DateTime do
       {first, second} when first < second -> :lt
       _ -> :eq
     end
+  end
+
+  @doc """
+  Returns a new DateTime based on `dst_calendar` chronology
+
+  ## Parameters
+    - arg1: a DateTime struct
+    - dst_calendar: destination calendar to convert DateTime to
+  """
+  @spec convert(DateTime.t, Calendar.calendar) :: DateTime.t
+  def convert(%DateTime{calendar: org_calendar, year: year, month: month, day: day,
+                  hour: hour, minute: minute, second: second, microsecond: {microsecond, precision},
+                  time_zone: time_zone, zone_abbr: zone_abbr, utc_offset: utc_offset, std_offset: std_offset}, dst_calendar) do
+     {:ok, date} = org_calendar.to_unix({year, month, day}, {hour, minute, second}, {microsecond, precision}, std_offset, utc_offset, :microsecond)
+     {:ok, {year, month, day}, {hour, minute, second}, {microsecond, precision}} = dst_calendar.from_unix(date, :microsecond)
+     %DateTime{calendar: dst_calendar, year: year, month: month, day: day,
+                     hour: hour, minute: minute, second: second, microsecond: {microsecond, precision},
+                     time_zone: time_zone, zone_abbr: zone_abbr, utc_offset: utc_offset, std_offset: std_offset}
   end
 end
