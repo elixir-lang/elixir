@@ -527,7 +527,7 @@ defmodule Kernel.ExpansionTest do
       end
 
       assert_raise CompileError, ~r"expected -> clauses for :else in \"with\"", fn ->
-        expand(quote(do: with(_ <- true, do: :ok, else: ())))
+        expand(quote(do: with(_ <- true, do: :ok, else: :error)))
       end
     end
 
@@ -603,8 +603,8 @@ defmodule Kernel.ExpansionTest do
 
     test "fails on nested capture" do
       assert_raise CompileError,
-        ~r"nested captures via & are not allowed: &\(nil\)",
-        fn -> expand(quote do: &(&())) end
+        ~r"nested captures via & are not allowed: &\(&1\)",
+        fn -> expand(quote do: &(& &1)) end
     end
 
     test "fails on integers" do

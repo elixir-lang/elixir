@@ -43,8 +43,9 @@ Terminals
 
 Rootsymbol grammar.
 
-%% Two shift/reduce conflicts coming from call_args_parens.
-Expect 2.
+%% Two shift/reduce conflicts coming from call_args_parens and
+%% one coming from empty_paren on stab.
+Expect 3.
 
 %% Changes in ops and precedence should be reflected on lib/elixir/lib/macro.ex
 %% Note though the operator => in practice has lower precedence than all others,
@@ -243,7 +244,7 @@ access_expr -> open_paren stab ';' close_paren : build_stab(reverse('$2')).
 access_expr -> open_paren ';' stab ';' close_paren : build_stab(reverse('$3')).
 access_expr -> open_paren ';' stab close_paren : build_stab(reverse('$3')).
 access_expr -> open_paren ';' close_paren : build_stab([]).
-access_expr -> empty_paren : nil.
+access_expr -> empty_paren : warn_empty_paren('$1'), nil.
 access_expr -> number_or_char : '$1'.
 access_expr -> list : element(1, '$1').
 access_expr -> map : '$1'.
@@ -314,6 +315,8 @@ stab_expr -> stab_op_eol_and_expr :
                build_op(element(1, '$1'), [], element(2, '$1')).
 stab_expr -> empty_paren stab_op_eol_and_expr :
                build_op(element(1, '$2'), [], element(2, '$2')).
+stab_expr -> empty_paren when_op expr stab_op_eol_and_expr :
+               build_op(element(1, '$4'), [{'when', meta_from_token('$2'), ['$3']}], element(2, '$4')).
 stab_expr -> call_args_no_parens_all stab_op_eol_and_expr :
                build_op(element(1, '$2'), unwrap_when(unwrap_splice('$1')), element(2, '$2')).
 stab_expr -> stab_parens_many stab_op_eol_and_expr :
@@ -843,6 +846,15 @@ throw_invalid_kw_identifier({_, _, do} = Token) ->
 throw_invalid_kw_identifier({_, _, KW} = Token) ->
   throw(meta_from_token(Token), "syntax error before: ", "'" ++ atom_to_list(KW) ++ "':").
 
+%% TODO: Make this an error on Elixir v2.0.
+warn_empty_paren({_, {Line, _, _}}) ->
+  elixir_errors:warn(Line, ?file(),
+    "invalid expression (). "
+    "If you want to invoke or define a function, make sure there are "
+    "no spaces between the function name and its arguments. If you wanted "
+    "to pass an empty block, pass a value instead, such as a nil or an atom").
+
+%% TODO: Make this an error on Elixir v2.0.
 warn_empty_stab_clause({stab_op, {Line, _Begin, _End}, '->'}) ->
   elixir_errors:warn(Line, ?file(),
     "an expression is always required on the right side of ->. "

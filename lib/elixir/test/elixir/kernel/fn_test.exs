@@ -15,6 +15,11 @@ defmodule Kernel.FnTest do
     refute (fn ^x -> true; _ -> false end).(1.0)
   end
 
+  test "guards with no args" do
+    fun = fn() when node() == :nonode@nohost -> true end
+    assert is_function(fun, 0)
+  end
+
   test "case function hoisting does not affect anonymous fns" do
     result =
       if atom?(0) do
