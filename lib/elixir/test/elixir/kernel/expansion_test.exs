@@ -470,7 +470,7 @@ defmodule Kernel.ExpansionTest do
   describe "with" do
     test "variables do not leak" do
       input = quote(do: (with({foo} <- {bar}, do: baz = :ok); baz))
-      other = Macro.var(:other, Elixir)
+      other = Macro.var(:other, :elixir)
       result = quote do
         case {bar()} do
           {foo} -> baz = :ok
@@ -484,7 +484,7 @@ defmodule Kernel.ExpansionTest do
 
     test "variables are available in do option" do
       input = quote(do: (with({foo} <- {bar}, do: baz = foo); baz))
-      other = Macro.var(:other, Elixir)
+      other = Macro.var(:other, :elixir)
       result = quote do
         case {bar()} do
           {foo} -> baz = foo
@@ -498,8 +498,8 @@ defmodule Kernel.ExpansionTest do
 
     test "variables inside else do not leak" do
       input = quote(do: (with({foo} <- {bar}, do: :ok, else: (baz -> baz)); baz))
-      other = Macro.var(:other, Elixir)
-      return = Macro.var(:return, Elixir)
+      other = Macro.var(:other, :elixir)
+      return = Macro.var(:return, :elixir)
       result = quote do
         case(case {bar()} do
           {foo} -> {:ok, :ok}
