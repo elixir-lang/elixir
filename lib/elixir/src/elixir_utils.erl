@@ -46,7 +46,7 @@ extract_or_guards(Term) -> [Term].
 
 % Extract guards when multiple left side args are allowed.
 
-extract_splat_guards([{'when', _, [_, _ | _] = Args}]) ->
+extract_splat_guards([{'when', _, [_ | _] = Args}]) ->
   {Left, Right} = split_last(Args),
   {Left, extract_or_guards(Right)};
 extract_splat_guards(Else) ->

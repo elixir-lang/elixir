@@ -26,7 +26,7 @@ clause(_Meta, _Kind, Fun, {'->', Meta, [Left, Right]}, #{export_vars := ExportVa
 clause(Meta, Kind, _Fun, _, E) ->
   form_error(Meta, ?key(E, file), ?MODULE, {bad_or_missing_clauses, Kind}).
 
-head([{'when', Meta, [_, _ | _] = All}], E) ->
+head([{'when', Meta, [_ | _] = All}], E) ->
   {Args, Guard} = elixir_utils:split_last(All),
   {EArgs, EA}   = match(fun elixir_expand:expand_args/2, Args, E),
   {EGuard, EG}  = guard(Guard, EA#{context := guard}),

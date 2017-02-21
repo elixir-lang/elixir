@@ -5,21 +5,6 @@ defmodule KernelTest do
 
   doctest Kernel
 
-  test "paren as nil" do
-    assert is_nil(()) == true
-    assert (_ = (); ();) == nil
-    assert [1, (), 3] == [1, nil, 3]
-    assert [do: ()] == [do: nil]
-    assert {1, (), 3} == {1, nil, 3}
-    assert (Kernel.&& nil, ()) == nil
-    assert (() && ()) == nil
-    assert (if(() && ()) do
-      :ok
-    else
-      :error
-    end) == :error
-  end
-
   test "=~/2" do
     assert ("abcd" =~ ~r/c(d)/) == true
     assert ("abcd" =~ ~r/e/) == false
