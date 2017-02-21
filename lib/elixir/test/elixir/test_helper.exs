@@ -1,5 +1,5 @@
 ExUnit.start [trace: "--trace" in System.argv,
-              assert_receive_timeout: 200]
+              assert_receive_timeout: 500]
 
 # Beam files compiled on demand
 path = Path.expand("../../tmp/beams", __DIR__)

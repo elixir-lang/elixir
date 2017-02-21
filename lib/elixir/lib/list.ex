@@ -577,7 +577,7 @@ defmodule List do
   end
 
   @doc """
-  Returns true if `list` starts with the given `prefix` list.
+  Returns `true` if `list` starts with the given `prefix` list.
 
   ### Examples
 
