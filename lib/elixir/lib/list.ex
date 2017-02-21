@@ -577,6 +577,24 @@ defmodule List do
   end
 
   @doc """
+  Returns true if `list` starts with the given `prefix` list.
+
+  ### Examples
+
+      iex> List.starts_with?([1, 2, 3], [1, 2])
+      true
+      iex> List.starts_with?([:alpha], [])
+      true
+      iex> List.starts_with?([], [:alpha])
+      false
+
+  """
+  @spec starts_with?(list, list) :: boolean
+  def starts_with?(list, prefix) do
+    :lists.prefix(prefix, list)
+  end
+
+  @doc """
   Converts a charlist to an atom.
 
   Currently Elixir does not support conversions from charlists
