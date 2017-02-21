@@ -70,7 +70,7 @@ build_main_case([{'<-', Meta, [{Name, _, Ctx}, _] = Args} | Rest], DoExpr, Wrapp
 build_main_case([{'<-', Meta, [Left, Right]} | Rest], DoExpr, Wrapper, _HasMatch) ->
   {InnerCase, true} = build_main_case(Rest, DoExpr, Wrapper, true),
   Generated = ?generated(Meta),
-  Other = {other, Generated, 'Elixir'},
+  Other = {other, Generated, ?var_context},
   Clauses = [
     {'->', Generated, [[Left], InnerCase]},
     {'->', Generated, [[Other], Wrapper(Other)]}
@@ -85,10 +85,10 @@ build_main_case([], DoExpr, _Wrapper, HasMatch) ->
 build_else_case(Meta, MainCase, Clauses, Wrapper) ->
   Generated = ?generated(Meta),
 
-  Return = {return, Generated, 'Elixir'},
+  Return = {return, Generated, ?var_context},
   ReturnClause = {'->', Generated, [[{ok, Return}], Return]},
 
-  Other = {other, Generated, 'Elixir'},
+  Other = {other, Generated, ?var_context},
   RaiseError = {{'.', Generated, [erlang, error]}, Meta, [{with_clause, Other}]},
   RaiseErrorClause = {'->', Generated, [[Wrapper(Other)], RaiseError]},
 

@@ -436,7 +436,7 @@ expand_boolean_check(Op, Expr, TrueClause, FalseClause, Meta, Env) ->
       true ->
         [TrueClause, FalseClause];
       false ->
-        Other = {other, Meta, ?MODULE},
+        Other = {other, Meta, ?var_context},
         OtherExpr = {{'.', Meta, [erlang, error]}, Meta, [{'{}', [], [badbool, Op, Other]}]},
         [TrueClause, FalseClause, {'->', ?generated(Meta), [[Other], OtherExpr]}]
     end,

@@ -244,7 +244,7 @@ match_defaults([_ | T], Counter, Acc) ->
   match_defaults(T, NewCounter, [default_var(NewCounter) | Acc]).
 
 default_var(Counter) ->
-  {list_to_atom([$x | integer_to_list(Counter)]), [{generated, true}], 'Elixir'}.
+  {list_to_atom([$x | integer_to_list(Counter)]), [{generated, true}], ?var_context}.
 
 %% Validations
 

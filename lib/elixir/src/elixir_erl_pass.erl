@@ -328,7 +328,7 @@ build_truthy_clause(Meta, Condition, Body) ->
     {NewCondition, NewBody} ->
       {NewCondition, {'->', Meta, [[true], NewBody]}, false};
     false ->
-      Var  = {'cond', [], 'Elixir'},
+      Var = {'cond', [], ?var_context},
       Head = {'when', [], [Var,
         {{'.', [], [erlang, 'andalso']}, [], [
           {{'.', [], [erlang, '/=']}, [], [Var, nil]},
