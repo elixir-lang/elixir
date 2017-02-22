@@ -286,6 +286,7 @@ It is also possible to install escripts and archives by providing a Git/GitHub r
 #### Mix
 
   * [Mix.Utils] `underscore/1` and `camelize/1` are deprecated in favor of `Macro.underscore/1` and `Macro.camelize/1`
+
 ## v1.3
 
 The CHANGELOG for v1.3 releases can be found [in the v1.3 branch](https://github.com/elixir-lang/elixir/blob/v1.3/CHANGELOG.md).
