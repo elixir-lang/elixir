@@ -285,7 +285,7 @@ It is also possible to install escripts and archives by providing a Git/GitHub r
 
 #### Mix
 
-  * [Mix.Utils] `underscore/1` and `camelize/1` are deprecated in favor of `Macro.underscore/1` and `Macro.camelize/1`
+  * [Mix.Utils] `underscore/1` and `camelize/1` are deprecated in favor of `Macro.underscore/1` and `Macro.camelize/1`
 
 ## v1.3
 
