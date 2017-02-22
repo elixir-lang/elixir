@@ -272,12 +272,13 @@ It is also possible to install escripts and archives by providing a Git/GitHub r
   * [Access] `Access.key/1` is deprecated due to erratic behaviour for missing keys, please use `Access.key/2` instead with proper default values
   * [Behaviour] The `Behaviour` module is deprecated. Callbacks may now be defined directly via the `@callback` attribute
   * [Enum] Deprecate `Enum.uniq/2` in favor of `Enum.uniq_by/2`
-  * [Float] `Float.to_char_list/2` and `Float.to_string/2` are deprecated (use the :erlang functions if such conversions are desired)
+  * [Float] `Float.to_char_list/2` and `Float.to_string/2` are deprecated (use the `:erlang.float_to_list/2` and `:erlang.float_to_binary/2` functions if such conversions are desired)
   * [Kernel] Deprecate support for making private functions overridable. Overridable functions must always be public as they must be contracts
   * [Kernel] Warn if variable is used as a function call
   * [OptionParser] Deprecate aliases with multiple letters, such as `-abc`
   * [Set] Deprecate the `Set` module
-  * [Stream] Deprecate `Stream.uniq/2` in favor of `Stream.uniq_by/2`
+  * [Stream] Deprecate `Stream.uniq/2` 
+  of `Stream.uniq_by/2`
 
 #### IEx
 
@@ -285,8 +286,7 @@ It is also possible to install escripts and archives by providing a Git/GitHub r
 
 #### Mix
 
-  * [Mix.Utils] `underscore/1` and `camelize/1` are deprecated
-
+  * [Mix.Utils] `underscore/1` and `camelize/1` are deprecated in favor of `Macro.underscore/1` and `Macro.camelize/1`
 ## v1.3
 
 The CHANGELOG for v1.3 releases can be found [in the v1.3 branch](https://github.com/elixir-lang/elixir/blob/v1.3/CHANGELOG.md).
