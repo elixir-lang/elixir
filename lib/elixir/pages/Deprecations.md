@@ -1,0 +1,57 @@
+# Deprecations
+
+## Deprecation policy
+
+Elixir deprecations happens in 3 steps:
+
+  1. The feature is soft-deprecated. It means both CHANGELOG and documentation must list the feature as deprecated but no warning is effectively emitted by running the code. There is no requirement to soft-deprecate a feature.
+
+  2. The feature is effectively deprecated by emitting warnings on usage. In order to deprecate a feature, the proposed alternative MUST exist for AT LEAST two versions. For example, `Enum.uniq/2` was soft-deprecated in favor of `Enum.uniq_by/2` in Elixir v1.1. This means a deprecation warning may only be emitted by Elixir v1.3 or later.
+
+  3. The feature is removed. This can only happen on major releases. This means deprecated features in Elixir v1.x shall only be removed by Elixir v2.x.
+
+
+## Table of deprecated features: modules, functions, behaviours, protocols, typespecs, attributes and arguments
+
+Deprecated feature        | Deprecated in | Replaced by             | Replacement available since
+:------------------------ | :------------ | :---------------------- | :---------------------------
+`GenEvent` module         | [v1.5]    | `Supervisor` and `GenServer`; `GenStage`; `:gen_event` | v1.0 (`Supervisor and GenServer`); v1.3 (GenStage); OTP v17.0 (`:gen_server`)
+`()` to mean `nil`        | [v1.5]    | `nil`                       | v1.0
+`@compile {:parse_transform, _}` in `Module` | [v1.5] | __???__     | __???__
+`Atom.to_char_list/1`     | [v1.5]    | `Atom.to_charlist/1`        | v1.3
+`Float.to_char_list/1`    | [v1.5]    | `Float.to_charlist/1`       | v1.3
+`Integer.to_char_list/1`  | [v1.5]    | `Integer.to_charlist/1`     | v1.3
+`Kernel.to_char_list/1`   | [v1.5]    | `Kernel.to_charlist/1`      | v1.3
+`String.to_char_list/1`   | [v1.5]    | `String.to_charlist/1`      | v1.3
+`t:char_list/0` typespec  | [v1.5]    | `t:charlist/0` typespec     | v1.3
+`Access.key/1`            | [v1.4]    | `Access.key/2`              | v1.3
+`Behaviour` module        | [v1.4]    | `@callback`                 | v1.0
+`Enum.uniq/2`             | [v1.4]    | `Enum.uniq_by/2`            | v1.2
+`Float.to_char_list/2`    | [v1.4]    | `:erlang.float_to_list/2`   | OTP v17.0
+`Float.to_string/2`       | [v1.4]    | `:erlang.float_to_binary/2` | OTP v17.0
+`Set` module              | [v1.4]    | `MapSet`                    | v1.1
+`Stream.uniq/2`           | [v1.4]    | `Stream.uniq_by/2`          | v1.2
+`IEx.Helpers.import_file/2` | [v1.4]  | `IEx.Helpers.import_file_if_available/2` | v1.3
+`Mix.Utils.underscore/1`  | [v1.4]    | `Macro.underscore/1`        | v1.2
+`Mix.Utils.camelize/1`    | [v1.4]    | `Macro.camelize/1`          | v1.2
+`Dict` behaviour          | [v1.3]    | __???__ `Keyword`; `Map`    | __???__ v1.0 (Keyword); v1.2 (Map)
+`\x{X*}` inside strings/sigils/charlists | [v1.3] | `\uXXXX`; `\u{X*}` | v1.1
+Map/dictionary as second arg. in `Enum.group_by/3` | [v1.3] | *n/a* | *n/a*
+`:append_first` option in `Kernel.defdelegate/2` | [v1.3] | *n/a*   | *n/a*
+`Keyword.size/1`          | [v1.3]        | `Kernel.length/1`       | v1.0
+`Map.size/1`              | [v1.3]        | `Kernel.map_size/1`     | v1.0
+`/r` option in `Regex`    | [v1.3]        | `/U`                    | v1.1
+`Set` behaviour           | [v1.3]        | __???__                 | __???__
+`String.valid_character?/1` | [v1.3]      | `String.valid?/1`       | v1.0
+`Task.find/2`             | [v1.3]        | Direct message matching | v1.0
+Non-map as second arg. in `URI.decode_query/2` | [v1.3] | Use a map | v1.0
+`Access` protocol         | [v1.1]        | `Access` behaviour      | v1.1
+`?\xHEX`                  | [v1.1]        | `0xHEX`                 | __???__ (EDITOR'S NOTE: this has been completely deprecated and it shouldn't have been until v2.0)
+`as: true \| false` in `alias/2` and `require/2` | [v1.1]           | __???__ *n/a* | *n/a*
+Empty string in `String.starts_with?/2`, `String.ends_with?/2`, `String.contains?/2`. *__NOTE__: Feature made back available in v1.3*| [v1.1] to [v1.2] | *n/a* | *n/a*
+
+[v1.1]: https://github.com/elixir-lang/elixir/blob/v1.1/CHANGELOG.md#4-deprecations
+[v1.2]: https://github.com/elixir-lang/elixir/blob/v1.2/CHANGELOG.md#changelog-for-elixir-v12
+[v1.3]: https://github.com/elixir-lang/elixir/blob/v1.3/CHANGELOG.md#4-deprecations
+[v1.4]: https://github.com/elixir-lang/elixir/blob/v1.4/CHANGELOG.md#4-deprecations
+[v1.5]: https://github.com/elixir-lang/elixir/blob/v1.5/CHANGELOG.md#4-deprecations
