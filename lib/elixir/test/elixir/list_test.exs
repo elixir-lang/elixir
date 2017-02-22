@@ -159,6 +159,41 @@ defmodule ListTest do
     assert List.pop_at([1, 2, 3], -4) == {nil, [1, 2, 3]}
   end
 
+  describe "starts_with?/2" do
+    test "list and prefix are equal" do
+      assert List.starts_with?([], [])
+      assert List.starts_with?([1], [1])
+      assert List.starts_with?([1, 2, 3], [1, 2, 3])
+    end
+
+    test "proper lists" do
+      refute List.starts_with?([1], [1, 2])
+      assert List.starts_with?([1, 2, 3], [1, 2])
+      refute List.starts_with?([1, 2, 3], [1, 2, 3, 4])
+    end
+
+    test "list is empty" do
+      refute List.starts_with?([], [1])
+      refute List.starts_with?([], [1, 2])
+    end
+
+    test "prefix is empty" do
+      assert List.starts_with?([1], [])
+      assert List.starts_with?([1, 2], [])
+      assert List.starts_with?([1, 2, 3], [])
+    end
+
+    test "only accept lists" do
+      assert_raise FunctionClauseError, "no function clause matching in List.starts_with?/2", fn ->
+        List.starts_with?([1 | 2], [1 | 2])
+      end
+
+      assert_raise FunctionClauseError, "no function clause matching in List.starts_with?/2", fn ->
+        List.starts_with?([1, 2], 1)
+      end
+    end
+  end
+
   test "to_string/1" do
     assert List.to_string([?æ, ?ß]) == "æß"
     assert List.to_string([?a, ?b, ?c]) == "abc"

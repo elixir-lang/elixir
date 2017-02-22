@@ -577,22 +577,34 @@ defmodule List do
   end
 
   @doc """
-  Returns `true` if `list` starts with the given `prefix` list.
+  Returns `true` if `list` starts with the given `prefix` list; otherwise returns `false`.
+
+  If `prefix` is an empty list, it returns `true`.
 
   ### Examples
 
       iex> List.starts_with?([1, 2, 3], [1, 2])
       true
+
+      iex> List.starts_with?([1, 2], [1, 2, 3])
+      false
+
       iex> List.starts_with?([:alpha], [])
       true
+
       iex> List.starts_with?([], [:alpha])
       false
 
   """
   @spec starts_with?(list, list) :: boolean
-  def starts_with?(list, prefix) do
-    :lists.prefix(prefix, list)
-  end
+  @spec starts_with?(list, []) :: true
+  @spec starts_with?([], nonempty_list) :: false
+  def starts_with?([head | tail], [head | prefix_tail]),
+    do: starts_with?(tail, prefix_tail);
+  def starts_with?(list, []) when is_list(list),
+    do: true
+  def starts_with?(list, [_ | _]) when is_list(list),
+    do: false
 
   @doc """
   Converts a charlist to an atom.
