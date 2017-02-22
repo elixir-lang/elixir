@@ -269,7 +269,7 @@ It is also possible to install escripts and archives by providing a Git/GitHub r
 
 #### Elixir
 
-  * [Access] `Access.key/1` is deprecated due to erratic behaviour for missing keys, please use Access.key/2 instead with proper default values
+  * [Access] `Access.key/1` is deprecated due to erratic behaviour for missing keys, please use `Access.key/2` instead with proper default values
   * [Behaviour] The `Behaviour` module is deprecated. Callbacks may now be defined directly via the `@callback` attribute
   * [Enum] Deprecate `Enum.uniq/2` in favor of `Enum.uniq_by/2`
   * [Float] `Float.to_char_list/2` and `Float.to_string/2` are deprecated (use the :erlang functions if such conversions are desired)
