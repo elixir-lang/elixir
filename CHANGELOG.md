@@ -39,7 +39,9 @@
 
   * [GenEvent] Hard deprecate `GenEvent` and provide alternatives in its docs
   * [Kernel] Using `()` to mean `nil` is deprecated
+  * [Kernel] `Atom.to_char_list/1`, `Float.to_char_list/1`, `Integer.to_char_list/1`, `Kernel.to_char_list/1`, `String.to_char_list/1` have been deprecated in favor of their `to_charlist/1` version. This aligns with the naming conventions in both Erlang and Elixir
   * [Module] Using Erlang parse transforms via `@compile {:parse_transform, _}` is deprecated
+  * [Typespec] `char_list` is deprecated in favor of `charlist`
 
 ## v1.4
 
