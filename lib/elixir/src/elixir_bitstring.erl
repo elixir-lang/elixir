@@ -1,10 +1,7 @@
-%% TODO: Split into elixir and elixir_erl
 -module(elixir_bitstring).
--export([translate/3, expand/3, has_size/1, format_error/1]).
+-export([expand/3, format_error/1]).
 -import(elixir_errors, [form_error/4]).
 -include("elixir.hrl").
-
-%% Expansion
 
 expand(Meta, Args, E) ->
   case ?key(E, context) of
@@ -94,7 +91,7 @@ type(_, binary, Type, _) when Type == binary; Type == bitstring; Type == utf8; T
   Type;
 type(_, bitstring, Type, _) when Type == binary; Type == bitstring ->
   Type;
-type(_, integer, Type, _) when Type == integer; Type == float ->
+type(_, integer, Type, _) when Type == integer; Type == float; Type == utf8; Type == utf16; Type == utf32 ->
   Type;
 type(_, float, Type, _) when Type == float ->
   Type;
@@ -241,89 +238,3 @@ format_error({bad_unit_argument, Unit}) ->
 format_error({bad_size_argument, Size}) ->
   io_lib:format("size in bitstring expects an integer or a variable as argument, got: ~ts",
                 ['Elixir.Macro':to_string(Size)]).
-
-%% Translation
-
-has_size({bin, _, Elements}) ->
-  not lists:any(fun({bin_element, _Line, _Expr, Size, Types}) ->
-    (Types /= default) andalso (Size == default) andalso
-      lists:any(fun(X) -> lists:member(X, Types) end,
-                [bits, bytes, bitstring, binary])
-  end, Elements).
-
-translate(Meta, Args, S) ->
-  case S#elixir_erl.context of
-    match ->
-      build_bitstr(fun elixir_erl_pass:translate/2, Args, Meta, S);
-    _ ->
-      build_bitstr(fun(X, Acc) -> elixir_erl_pass:translate_arg(X, Acc, S) end, Args, Meta, S)
-  end.
-
-build_bitstr(Fun, Exprs, Meta, S) ->
-  {Final, FinalS} = build_bitstr_each(Fun, Exprs, Meta, S, []),
-  {{bin, ?ann(Meta), lists:reverse(Final)}, FinalS}.
-
-build_bitstr_each(_Fun, [], _Meta, S, Acc) ->
-  {Acc, S};
-
-build_bitstr_each(Fun, [{'::', _, [H, V]} | T], Meta, S, Acc) ->
-  {Size, Types} = extract_bit_info(V, S#elixir_erl{context=nil}),
-  build_bitstr_each(Fun, T, Meta, S, Acc, H, Size, Types);
-
-build_bitstr_each(Fun, [H | T], Meta, S, Acc) ->
-  build_bitstr_each(Fun, T, Meta, S, Acc, H, default, default).
-
-build_bitstr_each(Fun, T, Meta, S, Acc, H, default, Types) when is_binary(H) ->
-  Element =
-    case types_allow_splice(Types) of
-      true ->
-        %% See explanation in elixir_erl:elixir_to_erl/1 to know
-        %% why we can simply convert the binary to a list.
-        {bin_element, ?ann(Meta), {string, 0, binary_to_list(H)}, default, default};
-      false ->
-        %% The Types must require conversion at this point (for example, utf
-        %% types).
-        {bin_element, ?ann(Meta), {string, 0, elixir_utils:characters_to_list(H)}, default, Types}
-    end,
-
-  build_bitstr_each(Fun, T, Meta, S, [Element | Acc]);
-
-build_bitstr_each(Fun, T, Meta, S, Acc, H, Size, Types) ->
-  {Expr, NS} = Fun(H, S),
-  Splice = types_allow_splice(Types),
-
-  case Expr of
-    {bin, _, Elements} when Splice, Size == default, S#elixir_erl.context == match ->
-      build_bitstr_each(Fun, T, Meta, NS, lists:reverse(Elements, Acc));
-    {bin, _, _} when Types == default ->
-      build_bitstr_each(Fun, T, Meta, NS, [{bin_element, ?ann(Meta), Expr, Size, [bitstring]} | Acc]);
-    _ ->
-      build_bitstr_each(Fun, T, Meta, NS, [{bin_element, ?ann(Meta), Expr, Size, Types} | Acc])
-  end.
-
-types_allow_splice([bytes])     -> true;
-types_allow_splice([binary])    -> true;
-types_allow_splice([bits])      -> true;
-types_allow_splice([bitstring]) -> true;
-types_allow_splice(default)     -> true;
-types_allow_splice(_)           -> false.
-
-%% Extra bitstring specifiers
-
-extract_bit_info({'-', _, [L, {size, _, [Size]}]}, S) ->
-  {extract_bit_size(Size, S), extract_bit_type(L, [])};
-extract_bit_info({size, _, [Size]}, S) ->
-  {extract_bit_size(Size, S), []};
-extract_bit_info(L, _S) ->
-  {default, extract_bit_type(L, [])}.
-
-extract_bit_size(Size, S) ->
-  {TSize, _} = elixir_erl_pass:translate(Size, S),
-  TSize.
-
-extract_bit_type({'-', _, [L, R]}, Acc) ->
-  extract_bit_type(L, extract_bit_type(R, Acc));
-extract_bit_type({unit, _, [Arg]}, Acc) ->
-  [{unit, Arg} | Acc];
-extract_bit_type({Other, _, []}, Acc) ->
-  [Other | Acc].

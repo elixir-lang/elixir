@@ -28,7 +28,7 @@ translate({'%', Meta, [Left, Right]}, S) ->
   translate_struct(Meta, Left, Right, S);
 
 translate({'<<>>', Meta, Args}, S) when is_list(Args) ->
-  elixir_bitstring:translate(Meta, Args, S);
+  translate_bitstring(Meta, Args, S);
 
 %% Blocks
 
@@ -413,6 +413,63 @@ translate_key_val_op(TUpdate, S) ->
 
 build_map(Ann, {ok, TUpdate}, TArgs, SA) -> {{map, Ann, TUpdate, TArgs}, SA};
 build_map(Ann, none, TArgs, SA) -> {{map, Ann, TArgs}, SA}.
+
+%% Translate bitstrings
+
+translate_bitstring(Meta, Args, S) ->
+  case S#elixir_erl.context of
+    match -> build_bitstr(fun translate/2, Args, Meta, S, []);
+    _ -> build_bitstr(fun(X, Acc) -> translate_arg(X, Acc, S) end, Args, Meta, S, [])
+  end.
+
+build_bitstr(Fun, [{'::', _, [H, V]} | T], Meta, S, Acc) ->
+  {Size, Types} = extract_bit_info(V, S#elixir_erl{context=nil}),
+  build_bitstr(Fun, T, Meta, S, Acc, H, Size, Types);
+build_bitstr(_Fun, [], Meta, S, Acc) ->
+  {{bin, ?ann(Meta), lists:reverse(Acc)}, S}.
+
+build_bitstr(Fun, T, Meta, S, Acc, H, default, Types) when is_binary(H) ->
+  Element =
+    case requires_utf_conversion(Types) of
+      false ->
+        %% See explanation in elixir_erl_pass:elixir_to_erl/1 to
+        %% know why we can simply convert the binary to a list.
+        {bin_element, ?ann(Meta), {string, 0, binary_to_list(H)}, default, default};
+      true ->
+        %% UTF types require conversion.
+        {bin_element, ?ann(Meta), {string, 0, elixir_utils:characters_to_list(H)}, default, Types}
+    end,
+  build_bitstr(Fun, T, Meta, S, [Element | Acc]);
+
+build_bitstr(Fun, T, Meta, S, Acc, H, Size, Types) ->
+  case Fun(H, S) of
+    {{bin, _, Elements}, NS} when S#elixir_erl.context == match ->
+      build_bitstr(Fun, T, Meta, NS, lists:reverse(Elements, Acc));
+    {Expr, NS} ->
+      build_bitstr(Fun, T, Meta, NS, [{bin_element, ?ann(Meta), Expr, Size, Types} | Acc])
+  end.
+
+requires_utf_conversion([bitstring | _]) -> false;
+requires_utf_conversion([binary | _]) -> false;
+requires_utf_conversion(_) -> true.
+
+extract_bit_info({'-', _, [L, {size, _, [Size]}]}, S) ->
+  {extract_bit_size(Size, S), extract_bit_type(L, [])};
+extract_bit_info({size, _, [Size]}, S) ->
+  {extract_bit_size(Size, S), []};
+extract_bit_info(L, _S) ->
+  {default, extract_bit_type(L, [])}.
+
+extract_bit_size(Size, S) ->
+  {TSize, _} = elixir_erl_pass:translate(Size, S),
+  TSize.
+
+extract_bit_type({'-', _, [L, R]}, Acc) ->
+  extract_bit_type(L, extract_bit_type(R, Acc));
+extract_bit_type({unit, _, [Arg]}, Acc) ->
+  [{unit, Arg} | Acc];
+extract_bit_type({Other, _, []}, Acc) ->
+  [Other | Acc].
 
 %% Optimizations that are specific to Erlang and change
 %% the format of the AST.
