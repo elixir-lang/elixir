@@ -11,9 +11,9 @@ defmodule EEx.Compiler do
   """
   @spec compile(String.t, Keyword.t) :: Macro.t | no_return
   def compile(source, opts) when is_binary(source) and is_list(opts) do
-    file   = opts[:file] || "nofile"
-    line   = opts[:line] || 1
-    trim   = opts[:trim] || false
+    file = opts[:file] || "nofile"
+    line = opts[:line] || 1
+    trim = opts[:trim] || false
     case EEx.Tokenizer.tokenize(source, line, trim: trim) do
       {:ok, tokens} ->
         state = %{engine: opts[:engine] || @default_engine, init: nil,
@@ -28,29 +28,29 @@ defmodule EEx.Compiler do
   # Generates the buffers by handling each expression from the tokenizer.
   # It returns Macro.t/0 or it raises.
 
-  defp generate_buffer([{:text, chars} | t], buffer, scope, state) do
+  defp generate_buffer([{:text, chars} | rest], buffer, scope, state) do
     buffer = state.engine.handle_text(buffer, IO.chardata_to_string(chars))
-    generate_buffer(t, buffer, scope, state)
+    generate_buffer(rest, buffer, scope, state)
   end
 
-  defp generate_buffer([{:expr, line, mark, chars} | t], buffer, scope, state) do
+  defp generate_buffer([{:expr, line, mark, chars} | rest], buffer, scope, state) do
     expr = Code.string_to_quoted!(chars, [line: line, file: state.file])
     buffer = state.engine.handle_expr(buffer, IO.chardata_to_string(mark), expr)
-    generate_buffer(t, buffer, scope, state)
+    generate_buffer(rest, buffer, scope, state)
   end
 
-  defp generate_buffer([{:start_expr, start_line, mark, chars} | t], buffer, scope, state) do
-    {contents, line, t} = look_ahead_text(t, start_line, chars)
-    {contents, t} =
-      generate_buffer(t, state.init, [contents | scope],
+  defp generate_buffer([{:start_expr, start_line, mark, chars} | rest], buffer, scope, state) do
+    {contents, line, rest} = look_ahead_text(rest, start_line, chars)
+    {contents, rest} =
+      generate_buffer(rest, state.init, [contents | scope],
                       %{state | quoted: [], line: line, start_line: start_line})
     buffer = state.engine.handle_expr(buffer, IO.chardata_to_string(mark), contents)
-    generate_buffer(t, buffer, scope, state)
+    generate_buffer(rest, buffer, scope, state)
   end
 
-  defp generate_buffer([{:middle_expr, line, '', chars} | t], buffer, [current | scope], state) do
+  defp generate_buffer([{:middle_expr, line, '', chars} | rest], buffer, [current | scope], state) do
     {wrapped, state} = wrap_expr(current, line, buffer, chars, state)
-    generate_buffer(t, state.init, [wrapped | scope], %{state | line: line})
+    generate_buffer(rest, state.init, [wrapped | scope], %{state | line: line})
   end
 
   defp generate_buffer([{:middle_expr, line, modifier, chars} | _], _buffer, _, state) do
@@ -58,11 +58,11 @@ defmodule EEx.Compiler do
                            file: state.file, line: line
   end
 
-  defp generate_buffer([{:end_expr, line, '', chars} | t], buffer, [current | _], state) do
+  defp generate_buffer([{:end_expr, line, '', chars} | rest], buffer, [current | _], state) do
     {wrapped, state} = wrap_expr(current, line, buffer, chars, state)
     tuples = Code.string_to_quoted!(wrapped, [line: state.start_line, file: state.file])
     buffer = insert_quoted(tuples, state.quoted)
-    {buffer, t}
+    {buffer, rest}
   end
 
   defp generate_buffer([{:end_expr, line, modifier, chars} | _], _buffer, [_ | _], state) do
@@ -96,18 +96,18 @@ defmodule EEx.Compiler do
 
   # Look text ahead on expressions
 
-  defp look_ahead_text([{:text, text}, {:middle_expr, line, _, chars} | t] = list, start, contents) do
+  defp look_ahead_text([{:text, text}, {:middle_expr, line, _, chars} | rest] = tokens, start, contents) do
     if only_spaces?(text) do
-      {contents ++ text ++ chars, line, t}
+      {contents ++ text ++ chars, line, rest}
     else
-      {contents, start, list}
+      {contents, start, tokens}
     end
   end
-  defp look_ahead_text([{:middle_expr, line, _, chars} | t], _start, contents) do
-    {contents ++ chars, line, t}
+  defp look_ahead_text([{:middle_expr, line, _, chars} | rest], _start, contents) do
+    {contents ++ chars, line, rest}
   end
-  defp look_ahead_text(t, start, contents) do
-    {contents, start, t}
+  defp look_ahead_text(tokens, start, contents) do
+    {contents, start, tokens}
   end
 
   defp only_spaces?(chars) do
