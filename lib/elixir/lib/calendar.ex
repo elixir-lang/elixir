@@ -1504,7 +1504,7 @@ defmodule DateTime do
 
   When a Unix time before that moment is passed to `from_unix!/2`, an ArgumentError will be raised.
   """
-  @spec from_unix!(non_neg_integer, :native | System.time_unit) :: DateTime.t
+  @spec from_unix!(integer, :native | System.time_unit) :: DateTime.t
   def from_unix!(integer, unit \\ :second) when is_atom(unit) do
     case from_unix(integer, unit) do
       {:ok, datetime} ->
