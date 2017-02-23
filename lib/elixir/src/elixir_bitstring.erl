@@ -80,7 +80,7 @@ expand_specs(ExprType, Meta, Info, E, RequireSize) ->
   #{size := Size, unit := Unit, type := Type, endianess := Endianess, sign := Sign} =
     expand_each_spec(Meta, unpack_specs(Info, []), Default, E),
   MergedType = type(Meta, ExprType, Type, E),
-  validate_size_required(Meta, RequireSize, MergedType, Size, E),
+  validate_size_required(Meta, RequireSize, ExprType, MergedType, Size, E),
   SizeAndUnit = size_and_unit(Meta, ExprType, Size, Unit, E),
   [H | T] = build_spec(Meta, Size, Unit, MergedType, Endianess, Sign, SizeAndUnit, E),
   lists:foldl(fun(I, Acc) -> {'-', Meta, [Acc, I]} end, H, T).
@@ -174,9 +174,9 @@ validate_spec_arg(Meta, unit, Value, E) when not is_integer(Value) ->
 validate_spec_arg(_Meta, _Key, _Value, _E) ->
   ok.
 
-validate_size_required(Meta, true, Type, default, E) when Type == binary; Type == bitstring ->
+validate_size_required(Meta, true, default, Type, default, E) when Type == binary; Type == bitstring ->
   form_error(Meta, ?key(E, file), ?MODULE, unsized_binary);
-validate_size_required(_, _, _, _, _) ->
+validate_size_required(_, _, _, _, _, _) ->
   ok.
 
 size_and_unit(Meta, bitstring, Size, Unit, E) when Size /= default; Unit /= default ->
