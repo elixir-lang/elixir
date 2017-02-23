@@ -1073,6 +1073,16 @@ defmodule Kernel.ExpansionTest do
       end
     end
 
+    test "raises for invalid size * unit for floats" do
+      assert_raise CompileError, ~r"float requires size\*unit to be 32 or 64 \(default\), got: 128", fn ->
+        expand(quote do: <<12.3::32*4>>)
+      end
+
+      assert_raise CompileError, ~r"float requires size\*unit to be 32 or 64 \(default\), got: 256", fn ->
+        expand(quote do: <<12.3::256>>)
+      end
+    end
+
     test "raises for invalid size" do
       assert_raise CompileError, ~r"size in bitstring expects an integer or a variable as argument, got: :oops", fn ->
         expand(quote do: <<"foo"::size(:oops)>>)
