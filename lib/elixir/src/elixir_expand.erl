@@ -306,7 +306,7 @@ expand({'^', Meta, [Arg]}, #{context := match} = E) ->
       %% If the variable was defined, then we return the expanded ^, otherwise
       %% we raise. We cannot use the expanded env because it would contain the
       %% variable.
-      case lists:member({VarName, var_kind(VarMeta, Kind)}, ?key(E, vars)) of
+      case lists:member({VarName, var_kind(VarMeta, Kind)}, ?key(E, prematch_vars)) of
         true ->
           {{'^', Meta, [Var]}, EA};
         false ->
@@ -791,7 +791,8 @@ assert_no_underscore_clause_in_cond([{do, Clauses}], E) when is_list(Clauses) ->
 assert_no_underscore_clause_in_cond(_Other, _E) ->
   ok.
 
-%% Warnings.
+%% Warnings
+
 format_error({useless_literal, Term}) ->
   io_lib:format("code block contains unused literal ~ts "
                 "(remove the literal or assign it to _ to avoid warnings)",
@@ -805,7 +806,8 @@ format_error({useless_attr, Attr}) ->
                 "(remove the attribute or assign it to _ to avoid warnings)",
                 [Attr]);
 
-%% Errors.
+%% Errors
+
 format_error({missing_option, Construct, Opts}) when is_list(Opts) ->
   StringOpts = lists:map(fun(Opt) -> [$: | atom_to_list(Opt)] end, Opts),
   io_lib:format("missing ~ts option in \"~ts\"", [string:join(StringOpts, "/"), Construct]);

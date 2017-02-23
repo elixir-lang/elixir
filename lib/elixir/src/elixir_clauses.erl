@@ -7,9 +7,11 @@
 -import(elixir_errors, [form_error/4]).
 -include("elixir.hrl").
 
-match(Fun, Expr, #{context := Context} = E) ->
-  {EExpr, EE} = Fun(Expr, E#{context := match}),
-  {EExpr, EE#{context := Context}}.
+match(Fun, Expr, #{context := match} = E) ->
+  Fun(Expr, E);
+match(Fun, Expr, #{context := Context, prematch_vars := nil, vars := Vars} = E) ->
+  {EExpr, EE} = Fun(Expr, E#{context := match, prematch_vars := Vars}),
+  {EExpr, EE#{context := Context, prematch_vars := nil}}.
 
 def({Meta, Args, Guards, Body}, E) ->
   {EArgs, EA}   = elixir_expand:expand(Args, E#{context := match}),

@@ -16,9 +16,10 @@ new() ->
     macros => [],                          %% a list with macros imported from module
     macro_aliases => [],                   %% keep aliases defined inside a macro
     context_modules => [],                 %% modules defined in the current context
-    vars => [],                            %% a set of defined variables
     lexical_tracker => nil,                %% holds the lexical tracker PID
-    export_vars => nil}.                   %% a set of variables to be exported in some constructs
+    vars => [],                            %% a set of defined variables
+    export_vars => nil,                    %% a set of variables to be exported in some constructs
+    prematch_vars => nil}.                 %% a set of variables defined before the current match
 
 linify({Line, Env}) ->
   Env#{line := Line}.

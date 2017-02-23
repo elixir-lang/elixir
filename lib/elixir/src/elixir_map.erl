@@ -166,7 +166,7 @@ format_error({invalid_struct_name, Expr}) ->
 format_error({invalid_variable_in_map_key_match, Name}) ->
   Message =
     "illegal use of variable ~ts inside map key match, maps can only match on "
-    "existing variable by using ^~ts",
+    "existing variables by using ^~ts",
   io_lib:format(Message, [Name, Name]);
 format_error({not_kv_pair, Expr}) ->
   io_lib:format("expected key-value pairs in a map, got: ~ts",
