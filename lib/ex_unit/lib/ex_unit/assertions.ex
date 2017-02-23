@@ -427,8 +427,9 @@ defmodule ExUnit.Assertions do
               """)
             else
               failure_message = unquote(failure_message) || "No message matching #{unquote(binary)} after #{timeout}ms."
-              flunk(failure_message <> ExUnit.Assertions.__pins__(unquote(pins))
-                                    <> ExUnit.Assertions.__mailbox__(messages))
+              flunk(failure_message <>
+                    ExUnit.Assertions.__pins__(unquote(pins)) <>
+                    ExUnit.Assertions.__mailbox__(messages))
             end
         end
 
@@ -461,8 +462,8 @@ defmodule ExUnit.Assertions do
 
   defp mailbox_message(0, _mailbox), do: "\nThe process mailbox is empty."
   defp mailbox_message(length, mailbox) when length > 10 do
-    "\nProcess mailbox:" <> mailbox
-      <> "\nShowing only #{@max_mailbox_length} of #{length} messages."
+    "\nProcess mailbox:" <> mailbox <>
+      "\nShowing only #{@max_mailbox_length} of #{length} messages."
   end
   defp mailbox_message(_length, mailbox) do
     "\nProcess mailbox:" <> mailbox

@@ -105,14 +105,14 @@ defmodule ExUnit.Formatter do
   def format_test_failure(test, failures, counter, width, formatter) do
     %ExUnit.Test{name: name, case: case, tags: tags} = test
 
-    test_info(with_counter(counter, "#{name} (#{inspect case})"), formatter)
-    <> test_location(with_location(tags), formatter)
-    <> Enum.map_join(Enum.with_index(failures), "", fn {{kind, reason, stack}, i} ->
-        failure_header(failures, i)
-        <> format_kind_reason(kind, reason, width, formatter)
-        <> format_stacktrace(stack, case, name, formatter)
-       end)
-    <> report(tags, failures, width, formatter)
+    test_info(with_counter(counter, "#{name} (#{inspect case})"), formatter) <>
+      test_location(with_location(tags), formatter) <>
+      Enum.map_join(Enum.with_index(failures), "", fn {{kind, reason, stack}, index} ->
+        failure_header(failures, index) <>
+          format_kind_reason(kind, reason, width, formatter) <>
+          format_stacktrace(stack, case, name, formatter)
+       end) <>
+      report(tags, failures, width, formatter)
   end
 
   @doc false
@@ -138,12 +138,12 @@ defmodule ExUnit.Formatter do
       report when map_size(report) == 0 ->
         ""
       report ->
-        report_spacing(failures)
-        <> extra_info("tags:", formatter)
-        <> Enum.map_join(report, "", fn {k, v} ->
-            prefix = "       #{k}: "
-            prefix <> inspect_multiline(v, byte_size(prefix), width) <> "\n"
-           end)
+        report_spacing(failures) <>
+          extra_info("tags:", formatter) <>
+          Enum.map_join(report, "", fn {key, value} ->
+            prefix = "       #{key}: "
+            prefix <> inspect_multiline(value, byte_size(prefix), width) <> "\n"
+          end)
     end
   end
 
@@ -155,12 +155,12 @@ defmodule ExUnit.Formatter do
   """
   def format_test_case_failure(test_case, failures, counter, width, formatter) do
     %ExUnit.TestCase{name: name} = test_case
-    test_case_info(with_counter(counter, "#{inspect name}: "), formatter)
-    <> Enum.map_join(Enum.with_index(failures), "", fn {{kind, reason, stack}, i} ->
-        failure_header(failures, i)
-        <> format_kind_reason(kind, reason, width, formatter)
-        <> format_stacktrace(stack, name, nil, formatter)
-       end)
+    test_case_info(with_counter(counter, "#{inspect name}: "), formatter) <>
+      Enum.map_join(Enum.with_index(failures), "", fn {{kind, reason, stack}, index} ->
+        failure_header(failures, index) <>
+          format_kind_reason(kind, reason, width, formatter) <>
+          format_stacktrace(stack, name, nil, formatter)
+      end)
   end
 
   defp format_kind_reason(:error, %ExUnit.AssertionError{} = struct, width, formatter) do

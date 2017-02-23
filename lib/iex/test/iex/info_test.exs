@@ -24,8 +24,8 @@ defmodule IEx.InfoTest do
 
   test "atoms: loaded module (with docs)" do
     info = Info.info(List)
-    description = "Use h(List) to access its documentation.\n"
-                  <> "Call List.module_info() to access metadata."
+    description = "Use h(List) to access its documentation.\n" <>
+                  "Call List.module_info() to access metadata."
     assert info[:"Description"] == description
   end
 
