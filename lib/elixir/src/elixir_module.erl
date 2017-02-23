@@ -75,11 +75,13 @@ compile(Line, Module, Block, Vars, E) ->
     [elixir_locals:record_local(Tuple, Module) || Tuple <- OnLoad],
 
     {AllDefinitions, Unreachable} = elixir_def:fetch_definitions(File, Module),
-    Forms = elixir_erl:compile(Line, File, Module, Attributes, AllDefinitions, Unreachable),
-
     CompileOpts = lists:flatten(ets:lookup_element(Data, compile, 2)),
-    Binary = load_form(Line, Data, Forms, CompileOpts, NE),
+    Binary = elixir_erl:compile(Line, File, Module, Attributes,
+                                AllDefinitions, Unreachable, CompileOpts),
     warn_unused_attributes(File, Data, PersistedAttributes),
+    autoload_module(Module, Binary, CompileOpts, NE),
+    eval_callbacks(Line, Data, after_compile, [NE, Binary], NE),
+    make_module_available(Module, Binary),
     {module, Module, Binary, Result}
   catch
     error:undef ->
@@ -112,6 +114,29 @@ compile_undef(Module, Fun, Arity, Stack) ->
               {reason, 'function not available'}],
       Exception = 'Elixir.UndefinedFunctionError':exception(Opts),
       erlang:raise(error, Exception, Stack)
+  end.
+
+%% Handle reserved modules and duplicates.
+
+check_module_availability(Line, File, Module) ->
+  Reserved = ['Elixir.Any', 'Elixir.BitString', 'Elixir.Function', 'Elixir.PID',
+              'Elixir.Reference', 'Elixir.Elixir', 'Elixir'],
+
+  case lists:member(Module, Reserved) of
+    true  -> elixir_errors:form_error([{line, Line}], File, ?MODULE, {module_reserved, Module});
+    false -> ok
+  end,
+
+  case elixir_compiler:get_opt(ignore_module_conflict) of
+    false ->
+      case code:ensure_loaded(Module) of
+        {module, _} ->
+          elixir_errors:form_warn([{line, Line}], File, ?MODULE, {module_defined, Module});
+        {error, _}  ->
+          ok
+      end;
+    true ->
+      ok
   end.
 
 %% Hook that builds both attribute and functions and set up common hooks.
@@ -170,7 +195,7 @@ build(Line, File, Module, Docs, Lexical) ->
 
   {Data, Defs, Ref}.
 
-%% Receives the module representation and evaluates it.
+%% Handles module and callback evaluations.
 
 eval_form(Line, Module, Data, Block, Vars, E) ->
   {Value, EE} = elixir_compiler:eval_forms(Block, Vars, E),
@@ -186,6 +211,28 @@ eval_callbacks(Line, Data, Name, Args, E) ->
     expand_callback(Line, M, F, Args, reset_env(Acc),
                     fun(AM, AF, AA) -> apply(AM, AF, AA) end)
   end, E, Callbacks).
+
+expand_callback(Line, M, F, Args, E, Fun) ->
+  Meta = [{line, Line}, {required, true}],
+
+  {EE, ET} = elixir_dispatch:dispatch_require(Meta, M, F, Args, E, fun(AM, AF, AA) ->
+    Fun(AM, AF, AA),
+    {ok, E}
+  end),
+
+  if
+    is_atom(EE) ->
+      ET;
+    true ->
+      try
+        {_Value, _Binding, EF, _S} = elixir:eval_forms(EE, [], ET),
+        EF
+      catch
+        Kind:Reason ->
+          Info = {M, F, length(Args), location(Line, E)},
+          erlang:raise(Kind, Reason, prune_stacktrace(Info, erlang:get_stacktrace()))
+      end
+  end.
 
 reset_env(Env) ->
   Env#{vars := [], export_vars := nil}.
@@ -213,20 +260,33 @@ validate_external_resource(_Line, _File, Value) when is_binary(Value) ->
 validate_external_resource(Line, File, Value) ->
   elixir_errors:form_error([{line, Line}], File, ?MODULE, {invalid_external_resource, Value}).
 
-%% Loads the form into the code server.
+%% Takes care of autoloading the module if configured.
 
-load_form(Line, Data, Forms, Opts, E) ->
-  {Module, Binary0} = erl_compile_module(Forms, Opts, E),
-  Docs = elixir_compiler:get_opt(docs),
-  Binary = add_docs_chunk(Binary0, Data, Line, Docs),
+autoload_module(Module, Binary, Opts, E) ->
+  case proplists:get_value(autoload, Opts, true) of
+    true  -> code:load_binary(Module, beam_location(E), Binary);
+    false -> ok
+  end.
 
-  {module, Module} =
-    case proplists:get_value(autoload, Opts, true) of
-      true  -> code:load_binary(Module, beam_location(E), Binary);
-      false -> {module, Module}
-    end,
+beam_location(#{lexical_tracker := Pid, module := Module}) ->
+  case elixir_lexical:dest(Pid) of
+    nil  -> in_memory;
+    Dest ->
+      filename:join(elixir_utils:characters_to_list(Dest),
+                    atom_to_list(Module) ++ ".beam")
+  end.
 
-  eval_callbacks(Line, Data, after_compile, [E, Binary], E),
+%% Handle unused attributes warnings and special cases.
+
+warn_unused_attributes(File, Data, PersistedAttrs) ->
+  ReservedAttrs = [after_compile, before_compile, moduledoc, on_definition | PersistedAttrs],
+  Keys = ets:select(Data, [{{'$1', '_', '_', '$2'}, [{is_atom, '$1'}, {is_integer, '$2'}], [['$1', '$2']]}]),
+  [elixir_errors:form_warn([{line, Line}], File, ?MODULE, {unused_attribute, Key}) ||
+   [Key, Line] <- Keys, not lists:member(Key, ReservedAttrs)].
+
+%% Integration with elixir_compiler that makes the module available
+
+make_module_available(Module, Binary) ->
   case get(elixir_module_binaries) of
     Current when is_list(Current) ->
       put(elixir_module_binaries, [{Module, Binary} | Current]),
@@ -241,115 +301,9 @@ load_form(Line, Data, Forms, Opts, E) ->
       end;
     _ ->
       ok
-  end,
-  Binary.
-
-erl_compile_module(Forms, Opts, #{file := File}) ->
-  ErlOpts =
-    case proplists:get_value(debug_info, Opts) of
-      true -> [debug_info];
-      false -> [];
-      undefined ->
-        case elixir_compiler:get_opt(debug_info) of
-          true  -> [debug_info];
-          false -> []
-        end
-    end,
-  elixir_erl_compiler:forms(Forms, File, ErlOpts).
-
-beam_location(#{lexical_tracker := Pid, module := Module}) ->
-  case elixir_lexical:dest(Pid) of
-    nil  -> in_memory;
-    Dest ->
-      filename:join(elixir_utils:characters_to_list(Dest),
-                    atom_to_list(Module) ++ ".beam")
   end.
 
-add_docs_chunk(Bin, Data, Line, true) ->
-  ChunkData = term_to_binary({elixir_docs_v1, [
-    {docs, get_docs(Data)},
-    {moduledoc, get_moduledoc(Line, Data)},
-    {callback_docs, get_callback_docs(Data)},
-    {type_docs, get_type_docs(Data)}
-  ]}),
-  elixir_erl:add_beam_chunk(Bin, "ExDc", ChunkData);
-
-add_docs_chunk(Bin, _, _, _) -> Bin.
-
-get_moduledoc(Line, Data) ->
-  case ets:lookup_element(Data, moduledoc, 2) of
-    nil -> {Line, nil};
-    {DocLine, Doc} -> {DocLine, Doc}
-  end.
-
-get_docs(Data) ->
-  lists:usort(ets:select(Data, [{{{doc, '$1'}, '$2', '$3', '$4', '$5'},
-                                 [], [{{'$1', '$2', '$3', '$4', '$5'}}]}])).
-
-get_callback_docs(Data) ->
-  lists:usort(ets:select(Data, [{{{callbackdoc, '$1'}, '$2', '$3', '$4'},
-                                 [], [{{'$1', '$2', '$3', '$4'}}]}])).
-
-get_type_docs(Data) ->
-  lists:usort(ets:select(Data, [{{{typedoc, '$1'}, '$2', '$3', '$4'},
-                                 [], [{{'$1', '$2', '$3', '$4'}}]}])).
-
-check_module_availability(Line, File, Module) ->
-  Reserved = ['Elixir.Any', 'Elixir.BitString', 'Elixir.Function', 'Elixir.PID',
-              'Elixir.Reference', 'Elixir.Elixir', 'Elixir'],
-
-  case lists:member(Module, Reserved) of
-    true  -> elixir_errors:form_error([{line, Line}], File, ?MODULE, {module_reserved, Module});
-    false -> ok
-  end,
-
-  case elixir_compiler:get_opt(ignore_module_conflict) of
-    false ->
-      case code:ensure_loaded(Module) of
-        {module, _} ->
-          elixir_errors:form_warn([{line, Line}], File, ?MODULE, {module_defined, Module});
-        {error, _}  ->
-          ok
-      end;
-    true ->
-      ok
-  end.
-
-warn_unused_attributes(File, Data, PersistedAttrs) ->
-  ReservedAttrs = [after_compile, before_compile, moduledoc, on_definition | PersistedAttrs],
-  Keys = ets:select(Data, [{{'$1', '_', '_', '$2'}, [{is_atom, '$1'}, {is_integer, '$2'}], [['$1', '$2']]}]),
-  [elixir_errors:form_warn([{line, Line}], File, ?MODULE, {unused_attribute, Key}) ||
-   [Key, Line] <- Keys, not lists:member(Key, ReservedAttrs)].
-
-% HELPERS
-
-%% Expands a callback given by M:F(Args). In case
-%% the callback can't be expanded, invokes the given
-%% fun passing a possibly expanded AM:AF(Args).
-expand_callback(Line, M, F, Args, E, Fun) ->
-  Meta = [{line, Line}, {required, true}],
-
-  {EE, ET} = elixir_dispatch:dispatch_require(Meta, M, F, Args, E, fun(AM, AF, AA) ->
-    Fun(AM, AF, AA),
-    {ok, E}
-  end),
-
-  if
-    is_atom(EE) ->
-      ET;
-    true ->
-      try
-        {_Value, _Binding, EF, _S} = elixir:eval_forms(EE, [], ET),
-        EF
-      catch
-        Kind:Reason ->
-          Info = {M, F, length(Args), location(Line, E)},
-          erlang:raise(Kind, Reason, prune_stacktrace(Info, erlang:get_stacktrace()))
-      end
-  end.
-
-location(Line, E) ->
-  [{file, elixir_utils:characters_to_list(?key(E, file))}, {line, Line}].
+%% Error handling and helpers.
 
 %% We've reached the elixir_module or eval internals, skip it with the rest
 prune_stacktrace(Info, [{elixir, eval_forms, _, _} | _]) ->
@@ -361,7 +315,8 @@ prune_stacktrace(Info, [H | T]) ->
 prune_stacktrace(Info, []) ->
   [Info].
 
-% ERROR HANDLING
+location(Line, E) ->
+  [{file, elixir_utils:characters_to_list(?key(E, file))}, {line, Line}].
 
 format_error({invalid_external_resource, Value}) ->
   io_lib:format("expected a string value for @external_resource, got: ~p",
