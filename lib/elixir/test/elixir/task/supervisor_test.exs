@@ -137,6 +137,14 @@ defmodule Task.SupervisorTest do
 
     send pid, true
     assert_receive :done
+
+    assert_raise FunctionClauseError, fn ->
+      Task.Supervisor.start_child(config[:supervisor], __MODULE__, :wait_and_send, :illegal_arg)
+    end
+
+    assert_raise FunctionClauseError, fn ->
+      Task.Supervisor.start_child(config[:supervisor], __MODULE__, "wait_and_send", [self(), :done])
+    end
   end
 
   test "terminate_child/2", config do
