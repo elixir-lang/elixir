@@ -595,34 +595,6 @@ defmodule Kernel.ErrorsTest do
       'defmodule Kernel.ErrorsTest.InvalidDefinition, do: (def 1.(hello), do: true)'
   end
 
-  test "duplicated bitstring size" do
-    assert_compile_fail CompileError,
-      "nofile:1: duplicated size definition in bitstring",
-      '<<1::size(12)-size(13)>>'
-  end
-
-  test "invalid bitstring specified" do
-    assert_compile_fail CompileError,
-      "nofile:1: unknown bitstring specifier :atom",
-      '<<1::(:atom)>>'
-
-    assert_compile_fail CompileError,
-      "nofile:1: unknown bitstring specifier unknown()",
-      '<<1::unknown>>'
-
-    assert_compile_fail CompileError,
-      "nofile:1: unknown bitstring specifier another(12)",
-      '<<1::another(12)>>'
-
-    assert_compile_fail CompileError,
-      "nofile:1: size in bitstring expects an integer or a variable as argument, got: :a",
-      '<<1::size(:a)>>'
-
-    assert_compile_fail CompileError,
-      "nofile:1: unit in bitstring expects an integer as argument, got: :x",
-      '<<1::unit(:x)>>'
-  end
-
   test "invalid for bit generator" do
     assert_compile_fail CompileError,
       "nofile:1: bitstring fields without size are not allowed in bitstring generators",
