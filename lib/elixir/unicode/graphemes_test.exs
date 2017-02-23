@@ -1,4 +1,4 @@
-defmodule UnicodeTest do
+defmodule GraphemesTest do
   def run do
     IO.puts "Running GraphemeBreakTest.txt"
     count = run_grapheme_break()
@@ -22,15 +22,15 @@ defmodule UnicodeTest do
 
             String.graphemes(#{inspect string})
 
-        must be
+        must be:
 
             #{inspect graphemes}
 
-        got
+        got:
 
             #{inspect String.graphemes(string)}
 
-        On line
+        On line:
 
             #{line}
         """
@@ -46,6 +46,7 @@ defmodule UnicodeTest do
     |> String.trim_trailing(" ÷")
     |> parse_grapheme_break("", [])
   end
+
   defp parse_grapheme_break(string, acc_string, acc_list) do
     case String.split(string, " ÷ ", parts: 2) do
       [left, right] ->
@@ -56,6 +57,7 @@ defmodule UnicodeTest do
         {acc_string <> grapheme, Enum.reverse([grapheme | acc_list])}
     end
   end
+
   defp breaks_to_grapheme(string) do
     for codepoint <- String.split(string, " × "),
         do: <<String.to_integer(codepoint, 16)::utf8>>,
@@ -63,4 +65,4 @@ defmodule UnicodeTest do
   end
 end
 
-UnicodeTest.run
+GraphemesTest.run
