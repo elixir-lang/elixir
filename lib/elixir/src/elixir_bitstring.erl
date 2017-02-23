@@ -211,12 +211,19 @@ build_spec(Meta, _Size, Unit, Type, _Endianess, Sign, Spec, E) when Type == bina
   end;
 
 build_spec(Meta, Size, Unit, Type, Endianess, Sign, Spec, E) when Type == integer; Type == float ->
+  NumberSize = number_size(Size, Unit),
   if
+    Type == float, is_integer(NumberSize), NumberSize /= 32, NumberSize /= 64 ->
+      form_error(Meta, ?key(E, file), ?MODULE, {bittype_float_size, NumberSize});
     Size == default, Unit /= default ->
       form_error(Meta, ?key(E, file), ?MODULE, bittype_unit);
     true ->
       add_spec(Type, add_spec(Endianess, add_spec(Sign, Spec)))
   end.
+
+number_size(default, _) -> default;
+number_size(Size, default) -> Size;
+number_size(Size, Unit) -> Size * Unit.
 
 add_spec(default, Spec) -> Spec;
 add_spec(Key, Spec) -> [{Key, [], []} | Spec].
@@ -236,6 +243,8 @@ format_error(bittype_signed) ->
   "signed and unsigned specifiers are supported only on integer and float types";
 format_error(bittype_unit) ->
   "integer and float types require a size specifier if the unit specifier is given";
+format_error({bittype_float_size, Other}) ->
+  io_lib:format("float requires size*unit to be 32 or 64 (default), got: ~p", [Other]);
 format_error({invalid_literal, Literal}) ->
   io_lib:format("invalid literal ~ts in <<>>", ['Elixir.Macro':to_string(Literal)]);
 format_error({undefined_bittype, Expr}) ->
