@@ -1445,10 +1445,11 @@ defmodule DateTime do
 
   The unit can also be an integer as in `t:System.time_unit/0`:
 
-      iex> DateTime.from_unix(1432560368868569, 1024)
-      {:ok, %DateTime{calendar: Calendar.ISO, day: 23, hour: 22, microsecond: {211914, 3}, minute: 53,
-                      month: 1, second: 43, std_offset: 0, time_zone: "Etc/UTC", utc_offset: 0,
-                      year: 46302, zone_abbr: "UTC"}}
+      iex> DateTime.from_unix(143256036886856, 1024)
+      {:ok, %DateTime{calendar: Calendar.ISO, day: 17, hour: 7, microsecond: {320312, 3},
+        minute: 5, month: 3, second: 22, std_offset: 0, time_zone: "Etc/UTC",
+        utc_offset: 0, year: 6403, zone_abbr: "UTC"}}
+
 
   Negative Unix times are supported, up to -#{@unix_epoch} seconds,
   which is equivalent to "0000-01-01T00:00:00Z" or 0 gregorian seconds.

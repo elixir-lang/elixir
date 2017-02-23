@@ -115,13 +115,22 @@ defmodule DateTimeTest do
 
   test "from_unix/2" do
     # with Unix times back to 0 Gregorian Seconds
-    datetime = %DateTime{
+    min_datetime = %DateTime{
       calendar: Calendar.ISO, day: 1, hour: 0, microsecond: {0, 0},
       minute: 0, month: 1, second: 0, std_offset: 0, time_zone: "Etc/UTC",
       utc_offset: 0, year: 0, zone_abbr: "UTC"
     }
-    assert DateTime.from_unix(-62167219200) == {:ok, datetime}
+    assert DateTime.from_unix(-62167219200) == {:ok, min_datetime}
     assert DateTime.from_unix(-62167219201) == {:error, :invalid_unix_time}
+
+    max_datetime = %DateTime{
+      calendar: Calendar.ISO, day: 31, hour: 23, microsecond: {0, 0},
+      minute: 59, month: 12, second: 59, std_offset: 0, time_zone: "Etc/UTC",
+      utc_offset: 0, year: 9999, zone_abbr: "UTC"
+    }
+
+    assert DateTime.from_unix(253402300799) == {:ok, max_datetime}
+    assert DateTime.from_unix(253402300800) == {:error, :invalid_unix_time}
   end
 
   test "from_unix!/2" do
