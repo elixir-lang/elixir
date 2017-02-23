@@ -1,6 +1,6 @@
 %% Compiler backend to Erlang.
 -module(elixir_erl).
--export([elixir_to_erl/1, definition_to_anonymous/6, compile/6,
+-export([elixir_to_erl/1, definition_to_anonymous/6, compile/7,
          get_ann/1, remote/4, add_beam_chunk/3, format_error/1]).
 -include("elixir.hrl").
 
@@ -112,7 +112,7 @@ elixir_to_erl_cons2([], Acc) ->
 
 %% Compilation hook.
 
-compile(Line, File, Module, Attributes, Definitions, Unreachable) ->
+compile(Line, File, Module, Attributes, Definitions, Unreachable, Opts) ->
   Data = elixir_module:data_table(Module),
 
   {Def, Defp, Defmacro, Defmacrop, Exports, Functions} =
@@ -130,8 +130,10 @@ compile(Line, File, Module, Attributes, Definitions, Unreachable) ->
 
   Location = {elixir_utils:characters_to_list(elixir_utils:relative_to_cwd(File)), Line},
 
-  [{attribute, Line, file, Location},
-   {attribute, Line, module, Module} | Forms2].
+  Forms = [{attribute, Line, file, Location},
+           {attribute, Line, module, Module} | Forms2],
+
+  load_form(Line, File, Data, Forms, Opts).
 
 % Definitions
 
@@ -381,6 +383,52 @@ attributes_form(Line, Attributes, Forms) ->
     [{attribute, Line, Key, Value} | Acc]
   end,
   lists:foldl(Fun, Forms, Attributes).
+
+% Loading forms
+
+load_form(Line, File, Data, Forms, Opts) ->
+  DebugInfo =
+    case proplists:get_value(debug_info, Opts) of
+      true -> [debug_info];
+      false -> [];
+      undefined ->
+        case elixir_compiler:get_opt(debug_info) of
+          true  -> [debug_info];
+          false -> []
+        end
+    end,
+
+  {_, Binary} = elixir_erl_compiler:forms(Forms, File, DebugInfo),
+  Docs = elixir_compiler:get_opt(docs),
+  add_docs_chunk(Binary, Data, Line, Docs).
+
+add_docs_chunk(Bin, Data, Line, true) ->
+  ChunkData = term_to_binary({elixir_docs_v1, [
+    {docs, get_docs(Data)},
+    {moduledoc, get_moduledoc(Line, Data)},
+    {callback_docs, get_callback_docs(Data)},
+    {type_docs, get_type_docs(Data)}
+  ]}),
+  add_beam_chunk(Bin, "ExDc", ChunkData);
+add_docs_chunk(Bin, _, _, _) -> Bin.
+
+get_moduledoc(Line, Data) ->
+  case ets:lookup_element(Data, moduledoc, 2) of
+    nil -> {Line, nil};
+    {DocLine, Doc} -> {DocLine, Doc}
+  end.
+
+get_docs(Data) ->
+  lists:usort(ets:select(Data, [{{{doc, '$1'}, '$2', '$3', '$4', '$5'},
+                                 [], [{{'$1', '$2', '$3', '$4', '$5'}}]}])).
+
+get_callback_docs(Data) ->
+  lists:usort(ets:select(Data, [{{{callbackdoc, '$1'}, '$2', '$3', '$4'},
+                                 [], [{{'$1', '$2', '$3', '$4'}}]}])).
+
+get_type_docs(Data) ->
+  lists:usort(ets:select(Data, [{{{typedoc, '$1'}, '$2', '$3', '$4'},
+                                 [], [{{'$1', '$2', '$3', '$4'}}]}])).
 
 %% Errors
 
