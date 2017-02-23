@@ -276,6 +276,10 @@ defmodule Kernel.ExpansionTest do
       assert_raise CompileError,
         ~r"illegal use of variable x inside map key match,",
         fn -> expand(quote do: (%{x => 1} = %{})) end
+
+      assert_raise CompileError,
+        ~r"unbound variable \^x",
+        fn -> expand(quote do: ({x, %{^x => 1}} = %{})) end
     end
 
     test "expects key-value pairs" do

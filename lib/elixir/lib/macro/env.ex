@@ -36,14 +36,17 @@ defmodule Macro.Env do
     * `macros` - a list of macros imported from each module
     * `macro_aliases` - a list of aliases defined inside the current macro
     * `context_modules` - a list of modules defined in the current context
-    * `vars` - a list keeping all defined variables as `{var, context}`
     * `lexical_tracker` - PID of the lexical tracker which is responsible for
       keeping user info
+    * `vars` - a list keeping all defined variables as `{var, context}`
 
   The following fields are private and must not be accessed or relied on:
 
     * `export_vars` - a list keeping all variables to be exported in a
       construct (may be `nil`)
+    * `prematch_vars` - a list of variables defined before a match (is
+      `nil` when not inside a match)
+
   """
 
   @type name_arity :: {atom, arity}
@@ -61,6 +64,7 @@ defmodule Macro.Env do
   @type local :: atom | nil
 
   @opaque export_vars :: vars | nil
+  @opaque prematch_vars :: vars | nil
 
   @type t :: %{__struct__: __MODULE__,
                module: atom,
@@ -76,6 +80,7 @@ defmodule Macro.Env do
                context_modules: context_modules,
                vars: vars,
                export_vars: export_vars,
+               prematch_vars: prematch_vars,
                lexical_tracker: lexical_tracker}
 
   def __struct__ do
@@ -93,7 +98,8 @@ defmodule Macro.Env do
       context_modules: [],
       vars: [],
       lexical_tracker: nil,
-      export_vars: nil}
+      export_vars: nil,
+      prematch_vars: nil}
   end
 
   def __struct__(kv) do

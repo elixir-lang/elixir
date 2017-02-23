@@ -125,7 +125,7 @@ defmodule Kernel.CLI do
 
   @elixir_internals [:elixir, :elixir_expand, :elixir_compiler, :elixir_module,
                      :elixir_clauses, :elixir_lexical, :elixir_def, :elixir_map,
-                     :elixir_erl, :elixir_erl_clauses, :elixir_erl_expand]
+                     :elixir_erl, :elixir_erl_clauses, :elixir_erl_pass]
 
   defp prune_stacktrace([{mod, _, _, _} | t]) when mod in @elixir_internals do
     prune_stacktrace(t)
