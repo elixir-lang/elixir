@@ -77,7 +77,7 @@ stdlib: $(KERNEL) VERSION
 $(KERNEL): lib/elixir/lib/*.ex lib/elixir/lib/*/*.ex lib/elixir/lib/*/*/*.ex
 	$(Q) if [ ! -f $(KERNEL) ]; then                  \
 		echo "==> bootstrap (compile)";                 \
-		$(ERL) -s elixir_compiler core -s erlang halt;  \
+		$(ERL) -s elixir_compiler bootstrap -s erlang halt;  \
 	fi
 	@ echo "==> elixir (compile)";
 	$(Q) cd lib/elixir && ../../$(ELIXIRC) "lib/kernel.ex" -o ebin;

@@ -1,4 +1,3 @@
-%% TODO: Split into elixir and elixir_erl
 -module(elixir_module).
 -export([data_table/1, defs_table/1, is_open/1, delete_doc/6,
          compile/4, expand_callback/6, format_error/1,
@@ -217,29 +216,54 @@ validate_external_resource(Line, File, Value) ->
 %% Loads the form into the code server.
 
 load_form(Line, Data, Forms, Opts, E) ->
-  elixir_compiler:module(Forms, Opts, E, fun(Module, Binary0) ->
-    Docs = elixir_compiler:get_opt(docs),
-    Binary = add_docs_chunk(Binary0, Data, Line, Docs),
-    eval_callbacks(Line, Data, after_compile, [E, Binary], E),
+  {Module, Binary0} = erl_compile_module(Forms, Opts, E),
+  Docs = elixir_compiler:get_opt(docs),
+  Binary = add_docs_chunk(Binary0, Data, Line, Docs),
 
-    case get(elixir_module_binaries) of
-      Current when is_list(Current) ->
-        put(elixir_module_binaries, [{Module, Binary} | Current]),
-
-        case get(elixir_compiler_pid) of
-          undefined ->
-            ok;
-          PID ->
-            Ref = make_ref(),
-            PID ! {module_available, self(), Ref, get(elixir_compiler_file), Module, Binary},
-            receive {Ref, ack} -> ok end
-        end;
-      _ ->
-        ok
+  {module, Module} =
+    case proplists:get_value(autoload, Opts, true) of
+      true  -> code:load_binary(Module, beam_location(E), Binary);
+      false -> {module, Module}
     end,
 
-    Binary
-  end).
+  eval_callbacks(Line, Data, after_compile, [E, Binary], E),
+  case get(elixir_module_binaries) of
+    Current when is_list(Current) ->
+      put(elixir_module_binaries, [{Module, Binary} | Current]),
+
+      case get(elixir_compiler_pid) of
+        undefined ->
+          ok;
+        PID ->
+          Ref = make_ref(),
+          PID ! {module_available, self(), Ref, get(elixir_compiler_file), Module, Binary},
+          receive {Ref, ack} -> ok end
+      end;
+    _ ->
+      ok
+  end,
+  Binary.
+
+erl_compile_module(Forms, Opts, #{file := File}) ->
+  ErlOpts =
+    case proplists:get_value(debug_info, Opts) of
+      true -> [debug_info];
+      false -> [];
+      undefined ->
+        case elixir_compiler:get_opt(debug_info) of
+          true  -> [debug_info];
+          false -> []
+        end
+    end,
+  elixir_compiler:forms(Forms, File, ErlOpts).
+
+beam_location(#{lexical_tracker := Pid, module := Module}) ->
+  case elixir_lexical:dest(Pid) of
+    nil  -> in_memory;
+    Dest ->
+      filename:join(elixir_utils:characters_to_list(Dest),
+                    atom_to_list(Module) ++ ".beam")
+  end.
 
 add_docs_chunk(Bin, Data, Line, true) ->
   ChunkData = term_to_binary({elixir_docs_v1, [
