@@ -74,7 +74,7 @@ compile(Forms, Vars, #{line := Line, file := File} = E) ->
   Form = code_mod(Fun, Expr, Line, File, Module, Vars),
   Args = list_to_tuple([V || {_, _, _, V} <- Vars]),
 
-  {Module, Binary} = elixir_erl_compiler:forms(Form, File, [nowarn_nomatch]),
+  {Module, Binary} = elixir_erl_compiler:noenv_forms(Form, File, [nowarn_nomatch]),
   code:load_binary(Module, in_memory, Binary),
 
   Purgeable = beam_lib:chunks(Binary, [labeled_locals]) ==
