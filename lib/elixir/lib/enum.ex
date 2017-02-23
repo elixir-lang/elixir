@@ -136,8 +136,7 @@ defprotocol Enumerable do
   It should return `{:ok, size}`.
 
   If `{:error, __MODULE__}` is returned a default algorithm using
-  `reduce` and the match (`===`) operator is used. This algorithm runs
-  in linear time.
+  `reduce` is used. This algorithm runs in linear time.
 
   _Please force use of the default algorithm unless you can implement an
   algorithm that is significantly faster._
