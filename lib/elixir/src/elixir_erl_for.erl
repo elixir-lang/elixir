@@ -42,12 +42,7 @@ translate_gen(ForMeta, [{'<-', Meta, [Left, Right]} | T], Acc, S) ->
 translate_gen(ForMeta, [{'<<>>', _, [{'<-', Meta, [Left, Right]}]} | T], Acc, S) ->
   {TLeft, TRight, TFilters, TT, TS} = translate_gen(Meta, Left, Right, T, S),
   TAcc = [{bin, Meta, TLeft, TRight, TFilters} | Acc],
-  case bin_gen_has_size(TLeft) of
-    true  -> translate_gen(ForMeta, TT, TAcc, TS);
-    false ->
-      elixir_errors:compile_error(Meta, S#elixir_erl.file,
-        "bitstring fields without size are not allowed in bitstring generators")
-  end;
+  translate_gen(ForMeta, TT, TAcc, TS);
 translate_gen(_ForMeta, [], Acc, S) ->
   {lists:reverse(Acc), S}.
 
@@ -288,8 +283,3 @@ join_filter(Ann, {Var, Filter}, True, False) ->
     {clause, Ann, [Var], [[Guard]], [False]},
     {clause, Ann, [{var, Ann, '_'}], [], [True]}
   ]}.
-
-bin_gen_has_size({bin, _, Elements}) ->
-  not lists:any(fun({bin_element, _Line, _Expr, Size, Types}) ->
-    (Size == default) andalso (lists:member(bitstring, Types) orelse lists:member(binary, Types))
-  end, Elements).
