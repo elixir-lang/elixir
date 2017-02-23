@@ -76,8 +76,9 @@ compile(Line, Module, Block, Vars, E) ->
 
     {AllDefinitions, Unreachable} = elixir_def:fetch_definitions(File, Module),
     CompileOpts = lists:flatten(ets:lookup_element(Data, compile, 2)),
-    Binary = elixir_erl:compile(Line, File, Module, Attributes,
-                                AllDefinitions, Unreachable, CompileOpts),
+    Backend = proplists:get_value(undocumented_elixir_backend_option, CompileOpts, elixir_erl),
+    Binary = Backend:compile(Line, File, Module, Attributes,
+                             AllDefinitions, Unreachable, CompileOpts),
     warn_unused_attributes(File, Data, PersistedAttributes),
     autoload_module(Module, Binary, CompileOpts, NE),
     eval_callbacks(Line, Data, after_compile, [NE, Binary], NE),
