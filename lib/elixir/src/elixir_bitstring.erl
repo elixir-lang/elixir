@@ -1,38 +1,39 @@
 -module(elixir_bitstring).
--export([expand/3, format_error/1]).
+-export([expand/4, format_error/1]).
 -import(elixir_errors, [form_error/4]).
 -include("elixir.hrl").
 
-expand(Meta, Args, E) ->
+expand(Meta, Args, E, RequireSize) ->
   case ?key(E, context) of
     match ->
-      {EArgs, EA} = expand(Meta, fun elixir_expand:expand/2, Args, [], E),
+      {EArgs, EA} = expand(Meta, fun elixir_expand:expand/2, Args, [], E, RequireSize),
       {{'<<>>', Meta, EArgs}, EA};
     _ ->
-      {EArgs, {EC, EV}} = expand(Meta, fun elixir_expand:expand_arg/2, Args, [], {E, E}),
+      {EArgs, {EC, EV}} = expand(Meta, fun elixir_expand:expand_arg/2, Args, [], {E, E}, RequireSize),
       {{'<<>>', Meta, EArgs}, elixir_env:mergea(EV, EC)}
   end.
 
-expand(_BitstrMeta, _Fun, [], Acc, E) ->
+expand(_BitstrMeta, _Fun, [], Acc, E, _RequireSize) ->
   {lists:reverse(Acc), E};
-expand(BitstrMeta, Fun, [{'::', Meta, [Left, Right]} | T], Acc, E) ->
+expand(BitstrMeta, Fun, [{'::', Meta, [Left, Right]} | T], Acc, E, RequireSize) ->
   {ELeft, EL} = expand_expr(Meta, Left, Fun, E),
 
   %% Variables defined outside the binary can be accounted
   %% on subparts, however we can't assign new variables.
-  ER = case E of
-    {EExtracted, _} -> EExtracted;        %% expand_arg,  no assigns
-    _               -> E#{context := nil} %% expand_each, revert assigns
-  end,
+  {ER, MatchSize} =
+    case E of
+      {EExtracted, _} -> {EExtracted, false};          %% expand_arg,  no assigns
+      _               -> {E#{context := nil}, T /= []} %% expand, revert assigns
+    end,
 
-  ERight = expand_specs(expr_type(ELeft), Meta, Right, ER),
-  expand(BitstrMeta, Fun, T, [{'::', Meta, [ELeft, ERight]} | Acc], EL);
-expand(BitstrMeta, Fun, [{_, Meta, _} = H | T], Acc, E) ->
+  ERight = expand_specs(expr_type(ELeft), Meta, Right, ER, RequireSize or MatchSize),
+  expand(BitstrMeta, Fun, T, [{'::', Meta, [ELeft, ERight]} | Acc], EL, RequireSize);
+expand(BitstrMeta, Fun, [{_, Meta, _} = H | T], Acc, E, RequireSize) ->
   {Expr, ES} = expand_expr(Meta, H, Fun, E),
-  expand(BitstrMeta, Fun, T, [wrap_expr(Expr) | Acc], ES);
-expand(Meta, Fun, [H | T], Acc, E) ->
+  expand(BitstrMeta, Fun, T, [wrap_expr(Expr) | Acc], ES, RequireSize);
+expand(Meta, Fun, [H | T], Acc, E, RequireSize) ->
   {Expr, ES} = expand_expr(Meta, H, Fun, E),
-  expand(Meta, Fun, T, [wrap_expr(Expr) | Acc], ES).
+  expand(Meta, Fun, T, [wrap_expr(Expr) | Acc], ES, RequireSize).
 
 wrap_expr(Expr) ->
   case expr_type(Expr) of
@@ -69,7 +70,7 @@ env_for_error(E) -> E.
 
 %% Expands and normalizes types of a bitstring.
 
-expand_specs(ExprType, Meta, Info, E) ->
+expand_specs(ExprType, Meta, Info, E, RequireSize) ->
   Default =
     #{size => default,
       unit => default,
@@ -79,6 +80,7 @@ expand_specs(ExprType, Meta, Info, E) ->
   #{size := Size, unit := Unit, type := Type, endianess := Endianess, sign := Sign} =
     expand_each_spec(Meta, unpack_specs(Info, []), Default, E),
   MergedType = type(Meta, ExprType, Type, E),
+  validate_size_required(Meta, RequireSize, MergedType, Size, E),
   SizeAndUnit = size_and_unit(Meta, ExprType, Size, Unit, E),
   [H | T] = build_spec(Meta, Size, Unit, MergedType, Endianess, Sign, SizeAndUnit, E),
   lists:foldl(fun(I, Acc) -> {'-', Meta, [Acc, I]} end, H, T).
@@ -172,6 +174,21 @@ validate_spec_arg(Meta, unit, Value, E) when not is_integer(Value) ->
 validate_spec_arg(_Meta, _Key, _Value, _E) ->
   ok.
 
+validate_size_required(Meta, true, Type, default, E) when Type == binary; Type == bitstring ->
+  form_error(Meta, ?key(E, file), ?MODULE, unsized_binary);
+validate_size_required(_, _, _, _, _) ->
+  ok.
+
+size_and_unit(Meta, bitstring, Size, Unit, E) when Size /= default; Unit /= default ->
+  form_error(Meta, ?key(E, file), ?MODULE, bittype_literal_bitstring);
+size_and_unit(Meta, binary, Size, Unit, E) when Size /= default; Unit /= default ->
+  form_error(Meta, ?key(E, file), ?MODULE, bittype_literal_string);
+size_and_unit(_Meta, _ExprType, Size, Unit, _E) ->
+  add_arg(unit, Unit, add_arg(size, Size, [])).
+
+add_arg(_Key, default, Spec) -> Spec;
+add_arg(Key, Arg, Spec) -> [{Key, [], [Arg]} | Spec].
+
 build_spec(Meta, Size, Unit, Type, Endianess, Sign, Spec, E) when Type == utf8; Type == utf16; Type == utf32 ->
   if
     Size /= default; Unit /= default ->
@@ -204,16 +221,9 @@ build_spec(Meta, Size, Unit, Type, Endianess, Sign, Spec, E) when Type == intege
 add_spec(default, Spec) -> Spec;
 add_spec(Key, Spec) -> [{Key, [], []} | Spec].
 
-size_and_unit(Meta, bitstring, Size, Unit, E) when Size /= default; Unit /= default ->
-  form_error(Meta, ?key(E, file), ?MODULE, bittype_literal_bitstring);
-size_and_unit(Meta, binary, Size, Unit, E) when Size /= default; Unit /= default ->
-  form_error(Meta, ?key(E, file), ?MODULE, bittype_literal_string);
-size_and_unit(_Meta, _ExprType, Size, Unit, _E) ->
-  add_arg(unit, Unit, add_arg(size, Size, [])).
-
-add_arg(_Key, default, Spec) -> Spec;
-add_arg(Key, Arg, Spec) -> [{Key, [], [Arg]} | Spec].
-
+format_error(unsized_binary) ->
+  "a binary field without size is only allowed at the end of a binary pattern "
+  "and never allowed in binary generators";
 format_error(bittype_literal_bitstring) ->
   "literal <<>> in bitstring supports only type specifiers, which must be one of: "
     "binary or bitstring";

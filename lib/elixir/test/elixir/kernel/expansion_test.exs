@@ -464,6 +464,12 @@ defmodule Kernel.ExpansionTest do
       end
     end
 
+    test "requires size on binary generators" do
+      assert_raise CompileError,
+        ~r"a binary field without size is only allowed at the end of a binary pattern",
+        fn -> expand(quote do: (for <<x::binary <- "123">>, do: x)) end
+    end
+
     test "require do keyword" do
       assert_raise CompileError,
         ~r"missing :do option in \"for\"",
@@ -1103,6 +1109,14 @@ defmodule Kernel.ExpansionTest do
       assert_raise CompileError, ~r"invalid literal \[\] in <<>>", fn ->
         expand(quote do: <<[]::size(8)>>)
       end
+    end
+
+    test "raises on binary fields with size in matches" do
+      assert expand(quote do: (<<x::binary-size(3), y::binary>> = "foobar"))
+
+      assert_raise CompileError,
+        ~r"a binary field without size is only allowed at the end of a binary pattern",
+        fn -> expand(quote do: (<<x::binary, y::binary>> = "foobar")) end
     end
   end
 

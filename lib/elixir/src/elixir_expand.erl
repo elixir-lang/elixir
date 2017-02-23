@@ -24,7 +24,7 @@ expand({'%', Meta, [Left, Right]}, E) ->
   elixir_map:expand_struct(Meta, Left, Right, E);
 
 expand({'<<>>', Meta, Args}, E) ->
-  elixir_bitstring:expand(Meta, Args, E);
+  elixir_bitstring:expand(Meta, Args, E, false);
 
 expand({'->', Meta, _Args}, E) ->
   form_error(Meta, ?key(E, file), ?MODULE, unhandled_arrow_op);
@@ -739,8 +739,9 @@ expand_for({'<<>>', Meta, Args} = X, E) when is_list(Args) ->
   case elixir_utils:split_last(Args) of
     {LeftStart, {'<-', OpMeta, [LeftEnd, Right]}} ->
       {ERight, ER} = expand(Right, E),
-      Left = {'<<>>', Meta, LeftStart ++ [LeftEnd]},
-      {ELeft, EL}  = elixir_clauses:match(fun expand/2, Left, E),
+      {ELeft, EL} = elixir_clauses:match(fun(BArg, BE) ->
+        elixir_bitstring:expand(Meta, BArg, BE, true)
+      end, LeftStart ++ [LeftEnd], E),
       {{'<<>>', [], [{'<-', OpMeta, [ELeft, ERight]}]}, elixir_env:mergev(EL, ER)};
     _ ->
       expand(X, E)

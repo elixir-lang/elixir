@@ -595,12 +595,6 @@ defmodule Kernel.ErrorsTest do
       'defmodule Kernel.ErrorsTest.InvalidDefinition, do: (def 1.(hello), do: true)'
   end
 
-  test "invalid for bit generator" do
-    assert_compile_fail CompileError,
-      "nofile:1: bitstring fields without size are not allowed in bitstring generators",
-      'for <<x::binary <- "123">>, do: x'
-  end
-
   test "invalid size in bitstrings" do
     assert_compile_fail CompileError,
       "nofile:1: cannot use ^x outside of match clauses",
