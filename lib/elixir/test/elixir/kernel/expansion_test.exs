@@ -438,7 +438,7 @@ defmodule Kernel.ExpansionTest do
 
     test "variables do not leak with binaries" do
       assert expand(quote do: (for(<<a <- b>>, do: c = 1); c)) ==
-             quote do: (for(<< <<a>> <- b() >>, do: c = 1); c())
+             quote do: (for(<< <<a :: integer()>> <- b() >>, do: c = 1); c())
     end
 
     test "variables inside filters are available in blocks" do
@@ -974,48 +974,124 @@ defmodule Kernel.ExpansionTest do
   end
 
   describe "bitstrings" do
-    test "bitstrings: size * unit" do
+    test "expands size * unit" do
       import Kernel, except: [-: 2]
 
       assert expand(quote do: <<x::13>>) ==
-             quote do: <<x()::size(13)>>
+             quote do: <<x()::integer()-size(13)>>
 
       assert expand(quote do: <<x::13*6>>) ==
-             quote do: <<x()::unit(6)-size(13)>>
+             quote do: <<x()::integer()-unit(6)-size(13)>>
 
-      assert expand(quote do: <<x::_*6>>) ==
-             quote do: <<x()::unit(6)>>
+      assert expand(quote do: <<x::_*6-binary>>) ==
+             quote do: <<x()::binary()-unit(6)>>
 
       assert expand(quote do: <<x::13*6-binary>>) ==
-             quote do: <<x()::unit(6)-binary()-size(13) >>
+             quote do: <<x()::binary()-unit(6)-size(13)>>
 
-      assert expand(quote do: <<x::binary-13*6>>) ==
+      assert expand(quote do: <<x::binary-13*6-binary>>) ==
              quote do: <<x()::binary()-unit(6)-size(13)>>
     end
 
-    test "expands modifiers" do
-      assert expand(quote do: (import Kernel.ExpansionTarget; <<x::seventeen>>)) ==
-             quote do: (:"Elixir.Kernel.ExpansionTarget"; <<x()::size(17)>>)
+    test "expands binary/bitstring specifiers" do
+      import Kernel, except: [-: 2]
 
-      assert expand(quote do: (import Kernel.ExpansionTarget; <<seventeen::seventeen, x::size(seventeen)>> = 1)) ==
-             quote do: (:"Elixir.Kernel.ExpansionTarget";
-                        <<seventeen::size(17), x::size(seventeen)>> = 1)
-    end
+      assert expand(quote do: <<x::binary>>) == quote do: <<x()::binary()>>
+      assert expand(quote do: <<x::bytes>>) == quote do: <<x()::binary()>>
+      assert expand(quote do: <<x::bitstring>>) == quote do: <<x()::bitstring()>>
+      assert expand(quote do: <<x::bits>>) == quote do: <<x()::bitstring()>>
+      assert expand(quote do: <<x::binary-little>>) == quote do: <<x()::binary()>>
 
-    test "expands modifiers args" do
-      assert expand(quote do: (require Kernel.ExpansionTarget; <<x::size(Kernel.ExpansionTarget.seventeen)>>)) ==
-             quote do: (:"Elixir.Kernel.ExpansionTarget"; <<x()::size(17)>>)
-    end
-
-    test "raises if a size is provided with a literal binary" do
-      assert_raise CompileError, ~r"size is not supported for literal string in <<>>", fn ->
-        expand(quote do: <<"foo"::binary-size(3)>>)
+      assert_raise CompileError, ~r"signed and unsigned specifiers are supported only on integer and float type", fn ->
+        expand(quote do: <<x()::binary-signed>>)
       end
     end
 
-    test "raises for types that are not valid with a literal binary" do
-      assert_raise CompileError, ~r"invalid types for literal string in <<>>", fn ->
-        expand(quote do: <<"foo"::integer>>)
+    test "expands utf* specifiers" do
+      import Kernel, except: [-: 2]
+
+      assert expand(quote do: <<x::utf8>>) == quote do: <<x()::utf8()>>
+      assert expand(quote do: <<x::utf16>>) == quote do: <<x()::utf16()>>
+      assert expand(quote do: <<x::utf32-little>>) == quote do: <<x()::utf32()-little()>>
+
+      assert_raise CompileError, ~r"signed and unsigned specifiers are supported only on integer and float type", fn ->
+        expand(quote do: <<x()::utf8-signed>>)
+      end
+
+      assert_raise CompileError, ~r"size and unit are not supported on utf types", fn ->
+        expand(quote do: <<x()::utf8-size(32)>>)
+      end
+    end
+
+    test "expands numbers specifiers" do
+      import Kernel, except: [-: 2]
+
+      assert expand(quote do: <<x::integer>>) == quote do: <<x()::integer()>>
+      assert expand(quote do: <<x::little>>) == quote do: <<x()::integer()-little()>>
+      assert expand(quote do: <<x::signed>>) == quote do: <<x()::integer()-signed()>>
+      assert expand(quote do: <<x::signed-native>>) == quote do: <<x()::integer()-native()-signed()>>
+      assert expand(quote do: <<x::float-signed-native>>) == quote do: <<x()::float()-native()-signed()>>
+
+      assert_raise CompileError, ~r"integer and float types require a size specifier if the unit specifier is given", fn ->
+        expand(quote do: <<x::unit(8)>>)
+      end
+    end
+
+    test "expands macro specifiers" do
+      import Kernel, except: [-: 2]
+
+      assert expand(quote do: (import Kernel.ExpansionTarget; <<x::seventeen>>)) ==
+             quote do: (:"Elixir.Kernel.ExpansionTarget"; <<x()::integer()-size(17)>>)
+
+      assert expand(quote do: (import Kernel.ExpansionTarget; <<seventeen::seventeen, x::size(seventeen)>> = 1)) ==
+             quote do: (:"Elixir.Kernel.ExpansionTarget";
+                        <<seventeen::integer()-size(17), x::integer()-size(seventeen)>> = 1)
+    end
+
+    test "expands macro in args" do
+      import Kernel, except: [-: 2]
+
+      assert expand(quote do: (require Kernel.ExpansionTarget; <<x::size(Kernel.ExpansionTarget.seventeen)>>)) ==
+             quote do: (:"Elixir.Kernel.ExpansionTarget"; <<x()::integer()-size(17)>>)
+    end
+
+    test "raises on size or unit for literal bitstrings" do
+      assert_raise CompileError, ~r"literal <<>> in bitstring supports only type specifiers", fn ->
+        expand(quote do: << <<"foo">>::32 >>)
+      end
+    end
+
+    test "raises on size or unit for literal strings" do
+      assert_raise CompileError, ~r"literal string in bitstring supports only endianess and type specifiers", fn ->
+        expand(quote do: <<"foo"::32>>)
+      end
+    end
+
+    test "raises for invalid size" do
+      assert_raise CompileError, ~r"size in bitstring expects an integer or a variable as argument, got: :oops", fn ->
+        expand(quote do: <<"foo"::size(:oops)>>)
+      end
+    end
+
+    test "raises for invalid unit" do
+      assert_raise CompileError, ~r"unit in bitstring expects an integer as argument, got: :oops", fn ->
+        expand(quote do: <<"foo"::size(8)-unit(:oops)>>)
+      end
+    end
+
+    test "raises for unknown specifier" do
+      assert_raise CompileError, ~r"unknown bitstring specifier: unknown()", fn ->
+        expand(quote do: <<1::unknown>>)
+      end
+    end
+
+    test "raises for conflicting specifiers" do
+      assert_raise CompileError, ~r"conflicting endianess specification for bit field", fn ->
+        expand(quote do: <<1::little-big>>)
+      end
+
+      assert_raise CompileError, ~r"conflicting unit specification for bit field", fn ->
+        expand(quote do: <<x::bitstring-unit(2)>>)
       end
     end
 
