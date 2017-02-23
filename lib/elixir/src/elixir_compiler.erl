@@ -1,9 +1,15 @@
+%% Elixir compiler front-end to the Erlang backend.
 -module(elixir_compiler).
--export([string/2, quoted/2, file/1, file/2, file_to_path/2]).
--export([bootstrap/0, forms/3, noenv_forms/3, eval_forms/3, get_opt/1]).
+-export([get_opt/1, string/2, quoted/2, bootstrap/0,
+         file/1, file/2, file_to_path/2, eval_forms/3]).
 -include("elixir.hrl").
 
-%% Compilation entry points.
+get_opt(Key) ->
+  Map = elixir_config:get(compiler_options),
+  case maps:find(Key, Map) of
+    {ok, Value} -> Value;
+    error -> false
+  end.
 
 string(Contents, File) when is_list(Contents), is_binary(File) ->
   string(Contents, File, nil).
@@ -44,20 +50,21 @@ file_to_path(File, Dest) when is_binary(File), is_binary(Dest) ->
   _ = [binary_to_path(X, Abs) || X <- Comp],
   Comp.
 
-%% Evaluation
+%% Evaluates the given code through the Erlang compiler.
+%% It may end-up evaluating the code if it is deemed a
+%% more efficient strategy depending on the code snippet.
 
 eval_forms(Forms, Vars, E) ->
   case (?key(E, module) == nil) andalso allows_fast_compilation(Forms) of
-    true  -> eval_compilation(Forms, Vars, E);
-    false -> code_loading_compilation(Forms, Vars, E)
+    true  ->
+      Binding = [{Key, Value} || {_Name, _Kind, Key, Value} <- Vars],
+      {Result, _Binding, EE, _S} = elixir:eval_forms(Forms, Binding, E),
+      {Result, EE};
+    false ->
+      compile(Forms, Vars, E)
   end.
 
-eval_compilation(Forms, Vars, E) ->
-  Binding = [{Key, Value} || {_Name, _Kind, Key, Value} <- Vars],
-  {Result, _Binding, EE, _S} = elixir:eval_forms(Forms, Binding, E),
-  {Result, EE}.
-
-code_loading_compilation(Forms, Vars, #{line := Line, file := File} = E) ->
+compile(Forms, Vars, #{line := Line, file := File} = E) ->
   Dict = [{{Name, Kind}, {Value, 0, true}} || {Name, Kind, Value, _} <- Vars],
   S = elixir_env:env_to_scope_with_vars(E, Dict),
   {Expr, EE, _S} = elixir:quoted_to_erl(Forms, E, S),
@@ -67,14 +74,14 @@ code_loading_compilation(Forms, Vars, #{line := Line, file := File} = E) ->
   Form = code_mod(Fun, Expr, Line, File, Module, Vars),
   Args = list_to_tuple([V || {_, _, _, V} <- Vars]),
 
-  {Module, Binary} = elixir_compiler:forms(Form, File, [nowarn_nomatch]),
+  {Module, Binary} = elixir_erl_compiler:forms(Form, File, [nowarn_nomatch]),
   code:load_binary(Module, in_memory, Binary),
 
   Purgeable = beam_lib:chunks(Binary, [labeled_locals]) ==
               {ok, {Module, [{labeled_locals, []}]}},
-  dispatch_loaded(Module, Fun, Args, Purgeable, I, EE).
+  dispatch(Module, Fun, Args, Purgeable, I, EE).
 
-dispatch_loaded(Module, Fun, Args, Purgeable, I, E) ->
+dispatch(Module, Fun, Args, Purgeable, I, E) ->
   Res = Module:Fun(Args),
   code:delete(Module),
   if Purgeable ->
@@ -112,52 +119,6 @@ allows_fast_compilation({'__block__', _, Exprs}) ->
   lists:all(fun allows_fast_compilation/1, Exprs);
 allows_fast_compilation({defmodule, _, _}) -> true;
 allows_fast_compilation(_) -> false.
-
-%% Erlang forms compiler
-
-get_opt(Key) ->
-  Map = elixir_config:get(compiler_options),
-  case maps:find(Key, Map) of
-    {ok, Value} -> Value;
-    error -> false
-  end.
-
-forms(Forms, File, Opts) ->
-  compile(fun compile:forms/2, Forms, File, Opts).
-
-noenv_forms(Forms, File, Opts) ->
-  compile(fun compile:noenv_forms/2, Forms, File, Opts).
-
-compile(Fun, Forms, File, Opts) when is_list(Forms), is_list(Opts), is_binary(File) ->
-  Source = elixir_utils:characters_to_list(File),
-  case Fun([no_auto_import() | Forms], [return, {source, Source} | Opts]) of
-    {ok, Module, Binary, Warnings} ->
-      format_warnings(Opts, Warnings),
-      {Module, Binary};
-    {error, Errors, Warnings} ->
-      format_warnings(Opts, Warnings),
-      format_errors(Errors)
-  end.
-
-no_auto_import() ->
-  {attribute, 0, compile, no_auto_import}.
-
-format_errors([]) ->
-  exit({nocompile, "compilation failed but no error was raised"});
-format_errors(Errors) ->
-  lists:foreach(fun ({File, Each}) ->
-    BinFile = elixir_utils:characters_to_binary(File),
-    lists:foreach(fun(Error) -> elixir_errors:handle_file_error(BinFile, Error) end, Each)
-  end, Errors).
-
-format_warnings(Opts, Warnings) ->
-  NoWarnNoMatch = proplists:get_value(nowarn_nomatch, Opts, false),
-  lists:foreach(fun ({File, Each}) ->
-    BinFile = elixir_utils:characters_to_binary(File),
-    lists:foreach(fun(Warning) ->
-      elixir_errors:handle_file_warning(NoWarnNoMatch, BinFile, Warning)
-    end, Each)
-  end, Warnings).
 
 %% Bootstraper
 

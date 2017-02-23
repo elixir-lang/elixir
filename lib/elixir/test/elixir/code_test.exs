@@ -67,16 +67,6 @@ defmodule CodeTest do
     end
   end
 
-  test "eval binary errors" do
-    msg = "nofile:2: a binary field without size is only allowed at the end of a binary pattern"
-    assert_raise CompileError, msg, fn ->
-      Code.eval_string("""
-      foo = "foo"
-      "\\"" <> bar <> "\\"" = foo
-      """)
-    end
-  end
-
   test "eval_quoted/1" do
     assert Code.eval_quoted(quote(do: 1 + 2)) == {3, []}
     assert CodeTest.Sample.eval_quoted_info() == {CodeTest.Sample, "sample.ex", 13}
