@@ -6,10 +6,9 @@
   handle_file_warning/3, handle_file_error/2]).
 -include("elixir.hrl").
 
--spec warn(non_neg_integer() | none, unicode:chardata(), unicode:chardata()) -> ok.
-
 %% Erlang may set line to none in some occasions,
 %% so we convert it to 0 accordingly.
+-spec warn(non_neg_integer() | none, unicode:chardata(), unicode:chardata()) -> ok.
 warn(none, File, Warning) ->
   warn(0, File, Warning);
 warn(Line, File, Warning) when is_integer(Line), is_binary(File) ->
@@ -35,12 +34,10 @@ warning_prefix() ->
 %% General forms handling.
 
 -spec form_error(list(), binary(), module(), any()) -> no_return().
-
 form_error(Meta, File, Module, Desc) ->
   compile_error(Meta, File, format_error(Module, Desc)).
 
 -spec form_warn(list(), binary(), module(), any()) -> ok.
-
 form_warn(Meta, File, Module, Desc) when is_list(Meta) ->
   {MetaFile, MetaLine} = meta_location(Meta, File),
   warn(MetaLine, MetaFile, format_error(Module, Desc)).
@@ -60,8 +57,8 @@ compile_error(Meta, File, Format, Args) when is_list(Format)  ->
 
 %% Tokenization parsing/errors.
 
--spec parse_error(non_neg_integer(), binary() | {binary(), binary()}, binary(), binary()) -> no_return().
-
+-spec parse_error(non_neg_integer(), binary() | {binary(), binary()},
+                  binary(), binary()) -> no_return().
 parse_error(Line, File, Error, <<>>) ->
   Message = case Error of
     <<"syntax error before: ">> -> <<"syntax error: expression is incomplete">>;
@@ -129,7 +126,7 @@ parse_erl_term(Term) ->
 
 %% Handle warnings and errors from Erlang land (called during module compilation)
 
-%% Ignore on bootstrap
+%% Ignore nomatch warnings
 handle_file_warning(true, _File, {_Line, sys_core_fold, nomatch_guard}) -> ok;
 handle_file_warning(true, _File, {_Line, sys_core_fold, {nomatch_shadow, _}}) -> ok;
 
