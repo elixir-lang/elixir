@@ -387,9 +387,8 @@ defmodule Kernel.Typespec do
         :opaque -> {:opaque, true}
       end
 
-    if elixir_builtin_type?(name, arity) do
-      :elixir_errors.handle_file_error(caller.file,
-        {caller.line, :erl_lint, {:builtin_type, {name, arity}}})
+    if builtin_type?(name, arity) do
+      compile_error caller, "type #{name}/#{arity} is a builtin type and it cannot be redefined"
     end
 
     {{kind, {name, arity}, type}, caller.line, export}
@@ -400,14 +399,14 @@ defmodule Kernel.Typespec do
     compile_error caller, "invalid type specification: #{type_spec}"
   end
 
-  defp elixir_builtin_type?(:as_boolean, 1), do: true
-  defp elixir_builtin_type?(:struct, 0), do: true
-  defp elixir_builtin_type?(:charlist, 0), do: true
+  defp builtin_type?(:as_boolean, 1), do: true
+  defp builtin_type?(:struct, 0), do: true
+  defp builtin_type?(:charlist, 0), do: true
   # TODO: Remove char_list type by 2.0
-  defp elixir_builtin_type?(:char_list, 0), do: true
-  defp elixir_builtin_type?(:keyword, 0), do: true
-  defp elixir_builtin_type?(:keyword, 1), do: true
-  defp elixir_builtin_type?(_, _), do: false
+  defp builtin_type?(:char_list, 0), do: true
+  defp builtin_type?(:keyword, 0), do: true
+  defp builtin_type?(:keyword, 1), do: true
+  defp builtin_type?(name, arity), do: :erl_internal.is_type(name, arity)
 
   @doc false
   def translate_spec(kind, {:when, _meta, [spec, guard]}, caller) do
@@ -739,7 +738,7 @@ defmodule Kernel.Typespec do
         {{:optional, meta2, [k]}, v} ->
           {:type, line(meta2), :map_field_assoc, [typespec(k, vars, caller), typespec(v, vars, caller)]}
         {k, v} ->
-          # TODO: Emit warnings on v1.5
+          # TODO: Emit warnings on v1.6 (when we drop OTP 18 support)
           # :elixir_errors.warn(caller.line, caller.file,
           #   "invalid map specification. %{foo => bar} is deprecated in favor of " <>
           #   "%{required(foo) => bar} and %{optional(foo) => bar}. required/1 is an " <>

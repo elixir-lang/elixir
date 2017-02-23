@@ -209,19 +209,12 @@ eval_forms(Tree, Binding, Env, Scope) ->
     {atom, _, Atom} ->
       {Atom, Binding, NewEnv, NewScope};
     _  ->
-      {value, Value, NewBinding} = erl_eval(Erl, ParsedBinding, Env),
+      % Below must be all one line for locations to be the same
+      % when the stacktrace is extended to the full stacktrace.
+      {value, Value, NewBinding} =
+        try erl_eval:expr(Erl, ParsedBinding, none, none, none) catch Class:Exception -> erlang:raise(Class, Exception, get_stacktrace()) end,
       {Value, elixir_erl_var:dump_binding(NewBinding, NewScope), NewEnv, NewScope}
   end.
-
-erl_eval(Erl, ParsedBinding, E) ->
-  case erl_eval:check_command([Erl], ParsedBinding) of
-    ok -> ok;
-    {error, Desc} -> elixir_errors:handle_file_error(?key(E, file), Desc)
-  end,
-
-  % Below must be all one line for locations to be the same when the stacktrace
-  % needs to be extended to the full stacktrace.
-  try erl_eval:expr(Erl, ParsedBinding, none, none, none) catch Class:Exception -> erlang:raise(Class, Exception, get_stacktrace()) end.
 
 get_stacktrace() ->
   Stacktrace = erlang:get_stacktrace(),

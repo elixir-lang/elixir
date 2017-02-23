@@ -255,7 +255,7 @@ erl_compile_module(Forms, Opts, #{file := File}) ->
           false -> []
         end
     end,
-  elixir_compiler:forms(Forms, File, ErlOpts).
+  elixir_erl_compiler:forms(Forms, File, ErlOpts).
 
 beam_location(#{lexical_tracker := Pid, module := Module}) ->
   case elixir_lexical:dest(Pid) of

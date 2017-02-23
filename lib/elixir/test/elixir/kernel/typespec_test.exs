@@ -250,7 +250,7 @@ defmodule Kernel.TypespecTest do
   end
 
   test "@type when overriding Elixir built-in" do
-    assert_raise CompileError, ~r"type struct\(\) is a builtin type; it cannot be redefined", fn ->
+    assert_raise CompileError, ~r"type struct/0 is a builtin type", fn ->
       test_module do
         @type struct :: :oops
       end
@@ -258,7 +258,7 @@ defmodule Kernel.TypespecTest do
   end
 
   test "@type when overriding Erlang built-in" do
-    assert_raise CompileError, ~r"type list\(\) is a builtin type; it cannot be redefined", fn ->
+    assert_raise CompileError, ~r"type list/0 is a builtin type", fn ->
       test_module do
         @type list :: :oops
       end

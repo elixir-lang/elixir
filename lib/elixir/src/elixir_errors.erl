@@ -1,13 +1,13 @@
-% A bunch of helpers to help to deal with errors in Elixir source code.
-% This is not exposed in the Elixir language.
+%% A bunch of helpers to help to deal with errors in Elixir source code.
+%% This is not exposed in the Elixir language.
+%%
+%% Notice this is also called by the Erlang backend, so we also support
+%% the line number to be none (as it may happen in some erlang errors).
 -module(elixir_errors).
 -export([compile_error/3, compile_error/4,
-  form_error/4, form_warn/4, parse_error/4, warn/1, warn/3,
-  handle_file_warning/3, handle_file_error/2]).
+         form_error/4, form_warn/4, parse_error/4, warn/1, warn/3]).
 -include("elixir.hrl").
 
-%% Erlang may set line to none in some occasions,
-%% so we convert it to 0 accordingly.
 -spec warn(non_neg_integer() | none, unicode:chardata(), unicode:chardata()) -> ok.
 warn(none, File, Warning) ->
   warn(0, File, Warning);
@@ -35,18 +35,21 @@ warning_prefix() ->
 
 -spec form_error(list(), binary(), module(), any()) -> no_return().
 form_error(Meta, File, Module, Desc) ->
-  compile_error(Meta, File, format_error(Module, Desc)).
+  compile_error(Meta, File, Module:format_error(Desc)).
 
 -spec form_warn(list(), binary(), module(), any()) -> ok.
 form_warn(Meta, File, Module, Desc) when is_list(Meta) ->
   {MetaFile, MetaLine} = meta_location(Meta, File),
-  warn(MetaLine, MetaFile, format_error(Module, Desc)).
+  warn(MetaLine, MetaFile, Module:format_error(Desc)).
 
 %% Compilation error.
 
--spec compile_error(list(), binary(), unicode:charlist()) -> no_return().
+-spec compile_error(list(), binary(), binary() | unicode:charlist()) -> no_return().
 -spec compile_error(list(), binary(), string(), list()) -> no_return().
 
+compile_error(Meta, File, Message) when is_binary(Message) ->
+  {MetaFile, MetaLine} = meta_location(Meta, File),
+  raise(MetaLine, MetaFile, 'Elixir.CompileError', Message);
 compile_error(Meta, File, Message) when is_list(Message) ->
   {MetaFile, MetaLine} = meta_location(Meta, File),
   raise(MetaLine, MetaFile, 'Elixir.CompileError',
@@ -124,122 +127,6 @@ parse_erl_term(Term) ->
   {ok, Parsed} = erl_parse:parse_term(Tokens ++ [{dot, 1}]),
   Parsed.
 
-%% Handle warnings and errors from Erlang land (called during module compilation)
-
-%% Ignore nomatch warnings
-handle_file_warning(true, _File, {_Line, sys_core_fold, nomatch_guard}) -> ok;
-handle_file_warning(true, _File, {_Line, sys_core_fold, {nomatch_shadow, _}}) -> ok;
-
-%% Ignore always
-handle_file_warning(_, _File, {_Line, sys_core_fold, useless_building}) -> ok;
-
-%% This is an Erlang bug, it considers {tuple, _}.call to always fail
-handle_file_warning(_, _File, {_Line, v3_kernel, bad_call}) -> ok;
-
-%% We handle unused local warnings ourselves
-handle_file_warning(_, _File, {_Line, erl_lint, {unused_function, _}}) -> ok;
-
-handle_file_warning(_, File, {Line, erl_lint, {undefined_behaviour, Module}}) ->
-  case elixir_compiler:get_opt(internal) of
-    true ->
-      ok;
-    false ->
-      warn(Line, File, ["behaviour ", elixir_aliases:inspect(Module), " is undefined"])
-  end;
-
-%% Ignore unused vars at "weird" lines (<= 0)
-handle_file_warning(_, _File, {Line, erl_lint, {unused_var, _Var}}) when Line =< 0 ->
-  ok;
-
-%% Ignore shadowed and exported vars as we guarantee no conflicts ourselves
-handle_file_warning(_, _File, {_Line, erl_lint, {shadowed_var, _Var, _Where}}) ->
-  ok;
-
-handle_file_warning(_, _File, {_Line, erl_lint, {exported_var, _Var, _Where}}) ->
-  ok;
-
-%% Default behaviour
-handle_file_warning(_, File, {Line, Module, Desc}) ->
-  Message = format_error(Module, Desc),
-  warn(Line, File, Message).
-
--spec handle_file_error(file:filename_all(), {non_neg_integer(), module(), any()}) -> no_return().
-
-handle_file_error(File, {beam_validator, Rest}) ->
-  Message = beam_validator:format_error(Rest),
-  raise(0, File, 'Elixir.CompileError', elixir_utils:characters_to_binary(Message));
-
-handle_file_error(File, {Line, Module, Desc}) ->
-  Message = format_error(Module, Desc),
-  raise(Line, File, 'Elixir.CompileError', elixir_utils:characters_to_binary(Message)).
-
-%% Custom formatting
-
-%% Reformat andalso/orelse
-format_error(erl_lint, {unsafe_var, Var, {In, _Where}}) ->
-  Translated = case In of
-    'orelse'  -> 'or';
-    'andalso' -> 'and';
-    _ -> In
-  end,
-  io_lib:format("cannot define variable \"~ts\" inside ~ts", [format_var(Var), Translated]);
-
-%% Normalize formatting of functions
-format_error(erl_lint, {undefined_function, {F, A}}) ->
-  io_lib:format("undefined function ~ts/~B", [F, A]);
-
-%% Normalize formatting of specs
-format_error(erl_lint, {spec_fun_undefined, {M, F, A}}) ->
-  io_lib:format("spec for undefined function ~ts.~ts/~B", [elixir_aliases:inspect(M), F, A]);
-
-%% TODO: Remove this clause when we depend only on Erlang 19.
-format_error(erl_lint, {bittype_mismatch, Val1, Val2, Kind}) ->
-  Desc = "conflict in ~s specification for bit field: \"~p\" and \"~p\"",
-  io_lib:format(Desc, [Kind, Val1, Val2]);
-
-%% Make no_effect clauses pretty
-format_error(sys_core_fold, {no_effect, {erlang, F, A}}) ->
-  {Fmt, Args} = case erl_internal:comp_op(F, A) of
-    true -> {"use of operator ~ts has no effect", [translate_comp_op(F)]};
-    false ->
-      case erl_internal:bif(F, A) of
-        false -> {"the call to :erlang.~ts/~B has no effect", [F, A]};
-        true ->  {"the call to ~ts/~B has no effect", [F, A]}
-      end
-  end,
-  io_lib:format(Fmt, Args);
-
-%% Rewrite undefined behaviour to check for protocols
-format_error(erl_lint, {undefined_behaviour_func, {Fun, Arity}, Module}) ->
-  {DefKind, Def, DefArity} =
-    case atom_to_list(Fun) of
-      "MACRO-" ++ Rest -> {macro, list_to_atom(Rest), Arity - 1};
-      _ -> {function, Fun, Arity}
-    end,
-
-  Kind    = protocol_or_behaviour(Module),
-  Raw     = "undefined ~ts ~ts ~ts/~B (for ~ts ~ts)",
-  io_lib:format(Raw, [Kind, DefKind, Def, DefArity, Kind, elixir_aliases:inspect(Module)]);
-
-%% Rewrite nomatch_guard to be more generic it can happen inside if, unless, etc
-format_error(sys_core_fold, nomatch_guard) ->
-  "this check/guard will always yield the same result";
-
-%% Properly format other unused vars
-format_error(erl_lint, {unused_var, Var}) ->
-  ["variable \"", format_var(Var), "\" is unused"];
-
-%% Handle literal eval failures
-format_error(sys_core_fold, {eval_failure, Error}) ->
-  #{'__struct__' := Struct} = 'Elixir.Exception':normalize(error, Error),
-  ["this expression will fail with ", elixir_aliases:inspect(Struct)];
-
-format_error([], Desc) ->
-  io_lib:format("~p", [Desc]);
-
-format_error(Module, Desc) ->
-  Module:format_error(Desc).
-
 %% Helpers
 
 file_format(0, File) ->
@@ -247,30 +134,6 @@ file_format(0, File) ->
 
 file_format(Line, File) ->
   io_lib:format("~ts:~w", [elixir_utils:relative_to_cwd(File), Line]).
-
-format_var(Var) ->
-  lists:takewhile(fun(X) -> X /= $@ end, atom_to_list(Var)).
-
-protocol_or_behaviour(Module) ->
-  case is_protocol(Module) of
-    true  -> protocol;
-    false -> behaviour
-  end.
-
-is_protocol(Module) ->
-  case code:ensure_loaded(Module) of
-    {module, _} ->
-      erlang:function_exported(Module, '__protocol__', 1) andalso
-        Module:'__protocol__'(module) == Module;
-    {error, _} ->
-      false
-  end.
-
-translate_comp_op('/=') -> '!=';
-translate_comp_op('=<') -> '<=';
-translate_comp_op('=:=') -> '===';
-translate_comp_op('=/=') -> '!==';
-translate_comp_op(Other) -> Other.
 
 meta_location(Meta, File) ->
   case elixir_utils:meta_location(Meta) of
