@@ -238,7 +238,7 @@ defmodule Task.Supervisor do
   by the given `module`, `fun` and `args`.
   """
   @spec start_child(Supervisor.supervisor, module, atom, [term]) :: {:ok, pid}
-  def start_child(supervisor, module, fun, args) do
+  def start_child(supervisor, module, fun, args) when is_atom(fun) and is_list(args) do
     Supervisor.start_child(supervisor, [get_info(self()), {module, fun, args}])
   end
 
