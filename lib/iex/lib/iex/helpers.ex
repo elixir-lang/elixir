@@ -65,10 +65,9 @@ defmodule IEx.Helpers do
   This helper only works when IEx is started with a Mix
   project, for example, `iex -S mix`. The application is
   not restarted after compilation, which means any long
-  running process may crash as the code is updated but the
-  state does not go through the proper code changes callback.
-  In any case, the supervision tree should notice the failure
-  and restart such servers.
+  running process may crash as any changed module will be
+  temporarily removed and recompiled, without going through
+  the proper code changes callback.
 
   If you want to reload a single module, consider using
   `r(ModuleName)` instead.
