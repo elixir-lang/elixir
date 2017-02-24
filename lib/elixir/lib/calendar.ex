@@ -614,6 +614,8 @@ defmodule Time do
       iex> Time.from_iso8601("T23:50:07Z")
       {:ok, ~T[23:50:07]}
 
+      iex> Time.from_iso8601("23:50:07,0123456")
+      {:ok, ~T[23:50:07.012345]}
       iex> Time.from_iso8601("23:50:07.0123456")
       {:ok, ~T[23:50:07.012345]}
       iex> Time.from_iso8601("23:50:07.123Z")
@@ -660,6 +662,8 @@ defmodule Time do
 
   ## Examples
 
+      iex> Time.from_iso8601!("23:50:07,123Z")
+      ~T[23:50:07.123]
       iex> Time.from_iso8601!("23:50:07.123Z")
       ~T[23:50:07.123]
       iex> Time.from_iso8601!("2015:01:23 23-50-07")
@@ -1100,6 +1104,8 @@ defmodule NaiveDateTime do
 
       iex> NaiveDateTime.from_iso8601("2015-01-23 23:50:07.0")
       {:ok, ~N[2015-01-23 23:50:07.0]}
+      iex> NaiveDateTime.from_iso8601("2015-01-23 23:50:07,0123456")
+      {:ok, ~N[2015-01-23 23:50:07.012345]}
       iex> NaiveDateTime.from_iso8601("2015-01-23 23:50:07.0123456")
       {:ok, ~N[2015-01-23 23:50:07.012345]}
       iex> NaiveDateTime.from_iso8601("2015-01-23T23:50:07.123Z")
@@ -1162,6 +1168,8 @@ defmodule NaiveDateTime do
   ## Examples
 
       iex> NaiveDateTime.from_iso8601!("2015-01-23T23:50:07.123Z")
+      ~N[2015-01-23 23:50:07.123]
+      iex> NaiveDateTime.from_iso8601!("2015-01-23T23:50:07,123Z")
       ~N[2015-01-23 23:50:07.123]
       iex> NaiveDateTime.from_iso8601!("2015-01-23P23:50:07")
       ** (ArgumentError) cannot parse "2015-01-23P23:50:07" as naive datetime, reason: :invalid_format
@@ -1722,6 +1730,9 @@ defmodule DateTime do
       {:ok, %DateTime{calendar: Calendar.ISO, day: 23, hour: 23, microsecond: {0, 0}, minute: 50, month: 1, second: 7, std_offset: 0,
                       time_zone: "Etc/UTC", utc_offset: 0, year: 2015, zone_abbr: "UTC"}, 0}
       iex> DateTime.from_iso8601("2015-01-23T23:50:07.123+02:30")
+      {:ok, %DateTime{calendar: Calendar.ISO, day: 23, hour: 21, microsecond: {123000, 3}, minute: 20, month: 1, second: 7, std_offset: 0,
+                      time_zone: "Etc/UTC", utc_offset: 0, year: 2015, zone_abbr: "UTC"}, 9000}
+      iex> DateTime.from_iso8601("2015-01-23T23:50:07,123+02:30")
       {:ok, %DateTime{calendar: Calendar.ISO, day: 23, hour: 21, microsecond: {123000, 3}, minute: 20, month: 1, second: 7, std_offset: 0,
                       time_zone: "Etc/UTC", utc_offset: 0, year: 2015, zone_abbr: "UTC"}, 9000}
 

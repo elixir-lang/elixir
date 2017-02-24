@@ -220,6 +220,9 @@ defmodule Calendar.ISO do
         {{String.to_integer(binary_part(microsecond, 0, 6)), 6}, rest}
     end
   end
+  def parse_microsecond("," <> rest) do
+    parse_microsecond("." <> rest)
+  end
   def parse_microsecond(rest) do
     {{0, 0}, rest}
   end
