@@ -89,6 +89,9 @@ defmodule Node do
 
   For more information, see
   [`:erlang.monitor_node/2`](http://www.erlang.org/doc/man/erlang.html#monitor_node-2).
+  
+  For monitoring status changes of all nodes, see
+  [`:net_kernel.monitor_nodes/3`](http://www.erlang.org/doc/man/net_kernel.html#monitor_nodes-2).
   """
   @spec monitor(t, boolean) :: true
   def monitor(node, flag) do
@@ -101,6 +104,9 @@ defmodule Node do
 
   For more information, see
   [`:erlang.monitor_node/3`](http://www.erlang.org/doc/man/erlang.html#monitor_node-3).
+  
+  For monitoring status changes of all nodes, see
+  [`:net_kernel.monitor_nodes/3`](http://www.erlang.org/doc/man/net_kernel.html#monitor_nodes-2).
   """
   @spec monitor(t, boolean, [:allow_passive_connect]) :: true
   def monitor(node, flag, options) do
