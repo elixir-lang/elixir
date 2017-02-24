@@ -2,7 +2,7 @@
 -define(ann(Opts), elixir_erl:get_ann(Opts)).
 -define(line(Opts), elixir_utils:get_line(Opts)).
 -define(generated(Meta), [{generated, true} | Meta]).
--define(var_context, elixir).
+-define(var_context, ?MODULE).
 
 -record(elixir_erl, {
   def=nil,                 %% a tuple with the current definition {def | ..., name, arity}

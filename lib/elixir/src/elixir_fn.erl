@@ -76,8 +76,7 @@ capture_import(Meta, {Atom, ImportMeta, Args} = Expr, E, Sequential) ->
   handle_capture(Res, Meta, Expr, E, Sequential).
 
 capture_require(Meta, {{'.', DotMeta, [Left, Right]}, RequireMeta, Args}, E, Sequential) ->
-  Counter = erlang:unique_integer(),
-  case escape(Left, Counter, E, []) of
+  case escape(Left, E, []) of
     {EscLeft, []} ->
       {ELeft, EE} = elixir_expand:expand(EscLeft, E),
       Res = Sequential andalso case ELeft of
@@ -92,7 +91,7 @@ capture_require(Meta, {{'.', DotMeta, [Left, Right]}, RequireMeta, Args}, E, Seq
                      EE, Sequential);
     {EscLeft, Escaped} ->
       capture_expr(Meta, {{'.', DotMeta, [EscLeft, Right]}, RequireMeta, Args},
-                   Counter, E, Escaped, Sequential)
+                   E, Escaped, Sequential)
   end.
 
 handle_capture(false, Meta, Expr, E, Sequential) ->
@@ -101,9 +100,9 @@ handle_capture(LocalOrRemote, _Meta, _Expr, _E, _Sequential) ->
   LocalOrRemote.
 
 capture_expr(Meta, Expr, E, Sequential) ->
-  capture_expr(Meta, Expr, erlang:unique_integer(), E, [], Sequential).
-capture_expr(Meta, Expr, Counter, E, Escaped, Sequential) ->
-  case escape(Expr, Counter, E, Escaped) of
+  capture_expr(Meta, Expr, E, [], Sequential).
+capture_expr(Meta, Expr, E, Escaped, Sequential) ->
+  case escape(Expr, E, Escaped) of
     {_, []} when not Sequential ->
       invalid_capture(Meta, Expr, E);
     {EExpr, EDict} ->
@@ -122,24 +121,24 @@ validate(Meta, [{Pos, _} | _], Expected, E) ->
 validate(_Meta, [], _Pos, _E) ->
   [].
 
-escape({'&', _, [Pos]}, Counter, _E, Dict) when is_integer(Pos), Pos > 0 ->
-  Var = {list_to_atom([$x | integer_to_list(Pos)]), [{counter, Counter}], ?var_context},
+escape({'&', _, [Pos]}, _E, Dict) when is_integer(Pos), Pos > 0 ->
+  Var = {list_to_atom([$x | integer_to_list(Pos)]), [], ?var_context},
   {Var, orddict:store(Pos, Var, Dict)};
-escape({'&', Meta, [Pos]}, _Counter, E, _Dict) when is_integer(Pos) ->
+escape({'&', Meta, [Pos]}, E, _Dict) when is_integer(Pos) ->
   form_error(Meta, ?key(E, file), ?MODULE, {unallowed_capture_arg, Pos});
-escape({'&', Meta, _} = Arg, _Counter, E, _Dict) ->
+escape({'&', Meta, _} = Arg, E, _Dict) ->
   form_error(Meta, ?key(E, file), ?MODULE, {nested_capture, Arg});
-escape({Left, Meta, Right}, Counter, E, Dict0) ->
-  {TLeft, Dict1}  = escape(Left, Counter, E, Dict0),
-  {TRight, Dict2} = escape(Right, Counter, E, Dict1),
+escape({Left, Meta, Right}, E, Dict0) ->
+  {TLeft, Dict1}  = escape(Left, E, Dict0),
+  {TRight, Dict2} = escape(Right, E, Dict1),
   {{TLeft, Meta, TRight}, Dict2};
-escape({Left, Right}, Counter, E, Dict0) ->
-  {TLeft, Dict1}  = escape(Left, Counter, E, Dict0),
-  {TRight, Dict2} = escape(Right, Counter, E, Dict1),
+escape({Left, Right}, E, Dict0) ->
+  {TLeft, Dict1}  = escape(Left, E, Dict0),
+  {TRight, Dict2} = escape(Right, E, Dict1),
   {{TLeft, TRight}, Dict2};
-escape(List, Counter, E, Dict) when is_list(List) ->
-  lists:mapfoldl(fun(X, Acc) -> escape(X, Counter, E, Acc) end, Dict, List);
-escape(Other, _Counter, _E, Dict) ->
+escape(List, E, Dict) when is_list(List) ->
+  lists:mapfoldl(fun(X, Acc) -> escape(X, E, Acc) end, Dict, List);
+escape(Other, _E, Dict) ->
   {Other, Dict}.
 
 args_from_arity(_Meta, A, _E) when is_integer(A), A >= 0, A =< 255 ->
