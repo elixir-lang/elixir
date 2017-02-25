@@ -83,15 +83,6 @@ handle_file_error(File, {Line, Module, Desc}) ->
 
 %% Custom formatting
 
-%% Reformat andalso/orelse
-format_error(erl_lint, {unsafe_var, Var, {In, _Where}}) ->
-  Translated = case In of
-    'orelse'  -> 'or';
-    'andalso' -> 'and';
-    _ -> In
-  end,
-  io_lib:format("cannot define variable \"~ts\" inside ~ts", [format_var(Var), Translated]);
-
 %% Normalize formatting of functions
 format_error(erl_lint, {undefined_function, {F, A}}) ->
   io_lib:format("undefined function ~ts/~B", [F, A]);
