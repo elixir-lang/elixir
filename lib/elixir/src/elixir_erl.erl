@@ -315,10 +315,8 @@ take_type_spec(Data, Key) ->
 
 specs_form(Data, Defmacro, Unreachable, Forms) ->
   Specs =
-    [Spec || {Kind, Expr, Caller} <- take_type_spec(Data, spec),
-              Spec <- skip_unreachable(
-                'Elixir.Kernel.Typespec':translate_spec(Kind, Expr, Caller), Unreachable
-              )],
+    ['Elixir.Kernel.Typespec':translate_spec(Kind, Expr, Caller) ||
+     {Kind, Expr, Caller} <- take_type_spec(Data, spec)],
 
   Callbacks =
     ['Elixir.Kernel.Typespec':translate_spec(Kind, Expr, Caller) ||
@@ -329,20 +327,28 @@ specs_form(Data, Defmacro, Unreachable, Forms) ->
      {Kind, Expr, Caller} <- take_type_spec(Data, macrocallback)],
 
   Optional = lists:flatten(take_type_spec(Data, optional_callbacks)),
-  SpecsForms = specs_form(spec, Specs, [], Defmacro, Forms),
-  specs_form(callback, Callbacks ++ Macrocallbacks, Optional,
+  SpecsForms = specs_form(spec, Specs, Unreachable, [], Defmacro, Forms),
+  specs_form(callback, Callbacks ++ Macrocallbacks, [], Optional,
              [NameArity || {{_, NameArity, _}, _} <- Macrocallbacks], SpecsForms).
 
-specs_form(_Kind, [], _Optional, _Macros, Forms) ->
+specs_form(_Kind, [], _Unreacheable, _Optional, _Macros, Forms) ->
   Forms;
-specs_form(Kind, Entries, Optional, Macros, Forms) ->
-  Dict =
+specs_form(Kind, Entries, Unreachable, Optional, Macros, Forms) ->
+  Map =
     lists:foldl(fun({{_, NameArity, Spec}, Line}, Acc) ->
-      dict:append(NameArity, {Spec, Line}, Acc)
-    end, dict:new(), Entries),
+      case lists:member(NameArity, Unreachable) of
+        false ->
+          case Acc of
+            #{NameArity := List} -> Acc#{NameArity := [{Spec, Line} | List]};
+            #{} -> Acc#{NameArity => [{Spec, Line}]}
+          end;
+        true ->
+          Acc
+      end
+    end, #{}, Entries),
 
-  dict:fold(fun(NameArity, ExprsLines, Acc) ->
-    {Exprs, Lines} = lists:unzip(ExprsLines),
+  maps:fold(fun(NameArity, ExprsLines, Acc) ->
+    {Exprs, Lines} = lists:unzip(lists:reverse(ExprsLines)),
     Line = lists:min(Lines),
 
     {Key, Value} =
@@ -358,17 +364,11 @@ specs_form(Kind, Entries, Optional, Macros, Forms) ->
     case lists:member(NameArity, Optional) of
       true ->
         [{attribute, Line, Kind, {Key, Value}},
-         {attribute, Line, optional_callbacks, Key} | Acc];
+         {attribute, Line, optional_callbacks, [Key]} | Acc];
       false ->
         [{attribute, Line, Kind, {Key, Value}} | Acc]
     end
-  end, Forms, Dict).
-
-skip_unreachable({{spec, NameArity, _}, _} = Spec, Unreachable) ->
-  case lists:member(NameArity, Unreachable) of
-    true  -> [];
-    false -> [Spec]
-  end.
+  end, Forms, Map).
 
 spec_for_macro({type, Line, 'fun', [{type, _, product, Args} | T]}) ->
   NewArgs = [{type, Line, term, []} | Args],
