@@ -415,7 +415,8 @@ defmodule Enum do
   """
   @spec concat(t) :: t
   def concat(enumerables) do
-    do_concat(enumerables)
+    fun = &[&1 | &2]
+    reduce(enumerables, [], &reduce(&1, &2, fun)) |> :lists.reverse
   end
 
   @doc """
@@ -440,12 +441,7 @@ defmodule Enum do
   end
 
   def concat(left, right) do
-    do_concat([left, right])
-  end
-
-  defp do_concat(enumerable) do
-    fun = &[&1 | &2]
-    reduce(enumerable, [], &reduce(&1, &2, fun)) |> :lists.reverse
+    concat([left, right])
   end
 
   @doc """
@@ -1144,7 +1140,7 @@ defmodule Enum do
 
       iex> Enum.into([2, 3], [3], fn x -> x * 3 end)
       [3, 6, 9]
-      
+
       iex> Enum.into(%{a: 1, b: 2}, %{c: 3}, fn {k, v} -> {k, v * 2} end)
       %{a: 2, b: 4, c: 3}
 
