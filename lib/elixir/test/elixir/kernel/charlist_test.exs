@@ -1,20 +1,20 @@
 Code.require_file "../test_helper.exs", __DIR__
 
-defmodule CharListTest do
+defmodule CharlistTest do
   use ExUnit.Case, async: true
 
   test "heredoc" do
     assert __ENV__.line == 7
     assert 'foo\nbar\n' == '''
-foo
-bar
-'''
+    foo
+    bar
+    '''
 
     assert __ENV__.line == 13
     assert 'foo\nbar \'\'\'\n' == '''
-foo
-bar \'\'\'
-'''
+    foo
+    bar \'\'\'
+    '''
   end
 
   test "UTF-8" do
