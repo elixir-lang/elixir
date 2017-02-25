@@ -142,11 +142,6 @@ translate({'receive', Meta, [Opts]}, S) ->
 translate({for, Meta, [_ | _] = Args}, S) ->
   elixir_erl_for:translate(Meta, Args, true, S);
 
-%% With
-
-translate({with, Meta, [_ | _] = Args}, S) ->
-  elixir_with:translate(Meta, Args, S);
-
 %% Variables
 
 translate({'^', Meta, [{Name, VarMeta, Kind}]}, #elixir_erl{context=match, file=File} = S) when is_atom(Name), is_atom(Kind) ->
