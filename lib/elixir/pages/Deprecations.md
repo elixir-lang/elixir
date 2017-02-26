@@ -47,8 +47,8 @@ Deprecated feature        | Deprecated in | Replaced by             | Replacemen
 `:append_first` option in `Kernel.defdelegate/2` | [v1.3] | *None*   | *None*
 `/r` option in `Regex`    | [v1.3]        | `/U`                    | v1.1
 `\x{X*}` inside strings/sigils/charlists | [v1.3] | `\uXXXX`; `\u{X*}` | v1.1
-Map/dictionary as second arg. in `Enum.group_by/3` | [v1.3] | *None* | *None*
-Non-map as second arg. in `URI.decode_query/2` | [v1.3] | Use a map | v1.0
+Map/dictionary as second argument in `Enum.group_by/3` | [v1.3] | *None* | *None*
+Non-map as second argument in `URI.decode_query/2` | [v1.3] | Use a map | v1.0
 `Dict` behaviour          | [v1.2]        | *None*                  | *None*
 `Access` protocol         | [v1.1]        | `Access` behaviour      | v1.1
 `as: true \| false` in `alias/2` and `require/2` | [v1.1] | *None*  | *None*
