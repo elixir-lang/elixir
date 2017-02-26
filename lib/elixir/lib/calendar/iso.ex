@@ -10,7 +10,11 @@ defmodule Calendar.ISO do
   """
 
   @behaviour Calendar
+
   @unix_epoch :calendar.datetime_to_gregorian_seconds {{1970, 1, 1}, {0, 0, 0}}
+  @unix_start 1_000_000 * -@unix_epoch
+  @unix_end 1_000_000 * (-@unix_epoch + :calendar.datetime_to_gregorian_seconds({{9999, 12, 31}, {23, 59, 59}}))
+  @unix_range_microseconds @unix_start..@unix_end
 
   @type year  :: 0..9999
   @type month :: 1..12
@@ -163,13 +167,13 @@ defmodule Calendar.ISO do
   @doc false
   def from_unix(integer, unit) when is_integer(integer) do
     total = System.convert_time_unit(integer, unit, :microsecond)
-    if total < -@unix_epoch * 1_000_000 do
-      {:error, :invalid_unix_time}
-    else
+    if total in @unix_range_microseconds do
       microsecond = rem(total, 1_000_000)
       precision = precision_for_unit(unit)
       {date, time} = :calendar.gregorian_seconds_to_datetime(@unix_epoch + div(total, 1_000_000))
       {:ok, date, time, {microsecond, precision}}
+    else
+      {:error, :invalid_unix_time}
     end
   end
 
