@@ -104,6 +104,10 @@ defmodule Code do
   The `binding` argument is a keyword list of variable bindings.
   The `opts` argument is a keyword list of environment options.
 
+  **Warning**: `string` is assumed to be fully trusted.  If you receive strings
+  (for example, over the network), passing them into this function can execute
+  arbitrary code and compromise your machine.
+
   ## Options
 
   Options can be:
