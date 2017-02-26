@@ -1097,11 +1097,11 @@ defmodule Enum do
   end
 
   def into(%_{} = enumerable, collectable) do
-    protocol_into(enumerable, collectable)
+    into_protocol(enumerable, collectable)
   end
 
   def into(enumerable, %_{} = collectable) do
-    protocol_into(enumerable, collectable)
+    into_protocol(enumerable, collectable)
   end
 
   def into(%{} = enumerable, %{} = collectable) do
@@ -1119,10 +1119,10 @@ defmodule Enum do
   end
 
   def into(enumerable, collectable) do
-    protocol_into(enumerable, collectable)
+    into_protocol(enumerable, collectable)
   end
 
-  defp protocol_into(enumerable, collectable) do
+  defp into_protocol(enumerable, collectable) do
     {initial, fun} = Collectable.into(collectable)
     into(enumerable, initial, fun, fn entry, acc ->
       fun.(acc, {:cont, entry})
@@ -2265,7 +2265,7 @@ defmodule Enum do
   end
 
   def split(enumerable, count) when count < 0 do
-    split_reverse_list(reverse(enumerable), abs(count), [])
+    split_reverse_list(reverse(enumerable), - count, [])
   end
 
   @doc """
@@ -2355,7 +2355,7 @@ defmodule Enum do
 
   def take(enumerable, count)
       when is_list(enumerable) and is_integer(count) and count > 0 do
-    take_list(enumerable, count, [])
+    take_list(enumerable, count)
   end
 
   def take(enumerable, count) when is_integer(count) and count > 0 do
@@ -2392,10 +2392,10 @@ defmodule Enum do
     do: acc
   defp take_last([], [], _, acc),
     do: acc
-  defp take_last([], [h | t], count, acc),
-    do: take_last([], t, count - 1, [h | acc])
-  defp take_last([h | t], buf2, count, acc),
-    do: take_last(t, buf2, count - 1, [h | acc])
+  defp take_last([], [head | tail], count, acc),
+    do: take_last([], tail, count - 1, [head | acc])
+  defp take_last([head | tail], buf2, count, acc),
+    do: take_last(tail, buf2, count - 1, [head | acc])
 
   @doc """
   Returns a list of every `nth` item in the enumerable,
@@ -2513,7 +2513,7 @@ defmodule Enum do
   """
   @spec take_while(t, (element -> as_boolean(term))) :: list
   def take_while(enumerable, fun) when is_list(enumerable) do
-    take_while_list(enumerable, fun, [])
+    take_while_list(enumerable, fun)
   end
 
   def take_while(enumerable, fun) do
@@ -2589,7 +2589,7 @@ defmodule Enum do
   @spec uniq_by(t, (element -> term)) :: list
 
   def uniq_by(enumerable, fun) when is_list(enumerable) do
-    uniq_list(enumerable, %{}, fun, [])
+    uniq_list(enumerable, %{}, fun)
   end
 
   def uniq_by(enumerable, fun) do
@@ -2668,7 +2668,7 @@ defmodule Enum do
   @spec zip(t, t) :: [{any, any}]
   def zip(enumerable1, enumerable2)
       when is_list(enumerable1) and is_list(enumerable2) do
-    zip_list(enumerable1, enumerable2, [])
+    zip_list(enumerable1, enumerable2)
   end
 
   def zip(enumerable1, enumerable2) do
@@ -2776,11 +2776,11 @@ defmodule Enum do
 
   ## drop_while
 
-  defp drop_while_list([h | t], fun) do
-    if fun.(h) do
-      drop_while_list(t, fun)
+  defp drop_while_list([head | tail], fun) do
+    if fun.(head) do
+      drop_while_list(tail, fun)
     else
-      [h | t]
+      [head | tail]
     end
   end
 
@@ -2819,11 +2819,11 @@ defmodule Enum do
 
   ## find
 
-  defp find_list([h | t], default, fun) do
-    if fun.(h) do
-      h
+  defp find_list([head | tail], default, fun) do
+    if fun.(head) do
+      head
     else
-      find_list(t, default, fun)
+      find_list(tail, default, fun)
     end
   end
 
@@ -2833,11 +2833,11 @@ defmodule Enum do
 
   ## find_index
 
-  defp find_index_list([h | t], counter, fun) do
-    if fun.(h) do
+  defp find_index_list([head | tail], counter, fun) do
+    if fun.(head) do
       counter
     else
-      find_index_list(t, counter + 1, fun)
+      find_index_list(tail, counter + 1, fun)
     end
   end
 
@@ -2847,8 +2847,8 @@ defmodule Enum do
 
   ## find_value
 
-  defp find_value_list([h | t], default, fun) do
-    fun.(h) || find_value_list(t, default, fun)
+  defp find_value_list([head | tail], default, fun) do
+    fun.(head) || find_value_list(tail, default, fun)
   end
 
   defp find_value_list([], default, _) do
@@ -2996,8 +2996,8 @@ defmodule Enum do
 
   ## split
 
-  defp split_list([h | t], counter, acc) when counter > 0 do
-    split_list(t, counter - 1, [h | acc])
+  defp split_list([head | tail], counter, acc) when counter > 0 do
+    split_list(tail, counter - 1, [head | acc])
   end
 
   defp split_list(list, 0, acc) do
@@ -3008,8 +3008,8 @@ defmodule Enum do
     {:lists.reverse(acc), []}
   end
 
-  defp split_reverse_list([h | t], counter, acc) when counter > 0 do
-    split_reverse_list(t, counter - 1, [h | acc])
+  defp split_reverse_list([head | tail], counter, acc) when counter > 0 do
+    split_reverse_list(tail, counter - 1, [head | acc])
   end
 
   defp split_reverse_list(list, 0, acc) do
@@ -3022,11 +3022,11 @@ defmodule Enum do
 
   ## split_while
 
-  defp split_while_list([h | t], fun, acc) do
-    if fun.(h) do
-      split_while_list(t, fun, [h | acc])
+  defp split_while_list([head | tail], fun, acc) do
+    if fun.(head) do
+      split_while_list(tail, fun, [head | acc])
     else
-      {:lists.reverse(acc), [h | t]}
+      {:lists.reverse(acc), [head | tail]}
     end
   end
 
@@ -3036,54 +3036,54 @@ defmodule Enum do
 
   ## take
 
-  defp take_list([h | t], counter, acc) when counter > 0 do
-    take_list(t, counter - 1, [h | acc])
+  defp take_list([head | tail], counter) when counter > 0 do
+    [head | take_list(tail, counter - 1)]
   end
 
-  defp take_list(_list, 0, acc) do
-    :lists.reverse(acc)
+  defp take_list(_list, 0) do
+    []
   end
 
-  defp take_list([], _, acc) do
-    :lists.reverse(acc)
+  defp take_list([], _counter) do
+    []
   end
 
   ## take_while
 
-  defp take_while_list([h | t], fun, acc) do
-    if fun.(h) do
-      take_while_list(t, fun, [h | acc])
+  defp take_while_list([head | tail], fun) do
+    if fun.(head) do
+      [head | take_while_list(tail, fun)]
     else
-      :lists.reverse(acc)
+      []
     end
   end
 
-  defp take_while_list([], _, acc) do
-    :lists.reverse(acc)
+  defp take_while_list([], _) do
+    []
   end
 
   ## uniq
 
-  defp uniq_list([h | t], set, fun, acc) do
-    value = fun.(h)
+  defp uniq_list([head | tail], set, fun) do
+    value = fun.(head)
     case set do
-      %{^value => true} -> uniq_list(t, set, fun, acc)
-      %{} -> uniq_list(t, Map.put(set, value, true), fun, [h | acc])
+      %{^value => true} -> uniq_list(tail, set, fun)
+      %{} -> [head | uniq_list(tail, Map.put(set, value, true), fun)]
     end
   end
 
-  defp uniq_list([], _set, _fun, acc) do
-    :lists.reverse(acc)
+  defp uniq_list([], _set, _fun) do
+    []
   end
 
   ## zip
 
-  defp zip_list([h1 | next1], [h2 | next2], acc) do
-    zip_list(next1, next2, [{h1, h2} | acc])
+  defp zip_list([h1 | next1], [h2 | next2]) do
+    [{h1, h2} | zip_list(next1, next2)]
   end
 
-  defp zip_list(_, [], acc), do: :lists.reverse(acc)
-  defp zip_list([], _, acc), do: :lists.reverse(acc)
+  defp zip_list(_, []), do: []
+  defp zip_list([], _), do: []
 end
 
 defimpl Enumerable, for: List do
