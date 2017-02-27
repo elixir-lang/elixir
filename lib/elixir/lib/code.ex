@@ -104,9 +104,11 @@ defmodule Code do
   The `binding` argument is a keyword list of variable bindings.
   The `opts` argument is a keyword list of environment options.
 
-  **Warning**: `string` is assumed to be fully trusted.  If you receive strings
-  (for example, over the network), passing them into this function can execute
-  arbitrary code and compromise your machine.
+  **Warning**: `string` can be any Elixir code and will be executed with
+  the same privileges as the Erlang VM: this means that such code could
+  compromise the machine (for example by executing system commands).
+  Don't use `eval_string/3` with untrusted input (such as strings coming
+  from the network).
 
   ## Options
 
