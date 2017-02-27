@@ -17,7 +17,7 @@ Deprecated feature        | Deprecated in | Replaced by             | Replacemen
 :------------------------ | :------------ | :---------------------- | :---------------------------
 `Atom.to_char_list/1`     | [v1.5]    | `Atom.to_charlist/1`        | v1.3
 `Float.to_char_list/1`    | [v1.5]    | `Float.to_charlist/1`       | v1.3
-`GenEvent` module         | [v1.5]    | `Supervisor` and `GenServer`; `GenStage`; `:gen_event` | v1.0 (`Supervisor` and `GenServer`); v1.3 (`GenStage`); OTP 17 (`:gen_events`)
+`GenEvent` module         | [v1.5]    | `Supervisor` and `GenServer`; `GenStage`; `:gen_event` | v1.0 (`Supervisor` and `GenServer`); v1.3 (`GenStage`); OTP 17 (`:gen_event`)
 `Integer.to_char_list/1`  | [v1.5]    | `Integer.to_charlist/1`     | v1.3
 `Kernel.to_char_list/1`   | [v1.5]    | `Kernel.to_charlist/1`      | v1.3
 `String.to_char_list/1`   | [v1.5]    | `String.to_charlist/1`      | v1.3
