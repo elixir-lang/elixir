@@ -35,7 +35,7 @@ Deprecated feature        | Deprecated in | Replaced by             | Replacemen
 `HashSet` module          | [v1.4]    | `MapSet`                    | v1.1
 `Set` module              | [v1.4]    | `MapSet`                    | v1.1
 `Stream.uniq/2`           | [v1.4]    | `Stream.uniq_by/2`          | v1.2
-`IEx.Helpers.import_file/2` | [v1.4]  | `IEx.Helpers.import_file_if_available/2` | v1.3
+`IEx.Helpers.import_file/2` | [v1.4]  | `IEx.Helpers.import_file_if_available/1` | v1.3
 `Mix.Utils.camelize/1`    | [v1.4]    | `Macro.camelize/1`          | v1.2
 `Mix.Utils.underscore/1`  | [v1.4]    | `Macro.underscore/1`        | v1.2
 `Dict` module             | [v1.3]    | `Keyword`; `Map`            | v1.0 (`Keyword`); v1.2 (`Map`)
