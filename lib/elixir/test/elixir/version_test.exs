@@ -54,6 +54,7 @@ defmodule VersionTest do
     assert P.lexer("!2.3.0", [])             == [:'!=', "2.3.0"]
     assert P.lexer(">>=", [])                == [:'>', :'>=']
     assert P.lexer(">2.4.0", [])             == [:'>', "2.4.0"]
+    assert P.lexer("> 2.4.0", [])            == [:'>', "2.4.0"]
     assert P.lexer("    >     2.4.0", [])    == [:'>', "2.4.0"]
   end
 
