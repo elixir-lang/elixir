@@ -24,7 +24,7 @@ Deprecated feature        | Deprecated in | Replaced by             | Replacemen
 `()` to mean `nil`        | [v1.5]    | `nil`                       | v1.0
 `:as_char_lists` value in `t:Inspect.Opts.t/0` type | [v1.5] | `:as_charlists` | v1.3
 `:char_lists` key in `t:Inspect.Opts.t/0` type | [v1.5] | `:charlists` | v1.3
-`t:char_list/0` type      | [v1.5]    | `t:charlist/0` type         | v1.3
+`char_list/0` type        | [v1.5]    | `charlist/0` type           | v1.3
 `@compile {:parse_transform, _}` in `Module` | [v1.5] | *None*      | *None*
 `Access.key/1`            | [v1.4]    | `Access.key/2`              | v1.3
 `Behaviour` module        | [v1.4]    | `@callback`                 | v1.0
