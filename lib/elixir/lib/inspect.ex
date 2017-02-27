@@ -99,8 +99,9 @@ defimpl Inspect, for: Atom do
 end
 
 defimpl Inspect, for: BitString do
-  def inspect(term, %Inspect.Opts{binaries: bins, base: base} = opts) when is_binary(term) do
-    if base == :decimal and (bins == :as_strings or (bins == :infer and String.printable?(term))) do
+  def inspect(term, %Inspect.Opts{binaries: bins, base: base, printable_limit: printable_limit} = opts) when is_binary(term) do
+    if base == :decimal and (bins == :as_strings or (bins == :infer and String.printable?(term, printable_limit))) do
+      term = String.slice(term, 0..printable_limit)
       inspected = IO.iodata_to_binary([?", escape(term, ?"), ?"])
       color(inspected, :string, opts)
     else

@@ -141,6 +141,15 @@ defmodule Inspect.BitStringTest do
   test "unprintable with opts" do
     assert inspect(<<193, 193, 193, 193>>, limit: 3) == "<<193, 193, 193, ...>>"
   end
+
+  test "string with limits" do
+    assert inspect("hello world", printable_limit: 4) == ~s("hello")
+    # non printable characters after the limit don't matter
+    assert inspect("hello world" <> <<0>>, printable_limit: 4) == ~s("hello")
+    # non printable strings aren't affected by printable limit
+    assert inspect(<<0,1,2,3,4>>, printable_limit: 3) == ~s(<<0, 1, 2, 3, 4>>)
+
+  end
 end
 
 defmodule Inspect.NumberTest do
