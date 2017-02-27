@@ -135,17 +135,17 @@ defmodule Version do
 
   ## Examples
 
-      iex> Version.match?("2.0.0", ">1.0.0")
+      iex> Version.match?("2.0.0", "> 1.0.0")
       true
 
-      iex> Version.match?("2.0.0", "==1.0.0")
+      iex> Version.match?("2.0.0", "== 1.0.0")
       false
 
-      iex> Version.match?("foo", "==1.0.0")
+      iex> Version.match?("foo", "== 1.0.0")
       ** (Version.InvalidVersionError) foo
 
-      iex> Version.match?("2.0.0", "== ==1.0.0")
-      ** (Version.InvalidRequirementError) == ==1.0.0
+      iex> Version.match?("2.0.0", "== == 1.0.0")
+      ** (Version.InvalidRequirementError) == == 1.0.0
 
   """
   @spec match?(version, requirement, Keyword.t) :: boolean
