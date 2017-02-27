@@ -17,7 +17,7 @@ Deprecated feature        | Deprecated in | Replaced by             | Replacemen
 :------------------------ | :------------ | :---------------------- | :---------------------------
 `Atom.to_char_list/1`     | [v1.5]    | `Atom.to_charlist/1`        | v1.3
 `Float.to_char_list/1`    | [v1.5]    | `Float.to_charlist/1`       | v1.3
-`GenEvent` module         | [v1.5]    | `Supervisor` and `GenServer`; `GenStage`; `:gen_event` | v1.0 (`Supervisor` and `GenServer`); v1.3 (`GenStage`); OTP 17 (`:gen_event`)
+`GenEvent` module         | [v1.5]    | `Supervisor` and `GenServer`; [`GenStage`](https://hex.pm/packages/gen_stage); [`:gen_event`](http://www.erlang.org/doc/man/gen_event.html) | v1.0 (`Supervisor` and `GenServer`); v1.3 (`GenStage`); OTP 17 (`:gen_event`)
 `Integer.to_char_list/1`  | [v1.5]    | `Integer.to_charlist/1`     | v1.3
 `Kernel.to_char_list/1`   | [v1.5]    | `Kernel.to_charlist/1`      | v1.3
 `String.to_char_list/1`   | [v1.5]    | `String.to_charlist/1`      | v1.3
@@ -35,7 +35,7 @@ Deprecated feature        | Deprecated in | Replaced by             | Replacemen
 `HashSet` module          | [v1.4]    | `MapSet`                    | v1.1
 `Set` module              | [v1.4]    | `MapSet`                    | v1.1
 `Stream.uniq/2`           | [v1.4]    | `Stream.uniq_by/2`          | v1.2
-`IEx.Helpers.import_file/2` | [v1.4]  | `IEx.Helpers.import_file_if_available/1` | v1.3
+`IEx.Helpers.import_file/2` | [v1.4]  | [`IEx.Helpers.import_file_if_available/1`](https://hexdocs.pm/iex/IEx.Helpers.html#import_file_if_available/1) | v1.3
 `Mix.Utils.camelize/1`    | [v1.4]    | `Macro.camelize/1`          | v1.2
 `Mix.Utils.underscore/1`  | [v1.4]    | `Macro.underscore/1`        | v1.2
 `Dict` module             | [v1.3]    | `Keyword`; `Map`            | v1.0 (`Keyword`); v1.2 (`Map`)
