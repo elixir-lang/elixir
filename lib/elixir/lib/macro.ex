@@ -1040,7 +1040,7 @@ defmodule Macro do
     end)
   end
 
-  defp parenthise(expr, fun) do
+  defp wrap_in_parenthesis(expr, fun) do
     "(" <> to_string(expr, fun) <> ")"
   end
 
@@ -1049,13 +1049,13 @@ defmodule Macro do
     {_, prec}                   = binary_op_props(op)
     cond do
       parent_prec < prec -> to_string(expr, fun)
-      parent_prec > prec -> parenthise(expr, fun)
+      parent_prec > prec -> wrap_in_parenthesis(expr, fun)
       true ->
         # parent_prec == prec, so look at associativity.
         if parent_assoc == side do
           to_string(expr, fun)
         else
-          parenthise(expr, fun)
+          wrap_in_parenthesis(expr, fun)
         end
     end
   end
