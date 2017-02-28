@@ -8,6 +8,8 @@ defmodule Float do
   import Bitwise
 
   @power_of_2_to_52 4503599627370496
+  @precision_range 0..15
+  @type precision_range :: 0..15
 
   @doc """
   Parses a binary into a float.
@@ -106,9 +108,13 @@ defmodule Float do
       34.25
 
   """
-  @spec floor(float, 0..15) :: float
-  def floor(number, precision \\ 0) when is_float(number) and precision in 0..15 do
+  @spec floor(float, precision_range) :: float
+  def floor(number, precision \\ 0) when is_float(number) and precision in @precision_range do
     round(number, precision, :floor)
+  end
+
+  def floor(number, precision) when is_float(number) do
+    raise ArgumentError, invalid_precision_message(precision)
   end
 
   @doc """
@@ -143,9 +149,13 @@ defmodule Float do
       34.26
 
   """
-  @spec ceil(float, 0..15) :: float
-  def ceil(number, precision \\ 0) when is_float(number) and precision in 0..15 do
+  @spec ceil(float, precision_range) :: float
+  def ceil(number, precision \\ 0) when is_float(number) and precision in @precision_range do
     round(number, precision, :ceil)
+  end
+
+  def ceil(number, precision) when is_float(number) do
+    raise ArgumentError, invalid_precision_message(precision)
   end
 
   @doc """
@@ -188,13 +198,17 @@ defmodule Float do
       12.341444444444441
 
   """
-  @spec round(float, 0..15) :: float
+  @spec round(float, precision_range) :: float
 
   # This implementation is slow since it relies on big integers.
   # Faster implementations are available on more recent papers
   # and could be implemented in the future.
-  def round(float, precision \\ 0) when is_float(float) and precision in 0..15 do
+  def round(float, precision \\ 0) when is_float(float) and precision in @precision_range do
     round(float, precision, :half_up)
+  end
+
+  def round(number, precision) when is_float(number) do
+    raise ArgumentError, invalid_precision_message(precision)
   end
 
   defp round(float, precision, rounding) do
@@ -416,6 +430,10 @@ defmodule Float do
   # (hard-deprecated in elixir_dispatch)
   def to_string(float, options) do
     :erlang.float_to_binary(float, expand_compact(options))
+  end
+
+  defp invalid_precision_message(precision) do
+    "precision #{inspect precision} is out of valid range of #{inspect @precision_range}"
   end
 
   defp expand_compact([{:compact, false} | t]), do: expand_compact(t)

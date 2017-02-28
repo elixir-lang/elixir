@@ -66,6 +66,10 @@ defmodule FloatTest do
 
     assert Float.floor(12.32453e-20, 2) === 0.0
     assert Float.floor(-12.32453e-20, 2) === -0.01
+
+    assert_raise ArgumentError, "precision 16 is out of valid range of 0..15" , fn ->
+      Float.floor(1.1, 16)
+    end
   end
 
   test "ceil/1" do
@@ -97,6 +101,10 @@ defmodule FloatTest do
     assert Float.ceil(-12.32453e-20, 2) === 0.0
 
     assert Float.ceil(0.0, 2) === 0.0
+
+    assert_raise ArgumentError, "precision 16 is out of valid range of 0..15" , fn ->
+      Float.ceil(1.1, 16)
+    end
   end
 
   test "round/2" do
@@ -106,5 +114,8 @@ defmodule FloatTest do
     assert Float.round(5.5e-10, 10) === 5.0e-10
     assert Float.round(5.5e-10, 8) === 0.0
     assert Float.round(5.0, 0) === 5.0
+    assert_raise ArgumentError, "precision 16 is out of valid range of 0..15" , fn ->
+      Float.round(1.1, 16)
+    end
   end
 end
