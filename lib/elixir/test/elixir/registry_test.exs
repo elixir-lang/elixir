@@ -68,6 +68,17 @@ defmodule RegistryTest do
                [{self(), value}]
       end
 
+      test "supports guard conditions", %{registry: registry} do
+        value = {1, :atom, 2}
+        {:ok, _} = Registry.register(registry, "hello", value)
+        assert Registry.match(registry, "hello", {:_, :_, :"$1"}, [{:>, :"$1", 1}]) ==
+               [{self(), value}]
+        assert Registry.match(registry, "hello", {:_, :_, :"$1"}, [{:>, :"$1", 2}]) ==
+               []
+        assert Registry.match(registry, "hello", {:_, :"$1", :_,}, [{:is_atom, :"$1"}]) ==
+               [{self(), value}]
+      end
+
       test "compares using ===", %{registry: registry} do
         {:ok, _} = Registry.register(registry, 1.0, :value)
         {:ok, _} = Registry.register(registry, 1, :value)
@@ -267,6 +278,22 @@ defmodule RegistryTest do
                [{self(), value2}]
         assert Registry.match(registry, "hello", {2.0, :_, :_}) |> Enum.sort() ==
                []
+      end
+
+      test "supports guards", %{registry: registry} do
+        value1 = {1, :atom, 1}
+        {:ok, _} = Registry.register(registry, "hello", value1)
+        value2 = {2, :atom, 2}
+        {:ok, _} = Registry.register(registry, "hello", value2)
+
+        assert Registry.match(registry, "hello", {:"$1", :_, :_}, [{:<, :"$1", 2}]) |> Enum.sort() ==
+               [{self(), value1}]
+        assert Registry.match(registry, "hello", {:"$1", :_, :_}, [{:>, :"$1", 3}]) |> Enum.sort() ==
+               []
+        assert Registry.match(registry, "hello", {:"$1", :_, :_}, [{:<, :"$1", 3}]) |> Enum.sort() ==
+               [{self(), value1}, {self(), value2}]
+        assert Registry.match(registry, "hello", {:_, :"$1",  :_}, [{:is_atom, :"$1"}]) |> Enum.sort() ==
+               [{self(), value1}, {self(), value2}]
       end
 
       @tag listener: :"duplicate_listener_#{partitions}"

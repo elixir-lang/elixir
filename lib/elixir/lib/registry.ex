@@ -444,6 +444,12 @@ defmodule Registry do
   value or tuple element, while :"$1" can be used to temporarily assign part
   of pattern to a variable for a subsequent comparison.
 
+  It is possible to pass list of guard conditions for more precise matching.
+  Each guard is a tuple, which describes check that should be passed by assigned part of pattern.
+  For example :"$1" > 1 guard condition would be expressed as {:>, :"$1", 1} tuple.
+  Please note that guard conditions will work only for assigned variables like :"$1", :"$2", etc.
+  Avoid usage of special match variables :"$_" and :"$$", because it might not work as expected.
+
   An empty list will be returned if there is no match.
 
   For unique registries, a single partition lookup is necessary. For
@@ -465,11 +471,15 @@ defmodule Registry do
       [{self(), {1, :atom, 1}}, {self(), {2, :atom, 2}}]
       iex> Registry.match(Registry.MatchTest, "hello", {:"$1", :_, :"$1"}) |> Enum.sort()
       [{self(), {1, :atom, 1}}, {self(), {2, :atom, 2}}]
+      iex> Registry.match(Registry.MatchTest, "hello", {:_, :_, :"$1"}, [{:>, :"$1", 1}]) |> Enum.sort()
+      [{self(), {2, :atom, 2}}]
+      iex> Registry.match(Registry.MatchTest, "hello", {:_, :"$1", :_}, [{:is_atom, :"$1"}]) |> Enum.sort()
+      [{self(), {1, :atom, 1}}, {self(), {2, :atom, 2}}]
 
   """
-  @spec match(registry, key, match_pattern :: atom() | tuple()) :: [{pid, term}]
-  def match(registry, key, pattern) when is_atom(registry) do
-    spec = [{{key, {:_, pattern}}, [], [{:element, 2, :"$_"}]}]
+  @spec match(registry, key, match_pattern :: atom() | tuple(), guards :: list()) :: [{pid, term}]
+  def match(registry, key, pattern, guards \\ []) when is_atom(registry) and is_list(guards) do
+    spec = [{{key, {:_, pattern}}, guards, [{:element, 2, :"$_"}]}]
 
     case key_info!(registry) do
       {:unique, partitions, key_ets} ->
