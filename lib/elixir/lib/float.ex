@@ -114,7 +114,7 @@ defmodule Float do
   end
 
   def floor(number, precision) when is_float(number) do
-    raise ArgumentError, "precision #{inspect precision} is out of valid range of #{inspect @precision_range}"
+    raise ArgumentError, invalid_precision_message(precision)
   end
 
   @doc """
@@ -155,7 +155,7 @@ defmodule Float do
   end
 
   def ceil(number, precision) when is_float(number) do
-    raise ArgumentError, "precision #{inspect precision} is out of valid range of #{inspect @precision_range}"
+    raise ArgumentError, invalid_precision_message(precision)
   end
 
   @doc """
@@ -208,7 +208,7 @@ defmodule Float do
   end
 
   def round(number, precision) when is_float(number) do
-    raise ArgumentError, "precision #{inspect precision} is out of valid range of #{inspect @precision_range}"
+    raise ArgumentError, invalid_precision_message(precision)
   end
 
   defp round(float, precision, rounding) do
@@ -430,6 +430,10 @@ defmodule Float do
   # (hard-deprecated in elixir_dispatch)
   def to_string(float, options) do
     :erlang.float_to_binary(float, expand_compact(options))
+  end
+
+  defp invalid_precision_message(precision) do
+    "precision #{inspect precision} is out of valid range of #{inspect @precision_range}"
   end
 
   defp expand_compact([{:compact, false} | t]), do: expand_compact(t)
