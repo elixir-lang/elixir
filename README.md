@@ -3,6 +3,8 @@
 [![Build Status](https://secure.travis-ci.org/elixir-lang/elixir.svg?branch=master
 "Build Status")](https://travis-ci.org/elixir-lang/elixir)
 
+Elixir is a dynamic, functional language designed for building scalable and maintainable applications.
+
 For more about Elixir, installation and documentation,
 [check Elixir's website](http://elixir-lang.org/).
 
