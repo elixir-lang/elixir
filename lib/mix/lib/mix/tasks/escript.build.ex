@@ -248,16 +248,14 @@ defmodule Mix.Tasks.Escript.Build do
   end
 
   defp strip_beams(tuples) do
-    for {basename, maybe_beam} <- tuples do
-      {basename, strip_beam(maybe_beam)}
+    for {basename, beam} <- tuples, Path.extname(basename) == ".beam" do
+      {basename, strip_beam(beam)}
     end
   end
 
-  defp strip_beam(maybe_beam) do
-    case :beam_lib.strip(maybe_beam) do
-      {:ok, {_, stripped_beam}} -> stripped_beam
-      {:error, :beam_lib, {:not_a_beam_file, _}} -> maybe_beam
-    end
+  defp strip_beam(beam) do
+    {:ok, {_, stripped_beam}} = :beam_lib.strip(beam)
+    stripped_beam
   end
 
   defp consolidated_paths(config) do
