@@ -44,8 +44,9 @@ defmodule Mix.Tasks.Escript.Build do
       Defaults to app name. Set it to `nil` if no application should
       be started.
 
-    * `:strip_beam` - if `true` strip BEAM code in the escript to remove
-      debug information (chunk `abstract_code`). Defaults to `true`.
+    * `:strip_beam` - if `true` strip BEAM code in the escript to remove chunks
+      unnecessary at runtime, such as debug information and documentation.
+      Defaults to `true`.
 
     * `:embed_elixir` - if `true` embed Elixir and its children apps
       (`ex_unit`, `mix`, etc.) mentioned in the `:applications` list inside the
