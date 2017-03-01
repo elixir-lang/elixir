@@ -258,14 +258,14 @@ defmodule Version do
       #Version<2.0.1-alpha1>
 
       iex> Version.parse!("2.0-alpha1")
-      ** (Version.InvalidVersionError) expected a valid version string, got: "2.0-alpha1"
+      ** (Version.InvalidVersionError) invalid version string: "2.0-alpha1"
 
   """
   @spec parse!(String.t) :: t | no_return
   def parse!(string) when is_binary(string) do
     case parse(string) do
       {:ok, version} -> version
-      :error -> raise InvalidVersionError, message: "expected a valid version string, got: #{inspect string}"
+      :error -> raise InvalidVersionError, message: "invalid version string: #{inspect string}"
     end
   end
 
