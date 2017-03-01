@@ -113,11 +113,11 @@ defmodule Mix.Tasks.EscriptTest do
 
     in_fixture "escripttest", fn ->
       Mix.Tasks.Escript.Build.run []
-      assert_received {:mix_shell, :info, ["Generated escript escriptest with MIX_ENV=dev"]}
+      assert_received {:mix_shell, :info, ["Generated escript escripttestwithdebuginfo with MIX_ENV=dev"]}
       assert System.cmd("escript", ["escripttestwithdebuginfo"]) == {"TEST\n", 0}
 
       Mix.Tasks.Escript.Build.run []
-      refute_received {:mix_shell, :info, ["Generated escript escriptest with MIX_ENV=dev"]}
+      refute_received {:mix_shell, :info, ["Generated escript escripttestwithdebuginfo with MIX_ENV=dev"]}
     end
   end
 
