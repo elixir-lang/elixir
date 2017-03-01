@@ -150,6 +150,8 @@ defmodule IntegerTest do
 
     # Base should be an integer
     assert_raise ArgumentError, "invalid base 10.2", fn -> Integer.parse("2", 10.2) end
+
+    assert_raise ArgumentError, "invalid base nil", fn -> Integer.parse("2", nil) end
   end
 
   test "to_string/1" do
