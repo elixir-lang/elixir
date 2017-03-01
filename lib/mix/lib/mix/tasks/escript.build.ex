@@ -126,7 +126,7 @@ defmodule Mix.Tasks.Escript.Build do
     filename     = escript_opts[:path] || script_name
     main         = escript_opts[:main_module]
     app          = Keyword.get(escript_opts, :app, project[:app])
-    strip_beam   = Keyword.get(escript_opts, :strip_beam, true)
+    strip_beam?  = Keyword.get(escript_opts, :strip_beam, true)
     files        = project_files()
 
     escript_mod = String.to_atom(Atom.to_string(app) <> "_escript")
@@ -153,7 +153,7 @@ defmodule Mix.Tasks.Escript.Build do
 
         tuples = gen_main(project, escript_mod, main, app, language) ++
                  read_beams(beam_paths)
-        tuples = if strip_beam, do: strip_beams(tuples), else: tuples
+        tuples = if strip_beam?, do: strip_beams(tuples), else: tuples
 
         case :zip.create 'mem', tuples, [:memory] do
           {:ok, {'mem', zip}} ->
