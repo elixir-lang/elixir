@@ -104,16 +104,16 @@ defmodule File do
 
   ## Examples
 
-      File.dir("./test")
+      File.dir?("./test")
       #=> true
 
-      File.dir("test")
+      File.dir?("test")
       #=> true
 
-      File.dir("/usr/bin")
+      File.dir?("/usr/bin")
       #=> true
 
-      File.dir("~/Downloads")
+      File.dir?("~/Downloads")
       #=> false
 
       "~/Downloads" |> Path.expand |> File.dir?
