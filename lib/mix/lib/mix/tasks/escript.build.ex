@@ -44,6 +44,9 @@ defmodule Mix.Tasks.Escript.Build do
       Defaults to app name. Set it to `nil` if no application should
       be started.
 
+    * `:strip_beam` - if `true` strip BEAM code in the escript to remove
+      debug information (chunk `abstract_code`). Defaults to `true`.
+
     * `:embed_elixir` - if `true` embed Elixir and its children apps
       (`ex_unit`, `mix`, etc.) mentioned in the `:applications` list inside the
       `application/0` function in `mix.exs`.
@@ -123,6 +126,7 @@ defmodule Mix.Tasks.Escript.Build do
     filename     = escript_opts[:path] || script_name
     main         = escript_opts[:main_module]
     app          = Keyword.get(escript_opts, :app, project[:app])
+    strip_beam   = Keyword.get(escript_opts, :strip_beam, true)
     files        = project_files()
 
     escript_mod = String.to_atom(Atom.to_string(app) <> "_escript")
@@ -149,6 +153,7 @@ defmodule Mix.Tasks.Escript.Build do
 
         tuples = gen_main(project, escript_mod, main, app, language) ++
                  read_beams(beam_paths)
+        tuples = if strip_beam, do: strip_beams(tuples), else: tuples
 
         case :zip.create 'mem', tuples, [:memory] do
           {:ok, {'mem', zip}} ->
@@ -240,6 +245,19 @@ defmodule Mix.Tasks.Escript.Build do
     |> Enum.map(fn {basename, beam_path} ->
       {String.to_charlist(basename), File.read!(beam_path)}
     end)
+  end
+
+  defp strip_beams(tuples) do
+    for {basename, maybe_beam} <- tuples do
+      {basename, strip_beam(maybe_beam)}
+    end
+  end
+
+  defp strip_beam(maybe_beam) do
+    case :beam_lib.strip(maybe_beam) do
+      {:ok, {_, stripped_beam}} -> stripped_beam
+      {:error, :beam_lib, {:not_a_beam_file, _}} -> maybe_beam
+    end
   end
 
   defp consolidated_paths(config) do

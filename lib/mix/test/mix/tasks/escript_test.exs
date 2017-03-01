@@ -15,6 +15,17 @@ defmodule Mix.Tasks.EscriptTest do
     end
   end
 
+  defmodule EscriptWithDebugInfo do
+    def project do
+      [app: :escripttestwithdebuginfo,
+       version: "0.0.1",
+       escript: [
+         main_module: Escripttest,
+         strip_beam: false
+       ]]
+    end
+  end
+
   defmodule EscriptWithPath do
     def project do
       [app: :escripttestwithpath,
@@ -94,6 +105,19 @@ defmodule Mix.Tasks.EscriptTest do
       Mix.Tasks.Escript.Build.run []
       assert_received {:mix_shell, :info, ["Generated escript escriptest with MIX_ENV=dev"]}
       assert System.cmd("escript", ["escriptest"]) == {"FROM CONFIG\n", 0}
+    end
+  end
+
+  test "generate escript with debug information" do
+    Mix.Project.push EscriptWithDebugInfo
+
+    in_fixture "escripttest", fn ->
+      Mix.Tasks.Escript.Build.run []
+      assert_received {:mix_shell, :info, ["Generated escript escriptest with MIX_ENV=dev"]}
+      assert System.cmd("escript", ["escripttestwithdebuginfo"]) == {"TEST\n", 0}
+
+      Mix.Tasks.Escript.Build.run []
+      refute_received {:mix_shell, :info, ["Generated escript escriptest with MIX_ENV=dev"]}
     end
   end
 
