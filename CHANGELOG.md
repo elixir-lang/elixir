@@ -19,7 +19,6 @@
 #### Mix
 
   * [Mix.Hex] Add `--if-missing` flag to `local.hex` mix task
-  * [Mix.Tasks.Escript] Debug information is now stripped unless escript option `:strip_beam` is set to `false`
 
 ### 2. Bug fixes
 
