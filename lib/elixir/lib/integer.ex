@@ -243,7 +243,7 @@ defmodule Integer do
   end
 
   def parse(binary, base) when is_binary(binary) do
-    raise ArgumentError, "invalid base #{base}"
+    raise ArgumentError, "invalid base #{inspect base}"
   end
 
   defp parse_in_base("-" <> bin, base) do
