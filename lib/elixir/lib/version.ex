@@ -113,7 +113,7 @@ defmodule Version do
   defmodule InvalidRequirementError do
     defexception [:requirement]
 
-    def exception(requirement) do
+    def exception(requirement) when is_binary(requirement) do
       %__MODULE__{requirement: requirement}
     end
 
@@ -125,7 +125,7 @@ defmodule Version do
   defmodule InvalidVersionError do
     defexception [:version]
 
-    def exception(version) do
+    def exception(version) when is_binary(version) do
       %__MODULE__{version: version}
     end
 
