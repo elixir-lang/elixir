@@ -142,7 +142,7 @@ defmodule Mix.Tasks.EscriptTest do
   end
 
   defp remove_escript_header(escript_data) do
-    {offset, length} = :binary.match(escript_data, "\nPK")
+    {offset, _length} = :binary.match(escript_data, "\nPK")
     zip_start = offset + 1
     binary_part(escript_data, zip_start, byte_size(escript_data) - zip_start)
   end
