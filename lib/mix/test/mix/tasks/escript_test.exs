@@ -88,6 +88,7 @@ defmodule Mix.Tasks.EscriptTest do
       Mix.Tasks.Escript.Build.run []
       assert_received {:mix_shell, :info, ["Generated escript escriptest with MIX_ENV=dev"]}
       assert System.cmd("escript", ["escriptest"]) == {"TEST\n", 0}
+      assert count_abstract_code("escriptest") == 0
 
       Mix.Tasks.Escript.Build.run []
       refute_received {:mix_shell, :info, ["Generated escript escriptest with MIX_ENV=dev"]}
@@ -105,6 +106,7 @@ defmodule Mix.Tasks.EscriptTest do
       Mix.Tasks.Escript.Build.run []
       assert_received {:mix_shell, :info, ["Generated escript escriptest with MIX_ENV=dev"]}
       assert System.cmd("escript", ["escriptest"]) == {"FROM CONFIG\n", 0}
+      assert count_abstract_code("escriptest") == 0
     end
   end
 
@@ -115,9 +117,40 @@ defmodule Mix.Tasks.EscriptTest do
       Mix.Tasks.Escript.Build.run []
       assert_received {:mix_shell, :info, ["Generated escript escripttestwithdebuginfo with MIX_ENV=dev"]}
       assert System.cmd("escript", ["escripttestwithdebuginfo"]) == {"TEST\n", 0}
+      assert count_abstract_code("escripttestwithdebuginfo") > 0
 
       Mix.Tasks.Escript.Build.run []
       refute_received {:mix_shell, :info, ["Generated escript escripttestwithdebuginfo with MIX_ENV=dev"]}
+    end
+  end
+
+  defp count_abstract_code(escript_filename) do
+    for {_filename, beam} <- get_beams(escript_filename) do
+      get_abstract_code(beam)
+    end
+    |> Enum.reject(&is_nil/1)
+    |> Enum.count
+  end
+
+  defp get_beams(escript_filename) do
+    # :zip.unzip cannot unzip an escript unless we remove the escript header
+    zip_data = remove_escript_header(File.read!(escript_filename))
+    {:ok, tuples} = :zip.unzip(zip_data, [:memory])
+    for {filename, beam} <- tuples, Path.extname(filename) == ".beam" do
+      {filename, beam}
+    end
+  end
+
+  defp remove_escript_header(escript_data) do
+    {offset, length} = :binary.match(escript_data, "\nPK")
+    zip_start = offset + 1
+    binary_part(escript_data, zip_start, byte_size(escript_data) - zip_start)
+  end
+
+  defp get_abstract_code(beam) do
+    case :beam_lib.chunks(beam, [:abstract_code]) do
+      {:ok, {_, [{:abstract_code, {_, abstract_code}}]}} -> abstract_code
+      _                                                  -> nil
     end
   end
 
