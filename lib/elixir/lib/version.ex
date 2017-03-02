@@ -111,7 +111,15 @@ defmodule Version do
   end
 
   defmodule InvalidRequirementError do
-    defexception [:message]
+    defexception [:requirement]
+
+    def exception(requirement) do
+      %__MODULE__{requirement: requirement}
+    end
+
+    def message(%{requirement: requirement}) do
+      "invalid requirement: #{inspect requirement}"
+    end
   end
 
   defmodule InvalidVersionError do
@@ -153,7 +161,7 @@ defmodule Version do
       ** (Version.InvalidVersionError) invalid version: "foo"
 
       iex> Version.match?("2.0.0", "== == 1.0.0")
-      ** (Version.InvalidRequirementError) == == 1.0.0
+      ** (Version.InvalidRequirementError) invalid requirement: "== == 1.0.0"
 
   """
   @spec match?(version, requirement, Keyword.t) :: boolean
@@ -164,7 +172,7 @@ defmodule Version do
       {:ok, requirement} ->
         match?(version, requirement, opts)
       :error ->
-        raise InvalidRequirementError, message: requirement
+        raise InvalidRequirementError, requirement
     end
   end
 
