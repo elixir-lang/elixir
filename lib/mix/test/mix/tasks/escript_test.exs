@@ -125,9 +125,9 @@ defmodule Mix.Tasks.EscriptTest do
   end
 
   defp count_abstract_code(escript_filename) do
-    for {_filename, beam} <- get_beams(escript_filename) do
-      get_abstract_code(beam)
-    end
+    escript_filename
+    |> get_beams()
+    |> Enum.map(fn {_, beam} -> get_abstract_code(beam) end)
     |> Enum.reject(&is_nil/1)
     |> Enum.count
   end
