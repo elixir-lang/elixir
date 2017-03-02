@@ -111,11 +111,27 @@ defmodule Version do
   end
 
   defmodule InvalidRequirementError do
-    defexception [:message]
+    defexception [:requirement]
+
+    def exception(requirement) when is_binary(requirement) do
+      %__MODULE__{requirement: requirement}
+    end
+
+    def message(%{requirement: requirement}) do
+      "invalid requirement: #{inspect requirement}"
+    end
   end
 
   defmodule InvalidVersionError do
-    defexception [:message]
+    defexception [:version]
+
+    def exception(version) when is_binary(version) do
+      %__MODULE__{version: version}
+    end
+
+    def message(%{version: version}) do
+      "invalid version: #{inspect version}"
+    end
   end
 
   @doc """
@@ -142,10 +158,10 @@ defmodule Version do
       false
 
       iex> Version.match?("foo", "== 1.0.0")
-      ** (Version.InvalidVersionError) foo
+      ** (Version.InvalidVersionError) invalid version: "foo"
 
       iex> Version.match?("2.0.0", "== == 1.0.0")
-      ** (Version.InvalidRequirementError) == == 1.0.0
+      ** (Version.InvalidRequirementError) invalid requirement: "== == 1.0.0"
 
   """
   @spec match?(version, requirement, Keyword.t) :: boolean
@@ -156,7 +172,7 @@ defmodule Version do
       {:ok, requirement} ->
         match?(version, requirement, opts)
       :error ->
-        raise InvalidRequirementError, message: requirement
+        raise InvalidRequirementError, requirement
     end
   end
 
@@ -202,7 +218,7 @@ defmodule Version do
       :eq
 
       iex> Version.compare("invalid", "2.0.1")
-      ** (Version.InvalidVersionError) invalid
+      ** (Version.InvalidVersionError) invalid version: "invalid"
 
   """
   @spec compare(version, version) :: :gt | :eq | :lt
@@ -258,14 +274,14 @@ defmodule Version do
       #Version<2.0.1-alpha1>
 
       iex> Version.parse!("2.0-alpha1")
-      ** (Version.InvalidVersionError) 2.0-alpha1
+      ** (Version.InvalidVersionError) invalid version: "2.0-alpha1"
 
   """
   @spec parse!(String.t) :: t | no_return
   def parse!(string) when is_binary(string) do
     case parse(string) do
       {:ok, version} -> version
-      :error -> raise InvalidVersionError, message: string
+      :error -> raise InvalidVersionError, string
     end
   end
 
@@ -315,7 +331,7 @@ defmodule Version do
       {:ok, {major, minor, patch, pre}} ->
         {major, minor, patch, pre, allow_pre?}
       :error ->
-        raise InvalidVersionError, message: string
+        raise InvalidVersionError, string
     end
   end
 
