@@ -71,6 +71,9 @@ defmodule OptionParser do
   Note that you should only supply the `:switches` or the`:strict` option.
   If you supply both, an `ArgumentError` exception will be raised.
 
+    iex> OptionParser.parse(["--source", "lib"], switches: [source: :string], strict: [source: :string])
+    ** (ArgumentError) :switches and :strict cannot be given together
+
   ### Types
 
   Switches parsed by `OptionParser` may take zero or one arguments.
@@ -100,7 +103,7 @@ defmodule OptionParser do
       assumes the type of `:switch_name` will be `:string`.
 
   To use `:keep` with a type other than `:string`, use a list as the type
-  for the switch. For example: `[foo: [:integer, :keep]]`.
+  for the switch. For example: `foo: [:integer, :keep]`.
 
   ### Negation switches
 
@@ -130,7 +133,7 @@ defmodule OptionParser do
   never used anywhere:
 
       OptionParser.parse(["--option-parser-example"])
-      # Does nothing more...
+      # Never uses :option_parser_example
 
   However, the code below does since the `:option_parser_example` atom is used
   at some point later (or earlier) on:
@@ -191,7 +194,7 @@ defmodule OptionParser do
       {[unlock: "path/to/file", unlock: "path/to/another/file"], [], []}
 
   """
-  @spec parse(argv, options) :: {parsed, argv, errors}
+  @spec parse(argv, options) :: {parsed, argv, errors} | no_return
   def parse(argv, opts \\ []) when is_list(argv) and is_list(opts) do
     do_parse(argv, compile_config(opts), [], [], [], true)
   end
