@@ -456,6 +456,8 @@ defmodule Date do
       false
       iex> Date.valid?(%Date{year: 2017, month: 13, day: 1})
       false
+      iex> Date.valid?(%Date{year: 2016, month: 2, day: 29}) # Leap year
+      true
   """
   @spec valid?(Calendar.date) :: boolean()
   def valid?(date) do
