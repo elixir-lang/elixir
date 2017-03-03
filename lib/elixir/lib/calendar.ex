@@ -1382,6 +1382,27 @@ defmodule NaiveDateTime do
     end
   end
 
+  @doc """
+  Tests that date and time are valid.
+
+  Returns true if date and time are valid and false otherwise.
+
+  ## Examples
+
+      iex> NaiveDateTime.valid?(~N[2000-01-01 13:30:15.005])
+      true
+      iex> NaiveDateTime.valid?(~N[2016-02-29 08:30:23])
+      true
+      iex> NaiveDateTime.valid?(%NaiveDateTime{year: 2017, month: 3, day: 32, hour: 23, minute: 18, second: 1})
+      false
+      iex> NaiveDateTime.valid?(%NaiveDateTime{year: 2017, month: 3, day: 18, hour: 25, minute: 18, second: 1})
+      false
+  """
+  @spec valid?(Calendar.naive_datetime) :: boolean()
+  def valid?(naive_datetime) do
+    Date.valid?(naive_datetime) && Time.valid?(naive_datetime)
+  end
+
   ## Helpers
 
   defp to_microsecond(%{calendar: Calendar.ISO, year: year, month: month, day: day,
