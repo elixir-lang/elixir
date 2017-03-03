@@ -148,7 +148,7 @@ defmodule Mix.Tasks.EscriptTest do
   defp get_abstract_code(beam) do
     case :beam_lib.chunks(beam, [:abstract_code]) do
       {:ok, {_, [{:abstract_code, {_, abstract_code}}]}} -> abstract_code
-      _                                                  -> nil
+      _ -> nil
     end
   end
 

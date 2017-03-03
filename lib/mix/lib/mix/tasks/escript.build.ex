@@ -252,7 +252,7 @@ defmodule Mix.Tasks.Escript.Build do
     for {basename, maybe_beam} <- tuples do
       case Path.extname(basename) do
         ".beam" -> {basename, strip_beam(maybe_beam)}
-        _       -> {basename, maybe_beam}
+        _ -> {basename, maybe_beam}
       end
     end
   end
