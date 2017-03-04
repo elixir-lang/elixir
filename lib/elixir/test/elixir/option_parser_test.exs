@@ -221,6 +221,12 @@ defmodule OptionParserTest do
            {[source: "from_docs/"], [], [{"--doc", nil}]}
   end
 
+  test "parses raises when using both switches and strict" do
+    assert_raise ArgumentError, ":switches and :strict cannot be given together", fn ->
+      OptionParser.parse(["--elixir"], switches: [ex: :string], strict: [elixir: :string])
+    end
+  end
+
   test "parse!/2 raise an exception for an unknown option using strict" do
     assert_raise OptionParser.ParseError, "1 error found!\n--doc : Unknown option", fn ->
       argv = ["--source", "from_docs/", "--doc", "show"]
