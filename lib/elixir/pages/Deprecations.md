@@ -51,7 +51,7 @@ Anoymous functions with no expression after `->` | [v1.4] | Use an expression or
 `\x{X*}` inside strings/sigils/charlists | [v1.3] | `\uXXXX`; `\u{X*}` | v1.1
 Map or dictionary as second argument in `Enum.group_by/3` | [v1.3] | Pass a function | v1.3
 Non-map as second argument in `URI.decode_query/2` | [v1.3] | Use a map | v1.0
-`Dict` behaviour          | [v1.2]        | *None*                  | *None*
+`Dict` behaviour          | [v1.2]        | `MapSet` data structure | v1.1
 `Access` protocol         | [v1.1]        | `Access` behaviour      | v1.1
 `as: true \| false` in `alias/2` and `require/2` | [v1.1] | *None*  | *None*
 `?\xHEX`                  | [v1.1]        | `0xHEX`                 | v1.0
