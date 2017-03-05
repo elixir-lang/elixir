@@ -81,11 +81,6 @@ defmodule MapSetTest do
     assert Enum.sort(list) == Enum.to_list(5..120)
   end
 
-  test "map_set?/1" do
-    assert S.map_set?(S.new()) == true
-    assert S.map_set?(:not_a_map_set) == false
-  end
-
   defp make(collection) do
     Enum.into(collection, S.new)
   end
