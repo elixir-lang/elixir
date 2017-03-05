@@ -1901,11 +1901,53 @@ defmodule DateTime do
       :gt
   """
   @spec compare(DateTime.t, DateTime.t) :: :lt | :eq | :gt
-  def compare(%DateTime{} = datetime1, %DateTime{} = datetime2) do
-    case {to_unix(datetime1, :microsecond), to_unix(datetime2, :microsecond)} do
+  def compare(%DateTime{calendar: calendar1} = datetime1, %DateTime{calendar: calendar2} = datetime2) do
+    # case {to_unix(datetime1, :microsecond), to_unix(datetime2, :microsecond)} do
+    #   {first, second} when first > second -> :gt
+    #   {first, second} when first < second -> :lt
+    #   _ -> :eq
+    # end
+    {days1, {parts1, ppd1}} = calendar1.datetime_to_rata_die(datetime1)
+    {days2, {parts2, ppd2}} = calendar2.datetime_to_rata_die(datetime2)
+
+    # Ensure fraction tuples have same denominator.
+    combined_ppd = ppd1 * ppd2
+    rata_die1 = {days1, parts1 * ppd2}
+    rata_die2 = {days2, parts2 * ppd1}
+
+    case {rata_die1, rata_die2}  do
       {first, second} when first > second -> :gt
       {first, second} when first < second -> :lt
       _ -> :eq
+    end
+  end
+
+  @doc """
+  Returns the difference between two `DateTime` structs,
+  in the Calendar.rata_die format: {days, day_fraction}
+
+  ## Examples
+
+  iex> dt1 = %DateTime{year: 2000, month: 2, day: 29, zone_abbr: "AMT",
+  ...>                 hour: 23, minute: 0, second: 7, microsecond: {0, 0},
+  ...>                 utc_offset: -14400, std_offset: 0, time_zone: "America/Manaus"}
+  iex> dt2 = %DateTime{year: 2000, month: 2, day: 29, zone_abbr: "CET",
+  ...>                 hour: 23, minute: 0, second: 7, microsecond: {0, 0},
+  ...>                 utc_offset: 3600, std_offset: 0, time_zone: "Europe/Warsaw"}
+  iex> DateTime.diff(dt1, dt2)
+  :lt
+  """
+  @spec diff(DateTime.t, DateTime.t) :: Calendar.rata_die
+  def diff(%DateTime{calendar: calendar1} = datetime1, %DateTime{calendar: calendar2} = datetime2) do
+    {days1, {parts1, ppd1}} = calendar1.datetime_to_rata_die(datetime1)
+    {days2, {parts2, ppd2}} = calendar2.datetime_to_rata_die(datetime2)
+    diff_days = days1 - days2
+    diff_ppd = ppd1 * ppd2
+    diff_parts = parts1 * ppd2 - parts2 * ppd1
+    if diff_parts < 0 do
+      {diff_days - 1, {diff_ppd + diff_parts, diff_ppd}}
+    else
+      {diff_days, {diff_parts, diff_ppd}}
     end
   end
 end

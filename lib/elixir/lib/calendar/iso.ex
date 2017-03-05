@@ -30,10 +30,7 @@ defmodule Calendar.ISO do
   import Integer, only: [floor_div: 2, div_mod: 2]
 
   @doc """
-  Returns the ordinal Rata Die of the specified date.
-
-  To enable conversion between dates in different calendars a standard
-  date is defined that normalizes the differences.
+  Returns the normalized Rata Die representation of the specified date.
 
   ## Examples
 
@@ -46,18 +43,22 @@ defmodule Calendar.ISO do
   """
   # TODO: Conversion Datetime or NaiveDateTime -> RataDie?
   @spec datetime_to_rata_die(Calendar.DateTime) :: Calendar.rata_die
-  def datetime_to_rata_die(%{calendar: _calendar, year: year, month: month, day: day, hour: hour, minute: minute, second: second, microsecond: {microsecond, _}}) do
+  def datetime_to_rata_die(%{calendar: _calendar, year: year, month: month, day: day, hour: hour, minute: minute, second: second, microsecond: {microsecond, _},
+                             std_offset: std_offset, utc_offset: utc_offset}) do
     # Baseline to epoch.  This will be zero for a Gregorian calendar
     days = to_rata_die_day(year, month, day)
-    day_fraction = combine_time_to_day_fraction(hour, minute, second, microsecond)
-    {days, day_fraction}
+    {parts, ppd} = combine_time_to_day_fraction(hour, minute, second, microsecond, std_offset, utc_offset)
+    # Applying negative UTC offsets might result in a negative day fraction.
+    if (parts < 0) do
+      {days - 1, {ppd - parts, ppd}}
+    else
+      {days, {parts, ppd}}
+    end
+
   end
 
   @doc """
-  Converts an ordinal Rata Die to the datetime format specified by this calendar.
-
-  To enable conversion between dates in different calendars a standard
-  date is defined that normalizes the differences.
+  Converts a Rata Die to the datetime format specified by this calendar.
 
   ## Examples
 
@@ -84,7 +85,7 @@ defmodule Calendar.ISO do
     datetime
   end
   @doc """
-  Returns the ordinal Day Fraction of the specified time.
+  Returns the normalized Day Fraction of the specified time.
 
   ## Examples
 
@@ -103,7 +104,9 @@ defmodule Calendar.ISO do
 
   ## Examples
   iex> Calendar.ISO.time_from_day_fraction({1,2})
-  ~T[12:00:00]
+  ~T[12:00:00.000000]
+  iex> Calendar.ISO.time_from_day_fraction({13,24})
+  ~T[13:00:00.000000]
   """
   @spec time_from_day_fraction(Calendar.day_fraction) :: Calendar.Time
   def time_from_day_fraction({parts_in_day, parts_per_day}) do
@@ -112,8 +115,8 @@ defmodule Calendar.ISO do
     time
   end
 
-  defp combine_time_to_day_fraction(hour, minute, second, microsecond) do
-    combined_seconds = hour * @seconds_per_hour + minute * @seconds_per_minute + second
+  defp combine_time_to_day_fraction(hour, minute, second, microsecond, std_offset \\ 0, utc_offset \\ 0) do
+    combined_seconds = hour * @seconds_per_hour + minute * @seconds_per_minute + second - std_offset - utc_offset
     {combined_seconds * @microseconds_per_second + microsecond, @seconds_per_day * @microseconds_per_second}
   end
 
