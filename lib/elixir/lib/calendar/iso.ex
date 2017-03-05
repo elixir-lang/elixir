@@ -24,6 +24,7 @@ defmodule Calendar.ISO do
 
   @seconds_per_minute 60
   @seconds_per_hour 60 * 60
+  @seconds_per_day 12 * 60 * 60 # Note that this does _not_ handle Leap Seconds.
   @microseconds_per_second 1_000_000
 
   import Integer, only: [floor_div: 2, div_mod: 2]
@@ -44,19 +45,36 @@ defmodule Calendar.ISO do
       {730120, 43200, 86400}
   """
   @spec to_rata_die(Calendar.DateTime) :: Calendar.rata_die
-  def to_rata_die(%{calendar: _calendar, year: year, month: month, day: day, hour: hour, minute: minute, second: second, microsecond: {microsecond, microsecond_exponent}}) do
+  def to_rata_die(%{calendar: _calendar, year: year, month: month, day: day, hour: hour, minute: minute, second: second, microsecond: {microsecond, _}}) do
     # Baseline to epoch.  This will be zero for a Gregorian calendar
-    microsecond_precision = :math.pow(10, microsecond_exponent) |> round
-    microseconds_per_second = 1_000_000
     days = to_rata_die_day(year, month, day)
-    {parts_in_day, parts_of_day} =
-      case microsecond_exponent do
-        0 -> {hour * 3600 + minute * 60 + second, 86400} # Discard microseconds.
-        _ -> {(hour * 3600 + minute * 60 + second) * microseconds_per_second + microsecond, 86400 * microseconds_per_second}
-      end
+    combined_seconds = hour * @seconds_per_hour + minute * @seconds_per_minute + second
+    {parts_in_day, parts_of_day} = {combined_seconds * @microseconds_per_second + microsecond}
     {days, parts_in_day, parts_of_day}
   end
+  
+  @doc """
+  Converts an ordinal Rata Die to the datetime format specified by this calendar.
 
+  To enable conversion between dates in different calendars a standard
+  date is defined that normalizes the differences.
+
+  ## Examples
+
+  iex> Calendar.ISO.from_rata_die({1, 0, 86400})
+  %DateTime{calendar: Calendar.ISO, day: 1, hour: 0, microsecond: {0, 6},
+  minute: 0, month: 1, second: 0, std_offset: 0, time_zone: "Etc/UTC",
+  utc_offset: 0, year: 1, zone_abbr: "UTC"}
+  iex> Calendar.ISO.from_rata_die({730120, 0, 86400})
+  %DateTime{calendar: Calendar.ISO, day: 1, hour: 0, microsecond: {0, 6},
+  minute: 0, month: 1, second: 0, std_offset: 0, time_zone: "Etc/UTC",
+  utc_offset: 0, year: 2000, zone_abbr: "UTC"}
+  iex> Calendar.ISO.from_rata_die({730120, 43200, 86400})
+  %DateTime{calendar: Calendar.ISO, day: 1, hour: 12, microsecond: {0, 6},
+  minute: 0, month: 1, second: 0, std_offset: 0, time_zone: "Etc/UTC",
+  utc_offset: 0, year: 2000, zone_abbr: "UTC"}
+  """
+  # TODO: Conversion RataDie -> DateTime or NaiveDateTime?
   @spec from_rata_die(Calendar.rata_die) :: Calendar.DateTime
   def from_rata_die({days, parts_in_day, parts_of_day}) do
     {year, month, day} = from_rata_die_day(days)
@@ -66,6 +84,8 @@ defmodule Calendar.ISO do
     datetime
   end
 
+  # Converts a year, month, day in only a count of days since the Rata Die epoch.
+  @spec to_rata_die_day(integer, pos_integer, pos_integer) :: Calendar.rata_die
   defp to_rata_die_day(year, month, day) do
     (@gregorian_epoch - 1) +
 
@@ -89,31 +109,26 @@ defmodule Calendar.ISO do
     day
   end
 
-  def from_rata_die_day(days) do
+  # Calculates {year, month, day} from the count of days since the Rata Die epoch.
+  @spec from_rata_die_day(integer) :: {integer, pos_integer, pos_integer}
+  defp from_rata_die_day(days) do
     {year, days_in_year} = extract_year_from_rata_die(days)
     {month, day} = extract_month_from_rata_die(days_in_year, leap_year?(year))
-    # prior_days  = date - to_rata_die(year, 1, 1)
-    # correction  = date_adjust_for_leap_year(date, year)
-    # month       = floor_div((12 * (prior_days + correction)) + 373, 367)
-    # day         = 1 + date - to_rata_die(year, month, 1)
-
-    # {:ok, date} = date(year, month, day)
-    # date
     {year, month, day}
   end
 
-  # TODO: Fix microsecond handling.
+  # Calculates {hours, minutes, seconds, microseconds} from the fraction of time passed in the last Rata Die day.
+  @spec from_rata_die_time(non_neg_integer, pos_integer) :: {non_neg_integer, non_neg_integer, non_neg_integer, non_neg_integer}
   def from_rata_die_time(parts_in_day, parts_per_day) do
-    microseconds_per_second = 1_000_000
-    total_microseconds = div(parts_in_day * 86400 * microseconds_per_second, parts_per_day)
-    {hours, rest_microseconds1} = div_mod(total_microseconds, 3600 * microseconds_per_second)
-    {minutes, rest_microseconds2} = div_mod(rest_microseconds1, 60 * microseconds_per_second)
-    {seconds, microseconds} = div_mod(rest_microseconds2, microseconds_per_second)
+    total_microseconds = div(parts_in_day * @seconds_per_day * @microseconds_per_second, parts_per_day)
+    {hours, rest_microseconds1} = div_mod(total_microseconds, @seconds_per_hour * @microseconds_per_second)
+    {minutes, rest_microseconds2} = div_mod(rest_microseconds1, @seconds_per_minute * @microseconds_per_second)
+    {seconds, microseconds} = div_mod(rest_microseconds2, @microseconds_per_second)
     {hours, minutes, seconds, microseconds}
   end
 
-
-
+  # Adjust the amount of days when we are past February.
+  @spec rata_die_adjust_for_leap_year(integer, pos_integer, pos_integer) :: integer
   defp rata_die_adjust_for_leap_year(year, month, _day) do
     cond do
       month <= 2       ->  0
@@ -122,6 +137,9 @@ defmodule Calendar.ISO do
     end
   end
 
+  # Extracts the year and the remaining amount of days in the year
+  # from the count of days since the Rata Die epoch.
+  @spec extract_year_from_rata_die(integer) :: {integer, pos_integer}
   defp extract_year_from_rata_die(days) do
     d0   = days - @gregorian_epoch
     {n400, d1} = div_mod(d0, 146_097)
@@ -134,6 +152,9 @@ defmodule Calendar.ISO do
     if (n100 == 4) or (n1 == 4), do: {year, days}, else: {year + 1, days}
   end
 
+  # Extracts the month and the day in the month
+  # from the count of days since the beginning of a year, and if it is a leap year or not.
+  @spec extract_month_from_rata_die(pos_integer, boolean) :: {pos_integer, pos_integer}
   defp extract_month_from_rata_die(days_in_year, leap_year) do
     month_lengths = [
       31,
@@ -159,7 +180,6 @@ defmodule Calendar.ISO do
       end
     )
   end
-
 
   @doc """
   Returns how many days there are in the given year-month.

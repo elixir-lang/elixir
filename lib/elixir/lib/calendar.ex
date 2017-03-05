@@ -38,7 +38,7 @@ defmodule Calendar do
 
   Thus, a Rata Die like `{1234, 1, 2}` should be read as `1234½`.
   """
-  @type rata_die :: {days :: integer, parts_in_day :: integer, parts_per_day :: integer}
+  @type rata_die :: {days :: integer, parts_in_day :: non_neg_integer, parts_per_day :: pos_integer}
 
   @typedoc """
   Microseconds with stored precision.
