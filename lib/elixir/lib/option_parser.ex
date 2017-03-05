@@ -130,7 +130,7 @@ defmodule OptionParser do
   never used anywhere:
 
       OptionParser.parse(["--option-parser-example"])
-      # Does nothing more...
+      # :option_parser_example atom is nowhere used bellow
 
   However, the code below does since the `:option_parser_example` atom is used
   at some point later (or earlier) on:
