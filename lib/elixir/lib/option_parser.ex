@@ -125,12 +125,12 @@ defmodule OptionParser do
   set to `true`.
 
   Since Elixir converts switches to atoms, the dynamic mode will only parse
-  switches that translates to atoms used by the runtime. Therefore, the code below
+  switches that translate to atoms used by the runtime. Therefore, the code below
   likely won't parse the given option since the `:option_parser_example` atom is
   never used anywhere:
 
       OptionParser.parse(["--option-parser-example"])
-      # :option_parser_example atom is nowhere used bellow
+      # The :option_parser_example atom is not used anywhere below
 
   However, the code below does since the `:option_parser_example` atom is used
   at some point later (or earlier) on:
