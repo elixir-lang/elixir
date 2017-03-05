@@ -1367,11 +1367,24 @@ defmodule NaiveDateTime do
   """
   @spec compare(Calendar.naive_datetime, Calendar.naive_datetime) :: :lt | :eq | :gt
   def compare(naive_datetime1, naive_datetime2) do
-    case {to_tuple(naive_datetime1), to_tuple(naive_datetime2)} do
-      {first, second} when first > second -> :gt
-      {first, second} when first < second -> :lt
-      _ -> :eq
-    end
+    # case {to_tuple(naive_datetime1), to_tuple(naive_datetime2)} do
+    #   {first, second} when first > second -> :gt
+    #   {first, second} when first < second -> :lt
+    #   _ -> :eq
+    # end
+
+    # Discard possibly existing timezone data.
+    {y1, m1, d1, h1, min1, s1, micros1} = to_tuple(naive_datetime1)
+    {y2, m2, d2, h2, min2, s2, micros2} = to_tuple(naive_datetime2)
+    {:ok, ndt1} = new(y1, m1, d1, h1, min1, s1, micros1)
+    {:ok, ndt2} = new(y2, m2, d2, h2, min2, s2, micros2)
+
+    # Convert to DateTimes in same timezone.
+    dt1 = DateTime.from_naive!(ndt1, "Etc/UTC")
+    dt2 = DateTime.from_naive!(ndt2, "Etc/UTC")
+
+    # Compare these.
+    DateTime.compare(dt1, dt2)
   end
 
   ## Helpers
