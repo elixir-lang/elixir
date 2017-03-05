@@ -25,6 +25,21 @@ defmodule Calendar do
   @typedoc "From 0 to 60 to account for leap seconds"
   @type second :: 0..60
 
+
+  @typedoc """
+  The internal date format that is used when converting between calendars.
+  This is the amount of days including the fractional part that has passed of the last day,
+  since midnight 1 January AD 1 of the Proleptic Gregorian Calendar.
+  (In ISO8601 notation: 0000-01-01+00:00T00:00.00000).
+
+  The `parts_per_day` represent how many subparts the current day is subdivided in.
+  (For different calendars, picking a different `parts_per_day` might make sense).
+  The `parts_in_day` represents how many of these `parts_per_day` have passed in the last day.
+
+  Thus, a Rata Die like `{1234, 1, 2}` should be read as `1234½`.
+  """
+  @type rata_die :: {days :: integer, parts_in_day :: integer, parts_per_day :: integer}
+
   @typedoc """
   Microseconds with stored precision.
 
@@ -99,6 +114,18 @@ defmodule Calendar do
   """
   @callback datetime_to_string(year, month, day, hour, minute, second, microsecond,
                                time_zone, zone_abbr, utc_offset, std_offset) :: String.t
+
+  @doc """
+  Converts the given datetime (with time zone)
+  into the internal Calendar.rata_die format.
+  """
+  @callback to_rata_die(date_time) :: rata_die
+
+  @doc """
+  Converts a datetime in the internal Calendar.rata_die format
+  to the Calendar's datetime (with time zone) format.
+  """
+  @callback from_rata_die(rata_die) :: date_time
 end
 
 defmodule Date do

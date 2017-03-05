@@ -20,6 +20,52 @@ defmodule Calendar.ISO do
   @type month :: 1..12
   @type day   :: 1..31
 
+  @gregorian_epoch 1
+
+  @doc """
+  Returns the ordinal Rata Die of the specified date.
+
+  To enable conversion between dates in different calendars a standard
+  date is defined that normalizes the differences.
+
+  ## Examples
+
+      iex> Calendar.ISO.to_rata_die(~N[0001-01-01T00:00:00] |> DateTime.from_naive("Etc/UTC"))
+      {1, 0, 68400}
+      iex> Calendar.ISO.to_rata_die(~N[2000-01-01T12:00:00] |> DateTime.from_naive("Etc/UTC"))
+      730120
+      iex> Calendar.ISO.to_integer_date(~N[2016-09-18T13:00:14] |> DateTime.from_naive("Etc/UTC"))
+      736225
+  """
+  @spec to_rata_die(Calendar.DateTime) :: Calendar.rata_die
+  def to_rata_die(%{calendar: _calendar, year: year, month: month, day: day, hour: hour, minute: minute, second: second, microsecond: {microsecond, microsecond_multiplier}}) do
+    # Baseline to epoch.  This will be zero for a Gregorian calendar
+    days =
+      (@gregorian_epoch - 1) +
+
+      # Normal year arithmetic with 365 days in a year
+      (365 * (year - 1)) +
+
+      # Adjust for leap years.
+      floor_div(year - 1, 4) - floor_div(year - 1, 100) + floor_div(year - 1, 400) +
+
+      # At this point we have the number of days from the start of the epoch
+      # for the given number of years.  Now calculate add the days held by the
+      # month
+      floor_div((367 * month) - 362, 12) +
+
+      # And ajust by zero, minus one or -minus two days depending on whether
+      # leap_year? and if month is January or later (since February is either 28
+      # or 29 days)
+      integer_date_adjust_for_leap_year(year, month, day) +
+
+      # And then the day of the month is added
+      day
+    parts_in_day = (hour * 86400 + minute * 60 + second) * microsecond_multiplier + microsecond
+    parts_of_day = microsecond_multiplier * 86400
+  end
+
+
   @doc """
   Returns how many days there are in the given year-month.
 
