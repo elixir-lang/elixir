@@ -471,7 +471,7 @@ defmodule Registry do
       [{self(), {1, :atom, 1}}, {self(), {2, :atom, 2}}]
       iex> Registry.match(Registry.MatchTest, "hello", {:"$1", :_, :"$1"}) |> Enum.sort()
       [{self(), {1, :atom, 1}}, {self(), {2, :atom, 2}}]
-      iex> Registry.match(Registry.MatchTest, "hello", {:_, :_, :"$1"}, [{:>, :"$1", 1}]) |> Enum.sort()
+      iex> Registry.match(Registry.MatchTest, "hello", {:_, :_, :"$1"}, [{:>, :"$1", 1}])
       [{self(), {2, :atom, 2}}]
       iex> Registry.match(Registry.MatchTest, "hello", {:_, :"$1", :_}, [{:is_atom, :"$1"}]) |> Enum.sort()
       [{self(), {1, :atom, 1}}, {self(), {2, :atom, 2}}]
