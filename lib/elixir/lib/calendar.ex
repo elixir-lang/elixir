@@ -119,13 +119,13 @@ defmodule Calendar do
   Converts the given datetime (with time zone)
   into the internal Calendar.rata_die format.
   """
-  @callback to_rata_die(date_time) :: rata_die
+  @callback to_rata_die(datetime) :: rata_die
 
   @doc """
   Converts a datetime in the internal Calendar.rata_die format
   to the Calendar's datetime (with time zone) format.
   """
-  @callback from_rata_die(rata_die) :: date_time
+  @callback from_rata_die(rata_die) :: datetime
 end
 
 defmodule Date do
