@@ -317,8 +317,6 @@ defmodule Task.Supervised do
     end
   end
 
-  defp stream_mfa({mod, fun, args}, arg), do: {mod, fun, [arg | args]}
-  defp stream_mfa(fun, arg), do: {:erlang, :apply, [fun, [arg]]}
 
   # This function spawns a task for the given "value", and puts the pid of this
   # new task in the map of "waiting" tasks, which is returned.
@@ -355,7 +353,7 @@ defmodule Task.Supervised do
       # The parent process is telling us to spawn a new task to process
       # "value". We spawn it and notify the parent about its pid.
       {:spawn, counter, value} ->
-        {type, pid} = spawn.(parent_pid, stream_mfa(mfa, value))
+        {type, pid} = spawn.(parent_pid, normalize_mfa_with_arg(mfa, value))
         ref = Process.monitor(pid)
         send(parent_pid, {:spawned, {monitor_ref, counter}, pid})
         counters = Map.put(counters, ref, {counter, type, pid})
@@ -393,4 +391,7 @@ defmodule Task.Supervised do
         stream_monitor_loop(parent_pid, parent_ref, mfa, spawn, monitor_ref, counters)
     end
   end
+
+  defp normalize_mfa_with_arg({mod, fun, args}, arg), do: {mod, fun, [arg | args]}
+  defp normalize_mfa_with_arg(fun, arg), do: {:erlang, :apply, [fun, [arg]]}
 end
