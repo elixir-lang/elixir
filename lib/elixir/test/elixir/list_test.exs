@@ -183,7 +183,7 @@ defmodule ListTest do
       assert List.starts_with?([1, 2, 3], [])
     end
 
-    test "only accept lists" do
+    test "only accepts lists" do
       assert_raise FunctionClauseError, "no function clause matching in List.starts_with?/2", fn ->
         List.starts_with?([1 | 2], [1 | 2])
       end

@@ -16,7 +16,7 @@ defmodule Mix.Tasks.CmdTest do
     end
   end
 
-  test "only run the cmd for specified apps" do
+  test "only runs the cmd for specified apps" do
     in_fixture "umbrella_dep/deps/umbrella", fn ->
       Mix.Project.in_project(:umbrella, ".", fn _ ->
         Mix.Task.run "cmd", ["--app", "bar", "echo", "hello"]
