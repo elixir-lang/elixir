@@ -37,12 +37,12 @@ defmodule Calendar.ISO do
 
   ## Examples
 
-      iex> Calendar.ISO.to_rata_die(~N[0001-01-01T00:00:00] |> DateTime.from_naive!("Etc/UTC"))
-      {1, {0, 86400_000_000}}
-      iex> Calendar.ISO.to_rata_die(~N[2000-01-01T12:00:00] |> DateTime.from_naive!("Etc/UTC"))
-      {730120, {43200_000_000, 86400_000_000}}
-      iex> Calendar.ISO.to_rata_die(~N[2016-09-18T13:00:14] |> DateTime.from_naive!("Etc/UTC"))
-      {730120, {43200_000_000, 86400_000_000}}
+      iex> Calendar.ISO.datetime_to_rata_die(~N[0001-01-01T00:00:00] |> DateTime.from_naive!("Etc/UTC"))
+      {1, {0, 86400000000}}
+      iex> Calendar.ISO.datetime_to_rata_die(~N[2000-01-01T12:00:00] |> DateTime.from_naive!("Etc/UTC"))
+      {730120, {43200000000, 86400000000}}
+      iex> Calendar.ISO.datetime_to_rata_die(~N[2016-09-18T13:00:14] |> DateTime.from_naive!("Etc/UTC"))
+      {736225, {46814000000, 86400000000}}
   """
   # TODO: Conversion Datetime or NaiveDateTime -> RataDie?
   @spec datetime_to_rata_die(Calendar.DateTime) :: Calendar.rata_die
@@ -61,15 +61,15 @@ defmodule Calendar.ISO do
 
   ## Examples
 
-  iex> Calendar.ISO.from_rata_die({1, 0, 86400})
+  iex> Calendar.ISO.datetime_from_rata_die({1, {0, 86400}})
   %DateTime{calendar: Calendar.ISO, day: 1, hour: 0, microsecond: {0, 6},
   minute: 0, month: 1, second: 0, std_offset: 0, time_zone: "Etc/UTC",
   utc_offset: 0, year: 1, zone_abbr: "UTC"}
-  iex> Calendar.ISO.from_rata_die({730120, 0, 86400})
+  iex> Calendar.ISO.datetime_from_rata_die({730120, {0, 86400}})
   %DateTime{calendar: Calendar.ISO, day: 1, hour: 0, microsecond: {0, 6},
   minute: 0, month: 1, second: 0, std_offset: 0, time_zone: "Etc/UTC",
   utc_offset: 0, year: 2000, zone_abbr: "UTC"}
-  iex> Calendar.ISO.from_rata_die({730120, 43200, 86400})
+  iex> Calendar.ISO.datetime_from_rata_die({730120, {43200, 86400}})
   %DateTime{calendar: Calendar.ISO, day: 1, hour: 12, microsecond: {0, 6},
   minute: 0, month: 1, second: 0, std_offset: 0, time_zone: "Etc/UTC",
   utc_offset: 0, year: 2000, zone_abbr: "UTC"}
@@ -89,12 +89,12 @@ defmodule Calendar.ISO do
   ## Examples
 
   iex> Calendar.ISO.time_to_day_fraction(~T[00:00:00])
-  {0, 86400_000_000}
+  {0, 86400000000}
   iex> Calendar.ISO.time_to_day_fraction(~T[12:34:56.123])
-  1
+  {45296123000, 86400000000}
   """
   @spec time_to_day_fraction(Calendar.Time) :: Calendar.day_fraction
-  def time_to_day_fraction(%{calendar: hour: hour, minute: minute, second: second, microsecond: {microsecond, _}}) do
+  def time_to_day_fraction(%{hour: hour, minute: minute, second: second, microsecond: {microsecond, _}}) do
     combine_time_to_day_fraction(hour, minute, second, microsecond)
   end
 
@@ -102,18 +102,19 @@ defmodule Calendar.ISO do
   Converts a Day Fraction to this Calendar's representation of time.
 
   ## Examples
-  iex> Calendar.time_from_day_fraction({1,2})
+  iex> Calendar.ISO.time_from_day_fraction({1,2})
   ~T[12:00:00]
   """
   @spec time_from_day_fraction(Calendar.day_fraction) :: Calendar.Time
   def time_from_day_fraction({parts_in_day, parts_per_day}) do
     {hour, minute, second, microsecond} = extract_from_day_fraction(parts_in_day, parts_per_day)
-    Time.new(hour, minute, second, microsecond)
+    {:ok, time} = Time.new(hour, minute, second, microsecond)
+    time
   end
 
   defp combine_time_to_day_fraction(hour, minute, second, microsecond) do
     combined_seconds = hour * @seconds_per_hour + minute * @seconds_per_minute + second
-    {parts_in_day, parts_of_day} = {combined_seconds * @microseconds_per_second + microsecond, @seconds_per_day * @microseconds_per_second}
+    {combined_seconds * @microseconds_per_second + microsecond, @seconds_per_day * @microseconds_per_second}
   end
 
   # Converts a year, month, day in only a count of days since the Rata Die epoch.
@@ -203,7 +204,7 @@ defmodule Calendar.ISO do
       31
     ]
 
-    {month, day} = Enum.reduce_while(month_lengths, {1, days_in_year},
+    Enum.reduce_while(month_lengths, {1, days_in_year},
       fn
         month_days, {month_count, rest_days} when rest_days <= month_days ->
           {:halt, {month_count, rest_days}}
