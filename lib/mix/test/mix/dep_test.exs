@@ -356,7 +356,7 @@ defmodule Mix.DepTest do
 
   ## Only handling
 
-  test "only extract deps matching environment" do
+  test "only extracts deps matching environment" do
     with_deps [{:foo, github: "elixir-lang/foo"},
                {:bar, github: "elixir-lang/bar", only: :other_env}], fn ->
       in_fixture "deps_status", fn ->
@@ -372,7 +372,7 @@ defmodule Mix.DepTest do
     end
   end
 
-  test "only fetch parent deps matching specified env" do
+  test "only fetches parent deps matching specified env" do
     with_deps [{:only, github: "elixir-lang/only", only: [:dev]}], fn ->
       in_fixture "deps_status", fn ->
         Mix.Tasks.Deps.Get.run(["--only", "prod"])
