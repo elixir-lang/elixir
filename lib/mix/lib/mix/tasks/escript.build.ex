@@ -113,10 +113,10 @@ defmodule Mix.Tasks.Escript.Build do
     project  = Mix.Project.config
     language = Keyword.get(project, :language, :elixir)
 
-    escriptize(project, language, opts[:force])
+    escriptize(project, language, Keyword.get(opts, :force, false))
   end
 
-  defp escriptize(project, language, force) do
+  defp escriptize(project, language, force?) do
     escript_opts = project[:escript] || []
 
     if Mix.Project.umbrella?() do
@@ -141,7 +141,7 @@ defmodule Mix.Tasks.Escript.Build do
         Mix.raise "Could not generate escript, module #{main} defined as " <>
           ":main_module could not be loaded"
 
-      force || Mix.Utils.stale?(files, [filename]) ->
+      force? or Mix.Utils.stale?(files, [filename]) ->
         app = Keyword.get(escript_opts, :app, project[:app])
         strip_beam? = Keyword.get(escript_opts, :strip_beam, true)
         escript_mod = String.to_atom(Atom.to_string(app) <> "_escript")
