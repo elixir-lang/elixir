@@ -51,6 +51,15 @@ defmodule Mix.Tasks.Run do
                halt: :boolean, compile: :boolean, deps_check: :boolean, start: :boolean,
                archives_check: :boolean, elixir_version_check: :boolean, parallel_require: :keep])
 
+    run(args, opts, head, &Code.eval_string/1, &Code.require_file/1)
+    unless Keyword.get(opts, :halt, true), do: Process.sleep(:infinity)
+    :ok
+  end
+
+  @doc false
+  @spec run(OptionParser.argv, Keyword.t, OptionParser.argv,
+            (String.t -> term()), (String.t -> term())) :: :ok
+  def run(args, opts, head, expr_evaluator, file_evaluator) do
     # TODO: Remove on v2.0
     opts =
       Enum.flat_map(opts, fn
@@ -70,22 +79,24 @@ defmodule Mix.Tasks.Run do
       end
 
     System.argv(argv)
-    process_config opts
+    process_config(opts)
 
     # Start app after rewriting System.argv,
-    # but before requiring and evaling
-    Mix.Task.run "app.start", args
-    process_load opts
+    # but before requiring and evaling.
+    if opts[:start] != false do
+      Mix.Task.run "app.start", args
+    end
 
-    _ = if file do
+    process_load(opts, expr_evaluator)
+
+    if file do
       if File.regular?(file) do
-        Code.require_file(file)
+        file_evaluator.(file)
       else
         Mix.raise "No such file: #{file}"
       end
     end
 
-    unless Keyword.get(opts, :halt, true), do: Process.sleep(:infinity)
     :ok
   end
 
@@ -98,7 +109,7 @@ defmodule Mix.Tasks.Run do
     end
   end
 
-  defp process_load(opts) do
+  defp process_load(opts, expr_evaluator) do
     require_runner =
       if opts[:parallel] do
         &Kernel.ParallelRequire.files/1
@@ -115,7 +126,7 @@ defmodule Mix.Tasks.Run do
             require_runner.(filtered)
         end
       {:eval, value} ->
-        Code.eval_string(value)
+        expr_evaluator.(value)
       _ ->
         :ok
     end

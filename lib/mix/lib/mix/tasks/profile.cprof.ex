@@ -115,84 +115,9 @@ defmodule Mix.Tasks.Profile.Cprof do
     {opts, head} = OptionParser.parse_head!(args,
       aliases: [r: :require, p: :parallel, e: :eval, c: :config],
       strict: @switches)
-
-    opts =
-      Enum.flat_map(opts, fn
-        {:parallel_require, value} ->
-          IO.warn "the --parallel-require option is deprecated in favour of using " <>
-            "--parallel to make all requires parallel and --require VAL for requiring"
-          [require: value, parallel: true]
-        opt ->
-          [opt]
-      end)
-
-    {file, argv} =
-      case {Keyword.has_key?(opts, :eval), head} do
-        {true, _}    -> {nil, head}
-        {_, [h | t]} -> {h, t}
-        {_, []}      -> {nil, []}
-      end
-
-    System.argv(argv)
-    process_config opts
-
-    # Start app after rewriting System.argv,
-    # but before requiring and evaling
-    unless "--no-start" in args do
-      Mix.Task.run "app.start", args
-    end
-    process_load opts
-
-    _ = if file do
-      if File.regular?(file) do
-        profile_code(File.read!(file), opts)
-      else
-        Mix.raise "No such file: #{file}"
-      end
-    end
-
-    :ok
+    Mix.Tasks.Run.run(args, opts, head, &profile_code(&1, opts),
+                      &profile_code(File.read!(&1), opts))
   end
-
-  defp process_config(opts) do
-    Enum.each opts, fn
-      {:config, value} ->
-        Mix.Task.run "loadconfig", [value]
-      _ ->
-        :ok
-    end
-  end
-
-  defp process_load(opts) do
-    require_runner =
-      if opts[:parallel] do
-        &Kernel.ParallelRequire.files/1
-      else
-        fn(files) -> Enum.each(files, &Code.require_file/1) end
-      end
-
-    Enum.each opts, fn
-      {:require, value} ->
-        case filter_patterns(value) do
-          [] ->
-            Mix.raise "No files matched pattern #{inspect value} given to --require"
-          filtered ->
-            require_runner.(filtered)
-        end
-      {:eval, value} ->
-        profile_code(value, opts)
-      _ ->
-        :ok
-    end
-  end
-
-  defp filter_patterns(pattern) do
-    Path.wildcard(pattern)
-    |> Enum.uniq
-    |> Enum.filter(&File.regular?/1)
-  end
-
-  # Profiling functions
 
   defp profile_code(code_string, opts) do
     content = 
@@ -290,7 +215,7 @@ defmodule Mix.Tasks.Profile.Cprof do
     Enum.each(module_fun_list, &print_function(&1, "  "))
   end
 
-  defp print_module(module, count, prefix \\ "", suffix \\ "") do
+  defp print_module(module, count, prefix, suffix) do
     print_row(
       ["s", "B", "s"],
       ["#{prefix}#{module}", count, suffix]
@@ -302,7 +227,7 @@ defmodule Mix.Tasks.Profile.Cprof do
   defp do_module_name_for_printing("Elixir." <> rem = _module_name), do: rem
   defp do_module_name_for_printing(module_name), do: ":" <> module_name
 
-  defp print_function({fun, count}, prefix \\ "", suffix \\ "") do
+  defp print_function({fun, count}, prefix, suffix \\ "") do
     print_row(
       ["s", "B", "s"],
       ["#{prefix}#{function_text(fun)}", count, suffix]
