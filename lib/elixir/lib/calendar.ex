@@ -1902,11 +1902,6 @@ defmodule DateTime do
   """
   @spec compare(DateTime.t, DateTime.t) :: :lt | :eq | :gt
   def compare(%DateTime{calendar: calendar1} = datetime1, %DateTime{calendar: calendar2} = datetime2) do
-    # case {to_unix(datetime1, :microsecond), to_unix(datetime2, :microsecond)} do
-    #   {first, second} when first > second -> :gt
-    #   {first, second} when first < second -> :lt
-    #   _ -> :eq
-    # end
     {days1, {parts1, ppd1}} = calendar1.datetime_to_rata_die(datetime1)
     {days2, {parts2, ppd2}} = calendar2.datetime_to_rata_die(datetime2)
 
@@ -1935,7 +1930,7 @@ defmodule DateTime do
   ...>                 hour: 23, minute: 0, second: 7, microsecond: {0, 0},
   ...>                 utc_offset: 3600, std_offset: 0, time_zone: "Europe/Warsaw"}
   iex> DateTime.diff(dt1, dt2)
-  :lt
+  {0, {5, 24}}
   """
   @spec diff(DateTime.t, DateTime.t) :: Calendar.rata_die
   def diff(%DateTime{calendar: calendar1} = datetime1, %DateTime{calendar: calendar2} = datetime2) do
@@ -1944,6 +1939,12 @@ defmodule DateTime do
     diff_days = days1 - days2
     diff_ppd = ppd1 * ppd2
     diff_parts = parts1 * ppd2 - parts2 * ppd1
+
+    # Keep integers in day fraction low.
+    gcd = Integer.gcd(diff_parts, diff_ppd)
+    diff_parts = div(diff_parts, gcd)
+    diff_ppd = div(diff_ppd, gcd)
+
     if diff_parts < 0 do
       {diff_days - 1, {diff_ppd + diff_parts, diff_ppd}}
     else
