@@ -8,7 +8,7 @@ defmodule Mix.Tasks.Profile.CprofTest do
   alias Mix.Tasks.Profile.Cprof
 
   @moduletag apps: [:sample]
-  @expr "Enum.each(1..5, fn x -> String.Chars.Integer.to_string(x) end)"
+  @expr "Enum.each(1..5, &String.Chars.Integer.to_string/1)"
 
   setup do
     Mix.Project.push MixTest.Case.Sample
@@ -50,7 +50,7 @@ defmodule Mix.Tasks.Profile.CprofTest do
     end
   end
 
-  test "applies func spec with {m, _, _}", context do
+  test "Module matching", context do
     in_tmp context.test, fn ->
       refute capture_io(fn ->
         Cprof.run(["--matching", "Enum", "-e", @expr])
@@ -58,7 +58,7 @@ defmodule Mix.Tasks.Profile.CprofTest do
     end
   end
 
-  test "applies func spec with {m, f, _}", context do
+  test "Module.function matching", context do
     in_tmp context.test, fn ->
       refute capture_io(fn ->
         Cprof.run(["--matching", "Enum.each", "-e", @expr])
@@ -66,7 +66,7 @@ defmodule Mix.Tasks.Profile.CprofTest do
     end
   end
 
-  test "applies func spec with {m, f, a}", context do
+  test "Module.function/arity matching", context do
     in_tmp context.test, fn ->
       assert capture_io(fn ->
         Cprof.run(["--matching", "Enum.each/8", "-e", @expr])
