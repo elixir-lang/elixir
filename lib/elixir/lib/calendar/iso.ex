@@ -11,6 +11,8 @@ defmodule Calendar.ISO do
 
   @behaviour Calendar
 
+  @gregorian_epoch 1
+
   @unix_epoch :calendar.datetime_to_gregorian_seconds {{1970, 1, 1}, {0, 0, 0}}
   @unix_start 1_000_000 * -@unix_epoch
   @unix_end 1_000_000 * (-@unix_epoch + :calendar.datetime_to_gregorian_seconds({{9999, 12, 31}, {23, 59, 59}}))
@@ -20,7 +22,9 @@ defmodule Calendar.ISO do
   @type month :: 1..12
   @type day   :: 1..31
 
-  @gregorian_epoch 1
+  @seconds_per_minute 60
+  @seconds_per_hour 60 * 60
+  @microseconds_per_second 1_000_000
 
   import Integer, only: [floor_div: 2, div_mod: 2]
 
@@ -42,20 +46,24 @@ defmodule Calendar.ISO do
   @spec to_rata_die(Calendar.DateTime) :: Calendar.rata_die
   def to_rata_die(%{calendar: _calendar, year: year, month: month, day: day, hour: hour, minute: minute, second: second, microsecond: {microsecond, microsecond_exponent}}) do
     # Baseline to epoch.  This will be zero for a Gregorian calendar
-    microsecond_multiplier = :math.pow(10, microsecond_exponent) |> round
+    microsecond_precision = :math.pow(10, microsecond_exponent) |> round
+    microseconds_per_second = 1_000_000
     days = to_rata_die_day(year, month, day)
     {parts_in_day, parts_of_day} =
       case microsecond_exponent do
         0 -> {hour * 3600 + minute * 60 + second, 86400} # Discard microseconds.
-        _ -> {(hour * 3600 + minute * 60 + second) * microsecond_multiplier + microsecond, 86400 * microsecond_multiplier}
+        _ -> {(hour * 3600 + minute * 60 + second) * microseconds_per_second + microsecond, 86400 * microseconds_per_second}
       end
     {days, parts_in_day, parts_of_day}
   end
 
   @spec from_rata_die(Calendar.rata_die) :: Calendar.DateTime
   def from_rata_die({days, parts_in_day, parts_of_day}) do
-    date = from_rata_die_day(days)
-    # seconds = parts_in_day * 86400
+    {year, month, day} = from_rata_die_day(days)
+    {hour, minute, second, microsecond} = from_rata_die_time(parts_in_day, parts_of_day)
+    {:ok, naive} = NaiveDateTime.new(year, month, day, hour, minute, second, {microsecond, 6})
+    {:ok, datetime} = DateTime.from_naive(naive, "Etc/UTC")
+    datetime
   end
 
   defp to_rata_die_day(year, month, day) do
@@ -89,8 +97,19 @@ defmodule Calendar.ISO do
     # month       = floor_div((12 * (prior_days + correction)) + 373, 367)
     # day         = 1 + date - to_rata_die(year, month, 1)
 
-    {:ok, date} = date(year, month, day)
-    date
+    # {:ok, date} = date(year, month, day)
+    # date
+    {year, month, day}
+  end
+
+  # TODO: Fix microsecond handling.
+  def from_rata_die_time(parts_in_day, parts_per_day) do
+    microseconds_per_second = 1_000_000
+    total_microseconds = div(parts_in_day * 86400 * microseconds_per_second, parts_per_day)
+    {hours, rest_microseconds1} = div_mod(total_microseconds, 3600 * microseconds_per_second)
+    {minutes, rest_microseconds2} = div_mod(rest_microseconds1, 60 * microseconds_per_second)
+    {seconds, microseconds} = div_mod(rest_microseconds2, microseconds_per_second)
+    {hours, minutes, seconds, microseconds}
   end
 
 
