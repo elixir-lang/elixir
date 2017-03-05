@@ -74,17 +74,16 @@ defmodule Mix.Tasks.Profile.Cprof do
   was given, therefore only one function was matched. The MFA must be a tuple
   with `module`, `function` and `arity` (by this order). However, notice that `function` and 
   `arity` may be arbitrary by passing the `:_` atom. Erlang modules have to be passed as 
-  atoms, similarly to calling Erlang modules in code (e.g., `:ets`, `:inet`, `:math`). Elixir
-  modules can be passed with their expanded name (e.g., `:'Elixir.Enum'`) or their shortened
-  name (e.g., `Enum`, `Elixir.Enum`). Some examples are granted below:
-
-      ```
+  atoms, similarly to calling Erlang modules in code (for example, `:ets`, `:inet` or `:math`). 
+  Elixir modules can be given directly, such as `Enum`, `Elixir.Enum`, etc. Some examples are
+  shown below:
+      
       --from-mfa "{:erlang, :_, :_}" # Matching functions will be all functions in :erlang module
 
       --from-mfa "{:erlang, :system_monitor, :_}" # Matching function will be all function heads of :erlang.system_monitor/0..2
 
       --from-mfa "{Enum, :reverse, 1}" # The only matching function will be Enum.reverse/1
-      ```
+      
 
   Another possible value for the `--from-mfa` option is `"on_load" to match all modules and 
   functions which are newly loaded. 
@@ -103,7 +102,7 @@ defmodule Mix.Tasks.Profile.Cprof do
   Other caveats are the impossibility to call count trace BIFs, since breakpoints can 
   only be set on BEAM code; functions calls performed by `:cprof` are not traced; the 
   maximum size of a call counter is equal to the host machine's word size 
-  (e.g, 2147483647 in a 32-bit host).
+  (for example, 2147483647 in a 32-bit host).
   """
 
   @switches [parallel: :boolean, require: :keep, eval: :keep, config: :keep, from_mfa: :string,
