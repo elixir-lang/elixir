@@ -826,6 +826,8 @@ throw_no_parens_many_strict(Node) ->
     "to the function \"one\" or \"two\". You can solve this by explicitly adding "
     "parentheses:\n\n"
     "    one a, two(b, c, d)\n\n"
+    "Or by adding commas:\n\n"
+    "    one, a, two, b, c, d\n\n"
     "Elixir cannot compile otherwise. Syntax error before: ", "','").
 
 throw_no_parens_container_strict(Node) ->
