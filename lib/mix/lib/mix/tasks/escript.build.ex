@@ -123,14 +123,10 @@ defmodule Mix.Tasks.Escript.Build do
       Mix.raise "Building escripts for umbrella projects is unsupported"
     end
 
-    script_name  = Mix.Local.name_for(:escript, project)
-    filename     = escript_opts[:path] || script_name
-    main         = escript_opts[:main_module]
-    app          = Keyword.get(escript_opts, :app, project[:app])
-    strip_beam?  = Keyword.get(escript_opts, :strip_beam, true)
-    files        = project_files()
-
-    escript_mod = String.to_atom(Atom.to_string(app) <> "_escript")
+    script_name = Mix.Local.name_for(:escript, project)
+    filename = escript_opts[:path] || script_name
+    main = escript_opts[:main_module]
+    files = project_files()
 
     cond do
       !script_name ->
@@ -146,6 +142,10 @@ defmodule Mix.Tasks.Escript.Build do
           ":main_module could not be loaded"
 
       force || Mix.Utils.stale?(files, [filename]) ->
+        app = Keyword.get(escript_opts, :app, project[:app])
+        strip_beam? = Keyword.get(escript_opts, :strip_beam, true)
+        escript_mod = String.to_atom(Atom.to_string(app) <> "_escript")
+
         beam_paths =
           [files, deps_files(), core_files(escript_opts, language)]
           |> Stream.concat
@@ -156,10 +156,10 @@ defmodule Mix.Tasks.Escript.Build do
                  read_beams(beam_paths)
         tuples = if strip_beam?, do: strip_beams(tuples), else: tuples
 
-        case :zip.create 'mem', tuples, [:memory] do
+        case :zip.create('mem', tuples, [:memory]) do
           {:ok, {'mem', zip}} ->
-            shebang  = escript_opts[:shebang] || "#! /usr/bin/env escript\n"
-            comment  = build_comment(escript_opts[:comment])
+            shebang = escript_opts[:shebang] || "#! /usr/bin/env escript\n"
+            comment = build_comment(escript_opts[:comment])
             emu_args = build_emu_args(escript_opts[:emu_args], escript_mod)
 
             script = IO.iodata_to_binary([shebang, comment, emu_args, zip])
