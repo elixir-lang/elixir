@@ -56,6 +56,11 @@ expr_type(_) -> default.
 %% Expands the expression of a bitstring, that is, the LHS of :: or
 %% an argument of the bitstring (such as "foo" in "<<foo>>").
 
+expand_expr(Meta, {{'.', M1, ['Elixir.Kernel', to_string]}, M2, [Arg]}, Fun, E) ->
+  case expand_expr(Meta, Arg, Fun, E) of
+    {Bin, _} = Pair when is_binary(Bin) -> Pair;
+    {EArg, EE} -> {{{'.', M1, ['Elixir.Kernel', to_string]}, M2, [EArg]}, EE}
+  end;
 expand_expr(Meta, Component, Fun, E) ->
   case Fun(Component, E) of
     {EComponent, _} when is_list(EComponent); is_atom(EComponent) ->
