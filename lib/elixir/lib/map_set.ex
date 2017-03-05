@@ -350,25 +350,6 @@ defmodule MapSet do
   defp order_by_size(map1, map2) when map_size(map1) > map_size(map2), do: {map2, map1}
   defp order_by_size(map1, map2), do: {map1, map2}
 
-  @doc """
-  Returns `true` if `term` is a map set; otherwise returns `false`.
-
-  ## Examples
-
-      iex> MapSet.map_set?(MapSet.new([]))
-      true
-      iex> MapSet.map_set?(MapSet.new([:a, :b]))
-      true
-      iex> MapSet.map_set?([])
-      false
-      iex> MapSet.map_set?(%{})
-      false
-
-  """
-  @spec map_set?(term) :: boolean
-  def map_set?(%MapSet{}), do: true
-  def map_set?(_other), do: false
-
   defimpl Enumerable do
     def reduce(map_set, acc, fun), do: Enumerable.List.reduce(MapSet.to_list(map_set), acc, fun)
     def member?(map_set, val), do: {:ok, MapSet.member?(map_set, val)}
