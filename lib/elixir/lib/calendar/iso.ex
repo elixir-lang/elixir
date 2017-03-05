@@ -38,19 +38,19 @@ defmodule Calendar.ISO do
   ## Examples
 
       iex> Calendar.ISO.to_rata_die(~N[0001-01-01T00:00:00] |> DateTime.from_naive!("Etc/UTC"))
-      {1, 0, 86400000000}
+      {1, {0, 86400_000_000}}
       iex> Calendar.ISO.to_rata_die(~N[2000-01-01T12:00:00] |> DateTime.from_naive!("Etc/UTC"))
-      {730120, 43200000000, 86400000000}
+      {730120, {43200_000_000, 86400_000_000}}
       iex> Calendar.ISO.to_rata_die(~N[2016-09-18T13:00:14] |> DateTime.from_naive!("Etc/UTC"))
-      {730120, 43200000000, 86400000000}
+      {730120, {43200_000_000, 86400_000_000}}
   """
-  @spec to_rata_die(Calendar.DateTime) :: Calendar.rata_die
-  def to_rata_die(%{calendar: _calendar, year: year, month: month, day: day, hour: hour, minute: minute, second: second, microsecond: {microsecond, _}}) do
+  # TODO: Conversion Datetime or NaiveDateTime -> RataDie?
+  @spec datetime_to_rata_die(Calendar.DateTime) :: Calendar.rata_die
+  def datetime_to_rata_die(%{calendar: _calendar, year: year, month: month, day: day, hour: hour, minute: minute, second: second, microsecond: {microsecond, _}}) do
     # Baseline to epoch.  This will be zero for a Gregorian calendar
     days = to_rata_die_day(year, month, day)
-    combined_seconds = hour * @seconds_per_hour + minute * @seconds_per_minute + second
-    {parts_in_day, parts_of_day} = {combined_seconds * @microseconds_per_second + microsecond, @seconds_per_day * @microseconds_per_second}
-    {days, parts_in_day, parts_of_day}
+    day_fraction = combine_time_to_day_fraction(hour, minute, second, microsecond)
+    {days, day_fraction}
   end
 
   @doc """
@@ -75,13 +75,45 @@ defmodule Calendar.ISO do
   utc_offset: 0, year: 2000, zone_abbr: "UTC"}
   """
   # TODO: Conversion RataDie -> DateTime or NaiveDateTime?
-  @spec from_rata_die(Calendar.rata_die) :: Calendar.DateTime
-  def from_rata_die({days, parts_in_day, parts_of_day}) do
+  @spec datetime_from_rata_die(Calendar.rata_die) :: Calendar.DateTime
+  def datetime_from_rata_die({days, {parts_in_day, parts_of_day}}) do
     {year, month, day} = from_rata_die_day(days)
-    {hour, minute, second, microsecond} = from_rata_die_time(parts_in_day, parts_of_day)
+    {hour, minute, second, microsecond} = extract_from_day_fraction(parts_in_day, parts_of_day)
     {:ok, naive} = NaiveDateTime.new(year, month, day, hour, minute, second, {microsecond, 6})
     {:ok, datetime} = DateTime.from_naive(naive, "Etc/UTC")
     datetime
+  end
+  @doc """
+  Returns the ordinal Day Fraction of the specified time.
+
+  ## Examples
+
+  iex> Calendar.ISO.time_to_day_fraction(~T[00:00:00])
+  {0, 86400_000_000}
+  iex> Calendar.ISO.time_to_day_fraction(~T[12:34:56.123])
+  1
+  """
+  @spec time_to_day_fraction(Calendar.Time) :: Calendar.day_fraction
+  def time_to_day_fraction(%{calendar: hour: hour, minute: minute, second: second, microsecond: {microsecond, _}}) do
+    combine_time_to_day_fraction(hour, minute, second, microsecond)
+  end
+
+  @doc """
+  Converts a Day Fraction to this Calendar's representation of time.
+
+  ## Examples
+  iex> Calendar.time_from_day_fraction({1,2})
+  ~T[12:00:00]
+  """
+  @spec time_from_day_fraction(Calendar.day_fraction) :: Calendar.Time
+  def time_from_day_fraction({parts_in_day, parts_per_day}) do
+    {hour, minute, second, microsecond} = extract_from_day_fraction(parts_in_day, parts_per_day)
+    Time.new(hour, minute, second, microsecond)
+  end
+
+  defp combine_time_to_day_fraction(hour, minute, second, microsecond) do
+    combined_seconds = hour * @seconds_per_hour + minute * @seconds_per_minute + second
+    {parts_in_day, parts_of_day} = {combined_seconds * @microseconds_per_second + microsecond, @seconds_per_day * @microseconds_per_second}
   end
 
   # Converts a year, month, day in only a count of days since the Rata Die epoch.
@@ -118,8 +150,8 @@ defmodule Calendar.ISO do
   end
 
   # Calculates {hours, minutes, seconds, microseconds} from the fraction of time passed in the last Rata Die day.
-  @spec from_rata_die_time(non_neg_integer, pos_integer) :: {non_neg_integer, non_neg_integer, non_neg_integer, non_neg_integer}
-  def from_rata_die_time(parts_in_day, parts_per_day) do
+  @spec extract_from_day_fraction(non_neg_integer, pos_integer) :: {non_neg_integer, non_neg_integer, non_neg_integer, non_neg_integer}
+  def extract_from_day_fraction(parts_in_day, parts_per_day) do
     total_microseconds = div(parts_in_day * @seconds_per_day * @microseconds_per_second, parts_per_day)
     {hours, rest_microseconds1} = div_mod(total_microseconds, @seconds_per_hour * @microseconds_per_second)
     {minutes, rest_microseconds2} = div_mod(rest_microseconds1, @seconds_per_minute * @microseconds_per_second)

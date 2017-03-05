@@ -25,6 +25,15 @@ defmodule Calendar do
   @typedoc "From 0 to 60 to account for leap seconds"
   @type second :: 0..60
 
+  @typedoc """
+  The internal time format is used when converting between calendars.
+
+  It represents time as a fraction of a day (starting from midnight).
+  `parts_in_day` specifies how much of the day is already passed,
+  while `parts_per_day` signifies how many parts there fit in a day.
+
+  """
+  @type day_fraction :: {parts_in_day :: non_neg_integer, parts_per_day :: pos_integer}
 
   @typedoc """
   The internal date format that is used when converting between calendars.
@@ -36,9 +45,9 @@ defmodule Calendar do
   (For different calendars, picking a different `parts_per_day` might make sense).
   The `parts_in_day` represents how many of these `parts_per_day` have passed in the last day.
 
-  Thus, a Rata Die like `{1234, 1, 2}` should be read as `1234½`.
+  Thus, a Rata Die like `{1234, {1, 2}}` should be read as `1234½`.
   """
-  @type rata_die :: {days :: integer, parts_in_day :: non_neg_integer, parts_per_day :: pos_integer}
+  @type rata_die :: {days :: integer, day_fraction}
 
   @typedoc """
   Microseconds with stored precision.
@@ -119,13 +128,16 @@ defmodule Calendar do
   Converts the given datetime (with time zone)
   into the internal Calendar.rata_die format.
   """
-  @callback to_rata_die(datetime) :: rata_die
+  @callback datetime_to_rata_die(datetime) :: rata_die
 
   @doc """
   Converts a datetime in the internal Calendar.rata_die format
   to the Calendar's datetime (with time zone) format.
   """
-  @callback from_rata_die(rata_die) :: datetime
+  @callback datetime_from_rata_die(rata_die) :: datetime
+
+  @callback time_to_day_fraction(time) :: day_fraction
+  @callback time_from_day_fraction(day_fraction) :: time
 end
 
 defmodule Date do
