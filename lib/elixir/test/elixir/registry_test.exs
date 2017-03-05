@@ -266,17 +266,17 @@ defmodule RegistryTest do
         value2 = {2, :atom, 2}
         {:ok, _} = Registry.register(registry, "hello", value2)
 
-        assert Registry.match(registry, "hello", {1, :_, :_}) |> Enum.sort() ==
+        assert Registry.match(registry, "hello", {1, :_, :_}) ==
                [{self(), value1}]
-        assert Registry.match(registry, "hello", {1.0, :_, :_}) |> Enum.sort() ==
+        assert Registry.match(registry, "hello", {1.0, :_, :_}) ==
                []
         assert Registry.match(registry, "hello", {:_, :atom, :_}) |> Enum.sort() ==
                [{self(), value1}, {self(), value2}]
         assert Registry.match(registry, "hello", {:"$1", :_, :"$1"}) |> Enum.sort() ==
                [{self(), value1}, {self(), value2}]
-        assert Registry.match(registry, "hello", {2, :_, :_}) |> Enum.sort() ==
+        assert Registry.match(registry, "hello", {2, :_, :_}) ==
                [{self(), value2}]
-        assert Registry.match(registry, "hello", {2.0, :_, :_}) |> Enum.sort() ==
+        assert Registry.match(registry, "hello", {2.0, :_, :_}) ==
                []
       end
 
@@ -286,9 +286,9 @@ defmodule RegistryTest do
         value2 = {2, :atom, 2}
         {:ok, _} = Registry.register(registry, "hello", value2)
 
-        assert Registry.match(registry, "hello", {:"$1", :_, :_}, [{:<, :"$1", 2}]) |> Enum.sort() ==
+        assert Registry.match(registry, "hello", {:"$1", :_, :_}, [{:<, :"$1", 2}]) ==
                [{self(), value1}]
-        assert Registry.match(registry, "hello", {:"$1", :_, :_}, [{:>, :"$1", 3}]) |> Enum.sort() ==
+        assert Registry.match(registry, "hello", {:"$1", :_, :_}, [{:>, :"$1", 3}]) ==
                []
         assert Registry.match(registry, "hello", {:"$1", :_, :_}, [{:<, :"$1", 3}]) |> Enum.sort() ==
                [{self(), value1}, {self(), value2}]
