@@ -22,7 +22,7 @@ defmodule Calendar.ISO do
 
   @gregorian_epoch 1
 
-  import Integer, only: [floor_div: 2]
+  import Integer, only: [floor_div: 2, div_mod: 2]
 
   @doc """
   Returns the ordinal Rata Die of the specified date.
@@ -32,20 +32,30 @@ defmodule Calendar.ISO do
 
   ## Examples
 
-      iex> Calendar.ISO.to_rata_die(~N[0001-01-01T00:00:00] |> DateTime.from_naive("Etc/UTC"))
-      {1, 0, 68400}
-      iex> Calendar.ISO.to_rata_die(~N[2000-01-01T12:00:00] |> DateTime.from_naive("Etc/UTC"))
-      730120
-      iex> Calendar.ISO.to_integer_date(~N[2016-09-18T13:00:14] |> DateTime.from_naive("Etc/UTC"))
-      736225
+      iex> Calendar.ISO.to_rata_die(~N[0001-01-01T00:00:00] |> DateTime.from_naive!("Etc/UTC"))
+      {1, 0, 86400}
+      iex> Calendar.ISO.to_rata_die(~N[2000-01-01T12:00:00] |> DateTime.from_naive!("Etc/UTC"))
+      {730120, 0, 86400}
+      iex> Calendar.ISO.to_rata_die(~N[2016-09-18T13:00:14] |> DateTime.from_naive!("Etc/UTC"))
+      {730120, 43200, 86400}
   """
   @spec to_rata_die(Calendar.DateTime) :: Calendar.rata_die
-  def to_rata_die(%{calendar: _calendar, year: year, month: month, day: day, hour: hour, minute: minute, second: second, microsecond: {microsecond, microsecond_multiplier}}) do
+  def to_rata_die(%{calendar: _calendar, year: year, month: month, day: day, hour: hour, minute: minute, second: second, microsecond: {microsecond, microsecond_exponent}}) do
     # Baseline to epoch.  This will be zero for a Gregorian calendar
+    microsecond_multiplier = :math.pow(10, microsecond_exponent) |> round
     days = to_rata_die_day(year, month, day)
-    parts_in_day = (hour * 86400 + minute * 60 + second) * microsecond_multiplier + microsecond
-    parts_of_day = microsecond_multiplier * 86400
+    {parts_in_day, parts_of_day} =
+      case microsecond_exponent do
+        0 -> {hour * 3600 + minute * 60 + second, 86400} # Discard microseconds.
+        _ -> {(hour * 3600 + minute * 60 + second) * microsecond_multiplier + microsecond, 86400 * microsecond_multiplier}
+      end
     {days, parts_in_day, parts_of_day}
+  end
+
+  @spec from_rata_die(Calendar.rata_die) :: Calendar.DateTime
+  def from_rata_die({days, parts_in_day, parts_of_day}) do
+    date = from_rata_die_day(days)
+    # seconds = parts_in_day * 86400
   end
 
   defp to_rata_die_day(year, month, day) do
@@ -71,6 +81,19 @@ defmodule Calendar.ISO do
     day
   end
 
+  def from_rata_die_day(days) do
+    {year, days_in_year} = extract_year_from_rata_die(days)
+    {month, day} = extract_month_from_rata_die(days_in_year, leap_year?(year))
+    # prior_days  = date - to_rata_die(year, 1, 1)
+    # correction  = date_adjust_for_leap_year(date, year)
+    # month       = floor_div((12 * (prior_days + correction)) + 373, 367)
+    # day         = 1 + date - to_rata_die(year, month, 1)
+
+    {:ok, date} = date(year, month, day)
+    date
+  end
+
+
 
   defp rata_die_adjust_for_leap_year(year, month, _day) do
     cond do
@@ -78,6 +101,44 @@ defmodule Calendar.ISO do
       leap_year?(year) -> -1
       true             -> -2
     end
+  end
+
+  defp extract_year_from_rata_die(days) do
+    d0   = days - @gregorian_epoch
+    {n400, d1} = div_mod(d0, 146_097)
+    {n100, d2} = div_mod(d1, 36_524)
+    {n4, d3}   = div_mod(d2, 1_461)
+    {n1, d4}   = div_mod(d3, 365)
+    days = d4 + 1
+
+    year = (400 * n400) + (100 * n100) + (4 * n4) + n1
+    if (n100 == 4) or (n1 == 4), do: {year, days}, else: {year + 1, days}
+  end
+
+  defp extract_month_from_rata_die(days_in_year, leap_year) do
+    month_lengths = [
+      31,
+      if(leap_year, do: 29, else: 28),
+      31,
+      30,
+      31,
+      30,
+      31,
+      31,
+      30,
+      31,
+      30,
+      31
+    ]
+
+    {month, day} = Enum.reduce_while(month_lengths, {1, days_in_year},
+      fn
+        month_days, {month_count, rest_days} when rest_days <= month_days ->
+          {:halt, {month_count, rest_days}}
+        month_days, {month_count, rest_days} ->
+          {:cont, {month_count + 1, rest_days - month_days}}
+      end
+    )
   end
 
 

@@ -118,6 +118,16 @@ defmodule Integer do
   end
 
   @doc """
+  Runs both `div/2` and `mod/2` on the same input, and returns a tuple with both results.
+  """
+  @spec div_mod(integer, neg_integer | pos_integer) :: integer
+  def div_mod(x, y) when is_integer(x) and is_integer(y) do
+    div = div(x, y)
+    mod = x - (div * y)
+    {div, mod}
+  end
+
+  @doc """
   Returns the ordered digits for the given `integer`.
 
   An optional `base` value may be provided representing the radix for the returned
