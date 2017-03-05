@@ -109,7 +109,9 @@ defmodule Float do
 
   """
   @spec floor(float, precision_range) :: float
-  def floor(number, precision \\ 0) when is_float(number) and precision in @precision_range do
+  def floor(number, precision \\ 0)
+
+  def floor(number, precision) when is_float(number) and precision in @precision_range do
     round(number, precision, :floor)
   end
 
@@ -150,7 +152,9 @@ defmodule Float do
 
   """
   @spec ceil(float, precision_range) :: float
-  def ceil(number, precision \\ 0) when is_float(number) and precision in @precision_range do
+  def ceil(number, precision \\ 0)
+
+  def ceil(number, precision) when is_float(number) and precision in @precision_range do
     round(number, precision, :ceil)
   end
 
@@ -199,11 +203,12 @@ defmodule Float do
 
   """
   @spec round(float, precision_range) :: float
-
   # This implementation is slow since it relies on big integers.
   # Faster implementations are available on more recent papers
   # and could be implemented in the future.
-  def round(float, precision \\ 0) when is_float(float) and precision in @precision_range do
+  def round(float, precision \\ 0)
+
+  def round(float, precision) when is_float(float) and precision in @precision_range do
     round(float, precision, :half_up)
   end
 
