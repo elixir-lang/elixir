@@ -433,7 +433,7 @@ defmodule Float do
   end
 
   defp invalid_precision_message(precision) do
-    "precision #{inspect precision} is out of valid range of #{inspect @precision_range}"
+    "precision #{precision} is out of valid range of #{inspect @precision_range}"
   end
 
   defp expand_compact([{:compact, false} | t]), do: expand_compact(t)
