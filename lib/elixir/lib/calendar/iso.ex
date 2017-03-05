@@ -24,7 +24,7 @@ defmodule Calendar.ISO do
 
   @seconds_per_minute 60
   @seconds_per_hour 60 * 60
-  @seconds_per_day 12 * 60 * 60 # Note that this does _not_ handle Leap Seconds.
+  @seconds_per_day 24 * 60 * 60 # Note that this does _not_ handle Leap Seconds.
   @microseconds_per_second 1_000_000
 
   import Integer, only: [floor_div: 2, div_mod: 2]
@@ -38,21 +38,21 @@ defmodule Calendar.ISO do
   ## Examples
 
       iex> Calendar.ISO.to_rata_die(~N[0001-01-01T00:00:00] |> DateTime.from_naive!("Etc/UTC"))
-      {1, 0, 86400}
+      {1, 0, 86400000000}
       iex> Calendar.ISO.to_rata_die(~N[2000-01-01T12:00:00] |> DateTime.from_naive!("Etc/UTC"))
-      {730120, 0, 86400}
+      {730120, 43200000000, 86400000000}
       iex> Calendar.ISO.to_rata_die(~N[2016-09-18T13:00:14] |> DateTime.from_naive!("Etc/UTC"))
-      {730120, 43200, 86400}
+      {730120, 43200000000, 86400000000}
   """
   @spec to_rata_die(Calendar.DateTime) :: Calendar.rata_die
   def to_rata_die(%{calendar: _calendar, year: year, month: month, day: day, hour: hour, minute: minute, second: second, microsecond: {microsecond, _}}) do
     # Baseline to epoch.  This will be zero for a Gregorian calendar
     days = to_rata_die_day(year, month, day)
     combined_seconds = hour * @seconds_per_hour + minute * @seconds_per_minute + second
-    {parts_in_day, parts_of_day} = {combined_seconds * @microseconds_per_second + microsecond}
+    {parts_in_day, parts_of_day} = {combined_seconds * @microseconds_per_second + microsecond, @seconds_per_day * @microseconds_per_second}
     {days, parts_in_day, parts_of_day}
   end
-  
+
   @doc """
   Converts an ordinal Rata Die to the datetime format specified by this calendar.
 
