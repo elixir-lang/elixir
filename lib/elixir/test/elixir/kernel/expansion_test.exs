@@ -2,6 +2,7 @@ Code.require_file "../test_helper.exs", __DIR__
 
 defmodule Kernel.ExpansionTarget do
   defmacro seventeen, do: 17
+  defmacro bar, do: "bar"
 end
 
 defmodule Kernel.ExpansionTest do
@@ -980,6 +981,12 @@ defmodule Kernel.ExpansionTest do
   end
 
   describe "bitstrings" do
+    test "inlines binaries inside interpolation" do
+      import Kernel.ExpansionTarget
+      assert expand(quote do: "foo#{bar()}" = "foobar") ==
+             quote do: (<<"foo"::binary(), "bar"::binary()>> = "foobar")
+    end
+
     test "expands size * unit" do
       import Kernel, except: [-: 2]
 
@@ -1045,13 +1052,13 @@ defmodule Kernel.ExpansionTest do
 
     test "expands macro specifiers" do
       import Kernel, except: [-: 2]
+      import Kernel.ExpansionTarget
 
-      assert expand(quote do: (import Kernel.ExpansionTarget; <<x::seventeen>>)) ==
-             quote do: (:"Elixir.Kernel.ExpansionTarget"; <<x()::integer()-size(17)>>)
+      assert expand(quote do: <<x::seventeen>>) ==
+             quote do: (<<x()::integer()-size(17)>>)
 
-      assert expand(quote do: (import Kernel.ExpansionTarget; <<seventeen::seventeen, x::size(seventeen)>> = 1)) ==
-             quote do: (:"Elixir.Kernel.ExpansionTarget";
-                        <<seventeen::integer()-size(17), x::integer()-size(seventeen)>> = 1)
+      assert expand(quote do: (<<seventeen::seventeen, x::size(seventeen)>> = 1)) ==
+             quote do: (<<seventeen::integer()-size(17), x::integer()-size(seventeen)>> = 1)
     end
 
     test "expands macro in args" do
