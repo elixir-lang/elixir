@@ -11,8 +11,8 @@ defmodule Mix.Tasks.Profile.Cprof do
 
   Before running the code, it invokes the `app.start` task which compiles
   and loads your project. Then the target expression is profiled, together
-  with all matching function calls, by setting breakpoints containing 
-  counters. These can only be set on BEAM code so BIFs cannot be call 
+  with all matching function calls, by setting breakpoints containing
+  counters. These can only be set on BEAM code so BIFs cannot be call
   count traced.
 
   To profile the code, you can use syntax similar to the `mix run` task:
@@ -23,9 +23,9 @@ defmodule Mix.Tasks.Profile.Cprof do
 
   ## Command line options
 
-    * `--from-mfa` - a {module, function, arity} expression or 'on_load' to set a trace pattern to count from
-    * `--limit`, - filters out any results with a call count less than the limit
-    * `--module`, - filters out any results not pertaining to the given module
+    * `--matching` - only profile calls matching the given `Module.function/arity` pattern
+    * `--limit` - filters out any results with a call count less than the limit
+    * `--module` - filters out any results not pertaining to the given module
     * `--config`, `-c`  - loads the given configuration file
     * `--eval`, `-e` - evaluate the given code
     * `--require`, `-r` - requires pattern before running the command
@@ -38,7 +38,7 @@ defmodule Mix.Tasks.Profile.Cprof do
     * `--no-elixir-version-check` - does not check the Elixir version from mix.exs
 
   ## Profile output
-  
+
   Example output:
                                                                            CNT
       Total                                                                 15
@@ -63,51 +63,35 @@ defmodule Mix.Tasks.Profile.Cprof do
   The first row (Total) is the sum of all function calls. In the last row the number of
   matching functions that were considered for profiling is presented.
 
-  When `--from-mfa` option is specified, call count tracing will be started only for 
-  the functions matching the given MFA:
+  When `--matching` option is specified, call count tracing will be started only for
+  the functions matching the given pattern:
 
       String.Chars.Integer                                                   3  <--
         String.Chars.Integer.to_string/1                                     3
       Profile done over 1 matching functions
 
-  In the example above the MFA `"{String.Chars.Integer, :to_string, :_}"`
-  was given, therefore only one function was matched. The MFA must be a tuple
-  with `module`, `function` and `arity` (by this order). However, notice that `function` and 
-  `arity` may be arbitrary by passing the `:_` atom. Erlang modules have to be passed as 
-  atoms, similarly to calling Erlang modules in code (for example, `:ets`, `:inet` or `:math`). 
-  Elixir modules can be given directly, such as `Enum`, `Elixir.Enum`, etc. Some examples are
-  shown below:
-      
-      --from-mfa "{:erlang, :_, :_}" # Matching functions will be all functions in :erlang module
-
-      --from-mfa "{:erlang, :system_monitor, :_}" # Matching function will be all function heads of :erlang.system_monitor/0..2
-
-      --from-mfa "{Enum, :reverse, 1}" # The only matching function will be Enum.reverse/1
-      
-
-  Another possible value for the `--from-mfa` option is `"on_load" to match all modules and 
-  functions which are newly loaded. 
-
-  For a detailed explanation it's worth reading the start function in 
-  [Erlang documentation for cprof](http://www.erlang.org/doc/man/cprof.html#start).
+  The pattern can be a module name, such as `String` to count all calls to that module,
+  a call without arity, such as `String.split`, to count all calls to that function
+  regardless of arity, or a call with arity, such as `String.split/2`, to count all
+  calls to that exact module, function and arity.
 
   ## Caveats
 
   You should be aware the profiler is stopped as soon as the code has finished running. This
-  may need special attention, when:  running asynchronous code as function calls which were 
-  called before the profiler stopped will not be counted; running synchronous code as long 
-  running computations and a profiler without a proper MFA trace pattern or filter may 
+  may need special attention, when:  running asynchronous code as function calls which were
+  called before the profiler stopped will not be counted; running synchronous code as long
+  running computations and a profiler without a proper MFA trace pattern or filter may
   lead to a result set which is difficult to comprehend.
 
-  Other caveats are the impossibility to call count trace BIFs, since breakpoints can 
-  only be set on BEAM code; functions calls performed by `:cprof` are not traced; the 
-  maximum size of a call counter is equal to the host machine's word size 
+  Other caveats are the impossibility to call count trace BIFs, since breakpoints can
+  only be set on BEAM code; functions calls performed by `:cprof` are not traced; the
+  maximum size of a call counter is equal to the host machine's word size
   (for example, 2147483647 in a 32-bit host).
   """
 
-  @switches [parallel: :boolean, require: :keep, eval: :keep, config: :keep, from_mfa: :string,
-             halt: :boolean, compile: :boolean, deps_check: :boolean, limit: :integer, 
-             module: :string, start: :boolean, archives_check: :boolean, warmup: :boolean, 
+  @switches [parallel: :boolean, require: :keep, eval: :keep, config: :keep, matching: :string,
+             halt: :boolean, compile: :boolean, deps_check: :boolean, limit: :integer,
+             module: :string, start: :boolean, archives_check: :boolean, warmup: :boolean,
              elixir_version_check: :boolean, parallel_require: :keep]
 
   @spec run(OptionParser.argv) :: :ok
@@ -120,7 +104,7 @@ defmodule Mix.Tasks.Profile.Cprof do
   end
 
   defp profile_code(code_string, opts) do
-    content = 
+    content =
       quote do
         unquote(__MODULE__).profile(fn ->
           unquote(Code.string_to_quoted!(code_string))
@@ -145,28 +129,27 @@ defmodule Mix.Tasks.Profile.Cprof do
       fun.()
     end
 
-    num_matched_functions = case Keyword.get(opts, :from_mfa) do
-      nil -> :cprof.start()
-      func_spec ->
-        case parse_mfa(func_spec) do
-          :on_load -> :cprof.start({:on_load})
-          {module} -> :cprof.start(module)
-          {module, function} -> :cprof.start(module, function)
-          {module, function, arity} -> :cprof.start(module, function, arity)
+    num_matched_functions = case Keyword.get(opts, :matching) do
+      nil ->
+        :cprof.start()
+      matching ->
+        case Mix.Utils.parse_mfa(matching) do
+          {:ok, args} -> apply(:cprof, :start, args)
+          :error -> Mix.raise "Invalid matching pattern: #{matching}"
         end
       end
 
     apply(fun, [])
 
-    :cprof.pause() 
+    :cprof.pause()
 
-    limit  = Keyword.get(opts, :limit) 
+    limit  = Keyword.get(opts, :limit)
     module = Keyword.get(opts, :module)
 
     analysis_result = case {limit, module} do
       {nil, nil} -> :cprof.analyse()
       {limit, nil} -> :cprof.analyse(limit)
-      {limit, module} -> 
+      {limit, module} ->
         module_atom = string_to_existing_module_atom(module)
         case limit do
           nil -> :cprof.analyse(module_atom)
@@ -179,14 +162,6 @@ defmodule Mix.Tasks.Profile.Cprof do
 
   defp string_to_existing_module_atom(":" <> module), do: String.to_existing_atom(module)
   defp string_to_existing_module_atom(module), do: Module.concat([module])
-
-  defp parse_mfa("on_load"), do: :on_load
-  defp parse_mfa(mfa), do: mfa |> Code.eval_string |> validate_mfa
-
-  defp validate_mfa({{m, :_, :_}, _}) when is_atom(m), do: {m}
-  defp validate_mfa({{m, f, :_}, _}) when is_atom(m) and is_atom(f), do: {m, f}
-  defp validate_mfa({{m, f, a}, _}) when is_atom(m) and is_atom(f) and is_integer(a), do: {m, f, a}
-  defp validate_mfa({fs, _}), do: Mix.raise "Invalid MFA: #{inspect fs} (should be {module, function, arity} or on_load)"
 
   defp print_output({num_matched_functions, {all_call_count, mod_analysis_list}}) do
     print_total_row(all_call_count)
@@ -202,7 +177,7 @@ defmodule Mix.Tasks.Profile.Cprof do
   defp print_number_of_matched_functions(num_matched_functions) do
     IO.puts "Profile done over #{num_matched_functions} matching functions"
   end
-  
+
   defp print_total_row(all_call_count) do
     IO.puts ""
     print_row(["s", "s", "s"], ["", "CNT", ""])

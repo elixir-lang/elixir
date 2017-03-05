@@ -50,10 +50,10 @@ defmodule Mix.Tasks.Profile.CprofTest do
     end
   end
 
-  test "applies func spec with {m, _, _}", context do 
+  test "applies func spec with {m, _, _}", context do
     in_tmp context.test, fn ->
       refute capture_io(fn ->
-        Cprof.run(["--from-mfa", "{Enum, :_, :_}", "-e", @expr])
+        Cprof.run(["--matching", "Enum", "-e", @expr])
       end) =~ ~r(String\.Chars\.Integer\.to_string\/1 *\d)
     end
   end
@@ -61,7 +61,7 @@ defmodule Mix.Tasks.Profile.CprofTest do
   test "applies func spec with {m, f, _}", context do
     in_tmp context.test, fn ->
       refute capture_io(fn ->
-        Cprof.run(["--from-mfa", "{Enum, :each, :_}", "-e", @expr])
+        Cprof.run(["--matching", "Enum.each", "-e", @expr])
       end) =~ ~r(anonymous fn\/3 in Enum\.each\/2 *\d)
     end
   end
@@ -69,16 +69,8 @@ defmodule Mix.Tasks.Profile.CprofTest do
   test "applies func spec with {m, f, a}", context do
     in_tmp context.test, fn ->
       assert capture_io(fn ->
-        Cprof.run(["--from-mfa", "{Enum, :each, 8}", "-e", @expr])
+        Cprof.run(["--matching", "Enum.each/8", "-e", @expr])
       end) =~ ~r(Profile done over 0 matching functions)
-    end
-  end
-
-  test "applies func spec with on_load", context do
-    in_tmp context.test, fn ->
-      assert capture_io(fn ->
-        Cprof.run(["--from-mfa", "on_load", "-e", @expr])
-      end) =~ ~r(Profile done over *\d matching functions)
     end
   end
 
