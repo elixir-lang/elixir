@@ -41,7 +41,6 @@ defmodule Calendar.ISO do
       iex> Calendar.ISO.datetime_to_rata_die(~N[2016-09-18T13:00:14] |> DateTime.from_naive!("Etc/UTC"))
       {736225, {46814000000, 86400000000}}
   """
-  # TODO: Conversion Datetime or NaiveDateTime -> RataDie?
   @spec datetime_to_rata_die(Calendar.DateTime) :: Calendar.rata_die
   def datetime_to_rata_die(%{calendar: _calendar, year: year, month: month, day: day, hour: hour, minute: minute, second: second, microsecond: {microsecond, _},
                              std_offset: std_offset, utc_offset: utc_offset}) do
@@ -75,7 +74,6 @@ defmodule Calendar.ISO do
   minute: 0, month: 1, second: 0, std_offset: 0, time_zone: "Etc/UTC",
   utc_offset: 0, year: 2000, zone_abbr: "UTC"}
   """
-  # TODO: Conversion RataDie -> DateTime or NaiveDateTime?
   @spec datetime_from_rata_die(Calendar.rata_die) :: Calendar.DateTime
   def datetime_from_rata_die({days, {parts_in_day, parts_of_day}}) do
     {year, month, day} = from_rata_die_day(days)
