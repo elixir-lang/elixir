@@ -4,9 +4,9 @@ defmodule Mix.Tasks.Profile.Cprof do
   @shortdoc "Profiles the given file or expression with cprof"
 
   @moduledoc """
-  Profiles the given file or expression using Erlang's 'cprof' tool.
+  Profiles the given file or expression using Erlang's `cprof` tool.
 
-  'cprof' can be useful when you want to discover the bottlenecks related
+  `cprof` can be useful when you want to discover the bottlenecks related
   to function calls.
 
   Before running the code, it invokes the `app.start` task which compiles
@@ -26,7 +26,7 @@ defmodule Mix.Tasks.Profile.Cprof do
     * `--matching` - only profile calls matching the given `Module.function/arity` pattern
     * `--limit` - filters out any results with a call count less than the limit
     * `--module` - filters out any results not pertaining to the given module
-    * `--config`, `-c`  - loads the given configuration file
+    * `--config`, `-c` - loads the given configuration file
     * `--eval`, `-e` - evaluate the given code
     * `--require`, `-r` - requires pattern before running the command
     * `--parallel`, `-p` - makes all requires parallel
@@ -137,7 +137,7 @@ defmodule Mix.Tasks.Profile.Cprof do
           {:ok, args} -> apply(:cprof, :start, args)
           :error -> Mix.raise "Invalid matching pattern: #{matching}"
         end
-      end
+    end
 
     apply(fun, [])
 
@@ -147,21 +147,24 @@ defmodule Mix.Tasks.Profile.Cprof do
     module = Keyword.get(opts, :module)
 
     analysis_result = case {limit, module} do
-      {nil, nil} -> :cprof.analyse()
-      {limit, nil} -> :cprof.analyse(limit)
+      {nil, nil} ->
+        :cprof.analyse()
+      {limit, nil} ->
+        :cprof.analyse(limit)
       {limit, module} ->
-        module_atom = string_to_existing_module_atom(module)
-        case limit do
-          nil -> :cprof.analyse(module_atom)
-          _   -> :cprof.analyse(module_atom, limit)
+        module = string_to_existing_module(module)
+        if limit do
+          :cprof.analyse(module, limit)
+        else
+          :cprof.analyse(module)
         end
     end
 
     {num_matched_functions, analysis_result}
   end
 
-  defp string_to_existing_module_atom(":" <> module), do: String.to_existing_atom(module)
-  defp string_to_existing_module_atom(module), do: Module.concat([module])
+  defp string_to_existing_module(":" <> module), do: String.to_existing_atom(module)
+  defp string_to_existing_module(module), do: Module.concat([module])
 
   defp print_output({num_matched_functions, {all_call_count, mod_analysis_list}}) do
     print_total_row(all_call_count)
@@ -185,28 +188,22 @@ defmodule Mix.Tasks.Profile.Cprof do
   end
 
   defp print_analysis_result({module, total_module_count, module_fun_list}) do
-    module = module_name_for_printing(module)
-    print_module(module, total_module_count, "", "<--")
+    module
+    |> Atom.to_string
+    |> module_name_for_printing()
+    |> print_module(total_module_count, "", "<--")
     Enum.each(module_fun_list, &print_function(&1, "  "))
   end
 
   defp print_module(module, count, prefix, suffix) do
-    print_row(
-      ["s", "B", "s"],
-      ["#{prefix}#{module}", count, suffix]
-    )
+    print_row(["s", "B", "s"], ["#{prefix}#{module}", count, suffix])
   end
 
-  defp module_name_for_printing(module), do: module |> Atom.to_string |> do_module_name_for_printing
-
-  defp do_module_name_for_printing("Elixir." <> rem = _module_name), do: rem
-  defp do_module_name_for_printing(module_name), do: ":" <> module_name
+  defp module_name_for_printing("Elixir." <> rest = _module_name), do: rest
+  defp module_name_for_printing(module_name), do: ":" <> module_name
 
   defp print_function({fun, count}, prefix, suffix \\ "") do
-    print_row(
-      ["s", "B", "s"],
-      ["#{prefix}#{function_text(fun)}", count, suffix]
-    )
+    print_row(["s", "B", "s"], ["#{prefix}#{function_text(fun)}", count, suffix])
   end
 
   defp function_text({module, function, arity}) do
