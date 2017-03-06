@@ -380,6 +380,8 @@ defmodule GenServer do
     {:stop, reason, reply, new_state} |
     {:stop, reason, new_state} when reply: term, new_state: term, reason: term
 
+  @optional_callbacks handle_call: 3
+
   @doc """
   Invoked to handle asynchronous `cast/2` messages.
 
@@ -408,6 +410,8 @@ defmodule GenServer do
     {:noreply, new_state, timeout | :hibernate} |
     {:stop, reason :: term, new_state} when new_state: term
 
+  @optional_callbacks handle_cast: 2
+
   @doc """
   Invoked to handle all other messages.
 
@@ -423,6 +427,8 @@ defmodule GenServer do
     {:noreply, new_state} |
     {:noreply, new_state, timeout | :hibernate} |
     {:stop, reason :: term, new_state} when new_state: term
+
+  @optional_callbacks handle_info: 2
 
   @doc """
   Invoked when the server is about to exit. It should do any cleanup required.
@@ -548,49 +554,7 @@ defmodule GenServer do
 
       @doc false
       def init(args) do
-        {:ok, args}
-      end
-
-      @doc false
-      def handle_call(msg, _from, state) do
-        proc =
-          case Process.info(self(), :registered_name) do
-            {_, []}   -> self()
-            {_, name} -> name
-          end
-
-        # We do this to trick Dialyzer to not complain about non-local returns.
-        case :erlang.phash2(1, 1) do
-          0 -> raise "attempted to call GenServer #{inspect proc} but no handle_call/3 clause was provided"
-          1 -> {:stop, {:bad_call, msg}, state}
-        end
-      end
-
-      @doc false
-      def handle_info(msg, state) do
-        proc =
-          case Process.info(self(), :registered_name) do
-            {_, []}   -> self()
-            {_, name} -> name
-          end
-        :error_logger.error_msg('~p ~p received unexpected message in handle_info/2: ~p~n',
-                                [__MODULE__, proc, msg])
-        {:noreply, state}
-      end
-
-      @doc false
-      def handle_cast(msg, state) do
-        proc =
-          case Process.info(self(), :registered_name) do
-            {_, []}   -> self()
-            {_, name} -> name
-          end
-
-        # We do this to trick Dialyzer to not complain about non-local returns.
-        case :erlang.phash2(1, 1) do
-          0 -> raise "attempted to cast GenServer #{inspect proc} but no handle_cast/2 clause was provided"
-          1 -> {:stop, {:bad_cast, msg}, state}
-        end
+        raise "init/1 not implemented"
       end
 
       @doc false
@@ -603,8 +567,7 @@ defmodule GenServer do
         {:ok, state}
       end
 
-      defoverridable [init: 1, handle_call: 3, handle_info: 2,
-                      handle_cast: 2, terminate: 2, code_change: 3]
+      defoverridable [init: 1, terminate: 2, code_change: 3]
     end
   end
 

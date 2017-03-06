@@ -10,6 +10,10 @@ defmodule SupervisorTest do
       GenServer.start_link(__MODULE__, state, opts)
     end
 
+    def init(args) do
+      {:ok, args}
+    end
+
     def handle_call(:pop, _from, [h | t]) do
       {:reply, h, t}
     end

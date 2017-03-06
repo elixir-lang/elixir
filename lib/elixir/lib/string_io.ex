@@ -109,10 +109,6 @@ defmodule StringIO do
     {:noreply, s}
   end
 
-  def handle_info(msg, s) do
-    super(msg, s)
-  end
-
   def handle_call(:contents, _from, %{input: input, output: output} = s) do
     {:reply, {input, output}, s}
   end
@@ -123,10 +119,6 @@ defmodule StringIO do
 
   def handle_call(:close, _from, %{input: input, output: output} = s) do
     {:stop, :normal, {:ok, {input, output}}, s}
-  end
-
-  def handle_call(request, from, s) do
-    super(request, from, s)
   end
 
   defp io_request(from, reply_as, req, s) do

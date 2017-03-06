@@ -6,6 +6,10 @@ defmodule GenServerTest do
   defmodule Stack do
     use GenServer
 
+    def init(args) do
+      {:ok, args}
+    end
+
     def handle_call(:pop, _from, [h | t]) do
       {:reply, h, t}
     end
@@ -14,16 +18,8 @@ defmodule GenServerTest do
       {:noreply, h}
     end
 
-    def handle_call(request, from, state) do
-      super(request, from, state)
-    end
-
     def handle_cast({:push, item}, state) do
       {:noreply, [item | state]}
-    end
-
-    def handle_cast(request, state) do
-      super(request, state)
     end
 
     def terminate(_reason, _state) do

@@ -78,10 +78,6 @@ defmodule ExUnit.CaptureServer do
     {:noreply, config}
   end
 
-  def handle_info(msg, state) do
-    super(msg, state)
-  end
-
   defp release_device(ref, %{devices: {names, refs}} = config) do
     case Map.pop(refs, ref) do
       {{name, pid}, refs} ->
