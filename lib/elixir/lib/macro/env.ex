@@ -60,7 +60,7 @@ defmodule Macro.Env do
   @type macros :: [{module, [name_arity]}]
   @type context_modules :: [module]
   @type vars :: [{atom, atom | non_neg_integer}]
-  @type lexical_tracker :: pid
+  @type lexical_tracker :: pid | nil
   @type local :: atom | nil
 
   @opaque export_vars :: vars | nil
