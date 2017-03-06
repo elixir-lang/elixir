@@ -89,12 +89,9 @@ end
 
 defimpl Collectable, for: BitString do
   def into(original) do
-    {[original], fn
-      list, {:cont, x} -> [x | list]
-      list, :done ->
-        list
-        |> :lists.reverse()
-        |> IO.iodata_to_binary()
+    {original, fn
+      acc, {:cont, x} when is_bitstring(x) -> [acc | x]
+      acc, :done -> IO.iodata_to_binary(acc)
       _, :halt -> :ok
     end}
   end
