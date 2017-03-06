@@ -27,7 +27,7 @@ defmodule Calendar.ISO do
   @seconds_per_day 24 * 60 * 60 # Note that this does _not_ handle Leap Seconds.
   @microseconds_per_second 1_000_000
 
-  import Integer, only: [floor_div: 2, div_mod: 2]
+  import Integer, only: [floor_div: 2]
 
   @doc """
   Returns the normalized Rata Die representation of the specified date.
@@ -213,6 +213,13 @@ defmodule Calendar.ISO do
           {:cont, {month_count + 1, rest_days - month_days}}
       end
     )
+  end
+
+  @spec div_mod(integer, neg_integer | pos_integer) :: integer
+  defp div_mod(x, y) when is_integer(x) and is_integer(y) do
+    div = div(x, y)
+    mod = x - (div * y)
+    {div, mod}
   end
 
   @doc """

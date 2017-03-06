@@ -1376,12 +1376,6 @@ defmodule NaiveDateTime do
 
   ## Helpers
 
-  defp discard_timezone_info(naive_datetime) do
-    {year, month, day, hour, min, second, microsecond} = to_tuple(naive_datetime)
-    {:ok, result} = new(year, month, day, hour, min, second, microsecond)
-    result
-  end
-
   defp to_microsecond(%{calendar: Calendar.ISO, year: year, month: month, day: day,
                         hour: hour, minute: minute, second: second, microsecond: {microsecond, _precision}}) do
     second = :calendar.datetime_to_gregorian_seconds(
@@ -1947,7 +1941,7 @@ defmodule DateTime do
     diff_parts = parts1 * ppd2 - parts2 * ppd1
 
     # Keep integers in day fraction low.
-    gcd = Integer.gcd(diff_parts, diff_ppd)
+    gcd = gcd(diff_parts, diff_ppd)
     diff_parts = div(diff_parts, gcd)
     diff_ppd = div(diff_ppd, gcd)
 
@@ -1957,4 +1951,11 @@ defmodule DateTime do
       {diff_days, {diff_parts, diff_ppd}}
     end
   end
+
+  @spec gcd(integer, integer) :: non_neg_integer
+  defp gcd(a, 0), do: abs(a)
+
+  defp gcd(0, b), do: abs(b)
+  defp gcd(a, b) when a < 0 or b < 0, do: gcd(abs(a), abs(b))
+  defp gcd(a, b), do: gcd(b, rem(a,b))
 end

@@ -118,44 +118,6 @@ defmodule Integer do
   end
 
   @doc """
-  Runs both `div/2` and `mod/2` on the same input, and returns a tuple with both results.
-  """
-  @spec div_mod(integer, neg_integer | pos_integer) :: integer
-  def div_mod(x, y) when is_integer(x) and is_integer(y) do
-    div = div(x, y)
-    mod = x - (div * y)
-    {div, mod}
-  end
-
-  @doc """
-  Calculates the Greatest Common divisor of two numbers.
-
-  This is the largest positive integer that divides both *a* and *b* without leaving a remainder.
-
-  Also see `Math.lcm/2`
-
-  ## Examples
-
-  iex> Integer.gcd(2, 4)
-  2
-  iex> Integer.gcd(2, 3)
-  1
-  iex> Integer.gcd(12, 8)
-  4
-  iex> Integer.gcd(54, 24)
-  6
-  iex> Integer.gcd(-54, 24)
-  6
-  """
-  @spec gcd(integer, integer) :: non_neg_integer
-  def gcd(a, 0), do: abs(a)
-
-  def gcd(0, b), do: abs(b)
-  def gcd(a, b) when a < 0 or b < 0, do: gcd(abs(a), abs(b))
-  def gcd(a, b), do: gcd(b, rem(a,b))
-
-
-  @doc """
   Returns the ordered digits for the given `integer`.
 
   An optional `base` value may be provided representing the radix for the returned
