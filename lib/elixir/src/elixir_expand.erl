@@ -115,8 +115,13 @@ expand({'__DIR__', _, Atom}, E) when is_atom(Atom) ->
 expand({'__CALLER__', _, Atom} = Caller, E) when is_atom(Atom) ->
   {Caller, E};
 expand({'__ENV__', Meta, Atom}, E) when is_atom(Atom) ->
-  Env = elixir_env:linify({?line(Meta), E}),
-  {{'%{}', [], maps:to_list(Env)}, E};
+  Env =
+    case E of
+      #{function := nil} -> E;
+      _ -> maps:put(lexical_tracker, nil, E)
+    end,
+  LinifiedEnv = elixir_env:linify({?line(Meta), Env}),
+  {{'%{}', [], maps:to_list(LinifiedEnv)}, E};
 expand({{'.', DotMeta, [{'__ENV__', Meta, Atom}, Field]}, CallMeta, []}, E) when is_atom(Atom), is_atom(Field) ->
   Env = elixir_env:linify({?line(Meta), E}),
   case maps:is_key(Field, Env) of
@@ -421,7 +426,18 @@ expand(Function, E) when is_function(Function) ->
       form_error([{line, 0}], ?key(E, file), ?MODULE, {invalid_quoted_expr, Function})
   end;
 
-expand(Other, E) when is_number(Other); is_atom(Other); is_binary(Other); is_pid(Other) ->
+
+expand(PidOrRef, E) when is_pid(PidOrRef); is_reference(PidOrRef) ->
+  case ?key(E, function) of
+    nil ->
+      PidOrRef;
+    Function ->
+      %% TODO: Make me an error on 2.0
+      elixir_errors:form_warn([], ?key(E, file), ?MODULE,
+                              {invalid_pid_or_ref_in_function, PidOrRef, Function})
+  end;
+
+expand(Other, E) when is_number(Other); is_atom(Other); is_binary(Other) ->
   {Other, E};
 
 expand(Other, E) ->
@@ -886,6 +902,9 @@ format_error({invalid_local_invocation, Context, {Name, _, Args} = Call}) ->
 format_error({invalid_remote_invocation, Context, Receiver, Right, Arity}) ->
   io_lib:format("cannot invoke remote function ~ts.~ts/~B inside ~ts",
                 ['Elixir.Macro':to_string(Receiver), Right, Arity, Context]);
+format_error({invalid_pid_or_ref_in_function, PidOrRef, {Name, Arity}}) ->
+  io_lib:format("cannot compile PID/Reference ~ts inside quoted expression for function ~ts/~B",
+                ['Elixir.Kernel':inspect(PidOrRef, []), Name, Arity]);
 format_error({unsupported_opt, Kind, Key}) ->
   io_lib:format("unsupported option ~ts given to ~s",
                 ['Elixir.Macro':to_string(Key), Kind]);
