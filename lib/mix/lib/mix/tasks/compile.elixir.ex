@@ -21,7 +21,8 @@ defmodule Mix.Tasks.Compile.Elixir do
     * `--docs` (`--no-docs`) - attaches (or not) documentation to compiled modules
     * `--debug-info` (`--no-debug-info`) - attaches (or not) debug info to compiled modules
     * `--ignore-module-conflict` - does not emit warnings if a module was previously defined
-    * `--warnings-as-errors` - treats warnings as errors and return a non-zero exit code
+    * `--warnings-as-errors` - treats warnings in the current project as errors and
+      return a non-zero exit code
     * `--long-compilation-threshold N` - sets the "long compilation" threshold
       (in seconds) to `N` (see the docs for `Kernel.ParallelCompiler.files/2`)
 
@@ -40,8 +41,7 @@ defmodule Mix.Tasks.Compile.Elixir do
 
   @switches [force: :boolean, docs: :boolean, warnings_as_errors: :boolean,
              ignore_module_conflict: :boolean, debug_info: :boolean,
-             elixirc_paths: :keep, verbose: :boolean,
-             long_compilation_threshold: :integer]
+             verbose: :boolean, long_compilation_threshold: :integer]
 
   @doc """
   Runs this task.
@@ -62,7 +62,20 @@ defmodule Mix.Tasks.Compile.Elixir do
     configs  = Mix.Project.config_files ++ Mix.Tasks.Compile.Erlang.manifests
     force    = opts[:force] || Mix.Utils.stale?(configs, [manifest])
 
-    Mix.Compilers.Elixir.compile(manifest, srcs, dest, force, opts)
+    opts = Keyword.merge(project[:elixirc_options] || [], opts)
+    Mix.Compilers.Elixir.compile(manifest, srcs, dest, [:ex], force, stale_local_deps(manifest), opts)
+  end
+
+  defp stale_local_deps(manifest) do
+    base = Path.basename(manifest)
+    modified = Mix.Utils.last_modified(manifest)
+    for %{scm: scm, opts: opts} = dep <- Mix.Dep.cached(),
+        not scm.fetchable?,
+        Mix.Utils.last_modified(Path.join(opts[:build], base)) > modified,
+        path <- Mix.Dep.load_paths(dep),
+        beam <- Path.wildcard(Path.join(path, "*.beam")),
+        Mix.Utils.last_modified(beam) > modified,
+        do: beam |> Path.basename |> Path.rootname |> String.to_atom
   end
 
   @doc """

@@ -26,12 +26,12 @@ defmodule Mix.Compilers.Elixir do
   between modules, which helps it recompile only the modules that
   have changed at runtime.
   """
-  def compile(manifest, srcs, dest, force, opts) do
+  def compile(manifest, srcs, dest, exts, force, stale_modules, opts) do
     # We fetch the time from before we read files so any future
     # change to files are still picked up by the compiler. This
     # timestamp is used when writing BEAM files and the manifest.
     timestamp = :calendar.universal_time()
-    all_paths = MapSet.new(Mix.Utils.extract_files(srcs, [:ex]))
+    all_paths = MapSet.new(Mix.Utils.extract_files(srcs, exts))
 
     {all_modules, all_sources} = parse_manifest(manifest, dest)
     modified = Mix.Utils.last_modified(manifest)
@@ -56,6 +56,7 @@ defmodule Mix.Compilers.Elixir do
           all_paths
           |> MapSet.difference(prev_paths)
           |> MapSet.to_list
+
         # Plus the sources that have changed in disk
         for(source(source: source, external: external) <- all_sources,
             times = Enum.map([source | external], &Map.fetch!(sources_mtimes, &1)),
@@ -65,19 +66,14 @@ defmodule Mix.Compilers.Elixir do
       end
 
     {modules, changed} =
-      update_stale_entries(
-        all_modules,
-        all_sources,
-        removed ++ changed,
-        stale_local_deps(manifest, modified)
-      )
+      update_stale_entries(all_modules, all_sources, removed ++ changed, stale_modules)
 
     stale   = changed -- removed
     sources = update_stale_sources(all_sources, removed, changed)
 
     cond do
       stale != [] ->
-        compile_manifest(manifest, modules, sources, stale, dest, timestamp, opts)
+        compile_manifest(manifest, exts, modules, sources, stale, dest, timestamp, opts)
         :ok
       removed != [] ->
         write_manifest(manifest, modules, sources, dest, timestamp)
@@ -132,14 +128,10 @@ defmodule Mix.Compilers.Elixir do
     end
   end
 
-  defp compile_manifest(manifest, modules, sources, stale, dest, timestamp, opts) do
-    Mix.Utils.compiling_n(length(stale), :ex)
-
-    config = Mix.Project.config()
-    Mix.Project.ensure_structure(config)
+  defp compile_manifest(manifest, exts, modules, sources, stale, dest, timestamp, opts) do
+    Mix.Utils.compiling_n(length(stale), hd(exts))
+    Mix.Project.ensure_structure()
     true = Code.prepend_path(dest)
-
-    opts = Keyword.merge(config[:elixirc_options] || [], opts)
     set_compiler_opts(opts)
     cwd = File.cwd!
 
@@ -275,11 +267,12 @@ defmodule Mix.Compilers.Elixir do
   # files that have changed. It then, recursively, figures out
   # all the files that changed (via the module dependencies) and
   # return the non-changed entries and the removed sources.
-  defp update_stale_entries(modules, _sources, [], stale) when stale == %{} do
+  defp update_stale_entries(modules, _sources, [], []) do
     {modules, []}
   end
 
   defp update_stale_entries(modules, sources, changed, stale) do
+    stale = Enum.into(stale, %{}, &{&1, true})
     removed = Enum.into(changed, %{}, &{&1, true})
     remove_stale_entries(modules, sources, stale, removed)
   end
@@ -317,18 +310,6 @@ defmodule Mix.Compilers.Elixir do
       true ->
         {[entry | rest], stale, removed}
     end
-  end
-
-  defp stale_local_deps(manifest, modified) do
-    base = Path.basename(manifest)
-    for %{scm: scm, opts: opts} = dep <- Mix.Dep.cached(),
-        not scm.fetchable?,
-        Mix.Utils.last_modified(Path.join(opts[:build], base)) > modified,
-        path <- Mix.Dep.load_paths(dep),
-        beam <- Path.wildcard(Path.join(path, "*.beam")),
-        Mix.Utils.last_modified(beam) > modified,
-        do: {beam |> Path.basename |> Path.rootname |> String.to_atom, true},
-        into: %{}
   end
 
   defp remove_and_purge(beam, module) do
