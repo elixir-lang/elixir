@@ -1100,11 +1100,8 @@ defmodule Enum do
   end
 
   def into(enumerable, collectable) when is_binary(collectable) do
-    postfix =
-      enumerable
-      |> to_list
-      |> IO.iodata_to_binary
-    collectable <> postfix
+    postfix = to_list(enumerable)
+    IO.iodata_to_binary([collectable | postfix])
   end
 
   def into(%_{} = enumerable, collectable) do
