@@ -1,9 +1,8 @@
 Code.require_file "../test_helper.exs", __DIR__
 
 defmodule EEx.SmartEngineTest do
-  use ExUnit.Case, async: true
-
-  import ExUnit.CaptureIO
+  # TODO: Make this async: true once capture_io is removed
+  use ExUnit.Case
 
   test "evaluates simple string" do
     assert_eval "foo bar", "foo bar"
@@ -18,7 +17,7 @@ defmodule EEx.SmartEngineTest do
   end
 
   test "error with missing assigns" do
-    stderr = capture_io(:stderr, fn ->
+    stderr = ExUnit.CaptureIO.capture_io(:stderr, fn ->
       assert_eval "", "<%= @foo %>", assigns: %{}
     end)
     assert stderr =~ "assign @foo not available in EEx template"
