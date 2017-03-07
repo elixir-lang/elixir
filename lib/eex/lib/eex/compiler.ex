@@ -53,9 +53,13 @@ defmodule EEx.Compiler do
     generate_buffer(rest, state.init, [wrapped | scope], %{state | line: line})
   end
 
-  defp generate_buffer([{:middle_expr, line, modifier, chars} | _], _buffer, _, state) do
-    raise EEx.SyntaxError, message: "unexpected token #{inspect modifier} on <%#{modifier}#{chars}%>",
-                           file: state.file, line: line
+  defp generate_buffer([{:middle_expr, line, modifier, chars} | t], buffer, scope, state) do
+    message = "unexpected beginning of EEx tag \"<%#{modifier}\" on \"<%#{modifier}#{chars}%>\", " <>
+              "please remove \"#{modifier}\" accordingly"
+    :elixir_errors.warn line, state.file, message
+    generate_buffer([{:middle_expr, line, '', chars} | t], buffer, scope, state)
+    # TODO: Make this an error on Elixir v2.0 since it accidentally worked previously.
+    # raise EEx.SyntaxError, message: message, file: state.file, line: line
   end
 
   defp generate_buffer([{:end_expr, line, '', chars} | rest], buffer, [current | _], state) do
@@ -66,12 +70,13 @@ defmodule EEx.Compiler do
   end
 
   defp generate_buffer([{:end_expr, line, modifier, chars} | _], _buffer, [_ | _], state) do
-    raise EEx.SyntaxError, message: "unexpected token #{inspect modifier} on <%#{modifier}#{chars}%>",
-                           file: state.file, line: line
+    message = "unexpected beginning of EEx tag \"<%#{modifier}\" on end of expression \"<%#{modifier}#{chars}%>\", " <>
+              "please remove \"#{modifier}\" accordingly"
+    raise EEx.SyntaxError, message: message, file: state.file, line: line
   end
 
   defp generate_buffer([{:end_expr, line, _, chars} | _], _buffer, [], state) do
-    raise EEx.SyntaxError, message: "unexpected token #{inspect chars}",
+    raise EEx.SyntaxError, message: "unexpected end of expression <%#{chars}%>",
                            file: state.file, line: line
   end
 
