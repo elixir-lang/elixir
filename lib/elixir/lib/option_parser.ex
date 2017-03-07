@@ -293,8 +293,8 @@ defmodule OptionParser do
     {Enum.reverse(opts), Enum.reverse(args), Enum.reverse(invalid)}
   end
 
-  defp do_parse(argv, {aliases, switches, strict?, allow_nonexistent_atoms?} = config, opts, args, invalid, all?) do
-    case next(argv, aliases, switches, strict?, allow_nonexistent_atoms?) do
+  defp do_parse(argv, {aliases, switches, strict?, allow_nonexistent_atoms?, choices} = config, opts, args, invalid, all?) do
+    case next(argv, aliases, switches, strict?, allow_nonexistent_atoms?, choices) do
       {:ok, option, value, rest} ->
         # the option exists and it was successfully parsed
         kinds = List.wrap Keyword.get(switches, option)
@@ -348,35 +348,35 @@ defmodule OptionParser do
         {:error, argv}
 
   def next(argv, opts \\ []) when is_list(argv) and is_list(opts) do
-    {aliases, switches, strict?, allow_nonexistent_atoms?} = compile_config(opts)
-    next(argv, aliases, switches, strict?, allow_nonexistent_atoms?)
+    {aliases, switches, strict?, allow_nonexistent_atoms?, choices} = compile_config(opts)
+    next(argv, aliases, switches, strict?, allow_nonexistent_atoms?, choices)
   end
 
-  defp next([], _aliases, _switches, _strict?, _allow_nonexistent_atoms?) do
+  defp next([], _aliases, _switches, _strict?, _allow_nonexistent_atoms?, _choices) do
     {:error, []}
   end
 
-  defp next(["--" | _] = argv, _aliases, _switches, _strict?, _allow_nonexistent_atoms?) do
+  defp next(["--" | _] = argv, _aliases, _switches, _strict?, _allow_nonexistent_atoms?, _choices) do
     {:error, argv}
   end
 
-  defp next(["-" | _] = argv, _aliases, _switches, _strict?, _allow_nonexistent_atoms?) do
+  defp next(["-" | _] = argv, _aliases, _switches, _strict?, _allow_nonexistent_atoms?, _choices) do
     {:error, argv}
   end
 
-  defp next(["- " <> _ | _] = argv, _aliases, _switches, _strict?, _allow_nonexistent_atoms?) do
+  defp next(["- " <> _ | _] = argv, _aliases, _switches, _strict?, _allow_nonexistent_atoms?, _choices) do
     {:error, argv}
   end
 
   # Handles --foo or --foo=bar
-  defp next(["--" <> option | rest], _aliases, switches, strict?, allow_nonexistent_atoms?) do
+  defp next(["--" <> option | rest], _aliases, switches, strict?, allow_nonexistent_atoms?, choices) do
     {option, value} = split_option(option)
     tagged = tag_option(option, switches, allow_nonexistent_atoms?)
-    next_tagged(tagged, value, "--" <> option, rest, switches, strict?)
+    next_tagged(tagged, value, "--" <> option, rest, switches, strict?, choices)
   end
 
   # Handles -a, -abc, -abc=something
-  defp next(["-" <> option | rest] = argv, aliases, switches, strict?, allow_nonexistent_atoms?) do
+  defp next(["-" <> option | rest] = argv, aliases, switches, strict?, allow_nonexistent_atoms?, choices) do
     {option, value} = split_option(option)
     original = "-" <> option
 
@@ -390,28 +390,28 @@ defmodule OptionParser do
         option_key = aliases[key]
         if key && option_key do
           IO.warn "multi-letter aliases are deprecated, got: #{inspect(key)}"
-          next_tagged({:default, option_key}, value, original, rest, switches, strict?)
+          next_tagged({:default, option_key}, value, original, rest, switches, strict?, choices)
         else
-          next(expand_multiletter_alias(option, value) ++ rest, aliases, switches, strict?, allow_nonexistent_atoms?)
+          next(expand_multi_letter_alias(option, value) ++ rest, aliases, switches, strict?, allow_nonexistent_atoms?, choices)
         end
       true ->
         # We have a regular one-letter alias here
-        tagged = tag_oneletter_alias(option, aliases, allow_nonexistent_atoms?)
-        next_tagged(tagged, value, original, rest, switches, strict?)
+        tagged = tag_one_letter_alias(option, aliases, allow_nonexistent_atoms?)
+        next_tagged(tagged, value, original, rest, switches, strict?, choices)
     end
   end
 
-  defp next(argv, _aliases, _switches, _strict?, _allow_nonexistent_atoms?) do
+  defp next(argv, _aliases, _switches, _strict?, _allow_nonexistent_atoms?, _choices) do
     {:error, argv}
   end
 
-  defp next_tagged(tagged, value, original, rest, switches, strict?) do
+  defp next_tagged(tagged, value, original, rest, switches, strict?, choices) do
     if strict? and not option_defined?(tagged, switches) do
       {:undefined, original, value, rest}
     else
       {option, kinds, value} = normalize_option(tagged, value, switches)
       {value, kinds, rest} = normalize_value(value, kinds, rest, strict?)
-      case validate_option(value, kinds) do
+      case validate_option(option, value, kinds, choices) do
         {:ok, new_value} -> {:ok, option, new_value, rest}
         :invalid         -> {:invalid, original, value, rest}
       end
@@ -530,6 +530,7 @@ defmodule OptionParser do
 
   defp compile_config(opts) do
     aliases = opts[:aliases] || []
+    choices = opts[:choices] || []
     allow_nonexistent_atoms? = opts[:allow_nonexistent_atoms] || false
 
     {switches, strict?} = cond do
@@ -543,10 +544,10 @@ defmodule OptionParser do
         {[], false}
     end
 
-    {aliases, switches, strict?, allow_nonexistent_atoms?}
+    {aliases, switches, strict?, allow_nonexistent_atoms?, choices}
   end
 
-  defp validate_option(value, kinds) do
+  defp validate_option(option, value, kinds, choices) do
     {invalid?, value} =
       cond do
         :invalid in kinds ->
@@ -572,6 +573,8 @@ defmodule OptionParser do
             {value, ""} -> {false, value}
             _ -> {true, value}
           end
+        :choices in kinds ->
+          {value not in Keyword.fetch!(choices, option), value}
         true ->
           {false, value}
       end
@@ -613,7 +616,7 @@ defmodule OptionParser do
     end
   end
 
-  defp tag_oneletter_alias(alias, aliases, allow_nonexistent_atoms?) when is_binary(alias) do
+  defp tag_one_letter_alias(alias, aliases, allow_nonexistent_atoms?) when is_binary(alias) do
     if option_key = aliases[to_existing_key(alias, allow_nonexistent_atoms?)] do
       {:default, option_key}
     else
@@ -621,7 +624,7 @@ defmodule OptionParser do
     end
   end
 
-  defp expand_multiletter_alias(letters, value) when is_binary(letters) do
+  defp expand_multi_letter_alias(letters, value) when is_binary(letters) do
     {last, expanded} =
       letters
       |> String.codepoints()
@@ -741,8 +744,20 @@ defmodule OptionParser do
   end
 
   defp format_error({option, value}, opts, types) do
-    type = get_type(option, opts, types)
-    "#{option} : Expected type #{type}, got #{inspect value}"
+    case get_type(option, opts, types) do
+      :choices ->
+        option_key =
+          option
+          |> String.trim_leading("-")
+          |> get_option_key(false)
+        valid_choices =
+          opts[:choices]
+          |> Keyword.fetch!(option_key)
+          |> Enum.join(", ")
+        "#{option} : Invalid choice #{value}, choose from: #{valid_choices}"
+      type ->
+        "#{option} : Expected type #{type}, got #{inspect value}"
+    end
   end
 
   defp get_type(option, opts, types) do
