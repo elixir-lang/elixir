@@ -860,7 +860,8 @@ defmodule GenServer do
 
   `client` must be the `from` argument (the second argument) accepted by
   `c:handle_call/3` callbacks. `reply` is an arbitrary term which will be given
-  back to the client as the return value of the call.
+  back to the client as the return value of the call. The `from` argument is a tuple 
+  consisting of a caller's PID and a reference, eg. `{#PID<0.72.0>, #Reference<0.0.4.992>}`.
 
   Note that `reply/2` can be called from any process, not just the GenServer
   that originally received the call (as long as that GenServer communicated the
