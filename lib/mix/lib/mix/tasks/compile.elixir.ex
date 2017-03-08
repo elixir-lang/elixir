@@ -63,19 +63,10 @@ defmodule Mix.Tasks.Compile.Elixir do
     force    = opts[:force] || Mix.Utils.stale?(configs, [manifest])
 
     opts = Keyword.merge(project[:elixirc_options] || [], opts)
-    Mix.Compilers.Elixir.compile(manifest, srcs, dest, [:ex], force, stale_local_deps(manifest), opts)
-  end
-
-  defp stale_local_deps(manifest) do
-    base = Path.basename(manifest)
-    modified = Mix.Utils.last_modified(manifest)
-    for %{scm: scm, opts: opts} = dep <- Mix.Dep.cached(),
-        not scm.fetchable?,
-        Mix.Utils.last_modified(Path.join(opts[:build], base)) > modified,
-        path <- Mix.Dep.load_paths(dep),
-        beam <- Path.wildcard(Path.join(path, "*.beam")),
-        Mix.Utils.last_modified(beam) > modified,
-        do: beam |> Path.basename |> Path.rootname |> String.to_atom
+    case Mix.Compilers.Elixir.compile(manifest, srcs, dest, [:ex], force, opts) do
+      {[], []} -> :noop
+      {_, _} -> :ok
+    end
   end
 
   @doc """
