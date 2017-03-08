@@ -723,7 +723,7 @@ defmodule OptionParser do
   defp to_underscore(<<>>, acc),
     do: acc
 
-  def get_option_key(option, allow_nonexistent_atoms?) do
+  defp get_option_key(option, allow_nonexistent_atoms?) do
     if string = to_underscore(option) do
       to_existing_key(string, allow_nonexistent_atoms?)
     end
