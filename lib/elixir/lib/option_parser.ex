@@ -306,7 +306,7 @@ defmodule OptionParser do
   end
 
   defp do_parse(argv, %{switches: switches} = config, opts, args, invalid, all?) do
-    case do_next(argv, config) do
+    case next(argv, config) do
       {:ok, option, value, rest} ->
         # the option exists and it was successfully parsed
         kinds = List.wrap Keyword.get(switches, option)
@@ -359,35 +359,37 @@ defmodule OptionParser do
         {:undefined, String.t, String.t | nil, argv} |
         {:error, argv}
 
-  def next(argv, opts \\ []) when is_list(argv) and is_list(opts) do
-    do_next(argv, compile_config(opts))
+  def next(argv, opts \\ [])
+
+  def next(argv, opts) when is_list(argv) and is_list(opts) do
+    next(argv, compile_config(opts))
   end
 
-  defp do_next([], _config) do
+  def next([], _config) do
     {:error, []}
   end
 
-  defp do_next(["--" | _] = argv, _config) do
+  def next(["--" | _] = argv, _config) do
     {:error, argv}
   end
 
-  defp do_next(["-" | _] = argv, _config) do
+  def next(["-" | _] = argv, _config) do
     {:error, argv}
   end
 
-  defp do_next(["- " <> _ | _] = argv, _config) do
+  def next(["- " <> _ | _] = argv, _config) do
     {:error, argv}
   end
 
   # Handles --foo or --foo=bar
-  defp do_next(["--" <> option | rest], config) do
+  def next(["--" <> option | rest], config) do
     {option, value} = split_option(option)
     tagged = tag_option(option, config)
     next_tagged(tagged, value, "--" <> option, rest, config)
   end
 
   # Handles -a, -abc, -abc=something
-  defp do_next(["-" <> option | rest] = argv, config) do
+  def next(["-" <> option | rest] = argv, config) do
     %{aliases: aliases, allow_nonexistent_atoms?: allow_nonexistent_atoms?} = config
     {option, value} = split_option(option)
     original = "-" <> option
@@ -404,7 +406,7 @@ defmodule OptionParser do
           IO.warn "multi-letter aliases are deprecated, got: #{inspect(key)}"
           next_tagged({:default, option_key}, value, original, rest, config)
         else
-          do_next(expand_multi_letter_alias(option, value) ++ rest, config)
+          next(expand_multi_letter_alias(option, value) ++ rest, config)
         end
       true ->
         # We have a regular one-letter alias here
@@ -413,7 +415,7 @@ defmodule OptionParser do
     end
   end
 
-  defp do_next(argv, _config) do
+  def next(argv, _config) do
     {:error, argv}
   end
 
