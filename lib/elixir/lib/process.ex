@@ -143,7 +143,8 @@ defmodule Process do
 
   `timeout` is either the number of milliseconds to sleep as an
   integer or the atom `:infinity`. When `:infinity` is given,
-  the current process will suspend forever.
+  the current process will sleep forever, and not
+  consume or reply to messages.
 
   **Use this function with extreme care**. For almost all situations
   where you would use `sleep/1` in Elixir, there is likely a
