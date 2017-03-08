@@ -74,13 +74,12 @@ defmodule Calendar.ISO do
   minute: 0, month: 1, second: 0, std_offset: 0, time_zone: "Etc/UTC",
   utc_offset: 0, year: 2000, zone_abbr: "UTC"}
   """
-  @spec datetime_from_rata_die(Calendar.rata_die) :: Calendar.DateTime
+  @spec datetime_from_rata_die(Calendar.rata_die) :: {Calendar.year, Calendar.month, Calendar.day, Calendar.hour, Calendar.minute, Calendar.second, Calendar.microsecond,
+                                                      Calendar.time_zone, Calendar.zone_abbr, Calendar.utc_offset, Calendar.std_offset}
   def datetime_from_rata_die({days, {parts_in_day, parts_of_day}}) do
     {year, month, day} = from_rata_die_day(days)
     {hour, minute, second, microsecond} = extract_from_day_fraction(parts_in_day, parts_of_day)
-    {:ok, naive} = NaiveDateTime.new(year, month, day, hour, minute, second, {microsecond, 6})
-    {:ok, datetime} = DateTime.from_naive(naive, "Etc/UTC")
-    datetime
+    {year, month, day, hour, minute, second, {microsecond, 6}}
   end
   @doc """
   Returns the normalized Day Fraction of the specified time.
@@ -92,7 +91,7 @@ defmodule Calendar.ISO do
   iex> Calendar.ISO.time_to_day_fraction(~T[12:34:56.123])
   {45296123000, 86400000000}
   """
-  @spec time_to_day_fraction(Calendar.Time) :: Calendar.day_fraction
+  @spec time_to_day_fraction({hour, minute, second, microsecond}) :: Calendar.day_fraction
   def time_to_day_fraction(%{hour: hour, minute: minute, second: second, microsecond: {microsecond, _}}) do
     combine_time_to_day_fraction(hour, minute, second, microsecond)
   end
@@ -106,11 +105,10 @@ defmodule Calendar.ISO do
   iex> Calendar.ISO.time_from_day_fraction({13,24})
   ~T[13:00:00.000000]
   """
-  @spec time_from_day_fraction(Calendar.day_fraction) :: Calendar.Time
+  @spec time_from_day_fraction(Calendar.day_fraction) :: {Calendar.hour, Calendar.minute, Calendar.second, Calendar.microsecond}
   def time_from_day_fraction({parts_in_day, parts_per_day}) do
     {hour, minute, second, microsecond} = extract_from_day_fraction(parts_in_day, parts_per_day)
-    {:ok, time} = Time.new(hour, minute, second, microsecond)
-    time
+    {hour, minute, second, microsecond}
   end
 
   defp combine_time_to_day_fraction(hour, minute, second, microsecond, std_offset \\ 0, utc_offset \\ 0) do

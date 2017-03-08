@@ -19,11 +19,11 @@ defmodule Calendar do
   @type year :: integer
   @type month :: integer
   @type day :: integer
-  @type hour :: 0..23
-  @type minute :: 0..59
+  @type hour :: integer
+  @type minute :: integer
 
   @typedoc "From 0 to 60 to account for leap seconds"
-  @type second :: 0..60
+  @type second :: integer
 
   @typedoc """
   The internal time format is used when converting between calendars.
@@ -128,16 +128,26 @@ defmodule Calendar do
   Converts the given datetime (with time zone)
   into the internal Calendar.rata_die format.
   """
-  @callback datetime_to_rata_die(datetime) :: rata_die
+  @callback datetime_to_rata_die(year, month, day, hour, minute, second, microsecond,
+    time_zone, zone_abbr, utc_offset, std_offset) :: rata_die
 
   @doc """
   Converts a datetime in the internal Calendar.rata_die format
   to the Calendar's datetime (with time zone) format.
   """
-  @callback datetime_from_rata_die(rata_die) :: datetime
+  @callback datetime_from_rata_die(rata_die) :: {year, month, day, hour, minute, second, microsecond,
+    time_zone, zone_abbr, utc_offset, std_offset}
 
-  @callback time_to_day_fraction(time) :: day_fraction
-  @callback time_from_day_fraction(day_fraction) :: time
+  @doc """
+  Converts the given time to the internal Calendar.day_fraction format.
+  """
+  @callback time_to_day_fraction(hour, minute, second, microsecond) :: day_fraction
+
+  @doc """
+  Converts the given time in Calendar.day_fraction format
+  to the Calendar's time format.
+  """
+  @callback time_from_day_fraction(day_fraction) :: {hour, minute, second, microsecond}
 end
 
 defmodule Date do
