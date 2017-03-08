@@ -8,25 +8,20 @@ defmodule Mix.Tasks.Compile.App do
 
   An `.app` file is a file containing Erlang terms that defines
   your application. Mix automatically generates this file based on
-  your `mix.exs` configuration. You can learn more about OTP
-  applications by seeing the documentation for the `Application`
-  module.
+  your `mix.exs` configuration.
 
-  In order to generate the `.app` file, Mix expects your application
+  In order to generate the `.app` file, Mix expects your project
   to have both `:app` and `:version` keys. Furthermore, you can
   configure the generated application by defining an `application/0`
-  function in your `mix.exs` with the following options:
+  function in your `mix.exs` with the following options.
 
-    * `:applications` - all applications your application depends
-      on at runtime. By default, this list is automatically inferred
-      from your dependencies. Any extra Erlang/Elixir dependency
-      must be specified in `:extra_applications`. Mix and other tools
-      use the application list in order to start your dependencies
-      before starting the application itself.
+  The most commonly used options are:
 
     * `:extra_applications` - a list of Erlang/Elixir applications
       that you want started before your application. For example,
-      Elixir's `:logger` or Erlang's `:crypto`.
+      Elixir's `:logger` or Erlang's `:crypto`. Mix guarantees
+      that any application given here and all of your runtime
+      dependencies are started before your application starts.
 
     * `:registered` - the name of all registered processes in the
       application. If your application defines a local GenServer
@@ -34,20 +29,36 @@ defmodule Mix.Tasks.Compile.App do
       to this list. It is most useful in detecting conflicts
       between applications that register the same names.
 
+    * `:env` - default values for the application environment.
+      The application environment is one of the most common ways
+      to configure applications. See the `Application` module for
+      mechanisms to read and write to the application environment.
+
+  For example:
+
+      def application do
+        [extra_applications: [:logger, :crypto],
+         env: [key: :value],
+         registered: [MyServer]]
+      end
+
+  Other options include:
+
+    * `:applications` - all applications your application depends
+      on at runtime. By default, this list is automatically inferred
+      from your dependencies. Mix and other tools use the application
+      list in order to start your dependencies before starting the
+      application itself.
+
     * `:mod` - specifies a module to invoke when the application
       is started. It must be in the format `{Mod, args}` where
       args is often an empty list. The module specified must
       implement the callbacks defined by the `Application`
       module.
 
-    * `:env` - default values for the application environment.
-      The application environment is one of the most common ways
-      to configure applications.
-
     * `:start_phases` - specifies a list of phases and their arguments
-      to be called after the application is started. Phases will be called, in
-      order, for the application and all included applications. If a phase is
-      not defined for an included application, that application is skipped.
+      to be called after the application is started. See the "Phases"
+      section below.
 
     * `:included_applications` - specifies a list of applications
       that will be included in the application. It is the responsibility of
@@ -56,17 +67,27 @@ defmodule Mix.Tasks.Compile.App do
       in an included application considers itself belonging to the
       primary application.
 
+  Besides the options above, `.app` files also expect other options like
+  `:modules` and `:vsn`, but these are automatically added by Mix.
+
+  ## Command line options
+
+    * `--force` - forces compilation regardless of modification times
+
+  ## Phases
+
+  Applications provide a start phases mechanism which will be called,
+  in order, for the application and all included applications. If a phase
+  is not defined for an included application, that application is skipped.
+
   Let's see an example `MyApp.application/0` function:
 
       def application do
-        [mod: {MyApp, []},
-         start_phases: [init: [], go: [], finish: []],
-         env: [default: :value],
-         applications: [:crypto],
-         included_applications: [MyIncludedApp]]
+        [start_phases: [init: [], go: [], finish: []],
+         included_applications: [:my_included_app]]
       end
 
-  And an example `MyIncludedApp.application/0` function:
+  And an example `:my_included_app` defines on its `mix.exs` the function:
 
       def application do
         [mod: {MyIncludedApp, []},
@@ -81,14 +102,6 @@ defmodule Mix.Tasks.Compile.App do
       MyApp.start_phase(:go, :normal, [])
       MyIncludedApp.start_phase(:go, :normal, [])
       MyApp.start_phase(:finish, :normal, [])
-
-  Besides the options above, `.app` files also expect other
-  options like `:modules` and `:vsn`, but these are automatically
-  added by Mix.
-
-  ## Command line options
-
-    * `--force` - forces compilation regardless of modification times
 
   """
   @spec run(OptionParser.argv) :: :ok | :noop
