@@ -53,6 +53,7 @@ defmodule OptionParser do
     * `:switches` or `:strict` - see the "Switch definitions" section below
     * `:allow_nonexistent_atoms` - see the "Parsing dynamic switches" section below
     * `:aliases` - see the "Aliases" section below
+    * `:choices` - see the "Filtering command-line arguments" section bellow
 
   ## Switch definitions
 
@@ -157,6 +158,14 @@ defmodule OptionParser do
       iex> OptionParser.parse(["-d"], aliases: [d: :debug])
       {[debug: true], [], []}
 
+  ## Filtering command-line arguments
+
+  A set of restricted values can be specified for a particular command-line
+  argument in the `:choices` option:
+
+      iex> OptionParser.parse(["--move", "rock"], switches: [move: :choices], choices: [move: ["rock", "paper", "scissors", "lizard", "spock"]])
+      {[move: "rock"], [], []}
+
   ## Examples
 
   Here are some examples of working with different types and modifiers:
@@ -189,6 +198,9 @@ defmodule OptionParser do
 
       iex> OptionParser.parse(["--unlock", "path/to/file", "--unlock", "path/to/another/file"], strict: [unlock: :keep])
       {[unlock: "path/to/file", unlock: "path/to/another/file"], [], []}
+
+      iex> OptionParser.parse(["--food", "egg"], switches: [food: :choices], choices: [food: ["egg", "spam"]])
+      {[food: "egg"], [], []}
 
   """
   @spec parse(argv, options) :: {parsed, argv, errors}
@@ -294,7 +306,7 @@ defmodule OptionParser do
   end
 
   defp do_parse(argv, %{switches: switches} = config, opts, args, invalid, all?) do
-    case next(argv, config) do
+    case do_next(argv, config) do
       {:ok, option, value, rest} ->
         # the option exists and it was successfully parsed
         kinds = List.wrap Keyword.get(switches, option)
