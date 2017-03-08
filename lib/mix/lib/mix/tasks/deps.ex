@@ -21,6 +21,12 @@ defmodule Mix.Tasks.Deps do
     * requirement is a `Version` requirement or a regular expression
     * opts is a keyword list of options
 
+  For example:
+
+      {:plug, ">= 0.4.0"}
+      {:gettext, git: "https://github.com/elixir-lang/gettext.git", tag: "0.1"}
+      {:local_dependency, path: "path/to/local_dependency"}
+
   By default, dependencies are fetched using the [Hex package manager](https://hex.pm/):
 
       {:plug, ">= 0.4.0"}
@@ -39,8 +45,8 @@ defmodule Mix.Tasks.Deps do
       {:my_app, in_umbrella: true}
 
   Path and in umbrella dependencies are automatically recompiled by
-  the parent project whenever they change. While fetchable dependencies
-  like the ones using `:git` are recompiled only when fetched/updated.
+  the parent project whenever they change. While fetchable dependencies,
+  like the ones using `:git`, are recompiled only when fetched/updated.
 
   The dependencies' versions are expected to be formatted according to
   Semantic Versioning and the requirements must be specified as defined
