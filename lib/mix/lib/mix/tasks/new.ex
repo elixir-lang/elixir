@@ -260,7 +260,6 @@ defmodule Mix.Tasks.New do
         app: :<%= @app %>,
         version: "0.1.0",
         elixir: "~> <%= @version %>",
-        build_embedded: Mix.env == :prod,
         start_permanent: Mix.env == :prod,
         deps: deps()
       ]
@@ -296,7 +295,6 @@ defmodule Mix.Tasks.New do
         deps_path: "../../deps",
         lockfile: "../../mix.lock",
         elixir: "~> <%= @version %>",
-        build_embedded: Mix.env == :prod,
         start_permanent: Mix.env == :prod,
         deps: deps()
       ]
@@ -327,7 +325,6 @@ defmodule Mix.Tasks.New do
     def project do
       [
         apps_path: "apps",
-        build_embedded: Mix.env == :prod,
         start_permanent: Mix.env == :prod,
         deps: deps()
       ]
