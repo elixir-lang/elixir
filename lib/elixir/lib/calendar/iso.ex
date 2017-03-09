@@ -34,16 +34,20 @@ defmodule Calendar.ISO do
 
   ## Examples
 
-      iex> Calendar.ISO.datetime_to_rata_die(~N[0001-01-01T00:00:00] |> DateTime.from_naive!("Etc/UTC"))
+      iex> Calendar.ISO.datetime_to_rata_die(1, 1, 1, 0, 0, 0, {0, 6}, "Etc/UTC", "UTC", 0, 0)
       {1, {0, 86400000000}}
-      iex> Calendar.ISO.datetime_to_rata_die(~N[2000-01-01T12:00:00] |> DateTime.from_naive!("Etc/UTC"))
+      iex> Calendar.ISO.datetime_to_rata_die(2000, 1, 1, 0, 0, 0, {0, 6}, "Etc/UTC", "UTC", 0, 0)
       {730120, {43200000000, 86400000000}}
-      iex> Calendar.ISO.datetime_to_rata_die(~N[2016-09-18T13:00:14] |> DateTime.from_naive!("Etc/UTC"))
+      iex> Calendar.ISO.datetime_to_rata_die(2000, 1, 1, 12, 0, 0, {0, 6}, "Etc/UTC", "UTC", 0, 0)
       {736225, {46814000000, 86400000000}}
   """
-  @spec datetime_to_rata_die(Calendar.DateTime) :: Calendar.rata_die
-  def datetime_to_rata_die(%{calendar: _calendar, year: year, month: month, day: day, hour: hour, minute: minute, second: second, microsecond: {microsecond, _},
-                             std_offset: std_offset, utc_offset: utc_offset}) do
+  @spec datetime_to_rata_die(Calendar.year, Calendar.month, Calendar.day,
+    Calendar.hour, Calendar.minute, Calendar.second, Calendar.microsecond,
+    Calendar.time_zone, Calendar.zone_abbr, Calendar.std_offset, Calendar.utc_offset
+  ) :: Calendar.rata_die
+  # def datetime_to_rata_die(%{calendar: _calendar, year: year, month: month, day: day, hour: hour, minute: minute, second: second, microsecond: {microsecond, _},
+                             # std_offset: std_offset, utc_offset: utc_offset}) do
+  def datetime_to_rata_die(year, month, day, hour, minute, second, {microsecond, _}, time_zone, zone_abbr, std_offset, utc_offset) do
     # Baseline to epoch.  This will be zero for a Gregorian calendar
     days = to_rata_die_day(year, month, day)
     {parts, ppd} = combine_time_to_day_fraction(hour, minute, second, microsecond, std_offset, utc_offset)
@@ -61,38 +65,36 @@ defmodule Calendar.ISO do
 
   ## Examples
 
-  iex> Calendar.ISO.datetime_from_rata_die({1, {0, 86400}})
-  %DateTime{calendar: Calendar.ISO, day: 1, hour: 0, microsecond: {0, 6},
-  minute: 0, month: 1, second: 0, std_offset: 0, time_zone: "Etc/UTC",
-  utc_offset: 0, year: 1, zone_abbr: "UTC"}
-  iex> Calendar.ISO.datetime_from_rata_die({730120, {0, 86400}})
-  %DateTime{calendar: Calendar.ISO, day: 1, hour: 0, microsecond: {0, 6},
-  minute: 0, month: 1, second: 0, std_offset: 0, time_zone: "Etc/UTC",
-  utc_offset: 0, year: 2000, zone_abbr: "UTC"}
-  iex> Calendar.ISO.datetime_from_rata_die({730120, {43200, 86400}})
-  %DateTime{calendar: Calendar.ISO, day: 1, hour: 12, microsecond: {0, 6},
-  minute: 0, month: 1, second: 0, std_offset: 0, time_zone: "Etc/UTC",
-  utc_offset: 0, year: 2000, zone_abbr: "UTC"}
+      iex> Calendar.ISO.datetime_from_rata_die({1, {0, 86400}})
+      {1, 1, 1, 0, 0, 0, {0, 6}, "Etc/UTC", "UTC", 0, 0}
+
+      iex> Calendar.ISO.datetime_from_rata_die({730120, {0, 86400}})
+      {2000, 1, 1, 0, 0, 0, {0, 6}, "Etc/UTC", "UTC", 0, 0}
+
+      iex> Calendar.ISO.datetime_from_rata_die({730120, {43200, 86400}})
+      {2000, 1, 1, 12, 0, 0, {0, 6}, "Etc/UTC", "UTC", 0, 0}
   """
-  @spec datetime_from_rata_die(Calendar.rata_die) :: {Calendar.year, Calendar.month, Calendar.day, Calendar.hour, Calendar.minute, Calendar.second, Calendar.microsecond,
+  @spec datetime_from_rata_die(Calendar.rata_die) :: {Calendar.year, Calendar.month, Calendar.day,
+                                                      Calendar.hour, Calendar.minute, Calendar.second, Calendar.microsecond,
                                                       Calendar.time_zone, Calendar.zone_abbr, Calendar.utc_offset, Calendar.std_offset}
   def datetime_from_rata_die({days, {parts_in_day, parts_of_day}}) do
     {year, month, day} = from_rata_die_day(days)
     {hour, minute, second, microsecond} = extract_from_day_fraction(parts_in_day, parts_of_day)
-    {year, month, day, hour, minute, second, {microsecond, 6}}
+    {year, month, day, hour, minute, second, {microsecond, 6}, "Etc/UTC", "UTC", 0, 0}
   end
   @doc """
   Returns the normalized Day Fraction of the specified time.
 
   ## Examples
 
-  iex> Calendar.ISO.time_to_day_fraction(~T[00:00:00])
-  {0, 86400000000}
-  iex> Calendar.ISO.time_to_day_fraction(~T[12:34:56.123])
-  {45296123000, 86400000000}
+      iex> Calendar.ISO.time_to_day_fraction(0, 0, 0, {0, 6})
+      {0, 86400000000}
+      iex> Calendar.ISO.time_to_day_fraction(12, 34, 56, {123, 6})
+      {45296000123, 86400000000}
   """
-  @spec time_to_day_fraction({hour, minute, second, microsecond}) :: Calendar.day_fraction
-  def time_to_day_fraction(%{hour: hour, minute: minute, second: second, microsecond: {microsecond, _}}) do
+  @spec time_to_day_fraction(Calendar.hour, Calendar.minute, Calendar.second, Calendar.microsecond) :: Calendar.day_fraction
+  # def time_to_day_fraction(%{hour: hour, minute: minute, second: second, microsecond: {microsecond, _}}) do
+  def time_to_day_fraction(hour, minute, second, {microsecond, _}) do
     combine_time_to_day_fraction(hour, minute, second, microsecond)
   end
 
@@ -101,14 +103,14 @@ defmodule Calendar.ISO do
 
   ## Examples
   iex> Calendar.ISO.time_from_day_fraction({1,2})
-  ~T[12:00:00.000000]
+  {12, 0, 0, {0, 6}}
   iex> Calendar.ISO.time_from_day_fraction({13,24})
-  ~T[13:00:00.000000]
+  {13, 0, 0, {0, 6}}
   """
   @spec time_from_day_fraction(Calendar.day_fraction) :: {Calendar.hour, Calendar.minute, Calendar.second, Calendar.microsecond}
   def time_from_day_fraction({parts_in_day, parts_per_day}) do
     {hour, minute, second, microsecond} = extract_from_day_fraction(parts_in_day, parts_per_day)
-    {hour, minute, second, microsecond}
+    {hour, minute, second, {microsecond, 6}}
   end
 
   defp combine_time_to_day_fraction(hour, minute, second, microsecond, std_offset \\ 0, utc_offset \\ 0) do

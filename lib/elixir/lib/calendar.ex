@@ -1912,11 +1912,10 @@ defmodule DateTime do
   """
   @spec compare(DateTime.t, DateTime.t) :: :lt | :eq | :gt
   def compare(%DateTime{calendar: calendar1} = datetime1, %DateTime{calendar: calendar2} = datetime2) do
-    {days1, {parts1, ppd1}} = calendar1.datetime_to_rata_die(datetime1)
-    {days2, {parts2, ppd2}} = calendar2.datetime_to_rata_die(datetime2)
+    {days1, {parts1, ppd1}} = calendar1.datetime_to_rata_die(datetime1 |> to_tuple)
+    {days2, {parts2, ppd2}} = calendar2.datetime_to_rata_die(datetime2 |> to_tuple)
 
     # Ensure fraction tuples have same denominator.
-    combined_ppd = ppd1 * ppd2
     rata_die1 = {days1, parts1 * ppd2}
     rata_die2 = {days2, parts2 * ppd1}
 
@@ -1926,6 +1925,17 @@ defmodule DateTime do
       _ -> :eq
     end
   end
+
+
+
+  defp to_tuple(%{calendar: Calendar.ISO, year: year, month: month, day: day,
+                  hour: hour, minute: minute, second: second, microsecond: microsecond,
+                  time_zone: time_zone, zone_abbr: zone_abbr, utc_offset: utc_offset, std_offset: std_offset}) do
+    {year, month, day, hour, minute, second, microsecond, time_zone, zone_abbr, utc_offset, std_offset}
+  end
+
+
+
 
   @doc """
   Returns the difference between two `DateTime` structs,
