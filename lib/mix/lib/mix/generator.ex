@@ -85,7 +85,8 @@ defmodule Mix.Generator do
         end
 
       require EEx
-      EEx.function_from_string :defp, :"#{name}_template", "<% _ = assigns %>" <> contents, [:assigns]
+
+      EEx.function_from_string :def, :"#{name}", "<% _ = assigns %>" <> contents, [:assigns]
     end
   end
 
@@ -111,7 +112,7 @@ defmodule Mix.Generator do
           c when is_binary(c) -> c
           _ -> raise ArgumentError, "expected string or from_file: file"
         end
-      defp unquote(:"#{name}_text")(), do: unquote(contents)
+      def unquote(:"#{name}")(), do: unquote(contents)
     end
   end
 end
