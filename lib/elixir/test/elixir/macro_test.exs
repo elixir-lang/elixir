@@ -594,6 +594,11 @@ defmodule MacroTest do
     assert :ok == Macro.validate_guard(guard, __ENV__)
   end
 
+  test "pins are valid in guards" do
+    guard = quote do: ^a
+    assert :ok == Macro.validate_guard(guard, __ENV__)
+  end
+
   test "__MODULE__ is valid in guards" do
     guard = quote do: __MODULE__
     assert :ok == Macro.validate_guard(guard, __ENV__)
@@ -701,6 +706,11 @@ defmodule MacroTest do
     refute :ok == Macro.validate_guard(bad_guard, __ENV__)
   end
 
+  test "assignment is not valid in guards" do
+    guard = quote do: x = 9001
+    refute :ok == Macro.validate_guard(guard, __ENV__)
+  end
+
   test "cases are not valid in guards" do
     guard = quote do: (case x do; x -> x; end)
     refute :ok == Macro.validate_guard(guard, __ENV__)
@@ -726,11 +736,6 @@ defmodule MacroTest do
     refute :ok == Macro.validate_guard(guard, __ENV__)
   end
 
-  test "pins are not valid in guards" do
-    guard = quote do: ^var
-    refute :ok == Macro.validate_guard(guard, __ENV__)
-  end
-
   test "aliases are not valid in guards" do
     bad_guard = quote do: alias Supervisor.Spec
     refute :ok == Macro.validate_guard(bad_guard, __ENV__)
@@ -744,11 +749,6 @@ defmodule MacroTest do
   test "requires are not valid in guards" do
     bad_guard = quote do: require Record
     refute :ok == Macro.validate_guard(bad_guard, __ENV__)
-  end
-
-  test "assignment is not valid in guards" do
-    guard = quote do: x = 9001
-    refute :ok == Macro.validate_guard(guard, __ENV__)
   end
 
   test "blocks are not valid in guards" do

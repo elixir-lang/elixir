@@ -691,18 +691,26 @@ defmodule Macro do
   @spec validate_guard(Macro.t) :: :ok | {:error, term}
   def validate_guard(expr) do
     validate expr, fn
-      {container, [], exprs} when is_list(exprs) and container in [:{}, :%{}, :%, :<<>>] ->
-        true
-      {:__block__, [], exprs} when is_list(exprs) and length(exprs) == 1 ->
-        true
+    # Only remote calls to erlang-supported guard functions
       {{:., _, [:erlang, call]}, _, args} when is_list(args) ->
         :erl_internal.guard_bif(call, length(args)) or :elixir_utils.guard_op(call, length(args))
       {:., _, [:erlang, _call]} ->
         true
-      {_, _, atom} when is_atom(atom) ->
+    # Only one-liners
+      {:__block__, _, exprs} when is_list(exprs) and length(exprs) != 1 ->
+        false
+    # Nothing that calls assert_no_guard_scope in elixir_expand
+      {invalid, _, _} when invalid in [:=, :alias, :require, :import, :&, :fn, :cond, :receive, :try, :case] ->
+        false
+    # Allow special forms to be handled at the compiler level
+      {atom, _, args} when is_atom(atom) and is_list(args) ->
+        :elixir_import.special_form(atom, length(args))
+    # Allow general terms
+      {_, _, last} when is_atom(last) ->
         true
       term when not is_tuple(term) or is_tuple(term) and tuple_size(term) == 2 ->
         true
+    # Everything else is invalid
       _other ->
         false
     end
