@@ -13,12 +13,6 @@ defmodule Mix.Tasks.App.StartTest do
     end
   end
 
-  defmodule AppEmbeddedSample do
-    def project do
-      [app: :app_embedded_sample, version: "0.1.0", build_embedded: true]
-    end
-  end
-
   defmodule WrongElixirProject do
     def project do
       [app: :error, version: "0.1.0", elixir: "~> 0.8.1"]
@@ -50,18 +44,6 @@ defmodule Mix.Tasks.App.StartTest do
     end
   end
 
-  @tag apps: [:app_embedded_sample]
-  test "compiles and starts a project with build_embedded", context do
-    Mix.Project.push AppEmbeddedSample
-
-    in_tmp context.test, fn ->
-      assert_raise  Mix.Error, ~r"Cannot execute task because the project was not yet compiled", fn ->
-        Mix.Tasks.App.Start.run []
-      end
-      Mix.Tasks.Compile.run([])
-      Mix.Tasks.App.Start.run([])
-    end
-  end
 
   @tag apps: [:app_start_sample, :app_loaded_sample]
   test "start checks for invalid configuration", context do
@@ -74,7 +56,6 @@ defmodule Mix.Tasks.App.StartTest do
       Mix.Tasks.Compile.run([])
       Mix.Tasks.App.Start.run([])
 
-      refute_received {:mix_shell, :error, ["You have configured application :app_embedded_sample" <> _]}
       assert_received {:mix_shell, :error, ["You have configured application :app_unknown_sample" <> _]}
       refute_received {:mix_shell, :error, ["You have configured application :app_loaded_sample" <> _]}
     end

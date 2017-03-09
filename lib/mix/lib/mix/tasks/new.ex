@@ -42,7 +42,12 @@ defmodule Mix.Tasks.New do
 
   """
 
-  @switches [sup: :boolean, umbrella: :boolean, app: :string, module: :string]
+  @switches [
+    app: :string,
+    module: :string,
+    sup: :boolean,
+    umbrella: :boolean
+  ]
 
   @spec run(OptionParser.argv) :: :ok
   def run(argv) do
@@ -73,7 +78,7 @@ defmodule Mix.Tasks.New do
   end
 
   defp generate(app, mod, path, opts) do
-    assigns = [app: app, mod: mod, otp_app: otp_app(mod, !!opts[:sup]),
+    assigns = [app: app, mod: mod, sup_app: sup_app(mod, !!opts[:sup]),
                version: get_version(System.version)]
 
     create_file "README.md",  readme_template(assigns)
@@ -112,21 +117,11 @@ defmodule Mix.Tasks.New do
     |> Mix.shell.info
   end
 
-  defp otp_app(_mod, false) do
-    "    [extra_applications: [:logger]]"
-  end
+  defp sup_app(_mod, false), do: ""
+  defp sup_app(mod, true), do: ",\n      mod: {#{mod}.Application, []}"
 
-  defp otp_app(mod, true) do
-    "    [extra_applications: [:logger],\n     mod: {#{mod}.Application, []}]"
-  end
-
-  defp cd_path(".") do
-    ""
-  end
-
-  defp cd_path(path) do
-    "cd #{path}\n    "
-  end
+  defp cd_path("."), do: ""
+  defp cd_path(path), do: "cd #{path}\n    "
 
   defp generate_umbrella(_app, mod, path, _opts) do
     assigns = [app: nil, mod: mod]
@@ -261,33 +256,28 @@ defmodule Mix.Tasks.New do
     use Mix.Project
 
     def project do
-      [app: :<%= @app %>,
-       version: "0.1.0",
-       elixir: "~> <%= @version %>",
-       build_embedded: Mix.env == :prod,
-       start_permanent: Mix.env == :prod,
-       deps: deps()]
+      [
+        app: :<%= @app %>,
+        version: "0.1.0",
+        elixir: "~> <%= @version %>",
+        start_permanent: Mix.env == :prod,
+        deps: deps()
+      ]
     end
 
-    # Configuration for the OTP application
-    #
-    # Type "mix help compile.app" for more information
+    # Run "mix help compile.app" to learn about applications.
     def application do
-      # Specify extra applications you'll use from Erlang/Elixir
-  <%= @otp_app %>
+      [
+        extra_applications: [:logger]<%= @sup_app %>
+      ]
     end
 
-    # Dependencies can be Hex packages:
-    #
-    #   {:my_dep, "~> 0.3.0"}
-    #
-    # Or git/path repositories:
-    #
-    #   {:my_dep, git: "https://github.com/elixir-lang/my_dep.git", tag: "0.1.0"}
-    #
-    # Type "mix help deps" for more examples and options
+    # Run "mix help deps" to learn about dependencies.
     defp deps do
-      []
+      [
+        # {:dep_example, "~> 0.3.0"},
+        # {:dep_example, git: "https://github.com/elixir-lang/my_dep.git", tag: "0.1.0"},
+      ]
     end
   end
   """
@@ -297,41 +287,33 @@ defmodule Mix.Tasks.New do
     use Mix.Project
 
     def project do
-      [app: :<%= @app %>,
-       version: "0.1.0",
-       build_path: "../../_build",
-       config_path: "../../config/config.exs",
-       deps_path: "../../deps",
-       lockfile: "../../mix.lock",
-       elixir: "~> <%= @version %>",
-       build_embedded: Mix.env == :prod,
-       start_permanent: Mix.env == :prod,
-       deps: deps()]
+      [
+        app: :<%= @app %>,
+        version: "0.1.0",
+        build_path: "../../_build",
+        config_path: "../../config/config.exs",
+        deps_path: "../../deps",
+        lockfile: "../../mix.lock",
+        elixir: "~> <%= @version %>",
+        start_permanent: Mix.env == :prod,
+        deps: deps()
+      ]
     end
 
-    # Configuration for the OTP application
-    #
-    # Type "mix help compile.app" for more information
+    # Run "mix help compile.app" to learn about applications.
     def application do
-      # Specify extra applications you'll use from Erlang/Elixir
-  <%= @otp_app %>
+      [
+        extra_applications: [:logger]<%= @sup_app %>
+      ]
     end
 
-    # Dependencies can be Hex packages:
-    #
-    #   {:my_dep, "~> 0.3.0"}
-    #
-    # Or git/path repositories:
-    #
-    #   {:my_dep, git: "https://github.com/elixir-lang/my_dep.git", tag: "0.1.0"}
-    #
-    # To depend on another app inside the umbrella:
-    #
-    #   {:my_app, in_umbrella: true}
-    #
-    # Type "mix help deps" for more examples and options
+    # Run "mix help deps" to learn about dependencies.
     defp deps do
-      []
+      [
+        # {:dep_example, "~> 0.3.0"},
+        # {:dep_example, git: "https://github.com/elixir-lang/my_dep.git", tag: "0.1.0"},
+        # {:sibling_app_in_umbrella, in_umbrella: true},
+      ]
     end
   end
   """
@@ -341,24 +323,18 @@ defmodule Mix.Tasks.New do
     use Mix.Project
 
     def project do
-      [apps_path: "apps",
-       build_embedded: Mix.env == :prod,
-       start_permanent: Mix.env == :prod,
-       deps: deps()]
+      [
+        apps_path: "apps",
+        start_permanent: Mix.env == :prod,
+        deps: deps()
+      ]
     end
 
-    # Dependencies can be Hex packages:
+    # Dependencies listed here are available only for this
+    # project and cannot be accessed from applications inside
+    # the apps folder.
     #
-    #   {:my_dep, "~> 0.3.0"}
-    #
-    # Or git/path repositories:
-    #
-    #   {:my_dep, git: "https://github.com/elixir-lang/my_dep.git", tag: "0.1.0"}
-    #
-    # Type "mix help deps" for more examples and options.
-    #
-    # Dependencies listed here are available only for this project
-    # and cannot be accessed from applications inside the apps folder
+    # Run "mix help deps" for examples and options.
     defp deps do
       []
     end

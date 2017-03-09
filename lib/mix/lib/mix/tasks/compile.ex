@@ -17,10 +17,8 @@ defmodule Mix.Tasks.Compile do
       consolidation via the `compile.protocols` task. The default
       value is `true`.
 
-    * `:build_embedded` - when `true`, prepares the `_build` directory
-      for production by not using symlinks and optimizing paths. Once
-      enabled, implicit compilation is disabled and explicit calls
-      to `mix compile` is required. Defaults to `false`.
+    * `:build_embedded` - when `true`, embeds all code and priv
+      content in the `_build` directory instead of using symlinks.
 
     * `:build_path` - the directory where build artifacts
       should be written to. This option is intended only for
