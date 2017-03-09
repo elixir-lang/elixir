@@ -36,9 +36,9 @@ defmodule Calendar.ISO do
 
       iex> Calendar.ISO.datetime_to_rata_die(1, 1, 1, 0, 0, 0, {0, 6}, "Etc/UTC", "UTC", 0, 0)
       {1, {0, 86400000000}}
-      iex> Calendar.ISO.datetime_to_rata_die(2000, 1, 1, 0, 0, 0, {0, 6}, "Etc/UTC", "UTC", 0, 0)
-      {730120, {43200000000, 86400000000}}
       iex> Calendar.ISO.datetime_to_rata_die(2000, 1, 1, 12, 0, 0, {0, 6}, "Etc/UTC", "UTC", 0, 0)
+      {730120, {43200000000, 86400000000}}
+      iex> Calendar.ISO.datetime_to_rata_die(2000, 1, 1, 13, 0, 0, {0, 6}, "Etc/UTC", "UTC", 0, 0)
       {736225, {46814000000, 86400000000}}
   """
   @spec datetime_to_rata_die(Calendar.year, Calendar.month, Calendar.day,

@@ -1912,8 +1912,10 @@ defmodule DateTime do
   """
   @spec compare(DateTime.t, DateTime.t) :: :lt | :eq | :gt
   def compare(%DateTime{calendar: calendar1} = datetime1, %DateTime{calendar: calendar2} = datetime2) do
-    {days1, {parts1, ppd1}} = calendar1.datetime_to_rata_die(datetime1 |> to_tuple)
-    {days2, {parts2, ppd2}} = calendar2.datetime_to_rata_die(datetime2 |> to_tuple)
+    {year1, month1, day1, hour1, minute1, second1, microsecond1, time_zone1, zone_abbr1, utc_offset1, std_offset1} = datetime1 |> to_tuple
+    {year2, month2, day2, hour2, minute2, second2, microsecond2, time_zone2, zone_abbr2, utc_offset2, std_offset2} = datetime2 |> to_tuple
+    {days1, {parts1, ppd1}} = calendar1.datetime_to_rata_die(year1, month1, day1, hour1, minute1, second1, microsecond1, time_zone1, zone_abbr1, utc_offset1, std_offset1)
+    {days2, {parts2, ppd2}} = calendar2.datetime_to_rata_die(year2, month2, day2, hour2, minute2, second2, microsecond2, time_zone2, zone_abbr2, utc_offset2, std_offset2)
 
     # Ensure fraction tuples have same denominator.
     rata_die1 = {days1, parts1 * ppd2}
@@ -1954,8 +1956,11 @@ defmodule DateTime do
   """
   @spec diff(DateTime.t, DateTime.t) :: Calendar.rata_die
   def diff(%DateTime{calendar: calendar1} = datetime1, %DateTime{calendar: calendar2} = datetime2) do
-    {days1, {parts1, ppd1}} = calendar1.datetime_to_rata_die(datetime1)
-    {days2, {parts2, ppd2}} = calendar2.datetime_to_rata_die(datetime2)
+    {year1, month1, day1, hour1, minute1, second1, microsecond1, time_zone1, zone_abbr1, utc_offset1, std_offset1} = datetime1 |> to_tuple
+    {year2, month2, day2, hour2, minute2, second2, microsecond2, time_zone2, zone_abbr2, utc_offset2, std_offset2} = datetime2 |> to_tuple
+    {days1, {parts1, ppd1}} = calendar1.datetime_to_rata_die(year1, month1, day1, hour1, minute1, second1, microsecond1, time_zone1, zone_abbr1, utc_offset1, std_offset1)
+    {days2, {parts2, ppd2}} = calendar2.datetime_to_rata_die(year2, month2, day2, hour2, minute2, second2, microsecond2, time_zone2, zone_abbr2, utc_offset2, std_offset2)
+
     diff_days = days1 - days2
     diff_ppd = ppd1 * ppd2
     diff_parts = parts1 * ppd2 - parts2 * ppd1
