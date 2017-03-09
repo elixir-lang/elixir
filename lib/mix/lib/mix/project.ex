@@ -498,26 +498,10 @@ defmodule Mix.Project do
 
   @doc """
   Compiles the given project.
-
-  It will run the compile task unless the project
-  is in build embedded mode, which may fail as an
-  explicit execution of `mix compile` is required.
   """
   @spec compile([term], Keyword.t) :: term
-  def compile(args, config \\ config()) do
-    if config[:build_embedded] do
-      path = if umbrella?(config), do: build_path(config), else: compile_path(config)
-
-      unless File.exists?(path) do
-        Mix.raise "Cannot execute task because the project was not yet compiled. " <>
-                  "When build_embedded is set to true, \"MIX_ENV=#{Mix.env} mix compile\" " <>
-                  "must be explicitly executed"
-      end
-
-      Mix.Task.run "loadpaths", args
-    else
-      Mix.Task.run "compile", args
-    end
+  def compile(args, _config \\ []) do
+    Mix.Task.run "compile", args
   end
 
   @doc """
