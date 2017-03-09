@@ -115,21 +115,8 @@ defmodule Record do
       true
 
   """
-  defmacro is_record(data, kind) do
-    case Macro.Env.in_guard?(__CALLER__) do
-      true ->
-        quote do
-          is_atom(unquote(kind)) and is_tuple(unquote(data)) and tuple_size(unquote(data)) > 0 and
-            elem(unquote(data), 0) == unquote(kind)
-        end
-      false ->
-        quote do
-          result = unquote(data)
-          kind = unquote(kind)
-          is_atom(kind) and is_tuple(result) and tuple_size(result) > 0 and elem(result, 0) == kind
-        end
-    end
-  end
+  defguard is_record(data, kind) when
+    is_atom(kind) and is_tuple(data) and tuple_size(data) > 0 and elem(data, 0) == kind
 
   @doc """
   Checks if the given `data` is a record.
@@ -146,20 +133,8 @@ defmodule Record do
       false
 
   """
-  defmacro is_record(data) do
-    case Macro.Env.in_guard?(__CALLER__) do
-      true ->
-        quote do
-          is_tuple(unquote(data)) and tuple_size(unquote(data)) > 0 and
-            is_atom(elem(unquote(data), 0))
-        end
-      false ->
-        quote do
-          result = unquote(data)
-          is_tuple(result) and tuple_size(result) > 0 and is_atom(elem(result, 0))
-        end
-    end
-  end
+  defguard is_record(data) when
+    is_tuple(data) and tuple_size(data) > 0 and is_atom(elem(data, 0))
 
   @doc """
   Defines a set of macros to create, access, and pattern match

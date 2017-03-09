@@ -298,6 +298,89 @@ defmodule Macro do
   def pipe_warning(_), do: nil
 
   @doc """
+  Rewrites an expression so it can be used both inside and outside a guard.
+
+  Take, for example, the expression:
+
+  ```elixir
+    is_integer(value) and rem(value, 2) == 0
+  ```
+
+  If we wanted to create a macro, `is_even`, from this expression, that could be
+  used in guards, we'd have to take several things into account.
+
+  First, if this expression is being used inside a guard, `value` needs to be
+  unquoted each place it occurs, since it has not yet been at that point in our
+  macro.
+
+  Secondly, if the expression is being used outside of a guard, we want to unquote
+  `value`––but only once, and then re-use the unquoted form throughout the expression.
+
+  This helper does exactly that: takes the AST for an expression and a list of
+  variable names it should be aware of, and rewrites it into a new expression that
+  checks for its presence in a guard, then unquotes the variable references as
+  appropriate.
+
+  The resulting transformation looks something like this:
+
+      > expr = quote do: is_integer(value) and rem(value, 2) == 0
+      > vars = [:value]
+      > Macro.to_string(Macro.guard(expr, vars))
+
+      case Macro.Env.in_guard? env do
+        true -> quote do
+          is_integer(unquote(value)) and rem(unquote(value), 2) == 0
+        end
+        false -> quote do
+          value = unquote(value)
+          is_integer(value) and rem(value, 2) == 0
+        end
+      end
+
+  Note that this function does nothing to ensure that the expression itself is
+  appropriate for use in a guard, it just rewrites the expression. To ensure that
+  the expression is suitable, first run it through `validate_guard/2`.
+  """
+  @spec guard(Macro.t, [atom]) :: Macro.t | no_return
+  def guard(expr, vars) do
+    quote do
+      case Macro.Env.in_guard?(__CALLER__) do
+        true ->  unquote(quote_ast guard_quotation(expr, vars, in_guard: true))
+        false -> unquote(quote_ast guard_quotation(expr, vars, in_guard: false))
+      end
+    end
+  end
+
+  # Finds every reference to `vars` in `expr` and wraps them in an unquote.
+  defp guard_quotation(expr, vars, in_guard: true) do
+    Macro.postwalk expr, fn
+      { token, meta, atom } when is_atom(atom) ->
+        case token in vars do
+          true ->  unquote_ast({ token, meta, atom })
+          false -> { token, meta, atom }
+        end
+      node -> node
+    end
+  end
+
+  # Prefaces `expr` with unquoted versions of `vars`.
+  defp guard_quotation(expr, vars, in_guard: false) do
+    for var <- vars, ref = Macro.var(var, nil) do
+      quote do: unquote(ref) = unquote(unquote_ast(ref))
+    end ++ List.wrap(expr)
+  end
+
+  # It's hard to generate ast when the ast must be quoted, unquoted into,
+  # and the ast needs to contain quotes/unquotes. These can be used to insert
+  # quotes/unquotes into the final ast that won't be processed as a directive.
+  defp quote_ast(ast) do
+    { :quote, [], [[do: { :__block__, [], List.wrap(ast)} ]] }
+  end
+  defp unquote_ast(ast) do
+    { :unquote, [], List.wrap(ast) }
+  end
+
+  @doc """
   Applies the given function to the node metadata if it contains one.
 
   This is often useful when used with `Macro.prewalk/2` to remove
@@ -513,7 +596,7 @@ defmodule Macro do
   end
 
   @doc """
-  Validates the given expressions are valid quoted expressions.
+  Validates that the given expressions are valid quoted expressions.
 
   Checks the `t:Macro.t/0` for the specification of a valid
   quoted expression.
@@ -535,32 +618,101 @@ defmodule Macro do
 
   """
   @spec validate(term) :: :ok | {:error, term}
-  def validate(expr) do
-    find_invalid(expr) || :ok
-  end
+  def validate(expr), do: do_validate(expr, false)
 
-  defp find_invalid({left, right}), do:
-    find_invalid(left) || find_invalid(right)
+  @doc """
+  Validates that the given expressions are valid, and satisfy a custom `validator` function.
 
-  defp find_invalid({left, meta, right}) when is_list(meta) and (is_atom(right) or is_list(right)), do:
-    find_invalid(left) || find_invalid(right)
+  The `validator` must accept any AST and return truthy if it is valid, or falsey otherwise.
+  This `validator` check is evaluated before the the AST itself or its contents are judged
+  to represent valid Elixir code.
 
-  defp find_invalid(list) when is_list(list), do:
-    Enum.find_value(list, &find_invalid/1)
+  ## Examples
 
-  defp find_invalid(pid)  when is_pid(pid),    do: nil
-  defp find_invalid(atom) when is_atom(atom),  do: nil
-  defp find_invalid(num)  when is_number(num), do: nil
-  defp find_invalid(bin)  when is_binary(bin), do: nil
+      iex> Macro.validate({:two_element, :tuple}, &(&1!=1))
+      :ok
+      iex> Macro.validate({:three, :element, :tuple}, &(&1!=1))
+      {:error, {:three, :element, :tuple}}
+      iex> Macro.validate({:has_one, 1}, &(&1!=1))
+      {:error, 1}
 
-  defp find_invalid(fun) when is_function(fun) do
+      iex> Macro.validate([2, 3], &(&1!=1))
+      :ok
+      iex> Macro.validate([2, 3, {4}], &(&1!=1))
+      {:error, {4}}
+      iex> Macro.validate([1, 2, 3], &(&1!=1))
+      {:error, 1}
+
+  """
+  @spec validate(term, (term -> {term | nil})) :: :ok | {:error, term}
+  def validate(expr, validator) when is_function(validator), do: do_validate(expr, validator)
+
+  defp do_validate(expr, valid), do: find_invalid(expr, valid) || :ok
+
+  defp find_invalid(expr = {left, right}, valid), do:
+    is_valid?(expr, valid || true) || find_invalid(left, valid) || find_invalid(right, valid)
+
+  defp find_invalid(expr = {left, meta, right}, valid) when is_list(meta) and (is_atom(right) or is_list(right)), do:
+    is_valid?(expr, valid || true) || find_invalid(left, valid) || find_invalid(right, valid)
+
+  defp find_invalid(list, valid) when is_list(list), do:
+    is_valid?(list, valid || true) || Enum.find_value(list, &(find_invalid(&1, valid)))
+
+  defp find_invalid(pid, valid) when is_pid(pid),    do: is_valid?(pid, valid || true) || nil
+  defp find_invalid(atm, valid) when is_atom(atm),   do: is_valid?(atm, valid || true) || nil
+  defp find_invalid(num, valid) when is_number(num), do: is_valid?(num, valid || true) || nil
+  defp find_invalid(bin, valid) when is_binary(bin), do: is_valid?(bin, valid || true) || nil
+
+  defp find_invalid(fun, valid) when is_function(fun) do
     unless :erlang.fun_info(fun, :env) == {:env, []} and
            :erlang.fun_info(fun, :type) == {:type, :external} do
-      {:error, fun}
+      is_valid?(fun, valid || true)
     end
   end
 
-  defp find_invalid(other), do: {:error, other}
+  defp find_invalid(ast, valid) do
+    is_valid?(ast, valid)
+  end
+
+  defp is_valid?(ast, valid) when is_function(valid) do
+    unless valid.(ast) do
+      {:error, ast}
+    end
+  end
+  defp is_valid?(ast, valid) when is_boolean(valid) do
+    unless valid do
+      {:error, ast}
+    end
+  end
+
+  @doc """
+  Determines if a guard `expr` is valid.
+  """
+  @spec validate_guard(Macro.t) :: :ok | {:error, term}
+  def validate_guard(expr) do
+    validate expr, fn
+      {:__block__, [], exprs} when is_list(exprs) and length(exprs) == 1 ->
+        true
+      {{:., _, [:erlang, call]}, _, args} when is_list(args) ->
+        :erl_internal.guard_bif(call, length(args)) or :elixir_utils.guard_op(call, length(args))
+      {:., _, [:erlang, _call]} ->
+        true
+      {_, _, atom} when is_atom(atom) ->
+        true
+      term when not is_tuple(term) ->
+        true
+      _other ->
+        false
+    end
+  end
+
+  @doc """
+  Expands a guard `expr` in `env` and determines if it is valid.
+  """
+  @spec validate_guard(Macro.t, Macro.Env.t) :: :ok | {:error, term}
+  def validate_guard(expr, env) do
+    validate_guard Macro.prewalk(expr, &expand(&1, env, rewrite: true))
+  end
 
   @doc ~S"""
   Unescapes the given chars.
@@ -1106,6 +1258,9 @@ defmodule Macro do
   once and it is not recursive. Check `expand/2` for expansion
   until the node can no longer be expanded.
 
+  Passing in the option `rewrite: true` will cause it to also epxand any rewrites that
+  the Elixir compiler would normally apply.
+
   ## Examples
 
   In the example below, we have a macro that generates a module
@@ -1167,17 +1322,20 @@ defmodule Macro do
       end
 
   """
-  def expand_once(ast, env) do
-    elem(do_expand_once(ast, env), 0)
+  def expand_once(ast, env, opts \\ [])
+
+  def expand_once(ast, env, opts) do
+    elem(do_expand_once(ast, env, opts), 0)
   end
 
-  defp do_expand_once({:__aliases__, _, _} = original, env) do
+  # Expand aliases
+  defp do_expand_once({:__aliases__, _, _} = original, env, opts) do
     case :elixir_aliases.expand(original, env.aliases, env.macro_aliases, env.lexical_tracker) do
       receiver when is_atom(receiver) ->
         :elixir_lexical.record_remote(receiver, env.function, env.lexical_tracker)
         {receiver, true}
       aliases ->
-        aliases = :lists.map(&elem(do_expand_once(&1, env), 0), aliases)
+        aliases = :lists.map(&elem(do_expand_once(&1, env, opts), 0), aliases)
 
         case :lists.all(&is_atom/1, aliases) do
           true ->
@@ -1191,13 +1349,13 @@ defmodule Macro do
   end
 
   # Expand compilation environment macros
-  defp do_expand_once({:__MODULE__, _, atom}, env) when is_atom(atom),
+  defp do_expand_once({:__MODULE__, _, atom}, env, _opts) when is_atom(atom),
     do: {env.module, true}
-  defp do_expand_once({:__DIR__, _, atom}, env) when is_atom(atom),
+  defp do_expand_once({:__DIR__, _, atom}, env, _opts) when is_atom(atom),
     do: {:filename.dirname(env.file), true}
-  defp do_expand_once({:__ENV__, _, atom}, env) when is_atom(atom),
+  defp do_expand_once({:__ENV__, _, atom}, env, _opts) when is_atom(atom),
     do: {{:%{}, [], Map.to_list(env)}, true}
-  defp do_expand_once({{:., _, [{:__ENV__, _, atom}, field]}, _, []} = original, env) when
+  defp do_expand_once({{:., _, [{:__ENV__, _, atom}, field]}, _, []} = original, env, _opts) when
       is_atom(atom) and is_atom(field) do
     if Map.has_key?(env, field) do
       {Map.get(env, field), true}
@@ -1207,19 +1365,20 @@ defmodule Macro do
   end
 
   # Expand possible macro import invocation
-  defp do_expand_once({atom, meta, context} = original, env)
+  defp do_expand_once({atom, meta, context} = original, env, opts)
       when is_atom(atom) and is_list(meta) and is_atom(context) do
     if :lists.member({atom, Keyword.get(meta, :counter, context)}, env.vars) do
       {original, false}
     else
-      case do_expand_once({atom, meta, []}, env) do
+      case do_expand_once({atom, meta, []}, env, opts) do
         {_, true} = exp -> exp
         {_, false}      -> {original, false}
       end
     end
   end
 
-  defp do_expand_once({atom, meta, args} = original, env)
+  # Expand function calls
+  defp do_expand_once({atom, meta, args} = original, env, opts)
       when is_atom(atom) and is_list(args) and is_list(meta) do
     arity = length(args)
 
@@ -1233,15 +1392,13 @@ defmodule Macro do
         []
       end
 
-      expand = :elixir_dispatch.expand_import(meta, {atom, length(args)}, args,
-                                              env, extra, true)
+      expand = :elixir_dispatch.expand_import(meta, {atom, length(args)}, args, env, extra, true)
 
       case expand do
         {:ok, receiver, quoted} ->
-          next = :erlang.unique_integer()
-          {:elixir_quote.linify_with_context_counter(0, {receiver, next}, quoted), true}
-        {:ok, _receiver, _name, _args} ->
-          {original, false}
+          do_expand_call(receiver, quoted, _linify = true, env, opts)
+        {:ok, receiver, name, args} ->
+          do_expand_call(receiver, {name, [], args}, _linify = false, env, opts)
         :error ->
           {original, false}
       end
@@ -1249,8 +1406,8 @@ defmodule Macro do
   end
 
   # Expand possible macro require invocation
-  defp do_expand_once({{:., _, [left, right]}, meta, args} = original, env) when is_atom(right) do
-    {receiver, _} = do_expand_once(left, env)
+  defp do_expand_once({{:., _dotmeta, [left, right]}, meta, args} = original, env, opts) when is_atom(right) do
+    {receiver, _} = do_expand_once(left, env, opts)
 
     case is_atom(receiver) do
       false -> {original, false}
@@ -1259,8 +1416,7 @@ defmodule Macro do
 
         case expand do
           {:ok, receiver, quoted} ->
-            next = :erlang.unique_integer()
-            {:elixir_quote.linify_with_context_counter(0, {receiver, next}, quoted), true}
+            do_linify(receiver, quoted)
           :error ->
             {original, false}
         end
@@ -1268,7 +1424,50 @@ defmodule Macro do
   end
 
   # Anything else is just returned
-  defp do_expand_once(other, _env), do: {other, false}
+  defp do_expand_once(other, _env, _opts), do: {other, false}
+
+  # Call expansion, linification, and rewrite helpers
+
+  defp do_linify(receiver, quoted) do
+    next = :erlang.unique_integer()
+    {:elixir_quote.linify_with_context_counter(0, {receiver, next}, quoted), true}
+  end
+
+  defp do_maybe_linify(receiver, original, _linify = true) do
+    do_linify(receiver, original)
+  end
+  defp do_maybe_linify(_, original, _linify = false) do
+    {original, false}
+  end
+
+  defp do_expand_call(receiver, {call, meta, args}, linify, env, opts) do
+    if Keyword.get(opts, :rewrite) do
+      do_rewrite_call(receiver, {call, meta, args}, env, opts)
+    else
+      do_maybe_linify(receiver, {call, meta, args}, linify)
+    end
+  end
+
+  defp do_expand_call(receiver, original, linify, _env, _opts) do
+    do_maybe_linify(receiver, original, linify)
+  end
+
+  defp do_rewrite_call(receiver, {call, meta, args} = original, env, opts) do
+    case :elixir_rewrite.inline(receiver, call, length(args)) do
+      {receiver, call} ->
+        rewritten = {{:., [], [receiver, call]}, meta, args}
+        do_expand_once(rewritten, env, opts)
+      false ->
+        case :elixir_rewrite.rewrite(receiver, [], call, meta, args) do
+          {{:., _dotmeta, [^receiver, ^call]}, _meta, _args} ->
+            {original, false}
+          {{:., _dotmeta, [_receiver, _call]}, _meta, _args} = rewritten ->
+            do_expand_once(rewritten, env, opts)
+          other ->
+            {other, true}
+        end
+    end
+  end
 
   @doc """
   Receives an AST node and expands it until it can no longer
@@ -1277,15 +1476,17 @@ defmodule Macro do
   This function uses `expand_once/2` under the hood. Check
   it out for more information and examples.
   """
-  def expand(tree, env) do
-    expand_until({tree, true}, env)
+  def expand(tree, env, opts \\ [])
+
+  def expand(tree, env, opts) do
+    expand_until({tree, true}, env, opts)
   end
 
-  defp expand_until({tree, true}, env) do
-    expand_until(do_expand_once(tree, env), env)
+  defp expand_until({tree, true}, env, opts) do
+    expand_until(do_expand_once(tree, env, opts), env, opts)
   end
 
-  defp expand_until({tree, false}, _env) do
+  defp expand_until({tree, false}, _env, _opts) do
     tree
   end
 
