@@ -555,234 +555,229 @@ defmodule MacroTest do
   ## validate_guard
 
   test "true is valid in guards" do
-    guard = Macro.expand (quote do: true), __ENV__
+    guard = quote do: true
     assert :ok == Macro.validate_guard(guard, __ENV__)
   end
 
   test "atoms are valid in guards" do
-    guard = Macro.expand (quote do: :a), __ENV__
+    guard = quote do: :a
     assert :ok == Macro.validate_guard(guard, __ENV__)
   end
 
   test "strings are valid in guards" do
-    guard = Macro.expand (quote do: "asdf"), __ENV__
+    guard = quote do: "asdf"
     assert :ok == Macro.validate_guard(guard, __ENV__)
   end
 
   test "string operators are valid in guards" do
-    guard = Macro.expand (quote do: "foo" <> "bar"), __ENV__
+    guard = quote do: "foo" <> "bar"
     assert :ok == Macro.validate_guard(guard, __ENV__)
   end
 
   test "binaries are valid in guards" do
-    guard = Macro.expand (quote do: <<0, 1, 2, 3>>), __ENV__
+    guard = quote do: <<0, 1, 2, 3>>
     assert :ok == Macro.validate_guard(guard, __ENV__)
   end
 
   test "ranges are valid in guards" do
-    guard = Macro.expand (quote do: 1..100), __ENV__
+    guard = quote do: 1..100
     assert :ok == Macro.validate_guard(guard, __ENV__)
   end
 
   test "maps are valid in guards" do
-    guard = Macro.expand (quote do: %{:foo => :bar}), __ENV__
+    guard = quote do: %{:foo => :bar}
     assert :ok == Macro.validate_guard(guard, __ENV__)
   end
 
   test "variables are valid in guards" do
-    guard = Macro.expand (quote do: var), __ENV__
+    guard = quote do: var
     assert :ok == Macro.validate_guard(guard, __ENV__)
   end
 
   test "__MODULE__ is valid in guards" do
-    guard = Macro.expand (quote do: __MODULE__), __ENV__
+    guard = quote do: __MODULE__
     assert :ok == Macro.validate_guard(guard, __ENV__)
   end
 
   test "sigils are valid in guards" do
-    guard = Macro.expand (quote do: ~w[asdf]), __ENV__
+    guard = quote do: ~w[asdf]
     assert :ok == Macro.validate_guard(guard, __ENV__)
   end
 
   test "Elixir type tests are valid in guards" do
-    guard = Macro.expand (quote do: is_integer(var)), __ENV__
+    guard = quote do: is_integer(var)
     assert :ok == Macro.validate_guard(guard, __ENV__)
   end
 
   test "erlang type tests are valid in guards" do
-    guard = Macro.expand (quote do: :erlang.is_integer(var)), __ENV__
+    guard = quote do: :erlang.is_integer(var)
     assert :ok == Macro.validate_guard(guard, __ENV__)
   end
 
   test "Elixir extra bifs are valid in guards" do
-    guard = Macro.expand (quote do: binary_part(self(), abs(length([])), 2)), __ENV__
+    guard = quote do: binary_part(self(), abs(length([])), 2)
     assert :ok == Macro.validate_guard(guard, __ENV__)
   end
 
   test "erlang extra bifs are valid in guards" do
-    guard = Macro.expand (quote do: :erlang.binary_part(:erlang.self(), :erlang.abs(:erlang.length([])), 2)), __ENV__
+    guard = quote do: :erlang.binary_part(:erlang.self(), :erlang.abs(:erlang.length([])), 2)
     assert :ok == Macro.validate_guard(guard, __ENV__)
   end
 
   test "Elixir term comparison operators are valid in guards" do
-    guard = Macro.expand (quote do: 1 == 2), __ENV__
+    guard = quote do: 1 == 2
     assert :ok == Macro.validate_guard(guard, __ENV__)
   end
 
   test "erlang term comparison operators are valid in guards" do
-    guard = Macro.expand (quote do: :erlang.== 1, 2), __ENV__
+    guard = quote do: :erlang.== 1, 2
     assert :ok == Macro.validate_guard(guard, __ENV__)
   end
 
   test "Elixir arithmetic operators are valid in guards" do
-    guard = Macro.expand (quote do: -1 + 2 * 3 / 0 ), __ENV__
+    guard = quote do: -1 + 2 * 3 / 0
     assert :ok == Macro.validate_guard(guard, __ENV__)
   end
 
   test "erlang arithmetic operators are valid in guards" do
-    guard = Macro.expand (quote do: :erlang.+(1, :erlang.bor(1, 0) )), __ENV__
+    guard = quote do: :erlang.+(1, :erlang.bor(1, 0) )
     assert :ok == Macro.validate_guard(guard, __ENV__)
   end
 
   test "Elixir boolean operators are valid in guards" do
-    guard = Macro.expand (quote do: true or not false and bool), __ENV__
+    guard = quote do: true or not false and bool
     assert :ok == Macro.validate_guard(guard, __ENV__)
   end
 
   test "erlang boolean operators are valid in guards" do
-    guard = Macro.expand (quote do: :erlang.xor(true, :erlang.not(false))), __ENV__
+    guard = quote do: :erlang.xor(true, :erlang.not(false))
     assert :ok == Macro.validate_guard(guard, __ENV__)
   end
 
   test "Elixir list operators are valid in guards" do
-    guard = Macro.expand (quote do: x ++ y), __ENV__
+    guard = quote do: x ++ y
     assert :ok == Macro.validate_guard(guard, __ENV__)
   end
 
   test "erlang list operators are valid in guards" do
-    guard = Macro.expand (quote do: :erlang.++(x, y)), __ENV__
+    guard = quote do: :erlang.++(x, y)
     assert :ok == Macro.validate_guard(guard, __ENV__)
   end
 
   test "list membership operators are valid in guards for static lists" do
-    guard = Macro.expand (quote do: x in [:foo, :bar]), __ENV__
+    guard = quote do: x in [:foo, :bar]
     assert :ok == Macro.validate_guard(guard, __ENV__)
   end
 
   test "exclusionary list membership operators are valid in guards for static lists" do
-    guard = Macro.expand (quote do: x not in [:foo, :bar]), __ENV__
+    guard = quote do: x not in [:foo, :bar]
     assert :ok == Macro.validate_guard(guard, __ENV__)
   end
 
   test "erlang short-circuit expressions are valid in guards" do
-    guard = Macro.expand (quote do: :erlang.andalso(true, :erlang.orelse(false, :asdf))), __ENV__
+    guard = quote do: :erlang.andalso(true, :erlang.orelse(false, :asdf))
     assert :ok == Macro.validate_guard(guard, __ENV__)
   end
 
   test "other compound guards are valid in guards" do
     import Record
     env = Map.put(__ENV__, :context, :guard)
-    guard = Macro.expand (quote do: is_record(foo)), env
+    guard = quote do: is_record(foo)
     assert :ok == Macro.validate_guard(guard, env)
   end
 
   test "remote calls are not valid in guards" do
-    bad_guard = Macro.expand (quote do: Macro.ExternalTest.remote_call()), __ENV__
+    bad_guard = quote do: Macro.ExternalTest.remote_call()
     refute :ok == Macro.validate_guard(bad_guard, __ENV__)
   end
 
   test "imported remote calls are not valid in guards" do
-    bad_guard = Macro.expand (quote do: remote_call()), __ENV__
+    bad_guard = quote do: remote_call()
     refute :ok == Macro.validate_guard(bad_guard, __ENV__)
   end
 
   test "local calls are not valid in guards" do
-    bad_guard = Macro.expand (quote do: local_call()), __ENV__
+    bad_guard = quote do: local_call()
     refute :ok == Macro.validate_guard(bad_guard, __ENV__)
   end
 
-  test "maps cannot match on keys in guards" do
-    guard = Macro.expand (quote do: %{x => :bar}), __ENV__
-    refute :ok == Macro.validate_guard(guard, __ENV__)
-  end
-
   test "cases are not valid in guards" do
-    guard = Macro.expand (quote do: (case x do; x -> x; end)), __ENV__
+    guard = quote do: (case x do; x -> x; end)
     refute :ok == Macro.validate_guard(guard, __ENV__)
   end
 
   test "conds are not valid in guards" do
-    guard = Macro.expand (quote do: (cond do; x -> x; end)), __ENV__
+    guard = quote do: (cond do; x -> x; end)
     refute :ok == Macro.validate_guard(guard, __ENV__)
   end
 
   test "ifs are not valid in guards" do
-    guard = Macro.expand (quote do: (if x, do: x)), __ENV__
+    guard = quote do: (if x, do: x)
     refute :ok == Macro.validate_guard(guard, __ENV__)
   end
 
   test "funs are not valid in guards" do
-    guard = Macro.expand (quote do: &(&1)), __ENV__
+    guard = quote do: &(&1)
     refute :ok == Macro.validate_guard(guard, __ENV__)
   end
 
   test "trys are not valid in guards" do
-    guard = Macro.expand (quote do: (try do: x)), __ENV__
+    guard = quote do: (try do: x)
     refute :ok == Macro.validate_guard(guard, __ENV__)
   end
 
   test "pins are not valid in guards" do
-    guard = Macro.expand (quote do: ^var), __ENV__
+    guard = quote do: ^var
     refute :ok == Macro.validate_guard(guard, __ENV__)
   end
 
   test "aliases are not valid in guards" do
-    bad_guard = Macro.expand (quote do: alias Supervisor.Spec), __ENV__
+    bad_guard = quote do: alias Supervisor.Spec
     refute :ok == Macro.validate_guard(bad_guard, __ENV__)
   end
 
   test "imports are not valid in guards" do
-    bad_guard = Macro.expand (quote do: import Map), __ENV__
+    bad_guard = quote do: import Map
     refute :ok == Macro.validate_guard(bad_guard, __ENV__)
   end
 
   test "requires are not valid in guards" do
-    bad_guard = Macro.expand (quote do: require Record), __ENV__
+    bad_guard = quote do: require Record
     refute :ok == Macro.validate_guard(bad_guard, __ENV__)
   end
 
   test "assignment is not valid in guards" do
-    guard = Macro.expand (quote do: x = 9001), __ENV__
+    guard = quote do: x = 9001
     refute :ok == Macro.validate_guard(guard, __ENV__)
   end
 
   test "blocks are not valid in guards" do
-    guard = Macro.expand (quote do: (a; b)), __ENV__
+    guard = quote do: (a; b)
     refute :ok == Macro.validate_guard(guard, __ENV__)
   end
 
   test "list membership operators not valid in guards for static lists" do
-    guard = Macro.expand (quote do: x in [:foo, :bar]), __ENV__
+    guard = quote do: x in [:foo, :bar]
     assert :ok == Macro.validate_guard(guard, __ENV__)
   end
 
   test "exclusionary list membership operators not valid in guards for static lists" do
-    guard = Macro.expand (quote do: x not in [:foo, :bar]), __ENV__
+    guard = quote do: x not in [:foo, :bar]
     assert :ok == Macro.validate_guard(guard, __ENV__)
   end
 
   test "soft boolean logic is not valid in guards" do
-    guard = Macro.expand (quote do: :this || !nil && 1), __ENV__
+    guard = quote do: :this || !nil && 1
     refute :ok == Macro.validate_guard(guard, __ENV__)
   end
 
   test "Elixir send operators are not valid in guards" do
-    bad_guard = Macro.expand (quote do: send(self, :data)), __ENV__
+    bad_guard = quote do: send(self, :data)
     refute :ok == Macro.validate_guard(bad_guard, __ENV__)
   end
 
   test "erlang send operators are not valid in guards" do
-    bad_guard = Macro.expand (quote do: :erlang."!"(self(), :data)), __ENV__
+    bad_guard = quote do: :erlang."!"(self(), :data)
     refute :ok == Macro.validate_guard(bad_guard, __ENV__)
   end
 

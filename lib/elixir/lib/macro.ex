@@ -691,6 +691,8 @@ defmodule Macro do
   @spec validate_guard(Macro.t) :: :ok | {:error, term}
   def validate_guard(expr) do
     validate expr, fn
+      {container, [], exprs} when is_list(exprs) and container in [:{}, :%{}, :%, :<<>>] ->
+        true
       {:__block__, [], exprs} when is_list(exprs) and length(exprs) == 1 ->
         true
       {{:., _, [:erlang, call]}, _, args} when is_list(args) ->
@@ -699,7 +701,7 @@ defmodule Macro do
         true
       {_, _, atom} when is_atom(atom) ->
         true
-      term when not is_tuple(term) ->
+      term when not is_tuple(term) or is_tuple(term) and tuple_size(term) == 2 ->
         true
       _other ->
         false
