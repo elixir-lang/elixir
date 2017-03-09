@@ -57,15 +57,10 @@ defmodule Mix.UmbrellaTest do
     end
   end
 
-  test "compiles umbrella with protocol consolidation (via build embedded)" do
+  test "compiles umbrella with protocol consolidation" do
     in_fixture "umbrella_dep/deps/umbrella", fn ->
-      Mix.Project.in_project(:umbrella, ".", [build_embedded: true], fn _ ->
-        assert_raise Mix.Error, ~r"Cannot execute task because the project was not yet compiled", fn ->
-          Mix.Tasks.App.Start.run []
-        end
-
+      Mix.Project.in_project(:umbrella, ".", fn _ ->
         Mix.Task.run "compile", ["--verbose"]
-
         assert_received {:mix_shell, :info, ["Generated bar app"]}
         assert_received {:mix_shell, :info, ["Generated foo app"]}
         assert File.regular? "_build/dev/consolidated/Elixir.Enumerable.beam"
@@ -77,9 +72,9 @@ defmodule Mix.UmbrellaTest do
     end
   end
 
-  test "recursive compiles umbrella with protocol consolidation" do
+  test "recursively compiles umbrella with protocol consolidation" do
     in_fixture "umbrella_dep/deps/umbrella", fn ->
-      Mix.Project.in_project(:umbrella, ".", [build_embedded: true], fn _ ->
+      Mix.Project.in_project(:umbrella, ".", fn _ ->
         defmodule Elixir.Mix.Tasks.Umbrella.Recur do
           use Mix.Task
           @recursive true
