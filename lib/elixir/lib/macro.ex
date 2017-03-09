@@ -618,29 +618,29 @@ defmodule Macro do
 
   """
   @spec validate(term) :: :ok | {:error, term}
-  def validate(expr), do: do_validate(expr, false)
+  def validate(expr), do: do_validate(expr, true)
 
   @doc """
   Validates that the given expressions are valid, and satisfy a custom `validator` function.
 
   The `validator` must accept any AST and return truthy if it is valid, or falsey otherwise.
-  This `validator` check is evaluated before the the AST itself or its contents are judged
-  to represent valid Elixir code.
 
   ## Examples
 
-      iex> Macro.validate({:two_element, :tuple}, &(&1!=1))
+      iex> not_one = &(&1!=1)
+      iex> Macro.validate({:two_element, :tuple}, not_one)
       :ok
-      iex> Macro.validate({:three, :element, :tuple}, &(&1!=1))
+      iex> Macro.validate({:three, :element, :tuple}, not_one)
       {:error, {:three, :element, :tuple}}
-      iex> Macro.validate({:has_one, 1}, &(&1!=1))
+      iex> Macro.validate({:has_one, 1}, not_one)
       {:error, 1}
 
-      iex> Macro.validate([2, 3], &(&1!=1))
+      iex> not_one = &(&1!=1)
+      iex> Macro.validate([2, 3], not_one)
       :ok
-      iex> Macro.validate([2, 3, {4}], &(&1!=1))
+      iex> Macro.validate([2, 3, {4}], not_one)
       {:error, {4}}
-      iex> Macro.validate([1, 2, 3], &(&1!=1))
+      iex> Macro.validate([1, 2, 3], not_one)
       {:error, 1}
 
   """
@@ -650,37 +650,37 @@ defmodule Macro do
   defp do_validate(expr, valid), do: find_invalid(expr, valid) || :ok
 
   defp find_invalid(expr = {left, right}, valid), do:
-    is_valid?(expr, valid || true) || find_invalid(left, valid) || find_invalid(right, valid)
+    find_invalid(left, valid) || find_invalid(right, valid) || is_valid?(expr, valid)
 
   defp find_invalid(expr = {left, meta, right}, valid) when is_list(meta) and (is_atom(right) or is_list(right)), do:
-    is_valid?(expr, valid || true) || find_invalid(left, valid) || find_invalid(right, valid)
+    find_invalid(left, valid) || find_invalid(right, valid) || is_valid?(expr, valid)
 
   defp find_invalid(list, valid) when is_list(list), do:
-    is_valid?(list, valid || true) || Enum.find_value(list, &(find_invalid(&1, valid)))
+    Enum.find_value(list, &(find_invalid(&1, valid))) || is_valid?(list, valid)
 
-  defp find_invalid(pid, valid) when is_pid(pid),    do: is_valid?(pid, valid || true) || nil
-  defp find_invalid(atm, valid) when is_atom(atm),   do: is_valid?(atm, valid || true) || nil
-  defp find_invalid(num, valid) when is_number(num), do: is_valid?(num, valid || true) || nil
-  defp find_invalid(bin, valid) when is_binary(bin), do: is_valid?(bin, valid || true) || nil
+  defp find_invalid(pid, valid) when is_pid(pid),    do: is_valid?(pid, valid) || nil
+  defp find_invalid(atm, valid) when is_atom(atm),   do: is_valid?(atm, valid) || nil
+  defp find_invalid(num, valid) when is_number(num), do: is_valid?(num, valid) || nil
+  defp find_invalid(bin, valid) when is_binary(bin), do: is_valid?(bin, valid) || nil
 
   defp find_invalid(fun, valid) when is_function(fun) do
     unless :erlang.fun_info(fun, :env) == {:env, []} and
            :erlang.fun_info(fun, :type) == {:type, :external} do
-      is_valid?(fun, valid || true)
+      is_valid?(fun, valid)
     end
   end
 
-  defp find_invalid(ast, valid) do
-    is_valid?(ast, valid)
+  defp find_invalid(invalid_ast, _valid) do
+    {:error, invalid_ast}
   end
 
-  defp is_valid?(ast, valid) when is_function(valid) do
-    unless valid.(ast) do
+  defp is_valid?(ast, validator) when is_function(validator) do
+    unless validator.(ast) do
       {:error, ast}
     end
   end
-  defp is_valid?(ast, valid) when is_boolean(valid) do
-    unless valid do
+  defp is_valid?(ast, valid_by_default) do
+    unless valid_by_default do
       {:error, ast}
     end
   end
