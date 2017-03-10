@@ -1911,11 +1911,9 @@ defmodule DateTime do
       :gt
   """
   @spec compare(DateTime.t, DateTime.t) :: :lt | :eq | :gt
-  def compare(%DateTime{calendar: calendar1} = datetime1, %DateTime{calendar: calendar2} = datetime2) do
-    {year1, month1, day1, hour1, minute1, second1, microsecond1, time_zone1, zone_abbr1, utc_offset1, std_offset1} = datetime1 |> to_tuple
-    {year2, month2, day2, hour2, minute2, second2, microsecond2, time_zone2, zone_abbr2, utc_offset2, std_offset2} = datetime2 |> to_tuple
-    {days1, {parts1, ppd1}} = calendar1.datetime_to_rata_die(year1, month1, day1, hour1, minute1, second1, microsecond1, time_zone1, zone_abbr1, utc_offset1, std_offset1)
-    {days2, {parts2, ppd2}} = calendar2.datetime_to_rata_die(year2, month2, day2, hour2, minute2, second2, microsecond2, time_zone2, zone_abbr2, utc_offset2, std_offset2)
+  def compare(%DateTime{} = datetime1, %DateTime{} = datetime2) do
+    {days1, {parts1, ppd1}} = to_rata_die(datetime1)
+    {days2, {parts2, ppd2}} = to_rata_die(datetime2)
 
     # Ensure fraction tuples have same denominator.
     rata_die1 = {days1, parts1 * ppd2}
@@ -1927,17 +1925,6 @@ defmodule DateTime do
       _ -> :eq
     end
   end
-
-
-
-  defp to_tuple(%{calendar: Calendar.ISO, year: year, month: month, day: day,
-                  hour: hour, minute: minute, second: second, microsecond: microsecond,
-                  time_zone: time_zone, zone_abbr: zone_abbr, utc_offset: utc_offset, std_offset: std_offset}) do
-    {year, month, day, hour, minute, second, microsecond, time_zone, zone_abbr, utc_offset, std_offset}
-  end
-
-
-
 
   @doc """
   Returns the difference between two `DateTime` structs,
@@ -1955,11 +1942,9 @@ defmodule DateTime do
   {0, {5, 24}}
   """
   @spec diff(DateTime.t, DateTime.t) :: Calendar.rata_die
-  def diff(%DateTime{calendar: calendar1} = datetime1, %DateTime{calendar: calendar2} = datetime2) do
-    {year1, month1, day1, hour1, minute1, second1, microsecond1, time_zone1, zone_abbr1, utc_offset1, std_offset1} = datetime1 |> to_tuple
-    {year2, month2, day2, hour2, minute2, second2, microsecond2, time_zone2, zone_abbr2, utc_offset2, std_offset2} = datetime2 |> to_tuple
-    {days1, {parts1, ppd1}} = calendar1.datetime_to_rata_die(year1, month1, day1, hour1, minute1, second1, microsecond1, time_zone1, zone_abbr1, utc_offset1, std_offset1)
-    {days2, {parts2, ppd2}} = calendar2.datetime_to_rata_die(year2, month2, day2, hour2, minute2, second2, microsecond2, time_zone2, zone_abbr2, utc_offset2, std_offset2)
+  def diff(%DateTime{} = datetime1, %DateTime{} = datetime2) do
+    {days1, {parts1, ppd1}} = to_rata_die(datetime1)
+    {days2, {parts2, ppd2}} = to_rata_die(datetime2)
 
     diff_days = days1 - days2
     diff_ppd = ppd1 * ppd2
@@ -1975,6 +1960,16 @@ defmodule DateTime do
     else
       {diff_days, {diff_parts, diff_ppd}}
     end
+  end
+
+  @spec to_rata_die(DateTime.t) :: Calendar.rata_die
+  defp to_rata_die(
+    %DateTime{calendar: calendar,
+              year: year, month: month, day: day, hour: hour, minute: minute, second: second, microsecond: microsecond,
+              time_zone: time_zone, zone_abbr: zone_abbr, utc_offset: utc_offset, std_offset: std_offset
+    }
+  ) do
+    calendar.datetime_to_rata_die(year, month, day, hour, minute, second, microsecond, time_zone, zone_abbr, utc_offset, std_offset)
   end
 
   @spec gcd(integer, integer) :: non_neg_integer
