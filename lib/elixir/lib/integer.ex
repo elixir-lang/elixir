@@ -239,8 +239,6 @@ defmodule Integer do
     raise ArgumentError, "invalid base #{inspect base}"
   end
 
-  ## Sign is kept in args to maintain single binary match context
-
   def parse(<<?-, rest::binary>>, base) do
     case parse_digits(rest, base) do
       {acc, bin} ->
