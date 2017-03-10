@@ -258,12 +258,12 @@ defmodule Integer do
     parse_digits(rest, base, :+)
   end
 
-  digits = [{?0..?9, -?0}, {?A..?Z, 10-?A}, {?a..?z, 10-?a}]
+  digits = [{?0..?9, -?0}, {?A..?Z, 10 - ?A}, {?a..?z, 10 - ?a}]
 
   for {chars, diff} <- digits, char <- chars do
     defp parse_digits(<<unquote(char), rest::binary>>, base, sign)
-         when base > unquote(char+diff) do
-      parse_digits(rest, base, sign, unquote(char+diff))
+         when base > unquote(char + diff) do
+      parse_digits(rest, base, sign, unquote(char + diff))
     end
   end
 
@@ -273,8 +273,8 @@ defmodule Integer do
 
   for {chars, diff} <- digits, char <- chars do
     defp parse_digits(<<unquote(char), rest::binary>>, base, sign, acc)
-         when base > unquote(char+diff) do
-      parse_digits(rest, base, sign, base * acc + unquote(char+diff))
+         when base > unquote(char + diff) do
+      parse_digits(rest, base, sign, base * acc + unquote(char + diff))
     end
   end
 
