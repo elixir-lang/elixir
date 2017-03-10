@@ -193,7 +193,7 @@ defmodule OptionParser do
   """
   @spec parse(argv, options) :: {parsed, argv, errors}
   def parse(argv, opts \\ []) when is_list(argv) and is_list(opts) do
-    do_parse(argv, compile_config(opts), [], [], [], true)
+    do_parse(argv, build_config(opts), [], [], [], true)
   end
 
   @doc """
@@ -252,7 +252,7 @@ defmodule OptionParser do
   """
   @spec parse_head(argv, options) :: {parsed, argv, errors}
   def parse_head(argv, opts \\ []) when is_list(argv) and is_list(opts) do
-    do_parse(argv, compile_config(opts), [], [], [], false)
+    do_parse(argv, build_config(opts), [], [], [], false)
   end
 
   @doc """
@@ -294,7 +294,7 @@ defmodule OptionParser do
   end
 
   defp do_parse(argv, %{switches: switches} = config, opts, args, invalid, all?) do
-    case next(argv, config) do
+    case next_with_config(argv, config) do
       {:ok, option, value, rest} ->
         # the option exists and it was successfully parsed
         kinds = List.wrap Keyword.get(switches, option)
@@ -347,37 +347,35 @@ defmodule OptionParser do
         {:undefined, String.t, String.t | nil, argv} |
         {:error, argv}
 
-  def next(argv, opts \\ [])
-
-  def next(argv, opts) when is_list(argv) and is_list(opts) do
-    next(argv, compile_config(opts))
+  def next(argv, opts \\ []) when is_list(argv) and is_list(opts) do
+    next_with_config(argv, build_config(opts))
   end
 
-  def next([], _config) do
+  defp next_with_config([], _config) do
     {:error, []}
   end
 
-  def next(["--" | _] = argv, _config) do
+  defp next_with_config(["--" | _] = argv, _config) do
     {:error, argv}
   end
 
-  def next(["-" | _] = argv, _config) do
+  defp next_with_config(["-" | _] = argv, _config) do
     {:error, argv}
   end
 
-  def next(["- " <> _ | _] = argv, _config) do
+  defp next_with_config(["- " <> _ | _] = argv, _config) do
     {:error, argv}
   end
 
   # Handles --foo or --foo=bar
-  def next(["--" <> option | rest], config) do
+  defp next_with_config(["--" <> option | rest], config) do
     {option, value} = split_option(option)
     tagged = tag_option(option, config)
     next_tagged(tagged, value, "--" <> option, rest, config)
   end
 
   # Handles -a, -abc, -abc=something
-  def next(["-" <> option | rest] = argv, config) do
+  defp next_with_config(["-" <> option | rest] = argv, config) do
     %{aliases: aliases, allow_nonexistent_atoms?: allow_nonexistent_atoms?} = config
     {option, value} = split_option(option)
     original = "-" <> option
@@ -394,16 +392,16 @@ defmodule OptionParser do
           IO.warn "multi-letter aliases are deprecated, got: #{inspect(key)}"
           next_tagged({:default, option_key}, value, original, rest, config)
         else
-          next(expand_multi_letter_alias(option, value) ++ rest, config)
+          next_with_config(expand_multiletter_alias(option, value) ++ rest, config)
         end
       true ->
         # We have a regular one-letter alias here
-        tagged = tag_one_letter_alias(option, config)
+        tagged = tag_oneletter_alias(option, config)
         next_tagged(tagged, value, original, rest, config)
     end
   end
 
-  def next(argv, _config) do
+  defp next_with_config(argv, _config) do
     {:error, argv}
   end
 
@@ -530,7 +528,7 @@ defmodule OptionParser do
 
   ## Helpers
 
-  defp compile_config(opts) do
+  defp build_config(opts) do
     {switches, strict?} = cond do
       opts[:switches] && opts[:strict] ->
         raise ArgumentError, ":switches and :strict cannot be given together"
@@ -617,7 +615,7 @@ defmodule OptionParser do
     end
   end
 
-  defp tag_one_letter_alias(alias, %{aliases: aliases, allow_nonexistent_atoms?: allow_nonexistent_atoms?}) when is_binary(alias) do
+  defp tag_oneletter_alias(alias, %{aliases: aliases, allow_nonexistent_atoms?: allow_nonexistent_atoms?}) when is_binary(alias) do
     if option_key = aliases[to_existing_key(alias, allow_nonexistent_atoms?)] do
       {:default, option_key}
     else
@@ -625,7 +623,7 @@ defmodule OptionParser do
     end
   end
 
-  defp expand_multi_letter_alias(letters, value) when is_binary(letters) do
+  defp expand_multiletter_alias(letters, value) when is_binary(letters) do
     {last, expanded} =
       letters
       |> String.codepoints()
