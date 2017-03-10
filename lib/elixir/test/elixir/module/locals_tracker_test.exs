@@ -68,18 +68,18 @@ defmodule Module.LocalsTrackerTest do
     assert {:bar, 1} in D.reachable(config[:pid])
   end
 
-  @unused [
-    {{:private, 1}, :defp, [], 0}
-  ]
-
   test "unused private definitions are marked as so", config do
     D.add_definition(config[:pid], :def, {:public, 1})
-
-    unused = D.collect_unused_locals(config[:pid], @unused)
-    assert unused == {[private: 1], [{[], {:unused_def, {:private, 1}, :defp}}]}
-
     D.add_local(config[:pid], {:public, 1}, {:private, 1})
-    unused = D.collect_unused_locals(config[:pid], @unused)
+    D.add_local(config[:pid], {:private, 2})
+
+    unused = D.collect_unused_locals(config[:pid], [{{:private, 0}, :defp, [], 0}])
+    assert unused == {[private: 0], [{[], {:unused_def, {:private, 0}, :defp}}]}
+
+    unused = D.collect_unused_locals(config[:pid], [{{:private, 1}, :defp, [], 0}])
+    assert unused == {[], []}
+
+    unused = D.collect_unused_locals(config[:pid], [{{:private, 2}, :defp, [], 0}])
     assert unused == {[], []}
   end
 
