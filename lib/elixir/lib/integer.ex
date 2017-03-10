@@ -235,54 +235,51 @@ defmodule Integer do
   @spec parse(binary, 2..36) :: {integer, binary} | :error | no_return
   def parse(binary, base \\ 10)
 
-  def parse("", base) when base in 2..36,
-    do: :error
-
-  def parse(<<bin::binary>>, base) when base in 2..36 do
-    parse_sign(bin, base)
-  end
-
-  def parse(<<_::binary>>, base) do
+  def parse(<<_::binary>>, base) when not base in 2..36 do
     raise ArgumentError, "invalid base #{inspect base}"
   end
 
-  defp parse_sign(<<?-, rest::binary>>, base) do
-    parse_digits(rest, base, :-)
+  ## Sign is kept in args to maintain single binary match context
+
+  def parse(<<?-, rest::binary>>, base) do
+    case parse_digits(rest, base) do
+      {acc, bin} ->
+        {-acc, bin}
+      :error ->
+        :error
+    end
   end
 
-  defp parse_sign(<<?+, rest::binary>>, base) do
-    parse_digits(rest, base, :+)
+  def parse(<<?+, rest::binary>>, base) do
+    parse_digits(rest, base)
   end
 
-  defp parse_sign(<<rest::binary>>, base) do
-    parse_digits(rest, base, :+)
+  def parse(<<rest::binary>>, base) do
+    parse_digits(rest, base)
   end
 
   digits = [{?0..?9, -?0}, {?A..?Z, 10 - ?A}, {?a..?z, 10 - ?a}]
 
   for {chars, diff} <- digits, char <- chars do
-    defp parse_digits(<<unquote(char), rest::binary>>, base, sign)
+    defp parse_digits(<<unquote(char), rest::binary>>, base)
          when base > unquote(char + diff) do
-      parse_digits(rest, base, sign, unquote(char + diff))
+      parse_digits(rest, base, unquote(char + diff))
     end
   end
 
-  defp parse_digits(<<_::binary>>, _, _) do
+  defp parse_digits(<<_::binary>>, _) do
     :error
   end
 
   for {chars, diff} <- digits, char <- chars do
-    defp parse_digits(<<unquote(char), rest::binary>>, base, sign, acc)
+    defp parse_digits(<<unquote(char), rest::binary>>, base, acc)
          when base > unquote(char + diff) do
-      parse_digits(rest, base, sign, base * acc + unquote(char + diff))
+      parse_digits(rest, base, base * acc + unquote(char + diff))
     end
   end
 
-  defp parse_digits(<<rest::binary>>, _, :+, acc) do
+  defp parse_digits(<<rest::binary>>, _, acc) do
     {acc, rest}
-  end
-  defp parse_digits(<<rest::binary>>, _, :-, acc) do
-    {-acc, rest}
   end
 
   @doc """
