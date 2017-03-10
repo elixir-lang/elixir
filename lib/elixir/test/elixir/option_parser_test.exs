@@ -49,6 +49,16 @@ defmodule OptionParserTest do
            {[source: "from_docs/"], ["other"], []}
   end
 
+  test "parses --key choice among valid choices" do
+    assert OptionParser.parse(["--food", "egg"], switches: [food: :choices], choices: [food: ["egg", "spam"]]) ==
+           {[food: "egg"], [], []}
+  end
+
+  test "does not parse --key when is not among valid choices" do
+    assert OptionParser.parse(["--food", "apple"], switches: [food: :choices], choices: [food: ["egg", "spam"]]) ==
+           {[], [], [{"--food", "apple"}]}
+  end
+
   test "does not interpret undefined options with value as boolean" do
     assert OptionParser.parse(["--no-bool"]) ==
            {[no_bool: true], [], []}
@@ -238,6 +248,13 @@ defmodule OptionParserTest do
     assert_raise OptionParser.ParseError, fn ->
       argv = ["--bad", "opt", "foo", "-o", "bad", "bar"]
       OptionParser.parse!(argv, switches: [bad: :integer])
+    end
+  end
+
+  test "parse!/2 raise an exception when the given choice is not among the valid choices" do
+    assert_raise OptionParser.ParseError, fn ->
+      argv = ["--food", "bacon"]
+      OptionParser.parse!(argv, switches: [food: :choices], choices: [food: ["egg", "spam"]])
     end
   end
 
