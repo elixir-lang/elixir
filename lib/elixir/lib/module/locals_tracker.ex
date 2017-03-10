@@ -65,11 +65,15 @@ defmodule Module.LocalsTracker do
   """
   @spec reachable(ref) :: [local]
   def reachable(ref) do
-    reachable_from(:gen_server.call(to_pid(ref), :digraph, @timeout), :local)
+    ref
+    |> to_pid()
+    |> :gen_server.call(:digraph, @timeout)
+    |> reachable_from(:local)
+    |> :sets.to_list()
   end
 
   defp reachable_from(d, starting) do
-    :sets.to_list(reduce_reachable(d, starting, :sets.new))
+    reduce_reachable(d, starting, :sets.new)
   end
 
   defp reduce_reachable(d, vertex, vertices) do
@@ -157,36 +161,17 @@ defmodule Module.LocalsTracker do
   @doc false
   def collect_unused_locals(ref, private) do
     d = :gen_server.call(to_pid(ref), :digraph, @timeout)
-    {unreachable(d, private), collect_warnings(d, private)}
-  end
-
-  defp unreachable(d, private) do
-    unreachable = for {tuple, _, _, _} <- private, do: tuple
-
-    private =
-      for {tuple, :defp, _, _} <- private do
-        neighbours = :digraph.in_neighbours(d, tuple)
-        neighbours = for {_, _} = t <- neighbours, do: t
-        {tuple, :sets.from_list(neighbours)}
-      end
-
-    reduce_unreachable(private, [], :sets.from_list(unreachable))
-  end
-
-  defp reduce_unreachable([{vertex, callers} | t], acc, unreachable) do
-    if :sets.is_subset(callers, unreachable) do
-      reduce_unreachable(t, [{vertex, callers} | acc], unreachable)
-    else
-      reduce_unreachable(acc ++ t, [], :sets.del_element(vertex, unreachable))
-    end
-  end
-
-  defp reduce_unreachable([], _acc, unreachable) do
-    :sets.to_list(unreachable)
-  end
-
-  defp collect_warnings(d, private) do
     reachable = reachable_from(d, :local)
+    {unreachable(reachable, private), collect_warnings(reachable, private)}
+  end
+
+  defp unreachable(reachable, private) do
+    for {tuple, kind, _, _} <- private,
+        kind == :defmacrop or not :sets.is_element(tuple, reachable),
+        do: tuple
+  end
+
+  defp collect_warnings(reachable, private) do
     :lists.foldl(&collect_warnings(&1, &2, reachable), [], private)
   end
 
@@ -195,7 +180,7 @@ defmodule Module.LocalsTracker do
   end
 
   defp collect_warnings({tuple, kind, meta, 0}, acc, reachable) do
-    if :lists.member(tuple, reachable) do
+    if :sets.is_element(tuple, reachable) do
       acc
     else
       [{meta, {:unused_def, tuple, kind}} | acc]
@@ -207,17 +192,22 @@ defmodule Module.LocalsTracker do
     min = arity - default
     max = arity
 
-    invoked = for {n, a} <- reachable, n == name, a in min..max, do: a
-
-    if invoked == [] do
-      [{meta, {:unused_def, tuple, kind}} | acc]
-    else
-      case :lists.min(invoked) - min do
-        0 -> acc
-        ^default -> [{meta, {:unused_args, tuple}} | acc]
-        unused_args -> [{meta, {:unused_args, tuple, unused_args}} | acc]
-      end
+    case min_reachable_default(max, min, :none, name, reachable) do
+      :none -> [{meta, {:unused_def, tuple, kind}} | acc]
+      ^min -> acc
+      ^max -> [{meta, {:unused_args, tuple}} | acc]
+      diff -> [{meta, {:unused_args, tuple, diff}} | acc]
     end
+  end
+
+  defp min_reachable_default(max, min, last, name, reachable) when max >= min do
+    case :sets.is_element({name, max}, reachable) do
+      true -> min_reachable_default(max - 1, min, max, name, reachable)
+      false -> min_reachable_default(max - 1, min, last, name, reachable)
+    end
+  end
+  defp min_reachable_default(_max, _min, last, _name, _reachable) do
+    last
   end
 
   @doc false
