@@ -21,7 +21,7 @@ defmodule ExUnit.Runner do
     result
   end
 
-  def configure(opts) do
+  defp configure(opts) do
     opts = normalize_opts(opts)
 
     {:ok, manager} = EM.start_link
@@ -50,16 +50,6 @@ defmodule ExUnit.Runner do
     opts
     |> Keyword.put(:exclude, exclude)
     |> Keyword.put(:include, include)
-    |> Keyword.put(:max_cases, max_cases(opts))
-    |> Keyword.put_new(:seed, :os.timestamp |> elem(2))
-  end
-
-  defp max_cases(opts) do
-    cond do
-      opts[:trace]           -> 1
-      max = opts[:max_cases] -> max
-      true                   -> :erlang.system_info(:schedulers_online) * 2
-    end
   end
 
   defp loop(%{cases: :async} = config, taken) do

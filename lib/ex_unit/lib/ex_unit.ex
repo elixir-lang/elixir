@@ -149,6 +149,7 @@ defmodule ExUnit do
     {:ok, _} = Application.ensure_all_started(:ex_unit)
 
     configure(options)
+    configure_defaults(options)
 
     if Application.fetch_env!(:ex_unit, :autorun) do
       Application.put_env(:ex_unit, :autorun, false)
@@ -261,5 +262,24 @@ defmodule ExUnit do
   """
   def run do
     ExUnit.Runner.run(configuration(), nil)
+  end
+
+  # Configures on demand defaults
+  defp configure_defaults(options) do
+    unless Keyword.has_key?(options, :seed) do
+      Application.put_env(:ex_unit, :seed, :os.timestamp |> elem(2))
+    end
+
+    unless Keyword.has_key?(options, :max_cases) do
+      Application.put_env(:ex_unit, :max_cases, max_cases(options))
+    end
+  end
+
+  defp max_cases(opts) do
+    if opts[:trace] do
+      1
+    else
+      :erlang.system_info(:schedulers_online) * 2
+    end
   end
 end
