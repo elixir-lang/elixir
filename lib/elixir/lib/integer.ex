@@ -235,70 +235,49 @@ defmodule Integer do
   @spec parse(binary, 2..36) :: {integer, binary} | :error | no_return
   def parse(binary, base \\ 10)
 
-  def parse("", base) when base in 2..36,
-    do: :error
-
-  def parse(binary, base) when is_binary(binary) and base in 2..36 do
-    parse_in_base(binary, base)
-  end
-
-  def parse(binary, base) when is_binary(binary) do
+  def parse(<<_::binary>>, base) when not base in 2..36 do
     raise ArgumentError, "invalid base #{inspect base}"
   end
 
-  defp parse_in_base("-" <> bin, base) do
-    case do_parse(bin, base) do
-      {number, remainder} -> {-number, remainder}
-      :error -> :error
+  def parse(<<?-, rest::binary>>, base) do
+    case parse_digits(rest, base) do
+      {acc, bin} ->
+        {-acc, bin}
+      :error ->
+        :error
     end
   end
 
-  defp parse_in_base("+" <> bin, base) do
-    do_parse(bin, base)
+  def parse(<<?+, rest::binary>>, base) do
+    parse_digits(rest, base)
   end
 
-  defp parse_in_base(binary, base) when is_binary(binary) do
-    do_parse(binary, base)
+  def parse(<<rest::binary>>, base) do
+    parse_digits(rest, base)
   end
 
-  defp do_parse(<<char, rest::binary>>, base) do
-    if valid_digit_in_base?(char, base) do
-      do_parse(rest, base, parse_digit(char))
-    else
-      :error
+  digits = [{?0..?9, -?0}, {?A..?Z, 10 - ?A}, {?a..?z, 10 - ?a}]
+
+  for {chars, diff} <- digits, char <- chars do
+    defp parse_digits(<<unquote(char), rest::binary>>, base)
+         when base > unquote(char + diff) do
+      parse_digits(rest, base, unquote(char + diff))
     end
   end
 
-  defp do_parse(_, _) do
+  defp parse_digits(<<_::binary>>, _) do
     :error
   end
 
-  defp do_parse(<<char, rest::binary>> = bin, base, acc) do
-    if valid_digit_in_base?(char, base) do
-      do_parse(rest, base, base * acc + parse_digit(char))
-    else
-      {acc, bin}
+  for {chars, diff} <- digits, char <- chars do
+    defp parse_digits(<<unquote(char), rest::binary>>, base, acc)
+         when base > unquote(char + diff) do
+      parse_digits(rest, base, base * acc + unquote(char + diff))
     end
   end
 
-  defp do_parse(bitstring, _, acc) do
-    {acc, bitstring}
-  end
-
-  defp parse_digit(char) do
-    cond do
-      char in ?0..?9 -> char - ?0
-      char in ?A..?Z -> char - ?A + 10
-      true           -> char - ?a + 10
-    end
-  end
-
-  defp valid_digit_in_base?(char, base) do
-    if base <= 10 do
-      char in ?0..(?0 + base - 1)
-    else
-      char in ?0..?9 or char in ?A..(?A + base - 11) or char in ?a..(?a + base - 11)
-    end
+  defp parse_digits(<<rest::binary>>, _, acc) do
+    {acc, rest}
   end
 
   @doc """
