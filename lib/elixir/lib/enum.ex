@@ -1687,22 +1687,22 @@ defmodule Enum do
   end
 
   @doc """
-  Invokes `fun` for each element in the `enumerable`, passing that
-  element and the accumulator as arguments. `fun`'s return value
-  is stored in the accumulator and that gets used when iterating over the next item.
+  Invokes `fun` for each element in the `enumerable` with the
+  accumulator.
 
-  The first element of the enumerable is used as the initial value of
-  the accumulator.
+  The first element of the enumerable is used as the initial value
+  of the accumulator. Then the function is invoked with the next
+  element and the accumulator. The result returned by the function
+  is used as the accumulator for the next iteration, recursively.
+  When the enumerable is done, the last accumulator is returned.
+
+  Since the first element of the enumerable is used as the initial
+  value of the accumulator, `fun` will only be executed `n - 1` times
+  where `n` is the length of the enumerable. This function won't call
+  the specified function for enumerables that are one-element long.
+
   If you wish to use another value for the accumulator, use
   `Enumerable.reduce/3`.
-  This function won't call the specified function for enumerables that
-  are one-element long.
-
-  Returns the accumulator.
-
-  Note that since the first element of the enumerable is used as the
-  initial value of the accumulator, `fun` will only be executed `n - 1`
-  times where `n` is the length of the enumerable.
 
   ## Examples
 
@@ -1737,17 +1737,41 @@ defmodule Enum do
   end
 
   @doc """
-  Invokes `fun` for each element in the `enumerable`, passing that
-  element and the accumulator `acc` as arguments. `fun`'s return value
-  is stored in `acc` and that gets used when iterating over the next item.
+  Invokes `fun` for each element in the `enumerable` with the accumulator.
 
-  Returns the accumulator.
+  The initial value of the accumulator is `acc`. The function is invoked for
+  each element in the enumerable with the accumulator. The result returned
+  by the function is used as the accumulator for the next iteration.
+  The function returns the last accumulator.
 
   ## Examples
 
       iex> Enum.reduce([1, 2, 3], 0, fn(x, acc) -> x + acc end)
       6
 
+  ## Reduce as a building block
+
+  Reduce (sometimes called `fold`) is a basic building block in functional
+  programming. Almost all of the functions in the `Enum` module can be
+  implemented on top of reduce. Those functions often rely on other operations,
+  such as `Enum.reverse/1`, which are optimized by the runtime.
+
+  For example, we could implement `map/2` in terms of `reduce/3` as follows:
+
+      def my_map(enumerable, fun) do
+        enumerable
+        |> Enum.reduce(enumerable, [], fn(x, acc) -> [fun.(x) | acc] end)
+        |> Enum.reverse
+      end
+
+  In the example above, `Enum.reduce/3` accumulates the result of each call
+  to `fun` into a list in reverse order, which is correctly ordered at the
+  end by calling `Enum.reverse/1`.
+
+  Implementing functions like `map/2`, `filter/2` and others are a good
+  exercise for understanding the power behind `Enum.reduce/3`. When an
+  operation cannot be expressed by any of the functions in the `Enum`
+  module, developers will most likely resort to `reduce/3`.
   """
   @spec reduce(t, any, (element, any -> any)) :: any
   def reduce(enumerable, acc, fun) when is_list(enumerable) and is_function(fun, 2) do
