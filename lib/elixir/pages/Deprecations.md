@@ -2,7 +2,7 @@
 
 ## Policy
 
-Elixir deprecations happens in 3 steps:
+Elixir deprecations happen in 3 steps:
 
   1. The feature is soft-deprecated. It means both CHANGELOG and documentation must list the feature as deprecated but no warning is effectively emitted by running the code. There is no requirement to soft-deprecate a feature.
 
