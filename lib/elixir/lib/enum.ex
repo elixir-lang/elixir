@@ -1689,7 +1689,7 @@ defmodule Enum do
   @doc """
   Invokes `fun` for each element in the `enumerable`, passing that
   element and the accumulator as arguments. `fun`'s return value
-  is stored in the accumulator.
+  is stored in the accumulator and that gets used when iterating over the next item.
 
   The first element of the enumerable is used as the initial value of
   the accumulator.
@@ -1739,7 +1739,7 @@ defmodule Enum do
   @doc """
   Invokes `fun` for each element in the `enumerable`, passing that
   element and the accumulator `acc` as arguments. `fun`'s return value
-  is stored in `acc`.
+  is stored in `acc` and that gets used when iterating over the next item.
 
   Returns the accumulator.
 
