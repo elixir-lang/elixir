@@ -7,11 +7,11 @@ defmodule Mix.Task do
   in a module starting with `Mix.Tasks.` and defining
   the `run/1` function:
 
-      defmodule Mix.Tasks.Hello do
+      defmodule Mix.Tasks.Echo do
         use Mix.Task
 
-        def run(_args) do
-          Mix.shell.info "hello"
+        def run(args) do
+          Mix.shell.info Enum.join(args, " ")
         end
       end
 
