@@ -241,10 +241,11 @@ defmodule Date do
       true
 
   """
-  @spec utc_today() :: t
-  def utc_today() do
+  @spec utc_today(Calendar.calendar) :: t
+  def utc_today(calendar \\ Calendar.ISO) do
     {:ok, {year, month, day}, _, _} = Calendar.ISO.from_unix(:os.system_time, :native)
-    %Date{year: year, month: month, day: day}
+    new(year, month, day, Calendar.ISO)
+    |> convert(calendar)
   end
 
   @doc """
@@ -313,8 +314,12 @@ defmodule Date do
 
   """
   @spec new(Calendar.year, Calendar.month, Calendar.day) :: {:ok, t} | {:error, atom}
-  def new(year, month, day) do
-    Calendar.ISO.date(year, month, day)
+  def new(year, month, day, calendar \\ Calendar.ISO) do
+    if calendar.valid_date?(year, month, day) do
+      {:ok, %Date{year: year, month: month, day: day, calendar: calendar}}
+    else
+      {:error, :invalid_date}
+    end
   end
 
   @doc """
@@ -357,19 +362,20 @@ defmodule Date do
 
   """
   @spec from_iso8601(String.t) :: {:ok, t} | {:error, atom}
-  def from_iso8601(string)
+  def from_iso8601(string, calendar \\ Calendar.ISO)
 
-  def from_iso8601(<<year::4-bytes, ?-, month::2-bytes, ?-, day::2-bytes>>) do
+  def from_iso8601(<<year::4-bytes, ?-, month::2-bytes, ?-, day::2-bytes>>, calendar) do
     with {year, ""} <- Integer.parse(year),
          {month, ""} <- Integer.parse(month),
          {day, ""} <- Integer.parse(day) do
-      new(year, month, day)
+      new(year, month, day, Calendar.ISO)
+      |> convert!(calendar)
     else
       _ -> {:error, :invalid_format}
     end
   end
 
-  def from_iso8601(<<_::binary>>) do
+  def from_iso8601(<<_::binary>>, _calendar) do
     {:error, :invalid_format}
   end
 
@@ -400,8 +406,9 @@ defmodule Date do
   Converts the given datetime to
   [ISO 8601:2004](https://en.wikipedia.org/wiki/ISO_8601).
 
-  Only supports converting datetimes which are in the ISO calendar,
-  attempting to convert datetimes from other calendars will raise.
+  Only supports converting dates which are in the ISO calendar,
+  or other calendars in which the days also start at midnight.
+  Attempting to convert dates from other calendars will raise an ArgumentError.
 
   ### Examples
 
@@ -418,11 +425,18 @@ defmodule Date do
     Calendar.ISO.date_to_iso8601(year, month, day)
   end
 
+  def to_iso8601(%{calendar: calendar, year: year, month: month, day: day} = date) do
+    date
+    |> convert!(Calendar.ISO)
+    |> to_iso8601
+  end
+
   @doc """
   Converts a `Date` struct to an Erlang date tuple.
 
   Only supports converting dates which are in the ISO calendar,
-  attempting to convert dates from other calendars will raise.
+  or other calendars in which the days also start at midnight.
+  Attempting to convert dates from other calendars will raise an ArgumentError.
 
   ## Examples
 
@@ -437,6 +451,12 @@ defmodule Date do
 
   def to_erl(%{calendar: Calendar.ISO, year: year, month: month, day: day}) do
     {year, month, day}
+  end
+
+
+  def to_erl(%{calendar: calendar, year: year, month: month, day: day} = date) do
+    result_date = convert!(date, Calendar.ISO)
+    {result_date.year, result_date.month, result_date.day}
   end
 
   @doc """
@@ -454,8 +474,8 @@ defmodule Date do
   @spec from_erl(:calendar.date) :: {:ok, t} | {:error, atom}
   def from_erl(tuple)
 
-  def from_erl({year, month, day}) do
-    new(year, month, day)
+  def from_erl({year, month, day}, calendar \\ Calendar.ISO) do
+    new(year, month, day, calendar)
   end
 
   @doc """
@@ -503,12 +523,53 @@ defmodule Date do
   """
   @spec compare(Calendar.date, Calendar.date) :: :lt | :eq | :gt
   def compare(date1, date2) do
-    case {to_erl(date1), to_erl(date2)} do
-      {first, second} when first > second -> :gt
-      {first, second} when first < second -> :lt
-      _ -> :eq
+    if date1.calendar.day_rollover_relative_to_midnight_utc == date2.calendar.day_rollover_relative_to_midnight_utc do
+      case {to_rata_die(date1), to_rata_die(date2)} do
+        {first, second} when first > second -> :gt
+        {first, second} when first < second -> :lt
+        _ -> :eq
+      end
+    else
+      raise ArgumentError, """
+      cannot compare #{inspect date1} with #{inspect date2}:
+      This comparison would be ambiguous as their calendars have incompatible day rollover moments.
+      Specify an exact time of day (using `DateTime`s) to resolve this ambiguity.
+      """
     end
   end
+
+  def convert(%Date{} = date, target_calendar) do
+    if date.calendar.day_rollover_relative_to_midnight_utc == target_calendar.day_rollover_relative_to_midnight_utc do
+      result_date =
+        date
+        |> to_rata_die
+        |> from_rata_die(target_calendar)
+      {:ok, result_date}
+    else
+      {:error, :incompatible_calendars}
+    end
+  end
+
+
+  @spec convert!(Date.t, Calendar.calendar) :: Date.t
+  def convert!(date, calendar) do
+    case convert(date, calendar) do
+      {:ok, value} ->
+        value
+      {:error, reason} ->
+        raise ArgumentError, "cannot convert #{inspect date} to target calendar #{calendar}, reason: #{inspect reason}"
+    end
+  end
+
+  defp to_rata_die(%Date{calendar: calendar, year: year, month: month, day: day} = date) do
+    calendar.datetime_to_rata_die(year, month, day, 0, 0, 0, 0, "", "", 0, 0)
+  end
+
+  defp from_rata_die(rata_die, target_calendar) do
+    {year, month, day, _, _, _, _, _, _, _, _} = target_calendar.datetime_from_rata_die(rata_die)
+    %Date{year: year, month: month, day: day, calendar: target_calendar}
+  end
+
 
   @doc """
   Calculates the day of the week of a given `Date` struct.
@@ -911,16 +972,28 @@ defmodule Time do
   @doc """
   Converts the Time struct to a different calendar.
   """
-  @spec convert(Time.t, Calendar.calendar) :: DateTime.t
+  @spec convert(Time.t, Calendar.calendar) :: Time.t
   # No conversion required if already of the target calendar.
   def convert(%Time{calendar: calendar} = time, calendar) do
-    time
+    {:ok, time}
   end
 
   def convert(%Time{} = time, calendar) do
-    time
-    |> to_day_fraction
-    |> calendar.time_from_day_fraction
+    result_time =
+      time
+      |> to_day_fraction
+      |> calendar.time_from_day_fraction
+    {:ok, result_time}
+  end
+
+  @spec convert!(Time.t, Calendar.calendar) :: Time.t
+  def convert!(time, calendar) do
+    case convert(time, calendar) do
+      {:ok, value} ->
+        value
+      {:error, reason} ->
+        raise ArgumentError, "cannot convert #{inspect time} to target calendar #{calendar}, reason: #{inspect reason}"
+    end
   end
 
   @doc """
@@ -2119,13 +2192,26 @@ defmodule DateTime do
   @spec convert(DateTime.t, Calendar.calendar) :: DateTime.t
   # No conversion required if already of the target calendar.
   def convert(%DateTime{calendar: calendar} = datetime, calendar) do
-    datetime
+    {:ok, datetime}
   end
 
   def convert(%DateTime{} = datetime, calendar) do
-    datetime
-    |> to_rata_die
-    |> calendar.datetime_from_rata_die
+    result_datetime =
+      datetime
+      |> to_rata_die
+      |> calendar.datetime_from_rata_die
+    {:ok, result_datetime}
+  end
+
+
+  @spec convert!(DateTime.t, Calendar.calendar) :: DateTime.t
+  def convert!(datetime, calendar) do
+    case convert(datetime, calendar) do
+      {:ok, value} ->
+        value
+      {:error, reason} ->
+        raise ArgumentError, "cannot convert #{inspect datetime} to target calendar #{calendar}, reason: #{inspect reason}"
+    end
   end
 
   @spec to_rata_die(DateTime.t) :: Calendar.rata_die
