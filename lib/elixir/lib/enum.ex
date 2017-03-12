@@ -1284,7 +1284,7 @@ defmodule Enum do
       "2 = 4 = 6"
 
   """
-  @spec map_join(t, String.t, (element -> String.t)) :: String.t
+  @spec map_join(t, String.t, (element -> String.Chars.t)) :: String.t
   def map_join(enumerable, joiner \\ "", mapper)
 
   def map_join(enumerable, joiner, mapper) when is_binary(joiner) and is_function(mapper, 1) do
