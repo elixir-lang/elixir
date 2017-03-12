@@ -683,25 +683,25 @@ defmodule Time do
 
   """
   @spec from_iso8601(String.t) :: {:ok, t} | {:error, atom}
-  def from_iso8601(string)
+  def from_iso8601(string, calendar \\ Calendar.ISO)
 
-  def from_iso8601(<<?T, h, rest::binary>>) when h in ?0..?9 do
+  def from_iso8601(<<?T, h, rest::binary>>, calendar) when h in ?0..?9 do
     from_iso8601(<<h, rest::binary>>)
   end
 
-  def from_iso8601(<<hour::2-bytes, ?:, min::2-bytes, ?:, sec::2-bytes, rest::binary>>) do
+  def from_iso8601(<<hour::2-bytes, ?:, min::2-bytes, ?:, sec::2-bytes, rest::binary>>, calendar) do
     with {hour, ""} <- Integer.parse(hour),
          {min, ""} <- Integer.parse(min),
          {sec, ""} <- Integer.parse(sec),
          {microsec, rest} <- Calendar.ISO.parse_microsecond(rest),
          {_offset, ""} <- Calendar.ISO.parse_offset(rest) do
-      new(hour, min, sec, microsec)
+      new(hour, min, sec, microsec, calendar)
     else
       _ -> {:error, :invalid_format}
     end
   end
 
-  def from_iso8601(<<_::binary>>) do
+  def from_iso8601(<<_::binary>>, _calendar) do
     {:error, :invalid_format}
   end
 
@@ -750,10 +750,15 @@ defmodule Time do
   @spec to_iso8601(Calendar.time) :: String.t
   def to_iso8601(time)
 
-  def to_iso8601(%{hour: hour, minute: minute, second: second, microsecond: microsecond}) do
+  def to_iso8601(%{hour: hour, minute: minute, second: second, microsecond: microsecond, calendar: Calendar.ISO}) do
     Calendar.ISO.time_to_iso8601(hour, minute, second, microsecond)
   end
 
+  def to_iso8601(%{hour: hour, minute: minute, second: second, microsecond: microsecond, calendar: calendar} = time) do
+    time
+    |> convert(Calendar.ISO)
+    |> to_iso8601
+  end
   @doc """
   Converts a `Time` struct to an Erlang time tuple.
 
@@ -772,9 +777,16 @@ defmodule Time do
   @spec to_erl(Calendar.time) :: :calendar.time
   def to_erl(time)
 
-  def to_erl(%{hour: hour, minute: minute, second: second}) do
+  def to_erl(%{hour: hour, minute: minute, second: second, calendar: Calendar.ISO}) do
     {hour, minute, second}
   end
+
+  def to_erl(%{hour: hour, minute: minute, second: second, calendar: calendar} = time) do
+    time
+    |> convert(Calendar.ISO)
+    |> to_erl
+  end
+
 
   @doc """
   Converts an Erlang time tuple to a `Time` struct.
@@ -786,11 +798,12 @@ defmodule Time do
       iex> Time.from_erl({24, 30, 15})
       {:error, :invalid_time}
   """
-  @spec from_erl(:calendar.time, Calendar.microsecond) :: {:ok, t} | {:error, atom}
-  def from_erl(tuple, microsecond \\ {0, 0})
+  @spec from_erl(:calendar.time, Calendar.microsecond, Calendar.calendar) :: {:ok, t} | {:error, atom}
+  def from_erl(tuple, microsecond \\ {0, 0}, calendar \\ Calendar.ISO)
 
-  def from_erl({hour, minute, second}, microsecond) do
-    new(hour, minute, second, microsecond)
+  def from_erl({hour, minute, second}, microsecond, calendar) do
+    {:ok, time} = new(hour, minute, second, microsecond, Calendar.ISO)
+    {:ok, convert(time, calendar)}
   end
 
   @doc """
@@ -805,8 +818,8 @@ defmodule Time do
       iex> Time.from_erl!({24, 30, 15})
       ** (ArgumentError) cannot convert {24, 30, 15} to time, reason: :invalid_time
   """
-  @spec from_erl!(:calendar.time, Calendar.microsecond) :: t | no_return
-  def from_erl!(tuple, microsecond \\ {0, 0}) do
+  @spec from_erl!(:calendar.time, Calendar.microsecond, Calendar.calendar) :: t | no_return
+  def from_erl!(tuple, microsecond \\ {0, 0}, calendar \\ Calendar.ISO) do
     case from_erl(tuple, microsecond) do
       {:ok, value} ->
         value
@@ -891,9 +904,20 @@ defmodule Time do
     {hour, minute, second, microsecond}
   end
 
-  defp to_day_fraction(%{hour: hour, minute: minute, second: second, microsecond: {microsecond, _precision}, calendar: calendar}) do
+  defp to_day_fraction(%{hour: hour, minute: minute, second: second, microsecond: {_, _} = microsecond, calendar: calendar}) do
     calendar.time_to_day_fraction(hour, minute, second, microsecond)
   end
+
+  defp to_day_fraction(%{hour: hour, minute: minute, second: second, microsecond: microsecond, calendar: calendar}) do
+    calendar.time_to_day_fraction(hour, minute, second, {microsecond, 0})
+  end
+
+  @spec gcd(integer, integer) :: non_neg_integer
+  defp gcd(a, 0), do: abs(a)
+
+  defp gcd(0, b), do: abs(b)
+  defp gcd(a, b) when a < 0 or b < 0, do: gcd(abs(a), abs(b))
+  defp gcd(a, b), do: gcd(b, rem(a,b))
 
   defimpl String.Chars do
     def to_string(%{hour: hour, minute: minute, second: second, microsecond: microsecond, calendar: calendar}) do
@@ -1705,6 +1729,10 @@ defmodule DateTime do
     System.convert_time_unit((seconds - @unix_epoch) * 1_000_000 + microsecond, :microsecond, unit)
   end
 
+  def to_unix(%DateTime{calendar: Calendar.ISO, year: year}, _unit) when year < 0 do
+    raise ArgumentError
+  end
+
   def to_unix(%DateTime{calendar: _, std_offset: _, utc_offset: _,
                         hour: _, minute: _, second: _, microsecond: {_, _},
                         year: _, month: _, day: _} = datetime, unit) do
@@ -1894,6 +1922,11 @@ defmodule DateTime do
       {:error, reason} -> {:error, reason}
       _ -> {:error, :invalid_format}
     end
+  end
+
+
+  def from_iso8601(_, _) do
+    {:error, :invalid_format}
   end
 
   defp parse_offset(rest) do
