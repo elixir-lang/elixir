@@ -119,10 +119,15 @@ defmodule Calendar do
   @callback naive_datetime_to_string(year, month, day, hour, minute, second, microsecond) :: String.t
 
   @doc """
-  Coverts the datetime (with time zone) into a string according to the calendar.
+  Converts the datetime (with time zone) into a string according to the calendar.
   """
   @callback datetime_to_string(year, month, day, hour, minute, second, microsecond,
                                time_zone, zone_abbr, utc_offset, std_offset) :: String.t
+
+  @doc """
+  Converts the time into a string according to the calendar.
+  """
+  @callback time_to_string(hour, minute, second, microsecond) :: String.t
 
   @doc """
   Converts the given datetime (with time zone)
@@ -561,11 +566,12 @@ defmodule Time do
       true
 
   """
-  @spec utc_now() :: t
+  @spec utc_now(Calendar.calendar) :: t
   # TODO: Make this function calendar agnostic (optional `calendar` argument)
-  def utc_now() do
+  def utc_now(calendar \\ Calendar.ISO) do
     {:ok, _, {hour, minute, second}, microsecond} = Calendar.ISO.from_unix(:os.system_time, :native)
-    %Time{hour: hour, minute: minute, second: second, microsecond: microsecond, calendar: Calendar.ISO}
+    iso_time = %Time{hour: hour, minute: minute, second: second, microsecond: microsecond, calendar: Calendar.ISO}
+    convert(iso_time, calendar)
   end
 
   @doc """
@@ -634,8 +640,8 @@ defmodule Time do
   @spec to_string(Calendar.time) :: String.t
   def to_string(time)
 
-  def to_string(%{hour: hour, minute: minute, second: second, microsecond: microsecond}) do
-    Calendar.ISO.time_to_string(hour, minute, second, microsecond)
+  def to_string(%{hour: hour, minute: minute, second: second, microsecond: microsecond, calendar: calendar}) do
+    calendar.time_to_string(hour, minute, second, microsecond)
   end
 
   @doc """
@@ -834,11 +840,49 @@ defmodule Time do
   """
   @spec compare(Calendar.time, Calendar.time) :: :lt | :eq | :gt
   def compare(time1, time2) do
-    case {to_tuple(time1), to_tuple(time2)} do
+    {parts1, ppd1} = to_day_fraction(time1)
+    {parts2, ppd2} = to_day_fraction(time2)
+
+    case {parts1 * ppd2, parts2 * ppd1} do
       {first, second} when first > second -> :gt
       {first, second} when first < second -> :lt
       _ -> :eq
     end
+  end
+
+  @doc """
+  Converts the Time struct to a different calendar.
+  """
+  @spec convert(Time.t, Calendar.calendar) :: DateTime.t
+  # No conversion required if already of the target calendar.
+  def convert(%Time{calendar: calendar} = time, calendar) do
+    time
+  end
+
+  def convert(%Time{} = time, calendar) do
+    time
+    |> to_day_fraction
+    |> calendar.time_from_day_fraction
+  end
+
+  @doc """
+  Returns a day_fraction that represents the difference
+  between two Time Structs.
+  """
+  @spec diff(Time.t, Time.t) :: Calendar.rata_die
+  def diff(%Time{} = time1, %Time{} = time2) do
+    {parts1, ppd1} = to_day_fraction(time1)
+    {parts2, ppd2} = to_day_fraction(time2)
+
+    diff_ppd = ppd1 * ppd2
+    diff_parts = parts1 * ppd2 - parts2 * ppd1
+
+    # Keep integers in day fraction low.
+    gcd = gcd(diff_parts, diff_ppd)
+    diff_parts = div(diff_parts, gcd)
+    diff_ppd = div(diff_ppd, gcd)
+
+    {diff_parts, diff_ppd}
   end
 
   ## Helpers
@@ -847,15 +891,19 @@ defmodule Time do
     {hour, minute, second, microsecond}
   end
 
+  defp to_day_fraction(%{hour: hour, minute: minute, second: second, microsecond: {microsecond, _precision}, calendar: calendar}) do
+    calendar.time_to_day_fraction(hour, minute, second, microsecond)
+  end
+
   defimpl String.Chars do
-    def to_string(%{hour: hour, minute: minute, second: second, microsecond: microsecond}) do
-      Calendar.ISO.time_to_string(hour, minute, second, microsecond)
+    def to_string(%{hour: hour, minute: minute, second: second, microsecond: microsecond, calendar: calendar}) do
+      calendar.time_to_string(hour, minute, second, microsecond)
     end
   end
 
   defimpl Inspect do
-    def inspect(%{hour: hour, minute: minute, second: second, microsecond: microsecond}, _) do
-      "~T[" <> Calendar.ISO.time_to_string(hour, minute, second, microsecond) <> "]"
+    def inspect(%{hour: hour, minute: minute, second: second, microsecond: microsecond, calendar: calendar}, _) do
+      "~T[" <> calendar.time_to_string(hour, minute, second, microsecond) <> "]"
     end
   end
 end
