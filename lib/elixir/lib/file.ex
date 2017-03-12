@@ -671,7 +671,7 @@ defmodule File do
 
   """
   @spec cp_r(Path.t, Path.t, (Path.t, Path.t -> boolean)) :: {:ok, [binary]} | {:error, posix, binary}
-  def cp_r(source, destination, callback \\ fn(_, _) -> true end) when is_function(callback) do
+  def cp_r(source, destination, callback \\ fn(_, _) -> true end) when is_function(callback, 2) do
     source = IO.chardata_to_string(source)
     destination = IO.chardata_to_string(destination)
 
