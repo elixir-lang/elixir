@@ -1196,8 +1196,8 @@ defmodule Enum do
 
   def join(enumerable, joiner) when is_binary(joiner) do
     reduced = reduce(enumerable, :first, fn
-      entry, :first -> enum_to_string(entry)
-      entry, acc -> [acc, joiner | enum_to_string(entry)]
+      entry, :first -> entry_to_string(entry)
+      entry, acc -> [acc, joiner | entry_to_string(entry)]
     end)
     if reduced == :first do
       ""
@@ -1272,8 +1272,8 @@ defmodule Enum do
   the same type as `joiner`.
   If `joiner` is not passed at all, it defaults to an empty binary.
 
-  All items in the enumerable must be convertible to a binary,
-  otherwise an error is raised.
+  All items returned from invoking the `mapper` must be convertible to
+  a binary, otherwise an error is raised.
 
   ## Examples
 
@@ -1284,13 +1284,13 @@ defmodule Enum do
       "2 = 4 = 6"
 
   """
-  @spec map_join(t, String.t, (element -> any)) :: String.t
+  @spec map_join(t, String.t, (element -> String.Chars.t)) :: String.t
   def map_join(enumerable, joiner \\ "", mapper)
 
   def map_join(enumerable, joiner, mapper) when is_binary(joiner) and is_function(mapper, 1) do
     reduced = reduce(enumerable, :first, fn
-      entry, :first -> enum_to_string(mapper.(entry))
-      entry, acc    -> [acc, joiner | enum_to_string(mapper.(entry))]
+      entry, :first -> entry_to_string(mapper.(entry))
+      entry, acc -> [acc, joiner | entry_to_string(mapper.(entry))]
     end)
 
     if reduced == :first do
@@ -2708,10 +2708,10 @@ defmodule Enum do
 
   ## Helpers
 
-  @compile {:inline, enum_to_string: 1, reduce: 3}
+  @compile {:inline, entry_to_string: 1, reduce: 3}
 
-  defp enum_to_string(entry) when is_binary(entry), do: entry
-  defp enum_to_string(entry), do: String.Chars.to_string(entry)
+  defp entry_to_string(entry) when is_binary(entry), do: entry
+  defp entry_to_string(entry), do: String.Chars.to_string(entry)
 
   defp enumerable_and_count(enumerable, count) when is_list(enumerable) do
     {enumerable, length(enumerable) - abs(count)}

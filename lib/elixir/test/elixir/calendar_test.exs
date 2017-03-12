@@ -98,6 +98,15 @@ defmodule NaiveDateTimeTest do
     assert NaiveDateTime.compare(ndt3, ndt1) == :gt
     assert NaiveDateTime.compare(ndt3, ndt2) == :gt
   end
+
+  test "to_iso8601/1" do
+    ndt = ~N[2000-04-16 12:34:15.1234]
+    ndt = put_in ndt.calendar, FakeCalendar
+    assert_raise ArgumentError, "cannot convert #{inspect(ndt)} to the ISO 8601 format, because it does not use Calendar.ISO",
+    fn ->
+      NaiveDateTime.to_iso8601(ndt)
+    end
+  end
 end
 
 defmodule DateTimeTest do
