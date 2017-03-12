@@ -152,6 +152,27 @@ defmodule Calendar do
   to the Calendar's time format.
   """
   @callback time_from_day_fraction(day_fraction) :: {hour, minute, second, microsecond}
+
+  @doc """
+  Should return `true` if the given date describes a proper date in the calendar.
+  """
+  @callback valid_date?(year, month, day) :: boolean
+
+  @doc """
+  Should return `true` if the given time describes a proper time in the calendar.
+  """
+  @callback valid_time?(hour, minute, second, microsecond) :: boolean
+
+  @doc """
+  Should return `true` if the given datetime (with time zone info) describes a proper datetime (with time zone info) in the calendar.
+  """
+  @callback valid_naive_datetime?(year, month, day, hour, minute, second, microsecond) :: boolean
+
+  @doc """
+  Should return `true` if the given datetime describes a proper datetime in the calendar.
+  """
+  @callback valid_datetime?(year, month, day, hour, minute, second, microsecond,
+    time_zone, zone_abbr, utc_offset, std_offset) :: boolean
 end
 
 defmodule Date do
