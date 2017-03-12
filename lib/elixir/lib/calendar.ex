@@ -22,7 +22,6 @@ defmodule Calendar do
   @type hour :: integer
   @type minute :: integer
 
-  @typedoc "From 0 to 60 to account for leap seconds"
   @type second :: integer
 
   @typedoc """
@@ -2082,8 +2081,7 @@ defmodule DateTime do
   defp to_rata_die(
     %DateTime{calendar: calendar,
               year: year, month: month, day: day, hour: hour, minute: minute, second: second, microsecond: microsecond,
-              time_zone: time_zone, zone_abbr: zone_abbr, utc_offset: utc_offset, std_offset: std_offset
-    }
+              time_zone: time_zone, zone_abbr: zone_abbr, utc_offset: utc_offset, std_offset: std_offset}
   ) do
     calendar.datetime_to_rata_die(year, month, day, hour, minute, second, microsecond, time_zone, zone_abbr, utc_offset, std_offset)
   end
