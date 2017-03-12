@@ -1220,7 +1220,7 @@ defmodule NaiveDateTime do
 
   def to_iso8601(%{year: _, month: _, day: _,
                    hour: _, minute: _, second: _, microsecond: _, calendar: _} = naive_datetime) do
-    raise ArgumentError, "Cannot convert #{inspect naive_datetime} to the ISO 8601 format, because it does not use Calendar.ISO"
+    raise ArgumentError, "cannot convert #{inspect naive_datetime} to the ISO 8601 format, because it does not use Calendar.ISO"
   end
 
   @doc """

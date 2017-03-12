@@ -100,13 +100,11 @@ defmodule NaiveDateTimeTest do
   end
 
   test "to_iso8601/1" do
-    ndt1 = ~N[2000-04-16 12:34:15.1234]
-    ndt1 = put_in ndt1.calendar, FakeCalendar
-    assert_raise ArgumentError, """
-    Cannot convert %NaiveDateTime{calendar: FakeCalendar, day: 16, hour: 12, microsecond: {123400, 4}, minute: 34, month: 4, second: 15, year: 2000} to the ISO 8601 format, because it does not use Calendar.ISO
-    """,
+    ndt = ~N[2000-04-16 12:34:15.1234]
+    ndt = put_in ndt.calendar, FakeCalendar
+    assert_raise ArgumentError, "cannot convert #{inspect(ndt)} to the ISO 8601 format, because it does not use Calendar.ISO",
     fn ->
-      NaiveDateTime.to_iso8601(ndt1)
+      NaiveDateTime.to_iso8601(ndt)
     end
   end
 end
