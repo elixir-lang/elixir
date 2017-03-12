@@ -827,8 +827,12 @@ defmodule Time do
   def from_erl(tuple, microsecond \\ {0, 0}, calendar \\ Calendar.ISO)
 
   def from_erl({hour, minute, second}, microsecond, calendar) do
-    {:ok, time} = new(hour, minute, second, microsecond, Calendar.ISO)
-    {:ok, convert(time, calendar)}
+    case new(hour, minute, second, microsecond, Calendar.ISO) do
+      {:ok, time} ->
+        {:ok, convert(time, calendar)}
+      {:error, reason} ->
+        {:error, reason}
+    end
   end
 
   @doc """

@@ -155,7 +155,7 @@ defmodule DateTimeTest do
     assert DateTime.to_unix(gregorian_0) == -62167219200
 
     before_gregorian_0 = %DateTime{gregorian_0 | year: -1}
-    assert_raise FunctionClauseError, fn ->
+    assert_raise ArgumentError, fn ->
       DateTime.to_unix(before_gregorian_0)
     end
   end
