@@ -634,10 +634,9 @@ defmodule File do
   `destination`. If the source is a directory, it copies
   the contents inside source into the destination.
 
-  If a file already exists in the destination,
-  it invokes a callback which should return
-  `true` if the existing file should be overwritten,
-  `false` otherwise. The callback defaults to return `true`.
+  If a file already exists in the destination, it invokes `callback`.
+  `callback` must be a function that takes two arguments: `source` and `destination`.
+  The callback should return `true` if the existing file should be overwritten and `false` otherwise.
 
   If a directory already exists in the destination
   where a file is meant to be (or vice versa), this
