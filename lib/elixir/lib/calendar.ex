@@ -1472,9 +1472,9 @@ defmodule DateTime do
       "Etc/UTC"
 
   """
-  @spec utc_now() :: DateTime.t
-  def utc_now() do
-    :os.system_time |> from_unix!(:native)
+  @spec utc_now(calendar \\ Calendar.ISO) :: DateTime.t
+  def utc_now(calendar) do
+    :os.system_time |> from_unix!(:native, calendar)
   end
 
   @doc """
@@ -1517,13 +1517,14 @@ defmodule DateTime do
 
   When a Unix time before that moment is passed to `from_unix/2`, `:error` will be returned.
   """
-  @spec from_unix(integer, :native | System.time_unit) :: {:ok, DateTime.t} | {:error, atom}
-  def from_unix(integer, unit \\ :second) when is_integer(integer) do
+  @spec from_unix(integer, :native | System.time_unit, Calendar.calendar) :: {:ok, DateTime.t} | {:error, atom}
+  def from_unix(integer, unit \\ :second, calendar \\ Calendar.ISO) when is_integer(integer) do
     case Calendar.ISO.from_unix(integer, unit) do
       {:ok, {year, month, day}, {hour, minute, second}, microsecond} ->
-        {:ok, %DateTime{year: year, month: month, day: day,
-                        hour: hour, minute: minute, second: second, microsecond: microsecond,
-                        std_offset: 0, utc_offset: 0, zone_abbr: "UTC", time_zone: "Etc/UTC"}}
+        iso_datetime = %DateTime{year: year, month: month, day: day,
+                                 hour: hour, minute: minute, second: second, microsecond: microsecond,
+                                 std_offset: 0, utc_offset: 0, zone_abbr: "UTC", time_zone: "Etc/UTC"}
+        {:ok, convert(iso_datetime, calendar)}
       {:error, _} = error ->
         error
     end
@@ -1561,8 +1562,8 @@ defmodule DateTime do
 
   When a Unix time before that moment is passed to `from_unix!/2`, an ArgumentError will be raised.
   """
-  @spec from_unix!(integer, :native | System.time_unit) :: DateTime.t
-  def from_unix!(integer, unit \\ :second) when is_atom(unit) do
+  @spec from_unix!(integer, :native | System.time_unit, Calendar.calendar) :: DateTime.t
+  def from_unix!(integer, unit \\ :second, \\ Calendar.ISO) when is_atom(unit) do
     case from_unix(integer, unit) do
       {:ok, datetime} ->
         datetime
@@ -1657,6 +1658,14 @@ defmodule DateTime do
       |> Kernel.-(utc_offset)
       |> Kernel.-(std_offset)
     System.convert_time_unit((seconds - @unix_epoch) * 1_000_000 + microsecond, :microsecond, unit)
+  end
+
+  def to_unix(%DateTime{calendar: calendar, std_offset: _, utc_offset: _,
+                        hour: _, minute: _, second: _, microsecond: {_, _},
+                        year: _, month: _, day: _} = datetime, unit) do
+    datetime
+    |> convert(Calendar.ISO)
+    |> to_unix(unit)
   end
 
   @doc """
@@ -1759,6 +1768,14 @@ defmodule DateTime do
                                      time_zone, zone_abbr, utc_offset, std_offset)
   end
 
+  def to_iso8601(%{calendar: calendar, year: year, month: month, day: day,
+                   hour: hour, minute: minute, second: second, microsecond: microsecond,
+                   time_zone: time_zone, zone_abbr: zone_abbr, utc_offset: utc_offset, std_offset: std_offset} = datetime) do
+    datetime
+    |> convert(Calendar.ISO)
+    |> to_iso8601
+  end
+
   @doc """
   Parses the extended "Date and time of day" format described by
   [ISO 8601:2004](https://en.wikipedia.org/wiki/ISO_8601).
@@ -1802,11 +1819,11 @@ defmodule DateTime do
       {:error, :invalid_format}
 
   """
-  @spec from_iso8601(String.t) :: {:ok, t, Calendar.utc_offset} | {:error, atom}
-  def from_iso8601(string)
+  @spec from_iso8601(String.t, Calendar.calendar) :: {:ok, t, Calendar.utc_offset} | {:error, atom}
+  def from_iso8601(string, calendar \\ Calendar.ISO)
 
   def from_iso8601(<<year::4-bytes, ?-, month::2-bytes, ?-, day::2-bytes, sep,
-                     hour::2-bytes, ?:, min::2-bytes, ?:, sec::2-bytes, rest::binary>>) when sep in [?\s, ?T] do
+                     hour::2-bytes, ?:, min::2-bytes, ?:, sec::2-bytes, rest::binary>>, calendar) when sep in [?\s, ?T] do
     with {year, ""} <- Integer.parse(year),
          {month, ""} <- Integer.parse(month),
          {day, ""} <- Integer.parse(day),
@@ -1824,10 +1841,10 @@ defmodule DateTime do
       seconds = :calendar.datetime_to_gregorian_seconds(erl)
       {{year, month, day}, {hour, minute, second}} =
         :calendar.gregorian_seconds_to_datetime(seconds - offset)
-
-      {:ok, %DateTime{year: year, month: month, day: day,
+      iso_datetime = %DateTime{year: year, month: month, day: day,
                       hour: hour, minute: minute, second: second, microsecond: microsecond,
-                      std_offset: 0, utc_offset: 0, zone_abbr: "UTC", time_zone: "Etc/UTC"}, offset}
+                               std_offset: 0, utc_offset: 0, zone_abbr: "UTC", time_zone: "Etc/UTC"}
+      {:ok, convert(iso_datetime, calendar), offset}
     else
       {:error, reason} -> {:error, reason}
       _ -> {:error, :invalid_format}
