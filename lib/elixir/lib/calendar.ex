@@ -972,7 +972,7 @@ defmodule NaiveDateTime do
       iex> hidden = NaiveDateTime.add(~N[2014-10-02 00:29:10], 21, :millisecond)
       iex> hidden.microsecond  # ~N[2014-10-02 00:29:10]
       {21000, 0}
-      # from gregorian seconds
+      # from Gregorian seconds
       iex> NaiveDateTime.add(~N[0000-01-01 00:00:00], 63579428950)
       ~N[2014-10-02 00:29:10]
   """
@@ -1004,7 +1004,7 @@ defmodule NaiveDateTime do
       2_000_000
       iex> NaiveDateTime.diff(~N[2014-10-02 00:29:10.042], ~N[2014-10-02 00:29:10.021], :millisecond)
       21
-      # to gregorian seconds
+      # to Gregorian seconds
       iex> NaiveDateTime.diff(~N[2014-10-02 00:29:10], ~N[0000-01-01 00:00:00])
       63579428950
   """
@@ -1465,7 +1465,7 @@ defmodule DateTime do
 
 
   Negative Unix times are supported, up to -#{@unix_epoch} seconds,
-  which is equivalent to "0000-01-01T00:00:00Z" or 0 gregorian seconds.
+  which is equivalent to "0000-01-01T00:00:00Z" or 0 Gregorian seconds.
 
       iex> DateTime.from_unix(-12345678910)
       {:ok, %DateTime{calendar: Calendar.ISO, day: 13, hour: 4, microsecond: {0, 0}, minute: 44,
@@ -1509,7 +1509,7 @@ defmodule DateTime do
                 year: 2015, zone_abbr: "UTC"}
 
   Negative Unix times are supported, up to -#{@unix_epoch} seconds,
-  which is equivalent to "0000-01-01T00:00:00Z" or 0 gregorian seconds.
+  which is equivalent to "0000-01-01T00:00:00Z" or 0 Gregorian seconds.
 
       iex> DateTime.from_unix(-12345678910)
       {:ok, %DateTime{calendar: Calendar.ISO, day: 13, hour: 4, microsecond: {0, 0}, minute: 44,
