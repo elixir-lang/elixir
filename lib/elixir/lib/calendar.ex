@@ -611,9 +611,6 @@ defmodule Time do
       when is_integer(hour) and is_integer(minute) and is_integer(second) and
            is_integer(microsecond) and is_integer(precision) do
       {:ok, %Time{hour: hour, minute: minute, second: second, microsecond: {microsecond, precision}, calendar: calendar}}
-    else
-      {:error, :invalid_time}
-    end
   end
 
   @doc """
@@ -1262,7 +1259,7 @@ defmodule NaiveDateTime do
   def to_iso8601(naive_datetime)
 
   def to_iso8601(%{year: year, month: month, day: day,
-                   hour: hour, minute: minute, second: second, microsecond: microsecond}) do
+                   hour: hour, minute: minute, second: second, microsecond: microsecond, calendar: Calendar.ISO}) do
     Calendar.ISO.naive_datetime_to_iso8601(year, month, day, hour, minute, second, microsecond)
   end
 
@@ -1375,7 +1372,7 @@ defmodule NaiveDateTime do
 
   """
   @spec compare(Calendar.naive_datetime, Calendar.naive_datetime) :: :lt | :eq | :gt
-  def compare(naive_datetime1, naive_datetime2) do
+  def compare(%{calendar: calendar} = naive_datetime1, %{calendar: calendar} = naive_datetime2) do
     case {to_tuple(naive_datetime1), to_tuple(naive_datetime2)} do
       {first, second} when first > second -> :gt
       {first, second} when first < second -> :lt
@@ -1393,7 +1390,7 @@ defmodule NaiveDateTime do
     second * 1_000_000 + microsecond
   end
 
-  defp to_tuple(%{calendar: Calendar.ISO, year: year, month: month, day: day,
+  defp to_tuple(%{calendar: calendar, year: year, month: month, day: day,
                   hour: hour, minute: minute, second: second, microsecond: {microsecond, _precision}}) do
     {year, month, day, hour, minute, second, microsecond}
   end
@@ -1472,8 +1469,8 @@ defmodule DateTime do
       "Etc/UTC"
 
   """
-  @spec utc_now(calendar \\ Calendar.ISO) :: DateTime.t
-  def utc_now(calendar) do
+  @spec utc_now(Calendar.calendar) :: DateTime.t
+  def utc_now(calendar \\ Calendar.ISO) do
     :os.system_time |> from_unix!(:native, calendar)
   end
 
@@ -1563,8 +1560,8 @@ defmodule DateTime do
   When a Unix time before that moment is passed to `from_unix!/2`, an ArgumentError will be raised.
   """
   @spec from_unix!(integer, :native | System.time_unit, Calendar.calendar) :: DateTime.t
-  def from_unix!(integer, unit \\ :second, \\ Calendar.ISO) when is_atom(unit) do
-    case from_unix(integer, unit) do
+  def from_unix!(integer, unit \\ :second, calendar \\ Calendar.ISO) when is_atom(unit) do
+    case from_unix(integer, unit, calendar) do
       {:ok, datetime} ->
         datetime
       {:error, :invalid_unix_time} ->
@@ -1584,14 +1581,14 @@ defmodule DateTime do
       {:ok, %DateTime{calendar: Calendar.ISO, day: 24, hour: 13, microsecond: {3000, 3}, minute: 26,
                       month: 5, second: 8, std_offset: 0, time_zone: "Etc/UTC", utc_offset: 0,
                       year: 2016, zone_abbr: "UTC"}}
-
   """
   @spec from_naive(NaiveDateTime.t, Calendar.time_zone) :: {:ok, DateTime.t}
   def from_naive(naive_datetime, time_zone)
 
-  def from_naive(%NaiveDateTime{hour: hour, minute: minute, second: second, microsecond: microsecond,
+  def from_naive(%NaiveDateTime{calendar: calendar,
+                                hour: hour, minute: minute, second: second, microsecond: microsecond,
                                 year: year, month: month, day: day}, "Etc/UTC") do
-    {:ok, %DateTime{year: year, month: month, day: day,
+    {:ok, %DateTime{calendar: calendar, year: year, month: month, day: day,
                     hour: hour, minute: minute, second: second, microsecond: microsecond,
                     std_offset: 0, utc_offset: 0, zone_abbr: "UTC", time_zone: "Etc/UTC"}}
   end
@@ -1660,7 +1657,7 @@ defmodule DateTime do
     System.convert_time_unit((seconds - @unix_epoch) * 1_000_000 + microsecond, :microsecond, unit)
   end
 
-  def to_unix(%DateTime{calendar: calendar, std_offset: _, utc_offset: _,
+  def to_unix(%DateTime{calendar: _, std_offset: _, utc_offset: _,
                         hour: _, minute: _, second: _, microsecond: {_, _},
                         year: _, month: _, day: _} = datetime, unit) do
     datetime
@@ -1723,8 +1720,8 @@ defmodule DateTime do
       ~T[23:00:07.0]
 
   """
-  def to_time(%DateTime{hour: hour, minute: minute, second: second, microsecond: microsecond}) do
-    %Time{hour: hour, minute: minute, second: second, microsecond: microsecond}
+  def to_time(%DateTime{hour: hour, minute: minute, second: second, microsecond: microsecond, calendar: calendar}) do
+    %Time{hour: hour, minute: minute, second: second, microsecond: microsecond, calendar: calendar}
   end
 
   @doc """
@@ -1768,9 +1765,9 @@ defmodule DateTime do
                                      time_zone, zone_abbr, utc_offset, std_offset)
   end
 
-  def to_iso8601(%{calendar: calendar, year: year, month: month, day: day,
-                   hour: hour, minute: minute, second: second, microsecond: microsecond,
-                   time_zone: time_zone, zone_abbr: zone_abbr, utc_offset: utc_offset, std_offset: std_offset} = datetime) do
+  def to_iso8601(%{calendar: _, year: _, month: _, day: _,
+                   hour: _, minute: _, second: _, microsecond: _,
+                   time_zone: _, zone_abbr: _, utc_offset: _, std_offset: _} = datetime) do
     datetime
     |> convert(Calendar.ISO)
     |> to_iso8601
@@ -1849,10 +1846,6 @@ defmodule DateTime do
       {:error, reason} -> {:error, reason}
       _ -> {:error, :invalid_format}
     end
-  end
-
-  def from_iso8601(_) do
-    {:error, :invalid_format}
   end
 
   defp parse_offset(rest) do
@@ -1987,6 +1980,9 @@ defmodule DateTime do
   ...>                 hour: 23, minute: 0, second: 7, microsecond: {0, 0},
   ...>                 utc_offset: -14400, std_offset: 0, time_zone: "America/Manaus"}
   iex> DateTime.convert(dt1, Calendar.ISO)
+  %DateTime{year: 2000, month: 2, day: 29, zone_abbr: "AMT",
+                   hour: 23, minute: 0, second: 7, microsecond: {0, 0},
+                   utc_offset: -14400, std_offset: 0, time_zone: "America/Manaus"}
   """
   # TODO: For better examples and doctests we need a second (simple) calendar.
   @spec convert(DateTime.t, Calendar.calendar) :: DateTime.t
