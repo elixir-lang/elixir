@@ -2199,7 +2199,7 @@ defmodule DateTime do
     result_datetime =
       datetime
       |> to_rata_die
-      |> calendar.datetime_from_rata_die
+      |> from_rata_die(calendar)
     {:ok, result_datetime}
   end
 
@@ -2221,6 +2221,10 @@ defmodule DateTime do
               time_zone: time_zone, zone_abbr: zone_abbr, utc_offset: utc_offset, std_offset: std_offset}
   ) do
     calendar.datetime_to_rata_die(year, month, day, hour, minute, second, microsecond, time_zone, zone_abbr, utc_offset, std_offset)
+  end
+
+  defp from_rata_die(rata_die, calendar) do
+    {year, month, day, hour, minute, second, microsecond, time_zone, zone_abbr, utc_offset, std_offset} = calendar.datetime_from_rata_die(rata_die)
   end
 
   @spec gcd(integer, integer) :: non_neg_integer
