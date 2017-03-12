@@ -5,6 +5,7 @@ defmodule FakeCalendar do
   def time_to_string(_, _, _, _), do: "boom"
   def naive_datetime_to_string(_, _, _, _, _, _, _), do: "boom"
   def datetime_to_string(_, _, _, _, _, _, _, _, _, _), do: "boom"
+  def day_rollover_relative_to_midnight_utc, do: {123456,123457}
 end
 
 defmodule DateTest do
@@ -102,7 +103,7 @@ defmodule NaiveDateTimeTest do
   test "to_iso8601/1" do
     ndt = ~N[2000-04-16 12:34:15.1234]
     ndt = put_in ndt.calendar, FakeCalendar
-    assert_raise ArgumentError, "cannot convert #{inspect(ndt)} to the ISO 8601 format, because it does not use Calendar.ISO",
+    assert_raise ArgumentError, "cannot convert #{inspect ndt} to target calendar Calendar.ISO, reason: #{inspect ndt.calendar} and Calendar.ISO have different day rollover moments, making this conversion ambiguous.",
     fn ->
       NaiveDateTime.to_iso8601(ndt)
     end
