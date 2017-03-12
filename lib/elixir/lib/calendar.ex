@@ -244,8 +244,8 @@ defmodule Date do
   @spec utc_today(Calendar.calendar) :: t
   def utc_today(calendar \\ Calendar.ISO) do
     {:ok, {year, month, day}, _, _} = Calendar.ISO.from_unix(:os.system_time, :native)
-    new(year, month, day, Calendar.ISO)
-    |> convert(calendar)
+    with {:ok, date} <- new(year, month, day, Calendar.ISO),
+         do: convert!(date, calendar)
   end
 
   @doc """
@@ -368,8 +368,8 @@ defmodule Date do
     with {year, ""} <- Integer.parse(year),
          {month, ""} <- Integer.parse(month),
          {day, ""} <- Integer.parse(day) do
-      new(year, month, day, Calendar.ISO)
-      |> convert!(calendar)
+         with {:ok, date} <- new(year, month, day, Calendar.ISO),
+              do: convert(date, calendar)
     else
       _ -> {:error, :invalid_format}
     end
@@ -393,8 +393,8 @@ defmodule Date do
       ** (ArgumentError) cannot parse "2015:01:23" as date, reason: :invalid_format
   """
   @spec from_iso8601!(String.t) :: t | no_return
-  def from_iso8601!(string) do
-    case from_iso8601(string) do
+  def from_iso8601!(string, calendar \\ Calendar.ISO) do
+    case from_iso8601(string, calendar) do
       {:ok, value} ->
         value
       {:error, reason} ->
@@ -462,7 +462,9 @@ defmodule Date do
   @doc """
   Converts an Erlang date tuple to a `Date` struct.
 
-  Attempting to convert an invalid ISO calendar date will produce an error tuple.
+  Only supports converting dates which are in the ISO calendar,
+  or other calendars in which the days also start at midnight.
+  Attempting to convert dates from other calendars will return an error tuple.
 
   ## Examples
 
@@ -472,10 +474,11 @@ defmodule Date do
       {:error, :invalid_date}
   """
   @spec from_erl(:calendar.date) :: {:ok, t} | {:error, atom}
-  def from_erl(tuple)
+  def from_erl(tuple, calendar \\ Calendar.ISO)
 
-  def from_erl({year, month, day}, calendar \\ Calendar.ISO) do
-    new(year, month, day, calendar)
+  def from_erl({year, month, day}, calendar) do
+    with {:ok, date} <- new(year, month, day, Calendar.ISO),
+         do: convert(date, calendar)
   end
 
   @doc """
@@ -561,7 +564,7 @@ defmodule Date do
     end
   end
 
-  defp to_rata_die(%Date{calendar: calendar, year: year, month: month, day: day} = date) do
+  defp to_rata_die(%{calendar: calendar, year: year, month: month, day: day} = date) do
     calendar.datetime_to_rata_die(year, month, day, 0, 0, 0, 0, "", "", 0, 0)
   end
 
@@ -668,7 +671,7 @@ defmodule Time do
   def utc_now(calendar \\ Calendar.ISO) do
     {:ok, _, {hour, minute, second}, microsecond} = Calendar.ISO.from_unix(:os.system_time, :native)
     iso_time = %Time{hour: hour, minute: minute, second: second, microsecond: microsecond, calendar: Calendar.ISO}
-    convert(iso_time, calendar)
+    convert!(iso_time, calendar)
   end
 
   @doc """
@@ -904,12 +907,8 @@ defmodule Time do
   def from_erl(tuple, microsecond \\ {0, 0}, calendar \\ Calendar.ISO)
 
   def from_erl({hour, minute, second}, microsecond, calendar) do
-    case new(hour, minute, second, microsecond, Calendar.ISO) do
-      {:ok, time} ->
-        {:ok, convert(time, calendar)}
-      {:error, reason} ->
-        {:error, reason}
-    end
+    with {:ok, time} <- new(hour, minute, second, microsecond, Calendar.ISO),
+         do: convert(time, calendar)
   end
 
   @doc """
@@ -1716,7 +1715,7 @@ defmodule DateTime do
         iso_datetime = %DateTime{year: year, month: month, day: day,
                                  hour: hour, minute: minute, second: second, microsecond: microsecond,
                                  std_offset: 0, utc_offset: 0, zone_abbr: "UTC", time_zone: "Etc/UTC"}
-        {:ok, convert(iso_datetime, calendar)}
+        convert(iso_datetime, calendar)
       {:error, _} = error ->
         error
     end
@@ -1860,7 +1859,7 @@ defmodule DateTime do
                         hour: _, minute: _, second: _, microsecond: {_, _},
                         year: _, month: _, day: _} = datetime, unit) do
     datetime
-    |> convert(Calendar.ISO)
+    |> convert!(Calendar.ISO)
     |> to_unix(unit)
   end
 
@@ -2040,7 +2039,8 @@ defmodule DateTime do
       iso_datetime = %DateTime{year: year, month: month, day: day,
                       hour: hour, minute: minute, second: second, microsecond: microsecond,
                                std_offset: 0, utc_offset: 0, zone_abbr: "UTC", time_zone: "Etc/UTC"}
-      {:ok, convert(iso_datetime, calendar), offset}
+      with {:ok, datetime} <- convert(iso_datetime, calendar),
+           do: {:ok, datetime, offset}
     else
       {:error, reason} -> {:error, reason}
       _ -> {:error, :invalid_format}
@@ -2184,9 +2184,9 @@ defmodule DateTime do
   ...>                 hour: 23, minute: 0, second: 7, microsecond: {0, 0},
   ...>                 utc_offset: -14400, std_offset: 0, time_zone: "America/Manaus"}
   iex> DateTime.convert(dt1, Calendar.ISO)
-  %DateTime{year: 2000, month: 2, day: 29, zone_abbr: "AMT",
+  {:ok, %DateTime{year: 2000, month: 2, day: 29, zone_abbr: "AMT",
                    hour: 23, minute: 0, second: 7, microsecond: {0, 0},
-                   utc_offset: -14400, std_offset: 0, time_zone: "America/Manaus"}
+                   utc_offset: -14400, std_offset: 0, time_zone: "America/Manaus"}}
   """
   # TODO: For better examples and doctests we need a second (simple) calendar.
   @spec convert(DateTime.t, Calendar.calendar) :: DateTime.t

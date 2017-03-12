@@ -57,7 +57,10 @@ defmodule Calendar.ISO do
     else
       {days, {parts, ppd}}
     end
+  end
 
+  def datetime_to_rata_die(year, month, day, hour, minute, second, microsecond, time_zone, zone_abbr, std_offset, utc_offset) do
+    datetime_to_rata_die(year, month, day, hour, minute, second, {microsecond, 0}, time_zone, zone_abbr, std_offset, utc_offset)
   end
 
   @doc """
