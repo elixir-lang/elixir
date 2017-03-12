@@ -636,7 +636,12 @@ defmodule Time do
   def new(hour, minute, second, {microsecond, precision}, calendar)
       when is_integer(hour) and is_integer(minute) and is_integer(second) and
            is_integer(microsecond) and is_integer(precision) do
-      {:ok, %Time{hour: hour, minute: minute, second: second, microsecond: {microsecond, precision}, calendar: calendar}}
+        case calendar.valid_time?(hour, minute, second, {microsecond, precision}) do
+          true ->
+            {:ok, %Time{hour: hour, minute: minute, second: second, microsecond: {microsecond, precision}, calendar: calendar}}
+          false ->
+            {:error, :invalid_time}
+        end
   end
 
   @doc """
