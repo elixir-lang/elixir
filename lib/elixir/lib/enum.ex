@@ -1272,8 +1272,8 @@ defmodule Enum do
   the same type as `joiner`.
   If `joiner` is not passed at all, it defaults to an empty binary.
 
-  All items in the enumerable must be convertible to a binary,
-  otherwise an error is raised.
+  All items returned from invoking the `mapper` must be convertible to
+  a binary, otherwise an error is raised.
 
   ## Examples
 
