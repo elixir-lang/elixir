@@ -546,10 +546,10 @@ defmodule Time do
   """
 
   @enforce_keys [:hour, :minute, :second]
-  defstruct [:hour, :minute, :second, microsecond: {0, 0}]
+  defstruct [:hour, :minute, :second, microsecond: {0, 0}, calendar: Calendar.ISO]
 
   @type t :: %Time{hour: Calendar.hour, minute: Calendar.minute,
-                   second: Calendar.second, microsecond: Calendar.microsecond}
+                   second: Calendar.second, microsecond: Calendar.microsecond, calendar: Calendar.calendar}
 
   @doc """
   Returns the current time in UTC.
@@ -562,9 +562,10 @@ defmodule Time do
 
   """
   @spec utc_now() :: t
+  # TODO: Make this function calendar agnostic (optional `calendar` argument)
   def utc_now() do
     {:ok, _, {hour, minute, second}, microsecond} = Calendar.ISO.from_unix(:os.system_time, :native)
-    %Time{hour: hour, minute: minute, second: second, microsecond: microsecond}
+    %Time{hour: hour, minute: minute, second: second, microsecond: microsecond, calendar: Calendar.ISO}
   end
 
   @doc """
@@ -598,20 +599,18 @@ defmodule Time do
       {:error, :invalid_time}
 
   """
-  @spec new(Calendar.hour, Calendar.minute, Calendar.second, Calendar.microsecond) ::
+  @spec new(Calendar.hour, Calendar.minute, Calendar.second, Calendar.microsecond, Calendar.calendar) ::
         {:ok, Time.t} | {:error, atom}
-  def new(hour, minute, second, microsecond \\ {0, 0})
+  def new(hour, minute, second, microsecond \\ {0, 0}, calendar \\ Calendar.ISO)
 
-  def new(hour, minute, second, microsecond) when is_integer(microsecond) do
-    new(hour, minute, second, {microsecond, 6})
+  def new(hour, minute, second, microsecond, calendar) when is_integer(microsecond) do
+    new(hour, minute, second, {microsecond, 6}, calendar)
   end
 
-  def new(hour, minute, second, {microsecond, precision})
+  def new(hour, minute, second, {microsecond, precision}, calendar)
       when is_integer(hour) and is_integer(minute) and is_integer(second) and
            is_integer(microsecond) and is_integer(precision) do
-    if hour in 0..23 and minute in 0..59 and second in 0..60 and
-       microsecond in 0..999_999 and precision in 0..6 do
-      {:ok, %Time{hour: hour, minute: minute, second: second, microsecond: {microsecond, precision}}}
+      {:ok, %Time{hour: hour, minute: minute, second: second, microsecond: {microsecond, precision}, calendar: calendar}}
     else
       {:error, :invalid_time}
     end
@@ -1960,6 +1959,29 @@ defmodule DateTime do
     else
       {diff_days, {diff_parts, diff_ppd}}
     end
+  end
+
+  @doc """
+  Converts a DateTime from one calendar to another.
+
+  ## Examples
+
+  iex> dt1 = %DateTime{year: 2000, month: 2, day: 29, zone_abbr: "AMT",
+  ...>                 hour: 23, minute: 0, second: 7, microsecond: {0, 0},
+  ...>                 utc_offset: -14400, std_offset: 0, time_zone: "America/Manaus"}
+  iex> DateTime.convert(dt1, Calendar.ISO)
+  """
+  # TODO: For better examples and doctests we need a second (simple) calendar.
+  @spec convert(DateTime.t, Calendar.calendar) :: DateTime.t
+  # No conversion required if already of the target calendar.
+  def convert(%DateTime{calendar: calendar} = datetime, calendar) do
+    datetime
+  end
+
+  def convert(%DateTime{} = datetime, calendar) do
+    datetime
+    |> to_rata_die
+    |> calendar.datetime_from_rata_die
   end
 
   @spec to_rata_die(DateTime.t) :: Calendar.rata_die
