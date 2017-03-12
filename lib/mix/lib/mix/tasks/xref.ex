@@ -329,55 +329,23 @@ defmodule Mix.Tasks.Xref do
   ## "Callers" helpers
 
   defp filter_for_callee(callee) do
-    mfa_list =
-      case Code.string_to_quoted(callee) do
-        {:ok, quoted_callee} -> quoted_to_mfa_list(quoted_callee)
-        {:error, _} -> raise_invalid_callee(callee)
-      end
-
-    mfa_list_length = length(mfa_list)
-
-    fn {module, function, arity} ->
-      mfa_list == Enum.take([module, function, arity], mfa_list_length)
+    case Mix.Utils.parse_mfa(callee) do
+      {:ok, mfa_list} ->
+        mfa_list_length = length(mfa_list)
+        fn {module, function, arity} ->
+          mfa_list == Enum.take([module, function, arity], mfa_list_length)
+        end
+      :error ->
+        Mix.raise "xref callers CALLEE expects Module, Module.function, or Module.function/arity, " <>
+                  "got: " <> callee
     end
-  end
-
-  defp quoted_to_mfa_list(quoted) do
-    quoted
-    |> do_quoted_to_mfa_list()
-    |> Enum.reverse()
-  end
-
-  defp do_quoted_to_mfa_list({:__aliases__, _, aliases}) do
-    [Module.concat(aliases)]
-  end
-
-  defp do_quoted_to_mfa_list({{:., _, [module, func]}, _, []}) when is_atom(func) do
-    [func | do_quoted_to_mfa_list(module)]
-  end
-
-  defp do_quoted_to_mfa_list({:/, _, [dispatch, arity]}) when is_integer(arity) do
-    [arity | do_quoted_to_mfa_list(dispatch)]
-  end
-
-  defp do_quoted_to_mfa_list(other) do
-    other
-    |> Macro.to_string()
-    |> raise_invalid_callee()
-  end
-
-  defp raise_invalid_callee(callee) do
-    message =
-      "xref callers CALLEE expects Module, Module.function, or Module.function/arity, got: " <>
-      callee
-
-    Mix.raise message
   end
 
   ## Graph helpers
 
   defp excluded(opts) do
-    Keyword.get_values(opts, :exclude)
+    opts
+    |> Keyword.get_values(:exclude)
     |> Enum.flat_map(&[{&1, nil}, {&1, "(compile)"}, {&1, "(runtime)"}])
   end
 

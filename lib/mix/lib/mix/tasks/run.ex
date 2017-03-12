@@ -73,9 +73,9 @@ defmodule Mix.Tasks.Run do
 
     {file, argv} =
       case {Keyword.has_key?(opts, :eval), head} do
-        {true, _}    -> {nil, head}
-        {_, [h | t]} -> {h, t}
-        {_, []}      -> {nil, []}
+        {true, _} -> {nil, head}
+        {_, [head | tail]} -> {head, tail}
+        {_, []} -> {nil, []}
       end
 
     System.argv(argv)

@@ -191,11 +191,20 @@ defmodule Task.Supervised do
        when max == 0
        when next == :done do
     receive do
+      # The task at position "position" replied with "value". We put the
+      # response in the "waiting" map and do nothing, since we'll only act on
+      # this response when the replying task dies (we'll notice in the :down
+      # message).
       {{^monitor_ref, position}, value} ->
         %{^position => {pid, :running}} = waiting
         waiting = Map.put(waiting, position, {pid, {:ok, value}})
         stream_reduce({:cont, acc}, max, spawned, delivered, waiting, next,
                       reducer, monitor_pid, monitor_ref, timeout)
+
+      # The task at position "position" died for some reason. We check if it
+      # replied already (then the death is peaceful) or if it's still running
+      # (then the reply from this task will be {:exit, reason}). This message is
+      # sent to us by the monitor process, not by the dying task directly.
       {:down, {^monitor_ref, position}, reason} ->
         waiting =
           case waiting do
@@ -204,10 +213,15 @@ defmodule Task.Supervised do
           end
         stream_deliver({:cont, acc}, max + 1, spawned, delivered, waiting, next,
                        reducer, monitor_pid, monitor_ref, timeout)
+
+      # The monitor process died. We just cleanup the messages from the monitor
+      # process and exit.
       {:DOWN, ^monitor_ref, _, ^monitor_pid, reason} ->
         stream_cleanup_inbox(monitor_pid, monitor_ref)
         exit({reason, {__MODULE__, :stream, [timeout]}})
     after
+      # If we got no messages from the spawned tasks or the monitor process, we
+      # close the monitor process and exit.
       timeout ->
         stream_close(monitor_pid, monitor_ref, timeout)
         exit({:timeout, {__MODULE__, :stream, [timeout]}})
@@ -303,8 +317,6 @@ defmodule Task.Supervised do
     end
   end
 
-  defp stream_mfa({mod, fun, args}, arg), do: {mod, fun, [arg | args]}
-  defp stream_mfa(fun, arg), do: {:erlang, :apply, [fun, [arg]]}
 
   # This function spawns a task for the given "value", and puts the pid of this
   # new task in the map of "waiting" tasks, which is returned.
@@ -341,7 +353,7 @@ defmodule Task.Supervised do
       # The parent process is telling us to spawn a new task to process
       # "value". We spawn it and notify the parent about its pid.
       {:spawn, counter, value} ->
-        {type, pid} = spawn.(parent_pid, stream_mfa(mfa, value))
+        {type, pid} = spawn.(parent_pid, normalize_mfa_with_arg(mfa, value))
         ref = Process.monitor(pid)
         send(parent_pid, {:spawned, {monitor_ref, counter}, pid})
         counters = Map.put(counters, ref, {counter, type, pid})
@@ -379,4 +391,7 @@ defmodule Task.Supervised do
         stream_monitor_loop(parent_pid, parent_ref, mfa, spawn, monitor_ref, counters)
     end
   end
+
+  defp normalize_mfa_with_arg({mod, fun, args}, arg), do: {mod, fun, [arg | args]}
+  defp normalize_mfa_with_arg(fun, arg), do: {:erlang, :apply, [fun, [arg]]}
 end

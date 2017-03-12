@@ -2,7 +2,7 @@
 
 ## Policy
 
-Elixir deprecations happens in 3 steps:
+Elixir deprecations happen in 3 steps:
 
   1. The feature is soft-deprecated. It means both CHANGELOG and documentation must list the feature as deprecated but no warning is effectively emitted by running the code. There is no requirement to soft-deprecate a feature.
 
@@ -39,14 +39,14 @@ Deprecated feature                               | Deprecated in | Replaced by (
 `Mix.Utils.camelize/1`                           | [v1.4]        | `Macro.camelize/1` (v1.2)
 `Mix.Utils.underscore/1`                         | [v1.4]        | `Macro.underscore/1` (v1.2)
 Variable used as function call                   | [v1.4]        | Use parentheses (v1.0)
-Anoymous functions with no expression after `->` | [v1.4]        | Use an expression or explicitely return `nil` (v1.0)
+Anonymous functions with no expression after `->` | [v1.4]       | Use an expression or explicitly return `nil` (v1.0)
 `Dict` module                                    | [v1.3]        | `Keyword` (v1.0);<br/>`Map` (v1.2)
 `Keyword.size/1`                                 | [v1.3]        | `Kernel.length/1` (v1.0)
 `Map.size/1`                                     | [v1.3]        | `Kernel.map_size/1` (v1.0)
 `Set` behaviour                                  | [v1.3]        | `MapSet` data structure (v1.1)
 `String.valid_character?/1`                      | [v1.3]        | `String.valid?/1` (v1.0)
 `Task.find/2`                                    | [v1.3]        | Use direct message matching (v1.0)
-`:append_first` option in `Kernel.defdelegate/2` | [v1.3]        | Define the function explicitely (v1.0)
+`:append_first` option in `Kernel.defdelegate/2` | [v1.3]        | Define the function explicitly (v1.0)
 `/r` option in `Regex`                           | [v1.3]        | `/U` (v1.1)
 `\x{X*}` inside strings/sigils/charlists         | [v1.3]        | `\uXXXX` or `\u{X*}` (v1.1)
 Map or dictionary as second argument in `Enum.group_by/3` | [v1.3] | Pass a function (v1.3)
@@ -55,7 +55,7 @@ Non-map as second argument in `URI.decode_query/2` | [v1.3]      | Use a map (v1
 `Access` protocol                                | [v1.1]        | `Access` behaviour (v1.1)
 `as: true \| false` in `alias/2` and `require/2` | [v1.1]     | *None*
 `?\xHEX`                                         | [v1.1]        | `0xHEX` (v1.0)
-Empty string in `String.starts_with?/2`, `String.ends_with?/2`, `String.contains?/2`.<br/>*__NOTE__: Feature made back available in v1.3* | [v1.1] to [v1.2] | Explicitely check for `""` beforehand (v1.0)
+Empty string in `String.starts_with?/2`, `String.ends_with?/2`, `String.contains?/2`.<br/>*__NOTE__: Feature made back available in v1.3* | [v1.1] to [v1.2] | Explicitly check for `""` beforehand (v1.0)
 
 [v1.1]: https://github.com/elixir-lang/elixir/blob/v1.1/CHANGELOG.md#4-deprecations
 [v1.2]: https://github.com/elixir-lang/elixir/blob/v1.2/CHANGELOG.md#changelog-for-elixir-v12

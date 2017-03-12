@@ -56,9 +56,15 @@ defmodule Macro do
   """
 
   @typedoc "Abstract Syntax Tree (AST)"
-  _ = @typedoc # To avoid bootstrap warnings
-  @type t :: expr | {t, t} | atom | number | binary | pid | fun | [t]
+  @type t :: expr | literal
+
+  @typedoc "Represents expressions in the AST"
   @type expr :: {expr | atom, Keyword.t, atom | [t]}
+
+  @typedoc "Represents literals in the AST"
+  @type literal :: atom | number | binary | fun | {t, t} | [t]
+
+  _ = @typedoc # To avoid bootstrap warnings
 
   binary_ops =
     [:===, :!==, :==, :!=, :<=, :>=,

@@ -40,6 +40,64 @@ defmodule Mix.Utils do
   end
 
   @doc """
+  Parses a string into module, function and arity.
+
+  It returns `{:ok, mfa_list}`, where a `mfa_list` is
+  `[module, function, arity]`, `[module, function]` or `[module]`,
+  or the atom `:error`.
+
+      iex> Mix.Utils.parse_mfa("Foo.bar/1")
+      {:ok, [Foo, :bar, 1]}
+      iex> Mix.Utils.parse_mfa(":foo.bar/1")
+      {:ok, [:foo, :bar, 1]}
+      iex> Mix.Utils.parse_mfa(":foo.bar")
+      {:ok, [:foo, :bar]}
+      iex> Mix.Utils.parse_mfa(":foo")
+      {:ok, [:foo]}
+      iex> Mix.Utils.parse_mfa("Foo")
+      {:ok, [Foo]}
+
+      iex> Mix.Utils.parse_mfa("Foo.")
+      :error
+      iex> Mix.Utils.parse_mfa("Foo.bar.baz")
+      :error
+      iex> Mix.Utils.parse_mfa("Foo.bar/2/2")
+      :error
+  """
+  def parse_mfa(mfa) do
+    with {:ok, quoted} <- Code.string_to_quoted(mfa),
+         [_ | _] = mfa_list <- quoted_to_mfa(quoted) do
+      {:ok, mfa_list}
+    else
+      _ -> :error
+    end
+  end
+
+  defp quoted_to_mfa({:/, _, [dispatch, arity]}) when is_integer(arity) do
+    quoted_to_mf(dispatch, [arity])
+  end
+  defp quoted_to_mfa(dispatch) do
+    quoted_to_mf(dispatch, [])
+  end
+
+  defp quoted_to_mf({{:., _, [module, fun]}, _, []}, acc) when is_atom(fun) do
+    quoted_to_m(module, [fun | acc])
+  end
+  defp quoted_to_mf(module, acc) do
+    quoted_to_m(module, acc)
+  end
+
+  defp quoted_to_m({:__aliases__, _, aliases}, acc) do
+    [Module.concat(aliases) | acc]
+  end
+  defp quoted_to_m(atom, acc) when is_atom(atom) do
+    [atom | acc]
+  end
+  defp quoted_to_m(_, _acc) do
+    []
+  end
+
+  @doc """
   Takes a `command` name and attempts to load a module
   with the command name converted to a module name
   in the given `at` scope.

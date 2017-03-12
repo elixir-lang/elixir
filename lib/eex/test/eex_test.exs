@@ -151,7 +151,7 @@ defmodule EExTest do
     end
 
     test "when end expression is found without a start expression" do
-      assert_raise EEx.SyntaxError, "nofile:1: unexpected token ' end '",  fn ->
+      assert_raise EEx.SyntaxError, "nofile:1: unexpected end of expression <% end %>",  fn ->
         EEx.compile_string "foo <% end %>"
       end
     end
@@ -163,19 +163,19 @@ defmodule EExTest do
     end
 
     test "when nested end expression is found without a start expression" do
-      assert_raise EEx.SyntaxError, "nofile:1: unexpected token ' end '", fn ->
+      assert_raise EEx.SyntaxError, "nofile:1: unexpected end of expression <% end %>", fn ->
         EEx.compile_string "foo <% if true do %><% end %><% end %>"
       end
     end
 
     test "when middle expression has a modifier" do
-      assert_raise EEx.SyntaxError, "nofile:1: unexpected token '=' on <%= else %>", fn ->
+      ExUnit.CaptureIO.capture_io :stderr, fn ->
         EEx.compile_string "foo <%= if true do %>true<%= else %>false<% end %>"
       end
     end
 
     test "when end expression has a modifier" do
-      assert_raise EEx.SyntaxError, "nofile:1: unexpected token '=' on <%= end %>", fn ->
+      assert_raise EEx.SyntaxError, ~s[nofile:1: unexpected beginning of EEx tag "<%=" on end of expression "<%= end %>", please remove "=" accordingly], fn ->
         EEx.compile_string "foo <%= if true do %>true<% else %>false<%= end %>"
       end
     end

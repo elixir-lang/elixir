@@ -26,12 +26,12 @@ defmodule Mix.Compilers.Elixir do
   between modules, which helps it recompile only the modules that
   have changed at runtime.
   """
-  def compile(manifest, srcs, dest, force, opts) do
+  def compile(manifest, srcs, dest, exts, force, opts) do
     # We fetch the time from before we read files so any future
     # change to files are still picked up by the compiler. This
     # timestamp is used when writing BEAM files and the manifest.
     timestamp = :calendar.universal_time()
-    all_paths = MapSet.new(Mix.Utils.extract_files(srcs, [:ex]))
+    all_paths = MapSet.new(Mix.Utils.extract_files(srcs, exts))
 
     {all_modules, all_sources} = parse_manifest(manifest, dest)
     modified = Mix.Utils.last_modified(manifest)
@@ -56,6 +56,7 @@ defmodule Mix.Compilers.Elixir do
           all_paths
           |> MapSet.difference(prev_paths)
           |> MapSet.to_list
+
         # Plus the sources that have changed in disk
         for(source(source: source, external: external) <- all_sources,
             times = Enum.map([source | external], &Map.fetch!(sources_mtimes, &1)),
@@ -77,14 +78,14 @@ defmodule Mix.Compilers.Elixir do
 
     cond do
       stale != [] ->
-        compile_manifest(manifest, modules, sources, stale, dest, timestamp, opts)
-        :ok
+        compile_manifest(manifest, exts, modules, sources, stale, dest, timestamp, opts)
       removed != [] ->
         write_manifest(manifest, modules, sources, dest, timestamp)
-        :ok
       true ->
-        :noop
+        :ok
     end
+
+    {stale, removed}
   end
 
   defp mtimes(sources) do
@@ -132,14 +133,10 @@ defmodule Mix.Compilers.Elixir do
     end
   end
 
-  defp compile_manifest(manifest, modules, sources, stale, dest, timestamp, opts) do
-    Mix.Utils.compiling_n(length(stale), :ex)
-
-    config = Mix.Project.config()
-    Mix.Project.ensure_structure(config)
+  defp compile_manifest(manifest, exts, modules, sources, stale, dest, timestamp, opts) do
+    Mix.Utils.compiling_n(length(stale), hd(exts))
+    Mix.Project.ensure_structure()
     true = Code.prepend_path(dest)
-
-    opts = Keyword.merge(config[:elixirc_options] || [], opts)
     set_compiler_opts(opts)
     cwd = File.cwd!
 
