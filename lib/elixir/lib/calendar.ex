@@ -154,6 +154,22 @@ defmodule Calendar do
   @callback time_from_day_fraction(day_fraction) :: {hour, minute, second, microsecond}
 
   @doc """
+  The result of this function is used to check if two calendars roll over at the same time of day.
+  If they do not, we can only convert DateTimes and Times between them.
+  If they do, this means that we can also convert Dates and NaiveDateTimes between them.
+
+  This day fraction should be in its most simplified form possible, to make comparisons fast.
+
+  ## Some examples:
+
+  - If, in your Calendar, a new day starts at midnight, return {0, 1}.
+  - If, in your Calendar, a new day starts at sunrise, return {1, 4}.
+  - If, in your Calendar, a new day starts at noon, return {1, 2}.
+  - If, in your Calendar, a new day starts at sunset, return {3, 4}.
+  """
+  @callback day_rollover_relative_to_midnight_utc() :: day_fraction
+
+  @doc """
   Should return `true` if the given date describes a proper date in the calendar.
   """
   @callback valid_date?(year, month, day) :: boolean

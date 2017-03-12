@@ -484,4 +484,8 @@ defmodule Calendar.ISO do
   def valid_datetime?(year, month, day, hour, minute, second, microsecond, _time_zone, _zone_abbr, _utc_offset, _std_offset) do
     valid_date?(year, month, day) and valid_time?(hour, minute, second, microsecond)
   end
+
+  def day_rollover_relative_to_midnight_utc do
+    {0, 1}
+  end
 end
