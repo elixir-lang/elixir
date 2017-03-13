@@ -244,7 +244,7 @@ defmodule Logger.Utils do
         true  -> :calendar.now_to_universal_time(now)
         false -> :calendar.now_to_local_time(now)
       end
-    {date, {hours, minutes, seconds, div(micro, 1000)}}
+    {date, {hours, minutes, seconds, micro}}
   end
 
   @doc """
