@@ -485,7 +485,7 @@ defmodule OptionParser do
 
   """
   @spec split(String.t) :: argv
-  def split(string) do
+  def split(string) when is_binary(string) do
     do_split(String.trim_leading(string, " "), "", [], nil)
   end
 
