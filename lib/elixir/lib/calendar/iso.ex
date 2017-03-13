@@ -34,23 +34,21 @@ defmodule Calendar.ISO do
 
   ## Examples
 
-      iex> Calendar.ISO.datetime_to_rata_die(1, 1, 1, 0, 0, 0, {0, 6}, "Etc/UTC", "UTC", 0, 0)
+      iex> Calendar.ISO.naive_datetime_to_rata_die(1, 1, 1, 0, 0, 0, {0, 6})
       {1, {0, 86400000000}}
-      iex> Calendar.ISO.datetime_to_rata_die(2000, 1, 1, 12, 0, 0, {0, 6}, "Etc/UTC", "UTC", 0, 0)
+      iex> Calendar.ISO.naive_datetime_to_rata_die(2000, 1, 1, 12, 0, 0, {0, 6})
       {730120, {43200000000, 86400000000}}
-      iex> Calendar.ISO.datetime_to_rata_die(2000, 1, 1, 13, 0, 0, {0, 6}, "Etc/UTC", "UTC", 0, 0)
+      iex> Calendar.ISO.naive_datetime_to_rata_die(2000, 1, 1, 13, 0, 0, {0, 6})
       {730120, {46800000000, 86400000000}}
   """
-  @spec datetime_to_rata_die(Calendar.year, Calendar.month, Calendar.day,
-    Calendar.hour, Calendar.minute, Calendar.second, Calendar.microsecond,
-    Calendar.time_zone, Calendar.zone_abbr, Calendar.std_offset, Calendar.utc_offset
-  ) :: Calendar.rata_die
+  @spec naive_datetime_to_rata_die(Calendar.year, Calendar.month, Calendar.day,
+    Calendar.hour, Calendar.minute, Calendar.second, Calendar.microsecond) :: Calendar.rata_die
   # def datetime_to_rata_die(%{calendar: _calendar, year: year, month: month, day: day, hour: hour, minute: minute, second: second, microsecond: {microsecond, _},
                              # std_offset: std_offset, utc_offset: utc_offset}) do
-  def datetime_to_rata_die(year, month, day, hour, minute, second, {microsecond, _}, time_zone, zone_abbr, std_offset, utc_offset) do
+  def naive_datetime_to_rata_die(year, month, day, hour, minute, second, {microsecond, _}) do
     # Baseline to epoch.  This will be zero for a Gregorian calendar
     days = to_rata_die_day(year, month, day)
-    {parts, ppd} = combine_time_to_day_fraction(hour, minute, second, microsecond, std_offset, utc_offset)
+    {parts, ppd} = combine_time_to_day_fraction(hour, minute, second, microsecond)
     # Applying negative UTC offsets might result in a negative day fraction.
     if (parts < 0) do
       {days - 1, {ppd - parts, ppd}}
@@ -59,8 +57,8 @@ defmodule Calendar.ISO do
     end
   end
 
-  def datetime_to_rata_die(year, month, day, hour, minute, second, microsecond, time_zone, zone_abbr, std_offset, utc_offset) do
-    datetime_to_rata_die(year, month, day, hour, minute, second, {microsecond, 0}, time_zone, zone_abbr, std_offset, utc_offset)
+  def naive_datetime_to_rata_die(year, month, day, hour, minute, second, microsecond) do
+    naive_datetime_to_rata_die(year, month, day, hour, minute, second, {microsecond, 0})
   end
 
   @doc """
@@ -68,22 +66,21 @@ defmodule Calendar.ISO do
 
   ## Examples
 
-      iex> Calendar.ISO.datetime_from_rata_die({1, {0, 86400}})
-      {1, 1, 1, 0, 0, 0, {0, 6}, "Etc/UTC", "UTC", 0, 0}
+      iex> Calendar.ISO.naive_datetime_from_rata_die({1, {0, 86400}})
+      {1, 1, 1, 0, 0, 0, {0, 6}}
 
-      iex> Calendar.ISO.datetime_from_rata_die({730120, {0, 86400}})
-      {2000, 1, 1, 0, 0, 0, {0, 6}, "Etc/UTC", "UTC", 0, 0}
+      iex> Calendar.ISO.naive_datetime_from_rata_die({730120, {0, 86400}})
+      {2000, 1, 1, 0, 0, 0, {0, 6}}
 
-      iex> Calendar.ISO.datetime_from_rata_die({730120, {43200, 86400}})
-      {2000, 1, 1, 12, 0, 0, {0, 6}, "Etc/UTC", "UTC", 0, 0}
+      iex> Calendar.ISO.naive_datetime_from_rata_die({730120, {43200, 86400}})
+      {2000, 1, 1, 12, 0, 0, {0, 6}}
   """
-  @spec datetime_from_rata_die(Calendar.rata_die) :: {Calendar.year, Calendar.month, Calendar.day,
-                                                      Calendar.hour, Calendar.minute, Calendar.second, Calendar.microsecond,
-                                                      Calendar.time_zone, Calendar.zone_abbr, Calendar.utc_offset, Calendar.std_offset}
-  def datetime_from_rata_die({days, {parts_in_day, parts_of_day}}) do
+  @spec naive_datetime_from_rata_die(Calendar.rata_die) :: {Calendar.year, Calendar.month, Calendar.day,
+                                                      Calendar.hour, Calendar.minute, Calendar.second, Calendar.microsecond}
+  def naive_datetime_from_rata_die({days, {parts_in_day, parts_of_day}}) do
     {year, month, day} = from_rata_die_day(days)
     {hour, minute, second, microsecond} = extract_from_day_fraction(parts_in_day, parts_of_day)
-    {year, month, day, hour, minute, second, {microsecond, 6}, "Etc/UTC", "UTC", 0, 0}
+    {year, month, day, hour, minute, second, {microsecond, 6}}
   end
   @doc """
   Returns the normalized Day Fraction of the specified time.
@@ -479,14 +476,6 @@ defmodule Calendar.ISO do
     true
   end
   def valid_time?(_, _, _, _), do: false
-
-  def valid_naive_datetime?(year, month, day, hour, minute, second, microsecond) do
-    valid_date?(year, month, day) and valid_time?(hour, minute, second, microsecond)
-  end
-
-  def valid_datetime?(year, month, day, hour, minute, second, microsecond, _time_zone, _zone_abbr, _utc_offset, _std_offset) do
-    valid_date?(year, month, day) and valid_time?(hour, minute, second, microsecond)
-  end
 
   def day_rollover_relative_to_midnight_utc do
     {0, 1}

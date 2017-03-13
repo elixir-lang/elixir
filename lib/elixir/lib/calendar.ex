@@ -132,15 +132,13 @@ defmodule Calendar do
   Converts the given datetime (with time zone)
   into the internal Calendar.rata_die format.
   """
-  @callback datetime_to_rata_die(year, month, day, hour, minute, second, microsecond,
-    time_zone, zone_abbr, utc_offset, std_offset) :: rata_die
+  @callback naive_datetime_to_rata_die(year, month, day, hour, minute, second, microsecond) :: rata_die
 
   @doc """
   Converts a datetime in the internal Calendar.rata_die format
   to the Calendar's datetime (with time zone) format.
   """
-  @callback datetime_from_rata_die(rata_die) :: {year, month, day, hour, minute, second, microsecond,
-    time_zone, zone_abbr, utc_offset, std_offset}
+  @callback naive_datetime_from_rata_die(rata_die) :: {year, month, day, hour, minute, second, microsecond}
 
   @doc """
   Converts the given time to the internal Calendar.day_fraction format.
@@ -178,17 +176,6 @@ defmodule Calendar do
   Should return `true` if the given time describes a proper time in the calendar.
   """
   @callback valid_time?(hour, minute, second, microsecond) :: boolean
-
-  @doc """
-  Should return `true` if the given datetime (with time zone info) describes a proper datetime (with time zone info) in the calendar.
-  """
-  @callback valid_naive_datetime?(year, month, day, hour, minute, second, microsecond) :: boolean
-
-  @doc """
-  Should return `true` if the given datetime describes a proper datetime in the calendar.
-  """
-  @callback valid_datetime?(year, month, day, hour, minute, second, microsecond,
-    time_zone, zone_abbr, utc_offset, std_offset) :: boolean
 end
 
 defmodule Date do
@@ -565,11 +552,11 @@ defmodule Date do
   end
 
   defp to_rata_die(%{calendar: calendar, year: year, month: month, day: day} = date) do
-    calendar.datetime_to_rata_die(year, month, day, 0, 0, 0, 0, "", "", 0, 0)
+    calendar.naive_datetime_to_rata_die(year, month, day, 0, 0, 0, 0)
   end
 
   defp from_rata_die(rata_die, target_calendar) do
-    {year, month, day, _, _, _, _, _, _, _, _} = target_calendar.datetime_from_rata_die(rata_die)
+    {year, month, day, _, _, _, _} = target_calendar.naive_datetime_from_rata_die(rata_die)
     %Date{year: year, month: month, day: day, calendar: target_calendar}
   end
 
@@ -1633,11 +1620,11 @@ defmodule NaiveDateTime do
 
   defp to_rata_die(%{calendar: calendar, year: year, month: month, day: day,
                      hour: hour, minute: minute, second: second, microsecond: {microsecond, _precision}}) do
-    calendar.datetime_to_rata_die(year, month, day, hour, minute, second, microsecond, "", "", 0, 0)
+    calendar.naive_datetime_to_rata_die(year, month, day, hour, minute, second, microsecond)
   end
 
   defp from_rata_die(rata_die, calendar) do
-    {year, month, day, hour, minute, second, microsecond, _, _, _, _} = calendar.datetime_from_rata_die(rata_die)
+    {year, month, day, hour, minute, second, microsecond} = calendar.datetime_from_rata_die(rata_die)
     %NaiveDateTime{year: year, month: month, day: day, hour: hour, minute: minute, second: second, microsecond: microsecond, calendar: calendar}
   end
 
@@ -2176,9 +2163,15 @@ defmodule DateTime do
       :gt
   """
   @spec compare(DateTime.t, DateTime.t) :: :lt | :eq | :gt
-  def compare(%DateTime{} = datetime1, %DateTime{} = datetime2) do
-    {days1, {parts1, ppd1}} = to_rata_die(datetime1)
-    {days2, {parts2, ppd2}} = to_rata_die(datetime2)
+  def compare(%DateTime{utc_offset: utc_offset1, std_offset: std_offset1} = datetime1, %DateTime{utc_offset: utc_offset2, std_offset: std_offset2} = datetime2) do
+    {days1, {parts1, ppd1}} =
+      to_rata_die(datetime1)
+      |> apply_tz_offset(utc_offset1)
+      |> apply_tz_offset(std_offset1)
+    {days2, {parts2, ppd2}} =
+      to_rata_die(datetime2)
+      |> apply_tz_offset(utc_offset2)
+      |> apply_tz_offset(std_offset2)
 
     # Ensure fraction tuples have same denominator.
     rata_die1 = {days1, parts1 * ppd2}
@@ -2207,9 +2200,15 @@ defmodule DateTime do
   {0, {5, 24}}
   """
   @spec diff(DateTime.t, DateTime.t) :: Calendar.rata_die
-  def diff(%DateTime{} = datetime1, %DateTime{} = datetime2) do
-    {days1, {parts1, ppd1}} = to_rata_die(datetime1)
-    {days2, {parts2, ppd2}} = to_rata_die(datetime2)
+  def diff(%DateTime{utc_offset: utc_offset1, std_offset: std_offset1} = datetime1, %DateTime{utc_offset: utc_offset2, std_offset: std_offset2} = datetime2) do
+    {days1, {parts1, ppd1}} =
+      to_rata_die(datetime1)
+      |> apply_tz_offset(utc_offset1)
+      |> apply_tz_offset(std_offset1)
+    {days2, {parts2, ppd2}} =
+      to_rata_die(datetime2)
+      |> apply_tz_offset(utc_offset2)
+      |> apply_tz_offset(std_offset2)
 
     diff_days = days1 - days2
     diff_ppd = ppd1 * ppd2
@@ -2247,12 +2246,12 @@ defmodule DateTime do
     {:ok, datetime}
   end
 
-  def convert(%DateTime{} = datetime, calendar) do
+  def convert(%DateTime{time_zone: time_zone, zone_abbr: zone_abbr, utc_offset: utc_offset, std_offset: std_offset} = datetime, calendar) do
     result_datetime =
       datetime
       |> to_rata_die
       |> from_rata_die(calendar)
-    {:ok, result_datetime}
+    {:ok, %DateTime{result_datetime | time_zone: time_zone, zone_abbr: zone_abbr, utc_offset: utc_offset, std_offset: std_offset}}
   end
 
 
@@ -2272,11 +2271,26 @@ defmodule DateTime do
               year: year, month: month, day: day, hour: hour, minute: minute, second: second, microsecond: microsecond,
               time_zone: time_zone, zone_abbr: zone_abbr, utc_offset: utc_offset, std_offset: std_offset}
   ) do
-    calendar.datetime_to_rata_die(year, month, day, hour, minute, second, microsecond, time_zone, zone_abbr, utc_offset, std_offset)
+    calendar.naive_datetime_to_rata_die(year, month, day, hour, minute, second, microsecond)
   end
 
   defp from_rata_die(rata_die, calendar) do
-    {year, month, day, hour, minute, second, microsecond, time_zone, zone_abbr, utc_offset, std_offset} = calendar.datetime_from_rata_die(rata_die)
+    {year, month, day, hour, minute, second, microsecond} = calendar.naive_datetime_from_rata_die(rata_die)
+  end
+
+  # Integer representing seconds in the ISO 6801 calendar.
+  defp apply_tz_offset(rata_die, seconds) when is_integer(seconds) do
+    apply_tz_offset(rata_die, {seconds, 86400})
+  end
+  defp apply_tz_offset({days, {parts, ppd}}, {offset, offset_ppd}) do
+    parts = parts * offset_ppd
+    offset = offset * ppd
+    gcd = gcd(ppd, offset_ppd)
+    result_parts = div(parts - offset, gcd)
+    result_ppd = div(ppd * offset_ppd, gcd)
+    days_offset = div(result_parts, result_ppd)
+    final_parts = rem(result_parts, result_ppd)
+    {days + days_offset, {final_parts, result_ppd}}
   end
 
   @spec gcd(integer, integer) :: non_neg_integer
