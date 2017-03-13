@@ -270,16 +270,14 @@ defmodule ExUnit do
       Application.put_env(:ex_unit, :seed, :os.timestamp |> elem(2))
     end
 
-    unless Keyword.has_key?(options, :max_cases) do
-      Application.put_env(:ex_unit, :max_cases, max_cases(options))
-    end
+    Application.put_env(:ex_unit, :max_cases, max_cases(options))
   end
 
   defp max_cases(opts) do
-    if opts[:trace] do
-      1
-    else
-      :erlang.system_info(:schedulers_online) * 2
+    cond do
+      opts[:trace] -> 1
+      max = opts[:max_cases] -> max
+      true -> :erlang.system_info(:schedulers_online) * 2
     end
   end
 end

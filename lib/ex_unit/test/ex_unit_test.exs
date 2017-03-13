@@ -82,7 +82,7 @@ defmodule ExUnitTest do
     old_config = ExUnit.configuration()
     on_exit(fn -> ExUnit.configure(old_config) end)
 
-    ExUnit.start(trace: true, autorun: false)
+    ExUnit.start(trace: true, max_cases: 10, autorun: false)
     config = ExUnit.configuration()
     assert config[:trace]
     assert config[:max_cases] == 1
