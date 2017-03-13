@@ -733,7 +733,10 @@ defmodule Module do
       end
 
   """
-  def defines?(module, tuple) when is_atom(module) and is_tuple(tuple) and tuple_size(tuple) == 2 do
+  @spec defines?(module, {function_macro_name :: atom, arity}) :: boolean
+  def defines?(module, {function_macro_name, arity} = tuple)
+      when is_atom(module) and is_atom(function_macro_name)
+      and is_integer(arity) and arity >= 0 and arity <= 255 do
     assert_not_compiled!(:defines?, module)
     table = defs_table_for(module)
     :ets.lookup(table, {:def, tuple}) != []
@@ -757,9 +760,11 @@ defmodule Module do
       end
 
   """
-  @spec defines?(module, {function_name :: atom, arity}, :def | :defp | :defmacro | :defmacrop) :: boolean
-  def defines?(module, tuple, kind)
-      when is_atom(module) and is_tuple(tuple) and tuple_size(tuple) == 2 and kind in [:def, :defp, :defmacro, :defmacrop] do
+  @spec defines?(module, {function_macro_name :: atom, arity}, :def | :defp | :defmacro | :defmacrop) :: boolean
+  def defines?(module, {function_macro_name, arity} = tuple, kind)
+      when is_atom(module) and is_atom(function_macro_name)
+      and is_integer(arity) and arity >= 0 and arity <= 255
+      and kind in [:def, :defp, :defmacro, :defmacrop] do
     assert_not_compiled!(:defines?, module)
     table = defs_table_for(module)
     case :ets.lookup(table, {:def, tuple}) do
@@ -817,7 +822,8 @@ defmodule Module do
   def make_overridable(module, tuples) when is_atom(module) and is_list(tuples) do
     assert_not_compiled!(:make_overridable, module)
 
-    :lists.foreach(fn {function_name, arity} = tuple when is_atom(function_name) and is_integer(arity) and arity >= 0 and arity <= 255 ->
+    :lists.foreach(fn {function_name, arity} = tuple
+        when is_atom(function_name) and is_integer(arity) and arity >= 0 and arity <= 255 ->
       case :elixir_def.take_definition(module, tuple) do
         false ->
           raise ArgumentError,
