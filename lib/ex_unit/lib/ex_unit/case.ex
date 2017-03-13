@@ -104,9 +104,10 @@ defmodule ExUnit.Case do
 
   If a tag is given more than once, the last value wins.
 
-  ### Module tags
+  ### Module and describe tags
 
-  A tag can be set for all tests in a module by setting `@moduletag`:
+  A tag can be set for all tests in a module or describe block by
+  setting `@moduletag` or `@describetag` respectively:
 
       @moduletag :external
 

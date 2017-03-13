@@ -78,6 +78,28 @@ defmodule ExUnitTest do
     ExUnit.configure(timeout: 60_000)
   end
 
+  test "it sets max cases to one with trace enabled" do
+    old_config = ExUnit.configuration()
+    on_exit(fn -> ExUnit.configure(old_config) end)
+
+    ExUnit.start(trace: true, max_cases: 10, autorun: false)
+    config = ExUnit.configuration()
+    assert config[:trace]
+    assert config[:max_cases] == 1
+    assert config[:timeout] == 60_000
+  end
+
+  test "it does not set timeout to infinity and the max cases to 1 with trace disabled" do
+    old_config = ExUnit.configuration()
+    on_exit(fn -> ExUnit.configure(old_config) end)
+
+    ExUnit.start(trace: false, autorun: false)
+    config = ExUnit.configuration()
+    refute config[:trace]
+    assert config[:max_cases] == :erlang.system_info(:schedulers_online) * 2
+    assert config[:timeout] == 60_000
+  end
+
   test "filtering cases with tags" do
     defmodule ParityTest do
       use ExUnit.Case

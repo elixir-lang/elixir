@@ -148,7 +148,9 @@ defmodule ExUnit do
   def start(options \\ []) do
     {:ok, _} = Application.ensure_all_started(:ex_unit)
 
-    configure(options)
+    options
+    |> configure_defaults()
+    |> configure()
 
     if Application.fetch_env!(:ex_unit, :autorun) do
       Application.put_env(:ex_unit, :autorun, false)
@@ -176,6 +178,8 @@ defmodule ExUnit do
     * `:assert_receive_timeout` - the timeout to be used on `assert_receive`
       calls. Defaults to 100ms.
 
+    * `:autorun` - if ExUnit should run by default on exit; defaults to `true`
+
     * `:capture_log` - if ExUnit should default to keeping track of log messages
       and print them on test failure. Can be overridden for individual tests via
       `@tag capture_log: false`. Defaults to `false`.
@@ -186,24 +190,19 @@ defmodule ExUnit do
     * `:colors` - a keyword list of colors to be used by some formatters.
       The only option so far is `[enabled: boolean]` which defaults to `IO.ANSI.enabled?/0`
 
+    * `:exclude` - specifies which tests are run by skipping tests that match the
+      filter
+
     * `:formatters` - the formatters that will print results;
       defaults to `[ExUnit.CLIFormatter]`
-
-    * `:max_cases` - maximum number of cases to run in parallel;
-      defaults to `:erlang.system_info(:schedulers_online) * 2` to
-      optimize both CPU-bound and IO-bound tests
-
-    * `:trace` - sets ExUnit into trace mode, this sets `:max_cases` to `1` and
-      prints each test case and test while running
-
-    * `:autorun` - if ExUnit should run by default on exit; defaults to `true`
 
     * `:include` - specifies which tests are run by skipping tests that do not
       match the filter. Keep in mind that all tests are included by default, so unless they are
       excluded first, the `:include` option has no effect.
 
-    * `:exclude` - specifies which tests are run by skipping tests that match the
-      filter
+    * `:max_cases` - maximum number of cases to run in parallel;
+      defaults to `:erlang.system_info(:schedulers_online) * 2` to
+      optimize both CPU-bound and IO-bound tests
 
     * `:refute_receive_timeout` - the timeout to be used on `refute_receive`
       calls (defaults to 100ms)
@@ -215,6 +214,8 @@ defmodule ExUnit do
 
     * `:timeout` - sets the timeout for the tests (default 60_000ms)
 
+    * `:trace` - sets ExUnit into trace mode, this sets `:max_cases` to `1` and
+      prints each test case and test while running
   """
   def configure(options) do
     Enum.each options, fn {k, v} ->
@@ -262,5 +263,20 @@ defmodule ExUnit do
   """
   def run do
     ExUnit.Runner.run(configuration(), nil)
+  end
+
+  # Configures on demand defaults
+  defp configure_defaults(opts) do
+    opts
+    |> Keyword.put_new(:seed, :os.timestamp |> elem(2))
+    |> Keyword.put(:max_cases, max_cases(opts))
+  end
+
+  defp max_cases(opts) do
+    cond do
+      opts[:trace] -> 1
+      max = opts[:max_cases] -> max
+      true -> :erlang.system_info(:schedulers_online) * 2
+    end
   end
 end
