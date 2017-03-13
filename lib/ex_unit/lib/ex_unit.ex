@@ -148,8 +148,9 @@ defmodule ExUnit do
   def start(options \\ []) do
     {:ok, _} = Application.ensure_all_started(:ex_unit)
 
-    configure(options)
-    configure_defaults(options)
+    options
+    |> configure_defaults()
+    |> configure()
 
     if Application.fetch_env!(:ex_unit, :autorun) do
       Application.put_env(:ex_unit, :autorun, false)
@@ -265,12 +266,10 @@ defmodule ExUnit do
   end
 
   # Configures on demand defaults
-  defp configure_defaults(options) do
-    unless Keyword.has_key?(options, :seed) do
-      Application.put_env(:ex_unit, :seed, :os.timestamp |> elem(2))
-    end
-
-    Application.put_env(:ex_unit, :max_cases, max_cases(options))
+  defp configure_defaults(opts) do
+    opts
+    |> Keyword.put_new(:seed, :os.timestamp |> elem(2))
+    |> Keyword.put(:max_cases, max_cases(opts))
   end
 
   defp max_cases(opts) do
