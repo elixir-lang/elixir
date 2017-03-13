@@ -3,8 +3,8 @@ defmodule URI do
   Utilities for working with URIs.
 
   This module provides functions for working with URIs (for example, parsing
-  URIs or encoding query strings). For reference, most of the functions in this
-  module refer to [RFC 3986](https://tools.ietf.org/html/rfc3986).
+  URIs or encoding query strings). The functions in this are implemented
+  acrroding to [RFC 3986](https://tools.ietf.org/html/rfc3986).
   """
 
   defstruct scheme: nil, path: nil, query: nil,
@@ -46,7 +46,7 @@ defmodule URI do
   end
 
   @doc """
-  Registers the default port `port` for the given `scheme`.
+  Registers the default `port` for the given `scheme`.
 
   After this function is called, `port` will be returned by
   `default_port/1` for the given scheme `scheme`. Note that this function
@@ -253,12 +253,19 @@ defmodule URI do
   end
 
   @doc """
-  Percent-escapes the given string.
+  Percent-escapes all characters that require escaped in a string.
 
-  This function accepts a `predicate` function as an optional argument; if
-  passed, this function will be called with each character (byte) in `string` as
-  its argument and should return `true` if that character should not be escaped
-  and left as is.
+  This means reserved characters, such as `:` and `/`, and the so-
+  called unreserved characters, which have the same meaning both
+  escaped and unescaped, won't be escaped by default.
+
+  See `encode_www_form` if you are interested in escaping reserved
+  characters too.
+
+  This function also accepts a `predicate` function as an optional
+  argument. If passed, this function will be called with each byte
+  in `string` as its argument and should return `true` if the given
+  byte should be left as is.
 
   ## Examples
 
