@@ -634,10 +634,9 @@ defmodule File do
   `destination`. If the source is a directory, it copies
   the contents inside source into the destination.
 
-  If a file already exists in the destination,
-  it invokes a callback which should return
-  `true` if the existing file should be overwritten,
-  `false` otherwise. The callback defaults to return `true`.
+  If a file already exists in the destination, it invokes `callback`.
+  `callback` must be a function that takes two arguments: `source` and `destination`.
+  The callback should return `true` if the existing file should be overwritten and `false` otherwise.
 
   If a directory already exists in the destination
   where a file is meant to be (or vice versa), this
@@ -671,7 +670,7 @@ defmodule File do
 
   """
   @spec cp_r(Path.t, Path.t, (Path.t, Path.t -> boolean)) :: {:ok, [binary]} | {:error, posix, binary}
-  def cp_r(source, destination, callback \\ fn(_, _) -> true end) when is_function(callback) do
+  def cp_r(source, destination, callback \\ fn(_, _) -> true end) when is_function(callback, 2) do
     source = IO.chardata_to_string(source)
     destination = IO.chardata_to_string(destination)
 
