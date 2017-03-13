@@ -12,7 +12,7 @@ defmodule ExUnit.Mixfile do
      mod: {ExUnit, []},
      env: [
        # Calculated on demand
-       # max_cases: :erlang.system_info(:schedulers_online),
+       # max_cases: :erlang.system_info(:schedulers_online) * 2,
        # seed: rand(),
 
        assert_receive_timeout: 100,
@@ -21,8 +21,8 @@ defmodule ExUnit.Mixfile do
        case_load_timeout: 60_000,
        colors: [],
        exclude: [],
-       include: [],
        formatters: [ExUnit.CLIFormatter],
+       include: [],
        refute_receive_timeout: 100,
        stacktrace_depth: 20,
        timeout: 60_000,
