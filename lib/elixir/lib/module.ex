@@ -375,7 +375,8 @@ defmodule Module do
   Checks if a module is open, i.e. it is currently being defined
   and its attributes and functions can be modified.
   """
-  def open?(module) do
+  @spec open?(module) :: boolean
+  def open?(module) when is_atom(module) do
     :elixir_module.is_open(module)
   end
 
@@ -412,17 +413,18 @@ defmodule Module do
   while also passing `opts`, they will be merged with `opts`
   having precedence.
   """
+  @spec eval_quoted(module | Macro.Env.t, Macro.t, list, list) :: term
   def eval_quoted(module_or_env, quoted, binding \\ [], opts \\ [])
 
-  def eval_quoted(%Macro.Env{} = env, quoted, binding, opts) do
+  def eval_quoted(%Macro.Env{} = env, quoted, binding, opts) when is_list(binding) and is_list(opts) do
     eval_quoted(env.module, quoted, binding, Keyword.merge(Map.to_list(env), opts))
   end
 
-  def eval_quoted(module, quoted, binding, %Macro.Env{} = env) do
+  def eval_quoted(module, quoted, binding, %Macro.Env{} = env) when is_atom(module) and is_list(binding) do
     eval_quoted(module, quoted, binding, Map.to_list(env))
   end
 
-  def eval_quoted(module, quoted, binding, opts) do
+  def eval_quoted(module, quoted, binding, opts) when is_atom(module) and is_list(binding) and is_list(opts) do
     assert_not_compiled!(:eval_quoted, module)
     :elixir_def.reset_last(module)
     {value, binding, _env, _scope} =
@@ -463,7 +465,7 @@ defmodule Module do
   """
   def create(module, quoted, opts)
 
-  def create(module, quoted, %Macro.Env{} = env) do
+  def create(module, quoted, %Macro.Env{} = env) when is_atom(module) do
     create(module, quoted, Map.to_list(env))
   end
 
@@ -508,7 +510,7 @@ defmodule Module do
 
   """
   @spec concat(binary | atom, binary | atom) :: atom
-  def concat(left, right) do
+  def concat(left, right) when (is_binary(left) or is_atom(left)) and (is_binary(right) or is_atom(right)) do
     :elixir_aliases.concat([left, right])
   end
 
@@ -550,18 +552,19 @@ defmodule Module do
 
   """
   @spec safe_concat(binary | atom, binary | atom) :: atom | no_return
-  def safe_concat(left, right) do
+  def safe_concat(left, right) when (is_binary(left) or is_atom(left)) and (is_binary(right) or is_atom(right)) do
     :elixir_aliases.safe_concat([left, right])
   end
 
   @doc """
   Attaches documentation to a given function or type.
 
-  It expects the module the function/type belongs to, the line (a non
-  negative integer), the kind (`def` or `defmacro`), a tuple representing
-  the function and its arity, the function signature (the signature
-  should be omitted for types) and the documentation, which should
-  be either a binary or a boolean.
+  It expects the module the function/type belongs to, the line (a non-negative integer),
+  the kind (`:def`, `defmacro`, `:type`, `:opaque`), a tuple `{<function atom>, <arity>}`,
+  the function signature (the signature should be omitted for types) and the documentation,
+  which should be either a binary or a boolean.
+
+  It returns `:ok` or `{:error, :private_doc}`.
 
   ## Examples
 
@@ -571,22 +574,27 @@ defmodule Module do
       end
 
   """
-  def add_doc(module, line, kind, tuple, signature \\ [], doc)
+  @spec add_doc(module, non_neg_integer,
+                :def | :defp | :defmacro | :defmacrop | :type | :typep | :opaque,
+                {function_name :: atom, arity}, list, String.t | boolean | nil)
+      :: :ok | {:error, :private_doc}
+  def add_doc(module, line, kind, function_tuple, signature \\ [], doc)
 
-  def add_doc(_module, _line, kind, _tuple, _signature, doc) when kind in [:defp, :defmacrop, :typep] do
+  def add_doc(_module, _line, kind, _function_tuple, _signature, doc) when kind in [:defp, :defmacrop, :typep] do
     if doc, do: {:error, :private_doc}, else: :ok
   end
 
-  def add_doc(module, line, kind, tuple, signature, doc) when
-      kind in [:def, :defmacro, :type, :opaque] and (is_binary(doc) or is_boolean(doc) or doc == nil) do
+  def add_doc(module, line, kind, function_tuple, signature, doc)
+      when kind in [:def, :defmacro, :type, :opaque]
+      and (is_binary(doc) or is_boolean(doc) or doc == nil) do
     assert_not_compiled!(:add_doc, module)
     table = data_table_for(module)
 
     signature = simplify_signature(signature)
 
-    case :ets.lookup(table, {:doc, tuple}) do
+    case :ets.lookup(table, {:doc, function_tuple}) do
       [] ->
-        :ets.insert(table, {{:doc, tuple}, line, kind, signature, doc})
+        :ets.insert(table, {{:doc, function_tuple}, line, kind, signature, doc})
         :ok
       [{doc_tuple, line, _old_kind, old_sign, old_doc}] ->
         :ets.insert(table, {
@@ -725,7 +733,7 @@ defmodule Module do
       end
 
   """
-  def defines?(module, tuple) when is_tuple(tuple) do
+  def defines?(module, tuple) when is_atom(module) and is_tuple(tuple) and tuple_size(tuple) == 2 do
     assert_not_compiled!(:defines?, module)
     table = defs_table_for(module)
     :ets.lookup(table, {:def, tuple}) != []
@@ -749,7 +757,9 @@ defmodule Module do
       end
 
   """
-  def defines?(module, tuple, kind) do
+  @spec defines?(module, {function_name :: atom, arity}, :def | :defp | :defmacro | :defmacrop) :: boolean
+  def defines?(module, tuple, kind)
+      when is_atom(module) and is_tuple(tuple) and tuple_size(tuple) == 2 and kind in [:def, :defp, :defmacro, :defmacrop] do
     assert_not_compiled!(:defines?, module)
     table = defs_table_for(module)
     case :ets.lookup(table, {:def, tuple}) do
@@ -769,7 +779,8 @@ defmodule Module do
       end
 
   """
-  def definitions_in(module) do
+  @spec definitions_in(module) :: [{function_name :: atom, arity}]
+  def definitions_in(module) when is_atom(module) do
     assert_not_compiled!(:definitions_in, module)
     table = defs_table_for(module)
     :lists.concat :ets.match(table, {{:def, :'$1'}, :_, :_, :_, :_, :_})
@@ -788,7 +799,8 @@ defmodule Module do
       end
 
   """
-  def definitions_in(module, kind) do
+  @spec definitions_in(module, atom) :: [{function_name :: atom, arity}]
+  def definitions_in(module, kind) when is_atom(module) and is_atom(kind) do
     assert_not_compiled!(:definitions_in, module)
     table = defs_table_for(module)
     :lists.concat :ets.match(table, {{:def, :'$1'}, kind, :_, :_, :_, :_})
@@ -801,14 +813,15 @@ defmodule Module do
   developer to customize it. See `Kernel.defoverridable/1` for
   more information and documentation.
   """
-  def make_overridable(module, tuples) do
+  @spec make_overridable(module, [{function_name :: atom, arity}]) :: :ok | no_return
+  def make_overridable(module, tuples) when is_atom(module) and is_list(tuples) do
     assert_not_compiled!(:make_overridable, module)
 
-    :lists.foreach(fn {name, arity} = tuple ->
+    :lists.foreach(fn {function_name, arity} = tuple when is_atom(function_name) and is_integer(arity) and arity >= 0 and arity <= 255 ->
       case :elixir_def.take_definition(module, tuple) do
         false ->
           raise ArgumentError,
-            "cannot make function #{name}/#{arity} overridable because it was not defined"
+            "cannot make function #{function_name}/#{arity} overridable because it was not defined"
         clause ->
           neighbours =
             if :elixir_compiler.get_opt(:internal) do
@@ -831,12 +844,13 @@ defmodule Module do
   @doc """
   Returns `true` if `tuple` in `module` is marked as overridable.
   """
-  def overridable?(module, tuple) do
+  @spec overridable?(module, {function_name :: atom, arity}) :: boolean
+  def overridable?(module, {function_name, arity} = tuple) when is_atom(function_name) and is_integer(arity) and arity >= 0 and arity <= 255 do
     :maps.is_key(tuple, :elixir_overridable.overridable(module))
   end
 
   @doc """
-  Puts a module attribute with key and value in the given module.
+  Puts a module attribute with `key` and `value` in the given `module`.
 
   ## Examples
 
@@ -846,7 +860,7 @@ defmodule Module do
 
   """
   @spec put_attribute(module, key :: atom, value :: term) :: :ok
-  def put_attribute(module, key, value) do
+  def put_attribute(module, key, value) when is_atom(module) and is_atom(key) do
     put_attribute(module, key, value, nil, nil)
   end
 
@@ -879,8 +893,8 @@ defmodule Module do
       end
 
   """
-  @spec get_attribute(module, atom) :: term
-  def get_attribute(module, key) do
+  @spec get_attribute(module, key :: atom) :: (value :: term)
+  def get_attribute(module, key) when is_atom(module) and is_atom(key) do
     get_attribute(module, key, nil)
   end
 
@@ -898,7 +912,7 @@ defmodule Module do
 
   """
   @spec delete_attribute(module, key :: atom) :: (value :: term)
-  def delete_attribute(module, key) when is_atom(key) do
+  def delete_attribute(module, key) when is_atom(module) and is_atom(key) do
     assert_not_compiled!(:delete_attribute, module)
     table = data_table_for(module)
     case :ets.take(table, key) do
@@ -944,18 +958,20 @@ defmodule Module do
       end
 
   """
-  def register_attribute(module, new, opts) when is_atom(new) do
+  @spec register_attribute(module, attribute :: atom, opts :: [{:accumulate, boolean}, {:persist, boolean}])
+      :: :ok | no_return
+  def register_attribute(module, attribute, opts) when is_atom(module) and is_atom(attribute) do
     assert_not_compiled!(:register_attribute, module)
     table = data_table_for(module)
 
     if Keyword.get(opts, :persist) do
-      old = :ets.lookup_element(table, {:elixir, :persisted_attributes}, 2)
-      :ets.insert(table, {{:elixir, :persisted_attributes}, [new | old]})
+      old_attribute = :ets.lookup_element(table, {:elixir, :persisted_attributes}, 2)
+      :ets.insert(table, {{:elixir, :persisted_attributes}, [attribute | old_attribute]})
     end
 
     if Keyword.get(opts, :accumulate) do
-      :ets.insert_new(table, {new, [], _accumulated? = true, _unread_line = nil}) ||
-        :ets.update_element(table, new, {3, true})
+      :ets.insert_new(table, {attribute, [], _accumulated? = true, _unread_line = nil}) ||
+        :ets.update_element(table, attribute, {3, true})
     end
 
     :ok
@@ -970,6 +986,7 @@ defmodule Module do
       ["Very", "Long", "Module", "Name", "And", "Even", "Longer"]
 
   """
+  @spec split(module) :: [String.t]
   def split(module) when is_atom(module) do
     split(String.Chars.to_string(module))
   end
@@ -1015,7 +1032,8 @@ defmodule Module do
   @doc false
   # Used internally to compile types.
   # This function is private and must be used only internally.
-  def store_typespec(module, key, value) when is_atom(key) do
+  @spec store_typespec(module, key :: atom, value :: term) :: Keyword.t
+  def store_typespec(module, key, value) when is_atom(module) and is_atom(key) do
     assert_not_compiled!(:put_attribute, module)
     table = data_table_for(module)
 
