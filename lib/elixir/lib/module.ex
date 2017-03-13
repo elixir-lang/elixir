@@ -351,6 +351,8 @@ defmodule Module do
   the documentation for the [`:compile` module](http://www.erlang.org/doc/man/compile.html).
   '''
 
+  @type function_arity :: {atom, arity}
+
   @doc """
   Provides runtime information about functions and macros defined by the
   module, enables docstring extraction, etc.
@@ -576,7 +578,7 @@ defmodule Module do
   """
   @spec add_doc(module, non_neg_integer,
                 :def | :defp | :defmacro | :defmacrop | :type | :typep | :opaque,
-                {function_name :: atom, arity}, list, String.t | boolean | nil)
+                function_arity, list, String.t | boolean | nil)
       :: :ok | {:error, :private_doc}
   def add_doc(module, line, kind, function_tuple, signature \\ [], doc)
 
@@ -733,7 +735,7 @@ defmodule Module do
       end
 
   """
-  @spec defines?(module, {function_macro_name :: atom, arity}) :: boolean
+  @spec defines?(module, function_arity) :: boolean
   def defines?(module, {function_macro_name, arity} = tuple)
       when is_atom(module) and is_atom(function_macro_name)
       and is_integer(arity) and arity >= 0 and arity <= 255 do
@@ -760,7 +762,7 @@ defmodule Module do
       end
 
   """
-  @spec defines?(module, {function_macro_name :: atom, arity}, :def | :defp | :defmacro | :defmacrop) :: boolean
+  @spec defines?(module, function_arity, :def | :defp | :defmacro | :defmacrop) :: boolean
   def defines?(module, {function_macro_name, arity} = tuple, kind)
       when is_atom(module) and is_atom(function_macro_name)
       and is_integer(arity) and arity >= 0 and arity <= 255
@@ -784,7 +786,7 @@ defmodule Module do
       end
 
   """
-  @spec definitions_in(module) :: [{function_name :: atom, arity}]
+  @spec definitions_in(module) :: [function_arity]
   def definitions_in(module) when is_atom(module) do
     assert_not_compiled!(:definitions_in, module)
     table = defs_table_for(module)
@@ -804,7 +806,7 @@ defmodule Module do
       end
 
   """
-  @spec definitions_in(module, atom) :: [{function_name :: atom, arity}]
+  @spec definitions_in(module, atom) :: [function_arity]
   def definitions_in(module, kind) when is_atom(module) and is_atom(kind) do
     assert_not_compiled!(:definitions_in, module)
     table = defs_table_for(module)
@@ -818,7 +820,7 @@ defmodule Module do
   developer to customize it. See `Kernel.defoverridable/1` for
   more information and documentation.
   """
-  @spec make_overridable(module, [{function_name :: atom, arity}]) :: :ok | no_return
+  @spec make_overridable(module, [function_arity]) :: :ok | no_return
   def make_overridable(module, tuples) when is_atom(module) and is_list(tuples) do
     assert_not_compiled!(:make_overridable, module)
 
@@ -850,7 +852,7 @@ defmodule Module do
   @doc """
   Returns `true` if `tuple` in `module` is marked as overridable.
   """
-  @spec overridable?(module, {function_name :: atom, arity}) :: boolean
+  @spec overridable?(module, function_arity) :: boolean
   def overridable?(module, {function_name, arity} = tuple) when is_atom(function_name) and is_integer(arity) and arity >= 0 and arity <= 255 do
     :maps.is_key(tuple, :elixir_overridable.overridable(module))
   end
