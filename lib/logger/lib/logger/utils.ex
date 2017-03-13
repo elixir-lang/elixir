@@ -251,7 +251,7 @@ defmodule Logger.Utils do
   Formats time as chardata.
   """
   def format_time({hh, mi, ss, ms}) do
-    [pad2(hh), ?:, pad2(mi), ?:, pad2(ss), ?., pad6(ms)]
+    [pad2(hh), ?:, pad2(mi), ?:, pad2(ss), ?., ms |> div(1000) |> pad3()]
   end
 
   @doc """
@@ -261,12 +261,9 @@ defmodule Logger.Utils do
     [Integer.to_string(yy), ?-, pad2(mm), ?-, pad2(dd)]
   end
 
-  defp pad6(int) when int < 10,  do: [?0, ?0, ?0, ?0, ?0, Integer.to_string(int)]
-  defp pad6(int) when int < 100, do: [?0, ?0, ?0, ?0, Integer.to_string(int)]
-  defp pad6(int) when int < 1_000, do: [?0, ?0, ?0, Integer.to_string(int)]
-  defp pad6(int) when int < 10_000, do: [?0, ?0, Integer.to_string(int)]
-  defp pad6(int) when int < 100_000, do: [?0, Integer.to_string(int)]
-  defp pad6(int), do: Integer.to_string(int)
+  defp pad3(int) when int < 10,  do: [?0, ?0, Integer.to_string(int)]
+  defp pad3(int) when int < 100, do: [?0, Integer.to_string(int)]
+  defp pad3(int), do: Integer.to_string(int)
 
   defp pad2(int) when int < 10, do: [?0, Integer.to_string(int)]
   defp pad2(int), do: Integer.to_string(int)
