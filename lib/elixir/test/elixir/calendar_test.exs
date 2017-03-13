@@ -124,7 +124,7 @@ defmodule DateTimeTest do
   end
 
   test "from_unix/2" do
-    # with Unix times back to 0 Gregorian Seconds
+    # with Unix times back to 0 Gregorian seconds
     min_datetime = %DateTime{
       calendar: Calendar.ISO, day: 1, hour: 0, microsecond: {0, 0},
       minute: 0, month: 1, second: 0, std_offset: 0, time_zone: "Etc/UTC",
@@ -144,7 +144,7 @@ defmodule DateTimeTest do
   end
 
   test "from_unix!/2" do
-    # with Unix times back to 0 Gregorian Seconds
+    # with Unix times back to 0 Gregorian seconds
     datetime = %DateTime{
       calendar: Calendar.ISO, day: 1, hour: 0, microsecond: {0, 0},
       minute: 0, month: 1, second: 0, std_offset: 0, time_zone: "Etc/UTC",
@@ -157,8 +157,8 @@ defmodule DateTimeTest do
     end
   end
 
-  test "to_unix/2 works with Unix times back to 0 Gregorian Seconds" do
-    # with Unix times back to 0 Gregorian Seconds
+  test "to_unix/2 works with Unix times back to 0 Gregorian seconds" do
+    # with Unix times back to 0 Gregorian seconds
     gregorian_0 = %DateTime{calendar: Calendar.ISO, day: 1, hour: 0, microsecond: {0, 0},
                             minute: 0, month: 1, second: 0, std_offset: 0, time_zone: "Etc/UTC",
                             utc_offset: 0, year: 0, zone_abbr: "UTC"}
