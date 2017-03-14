@@ -706,6 +706,7 @@ defmodule Kernel.TypespecTest do
       quote(do: @type builtin_char() :: char()),
       quote(do: @type builtin_charlist() :: charlist()),
       quote(do: @type builtin_fun() :: fun()),
+      quote(do: @type builtin_function() :: function()),
       quote(do: @type builtin_identifier() :: identifier()),
       quote(do: @type builtin_iodata() :: iodata()),
       quote(do: @type builtin_iolist() :: iolist()),
@@ -768,6 +769,9 @@ defmodule Kernel.TypespecTest do
 
         {:builtin_fun, _, _} ->
           assert ast_string == "@type(builtin_fun() :: (... -> any()))"
+
+        {:builtin_function, _, _} ->
+          assert ast_string == "@type(builtin_function() :: (... -> any()))"
 
         {:builtin_nonempty_list, _, _} ->
           assert ast_string == "@type(builtin_nonempty_list() :: [...])"

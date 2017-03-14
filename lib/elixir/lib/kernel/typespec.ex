@@ -595,6 +595,10 @@ defmodule Kernel.Typespec do
     Enum.reduce Enum.reverse(args), fn(arg, expr) -> {:|, [line: line], [arg, expr]} end
   end
 
+  defp typespec_to_ast({:type, line, :function, args}) do
+    typespec_to_ast({:type, line, :fun, args})
+  end
+
   defp typespec_to_ast({:type, line, :fun, [{:type, _, :product, args}, result]}) do
     args = for arg <- args, do: typespec_to_ast(arg)
     [{:->, [line: line], [args, typespec_to_ast(result)]}]
