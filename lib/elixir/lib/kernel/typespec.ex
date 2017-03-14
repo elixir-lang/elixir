@@ -404,6 +404,7 @@ defmodule Kernel.Typespec do
   defp builtin_type?(:charlist, 0), do: true
   # TODO: Remove char_list type by 2.0
   defp builtin_type?(:char_list, 0), do: true
+  defp builtin_type?(:nonempty_charlist, 0), do: true
   defp builtin_type?(:keyword, 0), do: true
   defp builtin_type?(:keyword, 1), do: true
   defp builtin_type?(name, arity), do: :erl_internal.is_type(name, arity)
@@ -634,6 +635,10 @@ defmodule Kernel.Typespec do
   defp typespec_to_ast({:remote_type, line, [{:atom, _, :elixir}, {:atom, _, type}, []]})
       when type in [:charlist, :char_list] do
     typespec_to_ast({:type, line, :charlist, []})
+  end
+
+  defp typespec_to_ast({:remote_type, line, [{:atom, _, :elixir}, {:atom, _, :nonempty_charlist}, []]}) do
+    typespec_to_ast({:type, line, :nonempty_charlist, []})
   end
 
   defp typespec_to_ast({:remote_type, line, [{:atom, _, :elixir}, {:atom, _, :struct}, []]}) do
@@ -904,11 +909,24 @@ defmodule Kernel.Typespec do
   end
 
   # Handle local calls
-  defp typespec({type, meta, arguments}, vars, caller) when type in [:string, :nonempty_string] do
-    :elixir_errors.warn caller.line, caller.file, "#{type}() type use is discouraged. For character lists, use " <>
-      "charlist() type, for strings, String.t()\n#{Exception.format_stacktrace(Macro.Env.stacktrace(caller))}"
+  defp typespec({:string, meta, arguments}, vars, caller) do
+    :elixir_errors.warn caller.line, caller.file,
+      "string() type use is discouraged. " <>
+      "For character lists, use charlist() type, for strings, String.t()\n" <>
+      Exception.format_stacktrace(Macro.Env.stacktrace(caller))
+
     arguments = for arg <- arguments, do: typespec(arg, vars, caller)
-    {:type, line(meta), type, arguments}
+    {:type, line(meta), :string, arguments}
+  end
+
+  defp typespec({:nonempty_string, meta, arguments}, vars, caller) do
+    :elixir_errors.warn caller.line, caller.file,
+      "nonempty_string() type use is discouraged. " <>
+      "For non-empty character lists, use nonempty_charlist() type, for strings, String.t()\n" <>
+      Exception.format_stacktrace(Macro.Env.stacktrace(caller))
+
+    arguments = for arg <- arguments, do: typespec(arg, vars, caller)
+    {:type, line(meta), :nonempty_string, arguments}
   end
 
   # TODO: Remove char_list type by 2.0
@@ -917,6 +935,10 @@ defmodule Kernel.Typespec do
       :elixir_errors.warn caller.line, caller.file, "the char_list() type is deprecated, use charlist()"
     end
     typespec((quote do: :elixir.charlist()), vars, caller)
+  end
+
+  defp typespec({:nonempty_charlist, _meta, []}, vars, caller) do
+    typespec((quote do: :elixir.nonempty_charlist()), vars, caller)
   end
 
   defp typespec({:struct, _meta, []}, vars, caller) do
