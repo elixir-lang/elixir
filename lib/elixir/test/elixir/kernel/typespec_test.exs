@@ -706,6 +706,7 @@ defmodule Kernel.TypespecTest do
       quote(do: @type builtin_char() :: char()),
       quote(do: @type builtin_charlist() :: charlist()),
       quote(do: @type builtin_fun() :: fun()),
+      quote(do: @type builtin_function() :: function()),
       quote(do: @type builtin_identifier() :: identifier()),
       quote(do: @type builtin_iodata() :: iodata()),
       quote(do: @type builtin_iolist() :: iolist()),
