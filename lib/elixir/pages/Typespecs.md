@@ -49,6 +49,7 @@ The syntax Elixir provides for type specifications is similar to [the one in Erl
           | Literals                # Described in section "Literals"
           | Builtin                 # Described in section "Built-in types"
           | Remotes                 # Described in section "Remote types"
+          | UserDefined             # Described in section "User-defined types"
 
 ### Literals
 
@@ -139,7 +140,7 @@ it is common to end a map type with `optional(any) => any`.
 
 Notice that the syntactic representation of `map()` is `%{optional(any) => any}`, not `%{}`. The notation `%{}` specifies the singleton type for the empty map.
 
-## Defining a type
+### User-defined types
 
 The `@type`, `@typep`, and `@opaque` module attributes can be used to define new types:
 
