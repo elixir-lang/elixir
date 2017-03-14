@@ -26,15 +26,15 @@ The syntax Elixir provides for type specifications is similar to [the one in Erl
           | none()                  # the bottom type, contains no terms
           | atom()
           | map()                   # any map
-          | pid()
+          | pid()                   # process identifier
           | port()
           | reference()
           | struct()                # any struct
           | tuple()                 # tuple of any size
 
                                     ## Numbers
-          | float()                 # float
-          | integer()               # integer
+          | float()
+          | integer()
           | neg_integer()           # ..., -3, -2, -1
           | non_neg_integer()       # 0, 1, 2, 3, ...
           | pos_integer()           # 1, 2, 3, ...
@@ -54,8 +54,9 @@ The syntax Elixir provides for type specifications is similar to [the one in Erl
 
 The following literals are also supported in typespecs:
 
-    type :: :atom                         ## Atoms
-          | true | false | nil            # Special atom literals
+    type ::                               ## Atoms
+            :atom                         # atoms: :foo, :bar, ...
+          | true | false | nil            # special atom literals
 
                                           ## Bitstrings
           | <<>>                          # empty bitstring
