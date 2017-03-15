@@ -208,6 +208,7 @@ defmodule Process do
       end
 
   """
+  @spec sleep(timeout) :: :ok | no_return
   def sleep(timeout)
       when is_integer(timeout) and timeout >= 0
       when timeout == :infinity do
@@ -356,7 +357,8 @@ defmodule Process do
   Inlined by the compiler.
   """
   @spec spawn(module, atom, list, spawn_opts) :: pid | {pid, reference}
-  def spawn(mod, fun, args, opts) do
+  def spawn(mod, fun, args, opts)
+      when is_atom(mod) and is_atom(fun) and is_list(args) and is_list(opts) do
     :erlang.spawn_opt(mod, fun, args, opts)
   end
 
@@ -607,7 +609,7 @@ defmodule Process do
   Inlined by the compiler.
   """
   @spec hibernate(module, atom, list) :: no_return
-  def hibernate(mod, fun, args) do
+  def hibernate(mod, fun, args) when is_atom(mod) and is_atom(fun) and is_list(args) do
     :erlang.hibernate(mod, fun, args)
   end
 
