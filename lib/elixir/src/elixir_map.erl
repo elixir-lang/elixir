@@ -114,11 +114,13 @@ load_struct(Meta, Name, Args, InContext, E) ->
         apply(Name, '__struct__', Args);
       LocalFun ->
         %% There is an inherent race condition when using local_for.
-        %% By the time we got to execute the function, the module
-        %% that defines it may no longer be available, so any function
-        %% invocation happening inside the local function will fail.
-        %% In this case, we need to fallback to the regular dispatching
-        %% since the module will already be available.
+        %% By the time we got to execute the function, the ets table
+        %% with temporary definitions for the given module may no longer
+        %% be available, so any function invocation happening inside the
+        %% local function will fail. In this case, we need to fallback to
+        %% the regular dispatching since the module will be available if
+        %% the table has not been deleted (unless compilation of that
+        %% module failed which then should cause this call to fail too).
         try
           apply(LocalFun, Args)
         catch
