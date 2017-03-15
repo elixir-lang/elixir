@@ -71,6 +71,7 @@ defmodule Record do
        uid: :undefined, gid: :undefined]
 
   """
+  @spec extract(name :: atom, Keyword.t) :: Keyword.t
   def extract(name, opts) when is_atom(name) and is_list(opts) do
     Record.Extractor.extract(name, opts)
   end
@@ -99,6 +100,7 @@ defmodule Record do
   These options are expected to be literals (including the binary values) at
   compile time.
   """
+  @spec extract_all(Keyword.t) :: [{name :: atom, Keyword.t}]
   def extract_all(opts) when is_list(opts) do
     Record.Extractor.extract_all(opts)
   end
@@ -291,14 +293,14 @@ defmodule Record do
   @doc false
   def __fields__(type, fields) do
     :lists.map(fn
-      {key, val} when is_atom(key) ->
+      {key, value} when is_atom(key) ->
         try do
-          Macro.escape(val)
+          Macro.escape(value)
         rescue
           e in [ArgumentError] ->
             raise ArgumentError, "invalid value for record field #{key}, " <> Exception.message(e)
         else
-          val -> {key, val}
+          value -> {key, value}
         end
       key when is_atom(key) ->
         {key, nil}
