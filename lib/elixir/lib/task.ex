@@ -154,7 +154,7 @@ defmodule Task do
   @doc """
   Starts a task as part of a supervision tree.
   """
-  @spec start_link(fun) :: {:ok, pid}
+  @spec start_link((() -> any)) :: {:ok, pid}
   def start_link(fun) do
     start_link(:erlang, :apply, [fun, []])
   end
@@ -174,7 +174,7 @@ defmodule Task do
   (i.e. no interest in the returned result) and it should not
   be linked to the current process.
   """
-  @spec start(fun) :: {:ok, pid}
+  @spec start((() -> any)) :: {:ok, pid}
   def start(fun) do
     start(:erlang, :apply, [fun, []])
   end
@@ -203,7 +203,7 @@ defmodule Task do
 
   See also `async/3`.
   """
-  @spec async(fun) :: t
+  @spec async((() -> any)) :: t
   def async(fun) do
     async(:erlang, :apply, [fun, []])
   end

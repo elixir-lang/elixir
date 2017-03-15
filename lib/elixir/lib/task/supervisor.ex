@@ -53,7 +53,7 @@ defmodule Task.Supervisor do
   The task will still be linked to the caller, see `Task.async/3` for
   more information and `async_nolink/2` for a non-linked variant.
   """
-  @spec async(Supervisor.supervisor, fun) :: Task.t
+  @spec async(Supervisor.supervisor, (() -> any)) :: Task.t
   def async(supervisor, fun) do
     async(supervisor, :erlang, :apply, [fun, []])
   end
@@ -92,7 +92,7 @@ defmodule Task.Supervisor do
   with the same `ref` value that is held by the task struct. If the task
   terminates normally, the reason in the `:DOWN` message will be `:normal`.
   """
-  @spec async_nolink(Supervisor.supervisor, fun) :: Task.t
+  @spec async_nolink(Supervisor.supervisor, (() -> any)) :: Task.t
   def async_nolink(supervisor, fun) do
     async_nolink(supervisor, :erlang, :apply, [fun, []])
   end
@@ -226,7 +226,7 @@ defmodule Task.Supervisor do
   task needs to perform side-effects (like I/O) and does not need
   to report back to the caller.
   """
-  @spec start_child(Supervisor.supervisor, fun) :: {:ok, pid}
+  @spec start_child(Supervisor.supervisor, (() -> any)) :: {:ok, pid}
   def start_child(supervisor, fun) do
     start_child(supervisor, :erlang, :apply, [fun, []])
   end
