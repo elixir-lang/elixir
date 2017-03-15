@@ -782,7 +782,7 @@ defmodule Time do
   def from_iso8601(string, calendar \\ Calendar.ISO)
 
   def from_iso8601(<<?T, h, rest::binary>>, calendar) when h in ?0..?9 do
-    from_iso8601(<<h, rest::binary>>)
+    from_iso8601(<<h, rest::binary>>, calendar)
   end
 
   def from_iso8601(<<hour::2-bytes, ?:, min::2-bytes, ?:, sec::2-bytes, rest::binary>>, calendar) do
@@ -851,7 +851,7 @@ defmodule Time do
     Calendar.ISO.time_to_iso8601(hour, minute, second, microsecond)
   end
 
-  def to_iso8601(%{hour: hour, minute: minute, second: second, microsecond: microsecond, calendar: calendar} = time) do
+  def to_iso8601(%{hour: _, minute: _, second: _, microsecond: _, calendar: _} = time) do
     time
     |> convert(Calendar.ISO)
     |> to_iso8601
@@ -878,7 +878,7 @@ defmodule Time do
     {hour, minute, second}
   end
 
-  def to_erl(%{hour: hour, minute: minute, second: second, calendar: calendar} = time) do
+  def to_erl(%{hour: _, minute: _, second: _, calendar: _} = time) do
     time
     |> convert(Calendar.ISO)
     |> to_erl
@@ -917,7 +917,7 @@ defmodule Time do
   """
   @spec from_erl!(:calendar.time, Calendar.microsecond, Calendar.calendar) :: t | no_return
   def from_erl!(tuple, microsecond \\ {0, 0}, calendar \\ Calendar.ISO) do
-    case from_erl(tuple, microsecond) do
+    case from_erl(tuple, microsecond, calendar) do
       {:ok, value} ->
         value
       {:error, reason} ->
@@ -1111,6 +1111,7 @@ defmodule NaiveDateTime do
     %NaiveDateTime{year: year, month: month, day: day,
                    hour: hour, minute: minute, second: second,
                    microsecond: microsecond}
+    |> convert(calendar)
   end
 
   @doc """
@@ -1448,7 +1449,7 @@ defmodule NaiveDateTime do
     Calendar.ISO.naive_datetime_to_iso8601(year, month, day, hour, minute, second, microsecond)
   end
   def to_iso8601(%{year: _, month: _, day: _,
-                   hour: _, minute: _, second: _, microsecond: _, calendar: calendar} = naive_datetime) do
+                   hour: _, minute: _, second: _, microsecond: _, calendar: _} = naive_datetime) do
     naive_datetime
     |> convert!(Calendar.ISO)
     |> to_iso8601
@@ -1486,8 +1487,8 @@ defmodule NaiveDateTime do
     {{year, month, day}, {hour, minute, second}}
   end
 
-  def to_erl(%{calendar: calendar, year: year, month: month, day: day,
-               hour: hour, minute: minute, second: second} = naive_datetime) do
+  def to_erl(%{calendar: _, year: _, month: _, day: _,
+               hour: _, minute: _, second: _} = naive_datetime) do
     naive_datetime
     |> convert(Calendar.ISO)
     |> to_erl
@@ -2283,14 +2284,13 @@ defmodule DateTime do
   @spec to_rata_die(DateTime.t) :: Calendar.rata_die
   defp to_rata_die(
     %DateTime{calendar: calendar,
-              year: year, month: month, day: day, hour: hour, minute: minute, second: second, microsecond: microsecond,
-              time_zone: time_zone, zone_abbr: zone_abbr, utc_offset: utc_offset, std_offset: std_offset}
+              year: year, month: month, day: day, hour: hour, minute: minute, second: second, microsecond: microsecond}
   ) do
     calendar.naive_datetime_to_rata_die(year, month, day, hour, minute, second, microsecond)
   end
 
   defp from_rata_die(rata_die, calendar) do
-    {year, month, day, hour, minute, second, microsecond} = calendar.naive_datetime_from_rata_die(rata_die)
+    %DateTime{year: year, month: month, day: day, hour: hour, minute: minute, second: second, microsecond: microsecond} = calendar.naive_datetime_from_rata_die(rata_die)
   end
 
   # Integer representing seconds in the ISO 6801 calendar.
