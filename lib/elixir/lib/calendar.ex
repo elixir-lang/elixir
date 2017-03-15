@@ -1111,7 +1111,7 @@ defmodule NaiveDateTime do
     %NaiveDateTime{year: year, month: month, day: day,
                    hour: hour, minute: minute, second: second,
                    microsecond: microsecond}
-    |> convert(calendar)
+    |> convert!(calendar)
   end
 
   @doc """
@@ -2293,11 +2293,10 @@ defmodule DateTime do
     %DateTime{year: year, month: month, day: day, hour: hour, minute: minute, second: second, microsecond: microsecond} = calendar.naive_datetime_from_rata_die(rata_die)
   end
 
-  # Integer representing seconds in the ISO 6801 calendar.
-  defp apply_tz_offset(rata_die, seconds) when is_integer(seconds) do
-    apply_tz_offset(rata_die, {seconds, 86400})
-  end
-  defp apply_tz_offset({days, {parts, ppd}}, {offset, offset_ppd}) do
+  defp apply_tz_offset({days, {parts, ppd}}, offset) do
+    # At this time, only offsets in seconds (of which there are 86400 in an ISO 8601 day) are allowed.
+    offset_ppd = 86400
+
     parts = parts * offset_ppd
     offset = offset * ppd
     gcd = gcd(ppd, offset_ppd)
