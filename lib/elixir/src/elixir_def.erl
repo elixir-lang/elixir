@@ -17,21 +17,19 @@ local_for(Module, Name, Arity, Kinds) ->
   Tuple = {Name, Arity},
 
   try
-    T = elixir_module:defs_table(Module),
-    {T, ets:lookup(T, {def, Tuple})}
+    Table = elixir_module:defs_table(Module),
+    {ets:lookup(Table, {def, Tuple}), ets:lookup(Table, {clauses, Tuple})}
   of
-    {Table, [{_, Kind, Meta, File, _, _}]} ->
+    {[{_, Kind, Meta, File, _, _}], Clauses} ->
       case (Kinds == all) orelse (lists:member(Kind, Kinds)) of
-        true ->
-          Clauses = [Clause || {_, Clause} <- ets:lookup(Table, {clauses, Tuple})],
-          elixir_erl:definition_to_anonymous(File, Module, Tuple, Kind, Meta, Clauses);
-        false ->
-          false
+        true -> elixir_erl:definition_to_anonymous(File, Module, Tuple, Kind, Meta,
+                                                   [Clause || {_, Clause} <- Clauses]);
+        false -> false
       end;
-    {_Table, []} ->
+    {[], _} ->
       false
   catch
-    error:badarg -> false
+    _:_ -> false
   end.
 
 %% Take a definition out of the table

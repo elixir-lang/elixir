@@ -110,8 +110,20 @@ load_struct(Meta, Name, Args, InContext, E) ->
 
   try
     case Local andalso elixir_def:local_for(Name, '__struct__', Arity, [def]) of
-      false -> apply(Name, '__struct__', Args);
-      LocalFun -> apply(LocalFun, Args)
+      false ->
+        apply(Name, '__struct__', Args);
+      LocalFun ->
+        %% There is an inherent race condition when using local_for.
+        %% By the time we got to execute the function, the module
+        %% that defines it may no longer be available, so any function
+        %% invocation happening inside the local function will fail.
+        %% In this case, we need to fallback to the regular dispatching
+        %% since the module will already be available.
+        try
+          apply(LocalFun, Args)
+        catch
+          error:undef -> apply(Name, '__struct__', Args)
+        end
     end
   of
     #{} = Struct ->
