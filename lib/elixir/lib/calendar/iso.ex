@@ -462,15 +462,12 @@ defmodule Calendar.ISO do
   end
 
   def valid_date?(year, month, day)
-  def valid_date?(year, month, day) when month in (1..12) and day in (1..31) do
+  def valid_date?(year, month, day) do
     :calendar.valid_date(year, month, day) and year <= 9999
   end
   def valid_date?(year, month, day), do: false
 
   def valid_time?(hour, minute, second, microsecond)
-  def valid_time?(hour, minute, second, microsecond) when is_integer(microsecond) do
-    valid_time?(hour, minute, second, {microsecond, 0})
-  end
   def valid_time?(hour, minute, second, {microsecond, _})
   when hour in 0..23 and minute in 0..59 and second in 0..60 and microsecond in 0..999_999 do
     true
