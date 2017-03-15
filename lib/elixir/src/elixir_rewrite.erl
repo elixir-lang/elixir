@@ -124,14 +124,21 @@ inline(?process, exit, 2) -> {erlang, exit};
 inline(?process, get, 0) -> {erlang, get};
 inline(?process, get_keys, 0) -> {erlang, get_keys};
 inline(?process, get_keys, 1) -> {erlang, get_keys};
+inline(?process, group_leader, 0) -> {erlang, group_leader};
 inline(?process, hibernate, 3) -> {erlang, hibernate};
 inline(?process, demonitor, 1) -> {erlang, demonitor};
 inline(?process, demonitor, 2) -> {erlang, demonitor};
+inline(?process, flag, 2) -> {erlang, process_flag};
+inline(?process, flag, 3) -> {erlang, process_flag};
 inline(?process, link, 1) -> {erlang, link};
+inline(?process, list, 0) -> {erlang, processes};
 inline(?process, read_timer, 1) -> {erlang, read_timer};
+inline(?process, registered, 0) -> {erlang, registered};
+inline(?process, send, 3) -> {erlang, send};
 inline(?process, spawn, 2) -> {erlang, spawn_opt};
 inline(?process, spawn, 4) -> {erlang, spawn_opt};
 inline(?process, unlink, 1) -> {erlang, unlink};
+inline(?process, unregister, 1) -> {erlang, unregister};
 
 inline(?port, open, 2) -> {erlang, open_port};
 inline(?port, close, 1) -> {erlang, port_close};
@@ -192,6 +199,8 @@ rewrite(?map, delete, [Map, Key]) ->
   {maps, remove, [Key, Map]};
 rewrite(?process, monitor, [Arg]) ->
   {erlang, monitor, [process, Arg]};
+rewrite(?process, group_leader, [Pid, Leader]) ->
+  {erlang, group_leader, [Leader, Pid]};
 rewrite(?process, send_after, [Dest, Msg, Time]) ->
   {erlang, send_after, [Time, Dest, Msg]};
 rewrite(?process, send_after, [Dest, Msg, Time, Opts]) ->

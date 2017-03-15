@@ -233,6 +233,7 @@ defmodule Process do
       iex> Process.send({:name, :node_that_does_not_exist}, :hi, [:noconnect])
       :noconnect
 
+  Inlined by the compiler.
   """
   @spec send(dest, msg, [option]) :: :ok | :noconnect | :nosuspend
         when dest: pid | port | atom | {atom, node},
@@ -257,6 +258,8 @@ defmodule Process do
   which is not alive or when the given PID exits. Note that timers will not be
   automatically canceled when `dest` is an atom (as the atom resolution is done
   on delivery).
+
+  Inlined by the compiler.
 
   ## Options
 
@@ -402,6 +405,8 @@ defmodule Process do
   its PID will be part of the list of PIDs returned by this function.
 
   See [`:erlang.processes/0`](http://www.erlang.org/doc/man/erlang.html#processes-0) for more info.
+
+  Inlined by the compiler.
   """
   @spec list :: [pid]
   def list do
@@ -486,6 +491,8 @@ defmodule Process do
 
   Fails with `ArgumentError` if the name is not registered
   to any PID or port.
+
+  Inlined by the compiler.
   """
   @spec unregister(atom) :: true
   def unregister(name) do
@@ -505,6 +512,8 @@ defmodule Process do
 
   @doc """
   Returns the PID of the group leader for the calling process.
+
+  Inlined by the compiler.
   """
   @spec group_leader :: pid
   def group_leader do
@@ -516,6 +525,8 @@ defmodule Process do
 
   Typically, this is used when a process started from a certain shell should
   have a group leader other than `:init`.
+
+  Inlined by the compiler.
   """
   @spec group_leader(pid, leader :: pid) :: true
   def group_leader(pid, leader) do
@@ -524,6 +535,8 @@ defmodule Process do
 
   @doc """
   Returns a list of names which have been registered using `register/2`.
+
+  Inlined by the compiler.
   """
   @spec registered :: [atom]
   def registered do
@@ -539,6 +552,8 @@ defmodule Process do
   Returns the old value of `flag`.
 
   See [`:erlang.process_flag/2`](http://www.erlang.org/doc/man/erlang.html#process_flag-2) for more info.
+
+  Inlined by the compiler.
   """
   @spec flag(process_flag, term) :: term
   def flag(flag, value) do
@@ -554,6 +569,8 @@ defmodule Process do
   namely `:save_calls`.
 
   See [`:erlang.process_flag/3`](http://www.erlang.org/doc/man/erlang.html#process_flag-3) for more info.
+
+  Inlined by the compiler.
   """
   @spec flag(pid, :save_calls, non_neg_integer) :: non_neg_integer
   def flag(pid, flag, value) do
