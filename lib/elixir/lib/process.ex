@@ -532,9 +532,11 @@ defmodule Process do
   @spec registered() :: [atom]
   defdelegate registered(), to: :erlang
 
-  @typep process_flag :: :trap_exit | :error_handler | :min_heap_size |
-                         :min_bin_vheap_size | :priority | :save_calls |
-                         :sensitive
+  @typep heap_size :: non_neg_integer |
+                      %{:size => non_neg_integer, :kill => boolean, :error_logger => boolean}
+
+  @typep priority_level :: :low | :normal | :high | :max
+
   @doc """
   Sets the given `flag` to `value` for the calling process.
 
@@ -544,13 +546,23 @@ defmodule Process do
 
   Inlined by the compiler.
   """
-  @spec flag(process_flag, term) :: term
+  @spec flag(:error_handler, term) :: module
+  @spec flag(:max_heap_size, heap_size) :: heap_size
+  @spec flag(:message_queue_data, term) :: :erlang.message_queue_data
+  @spec flag(:min_bin_vheap_size, term) :: non_neg_integer
+  @spec flag(:min_heap_size, term) :: non_neg_integer
+  @spec flag(:priority, term) :: priority_level
+  @spec flag(:save_calls, term) :: 0..10_000
+  @spec flag(:sensitive, term) :: boolean
+  @spec flag(:trap_exit, term) :: boolean
   defdelegate flag(flag, value), to: :erlang, as: :process_flag
 
   @doc """
   Sets the given `flag` to `value` for the given process `pid`.
 
   Returns the old value of `flag`.
+
+  It raises `ArgumentError` if `pid` is not a local process.
 
   The allowed values for `flag` are only a subset of those allowed in `flag/2`,
   namely `:save_calls`.
