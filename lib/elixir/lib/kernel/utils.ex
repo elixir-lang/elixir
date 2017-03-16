@@ -23,7 +23,7 @@ defmodule Kernel.Utils do
   """
   def defdelegate(fun, opts) when is_list(opts) do
     # TODO: Remove by 2.0
-    append_first = Keyword.get(opts, :append_first, false)
+    append_first? = Keyword.get(opts, :append_first, false)
 
     {name, args} =
       case Macro.decompose_call(fun) do
@@ -31,38 +31,30 @@ defmodule Kernel.Utils do
         _ -> raise ArgumentError, "invalid syntax in defdelegate #{Macro.to_string(fun)}"
       end
 
-    as_args_list = normalize_args(args)
     as = Keyword.get(opts, :as, name)
-    :lists.map(fn as_args ->
-      formal_args = make_formal_args(as_args)
-      as_args = case append_first do
-        true  -> tl(as_args) ++ [hd(as_args)]
-        false -> as_args
-      end
-      {name, formal_args, as, as_args}
-    end, as_args_list)
+    as_args = build_as_args(args, append_first?)
+
+    {name, args, as, as_args}
   end
 
-  defp make_formal_args(args) do
-    fun = &match?({name, _, mod} when is_atom(name) and is_atom(mod), &1)
-    :lists.filter(fun, args)
+  defp build_as_args(args, append_first?) do
+    as_args = :lists.map(&build_as_arg/1, args)
+
+    case append_first? do
+      true -> tl(as_args) ++ [hd(as_args)]
+      false -> as_args
+    end
   end
 
-  defp normalize_args(raw_args) do
-    :lists.foldr(fn
-      ({:\\, _, [arg, default_arg]}, [as_args | _] = as_args_list) ->
-        new_as_args = [default_arg | as_args]
-        [new_as_args | add_arg(as_args_list, arg)]
-      (arg, as_args_list) ->
-        add_arg(as_args_list, arg)
-    end, [[]], raw_args)
+  defp build_as_arg({:\\, _, [arg, _default_arg]}), do: validate_arg(arg)
+  defp build_as_arg(arg), do: validate_arg(arg)
+
+  defp validate_arg({name, _, mod} = arg) when is_atom(name) and is_atom(mod) do
+    arg
   end
 
-  defp add_arg(as_args_list, {name, _, mod} = arg) when is_atom(name) and is_atom(mod),
-    do: :lists.map(&([arg | &1]), as_args_list)
-  defp add_arg(_, code) do
-    raise ArgumentError,
-      "defdelegate/2 only accepts function parameters, got: #{Macro.to_string(code)}"
+  defp validate_arg(ast) do
+    raise ArgumentError, "defdelegate/2 only accepts function parameters, got: #{Macro.to_string(ast)}"
   end
 
   @doc """
