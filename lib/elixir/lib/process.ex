@@ -26,19 +26,15 @@ defmodule Process do
   Inlined by the compiler.
   """
   @spec alive?(pid) :: boolean
-  def alive?(pid) do
-    :erlang.is_process_alive(pid)
-  end
+  defdelegate alive?(pid), to: :erlang, as: :is_process_alive
 
   @doc """
   Returns all key-value pairs in the process dictionary.
 
   Inlined by the compiler.
   """
-  @spec get :: [{term, term}]
-  def get do
-    :erlang.get()
-  end
+  @spec get() :: [{term, term}]
+  defdelegate get(), to: :erlang
 
   @doc """
   Returns the value for the given `key` in the process dictionary,
@@ -61,9 +57,7 @@ defmodule Process do
   Inlined by the compiler.
   """
   @spec get_keys() :: [term]
-  def get_keys() do
-    :erlang.get_keys()
-  end
+  defdelegate get_keys(), to: :erlang
 
   @doc """
   Returns all keys in the process dictionary that have the given `value`.
@@ -71,9 +65,7 @@ defmodule Process do
   Inlined by the compiler.
   """
   @spec get_keys(term) :: [term]
-  def get_keys(value) do
-    :erlang.get_keys(value)
-  end
+  defdelegate get_keys(value), to: :erlang
 
   @doc """
   Stores the given `key`-`value` pair in the process dictionary.
@@ -134,9 +126,7 @@ defmodule Process do
 
   """
   @spec exit(pid, term) :: true
-  def exit(pid, reason) do
-    :erlang.exit(pid, reason)
-  end
+  defdelegate exit(pid, reason), to: :erlang
 
   @doc """
   Sleeps the current process for the given `timeout`.
@@ -240,9 +230,7 @@ defmodule Process do
         when dest: pid | port | atom | {atom, node},
              msg: any,
              option: :noconnect | :nosuspend
-  def send(dest, msg, options) do
-    :erlang.send(dest, msg, options)
-  end
+  defdelegate send(dest, msg, options), to: :erlang
 
   @doc """
   Sends `msg` to `dest` after `time` milliseconds.
@@ -297,9 +285,7 @@ defmodule Process do
   Inlined by the compiler.
   """
   @spec cancel_timer(reference) :: non_neg_integer | false
-  def cancel_timer(timer_ref) do
-    :erlang.cancel_timer(timer_ref)
-  end
+  defdelegate cancel_timer(timer_ref), to: :erlang
 
   @doc """
   Reads a timer created by `send_after/3`.
@@ -317,9 +303,7 @@ defmodule Process do
   Inlined by the compiler.
   """
   @spec read_timer(reference) :: non_neg_integer | false
-  def read_timer(timer_ref) do
-    :erlang.read_timer(timer_ref)
-  end
+  defdelegate read_timer(timer_ref), to: :erlang
 
   @type spawn_opt  :: :link | :monitor | {:priority, :low | :normal | :high} |
                       {:fullsweep_after, non_neg_integer} |
@@ -341,9 +325,7 @@ defmodule Process do
   Inlined by the compiler.
   """
   @spec spawn((() -> any), spawn_opts) :: pid | {pid, reference}
-  def spawn(fun, opts) do
-    :erlang.spawn_opt(fun, opts)
-  end
+  defdelegate spawn(fun, opts), to: :erlang, as: :spawn_opt
 
   @doc """
   Spawns the given function `fun` from module `mod`, passing the given `args`
@@ -360,9 +342,7 @@ defmodule Process do
   Inlined by the compiler.
   """
   @spec spawn(module, atom, list, spawn_opts) :: pid | {pid, reference}
-  def spawn(mod, fun, args, opts) do
-    :erlang.spawn_opt(mod, fun, args, opts)
-  end
+  defdelegate spawn(mod, fun, args, opts), to: :erlang, as: :spawn_opt
 
   @doc """
   Starts monitoring the given `item` from the calling process.
@@ -403,9 +383,7 @@ defmodule Process do
   """
   @spec demonitor(reference) :: true
   @spec demonitor(reference, options :: [:flush | :info]) :: boolean
-  def demonitor(monitor_ref, options \\ []) do
-    :erlang.demonitor(monitor_ref, options)
-  end
+  defdelegate demonitor(monitor_ref, options \\ []), to: :erlang
 
   @doc """
   Returns a list of PIDs corresponding to all the
@@ -419,10 +397,8 @@ defmodule Process do
 
   Inlined by the compiler.
   """
-  @spec list :: [pid]
-  def list do
-    :erlang.processes()
-  end
+  @spec list() :: [pid]
+  defdelegate list(), to: :erlang, as: :processes
 
   @doc """
   Creates a link between the calling process and the given item (process or
@@ -435,9 +411,7 @@ defmodule Process do
   Inlined by the compiler.
   """
   @spec link(pid | port) :: true
-  def link(pid_or_port) do
-    :erlang.link(pid_or_port)
-  end
+  defdelegate link(pid_or_port), to: :erlang
 
   @doc """
 
@@ -454,9 +428,7 @@ defmodule Process do
   Inlined by the compiler.
   """
   @spec unlink(pid | port) :: true
-  def unlink(pid_or_port) do
-    :erlang.unlink(pid_or_port)
-  end
+  defdelegate unlink(pid_or_port), to: :erlang
 
   @doc """
   Registers the given `pid_or_port` under the given `name`.
@@ -506,9 +478,7 @@ defmodule Process do
   Inlined by the compiler.
   """
   @spec unregister(atom) :: true
-  def unregister(name) do
-    :erlang.unregister(name)
-  end
+  defdelegate unregister(name), to: :erlang
 
   @doc """
   Returns the PID or port identifier registered under `name` or `nil` if the
@@ -526,10 +496,8 @@ defmodule Process do
 
   Inlined by the compiler.
   """
-  @spec group_leader :: pid
-  def group_leader do
-    :erlang.group_leader
-  end
+  @spec group_leader() :: pid
+  defdelegate group_leader(), to: :erlang
 
   @doc """
   Sets the group leader of the given `pid` to `leader`.
@@ -549,10 +517,8 @@ defmodule Process do
 
   Inlined by the compiler.
   """
-  @spec registered :: [atom]
-  def registered do
-    :erlang.registered()
-  end
+  @spec registered() :: [atom]
+  defdelegate registered(), to: :erlang
 
   @typep process_flag :: :trap_exit | :error_handler | :min_heap_size |
                          :min_bin_vheap_size | :priority | :save_calls |
@@ -567,9 +533,7 @@ defmodule Process do
   Inlined by the compiler.
   """
   @spec flag(process_flag, term) :: term
-  def flag(flag, value) do
-    :erlang.process_flag(flag, value)
-  end
+  defdelegate flag(flag, value), to: :erlang, as: :process_flag
 
   @doc """
   Sets the given `flag` to `value` for the given process `pid`.
@@ -584,9 +548,7 @@ defmodule Process do
   Inlined by the compiler.
   """
   @spec flag(pid, :save_calls, non_neg_integer) :: non_neg_integer
-  def flag(pid, flag, value) do
-    :erlang.process_flag(pid, flag, value)
-  end
+  defdelegate flag(pid, flag, value), to: :erlang, as: :process_flag
 
   @doc """
   Returns information about the process identified by `pid`, or returns `nil` if the process
@@ -635,9 +597,7 @@ defmodule Process do
   Inlined by the compiler.
   """
   @spec hibernate(module, atom, list) :: no_return
-  def hibernate(mod, fun, args) do
-    :erlang.hibernate(mod, fun, args)
-  end
+  defdelegate hibernate(mod, fun_name, args), to: :erlang
 
   @compile {:inline, nillify: 1}
   defp nillify(:undefined), do: nil
