@@ -66,7 +66,7 @@ defmodule Logger.Backends.ConsoleTest do
     end) =~ "my_format: hello"
   end
 
-  def format(level, message, ts, metadata) do
+  def format(_level, message, _ts, _metadata) do
     "my_format: #{message}"
   end
 
