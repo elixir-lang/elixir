@@ -106,6 +106,7 @@ Built-in type           | Defined as
 `byte()`                | `0..255`
 `char()`                | `0..0x10FFFF`
 `charlist()`            | `[char()]`
+`nonempty_charlist()`   | `[char(), ...]`
 `fun()`                 | `(... -> any)`
 `identifier()`          | `pid()` \| `port()` \| `reference()`
 `iodata()`              | `iolist()` \| `binary()`

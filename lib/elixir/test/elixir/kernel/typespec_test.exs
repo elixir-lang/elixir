@@ -3,6 +3,8 @@ Code.require_file "../test_helper.exs", __DIR__
 defmodule Kernel.TypespecTest do
   use ExUnit.Case
 
+  import ExUnit.CaptureIO
+
   alias Kernel.TypespecTest.TestTypespec
 
   defstruct [:hello]
@@ -705,6 +707,7 @@ defmodule Kernel.TypespecTest do
       quote(do: @type builtin_byte() :: byte()),
       quote(do: @type builtin_char() :: char()),
       quote(do: @type builtin_charlist() :: charlist()),
+      quote(do: @type builtin_nonempty_charlist() :: nonempty_charlist()),
       quote(do: @type builtin_fun() :: fun()),
       quote(do: @type builtin_identifier() :: identifier()),
       quote(do: @type builtin_iodata() :: iodata()),
@@ -883,5 +886,25 @@ defmodule Kernel.TypespecTest do
         @spec my_fun(integer)
       end
     end
+  end
+
+  test "warn on discouraged types" do
+    message = capture_io(:stderr, fn ->
+      test_module do
+        @type foo :: string()
+        @type bar :: nonempty_string()
+      end
+    end)
+
+    expected_string =
+      "string() type use is discouraged. " <>
+      "For character lists, use charlist() type, for strings, String.t()\n"
+
+    expected_nonempty_string =
+      "nonempty_string() type use is discouraged. " <>
+      "For non-empty character lists, use nonempty_charlist() type, for strings, String.t()\n"
+
+    assert message =~ expected_string
+    assert message =~ expected_nonempty_string
   end
 end
