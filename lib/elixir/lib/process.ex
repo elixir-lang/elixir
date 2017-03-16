@@ -367,7 +367,17 @@ defmodule Process do
   @doc """
   Starts monitoring the given `item` from the calling process.
 
-  This function returns the monitor reference.
+  Once the monitored process dies, a message is delivered to the
+  monitoring process in the shape of:
+
+      {:DOWN, ref, :process, object, reason}
+
+  where:
+
+    * `ref` is a monitor reference returned by this function;
+    * `object` is either a `pid` of the monitored process (if monitoring
+      a PID) or `{name, node}` (if monitoring a remote or local name);
+    * `reason` is the exit reason.
 
   See [the need for monitoring](http://elixir-lang.org/getting-started/mix-otp/genserver.html#the-need-for-monitoring)
   for an example.
