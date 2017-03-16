@@ -434,11 +434,7 @@ defmodule Task do
   @doc false
   # TODO: Remove on 2.0
   # (hard-deprecated in elixir_dispatch)
-  def find(tasks, msg) do
-    do_find(tasks, msg)
-  end
-
-  defp do_find(tasks, {ref, reply}) when is_reference(ref) do
+  def find(tasks, {ref, reply}) when is_reference(ref) do
     Enum.find_value tasks, fn
       %Task{ref: ^ref} = task ->
         Process.demonitor(ref, [:flush])
@@ -448,14 +444,14 @@ defmodule Task do
     end
   end
 
-  defp do_find(tasks, {:DOWN, ref, _, proc, reason} = msg) when is_reference(ref) do
+  def find(tasks, {:DOWN, ref, _, proc, reason} = msg) when is_reference(ref) do
     find = fn %Task{ref: task_ref} -> task_ref == ref end
     if Enum.find(tasks, find) do
       exit({reason(reason, proc), {__MODULE__, :find, [tasks, msg]}})
     end
   end
 
-  defp do_find(_tasks, _msg) do
+  def find(_tasks, _msg) do
     nil
   end
 
