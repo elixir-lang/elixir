@@ -84,18 +84,26 @@ defmodule Mix.Tasks.Archive.Install do
   end
 
   def install(ez_dst, contents, previous) do
-    remove_previous_versions(previous)
-
     # Get the directory name and extract it there
-    dir_dst = Path.rootname(ez_dst)
-    File.mkdir_p!(dir_dst)
-    {:ok, _} = :zip.extract(contents, [cwd: dir_dst])
-    Mix.shell.info [:green, "* creating ", :reset, Path.relative_to_cwd(dir_dst)]
+    with {:ok, [_comment, zip_first_file | _]} <- :zip.list_dir(contents),
+         {:zip_file, zip_first_path, _,_,_,_} <- zip_first_file,
+         [zip_root_dir | _] <- Path.split(zip_first_path),
+         dir_dst <- Path.join(Path.dirname(ez_dst), zip_root_dir) do
 
-    ebin = Mix.Local.archive_ebin(dir_dst)
-    Mix.Local.check_elixir_version_in_ebin(ebin)
-    true = Code.append_path(ebin)
-    :ok
+        remove_previous_versions(previous)
+
+        File.mkdir_p!(dir_dst)
+        {:ok, _} = :zip.extract(contents, [cwd: dir_dst])
+        Mix.shell.info [:green, "* creating ", :reset, Path.relative_to_cwd(dir_dst)]
+
+        ebin = Mix.Local.archive_ebin(dir_dst)
+        Mix.Local.check_elixir_version_in_ebin(ebin)
+      true = Code.append_path(ebin)
+      :ok
+    else
+      _ ->
+        {:error, "Invalid archive file"}
+    end
   end
 
   def build(_mixfile) do
