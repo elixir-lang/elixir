@@ -93,12 +93,15 @@ defmodule Logger.Backends.Console do
     device = Keyword.get(config, :device, :user)
     format = Logger.Formatter.compile Keyword.get(config, :format)
     colors = configure_colors(config)
-    metadata = Keyword.get(config, :metadata, [])
+    metadata = Keyword.get(config, :metadata, []) |> configure_metadata()
     max_buffer = Keyword.get(config, :max_buffer, 32)
 
-    %{state | format: format, metadata: Enum.reverse(metadata),
+    %{state | format: format, metadata: metadata,
               level: level, colors: colors, device: device, max_buffer: max_buffer}
   end
+
+  defp configure_metadata(:all), do: :all
+  defp configure_metadata(metadata), do: Enum.reverse(metadata)
 
   defp configure_merge(env, options) do
     Keyword.merge(env, options, fn
@@ -163,6 +166,7 @@ defmodule Logger.Backends.Console do
     |> color_event(level, colors, md)
   end
 
+  defp take_metadata(metadata, :all), do: metadata
   defp take_metadata(metadata, keys) do
     Enum.reduce keys, [], fn key, acc ->
       case Keyword.fetch(metadata, key) do
