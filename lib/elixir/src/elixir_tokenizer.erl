@@ -797,7 +797,7 @@ tokenize_number(Rest, Acc, Length, true) ->
   try
     {Rest, list_to_float(lists:reverse(Acc)), Length}
   catch
-    error:badarg -> {error, "float number out of range ", lists:reverse(Acc)}
+    error:badarg -> {error, "invalid float number ", lists:reverse(Acc)}
   end;
 
 %% Or integer.
