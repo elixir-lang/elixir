@@ -2272,7 +2272,7 @@ defmodule DateTime do
       {:ok, value} ->
         value
       {:error, reason} ->
-        raise ArgumentError, "cannot convert #{inspect datetime} to target calendar #{calendar}, reason: #{inspect reason}"
+        raise ArgumentError, "cannot convert #{inspect datetime} to target calendar #{inspect calendar}, reason: #{inspect reason}"
     end
   end
 

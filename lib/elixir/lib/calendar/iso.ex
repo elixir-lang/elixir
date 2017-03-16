@@ -44,15 +44,9 @@ defmodule Calendar.ISO do
   # def datetime_to_rata_die(%{calendar: _calendar, year: year, month: month, day: day, hour: hour, minute: minute, second: second, microsecond: {microsecond, _},
                              # std_offset: std_offset, utc_offset: utc_offset}) do
   def naive_datetime_to_rata_die(year, month, day, hour, minute, second, {microsecond, _}) do
-    # Baseline to epoch.  This will be zero for a Gregorian calendar
     days = to_rata_die_day(year, month, day)
     {parts, ppd} = combine_time_to_day_fraction(hour, minute, second, microsecond)
-    # Applying negative UTC offsets might result in a negative day fraction.
-    if (parts < 0) do
-      {days - 1, {ppd - parts, ppd}}
-    else
-      {days, {parts, ppd}}
-    end
+    {days, {parts, ppd}}
   end
 
   def naive_datetime_to_rata_die(year, month, day, hour, minute, second, microsecond) do
@@ -117,21 +111,19 @@ defmodule Calendar.ISO do
   end
 
   # Converts a year, month, day in only a count of days since the Rata Die epoch.
-  @spec to_rata_die_day(integer, pos_integer, pos_integer) :: Calendar.rata_die
   defp to_rata_die_day(year, month, day) do
     # Rata Die starts at year 1, rather than at year 0.
     :calendar.date_to_gregorian_days(year, month, day) - 365
   end
 
   # Calculates {year, month, day} from the count of days since the Rata Die epoch.
-  @spec from_rata_die_day(integer) :: {integer, pos_integer, pos_integer}
   defp from_rata_die_day(days) do
     :calendar.gregorian_days_to_date(days + 365)
   end
 
   # Calculates {hours, minutes, seconds, microseconds} from the fraction of time passed in the last Rata Die day.
   @spec extract_from_day_fraction(non_neg_integer, pos_integer) :: {non_neg_integer, non_neg_integer, non_neg_integer, non_neg_integer}
-  def extract_from_day_fraction(parts_in_day, parts_per_day) do
+  defp extract_from_day_fraction(parts_in_day, parts_per_day) do
     total_microseconds = div(parts_in_day * @seconds_per_day * @microseconds_per_second, parts_per_day)
     {hours, rest_microseconds1} = div_mod(total_microseconds, @seconds_per_hour * @microseconds_per_second)
     {minutes, rest_microseconds2} = div_mod(rest_microseconds1, @seconds_per_minute * @microseconds_per_second)
@@ -385,18 +377,13 @@ defmodule Calendar.ISO do
     end
   end
 
-  def valid_date?(year, month, day)
   def valid_date?(year, month, day) do
     :calendar.valid_date(year, month, day) and year <= 9999
   end
-  def valid_date?(year, month, day), do: false
 
-  def valid_time?(hour, minute, second, microsecond)
-  def valid_time?(hour, minute, second, {microsecond, _})
-  when hour in 0..23 and minute in 0..59 and second in 0..60 and microsecond in 0..999_999 do
-    true
+  def valid_time?(hour, minute, second, {microsecond, _}) do
+    hour in 0..23 and minute in 0..59 and second in 0..60 and microsecond in 0..999_999
   end
-  def valid_time?(_, _, _, _), do: false
 
   def day_rollover_relative_to_midnight_utc do
     {0, 1}
