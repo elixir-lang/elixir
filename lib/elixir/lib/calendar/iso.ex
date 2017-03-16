@@ -11,8 +11,6 @@ defmodule Calendar.ISO do
 
   @behaviour Calendar
 
-  @gregorian_epoch 1
-
   @unix_epoch :calendar.datetime_to_gregorian_seconds {{1970, 1, 1}, {0, 0, 0}}
   @unix_start 1_000_000 * -@unix_epoch
   @unix_end 1_000_000 * (-@unix_epoch + :calendar.datetime_to_gregorian_seconds({{9999, 12, 31}, {23, 59, 59}}))
@@ -129,9 +127,6 @@ defmodule Calendar.ISO do
   @spec from_rata_die_day(integer) :: {integer, pos_integer, pos_integer}
   defp from_rata_die_day(days) do
     :calendar.gregorian_days_to_date(days + 365)
-    {year, days_in_year} = extract_year_from_rata_die(days)
-    {month, day} = extract_month_from_rata_die(days_in_year, leap_year?(year))
-    {year, month, day}
   end
 
   # Calculates {hours, minutes, seconds, microseconds} from the fraction of time passed in the last Rata Die day.
@@ -142,60 +137,6 @@ defmodule Calendar.ISO do
     {minutes, rest_microseconds2} = div_mod(rest_microseconds1, @seconds_per_minute * @microseconds_per_second)
     {seconds, microseconds} = div_mod(rest_microseconds2, @microseconds_per_second)
     {hours, minutes, seconds, microseconds}
-  end
-
-  # Adjust the amount of days when we are past February.
-  @spec rata_die_adjust_for_leap_year(integer, pos_integer, pos_integer) :: integer
-  defp rata_die_adjust_for_leap_year(year, month, _day) do
-    cond do
-      month <= 2       ->  0
-      leap_year?(year) -> -1
-      true             -> -2
-    end
-  end
-
-  # Extracts the year and the remaining amount of days in the year
-  # from the count of days since the Rata Die epoch.
-  @spec extract_year_from_rata_die(integer) :: {integer, pos_integer}
-  defp extract_year_from_rata_die(days) do
-    d0   = days - @gregorian_epoch
-    {n400, d1} = div_mod(d0, 146_097)
-    {n100, d2} = div_mod(d1, 36_524)
-    {n4, d3}   = div_mod(d2, 1_461)
-    {n1, d4}   = div_mod(d3, 365)
-    days = d4 + 1
-
-    year = (400 * n400) + (100 * n100) + (4 * n4) + n1
-    if (n100 == 4) or (n1 == 4), do: {year, days}, else: {year + 1, days}
-  end
-
-  # Extracts the month and the day in the month
-  # from the count of days since the beginning of a year, and if it is a leap year or not.
-  @spec extract_month_from_rata_die(pos_integer, boolean) :: {pos_integer, pos_integer}
-  defp extract_month_from_rata_die(days_in_year, leap_year) do
-    month_lengths = [
-      31,
-      if(leap_year, do: 29, else: 28),
-      31,
-      30,
-      31,
-      30,
-      31,
-      31,
-      30,
-      31,
-      30,
-      31
-    ]
-
-    Enum.reduce_while(month_lengths, {1, days_in_year},
-      fn
-        month_days, {month_count, rest_days} when rest_days <= month_days ->
-          {:halt, {month_count, rest_days}}
-        month_days, {month_count, rest_days} ->
-          {:cont, {month_count + 1, rest_days - month_days}}
-      end
-    )
   end
 
   @spec div_mod(integer, neg_integer | pos_integer) :: integer
@@ -250,7 +191,7 @@ defmodule Calendar.ISO do
   """
   @spec leap_year?(year) :: boolean()
   def leap_year?(year) when is_integer(year) and year >= 0 do
-    rem(year, 4) === 0 and (rem(year, 100) > 0 or rem(year, 400) === 0)
+    :calendar.is_leap_year(year)
   end
 
   @doc """
