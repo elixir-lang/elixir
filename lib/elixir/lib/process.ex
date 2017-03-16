@@ -208,6 +208,7 @@ defmodule Process do
       end
 
   """
+  @spec sleep(timeout) :: :ok
   def sleep(timeout)
       when is_integer(timeout) and timeout >= 0
       when timeout == :infinity do
