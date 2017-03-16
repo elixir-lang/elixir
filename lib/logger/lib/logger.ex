@@ -210,6 +210,7 @@ defmodule Logger do
 
     * `:metadata` - the metadata to be printed by `$metadata`.
       Defaults to an empty list (no metadata).
+      Setting `:metadata` to `:all` prints all metadata.
 
     * `:colors` - a keyword list of coloring options.
 
