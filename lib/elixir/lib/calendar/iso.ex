@@ -121,31 +121,14 @@ defmodule Calendar.ISO do
   # Converts a year, month, day in only a count of days since the Rata Die epoch.
   @spec to_rata_die_day(integer, pos_integer, pos_integer) :: Calendar.rata_die
   defp to_rata_die_day(year, month, day) do
-    (@gregorian_epoch - 1) +
-
-    # Normal year arithmetic with 365 days in a year
-    (365 * (year - 1)) +
-
-    # Adjust for leap years.
-    floor_div(year - 1, 4) - floor_div(year - 1, 100) + floor_div(year - 1, 400) +
-
-    # At this point we have the number of days from the start of the epoch
-    # for the given number of years.  Now calculate add the days held by the
-    # month
-    floor_div((367 * month) - 362, 12) +
-
-    # And ajust by zero, minus one or -minus two days depending on whether
-    # leap_year? and if month is January or later (since February is either 28
-    # or 29 days)
-    rata_die_adjust_for_leap_year(year, month, day) +
-
-    # And then the day of the month is added
-    day
+    # Rata Die starts at year 1, rather than at year 0.
+    :calendar.date_to_gregorian_days(year, month, day) - 365
   end
 
   # Calculates {year, month, day} from the count of days since the Rata Die epoch.
   @spec from_rata_die_day(integer) :: {integer, pos_integer, pos_integer}
   defp from_rata_die_day(days) do
+    :calendar.gregorian_days_to_date(days + 365)
     {year, days_in_year} = extract_year_from_rata_die(days)
     {month, day} = extract_month_from_rata_die(days_in_year, leap_year?(year))
     {year, month, day}
