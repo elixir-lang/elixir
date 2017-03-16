@@ -26,15 +26,15 @@ The syntax Elixir provides for type specifications is similar to [the one in Erl
           | none()                  # the bottom type, contains no terms
           | atom()
           | map()                   # any map
-          | pid()
+          | pid()                   # process identifier
           | port()
           | reference()
           | struct()                # any struct
           | tuple()                 # tuple of any size
 
                                     ## Numbers
-          | float()                 # float
-          | integer()               # integer
+          | float()
+          | integer()
           | neg_integer()           # ..., -3, -2, -1
           | non_neg_integer()       # 0, 1, 2, 3, ...
           | pos_integer()           # 1, 2, 3, ...
@@ -49,13 +49,15 @@ The syntax Elixir provides for type specifications is similar to [the one in Erl
           | Literals                # Described in section "Literals"
           | Builtin                 # Described in section "Built-in types"
           | Remotes                 # Described in section "Remote types"
+          | UserDefined             # Described in section "User-defined types"
 
 ### Literals
 
 The following literals are also supported in typespecs:
 
-    type :: :atom                         ## Atoms
-          | true | false | nil            # Special atom literals
+    type ::                               ## Atoms
+            :atom                         # atoms: :foo, :bar, ...
+          | true | false | nil            # special atom literals
 
                                           ## Bitstrings
           | <<>>                          # empty bitstring
@@ -139,7 +141,7 @@ it is common to end a map type with `optional(any) => any`.
 
 Notice that the syntactic representation of `map()` is `%{optional(any) => any}`, not `%{}`. The notation `%{}` specifies the singleton type for the empty map.
 
-## Defining a type
+### User-defined types
 
 The `@type`, `@typep`, and `@opaque` module attributes can be used to define new types:
 
