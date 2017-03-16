@@ -794,7 +794,8 @@ tokenize_number([H | T], Acc, Length, Bool) when ?is_digit(H) ->
 
 %% Cast to float...
 tokenize_number(Rest, Acc, Length, true) ->
-  try {Rest, list_to_float(lists:reverse(Acc)), Length}
+  try
+    {Rest, list_to_float(lists:reverse(Acc)), Length}
   catch
     error:badarg -> {error, "float number out of range ", lists:reverse(Acc)}
   end;
