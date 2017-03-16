@@ -448,8 +448,12 @@ tokenize([$. | T], Line, Column, Scope, Tokens) ->
 % Integers and floats
 
 tokenize([H | T], Line, Column, Scope, Tokens) when ?is_digit(H) ->
-  {Rest, Number, Length} = tokenize_number(T, [H], 1, false),
-  tokenize(Rest, Line, Column + Length, Scope, [{number, {Line, Column, Column + Length}, Number} | Tokens]);
+  case tokenize_number(T, [H], 1, false) of
+    {error, Reason, Number} ->
+      {error, {Line, Reason, Number}, T, Tokens};
+    {Rest, Number, Length} ->
+      tokenize(Rest, Line, Column + Length, Scope, [{number, {Line, Column, Column + Length}, Number} | Tokens])
+  end;
 
 % Identifiers (including aliases)
 
@@ -790,7 +794,11 @@ tokenize_number([H | T], Acc, Length, Bool) when ?is_digit(H) ->
 
 %% Cast to float...
 tokenize_number(Rest, Acc, Length, true) ->
-  {Rest, list_to_float(lists:reverse(Acc)), Length};
+  try
+    {Rest, list_to_float(lists:reverse(Acc)), Length}
+  catch
+    error:badarg -> {error, "invalid float number ", lists:reverse(Acc)}
+  end;
 
 %% Or integer.
 tokenize_number(Rest, Acc, Length, false) ->

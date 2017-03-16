@@ -26,7 +26,8 @@ op_kw_test() ->
 
 scientific_test() ->
   [{number, {1, 1, 7}, 0.1}] = tokenize("1.0e-1"),
-  [{number, {1, 1, 16}, 1.2345678e-7}] = tokenize("1_234.567_8e-10").
+  [{number, {1, 1, 16}, 1.2345678e-7}] = tokenize("1_234.567_8e-10"),
+  {1, "invalid float number ", "1.0e309"} = tokenize_error("1.0e309").
 
 hex_bin_octal_test() ->
   [{number, {1, 1, 5}, 255}] = tokenize("0xFF"),
@@ -73,7 +74,9 @@ float_test() ->
   [{number, {1, 1, 5}, 12.3}] = tokenize("12.3"),
   [{number, {1, 1, 5}, 12.3}, {';', {1, 5, 6}}] = tokenize("12.3;"),
   [{eol, {1, 1, 2}}, {number, {3, 1, 5}, 12.3}] = tokenize("\n\n12.3"),
-  [{number, {1, 3, 7}, 12.3}, {number, {1, 9, 13}, 23.4}] = tokenize("  12.3  23.4  ").
+  [{number, {1, 3, 7}, 12.3}, {number, {1, 9, 13}, 23.4}] = tokenize("  12.3  23.4  "),
+  OversizedFloat = string:copies("9", 310) ++ ".0",
+  {1, "invalid float number ", OversizedFloat} = tokenize_error(OversizedFloat).
 
 comments_test() ->
   [{number, {1, 1, 2}, 1}, {eol, {1, 3, 4}}, {number, {2, 1, 2}, 2}] = tokenize("1 # Comment\n2").
