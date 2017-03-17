@@ -85,24 +85,17 @@ defmodule Mix.Tasks.Archive.Install do
 
   def install(ez_dst, contents, previous) do
     # Get the directory name and extract it there
-    with {:ok, [_comment, zip_first_file | _]} <- :zip.list_dir(contents),
-         {:zip_file, zip_first_path, _,_,_,_} <- zip_first_file,
-         [zip_root_dir | _] <- Path.split(zip_first_path),
-         dir_dst <- Path.join(Path.dirname(ez_dst), zip_root_dir) do
+    with {:ok, dir_dst} <- destination(ez_dst, contents) do
+      remove_previous_versions(previous)
 
-        remove_previous_versions(previous)
+      File.mkdir_p!(dir_dst)
+      {:ok, _} = :zip.extract(contents, [cwd: dir_dst])
+      Mix.shell.info [:green, "* creating ", :reset, Path.relative_to_cwd(dir_dst)]
 
-        File.mkdir_p!(dir_dst)
-        {:ok, _} = :zip.extract(contents, [cwd: dir_dst])
-        Mix.shell.info [:green, "* creating ", :reset, Path.relative_to_cwd(dir_dst)]
-
-        ebin = Mix.Local.archive_ebin(dir_dst)
-        Mix.Local.check_elixir_version_in_ebin(ebin)
+      ebin = Mix.Local.archive_ebin(dir_dst)
+      Mix.Local.check_elixir_version_in_ebin(ebin)
       true = Code.append_path(ebin)
       :ok
-    else
-      _ ->
-        {:error, "Invalid archive file"}
     end
   end
 
@@ -111,6 +104,18 @@ defmodule Mix.Tasks.Archive.Install do
   end
 
   ### Private helpers
+
+  defp destination(ez_dst, contents) do
+    with {:ok, [_comment, zip_first_file | _]} <- :zip.list_dir(contents),
+         {:zip_file, zip_first_path, _, _, _, _} <- zip_first_file,
+         [zip_root_dir | _] <- Path.split(zip_first_path) do
+
+      {:ok, Path.join(Path.dirname(ez_dst), zip_root_dir)}
+    else
+      _ ->
+        {:error, "Invalid archive file"}
+    end
+  end
 
   defp archives(name) do
     # TODO: We can remove the .ez extension on Elixir 2.0 since we always unzip since 1.3
