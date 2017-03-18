@@ -55,6 +55,7 @@ defmodule Calendar.Julian do
 
   def time_from_day_fraction(day_fraction), do: Calendar.ISO.time_from_day_fraction(day_fraction)
 
+  def time_to_day_fraction(hour, minute, second, microsecond) when is_integer(microsecond), do: time_to_day_fraction(hour, minute, second, {microsecond, 6})
   def time_to_day_fraction(hour, minute, second, microsecond), do: Calendar.ISO.time_to_day_fraction(hour, minute, second, microsecond)
 
   def leap_year?(year) when is_integer(year) and year >= 0 do
