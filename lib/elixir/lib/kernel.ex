@@ -4081,7 +4081,7 @@ defmodule Kernel do
   the `__using__/1` callback, unless those functions are the default
   implementation of a previously defined `@callback` or are functions
   meant to be overridden (see `defoverridable/1`). Even in these cases,
-  defining functions should be seen as a "last resource".
+  defining functions should be seen as a "last resort".
 
   In case you want to provide some existing functionality to the user module,
   please define it in a module which will be imported accordingly; for example,
