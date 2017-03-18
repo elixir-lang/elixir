@@ -470,11 +470,11 @@ defmodule Map do
   def merge(map1, map2, callback) when is_function(callback, 3) do
     if map_size(map1) > map_size(map2) do
       :maps.fold fn key, val2, acc ->
-        update(acc, key, val2, fn(val1) -> callback.(key, val1, val2) end)
+        update(acc, key, val2, fn val1 -> callback.(key, val1, val2) end)
       end, map1, map2
     else
       :maps.fold fn key, val2, acc ->
-        update(acc, key, val2, fn(val1) -> callback.(key, val2, val1) end)
+        update(acc, key, val2, fn val1 -> callback.(key, val2, val1) end)
       end, map2, map1
     end
   end
