@@ -234,28 +234,33 @@ defmodule ExUnit.Callbacks do
   end
 
   @doc false
-  def __merge__(_mod, context, :ok) do
+  def __merge__(mod, context, value) do
+    __merge__(mod, context, value, value)
+  end
+
+  @doc false
+  defp __merge__(_mod, context, :ok, _original_value) do
     context
   end
 
-  def __merge__(mod, context, {:ok, value}) do
-    __merge__(mod, context, value)
+  defp __merge__(mod, context, {:ok, value}, original_value) do
+    __merge__(mod, context, value, original_value)
   end
 
-  def __merge__(mod, _context, %{__struct__: _} = return_value) do
-    raise_merge_failed!(mod, return_value)
+  defp __merge__(mod, _context, %{__struct__: _}, original_value) do
+    raise_merge_failed!(mod, original_value)
   end
 
-  def __merge__(mod, context, data) when is_list(data) do
-    __merge__(mod, context, Map.new(data))
+  defp __merge__(mod, context, data, original_value) when is_list(data) do
+    __merge__(mod, context, Map.new(data), original_value)
   end
 
-  def __merge__(mod, context, data) when is_map(data) do
+  defp __merge__(mod, context, data, _original_value) when is_map(data) do
     context_merge(mod, context, data)
   end
 
-  def __merge__(mod, _, return_value) do
-    raise_merge_failed!(mod, return_value)
+  defp __merge__(mod, _, _return_value, original_value) do
+    raise_merge_failed!(mod, original_value)
   end
 
   defp context_merge(mod, context, data) do
