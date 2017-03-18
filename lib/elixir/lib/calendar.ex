@@ -562,7 +562,7 @@ defmodule Date do
   end
 
   defp to_rata_die(%{calendar: calendar, year: year, month: month, day: day}) do
-    calendar.naive_datetime_to_rata_die(year, month, day, 0, 0, 0, 0)
+    calendar.naive_datetime_to_rata_die(year, month, day, 0, 0, 0, {0, 0})
   end
 
   defp from_rata_die(rata_die, target_calendar) do
