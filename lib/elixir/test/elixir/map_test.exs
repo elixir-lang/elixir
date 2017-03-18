@@ -113,7 +113,7 @@ defmodule MapTest do
     end
   end
 
-  test "merge with function" do
+  test "merge/3" do
     # When first map is bigger
     assert Map.merge(%{a: 1, b: 2, c: 3}, %{c: 4, d: 5}, fn :c, 3, 4 -> :x end) ==
            %{a: 1, b: 2, c: :x, d: 5}
