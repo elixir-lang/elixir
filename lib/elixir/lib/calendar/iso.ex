@@ -122,7 +122,6 @@ defmodule Calendar.ISO do
   end
 
   # Calculates {hours, minutes, seconds, microseconds} from the fraction of time passed in the last Rata Die day.
-  @spec extract_from_day_fraction(non_neg_integer, pos_integer) :: {non_neg_integer, non_neg_integer, non_neg_integer, non_neg_integer}
   defp extract_from_day_fraction(parts_in_day, parts_per_day) do
     total_microseconds = div(parts_in_day * @seconds_per_day * @microseconds_per_second, parts_per_day)
     {hours, rest_microseconds1} = div_mod(total_microseconds, @seconds_per_hour * @microseconds_per_second)

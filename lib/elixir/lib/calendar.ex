@@ -245,9 +245,16 @@ defmodule Date do
 
   """
   @spec utc_today(Calendar.calendar) :: t
-  def utc_today(calendar \\ Calendar.ISO) do
-    DateTime.utc_now(calendar)
-    |> DateTime.to_date
+  def utc_today(calendar \\ Calendar.ISO)
+  def utc_today(Calendar.ISO) do
+    {:ok, {year, month, day}, _, _} = Calendar.ISO.from_unix(:os.system_time, :native)
+    %Date{year: year, month: month, day: day}
+  end
+  def utc_today(calendar) do
+    {:ok, {year, month, day}, _, _} = Calendar.ISO.from_unix(:os.system_time, :native)
+    %Date{year: year, month: month, day: day, calendar: Calendar.ISO}
+    |> to_rata_die
+    |> from_rata_die(calendar)
   end
 
   @doc """
@@ -1097,7 +1104,15 @@ defmodule NaiveDateTime do
 
   """
   @spec utc_now(Calendar.calendar) :: t
-  def utc_now(calendar \\ Calendar.ISO) do
+  def utc_now(calendar \\ Calendar.ISO)
+  def utc_now(Calendar.ISO) do
+    {:ok, {year, month, day}, {hour, minute, second}, microsecond} =
+      Calendar.ISO.from_unix(:os.system_time, :native)
+    %NaiveDateTime{year: year, month: month, day: day,
+                   hour: hour, minute: minute, second: second,
+                   microsecond: microsecond, calendar: Calendar.ISO}
+  end
+  def utc_now(calendar) do
     DateTime.utc_now(calendar)
     |> DateTime.to_naive
   end
