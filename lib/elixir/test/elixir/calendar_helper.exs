@@ -4,9 +4,9 @@ defmodule Calendar.Julian do
 
   import Integer, only: [floor_div: 2]
 
-  def date_to_string(year, month, day), do: "Calendar.Julian.date(#{year}, #{month}, #{day})"
+  def date_to_string(year, month, day), do: "#{year}-#{month}-#{day}(O.S.)"
 
-  def naive_datetime_to_string(year, month, day, hour, minute, second, microsecond), do: "Calendar.Julian.naive_datetime(#{year}, #{month}, #{day}, #{hour}, #{minute}, #{second}, #{microsecond})"
+  def naive_datetime_to_string(year, month, day, hour, minute, second, microsecond), do: "#{year}-#{month}-#{day}(#{Calendar.ISO.time_to_string(hour, minute, second, microsecond)})(O.S.)"
 
   def time_to_string(hour, minute, second, microsecond), do: Calendar.ISO.time_to_string(hour, minute, second, microsecond)
 
@@ -49,7 +49,8 @@ defmodule Calendar.Julian do
   defp date_to_rata_die(year, month, day) do
     year = if year < 0, do: year + 1, else: year
     days = epoch() - 1 + (365 * (year - 1)) + floor_div(year - 1, 4) + floor_div(367 * month - 362, 12) +
-    adjustment_for_leap_year(year, month) + day
+      adjustment_for_leap_year(year, month) + day
+    days
   end
 
   def time_from_day_fraction(day_fraction), do: Calendar.ISO.time_from_day_fraction(day_fraction)
