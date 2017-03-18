@@ -468,9 +468,15 @@ defmodule Map do
   """
   @spec merge(map, map, (key, value, value -> value)) :: map
   def merge(map1, map2, callback) when is_function(callback, 3) do
-    :maps.fold fn k, v2, acc ->
-      update(acc, k, v2, fn(v1) -> callback.(k, v1, v2) end)
-    end, map1, map2
+    if map_size(map1) > map_size(map2) do
+      :maps.fold fn key, val2, acc ->
+        update(acc, key, val2, fn val1 -> callback.(key, val1, val2) end)
+      end, map1, map2
+    else
+      :maps.fold fn key, val2, acc ->
+        update(acc, key, val2, fn val1 -> callback.(key, val2, val1) end)
+      end, map2, map1
+    end
   end
 
   @doc """
