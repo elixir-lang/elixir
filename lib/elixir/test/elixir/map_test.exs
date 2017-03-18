@@ -113,6 +113,16 @@ defmodule MapTest do
     end
   end
 
+  test "merge with function" do
+    #when source map is bigger
+    assert Map.merge(%{a: 1, b: 2, c: 3}, %{c: 4, d: 5}, fn :c, 3, 4 -> :x end) ==
+             %{a: 1, b: 2, c: :x, d: 5}
+
+    # When target map is bigger
+    assert Map.merge(%{b: 2, c: 3}, %{a: 1, c: 4, d: 5}, fn :c, 3, 4 -> :x end) ==
+             %{a: 1, b: 2, c: :x, d: 5}
+  end
+
   test "implements (almost) all functions in Keyword" do
     assert Keyword.__info__(:functions) -- Map.__info__(:functions) ==
            [delete: 3, delete_first: 2, get_values: 2, keyword?: 1, pop_first: 2, pop_first: 3]
