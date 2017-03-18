@@ -105,7 +105,7 @@ defmodule Mix.Local.Installer do
       case Mix.Utils.read_path(src, opts) do
         {:ok, binary} ->
           case module.install(dst, binary, previous_files) do
-            :ok -> nil
+            :ok -> :ok
             {:error, reason} -> Mix.raise "Installation failed: #{reason}"
           end
 
