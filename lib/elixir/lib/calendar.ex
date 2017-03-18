@@ -561,6 +561,31 @@ defmodule Date do
     end
   end
 
+  @doc """
+  Calculates the difference between two dates,
+  in a full number of days, returning `{:ok, difference}`.
+
+  Note that only Date structs that follow the same or compatible calendars
+  can be compared this way.
+  If two calendars are not compatible,
+  `{:error, :imcompatible_calendars}` is returned.
+
+  ## Examples
+
+      iex> Date.diff(~D[2000-01-01], ~D[2000-01-03])
+      {:ok, 2}
+  """
+  @spec diff(Date.t, Date.t) :: integer
+  def diff(%{calendar: _, year: _, month: _, day: _} = date1, %{calendar: _, year: _, month: _, day: _} = date2) do
+    if Calendar.compatible_calendars?(date1.calendar, date2.calendar) do
+      {days1, _} = to_rata_die(date1)
+      {days2, _} = to_rata_die(date2)
+      {:ok, days2 - days1}
+    else
+      {:error, :incompatible_calendars}
+    end
+  end
+
   defp to_rata_die(%{calendar: calendar, year: year, month: month, day: day}) do
     calendar.naive_datetime_to_rata_die(year, month, day, 0, 0, 0, {0, 0})
   end

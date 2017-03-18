@@ -1,4 +1,5 @@
 Code.require_file "test_helper.exs", __DIR__
+Code.require_file "calendar_helper.exs", __DIR__
 
 defmodule FakeCalendar do
   def date_to_string(_, _, _), do: "boom"
@@ -34,6 +35,13 @@ defmodule DateTest do
     assert Date.compare(date2, date1) == :gt
   end
 
+  test "compare/2 across calendars" do
+    date1 = ~D[2000-01-01]
+    date2 = Calendar.Julian.date(2000, 01, 01)
+    assert Date.compare(date1, date2) == :lt
+    assert Date.compare(date2, date1) == :gt
+  end
+
   test "day_of_week/1" do
     assert Date.day_of_week(~D[2016-10-31]) == 1
     assert Date.day_of_week(~D[2016-11-01]) == 2
@@ -42,6 +50,19 @@ defmodule DateTest do
     assert Date.day_of_week(~D[2016-11-04]) == 5
     assert Date.day_of_week(~D[2016-11-05]) == 6
     assert Date.day_of_week(~D[2016-11-06]) == 7
+  end
+
+  test "convert/2" do
+    assert Date.convert(~D[2000-01-01], Calendar.Julian) == {:ok, Calendar.Julian.date(1999, 12, 19)}
+    assert (~D[2000-01-01] |> Date.convert!(Calendar.Julian) |> Date.convert!(Calendar.ISO)) == ~D[2000-01-01]
+    assert Date.convert(~D[2016-02-03], FakeCalendar) == {:error, :incompatible_calendars}
+  end
+
+  test "diff/2" do
+    date1 = ~D[2000-01-01]
+    date2 = Calendar.Julian.date(2000, 01, 01)
+    assert Date.diff(date1, date2) == {:ok, 13}
+    assert Date.diff(date2, date1) == {:ok, -13}
   end
 end
 
