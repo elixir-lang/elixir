@@ -1221,6 +1221,8 @@ defmodule NaiveDateTime do
   Accepts an `integer` in any `unit` available from `t:System.time_unit/0`.
   Negative values will be move backwards in time.
 
+  This operation is only possible if both calendars are convertible to `Calendar.ISO`.
+
   ## Examples
 
       # adds seconds by default
@@ -1262,6 +1264,8 @@ defmodule NaiveDateTime do
   Subtracts `naive_datetime2` from `naive_datetime1`.
 
   The answer can be returned in any `unit` available from `t:System.time_unit/0`.
+
+  This operation is only possible if both calendars are convertible to `Calendar.ISO`.
 
   ## Examples
 
@@ -1649,8 +1653,9 @@ defmodule NaiveDateTime do
 
   ## Helpers
 
-  defp to_microsecond(%{calendar: Calendar.ISO, year: year, month: month, day: day,
-                        hour: hour, minute: minute, second: second, microsecond: {microsecond, _precision}}) do
+  defp to_microsecond(%{calendar: _, year: _, month: _, day: _,hour: _,
+                        minute: _, second: _, microsecond: {_, _}} = naive_datetime) do
+    %{year: year, month: month, day: day, hour: hour, minute: minute, second: second, microsecond: {microsecond, _}} = convert!(naive_datetime, Calendar.ISO)
     second = :calendar.datetime_to_gregorian_seconds(
       {{year, month, day}, {hour, minute, second}}
     )
