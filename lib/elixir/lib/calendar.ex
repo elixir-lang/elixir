@@ -158,12 +158,12 @@ defmodule Calendar do
 
   This day fraction should be in its most simplified form possible, to make comparisons fast.
 
-  ## Some examples:
+  ## Examples
 
-  - If, in your Calendar, a new day starts at midnight, return {0, 1}.
-  - If, in your Calendar, a new day starts at sunrise, return {1, 4}.
-  - If, in your Calendar, a new day starts at noon, return {1, 2}.
-  - If, in your Calendar, a new day starts at sunset, return {3, 4}.
+    * If, in your Calendar, a new day starts at midnight, return {0, 1}.
+    * If, in your Calendar, a new day starts at sunrise, return {1, 4}.
+    * If, in your Calendar, a new day starts at noon, return {1, 2}.
+    * If, in your Calendar, a new day starts at sunset, return {3, 4}.
   """
   @callback day_rollover_relative_to_midnight_utc() :: day_fraction
 
@@ -183,7 +183,7 @@ defmodule Calendar do
   Returns `true` if two calendars have the same moment of starting a new day,
   false otherwise.
 
-  If two calendars are compatible, it is possible to convert not only Times and DateTimes between them,
+  If two calendars are compatible, it is possible to convert not only `Time`s and `DateTime`s between them,
   but also Dates and NaiveDateTimes.
   """
   @spec compatible_calendars?(Calendar.calendar, Calendar.calendar) :: boolean
@@ -191,7 +191,6 @@ defmodule Calendar do
   def compatible_calendars?(calendar1, calendar2) do
     calendar1.day_rollover_relative_to_midnight_utc == calendar2.day_rollover_relative_to_midnight_utc
   end
-
 end
 
 defmodule Date do
@@ -538,7 +537,16 @@ defmodule Date do
     end
   end
 
-  def convert(%{calendar: calendar, year: year, month: month, day: day} = date, calendar), do: {:ok, date}
+  @doc """
+  Converts a date from one calendar to another.
+
+  Returns `{:ok, %Date{}}` if the calendars are compatible,
+  or `{:error, :incompatible_calendars}` if they are not.
+
+  See also: `Calendar.compatible_calendars?/2`.
+  """
+  @spec convert(Calendar.date, Calendar.calendar) :: {:ok, Calendar.date} | {:error, :incompatible_calendars}
+  def convert(%{calendar: calendar, year: _, month: _, day: _} = date, calendar), do: {:ok, date}
   def convert(%{calendar: _, year: _, month: _, day: _} = date, target_calendar) do
     if Calendar.compatible_calendars?(date.calendar, target_calendar) do
       result_date =
@@ -551,7 +559,11 @@ defmodule Date do
     end
   end
 
-  @spec convert!(Date.t, Calendar.calendar) :: Date.t
+  @doc """
+  Similar to `Date.convert/2`, but raises an `ArgumentError`
+  if the conversion between the two calendars is not possible.
+  """
+  @spec convert!(Calendar.date, Calendar.calendar) :: Calendar.date
   def convert!(date, calendar) do
     case convert(date, calendar) do
       {:ok, value} ->
@@ -594,7 +606,6 @@ defmodule Date do
     {year, month, day, _, _, _, _} = target_calendar.naive_datetime_from_rata_die(rata_die)
     %Date{year: year, month: month, day: day, calendar: target_calendar}
   end
-
 
   @doc """
   Calculates the day of the week of a given `Date` struct.
@@ -737,12 +748,12 @@ defmodule Time do
   def new(hour, minute, second, {microsecond, precision}, calendar)
       when is_integer(hour) and is_integer(minute) and is_integer(second) and
            is_integer(microsecond) and is_integer(precision) do
-        case calendar.valid_time?(hour, minute, second, {microsecond, precision}) do
-          true ->
-            {:ok, %Time{hour: hour, minute: minute, second: second, microsecond: {microsecond, precision}, calendar: calendar}}
-          false ->
-            {:error, :invalid_time}
-        end
+    case calendar.valid_time?(hour, minute, second, {microsecond, precision}) do
+      true ->
+        {:ok, %Time{hour: hour, minute: minute, second: second, microsecond: {microsecond, precision}, calendar: calendar}}
+      false ->
+        {:error, :invalid_time}
+    end
   end
 
   @doc """
@@ -821,8 +832,8 @@ defmodule Time do
          {sec, ""} <- Integer.parse(sec),
          {microsec, rest} <- Calendar.ISO.parse_microsecond(rest),
          {_offset, ""} <- Calendar.ISO.parse_offset(rest) do
-         with {:ok, utc_time} <- new(hour, min, sec, microsec, Calendar.ISO),
-         do: convert(utc_time, calendar)
+           with {:ok, utc_time} <- new(hour, min, sec, microsec, Calendar.ISO),
+                do: convert(utc_time, calendar)
     else
       _ -> {:error, :invalid_format}
     end
@@ -903,7 +914,7 @@ defmodule Time do
 
   """
   @spec to_erl(Calendar.time) :: :calendar.time
-  def to_erl(%{calendar: calendar, hour: _, minute: _, second: _} = time) do
+  def to_erl(%{calendar: _, hour: _, minute: _, second: _} = time) do
     %{hour: hour, minute: minute, second: second} = convert!(time, Calendar.ISO)
     {hour, minute, second}
   end
@@ -988,7 +999,6 @@ defmodule Time do
   Converts the Time struct to a different calendar.
   """
   @spec convert(Time.t, Calendar.calendar) :: Time.t
-  # No conversion required if already of the target calendar.
   def convert(%{calendar: calendar, hour: _, minute: _, second: _, microsecond: _} = time, calendar) do
     {:ok, time}
   end
@@ -1515,7 +1525,6 @@ defmodule NaiveDateTime do
       hour: hour, minute: minute, second: second} = convert!(naive_datetime, Calendar.ISO)
     {{year, month, day}, {hour, minute, second}}
   end
-
 
   @doc """
   Converts an Erlang datetime tuple to a `NaiveDateTime` struct.
@@ -2276,7 +2285,6 @@ defmodule DateTime do
   """
   # TODO: For better examples and doctests we need a second (simple) calendar.
   @spec convert(DateTime.t, Calendar.calendar) :: DateTime.t
-  # No conversion required if already of the target calendar.
   def convert(%DateTime{calendar: calendar} = datetime, calendar) do
     {:ok, datetime}
   end
@@ -2302,8 +2310,8 @@ defmodule DateTime do
 
   @spec to_rata_die(DateTime.t) :: Calendar.rata_die
   defp to_rata_die(
-    %DateTime{calendar: calendar,
-              year: year, month: month, day: day, hour: hour, minute: minute, second: second, microsecond: microsecond}
+    %DateTime{calendar: calendar,year: year, month: month, day: day,
+              hour: hour, minute: minute, second: second, microsecond: microsecond}
   ) do
     calendar.naive_datetime_to_rata_die(year, month, day, hour, minute, second, microsecond)
   end

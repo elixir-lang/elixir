@@ -41,8 +41,6 @@ defmodule Calendar.ISO do
   """
   @spec naive_datetime_to_rata_die(Calendar.year, Calendar.month, Calendar.day,
     Calendar.hour, Calendar.minute, Calendar.second, Calendar.microsecond) :: Calendar.rata_die
-  # def datetime_to_rata_die(%{calendar: _calendar, year: year, month: month, day: day, hour: hour, minute: minute, second: second, microsecond: {microsecond, _},
-                             # std_offset: std_offset, utc_offset: utc_offset}) do
   def naive_datetime_to_rata_die(year, month, day, hour, minute, second, {microsecond, _}) do
     days = to_rata_die_day(year, month, day)
     {parts, ppd} = combine_time_to_day_fraction(hour, minute, second, microsecond)
@@ -67,8 +65,9 @@ defmodule Calendar.ISO do
       iex> Calendar.ISO.naive_datetime_from_rata_die({730120, {43200, 86400}})
       {2000, 1, 1, 12, 0, 0, {0, 6}}
   """
-  @spec naive_datetime_from_rata_die(Calendar.rata_die) :: {Calendar.year, Calendar.month, Calendar.day,
-                                                      Calendar.hour, Calendar.minute, Calendar.second, Calendar.microsecond}
+  @spec naive_datetime_from_rata_die(Calendar.rata_die) ::
+    {Calendar.year, Calendar.month, Calendar.day,
+      Calendar.hour, Calendar.minute, Calendar.second, Calendar.microsecond}
   def naive_datetime_from_rata_die({days, {parts_in_day, parts_of_day}}) do
     {year, month, day} = from_rata_die_day(days)
     {hour, minute, second, microsecond} = extract_from_day_fraction(parts_in_day, parts_of_day)
@@ -85,7 +84,6 @@ defmodule Calendar.ISO do
       {45296000123, 86400000000}
   """
   @spec time_to_day_fraction(Calendar.hour, Calendar.minute, Calendar.second, Calendar.microsecond) :: Calendar.day_fraction
-  # def time_to_day_fraction(%{hour: hour, minute: minute, second: second, microsecond: {microsecond, _}}) do
   def time_to_day_fraction(hour, minute, second, {microsecond, _}) do
     combine_time_to_day_fraction(hour, minute, second, microsecond)
   end
@@ -94,10 +92,11 @@ defmodule Calendar.ISO do
   Converts a Day Fraction to this Calendar's representation of time.
 
   ## Examples
-  iex> Calendar.ISO.time_from_day_fraction({1,2})
-  {12, 0, 0, {0, 6}}
-  iex> Calendar.ISO.time_from_day_fraction({13,24})
-  {13, 0, 0, {0, 6}}
+
+      iex> Calendar.ISO.time_from_day_fraction({1,2})
+      {12, 0, 0, {0, 6}}
+      iex> Calendar.ISO.time_from_day_fraction({13,24})
+      {13, 0, 0, {0, 6}}
   """
   @spec time_from_day_fraction(Calendar.day_fraction) :: {Calendar.hour, Calendar.minute, Calendar.second, Calendar.microsecond}
   def time_from_day_fraction({parts_in_day, parts_per_day}) do

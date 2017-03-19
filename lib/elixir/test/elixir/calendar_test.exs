@@ -1,5 +1,5 @@
 Code.require_file "test_helper.exs", __DIR__
-Code.require_file "calendar_helper.exs", __DIR__
+Code.require_file "fixtures/calendar/julian.exs", __DIR__
 
 defmodule FakeCalendar do
   def date_to_string(_, _, _), do: "boom"
