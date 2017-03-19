@@ -266,7 +266,7 @@ defmodule ExUnit.Callbacks do
   defp context_merge(mod, context, data) do
     Map.merge(context, data, fn
       k, v1, v2 when k in @reserved ->
-        if v1 == v2, do: v1, else: raise_merge_reserved!(mod, k, v1)
+        if v1 == v2, do: v1, else: raise_merge_reserved!(mod, k, v2)
       _, _, v ->
         v
     end)

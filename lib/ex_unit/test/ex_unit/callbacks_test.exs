@@ -303,6 +303,26 @@ defmodule ExUnit.CallbacksTest do
            "ExUnit.CallbacksTest.SetupErrorTest to return " <>
            ":ok | keyword | map, got {:ok, \"foo\"} instead"
   end
+
+  test "raises an error when overriding a reserved callback key in setup" do
+    defmodule SetupReservedTest do
+      use ExUnit.Case
+
+      setup do
+        {:ok, file: "foo"}
+      end
+
+      test "ok" do
+        :ok
+      end
+    end
+
+    ExUnit.Server.cases_loaded()
+    assert capture_io(fn -> ExUnit.run end) =~
+           "** (RuntimeError) ExUnit callback in " <>
+           "ExUnit.CallbacksTest.SetupReservedTest is " <>
+           "trying to set reserved field :file to \"foo\""
+  end
 end
 
 defmodule ExUnit.CallbacksNoTests do
