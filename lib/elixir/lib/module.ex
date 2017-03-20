@@ -827,28 +827,33 @@ defmodule Module do
   def make_overridable(module, tuples) when is_atom(module) and is_list(tuples) do
     assert_not_compiled!(:make_overridable, module)
 
-    :lists.foreach(fn {function_name, arity} = tuple
-        when is_atom(function_name) and is_integer(arity) and arity >= 0 and arity <= 255 ->
-      case :elixir_def.take_definition(module, tuple) do
-        false ->
-          raise ArgumentError,
-            "cannot make function #{function_name}/#{arity} overridable because it was not defined"
-        clause ->
-          neighbours =
-            if :elixir_compiler.get_opt(:internal) do
-              []
-            else
-              Module.LocalsTracker.yank(module, tuple)
-            end
+    :lists.foreach(fn
+      {function_name, arity} = tuple
+          when is_atom(function_name) and is_integer(arity) and arity >= 0 and arity <= 255 ->
+        case :elixir_def.take_definition(module, tuple) do
+          false ->
+            raise ArgumentError,
+              "cannot make function #{function_name}/#{arity} overridable because it was not defined"
+          clause ->
+            neighbours =
+              if :elixir_compiler.get_opt(:internal) do
+                []
+              else
+                Module.LocalsTracker.yank(module, tuple)
+              end
 
-          old   = :elixir_overridable.overridable(module)
-          count = case :maps.find(tuple, old) do
-            {:ok, {count, _, _, _}} -> count + 1
-            :error -> 1
-          end
-          new = :maps.put(tuple, {count, clause, neighbours, false}, old)
-          :elixir_overridable.overridable(module, new)
-      end
+            old   = :elixir_overridable.overridable(module)
+            count = case :maps.find(tuple, old) do
+              {:ok, {count, _, _, _}} -> count + 1
+              :error -> 1
+            end
+            new = :maps.put(tuple, {count, clause, neighbours, false}, old)
+            :elixir_overridable.overridable(module, new)
+        end
+
+      other ->
+        raise ArgumentError,
+              "each element in tuple list has to be a {function_name :: atom, arity :: 1..255} tuple, got: #{inspect(other)}"
     end, tuples)
   end
 
@@ -856,7 +861,8 @@ defmodule Module do
   Returns `true` if `tuple` in `module` is marked as overridable.
   """
   @spec overridable?(module, function_arity) :: boolean
-  def overridable?(module, {function_name, arity} = tuple) when is_atom(function_name) and is_integer(arity) and arity >= 0 and arity <= 255 do
+  def overridable?(module, {function_name, arity} = tuple)
+      when is_atom(function_name) and is_integer(arity) and arity >= 0 and arity <= 255 do
     :maps.is_key(tuple, :elixir_overridable.overridable(module))
   end
 

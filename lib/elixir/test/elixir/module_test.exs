@@ -310,4 +310,29 @@ defmodule ModuleTest do
       assert Module.definitions_in(__MODULE__, :defp) == []
     end
   end
+
+  describe "make_overridable/2" do
+    test "succeed" do
+      contents =
+        quote do
+          def foo(), do: :ok
+          Module.make_overridable(__MODULE__, [{:foo, 0}])
+        end
+
+      assert {:module, Foo, _binary, :ok} = Module.create(Foo, contents, __ENV__)
+    end
+
+    test "raise" do
+      contents =
+        quote do
+          Module.make_overridable(__MODULE__, [{:foo, 256}])
+        end
+
+      assert_raise ArgumentError,
+        "each element in tuple list has to be a {function_name :: atom, arity :: 1..255} tuple, got: {:foo, 256}",
+        fn ->
+        Module.create(Foo, contents, __ENV__)
+      end
+    end
+  end
 end
