@@ -1930,7 +1930,8 @@ defmodule Enum do
   @doc """
   Applies the given function to each element in the enumerable,
   storing the result in a list and passing it as the accumulator
-  for the next computation.
+  for the next computation. Uses the first element in the enumerable
+  as the starting value.
 
   ## Examples
 
