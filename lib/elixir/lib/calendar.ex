@@ -603,8 +603,8 @@ defmodule Date do
       iex> Date.diff(~D[2000-01-01], ~D[2000-01-03])
       {:ok, 2}
   """
-  @spec diff(Date.t, Date.t) :: integer
-  def diff(%{calendar: _, year: _, month: _, day: _} = date1, %{calendar: _, year: _, month: _, day: _} = date2) do
+  @spec diff(Date.t, Date.t) :: {:ok, integer} | {:error, :incompatible_calendars}
+  def diff(%Date{} = date1, %Date{} = date2) do
     if Calendar.compatible_calendars?(date1.calendar, date2.calendar) do
       {days1, _} = to_rata_die(date1)
       {days2, _} = to_rata_die(date2)
