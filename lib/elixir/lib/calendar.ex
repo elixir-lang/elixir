@@ -1053,11 +1053,10 @@ defmodule Time do
   end
 
   @doc """
-  Returns a day_fraction that represents the difference
-  between two Time Structs.
+  Returns the difference between two Time Structs.
   """
-  @spec diff(Time.t, Time.t) :: Calendar.rata_die
-  def diff(%Time{} = time1, %Time{} = time2) do
+  @spec diff(Time.t, Time.t, System.time_unit) :: integer
+  def diff(%Time{} = time1, %Time{} = time2, unit \\ :second) do
     {parts1, ppd1} = to_day_fraction(time1)
     {parts2, ppd2} = to_day_fraction(time2)
 
@@ -1069,7 +1068,11 @@ defmodule Time do
     diff_parts = div(diff_parts, gcd)
     diff_ppd = div(diff_ppd, gcd)
 
-    {diff_parts, diff_ppd}
+    microseconds =
+      {diff_parts, diff_ppd}
+      |> Calendar.ISO.time_from_day_fraction
+      |> to_microsecond
+    System.convert_time_unit(microseconds, unit, :microsecond)
   end
 
   ## Helpers
@@ -1084,6 +1087,11 @@ defmodule Time do
 
   defp to_day_fraction(%{hour: hour, minute: minute, second: second, microsecond: microsecond, calendar: calendar}) do
     calendar.time_to_day_fraction(hour, minute, second, {microsecond, 0})
+  end
+
+  defp to_microsecond({hour, minute, second, {microsecond, _}}) do
+    seconds = hour * 3600 + minute * 60 + second
+    microseconds = seconds * 1_000_000 + microsecond
   end
 
   defp gcd(a, 0), do: abs(a)
