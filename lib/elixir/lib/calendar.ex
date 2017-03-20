@@ -2285,10 +2285,10 @@ defmodule DateTime do
       ...>                 hour: 23, minute: 0, second: 7, microsecond: {0, 0},
       ...>                 utc_offset: 3600, std_offset: 0, time_zone: "Europe/Warsaw"}
       iex> DateTime.diff(dt1, dt2)
-      {0, {5, 24}}
+      18000000000000000
   """
   @spec diff(DateTime.t, DateTime.t) :: Calendar.rata_die
-  def diff(%DateTime{utc_offset: utc_offset1, std_offset: std_offset1} = datetime1, %DateTime{utc_offset: utc_offset2, std_offset: std_offset2} = datetime2) do
+  def diff(%DateTime{utc_offset: utc_offset1, std_offset: std_offset1} = datetime1, %DateTime{utc_offset: utc_offset2, std_offset: std_offset2} = datetime2, unit \\ :seconds) do
     {days1, {parts1, ppd1}} =
       to_rata_die(datetime1)
       |> apply_tz_offset(utc_offset1)
@@ -2307,11 +2307,11 @@ defmodule DateTime do
     diff_parts = div(diff_parts, gcd)
     diff_ppd = div(diff_ppd, gcd)
 
-    if diff_parts < 0 do
-      {diff_days - 1, {diff_ppd + diff_parts, diff_ppd}}
-    else
-      {diff_days, {diff_parts, diff_ppd}}
-    end
+    {days, {parts, ppd}} = normalize_rata_die({diff_days, {diff_parts, diff_ppd}})
+    day_seconds = days * 86400
+    seconds = div(parts * 86400, ppd)
+    microseconds = 1_000_000 * (day_seconds + seconds)
+    System.convert_time_unit(microseconds, unit, :microseconds)
   end
 
   @doc """
@@ -2377,6 +2377,13 @@ defmodule DateTime do
     days_offset = div(result_parts, result_ppd)
     final_parts = rem(result_parts, result_ppd)
     {days + days_offset, {final_parts, result_ppd}}
+  end
+
+  defp normalize_rata_die({diff_days, {diff_parts, diff_ppd}}) when diff_parts < 0 do
+    {diff_days - 1, {diff_ppd + diff_parts, diff_ppd}}
+  end
+  defp normalize_rata_die({diff_days, {diff_parts, diff_ppd}}) do
+    {diff_days, {diff_parts, diff_ppd}}
   end
 
   defp gcd(a, 0), do: abs(a)
