@@ -235,7 +235,7 @@ defmodule Stream do
 
   """
   @spec dedup_by(Enumerable.t, (element -> term)) :: Enumerable.t
-  def dedup_by(enum, fun) when is_function(fun, 1) do
+  def dedup_by(enum, fun) do
     lazy enum, nil, fn f1 -> R.dedup(fun, f1) end
   end
 
@@ -352,7 +352,7 @@ defmodule Stream do
 
   """
   @spec each(Enumerable.t, (element -> term)) :: Enumerable.t
-  def each(enum, fun) when is_function(fun, 1) do
+  def each(enum, fun) do
     lazy enum, fn(f1) ->
       fn(x, acc) ->
         fun.(x)
@@ -450,7 +450,7 @@ defmodule Stream do
   is delayed until the stream is executed. See `run/1` for an example.
   """
   @spec into(Enumerable.t, Collectable.t, (term -> term)) :: Enumerable.t
-  def into(enum, collectable, transform \\ fn x -> x end) when is_function(transform, 1) do
+  def into(enum, collectable, transform \\ fn x -> x end) do
     &do_into(enum, collectable, transform, &1, &2)
   end
 
@@ -738,7 +738,7 @@ defmodule Stream do
   @spec transform(Enumerable.t, acc, fun) :: Enumerable.t
         when fun: (element, acc -> {Enumerable.t, acc} | {:halt, acc}),
              acc: any
-  def transform(enum, acc, reducer) when is_function(reducer, 2) do
+  def transform(enum, acc, reducer) do
     &do_transform(enum, fn -> acc end, reducer, &1, &2, nil)
   end
 
@@ -755,8 +755,7 @@ defmodule Stream do
   @spec transform(Enumerable.t, (() -> acc), fun, (acc -> term)) :: Enumerable.t
         when fun: (element, acc -> {Enumerable.t, acc} | {:halt, acc}),
              acc: any
-  def transform(enum, start_fun, reducer, after_fun)
-      when is_function(start_fun, 0) and is_function(reducer, 2) and is_function(after_fun, 1) do
+  def transform(enum, start_fun, reducer, after_fun) do
     &do_transform(enum, start_fun, reducer, &1, &2, after_fun)
   end
 
@@ -1197,7 +1196,7 @@ defmodule Stream do
 
   """
   @spec repeatedly((() -> element)) :: Enumerable.t
-  def repeatedly(generator_fun) when is_function(generator_fun, 0) do
+  def repeatedly(generator_fun) do
     &do_repeatedly(generator_fun, &1, &2)
   end
 
