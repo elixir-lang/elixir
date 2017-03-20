@@ -404,7 +404,19 @@ defmodule Process do
   Creates a link between the calling process and the given item (process or
   port).
 
-  If such a link exists already, this function does nothing.
+  Links are bidirectional. Linked processes can be unlinked by using `unlink/1`.
+
+  If such a link exists already, this function does nothing since there can only
+  be one link between two given processes. If a process tries to create a link
+  to itself, nothing will happen.
+
+  When two processes are linked, each one receives exit signals from the other
+  (see also `exit/2`). Let's assume `pid1` and `pid2` are linked. If `pid2`
+  exits with a reason other than `:normal` (which is also the exit reason used
+  when a process finishes its job) and `pid1` is not trapping exits (see
+  `flag/2`), then `pid1` will exit with the same reason as `pid2` and in turn
+  emit an exit signal to all its other linked processes. The behaviour when
+  `pid1` is trapping exits is described in `exit/2`.
 
   See [`:erlang.link/1`](http://www.erlang.org/doc/man/erlang.html#link-1) for more info.
 
