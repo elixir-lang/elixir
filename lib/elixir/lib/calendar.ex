@@ -443,6 +443,27 @@ defmodule Date do
     calendar.day_of_week(year, month, day)
   end
 
+  @doc """
+  Tests if date is a valid date or not.
+
+  Returns true if the date is valid and false if not.
+
+  ## Examples
+
+      iex> Date.valid?(%Date{year: 2017, month: 3, day: 3})
+      true
+      iex> Date.valid?(%Date{year: 2017, month: 2, day: 29})
+      false
+      iex> Date.valid?(%Date{year: 2017, month: 13, day: 1})
+      false
+      iex> Date.valid?(%Date{year: 2016, month: 2, day: 29}) # Leap year
+      true
+  """
+  @spec valid?(Calendar.date) :: boolean()
+  def valid?(date) do
+    date |> Date.to_erl |> :calendar.valid_date
+  end
+
   ## Helpers
 
   defimpl String.Chars do
@@ -795,6 +816,32 @@ defmodule Time do
       _ -> :eq
     end
   end
+
+  @doc """
+  Tests if time is a valid time within the bounds of a 24 hour day.
+
+  Returns true if time is valid and false otherwise.
+
+  ## Examples
+
+      iex> Time.valid?(%Time{hour: 8, minute: 23, second: 15})
+      true
+      iex> Time.valid?(%Time{hour: 23, minute: 59, second: 59})
+      true
+      iex> Time.valid?(%Time{hour: 25, minute: 2, second: 19})
+      false
+      iex> Time.valid?(%Time{hour: 12, minute: 61, second: 20})
+      false
+      iex> Time.valid?(%Time{hour: 12, minute: 2, second: 92})
+      false
+  """
+  @spec valid?(Calendar.time) :: boolean()
+  def valid?(time)
+
+  def valid?(%{hour: hour, minute: minute, second: second})
+    when hour in (0..24) and minute in (0..59) and second in (0..59), do: true
+
+  def valid?(_), do: false
 
   ## Helpers
 
@@ -1338,6 +1385,27 @@ defmodule NaiveDateTime do
       {first, second} when first < second -> :lt
       _ -> :eq
     end
+  end
+
+  @doc """
+  Tests that date and time are valid.
+
+  Returns true if date and time are valid and false otherwise.
+
+  ## Examples
+
+      iex> NaiveDateTime.valid?(~N[2000-01-01 13:30:15.005])
+      true
+      iex> NaiveDateTime.valid?(~N[2016-02-29 08:30:23])
+      true
+      iex> NaiveDateTime.valid?(%NaiveDateTime{year: 2017, month: 3, day: 32, hour: 23, minute: 18, second: 1})
+      false
+      iex> NaiveDateTime.valid?(%NaiveDateTime{year: 2017, month: 3, day: 18, hour: 25, minute: 18, second: 1})
+      false
+  """
+  @spec valid?(Calendar.naive_datetime) :: boolean()
+  def valid?(naive_datetime) do
+    Date.valid?(naive_datetime) && Time.valid?(naive_datetime)
   end
 
   ## Helpers
