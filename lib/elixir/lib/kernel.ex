@@ -661,7 +661,7 @@ defmodule Kernel do
   `spawn`, that spawns processes with more conveniences in terms of
   introspection and debugging.
 
-  Check the `Process` module for more process related functions,
+  Check the `Process` module for more process-related functions.
 
   The anonymous function receives 0 arguments, and may return any value.
 
@@ -670,7 +670,7 @@ defmodule Kernel do
   ## Examples
 
       current = self()
-      child   = spawn(fn -> send current, {self(), 1 + 2} end)
+      child = spawn(fn -> send current, {self(), 1 + 2} end)
 
       receive do
         {^child, 3} -> IO.puts "Received 3 back"
@@ -683,15 +683,15 @@ defmodule Kernel do
   end
 
   @doc """
-  Spawns the given module and function passing the given args
-  and returns its PID.
+  Spawns the given function `fun` from the given `module` passing it the given
+  `args` and returns its PID.
 
   Typically developers do not use the `spawn` functions, instead they use
   abstractions such as `Task`, `GenServer` and `Agent`, built on top of
   `spawn`, that spawns processes with more conveniences in terms of
   introspection and debugging.
 
-  Check the `Process` module for more process related functions,
+  Check the `Process` module for more process-related functions.
 
   Inlined by the compiler.
 
@@ -706,14 +706,14 @@ defmodule Kernel do
   end
 
   @doc """
-  Spawns the given function, links it to the current process and returns its PID.
+  Spawns the given function, links it to the current process, and returns its PID.
 
   Typically developers do not use the `spawn` functions, instead they use
   abstractions such as `Task`, `GenServer` and `Agent`, built on top of
   `spawn`, that spawns processes with more conveniences in terms of
   introspection and debugging.
 
-  Check the `Process` module for more process related functions,
+  Check the `Process` module for more process-related functions.
 
   The anonymous function receives 0 arguments, and may return any value.
 
@@ -722,7 +722,7 @@ defmodule Kernel do
   ## Examples
 
       current = self()
-      child   = spawn_link(fn -> send current, {self(), 1 + 2} end)
+      child = spawn_link(fn -> send(current, {self(), 1 + 2}) end)
 
       receive do
         {^child, 3} -> IO.puts "Received 3 back"
@@ -735,15 +735,15 @@ defmodule Kernel do
   end
 
   @doc """
-  Spawns the given module and function passing the given args,
-  links it to the current process and returns its PID.
+  Spawns the given function `fun` from the given `module` passing it the given
+  `args`, links it to the current process, and returns its PID.
 
   Typically developers do not use the `spawn` functions, instead they use
   abstractions such as `Task`, `GenServer` and `Agent`, built on top of
   `spawn`, that spawns processes with more conveniences in terms of
   introspection and debugging.
 
-  Check the `Process` module for more process related functions,
+  Check the `Process` module for more process-related functions.
 
   Inlined by the compiler.
 
@@ -766,7 +766,7 @@ defmodule Kernel do
   `spawn`, that spawns processes with more conveniences in terms of
   introspection and debugging.
 
-  Check the `Process` module for more process related functions,
+  Check the `Process` module for more process-related functions.
 
   The anonymous function receives 0 arguments, and may return any value.
 
@@ -792,7 +792,7 @@ defmodule Kernel do
   `spawn`, that spawns processes with more conveniences in terms of
   introspection and debugging.
 
-  Check the `Process` module for more process related functions,
+  Check the `Process` module for more process-related functions.
 
   Inlined by the compiler.
 
