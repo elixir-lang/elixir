@@ -418,6 +418,9 @@ defmodule Date do
   or other calendars in which the days also start at midnight.
   Attempting to convert dates from other calendars will raise an ArgumentError.
 
+  Passing a DateTime or NaiveDateTime to this function directly is deprecated.
+  Use `DateTime.to_date/1` or `NaiveDateTime.to_date/1` to convert them to `Date`s explicitly.
+
   ### Examples
 
       iex> Date.to_iso8601(~D[2000-02-28])
@@ -427,8 +430,13 @@ defmodule Date do
 
   """
   @spec to_iso8601(Calendar.date) :: String.t
-  def to_iso8601(%{calendar: _, year: _, month: _, day: _} = date) do
+  def to_iso8601(%Date{calendar: _, year: _, month: _, day: _} = date) do
     %{year: year, month: month, day: day} = convert!(date, Calendar.ISO)
+    Calendar.ISO.date_to_iso8601(year, month, day)
+  end
+
+  def to_iso8601(%{calendar: Calendar.ISO, year: year, month: month, day: day}) do
+    IO.warn "Calling Date.to_iso8601/1 using a %DateTime{} or %NaiveDateTime{} directly is deprecated, explicitly convert them into a %Date{} first by using DateTime.to_date/1 or NaiveDateTime.to_date/1 respectively"
     Calendar.ISO.date_to_iso8601(year, month, day)
   end
 
@@ -438,6 +446,9 @@ defmodule Date do
   Only supports converting dates which are in the ISO calendar,
   or other calendars in which the days also start at midnight.
   Attempting to convert dates from other calendars will raise an ArgumentError.
+
+  Passing a DateTime or NaiveDateTime to this function directly is deprecated.
+  Use `DateTime.to_date/1` or `NaiveDateTime.to_date/1` to convert them to `Date`s explicitly.
 
   ## Examples
 
@@ -450,8 +461,13 @@ defmodule Date do
   @spec to_erl(Calendar.date) :: :calendar.date
   def to_erl(date)
 
-  def to_erl(%{calendar: _, year: _, month: _, day: _} = date) do
+  def to_erl(%Date{calendar: _, year: _, month: _, day: _} = date) do
     %{year: year, month: month, day: day} = convert!(date, Calendar.ISO)
+    {year, month, day}
+  end
+
+  def to_erl(%{calendar: Calendar.ISO, year: year, month: month, day: day} = date) do
+    IO.warn "Calling Date.to_erl/1 using a %DateTime{} or %NaiveDateTime{} directly is deprecated, explicitly convert them into a %Date{} first by using DateTime.to_date/1 or NaiveDateTime.to_date/1 respectively"
     {year, month, day}
   end
 
@@ -872,6 +888,9 @@ defmodule Time do
   Converts the given time to
   [ISO 8601:2004](https://en.wikipedia.org/wiki/ISO_8601).
 
+  Passing a DateTime or NaiveDateTime to this function directly is deprecated.
+  Use `DateTime.to_time/1` or `NaiveDateTime.to_time/1` to convert them to `Time`s explicitly.
+
   ### Examples
 
       iex> Time.to_iso8601(~T[23:00:13])
@@ -888,14 +907,14 @@ defmodule Time do
   @spec to_iso8601(Calendar.time) :: String.t
   def to_iso8601(time)
 
-  def to_iso8601(%{hour: hour, minute: minute, second: second, microsecond: microsecond, calendar: Calendar.ISO}) do
-    Calendar.ISO.time_to_iso8601(hour, minute, second, microsecond)
+  def to_iso8601(%Time{hour: _, minute: _, second: _, microsecond: _, calendar: _} = time) do
+      %{hour: hour, minute: minute, second: second, microsecond: microsecond} = convert!(time, Calendar.ISO)
+      Calendar.ISO.time_to_iso8601(hour, minute, second, microsecond)
   end
 
-  def to_iso8601(%{hour: _, minute: _, second: _, microsecond: _, calendar: _} = time) do
-    time
-    |> convert!(Calendar.ISO)
-    |> to_iso8601
+  def to_iso8601(%{hour: hour, minute: minute, second: second, microsecond: microsecond, calendar: Calendar.ISO}) do
+    IO.warn "Calling Time.to_erl/1 using a %DateTime{} or %NaiveDateTime{} directly is deprecated, explicitly convert them into a %Time{} first by using DateTime.to_time/1 or NaiveDateTime.to_time/1 respectively"
+    Calendar.ISO.time_to_iso8601(hour, minute, second, microsecond)
   end
 
   @doc """
@@ -903,6 +922,11 @@ defmodule Time do
 
   WARNING: Loss of precision may occur, as Erlang time tuples
   only contain hours/minutes/seconds.
+
+
+  Passing a DateTime or NaiveDateTime to this function directly is deprecated.
+  Use `DateTime.to_time/1` or `NaiveDateTime.to_time/1` to convert them to `Time`s explicitly.
+
 
   ## Examples
 
@@ -914,11 +938,18 @@ defmodule Time do
 
   """
   @spec to_erl(Calendar.time) :: :calendar.time
-  def to_erl(%{calendar: _, hour: _, minute: _, second: _} = time) do
+
+  def to_erl(time)
+
+  def to_erl(%Time{} = time) do
     %{hour: hour, minute: minute, second: second} = convert!(time, Calendar.ISO)
     {hour, minute, second}
   end
 
+  def to_erl(%{calendar: Calendar.ISO, hour: hour, minute: minute, second: second}) do
+    IO.warn "Calling Time.to_erl/1 using a %DateTime{} or %NaiveDateTime{} directly is deprecated, explicitly convert them into a %Time{} first by using DateTime.to_time/1 or NaiveDateTime.to_time/1 respectively"
+    {hour, minute, second}
+  end
 
   @doc """
   Converts an Erlang time tuple to a `Time` struct.

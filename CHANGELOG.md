@@ -30,13 +30,13 @@
 ### 3. Soft deprecations (no warnings emitted)
 
 #### Elixir
-
   * [Kernel] `not left in right` is soft-deprecated in favor of `left not in right`
 
 ### 4. Deprecations
 
 #### Elixir
 
+  * [Calendar] Calling `Date.to_erl/1`, `Date.to_iso8601/1`, `Time.to_erl/1` and `Time.to_iso8601/1` directly with a `DateTime` or `NaiveDateTime` struct is deprecated in favour of converting them to `Date`s/`Time`s first by using `DateTime.to_date/1`, `NaiveDateTime.to_date/1`, `DateTime.to_time/1` and `NaiveDateTime.to_time/1` respectively.
   * [GenEvent] Hard deprecate `GenEvent` and provide alternatives in its docs
   * [Kernel] Using `()` to mean `nil` is deprecated
   * [Kernel] `Atom.to_char_list/1`, `Float.to_char_list/1`, `Integer.to_char_list/1`, `Kernel.to_char_list/1`, `String.to_char_list/1` have been deprecated in favor of their `to_charlist/1` version. This aligns with the naming conventions in both Erlang and Elixir
