@@ -352,6 +352,8 @@ defmodule Module do
   '''
 
   @type function_arity :: {atom, arity}
+  @type def_kind :: :def | :defp | :defmacro | :defmacrop
+  @type type_kind :: :type | :typep | :opaque
 
   @doc """
   Provides runtime information about functions and macros defined by the
@@ -465,6 +467,7 @@ defmodule Module do
   when defining the module, while `defmodule` automatically
   shares the same environment.
   """
+  @spec create(module, Macro.t, Macro.Env.t | Keyword.t) :: {:module, module, binary, term}
   def create(module, quoted, opts)
 
   def create(module, quoted, %Macro.Env{} = env) when is_atom(module) do
@@ -532,7 +535,7 @@ defmodule Module do
       List.Chars
 
   """
-  @spec safe_concat([binary | atom]) :: atom | no_return
+  @spec safe_concat([binary | atom]) :: atom
   def safe_concat(list) when is_list(list) do
     :elixir_aliases.safe_concat(list)
   end
@@ -553,7 +556,7 @@ defmodule Module do
       List.Chars
 
   """
-  @spec safe_concat(binary | atom, binary | atom) :: atom | no_return
+  @spec safe_concat(binary | atom, binary | atom) :: atom
   def safe_concat(left, right) when (is_binary(left) or is_atom(left)) and (is_binary(right) or is_atom(right)) do
     :elixir_aliases.safe_concat([left, right])
   end
@@ -576,13 +579,13 @@ defmodule Module do
       end
 
   """
-  @spec add_doc(module, non_neg_integer,
-                :def | :defp | :defmacro | :defmacrop | :type | :typep | :opaque,
-                function_arity, list, String.t | boolean | nil)
+  @spec add_doc(module, non_neg_integer, def_kind | type_kind, function_arity, list,
+                String.t | boolean | nil)
       :: :ok | {:error, :private_doc}
   def add_doc(module, line, kind, function_tuple, signature \\ [], doc)
 
-  def add_doc(_module, _line, kind, _function_tuple, _signature, doc) when kind in [:defp, :defmacrop, :typep] do
+  def add_doc(_module, _line, kind, _function_tuple, _signature, doc)
+      when kind in [:defp, :defmacrop, :typep] do
     if doc, do: {:error, :private_doc}, else: :ok
   end
 
@@ -737,8 +740,8 @@ defmodule Module do
   """
   @spec defines?(module, function_arity) :: boolean
   def defines?(module, {function_macro_name, arity} = tuple)
-      when is_atom(module) and is_atom(function_macro_name)
-      and is_integer(arity) and arity >= 0 and arity <= 255 do
+      when is_atom(module) and is_atom(function_macro_name) and
+           is_integer(arity) and arity >= 0 and arity <= 255 do
     assert_not_compiled!(:defines?, module)
     table = defs_table_for(module)
     :ets.lookup(table, {:def, tuple}) != []
@@ -762,15 +765,15 @@ defmodule Module do
       end
 
   """
-  @spec defines?(module, function_arity, :def | :defp | :defmacro | :defmacrop) :: boolean
-  def defines?(module, {function_macro_name, arity} = tuple, kind)
-      when is_atom(module) and is_atom(function_macro_name)
-      and is_integer(arity) and arity >= 0 and arity <= 255
-      and kind in [:def, :defp, :defmacro, :defmacrop] do
+  @spec defines?(module, function_arity, def_kind) :: boolean
+  def defines?(module, {function_macro_name, arity} = tuple, def_kind)
+      when is_atom(module) and is_atom(function_macro_name) and
+           is_integer(arity) and arity >= 0 and arity <= 255 and
+           def_kind in [:def, :defp, :defmacro, :defmacrop] do
     assert_not_compiled!(:defines?, module)
     table = defs_table_for(module)
     case :ets.lookup(table, {:def, tuple}) do
-      [{_, ^kind, _, _, _, _}] -> true
+      [{_, ^def_kind, _, _, _, _}] -> true
       _ -> false
     end
   end
@@ -800,17 +803,17 @@ defmodule Module do
   ## Examples
 
       defmodule Example do
-        def version, do: 1
+        defmacro version, do: 1
         Module.definitions_in __MODULE__, :def  #=> [{:version, 0}]
-        Module.definitions_in __MODULE__, :defp #=> []
+        Module.definitions_in __MODULE__, :defmacro #=> []
       end
 
   """
-  @spec definitions_in(module, atom) :: [function_arity]
-  def definitions_in(module, kind) when is_atom(module) and is_atom(kind) do
+  @spec definitions_in(module, def_kind) :: [function_arity]
+  def definitions_in(module, def_kind) when is_atom(module) and is_atom(def_kind) do
     assert_not_compiled!(:definitions_in, module)
     table = defs_table_for(module)
-    :lists.concat :ets.match(table, {{:def, :'$1'}, kind, :_, :_, :_, :_})
+    :lists.concat :ets.match(table, {{:def, :'$1'}, def_kind, :_, :_, :_, :_})
   end
 
   @doc """
@@ -820,7 +823,7 @@ defmodule Module do
   developer to customize it. See `Kernel.defoverridable/1` for
   more information and documentation.
   """
-  @spec make_overridable(module, [function_arity]) :: :ok | no_return
+  @spec make_overridable(module, [function_arity]) :: :ok
   def make_overridable(module, tuples) when is_atom(module) and is_list(tuples) do
     assert_not_compiled!(:make_overridable, module)
 
@@ -994,7 +997,7 @@ defmodule Module do
       ["Very", "Long", "Module", "Name", "And", "Even", "Longer"]
 
   """
-  @spec split(module) :: [String.t]
+  @spec split(module) :: [String.t, ...]
   def split(module) when is_atom(module) do
     split(String.Chars.to_string(module))
   end
@@ -1040,7 +1043,6 @@ defmodule Module do
   @doc false
   # Used internally to compile types.
   # This function is private and must be used only internally.
-  @spec store_typespec(module, key :: atom, value :: term) :: Keyword.t
   def store_typespec(module, key, value) when is_atom(module) and is_atom(key) do
     assert_not_compiled!(:put_attribute, module)
     table = data_table_for(module)
