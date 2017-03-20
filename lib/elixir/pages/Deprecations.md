@@ -15,6 +15,14 @@ Elixir deprecations happen in 3 steps:
 
 Deprecated feature                               | Deprecated in | Replaced by (available since)
 :----------------------------------------------- | :------------ | :----------------------------
+Passing a NaiveDateTime to `Date.to_erl/1`       | [v1.5]        | Explicitly convert it to a Date first using `NaiveDateTime.to_date/1` (v1.3)
+Passing a NaiveDateTime to `Date.to_iso8601/1`   | [v1.5]        | Explicitly convert it to a Date first using `NaiveDateTime.to_date/1` (v1.3)
+Passing a DateTime to `Date.to_erl/1`            | [v1.5]        | Explicitly convert it to a Date first using `DateTime.to_date/1` (v1.3)
+Passing a DateTime to `Date.to_iso8601/1`        | [v1.5]        | Explicitly convert it to a Date first using `DateTime.to_date/1` (v1.3)
+Passing a NaiveDateTime to `Time.to_erl/1`       | [v1.5]        | Explicitly convert it to a Time first using `NaiveDateTime.to_time/1` (v1.3)
+Passing a NaiveDateTime to `Time.to_iso8601/1`   | [v1.5]        | Explicitly convert it to a Time first using `NaiveDateTime.to_time/1` (v1.3)
+Passing a DateTime to `Time.to_erl/1`            | [v1.5]        | Explicitly convert it to a Time first using `DateTime.to_time/1` (v1.3)
+Passing a DateTime to `Time.to_iso8601/1`        | [v1.5]        | Explicitly convert it to a Time first using `DateTime.to_time/1` (v1.3)
 `Atom.to_char_list/1`                            | [v1.5]        | `Atom.to_charlist/1` (v1.3)
 `Float.to_char_list/1`                           | [v1.5]        | `Float.to_charlist/1` (v1.3)
 `GenEvent` module                                | [v1.5]        | `Supervisor` and `GenServer` (v1.0);<br/>[`GenStage`](https://hex.pm/packages/gen_stage) (v1.3);<br/>[`:gen_event`](http://www.erlang.org/doc/man/gen_event.html) (OTP 17)
