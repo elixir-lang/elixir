@@ -713,7 +713,8 @@ defmodule Kernel do
   `spawn`, that spawns processes with more conveniences in terms of
   introspection and debugging.
 
-  Check the `Process` module for more process-related functions.
+  Check the `Process` module for more process-related functions. For more
+  information on linking, check `Process.link/1`.
 
   The anonymous function receives 0 arguments, and may return any value.
 
@@ -743,7 +744,8 @@ defmodule Kernel do
   `spawn`, that spawns processes with more conveniences in terms of
   introspection and debugging.
 
-  Check the `Process` module for more process-related functions.
+  Check the `Process` module for more process-related functions. For more
+  information on linking, check `Process.link/1`.
 
   Inlined by the compiler.
 
