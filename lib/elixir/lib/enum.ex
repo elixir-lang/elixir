@@ -806,7 +806,7 @@ defmodule Enum do
   """
   @spec filter(t, (element -> as_boolean(term))) :: list
   def filter(enumerable, fun) when is_list(enumerable) do
-    for item <- enumerable, fun.(item), do: item
+    filter_list(enumerable, fun)
   end
 
   def filter(enumerable, fun) do
@@ -1848,7 +1848,7 @@ defmodule Enum do
   """
   @spec reject(t, (element -> as_boolean(term))) :: list
   def reject(enumerable, fun) when is_list(enumerable) do
-    for item <- enumerable, !fun.(item), do: item
+    reject_list(enumerable, fun)
   end
 
   def reject(enumerable, fun) do
@@ -2817,6 +2817,20 @@ defmodule Enum do
     if item > first, do: :error, else: {:ok, item}
   end
 
+  ## filter
+
+  defp filter_list([head | tail], fun) do
+    if fun.(head) do
+      [head | filter_list(tail, fun)]
+    else
+      filter_list(tail, fun)
+    end
+  end
+
+  defp filter_list([], _fun) do
+    []
+  end
+
   ## find
 
   defp find_list([head | tail], default, fun) do
@@ -2853,6 +2867,20 @@ defmodule Enum do
 
   defp find_value_list([], default, _) do
     default
+  end
+
+  ## reject
+
+  defp reject_list([head | tail], fun) do
+    if fun.(head) do
+      reject_list(tail, fun)
+    else
+      [head | reject_list(tail, fun)]
+    end
+  end
+
+  defp reject_list([], _fun) do
+    []
   end
 
   ## shuffle
