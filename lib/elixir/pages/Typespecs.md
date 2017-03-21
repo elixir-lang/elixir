@@ -110,6 +110,7 @@ Built-in type           | Defined as
 `charlist()`            | `[char()]`
 `nonempty_charlist()`   | `[char(), ...]`
 `fun()`                 | `(... -> any)`
+`function()`            | `fun()`
 `identifier()`          | `pid()` \| `port()` \| `reference()`
 `iodata()`              | `iolist()` \| `binary()`
 `iolist()`              | `maybe_improper_list(byte() \| binary() \| iolist(), binary() \| [])`
