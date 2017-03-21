@@ -1027,7 +1027,7 @@ defmodule Enum do
   @spec group_by(t, (element -> any), (element -> any)) :: map
   def group_by(enumerable, key_fun, value_fun \\ fn x -> x end)
 
-  def group_by(enumerable, key_fun, value_fun) do
+  def group_by(enumerable, key_fun, value_fun) when is_function(key_fun) do
     reduce(reverse(enumerable), %{}, fn entry, categories ->
       value = value_fun.(entry)
       Map.update(categories, key_fun.(entry), [value], &[value | &1])
