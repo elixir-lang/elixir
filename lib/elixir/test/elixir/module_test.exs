@@ -317,32 +317,18 @@ defmodule ModuleTest do
     end
   end
 
-  describe "make_overridable/2 arguments" do
-    test "succeed" do
-      contents =
-        quote do
-          def foo(), do: :ok
-          Module.make_overridable(__MODULE__, [{:foo, 0}])
-        end
-
-      assert {:module, Foo, _binary, :ok} = Module.create(Foo, contents, __ENV__)
-    after
-      purge [Foo]
-    end
-
-    test "raise" do
-      contents =
-        quote do
-          Module.make_overridable(__MODULE__, [{:foo, 256}])
-        end
-
-      assert_raise ArgumentError,
-        "each element in tuple list has to be a {function_name :: atom, arity :: 1..255} tuple, got: {:foo, 256}",
-        fn ->
-        Module.create(Foo, contents, __ENV__)
+  test "make_overridable/2 with bad arguments" do
+    contents =
+      quote do
+        Module.make_overridable(__MODULE__, [{:foo, 256}])
       end
-    after
-      purge [Foo]
+
+    assert_raise ArgumentError,
+      "each element in tuple list has to be a {function_name :: atom, arity :: 0..255} tuple, got: {:foo, 256}",
+      fn ->
+      Module.create(Foo, contents, __ENV__)
     end
+  after
+    purge [Foo]
   end
 end

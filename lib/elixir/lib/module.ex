@@ -351,9 +351,9 @@ defmodule Module do
   the documentation for the [`:compile` module](http://www.erlang.org/doc/man/compile.html).
   '''
 
-  @type function_arity :: {atom, arity}
-  @type def_kind :: :def | :defp | :defmacro | :defmacrop
-  @type type_kind :: :type | :typep | :opaque
+  @typep function_arity :: {atom, arity}
+  @typep def_kind :: :def | :defp | :defmacro | :defmacrop
+  @typep type_kind :: :type | :typep | :opaque
 
   @doc """
   Provides runtime information about functions and macros defined by the
@@ -590,8 +590,8 @@ defmodule Module do
   end
 
   def add_doc(module, line, kind, function_tuple, signature, doc)
-      when kind in [:def, :defmacro, :type, :opaque]
-      and (is_binary(doc) or is_boolean(doc) or doc == nil) do
+      when kind in [:def, :defmacro, :type, :opaque] and
+           (is_binary(doc) or is_boolean(doc) or doc == nil) do
     assert_not_compiled!(:add_doc, module)
     table = data_table_for(module)
 
@@ -853,7 +853,7 @@ defmodule Module do
 
       other ->
         raise ArgumentError,
-              "each element in tuple list has to be a {function_name :: atom, arity :: 1..255} tuple, got: #{inspect(other)}"
+              "each element in tuple list has to be a {function_name :: atom, arity :: 0..255} tuple, got: #{inspect(other)}"
     end, tuples)
   end
 
@@ -910,7 +910,7 @@ defmodule Module do
       end
 
   """
-  @spec get_attribute(module, atom) :: (term)
+  @spec get_attribute(module, atom) :: term
   def get_attribute(module, key) when is_atom(module) and is_atom(key) do
     get_attribute(module, key, nil)
   end
@@ -928,7 +928,7 @@ defmodule Module do
       end
 
   """
-  @spec delete_attribute(module, atom) :: (term)
+  @spec delete_attribute(module, atom) :: term
   def delete_attribute(module, key) when is_atom(module) and is_atom(key) do
     assert_not_compiled!(:delete_attribute, module)
     table = data_table_for(module)
@@ -976,7 +976,7 @@ defmodule Module do
 
   """
   @spec register_attribute(module, attribute :: atom, opts :: [{:accumulate, boolean}, {:persist, boolean}])
-      :: :ok | no_return
+      :: :ok
   def register_attribute(module, attribute, opts) when is_atom(module) and is_atom(attribute) do
     assert_not_compiled!(:register_attribute, module)
     table = data_table_for(module)
