@@ -723,28 +723,29 @@ defmodule Enum do
   end
 
   def fetch(enumerable, index) when is_integer(index) and index < 0 do
-    case Enumerable.count(enumerable) do
-      {:error, _module} ->
-        enumerable |> reverse |> fetch_list((-index) - 1)
-
+    module = Enumerable.impl_for!(enumerable)
+    case module.count(enumerable) do
+      {:error, module} ->
+        reversed = module.reduce(enumerable, {:cont, []}, fn item, acc ->
+          {:cont, [item | acc]}
+        end) |> elem(1)
+        fetch_list(reversed, (-index) - 1)
       {:ok, count} when (count + index) < 0 ->
         :error
-
       {:ok, count} ->
-        fetch_enumerable(enumerable, count + index, Enumerable)
+        fetch_enumerable(enumerable, count + index, module)
     end
   end
 
   def fetch(enumerable, index) when is_integer(index) do
-    case Enumerable.count(enumerable) do
+    module = Enumerable.impl_for!(enumerable)
+    case module.count(enumerable) do
       {:error, module} ->
         fetch_enumerable(enumerable, index, module)
-
       {:ok, count} when count <= index ->
         :error
-
       {:ok, _count} ->
-        fetch_enumerable(enumerable, index, Enumerable)
+        fetch_enumerable(enumerable, index, module)
     end
   end
 
@@ -754,7 +755,7 @@ defmodule Enum do
         entry, {_, ^index} ->
           {:halt, {:found, entry}}
         _entry, {_, index} ->
-         {:cont, {:not_found, index + 1}}
+          {:cont, {:not_found, index + 1}}
       end)
 
     case elem(reduce_result, 1) do
