@@ -476,6 +476,16 @@ defmodule Kernel.ExpansionTest do
         ~r"missing :do option in \"for\"",
         fn -> expand(quote do: for x <- 1..2) end
     end
+
+    test "raise error for unknown keywords" do
+      assert_raise CompileError,
+        ~r"unsupported option :else given to for",
+        fn -> expand(quote do: for x <- 1..2, do: a, else: 1) end
+
+      assert_raise CompileError,
+        ~r"unsupported option :intoo given to for",
+        fn -> expand(quote do: for x <- 1..2, do: a, intoo: 1) end
+    end
   end
 
   describe "with" do
