@@ -50,11 +50,17 @@ defmodule ModuleTest do
   end
   Module.eval_quoted __MODULE__, contents, [], file: "sample.ex", line: 13
 
+  defp purge(modules) do
+    Enum.each modules, fn(m) ->
+      :code.purge(m)
+      :code.delete(m)
+    end
+  end
+
   defmacrop in_module(block) do
     quote do
       defmodule Temp, unquote(block)
-      :code.purge(Temp)
-      :code.delete(Temp)
+      purge [Temp]
     end
   end
 
@@ -311,7 +317,7 @@ defmodule ModuleTest do
     end
   end
 
-  describe "make_overridable/2" do
+  describe "make_overridable/2 arguments" do
     test "succeed" do
       contents =
         quote do
@@ -320,6 +326,8 @@ defmodule ModuleTest do
         end
 
       assert {:module, Foo, _binary, :ok} = Module.create(Foo, contents, __ENV__)
+    after
+      purge [Foo]
     end
 
     test "raise" do
@@ -333,6 +341,8 @@ defmodule ModuleTest do
         fn ->
         Module.create(Foo, contents, __ENV__)
       end
+    after
+      purge [Foo]
     end
   end
 end

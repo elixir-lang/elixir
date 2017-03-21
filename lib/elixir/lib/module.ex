@@ -803,14 +803,15 @@ defmodule Module do
   ## Examples
 
       defmodule Example do
-        defmacro version, do: 1
+        def version, do: 1
         Module.definitions_in __MODULE__, :def  #=> [{:version, 0}]
-        Module.definitions_in __MODULE__, :defmacro #=> []
+        Module.definitions_in __MODULE__, :defp #=> []
       end
 
   """
   @spec definitions_in(module, def_kind) :: [function_arity]
-  def definitions_in(module, def_kind) when is_atom(module) and is_atom(def_kind) do
+  def definitions_in(module, def_kind)
+      when is_atom(module) and def_kind in [:def, :defp, :defmacro, :defmacrop] do
     assert_not_compiled!(:definitions_in, module)
     table = defs_table_for(module)
     :lists.concat :ets.match(table, {{:def, :'$1'}, def_kind, :_, :_, :_, :_})
@@ -828,8 +829,7 @@ defmodule Module do
     assert_not_compiled!(:make_overridable, module)
 
     :lists.foreach(fn
-      {function_name, arity} = tuple
-          when is_atom(function_name) and is_integer(arity) and arity >= 0 and arity <= 255 ->
+      {function_name, arity} = tuple when is_atom(function_name) and is_integer(arity) and arity >= 0 and arity <= 255 ->
         case :elixir_def.take_definition(module, tuple) do
           false ->
             raise ArgumentError,
@@ -842,7 +842,7 @@ defmodule Module do
                 Module.LocalsTracker.yank(module, tuple)
               end
 
-            old   = :elixir_overridable.overridable(module)
+            old  = :elixir_overridable.overridable(module)
             count = case :maps.find(tuple, old) do
               {:ok, {count, _, _, _}} -> count + 1
               :error -> 1
@@ -876,7 +876,7 @@ defmodule Module do
       end
 
   """
-  @spec put_attribute(module, key :: atom, value :: term) :: :ok
+  @spec put_attribute(module, atom, term) :: :ok
   def put_attribute(module, key, value) when is_atom(module) and is_atom(key) do
     put_attribute(module, key, value, nil, nil)
   end
@@ -910,7 +910,7 @@ defmodule Module do
       end
 
   """
-  @spec get_attribute(module, key :: atom) :: (value :: term)
+  @spec get_attribute(module, atom) :: (term)
   def get_attribute(module, key) when is_atom(module) and is_atom(key) do
     get_attribute(module, key, nil)
   end
@@ -928,7 +928,7 @@ defmodule Module do
       end
 
   """
-  @spec delete_attribute(module, key :: atom) :: (value :: term)
+  @spec delete_attribute(module, atom) :: (term)
   def delete_attribute(module, key) when is_atom(module) and is_atom(key) do
     assert_not_compiled!(:delete_attribute, module)
     table = data_table_for(module)
