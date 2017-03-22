@@ -76,7 +76,7 @@ defmodule Mix.Tasks.ArchiveTest do
       assert File.regular?(file_name)
 
       send self(), {:mix_shell_input, :yes?, true}
-      assert_raise Mix.Error, ~r/Invalid archive file/, fn ->
+      assert_raise Mix.Error, ~r/invalid archive file/, fn ->
         Mix.Tasks.Archive.Install.run [file_name]
       end
     end
