@@ -69,7 +69,7 @@ defmodule Mix.Tasks.Archive.Install do
 
   def check_install_spec(_, _), do: :ok
 
-  def find_previous_versions(src, _dst) do
+  def find_previous_versions(src, _dest) do
     app =
       src
       |> Mix.Local.archive_name
@@ -83,16 +83,16 @@ defmodule Mix.Tasks.Archive.Install do
     end
   end
 
-  def install(ez_dst, contents, previous) do
+  def install(ez_path, contents, previous) do
+    dir_dest = resolve_destination(ez_path, contents)
+
     remove_previous_versions(previous)
 
-    # Get the directory name and extract it there
-    dir_dst = Path.rootname(ez_dst)
-    File.mkdir_p!(dir_dst)
-    {:ok, _} = :zip.extract(contents, [cwd: dir_dst])
-    Mix.shell.info [:green, "* creating ", :reset, Path.relative_to_cwd(dir_dst)]
+    File.mkdir_p!(dir_dest)
+    {:ok, _} = :zip.extract(contents, [cwd: dir_dest])
+    Mix.shell.info [:green, "* creating ", :reset, Path.relative_to_cwd(dir_dest)]
 
-    ebin = Mix.Local.archive_ebin(dir_dst)
+    ebin = Mix.Local.archive_ebin(dir_dest)
     Mix.Local.check_elixir_version_in_ebin(ebin)
     true = Code.append_path(ebin)
     :ok
@@ -103,6 +103,18 @@ defmodule Mix.Tasks.Archive.Install do
   end
 
   ### Private helpers
+
+  defp resolve_destination(ez_path, contents) do
+    with {:ok, [_comment, zip_first_file | _]} <- :zip.list_dir(contents),
+         {:zip_file, zip_first_path, _, _, _, _} = zip_first_file,
+         [zip_root_dir | _] = Path.split(zip_first_path) do
+
+      Path.join(Path.dirname(ez_path), zip_root_dir)
+    else
+      _ ->
+        Mix.raise "Installation failed: invalid archive file"
+    end
+  end
 
   defp archives(name) do
     # TODO: We can remove the .ez extension on Elixir 2.0 since we always unzip since 1.3
