@@ -84,7 +84,6 @@ defmodule Mix.Tasks.Archive.Install do
   end
 
   def install(ez_path, contents, previous) do
-    # Get the directory name and extract it there
     dir_dest = resolve_destination(ez_path, contents)
 
     remove_previous_versions(previous)
@@ -113,7 +112,7 @@ defmodule Mix.Tasks.Archive.Install do
         Path.join(Path.dirname(ez_path), zip_root_dir)
     else
       _ ->
-        Mix.raise "Installation failed: Invalid archive file"
+        Mix.raise "Installation failed: invalid archive file"
     end
   end
 

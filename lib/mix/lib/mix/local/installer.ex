@@ -104,7 +104,7 @@ defmodule Mix.Local.Installer do
     if opts[:force] || should_install?(name, src, previous_files) do
       case Mix.Utils.read_path(src, opts) do
         {:ok, binary} ->
-           module.install(dst, binary, previous_files)
+          module.install(dst, binary, previous_files)
 
         :badpath ->
           Mix.raise "Expected #{inspect src} to be a URL or a local file path"
