@@ -109,7 +109,7 @@ defmodule Mix.Tasks.Archive.Install do
          {:zip_file, zip_first_path, _, _, _, _} = zip_first_file,
          [zip_root_dir | _] = Path.split(zip_first_path) do
 
-        Path.join(Path.dirname(ez_path), zip_root_dir)
+      Path.join(Path.dirname(ez_path), zip_root_dir)
     else
       _ ->
         Mix.raise "Installation failed: invalid archive file"
