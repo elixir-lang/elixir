@@ -18,7 +18,7 @@ defmodule Module do
   ### @after_compile
 
   A hook that will be invoked right after the current module is compiled.
-  Accepts a module or a tuple `{<module>, <function atom>}`.
+  Accepts a module or a tuple `{<module>, <function name>}`.
   See the "Compile callbacks" section below.
 
   ### @before_compile
@@ -157,14 +157,14 @@ defmodule Module do
   A hook that will be invoked when each function or macro in the current
   module is defined. Useful when annotating functions.
 
-  Accepts a module or a tuple `{<module>, <function atom>}`. See the
+  Accepts a module or a tuple `{<module>, <function name>}`. See the
   "Compile callbacks" section below.
 
   ### @on_load
 
   A hook that will be invoked whenever the module is loaded.
 
-  Accepts a function atom of a function in the current module. The function
+  Accepts an atom of a function name in the current module. The function
   must have arity 0 (no arguments) and has to return `:ok`, otherwise the
   loading of the module will be aborted. For example:
 
@@ -228,7 +228,7 @@ defmodule Module do
 
   A hook that will be invoked right after the current module is compiled.
 
-  Accepts a module or a tuple `{<module>, <function atom>}`. The function
+  Accepts a module or a tuple `{<module>, <function name>}`. The function
   must take two arguments: the module environment and its bytecode.
   When just a module is provided, the function is assumed to be
   `__after_compile__/2`.
@@ -278,7 +278,7 @@ defmodule Module do
   A hook that will be invoked when each function or macro in the current
   module is defined. Useful when annotating functions.
 
-  Accepts a module or a tuple `{<module>, <function atom>}`. The function
+  Accepts a module or a tuple `{<module>, <function name>}`. The function
   must take 6 arguments:
 
     - the module environment
@@ -351,7 +351,7 @@ defmodule Module do
   the documentation for the [`:compile` module](http://www.erlang.org/doc/man/compile.html).
   '''
 
-  @typep function_arity :: {atom, arity}
+  @typep definition :: {atom, arity}
   @typep def_kind :: :def | :defp | :defmacro | :defmacrop
   @typep type_kind :: :type | :typep | :opaque
 
@@ -565,7 +565,7 @@ defmodule Module do
   Attaches documentation to a given function or type.
 
   It expects the module the function/type belongs to, the line (a non-negative integer),
-  the kind (`:def`, `defmacro`, `:type`, `:opaque`), a tuple `{<function atom>, <arity>}`,
+  the kind (`:def`, `:defmacro`, `:type`, `:opaque`), a tuple `{<function name>, <arity>}`,
   the function signature (the signature should be omitted for types) and the documentation,
   which should be either a binary or a boolean.
 
@@ -579,7 +579,7 @@ defmodule Module do
       end
 
   """
-  @spec add_doc(module, non_neg_integer, def_kind | type_kind, function_arity, list,
+  @spec add_doc(module, non_neg_integer, def_kind | type_kind, definition, list,
                 String.t | boolean | nil)
       :: :ok | {:error, :private_doc}
   def add_doc(module, line, kind, function_tuple, signature \\ [], doc)
@@ -738,7 +738,7 @@ defmodule Module do
       end
 
   """
-  @spec defines?(module, function_arity) :: boolean
+  @spec defines?(module, definition) :: boolean
   def defines?(module, {function_macro_name, arity} = tuple)
       when is_atom(module) and is_atom(function_macro_name) and
            is_integer(arity) and arity >= 0 and arity <= 255 do
@@ -765,7 +765,7 @@ defmodule Module do
       end
 
   """
-  @spec defines?(module, function_arity, def_kind) :: boolean
+  @spec defines?(module, definition, def_kind) :: boolean
   def defines?(module, {function_macro_name, arity} = tuple, def_kind)
       when is_atom(module) and is_atom(function_macro_name) and
            is_integer(arity) and arity >= 0 and arity <= 255 and
@@ -789,7 +789,7 @@ defmodule Module do
       end
 
   """
-  @spec definitions_in(module) :: [function_arity]
+  @spec definitions_in(module) :: [definition]
   def definitions_in(module) when is_atom(module) do
     assert_not_compiled!(:definitions_in, module)
     table = defs_table_for(module)
@@ -809,7 +809,7 @@ defmodule Module do
       end
 
   """
-  @spec definitions_in(module, def_kind) :: [function_arity]
+  @spec definitions_in(module, def_kind) :: [definition]
   def definitions_in(module, def_kind)
       when is_atom(module) and def_kind in [:def, :defp, :defmacro, :defmacrop] do
     assert_not_compiled!(:definitions_in, module)
@@ -824,7 +824,7 @@ defmodule Module do
   developer to customize it. See `Kernel.defoverridable/1` for
   more information and documentation.
   """
-  @spec make_overridable(module, [function_arity]) :: :ok
+  @spec make_overridable(module, [definition]) :: :ok
   def make_overridable(module, tuples) when is_atom(module) and is_list(tuples) do
     assert_not_compiled!(:make_overridable, module)
 
@@ -842,7 +842,7 @@ defmodule Module do
                 Module.LocalsTracker.yank(module, tuple)
               end
 
-            old  = :elixir_overridable.overridable(module)
+            old = :elixir_overridable.overridable(module)
             count = case :maps.find(tuple, old) do
               {:ok, {count, _, _, _}} -> count + 1
               :error -> 1
@@ -860,7 +860,7 @@ defmodule Module do
   @doc """
   Returns `true` if `tuple` in `module` is marked as overridable.
   """
-  @spec overridable?(module, function_arity) :: boolean
+  @spec overridable?(module, definition) :: boolean
   def overridable?(module, {function_name, arity} = tuple)
       when is_atom(function_name) and is_integer(arity) and arity >= 0 and arity <= 255 do
     :maps.is_key(tuple, :elixir_overridable.overridable(module))
@@ -975,18 +975,18 @@ defmodule Module do
       end
 
   """
-  @spec register_attribute(module, attribute :: atom, opts :: [{:accumulate, boolean}, {:persist, boolean}])
+  @spec register_attribute(module, attribute :: atom, options :: [{:accumulate, boolean}, {:persist, boolean}])
       :: :ok
-  def register_attribute(module, attribute, opts) when is_atom(module) and is_atom(attribute) do
+  def register_attribute(module, attribute, options) when is_atom(module) and is_atom(attribute) do
     assert_not_compiled!(:register_attribute, module)
     table = data_table_for(module)
 
-    if Keyword.get(opts, :persist) do
+    if Keyword.get(options, :persist) do
       old_attribute = :ets.lookup_element(table, {:elixir, :persisted_attributes}, 2)
       :ets.insert(table, {{:elixir, :persisted_attributes}, [attribute | old_attribute]})
     end
 
-    if Keyword.get(opts, :accumulate) do
+    if Keyword.get(options, :accumulate) do
       :ets.insert_new(table, {attribute, [], _accumulated? = true, _unread_line = nil}) ||
         :ets.update_element(table, attribute, {3, true})
     end
