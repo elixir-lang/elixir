@@ -250,10 +250,9 @@ defmodule Date do
     %Date{year: year, month: month, day: day}
   end
   def utc_today(calendar) do
-    {:ok, {year, month, day}, _, _} = Calendar.ISO.from_unix(:os.system_time, :native)
-    %Date{year: year, month: month, day: day, calendar: Calendar.ISO}
-    |> to_rata_die
-    |> from_rata_die(calendar)
+    calendar
+    |> DateTime.utc_now
+    |> DateTime.to_date
   end
 
   @doc """
