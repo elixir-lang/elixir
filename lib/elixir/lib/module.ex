@@ -964,9 +964,12 @@ defmodule Module do
   @doc """
   Splits the given module name into binary parts.
 
+  `module` has to be an Elixir module, as `split/1` won't work with Erlang-style
+  modules (for example, `split(:lists)` raises an error).
+
   ## Examples
 
-      iex> Module.split Very.Long.Module.Name.And.Even.Longer
+      iex> Module.split(Very.Long.Module.Name.And.Even.Longer)
       ["Very", "Long", "Module", "Name", "And", "Even", "Longer"]
 
   """
