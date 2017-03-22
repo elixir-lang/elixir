@@ -106,16 +106,13 @@ defmodule Mix.Tasks.Archive.Install do
   ### Private helpers
 
   defp resolve_destination(ez_path, contents) do
-    case :zip.list_dir(contents) do
-      {:ok, [_comment, zip_first_file | _]} ->
-        zip_root_dir =
-          zip_first_file
-          |> elem(1)
-          |> Path.split()
-          |> hd
+    with {:ok, [_comment, zip_first_file | _]} <- :zip.list_dir(contents),
+         {:zip_file, zip_first_path, _, _, _, _} = zip_first_file,
+         [zip_root_dir | _] = Path.split(zip_first_path) do
 
         Path.join(Path.dirname(ez_path), zip_root_dir)
-      {:error, _reason} ->
+    else
+      _ ->
         Mix.raise "Installation failed: Invalid archive file"
     end
   end
