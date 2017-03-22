@@ -114,7 +114,7 @@ defmodule Mix.Tasks.Archive.Install do
           |> Path.split()
           |> hd
 
-      Path.join(Path.dirname(ez_path), zip_root_dir)
+        Path.join(Path.dirname(ez_path), zip_root_dir)
       {:error, _reason} ->
         Mix.raise "Installation failed: Invalid archive file"
     end
