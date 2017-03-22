@@ -70,6 +70,24 @@ defmodule Mix.Tasks.ArchiveTest do
     end
   end
 
+  test "archive install invalid file" do
+    in_fixture "archive", fn ->
+      file_name = "invalid-archive-0.1.0.ez"
+      assert File.regular?(file_name)
+
+      send self(), {:mix_shell_input, :yes?, true}
+      assert_raise Mix.Error, ~r/invalid archive file/, fn ->
+        Mix.Tasks.Archive.Install.run [file_name]
+      end
+    end
+  end
+
+  test "archive install missing file" do
+    assert_raise Mix.Error, ~r/Expected a local file path or a file/, fn ->
+      Mix.Tasks.Archive.Install.run ["./unlikely-to-exist-0.1.0.ez"]
+    end
+  end
+
   test "archive update" do
     in_fixture "archive", fn() ->
       # Install previous version
