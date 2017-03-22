@@ -71,12 +71,13 @@ defmodule Mix.Tasks.ArchiveTest do
   end
 
   test "archive install invalid file" do
-    in_fixture "invalid_archive", fn ->
-      assert File.regular? 'bad-archive-0.1.0.ez'
+    in_fixture "archive", fn ->
+      file_name = "invalid-archive-0.1.0.ez"
+      assert File.regular?(file_name)
 
       send self(), {:mix_shell_input, :yes?, true}
       assert_raise Mix.Error, ~r/Invalid archive file/, fn ->
-        Mix.Tasks.Archive.Install.run ["./bad-archive-0.1.0.ez"]
+        Mix.Tasks.Archive.Install.run [file_name]
       end
     end
   end

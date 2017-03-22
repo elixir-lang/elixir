@@ -69,7 +69,7 @@ defmodule Mix.Tasks.Archive.Install do
 
   def check_install_spec(_, _), do: :ok
 
-  def find_previous_versions(src, _dst) do
+  def find_previous_versions(src, _dest) do
     app =
       src
       |> Mix.Local.archive_name
@@ -83,20 +83,20 @@ defmodule Mix.Tasks.Archive.Install do
     end
   end
 
-  def install(ez_dst, contents, previous) do
+  def install(ez_path, contents, previous) do
     # Get the directory name and extract it there
-    with {:ok, dir_dst} <- destination(ez_dst, contents) do
-      remove_previous_versions(previous)
+    dir_dest = resolve_destination(ez_path, contents)
 
-      File.mkdir_p!(dir_dst)
-      {:ok, _} = :zip.extract(contents, [cwd: dir_dst])
-      Mix.shell.info [:green, "* creating ", :reset, Path.relative_to_cwd(dir_dst)]
+    remove_previous_versions(previous)
 
-      ebin = Mix.Local.archive_ebin(dir_dst)
-      Mix.Local.check_elixir_version_in_ebin(ebin)
-      true = Code.append_path(ebin)
-      :ok
-    end
+    File.mkdir_p!(dir_dest)
+    {:ok, _} = :zip.extract(contents, [cwd: dir_dest])
+    Mix.shell.info [:green, "* creating ", :reset, Path.relative_to_cwd(dir_dest)]
+
+    ebin = Mix.Local.archive_ebin(dir_dest)
+    Mix.Local.check_elixir_version_in_ebin(ebin)
+    true = Code.append_path(ebin)
+    :ok
   end
 
   def build(_mixfile) do
@@ -105,15 +105,18 @@ defmodule Mix.Tasks.Archive.Install do
 
   ### Private helpers
 
-  defp destination(ez_dst, contents) do
-    with {:ok, [_comment, zip_first_file | _]} <- :zip.list_dir(contents),
-         {:zip_file, zip_first_path, _, _, _, _} <- zip_first_file,
-         [zip_root_dir | _] <- Path.split(zip_first_path) do
+  defp resolve_destination(ez_path, contents) do
+    case :zip.list_dir(contents) do
+      {:ok, [_comment, zip_first_file | _]} ->
+        zip_root_dir =
+          zip_first_file
+          |> elem(1)
+          |> Path.split()
+          |> hd
 
-      {:ok, Path.join(Path.dirname(ez_dst), zip_root_dir)}
-    else
-      _ ->
-        {:error, "Invalid archive file"}
+      Path.join(Path.dirname(ez_path), zip_root_dir)
+      {:error, _reason} ->
+        Mix.raise "Installation failed: Invalid archive file"
     end
   end
 
