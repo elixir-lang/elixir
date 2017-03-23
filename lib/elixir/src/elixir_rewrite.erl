@@ -189,14 +189,16 @@ rewrite(?kernel, elem, [Tuple, Index]) ->
   {erlang, element, [increment(Index), Tuple]};
 rewrite(?kernel, put_elem, [Tuple, Index, Value]) ->
   {erlang, setelement, [increment(Index), Tuple, Value]};
-rewrite(?map, 'has_key?', [Map, Key]) ->
-  {maps, is_key, [Key, Map]};
-rewrite(?map, fetch, [Map, Key]) ->
-  {maps, find, [Key, Map]};
-rewrite(?map, put, [Map, Key, Value]) ->
-  {maps, put, [Key, Value, Map]};
 rewrite(?map, delete, [Map, Key]) ->
   {maps, remove, [Key, Map]};
+rewrite(?map, fetch, [Map, Key]) ->
+  {maps, find, [Key, Map]};
+rewrite(?map, 'has_key?', [Map, Key]) ->
+  {maps, is_key, [Key, Map]};
+rewrite(?map, put, [Map, Key, Value]) ->
+  {maps, put, [Key, Value, Map]};
+rewrite(?map, 'replace!', [Map, Key, Value]) ->
+  {maps, update, [Key, Value, Map]};
 rewrite(?process, monitor, [Arg]) ->
   {erlang, monitor, [process, Arg]};
 rewrite(?process, group_leader, [Pid, Leader]) ->

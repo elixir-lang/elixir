@@ -64,8 +64,6 @@ defmodule Macro do
   @typedoc "Represents literals in the AST"
   @type literal :: atom | number | binary | fun | {t, t} | [t]
 
-  _ = @typedoc # To avoid bootstrap warnings
-
   binary_ops =
     [:===, :!==, :==, :!=, :<=, :>=,
      :&&, :||, :<>, :++, :--, :\\, :::, :<-, :.., :|>, :=~,
