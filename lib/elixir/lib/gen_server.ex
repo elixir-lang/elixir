@@ -227,6 +227,10 @@ defmodule GenServer do
       to switch off debugging once we're done. Excessive debug handlers or
       those that should be turned off, but weren't, can seriously damage
       the performance of the system.
+    * [`:sys.suspend/2`](http://erlang.org/doc/man/sys.html#suspend-2) - allows
+      to suspend a process so that it only replies to system messages but no
+      other messages. A suspended process can be reactivated via
+      [`:sys.resume/2`](http://erlang.org/doc/man/sys.html#resume-2).
 
   Let's see how we could use those functions for debugging the stack server
   we defined earlier.
