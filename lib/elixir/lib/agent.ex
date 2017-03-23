@@ -6,14 +6,14 @@ defmodule Agent do
   must be accessed from different processes or by the same process
   at different points in time.
 
-  The Agent module provides a basic server implementation that
+  The `Agent` module provides a basic server implementation that
   allows state to be retrieved and updated via a simple API.
 
   ## Examples
 
   For example, in the Mix tool that ships with Elixir, we need
   to keep a set of all tasks executed by a given project. Since
-  this set is shared, we can implement it with an Agent:
+  this set is shared, we can implement it with an agent:
 
       defmodule Mix.TasksServer do
         def start_link do
@@ -44,9 +44,9 @@ defmodule Agent do
 
   Note that agents still provide a segregation between the
   client and server APIs, as seen in GenServers. In particular,
-  all code inside the function passed to the agent is executed
+  all code inside the function passed to `Agent` functions is executed
   by the agent. This distinction is important because you may
-  want to avoid expensive operations inside the agent, as it will
+  want to avoid expensive operations inside the agent, as they will
   effectively block the agent until the request is fulfilled.
 
   Consider these two examples:
@@ -61,16 +61,20 @@ defmodule Agent do
         Agent.get(agent, &(&1)) |> do_something_expensive()
       end
 
-  The first function blocks the agent. The second function copies
-  all the state to the client and then executes the operation in the
-  client. The difference is whether the data is large enough to require
-  processing in the server, at least initially, or small enough to be
-  sent to the client cheaply.
+  The first function blocks the agent. The second function copies all the state
+  to the client and then executes the operation in the client. One difference is
+  whether the data is large enough to require processing in the server, at least
+  initially, or small enough to be sent to the client cheaply. Another
+  difference is whether the data needs to be processed atomically: getting the
+  state and calling `do_something_expensive(state)` outside of the agent means
+  that the agent's state can be updated in the meantime, so putting the state
+  back in the agent afterwards may override the updated that happened while
+  processing.
 
-  ## Name Registration
+  ## Name registration
 
-  An Agent is bound to the same name registration rules as GenServers.
-  Read more about it in the `GenServer` docs.
+  An agent is bound to the same name registration rules as GenServers.
+  Read more about it in the `GenServer` documentation.
 
   ## A word on distributed agents
 
@@ -95,14 +99,15 @@ defmodule Agent do
   ## Hot code swapping
 
   An agent can have its code hot swapped live by simply passing a module,
-  function, and args tuple to the update instruction. For example, imagine
+  function, and arguments tuple to the update instruction. For example, imagine
   you have an agent named `:sample` and you want to convert its inner state
-  from some dict structure to a map. It can be done with the following
+  from a keyword list to a map. It can be done with the following
   instruction:
 
       {:update, :sample, {:advanced, {Enum, :into, [%{}]}}}
 
-  The agent's state will be added to the given list as the first argument.
+  The agent's state will be added to the given list of arguments (`[%{}]`) as
+  the first argument.
   """
 
   @typedoc "Return values of `start*` functions"
@@ -122,8 +127,8 @@ defmodule Agent do
 
   This is often used to start the agent as part of a supervision tree.
 
-  Once the agent is spawned, the given function is invoked and its return
-  value is used as the agent state. Note that `start_link` does not return
+  Once the agent is spawned, the given function `fun` is invoked and its return
+  value is used as the agent state. Note that `start_link/2` does not return
   until the given function has returned.
 
   ## Options
@@ -154,7 +159,7 @@ defmodule Agent do
   ## Examples
 
       iex> {:ok, pid} = Agent.start_link(fn -> 42 end)
-      iex> Agent.get(pid, fn(state) -> state end)
+      iex> Agent.get(pid, fn state -> state end)
       42
 
   """
@@ -164,11 +169,11 @@ defmodule Agent do
   end
 
   @doc """
-  Starts an agent linked to the current process with the given module
-  function and arguments.
+  Starts an agent linked to the current process.
 
-  Same as `start_link/2` but a module, function and args are expected
-  instead of an anonymous function.
+  Same as `start_link/2` but a module, function, and arguments are expected
+  instead of an anonymous function; `fun` in `module` will be called with the
+  given arguments `args` to initialize the state.
   """
   @spec start_link(module, atom, [any], GenServer.options) :: on_start
   def start_link(module, fun, args, options \\ []) do
@@ -193,10 +198,9 @@ defmodule Agent do
   end
 
   @doc """
-  Starts an agent with the given module function and arguments.
+  Starts an agent without links with the given module, function, and arguments.
 
-  Similar to `start/2` but a module, function and args are expected
-  instead of an anonymous function.
+  See `start_link/4` for more information.
   """
   @spec start(module, atom, [any], GenServer.options) :: on_start
   def start(module, fun, args, options \\ []) do
@@ -204,18 +208,22 @@ defmodule Agent do
   end
 
   @doc """
-  Gets an agent value via the given function.
+  Gets an agent value via the given anonymous function.
 
   The function `fun` is sent to the `agent` which invokes the function
   passing the agent state. The result of the function invocation is
-  returned.
+  returned from this function.
 
-  A timeout can also be specified (it has a default value of 5000).
+  `timeout` is an integer greater than zero which specifies how many
+  milliseconds are allowed before the agent executes the function and returns
+  the result value, or the atom `:infinity` to wait indefinitely. If no result
+  is received within the specified time, the function call fails and the caller
+  exits.
 
   ## Examples
 
       iex> {:ok, pid} = Agent.start_link(fn -> 42 end)
-      iex> Agent.get(pid, fn(state) -> state end)
+      iex> Agent.get(pid, fn state -> state end)
       42
 
   """
@@ -227,9 +235,9 @@ defmodule Agent do
   @doc """
   Gets an agent value via the given function.
 
-  Same as `get/3` but a module, function and args are expected
+  Same as `get/3` but a module, function, and arguments are expected
   instead of an anonymous function. The state is added as first
-  argument to the given list of args.
+  argument to the given list of arguments.
   """
   @spec get(agent, module, atom, [term], timeout) :: any
   def get(agent, module, fun, args, timeout \\ 5000) do
@@ -237,21 +245,26 @@ defmodule Agent do
   end
 
   @doc """
-  Gets and updates the agent state in one operation.
+  Gets and updates the agent state in one operation via the given anonymous
+  function.
 
   The function `fun` is sent to the `agent` which invokes the function
   passing the agent state. The function must return a tuple with two
-  elements, the first being the value to return (i.e. the `get` value)
-  and the second one is the new state.
+  elements, the first being the value to return (that is, the "get" value)
+  and the second one being the new state of the agent.
 
-  A timeout can also be specified (it has a default value of 5000).
+  `timeout` is an integer greater than zero which specifies how many
+  milliseconds are allowed before the agent executes the function and returns
+  the result value, or the atom `:infinity` to wait indefinitely. If no result
+  is received within the specified time, the function call fails and the caller
+  exits.
 
   ## Examples
 
       iex> {:ok, pid} = Agent.start_link(fn -> 42 end)
-      iex> Agent.get_and_update(pid, fn(state) -> {state, state + 1} end)
+      iex> Agent.get_and_update(pid, fn state -> {state, state + 1} end)
       42
-      iex> Agent.get(pid, fn(state) -> state end)
+      iex> Agent.get(pid, fn state -> state end)
       43
 
   """
@@ -261,11 +274,11 @@ defmodule Agent do
   end
 
   @doc """
-  Gets and updates the agent state in one operation.
+  Gets and updates the agent state in one operation via the given function.
 
-  Same as `get_and_update/3` but a module, function and args are expected
+  Same as `get_and_update/3` but a module, function, and arguments are expected
   instead of an anonymous function. The state is added as first
-  argument to the given list of args.
+  argument to the given list of arguments.
   """
   @spec get_and_update(agent, module, atom, [term], timeout) :: any
   def get_and_update(agent, module, fun, args, timeout \\ 5000) do
@@ -273,20 +286,26 @@ defmodule Agent do
   end
 
   @doc """
-  Updates the agent state.
+  Updates the agent state via the given anonymous function.
 
   The function `fun` is sent to the `agent` which invokes the function
-  passing the agent state. The function must return the new state.
+  passing the agent state. The return value of `fun` becomes the new
+  state of the agent.
 
-  A timeout can also be specified (it has a default value of 5000).
   This function always returns `:ok`.
+
+  `timeout` is an integer greater than zero which specifies how many
+  milliseconds are allowed before the agent executes the function and returns
+  the result value, or the atom `:infinity` to wait indefinitely. If no result
+  is received within the specified time, the function call fails and the caller
+  exits.
 
   ## Examples
 
       iex> {:ok, pid} = Agent.start_link(fn -> 42 end)
-      iex> Agent.update(pid, fn(state) -> state + 1 end)
+      iex> Agent.update(pid, fn state -> state + 1 end)
       :ok
-      iex> Agent.get(pid, fn(state) -> state end)
+      iex> Agent.get(pid, fn state -> state end)
       43
 
   """
@@ -296,11 +315,11 @@ defmodule Agent do
   end
 
   @doc """
-  Updates the agent state.
+  Updates the agent state via the given function.
 
-  Same as `update/3` but a module, function and args are expected
+  Same as `update/3` but a module, function, and arguments are expected
   instead of an anonymous function. The state is added as first
-  argument to the given list of args.
+  argument to the given list of arguments.
   """
   @spec update(agent, module, atom, [term], timeout) :: :ok
   def update(agent, module, fun, args, timeout \\ 5000) do
@@ -308,13 +327,14 @@ defmodule Agent do
   end
 
   @doc """
-  Performs a cast (fire and forget) operation on the agent state.
+  Performs a cast (*fire and forget*) operation on the agent state.
 
   The function `fun` is sent to the `agent` which invokes the function
-  passing the agent state. The function must return the new state.
+  passing the agent state. The return value of `fun` becomes the new
+  state of the agent.
 
-  Note that `cast` returns `:ok` immediately, regardless of whether the
-  destination node or agent exists.
+  Note that `cast` returns `:ok` immediately, regardless of whether `agent` (or
+  the node it should live on) exists.
   """
   @spec cast(agent, (state -> state)) :: :ok
   def cast(agent, fun) when is_function(fun, 1) do
@@ -322,11 +342,11 @@ defmodule Agent do
   end
 
   @doc """
-  Performs a cast (fire and forget) operation on the agent state.
+  Performs a cast (*fire and forget*) operation on the agent state.
 
-  Same as `cast/2` but a module, function and args are expected
+  Same as `cast/2` but a module, function, and arguments are expected
   instead of an anonymous function. The state is added as first
-  argument to the given list of args.
+  argument to the given list of arguments.
   """
   @spec cast(agent, module, atom, [term]) :: :ok
   def cast(agent, module, fun, args) do
@@ -336,8 +356,8 @@ defmodule Agent do
   @doc """
   Synchronously stops the agent with the given `reason`.
 
-  It returns `:ok` if the server terminates with the given
-  reason, if it terminates with another reason, the call will
+  It returns `:ok` if the agent terminates with the given
+  reason. If the agent terminates with another reason, the call will
   exit.
 
   This function keeps OTP semantics regarding error reporting.
