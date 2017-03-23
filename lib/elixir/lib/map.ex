@@ -94,7 +94,7 @@ defmodule Map do
 
   @type key :: any
   @type value :: any
-  @compile {:inline, fetch: 2, put: 3, delete: 2, has_key?: 2}
+  @compile {:inline, fetch: 2, put: 3, delete: 2, has_key?: 2, replace: 3}
 
   @doc """
   Returns all keys from `map`.
@@ -271,9 +271,46 @@ defmodule Map do
   @spec put_new(map, key, value) :: map
   def put_new(map, key, value) do
     case has_key?(map, key) do
-      true  -> map
+      true -> map
       false -> put(map, key, value)
     end
+  end
+
+  @doc """
+  Alters the value stored under `key` to `value`, but only
+  if the entry `key` already exists in `map`.
+
+  ## Examples
+
+      iex> Map.replace(%{a: 1}, :b, 2)
+      %{a: 1}
+      iex> Map.replace(%{a: 1, b: 2}, :a, 3)
+      %{a: 3, b: 2}
+
+  """
+  @spec replace(map, key, value) :: map
+  def replace(map, key, value) do
+    case has_key?(map, key) do
+      true -> :maps.update(key, value, map)
+      false -> map
+    end
+  end
+
+  @doc """
+  Similar to `replace/3`, but will raise a `KeyError`
+  if the key does not exist in the map.
+
+  ## Examples
+
+      iex> Map.replace!(%{a: 1, b: 2}, :a, 3)
+      %{a: 3, b: 2}
+      iex> Map.replace!(%{a: 1}, :b, 2)
+      ** (KeyError) key :b not found in: %{a: 1}
+
+  """
+  @spec replace!(map, key, value) :: map
+  def replace!(map, key, value) do
+    :maps.update(key, value, map)
   end
 
   @doc """
@@ -300,7 +337,7 @@ defmodule Map do
   @spec put_new_lazy(map, key, (() -> value)) :: map
   def put_new_lazy(map, key, fun) when is_function(fun, 0) do
     case has_key?(map, key) do
-      true  -> map
+      true -> map
       false -> put(map, key, fun.())
     end
   end
