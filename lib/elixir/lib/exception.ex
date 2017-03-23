@@ -770,7 +770,6 @@ defmodule KeyExistsError do
   end
 end
 
-
 defmodule UnicodeConversionError do
   defexception [:encoded, :message]
 
