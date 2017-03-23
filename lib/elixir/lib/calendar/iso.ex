@@ -242,6 +242,18 @@ defmodule Calendar.ISO do
       zone_to_string(utc_offset, std_offset, zone_abbr, time_zone)
   end
 
+  def valid_date?(year, month, day) do
+    :calendar.valid_date(year, month, day) and year <= 9999
+  end
+
+  def valid_time?(hour, minute, second, {microsecond, _}) do
+    hour in 0..23 and minute in 0..59 and second in 0..60 and microsecond in 0..999_999
+  end
+
+  def day_rollover_relative_to_midnight_utc do
+    {0, 1}
+  end
+
   defp offset_to_string(0, 0, "Etc/UTC"), do: "Z"
   defp offset_to_string(utc, std, _zone) do
     total  = utc + std
@@ -380,15 +392,10 @@ defmodule Calendar.ISO do
     end
   end
 
-  def valid_date?(year, month, day) do
-    :calendar.valid_date(year, month, day) and year <= 9999
-  end
-
-  def valid_time?(hour, minute, second, {microsecond, _}) do
-    hour in 0..23 and minute in 0..59 and second in 0..60 and microsecond in 0..999_999
-  end
-
-  def day_rollover_relative_to_midnight_utc do
-    {0, 1}
+  @doc false
+  def rata_die_to_microseconds(days, {parts, ppd}) do
+    day_seconds = days * 86400
+    seconds = div(parts * 86400, ppd)
+    microseconds = 1_000_000 * (day_seconds + seconds)
   end
 end
