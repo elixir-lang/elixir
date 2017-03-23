@@ -392,8 +392,8 @@ defmodule Calendar.ISO do
 
   @doc false
   def rata_die_to_microseconds({days, {parts, ppd}}) do
-    day_seconds = days * 86400
-    seconds = div(parts * 86400, ppd)
-    1_000_000 * (day_seconds + seconds)
+    day_microseconds = days * @seconds_per_day * @microseconds_per_second
+    microseconds = div(parts * @seconds_per_day * @microseconds_per_second, ppd)
+    day_microseconds + microseconds
   end
 end

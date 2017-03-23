@@ -1044,7 +1044,7 @@ defmodule Time do
 
     {0, {diff_parts, diff_ppd}}
     |> Calendar.ISO.rata_die_to_microseconds
-    |> System.convert_time_unit(unit, :microseconds)
+    |> System.convert_time_unit(:microseconds, unit)
   end
 
   ## Helpers
@@ -1310,7 +1310,7 @@ defmodule NaiveDateTime do
     {diff_days, {diff_parts, diff_ppd}}
     |> normalize_rata_die
     |> Calendar.ISO.rata_die_to_microseconds
-    |> System.convert_time_unit(unit, :microseconds)
+    |> System.convert_time_unit(:microseconds, unit)
   end
 
   @doc """
@@ -2278,7 +2278,7 @@ defmodule DateTime do
       ...>                 hour: 23, minute: 0, second: 7, microsecond: {0, 0},
       ...>                 utc_offset: 3600, std_offset: 0, time_zone: "Europe/Warsaw"}
       iex> DateTime.diff(dt1, dt2)
-      18000000000000000
+      18000
   """
   @spec diff(DateTime.t, DateTime.t) :: Calendar.rata_die
   def diff(%DateTime{utc_offset: utc_offset1, std_offset: std_offset1} = datetime1,
@@ -2304,7 +2304,7 @@ defmodule DateTime do
     {diff_days, {diff_parts, diff_ppd}}
     |> normalize_rata_die
     |> Calendar.ISO.rata_die_to_microseconds
-    |> System.convert_time_unit(unit, :microseconds)
+    |> System.convert_time_unit(:microseconds, unit)
   end
 
   @doc """
