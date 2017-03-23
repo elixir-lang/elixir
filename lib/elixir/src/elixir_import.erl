@@ -38,8 +38,7 @@ import_macros(Force, Meta, Ref, Opts, E) ->
       {ok, Macros} ->
         Macros;
       error when Force ->
-        Tuple = {no_macros, Ref},
-        elixir_errors:form_error(Meta, ?key(E, file), ?MODULE, Tuple);
+        elixir_errors:form_error(Meta, ?key(E, file), ?MODULE, {no_macros, Ref});
       error ->
         []
     end
@@ -71,14 +70,11 @@ calculate(Meta, Key, Opts, Old, File, Existing) ->
         false ->
           ok;
         _ ->
-          elixir_errors:compile_error(Meta, File,
-            ":only and :except can only be given together to import"
-            " when :only is either :functions or :macros")
+          elixir_errors:form_error(Meta, File, ?MODULE, only_and_except_given)
       end,
       case Only -- get_exports(Key) of
         [{Name, Arity} | _] ->
-          Tuple = {invalid_import, {Key, Name, Arity}},
-          elixir_errors:form_error(Meta, File, ?MODULE, Tuple);
+          elixir_errors:form_error(Meta, File, ?MODULE, {invalid_import, {Key, Name, Arity}});
         _ ->
           intersection(Only, Existing())
       end;
@@ -143,8 +139,7 @@ fetch_macros(Module) ->
 ensure_no_special_form_conflict(Meta, File, Key, [{Name, Arity} | T]) ->
   case special_form(Name, Arity) of
     true  ->
-      Tuple = {special_form_conflict, {Key, Name, Arity}},
-      elixir_errors:form_error(Meta, File, ?MODULE, Tuple);
+      elixir_errors:form_error(Meta, File, ?MODULE, {special_form_conflict, {Key, Name, Arity}});
     false ->
       ensure_no_special_form_conflict(Meta, File, Key, T)
   end;
@@ -157,16 +152,21 @@ ensure_keyword_list(Meta, File, [{Key, Value} | Rest], Kind) when is_atom(Key), 
   ensure_keyword_list(Meta, File, Rest, Kind);
 
 ensure_keyword_list(Meta, File, _Other, Kind) ->
-  Message =
-    "invalid :~s option for import, "
-    "expected a keyword list with integer values",
-  elixir_errors:compile_error(Meta, File, Message, [Kind]).
+  elixir_errors:form_error(Meta, File, ?MODULE, {invalid_option, Kind}).
 
 %% ERROR HANDLING
+
+format_error(only_and_except_given) ->
+  ":only and :except can only be given together to import "
+  "when :only is either :functions or :macros";
 
 format_error({invalid_import, {Receiver, Name, Arity}}) ->
   io_lib:format("cannot import ~ts.~ts/~B because it is undefined or private",
     [elixir_aliases:inspect(Receiver), Name, Arity]);
+
+format_error({invalid_option, Option}) ->
+  Message = "invalid :~s option for import, expected a keyword list with integer values",
+  io_lib:format(Message, [Option]);
 
 format_error({special_form_conflict, {Receiver, Name, Arity}}) ->
   io_lib:format("cannot import ~ts.~ts/~B because it conflicts with Elixir special forms",
