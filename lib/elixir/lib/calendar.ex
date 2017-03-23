@@ -30,12 +30,12 @@ defmodule Calendar do
   It represents time as a fraction of a day (starting from midnight).
   `parts_in_day` specifies how much of the day is already passed,
   while `parts_per_day` signifies how many parts there fit in a day.
-
   """
   @type day_fraction :: {parts_in_day :: non_neg_integer, parts_per_day :: pos_integer}
 
   @typedoc """
   The internal date format that is used when converting between calendars.
+
   This is the amount of days including the fractional part that has passed of the last day,
   since midnight 1 January AD 1 of the Proleptic Gregorian Calendar.
   (In ISO8601 notation: 0000-01-01+00:00T00:00.00000).
@@ -51,10 +51,9 @@ defmodule Calendar do
   @typedoc """
   Microseconds with stored precision.
 
-  The precision represents the number of digits
-  that must be used when representing the microseconds
-  to external format. If the precision is 0, it means
-  microseconds must be skipped.
+  The precision represents the number of digits that must be used when
+  representing the microseconds to external format. If the precision is 0,
+  it means microseconds must be skipped.
   """
   @type microsecond :: {0..999_999, 0..6}
 
@@ -129,32 +128,32 @@ defmodule Calendar do
   @callback time_to_string(hour, minute, second, microsecond) :: String.t
 
   @doc """
-  Converts the given datetime (with time zone)
-  into the internal Calendar.rata_die format.
+  Converts the given datetime (with time zone) into the `t:rata_die` format.
   """
   @callback naive_datetime_to_rata_die(year, month, day, hour, minute, second, microsecond) :: rata_die
 
   @doc """
-  Converts a datetime in the internal Calendar.rata_die format
-  to the Calendar's datetime (with time zone) format.
+  Converts `t:rata_die` to the Calendar's datetime format.
   """
   @callback naive_datetime_from_rata_die(rata_die) :: {year, month, day, hour, minute, second, microsecond}
 
   @doc """
-  Converts the given time to the internal Calendar.day_fraction format.
+  Converts the given time to the `t:day_fraction` format.
   """
   @callback time_to_day_fraction(hour, minute, second, microsecond) :: day_fraction
 
   @doc """
-  Converts the given time in Calendar.day_fraction format
-  to the Calendar's time format.
+  Converts `t:day_fraction` to the Calendar's time format.
   """
   @callback time_from_day_fraction(day_fraction) :: {hour, minute, second, microsecond}
 
   @doc """
-  The result of this function is used to check if two calendars roll over at the same time of day.
-  If they do not, we can only convert DateTimes and Times between them.
-  If they do, this means that we can also convert Dates and NaiveDateTimes between them.
+  Define the roll over period for the given calendar.
+
+  The result of this function is used to check if two calendars roll over at
+  the same time of day. If they do not, we can only convert datetimes and times
+  between them. If they do, this means that we can also convert dates as well
+  as naive datetimes.
 
   This day fraction should be in its most simplified form possible, to make comparisons fast.
 
@@ -183,8 +182,8 @@ defmodule Calendar do
   Returns `true` if two calendars have the same moment of starting a new day,
   false otherwise.
 
-  If two calendars are compatible, it is possible to convert not only `Time`s and `DateTime`s between them,
-  but also Dates and NaiveDateTimes.
+  If two calendars are compatible, it is possible to convert not only
+  `Time`s and `DateTime`s between them, but also Dates and NaiveDateTimes.
   """
   @spec compatible_calendars?(Calendar.calendar, Calendar.calendar) :: boolean
   def compatible_calendars?(calendar, calendar), do: true
@@ -410,30 +409,26 @@ defmodule Date do
   end
 
   @doc """
-  Converts the given Date to
+  Converts the given `Date` to
   [ISO 8601:2004](https://en.wikipedia.org/wiki/ISO_8601).
 
   Only supports converting dates which are in the ISO calendar,
   or other calendars in which the days also start at midnight.
   Attempting to convert dates from other calendars will raise an ArgumentError.
 
-  Passing a DateTime or NaiveDateTime to this function directly is deprecated.
-  Use `DateTime.to_date/1` or `NaiveDateTime.to_date/1` to convert them to `Date`s explicitly.
-
   ### Examples
 
       iex> Date.to_iso8601(~D[2000-02-28])
       "2000-02-28"
-      iex> Date.to_iso8601(~N[2000-02-28 01:23:45])
-      "2000-02-28"
 
   """
-  @spec to_iso8601(Calendar.date) :: String.t
-  def to_iso8601(%Date{calendar: _, year: _, month: _, day: _} = date) do
+  @spec to_iso8601(Date.t) :: String.t
+  def to_iso8601(%Date{} = date) do
     %{year: year, month: month, day: day} = convert!(date, Calendar.ISO)
     Calendar.ISO.date_to_iso8601(year, month, day)
   end
 
+  # TODO: Remove on 2.0
   def to_iso8601(%{calendar: Calendar.ISO, year: year, month: month, day: day}) do
     IO.warn "Calling Date.to_iso8601/1 using a %DateTime{} or %NaiveDateTime{} directly is deprecated, explicitly convert them into a %Date{} first by using DateTime.to_date/1 or NaiveDateTime.to_date/1 respectively"
     Calendar.ISO.date_to_iso8601(year, month, day)
@@ -446,26 +441,20 @@ defmodule Date do
   or other calendars in which the days also start at midnight.
   Attempting to convert dates from other calendars will raise an ArgumentError.
 
-  Passing a DateTime or NaiveDateTime to this function directly is deprecated.
-  Use `DateTime.to_date/1` or `NaiveDateTime.to_date/1` to convert them to `Date`s explicitly.
-
   ## Examples
 
       iex> Date.to_erl(~D[2000-01-01])
       {2000, 1, 1}
-      iex> Date.to_erl(~N[2000-01-01 01:23:45])
-      {2000, 1, 1}
 
   """
-  @spec to_erl(Calendar.date) :: :calendar.date
-  def to_erl(date)
-
-  def to_erl(%Date{calendar: _, year: _, month: _, day: _} = date) do
+  @spec to_erl(Date.t) :: :calendar.date
+  def to_erl(%Date{} = date) do
     %{year: year, month: month, day: day} = convert!(date, Calendar.ISO)
     {year, month, day}
   end
 
-  def to_erl(%{calendar: Calendar.ISO, year: year, month: month, day: day} = date) do
+  # TODO: Remove on 2.0
+  def to_erl(%{calendar: Calendar.ISO, year: year, month: month, day: day}) do
     IO.warn "Calling Date.to_erl/1 using a %DateTime{} or %NaiveDateTime{} directly is deprecated, explicitly convert them into a %Date{} first by using DateTime.to_date/1 or NaiveDateTime.to_date/1 respectively"
     {year, month, day}
   end
@@ -545,7 +534,8 @@ defmodule Date do
       end
     else
       raise ArgumentError, """
-      cannot compare #{inspect date1} with #{inspect date2}:
+      cannot compare #{inspect date1} with #{inspect date2}.
+
       This comparison would be ambiguous as their calendars have incompatible day rollover moments.
       Specify an exact time of day (using `DateTime`s) to resolve this ambiguity.
       """
@@ -560,9 +550,9 @@ defmodule Date do
 
   See also: `Calendar.compatible_calendars?/2`.
   """
-  @spec convert(Calendar.date, Calendar.calendar) :: {:ok, Calendar.date} | {:error, :incompatible_calendars}
-  def convert(%{calendar: calendar, year: _, month: _, day: _} = date, calendar), do: {:ok, date}
-  def convert(%{calendar: _, year: _, month: _, day: _} = date, target_calendar) do
+  @spec convert(Date.t, Calendar.calendar) :: {:ok, Date.t} | {:error, :incompatible_calendars}
+  def convert(%Date{calendar: calendar} = date, calendar), do: {:ok, date}
+  def convert(%Date{} = date, target_calendar) do
     if Calendar.compatible_calendars?(date.calendar, target_calendar) do
       result_date =
         date
@@ -578,7 +568,7 @@ defmodule Date do
   Similar to `Date.convert/2`, but raises an `ArgumentError`
   if the conversion between the two calendars is not possible.
   """
-  @spec convert!(Calendar.date, Calendar.calendar) :: Calendar.date
+  @spec convert!(Date.t, Calendar.calendar) :: Date.t
   def convert!(date, calendar) do
     case convert(date, calendar) do
       {:ok, value} ->
@@ -599,17 +589,20 @@ defmodule Date do
 
   ## Examples
 
+      iex> Date.diff(~D[2000-01-03], ~D[2000-01-01])
+      2
       iex> Date.diff(~D[2000-01-01], ~D[2000-01-03])
-      {:ok, 2}
+      -2
+
   """
   @spec diff(Date.t, Date.t) :: {:ok, integer} | {:error, :incompatible_calendars}
   def diff(%Date{} = date1, %Date{} = date2) do
     if Calendar.compatible_calendars?(date1.calendar, date2.calendar) do
       {days1, _} = to_rata_die(date1)
       {days2, _} = to_rata_die(date2)
-      {:ok, days2 - days1}
+      days1 - days2
     else
-      {:error, :incompatible_calendars}
+      raise ArgumentError, "cannot compute the different between #{inspect date1} and #{inspect date2}, reason: :incompatible_calendars"
     end
   end
 
@@ -847,8 +840,8 @@ defmodule Time do
          {sec, ""} <- Integer.parse(sec),
          {microsec, rest} <- Calendar.ISO.parse_microsecond(rest),
          {_offset, ""} <- Calendar.ISO.parse_offset(rest) do
-           with {:ok, utc_time} <- new(hour, min, sec, microsec, Calendar.ISO),
-                do: convert(utc_time, calendar)
+      with {:ok, utc_time} <- new(hour, min, sec, microsec, Calendar.ISO),
+           do: convert(utc_time, calendar)
     else
       _ -> {:error, :invalid_format}
     end
@@ -887,9 +880,6 @@ defmodule Time do
   Converts the given time to
   [ISO 8601:2004](https://en.wikipedia.org/wiki/ISO_8601).
 
-  Passing a DateTime or NaiveDateTime to this function directly is deprecated.
-  Use `DateTime.to_time/1` or `NaiveDateTime.to_time/1` to convert them to `Time`s explicitly.
-
   ### Examples
 
       iex> Time.to_iso8601(~T[23:00:13])
@@ -897,18 +887,13 @@ defmodule Time do
       iex> Time.to_iso8601(~T[23:00:13.001])
       "23:00:13.001"
 
-      iex> Time.to_iso8601(~N[2015-01-01 23:00:13])
-      "23:00:13"
-      iex> Time.to_iso8601(~N[2015-01-01 23:00:13.001])
-      "23:00:13.001"
-
   """
-  @spec to_iso8601(Calendar.time) :: String.t
+  @spec to_iso8601(Time.t) :: String.t
   def to_iso8601(time)
 
-  def to_iso8601(%Time{hour: _, minute: _, second: _, microsecond: _, calendar: _} = time) do
-      %{hour: hour, minute: minute, second: second, microsecond: microsecond} = convert!(time, Calendar.ISO)
-      Calendar.ISO.time_to_iso8601(hour, minute, second, microsecond)
+  def to_iso8601(%Time{} = time) do
+    %{hour: hour, minute: minute, second: second, microsecond: microsecond} = convert!(time, Calendar.ISO)
+    Calendar.ISO.time_to_iso8601(hour, minute, second, microsecond)
   end
 
   def to_iso8601(%{hour: hour, minute: minute, second: second, microsecond: microsecond, calendar: Calendar.ISO}) do
@@ -922,23 +907,13 @@ defmodule Time do
   WARNING: Loss of precision may occur, as Erlang time tuples
   only contain hours/minutes/seconds.
 
-
-  Passing a DateTime or NaiveDateTime to this function directly is deprecated.
-  Use `DateTime.to_time/1` or `NaiveDateTime.to_time/1` to convert them to `Time`s explicitly.
-
-
   ## Examples
 
       iex> Time.to_erl(~T[23:30:15.999])
       {23, 30, 15}
 
-      iex> Time.to_erl(~N[2015-01-01 23:30:15.999])
-      {23, 30, 15}
-
   """
-  @spec to_erl(Calendar.time) :: :calendar.time
-
-  def to_erl(time)
+  @spec to_erl(Time.t) :: :calendar.time
 
   def to_erl(%Time{} = time) do
     %{hour: hour, minute: minute, second: second} = convert!(time, Calendar.ISO)
@@ -1031,12 +1006,12 @@ defmodule Time do
   Returns `{:ok, %Time{}}` if the conversion was successful,
   or `{:error, reason}` if it was not, for some reason.
   """
-  @spec convert(Calendar.time, Calendar.calendar) :: {:ok, Calendar.time} | {:error, any}
-  def convert(%{calendar: calendar, hour: _, minute: _, second: _, microsecond: _} = time, calendar) do
+  @spec convert(Time.t, Calendar.calendar) :: {:ok, Calendar.time} | {:error, any}
+  def convert(%Time{calendar: calendar} = time, calendar) do
     {:ok, time}
   end
 
-  def convert(%{calendar: calendar, hour: _, minute: _, second: _, microsecond: _} = time, calendar) do
+  def convert(%Time{} = time, calendar) do
     result_time =
       time
       |> to_day_fraction
@@ -1059,7 +1034,7 @@ defmodule Time do
   end
 
   @doc """
-  Returns the difference between two Time Structs.
+  Returns the difference between two time structs.
   """
   @spec diff(Time.t, Time.t, System.time_unit) :: integer
   def diff(%Time{} = time1, %Time{} = time2, unit \\ :second) do
@@ -1078,14 +1053,11 @@ defmodule Time do
       {diff_parts, diff_ppd}
       |> Calendar.ISO.time_from_day_fraction
       |> to_microsecond
+
     System.convert_time_unit(microseconds, unit, :microsecond)
   end
 
   ## Helpers
-
-  defp to_tuple(%{hour: hour, minute: minute, second: second, microsecond: {microsecond, _precision}}) do
-    {hour, minute, second, microsecond}
-  end
 
   defp to_day_fraction(%{hour: hour, minute: minute, second: second, microsecond: {_, _} = microsecond, calendar: calendar}) do
     calendar.time_to_day_fraction(hour, minute, second, microsecond)
@@ -1097,7 +1069,7 @@ defmodule Time do
 
   defp to_microsecond({hour, minute, second, {microsecond, _}}) do
     seconds = hour * 3600 + minute * 60 + second
-    microseconds = seconds * 1_000_000 + microsecond
+    seconds * 1_000_000 + microsecond
   end
 
   defp gcd(a, 0), do: abs(a)
@@ -1273,19 +1245,24 @@ defmodule NaiveDateTime do
       # adds seconds by default
       iex> NaiveDateTime.add(~N[2014-10-02 00:29:10], 2)
       ~N[2014-10-02 00:29:12]
+
       # accepts negative offsets
       iex> NaiveDateTime.add(~N[2014-10-02 00:29:10], -2)
       ~N[2014-10-02 00:29:08]
+
       # can work with other units
       iex> NaiveDateTime.add(~N[2014-10-02 00:29:10], 2_000, :millisecond)
       ~N[2014-10-02 00:29:12]
+
       # keeps the same precision
       iex> NaiveDateTime.add(~N[2014-10-02 00:29:10.021], 21, :second)
       ~N[2014-10-02 00:29:31.021]
+
       # changes below the precision will not be visible
       iex> hidden = NaiveDateTime.add(~N[2014-10-02 00:29:10], 21, :millisecond)
       iex> hidden.microsecond  # ~N[2014-10-02 00:29:10]
       {21000, 0}
+
       # from Gregorian seconds
       iex> NaiveDateTime.add(~N[0000-01-01 00:00:00], 63579428950)
       ~N[2014-10-02 00:29:10]
@@ -1320,6 +1297,7 @@ defmodule NaiveDateTime do
       2_000_000
       iex> NaiveDateTime.diff(~N[2014-10-02 00:29:10.042], ~N[2014-10-02 00:29:10.021], :millisecond)
       21
+
       # to Gregorian seconds
       iex> NaiveDateTime.diff(~N[2014-10-02 00:29:10], ~N[0000-01-01 00:00:00])
       63579428950
@@ -1662,7 +1640,8 @@ defmodule NaiveDateTime do
       end
     else
       raise ArgumentError, """
-      cannot compare #{inspect naive_datetime1} with #{inspect naive_datetime2}:
+      cannot compare #{inspect naive_datetime1} with #{inspect naive_datetime2}.
+
       This comparison would be ambiguous as their calendars have incompatible day rollover moments.
       Specify an exact time of day (using `DateTime`s) to resolve this ambiguity.
       """
@@ -1719,11 +1698,6 @@ defmodule NaiveDateTime do
       {{year, month, day}, {hour, minute, second}}
     )
     second * 1_000_000 + microsecond
-  end
-
-  defp to_tuple(%{calendar: calendar, year: year, month: month, day: day,
-                  hour: hour, minute: minute, second: second, microsecond: {microsecond, _precision}}) do
-    {year, month, day, hour, minute, second, microsecond}
   end
 
   defp to_rata_die(%{calendar: calendar, year: year, month: month, day: day,
@@ -2308,7 +2282,8 @@ defmodule DateTime do
       18000000000000000
   """
   @spec diff(DateTime.t, DateTime.t) :: Calendar.rata_die
-  def diff(%DateTime{utc_offset: utc_offset1, std_offset: std_offset1} = datetime1, %DateTime{utc_offset: utc_offset2, std_offset: std_offset2} = datetime2, unit \\ :seconds) do
+  def diff(%DateTime{utc_offset: utc_offset1, std_offset: std_offset1} = datetime1,
+           %DateTime{utc_offset: utc_offset2, std_offset: std_offset2} = datetime2, unit \\ :seconds) do
     {days1, {parts1, ppd1}} =
       to_rata_die(datetime1)
       |> apply_tz_offset(utc_offset1)
@@ -2346,8 +2321,8 @@ defmodule DateTime do
       ...>                 utc_offset: -14400, std_offset: 0, time_zone: "America/Manaus"}
       iex> DateTime.convert(dt1, Calendar.ISO)
       {:ok, %DateTime{year: 2000, month: 2, day: 29, zone_abbr: "AMT",
-                      hour: 23, minute: 0, second: 7, microsecond: {0, 0},
-                      utc_offset: -14400, std_offset: 0, time_zone: "America/Manaus"}}
+                       hour: 23, minute: 0, second: 7, microsecond: {0, 0},
+                       utc_offset: -14400, std_offset: 0, time_zone: "America/Manaus"}}
 
   """
   @spec convert(DateTime.t, Calendar.calendar) :: {:ok, DateTime.t} | {:error, atom}
@@ -2355,12 +2330,12 @@ defmodule DateTime do
     {:ok, datetime}
   end
 
-  def convert(%DateTime{time_zone: time_zone, zone_abbr: zone_abbr, utc_offset: utc_offset, std_offset: std_offset} = datetime, calendar) do
+  def convert(%DateTime{} = datetime, calendar) do
     result_datetime =
       datetime
       |> to_rata_die
-      |> from_rata_die(calendar)
-    {:ok, %DateTime{result_datetime | time_zone: time_zone, zone_abbr: zone_abbr, utc_offset: utc_offset, std_offset: std_offset}}
+      |> from_rata_die(datetime, calendar)
+    {:ok, result_datetime}
   end
 
   @doc """
@@ -2389,16 +2364,17 @@ defmodule DateTime do
     end
   end
 
-  defp to_rata_die(
-    %DateTime{calendar: calendar,year: year, month: month, day: day,
-              hour: hour, minute: minute, second: second, microsecond: microsecond}
-  ) do
+  defp to_rata_die(%DateTime{calendar: calendar,year: year, month: month, day: day,
+                             hour: hour, minute: minute, second: second, microsecond: microsecond}) do
     calendar.naive_datetime_to_rata_die(year, month, day, hour, minute, second, microsecond)
   end
 
-  defp from_rata_die(rata_die, calendar) do
+  defp from_rata_die(rata_die, datetime, calendar) do
+    %{time_zone: time_zone, zone_abbr: zone_abbr, utc_offset: utc_offset, std_offset: std_offset} = datetime
     {year, month, day, hour, minute, second, microsecond} = calendar.naive_datetime_from_rata_die(rata_die)
-    %DateTime{year: year, month: month, day: day, hour: hour, minute: minute, second: second, microsecond: microsecond, time_zone: "", zone_abbr: "", utc_offset: 0, std_offset: 0}
+    %DateTime{year: year, month: month, day: day,
+              hour: hour, minute: minute, second: second, microsecond: microsecond,
+              time_zone: time_zone, zone_abbr: zone_abbr, utc_offset: utc_offset, std_offset: std_offset}
   end
 
   defp apply_tz_offset({days, {parts, ppd}}, offset) do
