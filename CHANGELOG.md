@@ -6,19 +6,33 @@
 
 #### Elixir
 
+  * [Calendar] Limit `Calendar.ISO` up to year 10000
+  * [Calendar] Add Rata Die format for conversions between Calendars and `Date.convert/2`, `Time.convert/2`, `NaiveDateTime.convert/2` and `DateTime.convert/2` (as well as bang variants)
+  * [Calendar] Add `:calendar` field to `Time` struct
+  * [Calendar] Add `Date.diff/2`
   * [File] Add `File.read_link/1` and `File.read_link!/1`
   * [File] Introduce `:trim_bom` option for `File.stream!/2`
+  * [Keyword] Add `replace/3` and `replace!/3` for replacing an existing key
   * [List] `List.starts_with?/2`
   * [Macro] Introduce `Macro.generate_arguments/2`
+  * [Map] Optimize `Map.merge/3` by choosing merge direction
+  * [Map] Add `replace/3` and `replace!/3` for replacing an existing key
+  * [Registry] Support ETS guard conditions in `Registry.match/3`
 
 #### IEx
 
   * [IEx.Helpers] Add `e/1` IEx helper to list all exports in a module
   * [IEx.Info] Implement `IEx.Info` protocol for calendar types
 
+#### Logger
+
+  * [Logger] Add `metadata: :all` option
+
 #### Mix
 
   * [Mix.Hex] Add `--if-missing` flag to `local.hex` mix task
+  * [Mix.Tasks] Strip debug information from escripts by default and add option `:strip_beam` which defaults to true
+  * [Mix.Tasks] Add `Mix.Tasks.Profile.Cprof` for count-based profiling
 
 ### 2. Bug fixes
 
@@ -37,6 +51,7 @@
 
 #### Elixir
 
+  * [Calendar] Deprecate `NaiveDateTime` and `DateTime` in `Date.to_iso8601/1`, `Date.to_erl/1`, `Time.to_iso8601/1` and `Time.to_erl/1` to avoid loss of precision
   * [GenEvent] Hard deprecate `GenEvent` and provide alternatives in its docs
   * [Kernel] Using `()` to mean `nil` is deprecated
   * [Kernel] `Atom.to_char_list/1`, `Float.to_char_list/1`, `Integer.to_char_list/1`, `Kernel.to_char_list/1`, `String.to_char_list/1` have been deprecated in favor of their `to_charlist/1` version. This aligns with the naming conventions in both Erlang and Elixir
