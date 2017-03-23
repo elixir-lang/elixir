@@ -559,7 +559,7 @@ defmodule Keyword do
   def put_new(keywords, key, value) when is_list(keywords) and is_atom(key) do
     case :lists.keyfind(key, 1, keywords) do
       {^key, _} -> keywords
-      false     -> [{key, value} | keywords]
+      false -> [{key, value} | keywords]
     end
   end
 
@@ -579,7 +579,7 @@ defmodule Keyword do
   def put_new!(keywords, key, value) when is_list(keywords) and is_atom(key) do
     case :lists.keyfind(key, 1, keywords) do
       {^key, _} -> raise KeyExistsError, key: key, term: keywords
-      false     -> [{key, value} | keywords]
+      false -> [{key, value} | keywords]
     end
   end
 
@@ -602,7 +602,7 @@ defmodule Keyword do
   def put_existing(keywords, key, value) when is_list(keywords) and is_atom(key) do
     case :lists.keyfind(key, 1, keywords) do
       {^key, _} -> [{key, value} | keywords]
-      false     -> keywords
+      false -> keywords
     end
   end
 
@@ -622,7 +622,7 @@ defmodule Keyword do
   def put_existing!(keywords, key, value) when is_list(keywords) and is_atom(key) do
     case :lists.keyfind(key, 1, keywords) do
       {^key, _} -> [{key, value} | keywords]
-      false     -> raise KeyError, key: key, term: keywords
+      false -> raise KeyError, key: key, term: keywords
     end
   end
 

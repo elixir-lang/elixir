@@ -271,7 +271,7 @@ defmodule Map do
   @spec put_new(map, key, value) :: map
   def put_new(map, key, value) do
     case has_key?(map, key) do
-      true  -> map
+      true -> map
       false -> put(map, key, value)
     end
   end
@@ -291,7 +291,7 @@ defmodule Map do
   @spec put_new!(map, key, value) :: map
   def put_new!(map, key, value) do
     case has_key?(map, key) do
-      true  -> raise KeyExistsError, key: key, term: map
+      true -> raise KeyExistsError, key: key, term: map
       false -> put(map, key, value)
     end
   end
@@ -312,7 +312,7 @@ defmodule Map do
   @spec put_existing(map, key, value) :: map
   def put_existing(map, key, value) do
     case has_key?(map, key) do
-      true  -> put(map, key, value)
+      true -> put(map, key, value)
       false -> map
     end
   end
@@ -332,7 +332,7 @@ defmodule Map do
   @spec put_existing!(map, key, value) :: map
   def put_existing!(map, key, value) do
     case has_key?(map, key) do
-      true  -> put(map, key, value)
+      true -> put(map, key, value)
       false -> raise KeyError, key: key, term: map
     end
   end
@@ -361,7 +361,7 @@ defmodule Map do
   @spec put_new_lazy(map, key, (() -> value)) :: map
   def put_new_lazy(map, key, fun) when is_function(fun, 0) do
     case has_key?(map, key) do
-      true  -> map
+      true -> map
       false -> put(map, key, fun.())
     end
   end
