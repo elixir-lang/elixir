@@ -1006,7 +1006,7 @@ defmodule Time do
   Returns `{:ok, %Time{}}` if the conversion was successful,
   or `{:error, reason}` if it was not, for some reason.
   """
-  @spec convert(Time.t, Calendar.calendar) :: {:ok, Calendar.time} | {:error, any}
+  @spec convert(Time.t, Calendar.calendar) :: {:ok, Calendar.time} | {:error, atom}
   def convert(%Time{calendar: calendar} = time, calendar) do
     {:ok, time}
   end
