@@ -572,10 +572,10 @@ defmodule Keyword do
 
   ## Examples
 
-  iex> Keyword.replace([a: 1], :b, 2)
-  [a: 1]
-  iex> Keyword.replace([a: 1, b: 2, a: 4], :a, 3)
-  [a: 3, b: 2]
+      iex> Keyword.replace([a: 1], :b, 2)
+      [a: 1]
+      iex> Keyword.replace([a: 1, b: 2, a: 4], :a, 3)
+      [a: 3, b: 2]
 
   """
   @spec replace(t, key, value) :: t
