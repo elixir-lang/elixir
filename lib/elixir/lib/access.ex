@@ -60,7 +60,7 @@ defmodule Access do
 
   ## Static lookups
 
-  The `Access` syntax (`foo[bar]`) cannot be used to access fields in
+  The `Access` syntax (`data[key]`) cannot be used to access fields in
   structs, since structs do not implement the `Access` behaviour by
   default. It is also a design decision: the dynamic access lookup
   is meant to be used for dynamic key-value structures, like maps
@@ -73,8 +73,7 @@ defmodule Access do
 
       user = %User{name: "John"}
       user[:name]
-      # ** (UndefinedFunctionError) undefined function User.fetch/2
-      #    (User does not implement the Access behaviour)
+      # ** (UndefinedFunctionError) undefined function User.fetch/2 (User does not implement the Access behaviour)
 
   Structs instead use the `user.name` syntax to access fields:
 
@@ -107,12 +106,14 @@ defmodule Access do
   functions for traversing other structures, like tuples and lists,
   to be used alongside `Kernel.put_in/2` in others.
 
-  For instance, given a user with a list of languages, here is how to
-  deeply traverse the map and convert all language names to uppercase:
+  For instance, given a user map with `:name` and `:languages` keys, here is how
+  to deeply traverse the map and convert all language names to uppercase:
 
-      iex> user = %{name: "john",
-      ...>          languages: [%{name: "elixir", type: :functional},
-      ...>                      %{name: "c", type: :procedural}]}
+      iex> languages = [
+      ...>   %{name: "elixir", type: :functional},
+      ...>   %{name: "c", type: :procedural},
+      ...> ]
+      iex> user = %{name: "john", languages: languages}
       iex> update_in user, [:languages, Access.all(), :name], &String.upcase/1
       %{name: "john",
         languages: [%{name: "ELIXIR", type: :functional},
@@ -123,7 +124,7 @@ defmodule Access do
 
   ## Implementing the Access behaviour for custom data structures
 
-  In order to be able to use the `Access` protocol with custom data structures
+  In order to be able to use the `Access` behaviour with custom data structures
   (which have to be structs), such structures have to implement the `Access`
   behaviour. For example, for a `User` struct, this would have to be done:
 
@@ -144,7 +145,8 @@ defmodule Access do
   Invoked in order to access the value stored under `key` in the given term `term`.
 
   This function should return `{:ok, value}` where `value` is the value under
-  `key` if it succeeded, or `:error` if the key does not exist in the structure.
+  `key` if the key exists in the term, or `:error` if the key does not exist in
+  the term.
 
   Many of the functions defined in the `Access` module internally call this
   function. This function is also used when the square-brackets access syntax
@@ -152,7 +154,6 @@ defmodule Access do
   that defines the `structure` struct is invoked and if it returns `{:ok,
   value}` then `value` is returned, or if it returns `:error` then `nil` is
   returned.
-
 
   See the `Map.fetch/2` and `Keyword.fetch/2` implementations for examples of
   how to implement this callback.
@@ -176,7 +177,8 @@ defmodule Access do
         end
       end
 
-  See the `Map.get/3` and `Keyword.get/3` implementations for more examples.
+  See the `Map.get/3` and `Keyword.get/3` implementations for examples of
+  how to implement this callback.
   """
   @callback get(term :: t, key, default :: value) :: value
 
@@ -188,13 +190,13 @@ defmodule Access do
   present. This function should return either `{value_to_return, new_value}` or
   `:pop`.
 
-  If it returns `{value_to_return, new_value}`, the return value of this
-  callback should be `{value_to_return, new_term}` where `new_term` is `term`
-  after updating the value of `key` with `new_value`.
+  If the passed function returns `{value_to_return, new_value}`, the return
+  value of this callback should be `{value_to_return, new_term}` where
+  `new_term` is `term` after updating the value of `key` with `new_value`.
 
-  If it returns `:pop`, the return value of this callback should be `{value,
-  new_term}` where `value` is the value under `key` or `nil` if not present, and
-  `new_term` is `term` without the key `key`.
+  If the passed function returns `:pop`, the return value of this callback
+  should be `{value, new_term}` where `value` is the value under `key` or `nil`
+  if not present, and `new_term` is `term` without the key `key`.
 
   See the implementations of `Map.get_and_update/3` or `Keyword.get_and_update/3`
   for more examples.
@@ -232,6 +234,9 @@ defmodule Access do
   @doc """
   Fetches the value for the given key in a container (a map, keyword
   list, or struct that implements the `Access` behaviour).
+
+  Returns `{:ok, value}` where `value` is the value under `key` if there is such
+  a key, or `:error` if `key` is not found.
   """
   @spec fetch(t, term) :: {:ok, term} | :error
   def fetch(container, key)
@@ -263,6 +268,9 @@ defmodule Access do
   @doc """
   Gets the value for the given key in a container (a map, keyword
   list, or struct that implements the `Access` behaviour).
+
+  Returns the value under `key` if there is such a key, or `default` if `key` is
+  not found.
   """
   @spec get(t, term, term) :: term
   def get(container, key, default \\ nil) do
@@ -276,12 +284,12 @@ defmodule Access do
   Gets and updates the given key in a container (a map, keyword
   list, or struct that implements the `Access` behaviour).
 
-  This `fun` argument receives the value of `key` (or `nil` if `key`
-  is not present) and must return a two-element tuple: the "get" value
-  (the retrieved value, which can be operated on before being returned)
-  and the new value to be stored under `key`. The `fun` may also
-  return `:pop`, implying the current value shall be removed
-  from the container and returned.
+  The `fun` argument receives the value of `key` (or `nil` if `key` is not
+  present) and must return a two-element tuple `{get_value, updated_term}`: the
+  "get" value `get_value` (the retrieved value, which can be operated on before
+  being returned) and the new value to be stored under `key`
+  (`updated_term`). `fun` may also return `:pop`, which means the current value
+  should be removed from the container and returned.
 
   The returned value is a two-element tuple with the "get" value returned by
   `fun` and a new container with the updated value under `key`.
@@ -416,7 +424,7 @@ defmodule Access do
   The returned function is typically passed as an accessor to `Kernel.get_in/2`,
   `Kernel.get_and_update_in/3`, and friends.
 
-  Raises if the key does not exist.
+  The returned function raises if the key does not exist.
 
   ## Examples
 
@@ -459,7 +467,7 @@ defmodule Access do
   The returned function is typically passed as an accessor to `Kernel.get_in/2`,
   `Kernel.get_and_update_in/3`, and friends.
 
-  Raises if the index is out of bounds.
+  The returned function raises if the index is out of bounds.
 
   ## Examples
 
@@ -538,7 +546,7 @@ defmodule Access do
   end
 
   defp all(:get_and_update, data, next) when is_list(data) do
-    all(data, next, [], [])
+    all(data, next, _gets = [], _updates = [])
   end
 
   defp all(_op, data, _next) do
@@ -600,6 +608,7 @@ defmodule Access do
 
       iex> get_in(%{}, [Access.at(1)])
       ** (RuntimeError) Access.at/1 expected a list, got: %{}
+
   """
   def at(index) when index >= 0 do
     fn(op, data, next) -> at(op, data, index, next) end
