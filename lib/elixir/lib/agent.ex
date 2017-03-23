@@ -373,6 +373,6 @@ defmodule Agent do
   """
   @spec stop(agent, reason :: term, timeout) :: :ok
   def stop(agent, reason \\ :normal, timeout \\ :infinity) do
-    :gen.stop(agent, reason, timeout)
+    GenServer.stop(agent, reason, timeout)
   end
 end
