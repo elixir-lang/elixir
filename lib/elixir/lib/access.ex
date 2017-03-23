@@ -610,7 +610,7 @@ defmodule Access do
       ** (RuntimeError) Access.at/1 expected a list, got: %{}
 
   """
-  def at(index) when index >= 0 do
+  def at(index) when is_integer(index) and index >= 0 do
     fn(op, data, next) -> at(op, data, index, next) end
   end
 
