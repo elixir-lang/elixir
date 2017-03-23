@@ -25,8 +25,6 @@ defmodule Calendar.ISO do
   @seconds_per_day 24 * 60 * 60 # Note that this does _not_ handle Leap Seconds.
   @microseconds_per_second 1_000_000
 
-  import Integer, only: [floor_div: 2]
-
   @doc """
   Returns the normalized Rata Die representation of the specified date.
 
@@ -393,9 +391,9 @@ defmodule Calendar.ISO do
   end
 
   @doc false
-  def rata_die_to_microseconds(days, {parts, ppd}) do
+  def rata_die_to_microseconds({days, {parts, ppd}}) do
     day_seconds = days * 86400
     seconds = div(parts * 86400, ppd)
-    microseconds = 1_000_000 * (day_seconds + seconds)
+    1_000_000 * (day_seconds + seconds)
   end
 end

@@ -1057,11 +1057,6 @@ defmodule Time do
     calendar.time_to_day_fraction(hour, minute, second, {microsecond, 0})
   end
 
-  defp to_microsecond({hour, minute, second, {microsecond, _}}) do
-    seconds = hour * 3600 + minute * 60 + second
-    seconds * 1_000_000 + microsecond
-  end
-
   defp gcd(a, 0), do: abs(a)
   defp gcd(0, b), do: abs(b)
   defp gcd(a, b) when a < 0 or b < 0, do: gcd(abs(a), abs(b))
@@ -1300,8 +1295,8 @@ defmodule NaiveDateTime do
       raise ArgumentError, "cannot calculate the difference between #{inspect naive_datetime1} and #{inspect naive_datetime2} because their calendars are not compatible and thus the result would be ambiguous"
     end
 
-    {days1, {parts1, ppd1}} = to_rata_die(datetime1)
-    {days2, {parts2, ppd2}} = to_rata_die(datetime2)
+    {days1, {parts1, ppd1}} = to_rata_die(naive_datetime1)
+    {days2, {parts2, ppd2}} = to_rata_die(naive_datetime2)
 
     diff_days = days1 - days2
     diff_ppd = ppd1 * ppd2
@@ -1708,6 +1703,11 @@ defmodule NaiveDateTime do
   defp normalize_rata_die({diff_days, {diff_parts, diff_ppd}}) do
     {diff_days, {diff_parts, diff_ppd}}
   end
+
+  defp gcd(a, 0), do: abs(a)
+  defp gcd(0, b), do: abs(b)
+  defp gcd(a, b) when a < 0 or b < 0, do: gcd(abs(a), abs(b))
+  defp gcd(a, b), do: gcd(b, rem(a,b))
 
   defimpl String.Chars do
     def to_string(%{calendar: calendar, year: year, month: month, day: day,
