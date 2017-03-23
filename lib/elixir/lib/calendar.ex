@@ -1027,8 +1027,10 @@ defmodule Time do
 
   @doc """
   Converts the Time struct to a different calendar.
+  Returns `{:ok, %Time{}}` if the conversion was successfull,
+  or `{:error, reason}` if it was not, for some reason.
   """
-  @spec convert(Time.t, Calendar.calendar) :: Time.t
+  @spec convert(Calendar.time, Calendar.calendar) :: {:ok, Calendar.time} | {:error, any}
   def convert(%{calendar: calendar, hour: _, minute: _, second: _, microsecond: _} = time, calendar) do
     {:ok, time}
   end
@@ -1041,7 +1043,11 @@ defmodule Time do
     {:ok, result_time}
   end
 
-  @spec convert!(Time.t, Calendar.calendar) :: Time.t
+  @doc """
+  Similar to `Time.convert/2`, but raises an `ArgumentError`
+  if the conversion between the two calendars is not possible.
+  """
+  @spec convert!(Calendar.time, Calendar.calendar) :: Calendar.time
   def convert!(time, calendar) do
     case convert(time, calendar) do
       {:ok, value} ->
@@ -1662,6 +1668,14 @@ defmodule NaiveDateTime do
     end
   end
 
+  
+  @doc """
+  Converts a NaiveDateTime from one calendar to another.
+  If it is not possible to convert unambiguously between the calendars
+  (see `Calendar.compatible_calendars?/2`), an `{:error, :incompatible_calendars}` tuple
+  is returned.
+  """
+  @spec convert(NaiveDateTime.t, Calendar.calendar) :: {:ok, NaiveDateTime.t} | {:error, :incompatible_calendars}
   def convert(%{calendar: calendar} = naive_datetime, calendar) do
     {:ok, naive_datetime}
   end
@@ -1677,6 +1691,12 @@ defmodule NaiveDateTime do
     end
   end
 
+  @doc """
+
+  Converts a NaiveDateTime from one calendar to another.
+  If it is not possible to convert unambiguously between the calendars
+  (see `Calendar.compatible_calendars?/2`), an ArgumentError is raised.
+  """
   @spec convert!(NaiveDateTime.t, Calendar.calendar) :: NaiveDateTime.t
   def convert!(naive_datetime, calendar) do
     case convert(naive_datetime, calendar) do
@@ -2315,19 +2335,19 @@ defmodule DateTime do
 
   @doc """
   Converts a DateTime from one calendar to another.
+  If this conversion fails for some reason, an `{:error, reason}` tuple is returned.
 
   ## Examples
 
-  iex> dt1 = %DateTime{year: 2000, month: 2, day: 29, zone_abbr: "AMT",
-  ...>                 hour: 23, minute: 0, second: 7, microsecond: {0, 0},
-  ...>                 utc_offset: -14400, std_offset: 0, time_zone: "America/Manaus"}
-  iex> DateTime.convert(dt1, Calendar.ISO)
-  {:ok, %DateTime{year: 2000, month: 2, day: 29, zone_abbr: "AMT",
-                   hour: 23, minute: 0, second: 7, microsecond: {0, 0},
-                   utc_offset: -14400, std_offset: 0, time_zone: "America/Manaus"}}
+      iex> dt1 = %DateTime{year: 2000, month: 2, day: 29, zone_abbr: "AMT",
+      ...>                 hour: 23, minute: 0, second: 7, microsecond: {0, 0},
+      ...>                 utc_offset: -14400, std_offset: 0, time_zone: "America/Manaus"}
+      iex> DateTime.convert(dt1, Calendar.ISO)
+      {:ok, %DateTime{year: 2000, month: 2, day: 29, zone_abbr: "AMT",
+                      hour: 23, minute: 0, second: 7, microsecond: {0, 0},
+                      utc_offset: -14400, std_offset: 0, time_zone: "America/Manaus"}}
   """
-  # TODO: For better examples and doctests we need a second (simple) calendar.
-  @spec convert(DateTime.t, Calendar.calendar) :: DateTime.t
+  @spec convert(DateTime.t, Calendar.calendar) :: {:ok, DateTime.t} | {:error, atom}
   def convert(%DateTime{calendar: calendar} = datetime, calendar) do
     {:ok, datetime}
   end
@@ -2340,7 +2360,21 @@ defmodule DateTime do
     {:ok, %DateTime{result_datetime | time_zone: time_zone, zone_abbr: zone_abbr, utc_offset: utc_offset, std_offset: std_offset}}
   end
 
+  @doc """
+  Converts a DateTime from one calendar to another.
+  If this conversion fails for some reason, an ArgumentError is raised.
 
+  ## Examples
+
+
+      iex> dt1 = %DateTime{year: 2000, month: 2, day: 29, zone_abbr: "AMT",
+      ...>                 hour: 23, minute: 0, second: 7, microsecond: {0, 0},
+      ...>                 utc_offset: -14400, std_offset: 0, time_zone: "America/Manaus"}
+      iex> DateTime.convert!(dt1, Calendar.ISO)
+      %DateTime{year: 2000, month: 2, day: 29, zone_abbr: "AMT",
+                hour: 23, minute: 0, second: 7, microsecond: {0, 0},
+                utc_offset: -14400, std_offset: 0, time_zone: "America/Manaus"}
+  """
   @spec convert!(DateTime.t, Calendar.calendar) :: DateTime.t
   def convert!(datetime, calendar) do
     case convert(datetime, calendar) do
@@ -2351,7 +2385,6 @@ defmodule DateTime do
     end
   end
 
-  @spec to_rata_die(DateTime.t) :: Calendar.rata_die
   defp to_rata_die(
     %DateTime{calendar: calendar,year: year, month: month, day: day,
               hour: hour, minute: minute, second: second, microsecond: microsecond}
