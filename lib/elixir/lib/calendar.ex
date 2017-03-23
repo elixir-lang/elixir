@@ -148,12 +148,15 @@ defmodule Calendar do
   @callback time_from_day_fraction(day_fraction) :: {hour, minute, second, microsecond}
 
   @doc """
-  Define the roll over period for the given calendar.
+  Define the roll over moment for the given calendar.
+
+  This is the moment, in your calendar, when the current day ends
+  and the next day starts.
 
   The result of this function is used to check if two calendars roll over at
   the same time of day. If they do not, we can only convert datetimes and times
   between them. If they do, this means that we can also convert dates as well
-  as naive datetimes.
+  as naive datetimes between them.
 
   This day fraction should be in its most simplified form possible, to make comparisons fast.
 
@@ -180,10 +183,12 @@ defmodule Calendar do
 
   @doc """
   Returns `true` if two calendars have the same moment of starting a new day,
-  false otherwise.
+  `false` otherwise.
 
-  If two calendars are compatible, it is possible to convert not only
-  `Time`s and `DateTime`s between them, but also Dates and NaiveDateTimes.
+  If two calendars are not compatible, we can only convert datetimes and times
+  between them. If they are compatible, this means that we can also convert
+  dates as well as naive datetimes between them.
+
   """
   @spec compatible_calendars?(Calendar.calendar, Calendar.calendar) :: boolean
   def compatible_calendars?(calendar, calendar), do: true
