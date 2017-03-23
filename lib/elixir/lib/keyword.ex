@@ -559,7 +559,70 @@ defmodule Keyword do
   def put_new(keywords, key, value) when is_list(keywords) and is_atom(key) do
     case :lists.keyfind(key, 1, keywords) do
       {^key, _} -> keywords
-      false -> [{key, value} | keywords]
+      false     -> [{key, value} | keywords]
+    end
+  end
+
+  @doc """
+  Similar to `put_new/3`, but will raise a `KeyExistsError`
+  if the entry `key` already exists.
+
+  ## Examples
+
+      iex> Keyword.put_new!([a: 1], :b, 2)
+      [b: 2, a: 1]
+      iex> Keyword.put_new!([a: 1, b: 2], :a, 3)
+      ** (KeyExistsError) key :a already exists in: [a: 1, b: 2]
+
+  """
+  @spec put_new!(t, key, value) :: t
+  def put_new!(keywords, key, value) when is_list(keywords) and is_atom(key) do
+    case :lists.keyfind(key, 1, keywords) do
+      {^key, _} -> raise KeyExistsError, key: key, term: keywords
+      false     -> [{key, value} | keywords]
+    end
+  end
+
+  @doc """
+  Puts the given `value` under `key`, but only if the entry `key`
+  already exists.
+
+  Note that the previously existing value is _not_ deleted from the keyword list,
+  and is still accessable using `Keyword.get_values/2`
+
+  ## Examples
+
+  iex> Keyword.put_existing([a: 1], :b, 2)
+  [a: 1]
+  iex> Keyword.put_existing([a: 1, b: 2], :a, 3)
+  [a: 3, a: 1, b: 2]
+
+  """
+  @spec put_existing(t, key, value) :: t
+  def put_existing(keywords, key, value) when is_list(keywords) and is_atom(key) do
+    case :lists.keyfind(key, 1, keywords) do
+      {^key, _} -> [{key, value} | keywords]
+      false     -> keywords
+    end
+  end
+
+  @doc """
+  Similar to `put_existing/3`, but will raise a `KeyError`
+  if the entry `key` does not exist.
+
+  ## Examples
+
+      iex> Keyword.put_existing!([a: 1, b: 2], :a, 3)
+      [a: 3, a: 1, b: 2]
+      iex> Keyword.put_existing!([a: 1], :b, 2)
+      ** (KeyError) key :b not found in: [a: 1]
+
+  """
+  @spec put_existing!(t, key, value) :: t
+  def put_existing!(keywords, key, value) when is_list(keywords) and is_atom(key) do
+    case :lists.keyfind(key, 1, keywords) do
+      {^key, _} -> [{key, value} | keywords]
+      false     -> raise KeyError, key: key, term: keywords
     end
   end
 

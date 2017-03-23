@@ -285,7 +285,7 @@ defmodule Map do
       iex> Map.put_new!(%{a: 1}, :b, 2)
       %{a: 1, b: 2}
       iex> Map.put_new!(%{a: 1, b: 2}, :a, 3)
-      ** (KeyExistsError) key :a already exists in %{a: 1, b: 2}
+      ** (KeyExistsError) key :a already exists in: %{a: 1, b: 2}
 
   """
   @spec put_new!(map, key, value) :: map
@@ -323,9 +323,9 @@ defmodule Map do
 
   ## Examples
 
-      iex> Map.put_existing(%{a: 1, b: 2}, :a, 3)
+      iex> Map.put_existing!(%{a: 1, b: 2}, :a, 3)
       %{a: 3, b: 2}
-      iex> Map.put_existing(%{a: 1}, :b, 2)
+      iex> Map.put_existing!(%{a: 1}, :b, 2)
       ** (KeyError) key :b not found in: %{a: 1}
 
   """
