@@ -1038,7 +1038,7 @@ defmodule Time do
     diff_parts = parts1 * ppd2 - parts2 * ppd1
 
     # Keep integers in day fraction low.
-    gcd = gcd(diff_parts, diff_ppd)
+    gcd = Integer.gcd(diff_parts, diff_ppd)
     diff_parts = div(diff_parts, gcd)
     diff_ppd = div(diff_ppd, gcd)
 
@@ -1056,11 +1056,6 @@ defmodule Time do
   defp to_day_fraction(%{hour: hour, minute: minute, second: second, microsecond: microsecond, calendar: calendar}) do
     calendar.time_to_day_fraction(hour, minute, second, {microsecond, 0})
   end
-
-  defp gcd(a, 0), do: abs(a)
-  defp gcd(0, b), do: abs(b)
-  defp gcd(a, b) when a < 0 or b < 0, do: gcd(abs(a), abs(b))
-  defp gcd(a, b), do: gcd(b, rem(a,b))
 
   defimpl String.Chars do
     def to_string(%{hour: hour, minute: minute, second: second, microsecond: microsecond, calendar: calendar}) do
@@ -1303,7 +1298,7 @@ defmodule NaiveDateTime do
     diff_parts = parts1 * ppd2 - parts2 * ppd1
 
     # Keep integers in day fraction low.
-    gcd = gcd(diff_parts, diff_ppd)
+    gcd = Integer.gcd(diff_parts, diff_ppd)
     diff_parts = div(diff_parts, gcd)
     diff_ppd = div(diff_ppd, gcd)
 
@@ -1703,11 +1698,6 @@ defmodule NaiveDateTime do
   defp normalize_rata_die({diff_days, {diff_parts, diff_ppd}}) do
     {diff_days, {diff_parts, diff_ppd}}
   end
-
-  defp gcd(a, 0), do: abs(a)
-  defp gcd(0, b), do: abs(b)
-  defp gcd(a, b) when a < 0 or b < 0, do: gcd(abs(a), abs(b))
-  defp gcd(a, b), do: gcd(b, rem(a,b))
 
   defimpl String.Chars do
     def to_string(%{calendar: calendar, year: year, month: month, day: day,
@@ -2297,7 +2287,7 @@ defmodule DateTime do
     diff_parts = parts1 * ppd2 - parts2 * ppd1
 
     # Keep integers in day fraction low.
-    gcd = gcd(diff_parts, diff_ppd)
+    gcd = Integer.gcd(diff_parts, diff_ppd)
     diff_parts = div(diff_parts, gcd)
     diff_ppd = div(diff_ppd, gcd)
 
@@ -2363,7 +2353,7 @@ defmodule DateTime do
 
     parts = parts * offset_ppd
     offset = offset * ppd
-    gcd = gcd(ppd, offset_ppd)
+    gcd = Integer.gcd(ppd, offset_ppd)
     result_parts = div(parts - offset, gcd)
     result_ppd = div(ppd * offset_ppd, gcd)
     days_offset = div(result_parts, result_ppd)
@@ -2377,9 +2367,4 @@ defmodule DateTime do
   defp normalize_rata_die({diff_days, {diff_parts, diff_ppd}}) do
     {diff_days, {diff_parts, diff_ppd}}
   end
-
-  defp gcd(a, 0), do: abs(a)
-  defp gcd(0, b), do: abs(b)
-  defp gcd(a, b) when a < 0 or b < 0, do: gcd(abs(a), abs(b))
-  defp gcd(a, b), do: gcd(b, rem(a,b))
 end
