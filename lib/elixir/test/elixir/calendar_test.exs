@@ -59,10 +59,13 @@ defmodule DateTest do
   end
 
   test "diff/2" do
+    assert Date.diff(~D[2000-01-31], ~D[2000-01-01]) == 30
+    assert Date.diff(~D[2000-01-01], ~D[2000-01-31]) == -30
+
     date1 = ~D[2000-01-01]
     date2 = Calendar.Julian.date(2000, 01, 01)
-    assert Date.diff(date1, date2) == {:ok, 13}
-    assert Date.diff(date2, date1) == {:ok, -13}
+    assert Date.diff(date1, date2) == -13
+    assert Date.diff(date2, date1) == 13
   end
 end
 
