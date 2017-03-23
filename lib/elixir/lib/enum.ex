@@ -124,8 +124,8 @@ defprotocol Enumerable do
   `reduce` and the match (`===`) operator is used. This algorithm runs
   in linear time.
 
-  _Please force use of the default algorithm unless you can implement an
-  algorithm that is significantly faster._
+  Please force use of the default algorithm unless you can implement an
+  algorithm that is significantly faster.
   """
   @spec member?(t, term) :: {:ok, boolean} | {:error, module}
   def member?(enumerable, element)
@@ -138,8 +138,8 @@ defprotocol Enumerable do
   If `{:error, __MODULE__}` is returned a default algorithm using
   `reduce` is used. This algorithm runs in linear time.
 
-  _Please force use of the default algorithm unless you can implement an
-  algorithm that is significantly faster._
+  Please force use of the default algorithm unless you can implement an
+  algorithm that is significantly faster.
   """
   @spec count(t) :: {:ok, non_neg_integer} | {:error, module}
   def count(enumerable)
