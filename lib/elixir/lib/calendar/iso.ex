@@ -20,6 +20,122 @@ defmodule Calendar.ISO do
   @type month :: 1..12
   @type day   :: 1..31
 
+  @seconds_per_minute 60
+  @seconds_per_hour 60 * 60
+  @seconds_per_day 24 * 60 * 60 # Note that this does _not_ handle Leap Seconds.
+  @microseconds_per_second 1_000_000
+
+  import Integer, only: [floor_div: 2]
+
+  @doc """
+  Returns the normalized Rata Die representation of the specified date.
+
+  ## Examples
+
+      iex> Calendar.ISO.naive_datetime_to_rata_die(1, 1, 1, 0, 0, 0, {0, 6})
+      {1, {0, 86400000000}}
+      iex> Calendar.ISO.naive_datetime_to_rata_die(2000, 1, 1, 12, 0, 0, {0, 6})
+      {730120, {43200000000, 86400000000}}
+      iex> Calendar.ISO.naive_datetime_to_rata_die(2000, 1, 1, 13, 0, 0, {0, 6})
+      {730120, {46800000000, 86400000000}}
+  """
+  @spec naive_datetime_to_rata_die(Calendar.year, Calendar.month, Calendar.day,
+    Calendar.hour, Calendar.minute, Calendar.second, Calendar.microsecond) :: Calendar.rata_die
+  def naive_datetime_to_rata_die(year, month, day, hour, minute, second, {microsecond, _}) do
+    days = to_rata_die_day(year, month, day)
+    {parts, ppd} = combine_time_to_day_fraction(hour, minute, second, microsecond)
+    {days, {parts, ppd}}
+  end
+
+  def naive_datetime_to_rata_die(year, month, day, hour, minute, second, microsecond) do
+    naive_datetime_to_rata_die(year, month, day, hour, minute, second, {microsecond, 0})
+  end
+
+  @doc """
+  Converts a Rata Die to the datetime format specified by this calendar.
+
+  ## Examples
+
+      iex> Calendar.ISO.naive_datetime_from_rata_die({1, {0, 86400}})
+      {1, 1, 1, 0, 0, 0, {0, 6}}
+
+      iex> Calendar.ISO.naive_datetime_from_rata_die({730120, {0, 86400}})
+      {2000, 1, 1, 0, 0, 0, {0, 6}}
+
+      iex> Calendar.ISO.naive_datetime_from_rata_die({730120, {43200, 86400}})
+      {2000, 1, 1, 12, 0, 0, {0, 6}}
+  """
+  @spec naive_datetime_from_rata_die(Calendar.rata_die) ::
+    {Calendar.year, Calendar.month, Calendar.day,
+      Calendar.hour, Calendar.minute, Calendar.second, Calendar.microsecond}
+  def naive_datetime_from_rata_die({days, {parts_in_day, parts_of_day}}) do
+    {year, month, day} = from_rata_die_day(days)
+    {hour, minute, second, microsecond} = extract_from_day_fraction(parts_in_day, parts_of_day)
+    {year, month, day, hour, minute, second, {microsecond, 6}}
+  end
+  @doc """
+  Returns the normalized Day Fraction of the specified time.
+
+  ## Examples
+
+      iex> Calendar.ISO.time_to_day_fraction(0, 0, 0, {0, 6})
+      {0, 86400000000}
+      iex> Calendar.ISO.time_to_day_fraction(12, 34, 56, {123, 6})
+      {45296000123, 86400000000}
+  """
+  @spec time_to_day_fraction(Calendar.hour, Calendar.minute, Calendar.second, Calendar.microsecond) :: Calendar.day_fraction
+  def time_to_day_fraction(hour, minute, second, {microsecond, _}) do
+    combine_time_to_day_fraction(hour, minute, second, microsecond)
+  end
+
+  @doc """
+  Converts a Day Fraction to this Calendar's representation of time.
+
+  ## Examples
+
+      iex> Calendar.ISO.time_from_day_fraction({1,2})
+      {12, 0, 0, {0, 6}}
+      iex> Calendar.ISO.time_from_day_fraction({13,24})
+      {13, 0, 0, {0, 6}}
+  """
+  @spec time_from_day_fraction(Calendar.day_fraction) :: {Calendar.hour, Calendar.minute, Calendar.second, Calendar.microsecond}
+  def time_from_day_fraction({parts_in_day, parts_per_day}) do
+    {hour, minute, second, microsecond} = extract_from_day_fraction(parts_in_day, parts_per_day)
+    {hour, minute, second, {microsecond, 6}}
+  end
+
+  defp combine_time_to_day_fraction(hour, minute, second, microsecond, std_offset \\ 0, utc_offset \\ 0) do
+    combined_seconds = hour * @seconds_per_hour + minute * @seconds_per_minute + second - std_offset - utc_offset
+    {combined_seconds * @microseconds_per_second + microsecond, @seconds_per_day * @microseconds_per_second}
+  end
+
+  # Converts a year, month, day in only a count of days since the Rata Die epoch.
+  defp to_rata_die_day(year, month, day) do
+    # Rata Die starts at year 1, rather than at year 0.
+    :calendar.date_to_gregorian_days(year, month, day) - 365
+  end
+
+  # Calculates {year, month, day} from the count of days since the Rata Die epoch.
+  defp from_rata_die_day(days) do
+    :calendar.gregorian_days_to_date(days + 365)
+  end
+
+  # Calculates {hours, minutes, seconds, microseconds} from the fraction of time passed in the last Rata Die day.
+  defp extract_from_day_fraction(parts_in_day, parts_per_day) do
+    total_microseconds = div(parts_in_day * @seconds_per_day * @microseconds_per_second, parts_per_day)
+    {hours, rest_microseconds1} = div_mod(total_microseconds, @seconds_per_hour * @microseconds_per_second)
+    {minutes, rest_microseconds2} = div_mod(rest_microseconds1, @seconds_per_minute * @microseconds_per_second)
+    {seconds, microseconds} = div_mod(rest_microseconds2, @microseconds_per_second)
+    {hours, minutes, seconds, microseconds}
+  end
+
+  @spec div_mod(integer, neg_integer | pos_integer) :: integer
+  defp div_mod(x, y) when is_integer(x) and is_integer(y) do
+    div = div(x, y)
+    mod = x - (div * y)
+    {div, mod}
+  end
+
   @doc """
   Returns how many days there are in the given year-month.
 
@@ -65,7 +181,7 @@ defmodule Calendar.ISO do
   """
   @spec leap_year?(year) :: boolean()
   def leap_year?(year) when is_integer(year) and year >= 0 do
-    rem(year, 4) === 0 and (rem(year, 100) > 0 or rem(year, 400) === 0)
+    :calendar.is_leap_year(year)
   end
 
   @doc """
@@ -257,5 +373,17 @@ defmodule Calendar.ISO do
     else
       _ -> :error
     end
+  end
+
+  def valid_date?(year, month, day) do
+    :calendar.valid_date(year, month, day) and year <= 9999
+  end
+
+  def valid_time?(hour, minute, second, {microsecond, _}) do
+    hour in 0..23 and minute in 0..59 and second in 0..60 and microsecond in 0..999_999
+  end
+
+  def day_rollover_relative_to_midnight_utc do
+    {0, 1}
   end
 end
