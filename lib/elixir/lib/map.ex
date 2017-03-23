@@ -277,6 +277,67 @@ defmodule Map do
   end
 
   @doc """
+  Similar to `put_new/3`, but will raise a `KeyExistsError`
+  if the key already exists in the map.
+
+  ## Examples
+
+      iex> Map.put_new!(%{a: 1}, :b, 2)
+      %{a: 1, b: 2}
+      iex> Map.put_new!(%{a: 1, b: 2}, :a, 3)
+      ** (KeyExistsError) key :a already exists in %{a: 1, b: 2}
+
+  """
+  @spec put_new!(map, key, value) :: map
+  def put_new!(map, key, value) do
+    case has_key?(map, key) do
+      true  -> raise KeyExistsError, key: key, term: map
+      false -> put(map, key, value)
+    end
+  end
+
+
+  @doc """
+  Puts the given `value` under `key`, but only if the entry `key`
+  already exists in `map`.
+
+  ## Examples
+
+  iex> Map.put_existing(%{a: 1}, :b, 2)
+  %{a: 1}
+  iex> Map.put_existing(%{a: 1, b: 2}, :a, 3)
+  %{a: 3, b: 2}
+
+  """
+  @spec put_existing(map, key, value) :: map
+  def put_existing(map, key, value) do
+    case has_key?(map, key) do
+      true  -> put(map, key, value)
+      false -> map
+    end
+  end
+
+  @doc """
+  Similar to `put_existing/3`, but will raise a `KeyError`
+  if the key does not exist in the map.
+
+  ## Examples
+
+      iex> Map.put_existing(%{a: 1, b: 2}, :a, 3)
+      %{a: 3, b: 2}
+      iex> Map.put_existing(%{a: 1}, :b, 2)
+      ** (KeyError) key :b not found in: %{a: 1}
+
+  """
+  @spec put_existing!(map, key, value) :: map
+  def put_existing!(map, key, value) do
+    case has_key?(map, key) do
+      true  -> put(map, key, value)
+      false -> raise KeyError, key: key, term: map
+    end
+  end
+
+  @doc """
   Evaluates `fun` and puts the result under `key`
   in `map` unless `key` is already present.
 

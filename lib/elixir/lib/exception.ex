@@ -757,6 +757,20 @@ defmodule KeyError do
   end
 end
 
+defmodule KeyExistsError do
+  defexception [:key, :term]
+
+  def message(exception) do
+    msg = "key #{inspect exception.key} already exists"
+    if exception.term != nil do
+      msg <> " in: #{inspect exception.term}"
+    else
+      msg
+    end
+  end
+end
+
+
 defmodule UnicodeConversionError do
   defexception [:encoded, :message]
 
