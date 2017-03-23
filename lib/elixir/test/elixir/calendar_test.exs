@@ -1,10 +1,12 @@
 Code.require_file "test_helper.exs", __DIR__
+Code.require_file "fixtures/calendar/julian.exs", __DIR__
 
 defmodule FakeCalendar do
   def date_to_string(_, _, _), do: "boom"
   def time_to_string(_, _, _, _), do: "boom"
   def naive_datetime_to_string(_, _, _, _, _, _, _), do: "boom"
   def datetime_to_string(_, _, _, _, _, _, _, _, _, _), do: "boom"
+  def day_rollover_relative_to_midnight_utc, do: {123456,123457}
 end
 
 defmodule DateTest do
@@ -33,6 +35,13 @@ defmodule DateTest do
     assert Date.compare(date2, date1) == :gt
   end
 
+  test "compare/2 across calendars" do
+    date1 = ~D[2000-01-01]
+    date2 = Calendar.Julian.date(2000, 01, 01)
+    assert Date.compare(date1, date2) == :lt
+    assert Date.compare(date2, date1) == :gt
+  end
+
   test "day_of_week/1" do
     assert Date.day_of_week(~D[2016-10-31]) == 1
     assert Date.day_of_week(~D[2016-11-01]) == 2
@@ -41,6 +50,19 @@ defmodule DateTest do
     assert Date.day_of_week(~D[2016-11-04]) == 5
     assert Date.day_of_week(~D[2016-11-05]) == 6
     assert Date.day_of_week(~D[2016-11-06]) == 7
+  end
+
+  test "convert/2" do
+    assert Date.convert(~D[2000-01-01], Calendar.Julian) == {:ok, Calendar.Julian.date(1999, 12, 19)}
+    assert (~D[2000-01-01] |> Date.convert!(Calendar.Julian) |> Date.convert!(Calendar.ISO)) == ~D[2000-01-01]
+    assert Date.convert(~D[2016-02-03], FakeCalendar) == {:error, :incompatible_calendars}
+  end
+
+  test "diff/2" do
+    date1 = ~D[2000-01-01]
+    date2 = Calendar.Julian.date(2000, 01, 01)
+    assert Date.diff(date1, date2) == {:ok, 13}
+    assert Date.diff(date2, date1) == {:ok, -13}
   end
 end
 
@@ -102,10 +124,16 @@ defmodule NaiveDateTimeTest do
   test "to_iso8601/1" do
     ndt = ~N[2000-04-16 12:34:15.1234]
     ndt = put_in ndt.calendar, FakeCalendar
-    message = "cannot convert #{inspect(ndt)} to the ISO 8601 format, because it does not use Calendar.ISO"
-    assert_raise ArgumentError, message, fn ->
+    assert_raise ArgumentError, "cannot convert #{inspect ndt} to target calendar Calendar.ISO, reason: #{inspect ndt.calendar} and Calendar.ISO have different day rollover moments, making this conversion ambiguous",
+    fn ->
       NaiveDateTime.to_iso8601(ndt)
     end
+  end
+
+  test "convert/2" do
+    assert NaiveDateTime.convert(~N[2000-01-01 12:34:15.1234], Calendar.Julian) == {:ok, Calendar.Julian.naive_datetime(1999, 12, 19, 12, 34, 15, 123400)}
+    assert (~N[2000-01-01 12:34:15.123456] |> NaiveDateTime.convert!(Calendar.Julian) |> NaiveDateTime.convert!(Calendar.ISO)) == ~N[2000-01-01 12:34:15.123456]
+    assert NaiveDateTime.convert(~N[2016-02-03 00:00:01], FakeCalendar) == {:error, :incompatible_calendars}
   end
 end
 
@@ -164,7 +192,7 @@ defmodule DateTimeTest do
     assert DateTime.to_unix(gregorian_0) == -62167219200
 
     before_gregorian_0 = %DateTime{gregorian_0 | year: -1}
-    assert_raise FunctionClauseError, fn ->
+    assert_raise ArgumentError, fn ->
       DateTime.to_unix(before_gregorian_0)
     end
   end
