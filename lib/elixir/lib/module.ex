@@ -1003,19 +1003,36 @@ defmodule Module do
   `module` has to be an Elixir module, as `split/1` won't work with Erlang-style
   modules (for example, `split(:lists)` raises an error).
 
+  `split/1` also supports splitting the string representation of Elixir modules
+  (that is, the result of calling `Atom.to_string/1` with the module name).
+
   ## Examples
 
       iex> Module.split(Very.Long.Module.Name.And.Even.Longer)
       ["Very", "Long", "Module", "Name", "And", "Even", "Longer"]
+      iex> Module.split("Elixir.String.Chars")
+      ["String", "Chars"]
 
   """
-  @spec split(module) :: [String.t, ...]
+  @spec split(module | String.t) :: [String.t, ...]
+  def split(module)
+
   def split(module) when is_atom(module) do
-    split(String.Chars.to_string(module))
+    module
+    |> Atom.to_string()
+    |> split(_original = module)
   end
 
-  def split("Elixir." <> name) do
+  def split(module) when is_binary(module) do
+    split(module, _original = module)
+  end
+
+  defp split("Elixir." <> name, _original) do
     String.split(name, ".")
+  end
+
+  defp split(_module, original) do
+    raise ArgumentError, "expected an Elixir module, got: #{inspect(original)}"
   end
 
   @doc false
