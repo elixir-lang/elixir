@@ -1018,9 +1018,7 @@ defmodule Module do
   def split(module)
 
   def split(module) when is_atom(module) do
-    module
-    |> Atom.to_string()
-    |> split(_original = module)
+    split(Atom.to_string(module), _original = module)
   end
 
   def split(module) when is_binary(module) do
