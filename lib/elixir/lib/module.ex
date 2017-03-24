@@ -974,11 +974,12 @@ defmodule Module do
 
   """
   def split(module) when is_atom(module) do
-    split(String.Chars.to_string(module))
-  end
-
-  def split("Elixir." <> name) do
-    String.split(name, ".")
+    case Atom.to_string(module) do
+      "Elixir." <> name ->
+        String.split(name, ".")
+      name ->
+        [name]
+    end
   end
 
   @doc false

@@ -170,17 +170,32 @@ defmodule ModuleTest do
     end
   end
 
-  test "split" do
-    module = Very.Long.Module.Name.And.Even.Longer
-    assert Module.split(module) == ["Very", "Long", "Module", "Name", "And", "Even", "Longer"]
-    assert Module.split("Elixir.Very.Long") == ["Very", "Long"]
-    assert_raise FunctionClauseError, fn ->
-      Module.split(:just_an_atom)
+  describe "split/1" do
+    test "regular modules" do
+      module = Very.Long.Module.Name.And.Even.Longer
+      assert Module.split(module) == ["Very", "Long", "Module", "Name", "And", "Even", "Longer"]
+      assert Module.split(:"Elixir.Very.Long") == ["Very", "Long"]
+      assert Module.split(:just_an_atom) == ["just_an_atom"]
+      assert Module.concat(Module.split(module)) == module
     end
-    assert_raise FunctionClauseError, fn ->
-      Module.split("Foo")
+
+    test "edge cases" do
+      assert Module.split(:nil) == ["nil"]
+      assert Module.split(:"Elixir.nil") == ["nil"]
+
+      assert Module.split(:"") == [""]
+      assert Module.split(:"Elixir.") == [""]
     end
-    assert Module.concat(Module.split(module)) == module
+
+    test "raise" do
+      assert_raise FunctionClauseError, fn ->
+        Module.split("Foo")
+      end
+
+      assert_raise FunctionClauseError, fn ->
+        Module.split("Elixir.Foo")
+      end
+    end
   end
 
   test "__MODULE__" do
