@@ -50,11 +50,15 @@ defmodule ModuleTest do
   end
   Module.eval_quoted __MODULE__, contents, [], file: "sample.ex", line: 13
 
+  defp purge(module) do
+    :code.purge(module)
+    :code.delete(module)
+  end
+
   defmacrop in_module(block) do
     quote do
       defmodule Temp, unquote(block)
-      :code.purge(Temp)
-      :code.delete(Temp)
+      purge Temp
     end
   end
 
@@ -309,5 +313,20 @@ defmodule ModuleTest do
       assert Module.definitions_in(__MODULE__, :def)  == [foo: 3]
       assert Module.definitions_in(__MODULE__, :defp) == []
     end
+  end
+
+  test "make_overridable/2 with invalid arguments" do
+    contents =
+      quote do
+        Module.make_overridable(__MODULE__, [{:foo, 256}])
+      end
+
+    assert_raise ArgumentError,
+      "each element in tuple list has to be a {function_name :: atom, arity :: 0..255} tuple, got: {:foo, 256}",
+      fn ->
+      Module.create(Foo, contents, __ENV__)
+    end
+  after
+    purge Foo
   end
 end
