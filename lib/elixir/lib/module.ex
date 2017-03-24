@@ -739,8 +739,8 @@ defmodule Module do
 
   """
   @spec defines?(module, definition) :: boolean
-  def defines?(module, {function_macro_name, arity} = tuple)
-      when is_atom(module) and is_atom(function_macro_name) and
+  def defines?(module, {function_or_macro_name, arity} = tuple)
+      when is_atom(module) and is_atom(function_or_macro_name) and
            is_integer(arity) and arity >= 0 and arity <= 255 do
     assert_not_compiled!(:defines?, module)
     table = defs_table_for(module)
