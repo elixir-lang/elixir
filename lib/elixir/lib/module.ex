@@ -15,19 +15,19 @@ defmodule Module do
   Each module can be decorated with one or more attributes. The following ones
   are currently defined by Elixir:
 
-  ### @after_compile
+  ### `@after_compile`
 
   A hook that will be invoked right after the current module is compiled.
-  Accepts a module or a tuple `{<module>, <function name>}`.
-  See the "Compile callbacks" section below.
+  Accepts a module or a `{module, function_name}`. See the "Compile callbacks"
+  section below.
 
-  ### @before_compile
+  ### `@before_compile`
 
   A hook that will be invoked before the module is compiled.
-  Accepts a module or a tuple `{<module>, <function/macro atom>}`.
+  Accepts a module or a `{module, function_or_macro_name}` tuple.
   See the "Compile callbacks" section below.
 
-  ### @behaviour (notice the British spelling)
+  ### `@behaviour` (notice the British spelling)
 
   Behaviours can be referenced by modules to ensure they implement
   required specific function signatures defined by `@callback`.
@@ -53,13 +53,13 @@ defmodule Module do
   If the behaviour changes or `URI.HTTP` does not implement
   one of the callbacks, a warning will be raised.
 
-  ### @compile
+  ### `@compile`
 
   Defines options for module compilation. This is used to configure
   both Elixir and Erlang compilers, as any other compilation pass
   added by external tools. For example:
 
-      defmodule M do
+      defmodule MyModule do
         @compile {:inline, my_fun: 1}
 
         def my_fun(arg) do
@@ -70,16 +70,16 @@ defmodule Module do
   Multiple uses of `@compile` will accumulate instead of overriding
   previous ones. See the "Compile options" section below.
 
-  ### @doc
+  ### `@doc`
 
   Provides documentation for the function or macro that follows the
   attribute.
 
   Accepts a string (often a heredoc) or `false` where `@doc false` will
-  make the function/macro invisible to the documentation extraction tools
+  make the function/macro invisible to documentation extraction tools
   like ExDoc. For example:
 
-      defmodule M do
+      defmodule MyModule do
         @doc "Hello world"
         def hello do
           "world"
@@ -93,14 +93,14 @@ defmodule Module do
         end
       end
 
-  ### @dialyzer
+  ### `@dialyzer`
 
   Defines warnings to request or suppress when using a version of
   `:dialyzer` that supports module attributes.
 
   Accepts an atom, a tuple, or a list of atoms and tuples. For example:
 
-      defmodule M do
+      defmodule MyModule do
         @dialyzer {:nowarn_function, my_fun: 1}
 
         def my_fun(arg) do
@@ -114,23 +114,23 @@ defmodule Module do
   Multiple uses of `@dialyzer` will accumulate instead of overriding
   previous ones.
 
-  ### @external_resource
+  ### `@external_resource`
 
-  Specifies an external resource to the current module.
+  Specifies an external resource for the current module.
 
-  Many times a module embeds information from an external file. This
+  Sometimes a module embeds information from an external file. This
   attribute allows the module to annotate which external resources
   have been used.
 
   Tools like Mix may use this information to ensure the module is
   recompiled in case any of the external resources change.
 
-  ### @file
+  ### `@file`
 
   Changes the filename used in stacktraces for the function or macro that
   follows the attribute, such as:
 
-      defmodule M do
+      defmodule MyModule do
         @doc "Hello world"
         @file "hello.ex"
         def hello do
@@ -138,37 +138,37 @@ defmodule Module do
         end
       end
 
-  ### @moduledoc
+  ### `@moduledoc`
 
-  Provides documentation for the current module, such as:
+  Provides documentation for the current module.
 
-      defmodule M do
+      defmodule MyModule do
         @moduledoc """
-        A very useful module
+        A very useful module.
         """
       end
 
-  Accepts a string (which is often a heredoc) or `false` where
-  `@moduledoc false` will make the module invisible to the
+  Accepts a string (often a heredoc) or `false` where
+  `@moduledoc false` will make the module invisible to
   documentation extraction tools like ExDoc.
 
-  ### @on_definition
+  ### `@on_definition`
 
   A hook that will be invoked when each function or macro in the current
   module is defined. Useful when annotating functions.
 
-  Accepts a module or a tuple `{<module>, <function name>}`. See the
+  Accepts a module or a `{module, function_name}` tuple. See the
   "Compile callbacks" section below.
 
-  ### @on_load
+  ### `@on_load`
 
   A hook that will be invoked whenever the module is loaded.
 
-  Accepts an atom of a function name in the current module. The function
-  must have arity 0 (no arguments) and has to return `:ok`, otherwise the
-  loading of the module will be aborted. For example:
+  Accepts the function name (as an atom) of a function in the current module.
+  The function must have arity 0 (no arguments) and has to return `:ok`, otherwise
+  the loading of the module will be aborted. For example:
 
-      defmodule M do
+      defmodule MyModule do
         @on_load :load_check
 
         def load_check do
@@ -184,11 +184,11 @@ defmodule Module do
         end
       end
 
-  ### @vsn
+  ### `@vsn`
 
   Specify the module version. Accepts any valid Elixir value, for example:
 
-      defmodule M do
+      defmodule MyModule do
         @vsn "1.0"
       end
 
@@ -212,7 +212,7 @@ defmodule Module do
   also be added. A custom attribute is any valid identifier prefixed with an
   `@` and followed by a valid Elixir value:
 
-      defmodule M do
+      defmodule MyModule do
         @custom_attr [some: "stuff"]
       end
 
@@ -224,18 +224,18 @@ defmodule Module do
   There are three callbacks that are invoked when functions are defined,
   as well as before and immediately after the module bytecode is generated.
 
-  ### @after_compile
+  ### `@after_compile`
 
   A hook that will be invoked right after the current module is compiled.
 
-  Accepts a module or a tuple `{<module>, <function name>}`. The function
+  Accepts a module or a `{module, function_name}` tuple. The function
   must take two arguments: the module environment and its bytecode.
   When just a module is provided, the function is assumed to be
   `__after_compile__/2`.
 
   #### Example
 
-      defmodule M do
+      defmodule MyModule do
         @after_compile __MODULE__
 
         def __after_compile__(env, _bytecode) do
@@ -243,11 +243,11 @@ defmodule Module do
         end
       end
 
-  ### @before_compile
+  ### `@before_compile`
 
   A hook that will be invoked before the module is compiled.
 
-  Accepts a module or a tuple `{<module>, <function/macro atom>}`. The
+  Accepts a module or a `{module, function_or_macro_name}` tuple. The
   function/macro must take one argument: the module environment. If it's a
   macro, its returned value will be injected at the end of the module definition
   before the compilation starts.
@@ -255,7 +255,7 @@ defmodule Module do
   When just a module is provided, the function/macro is assumed to be
   `__before_compile__/1`.
 
-  Note: unlike `@after_compile`, the callback function/macro must
+  *Note*: unlike `@after_compile`, the callback function/macro must
   be placed in a separate module (because when the callback is invoked,
   the current module does not yet exist).
 
@@ -273,20 +273,23 @@ defmodule Module do
         @before_compile A
       end
 
-  ### @on_definition
+      B.hello()
+      #=> "world"
+
+  ### `@on_definition`
 
   A hook that will be invoked when each function or macro in the current
   module is defined. Useful when annotating functions.
 
-  Accepts a module or a tuple `{<module>, <function name>}`. The function
+  Accepts a module or a `{module, function_name}` tuple. The function
   must take 6 arguments:
 
-    - the module environment
-    - kind: `:def`, `:defp`, `:defmacro`, or `:defmacrop`
-    - function/macro name
-    - list of quoted arguments
-    - list of quoted guards
-    - quoted function body
+    * the module environment
+    * the kind of the function/macro: `:def`, `:defp`, `:defmacro`, or `:defmacrop`
+    * the function/macro name
+    * the list of quoted arguments
+    * the list of quoted guards
+    * the squoted function body
 
   Note the hook receives the quoted arguments and it is invoked before
   the function is stored in the module. So `Module.defines?/2` will return
@@ -305,7 +308,7 @@ defmodule Module do
 
   #### Example
 
-      defmodule H do
+      defmodule Hooks do
         def on_def(_env, kind, name, args, guards, body) do
           IO.puts "Defining #{kind} named #{name} with args:"
           IO.inspect args
@@ -316,8 +319,8 @@ defmodule Module do
         end
       end
 
-      defmodule M do
-        @on_definition {H, :on_def}
+      defmodule MyModule do
+        @on_definition {Hooks, :on_def}
 
         def hello(arg) when is_binary(arg) or is_list(arg) do
           "Hello" <> to_string(arg)
@@ -330,15 +333,15 @@ defmodule Module do
 
   ## Compile options
 
-  The `@compile` attribute accepts diverse options that is used by both
+  The `@compile` attribute accepts different options that are used by both
   Elixir and Erlang compilers. Some of the common use cases are documented
   below:
 
     * `@compile :debug_info` - includes `:debug_info` regardless of the
-      setting in `Code.compiler_options/1`
+      corresponding setting in `Code.compiler_options/1`
 
     * `@compile {:debug_info, false}` - disables `:debug_info` regardless
-      of the setting in `Code.compiler_options/1`
+      of the corresponding setting in `Code.compiler_options/1`
 
     * `@compile {:inline, some_fun: 2, other_fun: 3}` - inlines the given
       name/arity pairs
@@ -376,8 +379,10 @@ defmodule Module do
   def __info__(kind)
 
   @doc """
-  Checks if a module is open, i.e. it is currently being defined
-  and its attributes and functions can be modified.
+  Checks if a module is open.
+
+  A module is "open" if it is currently being defined and its attributes and
+  functions can be modified.
   """
   @spec open?(module) :: boolean
   def open?(module) when is_atom(module) do
@@ -417,7 +422,7 @@ defmodule Module do
   while also passing `opts`, they will be merged with `opts`
   having precedence.
   """
-  @spec eval_quoted(module | Macro.Env.t, Macro.t, list, list) :: term
+  @spec eval_quoted(module | Macro.Env.t, Macro.t, list, Keyword.t | Macro.Env.t) :: term
   def eval_quoted(module_or_env, quoted, binding \\ [], opts \\ [])
 
   def eval_quoted(%Macro.Env{} = env, quoted, binding, opts) when is_list(binding) and is_list(opts) do
@@ -579,9 +584,8 @@ defmodule Module do
       end
 
   """
-  @spec add_doc(module, non_neg_integer, def_kind | type_kind, definition, list,
-                String.t | boolean | nil)
-      :: :ok | {:error, :private_doc}
+  @spec add_doc(module, non_neg_integer, def_kind | type_kind, definition, list, String.t | boolean | nil) ::
+        :ok | {:error, :private_doc}
   def add_doc(module, line, kind, function_tuple, signature \\ [], doc)
 
   def add_doc(_module, _line, kind, _function_tuple, _signature, doc)
@@ -751,7 +755,7 @@ defmodule Module do
   Checks if the module defines a function or macro of the
   given `kind`.
 
-  `kind` can be any of `:def`, `:defp`, `:defmacro` or `:defmacrop`.
+  `kind` can be any of `:def`, `:defp`, `:defmacro`, or `:defmacrop`.
 
   This function can only be used on modules that have not yet been compiled.
   Use `Kernel.function_exported?/3` to check compiled modules.
@@ -975,9 +979,8 @@ defmodule Module do
       end
 
   """
-  @spec register_attribute(module, attribute :: atom, options :: [{:accumulate, boolean}, {:persist, boolean}])
-      :: :ok
-  def register_attribute(module, attribute, options) when is_atom(module) and is_atom(attribute) do
+  @spec register_attribute(module, atom, [{:accumulate, boolean}, {:persist, boolean}]) :: :ok
+  def register_attribute(module, attribute, options) when is_atom(module) and is_atom(attribute) and is_list(options) do
     assert_not_compiled!(:register_attribute, module)
     table = data_table_for(module)
 
