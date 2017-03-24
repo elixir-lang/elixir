@@ -383,7 +383,6 @@ defmodule Integer do
   @doc """
   Returns the greatest common divisor of the two given numbers.
 
-
   This is the largest positive integer that divides both `a` and `b` without leaving a remainder.
 
   ## Examples

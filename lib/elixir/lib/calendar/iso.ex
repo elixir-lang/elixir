@@ -391,9 +391,9 @@ defmodule Calendar.ISO do
   end
 
   @doc false
-  def rata_die_to_microseconds({days, {parts, ppd}}) do
+  def rata_die_to_unit({days, {parts, ppd}}, unit) do
     day_microseconds = days * @seconds_per_day * @microseconds_per_second
     microseconds = div(parts * @seconds_per_day * @microseconds_per_second, ppd)
-    day_microseconds + microseconds
+    System.convert_time_unit(day_microseconds + microseconds, :microseconds, unit)
   end
 end

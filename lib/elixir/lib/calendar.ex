@@ -1042,9 +1042,7 @@ defmodule Time do
     diff_parts = div(diff_parts, gcd)
     diff_ppd = div(diff_ppd, gcd)
 
-    {0, {diff_parts, diff_ppd}}
-    |> Calendar.ISO.rata_die_to_microseconds
-    |> System.convert_time_unit(:microseconds, unit)
+    Calendar.ISO.rata_die_to_unit({0, {diff_parts, diff_ppd}}, unit)
   end
 
   ## Helpers
@@ -1304,8 +1302,7 @@ defmodule NaiveDateTime do
 
     {diff_days, {diff_parts, diff_ppd}}
     |> normalize_rata_die
-    |> Calendar.ISO.rata_die_to_microseconds
-    |> System.convert_time_unit(:microseconds, unit)
+    |> Calendar.ISO.rata_die_to_unit(unit)
   end
 
   @doc """
@@ -2293,8 +2290,7 @@ defmodule DateTime do
 
     {diff_days, {diff_parts, diff_ppd}}
     |> normalize_rata_die
-    |> Calendar.ISO.rata_die_to_microseconds
-    |> System.convert_time_unit(:microseconds, unit)
+    |> Calendar.ISO.rata_die_to_unit(unit)
   end
 
   @doc """
