@@ -206,7 +206,8 @@ defmodule IntegerTest do
   end
 
   test "to_char_list/1" do
-    assert Integer.to_char_list(42) == '42'
+    integer = Integer
+    assert integer.to_char_list(42) == '42'
   end
 
   test "to_charlist/2" do
@@ -235,6 +236,7 @@ defmodule IntegerTest do
   end
 
   test "to_char_list/2" do
-    assert Integer.to_char_list(42, 2) == '101010'
+    integer = Integer
+    assert integer.to_char_list(42, 2) == '101010'
   end
 end
