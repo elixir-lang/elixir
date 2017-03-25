@@ -75,11 +75,10 @@ handle_file_warning(_, File, {Line, Module, Desc}) ->
 %% Handle warnings
 
 handle_file_error(File, {beam_validator, Rest}) ->
-  Message = beam_validator:format_error(Rest),
-  elixir_errors:compile_error([{line, 0}], File, elixir_utils:characters_to_binary(Message));
+  elixir_errors:form_error([{line, 0}], File, beam_validator, Rest);
 handle_file_error(File, {Line, Module, Desc}) ->
   Message = format_error(Module, Desc),
-  elixir_errors:compile_error([{line, Line}], File, elixir_utils:characters_to_binary(Message)).
+  elixir_errors:compile_error([{line, Line}], File, Message).
 
 %% Custom formatting
 
