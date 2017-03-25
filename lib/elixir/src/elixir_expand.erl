@@ -889,7 +889,7 @@ format_error({invalid_alias_for_as, Reason, Value}) ->
       not_alias -> "expected an alias, got";
       nested_alias -> "expected a simple alias, got nested alias"
     end,
-  io_lib:format("invalid value for keyword :as, ~ts: ~ts",
+  io_lib:format("invalid value for option :as, ~ts: ~ts",
                 [ExpectedGot, 'Elixir.Macro':to_string(Value)]);
 format_error({invalid_function_call, Expr}) ->
   io_lib:format("invalid function call :~ts.()", [Expr]);

@@ -38,7 +38,7 @@ defmodule Kernel.ExpansionTest do
     end
 
     test "invalid alias" do
-      assert_raise CompileError, ~r"invalid value for keyword :as, expected a simple alias, got nested alias: Sample.Lists", fn ->
+      assert_raise CompileError, ~r"invalid value for option :as, expected a simple alias, got nested alias: Sample.Lists", fn ->
         expand(quote do: (alias :lists, as: Sample.Lists))
       end
 
@@ -46,8 +46,8 @@ defmodule Kernel.ExpansionTest do
         expand(quote do: (alias 1 + 2))
       end
 
-      assert_raise CompileError, ~r"invalid value for keyword :as, expected an alias, got: :\"bar.baz\"", fn ->
-        expand(quote do: (alias :lists, as: :"bar.baz"))
+      assert_raise CompileError, ~r"invalid value for option :as, expected an alias, got: :foobar", fn ->
+        expand(quote do: (alias :lists, as: :foobar))
       end
     end
 
@@ -471,20 +471,20 @@ defmodule Kernel.ExpansionTest do
         fn -> expand(quote do: (for <<x::binary <- "123">>, do: x)) end
     end
 
-    test "require do keyword" do
+    test "require do option" do
       assert_raise CompileError,
         ~r"missing :do option in \"for\"",
-        fn -> expand(quote do: for x <- 1..2) end
+        fn -> expand(quote do: for _ <- 1..2) end
     end
 
-    test "raise error for unknown keywords" do
+    test "raise error for unknown options" do
       assert_raise CompileError,
         ~r"unsupported option :else given to for",
-        fn -> expand(quote do: for x <- 1..2, do: a, else: 1) end
+        fn -> expand(quote do: for _ <- 1..2, do: 1, else: 1) end
 
       assert_raise CompileError,
-        ~r"unsupported option :intoo given to for",
-        fn -> expand(quote do: for x <- 1..2, do: a, intoo: 1) end
+        ~r"unsupported option :other given to for",
+        fn -> expand(quote do: for _ <- 1..2, do: 1, other: 1) end
     end
   end
 
@@ -716,7 +716,7 @@ defmodule Kernel.ExpansionTest do
       end
     end
 
-    test "raises with invalid keywords" do
+    test "raises with invalid options" do
       assert_raise CompileError, ~r"unexpected option :foo in \"cond\"", fn ->
         expand(quote do: (cond do: (1 -> 1), foo: :bar))
       end
@@ -787,7 +787,7 @@ defmodule Kernel.ExpansionTest do
       end
     end
 
-    test "fails for invalid keywords" do
+    test "fails for invalid options" do
       assert_raise CompileError, ~r"unexpected option :foo in \"case\"", fn ->
         expand(quote do: (case e, do: (x -> x), foo: :bar))
       end
@@ -871,7 +871,7 @@ defmodule Kernel.ExpansionTest do
       end
     end
 
-    test "raises with invalid keywords" do
+    test "raises with invalid options" do
       assert_raise CompileError, ~r"unexpected option :foo in \"receive\"", fn ->
         expand(quote do: (receive do: (x -> x), foo: :bar))
       end
@@ -939,7 +939,7 @@ defmodule Kernel.ExpansionTest do
       end
     end
 
-    test "raises with invalid keywords" do
+    test "raises with invalid options" do
       assert_raise CompileError, ~r"unexpected option :foo in \"try\"", fn ->
         expand(quote do: (try do: x, foo: :bar))
       end
