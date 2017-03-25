@@ -222,16 +222,17 @@ defmodule Record do
       user(name: name) = record
       name #=> "meg"
 
-  By default, Elixir uses the record name as the first element of the tuple (the
-  "tag"). However, a different tag can be specified when defining a record:
+  By default, Elixir uses the record name as the first element of the tuple (the "tag").
+  However, a different tag can be specified when defining a record,
+  as in the following example, in which we use `Customer` as the second argument of `defrecord/3`:
 
       defmodule User do
         require Record
-        Record.defrecord :user, User, name: nil
+        Record.defrecord :user, Customer, name: nil
       end
 
       require User
-      User.user() #=> {User, nil}
+      User.user() #=> {Customer, nil}
 
   ## Defining extracted records with anonymous functions in the values
 
