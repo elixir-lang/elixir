@@ -889,7 +889,7 @@ defmodule Kernel.TypespecTest do
     end
   end
 
-  test "warn on discouraged types" do
+  test "warns on discouraged types" do
     message = capture_io(:stderr, fn ->
       test_module do
         @type foo :: string()
@@ -897,15 +897,15 @@ defmodule Kernel.TypespecTest do
       end
     end)
 
-    expected_string =
+    string_discouraged =
       "string() type use is discouraged. " <>
       "For character lists, use charlist() type, for strings, String.t()\n"
 
-    expected_nonempty_string =
+    nonempty_string_discouraged =
       "nonempty_string() type use is discouraged. " <>
       "For non-empty character lists, use nonempty_charlist() type, for strings, String.t()\n"
 
-    assert message =~ expected_string
-    assert message =~ expected_nonempty_string
+    assert message =~ string_discouraged
+    assert message =~ nonempty_string_discouraged
   end
 end
