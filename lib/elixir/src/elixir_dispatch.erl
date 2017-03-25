@@ -387,6 +387,8 @@ deprecation('Elixir.Float', to_char_list, 1) ->
   "use Float.to_charlist/1";
 deprecation('Elixir.Integer', to_char_list, 1) ->
   "use Integer.to_charlist/1";
+deprecation('Elixir.Integer', to_char_list, 2) ->
+  "use Integer.to_charlist/2";
 deprecation('Elixir.String', to_char_list, 1) ->
   "use String.to_charlist/1";
 deprecation('Elixir.List.Chars', to_char_list, 1) ->

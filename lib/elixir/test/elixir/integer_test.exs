@@ -205,6 +205,10 @@ defmodule IntegerTest do
     end
   end
 
+  test "to_char_list/1" do
+    assert Integer.to_char_list(42) == '42'
+  end
+
   test "to_charlist/2" do
     assert Integer.to_charlist(42, 2) == '101010'
     assert Integer.to_charlist(42, 10) == '42'
@@ -228,5 +232,9 @@ defmodule IntegerTest do
         Integer.to_charlist(n, n)
       end
     end
+  end
+
+  test "to_char_list/2" do
+    assert Integer.to_char_list(42, 2) == '101010'
   end
 end
