@@ -25,8 +25,6 @@ defmodule Calendar.ISO do
   @seconds_per_day 24 * 60 * 60 # Note that this does _not_ handle Leap Seconds.
   @microseconds_per_second 1_000_000
 
-  import Integer, only: [floor_div: 2]
-
   @doc """
   Returns the normalized Rata Die representation of the specified date.
 
