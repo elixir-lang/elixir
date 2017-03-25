@@ -201,7 +201,7 @@ defmodule ExUnit do
       excluded first, the `:include` option has no effect;
 
     * `:max_cases` - maximum number of cases to run in parallel.
-      It defaults to `:erlang.system_info(:schedulers_online) * 2` to
+      It defaults to `System.schedulers_online * 2` to
       optimize both CPU-bound and IO-bound tests;
 
     * `:refute_receive_timeout` - the timeout to be used on `refute_receive`
@@ -277,7 +277,7 @@ defmodule ExUnit do
     cond do
       opts[:trace] -> 1
       max = opts[:max_cases] -> max
-      true -> :erlang.system_info(:schedulers_online) * 2
+      true -> System.schedulers_online * 2
     end
   end
 end
