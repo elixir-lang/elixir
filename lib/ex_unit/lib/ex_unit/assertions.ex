@@ -123,7 +123,7 @@ defmodule ExUnit.Assertions do
         end
       end)
 
-    match_case =
+    match_expr =
       no_warning(quote do
         case right do
           unquote(left) ->
@@ -140,8 +140,8 @@ defmodule ExUnit.Assertions do
 
     quote do
       right = unquote(right)
-      expr  = unquote(code)
-      unquote(vars) = unquote(match_case)
+      expr = unquote(code)
+      unquote(vars) = unquote(match_expr)
       right
     end
   end
