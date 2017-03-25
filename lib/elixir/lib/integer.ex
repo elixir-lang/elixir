@@ -403,7 +403,8 @@ defmodule Integer do
       ** (ArithmeticError) bad argument in arithmetic expression
 
   """
-  @spec gcd(integer, integer) :: integer
+  @spec gcd(integer, integer) :: pos_integer
+  @spec gcd(0, 0) :: no_return
   def gcd(a, b)
   def gcd(0, 0), do: raise ArithmeticError
   def gcd(a, 0), do: abs(a)
