@@ -96,7 +96,7 @@ defmodule ExUnitTest do
     ExUnit.start(trace: false, autorun: false)
     config = ExUnit.configuration()
     refute config[:trace]
-    assert config[:max_cases] == :erlang.system_info(:schedulers_online) * 2
+    assert config[:max_cases] == System.schedulers_online * 2
     assert config[:timeout] == 60_000
   end
 
