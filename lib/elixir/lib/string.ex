@@ -465,7 +465,7 @@ defmodule String do
   end
 
   def split_at(string, position) when is_integer(position) and position < 0 do
-    position = length(string) - abs(position)
+    position = length(string) + position
     case position >= 0 do
       true  -> do_split_at(string, position)
       false -> {"", string}
@@ -1486,7 +1486,7 @@ defmodule String do
   end
 
   def at(string, position) when is_integer(position) and position < 0 do
-    position = length(string) - abs(position)
+    position = length(string) + position
     case position >= 0 do
       true  -> do_at(string, position)
       false -> nil

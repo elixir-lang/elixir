@@ -2374,7 +2374,7 @@ defmodule Enum do
   end
 
   def take(enumerable, count) when is_integer(count) and count < 0 do
-    count = abs(count)
+    count = -count
 
     {_count, buf1, buf2} =
       reduce(enumerable, {0, [], []}, fn entry, {n, buf1, buf2} ->
