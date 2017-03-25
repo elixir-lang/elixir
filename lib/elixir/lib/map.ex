@@ -94,7 +94,7 @@ defmodule Map do
 
   @type key :: any
   @type value :: any
-  @compile {:inline, fetch: 2, put: 3, delete: 2, has_key?: 2}
+  @compile {:inline, fetch: 2, put: 3, delete: 2, has_key?: 2, replace!: 3}
 
   @doc """
   Returns all keys from `map`.
@@ -212,6 +212,7 @@ defmodule Map do
       iex> Map.has_key?(%{a: 1}, :b)
       false
 
+  Inlined by the compiler.
   """
   @spec has_key?(map, key) :: boolean
   def has_key?(map, key), do: :maps.is_key(key, map)
@@ -229,6 +230,7 @@ defmodule Map do
       iex> Map.fetch(%{a: 1}, :b)
       :error
 
+  Inlined by the compiler.
   """
   @spec fetch(map, key) :: {:ok, value} | :error
   def fetch(map, key), do: :maps.find(key, map)
@@ -291,7 +293,7 @@ defmodule Map do
   @spec replace(map, key, value) :: map
   def replace(map, key, value) do
     case has_key?(map, key) do
-      true -> :maps.update(key, value, map)
+      true -> replace!(map, key, value)
       false -> map
     end
   end
@@ -307,6 +309,7 @@ defmodule Map do
       iex> Map.replace!(%{a: 1}, :b, 2)
       ** (KeyError) key :b not found in: %{a: 1}
 
+  Inlined by the compiler.
   """
   @spec replace!(map, key, value) :: map
   def replace!(map, key, value) do
@@ -444,6 +447,7 @@ defmodule Map do
       iex> Map.put(%{a: 1, b: 2}, :a, 3)
       %{a: 3, b: 2}
 
+  Inlined by the compiler.
   """
   @spec put(map, key, value) :: map
   def put(map, key, value) do
@@ -462,6 +466,7 @@ defmodule Map do
       iex> Map.delete(%{b: 2}, :a)
       %{b: 2}
 
+  Inlined by the compiler.
   """
   @spec delete(map, key) :: map
   def delete(map, key), do: :maps.remove(key, map)
