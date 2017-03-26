@@ -289,7 +289,7 @@ defmodule Application do
 
   ## Options
 
-    * `:timeout`    - the timeout for the change (defaults to 5000ms)
+    * `:timeout` - the timeout for the change (defaults to `5_000` milliseconds)
     * `:persistent` - persists the given value on application load and reloads
 
   If `put_env/4` is called before the application is loaded, the application
