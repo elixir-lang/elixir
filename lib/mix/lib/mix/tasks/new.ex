@@ -352,15 +352,15 @@ defmodule Mix.Tasks.New do
   # if you want to provide default values for your application for
   # 3rd-party users, it should be done in your "mix.exs" file.
 
-  # You can configure for your application as:
+  # You can configure your application as:
   #
   #     config :<%= @app %>, key: :value
   #
-  # And access this configuration in your application as:
+  # and access this configuration in your application as:
   #
   #     Application.get_env(:<%= @app %>, :key)
   #
-  # Or configure a 3rd-party app:
+  # You can also configure a 3rd-party app:
   #
   #     config :logger, level: :info
   #
