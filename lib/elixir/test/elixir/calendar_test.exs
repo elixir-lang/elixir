@@ -6,7 +6,7 @@ defmodule FakeCalendar do
   def time_to_string(_, _, _, _), do: "boom"
   def naive_datetime_to_string(_, _, _, _, _, _, _), do: "boom"
   def datetime_to_string(_, _, _, _, _, _, _, _, _, _), do: "boom"
-  def day_rollover_relative_to_midnight_utc, do: {123456,123457}
+  def day_rollover_relative_to_midnight_utc, do: {123456, 123457}
 end
 
 defmodule DateTest do
@@ -127,15 +127,20 @@ defmodule NaiveDateTimeTest do
   test "to_iso8601/1" do
     ndt = ~N[2000-04-16 12:34:15.1234]
     ndt = put_in ndt.calendar, FakeCalendar
-    assert_raise ArgumentError, "cannot convert #{inspect ndt} to target calendar Calendar.ISO, reason: #{inspect ndt.calendar} and Calendar.ISO have different day rollover moments, making this conversion ambiguous",
-    fn ->
+
+    message =
+      "cannot convert #{inspect(ndt)} to target calendar Calendar.ISO, " <>
+      "reason: #{inspect(ndt.calendar)} and Calendar.ISO have different day rollover moments, " <>
+      "making this conversion ambiguous"
+
+    assert_raise ArgumentError, message, fn ->
       NaiveDateTime.to_iso8601(ndt)
     end
   end
 
   test "convert/2" do
     assert NaiveDateTime.convert(~N[2000-01-01 12:34:15.1234], Calendar.Julian) == {:ok, Calendar.Julian.naive_datetime(1999, 12, 19, 12, 34, 15, 123400)}
-    assert (~N[2000-01-01 12:34:15.123456] |> NaiveDateTime.convert!(Calendar.Julian) |> NaiveDateTime.convert!(Calendar.ISO)) == ~N[2000-01-01 12:34:15.123456]
+    assert ~N[2000-01-01 12:34:15.123456] |> NaiveDateTime.convert!(Calendar.Julian) |> NaiveDateTime.convert!(Calendar.ISO) == ~N[2000-01-01 12:34:15.123456]
     assert NaiveDateTime.convert(~N[2016-02-03 00:00:01], FakeCalendar) == {:error, :incompatible_calendars}
   end
 end
