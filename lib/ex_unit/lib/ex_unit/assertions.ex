@@ -123,10 +123,8 @@ defmodule ExUnit.Assertions do
         end
       end)
 
-    quote do
-      right = unquote(right)
-      expr  = unquote(code)
-      unquote(vars) =
+    match_expr =
+      no_warning(quote do
         case right do
           unquote(left) ->
             unquote(return)
@@ -138,6 +136,12 @@ defmodule ExUnit.Assertions do
               message: "match (=) failed" <>
                        ExUnit.Assertions.__pins__(unquote(pins))
         end
+      end)
+
+    quote do
+      right = unquote(right)
+      expr = unquote(code)
+      unquote(vars) = unquote(match_expr)
       right
     end
   end
