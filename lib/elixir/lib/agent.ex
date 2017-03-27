@@ -153,14 +153,17 @@ defmodule Agent do
   specified name already exists, the function returns
   `{:error, {:already_started, pid}}` with the PID of that process.
 
-  If the given function callback fails with `reason`, the function returns
-  `{:error, reason}`.
+  If the given function callback fails, the function returns `{:error, reason}`.
 
   ## Examples
 
       iex> {:ok, pid} = Agent.start_link(fn -> 42 end)
       iex> Agent.get(pid, fn state -> state end)
       42
+
+      iex> {:error, {exception, stack}} = Agent.start(fn -> raise "oops" end)
+      iex> exception
+      %RuntimeError{message: "oops"}
 
   """
   @spec start_link((() -> term), GenServer.options) :: on_start
