@@ -1442,12 +1442,15 @@ defmodule String do
 
   defp do_last(nil, last_char), do: last_char
 
-  @doc """
+  @doc ~S"""
   Returns the number of Unicode graphemes in a UTF-8 string.
 
   ## Examples
 
       iex> String.length("elixir")
+      6
+
+      iex> String.length("\u0065\u0301lixir")
       6
 
       iex> String.length("եոգլի")
@@ -1457,7 +1460,7 @@ defmodule String do
   @spec length(t) :: non_neg_integer
   defdelegate length(string), to: String.Unicode
 
-  @doc """
+  @doc ~s"""
   Returns the grapheme at the `position` of the given UTF-8 `string`.
   If `position` is greater than `string` length, then it returns `nil`.
 
@@ -1477,6 +1480,9 @@ defmodule String do
 
       iex> String.at("elixir", -10)
       nil
+
+      iex> String.at("\u0065\u0301lixir", 0)
+      "\u0065\u0301"
 
   """
   @spec at(t, integer) :: grapheme | nil
