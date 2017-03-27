@@ -66,8 +66,9 @@ defmodule Port do
     * `{port, {:data, data}}` - data sent by the port
     * `{port, :closed}` - reply to the `{pid, :close}` message
     * `{port, :connected}` - reply to the `{pid, {:connect, new_pid}}` message
-    * `{:EXIT, port, reason}` - exit signals in case the port crashes and the
-      owner process is trapping exits
+    * `{:EXIT, port, reason}` - exit signals in case the port crashes. If reason
+      is not `:normal`, this message will only be received if the owner process
+      is trapping exits
 
   ## Open mechanisms
 
