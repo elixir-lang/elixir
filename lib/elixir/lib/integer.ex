@@ -405,12 +405,14 @@ defmodule Integer do
   """
   @spec gcd(integer, integer) :: pos_integer
   @spec gcd(0, 0) :: no_return
-  def gcd(a, b)
-  def gcd(0, 0), do: raise ArithmeticError
-  def gcd(a, 0), do: abs(a)
-  def gcd(0, b), do: abs(b)
-  def gcd(a, b) when a < 0 or b < 0, do: gcd(abs(a), abs(b))
-  def gcd(a, b), do: gcd(b, rem(a,b))
+  def gcd(int1, int2) when is_integer(int1) and is_integer(int2) do
+    int_gcd(int1, int2)
+  end
+  defp int_gcd(0, 0), do: raise ArithmeticError
+  defp int_gcd(a, 0), do: abs(a)
+  defp int_gcd(0, b), do: abs(b)
+  defp int_gcd(a, b) when a < 0 or b < 0, do: gcd(abs(a), abs(b))
+  defp int_gcd(a, b), do: gcd(b, rem(a,b))
 
   # TODO: Remove by 2.0
   # (hard-deprecated in elixir_dispatch)
