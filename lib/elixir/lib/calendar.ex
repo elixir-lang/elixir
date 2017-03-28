@@ -589,13 +589,11 @@ defmodule Date do
   end
 
   @doc """
-  Calculates the difference between two dates,
-  in a full number of days, returning `{:ok, difference}`.
+  Calculates the difference between two dates, in a full number of days.
 
-  Note that only `Date` structs that follow the same or
-  compatible calendars can be compared this way.
-  If two calendars are not compatible,
-  `{:error, :incompatible_calendars}` is returned.
+  Note that only `Date` structs that follow the same or compatible
+  calendars can be compared this way. If two calendars are not compatible,
+  it will raise.
 
   ## Examples
 
@@ -605,7 +603,7 @@ defmodule Date do
       -2
 
   """
-  @spec diff(Date.t, Date.t) :: {:ok, integer} | {:error, :incompatible_calendars}
+  @spec diff(Date.t, Date.t) :: integer
   def diff(%Date{} = date1, %Date{} = date2) do
     if Calendar.compatible_calendars?(date1.calendar, date2.calendar) do
       {days1, _} = to_rata_die(date1)
@@ -1047,6 +1045,11 @@ defmodule Time do
 
   @doc """
   Returns the difference between two `Time` structs.
+
+  The answer can be returned in any `unit` available from `t:System.time_unit/0`.
+
+  This function returns the difference in seconds where seconds are measured
+  according to `Calendar.ISO`.
   """
   @spec diff(Time.t, Time.t, System.time_unit) :: integer
   def diff(%Time{} = time1, %Time{} = time2, unit \\ :second) do
@@ -1266,6 +1269,7 @@ defmodule NaiveDateTime do
       # from Gregorian seconds
       iex> NaiveDateTime.add(~N[0000-01-01 00:00:00], 63579428950)
       ~N[2014-10-02 00:29:10]
+
   """
   @spec add(t, integer, System.time_unit) :: t
   def add(%NaiveDateTime{microsecond: {_microsecond, precision}} = naive_datetime,
@@ -1287,7 +1291,8 @@ defmodule NaiveDateTime do
 
   The answer can be returned in any `unit` available from `t:System.time_unit/0`.
 
-  This operation is only possible if both calendars are convertible to `Calendar.ISO`.
+  This function returns the difference in seconds where seconds are measured
+  according to `Calendar.ISO`.
 
   ## Examples
 
@@ -1301,6 +1306,7 @@ defmodule NaiveDateTime do
       # to Gregorian seconds
       iex> NaiveDateTime.diff(~N[2014-10-02 00:29:10], ~N[0000-01-01 00:00:00])
       63579428950
+
   """
   @spec diff(t, t, System.time_unit) :: integer
   def diff(%NaiveDateTime{} = naive_datetime1,
@@ -2291,8 +2297,12 @@ defmodule DateTime do
   end
 
   @doc """
-  Returns the difference between two `DateTime` structs,
-  in the Calendar.rata_die format: {days, day_fraction}
+  Subtracts `datetime2` from `datetime1`.
+
+  The answer can be returned in any `unit` available from `t:System.time_unit/0`.
+
+  This function returns the difference in seconds where seconds are measured
+  according to `Calendar.ISO`.
 
   ## Examples
 
@@ -2306,7 +2316,7 @@ defmodule DateTime do
       18000
 
   """
-  @spec diff(DateTime.t, DateTime.t) :: Calendar.rata_die
+  @spec diff(DateTime.t, DateTime.t) :: integer()
   def diff(%DateTime{utc_offset: utc_offset1, std_offset: std_offset1} = datetime1,
            %DateTime{utc_offset: utc_offset2, std_offset: std_offset2} = datetime2, unit \\ :seconds) do
     {days1, {parts1, ppd1}} =
