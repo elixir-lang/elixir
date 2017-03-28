@@ -223,10 +223,12 @@ defmodule Calendar.ISO do
   def time_to_string(hour, minute, second, {_, 0}) do
     time_to_string(hour, minute, second)
   end
+
   def time_to_string(hour, minute, second, {microsecond, precision}) do
     time_to_string(hour, minute, second) <> "." <>
       (microsecond |> zero_pad(6) |> binary_part(0, precision))
   end
+
   defp time_to_string(hour, minute, second) do
     zero_pad(hour, 2) <> ":" <> zero_pad(minute, 2) <> ":" <> zero_pad(second, 2)
   end
@@ -264,7 +266,7 @@ defmodule Calendar.ISO do
     hour in 0..23 and minute in 0..59 and second in 0..60 and microsecond in 0..999_999
   end
 
-  def day_rollover_relative_to_midnight_utc do
+  def day_rollover_relative_to_midnight_utc() do
     {0, 1}
   end
 
@@ -350,9 +352,11 @@ defmodule Calendar.ISO do
         {{String.to_integer(binary_part(microsecond, 0, 6)), 6}, rest}
     end
   end
+
   def parse_microsecond("," <> rest) do
     parse_microsecond("." <> rest)
   end
+
   def parse_microsecond(rest) do
     {{0, 0}, rest}
   end
@@ -389,6 +393,6 @@ defmodule Calendar.ISO do
   def rata_die_to_unit({days, {parts, ppd}}, unit) do
     day_microseconds = days * @seconds_per_day * @microseconds_per_second
     microseconds = div(parts * @seconds_per_day * @microseconds_per_second, ppd)
-    System.convert_time_unit(day_microseconds + microseconds, :microseconds, unit)
+    System.convert_time_unit(day_microseconds + microseconds, :microsecond, unit)
   end
 end
