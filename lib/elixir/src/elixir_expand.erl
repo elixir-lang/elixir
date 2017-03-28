@@ -316,13 +316,13 @@ expand({'^', Meta, [Arg]}, #{context := match} = E) ->
         true ->
           {{'^', Meta, [Var]}, EA};
         false ->
-          form_error(Meta, ?key(EA, file), ?MODULE, {unbound_variable_hat, VarName})
+          form_error(Meta, ?key(EA, file), ?MODULE, {unbound_variable_pin, VarName})
       end;
     _ ->
-      form_error(Meta, ?key(E, file), ?MODULE, {invalid_arg_for_hat, Arg})
+      form_error(Meta, ?key(E, file), ?MODULE, {invalid_arg_for_pin, Arg})
   end;
 expand({'^', Meta, [Arg]}, E) ->
-  form_error(Meta, ?key(E, file), ?MODULE, {hat_outside_of_match, Arg});
+  form_error(Meta, ?key(E, file), ?MODULE, {pin_outside_of_match, Arg});
 
 expand({'_', _Meta, Kind} = Var, #{context := match} = E) when is_atom(Kind) ->
   {Var, E};
@@ -656,11 +656,11 @@ expand_opts(Meta, Kind, Allowed, Opts, E) ->
 
 validate_opts(Meta, Kind, Allowed, Opts, E) when is_list(Opts) ->
   [begin
-    form_error(Meta, ?key(E, file), ?MODULE, {unsupported_opt, Kind, Key})
+    form_error(Meta, ?key(E, file), ?MODULE, {unsupported_option, Kind, Key})
   end || {Key, _} <- Opts, not lists:member(Key, Allowed)];
 
 validate_opts(Meta, Kind, _Allowed, _Opts, E) ->
-  form_error(Meta, ?key(E, file), ?MODULE, {opts_are_not_a_keyword, Kind}).
+  form_error(Meta, ?key(E, file), ?MODULE, {options_are_not_keyword, Kind}).
 
 no_alias_opts(Opts) when is_list(Opts) ->
   case lists:keyfind(as, 1, Opts) of
@@ -848,12 +848,12 @@ format_error({invalid_context_opt_for_quote, Context}) ->
                 ['Elixir.Macro':to_string(Context)]);
 format_error(wrong_number_of_args_for_super) ->
   "super must be called with the same number of arguments as the current definition";
-format_error({unbound_variable_hat, VarName}) ->
+format_error({unbound_variable_pin, VarName}) ->
   io_lib:format("unbound variable ^~ts", [VarName]);
-format_error({invalid_arg_for_hat, Arg}) ->
+format_error({invalid_arg_for_pin, Arg}) ->
   io_lib:format("invalid argument for unary operator ^, expected an existing variable, got: ^~ts",
                 ['Elixir.Macro':to_string(Arg)]);
-format_error({hat_outside_of_match, Arg}) ->
+format_error({pin_outside_of_match, Arg}) ->
   io_lib:format("cannot use ^~ts outside of match clauses", ['Elixir.Macro':to_string(Arg)]);
 format_error(unbound_underscore) ->
   "unbound variable _";
@@ -889,7 +889,7 @@ format_error({invalid_alias_for_as, Reason, Value}) ->
       not_alias -> "expected an alias, got";
       nested_alias -> "expected a simple alias, got nested alias"
     end,
-  io_lib:format("invalid value for keyword :as, ~ts: ~ts",
+  io_lib:format("invalid value for option :as, ~ts: ~ts",
                 [ExpectedGot, 'Elixir.Macro':to_string(Value)]);
 format_error({invalid_function_call, Expr}) ->
   io_lib:format("invalid function call :~ts.()", [Expr]);
@@ -906,10 +906,10 @@ format_error({invalid_remote_invocation, Context, Receiver, Right, Arity}) ->
 format_error({invalid_pid_or_ref_in_function, PidOrRef, {Name, Arity}}) ->
   io_lib:format("cannot compile PID/Reference ~ts inside quoted expression for function ~ts/~B",
                 ['Elixir.Kernel':inspect(PidOrRef, []), Name, Arity]);
-format_error({unsupported_opt, Kind, Key}) ->
+format_error({unsupported_option, Kind, Key}) ->
   io_lib:format("unsupported option ~ts given to ~s",
                 ['Elixir.Macro':to_string(Key), Kind]);
-format_error({opts_are_not_a_keyword, Kind}) ->
+format_error({options_are_not_keyword, Kind}) ->
   io_lib:format("invalid options for ~s, expected a keyword list", [Kind]);
 format_error({undefined_function, Name, Args}) ->
   io_lib:format("undefined function ~ts/~B", [Name, length(Args)]).

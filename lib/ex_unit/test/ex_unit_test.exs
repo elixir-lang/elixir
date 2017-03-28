@@ -5,7 +5,7 @@ defmodule ExUnitTest do
 
   import ExUnit.CaptureIO
 
-  test "it supports many runs" do
+  test "supports many runs" do
     defmodule SampleTest do
       use ExUnit.Case
 
@@ -25,7 +25,7 @@ defmodule ExUnitTest do
     end) =~ "2 tests, 2 failures"
   end
 
-  test "it doesn't hang on exits" do
+  test "doesn't hang on exits" do
     defmodule EventServerTest do
       use ExUnit.Case
 
@@ -44,7 +44,7 @@ defmodule ExUnitTest do
     end) =~ "1 test, 1 failure"
   end
 
-  test "it supports timeouts" do
+  test "supports timeouts" do
     defmodule TimeoutTest do
       use ExUnit.Case
 
@@ -61,7 +61,7 @@ defmodule ExUnitTest do
     assert output =~ ~r"\(elixir\) lib/process\.ex:\d+: Process\.sleep/1"
   end
 
-  test "it supports configured timeout" do
+  test "supports configured timeout" do
     defmodule ConfiguredTimeoutTest do
       use ExUnit.Case
 
@@ -78,7 +78,7 @@ defmodule ExUnitTest do
     ExUnit.configure(timeout: 60_000)
   end
 
-  test "it sets max cases to one with trace enabled" do
+  test "sets max cases to one with trace enabled" do
     old_config = ExUnit.configuration()
     on_exit(fn -> ExUnit.configure(old_config) end)
 
@@ -89,14 +89,14 @@ defmodule ExUnitTest do
     assert config[:timeout] == 60_000
   end
 
-  test "it does not set timeout to infinity and the max cases to 1 with trace disabled" do
+  test "does not set timeout to infinity and the max cases to 1 with trace disabled" do
     old_config = ExUnit.configuration()
     on_exit(fn -> ExUnit.configure(old_config) end)
 
     ExUnit.start(trace: false, autorun: false)
     config = ExUnit.configuration()
     refute config[:trace]
-    assert config[:max_cases] == :erlang.system_info(:schedulers_online) * 2
+    assert config[:max_cases] == System.schedulers_online * 2
     assert config[:timeout] == 60_000
   end
 

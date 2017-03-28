@@ -214,34 +214,38 @@ defmodule Mix.Utils do
   """
   @spec print_tree([tree_node], (tree_node -> {tree_node, [tree_node]}), Keyword.t) :: :ok
   def print_tree(nodes, callback, opts \\ []) do
-    pretty =
+    pretty? =
       case Keyword.get(opts, :format) do
         "pretty" -> true
         "plain" -> false
-        _ -> elem(:os.type, 0) != :win32
+        _other -> elem(:os.type, 0) != :win32
       end
-    print_tree(nodes, [], nil, MapSet.new(), pretty, callback)
+
+    print_tree(nodes, _depth = [], _parent = nil, _seen = MapSet.new(), pretty?, callback)
 
     :ok
   end
 
-  defp print_tree([], _depth, _parent, seen, _pretty, _callback), do: seen
-  defp print_tree([node | nodes], depth, parent, seen, pretty, callback) do
+  defp print_tree(_nodes = [], _depth, _parent, seen, _pretty, _callback) do
+    seen
+  end
+
+  defp print_tree([node | nodes], depth, parent, seen, pretty?, callback) do
     {{name, info}, children} = callback.(node)
     key = {parent, name}
 
     if MapSet.member?(seen, key) do
       seen
     else
-      space = if info, do: " ", else: ""
-      Mix.shell.info("#{depth(pretty, depth)}#{prefix(pretty, depth, nodes)}#{name}#{space}#{info}")
-      seen = print_tree(children, [(nodes != []) | depth], name, MapSet.put(seen, key), pretty, callback)
-      print_tree(nodes, depth, parent, seen, pretty, callback)
+      info = if(info, do: " #{info}", else: "")
+      Mix.shell.info("#{depth(pretty?, depth)}#{prefix(pretty?, depth, nodes)}#{name}#{info}")
+      seen = print_tree(children, [(nodes != []) | depth], name, MapSet.put(seen, key), pretty?, callback)
+      print_tree(nodes, depth, parent, seen, pretty?, callback)
     end
   end
 
-  defp depth(_pretty, []),    do: ""
-  defp depth(pretty, depth), do: Enum.reverse(depth) |> tl |> Enum.map(&entry(pretty, &1))
+  defp depth(_pretty?, []), do: ""
+  defp depth(pretty?, depth), do: Enum.reverse(depth) |> tl |> Enum.map(&entry(pretty?, &1))
 
   defp entry(false, true),  do: "|   "
   defp entry(false, false), do: "    "

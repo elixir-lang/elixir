@@ -16,13 +16,13 @@ defmodule Calendar.ISO do
   @unix_end 1_000_000 * (-@unix_epoch + :calendar.datetime_to_gregorian_seconds({{9999, 12, 31}, {23, 59, 59}}))
   @unix_range_microseconds @unix_start..@unix_end
 
-  @type year  :: 0..9999
+  @type year :: 0..9999
   @type month :: 1..12
-  @type day   :: 1..31
+  @type day :: 1..31
 
   @seconds_per_minute 60
   @seconds_per_hour 60 * 60
-  @seconds_per_day 24 * 60 * 60 # Note that this does _not_ handle Leap Seconds.
+  @seconds_per_day 24 * 60 * 60 # Note that this does _not_ handle leap seconds.
   @microseconds_per_second 1_000_000
 
   @doc """
@@ -36,6 +36,7 @@ defmodule Calendar.ISO do
       {730120, {43200000000, 86400000000}}
       iex> Calendar.ISO.naive_datetime_to_rata_die(2000, 1, 1, 13, 0, 0, {0, 6})
       {730120, {46800000000, 86400000000}}
+
   """
   @spec naive_datetime_to_rata_die(Calendar.year, Calendar.month, Calendar.day,
                                    Calendar.hour, Calendar.minute, Calendar.second,
@@ -75,7 +76,7 @@ defmodule Calendar.ISO do
   end
 
   @doc """
-  Returns the normalized Day Fraction of the specified time.
+  Returns the normalized day fraction of the specified time.
 
   ## Examples
 
@@ -83,6 +84,7 @@ defmodule Calendar.ISO do
       {0, 86400000000}
       iex> Calendar.ISO.time_to_day_fraction(12, 34, 56, {123, 6})
       {45296000123, 86400000000}
+
   """
   @spec time_to_day_fraction(Calendar.hour, Calendar.minute,
                              Calendar.second, Calendar.microsecond) :: Calendar.day_fraction
@@ -91,7 +93,7 @@ defmodule Calendar.ISO do
   end
 
   @doc """
-  Converts a Day Fraction to this Calendar's representation of time.
+  Converts a day fraction to this Calendar's representation of time.
 
   ## Examples
 
@@ -133,9 +135,9 @@ defmodule Calendar.ISO do
     {hours, minutes, seconds, microseconds}
   end
 
-  defp div_mod(x, y) when is_integer(x) and is_integer(y) do
-    div = div(x, y)
-    mod = x - (div * y)
+  defp div_mod(int1, int2) do
+    div = div(int1, int2)
+    mod = int1 - (div * int2)
     {div, mod}
   end
 
@@ -362,8 +364,8 @@ defmodule Calendar.ISO do
     {{0, 0}, rest}
   end
 
-  defp parse_microsecond(<<h, t::binary>>, precision, acc) when h in ?0..?9,
-    do: parse_microsecond(t, precision + 1, <<acc::binary, h>>)
+  defp parse_microsecond(<<head, tail::binary>>, precision, acc) when head in ?0..?9,
+    do: parse_microsecond(tail, precision + 1, <<acc::binary, head>>)
   defp parse_microsecond(rest, precision, acc),
     do: {acc, precision, rest}
 
