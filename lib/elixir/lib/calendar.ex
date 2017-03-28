@@ -2172,27 +2172,24 @@ defmodule DateTime do
          {min, ""} <- Integer.parse(min),
          {sec, ""} <- Integer.parse(sec),
          {microsec, rest} <- Calendar.ISO.parse_microsecond(rest),
-         {:ok, date} <- Calendar.ISO.date(year, month, day),
+         {:ok, date} <- Date.new(year, month, day),
          {:ok, time} <- Time.new(hour, min, sec, microsec),
          {:ok, offset} <- parse_offset(rest) do
       %{year: year, month: month, day: day} = date
       %{hour: hour, minute: minute, second: second, microsecond: microsecond} = time
 
-      erl = {{year, month, day}, {hour, minute, second}}
-      seconds = :calendar.datetime_to_gregorian_seconds(erl)
-      {{year, month, day}, {hour, minute, second}} =
-        :calendar.gregorian_seconds_to_datetime(seconds - offset)
-      iso_datetime = %DateTime{year: year, month: month, day: day,
-                               hour: hour, minute: minute, second: second, microsecond: microsecond,
-                               std_offset: 0, utc_offset: 0, zone_abbr: "UTC", time_zone: "Etc/UTC"}
-      with {:ok, datetime} <- convert(iso_datetime, calendar),
-           do: {:ok, datetime, offset}
+      datetime =
+        Calendar.ISO.naive_datetime_to_rata_die(year, month, day, hour, minute, second, microsecond)
+        |> apply_tz_offset(offset)
+        |> normalize_rata_die
+        |> from_rata_die("Etc/UTC", "UTC", 0, 0, calendar)
+
+      {:ok, %{datetime | microsecond: microsec}, offset}
     else
       {:error, reason} -> {:error, reason}
       _ -> {:error, :invalid_format}
     end
   end
-
 
   def from_iso8601(_, _) do
     {:error, :invalid_format}
@@ -2397,6 +2394,10 @@ defmodule DateTime do
 
   defp from_rata_die(rata_die, datetime, calendar) do
     %{time_zone: time_zone, zone_abbr: zone_abbr, utc_offset: utc_offset, std_offset: std_offset} = datetime
+    from_rata_die(rata_die, time_zone, zone_abbr, utc_offset, std_offset, calendar)
+  end
+
+  defp from_rata_die(rata_die, time_zone, zone_abbr, utc_offset, std_offset, calendar) do
     {year, month, day, hour, minute, second, microsecond} = calendar.naive_datetime_from_rata_die(rata_die)
     %DateTime{year: year, month: month, day: day,
               hour: hour, minute: minute, second: second, microsecond: microsecond,

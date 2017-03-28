@@ -218,6 +218,20 @@ defmodule Calendar.ISO do
   end
 
   @doc """
+  Converts the given time into a string.
+  """
+  def time_to_string(hour, minute, second, {_, 0}) do
+    time_to_string(hour, minute, second)
+  end
+  def time_to_string(hour, minute, second, {microsecond, precision}) do
+    time_to_string(hour, minute, second) <> "." <>
+      (microsecond |> zero_pad(6) |> binary_part(0, precision))
+  end
+  defp time_to_string(hour, minute, second) do
+    zero_pad(hour, 2) <> ":" <> zero_pad(minute, 2) <> ":" <> zero_pad(second, 2)
+  end
+
+  @doc """
   Converts the given date into a string.
   """
   def date_to_string(year, month, day) do
@@ -275,27 +289,6 @@ defmodule Calendar.ISO do
   end
 
   ## Helpers
-
-  @doc false
-  def time_to_string(hour, minute, second, {_, 0}) do
-    time_to_string(hour, minute, second)
-  end
-  def time_to_string(hour, minute, second, {microsecond, precision}) do
-    time_to_string(hour, minute, second) <> "." <>
-      (microsecond |> zero_pad(6) |> binary_part(0, precision))
-  end
-  defp time_to_string(hour, minute, second) do
-    zero_pad(hour, 2) <> ":" <> zero_pad(minute, 2) <> ":" <> zero_pad(second, 2)
-  end
-
-  @doc false
-  def date(year, month, day) when is_integer(year) and is_integer(month) and is_integer(day) do
-    if :calendar.valid_date(year, month, day) and year <= 9999 do
-      {:ok, %Date{year: year, month: month, day: day}}
-    else
-      {:error, :invalid_date}
-    end
-  end
 
   @doc false
   def from_unix(integer, unit) when is_integer(integer) do
