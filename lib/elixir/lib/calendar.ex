@@ -193,7 +193,7 @@ defmodule Calendar do
   @spec compatible_calendars?(Calendar.calendar, Calendar.calendar) :: boolean
   def compatible_calendars?(calendar, calendar), do: true
   def compatible_calendars?(calendar1, calendar2) do
-    calendar1.day_rollover_relative_to_midnight_utc == calendar2.day_rollover_relative_to_midnight_utc
+    calendar1.day_rollover_relative_to_midnight_utc() == calendar2.day_rollover_relative_to_midnight_utc()
   end
 end
 
@@ -1053,9 +1053,9 @@ defmodule Time do
   """
   @spec diff(Time.t, Time.t, System.time_unit) :: integer
   def diff(%Time{} = time1, %Time{} = time2, unit \\ :second) do
-    parts1 = to_day_fraction(time1)
-    parts2 = to_day_fraction(time2)
-    Calendar.ISO.rata_die_to_unit({0, parts1}, unit) - Calendar.ISO.rata_die_to_unit({0, parts2}, unit)
+    fraction1 = to_day_fraction(time1)
+    fraction2 = to_day_fraction(time2)
+    Calendar.ISO.rata_die_to_unit({0, fraction1}, unit) - Calendar.ISO.rata_die_to_unit({0, fraction2}, unit)
   end
 
   ## Helpers
@@ -1307,9 +1307,9 @@ defmodule NaiveDateTime do
       raise ArgumentError, "cannot calculate the difference between #{inspect naive_datetime1} and #{inspect naive_datetime2} because their calendars are not compatible and thus the result would be ambiguous"
     end
 
-    unit1 = naive_datetime1 |> to_rata_die() |> Calendar.ISO.rata_die_to_unit(unit)
-    unit2 = naive_datetime2 |> to_rata_die() |> Calendar.ISO.rata_die_to_unit(unit)
-    unit1 - unit2
+    units1 = naive_datetime1 |> to_rata_die() |> Calendar.ISO.rata_die_to_unit(unit)
+    units2 = naive_datetime2 |> to_rata_die() |> Calendar.ISO.rata_die_to_unit(unit)
+    units1 - units2
   end
 
   @doc """
@@ -1950,9 +1950,9 @@ defmodule DateTime do
 
   def to_unix(%DateTime{utc_offset: utc_offset, std_offset: std_offset} = datetime, unit) do
     {days, fraction} = to_rata_die(datetime)
-    unix_unit = Calendar.ISO.rata_die_to_unit({days - @unix_days, fraction}, unit)
-    offset_unit = System.convert_time_unit(utc_offset + std_offset, :second, unit)
-    unix_unit - offset_unit
+    unix_units = Calendar.ISO.rata_die_to_unit({days - @unix_days, fraction}, unit)
+    offset_units = System.convert_time_unit(utc_offset + std_offset, :second, unit)
+    unix_units - offset_units
   end
 
   @doc """
@@ -2115,11 +2115,11 @@ defmodule DateTime do
          {month, ""} <- Integer.parse(month),
          {day, ""} <- Integer.parse(day),
          {hour, ""} <- Integer.parse(hour),
-         {min, ""} <- Integer.parse(min),
-         {sec, ""} <- Integer.parse(sec),
-         {microsec, rest} <- Calendar.ISO.parse_microsecond(rest),
+         {minute, ""} <- Integer.parse(min),
+         {second, ""} <- Integer.parse(sec),
+         {microsecond, rest} <- Calendar.ISO.parse_microsecond(rest),
          {:ok, date} <- Date.new(year, month, day),
-         {:ok, time} <- Time.new(hour, min, sec, microsec),
+         {:ok, time} <- Time.new(hour, minute, second, microsecond),
          {:ok, offset} <- parse_offset(rest) do
       %{year: year, month: month, day: day} = date
       %{hour: hour, minute: minute, second: second, microsecond: microsecond} = time
@@ -2129,7 +2129,7 @@ defmodule DateTime do
         |> apply_tz_offset(offset)
         |> from_rata_die("Etc/UTC", "UTC", 0, 0, calendar)
 
-      {:ok, %{datetime | microsecond: microsec}, offset}
+      {:ok, %{datetime | microsecond: microsecond}, offset}
     else
       {:error, reason} -> {:error, reason}
       _ -> {:error, :invalid_format}
@@ -2265,7 +2265,7 @@ defmodule DateTime do
       (datetime2 |> to_rata_die() |> Calendar.ISO.rata_die_to_unit(unit))
     offset_diff =
       (utc_offset2 + std_offset2) - (utc_offset1 + std_offset1)
-    naive_diff + System.convert_time_unit(offset_diff, :seconds, unit)
+    naive_diff + System.convert_time_unit(offset_diff, :second, unit)
   end
 
   @doc """
