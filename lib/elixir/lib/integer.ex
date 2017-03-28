@@ -380,6 +380,40 @@ defmodule Integer do
     :erlang.integer_to_list(integer, base)
   end
 
+  @doc """
+  Returns the greatest common divisor of the two given numbers.
+
+  This is the largest positive integer that divides both `a` and `b` without leaving a remainder.
+
+  ## Examples
+
+      iex> Integer.gcd(2, 4)
+      2
+      iex> Integer.gcd(2, 3)
+      1
+      iex> Integer.gcd(12, 8)
+      4
+      iex> Integer.gcd(54, 24)
+      6
+      iex> Integer.gcd(-54, 24)
+      6
+      iex> Integer.gcd(10, 0)
+      10
+      iex> Integer.gcd(0, 0)
+      ** (ArithmeticError) bad argument in arithmetic expression
+
+  """
+  @spec gcd(integer, integer) :: pos_integer
+  @spec gcd(0, 0) :: no_return
+  def gcd(int1, int2) when is_integer(int1) and is_integer(int2) do
+    int_gcd(int1, int2)
+  end
+  defp int_gcd(0, 0), do: raise ArithmeticError
+  defp int_gcd(a, 0), do: abs(a)
+  defp int_gcd(0, b), do: abs(b)
+  defp int_gcd(a, b) when a < 0 or b < 0, do: gcd(abs(a), abs(b))
+  defp int_gcd(a, b), do: gcd(b, rem(a,b))
+
   # TODO: Remove by 2.0
   # (hard-deprecated in elixir_dispatch)
   @doc false

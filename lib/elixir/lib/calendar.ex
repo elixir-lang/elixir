@@ -612,7 +612,7 @@ defmodule Date do
       {days2, _} = to_rata_die(date2)
       days1 - days2
     else
-      raise ArgumentError, "cannot compute the different between #{inspect date1} and #{inspect date2}, reason: :incompatible_calendars"
+      raise ArgumentError, "cannot calculate the difference between #{inspect date1} and #{inspect date2} because their calendars are not compatible and thus the result would be ambiguous"
     end
   end
 
@@ -1057,16 +1057,11 @@ defmodule Time do
     diff_parts = parts1 * ppd2 - parts2 * ppd1
 
     # Keep integers in day fraction low.
-    gcd = gcd(diff_parts, diff_ppd)
+    gcd = Integer.gcd(diff_parts, diff_ppd)
     diff_parts = div(diff_parts, gcd)
     diff_ppd = div(diff_ppd, gcd)
 
-    microseconds =
-      {diff_parts, diff_ppd}
-      |> Calendar.ISO.time_from_day_fraction
-      |> to_microsecond
-
-    System.convert_time_unit(microseconds, unit, :microsecond)
+    Calendar.ISO.rata_die_to_unit({0, {diff_parts, diff_ppd}}, unit)
   end
 
   ## Helpers
@@ -1078,16 +1073,6 @@ defmodule Time do
   defp to_day_fraction(%{hour: hour, minute: minute, second: second, microsecond: microsecond, calendar: calendar}) do
     calendar.time_to_day_fraction(hour, minute, second, {microsecond, 0})
   end
-
-  defp to_microsecond({hour, minute, second, {microsecond, _}}) do
-    seconds = hour * 3600 + minute * 60 + second
-    seconds * 1_000_000 + microsecond
-  end
-
-  defp gcd(int1, 0), do: abs(int1)
-  defp gcd(0, int2), do: abs(int2)
-  defp gcd(int1, int2) when int1 < 0 or int2 < 0, do: gcd(abs(int1), abs(int2))
-  defp gcd(int1, int2), do: gcd(int2, rem(int1, int2))
 
   defimpl String.Chars do
     def to_string(%{hour: hour, minute: minute, second: second, microsecond: microsecond, calendar: calendar}) do
@@ -1321,10 +1306,25 @@ defmodule NaiveDateTime do
   def diff(%NaiveDateTime{} = naive_datetime1,
            %NaiveDateTime{} = naive_datetime2,
            unit \\ :second) do
-    ndt1_microsecond = to_microsecond(naive_datetime1)
-    ndt2_microsecond = to_microsecond(naive_datetime2)
-    difference = ndt1_microsecond - ndt2_microsecond
-    System.convert_time_unit(difference, :microsecond, unit)
+    if not Calendar.compatible_calendars?(naive_datetime1.calendar, naive_datetime2.calendar) do
+      raise ArgumentError, "cannot calculate the difference between #{inspect naive_datetime1} and #{inspect naive_datetime2} because their calendars are not compatible and thus the result would be ambiguous"
+    end
+
+    {days1, {parts1, ppd1}} = to_rata_die(naive_datetime1)
+    {days2, {parts2, ppd2}} = to_rata_die(naive_datetime2)
+
+    diff_days = days1 - days2
+    diff_ppd = ppd1 * ppd2
+    diff_parts = parts1 * ppd2 - parts2 * ppd1
+
+    # Keep integers in day fraction low.
+    gcd = Integer.gcd(diff_parts, diff_ppd)
+    diff_parts = div(diff_parts, gcd)
+    diff_ppd = div(diff_ppd, gcd)
+
+    {diff_days, {diff_parts, diff_ppd}}
+    |> normalize_rata_die
+    |> Calendar.ISO.rata_die_to_unit(unit)
   end
 
   @doc """
@@ -1726,6 +1726,13 @@ defmodule NaiveDateTime do
   defp from_rata_die(rata_die, calendar) do
     {year, month, day, hour, minute, second, microsecond} = calendar.naive_datetime_from_rata_die(rata_die)
     %NaiveDateTime{year: year, month: month, day: day, hour: hour, minute: minute, second: second, microsecond: microsecond, calendar: calendar}
+  end
+
+  defp normalize_rata_die({diff_days, {diff_parts, diff_ppd}}) when diff_parts < 0 do
+    {diff_days - 1, {diff_ppd + diff_parts, diff_ppd}}
+  end
+  defp normalize_rata_die({diff_days, {diff_parts, diff_ppd}}) do
+    {diff_days, {diff_parts, diff_ppd}}
   end
 
   defimpl String.Chars do
@@ -2299,7 +2306,7 @@ defmodule DateTime do
       ...>                 hour: 23, minute: 0, second: 7, microsecond: {0, 0},
       ...>                 utc_offset: 3600, std_offset: 0, time_zone: "Europe/Warsaw"}
       iex> DateTime.diff(dt1, dt2)
-      18000000000000000
+      18000
 
   """
   @spec diff(DateTime.t, DateTime.t) :: Calendar.rata_die
@@ -2319,15 +2326,13 @@ defmodule DateTime do
     diff_parts = parts1 * ppd2 - parts2 * ppd1
 
     # Keep integers in day fraction low.
-    gcd = gcd(diff_parts, diff_ppd)
+    gcd = Integer.gcd(diff_parts, diff_ppd)
     diff_parts = div(diff_parts, gcd)
     diff_ppd = div(diff_ppd, gcd)
 
-    {days, {parts, ppd}} = normalize_rata_die({diff_days, {diff_parts, diff_ppd}})
-    day_seconds = days * 86400
-    seconds = div(parts * 86400, ppd)
-    microseconds = 1_000_000 * (day_seconds + seconds)
-    System.convert_time_unit(microseconds, unit, :microsecond)
+    {diff_days, {diff_parts, diff_ppd}}
+    |> normalize_rata_die
+    |> Calendar.ISO.rata_die_to_unit(unit)
   end
 
   @doc """
@@ -2404,7 +2409,7 @@ defmodule DateTime do
 
     parts = parts * offset_ppd
     offset = offset * ppd
-    gcd = gcd(ppd, offset_ppd)
+    gcd = Integer.gcd(ppd, offset_ppd)
     result_parts = div(parts - offset, gcd)
     result_ppd = div(ppd * offset_ppd, gcd)
     days_offset = div(result_parts, result_ppd)
@@ -2419,9 +2424,4 @@ defmodule DateTime do
   defp normalize_rata_die({diff_days, {diff_parts, diff_ppd}}) do
     {diff_days, {diff_parts, diff_ppd}}
   end
-
-  defp gcd(int1, 0), do: abs(int1)
-  defp gcd(0, int2), do: abs(int2)
-  defp gcd(int1, int2) when int1 < 0 or int2 < 0, do: gcd(abs(int1), abs(int2))
-  defp gcd(int1, int2), do: gcd(int2, rem(int1, int2))
 end
