@@ -187,7 +187,7 @@ defmodule DateTimeTest do
     }
     assert DateTime.from_unix!(-62167219200) == datetime
 
-    assert_raise ArgumentError, "invalid Unix time -62167219201", fn ->
+    assert_raise ArgumentError, fn ->
       DateTime.from_unix!(-62167219201)
     end
   end
@@ -200,7 +200,7 @@ defmodule DateTimeTest do
     assert DateTime.to_unix(gregorian_0) == -62167219200
 
     before_gregorian_0 = %DateTime{gregorian_0 | year: -1}
-    assert_raise ArgumentError, fn ->
+    assert_raise FunctionClauseError, fn ->
       DateTime.to_unix(before_gregorian_0)
     end
   end
