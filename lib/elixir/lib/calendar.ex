@@ -1053,18 +1053,9 @@ defmodule Time do
   """
   @spec diff(Time.t, Time.t, System.time_unit) :: integer
   def diff(%Time{} = time1, %Time{} = time2, unit \\ :second) do
-    {parts1, ppd1} = to_day_fraction(time1)
-    {parts2, ppd2} = to_day_fraction(time2)
-
-    diff_ppd = ppd1 * ppd2
-    diff_parts = parts1 * ppd2 - parts2 * ppd1
-
-    # Keep integers in day fraction low.
-    gcd = Integer.gcd(diff_parts, diff_ppd)
-    diff_parts = div(diff_parts, gcd)
-    diff_ppd = div(diff_ppd, gcd)
-
-    Calendar.ISO.rata_die_to_unit({0, {diff_parts, diff_ppd}}, unit)
+    parts1 = to_day_fraction(time1)
+    parts2 = to_day_fraction(time2)
+    Calendar.ISO.rata_die_to_unit({0, parts1}, unit) - Calendar.ISO.rata_die_to_unit({0, parts2}, unit)
   end
 
   ## Helpers
@@ -1316,21 +1307,9 @@ defmodule NaiveDateTime do
       raise ArgumentError, "cannot calculate the difference between #{inspect naive_datetime1} and #{inspect naive_datetime2} because their calendars are not compatible and thus the result would be ambiguous"
     end
 
-    {days1, {parts1, ppd1}} = to_rata_die(naive_datetime1)
-    {days2, {parts2, ppd2}} = to_rata_die(naive_datetime2)
-
-    diff_days = days1 - days2
-    diff_ppd = ppd1 * ppd2
-    diff_parts = parts1 * ppd2 - parts2 * ppd1
-
-    # Keep integers in day fraction low.
-    gcd = Integer.gcd(diff_parts, diff_ppd)
-    diff_parts = div(diff_parts, gcd)
-    diff_ppd = div(diff_ppd, gcd)
-
-    {diff_days, {diff_parts, diff_ppd}}
-    |> normalize_rata_die
-    |> Calendar.ISO.rata_die_to_unit(unit)
+    unit1 = naive_datetime1 |> to_rata_die() |> Calendar.ISO.rata_die_to_unit(unit)
+    unit2 = naive_datetime2 |> to_rata_die() |> Calendar.ISO.rata_die_to_unit(unit)
+    unit1 - unit2
   end
 
   @doc """
@@ -1734,13 +1713,6 @@ defmodule NaiveDateTime do
     %NaiveDateTime{year: year, month: month, day: day, hour: hour, minute: minute, second: second, microsecond: microsecond, calendar: calendar}
   end
 
-  defp normalize_rata_die({diff_days, {diff_parts, diff_ppd}}) when diff_parts < 0 do
-    {diff_days - 1, {diff_ppd + diff_parts, diff_ppd}}
-  end
-  defp normalize_rata_die({diff_days, {diff_parts, diff_ppd}}) do
-    {diff_days, {diff_parts, diff_ppd}}
-  end
-
   defimpl String.Chars do
     def to_string(%{calendar: calendar, year: year, month: month, day: day,
                      hour: hour, minute: minute, second: second, microsecond: microsecond}) do
@@ -1803,7 +1775,7 @@ defmodule DateTime do
                          time_zone: Calendar.time_zone, zone_abbr: Calendar.zone_abbr,
                          utc_offset: Calendar.utc_offset, std_offset: Calendar.std_offset}
 
-  @unix_epoch :calendar.datetime_to_gregorian_seconds {{1970, 1, 1}, {0, 0, 0}}
+  @unix_days :calendar.date_to_gregorian_days({1970, 1, 1}) - 365
 
   @doc """
   Returns the current datetime in UTC.
@@ -1849,16 +1821,8 @@ defmodule DateTime do
         minute: 5, month: 3, second: 22, std_offset: 0, time_zone: "Etc/UTC",
         utc_offset: 0, year: 6403, zone_abbr: "UTC"}}
 
-
-  Negative Unix times are supported, up to -#{@unix_epoch} seconds,
+  Negative Unix times are supported, up to -62167219200 seconds,
   which is equivalent to "0000-01-01T00:00:00Z" or 0 Gregorian seconds.
-
-      iex> DateTime.from_unix(-12345678910)
-      {:ok, %DateTime{calendar: Calendar.ISO, day: 13, hour: 4, microsecond: {0, 0}, minute: 44,
-                      month: 10, second: 50, std_offset: 0, time_zone: "Etc/UTC", utc_offset: 0,
-                      year: 1578, zone_abbr: "UTC"}}
-
-  When a Unix time before that moment is passed to `from_unix/2`, `:error` will be returned.
   """
   @spec from_unix(integer, :native | System.time_unit, Calendar.calendar) :: {:ok, DateTime.t} | {:error, atom}
   def from_unix(integer, unit \\ :second, calendar \\ Calendar.ISO) when is_integer(integer) do
@@ -1895,15 +1859,6 @@ defmodule DateTime do
                 month: 5, second: 8, std_offset: 0, time_zone: "Etc/UTC", utc_offset: 0,
                 year: 2015, zone_abbr: "UTC"}
 
-  Negative Unix times are supported, up to -#{@unix_epoch} seconds,
-  which is equivalent to "0000-01-01T00:00:00Z" or 0 Gregorian seconds.
-
-      iex> DateTime.from_unix(-12345678910)
-      {:ok, %DateTime{calendar: Calendar.ISO, day: 13, hour: 4, microsecond: {0, 0}, minute: 44,
-                      month: 10, second: 50, std_offset: 0, time_zone: "Etc/UTC", utc_offset: 0,
-                      year: 1578, zone_abbr: "UTC"}}
-
-  When a Unix time before that moment is passed to `from_unix!/2`, an ArgumentError will be raised.
   """
   @spec from_unix!(integer, :native | System.time_unit, Calendar.calendar) :: DateTime.t
   def from_unix!(integer, unit \\ :second, calendar \\ Calendar.ISO) when is_atom(unit) do
@@ -1993,26 +1948,11 @@ defmodule DateTime do
   @spec to_unix(DateTime.t, System.time_unit) :: non_neg_integer
   def to_unix(datetime, unit \\ :second)
 
-  def to_unix(%DateTime{calendar: Calendar.ISO, std_offset: std_offset, utc_offset: utc_offset,
-                        hour: hour, minute: minute, second: second, microsecond: {microsecond, _},
-                        year: year, month: month, day: day}, unit) when year >= 0 do
-    seconds =
-      :calendar.datetime_to_gregorian_seconds({{year, month, day}, {hour, minute, second}})
-      |> Kernel.-(utc_offset)
-      |> Kernel.-(std_offset)
-    System.convert_time_unit((seconds - @unix_epoch) * 1_000_000 + microsecond, :microsecond, unit)
-  end
-
-  def to_unix(%DateTime{calendar: Calendar.ISO, year: year}, _unit) when year < 0 do
-    raise ArgumentError, "cannot convert DateTimes before the ISO year 0 to a Unix time"
-  end
-
-  def to_unix(%DateTime{calendar: _, std_offset: _, utc_offset: _,
-                        hour: _, minute: _, second: _, microsecond: {_, _},
-                        year: _, month: _, day: _} = datetime, unit) do
-    datetime
-    |> convert!(Calendar.ISO)
-    |> to_unix(unit)
+  def to_unix(%DateTime{utc_offset: utc_offset, std_offset: std_offset} = datetime, unit) do
+    {days, fraction} = to_rata_die(datetime)
+    unix_unit = Calendar.ISO.rata_die_to_unit({days - @unix_days, fraction}, unit)
+    offset_unit = System.convert_time_unit(utc_offset + std_offset, :second, unit)
+    unix_unit - offset_unit
   end
 
   @doc """
@@ -2187,7 +2127,6 @@ defmodule DateTime do
       datetime =
         Calendar.ISO.naive_datetime_to_rata_die(year, month, day, hour, minute, second, microsecond)
         |> apply_tz_offset(offset)
-        |> normalize_rata_die
         |> from_rata_die("Etc/UTC", "UTC", 0, 0, calendar)
 
       {:ok, %{datetime | microsecond: microsec}, offset}
@@ -2275,15 +2214,17 @@ defmodule DateTime do
 
   """
   @spec compare(DateTime.t, DateTime.t) :: :lt | :eq | :gt
-  def compare(%DateTime{utc_offset: utc_offset1, std_offset: std_offset1} = datetime1, %DateTime{utc_offset: utc_offset2, std_offset: std_offset2} = datetime2) do
+  def compare(%DateTime{utc_offset: utc_offset1, std_offset: std_offset1} = datetime1,
+              %DateTime{utc_offset: utc_offset2, std_offset: std_offset2} = datetime2) do
     {days1, {parts1, ppd1}} =
-      to_rata_die(datetime1)
-      |> apply_tz_offset(utc_offset1)
-      |> apply_tz_offset(std_offset1)
+      datetime1
+      |> to_rata_die()
+      |> apply_tz_offset(utc_offset1 + std_offset1)
+
     {days2, {parts2, ppd2}} =
-      to_rata_die(datetime2)
-      |> apply_tz_offset(utc_offset2)
-      |> apply_tz_offset(std_offset2)
+      datetime2
+      |> to_rata_die()
+      |> apply_tz_offset(utc_offset2 + std_offset2)
 
     # Ensure fraction tuples have same denominator.
     rata_die1 = {days1, parts1 * ppd2}
@@ -2319,27 +2260,12 @@ defmodule DateTime do
   @spec diff(DateTime.t, DateTime.t) :: integer()
   def diff(%DateTime{utc_offset: utc_offset1, std_offset: std_offset1} = datetime1,
            %DateTime{utc_offset: utc_offset2, std_offset: std_offset2} = datetime2, unit \\ :seconds) do
-    {days1, {parts1, ppd1}} =
-      to_rata_die(datetime1)
-      |> apply_tz_offset(utc_offset1)
-      |> apply_tz_offset(std_offset1)
-    {days2, {parts2, ppd2}} =
-      to_rata_die(datetime2)
-      |> apply_tz_offset(utc_offset2)
-      |> apply_tz_offset(std_offset2)
-
-    diff_days = days1 - days2
-    diff_ppd = ppd1 * ppd2
-    diff_parts = parts1 * ppd2 - parts2 * ppd1
-
-    # Keep integers in day fraction low.
-    gcd = Integer.gcd(diff_parts, diff_ppd)
-    diff_parts = div(diff_parts, gcd)
-    diff_ppd = div(diff_ppd, gcd)
-
-    {diff_days, {diff_parts, diff_ppd}}
-    |> normalize_rata_die
-    |> Calendar.ISO.rata_die_to_unit(unit)
+    naive_diff =
+      (datetime1 |> to_rata_die() |> Calendar.ISO.rata_die_to_unit(unit)) -
+      (datetime2 |> to_rata_die() |> Calendar.ISO.rata_die_to_unit(unit))
+    offset_diff =
+      (utc_offset2 + std_offset2) - (utc_offset1 + std_offset1)
+    naive_diff + System.convert_time_unit(offset_diff, :seconds, unit)
   end
 
   @doc """
@@ -2426,13 +2352,5 @@ defmodule DateTime do
     days_offset = div(result_parts, result_ppd)
     final_parts = rem(result_parts, result_ppd)
     {days + days_offset, {final_parts, result_ppd}}
-  end
-
-  defp normalize_rata_die({diff_days, {diff_parts, diff_ppd}}) when diff_parts < 0 do
-    {diff_days - 1, {diff_ppd + diff_parts, diff_ppd}}
-  end
-
-  defp normalize_rata_die({diff_days, {diff_parts, diff_ppd}}) do
-    {diff_days, {diff_parts, diff_ppd}}
   end
 end
