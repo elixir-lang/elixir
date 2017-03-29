@@ -128,3 +128,9 @@ defimpl Inspect, for: Range do
     concat [to_doc(first, opts), "..", to_doc(last, opts)]
   end
 end
+
+defimpl String.Chars, for: Range do
+  def to_string(first..last) do
+     "#{first}..#{last}"
+  end
+end
