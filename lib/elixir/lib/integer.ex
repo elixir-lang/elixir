@@ -404,6 +404,7 @@ defmodule Integer do
       0
 
   """
+  @spec gcd(0, 0) :: 0
   @spec gcd(integer, integer) :: pos_integer
   def gcd(int1, int2) when is_integer(int1) and is_integer(int2) do
     gcd_positive(abs(int1), abs(int2))
