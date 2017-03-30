@@ -387,18 +387,18 @@ defmodule Integer do
 
   ## Examples
 
-      iex> Integer.gcd(2, 4)
-      2
       iex> Integer.gcd(2, 3)
       1
-      iex> Integer.gcd(12, 8)
+
+      iex> Integer.gcd(8, 12)
       4
-      iex> Integer.gcd(54, 24)
-      6
-      iex> Integer.gcd(-54, 24)
-      6
+
+      iex> Integer.gcd(8, -12)
+      4
+
       iex> Integer.gcd(10, 0)
       10
+
       iex> Integer.gcd(0, 0)
       0
 

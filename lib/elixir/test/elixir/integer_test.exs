@@ -239,4 +239,19 @@ defmodule IntegerTest do
     module = Integer
     assert module.to_char_list(42, 2) == '101010'
   end
+
+  test "gcd/2" do
+    assert Integer.gcd(1, 5) == 1
+    assert Integer.gcd(2, 3) == 1
+    assert Integer.gcd(8, 12) == 4
+    assert Integer.gcd(-8, 12) == 4
+    assert Integer.gcd(8, -12) == 4
+    assert Integer.gcd(-8, -12) == 4
+    assert Integer.gcd(27, 27) == 27
+    assert Integer.gcd(0, 3) == 3
+    assert Integer.gcd(0, -3) == 3
+    assert Integer.gcd(3, 0) == 3
+    assert Integer.gcd(-3, 0) == 3
+    assert Integer.gcd(0, 0) == 0
+  end
 end
