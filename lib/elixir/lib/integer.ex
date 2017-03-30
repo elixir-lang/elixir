@@ -400,6 +400,9 @@ defmodule Integer do
       iex> Integer.gcd(10, 0)
       10
 
+      iex> Integer.gcd(7, 7)
+      7
+
       iex> Integer.gcd(0, 0)
       0
 

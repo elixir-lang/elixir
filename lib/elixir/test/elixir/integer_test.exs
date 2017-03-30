@@ -248,6 +248,8 @@ defmodule IntegerTest do
     assert Integer.gcd(8, -12) == 4
     assert Integer.gcd(-8, -12) == 4
     assert Integer.gcd(27, 27) == 27
+    assert Integer.gcd(-27, -27) == 27
+    assert Integer.gcd(-27, 27) == 27
     assert Integer.gcd(0, 3) == 3
     assert Integer.gcd(0, -3) == 3
     assert Integer.gcd(3, 0) == 3
