@@ -899,7 +899,7 @@ defmodule GenServer do
 
   @doc """
   Returns the `pid` or `{name, node}` of a GenServer process, or `nil` if
-  no process is associated with the given name.
+  no process is associated with the given `server`.
 
   ## Examples
 
@@ -911,6 +911,8 @@ defmodule GenServer do
 
   """
   @spec whereis(server) :: pid | {atom, node} | nil
+  def whereis(server)
+
   def whereis(pid) when is_pid(pid), do: pid
   def whereis(name) when is_atom(name) do
     Process.whereis(name)
