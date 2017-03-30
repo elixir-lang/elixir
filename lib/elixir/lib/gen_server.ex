@@ -914,24 +914,29 @@ defmodule GenServer do
   def whereis(server)
 
   def whereis(pid) when is_pid(pid), do: pid
+
   def whereis(name) when is_atom(name) do
     Process.whereis(name)
   end
+
   def whereis({:global, name}) do
     case :global.whereis_name(name) do
       pid when is_pid(pid) -> pid
       :undefined           -> nil
     end
   end
+
   def whereis({:via, mod, name}) do
     case apply(mod, :whereis_name, [name]) do
       pid when is_pid(pid) -> pid
       :undefined           -> nil
     end
   end
+
   def whereis({name, local}) when is_atom(name) and local == node() do
     Process.whereis(name)
   end
+
   def whereis({name, node} = server) when is_atom(name) and is_atom(node) do
     server
   end
