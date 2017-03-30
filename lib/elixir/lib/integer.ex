@@ -384,6 +384,7 @@ defmodule Integer do
   Returns the greatest common divisor of the two given numbers.
 
   This is the largest positive integer that divides both `int1` and `int2` without leaving a remainder.
+  By convention, `Integer.gcd(0, 0)` returns 0.
 
   ## Examples
 
