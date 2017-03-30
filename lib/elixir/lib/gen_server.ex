@@ -197,6 +197,31 @@ defmodule GenServer do
         end
       end
 
+  Note that `c:handle_info/2` callbacks can be used together with the optional
+  `timeout` return value to perform periodic work. The example above can be
+  rewriten to use this feature as follows:
+
+      defmodule MyApp.Periodically do
+        use GenServer
+
+        @timeout 2 * 60 * 60 * 1000 # 2 hours
+
+        def start_link do
+          GenServer.start_link(__MODULE__, %{})
+        end
+
+        def init(state) do
+          {:ok, state, @timeout} # Schedule periodic work on start
+        end
+
+        def handle_info(:timeout, state) do
+          # Do the desired work here and reschedule
+          {:noreply, state, @timeout}
+        end
+      end
+
+  See `c:init/1` for more information.
+
   ## Debugging with the :sys module
 
   GenServers, as [special processes](http://erlang.org/doc/design_principles/spec_proc.html),
