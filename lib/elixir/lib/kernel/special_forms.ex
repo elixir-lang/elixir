@@ -1900,14 +1900,18 @@ defmodule Kernel.SpecialForms do
       end
 
   The `after` clause can be specified even if there are no match clauses.
-  The timeout value given to `after` can be a variable; two special
-  values are allowed:
+  The timeout value given to `after` can be any expression evaluating to
+  one of the allowed values:
 
     * `:infinity` - the process should wait indefinitely for a matching
       message, this is the same as not using a timeout
 
     * `0` - if there is no matching message in the mailbox, the timeout
       will occur immediately
+
+    * positive integer smaller than `4_294_967_295` (`0xFFFFFFFF`
+      in hex notation) - it should be possible to represent the timeout
+      value as an unsigned 32-bit integer.
 
   ## Variables handling
 
