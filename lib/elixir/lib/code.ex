@@ -504,7 +504,7 @@ defmodule Code do
   module uses this function to check if a specific parser exists for a given
   URI scheme.
 
-  ## Code.ensure_compiled/1
+  ## `ensure_compiled/1`
 
   Elixir also contains an `ensure_compiled/1` function that is a
   superset of `ensure_loaded/1`.
@@ -513,8 +513,13 @@ defmodule Code do
   you may need to use a module that was not yet compiled, therefore
   it can't even be loaded.
 
-  `ensure_compiled/1` halts the current process until the
-  module we are depending on is available.
+  When invoked, `ensure_compiled/1` halts the compilation of the caller
+  until the module given to `ensure_compiled/1` becomes available or
+  all files for the current project have been compiled. If compilation
+  finishes and the module is not available, an error tuple is returned.
+
+  `ensure_compiled/1` does not apply to dependencies, as dependencies
+  must be compiled upfront.
 
   In most cases, `ensure_loaded/1` is enough. `ensure_compiled/1`
   must be used in rare cases, usually involving macros that need to
