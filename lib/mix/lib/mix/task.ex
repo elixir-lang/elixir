@@ -23,11 +23,12 @@ defmodule Mix.Task do
   There are a few attributes available in Mix tasks to
   configure them in Mix:
 
-    * `@shortdoc`  - makes the task public with a short description that appears
-      on `mix help`
+    * `@shortdoc`  - makes the task public with a short description that appears on `mix help`
     * `@recursive` - runs the task recursively in umbrella projects
     * `@preferred_cli_env` - recommends environment to run task. It is used in absence of
-      a Mix project recommendation, or explicit `MIX_ENV`
+      a Mix project recommendation, or explicit `MIX_ENV`, and it only works for tasks
+      in the current project. `@preferred_cli_env` is not loaded from dependencies as
+      we need to know the environment before dependencies are loaded.
 
   ## Documentation
 
