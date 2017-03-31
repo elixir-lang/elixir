@@ -34,7 +34,7 @@ defmodule MapSet do
 
   @type value :: term
 
-  @opaque t(value) :: %__MODULE__{map: %{optional(value) => true}}
+  @opaque t(value) :: %__MODULE__{map: %{optional(value) => []}}
   @type t :: t(term)
 
   defstruct map: %{}
@@ -100,7 +100,7 @@ defmodule MapSet do
     |> :maps.from_list
   end
   defp do_new([item | rest], acc) do
-    do_new(rest, [{item, true} | acc])
+    do_new(rest, [{item, []} | acc])
   end
 
   defp do_new_transform([], _fun, acc) do
@@ -109,7 +109,7 @@ defmodule MapSet do
     |> :maps.from_list
   end
   defp do_new_transform([item | rest], fun, acc) do
-    do_new_transform(rest, fun, [{fun.(item), true} | acc])
+    do_new_transform(rest, fun, [{fun.(item), []} | acc])
   end
 
   @doc """
@@ -168,7 +168,7 @@ defmodule MapSet do
     acc = if Map.has_key?(map2, key) do
       acc
     else
-      [{key, true} | acc]
+      [{key, []} | acc]
     end
     filter_not_in(rest, map2, acc)
   end
@@ -269,7 +269,7 @@ defmodule MapSet do
   """
   @spec put(t(val), new_val) :: t(val | new_val) when val: value, new_val: value
   def put(%MapSet{map: map} = map_set, value) do
-    %{map_set | map: Map.put(map, value, true)}
+    %{map_set | map: Map.put(map, value, [])}
   end
 
   @doc """
