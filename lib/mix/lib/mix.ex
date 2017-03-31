@@ -108,7 +108,7 @@ defmodule Mix do
         def project do
           [app: :my_app,
            version: "1.0.0",
-           aliases: aliases]
+           aliases: aliases()]
         end
 
         defp aliases do
