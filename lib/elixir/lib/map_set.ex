@@ -95,18 +95,14 @@ defmodule MapSet do
   end
 
   defp do_new([], acc) do
-    acc
-    |> :lists.reverse
-    |> :maps.from_list
+    :maps.from_list(acc)
   end
   defp do_new([item | rest], acc) do
     do_new(rest, [{item, true} | acc])
   end
 
   defp do_new_transform([], _fun, acc) do
-    acc
-    |> :lists.reverse
-    |> :maps.from_list
+    :maps.from_list(acc)
   end
   defp do_new_transform([item | rest], fun, acc) do
     do_new_transform(rest, fun, [{fun.(item), true} | acc])
