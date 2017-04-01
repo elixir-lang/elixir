@@ -1058,6 +1058,7 @@ keyword('in')     -> in_op;
 % Block keywords
 keyword('after')  -> block;
 keyword('else')   -> block;
+keyword('inaczej')   -> block;
 keyword('rescue') -> block;
 keyword('catch')  -> block;
 
