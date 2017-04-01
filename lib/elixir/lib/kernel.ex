@@ -2642,6 +2642,8 @@ defmodule Kernel do
   In order to compare more than two clauses, the `cond/1` macro has to be used.
   """
   defmacro if(condition, clauses) do
+    :elixir_errors.warn(__CALLER__.line, __CALLER__.file, "the if/else clauses are deprecated, use kiedy/inaczej instead")
+
     build_if(condition, clauses)
   end
 
