@@ -436,6 +436,10 @@ defmodule ExUnit.Diff do
     inspect(key) <> " => "
   end
 
+  defp format_key(key, true) when is_nil(key) or is_boolean(key) do
+    inspect(key) <> ": "
+  end
+
   defp format_key(key, true) do
     ":" <> result = inspect(key)
     result <> ": "
