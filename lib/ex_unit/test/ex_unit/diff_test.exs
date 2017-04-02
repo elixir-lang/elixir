@@ -289,6 +289,10 @@ defmodule ExUnit.DiffTest do
 
     assert script(%{"foo-bar": 1}, %{}) == [{:eq, "%{"}, [[del: "\"foo-bar\": 1"]], {:eq, "}"}]
     assert script(%{}, %{}) == [eq: "%{}"]
+
+    assert script(%{nil: 42}, %{}) == [{:eq, "%{"}, [[del: "nil: 42"]], {:eq, "}"}]
+    assert script(%{true: 42}, %{}) == [{:eq, "%{"}, [[del: "true: 42"]], {:eq, "}"}]
+    assert script(%{false: 42}, %{}) == [{:eq, "%{"}, [[del: "false: 42"]], {:eq, "}"}]
   end
 
   test "structs" do
