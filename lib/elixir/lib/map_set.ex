@@ -70,7 +70,7 @@ defmodule MapSet do
     map =
       enumerable
       |> Enum.to_list
-      |> do_new([])
+      |> new_from_list([])
 
     %MapSet{map: map}
   end
@@ -89,23 +89,23 @@ defmodule MapSet do
     map =
       enumerable
       |> Enum.to_list
-      |> do_new_transform(transform, [])
+      |> new_from_list_transform(transform, [])
 
     %MapSet{map: map}
   end
 
-  defp do_new([], acc) do
+  defp new_from_list([], acc) do
     :maps.from_list(acc)
   end
-  defp do_new([item | rest], acc) do
-    do_new(rest, [{item, true} | acc])
+  defp new_from_list([item | rest], acc) do
+    new_from_list(rest, [{item, true} | acc])
   end
 
-  defp do_new_transform([], _fun, acc) do
+  defp new_from_list_transform([], _fun, acc) do
     :maps.from_list(acc)
   end
-  defp do_new_transform([item | rest], fun, acc) do
-    do_new_transform(rest, fun, [{fun.(item), true} | acc])
+  defp new_from_list_transform([item | rest], fun, acc) do
+    new_from_list_transform(rest, fun, [{fun.(item), true} | acc])
   end
 
   @doc """
