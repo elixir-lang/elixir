@@ -847,7 +847,7 @@ defmodule Registry.Partition do
 
   # This process owns the equivalent key and pid ets tables
   # and is responsible for monitoring processes that map to
-  # the its own pid table.
+  # its own pid table.
   use GenServer
   @all_info -1
   @key_info -2
