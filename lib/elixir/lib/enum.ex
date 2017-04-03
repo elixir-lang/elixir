@@ -1866,10 +1866,12 @@ defmodule Enum do
 
   """
   @spec reverse(t) :: list
+  def reverse(enumerable)
+
   def reverse([]), do: []
-  def reverse([_] = l), do: l
-  def reverse([a, b]), do: [b, a]
-  def reverse([a, b | l]), do: :lists.reverse(l, [b, a])
+  def reverse([_] = list), do: list
+  def reverse([item1, item2]), do: [item2, item1]
+  def reverse([item1, item2 | rest]), do: :lists.reverse(rest, [item2, item1])
   def reverse(enumerable), do: reduce(enumerable, [], &[&1 | &2])
 
   @doc """
