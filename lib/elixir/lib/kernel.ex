@@ -1430,7 +1430,10 @@ defmodule Kernel do
   If `msg` is an atom, it just calls `raise/2` with the atom as the first
   argument and `[]` as the second argument.
 
-  If `msg` is anything else, raises an `ArgumentError` exception.
+  If `msg` is an exception struct, it is raised as is.
+
+  If `msg` is anything else, `raise` will fail with an `ArgumentError`
+  exception.
 
   ## Examples
 
@@ -1549,7 +1552,7 @@ defmodule Kernel do
             %{__struct__: struct, __exception__: true} = other when is_atom(struct) ->
               :erlang.raise :error, other, stacktrace
             other ->
-              message = "reraise/2 expects an alias, string or exception as the first argument, got: #{inspect other}"
+              message = "reraise/2 expects a module name, string or exception as the first argument, got: #{inspect other}"
               :erlang.error ArgumentError.exception(message)
           end
         end
