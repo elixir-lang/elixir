@@ -112,7 +112,7 @@ defmodule Kernel.Utils do
     exception
   end
   def raise(other) do
-    ArgumentError.exception("raise/1 expects an alias, string or exception as " <>
+    ArgumentError.exception("raise/1 expects a module name, string or exception as " <>
                             "the first argument, got: #{inspect other}")
   end
 end
