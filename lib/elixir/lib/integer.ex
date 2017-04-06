@@ -383,8 +383,10 @@ defmodule Integer do
   @doc """
   Returns the greatest common divisor of the two given numbers.
 
-  This is the largest positive integer that divides both `int1` and `int2` without leaving a remainder.
-  By convention, `Integer.gcd(0, 0)` returns 0.
+  The greatest common divisor (GCD) of `int1` and `int2` is the largest positive
+  integer that divides both `int1` and `int2` without leaving a remainder.
+
+  By convention, `gcd(0, 0)` returns `0`.
 
   ## Examples
 
