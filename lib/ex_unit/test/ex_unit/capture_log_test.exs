@@ -44,7 +44,7 @@ defmodule ExUnit.CaptureLogTest do
     {_pid, ref} = spawn_monitor(fn ->
       capture_log(fn ->
         spawn_link(Kernel, :exit, [:shutdown])
-        :timer.sleep(:infinity)
+        Process.sleep(:infinity)
       end)
     end)
 
@@ -82,10 +82,10 @@ defmodule ExUnit.CaptureLogTest do
   end
 
   defp wait_capture_removal() do
-    case GenEvent.which_handlers(Logger) do
+    case :gen_event.which_handlers(Logger) do
       [Logger.Config] -> :ok
       _otherwise ->
-        :timer.sleep(20)
+        Process.sleep(20)
         wait_capture_removal()
     end
   end

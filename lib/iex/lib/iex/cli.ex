@@ -50,8 +50,8 @@ defmodule IEx.CLI do
   a dumb terminal version is started instead.
   """
   def start do
-    if tty_works? do
-      :user_drv.start([:"tty_sl -c -e", tty_args])
+    if tty_works?() do
+      :user_drv.start([:"tty_sl -c -e", tty_args()])
     else
       :application.set_env(:stdlib, :shell_prompt_func,
                            {__MODULE__, :prompt})
@@ -92,7 +92,7 @@ defmodule IEx.CLI do
         abort "In order to use --remsh, you need to name the current node using --name or --sname. Aborting..."
       end
     else
-      {:erlang, :apply, [local_start_function, []]}
+      {:erlang, :apply, [local_start_function(), []]}
     end
   end
 
@@ -101,7 +101,7 @@ defmodule IEx.CLI do
   end
 
   def remote_start(parent, ref) do
-    send parent, {:begin, ref, self}
+    send parent, {:begin, ref, self()}
     receive do: ({:done, ^ref} -> :ok)
   end
 
@@ -110,7 +110,7 @@ defmodule IEx.CLI do
   end
 
   defp remote_start_mfa do
-    ref    = make_ref
+    ref = make_ref()
     opts = options()
 
     parent = spawn_link fn ->
@@ -136,11 +136,11 @@ defmodule IEx.CLI do
     {:erlang, :apply, [function, []]}
   end
 
-  defp find_dot_iex(['--dot-iex', h|_]), do: List.to_string(h)
-  defp find_dot_iex([_|t]), do: find_dot_iex(t)
+  defp find_dot_iex(['--dot-iex', h | _]), do: List.to_string(h)
+  defp find_dot_iex([_ | t]), do: find_dot_iex(t)
   defp find_dot_iex([]), do: nil
 
-  defp get_remsh(['--remsh', h|_]), do: List.to_atom(h)
-  defp get_remsh([_|t]), do: get_remsh(t)
+  defp get_remsh(['--remsh', h | _]), do: List.to_atom(h)
+  defp get_remsh([_ | t]), do: get_remsh(t)
   defp get_remsh([]), do: nil
 end

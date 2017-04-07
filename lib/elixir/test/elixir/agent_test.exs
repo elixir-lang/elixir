@@ -3,6 +3,8 @@ Code.require_file "test_helper.exs", __DIR__
 defmodule AgentTest do
   use ExUnit.Case, async: true
 
+  doctest Agent
+
   def identity(state) do
     state
   end
@@ -10,7 +12,7 @@ defmodule AgentTest do
   test "start_link/2 workflow with unregistered name and anonymous functions" do
     {:ok, pid} = Agent.start_link(&Map.new/0)
 
-    {:links, links} = Process.info(self, :links)
+    {:links, links} = Process.info(self(), :links)
     assert pid in links
 
     assert :proc_lib.translate_initial_call(pid) == {Map, :new, 0}

@@ -8,49 +8,53 @@ defmodule IEx.Helpers do
   This message was triggered by invoking the helper `h()`,
   usually referred to as `h/0` (since it expects 0 arguments).
 
-  You can use the `h` function to invoke the documentation
+  You can use the `h/1` function to invoke the documentation
   for any Elixir module or function:
 
-      h Enum
-      h Enum.map
-      h Enum.reverse/1
+      iex> h(Enum)
+      iex> h(Enum.map)
+      iex> h(Enum.reverse/1)
 
-  You can also use the `i` function to introspect any value
+  You can also use the `i/1` function to introspect any value
   you have in the shell:
 
-      i "hello"
+      iex> i("hello")
 
-  There are many other helpers available:
+  There are many other helpers available, here are some examples:
 
-    * `b/1`           - prints callbacks info and docs for a given module
-    * `c/2`           - compiles a file at the given path
-    * `cd/1`          - changes the current directory
-    * `clear/0`       - clears the screen
-    * `flush/0`       - flushes all messages sent to the shell
-    * `h/0`           - prints this help message
-    * `h/1`           - prints help for the given module, function or macro
-    * `i/1`           - prints information about the given data type
-    * `import_file/1` - evaluates the given file in the shell's context
-    * `l/1`           - loads the given module's beam code
-    * `ls/0`          - lists the contents of the current directory
-    * `ls/1`          - lists the contents of the specified directory
-    * `nl/2`          - deploys local beam code to a list of nodes
-    * `pid/1`         - creates a PID from a string
-    * `pid/3`         - creates a PID with the 3 integer arguments passed
-    * `pwd/0`         - prints the current working directory
-    * `r/1`           - recompiles and reloads the given module's source file
-    * `respawn/0`     - respawns the current shell
-    * `s/1`           - prints spec information
-    * `t/1`           - prints type information
-    * `v/0`           - retrieves the last value from the history
-    * `v/1`           - retrieves the nth value from the history
+    * `b/1`         - prints callbacks info and docs for a given module
+    * `c/1`         - compiles a file into the current directory
+    * `c/2`         - compiles a file to the given path
+    * `cd/1`        - changes the current directory
+    * `clear/0`     - clears the screen
+    * `e/1`         - show all exports (functions + macros) in a module
+    * `flush/0`     - flushes all messages sent to the shell
+    * `h/0`         - prints this help message
+    * `h/1`         - prints help for the given module, function or macro
+    * `i/0`         - prints information about the last value
+    * `i/1`         - prints information about the given term
+    * `ls/0`        - lists the contents of the current directory
+    * `ls/1`        - lists the contents of the specified directory
+    * `pid/1`       - creates a PID from a string
+    * `pid/3`       - creates a PID with the 3 integer arguments passed
+    * `pwd/0`       - prints the current working directory
+    * `r/1`         - recompiles the given module's source file
+    * `recompile/0` - recompiles the current project
+    * `respawn/0`   - respawns the current shell
+    * `v/0`         - retrieves the last value from the history
+    * `v/1`         - retrieves the nth value from the history
 
   Help for all of those functions can be consulted directly from
-  the command line using the `h` helper itself. Try:
+  the command line using the `h/1` helper itself. Try:
 
-      h(v/0)
+      iex> h(v/0)
 
-  To learn more about IEx as a whole, just type `h(IEx)`.
+  To list all IEx helpers available, which is effectively all
+  exports (functions and macros) in the `IEx.Helpers` module:
+
+      iex> e(IEx.Helpers)
+
+  To learn more about IEx as a whole, type `h(IEx)`.
   """
 
   import IEx, only: [dont_display_result: 0]
@@ -59,35 +63,35 @@ defmodule IEx.Helpers do
   Recompiles the current Mix application.
 
   This helper only works when IEx is started with a Mix
-  project, for example, `iex -S mix`. Before compiling
-  the code, it will stop the current application, and
-  start it again afterwards. Stopping applications are
-  required so processes in the supervision tree won't
-  crash when code is upgraded multiple times without
-  going through the proper hot-code swapping mechanism.
-
-  Changes to `mix.exs` or configuration files won't be
-  picked up by this helper, only changes to sources.
-  Restarting the shell and Mix is required in such cases.
+  project, for example, `iex -S mix`. The application is
+  not restarted after compilation, which means any long
+  running process may crash as any changed module will be
+  temporarily removed and recompiled, without going through
+  the proper code changes callback.
 
   If you want to reload a single module, consider using
-  `r ModuleName` instead.
+  `r(ModuleName)` instead.
 
-  NOTE: This feature is experimental and may be removed
-  in upcoming releases.
+  This function is meant to be used for development and
+  debugging purposes. Do not depend on it in production code.
   """
   def recompile do
-    if mix_started? do
+    if mix_started?() do
       config = Mix.Project.config
+      consolidation = Mix.Project.consolidation_path(config)
       reenable_tasks(config)
-      case stop_apps(config) do
-        {true, apps} ->
-          Mix.Task.run("app.start")
-          {:restarted, apps}
-        {false, apps} ->
-          Mix.Task.run("app.start", ["--no-start"])
-          {:recompiled, apps}
-      end
+
+      # No longer allow consolidations to be accessed.
+      Code.delete_path(consolidation)
+      purge_protocols(consolidation)
+
+      result = Mix.Task.run("compile")
+
+      # Reenable consolidation and allow them to be loaded.
+      Code.prepend_path(consolidation)
+      purge_protocols(consolidation)
+
+      result
     else
       IO.puts IEx.color(:eval_error, "Mix is not running. Please start IEx with: iex -S mix")
       :error
@@ -99,28 +103,25 @@ defmodule IEx.Helpers do
   end
 
   defp reenable_tasks(config) do
-    Mix.Task.reenable("app.start")
     Mix.Task.reenable("compile")
     Mix.Task.reenable("compile.all")
+    Mix.Task.reenable("compile.protocols")
     compilers = config[:compilers] || Mix.compilers
     Enum.each compilers, &Mix.Task.reenable("compile.#{&1}")
   end
 
-  defp stop_apps(config) do
-    apps =
-      cond do
-        Mix.Project.umbrella?(config) ->
-          for %Mix.Dep{app: app} <- Mix.Dep.Umbrella.loaded, do: app
-        app = config[:app] ->
-          [app]
-        true ->
-          []
-      end
-    stopped? =
-      Enum.reverse(apps)
-      |> Enum.all?(&match?({:error, {:not_started, &1}}, Application.stop(&1)))
-      |> Kernel.not
-    {stopped?, apps}
+  defp purge_protocols(path) do
+    case File.ls(path) do
+      {:ok, beams} ->
+        for beam <- beams do
+          module = beam |> Path.rootname |> String.to_atom
+          :code.purge(module)
+          :code.delete(module)
+        end
+        :ok
+      {:error, _} ->
+        :ok
+    end
   end
 
   @doc """
@@ -130,44 +131,44 @@ defmodule IEx.Helpers do
   the compiled code to (defaults to the current directory). When compiling
   one file, there is no need to wrap it in a list.
 
-  It returns the name of the compiled modules.
+  It returns the names of the compiled modules.
 
   If you want to recompile an existing module, check `r/1` instead.
 
   ## Examples
 
-      c ["foo.ex", "bar.ex"], "ebin"
-      #=> [Foo, Bar]
+      iex> c(["foo.ex", "bar.ex"], "ebin")
+      [Foo, Bar]
 
-      c "baz.ex"
-      #=> [Baz]
+      iex> c("baz.ex")
+      [Baz]
+
   """
-  def c(files, path \\ ".") when is_binary(path) do
+  def c(files, path \\ :in_memory) when is_binary(path) or path == :in_memory do
     files = List.wrap(files)
 
     unless Enum.all?(files, &is_binary/1) do
       raise ArgumentError, "expected a binary or a list of binaries as argument"
     end
 
-    {found, not_found} =
-      files
-      |> Enum.map(&Path.expand(&1, path))
-      |> Enum.partition(&File.exists?/1)
+    {found, not_found} = Enum.split_with(files, &File.exists?/1)
 
     unless Enum.empty?(not_found) do
       raise ArgumentError, "could not find files #{Enum.join(not_found, ", ")}"
     end
 
-    {erls, exs} = Enum.partition(found, &String.ends_with?(&1, ".erl"))
+    {erls, exs} = Enum.split_with(found, &String.ends_with?(&1, ".erl"))
 
     modules = Enum.map(erls, fn(source) ->
       {module, binary} = compile_erlang(source)
-      base = source |> Path.basename |> Path.rootname
-      File.write!(Path.join(path, base <> ".beam"), binary)
+      unless path == :in_memory do
+        base = source |> Path.basename |> Path.rootname
+        File.write!(Path.join(path, base <> ".beam"), binary)
+      end
       module
     end)
 
-    modules ++ Kernel.ParallelCompiler.files_to_path(exs, path)
+    modules ++ compile_elixir(exs, path)
   end
 
   @doc """
@@ -177,13 +178,13 @@ defmodule IEx.Helpers do
   on the shell, which means this function is by default
   unavailable on Windows machines.
   """
-  def clear do
+  def clear() do
     if IO.ANSI.enabled? do
       IO.write [IO.ANSI.home, IO.ANSI.clear]
     else
       IO.puts "Cannot clear the screen because ANSI escape codes are not enabled on this shell"
     end
-    dont_display_result
+    dont_display_result()
   end
 
   @doc """
@@ -191,7 +192,7 @@ defmodule IEx.Helpers do
   """
   def h() do
     IEx.Introspection.h(IEx.Helpers)
-    dont_display_result
+    dont_display_result()
   end
 
   @doc """
@@ -200,15 +201,14 @@ defmodule IEx.Helpers do
 
   ## Examples
 
-      h(Enum)
-      #=> Prints documentation for Enum
+      iex> h(Enum)
 
   It also accepts functions in the format `fun/arity`
   and `module.fun/arity`, for example:
 
-      h receive/1
-      h Enum.all?/2
-      h Enum.all?
+      iex> h receive/1
+      iex> h Enum.all?/2
+      iex> h Enum.all?
 
   """
   @h_modules [__MODULE__, Kernel, Kernel.SpecialForms]
@@ -258,10 +258,9 @@ defmodule IEx.Helpers do
 
   ## Examples
 
-      b(Mix.Task.run/1)
-      b(Mix.Task.run)
-      b(Dict)
-
+      iex> b(Mix.Task.run/1)
+      iex> b(Mix.Task.run)
+      iex> b(GenServer)
   """
   defmacro b(term)
   defmacro b({:/, _, [{{:., _, [mod, fun]}, _, []}, arity]}) do
@@ -287,9 +286,18 @@ defmodule IEx.Helpers do
 
   ## Examples
 
-      t(Enum)
-      t(Enum.t/0)
-      t(Enum.t)
+      iex> t(Enum)
+      @type t() :: Enumerable.t()
+      @type element() :: any()
+      @type index() :: integer()
+      @type default() :: any()
+
+      iex> t(Enum.t/0)
+      @type t() :: Enumerable.t()
+
+      iex> t(Enum.t)
+      @type t() :: Enumerable.t()
+
   """
   defmacro t(term)
   defmacro t({:/, _, [{{:., _, [mod, fun]}, _, []}, arity]}) do
@@ -315,11 +323,11 @@ defmodule IEx.Helpers do
 
   ## Examples
 
-      s(Enum)
-      s(Enum.all?)
-      s(Enum.all?/2)
-      s(is_atom)
-      s(is_atom/1)
+      iex> s(Enum)
+      iex> s(Enum.all?)
+      iex> s(Enum.all?/2)
+      iex> s(is_atom)
+      iex> s(is_atom/1)
 
   """
   defmacro s(term)
@@ -350,13 +358,30 @@ defmodule IEx.Helpers do
   end
 
   @doc """
-  Retrieves the nth expression's value from the history.
+  Returns the value of the `n`th expression in the history.
 
-  Use negative values to look up expression values relative to the current one.
-  For instance, v(-1) returns the result of the last evaluated expression.
+  `n` can be a negative value: if it is, the corresponding expression value
+  relative to the current one is returned. For example, `v(-2)` returns the
+  value of the expression evaluated before the last evaluated expression. In
+  particular, `v(-1)` returns the result of the last evaluated expression and
+  `v()` does the same.
+
+  ## Examples
+
+      iex(1)> "hello" <> " world"
+      "hello world"
+      iex(2)> 40 + 2
+      42
+      iex(3)> v(-2)
+      "hello world"
+      iex(4)> v(2)
+      42
+      iex(5)> v()
+      42
+
   """
   def v(n \\ -1) do
-    IEx.History.nth(history, n) |> elem(2)
+    IEx.History.nth(history(), n) |> elem(2)
   end
 
   @doc """
@@ -365,16 +390,20 @@ defmodule IEx.Helpers do
   Please note that all the modules defined in the same
   file as `module` are recompiled and reloaded.
 
+  This function is meant to be used for development and
+  debugging purposes. Do not depend on it in production code.
+
   ## In-memory reloading
 
-  When we reload the module in IEx, we recompile the module source code,
-  updating its contents in memory. The original `.beam` file in disk,
-  probably the one where the first definition of the module came from,
-  does not change at all.
+  When we reload the module in IEx, we recompile the module source
+  code, updating its contents in memory. The original `.beam` file
+  in disk, probably the one where the first definition of the module
+  came from, does not change at all.
 
-  Since typespecs and docs are loaded from the .beam file (they are not
-  loaded in memory with the module because there is no need for them to
-  be in memory), they are not reloaded when you reload the module.
+  Since typespecs and docs are loaded from the .beam file (they
+  are not loaded in memory with the module because there is no need
+  for them to be in memory), they are not reloaded when you reload
+  the module.
   """
   def r(module) when is_atom(module) do
     {:reloaded, module, do_r(module)}
@@ -402,7 +431,7 @@ defmodule IEx.Helpers do
   end
 
   @doc """
-  Loads the given module's beam code (and ensures any previous
+  Loads the given module's BEAM code (and ensures any previous
   old version was properly purged before).
 
   This function is useful when you know the bytecode for module
@@ -415,18 +444,51 @@ defmodule IEx.Helpers do
   end
 
   @doc """
-  Prints information about the given data type.
+  Prints information about the data type of any given term.
+
+  If no argument is given, the value of the previous expression
+  is used.
+
+  ## Examples
+
+      iex> i(1..5)
+
+  Will print:
+
+      Term
+        1..5
+      Data type
+        Range
+      Description
+        This is a struct. Structs are maps with a __struct__ key.
+      Reference modules
+        Range, Map
+
   """
-  def i(term) do
-    info = ["Term": inspect(term)] ++ IEx.Info.info(term)
+  def i(term \\ v(-1)) do
+    info =
+      ["Term": inspect(term)] ++
+      IEx.Info.info(term) ++
+      ["Implemented protocols": all_implemented_protocols_for_term(term)]
 
     for {subject, info} <- info do
-      info = info |> to_string() |> String.strip() |> String.replace("\n", "\n  ")
+      info = info |> to_string() |> String.trim() |> String.replace("\n", "\n  ")
       IO.puts IEx.color(:eval_result, to_string(subject))
       IO.puts IEx.color(:eval_info, "  #{info}")
     end
 
-    dont_display_result
+    dont_display_result()
+  end
+
+  # Given any "term", this function returns all the protocols in
+  # :code.get_path() implemented by the data structure of such term, in the form
+  # of a binary like "Protocol1, Protocol2, Protocol3".
+  defp all_implemented_protocols_for_term(term) do
+    :code.get_path()
+    |> Protocol.extract_protocols()
+    |> Enum.uniq()
+    |> Enum.reject(fn(protocol) -> is_nil(protocol.impl_for(term)) end)
+    |> Enum.map_join(", ", &inspect/1)
   end
 
   @doc """
@@ -460,7 +522,7 @@ defmodule IEx.Helpers do
   """
   def pwd do
     IO.puts IEx.color(:eval_info, System.cwd!)
-    dont_display_result
+    dont_display_result()
   end
 
   @doc """
@@ -468,7 +530,7 @@ defmodule IEx.Helpers do
   """
   def cd(directory) when is_binary(directory) do
     case File.cd(expand_home(directory)) do
-      :ok -> pwd
+      :ok -> pwd()
       {:error, :enoent} ->
         IO.puts IEx.color(:eval_error, "No directory #{directory}")
     end
@@ -476,7 +538,20 @@ defmodule IEx.Helpers do
   end
 
   @doc """
-  Produces a simple list of a directory's contents.
+  Prints a list of all the functions and macros exported by the given module.
+  """
+  def e(module \\ Kernel) do
+    IEx.Autocomplete.exports(module) |> print_exports()
+    dont_display_result()
+  end
+
+  defp print_exports(functions) do
+    list = Enum.map(functions, fn({name, arity}) -> Atom.to_string(name) <> "/" <> Integer.to_string(arity) end)
+    print_table(list)
+  end
+
+  @doc """
+  Prints a list of the given directory's contents.
 
   If `path` points to a file, prints its full path.
   """
@@ -485,7 +560,10 @@ defmodule IEx.Helpers do
     case File.ls(path) do
       {:ok, items} ->
         sorted_items = Enum.sort(items)
-        ls_print(path, sorted_items)
+        printer = fn(item, width) ->
+          format_item(Path.join(path, item), String.pad_trailing(item, width))
+        end
+        print_table(sorted_items, printer)
 
       {:error, :enoent} ->
         IO.puts IEx.color(:eval_error, "No such file or directory #{path}")
@@ -502,19 +580,20 @@ defmodule IEx.Helpers do
 
   defp expand_home(other), do: other
 
-  defp ls_print(_, []) do
+  defp print_table(list, printer \\ &String.pad_trailing/2)
+  defp print_table([], _printer) do
     :ok
   end
 
-  defp ls_print(path, list) do
+  defp print_table(list, printer) do
     # print items in multiple columns (2 columns in the worst case)
     lengths = Enum.map(list, &String.length(&1))
     maxlen = maxlength(lengths)
-    width = min(maxlen, 30) + 5
-    ls_print(path, list, width)
+    offset = min(maxlen, 30) + 5
+    print_table(list, printer, offset)
   end
 
-  defp ls_print(path, list, width) do
+  defp print_table(list, printer, offset) do
     Enum.reduce(list, 0, fn(item, len) ->
       len =
         if len >= 80 do
@@ -523,8 +602,8 @@ defmodule IEx.Helpers do
         else
           len
         end
-      IO.write format_item(Path.join(path, item), String.ljust(item, width))
-      len + width
+      IO.write printer.(item, offset)
+      len + offset
     end)
 
     IO.puts ""
@@ -552,8 +631,40 @@ defmodule IEx.Helpers do
   """
   def respawn do
     if whereis = IEx.Server.whereis do
-      send whereis, {:respawn, self}
-      dont_display_result
+      send whereis, {:respawn, self()}
+      dont_display_result()
+    end
+  end
+
+  @doc """
+  Similar to `import_file` but only imports the file it if it is available.
+
+  By default, `import_file/1` fails when the given file does not exist.
+  However, since `import_file/1` is expanded at compile-time, it's not
+  possible to conditionally import a file since the macro is always
+  expanded:
+
+      # This raises a File.Error if ~/.iex.exs doesn't exist.
+      if ("~/.iex.exs" |> Path.expand |> File.exists?) do
+        import_file "~/.iex.exs"
+      end
+
+  This macro addresses this issue by checking if the file exists or not
+  in behalf of the user.
+  """
+  defmacro import_file_if_available(path) when is_binary(path) do
+    import_file_if_available(path, true)
+  end
+
+  defmacro import_file_if_available(_) do
+    raise ArgumentError, "import_file_if_available/1 expects a literal binary as its argument"
+  end
+
+  defp import_file_if_available(path, optional?) when is_binary(path) do
+    path = Path.expand(path)
+
+    if not optional? or File.exists?(path) do
+      path |> File.read! |> Code.string_to_quoted!(file: path)
     end
   end
 
@@ -563,22 +674,6 @@ defmodule IEx.Helpers do
 
   `path` has to be a literal string. `path` is automatically expanded via
   `Path.expand/1`.
-
-  ## Non-existent files
-
-  By default, `import_file/1` fails when the given file does not exist. However,
-  since this macro is expanded at compile-time, it's not possible to
-  conditionally import a file since the macro is always expanded:
-
-      # This raises a File.Error if ~/.iex.exs doesn't exist.
-      if ("~/.iex.exs" |> Path.expand |> File.exists?) do
-        import_file "~/.iex.exs"
-      end
-
-  This is why an `:optional` option can be passed to `import_file/1`. The
-  default value of this option is `false`, meaning that an exception will be
-  raised if the given file is missing. If `:optional` is set to `true`, missing
-  files will be ignored and `import_file/1` will just compile to `nil`.
 
   ## Examples
 
@@ -590,28 +685,50 @@ defmodule IEx.Helpers do
       13
       iex(2)> value
       13
-      iex(3)> import_file "nonexisting.file.ex", optional: true
-      nil
 
   """
-  defmacro import_file(path, opts \\ [])
-
-  defmacro import_file(path, opts) when is_binary(path) do
-    optional? = Keyword.get(opts, :optional, false)
-    path = Path.expand(path)
-
-    if not optional? or File.exists?(path) do
-      path |> File.read! |> Code.string_to_quoted!(file: path)
-    end
+  defmacro import_file(path) when is_binary(path) do
+    import_file_if_available(path, false)
   end
 
-  defmacro import_file(_path, _opts) do
+  defmacro import_file(_) do
     raise ArgumentError, "import_file/1 expects a literal binary as its argument"
   end
 
+  @doc false
+  defmacro import_file(path, opts) when is_binary(path) and is_list(opts) do
+    IO.warn "import_file/2 is deprecated, please use import_file_if_available/1 instead"
+    import_file_if_available(path, Keyword.get(opts, :optional, false))
+  end
+
+  @doc """
+  Calls `import/2` with the given arguments, but only if the module is available.
+
+  This lets you put imports in `.iex.exs` files (including `~/.iex.exs`) without
+  getting compile errors if you open a console where the module is not available.
+
+  ## Example
+
+      # In ~/.iex.exs
+      import_if_available Ecto.Query
+
+  """
+  defmacro import_if_available(quoted_module, opts \\ []) do
+    module = Macro.expand(quoted_module, __CALLER__)
+
+    if Code.ensure_loaded?(module) do
+      quote do
+        import unquote(quoted_module), unquote(opts)
+      end
+    end
+  end
+
+  defp compile_elixir(exs, :in_memory), do: Kernel.ParallelCompiler.files(exs)
+  defp compile_elixir(exs, path), do: Kernel.ParallelCompiler.files_to_path(exs, path)
+
   # Compiles and loads an Erlang source file, returns {module, binary}
   defp compile_erlang(source) do
-    source = Path.relative_to_cwd(source) |> String.to_char_list
+    source = Path.relative_to_cwd(source) |> String.to_charlist
     case :compile.file(source, [:binary, :report]) do
       {:ok, module, binary} ->
         :code.purge(module)
@@ -638,7 +755,7 @@ defmodule IEx.Helpers do
   end
 
   @doc """
-  Creates a PID with 3 non negative integers passed as arguments
+  Creates a PID with 3 non-negative integers passed as arguments
   to the function.
 
   ## Examples
@@ -653,14 +770,14 @@ defmodule IEx.Helpers do
                         is_integer(y) and y >= 0 and
                         is_integer(z) and z >= 0 do
     :erlang.list_to_pid(
-      '<' ++ Integer.to_char_list(x) ++ '.' ++
-             Integer.to_char_list(y) ++ '.' ++
-             Integer.to_char_list(z) ++ '>'
+      '<' ++ Integer.to_charlist(x) ++ '.' ++
+             Integer.to_charlist(y) ++ '.' ++
+             Integer.to_charlist(z) ++ '>'
     )
   end
 
   @doc """
-  Deloys a given module's beam code to a list of nodes.
+  Deploys a given module's BEAM code to a list of nodes.
 
   This function is useful for development and debugging when you have code that
   has been compiled or updated locally that you want to run on other nodes.
@@ -672,12 +789,12 @@ defmodule IEx.Helpers do
 
   ## Examples
 
-      nl(HelloWorld)
-      #=> {:ok, [{:node1@easthost, :loaded, HelloWorld},
-                 {:node1@westhost, :loaded, HelloWorld}]}
+      iex> nl(HelloWorld)
+      {:ok, [{:node1@easthost, :loaded, HelloWorld},
+             {:node1@westhost, :loaded, HelloWorld}]}
 
-      nl(NoSuchModuleExists)
-      #=> {:error, :nofile}
+      iex> nl(NoSuchModuleExists)
+      {:error, :nofile}
 
   """
   def nl(nodes \\ Node.list, module) when is_list(nodes) and is_atom(module) do

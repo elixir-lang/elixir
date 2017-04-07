@@ -37,13 +37,13 @@ defmodule Mix.CLI do
     end
   end
 
-  defp get_task(["-" <> _|_]) do
+  defp get_task(["-" <> _ | _]) do
     Mix.shell.error "** (Mix) Cannot implicitly pass flags to default Mix task, " <>
                     "please invoke instead \"mix #{Mix.Project.config[:default_task]}\""
     exit({:shutdown, 1})
   end
 
-  defp get_task([h|t]) do
+  defp get_task([h | t]) do
     {h, t}
   end
 
@@ -83,7 +83,7 @@ defmodule Mix.CLI do
 
   defp ensure_no_slashes(task) do
     if String.contains?(task, "/") do
-      Mix.raise Mix.NoTaskError, task: task
+      raise Mix.NoTaskError, task: task
     end
   end
 
@@ -119,10 +119,10 @@ defmodule Mix.CLI do
   end
 
   # Check for --help or --version in the args
-  defp check_for_shortcuts([first_arg|_]) when first_arg in
+  defp check_for_shortcuts([first_arg | _]) when first_arg in
       ["--help", "-h"], do: :help
 
-  defp check_for_shortcuts([first_arg|_]) when first_arg in
+  defp check_for_shortcuts([first_arg | _]) when first_arg in
       ["--version", "-v"], do: :version
 
   defp check_for_shortcuts(_), do: nil

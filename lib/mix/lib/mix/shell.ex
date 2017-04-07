@@ -4,12 +4,12 @@ defmodule Mix.Shell do
   """
 
   @doc """
-  Informs the given message.
+  Prints the given message to the shell.
   """
   @callback info(message :: IO.ANSI.ansidata) :: any
 
   @doc """
-  Warns about the given error message.
+  Prints the given error to the shell.
   """
   @callback error(message :: IO.ANSI.ansidata) :: any
 
@@ -19,7 +19,7 @@ defmodule Mix.Shell do
   @callback prompt(message :: String.t) :: String.t
 
   @doc """
-  Asks the user for confirmation.
+  Prompts the user for confirmation.
   """
   @callback yes?(message :: String.t) :: boolean
 
@@ -47,7 +47,7 @@ defmodule Mix.Shell do
   @callback cmd(command :: String.t, options :: Keyword.t) :: integer
 
   @doc """
-  Prints the current application to shell if
+  Prints the current application to the shell if
   it was not printed yet.
   """
   @callback print_app() :: any
@@ -55,12 +55,12 @@ defmodule Mix.Shell do
   @doc """
   Returns the printable app name.
 
-  This function returns the current application name
+  This function returns the current application name,
   but only if the application name should be printed.
 
   Calling this function automatically toggles its value
   to `false` until the current project is re-entered. The
-  goal is to exactly avoid printing the application name
+  goal is to avoid printing the application name
   multiple times.
   """
   def printable_app_name do
@@ -89,7 +89,7 @@ defmodule Mix.Shell do
       end
 
     port = Port.open({:spawn, shell_command(command)},
-                     [:stream, :binary, :exit_status, :hide, :use_stdio, {:env, env}|args])
+                     [:stream, :binary, :exit_status, :hide, :use_stdio, {:env, env} | args])
 
     do_cmd(port, callback)
   end
@@ -111,11 +111,11 @@ defmodule Mix.Shell do
       {:unix, _} ->
         command = command
           |> String.replace("\"", "\\\"")
-          |> String.to_char_list
+          |> String.to_charlist
         'sh -c "' ++ command ++ '"'
 
       {:win32, osname} ->
-        command = '"' ++ String.to_char_list(command) ++ '"'
+        command = '"' ++ String.to_charlist(command) ++ '"'
         case {System.get_env("COMSPEC"), osname} do
           {nil, :windows} -> 'command.com /s /c ' ++ command
           {nil, _}        -> 'cmd /s /c ' ++ command
@@ -127,9 +127,9 @@ defmodule Mix.Shell do
   defp validate_env(enum) do
     Enum.map enum, fn
       {k, nil} ->
-        {String.to_char_list(k), false}
+        {String.to_charlist(k), false}
       {k, v} ->
-        {String.to_char_list(k), String.to_char_list(v)}
+        {String.to_charlist(k), String.to_charlist(v)}
       other ->
         raise ArgumentError, "invalid environment key-value #{inspect other}"
     end

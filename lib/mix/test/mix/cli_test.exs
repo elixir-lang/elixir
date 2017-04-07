@@ -11,9 +11,8 @@ defmodule Mix.CLITest do
         def project, do: [app: :p, version: "0.1.0"]
       end
       """
-      output = mix ~w[]
+      mix ~w[]
       assert File.regular?("_build/dev/lib/p/ebin/Elixir.A.beam")
-      assert output =~ "Compiled lib/a.ex"
     end
   end
 
@@ -44,7 +43,7 @@ defmodule Mix.CLITest do
         def run(_) do
           IO.puts Mix.Project.get!.hello_world
           Mix.shell.info("This won't appear")
-          Mix.raise "oops"
+          Mix.raise("oops")
         end
       end
       """
@@ -151,7 +150,7 @@ defmodule Mix.CLITest do
 
       output = mix ~w[test test/new_with_tests_test.exs --cover]
       assert File.regular?("_build/test/lib/new_with_tests/ebin/Elixir.NewWithTests.beam")
-      assert output =~ "1 test, 0 failures"
+      assert output =~ "2 tests, 0 failures"
       assert output =~ "Generating cover results ..."
       assert File.regular?("cover/Elixir.NewWithTests.html")
     end
@@ -164,22 +163,7 @@ defmodule Mix.CLITest do
 
       output = mix ~w[test]
       assert File.regular?("_build/test/lib/sup_with_tests/ebin/Elixir.SupWithTests.beam")
-      assert output =~ "1 test, 0 failures"
+      assert output =~ "2 tests, 0 failures"
     end
-  end
-
-  defp mix(args, envs \\ []) when is_list(args) do
-    System.cmd(elixir_executable,
-               ["-r", mix_executable, "--"|args],
-               stderr_to_stdout: true,
-               env: envs) |> elem(0)
-  end
-
-  defp mix_executable do
-    Path.expand("../../../../bin/mix", __DIR__)
-  end
-
-  defp elixir_executable do
-    Path.expand("../../../../bin/elixir", __DIR__)
   end
 end

@@ -69,19 +69,16 @@ defmodule Mix.Generator do
         Mix.Generator.embed_template(:log, "Log: <%= @log %>")
       end
 
-      Mix.Tasks.MyTask.log_template(log: "creating directory")
-      #=> "Log: creating directory"
-
   """
   defmacro embed_template(name, contents) do
-    quote bind_quoted: binding do
+    quote bind_quoted: binding() do
       contents =
         case contents do
           [from_file: file] ->
             @file file
             File.read!(file)
           c when is_binary(c) ->
-            @file {__ENV__.file, __ENV__.line+1}
+            @file {__ENV__.file, __ENV__.line + 1}
             c
           _ ->
             raise ArgumentError, "expected string or from_file: file"
@@ -105,12 +102,9 @@ defmodule Mix.Generator do
         Mix.Generator.embed_text(:error, "There was an error!")
       end
 
-      Mix.Tasks.MyTask.error_text()
-      #=> "There was an error!"
-
   """
   defmacro embed_text(name, contents) do
-    quote bind_quoted: binding do
+    quote bind_quoted: binding() do
       contents =
         case contents do
           [from_file: f] -> File.read!(f)

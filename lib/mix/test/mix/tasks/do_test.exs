@@ -10,4 +10,13 @@ defmodule Mix.Tasks.DoTest do
       assert_received {:mix_shell, :info, ["mix compile.app" <> _]}
     end
   end
+
+  test "gather_command returns a list of commands" do
+    import Mix.Tasks.Do, only: [gather_commands: 1]
+    assert gather_commands(["compile", "--list,", "help"]) == [["compile", "--list"], ["help"]]
+    assert gather_commands(["help,", "compile", "--list"]) == [["help"], ["compile", "--list"]]
+    assert gather_commands(["compile,", "run", "-e", "IO.puts :hello"]) == [["compile"], ["run", "-e", "IO.puts :hello"]]
+    assert gather_commands(["compile,", "run", "-e", "[1, 2]"]) == [["compile"], ["run", "-e", "[1, 2]"]]
+    assert gather_commands(["test", ",", "help"]) == [["test"], ["help"]]
+  end
 end

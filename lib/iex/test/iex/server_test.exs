@@ -21,7 +21,7 @@ defmodule IEx.ServerTest do
 
   test "allows take over of the shell during boot" do
     assert capture_io("Y\na+b", fn ->
-      server = self
+      server = self()
       boot([], fn ->
         opts = [prefix: "dbg", binding: [a: 1, b: 2]]
         IEx.Server.take_over("iex:13", opts, 1000, server)

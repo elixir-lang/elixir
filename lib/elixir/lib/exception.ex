@@ -7,7 +7,7 @@ defmodule Exception do
   `System.stacktrace/0` will return the stacktrace for the
   last throw/error/exit that occurred in the current process.
 
-  Do not rely on the particular format returned by the `format`
+  Do not rely on the particular format returned by the `format*`
   functions in this module. They may be changed in future releases
   in order to better suit Elixir's tool chain. In other words,
   by using the functions in this module it is guaranteed you will
@@ -15,7 +15,11 @@ defmodule Exception do
   """
 
   @typedoc "The exception type"
-  @type t :: %{__struct__: module, __exception__: true}
+  @type t :: %{
+    required(:__struct__) => module,
+    required(:__exception__) => true,
+    atom => any
+  }
 
   @typedoc "The kind handled by formatting functions"
   @type kind :: :error | :exit | :throw | {:EXIT, pid}
@@ -236,7 +240,7 @@ defmodule Exception do
   defp format_exit_reason(:noconnection), do: "no connection"
 
   defp format_exit_reason(:noproc) do
-    "no process"
+    "no process: the process is not alive or there's no process currently associated with the given name, possibly because its application isn't started"
   end
 
   defp format_exit_reason({:nodedown, node_name}) when is_atom(node_name) do
@@ -366,10 +370,10 @@ defmodule Exception do
   end
 
   defp format_application(module) do
-    if app = Application.get_application(module) do
-      "(" <> Atom.to_string(app) <> ") "
-    else
-      ""
+    # We cannot use Application due to bootstrap issues
+    case :application.get_application(module) do
+      {:ok, app} -> "(" <> Atom.to_string(app) <> ") "
+      :undefined -> ""
     end
   end
 
@@ -380,13 +384,13 @@ defmodule Exception do
   is retrieved from `Process.info/2`.
   """
   def format_stacktrace(trace \\ nil) do
-    trace = trace || case Process.info(self, :current_stacktrace) do
+    trace = trace || case Process.info(self(), :current_stacktrace) do
       {:current_stacktrace, t} -> Enum.drop(t, 3)
     end
 
     case trace do
       [] -> "\n"
-      s  -> "    " <> Enum.map_join(s, "\n    ", &format_stacktrace_entry(&1)) <> "\n"
+      _ -> "    " <> Enum.map_join(trace, "\n    ", &format_stacktrace_entry(&1)) <> "\n"
     end
   end
 
@@ -425,17 +429,14 @@ defmodule Exception do
   "anonymous fn in func/arity"
   """
   def format_mfa(module, fun, arity) when is_atom(module) and is_atom(fun) do
-    fun =
-      case inspect(fun) do
-        ":" <> fun -> fun
-        fun -> fun
-      end
+    fun = Atom.to_string(fun)
 
-    case match?("\"-" <> _, fun) and String.split(fun, "-") do
-      [ "\"", outer_fun, "fun", _count, "\"" ] ->
-        "anonymous fn#{format_arity(arity)} in #{inspect module}.#{outer_fun}"
-      _ ->
-        "#{inspect module}.#{fun}#{format_arity(arity)}"
+    case Inspect.Function.extract_anonymous_fun_parent(fun) do
+      {outer_name, outer_arity} ->
+        "anonymous fn#{format_arity(arity)} in " <>
+          "#{inspect(module)}.#{Inspect.Function.escape_name(outer_name)}/#{outer_arity}"
+      :error ->
+        "#{inspect(module)}.#{Inspect.Function.escape_name(fun)}#{format_arity(arity)}"
     end
   end
 
@@ -464,11 +465,7 @@ defmodule Exception do
       ""
 
   """
-  def format_file_line(file, line) do
-    format_file_line(file, line, "")
-  end
-
-  defp format_file_line(file, line, suffix) do
+  def format_file_line(file, line, suffix \\ "") do
     if file do
       if line && line != 0 do
         "#{file}:#{line}:#{suffix}"
@@ -511,7 +508,7 @@ defmodule SystemLimitError do
 end
 
 defmodule SyntaxError do
-  defexception [file: nil, line: nil, description: "syntax error"]
+  defexception [:file, :line, description: "syntax error"]
 
   def message(exception) do
     Exception.format_file_line(Path.relative_to_cwd(exception.file), exception.line) <>
@@ -520,7 +517,7 @@ defmodule SyntaxError do
 end
 
 defmodule TokenMissingError do
-  defexception [file: nil, line: nil, description: "expression is incomplete"]
+  defexception [:file, :line, description: "expression is incomplete"]
 
   def message(%{file: file, line: line, description: description}) do
     Exception.format_file_line(file && Path.relative_to_cwd(file), line) <>
@@ -529,7 +526,7 @@ defmodule TokenMissingError do
 end
 
 defmodule CompileError do
-  defexception [file: nil, line: nil, description: "compile error"]
+  defexception [:file, :line, description: "compile error"]
 
   def message(%{file: file, line: line, description: description}) do
     Exception.format_file_line(file && Path.relative_to_cwd(file), line) <>
@@ -538,7 +535,7 @@ defmodule CompileError do
 end
 
 defmodule BadFunctionError do
-  defexception [term: nil]
+  defexception [:term]
 
   def message(exception) do
     "expected a function, got: #{inspect(exception.term)}"
@@ -546,7 +543,7 @@ defmodule BadFunctionError do
 end
 
 defmodule BadStructError do
-  defexception [struct: nil, term: nil]
+  defexception [:struct, :term]
 
   def message(exception) do
     "expected a struct named #{inspect(exception.struct)}, got: #{inspect(exception.term)}"
@@ -554,15 +551,23 @@ defmodule BadStructError do
 end
 
 defmodule BadMapError do
-  defexception [term: nil]
+  defexception [:term]
 
   def message(exception) do
     "expected a map, got: #{inspect(exception.term)}"
   end
 end
 
+defmodule BadBooleanError do
+  defexception [:term, :operator]
+
+  def message(exception) do
+    "expected a boolean on left-side of \"#{exception.operator}\", got: #{inspect(exception.term)}"
+  end
+end
+
 defmodule MatchError do
-  defexception [term: nil]
+  defexception [:term]
 
   def message(exception) do
     "no match of right hand side value: #{inspect(exception.term)}"
@@ -570,7 +575,7 @@ defmodule MatchError do
 end
 
 defmodule CaseClauseError do
-  defexception [term: nil]
+  defexception [:term]
 
   def message(exception) do
     "no case clause matching: #{inspect(exception.term)}"
@@ -578,7 +583,7 @@ defmodule CaseClauseError do
 end
 
 defmodule WithClauseError do
-  defexception [term: nil]
+  defexception [:term]
 
   def message(exception) do
     "no with clause matching: #{inspect(exception.term)}"
@@ -594,7 +599,7 @@ defmodule CondClauseError do
 end
 
 defmodule TryClauseError do
-  defexception [term: nil]
+  defexception [:term]
 
   def message(exception) do
     "no try clause matching: #{inspect(exception.term)}"
@@ -602,7 +607,7 @@ defmodule TryClauseError do
 end
 
 defmodule BadArityError do
-  defexception [function: nil, args: nil]
+  defexception [:function, :args]
 
   def message(exception) do
     fun  = exception.function
@@ -618,7 +623,7 @@ defmodule BadArityError do
 end
 
 defmodule UndefinedFunctionError do
-  defexception [module: nil, function: nil, arity: nil, reason: nil]
+  defexception [:module, :function, :arity, :reason, :exports]
 
   def message(%{reason: nil, module: module, function: function, arity: arity} = e) do
     cond do
@@ -636,9 +641,19 @@ defmodule UndefinedFunctionError do
       " is undefined (module #{inspect module} is not available)"
   end
 
-  def message(%{reason: :"function not exported",  module: module, function: function, arity: arity}) do
-    "function " <> Exception.format_mfa(module, function, arity) <>
-    " is undefined or private" <> did_you_mean(module, function, arity)
+  def message(%{reason: :"function not exported",  module: module, function: function, arity: arity, exports: exports}) do
+    suffix =
+      if macro_exported?(module, function, arity) do
+        ". However there is a macro with the same name and arity." <>
+          " Be sure to require #{inspect(module)} if you intend to invoke this macro"
+      else
+        did_you_mean(module, function, arity, exports)
+      end
+
+    "function " <>
+      Exception.format_mfa(module, function, arity) <>
+      " is undefined or private" <>
+      suffix
   end
 
   def message(%{reason: :"function not available", module: module, function: function, arity: arity}) do
@@ -654,8 +669,8 @@ defmodule UndefinedFunctionError do
   @function_threshold 0.77
   @max_suggestions 5
 
-  defp did_you_mean(module, function, _arity) do
-    exports = exports_for(module)
+  defp did_you_mean(module, function, _arity, exports) do
+    exports = exports || exports_for(module)
 
     result =
       case Keyword.take(exports, [function]) do
@@ -696,7 +711,7 @@ defmodule UndefinedFunctionError do
 end
 
 defmodule FunctionClauseError do
-  defexception [module: nil, function: nil, arity: nil]
+  defexception [:module, :function, :arity]
 
   def message(exception) do
     if exception.function do
@@ -718,20 +733,19 @@ defmodule Code.LoadError do
 end
 
 defmodule Protocol.UndefinedError do
-  defexception [protocol: nil, value: nil, description: nil]
+  defexception [:protocol, :value, description: ""]
 
   def message(exception) do
     msg = "protocol #{inspect exception.protocol} not implemented for #{inspect exception.value}"
-    if exception.description do
-      msg <> ", " <> exception.description
-    else
-      msg
+    case exception.description do
+      "" -> msg
+      descr -> msg <> ", " <> descr
     end
   end
 end
 
 defmodule KeyError do
-  defexception key: nil, term: nil
+  defexception [:key, :term]
 
   def message(exception) do
     msg = "key #{inspect exception.key} not found"
@@ -757,11 +771,11 @@ defmodule UnicodeConversionError do
     "encoding starting at #{inspect rest}"
   end
 
-  defp detail([h|_]) when is_integer(h) do
+  defp detail([h | _]) when is_integer(h) do
     "code point #{h}"
   end
 
-  defp detail([h|_]) do
+  defp detail([h | _]) do
     detail(h)
   end
 end
@@ -775,30 +789,55 @@ defmodule Enum.EmptyError do
 end
 
 defmodule File.Error do
-  defexception [reason: nil, action: "", path: nil]
+  defexception [:reason, :path, action: ""]
 
-  def message(exception) do
-    formatted = IO.iodata_to_binary(:file.format_error(exception.reason))
-    "could not #{exception.action} #{inspect(exception.path)}: #{formatted}"
+  def message(%{action: action, reason: reason, path: path}) do
+    formatted =
+      case {action, reason} do
+        {"remove directory", :eexist} ->
+          "directory is not empty"
+        _ ->
+          IO.iodata_to_binary(:file.format_error(reason))
+      end
+
+    "could not #{action} #{inspect(path)}: #{formatted}"
   end
 end
 
 defmodule File.CopyError do
-  defexception [reason: nil, action: "", source: nil, destination: nil, on: nil]
+  defexception [:reason, :source, :destination, on: "", action: ""]
 
   def message(exception) do
-    formatted = IO.iodata_to_binary(:file.format_error(exception.reason))
-    location  = if on = exception.on, do: ". #{on}", else: ""
+    formatted =
+      IO.iodata_to_binary(:file.format_error(exception.reason))
+
+    location =
+      case exception.on do
+        "" -> ""
+        on -> ". #{on}"
+      end
+
     "could not #{exception.action} from #{inspect(exception.source)} to " <>
-    "#{inspect(exception.destination)}#{location}: #{formatted}"
+      "#{inspect(exception.destination)}#{location}: #{formatted}"
+  end
+end
+
+defmodule File.LinkError do
+  defexception [:reason, :existing, :new, action: ""]
+
+  def message(exception) do
+    formatted =
+      IO.iodata_to_binary(:file.format_error(exception.reason))
+    "could not #{exception.action} from #{inspect(exception.existing)} to " <>
+      "#{inspect(exception.new)}: #{formatted}"
   end
 end
 
 defmodule ErlangError do
-  defexception [original: nil]
+  defexception [:original]
 
   def message(exception) do
-    "erlang error: #{inspect(exception.original)}"
+    "Erlang error: #{inspect(exception.original)}"
   end
 
   @doc false
@@ -838,13 +877,17 @@ defmodule ErlangError do
     %BadMapError{term: term}
   end
 
+  def normalize({:badbool, op, term}, _stacktrace) do
+    %BadBooleanError{operator: op, term: term}
+  end
+
   def normalize({:badkey, key}, stacktrace) do
     term =
       case stacktrace || :erlang.get_stacktrace do
-        [{Map, :get_and_update!, [map, _, _], _}|_] -> map
-        [{Map, :update!, [map, _, _], _}|_] -> map
-        [{:maps, :update, [_, _, map], _}|_] -> map
-        [{:maps, :get, [_, map], _}|_] -> map
+        [{Map, :get_and_update!, [map, _, _], _} | _] -> map
+        [{Map, :update!, [map, _, _], _} | _] -> map
+        [{:maps, :update, [_, _, map], _} | _] -> map
+        [{:maps, :get, [_, map], _} | _] -> map
         _ -> nil
       end
     %KeyError{key: key, term: term}
@@ -885,11 +928,11 @@ defmodule ErlangError do
     %ErlangError{original: other}
   end
 
-  defp from_stacktrace([{module, function, args, _}|_]) when is_list(args) do
+  defp from_stacktrace([{module, function, args, _} | _]) when is_list(args) do
     {module, function, length(args)}
   end
 
-  defp from_stacktrace([{module, function, arity, _}|_]) do
+  defp from_stacktrace([{module, function, arity, _} | _]) do
     {module, function, arity}
   end
 

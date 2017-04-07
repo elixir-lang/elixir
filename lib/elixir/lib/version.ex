@@ -25,7 +25,7 @@ defmodule Version do
   ## Struct
 
   The version is represented by the Version struct and fields
-  are named according to Semver: `:major`, `:minor`, `:patch`,
+  are named according to SemVer: `:major`, `:minor`, `:patch`,
   `:pre` and `:build`.
 
   ## Requirements
@@ -66,7 +66,7 @@ defmodule Version do
 
   When `allow_pre: false` is set the requirement will not match a
   pre-release version unless the operand is a pre-release version.
-  The default is to allow always allow pre-releases but note that in
+  The default is to always allow pre-releases but note that in
   Hex `:allow_pre` is set to `false.` See the table below for examples.
 
   Requirement    | Version     | `:allow_pre` | Matches
@@ -111,11 +111,27 @@ defmodule Version do
   end
 
   defmodule InvalidRequirementError do
-    defexception [:message]
+    defexception [:requirement]
+
+    def exception(requirement) when is_binary(requirement) do
+      %__MODULE__{requirement: requirement}
+    end
+
+    def message(%{requirement: requirement}) do
+      "invalid requirement: #{inspect requirement}"
+    end
   end
 
   defmodule InvalidVersionError do
-    defexception [:message]
+    defexception [:version]
+
+    def exception(version) when is_binary(version) do
+      %__MODULE__{version: version}
+    end
+
+    def message(%{version: version}) do
+      "invalid version: #{inspect version}"
+    end
   end
 
   @doc """
@@ -135,17 +151,17 @@ defmodule Version do
 
   ## Examples
 
-      iex> Version.match?("2.0.0", ">1.0.0")
+      iex> Version.match?("2.0.0", "> 1.0.0")
       true
 
-      iex> Version.match?("2.0.0", "==1.0.0")
+      iex> Version.match?("2.0.0", "== 1.0.0")
       false
 
-      iex> Version.match?("foo", "==1.0.0")
-      ** (Version.InvalidVersionError) foo
+      iex> Version.match?("foo", "== 1.0.0")
+      ** (Version.InvalidVersionError) invalid version: "foo"
 
-      iex> Version.match?("2.0.0", "== ==1.0.0")
-      ** (Version.InvalidRequirementError) == ==1.0.0
+      iex> Version.match?("2.0.0", "== == 1.0.0")
+      ** (Version.InvalidRequirementError) invalid requirement: "== == 1.0.0"
 
   """
   @spec match?(version, requirement, Keyword.t) :: boolean
@@ -156,7 +172,7 @@ defmodule Version do
       {:ok, requirement} ->
         match?(version, requirement, opts)
       :error ->
-        raise InvalidRequirementError, message: requirement
+        raise InvalidRequirementError, requirement
     end
   end
 
@@ -172,23 +188,37 @@ defmodule Version do
   end
 
   @doc """
-  Compares two versions. Returns `:gt` if first version is greater than
-  the second and `:lt` for vice versa. If the two versions are equal `:eq`
-  is returned
+  Compares two versions. Returns `:gt` if the first version is greater than
+  the second one, and `:lt` for vice versa. If the two versions are equal `:eq`
+  is returned.
 
-  Raises a `Version.InvalidVersionError` exception if `version` is not parsable.
-  If given an already parsed version this function won't raise.
+  Pre-releases are strictly less than their corresponding release versions.
+
+  Patch segments are compared lexicographically if they are alphanumeric, and
+  numerically otherwise.
+
+  Build segments are ignored, if two versions differ only in their build segment
+  they are considered to be equal.
+
+  Raises a `Version.InvalidVersionError` exception if any of the two are not
+  parsable. If given an already parsed version this function won't raise.
 
   ## Examples
 
       iex> Version.compare("2.0.1-alpha1", "2.0.0")
       :gt
 
+      iex> Version.compare("1.0.0-beta", "1.0.0-rc1")
+      :lt
+
+      iex> Version.compare("1.0.0-10", "1.0.0-2")
+      :gt
+
       iex> Version.compare("2.0.1+build0", "2.0.1")
       :eq
 
       iex> Version.compare("invalid", "2.0.1")
-      ** (Version.InvalidVersionError) invalid
+      ** (Version.InvalidVersionError) invalid version: "invalid"
 
   """
   @spec compare(version, version) :: :gt | :eq | :lt
@@ -244,14 +274,14 @@ defmodule Version do
       #Version<2.0.1-alpha1>
 
       iex> Version.parse!("2.0-alpha1")
-      ** (Version.InvalidVersionError) 2.0-alpha1
+      ** (Version.InvalidVersionError) invalid version: "2.0-alpha1"
 
   """
   @spec parse!(String.t) :: t | no_return
   def parse!(string) when is_binary(string) do
     case parse(string) do
       {:ok, version} -> version
-      :error -> raise InvalidVersionError, message: string
+      :error -> raise InvalidVersionError, string
     end
   end
 
@@ -301,7 +331,7 @@ defmodule Version do
       {:ok, {major, minor, patch, pre}} ->
         {major, minor, patch, pre, allow_pre?}
       :error ->
-        raise InvalidVersionError, message: string
+        raise InvalidVersionError, string
     end
   end
 
@@ -428,14 +458,14 @@ defmodule Version do
     defp parse_pre(nil), do: {:ok, []}
     defp parse_pre(pre), do: parse_pre(String.split(pre, "."), [])
 
-    defp parse_pre([piece|t], acc) do
+    defp parse_pre([piece | t], acc) do
       cond do
         piece =~ ~r/^(0|[1-9][0-9]*)$/ ->
-          parse_pre(t, [String.to_integer(piece)|acc])
+          parse_pre(t, [String.to_integer(piece) | acc])
         piece =~ ~r/^[0-9]*$/ ->
           :error
         true ->
-          parse_pre(t, [piece|acc])
+          parse_pre(t, [piece | acc])
       end
     end
 

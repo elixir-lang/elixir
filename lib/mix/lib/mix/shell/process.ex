@@ -56,12 +56,12 @@ defmodule Mix.Shell.Process do
   end
 
   @doc """
-  Prints the currently running application if it
+  Prints the current application if it
   was not printed yet.
   """
   def print_app do
     if name = Mix.Shell.printable_app_name do
-      send self, {:mix_shell, :info, ["==> #{name}"]}
+      send self(), {:mix_shell, :info, ["==> #{name}"]}
     end
   end
 
@@ -73,7 +73,7 @@ defmodule Mix.Shell.Process do
     print_app? = Keyword.get(opts, :print_app, true)
     Mix.Shell.cmd(command, opts, fn(data) ->
       if print_app?, do: print_app()
-      send self, {:mix_shell, :run, [data]}
+      send self(), {:mix_shell, :run, [data]}
     end)
   end
 
@@ -81,16 +81,16 @@ defmodule Mix.Shell.Process do
   Forwards the message to the current process.
   """
   def info(message) do
-    print_app
-    send self, {:mix_shell, :info, [format(message)]}
+    print_app()
+    send self(), {:mix_shell, :info, [format(message)]}
   end
 
   @doc """
-  Forwards the message to the current process.
+  Forwards the error to the current process.
   """
   def error(message) do
-    print_app
-    send self, {:mix_shell, :error, [format(message)]}
+    print_app()
+    send self(), {:mix_shell, :error, [format(message)]}
   end
 
   defp format(message) do
@@ -118,8 +118,8 @@ defmodule Mix.Shell.Process do
 
   """
   def prompt(message) do
-    print_app
-    send self, {:mix_shell, :prompt, [message]}
+    print_app()
+    send self(), {:mix_shell, :prompt, [message]}
 
     receive do
       {:mix_shell_input, :prompt, response} -> response
@@ -146,8 +146,8 @@ defmodule Mix.Shell.Process do
 
   """
   def yes?(message) do
-    print_app
-    send self, {:mix_shell, :yes?, [message]}
+    print_app()
+    send self(), {:mix_shell, :yes?, [message]}
 
     receive do
       {:mix_shell_input, :yes?, response} -> response

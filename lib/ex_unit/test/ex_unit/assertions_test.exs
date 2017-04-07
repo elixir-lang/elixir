@@ -153,20 +153,36 @@ defmodule ExUnit.AssertionsTest do
   end
 
   test "assert receive waits" do
-    parent = self
+    parent = self()
     spawn fn -> send parent, :hello end
     :hello = assert_receive :hello
   end
 
+  test "assert receive with message in mailbox after timeout, but before reading mailbox tells user to increase timeout" do
+    parent = self()
+    # This is testing a race condition, so it's not
+    # guaranteed this works under all loads of the system
+    timeout = 100
+    spawn fn -> Process.send_after parent, :hello, timeout end
+
+    try do
+      assert_receive :hello, timeout
+    rescue
+      error in [ExUnit.AssertionError] ->
+        true = error.message =~ "Found message matching :hello after 100ms" or
+               error.message =~ "No message matching :hello after 100ms"
+    end
+  end
+
   test "assert received does not wait" do
-    send self, :hello
+    send self(), :hello
     :hello = assert_received :hello
   end
 
   @received :hello
 
   test "assert received with module attribute" do
-    send self, :hello
+    send self(), :hello
     :hello = assert_received @received
   end
 
@@ -235,7 +251,7 @@ defmodule ExUnit.AssertionsTest do
   end
 
   test "assert received when different message" do
-    send self, {:message, :not_expected, :at_all}
+    send self(), {:message, :not_expected, :at_all}
     try do
       "This should never be tested" = assert_received :hello
     rescue
@@ -247,7 +263,7 @@ defmodule ExUnit.AssertionsTest do
   end
 
   test "assert received when different message having more than 10 on mailbox" do
-    for i <- 1..11, do: send(self, {:message, i})
+    for i <- 1..11, do: send(self(), {:message, i})
     try do
       "This should never be tested" = assert_received x when x == :hello
     rescue
@@ -261,8 +277,15 @@ defmodule ExUnit.AssertionsTest do
   end
 
   test "assert received leaks" do
-    send self, {:hello, :world}
+    send self(), {:hello, :world}
     assert_received {:hello, world}
+    :world = world
+  end
+
+  test "assert received does not leak external variables used in guards" do
+    send self(), {:hello, :world}
+    guard_world = :world
+    assert_received {:hello, world} when world == guard_world
     :world = world
   end
 
@@ -275,7 +298,7 @@ defmodule ExUnit.AssertionsTest do
   end
 
   test "refute received when equal" do
-    send self, :hello
+    send self(), :hello
     try do
       "This should never be tested" = refute_received :hello
     rescue
@@ -427,10 +450,10 @@ defmodule ExUnit.AssertionsTest do
   rescue
     ExUnit.AssertionError ->
       stacktrace = System.stacktrace
-      [{Not.Defined, :function, [1, 2, 3], _}|_] = stacktrace
+      [{Not.Defined, :function, [1, 2, 3], _} | _] = stacktrace
   end
 
-  test "assert raise with erlang error" do
+  test "assert raise with Erlang error" do
     assert_raise SyntaxError, fn ->
       List.flatten(1)
     end
@@ -446,9 +469,9 @@ defmodule ExUnit.AssertionsTest do
   rescue
     error in [ExUnit.AssertionError] ->
       "Wrong message for RuntimeError" <>
-      "\nExpected:" <>
+      "\nexpected:" <>
       "\n  \"foo\"" <>
-      "\nGot:" <>
+      "\nactual:" <>
       "\n  \"bar\"" = error.message
   end
 
@@ -459,9 +482,9 @@ defmodule ExUnit.AssertionsTest do
   rescue
     error in [ExUnit.AssertionError] ->
       "Wrong message for RuntimeError" <>
-      "\nExpected:" <>
+      "\nexpected:" <>
       "\n  ~r/ba[zk]/" <>
-      "\nGot:" <>
+      "\nactual:" <>
       "\n  \"bar\"" = error.message
   end
 
@@ -501,6 +524,44 @@ defmodule ExUnit.AssertionsTest do
   rescue
     error in [ExUnit.AssertionError] ->
       "assertion" = error.message
+  end
+
+  test "assert lack of equality" do
+    try do
+      "This should never be tested" = assert "one" != "one"
+    rescue
+      error in [ExUnit.AssertionError] ->
+        "Assertion with != failed, both sides are exactly equal" = error.message
+        "one" = error.left
+    end
+
+    try do
+      "This should never be tested" = assert 2 != 2.0
+    rescue
+      error in [ExUnit.AssertionError] ->
+        "Assertion with != failed" = error.message
+        2 = error.left
+        2.0 = error.right
+    end
+  end
+
+  test "refute equality" do
+    try do
+      "This should never be tested" = refute "one" == "one"
+    rescue
+      error in [ExUnit.AssertionError] ->
+        "Refute with == failed, both sides are exactly equal" = error.message
+        "one" = error.left
+    end
+
+    try do
+      "This should never be tested" = refute 2 == 2.0
+    rescue
+      error in [ExUnit.AssertionError] ->
+        "Refute with == failed" = error.message
+        2 = error.left
+        2.0 = error.right
+    end
   end
 
   test "assert in delta" do
@@ -573,7 +634,7 @@ defmodule ExUnit.AssertionsTest do
   end
 
   test "flunk" do
-    "This should never be tested" = flunk
+    "This should never be tested" = flunk()
   rescue
     error in [ExUnit.AssertionError] ->
       "Flunked!" = error.message
@@ -591,6 +652,19 @@ defmodule ExUnit.AssertionsTest do
   rescue
     error ->
       "no function clause matching in ExUnit.Assertions.flunk/1" = FunctionClauseError.message error
+  end
+
+  test "AssertionError message should include nice formatting" do
+    assert :a = :b
+  rescue
+    error in [ExUnit.AssertionError] ->
+      """
+
+
+      match (=) failed
+      code:  :a = :b
+      right: :b
+      """ = Exception.message(error)
   end
 
   defp ok(val), do: {:ok, val}

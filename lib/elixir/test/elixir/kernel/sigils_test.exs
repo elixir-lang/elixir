@@ -3,6 +3,8 @@ Code.require_file "../test_helper.exs", __DIR__
 defmodule Kernel.SigilsTest do
   use ExUnit.Case, async: true
 
+  import PathHelpers
+
   test "sigil s" do
     assert ~s(foo) == "foo"
     assert ~s(f#{:o}o) == "foo"
@@ -29,8 +31,18 @@ defmodule Kernel.SigilsTest do
     assert ~S(f\no) == "f\\no"
     assert ~S(foo\)) == "foo)"
     assert ~S[foo\]] == "foo]"
-    assert ~S(foo\
+  end
+
+  if windows?() do
+    test "sigil S newline Windows" do
+      assert ~S(foo\
+bar) == "foo\\\r\nbar"
+    end
+  else
+    test "sigil S newline Unix" do
+      assert ~S(foo\
 bar) == "foo\\\nbar"
+    end
   end
 
   test "sigil S with heredoc" do

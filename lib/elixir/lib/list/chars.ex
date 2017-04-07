@@ -3,55 +3,55 @@ defprotocol List.Chars do
   The List.Chars protocol is responsible for
   converting a structure to a list (only if applicable).
   The only function required to be implemented is
-  `to_char_list` which does the conversion.
+  `to_charlist` which does the conversion.
 
-  The `to_char_list` function automatically imported
-  by Kernel invokes this protocol.
+  The `to_charlist/1` function automatically imported
+  by `Kernel` invokes this protocol.
   """
 
-  def to_char_list(thing)
+  def to_charlist(term)
+
+  @doc false
+  # TODO: Remove by 2.0
+  # (hard-deprecated in elixir_dispatch)
+  Kernel.def to_char_list(term) do
+    __MODULE__.to_charlist(term)
+  end
 end
 
 defimpl List.Chars, for: Atom do
-  def to_char_list(atom), do: Atom.to_char_list(atom)
+  def to_charlist(atom), do: Atom.to_charlist(atom)
 end
 
 defimpl List.Chars, for: BitString do
   @doc """
-  Returns the given binary converted to a char list.
+  Returns the given binary `term` converted to a charlist.
   """
-  def to_char_list(thing) when is_binary(thing) do
-    String.to_char_list(thing)
+  def to_charlist(term) when is_binary(term) do
+    String.to_charlist(term)
   end
 
-  def to_char_list(thing) do
+  def to_charlist(term) do
     raise Protocol.UndefinedError,
              protocol: @protocol,
-                value: thing,
-          description: "cannot convert a bitstring to a char list"
+                value: term,
+          description: "cannot convert a bitstring to a charlist"
   end
 end
 
 defimpl List.Chars, for: List do
   # Note that same inlining is used for the rewrite rule.
-  def to_char_list(list), do: list
+  def to_charlist(list), do: list
 end
 
 defimpl List.Chars, for: Integer do
-  def to_char_list(thing) do
-    Integer.to_char_list(thing)
+  def to_charlist(term) do
+    Integer.to_charlist(term)
   end
 end
 
 defimpl List.Chars, for: Float do
-  @digits 20
-  @limit  :math.pow(10, @digits)
-
-  def to_char_list(thing) when thing > @limit do
-    Float.to_char_list(thing, scientific: @digits)
-  end
-
-  def to_char_list(thing) do
-    Float.to_char_list(thing, compact: true, decimals: @digits)
+  def to_charlist(term) do
+    :io_lib_format.fwrite_g(term)
   end
 end

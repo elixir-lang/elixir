@@ -84,16 +84,16 @@ defmodule Logger.UtilsTest do
            {'~ts~ts~ts', ["abcdeabcde", "", ""]}
   end
 
-  test "timestamp" do
+  test "timestamp/1" do
     assert {{_, _, _}, {_, _, _, _}} = timestamp(true)
   end
 
-  test "format_date" do
+  test "format_date/1" do
     date = {2015, 1, 30}
     assert format_date(date) == ["2015", ?-, [?0, "1"], ?-, "30"]
   end
 
-  test "format_time" do
+  test "format_time/1" do
     time = {12, 30, 10, 1}
     assert format_time(time) == ["12", ?:, "30", ?:, "10", ?., [?0, ?0, "1"]]
 

@@ -10,14 +10,15 @@ defmodule Mix.Tasks.Compile do
 
   ## Configuration
 
-    * `:compilers` - compilers to run, defaults to:
-      `[:yeec, :leex, :erlang, :elixir, :app]`
+    * `:compilers` - compilers to run, defaults to `Mix.compilers/0`,
+      which are `[:yecc, :leex, :erlang, :elixir, :xref, :app]`.
 
     * `:consolidate_protocols` - when `true`, runs protocol
-      consolidation via the `compile.protocols` task
+      consolidation via the `compile.protocols` task. The default
+      value is `true`.
 
-    * `:build_embedded` - when `true`, activates protocol
-      consolidation and does not generate symlinks in builds
+    * `:build_embedded` - when `true`, embeds all code and priv
+      content in the `_build` directory instead of using symlinks.
 
     * `:build_path` - the directory where build artifacts
       should be written to. This option is intended only for
@@ -41,15 +42,15 @@ defmodule Mix.Tasks.Compile do
 
   ## Command line options
 
-    * `--list`              - list all enabled compilers
-    * `--no-archives-check` - skip checking of archives
-    * `--no-deps-check`     - skip checking of dependencies
-    * `--force`             - force compilation
+    * `--list`              - lists all enabled compilers
+    * `--no-archives-check` - skips checking of archives
+    * `--no-deps-check`     - skips checking of dependencies
+    * `--force`             - forces compilation
 
   """
   @spec run(OptionParser.argv) :: :ok | :noop
   def run(["--list"]) do
-    loadpaths!
+    loadpaths!()
     _ = Mix.Task.load_all
 
     shell   = Mix.shell
@@ -93,8 +94,9 @@ defmodule Mix.Tasks.Compile do
 
   # Loadpaths without checks because compilers may be defined in deps.
   defp loadpaths! do
-    Mix.Task.run "loadpaths", ["--no-elixir-version-check", "--no-deps-check"]
+    Mix.Task.run "loadpaths", ["--no-elixir-version-check", "--no-deps-check", "--no-archives-check"]
     Mix.Task.reenable "loadpaths"
+    Mix.Task.reenable "deps.loadpaths"
   end
 
   defp consolidate_protocols? do
@@ -127,6 +129,6 @@ defmodule Mix.Tasks.Compile do
   end
 
   defp first_line(doc) do
-    String.split(doc, "\n", parts: 2) |> hd |> String.strip |> String.rstrip(?.)
+    String.split(doc, "\n", parts: 2) |> hd |> String.trim |> String.trim_trailing(".")
   end
 end

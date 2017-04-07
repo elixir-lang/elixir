@@ -3,6 +3,12 @@ Mix.shell(Mix.Shell.Process)
 Application.put_env(:mix, :colors, [enabled: false])
 ExUnit.start [trace: "--trace" in System.argv]
 
+
+unless {1, 7, 4} <= Mix.SCM.Git.git_version do
+  IO.puts :stderr, "Skipping tests with git sparse checkouts..."
+  ExUnit.configure(exclude: :git_sparse)
+end
+
 defmodule MixTest.Case do
   use ExUnit.CaseTemplate
 
@@ -32,7 +38,7 @@ defmodule MixTest.Case do
       Mix.Shell.Process.flush
       Mix.ProjectStack.clear_cache
       Mix.ProjectStack.clear_stack
-      delete_tmp_paths
+      delete_tmp_paths()
 
       if apps do
         for app <- apps do
@@ -51,7 +57,7 @@ defmodule MixTest.Case do
   end
 
   def fixture_path(extension) do
-    Path.join fixture_path, extension
+    Path.join fixture_path(), extension
   end
 
   def tmp_path do
@@ -59,7 +65,7 @@ defmodule MixTest.Case do
   end
 
   def tmp_path(extension) do
-    Path.join tmp_path, to_string(extension)
+    Path.join tmp_path(), to_string(extension)
   end
 
   def purge(modules) do
@@ -89,7 +95,7 @@ defmodule MixTest.Case do
   def in_fixture(which, tmp, function) do
     src  = fixture_path(which)
     dest = tmp_path(tmp)
-    flag = String.to_char_list(tmp_path)
+    flag = String.to_charlist(tmp_path())
 
     File.rm_rf!(dest)
     File.mkdir_p!(dest)
@@ -129,15 +135,40 @@ defmodule MixTest.Case do
     end
   end
 
+  def mix(args, envs \\ []) when is_list(args) do
+    System.cmd(elixir_executable(),
+               ["-r", mix_executable(), "--" | args],
+               stderr_to_stdout: true,
+               env: envs) |> elem(0)
+  end
+
+  def mix_port(args, envs \\ []) when is_list(args) do
+    Port.open({:spawn_executable, elixir_executable()}, [
+      {:args, ["-r", mix_executable(), "--" | args]},
+      {:env, envs},
+      :binary,
+      :use_stdio,
+      :stderr_to_stdout
+    ])
+  end
+
+  defp mix_executable do
+    Path.expand("../../../bin/mix", __DIR__)
+  end
+
+  defp elixir_executable do
+    Path.expand("../../../bin/elixir", __DIR__)
+  end
+
   defp delete_tmp_paths do
-    tmp = tmp_path |> String.to_char_list
+    tmp = tmp_path() |> String.to_charlist
     for path <- :code.get_path,
         :string.str(path, tmp) != 0,
         do: :code.del_path(path)
   end
 end
 
-## Set up Mix home with rebar
+## Set up Mix home with Rebar
 
 home = MixTest.Case.tmp_path(".mix")
 File.mkdir_p!(home)
@@ -206,6 +237,30 @@ unless File.dir?(target) do
   end
   """
 
+  ## Sparse
+  subdir = Path.join(target, "sparse_dir")
+  File.mkdir_p!(Path.join(subdir, "lib"))
+
+  File.write! Path.join(subdir, "mix.exs"), """
+  ## Auto-generated fixture
+  defmodule GitSparseRepo.Mixfile do
+    use Mix.Project
+
+    def project do
+      [app: :git_sparse_repo, version: "0.1.0"]
+    end
+  end
+  """
+
+  File.write! Path.join(subdir, "lib/git_sparse_repo.ex"), """
+  ## Auto-generated fixture
+  defmodule GitSparseRepo do
+    def hello do
+      "World"
+    end
+  end
+  """
+
   File.cd! target, fn ->
     System.cmd("git", ~w[add .])
     System.cmd("git", ~w[commit -m "lib"])
@@ -246,7 +301,7 @@ unless File.dir?(target) do
   end
 end
 
-# Git rebar
+# Git Rebar
 target = Path.expand("fixtures/git_rebar", __DIR__)
 
 unless File.dir?(target) do
@@ -303,6 +358,10 @@ defmodule Mix.Tasks.Hello do
 
   def run([]) do
     "Hello, World!"
+  end
+
+  def run(["--parser" | args]) do
+    OptionParser.parse!(args, strict: [int: :integer])
   end
 
   def run(args) do

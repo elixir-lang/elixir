@@ -27,7 +27,7 @@ defmodule Record.Extractor do
 
   # Find file using the same lookup as the *include* attribute from Erlang modules.
   defp from_file(file) do
-    file = String.to_char_list(file)
+    file = String.to_charlist(file)
     case :code.where_is_file(file) do
       :non_existing -> file
       realfile -> realfile
@@ -36,12 +36,12 @@ defmodule Record.Extractor do
 
   # Find file using the same lookup as the *include_lib* attribute from Erlang modules.
   defp from_lib_file(file) do
-    [app|path] = :filename.split(String.to_char_list(file))
+    [app | path] = :filename.split(String.to_charlist(file))
     case :code.lib_dir(List.to_atom(app)) do
       {:error, _} ->
         raise ArgumentError, "lib file #{file} could not be found"
       libpath ->
-        :filename.join([libpath|path])
+        :filename.join([libpath | path])
     end
   end
 

@@ -5,7 +5,7 @@ defmodule Logger.ErrorHandlerTest do
     assert capture_log(fn ->
       :error_logger.info_msg("~p~n", [])
       wait_for_handler(:error_logger, Logger.ErrorHandler)
-    end) =~ "[error] GenEvent handler Logger.ErrorHandler installed at :error_logger\n" <>
+    end) =~ "[error] :gen_event handler Logger.ErrorHandler installed at :error_logger\n" <>
             "** (exit) an exception was raised:"
     assert error_log(:info_msg, "~p~n", [:hello]) =~ msg("[info]  :hello")
   end

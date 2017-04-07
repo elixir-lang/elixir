@@ -2,8 +2,49 @@ defmodule Tuple do
   @moduledoc """
   Functions for working with tuples.
 
-  See also `Kernel.elem/2`, `Kernel.is_tuple/1`,
-  `Kernel.put_elem/3`, and `Kernel.tuple_size/1`.
+  Tuples are ordered collections of elements; tuples can contain elements of any
+  type, and a tuple can contain elements of different types. Curly braces can be
+  used to create tuples:
+
+      iex> {}
+      {}
+      iex> {1, :two, "three"}
+      {1, :two, "three"}
+
+  Tuples store elements contiguously in memory; this means that accessing a
+  tuple element by index (which can be done through the `Kernel.elem/2`
+  function) is a constant-time operation:
+
+      iex> tuple = {1, :two, "three"}
+      iex> elem(tuple, 0)
+      1
+      iex> elem(tuple, 2)
+      "three"
+
+  Same goes for getting the tuple size (via `Kernel.tuple_size/1`):
+
+      iex> tuple_size({})
+      0
+      iex> tuple_size({1, 2, 3})
+      3
+
+  Tuples being stored contiguously in memory also means that updating a tuple
+  (for example replacing an element with `Kernel.put_elem/3`) will make a copy
+  of the whole tuple.
+
+  Tuples are not meant to be used as a "collection" type (which is also
+  suggested by the absence of an implementation of the `Enumerable` protocol for
+  tuples): they're mostly meant to be used as a fixed-size container for
+  multiple elements. For example, tuples are often used to have functions return
+  "enriched" values: a common pattern is for functions to return `{:ok, value}`
+  for successful cases and `{:error, reason}` for unsuccessful cases. For
+  example, this is exactly what `File.read/1` does: it returns `{:ok, contents}`
+  if reading the given file is successful, or `{:error, reason}` otherwise
+  (e.g., `{:error, :enoent}` if the file doesn't exist).
+
+  This module provides functions to work with tuples; some more functions to
+  work with tuples can be found in `Kernel` (`Kernel.tuple_size/1`,
+  `Kernel.elem/2`, `Kernel.put_elem/3`, and others).
   """
 
   @doc """

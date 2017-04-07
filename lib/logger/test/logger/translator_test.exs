@@ -11,10 +11,30 @@ defmodule Logger.TranslatorTest do
   end
 
   defmodule MyGenEvent do
-    use GenEvent
+    @behaviour :gen_event
+
+    def init(args) do
+      {:ok, args}
+    end
+
+    def handle_event(_event, state) do
+      {:ok, state}
+    end
 
     def handle_call(:error, _) do
       raise "oops"
+    end
+
+    def handle_info(_msg, state) do
+      {:ok, state}
+    end
+
+    def code_change(_old_vsn, state, _extra) do
+      {:ok, state}
+    end
+
+    def terminate(_reason, _state) do
+      :ok
     end
   end
 
@@ -87,24 +107,24 @@ defmodule Logger.TranslatorTest do
     """s
   end
 
-  test "translates GenEvent crashes" do
-    {:ok, pid} = GenEvent.start()
-    :ok = GenEvent.add_handler(pid, MyGenEvent, :ok)
+  test "translates :gen_event crashes" do
+    {:ok, pid} = :gen_event.start()
+    :ok = :gen_event.add_handler(pid, MyGenEvent, :ok)
 
     assert capture_log(:info, fn ->
-      GenEvent.call(pid, MyGenEvent, :error)
+      :gen_event.call(pid, MyGenEvent, :error)
     end) =~ """
     [error] GenEvent handler Logger.TranslatorTest.MyGenEvent installed in #{inspect pid} terminating
     ** (RuntimeError) oops
     """
   end
 
-  test "translates GenEvent crashes on debug" do
-    {:ok, pid} = GenEvent.start()
-    :ok = GenEvent.add_handler(pid, MyGenEvent, :ok)
+  test "translates :gen_event crashes on debug" do
+    {:ok, pid} = :gen_event.start()
+    :ok = :gen_event.add_handler(pid, MyGenEvent, :ok)
 
     assert capture_log(:debug, fn ->
-      GenEvent.call(pid, MyGenEvent, :error)
+      :gen_event.call(pid, MyGenEvent, :error)
     end) =~ ~r"""
     \[error\] GenEvent handler Logger.TranslatorTest.MyGenEvent installed in #PID<\d+\.\d+\.\d+> terminating
     \*\* \(RuntimeError\) oops
@@ -128,6 +148,21 @@ defmodule Logger.TranslatorTest do
     Function: &Logger.TranslatorTest.task\/1
         Args: \[#PID<\d+\.\d+\.\d+>\]
     """s
+  end
+
+  test "translates Task async_stream crashes with neighbour" do
+    fun = fn -> Task.async_stream([:oops], :erlang, :error, []) |> Enum.to_list() end
+    {:ok, pid} = Task.start(__MODULE__, :task, [self(), fun])
+
+    assert capture_log(:debug, fn ->
+      ref = Process.monitor(pid)
+      send(pid, :go)
+      receive do: ({:DOWN, ^ref, _, _, _} -> :ok)
+    end) =~ ~r"""
+    Neighbours:
+        #{inspect pid}
+            Initial Call: Logger\.TranslatorTest\.task/2
+    """
   end
 
   test "translates Task undef module crash" do
@@ -160,7 +195,8 @@ defmodule Logger.TranslatorTest do
 
   test "translates Task raising ErlangError" do
     assert capture_log(fn ->
-      exception = try do
+      exception =
+        try do
           :erlang.error(:foo)
         rescue
          x ->
@@ -171,14 +207,14 @@ defmodule Logger.TranslatorTest do
       receive do: ({:DOWN, ^ref, _, _, _} -> :ok)
     end) =~ ~r"""
     \[error\] Task #PID<\d+\.\d+\.\d+> started from #PID<\d+\.\d+\.\d+> terminating
-    \*\* \(ErlangError\) erlang error: :foo
+    \*\* \(ErlangError\) Erlang error: :foo
     .*
     Function: &:erlang\.error/1
         Args: \[%ErlangError{.*}\]
     """s
   end
 
-  test "translates Task raising erlang badarg error" do
+  test "translates Task raising Erlang badarg error" do
     assert capture_log(fn ->
       {:ok, pid} = Task.start(:erlang, :error, [:badarg])
       ref = Process.monitor(pid)
@@ -208,7 +244,7 @@ defmodule Logger.TranslatorTest do
 
   test "translates application stop" do
     assert capture_log(fn ->
-    :ok = Application.start(:eex)
+      :ok = Application.start(:eex)
       Application.stop(:eex)
     end) =~ """
     Application eex exited: :stopped
@@ -224,12 +260,25 @@ defmodule Logger.TranslatorTest do
     """
   end
 
+  test "translates Process crashes" do
+    assert capture_log(:info, fn ->
+      {_, ref} = spawn_monitor(fn() -> raise "oops" end)
+      receive do: ({:DOWN, ^ref, _, _, _} -> :ok)
+      # Even though the monitor has been received the emulator may not have
+      # sent the message to the error logger
+      Process.sleep(200)
+    end) =~ ~r"""
+    \[error\] Process #PID<\d+\.\d+\.\d+>\ raised an exception
+    \*\* \(RuntimeError\) oops
+    """
+  end
+
   test "translates :proc_lib crashes" do
     {:ok, pid} = Task.start_link(__MODULE__, :task, [self()])
 
     assert capture_log(:info, fn ->
       ref = Process.monitor(pid)
-      send(pid, :message)
+
       send(pid, :go)
       receive do: ({:DOWN, ^ref, _, _, _} -> :ok)
     end) =~ ~r"""
@@ -240,19 +289,6 @@ defmodule Logger.TranslatorTest do
     Initial Call: Logger.TranslatorTest.task/1
     Ancestors: \[#PID<\d+\.\d+\.\d+>\]
     """s
-  end
-
-  test "translates Process crashes" do
-    assert capture_log(:info, fn ->
-      {_, ref} = spawn_monitor(fn() -> raise "oops" end)
-      receive do: ({:DOWN, ^ref, _, _, _} -> :ok)
-      # Even though the monitor has been received the emulator may not have
-      # sent the message to the error logger
-      :timer.sleep(200)
-    end) =~ ~r"""
-    \[error\] Process #PID<\d+\.\d+\.\d+>\ raised an exception
-    \*\* \(RuntimeError\) oops
-    """
   end
 
   test "translates :proc_lib crashes with name" do
@@ -310,12 +346,11 @@ defmodule Logger.TranslatorTest do
     Ancestors: \[#PID<\d+\.\d+\.\d+>\]
     Neighbours:
         #PID<\d+\.\d+\.\d+>
-            Initial Call: :timer.sleep/1
-            Current Call: :timer.sleep/1
+            Initial Call: Logger.TranslatorTest.sleep/1
+            Current Call: Logger.TranslatorTest.sleep/1
             Ancestors: \[#PID<\d+\.\d+\.\d+>, #PID<\d+\.\d+\.\d+>\]
     """
   end
-  M
 
   test "translates :proc_lib crashes with neighbour with name" do
     {:ok, pid} = Task.start_link(__MODULE__, :sub_task,
@@ -333,8 +368,8 @@ defmodule Logger.TranslatorTest do
     Ancestors: \[#PID<\d+\.\d+\.\d+>\]
     Neighbours:
         Logger.TranslatorTest \(#PID<\d+\.\d+\.\d+>\)
-            Initial Call: :timer.sleep/1
-            Current Call: :timer.sleep/1
+            Initial Call: Logger.TranslatorTest.sleep/1
+            Current Call: Logger.TranslatorTest.sleep/1
             Ancestors: \[#PID<\d+\.\d+\.\d+>, #PID<\d+\.\d+\.\d+>\]
     """
   end
@@ -385,13 +420,13 @@ defmodule Logger.TranslatorTest do
     {:ok, pid} = Supervisor.start_link([], [strategy: :one_for_one])
     assert capture_log(:info, fn ->
       ref = Process.monitor(pid)
-      Supervisor.start_child(pid, worker(Task, [:timer, :sleep, [500]]))
+      Supervisor.start_child(pid, worker(Task, [__MODULE__, :sleep, [self()]]))
       Process.exit(pid, :normal)
       receive do: ({:DOWN, ^ref, _, _, _} -> :ok)
     end) =~ ~r"""
     \[info\]  Child Task of Supervisor #PID<\d+\.\d+\.\d+> \(Supervisor\.Default\) started
     Pid: #PID<\d+\.\d+\.\d+>
-    Start Call: Task.start_link\(:timer, :sleep, \[500\]\)
+    Start Call: Task.start_link\(Logger.TranslatorTest, :sleep, \[#PID<\d+\.\d+\.\d+>\]\)
     """
   end
 
@@ -400,7 +435,7 @@ defmodule Logger.TranslatorTest do
       [strategy: :one_for_one, name: __MODULE__])
     assert capture_log(:info, fn ->
       ref = Process.monitor(pid)
-      Supervisor.start_child(pid, worker(Task, [:timer, :sleep, [500]]))
+      Supervisor.start_child(pid, worker(Task, [__MODULE__, :sleep, [self()]]))
       Process.exit(pid, :normal)
       receive do: ({:DOWN, ^ref, _, _, _} -> :ok)
     end) =~ ~r"""
@@ -411,7 +446,7 @@ defmodule Logger.TranslatorTest do
       [strategy: :one_for_one, name: {:global, __MODULE__}])
     assert capture_log(:info, fn ->
       ref = Process.monitor(pid)
-      Supervisor.start_child(pid, worker(Task, [:timer, :sleep, [500]]))
+      Supervisor.start_child(pid, worker(Task, [__MODULE__, :sleep, [self()]]))
       Process.exit(pid, :normal)
       receive do: ({:DOWN, ^ref, _, _, _} -> :ok)
     end) =~ ~r"""
@@ -422,7 +457,7 @@ defmodule Logger.TranslatorTest do
       [strategy: :one_for_one, name: {:via, :global, __MODULE__}])
     assert capture_log(:info, fn ->
       ref = Process.monitor(pid)
-      Supervisor.start_child(pid, worker(Task, [:timer, :sleep, [500]]))
+      Supervisor.start_child(pid, worker(Task, [__MODULE__, :sleep, [self()]]))
       Process.exit(pid, :normal)
       receive do: ({:DOWN, ^ref, _, _, _} -> :ok)
     end) =~ ~r"""
@@ -434,11 +469,11 @@ defmodule Logger.TranslatorTest do
     {:ok, pid} = Supervisor.start_link([], [strategy: :one_for_one])
     assert capture_log(:debug, fn ->
       ref = Process.monitor(pid)
-      Supervisor.start_child(pid, worker(Task, [:timer, :sleep, [500]]))
+      Supervisor.start_child(pid, worker(Task, [__MODULE__, :sleep, [self()]]))
       Process.exit(pid, :normal)
       receive do: ({:DOWN, ^ref, _, _, _} -> :ok)
     end) =~ ~r"""
-    Start Call: Task.start_link\(:timer, :sleep, \[500\]\)
+    Start Call: Task.start_link\(Logger.TranslatorTest, :sleep, \[#PID<\d+\.\d+\.\d+>\]\)
     Restart: :permanent
     Shutdown: 5000
     Type: :worker
@@ -448,8 +483,8 @@ defmodule Logger.TranslatorTest do
   test "translates Supervisor reports start error" do
     assert capture_log(:info, fn ->
       trap = Process.flag(:trap_exit, true)
-      Supervisor.start_link([worker(__MODULE__, [], [function: :error])],
-        [strategy: :one_for_one])
+      children = [worker(__MODULE__, [], function: :error)]
+      Supervisor.start_link(children, strategy: :one_for_one)
       receive do: ({:EXIT, _, {:shutdown, {:failed_to_start_child, _, _}}} -> :ok)
       Process.flag(:trap_exit, trap)
     end) =~ ~r"""
@@ -462,8 +497,8 @@ defmodule Logger.TranslatorTest do
   test "translates Supervisor reports start error with raise" do
     assert capture_log(:info, fn ->
       trap = Process.flag(:trap_exit, true)
-      Supervisor.start_link([worker(__MODULE__, [], [function: :undef])],
-        [strategy: :one_for_one])
+      children = [worker(__MODULE__, [], function: :undef)]
+      Supervisor.start_link(children, strategy: :one_for_one)
       receive do: ({:EXIT, _, {:shutdown, {:failed_to_start_child, _, _}}} -> :ok)
       Process.flag(:trap_exit, trap)
     end) =~ ~r"""
@@ -478,8 +513,8 @@ defmodule Logger.TranslatorTest do
   test "translates Supervisor reports terminated" do
     assert capture_log(:info, fn ->
       trap = Process.flag(:trap_exit, true)
-      {:ok, pid} = Supervisor.start_link([worker(Task, [Kernel, :exit, [:stop]])],
-        [strategy: :one_for_one, max_restarts: 0])
+      children = [worker(Task, [Kernel, :exit, [:stop]])]
+      {:ok, pid} = Supervisor.start_link(children, strategy: :one_for_one, max_restarts: 0)
       receive do: ({:EXIT, ^pid, _} -> :ok)
       Process.flag(:trap_exit, trap)
     end) =~ ~r"""
@@ -493,8 +528,8 @@ defmodule Logger.TranslatorTest do
   test "translates Supervisor reports max restarts shutdown" do
     assert capture_log(:info, fn ->
       trap = Process.flag(:trap_exit, true)
-      {:ok, pid} = Supervisor.start_link([worker(Task, [Kernel, :exit, [:stop]])],
-        [strategy: :one_for_one, max_restarts: 0])
+      children = [worker(Task, [Kernel, :exit, [:stop]])]
+      {:ok, pid} = Supervisor.start_link(children, strategy: :one_for_one, max_restarts: 0)
       receive do: ({:EXIT, ^pid, _} -> :ok)
       Process.flag(:trap_exit, trap)
     end) =~ ~r"""
@@ -506,8 +541,8 @@ defmodule Logger.TranslatorTest do
 
   test "translates Supervisor reports abnormal shutdown" do
     assert capture_log(:info, fn ->
-      {:ok, pid} = Supervisor.start_link([worker(__MODULE__, [], [function: :abnormal])],
-        [strategy: :one_for_one])
+      children = [worker(__MODULE__, [], function: :abnormal)]
+      {:ok, pid} = Supervisor.start_link(children, strategy: :one_for_one)
       :ok = Supervisor.terminate_child(pid, __MODULE__)
     end) =~ ~r"""
     \[error\] Child Logger.TranslatorTest of Supervisor #PID<\d+\.\d+\.\d+> \(Supervisor\.Default\) shutdown abnormally
@@ -519,9 +554,8 @@ defmodule Logger.TranslatorTest do
 
   test "translates Supervisor reports abnormal shutdown on debug" do
     assert capture_log(:debug, fn ->
-      {:ok, pid} = Supervisor.start_link([worker(__MODULE__, [],
-          [function: :abnormal, restart: :permanent, shutdown: 5000])],
-        [strategy: :one_for_one])
+      children = [worker(__MODULE__, [], function: :abnormal, restart: :permanent, shutdown: 5000)]
+      {:ok, pid} = Supervisor.start_link(children, strategy: :one_for_one)
       :ok = Supervisor.terminate_child(pid, __MODULE__)
     end) =~ ~r"""
     \*\* \(exit\) :stop
@@ -536,8 +570,8 @@ defmodule Logger.TranslatorTest do
   test "translates Supervisor reports abnormal shutdown in simple_one_for_one" do
     assert capture_log(:info, fn ->
       trap = Process.flag(:trap_exit, true)
-      {:ok, pid} = Supervisor.start_link([worker(__MODULE__, [], [function: :abnormal])],
-        [strategy: :simple_one_for_one])
+      children = [worker(__MODULE__, [], function: :abnormal)]
+      {:ok, pid} = Supervisor.start_link(children, strategy: :simple_one_for_one)
       {:ok, _pid2} = Supervisor.start_child(pid, [])
       Process.exit(pid, :normal)
       receive do: ({:EXIT, ^pid, _} -> :ok)
@@ -578,25 +612,56 @@ defmodule Logger.TranslatorTest do
   end
 
   test "handles :undefined MFA properly" do
-    children = [Supervisor.Spec.worker(GenServer, [], restart: :temporary)]
-    opts = [strategy: :simple_one_for_one]
-    {:ok, sup} = Supervisor.start_link(children, opts)
-    assert capture_log(:info, fn ->
-      {:ok, pid} = Supervisor.start_child(sup, [MyGenServer, []])
+    defmodule WeirdFunctionNamesGenServer do
+      use GenServer
+      def unquote(:"start link")(), do: GenServer.start_link(__MODULE__, [])
+      def handle_call(_call, _from, _state), do: raise("oops")
+    end
+
+    child_opts = [restart: :temporary, function: :"start link"]
+    children = [Supervisor.Spec.worker(WeirdFunctionNamesGenServer, [], child_opts)]
+    {:ok, sup} = Supervisor.start_link(children, strategy: :simple_one_for_one)
+
+    log = capture_log(:info, fn ->
+      {:ok, pid} = Supervisor.start_child(sup, [])
       catch_exit(GenServer.call(pid, :error))
       [] = Supervisor.which_children(sup)
-    end) =~ "Start Call: GenServer.start_link/?"
+    end)
+
+    assert log =~ ~s(Start Call: Logger.TranslatorTest.WeirdFunctionNamesGenServer."start link"/?)
+  after
+    :code.purge(WeirdFunctionNamesGenServer)
+    :code.delete(WeirdFunctionNamesGenServer)
   end
 
   def task(parent, fun \\ (fn() -> raise "oops" end)) do
+    mon = Process.monitor(parent)
     Process.unlink(parent)
-    receive do: (:go -> fun.())
+    receive do
+      :go ->
+        fun.()
+      {:DOWN, ^mon, _, _, _} ->
+        exit(:shutdown)
+    end
   end
 
   def sub_task(parent, fun \\ (fn(_) -> raise "oops" end)) do
+    mon = Process.monitor(parent)
     Process.unlink(parent)
-    {:ok, pid} = Task.start_link(:timer, :sleep, [500])
-    receive do: (:go -> fun.(pid))
+    {:ok, pid} = Task.start_link(__MODULE__, :sleep, [self()])
+    receive do: (:sleeping -> :ok)
+    receive do
+      :go ->
+        fun.(pid)
+      {:DOWN, ^mon, _, _, _} ->
+        exit(:shutdown)
+    end
+  end
+
+  def sleep(pid) do
+    mon = Process.monitor(pid)
+    send(pid, :sleeping)
+    receive do: ({:DOWN, ^mon, _, _, _} -> exit(:shutdown))
   end
 
   def error(), do: {:error, :stop}
@@ -610,5 +675,4 @@ defmodule Logger.TranslatorTest do
     :proc_lib.init_ack({:ok, self()})
     receive do: ({:EXIT, _, _} -> exit(:stop))
   end
-
 end

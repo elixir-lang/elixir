@@ -19,7 +19,7 @@ defmodule Mix.Tasks.App.TreeTest do
 
     in_tmp context.test, fn ->
       load_apps()
-      Mix.Tasks.App.Tree.run(["--pretty"])
+      Mix.Tasks.App.Tree.run(["--format", "pretty"])
 
       assert_received {:mix_shell, :info, ["test"]}
       assert_received {:mix_shell, :info, ["└── app_deps_sample"]}
@@ -33,11 +33,10 @@ defmodule Mix.Tasks.App.TreeTest do
   test "show the application tree for umbrella apps" do
     in_fixture "umbrella_dep/deps/umbrella", fn ->
       Mix.Project.in_project(:umbrella, ".", fn _ ->
-        Mix.Task.run "app.tree", ["--pretty"]
+        Mix.Task.run "app.tree", ["--format", "pretty"]
+        assert_received {:mix_shell, :info, ["├── elixir"]}
         assert_received {:mix_shell, :info, ["foo"]}
-        assert_received {:mix_shell, :info, ["└── elixir"]}
-        assert_received {:mix_shell, :info, ["bar"]}
-        assert_received {:mix_shell, :info, ["└── elixir"]}
+        assert_received {:mix_shell, :info, ["    └── elixir"]}
       end)
     end
   end
@@ -48,11 +47,11 @@ defmodule Mix.Tasks.App.TreeTest do
 
     in_tmp context.test, fn ->
       assert_raise Mix.Error, "could not find application app_deps_sample", fn ->
-        Mix.Tasks.App.Tree.run(["--pretty", "app_deps_sample"])
+        Mix.Tasks.App.Tree.run(["--format", "pretty", "app_deps_sample"])
       end
 
       load_apps()
-      Mix.Tasks.App.Tree.run(["--pretty", "app_deps_sample"])
+      Mix.Tasks.App.Tree.run(["--format", "pretty", "app_deps_sample"])
 
       assert_received {:mix_shell, :info, ["app_deps_sample"]}
       assert_received {:mix_shell, :info, ["├── app_deps2_sample"]}
@@ -67,13 +66,36 @@ defmodule Mix.Tasks.App.TreeTest do
 
     in_tmp context.test, fn ->
       load_apps()
-      Mix.Tasks.App.Tree.run(["--pretty", "--exclude", "app_deps4_sample", "--exclude", "app_deps3_sample"])
+      Mix.Tasks.App.Tree.run(["--format", "pretty", "--exclude", "app_deps4_sample", "--exclude", "app_deps3_sample"])
 
       assert_received {:mix_shell, :info, ["test"]}
       assert_received {:mix_shell, :info, ["└── app_deps_sample"]}
       assert_received {:mix_shell, :info, ["    └── app_deps2_sample"]}
       refute_received {:mix_shell, :info, ["    │   └── app_deps4_sample (included)"]}
       refute_received {:mix_shell, :info, ["    └── app_deps3_sample"]}
+    end
+  end
+
+  @tag apps: [:test, :app_deps_sample, :app_deps2_sample, :app_deps3_sample, :app_deps4_sample]
+  test "shows the application tree in dot form", context do
+    Mix.Project.push AppDepsSample
+
+    in_tmp context.test, fn ->
+      load_apps()
+      Mix.Tasks.App.Tree.run(["--format", "dot"])
+
+      assert File.read!("app_tree.dot") == """
+        digraph "application tree" {
+          "test"
+          "test" -> "elixir"
+          "test" -> "logger"
+          "logger" -> "elixir"
+          "test" -> "app_deps_sample"
+          "app_deps_sample" -> "app_deps2_sample"
+          "app_deps2_sample" -> "app_deps4_sample" [label="(included)"]
+          "app_deps_sample" -> "app_deps3_sample"
+        }
+        """
     end
   end
 

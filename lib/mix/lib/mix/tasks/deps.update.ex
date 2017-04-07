@@ -6,16 +6,16 @@ defmodule Mix.Tasks.Deps.Update do
   @moduledoc """
   Updates the given dependencies.
 
-  Since this is a destructive action, update of all dependencies
-  can only happen by passing the `--all` command line option.
+  Since this is a destructive action, updating all dependencies
+  only occurs when the `--all` command line option is passed.
 
   All dependencies are automatically recompiled after update.
 
   ## Command line options
 
-    * `--all` - update all dependencies
-    * `--only` - only fetch dependencies for given environment
-    * `--no-archives-check` - do not check archives before fetching deps
+    * `--all` - updates all dependencies
+    * `--only` - only fetches dependencies for given environment
+    * `--no-archives-check` - does not check archives before fetching deps
   """
   @spec run(OptionParser.argv) :: [atom]
   def run(args) do

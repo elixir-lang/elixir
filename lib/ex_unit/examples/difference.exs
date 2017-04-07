@@ -21,12 +21,30 @@ defmodule Difference do
 
   test "strings" do
     string1 = "fox hops over \"the dog"
-    string2 = "fox jumps over the lazy cat"
+    string2 = "fox  jumps over the lazy cat"
     assert string1 == string2
   end
 
+  test "whitespace" do
+    list1 = [%{a: "abc "}, %{a: "def"}, %{c: "gh"}]
+    list2 = [%{a: "abc"}, %{a: " def"}, %{c: "hi"}]
+    assert list1 == list2
+  end
+
+  test "large strings" do
+    string1 = "short"
+    string2 = "really long string that should not emit diff"
+    assert string1 == string2
+  end
+
+  test "large strings; inner" do
+    tuple1 = {"short"}
+    tuple2 = {"really long string that should not emit diff"}
+    assert tuple1 == tuple2
+  end
+
   test "lists" do
-    list1 = ["One", :ok, make_ref(), {}]
+    list1 = ["Tvo", make_ref(), :ok, {}]
     list2 = ["Two", :ok, self(), {true}]
     assert list1 == list2
   end
@@ -39,14 +57,26 @@ defmodule Difference do
     assert [1, 2, 3] == []
   end
 
-  test "char lists" do
-    char_list1 = 'fox hops over \'the dog'
-    char_list2 = 'fox jumps over the lazy cat'
-    assert char_list1 == char_list2
+  test "improper lists" do
+    list1 = [1 | "b"]
+    list2 = [1, "a"]
+    assert list1 == list2
+  end
+
+  test "charlists" do
+    charlist1 = 'fox hops over \'the dog'
+    charlist2 = 'fox jumps over the lazy cat'
+    assert charlist1 == charlist2
   end
 
   test "keyword lists" do
-    assert [file: "nofile", line: 12] == [file: nil, llne: 10]
+    assert [file: "nofile", line: 12] == [file: nil, lime: 10]
+  end
+
+  test "keyword lists; reverse order" do
+    keyword1 = [port: 4000, max_connections: 1000]
+    keyword2 = [max_connections: 1000, port: 4000]
+    assert keyword1 == keyword2
   end
 
   test "tuples" do
@@ -56,8 +86,8 @@ defmodule Difference do
   end
 
   test "maps; mixed diff" do
-    map1 = Enum.into(1..40, %{}, &{&1, &1}) |> Map.delete(33)
-    map2 = Enum.reduce(5..10, map1, &Map.delete(&2, &1)) |> Map.put(33, 33) |> Map.put(23, 32)
+    map1 = Enum.into(1..15, %{}, &{&1, &1}) |> Map.delete(13)
+    map2 = Enum.reduce(5..10, map1, &Map.delete(&2, &1)) |> Map.put(13, 13) |> Map.put(12, 32)
     assert map1 == map2
   end
 

@@ -10,14 +10,64 @@ defmodule IEx.Evaluator do
     * keeping expression history
 
   """
-  def init(server, leader, opts) do
+  def init(command, server, leader, opts) do
     old_leader = Process.group_leader
-    Process.group_leader(self, leader)
+    Process.group_leader(self(), leader)
+
+    state = loop_state(opts)
+    command == :ack && :proc_lib.init_ack(self())
 
     try do
-      loop(server, IEx.History.init, loop_state(opts))
+      loop(server, IEx.History.init, state)
     after
-      Process.group_leader(self, old_leader)
+      Process.group_leader(self(), old_leader)
+    end
+  end
+
+  @doc """
+  Gets a value out of the binding, using the provided
+  variable name and map key path.
+  """
+  @spec value_from_binding(pid, atom, [atom]) :: {:ok, any} | :error
+  def value_from_binding(evaluator, var_name, map_key_path) do
+    ref = make_ref()
+    send evaluator, {:value_from_binding, ref, self(), var_name, map_key_path}
+
+    receive do
+      {^ref, result} -> result
+    after
+      5000 -> :error
+    end
+  end
+
+  @doc """
+  Gets a list of variables out of the binding that match the passed
+  variable prefix.
+  """
+  @spec variables_from_binding(pid, String.t) :: [String.t]
+  def variables_from_binding(evaluator, variable_prefix) do
+    ref = make_ref()
+    send evaluator, {:variables_from_binding, ref, self(), variable_prefix}
+
+    receive do
+      {^ref, result} -> result
+    after
+      5000 -> []
+    end
+  end
+
+  @doc """
+  Returns the named fields from the current session environment.
+  """
+  @spec fields_from_env(pid, [atom]) :: %{atom => term}
+  def fields_from_env(evaluator, fields) do
+    ref = make_ref()
+    send evaluator, {:fields_from_env, ref, self(), fields}
+
+    receive do
+      {^ref, result} -> result
+    after
+      5000 -> %{}
     end
   end
 
@@ -25,14 +75,39 @@ defmodule IEx.Evaluator do
     receive do
       {:eval, ^server, code, iex_state} ->
         {result, history, state} = eval(code, iex_state, history, state)
-        send server, {:evaled, self, result}
+        send server, {:evaled, self(), result}
         loop(server, history, state)
-      {:peek_env, receiver} ->
-        send receiver, {:peek_env, state.env}
+      {:fields_from_env, ref, receiver, fields} ->
+        send receiver, {ref, Map.take(state.env, fields)}
+        loop(server, history, state)
+      {:value_from_binding, ref, receiver, var_name, map_key_path} ->
+        value = traverse_binding(state.binding, var_name, map_key_path)
+        send receiver, {ref, value}
+        loop(server, history, state)
+      {:variables_from_binding, ref, receiver, var_prefix} ->
+        value = find_matched_variables(state.binding, var_prefix)
+        send receiver, {ref, value}
         loop(server, history, state)
       {:done, ^server} ->
         :ok
     end
+  end
+
+  defp traverse_binding(binding, var_name, map_key_path) do
+    accumulator = Keyword.fetch(binding, var_name)
+
+    Enum.reduce map_key_path, accumulator, fn
+      key, {:ok, map} when is_map(map) -> Map.fetch(map, key)
+      _key, _acc -> :error
+    end
+  end
+
+  defp find_matched_variables(binding, var_prefix) do
+    for {var_name, _value} <- binding,
+        is_atom(var_name),
+        var_name = Atom.to_string(var_name),
+        String.starts_with?(var_name, var_prefix),
+        do: var_name
   end
 
   defp loop_state(opts) do
@@ -77,7 +152,7 @@ defmodule IEx.Evaluator do
 
       # Evaluate the contents in the same environment server_loop will run in
       {_result, binding, env, _scope} =
-        :elixir.eval(String.to_char_list(code), state.binding, env)
+        :elixir.eval(String.to_charlist(code), state.binding, env)
 
       %{state | binding: binding, env: :elixir.env_for_eval(env, file: "iex", line: 1)}
     catch
@@ -93,8 +168,7 @@ defmodule IEx.Evaluator do
   #
   # If parsing fails, this might be a TokenMissingError which we treat in
   # a special way (to allow for continuation of an expression on the next
-  # line in IEx). In case of any other error, we let :elixir_translator
-  # to re-raise it.
+  # line in IEx).
   #
   # Returns updated state.
   #
@@ -105,7 +179,7 @@ defmodule IEx.Evaluator do
 
   defp eval(code, iex_state, history, state) do
     try do
-      do_eval(String.to_char_list(code), iex_state, history, state)
+      do_eval(String.to_charlist(code), iex_state, history, state)
     catch
       kind, error ->
         print_error(kind, error, System.stacktrace)
@@ -180,17 +254,18 @@ defmodule IEx.Evaluator do
     stacktrace |> prune_stacktrace |> format_stacktrace |> io_error
   end
 
-  @elixir_internals [:elixir, :elixir_exp, :elixir_compiler, :elixir_module, :elixir_clauses,
-                     :elixir_translator, :elixir_expand, :elixir_lexical, :elixir_exp_clauses,
-                     :elixir_def, :elixir_map]
+  @elixir_internals [:elixir, :elixir_expand, :elixir_compiler, :elixir_module,
+                     :elixir_clauses, :elixir_lexical, :elixir_def, :elixir_map,
+                     :elixir_erl, :elixir_erl_clauses, :elixir_erl_pass]
 
   defp prune_stacktrace(stacktrace) do
     # The order in which each drop_while is listed is important.
-    # For example, the user my call Code.eval_string/2 in IEx
+    # For example, the user may call Code.eval_string/2 in IEx
     # and if there is an error we should not remove erl_eval
     # and eval_bits information from the user stacktrace.
     stacktrace
     |> Enum.reverse()
+    |> Enum.drop_while(&(elem(&1, 0) == :proc_lib))
     |> Enum.drop_while(&(elem(&1, 0) == __MODULE__))
     |> Enum.drop_while(&(elem(&1, 0) == :elixir))
     |> Enum.drop_while(&(elem(&1, 0) in [:erl_eval, :eval_bits]))
@@ -225,7 +300,7 @@ defmodule IEx.Evaluator do
   end
 
   defp format_entry({app, info}, width) do
-    app = String.rjust(app, width)
+    app = String.pad_leading(app, width)
     IEx.color(:stack_app, app) <> IEx.color(:stack_info, info)
   end
 end

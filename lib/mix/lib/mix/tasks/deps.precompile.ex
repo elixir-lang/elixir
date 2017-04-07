@@ -5,15 +5,15 @@ defmodule Mix.Tasks.Deps.Precompile do
   Extension point for precompiling dependencies.
 
   This is a task that can be aliased by projects
-  that need to execute certain tasks to before
+  that need to execute certain tasks before
   compiling dependencies:
 
       aliases: ["deps.precompile": ["nerves.precompile", "deps.precompile"]]
 
-  By default, this task has a single responsibility
-  of loading all dependencies paths. The dependency
-  loading is ad-hoc on purpose, to load as much as
-  it can without validating it.
+  By default, this task's single responsibility
+  is to load all dependency paths. Dependency
+  loading is deliberately ad-hoc, loading as much as
+  possible without validating the files.
   """
   def run(_) do
     config = Mix.Project.config

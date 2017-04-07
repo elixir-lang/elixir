@@ -10,7 +10,7 @@ defmodule SupervisorTest do
       GenServer.start_link(__MODULE__, state, opts)
     end
 
-    def handle_call(:pop, _from, [h|t]) do
+    def handle_call(:pop, _from, [h | t]) do
       {:reply, h, t}
     end
 
@@ -18,7 +18,7 @@ defmodule SupervisorTest do
       # There is a race condition between genserver terminations.
       # So we will explicitly unregister it here.
       try do
-        self |> Process.info(:registered_name) |> elem(1) |> Process.unregister
+        self() |> Process.info(:registered_name) |> elem(1) |> Process.unregister
       rescue
         _ -> :ok
       end
@@ -26,7 +26,7 @@ defmodule SupervisorTest do
     end
 
     def handle_cast({:push, h}, t) do
-      {:noreply, [h|t]}
+      {:noreply, [h | t]}
     end
   end
 
@@ -41,6 +41,21 @@ defmodule SupervisorTest do
 
   import Supervisor.Spec
 
+  test "start_link/2 with via" do
+    Supervisor.start_link([], strategy: :one_for_one, name: {:via, :global, :via_sup})
+    assert Supervisor.which_children({:via, :global, :via_sup}) == []
+  end
+
+  test "start_link/3 with global" do
+    Supervisor.start_link([], strategy: :one_for_one, name: {:global, :global_sup})
+    assert Supervisor.which_children({:global, :global_sup}) == []
+  end
+
+  test "start_link/3 with local" do
+    Supervisor.start_link([], strategy: :one_for_one, name: :my_sup)
+    assert Supervisor.which_children(:my_sup) == []
+  end
+
   test "start_link/2" do
     children = [worker(Stack, [[:hello], [name: :dyn_stack]])]
     {:ok, pid} = Supervisor.start_link(children, strategy: :one_for_one)
@@ -52,12 +67,23 @@ defmodule SupervisorTest do
     wait_until_registered(:dyn_stack)
     assert GenServer.call(:dyn_stack, :pop) == :hello
     Supervisor.stop(pid)
+
+    assert_raise ArgumentError, ~r"expected :name option to be one of:", fn ->
+      Supervisor.start_link(children, name: "my_gen_server_name", strategy: :one_for_one)
+    end
+
+    assert_raise ArgumentError, ~r"expected :name option to be one of:", fn ->
+      Supervisor.start_link(children, name: {:invalid_tuple, "my_gen_server_name"}, strategy: :one_for_one)
+    end
+
+    assert_raise ArgumentError, ~r"expected :name option to be one of:", fn ->
+      Supervisor.start_link(children, name: {:via, "Via", "my_gen_server_name"}, strategy: :one_for_one)
+    end
   end
 
   test "start_link/3" do
-    {:ok, pid} = Supervisor.start_link(Stack.Sup, {[:hello], [name: :stat_stack]}, name: :stack_sup)
-    wait_until_registered(:stack_sup)
-
+    {:ok, pid} = Supervisor.start_link(Stack.Sup, {[:hello], [name: :stat_stack]})
+    wait_until_registered(:stat_stack)
     assert GenServer.call(:stat_stack, :pop) == :hello
     Supervisor.stop(pid)
   end

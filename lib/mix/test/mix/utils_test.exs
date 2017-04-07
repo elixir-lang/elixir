@@ -28,9 +28,14 @@ defmodule Mix.UtilsTest do
   end
 
   test "extract files" do
-    files = Mix.Utils.extract_files [Path.join(fixture_path, "archive")], "*.ex"
+    files = Mix.Utils.extract_files [Path.join(fixture_path(), "archive")], "*.ex"
     assert length(files) == 1
     assert Path.basename(hd(files)) == "local.sample.ex"
+  end
+
+
+  test "extract files with empty string returns empty list" do
+    assert Mix.Utils.extract_files([""], ".ex") == []
   end
 
   test "extract stale" do

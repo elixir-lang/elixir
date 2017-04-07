@@ -2,12 +2,12 @@ defmodule Dialyzer.Raise do
   defexception [:message]
 
   def exception_var() do
-    e = %Dialyzer.Raise{}
-    raise e
+    ex = %Dialyzer.Raise{}
+    raise ex
   end
 
-  def exception_var(e = %Dialyzer.Raise{}) do
-    raise e
+  def exception_var(ex = %Dialyzer.Raise{}) do
+    raise ex
   end
 
   def string_var() do

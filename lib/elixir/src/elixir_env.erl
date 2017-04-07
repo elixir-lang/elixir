@@ -16,19 +16,20 @@ new() ->
     macros => [],                          %% a list with macros imported from module
     macro_aliases => [],                   %% keep aliases defined inside a macro
     context_modules => [],                 %% modules defined in the current context
+    lexical_tracker => nil,                %% holds the lexical tracker PID
     vars => [],                            %% a set of defined variables
     export_vars => nil,                    %% a set of variables to be exported in some constructs
-    lexical_tracker => nil}.               %% holds the lexical tracker pid
+    prematch_vars => nil}.                 %% a set of variables defined before the current match
 
 linify({Line, Env}) ->
   Env#{line := Line}.
 
-env_to_scope(#{module := Module, file := File, function := Function, context := Context}) ->
-  #elixir_scope{module=Module, file=File, function=Function, context=Context}.
+env_to_scope(#{file := File, context := Context}) ->
+  #elixir_erl{file=File, context=Context}.
 
 env_to_scope_with_vars(Env, Vars) ->
   Map = maps:from_list(Vars),
-  (env_to_scope(Env))#elixir_scope{
+  (env_to_scope(Env))#elixir_erl{
     vars=Map, counter=#{'_' => map_size(Map)}
   }.
 
@@ -38,13 +39,13 @@ env_to_scope_with_vars(Env, Vars) ->
 %% with their variables merged.
 mergev(E1, E2) when is_list(E1) ->
   E2#{
-    vars := merge_vars(E1, ?m(E2, vars)),
-    export_vars := merge_opt_vars(E1, ?m(E2, export_vars))
+    vars := merge_vars(E1, ?key(E2, vars)),
+    export_vars := merge_opt_vars(E1, ?key(E2, export_vars))
   };
 mergev(E1, E2) ->
   E2#{
-    vars := merge_vars(?m(E1, vars), ?m(E2, vars)),
-    export_vars := merge_opt_vars(?m(E1, export_vars), ?m(E2, export_vars))
+    vars := merge_vars(?key(E1, vars), ?key(E2, vars)),
+    export_vars := merge_opt_vars(?key(E1, export_vars), ?key(E2, export_vars))
   }.
 
 %% Receives two scopes and return the later scope
@@ -52,7 +53,7 @@ mergev(E1, E2) ->
 %% and everything else are passed forward).
 
 mergea(E1, E2) ->
-  E2#{vars := ?m(E1, vars)}.
+  E2#{vars := ?key(E1, vars)}.
 
 merge_vars(V1, V2) -> ordsets:union(V1, V2).
 

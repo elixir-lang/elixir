@@ -10,6 +10,12 @@ defmodule File do
   via `cp/3` and remove files and directories recursively
   via `rm_rf/1`.
 
+  Paths given to functions in this module can be either relative to the
+  current working directory (as returned by `File.cwd/0`), or absolute
+  paths. Shell conventions like `~` are not expanded automatically.
+  To use paths like `~/Downloads`, you can use `Path.expand/1` or
+  `Path.expand/2` to expand your path to an absolute path.
+
   ## Encoding
 
   In order to write and read files, one must use the functions
@@ -20,7 +26,7 @@ defmodule File do
   `IO.write/2` functions must be used as they are responsible for
   doing the proper conversions and providing the proper data guarantees.
 
-  Note that filenames when given as char lists in Elixir are
+  Note that filenames when given as charlists in Elixir are
   always treated as UTF-8. In particular, we expect that the
   shell and the operating system are configured to use UTF-8
   encoding. Binary filenames are considered raw and passed
@@ -70,14 +76,12 @@ defmodule File do
   about such options and other performance considerations.
   """
 
-  alias :file, as: F
-
   @type posix :: :file.posix()
   @type io_device :: :file.io_device()
   @type stat_options :: [time: :local | :universal | :posix]
-  @type mode :: :append | :binary | :compressed | :delayed_write | :exclusive |
-    :raw | :read | :read_ahead | :sync | :write |
-    {:encoding, :latin1 | :unicode | :utf16 | :utf32 | :utf8 |
+  @type mode :: :append | :binary | :charlist | :compressed | :delayed_write | :exclusive |
+    :raw | :read | :read_ahead | :sync | :utf8 | :write |
+    {:encoding, :latin1 | :unicode | :utf8 | :utf16 | :utf32 |
       {:utf16, :big | :little} | {:utf32, :big | :little}} |
     {:read_ahead, pos_integer} |
     {:delayed_write, non_neg_integer, non_neg_integer}
@@ -96,7 +100,25 @@ defmodule File do
   end
 
   @doc """
-  Returns `true` if the path is a directory.
+  Returns `true` if the given path is a directory.
+
+  ## Examples
+
+      File.dir?("./test")
+      #=> true
+
+      File.dir?("test")
+      #=> true
+
+      File.dir?("/usr/bin")
+      #=> true
+
+      File.dir?("~/Downloads")
+      #=> false
+
+      "~/Downloads" |> Path.expand |> File.dir?
+      #=> true
+
   """
   @spec dir?(Path.t) :: boolean
   def dir?(path) do
@@ -122,7 +144,7 @@ defmodule File do
   """
   @spec exists?(Path.t) :: boolean
   def exists?(path) do
-    match?({:ok, _}, F.read_file_info(IO.chardata_to_string(path)))
+    match?({:ok, _}, :file.read_file_info(IO.chardata_to_string(path)))
   end
 
   @doc """
@@ -135,13 +157,13 @@ defmodule File do
       directories of `path`
     * `:eexist`  - there is already a file or directory named `path`
     * `:enoent`  - a component of `path` does not exist
-    * `:enospc`  - there is a no space left on the device
+    * `:enospc`  - there is no space left on the device
     * `:enotdir` - a component of `path` is not a directory;
       on some platforms, `:enoent` is returned instead
   """
   @spec mkdir(Path.t) :: :ok | {:error, posix}
   def mkdir(path) do
-    F.make_dir(IO.chardata_to_string(path))
+    :file.make_dir(IO.chardata_to_string(path))
   end
 
   @doc """
@@ -165,7 +187,7 @@ defmodule File do
 
     * `:eacces`  - missing search or write permissions for the parent
       directories of `path`
-    * `:enospc`  - there is a no space left on the device
+    * `:enospc`  - there is no space left on the device
     * `:enotdir` - a component of `path` is not a directory
   """
   @spec mkdir_p(Path.t) :: :ok | {:error, posix}
@@ -187,7 +209,7 @@ defmodule File do
         {:error, :einval}
       else
         _ = do_mkdir_p(parent)
-        case F.make_dir(path) do
+        case :file.make_dir(path) do
           {:error, :eexist} = error ->
             if dir?(path), do: :ok, else: error
           other ->
@@ -228,7 +250,7 @@ defmodule File do
   """
   @spec read(Path.t) :: {:ok, binary} | {:error, posix}
   def read(path) do
-    F.read_file(IO.chardata_to_string(path))
+    :file.read_file(IO.chardata_to_string(path))
   end
 
   @doc """
@@ -269,7 +291,7 @@ defmodule File do
   @spec stat(Path.t, stat_options) :: {:ok, File.Stat.t} | {:error, posix}
   def stat(path, opts \\ []) do
     opts = Keyword.put_new(opts, :time, :universal)
-    case F.read_file_info(IO.chardata_to_string(path), opts) do
+    case :file.read_file_info(IO.chardata_to_string(path), opts) do
       {:ok, fileinfo} ->
         {:ok, File.Stat.from_record(fileinfo)}
       error ->
@@ -278,7 +300,7 @@ defmodule File do
   end
 
   @doc """
-  Same as `stat/2` but returns the `File.Stat` directly and
+  Same as `stat/2` but returns the `File.Stat` directly, or
   throws `File.Error` if an error is returned.
   """
   @spec stat!(Path.t, stat_options) :: File.Stat.t | no_return
@@ -314,7 +336,7 @@ defmodule File do
   @spec lstat(Path.t, stat_options) :: {:ok, File.Stat.t} | {:error, posix}
   def lstat(path, opts \\ []) do
     opts = Keyword.put_new(opts, :time, :universal)
-    case F.read_link_info(IO.chardata_to_string(path), opts) do
+    case :file.read_link_info(IO.chardata_to_string(path), opts) do
       {:ok, fileinfo} ->
         {:ok, File.Stat.from_record(fileinfo)}
       error ->
@@ -323,7 +345,7 @@ defmodule File do
   end
 
   @doc """
-  Same as `lstat/2` but returns the `File.Stat` struct directly and
+  Same as `lstat/2` but returns the `File.Stat` struct directly, or
   throws `File.Error` if an error is returned.
   """
   @spec lstat!(Path.t, stat_options) :: File.Stat.t | no_return
@@ -337,13 +359,51 @@ defmodule File do
   end
 
   @doc """
+  Reads the symbolic link at `path`.
+
+  If `path` exists and is a symlink, returns `{:ok, target}`, otherwise returns
+  `{:error, reason}`.
+
+  For more details, see
+  [`:file.read_link/1`](http://erlang.org/doc/man/file.html#read_link-1).
+
+  Typical error reasons are:
+
+    * `:einval` - path is not a symbolic link
+    * `:enoent` - path does not exist
+    * `:enotsup` - symbolic links are not supported on the current platform
+
+  """
+  @spec read_link(Path.t) :: {:ok, binary} | {:error, posix}
+  def read_link(path) do
+    case path |> IO.chardata_to_string |> :file.read_link do
+      {:ok, target} -> {:ok, IO.chardata_to_string(target)}
+      error -> error
+    end
+  end
+
+  @doc """
+  Same as `read_link/1` but returns the target directly or throws `File.Error` if an error is
+  returned.
+  """
+  @spec read_link!(Path.t) :: binary | no_return
+  def read_link!(path) do
+    case read_link(path) do
+      {:ok, resolved} ->
+        resolved
+      {:error, reason} ->
+        raise File.Error, reason: reason, action: "read link", path: IO.chardata_to_string(path)
+    end
+  end
+
+  @doc """
   Writes the given `File.Stat` back to the filesystem at the given
   path. Returns `:ok` or `{:error, reason}`.
   """
   @spec write_stat(Path.t, File.Stat.t, stat_options) :: :ok | {:error, posix}
   def write_stat(path, stat, opts \\ []) do
     opts = Keyword.put_new(opts, :time, :universal)
-    F.write_file_info(IO.chardata_to_string(path), File.Stat.to_record(stat), opts)
+    :file.write_file_info(IO.chardata_to_string(path), File.Stat.to_record(stat), opts)
   end
 
   @doc """
@@ -398,6 +458,32 @@ defmodule File do
   end
 
   @doc """
+  Creates a hard link `new` to the file `existing`.
+
+  Returns `:ok` if successful, `{:error, reason}` otherwise.
+  If the operating system does not support hard links, returns
+  `{:error, :enotsup}`.
+  """
+  def ln(existing, new) do
+    :file.make_link(IO.chardata_to_string(existing), IO.chardata_to_string(new))
+  end
+
+  @doc """
+  Same as `ln/2` but raises an exception if it fails.
+
+  Returns `:ok` otherwise
+  """
+  def ln!(existing, new) do
+    case ln(existing, new) do
+      :ok -> :ok
+      {:error, reason} ->
+        raise File.LinkError, reason: reason, action: "create hard link",
+          existing: IO.chardata_to_string(existing),
+          new: IO.chardata_to_string(new)
+    end
+  end
+
+  @doc """
   Creates a symbolic link `new` to the file or directory `existing`.
 
   Returns `:ok` if successful, `{:error, reason}` otherwise.
@@ -405,13 +491,28 @@ defmodule File do
   `{:error, :enotsup}`.
   """
   def ln_s(existing, new) do
-    F.make_symlink(existing, new)
+    :file.make_symlink(IO.chardata_to_string(existing), IO.chardata_to_string(new))
+  end
+
+  @doc """
+  Same as `ln_s/2` but raises an exception if it fails.
+
+  Returns `:ok` otherwise
+  """
+  def ln_s!(existing, new) do
+    case ln_s(existing, new) do
+      :ok -> :ok
+      {:error, reason} ->
+        raise File.LinkError, reason: reason, action: "create symlink",
+          existing: IO.chardata_to_string(existing),
+          new: IO.chardata_to_string(new)
+    end
   end
 
   @doc """
   Copies the contents of `source` to `destination`.
 
-  Both parameters can be a filename or an io device opened
+  Both parameters can be a filename or an IO device opened
   with `open/2`. `bytes_count` specifies the number of
   bytes to copy, the default being `:infinity`.
 
@@ -432,7 +533,7 @@ defmodule File do
   """
   @spec copy(Path.t | io_device, Path.t | io_device, pos_integer | :infinity) :: {:ok, non_neg_integer} | {:error, posix}
   def copy(source, destination, bytes_count \\ :infinity) do
-    F.copy(maybe_to_string(source), maybe_to_string(destination), bytes_count)
+    :file.copy(maybe_to_string(source), maybe_to_string(destination), bytes_count)
   end
 
   @doc """
@@ -456,7 +557,7 @@ defmodule File do
   specify the `destination` filename, it is not sufficient to simply specify
   its directory.
 
-  It returns `:ok` in case of success, returns `{:error, reason}` otherwise.
+  Returns `:ok` in case of success, `{:error, reason}` otherwise.
 
   Note: The command `mv` in Unix systems behaves differently depending
   if `source` is a file and the `destination` is an existing directory.
@@ -472,7 +573,7 @@ defmodule File do
   """
   @spec rename(Path.t, Path.t) :: :ok | {:error, posix}
   def rename(source, destination) do
-    F.rename(source, destination)
+    :file.rename(source, destination)
   end
 
   @doc """
@@ -485,7 +586,7 @@ defmodule File do
   The function returns `:ok` in case of success, returns
   `{:error, reason}` otherwise.
 
-  If you want to copy contents from an io device to another device
+  If you want to copy contents from an IO device to another device
   or do a straight copy from a source to a destination without
   preserving modes, check `copy/3` instead.
 
@@ -533,10 +634,9 @@ defmodule File do
   `destination`. If the source is a directory, it copies
   the contents inside source into the destination.
 
-  If a file already exists in the destination,
-  it invokes a callback which should return
-  `true` if the existing file should be overwritten,
-  `false` otherwise. The callback defaults to return `true`.
+  If a file already exists in the destination, it invokes `callback`.
+  `callback` must be a function that takes two arguments: `source` and `destination`.
+  The callback should return `true` if the existing file should be overwritten and `false` otherwise.
 
   If a directory already exists in the destination
   where a file is meant to be (or vice versa), this
@@ -570,7 +670,7 @@ defmodule File do
 
   """
   @spec cp_r(Path.t, Path.t, (Path.t, Path.t -> boolean)) :: {:ok, [binary]} | {:error, posix, binary}
-  def cp_r(source, destination, callback \\ fn(_, _) -> true end) when is_function(callback) do
+  def cp_r(source, destination, callback \\ fn(_, _) -> true end) when is_function(callback, 2) do
     source = IO.chardata_to_string(source)
     destination = IO.chardata_to_string(destination)
 
@@ -601,16 +701,16 @@ defmodule File do
       {:ok, :regular} ->
         do_cp_file(src, dest, callback, acc)
       {:ok, :symlink} ->
-        case F.read_link(src) do
+        case :file.read_link(src) do
           {:ok, link} -> do_cp_link(link, src, dest, callback, acc)
           {:error, reason} -> {:error, reason, src}
         end
       {:ok, :directory} ->
-        case F.list_dir(src) do
+        case :file.list_dir(src) do
           {:ok, files} ->
             case mkdir(dest) do
               success when success in [:ok, {:error, :eexist}] ->
-                Enum.reduce(files, [dest|acc], fn(x, acc) ->
+                Enum.reduce(files, [dest | acc], fn(x, acc) ->
                   do_cp_r(Path.join(src, x), Path.join(dest, x), callback, acc)
                 end)
               {:error, reason} -> {:error, reason, dest}
@@ -634,16 +734,16 @@ defmodule File do
 
   # Both src and dest are files.
   defp do_cp_file(src, dest, callback, acc) do
-    case F.copy(src, {dest, [:exclusive]}) do
+    case :file.copy(src, {dest, [:exclusive]}) do
       {:ok, _} ->
         copy_file_mode!(src, dest)
-        [dest|acc]
+        [dest | acc]
       {:error, :eexist} ->
         if path_differs?(src, dest) and callback.(src, dest) do
           case copy(src, dest) do
             {:ok, _} ->
               copy_file_mode!(src, dest)
-              [dest|acc]
+              [dest | acc]
             {:error, reason} -> {:error, reason, src}
           end
         else
@@ -655,15 +755,15 @@ defmodule File do
 
   # Both src and dest are files.
   defp do_cp_link(link, src, dest, callback, acc) do
-    case F.make_symlink(link, dest) do
+    case :file.make_symlink(link, dest) do
       :ok ->
-        [dest|acc]
+        [dest | acc]
       {:error, :eexist} ->
         if path_differs?(src, dest) and callback.(src, dest) do
-          # If rm/1 fails, F.make_symlink/2 will fail
+          # If rm/1 fails, :file.make_symlink/2 will fail
           _ = rm(dest)
-          case F.make_symlink(link, dest) do
-            :ok -> [dest|acc]
+          case :file.make_symlink(link, dest) do
+            :ok -> [dest | acc]
             {:error, reason} -> {:error, reason, src}
           end
         else
@@ -680,6 +780,9 @@ defmodule File do
   contents are overwritten. Returns `:ok` if successful, or `{:error, reason}`
   if an error occurs.
 
+  `content` must be `iodata` (a list of bytes or a binary). Setting the
+  encoding for this function has no effect.
+
   **Warning:** Every time this function is invoked, a file descriptor is opened
   and a new process is spawned to write to the file. For this reason, if you are
   doing multiple writes in a loop, opening the file via `File.open/2` and using
@@ -691,7 +794,7 @@ defmodule File do
     * `:enoent`  - a component of the file name does not exist
     * `:enotdir` - a component of the file name is not a directory;
       on some platforms, `:enoent` is returned instead
-    * `:enospc`  - there is a no space left on the device
+    * `:enospc`  - there is no space left on the device
     * `:eacces`  - missing permission for writing the file or searching one of
       the parent directories
     * `:eisdir`  - the named file is a directory
@@ -700,7 +803,8 @@ defmodule File do
   """
   @spec write(Path.t, iodata, [mode]) :: :ok | {:error, posix}
   def write(path, content, modes \\ []) do
-    F.write_file(IO.chardata_to_string(path), content, modes)
+    modes = normalize_modes(modes, false)
+    :file.write_file(IO.chardata_to_string(path), content, modes)
   end
 
   @doc """
@@ -708,7 +812,8 @@ defmodule File do
   """
   @spec write!(Path.t, iodata, [mode]) :: :ok | no_return
   def write!(path, content, modes \\ []) do
-    case F.write_file(path, content, modes) do
+    modes = normalize_modes(modes, false)
+    case :file.write_file(path, content, modes) do
       :ok -> :ok
       {:error, reason} ->
         raise File.Error, reason: reason, action: "write to file",
@@ -744,7 +849,7 @@ defmodule File do
   @spec rm(Path.t) :: :ok | {:error, posix}
   def rm(path) do
     path = IO.chardata_to_string(path)
-    case F.delete(path) do
+    case :file.delete(path) do
       :ok ->
         :ok
       {:error, :eacces} = e ->
@@ -756,7 +861,7 @@ defmodule File do
 
   defp change_mode_windows(path) do
     if match? {:win32, _}, :os.type do
-      case F.read_file_info(path) do
+      case :file.read_file_info(path) do
         {:ok, file_info} when elem(file_info, 3) in [:read, :none] ->
           change_mode_windows(path, file_info)
         _ ->
@@ -767,7 +872,7 @@ defmodule File do
 
   defp change_mode_windows(path, file_info) do
     case chmod(path, (elem(file_info, 7) + 0o200)) do
-      :ok -> F.delete(path)
+      :ok -> :file.delete(path)
       {:error, _reason} = error -> error
     end
   end
@@ -800,7 +905,7 @@ defmodule File do
   """
   @spec rmdir(Path.t) :: :ok | {:error, posix}
   def rmdir(path) do
-    F.del_dir(IO.chardata_to_string(path))
+    :file.del_dir(IO.chardata_to_string(path))
   end
 
   @doc """
@@ -850,7 +955,7 @@ defmodule File do
         case res do
           {:ok, acc} ->
             case rmdir(path) do
-              :ok -> {:ok, [path|acc]}
+              :ok -> {:ok, [path | acc]}
               {:error, :enoent} -> res
               {:error, reason} -> {:error, reason, path}
             end
@@ -870,19 +975,19 @@ defmodule File do
 
   defp do_rm_regular(path, {:ok, acc} = entry) do
     case rm(path) do
-      :ok -> {:ok, [path|acc]}
+      :ok -> {:ok, [path | acc]}
       {:error, :enoent} -> entry
       {:error, reason} -> {:error, reason, path}
     end
   end
 
-  # On windows, symlinks are treated as directory and must be removed
+  # On Windows, symlinks are treated as directory and must be removed
   # with rmdir/1. But on Unix, we remove them via rm/1. So we first try
   # to remove it as a directory and, if we get :enotdir, we fallback to
   # a file removal.
   defp do_rm_directory(path, {:ok, acc} = entry) do
     case rmdir(path) do
-      :ok -> {:ok, [path|acc]}
+      :ok -> {:ok, [path | acc]}
       {:error, :enotdir} -> do_rm_regular(path, entry)
       {:error, :enoent} -> entry
       {:error, reason} -> {:error, reason, path}
@@ -897,7 +1002,7 @@ defmodule File do
           _ -> {:ok, :regular}
         end
       {:ok, :directory} ->
-        F.list_dir(path)
+        :file.list_dir(path)
       {:ok, _} ->
         {:ok, :regular}
       {:error, reason} ->
@@ -920,16 +1025,25 @@ defmodule File do
   end
 
   @doc ~S"""
-  Opens the given `path` according to the given list of modes.
+  Opens the given `path`.
 
   In order to write and read files, one must use the functions
-  in the `IO` module. By default, a file is opened in binary mode,
+  in the `IO` module. By default, a file is opened in `:binary` mode,
   which requires the functions `IO.binread/2` and `IO.binwrite/2`
   to interact with the file. A developer may pass `:utf8` as an
   option when opening the file and then all other functions from
   `IO` are available, since they work directly with Unicode data.
 
+  `modes_or_function` can either be a list of modes or a function. If it's a
+  list, it's considered to be a list of modes (that are documented below). If
+  it's a function, then it's equivalent to calling `open(path, [],
+  modes_or_function)`. See the documentation for `open/3` for more information
+  on this function.
+
   The allowed modes:
+
+    * `:binary` - opens the file in binary mode, disabling special handling of unicode sequences
+      (default mode).
 
     * `:read` - the file, which must exist, is opened for reading.
 
@@ -946,8 +1060,8 @@ defmodule File do
     * `:exclusive` - the file, when opened for writing, is created if it does
       not exist. If the file exists, open will return `{:error, :eexist}`.
 
-    * `:char_list` - when this term is given, read operations on the file will
-      return char lists rather than binaries.
+    * `:charlist` - when this term is given, read operations on the file will
+      return charlists rather than binaries.
 
     * `:compressed` - makes it possible to read or write gzip compressed files.
 
@@ -964,14 +1078,15 @@ defmodule File do
       cannot cope with the character range of the data, an error occurs and the
       file will be closed.
 
-  For more information about other options like `:read_ahead` and `:delayed_write`,
-  see [`:file.open/2`](http://www.erlang.org/doc/man/file.html#open-2).
+    * `:delayed_write`, `:raw`, `:ram`, `:read_ahead`, `:sync`, `{:encoding, ...}`,
+      `{:read_ahead, pos_integer}`, `{:delayed_write, non_neg_integer, non_neg_integer}` -
+      for more information about these options see [`:file.open/2`](http://www.erlang.org/doc/man/file.html#open-2).
 
   This function returns:
 
     * `{:ok, io_device}` - the file has been opened in the requested mode.
 
-      `io_device` is actually the pid of the process which handles the file.
+      `io_device` is actually the PID of the process which handles the file.
       This process is linked to the process which originally opened the file.
       If any process to which the `io_device` is linked terminates, the file
       will be closed and the process itself will be terminated.
@@ -990,13 +1105,13 @@ defmodule File do
   """
   @spec open(Path.t, [mode | :ram]) :: {:ok, io_device} | {:error, posix}
   @spec open(Path.t, (io_device -> res)) :: {:ok, res} | {:error, posix} when res: var
-  def open(path, modes \\ [])
+  def open(path, modes_or_function \\ [])
 
   def open(path, modes) when is_list(modes) do
-    F.open(IO.chardata_to_string(path), open_defaults(modes, true))
+    :file.open(IO.chardata_to_string(path), normalize_modes(modes, true))
   end
 
-  def open(path, function) when is_function(function) do
+  def open(path, function) when is_function(function, 1) do
     open(path, [], function)
   end
 
@@ -1007,7 +1122,7 @@ defmodule File do
   automatically closed after the function returns, regardless
   if there was an error when executing the function.
 
-  It returns `{:ok, function_result}` in case of success,
+  Returns `{:ok, function_result}` in case of success,
   `{:error, reason}` otherwise.
 
   This function expects the file to be closed with success,
@@ -1021,43 +1136,51 @@ defmodule File do
         IO.read(file, :line)
       end)
 
+  See `open/2` for the list of available `modes`.
   """
   @spec open(Path.t, [mode | :ram], (io_device -> res)) :: {:ok, res} | {:error, posix} when res: var
-  def open(path, modes, function) do
+  def open(path, modes, function) when is_list(modes) and is_function(function, 1) do
     case open(path, modes) do
-      {:ok, device} ->
+      {:ok, io_device} ->
         try do
-          {:ok, function.(device)}
+          {:ok, function.(io_device)}
         after
-          :ok = close(device)
+          :ok = close(io_device)
         end
       other -> other
     end
   end
 
   @doc """
-  Same as `open/2` but raises an error if file could not be opened.
+  Similar to `open/2` but raises an error if file could not be opened.
 
-  Returns the `io_device` otherwise.
+  Returns the IO device otherwise.
+
+  See `open/2` for the list of available modes.
   """
-  @spec open!(Path.t, [mode]) :: io_device | no_return
-  def open!(path, modes \\ []) do
-    case open(path, modes) do
-      {:ok, device}    -> device
+  @spec open!(Path.t, [mode | :ram]) :: io_device | no_return
+  @spec open!(Path.t, (io_device -> res)) :: res | no_return when res: var
+  def open!(path, modes_or_function \\ []) do
+    case open(path, modes_or_function) do
+      {:ok, io_device_or_function_result} ->
+        io_device_or_function_result
       {:error, reason} ->
         raise File.Error, reason: reason, action: "open", path: IO.chardata_to_string(path)
     end
   end
 
   @doc """
-  Same as `open/3` but raises an error if file could not be opened.
+  Similar to `open/3` but raises an error if file could not be opened.
 
-  Returns the function result otherwise.
+  If it succeeds opening the file, it returns the `function` result on the IO device.
+
+  See `open/2` for the list of available `modes`.
   """
   @spec open!(Path.t, [mode | :ram], (io_device -> res)) :: res | no_return when res: var
   def open!(path, modes, function) do
     case open(path, modes, function) do
-      {:ok, device}    -> device
+      {:ok, function_result} ->
+        function_result
       {:error, reason} ->
         raise File.Error, reason: reason, action: "open", path: IO.chardata_to_string(path)
     end
@@ -1073,7 +1196,7 @@ defmodule File do
   """
   @spec cwd() :: {:ok, binary} | {:error, posix}
   def cwd() do
-    case F.get_cwd do
+    case :file.get_cwd do
       {:ok, base} -> {:ok, IO.chardata_to_string(fix_drive_letter(base))}
       {:error, _} = error -> error
     end
@@ -1081,7 +1204,7 @@ defmodule File do
 
   defp fix_drive_letter([l, ?:, ?/ | rest] = original) when l in ?A..?Z do
     case :os.type() do
-      {:win32, _} -> [l+?a-?A, ?:, ?/ | rest]
+      {:win32, _} -> [l + ?a - ?A, ?:, ?/ | rest]
       _ -> original
     end
   end
@@ -1107,7 +1230,7 @@ defmodule File do
   """
   @spec cd(Path.t) :: :ok | {:error, posix}
   def cd(path) do
-    F.set_cwd(IO.chardata_to_string(path))
+    :file.set_cwd(IO.chardata_to_string(path))
   end
 
   @doc """
@@ -1133,7 +1256,7 @@ defmodule File do
   """
   @spec cd!(Path.t, (() -> res)) :: res | no_return when res: var
   def cd!(path, function) do
-    old = cwd!
+    old = cwd!()
     cd!(path)
     try do
       function.()
@@ -1145,12 +1268,12 @@ defmodule File do
   @doc """
   Returns the list of files in the given directory.
 
-  It returns `{:ok, [files]}` in case of success,
+  Returns `{:ok, [files]}` in case of success,
   `{:error, reason}` otherwise.
   """
   @spec ls(Path.t) :: {:ok, [binary]} | {:error, posix}
   def ls(path \\ ".") do
-    case F.list_dir(IO.chardata_to_string(path)) do
+    case :file.list_dir(IO.chardata_to_string(path)) do
       {:ok, file_list} -> {:ok, Enum.map(file_list, &IO.chardata_to_string/1)}
       {:error, _} = error -> error
     end
@@ -1176,11 +1299,11 @@ defmodule File do
 
   Note that if the option `:delayed_write` was used when opening the file,
   `close/1` might return an old write error and not even try to close the file.
-  See `open/2`.
+  See `open/2` for more information.
   """
   @spec close(io_device) :: :ok | {:error, posix | :badarg | :terminated}
   def close(io_device) do
-    F.close(io_device)
+    :file.close(io_device)
   end
 
   @doc """
@@ -1189,7 +1312,7 @@ defmodule File do
   The stream implements both `Enumerable` and `Collectable` protocols,
   which means it can be used both for read and write.
 
-  The `line_or_byte` argument configures how the file is read when
+  The `line_or_bytes` argument configures how the file is read when
   streaming, by `:line` (default) or by a given number of bytes.
 
   Operating the stream can fail on open for the same reasons as
@@ -1204,25 +1327,30 @@ defmodule File do
   in raw mode for performance reasons. Therefore, Elixir **will** open
   streams in `:raw` mode with the `:read_ahead` option unless an encoding
   is specified. This means any data streamed into the file must be
-  converted to `iodata` type. If you pass `[:utf8]` in the modes parameter,
+  converted to `t:iodata/0` type. If you pass `[:utf8]` in the modes parameter,
   the underlying stream will use `IO.write/2` and the `String.Chars` protocol
   to convert the data. See `IO.binwrite/2` and `IO.write/2` .
 
   One may also consider passing the `:delayed_write` option if the stream
   is meant to be written to under a tight loop.
 
+  ## Byte order marks
+
+  If you pass `:trim_bom` in the modes parameter, the stream will
+  trim UTF-8, UTF-16 and UTF-32 byte order marks when reading from file.
+
   ## Examples
 
       # Read in 2048 byte chunks rather than lines
       File.stream!("./test/test.data", [], 2048)
-      #=>  %File.Stream{line_or_bytes: 2048, modes: [:raw, :read_ahead, :binary],
+      #=> %File.Stream{line_or_bytes: 2048, modes: [:raw, :read_ahead, :binary],
       #=> path: "./test/test.data", raw: true}
 
   See `Stream.run/1` for an example of streaming into a file.
 
   """
   def stream!(path, modes \\ [], line_or_bytes \\ :line) do
-    modes = open_defaults(modes, true)
+    modes = normalize_modes(modes, true)
     File.Stream.__build__(IO.chardata_to_string(path), modes, line_or_bytes)
   end
 
@@ -1252,7 +1380,7 @@ defmodule File do
   """
   @spec chmod(Path.t, non_neg_integer) :: :ok | {:error, posix}
   def chmod(path, mode) do
-    F.change_mode(IO.chardata_to_string(path), mode)
+    :file.change_mode(IO.chardata_to_string(path), mode)
   end
 
   @doc """
@@ -1275,7 +1403,7 @@ defmodule File do
   """
   @spec chgrp(Path.t, non_neg_integer) :: :ok | {:error, posix}
   def chgrp(path, gid) do
-    F.change_group(IO.chardata_to_string(path), gid)
+    :file.change_group(IO.chardata_to_string(path), gid)
   end
 
   @doc """
@@ -1298,7 +1426,7 @@ defmodule File do
   """
   @spec chown(Path.t, non_neg_integer) :: :ok | {:error, posix}
   def chown(path, uid) do
-    F.change_owner(IO.chardata_to_string(path), uid)
+    :file.change_owner(IO.chardata_to_string(path), uid)
   end
 
   @doc """
@@ -1316,26 +1444,26 @@ defmodule File do
 
   ## Helpers
 
-  @read_ahead 64*1024
+  @read_ahead_size 64 * 1024
 
-  defp open_defaults([:char_list|t], _add_binary) do
-    open_defaults(t, false)
+  defp normalize_modes([:utf8 | rest], binary?) do
+    [encoding: :utf8] ++ normalize_modes(rest, binary?)
   end
-
-  defp open_defaults([:utf8|t], add_binary) do
-    open_defaults([{:encoding, :utf8}|t], add_binary)
+  defp normalize_modes([:read_ahead | rest], binary?) do
+    [read_ahead: @read_ahead_size] ++ normalize_modes(rest, binary?)
   end
-
-  defp open_defaults([:read_ahead|t], add_binary) do
-    open_defaults([{:read_ahead, @read_ahead}|t], add_binary)
+  # TODO: Remove :char_list mode by 2.0
+  defp normalize_modes([mode | rest], _binary?) when mode in [:charlist, :char_list] do
+    if mode == :char_list do
+      IO.warn "the :char_list mode is deprecated, use :charlist"
+    end
+    normalize_modes(rest, false)
   end
-
-  defp open_defaults([h|t], add_binary) do
-    [h|open_defaults(t, add_binary)]
+  defp normalize_modes([mode | rest], binary?) do
+    [mode | normalize_modes(rest, binary?)]
   end
-
-  defp open_defaults([], true),  do: [:binary]
-  defp open_defaults([], false), do: []
+  defp normalize_modes([], true), do: [:binary]
+  defp normalize_modes([], false), do: []
 
   defp maybe_to_string(path) when is_pid(path),
     do: path

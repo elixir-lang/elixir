@@ -7,15 +7,15 @@ defmodule ExUnit.OnExitHandler do
   end
 
   @spec register(pid) :: :ok
-  def register(pid) do
+  def register(pid) when is_pid(pid) do
     Agent.update(@name, &Map.put(&1, pid, []))
   end
 
-  @spec add(pid, term, fun) :: :ok | :error
-  def add(pid, ref, callback) do
+  @spec add(pid, term, (() -> term)) :: :ok | :error
+  def add(pid, name_or_ref, callback) when is_pid(pid) and is_function(callback, 0) do
     Agent.get_and_update(@name, fn map ->
       if entries = Map.get(map, pid) do
-        entries = List.keystore(entries, ref, 0, {ref, callback})
+        entries = List.keystore(entries, name_or_ref, 0, {name_or_ref, callback})
         {:ok, Map.put(map, pid, entries)}
       else
         {:error, map}
@@ -23,15 +23,15 @@ defmodule ExUnit.OnExitHandler do
     end)
   end
 
-  @spec run(pid) :: :ok | {Exception.kind, term, Exception.stacktrace}
-  def run(pid) do
-    callbacks = Agent.get_and_update(@name, &Map.pop(&1, pid))
-    exec_on_exit_callbacks(Enum.reverse(callbacks))
+  @spec run(pid, timeout) :: :ok | {Exception.kind, term, Exception.stacktrace}
+  def run(pid, timeout) when is_pid(pid) do
+    callbacks = Agent.get_and_update(@name, &Map.pop(&1, pid, []))
+    exec_on_exit_callbacks(Enum.reverse(callbacks), timeout)
   end
 
-  defp exec_on_exit_callbacks(callbacks) do
+  defp exec_on_exit_callbacks(callbacks, timeout) do
     {runner_pid, runner_monitor, state} =
-      Enum.reduce callbacks, {nil, nil, nil}, &exec_on_exit_callback/2
+      Enum.reduce(callbacks, {nil, nil, nil}, &exec_on_exit_callback(&1, timeout, &2))
 
     if is_pid(runner_pid) and Process.alive?(runner_pid) do
       send(runner_pid, :shutdown)
@@ -43,10 +43,13 @@ defmodule ExUnit.OnExitHandler do
     state || :ok
   end
 
-  defp exec_on_exit_callback({_ref, callback}, {runner_pid, runner_monitor, state}) do
+  defp exec_on_exit_callback({_name_or_ref, callback}, timeout, {runner_pid, runner_monitor, state}) do
     {runner_pid, runner_monitor} = ensure_alive_callback_runner(runner_pid, runner_monitor)
     send(runner_pid, {:run, self(), callback})
+    receive_runner_reply(runner_pid, runner_monitor, state, timeout)
+  end
 
+  defp receive_runner_reply(runner_pid, runner_monitor, state, timeout) do
     receive do
       {^runner_pid, nil} ->
         {runner_pid, runner_monitor, state}
@@ -54,6 +57,19 @@ defmodule ExUnit.OnExitHandler do
         {runner_pid, runner_monitor, state || error}
       {:DOWN, ^runner_monitor, :process, ^runner_pid, error} ->
         {nil, nil, state || {{:EXIT, runner_pid}, error, []}}
+    after
+      timeout ->
+        case Process.info(runner_pid, :current_stacktrace) do
+          {:current_stacktrace, stacktrace} ->
+            Process.exit(runner_pid, :kill)
+            receive do
+              {:DOWN, ^runner_monitor, :process, ^runner_pid, _} -> :ok
+            end
+            exception = ExUnit.TimeoutError.exception(timeout: timeout, type: :on_exit)
+            {nil, nil, state || {:error, exception, stacktrace}}
+          nil ->
+            receive_runner_reply(runner_pid, runner_monitor, state, timeout)
+        end
     end
   end
 

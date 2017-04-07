@@ -32,7 +32,7 @@ defmodule File.Stat do
       systems which have no concept of links.
 
     * `major_device` - identifies the file system where the file is located.
-      In windows, the number indicates a drive as follows: 0 means A:, 1 means
+      In Windows, the number indicates a drive as follows: 0 means A:, 1 means
       B:, and so on.
 
     * `minor_device` - only valid for character devices on Unix. In all other

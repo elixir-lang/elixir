@@ -32,10 +32,10 @@ defmodule Mix.Dep.Lock do
   """
   @spec read() :: map
   def read() do
-    case File.read(lockfile) do
+    case File.read(lockfile()) do
       {:ok, info} ->
-        assert_no_merge_conflicts_in_lockfile(lockfile, info)
-        case Code.eval_string(info, [], file: lockfile) do
+        assert_no_merge_conflicts_in_lockfile(lockfile(), info)
+        case Code.eval_string(info, [], file: lockfile()) do
           {lock, _binding} when is_map(lock)  -> lock
           {_, _binding} -> %{}
         end
@@ -49,12 +49,12 @@ defmodule Mix.Dep.Lock do
   """
   @spec write(map) :: :ok
   def write(map) do
-    unless map == read do
+    unless map == read() do
       lines =
         for {app, rev} <- Enum.sort(map), rev != nil do
           ~s("#{app}": #{inspect rev, limit: :infinity})
         end
-      File.write! lockfile, "%{" <> Enum.join(lines, ",\n  ") <> "}\n"
+      File.write! lockfile(), "%{" <> Enum.join(lines, ",\n  ") <> "}\n"
       touch_manifest()
     end
     :ok

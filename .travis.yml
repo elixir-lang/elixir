@@ -1,9 +1,23 @@
 language: erlang
-
-otp_release:
-  - 18.0
-
 sudo: false
+
+os: linux
+otp_release: 18.0
+
+matrix:
+  include:
+    - os: linux
+      otp_release: 18.1
+    - os: linux
+      otp_release: 18.2
+    - os: linux
+      otp_release: 18.3
+    - os: linux
+      otp_release: 19.0
+    - os: linux
+      otp_release: 19.1
+    - os: linux
+      otp_release: 19.2
 
 script: "make compile && rm -rf .git && make test"
 

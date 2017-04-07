@@ -1,14 +1,14 @@
 Code.require_file "test_helper.exs", __DIR__
 
 defmodule VersionTest do
-  use   ExUnit.Case, async: true
+  use ExUnit.Case, async: true
 
   doctest Version
 
   alias Version.Parser, as: P
   alias Version, as: V
 
-  test "compare" do
+  test "compare/2 with valid versions" do
     assert :gt == V.compare("1.0.1",     "1.0.0")
     assert :gt == V.compare("1.1.0",     "1.0.1")
     assert :gt == V.compare("2.1.1",     "1.2.2")
@@ -34,7 +34,7 @@ defmodule VersionTest do
     assert :eq == V.compare("1.0.0-a",   "1.0.0-a")
   end
 
-  test "invalid compare" do
+  test "compare/2 with invalid versions" do
     assert_raise V.InvalidVersionError, fn ->
       V.compare("1.0", "1.0.0")
     end
@@ -54,10 +54,11 @@ defmodule VersionTest do
     assert P.lexer("!2.3.0", [])             == [:'!=', "2.3.0"]
     assert P.lexer(">>=", [])                == [:'>', :'>=']
     assert P.lexer(">2.4.0", [])             == [:'>', "2.4.0"]
+    assert P.lexer("> 2.4.0", [])            == [:'>', "2.4.0"]
     assert P.lexer("    >     2.4.0", [])    == [:'>', "2.4.0"]
   end
 
-  test "parse" do
+  test "parse/1" do
     assert {:ok, %V{major: 1, minor: 2, patch: 3}} = V.parse("1.2.3")
     assert {:ok, %V{major: 1, minor: 4, patch: 5}} = V.parse("1.4.5+ignore")
     assert {:ok, %V{major: 0, minor: 0, patch: 1}} = V.parse("0.0.1+sha.0702245")
@@ -71,7 +72,7 @@ defmodule VersionTest do
     assert :error = V.parse("2.3.0-01")
   end
 
-  test "to_string" do
+  test "Kernek.to_string/1" do
     assert V.parse!("1.0.0") |> to_string == "1.0.0"
     assert V.parse!("1.0.0-dev") |> to_string == "1.0.0-dev"
     assert V.parse!("1.0.0+lol") |> to_string == "1.0.0+lol"
@@ -80,7 +81,7 @@ defmodule VersionTest do
     assert V.parse!("1.0.0-rc.0") |> to_string == "1.0.0-rc.0"
   end
 
-  test "invalid match" do
+  test "match?/2 with invalid versions" do
     assert_raise V.InvalidVersionError, fn ->
       V.match?("foo", "2.3.0")
     end

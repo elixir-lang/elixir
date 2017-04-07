@@ -105,12 +105,11 @@ defmodule ExUnit do
   end
 
   defmodule TimeoutError do
-    defexception [:timeout]
+    defexception [:timeout, :type]
 
-    def message(timeout)
-    def message(%{timeout: timeout}) do
+    def message(%{timeout: timeout, type: type}) do
       """
-      test timed out after #{timeout}ms. You can change the timeout:
+      #{type} timed out after #{timeout}ms. You can change the timeout:
 
         1. per test by setting "@tag timeout: x"
         2. per case by setting "@moduletag timeout: x"
@@ -131,6 +130,7 @@ defmodule ExUnit do
 
     children = [
       worker(ExUnit.Server, []),
+      worker(ExUnit.CaptureServer, []),
       worker(ExUnit.OnExitHandler, [])
     ]
 
@@ -149,13 +149,15 @@ defmodule ExUnit do
     {:ok, _} = Application.ensure_all_started(:ex_unit)
 
     configure(options)
+    config = put_defaults(configuration())
 
     if Application.fetch_env!(:ex_unit, :autorun) do
       Application.put_env(:ex_unit, :autorun, false)
 
       System.at_exit fn
         0 ->
-          %{failures: failures} = ExUnit.run
+          time = ExUnit.Server.cases_loaded()
+          %{failures: failures} = ExUnit.Runner.run(config, time)
           System.at_exit fn _ ->
             if failures > 0, do: exit({:shutdown, 1})
           end
@@ -173,42 +175,47 @@ defmodule ExUnit do
   ExUnit supports the following options:
 
     * `:assert_receive_timeout` - the timeout to be used on `assert_receive`
-      calls. Defaults to 100ms.
+      calls, defaults to `100` milliseconds;
+
+    * `:autorun` - if ExUnit should run by default on exit. Defaults to `true`;
 
     * `:capture_log` - if ExUnit should default to keeping track of log messages
       and print them on test failure. Can be overridden for individual tests via
-      `@tag capture_log: false`. Defaults to `false`.
+      `@tag capture_log: false`. Defaults to `false`;
+
+    * `:case_load_timeout` - the timeout to be used when loading a test case,
+      defaults to `60_000` milliseconds;
 
     * `:colors` - a keyword list of colors to be used by some formatters.
-      The only option so far is `[enabled: boolean]` which defaults to `IO.ANSI.enabled?/0`
+      The only option so far is `[enabled: boolean]` which defaults to `IO.ANSI.enabled?/0`;
 
-    * `:formatters` - the formatters that will print results;
-      defaults to `[ExUnit.CLIFormatter]`
+    * `:exclude` - specifies which tests are run by skipping tests that match the
+      filter;
 
-    * `:max_cases` - maximum number of cases to run in parallel;
-      defaults to `:erlang.system_info(:schedulers_online)`
+    * `:formatters` - the formatters that will print results,
+      defaults to `[ExUnit.CLIFormatter]`;
 
-    * `:trace` - set ExUnit into trace mode, this sets `:max_cases` to `1` and
-      prints each test case and test while running
-
-    * `:autorun` - if ExUnit should run by default on exit; defaults to `true`
-
-    * `:include` - specify which tests are run by skipping tests that do not
+    * `:include` - specifies which tests are run by skipping tests that do not
       match the filter. Keep in mind that all tests are included by default, so unless they are
-      excluded first, the `:include` option has no effect.
+      excluded first, the `:include` option has no effect;
 
-    * `:exclude` - specify which tests are run by skipping tests that match the
-      filter
+    * `:max_cases` - maximum number of cases to run in parallel.
+      It defaults to `System.schedulers_online * 2` to
+      optimize both CPU-bound and IO-bound tests;
 
     * `:refute_receive_timeout` - the timeout to be used on `refute_receive`
-      calls (defaults to 100ms)
+      calls, defaults to `100` milliseconds;
 
-    * `:seed` - an integer seed value to randomize the test suite
+    * `:seed` - an integer seed value to randomize the test suite;
 
     * `:stacktrace_depth` - configures the stacktrace depth to be used
-      on formatting and reporters (defaults to 20)
+      on formatting and reporters, defaults to `20`;
 
-    * `:timeout` - set the timeout for the tests (default 60_000ms)
+    * `:timeout` - sets the timeout for the tests, defaults to `60_000` milliseconds;
+
+    * `:trace` - sets ExUnit into trace mode, this sets `:max_cases` to `1` and
+      prints each test case and test while running.
+
   """
   def configure(options) do
     Enum.each options, fn {k, v} ->
@@ -224,6 +231,30 @@ defmodule ExUnit do
   end
 
   @doc """
+  Returns the pluralization for `word`.
+
+  If one is not registered, returns the word appended with an "s".
+  """
+  @spec plural_rule(binary) :: binary
+  def plural_rule(word) when is_binary(word) do
+    Application.get_env(:ex_unit, :plural_rules, %{})
+    |> Map.get(word, "#{word}s")
+  end
+
+  @doc """
+  Registers a `pluralization` for `word`.
+
+  If one is already registered, it is replaced.
+  """
+  @spec plural_rule(binary, binary) :: :ok
+  def plural_rule(word, pluralization) when is_binary(word) and is_binary(pluralization) do
+    plural_rules =
+      Application.get_env(:ex_unit, :plural_rules, %{})
+      |> Map.put(word, pluralization)
+    configure(plural_rules: plural_rules)
+  end
+
+  @doc """
   API used to run the tests. It is invoked automatically
   if ExUnit is started via `ExUnit.start/1`.
 
@@ -231,7 +262,35 @@ defmodule ExUnit do
   of failures and the number of skipped tests.
   """
   def run do
-    {async, sync, load_us} = ExUnit.Server.start_run
-    ExUnit.Runner.run async, sync, configuration, load_us
+    config = put_defaults(configuration())
+    ExUnit.Runner.run(config, nil)
+  end
+
+  defp put_defaults(opts) do
+    opts
+    |> put_seed()
+    |> put_max_cases()
+  end
+
+  defp put_seed(opts) do
+    Keyword.put_new_lazy(opts, :seed, fn ->
+      seed = :os.timestamp |> elem(2)
+      Application.put_env(:ex_unit, :seed, seed)
+      seed
+    end)
+  end
+
+  defp put_max_cases(opts) do
+    max_cases = max_cases(opts)
+    Application.put_env(:ex_unit, :max_cases, max_cases)
+    Keyword.put(opts, :max_cases, max_cases)
+  end
+
+  defp max_cases(opts) do
+    cond do
+      opts[:trace] -> 1
+      max = opts[:max_cases] -> max
+      true -> System.schedulers_online * 2
+    end
   end
 end

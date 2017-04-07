@@ -6,8 +6,8 @@ defmodule Mix.Tasks.Deps.Unlock do
   @moduledoc """
   Unlocks the given dependencies.
 
-  Since this is a destructive action, unlocking of dependencies
-  can only happen by passing arguments/options:
+  Since this is a destructive action, unlocking dependencies
+  only occurs when passing arguments/options:
 
     * `dep1 dep2` - the name of dependencies to be unlocked
     * `--all` - unlocks all dependencies
@@ -16,7 +16,7 @@ defmodule Mix.Tasks.Deps.Unlock do
 
   """
 
-  @switches [all: :boolean, unused: :boolean]
+  @switches [all: :boolean, unused: :boolean, filter: :string]
 
   @spec run(OptionParser.argv) :: :ok
   def run(args) do
@@ -29,6 +29,25 @@ defmodule Mix.Tasks.Deps.Unlock do
       opts[:unused] ->
         apps = Mix.Dep.loaded([]) |> Enum.map(& &1.app)
         Mix.Dep.Lock.read() |> Map.take(apps) |> Mix.Dep.Lock.write()
+      filter = opts[:filter] ->
+        lock = Mix.Dep.Lock.read
+        apps = Map.keys(lock)
+
+        unlock = Enum.filter(apps, &(Atom.to_string(&1) =~ filter))
+
+        if unlock == [] do
+          Mix.shell.error "warning: no dependencies were matched"
+        else
+          lock =
+            Enum.reject(lock, fn({app, _}) ->
+              app in unlock
+            end)
+          Mix.Dep.Lock.write(lock)
+          Mix.shell.info """
+          Unlocked deps:
+          * #{Enum.join(unlock, "\n* ")}
+          """
+        end
 
       apps != [] ->
         lock =
@@ -45,7 +64,9 @@ defmodule Mix.Tasks.Deps.Unlock do
 
       true ->
         Mix.raise "\"mix deps.unlock\" expects dependencies as arguments or " <>
-                  "the --all option to unlock all dependencies"
+                  "a flag indicating which dependencies to unlock. " <>
+                  "The --all option will unlock all dependencies while " <>
+                  "the --unused option unlocks unused dependencies"
     end
   end
 end

@@ -13,7 +13,9 @@ defmodule Dict do
   @type value :: any
   @type t :: list | map
 
-  # TODO: Deprecate every function by 1.4
+  # TODO: Remove by 2.0
+  # (hard-deprecated in elixir_dispatch)
+
   defmacro __using__(_) do
     # Use this import to guarantee proper code expansion
     import Kernel, except: [size: 1]
@@ -72,7 +74,7 @@ defmodule Dict do
       end
 
       def take(dict, keys) do
-        Enum.reduce(keys, new, fn key, acc ->
+        Enum.reduce(keys, new(), fn key, acc ->
           case fetch(dict, key) do
             {:ok, value} -> put(acc, key, value)
             :error -> acc
@@ -82,19 +84,19 @@ defmodule Dict do
 
       def to_list(dict) do
         reduce(dict, {:cont, []}, fn
-          kv, acc -> {:cont, [kv|acc]}
+          kv, acc -> {:cont, [kv | acc]}
         end) |> elem(1) |> :lists.reverse
       end
 
       def keys(dict) do
         reduce(dict, {:cont, []}, fn
-          {k, _}, acc -> {:cont, [k|acc]}
+          {k, _}, acc -> {:cont, [k | acc]}
         end) |> elem(1) |> :lists.reverse
       end
 
       def values(dict) do
         reduce(dict, {:cont, []}, fn
-          {_, v}, acc -> {:cont, [v|acc]}
+          {_, v}, acc -> {:cont, [v | acc]}
         end) |> elem(1) |> :lists.reverse
       end
 
@@ -166,7 +168,7 @@ defmodule Dict do
       end
 
       def split(dict, keys) do
-        Enum.reduce(keys, {new, dict}, fn key, {inc, exc} = acc ->
+        Enum.reduce(keys, {new(), dict}, fn key, {inc, exc} = acc ->
           case fetch(exc, key) do
             {:ok, value} ->
               {put(inc, key, value), delete(exc, key)}

@@ -1,8 +1,6 @@
-# This is an Elixir module responsible for tracking
-# the usage of aliases, imports and requires in the Elixir scope.
-#
-# The implementation simply stores dispatch information in an
-# ETS table and then consults this table once compilation is done.
+# This is an Elixir module responsible for tracking references
+# to modules, remote dispatches, and the usage of
+# aliases/imports/requires in the Elixir scope.
 #
 # Note that since this is required for bootstrap, we can't use
 # any of the `GenServer.Behaviour` conveniences.
@@ -12,20 +10,18 @@ defmodule Kernel.LexicalTracker do
   @behaviour :gen_server
 
   @doc """
-  Returns all remotes linked to in this lexical scope.
+  Returns all remotes referenced in this lexical scope.
   """
-  def remotes(arg) do
-    :gen_server.call(to_pid(arg), :ets, @timeout)
-    |> :ets.match({{:mode, :'$1'}, :'$2'})
-    |> partition([], [])
+  def remote_references(arg) do
+    :gen_server.call(to_pid(arg), :remote_references, @timeout)
   end
 
-  defp partition([[remote, :compile]|t], compile, runtime),
-    do: partition(t, [remote|compile], runtime)
-  defp partition([[remote, :runtime]|t], compile, runtime),
-    do: partition(t, compile, [remote|runtime])
-  defp partition([], compile, runtime),
-    do: {compile, runtime}
+  @doc """
+  Returns all remote dispatches in this lexical scope.
+  """
+  def remote_dispatches(arg) do
+    :gen_server.call(to_pid(arg), :remote_dispatches, @timeout)
+  end
 
   @doc """
   Gets the destination the lexical scope is meant to
@@ -44,7 +40,7 @@ defmodule Kernel.LexicalTracker do
 
   # Internal API
 
-  # Starts the tracker and returns its pid.
+  # Starts the tracker and returns its PID.
   @doc false
   def start_link(dest) do
     :gen_server.start_link(__MODULE__, dest, [])
@@ -56,27 +52,32 @@ defmodule Kernel.LexicalTracker do
   end
 
   @doc false
-  def add_import(pid, module_or_mfa, line, warn) do
-    :gen_server.cast(pid, {:add_import, module_or_mfa, line, warn})
+  def add_import(pid, module, fas, line, warn) when is_atom(module) do
+    :gen_server.cast(pid, {:add_import, module, fas, line, warn})
   end
 
   @doc false
-  def add_alias(pid, module, line, warn) do
+  def add_alias(pid, module, line, warn) when is_atom(module) do
     :gen_server.cast(pid, {:add_alias, module, line, warn})
   end
 
   @doc false
-  def remote_dispatch(pid, module, mode) do
-    :gen_server.cast(pid, {:remote_dispatch, module, mode})
+  def remote_reference(pid, module, mode) when is_atom(module) do
+    :gen_server.cast(pid, {:remote_reference, module, mode})
   end
 
   @doc false
-  def import_dispatch(pid, {module, function, arity}) do
-    :gen_server.cast(pid, {:import_dispatch, {module, function, arity}})
+  def remote_dispatch(pid, module, fa, line, mode) when is_atom(module) do
+    :gen_server.cast(pid, {:remote_dispatch, module, fa, line, mode})
   end
 
   @doc false
-  def alias_dispatch(pid, module) do
+  def import_dispatch(pid, module, fa, line, mode) when is_atom(module) do
+    :gen_server.cast(pid, {:import_dispatch, module, fa, line, mode})
+  end
+
+  @doc false
+  def alias_dispatch(pid, module) when is_atom(module) do
     :gen_server.cast(pid, {:alias_dispatch, module})
   end
 
@@ -91,70 +92,87 @@ defmodule Kernel.LexicalTracker do
   end
 
   defp unused(pid, tag) do
-    :gen_server.call(pid, :ets, @timeout)
-    |> :ets.select([{{{tag, :"$1"}, :"$2"}, [is_integer: :"$2"], [{{:"$1", :"$2"}}]}])
-    |> Enum.sort
+    :gen_server.call(pid, {:unused, tag}, @timeout)
   end
 
   # Callbacks
 
   def init(dest) do
-    {:ok, {:ets.new(__MODULE__, [:protected]), dest}}
+    {:ok, %{directives: %{}, references: %{}, compile: %{},
+            runtime: %{}, dest: dest}}
   end
 
   @doc false
-  def handle_call(:ets, _from, {d, dest}) do
-    {:reply, d, {d, dest}}
+  def handle_call({:unused, tag}, _from, state) do
+    directives =
+      for {{^tag, module_or_mfa}, marker} <- state.directives,
+          is_integer(marker),
+          do: {module_or_mfa, marker}
+
+    {:reply, Enum.sort(directives), state}
   end
 
-  def handle_call(:dest, _from, {d, dest}) do
-    {:reply, dest, {d, dest}}
+  def handle_call(:remote_references, _from, state) do
+    {:reply, partition(Enum.to_list(state.references), [], []), state}
   end
 
-  def handle_cast({:remote_dispatch, module, mode}, {d, dest}) do
-    add_compile(d, module, mode)
-    {:noreply, {d, dest}}
+  def handle_call(:remote_dispatches, _from, state) do
+    {:reply, {state.compile, state.runtime}, state}
   end
 
-  def handle_cast({:import_dispatch, {module, function, arity}}, {d, dest}) do
-    add_dispatch(d, module, :import)
-    add_dispatch(d, {module, function, arity}, :import)
-    # Always compile time because we depend
-    # on the module at compile time
-    add_compile(d, module, :compile)
-    {:noreply, {d, dest}}
+  def handle_call(:dest, _from, state) do
+    {:reply, state.dest, state}
   end
 
-  def handle_cast({:alias_dispatch, module}, {d, dest}) do
-    add_dispatch(d, module, :alias)
-    {:noreply, {d, dest}}
+  def handle_cast({:remote_reference, module, mode}, state) do
+    {:noreply, %{state | references: add_reference(state.references, module, mode)}}
   end
 
-  def handle_cast({:add_import, module, line, warn}, {d, dest}) when is_atom(module) do
-    :ets.match_delete(d, {{:import, {module, :_, :_}}, :_})
-
-    add_directive(d, module, line, warn, :import)
-    {:noreply, {d, dest}}
+  def handle_cast({:remote_dispatch, module, fa, line, mode}, state) do
+    references = add_reference(state.references, module, mode)
+    state = add_remote_dispatch(state, module, fa, line, mode)
+    {:noreply, %{state | references: references}}
   end
 
-  def handle_cast({:add_import, {module, function, arity}, line, warn}, {d, dest}) do
-    add_directive(d, module, line, warn, :import)
-    add_directive(d, {module, function, arity}, line, warn, :import)
-    {:noreply, {d, dest}}
+  def handle_cast({:import_dispatch, module, {function, arity} = fa, line, mode}, state) do
+    state =
+      state
+      |> add_import_dispatch(module, function, arity)
+      |> add_remote_dispatch(module, fa, line, mode)
+
+    {:noreply, state}
   end
 
-  def handle_cast({:add_alias, module, line, warn}, {d, dest}) do
-    add_directive(d, module, line, warn, :alias)
-    {:noreply, {d, dest}}
+  def handle_cast({:alias_dispatch, module}, state) do
+    {:noreply, %{state | directives: add_dispatch(state.directives, module, :alias)}}
   end
 
-  def handle_cast(:stop, {d, dest}) do
-    {:stop, :normal, {d, dest}}
+  def handle_cast({:add_import, module, fas, line, warn}, state) do
+    directives =
+      state.directives
+      |> Enum.reject(&match?({{:import, {^module, _, _}}, _}, &1))
+      |> :maps.from_list
+      |> add_directive(module, line, warn, :import)
+
+    directives =
+      Enum.reduce(fas, directives, fn {function, arity}, directives ->
+        add_directive(directives, {module, function, arity}, line, warn, :import)
+      end)
+
+    {:noreply, %{state | directives: directives}}
+  end
+
+  def handle_cast({:add_alias, module, line, warn}, state) do
+    {:noreply, %{state | directives: add_directive(state.directives, module, line, warn, :alias)}}
+  end
+
+  def handle_cast(:stop, state) do
+    {:stop, :normal, state}
   end
 
   @doc false
-  def handle_info(_msg, {d, dest}) do
-    {:noreply, {d, dest}}
+  def handle_info(_msg, state) do
+    {:noreply, state}
   end
 
   @doc false
@@ -167,21 +185,62 @@ defmodule Kernel.LexicalTracker do
     {:ok, state}
   end
 
+  defp partition([{remote, :compile} | t], compile, runtime),
+    do: partition(t, [remote | compile], runtime)
+  defp partition([{remote, :runtime} | t], compile, runtime),
+    do: partition(t, compile, [remote | runtime])
+  defp partition([], compile, runtime),
+    do: {compile, runtime}
+
   # Callbacks helpers
 
-  # In the table we keep imports and aliases.
-  # If the value is false, it was not imported/aliased
-  # If the value is a line, it was imported/aliased and has a pending warning
-  # If the value is true, it was imported/aliased and used
-  defp add_dispatch(d, module, tag) do
-    :ets.insert(d, {{tag, module}, true})
+  defp add_reference(references, module, :runtime) when is_atom(module),
+    do: map_put_new(module, :runtime, references)
+  defp add_reference(references, module, :compile) when is_atom(module),
+    do: :maps.put(module, :compile, references)
+
+  defp add_remote_dispatch(state, module, fa, line, mode) when is_atom(module) do
+    map_update mode, %{module => %{fa => [line]}}, state, fn mode_dispatches ->
+      map_update module, %{fa => [line]}, mode_dispatches, fn module_dispatches ->
+        map_update fa, [line], module_dispatches, &[line | List.delete(&1, line)]
+      end
+    end
   end
 
-  defp add_compile(d, module, :runtime), do: :ets.insert_new(d, {{:mode, module}, :runtime})
-  defp add_compile(d, module, :compile), do: :ets.insert(d, {{:mode, module}, :compile})
+  defp add_import_dispatch(state, module, function, arity) do
+    directives =
+      add_dispatch(state.directives, module, :import)
+      |> add_dispatch({module, function, arity}, :import)
+    # Always compile time because we depend
+    # on the module at compile time
+    references = add_reference(state.references, module, :compile)
 
-  defp add_directive(d, module_or_mfa, line, warn, tag) do
+    %{state | directives: directives, references: references}
+  end
+
+  # In the map we keep imports and aliases.
+  # If the value is a line, it was imported/aliased and has a pending warning
+  # If the value is true, it was imported/aliased and used
+  defp add_directive(directives, module_or_mfa, line, warn, tag) do
     marker = if warn, do: line, else: true
-    :ets.insert(d, {{tag, module_or_mfa}, marker})
+    :maps.put({tag, module_or_mfa}, marker, directives)
+  end
+
+  defp add_dispatch(directives, module_or_mfa, tag) do
+    :maps.put({tag, module_or_mfa}, true, directives)
+  end
+
+  defp map_update(key, initial, map, fun) do
+    case :maps.find(key, map) do
+      {:ok, val} -> :maps.put(key, fun.(val), map)
+      :error -> :maps.put(key, initial, map)
+    end
+  end
+
+  defp map_put_new(key, value, map) do
+    case :maps.find(key, map) do
+      {:ok, _} -> map
+      :error -> :maps.put(key, value, map)
+    end
   end
 end

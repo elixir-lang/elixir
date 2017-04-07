@@ -25,15 +25,17 @@ op_kw_test() ->
   [{atom, {1, 1, 5}, foo}, {dual_op, {1, 5, 6}, '+'}, {atom, {1, 6, 10}, bar}] = tokenize(":foo+:bar").
 
 scientific_test() ->
-  [{number, {1, 1, 7}, 0.1}] = tokenize("1.0e-1").
+  [{number, {1, 1, 7}, 0.1}] = tokenize("1.0e-1"),
+  [{number, {1, 1, 16}, 1.2345678e-7}] = tokenize("1_234.567_8e-10"),
+  {1, "invalid float number ", "1.0e309"} = tokenize_error("1.0e309").
 
 hex_bin_octal_test() ->
   [{number, {1, 1, 5}, 255}] = tokenize("0xFF"),
-  [{number, {1, 1, 5}, 255}] = tokenize("0xF_F"),
+  [{number, {1, 1, 6}, 255}] = tokenize("0xF_F"),
   [{number, {1, 1, 5}, 63}] = tokenize("0o77"),
-  [{number, {1, 1, 5}, 63}] = tokenize("0o7_7"),
+  [{number, {1, 1, 6}, 63}] = tokenize("0o7_7"),
   [{number, {1, 1, 5}, 3}] = tokenize("0b11"),
-  [{number, {1, 1, 5}, 3}] = tokenize("0b1_1").
+  [{number, {1, 1, 6}, 3}] = tokenize("0b1_1").
 
 unquoted_atom_test() ->
   [{atom, {1, 1, 3}, '+'}] = tokenize(":+"),
@@ -47,7 +49,7 @@ quoted_atom_test() ->
   [{atom_unsafe, {1, 1, 11}, [<<"foo bar">>]}] = tokenize(":\"foo bar\"").
 
 oversized_atom_test() ->
-  OversizedAtom = [$:|string:copies("a", 256)],
+  OversizedAtom = [$: | string:copies("a", 256)],
   {1, "atom length must be less than system limit", ":"} = tokenize_error(OversizedAtom).
 
 op_atom_test() ->
@@ -72,7 +74,9 @@ float_test() ->
   [{number, {1, 1, 5}, 12.3}] = tokenize("12.3"),
   [{number, {1, 1, 5}, 12.3}, {';', {1, 5, 6}}] = tokenize("12.3;"),
   [{eol, {1, 1, 2}}, {number, {3, 1, 5}, 12.3}] = tokenize("\n\n12.3"),
-  [{number, {1, 3, 7}, 12.3}, {number, {1, 9, 13}, 23.4}] = tokenize("  12.3  23.4  ").
+  [{number, {1, 3, 7}, 12.3}, {number, {1, 9, 13}, 23.4}] = tokenize("  12.3  23.4  "),
+  OversizedFloat = string:copies("9", 310) ++ ".0",
+  {1, "invalid float number ", OversizedFloat} = tokenize_error(OversizedFloat).
 
 comments_test() ->
   [{number, {1, 1, 2}, 1}, {eol, {1, 3, 4}}, {number, {2, 1, 2}, 2}] = tokenize("1 # Comment\n2").
@@ -169,3 +173,7 @@ capture_test() ->
    {identifier, {1, 2, 4}, 'or'},
    {mult_op,    {1, 4, 5}, '/'},
    {number,     {1, 5, 6}, 2}] = tokenize("&or/2").
+
+vc_merge_conflict_test() ->
+  {1, "found an unexpected version control marker, please resolve the conflicts: ", "<<<<<<< HEAD"} =
+    tokenize_error("<<<<<<< HEAD\n[1, 2, 3]").

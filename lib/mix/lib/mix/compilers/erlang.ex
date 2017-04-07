@@ -18,7 +18,7 @@ defmodule Mix.Compilers.Erlang do
       manifest = Path.join Mix.Project.manifest_path, ".compile.lfe"
       dest = Mix.Project.compile_path
 
-      compile manifest, [{"src", dest}], :lfe, :beam, opts[:force], fn
+      compile manifest, [{"src", dest}], :lfe, :beam, opts, fn
         input, output ->
           :lfe_comp.file(to_erl_file(input),
                          [output_dir: Path.dirname(output)])
@@ -42,11 +42,17 @@ defmodule Mix.Compilers.Erlang do
   of error. An error is raised at the end if any of the
   files failed to compile.
   """
-  def compile(manifest, mappings, src_ext, dest_ext, force, callback) do
-    files = for {src, dest} <- mappings do
-              extract_targets(src, src_ext, dest, dest_ext, force)
-            end |> Enum.concat
-    compile(manifest, files, callback)
+  def compile(manifest, mappings, src_ext, dest_ext, force, callback) when is_boolean(force) do
+    compile(manifest, mappings, src_ext, dest_ext, [force: force], callback)
+  end
+
+  def compile(manifest, mappings, src_ext, dest_ext, opts, callback) do
+    force = opts[:force]
+    files =
+      for {src, dest} <- mappings do
+        extract_targets(src, src_ext, dest, dest_ext, force)
+      end |> Enum.concat
+    compile(manifest, files, src_ext, opts, callback)
   end
 
   @doc """
@@ -58,10 +64,15 @@ defmodule Mix.Compilers.Erlang do
   must be given. A src/dest pair where destination is `nil` is considered
   to be up to date and won't be (re-)compiled.
   """
-  def compile(manifest, mappings, callback) do
+  def compile(manifest, mappings, opts \\ [], callback) do
+    compile(manifest, mappings, :erl, opts, callback)
+  end
+
+  defp compile(manifest, mappings, ext, opts, callback) do
     stale = for {:stale, src, dest} <- mappings, do: {src, dest}
 
     # Get the previous entries from the manifest
+    timestamp = :calendar.universal_time()
     entries = read_manifest(manifest)
 
     # Files to remove are the ones in the manifest
@@ -73,6 +84,7 @@ defmodule Mix.Compilers.Erlang do
     if stale == [] && removed == [] do
       :noop
     else
+      Mix.Utils.compiling_n(length(stale), ext)
       Mix.Project.ensure_structure()
 
       # Let's prepend the newly created path so compiled files
@@ -82,15 +94,24 @@ defmodule Mix.Compilers.Erlang do
 
       # Remove manifest entries with no source
       Enum.each(removed, &File.rm/1)
+      verbose = opts[:verbose]
 
       # Compile stale files and print the results
-      results = for {input, output} <- stale do
-        interpret_result(input, callback.(input, output))
-      end
+      results =
+        for {input, output} <- stale do
+          result = callback.(input, output)
+
+          with {:ok, _} <- result do
+            File.touch!(output, timestamp)
+            verbose && Mix.shell.info "Compiled #{input}"
+          end
+
+          result
+        end
 
       # Write final entries to manifest
       entries = (entries -- removed) ++ Enum.map(stale, &elem(&1, 1))
-      write_manifest(manifest, :lists.usort(entries))
+      write_manifest(manifest, :lists.usort(entries), timestamp)
 
       # Raise if any error, return :ok otherwise
       if :error in results do
@@ -111,7 +132,7 @@ defmodule Mix.Compilers.Erlang do
         Mix.raise "Could not compile #{inspect Path.relative_to_cwd(input)} because " <>
                   "the application \"#{app}\" could not be found. This may happen if " <>
                   "your package manager broke Erlang into multiple packages and may " <>
-                  "be fixed by installing the missing \"erlang-dev\" and \"erlang-#{app}\" packages."
+                  "be fixed by installing the missing \"erlang-dev\" and \"erlang-#{app}\" packages"
     end
   end
 
@@ -128,7 +149,22 @@ defmodule Mix.Compilers.Erlang do
   the Erlang compilation tools.
   """
   def to_erl_file(file) do
-    to_char_list(file)
+    to_charlist(file)
+  end
+
+  @doc """
+  Asserts that the `:erlc_paths` configuration option that many Mix tasks
+  rely on is valid.
+
+  Raises a `Mix.Error` exception if the option is not valid, returns `:ok`
+  otherwise.
+  """
+  def assert_valid_erlc_paths(erlc_paths) do
+    if is_list(erlc_paths) do
+      :ok
+    else
+      Mix.raise ":erlc_paths should be a list of paths, got: #{inspect(erlc_paths)}"
+    end
   end
 
   defp extract_targets(src_dir, src_ext, dest_dir, dest_ext, force) do
@@ -150,14 +186,6 @@ defmodule Mix.Compilers.Erlang do
     artifact |> Path.basename |> Path.rootname
   end
 
-  defp interpret_result(file, result) do
-    case result do
-      {:ok, _} -> Mix.shell.info "Compiled #{file}"
-      :error -> nil
-    end
-    result
-  end
-
   defp read_manifest(file) do
     case File.read(file) do
       {:ok, contents} -> String.split(contents, "\n")
@@ -165,8 +193,9 @@ defmodule Mix.Compilers.Erlang do
     end
   end
 
-  defp write_manifest(file, entries) do
+  defp write_manifest(file, entries, timestamp) do
     Path.dirname(file) |> File.mkdir_p!
     File.write!(file, Enum.join(entries, "\n"))
+    File.touch!(file, timestamp)
   end
 end

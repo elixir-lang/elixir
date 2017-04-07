@@ -11,7 +11,7 @@ defmodule Range do
 
   A Range is represented internally as a struct. However,
   the most common form of creating and matching on ranges
-  is via the `../2` macro, auto-imported from Kernel:
+  is via the `../2` macro, auto-imported from `Kernel`:
 
       iex> range = 1..3
       1..3
@@ -39,8 +39,9 @@ defmodule Range do
 
   defstruct first: nil, last: nil
 
-  @type t :: %Range{}
+  @type t :: %Range{first: integer, last: integer}
   @type t(first, last) :: %Range{first: first, last: last}
+
 
   @doc """
   Creates a new range.
@@ -57,9 +58,7 @@ defmodule Range do
   end
 
   @doc """
-  Returns `true` if the given `term` is a range.
-
-  It does not check if the range is valid.
+  Returns `true` if the given `term` is a valid range.
 
   ## Examples
 
@@ -72,7 +71,7 @@ defmodule Range do
   """
   @spec range?(term) :: boolean
   def range?(term)
-  def range?(%Range{}), do: true
+  def range?(first..last) when is_integer(first) and is_integer(last), do: true
   def range?(_), do: false
 end
 

@@ -41,11 +41,11 @@ bar \"""
     """, "bar")
   end
 
-  test "utf8" do
+  test "UTF-8" do
     assert byte_size(" ゆんゆん") == 13
   end
 
-  test "utf8 char" do
+  test "UTF-8 char" do
     assert ?ゆ == 12422
     assert ?\ゆ == 12422
   end
@@ -67,6 +67,10 @@ bar \"""
     <<x::binary-size(size)>> <> _ = "foobar"
     assert x == "foo"
 
+    size = 16
+    <<x::size(size)>> <> _ = "foobar"
+    assert x == 26223
+
     <<x::6*4-binary>> <> _ = "foobar"
     assert x == "foo"
 
@@ -76,11 +80,11 @@ bar \"""
     <<x::24-bits>> <> _ = "foobar"
     assert x == "foo"
 
-    assert_raise CompileError, fn ->
+    assert_raise MatchError, fn ->
       Code.eval_string(~s{<<x::binary-size(3)-unit(4)>> <> _ = "foobar"})
     end
 
-    assert_raise CompileError, fn ->
+    assert_raise MatchError, fn ->
       Code.eval_string(~s{<<x::integer-size(4)>> <> _ = "foobar"})
     end
   end
@@ -124,10 +128,12 @@ bar \"""
   end
 
   test "literal" do
-    assert <<106, 111, 115, 195, 169>> == <<"josé"::binary >>
-    assert <<106, 111, 115, 195, 169>> == <<"josé"::bits >>
-    assert <<106, 111, 115, 195, 169>> == <<"josé"::bitstring >>
-    assert <<106, 111, 115, 195, 169>> == <<"josé"::bytes >>
+    assert <<106, 111, 115, 195, 169>> == <<"josé">>
+    assert <<106, 111, 115, 195, 169>> == <<"#{:"josé"}">>
+    assert <<106, 111, 115, 195, 169>> == <<"josé"::binary>>
+    assert <<106, 111, 115, 195, 169>> == <<"josé"::bits>>
+    assert <<106, 111, 115, 195, 169>> == <<"josé"::bitstring>>
+    assert <<106, 111, 115, 195, 169>> == <<"josé"::bytes>>
 
     assert <<106, 111, 115, 195, 169>> == <<"josé"::utf8>>
     assert <<0, 106, 0, 111, 0, 115, 0, 233>> == <<"josé"::utf16>>
@@ -149,8 +155,14 @@ bar \"""
     end
 
     assert_raise ArgumentError, fn ->
-      Code.eval_string(~s[<<1::size(4)>> <> "foo"])
+      Code.eval_string(~s[<<1::4>> <> "foo"])
     end
+  end
+
+  @bitstring <<"foo", 16::4>>
+
+  test "bitstring attribute" do
+    assert @bitstring == <<"foo", 16::4>>
   end
 
   @binary "new "
@@ -170,7 +182,7 @@ bar \"""
 
   test "bitsyntax size shortcut" do
     assert <<1::3>> == <<1::size(3)>>
-    assert <<1::3 * 8>> == <<1::size(3)-unit(8)>>
+    assert <<1::3*8>> == <<1::size(3)-unit(8)>>
   end
 
   test "bitsyntax variable size" do

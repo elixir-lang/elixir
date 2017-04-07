@@ -46,7 +46,7 @@ After
 .Nm
 starts, it seeks the file
 .Pa .iex.exs
-and, in a case of success, executes the code from the file in the context of the shell. At first the search starts in the current working directory, then, if necessary, it continues in the home direcory.
+and, in a case of success, executes the code from the file in the context of the shell. At first the search starts in the current working directory, then, if necessary, it continues in the home directory.
 .El
 .Sh SEE ALSO
 .Xr elixir 1 ,
@@ -58,6 +58,4 @@ This manual page contributed by Evgeny Golyshev.
 .Bl -tag -width Ds
 .It Main website: http://elixir-lang.org
 .It Documentation: http://elixir-lang.org/docs.html
-.It General Mailing List: https://groups.google.com/group/elixir-lang-talk
-.It Development Mailing List: https://groups.google.com/group/elixir-lang-core
 .El

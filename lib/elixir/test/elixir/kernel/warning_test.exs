@@ -9,19 +9,52 @@ defmodule Kernel.WarningTest do
   end
 
   test "unused variable" do
-    assert capture_err(fn ->
+    output = capture_err(fn ->
       Code.eval_string """
       defmodule Sample do
         def hello(arg), do: nil
+
+        if true do
+          user = :warning
+        else
+          :nothing
+        end
       end
       """
-    end) =~ "warning: variable arg is unused"
+    end)
+    assert output =~ "variable \"arg\" is unused"
+    assert output =~ "variable \"user\" is unused"
   after
     purge Sample
   end
 
+  test "unused variable in redefined function in different file" do
+    output = capture_err(fn ->
+      Code.eval_string """
+      defmodule Sample do
+        defmacro __using__(_) do
+          quote location: :keep do
+            def function(arg)
+          end
+        end
+      end
+      """
+      Code.eval_string("""
+      defmodule RedefineSample do
+        use Sample
+        def function(var123), do: nil
+      end
+      """, [], file: "redefine_sample.ex")
+    end)
+    assert output =~ "redefine_sample.ex:3"
+    assert output =~ "variable \"var123\" is unused"
+  after
+    purge Sample
+    purge RedefineSample
+  end
+
   test "useless literal" do
-    message = "warning: code block contains unused literal \"oops\""
+    message = "code block contains unused literal \"oops\""
 
     assert capture_err(fn ->
       Code.eval_string """
@@ -67,14 +100,14 @@ defmodule Kernel.WarningTest do
       """
     end)
 
-    assert message =~ "warning: module attribute @foo in code block has no effect as it is never returned "
-    assert message =~ "warning: module attribute @bar in code block has no effect as it is never returned "
+    assert message =~ "module attribute @foo in code block has no effect as it is never returned "
+    assert message =~ "module attribute @bar in code block has no effect as it is never returned "
   after
     purge Sample
   end
 
   test "useless var" do
-    message = "warning: variable foo in code block has no effect as it is never returned "
+    message = "variable foo in code block has no effect as it is never returned "
 
     assert capture_err(fn ->
       Code.eval_string """
@@ -119,7 +152,7 @@ defmodule Kernel.WarningTest do
       Code.eval_string """
       {_arg, _arg} = {1, 1}
       """
-    end) =~ "warning: the underscored variable \"_arg\" appears more than once in a match"
+    end) =~ "the underscored variable \"_arg\" appears more than once in a match"
   end
 
   test "underscored variable on assign" do
@@ -131,7 +164,7 @@ defmodule Kernel.WarningTest do
         end
       end
       """
-    end) =~ "warning: the underscored variable \"_var\" is used after being set"
+    end) =~ "the underscored variable \"_var\" is used after being set"
   after
     purge Sample
   end
@@ -143,7 +176,7 @@ defmodule Kernel.WarningTest do
         defp hello, do: nil
       end
       """
-    end) =~ "warning: function hello/0 is unused"
+    end) =~ "function hello/0 is unused"
 
     assert capture_err(fn ->
       Code.eval_string """
@@ -163,7 +196,7 @@ defmodule Kernel.WarningTest do
         defp d(x), do: x
       end
       """
-    end) =~ "warning: function c/2 is unused"
+    end) =~ "function c/2 is unused"
   after
     purge [Sample1, Sample2, Sample3]
   end
@@ -172,11 +205,11 @@ defmodule Kernel.WarningTest do
     assert capture_err(fn ->
       Code.eval_string """
       defmodule Sample do
-        defp a, do: b
-        defp b, do: a
+        defp a, do: b()
+        defp b, do: a()
       end
       """
-    end) =~ "warning: function a/0 is unused"
+    end) =~ "function a/0 is unused"
   after
     purge Sample
   end
@@ -188,7 +221,7 @@ defmodule Kernel.WarningTest do
         defmacrop hello, do: nil
       end
       """
-    end) =~ "warning: macro hello/0 is unused"
+    end) =~ "macro hello/0 is unused"
   after
     purge Sample
   end
@@ -218,7 +251,7 @@ defmodule Kernel.WarningTest do
         defp b(arg1 \\ 1, arg2 \\ 2, arg3 \\ 3), do: [arg1, arg2, arg3]
       end
       """
-    end) =~ "warning: default arguments in b/3 are never used"
+    end) =~ "default arguments in b/3 are never used"
 
     assert capture_err(fn ->
       Code.eval_string ~S"""
@@ -227,7 +260,7 @@ defmodule Kernel.WarningTest do
         defp b(arg1 \\ 1, arg2 \\ 2, arg3 \\ 3), do: [arg1, arg2, arg3]
       end
       """
-    end) =~ "warning: the first 2 default arguments in b/3 are never used"
+    end) =~ "the first 2 default arguments in b/3 are never used"
 
     assert capture_err(fn ->
       Code.eval_string ~S"""
@@ -236,7 +269,7 @@ defmodule Kernel.WarningTest do
         defp b(arg1 \\ 1, arg2 \\ 2, arg3 \\ 3), do: [arg1, arg2, arg3]
       end
       """
-    end) =~ "warning: the first default argument in b/3 is never used"
+    end) =~ "the first default argument in b/3 is never used"
 
     assert capture_err(fn ->
       Code.eval_string ~S"""
@@ -258,29 +291,28 @@ defmodule Kernel.WarningTest do
         def a, do: nil
       end
       """
-    end) =~ "warning: unused import :lists\n"
+    end) =~ "unused import :lists\n"
 
     assert capture_err(fn ->
       Code.compile_string """
       import :lists
       """
-    end) =~ "warning: unused import :lists\n"
+    end) =~ "unused import :lists\n"
   after
     purge Sample
   end
 
   test "unused import of one of the functions in :only" do
-    assert capture_err(fn ->
+    output = capture_err(fn ->
       Code.compile_string """
       defmodule Sample do
-        import String, only: [upcase: 1, downcase: 1, strip: 1]
+        import String, only: [upcase: 1, downcase: 1, trim: 1]
         def a, do: upcase("hello")
       end
       """
-    end) == """
-    nofile:2: warning: unused import String.downcase/1
-    nofile:2: warning: unused import String.strip/1
-    """
+    end)
+    assert output =~ "unused import String.downcase/1"
+    assert output =~ "unused import String.trim/1"
   after
     purge Sample
   end
@@ -293,7 +325,7 @@ defmodule Kernel.WarningTest do
         def a, do: nil
       end
       """
-    end) == "nofile:2: warning: unused import String\n"
+    end) =~ "unused import String\n"
   after
     purge Sample
   end
@@ -306,7 +338,21 @@ defmodule Kernel.WarningTest do
         def a, do: nil
       end
       """
-    end) =~ "warning: unused alias List"
+    end) =~ "unused alias List"
+  after
+    purge Sample
+  end
+
+  test "unused alias when also import" do
+    assert capture_err(fn ->
+      Code.compile_string """
+      defmodule Sample do
+        alias :lists, as: List
+        import MapSet
+        new()
+      end
+      """
+    end) =~ "unused alias List"
   after
     purge Sample
   end
@@ -322,7 +368,7 @@ defmodule Kernel.WarningTest do
           flatten([1, 2, 3])
         end
       end
-    end) =~ "warning: unused import String"
+    end) =~ "unused import String"
   after
     purge Sample
   end
@@ -330,8 +376,8 @@ defmodule Kernel.WarningTest do
   test "unused guard" do
     assert capture_err(fn ->
       Code.eval_string """
-      defmodule Sample1 do
-        def is_atom_case do
+      defmodule Sample do
+        def atom_case do
           v = "bc"
           case v do
             _ when is_atom(v) -> :ok
@@ -340,12 +386,16 @@ defmodule Kernel.WarningTest do
         end
       end
       """
-    end) =~ "nofile:5: warning: this check/guard will always yield the same result"
+    end) =~ "this check/guard will always yield the same result"
+  after
+    purge Sample
+  end
 
+  test "previous clause always matches" do
     assert capture_err(fn ->
       Code.eval_string """
-      defmodule Sample2 do
-        def is_binary_cond do
+      defmodule Sample do
+        def binary_cond do
           v = "bc"
           cond do
             is_binary(v) -> :bin
@@ -354,9 +404,9 @@ defmodule Kernel.WarningTest do
         end
       end
       """
-    end) =~ "nofile:6: warning: this clause cannot match because a previous clause at line 5 always matches"
+    end) =~ "this clause cannot match because a previous clause at line 5 always matches"
   after
-    purge [Sample1, Sample2]
+    purge Sample
   end
 
   test "empty clause" do
@@ -366,7 +416,7 @@ defmodule Kernel.WarningTest do
         def hello
       end
       """
-    end) =~ "warning: bodyless clause provided for nonexistent def hello/0"
+    end) =~ "implementation not provided for predefined def hello/0"
   after
     purge Sample1
   end
@@ -384,7 +434,7 @@ defmodule Kernel.WarningTest do
 
       defmodule Sample2 do
         import Sample1
-        generate
+        generate()
       end
       """
     end) == ""
@@ -400,7 +450,7 @@ defmodule Kernel.WarningTest do
         def hello, do: nil
       end
       """
-    end) =~ "warning: this clause cannot match because a previous clause at line 2 always matches"
+    end) =~ "this clause cannot match because a previous clause at line 2 always matches"
   after
     purge Sample
   end
@@ -413,7 +463,7 @@ defmodule Kernel.WarningTest do
         def hello(arg \\ 0), do: nil
       end
       """
-    end) =~ "warning: definitions with multiple clauses and default values require a function head"
+    end) =~ "definitions with multiple clauses and default values require a header"
   after
     purge Sample
   end
@@ -422,11 +472,11 @@ defmodule Kernel.WarningTest do
     assert capture_err(fn ->
       Code.eval_string ~S"""
       defmodule Sample do
-      def hello(arg \\ 0), do: nil
-      def hello(arg), do: nil
+        def hello(arg \\ 0), do: nil
+        def hello(arg), do: nil
       end
       """
-    end) =~ "warning: definitions with multiple clauses and default values require a function head"
+    end) =~ "definitions with multiple clauses and default values require a header"
   after
     purge Sample
   end
@@ -435,27 +485,13 @@ defmodule Kernel.WarningTest do
     assert capture_err(fn ->
       Code.eval_string """
       defmodule Sample do
-        def hello, do: world
+        def hello, do: world()
         defp world, do: :ok
         defoverridable [hello: 0]
         def hello, do: :ok
       end
       """
-    end) =~ "warning: function world/0 is unused"
-  after
-    purge Sample
-  end
-
-  test "used with local with reattached overridable" do
-    assert capture_err(fn ->
-      Code.eval_string """
-      defmodule Sample do
-        def hello, do: world
-        defp world, do: :ok
-        defoverridable [hello: 0, world: 0]
-      end
-      """
-    end) == ""
+    end) =~ "function world/0 is unused"
   after
     purge Sample
   end
@@ -467,7 +503,7 @@ defmodule Kernel.WarningTest do
         @foo
       end
       """
-    end) =~ "warning: undefined module attribute @foo, please remove access to @foo or explicitly set it before access"
+    end) =~ "undefined module attribute @foo, please remove access to @foo or explicitly set it before access"
   after
     purge Sample
   end
@@ -481,7 +517,7 @@ defmodule Kernel.WarningTest do
         end
       end
       """
-    end) =~ "warning: undefined module attribute @foo, please remove access to @foo or explicitly set it before access"
+    end) =~ "undefined module attribute @foo, please remove access to @foo or explicitly set it before access"
   after
     purge Sample
   end
@@ -493,7 +529,7 @@ defmodule Kernel.WarningTest do
         @foo
       end
       """
-    end) =~ "warning: undefined module attribute @foo, please remove access to @foo or explicitly set it before access"
+    end) =~ "undefined module attribute @foo, please remove access to @foo or explicitly set it before access"
   after
     purge Sample
   end
@@ -505,7 +541,7 @@ defmodule Kernel.WarningTest do
         def a(x) when x in [], do: x
       end
       """
-    end) =~ "nofile:2: warning: this check/guard will always yield the same result"
+    end) =~ "this check/guard will always yield the same result"
   after
     purge Sample
   end
@@ -520,7 +556,7 @@ defmodule Kernel.WarningTest do
         end
       end
       """
-    end) =~ "warning: use of operator != has no effect"
+    end) =~ "use of operator != has no effect"
   after
     purge Sample
   end
@@ -534,7 +570,7 @@ defmodule Kernel.WarningTest do
         end
         """
       end
-    end) =~ "warning: this expression will fail with ArgumentError"
+    end) =~ "this expression will fail with ArgumentError"
   after
     purge [Sample]
   end
@@ -550,9 +586,9 @@ defmodule Kernel.WarningTest do
         @behaviour Sample1
       end
       """
-    end) =~ "warning: undefined behaviour function foo/0 (for behaviour Sample1)"
+    end) =~ "undefined behaviour function foo/0 (for behaviour Sample1)"
   after
-    purge [Sample1, Sample2, Sample3]
+    purge [Sample1, Sample2]
   end
 
   test "undefined macro for behaviour" do
@@ -566,9 +602,9 @@ defmodule Kernel.WarningTest do
         @behaviour Sample1
       end
       """
-    end) =~ "warning: undefined behaviour macro foo/0 (for behaviour Sample1)"
+    end) =~ "undefined behaviour macro foo/0 (for behaviour Sample1)"
   after
-    purge [Sample1, Sample2, Sample3]
+    purge [Sample1, Sample2]
   end
 
   test "undefined behavior" do
@@ -578,7 +614,7 @@ defmodule Kernel.WarningTest do
         @behavior Hello
       end
       """
-    end) =~ "warning: @behavior attribute is not supported, please use @behaviour instead"
+    end) =~ "@behavior attribute is not supported, please use @behaviour instead"
   after
     purge Sample
   end
@@ -593,7 +629,7 @@ defmodule Kernel.WarningTest do
       defimpl Sample1, for: Atom do
       end
       """
-    end) =~ "warning: undefined protocol function foo/1 (for protocol Sample1)"
+    end) =~ "undefined protocol function foo/1 (for protocol Sample1)"
   after
     purge [Sample1, Sample1.Atom]
   end
@@ -607,20 +643,22 @@ defmodule Kernel.WarningTest do
         def foo(x, 2), do: x * 2
       end
       """
-    end) =~ "nofile:4: warning: clauses for the same def should be grouped together, def foo/2 was previously defined (nofile:2)"
+    end) =~ "clauses for the same def should be grouped together, def foo/2 was previously defined (nofile:2)"
   after
     purge Sample
   end
 
   test "warning with overridden file" do
-    assert capture_err(fn ->
+    output = capture_err(fn ->
       Code.eval_string """
       defmodule Sample do
         @file "sample"
         def foo(x), do: :ok
       end
       """
-    end) =~ "sample:3: warning: variable x is unused"
+    end)
+    assert output =~ "variable \"x\" is unused"
+    assert output =~ "sample:3"
   after
     purge Sample
   end
@@ -628,7 +666,7 @@ defmodule Kernel.WarningTest do
   test "warning on codepoint escape" do
     assert capture_err(fn ->
       Code.eval_string "? "
-    end) =~ "nofile:1: warning: found ? followed by codepoint 0x20 (space), please use \\s instead"
+    end) =~ "found ? followed by codepoint 0x20 (space), please use \\s instead"
   end
 
   test "duplicated docs" do
@@ -645,8 +683,9 @@ defmodule Kernel.WarningTest do
       end
       """
     end)
-    assert output =~ "nofile:3: warning: redefining @doc attribute previously set at line 2"
-    refute output =~ "nofile:7: warning: redefining @doc attribute"
+    assert output =~ "redefining @doc attribute previously set at line 2"
+    assert output =~ "nofile:3: Sample (module)"
+    refute output =~ "nofile:7"
   after
     purge Sample
   end
@@ -661,7 +700,21 @@ defmodule Kernel.WarningTest do
         def foo(), do: nil
       end
       """
-    end) =~ "nofile:3: warning: type priv/0 is private, @typedoc's are always discarded for private types"
+    end) =~ "type priv/0 is private, @typedoc's are always discarded for private types"
+  after
+    purge Sample
+  end
+
+  test "attribute with no use" do
+    content = capture_err(fn ->
+      Code.eval_string """
+      defmodule Sample do
+        @at "Something"
+      end
+      """
+    end)
+    assert content =~ "module attribute @at was set but never used"
+    assert content =~ "nofile:2"
   after
     purge Sample
   end
@@ -673,7 +726,7 @@ defmodule Kernel.WarningTest do
         @typedoc "Something"
       end
       """
-    end) =~ "nofile:1: warning: @typedoc provided but no type follows it"
+    end) =~ "module attribute @typedoc was set but no type follows it"
   after
     purge Sample
   end
@@ -685,7 +738,7 @@ defmodule Kernel.WarningTest do
         @doc "Something"
       end
       """
-    end) =~ "nofile:1: warning: @doc provided but no definition follows it"
+    end) =~ "module attribute @doc was set but no definition follows it"
   after
     purge Sample
   end
@@ -693,11 +746,26 @@ defmodule Kernel.WarningTest do
   test "pipe without explicit parentheses" do
     assert capture_err(fn ->
       Code.eval_string """
-        [5, 6, 7, 3]
-        |> Enum.map_join "", &(Integer.to_string(&1))
-        |> String.to_integer
+      [5, 6, 7, 3]
+      |> Enum.map_join "", &(Integer.to_string(&1))
+      |> String.to_integer
       """
-    end) =~ "nofile:2: warning: you are piping into a function call without parentheses"
+    end) =~ "parentheses are required when piping into a function call"
+  end
+
+  test "variable is being expanded to function call" do
+    output = capture_err(fn ->
+      Code.eval_string """
+      self
+      defmodule Sample do
+        def my_node(), do: node
+      end
+      """
+    end)
+    assert output =~ "variable \"self\" does not exist and is being expanded to \"self()\""
+    assert output =~ "variable \"node\" does not exist and is being expanded to \"node()\""
+  after
+    purge Sample
   end
 
   defp purge(list) when is_list(list) do

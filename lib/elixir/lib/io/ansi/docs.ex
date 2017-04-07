@@ -10,11 +10,11 @@ defmodule IO.ANSI.Docs do
 
     * `:enabled`           - toggles coloring on and off (true)
     * `:doc_bold`          - bold text (bright)
-    * `:doc_code`          - code blocks (cyan, bright)
-    * `:doc_headings`      - h1 and h2 headings (yellow, bright)
+    * `:doc_code`          - code blocks (cyan)
+    * `:doc_headings`      - h1, h2, h3, h4, h5, h6 headings (yellow)
     * `:doc_inline_code`   - inline code (cyan)
     * `:doc_table_heading` - style for table headings
-    * `:doc_title`         - top level heading (reverse, yellow, bright)
+    * `:doc_title`         - top level heading (reverse, yellow)
     * `:doc_underline`     - underlined text (underline)
     * `:width`             - the width to format the text (80)
 
@@ -24,7 +24,7 @@ defmodule IO.ANSI.Docs do
   def default_options do
     [enabled:           true,
      doc_bold:          [:bright],
-     doc_code:          [:cyan, :bright],
+     doc_code:          [:cyan],
      doc_headings:      [:yellow],
      doc_inline_code:   [:cyan],
      doc_table_heading: [:reverse],
@@ -40,12 +40,12 @@ defmodule IO.ANSI.Docs do
   """
   def print_heading(heading, options \\ []) do
     IO.puts IO.ANSI.reset
-    options = Keyword.merge(default_options, options)
+    options = Keyword.merge(default_options(), options)
     width   = options[:width]
     padding = div(width + String.length(heading), 2)
-    heading = heading |> String.rjust(padding) |> String.ljust(width)
+    heading = heading |> String.pad_leading(padding) |> String.pad_trailing(width)
     write(:doc_title, heading, options)
-    newline_after_block
+    newline_after_block()
   end
 
   @doc """
@@ -55,10 +55,10 @@ defmodule IO.ANSI.Docs do
   defined in `default_options/1`.
   """
   def print(doc, options \\ []) do
-    options = Keyword.merge(default_options, options)
+    options = Keyword.merge(default_options(), options)
     doc
     |> String.split(["\r\n", "\n"], trim: false)
-    |> Enum.map(&String.rstrip/1)
+    |> Enum.map(&String.trim_trailing/1)
     |> process([], "", options)
   end
 
@@ -66,22 +66,23 @@ defmodule IO.ANSI.Docs do
     write_text(text, indent, options)
   end
 
-  defp process(["# " <> heading | rest], text, indent, options) do
-    write_text(text, indent, options)
-    write_h1(String.strip(heading), options)
-    process(rest, [], "", options)
+  defp process(["# " <> _ = heading | rest], text, indent, options) do
+    write_heading(heading, rest, text, indent, options)
   end
-
-  defp process(["## " <> heading | rest], text, indent, options) do
-    write_text(text, indent, options)
-    write_h2(String.strip(heading), options)
-    process(rest, [], "", options)
+  defp process(["## " <> _ = heading | rest], text, indent, options) do
+    write_heading(heading, rest, text, indent, options)
   end
-
-  defp process(["### " <> heading | rest], text, indent, options) do
-    write_text(text, indent, options)
-    write_h3(String.strip(heading), indent, options)
-    process(rest, [], "", options)
+  defp process(["### " <> _ = heading | rest], text, indent, options) do
+    write_heading(heading, rest, text, indent, options)
+  end
+  defp process(["#### " <> _ = heading | rest], text, indent, options) do
+    write_heading(heading, rest, text, indent, options)
+  end
+  defp process(["##### " <> _ = heading | rest], text, indent, options) do
+    write_heading(heading, rest, text, indent, options)
+  end
+  defp process(["###### " <> _ = heading | rest], text, indent, options) do
+    write_heading(heading, rest, text, indent, options)
   end
 
   defp process(["" | rest], text, indent, options) do
@@ -102,7 +103,7 @@ defmodule IO.ANSI.Docs do
     process_fenced_code_block(rest, text, indent, options, _delimiter = "~~~")
   end
 
-  defp process(all=[line | rest], text, indent, options) do
+  defp process(all = [line | rest], text, indent, options) do
     {stripped, count} = strip_spaces(line, 0, :infinity)
     cond do
       link_label?(stripped, count) ->
@@ -118,19 +119,11 @@ defmodule IO.ANSI.Docs do
 
   ## Headings
 
-  defp write_h1(heading, options) do
-    write_h2(String.upcase(heading), options)
-  end
-
-  defp write_h2(heading, options) do
+  defp write_heading(heading, rest, text, indent, options) do
+    write_text(text, indent, options)
     write(:doc_headings, heading, options)
-    newline_after_block
-  end
-
-  defp write_h3(heading, indent, options) do
-    IO.write(indent)
-    write(:doc_headings, heading, options)
-    newline_after_block
+    newline_after_block()
+    process(rest, [], "", options)
   end
 
   ## Lists
@@ -197,7 +190,7 @@ defmodule IO.ANSI.Docs do
 
   defp write_text(text, indent, options) do
     case Enum.reverse(text) do
-      [:no_wrap|rest] -> write_text(rest, indent, options, true)
+      [:no_wrap | rest] -> write_text(rest, indent, options, true)
       rest -> write_text(rest, indent, options, false)
     end
   end
@@ -229,7 +222,7 @@ defmodule IO.ANSI.Docs do
   end
 
   defp process_code(["    " <> line | rest], code, indent, options) do
-    process_code(rest, [line|code], indent, options)
+    process_code(rest, [line | code], indent, options)
   end
 
   defp process_code(rest, code, indent, options) do
@@ -250,13 +243,13 @@ defmodule IO.ANSI.Docs do
     if line === delimiter do
       process_code(rest, code, indent, options)
     else
-      process_fenced_code(rest, [line|code], indent, options, delimiter)
+      process_fenced_code(rest, [line | code], indent, options, delimiter)
     end
   end
 
   defp write_code(code, indent, options) do
-    write(:doc_code, "#{indent}┃ #{Enum.join(Enum.reverse(code), "\n#{indent}┃ ")}", options)
-    newline_after_block
+    write(:doc_code, "#{indent}    #{Enum.join(Enum.reverse(code), "\n#{indent}    ")}", options)
+    newline_after_block()
   end
 
   ## Tables
@@ -264,7 +257,7 @@ defmodule IO.ANSI.Docs do
   defp process_table(lines, indent, options) do
     {table, rest} = Enum.split_while(lines, &table_line?/1)
     table_lines(table, options)
-    newline_after_block
+    newline_after_block()
     process(rest, [], indent, options)
   end
 
@@ -285,8 +278,8 @@ defmodule IO.ANSI.Docs do
 
   defp split_into_columns(line, options) do
     line
-    |> String.strip(?|)
-    |> String.strip()
+    |> String.trim("|")
+    |> String.trim()
     |> String.split(~r/\s\|\s/)
     |> Enum.map(&render_column(&1, options))
   end
@@ -379,13 +372,13 @@ defmodule IO.ANSI.Docs do
     write_with_wrap(rest, available, indent, false)
   end
 
-  defp take_words([word|words], available, acc) do
+  defp take_words([word | words], available, acc) do
     available = available - length_without_escape(word, 0)
 
     cond do
       # It fits, take one for space and continue decreasing
       available > 0 ->
-        take_words(words, available - 1, [word|acc])
+        take_words(words, available - 1, [word | acc])
 
       # No space but we got no words
       acc == [] ->
@@ -393,7 +386,7 @@ defmodule IO.ANSI.Docs do
 
       # Otherwise
       true ->
-        {Enum.reverse(acc), [word|words]}
+        {Enum.reverse(acc), [word | words]}
     end
   end
 
@@ -466,80 +459,80 @@ defmodule IO.ANSI.Docs do
 
   defp handle_inline(<<delimiter, ?*, ?*, rest::binary>>, nil, buffer, acc, options)
       when rest != "" and delimiter in @delimiters do
-    handle_inline(rest, ?d, ["**"], [delimiter, Enum.reverse(buffer)|acc], options)
+    handle_inline(rest, ?d, ["**"], [delimiter, Enum.reverse(buffer) | acc], options)
   end
 
   defp handle_inline(<<delimiter, mark, rest::binary>>, nil, buffer, acc, options)
       when rest != "" and delimiter in @delimiters and mark in @single do
-    handle_inline(rest, mark, [<<mark>>], [delimiter, Enum.reverse(buffer)|acc], options)
+    handle_inline(rest, mark, [<<mark>>], [delimiter, Enum.reverse(buffer) | acc], options)
   end
 
   defp handle_inline(<<?`, rest::binary>>, nil, buffer, acc, options)
       when rest != "" do
-    handle_inline(rest, ?`, ["`"], [Enum.reverse(buffer)|acc], options)
+    handle_inline(rest, ?`, ["`"], [Enum.reverse(buffer) | acc], options)
   end
 
   # Clauses for handling escape
 
   defp handle_inline(<<?\\, ?\\, ?*, ?*, rest::binary>>, nil, buffer, acc, options)
       when rest != "" do
-    handle_inline(rest, ?d, ["**"], [?\\, Enum.reverse(buffer)|acc], options)
+    handle_inline(rest, ?d, ["**"], [?\\, Enum.reverse(buffer) | acc], options)
   end
 
   defp handle_inline(<<?\\, ?\\, mark, rest::binary>>, nil, buffer, acc, options)
       when rest != "" and mark in @single do
-    handle_inline(rest, mark, [<<mark>>], [?\\, Enum.reverse(buffer)|acc], options)
+    handle_inline(rest, mark, [<<mark>>], [?\\, Enum.reverse(buffer) | acc], options)
   end
 
   defp handle_inline(<<?\\, ?\\, rest::binary>>, limit, buffer, acc, options) do
-    handle_inline(rest, limit, [?\\|buffer], acc, options)
+    handle_inline(rest, limit, [?\\ | buffer], acc, options)
   end
 
   # An escape is not valid inside `
   defp handle_inline(<<?\\, mark, rest::binary>>, limit, buffer, acc, options)
       when not(mark == limit and mark == ?`) do
-    handle_inline(rest, limit, [mark|buffer], acc, options)
+    handle_inline(rest, limit, [mark | buffer], acc, options)
   end
 
   # Inline end
 
   defp handle_inline(<<?*, ?*, delimiter, rest::binary>>, ?d, buffer, acc, options)
       when delimiter in @delimiters do
-    handle_inline(<<delimiter, rest::binary>>, nil, [], [inline_buffer(buffer, options)|acc], options)
+    handle_inline(<<delimiter, rest::binary>>, nil, [], [inline_buffer(buffer, options) | acc], options)
   end
 
   defp handle_inline(<<mark, delimiter, rest::binary>>, mark, buffer, acc, options)
       when delimiter in @delimiters and mark in @single do
-    handle_inline(<<delimiter, rest::binary>>, nil, [], [inline_buffer(buffer, options)|acc], options)
+    handle_inline(<<delimiter, rest::binary>>, nil, [], [inline_buffer(buffer, options) | acc], options)
   end
 
   defp handle_inline(<<?*, ?*, rest::binary>>, ?d, buffer, acc, options)
       when rest == "" do
-    handle_inline(<<>>, nil, [], [inline_buffer(buffer, options)|acc], options)
+    handle_inline(<<>>, nil, [], [inline_buffer(buffer, options) | acc], options)
   end
 
   defp handle_inline(<<mark, rest::binary>>, mark, buffer, acc, options)
       when rest == "" and mark in @single do
-    handle_inline(<<>>, nil, [], [inline_buffer(buffer, options)|acc], options)
+    handle_inline(<<>>, nil, [], [inline_buffer(buffer, options) | acc], options)
   end
 
   defp handle_inline(<<?`, rest::binary>>, ?`, buffer, acc, options) do
-    handle_inline(rest, nil, [], [inline_buffer(buffer, options)|acc], options)
+    handle_inline(rest, nil, [], [inline_buffer(buffer, options) | acc], options)
   end
 
   # Catch all
 
   defp handle_inline(<<char, rest::binary>>, mark, buffer, acc, options) do
-    handle_inline(rest, mark, [char|buffer], acc, options)
+    handle_inline(rest, mark, [char | buffer], acc, options)
   end
 
   defp handle_inline(<<>>, _mark, buffer, acc, _options) do
-    IO.iodata_to_binary Enum.reverse([Enum.reverse(buffer)|acc])
+    IO.iodata_to_binary Enum.reverse([Enum.reverse(buffer) | acc])
   end
 
   defp inline_buffer(buffer, options) do
-    [h|t] = Enum.reverse([IO.ANSI.reset|buffer])
-    [color_for(h, options)|t]
+    [h | t] = Enum.reverse([IO.ANSI.reset | buffer])
+    [color_for(h, options) | t]
   end
 
   defp color_for(mark, colors) do

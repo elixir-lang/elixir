@@ -51,8 +51,8 @@ defmodule MacroTest do
   end
 
   test "escape improper" do
-    assert [{:|, [], [1, 2]}] == Macro.escape([1|2])
-    assert [1, {:|, [], [2, 3]}] == Macro.escape([1, 2|3])
+    assert [{:|, [], [1, 2]}] == Macro.escape([1 | 2])
+    assert [1, {:|, [], [2, 3]}] == Macro.escape([1, 2 | 3])
   end
 
   test "escape with unquote" do
@@ -104,7 +104,7 @@ defmodule MacroTest do
     contents = quote unquote: false, do: [1, unquote_splicing([2]), 3, unquote_splicing([4]), 5]
     assert eval_escaped(contents) == [1, 2, 3, 4, 5]
 
-    contents = quote unquote: false, do: [1, unquote_splicing([2]), 3, unquote_splicing([4])|[5]]
+    contents = quote unquote: false, do: [1, unquote_splicing([2]), 3, unquote_splicing([4]) | [5]]
     assert eval_escaped(contents) == [1, 2, 3, 4, 5]
   end
 
@@ -154,7 +154,7 @@ defmodule MacroTest do
     end)
   end
 
-  test "expand once with erlang" do
+  test "expand once with Erlang" do
     assert Macro.expand_once(quote(do: :foo), __ENV__) == :foo
   end
 
@@ -212,11 +212,12 @@ defmodule MacroTest do
     assert Macro.expand_once(expr, __ENV__) == expr
   end
 
-  @foo 1
-  @bar Macro.expand_once(quote(do: @foo), __ENV__)
-
-  test "expand once with module at" do
-    assert @bar == 1
+  test "expand once does not expand module attributes" do
+    message = "could not call get_attribute on module #{inspect(__MODULE__)} " <>
+              "because it was already compiled"
+    assert_raise ArgumentError, message, fn ->
+      Macro.expand_once(quote(do: @foo), __ENV__)
+    end
   end
 
   defp expand_and_clean(quoted, env) do
@@ -266,6 +267,14 @@ defmodule MacroTest do
     assert Macro.to_string(quote do: foo.bar.([1, 2, 3])) == "foo.bar().([1, 2, 3])"
   end
 
+  test "unusual remote atom fun call to string" do
+    assert Macro.to_string(quote do: Foo."42") == ~s/Foo."42"()/
+    assert Macro.to_string(quote do: Foo.'Bar') == ~s/Foo."Bar"()/
+    assert Macro.to_string(quote do: Foo."bar baz"."") == ~s/Foo."bar baz"().""()/
+    assert Macro.to_string(quote do: Foo."%{}") == ~s/Foo."%{}"()/
+    assert Macro.to_string(quote do: Foo."...") == ~s/Foo."..."()/
+  end
+
   test "atom fun call to string" do
     assert Macro.to_string(quote do: :foo.(1, 2, 3)) == ":foo.(1, 2, 3)"
   end
@@ -274,6 +283,11 @@ defmodule MacroTest do
     assert Macro.to_string(quote do: Foo.Bar.baz(1, 2, 3)) == "Foo.Bar.baz(1, 2, 3)"
     assert Macro.to_string(quote do: Foo.Bar.baz([1, 2, 3])) == "Foo.Bar.baz([1, 2, 3])"
     assert Macro.to_string(quote do: Foo.bar(<<>>, [])) == "Foo.bar(<<>>, [])"
+  end
+
+  test "keyword call to string" do
+    assert Macro.to_string(quote do: Foo.bar(foo: :bar)) == "Foo.bar(foo: :bar)"
+    assert Macro.to_string(quote do: Foo.bar(["Elixir.Foo": :bar])) == "Foo.bar([{Foo, :bar}])"
   end
 
   test "sigil call to string" do
@@ -305,6 +319,10 @@ defmodule MacroTest do
       3
     )
     """
+  end
+
+  test "not in to string" do
+    assert Macro.to_string(quote do: (false not in [])) == "false not in []"
   end
 
   test "if else to string" do
@@ -348,6 +366,17 @@ defmodule MacroTest do
       z ->
         z
     end
+    """
+
+    assert Macro.to_string(quote do: (fn(x) -> x end).(1)) == "(fn x -> x end).(1)"
+
+    assert Macro.to_string(quote do: (fn %{} -> :map; _ -> :other end).(1)) <> "\n" == """
+    (fn
+      %{} ->
+        :map
+      _ ->
+        :other
+    end).(1)
     """
   end
 
@@ -394,8 +423,10 @@ defmodule MacroTest do
     assert Macro.to_string(quote do: [])   == "[]"
     assert Macro.to_string(quote do: {1, 2, 3})   == "{1, 2, 3}"
     assert Macro.to_string(quote do: [ 1, 2, 3 ])   == "[1, 2, 3]"
+    assert Macro.to_string(quote do: ["Elixir.Foo": :bar]) == "[{Foo, :bar}]"
     assert Macro.to_string(quote do: %{})  == "%{}"
     assert Macro.to_string(quote do: %{:foo => :bar})  == "%{foo: :bar}"
+    assert Macro.to_string(quote do: %{:"Elixir.Foo" => :bar}) == "%{Foo => :bar}"
     assert Macro.to_string(quote do: %{{1, 2} => [1, 2, 3]})  == "%{{1, 2} => [1, 2, 3]}"
     assert Macro.to_string(quote do: %{map | "a" => "b"})  == "%{map | \"a\" => \"b\"}"
     assert Macro.to_string(quote do: [ 1, 2, 3 ])   == "[1, 2, 3]"
@@ -411,7 +442,7 @@ defmodule MacroTest do
   test "binary ops to string" do
     assert Macro.to_string(quote do: 1 + 2)   == "1 + 2"
     assert Macro.to_string(quote do: [ 1, 2 | 3 ]) == "[1, 2 | 3]"
-    assert Macro.to_string(quote do: [h|t] = [1, 2, 3]) == "[h | t] = [1, 2, 3]"
+    assert Macro.to_string(quote do: [h | t] = [1, 2, 3]) == "[h | t] = [1, 2, 3]"
     assert Macro.to_string(quote do: (x ++ y) ++ z) == "(x ++ y) ++ z"
   end
 
@@ -442,13 +473,22 @@ defmodule MacroTest do
   end
 
   test "bit syntax to string" do
+    ast = quote(do: <<1::8*4>>)
+    assert Macro.to_string(ast) == "<<1::8*4>>"
+
+    ast = quote(do: @type foo :: <<_::8, _::_*4>>)
+    assert Macro.to_string(ast) == "@type(foo :: <<_::8, _::_*4>>)"
+
     ast = quote(do: <<69 - 4::bits-size(8 - 4)-unit(1), 65>>)
     assert Macro.to_string(ast) == "<<69 - 4::bits-size(8 - 4)-unit(1), 65>>"
+
     ast = quote(do: << <<65>>, 65>>)
     assert Macro.to_string(ast) == "<<(<<65>>), 65>>"
+
     ast = quote(do: <<65, <<65>> >>)
     assert Macro.to_string(ast) == "<<65, (<<65>>)>>"
-    ast = quote do: for <<a::4 <- <<1, 2>> >>, do: a
+
+    ast = quote(do: (for <<a::4 <- <<1, 2>> >>, do: a))
     assert Macro.to_string(ast) == "for(<<(a :: 4 <- <<1, 2>>)>>) do\n  a\nend"
   end
 
@@ -599,7 +639,7 @@ defmodule MacroTest do
   end
 
   defp traverse(ast) do
-    Macro.traverse(ast, [], &{&1, [&1|&2]}, &{&1, [&1|&2]}) |> elem(1) |> Enum.reverse
+    Macro.traverse(ast, [], &{&1, [&1 | &2]}, &{&1, [&1 | &2]}) |> elem(1) |> Enum.reverse
   end
 
   test "prewalk" do
@@ -617,7 +657,7 @@ defmodule MacroTest do
   end
 
   defp prewalk(ast) do
-    Macro.prewalk(ast, [], &{&1, [&1|&2]}) |> elem(1) |> Enum.reverse
+    Macro.prewalk(ast, [], &{&1, [&1 | &2]}) |> elem(1) |> Enum.reverse
   end
 
   test "postwalk" do
@@ -634,8 +674,14 @@ defmodule MacroTest do
            [1, 2, 3, [1, 2, 3], 4, 5, 6, [4, 5, 6], {[1, 2, 3], [4, 5, 6]}]
   end
 
+  test "generate_arguments/2" do
+    assert Macro.generate_arguments(0, __MODULE__) == []
+    assert Macro.generate_arguments(1, __MODULE__) == [{:var1, [], __MODULE__}]
+    assert Macro.generate_arguments(4, __MODULE__) |> length == 4
+  end
+
   defp postwalk(ast) do
-    Macro.postwalk(ast, [], &{&1, [&1|&2]}) |> elem(1) |> Enum.reverse
+    Macro.postwalk(ast, [], &{&1, [&1 | &2]}) |> elem(1) |> Enum.reverse
   end
 
   test "underscore" do
@@ -645,11 +691,12 @@ defmodule MacroTest do
     assert Macro.underscore("FooBar") == "foo_bar"
     assert Macro.underscore("FOOBar") == "foo_bar"
     assert Macro.underscore("FooBAR") == "foo_bar"
+    assert Macro.underscore("FOO_BAR") == "foo_bar"
     assert Macro.underscore("FoBaZa") == "fo_ba_za"
-    assert Macro.underscore("Foo10") == "foo_10"
+    assert Macro.underscore("Foo10") == "foo10"
     assert Macro.underscore("10Foo") == "10_foo"
-    assert Macro.underscore("FooBar10") == "foo_bar_10"
-    assert Macro.underscore("Foo10Bar") == "foo_10_bar"
+    assert Macro.underscore("FooBar10") == "foo_bar10"
+    assert Macro.underscore("Foo10Bar") == "foo10_bar"
     assert Macro.underscore("Foo.Bar") == "foo/bar"
     assert Macro.underscore(Foo.Bar) == "foo/bar"
     assert Macro.underscore("API.V1.User") == "api/v1/user"
@@ -663,11 +710,15 @@ defmodule MacroTest do
     assert Macro.camelize("foo_bar") == "FooBar"
     assert Macro.camelize("foo_") == "Foo"
     assert Macro.camelize("_foo") == "Foo"
-    assert Macro.camelize("foo_10") == "Foo10"
+    assert Macro.camelize("foo10") == "Foo10"
     assert Macro.camelize("_10foo") == "10foo"
+    assert Macro.camelize("foo_10") == "Foo10"
     assert Macro.camelize("foo__10") == "Foo10"
     assert Macro.camelize("foo__bar") == "FooBar"
     assert Macro.camelize("foo/bar") == "Foo.Bar"
+    assert Macro.camelize("Foo.Bar") == "Foo.Bar"
+    assert Macro.camelize("FOO_BAR") == "FOO_BAR"
+    assert Macro.camelize("FOO.BAR") == "FOO.BAR"
     assert Macro.camelize("") == ""
   end
 end

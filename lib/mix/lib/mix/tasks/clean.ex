@@ -20,7 +20,7 @@ defmodule Mix.Tasks.Clean do
   @spec run(OptionParser.argv) :: :ok
   def run(args) do
     Mix.Project.get!
-    loadpaths!
+    loadpaths!()
 
     {opts, _, _} = OptionParser.parse(args, switches: @switches)
 
@@ -47,7 +47,8 @@ defmodule Mix.Tasks.Clean do
 
   # Loadpaths without checks because compilers may be defined in deps.
   defp loadpaths! do
-    Mix.Task.run "loadpaths", ["--no-elixir-version-check", "--no-deps-check"]
+    Mix.Task.run "loadpaths", ["--no-elixir-version-check", "--no-deps-check", "--no-archives-check"]
     Mix.Task.reenable "loadpaths"
+    Mix.Task.reenable "deps.loadpaths"
   end
 end

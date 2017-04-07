@@ -12,14 +12,14 @@ defmodule IEx.Server do
   """
   @spec whereis :: pid | nil
   def whereis() do
-    Enum.find_value([node()|Node.list], fn node ->
+    Enum.find_value([node() | Node.list], fn node ->
       server = :rpc.call(node, IEx.Server, :local, [])
       if is_pid(server), do: server
     end)
   end
 
   @doc """
-  Returns the pid of the IEx server on the local node if exists.
+  Returns the PID of the IEx server on the local node if exists.
   """
   @spec local :: pid | nil
   def local() do
@@ -43,19 +43,15 @@ defmodule IEx.Server do
   end
 
   @doc """
-  Returns the current session environment if a session exists.
+  Returns the PID of the IEx evaluator process if it exists.
   """
-  @spec current_env :: Macro.Env.t
-  def current_env() do
-    case IEx.Server.whereis() do
-      nil -> %Macro.Env{}
-      server ->
-        send(server, {:peek_env, self()})
-        receive do
-          {:peek_env, %Macro.Env{} = env} -> env
-        after
-          5000 -> %Macro.Env{}
-        end
+  @spec evaluator :: pid | nil
+  def evaluator() do
+    case IEx.Server.local do
+      nil -> nil
+      pid ->
+        {:dictionary, dictionary} = Process.info(pid, :dictionary)
+        dictionary[:evaluator]
     end
   end
 
@@ -71,18 +67,18 @@ defmodule IEx.Server do
         {:error, :no_iex}
       true ->
         ref = make_ref()
-        send server, {:take?, self, ref}
+        send server, {:take?, self(), ref}
 
         receive do
           ^ref ->
-            opts = [evaluator: self] ++ opts
-            send server, {:take, self, identifier, ref, opts}
+            opts = [evaluator: self()] ++ opts
+            send server, {:take, self(), identifier, ref, opts}
 
             receive do
               {^ref, nil} ->
                 {:error, :refused}
               {^ref, leader} ->
-                IEx.Evaluator.init(server, leader, opts)
+                IEx.Evaluator.init(:no_ack, server, leader, opts)
             end
         after
           timeout ->
@@ -107,6 +103,7 @@ defmodule IEx.Server do
   """
   @spec start(list, {module, atom, [any]}) :: :ok
   def start(opts, {m, f, a}) do
+    Process.flag(:trap_exit, true)
     {pid, ref} = spawn_monitor(m, f, a)
     start_loop(opts, pid, ref)
   end
@@ -139,14 +136,21 @@ defmodule IEx.Server do
 
   defp run(opts) when is_list(opts) do
     IO.puts "Interactive Elixir (#{System.version}) - press Ctrl+C to exit (type h() ENTER for help)"
-
-    self_pid = self
-    self_leader = Process.group_leader
-
-    evaluator = opts[:evaluator] || spawn(fn -> IEx.Evaluator.init(self_pid, self_leader, opts) end)
-
-    Process.put(:evaluator, evaluator)
+    evaluator = start_evaluator(opts)
     loop(run_state(opts), evaluator, Process.monitor(evaluator))
+  end
+
+  @doc """
+  Starts an evaluator using the provided options.
+  """
+  @spec start_evaluator(Keyword.t) :: pid
+  def start_evaluator(opts) do
+    self_pid = self()
+    self_leader = Process.group_leader
+    evaluator = opts[:evaluator] ||
+                :proc_lib.start(IEx.Evaluator, :init, [:ack, self_pid, self_leader, opts])
+    Process.put(:evaluator, evaluator)
+    evaluator
   end
 
   defp reset_loop(opts, evaluator, evaluator_ref) do
@@ -162,7 +166,7 @@ defmodule IEx.Server do
     Process.delete(:evaluator)
     Process.demonitor(evaluator_ref, [:flush])
     if done? do
-      send(evaluator, {:done, self})
+      send(evaluator, {:done, self()})
     end
     :ok
   end
@@ -179,8 +183,8 @@ defmodule IEx.Server do
   defp wait_input(state, evaluator, evaluator_ref, input) do
     receive do
       {:input, ^input, code} when is_binary(code) ->
-        send evaluator, {:eval, self, code, state}
-        wait_eval(evaluator, evaluator_ref)
+        send evaluator, {:eval, self(), code, state}
+        wait_eval(state, evaluator, evaluator_ref)
       {:input, ^input, {:error, :interrupted}} ->
         io_error "** (EXIT) interrupted"
         loop(%{state | cache: ''}, evaluator, evaluator_ref)
@@ -188,9 +192,6 @@ defmodule IEx.Server do
         exit_loop(evaluator, evaluator_ref)
       {:input, ^input, {:error, :terminated}} ->
         exit_loop(evaluator, evaluator_ref)
-      {:peek_env, receiver} ->
-        send evaluator, {:peek_env, receiver}
-        wait_input(state, evaluator, evaluator_ref, input)
       msg ->
         handle_take_over(msg, evaluator, evaluator_ref, input, fn ->
           wait_input(state, evaluator, evaluator_ref, input)
@@ -198,13 +199,21 @@ defmodule IEx.Server do
     end
   end
 
-  defp wait_eval(evaluator, evaluator_ref) do
+  defp wait_eval(state, evaluator, evaluator_ref) do
     receive do
-      {:evaled, ^evaluator, state} ->
-        loop(state, evaluator, evaluator_ref)
+      {:evaled, ^evaluator, new_state} ->
+        loop(new_state, evaluator, evaluator_ref)
+      {:EXIT, _pid, :interrupt} ->
+        # User did ^G while the evaluator was busy or stuck
+        io_error "** (EXIT) interrupted"
+        Process.delete(:evaluator)
+        Process.exit(evaluator, :kill)
+        Process.demonitor(evaluator_ref, [:flush])
+        evaluator = start_evaluator([])
+        loop(%{state | cache: ''}, evaluator, Process.monitor(evaluator))
       msg ->
         handle_take_over(msg, evaluator, evaluator_ref, nil,
-                         fn -> wait_eval(evaluator, evaluator_ref) end)
+                         fn -> wait_eval(state, evaluator, evaluator_ref) end)
     end
   end
 
@@ -275,13 +284,13 @@ defmodule IEx.Server do
 
   defp io_get(pid, prefix, counter) do
     prompt = prompt(prefix, counter)
-    send pid, {:input, self, IO.gets(:stdio, prompt)}
+    send pid, {:input, self(), IO.gets(:stdio, prompt)}
   end
 
   defp prompt(prefix, counter) do
     {mode, prefix} =
       if Node.alive? do
-        {:alive_prompt, prefix || remote_prefix}
+        {:alive_prompt, prefix || remote_prefix()}
       else
         {:default_prompt, prefix || "iex"}
       end
@@ -289,7 +298,7 @@ defmodule IEx.Server do
     prompt = apply(IEx.Config, mode, [])
              |> String.replace("%counter", to_string(counter))
              |> String.replace("%prefix", to_string(prefix))
-             |> String.replace("%node", to_string(node))
+             |> String.replace("%node", to_string(node()))
 
     prompt <> " "
   end
@@ -299,6 +308,6 @@ defmodule IEx.Server do
   end
 
   defp remote_prefix do
-    if node == node(Process.group_leader), do: "iex", else: "rem"
+    if node() == node(Process.group_leader), do: "iex", else: "rem"
   end
 end

@@ -13,25 +13,25 @@ defmodule Kernel.ImportTest do
   end
 
   test "multi-call" do
-    import Elixir.{List, unquote(:String)}
+    assert [List, String] = import Elixir.{List, unquote(:String)}
     assert keymember?([a: 1], :a, 0)
     assert valid?("ø")
   end
 
   test "blank multi-call" do
-    import List.{}
+    assert [] = import List.{}
     # Buggy local duplicate is untouched
     assert duplicate([1], 2) == [1]
   end
 
   test "multi-call with options" do
-    import Elixir.{List}, only: []
+    assert [List] = import Elixir.{List}, only: []
     # Buggy local duplicate is untouched
     assert duplicate([1], 2) == [1]
   end
 
   test "import all" do
-    import :lists
+    assert :lists = import :lists
     assert flatten([1, [2], 3]) == [1, 2, 3]
   end
 
@@ -58,7 +58,7 @@ defmodule Kernel.ImportTest do
   end
 
   test "import with options via macro" do
-    import :lists, dynamic_opts
+    import :lists, dynamic_opts()
     assert flatten([1, [2], 3]) == [1, 2, 3]
   end
 
@@ -100,7 +100,7 @@ defmodule Kernel.ImportTest do
     assert __underscore__(3) == 3
   end
 
-  test "import non underscored" do
+  test "import non-underscored" do
     import ExplicitUnderscored, only: [__underscore__: 1]
     import Underscored
     assert hello(2) == 2
@@ -154,7 +154,7 @@ defmodule Kernel.ImportTest do
     if false do
       import List
       flatten([1, [2], 3])
-      flunk
+      flunk()
     else
       # Buggy local duplicate is untouched
       assert duplicate([1], 2) == [1]
@@ -166,7 +166,7 @@ defmodule Kernel.ImportTest do
       false ->
         import List
         flatten([1, [2], 3])
-        flunk
+        flunk()
       true ->
         # Buggy local duplicate is untouched
         assert duplicate([1], 2) == [1]
@@ -177,7 +177,7 @@ defmodule Kernel.ImportTest do
     try do
       import List
       flatten([1, [2], 3])
-      flunk
+      flunk()
     catch
       _, _ ->
         # Buggy local duplicate is untouched

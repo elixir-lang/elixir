@@ -5,26 +5,26 @@ defmodule ExceptionTest do
 
   doctest Exception
 
-  test "raise preserves the stacktrace" do
+  test "raising preserves the stacktrace" do
     stacktrace =
       try do
         raise "a"
       rescue _ ->
-        [top|_] = System.stacktrace
+        [top | _] = System.stacktrace
         top
       end
-    file = __ENV__.file |> Path.relative_to_cwd |> String.to_char_list
-    assert {__MODULE__, :"test raise preserves the stacktrace", _,
+    file = __ENV__.file |> Path.relative_to_cwd |> String.to_charlist
+    assert {__MODULE__, :"test raising preserves the stacktrace", _,
            [file: ^file, line: 11]} = stacktrace
   end
 
-  test "exception?" do
+  test "exception?/1" do
     assert Exception.exception?(%RuntimeError{})
     refute Exception.exception?(%Regex{})
     refute Exception.exception?({})
   end
 
-  test "message" do
+  test "message/1" do
     defmodule BadException do
       def message(exception) do
         if exception.raise do
@@ -42,71 +42,71 @@ defmodule ExceptionTest do
            "for %{__exception__: true, __struct__: ExceptionTest.BadException, raise: false}"
   end
 
-  test "normalize" do
+  test "normalize/2" do
     assert Exception.normalize(:throw, :badarg) == :badarg
     assert Exception.normalize(:exit, :badarg) == :badarg
-    assert Exception.normalize({:EXIT, self}, :badarg) == :badarg
+    assert Exception.normalize({:EXIT, self()}, :badarg) == :badarg
     assert Exception.normalize(:error, :badarg).__struct__ == ArgumentError
     assert Exception.normalize(:error, %ArgumentError{}).__struct__ == ArgumentError
   end
 
-  test "format without stacktrace" do
+  test "format/2 without stacktrace" do
     stacktrace = try do throw(:stack) catch :stack -> System.stacktrace() end
     assert Exception.format(:error, :badarg) ==
            "** (ArgumentError) argument error\n" <> Exception.format_stacktrace(stacktrace)
   end
 
-  test "format with empty stacktrace" do
+  test "format/2 with empty stacktrace" do
     assert Exception.format(:error, :badarg, []) == "** (ArgumentError) argument error"
   end
 
-  test "format with EXIT has no stacktrace" do
-    assert Exception.format({:EXIT, self}, :badarg) == "** (EXIT from #{inspect self}) :badarg"
+  test "format/2 with EXIT (has no stacktrace)" do
+    assert Exception.format({:EXIT, self()}, :badarg) == "** (EXIT from #{inspect self()}) :badarg"
   end
 
-  test "format_banner" do
+  test "format_banner/2" do
     assert Exception.format_banner(:error, :badarg) == "** (ArgumentError) argument error"
     assert Exception.format_banner(:throw, :badarg) == "** (throw) :badarg"
     assert Exception.format_banner(:exit, :badarg) == "** (exit) :badarg"
-    assert Exception.format_banner({:EXIT, self}, :badarg) == "** (EXIT from #{inspect self}) :badarg"
+    assert Exception.format_banner({:EXIT, self()}, :badarg) == "** (EXIT from #{inspect self()}) :badarg"
   end
 
-  test "format_stacktrace from file" do
+  test "format_stacktrace/1 from file" do
     assert_raise ArgumentError, fn ->
-      Code.eval_string("def foo do end", [], file: "myfile")
+      Code.eval_string("def foo do end", [], file: "my_file")
     end
 
-    assert Exception.format_stacktrace(System.stacktrace) =~ "myfile:1: (file)"
+    assert Exception.format_stacktrace(System.stacktrace) =~ "my_file:1: (file)"
   end
 
-  test "format_stacktrace from module" do
+  test "format_stacktrace/1 from module" do
     assert_raise ArgumentError, fn ->
-      Code.eval_string("defmodule FmtStack do raise ArgumentError, ~s(oops) end", [], file: "myfile")
+      Code.eval_string("defmodule FmtStack do raise ArgumentError, ~s(oops) end", [], file: "my_file")
     end
 
-    assert Exception.format_stacktrace(System.stacktrace) =~ "myfile:1: (module)"
+    assert Exception.format_stacktrace(System.stacktrace) =~ "my_file:1: (module)"
   end
 
-  test "format_stacktrace_entry with no file or line" do
+  test "format_stacktrace_entry/1 with no file or line" do
     assert Exception.format_stacktrace_entry({Foo, :bar, [1, 2, 3], []}) == "Foo.bar(1, 2, 3)"
     assert Exception.format_stacktrace_entry({Foo, :bar, [], []}) == "Foo.bar()"
     assert Exception.format_stacktrace_entry({Foo, :bar, 1, []}) == "Foo.bar/1"
   end
 
-  test "format_stacktrace_entry with file and line" do
+  test "format_stacktrace_entry/1 with file and line" do
     assert Exception.format_stacktrace_entry({Foo, :bar, [], [file: 'file.ex', line: 10]}) == "file.ex:10: Foo.bar()"
     assert Exception.format_stacktrace_entry({Foo, :bar, [1, 2, 3], [file: 'file.ex', line: 10]}) == "file.ex:10: Foo.bar(1, 2, 3)"
     assert Exception.format_stacktrace_entry({Foo, :bar, 1, [file: 'file.ex', line: 10]}) == "file.ex:10: Foo.bar/1"
   end
 
-  test "format_stacktrace_entry with file no line" do
+  test "format_stacktrace_entry/1 with file no line" do
     assert Exception.format_stacktrace_entry({Foo, :bar, [], [file: 'file.ex']}) == "file.ex: Foo.bar()"
     assert Exception.format_stacktrace_entry({Foo, :bar, [], [file: 'file.ex', line: 0]}) == "file.ex: Foo.bar()"
     assert Exception.format_stacktrace_entry({Foo, :bar, [1, 2, 3], [file: 'file.ex']}) == "file.ex: Foo.bar(1, 2, 3)"
     assert Exception.format_stacktrace_entry({Foo, :bar, 1, [file: 'file.ex']}) == "file.ex: Foo.bar/1"
   end
 
-  test "format_stacktrace_entry with application" do
+  test "format_stacktrace_entry/1 with application" do
     assert Exception.format_stacktrace_entry({Exception, :bar, [], [file: 'file.ex']}) ==
                        "(elixir) file.ex: Exception.bar()"
     assert Exception.format_stacktrace_entry({Exception, :bar, [], [file: 'file.ex', line: 10]}) ==
@@ -115,12 +115,16 @@ defmodule ExceptionTest do
                        "(stdlib) :lists.bar(1, 2, 3)"
   end
 
-  test "format_stacktrace_entry with fun" do
+  test "format_stacktrace_entry/1 with fun" do
     assert Exception.format_stacktrace_entry({fn(x) -> x end, [1], []}) =~ ~r/#Function<.+>\(1\)/
     assert Exception.format_stacktrace_entry({fn(x, y) -> {x, y} end, 2, []}) =~ ~r"#Function<.+>/2"
   end
 
-  test "format_mfa" do
+  test "format_mfa/3" do
+    # Let's create this atom so that String.to_existing_atom/1 inside
+    # format_mfa/3 doesn't raise.
+    _ = :"some function"
+
     assert Exception.format_mfa(Foo, nil, 1) == "Foo.nil/1"
     assert Exception.format_mfa(Foo, :bar, 1) == "Foo.bar/1"
     assert Exception.format_mfa(Foo, :bar, []) == "Foo.bar()"
@@ -128,21 +132,26 @@ defmodule ExceptionTest do
     assert Exception.format_mfa(:foo, :bar, [1, 2]) == ":foo.bar(1, 2)"
     assert Exception.format_mfa(Foo, :"bar baz", 1) == "Foo.\"bar baz\"/1"
     assert Exception.format_mfa(Foo, :"-func/2-fun-0-", 4) == "anonymous fn/4 in Foo.func/2"
+    assert Exception.format_mfa(Foo, :"-some function/2-fun-0-", 4) == "anonymous fn/4 in Foo.\"some function\"/2"
+    assert Exception.format_mfa(Foo, :"42", 1) == "Foo.\"42\"/1"
+    assert Exception.format_mfa(Foo, :Bar, [1, 2]) == "Foo.\"Bar\"(1, 2)"
+    assert Exception.format_mfa(Foo, :%{}, [1, 2]) == "Foo.\"%{}\"(1, 2)"
+    assert Exception.format_mfa(Foo, :..., 1) == "Foo.\"...\"/1"
   end
 
-  test "format_fa" do
+  test "format_fa/2" do
     assert Exception.format_fa(fn -> nil end, 1) =~
-           ~r"#Function<\d+\.\d+/0 in ExceptionTest\.test format_fa/1>/1"
+           ~r"#Function<\d+\.\d+/0 in ExceptionTest\.\"test format_fa/2\"/1>/1"
   end
 
   ## Format exits
 
-  test "format_exit" do
+  test "format_exit/1" do
     assert Exception.format_exit(:bye) == ":bye"
     assert Exception.format_exit(:noconnection) == "no connection"
     assert Exception.format_exit({:nodedown, :"node@host"}) == "no connection to node@host"
     assert Exception.format_exit(:timeout) == "time out"
-    assert Exception.format_exit(:noproc) == "no process"
+    assert Exception.format_exit(:noproc) |> String.starts_with?("no process:")
     assert Exception.format_exit(:killed) == "killed"
     assert Exception.format_exit(:normal) == "normal"
     assert Exception.format_exit(:shutdown) == "shutdown"
@@ -164,7 +173,7 @@ defmodule ExceptionTest do
     def init(fun), do: fun.()
   end
 
-  test "format_exit with supervisor errors" do
+  test "format_exit/1 with supervisor errors" do
     trap = Process.flag(:trap_exit, true)
 
     {:error, reason} = __MODULE__.Sup.start_link(fn() -> :foo end)
@@ -252,27 +261,28 @@ defmodule ExceptionTest do
     Process.flag(:trap_exit, trap)
   end
 
-  test "format_exit with call" do
+  test "format_exit/1 with call" do
     reason = try do
       :gen_server.call(:does_not_exist, :hello)
     catch
       :exit, reason -> reason
     end
 
-    assert Exception.format_exit(reason) ==
-           "exited in: :gen_server.call(:does_not_exist, :hello)\n    ** (EXIT) no process"
+    expected_to_start_with = "exited in: :gen_server.call(:does_not_exist, :hello)\n    ** (EXIT) no process:"
+    assert Exception.format_exit(reason) |> String.starts_with?(expected_to_start_with)
   end
 
-  test "format_exit with call with exception" do
+  test "format_exit/1 with call with exception" do
+    Process.flag(:trap_exit, true)
     # Fake reason to prevent error_logger printing to stdout
-    fsm_reason = {%ArgumentError{}, [{:not_a_real_module, :function, 0, []}]}
-    reason = try do
-      :gen_fsm.sync_send_event(spawn(fn() ->
-          :timer.sleep(200) ; exit(fsm_reason)
-      end), :hello)
-    catch
-      :exit, reason -> reason
-    end
+    exit_reason = {%ArgumentError{}, [{:not_a_real_module, :function, 0, []}]}
+    exit_fun = fn() -> receive do: (_ -> exit(exit_reason)) end
+    reason =
+      try do
+        :gen_fsm.sync_send_event(spawn_link(exit_fun), :hello)
+      catch
+        :exit, reason -> reason
+      end
 
     formatted = Exception.format_exit(reason)
     assert formatted =~ ~r"exited in: :gen_fsm\.sync_send_event\(#PID<\d+\.\d+\.\d+>, :hello\)"
@@ -281,12 +291,17 @@ defmodule ExceptionTest do
     assert formatted =~ ~r"\s{12}:not_a_real_module\.function/0"
   end
 
-  test "format_exit with nested calls" do
+  test "format_exit/1 with nested calls" do
+    Process.flag(:trap_exit, true)
     # Fake reason to prevent error_logger printing to stdout
-    event_fun = fn() -> :timer.sleep(200) ; exit(:normal) end
-    server_pid = spawn(fn()-> :gen_event.call(spawn(event_fun), :handler, :hello) end)
+    exit_fun = fn() -> receive do: (_ -> exit(:normal)) end
+    outer_pid =
+      spawn_link(fn()->
+        Process.flag(:trap_exit, true)
+        :gen_event.call(spawn_link(exit_fun), :handler, :hello)
+      end)
     reason = try do
-      :gen_server.call(server_pid, :hi)
+      :gen_server.call(outer_pid, :hi)
     catch
       :exit, reason -> reason
     end
@@ -297,13 +312,18 @@ defmodule ExceptionTest do
     assert formatted =~ ~r"\s{8}\*\* \(EXIT\) normal"
   end
 
-  test "format_exit with nested calls and exception" do
+  test "format_exit/1 with nested calls and exception" do
+    Process.flag(:trap_exit, true)
     # Fake reason to prevent error_logger printing to stdout
-    event_reason = {%ArgumentError{}, [{:not_a_real_module, :function, 0, []}]}
-    event_fun = fn() -> :timer.sleep(200) ; exit(event_reason) end
-    server_pid = spawn(fn()-> :gen_event.call(spawn(event_fun), :handler, :hello) end)
+    exit_reason = {%ArgumentError{}, [{:not_a_real_module, :function, 0, []}]}
+    exit_fun = fn() -> receive do: (_ -> exit(exit_reason)) end
+    outer_pid =
+      spawn_link(fn()->
+        Process.flag(:trap_exit, true)
+        :gen_event.call(spawn_link(exit_fun), :handler, :hello)
+      end)
     reason = try do
-      :gen_server.call(server_pid, :hi)
+      :gen_server.call(outer_pid, :hi)
     catch
       :exit, reason -> reason
     end
@@ -366,7 +386,9 @@ defmodule ExceptionTest do
 
                  * map/2
                  * max/1
+                 * max/2
                  * min/1
+                 * min/2
            """
     assert %UndefinedFunctionError{module: :erlang, function: :gt_cookie, arity: 0} |> message == """
            function :erlang.gt_cookie/0 is undefined or private. Did you mean one of:
@@ -374,6 +396,14 @@ defmodule ExceptionTest do
                  * get_cookie/0
                  * set_cookie/2
            """
+  end
+
+  test "UndefinedFunctionError when the mfa is a macro but require wasn't called" do
+    _ = Code.ensure_loaded(Integer)
+    assert %UndefinedFunctionError{module: Integer, function: :is_odd, arity: 1} |> message ==
+           "function Integer.is_odd/1 is undefined or private. However there is " <>
+           "a macro with the same name and arity. Be sure to require Integer if " <>
+           "you intend to invoke this macro"
   end
 
   test "FunctionClauseError message" do
@@ -385,6 +415,6 @@ defmodule ExceptionTest do
 
   test "ErlangError message" do
     assert %ErlangError{original: :sample} |> message ==
-           "erlang error: :sample"
+           "Erlang error: :sample"
   end
 end

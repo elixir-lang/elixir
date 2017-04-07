@@ -76,22 +76,22 @@ defmodule Kernel.CLI do
           fun.(elem(res, 1))
         catch
           :exit, {:shutdown, int} when is_integer(int) ->
-            send parent, {self, {:shutdown, int}}
+            send parent, {self(), {:shutdown, int}}
             exit({:shutdown, int})
           :exit, reason
               when reason == :normal
               when reason == :shutdown
               when tuple_size(reason) == 2 and elem(reason, 0) == :shutdown ->
-            send parent, {self, {:shutdown, 0}}
+            send parent, {self(), {:shutdown, 0}}
             exit(reason)
           kind, reason ->
             stack = System.stacktrace
             print_error(kind, reason, stack)
-            send parent, {self, {:shutdown, 1}}
+            send parent, {self(), {:shutdown, 1}}
             exit(to_exit(kind, reason, stack))
         else
           _ ->
-            send parent, {self, res}
+            send parent, {self(), res}
         end
       end)
 
@@ -111,7 +111,7 @@ defmodule Kernel.CLI do
 
   defp shared_option?(list, config, callback) do
     case parse_shared(list, config) do
-      {[h|hs], _} when h == hd(list) ->
+      {[h | hs], _} when h == hd(list) ->
         new_config = %{config | errors: ["#{h} : Unknown option" | config.errors]}
         callback.(hs, new_config)
       {new_list, new_config} ->
@@ -123,20 +123,20 @@ defmodule Kernel.CLI do
     IO.puts :stderr, Exception.format(kind, reason, prune_stacktrace(trace))
   end
 
-  @elixir_internals [:elixir, :elixir_exp, :elixir_compiler, :elixir_module, :elixir_clauses,
-                     :elixir_translator, :elixir_expand, :elixir_lexical, :elixir_exp_clauses,
-                     :elixir_def, :elixir_map]
+  @elixir_internals [:elixir, :elixir_expand, :elixir_compiler, :elixir_module,
+                     :elixir_clauses, :elixir_lexical, :elixir_def, :elixir_map,
+                     :elixir_erl, :elixir_erl_clauses, :elixir_erl_pass]
 
-  defp prune_stacktrace([{mod, _, _, _}|t]) when mod in @elixir_internals do
+  defp prune_stacktrace([{mod, _, _, _} | t]) when mod in @elixir_internals do
     prune_stacktrace(t)
   end
 
-  defp prune_stacktrace([{__MODULE__, :wrapper, 1, _}|_]) do
+  defp prune_stacktrace([{__MODULE__, :wrapper, 1, _} | _]) do
     []
   end
 
-  defp prune_stacktrace([h|t]) do
-    [h|prune_stacktrace(t)]
+  defp prune_stacktrace([h | t]) do
+    [h | prune_stacktrace(t)]
   end
 
   defp prune_stacktrace([]) do
@@ -145,7 +145,7 @@ defmodule Kernel.CLI do
 
   # Parse shared options
 
-  defp parse_shared([opt|_t], _config) when opt in ["-v", "--version"] do
+  defp parse_shared([opt | _t], _config) when opt in ["-v", "--version"] do
     if function_exported?(IEx, :started?, 0) and IEx.started? do
       IO.puts "IEx " <> System.build_info[:build]
     else
@@ -156,43 +156,43 @@ defmodule Kernel.CLI do
     System.halt 0
   end
 
-  defp parse_shared(["-pa", h|t], config) do
+  defp parse_shared(["-pa", h | t], config) do
     paths = expand_code_path(h)
     Enum.each(paths, &:code.add_patha/1)
     parse_shared t, %{config | pa: config.pa ++ paths}
   end
 
-  defp parse_shared(["-pz", h|t], config) do
+  defp parse_shared(["-pz", h | t], config) do
     paths = expand_code_path(h)
     Enum.each(paths, &:code.add_pathz/1)
     parse_shared t, %{config | pz: config.pz ++ paths}
   end
 
-  defp parse_shared(["--app", h|t], config) do
+  defp parse_shared(["--app", h | t], config) do
     parse_shared t, %{config | commands: [{:app, h} | config.commands]}
   end
 
-  defp parse_shared(["--no-halt"|t], config) do
+  defp parse_shared(["--no-halt" | t], config) do
     parse_shared t, %{config | halt: false}
   end
 
-  defp parse_shared(["-e", h|t], config) do
+  defp parse_shared(["-e", h | t], config) do
     parse_shared t, %{config | commands: [{:eval, h} | config.commands]}
   end
 
-  defp parse_shared(["-r", h|t], config) do
+  defp parse_shared(["-r", h | t], config) do
     parse_shared t, %{config | commands: [{:require, h} | config.commands]}
   end
 
-  defp parse_shared(["-pr", h|t], config) do
+  defp parse_shared(["-pr", h | t], config) do
     parse_shared t, %{config | commands: [{:parallel_require, h} | config.commands]}
   end
 
-  defp parse_shared([erl, _|t], config) when erl in ["--erl", "--sname", "--name", "--cookie", "--logger-otp-reports", "--logger-sasl-reports"] do
+  defp parse_shared([erl, _ | t], config) when erl in ["--erl", "--sname", "--name", "--cookie", "--logger-otp-reports", "--logger-sasl-reports"] do
     parse_shared t, config
   end
 
-  defp parse_shared([erl|t], config) when erl in ["--detached", "--hidden", "--werl"] do
+  defp parse_shared([erl | t], config) when erl in ["--detached", "--hidden", "--werl"] do
     parse_shared t, config
   end
 
@@ -203,30 +203,30 @@ defmodule Kernel.CLI do
   defp expand_code_path(path) do
     path = Path.expand(path)
     case Path.wildcard(path) do
-      []   -> [to_char_list(path)]
-      list -> Enum.map(list, &to_char_list/1)
+      []   -> [to_charlist(path)]
+      list -> Enum.map(list, &to_charlist/1)
     end
   end
 
   # Process init options
 
-  defp parse_argv(["--"|t], config) do
+  defp parse_argv(["--" | t], config) do
     {config, t}
   end
 
-  defp parse_argv(["+elixirc"|t], config) do
+  defp parse_argv(["+elixirc" | t], config) do
     parse_compiler t, config
   end
 
-  defp parse_argv(["+iex"|t], config) do
+  defp parse_argv(["+iex" | t], config) do
     parse_iex t, config
   end
 
-  defp parse_argv(["-S", h|t], config) do
+  defp parse_argv(["-S", h | t], config) do
     {%{config | commands: [{:script, h} | config.commands]}, t}
   end
 
-  defp parse_argv([h|t] = list, config) do
+  defp parse_argv([h | t] = list, config) do
     case h do
       "-" <> _ ->
         shared_option? list, config, &parse_argv(&1, &2)
@@ -245,35 +245,35 @@ defmodule Kernel.CLI do
 
   # Parse compiler options
 
-  defp parse_compiler(["--"|t], config) do
+  defp parse_compiler(["--" | t], config) do
     {config, t}
   end
 
-  defp parse_compiler(["-o", h|t], config) do
+  defp parse_compiler(["-o", h | t], config) do
     parse_compiler t, %{config | output: h}
   end
 
-  defp parse_compiler(["--no-docs"|t], config) do
+  defp parse_compiler(["--no-docs" | t], config) do
     parse_compiler t, %{config | compiler_options: [{:docs, false} | config.compiler_options]}
   end
 
-  defp parse_compiler(["--no-debug-info"|t], config) do
+  defp parse_compiler(["--no-debug-info" | t], config) do
     parse_compiler t, %{config | compiler_options: [{:debug_info, false} | config.compiler_options]}
   end
 
-  defp parse_compiler(["--ignore-module-conflict"|t], config) do
+  defp parse_compiler(["--ignore-module-conflict" | t], config) do
     parse_compiler t, %{config | compiler_options: [{:ignore_module_conflict, true} | config.compiler_options]}
   end
 
-  defp parse_compiler(["--warnings-as-errors"|t], config) do
+  defp parse_compiler(["--warnings-as-errors" | t], config) do
     parse_compiler t, %{config | compiler_options: [{:warnings_as_errors, true} | config.compiler_options]}
   end
 
-  defp parse_compiler(["--verbose"|t], config) do
+  defp parse_compiler(["--verbose" | t], config) do
     parse_compiler t, %{config | verbose_compile: true}
   end
 
-  defp parse_compiler([h|t] = list, config) do
+  defp parse_compiler([h | t] = list, config) do
     case h do
       "-" <> _ ->
         shared_option? list, config, &parse_compiler(&1, &2)
@@ -284,30 +284,30 @@ defmodule Kernel.CLI do
   end
 
   defp parse_compiler([], config) do
-    {%{config | commands: [{:compile, config.compile}|config.commands]}, []}
+    {%{config | commands: [{:compile, config.compile} | config.commands]}, []}
   end
 
-  # Parse iex options
+  # Parse IEx options
 
-  defp parse_iex(["--"|t], config) do
+  defp parse_iex(["--" | t], config) do
     {config, t}
   end
 
   # This clause is here so that Kernel.CLI does not
   # error out with "unknown option"
-  defp parse_iex(["--dot-iex", _|t], config) do
+  defp parse_iex(["--dot-iex", _ | t], config) do
     parse_iex t, config
   end
 
-  defp parse_iex([opt, _|t], config) when opt in ["--remsh"] do
+  defp parse_iex([opt, _ | t], config) when opt in ["--remsh"] do
     parse_iex t, config
   end
 
-  defp parse_iex(["-S", h|t], config) do
+  defp parse_iex(["-S", h | t], config) do
     {%{config | commands: [{:script, h} | config.commands]}, t}
   end
 
-  defp parse_iex([h|t] = list, config) do
+  defp parse_iex([h | t] = list, config) do
     case h do
       "-" <> _ ->
         shared_option? list, config, &parse_iex(&1, &2)
@@ -390,8 +390,13 @@ defmodule Kernel.CLI do
       {:ok, files} ->
         wrapper fn ->
           Code.compiler_options(config.compiler_options)
-          Kernel.ParallelCompiler.files_to_path(files, config.output,
-            each_file: fn file -> if config.verbose_compile do IO.puts "Compiled #{file}" end end)
+          opts =
+            if config.verbose_compile do
+              [each_long_compilation: &IO.puts("Compiling #{&1} (it's taking more than 5s)")]
+            else
+              []
+            end
+          Kernel.ParallelCompiler.files_to_path(files, config.output, opts)
         end
       {:missing, missing} ->
         {:error, "No files matched pattern(s) #{Enum.join(missing, ",")}"}

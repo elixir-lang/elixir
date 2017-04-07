@@ -16,7 +16,7 @@ defmodule Mix.Tasks.CompileTest do
 
   test "compile --list with mixfile" do
     Mix.Tasks.Compile.run ["--list"]
-    assert_received {:mix_shell, :info, ["\nEnabled compilers: yecc, leex, erlang, elixir, app, protocols"]}
+    assert_received {:mix_shell, :info, ["\nEnabled compilers: yecc, leex, erlang, elixir, xref, app, protocols"]}
     assert_received {:mix_shell, :info, ["mix compile.elixir    # " <> _]}
   end
 
@@ -34,23 +34,23 @@ defmodule Mix.Tasks.CompileTest do
 
   test "compile a project with mixfile" do
     in_fixture "no_mixfile", fn ->
-      assert Mix.Tasks.Compile.run([]) == :ok
+      assert Mix.Tasks.Compile.run(["--verbose"]) == :ok
       assert File.regular?("_build/dev/lib/sample/ebin/Elixir.A.beam")
       assert File.regular?("_build/dev/lib/sample/ebin/sample.app")
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       assert_received {:mix_shell, :info, ["Generated sample app"]}
 
       assert File.regular? "_build/dev/consolidated/Elixir.Enumerable.beam"
-      assert Mix.Tasks.Compile.run([]) == :noop
+      assert Mix.Tasks.Compile.run(["--verbose"]) == :noop
       refute_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       purge [Enumerable]
 
-      assert Mix.Tasks.App.Start.run([]) == :ok
+      assert Mix.Tasks.App.Start.run(["--verbose"]) == :ok
       assert Protocol.consolidated?(Enumerable)
     end
   end
 
-  test "compile a project with multiple compilers and a syntax error in an erlang file" do
+  test "compile a project with multiple compilers and a syntax error in an Erlang file" do
     in_fixture "no_mixfile", fn ->
       import ExUnit.CaptureIO
 
@@ -67,11 +67,10 @@ defmodule Mix.Tasks.CompileTest do
 
       refute File.regular?("ebin/Elixir.A.beam")
       refute File.regular?("ebin/Elixir.B.beam")
-      refute File.regular?("ebin/Elixir.C.beam")
     end
   end
 
-  test "add logger application metadata" do
+  test "add Logger application metadata" do
     import ExUnit.CaptureLog
     in_fixture "no_mixfile", fn ->
       File.write!("lib/a.ex", """

@@ -24,9 +24,22 @@ defmodule IEx.InfoTest do
 
   test "atoms: loaded module (with docs)" do
     info = Info.info(List)
-    description = "Use h(List) to access its documentation.\n"
-                  <> "Call List.module_info() to access metadata."
+    description = "Use h(List) to access its documentation.\n" <>
+                  "Call List.module_info() to access metadata."
     assert info[:"Description"] == description
+  end
+
+  test "atoms: module that is also a protocol" do
+    info = Info.info(String.Chars)
+    description = info[:"Protocol"]
+    assert description =~ "This module is a protocol"
+    assert description =~ "Atom"
+    assert description =~ "BitString"
+  end
+
+  test "atoms: module-like atom (Foo)" do
+    info = Info.info(NonexistentModuleAtom)
+    assert info[:"Raw representation"] == ~s(:"Elixir.NonexistentModuleAtom")
   end
 
   test "atoms: regular atom" do
@@ -98,13 +111,13 @@ defmodule IEx.InfoTest do
     assert info[:"Description"] == "This is an anonymous function."
   end
 
-  test "pids" do
-    pid = spawn_link(fn -> :timer.sleep(1000) end)
+  test "PIDs" do
+    pid = spawn_link(fn -> Process.sleep(1000) end)
 
     info = Info.info(pid)
     assert info[:"Alive"] == true
     assert info[:"Name"] == "not registered"
-    assert info[:"Links"] == inspect(self)
+    assert info[:"Links"] == inspect(self())
     assert info[:"Message queue length"] == 0
 
     Process.register(pid, :iex_info_registered_pid)
@@ -128,6 +141,36 @@ defmodule IEx.InfoTest do
 
   test "references" do
     assert Info.info(make_ref()) == ["Data type": "Reference"]
+  end
+
+  test "date" do
+    {:ok, date} = Date.new(2017, 1, 1)
+    info = Info.info(date)
+    assert info[:"Data type"] == "Date"
+    assert info[:"Raw representation"] == "%Date{calendar: Calendar.ISO, day: 1, month: 1, year: 2017}"
+    assert info[:"Reference modules"] == "Date, Calendar, Map"
+    assert info[:"Description"] =~ "a date"
+    assert info[:"Description"] =~ "`~D`"
+  end
+
+  test "time" do
+    {:ok, time} = Time.new(23, 59, 59)
+    info = Info.info(time)
+    assert info[:"Data type"] == "Time"
+    assert info[:"Raw representation"] == "%Time{calendar: Calendar.ISO, hour: 23, microsecond: {0, 0}, minute: 59, second: 59}"
+    assert info[:"Reference modules"] == "Time, Calendar, Map"
+    assert info[:"Description"] =~ "a time"
+    assert info[:"Description"] =~ "`~T`"
+  end
+
+  test "naive datetime" do
+    {:ok, time} = NaiveDateTime.new(2017, 1, 1, 23, 59, 59)
+    info = Info.info(time)
+    assert info[:"Data type"] == "NaiveDateTime"
+    assert info[:"Raw representation"] == "%NaiveDateTime{calendar: Calendar.ISO, day: 1, hour: 23, microsecond: {0, 0}, minute: 59, month: 1, second: 59, year: 2017}"
+    assert info[:"Reference modules"] == "NaiveDateTime, Calendar, Map"
+    assert info[:"Description"] =~ ~S{a "naive" datetime (that is, a datetime without a timezone)}
+    assert info[:"Description"] =~ "`~N`"
   end
 
   test "structs" do

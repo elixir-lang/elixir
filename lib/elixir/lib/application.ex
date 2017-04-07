@@ -26,7 +26,7 @@ defmodule Application do
   Once an application is started, OTP provides an application environment
   that can be used to configure the application.
 
-  Assuming you are inside a Mix project, you can edit the `application`
+  Assuming you are inside a Mix project, you can edit the `application/0`
   function in the `mix.exs` file to the following:
 
       def application do
@@ -88,12 +88,87 @@ defmodule Application do
   by `use Application`) which does any application cleanup. It receives the
   application state and can return any value. Note that shutting down the
   supervisor is automatically handled by the VM.
+
+  An application without a supervision tree doesn't define an application
+  module callback in the application definition in `mix.exs` file. Even though
+  there is no module with application callbacks such as `start/2` and
+  `stop/1`, the application can be started and stopped the same way as an
+  application with a supervision tree.
   """
+
+  @doc """
+  Called when an application is started.
+
+  This function is called when an application is started using
+  `Application.start/2` (and functions on top of that, such as
+  `Application.ensure_started/2`). This function should start the top-level
+  process of the application (which should be the top supervisor of the
+  application's supervision tree if the application follows the OTP design
+  principles around supervision).
+
+  `start_type` defines how the application is started:
+
+    * `:normal` - used if the startup is a normal startup or if the application
+      is distributed and is started on the current node because of a failover
+      from another node and the application specification key `:start_phases`
+      is `:undefined`.
+    * `{:takeover, node}` - used if the application is distributed and is
+      started on the current node because of a failover on the node `node`.
+    * `{:failover, node}` - used if the application is distributed and is
+      started on the current node because of a failover on node `node`, and the
+      application specification key `:start_phases` is not `:undefined`.
+
+  `start_args` are the arguments passed to the application in the `:mod`
+  specification key (e.g., `mod: {MyApp, [:my_args]}`).
+
+  This function should either return `{:ok, pid}` or `{:ok, pid, state}` if
+  startup is successful. `pid` should be the PID of the top supervisor. `state`
+  can be an arbitrary term, and if omitted will default to `[]`; if the
+  application is later stopped, `state` is passed to the `stop/1` callback (see
+  the documentation for the `c:stop/1` callback for more information).
+
+  `use Application` provides no default implementation for the `start/2`
+  callback.
+  """
+  @callback start(start_type, start_args :: term) ::
+    {:ok, pid} |
+    {:ok, pid, state} |
+    {:error, reason :: term}
+
+  @doc """
+  Called when an application is stopped.
+
+  This function is called when an application has stopped, i.e., when its
+  supervision tree has been stopped. It should do the opposite of what the
+  `start/2` callback did, and should perform any necessary cleanup. The return
+  value of this callback is ignored.
+
+  `state` is the return value of the `start/2` callback or the return value of
+  the `prep_stop/1` function if the application module defines such a function.
+
+  `use Application` defines a default implementation of this function which does
+  nothing and just returns `:ok`.
+  """
+  @callback stop(state) :: term
+
+  @doc """
+  Start an application in synchronous phases.
+
+  This function is called after `start/2` finishes but before
+  `Application.start/2` returns. It will be called once for every start phase
+  defined in the application's (and any included applications') specification,
+  in the order they are listed in.
+  """
+  @callback start_phase(phase :: term, start_type, phase_args :: term) ::
+    :ok |
+    {:error, reason :: term}
+
+  @optional_callbacks start_phase: 3
 
   @doc false
   defmacro __using__(_) do
     quote location: :keep do
-      @behaviour :application
+      @behaviour Application
 
       @doc false
       def stop(_state) do
@@ -107,6 +182,7 @@ defmodule Application do
   @type app :: atom
   @type key :: atom
   @type value :: term
+  @type state :: term
   @type start_type :: :permanent | :transient | :temporary
 
   @application_keys [:description, :id, :vsn, :modules, :maxP, :maxT, :registered,
@@ -146,7 +222,7 @@ defmodule Application do
   end
 
   @doc """
-  Get the application for the given module.
+  Gets the application for the given module.
 
   The application is located by analyzing the spec
   of all loaded applications. Returns `nil` if
@@ -213,7 +289,7 @@ defmodule Application do
 
   ## Options
 
-    * `:timeout`    - the timeout for the change (defaults to 5000ms)
+    * `:timeout` - the timeout for the change (defaults to `5_000` milliseconds)
     * `:persistent` - persists the given value on application load and reloads
 
   If `put_env/4` is called before the application is loaded, the application
@@ -278,7 +354,7 @@ defmodule Application do
   started before this application is. If not, `{:error, {:not_started, app}}` is
   returned, where `app` is the name of the missing application.
 
-  In case you want to automatically  load **and start** all of `app`'s dependencies,
+  In case you want to automatically load **and start** all of `app`'s dependencies,
   see `ensure_all_started/2`.
 
   The `type` argument specifies the type of the application:
@@ -363,7 +439,7 @@ defmodule Application do
       #=> "bar-123"
 
   For more information on code paths, check the `Code` module in
-  Elixir and also Erlang's `:code` module.
+  Elixir and also Erlang's [`:code` module](http://www.erlang.org/doc/man/code.html).
   """
   @spec app_dir(app) :: String.t
   def app_dir(app) when is_atom(app) do
@@ -381,7 +457,7 @@ defmodule Application do
     Path.join(app_dir(app), path)
   end
   def app_dir(app, path) when is_list(path) do
-    Path.join([app_dir(app)|path])
+    Path.join([app_dir(app) | path])
   end
 
   @doc """
@@ -410,7 +486,7 @@ defmodule Application do
     try do
       do_format_error(reason)
     catch
-      # A user could create an error that looks like a builtin one
+      # A user could create an error that looks like a built-in one
       # causing an error.
       :error, _ ->
         inspect(reason)

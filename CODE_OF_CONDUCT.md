@@ -22,7 +22,7 @@ These are the values Elixir developers should aspire to:
     * In particular, respect differences of opinion. It is important that we resolve disagreements and differing views constructively.
   * Avoid destructive behavior
     * Derailing: stay on topic; if you want to talk about something else, start a new conversation.
-    * Unconstructive criticism: don't merely decry the current state of affairs; offer—or at least solicit—suggestions as to how things may be improved.
+    * Unconstructive criticism: don't merely decry the current state of affairs; offer (or at least solicit) suggestions as to how things may be improved.
     * Snarking (pithy, unproductive, sniping comments).
 
 The following actions are explicitly forbidden:

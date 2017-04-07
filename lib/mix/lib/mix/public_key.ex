@@ -44,7 +44,7 @@ defmodule Mix.PublicKey do
 
       #{key}
 
-      Public keys must be valid and be in the PEM format.
+      Public keys must be valid and be in the PEM format
       """
   end
 

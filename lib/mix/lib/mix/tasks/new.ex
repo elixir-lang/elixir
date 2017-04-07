@@ -2,7 +2,6 @@ defmodule Mix.Tasks.New do
   use Mix.Task
 
   import Mix.Generator
-  import Mix.Utils, only: [camelize: 1]
 
   @shortdoc "Creates a new Elixir project"
 
@@ -12,7 +11,7 @@ defmodule Mix.Tasks.New do
 
       mix new PATH [--sup] [--module MODULE] [--app APP] [--umbrella]
 
-  A project at the given PATH  will be created. The
+  A project at the given PATH will be created. The
   application name and module name will be retrieved
   from the path, unless `--module` or `--app` is given.
 
@@ -37,45 +36,55 @@ defmodule Mix.Tasks.New do
 
       mix new hello_world --module HelloWorld
 
-  To generate an app with supervisor and application callback:
+  To generate an app with a supervision tree and an application callback:
 
       mix new hello_world --sup
 
   """
 
+  @switches [
+    app: :string,
+    module: :string,
+    sup: :boolean,
+    umbrella: :boolean
+  ]
+
   @spec run(OptionParser.argv) :: :ok
   def run(argv) do
-    {opts, argv, _} = OptionParser.parse(argv, switches: [sup: :boolean, umbrella: :boolean])
+    {opts, argv} = OptionParser.parse!(argv, strict: @switches)
 
     case argv do
       [] ->
         Mix.raise "Expected PATH to be given, please use \"mix new PATH\""
-      [path|_] ->
+      [path | _] ->
         app = opts[:app] || Path.basename(Path.expand(path))
-        check_application_name!(app, !!opts[:app])
-        mod = opts[:module] || camelize(app)
+        check_application_name!(app, !opts[:app])
+        mod = opts[:module] || Macro.camelize(app)
         check_mod_name_validity!(mod)
         check_mod_name_availability!(mod)
-        File.mkdir_p!(path)
+        unless path == "." do
+          check_directory_existence!(path)
+          File.mkdir_p!(path)
+        end
 
         File.cd! path, fn ->
           if opts[:umbrella] do
-            do_generate_umbrella(app, mod, path, opts)
+            generate_umbrella(app, mod, path, opts)
           else
-            do_generate(app, mod, path, opts)
+            generate(app, mod, path, opts)
           end
         end
     end
   end
 
-  defp do_generate(app, mod, path, opts) do
-    assigns = [app: app, mod: mod, otp_app: otp_app(mod, !!opts[:sup]),
+  defp generate(app, mod, path, opts) do
+    assigns = [app: app, mod: mod, sup_app: sup_app(mod, !!opts[:sup]),
                version: get_version(System.version)]
 
     create_file "README.md",  readme_template(assigns)
-    create_file ".gitignore", gitignore_text
+    create_file ".gitignore", gitignore_text()
 
-    if in_umbrella? do
+    if in_umbrella?() do
       create_file "mix.exs", mixfile_apps_template(assigns)
     else
       create_file "mix.exs", mixfile_template(assigns)
@@ -85,41 +94,39 @@ defmodule Mix.Tasks.New do
     create_file "config/config.exs", config_template(assigns)
 
     create_directory "lib"
+    create_file "lib/#{app}.ex", lib_template(assigns)
 
     if opts[:sup] do
-      create_file "lib/#{app}.ex", lib_sup_template(assigns)
-    else
-      create_file "lib/#{app}.ex", lib_template(assigns)
+      create_file "lib/#{app}/application.ex", lib_app_template(assigns)
     end
 
     create_directory "test"
     create_file "test/test_helper.exs", test_helper_template(assigns)
     create_file "test/#{app}_test.exs", test_template(assigns)
 
-    Mix.shell.info """
+    """
 
     Your Mix project was created successfully.
     You can use "mix" to compile it, test it, and more:
 
-        cd #{path}
-        mix test
+        #{cd_path(path)}mix test
 
     Run "mix help" for more commands.
     """
+    |> String.trim_trailing
+    |> Mix.shell.info
   end
 
-  defp otp_app(_mod, false) do
-    "    [applications: [:logger]]"
-  end
+  defp sup_app(_mod, false), do: ""
+  defp sup_app(mod, true), do: ",\n      mod: {#{mod}.Application, []}"
 
-  defp otp_app(mod, true) do
-    "    [applications: [:logger],\n     mod: {#{mod}, []}]"
-  end
+  defp cd_path("."), do: ""
+  defp cd_path(path), do: "cd #{path}\n    "
 
-  defp do_generate_umbrella(_app, mod, path, _opts) do
+  defp generate_umbrella(_app, mod, path, _opts) do
     assigns = [app: nil, mod: mod]
 
-    create_file ".gitignore", gitignore_text
+    create_file ".gitignore", gitignore_text()
     create_file "README.md", readme_template(assigns)
     create_file "mix.exs", mixfile_umbrella_template(assigns)
 
@@ -128,29 +135,30 @@ defmodule Mix.Tasks.New do
     create_directory "config"
     create_file "config/config.exs", config_umbrella_template(assigns)
 
-    Mix.shell.info """
+    """
 
     Your umbrella project was created successfully.
     Inside your project, you will find an apps/ directory
     where you can create and host many apps:
 
-        cd #{path}
-        cd apps
+        #{cd_path(path)}cd apps
         mix new my_app
 
     Commands like "mix compile" and "mix test" when executed
     in the umbrella project root will automatically run
     for each application in the apps/ directory.
     """
+    |> String.trim_trailing
+    |> Mix.shell.info
   end
 
-  defp check_application_name!(name, from_app_flag) do
-    unless name =~ ~r/^[a-z][\w_]*$/ do
+  defp check_application_name!(name, inferred?) do
+    unless name =~ ~r/^[a-z][a-z0-9_]*$/ do
       Mix.raise "Application name must start with a letter and have only lowercase " <>
                 "letters, numbers and underscore, got: #{inspect name}" <>
-                (if !from_app_flag do
+                (if inferred? do
                   ". The application name is inferred from the path, if you'd like to " <>
-                  "explicitly name the application then use the \"--app APP\" option."
+                  "explicitly name the application then use the \"--app APP\" option"
                 else
                   ""
                 end)
@@ -170,12 +178,18 @@ defmodule Mix.Tasks.New do
     end
   end
 
+  defp check_directory_existence!(path) do
+    if File.dir?(path) and not Mix.shell.yes?("The directory #{inspect(path)} already exists. Are you sure you want to continue?") do
+      Mix.raise "Please select another directory for installation"
+    end
+  end
+
   defp get_version(version) do
     {:ok, version} = Version.parse(version)
     "#{version.major}.#{version.minor}" <>
       case version.pre do
-        [h|_] -> "-#{h}"
-        []    -> ""
+        [h | _] -> "-#{h}"
+        []      -> ""
       end
   end
 
@@ -199,23 +213,18 @@ defmodule Mix.Tasks.New do
   <%= if @app do %>
   ## Installation
 
-  If [available in Hex](https://hex.pm/docs/publish), the package can be installed as:
+  If [available in Hex](https://hex.pm/docs/publish), the package can be installed
+  by adding `<%= @app %>` to your list of dependencies in `mix.exs`:
 
-    1. Add `<%= @app %>` to your list of dependencies in `mix.exs`:
+  ```elixir
+  def deps do
+    [{:<%= @app %>, "~> 0.1.0"}]
+  end
+  ```
 
-      ```elixir
-      def deps do
-        [{:<%= @app %>, "~> 0.0.1"}]
-      end
-      ```
-
-    2. Ensure `<%= @app %>` is started before your application:
-
-      ```elixir
-      def application do
-        [applications: [:<%= @app %>]]
-      end
-      ```
+  Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
+  and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
+  be found at [https://hexdocs.pm/<%= @app %>](https://hexdocs.pm/<%= @app %>).
   <% end %>
   """
 
@@ -232,6 +241,9 @@ defmodule Mix.Tasks.New do
   # Where 3rd-party dependencies like ExDoc output generated docs.
   /doc
 
+  # Ignore .fetch files in case you like to edit your project deps locally.
+  /.fetch
+
   # If the VM crashes, it generates a dump, let's ignore it too.
   erl_crash.dump
 
@@ -244,32 +256,28 @@ defmodule Mix.Tasks.New do
     use Mix.Project
 
     def project do
-      [app: :<%= @app %>,
-       version: "0.0.1",
-       elixir: "~> <%= @version %>",
-       build_embedded: Mix.env == :prod,
-       start_permanent: Mix.env == :prod,
-       deps: deps]
+      [
+        app: :<%= @app %>,
+        version: "0.1.0",
+        elixir: "~> <%= @version %>",
+        start_permanent: Mix.env == :prod,
+        deps: deps()
+      ]
     end
 
-    # Configuration for the OTP application
-    #
-    # Type "mix help compile.app" for more information
+    # Run "mix help compile.app" to learn about applications.
     def application do
-  <%= @otp_app %>
+      [
+        extra_applications: [:logger]<%= @sup_app %>
+      ]
     end
 
-    # Dependencies can be Hex packages:
-    #
-    #   {:mydep, "~> 0.3.0"}
-    #
-    # Or git/path repositories:
-    #
-    #   {:mydep, git: "https://github.com/elixir-lang/mydep.git", tag: "0.1.0"}
-    #
-    # Type "mix help deps" for more examples and options
+    # Run "mix help deps" to learn about dependencies.
     defp deps do
-      []
+      [
+        # {:dep_from_hexpm, "~> 0.3.0"},
+        # {:dep_from_git, git: "https://github.com/elixir-lang/my_dep.git", tag: "0.1.0"},
+      ]
     end
   end
   """
@@ -279,40 +287,33 @@ defmodule Mix.Tasks.New do
     use Mix.Project
 
     def project do
-      [app: :<%= @app %>,
-       version: "0.0.1",
-       build_path: "../../_build",
-       config_path: "../../config/config.exs",
-       deps_path: "../../deps",
-       lockfile: "../../mix.lock",
-       elixir: "~> <%= @version %>",
-       build_embedded: Mix.env == :prod,
-       start_permanent: Mix.env == :prod,
-       deps: deps]
+      [
+        app: :<%= @app %>,
+        version: "0.1.0",
+        build_path: "../../_build",
+        config_path: "../../config/config.exs",
+        deps_path: "../../deps",
+        lockfile: "../../mix.lock",
+        elixir: "~> <%= @version %>",
+        start_permanent: Mix.env == :prod,
+        deps: deps()
+      ]
     end
 
-    # Configuration for the OTP application
-    #
-    # Type "mix help compile.app" for more information
+    # Run "mix help compile.app" to learn about applications.
     def application do
-  <%= @otp_app %>
+      [
+        extra_applications: [:logger]<%= @sup_app %>
+      ]
     end
 
-    # Dependencies can be Hex packages:
-    #
-    #   {:mydep, "~> 0.3.0"}
-    #
-    # Or git/path repositories:
-    #
-    #   {:mydep, git: "https://github.com/elixir-lang/mydep.git", tag: "0.1.0"}
-    #
-    # To depend on another app inside the umbrella:
-    #
-    #   {:myapp, in_umbrella: true}
-    #
-    # Type "mix help deps" for more examples and options
+    # Run "mix help deps" to learn about dependencies.
     defp deps do
-      []
+      [
+        # {:dep_from_hexpm, "~> 0.3.0"},
+        # {:dep_from_git, git: "https://github.com/elixir-lang/my_dep.git", tag: "0.1.0"},
+        # {:sibling_app_in_umbrella, in_umbrella: true},
+      ]
     end
   end
   """
@@ -322,24 +323,18 @@ defmodule Mix.Tasks.New do
     use Mix.Project
 
     def project do
-      [apps_path: "apps",
-       build_embedded: Mix.env == :prod,
-       start_permanent: Mix.env == :prod,
-       deps: deps]
+      [
+        apps_path: "apps",
+        start_permanent: Mix.env == :prod,
+        deps: deps()
+      ]
     end
 
-    # Dependencies can be Hex packages:
+    # Dependencies listed here are available only for this
+    # project and cannot be accessed from applications inside
+    # the apps folder.
     #
-    #   {:mydep, "~> 0.3.0"}
-    #
-    # Or git/path repositories:
-    #
-    #   {:mydep, git: "https://github.com/elixir-lang/mydep.git", tag: "0.1.0"}
-    #
-    # Type "mix help deps" for more examples and options.
-    #
-    # Dependencies listed here are available only for this project
-    # and cannot be accessed from applications inside the apps folder
+    # Run "mix help deps" for examples and options.
     defp deps do
       []
     end
@@ -357,15 +352,15 @@ defmodule Mix.Tasks.New do
   # if you want to provide default values for your application for
   # 3rd-party users, it should be done in your "mix.exs" file.
 
-  # You can configure for your application as:
+  # You can configure your application as:
   #
   #     config :<%= @app %>, key: :value
   #
-  # And access this configuration in your application as:
+  # and access this configuration in your application as:
   #
   #     Application.get_env(:<%= @app %>, :key)
   #
-  # Or configure a 3rd-party app:
+  # You can also configure a 3rd-party app:
   #
   #     config :logger, level: :info
   #
@@ -401,15 +396,33 @@ defmodule Mix.Tasks.New do
 
   embed_template :lib, """
   defmodule <%= @mod %> do
+    @moduledoc \"""
+    Documentation for <%= @mod %>.
+    \"""
+
+    @doc \"""
+    Hello world.
+
+    ## Examples
+
+        iex> <%= @mod %>.hello
+        :world
+
+    \"""
+    def hello do
+      :world
+    end
   end
   """
 
-  embed_template :lib_sup, """
-  defmodule <%= @mod %> do
-    use Application
-
+  embed_template :lib_app, """
+  defmodule <%= @mod %>.Application do
     # See http://elixir-lang.org/docs/stable/elixir/Application.html
     # for more information on OTP Applications
+    @moduledoc false
+
+    use Application
+
     def start(_type, _args) do
       import Supervisor.Spec, warn: false
 

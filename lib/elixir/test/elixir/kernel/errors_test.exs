@@ -2,7 +2,6 @@ Code.require_file "../test_helper.exs", __DIR__
 
 defmodule Kernel.ErrorsTest do
   use ExUnit.Case, async: true
-  import CompileAssertion
 
   defmacro hello do
     quote location: :keep do
@@ -39,32 +38,18 @@ defmodule Kernel.ErrorsTest do
   end
 
   test "invalid identifier" do
-    msg = fn char, name -> "nofile:1: invalid character '#{char}' in identifier: #{name}" end
+    msg = fn name -> "nofile:1: invalid character \"@\" (codepoint U+0040) in token: #{name}" end
 
-    assert_compile_fail SyntaxError, msg.(:@, "foo@"), 'foo@'
-    assert_compile_fail SyntaxError, msg.(:@, "foo@"), 'foo@ '
-    assert_compile_fail SyntaxError, msg.(:@, "foo@bar"), 'foo@bar'
-    assert_compile_fail SyntaxError, msg.(:!, "Foo!"), 'Foo!'
+    assert_compile_fail SyntaxError, msg.("foo@"), 'foo@'
+    assert_compile_fail SyntaxError, msg.("foo@"), 'foo@ '
+    assert_compile_fail SyntaxError, msg.("foo@bar"), 'foo@bar'
+    assert_compile_fail SyntaxError, msg.("Foo@"), 'Foo@'
   end
 
   test "invalid fn" do
     assert_compile_fail SyntaxError,
-                        "nofile:1: expected clauses to be defined with -> inside: 'fn'",
-                        'fn 1 end'
-  end
-
-  test "invalid Access" do
-    msg = fn(val) ->
-      "nofile:1: the Access syntax and calls to Access.get/2" <>
-      " are not available for the value: " <> val
-    end
-
-    assert_compile_fail CompileError, msg.("1"), "1[:foo]"
-    assert_compile_fail CompileError, msg.("1.1"), "1.1[:foo]"
-    assert_compile_fail CompileError, msg.("{}"), "{}[:foo]"
-    assert_compile_fail CompileError, msg.(":foo"), ":foo[:foo]"
-    assert_compile_fail CompileError, msg.("\"\""), "\"\"[:foo]"
-    assert_compile_fail CompileError, msg.("<<>>"), "<<>>[:foo]"
+      "nofile:1: expected clauses to be defined with -> inside: 'fn'",
+      'fn 1 end'
   end
 
   test "kw missing space" do
@@ -133,11 +118,7 @@ defmodule Kernel.ErrorsTest do
     assert_compile_fail SyntaxError, msg.(""), '~s(foo) ~s(\#{:bar} baz)'
   end
 
-  test "compile error on op ambiguity" do
-    msg = "nofile:1: \"a -1\" looks like a function call but there is a variable named \"a\", " <>
-          "please use explicit parentheses or even spaces"
-    assert_compile_fail CompileError, msg, 'a = 1; a -1'
-
+  test "op ambiguity" do
     max = 1
     assert max == 1
     assert (max 1, 2) == 2
@@ -203,7 +184,7 @@ defmodule Kernel.ErrorsTest do
 
   test "clause with defaults" do
     assert_compile_fail CompileError,
-      "nofile:3: definitions with multiple clauses and default values require a function head",
+      "nofile:3: definitions with multiple clauses and default values require a header",
       ~C'''
       defmodule Kernel.ErrorsTest.ClauseWithDefaults1 do
         def hello(arg \\ 0), do: nil
@@ -215,20 +196,10 @@ defmodule Kernel.ErrorsTest do
       "nofile:2: undefined function foo/0",
       ~C'''
       defmodule Kernel.ErrorsTest.ClauseWithDefaults3 do
-        def hello(foo, bar \\ foo)
+        def hello(foo, bar \\ foo())
         def hello(foo, bar), do: foo + bar
       end
       '''
-  end
-
-  test "invalid match pattern" do
-    assert_compile_fail CompileError,
-    "nofile:2: invalid expression in match",
-    '''
-    case true do
-      true && true -> true
-    end
-    '''
   end
 
   test "different defs with defaults" do
@@ -256,27 +227,9 @@ defmodule Kernel.ErrorsTest do
       "nofile:2: undefined function bar/0",
       '''
       defmodule Kernel.ErrorsTest.BadForm do
-        def foo, do: bar
+        def foo, do: bar()
       end
       '''
-  end
-
-  test "unbound var" do
-    assert_compile_fail CompileError,
-      "nofile:1: unbound variable ^x",
-      '^x = 1'
-  end
-
-  test "unbound not match" do
-    assert_compile_fail CompileError,
-      "nofile:1: cannot use ^x outside of match clauses",
-      '^x'
-  end
-
-  test "unbound expr" do
-    assert_compile_fail CompileError,
-      "nofile:1: invalid argument for unary operator ^, expected an existing variable, got: ^is_atom(:foo)",
-      '^is_atom(:foo) = true'
   end
 
   test "literal on map and struct" do
@@ -316,20 +269,14 @@ defmodule Kernel.ErrorsTest do
       '''
   end
 
-  test "unbound map key var" do
-    assert_compile_fail CompileError,
-      ~r"nofile:1: illegal use of variable x inside map key match,",
-      '%{x => 1} = %{}'
-
-    assert_compile_fail CompileError,
-      ~r"nofile:1: illegal use of variable x inside map key match,",
-      '%{x = 1 => 1}'
-  end
-
   test "struct errors" do
     assert_compile_fail CompileError,
-      "nofile:1: BadStruct.__struct__/0 is undefined, cannot expand struct BadStruct",
+      "nofile:1: BadStruct.__struct__/1 is undefined, cannot expand struct BadStruct",
       '%BadStruct{}'
+
+    assert_compile_fail CompileError,
+      "nofile:1: BadStruct.__struct__/0 is undefined, cannot expand struct BadStruct",
+      '%BadStruct{} = %{}'
 
     defmodule BadStruct do
       def __struct__ do
@@ -339,17 +286,19 @@ defmodule Kernel.ErrorsTest do
 
     assert_compile_fail CompileError,
       "nofile:1: expected Kernel.ErrorsTest.BadStruct.__struct__/0 to return a map, got: []",
-      '%#{BadStruct}{}'
+      '%#{BadStruct}{} = %{}'
 
     defmodule GoodStruct do
-      def __struct__ do
-        %{name: "john"}
-      end
+      defstruct name: "john"
     end
+
+    assert_compile_fail KeyError,
+      "key :age not found in: %Kernel.ErrorsTest.GoodStruct{name: \"john\"}",
+      '%#{GoodStruct}{age: 27}'
 
     assert_compile_fail CompileError,
       "nofile:1: unknown key :age for struct Kernel.ErrorsTest.GoodStruct",
-      '%#{GoodStruct}{age: 27}'
+      '%#{GoodStruct}{age: 27} = %{}'
   end
 
   test "name for defmodule" do
@@ -381,45 +330,10 @@ defmodule Kernel.ErrorsTest do
       '''
   end
 
-  test "invalid quote args" do
+  test "undefined non-local function" do
     assert_compile_fail CompileError,
-      "nofile:1: invalid arguments for quote",
-      'quote 1'
-    assert_compile_fail CompileError,
-      "nofile:1: invalid options for quote, expected a keyword list",
-      '''
-      quote :foo do
-        foo
-      end
-      '''
-  end
-
-  test "invalid calls" do
-    assert_compile_fail CompileError,
-      "nofile:1: invalid call foo(1)(2)",
-      'foo(1)(2)'
-
-    assert_compile_fail CompileError,
-      "nofile:1: invalid call 1.foo()",
-      '1.foo'
-  end
-
-  test "unhandled stab" do
-    assert_compile_fail CompileError,
-      "nofile:3: unhandled operator ->",
-      '''
-      defmodule Kernel.ErrorsTest.UnhandledStab do
-        def fun do
-          casea foo, do: (bar -> baz)
-        end
-      end
-      '''
-  end
-
-  test "undefined non local function" do
-    assert_compile_fail CompileError,
-      "nofile:1: undefined function casea/2",
-      'casea foo, do: @hello :world'
+      "nofile:1: undefined function call/2",
+      'call foo, do: :foo'
   end
 
   test "invalid attribute" do
@@ -464,7 +378,7 @@ defmodule Kernel.ErrorsTest do
 
   test "function local conflict" do
     assert_compile_fail CompileError,
-      "nofile:1: imported Kernel.&&/2 conflicts with local function",
+      "nofile:3: imported Kernel.&&/2 conflicts with local function",
       '''
       defmodule Kernel.ErrorsTest.FunctionLocalConflict do
         def other, do: 1 && 2
@@ -507,7 +421,7 @@ defmodule Kernel.ErrorsTest do
       defmodule Kernel.ErrorsTest.PrivateMacro do
         defmacrop foo, do: 1
         defmacro bar, do: __MODULE__.foo
-        defmacro baz, do: bar
+        defmacro baz, do: bar()
       end
       '''
   end
@@ -535,29 +449,6 @@ defmodule Kernel.ErrorsTest do
       '''
   end
 
-  test "import invalid macro" do
-    assert_compile_fail CompileError,
-      "nofile:1: cannot import Kernel.invalid/1 because it doesn't exist",
-      'import Kernel, only: [invalid: 1]'
-  end
-
-  test "import with invalid options" do
-    assert_compile_fail CompileError,
-      "nofile:1: invalid :only option for import, expected a keyword list",
-      'import Kernel, only: [:invalid]'
-
-    assert_compile_fail CompileError,
-      "nofile:1: invalid :except option for import, expected a keyword list",
-      'import Kernel, except: [:invalid]'
-  end
-
-  test "import with conflicting options" do
-    assert_compile_fail CompileError,
-      "nofile:1: :only and :except can only be given together to import" <>
-      " when :only is either :functions or :macros",
-      'import Kernel, only: [], except: []'
-  end
-
   test "unrequired macro" do
     assert_compile_fail CompileError,
       "nofile:2: you must require Kernel.ErrorsTest before invoking " <>
@@ -582,7 +473,7 @@ defmodule Kernel.ErrorsTest do
 
   test "def defp clause change from another file" do
     assert_compile_fail CompileError,
-      "nofile:4: def hello/0 already defined as defp",
+      ~r"nofile:4: def hello/0 already defined as defp",
       '''
       defmodule Kernel.ErrorsTest.DefDefmacroClauseChange do
         require Kernel.ErrorsTest
@@ -621,7 +512,7 @@ defmodule Kernel.ErrorsTest do
           {:foo, :bar, :baz, :bat}
         end
 
-        def test, do: oops
+        def test, do: oops()
       end
       '''
   end
@@ -664,20 +555,26 @@ defmodule Kernel.ErrorsTest do
   end
 
   test "doc attributes format" do
-    message = "expected moduledoc attribute given " <>
-      "in the {line, doc} format, got: \"Other\""
+    message =
+      "expected the moduledoc attribute to be {line, doc} (where \"doc\" is " <>
+      "a binary, a boolean, or nil), got: \"Other\""
     assert_raise ArgumentError, message, fn ->
       defmodule DocAttributesFormat do
-        @moduledoc "ModuleTest"
-        {671, "ModuleTest"} = Module.get_attribute(__MODULE__, :moduledoc)
         Module.put_attribute(__MODULE__, :moduledoc, "Other")
+      end
+    end
+
+    message = "expected the moduledoc attribute to contain a binary, a boolean, or nil, got: :not_a_binary"
+    assert_raise ArgumentError, message, fn ->
+      defmodule AtSyntaxDocAttributesFormat do
+        @moduledoc :not_a_binary
       end
     end
   end
 
   test "interpolation error" do
     assert_compile_fail SyntaxError,
-      "nofile:1: unexpected token: \")\". \"do\" starting at line 1 is missing terminator \"end\"",
+      "nofile:1: \"do\" is missing terminator \"end\". unexpected token: \")\" at line 1",
       '"foo\#{case 1 do )}bar"'
   end
 
@@ -698,92 +595,10 @@ defmodule Kernel.ErrorsTest do
       'defmodule Kernel.ErrorsTest.InvalidDefinition, do: (def 1.(hello), do: true)'
   end
 
-  test "duplicated bitstring size" do
-    assert_compile_fail CompileError,
-      "nofile:1: duplicated size definition in bitstring",
-      '<<1 :: size(12)-size(13)>>'
-  end
-
-  test "invalid bitstring specified" do
-    assert_compile_fail CompileError,
-      "nofile:1: unknown bitstring specifier :atom",
-      '<<1 :: :atom>>'
-
-    assert_compile_fail CompileError,
-      "nofile:1: unknown bitstring specifier unknown()",
-      '<<1 :: unknown>>'
-
-    assert_compile_fail CompileError,
-      "nofile:1: unknown bitstring specifier another(12)",
-      '<<1 :: another(12)>>'
-
-    assert_compile_fail CompileError,
-      "nofile:1: size in bitstring expects an integer or a variable as argument, got: :a",
-      '<<1 :: size(:a)>>'
-
-    assert_compile_fail CompileError,
-      "nofile:1: unit in bitstring expects an integer as argument, got: :x",
-      '<<1 :: unit(:x)>>'
-  end
-
-  test "invalid alias" do
-    assert_compile_fail CompileError,
-      "nofile:1: invalid value for keyword :as, expected a simple alias, got nested alias: Sample.Lists",
-      'alias :lists, as: Sample.Lists'
-
-    assert_compile_fail CompileError,
-      "nofile:1: invalid argument for alias, expected a compile time atom or alias, got: 1 + 2",
-      'alias 1 + 2'
-  end
-
-  test "invalid alias expansion" do
-    assert_compile_fail CompileError,
-      ~r"nofile:1: invalid alias: \"foo\.Foo\"",
-      'foo = :foo; foo.Foo'
-  end
-
-  test "invalid import option" do
-    assert_compile_fail CompileError,
-      "nofile:1: unsupported option :ops given to import",
-      'import :lists, [ops: 1]'
-  end
-
-  test "invalid rescue clause" do
-    assert_compile_fail CompileError,
-      "nofile:4: invalid rescue clause. The clause should match on an alias, a variable or be in the \"var in [alias]\" format",
-      'try do\n1\nrescue\n%UndefinedFunctionError{arity: 1} -> false\nend'
-  end
-
-  test "invalid for without generators" do
-    assert_compile_fail CompileError,
-      "nofile:1: for comprehensions must start with a generator",
-      'for is_atom(:foo), do: :foo'
-  end
-
-  test "invalid for bit generator" do
-    assert_compile_fail CompileError,
-      "nofile:1: bitstring fields without size are not allowed in bitstring generators",
-      'for << x :: binary <- "123" >>, do: x'
-  end
-
   test "invalid size in bitstrings" do
     assert_compile_fail CompileError,
       "nofile:1: cannot use ^x outside of match clauses",
       'x = 8; <<a, b::size(^x)>> = <<?a, ?b>>'
-  end
-
-
-  test "unbound cond" do
-    assert_compile_fail CompileError,
-      "nofile:1: unbound variable _ inside cond. If you want the last clause to always match, " <>
-      "you probably meant to use: true ->",
-      'cond do _ -> true end'
-  end
-
-  test "fun different arities" do
-    assert_compile_fail CompileError,
-      "nofile:1: cannot mix clauses with different arities in function definition",
-      'fn x -> x; x, y -> x + y end'
   end
 
   test "end of expression" do
@@ -826,7 +641,7 @@ defmodule Kernel.ErrorsTest do
 
   test "new line error" do
     assert_compile_fail SyntaxError,
-      "nofile:3: syntax error before: eol",
+      "nofile:3: unexpectedly reached end of line. The current expression is invalid or incomplete",
       'if true do\n  foo = [],\n  baz\nend'
   end
 
@@ -844,24 +659,17 @@ defmodule Kernel.ErrorsTest do
       ':ok ?す'
   end
 
-  test "invalid var or function on guard" do
-    assert_compile_fail CompileError,
-      "nofile:4: unknown variable something_that_does_not_exist or " <>
-      "cannot invoke local something_that_does_not_exist/0 inside guard",
-      '''
-      defmodule Kernel.ErrorsTest.InvalidVarOrFunctionOnGuard do
-        def bar do
-          case [] do
-            [] when something_that_does_not_exist == [] -> :ok
-          end
-        end
-      end
-      '''
+  test "invalid \"fn do expr end\"" do
+    assert_compile_fail SyntaxError,
+      "nofile:1: unexpected token \"do\". Anonymous functions are written as:\n\n" <>
+        "    fn pattern -> expression end\n\n" <>
+        "Syntax error before: do",
+      'fn do :ok end'
   end
 
   test "bodyless function with guard" do
     assert_compile_fail CompileError,
-      "nofile:2: missing do keyword in def",
+      "nofile:2: missing :do option in \"def\"",
       '''
       defmodule Kernel.ErrorsTest.BodyessFunctionWithGuard do
         def foo(n) when is_number(n)
@@ -871,38 +679,13 @@ defmodule Kernel.ErrorsTest do
 
   test "invalid args for bodyless clause" do
     assert_compile_fail CompileError,
-      "nofile:2: can use only variables and \\\\ as arguments in function heads",
+      "nofile:2: only variables and \\\\ are allowed as arguments in definition header.",
       '''
       defmodule Kernel.ErrorsTest.InvalidArgsForBodylessClause do
-        def foo(arg // nil)
+        def foo(nil)
         def foo(_), do: :ok
       end
       '''
-  end
-
-  test "invalid function on match" do
-    assert_compile_fail CompileError,
-      "nofile:3: cannot invoke local something_that_does_not_exist/1 inside match," <>
-      " called as: something_that_does_not_exist(:foo)",
-      '''
-      defmodule Kernel.ErrorsTest.InvalidFunctionOnMatch do
-        def fun do
-          case [] do; something_that_does_not_exist(:foo) -> :ok; end
-        end
-      end
-      '''
-  end
-
-  test "invalid remote on match" do
-    assert_compile_fail CompileError,
-      "nofile:1: cannot invoke remote function Hello.something_that_does_not_exist/0 inside match",
-      'case [] do; Hello.something_that_does_not_exist() -> :ok; end'
-  end
-
-  test "invalid remote on guard" do
-    assert_compile_fail CompileError,
-      "nofile:1: cannot invoke remote function Hello.something_that_does_not_exist/0 inside guard",
-      'case [] do; [] when Hello.something_that_does_not_exist == [] -> :ok; end'
   end
 
   test "typespec errors" do
@@ -923,16 +706,6 @@ defmodule Kernel.ErrorsTest do
       '''
   end
 
-  test "bad unquoting" do
-    assert_compile_fail CompileError,
-      "nofile: invalid quoted expression: {:foo, 0, 1}",
-      '''
-      defmodule Kernel.ErrorsTest.BadUnquoting do
-        def range(unquote({:foo, 0, 1})), do: :ok
-      end
-      '''
-  end
-
   test "bad multi-call" do
     assert_compile_fail CompileError,
       "nofile:1: invalid argument for alias, expected a compile time atom or alias, got: 42",
@@ -943,13 +716,13 @@ defmodule Kernel.ErrorsTest do
       'alias Elixir.{Map}, as: Dict'
 
     assert_compile_fail UndefinedFunctionError,
-      "function List.{}/1 is undefined or private",
+      "function List.\"{}\"/1 is undefined or private",
       '[List.{Chars}, "one"]'
   end
 
   test "macros error stacktrace" do
     assert [{:erlang, :+, [1, :foo], _},
-            {Kernel.ErrorsTest.MacrosErrorStacktrace, :sample, 1, _}|_] =
+            {Kernel.ErrorsTest.MacrosErrorStacktrace, :sample, 1, _} | _] =
       rescue_stacktrace("""
       defmodule Kernel.ErrorsTest.MacrosErrorStacktrace do
         defmacro sample(num), do: num + :foo
@@ -959,7 +732,7 @@ defmodule Kernel.ErrorsTest do
   end
 
   test "macros function clause stacktrace" do
-    assert [{__MODULE__, :sample, 1, _}|_] =
+    assert [{__MODULE__, :sample, 1, _} | _] =
       rescue_stacktrace("""
       defmodule Kernel.ErrorsTest.MacrosFunctionClauseStacktrace do
         import Kernel.ErrorsTest
@@ -969,7 +742,7 @@ defmodule Kernel.ErrorsTest do
   end
 
   test "macros interpreted function clause stacktrace" do
-    assert [{Kernel.ErrorsTest.MacrosInterpretedFunctionClauseStacktrace, :sample, 1, _}|_] =
+    assert [{Kernel.ErrorsTest.MacrosInterpretedFunctionClauseStacktrace, :sample, 1, _} | _] =
       rescue_stacktrace("""
       defmodule Kernel.ErrorsTest.MacrosInterpretedFunctionClauseStacktrace do
         defmacro sample(0), do: 0
@@ -979,13 +752,26 @@ defmodule Kernel.ErrorsTest do
   end
 
   test "macros compiled callback" do
-    assert [{Kernel.ErrorsTest, :__before_compile__, [%Macro.Env{module: Kernel.ErrorsTest.MacrosCompiledCallback}], _}|_] =
+    assert [{Kernel.ErrorsTest, :__before_compile__, [%Macro.Env{module: Kernel.ErrorsTest.MacrosCompiledCallback}], _} | _] =
       rescue_stacktrace("""
       defmodule Kernel.ErrorsTest.MacrosCompiledCallback do
         Module.put_attribute(__MODULE__, :before_compile, Kernel.ErrorsTest)
       end
       """)
   end
+
+  test "failed remote call stacktrace includes file/line info" do
+    try do
+      bad_remote_call(1)
+    rescue
+      ArgumentError ->
+        stack = System.stacktrace
+        assert [{:erlang, :apply, [1, :foo, []], []},
+                {__MODULE__, :bad_remote_call, 1, [file: _, line: _]} | _] = stack
+    end
+  end
+
+  defp bad_remote_call(x), do: x.foo
 
   defmacro sample(0), do: 0
 
@@ -995,14 +781,40 @@ defmodule Kernel.ErrorsTest do
 
   ## Helpers
 
+  defp assert_compile_fail(given_exception, string) do
+    case format_rescue(string) do
+      {^given_exception, _, _} -> :ok
+      {exception, _, _} ->
+        raise ExUnit.AssertionError,
+          left: inspect(exception),
+          right: inspect(given_exception),
+          message: "Expected match"
+    end
+  end
+
+  defp assert_compile_fail(given_exception, given_message, string) do
+    {exception, message, _} = format_rescue(string)
+
+    unless exception == given_exception and message =~ given_message do
+      raise ExUnit.AssertionError,
+        left: "#{inspect exception}[message: #{inspect message}]",
+        right: "#{inspect given_exception}[message: #{inspect given_message}]",
+        message: "Expected match"
+    end
+  end
+
   defp rescue_stacktrace(expr) do
+    expr |> format_rescue() |> elem(2)
+  end
+
+  defp format_rescue(expr) do
     result = try do
-      :elixir.eval(to_char_list(expr), [])
+      :elixir.eval(to_charlist(expr), [])
       nil
     rescue
-      _ -> System.stacktrace
+      error -> {error.__struct__, Exception.message(error), System.stacktrace}
     end
 
-    result || raise(ExUnit.AssertionError, message: "Expected function given to rescue_stacktrace to fail")
+    result || flunk("Expected expression to fail")
   end
 end

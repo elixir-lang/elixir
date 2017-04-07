@@ -18,6 +18,9 @@ defmodule IO.Stream do
     * `raw`           - a boolean indicating if bin functions should be used
     * `line_or_bytes` - if reading should read lines or a given amount of bytes
 
+  It is worth noting that an IO stream has side effects and every time you go
+  over the stream you may get different results.
+
   """
 
   defstruct device: nil, raw: true, line_or_bytes: :line

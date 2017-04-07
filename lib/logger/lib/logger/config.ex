@@ -1,7 +1,7 @@
 defmodule Logger.Config do
   @moduledoc false
 
-  use GenEvent
+  @behaviour :gen_event
 
   @name __MODULE__
   @table __MODULE__
@@ -13,15 +13,15 @@ defmodule Logger.Config do
   end
 
   def configure(options) do
-    GenEvent.call(Logger, @name, {:configure, options})
+    :gen_event.call(Logger, @name, {:configure, options})
   end
 
   def add_translator(translator) do
-    GenEvent.call(Logger, @name, {:add_translator, translator})
+    :gen_event.call(Logger, @name, {:add_translator, translator})
   end
 
   def remove_translator(translator) do
-    GenEvent.call(Logger, @name, {:remove_translator, translator})
+    :gen_event.call(Logger, @name, {:remove_translator, translator})
   end
 
   def handlers() do
@@ -31,15 +31,15 @@ defmodule Logger.Config do
   end
 
   def backends() do
-    GenEvent.call(Logger, @name, :backends)
+    :gen_event.call(Logger, @name, :backends)
   end
 
   def add_backend(backend) do
-    GenEvent.call(Logger, @name, {:add_backend, backend})
+    :gen_event.call(Logger, @name, {:add_backend, backend})
   end
 
   def remove_backend(backend) do
-    GenEvent.call(Logger, @name, {:remove_backend, backend})
+    :gen_event.call(Logger, @name, {:remove_backend, backend})
   end
 
   def translate_backend(:console), do: Logger.Backends.Console
@@ -69,7 +69,7 @@ defmodule Logger.Config do
   end
 
   def deleted_handlers(handlers) do
-    GenEvent.call(Logger, @name, {:deleted_handlers, handlers})
+    :gen_event.call(Logger, @name, {:deleted_handlers, handlers})
   end
 
   def new() do
@@ -81,6 +81,7 @@ defmodule Logger.Config do
   def delete(@table) do
     :ets.delete(@table)
   end
+
   ## Callbacks
 
   def init(_) do
@@ -91,9 +92,9 @@ defmodule Logger.Config do
 
   def handle_event({_type, gl, _msg} = event, state) when node(gl) != node() do
     # Cross node messages are always async which also
-    # means this handler won't crash in case there is
-    # no logger installed in the other node.
-    GenEvent.notify({Logger, node(gl)}, event)
+    # means this handler won't crash in case Logger
+    # is not installed in the other node.
+    :gen_event.notify({Logger, node(gl)}, event)
     {:ok, state}
   end
 
@@ -118,7 +119,7 @@ defmodule Logger.Config do
   end
 
   def handle_call({:add_translator, translator}, state) do
-    state = update_translators(state, fn t -> [translator|List.delete(t, translator)] end)
+    state = update_translators(state, fn t -> [translator | List.delete(t, translator)] end)
     {:ok, :ok, state}
   end
 
@@ -128,7 +129,7 @@ defmodule Logger.Config do
   end
 
   def handle_call({:add_backend, backend}, state) do
-    update_backends(&[backend|List.delete(&1, backend)])
+    update_backends(&[backend | List.delete(&1, backend)])
     {:ok, :ok, state}
   end
 
@@ -141,6 +142,18 @@ defmodule Logger.Config do
     old = deleted_handlers()
     true = :ets.update_element(@table, @deleted_handlers, {2, new})
     {:ok, old, state}
+  end
+
+  def handle_info(_msg, state) do
+    {:ok, state}
+  end
+
+  def terminate(_reason, _state) do
+    :ok
+  end
+
+  def code_change(_old, state, _extra) do
+    {:ok, state}
   end
 
   ## Helpers

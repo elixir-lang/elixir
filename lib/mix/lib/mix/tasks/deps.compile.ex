@@ -7,7 +7,7 @@ defmodule Mix.Tasks.Deps.Compile do
   Compiles dependencies.
 
   By default, compile all dependencies. A list of dependencies
-  can be given to force the compilation of specific dependencies.
+  can be given to compile multiple dependencies in order.
 
   This task attempts to detect if the project contains one of
   the following files and act accordingly:
@@ -15,7 +15,7 @@ defmodule Mix.Tasks.Deps.Compile do
     * `mix.exs`      - invokes `mix compile`
     * `rebar.config` - invokes `rebar compile`
     * `Makefile.win` - invokes `nmake /F Makefile.win` (only on Windows)
-    * `Makefile`     - invokes `make` (except on Windows)
+    * `Makefile`     - invokes `gmake` on FreeBSD and OpenBSD, invokes `make` on any other OS (except on Windows)
 
   The compilation can be customized by passing a `compile` option
   in the dependency:
@@ -33,7 +33,7 @@ defmodule Mix.Tasks.Deps.Compile do
   import Mix.Dep, only: [loaded: 1, available?: 1, loaded_by_name: 2,
                          make?: 1, mix?: 1]
 
-  @switches [include_children: :boolean]
+  @switches [include_children: :boolean, force: :boolean]
 
   @spec run(OptionParser.argv) :: :ok
   def run(args) do
@@ -44,18 +44,18 @@ defmodule Mix.Tasks.Deps.Compile do
     Mix.Project.get!
 
     case OptionParser.parse(args, switches: @switches) do
-      {_, [], _} ->
+      {opts, [], _} ->
         # Because this command may be invoked explicitly with
         # deps.compile, we simply try to compile any available
         # dependency.
-        compile(Enum.filter(loaded(env: Mix.env), &available?/1))
+        compile(Enum.filter(loaded(env: Mix.env), &available?/1), opts)
       {opts, tail, _} ->
-        compile(loaded_by_name(tail, [env: Mix.env] ++ opts))
+        compile(loaded_by_name(tail, [env: Mix.env] ++ opts), opts)
     end
   end
 
   @doc false
-  def compile(deps) do
+  def compile(deps, options \\ []) do
     shell  = Mix.shell
     config = Mix.Project.deps_config
 
@@ -64,6 +64,8 @@ defmodule Mix.Tasks.Deps.Compile do
     compiled =
       Enum.map(deps, fn %Mix.Dep{app: app, status: status, opts: opts, scm: scm} = dep ->
         check_unavailable!(app, status)
+
+        maybe_clean(app, options)
 
         compiled? = cond do
           not is_nil(opts[:compile]) ->
@@ -91,6 +93,12 @@ defmodule Mix.Tasks.Deps.Compile do
       end)
 
     if true in compiled, do: Mix.Dep.Lock.touch_manifest, else: :ok
+  end
+
+  defp maybe_clean(app, opts) do
+    if Keyword.get(opts, :force, false) do
+      File.rm_rf! Path.join [Mix.Project.build_path, "lib", Atom.to_string(app)]
+    end
   end
 
   defp touch_fetchable(scm, path) do
@@ -125,7 +133,8 @@ defmodule Mix.Tasks.Deps.Compile do
       end
 
       try do
-        res = Mix.Task.run("compile", ["--no-deps", "--no-elixir-version-check"])
+        res = Mix.Task.run("compile", ["--no-deps", "--no-archives-check",
+                                       "--no-elixir-version-check", "--no-warnings-as-errors"])
         :ok in List.wrap(res)
       catch
         kind, reason ->
@@ -150,12 +159,18 @@ defmodule Mix.Tasks.Deps.Compile do
     config_path = Path.join(dep_path, "mix.rebar.config")
     lib_path    = Path.join(config[:env_path], "lib/*/ebin")
 
-    env = [{"REBAR_CONFIG", config_path}]
+    env = [{"REBAR_CONFIG", config_path}, {"TERM", "dumb"}]
     cmd = "#{rebar_cmd(dep)} bare compile --paths #{inspect lib_path}"
 
     File.mkdir_p!(dep_path)
-    File.write!(config_path, Mix.Rebar.serialize_config(dep.extra))
+    File.write!(config_path, rebar_config(dep))
     do_command dep, config, cmd, false, env
+  end
+
+  defp rebar_config(dep) do
+    dep.extra
+    |> Mix.Rebar.dependency_config
+    |> Mix.Rebar.serialize_config
   end
 
   defp rebar_cmd(%Mix.Dep{manager: manager} = dep) do
@@ -167,7 +182,7 @@ defmodule Mix.Tasks.Deps.Compile do
     shell.info "Could not find \"#{manager}\", which is needed to build dependency #{inspect app}"
     shell.info "I can install a local copy which is just used by Mix"
 
-    unless shell.yes?("Shall I install #{manager}?") do
+    unless shell.yes?("Shall I install #{manager}? (if running non-interactively, use: \"mix local.rebar --force\")") do
       Mix.raise "Could not find \"#{manager}\" to compile " <>
         "dependency #{inspect app}, please ensure \"#{manager}\" is available"
     end
@@ -177,12 +192,28 @@ defmodule Mix.Tasks.Deps.Compile do
   end
 
   defp do_make(dep, config) do
-    command = if match?({:win32, _}, :os.type) and File.regular?("Makefile.win") do
-      "nmake /F Makefile.win"
+    command = make_command(dep)
+    do_command(dep, config, command, true, [{"IS_DEP", "1"}])
+  end
+
+  defp make_command(dep) do
+    makefile_win? = makefile_win?(dep)
+
+    command =
+      case :os.type do
+        {:win32, _} when makefile_win? ->
+          "nmake /F Makefile.win"
+        {:unix, type} when type in [:freebsd, :openbsd] ->
+          "gmake"
+        _ ->
+          "make"
+      end
+
+    if erlang_mk?(dep) do
+      "#{command} clean && #{command}"
     else
-      "make"
+      command
     end
-    do_command(dep, config, command, true)
   end
 
   defp do_compile(%Mix.Dep{opts: opts} = dep, config) do
@@ -193,15 +224,15 @@ defmodule Mix.Tasks.Deps.Compile do
     end
   end
 
-  defp do_command(%Mix.Dep{app: app} = dep, config, command, print_app?, env \\ []) do
-    Mix.Dep.in_dependency dep, fn _ ->
+  defp do_command(%Mix.Dep{app: app, opts: opts}, config, command, print_app?, env \\ []) do
+    File.cd!(opts[:dest], fn ->
       env = [{"ERL_LIBS", Path.join(config[:env_path], "lib")}] ++ env
       if Mix.shell.cmd(command, print_app: print_app?, env: env) != 0 do
         Mix.raise "Could not compile dependency #{inspect app}, \"#{command}\" command failed. " <>
           "You can recompile this dependency with \"mix deps.compile #{app}\", update it " <>
           "with \"mix deps.update #{app}\" or clean it with \"mix deps.clean #{app}\""
       end
-    end
+    end)
     true
   end
 
@@ -226,5 +257,13 @@ defmodule Mix.Tasks.Deps.Compile do
     if req && not Version.match?(System.version, req) do
       req
     end
+  end
+
+  defp erlang_mk?(%Mix.Dep{opts: opts}) do
+    File.regular?(Path.join(opts[:dest], "erlang.mk"))
+  end
+
+  defp makefile_win?(%Mix.Dep{opts: opts}) do
+    File.regular?(Path.join(opts[:dest], "Makefile.win"))
   end
 end

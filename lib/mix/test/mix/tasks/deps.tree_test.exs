@@ -33,14 +33,14 @@ defmodule Mix.Tasks.Deps.TreeTest do
     Mix.Project.push ConvergedDepsApp
 
     in_tmp context.test, fn ->
-      Mix.Tasks.Deps.Tree.run(["--pretty"])
+      Mix.Tasks.Deps.Tree.run(["--format", "pretty"])
       assert_received {:mix_shell, :info, ["sample"]}
       assert_received {:mix_shell, :info, ["├── git_repo >= 0.1.0 (" <> _]}
       assert_received {:mix_shell, :info, ["└── deps_on_git_repo 0.2.0 (" <> _]}
       refute_received {:mix_shell, :info, ["    └── git_repo (" <> _]}
 
       Mix.Tasks.Deps.Get.run([])
-      Mix.Tasks.Deps.Tree.run(["--pretty"])
+      Mix.Tasks.Deps.Tree.run(["--format", "pretty"])
       assert_received {:mix_shell, :info, ["sample"]}
       assert_received {:mix_shell, :info, ["├── git_repo >= 0.1.0 (" <> _]}
       assert_received {:mix_shell, :info, ["└── deps_on_git_repo 0.2.0 (" <> _]}
@@ -53,7 +53,7 @@ defmodule Mix.Tasks.Deps.TreeTest do
   test "show the dependency tree for umbrella apps" do
     in_fixture "umbrella_dep/deps/umbrella", fn ->
       Mix.Project.in_project(:umbrella, ".", fn _ ->
-        Mix.Task.run "deps.tree", ["--pretty"]
+        Mix.Task.run "deps.tree", ["--format", "pretty"]
         assert_received {:mix_shell, :info, ["foo"]}
         assert_received {:mix_shell, :info, ["bar"]}
         assert_received {:mix_shell, :info, ["└── foo (../foo)"]}
@@ -66,10 +66,10 @@ defmodule Mix.Tasks.Deps.TreeTest do
 
     in_tmp context.test, fn ->
       assert_raise Mix.Error, "could not find dependency unknown", fn ->
-        Mix.Tasks.Deps.Tree.run(["--pretty", "unknown"])
+        Mix.Tasks.Deps.Tree.run(["--format", "pretty", "unknown"])
       end
 
-      Mix.Tasks.Deps.Tree.run(["--pretty", "deps_on_git_repo"])
+      Mix.Tasks.Deps.Tree.run(["--format", "pretty", "deps_on_git_repo"])
       assert_received {:mix_shell, :info, ["deps_on_git_repo 0.2.0 (" <> _]}
       refute_received {:mix_shell, :info, ["└── git_repo (" <> _]}
     end
@@ -79,7 +79,7 @@ defmodule Mix.Tasks.Deps.TreeTest do
     Mix.Project.push OverriddenDepsApp
 
     in_tmp context.test, fn ->
-      Mix.Tasks.Deps.Tree.run(["--pretty"])
+      Mix.Tasks.Deps.Tree.run(["--format", "pretty"])
       assert_received {:mix_shell, :info, ["sample"]}
       assert_received {:mix_shell, :info, ["├── git_repo (" <> msg]}
       assert_received {:mix_shell, :info, ["└── deps_on_git_repo ~r/0.2.0/ (" <> _]}
@@ -91,7 +91,7 @@ defmodule Mix.Tasks.Deps.TreeTest do
     Mix.Project.push OverriddenDepsApp
 
     in_tmp context.test, fn ->
-      Mix.Tasks.Deps.Tree.run(["--pretty", "--exclude", "deps_on_git_repo"])
+      Mix.Tasks.Deps.Tree.run(["--format", "pretty", "--exclude", "deps_on_git_repo"])
       assert_received {:mix_shell, :info, ["sample"]}
       assert_received {:mix_shell, :info, ["└── git_repo (" <> _]}
       refute_received {:mix_shell, :info, ["└── deps_on_git_repo ~r/0.2.0/ (" <> _]}
@@ -102,10 +102,40 @@ defmodule Mix.Tasks.Deps.TreeTest do
     Mix.Project.push OverriddenDepsApp
 
     in_tmp context.test, fn ->
-      Mix.Tasks.Deps.Tree.run(["--pretty", "--only", "prod"])
+      Mix.Tasks.Deps.Tree.run(["--format", "pretty", "--only", "prod"])
       assert_received {:mix_shell, :info, ["sample"]}
       assert_received {:mix_shell, :info, ["└── git_repo (" <> _]}
       refute_received {:mix_shell, :info, ["└── deps_on_git_repo ~r/0.2.0/ (" <> _]}
     end
+  end
+
+  test "shows the dependency tree in DOT graph format", context do
+    Mix.Project.push ConvergedDepsApp
+
+    in_tmp context.test, fn ->
+      Mix.Tasks.Deps.Tree.run(["--format", "dot"])
+
+      assert File.read!("deps_tree.dot") == """
+        digraph "dependency tree" {
+          "sample"
+          "sample" -> "git_repo" [label=">= 0.1.0"]
+          "sample" -> "deps_on_git_repo" [label="0.2.0"]
+        }
+        """
+
+      Mix.Tasks.Deps.Get.run([])
+      Mix.Tasks.Deps.Tree.run(["--format", "dot"])
+
+      assert File.read!("deps_tree.dot") == """
+        digraph "dependency tree" {
+          "sample"
+          "sample" -> "git_repo" [label=">= 0.1.0"]
+          "sample" -> "deps_on_git_repo" [label="0.2.0"]
+          "deps_on_git_repo" -> "git_repo" [label=""]
+        }
+        """
+    end
+  after
+    purge [DepsOnGitRepo.Mixfile, GitRepo.Mixfile]
   end
 end

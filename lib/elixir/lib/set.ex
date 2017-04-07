@@ -6,10 +6,12 @@ defmodule Set do
   """
 
   @type value :: any
-  @type values :: [ value ]
+  @type values :: [value]
   @type t :: map
 
-  # TODO: Deprecate every function by 1.4
+  # TODO: Remove by 2.0
+  # (hard-deprecated in elixir_dispatch)
+
   defmacrop target(set) do
     quote do
       case unquote(set) do

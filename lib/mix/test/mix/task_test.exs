@@ -9,7 +9,7 @@ defmodule Mix.TaskTest do
     end
   end
 
-  test "run/1" do
+  test "run/2" do
     assert Mix.Task.run("hello") == "Hello, World!"
     assert Mix.Task.run("hello") == :noop
 
@@ -34,7 +34,21 @@ defmodule Mix.TaskTest do
     end
   end
 
-  test "output task debug info if Mix.debug? is true" do
+  test "run/2 converts OptionParser.ParseError into Mix errors" do
+    assert_raise Mix.Error,
+                 "Could not invoke task \"hello\": 1 error found!\n--unknown : Unknown option", fn ->
+      Mix.Task.run("hello", ["--parser", "--unknown"])
+    end
+
+    Mix.Task.clear
+
+    assert_raise Mix.Error,
+                 "Could not invoke task \"hello\": 1 error found!\n--int : Expected type integer, got \"foo\"", fn ->
+      Mix.Task.run("hello", ["--parser", "--int", "foo"])
+    end
+  end
+
+  test "run/2 outputs task debug info if Mix.debug? is true" do
     Mix.shell Mix.Shell.IO
     Mix.debug(true)
 
@@ -45,7 +59,7 @@ defmodule Mix.TaskTest do
     Mix.debug(false)
   end
 
-  test "try to load deps if task is missing", context do
+  test "run/2 tries to load deps if task is missing", context do
     in_tmp context.test, fn ->
       Mix.Project.push(SampleProject, "sample")
 
@@ -74,7 +88,7 @@ defmodule Mix.TaskTest do
     end
   end
 
-  test "try to compile if task is missing", context do
+  test "run/2 tries to compile if task is missing", context do
     in_tmp context.test, fn ->
       Mix.Project.push(SampleProject, "sample")
 
@@ -84,17 +98,6 @@ defmodule Mix.TaskTest do
 
       # Check if compile task have run
       refute Mix.TasksServer.run({:task, "compile", Mix.Project.get})
-    end
-  end
-
-  test "does not try to compile if task is missing in build embedded", context do
-    in_tmp context.test, fn ->
-      Mix.ProjectStack.post_config(build_embedded: true)
-      Mix.Project.push(SampleProject, "sample")
-
-      assert_raise Mix.Error, ~r/Cannot execute task because the project was not yet compiled/, fn ->
-        Mix.Task.run("unknown")
-      end
     end
   end
 
@@ -110,7 +113,7 @@ defmodule Mix.TaskTest do
     assert Mix.Task.run("hello") == "Hello, World!"
   end
 
-  test "reenable/1 for umbrella" do
+  test "reenable/1 for recursive inside umbrella" do
     in_fixture "umbrella_dep/deps/umbrella", fn ->
       Mix.Project.in_project(:umbrella, ".", fn _ ->
         assert [:ok, :ok] = Mix.Task.run "clean"
@@ -119,6 +122,15 @@ defmodule Mix.TaskTest do
         Mix.Task.reenable "clean"
         assert [:ok, :ok] = Mix.Task.run "clean"
         assert :noop      = Mix.Task.run "clean"
+      end)
+    end
+  end
+
+  test "reenable/1 for non-recursive inside umbrella" do
+    in_fixture "umbrella_dep/deps/umbrella", fn ->
+      Mix.Project.in_project(:umbrella, ".", fn _ ->
+        assert [:ok, :ok] = Mix.Task.run "clean"
+        assert :ok = Mix.Task.run "loadpaths" # loadpaths is not recursive
       end)
     end
   end

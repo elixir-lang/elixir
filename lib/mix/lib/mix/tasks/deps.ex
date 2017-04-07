@@ -18,70 +18,91 @@ defmodule Mix.Tasks.Deps do
   Where:
 
     * app is an atom
-    * requirement is a version requirement or a regular expression
+    * requirement is a `Version` requirement or a regular expression
     * opts is a keyword list of options
+
+  For example:
+
+      {:plug, ">= 0.4.0"}
+      {:gettext, git: "https://github.com/elixir-lang/gettext.git", tag: "0.1"}
+      {:local_dependency, path: "path/to/local_dependency"}
 
   By default, dependencies are fetched using the [Hex package manager](https://hex.pm/):
 
       {:plug, ">= 0.4.0"}
 
   By specifying such dependencies, Mix will automatically install
-  Hex (if it wasn't previously installed and download a package
-  suitable to your project).
+  Hex (if it wasn't previously installed) and download a package
+  suitable to your project.
 
-  Mix also supports git and path dependencies:
+  Mix also supports Git and path dependencies:
 
       {:foobar, git: "https://github.com/elixir-lang/foobar.git", tag: "0.1"}
       {:foobar, path: "path/to/foobar"}
 
   And also in umbrella dependencies:
 
-      {:myapp, in_umbrella: true}
+      {:my_app, in_umbrella: true}
 
   Path and in umbrella dependencies are automatically recompiled by
-  the parent project whenever they change. While fetchable dependencies
-  like the ones using `:git` are recompiled only when fetched/updated.
+  the parent project whenever they change. While fetchable dependencies,
+  like the ones using `:git`, are recompiled only when fetched/updated.
 
-  The dependencies versions are expected to follow Semantic Versioning
-  and the requirements must be specified as defined in the `Version`
-  module.
+  The dependencies' versions are expected to be formatted according to
+  Semantic Versioning and the requirements must be specified as defined
+  in the `Version` module.
+
+  ## Options
 
   Below we provide a more detailed look into the available options.
 
-  ## Dependency definition options
+  ### Dependency definition options
 
     * `:app` - when set to `false`, does not read the app file for this
-      dependency
+      dependency. By default, the app file is read
 
-    * `:env` - the environment to run the dependency on, defaults to :prod
+    * `:env` - the environment (as an atom) to run the dependency on; defaults to `:prod`
 
-    * `:compile` - a command to compile the dependency, defaults to a `mix`,
+    * `:compile` - a command (string) to compile the dependency; defaults to a `mix`,
       `rebar` or `make` command
 
-    * `:optional` - the dependency is optional and used only to specify
-      requirements
+    * `:optional` - marks the dependency as optional. In such cases, the
+      current project will always include the optional dependency but any
+      other project that depends on the current project won't be forced to
+      use the optional dependency. However, if the other project includes
+      the optional dependency on its own, the requirements and options
+      specified here will also be applied.
 
-    * `:only` - the dependency will belong only to the given environments,
-      useful when declaring dev- or test-only dependencies
+    * `:only` - the dependency is made available only in the given environments,
+      useful when declaring dev- or test-only dependencies; by default the
+      dependency will be available in all environments. The value of this option
+      can either be a single environment (like `:dev`) or a list of environments
+      (like `[:dev, :test]`)
 
     * `:override` - if set to `true` the dependency will override any other
       definitions of itself by other dependencies
 
-    * `:manager` - Mix can also compile rebar, rebar3 and makefile projects
-      and can fetch sub dependencies of rebar and rebar3 projects. Mix will
+    * `:manager` - Mix can also compile Rebar, Rebar3 and makefile projects
+      and can fetch sub dependencies of Rebar and Rebar3 projects. Mix will
       try to infer the type of project but it can be overridden with this
       option by setting it to `:mix`, `:rebar`, `:rebar3` or `:make`
 
-  ## Git options (`:git`)
+    * `:runtime` - whether the dependency is part of runtime applications.
+      Defaults to `true` which automatically adds the application to the list
+      of apps that are started automatically and included in releases
 
-    * `:git`        - the git repository URI
-    * `:github`     - a shortcut for specifying git repos from github, uses `git:`
-    * `:ref`        - the reference to checkout (may be a branch, a commit sha or a tag)
-    * `:branch`     - the git branch to checkout
-    * `:tag`        - the git tag to checkout
-    * `:submodules` - when ` true`, initialize submodules for the repo
+  ### Git options (`:git`)
 
-  ## Path options (`:path`)
+    * `:git`        - the Git repository URI
+    * `:github`     - a shortcut for specifying Git repos from GitHub, uses `git:`
+    * `:ref`        - the reference to checkout (may be a branch, a commit SHA or a tag)
+    * `:branch`     - the Git branch to checkout
+    * `:tag`        - the Git tag to checkout
+    * `:submodules` - when `true`, initialize submodules for the repo
+    * `:sparse`     - checkout a single directory inside the Git repository and use it
+      as your Mix dependency. Search "sparse git checkouts" for more information.
+
+  ### Path options (`:path`)
 
     * `:path`        - the path for the dependency
     * `:in_umbrella` - when `true`, sets a path dependency pointing to
@@ -97,7 +118,7 @@ defmodule Mix.Tasks.Deps do
 
   It supports the following options:
 
-    * `--all` - check all dependencies, regardless of specified environment
+    * `--all` - checks all dependencies, regardless of specified environment
 
   """
   @spec run(OptionParser.argv) :: :ok

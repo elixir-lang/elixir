@@ -6,7 +6,7 @@ defmodule GenServerTest do
   defmodule Stack do
     use GenServer
 
-    def handle_call(:pop, _from, [h|t]) do
+    def handle_call(:pop, _from, [h | t]) do
       {:reply, h, t}
     end
 
@@ -19,7 +19,7 @@ defmodule GenServerTest do
     end
 
     def handle_cast({:push, item}, state) do
-      {:noreply, [item|state]}
+      {:noreply, [item | state]}
     end
 
     def handle_cast(request, state) do
@@ -30,7 +30,7 @@ defmodule GenServerTest do
       # There is a race condition if the agent is
       # restarted too fast and it is registered.
       try do
-        self |> Process.info(:registered_name) |> elem(1) |> Process.unregister
+        self() |> Process.info(:registered_name) |> elem(1) |> Process.unregister
       rescue
         _ -> :ok
       end
@@ -38,10 +38,39 @@ defmodule GenServerTest do
     end
   end
 
+  test "start_link/3" do
+    assert_raise ArgumentError, ~r"expected :name option to be one of:", fn ->
+      GenServer.start_link(Stack, [:hello], name: "my_gen_server_name")
+    end
+
+    assert_raise ArgumentError, ~r"expected :name option to be one of:", fn ->
+      GenServer.start_link(Stack, [:hello], name: {:invalid_tuple, "my_gen_server_name"})
+    end
+
+    assert_raise ArgumentError, ~r"expected :name option to be one of:", fn ->
+      GenServer.start_link(Stack, [:hello], name: {:via, "Via", "my_gen_server_name"})
+    end
+  end
+
+  test "start_link/3 with via" do
+    GenServer.start_link(Stack, [:hello], name: {:via, :global, :via_stack})
+    assert GenServer.call({:via, :global, :via_stack}, :pop) == :hello
+  end
+
+  test "start_link/3 with global" do
+    GenServer.start_link(Stack, [:hello], name: {:global, :global_stack})
+    assert GenServer.call({:global, :global_stack}, :pop) == :hello
+  end
+
+  test "start_link/3 with local" do
+    GenServer.start_link(Stack, [:hello], name: :stack)
+    assert GenServer.call(:stack, :pop) == :hello
+  end
+
   test "start_link/2, call/2 and cast/2" do
     {:ok, pid} = GenServer.start_link(Stack, [:hello])
 
-    {:links, links} = Process.info(self, :links)
+    {:links, links} = Process.info(self(), :links)
     assert pid in links
 
     assert GenServer.call(pid, :pop) == :hello
@@ -80,7 +109,7 @@ defmodule GenServerTest do
 
   test "start/2" do
     {:ok, pid} = GenServer.start(Stack, [:hello])
-    {:links, links} = Process.info(self, :links)
+    {:links, links} = Process.info(self(), :links)
     refute pid in links
     GenServer.stop(pid)
   end
@@ -91,7 +120,7 @@ defmodule GenServerTest do
     assert GenServer.abcast(:stack, {:push, :hello}) == :abcast
     assert GenServer.call({:stack, node()}, :pop) == :hello
 
-    assert GenServer.abcast([node, :foo@bar], :stack, {:push, :world}) == :abcast
+    assert GenServer.abcast([node(), :foo@bar], :stack, {:push, :world}) == :abcast
     assert GenServer.call(:stack, :pop) == :world
 
     GenServer.stop(:stack)
@@ -102,8 +131,8 @@ defmodule GenServerTest do
 
     assert GenServer.multi_call(:stack, :pop) ==
            {[{node(), :hello}], []}
-    assert GenServer.multi_call([node, :foo@bar], :stack, :pop) ==
-           {[{node, :world}], [:foo@bar]}
+    assert GenServer.multi_call([node(), :foo@bar], :stack, :pop) ==
+           {[{node(), :world}], [:foo@bar]}
 
     GenServer.stop(:stack)
   end
@@ -129,7 +158,7 @@ defmodule GenServerTest do
     {:ok, pid} = GenServer.start(Stack, [])
     assert GenServer.stop(pid, :normal) == :ok
 
-    {:ok, _} = GenServer.start(Stack, [], name: :stack)
-    assert GenServer.stop(:stack, :normal) == :ok
+    {:ok, _} = GenServer.start(Stack, [], name: :stack_for_stop)
+    assert GenServer.stop(:stack_for_stop, :normal) == :ok
   end
 end

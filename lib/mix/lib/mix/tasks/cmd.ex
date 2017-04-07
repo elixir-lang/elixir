@@ -12,14 +12,30 @@ defmodule Mix.Tasks.Cmd do
 
       mix cmd echo pwd
 
-  Aborts when the first command exits with status different
-  than zero.
+  You can limit which apps the cmd runs in by passing the app names
+  before the cmd using --app:
+
+      mix cmd --app app1 --app app2 echo pwd
+
+  Aborts when a command exits with a non-zero status.
   """
+
   @spec run(OptionParser.argv) :: :ok
   def run(args) do
-    case Mix.shell.cmd(Enum.join(args, " ")) do
-      0 -> :ok
-      s -> exit(s)
+    {args, apps} = parse_apps(args, [])
+    if apps == [] or Mix.Project.config[:app] in apps do
+      case Mix.shell.cmd(Enum.join(args, " ")) do
+        0 -> :ok
+        status -> exit(status)
+      end
+    end
+  end
+
+  defp parse_apps(args, apps) do
+    case args do
+      ["--app", app | tail] ->
+        parse_apps(tail, [String.to_atom(app) | apps])
+      args -> {args, apps}
     end
   end
 end

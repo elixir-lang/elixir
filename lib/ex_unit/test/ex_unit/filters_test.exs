@@ -24,6 +24,8 @@ defmodule ExUnit.FiltersTest do
     assert ExUnit.Filters.eval([], [], %{skip: true}, []) == {:error, "due to skip tag"}
     assert ExUnit.Filters.eval([], [], %{skip: "skipped"}, []) == {:error, "skipped"}
     assert ExUnit.Filters.eval([], [:os], %{skip: "skipped"}, []) == {:error, "skipped"}
+    assert ExUnit.Filters.eval([:skip], [], %{skip: true}, []) == :ok
+    assert ExUnit.Filters.eval([:skip], [], %{skip: "skipped"}, []) == :ok
   end
 
   test "evaluating filters matches integers" do

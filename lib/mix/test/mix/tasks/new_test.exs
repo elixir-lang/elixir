@@ -5,11 +5,11 @@ defmodule Mix.Tasks.NewTest do
 
   test "new" do
     in_tmp "new", fn ->
-      Mix.Tasks.New.run ["hello_world", "--bare"]
+      Mix.Tasks.New.run ["hello_world"]
 
       assert_file "hello_world/mix.exs", fn(file) ->
         assert file =~ "app: :hello_world"
-        assert file =~ "version: \"0.0.1\""
+        assert file =~ "version: \"0.1.0\""
       end
 
       assert_file "hello_world/README.md", ~r/# HelloWorld\n/
@@ -31,8 +31,8 @@ defmodule Mix.Tasks.NewTest do
 
       assert_file "hello_world/mix.exs", fn(file) ->
         assert file =~ "app: :hello_world"
-        assert file =~ "version: \"0.0.1\""
-        assert file =~ "mod: {HelloWorld, []}"
+        assert file =~ "version: \"0.1.0\""
+        assert file =~ "mod: {HelloWorld.Application, []}"
       end
 
       assert_file "hello_world/README.md", ~r/# HelloWorld\n/
@@ -40,6 +40,11 @@ defmodule Mix.Tasks.NewTest do
 
       assert_file "hello_world/lib/hello_world.ex", fn(file) ->
         assert file =~ "defmodule HelloWorld do"
+        assert file =~ "def hello do"
+      end
+
+      assert_file "hello_world/lib/hello_world/application.ex", fn(file) ->
+        assert file =~ "defmodule HelloWorld.Application do"
         assert file =~ "use Application"
         assert file =~ "Supervisor.start_link(children, opts)"
       end
@@ -58,7 +63,7 @@ defmodule Mix.Tasks.NewTest do
 
       assert_file "HELLO_WORLD/mix.exs", fn(file) ->
         assert file =~ "app: :hello_world"
-        assert file =~ "version: \"0.0.1\""
+        assert file =~ "version: \"0.1.0\""
       end
 
       assert_file "HELLO_WORLD/README.md", ~r/# HelloWorld\n/
@@ -114,6 +119,10 @@ defmodule Mix.Tasks.NewTest do
       assert_raise Mix.Error, ~r"Application name must start with a letter and ", fn ->
         Mix.Tasks.New.run ["007invalid"]
       end
+
+      assert_raise Mix.Error, ~r"only lowercase letters, numbers and underscore", fn ->
+        Mix.Tasks.New.run ["invAlid"]
+      end
     end
 
     in_tmp "new with an invalid application name from the app option", fn ->
@@ -149,6 +158,16 @@ defmodule Mix.Tasks.NewTest do
     in_tmp "new without a specified path", fn ->
       assert_raise Mix.Error, "Expected PATH to be given, please use \"mix new PATH\"", fn ->
         Mix.Tasks.New.run []
+      end
+    end
+  end
+
+  test "new with existent directory" do
+    in_tmp "new_with_existent_directory", fn ->
+      File.mkdir_p!("my_app")
+      send self(), {:mix_shell_input, :yes?, false}
+      assert_raise Mix.Error, "Please select another directory for installation", fn ->
+        Mix.Tasks.New.run ["my_app"]
       end
     end
   end

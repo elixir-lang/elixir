@@ -65,12 +65,8 @@ defmodule IEx.Case do
 
   defp strip_iex(string) do
     string
-    |> strip_line   # strip the greeting
-    |> String.strip
-  end
-
-  defp strip_line(string) do
-    Regex.replace ~r/\A.+?$/ms, string, ""
+    |> String.split("\n", parts: 2) # trim the greeting
+    |> Enum.at(1)
+    |> String.trim
   end
 end
-

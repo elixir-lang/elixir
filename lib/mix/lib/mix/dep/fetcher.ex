@@ -51,7 +51,7 @@ defmodule Mix.Dep.Fetcher do
     cond do
       # Dependencies that cannot be fetched are always compiled afterwards
       not scm.fetchable? ->
-        {dep, [app|acc], lock}
+        {dep, [app | acc], lock}
 
       # If the dependency is not available or we have a lock mismatch
       out_of_date?(dep) ->
@@ -65,7 +65,7 @@ defmodule Mix.Dep.Fetcher do
           end
 
         if new do
-          {dep, [app|acc], Map.put(lock, app, new)}
+          {dep, [app | acc], Map.put(lock, app, new)}
         else
           {dep, acc, lock}
         end

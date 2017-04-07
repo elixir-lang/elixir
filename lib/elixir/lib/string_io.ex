@@ -1,6 +1,6 @@
 defmodule StringIO do
   @moduledoc """
-  This module provides an IO device that wraps a string.
+  Controls an IO device process that wraps a string.
 
   A `StringIO` IO device can be passed as a "device" to
   most of the functions in the `IO` module.
@@ -135,21 +135,20 @@ defmodule StringIO do
     s
   end
 
-  defp io_request({:put_chars, chars}, %{output: output} = s) do
-    {:ok, %{s | output: <<output::binary, IO.chardata_to_string(chars)::binary>>}}
+  defp io_request({:put_chars, chars} = req, s) do
+    put_chars(:latin1, chars, req, s)
   end
 
-  defp io_request({:put_chars, m, f, as}, %{output: output} = s) do
-    chars = apply(m, f, as)
-    {:ok, %{s | output: <<output::binary, IO.chardata_to_string(chars)::binary>>}}
+  defp io_request({:put_chars, m, f, as} = req, s) do
+    put_chars(:latin1, apply(m, f, as), req, s)
   end
 
-  defp io_request({:put_chars, _encoding, chars}, s) do
-    io_request({:put_chars, chars}, s)
+  defp io_request({:put_chars, encoding, chars} = req, s) do
+    put_chars(encoding, chars, req, s)
   end
 
-  defp io_request({:put_chars, _encoding, mod, func, args}, s) do
-    io_request({:put_chars, mod, func, args}, s)
+  defp io_request({:put_chars, encoding, mod, func, args} = req, s) do
+    put_chars(encoding, apply(mod, func, args), req, s)
   end
 
   defp io_request({:get_chars, prompt, n}, s) when n >= 0 do
@@ -202,6 +201,17 @@ defmodule StringIO do
 
   defp io_request(_, s) do
     {{:error, :request}, s}
+  end
+
+  ## put_chars
+
+  defp put_chars(encoding, chars, req, %{output: output} = s) do
+    case :unicode.characters_to_binary(chars, encoding, :unicode) do
+      string when is_binary(string) ->
+        {:ok, %{s | output: output <> string}}
+      {_, _, _} ->
+        {{:error, req}, s}
+    end
   end
 
   ## get_chars
@@ -339,7 +349,7 @@ defmodule StringIO do
 
   ## io_requests
 
-  defp io_requests([r|rs], {:ok, s}) do
+  defp io_requests([r | rs], {:ok, s}) do
     io_requests(rs, io_request(r, s))
   end
 
@@ -358,15 +368,15 @@ defmodule StringIO do
   end
 
   defp collect_line([?\r, ?\n | rest], stack) do
-    {:lists.reverse([?\n|stack]), rest}
+    {:lists.reverse([?\n | stack]), rest}
   end
 
   defp collect_line([?\n | rest], stack) do
-    {:lists.reverse([?\n|stack]), rest}
+    {:lists.reverse([?\n | stack]), rest}
   end
 
-  defp collect_line([h|t], stack) do
-    collect_line(t, [h|stack])
+  defp collect_line([h | t], stack) do
+    collect_line(t, [h | stack])
   end
 
   defp io_reply(from, reply_as, reply) do

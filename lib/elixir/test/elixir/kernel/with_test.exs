@@ -4,7 +4,8 @@ defmodule Kernel.WithTest do
   use ExUnit.Case, async: true
 
   test "basic with" do
-    assert with(res <- 41, do: res + 1) == 42
+    assert with({:ok, res} <- ok(41), do: res) == 41
+    assert with(res <- four(), do: res + 10) == 14
   end
 
   test "matching with" do
@@ -25,7 +26,7 @@ defmodule Kernel.WithTest do
   end
 
   test "two levels with" do
-    result = with(n1 <- 11, n2 <- 22, do: n1 + n2)
+    result = with({:ok, n1} <- ok(11), n2 <- 22, do: n1 + n2)
     assert result == 33
 
     result = with(n1 <- 11, {:ok, n2} <- :error, do: n1 + n2)
@@ -46,6 +47,13 @@ defmodule Kernel.WithTest do
     assert result == :error
   end
 
+  test "does not leak variables to else" do
+    state = 1
+    result = with 1 <- state, state = 2, :ok <- error(), do: state, else: (_ -> state)
+    assert result == 1
+    assert state == 1
+  end
+
   test "errors in with" do
     assert_raise RuntimeError, fn ->
       with({:ok, res} <- oops(), do: res)
@@ -58,6 +66,7 @@ defmodule Kernel.WithTest do
 
   test "else conditions" do
     assert with({:ok, res} <- 41, do: res, else: ({:error, error} -> error; res -> res + 1)) == 42
+    assert with({:ok, res} <- 41, do: res, else: (res when res == 41 -> res + 1; res -> res)) == 42
     assert with({:ok, res} <- 41, do: res, else: (_ -> :error)) == :error
   end
 

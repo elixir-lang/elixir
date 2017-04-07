@@ -56,7 +56,7 @@ defmodule Code do
 
   """
   def append_path(path) do
-    :code.add_pathz(to_char_list(Path.expand path))
+    :code.add_pathz(to_charlist(Path.expand path))
   end
 
   @doc """
@@ -76,7 +76,7 @@ defmodule Code do
 
   """
   def prepend_path(path) do
-    :code.add_patha(to_char_list(Path.expand path))
+    :code.add_patha(to_charlist(Path.expand path))
   end
 
   @doc """
@@ -95,7 +95,7 @@ defmodule Code do
 
   """
   def delete_path(path) do
-    :code.del_path(to_char_list(Path.expand path))
+    :code.del_path(to_charlist(Path.expand path))
   end
 
   @doc """
@@ -104,7 +104,15 @@ defmodule Code do
   The `binding` argument is a keyword list of variable bindings.
   The `opts` argument is a keyword list of environment options.
 
-  Those options can be:
+  **Warning**: `string` can be any Elixir code and will be executed with
+  the same privileges as the Erlang VM: this means that such code could
+  compromise the machine (for example by executing system commands).
+  Don't use `eval_string/3` with untrusted input (such as strings coming
+  from the network).
+
+  ## Options
+
+  Options can be:
 
     * `:file` - the file to be considered in the evaluation
     * `:line` - the line on which the script starts
@@ -148,7 +156,7 @@ defmodule Code do
       iex> Code.eval_string("a = a + b", [a: 1, b: 2])
       {3, [a: 3, b: 2]}
 
-  For convenience, you can pass `__ENV__` as the `opts` argument and
+  For convenience, you can pass `__ENV__/0` as the `opts` argument and
   all imports, requires and aliases defined in the current environment
   will be automatically carried over:
 
@@ -159,20 +167,25 @@ defmodule Code do
   def eval_string(string, binding \\ [], opts \\ [])
 
   def eval_string(string, binding, %Macro.Env{} = env) do
-    {value, binding, _env, _scope} = :elixir.eval to_char_list(string), binding, Map.to_list(env)
+    {value, binding, _env, _scope} = :elixir.eval to_charlist(string), binding, Map.to_list(env)
     {value, binding}
   end
 
   def eval_string(string, binding, opts) when is_list(opts) do
     validate_eval_opts(opts)
-    {value, binding, _env, _scope} = :elixir.eval to_char_list(string), binding, opts
+    {value, binding, _env, _scope} = :elixir.eval to_charlist(string), binding, opts
     {value, binding}
   end
 
   @doc """
   Evaluates the quoted contents.
 
-  See `eval_string/3` for a description of arguments and return values.
+  **Warning**: Calling this function inside a macro is considered bad
+  practice as it will attempt to evaluate runtime values at compile time.
+  Macro arguments are typically transformed by unquoting them into the
+  returned quoted expressions (instead of evaluated).
+
+  See `eval_string/3` for a description of bindings and options.
 
   ## Examples
 
@@ -180,7 +193,7 @@ defmodule Code do
       iex> Code.eval_quoted(contents, [a: 1, b: 2], file: __ENV__.file, line: __ENV__.line)
       {3, [a: 1, b: 2]}
 
-  For convenience, you can pass `__ENV__` as the `opts` argument and
+  For convenience, you can pass `__ENV__/0` as the `opts` argument and
   all options will be automatically extracted from the current environment:
 
       iex> contents = quote(do: var!(a) + var!(b))
@@ -247,9 +260,9 @@ defmodule Code do
   ## Options
 
     * `:file` - the filename to be used in stacktraces
-      and the file reported in the `__ENV__` variable
+      and the file reported in the `__ENV__/0` macro
 
-    * `:line` - the line reported in the `__ENV__` variable
+    * `:line` - the line reported in the `__ENV__/0` macro
 
     * `:existing_atoms_only` - when `true`, raises an error
       when non-existing atoms are found by the tokenizer
@@ -263,7 +276,7 @@ defmodule Code do
   def string_to_quoted(string, opts \\ []) when is_list(opts) do
     file = Keyword.get opts, :file, "nofile"
     line = Keyword.get opts, :line, 1
-    :elixir.string_to_quoted(to_char_list(string), line, file, opts)
+    :elixir.string_to_quoted(to_charlist(string), line, file, opts)
   end
 
   @doc """
@@ -279,7 +292,7 @@ defmodule Code do
   def string_to_quoted!(string, opts \\ []) when is_list(opts) do
     file = Keyword.get opts, :file, "nofile"
     line = Keyword.get opts, :line, 1
-    :elixir.string_to_quoted!(to_char_list(string), line, file, opts)
+    :elixir.string_to_quoted!(to_charlist(string), line, file, opts)
   end
 
   @doc """
@@ -390,11 +403,11 @@ defmodule Code do
   ## Examples
 
       iex> Code.available_compiler_options
-      [:docs, :debug_info, :ignore_module_conflict, :warnings_as_errors]
+      [:docs, :debug_info, :ignore_module_conflict, :relative_paths, :warnings_as_errors]
 
   """
   def available_compiler_options do
-    [:docs, :debug_info, :ignore_module_conflict, :warnings_as_errors]
+    [:docs, :debug_info, :ignore_module_conflict, :relative_paths, :warnings_as_errors]
   end
 
   @doc """
@@ -414,7 +427,11 @@ defmodule Code do
     * `:ignore_module_conflict` - when `true`, override modules that were
       already defined without raising errors, `false` by default
 
-    * `:warnings_as_errors` - cause compilation to fail when warnings are
+    * `:relative_paths` - when `true`, use relative paths in quoted nodes,
+      warnings and errors generated by the compiler, `true` by default.
+      Note disabling this option won't affect runtime warnings and errors.
+
+    * `:warnings_as_errors` - causes compilation to fail when warnings are
       generated
 
   It returns the new list of compiler options.
@@ -429,9 +446,16 @@ defmodule Code do
   def compiler_options(opts) do
     available = available_compiler_options()
 
-    for {k, _} <- opts,
-        not k in available,
-        do: raise "unknown compiler options: #{k}"
+    Enum.each(opts, fn({key, value}) ->
+      cond do
+        key not in available ->
+          raise "unknown compiler option: #{inspect(key)}"
+        not is_boolean(value) ->
+          raise "compiler option #{inspect(key)} should be a boolean, got: #{inspect(value)}"
+        true ->
+          :ok
+      end
+    end)
 
     :elixir_config.update :compiler_options, &Enum.into(opts, &1)
   end
@@ -445,7 +469,7 @@ defmodule Code do
   For compiling many files at once, check `Kernel.ParallelCompiler.files/2`.
   """
   def compile_string(string, file \\ "nofile") when is_binary(file) do
-    :elixir_compiler.string to_char_list(string), file
+    :elixir_compiler.string to_charlist(string), file
   end
 
   @doc """
@@ -480,7 +504,7 @@ defmodule Code do
   module uses this function to check if a specific parser exists for a given
   URI scheme.
 
-  ## Code.ensure_compiled/1
+  ## `ensure_compiled/1`
 
   Elixir also contains an `ensure_compiled/1` function that is a
   superset of `ensure_loaded/1`.
@@ -489,8 +513,13 @@ defmodule Code do
   you may need to use a module that was not yet compiled, therefore
   it can't even be loaded.
 
-  `ensure_compiled/1` halts the current process until the
-  module we are depending on is available.
+  When invoked, `ensure_compiled/1` halts the compilation of the caller
+  until the module given to `ensure_compiled/1` becomes available or
+  all files for the current project have been compiled. If compilation
+  finishes and the module is not available, an error tuple is returned.
+
+  `ensure_compiled/1` does not apply to dependencies, as dependencies
+  must be compiled upfront.
 
   In most cases, `ensure_loaded/1` is enough. `ensure_compiled/1`
   must be used in rare cases, usually involving macros that need to
@@ -505,6 +534,8 @@ defmodule Code do
       {:error, :nofile}
 
   """
+  @spec ensure_loaded(module) ::
+        {:module, module} | {:error, :embedded | :badfile | :nofile | :on_load_failure}
   def ensure_loaded(module) when is_atom(module) do
     :code.ensure_loaded(module)
   end
@@ -522,7 +553,7 @@ defmodule Code do
       true
 
   """
-  def ensure_loaded?(module) do
+  def ensure_loaded?(module) when is_atom(module) do
     match?({:module, ^module}, ensure_loaded(module))
   end
 
@@ -539,6 +570,8 @@ defmodule Code do
   Check `ensure_loaded/1` for more information on module loading
   and when to use `ensure_loaded/1` or `ensure_compiled/1`.
   """
+  @spec ensure_compiled(module) ::
+        {:module, module} | {:error, :embedded | :badfile | :nofile | :on_load_failure}
   def ensure_compiled(module) when is_atom(module) do
     case :code.ensure_loaded(module) do
       {:error, :nofile} = error ->
@@ -559,7 +592,8 @@ defmodule Code do
   is already loaded or was successfully loaded and compiled.
   Returns `false` otherwise.
   """
-  def ensure_compiled?(module) do
+  @spec ensure_compiled?(module) :: boolean
+  def ensure_compiled?(module) when is_atom(module) do
     match?({:module, ^module}, ensure_compiled(module))
   end
 
@@ -593,11 +627,10 @@ defmodule Code do
 
   ## Examples
 
-      # Get the documentation for the first function listed
-      iex> [fun|_] = Code.get_docs(Atom, :docs) |> Enum.sort()
-      iex> {{_function, _arity}, _line, _kind, _signature, text} = fun
+      # Get the module documentation
+      iex> {_line, text} = Code.get_docs(Atom, :moduledoc)
       iex> String.split(text, "\n") |> Enum.at(0)
-      "Converts an atom to a char list."
+      "Convenience functions for working with atoms."
 
       # Module doesn't exist
       iex> Code.get_docs(ModuleNotGood, :all)
@@ -616,7 +649,7 @@ defmodule Code do
   end
 
   def get_docs(binpath, kind) when is_binary(binpath) and kind in @doc_kinds do
-    do_get_docs(String.to_char_list(binpath), kind)
+    do_get_docs(String.to_charlist(binpath), kind)
   end
 
   @docs_chunk 'ExDc'

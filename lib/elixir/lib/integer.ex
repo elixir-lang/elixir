@@ -6,28 +6,37 @@ defmodule Integer do
   import Bitwise
 
   @doc """
-  Determines if an integer is odd.
+  Determines if `integer` is odd.
 
-  Returns `true` if `n` is an odd number, otherwise `false`.
+  Returns `true` if the given `integer` is an odd number,
+  otherwise it returns `false`.
 
   Allowed in guard clauses.
 
   ## Examples
 
-      iex> Integer.is_odd(3)
+      iex> Integer.is_odd(5)
       true
 
-      iex> Integer.is_odd(4)
+      iex> Integer.is_odd(6)
       false
+
+      iex> Integer.is_odd(-5)
+      true
+
+      iex> Integer.is_odd(0)
+      false
+
   """
-  defmacro is_odd(n) do
-    quote do: (unquote(n) &&& 1) == 1
+  defmacro is_odd(integer) do
+    quote do: (unquote(integer) &&& 1) == 1
   end
 
   @doc """
-  Determines if an integer is even.
+  Determines if an `integer` is even.
 
-  Returns `true` if `n` is an even number, otherwise `false`.
+  Returns `true` if the given `integer` is an even number,
+  otherwise it returns `false`.
 
   Allowed in guard clauses.
 
@@ -38,71 +47,163 @@ defmodule Integer do
 
       iex> Integer.is_even(5)
       false
+
+      iex> Integer.is_even(-10)
+      true
+
+      iex> Integer.is_even(0)
+      true
+
   """
-  defmacro is_even(n) do
-    quote do: (unquote(n) &&& 1) == 0
+  defmacro is_even(integer) do
+    quote do: (unquote(integer) &&& 1) == 0
   end
 
   @doc """
-  Returns the ordered digits for the given non-negative integer.
+  Computes the modulo remainder of an integer division.
 
-  An optional base value may be provided representing the radix for the returned
-  digits.
+  `Integer.mod/2` uses floored division, which means that
+  the result will always have the sign of the `divisor`.
+
+  Raises an `ArithmeticError` exception if one of the arguments is not an
+  integer, or when the `divisor` is `0`.
 
   ## Examples
 
-      iex> Integer.digits(101)
-      [1, 0, 1]
-
-      iex> Integer.digits(58127, 2)
-      [1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1]
+      iex> Integer.mod(5, 2)
+      1
+      iex> Integer.mod(6, -4)
+      -2
 
   """
-  @spec digits(non_neg_integer, pos_integer) :: [non_neg_integer, ...]
-  def digits(n, base \\ 10) when is_integer(n)    and n >= 0
-                            and  is_integer(base) and base >= 2 do
-    do_digits(n, base, [])
-  end
-
-  defp do_digits(0, _base, []),  do: [0]
-  defp do_digits(0, _base, acc), do: acc
-  defp do_digits(n, base, acc)  do
-    do_digits div(n, base), base, [rem(n, base) | acc]
+  @spec mod(integer, neg_integer | pos_integer) :: integer
+  def mod(dividend, divisor) do
+    remainder = rem(dividend, divisor)
+    if remainder * divisor < 0 do
+      remainder + divisor
+    else
+      remainder
+    end
   end
 
   @doc """
-  Returns the integer represented by the ordered digits.
+  Performs a floored integer division.
 
-  An optional base value may be provided representing the radix for the digits.
+  Raises an `ArithmeticError` exception if one of the arguments is not an
+  integer, or when the `divisor` is `0`.
+
+  `Integer.floor_div/2` performs *floored* integer division. This means that
+  the result is always rounded towards negative infinity.
+
+  If you want to perform truncated integer division (rounding towards zero),
+  use `Kernel.div/2` instead.
 
   ## Examples
 
-      iex> Integer.undigits([1, 0, 1])
-      101
+      iex> Integer.floor_div(5, 2)
+      2
+      iex> Integer.floor_div(6, -4)
+      -2
+      iex> Integer.floor_div(-99, 2)
+      -50
+
+  """
+  @spec floor_div(integer, neg_integer | pos_integer) :: integer
+  def floor_div(dividend, divisor) do
+    if (dividend * divisor < 0) and rem(dividend, divisor) != 0 do
+      div(dividend, divisor) - 1
+    else
+      div(dividend, divisor)
+    end
+  end
+
+  @doc """
+  Returns the ordered digits for the given `integer`.
+
+  An optional `base` value may be provided representing the radix for the returned
+  digits. This one must be an integer >= 2.
+
+  ## Examples
+
+      iex> Integer.digits(123)
+      [1, 2, 3]
+
+      iex> Integer.digits(170, 2)
+      [1, 0, 1, 0, 1, 0, 1, 0]
+
+      iex> Integer.digits(-170, 2)
+      [-1, 0, -1, 0, -1, 0, -1, 0]
+
+  """
+  @spec digits(integer, pos_integer) :: [integer, ...]
+  def digits(integer, base \\ 10)
+      when is_integer(integer) and is_integer(base) and base >= 2 do
+    do_digits(integer, base, [])
+  end
+
+  defp do_digits(digit, base, []) when abs(digit) < base,
+    do: [digit]
+  defp do_digits(digit, base, []) when digit == -base,
+    do: [-1, 0]
+  defp do_digits(base, base, []),
+    do: [1, 0]
+  defp do_digits(0, _base, acc),
+    do: acc
+  defp do_digits(integer, base, acc),
+    do: do_digits(div(integer, base), base, [rem(integer, base) | acc])
+
+  @doc """
+  Returns the integer represented by the ordered `digits`.
+
+  An optional `base` value may be provided representing the radix for the `digits`.
+  This one can be an integer >= 2.
+
+  ## Examples
+
+      iex> Integer.undigits([1, 2, 3])
+      123
 
       iex> Integer.undigits([1, 4], 16)
       20
+
+      iex> Integer.undigits([])
+      0
+
   """
   @spec undigits([integer], integer) :: integer
-  def undigits(digits, base \\ 10) when is_integer(base) do
+  def undigits(digits, base \\ 10) when is_list(digits) and is_integer(base) and base >= 2 do
     do_undigits(digits, base, 0)
   end
 
-  defp do_undigits([], _base, acc), do: acc
-  defp do_undigits([digit | tail], base, acc) do
-    do_undigits(tail, base, acc * base + digit)
-  end
+  defp do_undigits([], _base, 0),
+    do: 0
+  defp do_undigits([digit], base, 0) when is_integer(digit) and digit < base,
+    do: digit
+  defp do_undigits([1, 0], base, 0),
+    do: base
+  defp do_undigits([0 | tail], base, 0),
+    do: do_undigits(tail, base, 0)
+
+  defp do_undigits([], _base, acc),
+    do: acc
+  defp do_undigits([digit | _], base, _) when is_integer(digit) and digit >= base,
+    do: raise ArgumentError, "invalid digit #{digit} in base #{base}"
+  defp do_undigits([digit | tail], base, acc) when is_integer(digit),
+    do: do_undigits(tail, base, acc * base + digit)
 
   @doc """
-  Converts a binary from a text representation of an integer
-  in an optional base `base` to the corresponding integer.
+  Parses a text representation of an integer.
 
-  If the base `base` is not given, base 10 will be used.
+  An optional `base` to the corresponding integer can be provided.
+  If `base` is not given, 10 will be used.
 
   If successful, returns a tuple in the form of `{integer, remainder_of_binary}`.
   Otherwise `:error`.
 
   Raises an error if `base` is less than 2 or more than 36.
+
+  If you want to convert a string-formatted integer directly to a integer,
+  `String.to_integer/1` or `String.to_integer/2` can be used instead.
 
   ## Examples
 
@@ -134,70 +235,54 @@ defmodule Integer do
   @spec parse(binary, 2..36) :: {integer, binary} | :error | no_return
   def parse(binary, base \\ 10)
 
-  def parse(binary, base) when is_integer(base) and base in 2..36 do
-    parse_in_base(binary, base)
+  def parse(<<_::binary>>, base) when not base in 2..36 do
+    raise ArgumentError, "invalid base #{inspect base}"
   end
 
-  def parse(_, base) do
-    raise ArgumentError, "invalid base #{base}"
-  end
-
-  defp parse_in_base("-" <> bin, base) do
-    case do_parse(bin, base) do
-      :error -> :error
-      {number, remainder} -> {-number, remainder}
+  def parse(<<?-, rest::binary>>, base) do
+    case parse_digits(rest, base) do
+      {acc, bin} ->
+        {-acc, bin}
+      :error ->
+        :error
     end
   end
 
-  defp parse_in_base("+" <> bin, base) do
-    do_parse(bin, base)
+  def parse(<<?+, rest::binary>>, base) do
+    parse_digits(rest, base)
   end
 
-  defp parse_in_base(bin, base) when is_binary(bin) do
-    do_parse(bin, base)
+  def parse(<<rest::binary>>, base) do
+    parse_digits(rest, base)
   end
 
-  defp do_parse(<<char, rest::binary>>, base) do
-    if valid_digit_in_base?(char, base) do
-      do_parse(rest, base, parse_digit(char, base))
-    else
-      :error
+  digits = [{?0..?9, -?0}, {?A..?Z, 10 - ?A}, {?a..?z, 10 - ?a}]
+
+  for {chars, diff} <- digits, char <- chars do
+    defp parse_digits(<<unquote(char), rest::binary>>, base)
+         when base > unquote(char + diff) do
+      parse_digits(rest, base, unquote(char + diff))
     end
   end
 
-  defp do_parse(_, _), do: :error
+  defp parse_digits(<<_::binary>>, _) do
+    :error
+  end
 
-  defp do_parse(<<char, rest::binary>> = bin, base, acc) do
-    if valid_digit_in_base?(char, base) do
-      do_parse(rest, base, base * acc + parse_digit(char, base))
-    else
-      {acc, bin}
+  for {chars, diff} <- digits, char <- chars do
+    defp parse_digits(<<unquote(char), rest::binary>>, base, acc)
+         when base > unquote(char + diff) do
+      parse_digits(rest, base, base * acc + unquote(char + diff))
     end
   end
 
-  defp do_parse(bitstring, _, acc) do
-    {acc, bitstring}
-  end
-
-  defp parse_digit(char, _) do
-    cond do
-      char in ?0..?9 -> char - ?0
-      char in ?A..?Z -> char - ?A + 10
-      true           -> char - ?a + 10
-    end
-  end
-
-  defp valid_digit_in_base?(char, base) do
-    if base <= 10 do
-      char in ?0..(?0 + base - 1)
-    else
-      char in ?0..?9 or char in ?A..(?A + base - 11) or char in ?a..(?a + base - 11)
-    end
+  defp parse_digits(<<rest::binary>>, _, acc) do
+    {acc, rest}
   end
 
   @doc """
   Returns a binary which corresponds to the text representation
-  of `some_integer`.
+  of `integer`.
 
   Inlined by the compiler.
 
@@ -206,15 +291,26 @@ defmodule Integer do
       iex> Integer.to_string(123)
       "123"
 
+      iex> Integer.to_string(+456)
+      "456"
+
+      iex> Integer.to_string(-789)
+      "-789"
+
+      iex> Integer.to_string(0123)
+      "123"
+
   """
   @spec to_string(integer) :: String.t
-  def to_string(some_integer) do
-    :erlang.integer_to_binary(some_integer)
+  def to_string(integer) do
+    :erlang.integer_to_binary(integer)
   end
 
   @doc """
   Returns a binary which corresponds to the text representation
-  of `some_integer` in base `base`.
+  of `integer` in the given `base`.
+
+  `base` can be an integer between 2 and 36.
 
   Inlined by the compiler.
 
@@ -223,42 +319,111 @@ defmodule Integer do
       iex> Integer.to_string(100, 16)
       "64"
 
+      iex> Integer.to_string(-100, 16)
+      "-64"
+
+      iex> Integer.to_string(882681651, 36)
+      "ELIXIR"
+
   """
   @spec to_string(integer, 2..36) :: String.t
-  def to_string(some_integer, base) do
-    :erlang.integer_to_binary(some_integer, base)
+  def to_string(integer, base) do
+    :erlang.integer_to_binary(integer, base)
   end
 
   @doc """
-  Returns a char list which corresponds to the text representation of the given integer.
+  Returns a charlist which corresponds to the text representation of the given `integer`.
 
   Inlined by the compiler.
 
   ## Examples
 
-      iex> Integer.to_char_list(7)
-      '7'
+      iex> Integer.to_charlist(123)
+      '123'
+
+      iex> Integer.to_charlist(+456)
+      '456'
+
+      iex> Integer.to_charlist(-789)
+      '-789'
+
+      iex> Integer.to_charlist(0123)
+      '123'
 
   """
-  @spec to_char_list(integer) :: char_list
-  def to_char_list(number) do
-    :erlang.integer_to_list(number)
+  @spec to_charlist(integer) :: charlist
+  def to_charlist(integer) do
+    :erlang.integer_to_list(integer)
   end
 
   @doc """
-  Returns a char list which corresponds to the text representation of the
-  given integer in the given base.
+  Returns a charlist which corresponds to the text representation of `integer` in the given `base`.
+
+  `base` can be an integer between 2 and 36.
 
   Inlined by the compiler.
 
   ## Examples
 
-      iex> Integer.to_char_list(1023, 16)
-      '3FF'
+      iex> Integer.to_charlist(100, 16)
+      '64'
+
+      iex> Integer.to_charlist(-100, 16)
+      '-64'
+
+      iex> Integer.to_charlist(882681651, 36)
+      'ELIXIR'
 
   """
-  @spec to_char_list(integer, 2..36) :: char_list
-  def to_char_list(number, base) do
-    :erlang.integer_to_list(number, base)
+  @spec to_charlist(integer, 2..36) :: charlist
+  def to_charlist(integer, base) do
+    :erlang.integer_to_list(integer, base)
   end
+
+  @doc """
+  Returns the greatest common divisor of the two given numbers.
+
+  The greatest common divisor (GCD) of `int1` and `int2` is the largest positive
+  integer that divides both `int1` and `int2` without leaving a remainder.
+
+  By convention, `gcd(0, 0)` returns `0`.
+
+  ## Examples
+
+      iex> Integer.gcd(2, 3)
+      1
+
+      iex> Integer.gcd(8, 12)
+      4
+
+      iex> Integer.gcd(8, -12)
+      4
+
+      iex> Integer.gcd(10, 0)
+      10
+
+      iex> Integer.gcd(0, 0)
+      0
+
+  """
+  @spec gcd(integer, integer) :: pos_integer
+  def gcd(int1, int2) when is_integer(int1) and is_integer(int2) do
+    gcd_positive(abs(int1), abs(int2))
+  end
+
+  defp gcd_positive(0, int2), do: int2
+  defp gcd_positive(int1, 0), do: int1
+  defp gcd_positive(int1, int2), do: gcd_positive(int2, rem(int1, int2))
+
+  # TODO: Remove by 2.0
+  # (hard-deprecated in elixir_dispatch)
+  @doc false
+  @spec to_char_list(integer) :: charlist
+  def to_char_list(integer), do: Integer.to_charlist(integer)
+
+  # TODO: Remove by 2.0
+  # (hard-deprecated in elixir_dispatch)
+  @doc false
+  @spec to_char_list(integer, 2..36) :: charlist
+  def to_char_list(integer, base), do: Integer.to_charlist(integer, base)
 end

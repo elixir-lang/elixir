@@ -48,6 +48,4 @@ This manual page contributed by Evgeny Golyshev.
 .Bl -tag -width Ds
 .It Main website: http://elixir-lang.org
 .It Documentation: http://elixir-lang.org/docs.html
-.It General Mailing List: https://groups.google.com/group/elixir-lang-talk
-.It Development Mailing List: https://groups.google.com/group/elixir-lang-core
 .El

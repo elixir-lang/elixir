@@ -63,7 +63,7 @@ defmodule String.Chars.ListTest do
     assert to_string('abc') == "abc"
   end
 
-  test "char list" do
+  test "charlist" do
     assert to_string([0, 1, 2, 3, 255]) ==
            <<0, 1, 2, 3, 195, 191>>
 
@@ -114,7 +114,7 @@ defmodule String.Chars.ErrorsTest do
     end
   end
 
-  test "pid" do
+  test "PID" do
     assert_raise Protocol.UndefinedError, ~r"^protocol String\.Chars not implemented for #PID<.+?>$", fn ->
       to_string(self())
     end
@@ -133,7 +133,7 @@ defmodule String.Chars.ErrorsTest do
   end
 
   test "port" do
-    [port|_] = Port.list
+    [port | _] = Port.list
     assert_raise Protocol.UndefinedError, ~r"^protocol String\.Chars not implemented for #Port<.+?>$", fn ->
       to_string(port)
     end

@@ -1,7 +1,7 @@
 defmodule Mix.SCM do
   @moduledoc """
   This module provides helper functions and defines the
-  behaviour required by any SCM used by Mix.
+  behaviour required by any source code manager (SCM) used by Mix.
   """
 
   @type opts :: Keyword.t
@@ -11,7 +11,7 @@ defmodule Mix.SCM do
   or it is meant to be previously available in the
   filesystem.
 
-  Local dependencies (i.e. non fetchable ones) are automatically
+  Local dependencies (i.e. non-fetchable ones) are automatically
   recompiled every time the parent project is compiled.
   """
   @callback fetchable? :: boolean

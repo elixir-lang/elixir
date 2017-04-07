@@ -10,21 +10,32 @@ inspect(Atom) when is_atom(Atom) ->
   end.
 
 %% Store an alias in the given scope
-store(_Meta, New, New, _TKV, Aliases, MacroAliases, _Lexical) ->
-  {Aliases, MacroAliases};
-store(Meta, New, Old, TKV, Aliases, MacroAliases, Lexical) ->
-  record_warn(Meta, New, TKV, Lexical),
+store(Meta, New, New, _TOpts, Aliases, MacroAliases, _Lexical) ->
+  {remove_alias(New, Aliases), remove_macro_alias(Meta, New, MacroAliases)};
+store(Meta, New, Old, TOpts, Aliases, MacroAliases, Lexical) ->
+  record_warn(Meta, New, TOpts, Lexical),
   {store_alias(New, Old, Aliases),
     store_macro_alias(Meta, New, Old, MacroAliases)}.
 
 store_alias(New, Old, Aliases) ->
   lists:keystore(New, 1, Aliases, {New, Old}).
+
 store_macro_alias(Meta, New, Old, Aliases) ->
-  case lists:keymember(context, 1, Meta) andalso
-       lists:keyfind(counter, 1, Meta) of
+  case lists:keyfind(counter, 1, Meta) of
     {counter, Counter} when is_integer(Counter) ->
       lists:keystore(New, 1, Aliases, {New, {Counter, Old}});
-    _ ->
+    false ->
+      Aliases
+  end.
+
+remove_alias(Atom, Aliases) ->
+  lists:keydelete(Atom, 1, Aliases).
+
+remove_macro_alias(Meta, Atom, Aliases) ->
+  case lists:keyfind(counter, 1, Meta) of
+    {counter, Counter} when is_integer(Counter) ->
+      lists:keydelete(Atom, 1, Aliases);
+    false ->
       Aliases
   end.
 
@@ -40,7 +51,7 @@ record_warn(Meta, Ref, Opts, Lexical) ->
 %% Expand an alias. It returns an atom (meaning that there
 %% was an expansion) or a list of atoms.
 
-expand({'__aliases__', _Meta, ['Elixir'|_] = List}, _Aliases, _MacroAliases, _LexicalTracker) ->
+expand({'__aliases__', _Meta, ['Elixir' | _] = List}, _Aliases, _MacroAliases, _LexicalTracker) ->
   concat(List);
 
 expand({'__aliases__', Meta, _} = Alias, Aliases, MacroAliases, LexicalTracker) ->
@@ -53,19 +64,19 @@ expand({'__aliases__', Meta, _} = Alias, Aliases, MacroAliases, LexicalTracker) 
       expand(Alias, Aliases, LexicalTracker)
   end.
 
-expand({'__aliases__', Meta, [H|T]}, Aliases, LexicalTracker) when is_atom(H) ->
+expand({'__aliases__', Meta, [H | T]}, Aliases, LexicalTracker) when is_atom(H) ->
   Lookup  = list_to_atom("Elixir." ++ atom_to_list(H)),
   Counter = case lists:keyfind(counter, 1, Meta) of
     {counter, C} -> C;
     _ -> nil
   end,
   case lookup(Lookup, Aliases, Counter) of
-    Lookup -> [H|T];
+    Lookup -> [H | T];
     Atom ->
       elixir_lexical:record_alias(Lookup, LexicalTracker),
       case T of
         [] -> Atom;
-        _  -> concat([Atom|T])
+        _  -> concat([Atom | T])
       end
   end;
 
@@ -80,15 +91,15 @@ ensure_loaded(Meta, Ref, E) ->
     Ref:module_info(compile)
   catch
     error:undef ->
-      Kind = case lists:member(Ref, ?m(E, context_modules)) of
+      Kind = case lists:member(Ref, ?key(E, context_modules)) of
         true  ->
-          case ?m(E, module) of
+          case ?key(E, module) of
             Ref -> circular_module;
             _ -> scheduled_module
           end;
         false -> unloaded_module
       end,
-      elixir_errors:form_error(Meta, ?m(E, file), ?MODULE, {Kind, Ref})
+      elixir_errors:form_error(Meta, ?key(E, file), ?MODULE, {Kind, Ref})
   end.
 
 %% Receives an atom and returns the last bit as an alias.
@@ -97,9 +108,9 @@ last(Atom) ->
   Last = last(lists:reverse(atom_to_list(Atom)), []),
   list_to_atom("Elixir." ++ Last).
 
-last([$.|_], Acc) -> Acc;
-last([H|T], Acc) -> last(T, [H|Acc]);
-last([], Acc) -> Acc.
+last([$. | _], Acc) -> Acc;
+last([H | T], Acc)  -> last(T, [H | Acc]);
+last([], Acc)       -> Acc.
 
 %% Receives a list of atoms, binaries or lists
 %% representing modules and concatenates them.
@@ -107,20 +118,20 @@ last([], Acc) -> Acc.
 concat(Args)      -> binary_to_atom(do_concat(Args), utf8).
 safe_concat(Args) -> binary_to_existing_atom(do_concat(Args), utf8).
 
-do_concat([H|T]) when is_atom(H), H /= nil ->
-  do_concat([atom_to_binary(H, utf8)|T]);
-do_concat([<<"Elixir.", _/binary>>=H|T]) ->
+do_concat([H | T]) when is_atom(H), H /= nil ->
+  do_concat([atom_to_binary(H, utf8) | T]);
+do_concat([<<"Elixir.", _/binary>>=H | T]) ->
   do_concat(T, H);
-do_concat([<<"Elixir">>=H|T]) ->
+do_concat([<<"Elixir">>=H | T]) ->
   do_concat(T, H);
 do_concat(T) ->
   do_concat(T, <<"Elixir">>).
 
-do_concat([nil|T], Acc) ->
+do_concat([nil | T], Acc) ->
   do_concat(T, Acc);
-do_concat([H|T], Acc) when is_atom(H) ->
+do_concat([H | T], Acc) when is_atom(H) ->
   do_concat(T, <<Acc/binary, $., (to_partial(atom_to_binary(H, utf8)))/binary>>);
-do_concat([H|T], Acc) when is_binary(H) ->
+do_concat([H | T], Acc) when is_binary(H) ->
   do_concat(T, <<Acc/binary, $., (to_partial(H))/binary>>);
 do_concat([], Acc) ->
   Acc.

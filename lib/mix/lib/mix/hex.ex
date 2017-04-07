@@ -1,6 +1,6 @@
 defmodule Mix.Hex do
   @moduledoc false
-  @hex_requirement  ">= 0.5.0"
+  @hex_requirement  ">= 0.14.0"
   @hex_mirror       "https://repo.hex.pm"
 
   @doc """
@@ -14,7 +14,7 @@ defmodule Mix.Hex do
       shell = Mix.shell
       shell.info "Could not find Hex, which is needed to build dependency #{inspect app}"
 
-      if shell.yes?("Shall I install Hex?") do
+      if shell.yes?("Shall I install Hex? (if running non-interactively, use: \"mix local.hex --force\")") do
         Mix.Tasks.Local.Hex.run ["--force"]
       else
         false
@@ -61,7 +61,7 @@ defmodule Mix.Hex do
   end
 
   @doc """
-  Returns the url to the Hex mirror.
+  Returns the URL to the Hex mirror.
   """
   def mirror do
     System.get_env("HEX_MIRROR") || cdn() || @hex_mirror

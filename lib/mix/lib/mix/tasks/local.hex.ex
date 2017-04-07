@@ -16,13 +16,35 @@ defmodule Mix.Tasks.Local.Hex do
     * `--force` - forces installation without a shell prompt; primarily
       intended for automation in build systems like `make`
 
+    * `--if-missing` - performs installation only if Hex is not installed yet;
+      intended for automation when sctips can be run multiple times to avoid
+      reinstalling Hex.
+
+  If both options are set, `--force` takes precedence.
+
   ## Mirrors
 
   If you want to change the [default mirror](https://repo.hex.pm)
-  to use for fetching Hex please set the `HEX_MIRROR` environment variable.
+  used for fetching Hex, set the `HEX_MIRROR` environment variable.
   """
+  @switches [if_missing: :boolean, force: :boolean]
+
   @spec run(OptionParser.argv) :: boolean
-  def run(args) do
+  def run(argv) do
+    {opts, _} = OptionParser.parse!(argv, switches: @switches)
+    force? = Keyword.get(opts, :force, false)
+    if_missing? = Keyword.get(opts, :if_missing, false)
+
+    should_install? =
+      case {force?, if_missing?} do
+        {false, true} -> Code.ensure_loaded?(Hex)
+        _ -> true
+      end
+
+    should_install? && run_install(argv)
+  end
+
+  defp run_install(argv) do
     hex_mirror = Mix.Hex.mirror
 
     {elixir_version, hex_version, sha512} =
@@ -33,6 +55,6 @@ defmodule Mix.Tasks.Local.Hex do
       |> String.replace("[ELIXIR_VERSION]", elixir_version)
       |> String.replace("[HEX_VERSION]", hex_version)
 
-    Mix.Tasks.Archive.Install.run [url, "--sha512", sha512 | args]
+    Mix.Tasks.Archive.Install.run [url, "--sha512", sha512 | argv]
   end
 end

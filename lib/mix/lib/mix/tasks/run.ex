@@ -12,7 +12,7 @@ defmodule Mix.Tasks.Run do
       mix run my_script.exs
 
   This task provides a subset of the functionality available in the
-  `elixir` executable, including setting up the `System.argv`:
+  `elixir` executable, including setting up the `System.argv/0` arguments:
 
       mix run my_script.exs arg1 arg2 arg3
 
@@ -24,7 +24,7 @@ defmodule Mix.Tasks.Run do
   Before running any command, the task compiles and starts the current
   application. Those can be configured with the options below.
 
-  You may also pass option specific to the `elixir` executable as follows:
+  You may also pass options specific to the `elixir` executable as follows:
 
       elixir --sname hello -S mix run --no-halt
 
@@ -32,46 +32,71 @@ defmodule Mix.Tasks.Run do
 
     * `--config`, `-c`  - loads the given configuration file
     * `--eval`, `-e` - evaluate the given code
-    * `--require`, `-r` - require pattern before running the command
-    * `--parallel-require`, `-pr` - requires pattern in parallel
-    * `--no-compile` - do not compile even if files require compilation
-    * `--no-deps-check` - do not check dependencies
-    * `--no-halt` - do not halt the system after running the command
-    * `--no-start` - do not start applications after compilation
+    * `--require`, `-r` - requires pattern before running the command
+    * `--parallel`, `-p` - makes all requires parallel
+    * `--no-compile` - does not compile even if files require compilation
+    * `--no-deps-check` - does not check dependencies
+    * `--no-archives-check` - does not check archives
+    * `--no-halt` - does not halt the system after running the command
+    * `--no-start` - does not start applications after compilation
+    * `--no-elixir-version-check` - does not check the Elixir version from mix.exs
 
   """
 
   @spec run(OptionParser.argv) :: :ok
   def run(args) do
-    {opts, head, _} = OptionParser.parse_head(args,
-      aliases: [r: :require, pr: :parallel_require, e: :eval, c: :config],
-      switches: [parallel_require: :keep, require: :keep, eval: :keep, config: :keep,
-                 halt: :boolean, compile: :boolean, deps_check: :boolean, start: :boolean])
+    {opts, head} = OptionParser.parse_head!(args,
+      aliases: [r: :require, p: :parallel, e: :eval, c: :config],
+      strict: [parallel: :boolean, require: :keep, eval: :keep, config: :keep,
+               halt: :boolean, compile: :boolean, deps_check: :boolean, start: :boolean,
+               archives_check: :boolean, elixir_version_check: :boolean, parallel_require: :keep])
+
+    run(args, opts, head, &Code.eval_string/1, &Code.require_file/1)
+    unless Keyword.get(opts, :halt, true), do: Process.sleep(:infinity)
+    :ok
+  end
+
+  @doc false
+  @spec run(OptionParser.argv, Keyword.t, OptionParser.argv,
+            (String.t -> term()), (String.t -> term())) :: :ok
+  def run(args, opts, head, expr_evaluator, file_evaluator) do
+    # TODO: Remove on v2.0
+    opts =
+      Enum.flat_map(opts, fn
+        {:parallel_require, value} ->
+          IO.warn "the --parallel-require option is deprecated in favour of using " <>
+            "--parallel to make all requires parallel and --require VAL for requiring"
+          [require: value, parallel: true]
+        opt ->
+          [opt]
+      end)
 
     {file, argv} =
       case {Keyword.has_key?(opts, :eval), head} do
-        {true, _}  -> {nil, head}
-        {_, [h|t]} -> {h, t}
-        {_, []}    -> {nil, []}
+        {true, _} -> {nil, head}
+        {_, [head | tail]} -> {head, tail}
+        {_, []} -> {nil, []}
       end
 
     System.argv(argv)
-    process_config opts
+    process_config(opts)
 
     # Start app after rewriting System.argv,
-    # but before requiring and evaling
-    Mix.Task.run "app.start", args
-    process_load opts
+    # but before requiring and evaling.
+    if opts[:start] != false do
+      Mix.Task.run "app.start", args
+    end
 
-    _ = if file do
+    process_load(opts, expr_evaluator)
+
+    if file do
       if File.regular?(file) do
-        Code.require_file(file)
+        file_evaluator.(file)
       else
         Mix.raise "No such file: #{file}"
       end
     end
 
-    unless Keyword.get(opts, :halt, true), do: :timer.sleep(:infinity)
     :ok
   end
 
@@ -84,24 +109,24 @@ defmodule Mix.Tasks.Run do
     end
   end
 
-  defp process_load(opts) do
+  defp process_load(opts, expr_evaluator) do
+    require_runner =
+      if opts[:parallel] do
+        &Kernel.ParallelRequire.files/1
+      else
+        fn(files) -> Enum.each(files, &Code.require_file/1) end
+      end
+
     Enum.each opts, fn
-      {:parallel_require, value} ->
-        case filter_patterns(value) do
-          [] ->
-            Mix.raise "No files matched pattern #{inspect value} given to --parallel-require"
-          filtered ->
-            Kernel.ParallelRequire.files(filtered)
-        end
       {:require, value} ->
         case filter_patterns(value) do
           [] ->
             Mix.raise "No files matched pattern #{inspect value} given to --require"
           filtered ->
-            Enum.each(filtered, &Code.require_file(&1))
+            require_runner.(filtered)
         end
       {:eval, value} ->
-        Code.eval_string(value)
+        expr_evaluator.(value)
       _ ->
         :ok
     end

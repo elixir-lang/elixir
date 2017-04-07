@@ -3,10 +3,12 @@
 [![Build Status](https://secure.travis-ci.org/elixir-lang/elixir.svg?branch=master
 "Build Status")](https://travis-ci.org/elixir-lang/elixir)
 
+Elixir is a dynamic, functional language designed for building scalable and maintainable applications.
+
 For more about Elixir, installation and documentation,
 [check Elixir's website](http://elixir-lang.org/).
 
-## Usage
+## Compiling from source
 
 To run Elixir from source, clone this repository to your machine, compile and test it:
 
@@ -24,9 +26,8 @@ If Elixir fails to build (specifically when pulling in a new version via
 `git`), be sure to remove any previous build artifacts by running
 `make clean`, then `make test`.
 
-If tests pass, you are ready to move on to the
-[Getting Started guide][1] or to try Interactive Elixir by running:
-`bin/iex` in your terminal.
+If tests pass, you are ready to move on to the [Getting Started guide][1]
+or to try Interactive Elixir by running `bin/iex` in your terminal.
 
 However, if tests fail, it is likely you have an outdated Erlang version
 (Elixir requires Erlang 18.0 or later). You can check your Erlang version
@@ -34,15 +35,20 @@ by calling `erl` in the command line. You will see some information as follows:
 
     Erlang/OTP 18 [erts-7.0] [source] [smp:2:2] [async-threads:10] [hipe] [kernel-poll:false]
 
-If you have the correct version and tests still fail, please
-[open an issue][2].
+If you have properly set up your dependencies and tests still fail,
+you may want to open up a bug report, as explained next.
+
+## Bug reports
+
+For reporting bugs, [visit our issues tracker][2] and follow the steps
+for reporting a new issue. Please disclose security vulnerabilities
+privately at elixir-security@googlegroups.com.
 
 ## Contributing
 
-We welcome everyone to contribute to Elixir and help us tackle
-existing issues! To do so, there are a few things you need to know
-about the code. First, Elixir code is divided in applications inside
-the `lib` folder:
+We welcome everyone to contribute to Elixir and help us tackle existing issues!
+To do so, there are a few things you need to know about the code. First, Elixir
+code is divided in applications inside the `lib` folder:
 
 * `elixir` - Contains Elixir's kernel and stdlib
 
@@ -58,7 +64,9 @@ the `lib` folder:
 
 You can run all tests in the root directory with `make test` and you can
 also run tests for a specific framework `make test_#{NAME}`, for example,
-`make test_ex_unit`.
+`make test_ex_unit`. If you just changed something in the Elixir's standard
+library, you can run only that portion through `make test_stdlib`, as
+`test_elixir` also runs tests for the other projects (EEx, ExUnit, etc.).
 
 In case you are changing a single file, you can compile and run tests only
 for that particular file for fast development cycles. For example, if you
@@ -86,9 +94,27 @@ case you are looking for some examples:
 * [Implement capture_io for ExUnit – Pull Request](https://github.com/elixir-lang/elixir/pull/1059)
 
 We usually keep a list of enhancements and bugs [in the issue tracker][2].
-For proposing a new feature, please start a discussion in the
-[Elixir Core mailing list][3]. Remember all interactions in our
-official spaces follow our [Code of Conduct][7].
+For proposing new features, please start a discussion in the
+[Elixir Core mailing list][3]. Keep in mind that it is your responsibility
+to argue and explain why a feature is useful and how it will impact the
+codebase and the community. Finally, remember all interactions in our official
+spaces follow our [Code of Conduct][7].
+
+### Reviewing changes
+
+Once a pull request is sent, the Elixir team will review your changes.
+We outline our process below to clarify the roles of everyone involved.
+
+All pull requests must be approved by two committers before being merged into
+the repository. In case any changes are necessary, the team will leave
+appropriate comments requesting changes to the code.
+
+The Elixir team may optionally assign someone to review a pull request.
+In case someone is assigned, they must explicitly approve the code before
+another team member can merge it.
+
+When review is completed, your pull request will be squashed and merged
+into the repository.
 
 ## Building documentation
 
@@ -106,7 +132,7 @@ This will produce documentation sets for `elixir`, `mix`, etc., under
 the `doc` directory. If you are planning to contribute documentation,
 [please check our best practices for writing documentation](http://elixir-lang.org/docs/stable/elixir/writing-documentation.html).
 
-## Important links
+## Development links
 
   * [Elixir Website][1]
   * [Elixir Documentation][6]

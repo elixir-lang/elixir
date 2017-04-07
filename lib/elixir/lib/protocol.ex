@@ -23,15 +23,15 @@ defmodule Protocol do
                            :lists.seq(2, arity))
     type_args = [quote(do: t) | type_args]
 
-    call_args = :lists.map(fn i -> {String.to_atom(<<?x, i + 64>>), [], __MODULE__} end,
+    call_args = :lists.map(fn pos -> Macro.var(String.to_atom("var" <> Integer.to_string(pos)), __MODULE__) end,
                            :lists.seq(2, arity))
-    call_args = [quote(do: t) | call_args]
+    call_args = [quote(do: term) | call_args]
 
     quote do
       name  = unquote(name)
       arity = unquote(arity)
 
-      @functions [{name, arity}|@functions]
+      @functions [{name, arity} | @functions]
 
       # Generate a fake definition with the user
       # signature that will be used by docs
@@ -39,7 +39,7 @@ defmodule Protocol do
 
       # Generate the actual implementation
       Kernel.def unquote(name)(unquote_splicing(call_args)) do
-        impl_for!(t).unquote(name)(unquote_splicing(call_args))
+        impl_for!(term).unquote(name)(unquote_splicing(call_args))
       end
 
       # Convert the spec to callback if possible,
@@ -50,7 +50,7 @@ defmodule Protocol do
   end
 
   defmacro def(_) do
-    raise ArgumentError, "invalid args for def inside defprotocol"
+    raise ArgumentError, "invalid arguments for def inside defprotocol"
   end
 
   @doc """
@@ -129,8 +129,8 @@ defmodule Protocol do
   @doc """
   Extracts all protocols from the given paths.
 
-  The paths can be either a char list or a string. Internally
-  they are worked on as char lists, so passing them as lists
+  The paths can be either a charlist or a string. Internally
+  they are worked on as charlists, so passing them as lists
   avoid extra conversion.
 
   Does not load any of the protocols.
@@ -144,7 +144,7 @@ defmodule Protocol do
       true
 
   """
-  @spec extract_protocols([char_list | String.t]) :: [atom]
+  @spec extract_protocols([charlist | String.t]) :: [atom]
   def extract_protocols(paths) do
     extract_matching_by_attribute paths, 'Elixir.',
       fn module, attributes ->
@@ -159,8 +159,8 @@ defmodule Protocol do
   Extracts all types implemented for the given protocol from
   the given paths.
 
-  The paths can be either a char list or a string. Internally
-  they are worked on as char lists, so passing them as lists
+  The paths can be either a charlist or a string. Internally
+  they are worked on as charlists, so passing them as lists
   avoid extra conversion.
 
   Does not load any of the implementations.
@@ -174,9 +174,9 @@ defmodule Protocol do
       true
 
   """
-  @spec extract_impls(module, [char_list | String.t]) :: [atom]
+  @spec extract_impls(module, [charlist | String.t]) :: [atom]
   def extract_impls(protocol, paths) when is_atom(protocol) do
-    prefix = Atom.to_char_list(protocol) ++ '.'
+    prefix = Atom.to_charlist(protocol) ++ '.'
     extract_matching_by_attribute paths, prefix, fn
       _mod, attributes ->
         case attributes[:impl] do
@@ -200,7 +200,7 @@ defmodule Protocol do
     end
   end
 
-  defp list_dir(path), do: list_dir(to_char_list(path))
+  defp list_dir(path), do: list_dir(to_charlist(path))
 
   defp extract_from_file(path, file, prefix, callback) do
     if :lists.prefix(prefix, file) and :filename.extension(file) == '.beam' do
@@ -290,7 +290,7 @@ defmodule Protocol do
   # impl_for/1 dispatch version.
   defp change_debug_info({protocol, any, code, docs}, types) do
     types   = if any, do: types, else: List.delete(types, Any)
-    all     = [Any] ++ for {_guard, mod} <- builtin, do: mod
+    all     = [Any] ++ for {_guard, mod} <- __builtin__(), do: mod
     structs = types -- all
     case change_impl_for(code, protocol, types, structs, false, []) do
       {:ok, ret} -> {:ok, ret, docs}
@@ -298,7 +298,7 @@ defmodule Protocol do
     end
   end
 
-  defp change_impl_for([{:function, line, :__protocol__, 1, clauses}|t], protocol, types, structs, _, acc) do
+  defp change_impl_for([{:function, line, :__protocol__, 1, clauses} | tail], protocol, types, structs, _, acc) do
     clauses = :lists.map(fn
       {:clause, l, [{:atom, _, :consolidated?}], [], [{:atom, _, _}]} ->
         {:clause, l, [{:atom, 0, :consolidated?}], [], [{:atom, 0, true}]}
@@ -306,39 +306,52 @@ defmodule Protocol do
         c
     end, clauses)
 
-    change_impl_for(t, protocol, types, structs, true,
-                    [{:function, line, :__protocol__, 1, clauses}|acc])
+    change_impl_for(tail, protocol, types, structs, true,
+                    [{:function, line, :__protocol__, 1, clauses} | acc])
   end
 
-  defp change_impl_for([{:function, line, :impl_for, 1, _}|t], protocol, types, structs, is_protocol, acc) do
+  defp change_impl_for([{:function, line, :impl_for, 1, _} | tail], protocol, types, structs, protocol?, acc) do
     fallback = if Any in types, do: load_impl(protocol, Any)
 
-    clauses = for {guard, mod} <- builtin,
+    clauses = for {guard, mod} <- __builtin__(),
                   mod in types,
                   do: builtin_clause_for(mod, guard, protocol, line)
 
-    clauses = [struct_clause_for(line)|clauses] ++
+    clauses = [struct_clause_for(line) | clauses] ++
               [fallback_clause_for(fallback, protocol, line)]
 
-    change_impl_for(t, protocol, types, structs, is_protocol,
-                    [{:function, line, :impl_for, 1, clauses}|acc])
+    change_impl_for(tail, protocol, types, structs, protocol?,
+                    [{:function, line, :impl_for, 1, clauses} | acc])
   end
 
-  defp change_impl_for([{:function, line, :struct_impl_for, 1, _}|t], protocol, types, structs, is_protocol, acc) do
+  defp change_impl_for([{:function, line, :struct_impl_for, 1, _} | tail], protocol, types, structs, protocol?, acc) do
     fallback = if Any in types, do: load_impl(protocol, Any)
     clauses = for struct <- structs, do: each_struct_clause_for(struct, protocol, line)
     clauses = clauses ++ [fallback_clause_for(fallback, protocol, line)]
 
-    change_impl_for(t, protocol, types, structs, is_protocol,
-                    [{:function, line, :struct_impl_for, 1, clauses}|acc])
+    change_impl_for(tail, protocol, types, structs, protocol?,
+                    [{:function, line, :struct_impl_for, 1, clauses} | acc])
   end
 
-  defp change_impl_for([h|t], protocol, info, types, is_protocol, acc) do
-    change_impl_for(t, protocol, info, types, is_protocol, [h|acc])
+  defp change_impl_for([{:attribute, line, :spec, {{:__protocol__, 1}, funspecs}} | tail], protocol, types, structs, protocol?, acc) do
+    new_specs = for spec <- funspecs do
+      case spec do
+        {:type, line, :fun, [{:type, _, :product, [{:atom, _, :consolidated?}]}, _]} ->
+          {:type, line, :fun,
+           [{:type, line, :product, [{:atom, 0, :consolidated?}]},
+            {:atom, 0, true}]}
+        other -> other
+      end
+    end
+    change_impl_for(tail, protocol, types, structs, protocol?, [{:attribute, line, :spec, {{:__protocol__, 1}, new_specs}} | acc])
   end
 
-  defp change_impl_for([], protocol, _info, _types, is_protocol, acc) do
-    if is_protocol do
+  defp change_impl_for([head | tail], protocol, info, types, protocol?, acc) do
+    change_impl_for(tail, protocol, info, types, protocol?, [head | acc])
+  end
+
+  defp change_impl_for([], protocol, _info, _types, protocol?, acc) do
+    if protocol? do
       {:ok, {protocol, Enum.reverse(acc)}}
     else
       {:error, :not_a_protocol}
@@ -386,11 +399,11 @@ defmodule Protocol do
   # Finally compile the module and emit its bytecode.
   defp compile({protocol, code}, docs) do
     opts = if Code.compiler_options[:debug_info], do: [:debug_info], else: []
-    {:ok, ^protocol, binary, _warnings} = :compile.forms(code, [:return|opts])
+    {:ok, ^protocol, binary, _warnings} = :compile.forms(code, [:return | opts])
     {:ok,
       case docs do
         :missing_chunk -> binary
-        _ -> :elixir_module.add_beam_chunk(binary, @docs_chunk, docs)
+        _ -> :elixir_erl.add_beam_chunk(binary, @docs_chunk, docs)
       end}
   end
 
@@ -420,13 +433,13 @@ defmodule Protocol do
         _ = unquote(block)
 
         # Finalize expansion
-        unquote(after_defprotocol)
+        unquote(after_defprotocol())
       end
     end
   end
 
   defp after_defprotocol do
-    quote bind_quoted: [builtin: builtin] do
+    quote bind_quoted: [builtin: __builtin__()] do
       @doc false
       @spec impl_for(term) :: atom | nil
       Kernel.def impl_for(data)
@@ -439,17 +452,27 @@ defmodule Protocol do
         struct_impl_for(struct)
       end
 
-      # Define the implementation for builtins.
+      # Define the implementation for built-ins
       :lists.foreach(fn {guard, mod} ->
         target = Module.concat(__MODULE__, mod)
 
         Kernel.def impl_for(data) when :erlang.unquote(guard)(data) do
           case impl_for?(unquote(target)) do
             true  -> unquote(target).__impl__(:target)
-            false -> any_impl_for
+            false -> any_impl_for()
           end
         end
       end, builtin)
+
+      # Define a catch-all impl_for/1 clause to pacify Dialyzer (since
+      # destructuring opaque types is illegal, Dialyzer will think none of the
+      # previous clauses matches opaque types, and without this clause, will
+      # conclude that impl_for can't handle an opaque argument). This is a hack
+      # since it relies on Dialyzer not being smart enough to conclude that all
+      # opaque types will get the any_impl_for/0 implementation.
+      Kernel.def impl_for(_) do
+        any_impl_for()
+      end
 
       @doc false
       @spec impl_for!(term) :: atom | no_return
@@ -459,9 +482,9 @@ defmodule Protocol do
 
       # Internal handler for Any
       if @fallback_to_any do
-        Kernel.defp any_impl_for, do: __MODULE__.Any.__impl__(:target)
+        Kernel.defp any_impl_for(), do: __MODULE__.Any.__impl__(:target)
       else
-        Kernel.defp any_impl_for, do: nil
+        Kernel.defp any_impl_for(), do: nil
       end
 
       # Internal handler for Structs
@@ -469,7 +492,7 @@ defmodule Protocol do
         target = Module.concat(__MODULE__, struct)
         case impl_for?(target) do
           true  -> target.__impl__(:target)
-          false -> any_impl_for
+          false -> any_impl_for()
         end
       end
 
@@ -494,7 +517,7 @@ defmodule Protocol do
       @doc false
       @spec __protocol__(:module) :: __MODULE__
       @spec __protocol__(:functions) :: unquote(Protocol.__functions_spec__(@functions))
-      @spec __protocol__(:consolidated?) :: boolean
+      @spec __protocol__(:consolidated?) :: false
       Kernel.def __protocol__(:module), do: __MODULE__
       Kernel.def __protocol__(:functions), do: unquote(:lists.sort(@functions))
       Kernel.def __protocol__(:consolidated?), do: false
@@ -504,8 +527,8 @@ defmodule Protocol do
   @doc false
   def __functions_spec__([]),
     do: []
-  def __functions_spec__([h|t]),
-    do: [:lists.foldl(&{:|, [], [&1, &2]}, h, t), quote(do: ...)]
+  def __functions_spec__([head | tail]),
+    do: [:lists.foldl(&{:|, [], [&1, &2]}, head, tail), quote(do: ...)]
 
   @doc false
   def __impl__(protocol, opts) do
@@ -625,7 +648,7 @@ defmodule Protocol do
     found =
       :lists.map(fn {:spec, expr, caller} ->
         if Kernel.Typespec.spec_to_signature(expr) == signature do
-          Kernel.Typespec.define_spec(:callback, expr, caller)
+          Kernel.Typespec.defspec(:callback, expr, caller)
           true
         end
       end, specs)
@@ -635,7 +658,8 @@ defmodule Protocol do
 
   ## Helpers
 
-  defp builtin do
+  @doc false
+  def __builtin__ do
     [is_tuple: Tuple,
      is_atom: Atom,
      is_list: List,

@@ -6,6 +6,8 @@ defmodule Mix.Tasks.Do do
   @moduledoc """
   Executes the tasks separated by comma.
 
+  The comma should be followed by a space.
+
   ## Examples
 
   The example below prints the available compilers and
@@ -18,26 +20,30 @@ defmodule Mix.Tasks.Do do
   @spec run(OptionParser.argv) :: :ok
   def run(args) do
     Enum.each gather_commands(args), fn
-      [task|args] -> Mix.Task.run task, args
-      [] -> Mix.raise "No expression between commas"
+      [task | args] -> Mix.Task.run task, args
     end
   end
 
-  defp gather_commands(args) do
-    gather_commands args, [], []
+  @doc false
+  def gather_commands(args) do
+    gather_commands(args, [], [])
   end
 
-  defp gather_commands([h|t], current, acc) when binary_part(h, byte_size(h), -1) == "," do
-    part    = binary_part(h, 0, byte_size(h) - 1)
-    current = Enum.reverse([part|current])
-    gather_commands t, [], [current|acc]
+  defp gather_commands([head | rest], current, acc)
+      when binary_part(head, byte_size(head), -1) == "," do
+    current =
+      case binary_part(head, 0, byte_size(head) - 1) do
+        "" -> Enum.reverse(current)
+        part -> Enum.reverse([part | current])
+      end
+    gather_commands(rest, [], [current | acc])
   end
 
-  defp gather_commands([h|t], current, acc) do
-    gather_commands t, [h|current], acc
+  defp gather_commands([head | rest], current, acc) do
+    gather_commands(rest, [head | current], acc)
   end
 
   defp gather_commands([], current, acc) do
-    Enum.reverse [Enum.reverse(current)|acc]
+    Enum.reverse [Enum.reverse(current) | acc]
   end
 end

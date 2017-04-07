@@ -13,22 +13,24 @@ defmodule Inspect.AtomTest do
     assert inspect(:"") == ":\"\""
   end
 
-  test "true false nil" do
+  test "true, false, nil" do
     assert inspect(false) == "false"
     assert inspect(true) == "true"
     assert inspect(nil) == "nil"
   end
 
-  test "with uppercase" do
+  test "with uppercase letters" do
     assert inspect(:fOO) == ":fOO"
     assert inspect(:FOO) == ":FOO"
   end
 
-  test "alias atom" do
+  test "aliases" do
     assert inspect(Foo) == "Foo"
     assert inspect(Foo.Bar) == "Foo.Bar"
     assert inspect(Elixir) == "Elixir"
+    assert inspect(Elixir.Foo) == "Foo"
     assert inspect(Elixir.Elixir) == "Elixir.Elixir"
+    assert inspect(Elixir.Elixir.Foo) == "Elixir.Elixir.Foo"
   end
 
   test "with integers" do
@@ -36,13 +38,14 @@ defmodule Inspect.AtomTest do
     assert inspect(:user1) == ":user1"
   end
 
-  test "with punctuation" do
+  test "with trailing ? or !" do
     assert inspect(:foo?) == ":foo?"
     assert inspect(:bar!) == ":bar!"
+    assert inspect(:Foo?) == ":Foo?"
   end
 
-  test "op" do
-    assert inspect(:+)   == ":+"
+  test "operators" do
+    assert inspect(:+) == ":+"
     assert inspect(:<~) == ":<~"
     assert inspect(:~>) == ":~>"
     assert inspect(:&&&) == ":&&&"
@@ -53,11 +56,7 @@ defmodule Inspect.AtomTest do
     assert inspect(:<|>) == ":<|>"
   end
 
-  test :... do
-    assert inspect(:...) == ":..."
-  end
-
-  test :@ do
+  test "with @" do
     assert inspect(:@) == ":@"
     assert inspect(:foo@bar) == ":foo@bar"
     assert inspect(:foo@bar@) == ":foo@bar@"
@@ -65,10 +64,25 @@ defmodule Inspect.AtomTest do
   end
 
   test "others" do
+    assert inspect(:...) == ":..."
     assert inspect(:<<>>) == ":<<>>"
-    assert inspect(:{})   == ":{}"
-    assert inspect(:%{})  == ":%{}"
-    assert inspect(:%)    == ":%"
+    assert inspect(:{}) == ":{}"
+    assert inspect(:%{}) == ":%{}"
+    assert inspect(:%) == ":%"
+  end
+
+  test "escaping" do
+    assert inspect(:"hy-phen") == ~s(:"hy-phen")
+    assert inspect(:"@hello") == ~s(:"@hello")
+    assert inspect(:"Wat!?") == ~s(:"Wat!?")
+    assert inspect(:"'quotes' and \"double quotes\"") == ~S(:"'quotes' and \"double quotes\"")
+  end
+
+  test "colors" do
+    opts = [syntax_colors: [atom: :red]]
+    assert inspect(:hello, opts) == "\e[31m:hello\e[0m"
+    opts = [syntax_colors: [reset: :cyan]]
+    assert inspect(:hello, opts) == ":hello"
   end
 end
 
@@ -76,7 +90,7 @@ defmodule Inspect.BitStringTest do
   use ExUnit.Case, async: true
 
   test "bitstring" do
-    assert inspect(<<1 :: size(12)-integer-signed>>) == "<<0, 1::size(4)>>"
+    assert inspect(<<1::12-integer-signed>>) == "<<0, 1::size(4)>>"
   end
 
   test "binary" do
@@ -90,7 +104,7 @@ defmodule Inspect.BitStringTest do
     assert inspect("f\ao") == "\"f\\ao\""
   end
 
-  test "utf8" do
+  test "UTF-8" do
     assert inspect(" ゆんゆん") == "\" ゆんゆん\""
   end
 
@@ -158,6 +172,20 @@ defmodule Inspect.NumberTest do
     assert inspect(1.0e10) == "1.0e10"
     assert inspect(1.0e-10) == "1.0e-10"
   end
+
+  test "integer colors" do
+    opts = [syntax_colors: [number: :red]]
+    assert inspect(123, opts) == "\e[31m123\e[0m"
+    opts = [syntax_colors: [reset: :cyan]]
+    assert inspect(123, opts) == "123"
+  end
+
+  test "float colors" do
+    opts = [syntax_colors: [number: :red]]
+    assert inspect(1.3, opts) == "\e[31m1.3\e[0m"
+    opts = [syntax_colors: [reset: :cyan]]
+    assert inspect(1.3, opts) == "1.3"
+  end
 end
 
 defmodule Inspect.TupleTest do
@@ -174,6 +202,29 @@ defmodule Inspect.TupleTest do
 
   test "with limit" do
     assert inspect({1, 2, 3, 4}, limit: 3) == "{1, 2, 3, ...}"
+  end
+
+  test "colors" do
+    opts = [syntax_colors: []]
+    assert inspect({}, opts) == "{}"
+
+    opts = [syntax_colors: [reset: :cyan]]
+    assert inspect({}, opts) == "{}"
+    assert inspect({:x, :y}, opts) == "{:x, :y}"
+
+    opts = [syntax_colors: [reset: :cyan, atom: :red]]
+    assert inspect({}, opts) == "{}"
+    assert inspect({:x, :y}, opts) ==
+      "{\e[31m:x\e[36m, \e[31m:y\e[36m}"
+
+    opts = [syntax_colors: [tuple: :green, reset: :cyan, atom: :red]]
+    assert inspect({}, opts) == "\e[32m{\e[36m\e[32m}\e[36m"
+    assert inspect({:x, :y}, opts) ==
+           "\e[32m{\e[36m" <>
+           "\e[31m:x\e[36m" <>
+           "\e[32m,\e[36m " <>
+           "\e[31m:y\e[36m" <>
+           "\e[32m}\e[36m"
   end
 end
 
@@ -200,21 +251,21 @@ defmodule Inspect.ListTest do
   end
 
   test "opt infer" do
-    assert inspect('john' ++ [0] ++ 'doe', char_lists: :infer) == "[106, 111, 104, 110, 0, 100, 111, 101]"
-    assert inspect('john', char_lists: :infer) == "'john'"
-    assert inspect([0], char_lists: :infer) == "[0]"
+    assert inspect('john' ++ [0] ++ 'doe', charlists: :infer) == "[106, 111, 104, 110, 0, 100, 111, 101]"
+    assert inspect('john', charlists: :infer) == "'john'"
+    assert inspect([0], charlists: :infer) == "[0]"
   end
 
   test "opt as strings" do
-    assert inspect('john' ++ [0] ++ 'doe', char_lists: :as_char_lists) == "'john\\0doe'"
-    assert inspect('john', char_lists: :as_char_lists) == "'john'"
-    assert inspect([0], char_lists: :as_char_lists) == "'\\0'"
+    assert inspect('john' ++ [0] ++ 'doe', charlists: :as_charlists) == "'john\\0doe'"
+    assert inspect('john', charlists: :as_charlists) == "'john'"
+    assert inspect([0], charlists: :as_charlists) == "'\\0'"
   end
 
   test "opt as lists" do
-    assert inspect('john' ++ [0] ++ 'doe', char_lists: :as_lists) == "[106, 111, 104, 110, 0, 100, 111, 101]"
-    assert inspect('john', char_lists: :as_lists) == "[106, 111, 104, 110]"
-    assert inspect([0], char_lists: :as_lists) == "[0]"
+    assert inspect('john' ++ [0] ++ 'doe', charlists: :as_lists) == "[106, 111, 104, 110, 0, 100, 111, 101]"
+    assert inspect('john', charlists: :as_lists) == "[106, 111, 104, 110]"
+    assert inspect([0], charlists: :as_lists) == "[0]"
   end
 
   test "non printable" do
@@ -224,7 +275,7 @@ defmodule Inspect.ListTest do
   test "improper" do
     assert inspect([:foo | :bar]) == "[:foo | :bar]"
 
-    assert inspect([1, 2, 3, 4, 5|42], [pretty: true, width: 1]) == "[1,\n 2,\n 3,\n 4,\n 5 |\n 42]"
+    assert inspect([1, 2, 3, 4, 5 | 42], [pretty: true, width: 1]) == "[1,\n 2,\n 3,\n 4,\n 5 |\n 42]"
   end
 
   test "nested" do
@@ -244,6 +295,59 @@ defmodule Inspect.ListTest do
 
   test "with limit" do
     assert inspect([ 1, 2, 3, 4 ], limit: 3) == "[1, 2, 3, ...]"
+  end
+
+  test "colors" do
+    opts = [syntax_colors: []]
+    assert inspect([], opts) == "[]"
+
+    opts = [syntax_colors: [reset: :cyan]]
+    assert inspect([], opts) == "[]"
+    assert inspect([:x, :y], opts) ==
+           "[:x, :y]"
+
+    opts = [syntax_colors: [reset: :cyan, atom: :red]]
+    assert inspect([], opts) == "[]"
+    assert inspect([:x, :y], opts) ==
+           "[\e[31m:x\e[36m, \e[31m:y\e[36m]"
+
+    opts = [syntax_colors: [reset: :cyan, atom: :red, list: :green]]
+    assert inspect([], opts) == "\e[32m[]\e[36m"
+    assert inspect([:x, :y], opts) ==
+           "\e[32m[\e[36m" <>
+           "\e[31m:x\e[36m" <>
+           "\e[32m,\e[36m " <>
+           "\e[31m:y\e[36m" <>
+           "\e[32m]\e[36m"
+  end
+
+  test "keyword with colors" do
+    opts = [syntax_colors: [reset: :cyan, list: :green, number: :blue]]
+    assert inspect([], opts) == "\e[32m[]\e[36m"
+    assert inspect([a: 9999], opts) ==
+           "\e[32m[\e[36m" <>
+           "a: " <>
+           "\e[34m9999\e[36m" <>
+           "\e[32m]\e[36m"
+
+    opts = [syntax_colors: [reset: :cyan, atom: :red, list: :green, number: :blue]]
+    assert inspect([], opts) == "\e[32m[]\e[36m"
+    assert inspect([a: 9999], opts) ==
+           "\e[32m[\e[36m" <>
+           "\e[31ma: \e[36m" <>
+           "\e[34m9999\e[36m" <>
+           "\e[32m]\e[36m"
+  end
+
+  test "limit with colors" do
+    opts = [limit: 1, syntax_colors: [reset: :cyan, list: :green, atom: :red]]
+    assert inspect([], opts) == "\e[32m[]\e[36m"
+    assert inspect([:x, :y], opts) ==
+           "\e[32m[\e[36m" <>
+           "\e[31m:x\e[36m" <>
+           "\e[32m,\e[36m " <>
+           "..." <>
+           "\e[32m]\e[36m"
   end
 end
 
@@ -266,9 +370,7 @@ defmodule Inspect.MapTest do
   end
 
   defmodule Public do
-    def __struct__ do
-      %{key: 0, __struct__: Public}
-    end
+    defstruct key: 0
   end
 
   defmodule Private do
@@ -289,9 +391,7 @@ defmodule Inspect.MapTest do
   end
 
   defmodule Failing do
-    def __struct__ do
-      %{key: 0}
-    end
+    defstruct key: 0
 
     defimpl Inspect do
       def inspect(struct, _) do
@@ -309,7 +409,7 @@ defmodule Inspect.MapTest do
       inspect(%Failing{}, safe: false)
     end
 
-    assert [{Inspect.Inspect.MapTest.Failing, :inspect, 2, _}|_] = System.stacktrace
+    assert [{Inspect.Inspect.MapTest.Failing, :inspect, 2, _} | _] = System.stacktrace
   end
 
   test "bad implementation safe" do
@@ -325,21 +425,47 @@ defmodule Inspect.MapTest do
     assert inspect(%RuntimeError{message: "runtime error"}) ==
            "%RuntimeError{message: \"runtime error\"}"
   end
+
+  test "colors" do
+    opts = [syntax_colors: [reset: :cyan, atom: :red, number: :magenta]]
+    assert inspect(%{1 => 2}, opts) ==
+           "%{\e[35m1\e[36m => \e[35m2\e[36m}"
+
+    assert inspect(%{a: 1}, opts) ==
+           "%{\e[31ma: \e[36m\e[35m1\e[36m}"
+
+    assert inspect(%Public{key: 1}, opts) ==
+           "%Inspect.MapTest.Public{\e[31mkey: \e[36m\e[35m1\e[36m}"
+
+    opts = [syntax_colors: [reset: :cyan, atom: :red, map: :green, number: :blue]]
+    assert inspect(%{a: 9999}, opts) ==
+           "\e[32m%{\e[36m" <>
+           "\e[31ma: \e[36m" <>
+           "\e[34m9999\e[36m" <>
+           "\e[32m}\e[36m"
+  end
 end
 
 defmodule Inspect.OthersTest do
   use ExUnit.Case, async: true
 
-  def f do
+  def fun() do
     fn() -> :ok end
   end
 
-  test "external elixir funs" do
-    bin = inspect(&Enum.map/2)
-    assert bin == "&Enum.map/2"
+  def unquote(:"weirdly named/fun-")() do
+    fn() -> :ok end
   end
 
-  test "external erlang funs" do
+  test "external Elixir funs" do
+    bin = inspect(&Enum.map/2)
+    assert bin == "&Enum.map/2"
+
+    assert inspect(&__MODULE__."weirdly named/fun-"/0) ==
+           ~s(&Inspect.OthersTest."weirdly named/fun-"/0)
+  end
+
+  test "external Erlang funs" do
     bin = inspect(&:lists.map/2)
     assert bin == "&:lists.map/2"
   end
@@ -369,24 +495,42 @@ defmodule Inspect.OthersTest do
 
   test "other funs" do
     assert "#Function<" <> _ = inspect(fn(x) -> x + 1 end)
-    assert "#Function<" <> _ = inspect(f)
+    assert "#Function<" <> _ = inspect(fun())
+    opts = [syntax_colors: []]
+    assert "#Function<" <> _ = inspect(fun(), opts)
+    opts = [syntax_colors: [reset: :red]]
+    assert "#Function<" <> rest = inspect(fun(), opts)
+    assert String.ends_with?(rest, ">")
+
+    inspected = inspect(__MODULE__."weirdly named/fun-"())
+    assert inspected =~ ~r(#Function<\d+\.\d+/0 in Inspect\.OthersTest\."weirdly named/fun-"/0>)
   end
 
   test "map set" do
     assert "#MapSet<" <> _ = inspect(MapSet.new)
   end
 
-  test "pids" do
-    assert "#PID<" <> _ = inspect(self)
+  test "PIDs" do
+    assert "#PID<" <> _ = inspect(self())
+    opts = [syntax_colors: []]
+    assert "#PID<" <> _ = inspect(self(), opts)
+    opts = [syntax_colors: [reset: :cyan]]
+    assert "#PID<" <> rest = inspect(self(), opts)
+    assert String.ends_with?(rest, ">")
   end
 
   test "references" do
-    assert "#Reference<" <> _ = inspect(make_ref)
+    assert "#Reference<" <> _ = inspect(make_ref())
   end
 
   test "regex" do
-    "~r/foo/m" = inspect(~r(foo)m)
-    "~r/\\a\\x08\\x7F\\x1B\\f\\n\\r \\t\\v\\//" = inspect(Regex.compile!("\a\b\d\e\f\n\r\s\t\v/"))
-    "~r/\\a\\b\\d\\e\\f\\n\\r\\s\\t\\v\\//" = inspect(~r<\a\b\d\e\f\n\r\s\t\v/>)
+    assert inspect(~r(foo)m) == "~r/foo/m"
+    assert inspect(Regex.compile!("\a\b\d\e\f\n\r\s\t\v/")) ==
+           "~r/\\a\\x08\\x7F\\x1B\\f\\n\\r \\t\\v\\//"
+    assert inspect(~r<\a\b\d\e\f\n\r\s\t\v/>) ==
+           "~r/\\a\\b\\d\\e\\f\\n\\r\\s\\t\\v\\//"
+    opts = [syntax_colors: [regex: :red]]
+    assert inspect(~r/hi/, opts) ==
+           "\e[31m~r/hi/\e[0m"
   end
 end

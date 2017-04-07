@@ -7,33 +7,45 @@ defmodule Mix.Tasks.Archive.Build do
   Builds an archive according to the specification of the
   [Erlang Archive Format](http://www.erlang.org/doc/man/code.html).
 
+  Archives are meant to contain small projects, usually installed
+  locally. Archives may be installed into a Mix environment by
+  running `mix archive.install`. Once installed, the archive is
+  available to all Mix projects. For this reason, the functionality
+  behind archives is limited. For instance, archives do not include
+  dependencies, as those would conflict with any dependency in a
+  Mix project after the archive is installed. In general, we recommend
+  the usage of archives to be limited for extensions of Mix, such
+  as custom SCMs, package managers, etc. For general scripts to be
+  installed into machines, please see `mix escript.build`.
+
   The archive will be created in the current directory (which is
   expected to be the project root), unless an argument `-o` is
   provided with the file name.
 
-  Archives are meant to bundle small projects, usually installed
-  locally.  By default, this command archives the current project
-  but the `-i` and `-o` options can be used to archive any directory.
-  For example, `mix archive.build` with no options translates to:
+  By default, this command archives the current project but the `-i`
+  option can be used to archive any directory. For example,
+  `mix archive.build` with no options translates to:
 
       mix archive.build -i _build/ENV/lib/APP -o APP-VERSION.ez
 
   ## Command line options
 
-    * `-o` - specify output file name.
+    * `-o` - specifies output file name.
       If there is a `mix.exs`, defaults to "APP-VERSION.ez".
 
-    * `-i` - specify the input directory to archive.
+    * `-i` - specifies the input directory to archive.
       If there is a `mix.exs`, defaults to the current application build.
 
-    * `--no-compile` - skip compilation.
+    * `--no-compile` - skips compilation.
       Only applies when `mix.exs` is available.
 
   """
+  @switches [force: :boolean, compile: :boolean, output: :string, input: :string,
+             deps_check: :boolean, archives_check: :boolean, elixir_version_check: :boolean]
+
   @spec run(OptionParser.argv) :: :ok
   def run(args) do
-    {opts, _, _} = OptionParser.parse(args, aliases: [o: :output, i: :input],
-                                      switches: [force: :boolean, compile: :boolean])
+    {opts, _} = OptionParser.parse!(args, aliases: [o: :output, i: :input], strict: @switches)
 
     project = Mix.Project.get
 
@@ -81,10 +93,9 @@ defmodule Mix.Tasks.Archive.Build do
   defp create(source, target) do
     source_path = Path.expand(source)
     target_path = Path.expand(target)
-    dir = Mix.Local.archive_name(target_path) |> String.to_char_list
-    {:ok, _} = :zip.create(String.to_char_list(target_path),
-                  files_to_add(source_path, dir),
-                  uncompress: ['.beam', '.app'])
+    dir = Mix.Local.archive_name(target_path) |> String.to_charlist
+    {:ok, _} = :zip.create(String.to_charlist(target_path),
+                  files_to_add(source_path, dir))
     :ok
   end
 
@@ -97,7 +108,7 @@ defmodule Mix.Tasks.Archive.Build do
       Enum.reduce evsn ++ ebin ++ priv, [], fn(f, acc) ->
         case File.read(f) do
           {:ok, bin} ->
-            [{Path.join(dir, f) |> String.to_char_list, bin}|acc]
+            [{Path.join(dir, f) |> String.to_charlist, bin} | acc]
           {:error, _} ->
             acc
         end

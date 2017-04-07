@@ -62,6 +62,20 @@ defmodule Mix.ConfigTest do
     assert config() == [my_app: [key: :value]]
   end
 
+  test "import_config/1 raises for recursive import" do
+    use Mix.Config
+
+    exception =
+      assert_raise Mix.Config.LoadError, fn ->
+        import_config fixture_path("configs/imports_recursive.exs")
+      end
+
+    message = Exception.message(exception)
+
+    assert message =~ ~r/could not load config .*\/imports_recursive\.exs\n/
+    assert message =~ ~r/\(ArgumentError\) recursive load of.*\/imports_recursive.exs detected/
+  end
+
   test "import_config/1 with wildcards" do
     use Mix.Config
     import_config fixture_path("configs/good_*.exs")

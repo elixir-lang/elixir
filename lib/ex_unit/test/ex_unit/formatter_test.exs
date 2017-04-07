@@ -72,11 +72,11 @@ defmodule ExUnit.FormatterTest do
   end
 
   test "formats test EXITs" do
-    failure = [{{:EXIT, self}, 1, []}]
+    failure = [{{:EXIT, self()}, 1, []}]
     assert format_test_failure(test(), failure, 1, 80, &formatter/2) == """
       1) world (Hello)
          test/ex_unit/formatter_test.exs:1
-         ** (EXIT from #{inspect self}) 1
+         ** (EXIT from #{inspect self()}) 1
     """
   end
 
@@ -141,16 +141,16 @@ defmodule ExUnit.FormatterTest do
 
          Failure #2
          Assertion with == failed
-         code: 1 == 2
-         lhs:  1
-         rhs:  2
+         code:  1 == 2
+         left:  1
+         right: 2
     """
   end
 
   test "formats test case errors" do
     failure = [{:error, catch_error(raise "oops"), []}]
     assert format_test_case_failure(test_case(), failure, 1, 80, &formatter/2) =~ """
-      1) Hello: failure on setup_all callback, tests invalidated
+      1) Hello: failure on setup_all callback, test invalidated
          ** (RuntimeError) oops
     """
   end
@@ -158,26 +158,26 @@ defmodule ExUnit.FormatterTest do
   test "formats assertions with operators with no limit" do
     failure = [{:error, catch_assertion(assert [1, 2, 3] == [4, 5, 6]), []}]
     assert format_test_case_failure(test_case(), failure, 1, :infinity, &formatter/2) =~ """
-      1) Hello: failure on setup_all callback, tests invalidated
+      1) Hello: failure on setup_all callback, test invalidated
          Assertion with == failed
-         code: [1, 2, 3] == [4, 5, 6]
-         lhs:  [1, 2, 3]
-         rhs:  [4, 5, 6]
+         code:  [1, 2, 3] == [4, 5, 6]
+         left:  [1, 2, 3]
+         right: [4, 5, 6]
     """
   end
 
   test "formats assertions with operators with column limit" do
     failure = [{:error, catch_assertion(assert [1, 2, 3] == [4, 5, 6]), []}]
     assert format_test_case_failure(test_case(), failure, 1, 15, &formatter/2) =~ """
-      1) Hello: failure on setup_all callback, tests invalidated
+      1) Hello: failure on setup_all callback, test invalidated
          Assertion with == failed
-         code: [1, 2, 3] == [4, 5, 6]
-         lhs:  [1,
-                2,
-                3]
-         rhs:  [4,
-                5,
-                6]
+         code:  [1, 2, 3] == [4, 5, 6]
+         left:  [1,
+                 2,
+                 3]
+         right: [4,
+                 5,
+                 6]
     """
   end
 
@@ -185,7 +185,7 @@ defmodule ExUnit.FormatterTest do
     message = "Some meaningful error:\nuseful info\nanother useful info"
     failure = [{:error, catch_assertion(assert(false, message)), []}]
     assert format_test_case_failure(test_case(), failure, 1, :infinity, &formatter/2) =~ """
-      1) Hello: failure on setup_all callback, tests invalidated
+      1) Hello: failure on setup_all callback, test invalidated
          Some meaningful error:
          useful info
          another useful info
@@ -213,9 +213,9 @@ defmodule ExUnit.FormatterTest do
       1) world (Hello)
          test/ex_unit/formatter_test.exs:1
          Assertion with == failed
-         code: :will_fail == %BadInspect{}
-         lhs:  :will_fail
-         rhs:  %Inspect.Error{message: #{inspect message}}
+         code:  :will_fail == %BadInspect{}
+         left:  :will_fail
+         right: %Inspect.Error{message: #{inspect message}}
     """
   end
 

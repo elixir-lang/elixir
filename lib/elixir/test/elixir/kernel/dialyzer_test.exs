@@ -14,14 +14,20 @@ defmodule Kernel.DialyzerTest do
     plt =
       dir
       |> Path.join("base_plt")
-      |> String.to_char_list()
+      |> String.to_charlist()
 
-    # Add a few key elixir modules for types
-    files = Enum.map([Kernel, String, Keyword, Exception], &:code.which/1)
-    :dialyzer.run([analysis_type: :plt_build, output_plt: plt,
-                   apps: [:erts], files: files])
+    # Some OSs (like Windows) do not provide the HOME environment variable.
+    unless System.get_env("HOME") do
+      System.put_env("HOME", System.user_home())
+    end
 
-    # Compile dialyzer fixtures
+    # Add a few key Elixir modules for types and macro functions
+    mods = [Kernel, String, Keyword, Exception, Macro, Macro.Env, :elixir_env]
+    files = Enum.map(mods, &:code.which/1)
+    dialyzer_run([analysis_type: :plt_build, output_plt: plt,
+                  apps: [:erts], files: files])
+
+    # Compile Dialyzer fixtures
     assert '' = elixirc("#{fixture_path("dialyzer")} -o #{dir}")
 
     {:ok, [base_dir: dir, base_plt: plt]}
@@ -33,13 +39,13 @@ defmodule Kernel.DialyzerTest do
     dir =
       context[:base_dir]
       |> Path.join("line#{context[:line]}")
-      |> String.to_char_list()
+      |> String.to_charlist()
     File.mkdir_p!(dir)
 
     plt =
       dir
       |> Path.join("plt")
-      |> String.to_char_list()
+      |> String.to_charlist()
     File.cp!(context[:base_plt], plt)
 
     dialyzer = [analysis_type: :succ_typings, check_plt: false,
@@ -63,6 +69,29 @@ defmodule Kernel.DialyzerTest do
     assert_dialyze_no_warnings! context
   end
 
+  test "no warnings on macrocallback", context do
+    copy_beam! context, Dialyzer.Macrocallback
+    copy_beam! context, Dialyzer.Macrocallback.Impl
+    assert_dialyze_no_warnings! context
+  end
+
+  test "no warnings on struct update", context do
+    copy_beam! context, Dialyzer.StructUpdate
+    assert_dialyze_no_warnings! context
+  end
+
+  test "no warnings on protocol calls with opaque types", context do
+    copy_beam! context, Dialyzer.ProtocolOpaque
+    copy_beam! context, Dialyzer.ProtocolOpaque.Entity
+    copy_beam! context, Dialyzer.ProtocolOpaque.Duck
+    assert_dialyze_no_warnings! context
+  end
+
+  test "no warnings on and/2 and or/2", context do
+    copy_beam! context, Dialyzer.BooleanCheck
+    assert_dialyze_no_warnings! context
+  end
+
   defp copy_beam!(context, module) do
     name = "#{module}.beam"
     File.cp! Path.join(context[:base_dir], name),
@@ -70,11 +99,20 @@ defmodule Kernel.DialyzerTest do
   end
 
   defp assert_dialyze_no_warnings!(context) do
-    case :dialyzer.run(context[:dialyzer]) do
+    case dialyzer_run(context[:dialyzer]) do
       [] ->
         :ok
       warnings ->
         flunk IO.chardata_to_string(for warn <- warnings, do: [:dialyzer.format_warning(warn), ?\n])
+    end
+  end
+
+  defp dialyzer_run(opts) do
+    try do
+      :dialyzer.run(opts)
+    catch
+      :throw, {:dialyzer_error, chardata} ->
+        raise "dialyzer error: " <> IO.chardata_to_string(chardata)
     end
   end
 end

@@ -4,6 +4,14 @@ defmodule Logger.FormatterTest do
 
   import Logger.Formatter
 
+  test "prune/1" do
+    assert prune(1) == "�"
+    assert prune(<<"hí", 233>>) == "hí�"
+    assert prune(["hi" | 233]) == ["hi" | "�"]
+    assert prune([233 | "hi"]) == [233 | "hi"]
+    assert prune([[] | []]) == [[]]
+  end
+
   defmodule CompileMod do
     def format(_level, _msg, _ts, _md) do
       true

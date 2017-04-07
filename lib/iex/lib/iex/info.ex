@@ -14,7 +14,15 @@ end
 
 defimpl IEx.Info, for: Atom do
   def info(atom) do
-    specific_info = if Code.ensure_loaded?(atom), do: info_module(atom), else: info_atom(atom)
+    specific_info =
+      cond do
+        Code.ensure_loaded?(atom) ->
+          info_module(atom)
+        match?("Elixir." <> _, Atom.to_string(atom)) ->
+          info_module_like_atom(atom)
+        true ->
+          info_atom(atom)
+      end
     ["Data type": "Atom"] ++ specific_info
   end
 
@@ -27,14 +35,32 @@ defimpl IEx.Info, for: Atom do
       end
 
     mod_info = mod.module_info()
-    ["Module bytecode": module_object_file(mod),
-     "Source": module_source_file(mod_info),
-     "Version": module_version(mod_info),
-     "Compile time": module_compile_time(mod_info),
-     "Compile options": module_compile_options(mod_info),
-     "Description": "#{extra}Call #{inspect mod}.module_info() to access metadata.",
-     "Raw representation": ":" <> inspect(Atom.to_string(mod)),
-     "Reference modules": "Module, Atom"]
+    generic_info =
+      ["Module bytecode": module_object_file(mod),
+       "Source": module_source_file(mod_info),
+       "Version": module_version(mod_info),
+       "Compile options": module_compile_options(mod_info),
+       "Description": "#{extra}Call #{inspect mod}.module_info() to access metadata."]
+
+    specific_info =
+      if function_exported?(mod, :__protocol__, 1) do
+        impls =
+          mod
+          |> Protocol.extract_impls(:code.get_path())
+          |> Enum.map_join(", ", &inspect/1)
+        ["Protocol": "This module is a protocol. These data structures implement it:\n  #{impls}"]
+      else
+        []
+      end
+
+    generic_info ++ specific_info ++
+      ["Raw representation": ":" <> inspect(Atom.to_string(mod)),
+       "Reference modules": "Module, Atom"]
+  end
+
+  defp info_module_like_atom(atom) do
+    ["Raw representation": ":" <> inspect(Atom.to_string(atom)),
+     "Reference modules": "Atom"]
   end
 
   defp info_atom(_atom) do
@@ -60,19 +86,8 @@ defimpl IEx.Info, for: Atom do
     default_or_apply(mod_info[:compile][:options], &inspect/1)
   end
 
-  defp module_compile_time(mod_info) do
-    default_or_apply(mod_info[:compile][:time], &format_time/1)
-  end
-
-  defp format_time({year, month, day, hour, min, sec}) do
-    "#{year}-#{zeropad(month)}-#{zeropad(day)} #{zeropad(hour)}:#{zeropad(min)}:#{zeropad(sec)}"
-  end
-
   defp default_or_apply(nil, _), do: "no value found"
   defp default_or_apply(data, fun), do: fun.(data)
-
-  defp zeropad(number) when number < 10, do: "0#{number}"
-  defp zeropad(number), do: "#{number}"
 end
 
 defimpl IEx.Info, for: List do
@@ -80,7 +95,7 @@ defimpl IEx.Info, for: List do
     specific_info =
       cond do
         list == []                    -> info_list(list)
-        Inspect.List.printable?(list) -> info_char_list(list)
+        Inspect.List.printable?(list) -> info_charlist(list)
         Keyword.keyword?(list)        -> info_kw_list(list)
         true                          -> info_list(list)
       end
@@ -88,17 +103,17 @@ defimpl IEx.Info, for: List do
     ["Data type": "List"] ++ specific_info
   end
 
-  defp info_char_list(char_list) do
+  defp info_charlist(charlist) do
     desc = """
     This is a list of integers that is printed as a sequence of characters
     delimited by single quotes because all the integers in it represent valid
     ASCII characters. Conventionally, such lists of integers are referred to as
-    "char lists" (more precisely, a char list is a list of Unicode codepoints,
+    "charlists" (more precisely, a charlist is a list of Unicode codepoints,
     and ASCII is a subset of Unicode).
     """
 
     ["Description": desc,
-     "Raw representation": inspect(char_list, char_lists: :as_lists),
+     "Raw representation": inspect(charlist, charlists: :as_lists),
      "Reference modules": "List"]
   end
 
@@ -231,7 +246,7 @@ defimpl IEx.Info, for: PID do
   def info(pid) do
     extra =
       case :rpc.pinfo(pid, @keys) do
-        [_|_] = info ->
+        [_ | _] = info ->
           ["Alive": true,
            "Name": process_name(info[:registered_name]),
            "Links": links(info[:links]),
@@ -272,6 +287,33 @@ end
 defimpl IEx.Info, for: Reference do
   def info(_) do
     ["Data type": "Reference"]
+  end
+end
+
+defimpl IEx.Info, for: [Date, Time, NaiveDateTime] do
+  {sigil, repr} =
+    case @for do
+      Date -> {"D", "date"}
+      Time -> {"T", "time"}
+      NaiveDateTime -> {"N", ~S{"naive" datetime (that is, a datetime without a timezone)}}
+    end
+
+  def info(value) do
+    desc = """
+    This is a struct representing a #{unquote(repr)}. It is commonly represented
+    using the `~#{unquote(sigil)}` sigil syntax, that is defined in the `Kernel.sigil_#{unquote(sigil)}/2` macro.
+    """
+    ["Data type": inspect(@for),
+     "Description": desc,
+     "Raw representation": raw_inspect(value),
+     "Reference modules": inspect(@for) <> ", Calendar, Map"]
+  end
+
+  defp raw_inspect(value) do
+    value
+    |> Inspect.Any.inspect(%Inspect.Opts{})
+    |> Inspect.Algebra.format(:infinity)
+    |> IO.iodata_to_binary
   end
 end
 

@@ -68,41 +68,41 @@ defmodule Module.LocalsTrackerTest do
     assert {:bar, 1} in D.reachable(config[:pid])
   end
 
-  @unused [
-    {{:private, 1}, :defp, 0}
-  ]
-
   test "unused private definitions are marked as so", config do
     D.add_definition(config[:pid], :def, {:public, 1})
-
-    unused = D.collect_unused_locals(config[:pid], @unused)
-    assert unused == {[private: 1], [{:unused_def, {:private, 1}, :defp}]}
-
     D.add_local(config[:pid], {:public, 1}, {:private, 1})
-    unused = D.collect_unused_locals(config[:pid], @unused)
+    D.add_local(config[:pid], {:private, 2})
+
+    unused = D.collect_unused_locals(config[:pid], [{{:private, 0}, :defp, [], 0}])
+    assert unused == {[private: 0], [{[], {:unused_def, {:private, 0}, :defp}}]}
+
+    unused = D.collect_unused_locals(config[:pid], [{{:private, 1}, :defp, [], 0}])
+    assert unused == {[], []}
+
+    unused = D.collect_unused_locals(config[:pid], [{{:private, 2}, :defp, [], 0}])
     assert unused == {[], []}
   end
 
   @unused [
-    {{:private, 3}, :defp, 3}
+    {{:private, 3}, :defp, [], 3}
   ]
 
   test "private definitions with unused default arguments", config do
     D.add_definition(config[:pid], :def, {:public, 1})
 
     unused = D.collect_unused_locals(config[:pid], @unused)
-    assert unused == {[private: 3], [{:unused_def, {:private, 3}, :defp}]}
+    assert unused == {[private: 3], [{[], {:unused_def, {:private, 3}, :defp}}]}
 
     D.add_local(config[:pid], {:public, 1}, {:private, 3})
     unused = D.collect_unused_locals(config[:pid], @unused)
-    assert unused == {[], [unused_args: {:private, 3}]}
+    assert unused == {[], [{[], {:unused_args, {:private, 3}}}]}
   end
 
   test "private definitions with some unused default arguments", config do
     D.add_definition(config[:pid], :def, {:public, 1})
     D.add_local(config[:pid], {:public, 1}, {:private, 1})
     unused = D.collect_unused_locals(config[:pid], @unused)
-    assert unused == {[private: 3], [{:unused_args, {:private, 3}, 1}]}
+    assert unused == {[private: 3], [{[], {:unused_args, {:private, 3}, 1}}]}
   end
 
   test "private definitions with all used default arguments", config do
@@ -133,12 +133,12 @@ defmodule Module.LocalsTrackerTest do
     refute {:foo, 3} in D.reachable(config[:pid])
   end
 
-  test "defaults are connected", config do
+  test "defaults are connected to last clause only", config do
     D.add_definition(config[:pid], :defp, {:foo, 4})
     D.add_defaults(config[:pid], :defp, {:foo, 4}, 2)
     D.add_local(config[:pid], {:foo, 2})
     assert {:foo, 2} in D.reachable(config[:pid])
-    assert {:foo, 3} in D.reachable(config[:pid])
+    refute {:foo, 3} in D.reachable(config[:pid])
     assert {:foo, 4} in D.reachable(config[:pid])
   end
 
@@ -151,15 +151,17 @@ defmodule Module.LocalsTrackerTest do
   end
 
   test "find import conflicts", config do
-    refute {[Module], :conflict, 1} in D.collect_imports_conflicts(config[:pid], [conflict: 1])
+    entries = [{{:conflict, 1}, :def, [], []}]
+
+    refute {[], {[Module], :conflict, 1}} in D.collect_imports_conflicts(config[:pid], entries)
 
     # Calls outside local functions are not triggered
     D.add_import(config[:pid], nil, Module, {:conflict, 1})
-    refute {[Module], :conflict, 1} in D.collect_imports_conflicts(config[:pid], [conflict: 1])
+    refute {[], {[Module], :conflict, 1}} in D.collect_imports_conflicts(config[:pid], entries)
 
     D.add_local(config[:pid], {:foo, 2})
     D.add_import(config[:pid], {:foo, 2}, Module, {:conflict, 1})
-    assert {[Module], :conflict, 1} in D.collect_imports_conflicts(config[:pid], [conflict: 1])
+    assert {[], {[Module], :conflict, 1}} in D.collect_imports_conflicts(config[:pid], entries)
   end
 
   defmodule NoPrivate do

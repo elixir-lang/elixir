@@ -2,12 +2,13 @@ defmodule Behaviour do
   @moduledoc """
   This module has been deprecated.
 
-  Instead of `defcallback`, one can simply use `@callback`.
-  Instead of `defmacrocallback`, one can simply use `@macrocallback`.
-  Instead of `__behaviour__(:callbacks)`, one can simply use `behaviour_info(:callbacks)`.
-  """
+  Instead of `defcallback/1` and `defmacrocallback/1`, the `@callback` and
+  `@macrocallback` module attributes can be used (respectively). See the
+  documentation for `Module` for more information on these attributes.
 
-  # TODO: Deprecate by 1.4
+  Instead of `MyModule.__behaviour__(:callbacks)`,
+  `MyModule.behaviour_info(:callbacks)` can be used.
+  """
 
   @doc """
   Defines a function callback according to the given type specification.
@@ -79,6 +80,12 @@ defmodule Behaviour do
   @doc false
   defmacro __using__(_) do
     quote do
+      warning =
+        "the Behaviour module is deprecated. Instead of using this module, " <>
+        "use the @callback and @macrocallback module attributes. See the " <>
+        "documentation for Module for more information on these attributes"
+      IO.warn(warning)
+
       @doc false
       def __behaviour__(:callbacks) do
         __MODULE__.behaviour_info(:callbacks)

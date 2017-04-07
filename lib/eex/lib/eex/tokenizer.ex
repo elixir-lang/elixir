@@ -1,31 +1,39 @@
 defmodule EEx.Tokenizer do
   @moduledoc false
 
+  @type content :: IO.chardata
+  @type line :: non_neg_integer
+  @type token :: {:text, content} |
+                 {:expr | :start_expr | :middle_expr | :end_expr, line, '=' | '', content}
+
   @doc """
-  Tokenizes the given char list or binary.
+  Tokenizes the given charlist or binary.
 
   It returns {:ok, list} with the following tokens:
 
-    * `{:text, contents}`
-    * `{:expr, line, marker, contents}`
-    * `{:start_expr, line, marker, contents}`
-    * `{:middle_expr, line, marker, contents}`
-    * `{:end_expr, line, marker, contents}`
+    * `{:text, content}`
+    * `{:expr, line, marker, content}`
+    * `{:start_expr, line, marker, content}`
+    * `{:middle_expr, line, marker, content}`
+    * `{:end_expr, line, marker, content}`
 
   Or `{:error, line, error}` in case of errors.
   """
+  @spec tokenize(binary | charlist, line, Keyword.t) :: {:ok, [token]} | {:error, line, String.t}
   def tokenize(bin, line, opts \\ [])
 
-  def tokenize(bin, line, opts) when is_binary(bin) do
-    tokenize(String.to_char_list(bin), line, opts)
+  def tokenize(bin, line, opts)
+      when is_binary(bin) and is_integer(line) and line >= 0 and is_list(opts) do
+    tokenize(String.to_charlist(bin), line, opts)
   end
 
-  def tokenize(list, line, opts) do
+  def tokenize(list, line, opts)
+      when is_list(list) and is_integer(line) and line >= 0 and is_list(opts) do
     tokenize(list, line, opts, [], [])
   end
 
   defp tokenize('<%%' ++ t, line, opts, buffer, acc) do
-   tokenize t, line, opts, [?%, ?<|buffer], acc
+   tokenize t, line, opts, [?%, ?< | buffer], acc
   end
 
   defp tokenize('<%#' ++ t, line, opts, buffer, acc) do
@@ -52,11 +60,11 @@ defmodule EEx.Tokenizer do
   end
 
   defp tokenize('\n' ++ t, line, opts, buffer, acc) do
-    tokenize t, line + 1, opts, [?\n|buffer], acc
+    tokenize t, line + 1, opts, [?\n | buffer], acc
   end
 
-  defp tokenize([h|t], line, opts, buffer, acc) do
-    tokenize t, line, opts, [h|buffer], acc
+  defp tokenize([h | t], line, opts, buffer, acc) do
+    tokenize t, line, opts, [h | buffer], acc
   end
 
   defp tokenize([], _line, _opts, buffer, acc) do
@@ -75,16 +83,16 @@ defmodule EEx.Tokenizer do
 
   # Tokenize an expression until we find %>
 
-  defp expr([?%, ?>|t], line, buffer) do
+  defp expr([?%, ?> | t], line, buffer) do
     {:ok, buffer, line, t}
   end
 
   defp expr('\n' ++ t, line, buffer) do
-    expr t, line + 1, [?\n|buffer]
+    expr t, line + 1, [?\n | buffer]
   end
 
-  defp expr([h|t], line, buffer) do
-    expr t, line, [h|buffer]
+  defp expr([h | t], line, buffer) do
+    expr t, line, [h | buffer]
   end
 
   defp expr([], line, _buffer) do
@@ -98,11 +106,11 @@ defmodule EEx.Tokenizer do
   # Middle tokens are marked with "->" or keywords
   # End tokens contain only the end word and optionally ")"
 
-  defp token_name([h|t]) when h in [?\s, ?\t, ?)] do
+  defp token_name([h | t]) when h in [?\s, ?\t, ?)] do
     token_name(t)
   end
 
-  defp token_name('od' ++ [h|_]) when h in [?\s, ?\t, ?)] do
+  defp token_name('od' ++ [h | _]) when h in [?\s, ?\t, ?)] do
     :start_expr
   end
 
@@ -143,7 +151,7 @@ defmodule EEx.Tokenizer do
     Enum.find_index tokens, fn
       {:fn_paren, _} -> true
       {:fn, _}       -> true
-      _                -> false
+      _              -> false
     end
   end
 
@@ -173,7 +181,6 @@ defmodule EEx.Tokenizer do
   # If trim mode is enabled and the token is on a line with
   # only itself and whitespace, trim the whitespace around it,
   # including the line break following it if there is one.
-
   defp trim_if_needed(rest, line, opts, buffer, acc) do
     original = {rest, line, buffer}
     if opts[:trim] do
@@ -190,7 +197,7 @@ defmodule EEx.Tokenizer do
 
   defp trim_left(buffer, acc) do
     case {trim_whitespace(buffer), acc} do
-      {[?\n|_] = trimmed_buffer, _} -> {true, trimmed_buffer}
+      {[?\n | _] = trimmed_buffer, _} -> {true, trimmed_buffer}
       {[], []} -> {true, []}
       _ -> {false, buffer}
     end
@@ -198,14 +205,14 @@ defmodule EEx.Tokenizer do
 
   defp trim_right(rest, line) do
     case trim_whitespace(rest) do
-      [?\r, ?\n|trimmed_rest] -> {true, trimmed_rest, line + 1}
-      [?\n|trimmed_rest] -> {true, trimmed_rest, line + 1}
+      [?\r, ?\n | trimmed_rest] -> {true, trimmed_rest, line + 1}
+      [?\n | trimmed_rest] -> {true, trimmed_rest, line + 1}
       [] -> {true, [], line}
       _ -> {false, rest, line}
     end
   end
 
-  defp trim_whitespace([h|t]) when h == ?\s or h == ?\t do
+  defp trim_whitespace([h | t]) when h == ?\s or h == ?\t do
     trim_whitespace(t)
   end
 

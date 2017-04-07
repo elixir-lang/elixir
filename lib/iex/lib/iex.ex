@@ -23,7 +23,7 @@ defmodule IEx do
       Enum.
 
   Such function may not be available on some Windows shells. You may need
-  to pass the `--werl` flag when starting iex, as in `iex --werl` for it
+  to pass the `--werl` flag when starting IEx, as in `iex --werl` for it
   to work. `--werl` may be permanently enabled by setting the `IEX_WITH_WERL`
   environment variable.
 
@@ -80,7 +80,7 @@ defmodule IEx do
       iex(foo@HOST)1>
 
   The string between the parentheses in the prompt is the name
-  of your node. We can retrieve it by calling the `node()`
+  of your node. We can retrieve it by calling the `node/0`
   function:
 
       iex(foo@HOST)1> node()
@@ -134,29 +134,32 @@ defmodule IEx do
 
   ## The .iex.exs file
 
-  When starting IEx, it will look for a local `.iex.exs` file (located in the current
-  working directory), then a global one (located at `~/.iex.exs`) and will load the
-  first one it finds (if any). The code in the chosen .iex.exs file will be
+  When starting, IEx looks for a local `.iex.exs` file (located in the current
+  working directory), then a global one (located at `~/.iex.exs`) and loads the
+  first one it finds (if any). The code in the loaded `.iex.exs` file is
   evaluated in the shell's context. So, for instance, any modules that are
-  loaded or variables that are bound in the .iex.exs file will be available in the
+  loaded or variables that are bound in the `.iex.exs` file will be available in the
   shell after it has booted.
 
-  Sample contents of a local .iex.exs file:
+  For example, take the following `.iex.exs` file:
 
-      # source another ".iex.exs" file
+      # Load another ".iex.exs" file
       import_file "~/.iex.exs"
 
-      # print something before the shell starts
+      # Import some module from lib that may not yet have been defined
+      import_if_available MyApp.Mod
+
+      # Print something before the shell starts
       IO.puts "hello world"
 
-      # bind a variable that'll be accessible in the shell
+      # Bind a variable that'll be accessible in the shell
       value = 13
 
-  Running the shell in the directory where the above .iex.exs file is located
+  Running IEx in the directory where the above `.iex.exs` file is located
   results in:
 
       $ iex
-      Erlang 17 [...]
+      Erlang 19 [...]
 
       hello world
       Interactive Elixir - press Ctrl+C to exit (type h() ENTER for help)
@@ -164,23 +167,23 @@ defmodule IEx do
       13
 
   It is possible to load another file by supplying the `--dot-iex`
-  option to iex. See `iex --help`.
+  option to IEx. See `iex --help`.
 
   ## Configuring the shell
 
-  There are a number of customization options provided by the shell. Take a look
+  There are a number of customization options provided by IEx. Take a look
   at the docs for the `IEx.configure/1` function by typing `h IEx.configure/1`.
 
   Those options can be configured in your project configuration file or globally
-  by calling `IEx.configure/1` from your `~/.iex.exs` file like this:
+  by calling `IEx.configure/1` from your `~/.iex.exs` file. For example:
 
       # .iex.exs
       IEx.configure(inspect: [limit: 3])
 
-      ### now run the shell ###
+  Now run the shell:
 
       $ iex
-      Erlang 17 (erts-5.10.1) [...]
+      Erlang 19 [...]
 
       Interactive Elixir - press Ctrl+C to exit (type h() ENTER for help)
       iex(1)> [1, 2, 3, 4, 5]
@@ -219,13 +222,30 @@ defmodule IEx do
       ...(1)> #iex:break
       ** (TokenMissingError) iex:1: incomplete expression
 
+  ## Exiting the shell
+
+  There are a few ways to quit the IEx shell:
+
+    * via the `BREAK` menu (available via `Ctrl+C`) by typing `q`, `Enter`
+    * by hitting `Ctrl+C`, `Ctrl+C`
+    * by hitting `Ctrl+\`
+
+  If you are connected to remote shell, it remains alive after disconnection.
   """
 
   @doc """
   Configures IEx.
 
-  The supported options are: `:colors`, `:inspect`, `:width`,
-  `:history_size`, `:default_prompt` and `:alive_prompt`.
+  The supported options are:
+
+    * `:colors`
+    * `:inspect`
+    * `:width`
+    * `:history_size`
+    * `:default_prompt`
+    * `:alive_prompt`
+
+  They are discussed individually in the sections below.
 
   ## Colors
 
@@ -233,7 +253,7 @@ defmodule IEx do
   shell. See documentation for the `IO.ANSI` module for the list of
   supported colors and attributes.
 
-  The value is a keyword list. List of supported keys:
+  List of supported keys in the keyword list:
 
     * `:enabled`      - boolean value that allows for switching the coloring on and off
     * `:eval_result`  - color for an expression's resulting value
@@ -244,8 +264,9 @@ defmodule IEx do
     * `:ls_directory` - ... for directory entries (ls helper)
     * `:ls_device`    - ... device entries (ls helper)
 
-  When printing documentation, IEx will convert the markdown
-  documentation to ANSI as well. Those can be configured via:
+  When printing documentation, IEx will convert the Markdown
+  documentation to ANSI as well. Colors for this can be configured
+  via:
 
     * `:doc_code`        - the attributes for code blocks (cyan, bright)
     * `:doc_inline_code` - inline code (cyan)
@@ -254,22 +275,41 @@ defmodule IEx do
     * `:doc_bold`        - (bright)
     * `:doc_underline`   - (underline)
 
+  IEx will also color inspected expressions using the `:syntax_colors`
+  option. Such can be disabled with:
+
+      IEx.configure [colors: [syntax_colors: false]]
+
+  You can also configure the syntax colors, however, as desired:
+
+      IEx.configure [colors: [syntax_colors: [atom: :red]]]
+
+  Configuration for most built-in data types are supported: `:atom`,
+  `:string`, `:binary`, `:list`, `:number`, `:boolean`, `:nil`, etc.
+  The default is:
+
+      [number: :magenta, atom: :cyan, string: :green,
+       boolean: :magenta, nil: :magenta]
+
   ## Inspect
 
   A keyword list containing inspect options used by the shell
   when printing results of expression evaluation. Default to
   pretty formatting with a limit of 50 entries.
 
+  To show all entries, configure the limit to `:infinity`:
+
+      IEx.configure [inspect: [limit: :infinity]]
+
   See `Inspect.Opts` for the full list of options.
 
   ## Width
 
-  An integer indicating the number of columns to use in documentation
-  output. Default is 80 columns or result of `:io.columns`, whichever
-  is smaller. The configured value will be used unless it is too large,
-  which in that case `:io.columns` is used. This way you can configure
-  IEx to be your largest screen size and it should always take up the
-  full width of your terminal screen.
+  An integer indicating the maximum number of columns to use in output.
+  The default value is 80 columns. The actual output width is the minimum
+  of this number and result of `:io.columns`. This way you can configure IEx
+  to be your largest screen size and it should always take up the full width
+  of your current terminal screen.
 
   ## History size
 
@@ -281,10 +321,10 @@ defmodule IEx do
   This is an option determining the prompt displayed to the user
   when awaiting input.
 
-  The value is a keyword list. Two prompt types:
+  The value is a keyword list with two possible keys representing prompt types:
 
-    * `:default_prompt` - used when `Node.alive?` returns `false`
-    * `:alive_prompt`   - used when `Node.alive?` returns `true`
+    * `:default_prompt` - used when `Node.alive?/0` returns `false`
+    * `:alive_prompt`   - used when `Node.alive?/0` returns `true`
 
   The following values in the prompt string will be replaced appropriately:
 
@@ -335,14 +375,14 @@ defmodule IEx do
       nil ->
         string
       ansi ->
-        IO.iodata_to_binary([IO.ANSI.format_fragment(ansi, true), string | IO.ANSI.reset])
+        [ansi | string] |> IO.ANSI.format(true) |> IO.iodata_to_binary()
     end
   end
 
   @doc """
   Gets the IEx width for printing.
 
-  Used by helpers and it has a maximum cap of 80 chars.
+  Used by helpers and it has a default maximum cap of 80 chars.
   """
   def width do
     IEx.Config.width()
@@ -363,7 +403,7 @@ defmodule IEx do
   is temporarily changed to trap exits (i.e. the process flag
   `:trap_exit` is set to `true`) and has the `group_leader` changed
   to support ANSI escape codes. Those values are reverted by
-  calling `respawn`, which starts a new IEx shell, freeing up
+  calling `respawn/0`, which starts a new IEx shell, freeing up
   the pried one.
 
   When a process is pried, all code runs inside IEx and, as
@@ -401,20 +441,20 @@ defmodule IEx do
 
   Keep in mind that `IEx.pry/1` runs in the caller process,
   blocking the caller during the evaluation cycle. The caller
-  process can be freed by calling `respawn`, which starts a
+  process can be freed by calling `respawn/0`, which starts a
   new IEx evaluation cycle, letting this one go:
 
-      pry(2)> respawn
+      pry(2)> respawn()
       true
 
       Interactive Elixir - press Ctrl+C to exit (type h() ENTER for help)
 
   Setting variables or importing modules in IEx does not
-  affect the caller the environment (hence it is called `pry`).
+  affect the caller's environment (hence it is called `pry`).
   """
   defmacro pry(timeout \\ 5000) do
     quote do
-      IEx.pry(binding, __ENV__, unquote(timeout))
+      IEx.pry(binding(), __ENV__, unquote(timeout))
     end
   end
 
@@ -423,12 +463,12 @@ defmodule IEx do
 
   You can invoke this function directly when you are not able to invoke
   `IEx.pry/1` as a macro. This function expects the binding (from
-  `Kernel.binding/0`), the environment (from `__ENV__`) and the timeout
+  `Kernel.binding/0`), the environment (from `__ENV__/0`) and the timeout
   (a sensible default is 5000).
   """
   def pry(binding, env, timeout) do
     opts = [binding: binding, dot_iex_path: "", env: env, prefix: "pry"]
-    meta = "#{inspect self} at #{Path.relative_to_cwd(env.file)}:#{env.line}"
+    meta = "#{inspect self()} at #{Path.relative_to_cwd(env.file)}:#{env.line}"
     desc =
       if File.regular?(env.file) do
         parse_file(env)
@@ -459,7 +499,7 @@ defmodule IEx do
       env.file
       |> File.stream!
       |> Enum.slice(max(env.line - 3, 0), 5)
-    Enum.intersperse(["\n\n"|lines], "    ")
+    Enum.intersperse(["\n\n" | lines], "    ")
   end
 
   ## Callbacks
@@ -496,15 +536,15 @@ defmodule IEx do
     glnode = node gl
 
     expand_fun =
-      if glnode != node do
+      if glnode != node() do
         _ = ensure_module_exists glnode, IEx.Remsh
-        IEx.Remsh.expand node
+        IEx.Remsh.expand node()
       else
         &IEx.Autocomplete.expand(&1)
       end
 
     # expand_fun is not supported by a shell variant
-    # on Windows, so we do two io calls, not caring
+    # on Windows, so we do two IO calls, not caring
     # about the result of the expand_fun one.
     _ = :io.setopts(gl, expand_fun: expand_fun)
     :io.setopts(gl, binary: true, encoding: :unicode)
@@ -518,7 +558,7 @@ defmodule IEx do
   end
 
   defp run_after_spawn do
-    _ = for fun <- Enum.reverse(after_spawn), do: fun.()
+    _ = for fun <- Enum.reverse(after_spawn()), do: fun.()
     :ok
   end
 end

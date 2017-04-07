@@ -13,7 +13,7 @@ defmodule Kernel.MacrosTest do
 
   doctest Macro
 
-  require Kernel.MacrosTest.Nested, as: Nested
+  Kernel.MacrosTest.Nested = require Kernel.MacrosTest.Nested, as: Nested
 
   defmacro my_macro do
     quote do: 1 + 1
@@ -27,6 +27,13 @@ defmodule Kernel.MacrosTest do
     quote do: 1 + unquote(value)
   end
 
+  defp by_two(x), do: x * 2
+
+  defmacro my_macro_with_local(value) do
+    value = by_two(by_two(value))
+    quote do: 1 + unquote(value)
+  end
+
   test "require" do
     assert Kernel.MacrosTest.Nested.value == 1
   end
@@ -36,11 +43,15 @@ defmodule Kernel.MacrosTest do
   end
 
   test "local but private macro" do
-    assert my_private_macro == 4
+    assert my_private_macro() == 4
   end
 
   test "local with defaults macro" do
-    assert my_macro_with_default == 6
+    assert my_macro_with_default() == 6
+  end
+
+  test "local with local call" do
+    assert my_macro_with_local(4) == 17
   end
 
   test "macros cannot be called dynamically" do
@@ -48,7 +59,7 @@ defmodule Kernel.MacrosTest do
     assert_raise UndefinedFunctionError, fn -> x.value end
   end
 
-  test "bang do block" do
+  test "macros with bang and do block have proper precedence" do
     import Kernel.MacrosTest.Nested
     assert (do_identity! do 1 end) == 1
     assert (Kernel.MacrosTest.Nested.do_identity! do 1 end) == 1

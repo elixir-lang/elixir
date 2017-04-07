@@ -79,11 +79,11 @@ defmodule RegexTest do
     assert Regex.opts(Regex.compile!("foo", "i")) == "i"
   end
 
-  test "unicode" do
+  test "Unicode" do
     assert "olá" =~ ~r"\p{Latin}$"u
     refute "£" =~ ~r/\p{Lu}/u
 
-    # Non breaking space matches [[:space:]] with unicode
+    # Non breaking space matches [[:space:]] with Unicode
     assert <<0xA0::utf8>> =~ ~r/[[:space:]]/u
     assert <<0xA0::utf8>> =~ ~r/\s/u
 
@@ -243,10 +243,11 @@ defmodule RegexTest do
 
     assert matches_escaped?("\\A  \\z")
     assert matches_escaped?("  x  ")
-    assert matches_escaped?("  x    x ") # unicode spaces here
+    assert matches_escaped?("  x    x ") # Unicode spaces here
     assert matches_escaped?("# lol")
 
     assert matches_escaped?("\\A.^$*+?()[{\\| \t\n\x20\\z #hello\u202F\u205F")
+    assert Regex.match? Regex.compile!("[" <> Regex.escape("!-#") <> "]"), "-"
 
     assert Regex.escape("{}") == "\\{\\}"
     assert Regex.escape("[]") == "\\[\\]"

@@ -199,24 +199,24 @@ defmodule Kernel.RaiseTest do
     assert result
   end
 
-  test "rescue named with underscore" do
+  test "rescue named without aliases" do
     result = try do
       raise "an exception"
     rescue
-      x in _ -> Exception.message(x)
+      x -> Exception.message(x)
     end
 
     assert result == "an exception"
   end
 
-  test "wrap custom erlang error" do
+  test "wrap custom Erlang error" do
     result = try do
       :erlang.error(:sample)
     rescue
       x in [RuntimeError, ErlangError] -> Exception.message(x)
     end
 
-    assert result == "erlang error: :sample"
+    assert result == "Erlang error: :sample"
   end
 
   test "undefined function error" do
@@ -283,9 +283,10 @@ defmodule Kernel.RaiseTest do
   end
 
   test "badfun error" do
-    x = :example
+    # Avoid "invalid function call" warning in >= OTP 19
+    x = fn -> :example end
     result = try do
-      x.(2)
+      x.().(2)
     rescue
       x in [BadFunctionError] -> Exception.message(x)
     end
@@ -332,6 +333,16 @@ defmodule Kernel.RaiseTest do
     assert result == "expected a map, got: 0"
   end
 
+  test "bad boolean error" do
+    result = try do
+      1 and true
+    rescue
+      x in [BadBooleanError] -> Exception.message(x)
+    end
+
+    assert result == "expected a boolean on left-side of \"and\", got: 1"
+  end
+
   test "case clause error" do
     x = :example
     result = try do
@@ -373,7 +384,7 @@ defmodule Kernel.RaiseTest do
     assert result == "no try clause matching: :example"
   end
 
-  test "undefined function error as erlang error" do
+  test "undefined function error as Erlang error" do
     result = try do
       DoNotExist.for_sure()
     rescue
@@ -391,7 +402,7 @@ defmodule Kernel.RaiseTest do
     result = try do
       DoNotExist.for_sure()
     rescue
-      x in exceptions -> Exception.message(x)
+      x in exceptions() -> Exception.message(x)
     end
 
     assert result == "function DoNotExist.for_sure/0 is undefined (module DoNotExist is not available)"

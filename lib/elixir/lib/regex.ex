@@ -3,8 +3,8 @@ defmodule Regex do
   Provides regular expressions for Elixir. Built on top of Erlang's `:re`
   module.
 
-  As the `:re` module, Regex is based on PCRE
-  (Perl Compatible Regular Expressions). More information can be
+  As the [`:re` module](http://www.erlang.org/doc/man/re.html), Regex is based
+  on PCRE (Perl Compatible Regular Expressions). More information can be
   found in the [`:re` module documentation](http://www.erlang.org/doc/man/re.html).
 
   Regular expressions in Elixir can be created using `Regex.compile!/2`
@@ -13,21 +13,32 @@ defmodule Regex do
       # A simple regular expressions that matches foo anywhere in the string
       ~r/foo/
 
-      # A regular expression with case insensitive and unicode options
+      # A regular expression with case insensitive and Unicode options
       ~r/foo/iu
 
   A Regex is represented internally as the `Regex` struct. Therefore,
   `%Regex{}` can be used whenever there is a need to match on them.
+  Keep in mind it is not guaranteed two regular expressions from the
+  same source are equal, for example:
+
+      ~r/(?<foo>.)(?<bar>.)/ == ~r/(?<foo>.)(?<bar>.)/
+
+  may return `true` or `false` depending on your machine, endianess, available
+  optimizations and others. You can, however, retrieve the source of a
+  compiled regular expression by accessing the `source` field, and then
+  compare those directly:
+
+      ~r/(?<foo>.)(?<bar>.)/.source == ~r/(?<foo>.)(?<bar>.)/.source
 
   ## Modifiers
 
   The modifiers available when creating a Regex are:
 
-    * `unicode` (u) - enables unicode specific patterns like `\p` and change
-      modifiers like `\w`, `\W`, `\s` and friends to also match on unicode.
-      It expects valid unicode strings to be given on match
+    * `unicode` (u) - enables Unicode specific patterns like `\p` and change
+      modifiers like `\w`, `\W`, `\s` and friends to also match on Unicode.
+      It expects valid Unicode strings to be given on match
 
-    * `caseless` (i) - add case insensitivity
+    * `caseless` (i) - adds case insensitivity
 
     * `dotall` (s) - causes dot to match newlines and also set newline to
       anycrlf; the new line setting can be overridden by setting `(*CR)` or
@@ -70,7 +81,7 @@ defmodule Regex do
       explicitly captured subpatterns, but not the complete matching part of
       the string
 
-    * `:none` - do not return matching subpatterns at all
+    * `:none` - does not return matching subpatterns at all
 
     * `:all_names` - captures all names in the Regex
 
@@ -184,7 +195,7 @@ defmodule Regex do
 
   ## Options
 
-    * `:return`  - set to `:index` to return indexes. Defaults to `:binary`.
+    * `:return`  - sets to `:index` to return indexes. Defaults to `:binary`.
     * `:capture` - what to capture in the result. Check the moduledoc for `Regex`
       to see the possible capture values.
 
@@ -290,7 +301,7 @@ defmodule Regex do
     names
   end
 
-  @doc """
+  @doc ~S"""
   Same as `run/3`, but scans the target several times collecting all
   matches of the regular expression.
 
@@ -299,7 +310,7 @@ defmodule Regex do
 
   ## Options
 
-    * `:return`  - set to `:index` to return indexes. Defaults to `:binary`.
+    * `:return`  - sets to `:index` to return indexes. Defaults to `:binary`.
     * `:capture` - what to capture in the result. Check the moduledoc for `Regex`
       to see the possible capture values.
 
@@ -313,6 +324,9 @@ defmodule Regex do
 
       iex> Regex.scan(~r/e/, "abcd")
       []
+
+      iex> Regex.scan(~r/\p{Sc}/u, "$, £, and €")
+      [["$"], ["£"], ["€"]]
 
   """
   @spec scan(t, String.t, [term]) :: [[String.t]]
@@ -352,28 +366,28 @@ defmodule Regex do
 
   ## Examples
 
-      iex> Regex.split(~r/-/, "a-b-c")
+      iex> Regex.split(~r{-}, "a-b-c")
       ["a", "b", "c"]
 
-      iex> Regex.split(~r/-/, "a-b-c", [parts: 2])
+      iex> Regex.split(~r{-}, "a-b-c", [parts: 2])
       ["a", "b-c"]
 
-      iex> Regex.split(~r/-/, "abc")
+      iex> Regex.split(~r{-}, "abc")
       ["abc"]
 
-      iex> Regex.split(~r//, "abc")
+      iex> Regex.split(~r{}, "abc")
       ["a", "b", "c", ""]
 
-      iex> Regex.split(~r/a(?<second>b)c/, "abc")
+      iex> Regex.split(~r{a(?<second>b)c}, "abc")
       ["", ""]
 
-      iex> Regex.split(~r/a(?<second>b)c/, "abc", on: [:second])
+      iex> Regex.split(~r{a(?<second>b)c}, "abc", on: [:second])
       ["a", "c"]
 
-      iex> Regex.split(~r/(x)/, "Elixir", include_captures: true)
+      iex> Regex.split(~r{(x)}, "Elixir", include_captures: true)
       ["Eli", "x", "ir"]
 
-      iex> Regex.split(~r/a(?<second>b)c/, "abc", on: [:second], include_captures: true)
+      iex> Regex.split(~r{a(?<second>b)c}, "abc", on: [:second], include_captures: true)
       ["a", "b", "c"]
 
   """
@@ -415,38 +429,38 @@ defmodule Regex do
   defp do_split([], string, offset, _counter, _trim, _with_captures),
     do: [binary_part(string, offset, byte_size(string) - offset)]
 
-  defp do_split([[{pos, _}|h]|t], string, offset, counter, trim, with_captures) when pos - offset < 0,
-    do: do_split([h|t], string, offset, counter, trim, with_captures)
+  defp do_split([[{pos, _} | h] | t], string, offset, counter, trim, with_captures) when pos - offset < 0,
+    do: do_split([h | t], string, offset, counter, trim, with_captures)
 
-  defp do_split([[]|t], string, offset, counter, trim, with_captures),
+  defp do_split([[] | t], string, offset, counter, trim, with_captures),
     do: do_split(t, string, offset, counter, trim, with_captures)
 
-  defp do_split([[{pos, length}|h]|t], string, offset, counter, trim, true) do
+  defp do_split([[{pos, length} | h] | t], string, offset, counter, trim, true) do
     new_offset = pos + length
     keep = pos - offset
 
     if keep == 0 and length == 0 do
-      do_split([h|t], string, new_offset, counter, trim, true)
+      do_split([h | t], string, new_offset, counter, trim, true)
     else
       <<_::binary-size(offset), part::binary-size(keep), match::binary-size(length), _::binary>> = string
 
       if keep == 0 and (length == 0 or trim) do
-        [match | do_split([h|t], string, new_offset, counter - 1, trim, true)]
+        [match | do_split([h | t], string, new_offset, counter - 1, trim, true)]
       else
-        [part, match | do_split([h|t], string, new_offset, counter - 1, trim, true)]
+        [part, match | do_split([h | t], string, new_offset, counter - 1, trim, true)]
       end
     end
   end
 
-  defp do_split([[{pos, length}|h]|t], string, offset, counter, trim, false) do
+  defp do_split([[{pos, length} | h] | t], string, offset, counter, trim, false) do
     new_offset = pos + length
     keep = pos - offset
 
     if keep == 0 and (length == 0 or trim) do
-      do_split([h|t], string, new_offset, counter, trim, false)
+      do_split([h | t], string, new_offset, counter, trim, false)
     else
       <<_::binary-size(offset), part::binary-size(keep), _::binary>> = string
-      [part | do_split([h|t], string, new_offset, counter - 1, trim, false)]
+      [part | do_split([h | t], string, new_offset, counter - 1, trim, false)]
     end
   end
 
@@ -456,8 +470,10 @@ defmodule Regex do
 
   The replacement can be either a string or a function. The string
   is used as a replacement for every match and it allows specific
-  captures to be accessed via `\\N` or `\g{N}`, where `N` is the
-  capture. In case `\\0` is used, the whole match is inserted.
+  captures to be accessed via `\N` or `\g{N}`, where `N` is the
+  capture. In case `\0` is used, the whole match is inserted. Note
+  that in regexes the backslash needs to be escaped, hence in practice
+  you'll need to use `\\N` and `\\g{N}`.
 
   When the replacement is a function, the function may have arity
   N where each argument maps to a capture, with the first argument
@@ -509,13 +525,13 @@ defmodule Regex do
 
   defp do_replace(%Regex{re_pattern: compiled}, string, replacement, options) do
     opts = if Keyword.get(options, :global) != false, do: [:global], else: []
-    opts = [{:capture, :all, :index}|opts]
+    opts = [{:capture, :all, :index} | opts]
 
     case :re.run(string, compiled, opts) do
       :nomatch ->
         string
-      {:match, [mlist|t]} when is_list(mlist) ->
-        apply_list(string, replacement, [mlist|t]) |> IO.iodata_to_binary
+      {:match, [mlist | t]} when is_list(mlist) ->
+        apply_list(string, replacement, [mlist | t]) |> IO.iodata_to_binary
       {:match, slist} ->
         apply_list(string, replacement, [slist]) |> IO.iodata_to_binary
     end
@@ -535,7 +551,7 @@ defmodule Regex do
 
   defp precompile_replacement(<<?\\, x, rest::binary>>) when x in ?0..?9 do
     {ns, rest} = pick_int(rest)
-    [List.to_integer([x|ns]) | precompile_replacement(rest)]
+    [List.to_integer([x | ns]) | precompile_replacement(rest)]
   end
 
   defp precompile_replacement(<<x, rest::binary>>) do
@@ -549,7 +565,7 @@ defmodule Regex do
 
   defp pick_int(<<x, rest::binary>>) when x in ?0..?9 do
     {found, rest} = pick_int(rest)
-    {[x|found], rest}
+    {[x | found], rest}
   end
 
   defp pick_int(bin) do
@@ -617,14 +633,14 @@ defmodule Regex do
   end
 
   defp get_indexes(string, [], arity) do
-    [""|get_indexes(string, [], arity - 1)]
+    ["" | get_indexes(string, [], arity - 1)]
   end
 
-  defp get_indexes(string, [h|t], arity) do
-    [get_index(string, h)|get_indexes(string, t, arity - 1)]
+  defp get_indexes(string, [h | t], arity) do
+    [get_index(string, h) | get_indexes(string, t, arity - 1)]
   end
 
-  {:ok, pattern} = :re.compile(~S"[.^$*+?()\[\]{}\\\|\s#]", [:unicode])
+  {:ok, pattern} = :re.compile(~S"[.^$*+?()\[\]{}\\\|\s#-]", [:unicode])
   @escape_pattern pattern
 
   @doc ~S"""
@@ -658,18 +674,18 @@ defmodule Regex do
 
   # Private Helpers
 
-  defp translate_options(<<?u, t::binary>>, acc), do: translate_options(t, [:unicode, :ucp|acc])
-  defp translate_options(<<?i, t::binary>>, acc), do: translate_options(t, [:caseless|acc])
-  defp translate_options(<<?x, t::binary>>, acc), do: translate_options(t, [:extended|acc])
-  defp translate_options(<<?f, t::binary>>, acc), do: translate_options(t, [:firstline|acc])
-  defp translate_options(<<?U, t::binary>>, acc), do: translate_options(t, [:ungreedy|acc])
-  defp translate_options(<<?s, t::binary>>, acc), do: translate_options(t, [:dotall, {:newline, :anycrlf}|acc])
-  defp translate_options(<<?m, t::binary>>, acc), do: translate_options(t, [:multiline|acc])
+  defp translate_options(<<?u, t::binary>>, acc), do: translate_options(t, [:unicode, :ucp | acc])
+  defp translate_options(<<?i, t::binary>>, acc), do: translate_options(t, [:caseless | acc])
+  defp translate_options(<<?x, t::binary>>, acc), do: translate_options(t, [:extended | acc])
+  defp translate_options(<<?f, t::binary>>, acc), do: translate_options(t, [:firstline | acc])
+  defp translate_options(<<?U, t::binary>>, acc), do: translate_options(t, [:ungreedy | acc])
+  defp translate_options(<<?s, t::binary>>, acc), do: translate_options(t, [:dotall, {:newline, :anycrlf} | acc])
+  defp translate_options(<<?m, t::binary>>, acc), do: translate_options(t, [:multiline | acc])
 
+  # TODO: Remove on 2.0
   defp translate_options(<<?r, t::binary>>, acc) do
-    IO.write :stderr, "warning: the /r modifier in regular expressions is deprecated, please use /U instead\n" <>
-                      Exception.format_stacktrace
-    translate_options(t, [:ungreedy|acc])
+    IO.warn "the /r modifier in regular expressions is deprecated, please use /U instead"
+    translate_options(t, [:ungreedy | acc])
   end
 
   defp translate_options(<<>>, acc), do: acc

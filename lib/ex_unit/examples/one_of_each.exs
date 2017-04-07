@@ -94,12 +94,12 @@ defmodule TestOneOfEach do
   end
 
   test "19. refute a message is received within a timeout" do
-    send self, {:hello, "Dave"}
+    send self(), {:hello, "Dave"}
     refute_receive {:hello, _}, 1000
   end
 
   test "20. refute a message is ready to be received" do
-    send self, :hello_again
+    send self(), :hello_again
     refute_received :hello_again
   end
 
@@ -145,6 +145,13 @@ defmodule TestOneOfEach do
 
   @tag report: [:user_id, :post_id, :many_ids]
   test "27. tag reporting" do
+    flunk "oops"
+  end
+
+  @tag capture_log: true
+  test "28. log capturing" do
+    require Logger
+    Logger.debug "this will be logged"
     flunk "oops"
   end
 

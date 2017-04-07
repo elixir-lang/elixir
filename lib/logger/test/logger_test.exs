@@ -59,10 +59,30 @@ defmodule LoggerTest do
 
   test "add_backend/1 with {module, id}" do
     defmodule MyBackend do
-      use GenEvent
+      @behaviour :gen_event
 
       def init({MyBackend, :hello}) do
         {:ok, :hello}
+      end
+
+      def handle_event(_event, state) do
+        {:ok, state}
+      end
+
+      def handle_call(:error, _) do
+        raise "oops"
+      end
+
+      def handle_info(_msg, state) do
+        {:ok, state}
+      end
+
+      def code_change(_old_vsn, state, _extra) do
+        {:ok, state}
+      end
+
+      def terminate(_reason, _state) do
+        :ok
       end
     end
 
@@ -100,6 +120,14 @@ defmodule LoggerTest do
     assert capture_log(fn ->
       assert Logger.bare_log(:info, "ok", [application: nil, module: LoggerTest]) == :ok
     end) =~ msg("application= module=LoggerTest [info]  ok")
+  end
+
+  test "metadata merge when the argument function returns metadata" do
+    assert Logger.metadata([module: Sample]) == :ok
+
+    assert capture_log(fn ->
+      assert Logger.bare_log(:info, fn -> {"ok", [module: "Function"]} end, [application: nil, module: LoggerTest]) == :ok
+    end) =~ msg("application= module=Function [info]  ok")
   end
 
   test "enable/1 and disable/1" do
@@ -213,7 +241,7 @@ defmodule LoggerTest do
   test "unused variable warnings suppressed when we remove macros from the AST" do
     Logger.configure(compile_time_purge_level: :info)
 
-    # This should not warn, even if the logger call is purged from the AST.
+    # This should not warn, even if the Logger call is purged from the AST.
     assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
       Code.eval_string """
       defmodule Unused do
@@ -277,7 +305,7 @@ defmodule LoggerTest do
     Logger.configure(truncate: 8096)
   end
 
-  test "log/2 does not fails when the Logger is off" do
+  test "log/2 does not fails when the logger is off" do
     logger = Process.whereis(Logger)
     Process.unregister(Logger)
 
@@ -286,6 +314,12 @@ defmodule LoggerTest do
     after
       Process.register(logger, Logger)
     end
+  end
+
+  test "log/2 prunes bad unicode chars" do
+    assert capture_log(fn ->
+      assert Logger.log(:debug, "he" <> <<185>> <> "lo") == :ok
+    end) =~ "he�lo"
   end
 
   test "log/2 relies on sync_threshold" do

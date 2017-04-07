@@ -5,6 +5,9 @@ defmodule HashSet do
   Use the `MapSet` module instead.
   """
 
+  # TODO: Remove by 2.0
+  # (hard-deprecated in elixir_dispatch)
+
   @node_bitmap 0b111
   @node_shift 3
   @node_size 8
@@ -42,7 +45,7 @@ defmodule HashSet do
   end
 
   def to_list(set) do
-    set_fold(set, [], &[&1|&2]) |> :lists.reverse
+    set_fold(set, [], &[&1 | &2]) |> :lists.reverse
   end
 
   def equal?(%HashSet{size: size1} = set1, %HashSet{size: size2} = set2) do
@@ -110,10 +113,10 @@ defmodule HashSet do
   defp do_member?(node, term, hash) do
     index = key_mask(hash)
     case elem(node, index) do
-      []        -> false
-      [^term|_] -> true
-      [_]       -> false
-      [_|n]     -> do_member?(n, term, key_shift(hash))
+      []          -> false
+      [^term | _] -> true
+      [_]         -> false
+      [_ | n]     -> do_member?(n, term, key_shift(hash))
     end
   end
 
@@ -122,14 +125,14 @@ defmodule HashSet do
     case elem(node, index) do
       [] ->
         {put_elem(node, index, [term]), 1}
-      [^term|_] ->
+      [^term | _] ->
         {node, 0}
       [t] ->
         n = put_elem(@node_template, key_mask(key_shift(hash)), [term])
-        {put_elem(node, index, [t|n]), 1}
-      [t|n] ->
+        {put_elem(node, index, [t | n]), 1}
+      [t | n] ->
         {n, counter} = do_put(n, term, key_shift(hash))
-        {put_elem(node, index, [t|n]), counter}
+        {put_elem(node, index, [t | n]), counter}
     end
   end
 
@@ -142,14 +145,14 @@ defmodule HashSet do
         {:ok, put_elem(node, index, [])}
       [_] ->
         :error
-      [^term|n] ->
+      [^term | n] ->
         {:ok, put_elem(node, index, do_compact_node(n))}
-      [t|n] ->
+      [t | n] ->
         case do_delete(n, term, key_shift(hash)) do
           {:ok, @node_template} ->
             {:ok, put_elem(node, index, [t])}
           {:ok, n} ->
-            {:ok, put_elem(node, index, [t|n])}
+            {:ok, put_elem(node, index, [t | n])}
           :error ->
             :error
         end
@@ -162,19 +165,19 @@ defmodule HashSet do
         [t] ->
           case put_elem(node, unquote(index), []) do
             @node_template -> [t]
-            n -> [t|n]
+            n -> [t | n]
           end
-        [t|n] ->
-          [t|put_elem(node, unquote(index), do_compact_node(n))]
+        [t | n] ->
+          [t | put_elem(node, unquote(index), do_compact_node(n))]
       end
     end
   end
 
   ## Set fold
 
-  defp do_fold_each([], acc, _fun),   do: acc
-  defp do_fold_each([t], acc, fun),   do: fun.(t, acc)
-  defp do_fold_each([t|n], acc, fun), do: do_fold(n, fun.(t, acc), fun, @node_size)
+  defp do_fold_each([], acc, _fun),     do: acc
+  defp do_fold_each([t], acc, fun),     do: fun.(t, acc)
+  defp do_fold_each([t | n], acc, fun), do: do_fold(n, fun.(t, acc), fun, @node_size)
 
   defp do_fold(node, acc, fun, count) when count > 0 do
     acc = do_fold_each(:erlang.element(count, node), acc, fun)
@@ -203,7 +206,7 @@ defmodule HashSet do
     next.(fun.(t, acc))
   end
 
-  defp do_reduce_each([t|n], {:cont, acc}, fun, next) do
+  defp do_reduce_each([t | n], {:cont, acc}, fun, next) do
     do_reduce(n, fun.(t, acc), fun, @node_size, next)
   end
 

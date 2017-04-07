@@ -1,0 +1,8 @@
+[
+  {deps, [
+    {git_rebar, {git, filename:absname("../../test/fixtures/git_rebar")}}
+  ]},
+  {overrides, [
+    {override, git_rebar, [{deps, [{git_repo, {git, filename:absname("../../test/fixtures/git_repo")}}]}]}
+  ]}
+].

@@ -1,10 +1,10 @@
 defmodule Mix.Tasks.Escript.Install do
   use Mix.Task
 
-  @shortdoc "Install an escript locally"
+  @shortdoc "Installs an escript locally"
 
   @moduledoc """
-  Install an escript locally.
+  Installs an escript locally.
 
   If no argument is supplied but there is an escript in the project's root directory
   (created with `mix escript.build`), then the escript will be installed
@@ -12,11 +12,22 @@ defmodule Mix.Tasks.Escript.Install do
 
       mix do escript.build, escript.install
 
-  If an argument is provided, it should be a local path or a URL to a prebuilt escript.
+  If an argument is provided, it should be a local path or a URL to a prebuilt escript,
+  a Git repository, a GitHub repository, or a Hex package.
 
       mix escript.install escript
       mix escript.install path/to/escript
-      mix escript.install https://example.com/myescript
+      mix escript.install https://example.com/my_escript
+      mix escript.install git https://path/to/git/repo
+      mix escript.install git https://path/to/git/repo branch git_branch
+      mix escript.install git https://path/to/git/repo tag git_tag
+      mix escript.install git https://path/to/git/repo ref git_ref
+      mix escript.install github user/project
+      mix escript.install github user/project branch git_branch
+      mix escript.install github user/project tag git_tag
+      mix escript.install github user/project ref git_ref
+      mix escript.install hex hex_package
+      mix escript.install hex hex_package 1.2.3
 
   After installation, the escript can be invoked as
 
@@ -28,16 +39,24 @@ defmodule Mix.Tasks.Escript.Install do
 
   ## Command line options
 
-    * `--force` - forces installation without a shell prompt; primarily
-      intended for automation in build systems like make
+    * `--sha512` - checks the escript matches the given SHA-512 checksum. Only
+      applies to installations via URL or local path.
 
+    * `--force` - forces installation without a shell prompt; primarily
+      intended for automation in build systems like Make.
+
+    * `--submodules` - fetches repository submodules before building escript from
+      Git or GitHub.
+
+    * `--app` - specifies a custom app name to be used for building the escript
+      from Git, GitHub, or Hex.
   """
 
   @behaviour Mix.Local.Installer
 
   @escript_file_mode 0o555 # only read and execute permissions
 
-  @switches [force: :boolean]
+  @switches [force: :boolean, sha512: :string, submodules: :boolean, app: :string]
   @spec run(OptionParser.argv) :: boolean
   def run(argv) do
     Mix.Local.Installer.install({__MODULE__, :escript}, argv, @switches)
@@ -45,28 +64,35 @@ defmodule Mix.Tasks.Escript.Install do
 
   ### Mix.Local.Installer callbacks
 
-  def check_path_or_url(_), do: :ok
+  def check_install_spec(_, _), do: :ok
 
   def find_previous_versions(_src, dst) do
     if File.exists?(dst), do: [dst], else: []
   end
 
-  def before_install(_src, dst_path) do
-    File.rm(dst_path)
-    File.rm(dst_path <> ".bat")
-    :ok
-  end
-
-  def after_install(dst, binary, _previous) do
+  def install(dst, binary, _previous) do
     if escript?(binary) do
+      _ = File.rm(dst)
+      _ = File.rm(dst <> ".bat")
+
+      executable = Path.basename(dst)
+      previous_executable = System.find_executable(executable)
+
+      File.mkdir_p!(Path.dirname(dst))
+      File.write!(dst, binary)
       File.chmod!(dst, @escript_file_mode)
       write_bat!(dst <> ".bat", :os.type)
-      check_discoverability(dst)
+
+      Mix.shell.info [:green, "* creating ", :reset, Path.relative_to_cwd(dst)]
+      check_discoverability(dst, executable, previous_executable)
       :ok
     else
-      File.rm_rf(dst)
-      {:error, "The given path does not point to an escript, installation aborted"}
+      Mix.raise "The given path does not point to an escript, installation aborted"
     end
+  end
+
+  def build(_mixfile) do
+    Mix.Task.run("escript.build", [])
   end
 
   ### Private helpers
@@ -82,12 +108,30 @@ defmodule Mix.Tasks.Escript.Install do
     :ok
   end
 
-  defp check_discoverability(path) do
-    executable = Path.basename(path)
-    sys_path = System.find_executable(executable)
-    if sys_path != path do
-      Mix.shell.error "\nwarning: you must add #{Mix.Local.path_for(:escript)}\n" <>
-                      "to your PATH if you want to invoke escripts by name.\n"
+  defp check_discoverability(dst, executable, previous_executable) do
+    current_executable = System.find_executable(executable)
+
+    cond do
+      # If existing executable was changed,
+      # it was overridden
+      previous_executable && previous_executable != current_executable ->
+        Mix.shell.error "\nwarning: escript #{inspect executable} overrides executable " <>
+                        "#{inspect previous_executable} already in your PATH\n"
+
+      # If existing executable didn't change but it is not the one we installed,
+      # it is a conflict
+      previous_executable && previous_executable != dst ->
+        Mix.shell.error "\nwarning: escript #{inspect executable} conflicts with executable " <>
+                        "#{inspect previous_executable} already in your PATH\n"
+
+      # If current executable is nil or does not match the one we just installed,
+      # PATH is misconfigured
+      current_executable != dst ->
+        Mix.shell.error "\nwarning: you must append #{inspect Mix.Local.path_for(:escript)} " <>
+                        "to your PATH if you want to invoke escripts by name\n"
+
+      true ->
+        :ok
     end
   end
 

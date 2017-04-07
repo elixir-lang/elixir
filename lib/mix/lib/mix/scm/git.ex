@@ -25,6 +25,11 @@ defmodule Mix.SCM.Git do
   end
 
   def accepts_options(_app, opts) do
+    opts =
+      opts
+      |> Keyword.put(:checkout, opts[:dest])
+      |> sparse_opts()
+
     cond do
       gh = opts[:github] ->
         opts
@@ -40,8 +45,10 @@ defmodule Mix.SCM.Git do
   end
 
   def checked_out?(opts) do
-    # Are we inside a git repository?
-    File.regular?(Path.join(opts[:dest], ".git/HEAD"))
+    # Are we inside a Git repository?
+    opts[:checkout]
+    |> Path.join(".git/HEAD")
+    |> File.regular?
   end
 
   def lock_status(opts) do
@@ -50,7 +57,7 @@ defmodule Mix.SCM.Git do
 
     cond do
       lock_rev = get_lock_rev(lock, opts) ->
-        File.cd!(opts[:dest], fn ->
+        File.cd!(opts[:checkout], fn ->
           %{origin: origin, rev: rev} = get_rev_info()
           if get_lock_repo(lock) == origin and lock_rev == rev do
             :ok
@@ -76,51 +83,37 @@ defmodule Mix.SCM.Git do
 
   def checkout(opts) do
     assert_git!()
-
-    path     = opts[:dest]
-    location = opts[:git]
-
-    _ = File.rm_rf!(path)
-    git!(~s(clone --no-checkout --progress "#{location}" "#{path}"))
-
-    File.cd! path, fn -> do_checkout(opts) end
+    path = opts[:checkout]
+    File.rm_rf!(path)
+    File.mkdir_p!(path)
+    File.cd!(path, fn ->
+      git!("init --quiet")
+      git!("--git-dir=.git remote add origin \"#{opts[:git]}\"")
+      checkout(path, opts)
+    end)
   end
 
   def update(opts) do
     assert_git!()
-
-    File.cd! opts[:dest], fn ->
-      location = opts[:git]
-      update_origin(location)
-
-      command = IO.iodata_to_binary(["--git-dir=.git fetch --force",
-                                     progress_switch(git_version()),
-                                     tags_switch(opts[:tag])])
-
-      git!(command)
-      do_checkout(opts)
-    end
+    path = opts[:checkout]
+    File.cd! path, fn -> checkout(path, opts) end
   end
 
-  defp progress_switch(version) when {1, 7, 1} <= version, do: " --progress"
-  defp progress_switch(_),                                 do: ""
+  defp checkout(_path, opts) do
+    # Set configuration
+    sparse_toggle(opts)
+    update_origin(opts[:git])
 
-  defp tags_switch(nil), do: ""
-  defp tags_switch(_), do: " --tags"
+    # Fetch external data
+    [
+      "--git-dir=.git fetch --force --quiet",
+      progress_switch(git_version()),
+      tags_switch(opts[:tag])
+    ]
+    |> IO.iodata_to_binary()
+    |> git!()
 
-  ## Helpers
-
-  defp validate_git_options(opts) do
-    case Keyword.take(opts, [:branch, :ref, :tag]) do
-      []  -> opts
-      [_] -> opts
-      _   ->
-        Mix.raise "you should specify only one of branch, ref or tag, and only once. " <>
-                  "Error on git dependency: #{opts[:git]}"
-    end
-  end
-
-  defp do_checkout(opts) do
+    # Migrate the Git repo
     rev = get_lock_rev(opts[:lock], opts) || get_opts_rev(opts)
     git!("--git-dir=.git checkout --quiet #{rev}")
 
@@ -128,7 +121,65 @@ defmodule Mix.SCM.Git do
       git!("--git-dir=.git submodule update --init --recursive")
     end
 
+    # Get the new repo lock
     get_lock(opts)
+  end
+
+  defp sparse_opts(opts) do
+    if opts[:sparse] do
+      dest = Path.join(opts[:dest], opts[:sparse])
+      Keyword.put(opts, :dest, dest)
+    else
+      opts
+    end
+  end
+
+  defp sparse_toggle(opts) do
+    cond do
+      sparse = opts[:sparse] ->
+        sparse_check(git_version())
+        git!("--git-dir=.git config core.sparsecheckout true")
+        File.mkdir_p!(".git/info")
+        File.write!(".git/info/sparse-checkout", sparse)
+      File.exists?(".git/info/sparse-checkout") ->
+        File.write!(".git/info/sparse-checkout", "*")
+        git!("--git-dir=.git read-tree -mu HEAD")
+        git!("--git-dir=.git config core.sparsecheckout false")
+        File.rm(".git/info/sparse-checkout")
+      true ->
+        :ok
+    end
+  end
+
+  defp sparse_check(version) do
+    unless {1, 7, 4} <= version do
+      version = version |> Tuple.to_list |> Enum.join(".")
+      Mix.raise "Git >= 1.7.4 is required to use sparse checkout. " <>
+                "You are running version #{version}"
+    end
+  end
+
+  defp progress_switch(version) do
+    if {1, 7, 1} <= version, do: " --progress", else: ""
+  end
+
+  defp tags_switch(nil), do: ""
+  defp tags_switch(_), do: " --tags"
+
+  ## Helpers
+
+  defp validate_git_options(opts) do
+    err = "You should specify only one of branch, ref or tag, and only once. " <>
+          "Error on Git dependency: #{opts[:git]}"
+    validate_single_uniq(opts, [:branch, :ref, :tag], err)
+  end
+
+  defp validate_single_uniq(opts, take, error) do
+    case Keyword.take(opts, take) do
+      []  -> opts
+      [_] -> opts
+      _   -> Mix.raise error
+    end
   end
 
   defp get_lock(opts) do
@@ -146,7 +197,8 @@ defmodule Mix.SCM.Git do
   defp get_lock_rev(_, _), do: nil
 
   defp get_lock_opts(opts) do
-    lock_opts = Keyword.take(opts, [:branch, :ref, :tag])
+    lock_opts = Keyword.take(opts, [:branch, :ref, :tag, :sparse])
+
     if opts[:submodules] do
       lock_opts ++ [submodules: true]
     else
@@ -198,7 +250,7 @@ defmodule Mix.SCM.Git do
     end
   end
 
-  defp git_version do
+  def git_version do
     case Mix.State.fetch(:git_version) do
       {:ok, version} ->
         version

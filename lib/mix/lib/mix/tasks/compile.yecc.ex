@@ -30,7 +30,7 @@ defmodule Mix.Tasks.Compile.Yecc do
     * `:yecc_options` - compilation options that apply
       to Yecc's compiler.
 
-      For a list of the many more available options,
+      For a complete list of options,
       see [`:yecc.file/1`](http://www.erlang.org/doc/man/yecc.html#file-1).
       Note that the `:report`, `:return_errors`, and `:return_warnings` options
       are overridden by this compiler, thus setting them has no effect.
@@ -44,12 +44,18 @@ defmodule Mix.Tasks.Compile.Yecc do
   def run(args) do
     {opts, _, _} = OptionParser.parse(args, switches: [force: :boolean])
 
-    project      = Mix.Project.config
-    source_paths = project[:erlc_paths]
-    mappings     = Enum.zip(source_paths, source_paths)
-    options      = project[:yecc_options] || []
+    project = Mix.Project.config
 
-    Erlang.compile(manifest(), mappings, :yrl, :erl, opts[:force], fn
+    source_paths = project[:erlc_paths]
+    Mix.Compilers.Erlang.assert_valid_erlc_paths(source_paths)
+    mappings = Enum.zip(source_paths, source_paths)
+
+    options = project[:yecc_options] || []
+    unless is_list(options) do
+      Mix.raise ":yecc_options should be a list of options, got: #{inspect(options)}"
+    end
+
+    Erlang.compile(manifest(), mappings, :yrl, :erl, opts, fn
       input, output ->
         Erlang.ensure_application!(:parsetools, input)
         options = options ++ @forced_opts ++ [parserfile: Erlang.to_erl_file(output)]
@@ -60,7 +66,7 @@ defmodule Mix.Tasks.Compile.Yecc do
   @doc """
   Returns Yecc manifests.
   """
-  def manifests, do: [manifest]
+  def manifests, do: [manifest()]
   defp manifest, do: Path.join(Mix.Project.manifest_path, @manifest)
 
   @doc """

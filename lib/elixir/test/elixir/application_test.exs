@@ -3,6 +3,8 @@ Code.require_file "test_helper.exs", __DIR__
 defmodule ApplicationTest do
   use ExUnit.Case, async: true
 
+  import PathHelpers
+
   test "application environment" do
     assert Application.get_env(:elixir, :unknown) == nil
     assert Application.get_env(:elixir, :unknown, :default) == :default
@@ -52,15 +54,25 @@ defmodule ApplicationTest do
 
   test "application directory" do
     root = Path.expand("../../../..", __DIR__)
-    assert String.downcase(Application.app_dir(:elixir)) ==
-           String.downcase(Path.join(root, "bin/../lib/elixir"))
-    assert String.downcase(Application.app_dir(:elixir, "priv")) ==
-           String.downcase(Path.join(root, "bin/../lib/elixir/priv"))
-    assert String.downcase(Application.app_dir(:elixir, ["priv", "foo"])) ==
-           String.downcase(Path.join(root, "bin/../lib/elixir/priv/foo"))
+    assert normalize_app_dir(Application.app_dir(:elixir)) ==
+           normalize_app_dir(Path.join(root, "bin/../lib/elixir"))
+    assert normalize_app_dir(Application.app_dir(:elixir, "priv")) ==
+           normalize_app_dir(Path.join(root, "bin/../lib/elixir/priv"))
+    assert normalize_app_dir(Application.app_dir(:elixir, ["priv", "foo"])) ==
+           normalize_app_dir(Path.join(root, "bin/../lib/elixir/priv/foo"))
 
     assert_raise ArgumentError, fn ->
       Application.app_dir(:unknown)
+    end
+  end
+
+  if windows?() do
+    defp normalize_app_dir(path) do
+      path |> String.downcase |> Path.expand
+    end
+  else
+    defp normalize_app_dir(path) do
+      path |> String.downcase
     end
   end
 end

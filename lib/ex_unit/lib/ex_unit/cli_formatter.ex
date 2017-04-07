@@ -1,7 +1,6 @@
 defmodule ExUnit.CLIFormatter do
   @moduledoc false
-
-  use GenEvent
+  use GenServer
 
   import ExUnit.Formatter, only: [format_time: 2, format_filters: 2, format_test_failure: 5,
                                   format_test_case_failure: 5]
@@ -15,106 +14,99 @@ defmodule ExUnit.CLIFormatter do
       trace: opts[:trace],
       colors: Keyword.put_new(opts[:colors], :enabled, IO.ANSI.enabled?),
       width: get_terminal_width(),
-      tests_counter: 0,
-      failures_counter: 0,
+      test_counter: %{},
+      failure_counter: 0,
       skipped_counter: 0,
-      invalids_counter: 0
+      invalid_counter: 0
     }
     {:ok, config}
   end
 
-  def handle_event({:suite_started, _opts}, config) do
-    {:ok, config}
+  def handle_cast({:suite_started, _opts}, config) do
+    {:noreply, config}
   end
 
-  def handle_event({:suite_finished, run_us, load_us}, config) do
+  def handle_cast({:suite_finished, run_us, load_us}, config) do
     print_suite(config, run_us, load_us)
-    :remove_handler
+    {:noreply, config}
   end
 
-  def handle_event({:test_started, %ExUnit.Test{} = test}, config) do
-    if config.trace, do: IO.write "  * #{trace_test_name test}"
-    {:ok, config}
+  def handle_cast({:test_started, %ExUnit.Test{} = test}, config) do
+    if config.trace, do: IO.write "  * #{test.name}"
+    {:noreply, config}
   end
 
-  def handle_event({:test_finished, %ExUnit.Test{state: nil} = test}, config) do
+  def handle_cast({:test_finished, %ExUnit.Test{state: nil} = test}, config) do
     if config.trace do
       IO.puts success(trace_test_result(test), config)
     else
       IO.write success(".", config)
     end
-    {:ok, %{config | tests_counter: config.tests_counter + 1}}
+    {:noreply, %{config | test_counter: update_test_counter(config.test_counter, test)}}
   end
 
-  def handle_event({:test_finished, %ExUnit.Test{state: {:skip, _}} = test}, config) do
+  def handle_cast({:test_finished, %ExUnit.Test{state: {:skip, _}} = test}, config) do
     if config.trace, do: IO.puts trace_test_skip(test)
-    {:ok, %{config | tests_counter: config.tests_counter + 1,
-                     skipped_counter: config.skipped_counter + 1}}
+    {:noreply, %{config | test_counter: update_test_counter(config.test_counter, test),
+                          skipped_counter: config.skipped_counter + 1}}
   end
 
-  def handle_event({:test_finished, %ExUnit.Test{state: {:invalid, _}} = test}, config) do
+  def handle_cast({:test_finished, %ExUnit.Test{state: {:invalid, _}} = test}, config) do
     if config.trace do
       IO.puts invalid(trace_test_result(test), config)
     else
       IO.write invalid("?", config)
     end
 
-    {:ok, %{config | tests_counter: config.tests_counter + 1,
-                     invalids_counter: config.invalids_counter + 1}}
+    {:noreply, %{config | test_counter: update_test_counter(config.test_counter, test),
+                          invalid_counter: config.invalid_counter + 1}}
   end
 
-  def handle_event({:test_finished, %ExUnit.Test{state: {:failed, failures}} = test}, config) do
+  def handle_cast({:test_finished, %ExUnit.Test{state: {:failed, failures}} = test}, config) do
     if config.trace do
       IO.puts failure(trace_test_result(test), config)
     end
 
-    formatted = format_test_failure(test, failures, config.failures_counter + 1,
+    formatted = format_test_failure(test, failures, config.failure_counter + 1,
                                     config.width, &formatter(&1, &2, config))
     print_failure(formatted, config)
     print_logs(test.logs)
 
-    {:ok, %{config | tests_counter: config.tests_counter + 1,
-                     failures_counter: config.failures_counter + 1}}
+    {:noreply, %{config | test_counter: update_test_counter(config.test_counter, test),
+                          failure_counter: config.failure_counter + 1}}
   end
 
-  def handle_event({:case_started, %ExUnit.TestCase{name: name}}, config) do
+  def handle_cast({:case_started, %ExUnit.TestCase{name: name}}, config) do
     if config.trace do
       IO.puts("\n#{inspect name}")
     end
 
-    {:ok, config}
+    {:noreply, config}
   end
 
-  def handle_event({:case_finished, %ExUnit.TestCase{state: nil}}, config) do
-    {:ok, config}
+  def handle_cast({:case_finished, %ExUnit.TestCase{state: nil}}, config) do
+    {:noreply, config}
   end
 
-  def handle_event({:case_finished, %ExUnit.TestCase{state: {:failed, failures}} = test_case}, config) do
-    formatted = format_test_case_failure(test_case, failures, config.failures_counter + 1,
+  def handle_cast({:case_finished, %ExUnit.TestCase{state: {:failed, failures}} = test_case}, config) do
+    formatted = format_test_case_failure(test_case, failures, config.failure_counter + 1,
                                          config.width, &formatter(&1, &2, config))
     print_failure(formatted, config)
-    {:ok, %{config | failures_counter: config.failures_counter + 1}}
+    {:noreply, %{config | failure_counter: config.failure_counter + 1}}
   end
 
   ## Tracing
-
-  defp trace_test_name(%ExUnit.Test{name: name}) do
-    case Atom.to_string(name) do
-      "test " <> rest -> rest
-      rest -> rest
-    end
-  end
 
   defp trace_test_time(%ExUnit.Test{time: time}) do
     "#{format_us(time)}ms"
   end
 
   defp trace_test_result(test) do
-    "\r  * #{trace_test_name test} (#{trace_test_time(test)})"
+    "\r  * #{test.name} (#{trace_test_time(test)})"
   end
 
   defp trace_test_skip(test) do
-    "\r  * #{trace_test_name test} (skipped)"
+    "\r  * #{test.name} (skipped)"
   end
 
   defp format_us(us) do
@@ -127,6 +119,10 @@ defmodule ExUnit.CLIFormatter do
     end
   end
 
+  defp update_test_counter(test_counter, %{tags: %{type: type}}) do
+    Map.update(test_counter, type, 1, &(&1 + 1))
+  end
+
   ## Printing
 
   defp print_suite(config, run_us, load_us) do
@@ -134,18 +130,18 @@ defmodule ExUnit.CLIFormatter do
     IO.puts format_time(run_us, load_us)
 
     # singular/plural
-    test_pl = pluralize(config.tests_counter, "test", "tests")
-    failure_pl = pluralize(config.failures_counter, "failure", "failures")
+    test_type_counts = format_test_type_counts(config)
+    failure_pl = pluralize(config.failure_counter, "failure", "failures")
 
     message =
-      "#{config.tests_counter} #{test_pl}, #{config.failures_counter} #{failure_pl}"
+      "#{test_type_counts}#{config.failure_counter} #{failure_pl}"
       |> if_true(config.skipped_counter > 0, & &1 <> ", #{config.skipped_counter} skipped")
-      |> if_true(config.invalids_counter > 0, & &1 <> ", #{config.invalids_counter} invalid")
+      |> if_true(config.invalid_counter > 0, & &1 <> ", #{config.invalid_counter} invalid")
 
     cond do
-      config.failures_counter > 0 -> IO.puts failure(message, config)
-      config.invalids_counter > 0 -> IO.puts invalid(message, config)
-      true                        -> IO.puts success(message, config)
+      config.failure_counter > 0 -> IO.puts failure(message, config)
+      config.invalid_counter > 0 -> IO.puts invalid(message, config)
+      true -> IO.puts success(message, config)
     end
 
     IO.puts "\nRandomized with seed #{config.seed}"
@@ -173,12 +169,23 @@ defmodule ExUnit.CLIFormatter do
     IO.puts formatted
   end
 
+  defp format_test_type_counts(%{test_counter: test_counter} = _config) do
+    Enum.map test_counter, fn {type, count} ->
+      type_pluralized = pluralize(count, type, ExUnit.plural_rule(type |> to_string()))
+      "#{count} #{type_pluralized}, "
+    end
+  end
+
   # Color styles
 
   defp colorize(escape, string, %{colors: colors}) do
-    [escape | string]
-    |> IO.ANSI.format(colors[:enabled])
-    |> IO.iodata_to_binary
+    if colors[:enabled] do
+      [escape, string, :reset]
+      |> IO.ANSI.format_fragment(true)
+      |> IO.iodata_to_binary
+    else
+      string
+    end
   end
 
   defp success(msg, config) do
@@ -193,7 +200,7 @@ defmodule ExUnit.CLIFormatter do
     colorize(:red, msg, config)
   end
 
-  defp formatter(:colors_enabled?, _, %{colors: colors}),
+  defp formatter(:diff_enabled?, _, %{colors: colors}),
     do: colors[:enabled]
 
   defp formatter(:error_info, msg, config),
@@ -208,8 +215,14 @@ defmodule ExUnit.CLIFormatter do
   defp formatter(:diff_delete, msg, config),
     do: colorize(:red, msg, config)
 
+  defp formatter(:diff_delete_whitespace, msg, config),
+    do: colorize(IO.ANSI.color_background(2, 0, 0), msg, config)
+
   defp formatter(:diff_insert, msg, config),
     do: colorize(:green, msg, config)
+
+  defp formatter(:diff_insert_whitespace, msg, config),
+    do: colorize(IO.ANSI.color_background(0, 2, 0), msg, config)
 
   defp formatter(_,  msg, _config),
     do: msg

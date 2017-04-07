@@ -5,6 +5,9 @@ defmodule HashDict do
   Use the `Map` module instead.
   """
 
+  # TODO: Remove by 2.0
+  # (hard-deprecated in elixir_dispatch)
+
   use Dict
 
   @node_bitmap 0b111
@@ -90,7 +93,7 @@ defmodule HashDict do
   defp do_fetch(node, key, hash) do
     index = key_mask(hash)
     case elem(node, index) do
-      [^key|v]     -> {:ok, v}
+      [^key | v]   -> {:ok, v}
       {^key, v, _} -> {:ok, v}
       {_, _, n}    -> do_fetch(n, key, key_shift(hash))
       _            -> :error
@@ -101,11 +104,11 @@ defmodule HashDict do
     index = key_mask(hash)
     case elem(node, index) do
       [] ->
-        {put_elem(node, index, [key|value]), 1}
-      [^key|_] ->
-        {put_elem(node, index, [key|value]), 0}
-      [k|v] ->
-        n = put_elem(@node_template, key_mask(key_shift(hash)), [key|value])
+        {put_elem(node, index, [key | value]), 1}
+      [^key | _] ->
+        {put_elem(node, index, [key | value]), 0}
+      [k | v] ->
+        n = put_elem(@node_template, key_mask(key_shift(hash)), [key | value])
         {put_elem(node, index, {k, v, n}), 1}
       {^key, _, n} ->
         {put_elem(node, index, {key, value, n}), 0}
@@ -119,11 +122,11 @@ defmodule HashDict do
     index = key_mask(hash)
     case elem(node, index) do
       [] ->
-        {put_elem(node, index, [key|initial.()]), 1}
-      [^key|value] ->
-        {put_elem(node, index, [key|fun.(value)]), 0}
-      [k|v] ->
-        n = put_elem(@node_template, key_mask(key_shift(hash)), [key|initial.()])
+        {put_elem(node, index, [key | initial.()]), 1}
+      [^key | value] ->
+        {put_elem(node, index, [key | fun.(value)]), 0}
+      [k | v] ->
+        n = put_elem(@node_template, key_mask(key_shift(hash)), [key | initial.()])
         {put_elem(node, index, {k, v, n}), 1}
       {^key, value, n} ->
         {put_elem(node, index, {key, fun.(value), n}), 0}
@@ -138,16 +141,16 @@ defmodule HashDict do
     case elem(node, index) do
       [] ->
         :error
-      [^key|value] ->
+      [^key | value] ->
         {put_elem(node, index, []), value}
-      [_|_] ->
+      [_ | _] ->
         :error
       {^key, value, n} ->
         {put_elem(node, index, do_compact_node(n)), value}
       {k, v, n} ->
         case do_delete(n, key, key_shift(hash)) do
           {@node_template, value} ->
-            {put_elem(node, index, [k|v]), value}
+            {put_elem(node, index, [k | v]), value}
           {n, value} ->
             {put_elem(node, index, {k, v, n}), value}
           :error ->
@@ -159,9 +162,9 @@ defmodule HashDict do
   Enum.each 0..(@node_size - 1), fn index ->
     defp do_compact_node(node) when elem(node, unquote(index)) != [] do
       case elem(node, unquote(index)) do
-        [k|v] ->
+        [k | v] ->
           case put_elem(node, unquote(index), []) do
-            @node_template -> [k|v]
+            @node_template -> [k | v]
             n -> {k, v, n}
           end
         {k, v, n} ->
@@ -184,7 +187,7 @@ defmodule HashDict do
     next.(acc)
   end
 
-  defp do_reduce_each([k|v], {:cont, acc}, fun, next) do
+  defp do_reduce_each([k | v], {:cont, acc}, fun, next) do
     next.(fun.({k, v}, acc))
   end
 

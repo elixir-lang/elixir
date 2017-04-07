@@ -18,7 +18,7 @@ defmodule IEx.Introspection do
             {_, binary} when is_binary(binary) ->
               print_doc(inspect(module), binary)
             {_, _} ->
-              nodocs(inspect module)
+              no_docs(inspect module)
             _ ->
               puts_error("#{inspect module} was not compiled with docs")
           end
@@ -28,12 +28,12 @@ defmodule IEx.Introspection do
       {:error, reason} ->
         puts_error("Could not load module #{inspect module}, got: #{reason}")
     end
-    dont_display_result
+    dont_display_result()
   end
 
   def h(_) do
     puts_error("Invalid arguments for h helper")
-    dont_display_result
+    dont_display_result()
   end
 
   @doc """
@@ -46,9 +46,9 @@ defmodule IEx.Introspection do
         h_mod_fun(module, function) == :ok
       end)
 
-    unless printed?, do: nodocs(function)
+    unless printed?, do: no_docs(function)
 
-    dont_display_result
+    dont_display_result()
   end
 
   def h(module, function) when is_atom(module) and is_atom(function) do
@@ -58,10 +58,10 @@ defmodule IEx.Introspection do
       :no_docs ->
         puts_error("#{inspect module} was not compiled with docs")
       :not_found ->
-        nodocs("#{inspect module}.#{function}")
+        no_docs("#{inspect module}.#{function}")
     end
 
-    dont_display_result
+    dont_display_result()
   end
 
   defp h_mod_fun(mod, fun) when is_atom(mod) do
@@ -86,9 +86,9 @@ defmodule IEx.Introspection do
         h_mod_fun_arity(module, function, arity) == :ok
       end)
 
-    unless printed?, do: nodocs("#{function}/#{arity}")
+    unless printed?, do: no_docs("#{function}/#{arity}")
 
-    dont_display_result
+    dont_display_result()
   end
 
   def h(module, function, arity) when is_atom(module) and is_atom(function) and is_integer(arity) do
@@ -98,17 +98,17 @@ defmodule IEx.Introspection do
       :no_docs ->
         puts_error("#{inspect module} was not compiled with docs")
       :not_found ->
-        nodocs("#{inspect module}.#{function}/#{arity}")
+        no_docs("#{inspect module}.#{function}/#{arity}")
     end
 
-    dont_display_result
+    dont_display_result()
   end
 
   defp h_mod_fun_arity(mod, fun, arity) when is_atom(mod) do
     if docs = Code.get_docs(mod, :docs) do
       if doc = find_doc(docs, fun, arity) do
         if callback_module = is_nil(elem(doc, 4)) and callback_module(mod, fun, arity) do
-          filter = &match?({^fun, _}, elem(&1, 0))
+          filter = &match?({^fun, ^arity}, elem(&1, 0))
           print_callback_docs(callback_module, filter, &print_doc/2)
         else
           print_doc(doc)
@@ -124,7 +124,7 @@ defmodule IEx.Introspection do
 
   defp find_doc(docs, fun, arity) do
     doc = List.keyfind(docs, {fun, arity}, 0) || find_doc_defaults(docs, fun, arity)
-    if has_content?(doc), do: doc
+    if doc != nil and has_content?(doc), do: doc
   end
 
   defp find_doc_defaults(docs, function, min) do
@@ -142,19 +142,16 @@ defmodule IEx.Introspection do
   defp has_content?({_, _, _, _, false}),
     do: false
   defp has_content?({{name, _}, _, _, _, nil}),
-    do: hd(Atom.to_char_list(name)) != ?_
+    do: hd(Atom.to_charlist(name)) != ?_
   defp has_content?({_, _, _, _, _}),
     do: true
 
   defp callback_module(mod, fun, arity) do
+    predicate = &match?({{^fun, ^arity}, _}, &1)
     mod.module_info(:attributes)
     |> Keyword.get_values(:behaviour)
     |> Stream.concat()
-    |> Enum.find(fn module ->
-      module.module_info(:attributes)
-      |> Enum.filter(&match?({:callback, _}, &1))
-      |> Enum.any?(&match?({_, [{{^fun, ^arity}, _} | _]}, &1))
-    end)
+    |> Enum.find(&Enum.any?(Typespec.beam_callbacks(&1), predicate))
   end
 
   defp print_doc({{fun, _}, _line, kind, args, doc}) do
@@ -187,14 +184,14 @@ defmodule IEx.Introspection do
   """
   def b(mod) when is_atom(mod) do
     printer = fn heading, _doc -> puts_info(heading) end
-    case print_callback_docs(mod, &match?(_, &1), printer) do
+    case print_callback_docs(mod, fn _ -> true end, printer) do
       :ok        -> :ok
-      :no_beam   -> nobeam(mod)
+      :no_beam   -> no_beam(mod)
       :no_docs   -> puts_error("#{inspect mod} was not compiled with docs")
       :not_found -> puts_error("No callbacks for #{inspect mod} were found")
     end
 
-    dont_display_result
+    dont_display_result()
   end
 
   @doc """
@@ -204,12 +201,12 @@ defmodule IEx.Introspection do
     filter = &match?({^fun, _}, elem(&1, 0))
     case print_callback_docs(mod, filter, &print_doc/2) do
       :ok        -> :ok
-      :no_beam   -> nobeam(mod)
+      :no_beam   -> no_beam(mod)
       :no_docs   -> puts_error("#{inspect mod} was not compiled with docs")
-      :not_found -> nodocs("#{inspect mod}.#{fun}")
+      :not_found -> no_docs("#{inspect mod}.#{fun}")
     end
 
-    dont_display_result
+    dont_display_result()
   end
 
   @doc """
@@ -219,12 +216,12 @@ defmodule IEx.Introspection do
     filter = &match?({^fun, ^arity}, elem(&1, 0))
     case print_callback_docs(mod, filter, &print_doc/2) do
       :ok        -> :ok
-      :no_beam   -> nobeam(mod)
+      :no_beam   -> no_beam(mod)
       :no_docs   -> puts_error("#{inspect mod} was not compiled with docs")
-      :not_found -> nodocs("#{inspect mod}.#{fun}/#{arity}")
+      :not_found -> no_docs("#{inspect mod}.#{fun}/#{arity}")
     end
 
-    dont_display_result
+    dont_display_result()
   end
 
   defp print_callback_docs(mod, filter, printer) do
@@ -276,12 +273,12 @@ defmodule IEx.Introspection do
   """
   def t(module) when is_atom(module) do
     _ = case Typespec.beam_types(module) do
-      nil   -> nobeam(module)
-      []    -> notypes(inspect module)
+      nil   -> no_beam(module)
+      []    -> no_types(inspect module)
       types -> Enum.each(types, &print_type/1)
     end
 
-    dont_display_result
+    dont_display_result()
   end
 
   @doc """
@@ -289,7 +286,7 @@ defmodule IEx.Introspection do
   """
   def t(module, type) when is_atom(module) and is_atom(type) do
     case Typespec.beam_types(module) do
-      nil   -> nobeam(module)
+      nil   -> no_beam(module)
       types ->
         printed =
           for {_, {^type, _, _args}} = typespec <- types do
@@ -299,11 +296,11 @@ defmodule IEx.Introspection do
           end
 
         if printed == [] do
-          notypes("#{inspect module}.#{type}")
+          no_types("#{inspect module}.#{type}")
         end
     end
 
-    dont_display_result
+    dont_display_result()
   end
 
   @doc """
@@ -311,7 +308,7 @@ defmodule IEx.Introspection do
   """
   def t(module, type, arity) when is_atom(module) and is_atom(type) and is_integer(arity) do
     case Typespec.beam_types(module) do
-      nil   -> nobeam(module)
+      nil   -> no_beam(module)
       types ->
         printed =
           for {_, {^type, _, args}} = typespec <- types, length(args) == arity do
@@ -321,11 +318,11 @@ defmodule IEx.Introspection do
           end
 
         if printed == [] do
-          notypes("#{inspect module}.#{type}")
+          no_types("#{inspect module}.#{type}")
         end
     end
 
-    dont_display_result
+    dont_display_result()
   end
 
   defp print_type_doc(module, type) do
@@ -341,18 +338,18 @@ defmodule IEx.Introspection do
   """
   def s(module) when is_atom(module) do
     case beam_specs(module) do
-      nil   -> nobeam(module)
-      []    -> nospecs(inspect module)
+      nil   -> no_beam(module)
+      []    -> no_specs(inspect module)
       specs ->
         printed = for {_kind, {{fun, _arity}, _spec}} = spec <- specs, fun != :__info__ do
           print_spec(spec)
         end
         if printed == [] do
-          nospecs(inspect module)
+          no_specs(inspect module)
         end
     end
 
-    dont_display_result
+    dont_display_result()
   end
 
   @doc """
@@ -360,7 +357,7 @@ defmodule IEx.Introspection do
   """
   def s(module, function) when is_atom(module) and is_atom(function) do
     case beam_specs(module) do
-      nil   -> nobeam(module)
+      nil   -> no_beam(module)
       specs ->
         printed =
           for {_kind, {{^function, _arity}, _spec}} = spec <- specs do
@@ -369,11 +366,11 @@ defmodule IEx.Introspection do
           end
 
         if printed == [] do
-          nospecs("#{inspect module}.#{function}")
+          no_specs("#{inspect module}.#{function}")
         end
     end
 
-    dont_display_result
+    dont_display_result()
   end
 
   @doc """
@@ -381,7 +378,7 @@ defmodule IEx.Introspection do
   """
   def s(module, function, arity) when is_atom(module) and is_atom(function) and is_integer(arity) do
     case beam_specs(module) do
-      nil   -> nobeam(module)
+      nil   -> no_beam(module)
       specs ->
         printed =
           for {_kind, {{^function, ^arity}, _spec}} = spec <- specs do
@@ -390,11 +387,11 @@ defmodule IEx.Introspection do
           end
 
         if printed == [] do
-          nospecs("#{inspect module}.#{function}")
+          no_specs("#{inspect module}.#{function}")
         end
     end
 
-    dont_display_result
+    dont_display_result()
   end
 
   defp beam_specs(module) do
@@ -428,7 +425,7 @@ defmodule IEx.Introspection do
     true
   end
 
-  defp nobeam(module) do
+  defp no_beam(module) do
     case Code.ensure_loaded(module) do
       {:module, _} ->
         puts_error("Beam code not available for #{inspect module} or debug info is missing, cannot load typespecs")
@@ -437,9 +434,9 @@ defmodule IEx.Introspection do
     end
   end
 
-  defp nospecs(for), do: no(for, "specification")
-  defp notypes(for), do: no(for, "type information")
-  defp nodocs(for),  do: no(for, "documentation")
+  defp no_specs(for), do: no(for, "specification")
+  defp no_types(for), do: no(for, "type information")
+  defp no_docs(for),  do: no(for, "documentation")
 
   defp no(for, type) do
     puts_error("No #{type} for #{for} was found")

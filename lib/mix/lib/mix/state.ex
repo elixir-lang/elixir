@@ -25,7 +25,7 @@ defmodule Mix.State do
   end
 
   def prepend(key, value) do
-    Agent.update(@name, Map, :update, [key, [value], &[value|List.delete(&1, value)]])
+    Agent.update(@name, Map, :update, [key, [value], &[value | List.delete(&1, value)]])
   end
 
   def append(key, value) do

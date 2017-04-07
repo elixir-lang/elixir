@@ -1,15 +1,12 @@
 -module(elixir_rewrite).
--export([rewrite/6, inline/3]).
+-export([rewrite/5, inline/3]).
 -include("elixir.hrl").
-
--define(is_literal(Arg), (is_binary(Arg) orelse is_number(Arg) orelse is_atom(Arg))).
 
 %% Convenience variables
 
 -define(atom, 'Elixir.Atom').
 -define(access, 'Elixir.Access').
 -define(enum, 'Elixir.Enum').
--define(float, 'Elixir.Float').
 -define(io, 'Elixir.IO').
 -define(integer, 'Elixir.Integer').
 -define(kernel, 'Elixir.Kernel').
@@ -29,15 +26,13 @@
 %% Inline rules are straight-forward, they keep the same
 %% number and order of arguments and show up on captures.
 
-inline(?atom, to_char_list, 1) -> {erlang, atom_to_list};
+inline(?atom, to_charlist, 1) -> {erlang, atom_to_list};
 inline(?io, iodata_length, 1) -> {erlang, iolist_size};
 inline(?io, iodata_to_binary, 1) -> {erlang, iolist_to_binary};
 inline(?integer, to_string, 1) -> {erlang, integer_to_binary};
 inline(?integer, to_string, 2) -> {erlang, integer_to_binary};
-inline(?integer, to_char_list, 1) -> {erlang, integer_to_list};
-inline(?integer, to_char_list, 2) -> {erlang, integer_to_list};
-inline(?float, to_string, 1) -> {erlang, float_to_binary};
-inline(?float, to_char_list, 1) -> {erlang, float_to_list};
+inline(?integer, to_charlist, 1) -> {erlang, integer_to_list};
+inline(?integer, to_charlist, 2) -> {erlang, integer_to_list};
 inline(?list, to_atom, 1) -> {erlang, list_to_atom};
 inline(?list, to_existing_atom, 1) -> {erlang, list_to_existing_atom};
 inline(?list, to_float, 1) -> {erlang, list_to_float};
@@ -114,6 +109,8 @@ inline(?map, size, 1) -> {maps, size};
 inline(?map, values, 1) -> {maps, values};
 inline(?map, to_list, 1) -> {maps, to_list};
 
+inline(?node, list, 0) -> {erlang, nodes};
+inline(?node, list, 1) -> {erlang, nodes};
 inline(?node, spawn, 2) -> {erlang, spawn};
 inline(?node, spawn, 3) -> {erlang, spawn_opt};
 inline(?node, spawn, 4) -> {erlang, spawn};
@@ -127,22 +124,27 @@ inline(?process, exit, 2) -> {erlang, exit};
 inline(?process, get, 0) -> {erlang, get};
 inline(?process, get_keys, 0) -> {erlang, get_keys};
 inline(?process, get_keys, 1) -> {erlang, get_keys};
+inline(?process, group_leader, 0) -> {erlang, group_leader};
 inline(?process, hibernate, 3) -> {erlang, hibernate};
 inline(?process, demonitor, 1) -> {erlang, demonitor};
 inline(?process, demonitor, 2) -> {erlang, demonitor};
+inline(?process, flag, 2) -> {erlang, process_flag};
+inline(?process, flag, 3) -> {erlang, process_flag};
 inline(?process, link, 1) -> {erlang, link};
+inline(?process, list, 0) -> {erlang, processes};
 inline(?process, read_timer, 1) -> {erlang, read_timer};
+inline(?process, registered, 0) -> {erlang, registered};
+inline(?process, send, 3) -> {erlang, send};
 inline(?process, spawn, 2) -> {erlang, spawn_opt};
 inline(?process, spawn, 4) -> {erlang, spawn_opt};
 inline(?process, unlink, 1) -> {erlang, unlink};
+inline(?process, unregister, 1) -> {erlang, unregister};
 
 inline(?port, open, 2) -> {erlang, open_port};
-inline(?port, call, 3) -> {erlang, port_call};
 inline(?port, close, 1) -> {erlang, port_close};
 inline(?port, command, 2) -> {erlang, port_command};
 inline(?port, command, 3) -> {erlang, port_command};
 inline(?port, connect, 2) -> {erlang, port_connect};
-inline(?port, control, 3) -> {erlang, port_control};
 inline(?port, list, 0) -> {erlang, ports};
 
 inline(?string, to_float, 1) -> {erlang, binary_to_float};
@@ -164,78 +166,47 @@ inline(_, _, _) -> false.
 
 %% Rewrite rules
 %%
-%% Rewrite rules are more complex than regular inlining code.
-%% It receives all remote call arguments and return quoted
-%% expressions with the new environment.
-%%
-%% Notice we use the given Meta in rewritten code so we
-%% get proper coverage report. However, we mark the enclosing
-%% cases as hidden to avoid warnings.
+%% Rewrite rules are more complex than regular inlining code
+%% as they may change the number of arguments. However, they
+%% don't add new code (such as case statements), at best they
+%% perform dead code removal.
 
-%% Complex rewrite rules
-
-rewrite(?access, _DotMeta, 'get', _Meta, [nil, Arg], _Env)
-    when ?is_literal(Arg) orelse (is_atom(element(1, Arg)) andalso element(3, Arg) == nil) ->
-  nil;
-rewrite(?access, _DotMeta, 'get', Meta, [Arg, _], Env)
-    when ?is_literal(Arg) orelse element(1, Arg) == '{}' orelse element(1, Arg) == '<<>>' ->
-  elixir_errors:compile_error(Meta, ?m(Env, file),
-    "the Access syntax and calls to Access.get/2 are not available for the value: ~ts",
-    ['Elixir.Macro':to_string(Arg)]);
-rewrite(?list_chars, _DotMeta, 'to_char_list', _Meta, [List], _Env) when is_list(List) ->
-  List;
-rewrite(?string_chars, _DotMeta, 'to_string', _Meta, [String], _Env) when is_binary(String) ->
+rewrite(?string_chars, _DotMeta, 'to_string', _Meta, [String]) when is_binary(String) ->
   String;
-rewrite(?string_chars, _, 'to_string', _, [{{'.', _, [?kernel, inspect]}, _, _} = Call], _Env) ->
+rewrite(?string_chars, _, 'to_string', _, [{{'.', _, [?kernel, inspect]}, _, _} = Call]) ->
   Call;
-rewrite(?string_chars, DotMeta, 'to_string', Meta, [Call], _Env) ->
-  Var   = {'rewrite', Meta, 'Elixir'},
-  Guard = {{'.', ?generated, [erlang, is_binary]}, ?generated, [Var]},
-  Slow  = remote(?string_chars, DotMeta, 'to_string', Meta, [Var]),
-  Fast  = Var,
-
-  {'case', ?generated, [Call, [{do,
-    [{'->', ?generated, [[{'when', Meta, [Var, Guard]}], Fast]},
-     {'->', ?generated, [[Var], Slow]}]
-  }]]};
-
-rewrite(?enum, DotMeta, 'reverse', Meta, [List], _Env) when is_list(List) ->
-  remote(lists, DotMeta, 'reverse', Meta, [List]);
-rewrite(?enum, DotMeta, 'reverse', Meta, [List], _Env) ->
-  Var   = {'rewrite', Meta, 'Elixir'},
-  Guard = {{'.', ?generated, [erlang, is_list]}, ?generated, [Var]},
-  Slow  = remote(?enum, DotMeta, 'reverse', Meta, [Var]),
-  Fast  = remote(lists, DotMeta, 'reverse', Meta, [Var]),
-
-  {'case', ?generated, [List, [{do,
-    [{'->', ?generated, [[{'when', Meta, [Var, Guard]}], Fast]},
-     {'->', ?generated, [[Var], Slow]}]
-  }]]};
-
-rewrite(Receiver, DotMeta, Right, Meta, Args, _Env) ->
+rewrite(Receiver, DotMeta, Right, Meta, Args) ->
   {EReceiver, ERight, EArgs} = rewrite(Receiver, Right, Args),
-  remote(EReceiver, DotMeta, ERight, Meta, EArgs).
-
-%% Simple rewrite rules
+  {{'.', DotMeta, [EReceiver, ERight]}, Meta, EArgs}.
 
 rewrite(?atom, to_string, [Arg]) ->
   {erlang, atom_to_binary, [Arg, utf8]};
+rewrite(?enum, into, [Arg, {'%{}', _, []}]) ->
+  {?map, new, [Arg]};
+rewrite(?enum, into, [Arg, {'%{}', _, []}, Fun]) ->
+  {?map, new, [Arg, Fun]};
 rewrite(?kernel, elem, [Tuple, Index]) ->
   {erlang, element, [increment(Index), Tuple]};
 rewrite(?kernel, put_elem, [Tuple, Index, Value]) ->
   {erlang, setelement, [increment(Index), Tuple, Value]};
-rewrite(?map, 'has_key?', [Map, Key]) ->
-  {maps, is_key, [Key, Map]};
-rewrite(?map, fetch, [Map, Key]) ->
-  {maps, find, [Key, Map]};
-rewrite(?map, put, [Map, Key, Value]) ->
-  {maps, put, [Key, Value, Map]};
 rewrite(?map, delete, [Map, Key]) ->
   {maps, remove, [Key, Map]};
+rewrite(?map, fetch, [Map, Key]) ->
+  {maps, find, [Key, Map]};
+rewrite(?map, 'has_key?', [Map, Key]) ->
+  {maps, is_key, [Key, Map]};
+rewrite(?map, put, [Map, Key, Value]) ->
+  {maps, put, [Key, Value, Map]};
+rewrite(?map, 'replace!', [Map, Key, Value]) ->
+  {maps, update, [Key, Value, Map]};
 rewrite(?process, monitor, [Arg]) ->
   {erlang, monitor, [process, Arg]};
+rewrite(?process, group_leader, [Pid, Leader]) ->
+  {erlang, group_leader, [Leader, Pid]};
 rewrite(?process, send_after, [Dest, Msg, Time]) ->
   {erlang, send_after, [Time, Dest, Msg]};
+rewrite(?process, send_after, [Dest, Msg, Time, Opts]) ->
+  {erlang, send_after, [Time, Dest, Msg, Opts]};
 rewrite(?string, to_atom, [Arg]) ->
   {erlang, binary_to_atom, [Arg, utf8]};
 rewrite(?string, to_existing_atom, [Arg]) ->
@@ -248,11 +219,6 @@ rewrite(?tuple, duplicate, [Data, Size]) ->
   {erlang, make_tuple, [Size, Data]};
 rewrite(Receiver, Fun, Args) ->
   {Receiver, Fun, Args}.
-
-%% Rewrite helpers
-
-remote(Receiver, DotMeta, Right, Meta, Args) ->
-  {{'.', DotMeta, [Receiver, Right]}, Meta, Args}.
 
 increment(Number) when is_number(Number) ->
   Number + 1;

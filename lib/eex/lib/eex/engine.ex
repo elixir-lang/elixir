@@ -2,7 +2,7 @@ defmodule EEx.Engine do
   @moduledoc ~S"""
   Basic EEx engine that ships with Elixir.
 
-  An engine needs to implement three functions:
+  An engine needs to implement four functions:
 
     * `init(opts)` - returns the initial buffer
 
@@ -27,10 +27,10 @@ defmodule EEx.Engine do
   default implementations for the functions above.
   """
 
-  @callback init(Keyword.t) :: Macro.t
-  @callback handle_body(Macro.t) :: Macro.t
-  @callback handle_text(Macro.t, String.t) :: Macro.t
-  @callback handle_expr(Macro.t, String.t, Macro.t) :: Macro.t
+  @callback init(opts :: Keyword.t) :: Macro.t
+  @callback handle_body(quoted :: Macro.t) :: Macro.t
+  @callback handle_text(buffer :: Macro.t, text :: String.t) :: Macro.t
+  @callback handle_expr(buffer :: Macro.t, marker :: String.t, expr :: Macro.t) :: Macro.t
 
   @doc false
   defmacro __using__(_) do
@@ -41,8 +41,8 @@ defmodule EEx.Engine do
         EEx.Engine.init(opts)
       end
 
-      def handle_body(body) do
-        EEx.Engine.handle_body(body)
+      def handle_body(quoted) do
+        EEx.Engine.handle_body(quoted)
       end
 
       def handle_text(buffer, text) do
@@ -72,6 +72,7 @@ defmodule EEx.Engine do
       end
 
   """
+  @spec handle_assign(Macro.t) :: Macro.t
   def handle_assign({:@, meta, [{name, _, atom}]}) when is_atom(name) and is_atom(atom) do
     line = meta[:line] || 0
     quote line: line, do: EEx.Engine.fetch_assign!(var!(assigns), unquote(name))
@@ -81,17 +82,17 @@ defmodule EEx.Engine do
   end
 
   @doc false
-  # TODO: Raise on 1.4
+  # TODO: Raise on 2.0
+  @spec fetch_assign!(map, Map.key) :: term | nil
   def fetch_assign!(assigns, key) do
     case Access.fetch(assigns, key) do
       {:ok, val} ->
         val
       :error ->
         keys = Enum.map(assigns, &elem(&1, 0))
-        IO.write :stderr, "warning: assign @#{key} not available in eex template. " <>
-                          "Please ensure all assigns are given as options. " <>
-                          "Available assigns: #{inspect keys}\n" <>
-                          Exception.format_stacktrace
+        IO.warn "assign @#{key} not available in EEx template. " <>
+                "Please ensure all assigns are given as options. " <>
+                "Available assigns: #{inspect keys}"
         nil
     end
   end
@@ -125,7 +126,6 @@ defmodule EEx.Engine do
 
   All other markers are not implemented by this engine.
   """
-  @spec handle_expr(Macro.t, String.t, Macro.t) :: Macro.t
   def handle_expr(buffer, "=", expr) do
     quote do
       tmp1 = unquote(buffer)

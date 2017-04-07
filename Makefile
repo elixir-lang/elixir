@@ -1,13 +1,14 @@
 REBAR ?= "$(CURDIR)/rebar"
 PREFIX ?= /usr/local
-DOCS := master
-CANONICAL := master
+SHARE_PREFIX ?= $(PREFIX)/share
+CANONICAL := master/
 ELIXIRC := bin/elixirc --verbose --ignore-module-conflict
 ERLC := erlc -I lib/elixir/include
 ERL := erl -I lib/elixir/include -noshell -pa lib/elixir/ebin
 VERSION := $(strip $(shell cat VERSION))
 Q := @
 LIBDIR := lib
+BINDIR := bin
 INSTALL = install
 INSTALL_DIR = $(INSTALL) -m755 -d
 INSTALL_DATA = $(INSTALL) -m644
@@ -15,13 +16,13 @@ INSTALL_PROGRAM = $(INSTALL) -m755
 GIT_REVISION = $(strip $(shell git rev-parse HEAD 2> /dev/null ))
 GIT_TAG = $(strip $(shell head="$(call GIT_REVISION)"; git tag --points-at $$head 2> /dev/null | tail -1) )
 
-.PHONY: install compile erlang elixir build_plt clean_plt dialyze test clean install_man clean_man docs Docs.zip Precompiled.zip publish_zips publish_docs publish_mix
+.PHONY: install compile erlang elixir build_plt clean_plt dialyze test clean install_man clean_man docs Docs.zip Precompiled.zip zips
 .NOTPARALLEL: compile
 
 #==> Functions
 
 define CHECK_ERLANG_RELEASE
-	$(Q) erl -noshell -eval 'io:fwrite("~s", [erlang:system_info(otp_release) >= "18"])' -s erlang halt | grep -q '^true'; \
+	$(Q) erl -noshell -eval '{V,_} = string:to_integer(erlang:system_info(otp_release)), io:fwrite("~s", [is_integer(V) and (V >= 18)])' -s erlang halt | grep -q '^true'; \
 		if [ $$? != 0 ]; then \
 		   echo "At least Erlang 18.0 is required to build Elixir"; \
 		   exit 1; \
@@ -76,7 +77,7 @@ stdlib: $(KERNEL) VERSION
 $(KERNEL): lib/elixir/lib/*.ex lib/elixir/lib/*/*.ex lib/elixir/lib/*/*/*.ex
 	$(Q) if [ ! -f $(KERNEL) ]; then                  \
 		echo "==> bootstrap (compile)";                 \
-		$(ERL) -s elixir_compiler core -s erlang halt;  \
+		$(ERL) -s elixir_compiler bootstrap -s erlang halt;  \
 	fi
 	@ echo "==> elixir (compile)";
 	$(Q) cd lib/elixir && ../../$(ELIXIRC) "lib/kernel.ex" -o ebin;
@@ -88,7 +89,6 @@ $(KERNEL): lib/elixir/lib/*.ex lib/elixir/lib/*/*.ex lib/elixir/lib/*/*/*.ex
 unicode: $(UNICODE)
 $(UNICODE): lib/elixir/unicode/*
 	@ echo "==> unicode (compile)";
-	@ echo "Embedding the Unicode database... (this may take a while)"
 	$(Q) cd lib/elixir && ../../$(ELIXIRC) unicode/unicode.ex -o ebin;
 
 $(eval $(call APP_TEMPLATE,ex_unit,ExUnit))
@@ -106,9 +106,9 @@ install: compile
 	done
 	$(Q) $(INSTALL_DIR) "$(DESTDIR)$(PREFIX)/$(LIBDIR)/elixir/bin"
 	$(Q) $(INSTALL_PROGRAM) $(filter-out %.ps1, $(filter-out %.bat, $(wildcard bin/*))) "$(DESTDIR)$(PREFIX)/$(LIBDIR)/elixir/bin"
-	$(Q) $(INSTALL_DIR) "$(DESTDIR)$(PREFIX)/bin"
+	$(Q) $(INSTALL_DIR) "$(DESTDIR)$(PREFIX)/$(BINDIR)"
 	$(Q) for file in "$(DESTDIR)$(PREFIX)"/$(LIBDIR)/elixir/bin/* ; do \
-		ln -sf "../$(LIBDIR)/elixir/bin/$${file##*/}" "$(DESTDIR)$(PREFIX)/bin/" ; \
+		ln -sf "../$(LIBDIR)/elixir/bin/$${file##*/}" "$(DESTDIR)$(PREFIX)/$(BINDIR)/" ; \
 	done
 	$(MAKE) install_man
 
@@ -131,14 +131,15 @@ clean_exbeam:
 
 LOGO_PATH = $(shell test -f ../docs/logo.png && echo "--logo ../docs/logo.png")
 SOURCE_REF = $(shell tag="$(call GIT_TAG)" revision="$(call GIT_REVISION)"; echo "$${tag:-$$revision}\c")
-COMPILE_DOCS = bin/elixir ../ex_doc/bin/ex_doc "$(1)" "$(VERSION)" "lib/$(2)/ebin" -m "$(3)" -u "https://github.com/elixir-lang/elixir" --source-ref "$(call SOURCE_REF)" $(call LOGO_PATH) -o doc/$(2) -a http://elixir-lang.org/docs/$(CANONICAL)/$(2)/ -p http://elixir-lang.org/docs.html $(4)
+DOCS_FORMAT = html
+COMPILE_DOCS = bin/elixir ../ex_doc/bin/ex_doc "$(1)" "$(VERSION)" "lib/$(2)/ebin" -m "$(3)" -u "https://github.com/elixir-lang/elixir" --source-ref "$(call SOURCE_REF)" $(call LOGO_PATH) -o doc/$(2) -n https://hexdocs.pm/$(2)/$(CANONICAL) -p http://elixir-lang.org/docs.html -f "$(DOCS_FORMAT)" $(4)
 
 docs: compile ../ex_doc/bin/ex_doc docs_elixir docs_eex docs_mix docs_iex docs_ex_unit docs_logger
 
 docs_elixir: compile ../ex_doc/bin/ex_doc
 	@ echo "==> ex_doc (elixir)"
 	$(Q) rm -rf doc/elixir
-	$(call COMPILE_DOCS,Elixir,elixir,Kernel,-e "lib/elixir/pages/Naming Conventions.md" -e "lib/elixir/pages/Typespecs.md" -e "lib/elixir/pages/Writing Documentation.md")
+	$(call COMPILE_DOCS,Elixir,elixir,Kernel,-e "lib/elixir/pages/Behaviours.md" -e "lib/elixir/pages/Deprecations.md" -e "lib/elixir/pages/Guards.md" -e "lib/elixir/pages/Naming Conventions.md" -e "lib/elixir/pages/Operators.md" -e "lib/elixir/pages/Syntax Reference.md" -e "lib/elixir/pages/Typespecs.md" -e "lib/elixir/pages/Writing Documentation.md")
 
 docs_eex: compile ../ex_doc/bin/ex_doc
 	@ echo "==> ex_doc (eex)"
@@ -181,13 +182,7 @@ Precompiled.zip: build_man compile
 	zip -9 -r Precompiled-v$(VERSION).zip bin CHANGELOG.md lib/*/ebin LICENSE man NOTICE README.md VERSION
 	@ echo "Precompiled file created $(CURDIR)/Precompiled-v$(VERSION).zip"
 
-#==> Publish
-
-publish_zips: Precompiled.zip Docs.zip
-
-publish_docs: docs
-	rm -rf ../docs/$(DOCS)/*/
-	cp -R doc/* ../docs/$(DOCS)
+zips: Precompiled.zip Docs.zip
 
 #==> Tests tasks
 
@@ -256,9 +251,9 @@ clean_man:
 	rm -f man/iex.1
 
 install_man: build_man
-	$(Q) mkdir -p $(DESTDIR)$(PREFIX)/share/man/man1
-	$(Q) $(INSTALL_DATA) man/elixir.1  $(DESTDIR)$(PREFIX)/share/man/man1
-	$(Q) $(INSTALL_DATA) man/elixirc.1 $(DESTDIR)$(PREFIX)/share/man/man1
-	$(Q) $(INSTALL_DATA) man/iex.1     $(DESTDIR)$(PREFIX)/share/man/man1
-	$(Q) $(INSTALL_DATA) man/mix.1     $(DESTDIR)$(PREFIX)/share/man/man1
+	$(Q) mkdir -p $(DESTDIR)$(SHARE_PREFIX)/man/man1
+	$(Q) $(INSTALL_DATA) man/elixir.1  $(DESTDIR)$(SHARE_PREFIX)/man/man1
+	$(Q) $(INSTALL_DATA) man/elixirc.1 $(DESTDIR)$(SHARE_PREFIX)/man/man1
+	$(Q) $(INSTALL_DATA) man/iex.1     $(DESTDIR)$(SHARE_PREFIX)/man/man1
+	$(Q) $(INSTALL_DATA) man/mix.1     $(DESTDIR)$(SHARE_PREFIX)/man/man1
 	$(MAKE) clean_man

@@ -3,66 +3,80 @@ Code.require_file "../test_helper.exs", __DIR__
 defmodule Kernel.DocsTest do
   use ExUnit.Case
 
-  @moduledoc "foo"
-  "foo" = @moduledoc
+  test "attributes format" do
+    defmodule DocAttributes do
+      @moduledoc "Module doc"
+      assert @moduledoc == "Module doc"
+      assert Module.get_attribute(__MODULE__, :moduledoc) == {8, "Module doc"}
 
-  @typedoc "foo"
-  "foo" = @typedoc
-  @type foo :: term
+      @typedoc "Type doc"
+      assert @typedoc == "Type doc"
+      assert Module.get_attribute(__MODULE__, :typedoc) == {12, "Type doc"}
+      @type foobar :: any
 
-  @doc "foo"
-  "foo" = @doc
+      @doc "Function doc"
+      assert @doc == "Function doc"
+      assert Module.get_attribute(__MODULE__, :doc) == {17, "Function doc"}
+      def foobar() do
+        :ok
+      end
+    end
+  end
 
   test "compiled with docs" do
     deftestmodule(SampleDocs)
-    docs = Code.get_docs(SampleDocs, :all)
 
-    assert [{{:argnames, 5}, _, :def, [
-              {:list1, [], Elixir},
+    docs = Code.get_docs(SampleDocs, :all)
+    assert Code.get_docs(SampleDocs, :docs) == docs[:docs]
+    assert Code.get_docs(SampleDocs, :moduledoc) == docs[:moduledoc]
+    assert Code.get_docs(SampleDocs, :type_docs) == docs[:type_docs]
+    assert Code.get_docs(SampleDocs, :callback_docs) == docs[:callback_docs]
+
+    assert [{{:arg_names, 5}, _, :def,
+             [{:list1, [], Elixir},
               {:list2, [], Elixir},
               {:map1, [], Elixir},
               {:list3, [], Elixir},
               {:map2, [], Elixir}], nil},
-            {{:fun, 2}, _, :def, [{:x, [], nil}, {:y, [], nil}], "This is fun!\n"},
-            {{:nofun, 0}, _, :def, [], nil},
-            {{:sneaky, 1}, _, :def, [{:bool, [], Elixir}], false},
+            {{:foo, 1}, _, :def, [{:arg, [], nil}], "Function doc"},
+            {{:foobar, 0}, _, :def, [], nil},
+            {{:qux, 1}, _, :def, [{:bool, [], Elixir}], false},
             {{:with_defaults, 4}, _, :def,
              [{:int, [], Elixir},
-              {:\\, [], [{:x, [], nil}, 0]},
-              {:\\, [], [{:y, [], nil}, 2015]},
-              {:\\, [], [{:f, [], nil}, {:&, _, [{:/, _, [{:>=, _, _}, 2]}]}]}], nil}] = docs[:docs]
+              {:\\, [], [{:arg, [], nil}, 0]},
+              {:\\, [], [{:year, [], nil}, 2015]},
+              {:\\, [], [{:fun, [], nil}, {:&, _, [{:/, _, [{:>=, _, nil}, 2]}]}]}], nil}] = docs[:docs]
 
-    assert {_, "Hello, I am a module"} = docs[:moduledoc]
+    assert {_, "Module doc"} = docs[:moduledoc]
 
-    assert [{{:bar, 1}, _, :opaque, "Me too."},
-            {{:foo, 1}, _, :type, "I am a type."}] = docs[:type_docs]
+    assert [{{:bar, 1}, _, :opaque, "Opaque type doc"},
+            {{:foo, 1}, _, :type, "Type doc"}] = docs[:type_docs]
 
-    assert [{{:bar, 1}, _, :callback, false},
+    assert [{{:bar, 0}, _, :callback, false},
             {{:baz, 2}, _, :callback, nil},
-            {{:first, 0}, _, :callback, "I should be first."},
-            {{:foo, 1}, _, :callback, "Foo"},
-            {{:last, 1}, _, :macrocallback, "I should be last."}] = docs[:callback_docs]
+            {{:foo, 1}, _, :callback, "Callback doc"},
+            {{:qux, 1}, _, :macrocallback, "Macrocallback doc"}] = docs[:callback_docs]
   end
 
   test "compiled without docs" do
     Code.compiler_options(docs: false)
 
-    deftestmodule(SampleNoDocs)
+    deftestmodule(WithoutSampleDocs)
 
-    assert Code.get_docs(SampleNoDocs, :docs) == nil
-    assert Code.get_docs(SampleNoDocs, :moduledoc) == nil
-    assert Code.get_docs(SampleNoDocs, :type_docs) == nil
-    assert Code.get_docs(SampleNoDocs, :callback_docs) == nil
+    assert Code.get_docs(WithoutSampleDocs, :docs) == nil
+    assert Code.get_docs(WithoutSampleDocs, :moduledoc) == nil
+    assert Code.get_docs(WithoutSampleDocs, :type_docs) == nil
+    assert Code.get_docs(WithoutSampleDocs, :callback_docs) == nil
   after
     Code.compiler_options(docs: true)
   end
 
   test "compiled in memory does not have accessible docs" do
-    defmodule NoDocs do
-      @moduledoc "moduledoc"
+    defmodule WithoutDocs do
+      @moduledoc "Module doc"
 
-      @doc "Some example"
-      def example(var), do: var
+      @doc "Some doc"
+      def foobar(arg), do: arg
     end
 
     assert Code.get_docs(NoDocs, :docs) == nil
@@ -74,47 +88,40 @@ defmodule Kernel.DocsTest do
     import PathHelpers
 
     write_beam(defmodule name do
-      @moduledoc "Hello, I am a module"
+      @moduledoc "Module doc"
 
-      @typedoc "I am a type."
+      @typedoc "Type doc"
       @type foo(any) :: any
 
-      @typedoc "Me too."
+      @typedoc "Opaque type doc"
       @opaque bar(any) :: any
 
-      @doc "I should be first."
-      @callback first :: term
-
-      @doc "Foo"
+      @doc "Callback doc"
       @callback foo(any) :: any
 
       @doc false
-      @callback bar(true) :: false
+      @callback bar() :: term
 
-      @callback baz(1, binary) :: binary
+      @callback baz(any, term) :: any
 
-      @doc "I should be last."
-      @macrocallback last(integer) :: Macro.t
+      @doc "Macrocallback doc"
+      @macrocallback qux(any) :: any
 
-      @doc """
-      This is fun!
-      """
-      def fun(x, y) do
-        {x, y}
+      @doc "Function doc"
+      def foo(arg) do
+        arg + 1
       end
 
       @doc false
-      def sneaky(true), do: false
+      def qux(true), do: false
 
-      def nofun() do
-        'not fun at all'
-      end
+      def foobar(), do: nil
 
-      def argnames([], [], %{}, [], %{}), do: false
+      def arg_names([], [], %{}, [], %{}), do: false
 
       @year 2015
-      def with_defaults(@year, x \\ 0, y \\ @year, f \\ &>=/2) do
-        {f, x + y}
+      def with_defaults(@year, arg \\ 0, year \\ @year, fun \\ &>=/2) do
+        {fun, arg + year}
       end
     end)
   end

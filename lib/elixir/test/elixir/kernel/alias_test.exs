@@ -9,7 +9,7 @@ end
 defmodule Kernel.AliasTest do
   use ExUnit.Case, async: true
 
-  test "alias erlang" do
+  test "alias Erlang" do
     alias :lists, as: MyList
     assert MyList.flatten([1, [2], 3]) == [1, 2, 3]
     assert Elixir.MyList.Bar == :"Elixir.MyList.Bar"
@@ -18,12 +18,12 @@ defmodule Kernel.AliasTest do
 
   test "double alias" do
     alias Kernel.AliasTest.Nested, as: Nested2
-    assert Nested.value  == 1
+    assert Nested.value == 1
     assert Nested2.value == 1
   end
 
   test "overwriten alias" do
-    alias List, as: Nested
+    assert alias(List, as: Nested) == List
     assert Nested.flatten([[13]]) == [13]
   end
 
@@ -46,11 +46,20 @@ defmodule Kernel.AliasTest do
   end
 
   test "multi-call" do
-    alias unquote(Inspect).{
+    result = alias unquote(Inspect).{
       Opts, Algebra,
     }
+    assert result == [Inspect.Opts, Inspect.Algebra]
     assert %Opts{} == %Inspect.Opts{}
     assert Algebra.empty == :doc_nil
+  end
+
+  test "alias removal" do
+    alias __MODULE__.Foo
+    assert Foo == __MODULE__.Foo
+    alias Elixir.Foo
+    assert Foo == Elixir.Foo
+    alias Elixir.Bar
   end
 end
 

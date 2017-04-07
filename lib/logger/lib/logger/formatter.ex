@@ -21,7 +21,7 @@ defmodule Logger.Formatter do
     * `$level`    - the log level
     * `$node`     - the node that prints the message
     * `$metadata` - user controlled data presented in `"key=val key2=val2"` format
-    * `$levelpad` - set to a single space if level is 4 characters long,
+    * `$levelpad` - sets to a single space if level is 4 characters long,
       otherwise set to the empty space. Used to align the message after level.
 
   Backends typically allow developers to supply such control
@@ -32,7 +32,7 @@ defmodule Logger.Formatter do
 
   ## Metadata
 
-  Metadata to be sent to the Logger can be read and written with
+  Metadata to be sent to the logger can be read and written with
   the `Logger.metadata/0` and `Logger.metadata/1` functions. For example,
   you can set `Logger.metadata([user_id: 13])` to add user_id metadata
   to the current process. The user can configure the backend to chose
@@ -44,9 +44,29 @@ defmodule Logger.Formatter do
   @type pattern :: :date | :level | :levelpad | :message | :metadata | :node | :time
   @valid_patterns [:time, :date, :message, :level, :node, :metadata, :levelpad]
   @default_pattern "\n$time $metadata[$level] $levelpad$message\n"
+  @replacement "�"
+
+  @doc """
+  Prunes non-valid UTF-8 codepoints.
+
+  Typically called after formatting when the data cannot be printed.
+  """
+  @spec prune(IO.chardata) :: IO.chardata
+  def prune(binary) when is_binary(binary), do: prune_binary(binary, "")
+  def prune([h | t]) when h in 0..1114111, do: [h | prune(t)]
+  def prune([h | t]), do: [prune(h) | prune(t)]
+  def prune([]), do: []
+  def prune(_), do: @replacement
+
+  defp prune_binary(<<h::utf8, t::binary>>, acc),
+    do: prune_binary(t, <<acc::binary, h::utf8>>)
+  defp prune_binary(<<_, t::binary>>, acc),
+    do: prune_binary(t, <<acc::binary, @replacement>>)
+  defp prune_binary(<<>>, acc),
+    do: acc
 
   @doc ~S"""
-  Compiles a format string into an array that the `format/5` can handle.
+  Compiles a format string into a data structure that the `format/5` can handle.
 
   Check the module doc for documentation on the valid parameters. If you
   pass `nil`, it defaults to: `$time $metadata [$level] $levelpad$message\n`

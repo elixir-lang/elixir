@@ -24,21 +24,21 @@ defmodule Mix.ShellTest do
     assert_received {:mix_shell, :info, ["abc"]}
     assert_received {:mix_shell, :error, ["def"]}
 
-    send self, {:mix_shell_input, :prompt, "world"}
+    send self(), {:mix_shell_input, :prompt, "world"}
     assert Mix.shell.prompt("hello?") == "world"
     assert_received {:mix_shell, :prompt, ["hello?"]}
 
-    send self, {:mix_shell_input, :yes?, true}
+    send self(), {:mix_shell_input, :yes?, true}
     assert Mix.shell.yes?("hello?")
     assert_received {:mix_shell, :yes?, ["hello?"]}
 
     assert Mix.shell.cmd("echo first") == 0
 
-    nl = os_newline
+    nl = os_newline()
     assert_received {:mix_shell, :run, ["first" <> ^nl]}
   end
 
-  test "shell io" do
+  test "shell IO" do
     Mix.shell Mix.Shell.IO
 
     assert capture_io(fn -> Mix.shell.info "abc" end) ==

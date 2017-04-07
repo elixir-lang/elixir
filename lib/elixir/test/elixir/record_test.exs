@@ -46,6 +46,9 @@ defmodule RecordTest do
     assert record?({User, "meg", 27}, User)
     refute record?({User, "meg", 27}, Author)
     refute record?(13, Author)
+    refute record?({"user", "meg", 27}, "user")
+    refute record?({}, User)
+    refute record?([], User)
   end
 
   # We need indirection to avoid warnings
@@ -57,6 +60,25 @@ defmodule RecordTest do
     assert record?({User, "john", 27})
     refute record?({"john", 27})
     refute record?(13)
+    refute record?({})
+  end
+
+  def record_in_guard?(term) when Record.is_record(term),
+    do: true
+  def record_in_guard?(_),
+    do: false
+
+  def record_in_guard?(term, kind) when Record.is_record(term, kind),
+    do: true
+  def record_in_guard?(_, _),
+    do: false
+
+  test "is_record/1/2 (in guard)" do
+    assert record_in_guard?({User, "john", 27})
+    refute record_in_guard?({"user", "john", 27})
+
+    assert record_in_guard?({User, "john", 27}, User)
+    refute record_in_guard?({"user", "john", 27}, "user")
   end
 
   Record.defrecord :timestamp, [:date, :time]
@@ -101,6 +123,46 @@ defmodule RecordTest do
     assert user(record, :age) == :_
   end
 
+  Record.defrecord :defaults,
+    struct: ~D[2016-01-01],
+    map: %{},
+    tuple_zero: {},
+    tuple_one: {1},
+    tuple_two: {1, 2},
+    tuple_three: {1, 2, 3},
+    list: [1, 2, 3],
+    call: MapSet.new,
+    string: "abc",
+    binary: <<1, 2, 3>>,
+    charlist: 'abc'
+
+  test "records with literal defaults" do
+    assert defaults(defaults()) == [
+      struct: ~D[2016-01-01],
+      map: %{},
+      tuple_zero: {},
+      tuple_one: {1},
+      tuple_two: {1, 2},
+      tuple_three: {1, 2, 3},
+      list: [1, 2, 3],
+      call: MapSet.new,
+      string: "abc",
+      binary: <<1, 2, 3>>,
+      charlist: 'abc'
+    ]
+    assert defaults(defaults(), :struct) == ~D[2016-01-01]
+    assert defaults(defaults(), :map) == %{}
+    assert defaults(defaults(), :tuple_zero) == {}
+    assert defaults(defaults(), :tuple_one) == {1}
+    assert defaults(defaults(), :tuple_two) == {1, 2}
+    assert defaults(defaults(), :tuple_three) == {1, 2, 3}
+    assert defaults(defaults(), :list) == [1, 2, 3]
+    assert defaults(defaults(), :call) == MapSet.new
+    assert defaults(defaults(), :string) == "abc"
+    assert defaults(defaults(), :binary) == <<1, 2, 3>>
+    assert defaults(defaults(), :charlist) == 'abc'
+  end
+
   test "records with dynamic arguments" do
     record = file_info()
     assert file_info(record, :size) == :undefined
@@ -113,6 +175,20 @@ defmodule RecordTest do
           "got runtime: {RecordTest, \"john\", 25}"
     assert_raise ArgumentError, msg, fn ->
       file_info(record)
+    end
+
+    pretender = {RecordTest, "john"}
+    msg = "expected argument to be a RecordTest record with 2 fields, " <>
+          "got: {RecordTest, \"john\"}"
+    assert_raise ArgumentError, msg, fn ->
+      user(pretender)
+    end
+
+    pretender = {RecordTest, "john", 25, []}
+    msg = "expected argument to be a RecordTest record with 2 fields, " <>
+          "got: {RecordTest, \"john\", 25, []}"
+    assert_raise ArgumentError, msg, fn ->
+      user(pretender)
     end
   end
 

@@ -3,7 +3,7 @@ defmodule UmbrellaDep.Mixfile do
 
   def project do
     [app: :umbrella_dep,
-     deps: deps]
+     deps: deps()]
   end
 
   defp deps do

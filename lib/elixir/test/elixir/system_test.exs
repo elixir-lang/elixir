@@ -13,12 +13,12 @@ defmodule SystemTest do
     assert is_binary build_info[:version]
 
     if build_info[:revision] != "" do
-      assert String.length(build_info[:revision]) == 7
+      assert String.length(build_info[:revision]) >= 7
     end
 
     version_file = Path.join([__DIR__, "../../../..", "VERSION"]) |> Path.expand
     {:ok, version} = File.read(version_file)
-    assert build_info[:version] == String.strip(version)
+    assert build_info[:version] == String.trim(version)
     assert build_info[:build] != ""
   end
 
@@ -28,7 +28,7 @@ defmodule SystemTest do
   end
 
   if :file.native_name_encoding == :utf8 do
-    test "cwd/0 with utf8" do
+    test "cwd/0 with UTF-8" do
       File.mkdir_p(tmp_path("héllò"))
 
       File.cd!(tmp_path("héllò"), fn ->
@@ -75,35 +75,68 @@ defmodule SystemTest do
     assert System.get_env(@test_var) == "OTHER_SAMPLE"
   end
 
-  test "cmd/2" do
-    assert {"hello\n", 0} = System.cmd "echo", ["hello"]
-  end
-
-  test "cmd/3 (with options)" do
-    assert {["hello\n"], 0} = System.cmd "echo", ["hello"],
-                                into: [], cd: System.cwd!, env: %{"foo" => "bar", "baz" => nil},
-                                arg0: "echo", stderr_to_stdout: true, parallelism: true
-  end
-
-  @echo "echo-elixir-test"
-
-  test "cmd/2 with absolute and relative paths" do
-    echo = tmp_path(@echo)
-    File.mkdir_p! Path.dirname(echo)
-    File.cp! System.find_executable("echo"), echo
-
-    File.cd! Path.dirname(echo), fn ->
-      # There is a bug in OTP where find_executable is finding
-      # entries on the current directory. If this is the case,
-      # we should avoid the assertion below.
-      unless System.find_executable(@echo) do
-        assert :enoent = catch_error(System.cmd(@echo, ["hello"]))
-      end
-
-      assert {"hello\n", 0} = System.cmd(Path.join(System.cwd!, @echo), ["hello"], [{:arg0, "echo"}])
+  if windows?() do
+    test "cmd/2 win" do
+      assert {"hello\r\n", 0} = System.cmd "cmd", ~w[/c echo hello]
     end
-  after
-    File.rm_rf! tmp_path(@echo)
+
+    test "cmd/3 (with options) win" do
+      assert {["hello\r\n"], 0} = System.cmd "cmd", ~w[/c echo hello],
+                                    into: [], cd: System.cwd!, env: %{"foo" => "bar", "baz" => nil},
+                                    arg0: "echo", stderr_to_stdout: true, parallelism: true
+    end
+
+    @echo "echo-elixir-test"
+
+    test "cmd/2 with absolute and relative paths win" do
+      echo = tmp_path(@echo)
+      File.mkdir_p! Path.dirname(echo)
+      File.cp! System.find_executable("cmd"), echo
+
+      File.cd! Path.dirname(echo), fn ->
+        # There is a bug in OTP where find_executable is finding
+        # entries on the current directory. If this is the case,
+        # we should avoid the assertion below.
+        unless System.find_executable(@echo) do
+          assert :enoent = catch_error(System.cmd(@echo, ~w[/c echo hello]))
+        end
+
+        assert {"hello\r\n", 0} = System.cmd(Path.join(System.cwd!, @echo), ~w[/c echo hello], [{:arg0, "echo"}])
+      end
+    after
+      File.rm_rf! Path.dirname(tmp_path(@echo))
+    end
+  else
+    test "cmd/2 Unix" do
+      assert {"hello\n", 0} = System.cmd "echo", ["hello"]
+    end
+
+    test "cmd/3 (with options) Unix" do
+      assert {["hello\n"], 0} = System.cmd "echo", ["hello"],
+                                  into: [], cd: System.cwd!, env: %{"foo" => "bar", "baz" => nil},
+                                  arg0: "echo", stderr_to_stdout: true, parallelism: true
+    end
+
+    @echo "echo-elixir-test"
+
+    test "cmd/2 with absolute and relative paths Unix" do
+      echo = tmp_path(@echo)
+      File.mkdir_p! Path.dirname(echo)
+      File.cp! System.find_executable("echo"), echo
+
+      File.cd! Path.dirname(echo), fn ->
+        # There is a bug in OTP where find_executable is finding
+        # entries on the current directory. If this is the case,
+        # we should avoid the assertion below.
+        unless System.find_executable(@echo) do
+          assert :enoent = catch_error(System.cmd(@echo, ["hello"]))
+        end
+
+        assert {"hello\n", 0} = System.cmd(Path.join(System.cwd!, @echo), ["hello"], [{:arg0, "echo"}])
+      end
+    after
+      File.rm_rf! tmp_path(@echo)
+    end
   end
 
   test "find_executable/1" do
@@ -117,8 +150,8 @@ defmodule SystemTest do
   end
 
   test "monotonic_time/1" do
-    assert is_integer(System.monotonic_time(:nanoseconds))
-    assert abs(System.monotonic_time(:microseconds)) < abs(System.monotonic_time(:nanoseconds))
+    assert is_integer(System.monotonic_time(:nanosecond))
+    assert abs(System.monotonic_time(:microsecond)) < abs(System.monotonic_time(:nanosecond))
   end
 
   test "system_time/0" do
@@ -126,13 +159,13 @@ defmodule SystemTest do
   end
 
   test "system_time/1" do
-    assert is_integer(System.system_time(:nanoseconds))
-    assert abs(System.system_time(:microseconds)) < abs(System.system_time(:nanoseconds))
+    assert is_integer(System.system_time(:nanosecond))
+    assert abs(System.system_time(:microsecond)) < abs(System.system_time(:nanosecond))
   end
 
   test "time_offset/0 and time_offset/1" do
     assert is_integer(System.time_offset())
-    assert is_integer(System.time_offset(:seconds))
+    assert is_integer(System.time_offset(:second))
   end
 
   test "os_time/0" do
@@ -140,8 +173,8 @@ defmodule SystemTest do
   end
 
   test "os_time/1" do
-    assert is_integer(System.os_time(:nanoseconds))
-    assert abs(System.os_time(:microseconds)) < abs(System.os_time(:nanoseconds))
+    assert is_integer(System.os_time(:nanosecond))
+    assert abs(System.os_time(:microsecond)) < abs(System.os_time(:nanosecond))
   end
 
   test "unique_integer/0 and unique_integer/1" do
@@ -151,7 +184,19 @@ defmodule SystemTest do
   end
 
   test "convert_time_unit/3" do
-    time = System.monotonic_time(:nanoseconds)
-    assert abs(System.convert_time_unit(time, :nanoseconds, :microseconds)) < abs(time)
+    time = System.monotonic_time(:nanosecond)
+    assert abs(System.convert_time_unit(time, :nanosecond, :microsecond)) < abs(time)
+  end
+
+  test "schedulers/0" do
+    assert System.schedulers >= 1
+  end
+
+  test "schedulers_online/0" do
+    assert System.schedulers_online >= 1
+  end
+
+  test "otp_release/0" do
+    assert is_binary System.otp_release
   end
 end

@@ -1,5 +1,5 @@
 defmodule Mix.NoTaskError do
-  defexception [:task, :message, :mix]
+  defexception [:task, :message, mix: true]
 
   def exception(opts) do
     task = opts[:task]
@@ -39,7 +39,7 @@ defmodule Mix.NoTaskError do
 end
 
 defmodule Mix.InvalidTaskError do
-  defexception [:task, :message, :mix]
+  defexception [:task, :message, mix: true]
 
   def exception(opts) do
     task = opts[:task]
@@ -48,7 +48,7 @@ defmodule Mix.InvalidTaskError do
 end
 
 defmodule Mix.ElixirVersionError do
-  defexception [:target, :expected, :actual, :message, :mix]
+  defexception [:target, :expected, :actual, :message, mix: true]
 
   def exception(opts) do
     target   = opts[:target]
@@ -62,9 +62,9 @@ end
 
 defmodule Mix.NoProjectError do
   defexception message: "Could not find a Mix.Project, please ensure a mix.exs file is available",
-               mix: nil
+               mix: true
 end
 
 defmodule Mix.Error do
-  defexception [:mix, :message]
+  defexception [:message, mix: true]
 end

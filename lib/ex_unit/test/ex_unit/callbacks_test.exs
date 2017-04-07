@@ -5,16 +5,20 @@ defmodule ExUnit.CallbacksTest do
 
   import ExUnit.CaptureIO
 
+  def start_counter(_) do
+    [counter: []]
+  end
+
   test "callbacks run custom code with context" do
     defmodule CallbacksTest do
       use ExUnit.Case
 
       setup_all do
-        {:ok, [context: :setup_all]}
+        [context: :setup_all]
       end
 
       setup do
-        {:ok, [initial_setup: true]}
+        %{initial_setup: true}
       end
 
       setup context do
@@ -28,6 +32,39 @@ defmodule ExUnit.CallbacksTest do
       end
     end
 
+    ExUnit.Server.cases_loaded()
+    assert capture_io(fn -> ExUnit.run end) =~
+           "1 test, 0 failures"
+  end
+
+  test "named callbacks run custom code in order" do
+    defmodule NamedCallbacksTest do
+      use ExUnit.Case
+
+      import ExUnit.CallbacksTest
+      setup_all :start_counter
+
+      setup :store_1
+      setup [:store_2, :store_3]
+
+      setup context do
+        [counter: [4 | context.counter]]
+      end
+
+      setup :store_5
+
+      test "callbacks", context do
+        assert context[:counter] == [5, 4, 3, 2, 1]
+      end
+
+      defp store(context, number), do: [counter: [number | context.counter]]
+      defp store_1(context), do: store(context, 1)
+      defp store_2(context), do: store(context, 2)
+      defp store_3(context), do: store(context, 3)
+      defp store_5(context), do: store(context, 5)
+    end
+
+    ExUnit.Server.cases_loaded()
     assert capture_io(fn -> ExUnit.run end) =~
            "1 test, 0 failures"
   end
@@ -37,7 +74,7 @@ defmodule ExUnit.CallbacksTest do
       use ExUnit.Case
 
       setup _ do
-        :ok = error
+        :ok = error()
       end
 
       test "ok" do
@@ -47,6 +84,7 @@ defmodule ExUnit.CallbacksTest do
       defp error, do: :error
     end
 
+    ExUnit.Server.cases_loaded()
     assert capture_io(fn -> ExUnit.run end) =~
            "** (MatchError) no match of right hand side value: :error"
   end
@@ -56,7 +94,7 @@ defmodule ExUnit.CallbacksTest do
       use ExUnit.Case
 
       setup_all _ do
-        :ok = error
+        :ok = error()
       end
 
       test "ok" do
@@ -66,6 +104,7 @@ defmodule ExUnit.CallbacksTest do
       defp error, do: :error
     end
 
+    ExUnit.Server.cases_loaded()
     assert capture_io(fn -> ExUnit.run end) =~
            "** (MatchError) no match of right hand side value: :error"
   end
@@ -75,13 +114,14 @@ defmodule ExUnit.CallbacksTest do
       use ExUnit.Case
 
       test "ok" do
-        on_exit fn -> :ok = error end
+        on_exit fn -> :ok = error() end
         :ok
       end
 
       defp error, do: :error
     end
 
+    ExUnit.Server.cases_loaded()
     assert capture_io(fn -> ExUnit.run end) =~
            "** (MatchError) no match of right hand side value: :error"
   end
@@ -96,6 +136,7 @@ defmodule ExUnit.CallbacksTest do
       end
     end
 
+    ExUnit.Server.cases_loaded()
     assert capture_io(fn -> ExUnit.run end) =~
            ">) killed"
   end
@@ -124,7 +165,7 @@ defmodule ExUnit.CallbacksTest do
         receive do: (:ready -> :ok)
 
         on_exit fn ->
-          send pid, {:on_exit, self}
+          send pid, {:on_exit, self()}
           assert_receive :done
           IO.puts "on_exit run"
         end
@@ -137,6 +178,7 @@ defmodule ExUnit.CallbacksTest do
       end
     end
 
+    ExUnit.Server.cases_loaded()
     output = capture_io(fn -> ExUnit.run end)
     assert output =~ "on_exit run"
     assert output =~ "1 test, 0 failures"
@@ -187,7 +229,8 @@ defmodule ExUnit.CallbacksTest do
       end
     end
 
-    no_formatters!
+    no_formatters!()
+    ExUnit.Server.cases_loaded()
     output = capture_io(fn -> ExUnit.run end)
 
     assert output =~ """
@@ -230,7 +273,8 @@ defmodule ExUnit.CallbacksTest do
       end
     end
 
-    no_formatters!
+    no_formatters!()
+    ExUnit.Server.cases_loaded()
     output = capture_io(fn -> ExUnit.run end)
 
     assert output =~ """
@@ -238,6 +282,46 @@ defmodule ExUnit.CallbacksTest do
     on_exit setup run
     on_exit setup_all run
     """
+  end
+
+  test "raises an error when setting an invalid callback in setup" do
+    defmodule SetupErrorTest do
+      use ExUnit.Case
+
+      setup do
+        {:ok, "foo"}
+      end
+
+      test "ok" do
+        :ok
+      end
+    end
+
+    ExUnit.Server.cases_loaded()
+    assert capture_io(fn -> ExUnit.run end) =~
+           "** (RuntimeError) expected ExUnit callback in " <>
+           "ExUnit.CallbacksTest.SetupErrorTest to return " <>
+           ":ok | keyword | map, got {:ok, \"foo\"} instead"
+  end
+
+  test "raises an error when overriding a reserved callback key in setup" do
+    defmodule SetupReservedTest do
+      use ExUnit.Case
+
+      setup do
+        {:ok, file: "foo"}
+      end
+
+      test "ok" do
+        :ok
+      end
+    end
+
+    ExUnit.Server.cases_loaded()
+    assert capture_io(fn -> ExUnit.run end) =~
+           "** (RuntimeError) ExUnit callback in " <>
+           "ExUnit.CallbacksTest.SetupReservedTest is " <>
+           "trying to set reserved field :file to \"foo\""
   end
 end
 

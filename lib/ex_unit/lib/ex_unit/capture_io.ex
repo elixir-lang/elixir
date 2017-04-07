@@ -70,7 +70,7 @@ defmodule ExUnit.CaptureIO do
   As seen in the examples above, `capture_io` returns the captured output.
   If you want to also capture the result of the function executed inside
   the `capture_io`, you can use `Kernel.send/2` to send yourself a message
-  and use `ExUnit.Assertions.assert_received/1` to match on the results:
+  and use `ExUnit.Assertions.assert_received/2` to match on the results:
 
       capture_io([input: "this is input", capture_prompt: false], fn ->
         send self(), {:block_result, 42}
@@ -125,12 +125,12 @@ defmodule ExUnit.CaptureIO do
   defp do_capture_io(device, options, fun) do
     input = Keyword.get(options, :input, "")
     {:ok, string_io} = StringIO.open(input)
-    case ExUnit.Server.capture_device(device, string_io) do
+    case ExUnit.CaptureServer.device_capture_on(device, string_io) do
       {:ok, ref} ->
         try do
           do_capture_io(string_io, fun)
         after
-          ExUnit.Server.release_device(ref)
+          ExUnit.CaptureServer.device_capture_off(ref)
         end
       {:error, :no_device} ->
         _ = StringIO.close(string_io)

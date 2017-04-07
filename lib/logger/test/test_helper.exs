@@ -16,21 +16,21 @@ defmodule Logger.Case do
   end
 
   def wait_for_handler(manager, handler) do
-    unless handler in GenEvent.which_handlers(manager) do
-      :timer.sleep(10)
+    unless handler in :gen_event.which_handlers(manager) do
+      Process.sleep(10)
       wait_for_handler(manager, handler)
     end
   end
 
   def wait_for_logger() do
     try do
-      GenEvent.which_handlers(Logger)
+      :gen_event.which_handlers(Logger)
     else
       _ ->
         :ok
     catch
       :exit, _ ->
-        :timer.sleep(10)
+        Process.sleep(10)
         wait_for_logger()
     end
   end

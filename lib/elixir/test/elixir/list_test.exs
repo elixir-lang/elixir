@@ -6,29 +6,29 @@ defmodule ListTest do
   doctest List
 
   test "cons cell precedence" do
-    assert [1|:lists.flatten([2, 3])] == [1, 2, 3]
+    assert [1 | :lists.flatten([2, 3])] == [1, 2, 3]
   end
 
   test "optional comma" do
-    assert [1] == [ 1, ]
-    assert [1, 2, 3] == [1, 2, 3, ]
+    assert [1] == [1,]
+    assert [1, 2, 3] == [1, 2, 3,]
   end
 
   test "partial application" do
     assert (&[&1, 2]).(1) == [1, 2]
     assert (&[&1, &2]).(1, 2) == [1, 2]
     assert (&[&2, &1]).(2, 1) == [1, 2]
-    assert (&[&1|&2]).(1, 2) == [1|2]
-    assert (&[&1, &2|&3]).(1, 2, 3) == [1, 2|3]
+    assert (&[&1 | &2]).(1, 2) == [1 | 2]
+    assert (&[&1, &2 | &3]).(1, 2, 3) == [1, 2 | 3]
   end
 
-  test "wrap" do
+  test "wrap/1" do
     assert List.wrap([1, 2, 3]) == [1, 2, 3]
     assert List.wrap(1) == [1]
     assert List.wrap(nil) == []
   end
 
-  test "flatten" do
+  test "flatten/1" do
     assert List.flatten([1, 2, 3]) == [1, 2, 3]
     assert List.flatten([1, [2], 3]) == [1, 2, 3]
     assert List.flatten([[1, [2], 3]]) == [1, 2, 3]
@@ -37,80 +37,76 @@ defmodule ListTest do
     assert List.flatten([[]]) == []
   end
 
-  test "flatten with tail" do
+  test "flatten/2" do
     assert List.flatten([1, 2, 3], [4, 5]) == [1, 2, 3, 4, 5]
     assert List.flatten([1, [2], 3], [4, 5]) == [1, 2, 3, 4, 5]
     assert List.flatten([[1, [2], 3]], [4, 5]) == [1, 2, 3, 4, 5]
   end
 
-  test "foldl" do
+  test "foldl/3" do
     assert List.foldl([1, 2, 3], 0, fn x, y -> x + y end) == 6
     assert List.foldl([1, 2, 3], 10, fn x, y -> x + y end) == 16
     assert List.foldl([1, 2, 3, 4], 0, fn x, y -> x - y end) == 2
   end
 
-  test "foldr" do
+  test "foldr/3" do
     assert List.foldr([1, 2, 3], 0, fn x, y -> x + y end) == 6
     assert List.foldr([1, 2, 3], 10, fn x, y -> x + y end) == 16
     assert List.foldr([1, 2, 3, 4], 0, fn x, y -> x - y end) == -2
   end
 
-  test "reverse" do
-    assert Enum.reverse([1, 2, 3]) == [3, 2, 1]
-  end
-
-  test "duplicate" do
+  test "duplicate/2" do
     assert List.duplicate(1, 3) == [1, 1, 1]
     assert List.duplicate([1], 1) == [[1]]
   end
 
-  test "last" do
+  test "last/1" do
     assert List.last([]) == nil
     assert List.last([1]) == 1
     assert List.last([1, 2, 3]) == 3
   end
 
-  test "zip" do
+  test "zip/1" do
     assert List.zip([[1, 4], [2, 5], [3, 6]]) == [{1, 2, 3}, {4, 5, 6}]
     assert List.zip([[1, 4], [2, 5, 0], [3, 6]]) == [{1, 2, 3}, {4, 5, 6}]
     assert List.zip([[1], [2, 5], [3, 6]]) == [{1, 2, 3}]
     assert List.zip([[1, 4], [2, 5], []]) == []
   end
 
-  test "keyfind" do
+  test "keyfind/4" do
     assert List.keyfind([a: 1, b: 2], :a, 0) == {:a, 1}
     assert List.keyfind([a: 1, b: 2], 2, 1) == {:b, 2}
     assert List.keyfind([a: 1, b: 2], :c, 0) == nil
   end
 
-  test "keyreplace" do
+  test "keyreplace/4" do
     assert List.keyreplace([a: 1, b: 2], :a, 0, {:a, 3}) == [a: 3, b: 2]
     assert List.keyreplace([a: 1], :b, 0, {:b, 2}) == [a: 1]
   end
 
-  test "keysort" do
+  test "keysort/2" do
     assert List.keysort([a: 4, b: 3, c: 5], 1) == [b: 3, a: 4, c: 5]
     assert List.keysort([a: 4, c: 1, b: 2], 0) == [a: 4, b: 2, c: 1]
   end
 
-  test "keystore" do
+  test "keystore/4" do
     assert List.keystore([a: 1, b: 2], :a, 0, {:a, 3}) == [a: 3, b: 2]
     assert List.keystore([a: 1], :b, 0, {:b, 2}) == [a: 1, b: 2]
   end
 
-  test "keymember?" do
+  test "keymember?/3" do
     assert List.keymember?([a: 1, b: 2], :a, 0) == true
     assert List.keymember?([a: 1, b: 2], 2, 1) == true
     assert List.keymember?([a: 1, b: 2], :c, 0) == false
   end
 
-  test "keydelete" do
+  test "keydelete/3" do
     assert List.keydelete([a: 1, b: 2], :a, 0) == [{:b, 2}]
     assert List.keydelete([a: 1, b: 2], 2, 1) == [{:a, 1}]
     assert List.keydelete([a: 1, b: 2], :c, 0) == [{:a, 1}, {:b, 2}]
   end
 
-  test "insert at" do
+  test "insert_at/3" do
     assert List.insert_at([1, 2, 3], 0, 0) == [0, 1, 2, 3]
     assert List.insert_at([1, 2, 3], 3, 0) == [1, 2, 3, 0]
     assert List.insert_at([1, 2, 3], 2, 0) == [1, 2, 0, 3]
@@ -120,7 +116,7 @@ defmodule ListTest do
     assert List.insert_at([1, 2, 3], -10, 0) == [0, 1, 2, 3]
   end
 
-  test "replace at" do
+  test "replace_at/3" do
     assert List.replace_at([1, 2, 3], 0, 0) == [0, 2, 3]
     assert List.replace_at([1, 2, 3], 1, 0) == [1, 0, 3]
     assert List.replace_at([1, 2, 3], 2, 0) == [1, 2, 0]
@@ -129,7 +125,7 @@ defmodule ListTest do
     assert List.replace_at([1, 2, 3], -4, 0) == [1, 2, 3]
   end
 
-  test "update at" do
+  test "update_at/3" do
     assert List.update_at([1, 2, 3], 0, &(&1 + 1)) == [2, 2, 3]
     assert List.update_at([1, 2, 3], 1, &(&1 + 1)) == [1, 3, 3]
     assert List.update_at([1, 2, 3], 2, &(&1 + 1)) == [1, 2, 4]
@@ -138,9 +134,9 @@ defmodule ListTest do
     assert List.update_at([1, 2, 3], -4, &(&1 + 1)) == [1, 2, 3]
   end
 
-  test "delete at" do
-    Enum.each [-1, 0, 1], fn i ->
-      assert [] = List.delete_at([], i)
+  test "delete_at/2" do
+    for index <- [-1, 0, 1] do
+      assert List.delete_at([], index) == []
     end
     assert List.delete_at([1, 2, 3], 0) == [2, 3]
     assert List.delete_at([1, 2, 3], 2) == [1, 2]
@@ -150,7 +146,55 @@ defmodule ListTest do
     assert List.delete_at([1, 2, 3], -4) == [1, 2, 3]
   end
 
-  test "to string" do
+  test "pop_at/3" do
+    for index <- [-1, 0, 1] do
+      assert List.pop_at([], index) == {nil, []}
+    end
+    assert List.pop_at([1], 1, 2) == {2, [1]}
+    assert List.pop_at([1, 2, 3], 0) == {1, [2, 3]}
+    assert List.pop_at([1, 2, 3], 2) == {3, [1, 2]}
+    assert List.pop_at([1, 2, 3], 3) == {nil, [1, 2, 3]}
+    assert List.pop_at([1, 2, 3], -1) == {3, [1, 2]}
+    assert List.pop_at([1, 2, 3], -3) == {1, [2, 3]}
+    assert List.pop_at([1, 2, 3], -4) == {nil, [1, 2, 3]}
+  end
+
+  describe "starts_with?/2" do
+    test "list and prefix are equal" do
+      assert List.starts_with?([], [])
+      assert List.starts_with?([1], [1])
+      assert List.starts_with?([1, 2, 3], [1, 2, 3])
+    end
+
+    test "proper lists" do
+      refute List.starts_with?([1], [1, 2])
+      assert List.starts_with?([1, 2, 3], [1, 2])
+      refute List.starts_with?([1, 2, 3], [1, 2, 3, 4])
+    end
+
+    test "list is empty" do
+      refute List.starts_with?([], [1])
+      refute List.starts_with?([], [1, 2])
+    end
+
+    test "prefix is empty" do
+      assert List.starts_with?([1], [])
+      assert List.starts_with?([1, 2], [])
+      assert List.starts_with?([1, 2, 3], [])
+    end
+
+    test "only accepts lists" do
+      assert_raise FunctionClauseError, "no function clause matching in List.starts_with?/2", fn ->
+        List.starts_with?([1 | 2], [1 | 2])
+      end
+
+      assert_raise FunctionClauseError, "no function clause matching in List.starts_with?/2", fn ->
+        List.starts_with?([1, 2], 1)
+      end
+    end
+  end
+
+  test "to_string/1" do
     assert List.to_string([?æ, ?ß]) == "æß"
     assert List.to_string([?a, ?b, ?c]) == "abc"
 
@@ -166,5 +210,16 @@ defmodule ListTest do
     assert_raise ArgumentError, ~r"cannot convert the given list to a string", fn ->
       List.to_string([:a, :b])
     end
+  end
+
+  test "myers_difference/2" do
+    assert List.myers_difference([], []) == []
+    assert List.myers_difference([], [1, 2, 3]) == [ins: [1, 2, 3]]
+    assert List.myers_difference([1, 2, 3], []) == [del: [1, 2, 3]]
+    assert List.myers_difference([1, 2, 3], [1, 2, 3]) == [eq: [1, 2, 3]]
+    assert List.myers_difference([1, 2, 3], [1, 4, 2, 3]) == [eq: [1], ins: [4], eq: [2, 3]]
+    assert List.myers_difference([1, 4, 2, 3], [1, 2, 3]) == [eq: [1], del: [4], eq: [2, 3]]
+    assert List.myers_difference([1], [[1]]) == [del: [1], ins: [[1]]]
+    assert List.myers_difference([[1]], [1]) == [del: [[1]], ins: [1]]
   end
 end

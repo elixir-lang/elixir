@@ -73,13 +73,13 @@ defmodule IEx.InteractionTest do
   end
 
   test "invalid input" do
-    assert capture_iex("if true do ) false end") =~ "** (SyntaxError) iex:1: unexpected token: \")\". \"do\" starting at"
+    assert capture_iex("if true do ) false end") =~ "** (SyntaxError) iex:1: \"do\" is missing terminator \"end\". unexpected token: \")\" at line 1"
   end
 
   test "module definition" do
     input = """
     defmodule Sample do
-      def foo, do: bar
+      def foo, do: bar()
       def bar, do: 13
     end && Sample.foo
     """
@@ -94,19 +94,22 @@ defmodule IEx.InteractionTest do
     assert capture_iex("1\n", opts, [], true) == "prompt(1)> 1\nprompt(2)>"
   end
 
-  unless match?({:win32, _}, :os.type) do
+  if IO.ANSI.enabled? do
     test "color" do
       opts = [colors: [enabled: true, eval_result: [:red]]]
-      assert capture_iex("1 + 2", opts) == "\e[31m3\e[0m"
-      assert capture_iex("IO.ANSI.blue", opts)
-             == "\e[31m\"\\e[34m\"\e[0m"
+      assert capture_iex("1 + 2", opts) ==
+             "\e[31m3\e[0m"
+      assert capture_iex("IO.ANSI.blue", opts) ==
+             "\e[31m\e[32m\"\\e[34m\"\e[0m\e[31m\e[0m"
+      assert capture_iex("{:ok}", opts) ==
+             "\e[31m\e[39m{\e[0m\e[31m\e[36m:ok\e[0m\e[31m\e[39m}\e[0m\e[31m\e[0m"
     end
   end
 
   test "inspect opts" do
-    opts = [inspect: [binaries: :as_binaries, char_lists: :as_lists, structs: false, limit: 4]]
+    opts = [inspect: [binaries: :as_binaries, charlists: :as_lists, structs: false, limit: 4]]
     assert capture_iex("<<45, 46, 47>>\n[45, 46, 47]\n%IO.Stream{}", opts) ==
-              "<<45, 46, 47>>\n[45, 46, 47]\n%{__struct__: IO.Stream, device: nil, line_or_bytes: :line, raw: true}"
+           "<<45, 46, 47>>\n[45, 46, 47]\n%{__struct__: IO.Stream, device: nil, line_or_bytes: :line, raw: true}"
   end
 
   test "history size" do
@@ -120,7 +123,9 @@ defmodule IEx.InteractionTest do
   ## .iex file loading
 
   test "no .iex" do
-    assert "** (CompileError) iex:1: undefined function my_variable/0" <> _ = capture_iex("my_variable")
+    capture_io(:stderr, fn ->
+      assert "** (CompileError) iex:1: undefined function my_variable/0" <> _ = capture_iex("my_variable")
+    end)
   end
 
   test ".iex" do
@@ -142,9 +147,9 @@ defmodule IEx.InteractionTest do
   end
 
   test "receive exit" do
-    assert capture_iex("spawn_link(fn -> exit(:bye) end)") =~
+    assert capture_iex("spawn_link(fn -> exit(:bye) end); Process.sleep(1000)") =~
            ~r"\*\* \(EXIT from #PID<\d+\.\d+\.\d+>\) :bye"
-    assert capture_iex("spawn_link(fn -> exit({:bye, [:world]}) end)") =~
+    assert capture_iex("spawn_link(fn -> exit({:bye, [:world]}) end); Process.sleep(1000)") =~
            ~r"\*\* \(EXIT from #PID<\d+\.\d+\.\d+>\) {:bye, \[:world\]}"
   end
 
@@ -152,7 +157,8 @@ defmodule IEx.InteractionTest do
     # use exit/1 to fake an error so that an error message
     # is not sent to the error logger.
     content = capture_iex("spawn_link(fn -> exit({%ArgumentError{},
-                           [{:not_a_real_module, :function, 0, []}]}) end)")
+                           [{:not_a_real_module, :function, 0, []}]}) end);
+                           Process.sleep(1000)")
     assert content =~ ~r"\*\* \(EXIT from #PID<\d+\.\d+\.\d+>\) an exception was raised:\n"
     assert content =~ ~r"\s{4}\*\* \(ArgumentError\) argument error\n"
     assert content =~ ~r"\s{8}:not_a_real_module\.function/0"

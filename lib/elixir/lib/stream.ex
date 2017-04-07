@@ -96,7 +96,6 @@ defmodule Stream do
   @type element :: any
   @type index   :: non_neg_integer
   @type default :: any
-  @opaque t     :: %__MODULE__{}
 
   # Require Stream.Reducers and its callbacks
   require Stream.Reducers, as: R
@@ -105,18 +104,18 @@ defmodule Stream do
     {:cont, acc}
   end
 
-  defmacrop next(f, entry, acc) do
-    quote do: unquote(f).(unquote(entry), unquote(acc))
+  defmacrop next(fun, entry, acc) do
+    quote do: unquote(fun).(unquote(entry), unquote(acc))
   end
 
-  defmacrop acc(h, n, t) do
-    quote do: [unquote(h), unquote(n)|unquote(t)]
+  defmacrop acc(head, state, tail) do
+    quote do: [unquote(head), unquote(state) | unquote(tail)]
   end
 
-  defmacrop next_with_acc(f, entry, h, n, t) do
+  defmacrop next_with_acc(fun, entry, head, state, tail) do
     quote do
-      {reason, [h|t]} = unquote(f).(unquote(entry), [unquote(h)|unquote(t)])
-      {reason, [h, unquote(n)|t]}
+      {reason, [head | tail]} = unquote(fun).(unquote(entry), [unquote(head) | unquote(tail)])
+      {reason, [head, unquote(state) | tail]}
     end
   end
 
@@ -125,7 +124,7 @@ defmodule Stream do
   @doc """
   Shortcut to `chunk(enum, n, n)`.
   """
-  @spec chunk(Enumerable.t, non_neg_integer) :: Enumerable.t
+  @spec chunk(Enumerable.t, pos_integer) :: Enumerable.t
   def chunk(enum, n), do: chunk(enum, n, n, nil)
 
   @doc """
@@ -135,9 +134,9 @@ defmodule Stream do
   `step` is optional and, if not passed, defaults to `n`, i.e.
   chunks do not overlap. If the final chunk does not have `n`
   elements to fill the chunk, elements are taken as necessary
-  from `pad` if it was passed. If `pad` is passed and does not
-  have enough elements to fill the chunk, then the chunk is
-  returned anyway with less than `n` elements. If `pad` is not
+  from `leftover` if it was passed. If `leftover` is passed and
+  does not have enough elements to fill the chunk, then the chunk is
+  returned anyway with less than `n` elements. If `leftover` is not
   passed at all or is `nil`, then the partial chunk is discarded
   from the result.
 
@@ -158,14 +157,15 @@ defmodule Stream do
   """
   @spec chunk(Enumerable.t, pos_integer, pos_integer) :: Enumerable.t
   @spec chunk(Enumerable.t, pos_integer, pos_integer, Enumerable.t | nil) :: Enumerable.t
-  def chunk(enum, n, step, pad \\ nil) when n > 0 and step > 0 do
+  def chunk(enum, n, step, leftover \\ nil)
+      when is_integer(n) and n > 0 and is_integer(step) and step > 0 do
     limit = :erlang.max(n, step)
-    if is_nil(pad) do
+    if is_nil(leftover) do
       lazy enum, {[], 0}, fn(f1) -> R.chunk(n, step, limit, f1) end
     else
       lazy enum, {[], 0},
            fn(f1) -> R.chunk(n, step, limit, f1) end,
-           &do_chunk(&1, n, pad, &2)
+           &do_chunk(&1, n, leftover, &2)
      end
   end
 
@@ -173,8 +173,8 @@ defmodule Stream do
     {:cont, acc}
   end
 
-  defp do_chunk(acc(h, {buffer, count} = old, t), n, pad, f1) do
-    buffer = :lists.reverse(buffer, Enum.take(pad, n - count))
+  defp do_chunk(acc(h, {buffer, count} = old, t), n, leftover, f1) do
+    buffer = :lists.reverse(buffer, Enum.take(leftover, n - count))
     next_with_acc(f1, buffer, h, old, t)
   end
 
@@ -235,7 +235,7 @@ defmodule Stream do
 
   """
   @spec dedup_by(Enumerable.t, (element -> term)) :: Enumerable.t
-  def dedup_by(enum, fun) when is_function(fun, 1) do
+  def dedup_by(enum, fun) do
     lazy enum, nil, fn f1 -> R.dedup(fun, f1) end
   end
 
@@ -270,21 +270,52 @@ defmodule Stream do
       fn
         entry, [h, {count, buf1, []} | t] ->
           do_drop(:cont, n, entry, h, count, buf1, [], t)
-        entry, [h, {count, buf1, [next|buf2]} | t] ->
-          {reason, [h|t]} = f1.(next, [h|t])
+        entry, [h, {count, buf1, [next | buf2]} | t] ->
+          {reason, [h | t]} = f1.(next, [h | t])
           do_drop(reason, n, entry, h, count, buf1, buf2, t)
       end
     end
   end
 
   defp do_drop(reason, n, entry, h, count, buf1, buf2, t) do
-    buf1  = [entry|buf1]
+    buf1  = [entry | buf1]
     count = count + 1
     if count == n do
-      {reason, [h, {0, [], :lists.reverse(buf1)}|t]}
+      {reason, [h, {0, [], :lists.reverse(buf1)} | t]}
     else
-      {reason, [h, {count, buf1, buf2}|t]}
+      {reason, [h, {count, buf1, buf2} | t]}
     end
+  end
+
+  @doc """
+  Creates a stream that drops every `nth` item from the enumerable.
+
+  The first item is always dropped, unless `nth` is 0.
+
+  `nth` must be a non-negative integer.
+
+  ## Examples
+
+      iex> stream = Stream.drop_every(1..10, 2)
+      iex> Enum.to_list(stream)
+      [2, 4, 6, 8, 10]
+
+      iex> stream = Stream.drop_every(1..1000, 1)
+      iex> Enum.to_list(stream)
+      []
+
+      iex> stream = Stream.drop_every([1, 2, 3, 4, 5], 0)
+      iex> Enum.to_list(stream)
+      [1, 2, 3, 4, 5]
+
+  """
+  @spec drop_every(Enumerable.t, non_neg_integer) :: Enumerable.t
+  def drop_every(enum, nth)
+  def drop_every(enum, 0), do: %Stream{enum: enum}
+  def drop_every([], _nth), do: %Stream{enum: []}
+
+  def drop_every(enum, nth) when is_integer(nth) and nth > 0 do
+    lazy enum, nth, fn(f1) -> R.drop_every(nth, f1) end
   end
 
   @doc """
@@ -310,7 +341,7 @@ defmodule Stream do
 
   ## Examples
 
-      iex> stream = Stream.each([1, 2, 3], fn(x) -> send self, x end)
+      iex> stream = Stream.each([1, 2, 3], fn(x) -> send self(), x end)
       iex> Enum.to_list(stream)
       iex> receive do: (x when is_integer(x) -> x)
       1
@@ -331,14 +362,20 @@ defmodule Stream do
   end
 
   @doc """
-  Creates a stream that will apply the given function on enumeration and
-  flatten the result.
+  Maps the given `fun` over `enumerable` and flattens the result.
+
+  This function returns a new stream built by appending the result of invoking `fun`
+  on each element of `enumerable` together.
 
   ## Examples
 
       iex> stream = Stream.flat_map([1, 2, 3], fn(x) -> [x, x * 2] end)
       iex> Enum.to_list(stream)
       [1, 2, 2, 4, 3, 6]
+
+      iex> stream = Stream.flat_map([1, 2, 3], fn(x) -> [[x]] end)
+      iex> Enum.to_list(stream)
+      [[1], [2], [3]]
 
   """
   @spec flat_map(Enumerable.t, (element -> Enumerable.t)) :: Enumerable.t
@@ -381,9 +418,16 @@ defmodule Stream do
   end
 
   @doc """
-  Creates a stream that emits a value after the given period `n` in milliseconds.
+  Creates a stream that emits a value after the given period `n`
+  in milliseconds.
 
   The values emitted are an increasing counter starting at `0`.
+  This operation will block the caller by the given interval
+  every time a new item is streamed.
+
+  Do not use this function to generate a sequence of numbers.
+  If blocking the caller process is not necessary, use
+  `Stream.iterate(0, & &1 + 1)` instead.
 
   ## Examples
 
@@ -393,8 +437,8 @@ defmodule Stream do
   """
   @spec interval(non_neg_integer) :: Enumerable.t
   def interval(n) do
-    unfold 0, fn (count) ->
-      :timer.sleep(n)
+    unfold 0, fn(count) ->
+      Process.sleep(n)
       {count, count + 1}
     end
   end
@@ -405,33 +449,33 @@ defmodule Stream do
   This function is often used with `run/1` since any evaluation
   is delayed until the stream is executed. See `run/1` for an example.
   """
-  @spec into(Enumerable.t, Collectable.t) :: Enumerable.t
+  @spec into(Enumerable.t, Collectable.t, (term -> term)) :: Enumerable.t
   def into(enum, collectable, transform \\ fn x -> x end) do
     &do_into(enum, collectable, transform, &1, &2)
   end
 
   defp do_into(enum, collectable, transform, acc, fun) do
     {initial, into} = Collectable.into(collectable)
-    composed = fn x, [acc|collectable] ->
+    composed = fn x, [acc | collectable] ->
       collectable = into.(collectable, {:cont, transform.(x)})
       {reason, acc} = fun.(x, acc)
-      {reason, [acc|collectable]}
+      {reason, [acc | collectable]}
     end
     do_into(&Enumerable.reduce(enum, &1, composed), initial, into, acc)
   end
 
   defp do_into(reduce, collectable, into, {command, acc}) do
     try do
-      reduce.({command, [acc|collectable]})
+      reduce.({command, [acc | collectable]})
     catch
       kind, reason ->
         stacktrace = System.stacktrace
         into.(collectable, :halt)
         :erlang.raise(kind, reason, stacktrace)
     else
-      {:suspended, [acc|collectable], continuation} ->
+      {:suspended, [acc | collectable], continuation} ->
         {:suspended, acc, &do_into(continuation, collectable, into, &1)}
-      {reason, [acc|collectable]} ->
+      {reason, [acc | collectable]} ->
         into.(collectable, :done)
         {reason, acc}
     end
@@ -452,6 +496,41 @@ defmodule Stream do
   def map(enum, fun) do
     lazy enum, fn(f1) -> R.map(fun, f1) end
   end
+
+  @doc """
+  Creates a stream that will apply the given function on
+  every `nth` item from the enumerable.
+
+  The first item is always passed to the given function.
+
+  `nth` must be a non-negative integer.
+
+  ## Examples
+
+      iex> stream = Stream.map_every(1..10, 2, fn(x) -> x * 2 end)
+      iex> Enum.to_list(stream)
+      [2, 2, 6, 4, 10, 6, 14, 8, 18, 10]
+
+      iex> stream = Stream.map_every([1, 2, 3, 4, 5], 1, fn(x) -> x * 2 end)
+      iex> Enum.to_list(stream)
+      [2, 4, 6, 8, 10]
+
+      iex> stream = Stream.map_every(1..5, 0, fn(x) -> x * 2 end)
+      iex> Enum.to_list(stream)
+      [1, 2, 3, 4, 5]
+
+  """
+  @spec map_every(Enumerable.t, non_neg_integer, (element -> any)) :: Enumerable.t
+  def map_every(enum, nth, fun)
+
+  def map_every(enum, 1, fun), do: map(enum, fun)
+  def map_every(enum, 0, _fun), do: %Stream{enum: enum}
+  def map_every([], _nth, _fun), do: %Stream{enum: []}
+
+  def map_every(enum, nth, fun) when is_integer(nth) and nth > 0 do
+    lazy enum, nth, fn(f1) -> R.map_every(nth, fun, f1) end
+  end
+
 
   @doc """
   Creates a stream that will reject elements according to
@@ -497,7 +576,8 @@ defmodule Stream do
   @doc """
   Creates a stream that applies the given function to each
   element, emits the result and uses the same result as the accumulator
-  for the next computation.
+  for the next computation. Uses the first element in the enumerable
+  as the starting value.
 
   ## Examples
 
@@ -508,7 +588,7 @@ defmodule Stream do
   """
   @spec scan(Enumerable.t, (element, acc -> any)) :: Enumerable.t
   def scan(enum, fun) do
-    lazy enum, :first, fn(f1) -> R.scan_2(fun, f1) end
+    lazy enum, :first, fn(f1) -> R.scan2(fun, f1) end
   end
 
   @doc """
@@ -525,7 +605,7 @@ defmodule Stream do
   """
   @spec scan(Enumerable.t, acc, (element, acc -> any)) :: Enumerable.t
   def scan(enum, acc, fun) do
-    lazy enum, acc, fn(f1) -> R.scan_3(fun, f1) end
+    lazy enum, acc, fn(f1) -> R.scan3(fun, f1) end
   end
 
   @doc """
@@ -570,7 +650,7 @@ defmodule Stream do
 
   The first item is always included, unless `nth` is 0.
 
-  `nth` must be a non-negative integer, or `FunctionClauseError` will be thrown.
+  `nth` must be a non-negative integer.
 
   ## Examples
 
@@ -588,6 +668,7 @@ defmodule Stream do
 
   """
   @spec take_every(Enumerable.t, non_neg_integer) :: Enumerable.t
+  def take_every(enum, nth)
   def take_every(_enum, 0), do: %Stream{enum: []}
   def take_every([], _nth), do: %Stream{enum: []}
 
@@ -614,7 +695,8 @@ defmodule Stream do
   @doc """
   Creates a stream that emits a single value after `n` milliseconds.
 
-  The value emitted is `0`.
+  The value emitted is `0`. This operation will block the caller by
+  the given time until the item is streamed.
 
   ## Examples
 
@@ -654,10 +736,10 @@ defmodule Stream do
       [1, 2, 3]
 
   """
-  @spec transform(Enumerable.t, acc, fun) :: Enumerable.t when
-        fun: (element, acc -> {Enumerable.t, acc} | {:halt, acc}),
-        acc: any
-  def transform(enum, acc, reducer) when is_function(reducer, 2) do
+  @spec transform(Enumerable.t, acc, fun) :: Enumerable.t
+        when fun: (element, acc -> {Enumerable.t, acc} | {:halt, acc}),
+             acc: any
+  def transform(enum, acc, reducer) do
     &do_transform(enum, fn -> acc end, reducer, &1, &2, nil)
   end
 
@@ -671,11 +753,10 @@ defmodule Stream do
   This function can be seen as a combination of `Stream.resource/3` with
   `Stream.transform/3`.
   """
-  @spec transform(Enumerable.t, (() -> acc), fun, (acc -> term)) :: Enumerable.t when
-        fun: (element, acc -> {Enumerable.t, acc} | {:halt, acc}),
-        acc: any
-  def transform(enum, start_fun, reducer, after_fun)
-      when is_function(start_fun, 0) and is_function(reducer, 2) and is_function(after_fun, 1) do
+  @spec transform(Enumerable.t, (() -> acc), fun, (acc -> term)) :: Enumerable.t
+        when fun: (element, acc -> {Enumerable.t, acc} | {:halt, acc}),
+             acc: any
+  def transform(enum, start_fun, reducer, after_fun) do
     &do_transform(enum, start_fun, reducer, &1, &2, after_fun)
   end
 
@@ -683,107 +764,125 @@ defmodule Stream do
     inner = &do_transform_each(&1, &2, fun)
     step  = &do_transform_step(&1, &2)
     next  = &Enumerable.reduce(enumerables, &1, step)
-    do_transform(user_acc.(), user, fun, [], next, inner_acc, inner, after_fun)
+    do_transform(user_acc.(), user, fun, :cont, next, inner_acc, inner, after_fun)
   end
 
-  defp do_transform(user_acc, _user, _fun, _next_acc, _next, {:halt, inner_acc}, _inner, after_fun) do
+  defp do_transform(user_acc, _user, _fun, _next_op, next, {:halt, inner_acc}, _inner, after_fun) do
+    next.({:halt, []})
     do_after(after_fun, user_acc)
     {:halted, inner_acc}
   end
 
-  defp do_transform(user_acc, user, fun, next_acc, next, {:suspend, inner_acc}, inner, after_fun) do
-    {:suspended, inner_acc, &do_transform(user_acc, user, fun, next_acc, next, &1, inner, after_fun)}
+  defp do_transform(user_acc, user, fun, next_op, next, {:suspend, inner_acc}, inner, after_fun) do
+    {:suspended, inner_acc, &do_transform(user_acc, user, fun, next_op, next, &1, inner, after_fun)}
   end
 
-  defp do_transform(user_acc, user, fun, next_acc, next, inner_acc, inner, after_fun) do
-    case next.({:cont, next_acc}) do
-      {:suspended, [val|next_acc], next} ->
-        try do
-          user.(val, user_acc)
-        catch
-          kind, reason ->
-            stacktrace = System.stacktrace
-            next.({:halt, next_acc})
-            do_after(after_fun, user_acc)
-            :erlang.raise(kind, reason, stacktrace)
-        else
-          {[], user_acc} ->
-            do_transform(user_acc, user, fun, next_acc, next, inner_acc, inner, after_fun)
-          {list, user_acc} when is_list(list) ->
-            do_list_transform(user_acc, user, fun, next_acc, next, inner_acc, inner,
-                              &Enumerable.List.reduce(list, &1, fun), after_fun)
-          {:halt, user_acc} ->
-            next.({:halt, next_acc})
-            do_after(after_fun, user_acc)
-            {:halted, elem(inner_acc, 1)}
-          {other, user_acc} ->
-            do_enum_transform(user_acc, user, fun, next_acc, next, inner_acc, inner,
-                              &Enumerable.reduce(other, &1, inner), after_fun)
-        end
-      {reason, _} ->
+  defp do_transform(user_acc, _user, _fun, :halt, _next, {_, inner_acc}, _inner, after_fun) do
+    do_after(after_fun, user_acc)
+    {:halted, inner_acc}
+  end
+
+  defp do_transform(user_acc, user, fun, :cont, next, inner_acc, inner, after_fun) do
+    try do
+      next.({:cont, []})
+    catch
+      kind, reason ->
+        stacktrace = System.stacktrace
         do_after(after_fun, user_acc)
-        {reason, elem(inner_acc, 1)}
+        :erlang.raise(kind, reason, stacktrace)
+    else
+      {:suspended, vals, next} ->
+        do_transform_user(:lists.reverse(vals), user_acc, user, fun, :cont, next, inner_acc, inner, after_fun)
+      {_, vals} ->
+        do_transform_user(:lists.reverse(vals), user_acc, user, fun, :halt, next, inner_acc, inner, after_fun)
     end
   end
 
-  defp do_list_transform(user_acc, user, fun, next_acc, next, inner_acc, inner, reduce, after_fun) do
+  defp do_transform_user([], user_acc, user, fun, next_op, next, inner_acc, inner, after_fun) do
+    do_transform(user_acc, user, fun, next_op, next, inner_acc, inner, after_fun)
+  end
+
+  defp do_transform_user([val | vals], user_acc, user, fun, next_op, next, inner_acc, inner, after_fun) do
+    user.(val, user_acc)
+  catch
+    kind, reason ->
+      stacktrace = System.stacktrace
+      next.({:halt, []})
+      do_after(after_fun, user_acc)
+      :erlang.raise(kind, reason, stacktrace)
+  else
+    {[], user_acc} ->
+      do_transform_user(vals, user_acc, user, fun, next_op, next, inner_acc, inner, after_fun)
+    {list, user_acc} when is_list(list) ->
+      do_list_transform(vals, user_acc, user, fun, next_op, next, inner_acc, inner,
+                        &Enumerable.List.reduce(list, &1, fun), after_fun)
+    {:halt, user_acc} ->
+      next.({:halt, []})
+      do_after(after_fun, user_acc)
+      {:halted, elem(inner_acc, 1)}
+    {other, user_acc} ->
+      do_enum_transform(vals, user_acc, user, fun, next_op, next, inner_acc, inner,
+                        &Enumerable.reduce(other, &1, inner), after_fun)
+  end
+
+  defp do_list_transform(vals, user_acc, user, fun, next_op, next, inner_acc, inner, reduce, after_fun) do
     try do
       reduce.(inner_acc)
     catch
       kind, reason ->
         stacktrace = System.stacktrace
-        next.({:halt, next_acc})
+        next.({:halt, []})
         do_after(after_fun, user_acc)
         :erlang.raise(kind, reason, stacktrace)
     else
       {:done, acc} ->
-        do_transform(user_acc, user, fun, next_acc, next, {:cont, acc}, inner, after_fun)
+        do_transform_user(vals, user_acc, user, fun, next_op, next, {:cont, acc}, inner, after_fun)
       {:halted, acc} ->
-        next.({:halt, next_acc})
+        next.({:halt, []})
         do_after(after_fun, user_acc)
         {:halted, acc}
       {:suspended, acc, c} ->
-        {:suspended, acc, &do_list_transform(user_acc, user, fun, next_acc, next, &1, inner, c, after_fun)}
+        {:suspended, acc, &do_list_transform(vals, user_acc, user, fun, next_op, next, &1, inner, c, after_fun)}
     end
   end
 
-  defp do_enum_transform(user_acc, user, fun, next_acc, next, {op, inner_acc}, inner, reduce, after_fun) do
+  defp do_enum_transform(vals, user_acc, user, fun, next_op, next, {op, inner_acc}, inner, reduce, after_fun) do
     try do
-      reduce.({op, [:outer|inner_acc]})
+      reduce.({op, [:outer | inner_acc]})
     catch
       kind, reason ->
         stacktrace = System.stacktrace
-        next.({:halt, next_acc})
+        next.({:halt, []})
         do_after(after_fun, user_acc)
         :erlang.raise(kind, reason, stacktrace)
     else
       # Only take into account outer halts when the op is not halt itself.
       # Otherwise, we were the ones wishing to halt, so we should just stop.
-      {:halted, [:outer|acc]} when op != :halt ->
-        do_transform(user_acc, user, fun, next_acc, next, {:cont, acc}, inner, after_fun)
-      {:halted, [_|acc]} ->
-        next.({:halt, next_acc})
+      {:halted, [:outer | acc]} when op != :halt ->
+        do_transform_user(vals, user_acc, user, fun, next_op, next, {:cont, acc}, inner, after_fun)
+      {:halted, [_ | acc]} ->
+        next.({:halt, []})
         do_after(after_fun, user_acc)
         {:halted, acc}
-      {:done, [_|acc]} ->
-        do_transform(user_acc, user, fun, next_acc, next, {:cont, acc}, inner, after_fun)
-      {:suspended, [_|acc], c} ->
-        {:suspended, acc, &do_enum_transform(user_acc, user, fun, next_acc, next, &1, inner, c, after_fun)}
+      {:done, [_ | acc]} ->
+        do_transform_user(vals, user_acc, user, fun, next_op, next, {:cont, acc}, inner, after_fun)
+      {:suspended, [_ | acc], c} ->
+        {:suspended, acc, &do_enum_transform(vals, user_acc, user, fun, next_op, next, &1, inner, c, after_fun)}
     end
   end
 
   defp do_after(nil, _user_acc), do: :ok
   defp do_after(fun, user_acc),  do: fun.(user_acc)
 
-  defp do_transform_each(x, [:outer|acc], f) do
+  defp do_transform_each(x, [:outer | acc], f) do
     case f.(x, acc) do
-      {:halt, res} -> {:halt, [:inner|res]}
-      {op, res}    -> {op, [:outer|res]}
+      {:halt, res} -> {:halt, [:inner | res]}
+      {op, res}    -> {op, [:outer | res]}
     end
   end
 
   defp do_transform_step(x, acc) do
-    {:suspend, [x|acc]}
+    {:suspend, [x | acc]}
   end
 
   @doc """
@@ -799,19 +898,50 @@ defmodule Stream do
       iex> Stream.uniq([1, 2, 3, 3, 2, 1]) |> Enum.to_list
       [1, 2, 3]
 
-      iex> Stream.uniq([{1, :x}, {2, :y}, {2, :z}, {1, :x}], fn {x, _} -> x end) |> Enum.to_list
-      [{1, :x}, {2, :y}]
-
   """
   @spec uniq(Enumerable.t) :: Enumerable.t
-  @spec uniq(Enumerable.t, (element -> term)) :: Enumerable.t
-  def uniq(enum, fun \\ fn x -> x end) do
-    lazy enum, %{}, fn f1 -> R.uniq(fun, f1) end
+  def uniq(enum) do
+    uniq_by(enum, fn x -> x end)
+  end
+
+  @doc false
+  # TODO: Remove on 2.0
+  # (hard-deprecated in elixir_dispatch)
+  def uniq(enum, fun) do
+    uniq_by(enum, fun)
+  end
+
+  @doc """
+  Creates a stream that only emits elements if they are unique, by removing the
+  elements for which function `fun` returned duplicate items.
+
+  The function `fun` maps every element to a term which is used to
+  determine if two elements are duplicates.
+
+  Keep in mind that, in order to know if an element is unique
+  or not, this function needs to store all unique values emitted
+  by the stream. Therefore, if the stream is infinite, the number
+  of items stored will grow infinitely, never being garbage collected.
+
+  ## Example
+
+      iex> Stream.uniq_by([{1, :x}, {2, :y}, {1, :z}], fn {x, _} -> x end) |> Enum.to_list
+      [{1, :x}, {2, :y}]
+
+      iex> Stream.uniq_by([a: {:tea, 2}, b: {:tea, 2}, c: {:coffee, 1}], fn {_, y} -> y end) |> Enum.to_list
+      [a: {:tea, 2}, c: {:coffee, 1}]
+
+  """
+  @spec uniq_by(Enumerable.t, (element -> term)) :: Enumerable.t
+  def uniq_by(enum, fun) do
+    lazy enum, %{}, fn f1 -> R.uniq_by(fun, f1) end
   end
 
   @doc """
   Creates a stream where each item in the enumerable will
   be wrapped in a tuple alongside its index.
+
+  If an `offset` is given, we will index from the given offset instead of from zero.
 
   ## Examples
 
@@ -882,14 +1012,34 @@ defmodule Stream do
 
   """
   @spec zip(Enumerable.t, Enumerable.t) :: Enumerable.t
-  def zip(left, right) do
-    step      = &do_zip_step(&1, &2)
-    left_fun  = &Enumerable.reduce(left, &1, step)
-    right_fun = &Enumerable.reduce(right, &1, step)
+  def zip(left, right), do: zip([left, right])
 
-    # Return a function as a lazy enumerator.
-    &do_zip([{left_fun, []}, {right_fun, []}], &1, &2)
+  @doc """
+  Zips corresponding elements from a collection of enumerables
+  into one stream of tuples.
+
+  The zipping finishes as soon as any enumerable completes.
+
+  ## Examples
+
+      iex> concat = Stream.concat(1..3, 4..6)
+      iex> cycle = Stream.cycle(["foo", "bar", "baz"])
+      iex> Stream.zip([concat, [:a, :b, :c], cycle]) |> Enum.to_list
+      [{1, :a, "foo"}, {2, :b, "bar"}, {3, :c, "baz"}]
+
+  """
+  @spec zip([Enumerable.t]) :: Enumerable.t
+  def zip(enumerables) do
+    step      = &do_zip_step(&1, &2)
+    enum_funs = Enum.map(enumerables, fn enum ->
+      {&Enumerable.reduce(enum, &1, step), :cont}
+    end)
+
+    &do_zip(enum_funs, &1, &2)
   end
+
+  # This implementation of do_zip/3 works for any number of
+  # streams to zip, even if right now zip/2 only zips two streams.
 
   defp do_zip(zips, {:halt, acc}, _fun) do
     do_zip_close(zips)
@@ -902,7 +1052,7 @@ defmodule Stream do
 
   defp do_zip(zips, {:cont, acc}, callback) do
     try do
-      do_zip(zips, acc, callback, [], [])
+      do_zip_next_tuple(zips, acc, callback, [], [])
     catch
       kind, reason ->
         stacktrace = System.stacktrace
@@ -911,34 +1061,47 @@ defmodule Stream do
     else
       {:next, buffer, acc} ->
         do_zip(buffer, acc, callback)
-      {:done, _} = o ->
-        o
+      {:done, _acc} = other ->
+        other
     end
   end
 
-  defp do_zip([{fun, fun_acc}|t], acc, callback, list, buffer) do
-    case fun.({:cont, fun_acc}) do
-      {:suspended, [i|fun_acc], fun} ->
-        do_zip(t, acc, callback, [i|list], [{fun, fun_acc}|buffer])
-      {_, _} ->
-        do_zip_close(:lists.reverse(buffer, t))
+  # do_zip_next_tuple/5 computes the next tuple formed by
+  # the next element of each zipped stream.
+
+  defp do_zip_next_tuple([{_, :halt} | zips], acc, _callback, _yielded_elems, buffer) do
+    do_zip_close(:lists.reverse(buffer, zips))
+    {:done, acc}
+  end
+
+  defp do_zip_next_tuple([{fun, :cont} | zips], acc, callback, yielded_elems, buffer) do
+    case fun.({:cont, []}) do
+      {:suspended, [elem], fun} ->
+        do_zip_next_tuple(zips, acc, callback, [elem | yielded_elems], [{fun, :cont} | buffer])
+      {_, [elem]} ->
+        do_zip_next_tuple(zips, acc, callback, [elem | yielded_elems], [{fun, :halt} | buffer])
+      {_, []} ->
+        # The current zipped stream terminated, so we close all the streams
+        # and return {:halted, acc} (which is returned as is by do_zip/3).
+        do_zip_close(:lists.reverse(buffer, zips))
         {:done, acc}
     end
   end
 
-  defp do_zip([], acc, callback, list, buffer) do
-    zipped = List.to_tuple(:lists.reverse(list))
+  defp do_zip_next_tuple([] = _zips, acc, callback, yielded_elems, buffer) do
+    # "yielded_elems" is a reversed list of results for the current iteration of
+    # zipping: it needs to be reversed and converted to a tuple to have the next
+    # tuple in the list resulting from zipping.
+    zipped = List.to_tuple(:lists.reverse(yielded_elems))
     {:next, :lists.reverse(buffer), callback.(zipped, acc)}
   end
 
-  defp do_zip_close([]), do: :ok
-  defp do_zip_close([{fun, acc}|t]) do
-    fun.({:halt, acc})
-    do_zip_close(t)
+  defp do_zip_close(zips) do
+    :lists.foreach(fn {fun, _} -> fun.({:halt, []}) end, zips)
   end
 
-  defp do_zip_step(x, acc) do
-    {:suspend, [x|acc]}
+  defp do_zip_step(x, []) do
+    {:suspend, [x]}
   end
 
   ## Sources
@@ -1034,7 +1197,7 @@ defmodule Stream do
 
   """
   @spec repeatedly((() -> element)) :: Enumerable.t
-  def repeatedly(generator_fun) when is_function(generator_fun, 0) do
+  def repeatedly(generator_fun) do
     &do_repeatedly(generator_fun, &1, &2)
   end
 
@@ -1140,28 +1303,28 @@ defmodule Stream do
 
   defp do_enum_resource(next_acc, next_fun, {op, acc}, fun, after_fun, reduce) do
     try do
-      reduce.({op, [:outer|acc]})
+      reduce.({op, [:outer | acc]})
     catch
       kind, reason ->
         stacktrace = System.stacktrace
         after_fun.(next_acc)
         :erlang.raise(kind, reason, stacktrace)
     else
-      {:halted, [:outer|acc]} ->
+      {:halted, [:outer | acc]} ->
         do_resource(next_acc, next_fun, {:cont, acc}, fun, after_fun)
-      {:halted, [:inner|acc]} ->
+      {:halted, [:inner | acc]} ->
         do_resource(next_acc, next_fun, {:halt, acc}, fun, after_fun)
-      {:done, [_|acc]} ->
+      {:done, [_ | acc]} ->
         do_resource(next_acc, next_fun, {:cont, acc}, fun, after_fun)
-      {:suspended, [_|acc], c} ->
+      {:suspended, [_ | acc], c} ->
         {:suspended, acc, &do_enum_resource(next_acc, next_fun, &1, fun, after_fun, c)}
     end
   end
 
-  defp do_resource_each(x, [:outer|acc], f) do
+  defp do_resource_each(x, [:outer | acc], f) do
     case f.(x, acc) do
-      {:halt, res} -> {:halt, [:inner|res]}
-      {op, res}    -> {op, [:outer|res]}
+      {:halt, res} -> {:halt, [:inner | res]}
+      {op, res}    -> {op, [:outer | res]}
     end
   end
 
@@ -1203,17 +1366,17 @@ defmodule Stream do
   @compile {:inline, lazy: 2, lazy: 3, lazy: 4}
 
   defp lazy(%Stream{done: nil, funs: funs} = lazy, fun),
-    do: %{lazy | funs: [fun|funs] }
+    do: %{lazy | funs: [fun | funs]}
   defp lazy(enum, fun),
     do: %Stream{enum: enum, funs: [fun]}
 
   defp lazy(%Stream{done: nil, funs: funs, accs: accs} = lazy, acc, fun),
-    do: %{lazy | funs: [fun|funs], accs: [acc|accs] }
+    do: %{lazy | funs: [fun | funs], accs: [acc | accs]}
   defp lazy(enum, acc, fun),
     do: %Stream{enum: enum, funs: [fun], accs: [acc]}
 
   defp lazy(%Stream{done: nil, funs: funs, accs: accs} = lazy, acc, fun, done),
-    do: %{lazy | funs: [fun|funs], accs: [acc|accs], done: done}
+    do: %{lazy | funs: [fun | funs], accs: [acc | accs], done: done}
   defp lazy(enum, acc, fun, done),
     do: %Stream{enum: enum, funs: [fun], accs: [acc], done: done}
 end
@@ -1243,8 +1406,8 @@ defimpl Enumerable, for: Stream do
   end
 
   defp do_each(reduce, done, accs, {command, acc}) do
-    case reduce.({command, [acc|accs]}) do
-      {:suspended, [acc|accs], continuation} ->
+    case reduce.({command, [acc | accs]}) do
+      {:suspended, [acc | accs], continuation} ->
         {:suspended, acc, &do_each(continuation, done, accs, &1)}
       {:halted, accs} ->
         do_done {:halted, accs}, done
@@ -1253,13 +1416,13 @@ defimpl Enumerable, for: Stream do
     end
   end
 
-  defp do_done({reason, [acc|_]}, nil), do: {reason, acc}
-  defp do_done({reason, [acc|t]}, {done, fun}) do
-    [h|_] = Enum.reverse(t)
+  defp do_done({reason, [acc | _]}, nil), do: {reason, acc}
+  defp do_done({reason, [acc | t]}, {done, fun}) do
+    [h | _] = Enum.reverse(t)
     case done.([acc, h], fun) do
-      {:cont, [acc|_]}    -> {reason, acc}
-      {:halt, [acc|_]}    -> {:halted, acc}
-      {:suspend, [acc|_]} -> {:suspended, acc, &({:done, elem(&1, 1)})}
+      {:cont, [acc | _]}    -> {reason, acc}
+      {:halt, [acc | _]}    -> {:halted, acc}
+      {:suspend, [acc | _]} -> {:suspended, acc, &({:done, elem(&1, 1)})}
     end
   end
 end

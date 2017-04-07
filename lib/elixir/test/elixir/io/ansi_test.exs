@@ -40,7 +40,7 @@ defmodule IO.ANSITest do
            "Hello, world!"
   end
 
-  test "format char list" do
+  test "format charlist" do
     assert IO.chardata_to_string(IO.ANSI.format('Hello, world!', true)) ==
            "Hello, world!"
     assert IO.chardata_to_string(IO.ANSI.format('Hello, world!', false)) ==
@@ -97,6 +97,14 @@ defmodule IO.ANSITest do
     end
   end
 
+  test "colors" do
+    assert IO.ANSI.red == "\e[31m"
+    assert IO.ANSI.light_red == "\e[91m"
+
+    assert IO.ANSI.red_background == "\e[41m"
+    assert IO.ANSI.light_red_background == "\e[101m"
+  end
+
   test "color/1" do
     assert IO.ANSI.color(0) == "\e[38;5;0m"
     assert IO.ANSI.color(42) == "\e[38;5;42m"
@@ -138,10 +146,10 @@ defmodule IO.ANSITest do
     assert IO.ANSI.color_background(1, 1, 1) == "\e[48;5;59m"
     assert IO.ANSI.color_background(5, 5, 5) == "\e[48;5;231m"
     assert_raise FunctionClauseError, fn() ->
-      IO.ANSI.color_background(-1)
+      IO.ANSI.color_background(0, 6, 1)
     end
     assert_raise FunctionClauseError, fn() ->
-      IO.ANSI.color_background(256)
+      IO.ANSI.color_background(5, -1, 1)
     end
   end
 end

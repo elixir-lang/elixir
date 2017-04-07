@@ -1,10 +1,10 @@
 defmodule Mix.Tasks.Escript.Uninstall do
   use Mix.Task
 
-  @shortdoc "Uninstall escripts"
+  @shortdoc "Uninstalls escripts"
 
   @moduledoc """
-  Uninstall local escripts:
+  Uninstalls local escripts:
 
       mix escript.uninstall escript_name
 

@@ -29,7 +29,7 @@ defmodule Mix.Tasks.Compile.ErlangTest do
 
   test "compiles src/b.erl and src/c.erl" do
     in_fixture "compile_erlang", fn ->
-      assert Mix.Tasks.Compile.Erlang.run([]) == :ok
+      assert Mix.Tasks.Compile.Erlang.run(["--verbose"]) == :ok
       assert_received {:mix_shell, :info, ["Compiled src/b.erl"]}
       assert_received {:mix_shell, :info, ["Compiled src/c.erl"]}
 
@@ -40,10 +40,10 @@ defmodule Mix.Tasks.Compile.ErlangTest do
              "_build/dev/lib/sample/ebin/b.beam\n" <>
              "_build/dev/lib/sample/ebin/c.beam"
 
-      assert Mix.Tasks.Compile.Erlang.run([]) == :noop
+      assert Mix.Tasks.Compile.Erlang.run(["--verbose"]) == :noop
       refute_received {:mix_shell, :info, ["Compiled src/b.erl"]}
 
-      assert Mix.Tasks.Compile.Erlang.run(["--force"]) == :ok
+      assert Mix.Tasks.Compile.Erlang.run(["--force", "--verbose"]) == :ok
       assert_received {:mix_shell, :info, ["Compiled src/b.erl"]}
       assert_received {:mix_shell, :info, ["Compiled src/c.erl"]}
     end

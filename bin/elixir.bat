@@ -1,9 +1,10 @@
-@if defined ELIXIR_CLI_ECHO (@echo on) else  (@echo off)
+@if defined ELIXIR_CLI_ECHO (@echo on) else (@echo off)
 setlocal
-if ""%1""==""""       goto :documentation
-if ""%1""==""--help"" goto :documentation
-if ""%1""==""-h""     goto :documentation
-if ""%1""==""/h""     goto :documentation
+if    ""%1""==""""       goto documentation
+if /I ""%1""==""--help"" goto documentation
+if /I ""%1""==""-h""     goto documentation
+if /I ""%1""==""/h""     goto documentation
+if    ""%1""==""/?""     goto documentation
 goto parseopts
 
 :documentation
@@ -20,7 +21,7 @@ echo.
 echo   --app APP                   Starts the given app and its dependencies (*)
 echo   --cookie COOKIE             Sets a cookie for this distributed node
 echo   --detached                  Starts the Erlang VM detached from console
-echo   --erl SWITCHES              Switches to be passed down to erlang (*)
+echo   --erl SWITCHES              Switches to be passed down to Erlang (*)
 echo   --hidden                    Makes a hidden node
 echo   --logger-otp-reports BOOL   Enables or disables OTP reporting
 echo   --logger-sasl-reports BOOL  Enables or disables SASL reporting
@@ -31,7 +32,7 @@ echo   --werl                      Uses Erlang's Windows shell GUI
 echo.
 echo ** Options marked with (*) can be given more than once
 echo ** Options given after the .exs file or -- are passed down to the executed code
-echo ** Options can be passed to the erlang runtime using ELIXIR_ERL_OPTIONS or --erl
+echo ** Options can be passed to the Erlang runtime using ELIXIR_ERL_OPTIONS or --erl
 goto end
 
 :parseopts
@@ -60,51 +61,52 @@ set par="%1"
 shift
 if "%par%"=="" (
   rem if no parameters defined
-  goto :expand_erl_libs
+  goto expand_erl_libs
 )
 if "%par%"=="""" (
   rem if no parameters defined - special case for parameter that is already quoted
-  goto :expand_erl_libs
+  goto expand_erl_libs
 )
 rem ******* EXECUTION OPTIONS **********************
-IF "%par%"==""--werl"" (Set useWerl=1)
-IF "%par%"==""+iex"" (Set runMode="iex")
-rem ******* elixir parameters **********************
+if "%par%"==""--werl"" (set useWerl=1)
+if "%par%"==""+iex"" (set runMode="iex")
+rem ******* ELIXIR PARAMETERS **********************
 rem Note: we don't have to do anything with options that don't take an argument
-IF """"=="%par:-e=%"      (shift) 
-IF """"=="%par:-r=%"      (shift) 
-IF """"=="%par:-pr=%"     (shift) 
-IF """"=="%par:-pa=%"     (shift) 
-IF """"=="%par:-pz=%"     (shift) 
-IF """"=="%par:--app=%"   (shift) 
-IF """"=="%par:--remsh=%" (shift) 
+if """"=="%par:-e=%"      (shift)
+if """"=="%par:-r=%"      (shift)
+if """"=="%par:-pr=%"     (shift)
+if """"=="%par:-pa=%"     (shift)
+if """"=="%par:-pz=%"     (shift)
+if """"=="%par:--app=%"   (shift)
+if """"=="%par:--remsh=%" (shift)
 rem ******* ERLANG PARAMETERS **********************
-IF """"=="%par:--detached=%"            (Set parsErlang=%parsErlang% -detached) 
-IF """"=="%par:--hidden=%"              (Set parsErlang=%parsErlang% -hidden)
-IF """"=="%par:--cookie=%"              (Set parsErlang=%parsErlang% -setcookie %1 && shift)
-IF """"=="%par:--sname=%"               (Set parsErlang=%parsErlang% -sname %1 && shift) 
-IF """"=="%par:--name=%"                (Set parsErlang=%parsErlang% -name %1 && shift) 
-IF """"=="%par:--logger-otp-reports=%"  (Set parsErlang=%parsErlang% -logger handle_otp_reports %1 && shift) 
-IF """"=="%par:--logger-sasl-reports=%" (Set parsErlang=%parsErlang% -logger handle_sasl_reports %1 && shift) 
-IF """"=="%par:--erl=%"                 (Set beforeExtra=%beforeExtra% %~1 && shift) 
+if """"=="%par:--detached=%"            (set parsErlang=%parsErlang% -detached)
+if """"=="%par:--hidden=%"              (set parsErlang=%parsErlang% -hidden)
+if """"=="%par:--cookie=%"              (set parsErlang=%parsErlang% -setcookie %1 && shift)
+if """"=="%par:--sname=%"               (set parsErlang=%parsErlang% -sname %1 && shift)
+if """"=="%par:--name=%"                (set parsErlang=%parsErlang% -name %1 && shift)
+if """"=="%par:--logger-otp-reports=%"  (set parsErlang=%parsErlang% -logger handle_otp_reports %1 && shift)
+if """"=="%par:--logger-sasl-reports=%" (set parsErlang=%parsErlang% -logger handle_sasl_reports %1 && shift)
+if """"=="%par:--erl=%"                 (set beforeExtra=%beforeExtra% %~1 && shift)
 goto:startloop
 
 rem ******* assume all pre-params are parsed ********************
 :expand_erl_libs
 rem ******* expand all ebin paths as Windows does not support the ..\*\ebin wildcard ********************
-SETLOCAL enabledelayedexpansion
+setlocal enabledelayedexpansion
 set ext_libs=
 for  /d %%d in ("%originPath%..\lib\*.") do (
   set ext_libs=!ext_libs! -pa "%%~fd\ebin"
 )
-SETLOCAL disabledelayedexpansion
+setlocal disabledelayedexpansion
+
 :run
-IF NOT %runMode% == "iex" (
+if not %runMode% == "iex" (
   set beforeExtra=-noshell -s elixir start_cli %beforeExtra%
 )
-IF %useWerl% EQU 1 (
+if %useWerl% equ 1 (
   start werl.exe %ext_libs% %ELIXIR_ERL_OPTIONS% %parsErlang% %beforeExtra% -extra %*
-) ELSE (
+) else (
   erl.exe %ext_libs% %ELIXIR_ERL_OPTIONS% %parsErlang% %beforeExtra% -extra %*
 )
 :end

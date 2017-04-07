@@ -2,18 +2,102 @@ defmodule Map do
   @moduledoc """
   A set of functions for working with maps.
 
-  Maps are key-value stores where keys can be any value and
-  are compared using the match operator (`===`). Maps can be
-  created with the `%{}` special form defined in the
-  `Kernel.SpecialForms` module.
+  Maps are the "go to" key-value data structure in Elixir. Maps can be created
+  with the `%{}` syntax, and key-value pairs can be expressed as `key => value`:
+
+      iex> %{}
+      %{}
+      iex> %{"one" => :two, 3 => "four"}
+      %{3 => "four", "one" => :two}
+
+  Key-value pairs in a map do not follow any order (that's why the printed map
+  in the example above has a different order than the map that was created).
+
+  Maps do not impose any restriction on the key type: anything can be a key in a
+  map. As a key-value structure, maps do not allow duplicated keys. Keys are
+  compared using the exact-equality operator (`===`). If colliding keys are defined
+  in a map literal, the last one prevails.
+
+  When the key in a key-value pair is an atom, the `key: value` shorthand syntax
+  can be used (as in many other special forms), provided key-value pairs are put at
+  the end:
+
+      iex> %{"hello" => "world", a: 1, b: 2}
+      %{:a => 1, :b => 2, "hello" => "world"}
+
+  Keys in maps can be accessed through some of the functions in this module
+  (such as `Map.get/3` or `Map.fetch/2`) or through the `[]` syntax provided by
+  the `Access` module:
+
+      iex> map = %{a: 1, b: 2}
+      iex> Map.fetch(map, :a)
+      {:ok, 1}
+      iex> map[:b]
+      2
+      iex> map["non_existing_key"]
+      nil
+
+  The alternative access syntax `map.key` is provided alongside `[]` when the
+  map has a `:key` key; note that while `map[key]` will return `nil` if `map`
+  doesn't contain the key `key`, `map.key` will raise if `map` doesn't contain
+  the key `:key`.
+
+      iex> map = %{foo: "bar", baz: "bong"}
+      iex> map.foo
+      "bar"
+      iex> map.non_existing_key
+      ** (KeyError) key :non_existing_key not found in: %{baz: "bong", foo: "bar"}
+
+  Maps can be pattern matched on; when a map is on the left-hand side of a
+  pattern match, it will match if the map on the right-hand side contains the
+  keys on the left-hand side and their values match the ones on the left-hand
+  side. This means that an empty map matches every map.
+
+      iex> %{} = %{foo: "bar"}
+      %{foo: "bar"}
+      iex> %{a: a} = %{:a => 1, "b" => 2, [:c, :e, :e] => 3}
+      iex> a
+      1
+      iex> %{:c => 3} = %{:a => 1, 2 => :b}
+      ** (MatchError) no match of right hand side value: %{2 => :b, :a => 1}
+
+  Variables can be used as map keys both when writing map literals as well as
+  when matching:
+
+      iex> n = 1
+      1
+      iex> %{n => :one}
+      %{1 => :one}
+      iex> %{^n => :one} = %{1 => :one, 2 => :two, 3 => :three}
+      %{1 => :one, 2 => :two, 3 => :three}
+
+  Maps also support a specific update syntax to update the value stored under
+  *existing* atom keys:
+
+      iex> map = %{one: 1, two: 2}
+      iex> %{map | one: "one"}
+      %{one: "one", two: 2}
+      iex> %{map | three: 3}
+      ** (KeyError) key :three not found
+
+  ## Modules to work with maps
+
+  This module aims to provide functions that perform operations specific to maps
+  (like accessing keys, updating values, and so on). For traversing maps as
+  collections, developers should use the `Enum` module that works across a
+  variety of data types.
+
+  The `Kernel` module also provides a few functions to work with maps: for
+  example, `Kernel.map_size/1` to know the number of key-value pairs in a map or
+  `Kernel.is_map/1` to know if a term is a map.
   """
 
   @type key :: any
   @type value :: any
-  @compile {:inline, fetch: 2, put: 3, delete: 2, has_key?: 2}
+  @compile {:inline, fetch: 2, put: 3, delete: 2, has_key?: 2, replace!: 3}
 
   @doc """
-  Returns all keys from the map.
+  Returns all keys from `map`.
 
   ## Examples
 
@@ -25,7 +109,7 @@ defmodule Map do
   defdelegate keys(map), to: :maps
 
   @doc """
-  Returns all values from the map.
+  Returns all values from `map`.
 
   ## Examples
 
@@ -37,7 +121,10 @@ defmodule Map do
   defdelegate values(map), to: :maps
 
   @doc """
-  Converts the map to a list.
+  Converts `map` to a list.
+
+  Each key-value pair in the map is converted to a two-element tuple `{key,
+  value}` in the resulting list.
 
   ## Examples
 
@@ -63,7 +150,7 @@ defmodule Map do
   def new, do: %{}
 
   @doc """
-  Creates a map from an enumerable.
+  Creates a map from an `enumerable`.
 
   Duplicated keys are removed; the latest one prevails.
 
@@ -75,7 +162,8 @@ defmodule Map do
       %{a: 3}
 
   """
-  @spec new(Enum.t) :: map
+  @spec new(Enumerable.t) :: map
+  def new(enumerable)
   def new(%{__struct__: _} = struct), do: new_from_enum(struct)
   def new(%{} = map), do: map
   def new(enum), do: new_from_enum(enum)
@@ -87,9 +175,9 @@ defmodule Map do
   end
 
   @doc """
-  Creates a map from an enumerable via the transformation function.
+  Creates a map from an `enumerable` via the given transformation function.
 
-  Duplicated entries are removed; the latest one prevails.
+  Duplicated keys are removed; the latest one prevails.
 
   ## Examples
 
@@ -97,24 +185,25 @@ defmodule Map do
       %{a: :a, b: :b}
 
   """
-  @spec new(Enum.t, (term -> {key, value})) :: map
-  def new(enumerable, transform) do
+  @spec new(Enumerable.t, (term -> {key, value})) :: map
+  def new(enumerable, transform) when is_function(transform, 1) do
     enumerable
     |> Enum.to_list
-    |> do_new_transform(transform, [])
+    |> new_transform(transform, [])
   end
 
-  defp do_new_transform([], _fun, acc) do
+  defp new_transform([], _fun, acc) do
     acc
     |> :lists.reverse
     |> :maps.from_list
   end
-  defp do_new_transform([item | rest], fun, acc) do
-    do_new_transform(rest, fun, [fun.(item) | acc])
+
+  defp new_transform([item | rest], fun, acc) do
+    new_transform(rest, fun, [fun.(item) | acc])
   end
 
   @doc """
-  Returns whether a given `key` exists in the given `map`.
+  Returns whether the given `key` exists in the given `map`.
 
   ## Examples
 
@@ -123,14 +212,16 @@ defmodule Map do
       iex> Map.has_key?(%{a: 1}, :b)
       false
 
+  Inlined by the compiler.
   """
   @spec has_key?(map, key) :: boolean
   def has_key?(map, key), do: :maps.is_key(key, map)
 
   @doc """
-  Fetches the value for a specific `key` and returns it in a tuple.
+  Fetches the value for a specific `key` in the given `map`.
 
-  If the `key` does not exist, returns `:error`.
+  If `map` contains the given `key` with value `value`, then `{:ok, value}` is
+  returned. If `map` doesn't contain `key`, `:error` is returned.
 
   ## Examples
 
@@ -139,14 +230,17 @@ defmodule Map do
       iex> Map.fetch(%{a: 1}, :b)
       :error
 
+  Inlined by the compiler.
   """
   @spec fetch(map, key) :: {:ok, value} | :error
   def fetch(map, key), do: :maps.find(key, map)
 
   @doc """
-  Fetches the value for specific `key`.
+  Fetches the value for a specific `key` in the given `map`, erroring out if
+  `map` doesn't contain `key`.
 
-  If `key` does not exist, a `KeyError` is raised.
+  If `map` contains the given `key`, the corresponding value is returned. If
+  `map` doesn't contain `key`, a `KeyError` exception is raised.
 
   ## Examples
 
@@ -166,12 +260,12 @@ defmodule Map do
 
   @doc """
   Puts the given `value` under `key` unless the entry `key`
-  already exists.
+  already exists in `map`.
 
   ## Examples
 
       iex> Map.put_new(%{a: 1}, :b, 2)
-      %{b: 2, a: 1}
+      %{a: 1, b: 2}
       iex> Map.put_new(%{a: 1, b: 2}, :a, 3)
       %{a: 1, b: 2}
 
@@ -179,17 +273,56 @@ defmodule Map do
   @spec put_new(map, key, value) :: map
   def put_new(map, key, value) do
     case has_key?(map, key) do
-      true  -> map
+      true -> map
       false -> put(map, key, value)
     end
   end
 
   @doc """
-  Evaluates `fun` and puts the result under `key`
-  in map unless `key` is already present.
+  Alters the value stored under `key` to `value`, but only
+  if the entry `key` already exists in `map`.
 
-  This is useful if the value is very expensive to calculate or
-  generally difficult to setup and teardown again.
+  ## Examples
+
+      iex> Map.replace(%{a: 1}, :b, 2)
+      %{a: 1}
+      iex> Map.replace(%{a: 1, b: 2}, :a, 3)
+      %{a: 3, b: 2}
+
+  """
+  @spec replace(map, key, value) :: map
+  def replace(map, key, value) do
+    case has_key?(map, key) do
+      true -> replace!(map, key, value)
+      false -> map
+    end
+  end
+
+  @doc """
+  Similar to `replace/3`, but will raise a `KeyError`
+  if the key does not exist in the map.
+
+  ## Examples
+
+      iex> Map.replace!(%{a: 1, b: 2}, :a, 3)
+      %{a: 3, b: 2}
+      iex> Map.replace!(%{a: 1}, :b, 2)
+      ** (KeyError) key :b not found in: %{a: 1}
+
+  Inlined by the compiler.
+  """
+  @spec replace!(map, key, value) :: map
+  def replace!(map, key, value) do
+    :maps.update(key, value, map)
+  end
+
+  @doc """
+  Evaluates `fun` and puts the result under `key`
+  in `map` unless `key` is already present.
+
+  This function is useful in case you want to compute the value to put under
+  `key` only if `key` is not already present (e.g., the value is expensive to
+  calculate or generally difficult to setup and teardown again).
 
   ## Examples
 
@@ -207,14 +340,16 @@ defmodule Map do
   @spec put_new_lazy(map, key, (() -> value)) :: map
   def put_new_lazy(map, key, fun) when is_function(fun, 0) do
     case has_key?(map, key) do
-      true  -> map
+      true -> map
       false -> put(map, key, fun.())
     end
   end
 
   @doc """
-  Takes all entries corresponding to the given keys and
-  returns them in a new map.
+  Returns a new map with all the key-value pairs in `map` where the key
+  is in `keys`.
+
+  If `keys` contains keys that are not in `map`, they're simply ignored.
 
   ## Examples
 
@@ -223,10 +358,16 @@ defmodule Map do
 
   """
   @spec take(map, Enumerable.t) :: map
-  def take(map, keys) do
+  def take(map, keys)
+
+  def take(map, keys) when is_map(map) do
     keys
     |> Enum.to_list
     |> do_take(map, [])
+  end
+
+  def take(non_map, _keys) do
+    :erlang.error({:badmap, non_map})
   end
 
   defp do_take([], _map, acc), do: :maps.from_list(acc)
@@ -239,10 +380,11 @@ defmodule Map do
   end
 
   @doc """
-  Gets the value for a specific `key`.
+  Gets the value for a specific `key` in `map`.
 
-  If `key` does not exist, return the default value
-  (`nil` if no default value).
+  If `key` is present in `map` with value `value`, then `value` is
+  returned. Otherwise, `default` is returned (which is `nil` unless
+  specified otherwise).
 
   ## Examples
 
@@ -266,9 +408,10 @@ defmodule Map do
   end
 
   @doc """
-  Gets the value for a specific `key`.
+  Gets the value for a specific `key` in `map`.
 
-  If `key` does not exist, lazily evaluates `fun` and returns its result.
+  If `key` is present in `map` with value `value`, then `value` is
+  returned. Otherwise, `fun` is evaluated and its result is returned.
 
   This is useful if the default value is very expensive to calculate or
   generally difficult to setup and teardown again.
@@ -295,7 +438,7 @@ defmodule Map do
   end
 
   @doc """
-  Puts the given `value` under `key`.
+  Puts the given `value` under `key` in `map`.
 
   ## Examples
 
@@ -304,16 +447,17 @@ defmodule Map do
       iex> Map.put(%{a: 1, b: 2}, :a, 3)
       %{a: 3, b: 2}
 
+  Inlined by the compiler.
   """
   @spec put(map, key, value) :: map
-  def put(map, key, val) do
-    :maps.put(key, val, map)
+  def put(map, key, value) do
+    :maps.put(key, value, map)
   end
 
   @doc """
-  Deletes the entries in the map for a specific `key`.
+  Deletes the entry in `map` for a specific `key`.
 
-  If the `key` does not exist, returns the map unchanged.
+  If the `key` does not exist, returns `map` unchanged.
 
   ## Examples
 
@@ -322,6 +466,7 @@ defmodule Map do
       iex> Map.delete(%{b: 2}, :a)
       %{b: 2}
 
+  Inlined by the compiler.
   """
   @spec delete(map, key) :: map
   def delete(map, key), do: :maps.remove(key, map)
@@ -329,7 +474,8 @@ defmodule Map do
   @doc """
   Merges two maps into one.
 
-  All keys in `map2` will be added to `map1`, overriding any existing one.
+  All keys in `map2` will be added to `map1`, overriding any existing one
+  (i.e., the keys in `map2` "have precedence" over the ones in `map1`).
 
   If you have a struct and you would like to merge a set of keys into the
   struct, do not use this function, as it would merge all keys on the right
@@ -346,10 +492,13 @@ defmodule Map do
   defdelegate merge(map1, map2), to: :maps
 
   @doc """
-  Merges two maps into one.
+  Merges two maps into one, resolving conflicts through the given `callback`.
 
-  All keys in `map2` will be added to `map1`. The given function will
-  be invoked with the key, value1 and value2 to solve conflicts.
+  All keys in `map2` will be added to `map1`. The given function will be invoked
+  when there are duplicate keys; its arguments are `key` (the duplicate key),
+  `value1` (the value of `key` in `map1`), and `value2` (the value of `key` in
+  `map2`). The value returned by `callback` is used as the value under `key` in
+  the resulting map.
 
   ## Examples
 
@@ -360,16 +509,24 @@ defmodule Map do
 
   """
   @spec merge(map, map, (key, value, value -> value)) :: map
-  def merge(map1, map2, callback) do
-    :maps.fold fn k, v2, acc ->
-      update(acc, k, v2, fn(v1) -> callback.(k, v1, v2) end)
-    end, map1, map2
+  def merge(map1, map2, callback) when is_function(callback, 3) do
+    if map_size(map1) > map_size(map2) do
+      :maps.fold fn key, val2, acc ->
+        update(acc, key, val2, fn val1 -> callback.(key, val1, val2) end)
+      end, map1, map2
+    else
+      :maps.fold fn key, val2, acc ->
+        update(acc, key, val2, fn val1 -> callback.(key, val2, val1) end)
+      end, map2, map1
+    end
   end
 
   @doc """
   Updates the `key` in `map` with the given function.
 
-  If the `key` does not exist, inserts the given `initial` value.
+  If `key` is present in `map` with value `value`, `fun` is invoked with
+  argument `value` and its result is used as the new value of `key`. If `key` is
+  not present in `map`, `initial` is inserted as the value of `key`.
 
   ## Examples
 
@@ -380,7 +537,7 @@ defmodule Map do
 
   """
   @spec update(map, key, value, (value -> value)) :: map
-  def update(map, key, initial, fun) do
+  def update(map, key, initial, fun) when is_function(fun, 1) do
     case fetch(map, key) do
       {:ok, value} ->
         put(map, key, fun.(value))
@@ -390,7 +547,11 @@ defmodule Map do
   end
 
   @doc """
-  Returns and removes all values associated with `key` in the `map`.
+  Returns and removes the value associated with `key` in `map`.
+
+  If `key` is present in `map` with value `value`, `{value, new_map}` is
+  returned where `new_map` is the result of removing `key` from `map`. If `key`
+  is not present in `map`, `{default, map}` is returned.
 
   ## Examples
 
@@ -411,7 +572,12 @@ defmodule Map do
   end
 
   @doc """
-  Lazily returns and removes all values associated with `key` in the `map`.
+  Lazily returns and removes the value associated with `key` in `map`.
+
+  If `key` is present in `map` with value `value`, `{value, new_map}` is
+  returned where `new_map` is the result of removing `key` from `map`. If `key`
+  is not present in `map`, `{fun_result, map}` is returned, where `fun_result`
+  is the result of applying `fun`.
 
   This is useful if the default value is very expensive to calculate or
   generally difficult to setup and teardown again.
@@ -438,7 +604,9 @@ defmodule Map do
   end
 
   @doc """
-  Drops the given keys from the map.
+  Drops the given `keys` from `map`.
+
+  If `keys` contains keys that are not in `map`, they're simply ignored.
 
   ## Examples
 
@@ -447,24 +615,30 @@ defmodule Map do
 
   """
   @spec drop(map, Enumerable.t) :: map
-  def drop(map, keys) do
+  def drop(map, keys)
+
+  def drop(map, keys) when is_map(map) do
     keys
     |> Enum.to_list
     |> drop_list(map)
   end
 
+  def drop(non_map, _keys) do
+    :erlang.error({:badmap, non_map})
+  end
+
   defp drop_list([], acc), do: acc
   defp drop_list([key | rest], acc) do
-    drop_list(rest, Map.delete(acc, key))
+    drop_list(rest, delete(acc, key))
   end
 
   @doc """
-  Takes all entries corresponding to the given keys and extracts them into a
-  separate map.
+  Takes all entries corresponding to the given `keys` in `map` and extracts
+  them into a separate map.
 
   Returns a tuple with the new map and the old map with removed keys.
 
-  Keys for which there are no entries in the map are ignored.
+  Keys for which there are no entries in `map` are ignored.
 
   ## Examples
 
@@ -473,10 +647,16 @@ defmodule Map do
 
   """
   @spec split(map, Enumerable.t) :: {map, map}
-  def split(map, keys) do
+  def split(map, keys)
+
+  def split(map, keys) when is_map(map) do
     keys
     |> Enum.to_list
     |> do_split([], map)
+  end
+
+  def split(non_map, _keys) do
+    :erlang.error({:badmap, non_map})
   end
 
   defp do_split([], inc, exc) do
@@ -492,9 +672,11 @@ defmodule Map do
   end
 
   @doc """
-  Updates the `key` with the given function.
+  Updates `key` with the given function.
 
-  If the `key` does not exist, raises `KeyError`.
+  If `key` is present in `map` with value `value`, `fun` is invoked with
+  argument `value` and its result is used as the new value of `key`. If `key` is
+  not present in `map`, a `KeyError` exception is raised.
 
   ## Examples
 
@@ -502,16 +684,16 @@ defmodule Map do
       %{a: 2}
 
       iex> Map.update!(%{a: 1}, :b, &(&1 * 2))
-      ** (KeyError) key :b not found
+      ** (KeyError) key :b not found in: %{a: 1}
 
   """
   @spec update!(map, key, (value -> value)) :: map | no_return
-  def update!(%{} = map, key, fun) do
+  def update!(%{} = map, key, fun) when is_function(fun, 1) do
     case fetch(map, key) do
       {:ok, value} ->
         put(map, key, fun.(value))
       :error ->
-        :erlang.error({:badkey, key})
+        raise KeyError, term: map, key: key
     end
   end
 
@@ -520,12 +702,12 @@ defmodule Map do
   @doc """
   Gets the value from `key` and updates it, all in one pass.
 
-  This `fun` argument receives the value of `key` (or `nil` if `key`
-  is not present) and must return a two-element tuple: the "get" value
-  (the retrieved value, which can be operated on before being returned)
-  and the new value to be stored under `key`. The `fun` may also
-  return `:pop`, implying the current value shall be removed
-  from the map and returned.
+  `fun` is called with the current value under `key` in `map` (or `nil` if `key`
+  is not present in `map`) and must return a two-element tuple: the "get" value
+  (the retrieved value, which can be operated on before being returned) and the
+  new value to be stored under `key` in the resulting new map. `fun` may also
+  return `:pop`, which means the current value shall be removed from `map` and
+  returned (making this function behave like `Map.pop(map, key)`.
 
   The returned value is a tuple with the "get" value returned by
   `fun` and a new map with the updated value under `key`.
@@ -550,7 +732,7 @@ defmodule Map do
 
   """
   @spec get_and_update(map, key, (value -> {get, value} | :pop)) :: {get, map} when get: term
-  def get_and_update(%{} = map, key, fun) do
+  def get_and_update(%{} = map, key, fun) when is_function(fun, 1) do
     current =
       case :maps.find(key, map) do
         {:ok, value} -> value
@@ -558,8 +740,12 @@ defmodule Map do
       end
 
     case fun.(current) do
-      {get, update} -> {get, :maps.put(key, update, map)}
-      :pop          -> {current, :maps.remove(key, map)}
+      {get, update} ->
+        {get, :maps.put(key, update, map)}
+      :pop ->
+        {current, :maps.remove(key, map)}
+      other ->
+        raise "the given function must return a two-element tuple or :pop, got: #{inspect(other)}"
     end
   end
 
@@ -568,13 +754,8 @@ defmodule Map do
   @doc """
   Gets the value from `key` and updates it. Raises if there is no `key`.
 
-  This `fun` argument receives the value of `key` and must return a
-  two-element tuple: the "get" value (the retrieved value, which can be
-  operated on before being returned) and the new value to be stored under
-  `key`.
-
-  The returned value is a tuple with the "get" value returned by `fun` and a
-  new map with the updated value under `key`.
+  Behaves exactly like `get_and_update/3`, but raises a `KeyError` exception if
+  `key` is not present in `map`.
 
   ## Examples
 
@@ -586,7 +767,7 @@ defmodule Map do
       iex> Map.get_and_update!(%{a: 1}, :b, fn current_value ->
       ...>   {current_value, "new value!"}
       ...> end)
-      ** (KeyError) key :b not found
+      ** (KeyError) key :b not found in: %{a: 1}
 
       iex> Map.get_and_update!(%{a: 1}, :a, fn _ ->
       ...>   :pop
@@ -595,25 +776,30 @@ defmodule Map do
 
   """
   @spec get_and_update!(map, key, (value -> {get, value})) :: {get, map} | no_return when get: term
-  def get_and_update!(%{} = map, key, fun) do
+  def get_and_update!(%{} = map, key, fun) when is_function(fun, 1) do
     case :maps.find(key, map) do
       {:ok, value} ->
         case fun.(value) do
-          {get, update} -> {get, :maps.put(key, update, map)}
-          :pop          -> {value, :maps.remove(key, map)}
+          {get, update} ->
+            {get, :maps.put(key, update, map)}
+          :pop ->
+            {value, :maps.remove(key, map)}
+          other ->
+            raise "the given function must return a two-element tuple or :pop, got: #{inspect(other)}"
         end
       :error ->
-        :erlang.error({:badkey, key})
+        raise KeyError, term: map, key: key
     end
   end
 
   def get_and_update!(map, _key, _fun), do: :erlang.error({:badmap, map})
 
   @doc """
-  Converts a struct to map.
+  Converts a `struct` to map.
 
   It accepts the struct module or a struct itself and
-  simply removes the `__struct__` field from the struct.
+  simply removes the `__struct__` field from the given struct
+  or from a new struct generated from the given module.
 
   ## Example
 
@@ -655,9 +841,9 @@ defmodule Map do
   def equal?(%{} = map1, %{} = map2), do: map1 === map2
 
   @doc false
+  # TODO: Remove on 2.0
+  # (hard-deprecated in elixir_dispatch)
   def size(map) do
-    IO.write :stderr, "warning: Map.size/1 is deprecated, please use Kernel.map_size/1\n" <>
-                      Exception.format_stacktrace
     map_size(map)
   end
 end

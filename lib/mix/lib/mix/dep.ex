@@ -64,19 +64,25 @@ defmodule Mix.Dep do
   @doc """
   Returns loaded dependencies from the cache for the current environment.
 
-  Because the dependencies are cached during deps.check, their
-  status may be outdated (for example, `:compile` did not
+  Because the dependencies are cached during deps.loadpaths,
+  their status may be outdated (for example, `:compile` did not
   yet become `:ok`). Therefore it is recommended to not rely
-  on the their status, also given they haven't been checked
+  on their status, also given they haven't been checked
   against the lock.
+
+  If MIX_NO_DEPS is set, we return an empty list of dependencies
+  without loading them.
   """
   def cached do
-    if project = Mix.Project.get do
-      key = {:cached_deps, project}
-      Mix.ProjectStack.read_cache(key) ||
-        Mix.ProjectStack.write_cache(key, loaded(env: Mix.env))
-    else
-      loaded(env: Mix.env)
+    cond do
+      System.get_env("MIX_NO_DEPS") in ~w(1 true) ->
+        []
+      project = Mix.Project.get ->
+        key = {:cached_deps, Mix.env, project}
+        Mix.ProjectStack.read_cache(key) ||
+          Mix.ProjectStack.write_cache(key, loaded(env: Mix.env))
+      true ->
+        loaded(env: Mix.env)
     end
   end
 
@@ -195,8 +201,8 @@ defmodule Mix.Dep do
     do: "the app file contains an invalid version: #{inspect vsn}"
 
   def format_status(%Mix.Dep{status: {:nosemver, vsn}, requirement: req}),
-    do: "the app file specified a non Semantic Version: #{inspect vsn}. Mix can only match the " <>
-        "requirement #{inspect req} against Semantic Versions. Please fix the application version " <>
+    do: "the app file specified a non-Semantic Versioning format: #{inspect vsn}. Mix can only match the " <>
+        "requirement #{inspect req} against semantic versions. Please fix the application version " <>
         "or use a regex as a requirement to match against any version"
 
   def format_status(%Mix.Dep{status: {:nomatchvsn, vsn}, requirement: req}),
@@ -212,10 +218,10 @@ defmodule Mix.Dep do
     do: "the dependency is not locked (run \"mix deps.get\" to generate \"mix.lock\" file)"
 
   def format_status(%Mix.Dep{status: :compile}),
-    do: "the dependency build is outdated, please run \"#{mix_env_var}mix deps.compile\""
+    do: "the dependency build is outdated, please run \"#{mix_env_var()}mix deps.compile\""
 
-  def format_status(%Mix.Dep{app: app, status: {:divergedreq, other}} = dep) do
-    "the dependency #{app}\n" <>
+  def format_status(%Mix.Dep{app: app, status: {:divergedreq, vsn, other}} = dep) do
+    "the dependency #{app} #{vsn}\n" <>
     "#{dep_status(dep)}" <>
     "\n  does not match the requirement specified\n" <>
     "#{dep_status(other)}" <>
@@ -225,16 +231,16 @@ defmodule Mix.Dep do
   def format_status(%Mix.Dep{app: app, status: {:divergedonly, other}} = dep) do
     recommendation =
       if Keyword.has_key?(other.opts, :only) do
-        "Ensure the parent dependency specifies a superset of the child one in"
+        "Ensure you specify at least the same environments in :only in your dep"
       else
-        "Remove the :only restriction from"
+        "Remove the :only restriction from your dep"
       end
 
-    "the dependency #{app}\n" <>
+    "the :only option for dependency #{app}\n" <>
     "#{dep_status(dep)}" <>
-    "\n  does not match the environments calculated for\n" <>
+    "\n  does not match the :only option calculated for\n" <>
     "#{dep_status(other)}" <>
-    "\n  #{recommendation} your dep"
+    "\n  #{recommendation}"
   end
 
   def format_status(%Mix.Dep{app: app, status: {:diverged, other}} = dep) do
@@ -258,15 +264,15 @@ defmodule Mix.Dep do
   end
 
   def format_status(%Mix.Dep{status: {:elixirlock, _}}),
-    do: "the dependency was built with an out-of-date Elixir version, run \"#{mix_env_var}mix deps.compile\""
+    do: "the dependency was built with an out-of-date Elixir version, run \"#{mix_env_var()}mix deps.compile\""
 
   def format_status(%Mix.Dep{status: {:scmlock, _}}),
-    do: "the dependency was built with another SCM, run \"#{mix_env_var}mix deps.compile\""
+    do: "the dependency was built with another SCM, run \"#{mix_env_var()}mix deps.compile\""
 
   defp dep_status(%Mix.Dep{app: app, requirement: req, manager: manager, opts: opts, from: from}) do
-    opts = Keyword.drop(opts, [:dest, :env, :build, :lock, :manager])
+    opts = Keyword.drop(opts, [:dest, :build, :lock, :manager, :checkout])
     opts = opts ++ (if manager, do: [manager: manager], else: [])
-    info = {app, req, opts}
+    info = if req, do: {app, req, opts}, else: {app, opts}
     "\n  > In #{Path.relative_to_cwd(from)}:\n    #{inspect info}\n"
   end
 
@@ -381,14 +387,14 @@ defmodule Mix.Dep do
   end
 
   @doc """
-  Returns `true` if dependency is a rebar project.
+  Returns `true` if dependency is a Rebar project.
   """
   def rebar?(%Mix.Dep{manager: manager}) do
     manager in [:rebar, :rebar3]
   end
 
   @doc """
-  Returns `true` if dependency is a make project.
+  Returns `true` if dependency is a Make project.
   """
   def make?(%Mix.Dep{manager: manager}) do
     manager == :make

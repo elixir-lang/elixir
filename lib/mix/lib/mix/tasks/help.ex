@@ -21,13 +21,13 @@ defmodule Mix.Tasks.Help do
   application either inside your project (in `config/config.exs`) or
   by using the local config (in `~/.mix/config.exs`).
 
-  For example, to disable, one may:
+  For example, to disable color, one may use the configuration:
 
       [mix: [colors: [enabled: false]]]
 
   The available color options are:
 
-    * `:enabled`         - shows ANSI formatting (defaults to `IO.ANSI.enabled?`)
+    * `:enabled`         - shows ANSI formatting (defaults to `IO.ANSI.enabled?/0`)
     * `:doc_code`        - the attributes for code blocks (cyan, bright)
     * `:doc_inline_code` - inline code (cyan)
     * `:doc_headings`    - h1 and h2 (yellow, bright)
@@ -41,7 +41,7 @@ defmodule Mix.Tasks.Help do
   def run(argv)
 
   def run([]) do
-    loadpaths!
+    loadpaths!()
 
     modules = load_tasks()
     {docs, max} = build_task_doc_list(modules)
@@ -52,7 +52,7 @@ defmodule Mix.Tasks.Help do
   end
 
   def run(["--names"]) do
-    loadpaths!
+    loadpaths!()
 
     tasks = Enum.map(load_tasks(), &Mix.Task.task_name/1)
 
@@ -66,7 +66,7 @@ defmodule Mix.Tasks.Help do
   end
 
   def run(["--search", pattern]) do
-    loadpaths!
+    loadpaths!()
 
     modules =
       load_tasks()
@@ -81,14 +81,14 @@ defmodule Mix.Tasks.Help do
   end
 
   def run([task]) do
-    loadpaths!
+    loadpaths!()
 
     module = Mix.Task.get!(task)
     doc    = Mix.Task.moduledoc(module) || "There is no documentation for this task"
     opts   = Application.get_env(:mix, :colors)
 
     if ansi_docs?(opts) do
-      opts = [width: width] ++ opts
+      opts = [width: width()] ++ opts
       IO.ANSI.Docs.print_heading("mix #{task}", opts)
       IO.ANSI.Docs.print(doc, opts)
     else
@@ -105,8 +105,9 @@ defmodule Mix.Tasks.Help do
 
   # Loadpaths without checks because tasks may be defined in deps.
   defp loadpaths! do
-    Mix.Task.run "loadpaths", ["--no-elixir-version-check", "--no-deps-check"]
+    Mix.Task.run "loadpaths", ["--no-elixir-version-check", "--no-deps-check", "--no-archives-check"]
     Mix.Task.reenable "loadpaths"
+    Mix.Task.reenable "deps.loadpaths"
   end
 
   defp load_tasks() do
@@ -126,11 +127,11 @@ defmodule Mix.Tasks.Help do
   end
 
   defp format_task(task, max, doc) do
-    String.ljust(task, max) <> " # " <> doc
+    String.pad_trailing(task, max) <> " # " <> doc
   end
 
   defp where_is_file(module) do
-    case :code.where_is_file(Atom.to_char_list(module) ++ '.beam') do
+    case :code.where_is_file(Atom.to_charlist(module) ++ '.beam') do
       :non_existing ->
         "not available"
       location ->
