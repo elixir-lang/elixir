@@ -77,23 +77,23 @@ end
 
 defimpl Enumerable, for: Range do
   def reduce(first..last, acc, fun) do
-    reduce(first, last, acc, fun, last >= first)
+    reduce(first, last, acc, fun, _up? = last >= first)
   end
 
-  defp reduce(_x, _y, {:halt, acc}, _fun, _up) do
+  defp reduce(_x, _y, {:halt, acc}, _fun, _up?) do
     {:halted, acc}
   end
 
-  defp reduce(x, y, {:suspend, acc}, fun, up) do
-    {:suspended, acc, &reduce(x, y, &1, fun, up)}
+  defp reduce(x, y, {:suspend, acc}, fun, up?) do
+    {:suspended, acc, &reduce(x, y, &1, fun, up?)}
   end
 
-  defp reduce(x, y, {:cont, acc}, fun, true) when x <= y do
-    reduce(x + 1, y, fun.(x, acc), fun, true)
+  defp reduce(x, y, {:cont, acc}, fun, _up? = true) when x <= y do
+    reduce(x + 1, y, fun.(x, acc), fun, _up? = true)
   end
 
-  defp reduce(x, y, {:cont, acc}, fun, false) when x >= y do
-    reduce(x - 1, y, fun.(x, acc), fun, false)
+  defp reduce(x, y, {:cont, acc}, fun, _up? = false) when x >= y do
+    reduce(x - 1, y, fun.(x, acc), fun, _up? = false)
   end
 
   defp reduce(_, _, {:cont, acc}, _fun, _up) do
