@@ -45,7 +45,8 @@ defmodule Mix.Tasks.Escript.Build do
       be started.
 
     * `:strip_beam` - if `true` strip BEAM code in the escript to remove chunks
-      unnecessary at runtime, such as debug information and documentation.
+      unnecessary at runtime, such as debug information, documentation and
+      module attributes.
       Defaults to `true`.
 
     * `:embed_elixir` - if `true` embed Elixir and its children apps
@@ -257,9 +258,36 @@ defmodule Mix.Tasks.Escript.Build do
     end
   end
 
-  defp strip_beam(beam) do
+  defp strip_beam(beam) when is_binary(beam) do
+    ## Preserve attributes chunk
+    attr_chunks = case :beam_lib.chunks(beam, ['Attr']) do
+      {:ok, {_, attrs}} -> attrs
+      {:error, :beam_lib, {:missing_chunk, _, _}} -> nil
+    end
+
+    ## We don't want to manually select chunk list to keep
+    ## this function behaviour close to standard erlang's.
+    ## So we build module twice: first to strip chunks,
+    ## and then to add attributes.
     {:ok, {_, stripped_beam}} = :beam_lib.strip(beam)
-    stripped_beam
+
+    case attr_chunks do
+      nil -> stripped_beam
+      _   ->
+        ## Get stripped chunks
+        {:ok, _, all_chunks} = :beam_lib.all_chunks(stripped_beam)
+        ## Add attrs chunks and rebuild a module
+        {:ok, built_module} = :beam_lib.build_module(all_chunks ++ attr_chunks)
+        compress(built_module)
+    end
+  end
+
+  defp compress(binary0) do
+    {:ok, fd} = :ram_file.open(binary0, [:write, :binary])
+    {:ok, _} = :ram_file.compress(fd)
+    {:ok, binary} = :ram_file.get_file(fd)
+    :ok = :ram_file.close(fd)
+    binary
   end
 
   defp consolidated_paths(config) do
