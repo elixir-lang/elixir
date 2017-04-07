@@ -302,6 +302,23 @@ defmodule Kernel.WarningTest do
     purge Sample
   end
 
+  test "unused import in conditional" do
+    assert capture_err(fn ->
+      Code.compile_string """
+      defmodule Sample do
+        if false do
+          import :lists
+          def a, do: sort([1, 2, 3])
+        else
+          def a, do: nil
+        end
+      end
+      """
+    end) == ""
+  after
+    purge Sample
+  end
+
   test "unused import of one of the functions in :only" do
     output = capture_err(fn ->
       Code.compile_string """
