@@ -22,7 +22,7 @@ defmodule Stream do
 
   Notice we started with a range and then we created a stream that is
   meant to multiply each item in the range by 2. At this point, no
-  computation was done. Only when `Enum.map/2` is called we actually
+  computation was done. Only when `Enum.map/2` is called do we actually
   enumerate over each item in the range, multiplying it by 2 and adding 1.
   We say the functions in `Stream` are *lazy* and the functions in `Enum`
   are *eager*.
@@ -85,7 +85,7 @@ defmodule Stream do
   Note the functions in this module are guaranteed to return enumerables.
   Since enumerables can have different shapes (structs, anonymous functions,
   and so on), the functions in this module may return any of those shapes
-  and that this may change at any time. For example, a function that today
+  and this may change at any time. For example, a function that today
   returns an anonymous function may return a struct in future releases.
   """
 
