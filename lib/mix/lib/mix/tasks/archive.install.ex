@@ -1,5 +1,6 @@
 defmodule Mix.Tasks.Archive.Install do
-  use Mix.Task
+  use   Mix.Task
+  alias Mix.Local.Target.Archive, as: TargetArchive
 
   @shortdoc "Installs an archive locally"
 
@@ -53,7 +54,7 @@ defmodule Mix.Tasks.Archive.Install do
   @switches [force: :boolean, sha512: :string, submodules: :boolean, app: :string]
   @spec run(OptionParser.argv) :: boolean
   def run(argv) do
-    Mix.Local.Installer.install({__MODULE__, :archive}, argv, @switches)
+    Mix.Local.Installer.install({__MODULE__, TargetArchive}, argv, @switches)
   end
 
   ### Mix.Local.Installer callbacks
@@ -118,7 +119,7 @@ defmodule Mix.Tasks.Archive.Install do
 
   defp archives(name) do
     # TODO: We can remove the .ez extension on Elixir 2.0 since we always unzip since 1.3
-    Mix.Local.path_for(:archive)
+    Mix.Local.path_for(TargetArchive)
     |> Path.join(name <> "{,*.ez}")
     |> Path.wildcard
   end

@@ -1,5 +1,6 @@
 defmodule Mix.Tasks.Archive do
-  use Mix.Task
+  use   Mix.Task
+  alias Mix.Local.Target.Archive, as: TargetArchive
 
   @shortdoc "Lists installed archives"
 
@@ -18,10 +19,10 @@ defmodule Mix.Tasks.Archive do
   @spec run(OptionParser.argv) :: :ok
   def run(_) do
     archives =
-      Mix.Local.path_for(:archive)
+      Mix.Local.path_for(TargetArchive)
       |> Path.join("*")
       |> Path.wildcard()
       |> Enum.map(&Path.basename/1)
-    Mix.Local.Installer.print_list(:archive, archives)
+    Mix.Local.Installer.print_list(TargetArchive, archives)
   end
 end

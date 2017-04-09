@@ -1,5 +1,6 @@
 defmodule Mix.Tasks.Escript.Install do
-  use Mix.Task
+  use   Mix.Task
+  alias Mix.Local.Target.Escript, as: TargetEscript
 
   @shortdoc "Installs an escript locally"
 
@@ -59,7 +60,7 @@ defmodule Mix.Tasks.Escript.Install do
   @switches [force: :boolean, sha512: :string, submodules: :boolean, app: :string]
   @spec run(OptionParser.argv) :: boolean
   def run(argv) do
-    Mix.Local.Installer.install({__MODULE__, :escript}, argv, @switches)
+    Mix.Local.Installer.install({__MODULE__, TargetEscript}, argv, @switches)
   end
 
   ### Mix.Local.Installer callbacks
@@ -127,8 +128,10 @@ defmodule Mix.Tasks.Escript.Install do
       # If current executable is nil or does not match the one we just installed,
       # PATH is misconfigured
       current_executable != dst ->
-        Mix.shell.error "\nwarning: you must append #{inspect Mix.Local.path_for(:escript)} " <>
-                        "to your PATH if you want to invoke escripts by name\n"
+        Mix.shell.error("""
+        warning: you must append #{inspect Mix.Local.path_for(TargetEscript)}
+                        "to your PATH if you want to invoke escripts by name
+        """)
 
       true ->
         :ok
