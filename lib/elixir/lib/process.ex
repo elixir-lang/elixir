@@ -546,15 +546,15 @@ defmodule Process do
 
   Inlined by the compiler.
   """
-  @spec flag(:error_handler, term) :: module
+  @spec flag(:error_handler, module) :: module
   @spec flag(:max_heap_size, heap_size) :: heap_size
-  @spec flag(:message_queue_data, term) :: :erlang.message_queue_data
-  @spec flag(:min_bin_vheap_size, term) :: non_neg_integer
-  @spec flag(:min_heap_size, term) :: non_neg_integer
-  @spec flag(:priority, term) :: priority_level
-  @spec flag(:save_calls, term) :: 0..10_000
-  @spec flag(:sensitive, term) :: boolean
-  @spec flag(:trap_exit, term) :: boolean
+  @spec flag(:message_queue_data, :erlang.message_queue_data) :: :erlang.message_queue_data
+  @spec flag(:min_bin_vheap_size, non_neg_integer) :: non_neg_integer
+  @spec flag(:min_heap_size, non_neg_integer) :: non_neg_integer
+  @spec flag(:priority, priority_level) :: priority_level
+  @spec flag(:save_calls, 0..10_000) :: 0..10_000
+  @spec flag(:sensitive, boolean) :: boolean
+  @spec flag(:trap_exit, boolean) :: boolean
   defdelegate flag(flag, value), to: :erlang, as: :process_flag
 
   @doc """
