@@ -3,11 +3,11 @@ if [ $# -eq 0 ] || [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
   echo "Usage: `basename $0` [elixir switches] [compiler switches] [.ex files]
 
   -o                          The directory to output compiled files
-  --no-docs                   Does not attach documentation to compiled modules
+  --ignore-module-conflict    Does not emit warnings if a module was previously defined
   --no-debug-info             Does not attach debug info to compiled modules
+  --no-docs                   Does not attach documentation to compiled modules
   --verbose                   Prints compilation status
   --warnings-as-errors        Treats warnings as errors and return non-zero exit code
-  --ignore-module-conflict    Does not emit warnings if a module was previously defined
 
 ** Options given after -- are passed down to the executed code
 ** Options can be passed to the Erlang runtime using ELIXIR_ERL_OPTIONS
