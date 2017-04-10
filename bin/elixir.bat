@@ -10,7 +10,6 @@ goto parseopts
 :documentation
 echo Usage: %~nx0 [options] [.exs file] [data]
 echo.
-echo   -v                          Prints version and exits
 echo   -e COMMAND                  Evaluates the given command (*)
 echo   -r FILE                     Requires the given files/patterns (*)
 echo   -S SCRIPT                   Finds and executes the given script in PATH
@@ -22,12 +21,14 @@ echo   --app APP                   Starts the given app and its dependencies (*)
 echo   --cookie COOKIE             Sets a cookie for this distributed node
 echo   --detached                  Starts the Erlang VM detached from console
 echo   --erl SWITCHES              Switches to be passed down to Erlang (*)
+echo   --help, -h                  Prints this message and exits
 echo   --hidden                    Makes a hidden node
 echo   --logger-otp-reports BOOL   Enables or disables OTP reporting
 echo   --logger-sasl-reports BOOL  Enables or disables SASL reporting
 echo   --name NAME                 Makes and assigns a name to the distributed node
 echo   --no-halt                   Does not halt the Erlang VM after execution
 echo   --sname NAME                Makes and assigns a short name to the distributed node
+echo   --version, -v               Prints Elixir version and exits
 echo   --werl                      Uses Erlang's Windows shell GUI
 echo.
 echo ** Options marked with (*) can be given more than once
