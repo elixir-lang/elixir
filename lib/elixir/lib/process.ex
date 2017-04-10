@@ -533,7 +533,7 @@ defmodule Process do
   defdelegate registered(), to: :erlang
 
   @typep heap_size :: non_neg_integer |
-                      %{:size => non_neg_integer, :kill => boolean, :error_logger => boolean}
+                      %{size: non_neg_integer, kill: boolean, error_logger: boolean}
 
   @typep priority_level :: :low | :normal | :high | :max
 
