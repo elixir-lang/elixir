@@ -316,7 +316,7 @@ defmodule Kernel.SpecialForms do
   defmacro unquote(:<<>>)(args), do: error!([args])
 
   @doc """
-  Defines a remote call or an alias.
+  Defines a remote call, a call to an anonymous function, or an alias.
 
   The dot (`.`) in Elixir can be used for remote calls:
 
@@ -324,8 +324,16 @@ defmodule Kernel.SpecialForms do
       "foo"
 
   In this example above, we have used `.` to invoke `downcase` in the
-  `String` alias, passing "FOO" as argument. We can also use the dot
-  for creating aliases:
+  `String` module, passing `"FOO"` as argument.
+
+  The dot may be used to invoke anonymous functions too:
+
+      iex> (fn(n) -> n end).(7)
+      7
+
+  in which case there is a function on the left hand side.
+
+  We can also use the dot for creating aliases:
 
       iex> Hello.World
       Hello.World
@@ -360,6 +368,13 @@ defmodule Kernel.SpecialForms do
   a remote call regardless of the quote contents. This decision is also reflected
   in the quoted expressions discussed below.
 
+  When the dot is used to invoke an anonymous function there is only one
+  operand, but it is still written using a postfix notation:
+
+      iex> negate = fn(n) -> -n end
+      iex> negate.(7)
+      -7
+
   ## Quoted expression
 
   When `.` is used, the quoted expression may take two distinct
@@ -378,9 +393,9 @@ defmodule Kernel.SpecialForms do
 
   This tuple follows the general quoted expression structure in Elixir,
   with the name as first argument, some keyword list as metadata as second,
-  and the number of arguments as third. In this case, the arguments is the
-  alias `String` and the atom `:downcase`. The second argument is **always**
-  an atom:
+  and the list of arguments as third. In this case, the arguments are the
+  alias `String` and the atom `:downcase`. The second argument in a remote call
+  is **always** an atom regardless of the literal used in the call:
 
       iex> quote do
       ...>   String."downcase"("FOO")
@@ -389,6 +404,13 @@ defmodule Kernel.SpecialForms do
 
   The tuple containing `:.` is wrapped in another tuple, which actually
   represents the function call, and has `"FOO"` as argument.
+
+  In the case of calls to anonymous functions, the inner tuple with the dot
+  special form has only one argument, reflecting the fact that the operator is
+  unary:
+
+      iex> quote do: neg.(0)
+      {{:., [], [{:neg, [], __MODULE__}]}, [], [0]}
 
   When the right side is an alias (i.e. starts with uppercase), we get instead:
 
