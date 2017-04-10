@@ -1723,8 +1723,8 @@ defmodule Kernel do
   @spec struct(module | struct, Enum.t) :: struct
   def struct(struct, kv \\ []) do
     struct(struct, kv, fn({key, val}, acc) ->
-      case :maps.is_key(key, acc) and key != :__struct__ do
-        true  -> :maps.put(key, val, acc)
+      case Map.has_key?(acc, key) and key != :__struct__ do
+        true  -> Map.put(acc, key, val)
         false -> acc
       end
     end)
