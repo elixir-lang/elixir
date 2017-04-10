@@ -1361,19 +1361,21 @@ defmodule File do
 
   ## Permissions
 
-    * 0o400 - read permission: owner
-    * 0o200 - write permission: owner
-    * 0o100 - execute permission: owner
+  File permissions are specified by adding together the following octal flags:
 
-    * 0o040 - read permission: group
-    * 0o020 - write permission: group
-    * 0o010 - execute permission: group
+    * `0o400` - read permission: owner
+    * `0o200` - write permission: owner
+    * `0o100` - execute permission: owner
 
-    * 0o004 - read permission: other
-    * 0o002 - write permission: other
-    * 0o001 - execute permission: other
+    * `0o040` - read permission: group
+    * `0o020` - write permission: group
+    * `0o010` - execute permission: group
 
-  For example, setting the mode 0o755 gives it
+    * `0o004` - read permission: other
+    * `0o002` - write permission: other
+    * `0o001` - execute permission: other
+
+  For example, setting the mode `0o755` gives it
   write, read and execute permission to the owner
   and both read and execute permission to group
   and others.
