@@ -15,6 +15,7 @@ goto run
 echo Usage: %~nx0 [elixir switches] [compiler switches] [.ex files]
 echo.
 echo   -o                          The directory to output compiled files
+echo.
 echo   --ignore-module-conflict    Does not emit warnings if a module was previously defined
 echo   --no-debug-info             Does not attach debug info to compiled modules
 echo   --no-docs                   Does not attach documentation to compiled modules
