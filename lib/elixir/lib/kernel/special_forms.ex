@@ -409,8 +409,8 @@ defmodule Kernel.SpecialForms do
   special form has only one argument, reflecting the fact that the operator is
   unary:
 
-      iex> quote do: neg.(0)
-      {{:., [], [{:neg, [], __MODULE__}]}, [], [0]}
+      iex> quote do: negate.(0)
+      {{:., [], [{:negate, [], __MODULE__}]}, [], [0]}
 
   When the right side is an alias (i.e. starts with uppercase), we get instead:
 
