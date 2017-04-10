@@ -573,7 +573,7 @@ defmodule Process do
 
   Inlined by the compiler.
   """
-  @spec flag(pid, :save_calls, non_neg_integer) :: non_neg_integer
+  @spec flag(pid, :save_calls, 0..10_000) :: 0..10_000
   defdelegate flag(pid, flag, value), to: :erlang, as: :process_flag
 
   @doc """
