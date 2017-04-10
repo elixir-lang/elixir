@@ -3990,11 +3990,65 @@ defmodule Kernel do
 
   As seen as in the example above, `super` can be used to call the default
   implementation.
-
   """
   defmacro defoverridable(keywords) do
     quote do
       Module.make_overridable(__MODULE__, unquote(keywords))
+    end
+  end
+
+  @doc """
+  Generates a macro suitable for use in guard expressions.
+
+  It raises at compile time if the definition uses expressions that aren't
+  allowed in guards, and otherwise creates a macro that can be used both inside
+  or outside guards, as per the requirements of `Macro.guard/3`.
+
+  ## Example
+
+      defmodule Integer.Guards do
+        defguard is_even(value) when is_integer(value) and rem(value, 2) == 0
+      end
+
+      defmodule Integer.Utils do
+        import Integer.Guards
+
+        def is_even_guard(value) when is_even(value), do: true
+        def is_even_guard(_), do: false
+
+        def is_even_func(value) do
+          if is_even(value), do: true, else: false
+        end
+
+        def is_large_even(value) when is_even(value) and value > 10, do: true
+        def is_large_even(_), do: false
+      end
+
+  """
+  defmacro defguard(guard) do
+    case :elixir_utils.extract_guards(guard) do
+      {_, []} -> raise ArgumentError, message: "defguard expects guards to be specified, such as `name(args) when implementation`"
+      {definition, implementation} -> do_defguard definition, implementation, __CALLER__
+    end
+  end
+
+  defp do_defguard(definition, implementation, env) do
+    env = Map.put(env, :context, :guard)
+    case Macro.validate_guard(implementation, env) do
+      :ok ->
+        {_ast, vars} = Macro.prewalk(elem(definition, 2), [], fn
+          {token, _, atom} = ast, acc when is_atom(atom) ->
+            {ast, [token | acc]}
+          ast, acc ->
+            {ast, acc}
+        end)
+        quote do
+          defmacro unquote(definition) do
+            unquote(Macro.guard(implementation, vars))
+          end
+        end
+      {:error, remainder} ->
+        raise ArgumentError, "not allowed in guard expression: `#{Macro.to_string(remainder)}`"
     end
   end
 
