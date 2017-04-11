@@ -312,50 +312,50 @@ defmodule Record do
 
   # Callback invoked from record/0 and record/1 macros.
   @doc false
-  def __access__(atom, fields, args, caller) do
+  def __access__(tag, fields, args, caller) do
     cond do
       is_atom(args) ->
-        index(atom, fields, args)
+        index(tag, fields, args)
       Keyword.keyword?(args) ->
-        create(atom, fields, args, caller)
+        create(tag, fields, args, caller)
       true ->
         case Macro.expand(args, caller) do
-          {:{}, _, [^atom | list]} when length(list) == length(fields) ->
-            record = List.to_tuple([atom | list])
-            Record.__keyword__(atom, fields, record)
-          {^atom, arg} when length(fields) == 1 ->
-            Record.__keyword__(atom, fields, {atom, arg})
+          {:{}, _, [^tag | list]} when length(list) == length(fields) ->
+            record = List.to_tuple([tag | list])
+            Record.__keyword__(tag, fields, record)
+          {^tag, arg} when length(fields) == 1 ->
+            Record.__keyword__(tag, fields, {tag, arg})
           _ ->
-            quote do: Record.__keyword__(unquote(atom), unquote(fields), unquote(args))
+            quote do: Record.__keyword__(unquote(tag), unquote(fields), unquote(args))
         end
     end
   end
 
   # Callback invoked from the record/2 macro.
   @doc false
-  def __access__(atom, fields, record, args, caller) do
+  def __access__(tag, fields, record, args, caller) do
     cond do
       is_atom(args) ->
-        get(atom, fields, record, args)
+        get(tag, fields, record, args)
       Keyword.keyword?(args) ->
-        update(atom, fields, record, args, caller)
+        update(tag, fields, record, args, caller)
       true ->
-        msg = "expected arguments to be a compile time atom or keywords, got: #{Macro.to_string args}"
+        msg = "expected arguments to be a compile time atom or a keyword list, got: #{Macro.to_string args}"
         raise ArgumentError, msg
     end
   end
 
   # Gets the index of field.
-  defp index(atom, fields, field) do
+  defp index(tag, fields, field) do
     if index = find_index(fields, field, 0) do
       index - 1 # Convert to Elixir index
     else
-      raise ArgumentError, "record #{inspect atom} does not have the key: #{inspect field}"
+      raise ArgumentError, "record #{inspect tag} does not have the key: #{inspect field}"
     end
   end
 
   # Creates a new record with the given default fields and keyword values.
-  defp create(atom, fields, keyword, caller) do
+  defp create(tag, fields, keyword, caller) do
     in_match = Macro.Env.in_match?(caller)
     keyword = apply_underscore(fields, keyword)
 
@@ -373,15 +373,15 @@ defmodule Record do
 
     case remaining do
       [] ->
-        {:{}, [], [atom | match]}
+        {:{}, [], [tag | match]}
       _  ->
         keys = for {key, _} <- remaining, do: key
-        raise ArgumentError, "record #{inspect atom} does not have the key: #{inspect hd(keys)}"
+        raise ArgumentError, "record #{inspect tag} does not have the key: #{inspect hd(keys)}"
     end
   end
 
   # Updates a record given by var with the given keyword.
-  defp update(atom, fields, var, keyword, caller) do
+  defp update(tag, fields, var, keyword, caller) do
     if Macro.Env.in_match?(caller) do
       raise ArgumentError, "cannot invoke update style macro inside match"
     end
@@ -395,20 +395,20 @@ defmodule Record do
           :erlang.setelement(unquote(index), unquote(acc), unquote(value))
         end
       else
-        raise ArgumentError, "record #{inspect atom} does not have the key: #{inspect key}"
+        raise ArgumentError, "record #{inspect tag} does not have the key: #{inspect key}"
       end
     end
   end
 
   # Gets a record key from the given var.
-  defp get(atom, fields, var, key) do
+  defp get(tag, fields, var, key) do
     index = find_index(fields, key, 0)
     if index do
       quote do
         :erlang.element(unquote(index), unquote(var))
       end
     else
-      raise ArgumentError, "record #{inspect atom} does not have the key: #{inspect key}"
+      raise ArgumentError, "record #{inspect tag} does not have the key: #{inspect key}"
     end
   end
 
@@ -418,18 +418,18 @@ defmodule Record do
 
   # Returns a keyword list of the record
   @doc false
-  def __keyword__(atom, fields, record) do
-    if is_record(record, atom) do
+  def __keyword__(tag, fields, record) do
+    if is_record(record, tag) do
       [_tag | values] = Tuple.to_list(record)
       case join_keyword(fields, values, []) do
         kv when is_list(kv) ->
           kv
         expected_fields ->
-          msg = "expected argument to be a #{inspect atom} record with #{expected_fields} fields, got: #{inspect record}"
+          msg = "expected argument to be a #{inspect tag} record with #{expected_fields} fields, got: #{inspect record}"
           raise ArgumentError, msg
       end
     else
-      msg = "expected argument to be a literal atom, literal keyword or a #{inspect atom} record, got runtime: #{inspect record}"
+      msg = "expected argument to be a literal atom, literal keyword or a #{inspect tag} record, got runtime: #{inspect record}"
       raise ArgumentError, msg
     end
   end
