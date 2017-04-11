@@ -184,7 +184,7 @@ Precompiled.zip: build_man compile
 
 zips: Precompiled.zip Docs.zip
 
-#==> Tests tasks
+#==> Test tasks
 
 test: test_erlang test_elixir
 
