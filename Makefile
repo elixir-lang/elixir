@@ -248,7 +248,9 @@ man/elixir.1:
 
 clean_man:
 	rm -f man/elixir.1
+	rm -f man/elixir.1.bak
 	rm -f man/iex.1
+	rm -f man/iex.1.bak
 
 install_man: build_man
 	$(Q) mkdir -p $(DESTDIR)$(SHARE_PREFIX)/man/man1
