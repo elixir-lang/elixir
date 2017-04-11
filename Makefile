@@ -127,7 +127,7 @@ clean:
 clean_exbeam:
 	$(Q) rm -f lib/*/ebin/Elixir.*.beam
 
-#==> Create Documentation
+#==> Documentation tasks
 
 LOGO_PATH = $(shell test -f ../docs/logo.png && echo "--logo ../docs/logo.png")
 SOURCE_REF = $(shell tag="$(call GIT_TAG)" revision="$(call GIT_REVISION)"; echo "$${tag:-$$revision}\c")
