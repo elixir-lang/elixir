@@ -100,7 +100,7 @@ $(eval $(call APP_TEMPLATE,iex,IEx))
 install: compile
 	@ echo "==> elixir (install)"
 	$(Q) for dir in lib/*; do \
-		rm -Rf $(DESTDIR)$(PREFIX)/$(LIBDIR)/elixir/$$dir/ebin; \
+		rm -rf $(DESTDIR)$(PREFIX)/$(LIBDIR)/elixir/$$dir/ebin; \
 		$(INSTALL_DIR) "$(DESTDIR)$(PREFIX)/$(LIBDIR)/elixir/$$dir/ebin"; \
 		$(INSTALL_DATA) $$dir/ebin/* "$(DESTDIR)$(PREFIX)/$(LIBDIR)/elixir/$$dir/ebin"; \
 	done
