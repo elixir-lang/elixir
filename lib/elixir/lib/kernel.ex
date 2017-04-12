@@ -1760,7 +1760,7 @@ defmodule Kernel do
     struct(struct, kv, fn
       {:__struct__, _}, acc -> acc
       {key, val}, acc ->
-        :maps.update(key, val, acc)
+        Map.replace!(acc, key, val)
     end)
   end
 
@@ -3626,7 +3626,7 @@ defmodule Kernel do
             def __struct__(kv) do
               {map, keys} =
                 Enum.reduce(kv, {__struct__(), @enforce_keys}, fn {key, val}, {map, keys} ->
-                  {:maps.update(key, val, map), :lists.delete(key, keys)}
+                  {Map.replace!(map, key, val), List.delete(keys, key)}
                 end)
               case keys do
                 [] -> map
@@ -3640,7 +3640,7 @@ defmodule Kernel do
             _ = @enforce_keys
             def __struct__(kv) do
               :lists.foldl(fn {key, val}, acc ->
-                :maps.update(key, val, acc)
+                Map.replace!(acc, key, val)
               end, __struct__(), kv)
             end
           end
