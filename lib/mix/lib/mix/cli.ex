@@ -48,7 +48,14 @@ defmodule Mix.CLI do
   end
 
   defp get_task([]) do
-    {Mix.Project.config[:default_task], []}
+    case Mix.Project.get do
+      nil ->
+        Mix.shell.error "Could not find a Mix.Project, please ensure a mix.exs file is available"
+        Mix.shell.info usage()
+        exit({:shutdown, 1})
+
+      _ -> {Mix.Project.config[:default_task], []}
+    end
   end
 
   defp run_task(name, args) do
@@ -126,4 +133,13 @@ defmodule Mix.CLI do
       ["--version", "-v"], do: :version
 
   defp check_for_shortcuts(_), do: nil
+
+  defp usage() do
+    "usage:\n" <>
+    "	 mix new [path]        # Creates a new Elixir project\n" <>
+    "\n" <>
+    "further help:\n" <>
+    "	 mix help\n" <>
+    "	 mix help [command]"
+  end
 end
