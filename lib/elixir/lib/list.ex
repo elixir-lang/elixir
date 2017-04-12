@@ -116,9 +116,10 @@ defmodule List do
 
   """
   @spec delete(list, any) :: list
-  def delete(list, item) do
-    :lists.delete(item, list)
-  end
+  def delete(list, item)
+  def delete([item | list], item), do: list
+  def delete([other | list], item), do: [other | delete(list, item)]
+  def delete([], _item), do: []
 
   @doc """
   Duplicates the given element `n` times in a list.
