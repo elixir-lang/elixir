@@ -98,10 +98,12 @@ defmodule Mix.Local.Installer do
 
   defp do_install({module, name}, src, opts) do
     src_basename = Path.basename(URI.parse(src).path)
-    dst = Path.join(Mix.Local.path_for(name), src_basename)
+    path_for_name = Mix.Local.path_for(name)
+    dst = Path.join(path_for_name, src_basename)
+    dir_dst = Path.join(path_for_name, Path.basename(src_basename, ".ez"))
     previous_files = module.find_previous_versions(src, dst)
 
-    if opts[:force] || should_install?(name, src, previous_files) do
+    if opts[:force] || should_install?(name, src, previous_files, dir_dst) do
       case Mix.Utils.read_path(src, opts) do
         {:ok, binary} ->
           module.install(dst, binary, previous_files)
@@ -132,18 +134,37 @@ defmodule Mix.Local.Installer do
     end
   end
 
-  defp should_install?(name, src, previous_files) do
+  defp should_install?(name, src, previous_files, dir_dst) do
     message = case previous_files do
       [] ->
         "Are you sure you want to install #{name} #{inspect src}?"
+
       [file] ->
-        "Found existing #{name}: #{file}.\n" <>
-        "Are you sure you want to replace it with #{inspect src}?"
+        if file == dir_dst do
+          candidate_already_found(name, dir_dst, src)
+        else
+          "Found existing #{name}: #{file}.\n" <>
+          "Are you sure you want to replace it with #{inspect src}?"
+        end
+
       files ->
-        "Found existing #{name}s: #{Enum.map_join(files, ", ", &Path.basename/1)}.\n" <>
-        "Are you sure you want to replace them with #{inspect src}?"
+        if Enum.member?(files, dir_dst) do
+          candidate_already_found(name, dir_dst, src)
+        else
+          "Found existing #{name}s: #{Enum.map_join(files, ", ", &Path.basename/1)}.\n" <>
+          "Are you sure you want to replace them with #{inspect src}?"
+        end
     end
-    Mix.shell.yes?(message)
+
+    if message do
+      Mix.shell.yes?(message)
+    end
+  end
+
+  defp candidate_already_found(name, dir_dst, src) do
+    Mix.shell.info "Found #{name} already installed in #{inspect dir_dst}.\n" <>
+                   "Please run command with the \"--force\" option if you want to install #{inspect src}."
+    nil
   end
 
   @doc """
