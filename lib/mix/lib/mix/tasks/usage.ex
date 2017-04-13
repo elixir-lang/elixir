@@ -1,7 +1,7 @@
 defmodule Mix.Tasks.Usage do
   use Mix.Task
 
-  @shortdoc "Prints usage information for mix"
+  @shortdoc "Prints usage information for Mix"
 
   @moduledoc ~S"""
   Usage: mix [task]
