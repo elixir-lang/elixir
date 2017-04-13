@@ -38,8 +38,8 @@ defmodule Mix.CLI do
   end
 
   defp get_task(["-" <> _ | _]) do
-    Mix.shell.error "** (Mix) Cannot implicitly pass flags to default Mix task, " <>
-                    "please invoke instead \"mix #{Mix.Project.config[:default_task]}\""
+    Mix.shell.error "** (Mix) Mix requires a task name when passing flags, " <>
+                    "try invoking \"mix #{Mix.Project.config[:default_task]}\" instead"
     exit({:shutdown, 1})
   end
 
@@ -50,11 +50,21 @@ defmodule Mix.CLI do
   defp get_task([]) do
     case Mix.Project.get do
       nil ->
-        Mix.shell.error "Could not find a Mix.Project, please ensure a mix.exs file is available"
-        Mix.shell.info usage()
-        exit({:shutdown, 1})
+        Mix.shell.error "** (Mix) \"mix\" with no arguments must be executed on a directory with a mix.exs file"
+        Mix.shell.info """
 
-      _ -> {Mix.Project.config[:default_task], []}
+        Usage: mix [task]
+
+        Examples:
+
+            mix             - Invokes the default task (current: "mix run")
+            mix new         - Creates a new Elixir project
+            mix help        - Lists all available tasks
+            mix help TASK   - Prints documentation for a given task
+        """
+        exit({:shutdown, 1})
+      _ ->
+        {Mix.Project.config[:default_task], []}
     end
   end
 
@@ -126,20 +136,11 @@ defmodule Mix.CLI do
   end
 
   # Check for --help or --version in the args
-  defp check_for_shortcuts([first_arg | _]) when first_arg in
-      ["--help", "-h"], do: :help
+  defp check_for_shortcuts([first_arg | _]) when first_arg in ["--help", "-h"],
+    do: :help
 
-  defp check_for_shortcuts([first_arg | _]) when first_arg in
-      ["--version", "-v"], do: :version
+  defp check_for_shortcuts([first_arg | _]) when first_arg in ["--version", "-v"],
+    do: :version
 
   defp check_for_shortcuts(_), do: nil
-
-  defp usage() do
-    "usage:\n" <>
-    "	 mix new [path]        # Creates a new Elixir project\n" <>
-    "\n" <>
-    "further help:\n" <>
-    "	 mix help\n" <>
-    "	 mix help [command]"
-  end
 end
