@@ -12,6 +12,8 @@ defmodule Mix.CLI do
     if env_variable_activated?("MIX_DEBUG"), do: Mix.debug(true)
 
     case check_for_shortcuts(args) do
+      :usage ->
+        proceed(["usage"])
       :help ->
         proceed(["help"])
       :version ->
@@ -51,7 +53,7 @@ defmodule Mix.CLI do
     case Mix.Project.get do
       nil ->
         Mix.shell.error "Could not find a Mix.Project, please ensure a mix.exs file is available"
-        Mix.shell.info usage()
+        proceed(["usage"])
         exit({:shutdown, 1})
 
       _ -> {Mix.Project.config[:default_task], []}
@@ -133,13 +135,4 @@ defmodule Mix.CLI do
       ["--version", "-v"], do: :version
 
   defp check_for_shortcuts(_), do: nil
-
-  defp usage() do
-    "usage:\n" <>
-    "	 mix new [path]        # Creates a new Elixir project\n" <>
-    "\n" <>
-    "further help:\n" <>
-    "	 mix help\n" <>
-    "	 mix help [command]"
-  end
 end
