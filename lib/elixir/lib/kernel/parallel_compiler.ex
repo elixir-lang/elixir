@@ -304,12 +304,12 @@ defmodule Kernel.ParallelCompiler do
   end
 
   defp print_failure(file, {:failure, kind, reason, stacktrace}) do
-    IO.puts "\n== Compilation error on file #{Path.relative_to_cwd(file)} =="
+    IO.puts "\n== Compilation error in file #{Path.relative_to_cwd(file)} =="
     IO.puts Exception.format(kind, reason, prune_stacktrace(stacktrace))
   end
 
   defp print_failure(file, reason) do
-    IO.puts "\n== Compilation error on file #{Path.relative_to_cwd(file)} =="
+    IO.puts "\n== Compilation error in file #{Path.relative_to_cwd(file)} =="
     IO.puts Exception.format(:exit, reason, [])
   end
 
