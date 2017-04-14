@@ -53,9 +53,9 @@ defmodule Kernel.ParallelCompilerTest do
     assert msg =~ "Compilation failed because of a deadlock between files."
     assert msg =~ "fixtures/parallel_deadlock/foo.ex => Bar"
     assert msg =~ "fixtures/parallel_deadlock/bar.ex => Foo"
-    assert msg =~ ~r"== Compilation error on file .+parallel_deadlock/foo\.ex =="
+    assert msg =~ ~r"== Compilation error in file .+parallel_deadlock/foo\.ex =="
     assert msg =~ "** (CompileError)  deadlocked waiting on module Bar"
-    assert msg =~ ~r"== Compilation error on file .+parallel_deadlock/bar\.ex =="
+    assert msg =~ ~r"== Compilation error in file .+parallel_deadlock/bar\.ex =="
     assert msg =~ "** (CompileError)  deadlocked waiting on module Foo"
   end
 
