@@ -160,7 +160,7 @@ defmodule Task.Supervised do
     # about our reference to it.
     send(monitor_pid, {parent, monitor_ref})
 
-    stream_reduce(acc, max_concurrency, 0, 0, %{}, next,
+    stream_reduce(acc, max_concurrency, _spawned = 0, _delivered = 0, _waiting = %{}, next,
                   reducer, monitor_pid, monitor_ref, timeout)
   end
 
@@ -173,11 +173,11 @@ defmodule Task.Supervised do
 
   defp stream_reduce({:suspend, acc}, max, spawned, delivered, waiting, next,
                      reducer, monitor_pid, monitor_ref, timeout) do
-    {:suspended, acc, &stream_reduce(&1, max, spawned, delivered, waiting, next,
-                                     reducer, monitor_pid, monitor_ref, timeout)}
+    continuation = &stream_reduce(&1, max, spawned, delivered, waiting, next, reducer, monitor_pid, monitor_ref, timeout)
+    {:suspended, acc, continuation}
   end
 
-  # All spawned, all delivered, next is done.
+  # All spawned, all delivered, next is :done.
   defp stream_reduce({:cont, acc}, _max, spawned, delivered, _waiting, next,
                      _reducer, monitor_pid, monitor_ref, timeout)
        when spawned == delivered and next == :done do
@@ -185,7 +185,8 @@ defmodule Task.Supervised do
     {:done, acc}
   end
 
-  # No more tasks to spawned because max == 0 or next is done.
+  # No more tasks to spawn because max == 0 or next is :done. We wait for task
+  # responses or tasks going down.
   defp stream_reduce({:cont, acc}, max, spawned, delivered, waiting, next,
                      reducer, monitor_pid, monitor_ref, timeout)
        when max == 0
@@ -254,8 +255,8 @@ defmodule Task.Supervised do
 
   defp stream_deliver({:suspend, acc}, max, spawned, delivered, waiting, next,
                       reducer, monitor_pid, monitor_ref, timeout) do
-    {:suspended, acc, &stream_deliver(&1, max, spawned, delivered, waiting, next,
-                                      reducer, monitor_pid, monitor_ref, timeout)}
+    continuation = &stream_deliver(&1, max, spawned, delivered, waiting, next, reducer, monitor_pid, monitor_ref, timeout)
+    {:suspended, acc, continuation}
   end
   defp stream_deliver({:halt, acc}, max, spawned, delivered, waiting, next,
                       reducer, monitor_pid, monitor_ref, timeout) do
@@ -317,7 +318,6 @@ defmodule Task.Supervised do
     end
   end
 
-
   # This function spawns a task for the given "value", and puts the pid of this
   # new task in the map of "waiting" tasks, which is returned.
   defp stream_spawn(value, spawned, waiting, monitor_pid, monitor_ref, timeout) do
@@ -336,10 +336,11 @@ defmodule Task.Supervised do
   defp stream_monitor(parent_pid, mfa, spawn, trap_exit?) do
     Process.flag(:trap_exit, trap_exit?)
 
+    parent_ref = Process.monitor(parent_pid)
+
     # Let's wait for the parent process to tell this process the monitor ref
     # it's using to monitor this process. If the parent process dies while this
     # process waits, this process dies with the same reason.
-    parent_ref = Process.monitor(parent_pid)
     receive do
       {^parent_pid, monitor_ref} ->
         stream_monitor_loop(parent_pid, parent_ref, mfa, spawn, monitor_ref, _counters = %{})
@@ -387,6 +388,7 @@ defmodule Task.Supervised do
         {{counter, _, _}, counters} = Map.pop(counters, ref)
         send(parent_pid, {:down, {monitor_ref, counter}, reason})
         stream_monitor_loop(parent_pid, parent_ref, mfa, spawn, monitor_ref, counters)
+
       {:EXIT, _, _} ->
         stream_monitor_loop(parent_pid, parent_ref, mfa, spawn, monitor_ref, counters)
     end
