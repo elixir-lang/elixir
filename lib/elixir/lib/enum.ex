@@ -145,6 +145,89 @@ defprotocol Enumerable do
   def count(enumerable)
 end
 
+defmodule Enum.Iterator.Defaults do
+  @moduledoc %B"""
+  This is a helper to define unimplemented default protocol functions, these
+  are `count/1`, `empty?/1` and `member?/2`.
+
+  To use it just `use Enum.Iterator.Defaults` in the protocol implementation.
+  """
+
+  @doc false
+  defmacro __using__(_opts) do
+    quote do
+      @before_compile Enum.Iterator.Defaults
+    end
+  end
+
+  @doc false
+  defmacro __before_compile__(_) do
+    quote do
+      unless Module.defines? __MODULE__, { :count, 1 } do
+        def count(coll) do
+          case Enum.Iterator.iterator(coll) do
+            { iterator, pointer } ->
+              do_count(pointer, iterator, 0)
+
+            list ->
+              length list
+          end
+        end
+
+        defp do_count(:stop, _, acc) do
+          acc
+        end
+
+        defp do_count({ _, next }, iterator, acc) do
+          do_count(iterator.(next), iterator, acc + 1)
+        end
+      end
+
+      unless Module.defines? __MODULE__, { :member?, 2 } do
+        def member?(coll, term) do
+          case Enum.Iterator.iterator(coll) do
+            { iterator, pointer } ->
+              do_member?(pointer, iterator, term)
+
+            list ->
+              List.member?(list, term)
+          end
+        end
+
+        defp do_member?(:stop, _, term) do
+          false
+        end
+
+        defp do_member?({ h, _ }, iterator, term) when h == term do
+          true
+        end
+
+        defp do_member?({ _, next }, iterator, term) do
+          do_member?(iterator.(next), iterator, term)
+        end
+      end
+
+      unless Module.defines? __MODULE__, { :empty?, 1 } do
+        def empty?(coll) do
+          case Enum.Iterator.iterator(coll) do
+            { _, :stop } ->
+              true
+
+            { _, _ } ->
+              false
+
+            [] ->
+              true
+
+            _ ->
+              false
+          end
+        end
+      end
+    end
+  end
+end
+
 defmodule Enum do
   import Kernel, except: [max: 2, min: 2]
 
