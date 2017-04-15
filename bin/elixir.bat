@@ -45,7 +45,7 @@ rem Make sure we keep a copy of all parameters
 set allPars=%*
 
 rem Get the original path name from the batch file
-set originPath=%~dp0
+set originPath="%~dp0"
 
 rem Optional parameters before the "-extra" parameter
 set beforeExtra=
