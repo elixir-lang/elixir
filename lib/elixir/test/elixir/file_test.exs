@@ -722,6 +722,26 @@ defmodule FileTest do
       File.ls!(fixture_path("non-existent-subdirectory"))
     end
   end
+    
+  test :walk do
+    src  = fixture_path("cp_r/.")
+    dest = tmp_path("tmp")
+
+    File.mkdir(dest)
+
+    try do
+      File.cp_r!(src, dest)
+      assert File.walk(tmp_path("tmp"), sorted: true) ==
+        [ { tmp_path("tmp"), ["a", "b"], [] },
+          { tmp_path("tmp/a"), ["a"], ["1.txt"] },
+          { tmp_path("tmp/a/a"), [], ["2.txt"] },
+          { tmp_path("tmp/b"), [], ["3.txt"] } ]
+      assert File.walk(tmp_path("tmp/a/1.txt")) == []
+      assert File.walk(tmp_path("tmp/not_exists")) == []
+    after
+      File.rm_rf dest
+    end
+  end
 
   defmodule OpenReadWrite do
     use Elixir.FileCase

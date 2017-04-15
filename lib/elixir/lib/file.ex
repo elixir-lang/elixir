@@ -1294,6 +1294,63 @@ defmodule File do
   end
 
   @doc """
+  Recursively walk through directories.
+
+  Returns a list of tuples: `{ dirpath, dirnames, filenames }`.
+
+  `dirpath` is the path to the directory.
+  `dirnames` are the names of subdirs.
+  `filenames` are the names of files in the directory.
+  
+  The order of subdirectory and file names is undefined unless `sorted: true`
+  is passed in the options.
+  
+  If you pass a relative path don't change the current directory while this
+  function runs or you'll get weird results. This function does not change the
+  current directory itself.
+
+  Only returns entries for directories and regular files.
+  
+  Ignores errors in listing directories and statting files (returns empty
+  dirs / ignores files).
+
+  Returns an empty list if the name of a non-directory is passed.
+
+  This was inspired by Python's os.walk function.
+  """
+  @spec walk(Path.t) :: [{ Path.t, [ Path.t ], [ Path.t ] }]
+  def walk(dir // ".", options // []) do
+    if File.dir?(dir), do: do_walk(dir, options), else: []
+  end
+
+  defp do_walk(dir, opts) do
+    case File.ls(dir) do
+      { :error, _ } -> []
+      { :ok, fns }  ->
+        # Reverse is needed to get ascending order.
+        fns = if opts[:sorted], do: Enum.reverse(Enum.sort(fns)), else: fns
+        { _, ds, _ } = t = do_walk_list(dir, fns)
+        [ t | Enum.flat_map(ds, &(do_walk(Path.join(dir, &1), opts))) ]
+    end
+  end
+
+  defp do_walk_list(dir, fns) do
+    { dirs, files } = 
+      Enum.reduce fns, { [], [] }, fn f, { ds, fs } -> 
+        case File.stat(Path.join(dir, f)) do
+          { :error, _ } -> { ds, fs }
+          { :ok, File.Stat[type: t] } ->
+            case t do
+              :directory -> { [f|ds], fs }
+              :regular   -> { ds, [f|fs] }
+              _          -> { ds, fs }
+            end
+        end
+      end
+    { dir, dirs, files }
+  end
+
+  @doc """
   Closes the file referenced by `io_device`. It mostly returns `:ok`, except
   for some severe errors such as out of memory.
 
