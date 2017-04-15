@@ -1444,6 +1444,37 @@ defmodule File do
     end
   end
 
+  @doc """
+   Loads an erlang configuration, given by `file`, into the application
+   environment. Returns `{:ok, result}` on success,
+   or `{:error, reason}` in case of failure.
+  """
+  def load_config(file) do
+    case :file.consult(file |> to_char_list) do
+      { :ok, module_config } ->
+        Enum.each module_config, fn([{module, config}]) ->
+          Enum.each config, fn({key, value}) ->
+            :application.set_env(module, key, value)
+          end
+        end
+
+        { :ok, module_config }
+      { :error, reason } -> { :error, reason }
+    end
+  end
+
+  @doc """
+    Same as `load_config/1`, but raises an exception in case of failure.
+    Otherwise returns the configuration terms.
+  """
+  def load_config!(file) do
+    case load_config(file) do
+      { :ok, module_config } -> module_config
+      { :error, reason } ->
+        raise File.Error, reason: reason, action: "load config for", path: to_string(file)
+    end
+  end
+
   ## Helpers
 
   @read_ahead_size 64 * 1024

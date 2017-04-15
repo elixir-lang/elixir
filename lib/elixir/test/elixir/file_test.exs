@@ -1792,6 +1792,42 @@ defmodule FileTest do
     end
   end
 
+  defmodule Config do
+    use Elixir.FileCase
+
+    test :load_config_valid do
+      fixture = tmp_path("conf")
+      File.write(fixture, "[{baz, [ {foo, <<\"bar\">>} ]}].")
+
+      assert File.load_config(fixture) == { :ok, [[baz: [foo: "bar"]]] }
+
+      assert :application.get_env(:baz, :foo) == {:ok, "bar"}
+    end
+
+    test :load_config_nonexistent_file do
+      fixture = tmp_path("conf")
+
+      message = %r"could not load config for #{escape fixture}: no such file or directory"
+
+      assert_raise File.Error, message, fn ->
+        File.load_config!(fixture)
+      end
+
+      assert File.load_config(fixture) == {:error, :enoent}
+    end
+
+    test :load_config_invalid do
+      fixture = tmp_path("conf")
+      File.write(fixture, "[{baz, [ {foo, <<bar\">>} ]}].")
+
+      assert_raise(File.Error, fn -> File.load_config!(fixture) end)
+
+      { status, result } = File.load_config(fixture)
+
+      assert status == :error
+    end
+  end
+
   defp last_year do
     last_year :calendar.local_time
   end
