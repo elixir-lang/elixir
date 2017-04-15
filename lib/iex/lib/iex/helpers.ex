@@ -669,6 +669,11 @@ defmodule IEx.Helpers do
   end
 
   @doc """
+  Cleanly exit the current iex session
+  """
+  def exit, do: System.halt
+
+  @doc """
   Evaluates the contents of the file at `path` as if it were directly typed into
   the shell.
 
