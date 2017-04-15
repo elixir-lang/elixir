@@ -166,7 +166,7 @@ defmodule Task.Supervised do
   end
 
   defp stream_reduce({:halt, acc}, _max, _spawned, _delivered, _waiting, next,
-                     _reducer, monitor_pid, monitor_ref, timeout, on_timeout) do
+                     _reducer, monitor_pid, monitor_ref, timeout, _on_timeout) do
     stream_close(monitor_pid, monitor_ref, timeout)
     is_function(next) && next.({:halt, []})
     {:halted, acc}
@@ -180,7 +180,7 @@ defmodule Task.Supervised do
 
   # All spawned, all delivered, next is :done.
   defp stream_reduce({:cont, acc}, _max, spawned, delivered, _waiting, next,
-                     _reducer, monitor_pid, monitor_ref, timeout, on_timeout)
+                     _reducer, monitor_pid, monitor_ref, timeout, _on_timeout)
        when spawned == delivered and next == :done do
     stream_close(monitor_pid, monitor_ref, timeout)
     {:done, acc}
@@ -199,8 +199,10 @@ defmodule Task.Supervised do
       # message).
       {{^monitor_ref, position}, value} ->
         %{^position => {pid, timer_ref, :running}} = waiting
-        # If the task replied, we can cancel the timeout timer.
-        Process.cancel_timer(timer_ref)
+        # If the task replied, we can cancel the timeout timer and flush
+        # possible :timed_out messages; this way, we're sure that when we
+        # process a :timed_out message it's because a task actually timed out.
+        cancel_timeout_timer(timer_ref, monitor_ref, position)
         waiting = Map.put(waiting, position, {pid, {:ok, value}})
         stream_reduce({:cont, acc}, max, spawned, delivered, waiting, next,
                       reducer, monitor_pid, monitor_ref, timeout, on_timeout)
@@ -229,14 +231,9 @@ defmodule Task.Supervised do
             stream_close(monitor_pid, monitor_ref, timeout)
             exit({:timeout, {:__MODULE__, :stream, [timeout]}})
           :shutdown ->
-            waiting =
-              case waiting do
-                %{^position => {_pid, {:ok, _}}} ->
-                  waiting
-                %{^position => {pid, _timer_ref, :running}} ->
-                  Process.exit(pid, {:shutdown, timeout})
-                  Map.put(waiting, position, {pid, :timed_out})
-              end
+            %{^position => {pid, _timer_ref, :running}} = waiting
+            Process.exit(pid, {:shutdown, timeout})
+            waiting = Map.put(waiting, position, {pid, :timed_out})
             stream_reduce({:cont, acc}, max, spawned, delivered, waiting, next,
                           reducer, monitor_pid, monitor_ref, timeout, on_timeout)
         end
@@ -340,6 +337,24 @@ defmodule Task.Supervised do
         stream_cleanup_inbox(monitor_ref)
     after
       0 ->
+        :ok
+    end
+  end
+
+  defp cancel_timeout_timer(timer_ref, monitor_ref, counter) do
+    case Process.cancel_timer(timer_ref) do
+      # The timer fired (or couldn't be found, which doesn't happen here), so we
+      # flush the :timed_out message.
+      false ->
+        receive do
+          {:timed_out, {^monitor_ref, ^counter}} -> :ok
+        after
+          0 -> :ok
+        end
+      # There was some time left before sending the message, so we're sure the
+      # message wasn't sent, and we don't need to flush the possible :timed_out
+      # message.
+      _remaining_time ->
         :ok
     end
   end
