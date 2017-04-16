@@ -32,8 +32,16 @@ defmodule Mix.CLI do
 
   defp load_mixfile() do
     file = System.get_env("MIX_EXS") || "mix.exs"
-    _ = if File.regular?(file) do
-      Code.load_file(file)
+    try do
+      _ = if File.regular?(file) do
+            Code.load_file(file)
+          end
+    rescue
+      e ->
+        stacktrace = System.stacktrace
+        Mix.shell.error "** (Mix) An exception was raised during loading " <>
+                        "of mixfile #{file}, please check it for errors"
+        reraise e, stacktrace
     end
   end
 
