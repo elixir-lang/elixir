@@ -232,6 +232,10 @@ defmodule Mix.Tasks.DepsGitTest do
       Mix.Tasks.Deps.Update.run ["git_repo"]
       assert File.exists?("deps/git_repo/lib/git_repo.ex")
       assert File.read!("mix.lock") =~ last
+    
+      if match? {:win32, _}, :os.type do
+        System.cmd("chmod -R u+w deps/git_repo/.git/objects")
+      end
 
       Mix.Tasks.Deps.Clean.run ["--all"]
       refute File.exists?("deps/git_repo/lib/git_repo.ex")
