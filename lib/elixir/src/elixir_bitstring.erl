@@ -226,9 +226,9 @@ build_spec(Meta, Size, Unit, Type, Endianess, Sign, Spec, E) when Type == intege
       add_spec(Type, add_spec(Endianess, add_spec(Sign, Spec)))
   end.
 
-number_size(default, _) -> default;
-number_size(Size, default) -> Size;
-number_size(Size, Unit) -> Size * Unit.
+number_size(Size, default) when is_integer(Size) -> Size;
+number_size(Size, Unit) when is_integer(Size) -> Size * Unit;
+number_size(Size, _) -> Size.
 
 add_spec(default, Spec) -> Spec;
 add_spec(Key, Spec) -> [{Key, [], []} | Spec].
