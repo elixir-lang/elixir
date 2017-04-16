@@ -121,6 +121,24 @@ defimpl Enumerable, for: Range do
   end
 end
 
+defimpl Range.Iterator, for: List do
+  def next(first, _ .. last) when is_list(last) do
+    if last >= first do
+      &([:lists.nth(1, &1) + 1])
+    else
+      &([:lists.nth(1, &1) - 1])
+    end
+  end
+  
+  def count(first, _ .. last) when is_list(last) do
+    if last >= first do
+      last - first + 1
+    else
+      first - last + 1
+    end
+  end
+end
+
 defimpl Inspect, for: Range do
   import Inspect.Algebra
 
