@@ -856,6 +856,14 @@ defmodule KernelTest do
     end
   end
 
+  test "hd/2" do
+    assert hd([1, 2, 3, 4]) == 1
+    assert_raise ArgumentError, "argument error", fn ->
+      hd([])
+    end
+    assert hd([1 | 2]) == 1
+  end
+
   defp purge(module) do
     :code.delete(module)
     :code.purge(module)
