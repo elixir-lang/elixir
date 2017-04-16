@@ -1973,19 +1973,19 @@ defmodule Kernel do
   """
   @spec pop_in(Access.t, nonempty_list(term)) :: {term, Access.t}
   def pop_in(data, keys)
-  def pop_in(nil, [h | _]), do: Access.pop(nil, h)
-  def pop_in(data, keys), do: do_pop_in(data, keys)
+  def pop_in(nil, [key | _]), do: Access.pop(nil, key)
+  def pop_in(data, keys) when is_list(keys), do: pop_in_data(data, keys)
 
-  defp do_pop_in(nil, [_ | _]),
+  defp pop_in_data(nil, [_ | _]),
     do: :pop
-  defp do_pop_in(data, [h]) when is_function(h),
-    do: h.(:get_and_update, data, fn _ -> :pop end)
-  defp do_pop_in(data, [h | t]) when is_function(h),
-    do: h.(:get_and_update, data, &do_pop_in(&1, t))
-  defp do_pop_in(data, [h]),
-    do: Access.pop(data, h)
-  defp do_pop_in(data, [h | t]),
-    do: Access.get_and_update(data, h, &do_pop_in(&1, t))
+  defp pop_in_data(data, [fun]) when is_function(fun),
+    do: fun.(:get_and_update, data, fn _ -> :pop end)
+  defp pop_in_data(data, [fun | tail]) when is_function(fun),
+    do: fun.(:get_and_update, data, &pop_in_data(&1, tail))
+  defp pop_in_data(data, [key]),
+    do: Access.pop(data, key)
+  defp pop_in_data(data, [key | tail]),
+    do: Access.get_and_update(data, key, &pop_in_data(&1, tail))
 
   @doc """
   Puts a value in a nested structure via the given `path`.
