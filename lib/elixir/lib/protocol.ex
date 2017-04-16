@@ -382,9 +382,9 @@ defmodule Protocol do
           [{:var, line, :x}]}]}
   end
 
-  defp each_struct_clause_for(other, protocol, line) do
-    {:clause, line, [{:atom, line, other}], [],
-      [{:atom, line, load_impl(protocol, other)}]}
+  defp each_struct_clause_for(struct, protocol, line) do
+    {:clause, line, [{:atom, line, struct}], [],
+      [{:atom, line, load_impl(protocol, struct)}]}
   end
 
   defp fallback_clause_for(value, _protocol, line) do
