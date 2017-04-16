@@ -693,6 +693,44 @@ defmodule File do
           source: IO.chardata_to_string(source), destination: IO.chardata_to_string(destination)
     end
   end
+  
+  @doc """
+  Tries to rename the file `Source` to `Destination`.
+  
+  It can be used to move files (and directories) between 
+  directories, but it is not sufficient to specify the 
+  destination only. The destination file name must also be 
+  specified. For example, if bar is a normal file and foo 
+  and baz are directories, rename("foo/bar", "baz") returns
+  an error, but rename("foo/bar", "baz/bar") succeeds. 
+  Returns `:ok` if it is successful, otherwise `{:error, reason}`.
+  """
+  @spec rename(Path.t, Path.t) :: :ok | {:error, posix}
+  def rename(source, destination) do
+    source = IO.chardata_to_string(source)
+    destination = IO.chardata_to_string(destination)
+    
+    case F.rename(source, destination) do
+      {:error, reason} -> {:error, reason}
+      _ -> :ok
+    end
+  end
+  
+  @doc """
+    Same as `rename/2`, but raises `File.RenameError` if it fails.
+  """
+  @spec rename!(Path.t, Path.t) :: :ok | no_return
+  def rename!(source, destination) do
+    source = IO.chardata_to_string(source)
+    destination = IO.chardata_to_string(destination)
+    
+    case F.rename(source, destination) do
+      {:error, reason} ->
+        raise File.RenameError, reason: reason, action: "rename", 
+          source: source, destination: destination
+      _ -> :ok
+    end
+  end
 
   # src may be a file or a directory, dest is definitely
   # a directory. Returns nil unless an error is found.

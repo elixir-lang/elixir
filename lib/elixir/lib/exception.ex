@@ -833,6 +833,16 @@ defmodule File.LinkError do
   end
 end
 
+defmodule File.RenameError do
+  defexception [reason: nil, action: "", source: nil, destination: nil]
+
+  def message(exception) do
+    formatted = IO.iodata_to_binary(:file.format_error(exception.reason))
+    "could not #{exception.action} from #{exception.source} to " <>
+      "#{exception.destination}: #{formatted}"
+  end
+end
+
 defmodule ErlangError do
   defexception [:original]
 

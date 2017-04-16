@@ -685,6 +685,109 @@ defmodule FileTest do
       elem(result, 1) in [:enotdir, :eio, :enoent, :eisdir]
     end
   end
+  
+  defmodule Rename do
+    use Elixir.FileCase
+    test :rename_file_within_directory do
+      src = fixture_path("to_rename.txt")
+      dest = fixture_path("renamed.txt")
+      try do
+        File.rm(src)
+        File.rm(dest)
+        refute File.exists?(src)
+        refute File.exists?(dest)
+        File.write! src, "hello"
+        assert File.exists?(src)
+        assert File.rename(src, dest) == :ok
+        refute File.exists?(src)
+        assert File.exists?(dest)
+      after
+        File.rm(dest)
+      end
+    end
+    
+    test :rename_file_outside_directory do
+      src = fixture_path("to_rename.txt")
+      dest = tmp_path("renamed.txt")
+      try do
+        File.rm(src)
+        File.rm(dest)
+        refute File.exists?(src)
+        refute File.exists?(dest)
+        File.write! src, "hello"
+        assert File.exists?(src)
+        assert File.rename(src, dest) == :ok
+        refute File.exists?(src)
+        assert File.exists?(dest)
+      after
+        File.rm(dest)
+        File.rm(src) #in cast of text failure
+      end
+    end
+    
+    test :rename_directory do
+      src = tmp_path("tmp")
+      dest = tmp_path("new_tmp")
+      File.mkdir_p!(src)
+      File.rmdir(dest)
+      try do
+        assert File.exists?(src)
+        refute File.exists?(dest)
+        File.write! src <> "test.txt", "hello"
+        assert File.exists?(src <> "test.txt")
+        assert File.rename(src, dest) == :ok
+        refute File.exists?(src)
+        assert File.exists?(dest)
+        assert File.exists?(src <> "test.txt")
+      after
+        File.rmdir(dest)
+      end
+    end
+    
+    test :rename_directory_error do
+      src_dir = tmp_path("tmp")
+      src = src_dir <> "test.txt"
+      dest = tmp_path("new_tmp")
+      File.mkdir_p!(src_dir)
+      File.mkdir_p!(dest)
+      
+      try do
+        File.write! src, "hello"
+        assert File.exists?(src)
+        assert File.exists?(dest)
+        assert File.rename(src, dest) == {:error, :eisdir}
+        assert File.exists?(src)
+        assert File.exists?(dest)
+        refute File.exists?(dest <> "test.txt")
+      after
+        File.rm(src)
+        File.rmdir(src_dir)
+      end
+    end
+    
+    test :rename_directory_exception do
+      src_dir = tmp_path("tmp")
+      src = src_dir <> "test.txt"
+      dest = tmp_path("new_tmp")
+      File.mkdir_p!(src_dir)
+      File.mkdir_p!(dest)
+      
+      try do
+        File.write! src, "hello"
+        assert File.exists?(src)
+        assert File.exists?(dest)
+        
+        assert_raise File.RenameError, "could not rename from #{src} to #{dest}: illegal operation on a directory", fn ->
+          File.rename!(src, dest)
+        end
+        assert File.exists?(src)
+        refute File.exists?(dest <> "test.txt")
+      after
+        File.rm(src)
+        File.rmdir(src_dir)
+      end
+    end
+  end
 
   defmodule Queries do
     use ExUnit.Case
