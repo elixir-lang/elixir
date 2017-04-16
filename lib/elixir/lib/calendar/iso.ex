@@ -220,17 +220,29 @@ defmodule Calendar.ISO do
   @doc """
   Converts the given time into a string.
   """
-  def time_to_string(hour, minute, second, {_, 0}) do
-    time_to_string(hour, minute, second)
+  def time_to_string(hour, minute, second, microsecond, format \\ :extended)
+  def time_to_string(hour, minute, second, {_, 0}, format) do
+    case format do
+      :extended -> time_to_string_extended(hour, minute, second)
+      :basic -> time_to_string_basic(hour, minute, second)
+    end
   end
 
-  def time_to_string(hour, minute, second, {microsecond, precision}) do
-    time_to_string(hour, minute, second) <> "." <>
-      (microsecond |> zero_pad(6) |> binary_part(0, precision))
+  def time_to_string(hour, minute, second, {microsecond, precision}, format) do
+    time = case format do
+      :extended -> time_to_string_extended(hour, minute, second)
+      :basic -> time_to_string_basic(hour, minute, second)
+    end
+
+    time <> "." <> (microsecond |> zero_pad(6) |> binary_part(0, precision))
   end
 
-  defp time_to_string(hour, minute, second) do
+  defp time_to_string_extended(hour, minute, second) do
     zero_pad(hour, 2) <> ":" <> zero_pad(minute, 2) <> ":" <> zero_pad(second, 2)
+  end
+
+  defp time_to_string_basic(hour, minute, second) do
+    zero_pad(hour, 2) <> zero_pad(minute, 2) <> zero_pad(second, 2)
   end
 
   @doc """
@@ -238,6 +250,11 @@ defmodule Calendar.ISO do
   """
   def date_to_string(year, month, day) do
     zero_pad(year, 4) <> "-" <> zero_pad(month, 2) <> "-" <> zero_pad(day, 2)
+  end
+
+  defp date_to_string(year, month, day, :extended), do: date_to_string(year, month, day)
+  defp date_to_string(year, month, day, :basic) do
+    zero_pad(year, 4) <> zero_pad(month, 2) <> zero_pad(day, 2)
   end
 
   @doc """
@@ -270,13 +287,22 @@ defmodule Calendar.ISO do
     {0, 1}
   end
 
-  defp offset_to_string(0, 0, "Etc/UTC"), do: "Z"
-  defp offset_to_string(utc, std, _zone) do
+  defp offset_to_string(utc, std, zone, format \\ :extended)
+  defp offset_to_string(0, 0, "Etc/UTC", _format), do: "Z"
+  defp offset_to_string(utc, std, _zone, format) do
     total  = utc + std
     second = abs(total)
     minute = second |> rem(3600) |> div(60)
     hour   = second |> div(3600)
+    format_offset(total, hour, minute, format)
+  end
+
+  defp format_offset(total, hour, minute, :extended) do
     sign(total) <> zero_pad(hour, 2) <> ":" <> zero_pad(minute, 2)
+  end
+
+  defp format_offset(total, hour, minute, :basic) do
+    sign(total) <> zero_pad(hour, 2) <> zero_pad(minute, 2)
   end
 
   defp zone_to_string(0, 0, _abbr, "Etc/UTC"), do: ""
@@ -318,26 +344,26 @@ defmodule Calendar.ISO do
     do: precision_for_unit(div(number, 10), precision + 1)
 
   @doc false
-  def date_to_iso8601(year, month, day) do
-    date_to_string(year, month, day)
+  def date_to_iso8601(year, month, day, format \\ :extended) do
+    date_to_string(year, month, day, format)
   end
 
   @doc false
-  def time_to_iso8601(hour, minute, second, microsecond) do
-    time_to_string(hour, minute, second, microsecond)
+  def time_to_iso8601(hour, minute, second, microsecond, format \\ :extended) do
+    time_to_string(hour, minute, second, microsecond, format)
   end
 
   @doc false
-  def naive_datetime_to_iso8601(year, month, day, hour, minute, second, microsecond) do
-    date_to_string(year, month, day) <> "T" <> time_to_string(hour, minute, second, microsecond)
+  def naive_datetime_to_iso8601(year, month, day, hour, minute, second, microsecond, format \\ :extended) do
+    date_to_string(year, month, day, format) <> "T" <> time_to_string(hour, minute, second, microsecond, format)
   end
 
   @doc false
   def datetime_to_iso8601(year, month, day, hour, minute, second, microsecond,
-                          time_zone, _zone_abbr, utc_offset, std_offset) do
-    date_to_string(year, month, day) <> "T" <>
-      time_to_string(hour, minute, second, microsecond) <>
-      offset_to_string(utc_offset, std_offset, time_zone)
+                          time_zone, _zone_abbr, utc_offset, std_offset, format \\ :extended) do
+    date_to_string(year, month, day, format) <> "T" <>
+      time_to_string(hour, minute, second, microsecond, format) <>
+      offset_to_string(utc_offset, std_offset, time_zone, format)
   end
 
   @doc false
