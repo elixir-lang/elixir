@@ -80,6 +80,14 @@ defmodule Mix.Tasks.Help do
     Mix.raise "Unexpected arguments, expected \"mix help --search PATTERN\""
   end
 
+  def run(["--names"]) do
+    Mix.Task.load_all
+    tasks = for module <- Enum.sort(Mix.Task.all_modules), do: Mix.Task.task_name(module)
+    Enum.each tasks, fn task ->
+      Mix.shell.info "#{task}"
+    end
+  end
+
   def run([task]) do
     loadpaths!()
 
