@@ -58,7 +58,7 @@ defmodule Mix.CLI do
         Examples:
 
             mix             - Invokes the default task (current: "mix run")
-            mix new         - Creates a new Elixir project
+            mix new PATH    - Creates a new Elixir project at the given path
             mix help        - Lists all available tasks
             mix help TASK   - Prints documentation for a given task
         """
