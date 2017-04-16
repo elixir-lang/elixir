@@ -828,6 +828,8 @@ defmodule Kernel do
   @doc """
   Returns the tail of a list. Raises `ArgumentError` if the list is empty.
 
+  It works with improper lists.
+
   Allowed in guard tests. Inlined by the compiler.
 
   ## Examples
@@ -837,6 +839,15 @@ defmodule Kernel do
 
       tl([])
       #=> ** (ArgumentError) argument error
+
+      tl([:one])
+      #=> []
+
+      tl([:a, :b | :c])
+      #=> [:b | :c]
+
+      tl([:a | %{b: 1}])
+      #=> %{b: 1}
 
   """
   @spec tl(nonempty_maybe_improper_list(elem, tail)) ::
