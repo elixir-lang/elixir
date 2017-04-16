@@ -1078,6 +1078,12 @@ defmodule Kernel.ExpansionTest do
              quote do: (:"Elixir.Kernel.ExpansionTarget"; <<x()::integer()-size(17)>>)
     end
 
+    test "supports dynamic size" do
+      import Kernel, except: [-: 2]
+      assert expand(quote do: (var = 1; <<x::size(var)-unit(8)>>)) ==
+             quote do: (var = 1; <<x()::integer()-unit(8)-size(var)>>)
+    end
+
     test "raises on size or unit for literal bitstrings" do
       assert_raise CompileError, ~r"literal <<>> in bitstring supports only type specifiers", fn ->
         expand(quote do: << <<"foo">>::32 >>)
