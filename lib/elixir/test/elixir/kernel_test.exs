@@ -625,6 +625,10 @@ defmodule KernelTest do
       assert_raise FunctionClauseError, fn ->
         pop_in(users, [])
       end
+
+      assert_raise FunctionClauseError, "no function clause matching in Kernel.pop_in/2", fn ->
+        pop_in(users, :not_a_list)
+      end
     end
 
     test "pop_in/2 with paths" do
