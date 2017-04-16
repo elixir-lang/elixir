@@ -499,6 +499,14 @@ defmodule ArithmeticError do
   defexception message: "bad argument in arithmetic expression"
 end
 
+defmodule UnsizedBinaryAtEndError do
+  defexception []
+
+  def message(_) do
+    "unsized binary can only be at the end of patterns"
+  end
+end
+
 defmodule SystemLimitError do
   defexception []
 
@@ -847,6 +855,10 @@ defmodule ErlangError do
 
   def normalize(:badarith, _stacktrace) do
     %ArithmeticError{}
+  end
+  
+  def normalize(:unsized_binary_not_at_end, _stacktrace) do
+    %UnsizedBinaryAtEndError{}
   end
 
   def normalize(:system_limit, _stacktrace) do
