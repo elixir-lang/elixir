@@ -856,6 +856,27 @@ defmodule KernelTest do
     end
   end
 
+  describe "tl/2" do
+    test "proper list" do
+      assert tl([1, 2, 3, :go]) == [2, 3, :go]
+    end
+
+    test "empty list" do
+      assert_raise ArgumentError, "argument error", fn ->
+        tl([])
+      end
+    end
+
+    test "one-element list" do
+      assert tl([:one]) == []
+    end
+
+    test "improper lists" do
+      assert tl([:a, :b | :c]) == [:b | :c]
+      assert tl([:a | :b]) == :b
+    end
+  end
+
   defp purge(module) do
     :code.delete(module)
     :code.purge(module)
