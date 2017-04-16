@@ -261,6 +261,8 @@ defmodule Kernel do
   @doc """
   Returns the head of a list. Raises `ArgumentError` if the list is empty.
 
+  It works with improper lists.
+
   Allowed in guard tests. Inlined by the compiler.
 
   ## Examples
@@ -270,6 +272,9 @@ defmodule Kernel do
 
       hd([])
       #=> ** (ArgumentError) argument error
+
+      hd([1 | 2])
+      #=> 1
 
   """
   @spec hd(nonempty_maybe_improper_list(elem, any)) :: elem when elem: term
