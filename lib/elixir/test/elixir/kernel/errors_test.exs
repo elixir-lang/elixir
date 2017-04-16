@@ -549,7 +549,7 @@ defmodule Kernel.ErrorsTest do
 
   test "already compiled module" do
     assert_compile_fail ArgumentError,
-      "could not call eval_quoted on module Record " <>
+      "could not call eval_quoted in module Record " <>
       "because it was already compiled",
       'Module.eval_quoted Record, quote(do: 1), [], file: __ENV__.file'
   end

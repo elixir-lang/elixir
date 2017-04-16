@@ -50,7 +50,7 @@ defmodule Mix.CLI do
   defp get_task([]) do
     case Mix.Project.get do
       nil ->
-        Mix.shell.error "** (Mix) \"mix\" with no arguments must be executed on a directory with a mix.exs file"
+        Mix.shell.error "** (Mix) \"mix\" with no arguments must be executed in a directory with a mix.exs file"
         Mix.shell.info """
 
         Usage: mix [task]
