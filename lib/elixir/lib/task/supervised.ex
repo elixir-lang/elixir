@@ -229,10 +229,10 @@ defmodule Task.Supervised do
         case on_timeout do
           :exit ->
             stream_close(monitor_pid, monitor_ref, timeout)
-            exit({:timeout, {:__MODULE__, :stream, [timeout]}})
-          :shutdown ->
+            exit({:timeout, {__MODULE__, :stream, [timeout]}})
+          :kill_task ->
             %{^position => {pid, _timer_ref, :running}} = waiting
-            Process.exit(pid, {:shutdown, timeout})
+            Process.exit(pid, :kill)
             waiting = Map.put(waiting, position, {pid, :timed_out})
             stream_reduce({:cont, acc}, max, spawned, delivered, waiting, next,
                           reducer, monitor_pid, monitor_ref, timeout, on_timeout)
@@ -243,12 +243,6 @@ defmodule Task.Supervised do
       {:DOWN, ^monitor_ref, _, ^monitor_pid, reason} ->
         stream_cleanup_inbox(monitor_pid, monitor_ref)
         exit({reason, {__MODULE__, :stream, [timeout]}})
-    after
-      # If we got no messages from the spawned tasks or the monitor process, we
-      # close the monitor process and exit.
-      timeout ->
-        stream_close(monitor_pid, monitor_ref, timeout)
-        exit({:timeout, {__MODULE__, :stream, [timeout]}})
     end
   end
 
