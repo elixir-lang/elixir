@@ -376,6 +376,21 @@ defmodule System do
   end
 
   @doc """
+  Environment variable value or default value.
+
+  Returns the value of the environment variable
+  `varname` as a binary if set, or `default` if the environment
+  variable is undefined.
+  """
+  @spec get_env(binary, binary) :: binary
+  def get_env(varname, default) when is_binary(varname) and is_binary(default) do
+    case get_env(varname) do
+      nil -> default
+      other -> other
+    end
+  end
+
+  @doc """
   Erlang VM process identifier.
 
   Returns the process identifier of the current Erlang emulator
