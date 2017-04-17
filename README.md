@@ -151,7 +151,7 @@ the `doc` directory. If you are planning to contribute documentation,
 
 ## License
 
-"Elixir" and the Elixir logo are copyright (c) 2012 Plataformatec.
+"Elixir" and the Elixir logo are copyright (c) 2015 Plataformatec.
 
 Elixir source code is released under Apache 2 License.
 
