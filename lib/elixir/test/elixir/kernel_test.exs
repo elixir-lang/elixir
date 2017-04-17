@@ -2,8 +2,9 @@ Code.require_file "test_helper.exs", __DIR__
 
 defmodule KernelTest do
   use ExUnit.Case, async: true
-
   doctest Kernel
+
+  defp empty_list(), do: []
 
   test "=~/2" do
     assert ("abcd" =~ ~r/c(d)/) == true
@@ -863,22 +864,18 @@ defmodule KernelTest do
   test "tl/2" do
     assert tl([:one]) == []
     assert tl([1, 2, 3]) == [2, 3]
-
     assert_raise ArgumentError, "argument error", fn ->
-      tl([])
+      tl(empty_list())
     end
-
     assert tl([:a | :b]) == :b
     assert tl([:a, :b | :c]) == [:b | :c]
   end
 
   test "hd/2" do
     assert hd([1, 2, 3, 4]) == 1
-
     assert_raise ArgumentError, "argument error", fn ->
-      hd([])
+      hd(empty_list())
     end
-
     assert hd([1 | 2]) == 1
   end
 
