@@ -104,19 +104,67 @@ defmodule ExUnit.CaptureIO do
     do_capture_io(map_dev(device), options, fun)
   end
 
+  @doc """
+  Captures IO generated when evaluating `fun` and the result of the evaluation of `fun`.
+
+  Returns a tuple with the binary which is the captured output, and the result of the
+  evaluation of `fun`.
+
+  Behaves exactly as `capture_io` concerning everything else.
+
+  ## Examples
+
+      iex> capture_io_with_result("this is input", fn ->
+      ...>   input = IO.gets ">"
+      ...>   IO.write input
+      ...>   42
+      ...> end) == {">this is input", 42}
+      true
+
+  Also useful to simply ignore the generated output to avoid noise in tests.
+  """
+  def capture_io_with_result(fun) do
+    do_capture_io(:standard_io, [with_result: true], fun)
+  end
+
+  def capture_io_with_result(device, fun) when is_atom(device) do
+    capture_io_with_result(device, [], fun)
+  end
+
+  def capture_io_with_result(input, fun) when is_binary(input) do
+    capture_io_with_result(:standard_io, [input: input], fun)
+  end
+
+  def capture_io_with_result(options, fun) when is_list(options) do
+    capture_io_with_result(:standard_io, options, fun)
+  end
+
+  def capture_io_with_result(device, input, fun) when is_binary(input) do
+    capture_io_with_result(device, [input: input], fun)
+  end
+
+  def capture_io_with_result(device, options, fun) when is_list(options) do
+    do_capture_io(map_dev(device), Keyword.merge(options, with_result: true), fun)
+  end
+
   defp map_dev(:stdio),  do: :standard_io
   defp map_dev(:stderr), do: :standard_error
   defp map_dev(other),   do: other
 
   defp do_capture_io(:standard_io, options, fun) do
     prompt_config = Keyword.get(options, :capture_prompt, true)
+    with_result   = Keyword.get(options, :with_result,    false)
     input = Keyword.get(options, :input, "")
 
     original_gl = Process.group_leader()
     {:ok, capture_gl} = StringIO.open(input, capture_prompt: prompt_config)
     try do
       Process.group_leader(self(), capture_gl)
-      do_capture_io(capture_gl, fun)
+      if with_result do
+        do_capture_io_with_result(capture_gl, fun)
+      else
+        do_capture_io(capture_gl, fun)
+      end
     after
       Process.group_leader(self(), original_gl)
     end
@@ -124,11 +172,16 @@ defmodule ExUnit.CaptureIO do
 
   defp do_capture_io(device, options, fun) do
     input = Keyword.get(options, :input, "")
+    with_result   = Keyword.get(options, :with_result,    false)
     {:ok, string_io} = StringIO.open(input)
     case ExUnit.CaptureServer.device_capture_on(device, string_io) do
       {:ok, ref} ->
         try do
-          do_capture_io(string_io, fun)
+          if with_result do
+            do_capture_io_with_result(string_io, fun)
+          else
+            do_capture_io(string_io, fun)
+          end
         after
           ExUnit.CaptureServer.device_capture_off(ref)
         end
@@ -154,6 +207,21 @@ defmodule ExUnit.CaptureIO do
       :ok ->
         {:ok, output} = StringIO.close(string_io)
         elem(output, 1)
+    end
+  end
+
+  defp do_capture_io_with_result(string_io, fun) do
+    try do
+      {:ok, fun.()}
+    catch
+      kind, reason ->
+        stack = System.stacktrace()
+        _ = StringIO.close(string_io)
+        :erlang.raise(kind, reason, stack)
+    else
+      {:ok, result} ->
+        {:ok, output} = StringIO.close(string_io)
+        {elem(output, 1), result}
     end
   end
 end
