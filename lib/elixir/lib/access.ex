@@ -137,9 +137,23 @@ defmodule Access do
 
   """
 
-  @type t :: list | map | nil | any
+  @type container :: keyword | struct | map
+  @type nil_container :: nil
+  @type any_container :: any
+  @type t :: container | nil_container | any_container
   @type key :: any
   @type value :: any
+
+  @type get_fun(data, get_value) ::
+        (:get, data, (term -> term) ->
+        {get_value, new_data :: container})
+
+  @type get_and_update_fun(data, get_value) ::
+        (:get_and_update, data, (term -> term) ->
+        {get_value, new_data :: container} | :pop)
+
+  @type access_fun(data, get_value) ::
+        get_fun(data, get_value) | get_and_update_fun(data, get_value)
 
   @doc """
   Invoked in order to access the value stored under `key` in the given term `term`.
@@ -185,37 +199,39 @@ defmodule Access do
   @doc """
   Invoked in order to access the value under `key` and update it at the same time.
 
-  The implementation of this callback should invoke the passed function with the
-  value under key `key` in the passed structure, or `nil` if the key is not
-  present. This function should return either `{value_to_return, new_value}` or
-  `:pop`.
+  The implementation of this callback should invoke `fun` with the value under
+  key `key` in the passed structure `data`, or with `nil` if `key` is not present in it.
+  This function must return either `{get_value, update_value}` or `:pop`.
 
-  If the passed function returns `{value_to_return, new_value}`, the return
-  value of this callback should be `{value_to_return, new_term}` where
-  `new_term` is `term` after updating the value of `key` with `new_value`.
+  If the passed function returns `{get_value, update_value}`,
+  the return value of this callback should be `{get_value, new_data}`, where:
+  - `get_value` is the retrieved value (which can be operated on before being returned)
+  - `update_value` is the new value to be stored under `key`
+  - `new_data` is `data` after updating the value of `key` with `update_value`.
 
   If the passed function returns `:pop`, the return value of this callback
-  should be `{value, new_term}` where `value` is the value under `key` or `nil`
-  if not present, and `new_term` is `term` without the key `key`.
+  must be `{value, new_data}` where `value` is the value under `key`
+  (or `nil` if not present) and `new_data` is `data` without the key `key`.
 
   See the implementations of `Map.get_and_update/3` or `Keyword.get_and_update/3`
   for more examples.
   """
-  @callback get_and_update(term :: t, key, (value -> {value, value} | :pop)) :: {value, t}
+  @callback get_and_update(data, key, (value -> {get_value, value} | :pop)) ::
+            {get_value, data} when get_value: var, data: container | any_container
 
   @doc """
-  Invoked to "pop" the value under `key` out of the given term.
+  Invoked to "pop" the value under `key` out of the given data-structure.
 
-  When the key `key` exists in the given `term`, the implementation should
-  return a `{value, new_term}` tuple where `value` is the value that was under
-  `key` and `new_term` is `term` without `key`.
+  When the key `key` exists in the given structure `data`, the implementation should
+  return a `{value, new_data}` tuple where `value` is the value that was under
+  `key` and `new_data` is `term` without `key`.
 
-  When the key `key` is not present in the given `term`, a tuple `{value, term}`
+  When the key `key` is not present in the given structure, a tuple `{value, data}`
   should be returned, where `value` is implementation-defined.
 
   See the implementations for `Map.pop/3` or `Keyword.pop/3` for more examples.
   """
-  @callback pop(term :: t, key) :: {value, t}
+  @callback pop(data, key) :: {value, data} when data: container | any_container
 
   defmacrop raise_undefined_behaviour(e, struct, top) do
     quote do
@@ -238,7 +254,8 @@ defmodule Access do
   Returns `{:ok, value}` where `value` is the value under `key` if there is such
   a key, or `:error` if `key` is not found.
   """
-  @spec fetch(t, term) :: {:ok, term} | :error
+  @spec fetch(container, term) :: {:ok, term} | :error
+  @spec fetch(nil, any) :: :error
   def fetch(container, key)
 
   def fetch(%{__struct__: struct} = container, key) do
@@ -272,7 +289,8 @@ defmodule Access do
   Returns the value under `key` if there is such a key, or `default` if `key` is
   not found.
   """
-  @spec get(t, term, term) :: term
+  @spec get(container, term, term) :: term
+  @spec get(nil, any, default) :: default when default: var
   def get(container, key, default \\ nil) do
     case fetch(container, key) do
       {:ok, value} -> value
@@ -281,21 +299,21 @@ defmodule Access do
   end
 
   @doc """
-  Gets and updates the given key in a container (a map, keyword
-  list, or struct that implements the `Access` behaviour).
+  Gets and updates the given key in a `container` (a map, a keyword list,
+  a struct that implements the `Access` behaviour).
 
   The `fun` argument receives the value of `key` (or `nil` if `key` is not
-  present) and must return a two-element tuple `{get_value, updated_term}`: the
-  "get" value `get_value` (the retrieved value, which can be operated on before
-  being returned) and the new value to be stored under `key`
-  (`updated_term`). `fun` may also return `:pop`, which means the current value
+  present in `container`) and must return a two-element tuple `{get_value, update_value}`:
+  the "get" value `get_value` (the retrieved value, which can be operated on before
+  being returned) and the new value to be stored under `key` (`update_value`).
+  `fun` may also return `:pop`, which means the current value
   should be removed from the container and returned.
 
   The returned value is a two-element tuple with the "get" value returned by
   `fun` and a new container with the updated value under `key`.
   """
-  @spec get_and_update(container :: t, key, (value -> {get_value, update_value} | :pop)) ::
-        {get_value, container :: t} when get_value: var, update_value: value
+  @spec get_and_update(data, key, (value -> {get_value, value} | :pop)) ::
+        {get_value, data} when get_value: var, data: container
   def get_and_update(container, key, fun)
 
   def get_and_update(%{__struct__: struct} = container, key, fun) do
@@ -344,6 +362,7 @@ defmodule Access do
       {nil, %{creator: "Valim", name: "Elixir"}}
 
   """
+  @spec pop(data, key) :: {value, data} when data: container
   def pop(%{__struct__: struct} = container, key) do
     struct.pop(container, key)
   rescue
@@ -405,6 +424,7 @@ defmodule Access do
       ** (BadMapError) expected a map, got: []
 
   """
+  @spec key(key, term) :: access_fun(data :: struct | map, get_value :: term)
   def key(key, default \\ nil) do
     fn
       :get, data, next ->
@@ -446,6 +466,7 @@ defmodule Access do
       ** (RuntimeError) Access.key!/1 expected a map/struct, got: []
 
   """
+  @spec key!(key) :: access_fun(data :: struct | map, get_value :: term)
   def key!(key) do
     fn
       :get, %{} = data, next ->
@@ -467,7 +488,7 @@ defmodule Access do
   The returned function is typically passed as an accessor to `Kernel.get_in/2`,
   `Kernel.get_and_update_in/3`, and friends.
 
-  The returned function raises if the index is out of bounds.
+  The returned function raises if `index` is out of bounds.
 
   ## Examples
 
@@ -487,6 +508,7 @@ defmodule Access do
       ** (RuntimeError) Access.elem/1 expected a tuple, got: %{}
 
   """
+  @spec elem(non_neg_integer) :: access_fun(data :: tuple, get_value :: term)
   def elem(index) when is_integer(index) do
     pos = index + 1
 
@@ -537,6 +559,7 @@ defmodule Access do
       ** (RuntimeError) Access.all/0 expected a list, got: %{}
 
   """
+  @spec all() :: access_fun(data :: list, get_value :: list)
   def all() do
     &all/3
   end
@@ -610,6 +633,7 @@ defmodule Access do
       ** (RuntimeError) Access.at/1 expected a list, got: %{}
 
   """
+  @spec at(non_neg_integer) :: access_fun(data :: list, get_value :: term)
   def at(index) when is_integer(index) and index >= 0 do
     fn(op, data, next) -> at(op, data, index, next) end
   end
