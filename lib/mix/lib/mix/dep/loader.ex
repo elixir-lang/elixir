@@ -327,10 +327,19 @@ defmodule Mix.Dep.Loader do
         %{dep | status: :compile}
       opts_app == false ->
         dep
+      incompatible_requirement?(dep) ->
+        %{dep | status: {:invalidvsn, opts[:lock]}}
       true ->
         path = if is_binary(opts_app), do: opts_app, else: "ebin/#{app}.app"
         path = Path.expand(path, opts[:build])
         %{dep | status: app_status(path, app, req)}
+    end
+  end
+
+  defp incompatible_requirement?(%Mix.Dep{opts: opts}) do
+    case opts[:lock] do
+      {scm, _, _, _} -> is_nil(opts[scm])
+      _ -> false
     end
   end
 
