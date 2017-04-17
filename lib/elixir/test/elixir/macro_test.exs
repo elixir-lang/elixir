@@ -721,4 +721,25 @@ defmodule MacroTest do
     assert Macro.camelize("FOO.BAR") == "FOO.BAR"
     assert Macro.camelize("") == ""
   end
+
+  # underscore
+
+  test "underscore" do
+    assert "&_%_#_àáâ_ãäå_1_2_ç_æ" == Macro.underscore("& % # ÀÁÂ ÃÄÅ 1 2 Ç Æ")
+    assert "text_underscored" == Macro.underscore("text underscored")
+    assert "camel_case_underscored" == Macro.underscore("CamelCaseUnderscored")
+    assert "pascal_case_underscored" == Macro.underscore("pascalCaseUnderscored")
+    assert "atom_underscored" == Macro.underscore(:atomUnderscored)
+    assert "module_underscored" == Macro.underscore(ModuleUnderscored)
+  end
+
+  # camelize
+
+  test "camelize" do
+    assert "TextCamelCased" == Macro.camelize("text camel cased")
+    assert "textCamelCased" == Macro.camelize("text camel cased", :lower)
+    assert "HyphenatedText" == Macro.camelize("hyphenated-text")
+    assert "UnderscoredText" == Macro.camelize("underscored_text")
+    assert "AtomCamelCased" == Macro.camelize(:atom_camel_cased)
+  end
 end

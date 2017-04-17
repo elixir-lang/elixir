@@ -590,6 +590,91 @@ defmodule Macro do
   end
 
   @doc ~S"""
+  Underscore the given value.
+
+  This behavior makes an underscored, lowercase form from a string
+  or atom.
+
+  ## Examples
+
+  iex> Macro.underscore("UpperCamelCase")
+  "upper_camel_case"
+
+  iex> Macro.underscore("pascalCase")
+  "pascal_case"
+
+  iex> Macro.underscore(UpperCamelCase)
+  "upper_camel_case"
+
+  iex> Macro.underscore(:pascalCase)
+  "pascal_case"
+
+  """
+  @spec underscore(Atom.t) :: Atom.t
+  def underscore(atom) when is_atom(atom) do
+    case Atom.to_string(atom) do
+      "Elixir." <> rest -> underscore(rest)
+      word -> underscore(word)
+    end
+  end
+
+  @spec underscore(String.t) :: String.t
+  def underscore(chars) do
+    chars
+      |> String.replace(~r/([A-Z]+)([A-Z][a-z])/, "\\1_\\2")
+      |> String.replace(~r/([a-z\d])([A-Z])/, "\\1_\\2")
+      |> String.replace(~r/-/, "_")
+      |> String.replace(~r/\s/, "_")
+      |> String.downcase
+  end
+
+  @doc ~S"""
+  Camelize the given value.
+
+  This behavior transforms a string, or atom, to a camel
+  cased string. If the `:lower` option is passed in then
+  the string will be returned in pascal case.
+
+  ## Examples
+
+  iex> Macro.camelize("text camel cased")
+  "TextCamelCased"
+
+  iex> Macro.camelize("text pascal cased", :lower)
+  "textPascalCased"
+
+  iex> Macro.camelize("hyphenated-text")
+  "HyphenatedText"
+
+  iex> Macro.camelize(:atom_camel_cased)
+  "AtomCamelCased"
+
+  """
+  def camelize(chars, option \\ :upper)
+
+  @spec camelize(Atom.t, Atom.t) :: String.t
+  def camelize(atom, option) when is_atom(atom) do
+    atom |> Atom.to_string |> camelize(option)
+  end
+
+  @spec camelize(String.t, Atom.t) :: String.t
+  def camelize(chars, option) when is_binary(chars) do
+    chars
+      |> String.split(~r/(?:^|[-_\s])|(?=[A-Z])/)
+      |> camelize_list(option)
+      |> Enum.join
+  end
+
+  defp camelize_list([], _), do: []
+  defp camelize_list([h|tail], option) do
+    word = case option do
+      :upper -> String.capitalize(h)
+      :lower -> String.downcase(h)
+    end
+    [word|camelize_list(tail, :upper)]
+  end
+
+  @doc ~S"""
   Unescapes the given chars according to the map given.
 
   Check `unescape_string/1` if you want to use the same map
