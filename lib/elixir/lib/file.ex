@@ -89,6 +89,9 @@ defmodule File do
   @doc """
   Returns `true` if the path is a regular file.
 
+  This function follows symbolic links, so if a symbolic link points to a
+  regular file, `true` is returned.
+
   ## Examples
 
       File.regular? __ENV__.file #=> true
@@ -101,6 +104,9 @@ defmodule File do
 
   @doc """
   Returns `true` if the given path is a directory.
+
+  This function follows symbolic links, so if a symbolic link points to a
+  directory, `true` is returned.
 
   ## Examples
 
