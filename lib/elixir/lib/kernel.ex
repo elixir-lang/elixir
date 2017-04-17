@@ -1834,7 +1834,7 @@ defmodule Kernel do
       [27, 23]
 
   If the previous value before invoking the function is `nil`,
-  the function *will* receive nil as a value and must handle it
+  the function *will* receive `nil` as a value and must handle it
   accordingly.
   """
   @spec get_in(Access.t, nonempty_list(term)) :: term
@@ -1987,10 +1987,17 @@ defmodule Kernel do
   In case any entry returns `nil`, its key will be removed
   and the deletion will be considered a success.
   """
-  @spec pop_in(Access.t, nonempty_list(term)) :: {term, Access.t}
+  @spec pop_in(data, nonempty_list(Access.get_and_update_fun(term, data) | term)) ::
+        {term, data} when data: Access.container
   def pop_in(data, keys)
-  def pop_in(nil, [key | _]), do: Access.pop(nil, key)
-  def pop_in(data, keys) when is_list(keys), do: pop_in_data(data, keys)
+
+  def pop_in(nil, [key | _]) do
+    raise ArgumentError, "could not pop key #{inspect key} on a nil value"
+  end
+
+  def pop_in(data, keys) when is_list(keys) do
+    pop_in_data(data, keys)
+  end
 
   defp pop_in_data(nil, [_ | _]),
     do: :pop
