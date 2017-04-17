@@ -89,8 +89,8 @@ defmodule File do
   @doc """
   Returns `true` if the path is a regular file.
 
-  This function follows symbolic links, so if the symbolic link points to a
-  regular file, this also returns `true`.
+  This function follows symbolic links, so if a symbolic link points to a
+  regular file, `true` is returned.
 
   ## Examples
 
@@ -105,8 +105,8 @@ defmodule File do
   @doc """
   Returns `true` if the given path is a directory.
 
-  This function follows symbolic links, so if the symbolic link points to a
-  directory, this also returns `true`.
+  This function follows symbolic links, so if a symbolic link points to a
+  directory, `true` is returned.
 
   ## Examples
 
