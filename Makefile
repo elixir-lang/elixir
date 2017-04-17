@@ -182,12 +182,12 @@ docs_logger: compile ../ex_doc/bin/ex_doc
 
 Docs.zip: docs
 	rm -rf Docs-v$(VERSION).zip
-	zip -9 -r Docs-v$(VERSION).zip CHANGELOG.md doc NOTICE LICENSE README.md
+	zip -9 -r Docs-v$(VERSION).zip CHANGELOG.md doc LICENSE.md README.md
 	@ echo "Docs file created $(CURDIR)/Docs-v$(VERSION).zip"
 
 Precompiled.zip: build_man compile
 	rm -rf Precompiled-v$(VERSION).zip
-	zip -9 -r Precompiled-v$(VERSION).zip bin CHANGELOG.md lib/*/ebin LICENSE man NOTICE README.md VERSION
+	zip -9 -r Precompiled-v$(VERSION).zip bin CHANGELOG.md lib/*/ebin LICENSE.md man README.md VERSION
 	@ echo "Precompiled file created $(CURDIR)/Precompiled-v$(VERSION).zip"
 
 zips: Precompiled.zip Docs.zip

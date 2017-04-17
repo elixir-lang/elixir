@@ -149,11 +149,8 @@ the `doc` directory. If you are planning to contribute documentation,
   [6]: http://elixir-lang.org/docs.html
   [7]: CODE_OF_CONDUCT.md
 
-## License
+## Copyright and License
 
-"Elixir" and the Elixir logo are copyright (c) 2012 Plataformatec.
+Copyright (c) 2012, Plataformatec.
 
-Elixir source code is released under Apache 2 License.
-
-Check [NOTICE](NOTICE) and [LICENSE](LICENSE) files for more
-information.
+Elixir source code is licensed under the [Apache 2 License](LICENSE.md).
