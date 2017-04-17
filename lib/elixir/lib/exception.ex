@@ -757,6 +757,24 @@ defmodule KeyError do
   end
 end
 
+defmodule TypeError do
+  defexception key: nil, value: nil, term: nil, expected_type: nil
+  def message(exception) do
+    msg = "value: #{inspect exception.value}"
+    if exception.key != nil do
+      msg = msg <> " for key: #{inspect exception.key}"
+    end
+    if exception.term != nil do
+      msg = msg <> " in: #{inspect exception.term}"
+    end
+    if exception.expected_type != nil do
+      msg <> " is not of type: #{exception.expected_type}"
+    else
+      msg
+    end
+  end
+end
+
 defmodule UnicodeConversionError do
   defexception [:encoded, :message]
 
