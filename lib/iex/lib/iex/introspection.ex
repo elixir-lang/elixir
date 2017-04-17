@@ -23,7 +23,12 @@ defmodule IEx.Introspection do
               puts_error("#{inspect module} was not compiled with docs")
           end
         else
-          puts_error("#{inspect module} is an Erlang module and, as such, it does not have Elixir-style docs")
+          case System.cmd("erl", ["-man", module], stderr_to_stdout: true) do
+            {binary, 0} ->
+              print_doc(inspect(module), binary)
+            _ ->
+              puts_error("Could not find erlang man pages. Please install erlang man pages")
+          end
         end
       {:error, reason} ->
         puts_error("Could not load module #{inspect module}, got: #{reason}")
