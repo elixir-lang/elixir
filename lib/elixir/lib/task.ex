@@ -309,9 +309,14 @@ defmodule Task do
 
     * `:max_concurrency` - sets the maximum number of tasks to run
       at the same time. Defaults to `System.schedulers_online/0`.
-    * `:timeout` - the maximum amount of time to wait (in milliseconds)
-      without receiving a task reply (across all running tasks).
-      Defaults to `5000`.
+    * `:timeout` - the maximum amount of time (in milliseconds) each
+      task is allowed to execute for. Defaults to `5000`.
+    * `:on_timeout` - what do to when a task times out. The possible
+      values are:
+      * `:exit` - the process that spawned the tasks exits.
+      * `:kill_task` - the task that timed out is killed. The value
+        emitted for that task is `{:exit, :killed}`.
+      Defaults to `:exit`.
 
   ## Example
 
