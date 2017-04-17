@@ -1,6 +1,7 @@
 /doc
 /ebin
-/lib/*/ebin/*
+/lib/*/ebin/
+/lib/*/_build/
 /lib/*/tmp
 /lib/elixir/src/*_parser.erl
 /lib/elixir/src/elixir.app.src
