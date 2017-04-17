@@ -137,10 +137,10 @@ defmodule Mix.Local.Installer do
       [] ->
         "Are you sure you want to install #{name} #{inspect src}?"
       [file] ->
-        "Found existing #{name}: #{file}.\n" <>
+        "Found existing #{name}: #{file}\n" <>
         "Are you sure you want to replace it with #{inspect src}?"
       files ->
-        "Found existing #{name}s: #{Enum.map_join(files, ", ", &Path.basename/1)}.\n" <>
+        "Found existing #{name}s: #{Enum.map_join(files, ", ", &Path.basename/1)}\n" <>
         "Are you sure you want to replace them with #{inspect src}?"
     end
     Mix.shell.yes?(message)
