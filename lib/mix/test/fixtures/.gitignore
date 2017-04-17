@@ -1,4 +1,6 @@
-git_repo
-git_sparse_repo
-deps_on_git_repo
-git_rebar
+# Remember to update Makefile "clean_residual_files" target for any modifications
+# made in this file
+/deps_on_git_repo/
+/git_rebar/
+/git_repo/
+/git_sparse_repo/

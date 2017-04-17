@@ -16,7 +16,7 @@ INSTALL_PROGRAM = $(INSTALL) -m755
 GIT_REVISION = $(strip $(shell git rev-parse HEAD 2> /dev/null ))
 GIT_TAG = $(strip $(shell head="$(call GIT_REVISION)"; git tag --points-at $$head 2> /dev/null | tail -1) )
 
-.PHONY: install compile erlang elixir build_plt clean_plt dialyze test clean install_man clean_man docs Docs.zip Precompiled.zip zips
+.PHONY: install compile erlang elixir build_plt clean_plt dialyze test clean clean_residual_files install_man clean_man docs Docs.zip Precompiled.zip zips
 .NOTPARALLEL: compile
 
 #==> Functions
@@ -116,16 +116,24 @@ clean:
 	cd lib/elixir && $(REBAR) clean
 	rm -rf ebin
 	rm -rf lib/*/ebin
-	rm -rf lib/elixir/test/ebin
-	rm -rf lib/*/tmp
-	rm -rf lib/mix/test/fixtures/git_repo
-	rm -rf lib/mix/test/fixtures/deps_on_git_repo
-	rm -rf lib/mix/test/fixtures/git_rebar
 	rm -rf lib/elixir/src/elixir.app.src
-	$(MAKE) clean_man
+	rm -f Docs-v*.zip
+	rm -f Precompiled-v*.zip
+	$(Q) $(MAKE) clean_residual_files
 
 clean_exbeam:
 	$(Q) rm -f lib/*/ebin/Elixir.*.beam
+
+clean_residual_files:
+	rm -rf lib/*/_build/
+	rm -rf lib/*/tmp/
+	rm -rf lib/elixir/test/ebin/
+	rm -rf lib/mix/test/fixtures/deps_on_git_repo/
+	rm -rf lib/mix/test/fixtures/git_rebar/
+	rm -rf lib/mix/test/fixtures/git_repo/
+	rm -rf lib/mix/test/fixtures/git_sparse_repo/
+	rm -f erl_crash.dump
+	$(Q) $(MAKE) clean_man
 
 #==> Documentation tasks
 
@@ -170,7 +178,7 @@ docs_logger: compile ../ex_doc/bin/ex_doc
 	@ echo "ex_doc is not found in ../ex_doc as expected. See README for more information."
 	@ false
 
-#==> Zips
+#==> Zips tasks
 
 Docs.zip: docs
 	rm -rf Docs-v$(VERSION).zip
