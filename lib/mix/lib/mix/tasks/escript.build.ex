@@ -44,11 +44,11 @@ defmodule Mix.Tasks.Escript.Build do
       Defaults to app name. Set it to `nil` if no application should
       be started.
 
-    * `:strip_beam` - if `true` strip BEAM code in the escript to remove chunks
+    * `:strip_beam` - if `true` strips BEAM code in the escript to remove chunks
       unnecessary at runtime, such as debug information and documentation.
       Defaults to `true`.
 
-    * `:embed_elixir` - if `true` embed Elixir and its children apps
+    * `:embed_elixir` - if `true` embeds Elixir and its children apps
       (`ex_unit`, `mix`, etc.) mentioned in the `:applications` list inside the
       `application/0` function in `mix.exs`.
 
@@ -71,7 +71,7 @@ defmodule Mix.Tasks.Escript.Build do
   There is one project-level option that affects how the escript is generated:
 
     * `language: :elixir | :erlang` - set it to `:erlang` for Erlang projects
-      managed by mix. Doing so will ensure Elixir is not embedded by default.
+      managed by Mix. Doing so will ensure Elixir is not embedded by default.
       Your app will still be started as part of escript loading, with the
       config used during build.
 
