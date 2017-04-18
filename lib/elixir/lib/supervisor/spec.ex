@@ -109,7 +109,7 @@ defmodule Supervisor.Spec do
   @type restart :: :permanent | :transient | :temporary
 
   @typedoc "Supported shutdown values"
-  @type shutdown :: :brutal_kill | :infinity | non_neg_integer
+  @type shutdown :: timeout | :brutal_kill
 
   @typedoc "Supported worker values"
   @type worker :: :worker | :supervisor
