@@ -43,7 +43,7 @@ defmodule MacroTest do
   end
 
   test "escape handles bitstring" do
-    assert {:<<>>, [], [{:::, [], [1, 4]}, ","]} == Macro.escape(<<300::12>>)
+    assert {:<<>>, [], [{:::, [], [1, {:size, [], [4]}]}, {:::, [], [",", {:binary, [], []}]}]} == Macro.escape(<<300::12>>)
   end
 
   test "escape works recursively" do

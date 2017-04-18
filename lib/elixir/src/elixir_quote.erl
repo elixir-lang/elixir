@@ -238,7 +238,7 @@ do_quote(BitString, #elixir_quote{escape=true} = Q, _) when is_bitstring(BitStri
       {BitString, Q};
     Size ->
       <<Bits:Size, Bytes/binary>> = BitString,
-      {{'<<>>', [], [{'::', [], [Bits, Size]}, Bytes]}, Q}
+      {{'<<>>', [], [{'::', [], [Bits, {size, [], [Size]}]}, {'::', [], [Bytes, {binary, [], []}]}]}, Q}
   end;
 
 do_quote(Map, #elixir_quote{escape=true} = Q, E) when is_map(Map) ->
