@@ -1725,7 +1725,7 @@ defmodule Kernel do
       user = struct(User, opts)
       #=> %User{name: "meg"}
 
-      struct(user, unknown: "value")
+      struct(User, unknown: "value")
       #=> %User{name: "meg"}
 
       struct(User, %{name: "meg"})
