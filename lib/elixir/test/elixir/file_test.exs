@@ -1200,6 +1200,71 @@ defmodule FileTest do
     end
   end
 
+  defmodule Walk do
+    use Elixir.FileCase
+
+    @tree [
+      da: [
+        a: "content_a",
+        b: "content_b",
+      ],
+      db: [
+        c: "content_c",
+        dc: [
+          d: "content_d",
+        ],
+      ],
+    ]
+
+    test "error" do
+      fixture = fixture_path "non_existent"
+      assert {fixture, nil} == File.walk(fixture, nil, &({&1, &2}))
+    end
+
+    test "walk empty" do
+      fixture = tmp_path
+      assert [fixture] == File.walk(fixture, [], &([&1|&2]))
+    end
+
+    test "walk names" do
+      fixture = tmp_path
+      paths = create_tree(fixture, @tree)
+      assert paths == File.walk(fixture, [], &([&1|&2]))
+    end
+
+    test "walk count" do
+      fixture = tmp_path
+      paths = create_tree(fixture, @tree)
+      assert length(paths) == File.walk(fixture, 0, fn(_, acc) -> acc + 1 end)
+    end
+
+    test "walk" do
+      fixture = tmp_path
+      paths = create_tree(fixture, @tree)
+      count = %{directory: 4, regular: 4}
+      collect = fn(p, {paths, count}) ->
+        {[p|paths], Dict.update(count, File.stat!(p).type, 1, &(&1 + 1))}
+      end
+      assert {paths, count} == File.walk(fixture, {[], %{}}, collect)
+    end
+
+    defp create_tree(root, tree), do: create_tree(root, tree, [root])
+    defp create_tree(root, tree, names) when is_list(tree) do
+      Enum.reduce(tree, names, &(create_tree(root, &1, &2)))
+    end
+    defp create_tree(root, {name, contents}, names) do
+      path = Path.join(root, Atom.to_string(name))
+      if is_list(contents) do
+        File.mkdir!(path)
+        create_tree(path, contents, [path|names])
+      else
+        File.write!(path, contents)
+        [path|names]
+      end
+    end
+
+  end
+
   test "stat" do
     {:ok, info} = File.stat(__ENV__.file)
     assert info.mtime

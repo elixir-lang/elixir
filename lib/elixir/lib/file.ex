@@ -1450,6 +1450,40 @@ defmodule File do
     end
   end
 
+  @doc """
+  Walk the specified path recursively calling `callback` for each item found.
+
+  The `callback` will be called with the full path and the current accumulator.
+
+  The items will include the root path itself. The tree is walked directly as
+  it is visited by the function, leaving no guarantees of what happens if any
+  files or folders are changed while walking. This means you might receive
+  callbacks for paths that no longer exists, possibly with even a valid.
+
+  ## Examples
+
+      File.walk("/test/path", 0, fn(_path, count) -> count + 1 end)
+      #=> 19
+
+      File.walk("/home/user", [], &([&1|&2]))
+      #=> ["/home/user/Docs/todo.txt", "/home/user/Docs", "/home/user/.ssh"]
+
+  """
+  @spec walk(Path.t, any, (Path.t, any -> any)) :: any
+  def walk(path, acc, callback) do
+    acc = callback.(path, acc)
+    if File.dir?(path) do
+      case File.ls(path) do
+        {:ok, files} ->
+          Enum.reduce(files, acc, &(walk(Path.join(path, &1), &2, callback)))
+        other ->
+          acc
+      end
+    else
+      acc
+    end
+  end
+
   ## Helpers
 
   @read_ahead_size 64 * 1024
