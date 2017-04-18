@@ -42,6 +42,7 @@ Explicit enforcement of the Code of Conduct applies to the official mediums oper
 * The official GitHub projects and code reviews.
 * The official elixir-lang mailing lists.
 * The #elixir-lang IRC channel on Freenode.
+* The Elixir Slack community (http://elixir-lang.slack.com)
 
 Other Elixir activities (such as conferences, meetups, and other unofficial forums) are encouraged to adopt this Code of Conduct. Such groups must provide their own contact information.
 
