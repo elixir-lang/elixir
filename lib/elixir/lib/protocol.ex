@@ -179,7 +179,7 @@ defmodule Protocol do
     prefix = Atom.to_charlist(protocol) ++ '.'
     extract_matching_by_attribute paths, prefix, fn
       _mod, attributes ->
-        case attributes[:impl] do
+        case attributes[:protocol_metadata] do
           [protocol: ^protocol, for: for] -> for
           _ -> nil
         end
@@ -569,8 +569,8 @@ defmodule Protocol do
 
         unquote(block)
 
-        Module.register_attribute(__MODULE__, :impl, persist: true)
-        @impl [protocol: @protocol, for: @for]
+        Module.register_attribute(__MODULE__, :protocol_metadata, persist: true)
+        @protocol_metadata [protocol: @protocol, for: @for]
 
         unquote(impl)
       end
@@ -614,8 +614,8 @@ defmodule Protocol do
           apply(mod, fun, args)
         else
           Module.create(Module.concat(protocol, for), quote do
-            Module.register_attribute(__MODULE__, :impl, persist: true)
-            @impl [protocol: unquote(protocol), for: unquote(for)]
+            Module.register_attribute(__MODULE__, :protocol_metadata, persist: true)
+            @protocol_metadata [protocol: unquote(protocol), for: unquote(for)]
 
             @doc false
             @spec __impl__(:target) :: unquote(impl)
