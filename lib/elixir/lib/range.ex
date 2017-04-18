@@ -73,6 +73,50 @@ defmodule Range do
   def range?(term)
   def range?(first..last) when is_integer(first) and is_integer(last), do: true
   def range?(_), do: false
+
+  @doc """
+  Returns a binary which corresponds to the text representation of the given `range`.
+
+  ## Examples
+
+      iex> Range.to_string(12..34)
+      "12..34"
+
+      iex> Range.to_string(-56..78)
+      "-56..78"
+
+  """
+  @spec to_string(t) :: String.t
+  def to_string(range)
+  def to_string(first..first) when is_integer(first) do
+    string = Integer.to_string(first)
+    string <> ".." <> string
+  end
+  def to_string(first..last) when is_integer(first) and is_integer(last) do
+    Integer.to_string(first) <> ".." <> Integer.to_string(last)
+  end
+
+  @doc """
+  Returns a charlist which corresponds to the text representation of the given `range`.
+
+  ## Examples
+
+      iex> Range.to_charlist(12..34)
+      '12..34'
+
+      iex> Range.to_charlist(-56..78)
+      '-56..78'
+
+  """
+  @spec to_charlist(t) :: charlist
+  def to_charlist(range)
+  def to_charlist(first..first) when is_integer(first) do
+    charlist = Integer.to_charlist(first)
+    charlist ++ '..' ++ charlist
+  end
+  def to_charlist(first..last) when is_integer(first) and is_integer(last) do
+    Integer.to_charlist(first) ++ '..' ++ Integer.to_charlist(last)
+  end
 end
 
 defimpl Enumerable, for: Range do
@@ -123,6 +167,11 @@ end
 
 defimpl Inspect, for: Range do
   import Inspect.Algebra
+
+  def inspect(first..first, opts) do
+    doc = to_doc(first, opts)
+    concat [doc, "..", doc]
+  end
 
   def inspect(first..last, opts) do
     concat [to_doc(first, opts), "..", to_doc(last, opts)]

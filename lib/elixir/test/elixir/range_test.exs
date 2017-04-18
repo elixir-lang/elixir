@@ -60,6 +60,17 @@ defmodule RangeTest do
       first..last
       Enum.map(first..last, &(&1))
     end
+  end
 
+  test "to_charlist/1" do
+    assert Range.to_charlist(20..30) == '20..30'
+    assert Range.to_charlist(-20..+30) == '-20..30'
+    assert Range.to_charlist(-20..-20) == '-20..-20'
+  end
+
+  test "to_string/1" do
+    assert Range.to_string(20..30) == "20..30"
+    assert Range.to_string(-20..+30) == "-20..30"
+    assert Range.to_string(-20..-20) == "-20..-20"
   end
 end

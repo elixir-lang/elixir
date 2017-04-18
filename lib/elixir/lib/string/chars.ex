@@ -55,3 +55,9 @@ defimpl String.Chars, for: Float do
     IO.iodata_to_binary(:io_lib_format.fwrite_g(term))
   end
 end
+
+defimpl String.Chars, for: Range do
+  def to_string(thing) do
+    Range.to_string(thing)
+  end
+end

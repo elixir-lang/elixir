@@ -55,3 +55,9 @@ defimpl List.Chars, for: Float do
     :io_lib_format.fwrite_g(term)
   end
 end
+
+defimpl List.Chars, for: Range do
+  def to_charlist(thing) do
+    Range.to_charlist(thing)
+  end
+end

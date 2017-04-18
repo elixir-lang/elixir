@@ -533,4 +533,10 @@ defmodule Inspect.OthersTest do
     assert inspect(~r/hi/, opts) ==
            "\e[31m~r/hi/\e[0m"
   end
+
+  test "range" do
+    assert inspect(1..2) ==  "1..2"
+    assert inspect(-2..-1) ==  "-2..-1"
+    assert inspect(33..33) ==  "33..33"
+  end
 end

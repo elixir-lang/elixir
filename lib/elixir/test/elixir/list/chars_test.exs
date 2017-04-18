@@ -35,3 +35,12 @@ defmodule List.Chars.ListTest do
     assert to_charlist([ 1, "b", 3 ]) == [1, "b", 3]
   end
 end
+
+defmodule List.Chars.RangeTest do
+  use ExUnit.Case, async: true
+
+  test "basic" do
+    assert to_charlist(100..200) == '100..200'
+    assert to_charlist(-100..-100) == '-100..-100'
+  end
+end
