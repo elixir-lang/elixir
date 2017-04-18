@@ -462,6 +462,9 @@ defmodule Macro do
       iex> Macro.decompose_call(quote(do: foo(1, 2, 3)))
       {:foo, [1, 2, 3]}
 
+      iex> Macro.decompose_call(quote(do: foo(a, b, c)))
+      {:foo, [{:a, [], __MODULE__}, {:b, [], __MODULE__}, {:c, [], __MODULE__}]}
+
       iex> Macro.decompose_call(quote(do: Elixir.M.foo(1, 2, 3)))
       {{:__aliases__, [], [:Elixir, :M]}, :foo, [1, 2, 3]}
 
