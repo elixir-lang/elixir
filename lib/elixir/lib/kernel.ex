@@ -4214,6 +4214,21 @@ defmodule Kernel do
   ## Sigils
 
   @doc ~S"""
+  Handles the sigil `~P`.
+
+  It converts a string to a pid.
+
+  ## Examples
+      iex> ~P<0.118.0>
+      #PID<0.118.0>
+
+  """
+  defmacro sigil_P(term, modifiers)
+  defmacro sigil_P({:<<>>, _line, [string]}, []) when is_binary(string) do
+    :erlang.list_to_pid( String.to_char_list("<#{string}>") )
+  end
+
+  @doc ~S"""
   Handles the sigil `~S`.
 
   It simply returns a string without escaping characters and without
