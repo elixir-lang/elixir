@@ -551,6 +551,13 @@ defmodule StreamTest do
     assert Stream.reject(nats, &(rem(&1, 2) == 0)) |> Enum.take(5) == [1, 3, 5, 7, 9]
   end
 
+  test "repeat/1" do
+    stream = Stream.repeat(1)
+    assert Enum.take(stream, 5) == [1, 1, 1, 1, 1]
+    stream = Stream.repeat({1, 2})
+    assert Enum.take(stream, 3) == [{1, 2}, {1, 2}, {1, 2}]
+  end
+
   test "repeatedly/1" do
     stream = Stream.repeatedly(fn -> 1 end)
     assert Enum.take(stream, 5) == [1, 1, 1, 1, 1]
