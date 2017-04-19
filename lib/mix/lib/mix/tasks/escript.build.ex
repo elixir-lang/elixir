@@ -259,13 +259,9 @@ defmodule Mix.Tasks.Escript.Build do
 
   defp strip_beam(beam) when is_binary(beam) do
     {:ok, _, all_chunks} = :beam_lib.all_chunks(beam)
-    ## Filter out abstract code and compile info.
-    filtered_chunks = ['CInf', 'Abst']
+    filtered_chunks = ['CInf', 'Abst', 'Dbgi']
     significant_chunks =
-      Enum.filter(all_chunks,
-                  fn({name, data}) ->
-                    not Enum.member?(filtered_chunks, name)
-                  end)
+      for {name, _} = pair <- all_chunks, name not in filtered_chunks, do: pair
     {:ok, built_module} = :beam_lib.build_module(significant_chunks)
     compress(built_module)
   end
