@@ -270,6 +270,12 @@ defmodule Process do
   end
 
   @doc """
+  Same as `Process.cancel_timer(timer_ref, [])`.
+  """
+  @spec cancel_timer(reference) :: non_neg_integer | false
+  defdelegate cancel_timer(timer_ref), to: :erlang
+
+  @doc """
   Cancels a timer returned by `send_after/3`.
 
   When the result is an integer, it represents the time in milliseconds
@@ -292,19 +298,18 @@ defmodule Process do
     * `:info` - (boolean) whether to return information about the timer being
       cancelled. When the `:async` option is `false` and `:info` is `true`, then
       either an integer or `false` (like described above) is returned. If
-      `:async` is false and `:info` is `false`, `:ok` is returned. If `:async`
+      `:async` is `false` and `:info` is `false`, `:ok` is returned. If `:async`
       is `true` and `:info` is `true`, a message in the form `{:cancel_timer,
       timer_ref, result}` (where `result` is an integer or `false` like
       described above) is sent to the caller of this function when the
       cancellation has been performed. If `:async` is `true` and `:info` is
-      `false`, no message is sent.
+      `false`, no message is sent. Defaults to `true`.
 
   Inlined by the compiler.
   """
-  @spec cancel_timer(reference, []) :: non_neg_integer | false
-  @spec cancel_timer(reference, nonempty_list(option)) :: non_neg_integer | false | :ok
-        when option: {:async, boolean} | {:info, boolean}
-  defdelegate cancel_timer(timer_ref, options \\ []), to: :erlang
+  @spec cancel_timer(reference, options) :: non_neg_integer | false | :ok
+        when options: [async: boolean, info: boolean]
+  defdelegate cancel_timer(timer_ref, options), to: :erlang
 
   @doc """
   Reads a timer created by `send_after/3`.
