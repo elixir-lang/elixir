@@ -394,8 +394,8 @@ defmodule MacroTest do
 
   test "nested to string" do
     assert Macro.to_string(quote do: (defmodule Foo do def foo do 1 + 1 end end)) <> "\n" == """
-    defmodule(Foo) do
-      def(foo) do
+    defmodule Foo do
+      def foo do
         1 + 1
       end
     end

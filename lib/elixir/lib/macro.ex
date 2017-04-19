@@ -965,6 +965,13 @@ defmodule Macro do
   defp call_to_string(other, fun),
     do: to_string(other, fun)
 
+  # Omit parenthesis for some macros for more idiomatic output
+  defp call_to_string_with_args(target, args, fun) when target in [:defmodule, :def, :defp] do
+    target = call_to_string(target, fun)
+    args = args_to_string(args, fun)
+    target <> " " <> args
+  end
+
   defp call_to_string_with_args(target, args, fun) do
     target = call_to_string(target, fun)
     args = args_to_string(args, fun)
