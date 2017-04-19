@@ -77,13 +77,18 @@ defmodule ProcessTest do
   test "send_after/3 returns a timer reference that can be read or cancelled" do
     timer = Process.send_after(self(), :hello, 100_000)
     refute_received :hello
-    assert is_integer Process.read_timer(timer)
-    assert is_integer Process.cancel_timer(timer)
+    assert is_integer(Process.read_timer(timer))
+    assert is_integer(Process.cancel_timer(timer))
 
     timer = Process.send_after(self(), :hello, 0)
     assert_receive :hello
     assert Process.read_timer(timer) == false
     assert Process.cancel_timer(timer) == false
+
+    timer = Process.send_after(self(), :hello, 100_000)
+    assert Process.cancel_timer(timer, async: true, info: true)
+    assert_receive {:cancel_timer, ^timer, result}
+    assert is_integer(result)
   end
 
   test "exit(pid, :normal) does not cause the target process to exit" do
