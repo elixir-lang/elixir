@@ -45,8 +45,7 @@ defmodule Mix.Tasks.Escript.Build do
       be started.
 
     * `:strip_beam` - if `true` strip BEAM code in the escript to remove chunks
-      unnecessary at runtime, such as debug information, documentation and
-      module attributes.
+      unnecessary at runtime, such as debug information and documentation.
       Defaults to `true`.
 
     * `:embed_elixir` - if `true` embed Elixir and its children apps
@@ -259,27 +258,16 @@ defmodule Mix.Tasks.Escript.Build do
   end
 
   defp strip_beam(beam) when is_binary(beam) do
-    ## Preserve attributes chunk
-    attr_chunks = case :beam_lib.chunks(beam, ['Attr']) do
-      {:ok, {_, attrs}} -> attrs
-      {:error, :beam_lib, {:missing_chunk, _, _}} -> nil
-    end
-
-    ## We don't want to manually select chunk list to keep
-    ## this function behaviour close to standard erlang's.
-    ## So we build module twice: first to strip chunks,
-    ## and then to add attributes.
-    {:ok, {_, stripped_beam}} = :beam_lib.strip(beam)
-
-    case attr_chunks do
-      nil -> stripped_beam
-      _   ->
-        ## Get stripped chunks
-        {:ok, _, all_chunks} = :beam_lib.all_chunks(stripped_beam)
-        ## Add attrs chunks and rebuild a module
-        {:ok, built_module} = :beam_lib.build_module(all_chunks ++ attr_chunks)
-        compress(built_module)
-    end
+    {:ok, _, all_chunks} = :beam_lib.all_chunks(beam)
+    ## Filter out abstract code and compile info.
+    filtered_chunks = ['CInf', 'Abst']
+    significant_chunks =
+      Enum.filter(all_chunks,
+                  fn({name, data}) ->
+                    not Enum.member?(filtered_chunks, name)
+                  end)
+    {:ok, built_module} = :beam_lib.build_module(significant_chunks)
+    compress(built_module)
   end
 
   defp compress(binary0) do
