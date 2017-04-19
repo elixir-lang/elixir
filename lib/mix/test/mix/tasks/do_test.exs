@@ -5,7 +5,9 @@ defmodule Mix.Tasks.DoTest do
 
   test "runs given tasks", context do
     in_tmp context.test, fn ->
-      Mix.Tasks.Do.run ["compile", "--list,", "help"]
+      Mix.Tasks.Do.run ["compile", "--list,", "help,", "help"]
+      # Allow running a task multiple times within one "do"
+      assert_received {:mix_shell, :info, ["mix help" <> _]}
       assert_received {:mix_shell, :info, ["mix help" <> _]}
       assert_received {:mix_shell, :info, ["mix compile.app" <> _]}
     end
