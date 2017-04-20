@@ -151,10 +151,6 @@ defmodule MacroTest do
       assert Macro.expand_once(quote(do: Foo.bar.Baz), __ENV__) == quote(do: Foo.bar.Baz)
     end
 
-    test "with Erlang" do
-      assert Macro.expand_once(quote(do: :foo), __ENV__) == :foo
-    end
-
     test "env" do
       env = %{__ENV__ | line: 0}
       assert Macro.expand_once(quote(do: __ENV__), env) == {:%{}, [], Map.to_list(env)}
