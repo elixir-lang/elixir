@@ -129,7 +129,7 @@ defmodule EEx.Engine do
   def handle_expr(buffer, "=", expr) do
     quote do
       tmp1 = unquote(buffer)
-      tmp1 <> String.Chars.to_string(unquote(expr))
+      tmp1 <> to_string(unquote(expr))
     end
   end
 
