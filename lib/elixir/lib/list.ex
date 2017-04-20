@@ -418,6 +418,39 @@ defmodule List do
   end
 
   @doc """
+  Traverses nested lists, removing uneccesary wrapper lists.
+
+  ## Examples
+
+      iex> List.unwrap([[[]]])
+      []
+
+      iex> List.unwrap([[1]])
+      [1]
+      
+      iex> List.unwrap([[1, [[2]], 3]])
+      [1, [2], 3]
+
+      iex> List.unwrap([[1], [[2]], [3, [4], [[5]], [[]], 6]])
+      [[1], [2], [3, [4], [5], [], 6]]
+
+  """
+  @spec unwrap(list) :: list
+  def unwrap(list) when is_list(list) do
+    do_unwrap list
+  end
+  
+  defp do_unwrap([list | []]) when is_list(list) do
+    do_unwrap list
+  end
+  
+  defp do_unwrap(list) when is_list(list) do
+    Enum.map(list, &do_unwrap/1)
+  end
+
+  defp do_unwrap(other), do: other
+
+  @doc """
   Zips corresponding elements from each list in `list_of_lists`.
 
   The zipping finishes as soon as any list terminates.
