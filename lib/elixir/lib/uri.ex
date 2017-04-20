@@ -83,25 +83,38 @@ defmodule URI do
       iex> URI.encode_query(query)
       "key=value+with+spaces"
 
-      iex> URI.encode_query %{key: [:a, :list]}
-      ** (ArgumentError) encode_query/1 values cannot be lists, got: [:a, :list]
+      iex> query = %{foo: ["bar", "baz"]}
+      iex> URI.encode_query(query)
+      "foo%5B%5D=bar&foo%5B%5D=baz"
+
+      iex> query = %{"user" => %{"name" => "John Doe", "email" => "test@example.com"}}
+      iex> URI.encode_query(query)
+      "user%5Bemail%5D=test%40example.com&user%5Bname%5D=John+Doe"
 
   """
   @spec encode_query(term) :: binary
   def encode_query(enumerable) do
-    Enum.map_join(enumerable, "&", &encode_kv_pair/1)
+    Enum.map_join(enumerable, "&", fn (pair) -> encode_kv_pair("", pair, false) end)
   end
 
-  defp encode_kv_pair({key, _}) when is_list(key) do
+  defp encode_kv_pair(_, {key, _}, _) when is_list(key) do
     raise ArgumentError, "encode_query/1 keys cannot be lists, got: #{inspect key}"
   end
-
-  defp encode_kv_pair({_, value}) when is_list(value) do
-    raise ArgumentError, "encode_query/1 values cannot be lists, got: #{inspect value}"
+  defp encode_kv_pair(prefix, {key, value}, _) when is_map(value) do
+    encode_kv_pair(prefix, {key, Map.to_list(value)}, false)
   end
-
-  defp encode_kv_pair({key, value}) do
-    encode_www_form(Kernel.to_string(key)) <>
+  defp encode_kv_pair(prefix, {key, values}, _) when is_list(values) do
+    Enum.map_join(values, "&", fn (value) -> encode_kv_pair(prefix, {key, value}, true) end)
+  end
+  defp encode_kv_pair(prefix, {key, {nested_key, value}}, _) do
+    encode_kv_pair(prefix <> encode_www_form(Kernel.to_string(key)), {"[" <> encode_www_form(Kernel.to_string(nested_key)) <> "]", value}, false)
+  end
+  defp encode_kv_pair(prefix, {key, value}, true) do
+    prefix <> encode_www_form(Kernel.to_string(key)) <>
+      "%5B%5D=" <> encode_www_form(Kernel.to_string(value))
+  end
+  defp encode_kv_pair(prefix, {key, value}, _) do
+    prefix <> encode_www_form(Kernel.to_string(key)) <>
       "=" <> encode_www_form(Kernel.to_string(value))
   end
 
