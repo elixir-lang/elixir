@@ -517,7 +517,7 @@ defmodule Kernel do
 
   @doc """
   Returns the biggest of the two given terms according to
-  Erlang's term ordering. If the terms compare equal, the
+  [Erlang's term ordering](http://erlang.org/doc/reference_manual/expressions.html#id81064). If the terms compare equal, the
   first one is returned.
 
   Inlined by the compiler.
@@ -537,7 +537,7 @@ defmodule Kernel do
 
   @doc """
   Returns the smallest of the two given terms according to
-  Erlang's term ordering. If the terms compare equal, the
+  [Erlang's term ordering](http://erlang.org/doc/reference_manual/expressions.html#id81064). If the terms compare equal, the
   first one is returned.
 
   Inlined by the compiler.

@@ -1331,7 +1331,7 @@ defmodule Enum do
 
   @doc """
   Returns the maximal element in the enumerable according
-  to Erlang's term ordering.
+  to [Erlang's term ordering](http://erlang.org/doc/reference_manual/expressions.html#id81064).
 
   If multiple elements are considered maximal, the first one that was found
   is returned.
@@ -1427,7 +1427,7 @@ defmodule Enum do
 
   @doc """
   Returns the minimal element in the enumerable according
-  to Erlang's term ordering.
+  to [Erlang's term ordering](http://erlang.org/doc/reference_manual/expressions.html#id81064).
 
   If multiple elements are considered minimal, the first one that was found
   is returned.
@@ -1485,7 +1485,7 @@ defmodule Enum do
 
   @doc """
   Returns a tuple with the minimal and the maximal elements in the
-  enumerable according to Erlang's term ordering.
+  enumerable according to [Erlang's term ordering](http://erlang.org/doc/reference_manual/expressions.html#id81064).
 
   If multiple elements are considered maximal or minimal, the first one
   that was found is returned.
@@ -2121,7 +2121,7 @@ defmodule Enum do
   end
 
   @doc """
-  Sorts the enumerable according to Erlang's term ordering.
+  Sorts the enumerable according to [Erlang's term ordering](http://erlang.org/doc/reference_manual/expressions.html#id81064).
 
   Uses the merge sort algorithm.
 
