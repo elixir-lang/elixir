@@ -34,9 +34,13 @@ defmodule Mix.Tasks.Archive.Install do
 
       mix some_task
 
+  Note that installing via git/github/hex fetches the source of the archive
+  and builds it, while using URL/local path fetches a pre-built archive.
+
   ## Command line options
 
-    * `--sha512` - checks the archive matches the given SHA-512 checksum
+    * `--sha512` - checks the archive matches the given SHA-512 checksum. Only
+      applies to installations via URL or local path.
 
     * `--force` - forces installation without a shell prompt; primarily
       intended for automation in build systems like `make`
