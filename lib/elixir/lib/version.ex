@@ -221,7 +221,7 @@ defmodule Version do
       ** (Version.InvalidVersionError) invalid version: "invalid"
 
   """
-  @spec compare(version, version) :: :gt | :eq | :lt
+  @spec compare(version, version) :: :lt | :eq | :gt
   def compare(version1, version2) do
     do_compare(to_matchable(version1, true), to_matchable(version2, true))
   end
