@@ -331,10 +331,10 @@ data_path = Path.join(__DIR__, "UnicodeData.txt")
 
 {codes, non_breakable, decompositions, combining_classes} =
   Enum.reduce File.stream!(data_path), {[], [], %{}, %{}}, fn line, {cacc, wacc, dacc, kacc} ->
-    [codepoint, _name, _category,
-     class, _bidi, decomposition,
-     _numeric_1, _numeric_2, _numeric_3,
-     _bidi_mirror, _unicode_1, _iso,
+    [codepoint, _name, _general_category,
+     canonical_combining_class, _bidi_class, decomposition,
+     _numeric_value_1, _numeric_value_2, _numeric_value_3,
+     _bidi_mirrored, _unicode_1_name, _iso_comment,
      upper, lower, title] = :binary.split(line, ";", [:global])
 
     title = :binary.part(title, 0, byte_size(title) - 1)
@@ -365,7 +365,7 @@ data_path = Path.join(__DIR__, "UnicodeData.txt")
       end
 
     kacc =
-      case Integer.parse(class) do
+      case Integer.parse(canonical_combining_class) do
         {0, ""} -> kacc
         {n, ""} -> Map.put(kacc, String.to_integer(codepoint, 16), n)
       end
