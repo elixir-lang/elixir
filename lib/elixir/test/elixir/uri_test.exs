@@ -22,9 +22,16 @@ defmodule URITest do
     assert URI.encode_query([{"foo", "bar"}, {"baz", "quux"}]) == "foo=bar&baz=quux"
     assert URI.encode_query([{"foo z", :bar}]) == "foo+z=bar"
 
-    assert_raise ArgumentError, fn ->
-      URI.encode_query([{"foo", 'bar'}])
-    end
+    assert URI.encode_query([{:foo, [{:bar, :baz}]}]) == "foo%5Bbar%5D=baz"
+    assert URI.encode_query([{"foo", [{"bar", "baz"}, {"baz", "quux"}]}]) == "foo%5Bbar%5D=bazfoo%5Bbaz%5D=quux"
+    assert URI.encode_query([{"foo", [{"bar", "baz"}, {"bar", "quux"}]}]) == "foo%5Bbar%5D=bazfoo%5Bbar%5D=quux"
+    assert URI.encode_query([{"foo z", [{:bar, :baz}]}]) == "foo+z%5Bbar%5D=baz"
+    assert URI.encode_query([{:foo, [{:bar, [{:baz, :qux}]}]}]) == "foo%5Bbar%5D%5Bbaz%5D=qux"
+
+    assert URI.encode_query([{:foo, [:bar]}]) == "foo%5B%5D=bar"
+    assert URI.encode_query([{:foo, [:bar, :baz]}]) == "foo%5B%5D=bar&foo%5B%5D=baz"
+    assert URI.encode_query([{:foo, [{:bar, [:baz, :qux]}]}])  == "foo%5Bbar%5D%5B%5D=baz&foo%5Bbar%5D%5B%5D=qux"
+    assert URI.encode_query([{:foo, [{:bar, [{:baz, [:qux, :quux]}]}]}])  == "foo%5Bbar%5D%5Bbaz%5D%5B%5D=qux&foo%5Bbar%5D%5Bbaz%5D%5B%5D=quux"
 
     assert_raise ArgumentError, fn ->
       URI.encode_query([{'foo', "bar"}])

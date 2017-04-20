@@ -83,8 +83,9 @@ defmodule URI do
       iex> URI.encode_query(query)
       "key=value+with+spaces"
 
-      iex> URI.encode_query %{key: [:a, :list]}
-      ** (ArgumentError) encode_query/1 values cannot be lists, got: [:a, :list]
+      iex> query = %{"filter" => %{"status" => ["draft", "published"]}}
+      iex> URI.encode_query(query)
+      "filter%5Bstatus%5D%5B%5D=draft&filter%5Bstatus%5D%5B%5D=published"
 
   """
   @spec encode_query(term) :: binary
@@ -96,8 +97,18 @@ defmodule URI do
     raise ArgumentError, "encode_query/1 keys cannot be lists, got: #{inspect key}"
   end
 
-  defp encode_kv_pair({_, value}) when is_list(value) do
-    raise ArgumentError, "encode_query/1 values cannot be lists, got: #{inspect value}"
+  defp encode_kv_pair({key, value}) when is_map(value) or is_list(value) do
+    Enum.reduce(value, "", fn
+      {k, v}, acc ->
+        k = Kernel.to_string(key) <> "[" <> Kernel.to_string(k) <> "]"
+        acc <> encode_kv_pair({k, v})
+      v, "" ->
+        k = Kernel.to_string(key) <> "[]"
+        encode_kv_pair({k, v})
+      v, acc ->
+        k = Kernel.to_string(key) <> "[]"
+        acc <> "&" <> encode_kv_pair({k, v})
+    end)
   end
 
   defp encode_kv_pair({key, value}) do
