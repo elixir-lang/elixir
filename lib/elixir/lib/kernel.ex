@@ -517,8 +517,9 @@ defmodule Kernel do
 
   @doc """
   Returns the biggest of the two given terms according to
-  Erlang's term ordering. If the terms compare equal, the
-  first one is returned.
+  Erlang's term ordering.
+
+  If the terms compare equal, the first one is returned.
 
   Inlined by the compiler.
 
@@ -537,8 +538,9 @@ defmodule Kernel do
 
   @doc """
   Returns the smallest of the two given terms according to
-  Erlang's term ordering. If the terms compare equal, the
-  first one is returned.
+  Erlang's term ordering.
+
+  If the terms compare equal, the first one is returned.
 
   Inlined by the compiler.
 
@@ -643,9 +645,9 @@ defmodule Kernel do
       :hello
 
   """
-  @spec send(dest :: pid | port | atom | {atom, node}, msg) :: msg when msg: any
-  def send(dest, msg) do
-    :erlang.send(dest, msg)
+  @spec send(dest :: pid | port | atom | {atom, node}, message) :: message when message: any
+  def send(dest, message) do
+    :erlang.send(dest, message)
   end
 
   @doc """
@@ -1097,8 +1099,8 @@ defmodule Kernel do
   """
   @spec not(true) :: false
   @spec not(false) :: true
-  def not(arg) do
-    :erlang.not(arg)
+  def not(value) do
+    :erlang.not(value)
   end
 
   @doc """
@@ -1376,20 +1378,20 @@ defmodule Kernel do
       true
 
   """
-  defmacro !(arg)
+  defmacro !(value)
 
-  defmacro !({:!, _, [arg]}) do
+  defmacro !({:!, _, [value]}) do
     optimize_boolean(quote do
-      case unquote(arg) do
+      case unquote(value) do
         x when x in [false, nil] -> false
         _ -> true
       end
     end)
   end
 
-  defmacro !(arg) do
+  defmacro !(value) do
     optimize_boolean(quote do
-      case unquote(arg) do
+      case unquote(value) do
         x when x in [false, nil] -> true
         _ -> false
       end
@@ -1465,22 +1467,22 @@ defmodule Kernel do
       end
 
   """
-  defmacro raise(msg) do
+  defmacro raise(message) do
     # Try to figure out the type at compilation time
     # to avoid dead code and make Dialyzer happy.
-    msg = case not is_binary(msg) and bootstrapped?(Macro) do
-      true  -> Macro.expand(msg, __CALLER__)
-      false -> msg
+    message = case not is_binary(message) and bootstrapped?(Macro) do
+      true  -> Macro.expand(message, __CALLER__)
+      false -> message
     end
 
-    case msg do
-      msg when is_binary(msg) ->
+    case message do
+      message when is_binary(message) ->
         quote do
-          :erlang.error RuntimeError.exception(unquote(msg))
+          :erlang.error RuntimeError.exception(unquote(message))
         end
-      {:<<>>, _, _} = msg ->
+      {:<<>>, _, _} = message ->
         quote do
-          :erlang.error RuntimeError.exception(unquote(msg))
+          :erlang.error RuntimeError.exception(unquote(message))
         end
       alias when is_atom(alias) ->
         quote do
@@ -1488,7 +1490,7 @@ defmodule Kernel do
         end
       _ ->
         quote do
-          :erlang.error Kernel.Utils.raise(unquote(msg))
+          :erlang.error Kernel.Utils.raise(unquote(message))
         end
     end
   end
@@ -1510,9 +1512,9 @@ defmodule Kernel do
       ** (ArgumentError) Sample
 
   """
-  defmacro raise(exception, attrs) do
+  defmacro raise(exception, attributes) do
     quote do
-      :erlang.error unquote(exception).exception(unquote(attrs))
+      :erlang.error unquote(exception).exception(unquote(attributes))
     end
   end
 
@@ -1540,29 +1542,29 @@ defmodule Kernel do
           end
       end
   """
-  defmacro reraise(msg, stacktrace) do
+  defmacro reraise(message, stacktrace) do
     # Try to figure out the type at compilation time
     # to avoid dead code and make Dialyzer happy.
 
-    case Macro.expand(msg, __CALLER__) do
-      msg when is_binary(msg) ->
+    case Macro.expand(message, __CALLER__) do
+      message when is_binary(message) ->
         quote do
-          :erlang.raise :error, RuntimeError.exception(unquote(msg)), unquote(stacktrace)
+          :erlang.raise :error, RuntimeError.exception(unquote(message)), unquote(stacktrace)
         end
-      {:<<>>, _, _} = msg ->
+      {:<<>>, _, _} = message ->
         quote do
-          :erlang.raise :error, RuntimeError.exception(unquote(msg)), unquote(stacktrace)
+          :erlang.raise :error, RuntimeError.exception(unquote(message)), unquote(stacktrace)
         end
       alias when is_atom(alias) ->
         quote do
           :erlang.raise :error, unquote(alias).exception([]), unquote(stacktrace)
         end
-      msg ->
+      message ->
         quote do
           stacktrace = unquote(stacktrace)
-          case unquote(msg) do
-            msg when is_binary(msg) ->
-              :erlang.raise :error, RuntimeError.exception(msg), stacktrace
+          case unquote(message) do
+            message when is_binary(message) ->
+              :erlang.raise :error, RuntimeError.exception(message), stacktrace
             atom when is_atom(atom) ->
               :erlang.raise :error, atom.exception([]), stacktrace
             %{__struct__: struct, __exception__: true} = other when is_atom(struct) ->
@@ -1590,10 +1592,11 @@ defmodule Kernel do
           stacktrace = System.stacktrace
           reraise WrapperError, [exception: exception], stacktrace
       end
+
   """
-  defmacro reraise(exception, attrs, stacktrace) do
+  defmacro reraise(exception, attributes, stacktrace) do
     quote do
-      :erlang.raise :error, unquote(exception).exception(unquote(attrs)), unquote(stacktrace)
+      :erlang.raise :error, unquote(exception).exception(unquote(attributes)), unquote(stacktrace)
     end
   end
 
@@ -1685,14 +1688,14 @@ defmodule Kernel do
 
   """
   @spec inspect(Inspect.t, Keyword.t) :: String.t
-  def inspect(arg, opts \\ []) when is_list(opts) do
-    opts  = struct(Inspect.Opts, opts)
+  def inspect(term, opts \\ []) when is_list(opts) do
+    opts = struct(Inspect.Opts, opts)
     limit = case opts.pretty do
       true  -> opts.width
       false -> :infinity
     end
     IO.iodata_to_binary(
-      Inspect.Algebra.format(Inspect.Algebra.to_doc(arg, opts), limit)
+      Inspect.Algebra.format(Inspect.Algebra.to_doc(term, opts), limit)
     )
   end
 
@@ -1737,8 +1740,8 @@ defmodule Kernel do
 
   """
   @spec struct(module | struct, Enum.t) :: struct
-  def struct(struct, kv \\ []) do
-    struct(struct, kv, fn({key, val}, acc) ->
+  def struct(struct, fields \\ []) do
+    struct(struct, fields, fn {key, val}, acc ->
       case Map.has_key?(acc, key) and key != :__struct__ do
         true  -> Map.put(acc, key, val)
         false -> acc
@@ -1766,14 +1769,14 @@ defmodule Kernel do
 
   """
   @spec struct!(module | struct, Enum.t) :: struct | no_return
-  def struct!(struct, kv \\ [])
+  def struct!(struct, fields \\ [])
 
-  def struct!(struct, kv) when is_atom(struct) do
-    struct.__struct__(kv)
+  def struct!(struct, fields) when is_atom(struct) do
+    struct.__struct__(fields)
   end
 
-  def struct!(struct, kv) when is_map(struct) do
-    struct(struct, kv, fn
+  def struct!(struct, fields) when is_map(struct) do
+    struct(struct, fields, fn
       {:__struct__, _}, acc -> acc
       {key, val}, acc ->
         Map.replace!(acc, key, val)
@@ -1784,16 +1787,16 @@ defmodule Kernel do
     struct.__struct__()
   end
 
-  defp struct(struct, kv, fun) when is_atom(struct) do
-    struct(struct.__struct__(), kv, fun)
+  defp struct(struct, fields, fun) when is_atom(struct) do
+    struct(struct.__struct__(), fields, fun)
   end
 
   defp struct(%{__struct__: _} = struct, [], _fun) do
     struct
   end
 
-  defp struct(%{__struct__: _} = struct, kv, fun) do
-    Enum.reduce(kv, struct, fun)
+  defp struct(%{__struct__: _} = struct, fields, fun) do
+    Enum.reduce(fields, struct, fun)
   end
 
   @doc """
@@ -2292,12 +2295,12 @@ defmodule Kernel do
       "foo"
 
   """
-  defmacro to_string(arg) do
-    quote do: String.Chars.to_string(unquote(arg))
+  defmacro to_string(term) do
+    quote do: String.Chars.to_string(unquote(term))
   end
 
   @doc """
-  Converts the argument to a charlist according to the `List.Chars` protocol.
+  Converts the given term to a charlist according to the `List.Chars` protocol.
 
   ## Examples
 
@@ -2305,8 +2308,8 @@ defmodule Kernel do
       'foo'
 
   """
-  defmacro to_charlist(arg) do
-    quote do: List.Chars.to_charlist(unquote(arg))
+  defmacro to_charlist(term) do
+    quote do: List.Chars.to_charlist(unquote(term))
   end
 
   @doc """
