@@ -26,6 +26,9 @@ defmodule AccessTest do
     assert_raise ArgumentError, "could not put/update key :foo on a nil value", fn ->
       Access.get_and_update(nil, :foo, fn nil -> {:ok, :bar} end)
     end
+
+    assert Access.key(:key).(:get_and_update, nil, fn _ -> {nil, 1} end) == {nil, %{key: 1}}
+    assert Access.key(:key).(:get_and_update, nil, fn _ -> :pop end) == {nil, %{}}
   end
 
   test "for keywords" do

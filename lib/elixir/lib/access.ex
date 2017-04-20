@@ -432,8 +432,8 @@ defmodule Access do
       :get_and_update, data, next ->
         value = Map.get(data, key, default)
         case next.(value) do
-          {get, update} -> {get, Map.put(data, key, update)}
-          :pop -> {value, Map.delete(data, key)}
+          {get, update} -> {get, Map.put(to_map(data), key, update)}
+          :pop -> {value, Map.delete(to_map(data), key)}
         end
     end
   end
