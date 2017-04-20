@@ -861,6 +861,43 @@ defmodule Module do
     end, tuples)
   end
 
+  @spec make_overridable(module, module) :: :ok
+  def make_overridable(module, behaviour) when is_atom(module) and is_atom(behaviour) do
+    case check_module_for_overridable(module, behaviour) do
+      :ok -> :ok
+      {:error, error_explanation} ->
+        raise ArgumentError, "cannot pass module #{inspect(behaviour)} as argument to defoverridable/1 because #{error_explanation}"
+    end
+
+    behaviour_callbacks = for callback <- behaviour.behaviour_info(:callbacks),
+                          do: normalize_macro_or_function_callback(callback)
+
+    tuples = for function_tuple <- definitions_in(module),
+                 function_tuple in behaviour_callbacks,
+                 do: function_tuple
+
+    make_overridable(module, tuples)
+  end
+
+  defp check_module_for_overridable(module, behaviour) do
+    behaviour_definitions = :ets.lookup_element(data_table_for(module), :behaviour, 2)
+
+    cond do
+      not Code.ensure_compiled?(behaviour) -> {:error, "it was not defined"}
+      not function_exported?(behaviour, :behaviour_info, 1) -> {:error, "it does not define any callbacks"}
+      behaviour not in behaviour_definitions -> {:error, "its corresponding behaviour is missing. Did you forget to add @behaviour #{inspect(behaviour)} ?"}
+      true -> :ok
+    end
+  end
+
+  defp normalize_macro_or_function_callback({function_name, arity}) do
+    case :erlang.atom_to_list(function_name) do
+      # Macros are always provided one extra argument in behaviour_info
+      'MACRO-' ++ tail -> {:erlang.list_to_atom(tail), arity - 1}
+      _ -> {function_name, arity}
+    end
+  end
+
   @doc """
   Returns `true` if `tuple` in `module` is marked as overridable.
   """
