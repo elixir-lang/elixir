@@ -120,6 +120,7 @@ inline(?node, spawn_link, 4) -> {erlang, spawn_link};
 
 inline(?process, 'alive?', 1) -> {erlang, is_process_alive};
 inline(?process, cancel_timer, 1) -> {erlang, cancel_timer};
+inline(?process, cancel_timer, 2) -> {erlang, cancel_timer};
 inline(?process, exit, 2) -> {erlang, exit};
 inline(?process, get, 0) -> {erlang, get};
 inline(?process, get_keys, 0) -> {erlang, get_keys};
