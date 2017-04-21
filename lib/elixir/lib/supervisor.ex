@@ -259,7 +259,7 @@ defmodule Supervisor do
   @typedoc "Option values used by the `start*` functions"
   @type option :: {:name, name} | {:strategy, Supervisor.Spec.strategy} |
                   {:max_restarts, non_neg_integer} |
-                  {:max_seconds, non_neg_integer}
+                  {:max_seconds, pos_integer}
 
   @typedoc "Options used by the `start*` functions"
   @type options :: [option, ...]
