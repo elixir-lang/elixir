@@ -270,12 +270,6 @@ defmodule Process do
   end
 
   @doc """
-  Same as `Process.cancel_timer(timer_ref, [])`.
-  """
-  @spec cancel_timer(reference) :: non_neg_integer | false
-  defdelegate cancel_timer(timer_ref), to: :erlang
-
-  @doc """
   Cancels a timer returned by `send_after/3`.
 
   When the result is an integer, it represents the time in milliseconds
@@ -309,7 +303,7 @@ defmodule Process do
   """
   @spec cancel_timer(reference, options) :: non_neg_integer | false | :ok
         when options: [async: boolean, info: boolean]
-  defdelegate cancel_timer(timer_ref, options), to: :erlang
+  defdelegate cancel_timer(timer_ref, options \\ []), to: :erlang
 
   @doc """
   Reads a timer created by `send_after/3`.
