@@ -17,6 +17,10 @@ defmodule Task.Supervisor do
   `GenServer`. Read more about them in the `GenServer` docs.
   """
 
+  @typedoc "Option values used by `start_link`"
+  @type option :: Supervisor.option | {:restart, Supervisor.Spec.restart} |
+                  {:shutdown, Supervisor.Spec.shutdown}
+
   @doc """
   Starts a new supervisor.
 
@@ -37,7 +41,7 @@ defmodule Task.Supervisor do
   * `:max_restarts` and `:max_seconds` - as specified in `Supervisor.Spec.supervise/2`;
 
   """
-  @spec start_link(Supervisor.options) :: Supervisor.on_start
+  @spec start_link([option]) :: Supervisor.on_start
   def start_link(opts \\ []) do
     import Supervisor.Spec
     {restart, opts}  = Keyword.pop(opts, :restart, :temporary)
