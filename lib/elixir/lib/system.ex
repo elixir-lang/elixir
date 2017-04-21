@@ -681,7 +681,9 @@ defmodule System do
   """
   @spec monotonic_time(time_unit) :: integer
   def monotonic_time(unit) do
-    :erlang.monotonic_time(normalize_time_unit(unit))
+    unit
+    |> normalize_time_unit
+    |> :erlang.monotonic_time
   end
 
   @doc """
@@ -707,7 +709,9 @@ defmodule System do
   """
   @spec system_time(time_unit) :: integer
   def system_time(unit) do
-    :erlang.system_time(normalize_time_unit(unit))
+    unit
+    |> normalize_time_unit
+    |> :erlang.system_time
   end
 
   @doc """
