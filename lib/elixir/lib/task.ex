@@ -132,21 +132,21 @@ defmodule Task do
   the same module version to exist on all involved nodes. Check the `Agent` module
   documentation for more information on distributed processes as the limitations
   described there apply to the whole ecosystem.
-  """
 
-  @doc """
-  The Task struct.
+  ## The `Task` struct
 
-  It contains these fields:
+  When tasks are spawned (for example with `async/1`), a `Task` struct is
+  returned. Such structs contain the following fields:
 
-    * `:pid` - the PID of the task process; `nil` if the task does
-      not use a task process
+    * `:pid` - the PID of the task process; `nil` if the task does not use a
+      task process
 
     * `:ref` - the task monitor reference
 
     * `:owner` - the PID of the process that started the task
 
   """
+
   defstruct pid: nil, ref: nil, owner: nil
 
   @type t :: %__MODULE__{}
