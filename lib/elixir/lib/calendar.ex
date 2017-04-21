@@ -420,6 +420,9 @@ defmodule Date do
   Converts the given `date` to
   [ISO 8601:2004](https://en.wikipedia.org/wiki/ISO_8601).
 
+  By default, `Date.to_iso8601/2` returns dates formatted in the "extended"
+  format, for human readability. It also supports the "basic" format through passing the `:basic` option.
+
   Only supports converting dates which are in the ISO calendar,
   or other calendars in which the days also start at midnight.
   Attempting to convert dates from other calendars will raise an `ArgumentError`.
@@ -429,17 +432,25 @@ defmodule Date do
       iex> Date.to_iso8601(~D[2000-02-28])
       "2000-02-28"
 
+      iex> Date.to_iso8601(~D[2000-02-28], :basic)
+      "20000228"
+
   """
-  @spec to_iso8601(Date.t) :: String.t
-  def to_iso8601(%Date{} = date) do
+  @spec to_iso8601(Date.t, :extended | :basic) :: String.t
+  def to_iso8601(date, format \\ :extended)
+  def to_iso8601(%Date{} = date, format) when format in [:basic, :extended] do
     %{year: year, month: month, day: day} = convert!(date, Calendar.ISO)
-    Calendar.ISO.date_to_iso8601(year, month, day)
+    Calendar.ISO.date_to_iso8601(year, month, day, format)
   end
 
   # TODO: Remove on 2.0
-  def to_iso8601(%{calendar: Calendar.ISO, year: year, month: month, day: day}) do
+  def to_iso8601(%{calendar: Calendar.ISO, year: year, month: month, day: day}, format) when format in [:basic, :extended] do
     IO.warn "calling Date.to_iso8601/1 with a DateTime or NaiveDateTime structs is deprecated, explicitly convert them into a Date first by using DateTime.to_date/1 or NaiveDateTime.to_date/1 respectively"
-    Calendar.ISO.date_to_iso8601(year, month, day)
+    Calendar.ISO.date_to_iso8601(year, month, day, format)
+  end
+
+  def to_iso8601(_date, format) do
+    raise ArgumentError, "Date.to_iso8601/2 expects format to be :extended or :basic, got: #{inspect format}"
   end
 
   @doc """
@@ -889,25 +900,37 @@ defmodule Time do
   Converts the given time to
   [ISO 8601:2004](https://en.wikipedia.org/wiki/ISO_8601).
 
+  By default, `Time.to_iso8601/2` returns times formatted in the "extended"
+  format, for human readability. It also supports the "basic" format through passing the `:basic` option.
+
   ### Examples
 
       iex> Time.to_iso8601(~T[23:00:13])
       "23:00:13"
+
       iex> Time.to_iso8601(~T[23:00:13.001])
       "23:00:13.001"
 
-  """
-  @spec to_iso8601(Time.t) :: String.t
-  def to_iso8601(time)
+      iex> Time.to_iso8601(~T[23:00:13.001], :basic)
+      "230013.001"
 
-  def to_iso8601(%Time{} = time) do
+  """
+  @spec to_iso8601(Time.t, :extended | :basic) :: String.t
+  def to_iso8601(time, format \\ :extended)
+
+  def to_iso8601(%Time{} = time, format) when format in [:extended, :basic] do
     %{hour: hour, minute: minute, second: second, microsecond: microsecond} = convert!(time, Calendar.ISO)
-    Calendar.ISO.time_to_iso8601(hour, minute, second, microsecond)
+    Calendar.ISO.time_to_iso8601(hour, minute, second, microsecond, format)
   end
 
-  def to_iso8601(%{hour: hour, minute: minute, second: second, microsecond: microsecond, calendar: Calendar.ISO}) do
+  def to_iso8601(%{hour: hour, minute: minute, second: second, microsecond: microsecond, calendar:
+    Calendar.ISO}, format) when format in [:extended, :basic] do
     IO.warn "calling Time.to_erl/1 with a DateTime or NaiveDateTime structs is deprecated, explicitly convert them into a Time first by using DateTime.to_time/1 or NaiveDateTime.to_time/1 respectively"
-    Calendar.ISO.time_to_iso8601(hour, minute, second, microsecond)
+    Calendar.ISO.time_to_iso8601(hour, minute, second, microsecond, format)
+  end
+
+  def to_iso8601(_date, format) do
+    raise ArgumentError, "Time.to_iso8601/2 expects format to be :extended or :basic, got: #{inspect format}"
   end
 
   @doc """
@@ -1484,6 +1507,9 @@ defmodule NaiveDateTime do
   Converts the given naive datetime to
   [ISO 8601:2004](https://en.wikipedia.org/wiki/ISO_8601).
 
+  By default, `NaiveDateTime.to_iso8601/2` returns naive datetimes formatted in the "extended"
+  format, for human readability. It also supports the "basic" format through passing the `:basic` option.
+
   Only supports converting naive datetimes which are in the ISO calendar,
   attempting to convert naive datetimes from other calendars will raise.
 
@@ -1495,6 +1521,9 @@ defmodule NaiveDateTime do
       iex> NaiveDateTime.to_iso8601(~N[2000-02-28 23:00:13.001])
       "2000-02-28T23:00:13.001"
 
+      iex> NaiveDateTime.to_iso8601(~N[2000-02-28 23:00:13.001], :basic)
+      "20000228T230013.001"
+
   This function can also be used to convert a DateTime to ISO8601 without
   the time zone information:
 
@@ -1505,19 +1534,24 @@ defmodule NaiveDateTime do
       "2000-02-29T23:00:07"
 
   """
-  @spec to_iso8601(Calendar.naive_datetime) :: String.t
-  def to_iso8601(naive_datetime)
+  @spec to_iso8601(Calendar.naive_datetime, :basic | :extended) :: String.t
+  def to_iso8601(naive_datetime, format \\ :extended)
 
   def to_iso8601(%{year: year, month: month, day: day,
-                   hour: hour, minute: minute, second: second, microsecond: microsecond, calendar: Calendar.ISO}) do
-    Calendar.ISO.naive_datetime_to_iso8601(year, month, day, hour, minute, second, microsecond)
+                   hour: hour, minute: minute, second: second, microsecond: microsecond, calendar:
+    Calendar.ISO}, format) when format in [:basic, :extended] do
+    Calendar.ISO.naive_datetime_to_iso8601(year, month, day, hour, minute, second, microsecond, format)
   end
 
   def to_iso8601(%{year: _, month: _, day: _,
-                   hour: _, minute: _, second: _, microsecond: _, calendar: _} = naive_datetime) do
+                   hour: _, minute: _, second: _, microsecond: _, calendar: _} = naive_datetime, format) when format in [:basic, :extended] do
     naive_datetime
     |> convert!(Calendar.ISO)
-    |> to_iso8601
+    |> to_iso8601(format)
+  end
+
+  def to_iso8601(_date, format) do
+    raise ArgumentError, "NaiveDateTime.to_iso8601/2 expects format to be :extended or :basic, got: #{inspect format}"
   end
 
   @doc """
@@ -2018,6 +2052,9 @@ defmodule DateTime do
   Converts the given datetime to
   [ISO 8601:2004](https://en.wikipedia.org/wiki/ISO_8601) format.
 
+  By default, `DateTime.to_iso8601/2` returns datetimes formatted in the "extended"
+  format, for human readability. It also supports the "basic" format through passing the `:basic` option.
+
   Only supports converting datetimes which are in the ISO calendar,
   attempting to convert datetimes from other calendars will raise.
 
@@ -2042,25 +2079,35 @@ defmodule DateTime do
       iex> dt = %DateTime{year: 2000, month: 2, day: 29, zone_abbr: "AMT",
       ...>                hour: 23, minute: 0, second: 7, microsecond: {0, 0},
       ...>                utc_offset: -14400, std_offset: 0, time_zone: "America/Manaus"}
-      iex> DateTime.to_iso8601(dt)
+      iex> DateTime.to_iso8601(dt, :extended)
       "2000-02-29T23:00:07-04:00"
+
+      iex> dt = %DateTime{year: 2000, month: 2, day: 29, zone_abbr: "AMT",
+      ...>                hour: 23, minute: 0, second: 7, microsecond: {0, 0},
+      ...>                utc_offset: -14400, std_offset: 0, time_zone: "America/Manaus"}
+      iex> DateTime.to_iso8601(dt, :basic)
+      "20000229T230007-0400"
   """
-  @spec to_iso8601(Calendar.datetime) :: String.t
-  def to_iso8601(datetime)
+  @spec to_iso8601(Calendar.datetime, :extended | :basic ) :: String.t
+  def to_iso8601(datetime, format \\ :extended)
 
   def to_iso8601(%{calendar: Calendar.ISO, year: year, month: month, day: day,
                   hour: hour, minute: minute, second: second, microsecond: microsecond,
-                  time_zone: time_zone, zone_abbr: zone_abbr, utc_offset: utc_offset, std_offset: std_offset}) do
+                  time_zone: time_zone, zone_abbr: zone_abbr, utc_offset: utc_offset, std_offset: std_offset}, format) when format in [:extended, :basic] do
     Calendar.ISO.datetime_to_iso8601(year, month, day, hour, minute, second, microsecond,
-                                     time_zone, zone_abbr, utc_offset, std_offset)
+                                     time_zone, zone_abbr, utc_offset, std_offset, format)
   end
 
   def to_iso8601(%{calendar: _, year: _, month: _, day: _,
                    hour: _, minute: _, second: _, microsecond: _,
-                   time_zone: _, zone_abbr: _, utc_offset: _, std_offset: _} = datetime) do
+                   time_zone: _, zone_abbr: _, utc_offset: _, std_offset: _} = datetime, format) when format in [:extended, :basic] do
     datetime
     |> convert!(Calendar.ISO)
-    |> to_iso8601
+    |> to_iso8601(format)
+  end
+
+  def to_iso8601(_, format) do
+    raise ArgumentError, "DateTime.to_iso8601/2 expects format to be :extended or :basic, got: #{inspect format}"
   end
 
   @doc """
