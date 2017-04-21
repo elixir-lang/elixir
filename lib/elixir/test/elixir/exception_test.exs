@@ -298,7 +298,10 @@ defmodule ExceptionTest do
     outer_pid =
       spawn_link(fn()->
         Process.flag(:trap_exit, true)
-        :gen_event.call(spawn_link(exit_fun), :handler, :hello)
+        receive do
+          _ ->
+            :gen_event.call(spawn_link(exit_fun), :handler, :hello)
+        end
       end)
     reason = try do
       :gen_server.call(outer_pid, :hi)
