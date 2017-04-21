@@ -256,11 +256,13 @@ defmodule Supervisor do
   @typedoc "The Supervisor name"
   @type name :: atom | {:global, term} | {:via, module, term}
 
+  @typedoc "Option values used by the `start*` functions"
+  @type option :: {:name, name} | {:strategy, Supervisor.Spec.strategy} |
+                  {:max_restarts, non_neg_integer} |
+                  {:max_seconds, non_neg_integer}
+
   @typedoc "Options used by the `start*` functions"
-  @type options :: [name: name,
-                    strategy: Supervisor.Spec.strategy,
-                    max_restarts: non_neg_integer,
-                    max_seconds: non_neg_integer]
+  @type options :: [option, ...]
 
   @typedoc "The supervisor reference"
   @type supervisor :: pid | name | {atom, node}
