@@ -220,7 +220,7 @@ defmodule Access do
             {get_value, data} when get_value: var, data: container | any_container
 
   @doc """
-  Invoked to "pop" the value under `key` out of the given data-structure.
+  Invoked to "pop" the value under `key` out of the given data structure.
 
   When the key `key` exists in the given structure `data`, the implementation should
   return a `{value, new_data}` tuple where `value` is the value that was under
@@ -398,7 +398,7 @@ defmodule Access do
       nil
 
   Such is also useful when using update functions, allowing us to introduce
-  values as we traverse the data-structure for updates:
+  values as we traverse the data structure for updates:
 
       iex> put_in(%{}, [Access.key(:user, %{}), Access.key(:name)], "Mary")
       %{user: %{name: "Mary"}}

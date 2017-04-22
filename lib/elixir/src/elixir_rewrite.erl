@@ -23,7 +23,7 @@
 
 %% Inline
 
-%% Inline rules are straight-forward, they keep the same
+%% Inline rules are straightforward, they keep the same
 %% number and order of arguments and show up on captures.
 
 inline(?atom, to_charlist, 1) -> {erlang, atom_to_list};

@@ -1137,7 +1137,7 @@ defmodule Macro do
 
   That said, we need to expand the aliases node above to an
   atom, so we can retrieve its length. Expanding the node is
-  not straight-forward because we also need to expand the
+  not straightforward because we also need to expand the
   caller aliases. For example:
 
       alias MyHelpers, as: My
