@@ -1,7 +1,8 @@
 %% Compiler backend to Erlang.
 -module(elixir_erl).
 -export([elixir_to_erl/1, definition_to_anonymous/6, compile/7,
-         get_ann/1, remote/4, add_beam_chunk/3, format_error/1]).
+         get_ann/1, remote/4, add_beam_chunk/3, format_error/1,
+         get_type/2, put_type/3]).
 -include("elixir.hrl").
 
 %% Adds custom chunk to a .beam binary
@@ -434,3 +435,13 @@ get_type_docs(Data) ->
 
 format_error({internal_function_overridden, {Name, Arity}}) ->
   io_lib:format("function ~ts/~B is internal and should not be overridden", [Name, Arity]).
+
+%% Types
+
+get_type({var, _, Var}, #elixir_erl{var_types = Types}) ->
+  maps:get(Var, Types, term);
+get_type(_Other, _S) ->
+  term.
+
+put_type(Var, Type, #elixir_erl{var_types = Types} = S) ->
+  S#elixir_erl{var_types = maps:put(Var, Type, Types)}.

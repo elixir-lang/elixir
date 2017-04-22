@@ -371,11 +371,18 @@ translate_struct(Meta, Name, {'%{}', _, [{'|', _, [Update, Assocs]}]}, S) ->
 
   {TUpdate, US} = translate_arg(Update, VS, VS),
   {TAssocs, TS} = translate_map(Meta, Assocs, {ok, Var}, US),
+  case elixir_erl:get_type(TUpdate, US) of
+    {struct, Name} ->
+      {TAssocs, TS};
+    MaybeMatches when MaybeMatches =:= map orelse MaybeMatches =:= term ->
+      {{'case', Generated, TUpdate, [
+        {clause, Ann, [Match], [], [TAssocs]},
+        {clause, Generated, [Var], [], [elixir_erl:remote(Ann, erlang, error, [Error])]}
+      ]}, TS};
+    _WontMatch ->
+      {elixir_erl:remote(Ann, erlang, error, [Error]), TS}
+  end;
 
-  {{'case', Generated, TUpdate, [
-    {clause, Ann, [Match], [], [TAssocs]},
-    {clause, Generated, [Var], [], [elixir_erl:remote(Ann, erlang, error, [Error])]}
-  ]}, TS};
 translate_struct(Meta, Name, {'%{}', _, Assocs}, S) ->
   translate_map(Meta, Assocs ++ [{'__struct__', Name}], none, S).
 
