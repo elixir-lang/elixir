@@ -13,7 +13,8 @@ translate({'=', Meta, [{'_', _, Atom}, Right]}, S) when is_atom(Atom) ->
 translate({'=', Meta, [Left, Right]}, S) ->
   {TRight, SR} = translate(Right, S),
   {TLeft, SL} = elixir_erl_clauses:match(fun translate/2, Left, SR),
-  {{match, ?ann(Meta), TLeft, TRight}, SL};
+  ST = assign_type(Left, Right, TLeft, TRight, SL),
+  {{match, ?ann(Meta), TLeft, TRight}, ST};
 
 %% Containers
 
@@ -361,26 +362,28 @@ translate_map(Meta, Assocs, S) ->
 translate_struct(Meta, Name, {'%{}', _, [{'|', _, [Update, Assocs]}]}, S) ->
   Ann = ?ann(Meta),
   Generated = erl_anno:set_generated(true, Ann),
-  {VarName, _, VS} = elixir_erl_var:build('_', S),
+  {TUpdate, US} = translate_arg(Update, S, S),
 
-  Var = {var, Ann, VarName},
-  Map = {map, Ann, [{map_field_exact, Ann, {atom, Ann, '__struct__'}, {atom, Ann, Name}}]},
-
-  Match = {match, Ann, Var, Map},
-  Error = {tuple, Ann, [{atom, Ann, badstruct}, {atom, Ann, Name}, Var]},
-
-  {TUpdate, US} = translate_arg(Update, VS, VS),
-  {TAssocs, TS} = translate_map(Meta, Assocs, {ok, Var}, US),
   case elixir_erl:get_type(TUpdate, US) of
     {struct, Name} ->
-      {TAssocs, TS};
+      translate_map(Meta, Assocs, {ok, TUpdate}, US);
     MaybeMatches when MaybeMatches =:= map orelse MaybeMatches =:= term ->
+      {VarName, _, VS} = elixir_erl_var:build('_', US),
+
+      Var = {var, Ann, VarName},
+      Map = {map, Ann, [{map_field_exact, Ann, {atom, Ann, '__struct__'}, {atom, Ann, Name}}]},
+
+      Match = {match, Ann, Var, Map},
+      Error = {tuple, Ann, [{atom, Ann, badstruct}, {atom, Ann, Name}, Var]},
+
+      {TAssocs, TS} = translate_map(Meta, Assocs, {ok, Var}, VS),
       {{'case', Generated, TUpdate, [
         {clause, Ann, [Match], [], [TAssocs]},
         {clause, Generated, [Var], [], [elixir_erl:remote(Ann, erlang, error, [Error])]}
       ]}, TS};
     _WontMatch ->
-      {elixir_erl:remote(Ann, erlang, error, [Error]), TS}
+      Error = {tuple, Ann, [{atom, Ann, badstruct}, {atom, Ann, Name}, TUpdate]},
+      {elixir_erl:remote(Ann, erlang, error, [Error]), US}
   end;
 
 translate_struct(Meta, Name, {'%{}', _, Assocs}, S) ->
@@ -510,3 +513,31 @@ translate_remote(Left, Right, Meta, Args, S) ->
     false ->
       {{call, Ann, {remote, Ann, TLeft, TRight}, TArgs}, SC}
   end.
+
+%% Types
+
+assign_type(Left, Right, TLeft, TRight, #elixir_erl{context = match} = S) ->
+  case is_var(Left) of
+    true -> assign_type(Right, TLeft, S);
+    false -> assign_type(Left, TRight, S)
+  end;
+assign_type(_Left, Right, TLeft, _TRight, S) ->
+    assign_type(Right, TLeft, S).
+
+assign_type(Expr, MaybeVar, S) ->
+    Type = extract_type(Expr, S),
+    elixir_erl:put_type(MaybeVar, Type, S).
+
+is_var({Name, _, Context}) when is_atom(Name), is_atom(Context) ->
+    true;
+is_var(_) ->
+    false.
+
+extract_type({'%', _, [Name, _]}, _S) ->
+  {struct, Name};
+extract_type({'%{}', _, _}, _S) ->
+  map;
+extract_type({'<<>>', _, _}, _S) ->
+  binary;
+extract_type(_Other, _S) ->
+  term.

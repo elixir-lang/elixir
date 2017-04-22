@@ -443,5 +443,9 @@ get_type({var, _, Var}, #elixir_erl{var_types = Types}) ->
 get_type(_Other, _S) ->
   term.
 
-put_type(Var, Type, #elixir_erl{var_types = Types} = S) ->
-  S#elixir_erl{var_types = maps:put(Var, Type, Types)}.
+put_type(_Expr, term, S) ->
+  S;
+put_type({var, _, Name}, Type, #elixir_erl{var_types = Types} = S) ->
+  S#elixir_erl{var_types = maps:put(Name, Type, Types)};
+put_type(_Expr, _Type, S) ->
+  S.
