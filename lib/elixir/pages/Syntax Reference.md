@@ -65,7 +65,7 @@ end
 
 ### Atoms
 
-Atoms in Elixir start with a colon (`:`) which must be followed by any ascii letter and an optional sequence of ascii letters, numbers or underscores. Valid examples are `:foo`, `:FOO` and `:foo_42`. Atoms may also have a single `@` on them, such as: `:foo@bar42`.
+Atoms in Elixir start with a colon (`:`) which must be followed by any ASCII letter and an optional sequence of ASCII letters, numbers or underscores. Valid examples are `:foo`, `:FOO` and `:foo_42`. Atoms may also have a single `@` on them, such as: `:foo@bar42`.
 
 If the colon is followed by a double- or single-quote, the atom can be made of any latin character up to OTP 19 or of any unicode character from OTP 20 onwards, such as `:"++olá++"`.
 
@@ -92,7 +92,7 @@ Charlists are always represented as themselves in the AST.
 
 ### Variables
 
-Variables must start with lowercase ascii character which may be followed by any ascii letter, number or underscore. Variables may end in `?` or `!`. [Elixir's naming conventions](naming-conventions.html) proposes variables to be in `snake_case` format.
+Variables must start with lowercase ASCII character which may be followed by any ASCII letter, number or underscore. Variables may end in `?` or `!`. [Elixir's naming conventions](naming-conventions.html) proposes variables to be in `snake_case` format.
 
 Variables are represented by three-element tuples:
 
@@ -105,7 +105,7 @@ end
 
 ### Non-qualified calls
 
-Non-qualified calls, such as `add(1, 2)`, must start with lowercase characters which may be followed by any ascii letter, number or underscore. Calls may end in `?` or `!`. [Elixir's naming conventions](naming-conventions.html) proposes function names to be in `snake_case` format.
+Non-qualified calls, such as `add(1, 2)`, must start with lowercase characters which may be followed by any ASCII letter, number or underscore. Calls may end in `?` or `!`. [Elixir's naming conventions](naming-conventions.html) proposes function names to be in `snake_case` format.
 
 Non-qualified calls are represented by three-element tuples:
 
@@ -149,7 +149,7 @@ Many other Elixir constructs, such as `=`, `when`, `&` and `@` are simply treate
 
 ### Aliases
 
-Aliases are constructs that expand to atoms at compile-time. The alias `String` expands to the atom `:"Elixir.String"`. Aliases must start with an uppercase character which may be followed by any ascii letter, number, or underscore. [Elixir's naming conventions](naming-conventions.html) propose aliases to be in `CamelCase` format.
+Aliases are constructs that expand to atoms at compile-time. The alias `String` expands to the atom `:"Elixir.String"`. Aliases must start with an uppercase character which may be followed by any ASCII letter, number, or underscore. [Elixir's naming conventions](naming-conventions.html) propose aliases to be in `CamelCase` format.
 
 Aliases are represented by an `__aliases__` call with each segment separated by dot as an argument:
 
@@ -169,7 +169,7 @@ All arguments, except the first, will be atoms.
 
 ### Qualified calls (remote calls)
 
-Qualified calls, such as `Math.add(1, 2)`, must start with lowercase characters which may be followed by any ascii letter, number or underscore. Calls may end in `?` or `!`. [Elixir's naming conventions](naming-conventions.html) propose function names to be in `snake_case` format.
+Qualified calls, such as `Math.add(1, 2)`, must start with lowercase characters which may be followed by any ASCII letter, number or underscore. Calls may end in `?` or `!`. [Elixir's naming conventions](naming-conventions.html) propose function names to be in `snake_case` format.
 
 For qualified calls, Elixir also allows the function name to be written between double- or single-quotes, allowing calls such as `Math."++add++"(1, 2)`. Operators can be used as qualified calls without a need for quote, such as `Kernel.+(1, 2)`.
 
@@ -366,7 +366,7 @@ Sigils start with `~` and are followed by a letter and one of the following pair
   * `|` and `|`
   * `/` and `/`
 
-After closing the pair, zero or more ascii letters can be given as a modifier. Sigils are expressed as calls prefixed with `sigil_` where the first argument is the sigil contents as a string and the second argument is a list of integers as modifiers:
+After closing the pair, zero or more ASCII letters can be given as a modifier. Sigils are expressed as calls prefixed with `sigil_` where the first argument is the sigil contents as a string and the second argument is a list of integers as modifiers:
 
 ```elixir
 quote do
