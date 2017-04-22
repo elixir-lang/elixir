@@ -75,14 +75,14 @@ while [ $I -le $# ]; do
     --logger-otp-reports)
         I=$(expr $I + 1)
         eval "VAL=\${$I}"
-        if [ "$VAL" == 'true' ] || [ "$VAL" == 'false' ]; then
+        if [ "$VAL" = 'true' ] || [ "$VAL" = 'false' ]; then
             ERL="$ERL -logger handle_otp_reports "$VAL""
         fi
         ;;
     --logger-sasl-reports)
         I=$(expr $I + 1)
         eval "VAL=\${$I}"
-        if [ "$VAL" == 'true' ] || [ "$VAL" == 'false' ]; then
+        if [ "$VAL" = 'true' ] || [ "$VAL" = 'false' ]; then
             ERL="$ERL -logger handle_sasl_reports "$VAL""
         fi
         ;;
