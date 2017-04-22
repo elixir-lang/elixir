@@ -54,6 +54,27 @@ defmodule Logger.Translator do
           {:ok, msg}
         end
 
+      {'** State machine ~p terminating \n' ++ _, [_, _, _, _, _] = args} ->
+        [name, last, state, data, reason] = args
+        msg = [":gen_fsm #{inspect name} terminating" |
+          format_stop(reason)]
+        if min_level == :debug do
+          {:ok, [msg,
+                 "\nLast message: ", inspect(last, opts),
+                 "\nState: ", inspect({state, data}, opts)]}
+        else
+          {:ok, msg}
+        end
+
+      {'** State machine ~p terminating~n' ++ rest, [name | args]} ->
+        msg = [":gen_statem #{inspect name} terminating" |
+          statem_exception(rest, args, opts)]
+        if min_level == :debug do
+          {:ok, statem_debug(rest, args, opts, msg)}
+        else
+          {:ok, msg}
+        end
+
       {'** Task ' ++ _, [name, starter, function, args, reason]} ->
         msg = ["Task #{inspect name} started from #{inspect starter} terminating",
                format_stop(reason),
@@ -90,6 +111,51 @@ defmodule Logger.Translator do
 
   def translate(_min_level, _level, _kind, _message) do
     :none
+  end
+
+  defp statem_exception('** Last event = ~p~n' ++ rest, [_msg | args], opts) do
+    statem_exception(rest, args, opts)
+  end
+  defp statem_exception(rest, [_state, class, reason | args], _) do
+    stack = statem_stack(rest, args)
+    formatted = Exception.format(class, reason, stack)
+    [?\n | :erlang.binary_part(formatted, 0, byte_size(formatted)-1)]
+  end
+
+  defp statem_stack(rest, args) do
+    case :string.str(rest, 'Stacktrace') do
+      0 -> []
+      _ -> List.last(args)
+    end
+  end
+
+  defp statem_debug('** Last event = ~p~n' ++ rest, [last | args], opts, msg) do
+    msg = [msg, "\nLast message: " | inspect(last, opts)]
+    statem_debug(rest, args, opts, msg)
+  end
+  defp statem_debug('** When server state  = ~p~n' ++ rest, args, opts, msg) do
+    [state | args] = args
+    msg = [msg, "\nState: " | inspect(state, opts)]
+    statem_debug(rest, args, opts, msg)
+  end
+  defp statem_debug('** Reason for termination = ~w:~p~n' ++ rest, args, opts, msg) do
+    [_class, _reason | args] = args
+    statem_debug(rest, args, opts, msg)
+  end
+  defp statem_debug('** Callback mode = ~p~n' ++ rest, args, opts, msg) do
+    [mode | args] = args
+    msg = [msg, "\nCallback mode: " | inspect(mode)]
+    statem_debug(rest, args, opts, msg)
+  end
+  defp statem_debug('** Queued = ~p~n' ++ rest, [queue | args], opts, msg) do
+    msg = [msg, "\nQueued messages: " | inspect(queue, opts)]
+    statem_debug(rest, args, opts, msg)
+  end
+  defp statem_debug('** Postponed = ~p~n' ++ _, [postpone | _], opts, msg) do
+    [msg, "\nPostponed messages: " | inspect(postpone, opts)]
+  end
+  defp statem_debug(_, _, _, msg) do
+    msg
   end
 
   defp translate_supervisor(min_level,

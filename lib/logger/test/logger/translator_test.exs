@@ -51,6 +51,27 @@ defmodule Logger.TranslatorTest do
     end
   end
 
+  defmodule MyGenFSM do
+    def init(state), do: {:ok, :state_name, state}
+
+    def state_name(:error, _, _) do
+      raise "oops"
+    end
+
+    def terminate(_, _, _), do: :ok
+  end
+
+  defmodule MyGenStatem do
+    def init({state, data}) do
+      {:handle_event_function, state, data}
+    end
+
+    def handle_event(_, :error, _, _), do: raise "oops"
+    def handle_event(_, actions, _, _), do: {:keep_state_and_data, actions}
+
+    def terminate(_, _, _), do: :ok
+  end
+
   setup_all do
     sasl_reports? = Application.get_env(:logger, :handle_sasl_reports, false)
     Application.put_env(:logger, :handle_sasl_reports, true)
@@ -101,7 +122,7 @@ defmodule Logger.TranslatorTest do
     end) =~ ~r"""
     \[error\] GenServer #PID<\d+\.\d+\.\d+> terminating
     \*\* \(RuntimeError\) oops
-    .*
+    .*/\d+
     Last message: :error
     State: :ok
     """s
@@ -128,7 +149,7 @@ defmodule Logger.TranslatorTest do
     end) =~ ~r"""
     \[error\] GenEvent handler Logger.TranslatorTest.MyGenEvent installed in #PID<\d+\.\d+\.\d+> terminating
     \*\* \(RuntimeError\) oops
-    .*
+    .*/\d+
     Last message: :error
     State: :ok
     """s
@@ -144,7 +165,7 @@ defmodule Logger.TranslatorTest do
     end) =~ ~r"""
     \[error\] Task #PID<\d+\.\d+\.\d+> started from #PID<\d+\.\d+\.\d+> terminating
     \*\* \(RuntimeError\) oops
-    .*
+    .*/\d+
     Function: &Logger.TranslatorTest.task\/1
         Args: \[#PID<\d+\.\d+\.\d+>\]
     """s
@@ -173,7 +194,7 @@ defmodule Logger.TranslatorTest do
     end) =~ ~r"""
     \[error\] Task #PID<\d+\.\d+\.\d+> started from #PID<\d+\.\d+\.\d+> terminating
     \*\* \(UndefinedFunctionError\) function :module_does_not_exist.undef/0 is undefined \(module :module_does_not_exist is not available\)
-    .*
+    .*/\d+
     Function: &:module_does_not_exist.undef/0
         Args: \[\]
     """s
@@ -187,7 +208,7 @@ defmodule Logger.TranslatorTest do
     end) =~ ~r"""
     \[error\] Task #PID<\d+\.\d+\.\d+> started from #PID<\d+\.\d+\.\d+> terminating
     \*\* \(UndefinedFunctionError\) function Logger.TranslatorTest.undef/0 is undefined or private
-    .*
+    .*/\d+
     Function: &Logger.TranslatorTest.undef/0
         Args: \[\]
     """s
@@ -222,7 +243,7 @@ defmodule Logger.TranslatorTest do
     end) =~ ~r"""
     \[error\] Task #PID<\d+\.\d+\.\d+> started from #PID<\d+\.\d+\.\d+> terminating
     \*\* \(ArgumentError\) argument error
-    .*
+    .*/\d+
     Function: &:erlang\.error/1
         Args: \[:badarg\]
     """s
@@ -236,7 +257,7 @@ defmodule Logger.TranslatorTest do
     end) =~ ~r"""
     \[error\] Task #PID<\d+\.\d+\.\d+> started from #PID<\d+\.\d+\.\d+> terminating
     \*\* \(stop\) :abnormal
-    .*
+    .*/\d+
     Function: &:erlang\.exit/1
         Args: \[:abnormal\]
     """s
@@ -285,7 +306,7 @@ defmodule Logger.TranslatorTest do
     \[error\] Process #PID<\d+\.\d+\.\d+> terminating
     \*\* \(exit\) an exception was raised:
         \*\* \(RuntimeError\) oops
-    .*
+    .*/\d+
     Initial Call: Logger.TranslatorTest.task/1
     Ancestors: \[#PID<\d+\.\d+\.\d+>\]
     """s
@@ -307,7 +328,7 @@ defmodule Logger.TranslatorTest do
     \[error\] Process Logger.TranslatorTest \(#PID<\d+\.\d+\.\d+>\) terminating
     \*\* \(exit\) an exception was raised:
         \*\* \(RuntimeError\) oops
-    .*
+    .*/\d+
     Initial Call: Logger.TranslatorTest.task/2
     Ancestors: \[#PID<\d+\.\d+\.\d+>\]
     """s
@@ -329,7 +350,7 @@ defmodule Logger.TranslatorTest do
     \[error\] Process #PID<\d+\.\d+\.\d+> terminating
     \*\* \(exit\) an exception was raised:
         \*\* \(RuntimeError\) oops
-    .*
+    .*/\d+
     Ancestors: \[#PID<\d+\.\d+\.\d+>\]
     """s
   end
@@ -505,7 +526,7 @@ defmodule Logger.TranslatorTest do
     \[error\] Child Logger.TranslatorTest of Supervisor #PID<\d+\.\d+\.\d+> \(Supervisor\.Default\) failed to start
     \*\* \(exit\) an exception was raised:
         \*\* \(UndefinedFunctionError\) function Logger.TranslatorTest.undef/0 is undefined or private
-        .*
+        .*/\d+
     Start Call: Logger.TranslatorTest.undef\(\)
     """s
   end
@@ -632,6 +653,66 @@ defmodule Logger.TranslatorTest do
   after
     :code.purge(WeirdFunctionNamesGenServer)
     :code.delete(WeirdFunctionNamesGenServer)
+  end
+
+  test "translates :gen_fsm crashes" do
+    {:ok, pid} = :gen_fsm.start(MyGenFSM, :state, [])
+
+    assert capture_log(:info, fn ->
+      catch_exit(:gen_fsm.sync_send_event(pid, :error))
+    end) =~ """
+    [error] :gen_fsm #{inspect pid} terminating
+    ** (RuntimeError) oops
+    """
+  end
+
+  test "translates :gen_fsm crashes with event on debug" do
+    {:ok, pid} = :gen_fsm.start(MyGenFSM, :state, [])
+
+    assert capture_log(:debug, fn ->
+      catch_exit(:gen_fsm.sync_send_event(pid, :error))
+    end) =~ ~r"""
+    \[error\] :gen_fsm #PID<\d+\.\d+\.\d+> terminating
+    \*\* \(RuntimeError\) oops
+    .*/\d+
+    Last message: {:\"\$gen_sync_event\", .*, :error}
+    State: {:state_name, :state}
+    """s
+  end
+
+  @tag :gen_statem
+  test "translates :gen_statem crashes" do
+    {:ok, pid} = :gen_statem.start(MyGenStatem, {:state, :data}, [])
+
+    assert capture_log(:info, fn ->
+      catch_exit(:gen_statem.call(pid, :error))
+      :timer.sleep(100)
+    end) =~ """
+    [error] :gen_statem #{inspect pid} terminating
+    ** (RuntimeError) oops
+    """
+  end
+
+  @tag :gen_statem
+  test "translates :gen_statem crashes debug" do
+    {:ok, pid} = :gen_statem.start(MyGenStatem, {:state, :data}, [])
+
+    assert capture_log(:debug, fn ->
+      actions = [{:next_event, :internal, :postpone},
+                 {:next_event, :internal, :error},
+                 {:next_event, :internal, :queued}]
+      catch_exit(:gen_statem.call(pid, actions))
+      :timer.sleep(100)
+    end) =~ ~r"""
+    \[error\] :gen_statem #PID<\d+\.\d+\.\d+> terminating
+    \*\* \(RuntimeError\) oops
+    .*/\d+
+    Last message: {:internal, :error}
+    State: {:state, :data}
+    Callback mode: :handle_event_function
+    Queued messages: \[internal: :queued\]
+    Postponed messages: \[internal: :postpone\]
+    """s
   end
 
   def task(parent, fun \\ (fn() -> raise "oops" end)) do
