@@ -22,7 +22,7 @@ defmodule Stream do
 
   Notice we started with a range and then we created a stream that is
   meant to multiply each item in the range by 2. At this point, no
-  computation was done. Only when `Enum.map/2` is called do we actually
+  computation was done. Only when `Enum.map/2` is called we actually
   enumerate over each item in the range, multiplying it by 2 and adding 1.
   We say the functions in `Stream` are *lazy* and the functions in `Enum`
   are *eager*.

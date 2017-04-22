@@ -4,7 +4,7 @@ Here we document the syntax constructs in Elixir. We explore the base language c
 
 ## The Elixir AST
 
-Elixir syntax was designed to have a straight-forward conversion to an abstract syntax tree (AST). Elixir's AST is a regular Elixir data-structure composed of the following elements:
+Elixir syntax was designed to have a straightforward conversion to an abstract syntax tree (AST). Elixir's AST is a regular Elixir data structure composed of the following elements:
 
   * atoms - such as `:foo`
   * integers - such as `42`

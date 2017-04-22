@@ -335,7 +335,7 @@ defmodule ExUnit.Case do
         end
       end
 
-  By forbidding hierarchies in favor of named setups, it is straight-forward
+  By forbidding hierarchies in favor of named setups, it is straightforward
   for the developer to glance at each describe block and know exactly the
   setup steps involved.
   """
