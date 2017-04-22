@@ -749,7 +749,7 @@ defmodule FileTest do
       end
     end
 
-    test "write ascii content" do
+    test "write ASCII content" do
       fixture = tmp_path("tmp_test.txt")
       try do
         refute File.exists?(fixture)
