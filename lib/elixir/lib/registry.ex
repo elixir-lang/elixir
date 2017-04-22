@@ -929,7 +929,4 @@ defmodule Registry.Partition do
     end
     {:noreply, ets}
   end
-  def handle_info(msg, state) do
-    super(msg, state)
-  end
 end
