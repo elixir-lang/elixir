@@ -197,6 +197,8 @@ defmodule Module do
   The following attributes are part of typespecs and are also reserved by
   Elixir:
 
+    TODO: add @impl
+    TODO: add @protocol_metadata
     * `@type` - defines a type to be used in `@spec`
     * `@typep` - defines a private type to be used in `@spec`
     * `@opaque` - defines an opaque type to be used in `@spec`

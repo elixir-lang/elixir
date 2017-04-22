@@ -1,12 +1,5 @@
 Code.require_file "../test_helper.exs", __DIR__
 
-defmodule Kernel.ImplTest.Behaviour do
-  @callback required_foo :: any
-  @callback optional_bar :: any
-  @callback optional_baz(integer) :: any
-  @optional_callbacks [:optional_bar, :optional_baz]
-end
-
 defmodule Kernel.ImplTest do
   use ExUnit.Case
 
@@ -15,12 +8,18 @@ defmodule Kernel.ImplTest do
     :code.delete(module)
   end
 
+  defmodule Kernel.ImplTest.Behaviour do
+    @callback foo :: any
+  end
+
   test "attributes format" do
     defmodule Kernel.ImplTest.ImplAttributes do
+      @behaviour Kernel.ImplTest.Behaviour
+
       @impl Kernel.ImplTest.Behaviour
       assert @impl == Kernel.ImplTest.Behaviour
-      assert Module.get_attribute(__MODULE__, :impl) == {20, Kernel.ImplTest.Behaviour}
-      def required_foo() do
+      assert Module.get_attribute(__MODULE__, :impl) == {19, Kernel.ImplTest.Behaviour}
+      def foo() do
         :ok
       end
     end
@@ -30,10 +29,12 @@ defmodule Kernel.ImplTest do
 
   test "sets @doc false" do
     defmodule Kernel.ImplTest.ImplAttributes do
+      @behaviour Kernel.ImplTest.Behaviour
+
       @impl Kernel.ImplTest.Behaviour
       assert @doc == false
-      assert Module.get_attribute(__MODULE__, :doc) == {33, false}
-      def required_foo() do
+      assert Module.get_attribute(__MODULE__, :doc) == {34, false}
+      def foo() do
         :ok
       end
     end
@@ -43,14 +44,16 @@ defmodule Kernel.ImplTest do
 
   test "does not set @doc false if doc was specified before @impl" do
     defmodule Kernel.ImplTest.ImplAttributes do
+      @behaviour Kernel.ImplTest.Behaviour
+
       @doc "An irrelevant function doc"
       def quz(), do: :ok
 
       @doc "Function doc"
       @impl Kernel.ImplTest.Behaviour
       assert @doc == "Function doc"
-      assert Module.get_attribute(__MODULE__, :doc) == {49, "Function doc"}
-      def required_foo() do
+      assert Module.get_attribute(__MODULE__, :doc) == {52, "Function doc"}
+      def foo() do
         :ok
       end
     end
@@ -60,12 +63,14 @@ defmodule Kernel.ImplTest do
 
   test "does not explode if multiple @doc directives were used" do
     defmodule Kernel.ImplTest.ImplAttributes do
+      @behaviour Kernel.ImplTest.Behaviour
+
       @doc "First function doc"
       @doc "Function doc"
       @impl Kernel.ImplTest.Behaviour
       assert @doc == "Function doc"
-      assert Module.get_attribute(__MODULE__, :doc) == {64, "Function doc"}
-      def required_foo() do
+      assert Module.get_attribute(__MODULE__, :doc) == {69, "Function doc"}
+      def foo() do
         :ok
       end
     end
@@ -75,11 +80,13 @@ defmodule Kernel.ImplTest do
 
   test "does not set @doc false if doc was specified after @impl" do
     defmodule Kernel.ImplTest.ImplAttributes do
+      @behaviour Kernel.ImplTest.Behaviour
+
       @impl Kernel.ImplTest.Behaviour
       @doc "Function doc"
       assert @doc == "Function doc"
-      assert Module.get_attribute(__MODULE__, :doc) == {79, "Function doc"}
-      def required_foo() do
+      assert Module.get_attribute(__MODULE__, :doc) == {86, "Function doc"}
+      def foo() do
         :ok
       end
     end
