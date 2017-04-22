@@ -4017,10 +4017,42 @@ defmodule Kernel do
   As seen as in the example above, `super` can be used to call the default
   implementation.
 
+  If `@behaviour` has been defined, `defoverridable` can also be called with a
+  module as an argument. All implemented callbacks from the behaviour above the
+  call to `defoverridable` will be marked as overridable.
+
+  ## Example
+
+      defmodule Behaviour do
+        @callback foo :: any
+      end
+
+      defmodule DefaultMod do
+        defmacro __using__(_opts) do
+          quote do
+            @behaviour Behaviour
+
+            def foo do
+              "Override me"
+            end
+
+            defoverridable Behaviour
+          end
+        end
+      end
+
+      defmodule InheritMod do
+        use DefaultMod
+
+        def foo do
+          "Overriden"
+        end
+      end
+
   """
-  defmacro defoverridable(keywords) do
+  defmacro defoverridable(keywords_or_behaviour) do
     quote do
-      Module.make_overridable(__MODULE__, unquote(keywords))
+      Module.make_overridable(__MODULE__, unquote(keywords_or_behaviour))
     end
   end
 
