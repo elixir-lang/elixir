@@ -2476,7 +2476,7 @@ defmodule Kernel do
         quote do: Module.put_attribute(__MODULE__, unquote(name), unquote(arg),
                                        unquote(stack), unquote(line))
 
-      :lists.member(name, [:moduledoc, :typedoc, :doc]) ->
+      name in [:moduledoc, :typedoc, :doc, :impl] ->
         {stack, _} = :elixir_quote.escape(env_stacktrace(env), false)
         arg = {env.line, arg}
         quote do: Module.put_attribute(__MODULE__, unquote(name), unquote(arg),
@@ -2491,14 +2491,15 @@ defmodule Kernel do
   # @attribute or @attribute()
   defp do_at(args, _meta, name, function?, env) when is_atom(args) or args == [] do
     stack = env_stacktrace(env)
-    doc_attr? = :lists.member(name, [:moduledoc, :typedoc, :doc])
+
+    includes_line_no? = name in [:moduledoc, :typedoc, :doc, :impl]
 
     case function? do
       true ->
         value =
-          with {_, doc} when doc_attr? <-
+          with {_, val} when includes_line_no? <-
                  Module.get_attribute(env.module, name, stack),
-               do: doc
+               do: val
         try do
           :elixir_quote.escape(value, false)
         rescue
@@ -2511,9 +2512,9 @@ defmodule Kernel do
       false ->
         {escaped, _} = :elixir_quote.escape(stack, false)
         quote do
-          with {_, doc} when unquote(doc_attr?) <-
+          with {_, val} when unquote(includes_line_no?) <-
                  Module.get_attribute(__MODULE__, unquote(name), unquote(escaped)),
-               do: doc
+               do: val
         end
     end
   end

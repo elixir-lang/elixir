@@ -1158,6 +1158,7 @@ defmodule Module do
         :ok
     end
 
+    # for :impl set doc false (and checks to see if already set) here
     case :ets.lookup(table, key) do
       [{^key, {line, <<_::binary>>}, accumulated?, _unread_line}]
           when key in [:doc, :typedoc, :moduledoc] and is_list(stack) ->
@@ -1166,6 +1167,9 @@ defmodule Module do
 
       [{^key, current, _accumulated? = true, _read?}] ->
         :ets.insert(table, {key, [value | current], true, unread_line})
+
+      # [{:doc, {line, <<_::binary>>}, accumulated?, _unread_line}] when key == :impl ->
+      #   IO.inspect stack
 
       _ ->
         :ets.insert(table, {key, value, false, unread_line})
@@ -1187,6 +1191,23 @@ defmodule Module do
         raise ArgumentError,
           "expected the #{key} attribute to be {line, doc} (where \"doc\" is " <>
           "a binary, a boolean, or nil), got: #{inspect(value)}"
+    end
+  end
+
+  defp preprocess_attribute(:impl, value) do
+    IO.inspect value
+    # TODO: check here to see if behaviour was already specified?
+    case value do
+      {line, module} when is_integer(line) and is_atom(module) ->
+        Code.ensure_compiled(module)
+        value
+      {line, other} when is_integer(line) ->
+        raise ArgumentError,
+          "expected impl attribute to contain true or a module, got: #{inspect(other)}"
+      _other ->
+        raise ArgumentError,
+          "expected impl attribute to be {line, impl} (where \"impl\" is " <>
+          "true or a module), got: #{inspect(value)}"
     end
   end
 
