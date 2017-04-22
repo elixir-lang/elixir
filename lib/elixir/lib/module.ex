@@ -1159,7 +1159,9 @@ defmodule Module do
     end
 
     case key do
-      :impl -> set_doc_false_if_unset(table, unread_line)
+      :impl ->
+        set_doc_false_if_unset(table, unread_line)
+        warn_if_behaviour_unspecified_for_impl(module, value)
       _ -> :ok
     end
 
@@ -1181,10 +1183,20 @@ defmodule Module do
 
   defp set_doc_false_if_unset(table, unread_line) do
     case :ets.lookup(table, :doc) do
-      [{:doc, {line, <<_::binary>>}, accumulated?, _unread_line}] -> :doc_exists
-      [{:doc, {line, false}, accumulated?, _unread_line}] -> :doc_already_set_false
+      [{:doc, {_line, <<_::binary>>}, _accumulated?, _unread_line}] -> :doc_exists
+      [{:doc, {_line, false}, _accumulated?, _unread_line}] -> :doc_already_set_false
       [] ->
         :ets.insert(table, {:doc, {unread_line, false}, false, unread_line})
+    end
+  end
+
+  defp warn_if_behaviour_unspecified_for_impl(module, {_line_no, behaviour}) do
+    behaviours = get_attribute(module, :behaviour)
+    cond do
+     behaviour in behaviours -> :ok
+     true -> IO.warn "module attribute @impl was set but this module does not " <>
+                     "implement #{inspect(behaviour)}. Did you forget to specify" <>
+                     " @behaviour #{inspect(behaviour)} ?"
     end
   end
 
@@ -1207,8 +1219,7 @@ defmodule Module do
   defp preprocess_attribute(:impl, value) do
     case value do
       {line, module} when is_integer(line) and is_atom(module) ->
-        # TODO: check here to see if behaviour was already specified?
-        Code.ensure_compiled(module)
+        _ = Code.ensure_compiled(module)
         value
       {line, other} when is_integer(line) ->
         raise ArgumentError,
