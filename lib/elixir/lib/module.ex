@@ -1158,7 +1158,16 @@ defmodule Module do
         :ok
     end
 
-    # for :impl set doc false (and checks to see if already set) here
+    case key do
+      :impl -> set_doc_false_if_unset(table, unread_line)
+      _ -> :ok
+    end
+
+      # [{:doc, {line, val}, accumulated?, _unread_line}] when key == :impl ->
+      #   IO.puts "HERE MOTHERFUCKER"
+      #   IO.inspect stack
+
+
     case :ets.lookup(table, key) do
       [{^key, {line, <<_::binary>>}, accumulated?, _unread_line}]
           when key in [:doc, :typedoc, :moduledoc] and is_list(stack) ->
@@ -1168,14 +1177,20 @@ defmodule Module do
       [{^key, current, _accumulated? = true, _read?}] ->
         :ets.insert(table, {key, [value | current], true, unread_line})
 
-      # [{:doc, {line, <<_::binary>>}, accumulated?, _unread_line}] when key == :impl ->
-      #   IO.inspect stack
-
       _ ->
         :ets.insert(table, {key, value, false, unread_line})
     end
 
     :ok
+  end
+
+  defp set_doc_false_if_unset(table, unread_line) do
+    case :ets.lookup(table, :doc) do
+      [{:doc, {line, <<_::binary>>}, accumulated?, _unread_line}] -> :doc_exists
+      [{:doc, {line, false}, accumulated?, _unread_line}] -> :doc_already_set_false
+      [] ->
+        :ets.insert(table, {:doc, {unread_line, false}, false, unread_line})
+    end
   end
 
   ## Helpers
@@ -1195,7 +1210,6 @@ defmodule Module do
   end
 
   defp preprocess_attribute(:impl, value) do
-    IO.inspect value
     # TODO: check here to see if behaviour was already specified?
     case value do
       {line, module} when is_integer(line) and is_atom(module) ->
