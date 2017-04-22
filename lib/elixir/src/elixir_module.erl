@@ -62,8 +62,7 @@ compile(Line, Module, Block, Vars, E) ->
   check_module_availability(Line, File, Module),
 
   CompilerModules = compiler_modules(),
-  Docs = elixir_compiler:get_opt(docs),
-  {Data, Defs, Ref} = build(Line, File, Module, Docs, ?key(E, lexical_tracker)),
+  {Data, Defs, Ref} = build(Line, File, Module, ?key(E, lexical_tracker)),
 
   try
     put_compiler_modules([Module | CompilerModules]),
@@ -142,7 +141,7 @@ check_module_availability(Line, File, Module) ->
 
 %% Hook that builds both attribute and functions and set up common hooks.
 
-build(Line, File, Module, Docs, Lexical) ->
+build(Line, File, Module, Lexical) ->
   case elixir_code_server:call({lookup, Module}) of
     [{Module, _, _, OldLine, OldFile}] ->
       Error = {module_in_definition, Module, OldFile, OldLine},
@@ -157,7 +156,7 @@ build(Line, File, Module, Docs, Lexical) ->
                                  {Module, Data, Defs, Line, File}}),
 
   OnDefinition =
-    case Docs of
+    case elixir_compiler:get_opt(docs) of
       true -> [{'Elixir.Module', compile_doc}];
       _    -> [{elixir_module, delete_doc}]
     end,
