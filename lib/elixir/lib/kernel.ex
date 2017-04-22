@@ -2476,7 +2476,7 @@ defmodule Kernel do
         quote do: Module.put_attribute(__MODULE__, unquote(name), unquote(arg),
                                        unquote(stack), unquote(line))
 
-      :lists.member(name, [:moduledoc, :typedoc, :doc]) ->
+      name in [:moduledoc, :typedoc, :doc, :impl] ->
         {stack, _} = :elixir_quote.escape(env_stacktrace(env), false)
         arg = {env.line, arg}
         quote do: Module.put_attribute(__MODULE__, unquote(name), unquote(arg),
@@ -2491,14 +2491,15 @@ defmodule Kernel do
   # @attribute or @attribute()
   defp do_at(args, _meta, name, function?, env) when is_atom(args) or args == [] do
     stack = env_stacktrace(env)
-    doc_attr? = :lists.member(name, [:moduledoc, :typedoc, :doc])
+
+    includes_line_no? = name in [:moduledoc, :typedoc, :doc, :impl]
 
     case function? do
       true ->
         value =
-          with {_, doc} when doc_attr? <-
+          with {_, val} when includes_line_no? <-
                  Module.get_attribute(env.module, name, stack),
-               do: doc
+               do: val
         try do
           :elixir_quote.escape(value, false)
         rescue
@@ -2511,9 +2512,9 @@ defmodule Kernel do
       false ->
         {escaped, _} = :elixir_quote.escape(stack, false)
         quote do
-          with {_, doc} when unquote(doc_attr?) <-
+          with {_, val} when unquote(includes_line_no?) <-
                  Module.get_attribute(__MODULE__, unquote(name), unquote(escaped)),
-               do: doc
+               do: val
         end
     end
   end
@@ -4017,10 +4018,42 @@ defmodule Kernel do
   As seen as in the example above, `super` can be used to call the default
   implementation.
 
+  If `@behaviour` has been defined, `defoverridable` can also be called with a
+  module as an argument. All implemented callbacks from the behaviour above the
+  call to `defoverridable` will be marked as overridable.
+
+  ## Example
+
+      defmodule Behaviour do
+        @callback foo :: any
+      end
+
+      defmodule DefaultMod do
+        defmacro __using__(_opts) do
+          quote do
+            @behaviour Behaviour
+
+            def foo do
+              "Override me"
+            end
+
+            defoverridable Behaviour
+          end
+        end
+      end
+
+      defmodule InheritMod do
+        use DefaultMod
+
+        def foo do
+          "Overriden"
+        end
+      end
+
   """
-  defmacro defoverridable(keywords) do
+  defmacro defoverridable(keywords_or_behaviour) do
     quote do
-      Module.make_overridable(__MODULE__, unquote(keywords))
+      Module.make_overridable(__MODULE__, unquote(keywords_or_behaviour))
     end
   end
 

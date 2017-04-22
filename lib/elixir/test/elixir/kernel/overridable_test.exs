@@ -92,6 +92,56 @@ defmodule Kernel.Overridable do
   end
 end
 
+defmodule Kernel.OverridableExampleBehaviour do
+  @callback required_callback :: any
+  @callback optional_callback :: any
+  @macrocallback required_macro_callback(arg :: any) :: Macro.t
+  @macrocallback optional_macro_callback(arg :: any, arg2 :: any) :: Macro.t
+  @optional_callbacks optional_callback: 0, optional_macro_callback: 1
+end
+
+defmodule Kernel.OverridableWithBehaviour do
+  @behaviour Kernel.OverridableExampleBehaviour
+
+  def required_callback(), do: "original"
+
+  def optional_callback(), do: "original"
+
+  def not_a_behaviour_callback(), do: "original"
+
+  defmacro required_macro_callback(boolean) do
+    quote do
+      if unquote(boolean) do
+        "original"
+      end
+    end
+  end
+
+  defoverridable Kernel.OverridableExampleBehaviour
+
+  def required_callback(), do: "overridden"
+
+  defmacro required_macro_callback(boolean) do
+    quote do
+      if unquote(boolean) do
+        "overridden"
+      end
+    end
+  end
+
+  defmacro optional_macro_callback(boolean, boolean2) do
+    quote do
+      if unquote(boolean) && unquote(boolean2) do
+        "defined optional for the first time"
+      end
+    end
+  end
+
+  def optional_callback(), do: "overridden"
+
+  def not_a_behaviour_callback(), do: "overridden"
+end
+
 defmodule Kernel.OverridableTest do
   defmodule OverridableOrder do
     def not_private(str) do
@@ -116,6 +166,11 @@ defmodule Kernel.OverridableTest do
 
   require Kernel.Overridable, as: Overridable
   use ExUnit.Case
+
+  defp purge(module) do
+    :code.purge(module)
+    :code.delete(module)
+  end
 
   test "overridable is made concrete if no other is defined" do
     assert Overridable.sample == 1
@@ -153,27 +208,109 @@ defmodule Kernel.OverridableTest do
 
   test "invalid super call" do
     message =
-      "nofile:4: no super defined for foo/0 in module Foo.Forwarding. " <>
+      "nofile:4: no super defined for foo/0 in module Kernel.OverridableOrder.Forwarding. " <>
       "Overridable functions available are: bar/0"
     assert_raise CompileError, message, fn ->
       Code.eval_string """
-      defmodule Foo.Forwarding do
+      defmodule Kernel.OverridableOrder.Forwarding do
         def bar(), do: 1
         defoverridable bar: 0
         def foo(), do: super()
       end
       """
     end
+
+    purge Kernel.OverridableOrder.Forwarding
   end
 
   test "undefined functions can't be marked as overridable" do
     message = "cannot make function foo/2 overridable because it was not defined"
     assert_raise ArgumentError, message, fn ->
       Code.eval_string """
-      defmodule Foo do
+      defmodule Kernel.OverridableOrder.Foo do
         defoverridable foo: 2
       end
       """
     end
+
+    purge Kernel.OverridableOrder.Foo
+  end
+
+  test "overrides required callback with behaviour as argument" do
+    assert Kernel.OverridableWithBehaviour.required_callback == "overridden"
+  end
+
+  test "overrides optional callback with behaviour as argument" do
+    assert Kernel.OverridableWithBehaviour.optional_callback == "overridden"
+  end
+
+  test "does not override function that is not a callback for this behaviour" do
+    assert Kernel.OverridableWithBehaviour.not_a_behaviour_callback == "original"
+  end
+
+  test "overrides required macro callback with behaviour as argument" do
+    require Kernel.OverridableWithBehaviour
+
+    assert Kernel.OverridableWithBehaviour.required_macro_callback(true) == "overridden"
+  end
+
+  test "specifies optional macro callback with behaviour as argument" do
+    require Kernel.OverridableWithBehaviour
+
+    assert Kernel.OverridableWithBehaviour.optional_macro_callback(true, true) == "defined optional for the first time"
+  end
+
+  test "undefined module can't be passed as argument to defoverridable" do
+    message = "cannot pass module Kernel.OverridableTest.Bar as argument to defoverridable/1 because it was not defined"
+    assert_raise ArgumentError, message, fn ->
+      Code.eval_string """
+      defmodule Kernel.OverridableTest.Foo do
+        defoverridable Kernel.OverridableTest.Bar
+      end
+      """
+    end
+    purge Kernel.OverridableTest.Foo
+  end
+
+  test "module without @behaviour can't be passed as argument to defoverridable" do
+    message = "cannot pass module Kernel.OverridableExampleBehaviour as argument to defoverridable/1" <>
+              " because its corresponding behaviour is missing. Did you forget to add " <>
+              "@behaviour Kernel.OverridableExampleBehaviour ?"
+    assert_raise ArgumentError, message, fn ->
+      Code.eval_string """
+      defmodule Kernel.OverridableTest.Foo do
+        defoverridable Kernel.OverridableExampleBehaviour
+      end
+      """
+    end
+    purge Kernel.OverridableTest.Foo
+  end
+
+  test "module with no callbacks can't be passed as argument to defoverridable" do
+    message = "cannot pass module Kernel.OverridableTest.Bar as argument to defoverridable/1 because it does not define any callbacks"
+    assert_raise ArgumentError, message, fn ->
+      Code.eval_string """
+      defmodule Kernel.OverridableTest.Bar do
+      end
+      defmodule Kernel.OverridableTest.Foo do
+        @behaviour Kernel.OverridableTest.Bar
+        defoverridable Kernel.OverridableTest.Bar
+      end
+      """
+    end
+    purge Kernel.OverridableTest.Bar
+    purge Kernel.OverridableTest.Foo
+  end
+
+  test "atom which is not a module can't be passed as argument to defoverridable" do
+    message = "cannot pass module :abc as argument to defoverridable/1 because it was not defined"
+    assert_raise ArgumentError, message, fn ->
+      Code.eval_string """
+      defmodule Kernel.OverridableTest.Foo do
+        defoverridable :abc
+      end
+      """
+    end
+    purge Kernel.OverridableTest.Foo
   end
 end

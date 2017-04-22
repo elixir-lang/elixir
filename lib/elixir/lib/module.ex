@@ -197,6 +197,8 @@ defmodule Module do
   The following attributes are part of typespecs and are also reserved by
   Elixir:
 
+    TODO: add @impl
+    TODO: add @protocol_metadata
     * `@type` - defines a type to be used in `@spec`
     * `@typep` - defines a private type to be used in `@spec`
     * `@opaque` - defines an opaque type to be used in `@spec`
@@ -861,6 +863,43 @@ defmodule Module do
     end, tuples)
   end
 
+  @spec make_overridable(module, module) :: :ok
+  def make_overridable(module, behaviour) when is_atom(module) and is_atom(behaviour) do
+    case check_module_for_overridable(module, behaviour) do
+      :ok -> :ok
+      {:error, error_explanation} ->
+        raise ArgumentError, "cannot pass module #{inspect(behaviour)} as argument to defoverridable/1 because #{error_explanation}"
+    end
+
+    behaviour_callbacks = for callback <- behaviour.behaviour_info(:callbacks),
+                          do: normalize_macro_or_function_callback(callback)
+
+    tuples = for function_tuple <- definitions_in(module),
+                 function_tuple in behaviour_callbacks,
+                 do: function_tuple
+
+    make_overridable(module, tuples)
+  end
+
+  defp check_module_for_overridable(module, behaviour) do
+    behaviour_definitions = :ets.lookup_element(data_table_for(module), :behaviour, 2)
+
+    cond do
+      not Code.ensure_compiled?(behaviour) -> {:error, "it was not defined"}
+      not function_exported?(behaviour, :behaviour_info, 1) -> {:error, "it does not define any callbacks"}
+      behaviour not in behaviour_definitions -> {:error, "its corresponding behaviour is missing. Did you forget to add @behaviour #{inspect(behaviour)} ?"}
+      true -> :ok
+    end
+  end
+
+  defp normalize_macro_or_function_callback({function_name, arity}) do
+    case :erlang.atom_to_list(function_name) do
+      # Macros are always provided one extra argument in behaviour_info
+      'MACRO-' ++ tail -> {:erlang.list_to_atom(tail), arity - 1}
+      _ -> {function_name, arity}
+    end
+  end
+
   @doc """
   Returns `true` if `tuple` in `module` is marked as overridable.
   """
@@ -1121,6 +1160,13 @@ defmodule Module do
         :ok
     end
 
+    case key do
+      :impl ->
+        set_doc_false_if_unset(table, unread_line)
+        warn_if_behaviour_unspecified_for_impl(module, value)
+      _ -> :ok
+    end
+
     case :ets.lookup(table, key) do
       [{^key, {line, <<_::binary>>}, accumulated?, _unread_line}]
           when key in [:doc, :typedoc, :moduledoc] and is_list(stack) ->
@@ -1137,6 +1183,25 @@ defmodule Module do
     :ok
   end
 
+  defp set_doc_false_if_unset(table, unread_line) do
+    case :ets.lookup(table, :doc) do
+      [{:doc, {_line, <<_::binary>>}, _accumulated?, _unread_line}] -> :doc_exists
+      [{:doc, {_line, false}, _accumulated?, _unread_line}] -> :doc_already_set_false
+      [] ->
+        :ets.insert(table, {:doc, {unread_line, false}, false, unread_line})
+    end
+  end
+
+  defp warn_if_behaviour_unspecified_for_impl(module, {_line_no, behaviour}) do
+    behaviours = get_attribute(module, :behaviour)
+    cond do
+     behaviour in behaviours -> :ok
+     true -> IO.warn "module attribute @impl was set but this module does not " <>
+                     "implement #{inspect(behaviour)}. Did you forget to specify" <>
+                     " @behaviour #{inspect(behaviour)} ?"
+    end
+  end
+
   ## Helpers
 
   defp preprocess_attribute(key, value) when key in [:moduledoc, :typedoc, :doc] do
@@ -1150,6 +1215,21 @@ defmodule Module do
         raise ArgumentError,
           "expected the #{key} attribute to be {line, doc} (where \"doc\" is " <>
           "a binary, a boolean, or nil), got: #{inspect(value)}"
+    end
+  end
+
+  defp preprocess_attribute(:impl, value) do
+    case value do
+      {line, module} when is_integer(line) and is_atom(module) ->
+        _ = Code.ensure_compiled(module)
+        value
+      {line, other} when is_integer(line) ->
+        raise ArgumentError,
+          "expected impl attribute to contain true or a module, got: #{inspect(other)}"
+      _other ->
+        raise ArgumentError,
+          "expected impl attribute to be {line, impl} (where \"impl\" is " <>
+          "true or a module), got: #{inspect(value)}"
     end
   end
 
