@@ -1163,11 +1163,6 @@ defmodule Module do
       _ -> :ok
     end
 
-      # [{:doc, {line, val}, accumulated?, _unread_line}] when key == :impl ->
-      #   IO.puts "HERE MOTHERFUCKER"
-      #   IO.inspect stack
-
-
     case :ets.lookup(table, key) do
       [{^key, {line, <<_::binary>>}, accumulated?, _unread_line}]
           when key in [:doc, :typedoc, :moduledoc] and is_list(stack) ->
@@ -1210,9 +1205,9 @@ defmodule Module do
   end
 
   defp preprocess_attribute(:impl, value) do
-    # TODO: check here to see if behaviour was already specified?
     case value do
       {line, module} when is_integer(line) and is_atom(module) ->
+        # TODO: check here to see if behaviour was already specified?
         Code.ensure_compiled(module)
         value
       {line, other} when is_integer(line) ->

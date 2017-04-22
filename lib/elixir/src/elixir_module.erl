@@ -326,6 +326,8 @@ format_error({unused_attribute, typedoc}) ->
   "module attribute @typedoc was set but no type follows it";
 format_error({unused_attribute, doc}) ->
   "module attribute @doc was set but no definition follows it";
+format_error({unused_attribute, impl}) ->
+  "module attribute @impl was set but no definition follows it";
 format_error({unused_attribute, Attr}) ->
   io_lib:format("module attribute @~ts was set but never used", [Attr]);
 format_error({invalid_module, Module}) ->

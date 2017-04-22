@@ -1,5 +1,14 @@
 Code.require_file "../test_helper.exs", __DIR__
 
+defmodule Kernel.WarningTest.FooBehaviour do
+  @callback foo :: any
+  @callback bar :: any
+end
+
+defmodule Kernel.WarningTest.BazBehaviour do
+  @callback baz :: any
+end
+
 defmodule Kernel.WarningTest do
   use ExUnit.Case
   import ExUnit.CaptureIO
@@ -764,6 +773,133 @@ defmodule Kernel.WarningTest do
     end)
     assert output =~ "variable \"self\" does not exist and is being expanded to \"self()\""
     assert output =~ "variable \"node\" does not exist and is being expanded to \"node()\""
+  after
+    purge Sample
+  end
+
+  ### impl warnings
+
+
+
+
+
+  test "impl with @behaviour not specified" do
+    assert capture_err(fn ->
+      Code.eval_string """
+      defmodule Sample do
+        @impl Kernel.WarningTest.FooBehaviour
+        def baz(), do: :ok
+      end
+      """
+    end) =~ "module attribute @impl was set but this module does not implement Kernel.WarningTest.FooBehaviour. Perhaps you forgot to specify @behaviour Kernel.WarningTest.FooBehaviour ?"
+  after
+    purge Sample
+  end
+
+  test "impl with different @behaviour specified" do
+    assert capture_err(fn ->
+      Code.eval_string """
+      defmodule Sample do
+        @behaviour Kernel.WarningTest.BazBehaviour
+
+        @impl Kernel.WarningTest.FooBehaviour
+        def foo(), do: :ok
+      end
+      """
+    end) =~ "module attribute @impl was set but this module does not implement Kernel.WarningTest.FooBehaviour. Perhaps you forgot to specify @behaviour Kernel.WarningTest.FooBehaviour ?"
+  after
+    purge Sample
+  end
+
+  test "impl with callback name not in behaviour" do
+    assert capture_err(fn ->
+      Code.eval_string """
+      defmodule Sample do
+        @behaviour Kernel.WarningTest.FooBehaviour
+
+        @impl Kernel.WarningTest.FooBehaviour
+        def baz(), do: :ok
+      end
+      """
+    end) =~ "module attribute @impl was set for function baz/0 but behaviour Kernel.WarningTest.FooBehaviour does not define this callback"
+  after
+    purge Sample
+  end
+
+  test "impl with correct callback name but incorrect callback arity" do
+    assert capture_err(fn ->
+      Code.eval_string """
+      defmodule Sample do
+        @behaviour Kernel.WarningTest.FooBehaviour
+
+        @impl Kernel.WarningTest.FooBehaviour
+        def foo(term), do: term
+      end
+      """
+    end) =~ "module attribute @impl was set for function foo/1 but behaviour Kernel.WarningTest.FooBehaviour does not define this callback. Perhaps you meant foo/0 ?"
+  after
+    purge Sample
+  end
+
+  test "impl with no function" do
+    assert capture_err(fn ->
+      Code.eval_string """
+      defmodule Sample do
+        @behaviour Kernel.WarningTest.FooBehaviour
+
+        @impl Kernel.WarningTest.FooBehaviour
+      end
+      """
+    end) =~ "module attribute @impl was set but no definition follows it"
+  after
+    purge Sample
+  end
+
+  test "no warnings when @impl not set" do
+    assert capture_err(fn ->
+      Code.eval_string """
+      defmodule Sample do
+        @behaviour Kernel.WarningTest.FooBehaviour
+
+        def foo(), do: :ok
+        def bar(), do: :ok
+      end
+      """
+    end) == ""
+  after
+    purge Sample
+  end
+
+  test "warnings for functions without impl when @impl set before" do
+    assert capture_err(fn ->
+      Code.eval_string """
+      defmodule Sample do
+        @behaviour Kernel.WarningTest.FooBehaviour
+
+        @impl Kernel.WarningTest.FooBehaviour
+        def foo(), do: :ok
+
+        def bar(), do: :ok
+      end
+      """
+    end) =~ "module attribute @impl was not set for function bar/0 (callback specified in Kernel.WarningTest.FooBehaviour)"
+  after
+    purge Sample
+  end
+
+  test "warnings for functions without impl when @impl set after" do
+    assert capture_err(fn ->
+      Code.eval_string """
+      defmodule Sample do
+        @behaviour Kernel.WarningTest.FooBehaviour
+
+        def foo(), do: :ok
+
+        @impl Kernel.WarningTest.FooBehaviour
+        def bar(), do: :ok
+      end
+      """
+    end) =~ "module attribute @impl was not set for function foo/0 (callback specified in Kernel.WarningTest.FooBehaviour)"
   after
     purge Sample
   end
