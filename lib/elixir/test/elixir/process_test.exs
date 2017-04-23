@@ -86,9 +86,10 @@ defmodule ProcessTest do
     assert Process.cancel_timer(timer) == false
 
     timer = Process.send_after(self(), :hello, 100_000)
-    assert Process.cancel_timer(timer, async: true, info: true)
+    assert Process.cancel_timer(timer, async: true)
     assert_receive {:cancel_timer, ^timer, result}
     assert is_integer(result)
+    assert Process.cancel_timer(timer, info: false) == :ok
   end
 
   test "exit(pid, :normal) does not cause the target process to exit" do
