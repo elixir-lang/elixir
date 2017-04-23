@@ -172,7 +172,12 @@ split_definition([], _File, _Unreachable, Def, Defp, Defmacro, Defmacrop, Export
 add_definition(Meta, Body, {Head, Tail}) ->
   case lists:keyfind(location, 1, Meta) of
     {location, {F, L}} ->
-      Attr = {attribute, ?ann(Meta), file, {elixir_utils:characters_to_list(F), L}},
+      %% Erlang's epp attempts to perform offsetting when generated is set to true
+      %% and that causes cover to fail when processing modules. Therefore we never
+      %% pass the generated annotation forward for file attributes. The function
+      %% will still be marked as generated though if that's the case.
+      FileMeta = erl_anno:set_generated(false, ?ann(Meta)),
+      Attr = {attribute, FileMeta, file, {elixir_utils:characters_to_list(F), L}},
       {Head, [Attr, Body | Tail]};
     false ->
       {[Body | Head], Tail}
