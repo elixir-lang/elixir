@@ -52,9 +52,9 @@ translate_gen(_Meta, Left, Right, T, S) ->
   {TLeft, SL} = elixir_erl_clauses:match(fun elixir_erl_pass:translate/2, LeftArgs,
                                      SR#elixir_erl{extra=pin_guard, extra_guards=[]}),
 
-  {TLeftGuards, SG} = elixir_erl_clauses:guards(LeftGuards, [], SL),
-  ExtraGuards = [{nil, X} || X <- SG#elixir_erl.extra_guards],
-  SF = SG#elixir_erl{extra=S#elixir_erl.extra, extra_guards=nil},
+  TLeftGuards = elixir_erl_clauses:guards(LeftGuards, [], SL),
+  ExtraGuards = [{nil, X} || X <- SL#elixir_erl.extra_guards],
+  SF = SL#elixir_erl{extra=S#elixir_erl.extra, extra_guards=nil},
 
   {TT, {TFilters, TS}} = translate_filters(T, SF),
 

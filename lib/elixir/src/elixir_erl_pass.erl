@@ -509,35 +509,26 @@ translate_remote('Elixir.String.Chars', to_string, Meta, [Arg], S) ->
         {clause, Generated, [Var], [], [Slow]}
       ]}, VS}
   end;
-translate_remote(erlang, Right, Meta, Args, S) ->
-  {TArgs, SA} = translate_args(Args, S),
-  Ann = ?ann(Meta),
-  Arity = length(Args),
-  TLeft = {atom, Ann, erlang},
-  TRight = {atom, Ann, Right},
-  case erlang_call_type(Right, Arity) of
-    guard_op ->
-      %% Rewrite Erlang function calls as operators so they
-      %% work on guards, matches and so on.
-      case TArgs of
-        [TOne] -> {{op, Ann, Right, TOne}, SA};
-        [TOne, TTwo] -> {{op, Ann, Right, TOne, TTwo}, SA}
-      end;
-    {type_check, Type} ->
-      ST = elixir_erl:put_type(hd(TArgs), Type, SA),
-      {{call, Ann, {remote, Ann, TLeft, TRight}, TArgs}, ST};
-    regular ->
-      {{call, Ann, {remote, Ann, TLeft, TRight}, TArgs}, SA}
-  end;
 translate_remote(Left, Right, Meta, Args, S) ->
   {TLeft, SL} = translate(Left, S),
   {TArgs, SA} = translate_args(Args, mergec(S, SL)),
 
-  Ann = ?ann(Meta),
+  Ann    = ?ann(Meta),
+  Arity  = length(Args),
   TRight = {atom, Ann, Right},
   SC = mergev(SL, SA),
 
-  {{call, Ann, {remote, Ann, TLeft, TRight}, TArgs}, SC}.
+  %% Rewrite Erlang function calls as operators so they
+  %% work on guards, matches and so on.
+  case (Left == erlang) andalso elixir_utils:guard_op(Right, Arity) of
+    true ->
+      case TArgs of
+        [TOne]       -> {{op, Ann, Right, TOne}, SC};
+        [TOne, TTwo] -> {{op, Ann, Right, TOne, TTwo}, SC}
+      end;
+    false ->
+      {{call, Ann, {remote, Ann, TLeft, TRight}, TArgs}, SC}
+  end.
 
 %% Types
 
@@ -555,13 +546,3 @@ assign_type_1(Expr, MaybeVar, S) ->
 
 is_var({var, _, _}) -> true;
 is_var(_) -> false.
-
-erlang_call_type(is_map, _Arity) -> {type_check, map};
-erlang_call_type(is_atom, _Arity) -> {type_check, atom};
-erlang_call_type(is_tuple, _Arity) -> {type_check, tuple};
-erlang_call_type(is_binary, _Arity) -> {type_check, binary};
-erlang_call_type(Other, Arity) ->
-  case elixir_utils:guard_op(Other, Arity) of
-    true -> guard_op;
-    false -> regular
-  end.

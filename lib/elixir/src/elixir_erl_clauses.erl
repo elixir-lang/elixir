@@ -32,10 +32,10 @@ match(Fun, Args, S) -> Fun(Args, S).
 
 clause(Meta, Fun, Args, Expr, Guards, S) when is_list(Meta) ->
   {TArgs, SA} = match(Fun, Args, S#elixir_erl{extra_guards=[]}),
-  Extra = SA#elixir_erl.extra_guards,
-  {TGuards, SG} = guards(Guards, Extra, SA),
   {TExpr, SE} = elixir_erl_pass:translate(Expr,
-                  SG#elixir_erl{extra_guards=nil, export_vars=S#elixir_erl.export_vars}),
+                  SA#elixir_erl{extra_guards=nil, export_vars=S#elixir_erl.export_vars}),
+  Extra = SA#elixir_erl.extra_guards,
+  TGuards = guards(Guards, Extra, SA),
   {{clause, ?ann(Meta), TArgs, TGuards, unblock(TExpr)}, SE}.
 
 % Translate/Extract guards from the given expression.
@@ -44,19 +44,12 @@ guards(Guards, Extra, S) ->
   SG = S#elixir_erl{context=guard, extra_guards=nil},
 
   case Guards of
-    [] ->
-      case Extra of [] -> {[], S}; _ -> {[Extra], S} end;
-    _ ->
-      {TGuards, ST} = translate_guards(Guards, Extra, SG),
-      {TGuards, ST#elixir_erl{context=S#elixir_erl.context, extra_guards=S#elixir_erl.extra_guards}}
+    [] -> case Extra of [] -> []; _ -> [Extra] end;
+    _  -> [translate_guard(Guard, Extra, SG) || Guard <- Guards]
   end.
 
-translate_guards(Guards, Extra, S) ->
-  Fun = fun(Guard, SG) ->
-    {TGuard, ST} = elixir_erl_pass:translate(Guard, SG#elixir_erl{extra_guards=nil}),
-    {[TGuard | Extra], ST}
-  end,
-  lists:mapfoldl(Fun, S, Guards).
+translate_guard(Guard, Extra, S) ->
+    [element(1, elixir_erl_pass:translate(Guard, S)) | Extra].
 
 % Function for translating macros with match style like case and receive.
 
