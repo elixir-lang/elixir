@@ -55,12 +55,14 @@ build_rescue(Meta, Parts, Body, S) ->
   {{clause, Line, TMatches, _, TBody}, TS} =
     elixir_erl_clauses:clause(Meta, fun elixir_erl_pass:translate_args/2,
                           Matches, Body, [], S),
+
   TClauses =
     [begin
       TArgs = [{tuple, Line, [{atom, Line, error}, TMatch, {var, Line, '_'}]}],
       {TGuards, _} = elixir_erl_clauses:guards(Guards, [], TS),
       {clause, Line, TArgs, TGuards, TBody}
      end || {TMatch, {_, Guards}} <- lists:zip(TMatches, Parts)],
+
   {TClauses, TS}.
 
 %% Convert rescue clauses ("var in [alias1, alias2]") into guards.

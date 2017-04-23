@@ -476,37 +476,34 @@ put_type({var, _, Name}, Type, #elixir_erl{ssa_types=Types} = S) ->
 put_type(_Expr, _Type, S) ->
   S.
 
--define(OP(Name, Left, Right),
-        {op, _, (Name), (Left), (Right)}).
-
 %% When extracting type information from guards, we can't use anything
 %% containing an alternative: 'or', 'orelse', or ';'
 
 type_guards([], S) ->
-    S;
+  S;
 type_guards([Exprs], S) ->
-    lists:foldl(fun type_guard/2, S, Exprs);
+  lists:foldl(fun type_guard/2, S, Exprs);
 type_guards(_Alternative, S) ->
-    S.
+  S.
 
 type_guard({call, _, {remote, _, {atom, _, erlang}, {atom, _, Fun}}, [Var|_]}, S) ->
-    type_check(Var, Fun, S);
+  type_check(Var, Fun, S);
 type_guard({op, _, 'andalso', Left, Right}, S) ->
-    SL = type_guard(Left, S),
-    type_guard(Right, SL);
+  SL = type_guard(Left, S),
+  type_guard(Right, SL);
 type_guard({op, _, 'and', Left, Right}, S) ->
-    SL = type_guard(Left, S),
-    type_guard(Right, SL);
+  SL = type_guard(Left, S),
+  type_guard(Right, SL);
 type_guard(_Other, S) ->
-    S.
+  S.
 
 type_check(Var, is_map, S) ->
-    put_type(Var, map, S);
+  put_type(Var, map, S);
 type_check(Var, is_atom, S) ->
-    put_type(Var, atom, S);
+  put_type(Var, atom, S);
 type_check(Var, is_tuple, S) ->
-    put_type(Var, tuple, S);
+  put_type(Var, tuple, S);
 type_check(Var, is_binary, S) ->
-    put_type(Var, binary, S);
+  put_type(Var, binary, S);
 type_check(_Var, _Check, S) ->
-    S.
+  S.

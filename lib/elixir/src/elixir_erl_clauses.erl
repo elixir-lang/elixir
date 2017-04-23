@@ -52,7 +52,7 @@ guards(Guards, Extra, S) ->
   {TGuards, ST}.
 
 translate_guard(Guard, Extra, S) ->
-    [element(1, elixir_erl_pass:translate(Guard, S)) | Extra].
+  [element(1, elixir_erl_pass:translate(Guard, S)) | Extra].
 
 % Function for translating macros with match style like case and receive.
 
