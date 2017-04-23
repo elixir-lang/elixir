@@ -149,7 +149,7 @@ Many other Elixir constructs, such as `=`, `when`, `&` and `@` are simply treate
 
 ### Aliases
 
-Aliases are constructs that expands to atoms at compile-time. The alias `String` expands to the atom `:"Elixir.String"`. Aliases must start with an uppercase character which may be followed by any ascii letter, number, or underscore. [Elixir's naming conventions](naming-conventions.html) propose aliases to be in `CamelCase` format.
+Aliases are constructs that expand to atoms at compile-time. The alias `String` expands to the atom `:"Elixir.String"`. Aliases must start with an uppercase character which may be followed by any ascii letter, number, or underscore. [Elixir's naming conventions](naming-conventions.html) propose aliases to be in `CamelCase` format.
 
 Aliases are represented by an `__aliases__` call with each segment separated by dot as an argument:
 
@@ -173,7 +173,7 @@ Qualified calls, such as `Math.add(1, 2)`, must start with lowercase characters 
 
 For qualified calls, Elixir also allows the function name to be written between double- or single-quotes, allowing calls such as `Math."++add++"(1, 2)`. Operators can be used as qualified calls without a need for quote, such as `Kernel.+(1, 2)`.
 
-Qualified calls are represented as a tuple with three elements at the AST where the first element is the a tuple reprsenting the dot:
+Qualified calls are represented as a tuple with three elements in the AST where the first element is the a tuple reprsenting the dot:
 
 ```elixir
 quote do
@@ -188,7 +188,7 @@ Data structures such as lists, tuples, and binaries are marked respectively by t
 
 Maps use the `%{...}` notation and each key-value is given by pairs marked with `=>`, such as `%{"hello" => 1, 2 => "world"}`.
 
-Both maps and keyword lists supports a notation for when the keys are atoms. Keywords are written using the same rules as atoms, except the colon character `:` is moved to the end, such as `%{hello: "world"}` and `[foo: :bar]`. This notation is a syntax sugar that emits the same AST representation. It will be explained in later sections.
+Both maps and keyword lists support a notation for when the keys are atoms. Keywords are written using the same rules as atoms, except the colon character `:` is moved to the end, such as `%{hello: "world"}` and `[foo: :bar]`. This notation is a syntax sugar that emits the same AST representation. It will be explained in later sections.
 
 Lists are represented as themselves in the AST:
 
@@ -222,7 +222,7 @@ end
 #=> {:<<>>, [], [1, 2, 3]}
 ```
 
-The same applies to maps except pairs a treated as a list of tuples with two elements:
+The same applies to maps except pairs are treated as a list of tuples with two elements:
 
 ```elixir
 quote do
@@ -344,7 +344,7 @@ The same applies to qualified calls such as `Foo.bar(1, 2, 3)`, which is the sam
 
 ### Access
 
-The access syntax in Elixir, such as `foo[:bar]`, is treated as a shorcut to the remote call `Access.get(foo, :bar)`:
+The access syntax in Elixir, such as `foo[:bar]`, is treated as a shortcut to the remote call `Access.get(foo, :bar)`:
 
 ```elixir
 quote do
@@ -472,7 +472,7 @@ if(true, do: (
 ))
 ```
 
-Inside `do`/`end` blocks may introduce other keywords, such as `else` used in the `if` above. The supported keywords between `do`/`end` are static and are:
+Inside `do`/`end` blocks you may introduce other keywords, such as `else` used in the `if` above. The supported keywords between `do`/`end` are static and are:
 
   * `after`
   * `catch`
