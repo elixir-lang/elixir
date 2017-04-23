@@ -449,14 +449,14 @@ get_expr_type({map, _, Keys}) ->
   struct_or_map(Keys);
 get_expr_type({atom, _, _}) ->
   atom;
+%% We'd need to check if it's a binary or a bitstring, we only want binaries
+%% we can't perform any optimisations with bitstrings
 %% get_expr_type({bin, _, Elems}) ->
 %%   binary;
-%% get_expr_type({lc, _, _, _}) ->
-%%   list;
 %% get_expr_type({bc, _, _, _}) ->
 %%   binary;
-get_expr_type({tuple, _, Keys}) ->
-  {tuple, length(Keys)};
+get_expr_type({tuple, _, _}) ->
+  tuple;
 get_expr_type(_Other) ->
   term.
 

@@ -200,7 +200,7 @@ translate({{'.', _, [Left, Right]}, Meta, []}, S)
         TExtractClause,
         {clause, Generated, [TVar], [], [TErrorCall]}
       ]}, SL};
-    Module when Module =:= atom; element(1, Module) =:= tuple ->
+    Module when Module =:= atom; Module =:= tuple ->
       {TRemoteCall, SL};
     _Other ->
       {{'case', Generated, TLeft, [
