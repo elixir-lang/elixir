@@ -255,7 +255,7 @@ defmodule Access do
   a key, or `:error` if `key` is not found.
   """
   @spec fetch(container, term) :: {:ok, term} | :error
-  @spec fetch(nil, any) :: :error
+  @spec fetch(nil_container, any) :: :error
   def fetch(container, key)
 
   def fetch(%{__struct__: struct} = container, key) do
@@ -290,7 +290,7 @@ defmodule Access do
   not found.
   """
   @spec get(container, term, term) :: term
-  @spec get(nil, any, default) :: default when default: var
+  @spec get(nil_container, any, default) :: default when default: var
   def get(container, key, default \\ nil) do
     case fetch(container, key) do
       {:ok, value} -> value
