@@ -221,27 +221,21 @@ defmodule Calendar.ISO do
   Converts the given time into a string.
   """
   def time_to_string(hour, minute, second, microsecond, format \\ :extended)
+
   def time_to_string(hour, minute, second, {_, 0}, format) do
-    case format do
-      :extended -> time_to_string_extended(hour, minute, second)
-      :basic -> time_to_string_basic(hour, minute, second)
-    end
+    time_to_string_format(hour, minute, second, format)
   end
 
   def time_to_string(hour, minute, second, {microsecond, precision}, format) do
-    time = case format do
-      :extended -> time_to_string_extended(hour, minute, second)
-      :basic -> time_to_string_basic(hour, minute, second)
-    end
-
-    time <> "." <> (microsecond |> zero_pad(6) |> binary_part(0, precision))
+    time_to_string_format(hour, minute, second, format) <>
+      "." <> (microsecond |> zero_pad(6) |> binary_part(0, precision))
   end
 
-  defp time_to_string_extended(hour, minute, second) do
+  defp time_to_string_format(hour, minute, second, :extended) do
     zero_pad(hour, 2) <> ":" <> zero_pad(minute, 2) <> ":" <> zero_pad(second, 2)
   end
 
-  defp time_to_string_basic(hour, minute, second) do
+  defp time_to_string_format(hour, minute, second, :basic) do
     zero_pad(hour, 2) <> zero_pad(minute, 2) <> zero_pad(second, 2)
   end
 
@@ -290,10 +284,10 @@ defmodule Calendar.ISO do
   defp offset_to_string(utc, std, zone, format \\ :extended)
   defp offset_to_string(0, 0, "Etc/UTC", _format), do: "Z"
   defp offset_to_string(utc, std, _zone, format) do
-    total  = utc + std
+    total = utc + std
     second = abs(total)
     minute = second |> rem(3600) |> div(60)
-    hour   = second |> div(3600)
+    hour = div(second, 3600)
     format_offset(total, hour, minute, format)
   end
 

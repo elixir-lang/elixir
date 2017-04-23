@@ -239,6 +239,7 @@ defmodule Date do
   """
   @spec to_iso8601(Date.t, :extended | :basic) :: String.t
   def to_iso8601(date, format \\ :extended)
+
   def to_iso8601(%Date{} = date, format) when format in [:basic, :extended] do
     %{year: year, month: month, day: day} = convert!(date, Calendar.ISO)
     Calendar.ISO.date_to_iso8601(year, month, day, format)
