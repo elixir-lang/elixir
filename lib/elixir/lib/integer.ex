@@ -241,9 +241,10 @@ defmodule Integer do
 
   def parse(binary, base) do
     case count_digits(binary, base) do
-      0 -> :error
-      n ->
-        {digits, rem} = :erlang.split_binary(binary, n)
+      0 ->
+        :error
+      count ->
+        {digits, rem} = :erlang.split_binary(binary, count)
         {:erlang.binary_to_integer(digits, base), rem}
     end
   end
@@ -251,7 +252,7 @@ defmodule Integer do
   defp count_digits(<<sign, rest::binary>>, base) when sign in '+-' do
     case count_digits_nosign(rest, base, 1) do
       1 -> 0
-      n -> n
+      count -> count
     end
   end
 

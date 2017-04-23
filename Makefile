@@ -178,7 +178,7 @@ docs_logger: compile ../ex_doc/bin/ex_doc
 	@ echo "ex_doc is not found in ../ex_doc as expected. See README for more information."
 	@ false
 
-#==> Zips tasks
+#==> Zip tasks
 
 Docs.zip: docs
 	rm -f Docs-v$(VERSION).zip
