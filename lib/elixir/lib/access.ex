@@ -178,7 +178,7 @@ defmodule Access do
   Invoked in order to access the value stored under `key` in the given term `term`,
   defaulting to `default` if not present.
 
-  This function should return the value under the key `key` in `term` if there's
+  This function should return the value under `key` in `term` if there's
   such key, otherwise `default`.
 
   For most data structures, this can be implemented using `fetch/2` internally;
@@ -200,7 +200,7 @@ defmodule Access do
   Invoked in order to access the value under `key` and update it at the same time.
 
   The implementation of this callback should invoke `fun` with the value under
-  key `key` in the passed structure `data`, or with `nil` if `key` is not present in it.
+  `key` in the passed structure `data`, or with `nil` if `key` is not present in it.
   This function must return either `{get_value, update_value}` or `:pop`.
 
   If the passed function returns `{get_value, update_value}`,
@@ -211,7 +211,7 @@ defmodule Access do
 
   If the passed function returns `:pop`, the return value of this callback
   must be `{value, new_data}` where `value` is the value under `key`
-  (or `nil` if not present) and `new_data` is `data` without the key `key`.
+  (or `nil` if not present) and `new_data` is `data` without `key`.
 
   See the implementations of `Map.get_and_update/3` or `Keyword.get_and_update/3`
   for more examples.
@@ -222,11 +222,11 @@ defmodule Access do
   @doc """
   Invoked to "pop" the value under `key` out of the given data structure.
 
-  When the key `key` exists in the given structure `data`, the implementation should
+  When `key` exists in the given structure `data`, the implementation should
   return a `{value, new_data}` tuple where `value` is the value that was under
   `key` and `new_data` is `term` without `key`.
 
-  When the key `key` is not present in the given structure, a tuple `{value, data}`
+  When `key` is not present in the given structure, a tuple `{value, data}`
   should be returned, where `value` is implementation-defined.
 
   See the implementations for `Map.pop/3` or `Keyword.pop/3` for more examples.

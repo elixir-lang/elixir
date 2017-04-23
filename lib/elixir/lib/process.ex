@@ -71,7 +71,7 @@ defmodule Process do
   Stores the given `key`-`value` pair in the process dictionary.
 
   The return value of this function is the value that was previously stored
-  under the key `key`, or `nil` in case no value was stored under `key`.
+  under `key`, or `nil` in case no value was stored under `key`.
 
   ## Examples
 

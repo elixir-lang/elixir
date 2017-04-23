@@ -39,7 +39,7 @@ defmodule Map do
 
   The alternative access syntax `map.key` is provided alongside `[]` when the
   map has a `:key` key; note that while `map[key]` will return `nil` if `map`
-  doesn't contain the key `key`, `map.key` will raise if `map` doesn't contain
+  doesn't contain `key`, `map.key` will raise if `map` doesn't contain
   the key `:key`.
 
       iex> map = %{foo: "bar", baz: "bong"}
