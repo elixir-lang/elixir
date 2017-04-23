@@ -54,7 +54,7 @@
   * [Calendar] Deprecate `NaiveDateTime` and `DateTime` in `Date.to_iso8601/1`, `Date.to_erl/1`, `Time.to_iso8601/1` and `Time.to_erl/1` to avoid loss of precision
   * [GenEvent] Hard deprecate `GenEvent` and provide alternatives in its docs
   * [Kernel] Using `()` to mean `nil` is deprecated
-  * [Kernel] `Atom.to_char_list/1`, `Float.to_char_list/1`, `Integer.to_char_list/1`, `Kernel.to_char_list/1`, `String.to_char_list/1` have been deprecated in favor of their `to_charlist/1` version. This aligns with the naming conventions in both Erlang and Elixir
+  * [Kernel] `Atom.to_char_list/1`, `Float.to_char_list/1`, `Integer.to_char_list/1`, `Kernel.to_char_list/1`, `String.to_char_list/1` have been deprecated in favor of their `to_charlist/1` version. This aligns with the naming conventions in both Erlang and Elixir
   * [Kernel] `:as_char_lists value` in `Inspect.Opts.t/0` type, in favor of `:as_charlists`
   * [Kernel] `:char_lists` key in `Inspect.Opts.t/0` type, in favor of `:charlists`
   * [Module] Using Erlang parse transforms via `@compile {:parse_transform, _}` is deprecated
