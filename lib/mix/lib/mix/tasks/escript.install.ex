@@ -40,16 +40,17 @@ defmodule Mix.Tasks.Escript.Install do
   ## Command line options
 
     * `--sha512` - checks the escript matches the given SHA-512 checksum. Only
-      applies to installations via URL or local path.
+      applies to installations via URL or local path
 
     * `--force` - forces installation without a shell prompt; primarily
-      intended for automation in build systems like Make.
+      intended for automation in build systems like Make
 
     * `--submodules` - fetches repository submodules before building escript from
-      Git or GitHub.
+      Git or GitHub
 
     * `--app` - specifies a custom app name to be used for building the escript
-      from Git, GitHub, or Hex.
+      from Git, GitHub, or Hex
+
   """
 
   @behaviour Mix.Local.Installer
