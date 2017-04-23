@@ -13,7 +13,7 @@ translate({'=', Meta, [{'_', _, Atom}, Right]}, S) when is_atom(Atom) ->
 translate({'=', Meta, [Left, Right]}, S) ->
   {TRight, SR} = translate(Right, S),
   {TLeft, SL} = elixir_erl_clauses:match(fun translate/2, Left, SR),
-  ST = assign_type(TLeft, TRight, SL),
+  ST = assign_type(TRight, TLeft, SL),
   {{match, ?ann(Meta), TLeft, TRight}, ST};
 
 %% Containers
@@ -532,17 +532,17 @@ translate_remote(Left, Right, Meta, Args, S) ->
 
 %% Types
 
-assign_type(TLeft, TRight, #elixir_erl{context = match} = S) ->
+assign_type(TRight, TLeft, #elixir_erl{context = match} = S) ->
   case is_var(TLeft) of
     true -> assign_type_1(TRight, TLeft, S);
     false -> assign_type_1(TLeft, TRight, S)
   end;
-assign_type(TLeft, TRight, S) ->
-  assign_type_1(TLeft, TRight, S).
+assign_type(TRight, TLeft, S) ->
+  assign_type_1(TRight, TLeft, S).
 
 assign_type_1(Expr, MaybeVar, S) ->
-    Type = elixir_erl:get_type(Expr, S),
-    elixir_erl:put_type(MaybeVar, Type, S).
+  Type = elixir_erl:get_type(Expr, S),
+  elixir_erl:put_type(MaybeVar, Type, S).
 
 is_var({var, _, _}) -> true;
 is_var(_) -> false.
