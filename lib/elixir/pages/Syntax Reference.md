@@ -379,8 +379,8 @@ quote do
 end
 #=> {:sigil_m, [], [{:<<>>, [], ["foo"]}, 'abc']}
 ```
-If the sigil letter is lowercase interpolation is supported and its contents may be dynamic.
-Compare the quotes below for more information:
+
+If the sigil letter is in uppercase, no interpolation is allowed in the sigil, otherwise its contents may be dynamic. Compare the quotes below for more information:
 
 ```elixir
 quote do
@@ -485,7 +485,7 @@ You can see them being used in constructs such as `receive`, `try`, and others.
 
 This document provides a quick reference to Elixir syntax, exploring the simplicity behind its AST and documenting the base constructs with their AST equivalents.
 
-We have also discussed a handful of syntax conveniences provided by Elixir. Those conveniences enable us to write
+We have also discussed a handful of syntax conveniences provided by Elixir. Those conveniences are what allow us to write
 
 ```elixir
 defmodule Math do
