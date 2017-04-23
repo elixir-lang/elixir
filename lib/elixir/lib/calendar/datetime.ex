@@ -318,6 +318,7 @@ defmodule DateTime do
       ...>                utc_offset: -14400, std_offset: 0, time_zone: "America/Manaus"}
       iex> DateTime.to_iso8601(dt, :basic)
       "20000229T230007-0400"
+
   """
   @spec to_iso8601(Calendar.datetime, :extended | :basic ) :: String.t
   def to_iso8601(datetime, format \\ :extended)
