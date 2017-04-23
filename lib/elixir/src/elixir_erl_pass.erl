@@ -13,7 +13,7 @@ translate({'=', Meta, [{'_', _, Atom}, Right]}, S) when is_atom(Atom) ->
 translate({'=', Meta, [Left, Right]}, S) ->
   {TRight, SR} = translate(Right, S),
   {TLeft, SL} = elixir_erl_clauses:match(fun translate/2, Left, SR),
-  ST = assign_type(Left, Right, TLeft, TRight, SL),
+  ST = assign_type(TLeft, TRight, SL),
   {{match, ?ann(Meta), TLeft, TRight}, ST};
 
 %% Containers
@@ -180,29 +180,41 @@ translate({Name, Meta, Args}, S) when is_atom(Name), is_list(Meta), is_list(Args
 
 translate({{'.', _, [Left, Right]}, Meta, []}, S)
     when is_tuple(Left), is_atom(Right), is_list(Meta) ->
-  {TLeft, SL}  = translate(Left, S),
-  {Var, _, SV} = elixir_erl_var:build('_', SL),
-
   Ann = ?ann(Meta),
   Generated = erl_anno:set_generated(true, Ann),
+  {Var, _, SV} = elixir_erl_var:build('_', S),
+
+  {TLeft, SL} = translate(Left, SV),
   TRight = {atom, Ann, Right},
   TVar = {var, Ann, Var},
   TError = {tuple, Ann, [{atom, Ann, badkey}, TRight, TVar]},
-
-  {{'case', Generated, TLeft, [
-    {clause, Generated,
-      [{map, Ann, [{map_field_exact, Ann, TRight, TVar}]}],
-      [],
-      [TVar]},
-    {clause, Generated,
-      [TVar],
-      [[elixir_erl:remote(Generated, erlang, is_map, [TVar])]],
-      [elixir_erl:remote(Ann, erlang, error, [TError])]},
-    {clause, Generated,
-      [TVar],
-      [],
-      [{call, Generated, {remote, Generated, TVar, TRight}, []}]}
-  ]}, SV};
+  TErrorCall = elixir_erl:remote(Ann, erlang, error, [TError]),
+  TRemoteCall = {call, Generated, {remote, Generated, TLeft, TRight}, []},
+  TExtractClause = {clause, Generated,
+                    [{map, Ann, [{map_field_exact, Ann, TRight, TVar}]}],
+                    [],
+                    [TVar]},
+  case elixir_erl:get_type(TLeft, SL) of
+    Map when Map =:= map; element(1, Map) =:= struct ->
+      {{'case', Generated, TLeft, [
+        TExtractClause,
+        {clause, Generated, [TVar], [], [TErrorCall]}
+      ]}, SL};
+    Module when Module =:= atom; element(1, Module) =:= tuple ->
+      {TRemoteCall, SL};
+    _Other ->
+      {{'case', Generated, TLeft, [
+        TExtractClause,
+        {clause, Generated,
+         [TVar],
+         [[elixir_erl:remote(Generated, erlang, is_map, [TVar])]],
+         [TErrorCall]},
+        {clause, Generated,
+         [TVar],
+         [],
+         [TRemoteCall]}
+      ]}, SL}
+  end;
 
 translate({{'.', _, [Left, Right]}, Meta, Args}, S)
     when (is_tuple(Left) orelse is_atom(Left)), is_atom(Right), is_list(Meta), is_list(Args) ->
@@ -481,63 +493,75 @@ extract_bit_type({Other, _, []}, Acc) ->
 
 translate_remote('Elixir.String.Chars', to_string, Meta, [Arg], S) ->
   {TArg, TS} = translate(Arg, S),
-  {VarName, _, VS} = elixir_erl_var:build(rewrite, TS),
+  case elixir_erl:get_type(TArg, TS) of
+    binary ->
+      {TArg, TS};
+    _Other ->
+      {VarName, _, VS} = elixir_erl_var:build(rewrite, TS),
+      Generated = erl_anno:set_generated(true, ?ann(Meta)),
+      Var   = {var, Generated, VarName},
+      Guard = elixir_erl:remote(Generated, erlang, is_binary, [Var]),
+      Slow  = elixir_erl:remote(Generated, 'Elixir.String.Chars', to_string, [Var]),
+      Fast  = Var,
 
-  Generated = erl_anno:set_generated(true, ?ann(Meta)),
-  Var   = {var, Generated, VarName},
-  Guard = elixir_erl:remote(Generated, erlang, is_binary, [Var]),
-  Slow  = elixir_erl:remote(Generated, 'Elixir.String.Chars', to_string, [Var]),
-  Fast  = Var,
-
-  {{'case', Generated, TArg, [
-    {clause, Generated, [Var], [[Guard]], [Fast]},
-    {clause, Generated, [Var], [], [Slow]}
-  ]}, VS};
+      {{'case', Generated, TArg, [
+        {clause, Generated, [Var], [[Guard]], [Fast]},
+        {clause, Generated, [Var], [], [Slow]}
+      ]}, VS}
+  end;
+translate_remote(erlang, Right, Meta, Args, S) ->
+  {TArgs, SA} = translate_args(Args, S),
+  Ann = ?ann(Meta),
+  Arity = length(Args),
+  TLeft = {atom, Ann, erlang},
+  TRight = {atom, Ann, Right},
+  case erlang_call_type(Right, Arity) of
+    guard_op ->
+      %% Rewrite Erlang function calls as operators so they
+      %% work on guards, matches and so on.
+      case TArgs of
+        [TOne] -> {{op, Ann, Right, TOne}, SA};
+        [TOne, TTwo] -> {{op, Ann, Right, TOne, TTwo}, SA}
+      end;
+    {type_check, Type} ->
+      ST = elixir_erl:put_type(hd(TArgs), Type, SA),
+      {{call, Ann, {remote, Ann, TLeft, TRight}, TArgs}, ST};
+    regular ->
+      {{call, Ann, {remote, Ann, TLeft, TRight}, TArgs}, SA}
+  end;
 translate_remote(Left, Right, Meta, Args, S) ->
   {TLeft, SL} = translate(Left, S),
   {TArgs, SA} = translate_args(Args, mergec(S, SL)),
 
-  Ann    = ?ann(Meta),
-  Arity  = length(Args),
+  Ann = ?ann(Meta),
   TRight = {atom, Ann, Right},
   SC = mergev(SL, SA),
 
-  %% Rewrite Erlang function calls as operators so they
-  %% work on guards, matches and so on.
-  case (Left == erlang) andalso elixir_utils:guard_op(Right, Arity) of
-    true ->
-      case TArgs of
-        [TOne]       -> {{op, Ann, Right, TOne}, SC};
-        [TOne, TTwo] -> {{op, Ann, Right, TOne, TTwo}, SC}
-      end;
-    false ->
-      {{call, Ann, {remote, Ann, TLeft, TRight}, TArgs}, SC}
-  end.
+  {{call, Ann, {remote, Ann, TLeft, TRight}, TArgs}, SC}.
 
 %% Types
 
-assign_type(Left, Right, TLeft, TRight, #elixir_erl{context = match} = S) ->
-  case is_var(Left) of
-    true -> assign_type(Right, TLeft, S);
-    false -> assign_type(Left, TRight, S)
+assign_type(TLeft, TRight, #elixir_erl{context = match} = S) ->
+  case is_var(TLeft) of
+    true -> assign_type_1(TRight, TLeft, S);
+    false -> assign_type_1(TLeft, TRight, S)
   end;
-assign_type(_Left, Right, TLeft, _TRight, S) ->
-    assign_type(Right, TLeft, S).
+assign_type(TLeft, TRight, S) ->
+  assign_type_1(TLeft, TRight, S).
 
-assign_type(Expr, MaybeVar, S) ->
-    Type = extract_type(Expr, S),
+assign_type_1(Expr, MaybeVar, S) ->
+    Type = elixir_erl:get_type(Expr, S),
     elixir_erl:put_type(MaybeVar, Type, S).
 
-is_var({Name, _, Context}) when is_atom(Name), is_atom(Context) ->
-    true;
-is_var(_) ->
-    false.
+is_var({var, _, _}) -> true;
+is_var(_) -> false.
 
-extract_type({'%', _, [Name, _]}, _S) ->
-  {struct, Name};
-extract_type({'%{}', _, _}, _S) ->
-  map;
-extract_type({'<<>>', _, _}, _S) ->
-  binary;
-extract_type(_Other, _S) ->
-  term.
+erlang_call_type(is_map, _Arity) -> {type_check, map};
+erlang_call_type(is_atom, _Arity) -> {type_check, atom};
+erlang_call_type(is_tuple, _Arity) -> {type_check, tuple};
+erlang_call_type(is_binary, _Arity) -> {type_check, binary};
+erlang_call_type(Other, Arity) ->
+  case elixir_utils:guard_op(Other, Arity) of
+    true -> guard_op;
+    false -> regular
+  end.

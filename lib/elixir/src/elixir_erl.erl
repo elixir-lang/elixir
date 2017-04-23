@@ -438,14 +438,40 @@ format_error({internal_function_overridden, {Name, Arity}}) ->
 
 %% Types
 
-get_type({var, _, Var}, #elixir_erl{var_types = Types}) ->
+get_type({var, _, Var}, #elixir_erl{ssa_types=Types}) ->
   maps:get(Var, Types, term);
-get_type(_Other, _S) ->
+get_type({map, _, Update, _Keys}, S) ->
+  get_type(Update, S);
+get_type(Expr, _S) ->
+  get_expr_type(Expr).
+
+get_expr_type({map, _, Keys}) ->
+  struct_or_map(Keys);
+get_expr_type({atom, _, _}) ->
+  atom;
+%% get_expr_type({bin, _, Elems}) ->
+%%   binary;
+%% get_expr_type({lc, _, _, _}) ->
+%%   list;
+%% get_expr_type({bc, _, _, _}) ->
+%%   binary;
+get_expr_type({tuple, _, Keys}) ->
+  {tuple, length(Keys)};
+get_expr_type(_Other) ->
   term.
+
+struct_or_map([{map_field_assoc, _, {atom, _, '__struct__'}, {atom, _, Name}}|_]) ->
+  {struct, Name};
+struct_or_map([{map_field_exact, _, {atom, _, '__struct__'}, {atom, _, Name}}|_]) ->
+  {struct, Name};
+struct_or_map([_|Rest]) ->
+  struct_or_map(Rest);
+struct_or_map([]) ->
+  map.
 
 put_type(_Expr, term, S) ->
   S;
-put_type({var, _, Name}, Type, #elixir_erl{var_types = Types} = S) ->
-  S#elixir_erl{var_types = maps:put(Name, Type, Types)};
+put_type({var, _, Name}, Type, #elixir_erl{ssa_types=Types} = S) ->
+  S#elixir_erl{ssa_types=maps:put(Name, Type, Types)};
 put_type(_Expr, _Type, S) ->
   S.
