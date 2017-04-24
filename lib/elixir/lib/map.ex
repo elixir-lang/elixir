@@ -801,6 +801,8 @@ defmodule Map do
   simply removes the `__struct__` field from the given struct
   or from a new struct generated from the given module.
 
+  For the opposite operation see `Enum.to_struct/2`.
+
   ## Example
 
       defmodule User do

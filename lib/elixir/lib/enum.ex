@@ -2552,6 +2552,36 @@ defmodule Enum do
   end
 
   @doc """
+  Creates or updates a `struct` with given enumerable data.
+
+  The first argument is any `Enumerable` that emits two-element tuples
+  (key-value pairs) during enumeration. The `struct` argument may be an atom
+  (which defines `defstruct`) or a `struct` itself.
+
+  It's actually nothing more than the swapped version of `Kernel.struct/2`.
+  See it for more details.
+
+  For the opposite operation see `Map.from_struct/1`.
+
+  ## Examples
+
+      defmodule User do
+       defstruct name: "john"
+      end
+
+      [name: "Dude"] |> Enum.to_struct(User)
+      #=> %User{name: "Dude"}
+
+      %{name: "Dude"} |> Enum.to_struct(User)
+      #=> %User{name: "Dude"}
+
+  """
+  @spec to_struct(t, module | map) :: map
+  def to_struct(enumerable, struct) do
+    Kernel.struct(struct, enumerable)
+  end
+
+  @doc """
   Enumerates the `enumerable`, removing all duplicated elements.
 
   ## Examples

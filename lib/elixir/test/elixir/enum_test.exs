@@ -1367,6 +1367,15 @@ defmodule EnumTest.Range do
     assert Enum.to_list(1..3) == [1, 2, 3]
   end
 
+  defmodule SampleStruct do
+    defstruct [:foo]
+  end
+
+  test "to_struct/2" do
+    assert %SampleStruct{foo: "bar"} = Enum.to_struct([foo: "bar"], SampleStruct)
+    assert %SampleStruct{foo: "bar"} = Enum.to_struct(%{foo: "bar"}, SampleStruct)
+  end
+
   test "uniq/1" do
     assert Enum.uniq(1..3) == [1, 2, 3]
   end
