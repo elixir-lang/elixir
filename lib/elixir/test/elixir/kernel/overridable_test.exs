@@ -92,7 +92,7 @@ defmodule Kernel.Overridable do
   end
 end
 
-defmodule Kernel.ExampleBehaviour do
+defmodule Kernel.OverridableExampleBehaviour do
   @callback required_callback :: any
   @callback optional_callback :: any
   @macrocallback required_macro_callback(arg :: any) :: Macro.t
@@ -101,7 +101,7 @@ defmodule Kernel.ExampleBehaviour do
 end
 
 defmodule Kernel.OverridableWithBehaviour do
-  @behaviour Kernel.ExampleBehaviour
+  @behaviour Kernel.OverridableExampleBehaviour
 
   def required_callback(), do: "original"
 
@@ -117,7 +117,7 @@ defmodule Kernel.OverridableWithBehaviour do
     end
   end
 
-  defoverridable Kernel.ExampleBehaviour
+  defoverridable Kernel.OverridableExampleBehaviour
 
   def required_callback(), do: "overridden"
 
@@ -273,13 +273,13 @@ defmodule Kernel.OverridableTest do
   end
 
   test "module without @behaviour can't be passed as argument to defoverridable" do
-    message = "cannot pass module Kernel.ExampleBehaviour as argument to defoverridable/1" <>
+    message = "cannot pass module Kernel.OverridableExampleBehaviour as argument to defoverridable/1" <>
               " because its corresponding behaviour is missing. Did you forget to add " <>
-              "@behaviour Kernel.ExampleBehaviour ?"
+              "@behaviour Kernel.OverridableExampleBehaviour ?"
     assert_raise ArgumentError, message, fn ->
       Code.eval_string """
       defmodule Kernel.OverridableTest.Foo do
-        defoverridable Kernel.ExampleBehaviour
+        defoverridable Kernel.OverridableExampleBehaviour
       end
       """
     end
