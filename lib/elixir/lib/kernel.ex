@@ -3401,6 +3401,45 @@ defmodule Kernel do
   In the example above, a `sum/2` function is defined; this function receives
   two arguments and returns their sum.
 
+  ## Default arguments
+
+  `\\` is used to specify a default value for a parameter of a function. For
+  example:
+
+      defmodule Foo do
+        def mul_by(x, n \\ 2) do
+          x * n
+        end
+      end
+
+      Foo.mul_by 4, 3 #=> 12
+      Foo.mul_by 4    #=> 8
+
+  The compiler translates this into multiple function clauses with different
+  arities, here `Foo.mul_by/1` and `Foo.mul_by/2`, that represent cases when
+  arguments for parameters with default values are passed or not passed.
+
+  When defining a function with default arguments as well as multiple
+  explicitly declared clauses, you must write a function head that declares the
+  defaults. For example:
+
+      defmodule Concat do
+        def join(a, b \\ nil, sep \\ " ")
+
+        def join(a, b, _sep) when is_nil(b) do
+          a
+        end
+
+        def join(a, b, sep) do
+          a <> sep <> b
+        end
+      end
+
+  Because anonymous functions can only have a single arity, `\\` can't be used
+  with anonymous functions.
+
+  Erlang does not support default arguments.
+
   ## Function and variable names
 
   Function and variable names have the following syntax:
@@ -3480,6 +3519,8 @@ defmodule Kernel do
   @doc """
   Defines a macro with the given name and body.
 
+  Check `def/2` for rules on naming and default arguments.
+
   ## Examples
 
       defmodule MyLogic do
@@ -3506,7 +3547,8 @@ defmodule Kernel do
   Private macros are only accessible from the same module in which they are
   defined.
 
-  Check `defmacro/2` for more information.
+  Check `defmacro/2` for more information, and check `def/2` for rules on
+  naming and default arguments.
 
   """
   defmacro defmacrop(call, expr \\ nil) do
@@ -4189,6 +4231,8 @@ defmodule Kernel do
   be used.
 
   Delegation only works with functions; delegating macros is not supported.
+
+  Check `def/2` for rules on naming and default arguments.
 
   ## Options
 
