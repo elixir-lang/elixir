@@ -77,6 +77,28 @@ bin/elixirc lib/elixir/lib/string.ex -o lib/elixir/ebin
 bin/elixir lib/elixir/test/elixir/string_test.exs
 ```
 
+To recompile (including Erlang modules):
+
+```sh
+make compile
+```
+
+If your contribution fails the build during the bootstrapping of the language,
+you can reproduce it locally by deleting all of Elixir beam files and compiling
+again:
+
+```sh
+make clean_exbeam compile
+```
+
+Or to rebuild everything from scratch without running tests:
+
+```sh
+make clean compile
+```
+
+More tasks can be found by reading the [Makefile](./Makefile).
+
 After your changes are done, please remember to run the full suite with
 `make test`.
 
