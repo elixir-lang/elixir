@@ -420,7 +420,18 @@ defmodule Task.Supervised do
         case running_tasks do
           %{^ref => {position, _type, pid, _timer_ref}} ->
             send(parent_pid, {:killed_for_timeout, {monitor_ref, position}})
+            caller = self()
+            ref = make_ref()
+            enforcer = spawn(fn ->
+              mon = Process.monitor(caller)
+              receive do
+                {:done, ^ref} -> :ok
+                {:DOWN, ^mon, _, _, _} -> Process.exit(pid, :kill)
+              end
+            end)
+            Process.unlink(pid)
             Process.exit(pid, :kill)
+            send(enforcer, {:done, ref})
           _other ->
             :ok
         end
