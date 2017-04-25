@@ -1207,8 +1207,8 @@ defmodule Module do
     end
   end
 
-  defp do_check_impl(_, kind, _, impl_value, _)
-       when is_nil(impl_value) and kind in [:type, :typep, :defp, :defmacrop] do
+  defp do_check_impl(_, kind, _, value, _)
+       when is_nil(value) and kind in [:type, :typep, :defp, :defmacrop] do
     # TODO: do we need to care about :type and :typep cases? They never seem to get passed to here
     :ok
   end
@@ -1223,12 +1223,12 @@ defmodule Module do
   defp do_check_impl(_, kind, _, _, _) when kind in [:type, :typep] do
     {:error, "@impl is always ignored for type annotations"}
   end
-  defp do_check_impl(_, _, _, impl_value, impl_required_for_all_callbacks?)
-       when is_nil(impl_value) and not impl_required_for_all_callbacks? do
+  defp do_check_impl(_, _, _, value, impl_required_for_all_callbacks?)
+       when is_nil(value) and not impl_required_for_all_callbacks? do
     :ok
   end
-  defp do_check_impl(module, _, pair, impl_value, impl_required_for_all_callbacks?)
-       when is_nil(impl_value) and impl_required_for_all_callbacks? do
+  defp do_check_impl(module, _, pair, value, impl_required_for_all_callbacks?)
+       when is_nil(value) and impl_required_for_all_callbacks? do
     implemented_behaviours = get_behaviours(module)
 
     if %{^pair => behaviour} = callbacks_with_behaviour(implemented_behaviours) do
@@ -1240,14 +1240,14 @@ defmodule Module do
       :ok
     end
   end
-  defp do_check_impl(module, kind, pair, impl_value, _) when is_atom(impl_value) do
+  defp do_check_impl(module, kind, pair, value, _) when is_atom(value) do
     case get_behaviours(module) do
       [] -> {:error, "module attribute @impl was set but this module does not implement any behaviours"}
       behaviours ->
         pair = unnormalize_macro_or_function_callback(kind, pair)
         behaviour_implemented_by_function = callbacks_with_behaviour(behaviours)[pair]
 
-        do_check_impl_with_value(impl_value, behaviour_implemented_by_function, pair, behaviours)
+        do_check_impl_with_value(value, behaviour_implemented_by_function, pair, behaviours)
       end
   end
 
@@ -1293,30 +1293,30 @@ defmodule Module do
       " a callback defined by #{inspect(behaviour_implemented_by_function)})"
     {:error, warning}
   end
-  defp do_check_impl_with_value(impl_value, behaviour_implemented_by_function, pair, implemented_behaviours) do
+  defp do_check_impl_with_value(value, behaviour_implemented_by_function, pair, implemented_behaviours) do
     cond do
-      not Code.ensure_compiled?(impl_value) ->
+      not Code.ensure_compiled?(value) ->
         warning =
-          "got @impl #{inspect(impl_value)} but " <>
-          "#{inspect(impl_value)} is not defined"
+          "got @impl #{inspect(value)} but " <>
+          "#{inspect(value)} is not defined"
         {:error, warning}
-      not defines_callbacks?(impl_value) ->
+      not defines_callbacks?(value) ->
         warning =
-          "got @impl #{inspect(impl_value)} but " <>
-          "#{inspect(impl_value)} does not define any callbacks"
+          "got @impl #{inspect(value)} but " <>
+          "#{inspect(value)} does not define any callbacks"
         {:error, warning}
-      not impl_value in implemented_behaviours ->
+      not value in implemented_behaviours ->
         warning =
-          "got @impl #{inspect(impl_value)} for " <>
+          "got @impl #{inspect(value)} for " <>
           "#{format_function_or_macro(pair)} but that behaviour is" <>
           " not implemented by the module (@behaviour " <>
-          "#{inspect(impl_value)} was not specified)"
+          "#{inspect(value)} was not specified)"
         {:error, warning}
-      impl_value != behaviour_implemented_by_function ->
+      value != behaviour_implemented_by_function ->
         warning =
-          "got @impl #{inspect(impl_value)} for " <>
+          "got @impl #{inspect(value)} for " <>
           "#{format_function_or_macro(pair)} but behaviour" <>
-          " #{inspect(impl_value)} does not define this callback"
+          " #{inspect(value)} does not define this callback"
         {:error, warning}
       true -> :ok
     end
