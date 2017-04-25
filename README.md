@@ -97,7 +97,7 @@ Or to rebuild everything from scratch without running tests:
 make clean compile
 ```
 
-More tasks can be found by reading the [Makefile](./Makefile)
+More tasks can be found by reading the [Makefile](./Makefile).
 
 After your changes are done, please remember to run the full suite with
 `make test`.
