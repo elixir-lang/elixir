@@ -301,19 +301,12 @@ defmodule IEx.HelpersTest do
     cleanup_modules([Sample])
   end
 
-  test "c/2 helper" do
-    assert_raise UndefinedFunctionError, ~r"function Sample\.run/0 is undefined", fn ->
-      Sample.run
+  test "c helper with error" do
+    ExUnit.CaptureIO.capture_io fn ->
+      with_file "sample.ex", "raise \"oops\"", fn ->
+        assert_raise CompileError, fn -> c("sample.ex") end
+      end
     end
-
-    filename = "sample.ex"
-    with_file filename, test_module_code(), fn ->
-      assert c(filename, ".") == [Sample]
-      assert File.exists?("Elixir.Sample.beam")
-      assert Sample.run == :run
-    end
-  after
-    cleanup_modules([Sample])
   end
 
   test "c helper with full path" do
@@ -371,21 +364,6 @@ defmodule IEx.HelpersTest do
     cleanup_modules([:sample])
   end
 
-  test "c/2 helper erlang" do
-    assert_raise UndefinedFunctionError, ~r"function :sample.hello/0 is undefined", fn ->
-      :sample.hello
-    end
-
-    filename = "sample.erl"
-    with_file filename, erlang_module_code(), fn ->
-      assert c(filename, ".") == [:sample]
-      assert :sample.hello == :world
-      assert File.exists?("sample.beam")
-    end
-  after
-    cleanup_modules([:sample])
-  end
-
   test "c helper skips unknown files" do
     assert_raise UndefinedFunctionError, ~r"function :sample.hello/0 is undefined", fn ->
       :sample.hello
@@ -401,6 +379,20 @@ defmodule IEx.HelpersTest do
     cleanup_modules([:sample, Sample2])
   end
 
+  test "c helper with path" do
+    assert_raise UndefinedFunctionError, ~r"function Sample\.run/0 is undefined", fn ->
+      Sample.run
+    end
+
+    filename = "sample.ex"
+    with_file filename, test_module_code(), fn ->
+      assert c(filename, ".") == [Sample]
+      assert File.exists?("Elixir.Sample.beam")
+      assert Sample.run == :run
+    end
+  after
+    cleanup_modules([Sample])
+  end
 
   test "l helper" do
     assert_raise UndefinedFunctionError, ~r"function Sample.run/0 is undefined", fn ->
