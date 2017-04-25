@@ -158,7 +158,7 @@ defmodule IEx.Helpers do
 
     {erls, exs} = Enum.split_with(found, &String.ends_with?(&1, ".erl"))
 
-    modules = Enum.map(erls, fn(source) ->
+    erl_modules = Enum.map(erls, fn(source) ->
       {module, binary} = compile_erlang(source)
       unless path == :in_memory do
         base = source |> Path.basename |> Path.rootname
@@ -167,7 +167,13 @@ defmodule IEx.Helpers do
       module
     end)
 
-    modules ++ compile_elixir(exs, path)
+    ex_modules = try do
+      compile_elixir(exs, path)
+    catch
+      _, _ -> raise CompileError
+    end
+
+    erl_modules ++ ex_modules
   end
 
   @doc """
