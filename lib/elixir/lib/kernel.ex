@@ -3379,7 +3379,7 @@ defmodule Kernel do
     end
   end
 
-  @doc """
+  @doc ~S"""
   Defines a function with the given name and body.
 
   ## Examples
@@ -3406,32 +3406,32 @@ defmodule Kernel do
   `\\` is used to specify a default value for a parameter of a function. For
   example:
 
-      defmodule Foo do
-        def mul_by(x, n \\ 2) do
-          x * n
+      defmodule MyMath do
+        def multiply_by(number, factor \\ 2) do
+          number * factor
         end
       end
 
-      Foo.mul_by 4, 3 #=> 12
-      Foo.mul_by 4    #=> 8
+      MyMath.multiply_by(4, 3) #=> 12
+      MyMath.multiply_by(4)    #=> 8
 
-  The compiler translates this into multiple function clauses with different
-  arities, here `Foo.mul_by/1` and `Foo.mul_by/2`, that represent cases when
-  arguments for parameters with default values are passed or not passed.
+  The compiler translates this into multiple functions with different arities,
+  here `Foo.mul_by/1` and `Foo.mul_by/2`, that represent cases when arguments
+  for parameters with default values are passed or not passed.
 
   When defining a function with default arguments as well as multiple
   explicitly declared clauses, you must write a function head that declares the
   defaults. For example:
 
-      defmodule Concat do
-        def join(a, b \\ nil, sep \\ " ")
+      defmodule MyString do
+        def join(string1, string2 \\ nil, separator \\ " ")
 
-        def join(a, b, _sep) when is_nil(b) do
-          a
+        def join(string1, nil, _separator) do
+          string1
         end
 
-        def join(a, b, sep) do
-          a <> sep <> b
+        def join(string1, string2, separator) do
+          string1 <> separator <> string2
         end
       end
 
