@@ -239,7 +239,7 @@ defmodule Kernel.OverridableTest do
   test "module without @behaviour can't be passed as argument to defoverridable" do
     message = "cannot pass module Kernel.OverridableExampleBehaviour as argument to defoverridable/1" <>
               " because its corresponding behaviour is missing. Did you forget to add " <>
-              "@behaviour Kernel.OverridableExampleBehaviour ?"
+              "@behaviour Kernel.OverridableExampleBehaviour?"
     assert_raise ArgumentError, message, fn ->
       Code.eval_string """
       defmodule Kernel.OverridableTest.Foo do
