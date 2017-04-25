@@ -1,5 +1,25 @@
 Code.require_file "../test_helper.exs", __DIR__
 
+defmodule Kernel.WarningTest.FooBehaviour do
+  @callback foo :: any
+  @callback bar(any) :: any
+end
+
+defmodule Kernel.WarningTest.BarBehaviour do
+  @callback bar(any, any) :: any
+end
+
+defmodule Kernel.WarningTest.BazBehaviour do
+  @callback baz :: any
+end
+
+defmodule Kernel.WarningTest.EmptyModule do
+end
+
+defmodule Kernel.WarningTest.FooMacroBehaviour do
+  @macrocallback foo :: any
+end
+
 defmodule Kernel.WarningTest do
   use ExUnit.Case
   import ExUnit.CaptureIO
@@ -764,6 +784,650 @@ defmodule Kernel.WarningTest do
     end)
     assert output =~ "variable \"self\" does not exist and is being expanded to \"self()\""
     assert output =~ "variable \"node\" does not exist and is being expanded to \"node()\""
+  after
+    purge Sample
+  end
+
+  # ######################## impl warning tests ########################
+
+  ### With invalid arg
+
+  test "impl with undefined value" do
+    assert capture_err(fn ->
+      Code.eval_string """
+      defmodule Sample do
+        @behaviour :abc
+
+        @impl :abc
+        def baz(), do: :ok
+      end
+      """
+    end) =~ "got @impl :abc but :abc is not defined"
+  after
+    purge Sample
+  end
+
+  test "impl with no value" do
+    assert capture_err(fn ->
+      Code.eval_string """
+      defmodule Sample do
+        @impl
+        def baz(), do: :ok
+      end
+      """
+    end) =~ "undefined module attribute @impl, please remove access to @impl or explicitly set it before access"
+  after
+    purge Sample
+  end
+
+  ### With nil arg or missing
+
+  test "@impl nil is ignored" do
+    assert capture_err(fn ->
+      Code.eval_string """
+      defmodule Sample do
+        @behaviour Kernel.WarningTest.BazBehaviour
+
+        def baz, do: :ok
+
+        @impl nil
+        def baz(term), do: term
+      end
+      """
+
+    end) == ""
+  after
+    purge Sample
+  end
+
+  test "no warnings when @impl not set" do
+    assert capture_err(fn ->
+      Code.eval_string """
+      defmodule Sample do
+        @behaviour Kernel.WarningTest.FooBehaviour
+
+        def foo(), do: :ok
+        def bar(term), do: term
+      end
+      """
+    end) == ""
+  after
+    purge Sample
+  end
+
+  ### With true arg
+
+  test "impl true with no behaviour" do
+    assert capture_err(fn ->
+      Code.eval_string """
+      defmodule Sample do
+        @impl true
+        def baz(), do: :ok
+      end
+      """
+    end) =~ "module attribute @impl was set but this module does not implement any behaviours"
+  after
+    purge Sample
+  end
+
+  test "impl true with callback name not in behaviour" do
+    assert capture_err(fn ->
+      Code.eval_string """
+      defmodule Sample do
+        @behaviour Kernel.WarningTest.FooBehaviour
+
+        @impl true
+        def baz(), do: :ok
+      end
+      """
+    end) =~ "got @impl true for function baz/0 but no implemented behaviour specifies this callback"
+  after
+    purge Sample
+  end
+
+  test "impl true with macro callback name not in behaviour" do
+    assert capture_err(fn ->
+      Code.eval_string """
+      defmodule Sample do
+        @behaviour Kernel.WarningTest.FooMacroBehaviour
+
+        @impl true
+        defmacro baz() do
+          unquote do
+            :thats_not_a_callback
+          end
+        end
+
+        @impl true
+        defmacro foo() do
+          unquote do
+            :ok
+          end
+        end
+      end
+      """
+    end) =~ "got @impl true for macro baz/0 but no implemented behaviour specifies this callback"
+  after
+    purge Sample
+  end
+
+  test "impl true with callback name not in multiple behaviours" do
+    assert capture_err(fn ->
+      Code.eval_string """
+      defmodule Sample do
+        @behaviour Kernel.WarningTest.FooBehaviour
+        @behaviour Kernel.WarningTest.BazBehaviour
+        @behaviour Kernel.WarningTest.EmptyModule
+
+        @impl true
+        def qux(), do: :ok
+      end
+      """
+    end) =~ "got @impl true for function qux/0 but no implemented behaviour specifies this callback"
+  after
+    purge Sample
+  end
+
+  test "impl true with correct callback name but incorrect callback arity" do
+    assert capture_err(fn ->
+      Code.eval_string """
+      defmodule Sample do
+        @behaviour Kernel.WarningTest.FooBehaviour
+
+        @impl true
+        def foo(term), do: term
+      end
+      """
+    end) =~ "got @impl true for function foo/1 but no implemented behaviour specifies this callback"
+  after
+    purge Sample
+  end
+
+  test "impl true with correct callback name but incorrect callback arity and multiple behaviours" do
+    assert capture_err(fn ->
+      Code.eval_string """
+      defmodule Sample do
+        @behaviour Kernel.WarningTest.FooBehaviour
+        @behaviour Kernel.WarningTest.BarBehaviour
+
+        @impl true
+        def bar(), do: :ok
+      end
+      """
+    end) =~ "got @impl true for function bar/0 but no implemented behaviour specifies this callback"
+  after
+    purge Sample
+  end
+
+  test "impl true set on private function" do
+    assert capture_err(fn ->
+      Code.eval_string """
+      defmodule Sample do
+        @behaviour Kernel.WarningTest.FooBehaviour
+
+        @impl true
+        defp foo, do: :private
+      end
+      """
+
+    end) =~ "function foo/0 is private, @impl is always ignored for private functions"
+  after
+    purge Sample
+  end
+
+  test "impl true with no function" do
+    assert capture_err(fn ->
+      Code.eval_string """
+      defmodule Sample do
+        @behaviour Kernel.WarningTest.FooBehaviour
+
+        @impl true
+      end
+      """
+    end) =~ "module attribute @impl was set but no definition follows it"
+  after
+    purge Sample
+  end
+
+  test "warnings for functions without impl when @impl true set before" do
+    assert capture_err(fn ->
+      Code.eval_string """
+      defmodule Sample do
+        @behaviour Kernel.WarningTest.FooBehaviour
+
+        @impl true
+        def foo(), do: :ok
+
+        def bar(term), do: term
+      end
+      """
+    end) =~ "module attribute @impl was not set for implemented callback function bar/1"
+  after
+    purge Sample
+  end
+
+  test "impl true with correct callback" do
+    assert capture_err(fn ->
+      Code.eval_string """
+      defmodule Sample do
+        @behaviour Kernel.WarningTest.BazBehaviour
+
+        @impl true
+        def baz(), do: :ok
+      end
+      """
+    end) == ""
+  after
+    purge Sample
+  end
+
+  test "impl true with correct macro callback" do
+    assert capture_err(fn ->
+      Code.eval_string """
+      defmodule Sample do
+        @behaviour Kernel.WarningTest.FooMacroBehaviour
+
+        @impl true
+        defmacro foo() do
+          unquote do
+            :ok
+          end
+        end
+      end
+      """
+    end) == ""
+  after
+    purge Sample
+  end
+
+  test "impl true with function with the same name as macro" do
+    warnings = capture_err(fn ->
+      Code.eval_string """
+      defmodule Sample do
+        @behaviour Kernel.WarningTest.FooMacroBehaviour
+
+        @impl true
+        def foo(), do: :ok
+      end
+      """
+    end)
+
+    assert warnings =~
+      "got @impl true for function foo/0 but no implemented behaviour specifies this callback"
+
+    assert warnings =~
+      "undefined behaviour macro foo/0 (for behaviour Kernel.WarningTest.FooMacroBehaviour)"
+  after
+    purge Sample
+  end
+
+  test "impl true with macro the same name as function" do
+    warnings = capture_err(fn ->
+      Code.eval_string """
+      defmodule Sample do
+        @behaviour Kernel.WarningTest.BazBehaviour
+
+        @impl true
+        defmacro baz() do
+          unquote do
+            :nope
+          end
+        end
+      end
+      """
+    end)
+
+    assert warnings =~
+      "got @impl true for macro baz/0 but no implemented behaviour specifies this callback"
+
+    assert warnings =~
+      "undefined behaviour function baz/0 (for behaviour Kernel.WarningTest.BazBehaviour)"
+  after
+    purge Sample
+  end
+
+  test "impl true with multiple behaviours" do
+    assert capture_err(fn ->
+      Code.eval_string """
+      defmodule Sample do
+        @behaviour Kernel.WarningTest.FooBehaviour
+        @behaviour Kernel.WarningTest.BazBehaviour
+
+        @impl true
+        def foo(), do: :ok
+
+        @impl true
+        def bar(term), do: term
+
+        @impl true
+        def baz(), do: :ok
+      end
+      """
+    end) == ""
+  after
+    purge Sample
+  end
+
+  ### With false arg
+
+  test "@impl false is ignored for non-callback function" do
+    assert capture_err(fn ->
+      Code.eval_string """
+      defmodule Sample do
+        @behaviour Kernel.WarningTest.BazBehaviour
+
+        def baz, do: :ok
+
+        @impl false
+        def baz(term), do: term
+      end
+      """
+
+    end) == ""
+  after
+    purge Sample
+  end
+
+  test "@impl false warns for callback function" do
+    assert capture_err(fn ->
+      Code.eval_string """
+      defmodule Sample do
+        @behaviour Kernel.WarningTest.BazBehaviour
+
+        @impl false
+        def baz, do: :ok
+      end
+      """
+
+    end) =~ "got @impl false for function baz/0 but it implements a " <>
+            "callback defined by Kernel.WarningTest.BazBehaviour"
+  after
+    purge Sample
+  end
+
+  test "@impl false warns for callback macro" do
+    assert capture_err(fn ->
+      Code.eval_string """
+      defmodule Sample do
+        @behaviour Kernel.WarningTest.FooMacroBehaviour
+
+        @impl false
+        defmacro foo() do
+          unquote do
+            :implemented_callback
+          end
+        end
+      end
+      """
+
+    end) =~ "got @impl false for macro foo/0 but it implements a " <>
+            "callback defined by Kernel.WarningTest.FooMacroBehaviour"
+  after
+    purge Sample
+  end
+
+  test "impl false with no function" do
+    assert capture_err(fn ->
+      Code.eval_string """
+      defmodule Sample do
+        @behaviour Kernel.WarningTest.FooBehaviour
+
+        @impl false
+      end
+      """
+    end) =~ "module attribute @impl was set but no definition follows it"
+  after
+    purge Sample
+  end
+
+  ### With module arg
+
+  test "impl behaviour with no @behaviour" do
+    assert capture_err(fn ->
+      Code.eval_string """
+      defmodule Sample do
+        @impl Kernel.WarningTest.FooBehaviour
+        def baz(), do: :ok
+      end
+      """
+    end) =~ "module attribute @impl was set but this module does not implement any behaviours"
+  after
+    purge Sample
+  end
+
+  test "function implements behaviour but @behaviour is not specified" do
+    assert capture_err(fn ->
+      Code.eval_string """
+      defmodule Sample do
+        @behaviour Kernel.WarningTest.BazBehaviour
+
+        @impl Kernel.WarningTest.FooBehaviour
+        def foo(), do: :ok
+      end
+      """
+    end) =~ "got @impl Kernel.WarningTest.FooBehaviour for function foo/0 " <>
+            "but that behaviour is not implemented by the module (@behaviour " <>
+            "Kernel.WarningTest.FooBehaviour was not specified)"
+  after
+    purge Sample
+  end
+
+  test "function implements some behaviour from the module but it isn't the one specified in @impl behaviour" do
+    assert capture_err(fn ->
+      Code.eval_string """
+      defmodule Sample do
+        @behaviour Kernel.WarningTest.BazBehaviour
+
+        @impl Kernel.WarningTest.FooBehaviour
+        def baz(), do: :ok
+      end
+      """
+    end) =~ "got @impl Kernel.WarningTest.FooBehaviour for function baz/0 " <>
+            "but that behaviour is not implemented by the module (@behaviour " <>
+            "Kernel.WarningTest.FooBehaviour was not specified)"
+  after
+    purge Sample
+  end
+
+
+  test "macro implements some behaviour from the module but it isn't the one specified in @impl behaviour" do
+    warnings = capture_err(fn ->
+      Code.eval_string """
+      defmodule Sample do
+        @behaviour Kernel.WarningTest.FooMacroBehaviour
+        @behaviour Kernel.WarningTest.FooBehaviour
+
+        @impl Kernel.WarningTest.FooBehaviour
+        defmacro baz() do
+          unquote do
+            :thats_not_a_callback
+          end
+        end
+
+        @impl true
+        def foo(), do: :ok
+
+        @impl true
+        def bar(term), do: term
+      end
+      """
+    end)
+    assert warnings =~
+      "got @impl Kernel.WarningTest.FooBehaviour for macro baz/0 but " <>
+      "behaviour Kernel.WarningTest.FooBehaviour does not define this callback"
+
+    assert warnings =~
+      "undefined behaviour macro foo/0 (for behaviour Kernel.WarningTest.FooMacroBehaviour)"
+  after
+    purge Sample
+  end
+
+  test "function does not implement specified behaviour and specified behaviour is not declared as @behaviour" do
+    assert capture_err(fn ->
+      Code.eval_string """
+      defmodule Sample do
+        @behaviour Kernel.WarningTest.BazBehaviour
+
+        @impl Kernel.WarningTest.FooBehaviour
+        def qux(), do: :ok
+      end
+      """
+    end) =~ "got @impl Kernel.WarningTest.FooBehaviour for function qux/0 " <>
+            "but that behaviour is not implemented by the module (@behaviour " <>
+            "Kernel.WarningTest.FooBehaviour was not specified)"
+  after
+    purge Sample
+  end
+
+  test "function does not implement any behaviours from this module including the @impl behaviour" do
+    assert capture_err(fn ->
+      Code.eval_string """
+      defmodule Sample do
+        @behaviour Kernel.WarningTest.FooBehaviour
+
+        @impl Kernel.WarningTest.FooBehaviour
+        def baz(), do: :ok
+      end
+      """
+    end) =~ "got @impl Kernel.WarningTest.FooBehaviour for function baz/0 but behaviour" <>
+            " Kernel.WarningTest.FooBehaviour does not define this callback"
+  after
+    purge Sample
+  end
+
+  test "macro does not implement any behaviours from this module including the @impl behaviour" do
+    assert capture_err(fn ->
+      Code.eval_string """
+      defmodule Sample do
+        @behaviour Kernel.WarningTest.FooMacroBehaviour
+
+        @impl Kernel.WarningTest.FooMacroBehaviour
+        defmacro baz() do
+          unquote do
+            :oops
+          end
+        end
+      end
+      """
+    end) =~ "got @impl Kernel.WarningTest.FooMacroBehaviour for macro baz/0 " <>
+            "but behaviour Kernel.WarningTest.FooMacroBehaviour does not define this callback"
+  after
+    purge Sample
+  end
+
+  test "impl behaviour with correct callback name but incorrect callback arity" do
+    assert capture_err(fn ->
+      Code.eval_string """
+      defmodule Sample do
+        @behaviour Kernel.WarningTest.FooBehaviour
+
+        @impl Kernel.WarningTest.FooBehaviour
+        def foo(term), do: term
+      end
+      """
+    end) =~ "got @impl Kernel.WarningTest.FooBehaviour for function foo/1 but behaviour" <>
+            " Kernel.WarningTest.FooBehaviour does not define this callback"
+  after
+    purge Sample
+  end
+
+  test "impl behaviour set on private function" do
+    assert capture_err(fn ->
+      Code.eval_string """
+      defmodule Sample do
+        @behaviour Kernel.WarningTest.FooBehaviour
+
+        @impl Kernel.WarningTest.FooBehaviour
+        defp foo, do: :private
+      end
+      """
+
+    end) =~ "function foo/0 is private, @impl is always ignored for private functions"
+  after
+    purge Sample
+  end
+
+  test "impl behaviour set on private macro" do
+    assert capture_err(fn ->
+      Code.eval_string """
+      defmodule Sample do
+        @behaviour Kernel.WarningTest.FooMacroBehaviour
+
+        @impl Kernel.WarningTest.FooMacroBehaviour
+        defmacrop foo do
+          unquote do
+            :private
+          end
+        end
+      end
+      """
+
+    end) =~ "macro foo/0 is private, @impl is always ignored for private macros"
+  after
+    purge Sample
+  end
+
+  test "impl behaviour with no function" do
+    assert capture_err(fn ->
+      Code.eval_string """
+      defmodule Sample do
+        @behaviour Kernel.WarningTest.FooBehaviour
+
+        @impl Kernel.WarningTest.FooBehaviour
+      end
+      """
+    end) =~ "module attribute @impl was set but no definition follows it"
+  after
+    purge Sample
+  end
+
+  test "warnings for functions without impl when @impl behaviour set before" do
+    assert capture_err(fn ->
+      Code.eval_string """
+      defmodule Sample do
+        @behaviour Kernel.WarningTest.FooBehaviour
+
+        @impl Kernel.WarningTest.FooBehaviour
+        def foo(), do: :ok
+
+        def bar(term), do: term
+      end
+      """
+    end) =~ "module attribute @impl was not set for implemented callback function bar/1"
+  after
+    purge Sample
+  end
+
+  test "impl behaviour when behaviour doesn't define any callbacks" do
+    assert capture_err(fn ->
+      Code.eval_string """
+      defmodule Sample do
+        @behaviour Kernel.WarningTest.EmptyModule
+
+        @impl Kernel.WarningTest.EmptyModule
+        def baz(), do: :ok
+      end
+      """
+    end) =~ "got @impl Kernel.WarningTest.EmptyModule but " <>
+            "Kernel.WarningTest.EmptyModule does not define any callbacks"
+  after
+    purge Sample
+  end
+
+  # TODO: This is a tricky one
+  test "warnings for functions without impl when @impl set after" do
+    assert capture_err(fn ->
+      Code.eval_string """
+      defmodule Sample do
+        @behaviour Kernel.WarningTest.FooBehaviour
+
+        def foo(), do: :ok
+
+        @impl Kernel.WarningTest.FooBehaviour
+        def bar(term), do: term
+      end
+      """
+    end) =~ "module attribute @impl was not set for function foo/0 (callback specified in Kernel.WarningTest.FooBehaviour)"
   after
     purge Sample
   end

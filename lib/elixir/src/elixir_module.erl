@@ -1,7 +1,7 @@
 -module(elixir_module).
 -export([data_table/1, defs_table/1, is_open/1, delete_doc/6,
          compile/4, expand_callback/6, format_error/1,
-         compiler_modules/0]).
+         compiler_modules/0, delete_impl/6]).
 -include("elixir.hrl").
 
 -define(lexical_attr, {elixir, lexical_tracker}).
@@ -33,6 +33,10 @@ is_open(Module) ->
 
 delete_doc(#{module := Module}, _, _, _, _, _) ->
   ets:delete(data_table(Module), doc),
+  ok.
+
+delete_impl(#{module := Module}, _, _, _, _, _) ->
+  ets:delete(data_table(Module), impl),
   ok.
 
 %% Compilation hook
@@ -155,11 +159,19 @@ build(Line, File, Module, Lexical) ->
   Ref  = elixir_code_server:call({defmodule, self(),
                                  {Module, Data, Defs, Line, File}}),
 
-  OnDefinition =
-    case elixir_compiler:get_opt(docs) of
-      true -> [{'Elixir.Module', compile_doc}];
-      _    -> [{elixir_module, delete_doc}]
-    end,
+  DocsOnDefinition =
+      case elixir_compiler:get_opt(docs) of
+        true -> [{'Elixir.Module', compile_doc}];
+        _    -> [{elixir_module, delete_doc}]
+      end,
+
+  ImplOnDefinition =
+      case elixir_compiler:get_opt(internal) of
+        true -> [{elixir_module, delete_impl}];
+        _    -> [{'Elixir.Module', check_impl}]
+      end,
+
+  OnDefinition = ImplOnDefinition ++ DocsOnDefinition,
 
   ets:insert(Data, [
     % {Key, Value, Accumulate?, UnreadLine}
@@ -325,6 +337,8 @@ format_error({unused_attribute, typedoc}) ->
   "module attribute @typedoc was set but no type follows it";
 format_error({unused_attribute, doc}) ->
   "module attribute @doc was set but no definition follows it";
+format_error({unused_attribute, impl}) ->
+  "module attribute @impl was set but no definition follows it";
 format_error({unused_attribute, Attr}) ->
   io_lib:format("module attribute @~ts was set but never used", [Attr]);
 format_error({invalid_module, Module}) ->
