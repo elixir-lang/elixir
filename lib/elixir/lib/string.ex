@@ -1277,6 +1277,28 @@ defmodule String do
   end
 
   @doc ~S"""
+  Converts a numeric codepoint to a string containing the corresponding character.
+
+  ## Examples
+
+      iex> String.from_codepoint(97)
+      "a"
+
+      iex> String.from_codepoint(128_518)
+      "😆"
+
+      iex> String.from_codepoint("1F916")
+      "🤖"
+  """
+  def from_codepoint(cp) when is_integer(cp) when cp >= 0 and cp <= 2_097_151 do
+    <<cp :: utf8>>
+  end
+
+  def from_codepoint(cp) when is_binary(cp) do
+    :erlang.binary_to_integer(cp, 16) |> from_codepoint
+  end
+
+  @doc ~S"""
   Splits the string into chunks of characters that share a common trait.
 
   The trait can be one of two options:
