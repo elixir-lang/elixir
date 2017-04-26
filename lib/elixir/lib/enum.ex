@@ -319,7 +319,9 @@ defmodule Enum do
   Shortcut to `chunk(enumerable, count, count)`.
   """
   @spec chunk(t, pos_integer) :: [list]
-  def chunk(enumerable, count), do: chunk(enumerable, count, count, nil)
+  def chunk(enumerable, count) when is_integer(count) and count > 0 do
+    chunk(enumerable, count, count, nil)
+  end
 
   @doc """
   Returns list of lists containing `count` items each, where
