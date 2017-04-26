@@ -583,6 +583,34 @@ defmodule ExUnit.Assertions do
   end
 
   @doc """
+  Asserts that an element matching `pattern` exists within `enumerable`.
+
+  ## Examples
+
+      assert_member %{second: 2}, [%{first: 1, second: 2}]
+      assert_member "my_" <> _, ["your_name", "my_name", "our_names"]
+  """
+  defmacro assert_member(pattern, enumerable, failure_message \\ nil) do
+    binary = Macro.to_string(pattern)
+
+    quote do
+      enum = unquote(enumerable)
+      any = Enum.any? enum, fn
+        unquote(pattern) -> true
+        _ -> false
+      end
+
+      if any do
+        true
+      else
+        members = Enum.reduce(enum, "", &(&2 <> "\n  #{inspect &1}"))
+        message = "No member matching #{unquote(binary)}.\nMembers:#{members}"
+        flunk(unquote(failure_message) || message)
+      end
+    end
+  end
+
+  @doc """
   Asserts that `value1` and `value2` differ by no more than `delta`.
 
 

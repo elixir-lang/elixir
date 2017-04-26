@@ -600,6 +600,22 @@ defmodule ExUnit.AssertionsTest do
       "test message (difference between 10 and 11 is less than 2)" = error.message
   end
 
+  test "assert member with pattern" do
+    true = assert_member %{foo: 1}, [%{foo: 1, bar: 2}]
+    true = assert_member "my" <> _, ["your_name", "my_name", "our_names"]
+    true = assert_member 42, 1..100
+  end
+
+  test "assert member with pattern when no match" do
+    "This should never be tested" = assert_member %{foo: 1, bar: 2}, [%{foo: 1}, %{baz: 3}]
+  rescue
+    error in [ExUnit.AssertionError] ->
+      "No member matching %{foo: 1, bar: 2}." <>
+      "\nMembers:" <>
+      "\n  %{foo: 1}" <>
+      "\n  %{baz: 3}" = error.message
+  end
+
   test "catch_throw with no throw" do
     catch_throw(1)
   rescue
