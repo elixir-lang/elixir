@@ -1039,8 +1039,12 @@ defmodule Enum do
   def group_by(enumerable, dict, fun) do
     IO.warn "Enum.group_by/3 with a map/dictionary as second element is deprecated. " <>
       "A map is used by default and it is no longer required to pass one to this function"
+
+    # Avoid warnings about Dict
+    dict_module = Dict
+
     reduce(reverse(enumerable), dict, fn(entry, categories) ->
-      Dict.update(categories, fun.(entry), [entry], &[entry | &1])
+      dict_module.update(categories, fun.(entry), [entry], &[entry | &1])
     end)
   end
 
