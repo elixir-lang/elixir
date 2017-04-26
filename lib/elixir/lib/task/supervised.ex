@@ -215,7 +215,7 @@ defmodule Task.Supervised do
           case waiting do
             %{^position => {_, {:ok, _} = ok}} -> Map.put(waiting, position, {nil, ok})
             %{^position => {_, :running}} -> Map.put(waiting, position, {nil, {:exit, reason}})
-            %{^position => {_, :timed_out}} -> Map.put(waiting, position, {nil, {:exit, :killed}})
+            %{^position => {_, :timed_out}} -> Map.put(waiting, position, {nil, {:exit, :timed_out}})
           end
         stream_deliver({:cont, acc}, max + 1, spawned, delivered, waiting, next,
                        reducer, monitor_pid, monitor_ref, timeout, on_timeout)
