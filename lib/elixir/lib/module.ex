@@ -1190,8 +1190,12 @@ defmodule Module do
     end
   end
 
-  defp preprocess_attribute(:on_load, atom) when is_atom(atom) do
-    {atom, 0}
+  defp preprocess_attribute(:on_load, value) do
+    if is_atom(value) do
+      {value, 0}
+    else
+      raise ArgumentError, "expected the @on_load attribute to be an atom, got: #{inspect(value)}"
+    end
   end
 
   defp preprocess_attribute(:behaviour, atom) when is_atom(atom) do

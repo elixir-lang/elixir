@@ -572,6 +572,15 @@ defmodule Kernel.ErrorsTest do
     end
   end
 
+  test "@on_load attribute format" do
+    message = "expected the @on_load attribute to be an atom, got: \"not an atom\""
+    assert_raise ArgumentError, message, fn ->
+      defmodule BadOnLoadAttribute do
+        Module.put_attribute(__MODULE__, :on_load, "not an atom")
+      end
+    end
+  end
+
   test "interpolation error" do
     assert_compile_fail SyntaxError,
       "nofile:1: \"do\" is missing terminator \"end\". unexpected token: \")\" at line 1",
