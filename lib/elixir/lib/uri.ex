@@ -157,7 +157,9 @@ defmodule URI do
       nil ->
         dict
       {{key, value}, rest} ->
-        decode_query_into_dict(rest, Dict.put(dict, key, value))
+        # Avoid warnings about Dict being deprecated
+        dict_module = Dict
+        decode_query_into_dict(rest, dict_module.put(dict, key, value))
     end
   end
 
