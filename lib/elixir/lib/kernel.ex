@@ -3379,7 +3379,7 @@ defmodule Kernel do
     end
   end
 
-  @doc """
+  @doc ~S"""
   Defines a function with the given name and body.
 
   ## Examples
@@ -3400,6 +3400,43 @@ defmodule Kernel do
 
   In the example above, a `sum/2` function is defined; this function receives
   two arguments and returns their sum.
+
+  ## Default arguments
+
+  `\\` is used to specify a default value for a parameter of a function. For
+  example:
+
+      defmodule MyMath do
+        def multiply_by(number, factor \\ 2) do
+          number * factor
+        end
+      end
+
+      MyMath.multiply_by(4, 3) #=> 12
+      MyMath.multiply_by(4)    #=> 8
+
+  The compiler translates this into multiple functions with different arities,
+  here `Foo.mul_by/1` and `Foo.mul_by/2`, that represent cases when arguments
+  for parameters with default values are passed or not passed.
+
+  When defining a function with default arguments as well as multiple
+  explicitly declared clauses, you must write a function head that declares the
+  defaults. For example:
+
+      defmodule MyString do
+        def join(string1, string2 \\ nil, separator \\ " ")
+
+        def join(string1, nil, _separator) do
+          string1
+        end
+
+        def join(string1, string2, separator) do
+          string1 <> separator <> string2
+        end
+      end
+
+  Because anonymous functions can only have a single arity, `\\` can't be used
+  with anonymous functions.
 
   ## Function and variable names
 
@@ -3480,6 +3517,8 @@ defmodule Kernel do
   @doc """
   Defines a macro with the given name and body.
 
+  Check `def/2` for rules on naming and default arguments.
+
   ## Examples
 
       defmodule MyLogic do
@@ -3506,7 +3545,8 @@ defmodule Kernel do
   Private macros are only accessible from the same module in which they are
   defined.
 
-  Check `defmacro/2` for more information.
+  Check `defmacro/2` for more information, and check `def/2` for rules on
+  naming and default arguments.
 
   """
   defmacro defmacrop(call, expr \\ nil) do
@@ -4189,6 +4229,8 @@ defmodule Kernel do
   be used.
 
   Delegation only works with functions; delegating macros is not supported.
+
+  Check `def/2` for rules on naming and default arguments.
 
   ## Options
 
