@@ -164,9 +164,11 @@ defmodule Module do
 
   A hook that will be invoked whenever the module is loaded.
 
-  Accepts the function name (as an atom) of a function in the current module.
-  The function must have arity 0 (no arguments) and has to return `:ok`, otherwise
-  the loading of the module will be aborted. For example:
+  Accepts the function name (as an atom) of a function in the current module or
+  `{function_name, 0}` tuple where `function_name` is the name of a function in
+  the current module. The function must have arity 0 (no arguments) and has to
+  return `:ok`, otherwise the loading of the module will be aborted. For
+  example:
 
       defmodule MyModule do
         @on_load :load_check
@@ -1190,8 +1192,16 @@ defmodule Module do
     end
   end
 
-  defp preprocess_attribute(:on_load, atom) when is_atom(atom) do
-    {atom, 0}
+  defp preprocess_attribute(:on_load, value) do
+    case value do
+      atom when is_atom(atom) ->
+        {atom, 0}
+      {atom, 0} = tuple when is_atom(atom) ->
+        tuple
+      other ->
+        raise ArgumentError, "expected the @on_load attribute to be an atom or a " <>
+                             "{atom, 0} tuple, got: #{inspect(value)}"
+    end
   end
 
   defp preprocess_attribute(:behaviour, atom) when is_atom(atom) do
