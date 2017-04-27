@@ -3438,8 +3438,6 @@ defmodule Kernel do
   Because anonymous functions can only have a single arity, `\\` can't be used
   with anonymous functions.
 
-  Erlang does not support default arguments.
-
   ## Function and variable names
 
   Function and variable names have the following syntax:
