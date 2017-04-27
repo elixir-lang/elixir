@@ -573,7 +573,7 @@ defmodule Kernel.ErrorsTest do
   end
 
   test "@on_load attribute format" do
-    message = "expected the @on_load attribute to be an atom, got: \"not an atom\""
+    message = "expected the @on_load attribute to be an atom or a {atom, 0} tuple, got: \"not an atom\""
     assert_raise ArgumentError, message, fn ->
       defmodule BadOnLoadAttribute do
         Module.put_attribute(__MODULE__, :on_load, "not an atom")
