@@ -215,7 +215,7 @@ defmodule Task.Supervised do
           case waiting do
             %{^position => {_, {:ok, _} = ok}} -> Map.put(waiting, position, {nil, ok})
             %{^position => {_, :running}} -> Map.put(waiting, position, {nil, {:exit, reason}})
-            %{^position => {_, :timed_out}} -> Map.put(waiting, position, {nil, {:exit, :timeout}})
+            %{^position => {_, :timeout}} -> Map.put(waiting, position, {nil, {:exit, :timeout}})
           end
         stream_deliver({:cont, acc}, max + 1, spawned, delivered, waiting, next,
                        reducer, monitor_pid, monitor_ref, timeout, on_timeout)
@@ -233,7 +233,7 @@ defmodule Task.Supervised do
                 :kill_task ->
                   # The monitor process already killed this task, we don't need
                   # to kill it here.
-                  Map.put(waiting, position, {pid, :timed_out})
+                  Map.put(waiting, position, {pid, :timeout})
                 :exit ->
                   stream_cleanup_inbox(monitor_pid, monitor_ref)
                   exit({:timeout, {__MODULE__, :stream, [timeout]}})
@@ -377,7 +377,7 @@ defmodule Task.Supervised do
       {:spawn, position, value} ->
         {type, pid} = spawn.(parent_pid, normalize_mfa_with_arg(mfa, value))
         ref = Process.monitor(pid)
-        timer_ref = Process.send_after(self(), {:timed_out, {monitor_ref, ref}}, timeout)
+        timer_ref = Process.send_after(self(), {:timeout, {monitor_ref, ref}}, timeout)
         send(parent_pid, {:spawned, {monitor_ref, position}, pid})
         running_tasks = Map.put(running_tasks, ref, {position, type, pid, timer_ref})
         stream_monitor_loop(parent_pid, parent_ref, mfa, spawn, monitor_ref, running_tasks, timeout)
@@ -416,7 +416,7 @@ defmodule Task.Supervised do
       # regardless of the value of :on_timeout. We then send a message to the
       # parent process informing it that a task timed out, and the parent
       # process decides what to do.
-      {:timed_out, {^monitor_ref, ref}} ->
+      {:timeout, {^monitor_ref, ref}} ->
         case running_tasks do
           %{^ref => {position, _type, pid, _timer_ref}} ->
             send(parent_pid, {:killed_for_timeout, {monitor_ref, position}})
