@@ -507,13 +507,12 @@ defmodule Kernel.SpecialForms do
   defmacro alias(module, opts), do: error!([module, opts])
 
   @doc """
-  Requires a given module to be compiled and loaded.
+  Requires a module in order to use its macros.
 
   ## Examples
 
-  Notice that usually modules should not be required before usage,
-  the only exception is if you want to use the macros from a module.
-  In such cases, you need to explicitly require them.
+  Public functions in modules are globally available, but in order to use
+  macros, you need to opt-in by requiring the module they are defined in.
 
   Let's suppose you created your own `if/2` implementation in the module
   `MyMacros`. If you want to invoke it, you need to first explicitly
