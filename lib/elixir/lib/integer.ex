@@ -245,23 +245,23 @@ defmodule Integer do
 
   defp parse_digits(sign, binary, base) do
     binary
-    |> Kernel.to_charlist
-    |> Enum.split_while(&(digit_for_base?(&1, base)))
+    |> split_digits(base, "")
     |> case do
-      {'', _} -> :error
-      {digits, rest} ->
-        {sign * String.to_integer(Kernel.to_string(digits), base), Kernel.to_string(rest)}
+      {"", _} -> :error
+      {digits, rest} -> {sign * String.to_integer(digits, base), rest}
     end
   end
 
-  defp digit_for_base?(digit, base) do
-    cond do
-      digit >= ?0 and digit <= ?9 -> base > digit - ?0
-      digit >= ?a and digit <= ?z -> base > digit - ?a + 10
-      digit >= ?A and digit <= ?Z -> base > digit - ?A + 10
-      true -> false
+  digits = [{?0..?9, -?0}, {?A..?Z, 10 - ?A}, {?a..?z, 10 - ?a}]
+
+  for {chars, diff} <- digits, char <- chars do
+    defp split_digits(<<unquote(char), rest::binary>>, base, acc)
+         when base > unquote(char + diff) do
+      split_digits(rest, base, <<acc::binary, unquote(char)>>)
     end
   end
+
+  defp split_digits(<<rest::binary>>, _base, acc), do: {acc, rest}
 
   @doc """
   Returns a binary which corresponds to the text representation
