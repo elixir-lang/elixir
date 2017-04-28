@@ -239,45 +239,28 @@ defmodule Integer do
     raise ArgumentError, "invalid base #{inspect base}"
   end
 
-  def parse(<<?-, rest::binary>>, base) do
-    case parse_digits(rest, base) do
-      {acc, bin} ->
-        {-acc, bin}
-      :error ->
-        :error
+  def parse(<<?-, rest::binary>>, base), do: parse_digits(-1, rest, base)
+  def parse(<<?+, rest::binary>>, base), do: parse_digits(1, rest, base)
+  def parse(<<rest::binary>>, base), do: parse_digits(1, rest, base)
+
+  defp parse_digits(sign, binary, base) do
+    binary
+    |> Kernel.to_charlist
+    |> Enum.split_while(&(digit_for_base?(&1, base)))
+    |> case do
+      {'', _} -> :error
+      {digits, rest} ->
+        {sign * String.to_integer(Kernel.to_string(digits), base), Kernel.to_string(rest)}
     end
   end
 
-  def parse(<<?+, rest::binary>>, base) do
-    parse_digits(rest, base)
-  end
-
-  def parse(<<rest::binary>>, base) do
-    parse_digits(rest, base)
-  end
-
-  digits = [{?0..?9, -?0}, {?A..?Z, 10 - ?A}, {?a..?z, 10 - ?a}]
-
-  for {chars, diff} <- digits, char <- chars do
-    defp parse_digits(<<unquote(char), rest::binary>>, base)
-         when base > unquote(char + diff) do
-      parse_digits(rest, base, unquote(char + diff))
+  defp digit_for_base?(digit, base) do
+    cond do
+      digit >= ?0 and digit <= ?9 -> base > digit - ?0
+      digit >= ?a and digit <= ?z -> base > digit - ?a + 10
+      digit >= ?A and digit <= ?Z -> base > digit - ?A + 10
+      true -> false
     end
-  end
-
-  defp parse_digits(<<_::binary>>, _) do
-    :error
-  end
-
-  for {chars, diff} <- digits, char <- chars do
-    defp parse_digits(<<unquote(char), rest::binary>>, base, acc)
-         when base > unquote(char + diff) do
-      parse_digits(rest, base, base * acc + unquote(char + diff))
-    end
-  end
-
-  defp parse_digits(<<rest::binary>>, _, acc) do
-    {acc, rest}
   end
 
   @doc """
