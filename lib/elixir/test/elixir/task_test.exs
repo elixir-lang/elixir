@@ -582,6 +582,13 @@ defmodule TaskTest do
         assert Enum.to_list(stream) == [ok: 1, ok: 2, ok: 3, ok: 4]
         assert Process.get(:stream_transform)
       end
+
+      test "with :on_timeout set to :kill_task" do
+        opts = Keyword.merge(@opts, on_timeout: :kill_task, timeout: 50)
+        assert [100, 1, 100, 1] |> Task.async_stream(&sleep/1, opts) |> Enum.to_list() ==
+               [exit: :timeout, ok: 1, exit: :timeout, ok: 1]
+        refute_received _
+      end
     end
   end
 end
