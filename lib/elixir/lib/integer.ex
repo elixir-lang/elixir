@@ -239,29 +239,25 @@ defmodule Integer do
     raise ArgumentError, "invalid base #{inspect base}"
   end
 
-  def parse(<<?-, rest::binary>>, base), do: parse_digits(-1, rest, base)
-  def parse(<<?+, rest::binary>>, base), do: parse_digits(1, rest, base)
-  def parse(<<rest::binary>>, base), do: parse_digits(1, rest, base)
-
-  defp parse_digits(sign, binary, base) do
-    binary
-    |> split_digits(base, "")
-    |> case do
-      {"", _} -> :error
-      {digits, rest} -> {sign * String.to_integer(digits, base), rest}
-    end
-  end
+  def parse(<<?-, rest::binary>>, base), do: parse_digits(rest, base, "-")
+  def parse(<<?+, rest::binary>>, base), do: parse_digits(rest, base, "")
+  def parse(<<rest::binary>>, base), do: parse_digits(rest, base, "")
 
   digits = [{?0..?9, -?0}, {?A..?Z, 10 - ?A}, {?a..?z, 10 - ?a}]
 
   for {chars, diff} <- digits, char <- chars do
-    defp split_digits(<<unquote(char), rest::binary>>, base, acc)
+    defp parse_digits(<<unquote(char), rest::binary>>, base, acc)
          when base > unquote(char + diff) do
-      split_digits(rest, base, <<acc::binary, unquote(char)>>)
+      parse_digits(rest, base, <<acc::binary, unquote(char)>>)
     end
   end
 
-  defp split_digits(<<rest::binary>>, _base, acc), do: {acc, rest}
+  defp parse_digits(_, _, "-"), do: :error
+  defp parse_digits(_, _, ""), do: :error
+
+  defp parse_digits(<<rest::binary>>, base, acc) do
+    {String.to_integer(acc, base), rest}
+  end
 
   @doc """
   Returns a binary which corresponds to the text representation
