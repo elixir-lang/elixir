@@ -58,9 +58,9 @@ defmodule GenServer do
 
   ## Callbacks
 
-  There are 6 callbacks required to be implemented in a `GenServer`. By
+  There are 7 callbacks required to be implemented in a `GenServer`. By
   adding `use GenServer` to your module, Elixir will automatically define
-  all 6 callbacks for you, leaving it up to you to implement the ones
+  all 7 callbacks for you, leaving it up to you to implement the ones
   you want to customize.
 
   ## Name Registration
