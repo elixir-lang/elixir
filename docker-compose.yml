@@ -1,0 +1,51 @@
+version: "2.0"
+
+services:
+  erl181:
+    build: docker/erl181
+    stdin_open: true
+    tty: true
+    volumes:
+      - .:/elixir
+
+  erl182:
+    build: docker/erl182
+    stdin_open: true
+    tty: true
+    volumes:
+      - .:/elixir
+
+  erl183:
+    build: docker/erl183
+    stdin_open: true
+    tty: true
+    volumes:
+      - .:/elixir
+
+  erl190:
+    build: docker/erl190
+    stdin_open: true
+    tty: true
+    volumes:
+      - .:/elixir
+
+  erl191:
+    build: docker/erl191
+    stdin_open: true
+    tty: true
+    volumes:
+      - .:/elixir
+
+  erl192:
+    build: docker/erl192
+    stdin_open: true
+    tty: true
+    volumes:
+      - .:/elixir
+
+  erl193:
+    build: docker/erl193
+    stdin_open: true
+    tty: true
+    volumes:
+      - .:/elixir
