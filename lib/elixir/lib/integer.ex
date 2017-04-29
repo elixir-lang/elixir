@@ -239,24 +239,24 @@ defmodule Integer do
     raise ArgumentError, "invalid base #{inspect base}"
   end
 
-  def parse(<<?-, rest::binary>>, base), do: parse_digits(rest, base, "-")
-  def parse(<<?+, rest::binary>>, base), do: parse_digits(rest, base, "")
-  def parse(<<rest::binary>>, base), do: parse_digits(rest, base, "")
+  def parse(<<?-, rest::binary>>, base), do: parse_digits(rest, base, '-')
+  def parse(<<?+, rest::binary>>, base), do: parse_digits(rest, base, '')
+  def parse(<<rest::binary>>, base), do: parse_digits(rest, base, '')
 
   digits = [{?0..?9, -?0}, {?A..?Z, 10 - ?A}, {?a..?z, 10 - ?a}]
 
   for {chars, diff} <- digits, char <- chars do
     defp parse_digits(<<unquote(char), rest::binary>>, base, acc)
          when base > unquote(char + diff) do
-      parse_digits(rest, base, <<acc::binary, unquote(char)>>)
+      parse_digits(rest, base, [unquote(char) | acc])
     end
   end
 
-  defp parse_digits(<<_::binary>>, _, "-"), do: :error
-  defp parse_digits(<<_::binary>>, _, ""), do: :error
+  defp parse_digits(<<_::binary>>, _, '-'), do: :error
+  defp parse_digits(<<_::binary>>, _, ''), do: :error
 
   defp parse_digits(<<rest::binary>>, base, acc) do
-    {String.to_integer(acc, base), rest}
+    {acc |> :lists.reverse |> :erlang.list_to_integer(base), rest}
   end
 
   @doc """
