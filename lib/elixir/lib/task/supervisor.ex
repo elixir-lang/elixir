@@ -85,7 +85,7 @@ defmodule Task.Supervisor do
 
   If you create a task using `async_nolink` inside an OTP behaviour
   like `GenServer`, you should match on the message coming from the
-  task inside your `GenServer.handle_info/2` callback.
+  task inside your `c:GenServer.handle_info/2` callback.
 
   The reply sent by the task will be in the format `{ref, result}`,
   where `ref` is the monitor reference held by the task struct
