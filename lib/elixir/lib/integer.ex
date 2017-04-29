@@ -252,8 +252,8 @@ defmodule Integer do
     end
   end
 
-  defp parse_digits(_, _, "-"), do: :error
-  defp parse_digits(_, _, ""), do: :error
+  defp parse_digits(<<_::binary>>, _, "-"), do: :error
+  defp parse_digits(<<_::binary>>, _, ""), do: :error
 
   defp parse_digits(<<rest::binary>>, base, acc) do
     {String.to_integer(acc, base), rest}
