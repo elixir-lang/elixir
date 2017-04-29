@@ -239,25 +239,31 @@ defmodule Integer do
     raise ArgumentError, "invalid base #{inspect base}"
   end
 
-  def parse(<<?-, rest::binary>>, base), do: parse_digits(rest, base, '-')
-  def parse(<<?+, rest::binary>>, base), do: parse_digits(rest, base, '')
-  def parse(<<rest::binary>>, base), do: parse_digits(rest, base, '')
+  def parse(<<?-, rest::binary>>, base) do
+    with {int, rem} <- parse_digits(rest, base), do: {-int, rem}
+  end
+  def parse(<<?+, rest::binary>>, base), do: parse_digits(rest, base)
+  def parse(<<rest::binary>>, base), do: parse_digits(rest, base)
+
+  defp parse_digits(<<rest::binary>>, base) do
+    case count_digits(rest, base, 0) do
+      0 -> :error
+      n ->
+        {digits, rem} = :erlang.split_binary(rest, n)
+        {:erlang.binary_to_integer(digits, base), rem}
+    end
+  end
 
   digits = [{?0..?9, -?0}, {?A..?Z, 10 - ?A}, {?a..?z, 10 - ?a}]
 
   for {chars, diff} <- digits, char <- chars do
-    defp parse_digits(<<unquote(char), rest::binary>>, base, acc)
+    defp count_digits(<<unquote(char), rest::binary>>, base, count)
          when base > unquote(char + diff) do
-      parse_digits(rest, base, [unquote(char) | acc])
+      count_digits(rest, base, count + 1)
     end
   end
 
-  defp parse_digits(<<_::binary>>, _, '-'), do: :error
-  defp parse_digits(<<_::binary>>, _, ''), do: :error
-
-  defp parse_digits(<<rest::binary>>, base, acc) do
-    {acc |> :lists.reverse |> :erlang.list_to_integer(base), rest}
-  end
+  defp count_digits(<<_::binary>>, _, count), do: count
 
   @doc """
   Returns a binary which corresponds to the text representation
