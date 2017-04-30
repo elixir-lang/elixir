@@ -232,24 +232,18 @@ defmodule Integer do
       ** (ArgumentError) invalid base 38
 
   """
-  @spec parse(binary, 2..36) :: {integer, binary} | :error | no_return
+  @spec parse(binary, 2..36) :: {integer, binary} | :error
   def parse(binary, base \\ 10)
 
-  def parse(<<_::binary>>, base) when not base in 2..36 do
+  def parse(_binary, base) when not base in 2..36 do
     raise ArgumentError, "invalid base #{inspect base}"
   end
 
-  def parse(<<?-, rest::binary>>, base) do
-    with {int, rem} <- parse_digits(rest, base), do: {-int, rem}
-  end
-  def parse(<<?+, rest::binary>>, base), do: parse_digits(rest, base)
-  def parse(<<rest::binary>>, base), do: parse_digits(rest, base)
-
-  defp parse_digits(<<rest::binary>>, base) do
-    case count_digits(rest, base, 0) do
+  def parse(binary, base) do
+    case count_digits(binary, base, 0) do
       0 -> :error
       n ->
-        {digits, rem} = :erlang.split_binary(rest, n)
+        {digits, rem} = :erlang.split_binary(binary, n)
         {:erlang.binary_to_integer(digits, base), rem}
     end
   end
@@ -257,9 +251,21 @@ defmodule Integer do
   digits = [{?0..?9, -?0}, {?A..?Z, 10 - ?A}, {?a..?z, 10 - ?a}]
 
   for {chars, diff} <- digits, char <- chars do
+    digit = char + diff
+
     defp count_digits(<<unquote(char), rest::binary>>, base, count)
-         when base > unquote(char + diff) do
+         when base > unquote(digit) do
       count_digits(rest, base, count + 1)
+    end
+
+    defp count_digits(<<?+, unquote(char), rest::binary>>, base, 0)
+         when base > unquote(digit) do
+      count_digits(rest, base, 2)
+    end
+
+    defp count_digits(<<?-, unquote(char), rest::binary>>, base, 0)
+         when base > unquote(digit) do
+      count_digits(rest, base, 2)
     end
   end
 
