@@ -401,6 +401,38 @@ defmodule Enum do
   end
 
   @doc """
+  Removes all occurrences of `nil` from an `Enumerable` (only one level deep).
+
+  In the case of a `Struct` a `Map` will be returned.
+
+  ## Examples
+
+      iex> Enum.compact([1, 2, nil, 4, :five, "six"])
+      [1, 2, 4, :five, "six"]
+
+      iex> Enum.compact(%{here: true, gone: nil})
+      %{here: true}
+
+  """
+  @spec compact(t) :: t
+  def compact([]), do: []
+  def compact(enumerable) when is_list(enumerable) do
+    reject(enumerable, &(is_nil(&1)))
+  end
+
+  def compact(%{__struct__: _} = enumerable) do
+    enumerable
+    |> Map.from_struct
+    |> Enum.compact
+  end
+
+  def compact(%{} = enumerable) do
+    enumerable
+    |> Enum.reject(fn {_, v} -> is_nil(v) end)
+    |> Enum.into(%{})
+  end
+
+  @doc """
   Given an enumerable of enumerables, concatenates the enumerables into
   a single list.
 
