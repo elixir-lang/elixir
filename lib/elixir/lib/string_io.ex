@@ -258,7 +258,7 @@ defmodule StringIO do
   ## get_line
 
   defp get_line(encoding, prompt, %{input: input} = s) do
-    with {result, input} <- collect_and_decode(input, encoding, "") do
+    with {result, input} <- binary_collect(input, encoding, "") do
       result = case result do
         "" -> :eof
         r -> r
@@ -342,40 +342,23 @@ defmodule StringIO do
     %{s | output: <<output::binary, IO.chardata_to_string(prompt)::binary>>}
   end
 
-  defp collect_and_decode(<<input::binary>>, :unicode, acc) do
-    collect_and_decode(input, :utf8, acc)
+  defp binary_collect(<<input::binary>>, :unicode, acc) do
+    binary_collect(input, :utf8, acc)
   end
 
-  defp collect_and_decode("", encoding, acc) do
-    decode_after_collect({acc, ""}, encoding)
+  defp binary_collect("", _, acc), do: {acc, ""}
+  defp binary_collect(<<"\r\n"::binary, tail::binary>>, _, acc), do: {<<acc::binary, "\n">>, tail}
+  defp binary_collect(<<"\n"::binary, tail::binary>>, _, acc), do: {<<acc::binary, "\n">>, tail}
+
+  defp binary_collect(<<head::utf8, tail::binary>>, :utf8, acc) do
+    binary_collect(tail, :utf8, <<acc::binary, head::utf8 >>)
   end
 
-  defp collect_and_decode(<<"\r\n"::binary, tail::binary>>, encoding, acc) do
-    decode_after_collect({<<acc::binary, "\n">>, tail}, encoding)
+  defp binary_collect(<<head, tail::binary>>, :latin1, acc) do
+    binary_collect(tail, :latin1, <<acc::binary, head >>)
   end
 
-  defp collect_and_decode(<<"\n"::binary, tail::binary>>, encoding, acc) do
-    decode_after_collect({<<acc::binary, "\n">>, tail}, encoding)
-  end
-
-  defp collect_and_decode(<<head::utf8, tail::binary>>, :utf8, acc) do
-    collect_and_decode(tail, :utf8, <<acc::binary, head::utf8 >>)
-  end
-
-  defp collect_and_decode(<<head, tail::binary>>, :latin1, acc) do
-    collect_and_decode(tail, :latin1, <<acc::binary, head >>)
-  end
-
-  defp collect_and_decode(<<_::binary>>, _, _), do: :error
-
-  defp decode_after_collect(pair, :utf8), do: pair
-  defp decode_after_collect({result, tail}, encoding) do
-    case :unicode.characters_to_binary(result, encoding) do
-      {:error, _, _} -> :error
-      {:incomplete, _, _} -> :error
-      decoded -> {decoded, tail}
-    end
-  end
+  defp binary_collect(<<_::binary>>, _, _), do: :error
 
   defp collect_line(chars) do
     collect_line(chars, [])

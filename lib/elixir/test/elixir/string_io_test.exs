@@ -110,9 +110,9 @@ defmodule StringIOTest do
     assert contents(pid) == {"", ""}
   end
 
-  test "IO.binread :line with Latin1" do
-    pid = start(<<181,?\n>>)
-    assert IO.binread(pid, :line) == "µ\n"
+  test "IO.binread :line with raw bytes" do
+    pid = start(<<181, 255, 194, ?\n>>)
+    assert IO.binread(pid, :line) == <<181, 255, 194, ?\n>>
     assert IO.binread(pid, :line) == :eof
     assert contents(pid) == {"", ""}
   end
