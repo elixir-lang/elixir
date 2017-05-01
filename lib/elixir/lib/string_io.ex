@@ -342,16 +342,12 @@ defmodule StringIO do
     %{s | output: <<output::binary, IO.chardata_to_string(prompt)::binary>>}
   end
 
-  defp binary_collect(<<input::binary>>, :unicode, acc) do
-    binary_collect(input, :utf8, acc)
-  end
-
   defp binary_collect("", _, acc), do: {acc, ""}
   defp binary_collect(<<"\r\n"::binary, tail::binary>>, _, acc), do: {<<acc::binary, "\n">>, tail}
   defp binary_collect(<<"\n"::binary, tail::binary>>, _, acc), do: {<<acc::binary, "\n">>, tail}
 
-  defp binary_collect(<<head::utf8, tail::binary>>, :utf8, acc) do
-    binary_collect(tail, :utf8, <<acc::binary, head::utf8 >>)
+  defp binary_collect(<<head::utf8, tail::binary>>, :unicode, acc) do
+    binary_collect(tail, :unicode, <<acc::binary, head::utf8 >>)
   end
 
   defp binary_collect(<<head, tail::binary>>, :latin1, acc) do
