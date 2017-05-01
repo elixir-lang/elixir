@@ -1199,8 +1199,9 @@ defmodule Module do
       {atom, 0} = tuple when is_atom(atom) ->
         tuple
       other ->
-        raise ArgumentError, "expected the @on_load attribute to be an atom or a " <>
-                             "{atom, 0} tuple, got: #{inspect(value)}"
+        raise ArgumentError,
+          "expected the @on_load attribute to be an atom or a " <>
+          "{atom, 0} tuple, got: #{inspect(other)}"
     end
   end
 
