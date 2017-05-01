@@ -96,50 +96,65 @@ defmodule Kernel.OverridableExampleBehaviour do
   @callback required_callback :: any
   @callback optional_callback :: any
   @macrocallback required_macro_callback(arg :: any) :: Macro.t
-  @macrocallback optional_macro_callback(arg :: any, arg2 :: any) :: Macro.t
+  @macrocallback optional_macro_callback(arg1 :: any, arg2 :: any) :: Macro.t
   @optional_callbacks optional_callback: 0, optional_macro_callback: 1
 end
 
 defmodule Kernel.OverridableWithBehaviour do
-  @behaviour Kernel.OverridableExampleBehaviour
-
-  def required_callback(), do: "original"
-
-  def optional_callback(), do: "original"
-
-  def not_a_behaviour_callback(), do: "original"
-
-  defmacro required_macro_callback(boolean) do
+  defmacro __using__(_opts) do
     quote do
-      if unquote(boolean) do
-        "original"
+      @behaviour Kernel.OverridableExampleBehaviour
+
+      def required_callback(),
+        do: "original"
+
+      def optional_callback(),
+        do: "original"
+
+      # We need this guard to avoid a warning when overriding this function
+      def not_a_behaviour_callback(arg) when is_atom(arg),
+        do: "original"
+
+      defmacro required_macro_callback(boolean) do
+        quote do
+          if unquote(boolean) do
+            "original"
+          end
+        end
       end
+
+      defoverridable Kernel.OverridableExampleBehaviour
     end
   end
+end
 
-  defoverridable Kernel.OverridableExampleBehaviour
+defmodule Kernel.OverridableWithBehaviour.Overridden do
+  use Kernel.OverridableWithBehaviour
 
-  def required_callback(), do: "overridden"
+  def required_callback(),
+    do: "overridden"
 
-  defmacro required_macro_callback(boolean) do
+  def optional_callback(),
+    do: "overridden"
+
+  def not_a_behaviour_callback(_arg),
+    do: "overridden"
+
+  defmacro required_macro_callback(arg) do
     quote do
-      if unquote(boolean) do
+      if unquote(arg) do
         "overridden"
       end
     end
   end
 
-  defmacro optional_macro_callback(boolean, boolean2) do
+  defmacro optional_macro_callback(arg1, arg2) do
     quote do
-      if unquote(boolean) && unquote(boolean2) do
+      if unquote(arg1) && unquote(arg2) do
         "defined optional for the first time"
       end
     end
   end
-
-  def optional_callback(), do: "overridden"
-
-  def not_a_behaviour_callback(), do: "overridden"
 end
 
 defmodule Kernel.OverridableTest do
@@ -237,27 +252,27 @@ defmodule Kernel.OverridableTest do
   end
 
   test "overrides required callback with behaviour as argument" do
-    assert Kernel.OverridableWithBehaviour.required_callback == "overridden"
+    assert Kernel.OverridableWithBehaviour.Overridden.required_callback == "overridden"
   end
 
   test "overrides optional callback with behaviour as argument" do
-    assert Kernel.OverridableWithBehaviour.optional_callback == "overridden"
+    assert Kernel.OverridableWithBehaviour.Overridden.optional_callback == "overridden"
   end
 
   test "does not override function that is not a callback for this behaviour" do
-    assert Kernel.OverridableWithBehaviour.not_a_behaviour_callback == "original"
+    assert Kernel.OverridableWithBehaviour.Overridden.not_a_behaviour_callback(:atom) == "original"
+    assert Kernel.OverridableWithBehaviour.Overridden.not_a_behaviour_callback(true) == "original"
   end
 
   test "overrides required macro callback with behaviour as argument" do
-    require Kernel.OverridableWithBehaviour
+    require Kernel.OverridableWithBehaviour.Overridden
 
-    assert Kernel.OverridableWithBehaviour.required_macro_callback(true) == "overridden"
+    assert Kernel.OverridableWithBehaviour.Overridden.required_macro_callback(true) == "overridden"
   end
 
   test "specifies optional macro callback with behaviour as argument" do
-    require Kernel.OverridableWithBehaviour
-
-    assert Kernel.OverridableWithBehaviour.optional_macro_callback(true, true) == "defined optional for the first time"
+    assert overridable_with_behaviour_overridden_optional_macro_callback(true, true) ==
+           "defined optional for the first time"
   end
 
   test "undefined module can't be passed as argument to defoverridable" do
@@ -312,5 +327,12 @@ defmodule Kernel.OverridableTest do
       """
     end
     purge Kernel.OverridableTest.Foo
+  end
+
+
+  # Helper to avoid warnings
+  defp overridable_with_behaviour_overridden_optional_macro_callback(arg1, arg2) do
+    require Kernel.OverridableWithBehaviour.Overridden
+    Kernel.OverridableWithBehaviour.Overridden.optional_macro_callback(arg1, arg2)
   end
 end
