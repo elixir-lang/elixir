@@ -152,7 +152,7 @@ cd ../elixir && make docs
 
 This will produce documentation sets for `elixir`, `mix`, etc., under
 the `doc` directory. If you are planning to contribute documentation,
-[please check our best practices for writing documentation](http://elixir-lang.org/docs/stable/elixir/writing-documentation.html).
+[please check our best practices for writing documentation](https://hexdocs.pm/elixir/writing-documentation.html).
 
 ## Development links
 

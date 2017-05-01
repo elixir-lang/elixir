@@ -417,7 +417,7 @@ defmodule Mix.Tasks.New do
 
   embed_template :lib_app, """
   defmodule <%= @mod %>.Application do
-    # See http://elixir-lang.org/docs/stable/elixir/Application.html
+    # See https://hexdocs.pm/elixir/Application.html
     # for more information on OTP Applications
     @moduledoc false
 
@@ -432,7 +432,7 @@ defmodule Mix.Tasks.New do
         # worker(<%= @mod %>.Worker, [arg1, arg2, arg3]),
       ]
 
-      # See http://elixir-lang.org/docs/stable/elixir/Supervisor.html
+      # See https://hexdocs.pm/elixir/Supervisor.html
       # for other strategies and supported options
       opts = [strategy: :one_for_one, name: <%= @mod %>.Supervisor]
       Supervisor.start_link(children, opts)
