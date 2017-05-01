@@ -100,48 +100,6 @@ defmodule Kernel.OverridableExampleBehaviour do
   @optional_callbacks optional_callback: 0, optional_macro_callback: 1
 end
 
-defmodule Kernel.OverridableWithBehaviour do
-  @behaviour Kernel.OverridableExampleBehaviour
-
-  def required_callback(), do: "original"
-
-  def optional_callback(), do: "original"
-
-  def not_a_behaviour_callback(), do: "original"
-
-  defmacro required_macro_callback(boolean) do
-    quote do
-      if unquote(boolean) do
-        "original"
-      end
-    end
-  end
-
-  defoverridable Kernel.OverridableExampleBehaviour
-
-  def required_callback(), do: "overridden"
-
-  defmacro required_macro_callback(boolean) do
-    quote do
-      if unquote(boolean) do
-        "overridden"
-      end
-    end
-  end
-
-  defmacro optional_macro_callback(boolean, boolean2) do
-    quote do
-      if unquote(boolean) && unquote(boolean2) do
-        "defined optional for the first time"
-      end
-    end
-  end
-
-  def optional_callback(), do: "overridden"
-
-  def not_a_behaviour_callback(), do: "overridden"
-end
-
 defmodule Kernel.OverridableTest do
   defmodule OverridableOrder do
     def not_private(str) do
@@ -236,28 +194,34 @@ defmodule Kernel.OverridableTest do
     purge Kernel.OverridableOrder.Foo
   end
 
-  test "overrides required callback with behaviour as argument" do
-    assert Kernel.OverridableWithBehaviour.required_callback == "overridden"
-  end
+  test "overrides with behaviour" do
+    defmodule OverridableWithBehaviour do
+      @behaviour Elixir.Kernel.OverridableExampleBehaviour
 
-  test "overrides optional callback with behaviour as argument" do
-    assert Kernel.OverridableWithBehaviour.optional_callback == "overridden"
-  end
+      def required_callback(), do: "original"
 
-  test "does not override function that is not a callback for this behaviour" do
-    assert Kernel.OverridableWithBehaviour.not_a_behaviour_callback == "original"
-  end
+      def optional_callback(), do: "original"
 
-  test "overrides required macro callback with behaviour as argument" do
-    require Kernel.OverridableWithBehaviour
+      def not_a_behaviour_callback(), do: "original"
 
-    assert Kernel.OverridableWithBehaviour.required_macro_callback(true) == "overridden"
-  end
+      defmacro required_macro_callback(boolean) do
+        quote do
+          if unquote(boolean) do
+            "original"
+          end
+        end
+      end
 
-  test "specifies optional macro callback with behaviour as argument" do
-    require Kernel.OverridableWithBehaviour
+      defoverridable Elixir.Kernel.OverridableExampleBehaviour
 
-    assert Kernel.OverridableWithBehaviour.optional_macro_callback(true, true) == "defined optional for the first time"
+      defmacro optional_macro_callback(arg1, arg2), do: {arg1, arg2}
+
+      assert Module.overridable? __MODULE__, {:required_callback, 0}
+      assert Module.overridable? __MODULE__, {:optional_callback, 0}
+      assert Module.overridable? __MODULE__, {:required_macro_callback, 1}
+      refute Module.overridable? __MODULE__, {:optional_macro_callback, 1}
+      refute Module.overridable? __MODULE__, {:not_a_behaviour_callback, 1}
+    end
   end
 
   test "undefined module can't be passed as argument to defoverridable" do
