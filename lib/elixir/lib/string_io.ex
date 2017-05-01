@@ -216,18 +216,12 @@ defmodule StringIO do
 
   ## get_chars
 
-  defp get_chars(encoding, prompt, n,
-                 %{input: input, output: output, capture_prompt: capture_prompt} = s) do
+  defp get_chars(encoding, prompt, n, %{input: input} = s) do
     case do_get_chars(input, encoding, n) do
       {:error, _} = error ->
         {error, s}
       {result, input} ->
-        s =
-          if capture_prompt do
-            %{s | output: <<output::binary, IO.chardata_to_string(prompt)::binary>>}
-          else
-            s
-          end
+        s = capture_prompt(s, prompt)
 
         {result, %{s | input: input}}
     end
@@ -263,35 +257,19 @@ defmodule StringIO do
 
   ## get_line
 
-  defp get_line(encoding, prompt,
-                %{input: input, output: output, capture_prompt: capture_prompt} = s) do
-    case :unicode.characters_to_list(input, encoding) do
-      {:error, _, _} ->
-        {{:error, :collect_line}, s}
-      {:incomplete, _, _} ->
-        {{:error, :collect_line}, s}
-      chars ->
-        {result, input} = do_get_line(chars, encoding)
+  defp get_line(encoding, prompt, %{input: input} = s) do
+    with {result, input} <- collect_and_decode(input, encoding, "") do
+      result = case result do
+        "" -> :eof
+        r -> r
+      end
 
-        s =
-          if capture_prompt do
-            %{s | output: <<output::binary, IO.chardata_to_string(prompt)::binary>>}
-          else
-            s
-          end
+      s = capture_prompt(s, prompt)
 
-        {result, %{s | input: input}}
+      {result, %{s | input: input}}
+    else
+      _ -> {{:error, :collect_line}, s}
     end
-  end
-
-  defp do_get_line('', _encoding) do
-    {:eof, ""}
-  end
-
-  defp do_get_line(chars, encoding) do
-    {line, rest} = collect_line(chars)
-    {:unicode.characters_to_binary(line, encoding),
-      :unicode.characters_to_binary(rest, encoding)}
   end
 
   ## get_until
@@ -358,6 +336,46 @@ defmodule StringIO do
   end
 
   ## helpers
+
+  defp capture_prompt(%{capture_prompt: false} = s, _prompt), do: s
+  defp capture_prompt(%{capture_prompt: true, output: output} = s, prompt) do
+    %{s | output: <<output::binary, IO.chardata_to_string(prompt)::binary>>}
+  end
+
+  defp collect_and_decode(<<input::binary>>, :unicode, acc) do
+    collect_and_decode(input, :utf8, acc)
+  end
+
+  defp collect_and_decode("", encoding, acc) do
+    decode_after_collect({acc, ""}, encoding)
+  end
+
+  defp collect_and_decode(<<"\r\n"::binary, tail::binary>>, encoding, acc) do
+    decode_after_collect({<<acc::binary, "\n">>, tail}, encoding)
+  end
+
+  defp collect_and_decode(<<"\n"::binary, tail::binary>>, encoding, acc) do
+    decode_after_collect({<<acc::binary, "\n">>, tail}, encoding)
+  end
+
+  defp collect_and_decode(<<head::utf8, tail::binary>>, :utf8, acc) do
+    collect_and_decode(tail, :utf8, <<acc::binary, head::utf8 >>)
+  end
+
+  defp collect_and_decode(<<head, tail::binary>>, :latin1, acc) do
+    collect_and_decode(tail, :latin1, <<acc::binary, head >>)
+  end
+
+  defp collect_and_decode(<<_::binary>>, _, _), do: :error
+
+  defp decode_after_collect(pair, :utf8), do: pair
+  defp decode_after_collect({result, tail}, encoding) do
+    case :unicode.characters_to_binary(result, encoding) do
+      {:error, _, _} -> :error
+      {:incomplete, _, _} -> :error
+      decoded -> {decoded, tail}
+    end
+  end
 
   defp collect_line(chars) do
     collect_line(chars, [])
