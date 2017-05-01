@@ -4154,7 +4154,7 @@ defmodule Kernel do
   from different modules:
 
       defmodule MyModule do
-        defmacro __using__(opts) do
+        defmacro __using__(_opts) do
           quote do
             import MyModule.Foo
             import MyModule.Bar
