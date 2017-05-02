@@ -24,7 +24,7 @@ defmodule Mix.SCM.Git do
     end
   end
 
-  def accepts_options(_app, opts) do
+  def accepts_options(app, opts) do
     opts =
       opts
       |> Keyword.put(:checkout, opts[:dest])
@@ -34,7 +34,7 @@ defmodule Mix.SCM.Git do
       gh = opts[:github] ->
         opts
         |> Keyword.delete(:github)
-        |> Keyword.put(:git, "https://github.com/#{gh}.git")
+        |> Keyword.put(:git, "https://github.com/#{github_shorthand(app, gh)}.git")
         |> validate_git_options
       opts[:git] ->
         opts
@@ -131,6 +131,14 @@ defmodule Mix.SCM.Git do
       Keyword.put(opts, :dest, dest)
     else
       opts
+    end
+  end
+
+  defp github_shorthand(app, shorthand) do
+    if String.contains?(shorthand, "/") do
+      shorthand
+    else
+      "#{shorthand}/#{app}"
     end
   end
 

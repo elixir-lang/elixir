@@ -8,6 +8,7 @@ defmodule Mix.Tasks.DepsTest do
       [app: :deps, version: "0.1.0",
        deps: [
          {:ok, "0.1.0",         github: "elixir-lang/ok"},
+         {:ok_2, "0.1.0",       github: "elixir-lang"},
          {:invalidvsn, "0.2.0", path: "deps/invalidvsn"},
          {:invalidapp, "0.1.0", path: "deps/invalidapp"},
          {:noappfile, "0.1.0",  path: "deps/noappfile"},
@@ -45,6 +46,8 @@ defmodule Mix.Tasks.DepsTest do
       Mix.Tasks.Deps.run []
 
       assert_received {:mix_shell, :info, ["* ok (https://github.com/elixir-lang/ok.git) (mix)"]}
+      assert_received {:mix_shell, :info, ["  the dependency is not available, run \"mix deps.get\""]}
+      assert_received {:mix_shell, :info, ["* ok_2 (https://github.com/elixir-lang/ok_2.git) (mix)"]}
       assert_received {:mix_shell, :info, ["  the dependency is not available, run \"mix deps.get\""]}
       assert_received {:mix_shell, :info, ["* invalidvsn (deps/invalidvsn)"]}
       assert_received {:mix_shell, :info, ["  the app file contains an invalid version: :ok"]}
