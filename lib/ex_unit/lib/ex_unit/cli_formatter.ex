@@ -89,10 +89,12 @@ defmodule ExUnit.CLIFormatter do
   end
 
   def handle_cast({:case_finished, %ExUnit.TestCase{state: {:failed, failures}} = test_case}, config) do
-    formatted = format_test_case_failure(test_case, failures, config.failure_counter + 1,
+    formatted = format_test_case_failure(test_case, failures, config.failure_counter + length(test_case.tests),
                                          config.width, &formatter(&1, &2, config))
+
     print_failure(formatted, config)
-    {:noreply, %{config | failure_counter: config.failure_counter + 1}}
+    test_counter = Enum.reduce(test_case.tests, config.test_counter, &update_test_counter(&2, &1))
+    {:noreply, %{config | test_counter: test_counter, failure_counter: config.failure_counter + length(test_case.tests)}}
   end
 
   ## Tracing
