@@ -221,9 +221,7 @@ defmodule StringIO do
       {:error, _} = error ->
         {error, s}
       {result, input} ->
-        s = capture_prompt(s, prompt)
-
-        {result, %{s | input: input}}
+        {result, state_after_read(s, input, prompt)}
     end
   end
 
@@ -264,9 +262,7 @@ defmodule StringIO do
         count -> split_at_eol(input, count)
       end
 
-      s = capture_prompt(s, prompt)
-
-      {result, %{s | input: remainder}}
+      {result, state_after_read(s, remainder, prompt)}
     else
       _ -> {{:error, :collect_line}, s}
     end
@@ -348,9 +344,12 @@ defmodule StringIO do
 
   ## helpers
 
-  defp capture_prompt(%{capture_prompt: false} = s, _prompt), do: s
-  defp capture_prompt(%{capture_prompt: true, output: output} = s, prompt) do
-    %{s | output: <<output::binary, IO.chardata_to_string(prompt)::binary>>}
+  defp state_after_read(%{capture_prompt: false} = s, remainder, _prompt) do
+    %{s | input: remainder}
+  end
+
+  defp state_after_read(%{capture_prompt: true, output: output} = s, remainder, prompt) do
+    %{s | input: remainder, output: <<output::binary, IO.chardata_to_string(prompt)::binary>>}
   end
 
   defp bytes_until_eol("", _, count), do: {:ok, count}
