@@ -156,8 +156,10 @@ defmodule Logger do
 
     * `:handle_sasl_reports` - redirects supervisor, crash and
       progress reports to `Logger` so they are formatted in Elixir
-      terms. This uninstalls `sasl`'s logger that prints these
-      reports to the terminal. Defaults to `false`.
+      terms. Your application must guarantee `:sasl` is started before
+      `:logger`. This means you may see some initial reports written
+      in Erlang syntax until the Logger application kicks in and
+      uninstalls SASL's logger in favor of its own. Defaults to `false`.
 
     * `:discard_threshold_for_error_logger` - a value that, when
       reached, triggers the error logger to discard messages. This
