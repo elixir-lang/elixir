@@ -13,6 +13,15 @@ defmodule MixTest do
     assert Mix.env == :prod
   end
 
+  test "env?" do
+    assert Mix.env?(:dev)
+    refute Mix.env?(:prod)
+
+    Mix.env(:prod)
+    assert Mix.env?(:prod)
+    refute Mix.env?(:dev)
+  end
+
   test "debug" do
     refute Mix.debug?
     Mix.debug(true)
