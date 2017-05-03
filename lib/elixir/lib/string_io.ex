@@ -258,17 +258,28 @@ defmodule StringIO do
   ## get_line
 
   defp get_line(encoding, prompt, %{input: input} = s) do
-    with {result, input} <- binary_collect(input, encoding, "") do
-      result = case result do
-        "" -> :eof
-        r -> r
+    with {:ok, count} <- bytes_until_eol(input, encoding, 0) do
+      {result, remainder} = case count do
+        0 -> {:eof, ""}
+        count -> split_at_eol(input, count)
       end
 
       s = capture_prompt(s, prompt)
 
-      {result, %{s | input: input}}
+      {result, %{s | input: remainder}}
     else
       _ -> {{:error, :collect_line}, s}
+    end
+  end
+
+  defp split_at_eol(input, count) do
+    {result, remainder} = :erlang.split_binary(input, count)
+    cr_position = byte_size(result) - 2
+
+    if cr_position >= 0 and :binary.at(result, cr_position) == ?\r do
+      {:erlang.binary_part(result, 0, cr_position) <> "\n", remainder}
+    else
+      {result, remainder}
     end
   end
 
@@ -342,19 +353,19 @@ defmodule StringIO do
     %{s | output: <<output::binary, IO.chardata_to_string(prompt)::binary>>}
   end
 
-  defp binary_collect("", _, acc), do: {acc, ""}
-  defp binary_collect(<<"\r\n"::binary, tail::binary>>, _, acc), do: {<<acc::binary, "\n">>, tail}
-  defp binary_collect(<<"\n"::binary, tail::binary>>, _, acc), do: {<<acc::binary, "\n">>, tail}
+  defp bytes_until_eol("", _, count), do: {:ok, count}
+  defp bytes_until_eol(<<"\r\n"::binary, _::binary>>, _, count), do: {:ok, count + 2}
+  defp bytes_until_eol(<<"\n"::binary, _::binary>>, _, count), do: {:ok, count + 1}
 
-  defp binary_collect(<<head::utf8, tail::binary>>, :unicode, acc) do
-    binary_collect(tail, :unicode, <<acc::binary, head::utf8 >>)
+  defp bytes_until_eol(<<head::utf8, tail::binary>>, :unicode, count) do
+    bytes_until_eol(tail, :unicode, count + byte_size(<<head::utf8>>))
   end
 
-  defp binary_collect(<<head, tail::binary>>, :latin1, acc) do
-    binary_collect(tail, :latin1, <<acc::binary, head >>)
+  defp bytes_until_eol(<<_, tail::binary>>, :latin1, count) do
+    bytes_until_eol(tail, :latin1, count + 1)
   end
 
-  defp binary_collect(<<_::binary>>, _, _), do: :error
+  defp bytes_until_eol(<<_::binary>>, _, _), do: :error
 
   defp collect_line(chars) do
     collect_line(chars, [])
