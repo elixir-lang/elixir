@@ -271,11 +271,11 @@ export(Kind, {Name, Arity}) when Kind == def; Kind == defp ->
 function_for_stored_definition(Ann, {Name, Arity}, Clauses) ->
   {function, Ann, Name, Arity, Clauses}.
 
-add_definition(_Line, nil, Body, {Head, Tail}) ->
+add_definition(_Ann, nil, Body, {Head, Tail}) ->
   {[Body | Head], Tail};
-add_definition(Line, Location, Body, {Head, Tail}) ->
-  {Head,
-   [{attribute, Line, file, Location}, Body | Tail]}.
+add_definition(Ann, Location, Body, {Head, Tail}) ->
+  FileAnn = erl_anno:set_generated(false, Ann),
+  {Head, [{attribute, FileAnn, file, Location}, Body | Tail]}.
 
 default_function_for(Kind, Name, {clause, Ann, Args, _Guards, _Exprs} = Clause)
     when Kind == defmacro; Kind == defmacrop ->
