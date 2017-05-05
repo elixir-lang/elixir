@@ -345,71 +345,51 @@ defmodule Version do
     end
   end
 
-  defmodule Parser.DSL do
-    @moduledoc false
-
-    defmacro deflexer(match, do: body) when is_binary(match) do
-      quote do
-        def lexer(unquote(match) <> rest, acc) do
-          lexer(rest, [unquote(body) | acc])
-        end
-      end
-    end
-
-    defmacro deflexer(acc, do: body) do
-      quote do
-        def lexer("", unquote(acc)) do
-          unquote(body)
-        end
-      end
-    end
-
-    defmacro deflexer(char, acc, do: body) do
-      quote do
-        def lexer(<<unquote(char)::utf8, rest::binary>>, unquote(acc)) do
-          unquote(char) = <<unquote(char)::utf8>>
-
-          lexer(rest, unquote(body))
-        end
-      end
-    end
-  end
-
   defmodule Parser do
     @moduledoc false
-    import Parser.DSL
 
-    deflexer ">=",    do: :>=
-    deflexer "<=",    do: :<=
-    deflexer "~>",    do: :~>
-    deflexer ">",     do: :>
-    deflexer "<",     do: :<
-    deflexer "==",    do: :==
-    deflexer "!=",    do: :!=
-    deflexer "!",     do: :!=
-    deflexer " or ",  do: :||
-    deflexer " and ", do: :&&
-    deflexer " ",     do: :' '
-
-    deflexer x, [] do
-      [x, :'==']
-    end
-
-    deflexer x, [h | acc] do
-      cond do
-        is_binary h ->
-          [h <> x | acc]
-
-        h in [:||, :&&] ->
-          [x, :==, h | acc]
-
-        true ->
-          [x, h | acc]
+    operators = [
+      {">=", :>=},
+      {"<=", :<=},
+      {"~>", :~>},
+      {">", :>},
+      {"<", :<},
+      {"==", :==},
+      {"!=", :!=},
+      {"!", :!=},
+      {" or ", :||},
+      {" and ", :&&},
+    ]
+    for {string_op, atom_op} <- operators do
+      def lexer(unquote(string_op) <> rest, acc) do
+        lexer(rest, [unquote(atom_op) | acc])
       end
     end
 
-    deflexer acc do
-      Enum.filter(Enum.reverse(acc), &(&1 != :' '))
+    def lexer(" " <> rest, acc) do
+      lexer(rest, acc)
+    end
+
+    def lexer(<<char::utf8, rest::binary>>, []) do
+      lexer(rest, [<<char::utf8>>, :==])
+    end
+
+    def lexer(<<char::utf8, body::binary>>, [head | acc]) do
+      acc =
+        case head do
+          head when is_binary(head) ->
+            [<<head::binary, char::utf8>> | acc]
+          head when head in [:||, :&&] ->
+            [<<char::utf8>>, :==, head | acc]
+          _other ->
+            [<<char::utf8>>, head | acc]
+        end
+
+      lexer(body, acc)
+    end
+
+    def lexer("", acc) do
+      Enum.reverse(acc)
     end
 
     @version_regex ~r/^
