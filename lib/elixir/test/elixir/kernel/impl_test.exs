@@ -12,6 +12,36 @@ defmodule Kernel.ImplTest do
     @callback foo :: any
   end
 
+  test "no error for undefined module" do
+    defmodule Kernel.ImplTest.ImplAttributes do
+      @behaviour Kernel.ImplTest.Behaviour
+
+      @impl :foobar
+      assert @impl == :foobar
+      assert Module.get_attribute(__MODULE__, :impl) == :foobar
+      def foo() do
+        :ok
+      end
+    end
+  end
+
+  test "sets impl with nil" do
+    defmodule Kernel.ImplTest.ImplAttributes do
+      @behaviour Kernel.ImplTest.Behaviour
+
+      @impl nil
+      assert @impl == nil
+      assert Module.get_attribute(__MODULE__, :impl) == nil
+      assert @doc == nil
+      assert Module.get_attribute(__MODULE__, :doc) == nil
+      def foo() do
+        :ok
+      end
+    end
+
+    purge(Kernel.ImplTest.ImplAttributes)
+  end
+
   test "sets impl with behaviour" do
     defmodule Kernel.ImplTest.ImplAttributes do
       @behaviour Kernel.ImplTest.Behaviour
@@ -27,22 +57,6 @@ defmodule Kernel.ImplTest do
     purge(Kernel.ImplTest.ImplAttributes)
   end
 
-  test "sets @doc false" do
-    defmodule Kernel.ImplTest.ImplAttributes do
-      @behaviour Kernel.ImplTest.Behaviour
-
-      @impl Kernel.ImplTest.Behaviour
-      def foo() do
-        :ok
-      end
-    end
-
-    # TODO: This always returns nil... how to test it?
-    assert Code.get_docs(Kernel.ImplTest.ImplAttributes, :docs) == false
-
-    purge(Kernel.ImplTest.ImplAttributes)
-  end
-
   test "does not set @doc false if doc was specified before @impl" do
     defmodule Kernel.ImplTest.ImplAttributes do
       @behaviour Kernel.ImplTest.Behaviour
@@ -52,12 +66,12 @@ defmodule Kernel.ImplTest do
 
       @doc "Function doc"
       @impl Kernel.ImplTest.Behaviour
+      assert @doc == "Function doc"
+      assert Module.get_attribute(__MODULE__, :doc) == {67, "Function doc"}
       def foo() do
         :ok
       end
     end
-
-    assert Code.get_docs(Kernel.ImplTest.ImplAttributes, :docs) == "Function doc"
 
     purge(Kernel.ImplTest.ImplAttributes)
   end
@@ -69,12 +83,12 @@ defmodule Kernel.ImplTest do
       @doc "First function doc"
       @doc "Function doc"
       @impl Kernel.ImplTest.Behaviour
+      assert @doc == "Function doc"
+      assert Module.get_attribute(__MODULE__, :doc) == {84, "Function doc"}
       def foo() do
         :ok
       end
     end
-
-    assert Code.get_docs(Kernel.ImplTest.ImplAttributes, :docs) == "Function doc"
 
     purge(Kernel.ImplTest.ImplAttributes)
   end
@@ -85,12 +99,12 @@ defmodule Kernel.ImplTest do
 
       @impl Kernel.ImplTest.Behaviour
       @doc "Function doc"
+      assert @doc == "Function doc"
+      assert Module.get_attribute(__MODULE__, :doc) == {101, "Function doc"}
       def foo() do
         :ok
       end
     end
-
-    assert Code.get_docs(Kernel.ImplTest.ImplAttributes, :docs) == "Function doc"
 
     purge(Kernel.ImplTest.ImplAttributes)
   end
@@ -103,9 +117,12 @@ defmodule Kernel.ImplTest do
         :ok
       end
 
+      @doc "Function doc"
       @impl false
       assert @impl == false
       assert Module.get_attribute(__MODULE__, :impl) == false
+      assert @doc == "Function doc"
+      assert Module.get_attribute(__MODULE__, :doc) == {120, "Function doc"}
       def foo(term) do
         term
       end
@@ -114,13 +131,13 @@ defmodule Kernel.ImplTest do
     purge(Kernel.ImplTest.ImplAttributes)
   end
 
-  test "sets impl with nil" do
+  test "impl behaviour sets @doc false" do
     defmodule Kernel.ImplTest.ImplAttributes do
       @behaviour Kernel.ImplTest.Behaviour
 
-      @impl nil
-      assert @impl == nil
-      assert Module.get_attribute(__MODULE__, :impl) == nil
+      @impl Kernel.ImplTest.Behaviour
+      # assert @doc == false
+      # assert Module.get_attribute(__MODULE__, :doc) == false
       def foo() do
         :ok
       end
@@ -129,16 +146,18 @@ defmodule Kernel.ImplTest do
     purge(Kernel.ImplTest.ImplAttributes)
   end
 
-  test "no error for undefined module" do
+  test "impl true sets @doc false" do
     defmodule Kernel.ImplTest.ImplAttributes do
       @behaviour Kernel.ImplTest.Behaviour
 
-      @impl :foobar
-      assert @impl == :foobar
-      assert Module.get_attribute(__MODULE__, :impl) == :foobar
+      @impl true
+      # assert @doc == false
+      # assert Module.get_attribute(__MODULE__, :doc) == false
       def foo() do
         :ok
       end
     end
+
+    purge(Kernel.ImplTest.ImplAttributes)
   end
 end

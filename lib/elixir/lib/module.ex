@@ -1189,6 +1189,7 @@ defmodule Module do
     end
   end
 
+  # TODO: Perhaps this would better be set as a macro in the @impl call?
   defp set_doc_false_if_unset(table, line) do
     case :ets.lookup(table, :doc) do
       [{:doc, {_line, <<_::binary>>}, _accumulated?, _unread_line}] ->
