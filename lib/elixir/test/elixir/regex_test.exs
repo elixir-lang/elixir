@@ -93,6 +93,18 @@ defmodule RegexTest do
     end
   end
 
+  test "recompile/1" do
+    new_regex = ~r/foo/
+    {:ok, regex} = Regex.recompile(new_regex)
+    assert Regex.regex?(regex)
+    assert Regex.regex?(Regex.recompile!(new_regex))
+
+    old_regex = Map.delete(~r/foo/, :re_version)
+    {:ok, regex} = Regex.recompile(old_regex)
+    assert Regex.regex?(regex)
+    assert Regex.regex?(Regex.recompile!(old_regex))
+  end
+
   test "opts/1" do
     assert Regex.opts(Regex.compile!("foo", "i")) == "i"
   end

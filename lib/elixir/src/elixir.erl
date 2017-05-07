@@ -48,6 +48,11 @@ start(_Type, _Args) ->
       erlang:halt(1)
   end,
 
+  %% We need to make sure the re module is preloaded
+  %% to make function_exported checks on it fast.
+  %% TODO: Remove this once we support OTP 20+.
+  _ = code:ensure_loaded(re),
+
   case code:ensure_loaded(?system) of
     {module, ?system} ->
       Endianness = ?system:endianness(),
