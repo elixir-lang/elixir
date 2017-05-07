@@ -270,19 +270,29 @@ defmodule String do
   Divides a string into substrings based on a pattern.
 
   Returns a list of these substrings. The pattern can
-  be a string, a list of strings or a regular expression.
+  be a string, a list of strings, or a regular expression.
 
   The string is split into as many parts as possible by
-  default, but can be controlled via the `parts: pos_integer` option.
-  If you pass `parts: :infinity`, it will return all possible parts
-  (`:infinity` is the default).
+  default, but can be controlled via the `:parts` option.
 
   Empty strings are only removed from the result if the
-  `trim` option is set to `true` (default is `false`).
+  `:trim` option is set to `true`.
 
   When the pattern used is a regular expression, the string is
-  split using `Regex.split/3`. In that case this function accepts
-  additional options which are documented in `Regex.split/3`.
+  split using `Regex.split/3`.
+
+  ## Options
+
+    * `:parts` (positive integer or `:infinity`) - the string
+      is split into at most as many parts as this options specifies.
+      If `:infinity`, the string will be split into all possible
+      parts. Defaults to `:infinity`.
+
+    * `:trim` (boolean) - if `true`, empty strings are removed from
+      the resulting list.
+
+  This function also accepts all options accepted by `Regex.split/3`
+  if `pattern` is a regular expression.
 
   ## Examples
 
