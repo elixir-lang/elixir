@@ -86,16 +86,6 @@ defmodule MapTest do
     assert %{1 => 2, a: :b,} == %{1 => 2, a: :b}
   end
 
-  test "maps with duplicate keys" do
-    ExUnit.CaptureIO.capture_io :stderr, fn ->
-      defmodule DuplicateKeys do
-        assert %{a: :b, a: :c} == %{a: :c}
-        assert %{1 => 2, 1 => 3} == %{1 => 3}
-        assert %{:a => :b, a: :c} == %{a: :c}
-      end
-    end
-  end
-
   test "update maps" do
     assert %{@sample | a: 3} == %{a: 3, b: 2}
 
