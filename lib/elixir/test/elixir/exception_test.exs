@@ -272,25 +272,6 @@ defmodule ExceptionTest do
     assert Exception.format_exit(reason) |> String.starts_with?(expected_to_start_with)
   end
 
-  test "format_exit/1 with call with exception" do
-    Process.flag(:trap_exit, true)
-    # Fake reason to prevent error_logger printing to stdout
-    exit_reason = {%ArgumentError{}, [{:not_a_real_module, :function, 0, []}]}
-    exit_fun = fn() -> receive do: (_ -> exit(exit_reason)) end
-    reason =
-      try do
-        :gen_fsm.sync_send_event(spawn_link(exit_fun), :hello)
-      catch
-        :exit, reason -> reason
-      end
-
-    formatted = Exception.format_exit(reason)
-    assert formatted =~ ~r"exited in: :gen_fsm\.sync_send_event\(#PID<\d+\.\d+\.\d+>, :hello\)"
-    assert formatted =~ ~r"\s{4}\*\* \(EXIT\) an exception was raised:\n"
-    assert formatted =~ ~r"\s{8}\*\* \(ArgumentError\) argument error\n"
-    assert formatted =~ ~r"\s{12}:not_a_real_module\.function/0"
-  end
-
   test "format_exit/1 with nested calls" do
     Process.flag(:trap_exit, true)
     # Fake reason to prevent error_logger printing to stdout

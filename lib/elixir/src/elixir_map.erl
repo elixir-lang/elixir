@@ -40,7 +40,7 @@ expand_struct(Meta, Left, Right, #{context := Context} = E) ->
       %% in context module in case the module name is defined dynamically.
       InContext = lists:member(ELeft, [?key(E, module) | ?key(E, context_modules)]),
 
-      case extract_assocs(Meta, ERight, E) of
+      case extract_struct_assocs(Meta, ERight, E) of
         {expand, MapMeta, Assocs} when Context /= match -> %% Expand
           Struct = load_struct(Meta, ELeft, [Assocs], InContext, EE),
           assert_struct_keys(Meta, ELeft, Struct, Assocs, EE),
@@ -56,7 +56,7 @@ expand_struct(Meta, Left, Right, #{context := Context} = E) ->
 
     true ->
       %% A match without a compile time struct is treated as a regular map.
-      {expand, _, Assocs} = extract_assocs(Meta, ERight, E),
+      {expand, _, Assocs} = extract_struct_assocs(Meta, ERight, E),
       {{'%{}', Meta, Assocs ++ [{'__struct__', ELeft}]}, EE};
 
     false when Context == match ->
@@ -89,12 +89,15 @@ validate_kv(Meta, KV, Original, E) ->
       form_error(Meta, ?key(E, file), ?MODULE, {not_kv_pair, lists:nth(Acc, Original)})
   end, 1, KV).
 
-extract_assocs(_, {'%{}', Meta, [{'|', _, [_, Assocs]}]}, _) ->
-  {update, Meta, Assocs};
-extract_assocs(_, {'%{}', Meta, Assocs}, _) ->
-  {expand, Meta, Assocs};
-extract_assocs(Meta, Other, E) ->
+extract_struct_assocs(_, {'%{}', Meta, [{'|', _, [_, Assocs]}]}, _) ->
+  {update, Meta, delete_struct_key(Assocs)};
+extract_struct_assocs(_, {'%{}', Meta, Assocs}, _) ->
+  {expand, Meta, delete_struct_key(Assocs)};
+extract_struct_assocs(Meta, Other, E) ->
   form_error(Meta, ?key(E, file), ?MODULE, {non_map_after_struct, Other}).
+
+delete_struct_key(Assocs) ->
+  lists:keydelete('__struct__', 1, Assocs).
 
 validate_struct({'^', _, [{Var, _, Ctx}]}, match) when is_atom(Var), is_atom(Ctx) -> true;
 validate_struct({Var, _Meta, Ctx}, match) when is_atom(Var), is_atom(Ctx) -> true;
