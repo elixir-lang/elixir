@@ -8,6 +8,8 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     :ok
   end
 
+  @elixir_otp_version {System.version, :erlang.system_info(:otp_release)}
+
   test "compiles a project without per environment build" do
     Mix.Project.pop
     Mix.ProjectStack.post_config [build_per_environment: false]
@@ -43,7 +45,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
       assert File.exists?("_build/dev/lib/sample")
       assert File.exists?("_build/dev/consolidated")
-      assert Mix.Dep.ElixirSCM.read == {:ok, System.version, Mix.SCM.Path}
+      assert Mix.Dep.ElixirSCM.read == {:ok, @elixir_otp_version, Mix.SCM.Path}
 
       Mix.Task.clear
       File.write!("_build/dev/consolidated/.to_be_removed", "")
@@ -52,7 +54,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       File.touch!("_build/dev/lib/sample/.compile.elixir_scm", {{2010, 1, 1}, {0, 0, 0}})
 
       Mix.Tasks.Compile.run []
-      assert Mix.Dep.ElixirSCM.read == {:ok, System.version, Mix.SCM.Path}
+      assert Mix.Dep.ElixirSCM.read == {:ok, @elixir_otp_version, Mix.SCM.Path}
       assert File.stat!("_build/dev/lib/sample/.compile.elixir_scm").mtime > {{2010, 1, 1}, {0, 0, 0}}
       refute File.exists?("_build/dev/consolidated/.to_be_removed")
     end
@@ -64,15 +66,15 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       purge [A, B]
 
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
-      assert Mix.Dep.ElixirSCM.read == {:ok, System.version, Mix.SCM.Path}
+      assert Mix.Dep.ElixirSCM.read == {:ok, @elixir_otp_version, Mix.SCM.Path}
 
       Mix.Task.clear
-      manifest_data = :erlang.term_to_binary({:v1, System.version, :another})
+      manifest_data = :erlang.term_to_binary({:v2, @elixir_otp_version, :another})
       File.write!("_build/dev/lib/sample/.compile.elixir_scm", manifest_data)
       File.touch!("_build/dev/lib/sample/.compile.elixir_scm", {{2010, 1, 1}, {0, 0, 0}})
 
       Mix.Tasks.Compile.run []
-      assert Mix.Dep.ElixirSCM.read == {:ok, System.version, Mix.SCM.Path}
+      assert Mix.Dep.ElixirSCM.read == {:ok, @elixir_otp_version, Mix.SCM.Path}
       assert File.stat!("_build/dev/lib/sample/.compile.elixir_scm").mtime > {{2010, 1, 1}, {0, 0, 0}}
     end
   end
