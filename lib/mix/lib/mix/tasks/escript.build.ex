@@ -257,9 +257,21 @@ defmodule Mix.Tasks.Escript.Build do
     end
   end
 
-  defp strip_beam(beam) do
-    {:ok, {_, stripped_beam}} = :beam_lib.strip(beam)
-    stripped_beam
+  defp strip_beam(beam) when is_binary(beam) do
+    {:ok, _, all_chunks} = :beam_lib.all_chunks(beam)
+    filtered_chunks = ['CInf', 'Abst', 'Dbgi']
+    significant_chunks =
+      for {name, _} = pair <- all_chunks, name not in filtered_chunks, do: pair
+    {:ok, built_module} = :beam_lib.build_module(significant_chunks)
+    compress(built_module)
+  end
+
+  defp compress(binary0) do
+    {:ok, fd} = :ram_file.open(binary0, [:write, :binary])
+    {:ok, _} = :ram_file.compress(fd)
+    {:ok, binary} = :ram_file.get_file(fd)
+    :ok = :ram_file.close(fd)
+    binary
   end
 
   defp consolidated_paths(config) do
