@@ -269,7 +269,11 @@ defmodule IEx.Server do
 
   defp allow_take?(identifier) do
     message = IEx.color(:eval_interrupt, "#{identifier}\nAllow? [Yn] ")
-    IO.gets(:stdio, message) =~ ~r/^(Y(es)?)?$/i
+    yes?(IO.gets(:stdio, message))
+  end
+
+  defp yes?(string) do
+    is_binary(string) and String.trim(string) in ["", "y", "Y", "yes", "YES", "Yes"]
   end
 
   ## State

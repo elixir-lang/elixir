@@ -158,7 +158,7 @@ defmodule Mix.Tasks.New do
   end
 
   defp check_application_name!(name, inferred?) do
-    unless name =~ ~r/^[a-z][\w_]*$/ do
+    unless name =~ Regex.recompile!(~r/^[a-z][a-z0-9_]*$/) do
       Mix.raise "Application name must start with a letter and have only lowercase " <>
                 "letters, numbers and underscore, got: #{inspect name}" <>
                 (if inferred? do
@@ -171,7 +171,7 @@ defmodule Mix.Tasks.New do
   end
 
   defp check_mod_name_validity!(name) do
-    unless name =~ ~r/^[A-Z]\w*(\.[A-Z]\w*)*$/ do
+    unless name =~ Regex.recompile!(~r/^[A-Z]\w*(\.[A-Z]\w*)*$/) do
       Mix.raise "Module name must be a valid Elixir alias (for example: Foo.Bar), got: #{inspect name}"
     end
   end

@@ -426,7 +426,7 @@ defmodule ExUnit.DocTest do
   end
 
   defp extract_tests(line_no, doc, module) do
-    all_lines = String.split(doc, ~r/\n/, trim: false)
+    all_lines = String.split(doc, "\n", trim: false)
     lines = adjust_indent(all_lines, line_no + 1, module)
     extract_tests(lines, "", "", [], true, module)
   end
@@ -626,11 +626,29 @@ defmodule ExUnit.DocTest do
         [mod, message] = :binary.split(error, ")")
         {:error, Module.concat([mod]), String.trim_leading(message)}
       _ ->
-        if string =~ ~r/\A#[A-Z][\w\.]*</mu do
+        if is_inspected?(string) do
           {:inspect, inspect(string)}
         else
           {:test, string}
         end
     end
   end
+
+  defp is_inspected?(<<?#, char, rest::binary>>) when char in ?A..?Z,
+    do: is_inspected_end?(rest)
+  defp is_inspected?(_),
+    do: false
+
+  defp is_inspected_end?(<<?., char, rest::binary>>) when char in ?A..?Z,
+    do: is_inspected_end?(rest)
+  defp is_inspected_end?(<<char, rest::binary>>)
+       when char in ?A..?Z
+       when char in ?a..?z
+       when char in ?0..?9
+       when char == ?_,
+    do: is_inspected_end?(rest)
+  defp is_inspected_end?(<<?<, _::binary>>),
+    do: true
+  defp is_inspected_end?(_),
+    do: false
 end

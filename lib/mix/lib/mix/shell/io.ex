@@ -46,30 +46,26 @@ defmodule Mix.Shell.IO do
   end
 
   @doc """
-  Prints a message and prompts the user for
-  input. Input will be consumed until Enter is pressed.
+  Prints a message and prompts the user for input.
+
+  Input will be consumed until Enter is pressed.
   """
   def prompt(message) do
     print_app()
-    IO.gets message <> " "
+    IO.gets(message <> " ")
   end
 
   @doc """
   Prints a message and asks the user if they want to proceed.
-  The user must press Enter or type anything that matches the "yes"
-  regex `~r/^Y(es)?$/i`.
+
+  The user must press Enter or type one of "y", "yes", "Y", "YES" or
+  "Yes".
   """
   def yes?(message) do
     print_app()
-    got_yes? IO.gets(message <> " [Yn] ")
+    answer = IO.gets(message <> " [Yn] ")
+    is_binary(answer) and String.trim(answer) in ["", "y", "Y", "yes", "YES", "Yes"]
   end
-
-  defp got_yes?(answer) when is_binary(answer) do
-    answer =~ ~r/^(Y(es)?)?$/i
-  end
-
-  # The IO server may return :eof or :error
-  defp got_yes?(_), do: false
 
   defp red(message) do
     [:red, :bright, message]
