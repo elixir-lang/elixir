@@ -544,6 +544,8 @@ defmodule Process do
 
   See [`:erlang.process_flag/2`](http://www.erlang.org/doc/man/erlang.html#process_flag-2) for more info.
 
+  Note that `flag` values `:max_heap_size` and `:message_queue_data` are only available since OTP 19.
+
   Inlined by the compiler.
   """
   @spec flag(:error_handler, module) :: module
