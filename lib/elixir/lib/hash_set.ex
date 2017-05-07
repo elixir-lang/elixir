@@ -236,15 +236,31 @@ defmodule HashSet do
 end
 
 defimpl Enumerable, for: HashSet do
-  def reduce(set, acc, fun), do: HashSet.reduce(set, acc, fun)
-  def member?(set, v),       do: {:ok, HashSet.member?(set, v)}
-  def count(set),            do: {:ok, HashSet.size(set)}
+  def reduce(set, acc, fun) do
+    # Avoid warnings about HashSet being deprecated.
+    module = HashSet
+    module.reduce(set, acc, fun)
+  end
+
+  def member?(set, term) do
+    # Avoid warnings about HashSet being deprecated.
+    module = HashSet
+    {:ok, module.member?(set, term)}
+  end
+
+  def count(set) do
+    # Avoid warnings about HashSet being deprecated.
+    module = HashSet
+    {:ok, module.size(set)}
+  end
 end
 
 defimpl Collectable, for: HashSet do
   def into(original) do
+    # Avoid warnings about HashSet being deprecated.
+    module = HashSet
     {original, fn
-      set, {:cont, x} -> HashSet.put(set, x)
+      set, {:cont, term} -> module.put(set, term)
       set, :done -> set
       _, :halt -> :ok
     end}
@@ -255,6 +271,8 @@ defimpl Inspect, for: HashSet do
   import Inspect.Algebra
 
   def inspect(set, opts) do
-    concat ["#HashSet<", Inspect.List.inspect(HashSet.to_list(set), opts), ">"]
+    # Avoid warnings about HashSet being deprecated.
+    module = HashSet
+    concat ["#HashSet<", Inspect.List.inspect(module.to_list(set), opts), ">"]
   end
 end

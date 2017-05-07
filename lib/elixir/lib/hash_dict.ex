@@ -221,16 +221,35 @@ defmodule HashDict do
 end
 
 defimpl Enumerable, for: HashDict do
-  def reduce(dict, acc, fun),  do: HashDict.reduce(dict, acc, fun)
-  def member?(dict, {k, v}), do: {:ok, match?({:ok, ^v}, HashDict.fetch(dict, k))}
-  def member?(_dict, _),       do: {:ok, false}
-  def count(dict),             do: {:ok, HashDict.size(dict)}
+  def reduce(dict, acc, fun) do
+    # Avoid warnings about HashDict being deprecated.
+    module = HashDict
+    module.reduce(dict, acc, fun)
+  end
+
+  def member?(dict, {key, value}) do
+    # Avoid warnings about HashDict being deprecated.
+    module = HashDict
+    {:ok, match?({:ok, ^value}, module.fetch(dict, key))}
+  end
+
+  def member?(_dict, _) do
+    {:ok, false}
+  end
+
+  def count(dict) do
+    # Avoid warnings about HashDict being deprecated.
+    module = HashDict
+    {:ok, module.size(dict)}
+  end
 end
 
 defimpl Collectable, for: HashDict do
   def into(original) do
+    # Avoid warnings about HashDict being deprecated.
+    module = HashDict
     {original, fn
-      dict, {:cont, {k, v}} -> HashDict.put(dict, k, v)
+      dict, {:cont, {key, value}} -> module.put(dict, key, value)
       dict, :done -> dict
       _, :halt -> :ok
     end}
@@ -241,6 +260,8 @@ defimpl Inspect, for: HashDict do
   import Inspect.Algebra
 
   def inspect(dict, opts) do
-    concat ["#HashDict<", Inspect.List.inspect(HashDict.to_list(dict), opts), ">"]
+    # Avoid warnings about HashDict being deprecated.
+    module = HashDict
+    concat ["#HashDict<", Inspect.List.inspect(module.to_list(dict), opts), ">"]
   end
 end
