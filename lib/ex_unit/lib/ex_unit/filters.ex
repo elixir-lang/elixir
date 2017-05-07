@@ -14,10 +14,11 @@ defmodule ExUnit.Filters do
   """
   @spec parse_path(String.t) :: {String.t, any}
   def parse_path(file) do
-    case Regex.run(~r/^(.+):(\d+)$/, file, capture: :all_but_first) do
-      [file, line_number] ->
-        {file, exclude: [:test], include: [line: line_number]}
-      nil ->
+    {paths, [line]} = file |> String.split(":") |> Enum.split(-1)
+    case Integer.parse(line) do
+      {_, ""} ->
+        {Enum.join(paths, ":"), exclude: [:test], include: [line: line]}
+      _ ->
         {file, []}
     end
   end
