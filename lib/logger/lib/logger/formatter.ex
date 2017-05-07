@@ -84,7 +84,9 @@ defmodule Logger.Formatter do
   def compile({mod, fun}) when is_atom(mod) and is_atom(fun), do: {mod, fun}
 
   def compile(str) do
-    for part <- Regex.split(~r/(?<head>)\$[a-z]+(?<tail>)/, str, on: [:head, :tail], trim: true) do
+    regex = Regex.recompile!(~r/(?<head>)\$[a-z]+(?<tail>)/)
+
+    for part <- Regex.split(regex, str, on: [:head, :tail], trim: true) do
       case part do
         "$" <> code -> compile_code(String.to_atom(code))
         _           -> part
