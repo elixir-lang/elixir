@@ -140,6 +140,11 @@ handle_file_warning(_, _File, {_Line, v3_kernel, bad_call}) -> ok;
 %% We handle unused local warnings ourselves
 handle_file_warning(_, _File, {_Line, erl_lint, {unused_function, _}}) -> ok;
 
+%% Properly format keys using inspect.
+handle_file_warning(_, File, {Line, v3_core, {map_key_repeated, Key}}) ->
+  Message = io_lib:format("key ~ts will be overridden in map", ['Elixir.Kernel':inspect(Key)]),
+  warn(Line, File, Message);
+
 %% Make no_effect clauses pretty
 handle_file_warning(_, File, {Line, sys_core_fold, {no_effect, {erlang, F, A}}}) ->
   {Fmt, Args} = case erl_internal:comp_op(F, A) of

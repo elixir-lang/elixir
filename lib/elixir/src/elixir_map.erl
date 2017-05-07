@@ -66,10 +66,11 @@ translate_map(Meta, Args, S) ->
   translate_map(Meta, Assocs, TUpdate, US).
 
 translate_struct(_Meta, Name, {'%{}', MapMeta, Assocs}, S) when is_tuple(Name) ->
-  translate_map(MapMeta, Assocs ++ [{'__struct__', Name}], nil, S);
+  translate_map(MapMeta, [{'__struct__', Name} | delete_struct_key(Assocs)], nil, S);
 
 translate_struct(Meta, Name, {'%{}', MapMeta, Args}, S) ->
-  {Assocs, TUpdate, US} = extract_assoc_update(Args, S),
+  {TAssocs, TUpdate, US} = extract_assoc_update(Args, S),
+  Assocs = delete_struct_key(TAssocs),
   Operation = operation(TUpdate, S),
 
   Struct = case Operation of
@@ -98,11 +99,11 @@ translate_struct(Meta, Name, {'%{}', MapMeta, Args}, S) ->
         {clause, Generated, [Var], [], [elixir_utils:erl_call(Ann, erlang, error, [Error])]}
       ]}, TS};
     match ->
-      translate_map(MapMeta, Assocs ++ [{'__struct__', Name}], nil, US);
+      translate_map(MapMeta, [{'__struct__', Name} | Assocs], nil, US);
     expand ->
-      Keys = [K || {K, _} <- Assocs],
+      Keys = ['__struct__'] ++ [K || {K, _} <- Assocs],
       {StructAssocs, _} = elixir_quote:escape(maps:to_list(maps:without(Keys, Struct)), false),
-      translate_map(MapMeta, StructAssocs ++ Assocs ++ [{'__struct__', Name}], nil, US)
+      translate_map(MapMeta, [{'__struct__', Name}] ++ StructAssocs ++ Assocs, nil, US)
   end.
 
 %% Helpers
@@ -189,6 +190,9 @@ extract_assoc_update([{'|', _Meta, [Update, Args]}], S) ->
   {TArg, SA} = elixir_translator:translate_arg(Update, S, S),
   {Args, TArg, SA};
 extract_assoc_update(Args, SA) -> {Args, nil, SA}.
+
+delete_struct_key(Assocs) ->
+  lists:keydelete('__struct__', 1, Assocs).
 
 extract_key_val_op(_TUpdate, #elixir_scope{context=match}) ->
   {map_field_exact,
