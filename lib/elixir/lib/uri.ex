@@ -400,8 +400,8 @@ defmodule URI do
   def parse(%URI{} = uri), do: uri
 
   def parse(string) when is_binary(string) do
-    # From http://tools.ietf.org/html/rfc3986#appendix-B
-    regex = ~r/^(([a-z][a-z0-9\+\-\.]*):)?(\/\/([^\/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?/i
+    # From https://tools.ietf.org/html/rfc3986#appendix-B
+    regex = Regex.recompile!(~r/^(([a-z][a-z0-9\+\-\.]*):)?(\/\/([^\/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?/i)
     parts = nillify(Regex.run(regex, string))
 
     destructure [_, _, scheme, _, authority, path, _, query, _, fragment], parts
@@ -419,7 +419,8 @@ defmodule URI do
 
   # Split an authority into its userinfo, host and port parts.
   defp split_authority(string) do
-    components = Regex.run(~r/(^(.*)@)?(\[[a-zA-Z0-9:.]*\]|[^:]*)(:(\d*))?/, string || "")
+    regex = Regex.recompile!(~r/(^(.*)@)?(\[[a-zA-Z0-9:.]*\]|[^:]*)(:(\d*))?/)
+    components = Regex.run(regex, string || "")
 
     destructure [_, _, userinfo, host, _, port], nillify(components)
     host = if host, do: host |> String.trim_leading("[") |> String.trim_trailing("]")

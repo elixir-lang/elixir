@@ -701,9 +701,6 @@ defmodule Regex do
     [get_index(string, h) | get_indexes(string, t, arity - 1)]
   end
 
-  {:ok, pattern} = :re.compile(~S"[.^$*+?()\[\]{}\\\|\s#-]", [:unicode])
-  @escape_pattern pattern
-
   @doc ~S"""
   Escapes a string to be literally matched in a regex.
 
@@ -718,8 +715,14 @@ defmodule Regex do
   """
   @spec escape(String.t) :: String.t
   def escape(string) when is_binary(string) do
-    :re.replace(string, @escape_pattern, "\\\\&", [:global, {:return, :binary}])
+    escape(string, [])
   end
+
+  for char <- '.^$*+?()[]{}|#-\\\t\n\v\f\r\s' do
+    defp escape(<<unquote(char), rest::binary>>, acc), do: escape(rest, [acc, ?\\, unquote(char)])
+  end
+  defp escape(<<char, rest::binary>>, acc), do: escape(rest, [acc, char])
+  defp escape(<<>>, acc), do: IO.iodata_to_binary(acc)
 
   # Helpers
 
