@@ -127,6 +127,10 @@ format_error(sys_core_fold, nomatch_guard) ->
 format_error(erl_lint, {unused_var, Var}) ->
   ["variable \"", format_var(Var), "\" is unused"];
 
+%% Properly format keys using inspect.
+format_error(v3_core, {map_key_repeated, Key}) ->
+    io_lib:format("key ~ts will be overridden in map", ['Elixir.Kernel':inspect(Key)]);
+
 %% Handle literal eval failures
 format_error(sys_core_fold, {eval_failure, Error}) ->
   #{'__struct__' := Struct} = 'Elixir.Exception':normalize(error, Error),
