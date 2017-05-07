@@ -5,7 +5,16 @@ defmodule Logger.TranslatorTest do
   defmodule MyGenServer do
     use GenServer
 
+    def handle_cast(:error, _) do
+      raise "oops"
+    end
+
     def handle_call(:error, _, _) do
+      raise "oops"
+    end
+    def handle_call(:error_on_down, {pid, _}, _) do
+      mon = Process.monitor(pid)
+      assert_receive {:DOWN, ^mon, _, _, _}
       raise "oops"
     end
   end
@@ -93,18 +102,99 @@ defmodule Logger.TranslatorTest do
     Application.put_env(:logger, :translator_inspect_opts, [])
   end
 
-  test "translates GenServer crashes on debug" do
+  # TODO: Remove this check once we depend only on 20
+  if :erlang.system_info(:otp_release) >= '20' do
+    test "translates GenServer crashes on debug" do
+      {:ok, pid} = GenServer.start(MyGenServer, :ok)
+
+      assert capture_log(:debug, fn ->
+        catch_exit(GenServer.call(pid, :error))
+      end) =~ ~r"""
+      \[error\] GenServer #PID<\d+\.\d+\.\d+> terminating
+      \*\* \(RuntimeError\) oops
+      .*
+      Last message \(from #PID<\d+\.\d+\.\d+>\): :error
+      State: :ok
+      Client #PID<\d+\.\d+\.\d+> is alive
+      .*
+      """s
+    end
+
+    test "translates GenServer crashes with named client on debug" do
+      {:ok, pid} = GenServer.start(MyGenServer, :ok)
+
+      assert capture_log(:debug, fn ->
+        Process.register(self(), :named_client)
+        catch_exit(GenServer.call(pid, :error))
+      end) =~ ~r"""
+      \[error\] GenServer #PID<\d+\.\d+\.\d+> terminating
+      \*\* \(RuntimeError\) oops
+      .*
+      Last message \(from :named_client\): :error
+      State: :ok
+      Client :named_client is alive
+      .*
+      """s
+    end
+
+    test "translates GenServer crashes with dead client on debug" do
+      {:ok, pid} = GenServer.start(MyGenServer, :ok)
+
+      assert capture_log(:debug, fn ->
+        mon = Process.monitor(pid)
+        spawn_link(fn() ->
+          catch_exit(GenServer.call(pid, :error_on_down, 0))
+        end)
+        assert_receive {:DOWN, ^mon, _, _, _}
+      end) =~ ~r"""
+      \[error\] GenServer #PID<\d+\.\d+\.\d+> terminating
+      \*\* \(RuntimeError\) oops
+      .*
+      Last message \(from #PID<\d+\.\d+\.\d+>\): :error_on_down
+      State: :ok
+      Client #PID<\d+\.\d+\.\d+> is dead
+      """s
+    end
+  else
+    test "translates GenServer crashes on debug" do
+      {:ok, pid} = GenServer.start(MyGenServer, :ok)
+
+      assert capture_log(:debug, fn ->
+        catch_exit(GenServer.call(pid, :error))
+      end) =~ ~r"""
+      \[error\] GenServer #PID<\d+\.\d+\.\d+> terminating
+      \*\* \(RuntimeError\) oops
+      .*
+      Last message: :error
+      State: :ok
+      """s
+    end
+  end
+
+  test "translates GenServer crashes with no client" do
     {:ok, pid} = GenServer.start(MyGenServer, :ok)
 
     assert capture_log(:debug, fn ->
-      catch_exit(GenServer.call(pid, :error))
+      mon = Process.monitor(pid)
+      GenServer.cast(pid, :error)
+      assert_receive {:DOWN, ^mon, _, _, _}
     end) =~ ~r"""
     \[error\] GenServer #PID<\d+\.\d+\.\d+> terminating
     \*\* \(RuntimeError\) oops
     .*
-    Last message: :error
+    Last message: {:"\$gen_cast", :error}
     State: :ok
     """s
+  end
+
+  test "translates GenServer crashes with no client on debug" do
+    {:ok, pid} = GenServer.start(MyGenServer, :ok)
+
+    refute capture_log(:debug, fn ->
+      mon = Process.monitor(pid)
+      GenServer.cast(pid, :error)
+      assert_receive {:DOWN, ^mon, _, _, _}
+    end) =~ "Client"
   end
 
   test "translates :gen_event crashes" do

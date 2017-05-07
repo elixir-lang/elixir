@@ -36,11 +36,12 @@ defmodule Logger.Translator do
     opts = Application.get_env(:logger, :translator_inspect_opts)
 
     case message do
-      {'** Generic server ' ++ _, [name, last, state, reason]} ->
+      {'** Generic server ' ++ _, [name, last, state, reason | client]} ->
         msg = ["GenServer #{inspect name} terminating", format_stop(reason),
-               "\nLast message: #{inspect last, opts}"]
+               "\nLast message#{format_from(client)}: #{inspect last, opts}"]
         if min_level == :debug do
-          {:ok, [msg | "\nState: #{inspect state, opts}"]}
+          {:ok, [msg, "\nState: #{inspect state, opts}" |
+                 format_client(client)]}
         else
           {:ok, msg}
         end
@@ -379,4 +380,24 @@ defmodule Logger.Translator do
     do: [inspect(mod), ?., Inspect.Function.escape_name(fun) | "/?"]
   defp format_mfa(mod, fun, args),
     do: Exception.format_mfa(mod, fun, args)
+
+  defp format_from([]),
+    do: ""
+  defp format_from([from]),
+    do: " (from #{inspect(from)})"
+  defp format_from([from, stacktrace]) when is_list(stacktrace),
+    do: " (from #{inspect(from)})"
+  defp format_from([from, node_name]) when is_atom(node_name),
+    do: " (from #{inspect(from)} on #{inspect(node_name)})"
+
+  defp format_client([from]) do
+    "\nClient #{inspect(from)} is dead"
+  end
+  defp format_client([from, stacktrace]) when is_list(stacktrace) do
+    ["\nClient #{inspect(from)} is alive\n" |
+      Exception.format_stacktrace(stacktrace)]
+  end
+  defp format_client(_) do
+    []
+  end
 end
