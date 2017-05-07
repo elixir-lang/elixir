@@ -1,14 +1,13 @@
 defmodule Regex do
   @moduledoc ~S"""
-  Provides regular expressions for Elixir. Built on top of Erlang's `:re`
-  module.
+  Provides regular expressions for Elixir.
 
-  As the `:re` module, Regex is based on PCRE
-  (Perl Compatible Regular Expressions). More information can be
-  found in the [`:re` module documentation](http://www.erlang.org/doc/man/re.html).
+  Regex is based on PCRE (Perl Compatible Regular Expressions) and
+  built on top of Erlang's `:re` module. More information can be found
+  in the [`:re` module documentation](http://www.erlang.org/doc/man/re.html).
 
-  Regular expressions in Elixir can be created using `Regex.compile!/2`
-  or using the special form with [`~r`](Kernel.html#sigil_r/2) or [`~R`](Kernel.html#sigil_R/2):
+  Regular expressions in Elixir can be created using the sigils
+  [`~r`](Kernel.html#sigil_r/2) or [`~R`](Kernel.html#sigil_R/2):
 
       # A simple regular expressions that matches foo anywhere in the string
       ~r/foo/
@@ -16,8 +15,37 @@ defmodule Regex do
       # A regular expression with case insensitive and Unicode options
       ~r/foo/iu
 
+  Regular expressions created via sigils are pre-compiled and stored
+  in the `.beam` file. Notice this may be a problem if you are precompiling
+  Elixir, see the "Precompilation" section for more information.
+
   A Regex is represented internally as the `Regex` struct. Therefore,
   `%Regex{}` can be used whenever there is a need to match on them.
+
+  Keep in mind it is not guaranteed two regular expressions from the
+  same source are equal, for example:
+
+      ~r/(?<foo>.)(?<bar>.)/ == ~r/(?<foo>.)(?<bar>.)/
+
+  may return `true` or `false` depending on your machine, endianess,
+  available optimizations and others. You can, however, retrieve the source
+  of a compiled regular expression by accessing the `source` field, and then
+  compare those directly:
+
+      ~r/(?<foo>.)(?<bar>.)/.source == ~r/(?<foo>.)(?<bar>.)/.source
+
+  ## Precompilation
+
+  Regular expressions built with sigil are precompiled and stored in `.beam`
+  files. This may be a problem if you are precompiling Elixir to run in
+  different OTP releases, as OTP releases may update the underlying regular
+  expression engine at any time.
+
+  For such reasons, we always recomend precompiling Elixir projects using
+  the OTP version meant to run in production. In case cross-compilation is
+  really necessary, you can manually invoke `Regex.recompile/1` or `Regex.
+  recompile!/1` to perform a runtime version check and recompile the regex
+  if necessary.
 
   ## Modifiers
 
@@ -78,7 +106,7 @@ defmodule Regex do
 
   """
 
-  defstruct re_pattern: nil, source: "", opts: ""
+  defstruct re_pattern: nil, source: "", opts: "", re_version: ""
 
   @type t :: %__MODULE__{re_pattern: term, source: binary, opts: binary}
 
@@ -91,7 +119,7 @@ defmodule Regex do
 
   The given options can either be a binary with the characters
   representing the same regex options given to the `~r` sigil,
-  or a list of options, as expected by the Erlang's [`:re` module](http://www.erlang.org/doc/man/re.html).
+  or a list of options, as expected by the Erlang's `:re` module.
 
   It returns `{:ok, regex}` in case of success,
   `{:error, reason}` otherwise.
@@ -106,40 +134,84 @@ defmodule Regex do
 
   """
   @spec compile(binary, binary | [term]) :: {:ok, t} | {:error, any}
-  def compile(source, options \\ "")
+  def compile(source, options \\ "") do
+    compile(source, options, version())
+  end
 
-  def compile(source, options) when is_binary(options) do
+  defp compile(source, options, version) when is_binary(options) do
     case translate_options(options, []) do
       {:error, rest} ->
         {:error, {:invalid_option, rest}}
 
       translated_options ->
-        compile(source, translated_options, options)
+        compile(source, translated_options, options, version)
     end
   end
 
-  def compile(source, options) when is_list(options) do
-    compile(source, options, "")
+  defp compile(source, options, version) when is_list(options) do
+    compile(source, options, "", version)
   end
 
-  defp compile(source, opts, doc_opts) when is_binary(source) do
+  defp compile(source, opts, doc_opts, version) when is_binary(source) do
     case :re.compile(source, opts) do
       {:ok, re_pattern} ->
-        {:ok, %Regex{re_pattern: re_pattern, source: source, opts: doc_opts}}
+        {:ok, %Regex{re_pattern: re_pattern, re_version: version, source: source, opts: doc_opts}}
       error ->
         error
     end
   end
 
   @doc """
-  Compiles the regular expression according to the given options.
-  Fails with `Regex.CompileError` if the regex cannot be compiled.
+  Compiles the regular expression and raises `Regex.CompileError` in case of errors.
   """
   @spec compile!(binary, binary | [term]) :: t
   def compile!(source, options \\ "") do
     case compile(source, options) do
       {:ok, regex} -> regex
-      {:error, {reason, at}} -> raise Regex.CompileError, message: "#{reason} at position #{at}"
+      {:error, {reason, at}} -> raise Regex.CompileError, "#{reason} at position #{at}"
+    end
+  end
+
+  @doc """
+  Recompiles the existing regular expression if necessary.
+
+  This checks the version stored in the regular expression
+  and recompiles the regex in case of version mismatch.
+  """
+  @spec recompile(t) :: t
+  def recompile(%Regex{} = regex) do
+    version = version()
+
+    # We use Map.get/3 by choice to support old regexes versions.
+    case Map.get(regex, :re_version, :error) do
+      ^version ->
+        {:ok, regex}
+      _ ->
+        %{source: source, opts: opts} = regex
+        compile(source, opts, version)
+    end
+  end
+
+  @doc """
+  Recompiles the existing regular expression and raises `Regex.CompileError` in case of errors.
+  """
+  @spec recompile!(t) :: t
+  def recompile!(regex) do
+    case recompile(regex) do
+      {:ok, regex} -> regex
+      {:error, {reason, at}} -> raise Regex.CompileError, "#{reason} at position #{at}"
+    end
+  end
+
+  @doc """
+  Returns the version of the underlying Regex engine.
+  """
+  # TODO: No longer check for function_exported? on OTP 20+.
+  def version do
+    if function_exported?(:re, :version, 0) do
+      :re.version()
+    else
+      "8.33 2013-05-29"
     end
   end
 

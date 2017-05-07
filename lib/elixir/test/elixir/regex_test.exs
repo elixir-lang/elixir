@@ -91,7 +91,55 @@ defmodule RegexTest do
     refute <<?<, 255, ?>>> =~ ~r/<.>/u
   end
 
-  test "names" do
+  test "ungreedy" do
+    assert Regex.run(~r/[\d ]+/, "1 2 3 4 5"), ["1 2 3 4 5"]
+    assert Regex.run(~r/[\d ]?+/, "1 2 3 4 5"), ["1"]
+    assert Regex.run(~r/[\d ]+/U, "1 2 3 4 5"), ["1"]
+  end
+
+  test "regex?/1" do
+    assert Regex.regex?(~r/foo/)
+    refute Regex.regex?(0)
+  end
+
+  test "compile/1" do
+    {:ok, regex} = Regex.compile("foo")
+    assert Regex.regex?(regex)
+    assert {:error, _} = Regex.compile("*foo")
+    assert {:error, _} = Regex.compile("foo", "y")
+    assert {:error, _} = Regex.compile("foo", "uy")
+  end
+
+  test "compile/1 with Erlang options" do
+    {:ok, regex} = Regex.compile("foo\\sbar", [:dotall, {:newline, :anycrlf}])
+    assert "foo\nbar" =~ regex
+  end
+
+  test "compile!/1" do
+    assert Regex.regex?(Regex.compile!("foo"))
+
+    assert_raise Regex.CompileError, ~r/position 0$/, fn ->
+      Regex.compile!("*foo")
+    end
+  end
+
+  test "recompile/1" do
+    new_regex = ~r/foo/
+    {:ok, regex} = Regex.recompile(new_regex)
+    assert Regex.regex?(regex)
+    assert Regex.regex?(Regex.recompile!(new_regex))
+
+    old_regex = Map.delete(~r/foo/, :re_version)
+    {:ok, regex} = Regex.recompile(old_regex)
+    assert Regex.regex?(regex)
+    assert Regex.regex?(Regex.recompile!(old_regex))
+  end
+
+  test "opts/1" do
+    assert Regex.opts(Regex.compile!("foo", "i")) == "i"
+  end
+
+  test "names/1" do
     assert Regex.names(~r/(?<FOO>foo)/) == ["FOO"]
   end
 
@@ -217,12 +265,6 @@ defmodule RegexTest do
     assert Regex.replace(~r[a(b)c], "abcabc", fn "abc", "b" -> "ac" end) == "acac"
     assert Regex.replace(~r[a(b)c], "abcabc", fn "abc", "b", "" -> "ac" end) == "acac"
     assert Regex.replace(~r[a(b)c], "abcabc", fn "abc", "b" -> "ac" end, global: false) == "acabc"
-  end
-
-  test "ungreedy" do
-    assert Regex.run(~r/[\d ]+/, "1 2 3 4 5"), ["1 2 3 4 5"]
-    assert Regex.run(~r/[\d ]?+/, "1 2 3 4 5"), ["1"]
-    assert Regex.run(~r/[\d ]+/U, "1 2 3 4 5"), ["1"]
   end
 
   test "escape" do
