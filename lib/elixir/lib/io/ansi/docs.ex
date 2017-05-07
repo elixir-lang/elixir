@@ -2,6 +2,7 @@ defmodule IO.ANSI.Docs do
   @moduledoc false
 
   @bullets [?*, ?-, ?+]
+  @spaces [" ", "\n", "\t"]
 
   @doc """
   The default options used by this module.
@@ -204,7 +205,7 @@ defmodule IO.ANSI.Docs do
     |> Enum.join(" ")
     |> handle_links
     |> handle_inline(options)
-    |> String.split(~r{\s})
+    |> String.split(@spaces)
     |> write_with_wrap(options[:width] - byte_size(indent), indent, no_wrap)
 
     unless no_wrap, do: newline_after_block()
@@ -266,8 +267,10 @@ defmodule IO.ANSI.Docs do
     count = Enum.map(lines, &length/1) |> Enum.max
     lines = Enum.map(lines, &pad_to_number_of_columns(&1, count))
 
-    widths = for line <- lines, do:
-              (for {_col, length} <- line, do: length)
+    widths =
+      for line <- lines do
+        for {_col, length} <- line, do: length
+      end
 
     col_widths = Enum.reduce(widths,
                              List.duplicate(0, count),
@@ -280,15 +283,16 @@ defmodule IO.ANSI.Docs do
     line
     |> String.trim("|")
     |> String.trim()
-    |> String.split(~r/\s\|\s/)
+    |> String.split(" | ")
     |> Enum.map(&render_column(&1, options))
   end
 
   defp render_column(col, options) do
-    col = col
-          |> String.replace(~r/\\ \|/x, "|")
-          |> handle_links
-          |> handle_inline(options)
+    col =
+      col
+      |> String.replace("\\\|", "|")
+      |> handle_links
+      |> handle_inline(options)
     {col, length_without_escape(col, 0)}
   end
 
@@ -319,8 +323,17 @@ defmodule IO.ANSI.Docs do
   defp render_table([], _, _),
     do: nil
 
-  defp table_header?(row), do:
-    Enum.all?(row, fn {col, _} -> col =~ ~r/^:?-+:?$/ end)
+  defp table_header?(row) do
+    Enum.all?(row, fn {col, _} -> table_header_column?(col) end)
+  end
+
+  defp table_header_column?(":" <> row), do: table_header_contents?(row)
+  defp table_header_column?(row), do: table_header_contents?(row)
+
+  defp table_header_contents?("-" <> row), do: table_header_contents?(row)
+  defp table_header_contents?(":"), do: true
+  defp table_header_contents?(""), do: true
+  defp table_header_contents?(_), do: false
 
   defp draw_table_row(cols_and_widths, options, heading \\ false) do
     columns =
@@ -336,11 +349,7 @@ defmodule IO.ANSI.Docs do
   end
 
   defp table_line?(line) do
-    Regex.match?(~r'''
-      ( ^ \s{0,3} \| (?: [^|]+ \|)+ \s* $ )
-    |
-      (\s \| \s)
-    '''x, line)
+    line =~ " | "
   end
 
   ## Helpers
@@ -416,13 +425,16 @@ defmodule IO.ANSI.Docs do
   end
 
   defp escape_underlines_in_link(text) do
-    Regex.replace(~r{https?\S*}, text, &String.replace(&1, "_", "\\_"))
+    ~r{https?\S*}
+    |> Regex.recompile!
+    |> Regex.replace(text, &String.replace(&1, "_", "\\_"))
   end
 
   defp remove_square_brackets_in_link(text) do
-    Regex.replace(~r{\[(.*?)\]\((.*?)\)}, text, "\\1 (\\2)")
+    ~r{\[(.*?)\]\((.*?)\)}
+    |> Regex.recompile!
+    |> Regex.replace(text, "\\1 (\\2)")
   end
-
 
   # We have four entries: **, *, _ and `.
   #
