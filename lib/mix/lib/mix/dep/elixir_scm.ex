@@ -2,7 +2,7 @@
 defmodule Mix.Dep.ElixirSCM do
   @moduledoc false
   @manifest ".compile.elixir_scm"
-  @manifest_vsn :v1
+  @manifest_vsn :v2
 
   def manifest(manifest_path \\ Mix.Project.manifest_path) do
     Path.join(manifest_path, @manifest)
@@ -13,7 +13,7 @@ defmodule Mix.Dep.ElixirSCM do
     File.mkdir_p!(manifest_path)
 
     manifest_data =
-      {@manifest_vsn, System.version, config[:build_scm]}
+      {@manifest_vsn, {System.version, :erlang.system_info(:otp_release)}, config[:build_scm]}
       |> :erlang.term_to_binary(compressed: 9)
 
     File.write!(manifest(manifest_path), manifest_data)
@@ -23,15 +23,10 @@ defmodule Mix.Dep.ElixirSCM do
     case File.read(manifest(manifest_path)) do
       {:ok, contents} ->
         try do
-          :erlang.binary_to_term(contents)
-        else
-          {@manifest_vsn, vsn, scm} ->
-            {:ok, vsn, scm}
-          _ ->
-            {:ok, "1.0.0", nil} # Force old version if file exists but old format
+          {@manifest_vsn, vsn, scm} = :erlang.binary_to_term(contents)
+          {:ok, vsn, scm}
         rescue
-          _ ->
-            {:ok, "1.0.0", nil} # Force old version if file exists but old format
+          _ -> {:ok, {"1.0.0", '17'}, nil}
         end
       _ ->
         :error

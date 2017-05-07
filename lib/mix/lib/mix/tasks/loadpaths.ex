@@ -58,7 +58,7 @@ defmodule Mix.Tasks.Loadpaths do
   end
 
   defp load_project(config, _args) do
-    vsn = System.version
+    vsn = {System.version, :erlang.system_info(:otp_release)}
     scm = config[:build_scm]
 
     # Erase the app build if we have lock mismatch.

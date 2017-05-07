@@ -297,7 +297,7 @@ defmodule Mix.Dep do
   end
 
   defp check_manifest(%{scm: scm} = dep, build_path) do
-    vsn = System.version
+    vsn = {System.version, :erlang.system_info(:otp_release)}
 
     case Mix.Dep.ElixirSCM.read(build_path) do
       {:ok, old_vsn, _} when old_vsn != vsn ->
