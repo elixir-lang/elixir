@@ -256,15 +256,16 @@ defmodule StringIO do
   ## get_line
 
   defp get_line(encoding, prompt, %{input: input} = s) do
-    with {:ok, count} <- bytes_until_eol(input, encoding, 0) do
-      {result, remainder} = case count do
-        0 -> {:eof, ""}
-        count -> split_at_eol(input, count)
-      end
+    case bytes_until_eol(input, encoding, 0) do
+      {:ok, count} ->
+        {result, remainder} = case count do
+          0 -> {:eof, ""}
+          count -> split_at_eol(input, count)
+        end
 
-      {result, state_after_read(s, remainder, prompt)}
-    else
-      _ -> {{:error, :collect_line}, s}
+        {result, state_after_read(s, remainder, prompt)}
+      :error
+        -> {{:error, :collect_line}, s}
     end
   end
 
