@@ -155,17 +155,23 @@ defmodule Mix.Utils do
   end
 
   def last_modified(path) do
+    {mtime, _size} = last_modified_and_size(path)
+    mtime
+  end
+
+  @doc false
+  def last_modified_and_size(path) do
     now = :calendar.universal_time
 
-    case :elixir_utils.read_mtime(path) do
-      {:ok, mtime} when mtime > now ->
+    case :elixir_utils.read_mtime_and_size(path) do
+      {:ok, mtime, size} when mtime > now ->
         Mix.shell.error("warning: mtime (modified time) for \"#{path}\" was set to the future, resetting to now")
         File.touch!(path, now)
-        mtime
-      {:ok, mtime} ->
-        mtime
+        {mtime, size}
+      {:ok, mtime, size} ->
+        {mtime, size}
       {:error, _} ->
-        {{1970, 1, 1}, {0, 0, 0}}
+        {{{1970, 1, 1}, {0, 0, 0}}, 0}
     end
   end
 
@@ -222,7 +228,6 @@ defmodule Mix.Utils do
       end
 
     print_tree(nodes, _depth = [], _parent = nil, _seen = MapSet.new(), pretty?, callback)
-
     :ok
   end
 
@@ -419,8 +424,9 @@ defmodule Mix.Utils do
   end
 
   @doc """
-  Opens and reads content from either a URL or a local filesystem path
-  and returns the contents as a `{:ok, binary}`, `:badpath` for invalid
+  Opens and reads content from either a URL or a local filesystem path.
+
+  Returns the contents as a `{:ok, binary}`, `:badpath` for invalid
   paths or `{:local, message}` for local errors and `{:remote, message}`
   for remote ones.
 

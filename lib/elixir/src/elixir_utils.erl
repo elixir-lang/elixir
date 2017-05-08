@@ -4,7 +4,7 @@
 -export([get_line/1, split_last/1, noop/0,
   characters_to_list/1, characters_to_binary/1, relative_to_cwd/1,
   macro_name/1, returns_boolean/1, caller/4, meta_location/1,
-  read_file_type/1, read_link_type/1, read_mtime/1, change_universal_time/2,
+  read_file_type/1, read_link_type/1, read_mtime_and_size/1, change_universal_time/2,
   guard_op/2, match_op/2, extract_splat_guards/1, extract_guards/1]).
 -include("elixir.hrl").
 -include_lib("kernel/include/file.hrl").
@@ -74,9 +74,9 @@ read_link_type(File) ->
     {error, _} = Error -> Error
   end.
 
-read_mtime(File) ->
+read_mtime_and_size(File) ->
   case file:read_file_info(File, [{time, universal}]) of
-    {ok, #file_info{mtime=Mtime}} -> {ok, Mtime};
+    {ok, #file_info{mtime=Mtime, size=Size}} -> {ok, Mtime, Size};
     {error, _} = Error -> Error
   end.
 
