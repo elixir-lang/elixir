@@ -70,6 +70,10 @@ defmodule VersionTest do
     assert :error = V.parse("2.3")
     assert :error = V.parse("2")
     assert :error = V.parse("2.3.0-01")
+    assert :error = V.parse("2.3.00-1")
+    assert :error = V.parse("2.3.00")
+    assert :error = V.parse("2.03.0")
+    assert :error = V.parse("02.3.0")
   end
 
   test "Kernek.to_string/1" do

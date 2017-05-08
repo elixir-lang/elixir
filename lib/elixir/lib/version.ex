@@ -417,7 +417,12 @@ defmodule Version do
     end
 
     defp require_digits(nil), do: :error
-    defp require_digits(string), do: parse_digits(string, "")
+    defp require_digits(string) do
+      if leading_zero?(string), do: :error, else: parse_digits(string, "")
+    end
+
+    defp leading_zero?(<<?0, _, _::binary>>), do: true
+    defp leading_zero?(_), do: false
 
     defp parse_digits(<<char, rest::binary>>, acc) when char in ?0..?9,
       do: parse_digits(rest, <<acc::binary, char>>)
@@ -443,9 +448,10 @@ defmodule Version do
     defp convert_parts_to_integer([part | rest], acc) do
       case parse_digits(part, "") do
         {:ok, integer} ->
-          case part do
-            <<?0, _, _::binary>> -> :error
-            _ -> convert_parts_to_integer(rest, [integer | acc])
+          if leading_zero?(part) do
+            :error
+          else
+            convert_parts_to_integer(rest, [integer | acc])
           end
         :error ->
           convert_parts_to_integer(rest, [part | acc])
