@@ -17,7 +17,7 @@ defprotocol String.Chars do
   @doc """
   Converts `term` to a string.
   """
-  @spec to_string(term) :: String.t
+  @spec to_string(t) :: String.t
   def to_string(term)
 end
 
