@@ -97,6 +97,7 @@ defmodule MapSet do
   defp new_from_list([], acc) do
     :maps.from_list(acc)
   end
+
   defp new_from_list([item | rest], acc) do
     new_from_list(rest, [{item, []} | acc])
   end
