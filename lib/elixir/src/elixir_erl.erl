@@ -112,9 +112,15 @@ elixir_to_erl_cons2([], Acc) ->
 
 %% Compilation hook.
 
-compile(Map) ->
-  Forms = build_form(Map, not elixir_compiler:get_opt(internal)),
-  load_form(Map, Forms).
+compile(#{module := Module} = Map) ->
+  Data = elixir_module:data_table(Module),
+  {Prefix, Forms, Defmacro, Unreachable} = dynamic_form(Map),
+  SpecedForms =
+    case elixir_compiler:get_opt(internal) of
+      true -> Forms;
+      false -> specs_form(Data, Defmacro, Unreachable, types_form(Data, Forms))
+    end,
+  load_form(Map, Data, Prefix ++ SpecedForms).
 
 % Definitions
 
@@ -210,26 +216,17 @@ is_macro(_)         -> false.
 
 % Functions
 
-build_form(#{version := 1, module := Module, line := Line, file := File,
-             attributes := Attributes, definitions := Definitions,
-             unreachable := Unreachable} = Map, IncludeSpecs) ->
+dynamic_form(#{version := 1, module := Module, line := Line, file := File,
+               attributes := Attributes, definitions := Definitions, unreachable := Unreachable}) ->
   {Def, Defmacro, Exports, Functions} =
     split_definition(Definitions, File, Unreachable, [], [], [], {[], []}),
 
-  Forms0 =
-    functions_form(Line, Module, Def, Defmacro, Exports, Functions),
-  Forms1 =
-    attributes_form(Line, Attributes, Forms0),
-  Forms2 =
-    case IncludeSpecs of
-      true -> specs_form(Map, Defmacro, Unreachable, types_form(Map, Forms1));
-      false -> Forms1
-    end,
-
   Location = {elixir_utils:characters_to_list(elixir_utils:relative_to_cwd(File)), Line},
+  Prefix = [{attribute, Line, file, Location}, {attribute, Line, module, Module}],
 
-  [{attribute, Line, file, Location},
-   {attribute, Line, module, Module} | Forms2].
+  Forms0 = functions_form(Line, Module, Def, Defmacro, Exports, Functions),
+  Forms1 = attributes_form(Line, Attributes, Forms0),
+  {Prefix, Forms1, Defmacro, Unreachable}.
 
 functions_form(Line, Module, Def, Defmacro, Exports, Body) ->
   {Spec, Info} = add_info_function(Line, Module, Def, Defmacro),
@@ -288,9 +285,12 @@ others_info(Module) ->
 
 % Types
 
-types_form(#{types := ExTypes}, Forms) ->
-  Types = ['Elixir.Kernel.Typespec':translate_type(Kind, Expr, Caller) ||
-           {Kind, Expr, Caller} <- ExTypes],
+types_form(Data, Forms) ->
+  ExTypes =
+    take_type_spec(Data, type) ++ take_type_spec(Data, typep) ++ take_type_spec(Data, opaque),
+
+  Types =
+    ['Elixir.Kernel.Typespec':translate_type(Kind, Expr, Caller) || {Kind, Expr, Caller} <- ExTypes],
 
   Fun = fun
     ({{Kind, NameArity, Expr}, Line, true}, Acc) ->
@@ -298,24 +298,25 @@ types_form(#{types := ExTypes}, Forms) ->
     ({{Kind, _NameArity, Expr}, Line, false}, Acc) ->
       [{attribute, Line, Kind, Expr} | Acc]
   end,
+
   lists:foldl(Fun, Forms, Types).
 
 % Specs
 
-specs_form(#{specs := ExSpecs, callbacks := ExCallbacks, macro_callbacks := ExMacroCallbacks,
-             optional_callbacks := Optional}, Defmacro, Unreachable, Forms) ->
+specs_form(Data, Defmacro, Unreachable, Forms) ->
   Specs =
     ['Elixir.Kernel.Typespec':translate_spec(Kind, Expr, Caller) ||
-     {Kind, Expr, Caller} <- ExSpecs],
+     {Kind, Expr, Caller} <- take_type_spec(Data, spec)],
 
   Callbacks =
     ['Elixir.Kernel.Typespec':translate_spec(Kind, Expr, Caller) ||
-     {Kind, Expr, Caller} <- ExCallbacks],
+     {Kind, Expr, Caller} <- take_type_spec(Data, callback)],
 
   Macrocallbacks =
     ['Elixir.Kernel.Typespec':translate_spec(Kind, Expr, Caller) ||
-     {Kind, Expr, Caller} <- ExMacroCallbacks],
+     {Kind, Expr, Caller} <- take_type_spec(Data, macrocallback)],
 
+  Optional = lists:flatten(take_type_spec(Data, optional_callbacks)),
   SpecsForms = specs_form(spec, Specs, Unreachable, [], Defmacro, Forms),
   specs_form(callback, Callbacks ++ Macrocallbacks, [], Optional,
              [NameArity || {{_, NameArity, _}, _} <- Macrocallbacks], SpecsForms).
@@ -365,6 +366,12 @@ spec_for_macro({type, Line, 'fun', [{type, _, product, Args} | T]}) ->
 spec_for_macro(Else) ->
   Else.
 
+take_type_spec(Data, Key) ->
+  case ets:take(Data, Key) of
+    [{Key, Value, _, _}] -> Value;
+    [] -> []
+  end.
+
 % Attributes
 
 attributes_form(Line, Attributes, Forms) ->
@@ -375,25 +382,39 @@ attributes_form(Line, Attributes, Forms) ->
 
 % Loading forms
 
-load_form(#{module := Module, line := Line, file := File, compile_opts := Opts} = Map, Forms) ->
-  {ExtraChunks, CompileOpts} = extra_chunks(Module, Line, debug_info(Map, Opts)),
+load_form(#{line := Line, file := File, compile_opts := Opts} = Map, Data, Forms) ->
+  {ExtraChunks, CompileOpts} = extra_chunks(Data, Line, debug_info(Map, Opts)),
   {_, Binary} = elixir_erl_compiler:forms(Forms, File, CompileOpts),
   add_beam_chunks(Binary, ExtraChunks).
 
 debug_info(_Map, Opts) ->
-  case proplists:get_value(debug_info, Opts) of
-    true -> [debug_info];
-    false -> [];
-    undefined ->
-      case elixir_compiler:get_opt(debug_info) of
-        true  -> [debug_info];
-        false -> []
-      end
+  case include_debug_info(Opts) of
+    true ->
+      case supports_debug_info_tuple() of
+        true -> [debug_info];
+        false -> [debug_info]
+      end;
+    false ->
+      []
   end.
 
-extra_chunks(Module, Line, Opts) ->
+include_debug_info(Opts) ->
+  case proplists:get_value(debug_info, Opts) of
+    true -> true;
+    false -> false;
+    undefined -> elixir_compiler:get_opt(debug_info)
+  end.
+
+supports_debug_info_tuple() ->
+  case erlang:system_info(otp_release) of
+    "18" -> false;
+    "19" -> false;
+    _ -> true
+  end.
+
+extra_chunks(Data, Line, Opts) ->
   Supported = supports_extra_chunks_option(),
-  case docs_chunk(Module, Line, elixir_compiler:get_opt(docs)) of
+  case docs_chunk(Data, Line, elixir_compiler:get_opt(docs)) of
     [] -> {[], Opts};
     Chunks when Supported -> {[], [{extra_chunks, Chunks} | Opts]};
     Chunks -> {Chunks, Opts}
@@ -406,8 +427,7 @@ supports_extra_chunks_option() ->
     _ -> true
   end.
 
-docs_chunk(Module, Line, true) ->
-  Data = elixir_module:data_table(Module),
+docs_chunk(Data, Line, true) ->
   ChunkData = term_to_binary({elixir_docs_v1, [
     {docs, get_docs(Data)},
     {moduledoc, get_moduledoc(Line, Data)},

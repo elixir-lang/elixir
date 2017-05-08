@@ -485,7 +485,7 @@ defmodule Kernel.ErrorsTest do
 
   test "internal function overridden" do
     assert_compile_fail CompileError,
-      "nofile:1: function __info__/1 is internal and should not be overridden",
+      "nofile:2: cannot define def __info__/1 as it is automatically defined by Elixir",
       '''
       defmodule Kernel.ErrorsTest.InternalFunctionOverridden do
         def __info__(_), do: []
