@@ -75,9 +75,24 @@ compile(Line, Module, Block, Vars, E) ->
 
     {AllDefinitions, Unreachable} = elixir_def:fetch_definitions(File, Module),
     CompileOpts = lists:flatten(ets:lookup_element(Data, compile, 2)),
-    Backend = proplists:get_value(undocumented_elixir_backend_option, CompileOpts, elixir_erl),
-    Binary = Backend:compile(Line, File, Module, Attributes,
-                             AllDefinitions, Unreachable, CompileOpts),
+
+    ModuleMap = #{
+      version => 1,
+      module => Module,
+      line => Line,
+      file => File,
+      attributes => Attributes,
+      definitions => AllDefinitions,
+      unreachable => Unreachable,
+      compile_opts => CompileOpts,
+      types => take_type_spec(Data, type) ++ take_type_spec(Data, typep) ++ take_type_spec(Data, opaque),
+      specs => take_type_spec(Data, spec),
+      callbacks => take_type_spec(Data, callback),
+      macro_callbacks => take_type_spec(Data, macro_callback),
+      optional_callbacks => lists:flatten(take_type_spec(Data, optional_callbacks))
+    },
+
+    Binary = elixir_erl:compile(ModuleMap),
     warn_unused_attributes(File, Data, PersistedAttributes),
     autoload_module(Module, Binary, CompileOpts, NE),
     eval_callbacks(Line, Data, after_compile, [NE, Binary], NE),
@@ -99,6 +114,12 @@ compile(Line, Module, Block, Vars, E) ->
     ets:delete(Data),
     ets:delete(Defs),
     elixir_code_server:call({undefmodule, Ref})
+  end.
+
+take_type_spec(Data, Key) ->
+  case ets:take(Data, Key) of
+    [{Key, Value, _, _}] -> Value;
+    [] -> []
   end.
 
 %% An undef error for a function in the module being compiled might result in an
