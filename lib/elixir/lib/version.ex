@@ -396,65 +396,90 @@ defmodule Version do
       Enum.filter(Enum.reverse(acc), &(&1 != :' '))
     end
 
-    @version_regex ~r/^
-      (\d+)                 # major
-      (?:\.(\d+))?          # minor
-      (?:\.(\d+))?          # patch
-      (?:\-([\d\w\.\-]+))?  # pre
-      (?:\+([\d\w\.\-]+))?  # build
-      $/x
-
     @spec parse_requirement(String.t) :: {:ok, term} | :error
     def parse_requirement(source) do
       lexed = lexer(source, [])
       to_matchspec(lexed)
     end
 
-    defp nillify(""), do: nil
-    defp nillify(o),  do: o
-
     @spec parse_version(String.t) :: {:ok, Version.matchable} | :error
     def parse_version(string, approximate? \\ false) when is_binary(string) do
-      if parsed = Regex.run(@version_regex, string) do
-        destructure [_, major, minor, patch, pre], parsed
-        patch = nillify(patch)
-        pre   = nillify(pre)
+      destructure [version_with_pre, build], String.split(string, "+", parts: 2)
+      destructure [version, pre], String.split(version_with_pre, "-", parts: 2)
+      destructure [major, minor, patch], String.split(version, ".")
 
-        if is_nil(minor) or (is_nil(patch) and not approximate?) do
-          :error
-        else
-          major = String.to_integer(major)
-          minor = String.to_integer(minor)
-          patch = patch && String.to_integer(patch)
+      with {:ok, major} <- require_digits(major),
+           {:ok, minor} <- require_digits(minor),
+           {:ok, patch} <- maybe_patch(patch, approximate?),
+           {:ok, pre_parts} <- optional_dot_separated(pre),
+           {:ok, pre_parts} <- convert_parts_to_integer(pre_parts, []),
+           {:ok, _build_parts} <- optional_dot_separated(build) do
+        {:ok, {major, minor, patch, pre_parts}}
+      else
+        _other -> :error
+      end
+    end
 
-          case parse_pre(pre) do
-            {:ok, pre} ->
-              {:ok, {major, minor, patch, pre}}
-            :error ->
-              :error
-          end
-        end
+    defp require_digits(nil), do: :error
+    defp require_digits(string) do
+      if leading_zero?(string), do: :error, else: parse_digits(string, "")
+    end
+
+    defp leading_zero?(<<?0, _, _::binary>>), do: true
+    defp leading_zero?(_), do: false
+
+    defp parse_digits(<<char, rest::binary>>, acc) when char in ?0..?9,
+      do: parse_digits(rest, <<acc::binary, char>>)
+    defp parse_digits(<<>>, acc) when byte_size(acc) > 0,
+      do: {:ok, String.to_integer(acc)}
+    defp parse_digits(_, _acc),
+      do: :error
+
+    defp maybe_patch(patch, approximate?)
+    defp maybe_patch(nil, true), do: {:ok, nil}
+    defp maybe_patch(patch, _), do: require_digits(patch)
+
+    defp optional_dot_separated(nil), do: {:ok, []}
+    defp optional_dot_separated(string) do
+      parts = String.split(string, ".")
+      if Enum.all?(parts, &(&1 != "" and valid_identifier?(&1))) do
+        {:ok, parts}
       else
         :error
       end
     end
 
-    defp parse_pre(nil), do: {:ok, []}
-    defp parse_pre(pre), do: parse_pre(String.split(pre, "."), [])
-
-    defp parse_pre([piece | t], acc) do
-      cond do
-        piece =~ ~r/^(0|[1-9][0-9]*)$/ ->
-          parse_pre(t, [String.to_integer(piece) | acc])
-        piece =~ ~r/^[0-9]*$/ ->
-          :error
-        true ->
-          parse_pre(t, [piece | acc])
+    defp convert_parts_to_integer([part | rest], acc) do
+      case parse_digits(part, "") do
+        {:ok, integer} ->
+          if leading_zero?(part) do
+            :error
+          else
+            convert_parts_to_integer(rest, [integer | acc])
+          end
+        :error ->
+          convert_parts_to_integer(rest, [part | acc])
       end
     end
 
-    defp parse_pre([], acc) do
+    defp convert_parts_to_integer([], acc) do
       {:ok, Enum.reverse(acc)}
+    end
+
+    defp valid_identifier?(<<char, rest::binary>>)
+         when char in ?0..?9
+         when char in ?a..?z
+         when char in ?A..?Z
+         when char == ?- do
+      valid_identifier?(rest)
+    end
+
+    defp valid_identifier?(<<>>) do
+      true
+    end
+
+    defp valid_identifier?(_other) do
+      false
     end
 
     defp valid_requirement?([]), do: false
