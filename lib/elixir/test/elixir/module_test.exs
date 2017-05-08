@@ -280,6 +280,27 @@ defmodule ModuleTest do
     end
   end
 
+  # TODO: Remove this check once we depend only on 20
+  if :erlang.system_info(:otp_release) >= '20' do
+    test "uses the new debug_info chunk" do
+      {:module, ModuleCreateDebugInfo, binary, _} =
+        Module.create(ModuleCreateDebugInfo, :ok, __ENV__)
+      {:ok, {_, [debug_info: {:debug_info_v1, backend, data}]}} =
+        :beam_lib.chunks(binary, [:debug_info])
+      {:ok, map} = backend.debug_info(:elixir_v1, ModuleCreateDebugInfo, data, [])
+      assert map.module == ModuleCreateDebugInfo
+    end
+
+    test "uses the new debug_info chunk even if debug_info is set to false" do
+      {:module, ModuleCreateNoDebugInfo, binary, _} =
+        Module.create(ModuleCreateNoDebugInfo, quote(do: @compile {:debug_info, false}), __ENV__)
+      {:ok, {_, [debug_info: {:debug_info_v1, backend, data}]}} =
+        :beam_lib.chunks(binary, [:debug_info])
+      assert backend.debug_info(:elixir_v1, ModuleCreateNoDebugInfo, data, []) ==
+             {:error, :missing}
+    end
+  end
+
   test "no function in module body" do
     in_module do
       assert __ENV__.function == nil

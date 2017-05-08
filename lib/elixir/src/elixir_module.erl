@@ -77,7 +77,6 @@ compile(Line, Module, Block, Vars, E) ->
     CompileOpts = lists:flatten(ets:lookup_element(Data, compile, 2)),
 
     ModuleMap = #{
-      version => 1,
       module => Module,
       line => Line,
       file => File,

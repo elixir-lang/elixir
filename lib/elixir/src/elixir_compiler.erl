@@ -101,6 +101,7 @@ code_mod(Fun, Expr, Line, File, Module, Vars) when is_binary(File), is_integer(L
 
   [{attribute, Line, file, {elixir_utils:characters_to_list(Relative), 1}},
    {attribute, Line, module, Module},
+   {attribute, Line, compile, no_auto_import},
    {attribute, Line, export, [{Fun, 1}, {'__RELATIVE__', 0}]},
    {function, Line, Fun, 1, [
      {clause, Line, [Tuple], [], [Expr]}
