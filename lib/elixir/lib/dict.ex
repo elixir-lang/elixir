@@ -20,9 +20,6 @@ defmodule Dict do
     # Use this import to guarantee proper code expansion
     import Kernel, except: [size: 1]
 
-    %{file: file, line: line} = __CALLER__
-    :elixir_errors.warn(line, file, "the Dict module is deprecated")
-
     quote do
       def get(dict, key, default \\ nil) do
         case fetch(dict, key) do
