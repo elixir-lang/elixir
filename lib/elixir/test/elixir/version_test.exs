@@ -67,9 +67,17 @@ defmodule VersionTest do
     assert {:ok, %V{major: 1, minor: 4, patch: 5, pre: ["6-g3318bd5"]}} = V.parse("1.4.5-6-g3318bd5+ignore")
 
     assert :error = V.parse("foobar")
-    assert :error = V.parse("2.3")
     assert :error = V.parse("2")
+    assert :error = V.parse("2.")
+    assert :error = V.parse("2.3")
+    assert :error = V.parse("2.3.")
+    assert :error = V.parse("2.3.0-")
+    assert :error = V.parse("2.3.0+")
     assert :error = V.parse("2.3.0-01")
+    assert :error = V.parse("2.3.00-1")
+    assert :error = V.parse("2.3.00")
+    assert :error = V.parse("2.03.0")
+    assert :error = V.parse("02.3.0")
   end
 
   test "Kernek.to_string/1" do
