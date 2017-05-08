@@ -15,6 +15,7 @@
   export_vars=nil,         %% a dict of all variables defined in a particular clause
   extra_guards=nil,        %% extra guards from args expansion
   counter=#{},             %% a map counting the variables defined
+  ssa_types=#{},           %% a map of SSA variables and their types
   file=(<<"nofile">>)      %% the current scope filename
 }).
 

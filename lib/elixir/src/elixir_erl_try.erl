@@ -58,8 +58,8 @@ build_rescue(Meta, Parts, Body, S) ->
 
   TClauses =
     [begin
-      TArgs   = [{tuple, Line, [{atom, Line, error}, TMatch, {var, Line, '_'}]}],
-      TGuards = elixir_erl_clauses:guards(Guards, [], TS),
+      TArgs = [{tuple, Line, [{atom, Line, error}, TMatch, {var, Line, '_'}]}],
+      {TGuards, _} = elixir_erl_clauses:guards(Guards, [], TS),
       {clause, Line, TArgs, TGuards, TBody}
      end || {TMatch, {_, Guards}} <- lists:zip(TMatches, Parts)],
 

@@ -13,7 +13,8 @@ translate({'=', Meta, [{'_', _, Atom}, Right]}, S) when is_atom(Atom) ->
 translate({'=', Meta, [Left, Right]}, S) ->
   {TRight, SR} = translate(Right, S),
   {TLeft, SL} = elixir_erl_clauses:match(fun translate/2, Left, SR),
-  {{match, ?ann(Meta), TLeft, TRight}, SL};
+  ST = assign_type(TRight, TLeft, SL),
+  {{match, ?ann(Meta), TLeft, TRight}, ST};
 
 %% Containers
 
@@ -179,29 +180,41 @@ translate({Name, Meta, Args}, S) when is_atom(Name), is_list(Meta), is_list(Args
 
 translate({{'.', _, [Left, Right]}, Meta, []}, S)
     when is_tuple(Left), is_atom(Right), is_list(Meta) ->
-  {TLeft, SL}  = translate(Left, S),
-  {Var, _, SV} = elixir_erl_var:build('_', SL),
-
   Ann = ?ann(Meta),
   Generated = erl_anno:set_generated(true, Ann),
+  {Var, _, SV} = elixir_erl_var:build('_', S),
+
+  {TLeft, SL} = translate(Left, SV),
   TRight = {atom, Ann, Right},
   TVar = {var, Ann, Var},
   TError = {tuple, Ann, [{atom, Ann, badkey}, TRight, TVar]},
-
-  {{'case', Generated, TLeft, [
-    {clause, Generated,
-      [{map, Ann, [{map_field_exact, Ann, TRight, TVar}]}],
-      [],
-      [TVar]},
-    {clause, Generated,
-      [TVar],
-      [[elixir_erl:remote(Generated, erlang, is_map, [TVar])]],
-      [elixir_erl:remote(Ann, erlang, error, [TError])]},
-    {clause, Generated,
-      [TVar],
-      [],
-      [{call, Generated, {remote, Generated, TVar, TRight}, []}]}
-  ]}, SV};
+  TErrorCall = elixir_erl:remote(Ann, erlang, error, [TError]),
+  TRemoteCall = {call, Generated, {remote, Generated, TLeft, TRight}, []},
+  TExtractClause = {clause, Generated,
+                    [{map, Ann, [{map_field_exact, Ann, TRight, TVar}]}],
+                    [],
+                    [TVar]},
+  case elixir_erl:get_type(TLeft, SL) of
+    Map when Map =:= map; element(1, Map) =:= struct ->
+      {{'case', Generated, TLeft, [
+        TExtractClause,
+        {clause, Generated, [TVar], [], [TErrorCall]}
+      ]}, SL};
+    Module when Module =:= atom; Module =:= tuple ->
+      {TRemoteCall, SL};
+    _Other ->
+      {{'case', Generated, TLeft, [
+        TExtractClause,
+        {clause, Generated,
+         [TVar],
+         [[elixir_erl:remote(Generated, erlang, is_map, [TVar])]],
+         [TErrorCall]},
+        {clause, Generated,
+         [TVar],
+         [],
+         [TRemoteCall]}
+      ]}, SL}
+  end;
 
 translate({{'.', _, [Left, Right]}, Meta, Args}, S)
     when (is_tuple(Left) orelse is_atom(Left)), is_atom(Right), is_list(Meta), is_list(Args) ->
@@ -361,21 +374,30 @@ translate_map(Meta, Assocs, S) ->
 translate_struct(Meta, Name, {'%{}', _, [{'|', _, [Update, Assocs]}]}, S) ->
   Ann = ?ann(Meta),
   Generated = erl_anno:set_generated(true, Ann),
-  {VarName, _, VS} = elixir_erl_var:build('_', S),
+  {TUpdate, US} = translate_arg(Update, S, S),
 
-  Var = {var, Ann, VarName},
-  Map = {map, Ann, [{map_field_exact, Ann, {atom, Ann, '__struct__'}, {atom, Ann, Name}}]},
+  case elixir_erl:get_type(TUpdate, US) of
+    {struct, Name} ->
+      translate_map(Meta, Assocs, {ok, TUpdate}, US);
+    MaybeMatches when MaybeMatches =:= map orelse MaybeMatches =:= term ->
+      {VarName, _, VS} = elixir_erl_var:build('_', US),
 
-  Match = {match, Ann, Var, Map},
-  Error = {tuple, Ann, [{atom, Ann, badstruct}, {atom, Ann, Name}, Var]},
+      Var = {var, Ann, VarName},
+      Map = {map, Ann, [{map_field_exact, Ann, {atom, Ann, '__struct__'}, {atom, Ann, Name}}]},
 
-  {TUpdate, US} = translate_arg(Update, VS, VS),
-  {TAssocs, TS} = translate_map(Meta, Assocs, {ok, Var}, US),
+      Match = {match, Ann, Var, Map},
+      Error = {tuple, Ann, [{atom, Ann, badstruct}, {atom, Ann, Name}, Var]},
 
-  {{'case', Generated, TUpdate, [
-    {clause, Ann, [Match], [], [TAssocs]},
-    {clause, Generated, [Var], [], [elixir_erl:remote(Ann, erlang, error, [Error])]}
-  ]}, TS};
+      {TAssocs, TS} = translate_map(Meta, Assocs, {ok, Var}, VS),
+      {{'case', Generated, TUpdate, [
+        {clause, Ann, [Match], [], [TAssocs]},
+        {clause, Generated, [Var], [], [elixir_erl:remote(Ann, erlang, error, [Error])]}
+      ]}, TS};
+    _WontMatch ->
+      Error = {tuple, Ann, [{atom, Ann, badstruct}, {atom, Ann, Name}, TUpdate]},
+      {elixir_erl:remote(Ann, erlang, error, [Error]), US}
+  end;
+
 translate_struct(Meta, Name, {'%{}', _, Assocs}, S) ->
   translate_map(Meta, Assocs ++ [{'__struct__', Name}], none, S).
 
@@ -471,18 +493,22 @@ extract_bit_type({Other, _, []}, Acc) ->
 
 translate_remote('Elixir.String.Chars', to_string, Meta, [Arg], S) ->
   {TArg, TS} = translate(Arg, S),
-  {VarName, _, VS} = elixir_erl_var:build(rewrite, TS),
+  case elixir_erl:get_type(TArg, TS) of
+    binary ->
+      {TArg, TS};
+    _Other ->
+      {VarName, _, VS} = elixir_erl_var:build(rewrite, TS),
+      Generated = erl_anno:set_generated(true, ?ann(Meta)),
+      Var   = {var, Generated, VarName},
+      Guard = elixir_erl:remote(Generated, erlang, is_binary, [Var]),
+      Slow  = elixir_erl:remote(Generated, 'Elixir.String.Chars', to_string, [Var]),
+      Fast  = Var,
 
-  Generated = erl_anno:set_generated(true, ?ann(Meta)),
-  Var   = {var, Generated, VarName},
-  Guard = elixir_erl:remote(Generated, erlang, is_binary, [Var]),
-  Slow  = elixir_erl:remote(Generated, 'Elixir.String.Chars', to_string, [Var]),
-  Fast  = Var,
-
-  {{'case', Generated, TArg, [
-    {clause, Generated, [Var], [[Guard]], [Fast]},
-    {clause, Generated, [Var], [], [Slow]}
-  ]}, VS};
+      {{'case', Generated, TArg, [
+        {clause, Generated, [Var], [[Guard]], [Fast]},
+        {clause, Generated, [Var], [], [Slow]}
+      ]}, VS}
+  end;
 translate_remote(Left, Right, Meta, Args, S) ->
   {TLeft, SL} = translate(Left, S),
   {TArgs, SA} = translate_args(Args, mergec(S, SL)),
@@ -503,3 +529,20 @@ translate_remote(Left, Right, Meta, Args, S) ->
     false ->
       {{call, Ann, {remote, Ann, TLeft, TRight}, TArgs}, SC}
   end.
+
+%% Types
+
+assign_type(TRight, TLeft, #elixir_erl{context = match} = S) ->
+  case is_var(TLeft) of
+    true -> assign_type_1(TRight, TLeft, S);
+    false -> assign_type_1(TLeft, TRight, S)
+  end;
+assign_type(TRight, TLeft, S) ->
+  assign_type_1(TRight, TLeft, S).
+
+assign_type_1(Expr, MaybeVar, S) ->
+  Type = elixir_erl:get_type(Expr, S),
+  elixir_erl:put_type(MaybeVar, Type, S).
+
+is_var({var, _, _}) -> true;
+is_var(_) -> false.

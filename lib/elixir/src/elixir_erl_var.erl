@@ -114,7 +114,8 @@ should_warn(Meta) ->
 mergev(S1, S2) ->
   S2#elixir_erl{
     vars=merge_vars(S1#elixir_erl.vars, S2#elixir_erl.vars),
-    export_vars=merge_opt_vars(S1#elixir_erl.export_vars, S2#elixir_erl.export_vars)
+    export_vars=merge_opt_vars(S1#elixir_erl.export_vars, S2#elixir_erl.export_vars),
+    ssa_types=maps:merge(S1#elixir_erl.ssa_types, S2#elixir_erl.ssa_types)
  }.
 
 %% Receives two scopes and return the first scope with

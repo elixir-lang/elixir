@@ -32,11 +32,10 @@ match(Fun, Args, S) -> Fun(Args, S).
 
 clause(Meta, Fun, Args, Expr, Guards, S) when is_list(Meta) ->
   {TArgs, SA} = match(Fun, Args, S#elixir_erl{extra_guards=[]}),
-  {TExpr, SE} = elixir_erl_pass:translate(Expr,
-                  SA#elixir_erl{extra_guards=nil, export_vars=S#elixir_erl.export_vars}),
-
   Extra = SA#elixir_erl.extra_guards,
-  TGuards = guards(Guards, Extra, SA),
+  {TGuards, SG} = guards(Guards, Extra, SA),
+  {TExpr, SE} = elixir_erl_pass:translate(Expr,
+                  SG#elixir_erl{extra_guards=nil, export_vars=S#elixir_erl.export_vars}),
   {{clause, ?ann(Meta), TArgs, TGuards, unblock(TExpr)}, SE}.
 
 % Translate/Extract guards from the given expression.
@@ -44,10 +43,13 @@ clause(Meta, Fun, Args, Expr, Guards, S) when is_list(Meta) ->
 guards(Guards, Extra, S) ->
   SG = S#elixir_erl{context=guard, extra_guards=nil},
 
-  case Guards of
-    [] -> case Extra of [] -> []; _ -> [Extra] end;
-    _  -> [translate_guard(Guard, Extra, SG) || Guard <- Guards]
-  end.
+  TGuards =
+    case Guards of
+      [] -> case Extra of [] -> []; _ -> [Extra] end;
+      _  -> [translate_guard(Guard, Extra, SG) || Guard <- Guards]
+    end,
+  ST = elixir_erl:type_guards(TGuards, S),
+  {TGuards, ST}.
 
 translate_guard(Guard, Extra, S) ->
   [element(1, elixir_erl_pass:translate(Guard, S)) | Extra].

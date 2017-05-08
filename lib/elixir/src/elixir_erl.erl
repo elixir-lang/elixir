@@ -1,7 +1,8 @@
 %% Compiler backend to Erlang.
 -module(elixir_erl).
 -export([elixir_to_erl/1, definition_to_anonymous/6, compile/7,
-         get_ann/1, remote/4, add_beam_chunk/3, format_error/1]).
+         get_ann/1, remote/4, add_beam_chunk/3, format_error/1,
+         get_type/2, put_type/3, type_guards/2]).
 -include("elixir.hrl").
 
 %% Adds custom chunk to a .beam binary
@@ -439,3 +440,75 @@ get_type_docs(Data) ->
 
 format_error({internal_function_overridden, {Name, Arity}}) ->
   io_lib:format("function ~ts/~B is internal and should not be overridden", [Name, Arity]).
+
+%% Types
+
+get_type({var, _, Var}, #elixir_erl{ssa_types=Types}) ->
+  maps:get(Var, Types, term);
+get_type({map, _, Update, _Keys}, S) ->
+  get_type(Update, S);
+get_type(Expr, _S) ->
+  get_expr_type(Expr).
+
+get_expr_type({map, _, Keys}) ->
+  struct_or_map(Keys);
+get_expr_type({atom, _, _}) ->
+  atom;
+%% We'd need to check if it's a binary or a bitstring, we only want binaries
+%% we can't perform any optimisations with bitstrings
+%% get_expr_type({bin, _, Elems}) ->
+%%   binary;
+%% get_expr_type({bc, _, _, _}) ->
+%%   binary;
+get_expr_type({tuple, _, _}) ->
+  tuple;
+get_expr_type(_Other) ->
+  term.
+
+struct_or_map([{map_field_assoc, _, {atom, _, '__struct__'}, {atom, _, Name}}|_]) ->
+  {struct, Name};
+struct_or_map([{map_field_exact, _, {atom, _, '__struct__'}, {atom, _, Name}}|_]) ->
+  {struct, Name};
+struct_or_map([_|Rest]) ->
+  struct_or_map(Rest);
+struct_or_map([]) ->
+  map.
+
+put_type(_Expr, term, S) ->
+  S;
+put_type({var, _, Name}, Type, #elixir_erl{ssa_types=Types} = S) ->
+  S#elixir_erl{ssa_types=maps:put(Name, Type, Types)};
+put_type(_Expr, _Type, S) ->
+  S.
+
+%% When extracting type information from guards, we can't use anything
+%% containing an alternative: 'or', 'orelse', or ';'
+
+type_guards([], S) ->
+  S;
+type_guards([Exprs], S) ->
+  lists:foldl(fun type_guard/2, S, Exprs);
+type_guards(_Alternative, S) ->
+  S.
+
+type_guard({call, _, {remote, _, {atom, _, erlang}, {atom, _, Fun}}, [Var|_]}, S) ->
+  type_check(Var, Fun, S);
+type_guard({op, _, 'andalso', Left, Right}, S) ->
+  SL = type_guard(Left, S),
+  type_guard(Right, SL);
+type_guard({op, _, 'and', Left, Right}, S) ->
+  SL = type_guard(Left, S),
+  type_guard(Right, SL);
+type_guard(_Other, S) ->
+  S.
+
+type_check(Var, is_map, S) ->
+  put_type(Var, map, S);
+type_check(Var, is_atom, S) ->
+  put_type(Var, atom, S);
+type_check(Var, is_tuple, S) ->
+  put_type(Var, tuple, S);
+type_check(Var, is_binary, S) ->
+  put_type(Var, binary, S);
+type_check(_Var, _Check, S) ->
+  S.
