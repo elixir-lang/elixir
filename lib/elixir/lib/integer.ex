@@ -240,7 +240,7 @@ defmodule Integer do
   end
 
   def parse(binary, base) do
-    case count_digits(binary, base, 0) do
+    case count_digits(binary, base) do
       0 -> :error
       n ->
         {digits, rem} = :erlang.split_binary(binary, n)
@@ -248,28 +248,29 @@ defmodule Integer do
     end
   end
 
+  defp count_digits(<<sign, rest::binary>>, base) when sign in '+-' do
+    case count_digits_nosign(rest, base, 1) do
+      1 -> 0
+      n -> n
+    end
+  end
+
+  defp count_digits(<<rest::binary>>, base) do
+    count_digits_nosign(rest, base, 0)
+  end
+
   digits = [{?0..?9, -?0}, {?A..?Z, 10 - ?A}, {?a..?z, 10 - ?a}]
 
   for {chars, diff} <- digits, char <- chars do
     digit = char + diff
 
-    defp count_digits(<<unquote(char), rest::binary>>, base, count)
-         when base > unquote(digit) do
-      count_digits(rest, base, count + 1)
-    end
-
-    defp count_digits(<<?+, unquote(char), rest::binary>>, base, 0)
-         when base > unquote(digit) do
-      count_digits(rest, base, 2)
-    end
-
-    defp count_digits(<<?-, unquote(char), rest::binary>>, base, 0)
-         when base > unquote(digit) do
-      count_digits(rest, base, 2)
+    defp count_digits_nosign(<<unquote(char), rest::binary>>, base, count)
+        when base > unquote(digit) do
+      count_digits_nosign(rest, base, count + 1)
     end
   end
 
-  defp count_digits(<<_::binary>>, _, count), do: count
+  defp count_digits_nosign(<<_::binary>>, _, count), do: count
 
   @doc """
   Returns a binary which corresponds to the text representation
