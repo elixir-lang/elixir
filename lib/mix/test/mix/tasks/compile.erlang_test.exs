@@ -71,7 +71,7 @@ defmodule Mix.Tasks.Compile.ErlangTest do
       # Create the second version of the module (this time as Erlang source).
       File.write! "src/purge_test.erl", """
       -module(purge_test).
-      -compile(export_all).
+      -export([version/0]).
       version() -> v2.
       """
       assert Mix.Tasks.Compile.Erlang.run([]) == :ok

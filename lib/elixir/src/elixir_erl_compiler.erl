@@ -44,7 +44,6 @@ compile(Fun, Forms, File, Opts) when is_list(Forms), is_list(Opts), is_binary(Fi
       format_errors(Errors)
   end.
 
-
 no_auto_import() ->
   {attribute, 0, compile, no_auto_import}.
 
