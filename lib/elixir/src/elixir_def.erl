@@ -305,6 +305,12 @@ assert_no_aliases_name(Meta, '__aliases__', [Atom], #{file := File}) when is_ato
 assert_no_aliases_name(_Meta, _Aliases, _Args, _S) ->
   ok.
 
+assert_valid_name(Meta, Kind, '__info__', [_], #{file := File, module := Module}) when Module /= 'Elixir.Module' ->
+  elixir_errors:form_error(Meta, File, ?MODULE, {'__info__', Kind});
+assert_valid_name(Meta, Kind, 'module_info', [], #{file := File}) ->
+  elixir_errors:form_error(Meta, File, ?MODULE, {module_info, Kind, 0});
+assert_valid_name(Meta, Kind, 'module_info', [_], #{file := File}) ->
+  elixir_errors:form_error(Meta, File, ?MODULE, {module_info, Kind, 1});
 assert_valid_name(Meta, Kind, is_record, [_, _], #{file := File}) when Kind == defp; Kind == def ->
   elixir_errors:form_error(Meta, File, ?MODULE, {is_record, Kind});
 assert_valid_name(_Meta, _Kind, _Name, _Args, _S) ->
@@ -361,6 +367,12 @@ format_error(invalid_args_for_bodyless_clause) ->
   "definition has the proper syntax by wrapping the arguments in parentheses "
   "and ensuring there is no space between the function name and arguments";
 
+format_error({'__info__', Kind}) ->
+  io_lib:format("cannot define ~ts __info__/1 as it is automatically defined by Elixir", [Kind]);
+
+format_error({module_info, Kind, Arity}) ->
+  io_lib:format("cannot define ~ts module_info/~B as it is automatically defined by Erlang", [Kind, Arity]);
+
 format_error({is_record, Kind}) ->
-  io_lib:format("cannot define function named ~ts is_record/2 due to compatibility "
-                "issues with the Erlang compiler (it is a known bug)", [Kind]).
+  io_lib:format("cannot define ~ts is_record/2 due to compatibility "
+                "issues with the Erlang compiler (it is a known limitation)", [Kind]).
