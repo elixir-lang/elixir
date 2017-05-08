@@ -519,7 +519,7 @@ defmodule OptionParser do
     do: Enum.reverse(acc)
 
   defp do_split(<<>>, buffer, acc, nil),
-    do: Enum.reverse([buffer | acc])
+    do: Enum.reverse(acc, [buffer])
 
   # Otherwise raise
   defp do_split(<<>>, _, _acc, marker) do

@@ -368,11 +368,11 @@ defmodule StringIO do
   end
 
   defp collect_line([?\r, ?\n | rest], stack) do
-    {:lists.reverse([?\n | stack]), rest}
+    {:lists.reverse(stack, [?\n]), rest}
   end
 
   defp collect_line([?\n | rest], stack) do
-    {:lists.reverse([?\n | stack]), rest}
+    {:lists.reverse(stack, [?\n]), rest}
   end
 
   defp collect_line([h | t], stack) do

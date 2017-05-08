@@ -54,7 +54,7 @@ defmodule GraphemesTest do
         parse_grapheme_break(right, acc_string <> grapheme, [grapheme | acc_list])
       [left] ->
         grapheme = breaks_to_grapheme(left)
-        {acc_string <> grapheme, Enum.reverse([grapheme | acc_list])}
+        {acc_string <> grapheme, Enum.reverse(acc_list, [grapheme])}
     end
   end
 
