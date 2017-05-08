@@ -259,15 +259,13 @@ defmodule Protocol do
          do: compile(code, docs)
   end
 
-  @docs_chunk "ExDc"
-
   defp beam_protocol(protocol) do
-    chunk_ids = [:abstract_code, :attributes, @docs_chunk]
+    chunk_ids = [:abstract_code, :attributes, 'ExDc']
     opts = [:allow_missing_chunks]
     case :beam_lib.chunks(beam_file(protocol), chunk_ids, opts) do
       {:ok, {^protocol, [{:abstract_code, {_raw, abstract_code}},
                          {:attributes, attributes},
-                         {@docs_chunk, docs}]}} ->
+                         {'ExDc', docs}]}} ->
         case attributes[:protocol] do
           [fallback_to_any: any] ->
             {:ok, {protocol, any, abstract_code, docs}}
@@ -403,7 +401,7 @@ defmodule Protocol do
     {:ok,
       case docs do
         :missing_chunk -> binary
-        _ -> :elixir_erl.add_beam_chunks(binary, [{@docs_chunk, docs}])
+        _ -> :elixir_erl.add_beam_chunks(binary, [{"ExDc", docs}])
       end}
   end
 
