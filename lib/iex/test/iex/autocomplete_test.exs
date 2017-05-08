@@ -285,4 +285,13 @@ defmodule IEx.AutocompleteTest do
     eval("struct = %IEx.AutocompleteTest.MyStruct{}")
     assert expand('struct.my') == {:yes, '_val', []}
   end
+
+  test "ignore invalid atom literals" do
+    {:module, _, _, _} = defmodule :"Elixir.José", do: nil
+    assert expand('Jos') == {:no, '', []}
+  after
+    :code.purge(:"Elixir.José")
+    :code.delete(:"Elixir.José")
+  end
+
 end

@@ -229,6 +229,9 @@ defmodule IEx.Autocomplete do
       %{kind: :module, type: :elixir, name: Enum.at(parts, depth - 1)}
     end
     |> Enum.uniq
+    |> Enum.filter(fn(%{name: name}) ->
+      !match?(":" <> _, inspect(String.to_atom("Elixir." <> name)))
+    end)
   end
 
   ## Helpers
