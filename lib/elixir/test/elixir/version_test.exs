@@ -84,7 +84,7 @@ defmodule VersionTest do
     assert :error = V.parse("02.3.0")
   end
 
-  test "Kernek.to_string/1" do
+  test "Kernel.to_string/1" do
     assert V.parse!("1.0.0") |> to_string == "1.0.0"
     assert V.parse!("1.0.0-dev") |> to_string == "1.0.0-dev"
     assert V.parse!("1.0.0+lol") |> to_string == "1.0.0+lol"
