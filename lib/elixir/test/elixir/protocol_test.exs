@@ -153,7 +153,7 @@ defmodule ProtocolTest do
     assert module.__impl__(:for) == ImplStruct
     assert module.__impl__(:target) == module
     assert module.__impl__(:protocol) == Sample
-    assert module.__info__(:attributes)[:protocol_metadata] ==
+    assert module.__info__(:attributes)[:protocol_impl] ==
            [protocol: Sample, for: ImplStruct]
   end
 
@@ -162,7 +162,7 @@ defmodule ProtocolTest do
     assert module.__impl__(:for) == ImplStruct
     assert module.__impl__(:target) == WithAny.Any
     assert module.__impl__(:protocol) == WithAny
-    assert module.__info__(:attributes)[:protocol_metadata] ==
+    assert module.__info__(:attributes)[:protocol_impl] ==
            [protocol: WithAny, for: ImplStruct]
   end
 
@@ -171,7 +171,7 @@ defmodule ProtocolTest do
     assert module.__impl__(:for) == ImplStruct
     assert module.__impl__(:target) == module
     assert module.__impl__(:protocol) == Derivable
-    assert module.__info__(:attributes)[:protocol_metadata] ==
+    assert module.__info__(:attributes)[:protocol_impl] ==
            [protocol: Derivable, for: ImplStruct]
   end
 

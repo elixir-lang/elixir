@@ -1,18 +1,8 @@
 %% Compiler backend to Erlang.
 -module(elixir_erl).
 -export([elixir_to_erl/1, definition_to_anonymous/6, compile/7,
-         get_ann/1, remote/4, add_beam_chunk/3, format_error/1]).
+         get_ann/1, remote/4, format_error/1]).
 -include("elixir.hrl").
-
-%% Adds custom chunk to a .beam binary
-
-add_beam_chunk(Bin, Id, ChunkData)
-        when is_binary(Bin), is_list(Id), is_binary(ChunkData) ->
-  {ok, _, Chunks0} = beam_lib:all_chunks(Bin),
-  NewChunk = {Id, ChunkData},
-  Chunks = [NewChunk | Chunks0],
-  {ok, NewBin} = beam_lib:build_module(Chunks),
-  NewBin.
 
 %% Builds Erlang AST annotation.
 
@@ -392,30 +382,38 @@ attributes_form(Line, Attributes, Forms) ->
 % Loading forms
 
 load_form(Line, File, Data, Forms, Opts) ->
-  DebugInfo =
-    case proplists:get_value(debug_info, Opts) of
-      true -> [debug_info];
-      false -> [];
-      undefined ->
-        case elixir_compiler:get_opt(debug_info) of
-          true  -> [debug_info];
-          false -> []
-        end
-    end,
+  CompileOpts = debug_info(Opts) ++ extra_chunks(Data, Line),
+  {_, Binary} = elixir_erl_compiler:forms(Forms, File, CompileOpts),
+  Binary.
 
-  {_, Binary} = elixir_erl_compiler:forms(Forms, File, DebugInfo),
-  Docs = elixir_compiler:get_opt(docs),
-  add_docs_chunk(Binary, Data, Line, Docs).
+debug_info(Opts) ->
+  case proplists:get_value(debug_info, Opts) of
+    true -> [debug_info];
+    false -> [];
+    undefined ->
+      case elixir_compiler:get_opt(debug_info) of
+        true  -> [debug_info];
+        false -> []
+      end
+  end.
 
-add_docs_chunk(Bin, Data, Line, true) ->
+extra_chunks(Data, Line) ->
+  Chunks = docs_chunk(Data, Line, elixir_compiler:get_opt(docs)),
+  case Chunks of
+    [] -> [];
+    _  -> [{extra_chunks, Chunks}]
+  end.
+
+docs_chunk(Data, Line, true) ->
   ChunkData = term_to_binary({elixir_docs_v1, [
     {docs, get_docs(Data)},
     {moduledoc, get_moduledoc(Line, Data)},
     {callback_docs, get_callback_docs(Data)},
     {type_docs, get_type_docs(Data)}
   ]}),
-  add_beam_chunk(Bin, "ExDc", ChunkData);
-add_docs_chunk(Bin, _, _, _) -> Bin.
+  [{<<"ExDc">>, ChunkData}];
+docs_chunk(_, _, _) ->
+  [].
 
 get_moduledoc(Line, Data) ->
   case ets:lookup_element(Data, moduledoc, 2) of

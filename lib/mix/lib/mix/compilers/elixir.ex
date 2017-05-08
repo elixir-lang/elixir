@@ -231,7 +231,7 @@ defmodule Mix.Compilers.Elixir do
   end
 
   defp detect_kind(module) do
-    protocol_metadata = Module.get_attribute(module, :protocol_metadata)
+    protocol_metadata = Module.get_attribute(module, :protocol_impl)
 
     cond do
       is_list(protocol_metadata) and protocol_metadata[:protocol] ->
