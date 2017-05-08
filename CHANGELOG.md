@@ -109,6 +109,37 @@ You can now also install archives from Hex in this way. Since they are fetched a
 
 It is also possible to install escripts and archives by providing a Git/GitHub repo. See `mix help escript.install` and `mix help archive.install` for more details.
 
+## v1.4.3-dev
+
+### 1. Bug fixes
+
+#### Elixir
+
+  * [Kernel] Fix code generation when non-binary bitstrings are in AST
+
+#### Mix
+
+  * [Mix.Task] Do not assume all paths in loadpaths exist
+
+#### ExUnit
+
+  * [ExUnit.Diff] Do not fail when comparing maps with nil or boolean keys
+
+### 2. Enhancements
+
+#### Elixir
+
+  * [Kernel] Improve compilation time for modules with many clauses
+  * [Regex] Add `recompile/1` and `recompile!/1` to ease transition to OTP 20 for archives and stored regexes
+
+#### Logger
+
+  * [Logger.Translator] Handle OTP 20 GenServer log messages
+
+#### Mix
+
+  * [mix compile] Recompile projects if OTP version changes
+
 ## v1.4.2 (2017-02-16)
 
 ### 1. Bug fixes
