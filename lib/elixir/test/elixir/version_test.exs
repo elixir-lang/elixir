@@ -75,6 +75,8 @@ defmodule VersionTest do
     assert :error = V.parse("2.3.0+")
     assert :error = V.parse("2.3.0.")
     assert :error = V.parse("2.3.0.4")
+    assert :error = V.parse("2.3.-rc.1")
+    assert :error = V.parse("2.3.+rc.1")
     assert :error = V.parse("2.3.0-01")
     assert :error = V.parse("2.3.00-1")
     assert :error = V.parse("2.3.00")
