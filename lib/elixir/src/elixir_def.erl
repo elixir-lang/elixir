@@ -1,7 +1,7 @@
 % Holds the logic responsible for function definitions (def(p) and defmacro(p)).
 -module(elixir_def).
 -export([setup/1, reset_last/1, local_for/4,
-  take_definition/2, store_definition/6, store_definition/9,
+  take_definition/2, store_definition/5, store_definition/9,
   fetch_definitions/2, format_error/1]).
 -include("elixir.hrl").
 -define(last_def, {elixir, last_def}).
@@ -80,8 +80,8 @@ fetch_definition([], _File, _Module, _Table, All, Private) ->
 
 %% Section for storing definitions
 
-store_definition(Line, Kind, CheckClauses, Call, Body, Pos) when is_integer(Line) ->
-  E = (elixir_locals:get_cached_env(Pos))#{line := Line},
+store_definition(Kind, CheckClauses, Call, Body, Pos) ->
+  #{line := Line} = E = elixir_locals:get_cached_env(Pos),
   {NameAndArgs, Guards} = elixir_utils:extract_guards(Call),
 
   {Name, Args} = case NameAndArgs of

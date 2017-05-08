@@ -38,7 +38,7 @@
 define({Line, E}, Kind, Call, Expr) ->
   {EscapedCall, UC} = elixir_quote:escape(Call, true),
   {EscapedExpr, UE} = elixir_quote:escape(Expr, true),
-  Args = [Line, Kind, not(UC or UE), EscapedCall, EscapedExpr, elixir_locals:cache_env(E)],
+  Args = [Kind, not(UC or UE), EscapedCall, EscapedExpr, elixir_locals:cache_env(E#{line := Line})],
   {{'.', [], [elixir_def, store_definition]}, [], Args}.
 
 unless_loaded(Fun, Args, Callback) ->
