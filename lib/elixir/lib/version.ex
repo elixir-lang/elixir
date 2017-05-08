@@ -400,40 +400,38 @@ defmodule Version do
 
     @spec parse_version(String.t) :: {:ok, Version.matchable} | :error
     def parse_version(string, approximate? \\ false) when is_binary(string) do
-      destructure [version_with_pre, build_metadata], String.split(string, "+", parts: 2)
+      destructure [version_with_pre, build], String.split(string, "+", parts: 2)
       destructure [version, pre], String.split(version_with_pre, "-", parts: 2)
       destructure [major, minor, patch], String.split(version, ".")
 
-      with {:ok, major} <- major && parse_digits(major),
-           {:ok, minor} <- minor && parse_digits(minor),
-           {:ok, patch} <- parse_patch(patch, approximate?),
-           {:ok, pre_parts} <- pre != "" && parse_dot_separated(pre),
-           {:ok, pre_parts} <- convert_integers_in_pre(pre_parts, _acc = []),
-           {:ok, _build_parts} <- build_metadata != "" && parse_dot_separated(build_metadata) do
+      with {:ok, major} <- require_digits(major),
+           {:ok, minor} <- require_digits(minor),
+           {:ok, patch} <- maybe_patch(patch, approximate?),
+           {:ok, pre_parts} <- optional_dot_separated(pre),
+           {:ok, pre_parts} <- convert_parts_to_integer(pre_parts, []),
+           {:ok, _build_parts} <- optional_dot_separated(build) do
         {:ok, {major, minor, patch, pre_parts}}
       else
         _other -> :error
       end
     end
 
-    defp parse_digits(string, acc \\ <<>>)
+    defp require_digits(nil), do: :error
+    defp require_digits(string), do: parse_digits(string, "")
 
     defp parse_digits(<<char, rest::binary>>, acc) when char in ?0..?9,
       do: parse_digits(rest, <<acc::binary, char>>)
     defp parse_digits(<<>>, acc) when byte_size(acc) > 0,
       do: {:ok, String.to_integer(acc)}
-    defp parse_digits(<<_::binary>>, _acc),
+    defp parse_digits(_, _acc),
       do: :error
 
-    defp parse_patch(patch, _approximate? = true) when patch in [nil, ""], do: {:ok, nil}
-    defp parse_patch(patch, _approximate?) when patch in [nil, ""], do: :error
-    defp parse_patch(patch, _approximate?), do: parse_digits(patch)
+    defp maybe_patch(patch, approximate?)
+    defp maybe_patch(nil, true), do: {:ok, nil}
+    defp maybe_patch(patch, _), do: require_digits(patch)
 
-    defp parse_dot_separated(nil) do
-      {:ok, []}
-    end
-
-    defp parse_dot_separated(string) do
+    defp optional_dot_separated(nil), do: {:ok, []}
+    defp optional_dot_separated(string) do
       parts = String.split(string, ".")
       if Enum.all?(parts, &(&1 != "" and valid_identifier?(&1))) do
         {:ok, parts}
@@ -442,24 +440,19 @@ defmodule Version do
       end
     end
 
-    defp convert_integers_in_pre([part | rest], acc) do
-      case parse_digits(part) do
-        {:ok, int_part} ->
-          if int_part != 0 and String.starts_with?(part, "0") do
-            :error
-          else
-            convert_integers_in_pre(rest, [int_part | acc])
+    defp convert_parts_to_integer([part | rest], acc) do
+      case parse_digits(part, "") do
+        {:ok, integer} ->
+          case part do
+            <<?0, _, _::binary>> -> :error
+            _ -> convert_parts_to_integer(rest, [integer | acc])
           end
-        _other ->
-          if valid_identifier?(part) do
-            convert_integers_in_pre(rest, [part | acc])
-          else
-            :error
-          end
+        :error ->
+          convert_parts_to_integer(rest, [part | acc])
       end
     end
 
-    defp convert_integers_in_pre([], acc) do
+    defp convert_parts_to_integer([], acc) do
       {:ok, Enum.reverse(acc)}
     end
 
