@@ -290,7 +290,16 @@ defmodule Mix.Tasks.Test do
   end
 
   defp parse_files([], test_paths) do
+    warn_about_incorrect_extensions_in(test_paths)
+
     test_paths
+  end
+
+  defp warn_about_incorrect_extensions_in(test_paths) do
+    for file <- Mix.Utils.extract_files(test_paths, "*_test.ex") do
+      IO.puts "Warning: #{file} has incorrect extension and won't be run. " <>
+        "It should end in \"_test.exs\""
+    end
   end
 
   defp parse_files([single_file], _test_paths) do
