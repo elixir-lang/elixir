@@ -10,7 +10,7 @@ add_beam_chunks(Bin, []) when is_binary(Bin) ->
   Bin;
 add_beam_chunks(Bin, NewChunks) when is_binary(Bin), is_list(NewChunks) ->
   {ok, _, OldChunks} = beam_lib:all_chunks(Bin),
-  Chunks = NewChunks ++ OldChunks,
+  Chunks = [{binary_to_list(K), V} || {K, V} <- NewChunks] ++ OldChunks,
   {ok, NewBin} = beam_lib:build_module(Chunks),
   NewBin.
 
