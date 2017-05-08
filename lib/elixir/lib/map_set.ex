@@ -155,8 +155,8 @@ defmodule MapSet do
   # If the second set is less than half the size of the first set, it's fastest
   # to simply iterate through each item in the second set, deleting them from
   # the first set.
-  def difference(%MapSet{map: map1}, %MapSet{map: map2}) do
-    %MapSet{map: Map.drop(map1, Map.keys(map2))}
+  def difference(%MapSet{map: map1} = map_set, %MapSet{map: map2}) do
+    %{map_set | map: Map.drop(map1, Map.keys(map2))}
   end
 
   defp filter_not_in(keys, map2, acc \\ [])
@@ -239,9 +239,9 @@ defmodule MapSet do
 
   """
   @spec intersection(t(val), t(val)) :: t(val) when val: value
-  def intersection(%MapSet{map: map1}, %MapSet{map: map2}) do
+  def intersection(%MapSet{map: map1} = map_set, %MapSet{map: map2}) do
     {map1, map2} = order_by_size(map1, map2)
-    %MapSet{map: Map.take(map2, Map.keys(map1))}
+    %{map_set | map: Map.take(map2, Map.keys(map1))}
   end
 
   @doc """
@@ -308,16 +308,16 @@ defmodule MapSet do
     if map_size(map1) <= map_size(map2) do
       map1
       |> Map.keys
-      |> do_subset?(map2)
+      |> map_subset?(map2)
     else
       false
     end
   end
 
-  defp do_subset?([], _), do: true
-  defp do_subset?([key | rest], map2) do
+  defp map_subset?([], _), do: true
+  defp map_subset?([key | rest], map2) do
     if Map.has_key?(map2, key) do
-      do_subset?(rest, map2)
+      map_subset?(rest, map2)
     else
       false
     end
@@ -347,8 +347,11 @@ defmodule MapSet do
 
   """
   @spec union(t(val1), t(val2)) :: t(val1 | val2) when val1: value, val2: value
+  def union(%MapSet{map: map1, version: version} = map_set, %MapSet{map: map2, version: version}) do
+    %{map_set | map: Map.merge(map1, map2)}
+  end
   def union(%MapSet{map: map1}, %MapSet{map: map2}) do
-    %MapSet{map: Map.merge(map1, map2)}
+    new_from_list(Map.keys(map1) ++ Map.keys(map2), [])
   end
 
   defp order_by_size(map1, map2) when map_size(map1) > map_size(map2), do: {map2, map1}
