@@ -5,15 +5,19 @@ defprotocol String.Chars do
   The `String.Chars` protocol is responsible for
   converting a structure to a binary (only if applicable).
   The only function required to be implemented is
-  `to_string` which does the conversion.
+  `to_string/1`, which does the conversion.
 
   The `to_string/1` function automatically imported
   by `Kernel` invokes this protocol. String
-  interpolation also invokes `to_string` in its
+  interpolation also invokes `to_string/1` in its
   arguments. For example, `"foo#{bar}"` is the same
   as `"foo" <> to_string(bar)`.
   """
 
+  @doc """
+  Converts `term` to a string.
+  """
+  @spec to_string(term) :: String.t
   def to_string(term)
 end
 
