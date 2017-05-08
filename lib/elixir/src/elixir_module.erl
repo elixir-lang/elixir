@@ -84,12 +84,7 @@ compile(Line, Module, Block, Vars, E) ->
       attributes => Attributes,
       definitions => AllDefinitions,
       unreachable => Unreachable,
-      compile_opts => CompileOpts,
-      types => take_type_spec(Data, type) ++ take_type_spec(Data, typep) ++ take_type_spec(Data, opaque),
-      specs => take_type_spec(Data, spec),
-      callbacks => take_type_spec(Data, callback),
-      macro_callbacks => take_type_spec(Data, macro_callback),
-      optional_callbacks => lists:flatten(take_type_spec(Data, optional_callbacks))
+      compile_opts => CompileOpts
     },
 
     Binary = elixir_erl:compile(ModuleMap),
@@ -114,12 +109,6 @@ compile(Line, Module, Block, Vars, E) ->
     ets:delete(Data),
     ets:delete(Defs),
     elixir_code_server:call({undefmodule, Ref})
-  end.
-
-take_type_spec(Data, Key) ->
-  case ets:take(Data, Key) of
-    [{Key, Value, _, _}] -> Value;
-    [] -> []
   end.
 
 %% An undef error for a function in the module being compiled might result in an
