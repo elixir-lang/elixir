@@ -225,13 +225,12 @@ defmodule IEx.Autocomplete do
 
     for mod <- match_modules(base, module === Elixir),
         parts = String.split(mod, "."),
-        depth <= length(parts) do
-      %{kind: :module, type: :elixir, name: Enum.at(parts, depth - 1)}
+        depth <= length(parts),
+        name = Enum.at(parts, depth - 1),
+        not String.starts_with?(inspect(String.to_atom("Elixir." <> name)), ":") do
+      %{kind: :module, type: :elixir, name: name}
     end
     |> Enum.uniq
-    |> Enum.filter(fn(%{name: name}) ->
-      not String.starts_with?(inspect(String.to_atom("Elixir." <> name)), ":")
-    end)
   end
 
   ## Helpers
