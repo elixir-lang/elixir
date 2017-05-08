@@ -230,7 +230,7 @@ defmodule IEx.Autocomplete do
     end
     |> Enum.uniq
     |> Enum.filter(fn(%{name: name}) ->
-      !match?(":" <> _, inspect(String.to_atom("Elixir." <> name)))
+      not String.starts_with?(inspect(String.to_atom("Elixir." <> name)), ":")
     end)
   end
 
