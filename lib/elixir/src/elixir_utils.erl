@@ -122,7 +122,7 @@ stack_location(Line, File) ->
 get_line(Opts) when is_list(Opts) ->
   case lists:keyfind(line, 1, Opts) of
     {line, Line} when is_integer(Line) -> Line;
-    false -> 0
+    _ -> 0
   end.
 
 %% Meta location.

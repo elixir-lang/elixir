@@ -1,5 +1,30 @@
 -module(elixir_erl_compiler).
--export([forms/3, noenv_forms/3]).
+-export([forms/3, noenv_forms/3, add_beam_chunks/2]).
+
+%% TODO: Remove extra chunk functionality when OTP 20+.
+add_beam_chunks(Bin, []) when is_binary(Bin) ->
+  Bin;
+add_beam_chunks(Bin, NewChunks) when is_binary(Bin), is_list(NewChunks) ->
+  {ok, _, OldChunks} = beam_lib:all_chunks(Bin),
+  Chunks = NewChunks ++ OldChunks,
+  {ok, NewBin} = beam_lib:build_module(Chunks),
+  NewBin.
+
+handle_extra_chunks(Opts) ->
+  Supported = supports_extra_chunks_option(),
+  case lists:keytake(extra_chunks, 1, Opts) of
+    {value, {extra_chunks, ExtraChunks}, ExtraOpts} when not Supported ->
+      {ExtraChunks, ExtraOpts};
+    _ ->
+      {[], Opts}
+  end.
+
+supports_extra_chunks_option() ->
+  case erlang:system_info(otp_release) of
+    "18" -> false;
+    "19" -> false;
+    _ -> true
+  end.
 
 forms(Forms, File, Opts) ->
   compile(fun compile:forms/2, Forms, File, Opts).
@@ -9,14 +34,16 @@ noenv_forms(Forms, File, Opts) ->
 
 compile(Fun, Forms, File, Opts) when is_list(Forms), is_list(Opts), is_binary(File) ->
   Source = elixir_utils:characters_to_list(File),
-  case Fun([no_auto_import() | Forms], [return, {source, Source} | Opts]) of
+  {ExtraChunks, ExtraOpts} = handle_extra_chunks(Opts),
+  case Fun([no_auto_import() | Forms], [return, {source, Source} | ExtraOpts]) of
     {ok, Module, Binary, Warnings} ->
       format_warnings(Opts, Warnings),
-      {Module, Binary};
+      {Module, add_beam_chunks(Binary, ExtraChunks)};
     {error, Errors, Warnings} ->
       format_warnings(Opts, Warnings),
       format_errors(Errors)
   end.
+
 
 no_auto_import() ->
   {attribute, 0, compile, no_auto_import}.
