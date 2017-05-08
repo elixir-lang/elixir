@@ -257,22 +257,19 @@ defmodule StringIO do
 
   defp get_line(encoding, prompt, %{input: input} = s) do
     case bytes_until_eol(input, encoding, 0) do
-      {:ok, count, replace_cr} ->
-        {result, remainder} = case count do
-          0 -> {:eof, ""}
-          count -> split_line(input, count, replace_cr)
-        end
+      {:split, 0} ->
+        {:eof, state_after_read(s, "", prompt)}
+      {:split, count} ->
+        {result, remainder} = :erlang.split_binary(input, count)
 
         {result, state_after_read(s, remainder, prompt)}
+      {:replace_split, count} ->
+        {result, remainder} = :erlang.split_binary(input, count)
+
+        {:erlang.binary_part(result, 0, byte_size(result) - 2) <> "\n", state_after_read(s, remainder, prompt)}
       :error
         -> {{:error, :collect_line}, s}
     end
-  end
-
-  defp split_line(input, count, false), do: :erlang.split_binary(input, count)
-  defp split_line(input, count, true) do
-    {result, remainder} = :erlang.split_binary(input, count)
-    {:erlang.binary_part(result, 0, byte_size(result) - 2) <> "\n", remainder}
   end
 
   ## get_until
@@ -348,9 +345,9 @@ defmodule StringIO do
     %{s | input: remainder, output: <<output::binary, IO.chardata_to_string(prompt)::binary>>}
   end
 
-  defp bytes_until_eol("", _, count), do: {:ok, count, false}
-  defp bytes_until_eol(<<"\r\n"::binary, _::binary>>, _, count), do: {:ok, count + 2, true}
-  defp bytes_until_eol(<<"\n"::binary, _::binary>>, _, count), do: {:ok, count + 1, false}
+  defp bytes_until_eol("", _, count), do: {:split, count}
+  defp bytes_until_eol(<<"\r\n"::binary, _::binary>>, _, count), do: {:replace_split, count + 2}
+  defp bytes_until_eol(<<"\n"::binary, _::binary>>, _, count), do: {:split, count + 1}
 
   defp bytes_until_eol(<<head::utf8, tail::binary>>, :unicode, count) do
     bytes_until_eol(tail, :unicode, count + byte_size(<<head::utf8>>))
