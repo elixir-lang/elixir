@@ -222,8 +222,7 @@ defmodule MapSet do
   # Elixir v1.5 change the map representation, so on
   # version mismatch we need to compare the keys directly.
   def equal?(%MapSet{map: map1}, %MapSet{map: map2}) do
-    map_size(map1) == map_size(map2) and
-      Enum.sort(Map.keys(map1)) == Enum.sort(Map.keys(map2))
+    map_size(map1) == map_size(map2) and map_subset?(Map.keys(map1), map2)
   end
 
   @doc """
