@@ -78,9 +78,10 @@ defmodule VersionTest do
     assert :error = V.parse("2.3.00")
     assert :error = V.parse("2.03.0")
     assert :error = V.parse("02.3.0")
+    assert :error = V.parse("1.2.3.4")
   end
 
-  test "Kernek.to_string/1" do
+  test "Kernel.to_string/1" do
     assert V.parse!("1.0.0") |> to_string == "1.0.0"
     assert V.parse!("1.0.0-dev") |> to_string == "1.0.0-dev"
     assert V.parse!("1.0.0+lol") |> to_string == "1.0.0+lol"
@@ -199,6 +200,10 @@ defmodule VersionTest do
 
     assert_raise V.InvalidRequirementError, fn ->
       V.match?("3.0.0", "~> 3")
+    end
+
+    assert_raise V.InvalidRequirementError, fn ->
+      V.match?("3.0.0", "~> 3.4.5.6")
     end
   end
 
