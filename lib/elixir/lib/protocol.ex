@@ -259,7 +259,7 @@ defmodule Protocol do
          do: compile(code, docs)
   end
 
-  @docs_chunk 'ExDc'
+  @docs_chunk "ExDc"
 
   defp beam_protocol(protocol) do
     chunk_ids = [:abstract_code, :attributes, @docs_chunk]
