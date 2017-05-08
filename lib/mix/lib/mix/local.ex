@@ -156,7 +156,7 @@ defmodule Mix.Local do
   defp find_latest_eligible_version(entries) do
     {:ok, current_version} = Version.parse(System.version)
     entries
-    |> Enum.reverse
+    |> :lists.reverse()
     |> Enum.find_value(entries, &find_version(&1, current_version))
   end
 

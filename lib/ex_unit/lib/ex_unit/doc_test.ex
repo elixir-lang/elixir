@@ -439,7 +439,7 @@ defmodule ExUnit.DocTest do
   end
 
   defp adjust_indent(_kind, [], _line_no, adjusted_lines, _indent, _module) do
-    Enum.reverse adjusted_lines
+    :lists.reverse(adjusted_lines)
   end
 
   defp adjust_indent(:text, [line | rest], line_no, adjusted_lines, indent, module) do
@@ -518,13 +518,13 @@ defmodule ExUnit.DocTest do
   end
 
   defp extract_tests([], "", "", acc, _, _) do
-    Enum.reverse(acc)
+    :lists.reverse(acc)
   end
 
   # End of input and we've still got a test pending.
   defp extract_tests([], expr_acc, expected_acc, [test | rest], _, _) do
     test = add_expr(test, expr_acc, expected_acc)
-    Enum.reverse([test | rest])
+    :lists.reverse(rest, [test])
   end
 
   # We've encountered the next test on an adjacent line. Put them into one group.
@@ -613,7 +613,7 @@ defmodule ExUnit.DocTest do
   end
 
   defp normalize_test(%{exprs: exprs} = test, fa) do
-    %{test | fun_arity: fa, exprs: Enum.reverse(exprs)}
+    %{test | fun_arity: fa, exprs: :lists.reverse(exprs)}
   end
 
   defp add_expr(%{exprs: exprs} = test, expr, expected) do

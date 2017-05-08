@@ -3364,11 +3364,11 @@ defmodule Kernel do
     end
   end
 
-  defp module_nesting([x | t1], [x | t2], acc, full),
-    do: module_nesting(t1, t2, [x | acc], full)
-  defp module_nesting([], [h | _], acc, _full),
-    do: {String.to_atom(<<"Elixir.", h::binary>>),
-          :elixir_aliases.concat(:lists.reverse([h | acc]))}
+  defp module_nesting([head | tail1], [head | tail2], acc, full),
+    do: module_nesting(tail1, tail2, [head | acc], full)
+  defp module_nesting([], [head | _], acc, _full),
+    do: {String.to_atom(<<"Elixir.", head::binary>>),
+          :elixir_aliases.concat(:lists.reverse(acc, [head]))}
   defp module_nesting(_, _, _acc, full),
     do: {nil, full}
 

@@ -33,8 +33,8 @@ defmodule Mix.Tasks.Do do
       when binary_part(head, byte_size(head), -1) == "," do
     current =
       case binary_part(head, 0, byte_size(head) - 1) do
-        "" -> Enum.reverse(current)
-        part -> Enum.reverse([part | current])
+        "" -> :lists.reverse(current)
+        part -> :lists.reverse(current, [part])
       end
     gather_commands(rest, [], [current | acc])
   end
