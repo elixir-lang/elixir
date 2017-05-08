@@ -402,9 +402,10 @@ defmodule Version do
     def parse_version(string, approximate? \\ false) when is_binary(string) do
       destructure [version_with_pre, build], String.split(string, "+", parts: 2)
       destructure [version, pre], String.split(version_with_pre, "-", parts: 2)
-      destructure [major, minor, patch], String.split(version, ".")
+      destructure [major, minor, patch, next], String.split(version, ".")
 
-      with {:ok, major} <- require_digits(major),
+      with nil <- next,
+           {:ok, major} <- require_digits(major),
            {:ok, minor} <- require_digits(minor),
            {:ok, patch} <- maybe_patch(patch, approximate?),
            {:ok, pre_parts} <- optional_dot_separated(pre),
