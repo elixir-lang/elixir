@@ -108,7 +108,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     end
   end
 
-  test "compiles only changed files" do
+  test "compiles mtime changed files" do
     in_fixture "no_mixfile", fn ->
       assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == :ok
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
@@ -129,6 +129,27 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
       File.touch!("_build/dev/lib/sample/.compile.elixir", future)
       assert Mix.Tasks.Compile.Elixir.run([]) == :noop
+    end
+  end
+
+  test "compiles size changed files" do
+    in_fixture "no_mixfile", fn ->
+      past = {{2010, 1, 1}, {0, 0, 0}}
+      File.touch!("lib/a.ex", past)
+
+      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == :ok
+      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
+
+      Mix.shell.flush
+      purge [A, B]
+
+      File.write!("lib/a.ex", File.read!("lib/a.ex") <> "\n")
+      File.touch!("lib/a.ex", past)
+      Mix.Tasks.Compile.Elixir.run ["--verbose"]
+
+      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
     end
   end
 

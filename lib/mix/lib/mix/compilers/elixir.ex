@@ -1,13 +1,14 @@
 defmodule Mix.Compilers.Elixir do
   @moduledoc false
 
-  @manifest_vsn :v4
+  @manifest_vsn :v5
 
   import Record
 
   defrecord :module, [:module, :kind, :source, :beam, :binary]
   defrecord :source, [
     source: nil,
+    size: 0,
     compile_references: [],
     runtime_references: [],
     compile_dispatches: [],
@@ -49,7 +50,7 @@ defmodule Mix.Compilers.Elixir do
         # changed, let's just compile everything
         MapSet.to_list(all_paths)
       else
-        sources_mtimes = mtimes(all_sources)
+        sources_stats = mtimes_and_sizes(all_sources)
 
         # Otherwise let's start with the new sources
         new_paths =
@@ -58,9 +59,10 @@ defmodule Mix.Compilers.Elixir do
           |> MapSet.to_list
 
         # Plus the sources that have changed in disk
-        for(source(source: source, external: external) <- all_sources,
-            times = Enum.map([source | external], &Map.fetch!(sources_mtimes, &1)),
-            Mix.Utils.stale?(times, [modified]),
+        for(source(source: source, external: external, size: size) <- all_sources,
+            {last_mtime, last_size} = Map.fetch!(sources_stats, source),
+            times = Enum.map(external, &(sources_stats |> Map.fetch!(&1) |> elem(0))),
+            size != last_size or Mix.Utils.stale?([last_mtime | times], [modified]),
             into: new_paths,
             do: source)
       end
@@ -88,10 +90,10 @@ defmodule Mix.Compilers.Elixir do
     {stale, removed}
   end
 
-  defp mtimes(sources) do
+  defp mtimes_and_sizes(sources) do
     Enum.reduce(sources, %{}, fn source(source: source, external: external), map ->
       Enum.reduce([source | external], map, fn file, map ->
-        Map.put_new_lazy(map, file, fn -> Mix.Utils.last_modified(file) end)
+        Map.put_new_lazy(map, file, fn -> Mix.Utils.last_modified_and_size(file) end)
       end)
     end)
   end
@@ -217,6 +219,7 @@ defmodule Mix.Compilers.Elixir do
 
       new_source = source(
         source: source,
+        size: :filelib.file_size(source),
         compile_references: compile_references,
         runtime_references: runtime_references,
         compile_dispatches: compile_dispatches,
