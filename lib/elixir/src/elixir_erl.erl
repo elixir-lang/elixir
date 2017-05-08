@@ -428,7 +428,7 @@ docs_chunk(Data, Line, true) ->
     {moduledoc, get_moduledoc(Line, Data)},
     {callback_docs, get_callback_docs(Data)},
     {type_docs, get_type_docs(Data)}
-  ]}),
+  ]}, [compressed]),
   [{<<"ExDc">>, ChunkData}];
 docs_chunk(_, _, _) ->
   [].

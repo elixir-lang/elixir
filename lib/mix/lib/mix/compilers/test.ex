@@ -185,7 +185,7 @@ defmodule Mix.Compilers.Test do
 
     manifest_data =
       [@manifest_vsn | sources]
-      |> :erlang.term_to_binary(compressed: 9)
+      |> :erlang.term_to_binary([:compressed])
 
     File.write!(manifest, manifest_data)
   end

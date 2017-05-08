@@ -14,7 +14,7 @@ defmodule Mix.Dep.ElixirSCM do
 
     manifest_data =
       {@manifest_vsn, {System.version, :erlang.system_info(:otp_release)}, config[:build_scm]}
-      |> :erlang.term_to_binary(compressed: 9)
+      |> :erlang.term_to_binary()
 
     File.write!(manifest(manifest_path), manifest_data)
   end

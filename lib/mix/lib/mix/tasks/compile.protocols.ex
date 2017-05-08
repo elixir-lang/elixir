@@ -164,7 +164,7 @@ defmodule Mix.Tasks.Compile.Protocols do
   defp write_manifest(manifest, metadata) do
     manifest_data =
       [@manifest_vsn | metadata]
-      |> :erlang.term_to_binary(compressed: 9)
+      |> :erlang.term_to_binary([:compressed])
 
     File.write!(manifest, manifest_data)
   end
