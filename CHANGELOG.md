@@ -12,12 +12,18 @@
   * [Calendar] Add `Date.diff/2`
   * [File] Add `File.read_link/1` and `File.read_link!/1`
   * [File] Introduce `:trim_bom` option for `File.stream!/2`
+  * [Integer] Add `Integer.gcd/2`
+  * [Kernel] Use the new `debug_info` chunk in OTP 20. This provides a mechanism for tools to retrieve the Elixir AST from beam files
+  * [Kernel] `defoverridable/1` accepts a module name as argument and marks all callbacks as overridable
   * [Keyword] Add `replace/3` and `replace!/3` for replacing an existing key
   * [List] `List.starts_with?/2`
   * [Macro] Introduce `Macro.generate_arguments/2`
   * [Map] Optimize `Map.merge/3` by choosing merge direction
   * [Map] Add `replace/3` and `replace!/3` for replacing an existing key
+  * [MapSet] Reduce `MapSet` size when serialized to approximately half
+  * [Process] Add `Process.cancel_timer/2`
   * [Registry] Support ETS guard conditions in `Registry.match/3`
+  * [Task] Support `:on_timeout` in `Task.async_stream` to control how tasks are terminated
 
 #### IEx
 
@@ -40,6 +46,10 @@
 
   * [Kernel] Support guards on anonymous functions of zero arity
   * [Kernel] Fix compilation of maps used as maps keys inside matches
+
+#### ExUnit
+
+  * [ExUnit] Properly account failed tests when `setup_all` fails
 
 ### 3. Soft deprecations (no warnings emitted)
 
