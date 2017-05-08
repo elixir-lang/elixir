@@ -1,5 +1,5 @@
 -module(b).
--compile(export_all).
+-export([b/0]).
 
 -callback c() -> term().
 -record(br, {cell=undefined}).
