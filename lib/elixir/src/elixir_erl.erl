@@ -1,7 +1,7 @@
 %% Compiler backend to Erlang.
 -module(elixir_erl).
 -export([elixir_to_erl/1, definition_to_anonymous/6, compile/1,
-         get_ann/1, remote/4, add_beam_chunks/2]).
+         get_ann/1, remote/4, add_beam_chunks/2, debug_info/4]).
 -include("elixir.hrl").
 
 %% TODO: Remove extra chunk functionality when OTP 20+.
@@ -13,6 +13,30 @@ add_beam_chunks(Bin, NewChunks) when is_binary(Bin), is_list(NewChunks) ->
   Chunks = [{binary_to_list(K), V} || {K, V} <- NewChunks] ++ OldChunks,
   {ok, NewBin} = beam_lib:build_module(Chunks),
   NewBin.
+
+%% debug_info callback
+
+debug_info(elixir_v1, _Module, none, _Opts) ->
+  {error, missing};
+debug_info(elixir_v1, _Module, {elixir_v1, Map, _Specs}, _Opts) ->
+  {ok, Map};
+debug_info(erlang_v1, _Module, {elixir_v1, Map, Specs}, _Opts) ->
+  {Prefix, Forms, _, _} = dynamic_form(Map),
+  {ok, Prefix ++ Specs ++ Forms};
+debug_info(core_v1, _Module, {elixir_v1, Map, Specs}, Opts) ->
+  {Prefix, Forms, _, _} = dynamic_form(Map),
+  #{compile_opts := CompileOpts} = Map,
+
+  %% Do not rely on elixir_erl_compiler because we don't
+  %% warnings nor the other functionality provided there.
+  try compile:noenv_forms(Prefix ++ Specs ++ Forms, [core, return | CompileOpts] ++ Opts) of
+    {ok, _, Core, _} -> {ok, Core};
+    _What -> {error, failed_conversion}
+  catch
+    error:_ -> {error, failed_conversion}
+  end;
+debug_info(_, _, _, _) ->
+  {error, unknown_format}.
 
 %% Builds Erlang AST annotation.
 
@@ -115,12 +139,12 @@ elixir_to_erl_cons2([], Acc) ->
 compile(#{module := Module} = Map) ->
   Data = elixir_module:data_table(Module),
   {Prefix, Forms, Defmacro, Unreachable} = dynamic_form(Map),
-  SpecedForms =
+  Specs =
     case elixir_compiler:get_opt(internal) of
-      true -> Forms;
-      false -> specs_form(Data, Defmacro, Unreachable, types_form(Data, Forms))
+      true -> [];
+      false -> specs_form(Data, Defmacro, Unreachable, types_form(Data, []))
     end,
-  load_form(Map, Data, Prefix ++ SpecedForms).
+  load_form(Map, Data, Prefix, Forms, Specs).
 
 % Definitions
 
@@ -216,13 +240,15 @@ is_macro(_)         -> false.
 
 % Functions
 
-dynamic_form(#{version := 1, module := Module, line := Line, file := File,
-               attributes := Attributes, definitions := Definitions, unreachable := Unreachable}) ->
+dynamic_form(#{module := Module, line := Line, file := File, attributes := Attributes,
+               definitions := Definitions, unreachable := Unreachable}) ->
   {Def, Defmacro, Exports, Functions} =
     split_definition(Definitions, File, Unreachable, [], [], [], {[], []}),
 
   Location = {elixir_utils:characters_to_list(elixir_utils:relative_to_cwd(File)), Line},
-  Prefix = [{attribute, Line, file, Location}, {attribute, Line, module, Module}],
+  Prefix = [{attribute, Line, file, Location},
+            {attribute, Line, module, Module},
+            {attribute, Line, compile, no_auto_import}],
 
   Forms0 = functions_form(Line, Module, Def, Defmacro, Exports, Functions),
   Forms1 = attributes_form(Line, Attributes, Forms0),
@@ -382,30 +408,27 @@ attributes_form(Line, Attributes, Forms) ->
 
 % Loading forms
 
-load_form(#{line := Line, file := File, compile_opts := Opts} = Map, Data, Forms) ->
-  {ExtraChunks, CompileOpts} = extra_chunks(Data, Line, debug_info(Map, Opts)),
-  {_, Binary} = elixir_erl_compiler:forms(Forms, File, CompileOpts),
+load_form(#{line := Line, file := File, compile_opts := Opts} = Map, Data, Prefix, Forms, Specs) ->
+  {ExtraChunks, CompileOpts} = extra_chunks(Data, Line, debug_opts(Map, Specs, Opts)),
+  {_, Binary} = elixir_erl_compiler:forms(Prefix ++ Specs ++ Forms, File, CompileOpts),
   add_beam_chunks(Binary, ExtraChunks).
 
-debug_info(_Map, Opts) ->
-  case include_debug_info(Opts) of
-    true ->
-      case supports_debug_info_tuple() of
-        true -> [debug_info];
-        false -> [debug_info]
-      end;
-    false ->
-      []
+debug_opts(Map, Specs, Opts) ->
+  case {supports_debug_tuple(), include_debug_opts(Opts)} of
+    {true, true} -> [{debug_info, {?MODULE, {elixir_v1, Map, Specs}}}];
+    {true, false} -> [{debug_info, {?MODULE, none}}];
+    {false, true} -> [debug_info];
+    {false, false} -> []
   end.
 
-include_debug_info(Opts) ->
+include_debug_opts(Opts) ->
   case proplists:get_value(debug_info, Opts) of
     true -> true;
     false -> false;
     undefined -> elixir_compiler:get_opt(debug_info)
   end.
 
-supports_debug_info_tuple() ->
+supports_debug_tuple() ->
   case erlang:system_info(otp_release) of
     "18" -> false;
     "19" -> false;

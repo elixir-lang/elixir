@@ -9,7 +9,7 @@ noenv_forms(Forms, File, Opts) ->
 
 compile(Fun, Forms, File, Opts) when is_list(Forms), is_list(Opts), is_binary(File) ->
   Source = elixir_utils:characters_to_list(File),
-  case Fun([no_auto_import() | Forms], [return, {source, Source} | Opts]) of
+  case Fun(Forms, [return, {source, Source} | Opts]) of
     {ok, Module, Binary, Warnings} ->
       format_warnings(Opts, Warnings),
       {Module, Binary};
@@ -17,9 +17,6 @@ compile(Fun, Forms, File, Opts) when is_list(Forms), is_list(Opts), is_binary(Fi
       format_warnings(Opts, Warnings),
       format_errors(Errors)
   end.
-
-no_auto_import() ->
-  {attribute, 0, compile, no_auto_import}.
 
 format_errors([]) ->
   exit({nocompile, "compilation failed but no error was raised"});
