@@ -88,7 +88,7 @@ you can reproduce it locally by deleting all of Elixir beam files and compiling
 again:
 
 ```sh
-make clean_exbeam compile
+make clean_elixir compile
 ```
 
 Or to rebuild everything from scratch without running tests:

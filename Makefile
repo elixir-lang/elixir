@@ -121,7 +121,7 @@ clean:
 	rm -f Precompiled-v*.zip
 	$(Q) $(MAKE) clean_residual_files
 
-clean_exbeam:
+clean_elixir:
 	$(Q) rm -f lib/*/ebin/Elixir.*.beam
 
 clean_residual_files:
