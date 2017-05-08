@@ -644,9 +644,9 @@ defmodule Protocol do
 
     specs = Module.get_attribute(module, :spec)
     found =
-      :lists.map(fn {:spec, expr, caller} ->
+      :lists.map(fn {:spec, expr, pos} ->
         if Kernel.Typespec.spec_to_signature(expr) == signature do
-          Kernel.Typespec.defspec(:callback, expr, caller)
+          Module.store_typespec(module, :callback, {:callback, expr, pos})
           true
         end
       end, specs)

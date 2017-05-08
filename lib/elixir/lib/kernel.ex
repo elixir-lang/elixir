@@ -3556,7 +3556,6 @@ defmodule Kernel do
   defp define(kind, call, expr, env) do
     assert_module_scope(env, kind, 2)
     assert_no_function_scope(env, kind, 2)
-    line = env.line
 
     {call, unquoted_call} = :elixir_quote.escape(call, true)
     {expr, unquoted_expr} = :elixir_quote.escape(expr, true)
@@ -3566,7 +3565,7 @@ defmodule Kernel do
     pos = :elixir_locals.cache_env(env)
 
     quote do
-      :elixir_def.store_definition(unquote(line), unquote(kind), unquote(check_clauses),
+      :elixir_def.store_definition(unquote(kind), unquote(check_clauses),
                                    unquote(call), unquote(expr), unquote(pos))
     end
   end

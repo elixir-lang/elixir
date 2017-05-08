@@ -11,8 +11,11 @@ defmodule Kernel.Typespec do
 
   """
   defmacro deftype(type) do
+    pos = :elixir_locals.cache_env(__CALLER__)
+    %{line: line, file: file, module: module} = __CALLER__
     quote do
-      Kernel.Typespec.deftype(:type, unquote(Macro.escape(type, unquote: true)), __ENV__)
+      Kernel.Typespec.deftype(:type, unquote(Macro.escape(type, unquote: true)),
+                              unquote(line), unquote(file), unquote(module), unquote(pos))
     end
   end
 
@@ -26,8 +29,11 @@ defmodule Kernel.Typespec do
 
   """
   defmacro defopaque(type) do
+    pos = :elixir_locals.cache_env(__CALLER__)
+    %{line: line, file: file, module: module} = __CALLER__
     quote do
-      Kernel.Typespec.deftype(:opaque, unquote(Macro.escape(type, unquote: true)), __ENV__)
+      Kernel.Typespec.deftype(:opaque, unquote(Macro.escape(type, unquote: true)),
+                              unquote(line), unquote(file), unquote(module), unquote(pos))
     end
   end
 
@@ -41,8 +47,11 @@ defmodule Kernel.Typespec do
 
   """
   defmacro deftypep(type) do
+    pos = :elixir_locals.cache_env(__CALLER__)
+    %{line: line, file: file, module: module} = __CALLER__
     quote do
-      Kernel.Typespec.deftype(:typep, unquote(Macro.escape(type, unquote: true)), __ENV__)
+      Kernel.Typespec.deftype(:typep, unquote(Macro.escape(type, unquote: true)),
+                              unquote(line), unquote(file), unquote(module), unquote(pos))
     end
   end
 
@@ -56,8 +65,11 @@ defmodule Kernel.Typespec do
 
   """
   defmacro defspec(spec) do
+    pos = :elixir_locals.cache_env(__CALLER__)
+    %{line: line, file: file, module: module} = __CALLER__
     quote do
-      Kernel.Typespec.defspec(:spec, unquote(Macro.escape(spec, unquote: true)), __ENV__)
+      Kernel.Typespec.defspec(:spec, unquote(Macro.escape(spec, unquote: true)),
+                              unquote(line), unquote(file), unquote(module), unquote(pos))
     end
   end
 
@@ -71,8 +83,11 @@ defmodule Kernel.Typespec do
 
   """
   defmacro defcallback(spec) do
+    pos = :elixir_locals.cache_env(__CALLER__)
+    %{line: line, file: file, module: module} = __CALLER__
     quote do
-      Kernel.Typespec.defspec(:callback, unquote(Macro.escape(spec, unquote: true)), __ENV__)
+      Kernel.Typespec.defspec(:callback, unquote(Macro.escape(spec, unquote: true)),
+                              unquote(line), unquote(file), unquote(module), unquote(pos))
     end
   end
 
@@ -86,8 +101,11 @@ defmodule Kernel.Typespec do
 
   """
   defmacro defmacrocallback(spec) do
+    pos = :elixir_locals.cache_env(__CALLER__)
+    %{line: line, file: file, module: module} = __CALLER__
     quote do
-      Kernel.Typespec.defspec(:macrocallback, unquote(Macro.escape(spec, unquote: true)), __ENV__)
+      Kernel.Typespec.defspec(:macrocallback, unquote(Macro.escape(spec, unquote: true)),
+                              unquote(line), unquote(file), unquote(module), unquote(pos))
     end
   end
 
@@ -313,50 +331,49 @@ defmodule Kernel.Typespec do
   ## Macro callbacks
 
   @doc false
-  def defspec(kind, expr, caller) when kind in [:callback, :macrocallback] do
+  def defspec(kind, expr, line, file, module, pos) when kind in [:callback, :macrocallback] do
     case spec_to_signature(expr) do
       {name, arity} ->
-        store_callbackdoc(caller, caller.module, kind, name, arity)
+        store_callbackdoc(line, file, module, kind, name, arity)
       :error ->
         :error
     end
-    Module.store_typespec(caller.module, kind, {kind, expr, caller})
+    Module.store_typespec(module, kind, {kind, expr, pos})
   end
 
   @doc false
-  def defspec(kind, expr, caller) do
-    Module.store_typespec(caller.module, kind, {kind, expr, caller})
+  def defspec(kind, expr, _line, _file, module, pos) do
+    Module.store_typespec(module, kind, {kind, expr, pos})
   end
 
-  defp store_callbackdoc(caller, module, kind, name, arity) do
+  defp store_callbackdoc(line, _file, module, kind, name, arity) do
     table = :elixir_module.data_table(module)
-    {line, doc} = get_doc_info(table, :doc, caller)
+    {line, doc} = get_doc_info(table, :doc, line)
     :ets.insert(table, {{:callbackdoc, {name, arity}}, line, kind, doc})
   end
 
-  defp get_doc_info(table, attr, caller) do
+  defp get_doc_info(table, attr, line) do
     case :ets.take(table, attr) do
       [{^attr, {line, doc}, _, _}] -> {line, doc}
-      [] -> {caller.line, nil}
+      [] -> {line, nil}
     end
   end
 
   @doc false
-  def deftype(kind, expr, caller) do
-    module = caller.module
+  def deftype(kind, expr, line, file, module, pos) do
     case type_to_signature(expr) do
-      {name, arity} -> store_typedoc(caller, caller.module, kind, name, arity)
+      {name, arity} -> store_typedoc(line, file, module, kind, name, arity)
       :error -> :error
     end
-    Module.store_typespec(module, kind, {kind, expr, caller})
+    Module.store_typespec(module, kind, {kind, expr, pos})
   end
 
-  defp store_typedoc(caller, module, kind, name, arity) do
+  defp store_typedoc(line, file, module, kind, name, arity) do
     table = :elixir_module.data_table(module)
-    {line, doc} = get_doc_info(table, :typedoc, caller)
+    {line, doc} = get_doc_info(table, :typedoc, line)
 
     if kind == :typep && doc do
-      :elixir_errors.warn(caller.line, caller.file, "type #{name}/#{arity} is private, " <>
+      :elixir_errors.warn(line, file, "type #{name}/#{arity} is private, " <>
                           "@typedoc's are always discarded for private types")
     end
 
@@ -366,7 +383,9 @@ defmodule Kernel.Typespec do
   ## Translation from Elixir AST to typespec AST
 
   @doc false
-  def translate_type(kind, {:::, _, [{name, _, args}, definition]}, caller) when is_atom(name) and name != ::: do
+  def translate_type(kind, {:::, _, [{name, _, args}, definition]}, pos) when is_atom(name) and name != ::: do
+    caller = :elixir_locals.get_cached_env(pos)
+
     args =
       if is_atom(args) do
         []
@@ -394,7 +413,8 @@ defmodule Kernel.Typespec do
     {{kind, {name, arity}, type}, caller.line, export}
   end
 
-  def translate_type(_kind, other, caller) do
+  def translate_type(_kind, other, pos) do
+    caller = :elixir_locals.get_cached_env(pos)
     type_spec = Macro.to_string(other)
     compile_error caller, "invalid type specification: #{type_spec}"
   end
@@ -410,11 +430,13 @@ defmodule Kernel.Typespec do
   defp builtin_type?(name, arity), do: :erl_internal.is_type(name, arity)
 
   @doc false
-  def translate_spec(kind, {:when, _meta, [spec, guard]}, caller) do
+  def translate_spec(kind, {:when, _meta, [spec, guard]}, pos) do
+    caller = :elixir_locals.get_cached_env(pos)
     translate_spec(kind, spec, guard, caller)
   end
 
-  def translate_spec(kind, spec, caller) do
+  def translate_spec(kind, spec, pos) do
+    caller = :elixir_locals.get_cached_env(pos)
     translate_spec(kind, spec, [], caller)
   end
 
