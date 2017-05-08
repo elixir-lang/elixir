@@ -24,15 +24,15 @@ defmodule Version do
 
   ## Struct
 
-  The version is represented by the Version struct and fields
+  The version is represented by the `Version` struct and fields
   are named according to SemVer: `:major`, `:minor`, `:patch`,
-  `:pre` and `:build`.
+  `:pre`, and `:build`.
 
   ## Requirements
 
   Requirements allow you to specify which versions of a given
-  dependency you are willing to work against. It supports common
-  operators like `>=`, `<=`, `>`, `==` and friends that
+  dependency you are willing to work against. Requirements support common
+  operators like `>=`, `<=`, `>`, `==`, and friends that
   work as one would expect:
 
       # Only version 2.0.0
@@ -64,7 +64,7 @@ defmodule Version do
   `~> 2.0`       | `>= 2.0.0 and < 3.0.0`
   `~> 2.1`       | `>= 2.1.0 and < 3.0.0`
 
-  When `allow_pre: false` is set the requirement will not match a
+  When `allow_pre: false` is set, the requirement will not match a
   pre-release version unless the operand is a pre-release version.
   The default is to always allow pre-releases but note that in
   Hex `:allow_pre` is set to `false.` See the table below for examples.
@@ -139,15 +139,15 @@ defmodule Version do
 
   Returns `true` if `version` satisfies `requirement`, `false` otherwise.
   Raises a `Version.InvalidRequirementError` exception if `requirement` is not
-  parsable, or `Version.InvalidVersionError` if `version` is not parsable.
+  parsable, or a `Version.InvalidVersionError` exception if `version` is not parsable.
   If given an already parsed version and requirement this function won't
   raise.
 
   ## Options
 
-    * `:allow_pre` - when `false` pre-release versions will not match
-      unless the operand is a pre-release version, see the table above
-      for examples  (default: `true`);
+    * `:allow_pre` (boolean) - when `false`, pre-release versions will not match
+      unless the operand is a pre-release version. See the table above
+      for examples. Defaults to `true`.
 
   ## Examples
 
@@ -188,20 +188,22 @@ defmodule Version do
   end
 
   @doc """
-  Compares two versions. Returns `:gt` if the first version is greater than
-  the second one, and `:lt` for vice versa. If the two versions are equal `:eq`
-  is returned.
+  Compares two versions.
+
+  Returns `:gt` if the first version is greater than the second one, and `:lt`
+  for vice versa. If the two versions are equal, `:eq` is returned.
 
   Pre-releases are strictly less than their corresponding release versions.
 
   Patch segments are compared lexicographically if they are alphanumeric, and
   numerically otherwise.
 
-  Build segments are ignored, if two versions differ only in their build segment
+  Build segments are ignored: if two versions differ only in their build segment
   they are considered to be equal.
 
-  Raises a `Version.InvalidVersionError` exception if any of the two are not
-  parsable. If given an already parsed version this function won't raise.
+  Raises a `Version.InvalidVersionError` exception if any of the two given
+  versions are not parsable. If given an already parsed version this function
+  won't raise.
 
   ## Examples
 
@@ -239,7 +241,7 @@ defmodule Version do
   end
 
   @doc """
-  Parses a version string into a `Version`.
+  Parses a version string into a `Version` struct.
 
   ## Examples
 
@@ -256,7 +258,7 @@ defmodule Version do
     case Version.Parser.parse_version(string) do
       {:ok, {major, minor, patch, pre}} ->
         version = %Version{major: major, minor: minor, patch: patch,
-                       pre: pre, build: get_build(string)}
+                           pre: pre, build: get_build(string)}
         {:ok, version}
      :error ->
        :error
@@ -286,12 +288,12 @@ defmodule Version do
   end
 
   @doc """
-  Parses a version requirement string into a `Version.Requirement`.
+  Parses a version requirement string into a `Version.Requirement` struct.
 
   ## Examples
 
-      iex> {:ok, req} = Version.parse_requirement("== 2.0.1")
-      iex> req
+      iex> {:ok, requirement} = Version.parse_requirement("== 2.0.1")
+      iex> requirement
       #Version.Requirement<== 2.0.1>
 
       iex> Version.parse_requirement("== == 2.0.1")
@@ -312,7 +314,7 @@ defmodule Version do
   Compiles a requirement to its internal representation with
   `:ets.match_spec_compile/1` for faster matching.
 
-  The internal representation is opaque and can not be converted to external
+  The internal representation is opaque and cannot be converted to external
   term format and then back again without losing its properties (meaning it
   can not be sent to a process on another node and still remain a valid
   compiled match_spec, nor can it be stored on disk).
@@ -339,7 +341,6 @@ defmodule Version do
     case Regex.run(~r/\+([^\s]+)$/, string) do
       nil ->
         nil
-
       [_, build] ->
         build
     end
