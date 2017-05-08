@@ -103,6 +103,10 @@ defmodule Kernel.ExpansionTest do
       assert_raise CompileError,
         ~r"invalid :except option for import, expected a keyword list with integer values",
         fn -> expand(quote do: (import Kernel, except: [invalid: nil])) end
+
+      assert_raise CompileError,
+        ~r/invalid options for import, expected a keyword list, got: "invalid_options"/,
+        fn -> expand(quote do: (import Kernel, "invalid_options")) end
     end
 
     test "raises on conflicting options" do
