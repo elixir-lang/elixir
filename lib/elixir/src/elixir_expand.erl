@@ -659,8 +659,8 @@ validate_opts(Meta, Kind, Allowed, Opts, E) when is_list(Opts) ->
     form_error(Meta, ?key(E, file), ?MODULE, {unsupported_option, Kind, Key})
   end || {Key, _} <- Opts, not lists:member(Key, Allowed)];
 
-validate_opts(Meta, Kind, _Allowed, _Opts, E) ->
-  form_error(Meta, ?key(E, file), ?MODULE, {options_are_not_keyword, Kind}).
+validate_opts(Meta, Kind, _Allowed, Opts, E) ->
+  form_error(Meta, ?key(E, file), ?MODULE, {options_are_not_keyword, Kind, Opts}).
 
 no_alias_opts(Opts) when is_list(Opts) ->
   case lists:keyfind(as, 1, Opts) of
@@ -909,7 +909,8 @@ format_error({invalid_pid_or_ref_in_function, PidOrRef, {Name, Arity}}) ->
 format_error({unsupported_option, Kind, Key}) ->
   io_lib:format("unsupported option ~ts given to ~s",
                 ['Elixir.Macro':to_string(Key), Kind]);
-format_error({options_are_not_keyword, Kind}) ->
-  io_lib:format("invalid options for ~s, expected a keyword list", [Kind]);
+format_error({options_are_not_keyword, Kind, Opts}) ->
+  io_lib:format("invalid options for ~s, expected a keyword list, got: ~ts",
+                [Kind, 'Elixir.Macro':to_string(Opts)]);
 format_error({undefined_function, Name, Args}) ->
   io_lib:format("undefined function ~ts/~B", [Name, length(Args)]).
