@@ -1,8 +1,18 @@
 %% Compiler backend to Erlang.
 -module(elixir_erl).
 -export([elixir_to_erl/1, definition_to_anonymous/6, compile/7,
-         get_ann/1, remote/4, format_error/1]).
+         get_ann/1, remote/4, add_beam_chunks/2, format_error/1]).
 -include("elixir.hrl").
+
+%% TODO: Remove extra chunk functionality when OTP 20+.
+
+add_beam_chunks(Bin, []) when is_binary(Bin) ->
+  Bin;
+add_beam_chunks(Bin, NewChunks) when is_binary(Bin), is_list(NewChunks) ->
+  {ok, _, OldChunks} = beam_lib:all_chunks(Bin),
+  Chunks = NewChunks ++ OldChunks,
+  {ok, NewBin} = beam_lib:build_module(Chunks),
+  NewBin.
 
 %% Builds Erlang AST annotation.
 
@@ -382,9 +392,9 @@ attributes_form(Line, Attributes, Forms) ->
 % Loading forms
 
 load_form(Line, File, Data, Forms, Opts) ->
-  CompileOpts = debug_info(Opts) ++ extra_chunks(Data, Line),
+  {ExtraChunks, CompileOpts} = extra_chunks(Data, Line, debug_info(Opts)),
   {_, Binary} = elixir_erl_compiler:forms(Forms, File, CompileOpts),
-  Binary.
+  add_beam_chunks(Binary, ExtraChunks).
 
 debug_info(Opts) ->
   case proplists:get_value(debug_info, Opts) of
@@ -397,11 +407,19 @@ debug_info(Opts) ->
       end
   end.
 
-extra_chunks(Data, Line) ->
-  Chunks = docs_chunk(Data, Line, elixir_compiler:get_opt(docs)),
-  case Chunks of
-    [] -> [];
-    _  -> [{extra_chunks, Chunks}]
+extra_chunks(Data, Line, Opts) ->
+  Supported = supports_extra_chunks_option(),
+  case docs_chunk(Data, Line, elixir_compiler:get_opt(docs)) of
+    [] -> {[], Opts};
+    Chunks when Supported -> {[], [{extra_chunks, Chunks} | Opts]};
+    Chunks -> {Chunks, Opts}
+  end.
+
+supports_extra_chunks_option() ->
+  case erlang:system_info(otp_release) of
+    "18" -> false;
+    "19" -> false;
+    _ -> true
   end.
 
 docs_chunk(Data, Line, true) ->
