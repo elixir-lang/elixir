@@ -316,6 +316,7 @@ defmodule Record do
       Keyword.keyword?(args) ->
         create(atom, fields, args, caller)
       true ->
+        fields = Macro.escape(fields)
         case Macro.expand(args, caller) do
           {:{}, _, [^atom | list]} when length(list) == length(fields) ->
             record = List.to_tuple([atom | list])
