@@ -4,6 +4,7 @@ defprotocol String.Chars do
   @moduledoc ~S"""
   The `String.Chars` protocol is responsible for
   converting a structure to a binary (only if applicable).
+
   The only function required to be implemented is
   `to_string/1`, which does the conversion.
 
