@@ -53,6 +53,40 @@ defmodule Module do
   If the behaviour changes or `URI.HTTP` does not implement
   one of the callbacks, a warning will be raised.
 
+  ### `@impl`
+
+  To aid in the correct implementation of behaviours, you may optionally declare
+  `@impl` for implemented callbacks of a behaviour. This makes callbacks
+  explicit and can help you to catch errors in your code (the compiler will warn
+  you if you mark a function as `@impl` when in fact it is not a callback, and
+  vice versa). It also helps with maintainability by making it clear to other
+  developers that the function's purpose is to implement a callback.
+
+  Using `@impl` the example above can be rewritten as:
+
+      defmodule URI.HTTP do
+        @behaviour URI.parser
+
+        @impl true
+        def default_port(), do: 80
+
+        @impl true
+        def parse(info), do: info
+      end
+
+  You may pass either `false`, `true`, or a specific behaviour to `@impl`.
+
+    defmodule Foo do
+      @behaviour Bar
+      @behaviour Baz
+
+      @impl true # will warn if neither Bar nor Baz specify a callback named bar/0
+      def bar(), do: :ok
+
+      @impl Baz # Will warn if Baz does not specify a callback named baz/0
+      def baz(), do: :ok
+    end
+
   ### `@compile`
 
   Defines options for module compilation. This is used to configure
@@ -207,6 +241,7 @@ defmodule Module do
     * `@macrocallback` - provides a specification for a macro behaviour callback
     * `@optional_callbacks` - specifies which behaviour callbacks and macro
       behaviour callbacks are optional
+    * `@impl` - declares an implementation of a callback function or macro
 
   ### Custom attributes
 
@@ -886,10 +921,16 @@ defmodule Module do
 
     cond do
       not Code.ensure_compiled?(behaviour) -> {:error, "it was not defined"}
-      not function_exported?(behaviour, :behaviour_info, 1) -> {:error, "it does not define any callbacks"}
-      behaviour not in behaviour_definitions -> {:error, "its corresponding behaviour is missing. Did you forget to add @behaviour #{inspect(behaviour)} ?"}
+      not defines_callbacks?(behaviour) -> {:error, "it does not define any callbacks"}
+      behaviour not in behaviour_definitions ->
+        {:error, "its corresponding behaviour is missing. Did you forget to " <>
+                 "add @behaviour #{inspect(behaviour)} ?"}
       true -> :ok
     end
+  end
+
+  defp defines_callbacks?(module) do
+    function_exported?(module, :behaviour_info, 1)
   end
 
   defp normalize_macro_or_function_callback({function_name, arity}) do
@@ -898,6 +939,14 @@ defmodule Module do
       'MACRO-' ++ tail -> {:erlang.list_to_atom(tail), arity - 1}
       _ -> {function_name, arity}
     end
+  end
+
+  defp unnormalize_macro_or_function_callback(:def, pair) do
+    pair
+  end
+  defp unnormalize_macro_or_function_callback(:defmacro, {function_name, arity}) do
+    macro_prepended = :erlang.list_to_atom('MACRO-' ++ :erlang.atom_to_list(function_name))
+    {macro_prepended, arity + 1}
   end
 
   @doc """
@@ -1107,6 +1156,174 @@ defmodule Module do
   end
 
   @doc false
+  # Used internally to check the validity of arguments to @impl and warn if the
+  # function does not correctly implement a callback.
+  # This function is private and must be used only internally.
+  def check_impl(env, kind, name, args, _guards, _body) do
+    %{module: module, line: line, file: file} = env
+
+    table = data_table_for(module)
+    value = get_impl_info(table)
+
+    if value do
+      set_impl_required_for_all_callbacks(table, line)
+      set_doc_false_if_unset(table, line)
+    end
+
+    arity = length(args)
+    pair = {name, arity}
+    required? = impl_required_for_all_callbacks?(table)
+
+    case do_check_impl(module, kind, pair, value, required?) do
+      {:error, message} -> :elixir_errors.warn line, file, message
+      :ok -> :ok
+    end
+  end
+
+  defp set_impl_required_for_all_callbacks(table, unread_line) do
+    case :ets.lookup(table, {:elixir, :impl_required}) do
+      [{{:elixir, :impl_required}, _value, _accumulated?, _unread_line}] -> :ok
+      _ ->
+        :ets.insert(table, {{:elixir, :impl_required}, true, false, unread_line})
+        :ok
+    end
+  end
+
+  # TODO: Perhaps this would better be set as a macro in the @impl call?
+  defp set_doc_false_if_unset(table, line) do
+    case :ets.lookup(table, :doc) do
+      [{:doc, {_line, <<_::binary>>}, _accumulated?, _unread_line}] ->
+        :doc_exists
+      [{:doc, {_line, false}, _accumulated?, _unread_line}] ->
+        :doc_already_set_false
+      [] ->
+        :ets.insert(table, {:doc, {line, false}, false, line})
+    end
+  end
+
+  defp impl_required_for_all_callbacks?(table) do
+    case :ets.lookup(table, {:elixir, :impl_required}) do
+      [{{:elixir, :impl_required}, true, _accumulated?, _unread_line}] -> true
+      _ -> false
+    end
+  end
+
+  defp do_check_impl(_, kind, _, value, _)
+       when is_nil(value) and kind in [:type, :typep, :defp, :defmacrop] do
+    # TODO: do we need to care about :type and :typep cases? They never seem to get passed to here
+    :ok
+  end
+  defp do_check_impl(_, kind, {name, arity}, _, _) when kind in [:defp, :defmacrop] do
+    descriptor = case kind do
+      :defp -> "function"
+      :defmacrop -> "macro"
+    end
+    {:error, "#{descriptor} #{name}/#{arity} is private, @impl " <>
+             "is always ignored for private #{descriptor}s"}
+  end
+  defp do_check_impl(_, kind, _, _, _) when kind in [:type, :typep] do
+    {:error, "@impl is always ignored for type annotations"}
+  end
+  defp do_check_impl(_, _, _, value, impl_required_for_all_callbacks?)
+       when is_nil(value) and not impl_required_for_all_callbacks? do
+    :ok
+  end
+  defp do_check_impl(module, _, pair, value, impl_required_for_all_callbacks?)
+       when is_nil(value) and impl_required_for_all_callbacks? do
+    implemented_behaviours = get_behaviours(module)
+
+    if %{^pair => behaviour} = callbacks_with_behaviour(implemented_behaviours) do
+      message = "module attribute @impl was not set for implemented callback " <>
+                "#{format_function_or_macro(pair)} (callback specified in " <>
+                "#{inspect(behaviour)})"
+      {:error, message}
+    else
+      :ok
+    end
+  end
+  defp do_check_impl(module, kind, pair, value, _) when is_atom(value) do
+    case get_behaviours(module) do
+      [] -> {:error, "module attribute @impl was set but this module does not implement any behaviours"}
+      behaviours ->
+        pair = unnormalize_macro_or_function_callback(kind, pair)
+        behaviour_implemented_by_function = callbacks_with_behaviour(behaviours)[pair]
+
+        do_check_impl_with_value(value, behaviour_implemented_by_function, pair, behaviours)
+      end
+  end
+
+  defp format_function_or_macro(pair = {name, arity})
+       when (is_atom(name) or is_binary(name)) and is_integer(arity) do
+    kind = case :erlang.atom_to_list(name) do
+      'MACRO-' ++ _ -> "macro"
+      _ -> "function"
+    end
+
+    {name, arity} = normalize_macro_or_function_callback(pair)
+    "#{kind} #{name}/#{arity}"
+  end
+
+  # Take a list of behaviours and build a map of their callbacks like {
+  # {
+  #   {:foo, 0} => FooBehaviour,
+  #   {:foo, 1} => FooBehaviour,
+  #   {:bar, 0} => BarBehaviour,
+  # }
+  defp callbacks_with_behaviour(implemented_behaviours) do
+    for behaviour <- implemented_behaviours,
+        defines_callbacks?(behaviour),
+        callback <- behaviour.behaviour_info(:callbacks),
+        into: %{},
+        do: {callback, behaviour}
+  end
+
+  defp do_check_impl_with_value(true, nil, pair, _) do
+    warning = "got @impl true for #{format_function_or_macro(pair)}" <>
+              " but no implemented behaviour specifies this callback"
+    {:error, warning}
+  end
+  defp do_check_impl_with_value(true, _behaviour_implemented_by_function, _, _) do
+    :ok
+  end
+  defp do_check_impl_with_value(false, nil, _, _) do
+    :ok
+  end
+  defp do_check_impl_with_value(false, behaviour_implemented_by_function, pair, _) do
+    warning =
+      "got @impl false for #{format_function_or_macro(pair)} but it implements" <>
+      " a callback defined by #{inspect(behaviour_implemented_by_function)})"
+    {:error, warning}
+  end
+  defp do_check_impl_with_value(value, behaviour_implemented_by_function, pair, implemented_behaviours) do
+    cond do
+      not Code.ensure_compiled?(value) ->
+        warning =
+          "got @impl #{inspect(value)} but " <>
+          "#{inspect(value)} is not defined"
+        {:error, warning}
+      not defines_callbacks?(value) ->
+        warning =
+          "got @impl #{inspect(value)} but " <>
+          "#{inspect(value)} does not define any callbacks"
+        {:error, warning}
+      not value in implemented_behaviours ->
+        warning =
+          "got @impl #{inspect(value)} for " <>
+          "#{format_function_or_macro(pair)} but that behaviour is" <>
+          " not implemented by the module (@behaviour " <>
+          "#{inspect(value)} was not specified)"
+        {:error, warning}
+      value != behaviour_implemented_by_function ->
+        warning =
+          "got @impl #{inspect(value)} for " <>
+          "#{format_function_or_macro(pair)} but behaviour" <>
+          " #{inspect(value)} does not define this callback"
+        {:error, warning}
+      true -> :ok
+    end
+  end
+
+  @doc false
   # Used internally to compile types.
   # This function is private and must be used only internally.
   def store_typespec(module, key, value) when is_atom(module) and is_atom(key) do
@@ -1176,6 +1393,10 @@ defmodule Module do
     :ok
   end
 
+  defp get_behaviours(module) do
+    get_attribute(module, :behaviour)
+  end
+
   ## Helpers
 
   defp preprocess_attribute(key, value) when key in [:moduledoc, :typedoc, :doc] do
@@ -1202,6 +1423,18 @@ defmodule Module do
         raise ArgumentError,
           "expected the @on_load attribute to be an atom or a " <>
           "{atom, 0} tuple, got: #{inspect(other)}"
+    end
+  end
+
+  defp preprocess_attribute(:impl, value) do
+    case value do
+      module when is_atom(module) ->
+        # Attempt to compile behaviour but ignore failure (will warn later)
+        _ = Code.ensure_compiled(module)
+        value
+      other ->
+        raise ArgumentError,
+          "expected impl attribute to contain a module, a boolean, or nil, got: #{inspect(other)}"
     end
   end
 
@@ -1235,6 +1468,13 @@ defmodule Module do
     case :ets.take(table, :doc) do
       [{:doc, {_, _} = pair, _, _}] -> pair
       [] -> {env.line, nil}
+    end
+  end
+
+  defp get_impl_info(table) do
+    case :ets.take(table, :impl) do
+      [{:impl, value, _, _}] -> value
+      [] -> nil
     end
   end
 
