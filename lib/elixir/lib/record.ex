@@ -319,6 +319,7 @@ defmodule Record do
       Keyword.keyword?(args) ->
         create(tag, fields, args, caller)
       true ->
+        fields = Macro.escape(fields)
         case Macro.expand(args, caller) do
           {:{}, _, [^tag | list]} when length(list) == length(fields) ->
             record = List.to_tuple([tag | list])
