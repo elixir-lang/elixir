@@ -78,6 +78,8 @@ compile(Line, Module, Block, Vars, E) ->
     [elixir_locals:record_local(Tuple, Module) || Tuple <- OnLoad],
 
     {AllDefinitions, Unreachable} = elixir_def:fetch_definitions(File, Module),
+    (not elixir_compiler:get_opt(internal)) andalso
+     'Elixir.Module':check_behaviours_and_impls(E, Data, AllDefinitions),
     CompileOpts = lists:flatten(ets:lookup_element(Data, compile, 2)),
 
     ModuleMap = #{
@@ -177,7 +179,7 @@ build(Line, File, Module, Lexical) ->
   ImplOnDefinition =
       case elixir_compiler:get_opt(internal) of
         true -> [{elixir_module, delete_impl}];
-        _    -> [{'Elixir.Module', check_impl}]
+        _    -> [{'Elixir.Module', compile_impl}]
       end,
 
   %% Docs must come first as they read the impl callback.
@@ -206,7 +208,7 @@ build(Line, File, Module, Lexical) ->
     {typep, [], true, nil},
 
     % Internal
-    {{elixir, behaviours}, false, #{}}
+    {{elixir, impls}, []}
   ]),
 
   Persisted = [behaviour, on_load, compile, external_resource, dialyzer, vsn],
