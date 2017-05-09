@@ -1176,7 +1176,12 @@ defmodule String do
   @doc """
   Returns a string `subject` duplicated `n` times.
 
+  If `n` is not present, it defaults to 2.
+
   ## Examples
+
+      iex> String.duplicate("abc")
+      "abcabc"
 
       iex> String.duplicate("abc", 0)
       ""
@@ -1184,12 +1189,12 @@ defmodule String do
       iex> String.duplicate("abc", 1)
       "abc"
 
-      iex> String.duplicate("abc", 2)
-      "abcabc"
+      iex> String.duplicate("abc", 3)
+      "abcabcabc"
 
   """
   @spec duplicate(t, non_neg_integer) :: t
-  def duplicate(subject, n) when is_integer(n) and n >= 0 do
+  def duplicate(subject, n \\ 2) when is_integer(n) and n >= 0 do
     :binary.copy(subject, n)
   end
 
