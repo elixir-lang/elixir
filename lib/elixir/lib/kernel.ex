@@ -3413,11 +3413,11 @@ defmodule Kernel do
       end
 
       MyMath.multiply_by(4, 3) #=> 12
-      MyMath.multiply_by(4)    #=> 8
+      MyMath.multiply_by(4) #=> 8
 
   The compiler translates this into multiple functions with different arities,
-  here `Foo.mul_by/1` and `Foo.mul_by/2`, that represent cases when arguments
-  for parameters with default values are passed or not passed.
+  here `Foo.multiply_by/1` and `Foo.multiply_by/2`, that represent cases when
+  arguments for parameters with default values are passed or not passed.
 
   When defining a function with default arguments as well as multiple
   explicitly declared clauses, you must write a function head that declares the
@@ -3435,8 +3435,8 @@ defmodule Kernel do
         end
       end
 
-  Because anonymous functions can only have a single arity, `\\` can't be used
-  with anonymous functions.
+  Note that `\\` can't be used with anonymous functions because they
+  can only have a single arity.
 
   ## Function and variable names
 
