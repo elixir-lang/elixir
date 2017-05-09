@@ -24,13 +24,12 @@ defmodule Kernel.ImplTest do
     @macrocallback bar :: any
   end
 
-  test "sets impl to false" do
+  test "sets impl to boolean" do
     defmodule ImplAttributes do
       @behaviour Behaviour
 
-      def foo() do
-        :ok
-      end
+      @impl true
+      def foo(), do: :ok
 
       @impl false
       def foo(term) do
@@ -39,24 +38,12 @@ defmodule Kernel.ImplTest do
     end
   end
 
-  test "sets impl to true" do
-    defmodule ImplAttributes do
-      @behaviour Behaviour
-
-      @impl true
-      def foo() do
-        :ok
-      end
-    end
-  end
-
   test "sets impl to nil" do
-    defmodule ImplAttributes do
-      @behaviour Behaviour
-
-      @impl nil
-      def foo() do
-        :ok
+    assert_raise ArgumentError, ~r/expected impl attribute to contain a module or a boolean/, fn ->
+      defmodule ImplAttributes do
+        @behaviour Behaviour
+        @impl nil
+        def foo(), do: :ok
       end
     end
   end
@@ -64,21 +51,15 @@ defmodule Kernel.ImplTest do
   test "sets impl to behaviour" do
     defmodule ImplAttributes do
       @behaviour Behaviour
-
       @impl Behaviour
-      def foo() do
-        :ok
-      end
+      def foo(), do: :ok
     end
   end
 
   test "does not set impl" do
     defmodule ImplAttributes do
       @behaviour Behaviour
-
-      def foo() do
-        :ok
-      end
+      def foo(), do: :ok
     end
   end
 
@@ -93,6 +74,38 @@ defmodule Kernel.ImplTest do
       end
       """
     end) =~ "got @impl :abc for def foo/0 but the behaviour does not specify this callback. There are no known callbacks"
+  end
+
+  test "warns for callbacks without impl and @impl has been set before" do
+    assert capture_err(fn ->
+      Code.eval_string """
+      defmodule Kernel.ImplTest.ImplAttributes do
+        @behaviour Kernel.ImplTest.Behaviour
+        @behaviour Kernel.ImplTest.MacroBehaviour
+
+        @impl true
+        def foo(), do: :ok
+
+        defmacro bar(), do: :ok
+      end
+      """
+    end) =~ "module attribute @impl was not set for callback defmacro bar/0 (callback specified in Kernel.ImplTest.MacroBehaviour)"
+  end
+
+  test "warns for callbacks without impl and @impl has been set after" do
+    assert capture_err(fn ->
+      Code.eval_string """
+      defmodule Kernel.ImplTest.ImplAttributes do
+        @behaviour Kernel.ImplTest.Behaviour
+        @behaviour Kernel.ImplTest.MacroBehaviour
+
+        defmacro bar(), do: :ok
+
+        @impl true
+        def foo(), do: :ok
+      end
+      """
+    end) =~ "module attribute @impl was not set for callback defmacro bar/0 (callback specified in Kernel.ImplTest.MacroBehaviour)"
   end
 
   test "warns when impl is set on private function" do
@@ -126,7 +139,7 @@ defmodule Kernel.ImplTest do
         def foo(), do: :ok
       end
       """
-    end) =~ "got @impl true for def foo/0 but no behaviour specifies this callback. There are no known callbacks"
+    end) =~ "got @impl true for def foo/0 but no behaviour was declared"
   end
 
   test "warns for @impl true with callback name not in behaviour" do
@@ -153,6 +166,18 @@ defmodule Kernel.ImplTest do
     end) =~ "got @impl true for defmacro foo/0 but no behaviour specifies this callback"
   end
 
+  test "warns for @impl true with callback kind not in behaviour" do
+    assert capture_err(fn ->
+      Code.eval_string """
+      defmodule Kernel.ImplTest.ImplAttributes do
+        @behaviour Kernel.ImplTest.MacroBehaviour
+        @impl true
+        def foo(), do: :ok
+      end
+      """
+    end) =~ "got @impl true for def foo/0 but no behaviour specifies this callback"
+  end
+
   test "warns for @impl true with wrong arity" do
     assert capture_err(fn ->
       Code.eval_string """
@@ -165,22 +190,6 @@ defmodule Kernel.ImplTest do
     end) =~ "got @impl true for def foo/1 but no behaviour specifies this callback"
   end
 
-  test "warns for callbacks without impl and @impl has been set before" do
-    assert capture_err(fn ->
-      Code.eval_string """
-      defmodule Kernel.ImplTest.ImplAttributes do
-        @behaviour Kernel.ImplTest.Behaviour
-        @behaviour Kernel.ImplTest.MacroBehaviour
-
-        @impl true
-        def foo(), do: :ok
-
-        defmacro bar(), do: :ok
-      end
-      """
-    end) =~ "module attribute @impl was not set for callback defmacro bar/0 (callback specified in Kernel.ImplTest.MacroBehaviour)"
-  end
-
   test "warns for @impl false and there are no callbacks" do
     assert capture_err(fn ->
       Code.eval_string """
@@ -189,7 +198,7 @@ defmodule Kernel.ImplTest do
         def baz(term), do: term
       end
       """
-    end) =~ "got @impl false for def baz/1 but there are no known callbacks"
+    end) =~ "got @impl false for def baz/1 but no behaviour was declared"
   end
 
   test "warns for @impl false and it is a callback" do
@@ -212,7 +221,7 @@ defmodule Kernel.ImplTest do
         def foo(), do: :ok
       end
       """
-    end) =~ "got @impl Kernel.ImplTest.Behaviour for def foo/0 but the given behaviour was not declared with @behaviour"
+    end) =~ "got @impl Kernel.ImplTest.Behaviour for def foo/0 but no behaviour was declared"
   end
 
   test "warns for @impl module with callback name not in behaviour" do
@@ -237,6 +246,18 @@ defmodule Kernel.ImplTest do
       end
       """
     end) =~ "got @impl Kernel.ImplTest.MacroBehaviour for defmacro foo/0 but the behaviour does not specify this callback"
+  end
+
+  test "warns for @impl module with macro callback kind not in behaviour" do
+    assert capture_err(fn ->
+      Code.eval_string """
+      defmodule Kernel.ImplTest.ImplAttributes do
+        @behaviour Kernel.ImplTest.MacroBehaviour
+        @impl Kernel.ImplTest.MacroBehaviour
+        def foo(), do: :ok
+      end
+      """
+    end) =~ "got @impl Kernel.ImplTest.MacroBehaviour for def foo/0 but the behaviour does not specify this callback"
   end
 
   test "warns for @impl module and callback belongs to another known module" do
