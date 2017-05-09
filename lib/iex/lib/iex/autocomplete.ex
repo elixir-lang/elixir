@@ -173,7 +173,8 @@ defmodule IEx.Autocomplete do
   end
 
   defp match_erlang_modules(hint) do
-    for mod <- match_modules(hint, true) do
+    for mod <- match_modules(hint, true),
+        usable_as_unquoted_atom?(mod) do
       %{kind: :module, name: mod, type: :erlang}
     end
   end
@@ -225,13 +226,19 @@ defmodule IEx.Autocomplete do
 
     for mod <- match_modules(base, module === Elixir),
         parts = String.split(mod, "."),
-        depth <= length(parts) do
-      %{kind: :module, type: :elixir, name: Enum.at(parts, depth - 1)}
+        depth <= length(parts),
+        name = Enum.at(parts, depth - 1),
+        usable_as_unquoted_atom?("Elixir." <> name) do
+      %{kind: :module, type: :elixir, name: name}
     end
     |> Enum.uniq
   end
 
   ## Helpers
+
+  defp usable_as_unquoted_atom?(name) do
+    not String.starts_with?(inspect(String.to_atom(name)), ":\"")
+  end
 
   defp match_modules(hint, root) do
     get_modules(root)

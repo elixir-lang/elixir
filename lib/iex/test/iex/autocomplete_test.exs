@@ -285,4 +285,20 @@ defmodule IEx.AutocompleteTest do
     eval("struct = %IEx.AutocompleteTest.MyStruct{}")
     assert expand('struct.my') == {:yes, '_val', []}
   end
+
+  test "ignore invalid Elixir module literals" do
+    defmodule :"Elixir.IEx.AutocompleteTest.Unicodé", do: nil
+    assert expand('IEx.AutocompleteTest.Unicod') == {:no, '', []}
+  after
+    :code.purge(:"Elixir.IEx.AutocompleteTest.Unicodé")
+    :code.delete(:"Elixir.IEx.AutocompleteTest.Unicodé")
+  end
+
+  test "ignore invalid Erlang module literals" do
+    defmodule :"iex_autocomplete_unicodé", do: nil
+    assert expand(':iex_autocomplete_unicod') == {:no, '', []}
+  after
+    :code.purge(:"iex_autocomplete_unicodé")
+    :code.delete(:"iex_autocomplete_unicodé")
+  end
 end
