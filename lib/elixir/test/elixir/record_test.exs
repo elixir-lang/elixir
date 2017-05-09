@@ -136,7 +136,7 @@ defmodule RecordTest do
     binary: <<1, 2, 3>>,
     charlist: 'abc'
 
-  test "records with literal defaults" do
+  test "records with literal defaults and on-the-fly record" do
     assert defaults(defaults()) == [
       struct: ~D[2016-01-01],
       map: %{},
@@ -161,6 +161,35 @@ defmodule RecordTest do
     assert defaults(defaults(), :string) == "abc"
     assert defaults(defaults(), :binary) == <<1, 2, 3>>
     assert defaults(defaults(), :charlist) == 'abc'
+  end
+
+  test "records with literal defaults and record in a variable" do
+    defaults = defaults()
+
+    assert defaults(defaults) == [
+      struct: ~D[2016-01-01],
+      map: %{},
+      tuple_zero: {},
+      tuple_one: {1},
+      tuple_two: {1, 2},
+      tuple_three: {1, 2, 3},
+      list: [1, 2, 3],
+      call: MapSet.new,
+      string: "abc",
+      binary: <<1, 2, 3>>,
+      charlist: 'abc'
+    ]
+    assert defaults(defaults, :struct) == ~D[2016-01-01]
+    assert defaults(defaults, :map) == %{}
+    assert defaults(defaults, :tuple_zero) == {}
+    assert defaults(defaults, :tuple_one) == {1}
+    assert defaults(defaults, :tuple_two) == {1, 2}
+    assert defaults(defaults, :tuple_three) == {1, 2, 3}
+    assert defaults(defaults, :list) == [1, 2, 3]
+    assert defaults(defaults, :call) == MapSet.new
+    assert defaults(defaults, :string) == "abc"
+    assert defaults(defaults, :binary) == <<1, 2, 3>>
+    assert defaults(defaults, :charlist) == 'abc'
   end
 
   test "records with dynamic arguments" do
