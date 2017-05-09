@@ -286,12 +286,19 @@ defmodule IEx.AutocompleteTest do
     assert expand('struct.my') == {:yes, '_val', []}
   end
 
-  test "ignore invalid atom literals" do
-    {:module, _, _, _} = defmodule :"Elixir.José", do: nil
+  test "ignore invalid Elixir module literals" do
+    defmodule :"Elixir.José", do: nil
     assert expand('Jos') == {:no, '', []}
   after
     :code.purge(:"Elixir.José")
     :code.delete(:"Elixir.José")
   end
 
+  test "ignore invalid Erlang module literals" do
+    defmodule :"josé", do: nil
+    assert expand(':jos') == {:no, '', []}
+  after
+    :code.purge(:"josé")
+    :code.delete(:"josé")
+  end
 end
