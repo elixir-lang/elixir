@@ -287,18 +287,18 @@ defmodule IEx.AutocompleteTest do
   end
 
   test "ignore invalid Elixir module literals" do
-    defmodule :"Elixir.José", do: nil
-    assert expand('Jos') == {:no, '', []}
+    defmodule :"Elixir.IEx.AutocompleteTest.Unicodé", do: nil
+    assert expand('IEx.AutocompleteTest.Unicod') == {:no, '', []}
   after
-    :code.purge(:"Elixir.José")
-    :code.delete(:"Elixir.José")
+    :code.purge(:"Elixir.IEx.AutocompleteTest.Unicodé")
+    :code.delete(:"Elixir.IEx.AutocompleteTest.Unicodé")
   end
 
   test "ignore invalid Erlang module literals" do
-    defmodule :"josé", do: nil
-    assert expand(':jos') == {:no, '', []}
+    defmodule :"iex_autocomplete_unicodé", do: nil
+    assert expand(':iex_autocomplete_unicod') == {:no, '', []}
   after
-    :code.purge(:"josé")
-    :code.delete(:"josé")
+    :code.purge(:"iex_autocomplete_unicodé")
+    :code.delete(:"iex_autocomplete_unicodé")
   end
 end

@@ -174,7 +174,7 @@ defmodule IEx.Autocomplete do
 
   defp match_erlang_modules(hint) do
     for mod <- match_modules(hint, true),
-      usable_as_unquoted_atom?(mod) do
+        usable_as_unquoted_atom?(mod) do
       %{kind: :module, name: mod, type: :erlang}
     end
   end
