@@ -1,5 +1,4 @@
 /doc
-/ebin
 /lib/*/ebin/
 /lib/*/_build/
 /lib/*/tmp
@@ -8,10 +7,8 @@
 /lib/elixir/test/ebin
 /man/elixir.1
 /man/iex.1
-/rel/elixir
 /Docs-v*.zip
 /Precompiled-v*.zip
 /.eunit
-/.release
 .elixir.plt
 erl_crash.dump
