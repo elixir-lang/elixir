@@ -10,7 +10,7 @@ defprotocol List.Chars do
   """
 
   @doc """
-  Converts `terms` to a charlist.
+  Converts `term` to a charlist.
   """
   @spec to_charlist(t) :: charlist
   def to_charlist(term)
