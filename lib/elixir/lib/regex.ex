@@ -721,12 +721,12 @@ defmodule Regex do
 
   @escapable '.^$*+?()[]{}|#-\\\t\n\v\f\r\s'
 
-  defp escape(<<char, rest::binary>>, lenght, original) when char in @escapable do
-    escape_char(rest, lenght, original, char)
+  defp escape(<<char, rest::binary>>, length, original) when char in @escapable do
+    escape_char(rest, length, original, char)
   end
 
-  defp escape(<<_, rest::binary>>, lenght, original) do
-    escape(rest, lenght + 1, original)
+  defp escape(<<_, rest::binary>>, length, original) do
+    escape(rest, length + 1, original)
   end
 
   defp escape(<<>>, _length, original) do
@@ -737,8 +737,8 @@ defmodule Regex do
     [?\\, char | escape(rest, 0, rest)]
   end
 
-  defp escape_char(<<rest::binary>>, lenght, original, char) do
-    [binary_part(original, 0, lenght), ?\\, char | escape(rest, 0, rest)]
+  defp escape_char(<<rest::binary>>, length, original, char) do
+    [binary_part(original, 0, length), ?\\, char | escape(rest, 0, rest)]
   end
 
   # Helpers
