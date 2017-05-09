@@ -237,7 +237,7 @@ defmodule IEx.Autocomplete do
   ## Helpers
 
   defp usable_as_unquoted_atom?(name) do
-    not String.starts_with?(inspect(String.to_atom(name)), ":\"")
+    Macro.classify_identifier(name) != :other
   end
 
   defp match_modules(hint, root) do
