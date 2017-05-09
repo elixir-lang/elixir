@@ -131,8 +131,12 @@ defmodule Kernel do
 
   """
   @spec bit_size(bitstring) :: non_neg_integer
-  def bit_size(bitstring) do
-    :erlang.bit_size(bitstring)
+  def bit_size(_bitstring) do
+    # This function is inlined, please check the clause 
+    #
+    #   inline(?kernel, bit_size, 1)
+    #
+    # in src/elixir_rewrite.erl.
   end
 
   @doc """
