@@ -714,14 +714,32 @@ defmodule Regex do
   """
   @spec escape(String.t) :: String.t
   def escape(string) when is_binary(string) do
-    escape(string, [])
+    string
+    |> escape(_length = 0, string)
+    |> IO.iodata_to_binary
   end
 
-  for char <- '.^$*+?()[]{}|#-\\\t\n\v\f\r\s' do
-    defp escape(<<unquote(char), rest::binary>>, acc), do: escape(rest, [acc, ?\\, unquote(char)])
+  @escapable '.^$*+?()[]{}|#-\\\t\n\v\f\r\s'
+
+  defp escape(<<char, rest::binary>>, lenght, original) when char in @escapable do
+    escape_char(rest, lenght, original, char)
   end
-  defp escape(<<char, rest::binary>>, acc), do: escape(rest, [acc, char])
-  defp escape(<<>>, acc), do: IO.iodata_to_binary(acc)
+
+  defp escape(<<_, rest::binary>>, lenght, original) do
+    escape(rest, lenght + 1, original)
+  end
+
+  defp escape(<<>>, _length, original) do
+    original
+  end
+
+  defp escape_char(<<rest::binary>>, 0, _original, char) do
+    [?\\, char | escape(rest, 0, rest)]
+  end
+
+  defp escape_char(<<rest::binary>>, lenght, original, char) do
+    [binary_part(original, 0, lenght), ?\\, char | escape(rest, 0, rest)]
+  end
 
   # Helpers
 
