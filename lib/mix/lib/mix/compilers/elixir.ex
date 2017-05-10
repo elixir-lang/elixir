@@ -59,12 +59,15 @@ defmodule Mix.Compilers.Elixir do
           |> MapSet.to_list
 
         # Plus the sources that have changed in disk
-        for(source(source: source, external: external, size: size) <- all_sources,
+        new_paths = for(source(source: source, external: external, size: size) <- all_sources,
             {last_mtime, last_size} = Map.fetch!(sources_stats, source),
             times = Enum.map(external, &(sources_stats |> Map.fetch!(&1) |> elem(0))),
             size != last_size or Mix.Utils.stale?([last_mtime | times], [modified]),
             into: new_paths,
             do: source)
+        # Plus sources with no externals (happens in rare circumstances)
+        new_paths ++ (Enum.filter(all_sources, fn(source(source: source, external: [])) -> source end)
+          |> Enum.map(fn(source(source: source)) -> source end))
       end
 
     {modules, changed} =
@@ -91,8 +94,8 @@ defmodule Mix.Compilers.Elixir do
   end
 
   defp mtimes_and_sizes(sources) do
-    Enum.reduce(sources, %{}, fn source(source: source, external: external), map ->
-      Enum.reduce([source | external], map, fn file, map ->
+    Enum.reduce(sources, %{}, fn(source(source: source, external: external), map) ->
+      Enum.reduce([source | external], map, fn(file, map) ->
         Map.put_new_lazy(map, file, fn -> Mix.Utils.last_modified_and_size(file) end)
       end)
     end)
@@ -286,7 +289,7 @@ defmodule Mix.Compilers.Elixir do
 
   defp remove_stale_entries(modules, sources, old_stale, old_removed) do
     {rest, new_stale, new_removed} =
-      Enum.reduce modules, {[], old_stale, old_removed}, &remove_stale_entry(&1, &2, sources)
+      Enum.reduce(modules, {[], old_stale, old_removed}, &remove_stale_entry(&1, &2, sources))
 
     if map_size(new_stale) > map_size(old_stale) or
        map_size(new_removed) > map_size(old_removed) do
