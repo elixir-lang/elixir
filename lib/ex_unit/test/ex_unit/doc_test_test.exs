@@ -4,12 +4,12 @@ import ExUnit.TestHelpers
 
 defmodule ExUnit.DocTestTest.GoodModule do
   @doc """
-  iex> test_fun()
+  iex> one()
   1
-  iex> test_fun() + 1
+  iex> one() + 1
   2
   """
-  def test_fun, do: 1
+  def one, do: 1
 
   @doc ~S"""
   iex> ~S(f#{o}o)
@@ -74,20 +74,20 @@ end |> write_beam
 
 defmodule ExUnit.DocTestTest.SomewhatGoodModuleWithOnly do
   @doc """
-  iex> test_fun1()
+  iex> one()
   1
-  iex> test_fun1() + 1
+  iex> one() + 1
   2
   """
-  def test_fun1, do: 1
+  def one, do: 1
 
   @doc """
-  iex> test_fun2()
-  1
-  iex> test_fun2() + 1
-  1
+  iex> two()
+  2
+  iex> two() + 1
+  100
   """
-  def test_fun2, do: 1
+  def two, do: 2
 end |> write_beam
 
 defmodule ExUnit.DocTestTest.SomewhatGoodModuleWithExcept do
@@ -97,20 +97,20 @@ defmodule ExUnit.DocTestTest.SomewhatGoodModuleWithExcept do
   """
 
   @doc """
-  iex> test_fun1()
+  iex> one()
   1
-  iex> test_fun1() + 1
+  iex> one() + 1
   2
   """
-  def test_fun1, do: 1
+  def one, do: 1
 
   @doc """
-  iex> test_fun2()
-  1
-  iex> test_fun2() + 1
-  1
+  iex> two()
+  2
+  iex> two() + 1
+  100
   """
-  def test_fun2, do: 1
+  def two, do: 2
 end |> write_beam
 
 defmodule ExUnit.DocTestTest.NoImport do
@@ -360,8 +360,8 @@ defmodule ExUnit.DocTestTest do
   # doctest ExUnit.DocTest
 
   doctest ExUnit.DocTestTest.GoodModule, import: true
-  doctest ExUnit.DocTestTest.SomewhatGoodModuleWithOnly, only: [test_fun1: 0], import: true
-  doctest ExUnit.DocTestTest.SomewhatGoodModuleWithExcept, except: [:moduledoc, test_fun2: 0], import: true
+  doctest ExUnit.DocTestTest.SomewhatGoodModuleWithOnly, only: [one: 0], import: true
+  doctest ExUnit.DocTestTest.SomewhatGoodModuleWithExcept, except: [:moduledoc, two: 0], import: true
   doctest ExUnit.DocTestTest.NoImport
   doctest ExUnit.DocTestTest.IndentationHeredocs
   doctest ExUnit.DocTestTest.FencedHeredocs
@@ -372,7 +372,7 @@ defmodule ExUnit.DocTestTest do
   test "multiple functions filtered with :only" do
     defmodule MultipleOnly do
       use ExUnit.Case
-      doctest ExUnit.DocTestTest.SomewhatGoodModuleWithOnly, only: [test_fun1: 0, test_fun2: 0], import: true
+      doctest ExUnit.DocTestTest.SomewhatGoodModuleWithOnly, only: [one: 0, two: 0], import: true
     end
 
     ExUnit.Server.cases_loaded()
