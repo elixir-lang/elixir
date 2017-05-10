@@ -185,16 +185,16 @@ defmodule Stream do
 
   ## Examples
 
-      iex> stream = Stream.chunk_by([1, 2, 2, 3, 4, 4, 6, 7, 7], &(rem(&1, 2) == 1))
-      iex> Enum.to_list(stream)
-      [[1], [2, 2], [3], [4, 4, 6], [7, 7]]
+  iex> stream = Stream.chunk_by([1, 2, 2, 3, 4, 4, 6, 7, 7], &(rem(&1, 2) == 1))
+  iex> Enum.to_list(stream)
+  [[1], [2, 2], [3], [4, 4, 6], [7, 7]]
 
   """
   @spec chunk_by(Enumerable.t, (element -> any)) :: Enumerable.t
   def chunk_by(enum, fun) do
     lazy enum, nil,
-         fn(f1) -> R.chunk_by(fun, f1) end,
-         &do_chunk_by(&1, &2)
+    fn(f1) -> R.chunk_by(fun, f1) end,
+      &do_chunk_by(&1, &2)
   end
 
   defp do_chunk_by(acc(_, nil, _) = acc, _f1) do
@@ -205,6 +205,32 @@ defmodule Stream do
     next_with_acc(f1, :lists.reverse(buffer), h, nil, t)
   end
 
+  @doc """
+  Chunks the `enum` by buffering elements for which `fun` returns
+  the same value and only emit them when `fun` returns a new value
+  or the `enum` finishes.
+
+  ## Examples
+
+  iex> start_func = fn i, acc -> if rem(i, 2) == 0, do: {Enum.reverse([i | acc]), []}, else: {[], [i | acc]} end
+  iex> stream = Stream.chunk_by(1..10, [], start_func, fn acc -> Enum.reverse(acc) end)
+  iex> Enum.to_list(stream)
+  [[1, 2], [3, 4], [5, 6], [7, 8], [9, 10]]
+  """
+  @spec chunk_by(Enumerable.t, Enumerable.t, (element, acc -> {Enumerable.t, acc}), (acc -> Enumerable.t)) :: Enumerable.t
+  def chunk_by(enum, acc, start_fun, after_fun) do
+    lazy enum, nil,
+         fn(f1) -> R.chunk_by(start_fun, f1) end,
+         &do_chunk_by(&1, &2)
+  end
+
+  defp do_chunk_by(acc(_, nil, _) = acc, _f1) do
+    {:cont, acc}
+  end
+
+  defp do_chunk_by(acc(h, {buffer, _}, t), f1) do
+    next_with_acc(f1, :lists.reverse(buffer), h, nil, t)
+  end
 
   @doc """
   Creates a stream that only emits elements if they are different from the last emitted element.

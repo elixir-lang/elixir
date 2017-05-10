@@ -96,6 +96,16 @@ defmodule StreamTest do
     assert Enum.zip(list, list) == Enum.zip(stream, stream)
   end
 
+  test "chunk_by/4" do
+    stream = Stream.chunk_by(1..10, [], fn i, acc ->
+      if rem(i, 2) == 0, do: {Enum.reverse([i | acc]), []}, else: {[], [i | acc]}
+    end, fn acc -> Enum.reverse(acc) end)
+
+    assert lazy?(stream)
+    assert Enum.to_list(stream) ==
+      [[1, 2], [3, 4], [5, 6], [7, 8], [9, 10]]
+  end
+
   test "concat/1" do
     stream = Stream.concat([1..3, [], [4, 5, 6], [], 7..9])
     assert is_function(stream)
