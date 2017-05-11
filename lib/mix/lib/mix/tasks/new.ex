@@ -230,16 +230,16 @@ defmodule Mix.Tasks.New do
 
   embed_text :gitignore, """
   # The directory Mix will write compiled artifacts to.
-  /_build
+  /_build/
 
   # If you run "mix test --cover", coverage assets end up here.
-  /cover
+  /cover/
 
   # The directory Mix downloads your dependencies sources to.
-  /deps
+  /deps/
 
   # Where 3rd-party dependencies like ExDoc output generated docs.
-  /doc
+  /doc/
 
   # Ignore .fetch files in case you like to edit your project deps locally.
   /.fetch
