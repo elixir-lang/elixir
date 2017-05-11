@@ -146,11 +146,6 @@ raise(none, File, Kind, Message) ->
 raise({Line, _, _}, File, Kind, Message) when is_integer(Line) ->
   raise(Line, File, Kind, Message);
 raise(Line, File, Kind, Message) when is_integer(Line), is_binary(File), is_binary(Message) ->
-  try
-    throw(ok)
-  catch
-    ok -> ok
-  end,
-  Stacktrace = erlang:get_stacktrace(),
+  Stacktrace = try throw(ok) catch ok -> erlang:get_stacktrace() end,
   Exception = Kind:exception([{description, Message}, {file, File}, {line, Line}]),
   erlang:raise(error, Exception, tl(Stacktrace)).
