@@ -398,7 +398,6 @@ defmodule Map do
       3
 
   """
-  @spec get(map, key) :: value
   @spec get(map, key, value) :: value
   def get(map, key, default \\ nil) do
     case fetch(map, key) do

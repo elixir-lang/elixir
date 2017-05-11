@@ -347,7 +347,6 @@ defmodule String do
       ["1", "2", "3", "4"]
 
   """
-  @spec split(t, pattern | Regex.t) :: [t]
   @spec split(t, pattern | Regex.t, Keyword.t) :: [t]
   def split(string, pattern, options \\ [])
 

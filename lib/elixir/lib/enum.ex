@@ -226,7 +226,6 @@ defmodule Enum do
       false
 
   """
-  @spec all?(t) :: boolean
   @spec all?(t, (element -> as_boolean(term))) :: boolean
 
   def all?(enumerable, fun \\ fn(x) -> x end)
@@ -264,7 +263,6 @@ defmodule Enum do
       true
 
   """
-  @spec any?(t) :: boolean
   @spec any?(t, (element -> as_boolean(term))) :: boolean
 
   def any?(enumerable, fun \\ fn(x) -> x end)
@@ -2650,7 +2648,6 @@ defmodule Enum do
       [a: 3, b: 4, c: 5]
 
   """
-  @spec with_index(t) :: [{element, index}]
   @spec with_index(t, integer) :: [{element, index}]
   def with_index(enumerable, offset \\ 0) do
     map_reduce(enumerable, offset, fn x, acc ->
