@@ -179,57 +179,76 @@ defmodule Stream do
   end
 
   @doc """
-  Chunks the `enum` by buffering elements for which `fun` returns
-  the same value and only emit them when `fun` returns a new value
-  or the `enum` finishes.
+  Chunks the `enum` by buffering elements for which `fun` returns the same value.
+
+  Elements are only emitted when `fun` returns a new value or the `enum` finishes.
 
   ## Examples
 
-  iex> stream = Stream.chunk_by([1, 2, 2, 3, 4, 4, 6, 7, 7], &(rem(&1, 2) == 1))
-  iex> Enum.to_list(stream)
-  [[1], [2, 2], [3], [4, 4, 6], [7, 7]]
+      iex> stream = Stream.chunk_by([1, 2, 2, 3, 4, 4, 6, 7, 7], &(rem(&1, 2) == 1))
+      iex> Enum.to_list(stream)
+      [[1], [2, 2], [3], [4, 4, 6], [7, 7]]
 
   """
   @spec chunk_by(Enumerable.t, (element -> any)) :: Enumerable.t
   def chunk_by(enum, fun) do
-    lazy enum, nil,
-    fn(f1) -> R.chunk_by(fun, f1) end,
-      &do_chunk_by(&1, &2)
-  end
-
-  defp do_chunk_by(acc(_, nil, _) = acc, _f1) do
-    {:cont, acc}
-  end
-
-  defp do_chunk_by(acc(h, {buffer, _}, t), f1) do
-    next_with_acc(f1, :lists.reverse(buffer), h, nil, t)
+    chunk_by(enum, nil, fn
+      entry, nil ->
+        {:cont, {[entry], fun.(entry)}}
+      entry, {acc, value} ->
+        case fun.(entry) do
+          ^value -> {:cont, {[entry | acc], value}}
+          new_value -> {:cont, :lists.reverse(acc), {[entry], new_value}}
+        end
+    end, fn
+      nil -> {:cont, :done}
+      {acc, _value} -> {:cont, :lists.reverse(acc), :done}
+    end)
   end
 
   @doc """
-  Chunks the `enum` by buffering elements for which `fun` returns
-  the same value and only emit them when `fun` returns a new value
-  or the `enum` finishes.
+  Chunks the `enum` with fine grained control when every chunk is emitted.
+
+  `start_fun` receives the current element and the accumulator and
+  must return `{:cont, element, acc}` to emit the given chunk and
+  continue with accumulator or `{:cont, acc}` to not emit any chunk
+  and continue with the return accumulator.
+
+  `after_fun` is invoked when iteration is done and must also return
+  `{:cont, element, acc}` or `{:cont, acc}`.
 
   ## Examples
 
-  iex> start_func = fn i, acc -> if rem(i, 2) == 0, do: {Enum.reverse([i | acc]), []}, else: {[], [i | acc]} end
-  iex> stream = Stream.chunk_by(1..10, [], start_func, fn acc -> Enum.reverse(acc) end)
-  iex> Enum.to_list(stream)
-  [[1, 2], [3, 4], [5, 6], [7, 8], [9, 10]]
+      iex> chunk_fun = fn i, acc ->
+      ...>   if rem(i, 2) == 0 do
+      ...>     {:cont, Enum.reverse([i | acc]), []}
+      ...>   else
+      ...>     {:cont, [i | acc]}
+      ...>   end
+      ...> end
+      iex> after_fun = fn
+      ...>   [] -> {:cont, []}
+      ...>   acc -> {:cont, Enum.reverse(acc), []}
+      ...> end
+      iex> stream = Stream.chunk_by(1..10, [], chunk_fun, after_fun)
+      iex> Enum.to_list(stream)
+      [[1, 2], [3, 4], [5, 6], [7, 8], [9, 10]]
+
   """
-  @spec chunk_by(Enumerable.t, Enumerable.t, (element, acc -> {Enumerable.t, acc}), (acc -> Enumerable.t)) :: Enumerable.t
-  def chunk_by(enum, acc, start_fun, after_fun) do
-    lazy enum, nil,
-         fn(f1) -> R.chunk_by(start_fun, f1) end,
-         &do_chunk_by(&1, &2)
+  @spec chunk_by(Enumerable.t, acc,
+                 (element, acc -> {:cont, element, acc} | {:cont, acc}),
+                 (acc -> {:cont, element, acc} | {:cont, acc})) :: Enumerable.t
+  def chunk_by(enum, acc, chunk_fun, after_fun) do
+    lazy enum, acc,
+         fn(f1) -> R.chunk_by(chunk_fun, f1) end,
+         &after_chunk_by(&1, &2, after_fun)
   end
 
-  defp do_chunk_by(acc(_, nil, _) = acc, _f1) do
-    {:cont, acc}
-  end
-
-  defp do_chunk_by(acc(h, {buffer, _}, t), f1) do
-    next_with_acc(f1, :lists.reverse(buffer), h, nil, t)
+  defp after_chunk_by(acc(h, acc, t), f1, after_fun) do
+    case after_fun.(acc) do
+      {:cont, emit, acc} -> next_with_acc(f1, emit, h, acc, t)
+      {:cont, acc} -> {:cont, acc(h, acc, t)}
+    end
   end
 
   @doc """

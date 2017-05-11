@@ -25,35 +25,13 @@ defmodule Stream.Reducers do
     end
   end
 
-  # Commenting out the current version, since I'm not sure
-  # if there should be only one chunk_by macro or more
-  # defmacro chunk_by(callback, fun \\ nil) do
-  #   quote do
-  #     fn
-  #       entry, acc(head, {buffer, value}, tail) ->
-  #         new_value = unquote(callback).(entry)
-  #         if new_value == value do
-  #           skip(acc(head, {[entry | buffer], value}, tail))
-  #         else
-  #           next_with_acc(unquote(fun), :lists.reverse(buffer), head, {[entry], new_value}, tail)
-  #         end
-  #       entry, acc(head, nil, tail) ->
-  #         skip(acc(head, {[entry], unquote(callback).(entry)}, tail))
-  #     end
-  #   end
-  # end
-
   defmacro chunk_by(callback, fun \\ nil) do
     quote do
-      fn(entry, acc(head, {buffer, value}, tail) = acc) ->
-        new_value = unquote(callback).(entry, acc)
-        if new_value == value do
-          skip(acc(head, {[entry | buffer], value}, tail))
-        else
-          next_with_acc(unquote(fun), :lists.reverse(buffer), head, {[entry], new_value}, tail)
+      fn entry, acc(head, acc, tail) ->
+        case unquote(callback).(entry, acc) do
+          {:cont, emit, acc} -> next_with_acc(unquote(fun), emit, head, acc, tail)
+          {:cont, acc} -> skip(acc(head, acc, tail))
         end
-        entry, acc(head, nil, tail) = acc ->
-          skip(acc(head, {[entry], unquote(callback).(entry, acc)}, tail))
       end
     end
   end
