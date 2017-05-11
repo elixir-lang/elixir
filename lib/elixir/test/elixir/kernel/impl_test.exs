@@ -407,33 +407,4 @@ defmodule Kernel.ImplTest do
       """
     end) == ""
   end
-
-  defmodule OverridableBehaviour do
-    @callback foo :: any
-    @callback bar :: any
-
-    defmacro __using__(_) do
-      quote location: :keep do
-        @behaviour OverridableBehaviour
-
-        def foo(), do: :overridable
-        def bar(), do: :overridable
-
-        defoverridable OverridableBehaviour
-      end
-    end
-  end
-
-  test "does not warn for overridable function included via __using__" do
-    assert capture_err(fn ->
-      Code.eval_string """
-      defmodule Kernel.ImplTest.ImplAttributes do
-        use Kernel.ImplTest.OverridableBehaviour
-
-        @impl Kernel.ImplTest.OverridableBehaviour
-        def foo(), do: :overridden
-      end
-      """
-    end) == ""
-  end
 end
