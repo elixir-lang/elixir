@@ -237,6 +237,8 @@ defmodule Logger do
 
     * `:line` - the current line
 
+    * `:pid` - the current process ID
+
   The supported keys in the `:colors` keyword list are:
 
     * `:enabled` - boolean value that allows for switching the
