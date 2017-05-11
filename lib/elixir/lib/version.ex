@@ -67,7 +67,7 @@ defmodule Version do
   When `allow_pre: false` is set, the requirement will not match a
   pre-release version unless the operand is a pre-release version.
   The default is to always allow pre-releases but note that in
-  Hex `:allow_pre` is set to `false.` See the table below for examples.
+  Hex `:allow_pre` is set to `false`. See the table below for examples.
 
   Requirement    | Version     | `:allow_pre` | Matches
   :------------- | :---------- | :----------- | :------
