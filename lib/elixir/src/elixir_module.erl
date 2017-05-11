@@ -70,7 +70,7 @@ compile(Line, Module, Block, Vars, E) ->
 
   try
     put_compiler_modules([Module | CompilerModules]),
-    {Result, NE} = eval_form(Line, Module, Data, Block, Vars, E),
+    {Result, NE, OverridablePairsNotOverridden} = eval_form(Line, Module, Data, Block, Vars, E),
 
     PersistedAttributes = ets:lookup_element(Data, ?persisted_attr, 2),
     Attributes = attributes(Line, File, Data, PersistedAttributes),
@@ -78,8 +78,13 @@ compile(Line, Module, Block, Vars, E) ->
     [elixir_locals:record_local(Tuple, Module) || Tuple <- OnLoad],
 
     {AllDefinitions, Unreachable} = elixir_def:fetch_definitions(File, Module),
+
+    %% Ignore functions that do not override the original since these are
+    %% checked instead in `Module.make_overridable/2`
+    DefinitionsToCheck = [Definition || Definition = {Pair, _, _, _} <- AllDefinitions, not lists:member(Pair, OverridablePairsNotOverridden)],
     (not elixir_compiler:get_opt(internal)) andalso
-     'Elixir.Module':check_behaviours_and_impls(E, Data, AllDefinitions),
+     'Elixir.Module':check_behaviours_and_impls(E, Data, DefinitionsToCheck),
+
     CompileOpts = lists:flatten(ets:lookup_element(Data, compile, 2)),
 
     ModuleMap = #{
@@ -226,11 +231,12 @@ build(Line, File, Module, Lexical) ->
 
 eval_form(Line, Module, Data, Block, Vars, E) ->
   {Value, EE} = elixir_compiler:eval_forms(Block, Vars, E),
-  elixir_overridable:store_pending(Module),
+  OverridableDefinitions = elixir_overridable:store_pending(Module),
   EV = elixir_env:linify({Line, reset_env(EE)}),
   EC = eval_callbacks(Line, Data, before_compile, [EV], EV),
-  elixir_overridable:store_pending(Module),
-  {Value, EC}.
+  OverriddenDefinitions = elixir_overridable:store_pending(Module),
+  OverridablePairsNotOverridden = OverridableDefinitions -- OverriddenDefinitions,
+  {Value, EC, OverridablePairsNotOverridden}.
 
 eval_callbacks(Line, Data, Name, Args, E) ->
   Callbacks = ets:lookup_element(Data, Name, 2),
