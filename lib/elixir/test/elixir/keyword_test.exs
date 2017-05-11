@@ -24,7 +24,7 @@ defmodule KeywordTest do
 
   test "implements (almost) all functions in Map" do
     assert Map.__info__(:functions) -- Keyword.__info__(:functions) ==
-           [from_struct: 1]
+           [filter: 2, from_struct: 1]
   end
 
   test "get_and_update/3 raises on bad return value from the argument function" do

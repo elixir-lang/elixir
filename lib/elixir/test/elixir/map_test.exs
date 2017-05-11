@@ -85,6 +85,11 @@ defmodule MapTest do
     end
   end
 
+  test "filter" do
+    assert Map.filter(%{a: 1, b: nil}, fn({_k, v}) -> !is_nil(v) end) == %{a: 1}
+    assert Map.filter(%{a: 1, b: 2}, fn({_k, v}) -> !is_nil(v) end) == %{a: 1, b: 2}
+  end
+
   test "maps with optional comma" do
     assert %{a: :b,} == %{a: :b}
     assert %{1 => 2,} == %{1 => 2}

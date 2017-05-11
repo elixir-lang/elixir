@@ -259,6 +259,19 @@ defmodule Map do
   end
 
   @doc """
+  Filters the map, i.e. returns only elements
+  for which `fun` returns a truthy value.
+
+  ## Examples
+
+      iex> Map.filter(%{a: 1, b: nil}, fn ({_k, v}) -> !is_nil(v) end)
+      %{a: 1}
+
+  """
+  @spec filter(map, ({key, value} -> as_boolean(term))) :: map
+  def filter(map, fun), do: :maps.filter(fn(k, v) -> fun.({k, v}) end, map)
+
+  @doc """
   Puts the given `value` under `key` unless the entry `key`
   already exists in `map`.
 
