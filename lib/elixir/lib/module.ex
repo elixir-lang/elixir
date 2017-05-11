@@ -869,6 +869,8 @@ defmodule Module do
   def make_overridable(module, tuples) when is_atom(module) and is_list(tuples) do
     assert_not_compiled!(:make_overridable, module)
 
+    check_impls_for_overridable(module, tuples)
+
     :lists.foreach(fn
       {function_name, arity} = tuple when is_atom(function_name) and is_integer(arity) and arity >= 0 and arity <= 255 ->
         case :elixir_def.take_definition(module, tuple) do
@@ -917,6 +919,18 @@ defmodule Module do
                  do: function_tuple
 
     make_overridable(module, tuples)
+  end
+
+  defp check_impls_for_overridable(module, tuples) do
+    table = data_table_for(module)
+    impls = :ets.lookup_element(table, {:elixir, :impls}, 2)
+    {overridable_impls, impls} = :lists.splitwith(fn {pair, _, _, _, _} -> pair in tuples end, impls)
+
+    if overridable_impls != [] do
+      :ets.insert(table, {{:elixir, :impls}, impls})
+      behaviours = :ets.lookup_element(table, :behaviour, 2)
+      check_impls(behaviours, overridable_impls)
+    end
   end
 
   defp check_module_for_overridable(module, behaviour) do
@@ -1169,13 +1183,13 @@ defmodule Module do
   end
 
   @doc false
-  def check_behaviours_and_impls(env, table, all_definitions) do
+  def check_behaviours_and_impls(env, table, all_definitions, overridable_pairs) do
     behaviours = :ets.lookup_element(table, :behaviour, 2)
     impls = :ets.lookup_element(table, {:elixir, :impls}, 2)
 
     if impls != [] do
       non_implemented_callbacks = check_impls(behaviours, impls)
-      warn_missing_impls(env, non_implemented_callbacks, all_definitions)
+      warn_missing_impls(env, non_implemented_callbacks, all_definitions, overridable_pairs)
     end
   end
 
@@ -1238,12 +1252,13 @@ defmodule Module do
     end
   end
 
-  defp warn_missing_impls(_env, callbacks, _defs) when map_size(callbacks) == 0 do
+  defp warn_missing_impls(_env, callbacks, _defs, _) when map_size(callbacks) == 0 do
     :ok
   end
-  defp warn_missing_impls(env, non_implemented_callbacks, defs) do
+  defp warn_missing_impls(env, non_implemented_callbacks, defs, overridable_pairs) do
     for {pair, kind, meta, _clauses} <- defs,
         kind in [:def, :defmacro],
+        pair not in overridable_pairs,
         behaviour = Map.get(non_implemented_callbacks, {pair, kind}) do
       message = "module attribute @impl was not set for callback " <>
                 "#{format_kind_pair(kind, pair)} (callback specified in #{inspect behaviour}). " <>
