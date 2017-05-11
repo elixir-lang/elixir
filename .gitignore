@@ -1,10 +1,10 @@
-/doc
+/doc/
 /lib/*/ebin/
 /lib/*/_build/
-/lib/*/tmp
+/lib/*/tmp/
 /lib/elixir/src/*_parser.erl
 /lib/elixir/src/elixir.app.src
-/lib/elixir/test/ebin
+/lib/elixir/test/ebin/
 /man/elixir.1
 /man/iex.1
 /Docs-v*.zip
