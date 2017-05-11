@@ -22,10 +22,11 @@ super(Meta, File, Module, Function) ->
   end.
 
 store_pending(Module) ->
-  _ = [{ok, _} = store(Module, X, false) ||
-         {X, {_, _, _, false}} <- maps:to_list(overridable(Module)),
-         not 'Elixir.Module':'defines?'(Module, X)],
-  ok.
+  [begin
+    {ok, _} = store(Module, Pair, false),
+    Pair
+   end || {Pair, {_, _, _, false}} <- maps:to_list(overridable(Module)),
+          not 'Elixir.Module':'defines?'(Module, Pair)].
 
 %% Private
 

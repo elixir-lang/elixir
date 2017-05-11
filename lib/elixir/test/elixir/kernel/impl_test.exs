@@ -284,4 +284,127 @@ defmodule Kernel.ImplTest do
       """
     end) =~ "got @impl Kernel.ImplTest.MacroBehaviour for def bar/0 but the given behaviour was not declared with @behaviour"
   end
+
+  test "does not warn for no @impl when overriding callback" do
+    assert capture_err(fn ->
+      Code.eval_string """
+      defmodule Kernel.ImplTest.ImplAttributes do
+        @behaviour Kernel.ImplTest.Behaviour
+
+        def foo(), do: :overridable
+
+        defoverridable Kernel.ImplTest.Behaviour
+
+        def foo(), do: :overridden
+      end
+      """
+    end) == ""
+  end
+
+  test "does not warn for overridable function missing @impl" do
+    assert capture_err(fn ->
+      Code.eval_string """
+      defmodule Kernel.ImplTest.ImplAttributes do
+        @behaviour Kernel.ImplTest.Behaviour
+
+        def foo(), do: :overridable
+
+        defoverridable Kernel.ImplTest.Behaviour
+
+        @impl Kernel.ImplTest.Behaviour
+        def foo(), do: :overridden
+      end
+      """
+    end) == ""
+  end
+
+  test "warns correctly for missing @impl only for end-user implemented function" do
+    assert capture_err(fn ->
+      Code.eval_string """
+      defmodule Kernel.ImplTest.ImplAttributes do
+        @behaviour Kernel.ImplTest.Behaviour
+        @behaviour Kernel.ImplTest.MacroBehaviour
+
+        def foo(), do: :overridable
+
+        defoverridable Kernel.ImplTest.Behaviour
+
+        def foo(), do: :overridden
+
+        @impl true
+        defmacro bar(), do: :overridden
+      end
+      """
+    end) =~ "module attribute @impl was not set for callback def foo/0 (callback specified in Kernel.ImplTest.Behaviour)"
+  end
+
+  test "warns correctly for missing @impl even if it was set in overridable callback" do
+    assert capture_err(fn ->
+      Code.eval_string """
+      defmodule Kernel.ImplTest.ImplAttributes do
+        @behaviour Kernel.ImplTest.Behaviour
+        @behaviour Kernel.ImplTest.MacroBehaviour
+
+        @impl Kernel.ImplTest.Behaviour
+        def foo(), do: :overridable
+
+        defoverridable Kernel.ImplTest.Behaviour
+
+        def foo(), do: :overridden
+
+        @impl Kernel.ImplTest.MacroBehaviour
+        defmacro bar(), do: :overridden
+      end
+      """
+    end) =~ "module attribute @impl was not set for callback def foo/0 (callback specified in Kernel.ImplTest.Behaviour)"
+  end
+
+  test "warns correctly for incorrect @impl in overridable callback" do
+    assert capture_err(fn ->
+      Code.eval_string """
+      defmodule Kernel.ImplTest.ImplAttributes do
+        @behaviour Kernel.ImplTest.Behaviour
+        @behaviour Kernel.ImplTest.MacroBehaviour
+
+        @impl Kernel.ImplTest.MacroBehaviour
+        def foo(), do: :overridable
+
+        defoverridable Kernel.ImplTest.Behaviour
+
+        @impl Kernel.ImplTest.Behaviour
+        def foo(), do: :overridden
+      end
+      """
+    end) =~ "got @impl Kernel.ImplTest.MacroBehaviour for def foo/0 but the behaviour does not specify this callback"
+  end
+
+  test "does not warn for overridable callback when using __before_compile__/1 hook" do
+    assert capture_err(fn ->
+      Code.eval_string """
+      defmodule BeforeCompile do
+        defmacro __before_compile__(_) do
+          quote do
+            @behaviour Kernel.ImplTest.Behaviour
+
+            def foo(), do: :overridable
+
+            defoverridable Kernel.ImplTest.Behaviour
+          end
+        end
+      end
+
+      defmodule Kernel.ImplTest.ImplAttributes do
+        @before_compile BeforeCompile
+        @behaviour Kernel.ImplTest.MacroBehaviour
+
+        defmacro bar(), do: :overridable
+
+        defoverridable Kernel.ImplTest.MacroBehaviour
+
+        @impl Kernel.ImplTest.MacroBehaviour
+        defmacro bar(), do: :overridden
+      end
+      """
+    end) == ""
+  end
 end
