@@ -1183,13 +1183,13 @@ defmodule Module do
   end
 
   @doc false
-  def check_behaviours_and_impls(env, table, definitions_to_check) do
+  def check_behaviours_and_impls(env, table, all_definitions, overridable_pairs) do
     behaviours = :ets.lookup_element(table, :behaviour, 2)
     impls = :ets.lookup_element(table, {:elixir, :impls}, 2)
 
     if impls != [] do
       non_implemented_callbacks = check_impls(behaviours, impls)
-      warn_missing_impls(env, non_implemented_callbacks, definitions_to_check)
+      warn_missing_impls(env, non_implemented_callbacks, all_definitions, overridable_pairs)
     end
   end
 
@@ -1252,12 +1252,13 @@ defmodule Module do
     end
   end
 
-  defp warn_missing_impls(_env, callbacks, _defs) when map_size(callbacks) == 0 do
+  defp warn_missing_impls(_env, callbacks, _defs, _) when map_size(callbacks) == 0 do
     :ok
   end
-  defp warn_missing_impls(env, non_implemented_callbacks, defs) do
+  defp warn_missing_impls(env, non_implemented_callbacks, defs, overridable_pairs) do
     for {pair, kind, meta, _clauses} <- defs,
         kind in [:def, :defmacro],
+        pair not in overridable_pairs,
         behaviour = Map.get(non_implemented_callbacks, {pair, kind}) do
       message = "module attribute @impl was not set for callback " <>
                 "#{format_kind_pair(kind, pair)} (callback specified in #{inspect behaviour}). " <>
