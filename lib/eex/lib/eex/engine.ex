@@ -53,7 +53,7 @@ defmodule EEx.Engine do
         EEx.Engine.handle_expr(buffer, marker, expr)
       end
 
-      defoverridable [handle_body: 1, handle_expr: 3, handle_text: 2, init: 1]
+      defoverridable EEx.Engine
     end
   end
 
