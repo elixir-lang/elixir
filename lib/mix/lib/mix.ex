@@ -176,6 +176,7 @@ defmodule Mix do
 
   use Application
 
+  @doc false
   def start do
     {:ok, _} = Application.ensure_all_started(:mix)
     :ok

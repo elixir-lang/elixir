@@ -35,6 +35,7 @@ defmodule Logger.App do
     end
   end
 
+  @doc false
   def start do
     Application.start(:logger)
   end
