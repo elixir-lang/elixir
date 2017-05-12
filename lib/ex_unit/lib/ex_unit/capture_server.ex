@@ -24,8 +24,7 @@ defmodule ExUnit.CaptureServer do
     GenServer.call(__MODULE__, {:log_capture_off, ref}, @timeout)
   end
 
-  ## Callbacks
-
+  @impl GenServer
   def init(:ok) do
     {:ok, %{
       devices: {%{}, %{}},
@@ -34,6 +33,7 @@ defmodule ExUnit.CaptureServer do
     }}
   end
 
+  @impl GenServer
   def handle_call({:device_capture_on, name, pid}, _from, config) do
     {names, refs} = config.devices
     if Map.has_key?(names, name) do
@@ -49,11 +49,13 @@ defmodule ExUnit.CaptureServer do
     end
   end
 
+  @impl GenServer
   def handle_call({:device_capture_off, ref}, _from, config) do
     config = release_device(ref, config)
     {:reply, :ok, config}
   end
 
+  @impl GenServer
   def handle_call({:log_capture_on, pid}, _from, config) do
     ref  = Process.monitor(pid)
     refs = Map.put(config.log_captures, ref, true)
@@ -66,18 +68,21 @@ defmodule ExUnit.CaptureServer do
     end
   end
 
+  @impl GenServer
   def handle_call({:log_capture_off, ref}, _from, config) do
     Process.demonitor(ref, [:flush])
     config = remove_log_capture(ref, config)
     {:reply, :ok, config}
   end
 
+  @impl GenServer
   def handle_info({:DOWN, ref, _, _, _}, config) do
     config = remove_log_capture(ref, config)
     config = release_device(ref, config)
     {:noreply, config}
   end
 
+  @impl GenServer
   def handle_info(msg, state) do
     super(msg, state)
   end

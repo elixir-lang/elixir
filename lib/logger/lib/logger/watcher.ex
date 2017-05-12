@@ -61,9 +61,7 @@ defmodule Logger.Watcher do
     GenServer.start_link(__MODULE__, {mod, handler, args})
   end
 
-  ## Callbacks
-
-  @doc false
+  @impl GenServer
   def init({mod, handler, args}) do
     case :gen_event.delete_handler(mod, handler, :ok) do
       {:error, :module_not_found} ->
@@ -89,18 +87,20 @@ defmodule Logger.Watcher do
     end
   end
 
-  @doc false
+  @impl GenServer
   def handle_info({:gen_event_EXIT, handler, reason}, {_, handler} = state)
       when reason in [:normal, :shutdown] do
     {:stop, reason, state}
   end
 
+  @impl GenServer
   def handle_info({:gen_event_EXIT, handler, reason}, {mod, handler} = state) do
     _ = Logger.error ":gen_event handler #{inspect handler} installed at #{inspect mod}\n" <>
                  "** (exit) #{format_exit(reason)}"
     {:stop, reason, state}
   end
 
+  @impl GenServer
   def handle_info(_msg, state) do
     {:noreply, state}
   end

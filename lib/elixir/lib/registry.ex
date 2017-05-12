@@ -878,8 +878,7 @@ defmodule Registry.Partition do
     GenServer.start_link(__MODULE__, arg, name: registry)
   end
 
-  ## Callbacks
-
+  @impl GenServer
   def init({kind, registry, i, partitions, key_partition, pid_partition, listeners}) do
     Process.flag(:trap_exit, true)
     key_ets = init_key_ets(kind, key_partition)
@@ -914,10 +913,12 @@ defmodule Registry.Partition do
     :ets.new(pid_partition, [:duplicate_bag, :public, read_concurrency: true, write_concurrency: true])
   end
 
+  @impl GenServer
   def handle_call(:sync, _, state) do
     {:reply, :ok, state}
   end
 
+  @impl GenServer
   def handle_info({:EXIT, pid, _reason}, ets) do
     entries = :ets.take(ets, pid)
     for {_pid, key, key_ets} <- entries do

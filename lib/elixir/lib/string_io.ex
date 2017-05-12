@@ -97,34 +97,39 @@ defmodule StringIO do
     GenServer.call(pid, :close)
   end
 
-  ## callbacks
-
+  @impl GenServer
   def init({string, options}) do
     capture_prompt = options[:capture_prompt] || false
     {:ok, %{input: string, output: "", capture_prompt: capture_prompt}}
   end
 
+  @impl GenServer
   def handle_info({:io_request, from, reply_as, req}, s) do
     s = io_request(from, reply_as, req, s)
     {:noreply, s}
   end
 
+  @impl GenServer
   def handle_info(msg, s) do
     super(msg, s)
   end
 
+  @impl GenServer
   def handle_call(:contents, _from, %{input: input, output: output} = s) do
     {:reply, {input, output}, s}
   end
 
+  @impl GenServer
   def handle_call(:flush, _from, %{output: output} = s) do
     {:reply, output, %{s | output: ""}}
   end
 
+  @impl GenServer
   def handle_call(:close, _from, %{input: input, output: output} = s) do
     {:stop, :normal, {:ok, {input, output}}, s}
   end
 
+  @impl GenServer
   def handle_call(request, from, s) do
     super(request, from, s)
   end

@@ -5,8 +5,7 @@ defmodule ExUnit.CLIFormatter do
   import ExUnit.Formatter, only: [format_time: 2, format_filters: 2, format_test_failure: 5,
                                   format_test_case_failure: 5]
 
-  ## Callbacks
-
+  @impl GenServer
   def init(opts) do
     print_filters(Keyword.take(opts, [:include, :exclude]))
     config = %{
@@ -22,20 +21,24 @@ defmodule ExUnit.CLIFormatter do
     {:ok, config}
   end
 
+  @impl GenServer
   def handle_cast({:suite_started, _opts}, config) do
     {:noreply, config}
   end
 
+  @impl GenServer
   def handle_cast({:suite_finished, run_us, load_us}, config) do
     print_suite(config, run_us, load_us)
     {:noreply, config}
   end
 
+  @impl GenServer
   def handle_cast({:test_started, %ExUnit.Test{} = test}, config) do
     if config.trace, do: IO.write "  * #{test.name}"
     {:noreply, config}
   end
 
+  @impl GenServer
   def handle_cast({:test_finished, %ExUnit.Test{state: nil} = test}, config) do
     if config.trace do
       IO.puts success(trace_test_result(test), config)
@@ -45,12 +48,14 @@ defmodule ExUnit.CLIFormatter do
     {:noreply, %{config | test_counter: update_test_counter(config.test_counter, test)}}
   end
 
+  @impl GenServer
   def handle_cast({:test_finished, %ExUnit.Test{state: {:skip, _}} = test}, config) do
     if config.trace, do: IO.puts trace_test_skip(test)
     {:noreply, %{config | test_counter: update_test_counter(config.test_counter, test),
                           skipped_counter: config.skipped_counter + 1}}
   end
 
+  @impl GenServer
   def handle_cast({:test_finished, %ExUnit.Test{state: {:invalid, _}} = test}, config) do
     if config.trace do
       IO.puts invalid(trace_test_result(test), config)
@@ -62,6 +67,7 @@ defmodule ExUnit.CLIFormatter do
                           invalid_counter: config.invalid_counter + 1}}
   end
 
+  @impl GenServer
   def handle_cast({:test_finished, %ExUnit.Test{state: {:failed, failures}} = test}, config) do
     if config.trace do
       IO.puts failure(trace_test_result(test), config)
@@ -76,6 +82,7 @@ defmodule ExUnit.CLIFormatter do
                           failure_counter: config.failure_counter + 1}}
   end
 
+  @impl GenServer
   def handle_cast({:case_started, %ExUnit.TestCase{name: name}}, config) do
     if config.trace do
       IO.puts("\n#{inspect name}")
@@ -84,10 +91,12 @@ defmodule ExUnit.CLIFormatter do
     {:noreply, config}
   end
 
+  @impl GenServer
   def handle_cast({:case_finished, %ExUnit.TestCase{state: nil}}, config) do
     {:noreply, config}
   end
 
+  @impl GenServer
   def handle_cast({:case_finished, %ExUnit.TestCase{state: {:failed, failures}} = test_case}, config) do
     formatted = format_test_case_failure(test_case, failures, config.failure_counter + length(test_case.tests),
                                          config.width, &formatter(&1, &2, config))
