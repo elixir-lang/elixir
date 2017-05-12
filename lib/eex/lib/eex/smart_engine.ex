@@ -34,6 +34,7 @@ defmodule EEx.SmartEngine do
 
   use EEx.Engine
 
+  @impl EEx.Engine
   def handle_expr(buffer, mark, expr) do
     expr = Macro.prewalk(expr, &EEx.Engine.handle_assign/1)
     super(buffer, mark, expr)
