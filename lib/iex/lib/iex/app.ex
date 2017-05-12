@@ -3,6 +3,7 @@ defmodule IEx.App do
 
   use Application
 
+  @impl Application
   def start(_type, _args) do
     import Supervisor.Spec
 
@@ -19,6 +20,7 @@ defmodule IEx.App do
     end
   end
 
+  @impl Application
   def stop(tab) do
     IEx.Config.delete(tab)
   end

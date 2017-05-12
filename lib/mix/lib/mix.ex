@@ -176,13 +176,12 @@ defmodule Mix do
 
   use Application
 
-  @doc false
   def start do
     {:ok, _} = Application.ensure_all_started(:mix)
     :ok
   end
 
-  @doc false
+  @impl Application
   def start(_type, []) do
     import Supervisor.Spec
 

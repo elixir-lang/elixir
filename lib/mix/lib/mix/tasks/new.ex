@@ -423,6 +423,7 @@ defmodule Mix.Tasks.New do
 
     use Application
 
+    @impl Application
     def start(_type, _args) do
       import Supervisor.Spec, warn: false
 

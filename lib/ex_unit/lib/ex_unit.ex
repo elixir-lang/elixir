@@ -124,7 +124,7 @@ defmodule ExUnit do
 
   use Application
 
-  @doc false
+  @impl Application
   def start(_type, []) do
     import Supervisor.Spec
 
