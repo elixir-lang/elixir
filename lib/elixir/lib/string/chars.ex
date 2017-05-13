@@ -60,3 +60,9 @@ defimpl String.Chars, for: Float do
     IO.iodata_to_binary(:io_lib_format.fwrite_g(term))
   end
 end
+
+defimpl String.Chars, for: Regex do
+  def to_string(term) do
+    Regex.source(term)
+  end
+end

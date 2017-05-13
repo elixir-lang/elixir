@@ -52,6 +52,16 @@ defmodule String.Chars.NumberTest do
   end
 end
 
+defmodule String.Chars.RegexTest do
+  use ExUnit.Case, async: true
+
+  test "regex" do
+    assert to_string(~r/@/) == "@"
+    assert to_string(~r//) == ""
+    assert to_string(~r/foo/iu) == "foo"
+  end
+end
+
 defmodule String.Chars.ListTest do
   use ExUnit.Case, async: true
 
