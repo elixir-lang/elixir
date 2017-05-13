@@ -54,7 +54,7 @@ defmodule Mix.Tasks.Local.Rebar do
         install_from_s3(:rebar3, @rebar3_list_url, @rebar3_escript_url, opts)
       _ ->
         Mix.raise "Invalid arguments given to mix local.rebar. " <>
-                  "Check the proper call syntax with: mix help local.rebar"
+                  "To find out the proper call syntax run \"mix help local.rebar\""
     end
   end
 

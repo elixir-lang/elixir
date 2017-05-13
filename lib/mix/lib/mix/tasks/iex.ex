@@ -7,6 +7,6 @@ defmodule Mix.Tasks.Iex do
 
   @spec run(OptionParser.argv) :: no_return
   def run(_) do
-    Mix.raise "To use IEx with Mix, please run: \"iex -S mix\""
+    Mix.raise "To use IEx with Mix, please run \"iex -S mix\""
   end
 end
