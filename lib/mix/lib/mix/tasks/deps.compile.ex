@@ -182,7 +182,7 @@ defmodule Mix.Tasks.Deps.Compile do
     shell.info "Could not find \"#{manager}\", which is needed to build dependency #{inspect app}"
     shell.info "I can install a local copy which is just used by Mix"
 
-    unless shell.yes?("Shall I install #{manager}? (if running non-interactively, use: \"mix local.rebar --force\")") do
+    unless shell.yes?("Shall I install #{manager}? (if running non-interactively, use \"mix local.rebar --force\")") do
       Mix.raise "Could not find \"#{manager}\" to compile " <>
         "dependency #{inspect app}, please ensure \"#{manager}\" is available"
     end

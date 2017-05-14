@@ -14,7 +14,7 @@ defmodule Mix.Hex do
       shell = Mix.shell
       shell.info "Could not find Hex, which is needed to build dependency #{inspect app}"
 
-      if shell.yes?("Shall I install Hex? (if running non-interactively, use: \"mix local.hex --force\")") do
+      if shell.yes?("Shall I install Hex? (if running non-interactively, use \"mix local.hex --force\")") do
         Mix.Tasks.Local.Hex.run ["--force"]
       else
         false

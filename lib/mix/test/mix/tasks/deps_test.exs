@@ -104,20 +104,20 @@ defmodule Mix.Tasks.DepsTest do
 
       Mix.Tasks.Deps.run []
       assert_received {:mix_shell, :info, ["* ok (https://github.com/elixir-lang/ok.git) (mix)"]}
-      assert_received {:mix_shell, :info, ["  the dependency is not locked (run \"mix deps.get\" to generate \"mix.lock\" file)"]}
+      assert_received {:mix_shell, :info, ["  the dependency is not locked. To generate the \"mix.lock\" file run \"mix deps.get\""]}
 
       Mix.Dep.Lock.write %{ok: {:git, "https://github.com/elixir-lang/ok.git", "abcdefghi", []}}
       Mix.Tasks.Deps.run []
 
       assert_received {:mix_shell, :info, ["* ok (https://github.com/elixir-lang/ok.git) (mix)"]}
       assert_received {:mix_shell, :info, ["  locked at abcdefg"]}
-      assert_received {:mix_shell, :info, ["  lock mismatch: the dependency is out of date (run \"mix deps.get\" to fetch locked version)"]}
+      assert_received {:mix_shell, :info, ["  lock mismatch: the dependency is out of date. To fetch locked version run \"mix deps.get\""]}
 
       Mix.Dep.Lock.write %{ok: {:git, "git://github.com/elixir-lang/another.git", "abcdefghi", []}}
       Mix.Tasks.Deps.run []
 
       assert_received {:mix_shell, :info, ["* ok (https://github.com/elixir-lang/ok.git) (mix)"]}
-      assert_received {:mix_shell, :info, ["  lock outdated: the lock is outdated compared to the options in your mixfile (run \"mix deps.get\" to fetch locked version)"]}
+      assert_received {:mix_shell, :info, ["  lock outdated: the lock is outdated compared to the options in your mixfile. To fetch locked version run \"mix deps.get\""]}
     end
   end
 

@@ -51,13 +51,13 @@ defmodule Mix.Local.Installer do
 
     install_spec =
       case parse_args(args, opts) do
-        {:error, message} -> Mix.raise message <> "\n" <> usage(name)
+        {:error, message} -> Mix.raise message <> "\n\n" <> usage(name)
         install_spec -> install_spec
       end
 
     case module.check_install_spec(install_spec, opts) do
       :ok -> :noop
-      {:error, message} -> Mix.raise message <> "\n" <> usage(name)
+      {:error, message} -> Mix.raise message <> "\n\n" <> usage(name)
     end
 
     case install_spec do
@@ -81,7 +81,7 @@ defmodule Mix.Local.Installer do
           do_install({module, name}, src, opts)
         else
           Mix.raise "Expected an #{name} to exist in the current directory " <>
-                    "or an argument to be given.\n#{usage(name)}"
+                    "or an argument to be given.\n\n#{usage(name)}"
         end
     end
   end
@@ -94,7 +94,7 @@ defmodule Mix.Local.Installer do
     URI.parse(url_or_path).scheme in ["http", "https"]
   end
 
-  defp usage(name), do: "\nRun:\n\n    mix help #{name}.install\n\nfor more information."
+  defp usage(name), do: "For more information run \"mix help #{name}.install\""
 
   defp do_install({module, name}, src, opts) do
     src_basename = Path.basename(URI.parse(src).path)

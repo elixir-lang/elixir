@@ -5,7 +5,7 @@ defmodule Mix.Tasks.IexTest do
 
   test "raises error message about correct usage", context do
     in_tmp context.test, fn ->
-      msg = "To use IEx with Mix, please run: \"iex -S mix\""
+      msg = "To use IEx with Mix, please run \"iex -S mix\""
       assert_raise Mix.Error, msg, fn ->
         Mix.Tasks.Iex.run []
       end
