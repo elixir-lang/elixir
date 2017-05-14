@@ -117,13 +117,6 @@
 -define(pipe_op(T),
   T == $|).
 
--define(operator_kw(A),
-  A == 'and';
-  A == 'or';
-  A == 'when';
-  A == 'not';
-  A == 'in').
-
 tokenize(String, Line, Column, #elixir_tokenizer{} = Scope) ->
   tokenize(String, Line, Column, Scope, []);
 
@@ -901,7 +894,7 @@ tokenize_other_identifier(Rest, Line, Column, Length, Atom, Scope, Tokens) ->
   end.
 
 tokenize_kw_or_other(Rest, Kind, Line, Column, Length, Atom, Tokens) ->
-  case check_keyword(Line, Column, Length, Atom, Tokens) of
+  case check_keyword(Line, Column, Length, Atom, Tokens, Rest) of
     nomatch ->
       {identifier, Rest, check_call_identifier(Kind, Line, Column, Length, Atom, Rest)};
     {ok, [{in_op, {_, _, InEndColumn}, in} | [{unary_op, {NotLine, NotColumn, _}, 'not'} | T]]} ->
@@ -921,6 +914,7 @@ check_call_identifier(_Kind, Line, Column, Length, Atom, [$[ | _]) ->
 check_call_identifier(Kind, Line, Column, Length, Atom, _Rest) ->
   {Kind, {Line, Column, Column + Length}, Atom}.
 
+add_token_with_nl({unary_op, _, _} = Left, T) -> [Left | T];
 add_token_with_nl(Left, [{eol, _} | T]) -> [Left | T];
 add_token_with_nl(Left, T) -> [Left | T].
 
@@ -1003,27 +997,34 @@ terminator('<<') -> '>>'.
 
 %% Keywords checking
 
-check_keyword(_Line, _Column, _Length, _Atom, [{'.', _} | _]) ->
+check_keyword(_Line, _Column, _Length, _Atom, [{'.', _} | _], _Rest) ->
   nomatch;
-check_keyword(_Line, _Column, _Length, Atom, [{capture_op, _, _} | _]) when ?operator_kw(Atom) ->
-  nomatch;
-check_keyword(DoLine, DoColumn, _Length, do, [{Identifier, {Line, Column, EndColumn}, Atom} | T]) when Identifier == identifier ->
+check_keyword(DoLine, DoColumn, _Length, do,
+              [{Identifier, {Line, Column, EndColumn}, Atom} | T], _Rest) when Identifier == identifier ->
   {ok, add_token_with_nl({do, {DoLine, DoColumn, DoColumn + 2}},
        [{do_identifier, {Line, Column, EndColumn}, Atom} | T])};
-check_keyword(_Line, _Column, _Length, do, [{'fn', _} | _]) ->
+check_keyword(_Line, _Column, _Length, do, [{'fn', _} | _], _Rest) ->
   {error, do_with_fn_error("unexpected token \"do\""), "do"};
-check_keyword(Line, Column, _Length, do, Tokens) ->
+check_keyword(Line, Column, _Length, do, Tokens, _Rest) ->
   case do_keyword_valid(Tokens) of
     true  -> {ok, add_token_with_nl({do, {Line, Column, Column + 2}}, Tokens)};
     false -> {error, invalid_do_error("unexpected token \"do\""), "do"}
   end;
-check_keyword(Line, Column, Length, Atom, Tokens) ->
+check_keyword(Line, Column, Length, Atom, Tokens, Rest) ->
   case keyword(Atom) of
-    false    -> nomatch;
-    token    -> {ok, [{Atom, {Line, Column, Column + Length}} | Tokens]};
-    block    -> {ok, [{block_identifier, {Line, Column, Column + Length}, Atom} | Tokens]};
-    unary_op -> {ok, [{unary_op, {Line, Column, Column + Length}, Atom} | Tokens]};
-    Kind     -> {ok, add_token_with_nl({Kind, {Line, Column, Column + Length}, Atom}, Tokens)}
+    false ->
+      nomatch;
+    token ->
+      {ok, [{Atom, {Line, Column, Column + Length}} | Tokens]};
+    block ->
+      {ok, [{block_identifier, {Line, Column, Column + Length}, Atom} | Tokens]};
+    Kind ->
+      case strip_horizontal_space(Rest) of
+        {[$/ | _], _} ->
+          {ok, [{identifier, {Line, Column, Column + Length}, Atom} | Tokens]};
+        _ ->
+          {ok, add_token_with_nl({Kind, {Line, Column, Column + Length}, Atom}, Tokens)}
+      end
   end.
 
 %% Fail early on invalid do syntax. For example, after
