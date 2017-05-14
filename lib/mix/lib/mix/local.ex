@@ -3,43 +3,36 @@ defmodule Mix.Local do
 
   @public_keys_html "https://repo.hex.pm/installs/public_keys.html"
 
-  @type item :: :archive | :escript
+  @type item :: atom()
 
   @doc """
   Returns the name for an archive or an escript, based on the project config.
 
+  The `target` parameter is a module implementing `Mix.Local.Target`
+
   ## Examples
 
-      iex> Mix.Local.name_for(:archive, [app: "foo", version: "0.1.0"])
+      iex> Mix.Local.name_for(Mix.Local.Target.Archive, 
+                              [app: "foo", version: "0.1.0"])
       "foo-0.1.0.ez"
 
-      iex> Mix.Local.name_for(:escript, [escript: [name: "foo"]])
+      iex> Mix.Local.name_for(Mix.Local.Target.Escript, [escript: [name: "foo"]])
       "foo"
 
   """
   @spec name_for(item, Keyword.t) :: String.t
-  def name_for(:archive, project) do
-    version = if version = project[:version], do: "-#{version}"
-    "#{project[:app]}#{version}.ez"
+  def name_for(target, project) do
+    target.name_for(project)
   end
 
-  def name_for(:escript, project) do
-    case get_in(project, [:escript, :name]) do
-      nil -> project[:app]
-      name -> name
-    end |> to_string()
-  end
 
   @doc """
-  The path for local archives or escripts.
+  The path for local archives or escripts. The first parameter is the
+  module implementing the Mix.Local.Target for the thing to be stored.
   """
   @spec path_for(item) :: String.t
-  def path_for(:archive) do
-    System.get_env("MIX_ARCHIVES") || Path.join(Mix.Utils.mix_home, "archives")
-  end
-
-  def path_for(:escript) do
-    Path.join(Mix.Utils.mix_home, "escripts")
+  def path_for(target) when is_atom(target) do
+    target.path_for()
   end
 
   @doc """
@@ -82,7 +75,7 @@ defmodule Mix.Local do
   end
 
   defp archives_ebins do
-    path = path_for(:archive)
+    path = path_for(Mix.Local.Target.Archive)
     case File.ls(path) do
       {:ok, entries} -> Enum.map(entries, &archive_ebin(Path.join(path, &1)))
       {:error, _} -> []

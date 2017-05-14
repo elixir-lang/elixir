@@ -44,44 +44,50 @@ defmodule Mix.Local.Installer do
 
   Relies on a few callbacks provided by respective callback modules
   for customizing certain steps in the installation process.
+
+  The `target` parameter is the module implementing Mix.Local.Target for the
+  thing being installed.
   """
   @spec install({module, atom}, OptionParser.argv, Keyword.t) :: boolean
-  def install({module, name}, argv, switches) do
+  def install({module, target}, argv, switches) do
     {opts, args} = OptionParser.parse!(argv, strict: switches)
 
+    task_name         = target.task_name()
+    {target_name, _ } = target.printable_name()
+    
     install_spec =
       case parse_args(args, opts) do
-        {:error, message} -> Mix.raise message <> "\n" <> usage(name)
+        {:error, message} -> Mix.raise message <> "\n" <> usage(task_name)
         install_spec -> install_spec
       end
 
     case module.check_install_spec(install_spec, opts) do
       :ok -> :noop
-      {:error, message} -> Mix.raise message <> "\n" <> usage(name)
+      {:error, message} -> Mix.raise message <> "\n" <> usage(task_name)
     end
 
     case install_spec do
       {:fetcher, dep_spec} ->
         if opts[:sha512] do
-          Mix.raise "--sha512 is not supported for #{name} from git/github/hex\n" <> usage(name)
+          Mix.raise "--sha512 is not supported for #{task_name} from git/github/hex\n" <> usage(task_name)
         end
 
         fetch dep_spec, fn mixfile ->
           module.build(mixfile)
           argv = if opts[:force], do: ["--force"], else: []
-          install({module, name}, argv, switches)
+          install({module, target}, argv, switches)
         end
 
       {path_or_url, src} when path_or_url in [:local, :url] ->
-        do_install({module, name}, src, opts)
+        do_install({module, target}, src, opts)
 
       :project ->
-        src = Mix.Local.name_for(name, Mix.Project.config)
+        src = Mix.Local.name_for(target, Mix.Project.config)
         if File.exists?(src) do
-          do_install({module, name}, src, opts)
+          do_install({module, target}, src, opts)
         else
-          Mix.raise "Expected an #{name} to exist in the current directory " <>
-                    "or an argument to be given.\n#{usage(name)}"
+          Mix.raise "Expected an #{target_name} to exist in the current directory " <>
+                    "or an argument to be given.\n#{usage(task_name)}"
         end
     end
   end
@@ -226,37 +232,40 @@ defmodule Mix.Local.Installer do
   end
 
   @doc """
-  Prints a list of items in a uniform way. Used for printing the list of installed archives and
-  escripts.
+  Prints a list of items in a uniform way. Used for printing the list
+  of installed archives, escripts, and so on. The first parameter is
+  the Mix.Local.Target module of the type of items.
   """
   @spec print_list(atom, [String.t]) :: :ok
-  def print_list(type, []) do
-    Mix.shell.info "No #{type}s currently installed."
+  def print_list(target, []) do
+    {_name, names} = target.printable_name()
+    Mix.shell.info "No #{names} currently installed."
   end
 
-  def print_list(type, items) do
+  def print_list(target, items) do
+    {_name, names} = target.printable_name()
     Enum.each items, fn item -> Mix.shell.info ["* ", item] end
-    item_name = String.capitalize("#{type}")
-    Mix.shell.info "#{item_name}s installed at: #{Mix.Local.path_for(type)}"
+    item_names = String.capitalize(names)
+    Mix.shell.info "#{item_names} installed at: #{Mix.Local.path_for(target)}"
   end
 
   @doc """
   A common implementation for uninstalling archives and scripts.
   """
   @spec uninstall(atom, OptionParser.argv) :: boolean
-  def uninstall(type, argv) do
+  def uninstall(target, argv) do
     {_, argv, _} = OptionParser.parse(argv)
 
-    item_name = "#{type}"
-    item_plural = "#{type}s"
-    root = Mix.Local.path_for(type)
+    { item_name, item_names } = target.printable_name()
+
+    root = Mix.Local.path_for(target)
 
     if name = List.first(argv) do
       path = Path.join(root, name)
       cond do
         not File.exists?(path) ->
-          Mix.shell.error "Could not find a local #{item_name} named #{inspect name}. " <>
-                          "Existing #{item_plural} are:"
+          Mix.shell.error("Could not find a local #{item_name} named #{inspect name}.")
+          Mix.shell.info("Existing #{item_names} are:")
           Mix.Task.run item_name
           nil
         should_uninstall?(path, item_name) ->

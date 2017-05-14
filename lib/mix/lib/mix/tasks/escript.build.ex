@@ -1,6 +1,7 @@
 defmodule Mix.Tasks.Escript.Build do
-  use Mix.Task
-  use Bitwise, only_operators: true
+  use   Mix.Task
+  use   Bitwise, only_operators: true
+  alias Mix.Local.Target.Escript, as: TargetEscript
 
   @shortdoc "Builds an escript for the project"
 
@@ -123,7 +124,7 @@ defmodule Mix.Tasks.Escript.Build do
       Mix.raise "Building escripts for umbrella projects is unsupported"
     end
 
-    script_name = Mix.Local.name_for(:escript, project)
+    script_name = Mix.Local.name_for(TargetEscript, project)
     filename = escript_opts[:path] || script_name
     main = escript_opts[:main_module]
     files = project_files()

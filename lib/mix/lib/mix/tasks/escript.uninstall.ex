@@ -1,5 +1,6 @@
 defmodule Mix.Tasks.Escript.Uninstall do
   use Mix.Task
+  alias Mix.Local.Target.Escript, as: TargetEscript
 
   @shortdoc "Uninstalls escripts"
 
@@ -11,7 +12,7 @@ defmodule Mix.Tasks.Escript.Uninstall do
   """
   @spec run(OptionParser.argv) :: :ok
   def run(argv) do
-    if path = Mix.Local.Installer.uninstall(:escript, argv) do
+    if path = Mix.Local.Installer.uninstall(TargetEscript, argv) do
       File.rm(path <> ".bat")
     end
   end

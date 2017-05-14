@@ -1,5 +1,6 @@
 defmodule Mix.Tasks.Archive.Build do
-  use Mix.Task
+  use   Mix.Task
+  alias Mix.Local.Target.Archive, as: TargetArchive
 
   @shortdoc "Archives this project into a .ez file"
 
@@ -74,7 +75,7 @@ defmodule Mix.Tasks.Archive.Build do
       output = opts[:output] ->
         output
       project_config[:app] ->
-        Mix.Local.name_for(:archive, project_config)
+        Mix.Local.name_for(TargetArchive, project_config)
       true ->
         Mix.raise "Cannot create archive without output file, " <>
           "please pass -o as an option"
