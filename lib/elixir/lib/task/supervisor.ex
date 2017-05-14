@@ -117,7 +117,7 @@ defmodule Task.Supervisor do
   Returns a stream that runs the given `module`, `function`, and `args`
   concurrently on each item in `enumerable`.
 
-  Each item will be appended to the given `args` and processed by its
+  Each item will be prepended to the given `args` and processed by its
   own task. The tasks will be spawned under the given `supervisor` and
   linked to the current process, similarly to `async/4`.
 
@@ -177,7 +177,7 @@ defmodule Task.Supervisor do
   Returns a stream that runs the given `module`, `function`, and `args`
   concurrently on each item in `enumerable`.
 
-  Each item in `enumerable` will be appended to the given `args` and processed
+  Each item in `enumerable` will be prepended to the given `args` and processed
   by its own task. The tasks will be spawned under the given `supervisor` and
   will not be linked to the current process, similarly to `async_nolink/4`.
 
