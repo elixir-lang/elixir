@@ -162,7 +162,7 @@ defmodule Kernel.QuoteTest do
   end
 
   test "unary with integer precedence" do
-    assert quote(do: +1.foo) == quote(do: (+1).foo)
+    assert quote(do: +1.foo) == quote(do: +(1.foo))
     assert quote(do: @1.foo) == quote(do: (@1).foo)
     assert quote(do: &1.foo) == quote(do: (&1).foo)
   end
