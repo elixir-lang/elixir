@@ -1234,21 +1234,27 @@ defmodule Enum do
   Returns a list of results of invoking `fun` on every `nth`
   item of `enumerable`, starting with the first element.
 
-  The first item is always passed to the given function.
+  The first item is always passed to the given function, unless `nth` is `0`.
 
   The second argument specifying every `nth` item must be a non-negative
   integer.
 
+  If `nth` is `0`, then `enumerable` is diretcly converted to a list,
+  witouth `fun` being ever applied.
+
   ## Examples
 
-      iex> Enum.map_every(1..10, 2, fn(x) -> x * 2 end)
-      [2, 2, 6, 4, 10, 6, 14, 8, 18, 10]
+      iex> Enum.map_every(1..10, 2, fn x -> x + 1000 end)
+      [1001, 2, 1003, 4, 1005, 6, 1007, 8, 1009, 10]
 
-      iex> Enum.map_every(1..5, 0, fn(x) -> x * 2 end)
+      iex> Enum.map_every(1..10, 3, fn x -> x + 1000 end)
+      [1001, 2, 3, 1004, 5, 6, 1007, 8, 9, 1010]
+
+      iex> Enum.map_every(1..5, 0, fn x -> x + 1000 end)
       [1, 2, 3, 4, 5]
 
-      iex> Enum.map_every([1, 2, 3], 1, fn(x) -> x * 2 end)
-      [2, 4, 6]
+      iex> Enum.map_every([1, 2, 3], 1, fn x -> x + 1000 end)
+      [1001, 1002, 1003]
 
   """
   @spec map_every(t, non_neg_integer, (element -> any)) :: list

@@ -285,7 +285,7 @@ defmodule EnumTest do
     assert Enum.map_every([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 3, fn x -> x * 2 end) == [2, 2, 3, 8, 5, 6, 14, 8, 9, 20]
     assert Enum.map_every([], 2, fn x -> x * 2 end) == []
     assert Enum.map_every([1, 2], 2, fn x -> x * 2 end) == [2, 2]
-    assert Enum.map_every([1, 2, 3], 0, fn x -> x * 2 end) == [1, 2, 3]
+    assert Enum.map_every([1, 2, 3], 0, fn _x -> raise :i_should_have_never_been_invoked end) == [1, 2, 3]
     assert Enum.map_every(1..3, 1, fn x -> x * 2 end) == [2, 4, 6]
     assert_raise FunctionClauseError, fn ->
       Enum.map_every([1, 2, 3], -1, fn x -> x * 2 end)
@@ -293,6 +293,9 @@ defmodule EnumTest do
     assert_raise FunctionClauseError, fn ->
       Enum.map_every(1..10, 3.33, fn x -> x * 2 end)
     end
+    assert Enum.map_every([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 9, fn x -> x + 1000 end) == [1001, 2, 3, 4, 5, 6, 7, 8, 9, 1010]
+    assert Enum.map_every([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 10, fn x -> x + 1000 end) == [1001, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    assert Enum.map_every([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 100, fn x -> x + 1000 end) == [1001, 2, 3, 4, 5, 6, 7, 8, 9, 10]
   end
 
   test "map_join/3" do
