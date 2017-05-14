@@ -188,16 +188,16 @@ defmodule IEx.HelpersTest do
     assert capture_io(fn -> s IEx.Remsh end) == "No specification for IEx.Remsh was found\n"
 
     # Test that it shows at least two specs
-    assert Enum.count(capture_io(fn -> s Enum end) |> String.split("\n"), fn line ->
+    assert Enum.count(capture_io(fn -> s Process end) |> String.split("\n"), fn line ->
       String.starts_with? line, "@spec"
     end) >= 2
 
-    assert Enum.count(capture_io(fn -> s Enum.all? end) |> String.split("\n"), fn line ->
+    assert Enum.count(capture_io(fn -> s Process.demonitor end) |> String.split("\n"), fn line ->
       String.starts_with? line, "@spec"
     end) >= 2
 
-    assert capture_io(fn -> s Enum.all?/1 end) ==
-           "@spec all?(t()) :: boolean()\n"
+    assert capture_io(fn -> s Process.register/2 end) ==
+           "@spec register(pid() | port(), atom()) :: true\n"
     assert capture_io(fn -> s struct end) ==
            "@spec struct(module() | struct(), Enum.t()) :: struct()\n"
   end

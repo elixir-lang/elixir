@@ -504,7 +504,6 @@ defmodule Macro do
       1
 
   """
-  @spec escape(term) :: Macro.t
   @spec escape(term, Keyword.t) :: Macro.t
   def escape(expr, opts \\ []) do
     elem(:elixir_quote.escape(expr, Keyword.get(opts, :unquote, false)), 0)
@@ -682,7 +681,6 @@ defmodule Macro do
       "one + two"
 
   """
-  @spec to_string(Macro.t) :: String.t
   @spec to_string(Macro.t, (Macro.t, String.t -> String.t)) :: String.t
   def to_string(tree, fun \\ fn(_ast, string) -> string end)
 

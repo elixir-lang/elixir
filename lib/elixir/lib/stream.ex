@@ -155,7 +155,6 @@ defmodule Stream do
       [[1, 2, 3], [4, 5, 6]]
 
   """
-  @spec chunk(Enumerable.t, pos_integer, pos_integer) :: Enumerable.t
   @spec chunk(Enumerable.t, pos_integer, pos_integer, Enumerable.t | nil) :: Enumerable.t
   def chunk(enum, n, step, leftover \\ nil)
       when is_integer(n) and n > 0 and is_integer(step) and step > 0 do
@@ -954,7 +953,6 @@ defmodule Stream do
       [{1, 3}, {2, 4}, {3, 5}]
 
   """
-  @spec with_index(Enumerable.t) :: Enumerable.t
   @spec with_index(Enumerable.t, integer) :: Enumerable.t
   def with_index(enum, offset \\ 0) do
     lazy enum, offset, fn(f1) -> R.with_index(f1) end
