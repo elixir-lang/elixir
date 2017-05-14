@@ -174,7 +174,6 @@ defmodule Keyword do
       3
 
   """
-  @spec get(t, key) :: value
   @spec get(t, key, value) :: value
   def get(keywords, key, default \\ nil) when is_list(keywords) and is_atom(key) do
     case :lists.keyfind(key, 1, keywords) do

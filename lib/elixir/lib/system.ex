@@ -462,7 +462,6 @@ defmodule System do
       System.halt(:abort)
 
   """
-  @spec halt() :: no_return
   @spec halt(non_neg_integer | binary | :abort) :: no_return
   def halt(status \\ 0)
 
@@ -494,7 +493,6 @@ defmodule System do
       System.stop(1)
 
   """
-  @spec stop() :: no_return
   @spec stop(non_neg_integer | binary) :: no_return
   def stop(status \\ 0)
 

@@ -40,7 +40,6 @@ defmodule Process do
   Returns the value for the given `key` in the process dictionary,
   or `default` if `key` is not set.
   """
-  @spec get(term) :: term
   @spec get(term, default :: term) :: term
   def get(key, default \\ nil) do
     case :erlang.get(key) do
@@ -399,7 +398,6 @@ defmodule Process do
 
   Inlined by the compiler.
   """
-  @spec demonitor(reference) :: true
   @spec demonitor(reference, options :: [:flush | :info]) :: boolean
   defdelegate demonitor(monitor_ref, options \\ []), to: :erlang
 

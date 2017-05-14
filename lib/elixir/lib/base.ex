@@ -170,7 +170,6 @@ defmodule Base do
       "666f6f626172"
 
   """
-  @spec encode16(binary) :: binary
   @spec encode16(binary, Keyword.t) :: binary
   def encode16(data, opts \\ []) when is_binary(data) do
     case = Keyword.get(opts, :case, :upper)
@@ -204,7 +203,6 @@ defmodule Base do
       {:ok, "foobar"}
 
   """
-  @spec decode16(binary) :: {:ok, binary} | :error
   @spec decode16(binary, Keyword.t) :: {:ok, binary} | :error
   def decode16(string, opts \\ []) do
     {:ok, decode16!(string, opts)}
@@ -242,7 +240,6 @@ defmodule Base do
       "foobar"
 
   """
-  @spec decode16!(binary) :: binary
   @spec decode16!(binary, Keyword.t) :: binary
   def decode16!(string, opts \\ [])
 
@@ -273,7 +270,6 @@ defmodule Base do
       "Zm9vYg"
 
   """
-  @spec encode64(binary) :: binary
   @spec encode64(binary, Keyword.t) :: binary
   def encode64(data, opts \\ []) when is_binary(data) do
     pad? = Keyword.get(opts, :padding, true)
@@ -304,7 +300,6 @@ defmodule Base do
       {:ok, "foob"}
 
   """
-  @spec decode64(binary) :: {:ok, binary} | :error
   @spec decode64(binary, Keyword.t) :: {:ok, binary} | :error
   def decode64(string, opts \\ []) when is_binary(string) do
     {:ok, decode64!(string, opts)}
@@ -339,7 +334,6 @@ defmodule Base do
       "foob"
 
   """
-  @spec decode64!(binary) :: binary
   @spec decode64!(binary, Keyword.t) :: binary
   def decode64!(string, opts \\ []) when is_binary(string) do
     pad? = Keyword.get(opts, :padding, true)
@@ -362,7 +356,6 @@ defmodule Base do
       "_3_-_A"
 
   """
-  @spec url_encode64(binary) :: binary
   @spec url_encode64(binary, Keyword.t) :: binary
   def url_encode64(data, opts \\ []) when is_binary(data) do
     pad? = Keyword.get(opts, :padding, true)
@@ -391,7 +384,6 @@ defmodule Base do
       {:ok, <<255, 127, 254, 252>>}
 
   """
-  @spec url_decode64(binary) :: {:ok, binary} | :error
   @spec url_decode64(binary, Keyword.t) :: {:ok, binary} | :error
   def url_decode64(string, opts \\ []) when is_binary(string) do
     {:ok, url_decode64!(string, opts)}
@@ -424,7 +416,6 @@ defmodule Base do
       <<255, 127, 254, 252>>
 
   """
-  @spec url_decode64!(binary) :: binary
   @spec url_decode64!(binary, Keyword.t) :: binary
   def url_decode64!(string, opts \\ []) when is_binary(string)  do
     pad? = Keyword.get(opts, :padding, true)
@@ -463,7 +454,6 @@ defmodule Base do
       "MZXW6YTBOI"
 
   """
-  @spec encode32(binary) :: binary
   @spec encode32(binary, Keyword.t) :: binary
   def encode32(data, opts \\ []) when is_binary(data) do
     case = Keyword.get(opts, :case, :upper)
@@ -507,7 +497,6 @@ defmodule Base do
       {:ok, "foobar"}
 
   """
-  @spec decode32(binary) :: {:ok, binary} | :error
   @spec decode32(binary, Keyword.t) :: {:ok, binary} | :error
   def decode32(string, opts \\ []) do
     {:ok, decode32!(string, opts)}
@@ -554,7 +543,6 @@ defmodule Base do
       "foobar"
 
   """
-  @spec decode32!(binary) :: binary
   @spec decode32!(binary, Keyword.t) :: binary
   def decode32!(string, opts \\ []) when is_binary(string) do
     case = Keyword.get(opts, :case, :upper)
@@ -595,7 +583,6 @@ defmodule Base do
       "CPNMUOJ1E8"
 
   """
-  @spec hex_encode32(binary) :: binary
   @spec hex_encode32(binary, Keyword.t) :: binary
   def hex_encode32(data, opts \\ []) when is_binary(data) do
     case = Keyword.get(opts, :case, :upper)
@@ -640,7 +627,6 @@ defmodule Base do
       {:ok, "foobar"}
 
   """
-  @spec hex_decode32(binary) :: {:ok, binary} | :error
   @spec hex_decode32(binary, Keyword.t) :: {:ok, binary} | :error
   def hex_decode32(string, opts \\ []) do
     {:ok, hex_decode32!(string, opts)}
@@ -688,7 +674,6 @@ defmodule Base do
       "foobar"
 
   """
-  @spec hex_decode32!(binary) :: binary
   @spec hex_decode32!(binary, Keyword.t) :: binary
   def hex_decode32!(string, opts \\ []) when is_binary(string) do
     case = Keyword.get(opts, :case, :upper)

@@ -318,7 +318,6 @@ defmodule Supervisor do
   name, the supported values are described in the "Name registration"
   section in the `GenServer` module docs.
   """
-  @spec start_link(module, term) :: on_start
   @spec start_link(module, term, options) :: on_start
   def start_link(module, arg, options \\ []) when is_list(options) do
     case Keyword.get(options, :name) do
