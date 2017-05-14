@@ -238,9 +238,10 @@ defmodule Version do
   @spec parse(String.t) :: {:ok, t} | :error
   def parse(string) when is_binary(string) do
     case Version.Parser.parse_version(string) do
-      {:ok, {major, minor, patch, pre}} ->
+      {:ok, {major, minor, patch, pre, build_parts}} ->
+        build = if build_parts == [], do: nil, else: Enum.join(build_parts, "")
         version = %Version{major: major, minor: minor, patch: patch,
-                       pre: pre, build: get_build(string)}
+                           pre: pre, build: build}
         {:ok, version}
      :error ->
        :error
@@ -312,20 +313,10 @@ defmodule Version do
 
   defp to_matchable(string, allow_pre?) do
     case Version.Parser.parse_version(string) do
-      {:ok, {major, minor, patch, pre}} ->
+      {:ok, {major, minor, patch, pre, _build_parts}} ->
         {major, minor, patch, pre, allow_pre?}
       :error ->
         raise InvalidVersionError, message: string
-    end
-  end
-
-  defp get_build(string) do
-    case Regex.run(~r/\+([^\s]+)$/, string) do
-      nil ->
-        nil
-
-      [_, build] ->
-        build
     end
   end
 
@@ -413,8 +404,8 @@ defmodule Version do
            {:ok, patch} <- maybe_patch(patch, approximate?),
            {:ok, pre_parts} <- optional_dot_separated(pre),
            {:ok, pre_parts} <- convert_parts_to_integer(pre_parts, []),
-           {:ok, _build_parts} <- optional_dot_separated(build) do
-        {:ok, {major, minor, patch, pre_parts}}
+           {:ok, build_parts} <- optional_dot_separated(build) do
+        {:ok, {major, minor, patch, pre_parts, build_parts}}
       else
         _other -> :error
       end
@@ -599,7 +590,7 @@ defmodule Version do
 
     defp parse_condition(version, approximate? \\ false) do
       case parse_version(version, approximate?) do
-        {:ok, version} -> version
+        {:ok, {major, minor, patch, pre, _build}} -> {major, minor, patch, pre}
         :error -> throw :invalid_matchspec
       end
     end
