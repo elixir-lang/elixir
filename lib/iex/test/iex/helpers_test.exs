@@ -192,7 +192,7 @@ defmodule IEx.HelpersTest do
       String.starts_with? line, "@spec"
     end) >= 2
 
-    assert Enum.count(capture_io(fn -> s Process.demonitor end) |> String.split("\n"), fn line ->
+    assert Enum.count(capture_io(fn -> s Process.flag end) |> String.split("\n"), fn line ->
       String.starts_with? line, "@spec"
     end) >= 2
 
