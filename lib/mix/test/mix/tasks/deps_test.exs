@@ -49,9 +49,9 @@ defmodule Mix.Tasks.DepsTest do
       assert_received {:mix_shell, :info, ["* invalidvsn (deps/invalidvsn)"]}
       assert_received {:mix_shell, :info, ["  the app file contains an invalid version: :ok"]}
       assert_received {:mix_shell, :info, ["* invalidapp (deps/invalidapp) (mix)"]}
-      assert_received {:mix_shell, :info, ["  the app file at _build/dev/lib/invalidapp/ebin/invalidapp.app is invalid"]}
+      assert_received {:mix_shell, :info, ["  the app file at \"_build/dev/lib/invalidapp/ebin/invalidapp.app\" is invalid"]}
       assert_received {:mix_shell, :info, ["* noappfile (deps/noappfile)"]}
-      assert_received {:mix_shell, :info, ["  could not find an app file at _build/dev/lib/noappfile/ebin/noappfile.app" <> _]}
+      assert_received {:mix_shell, :info, ["  could not find an app file at \"_build/dev/lib/noappfile/ebin/noappfile.app\"" <> _]}
       assert_received {:mix_shell, :info, ["* nosemver (deps/nosemver)"]}
       assert_received {:mix_shell, :info, ["  the app file specified a non-Semantic Versioning format: \"0.7\"" <> _]}
     end
@@ -67,8 +67,8 @@ defmodule Mix.Tasks.DepsTest do
       assert_received {:mix_shell, :info, ["  the dependency does not match the requirement \">= 2.0.0\", got \"0.1.0\""]}
       assert_received {:mix_shell, :info, ["* noappfile (deps/noappfile)"]}
       assert_received {:mix_shell, :info, ["* apppath (deps/noappfile)"]}
-      refute_received {:mix_shell, :info, ["  could not find app file at _build/dev/lib/noappfile/ebin/apppath.app" <> _]}
-      refute_received {:mix_shell, :info, ["  could not find app file at _build/dev/lib/noappfile/ebin/noappfile.app" <> _]}
+      refute_received {:mix_shell, :info, ["  could not find app file at \"_build/dev/lib/noappfile/ebin/apppath.app\"" <> _]}
+      refute_received {:mix_shell, :info, ["  could not find app file at \"_build/dev/lib/noappfile/ebin/noappfile.app\"" <> _]}
     end
   end
 
@@ -156,11 +156,11 @@ defmodule Mix.Tasks.DepsTest do
       assert_received {:mix_shell, :error, ["* invalidvsn (deps/invalidvsn)"]}
       assert_received {:mix_shell, :error, ["  the app file contains an invalid version: :ok"]}
       assert_received {:mix_shell, :error, ["* invalidapp (deps/invalidapp)"]}
-      assert_received {:mix_shell, :error, ["  the app file at _build/dev/lib/invalidapp/ebin/invalidapp.app is invalid"]}
+      assert_received {:mix_shell, :error, ["  the app file at \"_build/dev/lib/invalidapp/ebin/invalidapp.app\" is invalid"]}
 
       # This one is compiled automatically
       refute_received {:mix_shell, :error, ["* noappfile (deps/noappfile)"]}
-      refute_received {:mix_shell, :error, ["  could not find an app file at _build/dev/lib/noappfile/ebin/noappfile.app" <> _]}
+      refute_received {:mix_shell, :error, ["  could not find an app file at \"_build/dev/lib/noappfile/ebin/noappfile.app\"" <> _]}
     end
   end
 

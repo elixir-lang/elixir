@@ -189,13 +189,13 @@ defmodule Mix.Dep do
     do: "ok"
 
   def format_status(%Mix.Dep{status: {:noappfile, path}}),
-    do: "could not find an app file at #{Path.relative_to_cwd(path)}. " <>
+    do: "could not find an app file at #{inspect(Path.relative_to_cwd(path))}. " <>
         "This may happen if the dependency was not yet compiled, " <>
         "or you specified the wrong application name in your deps, " <>
         "or the dependency indeed has no app file (then you can pass app: false as option)"
 
   def format_status(%Mix.Dep{status: {:invalidapp, path}}),
-    do: "the app file at #{Path.relative_to_cwd(path)} is invalid"
+    do: "the app file at #{inspect(Path.relative_to_cwd(path))} is invalid"
 
   def format_status(%Mix.Dep{status: {:invalidvsn, vsn}}),
     do: "the app file contains an invalid version: #{inspect vsn}"
