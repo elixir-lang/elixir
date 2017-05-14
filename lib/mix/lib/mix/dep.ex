@@ -209,13 +209,13 @@ defmodule Mix.Dep do
     do: "the dependency does not match the requirement #{inspect req}, got #{inspect vsn}"
 
   def format_status(%Mix.Dep{status: {:lockmismatch, _}}),
-    do: "lock mismatch: the dependency is out of date (run \"mix deps.get\" to fetch locked version)"
+    do: "lock mismatch: the dependency is out of date. To fetch locked version run \"mix deps.get\""
 
   def format_status(%Mix.Dep{status: :lockoutdated}),
-    do: "lock outdated: the lock is outdated compared to the options in your mixfile (run \"mix deps.get\" to fetch locked version)"
+    do: "lock outdated: the lock is outdated compared to the options in your mixfile. To fetch locked version run \"mix deps.get\""
 
   def format_status(%Mix.Dep{status: :nolock}),
-    do: "the dependency is not locked (run \"mix deps.get\" to generate \"mix.lock\" file)"
+    do: "the dependency is not locked. To generate the \"mix.lock\" file run \"mix deps.get\""
 
   def format_status(%Mix.Dep{status: :compile}),
     do: "the dependency build is outdated, please run \"#{mix_env_var()}mix deps.compile\""

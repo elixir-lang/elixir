@@ -122,7 +122,7 @@ defmodule Mix.Tasks.Xref do
       ["graph"] ->
         graph(opts)
       _ ->
-        Mix.raise "xref doesn't support this command, see \"mix help xref\" for more information"
+        Mix.raise "xref doesn't support this command. For more information run \"mix help xref\""
     end
   end
 
