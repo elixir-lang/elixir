@@ -68,7 +68,7 @@ defmodule Mix.Tasks.Archive.Install do
     if Path.extname(path_or_url) == ".ez" do
       :ok
     else
-      {:error, "Expected a local file path or a file URL ending in .ez."}
+      {:error, "Expected a local file path or a file URL ending in \".ez\"."}
     end
   end
 
