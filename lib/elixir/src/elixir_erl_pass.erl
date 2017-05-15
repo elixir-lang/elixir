@@ -469,6 +469,10 @@ extract_bit_type({Other, _, []}, Acc) ->
 %% Optimizations that are specific to Erlang and change
 %% the format of the AST.
 
+translate_remote('Elixir.Access' = Mod, get, Meta, [Container, Value], S) ->
+  Ann = ?ann(Meta),
+  {TArgs, SA} = translate_args([Container, Value, nil], S),
+  {elixir_erl:remote(Ann, Mod, get, TArgs), SA};
 translate_remote('Elixir.String.Chars', to_string, Meta, [Arg], S) ->
   {TArg, TS} = translate(Arg, S),
   {VarName, _, VS} = elixir_erl_var:build(rewrite, TS),
