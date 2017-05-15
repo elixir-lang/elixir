@@ -785,23 +785,21 @@ defmodule Kernel.WarningTest do
     defstruct [:name]
   end
 
-  test ":__struct__ is ignored when building structs" do
+  test ":__struct__ is ignored when using structs" do
     assert capture_err(fn ->
       Code.eval_string """
       assert %Kernel.WarningTest.User{__struct__: Ignored, name: "joe"} ==
              %Kernel.WarningTest.User{name: "joe"}
       """, _bindings = [], __ENV__
-    end) =~ "key :__struct__ is ignored when building structs"
-  end
+    end) =~ "key :__struct__ is ignored when using structs"
 
-  test ":__struct__ is ignored when updating structs" do
     assert capture_err(fn ->
       Code.eval_string """
       user = %Kernel.WarningTest.User{name: "meg"}
       assert %Kernel.WarningTest.User{user | __struct__: Ignored, name: "joe"} ==
              %Kernel.WarningTest.User{__struct__: Kernel.WarningTest.User, name: "joe"}
       """, _bindings = [], __ENV__
-    end) =~ "key :__struct__ is ignored when updating structs"
+    end) =~ "key :__struct__ is ignored when using structs"
   end
 
   defp purge(list) when is_list(list) do

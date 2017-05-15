@@ -69,21 +69,18 @@ expand_struct(Meta, Left, {'%{}', MapMeta, MapArgs}, #{context := Context} = E) 
 expand_struct(Meta, _Left, Right, E) ->
   form_error(Meta, ?key(E, file), ?MODULE, {non_map_after_struct, Right}).
 
-clean_struct_key_from_map_args(Meta, E, [{'|', PipeMeta, [Left, MapAssocs]}] = MapArgs) ->
-  case lists:keytake('__struct__', 1, MapAssocs) of
-    {value, _, CleanAssocs} ->
-      elixir_errors:warn(?line(Meta), ?key(E, file), "key :__struct__ is ignored when updating structs"),
-      [{'|', PipeMeta, [Left, CleanAssocs]}];
-    false ->
-      MapArgs
-  end;
+clean_struct_key_from_map_args(Meta, E, [{'|', PipeMeta, [Left, MapAssocs]}]) ->
+  [{'|', PipeMeta, [Left, clean_struct_key_from_map_assocs(Meta, E, MapAssocs)]}];
 clean_struct_key_from_map_args(Meta, E, MapAssocs) ->
-  case lists:keytake('__struct__', 1, MapAssocs) of
+  clean_struct_key_from_map_assocs(Meta, E, MapAssocs).
+
+clean_struct_key_from_map_assocs(Meta, E, Assocs) ->
+  case lists:keytake('__struct__', 1, Assocs) of
     {value, _, CleanAssocs} ->
-      elixir_errors:warn(?line(Meta), ?key(E, file), "key :__struct__ is ignored when building structs"),
+      elixir_errors:warn(?line(Meta), ?key(E, file), "key :__struct__ is ignored when using structs"),
       CleanAssocs;
     false ->
-      MapAssocs
+      Assocs
   end.
 
 validate_match_key(_Meta, {'^', _, [_]}, _E) ->
