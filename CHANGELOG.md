@@ -109,27 +109,16 @@ You can now also install archives from Hex in this way. Since they are fetched a
 
 It is also possible to install escripts and archives by providing a Git/GitHub repo. See `mix help escript.install` and `mix help archive.install` for more details.
 
-## v1.4.3-dev
+## v1.4.3 (2017-05-15)
 
-### 1. Bug fixes
+This version includes changes that make Elixir fully compatible with Erlang OTP 20-rc.1.
 
-#### Elixir
-
-  * [Kernel] Fix code generation when non-binary bitstrings are in AST
-
-#### Mix
-
-  * [Mix.Task] Do not assume all paths in loadpaths exist
-
-#### ExUnit
-
-  * [ExUnit.Diff] Do not fail when comparing maps with nil or boolean keys
-
-### 2. Enhancements
+### 1. Enhancements
 
 #### Elixir
 
   * [Kernel] Improve compilation time for modules with many clauses
+  * [Map] Warn when attempting to override `__struct__` key
   * [Regex] Add `recompile/1` and `recompile!/1` to ease transition to OTP 20 for archives and stored regexes
 
 #### Logger
@@ -139,6 +128,27 @@ It is also possible to install escripts and archives by providing a Git/GitHub r
 #### Mix
 
   * [mix compile] Recompile projects if OTP version changes
+
+### 2. Bug fixes
+
+#### Elixir
+
+  * [Kernel] Fix code generation when non-binary bitstrings are in AST
+  * [Record] Properly escape fields passed to `defrecord`
+
+#### ExUnit
+
+  * [ExUnit.Diff] Do not fail when comparing maps with nil or boolean keys
+
+#### IEx
+
+  * [IEx.Helpers] Do not log exits on `IEx.Helpers.c/2` failures
+
+#### Mix
+
+  * [mix archive.install] Detect proper path on URLs with query strings
+  * [mix loadpaths] Do not assume all paths in loadpaths exist
+
 
 ## v1.4.2 (2017-02-16)
 
