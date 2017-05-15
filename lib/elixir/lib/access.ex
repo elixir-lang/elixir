@@ -266,11 +266,17 @@ defmodule Access do
   end
 
   def fetch(map, key) when is_map(map) do
-    Map.fetch(map, key)
+    case map do
+      %{^key => value} -> {:ok, value}
+      _ -> :error
+    end
   end
 
   def fetch(list, key) when is_list(list) and is_atom(key) do
-    Keyword.fetch(list, key)
+    case :lists.keyfind(key, 1, list) do
+      {^key, value} -> {:ok, value}
+      false -> :error
+    end
   end
 
   def fetch(list, key) when is_list(list) do
@@ -291,11 +297,41 @@ defmodule Access do
   """
   @spec get(container, term, term) :: term
   @spec get(nil_container, any, default) :: default when default: var
-  def get(container, key, default \\ nil) do
-    case fetch(container, key) do
+  def get(container, key, default \\ nil)
+
+  def get(%{__struct__: struct} = container, key, default) do
+    try do
+      struct.fetch(container, key)
+    rescue
+      e in UndefinedFunctionError ->
+        raise_undefined_behaviour e, struct, {^struct, :fetch, [^container, ^key], _}
+    else
       {:ok, value} -> value
       :error -> default
     end
+  end
+
+  def get(map, key, default) when is_map(map) do
+    case map do
+      %{^key => value} -> value
+      _ -> default
+    end
+  end
+
+  def get(list, key, default) when is_list(list) and is_atom(key) do
+    case :lists.keyfind(key, 1, list) do
+      {^key, value} -> value
+      false -> default
+    end
+  end
+
+  def get(list, key, _default) when is_list(list) do
+    raise ArgumentError,
+      "the Access calls for keywords expect the key to be an atom, got: " <> inspect(key)
+  end
+
+  def get(nil, _key, default) do
+    default
   end
 
   @doc """
