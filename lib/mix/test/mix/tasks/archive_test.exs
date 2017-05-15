@@ -52,6 +52,11 @@ defmodule Mix.Tasks.ArchiveTest do
       archive = tmp_path("userhome/.mix/archives/archive-0.1.0/archive-0.1.0/ebin")
       assert to_charlist(archive) in :code.get_path
 
+      # Try to override it with URL
+      send self(), {:mix_shell_input, :yes?, false}
+      Mix.Tasks.Archive.Install.run ["https://example.com/archive-0.1.0?hello.ez"]
+      assert_received {:mix_shell, :yes?, ["Found existing archive: " <> _]}
+
       # Loading the archive should emit warning again
       Mix.Local.append_archives
       assert_received {:mix_shell, :error, [^version_error]}
