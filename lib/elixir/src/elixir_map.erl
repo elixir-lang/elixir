@@ -12,8 +12,19 @@ expand_map(Meta, Args, E) ->
   validate_kv(Meta, EArgs, Args, E),
   {{'%{}', Meta, EArgs}, EA}.
 
-expand_struct(Meta, Left, Right, #{context := Context} = E) ->
-  {[ELeft, ERight], EE} = elixir_exp:expand_args([Left, Right], E),
+expand_struct(Meta, Left, {'%{}', MapMeta, MapArgs}, #{context := Context} = E) ->
+  CleanArgs =
+    case lists:keytake('__struct__', 1, MapArgs) of
+      {value, _, ValueArgs} ->
+        elixir_errors:warn(?line(Meta), ?m(E, file),
+                           "key :__struct__ is ignored when building structs"),
+        ValueArgs;
+      false ->
+        MapArgs
+    end,
+
+  {[ELeft | EArgs], EE} = elixir_exp:expand_args([Left | CleanArgs], E),
+  ERight = {'%{}', MapMeta, EArgs},
 
   case validate_struct(ELeft, Context) of
     true when is_atom(ELeft) ->
@@ -38,14 +49,10 @@ expand_struct(Meta, Left, Right, #{context := Context} = E) ->
       false -> Meta
     end,
 
-  case ERight of
-    {'%{}', _, _} -> ok;
-    _ -> compile_error(Meta, ?m(E, file),
-           "expected struct to be followed by a map, got: ~ts",
-           ['Elixir.Macro':to_string(ERight)])
-  end,
-
-  {{'%', EMeta, [ELeft, ERight]}, EE}.
+  {{'%', EMeta, [ELeft, ERight]}, EE};
+expand_struct(Meta, _Left, Right, E) ->
+  compile_error(Meta, ?m(E, file), "expected struct to be followed by a map, got: ~ts",
+                ['Elixir.Macro':to_string(Right)]).
 
 validate_struct({'^', _, [{Var, _, Ctx}]}, match) when is_atom(Var), is_atom(Ctx) -> true;
 validate_struct({Var, _Meta, Ctx}, match) when is_atom(Var), is_atom(Ctx) -> true;
@@ -66,11 +73,10 @@ translate_map(Meta, Args, S) ->
   translate_map(Meta, Assocs, TUpdate, US).
 
 translate_struct(_Meta, Name, {'%{}', MapMeta, Assocs}, S) when is_tuple(Name) ->
-  translate_map(MapMeta, [{'__struct__', Name} | delete_struct_key(Assocs)], nil, S);
+  translate_map(MapMeta, [{'__struct__', Name} | Assocs], nil, S);
 
 translate_struct(Meta, Name, {'%{}', MapMeta, Args}, S) ->
-  {TAssocs, TUpdate, US} = extract_assoc_update(Args, S),
-  Assocs = delete_struct_key(TAssocs),
+  {Assocs, TUpdate, US} = extract_assoc_update(Args, S),
   Operation = operation(TUpdate, S),
 
   Struct = case Operation of
@@ -190,9 +196,6 @@ extract_assoc_update([{'|', _Meta, [Update, Args]}], S) ->
   {TArg, SA} = elixir_translator:translate_arg(Update, S, S),
   {Args, TArg, SA};
 extract_assoc_update(Args, SA) -> {Args, nil, SA}.
-
-delete_struct_key(Assocs) ->
-  lists:keydelete('__struct__', 1, Assocs).
 
 extract_key_val_op(_TUpdate, #elixir_scope{context=match}) ->
   {map_field_exact,
