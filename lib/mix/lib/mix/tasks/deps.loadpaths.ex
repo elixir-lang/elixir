@@ -33,6 +33,8 @@ defmodule Mix.Tasks.Deps.Loadpaths do
         path
       end
 
+    # Since MIX_NO_DEPS returns no dependencies, it would
+    # cause all paths to be pruned, so we never enter here.
     unless System.get_env("MIX_NO_DEPS") in ~w(1 true) do
       prune_deps(load_paths, "--no-deps-check" in args)
     end
