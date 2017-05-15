@@ -109,6 +109,16 @@ You can now also install archives from Hex in this way. Since they are fetched a
 
 It is also possible to install escripts and archives by providing a Git/GitHub repo. See `mix help escript.install` and `mix help archive.install` for more details.
 
+## v1.4.4 (2017-05-15)
+
+This version includes changes that make Elixir fully compatible with Erlang OTP 20-rc.1.
+
+### 1. Bug fixes
+
+#### Elixir
+
+  * [Map] Fix regression on struct update syntax
+
 ## v1.4.3 (2017-05-15)
 
 This version includes changes that make Elixir fully compatible with Erlang OTP 20-rc.1.

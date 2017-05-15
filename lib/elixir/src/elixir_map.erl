@@ -13,18 +13,8 @@ expand_map(Meta, Args, E) ->
   {{'%{}', Meta, EArgs}, EA}.
 
 expand_struct(Meta, Left, {'%{}', MapMeta, MapArgs}, #{context := Context} = E) ->
-  CleanArgs =
-    case lists:keytake('__struct__', 1, MapArgs) of
-      {value, _, ValueArgs} ->
-        elixir_errors:warn(?line(Meta), ?m(E, file),
-                           "key :__struct__ is ignored when building structs"),
-        ValueArgs;
-      false ->
-        MapArgs
-    end,
-
-  {[ELeft | EArgs], EE} = elixir_exp:expand_args([Left | CleanArgs], E),
-  ERight = {'%{}', MapMeta, EArgs},
+  CleanArgs = clean_struct_key_from_map_args(Meta, MapArgs, E),
+  {[ELeft, ERight], EE} = elixir_exp:expand_args([Left, {'%{}', MapMeta, CleanArgs}], E),
 
   case validate_struct(ELeft, Context) of
     true when is_atom(ELeft) ->
@@ -53,6 +43,20 @@ expand_struct(Meta, Left, {'%{}', MapMeta, MapArgs}, #{context := Context} = E) 
 expand_struct(Meta, _Left, Right, E) ->
   compile_error(Meta, ?m(E, file), "expected struct to be followed by a map, got: ~ts",
                 ['Elixir.Macro':to_string(Right)]).
+
+clean_struct_key_from_map_args(Meta, [{'|', PipeMeta, [Left, MapAssocs]}], E) ->
+  [{'|', PipeMeta, [Left, clean_struct_key_from_map_assocs(Meta, MapAssocs, E)]}];
+clean_struct_key_from_map_args(Meta, MapAssocs, E) ->
+  clean_struct_key_from_map_assocs(Meta, MapAssocs, E).
+
+clean_struct_key_from_map_assocs(Meta, Assocs, E) ->
+  case lists:keytake('__struct__', 1, Assocs) of
+    {value, _, CleanAssocs} ->
+      elixir_errors:warn(?line(Meta), ?m(E, file), "key :__struct__ is ignored when using structs"),
+      CleanAssocs;
+    false ->
+      Assocs
+  end.
 
 validate_struct({'^', _, [{Var, _, Ctx}]}, match) when is_atom(Var), is_atom(Ctx) -> true;
 validate_struct({Var, _Meta, Ctx}, match) when is_atom(Var), is_atom(Ctx) -> true;
