@@ -1,6 +1,6 @@
 -module(elixir_map).
 -export([expand_map/3, expand_struct/4, format_error/1]).
--import(elixir_errors, [form_error/4]).
+-import(elixir_errors, [form_error/4, form_warn/4]).
 -include("elixir.hrl").
 
 expand_map(Meta, [{'|', UpdateMeta, [Left, Right]}], #{context := nil} = E) ->
@@ -27,8 +27,9 @@ expand_map(Meta, Args, E) ->
   validate_kv(Meta, EArgs, Args, E),
   {{'%{}', Meta, EArgs}, EE}.
 
-expand_struct(Meta, Left, Right, #{context := Context} = E) ->
-  {[ELeft, ERight], EE} = elixir_expand:expand_args([Left, Right], E),
+expand_struct(Meta, Left, {'%{}', MapMeta, MapArgs}, #{context := Context} = E) ->
+  CleanMapArgs = clean_struct_key_from_map_args(Meta, MapArgs, E),
+  {[ELeft, ERight], EE} = elixir_expand:expand_args([Left, {'%{}', MapMeta, CleanMapArgs}], E),
 
   case validate_struct(ELeft, Context) of
     true when is_atom(ELeft) ->
@@ -64,6 +65,22 @@ expand_struct(Meta, Left, Right, #{context := Context} = E) ->
 
     false ->
       form_error(Meta, ?key(E, file), ?MODULE, {invalid_struct_name, ELeft})
+  end;
+expand_struct(Meta, _Left, Right, E) ->
+  form_error(Meta, ?key(E, file), ?MODULE, {non_map_after_struct, Right}).
+
+clean_struct_key_from_map_args(Meta, [{'|', PipeMeta, [Left, MapAssocs]}], E) ->
+  [{'|', PipeMeta, [Left, clean_struct_key_from_map_assocs(Meta, MapAssocs, E)]}];
+clean_struct_key_from_map_args(Meta, MapAssocs, E) ->
+  clean_struct_key_from_map_assocs(Meta, MapAssocs, E).
+
+clean_struct_key_from_map_assocs(Meta, Assocs, E) ->
+  case lists:keytake('__struct__', 1, Assocs) of
+    {value, _, CleanAssocs} ->
+      form_warn(Meta, ?key(E, file), ?MODULE, ignored_struct_key_in_struct),
+      CleanAssocs;
+    false ->
+      Assocs
   end.
 
 validate_match_key(_Meta, {'^', _, [_]}, _E) ->
@@ -205,4 +222,6 @@ format_error({undefined_struct, Module, Arity}) ->
                 [StringName, Arity, StringName]);
 format_error({unknown_key_for_struct, Module, Key}) ->
   io_lib:format("unknown key ~ts for struct ~ts",
-                ['Elixir.Macro':to_string(Key), 'Elixir.Macro':to_string(Module)]).
+                ['Elixir.Macro':to_string(Key), 'Elixir.Macro':to_string(Module)]);
+format_error(ignored_struct_key_in_struct) ->
+  "key :__struct__ is ignored when using structs".
