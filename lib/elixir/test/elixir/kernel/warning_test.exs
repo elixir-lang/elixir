@@ -790,7 +790,7 @@ defmodule Kernel.WarningTest do
       Code.eval_string """
       assert %Kernel.WarningTest.User{__struct__: Ignored, name: "joe"} ==
              %Kernel.WarningTest.User{name: "joe"}
-      """, _bindings = [], __ENV__
+      """, [], __ENV__
     end) =~ "key :__struct__ is ignored when using structs"
 
     assert capture_err(fn ->
@@ -798,7 +798,7 @@ defmodule Kernel.WarningTest do
       user = %Kernel.WarningTest.User{name: "meg"}
       assert %Kernel.WarningTest.User{user | __struct__: Ignored, name: "joe"} ==
              %Kernel.WarningTest.User{__struct__: Kernel.WarningTest.User, name: "joe"}
-      """, _bindings = [], __ENV__
+      """, [], __ENV__
     end) =~ "key :__struct__ is ignored when using structs"
   end
 
