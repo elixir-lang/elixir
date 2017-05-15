@@ -63,6 +63,21 @@ defmodule Mix.Tasks.XrefTest do
     """
   end
 
+  test "warnings: reports module case mismatch" do
+    assert_warnings """
+    defmodule A do
+      def a, do: Genserver.start_link(A, [], [])
+    end
+    """, """
+    warning: function Genserver.start_link/3 is undefined (module Genserver is not available). Did you mean:
+
+          * GenServer.start_link/3
+
+      lib/a.ex:2
+
+    """
+  end
+
   test "warnings: reports missing captures" do
     assert_warnings """
     defmodule A do
