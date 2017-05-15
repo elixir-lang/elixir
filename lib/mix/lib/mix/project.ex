@@ -243,7 +243,7 @@ defmodule Mix.Project do
 
   ## Examples
 
-      Mix.Project.apps_path()
+      Mix.Project.apps_paths()
       #=> %{my_app1: "apps/my_app1", my_app2: "apps/my_app2"}
 
   """
