@@ -24,11 +24,20 @@ defmodule ExUnit.CaptureServer do
     GenServer.call(__MODULE__, {:log_capture_off, ref}, @timeout)
   end
 
+  def process_capture_on(pid, original_gl, capture_pid) do
+    GenServer.call(__MODULE__, {:process_capture_on, pid, original_gl, capture_pid}, @timeout)
+  end
+
+  def process_capture_off(ref) do
+    GenServer.call(__MODULE__, {:process_capture_off, ref}, @timeout)
+  end
+
   ## Callbacks
 
   def init(:ok) do
     {:ok, %{
       devices: {%{}, %{}},
+      processes: {%{}, %{}},
       log_captures: %{},
       log_status: nil
     }}
@@ -72,9 +81,28 @@ defmodule ExUnit.CaptureServer do
     {:reply, :ok, config}
   end
 
+  def handle_call({:process_capture_on, pid, original_gl, capture_pid}, _from, config) do
+    {pids, refs} = config.processes
+    if Map.has_key?(pids, pid) do
+      {:reply, {:error, :already_captured}, config}
+    else
+      Process.group_leader(pid, capture_pid)
+      ref = Process.monitor(self())
+      refs = Map.put(refs, ref, {pid, original_gl})
+      pids = Map.put(pids, pid, true)
+      {:reply, {:ok, ref}, %{config | processes: {pids, refs}}}
+    end
+  end
+
+  def handle_call({:process_capture_off, ref}, _from, config) do
+    config = remove_process_capture(ref, config)
+    {:reply, :ok, config}
+  end
+
   def handle_info({:DOWN, ref, _, _, _}, config) do
     config = remove_log_capture(ref, config)
     config = release_device(ref, config)
+    config = remove_process_capture(ref, config)
     {:noreply, config}
   end
 
@@ -99,6 +127,38 @@ defmodule ExUnit.CaptureServer do
         %{config | devices: {names, refs}}
       {nil, _refs} -> config
     end
+  end
+
+  defp remove_process_capture(ref, %{processes: {pids, refs}} = config) do
+    case Map.pop(refs, ref) do
+      {nil, _refs} -> config
+      {{pid, original_gl}, refs} ->
+        pids = Map.delete(pids, pid)
+        try do
+          {:group_leader, capture_gl} = Process.info(pid, :group_leader)
+          Process.group_leader(pid, original_gl)
+          fix_spawned_processes(Process.list(), capture_gl, original_gl)
+        rescue
+          ArgumentError -> nil
+          MatchError -> nil
+        end
+        Process.demonitor(ref, [:flush])
+        %{config | processes: {pids, refs}}
+    end
+  end
+
+  defp fix_spawned_processes([], _capture_gl, _original_gl) do
+  end
+  defp fix_spawned_processes([pid | pids], capture_gl, original_gl) do
+    {:group_leader, process_gl} = Process.info(pid, :group_leader)
+    if process_gl == capture_gl do
+      try do
+        Process.group_leader(pid, original_gl)
+      rescue
+        ArgumentError -> nil
+      end
+    end
+    fix_spawned_processes(pids, capture_gl, original_gl)
   end
 
   defp remove_log_capture(ref, %{log_captures: refs} = config) do

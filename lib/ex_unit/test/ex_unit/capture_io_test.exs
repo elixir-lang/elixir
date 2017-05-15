@@ -1,5 +1,23 @@
 Code.require_file "../test_helper.exs", __DIR__
 
+defmodule TestServer do
+  use GenServer
+
+  def handle_call(:puts_to_stdout, _from, nil) do
+    IO.puts "from stdout"
+    {:reply, :ok, nil}
+  end
+
+  def handle_call(:puts_to_stderr, _from, nil) do
+    IO.puts :stderr, "from stderr"
+    {:reply, :ok, nil}
+  end
+
+  def handle_call(:get_line, _from, nil) do
+    {:reply, {:ok, :io.get_line(">")}, nil}
+  end
+end
+
 defmodule ExUnit.CaptureIOTest do
   use ExUnit.Case
 
@@ -49,6 +67,89 @@ defmodule ExUnit.CaptureIOTest do
 
   test "with no output" do
     assert capture_io(fn -> nil end) == ""
+  end
+
+  test "concurrent stdio captures" do
+    for i <- 0..3 do
+      wait = :rand.uniform(10)
+      test_pid = self()
+      spawn(fn ->
+        result = capture_io(fn ->
+          for _j <- 0..3 do
+            Process.sleep(wait)
+            IO.puts i
+          end
+        end)
+        send test_pid, {i, result}
+      end)
+    end
+
+    assert_receive {0, "0\n0\n0\n0\n"}
+    assert_receive {1, "1\n1\n1\n1\n"}
+    assert_receive {2, "2\n2\n2\n2\n"}
+    assert_receive {3, "3\n3\n3\n3\n"}
+  end
+
+  describe "child processes" do
+    setup do
+      {:ok, pid} = GenServer.start_link(TestServer, nil)
+
+      on_exit fn -> Process.exit(pid, :normal) end
+
+      [pid: pid]
+    end
+
+    test "can be captured", context do
+      assert capture_io(context[:pid], fn ->
+        :ok = GenServer.call(context[:pid], :puts_to_stdout)
+      end) == "from stdout\n"
+
+      assert capture_io(:stderr, fn ->
+        :ok = GenServer.call(context[:pid], :puts_to_stderr)
+      end) == "from stderr\n"
+
+      capture_io(context[:pid], [input: "my input\n"], fn ->
+        {:ok, line} = GenServer.call(context[:pid], :get_line)
+        send self(), {:result, line}
+      end)
+
+      assert_received {:result, "my input\n"}
+    end
+
+    test "concurrent captures raise an error", context do
+      spawn(fn -> capture_io(context[:pid], fn -> Process.sleep(100) end) end)
+      Process.sleep(10)
+      assert_raise RuntimeError,
+        "The process with PID #{inspect context[:pid]} is already captured",
+        fn -> capture_io(context[:pid], fn -> nil end) end
+    end
+
+    test "the group leader gets reset correctly", context do
+      {:group_leader, pre_gl} = Process.info(context[:pid], :group_leader)
+
+      spawn(fn -> capture_io(context[:pid], fn -> nil end) end)
+
+      Process.sleep(10)
+      {:group_leader, post_gl} = Process.info(context[:pid], :group_leader)
+
+      assert pre_gl == post_gl
+    end
+
+    test "the group leader gets reset even if the caller dies", context do
+      {:group_leader, pre_gl} = Process.info(context[:pid], :group_leader)
+
+      {_pid, ref} = spawn_monitor(fn ->
+        capture_io(context[:pid], fn ->
+          Kernel.exit(:shutdown)
+        end)
+      end)
+
+      assert_receive {:DOWN, ^ref, _, _, :shutdown}
+
+      {:group_leader, post_gl} = Process.info(context[:pid], :group_leader)
+
+      assert pre_gl == post_gl
+    end
   end
 
   test "with put chars" do

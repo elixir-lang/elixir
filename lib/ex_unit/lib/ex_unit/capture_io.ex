@@ -32,9 +32,10 @@ defmodule ExUnit.CaptureIO do
   Returns the binary which is the captured output.
 
   By default, `capture_io` replaces the `group_leader` (`:stdio`)
-  for the current process. However, the capturing of any other
-  named device, such as `:stderr`, is also possible globally by
-  giving the registered device name explicitly as an argument.
+  for the current process or for another process by passing that process's PID.
+  However, the capturing of any other named device, such as `:stderr`, is also
+  possible globally by giving the registered device name explicitly as an
+  argument.
 
   Note that when capturing something other than `:stdio`,
   the test should run with async false.
@@ -84,16 +85,28 @@ defmodule ExUnit.CaptureIO do
     do_capture_io(:standard_io, [], fun)
   end
 
+  def capture_io(pid, fun) when is_pid(pid) do
+    do_capture_io(pid, :standard_io, [], fun)
+  end
+
   def capture_io(device, fun) when is_atom(device) do
     capture_io(device, [], fun)
   end
 
   def capture_io(input, fun) when is_binary(input) do
-    capture_io(:standard_io, [input: input], fun)
+    do_capture_io(:standard_io, [input: input], fun)
   end
 
   def capture_io(options, fun) when is_list(options) do
-    capture_io(:standard_io, options, fun)
+    do_capture_io(:standard_io, options, fun)
+  end
+
+  def capture_io(pid, input, fun) when is_pid(pid) and is_binary(input) do
+    do_capture_io(pid, :standard_io, [input: input], fun)
+  end
+
+  def capture_io(pid, options, fun) when is_pid(pid) do
+    do_capture_io(pid, :standard_io, options, fun)
   end
 
   def capture_io(device, input, fun) when is_binary(input) do
@@ -138,6 +151,25 @@ defmodule ExUnit.CaptureIO do
       {:error, :already_captured} ->
         _ = StringIO.close(string_io)
         raise "IO device registered at #{inspect device} is already captured"
+    end
+  end
+
+  defp do_capture_io(pid, :standard_io, options, fun) do
+    prompt_config = Keyword.get(options, :capture_prompt, true)
+    input = Keyword.get(options, :input, "")
+
+    {:group_leader, original_gl} = Process.info(pid, :group_leader)
+    {:ok, capture_gl} = StringIO.open(input, capture_prompt: prompt_config)
+    case ExUnit.CaptureServer.process_capture_on(pid, original_gl, capture_gl) do
+      {:ok, ref} ->
+        try do
+          do_capture_io(capture_gl, fun)
+        after
+          ExUnit.CaptureServer.process_capture_off(ref)
+        end
+      {:error, :already_captured} ->
+        _ = StringIO.close(capture_gl)
+        raise "The process with PID #{inspect pid} is already captured"
     end
   end
 
