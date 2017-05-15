@@ -43,7 +43,7 @@ defmodule Supervisor do
       # keyword list containing the GenServer options that
       # set the registered name of the server to MyStack.
       children = [
-        worker(Stack, [[:hello], [name: MyStack]])
+        worker(Stack, [[:hello]], [name: MyStack])
       ]
 
       # Start the supervisor with our child
