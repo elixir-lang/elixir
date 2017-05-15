@@ -577,8 +577,8 @@ defmodule GenServer do
             {_, []}   -> self()
             {_, name} -> name
           end
-        :error_logger.error_msg('~p ~p received unexpected message in handle_info/2: ~p~n',
-                                [__MODULE__, proc, msg])
+        :error_logger.warning_msg('~p ~p received unexpected message in handle_info/2: ~p~n',
+                                  [__MODULE__, proc, msg])
         {:noreply, state}
       end
 
