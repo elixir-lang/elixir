@@ -216,20 +216,12 @@ defmodule StringIO do
 
   ## get_chars
 
-  defp get_chars(encoding, prompt, n,
-                 %{input: input, output: output, capture_prompt: capture_prompt} = s) do
+  defp get_chars(encoding, prompt, n, %{input: input} = s) do
     case do_get_chars(input, encoding, n) do
       {:error, _} = error ->
         {error, s}
       {result, input} ->
-        s =
-          if capture_prompt do
-            %{s | output: <<output::binary, IO.chardata_to_string(prompt)::binary>>}
-          else
-            s
-          end
-
-        {result, %{s | input: input}}
+        {result, state_after_read(s, input, prompt)}
     end
   end
 
@@ -263,35 +255,21 @@ defmodule StringIO do
 
   ## get_line
 
-  defp get_line(encoding, prompt,
-                %{input: input, output: output, capture_prompt: capture_prompt} = s) do
-    case :unicode.characters_to_list(input, encoding) do
-      {:error, _, _} ->
-        {{:error, :collect_line}, s}
-      {:incomplete, _, _} ->
-        {{:error, :collect_line}, s}
-      chars ->
-        {result, input} = do_get_line(chars, encoding)
+  defp get_line(encoding, prompt, %{input: input} = s) do
+    case bytes_until_eol(input, encoding, 0) do
+      {:split, 0} ->
+        {:eof, state_after_read(s, "", prompt)}
+      {:split, count} ->
+        {result, remainder} = :erlang.split_binary(input, count)
 
-        s =
-          if capture_prompt do
-            %{s | output: <<output::binary, IO.chardata_to_string(prompt)::binary>>}
-          else
-            s
-          end
+        {result, state_after_read(s, remainder, prompt)}
+      {:replace_split, count} ->
+        {result, remainder} = :erlang.split_binary(input, count)
 
-        {result, %{s | input: input}}
+        {:erlang.binary_part(result, 0, byte_size(result) - 2) <> "\n", state_after_read(s, remainder, prompt)}
+      :error
+        -> {{:error, :collect_line}, s}
     end
-  end
-
-  defp do_get_line('', _encoding) do
-    {:eof, ""}
-  end
-
-  defp do_get_line(chars, encoding) do
-    {line, rest} = collect_line(chars)
-    {:unicode.characters_to_binary(line, encoding),
-      :unicode.characters_to_binary(rest, encoding)}
   end
 
   ## get_until
@@ -358,6 +336,28 @@ defmodule StringIO do
   end
 
   ## helpers
+
+  defp state_after_read(%{capture_prompt: false} = s, remainder, _prompt) do
+    %{s | input: remainder}
+  end
+
+  defp state_after_read(%{capture_prompt: true, output: output} = s, remainder, prompt) do
+    %{s | input: remainder, output: <<output::binary, IO.chardata_to_string(prompt)::binary>>}
+  end
+
+  defp bytes_until_eol("", _, count), do: {:split, count}
+  defp bytes_until_eol(<<"\r\n"::binary, _::binary>>, _, count), do: {:replace_split, count + 2}
+  defp bytes_until_eol(<<"\n"::binary, _::binary>>, _, count), do: {:split, count + 1}
+
+  defp bytes_until_eol(<<head::utf8, tail::binary>>, :unicode, count) do
+    bytes_until_eol(tail, :unicode, count + byte_size(<<head::utf8>>))
+  end
+
+  defp bytes_until_eol(<<_, tail::binary>>, :latin1, count) do
+    bytes_until_eol(tail, :latin1, count + 1)
+  end
+
+  defp bytes_until_eol(<<_::binary>>, _, _), do: :error
 
   defp collect_line(chars) do
     collect_line(chars, [])
