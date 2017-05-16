@@ -66,6 +66,28 @@ defmodule EnumTest do
     assert Enum.chunk_by([1], fn _ -> true end) == [[1]]
   end
 
+  test "chunk_by/4" do
+    chunk_fun = fn i, acc ->
+      if rem(i, 2) == 0 do
+        {:cont, Enum.reverse([i | acc]), []}
+      else
+        {:cont, [i | acc]}
+      end
+    end
+
+    after_fun = fn
+      [] -> {:cont, []}
+      acc -> {:cont, Enum.reverse(acc), []}
+    end
+
+    assert [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] |> Enum.chunk_by([], chunk_fun, after_fun) ==
+      [[1, 2], [3, 4], [5, 6], [7, 8], [9, 10]]
+    assert 0..10 |> Enum.chunk_by([], chunk_fun, after_fun) ==
+      [[0], [1, 2], [3, 4], [5, 6], [7, 8], [9, 10]]
+    assert 0..11 |> Enum.chunk_by([], chunk_fun, after_fun) ==
+      [[0], [1, 2], [3, 4], [5, 6], [7, 8], [9, 10], [11]]
+  end
+
   test "concat/1" do
     assert Enum.concat([[1, [2], 3], [4], [5, 6]]) == [1, [2], 3, 4, 5, 6]
 

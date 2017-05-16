@@ -376,6 +376,32 @@ defmodule Enum do
     end
   end
 
+  @type acc     :: any
+
+  @doc """
+  Splits enumerable on every element for which `fun` returns a new
+  value.
+
+  Returns a list of lists.
+
+  ## Examples
+
+      iex> Enum.chunk_by([1, 2, 2, 3, 4, 4, 6, 7, 7], &(rem(&1, 2) == 1))
+      [[1], [2, 2], [3], [4, 4, 6], [7, 7]]
+
+  """
+  @spec chunk_by(t, acc,
+                 (element, acc -> {:cont, element, acc} | {:cont, acc}),
+                 (acc -> {:cont, element, acc} | {:cont, acc})) :: t
+  def chunk_by(enum, acc, chunk_fun, after_fun) do
+    {res, acc} = reduce(enum, {[], acc}, R.chunk_by(chunk_fun))
+
+    case after_fun.(acc) do
+      {:cont, acc} -> :lists.reverse(res)
+      {:cont, elem, acc} -> :lists.reverse([elem | res])
+    end
+  end
+
   @doc """
   Splits enumerable on every element for which `fun` returns a new
   value.
