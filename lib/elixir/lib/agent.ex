@@ -231,7 +231,7 @@ defmodule Agent do
 
   """
   @spec get(agent, (state -> a), timeout) :: a when a: var
-  def get(agent, fun, timeout \\ 5000) when is_function(fun, 1) do
+  def get(agent, fun \\ &(&1), timeout \\ 5000) when is_function(fun, 1) do
     GenServer.call(agent, {:get, fun}, timeout)
   end
 
