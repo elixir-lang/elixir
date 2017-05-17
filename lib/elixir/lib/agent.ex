@@ -58,7 +58,7 @@ defmodule Agent do
 
       # Compute in the agent/client
       def get_something(agent) do
-        Agent.get(agent, &(&1)) |> do_something_expensive()
+        Agent.get(agent, &(&1)) |> do_something_expensive())
       end
 
   The first function blocks the agent. The second function copies all the state
