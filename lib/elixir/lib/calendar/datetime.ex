@@ -633,6 +633,11 @@ defmodule DateTime do
     result_ppd = div(ppd * offset_ppd, gcd)
     days_offset = div(result_parts, result_ppd)
     final_parts = rem(result_parts, result_ppd)
-    {days + days_offset, {final_parts, result_ppd}}
+
+    if final_parts < 0 do
+      {days + days_offset - 1, {final_parts + result_ppd, result_ppd}}
+    else
+      {days + days_offset, {final_parts, result_ppd}}
+    end
   end
 end
