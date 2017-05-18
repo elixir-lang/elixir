@@ -8,6 +8,7 @@ defmodule ExUnit.CaptureLog do
         use ExUnit.Case
 
         import ExUnit.CaptureLog
+        require Logger
 
         test "example" do
           assert capture_log(fn ->
