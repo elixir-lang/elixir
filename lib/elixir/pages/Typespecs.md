@@ -93,6 +93,12 @@ The following literals are also supported in typespecs:
           | {}                            # empty tuple
           | {:ok, type}                   # two-element tuple with an atom and any type
 
+#### Function Signatures
+To express a function signature as a type, use the following syntax.
+```
+@type some_function_signature_type :: (integer -> integer)
+```
+The above example defines the type `some_function_signature_type` as a function that takes an integer as a parameter and returns an integer.
 ### Built-in types
 
 The following types are also provided by Elixir as shortcuts on top of the basic and literal types described above.
