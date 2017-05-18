@@ -753,6 +753,10 @@ defmodule Regex do
   def unescape_map(?a), do: ?\a
   def unescape_map(_),  do: false
 
+  @doc false
+  @spec inline(%__MODULE__{re_pattern: term, source: binary, opts: binary}) :: t
+  def inline(%Regex{} = regex), do: regex
+
   # Private Helpers
 
   defp translate_options(<<?u, t::binary>>, acc), do: translate_options(t, [:unicode, :ucp | acc])

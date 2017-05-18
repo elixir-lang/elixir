@@ -398,7 +398,7 @@ defmodule ExUnit.AssertionsTest do
     rescue
       error in [ExUnit.AssertionError] ->
         "foo" = error.left
-        ~r{a} = error.right
+        true = (~r{a} == error.right)
     end
   end
 
@@ -412,7 +412,7 @@ defmodule ExUnit.AssertionsTest do
     rescue
       error in [ExUnit.AssertionError] ->
         "foo" = error.left
-        ~r"o" = error.right
+        true = (~r"o" == error.right)
     end
   end
 
