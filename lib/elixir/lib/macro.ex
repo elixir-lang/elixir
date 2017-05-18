@@ -57,9 +57,11 @@ defmodule Macro do
 
   @typedoc "Abstract Syntax Tree (AST)"
   @type t :: expr | literal
+  @type t(name) :: expr(name)
 
   @typedoc "Represents expressions in the AST"
   @type expr :: {expr | atom, Keyword.t, atom | [t]}
+  @type expr(name) :: {name, Keyword.t, atom | [t]}
 
   @typedoc "Represents literals in the AST"
   @type literal :: atom | number | binary | fun | {t, t} | [t]
