@@ -259,8 +259,9 @@ expand_callback(Line, M, F, Args, E, Fun) ->
         EF
       catch
         Kind:Reason ->
+          Stacktrace = erlang:get_stacktrace(),
           Info = {M, F, length(Args), location(Line, E)},
-          erlang:raise(Kind, Reason, prune_stacktrace(Info, erlang:get_stacktrace()))
+          erlang:raise(Kind, Reason, prune_stacktrace(Info, Stacktrace))
       end
   end.
 

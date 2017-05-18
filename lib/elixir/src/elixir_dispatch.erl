@@ -186,10 +186,11 @@ expand_macro_fun(Meta, Fun, Receiver, Name, Args, E) ->
     apply(Fun, [EArg | Args])
   catch
     Kind:Reason ->
+      Stacktrace = erlang:get_stacktrace(),
       Arity = length(Args),
       MFA  = {Receiver, elixir_utils:macro_name(Name), Arity+1},
       Info = [{Receiver, Name, Arity, [{file, "expanding macro"}]}, caller(Line, E)],
-      erlang:raise(Kind, Reason, prune_stacktrace(erlang:get_stacktrace(), MFA, Info, EArg))
+      erlang:raise(Kind, Reason, prune_stacktrace(Stacktrace, MFA, Info, EArg))
   end.
 
 expand_macro_named(Meta, Receiver, Name, Arity, Args, E) ->
@@ -208,9 +209,10 @@ expand_quoted(Meta, Receiver, Name, Arity, Quoted, E) ->
       E)
   catch
     Kind:Reason ->
+      Stacktrace = erlang:get_stacktrace(),
       MFA  = {Receiver, elixir_utils:macro_name(Name), Arity+1},
       Info = [{Receiver, Name, Arity, [{file, "expanding macro"}]}, caller(Line, E)],
-      erlang:raise(Kind, Reason, prune_stacktrace(erlang:get_stacktrace(), MFA, Info, nil))
+      erlang:raise(Kind, Reason, prune_stacktrace(Stacktrace, MFA, Info, nil))
   end.
 
 caller(Line, E) ->
