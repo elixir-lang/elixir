@@ -356,6 +356,9 @@ defmodule DateTime do
 
   Time representations with reduced accuracy are not supported.
 
+  Note that while ISO8601 allows datetimes to specify 24:00:00 as the
+  zero hour of the next day, this notation is not supported by Elixir.
+
   ## Examples
 
       iex> DateTime.from_iso8601("2015-01-23T23:50:07Z")
