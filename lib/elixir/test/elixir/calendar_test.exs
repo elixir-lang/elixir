@@ -158,6 +158,18 @@ defmodule DateTimeTest do
     assert to_string(datetime) == "2000-02-29 23:00:07-02:30 BRM Brazil/Manaus"
   end
 
+  test "from_iso8601/1 handles positive and negative offsets" do
+     assert DateTime.from_iso8601("2015-01-24T09:50:07-10:00") |> elem(1) ==
+            %DateTime{microsecond: {0, 0}, month: 1, std_offset: 0, time_zone: "Etc/UTC",
+                      utc_offset: 0, year: 2015, zone_abbr: "UTC", day: 24, hour: 19,
+                      minute: 50, second: 7}
+
+     assert DateTime.from_iso8601("2015-01-24T09:50:07+10:00") |> elem(1) ==
+            %DateTime{microsecond: {0, 0}, month: 1, std_offset: 0, time_zone: "Etc/UTC",
+                      utc_offset: 0, year: 2015, zone_abbr: "UTC", day: 23, hour: 23,
+                      minute: 50, second: 7}
+  end
+
   test "from_unix/2" do
     # with Unix times back to 0 Gregorian seconds
     min_datetime = %DateTime{
