@@ -7,6 +7,10 @@ defmodule Calendar.ISO do
   today. The proleptic means the Gregorian rules for leap years are
   applied for all time, consequently the dates give different results
   before the year 1583 from when the Gregorian calendar was adopted.
+
+  Note that while ISO8601 allows times and datetimes to specify
+  24:00:00 as the zero hour of the next day, this notation is not
+  supported by Elixir.
   """
 
   @behaviour Calendar
