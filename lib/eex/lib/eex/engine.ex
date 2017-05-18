@@ -83,7 +83,7 @@ defmodule EEx.Engine do
 
   @doc false
   # TODO: Raise on 2.0
-  @spec fetch_assign!(map, Map.key) :: term | nil
+  @spec fetch_assign!(Access.t, Access.key) :: term | nil
   def fetch_assign!(assigns, key) do
     case Access.fetch(assigns, key) do
       {:ok, val} ->
