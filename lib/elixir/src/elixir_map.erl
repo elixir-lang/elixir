@@ -162,9 +162,10 @@ load_struct(Meta, Name, Args, InContext, E) ->
       end;
 
     Kind:Reason ->
+      Stacktrace = erlang:get_stacktrace(),
       Info = [{Name, '__struct__', Arity, [{file, "expanding struct"}]},
               elixir_utils:caller(?line(Meta), ?key(E, file), ?key(E, module), ?key(E, function))],
-      erlang:raise(Kind, Reason, prune_stacktrace(erlang:get_stacktrace(), Name, Arity) ++ Info)
+      erlang:raise(Kind, Reason, prune_stacktrace(Stacktrace, Name, Arity) ++ Info)
   end.
 
 prune_stacktrace([{Module, '__struct__', Arity, _} | _], Module, Arity) ->
