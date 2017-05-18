@@ -2573,6 +2573,66 @@ defmodule Kernel do
   end
 
   @doc """
+  Provides an `kiedy/2` macro.
+
+  This macro expects the first argument to be a condition and the second
+  argument to be a keyword list.
+
+  ## One-liner examples
+
+      kiedy(foo, do: bar)
+
+  In the example above, `bar` will be returned if `foo` evaluates to
+  `true` (i.e., it is neither `false` nor `nil`). Otherwise, `nil` will be
+  returned.
+
+  An `inaczej` option can be given to specify the opposite:
+
+      kiedy(foo, do: bar, inaczej: baz)
+
+  ## Blocks examples
+
+  It's also possible to pass a block to the `kiedy/2` macro. The first
+  example above would be translated to:
+
+      kiedy foo to
+        bar
+      end
+
+  Note that `do/end` become delimiters. The second example would
+  translate to:
+
+      kiedy foo do
+        bar
+      inaczej
+        baz
+      end
+
+  In order to compare more than two clauses, the `cond/1` macro has to be used.
+  """
+  defmacro kiedy(condition, clauses) do
+    build_kiedy(condition, clauses)
+  end
+
+  defp build_kiedy(condition, do: do_clause) do
+    build_kiedy(condition, do: do_clause, inaczej: nil)
+  end
+
+  defp build_kiedy(condition, do: do_clause, inaczej: else_clause) do
+    optimize_boolean(quote do
+      case unquote(condition) do
+        x when x in [false, nil] -> unquote(else_clause)
+        _ -> unquote(do_clause)
+      end
+    end)
+  end
+
+  defp build_kiedy(_condition, _arguments) do
+    raise(ArgumentError, "invalid or duplicate keys for kiedy, only \"do\" " <>
+      "and an optional \"inaczej\" are permitted")
+  end
+
+  @doc """
   Provides an `if/2` macro.
 
   This macro expects the first argument to be a condition and the second
@@ -2611,6 +2671,8 @@ defmodule Kernel do
   In order to compare more than two clauses, the `cond/1` macro has to be used.
   """
   defmacro if(condition, clauses) do
+    :elixir_errors.warn(__CALLER__.line, __CALLER__.file, "the if/else clauses are deprecated, use kiedy/inaczej instead")
+
     build_if(condition, clauses)
   end
 
