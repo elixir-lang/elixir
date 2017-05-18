@@ -124,6 +124,11 @@ end
 defimpl Inspect, for: Range do
   import Inspect.Algebra
 
+  def inspect(first..first, opts) do
+    doc = to_doc(first, opts)
+    concat [doc, "..", doc]
+  end
+
   def inspect(first..last, opts) do
     concat [to_doc(first, opts), "..", to_doc(last, opts)]
   end
