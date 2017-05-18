@@ -157,8 +157,9 @@ defmodule IEx.Evaluator do
       %{state | binding: binding, env: :elixir.env_for_eval(env, file: "iex", line: 1)}
     catch
       kind, error ->
+        stacktrace = System.stacktrace()
         io_result "Error while evaluating: #{path}"
-        print_error(kind, error, System.stacktrace)
+        print_error(kind, error, stacktrace)
         System.halt(1)
     end
   end
