@@ -244,14 +244,14 @@ defmodule Logger.Utils do
         true  -> :calendar.now_to_universal_time(now)
         false -> :calendar.now_to_local_time(now)
       end
-    {date, {hours, minutes, seconds, div(micro, 1000)}}
+    {date, {hours, minutes, seconds, micro}}
   end
 
   @doc """
   Formats time as chardata.
   """
   def format_time({hh, mi, ss, ms}) do
-    [pad2(hh), ?:, pad2(mi), ?:, pad2(ss), ?., pad3(ms)]
+    [pad2(hh), ?:, pad2(mi), ?:, pad2(ss), ?., ms |> div(1000) |> pad3()]
   end
 
   @doc """
