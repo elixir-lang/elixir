@@ -569,6 +569,7 @@ defmodule StringTest do
     assert String.valid?("afds")
     assert String.valid?("øsdfh")
     assert String.valid?("dskfjあska")
+    assert String.valid?(<<0xFDD0::16>>)
 
     refute String.valid?(<<0xFFFF::16>>)
     refute String.valid?("asd" <> <<0xFFFF::16>>)
