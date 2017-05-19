@@ -1299,8 +1299,8 @@ defmodule String do
       iex> String.chunk(<<?a, ?b, ?c, 0>>, :valid)
       ["abc\0"]
 
-      iex> String.chunk(<<?a, ?b, ?c, 0, 0x0FFFF::utf8>>, :valid)
-      ["abc\0" <> <<0x0FFFF::utf8>>]
+      iex> String.chunk(<<?a, ?b, ?c, 0, 0xFFFF::utf16>>, :valid)
+      ["abc\0", <<0xFFFF::utf16>>]
 
       iex> String.chunk(<<?a, ?b, ?c, 0, 0x0FFFF::utf8>>, :printable)
       ["abc", <<0, 0x0FFFF::utf8>>]

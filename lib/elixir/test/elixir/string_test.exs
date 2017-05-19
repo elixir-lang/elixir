@@ -580,12 +580,6 @@ defmodule StringTest do
 
     assert String.chunk("ødskfjあ\x11ska", :valid)
            == ["ødskfjあ\x11ska"]
-    assert String.chunk("abc\u{0ffff}def", :valid)
-           == ["abc" <> <<0x0FFFF::utf8>> <> "def"]
-    assert String.chunk("\u{0FFFE}\u{3FFFF}привет\u{0FFFF}мир", :valid)
-           == [<<0x0FFFE::utf8, 0x3FFFF::utf8>> <> "привет" <> <<0x0FFFF::utf8>> <> "мир"]
-    assert String.chunk("日本\u{0FFFF}\u{FDEF}ござございます\u{FDD0}", :valid)
-           == ["日本" <> <<0x0FFFF::utf8, 0xFDEF::utf8>> <> "ござございます" <> <<0xFDD0::utf8>>]
   end
 
   test "chunk/2 with :printable trait" do
