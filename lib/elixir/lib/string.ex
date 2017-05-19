@@ -1254,22 +1254,15 @@ defmodule String do
       iex> String.valid?(<<0xFFFF :: 16>>)
       false
 
+      iex> String.valid?(<<0xEF, 0xB7, 0x90>>)
+      true
+
       iex> String.valid?("asd" <> <<0xFFFF :: 16>>)
       false
 
   """
   @spec valid?(t) :: boolean
   def valid?(string)
-
-  noncharacters = Enum.to_list(0xFDD0..0xFDEF) ++
-    [0x0FFFE, 0x0FFFF, 0x1FFFE, 0x1FFFF, 0x2FFFE, 0x2FFFF,
-     0x3FFFE, 0x3FFFF, 0x4FFFE, 0x4FFFF, 0x5FFFE, 0x5FFFF,
-     0x6FFFE, 0x6FFFF, 0x7FFFE, 0x7FFFF, 0x8FFFE, 0x8FFFF,
-     0x9FFFE, 0x9FFFF, 0x10FFFE, 0x10FFFF]
-
-  for noncharacter <- noncharacters do
-    def valid?(<<unquote(noncharacter)::utf8, _::binary>>), do: false
-  end
 
   def valid?(<<_::utf8, t::binary>>), do: valid?(t)
   def valid?(<<>>), do: true
@@ -1306,8 +1299,8 @@ defmodule String do
       iex> String.chunk(<<?a, ?b, ?c, 0>>, :valid)
       ["abc\0"]
 
-      iex> String.chunk(<<?a, ?b, ?c, 0, 0x0FFFF::utf8>>, :valid)
-      ["abc\0", <<0x0FFFF::utf8>>]
+      iex> String.chunk(<<?a, ?b, ?c, 0, 0xFFFF::utf16>>, :valid)
+      ["abc\0", <<0xFFFF::utf16>>]
 
       iex> String.chunk(<<?a, ?b, ?c, 0, 0x0FFFF::utf8>>, :printable)
       ["abc", <<0, 0x0FFFF::utf8>>]
