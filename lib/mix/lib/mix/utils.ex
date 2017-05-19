@@ -218,7 +218,7 @@ defmodule Mix.Utils do
   The callback will be invoked for each node and it
   must return a `{printed, children}` tuple.
   """
-  @spec print_tree([tree_node], (tree_node -> {tree_node, [tree_node]}), Keyword.t) :: :ok
+  @spec print_tree([tree_node], (tree_node -> {tree_node, [tree_node]}), keyword) :: :ok
   def print_tree(nodes, callback, opts \\ []) do
     pretty? =
       case Keyword.get(opts, :format) do
@@ -270,7 +270,7 @@ defmodule Mix.Utils do
   The callback will be invoked for each node and it
   must return a `{printed, children}` tuple.
   """
-  @spec write_dot_graph!(Path.t, String.t, [tree_node], (tree_node -> {tree_node, [tree_node]}), Keyword.t) :: :ok
+  @spec write_dot_graph!(Path.t, String.t, [tree_node], (tree_node -> {tree_node, [tree_node]}), keyword) :: :ok
   def write_dot_graph!(path, title, nodes, callback, _opts \\ []) do
     {dot, _} = build_dot_graph(make_ref(), nodes, MapSet.new(), callback)
     File.write! path, "digraph \"#{title}\" {\n#{dot}}\n"
@@ -435,7 +435,7 @@ defmodule Mix.Utils do
     * `:sha512` - checks against the given SHA-512 checksum. Returns
       `{:checksum, message}` in case it fails
   """
-  @spec read_path(String.t, Keyword.t) ::
+  @spec read_path(String.t, keyword) ::
         {:ok, binary} | :badpath | {:remote, String.t} |
         {:local, String.t} | {:checksum, String.t}
   def read_path(path, opts \\ []) do

@@ -4,7 +4,7 @@ defmodule Mix.ProjectStack do
   @timeout 30_000
 
   @typep file    :: binary
-  @typep config  :: Keyword.t
+  @typep config  :: keyword
   @typep project :: %{name: module, config: config, file: file}
 
   @spec start_link :: {:ok, pid}

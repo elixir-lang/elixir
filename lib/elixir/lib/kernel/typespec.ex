@@ -153,7 +153,7 @@ defmodule Kernel.Typespec do
   @doc """
   Converts a spec clause back to Elixir AST.
   """
-  @spec spec_to_ast(atom, tuple) :: {atom, Keyword.t, [Macro.t]}
+  @spec spec_to_ast(atom, tuple) :: {atom, keyword, [Macro.t]}
   def spec_to_ast(name, spec)
   def spec_to_ast(name, {:type, line, :fun, [{:type, _, :product, args}, result]})
       when is_atom(name) do

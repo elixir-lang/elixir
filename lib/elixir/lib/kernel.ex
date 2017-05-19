@@ -1687,7 +1687,7 @@ defmodule Kernel do
       #=> #Function<...>
 
   """
-  @spec inspect(Inspect.t, Keyword.t) :: String.t
+  @spec inspect(Inspect.t, keyword) :: String.t
   def inspect(term, opts \\ []) when is_list(opts) do
     opts = struct(Inspect.Opts, opts)
     limit = case opts.pretty do

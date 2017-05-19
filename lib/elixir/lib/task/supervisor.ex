@@ -150,7 +150,7 @@ defmodule Task.Supervisor do
       Enum.to_list(stream)
 
   """
-  @spec async_stream(Supervisor.supervisor, Enumerable.t, module, atom, [term], Keyword.t) ::
+  @spec async_stream(Supervisor.supervisor, Enumerable.t, module, atom, [term], keyword) ::
         Enumerable.t
   def async_stream(supervisor, enumerable, module, function, args, options \\ [])
       when is_atom(module) and is_atom(function) and is_list(args) do
@@ -167,7 +167,7 @@ defmodule Task.Supervisor do
 
   See `async_stream/6` for discussion, options, and examples.
   """
-  @spec async_stream(Supervisor.supervisor, Enumerable.t, (term -> term), Keyword.t) ::
+  @spec async_stream(Supervisor.supervisor, Enumerable.t, (term -> term), keyword) ::
         Enumerable.t
   def async_stream(supervisor, enumerable, fun, options \\ []) when is_function(fun, 1) do
     build_stream(supervisor, :link, enumerable, fun, options)
@@ -183,7 +183,7 @@ defmodule Task.Supervisor do
 
   See `async_stream/6` for discussion, options, and examples.
   """
-  @spec async_stream_nolink(Supervisor.supervisor, Enumerable.t, module, atom, [term], Keyword.t) ::
+  @spec async_stream_nolink(Supervisor.supervisor, Enumerable.t, module, atom, [term], keyword) ::
         Enumerable.t
   def async_stream_nolink(supervisor, enumerable, module, function, args, options \\ [])
       when is_atom(module) and is_atom(function) and is_list(args) do
@@ -200,7 +200,7 @@ defmodule Task.Supervisor do
 
   See `async_stream/6` for discussion and examples.
   """
-  @spec async_stream_nolink(Supervisor.supervisor, Enumerable.t, (term -> term), Keyword.t) ::
+  @spec async_stream_nolink(Supervisor.supervisor, Enumerable.t, (term -> term), keyword) ::
         Enumerable.t
   def async_stream_nolink(supervisor, enumerable, fun, options \\ []) when is_function(fun, 1) do
     build_stream(supervisor, :nolink, enumerable, fun, options)

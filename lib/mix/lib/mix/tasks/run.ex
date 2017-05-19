@@ -57,7 +57,7 @@ defmodule Mix.Tasks.Run do
   end
 
   @doc false
-  @spec run(OptionParser.argv, Keyword.t, OptionParser.argv,
+  @spec run(OptionParser.argv, keyword, OptionParser.argv,
             (String.t -> term()), (String.t -> term())) :: :ok
   def run(args, opts, head, expr_evaluator, file_evaluator) do
     # TODO: Remove on v2.0

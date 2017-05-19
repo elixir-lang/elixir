@@ -183,7 +183,7 @@ defmodule Mix.Project do
   Use it only to configure aspects of your project (like
   compilation directories) and not your application runtime.
   """
-  @spec config() :: Keyword.t
+  @spec config() :: keyword
   def config do
     case Mix.ProjectStack.peek do
       %{config: config} -> config
@@ -314,7 +314,7 @@ defmodule Mix.Project do
       #=> "Mixfile is: MyApp.Mixfile"
 
   """
-  @spec in_project(atom, Path.t, Keyword.t, (module -> result)) :: result when result: term
+  @spec in_project(atom, Path.t, keyword, (module -> result)) :: result when result: term
   def in_project(app, path, post_config \\ [], fun)
 
   def in_project(app, ".", post_config, fun) do
@@ -352,7 +352,7 @@ defmodule Mix.Project do
       #=> "/path/to/project/deps"
 
   """
-  @spec deps_path(Keyword.t) :: Path.t
+  @spec deps_path(keyword) :: Path.t
   def deps_path(config \\ config()) do
     Path.expand config[:deps_path]
   end
@@ -394,7 +394,7 @@ defmodule Mix.Project do
       #=> "/path/to/project/_build/dev"
 
   """
-  @spec build_path(Keyword.t) :: Path.t
+  @spec build_path(keyword) :: Path.t
   def build_path(config \\ config()) do
     config[:env_path] || env_path(config)
   end
@@ -428,7 +428,7 @@ defmodule Mix.Project do
       #=> "/path/to/project/_build/shared/lib/app"
 
   """
-  @spec manifest_path(Keyword.t) :: Path.t
+  @spec manifest_path(keyword) :: Path.t
   def manifest_path(config \\ config()) do
     config[:app_path] ||
       if app = config[:app] do
@@ -449,7 +449,7 @@ defmodule Mix.Project do
       #=> "/path/to/project/_build/shared/lib/app"
 
   """
-  @spec app_path(Keyword.t) :: Path.t
+  @spec app_path(keyword) :: Path.t
   def app_path(config \\ config()) do
     config[:app_path] || cond do
       app = config[:app] ->
@@ -476,7 +476,7 @@ defmodule Mix.Project do
       #=> "/path/to/project/_build/shared/lib/app/ebin"
 
   """
-  @spec compile_path(Keyword.t) :: Path.t
+  @spec compile_path(keyword) :: Path.t
   def compile_path(config \\ config()) do
     Path.join(app_path(config), "ebin")
   end
@@ -499,7 +499,7 @@ defmodule Mix.Project do
   @doc """
   Compiles the given project.
   """
-  @spec compile([term], Keyword.t) :: term
+  @spec compile([term], keyword) :: term
   def compile(args, _config \\ []) do
     Mix.Task.run "compile", args
   end
@@ -512,7 +512,7 @@ defmodule Mix.Project do
     * `:symlink_ebin` - symlink ebin instead of copying it
 
   """
-  @spec build_structure(Keyword.t, Keyword.t) :: :ok
+  @spec build_structure(keyword, keyword) :: :ok
   def build_structure(config \\ config(), opts \\ []) do
     app = app_path(config)
     File.mkdir_p!(app)
@@ -551,7 +551,7 @@ defmodule Mix.Project do
 
   In case it does exist, it is a no-op. Otherwise, it is built.
   """
-  @spec ensure_structure(Keyword.t, Keyword.t) :: :ok
+  @spec ensure_structure(keyword, keyword) :: :ok
   def ensure_structure(config \\ config(), opts \\ []) do
     if File.exists?(app_path(config)) do
       :ok
@@ -563,7 +563,7 @@ defmodule Mix.Project do
   @doc """
   Returns all load paths for the given project.
   """
-  @spec load_paths(Keyword.t) :: [Path.t]
+  @spec load_paths(keyword) :: [Path.t]
   def load_paths(config \\ config()) do
     if umbrella?(config) do
       []

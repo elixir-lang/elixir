@@ -22,7 +22,7 @@ defmodule Mix.Local.Installer do
   @doc """
   Checks that the `install_spec` and `opts` are supported by the respective module.
   """
-  @callback check_install_spec(install_spec, opts :: Keyword.t) :: :ok | {:error, String.t}
+  @callback check_install_spec(install_spec, opts :: keyword) :: :ok | {:error, String.t}
 
   @doc """
   Returns a list of already installed version of the same artifact.
@@ -46,7 +46,7 @@ defmodule Mix.Local.Installer do
   Relies on a few callbacks provided by respective callback modules
   for customizing certain steps in the installation process.
   """
-  @spec install(module, OptionParser.argv, Keyword.t) :: boolean
+  @spec install(module, OptionParser.argv, keyword) :: boolean
   def install(module, argv, switches) do
     {opts, args} = OptionParser.parse!(argv, strict: switches)
 
@@ -147,7 +147,7 @@ defmodule Mix.Local.Installer do
   @doc """
   Receives `argv` and `opts` from options parsing and returns an `install_spec`.
   """
-  @spec parse_args([String.t], Keyword.t) :: install_spec
+  @spec parse_args([String.t], keyword) :: install_spec
   def parse_args(argv, opts)
 
   def parse_args([], _opts) do

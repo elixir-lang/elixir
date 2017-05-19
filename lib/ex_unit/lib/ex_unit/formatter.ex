@@ -92,7 +92,7 @@ defmodule ExUnit.Formatter do
       "Including tags: [run: true, slow: false]"
 
   """
-  @spec format_filters(Keyword.t, atom) :: String.t
+  @spec format_filters(keyword, atom) :: String.t
   def format_filters(filters, type) do
     case type do
       :include -> "Including tags: #{inspect filters}"

@@ -59,7 +59,7 @@ defmodule Macro do
   @type t :: expr | literal
 
   @typedoc "Represents expressions in the AST"
-  @type expr :: {expr | atom, Keyword.t, atom | [t]}
+  @type expr :: {expr | atom, keyword, atom | [t]}
 
   @typedoc "Represents literals in the AST"
   @type literal :: atom | number | binary | fun | {t, t} | [t]
@@ -280,7 +280,7 @@ defmodule Macro do
       {:sample, [], []}
 
   """
-  @spec update_meta(t, (Keyword.t -> Keyword.t)) :: t
+  @spec update_meta(t, (keyword -> keyword)) :: t
   def update_meta(quoted, fun)
 
   def update_meta({left, meta, right}, fun) when is_list(meta) do
@@ -474,7 +474,7 @@ defmodule Macro do
       1
 
   """
-  @spec escape(term, Keyword.t) :: Macro.t
+  @spec escape(term, keyword) :: Macro.t
   def escape(expr, opts \\ []) do
     elem(:elixir_quote.escape(expr, Keyword.get(opts, :unquote, false)), 0)
   end
