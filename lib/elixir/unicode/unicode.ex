@@ -429,6 +429,10 @@ defmodule String.Casing do
     end
   end
 
+  def titlecase_once(<<char::utf8, rest::binary>>) do
+    {<<char::utf8>>, rest}
+  end
+
   def titlecase_once(<<char, rest::binary>>) do
     {<<char>>, rest}
   end
