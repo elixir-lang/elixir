@@ -331,6 +331,10 @@ defmodule Kernel.ExpansionTest do
       end
     end
 
+    test "dynamic syntax expands to itself" do
+      assert expand(quote do: (%x{} = 1)) == expand(quote do: (%x{} = 1))
+    end
+
     test "unknown ^keys in structs" do
       message = ~r"unknown key \^my_key for struct Kernel\.ExpansionTest\.User"
       assert_raise CompileError, message, fn ->
