@@ -661,7 +661,7 @@ defmodule Access do
   An error is raised for negative indexes:
 
       iex> get_in([], [Access.at(-1)])
-      ** (FunctionClauseError) no function clause matching in Access.at/1
+      ** (FunctionClauseError) there is no definition of Access.at/1 that expects the arguments at positions:\n\nAccess.at(-1)
 
   An error is raised if the accessed structure is not a list:
 
