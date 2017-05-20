@@ -56,9 +56,7 @@ expand_struct(Meta, Left, {'%{}', MapMeta, MapArgs}, #{context := Context} = E) 
       end;
 
     true ->
-      %% A match without a compile time struct is treated as a regular map.
-      {expand, _, Assocs} = extract_struct_assocs(Meta, ERight, E),
-      {{'%{}', Meta, Assocs ++ [{'__struct__', ELeft}]}, EE};
+      {{'%', Meta, [ELeft, ERight]}, EE};
 
     false when Context == match ->
       form_error(Meta, ?key(E, file), ?MODULE, {invalid_struct_name_in_match, ELeft});
