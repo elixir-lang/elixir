@@ -671,13 +671,13 @@ defmodule GenServer do
   defp do_start(link, module, args, options) do
     case Keyword.pop(options, :name) do
       {nil, opts} ->
-        :gen.start(:gen_server, link, module, args, opts)
+        :gen.start(GenServer.Loop, link, module, args, opts)
       {atom, opts} when is_atom(atom) ->
-        :gen.start(:gen_server, link, {:local, atom}, module, args, opts)
+        :gen.start(GenServer.Loop, link, {:local, atom}, module, args, opts)
       {{:global, _term} = tuple, opts} ->
-        :gen.start(:gen_server, link, tuple, module, args, opts)
+        :gen.start(GenServer.Loop, link, tuple, module, args, opts)
       {{:via, via_module, _term} = tuple, opts} when is_atom(via_module) ->
-        :gen.start(:gen_server, link, tuple, module, args, opts)
+        :gen.start(GenServer.Loop, link, tuple, module, args, opts)
       other ->
         raise ArgumentError, """
         expected :name option to be one of:
