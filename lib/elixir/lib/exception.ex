@@ -141,7 +141,6 @@ defmodule Exception do
   (as they are retrieved as messages without stacktraces).
   """
   @spec format(kind, any, stacktrace | nil) :: String.t
-
   def format(kind, payload, stacktrace \\ nil)
 
   def format({:EXIT, _} = kind, any, _) do
@@ -640,19 +639,8 @@ defmodule UndefinedFunctionError do
       " is undefined (module #{inspect module} is not available)"
   end
 
-  def message(%{reason: :"function not exported",  module: module, function: function, arity: arity, exports: exports}) do
-    suffix =
-      if macro_exported?(module, function, arity) do
-        ". However there is a macro with the same name and arity." <>
-          " Be sure to require #{inspect(module)} if you intend to invoke this macro"
-      else
-        did_you_mean(module, function, arity, exports)
-      end
-
-    "function " <>
-      Exception.format_mfa(module, function, arity) <>
-      " is undefined or private" <>
-      suffix
+  def message(%{reason: :"function not exported",  module: module, function: function, arity: arity}) do
+    IO.iodata_to_binary(function_not_exported(module, function, arity, nil))
   end
 
   def message(%{reason: :"function not available", module: module, function: function, arity: arity}) do
@@ -665,10 +653,23 @@ defmodule UndefinedFunctionError do
     "function " <> Exception.format_mfa(module, function, arity) <> " is undefined (#{reason})"
   end
 
+  @doc false
+  def function_not_exported(module, function, arity, exports) do
+    suffix =
+      if macro_exported?(module, function, arity) do
+        ". However there is a macro with the same name and arity. " <>
+          "Be sure to require #{inspect(module)} if you intend to invoke this macro"
+      else
+        did_you_mean(module, function, exports)
+      end
+
+    ["function ", Exception.format_mfa(module, function, arity), " is undefined or private", suffix]
+  end
+
   @function_threshold 0.77
   @max_suggestions 5
 
-  defp did_you_mean(module, function, _arity, exports) do
+  defp did_you_mean(module, function, exports) do
     exports = exports || exports_for(module)
 
     result =
@@ -687,14 +688,14 @@ defmodule UndefinedFunctionError do
       |> Enum.sort(&elem(&1, 1) <= elem(&2, 1))
 
     case result do
-      []          -> ""
-      suggestions -> ". Did you mean one of:\n\n#{Enum.map(suggestions, &format_fa/1)}"
+      []          -> []
+      suggestions -> [". Did you mean one of:\n\n" | Enum.map(suggestions, &format_fa/1)]
     end
   end
 
   defp format_fa({_dist, fun, arity}) do
     fun = with ":" <> fun <- inspect(fun), do: fun
-    "      * " <> fun <> "/" <> Integer.to_string(arity) <> "\n"
+    ["      * ", fun, ?/, Integer.to_string(arity), ?\n]
   end
 
   defp exports_for(module) do
