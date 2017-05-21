@@ -258,7 +258,7 @@ defmodule Access do
   @spec fetch(nil_container, any) :: :error
   def fetch(container, key)
 
-  def fetch(%{__struct__: struct} = container, key) do
+  def fetch(%struct{} = container, key) do
     struct.fetch(container, key)
   rescue
     e in UndefinedFunctionError ->

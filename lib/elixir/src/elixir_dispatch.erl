@@ -212,7 +212,7 @@ expand_quoted(Meta, Receiver, Name, Arity, Quoted, E) ->
       Stacktrace = erlang:get_stacktrace(),
       MFA  = {Receiver, elixir_utils:macro_name(Name), Arity+1},
       Info = [{Receiver, Name, Arity, [{file, "expanding macro"}]}, caller(Line, E)],
-      erlang:raise(Kind, Reason, prune_stacktrace(Stacktrace, MFA, Info, nil))
+      erlang:raise(Kind, Reason, prune_stacktrace(Stacktrace, MFA, Info, E))
   end.
 
 caller(Line, E) ->

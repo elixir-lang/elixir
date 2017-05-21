@@ -19,6 +19,7 @@
 -type keyword() :: [{atom(), any()}].
 -type keyword(T) :: [{atom(), T}].
 
+%% TODO: Remove ifdef once we drop OTP 18
 -ifdef(old_map_specs).
 -type struct() :: #{'__struct__' => atom(), atom() => any()}.
 -else.

@@ -157,6 +157,159 @@ defmodule Exception do
   end
 
   @doc """
+  Attaches information to exceptions for extra debugging.
+
+  This operation is potentially expensive, as it reads data
+  from the filesystem, parse beam files, evaluates code and
+  so on. Currently the following exceptions may be annotated:
+
+    * `FunctionClauseError` - annotated with the arguments
+      used on the call and available clauses
+
+  """
+  @spec blame(:error, any, stacktrace) :: t
+  @spec blame(kind, payload, stacktrace) :: payload when payload: var
+  def blame(:error, error, stacktrace) do
+    case normalize(:error, error, stacktrace) do
+      %{__struct__: FunctionClauseError} = struct ->
+        blame_function_clause_error(struct, stacktrace)
+      _ ->
+        {error, stacktrace}
+    end
+  end
+
+  def blame(_kind, reason, stacktrace) do
+    {reason, stacktrace}
+  end
+
+  defp blame_function_clause_error(%{module: module, function: function, arity: arity} = exception,
+                                   [{module, function, args, meta} | rest])
+       when length(args) == arity do
+    exception =
+      case blame_mfa(module, function, args) do
+        {:ok, kind, clauses} -> %{exception | args: args, kind: kind, clauses: clauses}
+        :error -> %{exception | args: args}
+      end
+    {exception, [{module, function, arity, meta} | rest]}
+  end
+  defp blame_function_clause_error(exception, stacktrace) do
+    {exception, stacktrace}
+  end
+
+  @doc """
+  Blames the invocation of the given module, function and arguments.
+
+  This function will retrieve the available clauses from bytecode
+  and evaluate them against the given arguments. The clauses are
+  returned as a list of `{args, guards}` pairs where each argument
+  and each top-level condition in a guard separated by `and`/`or`
+  is wrapped in a tuple with blame metadata.
+
+  This function returns either `{:ok, kind, clauses}` or `:error`.
+  Where `kind` is `:def` or `:defp`. Note this functionality requires
+  Erlang/OTP 20, otherwise `:error` is always returned.
+  """
+  @spec blame_mfa(module, function, args :: [term]) ::
+        {:ok, :def | :defp, [{args :: [term], guards :: [term]}]} | :error
+  def blame_mfa(module, function, args) when is_atom(module) and is_atom(function) and is_list(args) do
+    try do
+      blame_mfa(module, function, length(args), args)
+    rescue
+      _ -> :error
+    end
+  end
+
+  defp blame_mfa(module, function, arity, call_args) do
+    with path when is_list(path) <- :code.which(module),
+         {:ok, {_, [debug_info: {:debug_info_v1, backend, data}]}} <- :beam_lib.chunks(path, [:debug_info]),
+         {:ok, %{definitions: defs}} <- backend.debug_info(:elixir_v1, module, data, []),
+         {_, kind, _, clauses} <- List.keyfind(defs, {function, arity}, 0) do
+      clauses =
+        for {meta, ex_args, guards, _block} <- clauses do
+          scope = :elixir_erl.definition_scope(meta, kind, function, arity, "nofile")
+          {erl_args, scope} = :elixir_erl_clauses.match(&:elixir_erl_pass.translate_args/2, ex_args, scope)
+          {args, binding} = blame_args(call_args, ex_args, erl_args, [], [])
+          guards = Enum.map(guards, &blame_guard(&1, scope, binding))
+          {args, guards}
+        end
+      {:ok, kind, clauses}
+    else
+      _ -> :error
+    end
+  end
+
+  defp blame_args([call_arg | call_args], [ex_arg | ex_args], [erl_arg | erl_args], binding, ann_args) do
+    {match?, binding} = blame_arg(erl_arg, call_arg, binding)
+    blame_args(call_args, ex_args, erl_args, binding,
+               [blame_wrap(match?, rewrite_arg(ex_arg)) | ann_args])
+  end
+  defp blame_args([], [], [], binding, ann_args) do
+    {Enum.reverse(ann_args), binding}
+  end
+
+  defp blame_arg(erl_arg, call_arg, binding) do
+    binding = List.keystore(binding, :VAR, 0, {:VAR, call_arg})
+    try do
+      {:value, _, binding} = :erl_eval.expr({:match, 0, erl_arg, {:var, 0, :VAR}}, binding, :none)
+      {true, binding}
+    rescue
+      _ -> {false, binding}
+    end
+  end
+
+  defp rewrite_arg(arg) do
+    Macro.prewalk(arg, fn
+      {:%{}, meta, [__struct__: Range, first: first, last: last]} ->
+        {:.., meta, [first, last]}
+      other ->
+        other
+    end)
+  end
+
+  defp blame_guard({{:., _, [:erlang, op]}, meta, [left, right]}, scope, binding)
+       when op == :andalso or op == :orelse do
+    {rewrite_guard_call(op), meta, [
+      blame_guard(left, scope, binding),
+      blame_guard(right, scope, binding)
+    ]}
+  end
+
+  defp blame_guard(ex_guard, scope, binding) do
+    {erl_guard, _} = :elixir_erl_pass.translate(ex_guard, scope)
+    match? =
+      try do
+        {:value, true, _} = :erl_eval.expr(erl_guard, binding, :none)
+        true
+      rescue
+        _ -> false
+      end
+    blame_wrap(match?, rewrite_guard(ex_guard))
+  end
+
+  defp rewrite_guard(guard) do
+    Macro.prewalk(guard, fn
+      {:., _, [:erlang, call]} -> rewrite_guard_call(call)
+      other -> other
+    end)
+  end
+
+  defp rewrite_guard_call(:"orelse"), do: :or
+  defp rewrite_guard_call(:"andalso"), do: :and
+  defp rewrite_guard_call(:"=<"), do: :<=
+  defp rewrite_guard_call(:"/="), do: :!=
+  defp rewrite_guard_call(:"=:="), do: :===
+  defp rewrite_guard_call(:"=/="), do: :!==
+
+  defp rewrite_guard_call(op) when op in [:band, :bor, :bnot, :bsl, :bsr, :bxor],
+    do: {:., [], [Bitwise, op]}
+  defp rewrite_guard_call(op) when op in [:xor, :element, :size],
+    do: {:., [], [:erlang, op]}
+  defp rewrite_guard_call(op),
+    do: op
+
+  defp blame_wrap(match?, ast), do: %{match?: match?, node: ast}
+
+  @doc """
   Formats an exit. It returns a string.
 
   Often there are errors/exceptions inside exits. Exits are often
@@ -711,7 +864,7 @@ defmodule UndefinedFunctionError do
 end
 
 defmodule FunctionClauseError do
-  defexception [:module, :function, :arity]
+  defexception [:module, :function, :arity, :kind, :args, :clauses]
 
   def message(exception) do
     if exception.function do
