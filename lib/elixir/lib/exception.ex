@@ -140,7 +140,6 @@ defmodule Exception do
   Note that `{:EXIT, pid}` do not generate a stacktrace though
   (as they are retrieved as messages without stacktraces).
   """
-
   @spec format(kind, any, stacktrace | nil) :: String.t
 
   def format(kind, payload, stacktrace \\ nil)
@@ -883,7 +882,7 @@ defmodule ErlangError do
 
   def normalize({:badkey, key}, stacktrace) do
     term =
-      case stacktrace || :erlang.get_stacktrace do
+      case stacktrace(stacktrace) do
         [{Map, :get_and_update!, [map, _, _], _} | _] -> map
         [{Map, :update!, [map, _, _], _} | _] -> map
         [{:maps, :update, [_, _, map], _} | _] -> map
@@ -910,13 +909,13 @@ defmodule ErlangError do
   end
 
   def normalize(:undef, stacktrace) do
-    stacktrace = stacktrace || :erlang.get_stacktrace
+    stacktrace = stacktrace(stacktrace)
     {mod, fun, arity} = from_stacktrace(stacktrace)
     %UndefinedFunctionError{module: mod, function: fun, arity: arity}
   end
 
   def normalize(:function_clause, stacktrace) do
-    {mod, fun, arity} = from_stacktrace(stacktrace || :erlang.get_stacktrace)
+    {mod, fun, arity} = from_stacktrace(stacktrace(stacktrace))
     %FunctionClauseError{module: mod, function: fun, arity: arity}
   end
 
@@ -926,6 +925,18 @@ defmodule ErlangError do
 
   def normalize(other, _stacktrace) do
     %ErlangError{original: other}
+  end
+
+  defp stacktrace(nil) do
+    try do
+      :erlang.get_stacktrace()
+    rescue
+      _ -> []
+    end
+  end
+
+  defp stacktrace(stacktrace) do
+    stacktrace
   end
 
   defp from_stacktrace([{module, function, args, _} | _]) when is_list(args) do
