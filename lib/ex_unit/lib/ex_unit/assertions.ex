@@ -58,7 +58,7 @@ defmodule ExUnit.Assertions do
 
   This module also provides other convenience functions
   like `assert_in_delta` and `assert_raise` to easily handle
-  other common cases such as checking a floating point number
+  other common cases such as checking a floating-point number
   or handling exceptions.
   """
 

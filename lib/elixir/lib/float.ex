@@ -2,7 +2,7 @@ import Kernel, except: [round: 1]
 
 defmodule Float do
   @moduledoc """
-  Functions for working with floating point numbers.
+  Functions for working with floating-point numbers.
   """
 
   import Bitwise
@@ -80,7 +80,7 @@ defmodule Float do
   @doc """
   Rounds a float to the largest integer less than or equal to `num`.
 
-  `floor/2` also accepts a precision to round a floating point value down
+  `floor/2` also accepts a precision to round a floating-point value down
   to an arbitrary number of fractional digits (between 0 and 15).
   The operation is performed on the binary floating point, without a
   conversion to decimal.
@@ -122,7 +122,7 @@ defmodule Float do
   @doc """
   Rounds a float to the smallest integer greater than or equal to `num`.
 
-  `ceil/2` also accepts a precision to round a floating point value down
+  `ceil/2` also accepts a precision to round a floating-point value down
   to an arbitrary number of fractional digits (between 0 and 15).
 
   The operation is performed on the binary floating point, without a
@@ -163,7 +163,7 @@ defmodule Float do
   end
 
   @doc """
-  Rounds a floating point value to an arbitrary number of fractional
+  Rounds a floating-point value to an arbitrary number of fractional
   digits (between 0 and 15).
 
   The rounding direction always ties to half up. The operation is
