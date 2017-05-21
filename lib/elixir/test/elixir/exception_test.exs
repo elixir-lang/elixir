@@ -320,44 +320,47 @@ defmodule ExceptionTest do
     assert formatted =~ ~r"\s{16}:not_a_real_module\.function/0"
   end
 
-  describe "blaming" do
-    test "annotates function clause errors" do
-      args = [%{}, :key, nil]
-      {exception, stack} = Exception.blame(:error, :function_clause, [{Keyword, :pop, args, [line: 13]}])
-      assert %FunctionClauseError{kind: :def, args: ^args, clauses: [_]} = exception
-      assert stack == [{Keyword, :pop, 3, [line: 13]}]
-    end
+  # TODO: Remove this check once we depend only on 20
+  if :erlang.system_info(:otp_release) >= '20' do
+    describe "blaming" do
+      test "annotates function clause errors" do
+        args = [%{}, :key, nil]
+        {exception, stack} = Exception.blame(:error, :function_clause, [{Keyword, :pop, args, [line: 13]}])
+        assert %FunctionClauseError{kind: :def, args: ^args, clauses: [_]} = exception
+        assert stack == [{Keyword, :pop, 3, [line: 13]}]
+      end
 
-    test "does not annotate throws/exits" do
-      stack = [{Keyword, :pop, [%{}, :key, nil], [line: 13]}]
-      assert Exception.blame(:throw, :function_clause, stack) == {:function_clause, stack}
-      assert Exception.blame(:exit, :function_clause, stack) == {:function_clause, stack}
-    end
+      test "does not annotate throws/exits" do
+        stack = [{Keyword, :pop, [%{}, :key, nil], [line: 13]}]
+        assert Exception.blame(:throw, :function_clause, stack) == {:function_clause, stack}
+        assert Exception.blame(:exit, :function_clause, stack) == {:function_clause, stack}
+      end
 
-    test "annotates args and clauses from mfa" do
-      {:ok, :def, clauses} = Exception.blame_mfa(Keyword, :pop, [%{}, :key, nil])
-      assert annotated_clauses_to_string(clauses) == [
-        "{[+keywords+, +key+, +default+], [-is_list(keywords)-]}"
-      ]
+      test "annotates args and clauses from mfa" do
+        {:ok, :def, clauses} = Exception.blame_mfa(Keyword, :pop, [%{}, :key, nil])
+        assert annotated_clauses_to_string(clauses) == [
+          "{[+keywords+, +key+, +default+], [-is_list(keywords)-]}"
+        ]
 
-      {:ok, :def, clauses} = Exception.blame_mfa(Keyword, :fetch, [[], "oops"])
-      assert annotated_clauses_to_string(clauses) == [
-        "{[+keywords+, +key+], [+is_list(keywords)+ and -is_atom(key)-]}"
-      ]
+        {:ok, :def, clauses} = Exception.blame_mfa(Keyword, :fetch, [[], "oops"])
+        assert annotated_clauses_to_string(clauses) == [
+          "{[+keywords+, +key+], [+is_list(keywords)+ and -is_atom(key)-]}"
+        ]
 
-      {:ok, :def, clauses} = Exception.blame_mfa(Path, :type, [self()])
-      assert annotated_clauses_to_string(clauses) == [
-        "{[+name+], [-is_list(name)-, -is_binary(name)-]}"
-      ]
+        {:ok, :def, clauses} = Exception.blame_mfa(Path, :type, [self()])
+        assert annotated_clauses_to_string(clauses) == [
+          "{[+name+], [-is_list(name)-, -is_binary(name)-]}"
+        ]
 
-      {:ok, :def, clauses} = Exception.blame_mfa(Access, :fetch, [self(), "oops"])
-      assert annotated_clauses_to_string(clauses) == [
-        "{[-%struct{} = container-, +key+], []}",
-        "{[+map+, +key+], [-is_map(map)-]}",
-        "{[+list+, +key+], [-is_list(list)- and -is_atom(key)-]}",
-        "{[+list+, +key+], [-is_list(list)-]}",
-        "{[-nil-, +_key+], []}"
-      ]
+        {:ok, :def, clauses} = Exception.blame_mfa(Access, :fetch, [self(), "oops"])
+        assert annotated_clauses_to_string(clauses) == [
+          "{[-%struct{} = container-, +key+], []}",
+          "{[+map+, +key+], [-is_map(map)-]}",
+          "{[+list+, +key+], [-is_list(list)- and -is_atom(key)-]}",
+          "{[+list+, +key+], [-is_list(list)-]}",
+          "{[-nil-, +_key+], []}"
+        ]
+      end
     end
   end
 
