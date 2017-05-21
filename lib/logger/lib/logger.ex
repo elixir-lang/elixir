@@ -4,7 +4,7 @@ defmodule Logger do
 
   It includes many features:
 
-    * Provides debug, info, warn and error levels.
+    * Provides debug, info, warn, and error levels.
 
     * Supports multiple backends which are automatically
       supervised when plugged into `Logger`.
@@ -31,12 +31,12 @@ defmodule Logger do
 
   The `Logger.info/2` macro emits the provided message at the `:info`
   level. There are additional macros for other levels. Notice the argument
-  passed to `Logger.info` in the above example is a zero argument function.
+  passed to `Logger.info/2` in the above example is a zero argument function.
 
-  Although the Logger macros accept messages as strings as well as functions,
+  Although the `Logger` macros accept messages as strings as well as functions,
   it's recommended to use functions whenever the message is expensive to
-  compute. In the example above, the message will be evaluated (and thus the
-  interpolation inside it) whatever the level is, even if the message will not
+  compute. In the example above, the message is evaluated (and thus so is the
+  interpolation inside it) regardless of the level, even if the message will not
   be actually logged at runtime; the only way of avoiding evaluation of such
   message is purging the log call at compile-time through the
   `:compile_time_purge_level` option (see below), or using a function that is
@@ -69,7 +69,7 @@ defmodule Logger do
 
   ### Application configuration
 
-  The following configuration must be set via config files (e.g.,
+  The following configuration must be set via config files (such as
   `config/config.exs`) before the `:logger` application is started.
 
     * `:backends` - the backends to be used. Defaults to `[:console]`.
@@ -80,7 +80,7 @@ defmodule Logger do
       `Logger` calls with level lower than this option will be completely
       removed at compile time, accruing no overhead at runtime. Defaults to
       `:debug` and only applies to the `Logger.debug/2`, `Logger.info/2`,
-      `Logger.warn/2`, and `Logger.error/2` macros (e.g., it doesn't apply to
+      `Logger.warn/2`, and `Logger.error/2` macros (for example, it doesn't apply to
       `Logger.log/3`). Note that arguments passed to `Logger` calls that are
       removed from the AST at compilation time are never evaluated, thus any
       function call that occurs in these arguments is never executed. As a
@@ -103,7 +103,7 @@ defmodule Logger do
 
   ### Runtime Configuration
 
-  All configuration below can be set via config files (e.g.,
+  All configuration below can be set via config files (such as
   `config/config.exs`) but also changed dynamically during runtime via
   `Logger.configure/1`.
 
@@ -371,14 +371,15 @@ defmodule Logger do
   @doc """
   Alters the current process metadata according the given keyword list.
 
-  This will merge the given keyword list into the existing metadata. With
-  the exception of setting a key to nil will remove a key from the metadata.
+  This function will merge the given keyword list into the existing metadata,
+  with the exception of setting a key to `nil`, which will remove that key
+  from the metadata.
   """
   @spec metadata(metadata) :: :ok
-  def metadata(keywords) do
+  def metadata(keyword) do
     {enabled?, metadata} = __metadata__()
     metadata =
-      Enum.reduce(keywords, metadata, fn
+      Enum.reduce(keyword, metadata, fn
         {key, nil}, acc -> Keyword.delete(acc, key)
         {key, val}, acc -> Keyword.put(acc, key, val)
       end)
@@ -407,7 +408,7 @@ defmodule Logger do
   @doc """
   Enables logging for the current process.
 
-  Currently the only accepted process is self().
+  Currently the only accepted PID is `self()`.
   """
   @spec enable(pid) :: :ok
   def enable(pid) when pid == self() do
@@ -418,7 +419,7 @@ defmodule Logger do
   @doc """
   Disables logging for the current process.
 
-  Currently the only accepted process is self().
+  Currently the only accepted PID is `self()`.
   """
   @spec disable(pid) :: :ok
   def disable(pid) when pid == self() do
@@ -427,9 +428,9 @@ defmodule Logger do
   end
 
   @doc """
-  Retrieves the Logger level.
+  Retrieves the `Logger` level.
 
-  The Logger level can be changed via `configure/1`.
+  The `Logger` level can be changed via `configure/1`.
   """
   @spec level() :: level
   def level() do
@@ -440,8 +441,20 @@ defmodule Logger do
   @doc """
   Compares log levels.
 
-  Receives two log levels and compares the `left`
-  against `right` and returns `:lt`, `:eq` or `:gt`.
+  Receives two log levels and compares the `left` level
+  against the `right` level and returns
+
+    * `:lt` if `left` is less than `right`
+    * `:eq` if `left` and `right` are equal
+    * `:gt` if `left` is greater than `right`
+
+  ## Examples
+
+      iex> Logger.compare_levels(:debug, :warn)
+      :lt
+      iex> Logger.compare_levels(:error, :info)
+      :gt
+
   """
   @spec compare_levels(level, level) :: :lt | :eq | :gt
   def compare_levels(level, level), do:
@@ -457,7 +470,7 @@ defmodule Logger do
   @doc """
   Configures the logger.
 
-  See the "Runtime Configuration" section in `Logger` module
+  See the "Runtime Configuration" section in the `Logger` module
   documentation for the available options.
   """
   @valid_options [:compile_time_purge_level, :compile_time_application, :sync_threshold, :truncate, :level, :utc_log]
@@ -469,9 +482,9 @@ defmodule Logger do
   @doc """
   Flushes the logger.
 
-  This basically guarantees all messages sent to
-  `Logger` prior to this call will be processed. This is useful
-  for testing and it should not be called in production code.
+  This guarantees all messages sent to `Logger` prior to this call will
+  be processed. This is useful for testing and it should not be called
+  in production code.
   """
   @spec flush :: :ok
   def flush do
@@ -511,6 +524,7 @@ defmodule Logger do
     * `:flush` - when `true`, guarantees all messages currently sent
       to both Logger and Erlang's `error_logger` are processed before
       the backend is removed
+
   """
   @spec remove_backend(atom, Keyword.t) :: :ok | {:error, term}
   def remove_backend(backend, opts \\ []) do
@@ -585,9 +599,9 @@ defmodule Logger do
   end
 
   @doc """
-  Logs a warning.
+  Logs a warning message.
 
-  Returns the atom `:ok` or an `{:error, reason}` tuple.
+  Returns `:ok` or an `{:error, reason}` tuple.
 
   ## Examples
 
@@ -601,9 +615,9 @@ defmodule Logger do
   end
 
   @doc """
-  Logs some info.
+  Logs an info message.
 
-  Returns the atom `:ok` or an `{:error, reason}` tuple.
+  Returns `:ok` or an `{:error, reason}` tuple.
 
   ## Examples
 
@@ -617,9 +631,9 @@ defmodule Logger do
   end
 
   @doc """
-  Logs an error.
+  Logs an error message.
 
-  Returns the atom `:ok` or an `{:error, reason}` tuple.
+  Returns `:ok` or an `{:error, reason}` tuple.
 
   ## Examples
 
@@ -635,7 +649,7 @@ defmodule Logger do
   @doc """
   Logs a debug message.
 
-  Returns the atom `:ok` or an `{:error, reason}` tuple.
+  Returns `:ok` or an `{:error, reason}` tuple.
 
   ## Examples
 
@@ -649,14 +663,14 @@ defmodule Logger do
   end
 
   @doc """
-  Logs a message.
+  Logs a message with the given `level`.
 
-  Returns the atom `:ok` or an `{:error, reason}` tuple.
+  Returns `:ok` or an `{:error, reason}` tuple.
 
-  Developers should use the macros `Logger.debug/2`,
-  `Logger.warn/2`, `Logger.info/2` or `Logger.error/2` instead
-  of this macro as they can automatically eliminate
-  the Logger call altogether at compile time if desired.
+  The macros `debug/2`, `warn/2`, `info/2`, and `error/2` are
+  preferred over this macro as they can automatically eliminate
+  the call to `Logger` alotgether at compile time if desired
+  (see the documentation for the `Logger` module).
   """
   defmacro log(level, chardata_or_fun, metadata \\ []) do
     macro_log(level, chardata_or_fun, metadata, __CALLER__)
