@@ -332,7 +332,7 @@ defmodule Kernel.ExpansionTest do
     end
 
     test "dynamic syntax expands to itself" do
-      assert expand(quote do: (%x{} = 1)) == expand(quote do: (%x{} = 1))
+      assert expand(quote do: (%x{} = 1)) == quote do: (%x{} = 1)
     end
 
     test "unknown ^keys in structs" do
