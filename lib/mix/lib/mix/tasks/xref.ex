@@ -231,11 +231,7 @@ defmodule Mix.Tasks.Xref do
   end
 
   defp format_warning(file, {lines, :unknown_function, module, function, arity, exports}) do
-    message =
-      [module: module, function: function, arity: arity, reason: :"function not exported", exports: exports]
-      |> UndefinedFunctionError.exception()
-      |> Exception.message()
-
+    message = UndefinedFunctionError.function_not_exported(module, function, arity, exports)
     [message, "\n", format_file_lines(file, lines)]
   end
 
