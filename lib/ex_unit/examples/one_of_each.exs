@@ -155,6 +155,10 @@ defmodule TestOneOfEach do
     flunk "oops"
   end
 
+  test "29. function clause error" do
+    Access.fetch(:foo, :bar)
+  end
+
   defp blows_up do
     ignite(0) + 1
   end

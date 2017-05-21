@@ -108,9 +108,8 @@ defmodule ExUnit.Formatter do
     test_info(with_counter(counter, "#{name} (#{inspect case})"), formatter) <>
       test_location(with_location(tags), formatter) <>
       Enum.map_join(Enum.with_index(failures), "", fn {{kind, reason, stack}, index} ->
-        failure_header(failures, index) <>
-          format_kind_reason(kind, reason, width, formatter) <>
-          format_stacktrace(stack, case, name, formatter)
+        {text, stack} = format_kind_reason(kind, reason, stack, width, formatter)
+        failure_header(failures, index) <> text <> format_stacktrace(stack, case, name, formatter)
        end) <>
       report(tags, failures, width, formatter)
   end
@@ -157,19 +156,62 @@ defmodule ExUnit.Formatter do
     %ExUnit.TestCase{name: name} = test_case
     test_case_info(with_counter(counter, "#{inspect name}: "), formatter) <>
       Enum.map_join(Enum.with_index(failures), "", fn {{kind, reason, stack}, index} ->
-        failure_header(failures, index) <>
-          format_kind_reason(kind, reason, width, formatter) <>
-          format_stacktrace(stack, name, nil, formatter)
+        {text, stack} = format_kind_reason(kind, reason, stack, width, formatter)
+        failure_header(failures, index) <> text <> format_stacktrace(stack, name, nil, formatter)
       end)
   end
 
-  defp format_kind_reason(:error, %ExUnit.AssertionError{} = struct, width, formatter) do
-    format_assertion_error(struct, width, formatter, @counter_padding)
+  defp format_kind_reason(:error, %ExUnit.AssertionError{} = struct, stack, width, formatter) do
+    {format_assertion_error(struct, width, formatter, @counter_padding), stack}
   end
 
-  defp format_kind_reason(kind, reason, _width, formatter) do
-    error_info Exception.format_banner(kind, reason), formatter
+  defp format_kind_reason(:error, %FunctionClauseError{} = struct, stack, _width, formatter) do
+    banner = error_info(Exception.format_banner(:error, struct), formatter)
+    {blamed, stack} = Exception.blame(:error, struct, stack)
+    mfa = Exception.format_mfa(blamed.module, blamed.function, blamed.arity)
+
+    args =
+      if blamed.args do
+        formatted_args =
+          blamed.args
+          |> Enum.with_index(1)
+          |> Enum.map(fn {arg, i} -> "         # #{i}\n         #{inspect arg}\n\n" end)
+        "\n     The following arguments were given to #{mfa}:\n\n#{formatted_args}"
+      else
+        ""
+      end
+
+    clauses =
+      if blamed.clauses do
+        kind = blamed.kind
+
+        top_10 =
+          blamed.clauses
+          |> Enum.take(10)
+          |> Enum.map(fn {args, guards} ->
+            code = Enum.reduce(guards, {blamed.function, [], args}, &{:when, [], [&2, &1]})
+            "         #{kind} " <> Macro.to_string(code, &clause_match(&1, &2, formatter)) <> "\n"
+          end)
+
+        "     Attempted function clauses (showing #{length(top_10)} " <>
+          "out of #{length(blamed.clauses)}):\n\n#{top_10}\n"
+      else
+        ""
+      end
+
+    {banner <> args <> clauses, stack}
   end
+
+  defp format_kind_reason(kind, reason, stack, _width, formatter) do
+    {error_info(Exception.format_banner(kind, reason), formatter), stack}
+  end
+
+  defp clause_match(%{match?: true, node: node}, _, formatter),
+    do: formatter.(:clause_same, Macro.to_string(node))
+  defp clause_match(%{match?: false, node: node}, _, formatter),
+    do: formatter.(:clause_diff, Macro.to_string(node))
+  defp clause_match(_, string, _formatter),
+    do: string
 
   defp filter_interesting_fields(fields) do
     Enum.filter(fields, fn {_, value} -> has_value?(value) end)
