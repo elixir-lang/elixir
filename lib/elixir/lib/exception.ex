@@ -883,7 +883,7 @@ defmodule ErlangError do
 
   def normalize({:badkey, key}, stacktrace) do
     term =
-      case stacktrace(stacktrace) do
+      case ensure_stacktrace(stacktrace) do
         [{Map, :get_and_update!, [map, _, _], _} | _] -> map
         [{Map, :update!, [map, _, _], _} | _] -> map
         [{:maps, :update, [_, _, map], _} | _] -> map
@@ -910,13 +910,13 @@ defmodule ErlangError do
   end
 
   def normalize(:undef, stacktrace) do
-    stacktrace = stacktrace(stacktrace)
+    stacktrace = ensure_stacktrace(stacktrace)
     {mod, fun, arity} = from_stacktrace(stacktrace)
     %UndefinedFunctionError{module: mod, function: fun, arity: arity}
   end
 
   def normalize(:function_clause, stacktrace) do
-    {mod, fun, arity} = from_stacktrace(stacktrace(stacktrace))
+    {mod, fun, arity} = from_stacktrace(ensure_stacktrace(stacktrace))
     %FunctionClauseError{module: mod, function: fun, arity: arity}
   end
 
@@ -928,7 +928,7 @@ defmodule ErlangError do
     %ErlangError{original: other}
   end
 
-  defp stacktrace(nil) do
+  defp ensure_stacktrace(nil) do
     try do
       :erlang.get_stacktrace()
     rescue
@@ -936,7 +936,7 @@ defmodule ErlangError do
     end
   end
 
-  defp stacktrace(stacktrace) do
+  defp ensure_stacktrace(stacktrace) do
     stacktrace
   end
 
