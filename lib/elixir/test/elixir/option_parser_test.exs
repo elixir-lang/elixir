@@ -278,7 +278,7 @@ defmodule OptionParserTest do
            {[option: -43], ["arg1"], []}
   end
 
-  test "correctly handles negative floating point numbers" do
+  test "correctly handles negative floating-point numbers" do
     assert OptionParser.parse(["arg1", "-43.2"]) ==
            {[], ["arg1", "-43.2"], []}
 

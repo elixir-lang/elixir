@@ -342,7 +342,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns `true` if `term` is a floating point number; otherwise returns `false`.
+  Returns `true` if `term` is a floating-point number; otherwise returns `false`.
 
   Allowed in guard tests. Inlined by the compiler.
   """
@@ -401,7 +401,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns `true` if `term` is either an integer or a floating point number;
+  Returns `true` if `term` is either an integer or a floating-point number;
   otherwise returns `false`.
 
   Allowed in guard tests. Inlined by the compiler.
