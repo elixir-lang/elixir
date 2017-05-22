@@ -379,83 +379,106 @@ defmodule ExceptionTest do
 
   ## Exception messages
 
-  import Exception, only: [message: 1]
+  describe "exception messages" do
+    import Exception, only: [message: 1]
 
-  test "RuntimeError message" do
-    assert %RuntimeError{} |> message == "runtime error"
-    assert %RuntimeError{message: "unexpected roquefort"} |> message == "unexpected roquefort"
-  end
+    test "RuntimeError" do
+      assert %RuntimeError{} |> message == "runtime error"
+      assert %RuntimeError{message: "unexpected roquefort"} |> message == "unexpected roquefort"
+    end
 
-  test "ArithmeticError message" do
-    assert %ArithmeticError{} |> message == "bad argument in arithmetic expression"
-    assert %ArithmeticError{message: "unexpected camembert"} |> message == "unexpected camembert"
-  end
+    test "ArithmeticError" do
+      assert %ArithmeticError{} |> message == "bad argument in arithmetic expression"
+      assert %ArithmeticError{message: "unexpected camembert"} |> message == "unexpected camembert"
+    end
 
-  test "ArgumentError message" do
-    assert %ArgumentError{} |> message == "argument error"
-    assert %ArgumentError{message: "unexpected comté"} |> message == "unexpected comté"
-  end
+    test "ArgumentError" do
+      assert %ArgumentError{} |> message == "argument error"
+      assert %ArgumentError{message: "unexpected comté"} |> message == "unexpected comté"
+    end
 
-  test "Enum.OutOfBoundsError message" do
-    assert %Enum.OutOfBoundsError{} |> message == "out of bounds error"
-    assert %Enum.OutOfBoundsError{message: "the brie is not on the table"} |> message == "the brie is not on the table"
-  end
+    test "Enum.OutOfBoundsError" do
+      assert %Enum.OutOfBoundsError{} |> message == "out of bounds error"
+      assert %Enum.OutOfBoundsError{message: "the brie is not on the table"} |> message == "the brie is not on the table"
+    end
 
-  test "Enum.EmptyError message" do
-    assert %Enum.EmptyError{} |> message == "empty error"
-    assert %Enum.EmptyError{message: "there is no saint-nectaire left!"} |> message == "there is no saint-nectaire left!"
-  end
+    test "Enum.EmptyError" do
+      assert %Enum.EmptyError{} |> message == "empty error"
+      assert %Enum.EmptyError{message: "there is no saint-nectaire left!"} |> message == "there is no saint-nectaire left!"
+    end
 
-  test "UndefinedFunctionError message" do
-    assert %UndefinedFunctionError{} |> message == "undefined function"
-    assert %UndefinedFunctionError{module: Kernel, function: :bar, arity: 1} |> message ==
-           "function Kernel.bar/1 is undefined or private"
-    assert %UndefinedFunctionError{module: Foo, function: :bar, arity: 1} |> message ==
-           "function Foo.bar/1 is undefined (module Foo is not available)"
-    assert %UndefinedFunctionError{module: nil, function: :bar, arity: 0} |> message ==
-           "function nil.bar/0 is undefined or private"
-  end
+    test "UndefinedFunctionError" do
+      assert %UndefinedFunctionError{} |> message == "undefined function"
+      assert %UndefinedFunctionError{module: Kernel, function: :bar, arity: 1} |> message ==
+             "function Kernel.bar/1 is undefined or private"
+      assert %UndefinedFunctionError{module: Foo, function: :bar, arity: 1} |> message ==
+             "function Foo.bar/1 is undefined (module Foo is not available)"
+      assert %UndefinedFunctionError{module: nil, function: :bar, arity: 0} |> message ==
+             "function nil.bar/0 is undefined or private"
+    end
 
-  test "UndefinedFunctionError message suggestions" do
-    assert %UndefinedFunctionError{module: Enum, function: :map, arity: 1} |> message == """
-           function Enum.map/1 is undefined or private. Did you mean one of:
+    test "UndefinedFunctionError with suggestions" do
+      assert %UndefinedFunctionError{module: Enum, function: :map, arity: 1} |> message == """
+             function Enum.map/1 is undefined or private. Did you mean one of:
 
-                 * map/2
-           """
-    assert %UndefinedFunctionError{module: Enum, function: :man, arity: 1} |> message == """
-           function Enum.man/1 is undefined or private. Did you mean one of:
+                   * map/2
+             """
+      assert %UndefinedFunctionError{module: Enum, function: :man, arity: 1} |> message == """
+             function Enum.man/1 is undefined or private. Did you mean one of:
 
-                 * map/2
-                 * max/1
-                 * max/2
-                 * min/1
-                 * min/2
-           """
-    assert %UndefinedFunctionError{module: :erlang, function: :gt_cookie, arity: 0} |> message == """
-           function :erlang.gt_cookie/0 is undefined or private. Did you mean one of:
+                   * map/2
+                   * max/1
+                   * max/2
+                   * min/1
+                   * min/2
+             """
+      assert %UndefinedFunctionError{module: :erlang, function: :gt_cookie, arity: 0} |> message == """
+             function :erlang.gt_cookie/0 is undefined or private. Did you mean one of:
 
-                 * get_cookie/0
-                 * set_cookie/2
-           """
-  end
+                   * get_cookie/0
+                   * set_cookie/2
+             """
+    end
 
-  test "UndefinedFunctionError when the mfa is a macro but require wasn't called" do
-    _ = Code.ensure_loaded(Integer)
-    assert %UndefinedFunctionError{module: Integer, function: :is_odd, arity: 1} |> message ==
-           "function Integer.is_odd/1 is undefined or private. However there is " <>
-           "a macro with the same name and arity. Be sure to require Integer if " <>
-           "you intend to invoke this macro"
-  end
+    test "UndefinedFunctionError when the mfa is a macro but require wasn't called" do
+      _ = Code.ensure_loaded(Integer)
+      assert %UndefinedFunctionError{module: Integer, function: :is_odd, arity: 1} |> message ==
+             "function Integer.is_odd/1 is undefined or private. However there is " <>
+             "a macro with the same name and arity. Be sure to require Integer if " <>
+             "you intend to invoke this macro"
+    end
 
-  test "FunctionClauseError message" do
-    assert %FunctionClauseError{} |> message ==
-           "no function clause matches"
-    assert %FunctionClauseError{module: Foo, function: :bar, arity: 1} |> message ==
-           "no function clause matching in Foo.bar/1"
-  end
+    test "FunctionClauseError" do
+      assert %FunctionClauseError{} |> message ==
+             "no function clause matches"
+      assert %FunctionClauseError{module: Foo, function: :bar, arity: 1} |> message ==
+             "no function clause matching in Foo.bar/1"
+    end
 
-  test "ErlangError message" do
-    assert %ErlangError{original: :sample} |> message ==
-           "Erlang error: :sample"
+    # TODO: Remove this check once we depend only on 20
+    if :erlang.system_info(:otp_release) >= '20' do
+      test "FunctionClauseError with blame" do
+        {exception, _} = Exception.blame(:error, :function_clause, [{Access, :fetch, [:foo, :bar], [line: 13]}])
+        assert message(exception) =~ """
+        no function clause matching in Access.fetch/2
+        The following arguments were given to Access.fetch/2:
+
+            # 1
+            :foo
+
+            # 2
+            :bar
+
+        Attempted function clauses (showing 5 out of 5):
+
+            def fetch(-%struct{} = container-, +key+)
+        """
+      end
+    end
+
+    test "ErlangError" do
+      assert %ErlangError{original: :sample} |> message ==
+             "Erlang error: :sample"
+    end
   end
 end

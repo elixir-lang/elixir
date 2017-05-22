@@ -872,7 +872,7 @@ defmodule FunctionClauseError do
         "no function clause matches"
       %{module: module, function: function, arity: arity} ->
         formatted = Exception.format_mfa module, function, arity
-        "no function clause matching in #{formatted}" <> blame(exception, &inspect/2, &blame_match/2)
+        "no function clause matching in #{formatted}" <> blame(exception, &inspect/1, &blame_match/2)
     end
   end
 
