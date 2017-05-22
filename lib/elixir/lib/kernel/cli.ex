@@ -59,6 +59,19 @@ defmodule Kernel.CLI do
     Enum.reverse(config.errors, errors)
   end
 
+  @doc false
+  def print_error(device, kind, reason, stacktrace) do
+    {blamed, stacktrace} = Exception.blame(kind, reason, stacktrace)
+    case blamed do
+      %FunctionClauseError{} ->
+        IO.puts device, Exception.format_banner(kind, reason, stacktrace)
+        IO.puts device, pad(FunctionClauseError.blame(blamed, &inspect/1, &blame_match/2))
+      _ ->
+        IO.puts device, Exception.format_banner(kind, blamed, stacktrace)
+    end
+    IO.write device, Exception.format_stacktrace(prune_stacktrace(stacktrace))
+  end
+
   ## Helpers
 
   defp at_exit(res) do
@@ -86,7 +99,7 @@ defmodule Kernel.CLI do
             exit(reason)
           kind, reason ->
             stack = System.stacktrace
-            print_error(kind, reason, stack)
+            print_error(:stderr, kind, reason, stack)
             send parent, {self(), {:shutdown, 1}}
             exit(to_exit(kind, reason, stack))
         else
@@ -100,7 +113,7 @@ defmodule Kernel.CLI do
         :erlang.demonitor(ref, [:flush])
         res
       {:DOWN, ^ref, _, _, other} ->
-        print_error({:EXIT, pid}, other, [])
+        print_error(:stderr, {:EXIT, pid}, other, [])
         {:shutdown, 1}
     end
   end
@@ -119,13 +132,32 @@ defmodule Kernel.CLI do
     end
   end
 
-  defp print_error(kind, reason, trace) do
-    IO.puts :stderr, Exception.format(kind, reason, prune_stacktrace(trace))
+  ## Error handling
+
+  defp blame_match(%{match?: true, node: node}, _),
+    do: blame_ansi(:normal, "+", node)
+  defp blame_match(%{match?: false, node: node}, _),
+    do: blame_ansi(:red, "-", node)
+  defp blame_match(_, string),
+    do: string
+
+  defp blame_ansi(color, no_ansi, node) do
+    if IO.ANSI.enabled? do
+      [color | Macro.to_string(node)]
+      |> IO.ANSI.format(true)
+      |> IO.iodata_to_binary()
+    else
+      no_ansi <> Macro.to_string(node) <> no_ansi
+    end
+  end
+
+  defp pad(string) do
+    "    " <> String.replace(string, "\n", "\n    ")
   end
 
   @elixir_internals [:elixir, :elixir_expand, :elixir_compiler, :elixir_module,
                      :elixir_clauses, :elixir_lexical, :elixir_def, :elixir_map,
-                     :elixir_erl, :elixir_erl_clauses, :elixir_erl_pass]
+                     :elixir_erl, :elixir_erl_clauses, :elixir_erl_pass, Kernel.ErrorHandler]
 
   defp prune_stacktrace([{mod, _, _, _} | t]) when mod in @elixir_internals do
     prune_stacktrace(t)
