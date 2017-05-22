@@ -201,7 +201,10 @@ tokenize([$~, S, H | T] = Original, Line, Column, Scope, Tokens) when ?is_sigil(
   end;
 
 tokenize([$~, S, H | _] = Original, Line, Column, _Scope, Tokens) when ?is_upcase(S) orelse ?is_downcase(S) ->
-  Message = io_lib:format("\"~ts\" (column ~p, codepoint U+~4.16.0B)", [[H], Column + 2, H]),
+  MessageString =
+    "\"~ts\" (column ~p, codepoint U+~4.16.0B). The available delimiters are: "
+    "//, ||, \"\", '', (), [], {}, <>",
+  Message = io_lib:format(MessageString, [[H], Column + 2, H]),
   {error, {Line, "invalid sigil delimiter: ", Message}, Original, Tokens};
 
 % Char tokens

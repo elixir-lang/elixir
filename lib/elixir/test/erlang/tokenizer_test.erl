@@ -185,4 +185,4 @@ vc_merge_conflict_test() ->
 
 invalid_sigil_delimiter_test() ->
   {1, "invalid sigil delimiter: ", Message} = tokenize_error("~s\\"),
-  "\"\\\" (column 3, codepoint U+005C)" = lists:flatten(Message).
+  true = lists:prefix("\"\\\" (column 3, codepoint U+005C)", lists:flatten(Message)).
