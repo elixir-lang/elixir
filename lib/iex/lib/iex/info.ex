@@ -318,9 +318,34 @@ defimpl IEx.Info, for: [Date, Time, NaiveDateTime] do
 end
 
 defimpl IEx.Info, for: Any do
-  def info(%{__struct__: mod}) do
+  def info(%{__struct__: mod} = data) do
+    representation(data, Inspect.impl_for(data)) ++ raw_struct(mod)
+  end
+
+  def raw_struct(mod) do
     ["Data type": inspect(mod),
      "Description": "This is a struct. Structs are maps with a __struct__ key.",
      "Reference modules": inspect(mod) <> ", Map"]
+  end
+
+  defp representation(_data, Inspect.Any) do
+    []
+  end
+  defp representation(data, _impl) do
+    raw =
+      data
+      |> Inspect.Any.inspect(%Inspect.Opts{})
+      |> Inspect.Algebra.format(:infinity)
+      |> IO.iodata_to_binary
+    ["Raw representation": raw]
+  end
+end
+
+# Override implementation for opaque types from stdlib, not to show
+# raw representation
+
+defimpl IEx.Info, for: [MapSet, HashSet, HashDict] do
+  def info(_map_set) do
+    IEx.Info.Any.raw_struct(@for)
   end
 end
