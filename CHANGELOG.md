@@ -68,6 +68,10 @@
   * [Kernel] `:as_char_lists value` in `Inspect.Opts.t/0` type, in favor of `:as_charlists`
   * [Kernel] `:char_lists` key in `Inspect.Opts.t/0` type, in favor of `:charlists`
   * [Module] Using Erlang parse transforms via `@compile {:parse_transform, _}` is deprecated
+  * [String] `String.ljust/3` and `String.rjust/3` are deprecated in favor of `String.pad_leading/3` and `String.pad_trailing/3` with a binary padding
+  * [String] `String.strip/1` and `String.strip/2` are deprecated in favor of `String.trim/1` and `String.trim/2`
+  * [String] `String.lstrip/1` and `String.rstrip/1` are deprecated in favor of `String.trim_leading/1` and `String.trim_trailing/1`
+  * [String] `String.lstrip/2` and `String.rstrip/2` are deprecated in favor of `String.trim_leading/2` and `String.trim_trailing/2` with a binary as second argument
   * [Typespec] `char_list/0` type is deprecated in favor of `charlist/0`
 
 ## v1.4
