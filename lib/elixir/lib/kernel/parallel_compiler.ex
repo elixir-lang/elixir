@@ -304,13 +304,13 @@ defmodule Kernel.ParallelCompiler do
   end
 
   defp print_failure(file, {:failure, kind, reason, stacktrace}) do
-    IO.puts "\n== Compilation error in file #{Path.relative_to_cwd(file)} =="
-    Kernel.CLI.print_error(:stdio, kind, reason, stacktrace)
+    IO.write ["\n== Compilation error in file #{Path.relative_to_cwd(file)} ==\n",
+             Kernel.CLI.format_error(kind, reason, stacktrace)]
   end
 
   defp print_failure(file, reason) do
-    IO.puts "\n== Compilation error in file #{Path.relative_to_cwd(file)} =="
-    Kernel.CLI.print_error(:stdio, :exit, reason, [])
+    IO.write ["\n== Compilation error in file #{Path.relative_to_cwd(file)} ==\n",
+              Kernel.CLI.print_error(:exit, reason, [])]
   end
 
   defp cancel_waiting_timer(queued, child_pid) do

@@ -467,6 +467,7 @@ defmodule ExceptionTest do
         {exception, _} = Exception.blame(:error, :function_clause, [{Access, :fetch, [:foo, :bar], [line: 13]}])
         assert message(exception) =~ """
         no function clause matching in Access.fetch/2
+
         The following arguments were given to Access.fetch/2:
 
             # 1

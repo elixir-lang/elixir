@@ -60,16 +60,17 @@ defmodule Kernel.CLI do
   end
 
   @doc false
-  def print_error(device, kind, reason, stacktrace) do
+  def format_error(kind, reason, stacktrace) do
     {blamed, stacktrace} = Exception.blame(kind, reason, stacktrace)
-    case blamed do
-      %FunctionClauseError{} ->
-        IO.puts device, Exception.format_banner(kind, reason, stacktrace)
-        IO.puts device, pad(FunctionClauseError.blame(blamed, &inspect/1, &blame_match/2))
-      _ ->
-        IO.puts device, Exception.format_banner(kind, blamed, stacktrace)
-    end
-    IO.write device, Exception.format_stacktrace(prune_stacktrace(stacktrace))
+    iodata =
+      case blamed do
+        %FunctionClauseError{} ->
+          [Exception.format_banner(kind, reason, stacktrace),
+           pad(FunctionClauseError.blame(blamed, &inspect/1, &blame_match/2))]
+        _ ->
+          Exception.format_banner(kind, blamed, stacktrace)
+      end
+    [iodata, ?\n, Exception.format_stacktrace(prune_stacktrace(stacktrace))]
   end
 
   ## Helpers
@@ -99,7 +100,7 @@ defmodule Kernel.CLI do
             exit(reason)
           kind, reason ->
             stack = System.stacktrace
-            print_error(:stderr, kind, reason, stack)
+            print_error(kind, reason, stack)
             send parent, {self(), {:shutdown, 1}}
             exit(to_exit(kind, reason, stack))
         else
@@ -113,7 +114,7 @@ defmodule Kernel.CLI do
         :erlang.demonitor(ref, [:flush])
         res
       {:DOWN, ^ref, _, _, other} ->
-        print_error(:stderr, {:EXIT, pid}, other, [])
+        print_error({:EXIT, pid}, other, [])
         {:shutdown, 1}
     end
   end
@@ -133,6 +134,10 @@ defmodule Kernel.CLI do
   end
 
   ## Error handling
+
+  defp print_error(kind, reason, stacktrace) do
+    IO.write :stderr, format_error(kind, reason, stacktrace)
+  end
 
   defp blame_match(%{match?: true, node: node}, _),
     do: blame_ansi(:normal, "+", node)

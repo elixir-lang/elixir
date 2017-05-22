@@ -244,31 +244,28 @@ defmodule IEx.Evaluator do
     IO.puts :stdio, IEx.color(:eval_result, result)
   end
 
-  defp io_error(result) do
-    IO.puts :stdio, IEx.color(:eval_error, result)
-  end
-
-  defp io_stack(result) do
-    IO.write :stdio, IEx.color(:stack_info, result)
-  end
-
-  defp io_blame(result) do
-    IO.puts :stdio, "    " <> String.replace(result, "\n", "\n    ")
-  end
-
   ## Error handling
 
   defp print_error(kind, reason, stacktrace) do
     {blamed, stacktrace} = Exception.blame(kind, reason, stacktrace)
-    case blamed do
-      %FunctionClauseError{} ->
-        {_, inspect_opts} = pop_in IEx.inspect_opts[:syntax_colors][:reset]
-        Exception.format_banner(kind, reason, stacktrace) |> io_error
-        FunctionClauseError.blame(blamed, &inspect(&1, inspect_opts), &blame_match/2) |> io_blame
-      _ ->
-        Exception.format_banner(kind, blamed, stacktrace) |> io_error
-    end
-    Exception.format_stacktrace(prune_stacktrace(stacktrace)) |> io_stack
+
+    ansidata =
+      case blamed do
+        %FunctionClauseError{} ->
+          {_, inspect_opts} = pop_in IEx.inspect_opts[:syntax_colors][:reset]
+          banner = Exception.format_banner(kind, reason, stacktrace)
+          blame = FunctionClauseError.blame(blamed, &inspect(&1, inspect_opts), &blame_match/2)
+          [IEx.color(:eval_error, banner), pad(blame)]
+        _ ->
+          [IEx.color(:eval_error, Exception.format_banner(kind, blamed, stacktrace))]
+      end
+
+    stackdata = Exception.format_stacktrace(prune_stacktrace(stacktrace))
+    IO.write :stdio, [ansidata, ?\n, IEx.color(:stack_info, stackdata)]
+  end
+
+  defp pad(string) do
+    "    " <> String.replace(string, "\n", "\n    ")
   end
 
   defp blame_match(%{match?: true, node: node}, _),

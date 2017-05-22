@@ -22,7 +22,8 @@ defmodule Exception do
   }
 
   @typedoc "The kind handled by formatting functions"
-  @type kind :: :error | :exit | :throw | {:EXIT, pid}
+  @type kind :: :error | non_error_kind
+  @typep non_error_kind :: :exit | :throw | {:EXIT, pid}
 
   @type stacktrace :: [stacktrace_entry]
   @type stacktrace_entry ::
@@ -80,7 +81,7 @@ defmodule Exception do
   an empty stacktrace, `[]`, must be used.
   """
   @spec normalize(:error, any, stacktrace) :: t
-  @spec normalize(kind, payload, stacktrace) :: payload when payload: var
+  @spec normalize(non_error_kind, payload, stacktrace) :: payload when payload: var
 
   # Generating a stacktrace is expensive, default to nil
   # to only fetch it when needed.
@@ -167,8 +168,8 @@ defmodule Exception do
       used on the call and available clauses
 
   """
-  @spec blame(:error, any, stacktrace) :: t
-  @spec blame(kind, payload, stacktrace) :: payload when payload: var
+  @spec blame(:error, any, stacktrace) :: {t, stacktrace}
+  @spec blame(non_error_kind, payload, stacktrace) :: {payload, stacktrace} when payload: var
   def blame(:error, error, stacktrace) do
     case normalize(:error, error, stacktrace) do
       %{__struct__: FunctionClauseError} = struct ->
@@ -205,8 +206,8 @@ defmodule Exception do
   and each top-level condition in a guard separated by `and`/`or`
   is wrapped in a tuple with blame metadata.
 
-  This function returns either `{:ok, kind, clauses}` or `:error`.
-  Where `kind` is `:def`, `:defp`, `:defmacro` or `:defmacrop`.
+  This function returns either `{:ok, definition, clauses}` or `:error`.
+  Where `definition` is `:def`, `:defp`, `:defmacro` or `:defmacrop`.
   Note this functionality requires Erlang/OTP 20, otherwise `:error`
   is always returned.
   """
@@ -228,8 +229,12 @@ defmodule Exception do
       clauses =
         for {meta, ex_args, guards, _block} <- clauses do
           scope = :elixir_erl.definition_scope(meta, kind, function, arity, "nofile")
-          {erl_args, scope} = :elixir_erl_clauses.match(&:elixir_erl_pass.translate_args/2, ex_args, scope)
-          {args, binding} = blame_args(call_args, ex_args, erl_args, [], [])
+          {erl_args, scope} =
+            :elixir_erl_clauses.match(&:elixir_erl_pass.translate_args/2, ex_args, scope)
+          {args, binding} =
+            [call_args, ex_args, erl_args]
+            |> Enum.zip()
+            |> Enum.map_reduce([], &blame_arg/2)
           guards = Enum.map(guards, &blame_guard(&1, scope, binding))
           {args, guards}
         end
@@ -239,17 +244,13 @@ defmodule Exception do
     end
   end
 
-  defp blame_args([call_arg | call_args], [ex_arg | ex_args], [erl_arg | erl_args], binding, ann_args) do
+  defp blame_arg({call_arg, ex_arg, erl_arg}, binding) do
     {match?, binding} = blame_arg(erl_arg, call_arg, binding)
-    blame_args(call_args, ex_args, erl_args, binding,
-               [blame_wrap(match?, rewrite_arg(ex_arg)) | ann_args])
-  end
-  defp blame_args([], [], [], binding, ann_args) do
-    {Enum.reverse(ann_args), binding}
+    {blame_wrap(match?, rewrite_arg(ex_arg)), binding}
   end
 
   defp blame_arg(erl_arg, call_arg, binding) do
-    binding = List.keystore(binding, :VAR, 0, {:VAR, call_arg})
+    binding = :orddict.store(:VAR, call_arg, binding)
     try do
       {:value, _, binding} = :erl_eval.expr({:match, 0, erl_arg, {:var, 0, :VAR}}, binding, :none)
       {true, binding}
@@ -895,7 +896,7 @@ defmodule FunctionClauseError do
     formatted_args =
       args
       |> Enum.with_index(1)
-      |> Enum.map(fn {arg, i} -> "    # #{i}\n    #{inspect_fun.(arg)}\n\n" end)
+      |> Enum.map(fn {arg, i} -> "\n    # #{i}\n    #{inspect_fun.(arg)}\n" end)
 
     formatted_clauses =
       if clauses do
@@ -907,12 +908,12 @@ defmodule FunctionClauseError do
             "    #{kind} " <> Macro.to_string(code, ast_fun) <> "\n"
           end)
 
-        "Attempted function clauses (showing #{length(top_10)} out of #{length(clauses)}):\n\n#{top_10}"
+        "\nAttempted function clauses (showing #{length(top_10)} out of #{length(clauses)}):\n\n#{top_10}"
       else
         ""
       end
 
-    "\nThe following arguments were given to #{mfa}:\n\n#{formatted_args}#{formatted_clauses}"
+    "\n\nThe following arguments were given to #{mfa}:\n#{formatted_args}#{formatted_clauses}"
   end
 end
 
