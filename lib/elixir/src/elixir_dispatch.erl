@@ -190,7 +190,7 @@ expand_macro_fun(Meta, Fun, Receiver, Name, Args, E) ->
       Arity = length(Args),
       MFA  = {Receiver, elixir_utils:macro_name(Name), Arity+1},
       Info = [{Receiver, Name, Arity, [{file, "expanding macro"}]}, caller(Line, E)],
-      erlang:raise(Kind, Reason, prune_stacktrace(Stacktrace, MFA, Info, EArg))
+      erlang:raise(Kind, Reason, prune_stacktrace(Stacktrace, MFA, Info, {ok, EArg}))
   end.
 
 expand_macro_named(Meta, Receiver, Name, Arity, Args, E) ->
@@ -212,7 +212,7 @@ expand_quoted(Meta, Receiver, Name, Arity, Quoted, E) ->
       Stacktrace = erlang:get_stacktrace(),
       MFA  = {Receiver, elixir_utils:macro_name(Name), Arity+1},
       Info = [{Receiver, Name, Arity, [{file, "expanding macro"}]}, caller(Line, E)],
-      erlang:raise(Kind, Reason, prune_stacktrace(Stacktrace, MFA, Info, E))
+      erlang:raise(Kind, Reason, prune_stacktrace(Stacktrace, MFA, Info, error))
   end.
 
 caller(Line, E) ->
@@ -259,7 +259,7 @@ is_import(Meta) ->
   end.
 
 % %% We've reached the macro wrapper fun, skip it with the rest
-prune_stacktrace([{_, _, [E | _], _} | _], _MFA, Info, E) ->
+prune_stacktrace([{_, _, [E | _], _} | _], _MFA, Info, {ok, E}) ->
   Info;
 %% We've reached the invoked macro, skip it
 prune_stacktrace([{M, F, A, _} | _], {M, F, A}, Info, _E) ->
