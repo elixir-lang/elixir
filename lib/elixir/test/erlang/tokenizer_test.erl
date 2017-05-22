@@ -182,3 +182,7 @@ capture_test() ->
 vc_merge_conflict_test() ->
   {1, "found an unexpected version control marker, please resolve the conflicts: ", "<<<<<<< HEAD"} =
     tokenize_error("<<<<<<< HEAD\n[1, 2, 3]").
+
+invalid_sigil_delimiter_test() ->
+  {1, "invalid sigil delimiter: ", Message} = tokenize_error("~s\\"),
+  "\"\\\" (column 3, codepoint U+005C)" = lists:flatten(Message).
