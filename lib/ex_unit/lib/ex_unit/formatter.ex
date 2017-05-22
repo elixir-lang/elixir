@@ -166,51 +166,24 @@ defmodule ExUnit.Formatter do
   end
 
   defp format_kind_reason(:error, %FunctionClauseError{} = struct, stack, _width, formatter) do
-    banner = error_info(Exception.format_banner(:error, struct), formatter)
     {blamed, stack} = Exception.blame(:error, struct, stack)
-    mfa = Exception.format_mfa(blamed.module, blamed.function, blamed.arity)
 
-    args =
-      if blamed.args do
-        formatted_args =
-          blamed.args
-          |> Enum.with_index(1)
-          |> Enum.map(fn {arg, i} -> "         # #{i}\n         #{inspect arg}\n\n" end)
-        "\n     The following arguments were given to #{mfa}:\n\n#{formatted_args}"
-      else
-        ""
-      end
+    message =
+      error_info(Exception.format_banner(:error, struct), formatter) <>
+      pad(FunctionClauseError.blame(blamed, &inspect/1, &blame_match(&1, &2, formatter)))
 
-    clauses =
-      if blamed.clauses do
-        kind = blamed.kind
-
-        top_10 =
-          blamed.clauses
-          |> Enum.take(10)
-          |> Enum.map(fn {args, guards} ->
-            code = Enum.reduce(guards, {blamed.function, [], args}, &{:when, [], [&2, &1]})
-            "         #{kind} " <> Macro.to_string(code, &clause_match(&1, &2, formatter)) <> "\n"
-          end)
-
-        "     Attempted function clauses (showing #{length(top_10)} " <>
-          "out of #{length(blamed.clauses)}):\n\n#{top_10}\n"
-      else
-        ""
-      end
-
-    {banner <> args <> clauses, stack}
+    {message, stack}
   end
 
   defp format_kind_reason(kind, reason, stack, _width, formatter) do
     {error_info(Exception.format_banner(kind, reason), formatter), stack}
   end
 
-  defp clause_match(%{match?: true, node: node}, _, formatter),
-    do: formatter.(:clause_same, Macro.to_string(node))
-  defp clause_match(%{match?: false, node: node}, _, formatter),
-    do: formatter.(:clause_diff, Macro.to_string(node))
-  defp clause_match(_, string, _formatter),
+  defp blame_match(%{match?: true, node: node}, _, formatter),
+    do: formatter.(:blame_same, Macro.to_string(node))
+  defp blame_match(%{match?: false, node: node}, _, formatter),
+    do: formatter.(:blame_diff, Macro.to_string(node))
+  defp blame_match(_, string, _formatter),
     do: string
 
   defp filter_interesting_fields(fields) do
@@ -354,14 +327,15 @@ defmodule ExUnit.Formatter do
   defp test_location(msg, nil),       do: "     " <> msg <> "\n"
   defp test_location(msg, formatter), do: test_location(formatter.(:location_info, msg), nil)
 
-  defp error_info(msg, nil) do
+  defp pad(msg) do
     "     " <> String.replace(msg, "\n", "\n     ") <> "\n"
   end
 
-  defp error_info(msg, formatter), do: error_info(formatter.(:error_info, msg), nil)
+  defp error_info(msg, nil),       do: pad(msg)
+  defp error_info(msg, formatter), do: pad(formatter.(:error_info, msg))
 
-  defp extra_info(msg, nil),       do: "     " <> msg <> "\n"
-  defp extra_info(msg, formatter), do: extra_info(formatter.(:extra_info, msg), nil)
+  defp extra_info(msg, nil),       do: pad(msg)
+  defp extra_info(msg, formatter), do: pad(formatter.(:extra_info, msg))
 
   defp stacktrace_info("", _formatter), do: ""
   defp stacktrace_info(msg, nil),       do: "       " <> msg <> "\n"

@@ -867,12 +867,51 @@ defmodule FunctionClauseError do
   defexception [:module, :function, :arity, :kind, :args, :clauses]
 
   def message(exception) do
-    if exception.function do
-      formatted = Exception.format_mfa exception.module, exception.function, exception.arity
-      "no function clause matching in #{formatted}"
-    else
-      "no function clause matches"
+    case exception do
+      %{function: nil} ->
+        "no function clause matches"
+      %{module: module, function: function, arity: arity} ->
+        formatted = Exception.format_mfa module, function, arity
+        "no function clause matching in #{formatted}" <> blame(exception, &inspect/2, &blame_match/2)
     end
+  end
+
+  defp blame_match(%{match?: true, node: node}, _),
+    do: "+" <> Macro.to_string(node) <> "+"
+  defp blame_match(%{match?: false, node: node}, _),
+    do: "-" <> Macro.to_string(node) <> "-"
+  defp blame_match(_, string),
+    do: string
+
+  @doc false
+  def blame(%{args: nil}, _, _) do
+    ""
+  end
+  def blame(%{module: module, function: function, arity: arity,
+              kind: kind, args: args, clauses: clauses}, inspect_fun, ast_fun) do
+    mfa = Exception.format_mfa(module, function, arity)
+
+    formatted_args =
+      args
+      |> Enum.with_index(1)
+      |> Enum.map(fn {arg, i} -> "    # #{i}\n    #{inspect_fun.(arg)}\n\n" end)
+
+    formatted_clauses =
+      if clauses do
+        top_10 =
+          clauses
+          |> Enum.take(10)
+          |> Enum.map(fn {args, guards} ->
+            code = Enum.reduce(guards, {function, [], args}, &{:when, [], [&2, &1]})
+            "    #{kind} " <> Macro.to_string(code, ast_fun) <> "\n"
+          end)
+
+        "Attempted function clauses (showing #{length(top_10)} out of #{length(clauses)}):\n\n#{top_10}"
+      else
+        ""
+      end
+
+    "\nThe following arguments were given to #{mfa}:\n\n#{formatted_args}#{formatted_clauses}"
   end
 end
 

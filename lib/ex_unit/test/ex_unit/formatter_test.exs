@@ -6,10 +6,6 @@ defmodule ExUnit.FormatterTest do
   import ExUnit.Formatter
   doctest ExUnit.Formatter
 
-  def falsy(), do: false
-
-  defp formatter(_kind, message), do: message
-
   defmacrop catch_assertion(expr) do
     quote do
       try do
@@ -26,6 +22,18 @@ defmodule ExUnit.FormatterTest do
 
   defp test do
     %ExUnit.Test{name: :world, case: Hello, tags: %{file: __ENV__.file, line: 1}}
+  end
+
+  def falsy() do
+    false
+  end
+
+  defp formatter(_kind, message) do
+    message
+  end
+
+  defp trim_multiline_whitespace(string) do
+    String.replace(string, ~r"\n\s+\n", "\n\n")
   end
 
   test "formats test case filters" do
@@ -149,7 +157,7 @@ defmodule ExUnit.FormatterTest do
 
   # TODO: Remove this check once we depend only on 20
   if :erlang.system_info(:otp_release) >= '20' do
-    test "formats function clause error" do
+    test "blames function clause error" do
       {error, stack} =
         try do
           Access.fetch(:foo, :bar)
@@ -159,7 +167,7 @@ defmodule ExUnit.FormatterTest do
 
       failure = format_test_failure(test(), [{:error, error, [hd(stack)]}], 1, 80, &formatter/2)
 
-      assert failure =~ """
+      assert trim_multiline_whitespace(failure) =~ """
         1) world (Hello)
            test/ex_unit/formatter_test.exs:1
            ** (FunctionClauseError) no function clause matching in Access.fetch/2
@@ -172,7 +180,7 @@ defmodule ExUnit.FormatterTest do
                # 2
                :bar
 
-           Matching function clauses (showing 5 out of 5):
+           Attempted function clauses (showing 5 out of 5):
 
                def fetch(%struct{} = container, key)
       """

@@ -120,32 +120,6 @@ defmodule IEx.InteractionTest do
     assert "1\n2\n3\n4\n2\n** (RuntimeError) v(2) is out of bounds" <> _ = capture_iex("1\n2\n3\n4\nv(2)\nv(2)", opts)
   end
 
-  ## .iex file loading
-
-  test "no .iex" do
-    capture_io(:stderr, fn ->
-      assert "** (CompileError) iex:1: undefined function my_variable/0" <> _ = capture_iex("my_variable")
-    end)
-  end
-
-  test ".iex" do
-    File.write!("dot-iex", "my_variable = 144")
-    assert capture_iex("my_variable", [], [dot_iex_path: "dot-iex"]) == "144"
-  after
-    File.rm("dot-iex")
-  end
-
-  test "nested .iex" do
-    File.write!("dot-iex-1", "nested_var = 13\nimport IO")
-    File.write!("dot-iex", "import_file \"dot-iex-1\"\nmy_variable=14")
-
-    input = "nested_var\nmy_variable\nputs \"hello\""
-    assert capture_iex(input, [], [dot_iex_path: "dot-iex"]) == "13\n14\nhello\n:ok"
-  after
-    File.rm("dot-iex-1")
-    File.rm("dot-iex")
-  end
-
   test "receive exit" do
     assert capture_iex("spawn_link(fn -> exit(:bye) end); Process.sleep(1000)") =~
            ~r"\*\* \(EXIT from #PID<\d+\.\d+\.\d+>\) :bye"
@@ -164,8 +138,48 @@ defmodule IEx.InteractionTest do
     assert content =~ ~r"\s{8}:not_a_real_module\.function/0"
   end
 
-  test "exit due to failed call" do
+  test "receive exit due to failed call" do
     assert capture_iex("exit({:bye, {:gen_server, :call, [self(), :hello]}})") =~
            ~r"\*\* \(exit\) exited in: :gen_server\.call\(#PID<\d+\.\d+\.\d+>, :hello\)\n\s{4}\*\* \(EXIT\) :bye"
+  end
+
+  # TODO: Remove this check once we depend only on 20
+  if :erlang.system_info(:otp_release) >= '20' do
+    test "blames function clause error" do
+      content = capture_iex("Access.fetch(:foo, :bar)")
+      assert content =~ "** (FunctionClauseError) no function clause matching in Access.fetch/2"
+      assert content =~ "The following arguments were given to Access.fetch/2"
+      assert content =~ ":foo"
+      assert content =~ "def fetch(-%struct{} = container-, +key+)"
+      assert content =~ ~r"\(elixir\) lib/access\.ex:\d+: Access\.fetch/2"
+    end
+  end
+
+  ## .iex file loading
+
+  describe ".iex" do
+    test "no .iex" do
+      capture_io(:stderr, fn ->
+        assert "** (CompileError) iex:1: undefined function my_variable/0" <> _ = capture_iex("my_variable")
+      end)
+    end
+
+    test "single .iex" do
+      File.write!("dot-iex", "my_variable = 144")
+      assert capture_iex("my_variable", [], [dot_iex_path: "dot-iex"]) == "144"
+    after
+      File.rm("dot-iex")
+    end
+
+    test "nested .iex" do
+      File.write!("dot-iex-1", "nested_var = 13\nimport IO")
+      File.write!("dot-iex", "import_file \"dot-iex-1\"\nmy_variable=14")
+
+      input = "nested_var\nmy_variable\nputs \"hello\""
+      assert capture_iex(input, [], [dot_iex_path: "dot-iex"]) == "13\n14\nhello\n:ok"
+    after
+      File.rm("dot-iex-1")
+      File.rm("dot-iex")
+    end
   end
 end

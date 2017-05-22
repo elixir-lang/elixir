@@ -154,12 +154,10 @@ defmodule IEx.HelpersTest do
       String.starts_with? line, "@type"
     end) >= 2
 
-    assert "@type t() :: " <> _
-           = capture_io(fn -> t Enum.t end)
+    assert "@type t() :: " <> _ = capture_io(fn -> t Enum.t end)
     assert capture_io(fn -> t Enum.t end) == capture_io(fn -> t Enum.t/0 end)
 
     assert "@opaque t(value)\n@type t() :: t(term())\n" = capture_io(fn -> t MapSet.t end)
-
     assert capture_io(fn -> t URI.t end) == capture_io(fn -> t URI.t/0 end)
 
     content = """
@@ -203,8 +201,7 @@ defmodule IEx.HelpersTest do
   end
 
   test "v helper" do
-    assert "** (RuntimeError) v(0) is out of bounds" <> _
-           = capture_iex("v(0)")
+    assert "** (RuntimeError) v(0) is out of bounds" <> _ = capture_iex("v(0)")
     assert capture_iex("1\n2\nv(2)") == "1\n2\n2"
     assert capture_iex("1\n2\nv(2)") == capture_iex("1\n2\nv(-1)")
     assert capture_iex("1\n2\nv(2)") == capture_iex("1\n2\nv()")
@@ -242,15 +239,13 @@ defmodule IEx.HelpersTest do
   test "import_file helper" do
     with_file "dot-iex", "variable = :hello\nimport IO", fn ->
       capture_io(:stderr, fn ->
-        assert "** (CompileError) iex:1: undefined function variable/0" <> _ =
-          capture_iex("variable")
+        assert "** (CompileError) iex:1: undefined function variable/0" <> _ = capture_iex("variable")
       end)
 
-      assert "** (CompileError) iex:1: undefined function puts/1" <> _
-             = capture_iex("puts \"hi\"")
+      assert "** (CompileError) iex:1: undefined function puts/1" <> _ = capture_iex("puts \"hi\"")
 
-      assert capture_iex("import_file \"dot-iex\"\nvariable\nputs \"hi\"")
-             == "IO\n:hello\nhi\n:ok"
+      assert capture_iex("import_file \"dot-iex\"\nvariable\nputs \"hi\"") ==
+             "IO\n:hello\nhi\n:ok"
     end
   end
 
@@ -260,15 +255,13 @@ defmodule IEx.HelpersTest do
 
     with_file ["dot-iex", "dot-iex-1"], [dot, dot_1], fn ->
       capture_io(:stderr, fn ->
-        assert "** (CompileError) iex:1: undefined function parent/0" <> _ =
-          capture_iex("parent")
+        assert "** (CompileError) iex:1: undefined function parent/0" <> _ = capture_iex("parent")
       end)
 
-      assert "** (CompileError) iex:1: undefined function puts/1" <> _
-             = capture_iex("puts \"hi\"")
+      assert "** (CompileError) iex:1: undefined function puts/1" <> _ = capture_iex("puts \"hi\"")
 
-      assert capture_iex("import_file \"dot-iex\"\nvariable\nputs \"hi\"\nparent")
-             == "IO\n:hello\nhi\n:ok\ntrue"
+      assert capture_iex("import_file \"dot-iex\"\nvariable\nputs \"hi\"\nparent") ==
+             "IO\n:hello\nhi\n:ok\ntrue"
     end
   end
 
@@ -476,21 +469,23 @@ defmodule IEx.HelpersTest do
   end
 
   test "pid/1 helper" do
-    assert "#PID<0.32767.3276>" == capture_iex(~s[pid("0.32767.3276")])
-    assert "#PID<0.5.6>" == capture_iex(~s[pid("0.5.6")])
-    assert "** (ArgumentError) argument error" <> _ =
-      capture_iex(~s[pid("0.6.-6")])
+    assert inspect(pid("0.32767.3276")) == "#PID<0.32767.3276>"
+    assert inspect(pid("0.5.6")) == "#PID<0.5.6>"
+    assert_raise ArgumentError, fn ->
+      pid("0.6.-6")
+    end
   end
 
   test "pid/3 helper" do
-    assert "#PID<0.32767.3276>" == capture_iex("pid(0, 32767, 3276)")
-    assert "#PID<0.5.6>" == capture_iex("pid(0, 5, 6)")
-    assert "** (FunctionClauseError) no function clause matching in IEx.Helpers.pid/3" <> _ =
-      capture_iex("pid(0, 6, -6)")
+    assert inspect(pid(0, 32767, 3276)) == "#PID<0.32767.3276>"
+    assert inspect(pid(0, 5, 6)) == "#PID<0.5.6>"
+    assert_raise FunctionClauseError, fn ->
+      pid(0, 6, -6)
+    end
   end
 
   test "i helper" do
-    output = capture_iex ~s[i(:ok)]
+    output = capture_io fn -> i(:ok) end
     assert output =~ String.trim_trailing("""
     Term
       :ok
