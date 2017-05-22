@@ -607,8 +607,7 @@ defmodule GenServer do
         {:ok, state}
       end
 
-      defoverridable [init: 1, handle_call: 3, handle_info: 2,
-                      handle_cast: 2, terminate: 2, code_change: 3]
+      defoverridable GenServer
     end
   end
 

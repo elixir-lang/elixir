@@ -175,7 +175,7 @@ defmodule Application do
         :ok
       end
 
-      defoverridable [stop: 1]
+      defoverridable Application
     end
   end
 
