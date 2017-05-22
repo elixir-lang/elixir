@@ -86,6 +86,55 @@ defmodule IEx.AutocompleteTest do
     :code.delete(Sample)
   end
 
+  test "Elixir no completion for default argument functions with doc set to false" do
+    {:yes, '', available} = expand('String.')
+    refute Enum.member?(available, 'rjust/2')
+    assert Enum.member?(available, 'replace/3')
+
+    assert expand('String.r') == {:yes, 'e', []}
+
+    {:module, _, bytecode, _} =
+      defmodule Elixir.DefaultArgumentFunctions do
+        def foo(a \\ :a, b, c \\ :c),
+          do: {a, b, c}
+
+        def _do_fizz(a \\ :a, b, c \\ :c),
+          do: {a, b, c}
+
+        @doc false
+        def __fizz__(a \\ :a, b, c \\ :c),
+          do: {a, b, c}
+
+        @doc "bar/0 doc"
+        def bar(),
+          do: :bar
+        @doc false
+        def bar(a \\ :a, b, c \\ :c, d \\ :d),
+          do: {a, b, c, d}
+        @doc false
+        def bar(a, b, c, d, e),
+          do: {a, b, c, d, e}
+
+        @doc false
+        def baz(a \\ :a),
+          do: {a}
+
+        @doc "biz/3 doc"
+        def biz(a, b, c \\ :c),
+          do: {a, b, c}
+      end
+    File.write!("Elixir.DefaultArgumentFunctions.beam", bytecode)
+    assert Code.get_docs(DefaultArgumentFunctions, :docs)
+    assert expand('DefaultArgumentFunctions.') ==
+           {:yes, '', ['bar/0', 'biz/2', 'biz/3', 'foo/1', 'foo/2', 'foo/3']}
+    assert expand('DefaultArgumentFunctions.bi') == {:yes, 'z', []}
+    assert expand('DefaultArgumentFunctions.foo') == {:yes, '', ['foo/1', 'foo/2', 'foo/3']}
+  after
+    File.rm("Elixir.DefaultArgumentFunctions.beam")
+    :code.purge(DefaultArgumentFunctions)
+    :code.delete(DefaultArgumentFunctions)
+  end
+
   test "Elixir no completion" do
     assert expand('.')   == {:no, '', []}
     assert expand('Xyz') == {:no, '', []}

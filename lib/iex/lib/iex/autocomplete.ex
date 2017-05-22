@@ -297,25 +297,38 @@ defmodule IEx.Autocomplete do
       not ensure_loaded?(mod) ->
         []
       docs = Code.get_docs(mod, :docs) ->
-        exports(mod) |> Enum.reject(&hidden_fun?(&1, docs))
+        exports(mod)
+        |> Kernel.--(default_arg_functions_with_doc_false(docs))
+        |> Enum.reject(&hidden_fun?(&1, docs))
       true ->
         exports(mod)
     end
   end
 
-  defp hidden_fun?(fun, docs) do
-    case Enum.find(docs, &match?({^fun, _, _, _, _}, &1)) do
-      nil -> underscored_fun?(fun)
-      doc -> not has_content?(doc)
-    end
+  defp default_arg_functions_with_doc_false(docs) do
+    for {{fun_name, arity}, _, _, args, false} <- docs,
+        count = count_defaults(args),
+        count > 0,
+        new_arity <- (arity-count)..arity,
+        do: {fun_name, new_arity}
   end
 
-  defp has_content?({_, _, _, _, false}),
-    do: false
-  defp has_content?({fun, _, _, _, nil}),
-    do: not underscored_fun?(fun)
-  defp has_content?({_, _, _, _, _}),
-    do: true
+  defp count_defaults(args) do
+    Enum.count(args, &match?({:\\, _, _}, &1))
+  end
+
+  defp hidden_fun?(fun, docs) do
+    case List.keyfind(docs, fun, 0) do
+      nil ->
+        underscored_fun?(fun)
+      {_, _, _, _, false} ->
+        true
+      {fun, _, _, _, nil} ->
+        underscored_fun?(fun)
+      {_, _, _, _, _} ->
+        false
+    end
+  end
 
   defp underscored_fun?({name, _}),
     do: hd(Atom.to_charlist(name)) == ?_
