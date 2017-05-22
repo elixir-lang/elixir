@@ -370,11 +370,11 @@ deprecation('Elixir.String', lstrip, 1) ->
 deprecation('Elixir.String', rstrip, 1) ->
   "use String.trim_trailing/1";
 deprecation('Elixir.String', strip, 2) ->
-  "use String.trim/2 with a binary second argument";
+  "use String.trim/2 with a binary as second argument";
 deprecation('Elixir.String', lstrip, 2) ->
-  "use String.trim_leading/2 with a binary second argument";
+  "use String.trim_leading/2 with a binary as second argument";
 deprecation('Elixir.String', rstrip, 2) ->
-  "use String.trim_trailing/2 with a binary second argument";
+  "use String.trim_trailing/2 with a binary as second argument";
 deprecation('Elixir.String', rjust, 2) ->
   "use String.pad_leading/2";
 deprecation('Elixir.String', rjust, 3) ->
