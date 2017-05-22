@@ -249,7 +249,7 @@ defmodule Task.Supervisor do
   defp get_info(self) do
     {node(),
      case Process.info(self, :registered_name) do
-       {:registered_name, []} -> self()
+       {:registered_name, []} -> self
        {:registered_name, name} -> name
      end}
   end
