@@ -21,8 +21,7 @@ defmodule Mix.Tasks.Deps.Loadpaths do
   """
   @spec run(OptionParser.argv) :: :ok
   def run(args) do
-    all = Enum.map(Mix.Dep.cached(), &check_lock/1)
-
+    all = Mix.Dep.cached()
     unless "--no-deps-check" in args do
       deps_check(all, "--no-compile" in args)
     end
@@ -74,6 +73,8 @@ defmodule Mix.Tasks.Deps.Loadpaths do
   end
 
   defp deps_check(all, no_compile?) do
+    all = Enum.map(all, &check_lock/1)
+
     {not_ok, compile} = partition(all, [], [])
 
     cond do
