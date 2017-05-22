@@ -30,13 +30,15 @@ defmodule Mix.Shell.IOTest do
   end
 
   test "runs a given command" do
-    assert capture_io("", fn -> assert cmd("echo hello") == 0 end) == "hello\n"
+    nl = os_newline()
+
+    assert capture_io("", fn -> assert cmd("echo hello") == 0 end) == "hello" <> nl
 
     will_print_sample()
     assert capture_io("", fn -> assert cmd("echo hello", print_app: false) == 0 end) ==
-           "hello\n"
+           "hello" <> nl
     assert capture_io("", fn -> assert cmd("echo hello") == 0 end) ==
-           "==> sample\nhello\n"
+           "==> sample\nhello" <> nl
   end
 
   defp will_print_sample do
