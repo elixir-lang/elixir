@@ -306,13 +306,16 @@ expand({super, Meta, Args}, #{file := File} = E) when is_list(Args) ->
 
 %% Vars
 
-expand({'^', Meta, [Arg]}, #{context := match} = E) ->
+expand({'^', Meta, [Arg]}, #{context := match, prematch_vars := nil} = E) ->
+  form_error(Meta, ?key(E, file), ?MODULE, {pin_inside_definition, Arg});
+
+expand({'^', Meta, [Arg]}, #{context := match, prematch_vars := PrematchVars} = E) ->
   case expand(Arg, E) of
     {{VarName, VarMeta, Kind} = Var, EA} when is_atom(VarName), is_atom(Kind) ->
       %% If the variable was defined, then we return the expanded ^, otherwise
       %% we raise. We cannot use the expanded env because it would contain the
       %% variable.
-      case lists:member({VarName, var_kind(VarMeta, Kind)}, ?key(E, prematch_vars)) of
+      case lists:member({VarName, var_kind(VarMeta, Kind)}, PrematchVars) of
         true ->
           {{'^', Meta, [Var]}, EA};
         false ->
@@ -855,6 +858,8 @@ format_error({invalid_arg_for_pin, Arg}) ->
                 ['Elixir.Macro':to_string(Arg)]);
 format_error({pin_outside_of_match, Arg}) ->
   io_lib:format("cannot use ^~ts outside of match clauses", ['Elixir.Macro':to_string(Arg)]);
+format_error({pin_inside_definition, Arg}) ->
+  io_lib:format("cannot use ^~ts on function/macro definition as there are no previous variables", ['Elixir.Macro':to_string(Arg)]);
 format_error(unbound_underscore) ->
   "unbound variable _";
 format_error({undefined_var, Name, Kind}) ->

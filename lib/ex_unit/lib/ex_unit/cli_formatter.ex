@@ -226,6 +226,22 @@ defmodule ExUnit.CLIFormatter do
   defp formatter(:diff_insert_whitespace, msg, config),
     do: colorize(IO.ANSI.color_background(0, 2, 0), msg, config)
 
+  defp formatter(:blame_same, msg, %{colors: colors} = config) do
+    if colors[:enabled] do
+      colorize(:normal, msg, config)
+    else
+      "+" <> msg <> "+"
+    end
+  end
+
+  defp formatter(:blame_diff, msg, %{colors: colors} = config) do
+    if colors[:enabled] do
+      colorize(:red, msg, config)
+    else
+      "-" <> msg <> "-"
+    end
+  end
+
   defp formatter(_,  msg, _config),
     do: msg
 

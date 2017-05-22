@@ -259,8 +259,9 @@ defmodule IEx do
     * `:eval_result`  - color for an expression's resulting value
     * `:eval_info`    - ... various informational messages
     * `:eval_error`   - ... error messages
-    * `:stack_app`    - ... the app in stack traces
-    * `:stack_info`   - ... the remaining info in stacktraces
+    * `:stack_info`   - ... the stacktrace color
+    * `:blame_same`   - ... when blaming source with valid match
+    * `:blame_diff`   - ... when blaming source with no match
     * `:ls_directory` - ... for directory entries (ls helper)
     * `:ls_device`    - ... device entries (ls helper)
 

@@ -320,85 +320,172 @@ defmodule ExceptionTest do
     assert formatted =~ ~r"\s{16}:not_a_real_module\.function/0"
   end
 
+  # TODO: Remove this check once we depend only on 20
+  if :erlang.system_info(:otp_release) >= '20' do
+    describe "blaming" do
+      test "annotates function clause errors" do
+        args = [%{}, :key, nil]
+        {exception, stack} = Exception.blame(:error, :function_clause, [{Keyword, :pop, args, [line: 13]}])
+        assert %FunctionClauseError{kind: :def, args: ^args, clauses: [_]} = exception
+        assert stack == [{Keyword, :pop, 3, [line: 13]}]
+      end
+
+      test "does not annotate throws/exits" do
+        stack = [{Keyword, :pop, [%{}, :key, nil], [line: 13]}]
+        assert Exception.blame(:throw, :function_clause, stack) == {:function_clause, stack}
+        assert Exception.blame(:exit, :function_clause, stack) == {:function_clause, stack}
+      end
+
+      test "annotates args and clauses from mfa" do
+        {:ok, :def, clauses} = Exception.blame_mfa(Keyword, :pop, [%{}, :key, nil])
+        assert annotated_clauses_to_string(clauses) == [
+          "{[+keywords+, +key+, +default+], [-is_list(keywords)-]}"
+        ]
+
+        {:ok, :def, clauses} = Exception.blame_mfa(Keyword, :fetch, [[], "oops"])
+        assert annotated_clauses_to_string(clauses) == [
+          "{[+keywords+, +key+], [+is_list(keywords)+ and -is_atom(key)-]}"
+        ]
+
+        {:ok, :def, clauses} = Exception.blame_mfa(Path, :type, [self()])
+        assert annotated_clauses_to_string(clauses) == [
+          "{[+name+], [-is_list(name)-, -is_binary(name)-]}"
+        ]
+
+        {:ok, :def, clauses} = Exception.blame_mfa(Access, :fetch, [self(), "oops"])
+        assert annotated_clauses_to_string(clauses) == [
+          "{[-%struct{} = container-, +key+], []}",
+          "{[+map+, +key+], [-is_map(map)-]}",
+          "{[+list+, +key+], [-is_list(list)- and -is_atom(key)-]}",
+          "{[+list+, +key+], [-is_list(list)-]}",
+          "{[-nil-, +_key+], []}"
+        ]
+
+        {:ok, :defmacro, clauses} = Exception.blame_mfa(Kernel, :!, [true])
+        assert annotated_clauses_to_string(clauses) == [
+          "{[-{:!, _, [value]}-], []}",
+          "{[+value+], []}"
+        ]
+      end
+    end
+  end
+
+  defp annotated_clauses_to_string(clauses) do
+    Enum.map(clauses, fn args_and_clauses ->
+      Macro.to_string(args_and_clauses, fn
+        %{match?: true, node: node}, _string ->
+          "+" <> Macro.to_string(node) <> "+"
+        %{match?: false, node: node}, _string ->
+          "-" <> Macro.to_string(node) <> "-"
+        _node, string ->
+          string
+      end)
+    end)
+  end
+
   ## Exception messages
 
-  import Exception, only: [message: 1]
+  describe "exception messages" do
+    import Exception, only: [message: 1]
 
-  test "RuntimeError message" do
-    assert %RuntimeError{} |> message == "runtime error"
-    assert %RuntimeError{message: "unexpected roquefort"} |> message == "unexpected roquefort"
-  end
+    test "RuntimeError" do
+      assert %RuntimeError{} |> message == "runtime error"
+      assert %RuntimeError{message: "unexpected roquefort"} |> message == "unexpected roquefort"
+    end
 
-  test "ArithmeticError message" do
-    assert %ArithmeticError{} |> message == "bad argument in arithmetic expression"
-    assert %ArithmeticError{message: "unexpected camembert"} |> message == "unexpected camembert"
-  end
+    test "ArithmeticError" do
+      assert %ArithmeticError{} |> message == "bad argument in arithmetic expression"
+      assert %ArithmeticError{message: "unexpected camembert"} |> message == "unexpected camembert"
+    end
 
-  test "ArgumentError message" do
-    assert %ArgumentError{} |> message == "argument error"
-    assert %ArgumentError{message: "unexpected comté"} |> message == "unexpected comté"
-  end
+    test "ArgumentError" do
+      assert %ArgumentError{} |> message == "argument error"
+      assert %ArgumentError{message: "unexpected comté"} |> message == "unexpected comté"
+    end
 
-  test "Enum.OutOfBoundsError message" do
-    assert %Enum.OutOfBoundsError{} |> message == "out of bounds error"
-    assert %Enum.OutOfBoundsError{message: "the brie is not on the table"} |> message == "the brie is not on the table"
-  end
+    test "Enum.OutOfBoundsError" do
+      assert %Enum.OutOfBoundsError{} |> message == "out of bounds error"
+      assert %Enum.OutOfBoundsError{message: "the brie is not on the table"} |> message == "the brie is not on the table"
+    end
 
-  test "Enum.EmptyError message" do
-    assert %Enum.EmptyError{} |> message == "empty error"
-    assert %Enum.EmptyError{message: "there is no saint-nectaire left!"} |> message == "there is no saint-nectaire left!"
-  end
+    test "Enum.EmptyError" do
+      assert %Enum.EmptyError{} |> message == "empty error"
+      assert %Enum.EmptyError{message: "there is no saint-nectaire left!"} |> message == "there is no saint-nectaire left!"
+    end
 
-  test "UndefinedFunctionError message" do
-    assert %UndefinedFunctionError{} |> message == "undefined function"
-    assert %UndefinedFunctionError{module: Kernel, function: :bar, arity: 1} |> message ==
-           "function Kernel.bar/1 is undefined or private"
-    assert %UndefinedFunctionError{module: Foo, function: :bar, arity: 1} |> message ==
-           "function Foo.bar/1 is undefined (module Foo is not available)"
-    assert %UndefinedFunctionError{module: nil, function: :bar, arity: 0} |> message ==
-           "function nil.bar/0 is undefined or private"
-  end
+    test "UndefinedFunctionError" do
+      assert %UndefinedFunctionError{} |> message == "undefined function"
+      assert %UndefinedFunctionError{module: Kernel, function: :bar, arity: 1} |> message ==
+             "function Kernel.bar/1 is undefined or private"
+      assert %UndefinedFunctionError{module: Foo, function: :bar, arity: 1} |> message ==
+             "function Foo.bar/1 is undefined (module Foo is not available)"
+      assert %UndefinedFunctionError{module: nil, function: :bar, arity: 0} |> message ==
+             "function nil.bar/0 is undefined or private"
+    end
 
-  test "UndefinedFunctionError message suggestions" do
-    assert %UndefinedFunctionError{module: Enum, function: :map, arity: 1} |> message == """
-           function Enum.map/1 is undefined or private. Did you mean one of:
+    test "UndefinedFunctionError with suggestions" do
+      assert %UndefinedFunctionError{module: Enum, function: :map, arity: 1} |> message == """
+             function Enum.map/1 is undefined or private. Did you mean one of:
 
-                 * map/2
-           """
-    assert %UndefinedFunctionError{module: Enum, function: :man, arity: 1} |> message == """
-           function Enum.man/1 is undefined or private. Did you mean one of:
+                   * map/2
+             """
+      assert %UndefinedFunctionError{module: Enum, function: :man, arity: 1} |> message == """
+             function Enum.man/1 is undefined or private. Did you mean one of:
 
-                 * map/2
-                 * max/1
-                 * max/2
-                 * min/1
-                 * min/2
-           """
-    assert %UndefinedFunctionError{module: :erlang, function: :gt_cookie, arity: 0} |> message == """
-           function :erlang.gt_cookie/0 is undefined or private. Did you mean one of:
+                   * map/2
+                   * max/1
+                   * max/2
+                   * min/1
+                   * min/2
+             """
+      assert %UndefinedFunctionError{module: :erlang, function: :gt_cookie, arity: 0} |> message == """
+             function :erlang.gt_cookie/0 is undefined or private. Did you mean one of:
 
-                 * get_cookie/0
-                 * set_cookie/2
-           """
-  end
+                   * get_cookie/0
+                   * set_cookie/2
+             """
+    end
 
-  test "UndefinedFunctionError when the mfa is a macro but require wasn't called" do
-    _ = Code.ensure_loaded(Integer)
-    assert %UndefinedFunctionError{module: Integer, function: :is_odd, arity: 1} |> message ==
-           "function Integer.is_odd/1 is undefined or private. However there is " <>
-           "a macro with the same name and arity. Be sure to require Integer if " <>
-           "you intend to invoke this macro"
-  end
+    test "UndefinedFunctionError when the mfa is a macro but require wasn't called" do
+      _ = Code.ensure_loaded(Integer)
+      assert %UndefinedFunctionError{module: Integer, function: :is_odd, arity: 1} |> message ==
+             "function Integer.is_odd/1 is undefined or private. However there is " <>
+             "a macro with the same name and arity. Be sure to require Integer if " <>
+             "you intend to invoke this macro"
+    end
 
-  test "FunctionClauseError message" do
-    assert %FunctionClauseError{} |> message ==
-           "no function clause matches"
-    assert %FunctionClauseError{module: Foo, function: :bar, arity: 1} |> message ==
-           "no function clause matching in Foo.bar/1"
-  end
+    test "FunctionClauseError" do
+      assert %FunctionClauseError{} |> message ==
+             "no function clause matches"
+      assert %FunctionClauseError{module: Foo, function: :bar, arity: 1} |> message ==
+             "no function clause matching in Foo.bar/1"
+    end
 
-  test "ErlangError message" do
-    assert %ErlangError{original: :sample} |> message ==
-           "Erlang error: :sample"
+    # TODO: Remove this check once we depend only on 20
+    if :erlang.system_info(:otp_release) >= '20' do
+      test "FunctionClauseError with blame" do
+        {exception, _} = Exception.blame(:error, :function_clause, [{Access, :fetch, [:foo, :bar], [line: 13]}])
+        assert message(exception) =~ """
+        no function clause matching in Access.fetch/2
+
+        The following arguments were given to Access.fetch/2:
+
+            # 1
+            :foo
+
+            # 2
+            :bar
+
+        Attempted function clauses (showing 5 out of 5):
+
+            def fetch(-%struct{} = container-, +key+)
+        """
+      end
+    end
+
+    test "ErlangError" do
+      assert %ErlangError{original: :sample} |> message ==
+             "Erlang error: :sample"
+    end
   end
 end

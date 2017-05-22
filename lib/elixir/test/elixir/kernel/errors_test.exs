@@ -604,6 +604,12 @@ defmodule Kernel.ErrorsTest do
       'defmodule Kernel.ErrorsTest.InvalidDefinition, do: (def 1.(hello), do: true)'
   end
 
+  test "invalid pin in definition" do
+    assert_compile_fail CompileError,
+      "nofile:1: cannot use ^hello on function/macro definition as there are no previous variables",
+      'defmodule Kernel.ErrorsTest.InvalidDefinition, do: (def foo(^hello), do: :ok)'
+  end
+
   test "invalid size in bitstrings" do
     assert_compile_fail CompileError,
       "nofile:1: cannot use ^x outside of match clauses",

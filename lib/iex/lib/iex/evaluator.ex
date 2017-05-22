@@ -244,15 +244,46 @@ defmodule IEx.Evaluator do
     IO.puts :stdio, IEx.color(:eval_result, result)
   end
 
-  defp io_error(result) do
-    IO.puts :stdio, IEx.color(:eval_error, result)
-  end
-
   ## Error handling
 
   defp print_error(kind, reason, stacktrace) do
-    Exception.format_banner(kind, reason, stacktrace) |> io_error
-    stacktrace |> prune_stacktrace |> format_stacktrace |> io_error
+    {blamed, stacktrace} = Exception.blame(kind, reason, stacktrace)
+
+    ansidata =
+      case blamed do
+        %FunctionClauseError{} ->
+          {_, inspect_opts} = pop_in IEx.inspect_opts[:syntax_colors][:reset]
+          banner = Exception.format_banner(kind, reason, stacktrace)
+          blame = FunctionClauseError.blame(blamed, &inspect(&1, inspect_opts), &blame_match/2)
+          [IEx.color(:eval_error, banner), pad(blame)]
+        _ ->
+          [IEx.color(:eval_error, Exception.format_banner(kind, blamed, stacktrace))]
+      end
+
+    stackdata = Exception.format_stacktrace(prune_stacktrace(stacktrace))
+    IO.write :stdio, [ansidata, ?\n, IEx.color(:stack_info, stackdata)]
+  end
+
+  defp pad(string) do
+    "    " <> String.replace(string, "\n", "\n    ")
+  end
+
+  defp blame_match(%{match?: true, node: node}, _),
+    do: blame_ansi(:blame_same, "+", node)
+  defp blame_match(%{match?: false, node: node}, _),
+    do: blame_ansi(:blame_diff, "-", node)
+  defp blame_match(_, string),
+    do: string
+
+  defp blame_ansi(color, no_ansi, node) do
+    case IEx.Config.color(color) do
+      nil ->
+        no_ansi <> Macro.to_string(node) <> no_ansi
+      ansi ->
+        [ansi | Macro.to_string(node)]
+        |> IO.ANSI.format(true)
+        |> IO.iodata_to_binary()
+    end
   end
 
   @elixir_internals [:elixir, :elixir_expand, :elixir_compiler, :elixir_module,
@@ -272,36 +303,5 @@ defmodule IEx.Evaluator do
     |> Enum.drop_while(&(elem(&1, 0) in [:erl_eval, :eval_bits]))
     |> Enum.reverse()
     |> Enum.reject(&(elem(&1, 0) in @elixir_internals))
-  end
-
-  @doc false
-  def format_stacktrace(trace) do
-    entries =
-      for entry <- trace do
-        split_entry(Exception.format_stacktrace_entry(entry))
-      end
-
-    width = Enum.reduce entries, 0, fn {app, _}, acc ->
-      max(String.length(app), acc)
-    end
-
-    "    " <> Enum.map_join(entries, "\n    ", &format_entry(&1, width))
-  end
-
-  defp split_entry(entry) do
-    case entry do
-      "(" <> _ ->
-        case :binary.split(entry, ") ") do
-          [left, right] -> {left <> ") ", right}
-          _ -> {"", entry}
-        end
-      _ ->
-        {"", entry}
-    end
-  end
-
-  defp format_entry({app, info}, width) do
-    app = String.pad_leading(app, width)
-    IEx.color(:stack_app, app) <> IEx.color(:stack_info, info)
   end
 end
