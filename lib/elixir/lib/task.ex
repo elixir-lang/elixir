@@ -385,7 +385,18 @@ defmodule Task do
   Awaits a task reply and returns it.
 
   A timeout, in milliseconds, can be given with default value
-  of `5000`. In case the task process dies, this function will
+  of `5000`. In the event of a timeout handle it with try 
+  catch statement. 
+  
+      timeout = 10
+      try do
+        Task.await(search_task, timeout)
+      catch
+        :exit, {:timeout, {Task, :await, [_, timeout]}} -> 
+          raise "task timed out"
+      end
+  
+  In case the task process dies, this function will
   exit with the same reason as the task.
 
   If the timeout is exceeded, `await` will exit; however,
