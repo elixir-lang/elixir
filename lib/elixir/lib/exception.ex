@@ -206,11 +206,12 @@ defmodule Exception do
   is wrapped in a tuple with blame metadata.
 
   This function returns either `{:ok, kind, clauses}` or `:error`.
-  Where `kind` is `:def` or `:defp`. Note this functionality requires
-  Erlang/OTP 20, otherwise `:error` is always returned.
+  Where `kind` is `:def`, `:defp`, `:defmacro` or `:defmacrop`.
+  Note this functionality requires Erlang/OTP 20, otherwise `:error`
+  is always returned.
   """
   @spec blame_mfa(module, function, args :: [term]) ::
-        {:ok, :def | :defp, [{args :: [term], guards :: [term]}]} | :error
+        {:ok, :def | :defp | :defmacro | :defmacrop, [{args :: [term], guards :: [term]}]} | :error
   def blame_mfa(module, function, args) when is_atom(module) and is_atom(function) and is_list(args) do
     try do
       blame_mfa(module, function, length(args), args)

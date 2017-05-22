@@ -360,6 +360,12 @@ defmodule ExceptionTest do
           "{[+list+, +key+], [-is_list(list)-]}",
           "{[-nil-, +_key+], []}"
         ]
+
+        {:ok, :defmacro, clauses} = Exception.blame_mfa(Kernel, :!, [true])
+        assert annotated_clauses_to_string(clauses) == [
+          "{[-{:!, _, [value]}-], []}",
+          "{[+value+], []}"
+        ]
       end
     end
   end
