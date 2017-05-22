@@ -59,6 +59,20 @@ defmodule Kernel.CLI do
     Enum.reverse(config.errors, errors)
   end
 
+  @doc false
+  def format_error(kind, reason, stacktrace) do
+    {blamed, stacktrace} = Exception.blame(kind, reason, stacktrace)
+    iodata =
+      case blamed do
+        %FunctionClauseError{} ->
+          [Exception.format_banner(kind, reason, stacktrace),
+           pad(FunctionClauseError.blame(blamed, &inspect/1, &blame_match/2))]
+        _ ->
+          Exception.format_banner(kind, blamed, stacktrace)
+      end
+    [iodata, ?\n, Exception.format_stacktrace(prune_stacktrace(stacktrace))]
+  end
+
   ## Helpers
 
   defp at_exit(res) do
@@ -119,13 +133,36 @@ defmodule Kernel.CLI do
     end
   end
 
-  defp print_error(kind, reason, trace) do
-    IO.puts :stderr, Exception.format(kind, reason, prune_stacktrace(trace))
+  ## Error handling
+
+  defp print_error(kind, reason, stacktrace) do
+    IO.write :stderr, format_error(kind, reason, stacktrace)
+  end
+
+  defp blame_match(%{match?: true, node: node}, _),
+    do: blame_ansi(:normal, "+", node)
+  defp blame_match(%{match?: false, node: node}, _),
+    do: blame_ansi(:red, "-", node)
+  defp blame_match(_, string),
+    do: string
+
+  defp blame_ansi(color, no_ansi, node) do
+    if IO.ANSI.enabled? do
+      [color | Macro.to_string(node)]
+      |> IO.ANSI.format(true)
+      |> IO.iodata_to_binary()
+    else
+      no_ansi <> Macro.to_string(node) <> no_ansi
+    end
+  end
+
+  defp pad(string) do
+    "    " <> String.replace(string, "\n", "\n    ")
   end
 
   @elixir_internals [:elixir, :elixir_expand, :elixir_compiler, :elixir_module,
                      :elixir_clauses, :elixir_lexical, :elixir_def, :elixir_map,
-                     :elixir_erl, :elixir_erl_clauses, :elixir_erl_pass]
+                     :elixir_erl, :elixir_erl_clauses, :elixir_erl_pass, Kernel.ErrorHandler]
 
   defp prune_stacktrace([{mod, _, _, _} | t]) when mod in @elixir_internals do
     prune_stacktrace(t)

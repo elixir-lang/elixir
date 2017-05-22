@@ -108,9 +108,8 @@ defmodule ExUnit.Formatter do
     test_info(with_counter(counter, "#{name} (#{inspect case})"), formatter) <>
       test_location(with_location(tags), formatter) <>
       Enum.map_join(Enum.with_index(failures), "", fn {{kind, reason, stack}, index} ->
-        failure_header(failures, index) <>
-          format_kind_reason(kind, reason, width, formatter) <>
-          format_stacktrace(stack, case, name, formatter)
+        {text, stack} = format_kind_reason(kind, reason, stack, width, formatter)
+        failure_header(failures, index) <> text <> format_stacktrace(stack, case, name, formatter)
        end) <>
       report(tags, failures, width, formatter)
   end
@@ -157,19 +156,35 @@ defmodule ExUnit.Formatter do
     %ExUnit.TestCase{name: name} = test_case
     test_case_info(with_counter(counter, "#{inspect name}: "), formatter) <>
       Enum.map_join(Enum.with_index(failures), "", fn {{kind, reason, stack}, index} ->
-        failure_header(failures, index) <>
-          format_kind_reason(kind, reason, width, formatter) <>
-          format_stacktrace(stack, name, nil, formatter)
+        {text, stack} = format_kind_reason(kind, reason, stack, width, formatter)
+        failure_header(failures, index) <> text <> format_stacktrace(stack, name, nil, formatter)
       end)
   end
 
-  defp format_kind_reason(:error, %ExUnit.AssertionError{} = struct, width, formatter) do
-    format_assertion_error(struct, width, formatter, @counter_padding)
+  defp format_kind_reason(:error, %ExUnit.AssertionError{} = struct, stack, width, formatter) do
+    {format_assertion_error(struct, width, formatter, @counter_padding), stack}
   end
 
-  defp format_kind_reason(kind, reason, _width, formatter) do
-    error_info Exception.format_banner(kind, reason), formatter
+  defp format_kind_reason(:error, %FunctionClauseError{} = struct, stack, _width, formatter) do
+    {blamed, stack} = Exception.blame(:error, struct, stack)
+
+    message =
+      error_info(Exception.format_banner(:error, struct), formatter) <>
+      pad(FunctionClauseError.blame(blamed, &inspect/1, &blame_match(&1, &2, formatter)))
+
+    {message, stack}
   end
+
+  defp format_kind_reason(kind, reason, stack, _width, formatter) do
+    {error_info(Exception.format_banner(kind, reason), formatter), stack}
+  end
+
+  defp blame_match(%{match?: true, node: node}, _, formatter),
+    do: formatter.(:blame_same, Macro.to_string(node))
+  defp blame_match(%{match?: false, node: node}, _, formatter),
+    do: formatter.(:blame_diff, Macro.to_string(node))
+  defp blame_match(_, string, _formatter),
+    do: string
 
   defp filter_interesting_fields(fields) do
     Enum.filter(fields, fn {_, value} -> has_value?(value) end)
@@ -312,14 +327,15 @@ defmodule ExUnit.Formatter do
   defp test_location(msg, nil),       do: "     " <> msg <> "\n"
   defp test_location(msg, formatter), do: test_location(formatter.(:location_info, msg), nil)
 
-  defp error_info(msg, nil) do
+  defp pad(msg) do
     "     " <> String.replace(msg, "\n", "\n     ") <> "\n"
   end
 
-  defp error_info(msg, formatter), do: error_info(formatter.(:error_info, msg), nil)
+  defp error_info(msg, nil),       do: pad(msg)
+  defp error_info(msg, formatter), do: pad(formatter.(:error_info, msg))
 
-  defp extra_info(msg, nil),       do: "     " <> msg <> "\n"
-  defp extra_info(msg, formatter), do: extra_info(formatter.(:extra_info, msg), nil)
+  defp extra_info(msg, nil),       do: pad(msg)
+  defp extra_info(msg, formatter), do: pad(formatter.(:extra_info, msg))
 
   defp stacktrace_info("", _formatter), do: ""
   defp stacktrace_info(msg, nil),       do: "       " <> msg <> "\n"

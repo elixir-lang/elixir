@@ -103,7 +103,7 @@ translate({'case', Meta, [Expr, Opts]}, S) ->
 translate({'try', Meta, [Opts]}, S) ->
   SN = S#elixir_erl{extra=nil},
   Do = proplists:get_value('do', Opts, nil),
-  {TDo, SB} = elixir_erl_pass:translate(Do, SN),
+  {TDo, SB} = translate(Do, SN),
 
   Catch = [Tuple || {X, _} = Tuple <- Opts, X == 'rescue' orelse X == 'catch'],
   {TCatch, SC} = elixir_erl_try:clauses(Meta, Catch, mergec(SN, SB)),
@@ -266,7 +266,7 @@ unblock({'block', _, Exprs}) -> Exprs;
 unblock(Expr)                -> [Expr].
 
 translate_fn_match(Arg, S) ->
-  {TArg, TS} = elixir_erl_pass:translate_args(Arg, S#elixir_erl{extra=pin_guard}),
+  {TArg, TS} = translate_args(Arg, S#elixir_erl{extra=pin_guard}),
   {TArg, TS#elixir_erl{extra=S#elixir_erl.extra}}.
 
 %% Translate args
@@ -427,7 +427,7 @@ build_bitstr(Fun, T, Meta, S, Acc, H, default, Types) when is_binary(H) ->
   Element =
     case requires_utf_conversion(Types) of
       false ->
-        %% See explanation in elixir_erl_pass:elixir_to_erl/1 to
+        %% See explanation in elixir_erl:elixir_to_erl/1 to
         %% know why we can simply convert the binary to a list.
         {bin_element, ?ann(Meta), {string, 0, binary_to_list(H)}, default, default};
       true ->
@@ -456,7 +456,7 @@ extract_bit_info(L, _S) ->
   {default, extract_bit_type(L, [])}.
 
 extract_bit_size(Size, S) ->
-  {TSize, _} = elixir_erl_pass:translate(Size, S),
+  {TSize, _} = translate(Size, S),
   TSize.
 
 extract_bit_type({'-', _, [L, R]}, Acc) ->
