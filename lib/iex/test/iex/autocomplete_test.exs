@@ -160,8 +160,8 @@ defmodule IEx.AutocompleteTest do
   end
 
   test "function completion with arity" do
-    assert expand('String.printable?')  == {:yes, '', ['printable?/1']}
-    assert expand('String.printable?/') == {:yes, '', ['printable?/1']}
+    assert expand('String.printable?')  == {:yes, '', ['printable?/1', 'printable?/2']}
+    assert expand('String.printable?/') == {:yes, '', ['printable?/1', 'printable?/2']}
   end
 
   test "function completion using a variable bound to a module" do

@@ -208,39 +208,49 @@ defmodule String do
   @doc """
   Checks if a string contains only printable characters.
 
+  Takes an optional `limit` as a second argument. `printable?/2` only
+  checks the printability of the string up to the `limit`.
+
   ## Examples
 
       iex> String.printable?("abc")
       true
 
+      iex> String.printable?("abc" <> <<0>>)
+      false
+
+      iex> String.printable?("abc" <> <<0>>, 2)
+      true
+
   """
   @spec printable?(t) :: boolean
-  def printable?(string)
+  @spec printable?(t, non_neg_integer | :infinity) :: boolean
+  def printable?(string, counter \\ :infinity)
+
+  def printable?(<<>>, _), do: true
+  def printable?(_, 0), do: true
 
   for char <- 0x20..0x7E do
-    def printable?(<<unquote(char), rest::binary>>) do
-      printable?(rest)
+    def printable?(<<unquote(char), rest::binary>>, counter) do
+      printable?(rest, decrement(counter))
     end
   end
-  def printable?(<<?\n, rest::binary>>), do: printable?(rest)
-  def printable?(<<?\r, rest::binary>>), do: printable?(rest)
-  def printable?(<<?\t, rest::binary>>), do: printable?(rest)
-  def printable?(<<?\v, rest::binary>>), do: printable?(rest)
-  def printable?(<<?\b, rest::binary>>), do: printable?(rest)
-  def printable?(<<?\f, rest::binary>>), do: printable?(rest)
-  def printable?(<<?\e, rest::binary>>), do: printable?(rest)
-  def printable?(<<?\d, rest::binary>>), do: printable?(rest)
-  def printable?(<<?\a, rest::binary>>), do: printable?(rest)
-
-  def printable?(<<char::utf8, rest::binary>>)
+  for char <- '\n\r\t\v\b\f\e\d\a' do
+    def printable?(<<unquote(char), rest::binary>>, counter) do
+      printable?(rest, decrement(counter))
+    end
+  end
+  def printable?(<<char::utf8, rest::binary>>, counter)
       when char in 0xA0..0xD7FF
       when char in 0xE000..0xFFFD
       when char in 0x10000..0x10FFFF do
-    printable?(rest)
+    printable?(rest, decrement(counter))
   end
 
-  def printable?(<<>>), do: true
-  def printable?(binary) when is_binary(binary), do: false
+  def printable?(binary, _) when is_binary(binary), do: false
+
+  defp decrement(:infinity), do: :infinity
+  defp decrement(counter),   do: counter - 1
 
   @doc ~S"""
   Divides a string into substrings at each Unicode whitespace
