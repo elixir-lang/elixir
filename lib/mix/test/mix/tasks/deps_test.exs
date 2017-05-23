@@ -16,6 +16,17 @@ defmodule Mix.Tasks.DepsTest do
     end
   end
 
+  defmodule GitApp do
+    def project do
+      opts = Process.get(:git_repo_opts) || []
+      [app: :git_app,
+       version: "0.1.0",
+       deps: [
+         {:git_repo, "0.1.0", [git: fixture_path("git_repo")] ++ opts}
+       ]]
+    end
+  end
+
   defmodule SuccessfulDepsApp do
     def project do
       [app: :sample, version: "0.1.0",
@@ -161,6 +172,22 @@ defmodule Mix.Tasks.DepsTest do
       # This one is compiled automatically
       refute_received {:mix_shell, :error, ["* noappfile (deps/noappfile)"]}
       refute_received {:mix_shell, :error, ["  could not find an app file at \"_build/dev/lib/noappfile/ebin/noappfile.app\"" <> _]}
+    end
+  end
+
+  test "does not check dependencies if --no-deps-check is provided" do
+    Mix.Project.push GitApp
+
+    in_fixture "deps_status", fn ->
+      Mix.Tasks.Deps.Get.run []
+      message = "* Getting git_repo (#{fixture_path("git_repo")})"
+      assert_received {:mix_shell, :info, [^message]}
+
+      # Remove the .git directory from the dependency
+      File.rm_rf!("deps/git_repo/.git")
+
+      # should not have any error 
+      Mix.Tasks.Deps.Loadpaths.run ["--no-deps-check"]
     end
   end
 
