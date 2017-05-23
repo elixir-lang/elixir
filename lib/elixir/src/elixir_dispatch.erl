@@ -351,64 +351,64 @@ deprecation_message(Warning, Message) ->
   end.
 
 %% Modules
+deprecation('Elixir.Dict', _, _) ->
+  "use the Map module for working with maps or the Keyword module for working with keyword lists";
+deprecation('Elixir.GenEvent', _, _) ->
+  "use one of the alternatives described in the documentation for the GenEvent module";
 deprecation('Elixir.HashDict', _, _) ->
   "use maps and the Map module instead";
 deprecation('Elixir.HashSet', _, _) ->
   "use the MapSet module instead";
-deprecation('Elixir.Dict', _, _) ->
-  "use the Map module for working with maps or the Keyword module for working with keyword lists";
 deprecation('Elixir.Set', _, _) ->
   "use the MapSet module for working with sets";
-deprecation('Elixir.GenEvent', _, _) ->
-  "use one of the alternatives described in the documentation for the GenEvent module";
 
 %% Single functions
-deprecation('Elixir.String', strip, 1) ->
-  "use String.trim/1";
-deprecation('Elixir.String', lstrip, 1) ->
-  "use String.trim_leading/1";
-deprecation('Elixir.String', rstrip, 1) ->
-  "use String.trim_trailing/1";
-deprecation('Elixir.String', strip, 2) ->
-  "use String.trim/2 with a binary as second argument";
-deprecation('Elixir.String', lstrip, 2) ->
-  "use String.trim_leading/2 with a binary as second argument";
-deprecation('Elixir.String', rstrip, 2) ->
-  "use String.trim_trailing/2 with a binary as second argument";
-deprecation('Elixir.String', rjust, 2) ->
-  "use String.pad_leading/2";
-deprecation('Elixir.String', rjust, 3) ->
-  "use String.pad_leading/3 with a binary padding";
-deprecation('Elixir.String', ljust, 2) ->
-  "use String.pad_trailing/2";
-deprecation('Elixir.String', ljust, 3) ->
-  "use String.pad_trailing/3 with a binary padding";
 deprecation('Elixir.Atom', to_char_list, 1) ->
   "use Atom.to_charlist/1";
+deprecation('Elixir.Enum', uniq, 2) ->
+  "use Enum.uniq_by/2";
 deprecation('Elixir.Float', to_char_list, 1) ->
   "use Float.to_charlist/1";
-deprecation('Elixir.Integer', to_char_list, 1) ->
-  "use Integer.to_charlist/1";
-deprecation('Elixir.Integer', to_char_list, 2) ->
-  "use Integer.to_charlist/2";
-deprecation('Elixir.String', to_char_list, 1) ->
-  "use String.to_charlist/1";
-deprecation('Elixir.List.Chars', to_char_list, 1) ->
-  "use List.Chars.to_charlist/1";
-deprecation('Elixir.Kernel', to_char_list, 1) ->
-  "use Kernel.to_charlist/1";
 deprecation('Elixir.Float', to_char_list, 2) ->
   "use :erlang.float_to_list/2";
 deprecation('Elixir.Float', to_string, 2) ->
   "use :erlang.float_to_binary/2";
-deprecation('Elixir.Enum', uniq, 2) ->
-  "use Enum.uniq_by/2";
+deprecation('Elixir.Integer', to_char_list, 1) ->
+  "use Integer.to_charlist/1";
+deprecation('Elixir.Integer', to_char_list, 2) ->
+  "use Integer.to_charlist/2";
+deprecation('Elixir.Kernel', to_char_list, 1) ->
+  "use Kernel.to_charlist/1";
 deprecation('Elixir.Keyword', size, 1) ->
   "use Kernel.length/1";
+deprecation('Elixir.List.Chars', to_char_list, 1) ->
+  "use List.Chars.to_charlist/1";
 deprecation('Elixir.Map', size, 1) ->
   "use Kernel.map_size/1";
 deprecation('Elixir.Stream', uniq, 2) ->
   "use Stream.uniq_by/2";
+deprecation('Elixir.String', ljust, 2) ->
+  "use String.pad_trailing/2";
+deprecation('Elixir.String', ljust, 3) ->
+  "use String.pad_trailing/3 with a binary padding";
+deprecation('Elixir.String', lstrip, 1) ->
+  "use String.trim_leading/1";
+deprecation('Elixir.String', lstrip, 2) ->
+  "use String.trim_leading/2 with a binary as second argument";
+deprecation('Elixir.String', rjust, 2) ->
+  "use String.pad_leading/2";
+deprecation('Elixir.String', rjust, 3) ->
+  "use String.pad_leading/3 with a binary padding";
+deprecation('Elixir.String', rstrip, 1) ->
+  "use String.trim_trailing/1";
+deprecation('Elixir.String', rstrip, 2) ->
+  "use String.trim_trailing/2 with a binary as second argument";
+deprecation('Elixir.String', strip, 1) ->
+  "use String.trim/1";
+deprecation('Elixir.String', strip, 2) ->
+  "use String.trim/2 with a binary second argument";
+deprecation('Elixir.String', to_char_list, 1) ->
+  "use String.to_charlist/1";
 deprecation('Elixir.String', 'valid_character?', 1) ->
   "use String.valid?/1";
 deprecation('Elixir.Task', find, 2) ->
