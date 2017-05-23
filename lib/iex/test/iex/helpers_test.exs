@@ -484,7 +484,7 @@ defmodule IEx.HelpersTest do
     end
   end
 
-  test "i helper" do
+  test "i/1 helper" do
     output = capture_io fn -> i(:ok) end
     assert output =~ String.trim_trailing("""
     Term
@@ -493,6 +493,19 @@ defmodule IEx.HelpersTest do
       Atom
     Reference modules
       Atom
+    """)
+  end
+
+  test "i/1 helper on functions that don't display result" do
+    output = capture_io fn -> i(IEx.dont_display_result()) end
+    assert output =~ String.trim_trailing("""
+    Term
+      :"do not show this result in output"
+    Data type
+      Atom
+    Description
+      This atom is returned by IEx when a function that should not print its
+      return value on screen is executed.
     """)
   end
 
