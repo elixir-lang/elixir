@@ -104,7 +104,7 @@ defimpl Inspect, for: BitString do
       inspected =
         case escape(term, ?", printable_limit) do
           {escaped, ""} -> [?", escaped, ?"]
-          {escaped, _} -> ["<<\"", escaped, "\", ...>>"]
+          {escaped, _} -> [?", escaped, ?", " <> ..."]
         end
       color(IO.iodata_to_binary(inspected), :string, opts)
     else
@@ -120,7 +120,7 @@ defimpl Inspect, for: BitString do
 
   @doc false
   def escape(other, char) do
-    escape(other, char, byte_size(other), [])
+    escape(other, char, :infinity, [])
   end
 
   @doc false
@@ -180,9 +180,6 @@ defimpl Inspect, for: BitString do
   defp escape(<<>>, _char, _count, acc) do
     {acc, <<>>}
   end
-
-  @compile {:inline, decrement: 1}
-  defp decrement(counter), do: counter - 1
 
   @doc false
   # Also used by Regex
@@ -244,6 +241,7 @@ defimpl Inspect, for: BitString do
     Inspect.Integer.inspect(h, opts) <> "::size(" <> Integer.to_string(size) <> ")"
   end
 
+  @compile {:inline, decrement: 1}
   defp decrement(:infinity), do: :infinity
   defp decrement(counter),   do: counter - 1
 end
@@ -254,7 +252,8 @@ defimpl Inspect, for: List do
   end
 
   # TODO: Remove :char_list and :as_char_lists handling in 2.0
-  def inspect(term, %Inspect.Opts{charlists: lists, char_lists: lists_deprecated} = opts) do
+  def inspect(term, opts) do
+    %Inspect.Opts{charlists: lists, char_lists: lists_deprecated, printable_limit: printable_limit} = opts
     lists =
       if lists == :infer and lists_deprecated != :infer do
         case lists_deprecated do
@@ -276,9 +275,13 @@ defimpl Inspect, for: List do
     close = color("]", :list, opts)
 
     cond do
-      lists == :as_charlists or (lists == :infer and printable?(term)) ->
-        {escaped, _} = Inspect.BitString.escape(IO.chardata_to_string(term), ?')
-        IO.iodata_to_binary [?', escaped, ?']
+      lists == :as_charlists or (lists == :infer and printable?(term, printable_limit)) ->
+        inspected =
+          case Inspect.BitString.escape(IO.chardata_to_string(term), ?', printable_limit) do
+            {escaped, ""} -> [?', escaped, ?']
+            {escaped, _} -> [?', escaped, ?', " ++ ..."]
+          end
+        IO.iodata_to_binary inspected
       keyword?(term) ->
         surround_many(open, term, close, opts, &keyword/2, sep)
       true ->
@@ -304,17 +307,22 @@ defimpl Inspect, for: List do
   def keyword?(_other), do: false
 
   @doc false
-  def printable?([char | rest]) when char in 32..126, do: printable?(rest)
-  def printable?([?\n | rest]), do: printable?(rest)
-  def printable?([?\r | rest]), do: printable?(rest)
-  def printable?([?\t | rest]), do: printable?(rest)
-  def printable?([?\v | rest]), do: printable?(rest)
-  def printable?([?\b | rest]), do: printable?(rest)
-  def printable?([?\f | rest]), do: printable?(rest)
-  def printable?([?\e | rest]), do: printable?(rest)
-  def printable?([?\a | rest]), do: printable?(rest)
-  def printable?([]), do: true
-  def printable?(_), do: false
+  def printable?(_, 0), do: true
+  def printable?([char | rest], counter) when char in 32..126, do: printable?(rest, decrement(counter))
+  def printable?([?\n | rest], counter), do: printable?(rest, decrement(counter))
+  def printable?([?\r | rest], counter), do: printable?(rest, decrement(counter))
+  def printable?([?\t | rest], counter), do: printable?(rest, decrement(counter))
+  def printable?([?\v | rest], counter), do: printable?(rest, decrement(counter))
+  def printable?([?\b | rest], counter), do: printable?(rest, decrement(counter))
+  def printable?([?\f | rest], counter), do: printable?(rest, decrement(counter))
+  def printable?([?\e | rest], counter), do: printable?(rest, decrement(counter))
+  def printable?([?\a | rest], counter), do: printable?(rest, decrement(counter))
+  def printable?([], counter), do: true
+  def printable?(_, counter), do: false
+
+  @compile {:inline, decrement: 1}
+  defp decrement(:infinity), do: :infinity
+  defp decrement(counter),   do: counter - 1
 
   ## Private
 

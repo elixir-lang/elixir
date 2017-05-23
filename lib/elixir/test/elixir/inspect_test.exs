@@ -142,10 +142,10 @@ defmodule Inspect.BitStringTest do
     assert inspect(<<193, 193, 193, 193>>, limit: 3) == "<<193, 193, 193, ...>>"
   end
 
-  test "string with limits" do
-    assert inspect("hello world", printable_limit: 4) == ~s(<<"hell", ...>>)
+  test "printable limit" do
+    assert inspect("hello world", printable_limit: 4) == ~s("hell" <> ...)
     # non printable characters after the limit don't matter
-    assert inspect("hello world" <> <<0>>, printable_limit: 4) == ~s(<<"hell", ...>>)
+    assert inspect("hello world" <> <<0>>, printable_limit: 4) == ~s("hell" <> ...)
     # non printable strings aren't affected by printable limit
     assert inspect(<<0,1,2,3,4>>, printable_limit: 3) == ~s(<<0, 1, 2, 3, 4>>)
   end
@@ -246,6 +246,14 @@ defmodule Inspect.ListTest do
 
   test "printable" do
     assert inspect('abc') == "'abc'"
+  end
+
+  test "printable limit" do
+    assert inspect('hello world', printable_limit: 4) == ~s('hell' ++ ...)
+    # non printable characters after the limit don't matter
+    assert inspect('hello world' ++ [0], printable_limit: 4) == ~s('hell' ++ ...)
+    # non printable strings aren't affected by printable limit
+    assert inspect([0,1,2,3,4], printable_limit: 3) == ~s([0, 1, 2, 3, 4])
   end
 
   test "keyword" do
