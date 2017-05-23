@@ -307,6 +307,9 @@ defimpl Inspect, for: List do
   def keyword?(_other), do: false
 
   @doc false
+  def printable?(list), do: printable?(list, :infinity)
+
+  @doc false
   def printable?(_, 0), do: true
   def printable?([char | rest], counter) when char in 32..126, do: printable?(rest, decrement(counter))
   def printable?([?\n | rest], counter), do: printable?(rest, decrement(counter))
