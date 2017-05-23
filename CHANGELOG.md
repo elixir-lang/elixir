@@ -61,10 +61,10 @@
 
 #### Elixir
 
+  * `Atom.to_char_list/1`, `Float.to_char_list/1`, `Integer.to_char_list/1`, `Integer.to_char_list/2`, `Kernel.to_char_list/1`, `List.Chars.to_char_list/1`, `String.to_char_list/1` have been deprecated in favor of their `to_charlist` version. This aligns with the naming conventions in both Erlang and Elixir
   * [Calendar] Deprecate `NaiveDateTime` and `DateTime` in `Date.to_iso8601/1`, `Date.to_erl/1`, `Time.to_iso8601/1` and `Time.to_erl/1` to avoid loss of precision
-  * [GenEvent] Hard deprecate `GenEvent` and provide alternatives in its docs
+  * [GenEvent] Deprecate `GenEvent` and provide alternatives in its docs
   * [Kernel] Using `()` to mean `nil` is deprecated
-  * [Kernel] `Atom.to_char_list/1`, `Float.to_char_list/1`, `Integer.to_char_list/1`, `Kernel.to_char_list/1`, `String.to_char_list/1` have been deprecated in favor of their `to_charlist/1` version. This aligns with the naming conventions in both Erlang and Elixir
   * [Kernel] `:as_char_lists value` in `Inspect.Opts.t/0` type, in favor of `:as_charlists`
   * [Kernel] `:char_lists` key in `Inspect.Opts.t/0` type, in favor of `:charlists`
   * [Module] Using Erlang parse transforms via `@compile {:parse_transform, _}` is deprecated
@@ -72,7 +72,7 @@
   * [String] `String.strip/1` and `String.strip/2` are deprecated in favor of `String.trim/1` and `String.trim/2`
   * [String] `String.lstrip/1` and `String.rstrip/1` are deprecated in favor of `String.trim_leading/1` and `String.trim_trailing/1`
   * [String] `String.lstrip/2` and `String.rstrip/2` are deprecated in favor of `String.trim_leading/2` and `String.trim_trailing/2` with a binary as second argument
-  * [Typespec] `char_list/0` type is deprecated in favor of `charlist/0`
+  * [Typespec] `char_list/0` type is deprecated in favor of `charlist/0`
 
 ## v1.4
 
