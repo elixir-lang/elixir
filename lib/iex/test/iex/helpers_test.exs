@@ -496,6 +496,17 @@ defmodule IEx.HelpersTest do
     """)
   end
 
+  test "i/0 helper when no history is available" do
+    assert capture_iex("i()") =~ String.trim_trailing("""
+    Term
+      nil
+    Data type
+      Atom
+    Reference modules
+      Atom
+    """)
+  end
+
   defp test_module_code do
     """
     defmodule Sample do

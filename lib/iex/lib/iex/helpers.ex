@@ -449,11 +449,27 @@ defmodule IEx.Helpers do
     :code.load_file(module)
   end
 
+
+  @doc """
+  Prints information about the data type of the previous expression used.
+
+  See `i/1` for more information.
+  """
+  def i() do
+    i(v(-1))
+  rescue
+    exception ->
+      stacktrace = System.stacktrace
+      case exception do
+        %RuntimeError{message: "v(-1) is out of bounds"} ->
+          i(nil)
+        _ ->
+          reraise(exception, stacktrace)
+      end
+  end
+
   @doc """
   Prints information about the data type of any given term.
-
-  If no argument is given, the value of the previous expression
-  is used.
 
   ## Examples
 
@@ -471,7 +487,7 @@ defmodule IEx.Helpers do
         Range, Map
 
   """
-  def i(term \\ v(-1)) do
+  def i(term) do
     info =
       ["Term": inspect(term)] ++
       IEx.Info.info(term) ++
