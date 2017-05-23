@@ -89,21 +89,24 @@ defimpl Inspect, for: Atom do
       type when type in [:callable, :not_callable] ->
         ":" <> binary
       :other ->
-        ":" <> escape(binary)
+        {escaped, _} = Inspect.BitString.escape(binary, ?")
+        IO.iodata_to_binary [?:, ?", escaped, ?"]
     end
-  end
-
-  def escape(binary) do
-    IO.iodata_to_binary [?", Inspect.BitString.escape(binary, ?"), ?"]
   end
 end
 
 defimpl Inspect, for: BitString do
-  def inspect(term, %Inspect.Opts{binaries: bins, base: base, printable_limit: printable_limit} = opts) when is_binary(term) do
-    if base == :decimal and (bins == :as_strings or (bins == :infer and String.printable?(term, printable_limit))) do
-      term = String.slice(term, 0..printable_limit)
-      inspected = IO.iodata_to_binary([?", escape(term, ?"), ?"])
-      color(inspected, :string, opts)
+  def inspect(term, opts) when is_binary(term) do
+    %Inspect.Opts{binaries: bins, base: base, printable_limit: printable_limit} = opts
+
+    if base == :decimal and
+       (bins == :as_strings or (bins == :infer and String.printable?(term, printable_limit))) do
+      inspected =
+        case escape(term, ?", printable_limit) do
+          {escaped, ""} -> [?", escaped, ?"]
+          {escaped, _} -> ["<<\"", escaped, "\", ...>>"]
+        end
+      color(IO.iodata_to_binary(inspected), :string, opts)
     else
       inspect_bitstring(term, opts)
     end
@@ -117,56 +120,69 @@ defimpl Inspect, for: BitString do
 
   @doc false
   def escape(other, char) do
-    escape(other, char, [])
+    escape(other, char, byte_size(other), [])
   end
 
-  defp escape(<<char, t::binary>>, char, acc) do
-    escape(t, char, [acc | [?\\, char]])
+  @doc false
+  def escape(other, char, count) do
+    escape(other, char, count, [])
   end
-  defp escape(<<?#, ?{, t::binary>>, char, acc) do
-    escape(t, char, [acc | '\\\#{'])
+
+  defp escape(<<_, _::binary>> = binary, _char, 0, acc) do
+    {acc, binary}
   end
-  defp escape(<<?\a, t::binary>>, char, acc) do
-    escape(t, char, [acc | '\\a'])
+  defp escape(<<char, t::binary>>, char, count, acc) do
+    escape(t, char, decrement(count), [acc | [?\\, char]])
   end
-  defp escape(<<?\b, t::binary>>, char, acc) do
-    escape(t, char, [acc | '\\b'])
+  defp escape(<<?#, ?{, t::binary>>, char, count, acc) do
+    escape(t, char, decrement(count), [acc | '\\\#{'])
   end
-  defp escape(<<?\d, t::binary>>, char, acc) do
-    escape(t, char, [acc | '\\d'])
+  defp escape(<<?\a, t::binary>>, char, count, acc) do
+    escape(t, char, decrement(count), [acc | '\\a'])
   end
-  defp escape(<<?\e, t::binary>>, char, acc) do
-    escape(t, char, [acc | '\\e'])
+  defp escape(<<?\b, t::binary>>, char, count, acc) do
+    escape(t, char, decrement(count), [acc | '\\b'])
   end
-  defp escape(<<?\f, t::binary>>, char, acc) do
-    escape(t, char, [acc | '\\f'])
+  defp escape(<<?\d, t::binary>>, char, count, acc) do
+    escape(t, char, decrement(count), [acc | '\\d'])
   end
-  defp escape(<<?\n, t::binary>>, char, acc) do
-    escape(t, char, [acc | '\\n'])
+  defp escape(<<?\e, t::binary>>, char, count, acc) do
+    escape(t, char, decrement(count), [acc | '\\e'])
   end
-  defp escape(<<?\r, t::binary>>, char, acc) do
-    escape(t, char, [acc | '\\r'])
+  defp escape(<<?\f, t::binary>>, char, count, acc) do
+    escape(t, char, decrement(count), [acc | '\\f'])
   end
-  defp escape(<<?\\, t::binary>>, char, acc) do
-    escape(t, char, [acc | '\\\\'])
+  defp escape(<<?\n, t::binary>>, char, count, acc) do
+    escape(t, char, decrement(count), [acc | '\\n'])
   end
-  defp escape(<<?\t, t::binary>>, char, acc) do
-    escape(t, char, [acc | '\\t'])
+  defp escape(<<?\r, t::binary>>, char, count, acc) do
+    escape(t, char, decrement(count), [acc | '\\r'])
   end
-  defp escape(<<?\v, t::binary>>, char, acc) do
-    escape(t, char, [acc | '\\v'])
+  defp escape(<<?\\, t::binary>>, char, count, acc) do
+    escape(t, char, decrement(count), [acc | '\\\\'])
   end
-  defp escape(<<h::utf8, t::binary>>, char, acc)
+  defp escape(<<?\t, t::binary>>, char, count, acc) do
+    escape(t, char, decrement(count), [acc | '\\t'])
+  end
+  defp escape(<<?\v, t::binary>>, char, count, acc) do
+    escape(t, char, decrement(count), [acc | '\\v'])
+  end
+  defp escape(<<h::utf8, t::binary>>, char, count, acc)
        when h in 0x20..0x7E
        when h in 0xA0..0xD7FF
        when h in 0xE000..0xFFFD
        when h in 0x10000..0x10FFFF do
-    escape(t, char, [acc | <<h::utf8>>])
+    escape(t, char, decrement(count), [acc | <<h::utf8>>])
   end
-  defp escape(<<h, t::binary>>, char, acc) do
-    escape(t, char, [acc | escape_char(h)])
+  defp escape(<<h, t::binary>>, char, count, acc) do
+    escape(t, char, decrement(count), [acc | escape_char(h)])
   end
-  defp escape(<<>>, _char, acc), do: acc
+  defp escape(<<>>, _char, _count, acc) do
+    {acc, <<>>}
+  end
+
+  @compile {:inline, decrement: 1}
+  defp decrement(counter), do: counter - 1
 
   @doc false
   # Also used by Regex
@@ -261,7 +277,8 @@ defimpl Inspect, for: List do
 
     cond do
       lists == :as_charlists or (lists == :infer and printable?(term)) ->
-        IO.iodata_to_binary [?', Inspect.BitString.escape(IO.chardata_to_string(term), ?'), ?']
+        {escaped, _} = Inspect.BitString.escape(IO.chardata_to_string(term), ?')
+        IO.iodata_to_binary [?', escaped, ?']
       keyword?(term) ->
         surround_many(open, term, close, opts, &keyword/2, sep)
       true ->
@@ -462,7 +479,8 @@ defimpl Inspect, for: Function do
       type when type in [:not_callable, :alias] ->
         "\"" <> name <> "\""
       :other ->
-        Inspect.Atom.escape(name)
+        {escaped, _} = Inspect.BitString.escape(name, ?")
+        IO.iodata_to_binary [?", escaped, ?"]
     end
   end
 

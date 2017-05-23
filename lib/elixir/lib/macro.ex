@@ -856,7 +856,8 @@ defmodule Macro do
       list == [] ->
         "[]"
       :io_lib.printable_list(list) ->
-        IO.iodata_to_binary [?', Inspect.BitString.escape(IO.chardata_to_string(list), ?'), ?']
+        {escaped, _} = Inspect.BitString.escape(IO.chardata_to_string(list), ?')
+        IO.iodata_to_binary [?', escaped, ?']
       Inspect.List.keyword?(list) ->
         "[" <> kw_list_to_string(list, fun) <> "]"
       true ->
