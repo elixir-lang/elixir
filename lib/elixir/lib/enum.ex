@@ -370,7 +370,7 @@ defmodule Enum do
       :lists.reverse(acc)
     else
       buffer = :lists.reverse(buffer, take(leftover, count - i))
-      :lists.reverse([buffer | acc])
+      :lists.reverse(acc, [buffer])
     end
   end
 

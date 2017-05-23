@@ -1330,9 +1330,9 @@ defmodule String do
 
   defp do_chunk(string, flag, pred_fn), do: do_chunk(string, [], <<>>, flag, pred_fn)
 
-  defp do_chunk(<<>>, acc, <<>>, _, _), do: Enum.reverse(acc)
+  defp do_chunk(<<>>, acc, <<>>, _, _), do: :lists.reverse(acc)
 
-  defp do_chunk(<<>>, acc, chunk, _, _), do: Enum.reverse(acc, [chunk])
+  defp do_chunk(<<>>, acc, chunk, _, _), do: :lists.reverse(acc, [chunk])
 
   defp do_chunk(string, acc, chunk, flag, pred_fn) do
     {cp, rest} = next_codepoint(string)
@@ -2023,7 +2023,7 @@ defmodule String do
   defp detect(_char, [], _lim, _idx, _acc),  do: nil
 
   defp detect(char, [char | rest], _lim, idx, acc),
-    do: {idx, Enum.reverse(acc, [nil | rest])}
+    do: {idx, :lists.reverse(acc, [nil | rest])}
 
   defp detect(char, [other | rest], lim, idx, acc),
     do: detect(char, rest, lim - 1, idx + 1, [other | acc])

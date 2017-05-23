@@ -161,13 +161,13 @@ defmodule IO.ANSI.Docs do
     {stripped, next_count} = strip_spaces(line, 0, max)
     case process_list_next_kind(stripped, rest, count, next_count) do
       :next -> process_list_next(rest, count, max, [stripped | acc])
-      :done -> {Enum.reverse(acc), [line | rest], true}
-      :list -> {Enum.reverse(acc), [line | rest], false}
+      :done -> {:lists.reverse(acc), [line | rest], true}
+      :list -> {:lists.reverse(acc), [line | rest], false}
     end
   end
 
   defp process_list_next([], _count, _max, acc) do
-    {Enum.reverse(acc), [], true}
+    {:lists.reverse(acc), [], true}
   end
 
   defp process_list_next_kind(stripped, rest, count, next_count) do
@@ -190,7 +190,7 @@ defmodule IO.ANSI.Docs do
   ## Text
 
   defp write_text(text, indent, options) do
-    case Enum.reverse(text) do
+    case :lists.reverse(text) do
       [:no_wrap | rest] -> write_text(rest, indent, options, true)
       rest -> write_text(rest, indent, options, false)
     end
@@ -249,7 +249,7 @@ defmodule IO.ANSI.Docs do
   end
 
   defp write_code(code, indent, options) do
-    write(:doc_code, "#{indent}    #{Enum.join(Enum.reverse(code), "\n#{indent}    ")}", options)
+    write(:doc_code, "#{indent}    #{Enum.join(:lists.reverse(code), "\n#{indent}    ")}", options)
     newline_after_block()
   end
 
@@ -395,12 +395,12 @@ defmodule IO.ANSI.Docs do
 
       # Otherwise
       true ->
-        {Enum.reverse(acc), [word | words]}
+        {:lists.reverse(acc), [word | words]}
     end
   end
 
   defp take_words([], _available, acc) do
-    {Enum.reverse(acc), []}
+    {:lists.reverse(acc), []}
   end
 
   defp length_without_escape(<<?\e, ?[, _, _, ?m>> <> rest, count) do
@@ -471,29 +471,29 @@ defmodule IO.ANSI.Docs do
 
   defp handle_inline(<<delimiter, ?*, ?*, rest::binary>>, nil, buffer, acc, options)
       when rest != "" and delimiter in @delimiters do
-    handle_inline(rest, ?d, ["**"], [delimiter, Enum.reverse(buffer) | acc], options)
+    handle_inline(rest, ?d, ["**"], [delimiter, :lists.reverse(buffer) | acc], options)
   end
 
   defp handle_inline(<<delimiter, mark, rest::binary>>, nil, buffer, acc, options)
       when rest != "" and delimiter in @delimiters and mark in @single do
-    handle_inline(rest, mark, [<<mark>>], [delimiter, Enum.reverse(buffer) | acc], options)
+    handle_inline(rest, mark, [<<mark>>], [delimiter, :lists.reverse(buffer) | acc], options)
   end
 
   defp handle_inline(<<?`, rest::binary>>, nil, buffer, acc, options)
       when rest != "" do
-    handle_inline(rest, ?`, ["`"], [Enum.reverse(buffer) | acc], options)
+    handle_inline(rest, ?`, ["`"], [:lists.reverse(buffer) | acc], options)
   end
 
   # Clauses for handling escape
 
   defp handle_inline(<<?\\, ?\\, ?*, ?*, rest::binary>>, nil, buffer, acc, options)
       when rest != "" do
-    handle_inline(rest, ?d, ["**"], [?\\, Enum.reverse(buffer) | acc], options)
+    handle_inline(rest, ?d, ["**"], [?\\, :lists.reverse(buffer) | acc], options)
   end
 
   defp handle_inline(<<?\\, ?\\, mark, rest::binary>>, nil, buffer, acc, options)
       when rest != "" and mark in @single do
-    handle_inline(rest, mark, [<<mark>>], [?\\, Enum.reverse(buffer) | acc], options)
+    handle_inline(rest, mark, [<<mark>>], [?\\, :lists.reverse(buffer) | acc], options)
   end
 
   defp handle_inline(<<?\\, ?\\, rest::binary>>, limit, buffer, acc, options) do
@@ -539,12 +539,12 @@ defmodule IO.ANSI.Docs do
   end
 
   defp handle_inline(<<>>, _mark, buffer, acc, _options) do
-    IO.iodata_to_binary Enum.reverse([Enum.reverse(buffer) | acc])
+    IO.iodata_to_binary :lists.reverse(acc, [:lists.reverse(buffer)])
   end
 
   defp inline_buffer(buffer, options) do
-    [h | t] = Enum.reverse([IO.ANSI.reset | buffer])
-    [color_for(h, options) | t]
+    [head | tail] = :lists.reverse(buffer, [IO.ANSI.reset])
+    [color_for(head, options) | tail]
   end
 
   defp color_for(mark, colors) do

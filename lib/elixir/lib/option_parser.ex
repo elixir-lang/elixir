@@ -290,7 +290,7 @@ defmodule OptionParser do
   end
 
   defp do_parse([], _config, opts, args, invalid, _all?) do
-    {Enum.reverse(opts), Enum.reverse(args), Enum.reverse(invalid)}
+    {:lists.reverse(opts), :lists.reverse(args), :lists.reverse(invalid)}
   end
 
   defp do_parse(argv, %{switches: switches} = config, opts, args, invalid, all?) do
@@ -310,14 +310,14 @@ defmodule OptionParser do
         do_parse(rest, config, opts, args, [{option, nil} | invalid], all?)
 
       {:error, ["--" | rest]} ->
-        {Enum.reverse(opts), Enum.reverse(args, rest), Enum.reverse(invalid)}
+        {:lists.reverse(opts), :lists.reverse(args, rest), :lists.reverse(invalid)}
 
       {:error, [arg | rest] = remaining_args} ->
         # there is no option
         if all? do
           do_parse(rest, config, opts, [arg | args], invalid, all?)
         else
-          {Enum.reverse(opts), Enum.reverse(args, remaining_args), Enum.reverse(invalid)}
+          {:lists.reverse(opts), :lists.reverse(args, remaining_args), :lists.reverse(invalid)}
         end
     end
   end
@@ -516,10 +516,10 @@ defmodule OptionParser do
 
   # Finish the string expecting a nil marker
   defp do_split(<<>>, "", acc, nil),
-    do: Enum.reverse(acc)
+    do: :lists.reverse(acc)
 
   defp do_split(<<>>, buffer, acc, nil),
-    do: Enum.reverse([buffer | acc])
+    do: :lists.reverse(acc, [buffer])
 
   # Otherwise raise
   defp do_split(<<>>, _, _acc, marker) do
