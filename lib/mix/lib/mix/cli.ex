@@ -96,7 +96,7 @@ defmodule Mix.CLI do
   defp ensure_hex("local.hex"),
     do: :ok
   defp ensure_hex(_task),
-    do: Mix.Hex.ensure_updated?()
+    do: Mix.Hex.ensure_updated?(Mix.Project.config[:hex])
 
   defp ensure_no_slashes(task) do
     if String.contains?(task, "/") do
