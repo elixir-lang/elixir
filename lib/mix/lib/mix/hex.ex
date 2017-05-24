@@ -1,7 +1,6 @@
 defmodule Mix.Hex do
   @moduledoc false
-  @hex_requirement  ">= 0.14.0"
-  @hex_mirror       "https://repo.hex.pm"
+  @hex_mirror "https://repo.hex.pm"
 
   @doc """
   Returns `true` if `Hex` is loaded or installed. Otherwise returns `false`.
@@ -26,13 +25,14 @@ defmodule Mix.Hex do
   Returns `true` if it has the required `Hex`. If an update is performed, it then exits.
   Otherwise returns `false` without updating anything.
   """
-  @spec ensure_updated?() :: boolean
-  def ensure_updated?() do
+  @spec ensure_updated?(nil | String.t) :: boolean
+  def ensure_updated?(nil), do: ensure_updated?(">= 0.14.0")
+  def ensure_updated?(hex_requirement) do
     cond do
       not Code.ensure_loaded?(Hex) ->
         false
-      not Version.match?(Hex.version, @hex_requirement) ->
-        Mix.shell.info "Mix requires Hex #{@hex_requirement} but you have #{Hex.version}"
+      not Version.match?(Hex.version, hex_requirement) ->
+        Mix.shell.info "Mix requires Hex #{hex_requirement} but you have #{Hex.version}"
 
         if Mix.shell.yes?("Shall I abort the current command and update Hex?") do
           Mix.Tasks.Local.Hex.run ["--force"]
