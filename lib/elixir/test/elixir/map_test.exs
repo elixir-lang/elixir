@@ -242,4 +242,14 @@ defmodule MapTest do
     assert LocalUser.new == %LocalUser{name: "john", nested: %LocalUser.NestedUser{}}
     assert LocalUser.Context.new == %LocalUser{name: "john", nested: %LocalUser.NestedUser{}}
   end
+
+  defmodule :elixir_struct_from_erlang_module do
+    defstruct [:hello]
+    def world(%:elixir_struct_from_erlang_module{} = struct), do: struct
+  end
+
+  test "struct from erlang module" do
+    struct = %:elixir_struct_from_erlang_module{}
+    assert :elixir_struct_from_erlang_module.world(struct) == struct
+  end
 end
