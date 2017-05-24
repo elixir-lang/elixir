@@ -47,6 +47,7 @@ defmodule Clause do
 end
 
 defmodule EExTest do
+  import EExTest.Case
   use ExUnit.Case, async: true
 
   doctest EEx
@@ -367,15 +368,17 @@ defmodule EExTest do
 
   describe "from file" do
     test "evaluates the source" do
+      nl = os_newline()
       filename = Path.join(__DIR__, "fixtures/eex_template.eex")
       result = EEx.eval_file(filename)
-      assert result == "foo bar.\n"
+      assert result == "foo bar." <> nl
     end
 
     test "evaluates the source with bindings" do
+      nl = os_newline()
       filename = Path.join(__DIR__, "fixtures/eex_template_with_bindings.eex")
       result = EEx.eval_file(filename, [bar: 1])
-      assert result == "foo 1\n"
+      assert result == "foo 1" <> nl
     end
 
     test "raises an Exception when file is missing" do
@@ -398,8 +401,9 @@ defmodule EExTest do
     end
 
     test "from file" do
-      assert EExTest.Compiled.file_sample(1) == "foo 1\n"
-      assert EExTest.Compiled.public_file_sample(1) == "foo 1\n"
+      nl = os_newline()
+      assert EExTest.Compiled.file_sample(1) == "foo 1" <> nl
+      assert EExTest.Compiled.public_file_sample(1) == "foo 1" <> nl
     end
 
     test "from file does not affect backtrace" do
