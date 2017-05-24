@@ -2,6 +2,6 @@ version: 1-{branch}+{build}
 
 build_script:
   - cmd: C:\MinGW\msys\1.0\bin\make
-  - cmd: dir /s /q .git
+  - cmd: rmdir /s /q .git
 test_script:
   - cmd: C:\MinGW\msys\1.0\bin\make test
