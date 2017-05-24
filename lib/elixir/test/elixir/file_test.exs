@@ -1263,18 +1263,6 @@ defmodule FileTest do
     end
   end
 
-
-  test "read_link with symlink" do
-    target = tmp_path("does_not_need_to_exist")
-    dest = tmp_path("symlink")
-    File.ln_s(target, dest)
-    try do
-      assert File.read_link(dest) == {:ok, target}
-    after
-      File.rm(dest)
-    end
-  end
-
   test "read_link with regular file" do
     dest = tmp_path("symlink")
     File.touch(dest)
@@ -1290,20 +1278,33 @@ defmodule FileTest do
     assert File.read_link(dest) == {:error, :enoent}
   end
 
-  test "read_link! with symlink" do
-    target = tmp_path("does_not_need_to_exist")
-    dest = tmp_path("symlink")
-    File.ln_s(target, dest)
-    try do
-      assert File.read_link!(dest) == target
-    after
-      File.rm(dest)
-    end
-  end
-
   test "read_link! with nonexistent file" do
     dest = tmp_path("does_not_exist")
     assert_raise File.Error, fn -> File.read_link!(dest) end
+  end
+
+  unless windows?() do
+    test "read_link with symlink" do
+      target = tmp_path("does_not_need_to_exist")
+      dest = tmp_path("symlink")
+      File.ln_s(target, dest)
+      try do
+        assert File.read_link(dest) == {:ok, target}
+      after
+        File.rm(dest)
+      end
+    end
+
+    test "read_link! with symlink" do
+      target = tmp_path("does_not_need_to_exist")
+      dest = tmp_path("symlink")
+      File.ln_s(target, dest)
+      try do
+        assert File.read_link!(dest) == target
+      after
+        File.rm(dest)
+      end
+    end
   end
 
   test "IO stream UTF-8" do
