@@ -18,6 +18,10 @@ matrix:
       otp_release: 19.1
     - os: linux
       otp_release: 19.2
+    - os: linux
+      otp_release: 19.3
+    - os: linux
+      otp_release: 20.0-rc1
 
 script: "make compile && rm -rf .git && make test"
 
