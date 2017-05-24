@@ -320,8 +320,8 @@ defimpl Inspect, for: List do
   def printable?([?\f | rest], counter), do: printable?(rest, decrement(counter))
   def printable?([?\e | rest], counter), do: printable?(rest, decrement(counter))
   def printable?([?\a | rest], counter), do: printable?(rest, decrement(counter))
-  def printable?([], counter), do: true
-  def printable?(_, counter), do: false
+  def printable?([], _counter), do: true
+  def printable?(_, _counter), do: false
 
   @compile {:inline, decrement: 1}
   defp decrement(:infinity), do: :infinity
