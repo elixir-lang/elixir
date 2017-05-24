@@ -496,6 +496,19 @@ defmodule Mix.Tasks.DepsTest do
     purge [GitRepo, GitRepo.Mixfile]
   end
 
+  test "does not check dependencies if --no-deps-check is provided" do
+    Mix.Project.push SuccessfulDepsApp
+
+    in_fixture "deps_status", fn ->
+      Mix.Tasks.Deps.Get.run []
+      File.rm_rf!("deps/ok")
+      assert_raise Mix.Error, fn ->
+        Mix.Tasks.Compile.run []
+      end
+      Mix.Tasks.Compile.run ["--no-deps-check"]
+    end
+  end
+
   test "works with overridden dependencies" do
     Mix.Project.push OverriddenDepsApp
 
