@@ -1,7 +1,8 @@
 ![Elixir](https://github.com/elixir-lang/elixir-lang.github.com/raw/master/images/logo/logo.png)
 =========
-[![Build Status](https://secure.travis-ci.org/elixir-lang/elixir.svg?branch=master
+[![Travis build](https://secure.travis-ci.org/elixir-lang/elixir.svg?branch=master
 "Build Status")](https://travis-ci.org/elixir-lang/elixir)
+[![Windows build](https://ci.appveyor.com/api/projects/status/6s6nsdj6eetg6hl6/branch/master?svg=true)](https://ci.appveyor.com/project/josevalim/elixir-qaacf/branch/master)
 
 Elixir is a dynamic, functional language designed for building scalable and maintainable applications.
 
