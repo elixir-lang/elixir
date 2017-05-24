@@ -644,8 +644,12 @@ defmodule Mix.Tasks.XrefTest do
           result
         end
 
-      assert result == expected
+      assert normalize_graph_output(result) == normalize_graph_output(expected)
     end
+  end
+
+  defp normalize_graph_output(graph) do
+    String.replace(graph, "└──", "`--")
   end
 
   defp receive_until_no_messages(acc) do

@@ -94,7 +94,7 @@ defmodule MixTest.Case do
 
   def in_fixture(which, tmp, function) do
     src  = fixture_path(which)
-    dest = tmp_path(tmp)
+    dest = tmp_path(String.replace(tmp, ":", "_"))
     flag = String.to_charlist(tmp_path())
 
     File.rm_rf!(dest)
