@@ -4,6 +4,6 @@ build_script:
   - cmd: C:\MinGW\msys\1.0\bin\make
   - cmd: rmdir /s /q .git
 before_test:
-  - cmd: set PATH=%PATH%;C:\Program Files\erl8.2\erts-8.2\bin
+  - cmd: set PATH=%PATH%;C:\Program Files\erl8.3\erts-8.3\bin
 test_script:
   - cmd: C:\MinGW\msys\1.0\bin\make --ignore-errors test
