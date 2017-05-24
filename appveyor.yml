@@ -1,0 +1,6 @@
+version: 1.4.4-{build}
+
+build_script:
+  cmd: C:\MinGW\msys\1.0\bin\make
+test_script:
+  cmd: C:\MinGW\msys\1.0\bin\make test
