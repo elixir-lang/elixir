@@ -1239,8 +1239,8 @@ defmodule Enum do
   The second argument specifying every `nth` item must be a non-negative
   integer.
 
-  If `nth` is `0`, then `enumerable` is diretcly converted to a list,
-  witouth `fun` being ever applied.
+  If `nth` is `0`, then `enumerable` is directly converted to a list,
+  without `fun` being ever applied.
 
   ## Examples
 
