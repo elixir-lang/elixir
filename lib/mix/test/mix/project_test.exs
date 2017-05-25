@@ -138,7 +138,12 @@ defmodule Mix.ProjectTest do
 
   defp assert_proj_dir_linked_or_copied(source, target, symlink_path) do
     case :file.read_link(source) do
-      {:ok, path} -> assert path == symlink_path
+      {:ok, path} -> 
+        case :os.type do
+          # relative symlink on Windows are broken, see symlink_or_copy/2
+          {:win32, _} -> assert path == Path.expand(Path.join([source, '../', symlink_path])) |> String.to_charlist
+          _ -> assert path == symlink_path
+        end
       {:error, _} -> assert File.ls!(source) == File.ls!(target)
     end
   end
