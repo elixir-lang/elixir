@@ -430,15 +430,10 @@ defmodule String do
   end
 
   defp do_splitter(bin, pattern, trim) do
-    case :binary.match(bin, pattern) do
-      {0, length} when trim ->
-        do_splitter(:binary.part(bin, length, byte_size(bin) - length), pattern, trim)
-      {pos, length} ->
-        final = pos + length
-        {:binary.part(bin, 0, pos),
-         :binary.part(bin, final, byte_size(bin) - final)}
-      :nomatch ->
-        {bin, :nomatch}
+    case :binary.split(bin, pattern) do
+      ["", second] when trim -> do_splitter(second, pattern, trim)
+      [first, second] -> {first, second}
+      [first] -> {first, :nomatch}
     end
   end
 

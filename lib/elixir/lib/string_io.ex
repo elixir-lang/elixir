@@ -266,7 +266,7 @@ defmodule StringIO do
       {:replace_split, count} ->
         {result, remainder} = :erlang.split_binary(input, count)
 
-        {:erlang.binary_part(result, 0, byte_size(result) - 2) <> "\n", state_after_read(s, remainder, prompt)}
+        {binary_part(result, 0, byte_size(result) - 2) <> "\n", state_after_read(s, remainder, prompt)}
       :error
         -> {{:error, :collect_line}, s}
     end
