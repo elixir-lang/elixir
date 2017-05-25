@@ -4,9 +4,7 @@ Elixir implements [Unicode Annex #31](http://unicode.org/reports/tr31/) for non-
 
 ## Version
 
-To check the Unicode version of your current Elixir installation please run `String.Unicode.version()`.
-
-The changes in this document were included to Elixir v1.5 and require OTP 20+.
+The specification in this document is included in Elixir v1.5 and requires OTP 20+. To check the Unicode version of your current Elixir installation, please run `String.Unicode.version()`.
 
 ## R1. Default Identifiers
 
@@ -16,15 +14,15 @@ Elixir identifiers are identified as:
 
 where `<Start>` is:
 
-> characters derived from the Unicode General Category of uppercase letters, lowercase letters, titlecase letters, modifier letters, other letters, letter numbers, plus Other_ID_Start, minus Pattern_Syntax and Pattern_White_Space code points
+> characters derived from the Unicode General Category of uppercase letters, lowercase letters, titlecase letters, modifier letters, other letters, letter numbers, plus `Other_ID_Start`, minus `Pattern_Syntax` and `Pattern_White_Space` code points
 >
-> In set notation: [[:L:][:Nl:][:Other_ID_Start:]--[:Pattern_Syntax:]--[:Pattern_White_Space:]]
+> In set notation: `[[:L:][:Nl:][:Other_ID_Start:]--[:Pattern_Syntax:]--[:Pattern_White_Space:]]`
 
 and `<Continue>` is:
 
-> ID_Start characters, plus characters having the Unicode General Category of nonspacing marks, spacing combining marks, decimal number, connector punctuation, plus Other_ID_Continue, minus Pattern_Syntax and Pattern_White_Space code points.
+> ID_Start characters, plus characters having the Unicode General Category of nonspacing marks, spacing combining marks, decimal number, connector punctuation, plus `Other_ID_Continue`, minus `Pattern_Syntax` and `Pattern_White_Space` code points.
 >
-> In set notation: [[:ID_Start:][:Mn:][:Mc:][:Nd:][:Pc:][:Other_ID_Continue:]--[:Pattern_Syntax:]--[:Pattern_White_Space:]]
+> In set notation: `[[:ID_Start:][:Mn:][:Mc:][:Nd:][:Pc:][:Other_ID_Continue:]--[:Pattern_Syntax:]--[:Pattern_White_Space:]]`
 
 `<Ending>` is an addition specific to Elixir that includes the codepoints ? (003F) and ! (0021).
 
@@ -42,8 +40,8 @@ Atoms in Elixir follow the identifier rule above with the following modification
 Atoms in Elixir follow the identifier rule above with the following modifications:
 
   * `<Start>` includes the codepoint _ (005F)
-  * `<Start>` must not include Lu (letter upcase) and Lt (letter titlecase) characters
-  * `<Continue>` includes Lu (letter upcase) and Lt (letter titlecase) characters
+  * `<Start>` must not include Lu (letter uppercase) and Lt (letter titlecase) characters
+  * `<Continue>` includes Lu (letter uppercase) and Lt (letter titlecase) characters
 
 ## R6. Filtered Normalized Identifiers
 
