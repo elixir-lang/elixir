@@ -92,7 +92,14 @@ defmodule Mix.UtilsTest do
   defp assert_ebin_symlinked_or_copied(result) do
     case result do
       {:ok, paths} -> assert Path.expand("_build/archive/ebin") in paths
-      :ok -> assert :file.read_link("_build/archive/ebin") == {:ok, '../../ebin'}
+      :ok ->
+        expected_link = case :os.type do
+          # relative symlink on Windows are broken, see symlink_or_copy/2
+          {:win32, _} -> Path.expand('ebin')
+          _ -> "../../ebin"
+        end |> String.to_charlist
+        {:ok, actual_link} = :file.read_link("_build/archive/ebin")
+        assert actual_link == expected_link
       _ -> flunk "expected symlink_or_copy to return :ok or {:ok, list_of_paths}, got: #{inspect result}"
     end
   end
