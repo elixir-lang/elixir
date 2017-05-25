@@ -368,17 +368,15 @@ defmodule EExTest do
 
   describe "from file" do
     test "evaluates the source" do
-      nl = os_newline()
       filename = Path.join(__DIR__, "fixtures/eex_template.eex")
       result = EEx.eval_file(filename)
-      assert result == "foo bar." <> nl
+      assert result |> String.trim_trailing() == "foo bar." |> String.trim_trailing()
     end
 
     test "evaluates the source with bindings" do
-      nl = os_newline()
       filename = Path.join(__DIR__, "fixtures/eex_template_with_bindings.eex")
       result = EEx.eval_file(filename, [bar: 1])
-      assert result == "foo 1" <> nl
+      assert result |> String.trim_trailing()  == "foo 1" |> String.trim_trailing()
     end
 
     test "raises an Exception when file is missing" do
@@ -401,9 +399,8 @@ defmodule EExTest do
     end
 
     test "from file" do
-      nl = os_newline()
-      assert EExTest.Compiled.file_sample(1) == "foo 1" <> nl
-      assert EExTest.Compiled.public_file_sample(1) == "foo 1" <> nl
+      assert EExTest.Compiled.file_sample(1) |> String.trim_trailing() == "foo 1" |> String.trim_trailing() 
+      assert EExTest.Compiled.public_file_sample(1) |> String.trim_trailing() == "foo 1" |> String.trim_trailing()
     end
 
     test "from file does not affect backtrace" do
