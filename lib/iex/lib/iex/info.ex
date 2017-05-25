@@ -23,7 +23,17 @@ defimpl IEx.Info, for: Atom do
         true ->
           info_atom(atom)
       end
-    ["Data type": "Atom"] ++ specific_info
+
+    description =
+      if atom == IEx.dont_display_result() do
+        ["Description": """
+        This atom is returned by IEx when a function that should not print its
+        return value on screen is executed.
+        """]
+      else
+        []
+      end
+    ["Data type": "Atom"] ++ description ++ specific_info
   end
 
   defp info_module(mod) do
