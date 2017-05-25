@@ -141,7 +141,8 @@ defmodule Mix.ProjectTest do
       {:ok, path} -> 
         case :os.type do
           # relative symlink on Windows are broken, see symlink_or_copy/2
-          {:win32, _} -> assert path == [source, '../', symlink_path] |> Path.join |> Path.expand |> String.to_charlist
+          {:win32, _} -> 
+            assert path == [source, '..', symlink_path] |> Path.join |> Path.expand |> String.to_charlist
           _ -> assert path == symlink_path
         end
       {:error, _} -> assert File.ls!(source) == File.ls!(target)
