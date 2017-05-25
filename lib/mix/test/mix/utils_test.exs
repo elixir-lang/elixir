@@ -64,12 +64,15 @@ defmodule Mix.UtilsTest do
     end
   end
 
-  test "symlink or copy erases wrong symblinks" do
-    in_fixture "archive", fn ->
-      File.mkdir_p!("_build/archive")
-      Mix.Utils.symlink_or_copy(Path.expand("priv"), Path.expand("_build/archive/ebin"))
-      result = Mix.Utils.symlink_or_copy(Path.expand("ebin"), Path.expand("_build/archive/ebin"))
-      assert_ebin_symlinked_or_copied(result)
+  @windows? match?({:win32, _}, :os.type)
+  unless @windows? do
+    test "symlink or copy erases wrong symblinks" do
+      in_fixture "archive", fn ->
+        File.mkdir_p!("_build/archive")
+        Mix.Utils.symlink_or_copy(Path.expand("priv"), Path.expand("_build/archive/ebin"))
+        result = Mix.Utils.symlink_or_copy(Path.expand("ebin"), Path.expand("_build/archive/ebin"))
+        assert_ebin_symlinked_or_copied(result)
+      end
     end
   end
 
@@ -92,7 +95,15 @@ defmodule Mix.UtilsTest do
   defp assert_ebin_symlinked_or_copied(result) do
     case result do
       {:ok, paths} -> assert Path.expand("_build/archive/ebin") in paths
-      :ok -> assert :file.read_link("_build/archive/ebin") == {:ok, '../../ebin'}
+      :ok ->
+        expected_link =
+          case :os.type do
+            # relative symlink on Windows are broken, see symlink_or_copy/2
+            {:win32, _} -> "ebin" |> Path.expand() |> String.to_char_list()
+            _ -> '../../ebin'
+          end
+        {:ok, actual_link} = :file.read_link("_build/archive/ebin")
+        assert actual_link == expected_link
       _ -> flunk "expected symlink_or_copy to return :ok or {:ok, list_of_paths}, got: #{inspect result}"
     end
   end
