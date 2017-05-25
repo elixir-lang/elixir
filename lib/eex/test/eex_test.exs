@@ -369,13 +369,13 @@ defmodule EExTest do
     test "evaluates the source" do
       filename = Path.join(__DIR__, "fixtures/eex_template.eex")
       result = EEx.eval_file(filename)
-      assert result |> String.trim_trailing() == "foo bar." |> String.trim_trailing()
+      assert_normalized_newline_equal "foo bar.\n", result
     end
 
     test "evaluates the source with bindings" do
       filename = Path.join(__DIR__, "fixtures/eex_template_with_bindings.eex")
       result = EEx.eval_file(filename, [bar: 1])
-      assert result |> String.trim_trailing()  == "foo 1" |> String.trim_trailing()
+      assert_normalized_newline_equal "foo 1\n", result
     end
 
     test "raises an Exception when file is missing" do
@@ -398,8 +398,8 @@ defmodule EExTest do
     end
 
     test "from file" do
-      assert EExTest.Compiled.file_sample(1) |> String.trim_trailing() == "foo 1" |> String.trim_trailing() 
-      assert EExTest.Compiled.public_file_sample(1) |> String.trim_trailing() == "foo 1" |> String.trim_trailing()
+      assert_normalized_newline_equal "foo 1\n", EExTest.Compiled.file_sample(1)
+      assert_normalized_newline_equal "foo 1\n", EExTest.Compiled.public_file_sample(1)
     end
 
     test "from file does not affect backtrace" do
@@ -462,5 +462,9 @@ defmodule EExTest do
     opts = Enum.into [file: __ENV__.file, engine: EEx.Engine], opts
     result = EEx.eval_string(actual, binding, opts)
     assert result == expected
+  end
+
+  defp assert_normalized_newline_equal(expected, actual) do
+    assert String.replace(expected, "\r\n", "\n") == String.replace(actual, "\r\n", "\n")
   end
 end
