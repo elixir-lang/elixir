@@ -64,18 +64,15 @@ defmodule Mix.UtilsTest do
     end
   end
 
-  test "symlink or copy erases wrong symblinks" do
-    case :os.type do
-      {:win32, _} ->
-        # https://github.com/elixir-lang/elixir/pull/6150#issuecomment-303981367
-        IO.puts :stderr, "Skipping symlink or copy erases wrong symblinks test on Windows"
-      _ -> 
-        in_fixture "archive", fn ->
-          File.mkdir_p!("_build/archive")
-          Mix.Utils.symlink_or_copy(Path.expand("priv"), Path.expand("_build/archive/ebin"))
-          result = Mix.Utils.symlink_or_copy(Path.expand("ebin"), Path.expand("_build/archive/ebin"))
-          assert_ebin_symlinked_or_copied(result)
-        end
+  @windows? match?({:win32, _}, :os.type)
+  unless @windows? do
+    test "symlink or copy erases wrong symblinks" do
+      in_fixture "archive", fn ->
+        File.mkdir_p!("_build/archive")
+        Mix.Utils.symlink_or_copy(Path.expand("priv"), Path.expand("_build/archive/ebin"))
+        result = Mix.Utils.symlink_or_copy(Path.expand("ebin"), Path.expand("_build/archive/ebin"))
+        assert_ebin_symlinked_or_copied(result)
+      end
     end
   end
 
