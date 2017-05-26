@@ -139,6 +139,12 @@ defmodule String.Tokenizer do
     end
   end
 
+  defp continue_atom([?! | tail], acc) do
+    {[?! | acc], tail}
+  end
+  defp continue_atom([?? | tail], acc) do
+    {[?? | acc], tail}
+  end
   defp continue_atom([?@ | tail], acc) do
     continue_atom(tail, [?@ | acc])
   end
@@ -151,6 +157,31 @@ defmodule String.Tokenizer do
     end
   end
   defp continue_atom([], acc) do
+    {acc, []}
+  end
+
+  def tokenize_var([head | tail] = list) do
+    case ascii_start?(head) or (not ascii_pattern?(head) and unicode_start?(head)) do
+      true -> validate_token(continue_var(tail, [head]))
+      false -> {[], list}
+    end
+  end
+
+  defp continue_var([?! | tail], acc) do
+    {[?! | acc], tail}
+  end
+  defp continue_var([?? | tail], acc) do
+    {[?? | acc], tail}
+  end
+  defp continue_var([head | tail] = list, acc) do
+    if ascii_start?(head) or ascii_upper?(head) or
+       (not ascii_pattern?(head) and (unicode_start?(head) or unicode_upper?(head) or continue?(head))) do
+      continue_var(tail, [head | acc])
+    else
+      {acc, list}
+    end
+  end
+  defp continue_var([], acc) do
     {acc, []}
   end
 

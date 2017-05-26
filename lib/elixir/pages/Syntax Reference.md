@@ -65,11 +65,11 @@ end
 
 ### Atoms
 
-Atoms in Elixir start with a colon (`:`) which must be followed by non-combining Unicode characters and underscore. The atom may continue using a sequence of Unicode characters, including numbers, underscore and `@`. Atoms may end in `!` or `?`. See [Unicode Syntax](unicode-syntax.html) for a formal specification.
+Atoms in Elixir start with a colon (`:`) which must be followed by non-combining Unicode characters and underscore. The atom may continue using a sequence of Unicode characters, including numbers, underscore and `@`. Atoms may end in `!` or `?`. See [Unicode Syntax](unicode-syntax.html) for a formal specification. Unicode characters require OTP 20.
 
 All operators in Elixir are also valid atoms. Valid examples are `:foo`, `:FOO`, `:foo_42`, `:foo@bar` and `:++`. Invalid examples are `:@foo` (`@` is not allowed at start), `:123` (numbers are not allowed at start) and `:(*)` (not a valid operator).
 
-If the colon is followed by a double- or single-quote, the atom can be made of any latin character up to OTP 19 or of any unicode character from OTP 20 onwards, such as `:"++olá++"`.
+If the colon is followed by a double- or single-quote, the atom can be made of any character, such as `:"++olá++"`.
 
 Atoms are always represented as themselves in the AST:
 
@@ -94,7 +94,7 @@ Charlists are always represented as themselves in the AST.
 
 ### Variables
 
-Variables in Elixir must start with underscore or a non-combining Unicode character that is not in uppercase or titlecase. The variable may continue using a sequence of Unicode characters, including numbers and underscore. Variables may end in `?` or `!`. See [Unicode Syntax](unicode-syntax.html) for a formal specification.
+Variables in Elixir must start with underscore or a non-combining Unicode character that is not in uppercase or titlecase. The variable may continue using a sequence of Unicode characters, including numbers and underscore. Variables may end in `?` or `!`. See [Unicode Syntax](unicode-syntax.html) for a formal specification. Unicode characters require OTP 20.
 
 [Elixir's naming conventions](naming-conventions.html) proposes variables to be in `snake_case` format.
 
