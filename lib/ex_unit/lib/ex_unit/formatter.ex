@@ -167,11 +167,9 @@ defmodule ExUnit.Formatter do
 
   defp format_kind_reason(:error, %FunctionClauseError{} = struct, stack, _width, formatter) do
     {blamed, stack} = Exception.blame(:error, struct, stack)
-
-    message =
-      error_info(Exception.format_banner(:error, struct), formatter) <>
-      pad(FunctionClauseError.blame(blamed, &inspect/1, &blame_match(&1, &2, formatter)))
-
+    banner = Exception.format_banner(:error, struct)
+    blamed = FunctionClauseError.blame(blamed, &inspect/1, &blame_match(&1, &2, formatter))
+    message = error_info(banner, formatter) <> "\n" <> pad(String.trim_leading(blamed, "\n"))
     {message, stack}
   end
 
