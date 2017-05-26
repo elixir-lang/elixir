@@ -2584,8 +2584,9 @@ defmodule Enum do
   Enumerates the `enumerable`, by removing the elements for which
   function `fun` returned duplicate items.
 
-  The function `fun` maps every element to a term which is used to
-  determine if two elements are duplicates.
+  The function `fun` maps every element to a term and then compares the
+  terms for each element in the `enumerable`. Matching terms indicate a
+  duplicate.
 
   The first occurrence of each element is kept.
 
