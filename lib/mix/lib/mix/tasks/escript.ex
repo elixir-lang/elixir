@@ -35,8 +35,14 @@ defmodule Mix.Tasks.Escript do
     other_exec_bit = 0o00001
     stat = File.stat!(path)
 
-    executable_bit =
-      stat.mode &&& (owner_exec_bit ||| group_exec_bit ||| other_exec_bit)
-    executable_bit != 0 and stat.type == :regular and Path.extname(path) != ".bat"
+    case :os.type() do
+      {:win32, _} ->
+        # on win32, the script itself is not executable, but the bat is
+        File.exists?(path <> ".bat") and stat.type == :regular
+      _ ->
+        executable_bit =
+          stat.mode &&& (owner_exec_bit ||| group_exec_bit ||| other_exec_bit)
+        executable_bit != 0 and stat.type == :regular and Path.extname(path) != ".bat"
+    end
   end
 end
