@@ -140,7 +140,7 @@ defmodule String.Tokenizer do
       ascii_upper?(head) ->
         validate(continue(tail, [head], 1, true, []), :alias)
       ascii_start?(head) ->
-        validate(continue(tail, [head], 1, true, []), :var)
+        validate(continue(tail, [head], 1, true, []), :identifier)
       unicode_start?(head) or unicode_upper?(head) ->
         validate(continue(tail, [head], 1, false, []), :atom)
       true ->

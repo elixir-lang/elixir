@@ -471,11 +471,11 @@ tokenize(String, Line, Column, Scope, Tokens) ->
           Reason = {Line, "keyword argument must be followed by space after: ", AtomName},
           {error, Reason, String, Tokens};
         _ when HasAt ->
-          Reason = {Line, invalid_character_error($@), atom_to_list(Atom)},
+          Reason = {Line, invalid_character_error(Kind, $@), atom_to_list(Atom)},
           {error, Reason, String, Tokens};
         _ when Kind == alias ->
           tokenize_alias(Rest, Line, Column, Atom, Length, Ascii, Special, Scope, Tokens);
-        _ when Kind == var ->
+        _ when Kind == identifier ->
           tokenize_other(Rest, Line, Column, Atom, Length, Scope, Tokens);
         _ ->
           unexpected_token(String, Line, Column, Tokens)
@@ -837,7 +837,7 @@ tokenize([H | T]) when ?is_upcase(H) ->
   {alias, lists:reverse(Acc), Rest, Length, true, Special};
 tokenize([H | T]) when ?is_downcase(H); H == $_ ->
   {Acc, Rest, Length, Special} = tokenize_continue(T, [H], 1, []),
-  {var, lists:reverse(Acc), Rest, Length, true, Special};
+  {identifier, lists:reverse(Acc), Rest, Length, true, Special};
 tokenize(_List) ->
   {error, empty}.
 
@@ -869,11 +869,12 @@ tokenize_alias(Rest, Line, Column, Atom, Length, Ascii, Special, Scope, Tokens) 
   if
     not Ascii ->
       AtomName = atom_to_list(Atom),
-      Reason = {Line, "aliases must have only ascii characters", AtomName},
+      Invalid = hd([C || C <- AtomName, C > 127]),
+      Reason = {Line, invalid_character_error("alias (only ascii characters are allowed)", Invalid), AtomName},
       {error, Reason, AtomName ++ Rest, Tokens};
     Special /= [] ->
       AtomName = atom_to_list(Atom),
-      Reason = {Line, invalid_character_error(hd(Special)), AtomName},
+      Reason = {Line, invalid_character_error("alias", hd(Special)), AtomName},
       {error, Reason, AtomName ++ Rest, Tokens};
     true ->
       tokenize(Rest, Line, Column + Length, Scope, [{aliases, {Line, Column, Column + Length}, [Atom]} | Tokens])
@@ -1062,8 +1063,8 @@ keyword('catch')  -> block;
 
 keyword(_) -> false.
 
-invalid_character_error(Char) ->
-  io_lib:format("invalid character \"~ts\" (codepoint U+~4.16.0B) in token: ", [[Char], Char]).
+invalid_character_error(What, Char) ->
+  io_lib:format("invalid character \"~ts\" (codepoint U+~4.16.0B) in ~ts: ", [[Char], Char, What]).
 
 invalid_do_error(Prefix) ->
   Prefix ++ ". In case you wanted to write a \"do\" expression, "
