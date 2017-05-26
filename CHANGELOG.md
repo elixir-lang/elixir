@@ -145,7 +145,7 @@ This version includes changes that make Elixir fully compatible with Erlang OTP 
 
   * [Kernel] Fix code generation when non-binary bitstrings are in AST
   * [Record] Properly escape fields passed to `defrecord`
-  * [Version] Update parser to reject leading zeros according to the SemVer spec
+  * [Version] Reject leading zeros according to the SemVer spec
 
 #### ExUnit
 
