@@ -1,6 +1,6 @@
 :ok = Application.start(:iex)
 IEx.configure([colors: [enabled: false]])
-ExUnit.start [trace: "--trace" in System.argv]
+ExUnit.start [trace: "--trace" in System.argv, assert_receive_timeout: 500]
 
 defmodule IEx.Case do
   use ExUnit.CaseTemplate
