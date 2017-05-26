@@ -1218,6 +1218,9 @@ defmodule Enum do
       iex> Enum.map([a: 1, b: 2], fn({k, v}) -> {k, -v} end)
       [a: -1, b: -2]
 
+      iex> Enum.map(["1", "2", "3"], &String.to_integer/1)
+      [1, 2, 3]
+
   """
   @spec map(t, (element -> any)) :: list
   def map(enumerable, fun)
