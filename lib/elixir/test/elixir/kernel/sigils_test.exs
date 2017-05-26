@@ -3,8 +3,6 @@ Code.require_file "../test_helper.exs", __DIR__
 defmodule Kernel.SigilsTest do
   use ExUnit.Case, async: true
 
-  import PathHelpers
-
   test "sigil s" do
     assert ~s(foo) == "foo"
     assert ~s(f#{:o}o) == "foo"

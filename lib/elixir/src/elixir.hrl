@@ -35,5 +35,6 @@
   file,
   terminators=[],
   check_terminators=true,
-  existing_atoms_only=false
+  existing_atoms_only=false,
+  identifier_tokenizer=elixir_tokenizer
 }).

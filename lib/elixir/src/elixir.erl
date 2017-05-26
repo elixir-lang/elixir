@@ -83,6 +83,11 @@ start(_Type, _Args) ->
       ok
   end,
 
+  Tokenizer = case code:ensure_loaded('Elixir.String.Tokenizer') of
+    {module, Mod} -> Mod;
+    {error, _} -> elixir_tokenizer
+  end,
+
   URIConfig = [{{uri, <<"ftp">>}, 21},
                {{uri, <<"sftp">>}, 22},
                {{uri, <<"tftp">>}, 69},
@@ -95,7 +100,8 @@ start(_Type, _Args) ->
   {ok, [[Home] | _]} = init:get_argument(home),
   Config = [{at_exit, []},
             {home, unicode:characters_to_binary(Home, Encoding, Encoding)},
-            {compiler_options, CompilerOpts}
+            {compiler_options, CompilerOpts},
+            {identifier_tokenizer, Tokenizer}
             | URIConfig],
   Tab = elixir_config:new(Config),
   case elixir_sup:start_link() of

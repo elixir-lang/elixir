@@ -99,7 +99,7 @@ defmodule Mix.UtilsTest do
         expected_link =
           case :os.type do
             # relative symlink on Windows are broken, see symlink_or_copy/2
-            {:win32, _} -> "ebin" |> Path.expand() |> String.to_char_list()
+            {:win32, _} -> "ebin" |> Path.expand() |> String.to_charlist()
             _ -> '../../ebin'
           end
         {:ok, actual_link} = :file.read_link("_build/archive/ebin")

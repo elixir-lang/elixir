@@ -4,22 +4,34 @@ defmodule String.Tokenizer do
 
   data_path = Path.join(__DIR__, "UnicodeData.txt")
 
-  {letter_uptitlecase, start, continue} =
-    Enum.reduce File.stream!(data_path), {[], [], []}, fn
-      line, {letter_uptitlecase, start, continue} ->
+  {letter_uptitlecase, start, continue, _} =
+    Enum.reduce File.stream!(data_path), {[], [], [], nil}, fn
+      line, {letter_uptitlecase, start, continue, first} ->
         [codepoint, line] = :binary.split(line, ";")
-        [_name, line] = :binary.split(line, ";")
+        [name, line] = :binary.split(line, ";")
         [category, _] = :binary.split(line, ";")
+
+        {codepoints, first} =
+          case name do
+            "<" <> _ when is_integer(first) ->
+              last = String.to_integer(codepoint, 16)
+              {Enum.to_list(last..first), nil}
+            "<" <> _ ->
+              first = String.to_integer(codepoint, 16)
+              {[first], first + 1}
+            _ ->
+              {[String.to_integer(codepoint, 16)], nil}
+          end
 
         cond do
           category in ~w(Lu Lt) ->
-            {[String.to_integer(codepoint, 16) | letter_uptitlecase], start, continue}
+            {codepoints ++ letter_uptitlecase, start, continue, first}
           category in ~w(Ll Lm Lo Nl) ->
-            {letter_uptitlecase, [String.to_integer(codepoint, 16) | start], continue}
+            {letter_uptitlecase, codepoints ++ start, continue, first}
           category in ~w(Mn Mc Nd Pc) ->
-            {letter_uptitlecase, start, [String.to_integer(codepoint, 16) | continue]}
+            {letter_uptitlecase, start, codepoints ++ continue, first}
           true ->
-            {letter_uptitlecase, start, continue}
+            {letter_uptitlecase, start, continue, first}
         end
     end
 
@@ -56,8 +68,9 @@ defmodule String.Tokenizer do
   id_start = start -- patterns
   id_continue = continue -- patterns
 
-  {ascii_upper, unicode_upper} = Enum.split_with(id_upper, & &1 <= 127)
-  {ascii_start, unicode_start} = Enum.split_with(id_start, & &1 <= 127)
+  unicode_upper = Enum.filter(id_upper, & &1 > 127)
+  unicode_start = Enum.filter(id_start, & &1 > 127)
+  unicode_continue = Enum.filter(id_continue, & &1 > 127)
 
   rangify = fn [head | tail] ->
     {first, last, acc} =
@@ -70,55 +83,46 @@ defmodule String.Tokenizer do
     [{first, last} | acc]
   end
 
-  for {first, last} <- rangify.(ascii_upper) do
-    if first == last do
-      defp ascii_upper?(unquote(first)), do: true
-    else
-      defp ascii_upper?(entry) when entry in unquote(first)..unquote(last), do: true
-    end
-  end
+  @compile {:inline, ascii_upper?: 1, ascii_start?: 1, ascii_continue?: 1}
+  defp ascii_upper?(entry), do: entry in ?A..?Z
 
-  defp ascii_upper?(_), do: false
+  defp ascii_start?(?_), do: true
+  defp ascii_start?(entry), do: entry in ?a..?z
 
-  for {first, last} <- rangify.(unicode_upper) do
+  defp ascii_continue?(entry), do: entry in ?0..?9
+
+  range = rangify.(unicode_upper)
+  for {first, last} <- range do
     if first == last do
       defp unicode_upper?(unquote(first)), do: true
     else
       defp unicode_upper?(entry) when entry in unquote(first)..unquote(last), do: true
     end
   end
-
   defp unicode_upper?(_), do: false
 
-  for {first, last} <- [{?_, ?_} | rangify.(ascii_start)] do
-    if first == last do
-      defp ascii_start?(unquote(first)), do: true
-    else
-      defp ascii_start?(entry) when entry in unquote(first)..unquote(last), do: true
-    end
-  end
-
-  defp ascii_start?(_), do: false
-
-  for {first, last} <- rangify.(unicode_start) do
+  range = rangify.(unicode_start)
+  for {first, last} <- range do
     if first == last do
       defp unicode_start?(unquote(first)), do: true
     else
       defp unicode_start?(entry) when entry in unquote(first)..unquote(last), do: true
     end
   end
-
   defp unicode_start?(_), do: false
 
-  for {first, last} <- rangify.(id_continue) do
-    if first == last do
-      defp continue?(unquote(first)), do: true
-    else
-      defp continue?(entry) when entry in unquote(first)..unquote(last), do: true
-    end
+  unless {13312, 19893} in range do
+    raise "CHECK: CJK Ideograph not in range"
   end
 
-  defp continue?(_), do: false
+  for {first, last} <- rangify.(unicode_continue) do
+    if first == last do
+      defp unicode_continue?(unquote(first)), do: true
+    else
+      defp unicode_continue?(entry) when entry in unquote(first)..unquote(last), do: true
+    end
+  end
+  defp unicode_continue?(_), do: false
 
   # Pattern is used as a performance check since most
   # atoms and variables end with an atom character.
@@ -129,70 +133,57 @@ defmodule String.Tokenizer do
       defp ascii_pattern?(entry) when entry in unquote(first)..unquote(last), do: true
     end
   end
-
   defp ascii_pattern?(_), do: false
 
-  def tokenize_atom([head | tail] = list) do
-    case ascii_start?(head) or ascii_upper?(head) or unicode_start?(head) or unicode_upper?(head) do
-      true -> validate_token(continue_atom(tail, [head]))
-      false -> {[], list}
+  def tokenize([head | tail]) do
+    cond do
+      ascii_upper?(head) ->
+        validate(continue(tail, [head], 1, true, []), :alias)
+      ascii_start?(head) ->
+        validate(continue(tail, [head], 1, true, []), :var)
+      unicode_start?(head) or unicode_upper?(head) ->
+        validate(continue(tail, [head], 1, false, []), :atom)
+      true ->
+        {:error, :empty}
     end
   end
+  def tokenize([]) do
+    {:error, :empty}
+  end
 
-  defp continue_atom([?! | tail], acc) do
-    {[?! | acc], tail}
+  defp continue([?! | tail], acc, length, ascii_letters?, special) do
+    {[?! | acc], tail, length + 1, ascii_letters?, [?! | special]}
   end
-  defp continue_atom([?? | tail], acc) do
-    {[?? | acc], tail}
+  defp continue([?? | tail], acc, length, ascii_letters?, special) do
+    {[?? | acc], tail, length + 1, ascii_letters?, [?? | special]}
   end
-  defp continue_atom([?@ | tail], acc) do
-    continue_atom(tail, [?@ | acc])
+  defp continue([?@ | tail], acc, length, ascii_letters?, special) do
+    continue(tail, [?@ | acc], length + 1, ascii_letters?, [?@ | List.delete(special, ?@)])
   end
-  defp continue_atom([head | tail] = list, acc) do
-    if ascii_start?(head) or ascii_upper?(head) or
-       (not ascii_pattern?(head) and (unicode_start?(head) or unicode_upper?(head) or continue?(head))) do
-      continue_atom(tail, [head | acc])
-    else
-      {acc, list}
+  defp continue([head | tail] = list, acc, length, ascii_letters?, special) do
+    cond do
+      ascii_start?(head) or ascii_upper?(head) or ascii_continue?(head) ->
+        continue(tail, [head | acc], length + 1, ascii_letters?, special)
+      not ascii_pattern?(head) and (unicode_start?(head) or unicode_upper?(head) or unicode_continue?(head)) ->
+        continue(tail, [head | acc], length + 1, false, special)
+      true ->
+        {acc, list, length, ascii_letters?, special}
     end
   end
-  defp continue_atom([], acc) do
-    {acc, []}
+  defp continue([], acc, length, ascii_letters?, special) do
+    {acc, [], length, ascii_letters?, special}
   end
 
-  def tokenize_var([head | tail] = list) do
-    case ascii_start?(head) or (not ascii_pattern?(head) and unicode_start?(head)) do
-      true -> validate_token(continue_var(tail, [head]))
-      false -> {[], list}
-    end
-  end
-
-  defp continue_var([?! | tail], acc) do
-    {[?! | acc], tail}
-  end
-  defp continue_var([?? | tail], acc) do
-    {[?? | acc], tail}
-  end
-  defp continue_var([head | tail] = list, acc) do
-    if ascii_start?(head) or ascii_upper?(head) or
-       (not ascii_pattern?(head) and (unicode_start?(head) or unicode_upper?(head) or continue?(head))) do
-      continue_var(tail, [head | acc])
-    else
-      {acc, list}
-    end
-  end
-  defp continue_var([], acc) do
-    {acc, []}
-  end
-
-  defp validate_token({acc, list}) do
+  defp validate({acc, rest, length, ascii_letters?, special}, kind) do
     acc = :lists.reverse(acc)
-    case :unicode.characters_to_nfc_list(acc) do
-      ^acc -> {:ok, acc, list}
-      _ -> {:error, "oops"}
+    if ascii_letters? or :unicode.characters_to_nfc_list(acc) == acc do
+      {kind, acc, rest, length, ascii_letters?, special}
+    else
+      {:error, {:not_nfc, acc}}
     end
   end
 
+  # TODO: Remove this check once we depend on OTP 20+
   defp check_otp_release do
     case List.to_integer(:erlang.system_info(:otp_release)) >= 20 do
       true -> :ok
