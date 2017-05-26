@@ -91,6 +91,7 @@ $(UNICODE): lib/elixir/unicode/*
 	@ echo "==> unicode (compile)";
 	$(Q) $(ELIXIRC) lib/elixir/unicode/unicode.ex -o lib/elixir/ebin;
 	$(Q) $(ELIXIRC) lib/elixir/unicode/properties.ex -o lib/elixir/ebin;
+	$(Q) $(ELIXIRC) lib/elixir/unicode/tokenizer.ex -o lib/elixir/ebin;
 
 $(eval $(call APP_TEMPLATE,ex_unit,ExUnit))
 $(eval $(call APP_TEMPLATE,logger,Logger))

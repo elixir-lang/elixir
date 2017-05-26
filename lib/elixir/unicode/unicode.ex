@@ -2,10 +2,12 @@
 #
 # 1. Update CompositionExclusions.txt by copying original as is
 # 2. Update GraphemeBreakProperty.txt by copying original as is
-# 3. Update SpecialCasing.txt by removing comments and conditional mappings from original
-# 4. Update WhiteSpace.txt by copying the proper excerpt from PropList.txt
-# 5. Update GraphemeBreakTest.txt and run graphemes_test.exs
+# 3. Update PropList.txt by copying original as is
+# 4. Update GraphemeBreakTest.txt by copying original as is
+# 5. Update SpecialCasing.txt by removing comments and conditional mappings from original
 # 6. Update String.Unicode.version/0 and on String module docs
+# 7. make unicode
+# 8. elixir lib/elixir/unicode/graphemes_test.exs
 #
 defmodule String.Unicode do
   @moduledoc false
