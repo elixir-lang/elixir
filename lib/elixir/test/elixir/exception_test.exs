@@ -368,19 +368,19 @@ defmodule ExceptionTest do
         ]
       end
     end
-  end
 
-  defp annotated_clauses_to_string(clauses) do
-    Enum.map(clauses, fn args_and_clauses ->
-      Macro.to_string(args_and_clauses, fn
-        %{match?: true, node: node}, _string ->
-          "+" <> Macro.to_string(node) <> "+"
-        %{match?: false, node: node}, _string ->
-          "-" <> Macro.to_string(node) <> "-"
-        _node, string ->
-          string
+    defp annotated_clauses_to_string(clauses) do
+      Enum.map(clauses, fn args_and_clauses ->
+        Macro.to_string(args_and_clauses, fn
+          %{match?: true, node: node}, _string ->
+            "+" <> Macro.to_string(node) <> "+"
+          %{match?: false, node: node}, _string ->
+            "-" <> Macro.to_string(node) <> "-"
+          _node, string ->
+            string
+        end)
       end)
-    end)
+    end
   end
 
   ## Exception messages
