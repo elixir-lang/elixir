@@ -196,6 +196,12 @@ zips: Precompiled.zip Docs.zip
 
 test: test_erlang test_elixir
 
+test_windows: test test_taskkill
+
+test_taskkill:
+	taskkill //IM erl.exe //F //T //FI "MEMUSAGE gt 0"
+	taskkill //IM epmd.exe //F //T //FI "MEMUSAGE gt 0"
+
 TEST_ERL = lib/elixir/test/erlang
 TEST_EBIN = lib/elixir/test/ebin
 TEST_ERLS = $(addprefix $(TEST_EBIN)/, $(addsuffix .beam, $(basename $(notdir $(wildcard $(TEST_ERL)/*.erl)))))
