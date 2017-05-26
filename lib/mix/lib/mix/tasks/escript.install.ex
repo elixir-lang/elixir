@@ -85,6 +85,11 @@ defmodule Mix.Tasks.Escript.Install do
       write_bat!(dst <> ".bat", :os.type)
 
       Mix.shell.info [:green, "* creating ", :reset, Path.relative_to_cwd(dst)]
+      case :os.type() do
+        {:win32, _} -> System.put_env("PATH", System.get_env("PATH") <> ";" <> String.replace(Path.dirname(dst), "/", "\\" ))
+        _ -> :ok
+      end
+      
       check_discoverability(dst, executable, previous_executable)
       :ok
     else
@@ -121,19 +126,25 @@ defmodule Mix.Tasks.Escript.Install do
 
       # If existing executable didn't change but it is not the one we installed,
       # it is a conflict
-      previous_executable && previous_executable != dst ->
+      previous_executable && not equal_with_dot_bat previous_executable, dst  ->
         Mix.shell.error "\nwarning: escript #{inspect executable} conflicts with executable " <>
                         "#{inspect previous_executable} already in your PATH\n"
 
       # If current executable is nil or does not match the one we just installed,
       # PATH is misconfigured
-      current_executable != dst ->
+      not equal_with_dot_bat current_executable, dst ->
+        IO.warn(current_executable)
+        IO.warn(dst)
         Mix.shell.error "\nwarning: you must append #{inspect Mix.Local.path_for(:escript)} " <>
                         "to your PATH if you want to invoke escripts by name\n"
 
       true ->
         :ok
     end
+  end
+
+  defp equal_with_dot_bat(program, program_stem) do
+    program == program_stem or program == program_stem <> ".bat"
   end
 
   defp escript?(binary) do
