@@ -89,7 +89,9 @@ $(KERNEL): lib/elixir/lib/*.ex lib/elixir/lib/*/*.ex lib/elixir/lib/*/*/*.ex
 unicode: $(UNICODE)
 $(UNICODE): lib/elixir/unicode/*
 	@ echo "==> unicode (compile)";
-	$(Q) cd lib/elixir && ../../$(ELIXIRC) unicode/unicode.ex -o ebin;
+	$(Q) $(ELIXIRC) lib/elixir/unicode/unicode.ex -o lib/elixir/ebin;
+	$(Q) $(ELIXIRC) lib/elixir/unicode/properties.ex -o lib/elixir/ebin;
+	$(Q) $(ELIXIRC) lib/elixir/unicode/tokenizer.ex -o lib/elixir/ebin;
 
 $(eval $(call APP_TEMPLATE,ex_unit,ExUnit))
 $(eval $(call APP_TEMPLATE,logger,Logger))
@@ -147,7 +149,7 @@ docs: compile ../ex_doc/bin/ex_doc docs_elixir docs_eex docs_mix docs_iex docs_e
 docs_elixir: compile ../ex_doc/bin/ex_doc
 	@ echo "==> ex_doc (elixir)"
 	$(Q) rm -rf doc/elixir
-	$(call COMPILE_DOCS,Elixir,elixir,Kernel,-e "lib/elixir/pages/Behaviours.md" -e "lib/elixir/pages/Deprecations.md" -e "lib/elixir/pages/Guards.md" -e "lib/elixir/pages/Naming Conventions.md" -e "lib/elixir/pages/Operators.md" -e "lib/elixir/pages/Syntax Reference.md" -e "lib/elixir/pages/Typespecs.md" -e "lib/elixir/pages/Writing Documentation.md")
+	$(call COMPILE_DOCS,Elixir,elixir,Kernel,-e "lib/elixir/pages/Behaviours.md" -e "lib/elixir/pages/Deprecations.md" -e "lib/elixir/pages/Guards.md" -e "lib/elixir/pages/Naming Conventions.md" -e "lib/elixir/pages/Operators.md" -e "lib/elixir/pages/Syntax Reference.md" -e "lib/elixir/pages/Typespecs.md" -e "lib/elixir/pages/Unicode Syntax.md" -e "lib/elixir/pages/Writing Documentation.md")
 
 docs_eex: compile ../ex_doc/bin/ex_doc
 	@ echo "==> ex_doc (eex)"

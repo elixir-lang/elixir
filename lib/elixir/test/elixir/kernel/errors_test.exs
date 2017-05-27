@@ -38,12 +38,33 @@ defmodule Kernel.ErrorsTest do
   end
 
   test "invalid identifier" do
-    msg = fn name -> "nofile:1: invalid character \"@\" (codepoint U+0040) in token: #{name}" end
+    message = fn name -> "nofile:1: invalid character \"@\" (codepoint U+0040) in identifier: #{name}" end
+    assert_compile_fail SyntaxError, message.("foo@"), 'foo@'
+    assert_compile_fail SyntaxError, message.("foo@"), 'foo@ '
+    assert_compile_fail SyntaxError, message.("foo@bar"), 'foo@bar'
 
-    assert_compile_fail SyntaxError, msg.("foo@"), 'foo@'
-    assert_compile_fail SyntaxError, msg.("foo@"), 'foo@ '
-    assert_compile_fail SyntaxError, msg.("foo@bar"), 'foo@bar'
-    assert_compile_fail SyntaxError, msg.("Foo@"), 'Foo@'
+    message = fn name -> "nofile:1: invalid character \"@\" (codepoint U+0040) in alias: #{name}" end
+    assert_compile_fail SyntaxError, message.("Foo@"), 'Foo@'
+    assert_compile_fail SyntaxError, message.("Foo@bar"), 'Foo@bar'
+
+    message = "nofile:1: invalid character \"!\" (codepoint U+0021) in alias: Foo!"
+    assert_compile_fail SyntaxError, message, 'Foo!'
+
+    message = "nofile:1: invalid character \"?\" (codepoint U+003F) in alias: Foo?"
+    assert_compile_fail SyntaxError, message, 'Foo?'
+
+    # TODO: Remove this check once we depend on OTP 20+
+    if :erlang.system_info(:otp_release) >= '20' do
+      message = "invalid character \"ó\" (codepoint U+00F3) in alias (only ascii characters are allowed): Foó"
+      assert_compile_fail SyntaxError, message, 'Foó'
+
+      message = """
+      Elixir expects unquoted Unicode atoms and variables to be in NFC form.
+      Got: "foó" (codepoints 0066 006F 006F 0301)
+      Expected: "foó" (codepoints 0066 006F 00F3)
+      """
+      assert_compile_fail SyntaxError, message, :unicode.characters_to_nfd_list("foó")
+    end
   end
 
   test "invalid fn" do
