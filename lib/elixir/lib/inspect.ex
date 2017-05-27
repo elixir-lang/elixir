@@ -73,10 +73,10 @@ defimpl Inspect, for: Atom do
     Atom.to_string(atom)
   end
 
-  def inspect(atom) do
+  def inspect(atom) when is_atom(atom) do
     binary = Atom.to_string(atom)
 
-    case Macro.classify_identifier(binary) do
+    case Macro.classify_identifier(atom) do
       :alias ->
         case binary do
           binary when binary in ["Elixir", "Elixir.Elixir"] ->
@@ -479,37 +479,34 @@ defimpl Inspect, for: Function do
     end
   end
 
-  def escape_name(name) when is_atom(name) do
-    escape_name(Atom.to_string(name))
-  end
+  def escape_name(atom) when is_atom(atom) do
+    string = Atom.to_string(atom)
 
-  def escape_name(name) when is_binary(name) do
-    case Macro.classify_identifier(name) do
+    case Macro.classify_identifier(atom) do
       :callable ->
-        name
+        string
       type when type in [:not_callable, :alias] ->
-        "\"" <> name <> "\""
+        "\"" <> string <> "\""
       :other ->
-        {escaped, _} = Inspect.BitString.escape(name, ?")
+        {escaped, _} = Inspect.BitString.escape(string, ?")
         IO.iodata_to_binary [?", escaped, ?"]
     end
   end
 
-  # Example of this format: -func/arity-fun-count-
+  # Example of this format: -NAME/ARITY-fun-COUNT-
+  def extract_anonymous_fun_parent(atom) when is_atom(atom) do
+    extract_anonymous_fun_parent(Atom.to_string(atom))
+  end
+
   def extract_anonymous_fun_parent("-" <> rest) do
-    # We use :re instead of String.split/3 because we want to keep the "/"s and
-    # "-"s (this is what the "(" and ")" in the regex do). We want to keep them
-    # because we want to rebuild part of this split list (the function name)
-    # later on.
-    result =
+    [trailing | reversed] =
       rest
-      |> :re.split("([/-])")
-      |> Enum.reject(&(&1 == ""))
+      |> String.split("/")
       |> Enum.reverse()
 
-    case result do
-      ["-", _count, "-", _inner, "-", arity, "/" | reversed_function] ->
-        {Enum.join(Enum.reverse(reversed_function)), arity}
+    case String.split(trailing, "-") do
+      [arity, _inner, _count, ""] ->
+        {reversed |> Enum.reverse |> Enum.join("/") |> String.to_atom(), arity}
       _other ->
         :error
     end
@@ -527,7 +524,6 @@ defimpl Inspect, for: Function do
   end
 
   defp extract_name(name) do
-    name = Atom.to_string(name)
     case extract_anonymous_fun_parent(name) do
       {name, arity} ->
         "." <> escape_name(name) <> "/" <> arity

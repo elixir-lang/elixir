@@ -84,6 +84,21 @@ defmodule Inspect.AtomTest do
     opts = [syntax_colors: [reset: :cyan]]
     assert inspect(:hello, opts) == ":hello"
   end
+
+  # TODO: Remove this check once we depend only on 20
+  if :erlang.system_info(:otp_release) >= '20' do
+    test "unicode" do
+      assert inspect(:"olá") == ":olá"
+      assert inspect(:"Olá") == ":Olá"
+      assert inspect(:"Ólá") == ":Ólá"
+
+      hello_world = String.to_atom("こんにちは世界")
+      assert inspect(hello_world) == ":こんにちは世界"
+
+      nfd = :unicode.characters_to_nfd_binary("olá")
+      assert inspect(String.to_atom(nfd)) == ":\"#{nfd}\""
+    end
+  end
 end
 
 defmodule Inspect.BitStringTest do

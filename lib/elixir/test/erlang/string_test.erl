@@ -7,8 +7,8 @@ eval(Content) ->
   {Value, Binding}.
 
 extract_interpolations(String) ->
-  case elixir_interpolation:extract(1, 1,
-    #elixir_tokenizer{file = <<"nofile">>}, true, String ++ [$"], $") of
+  Tokenizer = #elixir_tokenizer{file = <<"nofile">>},
+  case elixir_interpolation:extract(1, 1, Tokenizer, true, String ++ [$"], $") of
     {error, Error} ->
       Error;
     {_, _, Z, _} ->

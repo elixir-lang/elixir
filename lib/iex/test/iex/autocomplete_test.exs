@@ -342,12 +342,4 @@ defmodule IEx.AutocompleteTest do
     :code.purge(:"Elixir.IEx.AutocompleteTest.Unicodé")
     :code.delete(:"Elixir.IEx.AutocompleteTest.Unicodé")
   end
-
-  test "ignore invalid Erlang module literals" do
-    defmodule :"iex_autocomplete_unicodé", do: nil
-    assert expand(':iex_autocomplete_unicod') == {:no, '', []}
-  after
-    :code.purge(:"iex_autocomplete_unicodé")
-    :code.delete(:"iex_autocomplete_unicodé")
-  end
 end

@@ -103,7 +103,7 @@ defmodule Macro do
     end
   end
 
-  # Classifies the given atom or string into one of the following categories:
+  # Classifies the given atom into one of the following categories:
   #
   #   * :alias - a valid Elixir alias, like Foo, Foo.Bar and so on
   #
@@ -117,74 +117,44 @@ defmodule Macro do
   #     valid identifiers but they need quotes to be used in function calls
   #     (Foo."Bar")
   #
-  #   * :atom - any other atom (these are usually escaped when inspected, like
+  #   * :other - any other atom (these are usually escaped when inspected, like
   #     :"foo and bar")
   @doc false
-  def classify_identifier(atom_or_string)
-
-  unary_ops_as_strings = :lists.map(&:erlang.atom_to_binary(&1, :utf8), unary_ops)
-  binary_ops_as_strings = :lists.map(&:erlang.atom_to_binary(&1, :utf8), binary_ops)
-
   def classify_identifier(atom) when is_atom(atom) do
-    classify_identifier(Atom.to_string(atom))
-  end
+    charlist = Atom.to_charlist(atom)
 
-  def classify_identifier(string) when is_binary(string) do
     cond do
-      valid_alias?(string) ->
-        :alias
-      valid_atom_identifier?(string) ->
-        first = :binary.first(string)
-        if first >= ?A and first <= ?Z do
-          :not_callable
-        else
-          :callable
-        end
-      string in ["%", "%{}", "{}", "<<>>", "...", "..", "."] ->
+      atom in [:"%", :"%{}", :"{}", :"<<>>", :"...", :"..", :"."] ->
         :not_callable
-      string in unquote(unary_ops_as_strings) or string in unquote(binary_ops_as_strings) ->
+      atom in unquote(unary_ops) or atom in unquote(binary_ops) ->
         :callable
+      valid_alias?(charlist) ->
+        :alias
       true ->
-        :other
+        case :elixir_config.get(:identifier_tokenizer).tokenize(charlist) do
+          {kind, _acc, [], _, _, special} ->
+            if kind == :identifier and not :lists.member(?@, special) do
+              :callable
+            else
+              :not_callable
+            end
+          _ ->
+            :other
+        end
     end
   end
 
-  # Detect if atom is an atom alias (Elixir.Foo.Bar.Baz)
-
-  defp valid_alias?("Elixir" <> rest), do: valid_alias_piece?(rest)
+  defp valid_alias?('Elixir' ++ rest), do: valid_alias_piece?(rest)
   defp valid_alias?(_other), do: false
 
-  # Detects if the given binary is a valid "ref" piece, that is, a valid
-  # successor of "Elixir" in atoms like "Elixir.String.Chars".
-  defp valid_alias_piece?(<<?., char, rest::binary>>) when char >= ?A and char <= ?Z,
+  defp valid_alias_piece?([?., char | rest]) when char >= ?A and char <= ?Z,
     do: valid_alias_piece?(trim_leading_while_valid_identifier(rest))
-  defp valid_alias_piece?(<<>>),
+  defp valid_alias_piece?([]),
     do: true
   defp valid_alias_piece?(_other),
     do: false
 
-  defp valid_atom_identifier?(<<char, rest::binary>>)
-       when char >= ?a and char <= ?z
-       when char >= ?A and char <= ?Z
-       when char == ?_,
-    do: valid_atom_piece?(rest)
-  defp valid_atom_identifier?(_other),
-    do: false
-
-  defp valid_atom_piece?(binary) do
-    case trim_leading_while_valid_identifier(binary) do
-      rest when rest in ["", "?", "!"] ->
-        true
-      "@" <> rest ->
-        valid_atom_piece?(rest)
-      _other ->
-        false
-    end
-  end
-
-  # Takes a binary and trims all the valid identifier characters (alphanumeric
-  # and _) from its beginning.
-  defp trim_leading_while_valid_identifier(<<char, rest::binary>>)
+  defp trim_leading_while_valid_identifier([char | rest])
        when char >= ?a and char <= ?z
        when char >= ?A and char <= ?Z
        when char >= ?0 and char <= ?9

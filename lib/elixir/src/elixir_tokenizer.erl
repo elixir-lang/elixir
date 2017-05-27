@@ -1,6 +1,6 @@
 -module(elixir_tokenizer).
 -include("elixir.hrl").
--export([tokenize/3, tokenize/4, invalid_do_error/1]).
+-export([tokenize/1, tokenize/3, tokenize/4, invalid_do_error/1]).
 -import(elixir_interpolation, [unescape_tokens/1]).
 
 %% Numbers
@@ -13,17 +13,10 @@
 -define(is_upcase(S), (S >= $A andalso S =< $Z)).
 -define(is_downcase(S), (S >= $a andalso S =< $z)).
 
-%% Atoms
--define(is_atom_start(S), (?is_quote(S) orelse ?is_upcase(S) orelse ?is_downcase(S) orelse (S == $_))).
--define(is_atom(S), (?is_identifier(S) orelse (S == $@))).
-
--define(is_identifier_start(S), (?is_upcase(S) orelse ?is_downcase(S) orelse (S == $_))).
--define(is_identifier(S), (?is_digit(S) orelse ?is_identifier_start(S))).
+%% Others
+-define(is_quote(S), (S == $" orelse S == $')).
 -define(is_sigil(S), ((S == $/) orelse (S == $<) orelse (S == $") orelse (S == $') orelse
                       (S == $[) orelse (S == $() orelse (S == ${) orelse (S == $|))).
-
-%% Quotes
--define(is_quote(S), (S == $" orelse S == $')).
 
 %% Spaces
 -define(is_horizontal_space(S), ((S == $\s) orelse (S == $\t))).
@@ -139,7 +132,8 @@ tokenize(String, Line, Column, Opts) ->
   tokenize(String, Line, Column, #elixir_tokenizer{
     file=File,
     existing_atoms_only=Existing,
-    check_terminators=Check
+    check_terminators=Check,
+    identifier_tokenizer=elixir_config:get(identifier_tokenizer)
   }).
 
 tokenize(String, Line, Opts) ->
@@ -245,42 +239,7 @@ tokenize([$" | T], Line, Column, Scope, Tokens) ->
 tokenize([$' | T], Line, Column, Scope, Tokens) ->
   handle_strings(T, Line, Column + 1, $', Scope, Tokens);
 
-% Atoms
-
-tokenize([$:, H | T] = Original, Line, Column, Scope, Tokens) when ?is_quote(H) ->
-  case elixir_interpolation:extract(Line, Column + 2, Scope, true, T, H) of
-    {NewLine, NewColumn, Parts, Rest} ->
-      Unescaped = unescape_tokens(Parts),
-      Key = case Scope#elixir_tokenizer.existing_atoms_only of
-        true  -> atom_safe;
-        false -> atom_unsafe
-      end,
-      tokenize(Rest, NewLine, NewColumn, Scope, [{Key, {Line, Column, NewColumn}, Unescaped} | Tokens]);
-    {error, Reason} ->
-      interpolation_error(Reason, Original, Tokens, " (for atom starting at line ~B)", [Line])
-  end;
-
-tokenize([$:, T | String] = Original, Line, Column, Scope, Tokens) when ?is_atom_start(T) ->
-  {Rest, Part, Length} = tokenize_atom([T | String], []),
-  case unsafe_to_atom(Part, Line, Scope) of
-    {ok, Atom} ->
-      tokenize(Rest, Line, Column + 1 + Length, Scope, [{atom, {Line, Column, Column + 1 + Length}, Atom} | Tokens]);
-    {error, Reason} ->
-      {error, Reason, Original, Tokens}
-  end;
-
-% %% Special atom identifiers / operators
-
-tokenize(":..." ++ Rest, Line, Column, Scope, Tokens) ->
-  tokenize(Rest, Line, Column + 4, Scope, [{atom, {Line, Column, Column + 4}, '...'} | Tokens]);
-tokenize(":<<>>" ++ Rest, Line, Column, Scope, Tokens) ->
-  tokenize(Rest, Line, Column + 5, Scope, [{atom, {Line, Column, Column + 5}, '<<>>'} | Tokens]);
-tokenize(":%{}" ++ Rest, Line, Column, Scope, Tokens) ->
-  tokenize(Rest, Line, Column + 4, Scope, [{atom, {Line, Column, Column + 4}, '%{}'} | Tokens]);
-tokenize(":%" ++ Rest, Line, Column, Scope, Tokens) ->
-  tokenize(Rest, Line, Column + 2, Scope, [{atom, {Line, Column, Column + 2}, '%'} | Tokens]);
-tokenize(":{}" ++ Rest, Line, Column, Scope, Tokens) ->
-  tokenize(Rest, Line, Column + 3, Scope, [{atom, {Line, Column, Column + 3}, '{}'} | Tokens]);
+% Operator atoms
 
 tokenize("...:" ++ Rest, Line, Column, Scope, Tokens) when ?is_space(hd(Rest)) ->
   tokenize(Rest, Line, Column + 4, Scope, [{kw_identifier, {Line, Column, Column + 4}, '...'} | Tokens]);
@@ -292,6 +251,17 @@ tokenize("%:" ++ Rest, Line, Column, Scope, Tokens) when ?is_space(hd(Rest)) ->
   tokenize(Rest, Line, Column + 2, Scope, [{kw_identifier, {Line, Column, Column + 2}, '%'} | Tokens]);
 tokenize("{}:" ++ Rest, Line, Column, Scope, Tokens) when ?is_space(hd(Rest)) ->
   tokenize(Rest, Line, Column + 3, Scope, [{kw_identifier, {Line, Column, Column + 3}, '{}'} | Tokens]);
+
+tokenize(":..." ++ Rest, Line, Column, Scope, Tokens) ->
+  tokenize(Rest, Line, Column + 4, Scope, [{atom, {Line, Column, Column + 4}, '...'} | Tokens]);
+tokenize(":<<>>" ++ Rest, Line, Column, Scope, Tokens) ->
+  tokenize(Rest, Line, Column + 5, Scope, [{atom, {Line, Column, Column + 5}, '<<>>'} | Tokens]);
+tokenize(":%{}" ++ Rest, Line, Column, Scope, Tokens) ->
+  tokenize(Rest, Line, Column + 4, Scope, [{atom, {Line, Column, Column + 4}, '%{}'} | Tokens]);
+tokenize(":%" ++ Rest, Line, Column, Scope, Tokens) ->
+  tokenize(Rest, Line, Column + 2, Scope, [{atom, {Line, Column, Column + 2}, '%'} | Tokens]);
+tokenize(":{}" ++ Rest, Line, Column, Scope, Tokens) ->
+  tokenize(Rest, Line, Column + 3, Scope, [{atom, {Line, Column, Column + 3}, '{}'} | Tokens]);
 
 % ## Three Token Operators
 tokenize([$:, T1, T2, T3 | Rest], Line, Column, Scope, Tokens) when
@@ -312,39 +282,10 @@ tokenize([$:, T | Rest], Line, Column, Scope, Tokens) when
     ?rel_op(T); ?match_op(T); ?pipe_op(T); T == $. ->
   tokenize(Rest, Line, Column + 2, Scope, [{atom, {Line, Column, Column + 2}, list_to_atom([T])} | Tokens]);
 
-% End of line
-
-tokenize(";" ++ Rest, Line, Column, Scope, []) ->
-  tokenize(Rest, Line, Column + 1, Scope, [{';', {Line, Column, Column + 1}}]);
-
-tokenize(";" ++ Rest, Line, Column, Scope, [Top | _] = Tokens) when element(1, Top) /= ';' ->
-  tokenize(Rest, Line, Column + 1, Scope, [{';', {Line, Column, Column + 1}} | Tokens]);
-
-tokenize("\\" = Original, Line, _Column, _Scope, Tokens) ->
-  {error, {Line, "invalid escape \\ at end of file", []}, Original, Tokens};
-
-tokenize("\\\n" = Original, Line, _Column, _Scope, Tokens) ->
-  {error, {Line, "invalid escape \\ at end of file", []}, Original, Tokens};
-
-tokenize("\\\r\n" = Original, Line, _Column, _Scope, Tokens) ->
-  {error, {Line, "invalid escape \\ at end of file", []}, Original, Tokens};
-
-tokenize("\\\n" ++ Rest, Line, _Column, Scope, Tokens) ->
-  tokenize(Rest, Line + 1, 1, Scope, Tokens);
-
-tokenize("\\\r\n" ++ Rest, Line, _Column, Scope, Tokens) ->
-  tokenize(Rest, Line + 1, 1, Scope, Tokens);
-
-tokenize("\n" ++ Rest, Line, Column, Scope, Tokens) ->
-  tokenize(Rest, Line + 1, 1, Scope, eol(Line, Column, Tokens));
-
-tokenize("\r\n" ++ Rest, Line, Column, Scope, Tokens) ->
-  tokenize(Rest, Line + 1, 1, Scope, eol(Line, Column, Tokens));
-
 % Stand-alone tokens
 
 tokenize("..." ++ Rest, Line, Column, Scope, Tokens) ->
-  Token = check_call_identifier(identifier, Line, Column, 3, '...', Rest),
+  Token = check_call_identifier(Line, Column, 3, '...', Rest),
   tokenize(Rest, Line, Column + 3, Scope, [Token | Tokens]);
 
 tokenize("=>" ++ Rest, Line, Column, Scope, Tokens) ->
@@ -433,6 +374,76 @@ tokenize([T | Rest], Line, Column, Scope, Tokens) when ?match_op(T) ->
 tokenize([T | Rest], Line, Column, Scope, Tokens) when ?pipe_op(T) ->
   handle_op(Rest, Line, Column, pipe_op, 1, list_to_atom([T]), Scope, Tokens);
 
+% Non-operator Atoms
+
+tokenize([$:, H | T] = Original, Line, Column, Scope, Tokens) when ?is_quote(H) ->
+  case elixir_interpolation:extract(Line, Column + 2, Scope, true, T, H) of
+    {NewLine, NewColumn, Parts, Rest} ->
+      Unescaped = unescape_tokens(Parts),
+      Key = case Scope#elixir_tokenizer.existing_atoms_only of
+        true  -> atom_safe;
+        false -> atom_unsafe
+      end,
+      tokenize(Rest, NewLine, NewColumn, Scope, [{Key, {Line, Column, NewColumn}, Unescaped} | Tokens]);
+    {error, Reason} ->
+      interpolation_error(Reason, Original, Tokens, " (for atom starting at line ~B)", [Line])
+  end;
+
+tokenize([$: | String] = Original, Line, Column, Scope, Tokens) ->
+  case tokenize_identifier(String, Line, Scope) of
+    {_Kind, Atom, Rest, Length, _Ascii, _Special} ->
+      tokenize(Rest, Line, Column + 1 + Length, Scope, [{atom, {Line, Column, Column + 1 + Length}, Atom} | Tokens]);
+    empty ->
+      unexpected_token(Original, Line, Column, Tokens);
+    {error, Reason} ->
+      {error, Reason, Original, Tokens}
+  end;
+
+% Integers and floats
+
+tokenize([H | T], Line, Column, Scope, Tokens) when ?is_digit(H) ->
+  case tokenize_number(T, [H], 1, false) of
+    {error, Reason, Number} ->
+      {error, {Line, Reason, Number}, T, Tokens};
+    {Rest, Number, Length} ->
+      tokenize(Rest, Line, Column + Length, Scope, [{number, {Line, Column, Column + Length}, Number} | Tokens])
+  end;
+
+% Spaces
+
+tokenize([T | Rest], Line, Column, Scope, Tokens) when ?is_horizontal_space(T) ->
+  {Remaining, Stripped} = strip_horizontal_space(Rest),
+  handle_space_sensitive_tokens(Remaining, Line, Column + 1 + Stripped, Scope, Tokens);
+
+% End of line
+
+tokenize(";" ++ Rest, Line, Column, Scope, []) ->
+  tokenize(Rest, Line, Column + 1, Scope, [{';', {Line, Column, Column + 1}}]);
+
+tokenize(";" ++ Rest, Line, Column, Scope, [Top | _] = Tokens) when element(1, Top) /= ';' ->
+  tokenize(Rest, Line, Column + 1, Scope, [{';', {Line, Column, Column + 1}} | Tokens]);
+
+tokenize("\\" = Original, Line, _Column, _Scope, Tokens) ->
+  {error, {Line, "invalid escape \\ at end of file", []}, Original, Tokens};
+
+tokenize("\\\n" = Original, Line, _Column, _Scope, Tokens) ->
+  {error, {Line, "invalid escape \\ at end of file", []}, Original, Tokens};
+
+tokenize("\\\r\n" = Original, Line, _Column, _Scope, Tokens) ->
+  {error, {Line, "invalid escape \\ at end of file", []}, Original, Tokens};
+
+tokenize("\\\n" ++ Rest, Line, _Column, Scope, Tokens) ->
+  tokenize(Rest, Line + 1, 1, Scope, Tokens);
+
+tokenize("\\\r\n" ++ Rest, Line, _Column, Scope, Tokens) ->
+  tokenize(Rest, Line + 1, 1, Scope, Tokens);
+
+tokenize("\n" ++ Rest, Line, Column, Scope, Tokens) ->
+  tokenize(Rest, Line + 1, 1, Scope, eol(Line, Column, Tokens));
+
+tokenize("\r\n" ++ Rest, Line, Column, Scope, Tokens) ->
+  tokenize(Rest, Line + 1, 1, Scope, eol(Line, Column, Tokens));
+
 % Others
 
 tokenize([$%, ${ | T], Line, Column, Scope, Tokens) ->
@@ -445,49 +456,37 @@ tokenize([$. | T], Line, Column, Scope, Tokens) ->
   {Rest, Counter, Offset} = strip_dot_space(T, 0, Column + 1),
   handle_dot([$. | Rest], Line + Counter, Offset - 1, Column, Scope, Tokens);
 
-% Integers and floats
+% Identifiers
 
-tokenize([H | T], Line, Column, Scope, Tokens) when ?is_digit(H) ->
-  case tokenize_number(T, [H], 1, false) of
-    {error, Reason, Number} ->
-      {error, {Line, Reason, Number}, T, Tokens};
-    {Rest, Number, Length} ->
-      tokenize(Rest, Line, Column + Length, Scope, [{number, {Line, Column, Column + Length}, Number} | Tokens])
-  end;
+tokenize(String, Line, Column, Scope, Tokens) ->
+  case tokenize_identifier(String, Line, Scope) of
+    {Kind, Atom, Rest, Length, Ascii, Special} ->
+      HasAt = lists:member($@, Special),
 
-% Identifiers (including aliases)
-
-tokenize([H | _] = Original, Line, Column, Scope, Tokens) when ?is_identifier_start(H) ->
-  case tokenize_any_identifier(Original, Line, Scope) of
-    {ok, Rest, Atom, Length, HasAt, HasEnding} ->
       case Rest of
         [$: | T] when ?is_space(hd(T)) ->
           tokenize(T, Line, Column + Length + 1, Scope, [{kw_identifier, {Line, Column, Column + Length + 1}, Atom} | Tokens]);
         [$: | T] when hd(T) /= $: ->
-          String = atom_to_list(Atom) ++ [$:],
-          Reason   = {Line, "keyword argument must be followed by space after: ", String},
-          {error, Reason, Original, Tokens};
+          AtomName = atom_to_list(Atom) ++ [$:],
+          Reason = {Line, "keyword argument must be followed by space after: ", AtomName},
+          {error, Reason, String, Tokens};
         _ when HasAt ->
-          Reason = {Line, invalid_character_error($@), atom_to_list(Atom)},
-          {error, Reason, Original, Tokens};
-        _ when ?is_upcase(H) ->
-          tokenize_alias(Rest, Line, Column, Atom, Length, HasEnding, Scope, Tokens);
+          Reason = {Line, invalid_character_error(Kind, $@), atom_to_list(Atom)},
+          {error, Reason, String, Tokens};
+        _ when Kind == alias ->
+          tokenize_alias(Rest, Line, Column, Atom, Length, Ascii, Special, Scope, Tokens);
+        _ when Kind == identifier ->
+          tokenize_other(Rest, Line, Column, Atom, Length, Scope, Tokens);
         _ ->
-          tokenize_other_identifier(Rest, Line, Column, Length, Atom, Scope, Tokens)
+          unexpected_token(String, Line, Column, Tokens)
       end;
+    empty ->
+      unexpected_token(String, Line, Column, Tokens);
     {error, Reason} ->
-      {error, Reason, Original, Tokens}
-  end;
+      {error, Reason, String, Tokens}
+  end.
 
-% Spaces
-
-tokenize([T | Rest], Line, Column, Scope, Tokens) when ?is_horizontal_space(T) ->
-  case strip_horizontal_space(Rest) of
-    {Remaining, Stripped} ->
-      handle_space_sensitive_tokens(Remaining, Line, Column + 1 + Stripped, Scope, Tokens)
-  end;
-
-tokenize([T | Rest], Line, Column, _Scope, Tokens) ->
+unexpected_token([T | Rest], Line, Column, Tokens) ->
   Message = io_lib:format("\"~ts\" (column ~p, codepoint U+~4.16.0B)", [[T], Column, T]),
   {error, {Line, "unexpected token: ", Message}, Rest, Tokens}.
 
@@ -601,8 +600,7 @@ handle_dot([$., H | T] = Original, Line, Column, DotColumn, Scope, Tokens) when 
     {NewLine, NewColumn, [Part], Rest} when is_binary(Part) ->
       case unsafe_to_atom(Part, Line, Scope) of
         {ok, Atom} ->
-          Token = check_call_identifier(identifier, Line, Column,
-                                        max(NewColumn - Column, 0), Atom, Rest),
+          Token = check_call_identifier(Line, Column, max(NewColumn - Column, 0), Atom, Rest),
           tokenize(Rest, NewLine, NewColumn, Scope,
                    [Token | add_token_with_nl({'.', {Line, DotColumn, DotColumn + 1}}, Tokens)]);
         {error, Reason} ->
@@ -616,7 +614,7 @@ handle_dot([$. | Rest], Line, Column, DotColumn, Scope, Tokens) ->
   tokenize(Rest, Line, Column + 1, Scope, add_token_with_nl({'.', {Line, DotColumn, DotColumn + 1}}, Tokens)).
 
 handle_call_identifier(Rest, Line, Column, DotColumn, Length, Op, Scope, Tokens) ->
-  {_, {_, _, NewColumn}, _} = Token = check_call_identifier(identifier, Line, Column, Length, Op, Rest),
+  {_, {_, _, NewColumn}, _} = Token = check_call_identifier(Line, Column, Length, Op, Rest),
   tokenize(Rest, Line, NewColumn, Scope,
            [Token | add_token_with_nl({'.', {Line, DotColumn, DotColumn + 1}}, Tokens)]).
 
@@ -832,64 +830,71 @@ tokenize_comment("\n" ++ _ = Rest)   -> Rest;
 tokenize_comment([_ | Rest])         -> tokenize_comment(Rest);
 tokenize_comment([])                 -> [].
 
-%% Atoms
-%% Handle atoms specially since they support @
-
-tokenize_atom(T, Acc) ->
-  tokenize_atom(T, Acc, 0).
-
-tokenize_atom([H | T], Acc, Length) when ?is_atom(H) ->
-  tokenize_atom(T, [H | Acc], Length + 1);
-
-tokenize_atom([H | T], Acc, Length) when H == $?; H == $! ->
-  {T, lists:reverse([H | Acc]), Length + 1};
-
-tokenize_atom(Rest, Acc, Length) ->
-  {Rest, lists:reverse(Acc), Length}.
-
 %% Identifiers
-%% At this point, the validity of the first character was already verified.
 
-tokenize_any_base_identifier(Original) ->
-  tokenize_any_base_identifier(Original, [], false).
+tokenize([H | T]) when ?is_upcase(H) ->
+  {Acc, Rest, Length, Special} = tokenize_continue(T, [H], 1, []),
+  {alias, lists:reverse(Acc), Rest, Length, true, Special};
+tokenize([H | T]) when ?is_downcase(H); H == $_ ->
+  {Acc, Rest, Length, Special} = tokenize_continue(T, [H], 1, []),
+  {identifier, lists:reverse(Acc), Rest, Length, true, Special};
+tokenize(_List) ->
+  {error, empty}.
 
-tokenize_any_base_identifier([H | T], Acc, HasAt) when ?is_atom(H) ->
-  tokenize_any_base_identifier(T, [H | Acc], HasAt orelse H == $@);
+tokenize_continue([$@ | T], Acc, Length, Special) ->
+  tokenize_continue(T, [$@ | Acc], Length + 1, [$@ | lists:delete($@, Special)]);
+tokenize_continue([$! | T], Acc, Length, Special) ->
+  {[$! | Acc], T, Length + 1, [$! | Special]};
+tokenize_continue([$? | T], Acc, Length, Special) ->
+  {[$? | Acc], T, Length + 1, [$? | Special]};
+tokenize_continue([H | T], Acc, Length, Special) when ?is_upcase(H); ?is_downcase(H); ?is_digit(H); H == $_ ->
+  tokenize_continue(T, [H | Acc], Length + 1, Special);
+tokenize_continue(Rest, Acc, Length, Special) ->
+  {Acc, Rest, Length, Special}.
 
-tokenize_any_base_identifier(Rest, Acc, HasAt) ->
-  {Rest, lists:reverse(Acc), length(Acc), HasAt}.
-
-%% Tokenize any identifier, handling kv, punctuated, paren, bracket and do identifiers.
-
-tokenize_any_identifier(Original, Line, Scope) ->
-  {Rest, Identifier, Length, HasAt} = tokenize_any_base_identifier(Original),
-
-  {AllIdentifier, AllRest, AllLength, HasEnding} =
-    case Rest of
-      [H | T] when H == $?; H == $! -> {Identifier ++ [H], T, Length + 1, true};
-      _ -> {Identifier, Rest, Length, false}
-    end,
-
-  case unsafe_to_atom(AllIdentifier, Line, Scope) of
-    {ok, Atom} ->
-      {ok, AllRest, Atom, AllLength, HasAt, HasEnding};
-    {error, Reason} ->
-      {error, Reason}
+tokenize_identifier(String, Line, Scope) ->
+  case (Scope#elixir_tokenizer.identifier_tokenizer):tokenize(String) of
+    {Kind, Acc, Rest, Length, Ascii, Special} ->
+      case unsafe_to_atom(Acc, Line, Scope) of
+        {ok, Atom} ->
+          {Kind, Atom, Rest, Length, Ascii, Special};
+        {error, _Reason} = Error ->
+          Error
+      end;
+    {error, {not_nfc, Wrong}} ->
+      Right = unicode:characters_to_nfc_list(Wrong),
+      RightCodepoints = list_to_codepoint_hex(Right),
+      WrongCodepoints = list_to_codepoint_hex(Wrong),
+      Message = io_lib:format("Elixir expects unquoted Unicode atoms and variables to be in NFC form.\n"
+                              "Got: \"~ts\" (codepoints~ts)\n"
+                              "Expected: \"~ts\" (codepoints~ts)\n
+                              Syntax error before: ",
+                              [Wrong, WrongCodepoints, Right, RightCodepoints]),
+      {error, {Line, Message, Wrong}};
+    {error, empty} ->
+      empty
   end.
 
-tokenize_alias(Rest, Line, Column, Atom, Length, HasEnding, Scope, Tokens) ->
-  case HasEnding of
-    true ->
+list_to_codepoint_hex(List) ->
+  [io_lib:format(" ~4.16.0B", [Codepoint]) || Codepoint <- List].
+
+tokenize_alias(Rest, Line, Column, Atom, Length, Ascii, Special, Scope, Tokens) ->
+  if
+    not Ascii ->
       AtomName = atom_to_list(Atom),
-      Ending = lists:last(AtomName),
-      Reason = {Line, invalid_character_error(Ending), AtomName},
-      {error, Reason, AtomName, Tokens};
-    _ ->
+      Invalid = hd([C || C <- AtomName, C > 127]),
+      Reason = {Line, invalid_character_error("alias (only ascii characters are allowed)", Invalid), AtomName},
+      {error, Reason, AtomName ++ Rest, Tokens};
+    Special /= [] ->
+      AtomName = atom_to_list(Atom),
+      Reason = {Line, invalid_character_error("alias", hd(Special)), AtomName},
+      {error, Reason, AtomName ++ Rest, Tokens};
+    true ->
       tokenize(Rest, Line, Column + Length, Scope, [{aliases, {Line, Column, Column + Length}, [Atom]} | Tokens])
   end.
 
-tokenize_other_identifier(Rest, Line, Column, Length, Atom, Scope, Tokens) ->
-  case tokenize_kw_or_other(Rest, identifier, Line, Column, Length, Atom, Tokens) of
+tokenize_other(Rest, Line, Column, Atom, Length, Scope, Tokens) ->
+  case tokenize_keyword_or_identifier(Rest, Line, Column, Length, Atom, Tokens) of
     {keyword, Rest, {_, {_, _, EndColumn}} = Check, T} ->
       handle_terminator(Rest, Line, EndColumn, Scope, Check, T);
     {keyword, Rest, {_, {_, _, EndColumn}, _} = Check, T} ->
@@ -900,10 +905,10 @@ tokenize_other_identifier(Rest, Line, Column, Length, Atom, Scope, Tokens) ->
       Error
   end.
 
-tokenize_kw_or_other(Rest, Kind, Line, Column, Length, Atom, Tokens) ->
+tokenize_keyword_or_identifier(Rest, Line, Column, Length, Atom, Tokens) ->
   case check_keyword(Line, Column, Length, Atom, Tokens, Rest) of
     nomatch ->
-      {identifier, Rest, check_call_identifier(Kind, Line, Column, Length, Atom, Rest)};
+      {identifier, Rest, check_call_identifier(Line, Column, Length, Atom, Rest)};
     {ok, [{in_op, {_, _, InEndColumn}, in} | [{unary_op, {NotLine, NotColumn, _}, 'not'} | T]]} ->
       {keyword, Rest, {in_op, {NotLine, NotColumn, InEndColumn}, 'not in'}, T};
     {ok, [Check | T]} ->
@@ -914,12 +919,12 @@ tokenize_kw_or_other(Rest, Kind, Line, Column, Length, Atom, Tokens) ->
 
 %% Check if it is a call identifier (paren | bracket | do)
 
-check_call_identifier(_Kind, Line, Column, Length, Atom, [$( | _]) ->
+check_call_identifier(Line, Column, Length, Atom, [$( | _]) ->
   {paren_identifier, {Line, Column, Column + Length}, Atom};
-check_call_identifier(_Kind, Line, Column, Length, Atom, [$[ | _]) ->
+check_call_identifier(Line, Column, Length, Atom, [$[ | _]) ->
   {bracket_identifier, {Line, Column, Column + Length}, Atom};
-check_call_identifier(Kind, Line, Column, Length, Atom, _Rest) ->
-  {Kind, {Line, Column, Column + Length}, Atom}.
+check_call_identifier(Line, Column, Length, Atom, _Rest) ->
+  {identifier, {Line, Column, Column + Length}, Atom}.
 
 add_token_with_nl({unary_op, _, _} = Left, T) -> [Left | T];
 add_token_with_nl(Left, [{eol, _} | T]) -> [Left | T];
@@ -1071,8 +1076,8 @@ keyword('catch')  -> block;
 
 keyword(_) -> false.
 
-invalid_character_error(Char) ->
-  io_lib:format("invalid character \"~ts\" (codepoint U+~4.16.0B) in token: ", [[Char], Char]).
+invalid_character_error(What, Char) ->
+  io_lib:format("invalid character \"~ts\" (codepoint U+~4.16.0B) in ~ts: ", [[Char], Char, What]).
 
 invalid_do_error(Prefix) ->
   Prefix ++ ". In case you wanted to write a \"do\" expression, "

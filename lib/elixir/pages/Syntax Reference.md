@@ -65,9 +65,11 @@ end
 
 ### Atoms
 
-Atoms in Elixir start with a colon (`:`) which must be followed by any ASCII letter and an optional sequence of ASCII letters, numbers or underscores. Valid examples are `:foo`, `:FOO` and `:foo_42`. Atoms may also have a single `@` on them, such as: `:foo@bar42`.
+Atoms in Elixir start with a colon (`:`) which must be followed by non-combining Unicode characters and underscore. The atom may continue using a sequence of Unicode characters, including numbers, underscore and `@`. Atoms may end in `!` or `?`. See [Unicode Syntax](unicode-syntax.html) for a formal specification. Unicode characters require OTP 20.
 
-If the colon is followed by a double- or single-quote, the atom can be made of any latin character up to OTP 19 or of any unicode character from OTP 20 onwards, such as `:"++olá++"`.
+All operators in Elixir are also valid atoms. Valid examples are `:foo`, `:FOO`, `:foo_42`, `:foo@bar` and `:++`. Invalid examples are `:@foo` (`@` is not allowed at start), `:123` (numbers are not allowed at start) and `:(*)` (not a valid operator).
+
+If the colon is followed by a double- or single-quote, the atom can be made of any character, such as `:"++olá++"`.
 
 Atoms are always represented as themselves in the AST:
 
@@ -92,7 +94,9 @@ Charlists are always represented as themselves in the AST.
 
 ### Variables
 
-Variables must start with lowercase ASCII character which may be followed by any ASCII letter, number or underscore. Variables may end in `?` or `!`. [Elixir's naming conventions](naming-conventions.html) proposes variables to be in `snake_case` format.
+Variables in Elixir must start with underscore or a non-combining Unicode character that is not in uppercase or titlecase. The variable may continue using a sequence of Unicode characters, including numbers and underscore. Variables may end in `?` or `!`. See [Unicode Syntax](unicode-syntax.html) for a formal specification. Unicode characters require OTP 20.
+
+[Elixir's naming conventions](naming-conventions.html) recommend variables to be in `snake_case` format.
 
 Variables are represented by three-element tuples:
 
@@ -105,7 +109,9 @@ end
 
 ### Non-qualified calls
 
-Non-qualified calls, such as `add(1, 2)`, must start with lowercase characters which may be followed by any ASCII letter, number or underscore. Calls may end in `?` or `!`. [Elixir's naming conventions](naming-conventions.html) proposes function names to be in `snake_case` format.
+Non-qualified calls, such as `add(1, 2)`, must start with underscore or a non-combining Unicode character that is not in uppercase or titlecase. The call may continue using a sequence of Unicode characters, including numbers and underscore. Calls may end in `?` or `!`. See [Unicode Syntax](unicode-syntax.html) for a formal specification. Unicode characters require OTP 20.
+
+[Elixir's naming conventions](naming-conventions.html) recommend calls to be in `snake_case` format.
 
 Non-qualified calls are represented by three-element tuples:
 
@@ -147,9 +153,28 @@ end
 
 Many other Elixir constructs, such as `=`, `when`, `&` and `@` are simply treated as operators. See [the Operators page](operators.html) for a full reference.
 
+### Qualified calls (remote calls)
+
+Qualified calls, such as `Math.add(1, 2)`, must start with underscore or a non-combining Unicode character that is not in uppercase or titlecase. The call may continue using a sequence of Unicode characters, including numbers and underscore. Calls may end in `?` or `!`. See [Unicode Syntax](unicode-syntax.html) for a formal specification. Unicode characters require OTP 20.
+
+[Elixir's naming conventions](naming-conventions.html) recommend calls to be in `snake_case` format.
+
+For qualified calls, Elixir also allows the function name to be written between double- or single-quotes, allowing calls such as `Math."++add++"(1, 2)`. Operators can be used as qualified calls without a need for quote, such as `Kernel.+(1, 2)`.
+
+Qualified calls are represented as a tuple with three elements in the AST where the first element is the a tuple reprsenting the dot:
+
+```elixir
+quote do
+  :foo.bar(1, 2)
+end
+#=> {{:., [], [:foo, :bar]}, [], [1, 2]}
+```
+
 ### Aliases
 
-Aliases are constructs that expand to atoms at compile-time. The alias `String` expands to the atom `:"Elixir.String"`. Aliases must start with an uppercase character which may be followed by any ASCII letter, number, or underscore. [Elixir's naming conventions](naming-conventions.html) propose aliases to be in `CamelCase` format.
+Aliases are constructs that expand to atoms at compile-time. The alias `String` expands to the atom `:"Elixir.String"`. Aliases must start with an ASCII uppercase character which may be followed by any ASCII letter, number, or underscore. Non-ASCII characters are not supported in aliases.
+
+[Elixir's naming conventions](naming-conventions.html) recommend aliases to be in `CamelCase` format.
 
 Aliases are represented by an `__aliases__` call with each segment separated by dot as an argument:
 
@@ -165,22 +190,7 @@ end
 #=> {:__aliases__, [], [{:__MODULE__, [], Elixir}, :Bar, :Baz]}
 ```
 
-All arguments, except the first, will be atoms.
-
-### Qualified calls (remote calls)
-
-Qualified calls, such as `Math.add(1, 2)`, must start with lowercase characters which may be followed by any ASCII letter, number or underscore. Calls may end in `?` or `!`. [Elixir's naming conventions](naming-conventions.html) propose function names to be in `snake_case` format.
-
-For qualified calls, Elixir also allows the function name to be written between double- or single-quotes, allowing calls such as `Math."++add++"(1, 2)`. Operators can be used as qualified calls without a need for quote, such as `Kernel.+(1, 2)`.
-
-Qualified calls are represented as a tuple with three elements in the AST where the first element is the a tuple reprsenting the dot:
-
-```elixir
-quote do
-  :foo.bar(1, 2)
-end
-#=> {{:., [], [:foo, :bar]}, [], [1, 2]}
-```
+All arguments, except the first, are guaranteed to be atoms.
 
 ### Data structures
 
@@ -325,7 +335,7 @@ Elixir allows integers to contain `_` to separate digits and provides convenienc
 #=> 233 (Unicode codepoint)
 ```
 
-Those constructs exist only at the syntax level. All of the representations above are represented as integers in the AST.
+Those constructs exist only at the syntax level. All of the examples above are represented as integers in the AST.
 
 ### Optional parentheses
 
@@ -481,7 +491,7 @@ Inside `do`/`end` blocks you may introduce other keywords, such as `else` used i
 
 You can see them being used in constructs such as `receive`, `try`, and others.
 
-## Conclusion
+## Summary
 
 This document provides a quick reference to Elixir syntax, exploring the simplicity behind its AST and documenting the base constructs with their AST equivalents.
 
@@ -503,4 +513,4 @@ defmodule(Math, [
 ])
 ```
 
-The mapping between code and data (the underlying AST) is what allows Elixir to implement `defmodule`, `def`, `if`, and friends in Elixir itself. Making the constructs available for building the language also accessible to developers who want to extend the language to new domains.
+The mapping between code and data (the underlying AST) is what allows Elixir to implement `defmodule`, `def`, `if`, and others in Elixir itself. Elixir makes the constructs available for building the language itself also accessible to developers who want to extend the language to new domains.
