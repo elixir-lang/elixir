@@ -861,9 +861,22 @@ tokenize_identifier(String, Line, Scope) ->
         {error, _Reason} = Error ->
           Error
       end;
+    {error, {not_nfc, Wrong}} ->
+      Right = unicode:characters_to_nfc_list(Wrong),
+      RightCodepoints = list_to_codepoint_hex(Right),
+      WrongCodepoints = list_to_codepoint_hex(Wrong),
+      Message = io_lib:format("Elixir expects unquoted Unicode atoms and variables to be in NFC form.\n"
+                              "Got: \"~ts\" (codepoints~ts)\n"
+                              "Expected: \"~ts\" (codepoints~ts)\n
+                              Syntax error before: ",
+                              [Wrong, WrongCodepoints, Right, RightCodepoints]),
+      {error, {Line, Message, Wrong}};
     {error, empty} ->
       empty
   end.
+
+list_to_codepoint_hex(List) ->
+  [io_lib:format(" ~4.16.0B", [Codepoint]) || Codepoint <- List].
 
 tokenize_alias(Rest, Line, Column, Atom, Length, Ascii, Special, Scope, Tokens) ->
   if

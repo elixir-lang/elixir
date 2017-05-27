@@ -57,6 +57,13 @@ defmodule Kernel.ErrorsTest do
     if :erlang.system_info(:otp_release) >= '20' do
       message = "invalid character \"ó\" (codepoint U+00F3) in alias (only ascii characters are allowed): Foó"
       assert_compile_fail SyntaxError, message, 'Foó'
+
+      message = """
+      Elixir expects unquoted Unicode atoms and variables to be in NFC form.
+      Got: "foó" (codepoints 0066 006F 006F 0301)
+      Expected: "foó" (codepoints 0066 006F 00F3)
+      """
+      assert_compile_fail SyntaxError, message, :unicode.characters_to_nfd_list("foó")
     end
   end
 

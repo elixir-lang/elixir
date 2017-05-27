@@ -141,8 +141,10 @@ defmodule String.Tokenizer do
         validate(continue(tail, [head], 1, true, []), :alias)
       ascii_start?(head) ->
         validate(continue(tail, [head], 1, true, []), :identifier)
-      unicode_start?(head) or unicode_upper?(head) ->
+      unicode_upper?(head) ->
         validate(continue(tail, [head], 1, false, []), :atom)
+      unicode_start?(head) ->
+        validate(continue(tail, [head], 1, false, []), :identifier)
       true ->
         {:error, :empty}
     end
