@@ -130,6 +130,7 @@ defmodule ExceptionTest do
     assert Exception.format_mfa(Foo, :bar, []) == "Foo.bar()"
     assert Exception.format_mfa(nil, :bar, []) == "nil.bar()"
     assert Exception.format_mfa(:foo, :bar, [1, 2]) == ":foo.bar(1, 2)"
+    assert Exception.format_mfa(Foo, :b@r, 1) == "Foo.\"b@r\"/1"
     assert Exception.format_mfa(Foo, :"bar baz", 1) == "Foo.\"bar baz\"/1"
     assert Exception.format_mfa(Foo, :"-func/2-fun-0-", 4) == "anonymous fn/4 in Foo.func/2"
     assert Exception.format_mfa(Foo, :"-some function/2-fun-0-", 4) == "anonymous fn/4 in Foo.\"some function\"/2"
@@ -137,6 +138,20 @@ defmodule ExceptionTest do
     assert Exception.format_mfa(Foo, :Bar, [1, 2]) == "Foo.\"Bar\"(1, 2)"
     assert Exception.format_mfa(Foo, :%{}, [1, 2]) == "Foo.\"%{}\"(1, 2)"
     assert Exception.format_mfa(Foo, :..., 1) == "Foo.\"...\"/1"
+  end
+
+  if :erlang.system_info(:otp_release) >= '20' do
+    test "format_mfa/3 with unicode" do
+      assert Exception.format_mfa(Foo, :"olá", [1, 2]) == "Foo.olá(1, 2)"
+      assert Exception.format_mfa(Foo, :"Olá", [1, 2]) == "Foo.\"Olá\"(1, 2)"
+      assert Exception.format_mfa(Foo, :"Ólá", [1, 2]) == "Foo.\"Ólá\"(1, 2)"
+
+      hello_world = String.to_atom("こんにちは世界")
+      assert Exception.format_mfa(Foo, hello_world, [1, 2]) == "Foo.こんにちは世界(1, 2)"
+
+      nfd = :unicode.characters_to_nfd_binary("olá")
+      assert Exception.format_mfa(Foo, String.to_atom(nfd), [1, 2]) == "Foo.\"#{nfd}\"(1, 2)"
+    end
   end
 
   test "format_fa/2" do

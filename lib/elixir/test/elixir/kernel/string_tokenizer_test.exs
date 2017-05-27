@@ -5,6 +5,8 @@ if :erlang.system_info(:otp_release) >= '20' do
 defmodule Kernel.StringTokenizerTest do
   use ExUnit.Case, async: true
 
+  @hello_world String.to_atom("こんにちは世界")
+
   test "tokenizes vars" do
     assert {:"_12", _, nil} = Code.string_to_quoted!("_12")
     assert {:"ola", _, nil} = Code.string_to_quoted!("ola")
@@ -12,7 +14,7 @@ defmodule Kernel.StringTokenizerTest do
     assert {:"óLÁ", _, nil} = Code.string_to_quoted!("óLÁ")
     assert {:"ólá?", _, nil} = Code.string_to_quoted!("ólá?")
     assert {:"ólá!", _, nil} = Code.string_to_quoted!("ólá!")
-    assert {:"こんにちは世界", _, nil} = Code.string_to_quoted!("こんにちは世界")
+    assert {@hello_world, _, nil} = Code.string_to_quoted!("こんにちは世界")
     assert {:error, _} = Code.string_to_quoted("v@r")
     assert {:error, _} = Code.string_to_quoted("1var")
   end
@@ -33,7 +35,7 @@ defmodule Kernel.StringTokenizerTest do
     assert :"ÓLÁ!" = Code.string_to_quoted!(":ÓLÁ!")
     assert :"ÓL@!" = Code.string_to_quoted!(":ÓL@!")
     assert :"Ó@@!" = Code.string_to_quoted!(":Ó@@!")
-    assert :"こんにちは世界" = Code.string_to_quoted!(":こんにちは世界")
+    assert @hello_world = Code.string_to_quoted!(":こんにちは世界")
     assert {:error, _} = Code.string_to_quoted(":123")
     assert {:error, _} = Code.string_to_quoted(":@123")
   end
@@ -54,7 +56,7 @@ defmodule Kernel.StringTokenizerTest do
     assert ["ÓLÁ!": 0] = Code.string_to_quoted!("[ÓLÁ!: 0]")
     assert ["ÓL@!": 0] = Code.string_to_quoted!("[ÓL@!: 0]")
     assert ["Ó@@!": 0] = Code.string_to_quoted!("[Ó@@!: 0]")
-    assert ["こんにちは世界": 0] = Code.string_to_quoted!("[こんにちは世界: 0]")
+    assert [{@hello_world, 0}] = Code.string_to_quoted!("[こんにちは世界: 0]")
     assert {:error, _} = Code.string_to_quoted("[123: 0]")
     assert {:error, _} = Code.string_to_quoted("[@123: 0]")
   end

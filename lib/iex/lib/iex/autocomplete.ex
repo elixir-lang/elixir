@@ -228,24 +228,27 @@ defmodule IEx.Autocomplete do
         parts = String.split(mod, "."),
         depth <= length(parts),
         name = Enum.at(parts, depth - 1),
-        valid_alias?("." <> name) do
+        valid_alias_piece?("." <> name) do
       %{kind: :module, type: :elixir, name: name}
     end
     |> Enum.uniq
   end
 
-  defp valid_alias?(<<?., char, rest::binary>>) when char in ?A..?Z,
-    do: valid_alias?(rest)
-  defp valid_alias?(<<char, rest::binary>>)
+  defp valid_alias_piece?(<<?., char, rest::binary>>) when char in ?A..?Z,
+    do: valid_alias_rest?(rest)
+  defp valid_alias_piece?(_),
+    do: false
+
+  defp valid_alias_rest?(<<char, rest::binary>>)
        when char in ?A..?Z
        when char in ?a..?z
        when char in ?0..?9
        when char == ?_,
-       do: valid_alias?(rest)
-  defp valid_alias?(<<>>),
+       do: valid_alias_rest?(rest)
+  defp valid_alias_rest?(<<>>),
     do: true
-  defp valid_alias?(_),
-    do: false
+  defp valid_alias_rest?(rest),
+    do: valid_alias_piece?(rest)
 
   ## Helpers
 
