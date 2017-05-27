@@ -445,8 +445,8 @@ defmodule Mix.Tasks.New do
     use ExUnit.Case
     doctest <%= @mod %>
 
-    test "the truth" do
-      assert 1 + 1 == 2
+    test "greets the world" do
+      assert <%= @mod %>.hello() == :world
     end
   end
   """
