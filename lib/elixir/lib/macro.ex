@@ -120,16 +120,17 @@ defmodule Macro do
   #   * :atom - any other atom (these are usually escaped when inspected, like
   #     :"foo and bar")
   @doc false
-  def classify_identifier(atom_or_string)
-
   unary_ops_as_strings = :lists.map(&:erlang.atom_to_binary(&1, :utf8), unary_ops)
   binary_ops_as_strings = :lists.map(&:erlang.atom_to_binary(&1, :utf8), binary_ops)
 
-  def classify_identifier(atom) when is_atom(atom) do
-    classify_identifier(Atom.to_string(atom))
+  def classify_identifier(binary) when is_binary(binary) do
+    Exception.format_stacktrace
+    classify_identifier(String.to_atom(binary))
   end
 
-  def classify_identifier(string) when is_binary(string) do
+  def classify_identifier(atom) when is_atom(atom) do
+    string = Atom.to_string(atom)
+
     cond do
       valid_alias?(string) ->
         :alias

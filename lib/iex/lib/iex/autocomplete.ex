@@ -174,7 +174,7 @@ defmodule IEx.Autocomplete do
 
   defp match_erlang_modules(hint) do
     for mod <- match_modules(hint, true),
-        usable_as_unquoted_atom?(mod) do
+        usable_as_unquoted_module?(mod) do
       %{kind: :module, name: mod, type: :erlang}
     end
   end
@@ -228,16 +228,31 @@ defmodule IEx.Autocomplete do
         parts = String.split(mod, "."),
         depth <= length(parts),
         name = Enum.at(parts, depth - 1),
-        usable_as_unquoted_atom?("Elixir." <> name) do
+        valid_alias?("." <> name) do
       %{kind: :module, type: :elixir, name: name}
     end
     |> Enum.uniq
   end
 
+  defp valid_alias?(<<?., char, rest::binary>>) when char in ?A..?Z,
+    do: valid_alias?(rest)
+  defp valid_alias?(<<char, rest::binary>>)
+       when char in ?A..?Z
+       when char in ?a..?z
+       when char in ?0..?9
+       when char == ?_,
+       do: valid_alias?(rest)
+  defp valid_alias?(<<>>),
+    do: true
+  defp valid_alias?(_),
+    do: false
+
   ## Helpers
 
-  defp usable_as_unquoted_atom?(name) do
-    Macro.classify_identifier(name) != :other
+  defp usable_as_unquoted_module?(name) do
+    # Convertion to atom is not a problem because
+    # it is only called with existing modules names.
+    Macro.classify_identifier(String.to_atom(name)) != :other
   end
 
   defp match_modules(hint, root) do
