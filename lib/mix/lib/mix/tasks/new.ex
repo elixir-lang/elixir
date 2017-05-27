@@ -446,7 +446,7 @@ defmodule Mix.Tasks.New do
     doctest <%= @mod %>
 
     test "salutates the world" do
-      assert <%= @mod %>.hello == :world
+      assert <%= @mod %>.hello() == :world
     end
   end
   """

@@ -18,8 +18,10 @@ defmodule Mix.Tasks.NewTest do
       assert_file "hello_world/lib/hello_world.ex",  ~r/defmodule HelloWorld do/
 
       assert_file "hello_world/test/test_helper.exs", ~r/ExUnit.start()/
-      assert_file "hello_world/test/hello_world_test.exs", ~r/defmodule HelloWorldTest do/
-      assert_file "hello_world/test/hello_world_test.exs", ~r/assert HelloWorld.hello == :world/
+      assert_file "hello_world/test/hello_world_test.exs", fn(file) ->
+        assert file =~ ~r/defmodule HelloWorldTest do/
+        assert file =~ "assert HelloWorld.hello() == :world"
+      end
 
       assert_received {:mix_shell, :info, ["* creating mix.exs"]}
       assert_received {:mix_shell, :info, ["* creating lib/hello_world.ex"]}
