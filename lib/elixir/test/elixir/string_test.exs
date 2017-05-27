@@ -365,6 +365,8 @@ defmodule StringTest do
 
     assert String.replace("a,b,c", ~r/,(.)/, ",\\1\\1") == "a,bb,cc"
     assert String.replace("a,b,c", ~r/,(.)/, ",\\1\\1", global: false) == "a,bb,c"
+    assert String.replace("a.b.c", ~r/\./, %{"." => "-"}) == "a-b-c"
+    assert String.replace("abba", ~r/a|b/, %{"a" => "1", "b" => "2"}) == "1221"
   end
 
   test "duplicate/2" do

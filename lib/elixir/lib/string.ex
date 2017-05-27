@@ -1113,13 +1113,29 @@ defmodule String do
 
   """
   @spec replace(t, pattern | Regex.t, t, Keyword.t) :: t
-  def replace(subject, pattern, replacement, options \\ []) when is_binary(replacement) do
+  def replace(subject, pattern, replacement, options \\ []) do
+    _replace(subject, pattern, replacement, options)
+  end
+
+  defp _replace(subject, pattern, replacement, options) when is_map(replacement) do
+    matched_results = Regex.scan(pattern, subject)
+    update(matched_results, subject, replacement, options)
+  end
+
+  defp _replace(subject, pattern, replacement, options) when is_binary(replacement) do
     if Regex.regex?(pattern) do
       Regex.replace(pattern, subject, replacement, global: options[:global])
     else
       opts = translate_replace_options(options)
       :binary.replace(subject, pattern, replacement, opts)
     end
+  end
+
+  defp update([], subject, _, _), do: subject
+  defp update([[matched] | rest], subject, replacement, options) do
+    new_value = Map.fetch!(replacement, matched)
+    updated_string = replace(subject, matched, new_value, options)
+    update(rest, updated_string, replacement, options)
   end
 
   defp translate_replace_options(options) do
