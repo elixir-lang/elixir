@@ -1,4 +1,4 @@
-defmodule Foo do
+defmodule FooStruct do
   defstruct name: ""
-  def bar?(%Bar{}), do: true
+  def bar?(%BarStruct{}), do: true
 end

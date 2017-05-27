@@ -1,3 +1,3 @@
-defmodule Bar do
-  defstruct name: "", foo: %Foo{}
+defmodule BarStruct do
+  defstruct name: "", foo: %FooStruct{}
 end

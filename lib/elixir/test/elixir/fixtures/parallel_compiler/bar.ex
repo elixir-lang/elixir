@@ -1,5 +1,5 @@
-defmodule Bar do
+defmodule BarParallel do
 end
 
-require Foo
-IO.puts Foo.message
+require FooParallel
+IO.puts FooParallel.message
