@@ -1,3 +1,3 @@
-defmodule Foo do
-  Bar.__info__(:macros)
+defmodule FooDeadlock do
+  BarDeadlock.__info__(:macros)
 end
