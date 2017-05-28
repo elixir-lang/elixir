@@ -70,11 +70,11 @@ defmodule Logger.App do
   end
 
   defp delete_handlers(handlers) do
-    deleted? = fn({handler, delete?}) ->
-        delete? && :error_logger.delete_report_handler(handler) != {:error, :module_not_found}
-      end
-    [] = Enum.filter_map(handlers, deleted?, fn({handler, _}) -> handler end)
-        |> Logger.Config.deleted_handlers()
+    to_delete =
+      for {handler, delete?} <- handlers,
+          delete? && :error_logger.delete_report_handler(handler) != {:error, :module_not_found},
+          do: handler
+    [] = Logger.Config.deleted_handlers(to_delete)
     :ok
   end
 

@@ -812,25 +812,16 @@ defmodule Enum do
     reduce(enumerable, [], R.filter(fun)) |> :lists.reverse
   end
 
-  @doc """
-  Filters the enumerable and maps its elements in one pass.
-
-  ## Examples
-
-      iex> Enum.filter_map([1, 2, 3], fn(x) -> rem(x, 2) == 0 end, &(&1 * 2))
-      [4]
-
-  """
-  @spec filter_map(t, (element -> as_boolean(term)),
-                   (element -> element)) :: list
-
+  @doc false
+  # TODO: Remove on 2.0
+  # (hard-deprecated in elixir_dispatch)
   def filter_map(enumerable, filter, mapper) when is_list(enumerable) do
     for item <- enumerable, filter.(item), do: mapper.(item)
   end
 
   def filter_map(enumerable, filter, mapper) do
     enumerable
-    |> reduce(, [], R.filter_map(filter, mapper))
+    |> reduce([], R.filter_map(filter, mapper))
     |> :lists.reverse
   end
 

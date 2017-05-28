@@ -286,16 +286,6 @@ defmodule StreamTest do
     assert Stream.filter(nats, &(rem(&1, 2) == 0)) |> Enum.take(5) == [2, 4, 6, 8, 10]
   end
 
-  test "filter_map/3" do
-    stream = Stream.filter_map([1, 2, 3], fn(x) -> rem(x, 2) == 0 end, &(&1 * 2))
-    assert lazy?(stream)
-    assert Enum.to_list(stream) == [4]
-
-    nats = Stream.iterate(1, &(&1 + 1))
-    assert Stream.filter_map(nats, &(rem(&1, 2) == 0), &(&1 * 2))
-           |> Enum.take(5) == [4, 8, 12, 16, 20]
-  end
-
   test "flat_map/2" do
     stream = Stream.flat_map([1, 2, 3], &[&1, &1 * 2])
     assert lazy?(stream)

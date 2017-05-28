@@ -227,14 +227,18 @@ defmodule IEx.Introspection do
   defp print_callback_docs(mod, filter, printer) do
     case get_callback_docs(mod) do
       {callbacks, docs} ->
-        printed =
-          Enum.filter_map docs, filter, fn
-            {{fun, arity}, _, :macrocallback, doc} ->
-              print_callback_doc(fun, :macrocallback, doc, {:"MACRO-#{fun}", arity + 1}, callbacks, printer)
-            {{fun, arity}, _, kind, doc} ->
-              print_callback_doc(fun, kind, doc, {fun, arity}, callbacks, printer)
-          end
-        if Enum.any?(printed), do: :ok, else: :not_found
+        docs
+        |> Enum.filter(filter)
+        |> Enum.map(fn
+          {{fun, arity}, _, :macrocallback, doc} ->
+            print_callback_doc(fun, :macrocallback, doc, {:"MACRO-#{fun}", arity + 1}, callbacks, printer)
+          {{fun, arity}, _, kind, doc} ->
+            print_callback_doc(fun, kind, doc, {fun, arity}, callbacks, printer)
+        end)
+        |> case do
+          [] -> :not_found
+          _ -> :ok
+        end
 
       other -> other
     end

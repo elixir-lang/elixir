@@ -202,11 +202,6 @@ defmodule EnumTest do
     assert Enum.filter([1, 2, 3], fn _ -> true end) == [1, 2, 3]
   end
 
-  test "filter_map/3" do
-    assert Enum.filter_map([1, 2, 3], fn(x) -> rem(x, 2) == 0 end, &(&1 * 2)) == [4]
-    assert Enum.filter_map([2, 4, 6], fn(x) -> rem(x, 2) == 0 end, &(&1 * 2)) == [4, 8, 12]
-  end
-
   test "find/3" do
     assert Enum.find([2, 4, 6], fn(x) -> rem(x, 2) == 1 end) == nil
     assert Enum.find([2, 4, 6], 0, fn(x) -> rem(x, 2) == 1 end) == 0
@@ -966,11 +961,6 @@ defmodule EnumTest.Range do
     assert Enum.filter(1..3, &match?(1, &1)) == [1]
     assert Enum.filter(1..3, &match?(x when x < 3, &1)) == [1, 2]
     assert Enum.filter(1..3, fn _ -> true end) == [1, 2, 3]
-  end
-
-  test "filter_map/3" do
-    assert Enum.filter_map(1..3, fn(x) -> rem(x, 2) == 0 end, &(&1 * 2)) == [4]
-    assert Enum.filter_map(2..6, fn(x) -> rem(x, 2) == 0 end, &(&1 * 2)) == [4, 8, 12]
   end
 
   test "find/3" do
