@@ -677,7 +677,7 @@ defmodule GenServer do
         :gen.start(:gen_server, link, tuple, module, args, opts)
       {{:via, via_module, _term} = tuple, opts} when is_atom(via_module) ->
         :gen.start(:gen_server, link, tuple, module, args, opts)
-      other ->
+      {other, _} ->
         raise ArgumentError, """
         expected :name option to be one of:
 
