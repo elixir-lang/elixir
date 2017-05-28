@@ -1566,6 +1566,32 @@ defmodule FileTest do
     end
   end
 
+  test "copy with raw io_device" do
+    {:ok, src} = File.open(fixture_path("file.txt"), [:raw])
+    dest = tmp_path("tmp_test.txt")
+    try do
+      refute File.exists?(dest)
+      assert File.copy(src, dest) == {:ok, 4}
+      assert File.read(dest) == {:ok, "FOO\n"}
+    after
+      File.close(src)
+      File.rm(dest)
+    end
+  end
+
+  test "copy with ram io_device" do
+    {:ok, src} = File.open("FOO\n", [:ram])
+    dest = tmp_path("tmp_test.txt")
+    try do
+      refute File.exists?(dest)
+      assert File.copy(src, dest) == {:ok, 4}
+      assert File.read(dest) == {:ok, "FOO\n"}
+    after
+      File.close(src)
+      File.rm(dest)
+    end
+  end
+
   test "copy with bytes count" do
     src  = fixture_path("file.txt")
     dest = tmp_path("tmp_test.txt")

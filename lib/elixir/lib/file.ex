@@ -1473,8 +1473,10 @@ defmodule File do
   defp normalize_modes([], true), do: [:binary]
   defp normalize_modes([], false), do: []
 
-  defp maybe_to_string(path) when is_pid(path),
+  defp maybe_to_string(path) when is_list(path),
+    do: IO.chardata_to_string(path)
+  defp maybe_to_string(path) when is_binary(path),
     do: path
   defp maybe_to_string(path),
-    do: IO.chardata_to_string(path)
+    do: path
 end
