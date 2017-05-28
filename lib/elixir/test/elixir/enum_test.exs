@@ -80,12 +80,12 @@ defmodule EnumTest do
       acc -> {:cont, Enum.reverse(acc), []}
     end
 
-    assert [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] |> Enum.chunk_by([], chunk_fun, after_fun) ==
-      [[1, 2], [3, 4], [5, 6], [7, 8], [9, 10]]
-    assert 0..10 |> Enum.chunk_by([], chunk_fun, after_fun) ==
-      [[0], [1, 2], [3, 4], [5, 6], [7, 8], [9, 10]]
-    assert 0..11 |> Enum.chunk_by([], chunk_fun, after_fun) ==
-      [[0], [1, 2], [3, 4], [5, 6], [7, 8], [9, 10], [11]]
+    assert Enum.chunk_by([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], [], chunk_fun, after_fun) ==
+           [[1, 2], [3, 4], [5, 6], [7, 8], [9, 10]]
+    assert Enum.chunk_by(0..10, [], chunk_fun, after_fun) ==
+           [[0], [1, 2], [3, 4], [5, 6], [7, 8], [9, 10]]
+    assert Enum.chunk_by(0..11, [], chunk_fun, after_fun) ==
+           [[0], [1, 2], [3, 4], [5, 6], [7, 8], [9, 10], [11]]
   end
 
   test "concat/1" do

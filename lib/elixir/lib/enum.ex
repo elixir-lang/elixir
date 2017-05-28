@@ -178,6 +178,7 @@ defmodule Enum do
   @compile :inline_list_funcs
 
   @type t :: Enumerable.t
+  @type acc :: any
   @type element :: any
   @type index :: integer
   @type default :: any
@@ -329,15 +330,13 @@ defmodule Enum do
   chunks do not overlap.
 
   If the final chunk does not have `count` elements to fill the chunk,
-  elements are taken as necessary from `leftover` if it was passed.
+  the final chunk is dropped unless `leftover` is given.
 
-  If `leftover` is passed and does not have enough elements to fill the
-  chunk, then a partial chunk is returned with less than `count`
-  elements. If `leftover` is not passed at all or is `nil`, then the
-  partial chunk is discarded from the result.
-
-  If `count` is greater than the number of elements in the enumerable
-  and `leftover` is not passed, empty list will be returned.
+  If `leftover` is given, elements are taken from `leftover` to fill in
+  the chunk. If `leftover` is passed and does not have enough elements
+  to fill the chunk, then a partial chunk is returned with less than
+  `count` elements. Therefore, an empty list can be given to `leftover`
+  when one simply desires for the last chunk to not be discarded.
 
   ## Examples
 
@@ -376,8 +375,6 @@ defmodule Enum do
     end
   end
 
-  @type acc     :: any
-
   @doc """
   Splits enumerable on every element for which `fun` returns a new
   value.
@@ -386,19 +383,30 @@ defmodule Enum do
 
   ## Examples
 
-      iex> Enum.chunk_by([1, 2, 2, 3, 4, 4, 6, 7, 7], &(rem(&1, 2) == 1))
-      [[1], [2, 2], [3], [4, 4, 6], [7, 7]]
+      iex> chunk_fun = fn i, acc ->
+      ...>   if rem(i, 2) == 0 do
+      ...>     {:cont, Enum.reverse([i | acc]), []}
+      ...>   else
+      ...>     {:cont, [i | acc]}
+      ...>   end
+      ...> end
+      iex> after_fun = fn
+      ...>   [] -> {:cont, []}
+      ...>   acc -> {:cont, Enum.reverse(acc), []}
+      ...> end
+      iex> Enum.chunk_by(1..10, [], chunk_fun, after_fun)
+      [[1, 2], [3, 4], [5, 6], [7, 8], [9, 10]]
 
   """
   @spec chunk_by(t, acc,
-                 (element, acc -> {:cont, element, acc} | {:cont, acc}),
-                 (acc -> {:cont, element, acc} | {:cont, acc})) :: t
+                 (element, acc -> {:cont, chunk, acc} | {:cont, acc}),
+                 (acc -> {:cont, chunk, acc} | {:cont, acc})) :: Enumerable.t when chunk: any
   def chunk_by(enum, acc, chunk_fun, after_fun) do
     {res, acc} = reduce(enum, {[], acc}, R.chunk_by(chunk_fun))
 
     case after_fun.(acc) do
-      {:cont, acc} -> :lists.reverse(res)
-      {:cont, elem, acc} -> :lists.reverse([elem | res])
+      {:cont, _acc} -> :lists.reverse(res)
+      {:cont, elem, _acc} -> :lists.reverse([elem | res])
     end
   end
 
@@ -416,14 +424,18 @@ defmodule Enum do
   """
   @spec chunk_by(t, (element -> any)) :: [list]
   def chunk_by(enumerable, fun) do
-    {acc, res} = reduce(enumerable, {[], nil}, R.chunk_by(fun))
-
-    case res do
-      {buffer, _} ->
-        :lists.reverse([:lists.reverse(buffer) | acc])
-      nil ->
-        []
-    end
+    chunk_by(enumerable, nil, fn
+      entry, nil ->
+        {:cont, {[entry], fun.(entry)}}
+      entry, {acc, value} ->
+        case fun.(entry) do
+          ^value -> {:cont, {[entry | acc], value}}
+          new_value -> {:cont, :lists.reverse(acc), {[entry], new_value}}
+        end
+    end, fn
+      nil -> {:cont, :done}
+      {acc, _value} -> {:cont, :lists.reverse(acc), :done}
+    end)
   end
 
   @doc """

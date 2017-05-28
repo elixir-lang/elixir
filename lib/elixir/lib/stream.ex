@@ -131,14 +131,17 @@ defmodule Stream do
   Streams the enumerable in chunks, containing `n` items each, where
   each new chunk starts `step` elements into the enumerable.
 
-  `step` is optional and, if not passed, defaults to `n`, i.e.
-  chunks do not overlap. If the final chunk does not have `n`
-  elements to fill the chunk, elements are taken as necessary
-  from `leftover` if it was passed. If `leftover` is passed and
-  does not have enough elements to fill the chunk, then the chunk is
-  returned anyway with less than `n` elements. If `leftover` is not
-  passed at all or is `nil`, then the partial chunk is discarded
-  from the result.
+  `step` is optional and, if not passed, defaults to `count`, i.e.
+  chunks do not overlap.
+
+  If the final chunk does not have `count` elements to fill the chunk,
+  the final chunk is dropped unless `leftover` is given.
+
+  If `leftover` is given, elements are taken from `leftover` to fill in
+  the chunk. If `leftover` is passed and does not have enough elements
+  to fill the chunk, then a partial chunk is returned with less than
+  `count` elements. Therefore, an empty list can be given to `leftover`
+  when one simply desires for the last chunk to not be discarded.
 
   ## Examples
 
@@ -236,8 +239,8 @@ defmodule Stream do
 
   """
   @spec chunk_by(Enumerable.t, acc,
-                 (element, acc -> {:cont, element, acc} | {:cont, acc}),
-                 (acc -> {:cont, element, acc} | {:cont, acc})) :: Enumerable.t
+                 (element, acc -> {:cont, chunk, acc} | {:cont, acc}),
+                 (acc -> {:cont, chunk, acc} | {:cont, acc})) :: Enumerable.t when chunk: any
   def chunk_by(enum, acc, chunk_fun, after_fun) do
     lazy enum, acc,
          fn(f1) -> R.chunk_by(chunk_fun, f1) end,
