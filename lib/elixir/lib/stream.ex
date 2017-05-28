@@ -399,8 +399,8 @@ defmodule Stream do
   end
 
   @doc """
-  Creates a stream that filters and then maps elements according
-  to given functions.
+  Creates a stream that filters and then maps elements on
+  enumeration according to the given functions.
 
   Exists for symmetry with `Enum.filter_map/3`.
 
