@@ -398,20 +398,9 @@ defmodule Stream do
     lazy enum, fn(f1) -> R.filter(fun, f1) end
   end
 
-  @doc """
-  Creates a stream that filters and then maps elements on
-  enumeration according to the given functions.
-
-  Exists for symmetry with `Enum.filter_map/3`.
-
-  ## Examples
-
-      iex> stream = Stream.filter_map(1..6, fn(x) -> rem(x, 2) == 0 end, &(&1 * 2))
-      iex> Enum.to_list(stream)
-      [4, 8, 12]
-
-  """
-  @spec filter_map(Enumerable.t, (element -> as_boolean(term)), (element -> any)) :: Enumerable.t
+  @doc false
+  # TODO: Remove on 2.0
+  # (hard-deprecated in elixir_dispatch)
   def filter_map(enum, filter, mapper) do
     lazy enum, fn(f1) -> R.filter_map(filter, mapper, f1) end
   end

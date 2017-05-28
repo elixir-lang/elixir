@@ -365,6 +365,8 @@ deprecation('Elixir.Set', _, _) ->
 %% Single functions
 deprecation('Elixir.Atom', to_char_list, 1) ->
   "use Atom.to_charlist/1";
+deprecation('Elixir.Enum', filter_map, 3) ->
+  "use Enum.filter/2 + Enum.map/2 or for comprehensions";
 deprecation('Elixir.Enum', uniq, 2) ->
   "use Enum.uniq_by/2";
 deprecation('Elixir.Float', to_char_list, 1) ->
@@ -385,6 +387,8 @@ deprecation('Elixir.List.Chars', to_char_list, 1) ->
   "use List.Chars.to_charlist/1";
 deprecation('Elixir.Map', size, 1) ->
   "use Kernel.map_size/1";
+deprecation('Elixir.Stream', filter_map, 3) ->
+  "use Stream.filter/2 + Stream.map/2";
 deprecation('Elixir.Stream', uniq, 2) ->
   "use Stream.uniq_by/2";
 deprecation('Elixir.String', ljust, 2) ->

@@ -448,25 +448,17 @@ defmodule Kernel.CLI do
   end
 
   defp filter_multiple_patterns(patterns) do
-    matched_files = Enum.map patterns, fn(pattern) ->
-      case filter_patterns(pattern) do
-        []    -> {:missing, pattern}
-        files -> {:ok, files}
+    {files, missing} =
+      Enum.reduce patterns, {[], []}, fn pattern, {files, missing} ->
+        case filter_patterns(pattern) do
+          [] -> {files, [pattern | missing]}
+          match -> {match ++ files, missing}
+        end
       end
-    end
 
-    files = Enum.filter_map matched_files,
-       fn(match) -> elem(match, 0) == :ok end,
-       &elem(&1, 1)
-
-    missing_patterns = Enum.filter_map matched_files,
-       fn(match) -> elem(match, 0) == :missing end,
-       &elem(&1, 1)
-
-    if missing_patterns == [] do
-      {:ok, :lists.usort(Enum.concat(files))}
-    else
-      {:missing, :lists.usort(missing_patterns)}
+    case missing do
+      [] -> {:ok, :lists.usort(files)}
+      _  -> {:missing, :lists.usort(missing)}
     end
   end
 
