@@ -220,6 +220,18 @@ defmodule MapTest do
     end
   end
 
+  test "defstruct raises on invalid enforce_keys" do
+    message = "keys given to @enforce_keys must be atoms, got: \"foo\""
+    assert_raise ArgumentError, message, fn ->
+      Code.eval_string("""
+        defmodule TestMod do
+          @enforce_keys "foo"
+          defstruct [:foo]
+        end
+        """)
+    end
+  end
+
   defmodule LocalUser do
     defmodule NestedUser do
       defstruct []
