@@ -151,15 +151,12 @@ defmodule Kernel.ParallelCompiler do
     # are waiting on the same module required by the faulty code. However,
     # since we need to pick something to be first, the one with fewer edges
     # sounds like a sane choice.
-    entries =
-      entries
-      |> Enum.group_by(&elem(&1, 0), &elem(&1, 1))
-      |> Enum.sort_by(&length(elem(&1, 1)))
-      |> Enum.find_value([], &elem(&1, 1))
-
-    case entries do
+    entries
+    |> Enum.group_by(&elem(&1, 0), &elem(&1, 1))
+    |> Enum.sort_by(&length(elem(&1, 1)))
+    |> case do
+      [{_on, refs} | _] -> spawn_compilers(%{state | entries: refs})
       [] -> handle_deadlock(waiting, queued)
-      _  -> spawn_compilers(%{state | entries: entries})
     end
   end
 
