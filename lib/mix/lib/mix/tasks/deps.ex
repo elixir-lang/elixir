@@ -85,7 +85,12 @@ defmodule Mix.Tasks.Deps do
     * `:manager` - Mix can also compile Rebar, Rebar3 and makefile projects
       and can fetch sub dependencies of Rebar and Rebar3 projects. Mix will
       try to infer the type of project but it can be overridden with this
-      option by setting it to `:mix`, `:rebar`, `:rebar3` or `:make`
+      option by setting it to `:mix`, `:rebar3`, `:rebar` or `:make`. In case
+      there are conflicting definitions, the first manager in the list above
+      will be picked up. For example, if a dependency is found with `:rebar3`
+      and `:rebar` managers in different part of the trees, `:rebar3` will
+      be automatically picked. You can find the manager by running `mix deps`
+      and override it by setting the `:override` option in a top-level project.
 
     * `:runtime` - whether the dependency is part of runtime applications.
       Defaults to `true` which automatically adds the application to the list
@@ -112,7 +117,7 @@ defmodule Mix.Tasks.Deps do
 
   `mix deps` task lists all dependencies in the following format:
 
-      APP VERSION (SCM)
+      APP VERSION (SCM) (MANAGER)
       [locked at REF]
       STATUS
 
