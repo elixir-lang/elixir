@@ -28,11 +28,14 @@ defmodule Mix.Tasks.Compile.Xref do
     {opts, _, _} =
       OptionParser.parse(args, switches: [force: :boolean, warnings_as_errors: :boolean])
 
-    if needs_xref?(opts) and should_exit?(run_xref(), opts) do
-      exit({:shutdown, 1})
+    if needs_xref?(opts) do
+      if should_exit?(run_xref(), opts) do
+        exit({:shutdown, 1})
+      end
+      write_manifest()
     end
 
-    write_manifest()
+    :noop
   end
 
   defp run_xref do
@@ -62,7 +65,6 @@ defmodule Mix.Tasks.Compile.Xref do
 
   defp write_manifest do
     File.touch(manifest())
-    :noop
   end
 
   @doc """
