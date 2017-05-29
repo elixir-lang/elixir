@@ -125,6 +125,19 @@ defmodule Stream.Reducers do
     end
   end
 
+  defmacro map_filter(mapper, filter, fun \\ nil) do
+    quote do
+      fn(entry, acc) ->
+        value = unquote(mapper).(entry)
+        if unquote(filter).(value) do
+          next(unquote(fun), value, acc)
+        else
+          skip(acc)
+        end
+      end
+    end
+  end
+
   defmacro reject(callback, fun \\ nil) do
     quote do
       fn(entry, acc) ->
