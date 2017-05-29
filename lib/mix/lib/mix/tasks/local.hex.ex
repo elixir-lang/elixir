@@ -17,8 +17,8 @@ defmodule Mix.Tasks.Local.Hex do
       intended for automation in build systems like `make`
 
     * `--if-missing` - performs installation only if Hex is not installed yet;
-      intended for automation when sctips can be run multiple times to avoid
-      reinstalling Hex.
+      intended to avoid repeatedly reinstalling Hex in automation when a script
+      may be run multiple times
 
   If both options are set, `--force` takes precedence.
 
