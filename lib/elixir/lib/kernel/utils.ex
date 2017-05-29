@@ -84,8 +84,15 @@ defmodule Kernel.Utils do
         raise ArgumentError, "struct field names must be atoms, got: #{inspect other}"
     end, fields)
 
+    enforce_keys = List.wrap(Module.get_attribute(module, :enforce_keys))
+
+    :lists.foreach(fn
+      key when is_atom(key) -> :ok
+      key -> raise ArgumentError, "keys given to @enforce_keys must be atoms, got: #{inspect key}"
+    end, enforce_keys)
+
     {:maps.put(:__struct__, module, :maps.from_list(fields)),
-     List.wrap(Module.get_attribute(module, :enforce_keys)),
+     enforce_keys,
      Module.get_attribute(module, :derive)}
   end
 
