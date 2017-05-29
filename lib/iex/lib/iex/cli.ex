@@ -24,14 +24,14 @@
 #    are processed on the local node and not the remote one. For such,
 #    one can replace the last line above by:
 #
-#      $ iex --sname bar --remsh foo@localhost -e IO.inspect node
+#      $ iex --sname bar --remsh foo@localhost -e 'IO.inspect node()'
 #
 #    And verify that the local node name is printed.
 #
 # 4. Finally, in some other circumstances, printing messages may become
 #    borked. This can be verified with:
 #
-#      $ iex -e ":error_logger.info_msg("foo~nbar", [])"
+#      $ iex -e ':error_logger.info_msg("foo~nbar", [])'
 #
 # By the time those instructions have been written, all tests above pass.
 defmodule IEx.CLI do
