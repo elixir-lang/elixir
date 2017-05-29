@@ -41,7 +41,9 @@ start(_Type, _Args) ->
       error   -> [binary]
     end,
 
-  case string:to_integer(erlang:system_info(otp_release)) of
+  OTPRelease = string:to_integer(erlang:system_info(otp_release)),
+
+  case OTPRelease of
     {Num, _} when Num >= 18 ->
       ok;
     _ ->
@@ -83,8 +85,9 @@ start(_Type, _Args) ->
       ok
   end,
 
+  %% TODO: Remove OTPRelease check once we support OTP 20+.
   Tokenizer = case code:ensure_loaded('Elixir.String.Tokenizer') of
-    {module, Mod} -> Mod;
+    {module, Mod} when OTPRelease >= 20 -> Mod;
     {error, _} -> elixir_tokenizer
   end,
 

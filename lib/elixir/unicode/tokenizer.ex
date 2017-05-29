@@ -1,6 +1,5 @@
 defmodule String.Tokenizer do
   @moduledoc false
-  @on_load :check_otp_release
 
   data_path = Path.join(__DIR__, "UnicodeData.txt")
 
@@ -182,14 +181,6 @@ defmodule String.Tokenizer do
       {kind, acc, rest, length, ascii_letters?, special}
     else
       {:error, {:not_nfc, acc}}
-    end
-  end
-
-  # TODO: Remove this check once we depend on OTP 20+
-  defp check_otp_release do
-    case List.to_integer(:erlang.system_info(:otp_release)) >= 20 do
-      true -> :ok
-      false -> :error
     end
   end
 end
