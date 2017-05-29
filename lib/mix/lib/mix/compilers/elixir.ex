@@ -1,11 +1,11 @@
 defmodule Mix.Compilers.Elixir do
   @moduledoc false
 
-  @manifest_vsn :v5
+  @manifest_vsn :v6
 
   import Record
 
-  defrecord :module, [:module, :kind, :source, :beam, :binary]
+  defrecord :module, [:module, :kind, :sources, :beam, :binary]
   defrecord :source, [
     source: nil,
     size: 0,
@@ -204,15 +204,20 @@ defmodule Mix.Compilers.Elixir do
     external = get_external_resources(module, cwd)
 
     Agent.cast pid, fn {modules, sources} ->
-      external = case List.keyfind(sources, source, source(:source)) do
+      source_external = case List.keyfind(sources, source, source(:source)) do
         source(external: old_external) -> external ++ old_external
         nil -> external
+      end
+
+      module_sources = case List.keyfind(modules, module, module(:module)) do
+        module(sources: old_sources) -> [source | List.delete(old_sources, source)]
+        nil -> [source]
       end
 
       new_module = module(
         module: module,
         kind: kind,
-        source: source,
+        sources: module_sources,
         beam: nil, # They are calculated when writing the manifest
         binary: binary
       )
@@ -224,7 +229,7 @@ defmodule Mix.Compilers.Elixir do
         runtime_references: runtime_references,
         compile_dispatches: compile_dispatches,
         runtime_dispatches: runtime_dispatches,
-        external: external
+        external: source_external
       )
 
       modules = List.keystore(modules, module, module(:module), new_module)
@@ -296,17 +301,24 @@ defmodule Mix.Compilers.Elixir do
     end
   end
 
-  defp remove_stale_entry(module(module: module, beam: beam, source: source) = entry,
-                          {rest, stale, removed}, sources) do
-    source(compile_references: compile_references, runtime_references: runtime_references) =
-      List.keyfind(sources, source, source(:source))
+  defp remove_stale_entry(module(module: module, beam: beam, sources: sources) = entry,
+                          {rest, stale, removed}, sources_records) do
+    {compile_references, runtime_references} =
+      Enum.reduce(sources, {[], []}, fn source, {compile_acc, runtime_acc} ->
+        source(compile_references: compile_refs, runtime_references: runtime_refs) =
+          List.keyfind(sources_records, source, source(:source))
+        {compile_refs ++ compile_acc, runtime_refs ++ runtime_acc}
+      end)
 
     cond do
       # If I changed in disk or have a compile time reference to
       # something stale, I need to be recompiled.
-      Map.has_key?(removed, source) or Enum.any?(compile_references, &Map.has_key?(stale, &1)) ->
+      Enum.any?(sources, &Map.has_key?(removed, &1)) or
+      Enum.any?(compile_references, &Map.has_key?(stale, &1)) ->
         remove_and_purge(beam, module)
-        {rest, Map.put(stale, module, true), Map.put(removed, source, true)}
+        {rest,
+         Map.put(stale, module, true),
+         Enum.reduce(sources, removed, &Map.put(&2, &1, true))}
 
       # If I have a runtime references to something stale,
       # I am stale too.

@@ -237,7 +237,8 @@ defmodule Mix.Compilers.Test do
   defp dependant_modules(module, modules, sources) do
     for CE.source(source: source, runtime_references: r, compile_references: c) <- sources,
         module in r or module in c,
-        CE.module(source: ^source, module: dependant_module) <- modules,
+        CE.module(sources: sources, module: dependant_module) <- modules,
+        source in sources,
         do: dependant_module
   end
 
