@@ -296,8 +296,10 @@ defmodule Supervisor do
   """
   @spec start_link([Supervisor.Spec.spec], options) :: on_start
   def start_link(children, options) when is_list(children) do
-    spec = Supervisor.Spec.supervise(children, options)
-    start_link(Supervisor.Default, spec, options)
+    sup_keys =  [:strategy, :max_seconds, :max_restarts]
+    {sup_opts, start_opts} = Keyword.split(options, sup_keys)
+    spec = Supervisor.Spec.supervise(children, sup_opts)
+    start_link(Supervisor.Default, spec, start_opts)
   end
 
   @doc """
@@ -318,7 +320,8 @@ defmodule Supervisor do
   name, the supported values are described in the "Name registration"
   section in the `GenServer` module docs.
   """
-  @spec start_link(module, term, options) :: on_start
+  @spec start_link(module, term) :: on_start
+  @spec start_link(module, term, GenServer.options) :: on_start
   def start_link(module, arg, options \\ []) when is_list(options) do
     case Keyword.get(options, :name) do
       nil ->
