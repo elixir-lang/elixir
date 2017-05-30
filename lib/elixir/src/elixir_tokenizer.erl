@@ -865,10 +865,10 @@ tokenize_identifier(String, Line, Scope) ->
       Right = unicode:characters_to_nfc_list(Wrong),
       RightCodepoints = list_to_codepoint_hex(Right),
       WrongCodepoints = list_to_codepoint_hex(Wrong),
-      Message = io_lib:format("Elixir expects unquoted Unicode atoms and variables to be in NFC form.\n"
-                              "Got: \"~ts\" (codepoints~ts)\n"
-                              "Expected: \"~ts\" (codepoints~ts)\n
-                              Syntax error before: ",
+      Message = io_lib:format("Elixir expects unquoted Unicode atoms and variables to be in NFC form.\n\n"
+                              "Got:\n\n    \"~ts\" (codepoints~ts)\n\n"
+                              "Expected:\n\n    \"~ts\" (codepoints~ts)\n\n"
+                              "Syntax error before: ",
                               [Wrong, WrongCodepoints, Right, RightCodepoints]),
       {error, {Line, Message, Wrong}};
     {error, empty} ->
