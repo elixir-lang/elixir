@@ -285,24 +285,24 @@ defmodule Mix.Compilers.Elixir do
   end
 
   defp update_stale_entries(modules, sources, changed, stale) do
-    removed = Enum.into(changed, %{}, &{&1, true})
-    remove_stale_entries(modules, sources, stale, removed)
+    changed = Enum.into(changed, %{}, &{&1, true})
+    remove_stale_entries(modules, sources, stale, changed)
   end
 
-  defp remove_stale_entries(modules, sources, old_stale, old_removed) do
-    {rest, new_stale, new_removed} =
-      Enum.reduce modules, {[], old_stale, old_removed}, &remove_stale_entry(&1, &2, sources)
+  defp remove_stale_entries(modules, sources, old_stale, old_changed) do
+    {rest, new_stale, new_changed} =
+      Enum.reduce modules, {[], old_stale, old_changed}, &remove_stale_entry(&1, &2, sources)
 
     if map_size(new_stale) > map_size(old_stale) or
-       map_size(new_removed) > map_size(old_removed) do
-      remove_stale_entries(rest, sources, new_stale, new_removed)
+       map_size(new_changed) > map_size(old_changed) do
+      remove_stale_entries(rest, sources, new_stale, new_changed)
     else
-      {rest, Map.keys(new_removed)}
+      {rest, Map.keys(new_changed)}
     end
   end
 
   defp remove_stale_entry(module(module: module, beam: beam, sources: sources) = entry,
-                          {rest, stale, removed}, sources_records) do
+                          {rest, stale, changed}, sources_records) do
     {compile_references, runtime_references} =
       Enum.reduce(sources, {[], []}, fn source, {compile_acc, runtime_acc} ->
         source(compile_references: compile_refs, runtime_references: runtime_refs) =
@@ -313,22 +313,25 @@ defmodule Mix.Compilers.Elixir do
     cond do
       # If I changed in disk or have a compile time reference to
       # something stale, I need to be recompiled.
-      Enum.any?(sources, &Map.has_key?(removed, &1)) or
-      Enum.any?(compile_references, &Map.has_key?(stale, &1)) ->
+      has_any_key?(changed, sources) or has_any_key?(stale, compile_references) ->
         remove_and_purge(beam, module)
         {rest,
          Map.put(stale, module, true),
-         Enum.reduce(sources, removed, &Map.put(&2, &1, true))}
+         Enum.reduce(sources, changed, &Map.put(&2, &1, true))}
 
       # If I have a runtime references to something stale,
       # I am stale too.
-      Enum.any?(runtime_references, &Map.has_key?(stale, &1)) ->
-        {[entry | rest], Map.put(stale, module, true), removed}
+      has_any_key?(stale, runtime_references) ->
+        {[entry | rest], Map.put(stale, module, true), changed}
 
       # Otherwise, we don't store it anywhere
       true ->
-        {[entry | rest], stale, removed}
+        {[entry | rest], stale, changed}
     end
+  end
+
+  defp has_any_key?(map, enumerable) do
+    Enum.any?(enumerable, &Map.has_key?(map, &1))
   end
 
   defp stale_local_deps(manifest, modified) do
