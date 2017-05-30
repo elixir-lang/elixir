@@ -541,7 +541,7 @@ defmodule DateTime do
   """
   @spec diff(DateTime.t, DateTime.t) :: integer()
   def diff(%DateTime{utc_offset: utc_offset1, std_offset: std_offset1} = datetime1,
-           %DateTime{utc_offset: utc_offset2, std_offset: std_offset2} = datetime2, unit \\ :seconds) do
+           %DateTime{utc_offset: utc_offset2, std_offset: std_offset2} = datetime2, unit \\ :second) do
     naive_diff =
       (datetime1 |> to_rata_die() |> Calendar.ISO.rata_die_to_unit(unit)) -
       (datetime2 |> to_rata_die() |> Calendar.ISO.rata_die_to_unit(unit))
@@ -622,22 +622,7 @@ defmodule DateTime do
               time_zone: time_zone, zone_abbr: zone_abbr, utc_offset: utc_offset, std_offset: std_offset}
   end
 
-  defp apply_tz_offset({days, {parts, ppd}}, offset) do
-    # At this time, only offsets in seconds (of which there are 86400 in an ISO 8601 day) are allowed.
-    offset_ppd = 86400
-
-    parts = parts * offset_ppd
-    offset = offset * ppd
-    gcd = Integer.gcd(ppd, offset_ppd)
-    result_parts = div(parts - offset, gcd)
-    result_ppd = div(ppd * offset_ppd, gcd)
-    days_offset = div(result_parts, result_ppd)
-    final_parts = rem(result_parts, result_ppd)
-
-    if final_parts < 0 do
-      {days + days_offset - 1, {final_parts + result_ppd, result_ppd}}
-    else
-      {days + days_offset, {final_parts, result_ppd}}
-    end
+  defp apply_tz_offset(rata_die, offset) do
+    Calendar.ISO.add_day_fraction_to_rata_die(rata_die, -offset, 86400)
   end
 end
