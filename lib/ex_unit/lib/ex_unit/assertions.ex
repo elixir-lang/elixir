@@ -106,7 +106,7 @@ defmodule ExUnit.Assertions do
 
     left = Macro.expand(left, __CALLER__)
     vars = collect_vars_from_pattern(left)
-    pins = collect_pins_from_pattern(left)
+    pins = collect_pins_from_pattern(left, __CALLER__.vars)
 
     # If the match works, we need to check if the value
     # is not nil nor false. We need to rewrite the if
@@ -149,7 +149,7 @@ defmodule ExUnit.Assertions do
   defmacro assert({:match?, meta, [left, right]} = assertion) do
     code   = Macro.escape(assertion)
     match? = {:match?, meta, [left, Macro.var(:right, __MODULE__)]}
-    pins   = collect_pins_from_pattern(left)
+    pins   = collect_pins_from_pattern(left, __CALLER__.vars)
 
     quote do
       right = unquote(right)
@@ -205,7 +205,7 @@ defmodule ExUnit.Assertions do
   defmacro refute({:match?, meta, [left, right]} = assertion) do
     code   = Macro.escape(assertion)
     match? = {:match?, meta, [left, Macro.var(:right, __MODULE__)]}
-    pins   = collect_pins_from_pattern(left)
+    pins   = collect_pins_from_pattern(left, __CALLER__.vars)
 
     quote do
       right = unquote(right)
@@ -349,7 +349,7 @@ defmodule ExUnit.Assertions do
   defmacro assert_receive(pattern,
                           timeout \\ Application.fetch_env!(:ex_unit, :assert_receive_timeout),
                           failure_message \\ nil) do
-    do_assert_receive(pattern, timeout, failure_message, __CALLER__)
+    assert_receive(pattern, timeout, failure_message, __CALLER__)
   end
 
   @doc """
@@ -379,16 +379,16 @@ defmodule ExUnit.Assertions do
 
   """
   defmacro assert_received(pattern, failure_message \\ nil) do
-    do_assert_receive(pattern, 0, failure_message, __CALLER__)
+    assert_receive(pattern, 0, failure_message, __CALLER__)
   end
 
-  defp do_assert_receive(pattern, timeout, failure_message, caller) do
+  defp assert_receive(pattern, timeout, failure_message, caller) do
     binary = Macro.to_string(pattern)
 
     # Expand before extracting metadata
     pattern = Macro.expand(pattern, caller)
     vars = collect_vars_from_pattern(pattern)
-    pins = collect_pins_from_pattern(pattern)
+    pins = collect_pins_from_pattern(pattern, caller.vars)
 
     pattern =
       case pattern do
@@ -473,11 +473,15 @@ defmodule ExUnit.Assertions do
     "\nProcess mailbox:" <> mailbox
   end
 
-  defp collect_pins_from_pattern(expr) do
+  defp collect_pins_from_pattern(expr, vars) do
     {_, pins} =
       Macro.prewalk(expr, [], fn
-        {:^, _, [{name, _, _} = var]}, acc ->
-          {:ok, [{name, var} | acc]}
+        {:^, _, [{name, _, nil} = var]}, acc ->
+          if {name, nil} in vars do
+            {:ok, [{name, var} | acc]}
+          else
+            {:ok, acc}
+          end
         form, acc ->
           {form, acc}
       end)
