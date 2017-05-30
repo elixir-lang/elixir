@@ -168,7 +168,7 @@ build_reduce_clause([{enum, Meta, Left, Right, Filters} | T], Expr, Arg, Acc, S)
   Clauses1 =
     [{clause, Ann,
       [Left, Acc], [],
-      [join_filters(Ann, Filters, True, False)]} | Clauses0],
+      [join_filters(Generated, Filters, True, False)]} | Clauses0],
 
   Args  = [Right, Arg, {'fun', Ann, {clauses, Clauses1}}],
   elixir_erl:remote(Ann, 'Elixir.Enum', reduce, Args);
@@ -192,7 +192,7 @@ build_reduce_clause([{bin, Meta, Left, Right, Filters} | T], Expr, Arg, Acc, S) 
   Clauses =
     [{clause, Ann,
       [BinMatch, Acc], [],
-      [{call, Ann, Fun, [Tail, join_filters(Ann, Filters, True, False)]}]},
+      [{call, Ann, Fun, [Tail, join_filters(Generated, Filters, True, False)]}]},
      {clause, Generated,
       [NoVarMatch, Acc], [],
       [{call, Ann, Fun, [Tail, False]}]},
