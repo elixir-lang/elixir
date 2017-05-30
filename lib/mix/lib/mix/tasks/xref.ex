@@ -349,10 +349,10 @@ defmodule Mix.Tasks.Xref do
     module_sources =
       for manifest <- E.manifests(),
           manifest_data = read_manifest(manifest, ""),
-          module(module: module, source: source) <- manifest_data,
+          module(module: module, sources: sources) <- manifest_data,
+          source <- sources,
           source = Enum.find(manifest_data, &match?(source(source: ^source), &1)),
-          do: {module, source},
-          into: %{}
+          do: {module, source}
 
     all_modules = MapSet.new(module_sources, &elem(&1, 0))
 
