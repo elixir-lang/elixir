@@ -3,7 +3,7 @@ defmodule ExUnit.Formatter do
   Helper functions for formatting and the formatting protocols.
 
   Formatters are `GenServer`s specified during ExUnit configuration
-  that receives a series of events as cast messages.
+  that receive a series of events as casts.
 
   The following events are possible:
 
