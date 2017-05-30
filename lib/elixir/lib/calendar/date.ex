@@ -427,10 +427,17 @@ defmodule Date do
     end
   end
 
+  defp to_rata_die(%{calendar: Calendar.ISO, year: year, month: month, day: day}) do
+    {Calendar.ISO.date_to_rata_die_days(year, month, day), {0, 86400000000}}
+  end
   defp to_rata_die(%{calendar: calendar, year: year, month: month, day: day}) do
     calendar.naive_datetime_to_rata_die(year, month, day, 0, 0, 0, {0, 0})
   end
 
+  defp from_rata_die({days, _}, Calendar.ISO) do
+    {year, month, day} = Calendar.ISO.date_from_rata_die_days(days)
+    %Date{year: year, month: month, day: day, calendar: Calendar.ISO}
+  end
   defp from_rata_die(rata_die, target_calendar) do
     {year, month, day, _, _, _, _} = target_calendar.naive_datetime_from_rata_die(rata_die)
     %Date{year: year, month: month, day: day, calendar: target_calendar}
