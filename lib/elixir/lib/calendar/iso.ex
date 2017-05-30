@@ -406,4 +406,27 @@ defmodule Calendar.ISO do
     microseconds = div(parts * @seconds_per_day * @microseconds_per_second, ppd)
     System.convert_time_unit(day_microseconds + microseconds, :microsecond, unit)
   end
+
+  @doc false
+  def add_day_fraction_to_rata_die({days, {parts, ppd}}, add, ppd) do
+    normalize_rata_die(days, parts + add, ppd)
+  end
+  def add_day_fraction_to_rata_die({days, {parts, ppd}}, add, add_ppd) do
+    parts = parts * add_ppd
+    add = add * ppd
+    gcd = Integer.gcd(ppd, add_ppd)
+    result_parts = div(parts + add, gcd)
+    result_ppd = div(ppd * add_ppd, gcd)
+    normalize_rata_die(days, result_parts, result_ppd)
+  end
+
+  defp normalize_rata_die(days, parts, ppd) do
+    days_offset = div(parts, ppd)
+    parts = rem(parts, ppd)
+    if parts < 0 do
+      {days + days_offset - 1, {parts + ppd, ppd}}
+    else
+      {days + days_offset, {parts, ppd}}
+    end
+  end
 end

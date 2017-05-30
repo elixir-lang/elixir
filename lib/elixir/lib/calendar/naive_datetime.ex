@@ -176,18 +176,13 @@ defmodule NaiveDateTime do
 
   """
   @spec add(t, integer, System.time_unit) :: t
-  def add(%NaiveDateTime{microsecond: {_microsecond, precision}} = naive_datetime,
+  def add(%NaiveDateTime{microsecond: {_, precision}, calendar: calendar} = naive_datetime,
           integer, unit \\ :second) when is_integer(integer) do
-    ndt_microsecond = to_microsecond(naive_datetime)
-    added_microsecond = System.convert_time_unit(integer, unit, :microsecond)
-    sum = ndt_microsecond + added_microsecond
-
-    microsecond = rem(sum, 1_000_000)
-    {{year, month, day}, {hour, minute, second}} =
-      sum |> div(1_000_000) |> :calendar.gregorian_seconds_to_datetime
-    %NaiveDateTime{year: year, month: month, day: day,
-                   hour: hour, minute: minute, second: second,
-                   microsecond: {microsecond, precision}}
+    ppd = System.convert_time_unit(86400, :second, unit)
+    naive_datetime
+    |> to_rata_die()
+    |> Calendar.ISO.add_day_fraction_to_rata_die(integer, ppd)
+    |> from_rata_die(calendar, precision)
   end
 
   @doc """
@@ -621,23 +616,23 @@ defmodule NaiveDateTime do
 
   ## Helpers
 
-  defp to_microsecond(%{calendar: _, year: _, month: _, day: _,hour: _,
-                        minute: _, second: _, microsecond: {_, _}} = naive_datetime) do
-    %{year: year, month: month, day: day, hour: hour, minute: minute, second: second, microsecond: {microsecond, _}} = convert!(naive_datetime, Calendar.ISO)
-    second = :calendar.datetime_to_gregorian_seconds(
-      {{year, month, day}, {hour, minute, second}}
-    )
-    second * 1_000_000 + microsecond
-  end
-
   defp to_rata_die(%{calendar: calendar, year: year, month: month, day: day,
                      hour: hour, minute: minute, second: second, microsecond: microsecond}) do
     calendar.naive_datetime_to_rata_die(year, month, day, hour, minute, second, microsecond)
   end
 
   defp from_rata_die(rata_die, calendar) do
-    {year, month, day, hour, minute, second, microsecond} = calendar.naive_datetime_from_rata_die(rata_die)
-    %NaiveDateTime{year: year, month: month, day: day, hour: hour, minute: minute, second: second, microsecond: microsecond, calendar: calendar}
+    {year, month, day, hour, minute, second, microsecond} =
+      calendar.naive_datetime_from_rata_die(rata_die)
+    %NaiveDateTime{year: year, month: month, day: day, hour: hour, minute: minute, second: second,
+                   microsecond: microsecond, calendar: calendar}
+  end
+
+  defp from_rata_die(rata_die, calendar, precision) do
+    {year, month, day, hour, minute, second, {microsecond, _}} =
+      calendar.naive_datetime_from_rata_die(rata_die)
+    %NaiveDateTime{year: year, month: month, day: day, hour: hour, minute: minute, second: second,
+                   microsecond: {microsecond, precision}, calendar: calendar}
   end
 
   defimpl String.Chars do
