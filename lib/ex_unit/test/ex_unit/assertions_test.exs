@@ -100,6 +100,19 @@ defmodule ExUnit.AssertionsTest do
     end
   end
 
+  test "assert match with pinned variable from another context" do
+    var!(a, Elixir) = 1
+    {2, 1} = (assert {2, ^var!(a, Elixir)} = Value.tuple)
+
+    try do
+      assert {^var!(a, Elixir), 1} = Value.tuple
+    rescue
+      error in [ExUnit.AssertionError] ->
+        "match (=) failed" = error.message
+        "{^var!(a, Elixir), 1} = Value.tuple()" = Macro.to_string(error.expr)
+    end
+  end
+
   test "assert match?" do
     true = assert match?({2, 1}, Value.tuple)
 
