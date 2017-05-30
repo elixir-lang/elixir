@@ -22,7 +22,7 @@ defmodule Kernel.DialyzerTest do
     end
 
     # Add a few key Elixir modules for types and macro functions
-    mods = [Kernel, String, Keyword, Exception, Macro, Macro.Env, :elixir_env]
+    mods = [Kernel, String, Atom, Enum, Keyword, Exception, Macro, Macro.Env, :elixir_env]
     files = Enum.map(mods, &:code.which/1)
     dialyzer_run([analysis_type: :plt_build, output_plt: plt,
                   apps: [:erts], files: files])
@@ -89,6 +89,11 @@ defmodule Kernel.DialyzerTest do
 
   test "no warnings on and/2 and or/2", context do
     copy_beam! context, Dialyzer.BooleanCheck
+    assert_dialyze_no_warnings! context
+  end
+
+  test "no warnings on for falsey check that always boolean", context do
+    copy_beam! context, Dialyzer.ForBooleanCheck
     assert_dialyze_no_warnings! context
   end
 
