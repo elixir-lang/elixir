@@ -45,14 +45,9 @@ defmodule Calendar.ISO do
   @spec naive_datetime_to_rata_die(Calendar.year, Calendar.month, Calendar.day,
                                    Calendar.hour, Calendar.minute, Calendar.second,
                                    Calendar.microsecond) :: Calendar.rata_die
-  def naive_datetime_to_rata_die(year, month, day, hour, minute, second, {microsecond, _}) do
-    days = to_rata_die_day(year, month, day)
-    {parts, ppd} = combine_time_to_day_fraction(hour, minute, second, microsecond)
-    {days, {parts, ppd}}
-  end
-
   def naive_datetime_to_rata_die(year, month, day, hour, minute, second, microsecond) do
-    naive_datetime_to_rata_die(year, month, day, hour, minute, second, {microsecond, 0})
+    {date_to_rata_die_days(year, month, day),
+     time_to_day_fraction(hour, minute, second, microsecond)}
   end
 
   @doc """
@@ -73,10 +68,10 @@ defmodule Calendar.ISO do
   @spec naive_datetime_from_rata_die(Calendar.rata_die) ::
         {Calendar.year, Calendar.month, Calendar.day,
          Calendar.hour, Calendar.minute, Calendar.second, Calendar.microsecond}
-  def naive_datetime_from_rata_die({days, {parts_in_day, parts_of_day}}) do
-    {year, month, day} = from_rata_die_day(days)
-    {hour, minute, second, microsecond} = extract_from_day_fraction(parts_in_day, parts_of_day)
-    {year, month, day, hour, minute, second, {microsecond, 6}}
+  def naive_datetime_from_rata_die({days, day_fraction}) do
+    {year, month, day} = date_from_rata_die_days(days)
+    {hour, minute, second, microsecond} = time_from_day_fraction(day_fraction)
+    {year, month, day, hour, minute, second, microsecond}
   end
 
   @doc """
@@ -93,7 +88,8 @@ defmodule Calendar.ISO do
   @spec time_to_day_fraction(Calendar.hour, Calendar.minute,
                              Calendar.second, Calendar.microsecond) :: Calendar.day_fraction
   def time_to_day_fraction(hour, minute, second, {microsecond, _}) do
-    combine_time_to_day_fraction(hour, minute, second, microsecond)
+    combined_seconds = hour * @seconds_per_hour + minute * @seconds_per_minute + second
+    {combined_seconds * @microseconds_per_second + microsecond, @seconds_per_day * @microseconds_per_second}
   end
 
   @doc """
@@ -110,33 +106,22 @@ defmodule Calendar.ISO do
   @spec time_from_day_fraction(Calendar.day_fraction) ::
         {Calendar.hour, Calendar.minute, Calendar.second, Calendar.microsecond}
   def time_from_day_fraction({parts_in_day, parts_per_day}) do
-    {hour, minute, second, microsecond} = extract_from_day_fraction(parts_in_day, parts_per_day)
-    {hour, minute, second, {microsecond, 6}}
-  end
-
-  defp combine_time_to_day_fraction(hour, minute, second, microsecond) do
-    combined_seconds = hour * @seconds_per_hour + minute * @seconds_per_minute + second
-    {combined_seconds * @microseconds_per_second + microsecond, @seconds_per_day * @microseconds_per_second}
+    total_microseconds = div(parts_in_day * @seconds_per_day * @microseconds_per_second, parts_per_day)
+    {hours, rest_microseconds1} = div_mod(total_microseconds, @seconds_per_hour * @microseconds_per_second)
+    {minutes, rest_microseconds2} = div_mod(rest_microseconds1, @seconds_per_minute * @microseconds_per_second)
+    {seconds, microseconds} = div_mod(rest_microseconds2, @microseconds_per_second)
+    {hours, minutes, seconds, {microseconds, 6}}
   end
 
   # Converts a year, month, day in only a count of days since the Rata Die epoch.
-  defp to_rata_die_day(year, month, day) do
+  defp date_to_rata_die_days(year, month, day) do
     # Rata Die starts at year 1, rather than at year 0.
     :calendar.date_to_gregorian_days(year, month, day) - 365
   end
 
   # Calculates {year, month, day} from the count of days since the Rata Die epoch.
-  defp from_rata_die_day(days) do
+  defp date_from_rata_die_days(days) do
     :calendar.gregorian_days_to_date(days + 365)
-  end
-
-  # Calculates {hours, minutes, seconds, microseconds} from the fraction of time passed in the last Rata Die day.
-  defp extract_from_day_fraction(parts_in_day, parts_per_day) do
-    total_microseconds = div(parts_in_day * @seconds_per_day * @microseconds_per_second, parts_per_day)
-    {hours, rest_microseconds1} = div_mod(total_microseconds, @seconds_per_hour * @microseconds_per_second)
-    {minutes, rest_microseconds2} = div_mod(rest_microseconds1, @seconds_per_minute * @microseconds_per_second)
-    {seconds, microseconds} = div_mod(rest_microseconds2, @microseconds_per_second)
-    {hours, minutes, seconds, microseconds}
   end
 
   defp div_mod(int1, int2) do
