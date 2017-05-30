@@ -631,7 +631,7 @@ defmodule NaiveDateTime do
   end
 
   defp to_rata_die(%{calendar: calendar, year: year, month: month, day: day,
-                     hour: hour, minute: minute, second: second, microsecond: {microsecond, _precision}}) do
+                     hour: hour, minute: minute, second: second, microsecond: microsecond}) do
     calendar.naive_datetime_to_rata_die(year, month, day, hour, minute, second, microsecond)
   end
 
