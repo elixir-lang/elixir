@@ -114,13 +114,15 @@ defmodule Calendar.ISO do
   end
 
   # Converts a year, month, day in only a count of days since the Rata Die epoch.
-  defp date_to_rata_die_days(year, month, day) do
+  @doc false
+  def date_to_rata_die_days(year, month, day) do
     # Rata Die starts at year 1, rather than at year 0.
     :calendar.date_to_gregorian_days(year, month, day) - 365
   end
 
   # Calculates {year, month, day} from the count of days since the Rata Die epoch.
-  defp date_from_rata_die_days(days) do
+  @doc false
+  def date_from_rata_die_days(days) do
     :calendar.gregorian_days_to_date(days + 365)
   end
 
