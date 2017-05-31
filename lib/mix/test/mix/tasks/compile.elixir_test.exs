@@ -238,12 +238,17 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     in_fixture "no_mixfile", fn ->
       File.write!("lib/a.ex", """
       defmodule A do
-        def foo, do: 1
+        def one, do: 1
+      end
+
+      defmodule B do
+        def two, do: 2
       end
       """)
 
       File.write!("lib/b.ex", """
-      A.foo()
+      B.two()
+
       defmodule A do
       end
       """)
@@ -251,7 +256,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       assert Mix.Tasks.Compile.Elixir.run(["--verbose", "--ignore-module-conflict"]) == :ok
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
-      refute function_exported?(A, :foo, 0)
+      refute function_exported?(A, :one, 0)
 
       Mix.shell.flush
       purge [A]
@@ -260,7 +265,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       Mix.Tasks.Compile.Elixir.run ["--verbose"]
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
-      assert function_exported?(A, :foo, 0)
+      assert function_exported?(A, :one, 0)
     end
   end
 
