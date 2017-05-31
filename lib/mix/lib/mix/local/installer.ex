@@ -46,41 +46,45 @@ defmodule Mix.Local.Installer do
   Relies on a few callbacks provided by respective callback modules
   for customizing certain steps in the installation process.
   """
-  @spec install(module, String.t, OptionParser.argv, Keyword.t) :: boolean
-  def install(module, task, argv, switches) do
+  @spec install(module, OptionParser.argv, Keyword.t) :: boolean
+  def install(module, argv, switches) do
     {opts, args} = OptionParser.parse!(argv, strict: switches)
 
     install_spec =
       case parse_args(args, opts) do
-        {:error, message} -> Mix.raise message <> "\n\n" <> usage(task)
+        {:error, message} -> Mix.raise message <> "\n\n" <> usage(module)
         install_spec -> install_spec
       end
 
     case module.check_install_spec(install_spec, opts) do
       :ok -> :noop
-      {:error, message} -> Mix.raise message <> "\n\n" <> usage(task)
+      {:error, message} -> Mix.raise message <> "\n\n" <> usage(module)
     end
 
     case install_spec do
       {:fetcher, dep_spec} ->
         if opts[:sha512] do
-          Mix.raise "--sha512 is not supported when installing from git/github/hex\n\n" <> usage(task)
+          Mix.raise "--sha512 is not supported when installing from git/github/hex\n\n" <> usage(module)
         end
 
         fetch dep_spec, fn _ ->
-          local_install(module, task, module.build(install_spec, opts), opts)
+          local_install(module, module.build(install_spec, opts), opts)
         end
 
       {path_or_url, src} when path_or_url in [:local, :url] ->
-        local_install(module, task, src, opts)
+        local_install(module, src, opts)
 
       :project ->
-        local_install(module, task, module.build(install_spec, opts), opts)
+        local_install(module, module.build(install_spec, opts), opts)
     end
   end
 
-  def usage(task) do
-    "For more information run \"mix help #{task}\""
+  defp task(module) do
+    Mix.Utils.module_name_to_command(module, 2)
+  end
+
+  defp usage(module) do
+    "For more information run \"mix help #{task(module)}\""
   end
 
   defp local_path?(url_or_path) do
@@ -91,7 +95,7 @@ defmodule Mix.Local.Installer do
     URI.parse(url_or_path).scheme in ["http", "https"]
   end
 
-  defp local_install(module, task, src, opts) do
+  defp local_install(module, src, opts) do
     basename = Path.basename(URI.parse(src).path)
     previous_files = module.find_previous_versions(basename)
 
@@ -110,13 +114,13 @@ defmodule Mix.Local.Installer do
           Mix.raise """
           #{message}
 
-          Could not run #{task} for:
+          Could not run #{task(module)} for:
 
               #{src}
 
           Please download the contents above manually to your current directory and run:
 
-              mix #{task} ./#{basename}
+              mix #{task(module)} ./#{basename}
           """
       end
 

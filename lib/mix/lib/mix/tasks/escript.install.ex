@@ -60,7 +60,7 @@ defmodule Mix.Tasks.Escript.Install do
   @switches [force: :boolean, sha512: :string, submodules: :boolean, app: :string]
   @spec run(OptionParser.argv) :: boolean
   def run(argv) do
-    Mix.Local.Installer.install(__MODULE__, "escript.install", argv, @switches)
+    Mix.Local.Installer.install(__MODULE__, argv, @switches)
   end
 
   # Callbacks

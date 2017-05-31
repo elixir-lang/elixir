@@ -58,14 +58,10 @@ defmodule Mix.Tasks.Archive.Install do
   @switches [force: :boolean, sha512: :string, submodules: :boolean, app: :string]
   @spec run(OptionParser.argv) :: boolean
   def run(argv) do
-    Mix.Local.Installer.install(__MODULE__, "archive.install", argv, @switches)
+    Mix.Local.Installer.install(__MODULE__, argv, @switches)
   end
 
   # Callbacks
-
-  def usage do
-    "For more information run \"mix help archive.install\""
-  end
 
   def check_install_spec({local_or_url, path_or_url}, _opts) when
       local_or_url in [:local, :url] do
