@@ -15,11 +15,10 @@ defmodule Mix.Tasks.Escript do
   @spec run(OptionParser.argv) :: :ok
   def run(_) do
     escripts_path = Mix.Local.path_for(:escript)
-    escripts =
-      escripts_path
-      |> list_dir()
-      |> Enum.filter(fn filename -> executable?(Path.join(escripts_path, filename)) end)
-    Mix.Local.Installer.print_list(:escript, escripts)
+    escripts_path
+    |> list_dir()
+    |> Enum.filter(fn filename -> executable?(Path.join(escripts_path, filename)) end)
+    |> print()
   end
 
   defp list_dir(path) do
@@ -44,5 +43,14 @@ defmodule Mix.Tasks.Escript do
           stat.mode &&& (owner_exec_bit ||| group_exec_bit ||| other_exec_bit)
         executable_bit != 0 and stat.type == :regular and Path.extname(path) != ".bat"
     end
+  end
+
+  defp print([]) do
+    Mix.shell.info "No escripts currently installed."
+  end
+
+  defp print(items) do
+    Enum.each items, fn item -> Mix.shell.info ["* ", item] end
+    Mix.shell.info "Escripts installed at: #{Mix.Local.path_for(:escript)}"
   end
 end

@@ -58,10 +58,14 @@ defmodule Mix.Tasks.Archive.Install do
   @switches [force: :boolean, sha512: :string, submodules: :boolean, app: :string]
   @spec run(OptionParser.argv) :: boolean
   def run(argv) do
-    Mix.Local.Installer.install({__MODULE__, :archive}, argv, @switches)
+    Mix.Local.Installer.install(__MODULE__, "archive.install", argv, @switches)
   end
 
-  ### Mix.Local.Installer callbacks
+  # Callbacks
+
+  def usage do
+    "For more information run \"mix help archive.install\""
+  end
 
   def check_install_spec({local_or_url, path_or_url}, _opts) when
       local_or_url in [:local, :url] do
@@ -74,7 +78,7 @@ defmodule Mix.Tasks.Archive.Install do
 
   def check_install_spec(_, _), do: :ok
 
-  def find_previous_versions(src, _dest) do
+  def find_previous_versions(src) do
     app =
       src
       |> Mix.Local.archive_name
@@ -88,7 +92,8 @@ defmodule Mix.Tasks.Archive.Install do
     end
   end
 
-  def install(ez_path, contents, previous) do
+  def install(basename, contents, previous) do
+    ez_path = Path.join(Mix.Local.path_for(:archive), basename)
     dir_dest = resolve_destination(ez_path, contents)
 
     remove_previous_versions(previous)
@@ -103,8 +108,9 @@ defmodule Mix.Tasks.Archive.Install do
     :ok
   end
 
-  def build(_mixfile) do
+  def build(_install_spec, _opts) do
     Mix.Task.run("archive.build", [])
+    Mix.Local.name_for(:archive, Mix.Project.config)
   end
 
   ### Private helpers

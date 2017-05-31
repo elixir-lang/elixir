@@ -60,18 +60,21 @@ defmodule Mix.Tasks.Escript.Install do
   @switches [force: :boolean, sha512: :string, submodules: :boolean, app: :string]
   @spec run(OptionParser.argv) :: boolean
   def run(argv) do
-    Mix.Local.Installer.install({__MODULE__, :escript}, argv, @switches)
+    Mix.Local.Installer.install(__MODULE__, "escript.install", argv, @switches)
   end
 
-  ### Mix.Local.Installer callbacks
+  # Callbacks
 
   def check_install_spec(_, _), do: :ok
 
-  def find_previous_versions(_src, dst) do
+  def find_previous_versions(basename) do
+    dst = destination(basename)
     if File.exists?(dst), do: [dst], else: []
   end
 
-  def install(dst, binary, _previous) do
+  def install(basename, binary, _previous) do
+    dst = destination(basename)
+
     if escript?(binary) do
       _ = File.rm(dst)
       _ = File.rm(dst <> ".bat")
@@ -92,11 +95,16 @@ defmodule Mix.Tasks.Escript.Install do
     end
   end
 
-  def build(_mixfile) do
+  def build(_spec, _opts) do
     Mix.Task.run("escript.build", [])
+    Mix.Local.name_for(:escript, Mix.Project.config)
   end
 
-  ### Private helpers
+  # Helpers
+
+  defp destination(basename) do
+    Path.join(Mix.Local.path_for(:escript), basename)
+  end
 
   defp write_bat!(path, {:win32, _}) do
     File.write!(path, """
