@@ -109,9 +109,26 @@ defmodule ExUnit.Formatter do
       test_location(with_location(tags), formatter) <>
       Enum.map_join(Enum.with_index(failures), "", fn {{kind, reason, stack}, index} ->
         {text, stack} = format_kind_reason(kind, reason, stack, width, formatter)
-        failure_header(failures, index) <> text <> format_stacktrace(stack, case, name, formatter)
+        failure_header(failures, index) <> text <>
+          format_code(case, name, stack, formatter) <>
+          format_stacktrace(stack, case, name, formatter)
        end) <>
       report(tags, failures, width, formatter)
+  end
+
+  defp format_code(case, name, stack, formatter) do
+    info = Enum.find_value(stack, fn {^case, ^name, _, info} -> info; _ -> nil end)
+    file = info[:file]
+    line = info[:line]
+    if snippet = snippet(file, line) do
+      "     " <> formatter.(:extra_info, "code: ") <> String.trim(snippet) <> "\n"
+    else
+      ""
+    end
+  end
+
+  defp snippet(file, line) do
+    line > 0 && file && File.exists?(file) && (file |> File.stream! |> Enum.at(line - 1))
   end
 
   @doc false
@@ -122,13 +139,12 @@ defmodule ExUnit.Formatter do
     {left, right} = format_sides(struct, formatter, inspect)
 
     [
-      note: if_value(struct.message, &format_banner(&1, formatter)),
+      note: if_value(struct.message, &format_message(&1, formatter)),
       code: if_value(struct.expr, &code_multiline(&1, padding_size)),
       left: left,
       right: right
     ]
-    |> filter_interesting_fields()
-    |> format_each_field(formatter, label_padding_size)
+    |> format_meta(formatter, label_padding_size)
     |> make_into_lines(counter_padding)
   end
 
@@ -184,14 +200,10 @@ defmodule ExUnit.Formatter do
   defp blame_match(_, string, _formatter),
     do: string
 
-  defp filter_interesting_fields(fields) do
-    Enum.filter(fields, fn {_, value} -> has_value?(value) end)
-  end
-
-  defp format_each_field(fields, formatter, padding_size) do
-    Enum.map(fields, fn {label, value} ->
+  defp format_meta(fields, formatter, padding_size) do
+    for {label, value} <- fields, has_value?(value) do
       format_label(label, formatter, padding_size) <> value
-    end)
+    end
   end
 
   defp if_value(value, fun) do
@@ -208,7 +220,7 @@ defmodule ExUnit.Formatter do
     formatter.(:extra_info, String.pad_trailing("#{label}:", padding_size))
   end
 
-  defp format_banner(value, formatter) do
+  defp format_message(value, formatter) do
     value = String.replace(value, "\n", "\n" <> @counter_padding)
     formatter.(:error_info, value)
   end
