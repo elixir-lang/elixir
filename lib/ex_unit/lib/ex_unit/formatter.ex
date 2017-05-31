@@ -37,6 +37,7 @@ defmodule ExUnit.Formatter do
   import Exception, only: [format_stacktrace_entry: 1, format_file_line: 3]
 
   @counter_padding "     "
+  @no_value ExUnit.AssertionError.no_value
 
   @doc """
   Formats time taken running the test suite.
@@ -108,31 +109,19 @@ defmodule ExUnit.Formatter do
     test_info(with_counter(counter, "#{name} (#{inspect case})"), formatter) <>
       test_location(with_location(tags), formatter) <>
       Enum.map_join(Enum.with_index(failures), "", fn {{kind, reason, stack}, index} ->
-        {text, stack} = format_kind_reason(kind, reason, stack, width, formatter)
-        failure_header(failures, index) <> text <>
-          format_code(case, name, stack, formatter) <>
-          format_stacktrace(stack, case, name, formatter)
+        {text, stack} = format_kind_reason(test, kind, reason, stack, width, formatter)
+        failure_header(failures, index) <> text <> format_stacktrace(stack, case, name, formatter)
        end) <>
       report(tags, failures, width, formatter)
   end
 
-  defp format_code(case, name, stack, formatter) do
-    info = Enum.find_value(stack, fn {^case, ^name, _, info} -> info; _ -> nil end)
-    file = info[:file]
-    line = info[:line]
-    if snippet = snippet(file, line) do
-      "     " <> formatter.(:extra_info, "code: ") <> String.trim(snippet) <> "\n"
-    else
-      ""
-    end
-  end
-
-  defp snippet(file, line) do
-    line > 0 && file && File.exists?(file) && (file |> File.stream! |> Enum.at(line - 1))
-  end
 
   @doc false
-  def format_assertion_error(%ExUnit.AssertionError{} = struct, width, formatter, counter_padding) do
+  def format_assertion_error(%ExUnit.AssertionError{} = struct) do
+    format_assertion_error(%{}, struct, [], :infinity, fn _, msg -> msg end, "")
+  end
+
+  def format_assertion_error(test, struct, stack, width, formatter, counter_padding) do
     label_padding_size = if has_value?(struct.right), do: 7, else: 6
     padding_size = label_padding_size + byte_size(@counter_padding)
     inspect = &inspect_multiline(&1, padding_size, width)
@@ -142,6 +131,7 @@ defmodule ExUnit.Formatter do
     [
       note: if_value(struct.message, &format_message(&1, formatter)),
       code: if_value(struct.expr, &code_multiline(&1, padding_size)),
+      code: unless_value(struct.expr, fn -> get_code(test, stack) || @no_value end),
       left: left,
       right: right,
       variables: if_value(binding, &format_binding(&1, width)),
@@ -174,25 +164,46 @@ defmodule ExUnit.Formatter do
     %ExUnit.TestCase{name: name} = test_case
     test_case_info(with_counter(counter, "#{inspect name}: "), formatter) <>
       Enum.map_join(Enum.with_index(failures), "", fn {{kind, reason, stack}, index} ->
-        {text, stack} = format_kind_reason(kind, reason, stack, width, formatter)
+        {text, stack} = format_kind_reason(test_case, kind, reason, stack, width, formatter)
         failure_header(failures, index) <> text <> format_stacktrace(stack, name, nil, formatter)
       end)
   end
 
-  defp format_kind_reason(:error, %ExUnit.AssertionError{} = struct, stack, width, formatter) do
-    {format_assertion_error(struct, width, formatter, @counter_padding), stack}
+  defp format_kind_reason(test, :error, %ExUnit.AssertionError{} = struct, stack, width, formatter) do
+    {format_assertion_error(test, struct, stack, width, formatter, @counter_padding), stack}
   end
 
-  defp format_kind_reason(:error, %FunctionClauseError{} = struct, stack, _width, formatter) do
+  defp format_kind_reason(test, :error, %FunctionClauseError{} = struct, stack, _width, formatter) do
     {blamed, stack} = Exception.blame(:error, struct, stack)
     banner = Exception.format_banner(:error, struct)
     blamed = FunctionClauseError.blame(blamed, &inspect/1, &blame_match(&1, &2, formatter))
     message = error_info(banner, formatter) <> "\n" <> pad(String.trim_leading(blamed, "\n"))
-    {message, stack}
+    {message <> format_code(test, stack, formatter), stack}
   end
 
-  defp format_kind_reason(kind, reason, stack, _width, formatter) do
-    {error_info(Exception.format_banner(kind, reason), formatter), stack}
+  defp format_kind_reason(test, kind, reason, stack, _width, formatter) do
+    message = error_info(Exception.format_banner(kind, reason), formatter)
+    {message <> format_code(test, stack, formatter), stack}
+  end
+
+  defp format_code(test, stack, formatter) do
+    if snippet = get_code(test, stack) do
+      "     " <> formatter.(:extra_info, "code: ") <> snippet <> "\n"
+    else
+      ""
+    end
+  end
+
+  defp get_code(%{case: case, name: name}, stack) do
+    info = Enum.find_value(stack, fn {^case, ^name, _, info} -> info; _ -> nil end)
+    file = info[:file]
+    line = info[:line]
+    if line > 0 && file && File.exists?(file) do
+      file |> File.stream! |> Enum.at(line - 1) |> String.trim
+    end
+  end
+  defp get_code(%{}, _) do
+    nil
   end
 
   defp blame_match(%{match?: true, node: node}, _, formatter),
@@ -216,6 +227,18 @@ defmodule ExUnit.Formatter do
     end
   end
 
+  defp unless_value(value, fun) do
+    if has_value?(value) do
+      @no_value
+    else
+      fun.()
+    end
+  end
+
+  defp has_value?(value) do
+    value != @no_value
+  end
+
   defp format_label(:note, _formatter, _padding_size), do: ""
 
   defp format_label(label, formatter, padding_size) do
@@ -231,7 +254,9 @@ defmodule ExUnit.Formatter do
     padding = String.duplicate(" ", padding_size)
     String.replace(expr, "\n", "\n" <> padding)
   end
-
+  defp code_multiline({fun, _, [expr]}, padding_size) when is_atom(fun) do
+    code_multiline(Atom.to_string(fun) <> " " <> Macro.to_string(expr), padding_size)
+  end
   defp code_multiline(expr, padding_size) do
     code_multiline(Macro.to_string(expr), padding_size)
   end
@@ -268,10 +293,6 @@ defmodule ExUnit.Formatter do
       nil ->
         {if_value(left, inspect), if_value(right, inspect)}
     end
-  end
-
-  defp has_value?(value) do
-    value != ExUnit.AssertionError.no_value
   end
 
   defp format_diff(left, right, formatter) do
