@@ -565,7 +565,7 @@ defmodule GenServer do
 
         # We do this to trick Dialyzer to not complain about non-local returns.
         case :erlang.phash2(1, 1) do
-          0 -> raise "attempted to call GenServer #{inspect proc} but no handle_call/3 clause was provided"
+          0 -> raise "GenServer@#{inspect proc}: no handle_call() matches (#{inspect msg}, from, state)"
           1 -> {:stop, {:bad_call, msg}, state}
         end
       end
