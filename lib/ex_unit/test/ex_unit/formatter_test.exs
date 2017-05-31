@@ -143,6 +143,22 @@ defmodule ExUnit.FormatterTest do
     """
   end
 
+  test "shows bindings" do
+    a = 1
+    b = 1
+    failure = [{:error, catch_assertion(assert a + a == b), []}]
+    assert format_test_failure(test(), failure, 1, 80, &formatter/2) =~ """
+      1) world (Hello)
+         test/ex_unit/formatter_test.exs:1
+         Assertion with == failed
+         code:  a + a == b
+         left:  2
+         right: 1
+         variables:
+           a = 1
+    """
+  end
+
   test "formats multiple assertions" do
     failure = [{:error, catch_assertion(assert ExUnit.FormatterTest.falsy), []},
                {:error, catch_assertion(assert 1 == 2), []}]

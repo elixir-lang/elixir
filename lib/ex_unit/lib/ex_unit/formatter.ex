@@ -137,12 +137,14 @@ defmodule ExUnit.Formatter do
     padding_size = label_padding_size + byte_size(@counter_padding)
     inspect = &inspect_multiline(&1, padding_size, width)
     {left, right} = format_sides(struct, formatter, inspect)
+    bindings = if(struct.bindings == [], do: ExUnit.AssertionError.no_value(), else: struct.bindings)
 
     [
       note: if_value(struct.message, &format_message(&1, formatter)),
       code: if_value(struct.expr, &code_multiline(&1, padding_size)),
       left: left,
-      right: right
+      right: right,
+      variables: if_value(bindings, &format_bindings/1),
     ]
     |> format_meta(formatter, label_padding_size)
     |> make_into_lines(counter_padding)
@@ -232,6 +234,11 @@ defmodule ExUnit.Formatter do
 
   defp code_multiline(expr, padding_size) do
     code_multiline(Macro.to_string(expr), padding_size)
+  end
+
+  defp format_bindings(bindings) do
+    padding = "\n" <> @counter_padding <> "  "
+    padding <> Enum.map_join(bindings, padding, fn {var, value} -> "#{var} = #{inspect(value)}" end)
   end
 
   defp inspect_multiline(expr, padding_size, width) do
