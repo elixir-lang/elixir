@@ -143,7 +143,7 @@ defmodule ExUnit.FormatterTest do
     """
   end
 
-  test "shows bindings" do
+  test "formats binding when there is some" do
     a = 1
     b = 1
     failure = [{:error, catch_assertion(assert a + a == b), []}]

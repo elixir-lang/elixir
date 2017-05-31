@@ -66,8 +66,8 @@ defmodule ExUnit.AssertionsTest do
     end
   end
 
-  test "assert shows bindings in the asserted expression" do
-    # No bindings are shown because the RHS is only a top-level variable
+  test "assert shows binding in the asserted expression" do
+    # No binding is shown because the RHS is only a top-level variable
     # and thus it's already printed as the RHS of the match.
     try do
       int1 = 1
@@ -75,7 +75,7 @@ defmodule ExUnit.AssertionsTest do
       assert ^int1 = int2
     rescue
       error in [ExUnit.AssertionError] ->
-        [] = error.bindings
+        [] = error.binding
     end
 
     try do
@@ -84,7 +84,7 @@ defmodule ExUnit.AssertionsTest do
       assert ^int1 = int2 * 2
     rescue
       error in [ExUnit.AssertionError] ->
-        [int2: 2] = error.bindings
+        [int2: 2] = error.binding
     end
 
     try do
@@ -93,11 +93,11 @@ defmodule ExUnit.AssertionsTest do
       assert int1 * 10 == int2
     rescue
       error in [ExUnit.AssertionError] ->
-        [int1: 1] = error.bindings
+        [int1: 1] = error.binding
     end
   end
 
-  test "assert shows only bindings in the asserted expression when assertion fails" do
+  test "assert shows only binding in the asserted expression when assertion fails" do
     try do
       bin1 = <<1, 2, 3>>
       bin2 = <<1, 2, 4>>
@@ -109,7 +109,7 @@ defmodule ExUnit.AssertionsTest do
       assert String.starts_with?(bin1, bin2)
     rescue
       error in [ExUnit.AssertionError] ->
-        [bin1: <<1, 2, 3>>, bin2: <<1, 2, 4>>] = error.bindings
+        [bin1: <<1, 2, 3>>, bin2: <<1, 2, 4>>] = error.binding
     end
   end
 
