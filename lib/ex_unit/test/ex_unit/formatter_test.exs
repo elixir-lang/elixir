@@ -139,7 +139,7 @@ defmodule ExUnit.FormatterTest do
       1) world (Hello)
          test/ex_unit/formatter_test.exs:1
          Expected truthy, got false
-         code: ExUnit.FormatterTest.falsy()
+         code: assert ExUnit.FormatterTest.falsy()
     """
   end
 
@@ -151,7 +151,7 @@ defmodule ExUnit.FormatterTest do
       1) world (Hello)
          test/ex_unit/formatter_test.exs:1
          Assertion with == failed
-         code:  Enum.take(many_ids, 3) == no_ids
+         code:  assert Enum.take(many_ids, 3) == no_ids
          left:  [1, 2, 3]
          right: []
          variables:
@@ -169,11 +169,11 @@ defmodule ExUnit.FormatterTest do
 
          Failure #1
          Expected truthy, got false
-         code: ExUnit.FormatterTest.falsy()
+         code: assert ExUnit.FormatterTest.falsy()
 
          Failure #2
          Assertion with == failed
-         code:  1 == 2
+         code:  assert 1 == 2
          left:  1
          right: 2
     """
@@ -230,7 +230,7 @@ defmodule ExUnit.FormatterTest do
     assert format_test_case_failure(test_case(), failure, 1, :infinity, &formatter/2) =~ """
       1) Hello: failure on setup_all callback, test invalidated
          Assertion with == failed
-         code:  [1, 2, 3] == [4, 5, 6]
+         code:  assert [1, 2, 3] == [4, 5, 6]
          left:  [1, 2, 3]
          right: [4, 5, 6]
     """
@@ -241,7 +241,7 @@ defmodule ExUnit.FormatterTest do
     assert format_test_case_failure(test_case(), failure, 1, 15, &formatter/2) =~ """
       1) Hello: failure on setup_all callback, test invalidated
          Assertion with == failed
-         code:  [1, 2, 3] == [4, 5, 6]
+         code:  assert [1, 2, 3] == [4, 5, 6]
          left:  [1,
                  2,
                  3]
@@ -283,7 +283,7 @@ defmodule ExUnit.FormatterTest do
       1) world (Hello)
          test/ex_unit/formatter_test.exs:1
          Assertion with == failed
-         code:  :will_fail == %BadInspect{}
+         code:  assert :will_fail == %BadInspect{}
          left:  :will_fail
          right: %Inspect.Error{message: #{inspect message}}
     """

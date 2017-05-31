@@ -19,11 +19,8 @@ defmodule ExUnit.AssertionError do
   end
 
   def message(exception) do
-    "\n\n" <>
-      ExUnit.Formatter.format_assertion_error(exception, :infinity, &formatter/2, "")
+    "\n\n" <> ExUnit.Formatter.format_assertion_error(exception)
   end
-
-  defp formatter(_, msg), do: msg
 end
 
 defmodule ExUnit.MultiError do
@@ -103,7 +100,7 @@ defmodule ExUnit.Assertions do
   `Kernel.match?/2`.
   """
   defmacro assert({:=, _, [left, right]} = assertion) do
-    code = Macro.escape(assertion)
+    code = escape_quoted(:assert, assertion)
 
     left = Macro.expand(left, __CALLER__)
     vars = collect_vars_from_pattern(left)
@@ -151,7 +148,7 @@ defmodule ExUnit.Assertions do
   end
 
   defmacro assert({:match?, meta, [left, right]} = assertion) do
-    code   = Macro.escape(assertion)
+    code   = escape_quoted(:assert, assertion)
     match? = {:match?, meta, [left, Macro.var(:right, __MODULE__)]}
     pins   = collect_pins_from_pattern(left, __CALLER__.vars)
     rhs_binding = collect_vars_used_in_expression(right, __CALLER__.vars)
@@ -168,7 +165,7 @@ defmodule ExUnit.Assertions do
   end
 
   defmacro assert(assertion) do
-    case translate_assertion(assertion, __CALLER__) do
+    case translate_assertion(:assert, assertion, __CALLER__) do
       nil ->
         binding = collect_vars_used_in_expression(assertion, __CALLER__.vars)
 
@@ -177,7 +174,7 @@ defmodule ExUnit.Assertions do
 
           unless value do
             raise ExUnit.AssertionError,
-              expr: unquote(Macro.escape(assertion)),
+              expr: unquote(escape_quoted(:assert, assertion)),
               binding: unquote(binding),
               message: "Expected truthy, got #{inspect value}"
           end
@@ -212,7 +209,7 @@ defmodule ExUnit.Assertions do
 
   """
   defmacro refute({:match?, meta, [left, right]} = assertion) do
-    code   = Macro.escape(assertion)
+    code   = escape_quoted(:refute, assertion)
     match? = {:match?, meta, [left, Macro.var(:right, __MODULE__)]}
     pins   = collect_pins_from_pattern(left, __CALLER__.vars)
     rhs_binding = collect_vars_used_in_expression(right, __CALLER__.vars)
@@ -229,7 +226,7 @@ defmodule ExUnit.Assertions do
   end
 
   defmacro refute(assertion) do
-    case translate_assertion({:!, [], [assertion]}, __CALLER__) do
+    case translate_assertion(:refute, assertion, __CALLER__) do
       nil ->
         binding = collect_vars_used_in_expression(assertion, __CALLER__.vars)
 
@@ -238,7 +235,7 @@ defmodule ExUnit.Assertions do
 
           if value do
             raise ExUnit.AssertionError,
-              expr: unquote(Macro.escape(assertion)),
+              expr: unquote(escape_quoted(:refute, assertion)),
               binding: unquote(binding),
               message: "Expected false or nil, got #{inspect value}"
           end
@@ -255,30 +252,30 @@ defmodule ExUnit.Assertions do
 
   @operator [:==, :<, :>, :<=, :>=, :===, :=~, :!==, :!=, :in]
 
-  defp translate_assertion({operator, meta, [_, _]} = expr, caller) when operator in @operator do
+  defp translate_assertion(:assert, {operator, meta, [_, _]} = expr, caller) when operator in @operator do
     left = Macro.var(:left, __MODULE__)
     right = Macro.var(:right, __MODULE__)
     call = {operator, meta, [left, right]}
     equality_check? = operator in [:<, :>, :!==, :!=]
     message = "Assertion with #{operator} failed"
-    translate_assertion(expr, call, message, equality_check?, caller)
+    translate_assertion(:assert, expr, call, message, equality_check?, caller)
   end
 
-  defp translate_assertion({:!, _, [{operator, meta, [_, _]} = expr]}, caller) when operator in @operator do
+  defp translate_assertion(:refute, {operator, meta, [_, _]} = expr, caller) when operator in @operator do
     left = Macro.var(:left, __MODULE__)
     right = Macro.var(:right, __MODULE__)
     call = {:not, meta, [{operator, meta, [left, right]}]}
     equality_check? = operator in [:<=, :>=, :===, :==, :=~]
     message = "Refute with #{operator} failed"
-    translate_assertion(expr, call, message, equality_check?, caller)
+    translate_assertion(:refute, expr, call, message, equality_check?, caller)
   end
 
-  defp translate_assertion(_expected, _caller) do
+  defp translate_assertion(_kind, _expected, _caller) do
     nil
   end
 
-  defp translate_assertion({_, _, [left, right]} = expr, call, message, true, caller) do
-    expr = Macro.escape(expr)
+  defp translate_assertion(kind, {_, _, [left, right]} = expr, call, message, true, caller) do
+    expr = escape_quoted(kind, expr)
 
     # We collect the binding for LHS/RHS separately because we want top-level
     # variables to not show up in the binding, but if we pass "expr" we're sure
@@ -305,8 +302,8 @@ defmodule ExUnit.Assertions do
     end
   end
 
-  defp translate_assertion({_, _, [left, right]} = expr, call, message, false, caller) do
-    expr = Macro.escape(expr)
+  defp translate_assertion(kind, {_, _, [left, right]} = expr, call, message, false, caller) do
+    expr = escape_quoted(kind, expr)
 
     # We collect the binding for LHS/RHS separately because we want top-level
     # variables to not show up in the binding, but if we pass "expr" we're sure
@@ -328,6 +325,10 @@ defmodule ExUnit.Assertions do
   @doc false
   def __equal__?(left, right) do
     left === right
+  end
+
+  defp escape_quoted(kind, expr) do
+    Macro.escape({kind, [], [expr]})
   end
 
   ## END HELPERS

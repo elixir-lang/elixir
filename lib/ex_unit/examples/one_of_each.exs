@@ -116,7 +116,7 @@ defmodule TestOneOfEach do
   end
 
   test "24. exception raised while running test" do
-    assert blows_up
+    assert blows_up()
   end
 
   test "25. error due to exit" do
