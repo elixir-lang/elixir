@@ -32,10 +32,6 @@ defmodule ExUnit.FormatterTest do
     message
   end
 
-  defp trim_multiline_whitespace(string) do
-    String.replace(string, ~r"\n\s+\n", "\n\n")
-  end
-
   test "formats test case filters" do
     filters = [run: true, slow: false]
     assert format_filters(filters, :include) =~ "Including tags: [run: true, slow: false]"
@@ -168,6 +164,10 @@ defmodule ExUnit.FormatterTest do
 
   # TODO: Remove this check once we depend only on 20
   if :erlang.system_info(:otp_release) >= '20' do
+    defp trim_multiline_whitespace(string) do
+      String.replace(string, ~r"\n\s+\n", "\n\n")
+    end
+
     test "blames function clause error" do
       {error, stack} =
         try do
