@@ -88,6 +88,17 @@ defmodule ExUnit.FormatterTest do
     """
   end
 
+  test "formats test errors with code snippets" do
+    stack = {Hello, :world, 1, [file: __ENV__.file, line: 3]}
+    failure = [{:error, catch_error(raise "oops"), [stack]}]
+    assert format_test_failure(test(), failure, 1, 80, &formatter/2) =~ """
+      1) world (Hello)
+         test/ex_unit/formatter_test.exs:1
+         ** (RuntimeError) oops
+         code: defmodule ExUnit.FormatterTest do
+    """
+  end
+
   test "formats reports" do
     test = test()
     failure = [{:error, catch_error(raise "oops"), []}]
