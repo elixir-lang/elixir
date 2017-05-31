@@ -17,11 +17,19 @@ defmodule Mix.Tasks.Archive do
   """
   @spec run(OptionParser.argv) :: :ok
   def run(_) do
-    archives =
-      Mix.Local.path_for(:archive)
-      |> Path.join("*")
-      |> Path.wildcard()
-      |> Enum.map(&Path.basename/1)
-    Mix.Local.Installer.print_list(:archive, archives)
+    Mix.Local.path_for(:archive)
+    |> Path.join("*")
+    |> Path.wildcard()
+    |> Enum.map(&Path.basename/1)
+    |> print()
+  end
+
+  defp print([]) do
+    Mix.shell.info "No archives currently installed."
+  end
+
+  defp print(items) do
+    Enum.each items, fn item -> Mix.shell.info ["* ", item] end
+    Mix.shell.info "Archives installed at: #{Mix.Local.path_for(:archive)}"
   end
 end
