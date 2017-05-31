@@ -242,8 +242,7 @@ defmodule ExUnit.Formatter do
 
     result =
       Enum.map_join(binding, "\n" <> padding, fn {var, value} ->
-        first_part = "#{var} = "
-        first_part <> inspect_multiline(value, padding_size + String.length(first_part), width)
+        "#{var} = #{inspect_multiline(value, padding_size, width)}"
       end)
 
     "\n" <> padding <> result
