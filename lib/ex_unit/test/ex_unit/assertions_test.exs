@@ -66,6 +66,53 @@ defmodule ExUnit.AssertionsTest do
     end
   end
 
+  test "assert shows binding in the asserted expression" do
+    # No binding is shown because the RHS is only a top-level variable
+    # and thus it's already printed as the RHS of the match.
+    try do
+      int1 = 1
+      int2 = 2
+      assert ^int1 = int2
+    rescue
+      error in [ExUnit.AssertionError] ->
+        [] = error.binding
+    end
+
+    try do
+      int1 = 1
+      int2 = 2
+      assert ^int1 = int2 * 2
+    rescue
+      error in [ExUnit.AssertionError] ->
+        [int2: 2] = error.binding
+    end
+
+    try do
+      int1 = 1
+      int2 = 2
+      assert int1 * 10 == int2
+    rescue
+      error in [ExUnit.AssertionError] ->
+        [int1: 1] = error.binding
+    end
+  end
+
+  test "assert shows only binding in the asserted expression when assertion fails" do
+    try do
+      bin1 = <<1, 2, 3>>
+      bin2 = <<1, 2, 4>>
+
+      # Let's have a variable that we don't use in the assertion in the __ENV__.
+      bin3 = bin1 <> bin2
+      _ = bin3
+
+      assert String.starts_with?(bin1, bin2)
+    rescue
+      error in [ExUnit.AssertionError] ->
+        [bin1: <<1, 2, 3>>, bin2: <<1, 2, 4>>] = error.binding
+    end
+  end
+
   test "refute when value is false" do
     false = refute false
   end

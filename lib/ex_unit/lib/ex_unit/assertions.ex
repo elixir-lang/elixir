@@ -5,10 +5,11 @@ defmodule ExUnit.AssertionError do
 
   @no_value :ex_unit_no_meaningful_value
 
-  defexception left:    @no_value,
-               right:   @no_value,
+  defexception left: @no_value,
+               right: @no_value,
                message: @no_value,
-               expr:    @no_value
+               expr: @no_value,
+               binding: @no_value
 
   @doc """
   Indicates no meaningful value for a field.
@@ -107,6 +108,7 @@ defmodule ExUnit.Assertions do
     left = Macro.expand(left, __CALLER__)
     vars = collect_vars_from_pattern(left)
     pins = collect_pins_from_pattern(left, __CALLER__.vars)
+    rhs_binding = collect_vars_used_in_expression(right, __CALLER__.vars)
 
     # If the match works, we need to check if the value
     # is not nil nor false. We need to rewrite the if
@@ -117,6 +119,7 @@ defmodule ExUnit.Assertions do
           x when x in [nil, false] ->
             raise ExUnit.AssertionError,
               expr: expr,
+              binding: unquote(rhs_binding),
               message: "Expected truthy, got #{inspect right}"
           _ ->
             :ok
@@ -133,6 +136,7 @@ defmodule ExUnit.Assertions do
             raise ExUnit.AssertionError,
               right: right,
               expr: expr,
+              binding: unquote(rhs_binding),
               message: "match (=) failed" <>
                        ExUnit.Assertions.__pins__(unquote(pins))
         end
@@ -150,26 +154,31 @@ defmodule ExUnit.Assertions do
     code   = Macro.escape(assertion)
     match? = {:match?, meta, [left, Macro.var(:right, __MODULE__)]}
     pins   = collect_pins_from_pattern(left, __CALLER__.vars)
+    rhs_binding = collect_vars_used_in_expression(right, __CALLER__.vars)
 
     quote do
       right = unquote(right)
       assert unquote(match?),
         right: right,
         expr: unquote(code),
+        binding: unquote(rhs_binding),
         message: "match (match?) failed" <>
                  ExUnit.Assertions.__pins__(unquote(pins))
     end
   end
 
   defmacro assert(assertion) do
-    case translate_assertion(assertion) do
+    case translate_assertion(assertion, __CALLER__) do
       nil ->
+        binding = collect_vars_used_in_expression(assertion, __CALLER__.vars)
+
         quote do
           value = unquote(assertion)
 
           unless value do
             raise ExUnit.AssertionError,
               expr: unquote(Macro.escape(assertion)),
+              binding: unquote(binding),
               message: "Expected truthy, got #{inspect value}"
           end
 
@@ -206,26 +215,31 @@ defmodule ExUnit.Assertions do
     code   = Macro.escape(assertion)
     match? = {:match?, meta, [left, Macro.var(:right, __MODULE__)]}
     pins   = collect_pins_from_pattern(left, __CALLER__.vars)
+    rhs_binding = collect_vars_used_in_expression(right, __CALLER__.vars)
 
     quote do
       right = unquote(right)
       refute unquote(match?),
         right: right,
         expr: unquote(code),
+        binding: unquote(rhs_binding),
         message: "match (match?) succeeded, but should have failed" <>
                  ExUnit.Assertions.__pins__(unquote(pins))
     end
   end
 
   defmacro refute(assertion) do
-    case translate_assertion({:!, [], [assertion]}) do
+    case translate_assertion({:!, [], [assertion]}, __CALLER__) do
       nil ->
+        binding = collect_vars_used_in_expression(assertion, __CALLER__.vars)
+
         quote do
           value = unquote(assertion)
 
           if value do
             raise ExUnit.AssertionError,
               expr: unquote(Macro.escape(assertion)),
+              binding: unquote(binding),
               message: "Expected false or nil, got #{inspect value}"
           end
 
@@ -241,30 +255,36 @@ defmodule ExUnit.Assertions do
 
   @operator [:==, :<, :>, :<=, :>=, :===, :=~, :!==, :!=, :in]
 
-  defp translate_assertion({operator, meta, [_, _]} = expr) when operator in @operator do
+  defp translate_assertion({operator, meta, [_, _]} = expr, caller) when operator in @operator do
     left = Macro.var(:left, __MODULE__)
     right = Macro.var(:right, __MODULE__)
     call = {operator, meta, [left, right]}
     equality_check? = operator in [:<, :>, :!==, :!=]
     message = "Assertion with #{operator} failed"
-    translate_assertion(expr, call, message, equality_check?)
+    translate_assertion(expr, call, message, equality_check?, caller)
   end
 
-  defp translate_assertion({:!, _, [{operator, meta, [_, _]} = expr]}) when operator in @operator do
+  defp translate_assertion({:!, _, [{operator, meta, [_, _]} = expr]}, caller) when operator in @operator do
     left = Macro.var(:left, __MODULE__)
     right = Macro.var(:right, __MODULE__)
     call = {:not, meta, [{operator, meta, [left, right]}]}
     equality_check? = operator in [:<=, :>=, :===, :==, :=~]
     message = "Refute with #{operator} failed"
-    translate_assertion(expr, call, message, equality_check?)
+    translate_assertion(expr, call, message, equality_check?, caller)
   end
 
-  defp translate_assertion(_expected) do
+  defp translate_assertion(_expected, _caller) do
     nil
   end
 
-  defp translate_assertion({_, _, [left, right]} = expr, call, message, true) do
+  defp translate_assertion({_, _, [left, right]} = expr, call, message, true, caller) do
     expr = Macro.escape(expr)
+
+    # We collect the binding for LHS/RHS separately because we want top-level
+    # variables to not show up in the binding, but if we pass "expr" we're sure
+    # there won't be any top-level variables.
+    binding = Enum.uniq(collect_vars_used_in_expression(left, caller.vars) ++ collect_vars_used_in_expression(right, caller.vars))
+
     quote do
       left = unquote(left)
       right = unquote(right)
@@ -272,19 +292,27 @@ defmodule ExUnit.Assertions do
         assert false,
           left: left,
           expr: unquote(expr),
+          binding: unquote(binding),
           message: unquote(message <> ", both sides are exactly equal")
       else
         assert unquote(call),
           left: left,
           right: right,
           expr: unquote(expr),
+          binding: unquote(binding),
           message: unquote(message)
       end
     end
   end
 
-  defp translate_assertion({_, _, [left, right]} = expr, call, message, false) do
+  defp translate_assertion({_, _, [left, right]} = expr, call, message, false, caller) do
     expr = Macro.escape(expr)
+
+    # We collect the binding for LHS/RHS separately because we want top-level
+    # variables to not show up in the binding, but if we pass "expr" we're sure
+    # there won't be any top-level variables.
+    binding = Enum.uniq(collect_vars_used_in_expression(left, caller.vars) ++ collect_vars_used_in_expression(right, caller.vars))
+
     quote do
       left = unquote(left)
       right = unquote(right)
@@ -292,6 +320,7 @@ defmodule ExUnit.Assertions do
         left: left,
         right: right,
         expr: unquote(expr),
+        binding: unquote(binding),
         message: unquote(message)
     end
   end
@@ -510,6 +539,29 @@ defmodule ExUnit.Assertions do
         {node, acc}
     end)
     |> elem(1)
+  end
+
+  defp collect_vars_used_in_expression({name, _meta, context} = _var, _existing_vars)
+       when is_atom(name) and is_atom(context) do
+    []
+  end
+
+  defp collect_vars_used_in_expression(expr, existing_vars) do
+    {_ast, vars} =
+      Macro.prewalk(expr, [], fn
+        {name, _meta, nil} = var, acc when is_atom(name) ->
+          if {name, nil} in existing_vars do
+            {:ok, [{name, var} | acc]}
+          else
+            {:ok, acc}
+          end
+        other, acc ->
+          {other, acc}
+      end)
+
+    vars
+    |> Enum.reverse()
+    |> Enum.uniq_by(&elem(&1, 0))
   end
 
   defp no_warning({name, meta, [expr, [do: clauses]]}) do
