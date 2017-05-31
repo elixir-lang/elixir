@@ -246,8 +246,8 @@ defmodule ExUnit.Formatter do
   end
 
   defp format_sides(struct, formatter, inspect) do
-    left = struct.left
-    right = struct.right
+    %{left: left, right: right} = struct
+
     case format_diff(left, right, formatter) do
       {left, right} ->
         {IO.iodata_to_binary(left), IO.iodata_to_binary(right)}
