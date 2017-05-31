@@ -139,10 +139,20 @@ defmodule ExUnit.Case do
   ### Reporting tags
 
   ExUnit also allows tags or any other key in your context to be included
-  in error reports, making it easy for developers to see under which circumstances
-  a test was evaluated. To do so, you use the `:report` tag:
+  in error reports, making it easy for developers to see under which
+  circumstances a test was evaluated. To do so, you use the `:report` tag:
 
-      @moduletag report: [:user_id]
+      @moduletag report: [:user_id, :server]
+
+  Now when an error happens, there is a tags section containing the value
+  for each reported field:
+
+     code: flunk "oops"
+     stacktrace:
+       lib/my_lib/source.exs:148
+     tags:
+       user_id: 1
+       server: #PID<0.63.0>
 
   ## Filters
 
