@@ -551,7 +551,7 @@ defmodule ExUnit.DocTestTest do
   test "multiple exceptions in one test case is not supported" do
     assert_raise ExUnit.DocTest.Error, ~r"multiple exceptions in one doctest case are not supported", fn ->
       defmodule NeverCompiled do
-        import ExUnit.DocTest
+        use ExUnit.Case
         doctest ExUnit.DocTestTest.MultipleExceptions
       end
     end
@@ -560,7 +560,7 @@ defmodule ExUnit.DocTestTest do
   test "fails on invalid module" do
     assert_raise CompileError, ~r"module ExUnit\.DocTestTest\.Unknown is not loaded and could not be found", fn ->
       defmodule NeverCompiled do
-        import ExUnit.DocTest
+        use ExUnit.Case
         doctest ExUnit.DocTestTest.Unknown
       end
     end
@@ -569,7 +569,7 @@ defmodule ExUnit.DocTestTest do
   test "fails when there are no docs" do
     assert_raise ExUnit.DocTest.Error, ~r"could not retrieve the documentation for module ExUnit\.DocTestTest", fn ->
       defmodule NeverCompiled do
-        import ExUnit.DocTest
+        use ExUnit.Case
         doctest ExUnit.DocTestTest
       end
     end
@@ -579,7 +579,7 @@ defmodule ExUnit.DocTestTest do
     assert_raise ExUnit.DocTest.Error,
       ~r[test/ex_unit/doc_test_test\.exs:\d+: indentation level mismatch: "   iex> bar = 2", should have been 2 spaces], fn ->
       defmodule NeverCompiled do
-        import ExUnit.DocTest
+        use ExUnit.Case
         doctest ExUnit.DocTestTest.IndentationMismatchedPrompt
       end
     end
@@ -587,7 +587,7 @@ defmodule ExUnit.DocTestTest do
     assert_raise ExUnit.DocTest.Error,
       ~r[test/ex_unit/doc_test_test\.exs:\d+: indentation level mismatch: "    3", should have been 2 spaces], fn ->
       defmodule NeverCompiled do
-        import ExUnit.DocTest
+        use ExUnit.Case
         doctest ExUnit.DocTestTest.IndentationTooMuch
       end
     end
@@ -595,7 +595,7 @@ defmodule ExUnit.DocTestTest do
     assert_raise ExUnit.DocTest.Error,
       ~r[test/ex_unit/doc_test_test\.exs:\d+: indentation level mismatch: \"  3\", should have been 4 spaces], fn ->
       defmodule NeverCompiled do
-        import ExUnit.DocTest
+        use ExUnit.Case
         doctest ExUnit.DocTestTest.IndentationNotEnough
       end
     end
@@ -605,7 +605,7 @@ defmodule ExUnit.DocTestTest do
     assert_raise ExUnit.DocTest.Error,
       ~r[test/ex_unit/doc_test_test\.exs:\d+: expected non-blank line to follow iex> prompt], fn ->
       defmodule NeverCompiled do
-        import ExUnit.DocTest
+        use ExUnit.Case
         doctest ExUnit.DocTestTest.Incomplete
       end
     end
@@ -614,7 +614,7 @@ defmodule ExUnit.DocTestTest do
   test "fails on invalid use" do
     assert_raise RuntimeError, ~r"cannot define test", fn ->
       defmodule FunctionClashFail do
-        import ExUnit.DocTest
+        use ExUnit.Case
         doctest ExUnit.DocTestTest.Invalid
       end
     end
