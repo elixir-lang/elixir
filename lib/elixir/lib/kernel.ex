@@ -1104,6 +1104,32 @@ defmodule Kernel do
   end
 
   @doc """
+  Compares two terms. Returns :gt if first term is greater than the second
+  and :lt for vice versa. If the two terms are equal :eq is returned
+
+  ## Examples
+
+      iex> compare_order(10, 4)
+      :gt
+
+      iex> compare_order({}, "a string")
+      :lt
+
+      iex> compare_order([], [])
+      :eq
+  """
+  @spec compare_order(term, term) :: :eq | :gt | :lt
+  def compare_order(x, x) do
+    :eq
+  end
+  def compare_order(x, y) when x > y do
+    :gt
+  end
+  def compare_order(x, y) do
+    :lt
+  end
+
+  @doc """
   Returns `true` if left is less than right.
 
   All terms in Elixir can be compared with each other.
