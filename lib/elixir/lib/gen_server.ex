@@ -550,12 +550,12 @@ defmodule GenServer do
     quote location: :keep do
       @behaviour GenServer
 
-      @doc false
+      @impl GenServer
       def init(args) do
         {:ok, args}
       end
 
-      @doc false
+      @impl GenServer
       def handle_call(msg, _from, state) do
         proc =
           case Process.info(self(), :registered_name) do
@@ -570,7 +570,7 @@ defmodule GenServer do
         end
       end
 
-      @doc false
+      @impl GenServer
       def handle_info(msg, state) do
         proc =
           case Process.info(self(), :registered_name) do
@@ -582,7 +582,7 @@ defmodule GenServer do
         {:noreply, state}
       end
 
-      @doc false
+      @impl GenServer
       def handle_cast(msg, state) do
         proc =
           case Process.info(self(), :registered_name) do
@@ -597,12 +597,12 @@ defmodule GenServer do
         end
       end
 
-      @doc false
+      @impl GenServer
       def terminate(_reason, _state) do
         :ok
       end
 
-      @doc false
+      @impl GenServer
       def code_change(_old, state, _extra) do
         {:ok, state}
       end
