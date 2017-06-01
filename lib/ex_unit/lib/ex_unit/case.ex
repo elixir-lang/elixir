@@ -9,7 +9,7 @@ defmodule ExUnit.Case do
   This module must be used in other modules as a way to configure
   and prepare them for testing.
 
-  When used, it accepts the following options:
+  When used, it accepts the following option:
 
     * `:async` - configure this specific test case to run in parallel
       with other test cases. May be used for performance when this test case
