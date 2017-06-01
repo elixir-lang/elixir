@@ -376,6 +376,21 @@ defmodule System do
   end
 
   @doc """
+  Returns the value of the given environment variable.
+
+  The returned value of the environment variable
+  `varname` is a string. This function will raise `RuntimeError`
+  if the environment variable is undefined.
+  """
+  @spec get_env(String.t) :: String.t | nil
+  def get_env!(varname) when is_binary(varname) do
+    case :os.getenv(String.to_charlist(varname)) do
+      false -> raise RuntimeError, message: "could not read the environment variable #{varname}"
+      other -> List.to_string(other)
+    end
+  end
+
+  @doc """
   Erlang VM process identifier.
 
   Returns the process identifier of the current Erlang emulator
