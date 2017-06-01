@@ -205,6 +205,21 @@ defmodule Mix do
   end
 
   @doc """
+  Checks if the given `environment` is the current one.
+
+  ## Examples
+
+     iex> Mix.env?(:dev)
+     true
+     iex> Mix.env?(:prod)
+     false
+
+  """
+  def env?(environment) when is_atom(environment) do
+    env == environment
+  end
+
+  @doc """
   Changes the current Mix environment to `env`.
 
   Be careful when invoking this function as any project
