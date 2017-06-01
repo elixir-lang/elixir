@@ -539,12 +539,12 @@ defmodule IO.ANSI.Docs do
   end
 
   defp handle_inline(<<>>, _mark, buffer, acc, _options) do
-    IO.iodata_to_binary Enum.reverse([Enum.reverse(buffer) | acc])
+    IO.iodata_to_binary Enum.reverse(acc, [Enum.reverse(buffer)])
   end
 
   defp inline_buffer(buffer, options) do
-    [h | t] = Enum.reverse([IO.ANSI.reset | buffer])
-    [color_for(h, options) | t]
+    [head | tail] = Enum.reverse(buffer, [IO.ANSI.reset])
+    [color_for(head, options) | tail]
   end
 
   defp color_for(mark, colors) do

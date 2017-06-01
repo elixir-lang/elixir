@@ -34,7 +34,7 @@ defmodule Mix.Tasks.Do do
     current =
       case binary_part(head, 0, byte_size(head) - 1) do
         "" -> Enum.reverse(current)
-        part -> Enum.reverse([part | current])
+        part -> Enum.reverse(current, [part])
       end
     gather_commands(rest, [], [current | acc])
   end

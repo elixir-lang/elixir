@@ -524,7 +524,7 @@ defmodule ExUnit.DocTest do
   # End of input and we've still got a test pending.
   defp extract_tests([], expr_acc, expected_acc, [test | rest], _, _) do
     test = add_expr(test, expr_acc, expected_acc)
-    Enum.reverse([test | rest])
+    Enum.reverse(rest, [test])
   end
 
   # We've encountered the next test on an adjacent line. Put them into one group.
