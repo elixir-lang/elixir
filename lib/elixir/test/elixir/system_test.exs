@@ -63,16 +63,28 @@ defmodule SystemTest do
   @test_var "SYSTEM_ELIXIR_ENV_TEST_VAR"
 
   test "*_env/*" do
+    assert System.fetch_env(@test_var) == :error
+    assert_raise RuntimeError, "no environment variable with the name SYSTEM_ELIXIR_ENV_TEST_VAR exists", fn ->
+      System.fetch_env!(@test_var)
+    end
     assert System.get_env(@test_var) == nil
     System.put_env(@test_var, "SAMPLE")
     assert System.get_env(@test_var) == "SAMPLE"
+    assert System.fetch_env(@test_var) == {:ok, "SAMPLE"}
+    assert System.fetch_env!(@test_var) == "SAMPLE"
     assert System.get_env()[@test_var] == "SAMPLE"
 
     System.delete_env(@test_var)
     assert System.get_env(@test_var) == nil
+    assert System.fetch_env(@test_var) == :error
+    assert_raise RuntimeError, "no environment variable with the name SYSTEM_ELIXIR_ENV_TEST_VAR exists", fn ->
+      System.fetch_env!(@test_var)
+    end
 
     System.put_env(%{@test_var => "OTHER_SAMPLE"})
     assert System.get_env(@test_var) == "OTHER_SAMPLE"
+    assert System.fetch_env(@test_var) == {:ok, "OTHER_SAMPLE"}
+    assert System.fetch_env!(@test_var) == "OTHER_SAMPLE"
   end
 
   if windows?() do
