@@ -373,7 +373,7 @@ defmodule Kernel.WarningTest do
     purge Sample
   end
 
-  # TODO: Remove this check once we depend only on 19
+  # TODO: Remove this check once we depend only on 20
   if :erlang.system_info(:otp_release) >= '20' do
     test "duplicate map keys" do
       assert capture_err(fn ->
