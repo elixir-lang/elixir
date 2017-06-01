@@ -1800,6 +1800,39 @@ defmodule Kernel do
   end
 
   @doc """
+  Inserts `value` into a a tuple of the type, `{:ok, value}`
+
+  A simple helper function to allow piping a value into a
+  tuple intended to be used as the the final call in a pipeline.
+
+  Intended to support idiomatic pipeline completion for functions.
+
+  ## Examples
+
+      iex> [1, 2, 3] |> Enum.first!() |> put_ok()
+  """
+  @spec put_ok(term) :: tuple
+  def put_ok(value) do
+    {:ok, value}
+  end
+
+  @doc """
+  Inserts `value` into a a tuple of the type, `{:error, value}`
+
+  A simple helper function to allow piping a value into a
+  return tuple, intended to support idiomatic pipeline
+  completion.
+
+  ## Examples
+
+      iex> "Invalid argument" |> put_error()
+  """
+  @spec put_error(term) :: tuple
+  def put_error(value) do
+    {:error, value}
+  end
+
+  @doc """
   Gets a value from a nested structure.
 
   Uses the `Access` module to traverse the structures
