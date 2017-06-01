@@ -361,13 +361,13 @@ defmodule Map do
   @spec take(map, Enumerable.t) :: map
   def take(map, keys)
 
-  def take(map, keys) when is_map(map) do
+  def take(map, keys) when is_map(map) and is_list(keys) do
     keys
     |> Enum.to_list
     |> do_take(map, [])
   end
 
-  def take(non_map, _keys) do
+  def take(non_map, keys) when is_list(keys) do
     :erlang.error({:badmap, non_map})
   end
 
@@ -617,13 +617,13 @@ defmodule Map do
   @spec drop(map, Enumerable.t) :: map
   def drop(map, keys)
 
-  def drop(map, keys) when is_map(map) do
+  def drop(map, keys) when is_map(map) and is_list(keys) do
     keys
     |> Enum.to_list
     |> drop_list(map)
   end
 
-  def drop(non_map, _keys) do
+  def drop(non_map, keys) when is_list(keys) do
     :erlang.error({:badmap, non_map})
   end
 
