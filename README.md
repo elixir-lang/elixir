@@ -164,6 +164,7 @@ the `doc` directory. If you are planning to contribute documentation,
   * [Issues tracker][2]
   * [Code of Conduct][7]
   * **[#elixir-lang][4]** on [Freenode][5] IRC
+  * [Elixir-lang][8] on [Slack][9]
 
   [1]: http://elixir-lang.org
   [2]: https://github.com/elixir-lang/elixir/issues
@@ -172,6 +173,8 @@ the `doc` directory. If you are planning to contribute documentation,
   [5]: http://www.freenode.net
   [6]: http://elixir-lang.org/docs.html
   [7]: CODE_OF_CONDUCT.md
+  [8]: https://elixir-slackin.herokuapp.com/
+  [9]: https://slack.com/
 
 ## License
 
