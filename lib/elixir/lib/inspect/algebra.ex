@@ -28,7 +28,7 @@ defmodule Inspect.Opts do
       apply to strings nor charlists and defaults to 50.
 
     * `:printable_limit` - limits the number of bytes that are printed for strings
-      and char lists. Defaults to 1024.
+      and char lists. Defaults to 4096.
 
     * `:pretty` - if set to `true` enables pretty printing, defaults to `false`.
 
@@ -58,7 +58,7 @@ defmodule Inspect.Opts do
             charlists: :infer,
             char_lists: :infer,
             limit: 50,
-            printable_limit: 1024,
+            printable_limit: 2048,
             width: 80,
             base: :decimal,
             pretty: false,
