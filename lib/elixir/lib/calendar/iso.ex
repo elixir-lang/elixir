@@ -388,6 +388,14 @@ defmodule Calendar.ISO do
     do: parse_offset(1, hour, min, rest)
   def parse_offset(<<?-, hour::2-bytes, ?:, min::2-bytes, rest::binary>>),
     do: parse_offset(-1, hour, min, rest)
+  def parse_offset(<<?+, hour::2-bytes, min::2-bytes, rest::binary>>),
+    do: parse_offset(1, hour, min, rest)
+  def parse_offset(<<?-, hour::2-bytes, min::2-bytes, rest::binary>>),
+    do: parse_offset(-1, hour, min, rest)
+  def parse_offset(<<?+, hour::2-bytes, rest::binary>>),
+    do: parse_offset(1, hour, "00", rest)
+  def parse_offset(<<?-, hour::2-bytes, rest::binary>>),
+    do: parse_offset(-1, hour, "00", rest)
   def parse_offset(_),
     do: :error
 
