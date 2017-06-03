@@ -9,6 +9,16 @@ defmodule Mix.ProjectTest do
     end
   end
 
+  test "returns consolidation path" do
+    config = [apps_path: "apps", build_per_environment: true]
+    assert Mix.Project.consolidation_path(config) ==
+           Path.join(File.cwd!, "_build/dev/consolidated")
+
+  config = [app: :sample, build_per_environment: true]
+    assert Mix.Project.consolidation_path(config) ==
+           Path.join(File.cwd!, "_build/dev/lib/sample/consolidated")
+  end
+
   test "push and pop projects" do
     refute Mix.Project.get
     Mix.Project.push(SampleProject, "sample")

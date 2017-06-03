@@ -73,7 +73,7 @@ defmodule Mix.Tasks.Compile do
       shell.info format('mix ~-#{max}s # ~ts', [task, doc])
     end
 
-    compilers = compilers() ++ if(consolidate_protocols?(), do: [:protocols], else: [])
+    compilers = compilers() ++ if(consolidate_protocols?(:ok), do: [:protocols], else: [])
     shell.info "\nEnabled compilers: #{Enum.join compilers, ", "}"
     :ok
   end
@@ -85,11 +85,12 @@ defmodule Mix.Tasks.Compile do
     res = Mix.Task.run "compile.all", args
     res = if :ok in List.wrap(res), do: :ok, else: :noop
 
-    if res == :ok && consolidate_protocols?() do
+    if consolidate_protocols?(res) do
       Mix.Task.run "compile.protocols", args
+      :ok
+    else
+      res
     end
-
-    res
   end
 
   # Loadpaths without checks because compilers may be defined in deps.
@@ -99,8 +100,12 @@ defmodule Mix.Tasks.Compile do
     Mix.Task.reenable "deps.loadpaths"
   end
 
-  defp consolidate_protocols? do
+  defp consolidate_protocols?(:ok) do
     Mix.Project.config[:consolidate_protocols]
+  end
+  defp consolidate_protocols?(:noop) do
+    config = Mix.Project.config
+    config[:consolidate_protocols] and not File.exists?(Mix.Project.consolidation_path(config))
   end
 
   @doc """

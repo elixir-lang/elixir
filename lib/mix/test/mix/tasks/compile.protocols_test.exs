@@ -19,7 +19,7 @@ defmodule Mix.Tasks.Compile.ProtocolsTest do
       end
       """)
       assert compile_elixir_and_protocols() == :ok
-      mark_as_old!("_build/dev/consolidated/Elixir.Compile.Protocol.beam")
+      mark_as_old!("_build/dev/lib/sample/consolidated/Elixir.Compile.Protocol.beam")
 
       # Implement a local protocol
       File.write!("lib/impl.ex", """
@@ -28,17 +28,17 @@ defmodule Mix.Tasks.Compile.ProtocolsTest do
       end
       """)
       assert compile_elixir_and_protocols() == :ok
-      assert mark_as_old!("_build/dev/consolidated/Elixir.Compile.Protocol.beam") != @old
+      assert mark_as_old!("_build/dev/lib/sample/consolidated/Elixir.Compile.Protocol.beam") != @old
 
       # Delete a local implementation
       File.rm!("lib/impl.ex")
       assert compile_elixir_and_protocols() == :ok
-      assert mark_as_old!("_build/dev/consolidated/Elixir.Compile.Protocol.beam") != @old
+      assert mark_as_old!("_build/dev/lib/sample/consolidated/Elixir.Compile.Protocol.beam") != @old
 
       # Delete a local protocol
       File.rm!("lib/protocol.ex")
       assert compile_elixir_and_protocols() == :noop
-      refute File.regular?("_build/dev/consolidated/Elixir.Compile.Protocol.beam")
+      refute File.regular?("_build/dev/lib/sample/consolidated/Elixir.Compile.Protocol.beam")
     end
   end
 
@@ -49,10 +49,10 @@ defmodule Mix.Tasks.Compile.ProtocolsTest do
       File.mkdir_p!("lib")
 
       assert Mix.Task.run("compile")
-      mark_as_old!("_build/dev/consolidated/Elixir.String.Chars.beam")
+      mark_as_old!("_build/dev/lib/sample/consolidated/Elixir.String.Chars.beam")
 
       assert compile_elixir_and_protocols() == :noop
-      assert mtime("_build/dev/consolidated/Elixir.String.Chars.beam") == @old
+      assert mtime("_build/dev/lib/sample/consolidated/Elixir.String.Chars.beam") == @old
 
       # Implement a deps protocol
       File.write!("lib/struct.ex", """
@@ -64,12 +64,12 @@ defmodule Mix.Tasks.Compile.ProtocolsTest do
       end
       """)
       assert compile_elixir_and_protocols() == :ok
-      assert mark_as_old!("_build/dev/consolidated/Elixir.String.Chars.beam") != @old
+      assert mark_as_old!("_build/dev/lib/sample/consolidated/Elixir.String.Chars.beam") != @old
 
       # Delete the local implementation
       File.rm!("lib/struct.ex")
       assert compile_elixir_and_protocols() == :ok
-      assert mark_as_old!("_build/dev/consolidated/Elixir.String.Chars.beam") != @old
+      assert mark_as_old!("_build/dev/lib/sample/consolidated/Elixir.String.Chars.beam") != @old
     end
   end
 

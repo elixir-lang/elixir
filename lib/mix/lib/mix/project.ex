@@ -473,7 +473,7 @@ defmodule Mix.Project do
   ## Examples
 
       Mix.Project.compile_path
-      #=> "/path/to/project/_build/shared/lib/app/ebin"
+      #=> "/path/to/project/_build/dev/lib/app/ebin"
 
   """
   @spec compile_path(Keyword.t) :: Path.t
@@ -489,11 +489,20 @@ defmodule Mix.Project do
   ## Examples
 
       Mix.Project.consolidation_path
+      #=> "/path/to/project/_build/dev/lib/my_app/consolidated"
+
+  Inside umbrellas:
+
+      Mix.Project.consolidation_path
       #=> "/path/to/project/_build/dev/consolidated"
 
   """
   def consolidation_path(config \\ config()) do
-    Path.join(build_path(config), "consolidated")
+    if umbrella?(config) do
+      Path.join(build_path(config), "consolidated")
+    else
+      Path.join(app_path(config), "consolidated")
+    end
   end
 
   @doc """

@@ -51,7 +51,7 @@ defmodule Mix.Tasks.App.Start do
     end
 
     unless "--no-protocols" in args do
-      path = Path.join(Mix.Project.build_path(config), "consolidated")
+      path = Mix.Project.consolidation_path(config)
 
       if config[:consolidate_protocols] && File.dir?(path) do
         Code.prepend_path(path)

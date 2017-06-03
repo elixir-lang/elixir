@@ -39,12 +39,22 @@ defmodule Mix.Tasks.CompileTest do
       assert File.regular?("_build/dev/lib/sample/ebin/sample.app")
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       assert_received {:mix_shell, :info, ["Generated sample app"]}
+      assert File.regular? "_build/dev/lib/sample/consolidated/Elixir.Enumerable.beam"
 
-      assert File.regular? "_build/dev/consolidated/Elixir.Enumerable.beam"
+      # Noop
+      Mix.Task.clear
       assert Mix.Tasks.Compile.run(["--verbose"]) == :noop
       refute_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
-      purge [Enumerable]
 
+      # Noop consolidates protocols if folder is missing
+      File.rm_rf("_build/dev/lib/sample/consolidated")
+      Mix.Task.clear
+      assert Mix.Tasks.Compile.run(["--verbose"]) == :ok
+      refute_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      assert File.regular? "_build/dev/lib/sample/consolidated/Elixir.Enumerable.beam"
+
+      # Purge so consolidated is picked up
+      purge [Enumerable]
       assert Mix.Tasks.App.Start.run(["--verbose"]) == :ok
       assert Protocol.consolidated?(Enumerable)
     end

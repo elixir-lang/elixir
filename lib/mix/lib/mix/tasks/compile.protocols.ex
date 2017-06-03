@@ -18,19 +18,24 @@ defmodule Mix.Tasks.Compile.Protocols do
   protocol dispatches by not accounting for code loading.
 
   This task consolidates all protocols in the code path
-  and outputs the new binary files to the given directory
-  (defaults to "_build/MIX_ENV/consolidated").
+  and outputs the new binary files to the given directory.
+  Defaults to "_build/MIX_ENV/lib/YOUR_APP/consolidated"
+  for regular apps and "_build/MIX_ENV/consolidated" in
+  umbrella projects.
 
   In case you are manually compiling protocols or building
   releases, you need to take the generated protocols into
   account. This can be done with:
+
+      $ elixir -pa _build/MIX_ENV/lib/YOUR_APP/consolidated -S mix run
+
+  Or in umbrellas:
 
       $ elixir -pa _build/MIX_ENV/consolidated -S mix run
 
   You can verify a protocol is consolidated by checking
   its attributes:
 
-      $ iex -pa _build/MIX_ENV/consolidated -S mix run
       iex> Protocol.consolidated?(Enumerable)
       true
 
