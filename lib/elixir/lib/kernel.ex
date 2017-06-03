@@ -3806,7 +3806,7 @@ defmodule Kernel do
         end
       end
 
-      @spec exception(Keyword.t) :: Exception.t
+      @spec exception(keyword) :: Exception.t
       # TODO: Only call Kernel.struct! by Elixir v1.5
       def exception(args) when is_list(args) do
         struct = __struct__()
