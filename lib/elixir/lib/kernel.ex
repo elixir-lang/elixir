@@ -3969,9 +3969,10 @@ defmodule Kernel do
 
   Any protocol module contains three extra functions:
 
-    * `__protocol__/1` - returns the protocol name when `:name` is given, and a
+    * `__protocol__/1` - returns the protocol name when `:name` is given, a
       keyword list with the protocol functions and their arities when
-      `:functions` is given
+      `:functions` is given, and a list of the implementation when `:impls` is
+      given
 
     * `impl_for/1` - receives a structure and returns the module that
       implements the protocol for the structure, `nil` otherwise
