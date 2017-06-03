@@ -226,14 +226,6 @@ defmodule Protocol do
   end
 
   @doc """
-  Returns a list of implementations, or `:error` if the protocol was not consolidated.
-  """
-  @spec impls(module) :: [module] | :error
-  def impls(protocol) do
-    protocol.__protocol__(:impls)
-  end
-
-  @doc """
   Receives a protocol and a list of implementations and
   consolidates the given protocol.
 
@@ -309,7 +301,7 @@ defmodule Protocol do
       {:clause, l, [{:atom, _, :consolidated?}], [], [{:atom, _, _}]} ->
         {:clause, l, [{:atom, 0, :consolidated?}], [], [{:atom, 0, true}]}
       {:clause, l, [{:atom, _, :impls}], [], [{:atom, _, _}]} ->
-        {:clause, l, [{:atom, 0, :impls}], [], [:erl_parse.abstract(types)]}
+        {:clause, l, [{:atom, 0, :impls}], [], [{:tuple, 0, [{:atom, 0, :consolidated}, :erl_parse.abstract(types)]}]}
       {:clause, _, _, _, _} = c ->
         c
     end, clauses)
@@ -351,7 +343,9 @@ defmodule Protocol do
         {:type, line, :fun, [{:type, _, :product, [{:atom, _, :impls}]}, _]} ->
           {:type, line, :fun,
            [{:type, line, :product, [{:atom, 0, :impls}]},
-            {:type, 0, :list, [{:type, 0, :module, []}]}]}
+            {:type, 0, :tuple,
+             [{:atom, 0, :consolidated},
+              {:type, 0, :list, [{:type, 0, :module, []}]}]}]}
         other -> other
       end
     end
@@ -530,11 +524,11 @@ defmodule Protocol do
       @spec __protocol__(:module) :: __MODULE__
       @spec __protocol__(:functions) :: unquote(Protocol.__functions_spec__(@functions))
       @spec __protocol__(:consolidated?) :: false
-      @spec __protocol__(:impls) :: :error
+      @spec __protocol__(:impls) :: :not_consolidated
       Kernel.def __protocol__(:module), do: __MODULE__
       Kernel.def __protocol__(:functions), do: unquote(:lists.sort(@functions))
       Kernel.def __protocol__(:consolidated?), do: false
-      Kernel.def __protocol__(:impls), do: :error
+      Kernel.def __protocol__(:impls), do: :not_consolidated
     end
   end
 
