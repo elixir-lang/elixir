@@ -348,7 +348,7 @@ defmodule Protocol do
           {:type, line, :fun,
            [{:type, line, :product, [{:atom, 0, :consolidated?}]},
             {:atom, 0, true}]}
-        {:type, line, :fun, [{:type, _, :product, [{:atom, _, :impls}]}, _]} = i ->
+        {:type, line, :fun, [{:type, _, :product, [{:atom, _, :impls}]}, _]} ->
           {:type, line, :fun,
            [{:type, line, :product, [{:atom, 0, :impls}]},
             {:type, 0, :list, [{:type, 0, :module, []}]}]}
