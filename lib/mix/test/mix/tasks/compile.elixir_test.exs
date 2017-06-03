@@ -44,11 +44,11 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       purge [A, B]
 
       assert File.exists?("_build/dev/lib/sample")
-      assert File.exists?("_build/dev/consolidated")
+      assert File.exists?("_build/dev/lib/sample/consolidated")
       assert Mix.Dep.ElixirSCM.read == {:ok, @elixir_otp_version, Mix.SCM.Path}
 
       Mix.Task.clear
-      File.write!("_build/dev/consolidated/.to_be_removed", "")
+      File.write!("_build/dev/lib/sample/consolidated/.to_be_removed", "")
       manifest_data = :erlang.term_to_binary({:v1, "0.0.0", nil})
       File.write!("_build/dev/lib/sample/.compile.elixir_scm", manifest_data)
       File.touch!("_build/dev/lib/sample/.compile.elixir_scm", {{2010, 1, 1}, {0, 0, 0}})
@@ -56,7 +56,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       Mix.Tasks.Compile.run []
       assert Mix.Dep.ElixirSCM.read == {:ok, @elixir_otp_version, Mix.SCM.Path}
       assert File.stat!("_build/dev/lib/sample/.compile.elixir_scm").mtime > {{2010, 1, 1}, {0, 0, 0}}
-      refute File.exists?("_build/dev/consolidated/.to_be_removed")
+      refute File.exists?("_build/dev/lib/sample/consolidated/.to_be_removed")
     end
   end
 
