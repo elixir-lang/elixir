@@ -537,6 +537,8 @@ defmodule DateTime do
       ...>                 utc_offset: 3600, std_offset: 0, time_zone: "Europe/Warsaw"}
       iex> DateTime.diff(dt1, dt2)
       18000
+      iex> DateTime.diff(dt2, dt1)
+      -18000
 
   """
   @spec diff(DateTime.t, DateTime.t) :: integer()

@@ -4,13 +4,12 @@ defmodule NaiveDateTime do
 
   The NaiveDateTime struct contains the fields year, month, day, hour,
   minute, second, microsecond and calendar. New naive datetimes can be
-  built with the `new/7` function or using the `~N` sigil:
+  built with the `new/2` and `new/7` functions or using the `~N` sigil:
 
       iex> ~N[2000-01-01 23:00:07]
       ~N[2000-01-01 23:00:07]
 
-  Both `new/7` and sigil return a struct where the date fields can
-  be accessed directly:
+  The date and time fields in the struct can be accessed directly:
 
       iex> naive = ~N[2000-01-01 23:00:07]
       iex> naive.year
@@ -18,25 +17,41 @@ defmodule NaiveDateTime do
       iex> naive.second
       7
 
-  The naive bit implies this datetime representation does
-  not have a time zone. This means the datetime may not
-  actually exist in certain areas in the world even though
-  it is valid.
+  We call them "naive" because this datetime representation does not
+  have a time zone. This means the datetime may not actually exist in
+  certain areas in the world even though it is valid.
 
-  For example, when daylight saving changes are applied
-  by a region, the clock typically moves forward or backward
-  by one hour. This means certain datetimes never occur or
-  may occur more than once. Since `NaiveDateTime` is not
-  validated against a time zone, such errors would go unnoticed.
+  For example, when daylight saving changes are applied by a region,
+  the clock typically moves forward or backward by one hour. This means
+  certain datetimes never occur or may occur more than once. Since
+  `NaiveDateTime` is not validated against a time zone, such errors
+  would go unnoticed.
 
-  Remember, comparisons in Elixir using `==`, `>`, `<` and friends
-  are structural and based on the NaiveDateTime struct fields. For
-  proper comparison between naive datetimes, use the `compare/2`
-  function.
-
-  Developers should avoid creating the NaiveDateTime struct directly
+  Developers should avoid creating the NaiveDateTime structs directly
   and instead rely on the functions provided by this module as well
   as the ones in 3rd party calendar libraries.
+
+  ## Comparing naive date times
+
+  Comparisons in Elixir using `==`, `>`, `<` and similar are structural
+  and based on the `NaiveDateTime` struct fields. For proper comparison
+  between naive datetimes, use the `compare/2` function.
+
+  ## Using epochs
+
+  The `add/3` and `diff/3` functions can be used for computing with
+  date times or retrieving the amount of seconds betweens instants.
+  For example, if there is an interest in computing the amount of
+  seconds from the Unix epoch (1970-01-01 00:00:00):
+
+      iex> NaiveDateTime.diff(~N[2010-04-17 14:00:00], ~N[1970-01-01 00:00:00])
+      1271512800
+
+      iex> NaiveDateTime.add(~N[1970-01-01 00:00:00], 1271512800)
+      ~N[2010-04-17 14:00:00]
+
+  Those functions are optimized to detail with common epochs, such
+  as the Unix Epoch above or the Gregorian Epoch (0000-01-01 00:00:00).
   """
 
   @enforce_keys [:year, :month, :day, :hour, :minute, :second]
@@ -201,6 +216,8 @@ defmodule NaiveDateTime do
       2_000_000
       iex> NaiveDateTime.diff(~N[2014-10-02 00:29:10.042], ~N[2014-10-02 00:29:10.021], :millisecond)
       21
+      iex> NaiveDateTime.diff(~N[2014-10-02 00:29:10], ~N[2014-10-02 00:29:12])
+      -2
 
       # to Gregorian seconds
       iex> NaiveDateTime.diff(~N[2014-10-02 00:29:10], ~N[0000-01-01 00:00:00])

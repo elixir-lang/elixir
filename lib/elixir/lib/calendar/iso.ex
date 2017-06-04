@@ -15,9 +15,9 @@ defmodule Calendar.ISO do
 
   @behaviour Calendar
 
-  @unix_epoch :calendar.datetime_to_gregorian_seconds {{1970, 1, 1}, {0, 0, 0}}
+  @unix_epoch 62167219200
   @unix_start 1_000_000 * -@unix_epoch
-  @unix_end 1_000_000 * (-@unix_epoch + :calendar.datetime_to_gregorian_seconds({{9999, 12, 31}, {23, 59, 59}}))
+  @unix_end 1_000_000 * (315569519999 - @unix_epoch)
   @unix_range_microseconds @unix_start..@unix_end
 
   @type year :: 0..9999
@@ -87,6 +87,9 @@ defmodule Calendar.ISO do
   """
   @spec time_to_day_fraction(Calendar.hour, Calendar.minute,
                              Calendar.second, Calendar.microsecond) :: Calendar.day_fraction
+  def time_to_day_fraction(0, 0, 0, {0, _}) do
+    {0, 86400000000}
+  end
   def time_to_day_fraction(hour, minute, second, {microsecond, _}) do
     combined_seconds = hour * @seconds_per_hour + minute * @seconds_per_minute + second
     {combined_seconds * @microseconds_per_second + microsecond, @seconds_per_day * @microseconds_per_second}
@@ -115,6 +118,12 @@ defmodule Calendar.ISO do
 
   # Converts a year, month, day in only a count of days since the Rata Die epoch.
   @doc false
+  def date_to_rata_die_days(0, 1, 1) do
+    -365
+  end
+  def date_to_rata_die_days(1970, 1, 1) do
+    719163
+  end
   def date_to_rata_die_days(year, month, day) do
     # Rata Die starts at year 1, rather than at year 0.
     :calendar.date_to_gregorian_days(year, month, day) - 365
@@ -261,7 +270,7 @@ defmodule Calendar.ISO do
   end
 
   def valid_date?(year, month, day) do
-    :calendar.valid_date(year, month, day) and year <= 9999
+    year <= 9999 and :calendar.valid_date(year, month, day)
   end
 
   def valid_time?(hour, minute, second, {microsecond, _}) do

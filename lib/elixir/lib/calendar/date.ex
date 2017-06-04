@@ -23,13 +23,31 @@ defmodule Date do
   such as `NaiveDateTime` and `DateTime`. Such functions expect
   `t:Calendar.date/0` in their typespecs (instead of `t:t/0`).
 
-  Remember, comparisons in Elixir using `==`, `>`, `<` and friends
-  are structural and based on the Date struct fields. For proper
-  comparison between dates, use the `compare/2` function.
+  Developers should avoid creating the Date structs directly
+  and instead rely on the functions provided by this module as well
+  as the ones in 3rd party calendar libraries.
 
-  Developers should avoid creating the Date struct directly and
-  instead rely on the functions provided by this module as well as
-  the ones in 3rd party calendar libraries.
+  ## Comparing dates
+
+  Comparisons in Elixir using `==`, `>`, `<` and similar are structural
+  and based on the `Date` struct fields. For proper comparison between
+  dates, use the `compare/2` function.
+
+  ## Using epochs
+
+  The `add/2` and `diff/2` functions can be used for computing dates
+  or retrieving the amount of days betweens instants. For example, if there
+  is an interest in computing the amount of days from the Unix epoch
+  (1970-01-01):
+
+      iex> Date.diff(~D[2010-04-17], ~D[1970-01-01])
+      14716
+
+      iex> Date.diff(~D[1970-01-01], 14716)
+      ~D[2010-04-17]
+
+  Those functions are optimized to detail with common epochs, such
+  as the Unix Epoch above or the Gregorian Epoch (0000-01-01).
   """
 
   @enforce_keys [:year, :month, :day]
@@ -401,12 +419,33 @@ defmodule Date do
     end
   end
 
+
+  @doc """
+  Adds the number of days to the given date.
+
+  The days are counted as gregorian days. The date is returned in the same
+  calendar as it was given in.
+
+  ## Examples
+
+      iex> Date.add(~D[2000-01-03], -2)
+      ~D[2000-01-01]
+      iex> Date.add(~D[2000-01-01], 2)
+      ~D[2000-01-03]
+
+  """
+  @spec add(Date.t, integer()) :: Date.t
+  def add(%Date{calendar: calendar} = date, days) do
+    {rata_days, fraction} = to_rata_die(date)
+    from_rata_die({rata_days + days, fraction}, calendar)
+  end
+
   @doc """
   Calculates the difference between two dates, in a full number of days.
 
-  Note that only `Date` structs that follow the same or compatible
-  calendars can be compared this way. If two calendars are not compatible,
-  it will raise.
+  It returns the number of gregorian days between the dates. Only `Date`
+  structs that follow the same or compatible calendars can be compared
+  this way. If two calendars are not compatible, it will raise.
 
   ## Examples
 
@@ -417,6 +456,12 @@ defmodule Date do
 
   """
   @spec diff(Date.t, Date.t) :: integer
+  def diff(%Date{calendar: Calendar.ISO, year: year1, month: month1, day: day1},
+           %Date{calendar: Calendar.ISO, year: year2, month: month2, day: day2}) do
+    Calendar.ISO.date_to_rata_die_days(year1, month1, day1) -
+      Calendar.ISO.date_to_rata_die_days(year2, month2, day2)
+  end
+
   def diff(%Date{} = date1, %Date{} = date2) do
     if Calendar.compatible_calendars?(date1.calendar, date2.calendar) do
       {days1, _} = to_rata_die(date1)

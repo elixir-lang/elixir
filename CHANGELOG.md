@@ -10,7 +10,7 @@
   * [Calendar] Limit `Calendar.ISO` up to year 10000
   * [Calendar] Add Rata Die format for conversions between Calendars and `Date.convert/2`, `Time.convert/2`, `NaiveDateTime.convert/2` and `DateTime.convert/2` (as well as bang variants)
   * [Calendar] Add `:calendar` field to `Time` struct
-  * [Calendar] Add `Date.diff/2`
+  * [Calendar] Add `Time.diff/3`, `Date.add/2`, `Date.diff/2`, `DateTime.diff/3`
   * [Enum] Add `Enum.chunk_by/4` and `Stream.chunk_by/4`
   * [Exception] Add `Exception.blame/3` that adds metadata to exceptions
   * [File] Add `File.read_link/1` and `File.read_link!/1`
