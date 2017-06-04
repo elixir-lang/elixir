@@ -569,10 +569,12 @@ defmodule Supervisor do
       e in UndefinedFunctionError ->
         case System.stacktrace do
           [{^module, :child_spec, [^arg], _} | _] ->
-            raise ArgumentError, "#{inspect module} was given as a child to Supervisor " <>
-                                 "but it does not implemente the child_spec/1 function. " <>
-                                 "child_spec/1 receives an argument and must return a child " <>
-                                 "specification. See the Supervisor module docs for more information."
+            raise ArgumentError,
+                  "#{inspect module} was given as a child to a supervisor but it does not " <>
+                  "implement child_spec/1. If you own the given module, please define a " <>
+                  "child_spec/1 function that receives an argument and returns a child " <>
+                  "specification. If not, pass a map child specification instead of the " <>
+                  "given module to the supervisor. See the Supervisor module for documentation."
           stack ->
             reraise e, stack
         end
@@ -582,9 +584,9 @@ defmodule Supervisor do
     map
   end
   defp init_child(other) do
-    raise ArgumentError, "Supervisor.start_link/2 and Supervisor.init/2 expect the child to be a " <>
-                         "module, a {module, arg} tuple or a map with the child specification, " <>
-                         "got: #{inspect other}"
+    raise ArgumentError,
+          "Supervisor.start_link/2 and Supervisor.init/2 expect the child to be a module, " <>
+          "a {module, arg} tuple or a map with the child specification, got: #{inspect other}"
   end
 
   @doc """

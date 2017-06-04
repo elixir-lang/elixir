@@ -22,6 +22,15 @@ defmodule Task.Supervisor do
                   {:restart, :supervisor.restart} |
                   {:shutdown, :supervisor.shutdown}
 
+  @doc false
+  def child_spec(arg) do
+    %{
+      id: Task.Supervivsor,
+      start: {Task.Supervisor, :start_link, [arg]},
+      type: :supervisor
+    }
+  end
+
   @doc """
   Starts a new supervisor.
 

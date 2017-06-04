@@ -30,6 +30,11 @@ defmodule TaskTest do
     number
   end
 
+  test "can be supervised directly" do
+    assert {:ok, _} =
+           Supervisor.start_link([{Task, fn -> :ok end}], strategy: :one_for_one)
+  end
+
   test "async/1" do
     parent = self()
     fun = fn -> wait_and_send(parent, :done) end

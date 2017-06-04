@@ -164,6 +164,15 @@ defmodule Task do
 
   @type t :: %__MODULE__{}
 
+  @doc false
+  def child_spec(arg) do
+    %{
+      id: Task,
+      start: {Task, :start_link, [arg]},
+      restart: :temporary
+    }
+  end
+
   @doc """
   Starts a task as part of a supervision tree.
   """

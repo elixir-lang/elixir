@@ -9,6 +9,11 @@ defmodule AgentTest do
     state
   end
 
+  test "can be supervised directly" do
+    assert {:ok, _} =
+           Supervisor.start_link([{Agent, fn -> :ok end}], strategy: :one_for_one)
+  end
+
   test "start_link/2 workflow with unregistered name and anonymous functions" do
     {:ok, pid} = Agent.start_link(&Map.new/0)
 

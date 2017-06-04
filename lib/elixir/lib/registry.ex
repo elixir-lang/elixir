@@ -307,9 +307,7 @@ defmodule Registry do
     %{
       id: Registry,
       start: {Registry, :start_link, [opts]},
-      type: :supervisor,
-      shutdown: :infinity,
-      restart: :permanent
+      type: :supervisor
     }
   end
 

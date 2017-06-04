@@ -122,6 +122,14 @@ defmodule Agent do
   @typedoc "The agent state"
   @type state :: term
 
+  @doc false
+  def child_spec(arg) do
+    %{
+      id: Agent,
+      start: {Agent, :start_link, [arg]}
+    }
+  end
+
   @doc """
   Starts an agent linked to the current process with the given function.
 
