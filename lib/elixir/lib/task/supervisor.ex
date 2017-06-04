@@ -18,8 +18,9 @@ defmodule Task.Supervisor do
   """
 
   @typedoc "Option values used by `start_link`"
-  @type option :: Supervisor.option | {:restart, Supervisor.Spec.restart} |
-                  {:shutdown, Supervisor.Spec.shutdown}
+  @type option :: Supervisor.option |
+                  {:restart, :supervisor.restart} |
+                  {:shutdown, :supervisor.shutdown}
 
   @doc """
   Starts a new supervisor.
@@ -31,14 +32,14 @@ defmodule Task.Supervisor do
     docs;
 
   * `:restart` - the restart strategy, may be `:temporary` (the default),
-    `:transient` or `:permanent`. Check `Supervisor.Spec` for more info.
+    `:transient` or `:permanent`. Check `Supervisor` for more info.
     Defaults to `:temporary` so tasks aren't automatically restarted when
     they complete nor in case of crashes;
 
   * `:shutdown` - `:brutal_kill` if the tasks must be killed directly on shutdown
     or an integer indicating the timeout value, defaults to 5000 milliseconds;
 
-  * `:max_restarts` and `:max_seconds` - as specified in `Supervisor.Spec.supervise/2`;
+  * `:max_restarts` and `:max_seconds` - as specified in `Supervisor`;
 
   """
   @spec start_link([option]) :: Supervisor.on_start

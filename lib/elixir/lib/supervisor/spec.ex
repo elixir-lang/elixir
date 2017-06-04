@@ -103,7 +103,8 @@ defmodule Supervisor.Spec do
 
   """
 
-  # TODO: Deprecate all functions in this module on Elixir v1.8
+  # TODO: Deprecate all functions in this module on Elixir v1.8.
+  # Also deprecate entry in Supervisor.Default.
 
   @typedoc "Supported strategies"
   @type strategy :: :simple_one_for_one | :one_for_one | :one_for_all | :rest_for_one

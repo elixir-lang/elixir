@@ -56,27 +56,42 @@ defmodule Task do
 
   ## Supervised tasks
 
-  It is also possible to spawn a task under a supervisor:
+  It is also possible to spawn a task under a supervisor.
+  It is often done by defining the task in its own module:
 
-      import Supervisor.Spec
+      defmodule MyTask do
+        use Task
 
-      children = [
-        #
-        worker(Task, [fn -> IO.puts "ok" end])
-      ]
+        def start_link(arg) do
+          Task.start_link(__MODULE__, :run, [arg])
+        end
 
-  Internally the supervisor will invoke `Task.start_link/1`.
+        def run(arg) do
+          # ...
+        end
+      end
+
+  And then passing it to the supervisor:
+
+      Supervisor.start_link([MyTask])
 
   Since these tasks are supervised and not directly linked to
   the caller, they cannot be awaited on. Note `start_link/1`,
-  unlike `async/1`, returns `{:ok, pid}` (which is
-  the result expected by supervision trees).
+  unlike `async/1`, returns `{:ok, pid}` (which is the result
+  expected by supervisors).
 
-  By default, most supervision strategies will try to restart
-  a worker after it exits regardless of the reason. If you design
-  the task to terminate normally (as in the example with `IO.puts/2`
-  above), consider passing `restart: :transient` in the options
-  to `Supervisor.Spec.worker/3`.
+  Note `use Task` will define a `child_spec/1` that configures
+  the task to have `:temporary` restart. This means the task
+  will not be restarted even if it crashes. If you desire the
+  task to be restarted for non-successful exists, do:
+
+      use Task, restart: :transient
+
+  If you want the task to always be restarted:
+
+      use Task, restart: :permanent
+
+  See the `Supervisor` docs for more information.
 
   ## Dynamically supervised tasks
 
@@ -94,11 +109,9 @@ defmodule Task do
   However, in the majority of cases, you want to add the task supervisor
   to your supervision tree:
 
-      import Supervisor.Spec
-
-      children = [
-        supervisor(Task.Supervisor, [[name: MyApp.TaskSupervisor]])
-      ]
+      Supervisor.start_link([
+        {Task.Supervisor, name: MyApp.TaskSupervisor}
+      ])
 
   Now you can dynamically start supervised tasks:
 

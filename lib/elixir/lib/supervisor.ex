@@ -440,15 +440,18 @@ defmodule Supervisor do
   @type name :: atom | {:global, term} | {:via, module, term}
 
   @typedoc "Option values used by the `start*` functions"
-  @type option :: {:name, name} | {:strategy, Supervisor.Spec.strategy} |
-                  {:max_restarts, non_neg_integer} |
-                  {:max_seconds, pos_integer}
+  @type option :: {:name, name} | flag()
 
   @typedoc "Options used by the `start*` functions"
   @type options :: [option, ...]
 
   @typedoc "The supervisor reference"
   @type supervisor :: pid | name | {atom, node}
+
+  @typedoc "Options given to `start_link/2` and `init/2`"
+  @type flag :: {:strategy, strategy} |
+                {:max_restarts, non_neg_integer} |
+                {:max_seconds, pos_integer}
 
   @typedoc "Supported strategies"
   @type strategy :: :simple_one_for_one | :one_for_one | :one_for_all | :rest_for_one
@@ -459,20 +462,22 @@ defmodule Supervisor do
   @doc """
   Starts a supervisor with the given children.
 
-  A strategy is required to be provided through the `:strategy` option.
-  Furthermore, the `:max_restarts` and `:max_seconds` options can be
-  configured as described in the documentation for `Supervisor.Spec.supervise/2`.
+  The children is a list of modules, 2-element tuples with module and
+  arguments or a map with the child specification. A strategy is required
+  to be provided through the `:strategy` option. See
+  "start_link/2, init/2 and strategies" for examples and other options.
 
   The options can also be used to register a supervisor name.
   The supported values are described under the "Name registration"
   section in the `GenServer` module docs.
 
-  If the supervisor and its child processes are successfully created
-  (i.e., if the start function of each child process returns `{:ok, child}`,
+  If the supervisor and its child processes are successfully spawned
+  (if the start function of each child process returns `{:ok, child}`,
   `{:ok, child, info}`, or `:ignore`) this function returns
-  `{:ok, pid}`, where `pid` is the PID of the supervisor. If a process with the
-   specified name already exists, the function returns `{:error,
-   {:already_started, pid}}`, where `pid` is the PID of that process.
+  `{:ok, pid}`, where `pid` is the PID of the supervisor. If the supervisor
+  is given a name and a process with the specified name already exists,
+  the function returns `{:error,  {:already_started, pid}}`, where `pid`
+  is the PID of that process.
 
   If the start function of any of the child processes fails or returns an error
   tuple or an erroneous value, the supervisor first terminates with reason
@@ -483,12 +488,11 @@ defmodule Supervisor do
   process and exits not only on crashes but also if the parent process exits
   with `:normal` reason.
   """
-  @spec start_link([Supervisor.Spec.spec], options) :: on_start
+  @spec start_link([child_spec | {module, term} | module], options) :: on_start
   def start_link(children, options) when is_list(children) do
     sup_keys =  [:strategy, :max_seconds, :max_restarts]
     {sup_opts, start_opts} = Keyword.split(options, sup_keys)
-    spec = Supervisor.Spec.supervise(children, sup_opts)
-    start_link(Supervisor.Default, spec, start_opts)
+    start_link(Supervisor.Default, {spec, sup_opts}, start_opts)
   end
 
   @doc """
@@ -527,8 +531,7 @@ defmodule Supervisor do
   is allowed within 5 seconds. Check the `Supervisor` module for a detailed
   description of the available strategies.
   """
-  @spec init([child_spec | {module, term} | module],
-             strategy: strategy, max_restarts: non_neg_integer, max_seconds: pos_integer) :: {:ok, tuple}
+  @spec init([child_spec | {module, term} | module], flag) :: {:ok, tuple}
   def init(children, options) do
     unless strategy = options[:strategy] do
       raise ArgumentError, "expected :strategy option to be given"
@@ -544,8 +547,8 @@ defmodule Supervisor do
 
   To start the supervisor, the `c:init/1` callback will be invoked in the given
   `module`, with `arg` as its argument. The `c:init/1` callback must return a
-  supervisor specification which can be created with the help of the functions
-  in the `Supervisor.Spec` module (especially `Supervisor.Spec.supervise/2`).
+  supervisor specification which can be created with the help of the `init/2`
+  function.
 
   If the `c:init/1` callback returns `:ignore`, this function returns
   `:ignore` as well and the supervisor terminates with reason `:normal`.
@@ -613,7 +616,9 @@ defmodule Supervisor do
   returns `{:error, error}` where `error` is a term containing information about
   the error and child specification.
   """
-  @spec start_child(supervisor, Supervisor.Spec.spec | [term]) :: on_start_child
+  # TODO: Once we add DynamicSupervisor, we need to enforce receiving
+  # a map here and deprecate the list and tuple formats.
+  @spec start_child(supervisor, child_spec | [term]) :: on_start_child
   def start_child(supervisor, child_spec_or_args) do
     call(supervisor, {:start_child, child_spec_or_args})
   end
@@ -637,7 +642,7 @@ defmodule Supervisor do
   for the given child id or there is no process with the given PID, this
   function returns `{:error, :not_found}`.
   """
-  @spec terminate_child(supervisor, pid | Supervisor.Spec.child_id) :: :ok | {:error, error}
+  @spec terminate_child(supervisor, pid | term()) :: :ok | {:error, error}
         when error: :not_found | :simple_one_for_one
   def terminate_child(supervisor, pid_or_child_id) do
     call(supervisor, {:terminate_child, pid_or_child_id})
@@ -655,7 +660,7 @@ defmodule Supervisor do
 
   This operation is not supported by `:simple_one_for_one` supervisors.
   """
-  @spec delete_child(supervisor, Supervisor.Spec.child_id) :: :ok | {:error, error}
+  @spec delete_child(supervisor, term()) :: :ok | {:error, error}
         when error: :not_found | :simple_one_for_one | :running | :restarting
   def delete_child(supervisor, child_id) do
     call(supervisor, {:delete_child, child_id})
@@ -685,7 +690,7 @@ defmodule Supervisor do
 
   This operation is not supported by `:simple_one_for_one` supervisors.
   """
-  @spec restart_child(supervisor, Supervisor.Spec.child_id) ::
+  @spec restart_child(supervisor, term()) ::
         {:ok, child} | {:ok, child, term} | {:error, error}
         when error: :not_found | :simple_one_for_one | :running | :restarting | term
   def restart_child(supervisor, child_id) do
@@ -713,10 +718,10 @@ defmodule Supervisor do
 
   """
   @spec which_children(supervisor) ::
-        [{Supervisor.Spec.child_id | :undefined,
-           child | :restarting,
-           Supervisor.Spec.worker,
-           Supervisor.Spec.modules}]
+        [{term() | :undefined,
+          child | :restarting,
+          :worker | :supervisor,
+          :supervisor.modules}]
   def which_children(supervisor) do
     call(supervisor, :which_children)
   end
