@@ -129,10 +129,10 @@ defmodule Supervisor do
 
   In summary, when the `Supervisor.start_link(children, opts)` is called,
   it traverses the list of children and retrieves their `child_spec/1`.
-  Then each child specification contains how each child is started,
+  Then each child specification describes how each child is started,
   typically via the `start_link/1` function. The supervisor invokes the
-  `start_link/1` when it starts and whenever the child process crashes.
-  The `start_link/1` function starts a new process. This new process often
+  `start_link/1` when it initializes and whenever the child process needs
+  to be restarted. The new process started by `start_link/1` often
   executes the `init` callback as its first step. The `init` callback is
   where we initialize and configure the child process.
 
@@ -175,7 +175,7 @@ defmodule Supervisor do
     * `:type` - if the child process is a `:worker` or a `:supervisor`.
       This key is optional and defaults to `:worker`.
 
-  There is a sixth key, called `:modules`, which is rarely used and
+  There is a sixth key, called `:modules`, which is rarely changed and
   it is set automatically based on the value in `:start`.
 
   Most times, the behaviour module you are implementing will take care
@@ -198,22 +198,23 @@ defmodule Supervisor do
     * `:brutal_kill` - the child process is unconditionally terminated
       using `Process.exit(child, :kill)`.
 
-    * any integer - the amount of time in miliseconds that the supervisor
-      will wait for children to terminate after emitting a
-      `Process.exit(child, :shutdown)` signal.  If the child process is not
-      trapping exits, the initial `:shutdown` signal will terminate the
-      child process immediately. If the child process is trapping exits, it
-      has the given amount of time in miliseconds to terminate. If it doesn't
-      terminate within the specified time, the child process is unconditionally
-      terminated by the supervisor via `Process.exit(child, :kill)`.
+    * any integer >= 0 - the amount of time in miliseconds that the
+      supervisor will wait for children to terminate after emitting a
+      `Process.exit(child, :shutdown)` signal.  If the child process is
+      not trapping exits, the initial `:shutdown` signal will terminate
+      the child process immediately. If the child process is trapping
+      exits, it has the given amount of time in miliseconds to terminate.
+      If it doesn't terminate within the specified time, the child process
+      is unconditionally terminated by the supervisor via
+      `Process.exit(child, :kill)`.
 
     * `:infinity` - works as an integer except the supervisor will wait
       indefinitely for the child to terminate. If the child process is a
-      supervisor, this is a mechanism to give the supervisor and its children
-      enough time to shutdown. This option can be used with regular workers
-      but doing so is discouraged and it requires extreme care. If not used
-      carefully and the child process does not terminate, it means your
-      application will never terminate as well.
+      supervisor, the recommend value is `:infinity` to give the supervisor
+      and its children enough time to shutdown. This option can be used with
+      regular workers but doing so is discouraged and requires extreme care.
+      If not used carefully and the child process does not terminate, it means
+      your application will never terminate as well.
 
   ### Restart values (:restart)
 
@@ -325,7 +326,8 @@ defmodule Supervisor do
   be either:
 
       * a module - such as `Stack`. In this case, it is equivalent to passing
-        `{Stack, []}`.
+        `{Stack, []}` (which means `Stack.child_spec/1` is invoked with an empty
+        keywords list)
       * a tuple with a module as first element and the start argument as second -
         such as `{Stack, [:hello]}`. When such format is used, the supervisor
         will retrieve the child specification from the given module.
@@ -490,9 +492,8 @@ defmodule Supervisor do
   """
   @spec start_link([child_spec | {module, term} | module], options) :: on_start
   def start_link(children, options) when is_list(children) do
-    sup_keys =  [:strategy, :max_seconds, :max_restarts]
-    {sup_opts, start_opts} = Keyword.split(options, sup_keys)
-    start_link(Supervisor.Default, {spec, sup_opts}, start_opts)
+    {sup_opts, start_opts} = Keyword.split(options, [:strategy, :max_seconds, :max_restarts])
+    start_link(Supervisor.Default, {children, sup_opts}, start_opts)
   end
 
   @doc """
