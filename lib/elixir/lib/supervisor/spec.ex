@@ -1,5 +1,8 @@
 defmodule Supervisor.Spec do
   @moduledoc """
+  NOTE: The functions in this module are deprecated. Please see
+  `Supervisor` instead.
+
   Convenience functions for defining supervisor specifications.
 
   ## Example
@@ -100,7 +103,7 @@ defmodule Supervisor.Spec do
 
   """
 
-  # TODO: Update and provide a digest of strategies once we include DynamicSupervisor.
+  # TODO: Deprecate all functions in this module on Elixir v1.8
 
   @typedoc "Supported strategies"
   @type strategy :: :simple_one_for_one | :one_for_one | :one_for_all | :rest_for_one
@@ -160,8 +163,6 @@ defmodule Supervisor.Spec do
   @spec supervise([spec], strategy: strategy,
                           max_restarts: non_neg_integer,
                           max_seconds: pos_integer) :: {:ok, tuple}
-  # TODO: Make it return a tuple of format {:ok, children, opts}
-  # TODO: Deprecate once the new tuple format has been established
   def supervise(children, options) do
     unless strategy = options[:strategy] do
       raise ArgumentError, "expected :strategy option to be given"
@@ -237,7 +238,6 @@ defmodule Supervisor.Spec do
     child(:supervisor, module, args, options)
   end
 
-  # TODO: Do and expose proper child validation
   defp child(type, module, args, options) do
     id       = Keyword.get(options, :id, module)
     modules  = Keyword.get(options, :modules, modules(module))
@@ -249,7 +249,6 @@ defmodule Supervisor.Spec do
       restart, shutdown, type, modules}
   end
 
-  # TODO: Remove GenEvent when there is no more GenEvent v2.0
   defp modules(GenEvent), do: :dynamic
   defp modules(module),   do: [module]
 end
