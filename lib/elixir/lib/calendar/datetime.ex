@@ -114,6 +114,12 @@ defmodule DateTime do
 
   ## Examples
 
+      # An easy way to get the Unix epoch is passing 0 to this function
+      iex> DateTime.from_unix!(0)
+      %DateTime{calendar: Calendar.ISO, day: 1, hour: 0, microsecond: {0, 0},
+                minute: 0, month: 1, second: 0, std_offset: 0, time_zone: "Etc/UTC",
+                utc_offset: 0, year: 1970, zone_abbr: "UTC"}
+
       iex> DateTime.from_unix!(1464096368)
       %DateTime{calendar: Calendar.ISO, day: 24, hour: 13, microsecond: {0, 0}, minute: 26,
                 month: 5, second: 8, std_offset: 0, time_zone: "Etc/UTC", utc_offset: 0,
