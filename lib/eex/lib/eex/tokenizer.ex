@@ -19,7 +19,7 @@ defmodule EEx.Tokenizer do
 
   Or `{:error, line, error}` in case of errors.
   """
-  @spec tokenize(binary | charlist, line, Keyword.t) :: {:ok, [token]} | {:error, line, String.t}
+  @spec tokenize(binary | charlist, line, keyword) :: {:ok, [token]} | {:error, line, String.t}
   def tokenize(bin, line, opts \\ [])
 
   def tokenize(bin, line, opts)

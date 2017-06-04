@@ -164,7 +164,7 @@ defmodule Version do
       ** (Version.InvalidRequirementError) invalid requirement: "== == 1.0.0"
 
   """
-  @spec match?(version, requirement, Keyword.t) :: boolean
+  @spec match?(version, requirement, keyword) :: boolean
   def match?(version, requirement, opts \\ [])
 
   def match?(version, requirement, opts) when is_binary(requirement) do

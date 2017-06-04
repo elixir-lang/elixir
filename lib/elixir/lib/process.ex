@@ -602,7 +602,7 @@ defmodule Process do
 
   See [`:erlang.process_info/1`](http://www.erlang.org/doc/man/erlang.html#process_info-1) for more info.
   """
-  @spec info(pid) :: Keyword.t
+  @spec info(pid) :: keyword
   def info(pid) do
     nillify :erlang.process_info(pid)
   end

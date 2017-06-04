@@ -71,7 +71,7 @@ defmodule Record do
        uid: :undefined, gid: :undefined]
 
   """
-  @spec extract(name :: atom, Keyword.t) :: Keyword.t
+  @spec extract(name :: atom, keyword) :: keyword
   def extract(name, opts) when is_atom(name) and is_list(opts) do
     Record.Extractor.extract(name, opts)
   end
@@ -100,7 +100,7 @@ defmodule Record do
   These options are expected to be literals (including the binary values) at
   compile time.
   """
-  @spec extract_all(Keyword.t) :: [{name :: atom, Keyword.t}]
+  @spec extract_all(keyword) :: [{name :: atom, keyword}]
   def extract_all(opts) when is_list(opts) do
     Record.Extractor.extract_all(opts)
   end

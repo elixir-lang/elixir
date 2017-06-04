@@ -59,7 +59,7 @@ defmodule IEx.Server do
   Requests to take over the given shell from the
   current process.
   """
-  @spec take_over(binary, Keyword.t, pos_integer) ::
+  @spec take_over(binary, keyword, pos_integer) ::
         :ok | {:error, :no_iex} | {:error, :refused}
   def take_over(identifier, opts, timeout \\ 1000, server \\ whereis()) do
     cond do
@@ -143,7 +143,7 @@ defmodule IEx.Server do
   @doc """
   Starts an evaluator using the provided options.
   """
-  @spec start_evaluator(Keyword.t) :: pid
+  @spec start_evaluator(keyword) :: pid
   def start_evaluator(opts) do
     self_pid = self()
     self_leader = Process.group_leader

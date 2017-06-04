@@ -104,7 +104,7 @@ defmodule Logger.Formatter do
   metadata listdict and returns a properly formatted string.
   """
 
-  @spec format({atom, atom} | [pattern | binary], Logger.level, Logger.message, time, Keyword.t) ::
+  @spec format({atom, atom} | [pattern | binary], Logger.level, Logger.message, time, keyword) ::
     IO.chardata
   def format({mod, fun}, level, msg, ts, md) do
     apply(mod, fun, [level, msg, ts, md])

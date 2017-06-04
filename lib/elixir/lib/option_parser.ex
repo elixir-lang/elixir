@@ -4,9 +4,9 @@ defmodule OptionParser do
   """
 
   @type argv    :: [String.t]
-  @type parsed  :: Keyword.t
+  @type parsed  :: keyword
   @type errors  :: [{String.t, String.t | nil}]
-  @type options :: [switches: Keyword.t, strict: Keyword.t, aliases: Keyword.t]
+  @type options :: [switches: keyword, strict: keyword, aliases: keyword]
 
   defmodule ParseError do
     defexception [:message]
