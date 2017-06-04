@@ -287,7 +287,7 @@ defmodule Supervisor do
   supervisor gives you are more direct control over how the supervisor
   is initialized. Instead of calling `Supervisor.start_link/2` with
   a list of children that are automatically initialized, we have
-  defined a supervisor alongside its `init/1` callback and manually
+  defined a supervisor alongside its `c:init/1` callback and manually
   initialized the children by calling `Supervisor.init/2`, passing
   the same arguments we would have given to `start_link/2`.
 
@@ -489,6 +489,54 @@ defmodule Supervisor do
     {sup_opts, start_opts} = Keyword.split(options, sup_keys)
     spec = Supervisor.Spec.supervise(children, sup_opts)
     start_link(Supervisor.Default, spec, start_opts)
+  end
+
+  @doc """
+  Receives a list of children to initialize and a set of options.
+
+  This is typically invoked at the end of the `c:init/1` callback of
+  module-based supervisors. See the sections "Module-based supervisors"
+  and "start_link/2, init/2 and strategies" in the module
+  documentation for more information.
+
+  This function returns a tuple containing the supervisor
+  flags and child specifications.
+
+  ## Examples
+
+      def init(_arg) do
+        Supervisor.init([
+          {Stack, [:hello]}
+        ], strategy: :one_for_one)
+      end
+
+  ## Options
+
+    * `:strategy` - the restart strategy option. It can be either
+      `:one_for_one`, `:rest_for_one`, `:one_for_all`, or
+      `:simple_one_for_one`. You can learn more about strategies
+      in the `Supervisor` module docs.
+
+    * `:max_restarts` - the maximum amount of restarts allowed in
+      a time frame. Defaults to `3`.
+
+    * `:max_seconds` - the time frame in which `:max_restarts` applies.
+      Defaults to `5`.
+
+  The `:strategy` option is required and by default a maximum of 3 restarts
+  is allowed within 5 seconds. Check the `Supervisor` module for a detailed
+  description of the available strategies.
+  """
+  @spec init([child_spec | {module, term} | module],
+             strategy: strategy, max_restarts: non_neg_integer, max_seconds: pos_integer) :: {:ok, tuple}
+  def init(children, options) do
+    unless strategy = options[:strategy] do
+      raise ArgumentError, "expected :strategy option to be given"
+    end
+    intensity = Keyword.get(options, :max_restarts, 3)
+    period = Keyword.get(options, :max_seconds, 5)
+    flags = %{strategy: strategy, intensity: intensity, period: period}
+    {:ok, {flags, children}}
   end
 
   @doc """
