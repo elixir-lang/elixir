@@ -212,7 +212,7 @@ defmodule Time do
       iex> Time.from_iso8601!("2015:01:23 23-50-07")
       ** (ArgumentError) cannot parse "2015:01:23 23-50-07" as time, reason: :invalid_format
   """
-  @spec from_iso8601!(String.t) :: t | no_return
+  @spec from_iso8601!(String.t) :: t
   def from_iso8601!(string) do
     case from_iso8601(string) do
       {:ok, value} ->
@@ -227,7 +227,8 @@ defmodule Time do
   [ISO 8601:2004](https://en.wikipedia.org/wiki/ISO_8601).
 
   By default, `Time.to_iso8601/2` returns times formatted in the "extended"
-  format, for human readability. It also supports the "basic" format through passing the `:basic` option.
+  format, for human readability. It also supports the "basic" format through
+  passing the `:basic` option.
 
   ### Examples
 
@@ -240,23 +241,14 @@ defmodule Time do
       iex> Time.to_iso8601(~T[23:00:13.001], :basic)
       "230013.001"
 
-  """
-  @spec to_iso8601(Time.t, :extended | :basic) :: String.t
-  def to_iso8601(time, format \\ :extended)
+      iex> Time.to_iso8601(~N[2010-04-17 23:00:13])
+      "23:00:13"
 
-  def to_iso8601(%Time{} = time, format) when format in [:extended, :basic] do
+  """
+  @spec to_iso8601(Calendar.time, :extended | :basic) :: String.t
+  def to_iso8601(time, format \\ :extended) when format in [:extended, :basic] do
     %{hour: hour, minute: minute, second: second, microsecond: microsecond} = convert!(time, Calendar.ISO)
     Calendar.ISO.time_to_iso8601(hour, minute, second, microsecond, format)
-  end
-
-  def to_iso8601(%{hour: hour, minute: minute, second: second, microsecond: microsecond, calendar:
-    Calendar.ISO}, format) when format in [:extended, :basic] do
-    IO.warn "calling Time.to_erl/1 with a DateTime or NaiveDateTime structs is deprecated, explicitly convert them into a Time first by using DateTime.to_time/1 or NaiveDateTime.to_time/1 respectively"
-    Calendar.ISO.time_to_iso8601(hour, minute, second, microsecond, format)
-  end
-
-  def to_iso8601(_date, format) do
-    raise ArgumentError, "Time.to_iso8601/2 expects format to be :extended or :basic, got: #{inspect format}"
   end
 
   @doc """
@@ -270,15 +262,13 @@ defmodule Time do
       iex> Time.to_erl(~T[23:30:15.999])
       {23, 30, 15}
 
-  """
-  @spec to_erl(Time.t) :: :calendar.time
-  def to_erl(%Time{} = time) do
-    %{hour: hour, minute: minute, second: second} = convert!(time, Calendar.ISO)
-    {hour, minute, second}
-  end
+      iex> Time.to_erl(~N[2010-04-17 23:30:15.999])
+      {23, 30, 15}
 
-  def to_erl(%{calendar: Calendar.ISO, hour: hour, minute: minute, second: second}) do
-    IO.warn "calling Time.to_erl/1 with a DateTime or NaiveDateTime structs is deprecated, explicitly convert them into a Time first by using DateTime.to_time/1 or NaiveDateTime.to_time/1 respectively"
+  """
+  @spec to_erl(Calendar.time) :: :calendar.time
+  def to_erl(time) do
+    %{hour: hour, minute: minute, second: second} = convert!(time, Calendar.ISO)
     {hour, minute, second}
   end
 
@@ -314,7 +304,7 @@ defmodule Time do
       ** (ArgumentError) cannot convert {24, 30, 15} to time, reason: :invalid_time
 
   """
-  @spec from_erl!(:calendar.time, Calendar.microsecond, Calendar.calendar) :: t | no_return
+  @spec from_erl!(:calendar.time, Calendar.microsecond, Calendar.calendar) :: t
   def from_erl!(tuple, microsecond \\ {0, 0}, calendar \\ Calendar.ISO) do
     case from_erl(tuple, microsecond, calendar) do
       {:ok, value} ->
@@ -365,24 +355,25 @@ defmodule Time do
   Returns `{:ok, time}` if the conversion was successful,
   or `{:error, reason}` if it was not, for some reason.
   """
-  @spec convert(Time.t, Calendar.calendar) :: {:ok, Time.t} | {:error, atom}
+  @spec convert(Calendar.time, Calendar.calendar) :: {:ok, Time.t} | {:error, atom}
   def convert(%Time{calendar: calendar} = time, calendar) do
     {:ok, time}
   end
 
-  def convert(%Time{} = time, calendar) do
-    result_time =
+  def convert(%{microsecond: {_, precision}} = time, calendar) do
+    {hour, minute, second, {microsecond, _}} =
       time
       |> to_day_fraction()
       |> calendar.time_from_day_fraction
-    {:ok, result_time}
+    {:ok, %Time{calendar: calendar, hour: hour, minute: minute, second: second,
+                microsecond: {microsecond, precision}}}
   end
 
   @doc """
   Similar to `Time.convert/2`, but raises an `ArgumentError`
   if the conversion between the two calendars is not possible.
   """
-  @spec convert!(Time.t, Calendar.calendar) :: Time.t
+  @spec convert!(Calendar.time, Calendar.calendar) :: Time.t
   def convert!(time, calendar) do
     case convert(time, calendar) do
       {:ok, value} ->
@@ -424,10 +415,6 @@ defmodule Time do
 
   defp to_day_fraction(%{hour: hour, minute: minute, second: second, microsecond: {_, _} = microsecond, calendar: calendar}) do
     calendar.time_to_day_fraction(hour, minute, second, microsecond)
-  end
-
-  defp to_day_fraction(%{hour: hour, minute: minute, second: second, microsecond: microsecond, calendar: calendar}) do
-    calendar.time_to_day_fraction(hour, minute, second, {microsecond, 0})
   end
 
   defimpl String.Chars do

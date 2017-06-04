@@ -596,17 +596,17 @@ defmodule NaiveDateTime do
   (see `Calendar.compatible_calendars?/2`), an `{:error, :incompatible_calendars}` tuple
   is returned.
   """
-  @spec convert(NaiveDateTime.t, Calendar.calendar) :: {:ok, NaiveDateTime.t} | {:error, :incompatible_calendars}
-  def convert(%{calendar: calendar} = naive_datetime, calendar) do
+  @spec convert(Calendar.naive_datetime, Calendar.calendar) :: {:ok, NaiveDateTime.t} | {:error, :incompatible_calendars}
+  def convert(%NaiveDateTime{calendar: calendar} = naive_datetime, calendar) do
     {:ok, naive_datetime}
   end
 
-  def convert(%{calendar: ndt_calendar} = naive_datetime, calendar) do
+  def convert(%{calendar: ndt_calendar, microsecond: {_, precision}} = naive_datetime, calendar) do
     if Calendar.compatible_calendars?(ndt_calendar, calendar) do
       result_naive_datetime =
         naive_datetime
         |> to_rata_die
-        |> from_rata_die(calendar)
+        |> from_rata_die(calendar, precision)
       {:ok, result_naive_datetime}
     else
       {:error, :incompatible_calendars}
@@ -636,13 +636,6 @@ defmodule NaiveDateTime do
   defp to_rata_die(%{calendar: calendar, year: year, month: month, day: day,
                      hour: hour, minute: minute, second: second, microsecond: microsecond}) do
     calendar.naive_datetime_to_rata_die(year, month, day, hour, minute, second, microsecond)
-  end
-
-  defp from_rata_die(rata_die, calendar) do
-    {year, month, day, hour, minute, second, microsecond} =
-      calendar.naive_datetime_from_rata_die(rata_die)
-    %NaiveDateTime{year: year, month: month, day: day, hour: hour, minute: minute, second: second,
-                   microsecond: microsecond, calendar: calendar}
   end
 
   defp from_rata_die(rata_die, calendar, precision) do
