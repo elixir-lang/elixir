@@ -43,7 +43,7 @@ defmodule Date do
       iex> Date.diff(~D[2010-04-17], ~D[1970-01-01])
       14716
 
-      iex> Date.diff(~D[1970-01-01], 14716)
+      iex> Date.add(~D[1970-01-01], 14716)
       ~D[2010-04-17]
 
   Those functions are optimized to detail with common epochs, such
