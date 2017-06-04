@@ -15,10 +15,6 @@ Elixir deprecations happen in 3 steps:
 
 Deprecated feature                               | Deprecated in | Replaced by (available since)
 :----------------------------------------------- | :------------ | :----------------------------
-Passing a non-Date to `Date.to_erl/1`            | [v1.5]        | Explicitly convert it to a Date first (v1.3)
-Passing a non-Date to `Date.to_iso8601/1`        | [v1.5]        | Explicitly convert it to a Date first (v1.3)
-Passing a non-Time to `Time.to_erl/1`            | [v1.5]        | Explicitly convert it to a Time first (v1.3)
-Passing a non-Time to `Time.to_iso8601/1`        | [v1.5]        | Explicitly convert it to a Time first (v1.3)
 `Atom.to_char_list/1`                            | [v1.5]        | `Atom.to_charlist/1` (v1.3)
 `Enum.filter_map/3`                              | [v1.5]        | `Enum.filter/2` + `Enum.map/2` or for comprehensions (v1.0)
 `Float.to_char_list/1`                           | [v1.5]        | `Float.to_charlist/1` (v1.3)

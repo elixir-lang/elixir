@@ -225,7 +225,7 @@ defmodule Date do
       iex> Date.from_iso8601!("2015:01:23")
       ** (ArgumentError) cannot parse "2015:01:23" as date, reason: :invalid_format
   """
-  @spec from_iso8601!(String.t) :: t | no_return
+  @spec from_iso8601!(String.t) :: t
   def from_iso8601!(string, calendar \\ Calendar.ISO) do
     case from_iso8601(string, calendar) do
       {:ok, value} ->
@@ -254,23 +254,14 @@ defmodule Date do
       iex> Date.to_iso8601(~D[2000-02-28], :basic)
       "20000228"
 
-  """
-  @spec to_iso8601(Date.t, :extended | :basic) :: String.t
-  def to_iso8601(date, format \\ :extended)
+      iex> Date.to_iso8601(~N[2000-02-28 00:00:00])
+      "2000-02-28"
 
-  def to_iso8601(%Date{} = date, format) when format in [:basic, :extended] do
+  """
+  @spec to_iso8601(Calendar.date, :extended | :basic) :: String.t
+  def to_iso8601(date, format \\ :extended) when format in [:basic, :extended] do
     %{year: year, month: month, day: day} = convert!(date, Calendar.ISO)
     Calendar.ISO.date_to_iso8601(year, month, day, format)
-  end
-
-  # TODO: Remove on 2.0
-  def to_iso8601(%{calendar: Calendar.ISO, year: year, month: month, day: day}, format) when format in [:basic, :extended] do
-    IO.warn "calling Date.to_iso8601/1 with a DateTime or NaiveDateTime structs is deprecated, explicitly convert them into a Date first by using DateTime.to_date/1 or NaiveDateTime.to_date/1 respectively"
-    Calendar.ISO.date_to_iso8601(year, month, day, format)
-  end
-
-  def to_iso8601(_date, format) do
-    raise ArgumentError, "Date.to_iso8601/2 expects format to be :extended or :basic, got: #{inspect format}"
   end
 
   @doc """
@@ -278,23 +269,20 @@ defmodule Date do
 
   Only supports converting dates which are in the ISO calendar,
   or other calendars in which the days also start at midnight.
-  Attempting to convert dates from other calendars will raise an `ArgumentError`.
+  Attempting to convert dates from other calendars will raise.
 
   ## Examples
 
       iex> Date.to_erl(~D[2000-01-01])
       {2000, 1, 1}
 
-  """
-  @spec to_erl(Date.t) :: :calendar.date
-  def to_erl(%Date{} = date) do
-    %{year: year, month: month, day: day} = convert!(date, Calendar.ISO)
-    {year, month, day}
-  end
+      iex> Date.to_erl(~N[2000-01-01 00:00:00])
+      {2000, 1, 1}
 
-  # TODO: Remove on 2.0
-  def to_erl(%{calendar: Calendar.ISO, year: year, month: month, day: day}) do
-    IO.warn "calling Date.to_erl/1 with a DateTime or NaiveDateTime structs is deprecated, explicitly convert them into a Date first by using DateTime.to_date/1 or NaiveDateTime.to_date/1 respectively"
+  """
+  @spec to_erl(Calendar.date) :: :calendar.date
+  def to_erl(date) do
+    %{year: year, month: month, day: day} = convert!(date, Calendar.ISO)
     {year, month, day}
   end
 
@@ -332,7 +320,7 @@ defmodule Date do
       ** (ArgumentError) cannot convert {2000, 13, 1} to date, reason: :invalid_date
 
   """
-  @spec from_erl!(:calendar.date) :: t | no_return
+  @spec from_erl!(:calendar.date) :: t
   def from_erl!(tuple) do
     case from_erl(tuple) do
       {:ok, value} ->
@@ -391,10 +379,10 @@ defmodule Date do
 
   See also `Calendar.compatible_calendars?/2`.
   """
-  @spec convert(Date.t, Calendar.calendar) :: {:ok, Date.t} | {:error, :incompatible_calendars}
+  @spec convert(Calendar.date(), Calendar.calendar) :: {:ok, Date.t} | {:error, :incompatible_calendars}
   def convert(%Date{calendar: calendar} = date, calendar), do: {:ok, date}
-  def convert(%Date{} = date, target_calendar) do
-    if Calendar.compatible_calendars?(date.calendar, target_calendar) do
+  def convert(%{calendar: calendar} = date, target_calendar) do
+    if Calendar.compatible_calendars?(calendar, target_calendar) do
       result_date =
         date
         |> to_rata_die()
@@ -418,7 +406,6 @@ defmodule Date do
         raise ArgumentError, "cannot convert #{inspect date} to target calendar #{inspect calendar}, reason: #{inspect reason}"
     end
   end
-
 
   @doc """
   Adds the number of days to the given date.

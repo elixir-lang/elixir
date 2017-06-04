@@ -88,7 +88,6 @@
 #### Elixir
 
   * `Atom.to_char_list/1`, `Float.to_char_list/1`, `Integer.to_char_list/1`, `Integer.to_char_list/2`, `Kernel.to_char_list/1`, `List.Chars.to_char_list/1`, `String.to_char_list/1` have been deprecated in favor of their `to_charlist` version. This aligns with the naming conventions in both Erlang and Elixir
-  * [Calendar] Deprecate `NaiveDateTime` and `DateTime` in `Date.to_iso8601/1`, `Date.to_erl/1`, `Time.to_iso8601/1` and `Time.to_erl/1` to avoid loss of precision
   * [Enum] Deprecate `Enum.filter_map/3` in favor of `Enum.filter/2` + `Enum.map/2` or for-comprehensions
   * [GenEvent] Deprecate `GenEvent` and provide alternatives in its docs
   * [Kernel] Using `()` to mean `nil` is deprecated
