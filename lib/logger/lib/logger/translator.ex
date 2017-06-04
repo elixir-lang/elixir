@@ -257,7 +257,17 @@ defmodule Logger.Translator do
   defp crash_info(min_level,
                   [{:ancestors, ancestors} | debug], prefix) do
     [prefix, "Ancestors: ", inspect(ancestors) |
-     crash_debug(min_level, debug, prefix)]
+     crash_info(min_level, debug, prefix)]
+  end
+
+  defp crash_info(:debug, debug, prefix) do
+    for {key, value} <- debug do
+      crash_debug(key, value, prefix)
+    end
+  end
+
+  defp crash_info(_, _, _) do
+    []
   end
 
   defp crash_call(mod, fun, arity) when is_integer(arity) do
@@ -268,22 +278,28 @@ defmodule Logger.Translator do
     format_mfa(mod, fun, length(args))
   end
 
-  defp crash_debug(:debug,
-                   [messages: msgs, links: links, dictionary: dict,
-                    trap_exit: trap, status: status, heap_size: heap_size,
-                    stack_size: stack_size, reductions: reductions], prefix) do
-    [prefix, "Messages: ", inspect(msgs),
-     prefix, "Links: ", inspect(links),
-     prefix, "Dictionary: ", inspect(dict),
-     prefix, "Trapping Exits: ", inspect(trap),
-     prefix, "Status: ", inspect(status),
-     prefix, "Heap Size: ", inspect(heap_size),
-     prefix, "Stack Size: ", inspect(stack_size),
-     prefix, "Reductions: ", inspect(reductions)]
+  defp crash_debug(:current_stacktrace, stack, prefix) do
+    stack_prefix = [prefix | "    "]
+    [prefix, "Current Stacktrace:" |
+     Enum.map(stack, &[stack_prefix | Exception.format_stacktrace_entry(&1)])]
   end
 
-  defp crash_debug(_min_level, _info, _prefix) do
-    []
+  defp crash_debug(key, value, prefix) do
+    [prefix, crash_debug_key(key), ?:, ?\s, inspect(value)]
+  end
+
+  defp crash_debug_key(key) do
+    case key do
+      :message_queue_len -> "Message Queue Length"
+      :messages -> "Messages"
+      :links -> "Links"
+      :dictionary -> "Dictionary"
+      :trap_exit -> "Trapping Exits"
+      :status -> "Status"
+      :heap_size -> "Heap Size"
+      :stack_size -> "Stack Size"
+      :reductions -> "Reductions"
+    end
   end
 
   defp crash_linked(_min_level, []), do: []
