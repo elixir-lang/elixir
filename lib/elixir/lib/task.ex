@@ -153,7 +153,9 @@ defmodule Task do
   @type t :: %__MODULE__{}
 
   @doc """
-  Starts a task as part of a supervision tree.
+  Starts a process linked to the current process.
+
+  This is often used to start the process as part of a supervision tree.
   """
   @spec start_link(fun) :: {:ok, pid}
   def start_link(fun) do
