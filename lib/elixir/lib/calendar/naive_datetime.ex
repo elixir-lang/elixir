@@ -50,7 +50,7 @@ defmodule NaiveDateTime do
       iex> NaiveDateTime.add(~N[1970-01-01 00:00:00], 1271512800)
       ~N[2010-04-17 14:00:00]
 
-  Those functions are optimized to detail with common epochs, such
+  Those functions are optimized to deal with common epochs, such
   as the Unix Epoch above or the Gregorian Epoch (0000-01-01 00:00:00).
   """
 
