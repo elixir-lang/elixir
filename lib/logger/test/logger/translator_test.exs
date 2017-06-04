@@ -473,7 +473,8 @@ defmodule Logger.TranslatorTest do
       send(pid, :go)
       receive do: ({:DOWN, ^ref, _, _, _} -> :ok)
     end) =~ ~r"""
-    Ancestors: \[#PID<\d+\.\d+\.\d+>\]
+    Ancestors: \[#PID<\d+\.\d+\.\d+>\](?:
+    Message Queue Length: 1(?#TODO: Require once depend on 20)|)
     Messages: \[:message\]
     Links: \[\]
     Dictionary: \[\]
@@ -494,15 +495,18 @@ defmodule Logger.TranslatorTest do
       send(pid, :go)
       receive do: ({:DOWN, ^ref, _, _, _} -> :ok)
     end) =~ ~r"""
-            Ancestors: \[#PID<\d+\.\d+\.\d+>, #PID<\d+\.\d+\.\d+>\]
-            Messages: \[\]
-            Links: \[#PID<\d+\.\d+\.\d+>\]
-            Dictionary: \[\]
+            Ancestors: \[#PID<\d+\.\d+\.\d+>, #PID<\d+\.\d+\.\d+>\](?:
+            Message Queue Length: 0|
+            Messages: \[\](?# TODO: Remove once depend on 20))
+            Links: \[#PID<\d+\.\d+\.\d+>\](?:|
+            Dictionary: \[\](?# TODO: Remove once depend on 20))
             Trapping Exits: false
             Status: :waiting
             Heap Size: \d+
             Stack Size: \d+
-            Reductions: \d+
+            Reductions: \d+(?:
+            Current Stacktrace:
+                test/logger/translator_test.exs:\d+: Logger.TranslatorTest.sleep/1(?#TODO: Require once depend on 20)|)
     """
   end
 
