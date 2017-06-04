@@ -353,10 +353,11 @@ defmodule Supervisor do
   is a `:simple_one_for_one` supervisor, see below). The child process will
   be started as defined in the child specification.
 
-  In the case of `:simple_one_for_one`, the child specification defined in
-  the supervisor is used and instead of a `child_spec`, an arbitrary list
-  of terms is expected. The child process will then be started by appending
-  the given list to the existing function arguments in the child specification.
+  In the case of `:simple_one_for_one`, the child specification defined in the
+  supervisor is used and instead of a `child_spec`, an arbitrary, non-empty
+  list of terms is expected. The child process will then be started by
+  appending the given list to the existing function arguments in the child
+  specification.
 
   If a child specification with the specified id already exists, `child_spec` is
   discarded and this function returns an error with `:already_started` or
