@@ -23,13 +23,15 @@ defmodule Time do
   such as `NaiveDateTime` and `DateTime`. Such functions expect
   `t:Calendar.time/0` in their typespecs (instead of `t:t/0`).
 
-  Remember, comparisons in Elixir using `==`, `>`, `<` and friends
-  are structural and based on the Time struct fields. For proper
-  comparison between times, use the `compare/2` function.
+  Developers should avoid creating the Time structs directly
+  and instead rely on the functions provided by this module as well
+  as the ones in 3rd party calendar libraries.
 
-  Developers should avoid creating the Time struct directly and
-  instead rely on the functions provided by this module as well as
-  the ones in 3rd party calendar libraries.
+  ## Comparing times
+
+  Comparisons in Elixir using `==`, `>`, `<` and similar are structural
+  and based on the `Time` struct fields. For proper comparison between
+  times, use the `compare/2` function.
   """
 
   @enforce_keys [:hour, :minute, :second]
@@ -393,16 +395,29 @@ defmodule Time do
   @doc """
   Returns the difference between two `Time` structs.
 
-  The answer can be returned in any `unit` available from `t:System.time_unit/0`.
+  The answer can be returned in any `unit` available from
+  `t:System.time_unit/0`. If the first unit is smaller than
+  the second, a negative number is returned.
 
-  This function returns the difference in seconds where seconds are measured
-  according to `Calendar.ISO`.
+  This function returns the difference in seconds where seconds
+  are measured according to `Calendar.ISO`.
+
+  ## Examples
+
+      iex> Time.diff(~T[00:29:12], ~T[00:29:10])
+      2
+      iex> Time.diff(~T[00:29:12], ~T[00:29:10], :microsecond)
+      2_000_000
+      iex> Time.diff(~T[00:29:10], ~T[00:29:12], :microsecond)
+      -2_000_000
+
   """
   @spec diff(Time.t, Time.t, System.time_unit) :: integer
   def diff(%Time{} = time1, %Time{} = time2, unit \\ :second) do
     fraction1 = to_day_fraction(time1)
     fraction2 = to_day_fraction(time2)
-    Calendar.ISO.rata_die_to_unit({0, fraction1}, unit) - Calendar.ISO.rata_die_to_unit({0, fraction2}, unit)
+    Calendar.ISO.rata_die_to_unit({0, fraction1}, unit) -
+      Calendar.ISO.rata_die_to_unit({0, fraction2}, unit)
   end
 
   ## Helpers
