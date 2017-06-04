@@ -31,7 +31,7 @@ defmodule Exception do
         {(... -> any), arity_or_args, location}
 
   @typep arity_or_args :: non_neg_integer | list
-  @typep location :: Keyword.t
+  @typep location :: keyword
 
   @callback exception(term) :: t
   @callback message(t) :: String.t

@@ -1687,7 +1687,7 @@ defmodule Kernel do
       #=> #Function<...>
 
   """
-  @spec inspect(Inspect.t, Keyword.t) :: String.t
+  @spec inspect(Inspect.t, keyword) :: String.t
   def inspect(term, opts \\ []) when is_list(opts) do
     opts = struct(Inspect.Opts, opts)
     limit = case opts.pretty do
@@ -3806,7 +3806,7 @@ defmodule Kernel do
         end
       end
 
-      @spec exception(Keyword.t) :: Exception.t
+      @spec exception(keyword) :: Exception.t
       # TODO: Only call Kernel.struct! by Elixir v1.5
       def exception(args) when is_list(args) do
         struct = __struct__()

@@ -110,7 +110,7 @@ defmodule Macro.Env do
   Returns a keyword list containing the file and line
   information as keys.
   """
-  @spec location(t) :: Keyword.t
+  @spec location(t) :: keyword
   def location(env)
   def location(%{__struct__: Macro.Env, file: file, line: line}) do
     [file: file, line: line]

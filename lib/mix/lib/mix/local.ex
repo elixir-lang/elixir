@@ -17,7 +17,7 @@ defmodule Mix.Local do
       "foo"
 
   """
-  @spec name_for(item, Keyword.t) :: String.t
+  @spec name_for(item, keyword) :: String.t
   def name_for(:archive, project) do
     version = if version = project[:version], do: "-#{version}"
     "#{project[:app]}#{version}.ez"

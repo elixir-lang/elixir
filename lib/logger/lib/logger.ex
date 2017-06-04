@@ -358,7 +358,7 @@ defmodule Logger do
   @type backend :: :gen_event.handler
   @type message :: IO.chardata | String.Chars.t
   @type level :: :error | :info | :warn | :debug
-  @type metadata :: Keyword.t(String.Chars.t)
+  @type metadata :: keyword(String.Chars.t)
   @levels [:error, :info, :warn, :debug]
 
   @metadata :logger_metadata
@@ -474,7 +474,7 @@ defmodule Logger do
   documentation for the available options.
   """
   @valid_options [:compile_time_purge_level, :compile_time_application, :sync_threshold, :truncate, :level, :utc_log]
-  @spec configure(Keyword.t) :: :ok
+  @spec configure(keyword) :: :ok
   def configure(options) do
     Logger.Config.configure(Keyword.take(options, @valid_options))
   end
@@ -502,7 +502,7 @@ defmodule Logger do
       the backend is added
 
   """
-  @spec add_backend(atom, Keyword.t) :: Supervisor.on_start_child
+  @spec add_backend(atom, keyword) :: Supervisor.on_start_child
   def add_backend(backend, opts \\ []) do
     _ = if opts[:flush], do: flush()
     case Logger.Watcher.watch(Logger, Logger.Config.translate_backend(backend), backend) do
@@ -526,7 +526,7 @@ defmodule Logger do
       the backend is removed
 
   """
-  @spec remove_backend(atom, Keyword.t) :: :ok | {:error, term}
+  @spec remove_backend(atom, keyword) :: :ok | {:error, term}
   def remove_backend(backend, opts \\ []) do
     _ = if opts[:flush], do: flush()
     Logger.Config.remove_backend(backend)
@@ -555,7 +555,7 @@ defmodule Logger do
   The backend needs to be started and running in order to
   be configured at runtime.
   """
-  @spec configure_backend(backend, Keyword.t) :: term
+  @spec configure_backend(backend, keyword) :: term
   def configure_backend(backend, options) when is_list(options) do
     :gen_event.call(Logger, Logger.Config.translate_backend(backend), {:configure, options})
   end
@@ -566,7 +566,7 @@ defmodule Logger do
   Use this function only when there is a need to
   explicitly avoid embedding metadata.
   """
-  @spec bare_log(level, message | (() -> message | {message, Keyword.t}), Keyword.t) ::
+  @spec bare_log(level, message | (() -> message | {message, keyword}), keyword) ::
         :ok | {:error, :noproc} | {:error, term}
   def bare_log(level, chardata_or_fun, metadata \\ [])
       when level in @levels and is_list(metadata) do

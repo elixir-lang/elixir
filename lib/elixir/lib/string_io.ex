@@ -40,7 +40,7 @@ defmodule StringIO do
       {"", ">"}
 
   """
-  @spec open(binary, Keyword.t) :: {:ok, pid}
+  @spec open(binary, keyword) :: {:ok, pid}
   def open(string, options \\ []) when is_binary(string) do
     GenServer.start_link(__MODULE__, {string, options}, [])
   end

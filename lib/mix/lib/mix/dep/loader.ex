@@ -213,7 +213,7 @@ defmodule Mix.Dep.Loader do
 
         app :: atom
         requirement :: String.t | Regex.t
-        opts :: Keyword.t
+        opts :: keyword
 
     If you want to skip the requirement (not recommended), use ">= 0.0.0".
     """

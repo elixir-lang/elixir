@@ -237,7 +237,7 @@ defmodule Supervisor do
   @doc """
   Callback invoked to start the supervisor and during hot code upgrades.
   """
-  # TODO: Support {:ok, [child_spec], Keyword.t}
+  # TODO: Support {:ok, [child_spec], keyword}
   # TODO: Document options here and update Supervisor.Spec
   @callback init(args :: term) ::
     {:ok, {:supervisor.sup_flags, [Supervisor.Spec.spec]}} |

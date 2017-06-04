@@ -21,7 +21,7 @@ defmodule Mix.Generator do
       :ok
 
   """
-  @spec create_file(Path.t, iodata, Keyword.t) :: any
+  @spec create_file(Path.t, iodata, keyword) :: any
   def create_file(path, contents, opts \\ []) when is_binary(path) do
     Mix.shell.info [:green, "* creating ", :reset, Path.relative_to_cwd(path)]
 

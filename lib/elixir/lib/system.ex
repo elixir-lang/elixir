@@ -585,7 +585,7 @@ defmodule System do
   redirecting and so on, please check
   [`:os.cmd/1`](http://www.erlang.org/doc/man/os.html#cmd-1).
   """
-  @spec cmd(binary, [binary], Keyword.t) ::
+  @spec cmd(binary, [binary], keyword) ::
         {Collectable.t, exit_status :: non_neg_integer}
   def cmd(command, args, opts \\ []) when is_binary(command) and is_list(args) do
     cmd = String.to_charlist(command)

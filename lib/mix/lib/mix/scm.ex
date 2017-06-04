@@ -4,7 +4,7 @@ defmodule Mix.SCM do
   behaviour required by any source code manager (SCM) used by Mix.
   """
 
-  @type opts :: Keyword.t
+  @type opts :: keyword
 
   @doc """
   Returns a boolean if the dependency can be fetched

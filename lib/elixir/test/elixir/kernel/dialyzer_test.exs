@@ -22,7 +22,7 @@ defmodule Kernel.DialyzerTest do
     end
 
     # Add a few key Elixir modules for types and macro functions
-    mods = [Kernel, String, Atom, Enum, Keyword, Exception, Macro, Macro.Env, :elixir_env]
+    mods = [:elixir, :elixir_env, Atom, Enum, Exception, Kernel, Macro, Macro.Env, String]
     files = Enum.map(mods, &:code.which/1)
     dialyzer_run([analysis_type: :plt_build, output_plt: plt,
                   apps: [:erts], files: files])

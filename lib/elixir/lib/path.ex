@@ -611,7 +611,7 @@ defmodule Path do
       Path.wildcard("projects/*/ebin/**/*.{beam,app}")
 
   """
-  @spec wildcard(t, Keyword.t) :: [binary]
+  @spec wildcard(t, keyword) :: [binary]
   def wildcard(glob, opts \\ []) do
     mod = if Keyword.get(opts, :match_dot), do: :file, else: Path.Wildcard
     glob

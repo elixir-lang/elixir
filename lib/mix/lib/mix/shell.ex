@@ -44,7 +44,7 @@ defmodule Mix.Shell do
     * `:env` - environment options to the executed command
 
   """
-  @callback cmd(command :: String.t, options :: Keyword.t) :: integer
+  @callback cmd(command :: String.t, options :: keyword) :: integer
 
   @doc """
   Prints the current application to the shell if

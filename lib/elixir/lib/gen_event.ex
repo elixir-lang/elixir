@@ -172,7 +172,7 @@ defmodule GenEvent do
   end
 
   @doc false
-  @spec stream(manager, Keyword.t) :: GenEvent.Stream.t
+  @spec stream(manager, keyword) :: GenEvent.Stream.t
   def stream(manager, options \\ []) do
     %GenEvent.Stream{
       manager: manager,

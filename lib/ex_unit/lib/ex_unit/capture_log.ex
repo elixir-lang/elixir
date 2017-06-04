@@ -64,7 +64,7 @@ defmodule ExUnit.CaptureLog do
   `:metadata` and `:colors` respectively. These three options
   defaults to the `:console` backend configuration parameters.
   """
-  @spec capture_log(Keyword.t, (() -> any)) :: String.t
+  @spec capture_log(keyword, (() -> any)) :: String.t
   def capture_log(opts \\ [], fun) do
     opts = Keyword.put_new(opts, :level, nil)
     {:ok, string_io} = StringIO.open("")

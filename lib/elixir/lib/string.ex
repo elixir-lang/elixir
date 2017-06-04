@@ -357,7 +357,7 @@ defmodule String do
       ["1", "2", "3", "4"]
 
   """
-  @spec split(t, pattern | Regex.t, Keyword.t) :: [t]
+  @spec split(t, pattern | Regex.t, keyword) :: [t]
   def split(string, pattern, options \\ [])
 
   def split(string, %Regex{} = pattern, options) when is_binary(string) do
@@ -414,7 +414,7 @@ defmodule String do
       ["a", "b", "c", "d"]
 
   """
-  @spec splitter(t, pattern, Keyword.t) :: Enumerable.t
+  @spec splitter(t, pattern, keyword) :: Enumerable.t
   def splitter(string, pattern, options \\ []) do
     pattern = maybe_compile_pattern(pattern)
     trim    = Keyword.get(options, :trim, false)
@@ -1112,7 +1112,7 @@ defmodule String do
       "a[,,]b[,,]c"
 
   """
-  @spec replace(t, pattern | Regex.t, t, Keyword.t) :: t
+  @spec replace(t, pattern | Regex.t, t, keyword) :: t
   def replace(subject, pattern, replacement, options \\ []) when is_binary(replacement) do
     if Regex.regex?(pattern) do
       Regex.replace(pattern, subject, replacement, global: options[:global])

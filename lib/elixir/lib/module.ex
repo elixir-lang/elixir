@@ -459,7 +459,7 @@ defmodule Module do
   while also passing `opts`, they will be merged with `opts`
   having precedence.
   """
-  @spec eval_quoted(module | Macro.Env.t, Macro.t, list, Keyword.t | Macro.Env.t) :: term
+  @spec eval_quoted(module | Macro.Env.t, Macro.t, list, keyword | Macro.Env.t) :: term
   def eval_quoted(module_or_env, quoted, binding \\ [], opts \\ [])
 
   def eval_quoted(%Macro.Env{} = env, quoted, binding, opts) when is_list(binding) and is_list(opts) do
@@ -509,7 +509,7 @@ defmodule Module do
   when defining the module, while `defmodule` automatically
   shares the same environment.
   """
-  @spec create(module, Macro.t, Macro.Env.t | Keyword.t) :: {:module, module, binary, term}
+  @spec create(module, Macro.t, Macro.Env.t | keyword) :: {:module, module, binary, term}
   def create(module, quoted, opts)
 
   def create(module, quoted, %Macro.Env{} = env) when is_atom(module) do

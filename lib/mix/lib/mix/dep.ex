@@ -55,7 +55,7 @@ defmodule Mix.Dep do
                app: atom,
                requirement: String.t | Regex.t | nil,
                status: atom,
-               opts: Keyword.t,
+               opts: keyword,
                top_level: boolean,
                manager: :rebar | :rebar3 | :mix | :make | nil,
                from: String.t,

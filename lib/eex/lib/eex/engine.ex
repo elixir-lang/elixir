@@ -27,7 +27,7 @@ defmodule EEx.Engine do
   default implementations for the functions above.
   """
 
-  @callback init(opts :: Keyword.t) :: Macro.t
+  @callback init(opts :: keyword) :: Macro.t
   @callback handle_body(quoted :: Macro.t) :: Macro.t
   @callback handle_text(buffer :: Macro.t, text :: String.t) :: Macro.t
   @callback handle_expr(buffer :: Macro.t, marker :: String.t, expr :: Macro.t) :: Macro.t

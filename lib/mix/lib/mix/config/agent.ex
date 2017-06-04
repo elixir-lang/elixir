@@ -1,7 +1,7 @@
 defmodule Mix.Config.Agent do
   @moduledoc false
 
-  @typep config :: Keyword.t
+  @typep config :: keyword
 
   @spec start_link() :: {:ok, pid}
   def start_link do
