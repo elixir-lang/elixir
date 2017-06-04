@@ -262,6 +262,13 @@ defmodule ExceptionTest do
            "bad child specification, invalid module: {:foo}"
 
     return = {:ok, {{:one_for_one, 1, 1},
+        [{:child, {:m, :f, []}, :permanent, 1, :worker, []},
+         {:child, {:m, :f, []}, :permanent, 1, :worker, []}]}}
+    {:error, reason} = __MODULE__.Sup.start_link(fn() -> return end)
+    assert Exception.format_exit(reason) =~
+           "bad child specification, more than one child specification has the id: :child"
+
+    return = {:ok, {{:one_for_one, 1, 1},
         [{:child, {Kernel, :exit, [:foo]}, :temporary, 1, :worker, []}]}}
     {:error, reason} = __MODULE__.Sup.start_link(fn() -> return end)
     assert Exception.format_exit(reason) ==
