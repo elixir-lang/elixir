@@ -5,16 +5,17 @@ defmodule RegistryTest do
   doctest Registry, except: [:moduledoc]
 
   setup config do
-    kind = config[:kind] || :unique
+    keys = config[:keys] || :unique
     partitions = config[:partitions] || 1
     listeners = List.wrap(config[:listener])
-    {:ok, _} = Registry.start_link(kind, config.test, partitions: partitions, listeners: listeners)
-    {:ok, %{registry: config.test, partitions: partitions}}
+    opts = [keys: keys, name: config.test, partitions: partitions, listeners: listeners]
+    {:ok, sup} = Supervisor.start_link([{Registry, opts}], strategy: :one_for_one)
+    {:ok, %{registry: config.test, partitions: partitions, sup: sup}}
   end
 
   for {describe, partitions} <- ["with 1 partition": 1, "with 8 partitions": 8] do
     describe "unique #{describe}" do
-      @describetag kind: :unique, partitions: partitions
+      @describetag keys: :unique, partitions: partitions
 
       test "starts configured amount of partitions", %{registry: registry, partitions: partitions} do
         assert length(Supervisor.which_children(registry)) == partitions
@@ -37,11 +38,13 @@ defmodule RegistryTest do
 
       test "has unique registrations across processes", %{registry: registry} do
         {_, task} = register_task(registry, "hello", :value)
+        Process.link(Process.whereis(registry))
 
         assert {:error, {:already_registered, ^task}} =
                Registry.register(registry, "hello", :recent)
         assert Registry.keys(registry, self()) == []
-        assert Process.info(self(), :links) == {:links, [Process.whereis(registry)]}
+        {:links, links} = Process.info(self(), :links)
+        assert Process.whereis(registry) in links
       end
 
       test "has unique registrations even if partition is delayed", %{registry: registry} do
@@ -191,7 +194,7 @@ defmodule RegistryTest do
 
   for {describe, partitions} <- ["with 1 partition": 1, "with 8 partitions": 8] do
     describe "duplicate #{describe}" do
-      @describetag kind: :duplicate, partitions: partitions
+      @describetag keys: :duplicate, partitions: partitions
 
       test "starts configured amount of partitions", %{registry: registry, partitions: partitions} do
         assert length(Supervisor.which_children(registry)) == partitions
@@ -344,9 +347,9 @@ defmodule RegistryTest do
   end
 
   # Note: those tests relies on internals
-  for kind <- [:unique, :duplicate] do
-    describe "clean up #{kind} registry on process crash" do
-      @describetag kind: kind
+  for keys <- [:unique, :duplicate] do
+    describe "clean up #{keys} registry on process crash" do
+      @describetag keys: keys
 
       @tag partitions: 8
       test "with 8 partitions", %{registry: registry} do
