@@ -375,31 +375,48 @@ defmodule Supervisor do
   ## Simple one for one
 
   The `:simple_one_for_one` supervisor is useful when you want to
-  dynamically start and stop supervised children. For example, imagine
-  you want to dynamically start multiple agents to keep state:
+  dynamically start and stop supervised children. As an example,
+  let's start multiple agents dynamically to keep state.
 
-      # Start the supervisor by giving a direct child specification.
-      # The child specification gives no argument to start_link as
-      # such argument will be given dynamically on start_child
-      {:ok, sup_pid} = Supervisor.start_link([
-        %{id: Agent, start: {Agent, :start_link, []}}
-      ], strategy: :simple_one_for_one)
+  One important aspect in `:simple_one_for_one` supervisors is
+  that we often want to pass the `:start` arguments later on,
+  when starting the children dynamically, rather than when the
+  child specification is defined. In such cases, we should not do
 
-      # No child worker is active yet until start_child is called
+      Supervisor.start_link [
+        {Agent, fn -> 0 end}
+      ]
+
+  as the example above would force all agents to have the same state.
+  In such cases, we can use the `child_spec/3` function to build
+  and override the fields in a child specification:
+
+      # Override the :start field to have no args.
+      # The second argument has no effect thanks to it.
+      agent_spec =
+        Supervisor.child_spec(Agent, :overridden_start_arg,
+                              start: {Agent, :start_link, []})
+
+      # We start a supervisor with a simple one for one strategy.
+      # The agent won't be started now but later on.
+      {:ok, sup_pid} =
+        Supervisor.start_link([agent_spec], strategy: :simple_one_for_one)
+
+      # No child worker is active until start_child is called
       Supervisor.count_children(sup_pid)
       #=> %{active: 0, specs: 1, supervisors: 0, workers: 0}
 
   The simple one for one strategy can define only one child which works
   as a template for when we call `start_child/2`.
 
-  With the supervisor defined, let's dynamically start agents:
+  With the supervisor started, let's dynamically start agents:
 
       {:ok, agent1} = Supervisor.start_child(sup_pid, [fn -> 0 end])
       Agent.update(agent1, & &1 + 1)
       Agent.get(agent1, & &1) #=> 1
 
-      {:ok, agent2} = Supervisor.start_child(sup_pid, [fn -> 0 end])
-      Agent.get(agent2, & &1) #=> 0
+      {:ok, agent2} = Supervisor.start_child(sup_pid, [fn -> %{} end])
+      Agent.get(agent2, & &1) #=> %{}
 
       Supervisor.count_children(sup_pid)
       #=> %{active: 2, specs: 1, supervisors: 0, workers: 2}
