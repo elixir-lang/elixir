@@ -388,14 +388,13 @@ defmodule Supervisor do
       ]
 
   as the example above would force all agents to have the same state.
-  In such cases, we can use the `child_spec/3` function to build
+  In such cases, we can use the `child_spec/2` function to build
   and override the fields in a child specification:
 
       # Override the :start field to have no args.
       # The second argument has no effect thanks to it.
       agent_spec =
-        Supervisor.child_spec(Agent, :overridden_start_arg,
-                              start: {Agent, :start_link, []})
+        Supervisor.child_spec(Agent, start: {Agent, :start_link, []})
 
       # We start a supervisor with a simple one for one strategy.
       # The agent won't be started now but later on.
@@ -550,14 +549,81 @@ defmodule Supervisor do
   description of the available strategies.
   """
   @spec init([child_spec | {module, term} | module], flag) :: {:ok, tuple}
-  def init(children, options) do
+  def init(children, options) when is_list(children) and is_list(options) do
     unless strategy = options[:strategy] do
       raise ArgumentError, "expected :strategy option to be given"
     end
     intensity = Keyword.get(options, :max_restarts, 3)
     period = Keyword.get(options, :max_seconds, 5)
     flags = %{strategy: strategy, intensity: intensity, period: period}
-    {:ok, {flags, children}}
+    {:ok, {flags, Enum.map(children, &init_child/1)}}
+  end
+
+  defp init_child(module) when is_atom(module) do
+    init_child({module, []})
+  end
+  defp init_child({module, arg}) when is_atom(module) do
+    try do
+      module.child_spec(arg)
+    rescue
+      e in UndefinedFunctionError ->
+        case System.stacktrace do
+          [{^module, :child_spec, [^arg], _} | _] ->
+            raise ArgumentError, "#{inspect module} was given as a child to Supervisor " <>
+                                 "but it does not implemente the child_spec/1 function. " <>
+                                 "child_spec/1 receives an argument and must return a child " <>
+                                 "specification. See the Supervisor module docs for more information."
+          stack ->
+            reraise e, stack
+        end
+    end
+  end
+  defp init_child(map) when is_map(map) do
+    map
+  end
+  defp init_child(other) do
+    raise ArgumentError, "Supervisor.start_link/2 and Supervisor.init/2 expect the child to be a " <>
+                         "module, a {module, arg} tuple or a map with the child specification, " <>
+                         "got: #{inspect other}"
+  end
+
+  @doc """
+  Builds and override a child specification.
+
+  Similar to `start_link/2` and `init/2`, it expects a
+  `module`, `{module, arg}` or a map as the child specification.
+  If a module is given, the specification is retrieved by calling
+  `module.child_spec(arg)`.
+
+  After the child specification is retrieved, the fields on `config`
+  are directly applied on the child spec. If `config` has keys that
+  do not map to any child specification field, an error is raised.
+
+  This function is often used to set an `:id` option when
+  the same module needs to be started multiple times in the
+  supervision tree. It may also be used when there is a need
+  to change the number of arguments when starting a module
+  under a `:simple_one_for_one` strategy.
+
+  ## Examples
+
+      Supervisor.child_spec(Agent, fn -> :ok end, id: {Agent, 1})
+      #=> %{id: {Agent, 1},
+            start: {Agent, :start_link, [fn -> :ok end]}}
+
+      Supervisor.child_spec(Agent, start: {Agent, :start_link, []})
+      #=> %{id: Agent,
+            start: {Agent, :start_link, []}}
+
+  """
+  @spec child_spec(child_spec | {module, arg :: term} | module, keyword) :: child_spec()
+  def child_spec(module_or_map, overrides) do
+    Enum.reduce overrides, init_child(module_or_map), fn
+      {key, value}, acc when key in [:id, :start, :restart, :shutdown, :type, :modules] ->
+        Map.put(acc, key, value)
+      {key, _value}, _acc ->
+        raise ArgumentError, "unknown key #{inspect key} in child specification override"
+    end
   end
 
   @doc """

@@ -1130,9 +1130,9 @@ defmodule ErlangError do
 
   defp ensure_stacktrace(nil) do
     try do
-      throw(:oops)
-    catch
-      :oops -> :erlang.get_stacktrace()
+      :erlang.get_stacktrace()
+    rescue
+      _ -> []
     end
   end
 

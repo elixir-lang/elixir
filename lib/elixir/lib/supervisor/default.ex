@@ -5,7 +5,7 @@ defmodule Supervisor.Default do
     Supervisor.Spec.supervise(children, opts)
   end
 
-  def init(children, opts) do
+  def init({children, opts}) do
     Supervisor.init(children, opts)
   end
 end
