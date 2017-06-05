@@ -125,12 +125,10 @@ defmodule Mix.Compilers.Elixir do
   def read_manifest(manifest, compile_path) do
     try do
       manifest |> File.read!() |> :erlang.binary_to_term()
-    else
-      [@manifest_vsn | data] ->
-        expand_beam_paths(data, compile_path)
-      _ ->
-        []
     rescue
+      _ -> []
+    else
+      [@manifest_vsn | data] -> expand_beam_paths(data, compile_path)
       _ -> []
     end
   end
@@ -361,12 +359,17 @@ defmodule Mix.Compilers.Elixir do
     rescue
       _ -> {[], []}
     else
-      [@manifest_vsn | data] -> do_parse_manifest(data, compile_path)
-      _ -> {[], []}
+      [@manifest_vsn | data] ->
+        split_manifest(data, compile_path)
+      [v | data] when v in [:v4, :v5] ->
+        for module(beam: beam) <- data, do: File.rm(Path.join(compile_path, beam))
+        {[], []}
+      _ ->
+        {[], []}
     end
   end
 
-  defp do_parse_manifest(data, compile_path) do
+  defp split_manifest(data, compile_path) do
     Enum.reduce(data, {[], []}, fn
       module() = module, {modules, sources} ->
         {[expand_beam_path(module, compile_path) | modules], sources}
