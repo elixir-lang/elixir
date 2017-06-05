@@ -773,6 +773,9 @@ defmodule Kernel.TypespecTest do
         {:builtin_fun, _, _} ->
           assert ast_string == "@type(builtin_fun() :: (... -> any()))"
 
+        {:builtin_function, _, _} ->
+          assert ast_string == "@type(builtin_function() :: (... -> any()))"
+
         {:builtin_nonempty_list, _, _} ->
           assert ast_string == "@type(builtin_nonempty_list() :: [...])"
 
