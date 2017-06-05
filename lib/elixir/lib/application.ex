@@ -133,7 +133,8 @@ defmodule Application do
   @callback start(start_type, start_args :: term) ::
     {:ok, pid} |
     {:ok, pid, state} |
-    {:error, reason :: term}
+    {:error, reason :: term} |
+    :ignore
 
   @doc """
   Called when an application is stopped.
