@@ -69,6 +69,51 @@ defmodule SupervisorTest do
     }
   end
 
+  test "child_spec/2" do
+    assert Supervisor.child_spec(Task, []) ==
+           %{id: Task, restart: :temporary, start: {Task, :start_link, [[]]}}
+
+    assert Supervisor.child_spec({Task, :foo}, []) ==
+           %{id: Task, restart: :temporary, start: {Task, :start_link, [:foo]}}
+
+    assert Supervisor.child_spec(%{id: Task}, []) ==
+           %{id: Task}
+
+    assert Supervisor.child_spec(Task, id: :foo, start: {:foo, :bar, []},
+                                       restart: :permanent, shutdown: :infinity) ==
+           %{id: :foo, start: {:foo, :bar, []}, restart: :permanent, shutdown: :infinity}
+
+    assert_raise ArgumentError, ~r"The module Unknown was given as a child", fn ->
+      Supervisor.child_spec(Unknown, [])
+    end
+
+    assert_raise ArgumentError, ~r"supervisors expect the child to be a module", fn ->
+      Supervisor.child_spec("other", [])
+    end
+  end
+
+  test "init/2" do
+    assert Supervisor.init([Task], strategy: :one_for_one) ==
+           {:ok, {
+              %{intensity: 3, period: 5, strategy: :one_for_one},
+              [
+                %{id: Task, restart: :temporary, start: {Task, :start_link, [[]]}}
+              ]
+           }}
+
+    assert Supervisor.init([{Task, :foo}], strategy: :one_for_all, max_restarts: 1, max_seconds: 2) ==
+           {:ok, {
+              %{intensity: 1, period: 2, strategy: :one_for_all},
+              [
+                %{id: Task, restart: :temporary, start: {Task, :start_link, [:foo]}}
+              ]
+           }}
+
+    assert_raise ArgumentError, "expected :strategy option to be given", fn ->
+      Supervisor.init([], [])
+    end
+  end
+
   test "start_link/2 with via" do
     Supervisor.start_link([], strategy: :one_for_one, name: {:via, :global, :via_sup})
     assert Supervisor.which_children({:via, :global, :via_sup}) == []
