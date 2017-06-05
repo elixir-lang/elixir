@@ -4,7 +4,7 @@ Elixir v1.5 brings new features, enhancements and bug fixes to Elixir. It is the
 
 ## UTF-8 atoms, function names and variables
 
-Elixir v1.5 supports non-quoted atoms and variables to be in UTF-8. For example:
+Elixir v1.5 supports non-quoted atoms and variables to be in UTF-8 when using Erlang/OTP 20+. For example:
 
     test "こんにちは世界" do
       assert :こんにちは世界
@@ -46,6 +46,8 @@ For a complete reference on Elixir syntax, see the [Syntax Reference](https://he
 In the example above, an argument that did not match or guard that did not evaluate to true are shown between `-`. If the terminal supports ANSI coloring, they are wrapped in red instead of the `-` character.
 
 Since blaming an exception can be extensive, `Exception.blame/3` must be used exclusively in debugging situations. It is not advised to apply it to production components such as a Logger. This feature has been integrated into the compiler, the command line, ExUnit and IEx.
+
+This feature also requires Erlang/OTP 20+.
 
 ## Streamlined child specs
 
@@ -118,7 +120,7 @@ Elixir v1.5 introduces the `@impl` attribute, which allows us to mark that certa
       end
     end
 
-You may even use `@init Plug` if you want to explicitly document which behaviour defines the callback you are implementing.
+You may even use `@impl Plug` if you want to explicitly document which behaviour defines the callback you are implementing.
 
 Overall, using `@impl` has the following advantages:
 
@@ -163,7 +165,7 @@ This release brings further improvements to Calendar types. It adds arithmetic a
   * [Protocol] Show available implementations on `Protocol.UndefinedError` if the protocol has been consolidated
   * [Registry] Support ETS guard conditions in `Registry.match/3`
   * [Supervisor] Add `Supervisor.init/2` and `Supervisor.child_spec/2`
-  * [Supervisor] Allow `module` and `{module, arg}` to be given to `Supervisor.start_link/2` and invoke `module.start_link(arg)` on each argument
+  * [Supervisor] Allow `module` and `{module, arg}` to be given to `Supervisor.start_link/2` and invoke `module.child_spec(arg)` on each argument
   * [Task] Support `:on_timeout` in `Task.async_stream` to control how tasks are terminated
 
 #### ExUnit
