@@ -427,15 +427,15 @@ defmodule Exception do
   end
 
   defp format_exit_reason({:bad_start_spec, start_spec}) do
-    "bad start spec: invalid children: " <> inspect(start_spec)
+    "bad child specification, invalid children: " <> inspect(start_spec)
   end
 
   defp format_exit_reason({:start_spec, start_spec}) do
-    "bad start spec: " <> format_sup_spec(start_spec)
+    "bad child specification, " <> format_sup_spec(start_spec)
   end
 
   defp format_exit_reason({:supervisor_data, data}) do
-    "bad supervisor data: " <> format_sup_data(data)
+    "bad supervisor configuration, " <> format_sup_data(data)
   end
 
   defp format_exit_reason(reason), do: inspect(reason)
@@ -454,44 +454,52 @@ defmodule Exception do
   end
 
   defp format_sup_data({:invalid_intensity, intensity}) do
-    "invalid intensity: " <> inspect(intensity)
+    "invalid max_restarts (intensity): " <> inspect(intensity)
   end
 
   defp format_sup_data({:invalid_period, period}) do
-    "invalid period: " <> inspect(period)
+    "invalid max_seconds (period): " <> inspect(period)
   end
 
-  defp format_sup_data(other), do: inspect(other)
+  defp format_sup_data(other), do: "got: #{inspect other}"
+
+  defp format_sup_spec({:duplicate_child_name, id}) do
+   """
+   more than one child specification has the id: #{inspect id}
+   If using maps as child specifications, make sure the IDs are unique.
+   If using a module or {module, arg}, use Supervisor.child_spec/3.
+   """
+  end
 
   defp format_sup_spec({:invalid_child_spec, child_spec}) do
-   "invalid child spec: " <> inspect(child_spec)
+   "invalid child specification: #{inspect child_spec}"
   end
 
   defp format_sup_spec({:invalid_child_type, type}) do
-    "invalid child type: " <> inspect(type)
+    "invalid child type: #{inspect type}. Must be :worker or :supervisor."
   end
 
   defp format_sup_spec({:invalid_mfa, mfa}) do
-    "invalid mfa: " <> inspect(mfa)
+    "invalid mfa: #{inspect mfa}"
   end
 
   defp format_sup_spec({:invalid_restart_type, restart}) do
-    "invalid restart type: " <> inspect(restart)
+    "invalid restart type: #{inspect restart}. Must be :permanent, :transient or :temporary."
   end
 
   defp format_sup_spec({:invalid_shutdown, shutdown}) do
-    "invalid shutdown: " <> inspect(shutdown)
+    "invalid shutdown: #{inspect shutdown}. Must be an integer >= 0, :infinity or :brutal_kill."
   end
 
   defp format_sup_spec({:invalid_module, mod}) do
-    "invalid module: " <> inspect(mod)
+    "invalid module: #{inspect mod}. Must be an atom."
   end
 
   defp format_sup_spec({:invalid_modules, modules}) do
-    "invalid modules: " <> inspect(modules)
+    "invalid modules: #{inspect modules}. Must be a list of atoms or :dynamic."
   end
 
-  defp format_sup_spec(other), do: inspect(other)
+  defp format_sup_spec(other), do: "got: #{inspect other}"
 
   @doc """
   Receives a stacktrace entry and formats it into a string.
