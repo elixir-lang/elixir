@@ -612,7 +612,7 @@ defmodule Supervisor do
   end
 
   @doc """
-  Builds and override a child specification.
+  Builds and overrides a child specification.
 
   Similar to `start_link/2` and `init/2`, it expects a
   `module`, `{module, arg}` or a map as the child specification.
@@ -623,21 +623,26 @@ defmodule Supervisor do
   are directly applied on the child spec. If `config` has keys that
   do not map to any child specification field, an error is raised.
 
-  This function is often used to set an `:id` option when
-  the same module needs to be started multiple times in the
-  supervision tree. It may also be used when there is a need
-  to change the number of arguments when starting a module
-  under a `:simple_one_for_one` strategy.
+  See the "Child specification" section in the module documentation
+  for all of the available keys for overriding.
 
   ## Examples
 
-      Supervisor.child_spec(Agent, start: {Agent, :start_link, []})
-      #=> %{id: Agent,
-            start: {Agent, :start_link, []}}
+  This function is often used to set an `:id` option when
+  the same module needs to be started multiple times in the
+  supervision tree:
 
       Supervisor.child_spec({Agent, fn -> :ok end}, id: {Agent, 1})
       #=> %{id: {Agent, 1},
             start: {Agent, :start_link, [fn -> :ok end]}}
+
+  It may also be used when there is a need to change the number
+  of arguments when starting a module under a `:simple_one_for_one`
+  strategy, since most args may be given dynamically:
+
+      Supervisor.child_spec(Agent, start: {Agent, :start_link, []})
+      #=> %{id: Agent,
+            start: {Agent, :start_link, []}}
 
   """
   @spec child_spec(child_spec | {module, arg :: term} | module, keyword) :: child_spec()
