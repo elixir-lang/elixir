@@ -578,6 +578,8 @@ defmodule GenServer do
         %{unquote_splicing(spec)}
       end
 
+      defoverridable child_spec: 1
+
       @doc false
       def init(args) do
         {:ok, args}
