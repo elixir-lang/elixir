@@ -285,7 +285,7 @@ defmodule Supervisor do
       end
 
   The difference between the two approaches is that a module-based
-  supervisor gives you are more direct control over how the supervisor
+  supervisor gives you more direct control over how the supervisor
   is initialized. Instead of calling `Supervisor.start_link/2` with
   a list of children that are automatically initialized, we have
   defined a supervisor alongside its `c:init/1` callback and manually
@@ -303,6 +303,14 @@ defmodule Supervisor do
       new children directly, while dynamic supervision
       requires the whole tree to be restarted in order to
       perform such swaps.
+
+  Note `use Supervisor` defines a `child_spec/1` function, allowing
+  the defined module to be put under a supervision tree. The generated
+  `child_spec/1` can be customized with the following options:
+
+    * `:id` - the child specification id, defauts to the current module
+    * `:start` - how to start the child process (defaults to calling `__MODULE__.start_link/1`)
+    * `:restart` - when the supervisor should be restarted, defaults to `:permanent`
 
   ## start_link/2, init/2 and strategies
 
@@ -427,10 +435,22 @@ defmodule Supervisor do
   """
 
   @doc false
-  defmacro __using__(_) do
-    quote location: :keep do
+  defmacro __using__(opts) do
+    quote location: :keep, bind_quoted: [opts: opts] do
       @behaviour Supervisor
       import Supervisor.Spec
+
+      spec = [
+        id: opts[:id] || __MODULE__,
+        start: Macro.escape(opts[:start]) || quote(do: {__MODULE__, :start_link, [arg]}),
+        restart: opts[:restart] || :permanent,
+        type: :supervisor
+      ]
+
+      @doc false
+      def child_spec(arg) do
+        %{unquote_splicing(spec)}
+      end
 
       @doc false
       def init(arg)

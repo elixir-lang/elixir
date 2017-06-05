@@ -14,6 +14,36 @@ defmodule AgentTest do
            Supervisor.start_link([{Agent, fn -> :ok end}], strategy: :one_for_one)
   end
 
+  test "generates child_spec/1" do
+    defmodule MyAgent do
+      use Agent
+    end
+
+    assert MyAgent.child_spec([:hello]) == %{
+      id: MyAgent,
+      restart: :permanent,
+      shutdown: 5000,
+      start: {MyAgent, :start_link, [[:hello]]},
+      type: :worker
+    }
+
+    defmodule CustomAgent do
+      use Agent,
+        id: :id,
+        restart: :temporary,
+        shutdown: :infinity,
+        start: {:foo, :bar, []}
+    end
+
+    assert CustomAgent.child_spec([:hello]) == %{
+      id: :id,
+      restart: :temporary,
+      shutdown: :infinity,
+      start: {:foo, :bar, []},
+      type: :worker
+    }
+  end
+
   test "start_link/2 workflow with unregistered name and anonymous functions" do
     {:ok, pid} = Agent.start_link(&Map.new/0)
 

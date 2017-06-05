@@ -80,10 +80,19 @@ defmodule Task do
   unlike `async/1`, returns `{:ok, pid}` (which is the result
   expected by supervisors).
 
-  Note `use Task` will define a `child_spec/1` that configures
-  the task to have `:temporary` restart. This means the task
-  will not be restarted even if it crashes. If you desire the
-  task to be restarted for non-successful exists, do:
+  Note `use Task` defines a `child_spec/1` function, allowing the
+  defined module to be put under a supervision tree. The generated
+  `child_spec/1` can be customized with the following options:
+
+    * `:id` - the child specification id, defauts to the current module
+    * `:start` - how to start the child process (defaults to calling `__MODULE__.start_link/1`)
+    * `:restart` - when the child should be restarted, defaults to `:temporary`
+    * `:shutdown` - how to shut down the child
+
+  Opposite to `GenServer`, `Agent` and `Supervisor`, a Task has
+  a default `:restart` of `:temporary`. This means the task will
+  not be restarted even if it crashes. If you desire the task to
+  be restarted for non-successful exists, do:
 
       use Task, restart: :transient
 
@@ -171,6 +180,24 @@ defmodule Task do
       start: {Task, :start_link, [arg]},
       restart: :temporary
     }
+  end
+
+  @doc false
+  defmacro __using__(opts) do
+    quote location: :keep, bind_quoted: [opts: opts] do
+      spec = [
+        id: opts[:id] || __MODULE__,
+        start: Macro.escape(opts[:start]) || quote(do: {__MODULE__, :start_link, [arg]}),
+        restart: opts[:restart] || :temporary,
+        shutdown: opts[:shutdown] || 5000,
+        type: :worker
+      ]
+
+      @doc false
+      def child_spec(arg) do
+        %{unquote_splicing(spec)}
+      end
+    end
   end
 
   @doc """

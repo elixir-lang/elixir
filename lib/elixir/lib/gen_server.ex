@@ -11,8 +11,8 @@ defmodule GenServer do
   ## Example
 
   The GenServer behaviour abstracts the common client-server interaction.
-  Developers are only required to implement the callbacks and functionality they are
-  interested in.
+  Developers are only required to implement the callbacks and functionality
+  they are interested in.
 
   Let's start with a code example and then explore the available callbacks.
   Imagine we want a GenServer that works like a stack, allowing us to push
@@ -56,12 +56,27 @@ defmodule GenServer do
   that must be handled by the `c:handle_call/3` callback in the GenServer.
   A `cast/2` message must be handled by `c:handle_cast/2`.
 
-  ## Callbacks
+  ## use GenServer and callbacks
 
   There are 6 callbacks required to be implemented in a `GenServer`. By
   adding `use GenServer` to your module, Elixir will automatically define
   all 6 callbacks for you, leaving it up to you to implement the ones
   you want to customize.
+
+  `use GenServer` also defines a `child_spec/1` function, allowing the
+  defined module to be put under a supervision tree. The generated
+  `child_spec/1` can be customized with the following options:
+
+    * `:id` - the child specification id, defauts to the current module
+    * `:start` - how to start the child process (defaults to calling `__MODULE__.start_link/1`)
+    * `:restart` - when the child should be restarted, defaults to `:permanent`
+    * `:shutdown` - how to shut down the child
+
+  For example:
+
+      use GenServer, restart: :transient, shutdown: 10_000
+
+  See the `Supervisor` docs for more information.
 
   ## Name Registration
 
@@ -546,9 +561,22 @@ defmodule GenServer do
   @type from :: {pid, tag :: term}
 
   @doc false
-  defmacro __using__(_) do
-    quote location: :keep do
+  defmacro __using__(opts) do
+    quote location: :keep, bind_quoted: [opts: opts] do
       @behaviour GenServer
+
+      spec = [
+        id: opts[:id] || __MODULE__,
+        start: Macro.escape(opts[:start]) || quote(do: {__MODULE__, :start_link, [arg]}),
+        restart: opts[:restart] || :permanent,
+        shutdown: opts[:shutdown] || 5000,
+        type: :worker
+      ]
+
+      @doc false
+      def child_spec(arg) do
+        %{unquote_splicing(spec)}
+      end
 
       @doc false
       def init(args) do

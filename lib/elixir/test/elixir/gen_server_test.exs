@@ -38,6 +38,32 @@ defmodule GenServerTest do
     end
   end
 
+  test "generates child_spec/1" do
+    assert Stack.child_spec([:hello]) == %{
+      id: Stack,
+      restart: :permanent,
+      shutdown: 5000,
+      start: {Stack, :start_link, [[:hello]]},
+      type: :worker
+    }
+
+    defmodule CustomStack do
+      use GenServer,
+        id: :id,
+        restart: :temporary,
+        shutdown: :infinity,
+        start: {:foo, :bar, []}
+    end
+
+    assert CustomStack.child_spec([:hello]) == %{
+      id: :id,
+      restart: :temporary,
+      shutdown: :infinity,
+      start: {:foo, :bar, []},
+      type: :worker
+    }
+  end
+
   test "start_link/3" do
     assert_raise ArgumentError, ~r"expected :name option to be one of:", fn ->
       GenServer.start_link(Stack, [:hello], name: "my_gen_server_name")

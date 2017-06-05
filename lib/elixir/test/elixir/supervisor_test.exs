@@ -41,6 +41,34 @@ defmodule SupervisorTest do
 
   import Supervisor.Spec
 
+  test "generates child_spec/1" do
+    assert Stack.Sup.child_spec([:hello]) == %{
+      id: Stack.Sup,
+      restart: :permanent,
+      start: {Stack.Sup, :start_link, [[:hello]]},
+      type: :supervisor
+    }
+
+    defmodule CustomSup do
+      use Supervisor,
+        id: :id,
+        restart: :temporary,
+        start: {:foo, :bar, []},
+        shutdown: 5000 # ignored
+
+      def init(arg) do
+        arg
+      end
+    end
+
+    assert CustomSup.child_spec([:hello]) == %{
+      id: :id,
+      restart: :temporary,
+      start: {:foo, :bar, []},
+      type: :supervisor
+    }
+  end
+
   test "start_link/2 with via" do
     Supervisor.start_link([], strategy: :one_for_one, name: {:via, :global, :via_sup})
     assert Supervisor.which_children({:via, :global, :via_sup}) == []
