@@ -3,15 +3,18 @@ defmodule Agent.Server do
 
   use GenServer
 
+  @impl GenServer
   def init(fun) do
     _ = initial_call(fun)
     {:ok, run(fun, [])}
   end
 
+  @impl GenServer
   def handle_call({:get, fun}, _from, state) do
     {:reply, run(fun, [state]), state}
   end
 
+  @impl GenServer
   def handle_call({:get_and_update, fun}, _from, state) do
     case run(fun, [state]) do
       {reply, state} -> {:reply, reply, state}
@@ -19,22 +22,27 @@ defmodule Agent.Server do
     end
   end
 
+  @impl GenServer
   def handle_call({:update, fun}, _from, state) do
     {:reply, :ok, run(fun, [state])}
   end
 
+  @impl GenServer
   def handle_call(msg, from, state) do
     super(msg, from, state)
   end
 
+  @impl GenServer
   def handle_cast({:cast, fun}, state) do
     {:noreply, run(fun, [state])}
   end
 
+  @impl GenServer
   def handle_cast(msg, state) do
     super(msg, state)
   end
 
+  @impl GenServer
   def code_change(_old, state, fun) do
     {:ok, run(fun, [state])}
   end

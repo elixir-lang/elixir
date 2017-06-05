@@ -182,7 +182,7 @@ defmodule Mix do
     :ok
   end
 
-  @doc false
+  @impl Application
   def start(_type, []) do
     import Supervisor.Spec
 

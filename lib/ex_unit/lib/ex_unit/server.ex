@@ -29,8 +29,7 @@ defmodule ExUnit.Server do
     GenServer.call(__MODULE__, :take_sync_cases, timeout)
   end
 
-  ## Callbacks
-
+  @impl GenServer
   def init(:ok) do
     {:ok, %{
       loaded: System.monotonic_time,
@@ -41,26 +40,31 @@ defmodule ExUnit.Server do
   end
 
   # Called on demand until we are signaled all cases are loaded.
+  @impl GenServer
   def handle_call({:take_async_cases, count}, from, %{waiting: nil} = state) do
     {:noreply, take_cases(%{state | waiting: {from, count}})}
   end
 
   # Called once after all async cases have been sent and reverts the state.
+  @impl GenServer
   def handle_call(:take_sync_cases, _from, %{waiting: nil, loaded: :done, async_cases: []} = state) do
     {:reply, state.sync_cases,
      %{state | sync_cases: [], loaded: System.monotonic_time}}
   end
 
+  @impl GenServer
   def handle_call(:cases_loaded, _from, %{loaded: loaded} = state) when is_integer(loaded) do
     diff = System.convert_time_unit(System.monotonic_time - loaded, :native, :microsecond)
     {:reply, diff, take_cases(%{state | loaded: :done})}
   end
 
+  @impl GenServer
   def handle_cast({:add_async_case, name}, %{async_cases: cases, loaded: loaded} = state)
       when is_integer(loaded) do
     {:noreply, take_cases(%{state | async_cases: [name | cases]})}
   end
 
+  @impl GenServer
   def handle_cast({:add_sync_case, name}, %{sync_cases: cases, loaded: loaded} = state)
       when is_integer(loaded) do
     {:noreply, %{state | sync_cases: [name | cases]}}

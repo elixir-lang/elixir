@@ -3,7 +3,7 @@ defmodule Logger.App do
 
   use Application
 
-  @doc false
+  @impl Application
   def start(_type, _args) do
     import Supervisor.Spec
 
@@ -40,7 +40,7 @@ defmodule Logger.App do
     Application.start(:logger)
   end
 
-  @doc false
+  @impl Application
   def stop(config) do
     Logger.Config.deleted_handlers()
     |> add_handlers()

@@ -67,6 +67,7 @@ defmodule Application do
       defmodule MyApp do
         use Application
 
+        @impl Application
         def start(_type, _args) do
           MyApp.Supervisor.start_link()
         end
