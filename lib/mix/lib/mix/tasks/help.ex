@@ -8,6 +8,7 @@ defmodule Mix.Tasks.Help do
 
   ## Arguments
 
+      mix --help                - prints this message and exits
       mix help                  - prints all tasks and their shortdoc
       mix help TASK             - prints full docs for the given task
       mix help --search PATTERN - prints all tasks that contain PATTERN in the name

@@ -13,7 +13,7 @@ defmodule Mix.CLI do
 
     case check_for_shortcuts(args) do
       :help ->
-        proceed(["help"])
+        proceed(["help", "help"])
       :version ->
         display_version()
       nil ->

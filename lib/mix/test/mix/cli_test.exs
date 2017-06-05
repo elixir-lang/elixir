@@ -83,7 +83,7 @@ defmodule Mix.CLITest do
   test "--help smoke test", context do
     in_tmp context.test, fn ->
       output = mix ~w[--help]
-      assert output =~ ~r/mix compile\s+# Compiles source files/
+      assert output =~ ~r/Lists all tasks or prints the documentation for a given task.\s+## Arguments/
       refute output =~ "mix invalid"
     end
   end
