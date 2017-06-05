@@ -297,11 +297,13 @@ defmodule Protocol do
   end
 
   defp change_impl_for([{:function, line, :__protocol__, 1, clauses} | tail], protocol, types, structs, _, acc) do
+    abstract_types = :erl_parse.abstract(:lists.usort(types))
+
     clauses = :lists.map(fn
       {:clause, l, [{:atom, _, :consolidated?}], [], [{:atom, _, _}]} ->
         {:clause, l, [{:atom, 0, :consolidated?}], [], [{:atom, 0, true}]}
       {:clause, l, [{:atom, _, :impls}], [], [{:atom, _, _}]} ->
-        {:clause, l, [{:atom, 0, :impls}], [], [{:tuple, 0, [{:atom, 0, :consolidated}, :erl_parse.abstract(types)]}]}
+        {:clause, l, [{:atom, 0, :impls}], [], [{:tuple, 0, [{:atom, 0, :consolidated}, abstract_types]}]}
       {:clause, _, _, _, _} = c ->
         c
     end, clauses)

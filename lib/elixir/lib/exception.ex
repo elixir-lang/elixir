@@ -935,11 +935,22 @@ end
 defmodule Protocol.UndefinedError do
   defexception [:protocol, :value, description: ""]
 
-  def message(exception) do
-    msg = "protocol #{inspect exception.protocol} not implemented for #{inspect exception.value}"
-    case exception.description do
-      "" -> msg
-      descr -> msg <> ", " <> descr
+  def message(%{protocol: protocol, value: value, description: description}) do
+    "protocol #{inspect protocol} not implemented for #{inspect value}" <>
+      maybe_description(description) <> maybe_available(protocol)
+  end
+
+  defp maybe_description(""), do: ""
+  defp maybe_description(description), do: ", " <> description
+
+  defp maybe_available(protocol) do
+    case protocol.__protocol__(:impls) do
+      {:consolidated, []} ->
+        ". There are no implementations for this protocol."
+      {:consolidated, types} ->
+        ". This protocol is implemented for: #{Enum.map_join(types, ", ", &inspect/1)}"
+      :not_consolidated ->
+        ""
     end
   end
 end
