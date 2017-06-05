@@ -498,7 +498,7 @@ defmodule ExceptionTest do
 
         Attempted function clauses (showing 5 out of 5):
 
-            def fetch(-%struct{} = container-, +key+)
+            def fetch(-%struct{} = container-, key)
         """
       end
     end

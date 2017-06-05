@@ -269,7 +269,7 @@ defmodule IEx.Evaluator do
   end
 
   defp blame_match(%{match?: true, node: node}, _),
-    do: blame_ansi(:blame_same, "+", node)
+    do: Macro.to_string(node)
   defp blame_match(%{match?: false, node: node}, _),
     do: blame_ansi(:blame_diff, "-", node)
   defp blame_match(_, string),
