@@ -208,7 +208,7 @@ defmodule IEx.Evaluator do
   defp handle_eval({:ok, forms}, code, line, iex_state, history, state) do
     {result, binding, env, scope} =
       :elixir.eval_forms(forms, state.binding, state.env, state.scope)
-    unless result == IEx.dont_display_result, do: io_inspect(result)
+    unless result == IEx.dont_display_result(), do: io_inspect(result)
     iex_state =
       %{iex_state | cache: '',
                     counter: iex_state.counter + 1}
