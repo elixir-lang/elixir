@@ -1,27 +1,28 @@
 defmodule ExUnit.CaptureServer do
   @moduledoc false
   @timeout 30_000
+  @name __MODULE__
 
   use GenServer
 
-  def start_link() do
-    GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
+  def start_link(_opts) do
+    GenServer.start_link(__MODULE__, :ok, name: @name)
   end
 
   def device_capture_on(device, pid) do
-    GenServer.call(__MODULE__, {:device_capture_on, device, pid}, @timeout)
+    GenServer.call(@name, {:device_capture_on, device, pid}, @timeout)
   end
 
   def device_capture_off(ref) do
-    GenServer.call(__MODULE__, {:device_capture_off, ref}, @timeout)
+    GenServer.call(@name, {:device_capture_off, ref}, @timeout)
   end
 
   def log_capture_on(pid) do
-    GenServer.call(__MODULE__, {:log_capture_on, pid}, @timeout)
+    GenServer.call(@name, {:log_capture_on, pid}, @timeout)
   end
 
   def log_capture_off(ref) do
-    GenServer.call(__MODULE__, {:log_capture_off, ref}, @timeout)
+    GenServer.call(@name, {:log_capture_off, ref}, @timeout)
   end
 
   ## Callbacks

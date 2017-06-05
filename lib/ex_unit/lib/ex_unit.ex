@@ -126,12 +126,10 @@ defmodule ExUnit do
 
   @doc false
   def start(_type, []) do
-    import Supervisor.Spec
-
     children = [
-      worker(ExUnit.Server, []),
-      worker(ExUnit.CaptureServer, []),
-      worker(ExUnit.OnExitHandler, [])
+      ExUnit.Server,
+      ExUnit.CaptureServer,
+      ExUnit.OnExitHandler
     ]
 
     opts = [strategy: :one_for_one, name: ExUnit.Supervisor]
