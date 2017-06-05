@@ -24,10 +24,10 @@ defmodule Registry do
   ## Using in `:via`
 
   Once the registry is started with a given name using
-  `Registry.start_link/3`, it can be used to register and access named
+  `Registry.start_link/1`, it can be used to register and access named
   processes using the `{:via, Registry, {registry, key}}` tuple:
 
-      {:ok, _} = Registry.start_link(:unique, Registry.ViaTest)
+      {:ok, _} = Registry.start_link(keys: :unique, name: Registry.ViaTest)
       name = {:via, Registry, {Registry.ViaTest, "agent"}}
       {:ok, _} = Agent.start_link(fn -> 0 end, name: name)
       Agent.get(name, & &1)
@@ -38,7 +38,7 @@ defmodule Registry do
 
   Typically the registry is started as part of a supervision tree though:
 
-      supervisor(Registry, [:unique, Registry.ViaTest])
+      {Registry, keys: :unique, name: Registry.ViaTest}
 
   Only registries with unique keys can be used in `:via`. If the name is
   already taken, the case-specific `start_link` function (`Agent.start_link/2`
@@ -50,7 +50,7 @@ defmodule Registry do
   dispatch logic triggered from the caller. For example, let's say we have a
   duplicate registry started as so:
 
-      {:ok, _} = Registry.start_link(:duplicate, Registry.DispatcherTest)
+      {:ok, _} = Registry.start_link(keys: :duplicate, name: Registry.DispatcherTest)
 
   By calling `register/3`, different processes can register under a given key
   and associate any value under that key. In this case, let's register the
@@ -112,7 +112,7 @@ defmodule Registry do
   concurrent environments as each partition will spawn a new process, allowing
   dispatching to happen in parallel:
 
-      {:ok, _} = Registry.start_link(:duplicate, Registry.PubSubTest,
+      {:ok, _} = Registry.start_link(keys: :duplicate, name: Registry.PubSubTest,
                                      partitions: System.schedulers_online)
       {:ok, _} = Registry.register(Registry.PubSubTest, "hello", [])
       Registry.dispatch(Registry.PubSubTest, "hello", fn entries ->
@@ -150,9 +150,7 @@ defmodule Registry do
   Note that the registry uses one ETS table plus two ETS tables per partition.
   """
 
-  # TODO: Decide if it should be started as part of Elixir's supervision tree.
-
-  @kind [:unique, :duplicate]
+  @keys [:unique, :duplicate]
   @all_info -1
   @key_info -2
 
@@ -160,7 +158,7 @@ defmodule Registry do
   @type registry :: atom
 
   @typedoc "The type of the registry"
-  @type kind :: :unique | :duplicate
+  @type keys :: :unique | :duplicate
 
   @typedoc "The type of keys allowed on registration"
   @type key :: term
@@ -220,25 +218,36 @@ defmodule Registry do
 
   Manually it can be started as:
 
-      Registry.start_link(:unique, MyApp.Registry)
+      Registry.start_link(keys: :unique, name: MyApp.Registry)
 
   In your supervisor tree, you would write:
 
-      supervisor(Registry, [:unique, MyApp.Registry])
+      Supervisor.start_link([
+        {Registry, keys: :unique, name: MyApp.Registry}
+      ])
 
   For intensive workloads, the registry may also be partitioned (by specifying
   the `:partitions` option). If partitioning is required then a good default is to
   set the number of partitions to the number of schedulers available:
 
-      Registry.start_link(:unique, MyApp.Registry, partitions: System.schedulers_online())
+      Registry.start_link(keys: :unique, name: MyApp.Registry,
+                          partitions: System.schedulers_online())
 
   or:
 
-      supervisor(Registry, [:unique, MyApp.Registry, [partitions: System.schedulers_online()]])
+      Supervisor.start_link([
+        {Registry, keys: :unique, name: MyApp.Registry,
+                   partitions: System.schedulers_online()}
+      ])
 
   ## Options
 
-  The registry supports the following options:
+  The registry requires the following keys:
+
+    * `:keys` - choose if keys are `:unique` or `:duplicate`
+    * `:name` - the name of the registry and its tables
+
+  The following keys are optional:
 
     * `:partitions` - the number of partitions in the registry. Defaults to `1`.
     * `:listeners` - a list of named processes which are notified of `:register`
@@ -248,9 +257,19 @@ defmodule Registry do
     * `:meta` - a keyword list of metadata to be attached to the registry.
 
   """
-  @spec start_link(kind, registry, options) :: {:ok, pid} | {:error, term}
-        when options: [partitions: pos_integer, listeners: [atom], meta: [{meta_key, meta_value}]]
-  def start_link(kind, registry, options \\ []) when kind in @kind and is_atom(registry) do
+  @spec start_link(keys: keys, name: registry, partitions: pos_integer, listeners: [atom],
+                   meta: [{meta_key, meta_value}]) :: {:ok, pid} | {:error, term}
+  def start_link(options) do
+    keys = Keyword.get(options, :keys)
+    unless keys in @keys do
+      raise ArgumentError, "expected :keys to be given and be one of :unique or :duplicate, got: #{inspect keys}"
+    end
+
+    name = Keyword.get(options, :name)
+    unless is_atom(name) do
+      raise ArgumentError, "expected :name to be given and to be an atom, got: #{inspect name}"
+    end
+
     meta = Keyword.get(options, :meta, [])
     unless Keyword.keyword?(meta) do
       raise ArgumentError, "expected :meta to be a keyword list, got: #{inspect meta}"
@@ -267,9 +286,29 @@ defmodule Registry do
     end
 
     # The @info format must be kept in sync with Registry.Partition optimization.
-    entries = [{@all_info, {kind, partitions, nil, nil, listeners}},
-               {@key_info, {kind, partitions, nil}} | meta]
-    Registry.Supervisor.start_link(kind, registry, partitions, listeners, entries)
+    entries = [{@all_info, {keys, partitions, nil, nil, listeners}},
+               {@key_info, {keys, partitions, nil}} | meta]
+    Registry.Supervisor.start_link(keys, name, partitions, listeners, entries)
+  end
+
+  @doc """
+  Starts the registry as a supervisor process.
+
+  Similar to `start_link/1` except the required options,
+  `keys` and `name` are given as arguments.
+  """
+  @spec start_link(keys, registry, keyword) :: {:ok, pid} | {:error, term}
+  def start_link(keys, name, options \\ []) when keys in @keys and is_atom(name) do
+    start_link([keys: keys, name: name] ++ options)
+  end
+
+  @doc false
+  def child_spec(opts) do
+    %{
+      id: Registry,
+      start: {Registry, :start_link, [opts]},
+      type: :supervisor
+    }
   end
 
   @doc """

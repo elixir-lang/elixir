@@ -22,6 +22,12 @@ defmodule Task.SupervisorTest do
     number
   end
 
+  test "can be supervised directly", config do
+    assert {:ok, _} =
+           Supervisor.start_link([{Task.Supervisor, name: config.test}], strategy: :one_for_one)
+    assert Process.whereis(config.test)
+  end
+
   test "async/1", config do
     parent = self()
     fun = fn -> wait_and_send(parent, :done) end

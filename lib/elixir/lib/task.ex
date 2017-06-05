@@ -56,27 +56,51 @@ defmodule Task do
 
   ## Supervised tasks
 
-  It is also possible to spawn a task under a supervisor:
+  It is also possible to spawn a task under a supervisor.
+  It is often done by defining the task in its own module:
 
-      import Supervisor.Spec
+      defmodule MyTask do
+        use Task
 
-      children = [
-        #
-        worker(Task, [fn -> IO.puts "ok" end])
-      ]
+        def start_link(arg) do
+          Task.start_link(__MODULE__, :run, [arg])
+        end
 
-  Internally the supervisor will invoke `Task.start_link/1`.
+        def run(arg) do
+          # ...
+        end
+      end
+
+  And then passing it to the supervisor:
+
+      Supervisor.start_link([MyTask])
 
   Since these tasks are supervised and not directly linked to
   the caller, they cannot be awaited on. Note `start_link/1`,
-  unlike `async/1`, returns `{:ok, pid}` (which is
-  the result expected by supervision trees).
+  unlike `async/1`, returns `{:ok, pid}` (which is the result
+  expected by supervisors).
 
-  By default, most supervision strategies will try to restart
-  a worker after it exits regardless of the reason. If you design
-  the task to terminate normally (as in the example with `IO.puts/2`
-  above), consider passing `restart: :transient` in the options
-  to `Supervisor.Spec.worker/3`.
+  Note `use Task` defines a `child_spec/1` function, allowing the
+  defined module to be put under a supervision tree. The generated
+  `child_spec/1` can be customized with the following options:
+
+    * `:id` - the child specification id, defauts to the current module
+    * `:start` - how to start the child process (defaults to calling `__MODULE__.start_link/1`)
+    * `:restart` - when the child should be restarted, defaults to `:temporary`
+    * `:shutdown` - how to shut down the child
+
+  Opposite to `GenServer`, `Agent` and `Supervisor`, a Task has
+  a default `:restart` of `:temporary`. This means the task will
+  not be restarted even if it crashes. If you desire the task to
+  be restarted for non-successful exists, do:
+
+      use Task, restart: :transient
+
+  If you want the task to always be restarted:
+
+      use Task, restart: :permanent
+
+  See the `Supervisor` docs for more information.
 
   ## Dynamically supervised tasks
 
@@ -94,11 +118,9 @@ defmodule Task do
   However, in the majority of cases, you want to add the task supervisor
   to your supervision tree:
 
-      import Supervisor.Spec
-
-      children = [
-        supervisor(Task.Supervisor, [[name: MyApp.TaskSupervisor]])
-      ]
+      Supervisor.start_link([
+        {Task.Supervisor, name: MyApp.TaskSupervisor}
+      ])
 
   Now you can dynamically start supervised tasks:
 
@@ -150,6 +172,33 @@ defmodule Task do
   defstruct pid: nil, ref: nil, owner: nil
 
   @type t :: %__MODULE__{}
+
+  @doc false
+  def child_spec(arg) do
+    %{
+      id: Task,
+      start: {Task, :start_link, [arg]},
+      restart: :temporary
+    }
+  end
+
+  @doc false
+  defmacro __using__(opts) do
+    quote location: :keep, bind_quoted: [opts: opts] do
+      spec = [
+        id: opts[:id] || __MODULE__,
+        start: Macro.escape(opts[:start]) || quote(do: {__MODULE__, :start_link, [arg]}),
+        restart: opts[:restart] || :temporary,
+        shutdown: opts[:shutdown] || 5000,
+        type: :worker
+      ]
+
+      @doc false
+      def child_spec(arg) do
+        %{unquote_splicing(spec)}
+      end
+    end
+  end
 
   @doc """
   Starts a process linked to the current process.
