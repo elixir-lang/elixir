@@ -102,7 +102,8 @@ defmodule ProtocolTest do
   end
 
   test "protocol not implemented" do
-    assert_raise Protocol.UndefinedError, "protocol ProtocolTest.Sample not implemented for :foo", fn ->
+    assert_raise Protocol.UndefinedError,
+                 "protocol ProtocolTest.Sample not implemented for :foo", fn ->
       Sample.ok(:foo)
     end
   end
@@ -391,7 +392,7 @@ defmodule Protocol.ConsolidationTest do
     assert Sample.__protocol__(:consolidated?)
     assert Sample.__protocol__(:impls) == {:consolidated, [ImplStruct]}
     assert WithAny.__protocol__(:consolidated?)
-    assert WithAny.__protocol__(:impls) == {:consolidated, [Any, ImplStruct, Map]}
+    assert WithAny.__protocol__(:impls) == {:consolidated, [Any, Map, ImplStruct]}
   end
 
   test "consolidation extracts protocols" do
@@ -404,5 +405,13 @@ defmodule Protocol.ConsolidationTest do
     protos = Protocol.extract_impls(Enumerable, [:code.lib_dir(:elixir, :ebin)])
     assert List in protos
     assert Function in protos
+  end
+
+  test "protocol not implemented" do
+    assert_raise Protocol.UndefinedError,
+                 "protocol Protocol.ConsolidationTest.Sample not implemented for :foo. " <>
+                 "This protocol is implemented for: Protocol.ConsolidationTest.ImplStruct", fn ->
+      Sample.ok(:foo)
+    end
   end
 end
