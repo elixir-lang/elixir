@@ -890,7 +890,7 @@ defmodule FunctionClauseError do
   end
 
   defp blame_match(%{match?: true, node: node}, _),
-    do: "+" <> Macro.to_string(node) <> "+"
+    do: Macro.to_string(node)
   defp blame_match(%{match?: false, node: node}, _),
     do: "-" <> Macro.to_string(node) <> "-"
   defp blame_match(_, string),

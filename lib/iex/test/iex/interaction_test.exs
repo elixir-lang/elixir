@@ -150,7 +150,7 @@ defmodule IEx.InteractionTest do
       assert content =~ "** (FunctionClauseError) no function clause matching in Access.fetch/2"
       assert content =~ "The following arguments were given to Access.fetch/2"
       assert content =~ ":foo"
-      assert content =~ "def fetch(-%struct{} = container-, +key+)"
+      assert content =~ "def fetch(-%struct{} = container-, key)"
       assert content =~ ~r"\(elixir\) lib/access\.ex:\d+: Access\.fetch/2"
     end
   end

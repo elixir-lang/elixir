@@ -72,7 +72,6 @@ defmodule IEx.Config do
   defp default_color(:eval_error), do: [:red]
   defp default_color(:eval_info), do: [:normal]
   defp default_color(:stack_info), do: [:red]
-  defp default_color(:blame_same), do: [:normal]
   defp default_color(:blame_diff), do: [:red]
 
   # Used by ls

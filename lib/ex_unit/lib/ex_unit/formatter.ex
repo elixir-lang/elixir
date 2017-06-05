@@ -208,8 +208,8 @@ defmodule ExUnit.Formatter do
     nil
   end
 
-  defp blame_match(%{match?: true, node: node}, _, formatter),
-    do: formatter.(:blame_same, Macro.to_string(node))
+  defp blame_match(%{match?: true, node: node}, _, _formatter),
+    do: Macro.to_string(node)
   defp blame_match(%{match?: false, node: node}, _, formatter),
     do: formatter.(:blame_diff, Macro.to_string(node))
   defp blame_match(_, string, _formatter),
