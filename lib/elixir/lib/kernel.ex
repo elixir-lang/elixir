@@ -4199,8 +4199,8 @@ defmodule Kernel do
           require unquote(expanded)
           unquote(expanded).__using__(unquote(opts))
         end
-      _otherwise ->
-        raise ArgumentError, "invalid arguments for use, expected a compile time atom or alias, got: #{Macro.to_string(module)}"
+      other ->
+        raise ArgumentError, "invalid arguments for use, expected a compile time atom or alias, got: #{Macro.to_string(other)}"
     end)
     quote(do: (unquote_splicing calls))
   end

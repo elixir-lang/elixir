@@ -831,7 +831,7 @@ defmodule KernelTest do
     test "invalid argument is variable" do
       message = "invalid arguments for use, expected a compile time atom or alias, got: variable"
       assert_raise ArgumentError, message, fn ->
-        Code.eval_string("use variable")
+        Code.eval_string("use UseMacro.{variable}")
       end
     end
 
