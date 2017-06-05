@@ -197,6 +197,8 @@ defmodule Task do
       def child_spec(arg) do
         %{unquote_splicing(spec)}
       end
+
+      defoverridable child_spec: 1
     end
   end
 

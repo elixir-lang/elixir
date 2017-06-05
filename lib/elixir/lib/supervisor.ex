@@ -452,6 +452,8 @@ defmodule Supervisor do
         %{unquote_splicing(spec)}
       end
 
+      defoverridable child_spec: 1
+
       @doc false
       def init(arg)
     end
@@ -629,13 +631,13 @@ defmodule Supervisor do
 
   ## Examples
 
-      Supervisor.child_spec(Agent, fn -> :ok end, id: {Agent, 1})
-      #=> %{id: {Agent, 1},
-            start: {Agent, :start_link, [fn -> :ok end]}}
-
       Supervisor.child_spec(Agent, start: {Agent, :start_link, []})
       #=> %{id: Agent,
             start: {Agent, :start_link, []}}
+
+      Supervisor.child_spec({Agent, fn -> :ok end}, id: {Agent, 1})
+      #=> %{id: {Agent, 1},
+            start: {Agent, :start_link, [fn -> :ok end]}}
 
   """
   @spec child_spec(child_spec | {module, arg :: term} | module, keyword) :: child_spec()
