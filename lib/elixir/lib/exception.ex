@@ -464,9 +464,16 @@ defmodule Exception do
   defp format_sup_data(other), do: "got: #{inspect other}"
 
   defp format_sup_spec({:duplicate_child_name, id}) do
-   "more than one child specification has the id: #{inspect id}.\n" <>
-   "If using maps as child specifications, make sure the :id keys are unique. " <>
-   "If using a module or {module, arg} as child, use Supervisor.child_spec/2 to change the :id."
+    """
+    more than one child specification has the id: #{inspect id}.
+    If using maps as child specifications, make sure the :id keys are unique.
+    If using a module or {module, arg} as child, use Supervisor.child_spec/2 to change the :id, for example:
+
+        children = [
+          Supervisor.child_spec({MyWorker, arg}, id: :my_worker_1),
+          Supervisor.child_spec({MyWorker, arg}, id: :my_worker_2)
+        ]
+    """
   end
 
   defp format_sup_spec({:invalid_child_spec, child_spec}) do
