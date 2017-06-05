@@ -201,6 +201,8 @@ defmodule ExUnit.Formatter do
     if line > 0 && file && File.exists?(file) do
       file |> File.stream! |> Enum.at(line - 1) |> String.trim
     end
+  rescue
+    _ -> nil
   end
   defp get_code(%{}, _) do
     nil
