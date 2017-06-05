@@ -309,7 +309,7 @@ defmodule Protocol do
   end
 
   defp change_impl_for([{:function, line, :impl_for, 1, _} | tail], protocol, types, structs, protocol?, acc) do
-    fallback = if Any in types, do: load_impl(protocol, Any)
+    fallback = if Any in types, do: target_for(protocol, Any)
 
     clauses = for {guard, mod} <- __builtin__(),
                   mod in types,
@@ -323,7 +323,7 @@ defmodule Protocol do
   end
 
   defp change_impl_for([{:function, line, :struct_impl_for, 1, _} | tail], protocol, types, structs, protocol?, acc) do
-    fallback = if Any in types, do: load_impl(protocol, Any)
+    fallback = if Any in types, do: target_for(protocol, Any)
     clauses = for struct <- structs, do: each_struct_clause_for(struct, protocol, line)
     clauses = clauses ++ [fallback_clause_for(fallback, protocol, line)]
 
@@ -363,7 +363,7 @@ defmodule Protocol do
           {:remote, line, {:atom, line, :erlang}, {:atom, line, guard}},
           [{:var, line, :x}],
      }]],
-      [{:atom, line, load_impl(protocol, mod)}]}
+      [{:atom, line, target_for(protocol, mod)}]}
   end
 
   defp struct_clause_for(line) do
@@ -382,7 +382,7 @@ defmodule Protocol do
 
   defp each_struct_clause_for(struct, protocol, line) do
     {:clause, line, [{:atom, line, struct}], [],
-      [{:atom, line, load_impl(protocol, struct)}]}
+      [{:atom, line, target_for(protocol, struct)}]}
   end
 
   defp fallback_clause_for(value, _protocol, line) do
@@ -390,7 +390,7 @@ defmodule Protocol do
       [{:atom, line, value}]}
   end
 
-  defp load_impl(protocol, for) do
+  defp target_for(protocol, for) do
     Module.concat(protocol, for).__impl__(:target)
   end
 
