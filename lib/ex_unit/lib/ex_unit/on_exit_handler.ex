@@ -2,7 +2,9 @@ defmodule ExUnit.OnExitHandler do
   @moduledoc false
   @name __MODULE__
 
-  def start_link do
+  use Agent
+
+  def start_link(_opts) do
     Agent.start_link(fn -> %{} end, name: @name)
   end
 
@@ -34,7 +36,7 @@ defmodule ExUnit.OnExitHandler do
       Enum.reduce(callbacks, {nil, nil, nil}, &exec_on_exit_callback(&1, timeout, &2))
 
     if is_pid(runner_pid) and Process.alive?(runner_pid) do
-      send(runner_pid, :shutdown)
+      Process.exit(runner_pid, :shutdown)
       receive do
         {:DOWN, ^runner_monitor, :process, ^runner_pid, _error} -> :ok
       end
@@ -51,8 +53,6 @@ defmodule ExUnit.OnExitHandler do
 
   defp receive_runner_reply(runner_pid, runner_monitor, state, timeout) do
     receive do
-      {^runner_pid, nil} ->
-        {runner_pid, runner_monitor, state}
       {^runner_pid, error} ->
         {runner_pid, runner_monitor, state || error}
       {:DOWN, ^runner_monitor, :process, ^runner_pid, error} ->
@@ -81,8 +81,6 @@ defmodule ExUnit.OnExitHandler do
       {:run, from, fun} ->
         send(from, {self(), exec_callback(fun)})
         on_exit_runner_loop()
-      :shutdown ->
-        :ok
     end
   end
 

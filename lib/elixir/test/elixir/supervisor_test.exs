@@ -6,7 +6,7 @@ defmodule SupervisorTest do
   defmodule Stack do
     use GenServer
 
-    def start_link(state, opts) do
+    def start_link({state, opts}) do
       GenServer.start_link(__MODULE__, state, opts)
     end
 
@@ -33,13 +33,10 @@ defmodule SupervisorTest do
   defmodule Stack.Sup do
     use Supervisor
 
-    def init({arg, opts}) do
-      children = [worker(Stack, [arg, opts])]
-      supervise(children, strategy: :one_for_one)
+    def init(pair) do
+      Supervisor.init([{Stack, pair}], strategy: :one_for_one)
     end
   end
-
-  import Supervisor.Spec
 
   test "generates child_spec/1" do
     assert Stack.Sup.child_spec([:hello]) == %{
@@ -51,10 +48,10 @@ defmodule SupervisorTest do
 
     defmodule CustomSup do
       use Supervisor,
-        id: :id,
-        restart: :temporary,
-        start: {:foo, :bar, []},
-        shutdown: 5000 # ignored
+          id: :id,
+          restart: :temporary,
+          start: {:foo, :bar, []},
+          shutdown: 5000 # ignored
 
       def init(arg) do
         arg
@@ -130,7 +127,7 @@ defmodule SupervisorTest do
   end
 
   test "start_link/2" do
-    children = [worker(Stack, [[:hello], [name: :dyn_stack]])]
+    children = [{Stack, {[:hello], [name: :dyn_stack]}}]
     {:ok, pid} = Supervisor.start_link(children, strategy: :one_for_one)
 
     wait_until_registered(:dyn_stack)
@@ -168,7 +165,8 @@ defmodule SupervisorTest do
     assert Supervisor.count_children(pid) ==
            %{specs: 0, active: 0, supervisors: 0, workers: 0}
 
-    {:ok, stack} = Supervisor.start_child(pid, worker(Stack, [[:hello], []]))
+    child_spec = Supervisor.child_spec({Stack, {[:hello], []}}, [])
+    {:ok, stack} = Supervisor.start_child(pid, child_spec)
     assert GenServer.call(stack, :pop) == :hello
 
     assert Supervisor.which_children(pid) ==

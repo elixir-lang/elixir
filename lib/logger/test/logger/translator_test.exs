@@ -1,6 +1,5 @@
 defmodule Logger.TranslatorTest do
   use Logger.Case
-  import Supervisor.Spec
 
   defmodule MyGenServer do
     use GenServer
@@ -713,7 +712,7 @@ defmodule Logger.TranslatorTest do
     end
 
     child_opts = [restart: :temporary, function: :"start link"]
-    children = [Supervisor.Spec.worker(WeirdFunctionNamesGenServer, [], child_opts)]
+    children = [worker(WeirdFunctionNamesGenServer, [], child_opts)]
     {:ok, sup} = Supervisor.start_link(children, strategy: :simple_one_for_one)
 
     log = capture_log(:info, fn ->
@@ -768,5 +767,9 @@ defmodule Logger.TranslatorTest do
     Process.flag(:trap_exit, true)
     :proc_lib.init_ack({:ok, self()})
     receive do: ({:EXIT, _, _} -> exit(:stop))
+  end
+
+  defp worker(name, args, opts \\ []) do
+    Enum.into(opts, %{id: name, start: {name, opts[:function] || :start_link, args}})
   end
 end

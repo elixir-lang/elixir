@@ -11,9 +11,12 @@ defmodule ExUnit.EventManager do
   internal statistics server for ExUnit.
   """
   def start_link() do
-    import Supervisor.Spec
-    child = worker(GenServer, [], restart: :temporary)
-    {:ok, sup} = Supervisor.start_link([child], strategy: :simple_one_for_one)
+    spec = %{
+      id: GenServer,
+      start: {GenServer, :start_link, []},
+      restart: :temporary
+    }
+    {:ok, sup} = Supervisor.start_link([spec], strategy: :simple_one_for_one)
     {:ok, event} = :gen_event.start_link()
     {:ok, {sup, event}}
   end

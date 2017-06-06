@@ -424,12 +424,10 @@ defmodule Mix.Tasks.New do
     use Application
 
     def start(_type, _args) do
-      import Supervisor.Spec, warn: false
-
-      # Define workers and child supervisors to be supervised
+      # List all child processes to be supervised
       children = [
-        # Starts a worker by calling: <%= @mod %>.Worker.start_link(arg1, arg2, arg3)
-        # worker(<%= @mod %>.Worker, [arg1, arg2, arg3]),
+        # Starts a worker by calling: <%= @mod %>.Worker.start_link(arg)
+        # {<%= @mod %>.Worker, arg},
       ]
 
       # See https://hexdocs.pm/elixir/Supervisor.html

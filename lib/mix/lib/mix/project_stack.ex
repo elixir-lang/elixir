@@ -1,14 +1,15 @@
 defmodule Mix.ProjectStack do
   @moduledoc false
 
+  use Agent
   @timeout 30_000
 
   @typep file    :: binary
   @typep config  :: keyword
   @typep project :: %{name: module, config: config, file: file}
 
-  @spec start_link :: {:ok, pid}
-  def start_link() do
+  @spec start_link(keyword) :: {:ok, pid}
+  def start_link(_opts) do
     initial = %{stack: [], post_config: [], cache: %{}}
     Agent.start_link fn -> initial end, name: __MODULE__
   end
@@ -72,9 +73,7 @@ defmodule Mix.ProjectStack do
     end
   end
 
-  @doc """
-  Runs the given function in the recursing root.
-  """
+  @spec root((() -> result)) :: result when result: var
   def root(fun) do
     {top, file} =
       get_and_update fn %{stack: stack} = state ->
@@ -121,11 +120,7 @@ defmodule Mix.ProjectStack do
     end
   end
 
-  @doc """
-  Enables the recursion for the project at the top of the stack
-  during the given function.
-  """
-  @spec recur((... -> result)) :: result when result: var
+  @spec recur((() -> result)) :: result when result: var
   def recur(fun) do
     cast fn %{stack: [h | t]} = state ->
       %{state | stack: [%{h | recursing?: true} | t]}
@@ -140,11 +135,6 @@ defmodule Mix.ProjectStack do
     end
   end
 
-  @doc """
-  Returns the module that started the recursion.
-
-  Returns nil if not recursive.
-  """
   @spec recursing :: module | nil
   def recursing do
     get fn %{stack: stack} ->

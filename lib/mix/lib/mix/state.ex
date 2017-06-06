@@ -2,7 +2,9 @@ defmodule Mix.State do
   @moduledoc false
   @name __MODULE__
 
-  def start_link() do
+  use Agent
+
+  def start_link(_opts) do
     Agent.start_link(__MODULE__, :init, [], [name: @name])
   end
 
