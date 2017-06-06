@@ -1,32 +1,33 @@
 defmodule ExUnit.Server do
   @moduledoc false
+  @name __MODULE__
 
   use GenServer
 
-  def start_link() do
-    GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
+  def start_link(_opts) do
+    GenServer.start_link(__MODULE__, :ok, name: @name)
   end
 
   def add_async_case(name) do
-    GenServer.cast(__MODULE__, {:add_async_case, name})
+    GenServer.cast(@name, {:add_async_case, name})
   end
 
   def add_sync_case(name) do
-    GenServer.cast(__MODULE__, {:add_sync_case, name})
+    GenServer.cast(@name, {:add_sync_case, name})
   end
 
   def cases_loaded do
-    GenServer.call(__MODULE__, :cases_loaded)
+    GenServer.call(@name, :cases_loaded)
   end
 
   def take_async_cases(count) do
     timeout = Application.fetch_env!(:ex_unit, :case_load_timeout)
-    GenServer.call(__MODULE__, {:take_async_cases, count}, timeout)
+    GenServer.call(@name, {:take_async_cases, count}, timeout)
   end
 
   def take_sync_cases() do
     timeout = Application.fetch_env!(:ex_unit, :case_load_timeout)
-    GenServer.call(__MODULE__, :take_sync_cases, timeout)
+    GenServer.call(@name, :take_sync_cases, timeout)
   end
 
   ## Callbacks

@@ -53,11 +53,15 @@ defmodule Task.Supervisor do
   """
   @spec start_link([option]) :: Supervisor.on_start
   def start_link(opts \\ []) do
-    import Supervisor.Spec
     {restart, opts}  = Keyword.pop(opts, :restart, :temporary)
     {shutdown, opts} = Keyword.pop(opts, :shutdown, 5000)
-    children = [worker(Task.Supervised, [], restart: restart, shutdown: shutdown)]
-    Supervisor.start_link(children, [strategy: :simple_one_for_one] ++ opts)
+    child = %{
+      id: Task.Supervised,
+      start: {Task.Supervised, :start_link, []},
+      restart: restart,
+      shutdown: shutdown
+    }
+    Supervisor.start_link([child], [strategy: :simple_one_for_one] ++ opts)
   end
 
   @doc """

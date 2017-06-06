@@ -1,7 +1,9 @@
 defmodule Mix.TasksServer do
   @moduledoc false
 
-  def start_link() do
+  use Agent
+
+  def start_link(_opts) do
     Agent.start_link(fn -> %{} end, name: __MODULE__)
   end
 

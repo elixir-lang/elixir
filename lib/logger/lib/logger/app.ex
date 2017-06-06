@@ -5,25 +5,28 @@ defmodule Logger.App do
 
   @doc false
   def start(_type, _args) do
-    import Supervisor.Spec
-
     otp_reports?  = Application.get_env(:logger, :handle_otp_reports)
     sasl_reports? = Application.get_env(:logger, :handle_sasl_reports)
     threshold     = Application.get_env(:logger, :discard_threshold_for_error_logger)
+    error_handler = {:error_logger, Logger.ErrorHandler, {otp_reports?, sasl_reports?, threshold}}
 
-    options  = [strategy: :rest_for_one, name: Logger.Supervisor]
-    children = [worker(:gen_event, [{:local, Logger}]),
-                worker(Logger.Watcher, [Logger, Logger.Config, []],
-                  [id: Logger.Config, function: :watcher]),
-                supervisor(Logger.Watcher, [Logger.Config, :handlers, []]),
-                worker(Logger.Watcher,
-                  [:error_logger, Logger.ErrorHandler,
-                    {otp_reports?, sasl_reports?, threshold}],
-                  [id: Logger.ErrorHandler, function: :watcher])]
+    children = [
+      %{
+        id: :gen_event,
+        start: {:gen_event, :start_link, [{:local, Logger}]},
+        modules: :dynamic
+      },
+      {Logger.Watcher, {Logger, Logger.Config, []}},
+      {Logger.WatcherSupervisor, {Logger.Config, :handlers, []}},
+      %{
+        id: Logger.ErrorHandler,
+        start: {Logger.Watcher, :start_link, [error_handler]}
+      }
+    ]
 
     config = Logger.Config.new()
 
-    case Supervisor.start_link(children, options) do
+    case Supervisor.start_link(children, strategy: :rest_for_one, name: Logger.Supervisor) do
       {:ok, sup} ->
         handlers = [error_logger_tty_h: otp_reports?,
                     sasl_report_tty_h: sasl_reports?]

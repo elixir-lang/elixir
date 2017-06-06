@@ -505,7 +505,7 @@ defmodule Logger do
   @spec add_backend(atom, keyword) :: Supervisor.on_start_child
   def add_backend(backend, opts \\ []) do
     _ = if opts[:flush], do: flush()
-    case Logger.Watcher.watch(Logger, Logger.Config.translate_backend(backend), backend) do
+    case Logger.WatcherSupervisor.watch(Logger, Logger.Config.translate_backend(backend), backend) do
       {:ok, _} = ok ->
         Logger.Config.add_backend(backend)
         ok
@@ -530,7 +530,7 @@ defmodule Logger do
   def remove_backend(backend, opts \\ []) do
     _ = if opts[:flush], do: flush()
     Logger.Config.remove_backend(backend)
-    Logger.Watcher.unwatch(Logger, Logger.Config.translate_backend(backend))
+    Logger.WatcherSupervisor.unwatch(Logger, Logger.Config.translate_backend(backend))
   end
 
   @doc """

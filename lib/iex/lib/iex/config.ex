@@ -1,5 +1,6 @@
 defmodule IEx.Config do
   @moduledoc false
+  use Agent
 
   @table __MODULE__
   @agent __MODULE__
@@ -117,7 +118,7 @@ defmodule IEx.Config do
 
   # Agent API
 
-  def start_link() do
+  def start_link(_) do
     Agent.start_link(__MODULE__, :handle_init, [@table], [name: @agent])
   end
 
