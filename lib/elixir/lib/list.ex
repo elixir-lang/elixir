@@ -600,6 +600,8 @@ defmodule List do
   @spec starts_with?(list, list) :: boolean
   @spec starts_with?(list, []) :: true
   @spec starts_with?([], nonempty_list) :: false
+  def starts_with?(list, prefix)
+
   def starts_with?([head | tail], [head | prefix_tail]),
     do: starts_with?(tail, prefix_tail);
   def starts_with?(list, []) when is_list(list),

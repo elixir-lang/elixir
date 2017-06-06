@@ -347,6 +347,8 @@ defmodule MapSet do
 
   """
   @spec union(t(val1), t(val2)) :: t(val1 | val2) when val1: value, val2: value
+  def union(map_set1, map_set2)
+
   def union(%MapSet{map: map1, version: version} = map_set, %MapSet{map: map2, version: version}) do
     %{map_set | map: Map.merge(map1, map2)}
   end
