@@ -264,6 +264,53 @@ defmodule Port do
     :erlang.ports
   end
 
+  @doc """
+  Returns a `Port.Stream`, accepting the same `name` and `settings`
+  arguments accepted by `Port.open/2`.
+
+  The stream implements both `Enumerable` and `Collectable` protocols,
+  which means it can be used both for sending and receiving messages
+  to and from the port.
+
+  Operating the stream can fail on open for the same reasons as `Port.open/2`. See
+  [`:erlang.open_port/2`](http://www.erlang.org/doc/man/erlang.html#open_port-2)
+  for error codes and failure scenarios.
+
+  In case the port is opened with the `{:line, l}` flag, the stream takes care of
+  concatenating messages into complete lines. This is not the case when a third
+  `raw` argument is passed as `true`. In this case, the stream of data from the
+  port is untouched (again, see
+  [`:erlang.open_port/2`](http://www.erlang.org/doc/man/erlang.html#open_port-2)
+  for the different types of messages).
+
+  If not already present, `Port.stream!` sets the `:exit_status` flag. This is to
+  ensure that the port lets us know when it is closing, so that we can halt the
+  stream.
+
+  ## Examples
+
+      # Open a line-based port stream.
+      Port.stream!({:spawn_executable, "/usr/bin/ls"}, [{:line, 2048}])
+      #=> %Port.Stream{name: {:spawn_executable, "/usr/bin/ls"},
+      #=> settings: [{:line, 2048}], raw: false}
+
+      # Open a raw port stream.
+      Port.stream!({:spawn, "echo hello"}, [:binary], true)
+      #=> %Port.Stream{name: {:spawn, "echo hello"},
+      #=> settings: [:binary], raw: true}
+
+      # Stream from a file into a port
+      File.stream!("code")
+      |> Stream.map(&String.replace(&1, "#", "%"))
+      |> Stream.into(Port.stream!({:spawn, "./script.sh"}, [:binary]))
+      |> Stream.run
+
+  """
+  @spec stream!(name, list, boolean()) :: Port.Stream.t
+  def stream!(name, settings, raw \\ false) do
+    Port.Stream.__build__(name, settings, raw)
+  end
+
   @compile {:inline, nillify: 1}
   defp nillify(:undefined), do: nil
   defp nillify(other),      do: other
