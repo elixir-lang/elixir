@@ -5,11 +5,11 @@ defmodule Range do
   A range represents a discrete number of values where
   the first and last values are integers.
 
-  Ranges can be either increasing (first <= last) or
-  decreasing (first > last). Ranges are also always
+  Ranges can be either increasing (`first <= last`) or
+  decreasing (`first > last`). Ranges are also always
   inclusive.
 
-  A Range is represented internally as a struct. However,
+  A range is represented internally as a struct. However,
   the most common form of creating and matching on ranges
   is via the `../2` macro, auto-imported from `Kernel`:
 
@@ -21,8 +21,9 @@ defmodule Range do
       iex> last
       3
 
-  A Range implements the Enumerable protocol, which means
-  all of the functions in the Enum module is available:
+  A range implements the `Enumerable` protocol, which means
+  functions in the `Enum` module can be used to work with
+  ranges:
 
       iex> range = 1..10
       1..10
