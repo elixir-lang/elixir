@@ -474,19 +474,24 @@ translate_remote('Elixir.Access' = Mod, get, Meta, [Container, Value], S) ->
   {TArgs, SA} = translate_args([Container, Value, nil], S),
   {elixir_erl:remote(Ann, Mod, get, TArgs), SA};
 translate_remote('Elixir.String.Chars', to_string, Meta, [Arg], S) ->
-  {TArg, TS} = translate(Arg, S),
-  {VarName, _, VS} = elixir_erl_var:build(rewrite, TS),
+  case is_always_string(Arg) of
+    true ->
+      translate(Arg, S);
+    false ->
+      {TArg, TS} = translate(Arg, S),
+      {VarName, _, VS} = elixir_erl_var:build(rewrite, TS),
 
-  Generated = erl_anno:set_generated(true, ?ann(Meta)),
-  Var   = {var, Generated, VarName},
-  Guard = elixir_erl:remote(Generated, erlang, is_binary, [Var]),
-  Slow  = elixir_erl:remote(Generated, 'Elixir.String.Chars', to_string, [Var]),
-  Fast  = Var,
+      Generated = erl_anno:set_generated(true, ?ann(Meta)),
+      Var = {var, Generated, VarName},
+      Guard = elixir_erl:remote(Generated, erlang, is_binary, [Var]),
+      Slow = elixir_erl:remote(Generated, 'Elixir.String.Chars', to_string, [Var]),
+      Fast = Var,
 
-  {{'case', Generated, TArg, [
-    {clause, Generated, [Var], [[Guard]], [Fast]},
-    {clause, Generated, [Var], [], [Slow]}
-  ]}, VS};
+      {{'case', Generated, TArg, [
+        {clause, Generated, [Var], [[Guard]], [Fast]},
+        {clause, Generated, [Var], [], [Slow]}
+      ]}, VS}
+  end;
 translate_remote(Left, Right, Meta, Args, S) ->
   {TLeft, SL} = translate(Left, S),
   {TArgs, SA} = translate_args(Args, mergec(S, SL)),
@@ -507,3 +512,17 @@ translate_remote(Left, Right, Meta, Args, S) ->
     false ->
       {{call, Ann, {remote, Ann, TLeft, TRight}, TArgs}, SC}
   end.
+
+is_always_string({{'.', _, [Module, Function]}, Args}) ->
+  is_always_string(Module, Function, length(Args));
+%% Binary literals were already excluded in earlier passes.
+is_always_string(_Ast) ->
+  false.
+
+is_always_string('Elixir.Enum', join, _) -> true;
+is_always_string('Elixir.Enum', map_join, _) -> true;
+is_always_string('Elixir.Kernel', inspect, _) -> true;
+is_always_string('Elixir.Macro', to_string, _) -> true;
+is_always_string('Elixir.String.Chars', to_string, _) -> true;
+is_always_string('Elixir.Path', join, _) -> true;
+is_always_string(_Module, _Function, _Args) -> false.
