@@ -16,7 +16,7 @@ Or:
 
 Elixir follows the recommendations in [Unicode Annex #31](http://unicode.org/reports/tr31/) to make the language more accessible to other languages and communities. Identifiers must still be a sequence of letters, followed by digits and combining marks. This means symbols, such as mathematical notations and emoji, are not allowed identifiers.
 
-For a complete reference on Elixir syntax, see the [Syntax Reference](https://hexdocs.pm/elixir/syntax-reference.html). For technocal details on Unicode support, see [Unicode Syntax](https://hexdocs.pm/elixir/unicode-syntax.html).
+For a complete reference on Elixir syntax, see the [Syntax Reference](https://hexdocs.pm/elixir/syntax-reference.html). For technical details on Unicode support, see [Unicode Syntax](https://hexdocs.pm/elixir/unicode-syntax.html).
 
 ## Exception.blame
 
@@ -158,7 +158,7 @@ This release brings further improvements to Calendar types. It adds arithmetic a
   * [Keyword] Add `replace/3` and `replace!/3` for replacing an existing key
   * [List] `List.starts_with?/2`
   * [Macro] Introduce `Macro.generate_arguments/2`
-  * [Map] Optimize `Map.merge/3` by choosing merge direction
+  * [Map] Optimize `Map.merge/3` by choosing merging direction
   * [Map] Add `replace/3` and `replace!/3` for replacing an existing key
   * [MapSet] Reduce `MapSet` size when serialized to approximately half
   * [Process] Add `Process.cancel_timer/2`
