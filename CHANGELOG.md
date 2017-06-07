@@ -208,6 +208,7 @@ This release brings further improvements to Calendar types. It adds arithmetic a
 #### IEx
 
   * [IEx] Skip autocompletion of module names that are invalid without being quoted
+  * [IEx] Skip autocompletion of functions with default arguments with `@doc false`
   * [IEx] Do not start oldshell alongside IEx
 
 #### Mix
