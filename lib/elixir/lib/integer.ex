@@ -374,7 +374,7 @@ defmodule Integer do
   end
 
   @doc """
-  Returns the greatest common divisor of the two given numbers.
+  Returns the greatest common divisor of the two given integers.
 
   The greatest common divisor (GCD) of `integer1` and `integer2` is the largest positive
   integer that divides both `integer1` and `integer2` without leaving a remainder.
