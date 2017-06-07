@@ -15,8 +15,8 @@ defmodule ExUnit.Callbacks do
   runs if the test case has no tests or all tests have been filtered out.
 
   `start_supervised/2` is used to start processes under a supervisor. The
-  supervisor is linked to the current test and the supervisor as well as
-  all supervised processes are guaranteed to terminate before any `on_exit/2`
+  supervisor is linked to the current test process. The supervisor as well
+  as all child processes are guaranteed to terminate before any `on_exit/2`
   callback runs.
 
   `on_exit/2` callbacks are registered on demand, usually to undo an action
@@ -30,16 +30,16 @@ defmodule ExUnit.Callbacks do
   callbacks always run in a separate process, as implied by their name. The
   test process always exits with reason `:shutdown`, which means any process
   linked to the test process will also exit, although asynchronously. Therefore
-  it is preferred to `start_supervised/2` to guarantee synchronous termination.
+  it is preferred to use `start_supervised/2` to guarantee synchronous termination.
 
   Here is a run down of the life-cycle of the test process:
 
     1. the test process is spawned
-    2. it runs setup callbacks
+    2. it runs `setup/2` callbacks
     3. it runs the test itself
     4. it stops all supervised processes
     5. the test process exits with reason `:shutdown`
-    6. on_exit callbacks are executed in a separate process
+    6. `on_exit/2` callbacks are executed in a separate process
 
   ## Context
 
@@ -89,7 +89,7 @@ defmodule ExUnit.Callbacks do
           :ok
         end
 
-        # Setups can also invoke a local or imported function that return a context
+        # Setups can also invoke a local or imported function that returns a context
         setup :invoke_local_or_imported_function
 
         test "always pass" do
@@ -245,7 +245,7 @@ defmodule ExUnit.Callbacks do
   You can start those processes under test in isolation by running:
 
       start_supervised(MyServer)
-      start_supervised({MyServer, :initial_value})
+      start_supervised({OtherSupervisor, :initial_value})
 
   A keyword list can also be given if there is a need to change
   the child specification for the given child process:
@@ -260,8 +260,8 @@ defmodule ExUnit.Callbacks do
   because the child process is supervised, it will be restarted in case
   of crashes according to the `:restart` strategy in the child
   specification, even if stopped manually. Therefore, to guarantee a
-  process start with `start_supervised/2` correctly terminates without
-  restarts, see `stop_supervised/1` instead.
+  process started with `start_supervised/2` terminates without restarts,
+  see `stop_supervised/1`.
 
   This function returns `{:ok, pid}` in case of success, otherwise it
   returns `{:error, reason}`.
