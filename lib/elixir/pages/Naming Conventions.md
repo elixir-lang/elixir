@@ -40,7 +40,7 @@ Due to this property, Elixir relies on functions starting with underscore to att
     iex> String.__info__(:functions)
     [at: 2, capitalize: 1, chunk: 2, ...]
 
-Elixir also includes 4 special variables that follow the double underscore format. These forms retrieve compile-time information about the current environment: `__MODULE__/0`, `__DIR__/0`, `__ENV__/0` and `__CALLER__/0`.
+Elixir also includes four special forms that follow the double underscore format. These forms retrieve compile-time information about the current environment: `__MODULE__/0`, `__DIR__/0`, `__ENV__/0` and `__CALLER__/0`.
 
 ## Trailing bang (foo!)
 
