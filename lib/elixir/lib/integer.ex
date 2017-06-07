@@ -374,10 +374,10 @@ defmodule Integer do
   end
 
   @doc """
-  Returns the greatest common divisor of the two given numbers.
+  Returns the greatest common divisor of the two given integers.
 
-  The greatest common divisor (GCD) of `int1` and `int2` is the largest positive
-  integer that divides both `int1` and `int2` without leaving a remainder.
+  The greatest common divisor (GCD) of `integer1` and `integer2` is the largest positive
+  integer that divides both `integer1` and `integer2` without leaving a remainder.
 
   By convention, `gcd(0, 0)` returns `0`.
 
@@ -404,13 +404,13 @@ defmodule Integer do
   """
   @spec gcd(0, 0) :: 0
   @spec gcd(integer, integer) :: pos_integer
-  def gcd(int1, int2) when is_integer(int1) and is_integer(int2) do
-    gcd_positive(abs(int1), abs(int2))
+  def gcd(integer1, integer2) when is_integer(integer1) and is_integer(integer2) do
+    gcd_positive(abs(integer1), abs(integer2))
   end
 
-  defp gcd_positive(0, int2), do: int2
-  defp gcd_positive(int1, 0), do: int1
-  defp gcd_positive(int1, int2), do: gcd_positive(int2, rem(int1, int2))
+  defp gcd_positive(0, integer2), do: integer2
+  defp gcd_positive(integer1, 0), do: integer1
+  defp gcd_positive(integer1, integer2), do: gcd_positive(integer2, rem(integer1, integer2))
 
   # TODO: Remove by 2.0
   # (hard-deprecated in elixir_dispatch)
