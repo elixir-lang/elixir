@@ -2355,15 +2355,15 @@ defmodule Kernel do
 
   `match?/2` is very useful when filtering of finding a value in an enumerable:
 
-      list = [{:a, 1}, {:b, 2}, {:a, 3}]
-      Enum.filter list, &match?({:a, _}, &1)
-      #=> [{:a, 1}, {:a, 3}]
+      iex> list = [a: 1, b: 2, a: 3]
+      iex> Enum.filter(list, &match?({:a, _}, &1))
+      [a: 1, a: 3]
 
   Guard clauses can also be given to the match:
 
-      list = [{:a, 1}, {:b, 2}, {:a, 3}]
-      Enum.filter list, &match?({:a, x} when x < 2, &1)
-      #=> [{:a, 1}]
+      iex> list = [a: 1, b: 2, a: 3]
+      iex> Enum.filter(list, &match?({:a, x} when x < 2, &1))
+      [a: 1]
 
   However, variables assigned in the match will not be available
   outside of the function call (unlike regular pattern matching with the `=`
