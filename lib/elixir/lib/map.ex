@@ -253,10 +253,7 @@ defmodule Map do
   """
   @spec fetch!(map, key) :: value | no_return
   def fetch!(map, key) do
-    case fetch(map, key) do
-      {:ok, value} -> value
-      :error -> raise KeyError, key: key, term: map
-    end
+    :maps.get(key, map)
   end
 
   @doc """
@@ -806,7 +803,7 @@ defmodule Map do
   """
   @spec from_struct(atom | struct) :: map
   def from_struct(struct) when is_atom(struct) do
-    from_struct(struct.__struct__())
+    delete(struct.__struct__(), :__struct__)
   end
 
   def from_struct(%_{} = struct) do
@@ -831,8 +828,8 @@ defmodule Map do
   def equal?(map1, map2)
 
   def equal?(%{} = map1, %{} = map2), do: map1 === map2
-  def equal?(map1, %{}), do: :erlang.error({:badmap, map1})
-  def equal?(%{}, map2), do: :erlang.error({:badmap, map2})
+  def equal?(%{}, map), do: :erlang.error({:badmap, map})
+  def equal?(term, _other), do: :erlang.error({:badmap, term})
 
   @doc false
   # TODO: Remove on 2.0
