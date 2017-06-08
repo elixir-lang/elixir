@@ -221,6 +221,8 @@ defmodule RegistryTest do
       end
 
       test "dispatches to multiple keys", %{registry: registry} do
+        Process.flag(:trap_exit, true)
+
         assert Registry.dispatch(registry, "hello", fn _ ->
           raise "will never be invoked"
         end) == :ok
@@ -244,6 +246,8 @@ defmodule RegistryTest do
         refute_received {:dispatch, :value1}
         refute_received {:dispatch, :value2}
         assert_received {:dispatch, :value3}
+
+        refute_received {:EXIT, _, _}
       end
 
       test "allows process unregistering", %{registry: registry} do
