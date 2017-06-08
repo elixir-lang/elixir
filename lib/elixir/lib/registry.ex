@@ -359,11 +359,13 @@ defmodule Registry do
   end
   defp dispatch_task(registry, key, mfa_or_fun, partition) do
     partition = partition - 1
+    parent = self()
     task = Task.async(fn ->
       registry
       |> key_ets!(partition)
       |> safe_lookup_second(key)
       |> apply_non_empty_to_mfa_or_fun(mfa_or_fun)
+      Process.unlink(parent)
       :ok
     end)
     [task | dispatch_task(registry, key, mfa_or_fun, partition)]
