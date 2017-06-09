@@ -240,9 +240,13 @@ defmodule URITest do
     end
 
     assert URI.merge("http://google.com/foo", "http://example.com/baz") |> to_string == "http://example.com/baz"
+    assert URI.merge("http://google.com/foo", "http://example.com/.././bar/../../baz") |> to_string == "http://example.com/baz"
+
     assert URI.merge("http://google.com/foo", "//example.com/baz") |> to_string == "http://example.com/baz"
+    assert URI.merge("http://google.com/foo", "//example.com/.././bar/../../../baz") |> to_string == "http://example.com/baz"
 
     assert URI.merge("http://example.com", URI.parse("/foo")) |> to_string == "http://example.com/foo"
+    assert URI.merge("http://example.com", URI.parse("/.././bar/../../../baz")) |> to_string == "http://example.com/baz"
 
     base = URI.parse("http://example.com/foo/bar")
     assert URI.merge(base, "") |> to_string == "http://example.com/foo/bar"
