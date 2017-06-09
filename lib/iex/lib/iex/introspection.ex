@@ -55,6 +55,8 @@ defmodule IEx.Introspection do
     case h_mod_fun(module, function) do
       :ok ->
         :ok
+      :behaviour_found ->
+        behaviour_found("#{inspect module}.#{function}")
       :no_docs ->
         puts_error("#{inspect module} was not compiled with docs")
       :not_found ->
@@ -70,7 +72,14 @@ defmodule IEx.Introspection do
         h(mod, fun, arity)
       end
 
-      if result != [], do: :ok, else: :not_found
+      cond do
+        result != [] ->
+          :ok
+        has_callback?(mod, fun) ->
+          :behaviour_found
+        true ->
+          :not_found
+      end
     else
       :no_docs
     end
@@ -95,6 +104,8 @@ defmodule IEx.Introspection do
     case h_mod_fun_arity(module, function, arity) do
       :ok ->
         :ok
+      :behaviour_found ->
+        behaviour_found("#{inspect module}.#{function}/#{arity}")
       :no_docs ->
         puts_error("#{inspect module} was not compiled with docs")
       :not_found ->
@@ -115,11 +126,35 @@ defmodule IEx.Introspection do
         end
         :ok
       else
-        :not_found
+        if has_callback?(mod, fun, arity) do
+          :behaviour_found
+        else
+          :not_found
+        end
       end
     else
       :no_docs
     end
+  end
+
+  defp has_callback?(mod, fun) do
+    mod
+    |> Code.get_docs(:callback_docs)
+    |> find_callback_doc(fun)
+  end
+
+  defp has_callback?(mod, fun, arity) do
+    mod
+    |> Code.get_docs(:callback_docs)
+    |> find_callback_doc(fun, arity)
+  end
+
+  defp find_callback_doc(docs, fun) do
+    Enum.any?(docs, &match?({{^fun, _}, _, _, _}, &1))
+  end
+
+  defp find_callback_doc(docs, fun, arity) do
+    Enum.any?(docs, &match?({{^fun, ^arity}, _, _, _}, &1))
   end
 
   defp find_doc(docs, fun, arity) do
@@ -440,7 +475,14 @@ defmodule IEx.Introspection do
 
   defp no_specs(for), do: no(for, "specification")
   defp no_types(for), do: no(for, "type information")
-  defp no_docs(for),  do: no(for, "documentation")
+  defp no_docs(for), do: no(for, "documentation")
+
+  defp behaviour_found(for) do
+    puts_error("""
+    No documentation for function #{for} was found, but there is a callback with the same name.
+    You can view callback documentations with the b/1 helper.
+    """)
+  end
 
   defp no(for, type) do
     puts_error("No #{type} for #{for} was found")
