@@ -509,11 +509,13 @@ defmodule URI do
     |> Enum.join("/")
   end
 
-  defp remove_dot_segments_from_path(nil),
-    do: nil
+  defp remove_dot_segments_from_path(nil) do
+    nil
+  end
+
   defp remove_dot_segments_from_path(path) do
     path
-    |> path_to_segments
+    |> path_to_segments()
     |> remove_dot_segments([])
     |> Enum.join("/")
   end
