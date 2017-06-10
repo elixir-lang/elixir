@@ -420,18 +420,7 @@ defmodule Task.Supervised do
         case running_tasks do
           %{^ref => {position, _type, pid, _timer_ref}} ->
             send(parent_pid, {:killed_for_timeout, {monitor_ref, position}})
-            caller = self()
-            ref = make_ref()
-            enforcer = spawn(fn ->
-              mon = Process.monitor(caller)
-              receive do
-                {:done, ^ref} -> :ok
-                {:DOWN, ^mon, _, _, _} -> Process.exit(pid, :kill)
-              end
-            end)
-            Process.unlink(pid)
-            Process.exit(pid, :kill)
-            send(enforcer, {:done, ref})
+            unlink_and_kill(pid)
           _other ->
             :ok
         end
@@ -440,6 +429,21 @@ defmodule Task.Supervised do
       {:EXIT, _, _} ->
         stream_monitor_loop(parent_pid, parent_ref, mfa, spawn, monitor_ref, running_tasks, timeout)
     end
+  end
+
+  defp unlink_and_kill(pid) do
+    caller = self()
+    ref = make_ref()
+    enforcer = spawn(fn ->
+      mon = Process.monitor(caller)
+      receive do
+        {:done, ^ref} -> :ok
+        {:DOWN, ^mon, _, _, _} -> Process.exit(pid, :kill)
+      end
+    end)
+    Process.unlink(pid)
+    Process.exit(pid, :kill)
+    send(enforcer, {:done, ref})
   end
 
   defp normalize_mfa_with_arg({mod, fun, args}, arg), do: {mod, fun, [arg | args]}
