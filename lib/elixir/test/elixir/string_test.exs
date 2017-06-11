@@ -518,6 +518,16 @@ defmodule StringTest do
     end
   end
 
+  test "append/2" do
+    assert String.append("hello", " world") == "hello world"
+    assert String.append("hello", :world) == "helloworld"
+  end
+
+  test "prepend/2" do
+    assert String.prepend("world", "hello ") == "hello world"
+    assert String.prepend("world", :hello) == "helloworld"
+  end
+
   test "slice/2,3" do
     assert String.slice("elixir", 1, 3) == "lix"
     assert String.slice("あいうえお", 2, 2) == "うえ"

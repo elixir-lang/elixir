@@ -1802,6 +1802,44 @@ defmodule String do
   end
 
   @doc """
+  Adds a string or an atom to the end of another string.
+
+  ## Examples
+    iex> String.append("hello", " world")
+    "hello world"
+    iex> String.append("hello", :world)
+    "helloworld"
+  """
+
+  @spec append(t, t) :: t
+  def append(string, suffix) when is_binary(string) and is_binary(suffix) do
+    string <> suffix
+  end
+
+  def append(string, suffix) when is_binary(string) and is_atom(suffix) do
+    string <> Atom.to_string(suffix)
+  end
+
+  @doc """
+  Adds a string or an atom to the beginning of another string
+
+  ## Examples
+    iex> String.prepend("world", "hello ")
+    "hello world"
+    iex> String.prepend("world", :hello)
+    "helloworld"
+  """
+
+  @spec append(t, t) :: t
+  def prepend(string, prefix) when is_binary(string) and is_binary(prefix) do
+    prefix <> string
+  end
+
+  def prepend(string, prefix) when is_binary(string) and is_atom(prefix) do
+    Atom.to_string(prefix) <> string
+  end
+
+  @doc """
   Converts a string into a charlist.
 
   Specifically, this functions takes a UTF-8 encoded binary and returns a list of its integer
