@@ -177,7 +177,7 @@ defmodule EExTest do
     test "when end expression has a modifier" do
       assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
         EEx.compile_string "foo <%= if true do %>true<% else %>false<%= end %>"
-      end) =~ ~s[beginning of EEx tag \"<%=\" on end of expression \"<%= end %>\"]
+      end) =~ ~s[unexpected beginning of EEx tag \"<%=\" on end of expression \"<%= end %>\"]
     end
   end
 
