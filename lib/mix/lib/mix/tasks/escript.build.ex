@@ -81,9 +81,11 @@ defmodule Mix.Tasks.Escript.Build do
         use Mix.Project
 
         def project do
-          [app: :my_app,
-           version: "0.0.1",
-           escript: escript()]
+          [
+            app: :my_app,
+            version: "0.0.1",
+            escript: escript()
+          ]
         end
 
         def escript do

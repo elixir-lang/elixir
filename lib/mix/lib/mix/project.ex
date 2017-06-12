@@ -9,8 +9,10 @@ defmodule Mix.Project do
         use Mix.Project
 
         def project do
-          [app: :my_app,
-           version: "0.6.0"]
+          [
+            app: :my_app,
+            version: "1.0.0"
+          ]
         end
       end
 

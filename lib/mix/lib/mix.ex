@@ -12,8 +12,10 @@ defmodule Mix do
         use Mix.Project
 
         def project do
-          [app: :my_app,
-           version: "1.0.0"]
+          [
+            app: :my_app,
+            version: "1.0.0"
+          ]
         end
       end
 
@@ -65,14 +67,18 @@ defmodule Mix do
         use Mix.Project
 
         def project do
-          [app: :my_app,
-           version: "1.0.0",
-           deps: deps()]
+          [
+            app: :my_app,
+            version: "1.0.0",
+            deps: deps()
+          ]
         end
 
         defp deps do
-          [{:ecto, "~> 0.2.5"},
-           {:plug, github: "elixir-lang/plug"}]
+          [
+            {:ecto, "~> 2.0"},
+            {:plug, github: "elixir-lang/plug"}
+          ]
         end
       end
 
@@ -106,14 +112,18 @@ defmodule Mix do
         use Mix.Project
 
         def project do
-          [app: :my_app,
-           version: "1.0.0",
-           aliases: aliases()]
+          [
+            app: :my_app,
+            version: "1.0.0",
+            aliases: aliases()
+          ]
         end
 
         defp aliases do
-          [c: "compile",
-           hello: &hello/1]
+          [
+            c: "compile",
+            hello: &hello/1
+          ]
         end
 
         defp hello(_) do
