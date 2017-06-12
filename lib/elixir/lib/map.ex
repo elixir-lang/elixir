@@ -94,7 +94,7 @@ defmodule Map do
 
   @type key :: any
   @type value :: any
-  @compile {:inline, fetch: 2, put: 3, delete: 2, has_key?: 2, replace!: 3}
+  @compile {:inline, fetch: 2, fetch!: 2, get: 2, put: 3, delete: 2, has_key?: 2, replace!: 3}
 
   @doc """
   Returns all keys from `map`.
@@ -253,10 +253,7 @@ defmodule Map do
   """
   @spec fetch!(map, key) :: value | no_return
   def fetch!(map, key) do
-    case fetch(map, key) do
-      {:ok, value} -> value
-      :error -> raise KeyError, key: key, term: map
-    end
+    :maps.get(key, map)
   end
 
   @doc """
@@ -273,9 +270,13 @@ defmodule Map do
   """
   @spec put_new(map, key, value) :: map
   def put_new(map, key, value) do
-    case has_key?(map, key) do
-      true -> map
-      false -> put(map, key, value)
+    case map do
+      %{^key => _value} ->
+        map
+      %{} ->
+        put(map, key, value)
+      other ->
+        :erlang.error({:badmap, other})
     end
   end
 
@@ -293,9 +294,13 @@ defmodule Map do
   """
   @spec replace(map, key, value) :: map
   def replace(map, key, value) do
-    case has_key?(map, key) do
-      true -> replace!(map, key, value)
-      false -> map
+    case map do
+      %{^key => _value} ->
+        put(map, key, value)
+      %{} ->
+        map
+      other ->
+        :erlang.error({:badmap, other})
     end
   end
 
@@ -340,9 +345,13 @@ defmodule Map do
   """
   @spec put_new_lazy(map, key, (() -> value)) :: map
   def put_new_lazy(map, key, fun) when is_function(fun, 0) do
-    case has_key?(map, key) do
-      true -> map
-      false -> put(map, key, fun.())
+    case map do
+      %{^key => _value} ->
+        map
+      %{} ->
+        put(map, key, fun.())
+      other ->
+        :erlang.error({:badmap, other})
     end
   end
 
@@ -364,20 +373,25 @@ defmodule Map do
   def take(map, keys) when is_map(map) do
     keys
     |> Enum.to_list
-    |> do_take(map, [])
+    |> take(map, [])
   end
 
   def take(non_map, _keys) do
     :erlang.error({:badmap, non_map})
   end
 
-  defp do_take([], _map, acc), do: :maps.from_list(acc)
-  defp do_take([key | rest], map, acc) do
-    acc = case fetch(map, key) do
-      {:ok, value} -> [{key, value} | acc]
-      :error -> acc
-    end
-    do_take(rest, map, acc)
+  defp take([], _map, acc) do
+    :maps.from_list(acc)
+  end
+
+  defp take([key | rest], map, acc) do
+    acc =
+      case map do
+        %{^key => value} -> [{key, value} | acc]
+        %{} -> acc
+      end
+
+    take(rest, map, acc)
   end
 
   @doc """
@@ -401,9 +415,13 @@ defmodule Map do
   """
   @spec get(map, key, value) :: value
   def get(map, key, default \\ nil) do
-    case fetch(map, key) do
-      {:ok, value} -> value
-      :error -> default
+    case map do
+      %{^key => value} ->
+        value
+      %{} ->
+        default
+      other ->
+        :erlang.error({:badmap, other}, [map, key, default])
     end
   end
 
@@ -431,9 +449,13 @@ defmodule Map do
   """
   @spec get_lazy(map, key, (() -> value)) :: value
   def get_lazy(map, key, fun) when is_function(fun, 0) do
-    case fetch(map, key) do
-      {:ok, value} -> value
-      :error -> fun.()
+    case map do
+      %{^key => value} ->
+        value
+      %{} ->
+        fun.()
+      other ->
+        :erlang.error({:badmap, other}, [map, key, fun])
     end
   end
 
@@ -538,11 +560,13 @@ defmodule Map do
   """
   @spec update(map, key, value, (value -> value)) :: map
   def update(map, key, initial, fun) when is_function(fun, 1) do
-    case fetch(map, key) do
-      {:ok, value} ->
+    case map do
+      %{^key => value} ->
         put(map, key, fun.(value))
-      :error ->
+      %{} ->
         put(map, key, initial)
+      other ->
+        :erlang.error({:badmap, other}, [map, key, initial, fun])
     end
   end
 
@@ -566,8 +590,12 @@ defmodule Map do
   @spec pop(map, key, value) :: {value, map}
   def pop(map, key, default \\ nil) do
     case map do
-      %{^key => value} -> {value, delete(map, key)}
-      %{} -> {default, map}
+      %{^key => value} ->
+        {value, delete(map, key)}
+      %{} ->
+        {default, map}
+      other ->
+        :erlang.error({:badmap, other}, [map, key, default])
     end
   end
 
@@ -597,9 +625,13 @@ defmodule Map do
   """
   @spec pop_lazy(map, key, (() -> value)) :: {value, map}
   def pop_lazy(map, key, fun) when is_function(fun, 0) do
-    case fetch(map, key) do
-      {:ok, value} -> {value, delete(map, key)}
-      :error -> {fun.(), map}
+    case map do
+      %{^key => value} ->
+        {value, delete(map, key)}
+      %{} ->
+        {fun.(), map}
+      other ->
+        :erlang.error({:badmap, other}, [map, key, fun])
     end
   end
 
@@ -623,8 +655,8 @@ defmodule Map do
     |> drop_list(map)
   end
 
-  def drop(non_map, _keys) do
-    :erlang.error({:badmap, non_map})
+  def drop(non_map, keys) do
+    :erlang.error({:badmap, non_map}, [non_map, keys])
   end
 
   defp drop_list([], acc), do: acc
@@ -652,22 +684,23 @@ defmodule Map do
   def split(map, keys) when is_map(map) do
     keys
     |> Enum.to_list
-    |> do_split([], map)
+    |> split([], map)
   end
 
-  def split(non_map, _keys) do
-    :erlang.error({:badmap, non_map})
+  def split(non_map, keys) do
+    :erlang.error({:badmap, non_map}, [non_map, keys])
   end
 
-  defp do_split([], inc, exc) do
-    {:maps.from_list(inc), exc}
+  defp split([], included, excluded) do
+    {:maps.from_list(included), excluded}
   end
-  defp do_split([key | rest], inc, exc) do
-    case fetch(exc, key) do
-      {:ok, value} ->
-        do_split(rest, [{key, value} | inc], delete(exc, key))
-      :error ->
-        do_split(rest, inc, exc)
+
+  defp split([key | rest], included, excluded) do
+    case excluded do
+      %{^key => value} ->
+        split(rest, [{key, value} | included], delete(excluded, key))
+      _other ->
+        split(rest, included, excluded)
     end
   end
 
@@ -687,17 +720,11 @@ defmodule Map do
       ** (KeyError) key :b not found in: %{a: 1}
 
   """
-  @spec update!(map, key, (value -> value)) :: map | no_return
-  def update!(%{} = map, key, fun) when is_function(fun, 1) do
-    case fetch(map, key) do
-      {:ok, value} ->
-        put(map, key, fun.(value))
-      :error ->
-        raise KeyError, term: map, key: key
-    end
+  @spec update!(map, key, (value -> value)) :: map
+  def update!(map, key, fun) when is_function(fun, 1) do
+    value = fetch!(map, key)
+    put(map, key, fun.(value))
   end
-
-  def update!(map, _key, _fun), do: :erlang.error({:badmap, map})
 
   @doc """
   Gets the value from `key` and updates it, all in one pass.
@@ -732,24 +759,18 @@ defmodule Map do
 
   """
   @spec get_and_update(map, key, (value -> {get, value} | :pop)) :: {get, map} when get: term
-  def get_and_update(%{} = map, key, fun) when is_function(fun, 1) do
-    current =
-      case :maps.find(key, map) do
-        {:ok, value} -> value
-        :error -> nil
-      end
+  def get_and_update(map, key, fun) when is_function(fun, 1) do
+    current = get(map, key)
 
     case fun.(current) do
       {get, update} ->
-        {get, :maps.put(key, update, map)}
+        {get, put(map, key, update)}
       :pop ->
-        {current, :maps.remove(key, map)}
+        {current, delete(map, key)}
       other ->
         raise "the given function must return a two-element tuple or :pop, got: #{inspect(other)}"
     end
   end
-
-  def get_and_update(map, _key, _fun), do: :erlang.error({:badmap, map})
 
   @doc """
   Gets the value from `key` and updates it. Raises if there is no `key`.
@@ -776,23 +797,18 @@ defmodule Map do
 
   """
   @spec get_and_update!(map, key, (value -> {get, value})) :: {get, map} | no_return when get: term
-  def get_and_update!(%{} = map, key, fun) when is_function(fun, 1) do
-    case :maps.find(key, map) do
-      {:ok, value} ->
-        case fun.(value) do
-          {get, update} ->
-            {get, :maps.put(key, update, map)}
-          :pop ->
-            {value, :maps.remove(key, map)}
-          other ->
-            raise "the given function must return a two-element tuple or :pop, got: #{inspect(other)}"
-        end
-      :error ->
-        raise KeyError, term: map, key: key
+  def get_and_update!(map, key, fun) when is_function(fun, 1) do
+    value = fetch!(map, key)
+
+    case fun.(value) do
+      {get, update} ->
+        {get, put(map, key, update)}
+      :pop ->
+        {value, delete(map, key)}
+      other ->
+        raise "the given function must return a two-element tuple or :pop, got: #{inspect(other)}"
     end
   end
-
-  def get_and_update!(map, _key, _fun), do: :erlang.error({:badmap, map})
 
   @doc """
   Converts a `struct` to map.
@@ -816,11 +832,11 @@ defmodule Map do
   """
   @spec from_struct(atom | struct) :: map
   def from_struct(struct) when is_atom(struct) do
-    :maps.remove(:__struct__, struct.__struct__)
+    delete(struct.__struct__(), :__struct__)
   end
 
-  def from_struct(%{__struct__: _} = struct) do
-    :maps.remove(:__struct__, struct)
+  def from_struct(%_{} = struct) do
+    delete(struct, :__struct__)
   end
 
   @doc """
@@ -838,7 +854,11 @@ defmodule Map do
 
   """
   @spec equal?(map, map) :: boolean
+  def equal?(map1, map2)
+
   def equal?(%{} = map1, %{} = map2), do: map1 === map2
+  def equal?(%{} = map1, map2), do: :erlang.error({:badmap, map2}, [map1, map2])
+  def equal?(term, other), do: :erlang.error({:badmap, term}, [term, other])
 
   @doc false
   # TODO: Remove on 2.0
