@@ -194,6 +194,8 @@ rewrite(?map, delete, [Map, Key]) ->
   {maps, remove, [Key, Map]};
 rewrite(?map, fetch, [Map, Key]) ->
   {maps, find, [Key, Map]};
+rewrite(?map, 'fetch!', [Map, Key]) ->
+  {maps, get, [Key, Map]};
 rewrite(?map, 'has_key?', [Map, Key]) ->
   {maps, is_key, [Key, Map]};
 rewrite(?map, put, [Map, Key, Value]) ->
