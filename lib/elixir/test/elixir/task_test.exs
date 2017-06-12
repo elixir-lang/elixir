@@ -493,7 +493,7 @@ defmodule TaskTest do
     test "timeout" do
       assert catch_exit([:infinity] |> Task.async_stream(&sleep/1, [timeout: 0]) |> Enum.to_list) ==
              {:timeout, {Task.Supervised, :stream, [0]}}
-      refute_receive _
+      refute_received _
     end
   end
 
@@ -623,7 +623,7 @@ defmodule TaskTest do
         opts = Keyword.merge(@opts, on_timeout: :kill_task, timeout: 50)
         assert [100, 1, 100, 1] |> Task.async_stream(&sleep/1, opts) |> Enum.to_list() ==
                [exit: :timeout, ok: 1, exit: :timeout, ok: 1]
-        refute_receive _
+        refute_received _
       end
     end
   end
