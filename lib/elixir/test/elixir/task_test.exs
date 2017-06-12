@@ -493,6 +493,7 @@ defmodule TaskTest do
     test "timeout" do
       assert catch_exit([:infinity] |> Task.async_stream(&sleep/1, [timeout: 0]) |> Enum.to_list) ==
              {:timeout, {Task.Supervised, :stream, [0]}}
+      refute_received _
     end
   end
 
