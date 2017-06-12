@@ -140,7 +140,7 @@ defmodule Process do
   more correct, faster and precise way of achieving the same with
   message passing.
 
-  For example, if you are waiting a process to perform some
+  For example, if you are waiting for a process to perform some
   action, it is better to communicate the progress of such action
   with messages.
 
