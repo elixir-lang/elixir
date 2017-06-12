@@ -210,37 +210,29 @@ defmodule Task.Supervised do
       # replied already (then the death is peaceful) or if it's still running
       # (then the reply from this task will be {:exit, reason}). This message is
       # sent to us by the monitor process, not by the dying task directly.
-      {:down, {^monitor_ref, position}, reason} ->
+      {kind, {^monitor_ref, position}, reason} when kind in [:down , :timed_out] ->
         waiting =
           case waiting do
-            %{^position => {_, {:ok, _} = ok}} -> Map.put(waiting, position, {nil, ok})
-            %{^position => {_, :running}} -> Map.put(waiting, position, {nil, {:exit, reason}})
-            %{^position => {_, :timeout}} -> Map.put(waiting, position, {nil, {:exit, :timeout}})
+            # If the task replied, we don't care whether it went down for timeout
+            # or for normal reasons.
+            %{^position => {_, {:ok, _} = ok}} ->
+              Map.put(waiting, position, {nil, ok})
+            # If the task exited by itself before replying, we emit {:exit, reason}.
+            %{^position => {_, :running}} when kind == :down ->
+              Map.put(waiting, position, {nil, {:exit, reason}})
+            # If the task timed out before replying, we either exit (on_timeout: :exit)
+            # or emit {:exit, :timeout} (on_timeout: :kill_task) (note the task is already
+            # dead at this point).
+            %{^position => {_, :running}} when kind == :timed_out ->
+              if on_timeout == :exit do
+                stream_cleanup_inbox(monitor_pid, monitor_ref)
+                exit({:timeout, {__MODULE__, :stream, [timeout]}})
+              else
+                Map.put(waiting, position, {nil, {:exit, :timeout}})
+              end
           end
         stream_deliver({:cont, acc}, max + 1, spawned, delivered, waiting, next,
                        reducer, monitor_pid, monitor_ref, timeout, on_timeout)
-
-      # The task at position "position" timed out and the monitor process killed
-      # it and sent the current process this message.
-      {:killed_for_timeout, {^monitor_ref, position}} ->
-        # If this task had already replied, we basically ignore this message.
-        waiting =
-          case waiting do
-            %{^position => {_, {:ok, _}}} ->
-              waiting
-            %{^position => {pid, :running}} ->
-              case on_timeout do
-                :kill_task ->
-                  # The monitor process already killed this task, we don't need
-                  # to kill it here.
-                  Map.put(waiting, position, {pid, :timeout})
-                :exit ->
-                  stream_cleanup_inbox(monitor_pid, monitor_ref)
-                  exit({:timeout, {__MODULE__, :stream, [timeout]}})
-              end
-          end
-        stream_reduce({:cont, acc}, max, spawned, delivered, waiting, next,
-                      reducer, monitor_pid, monitor_ref, timeout, on_timeout)
 
       # The monitor process died. We just cleanup the messages from the monitor
       # process and exit.
@@ -331,7 +323,7 @@ defmodule Task.Supervised do
     receive do
       {{^monitor_ref, _}, _} ->
         stream_cleanup_inbox(monitor_ref)
-      {:down, {^monitor_ref, _}, _} ->
+      {kind, {^monitor_ref, _}, _} when kind in [:down, :timed_out] ->
         stream_cleanup_inbox(monitor_ref)
     after
       0 ->
@@ -379,7 +371,14 @@ defmodule Task.Supervised do
         ref = Process.monitor(pid)
         timer_ref = Process.send_after(self(), {:timeout, {monitor_ref, ref}}, timeout)
         send(parent_pid, {:spawned, {monitor_ref, position}, pid})
-        running_tasks = Map.put(running_tasks, ref, {position, type, pid, timer_ref})
+        task_info = %{
+          position: position,
+          type: type,
+          pid: pid,
+          timer_ref: timer_ref,
+          timed_out?: false,
+        }
+        running_tasks = Map.put(running_tasks, ref, task_info)
         stream_monitor_loop(parent_pid, parent_ref, mfa, spawn, monitor_ref, running_tasks, timeout)
 
       # The parent process is telling us to stop because the stream is being
@@ -387,7 +386,7 @@ defmodule Task.Supervised do
       # exit gracefully ourselves.
       {:stop, ^monitor_ref} ->
         Process.flag(:trap_exit, true)
-        for {ref, {_position, _type, pid, _timer_ref}} <- running_tasks do
+        for {ref, %{pid: pid}} <- running_tasks do
           Process.exit(pid, :kill)
           receive do
             {:DOWN, ^ref, _, _, _} -> :ok
@@ -399,7 +398,7 @@ defmodule Task.Supervised do
       # spawned processes (that are also linked) with the same reason, and then
       # exit ourself with the same reason.
       {:DOWN, ^parent_ref, _, _, reason} ->
-        for {_ref, {_position, :link, pid, _timer_ref}} <- running_tasks do
+        for {_ref, %{type: :link, pid: pid}} <- running_tasks do
           Process.exit(pid, reason)
         end
         exit(reason)
@@ -407,9 +406,10 @@ defmodule Task.Supervised do
       # One of the spawned processes went down. We inform the parent process of
       # this and keep going.
       {:DOWN, ref, _, _, reason} ->
-        {{position, _type, _pid, timer_ref}, running_tasks} = Map.pop(running_tasks, ref)
+        {%{position: position, timer_ref: timer_ref, timed_out?: timed_out?}, running_tasks} = Map.pop(running_tasks, ref)
         :ok = Process.cancel_timer(timer_ref, async: true, info: false)
-        send(parent_pid, {:down, {monitor_ref, position}, reason})
+        message_kind = if(timed_out?, do: :timed_out, else: :down)
+        send(parent_pid, {message_kind, {monitor_ref, position}, reason})
         stream_monitor_loop(parent_pid, parent_ref, mfa, spawn, monitor_ref, running_tasks, timeout)
 
       # One of the spawned processes timed out. We kill that process here
@@ -417,13 +417,14 @@ defmodule Task.Supervised do
       # parent process informing it that a task timed out, and the parent
       # process decides what to do.
       {:timeout, {^monitor_ref, ref}} ->
-        case running_tasks do
-          %{^ref => {position, _type, pid, _timer_ref}} ->
-            send(parent_pid, {:killed_for_timeout, {monitor_ref, position}})
-            unlink_and_kill(pid)
-          _other ->
-            :ok
-        end
+        running_tasks =
+          case running_tasks do
+            %{^ref => %{pid: pid, timed_out?: false} = task_info} ->
+              unlink_and_kill(pid)
+              Map.put(running_tasks, ref, %{task_info | timed_out?: true})
+            _other ->
+              running_tasks
+          end
         stream_monitor_loop(parent_pid, parent_ref, mfa, spawn, monitor_ref, running_tasks, timeout)
 
       {:EXIT, _, _} ->
