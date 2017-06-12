@@ -69,10 +69,13 @@ defmodule EEx.Compiler do
     {buffer, rest}
   end
 
-  defp generate_buffer([{:end_expr, line, modifier, chars} | _], _buffer, [_ | _], state) do
+  defp generate_buffer([{:end_expr, line, modifier, chars} | t], buffer, [_ | _] = scope, state) do
     message = "unexpected beginning of EEx tag \"<%#{modifier}\" on end of expression \"<%#{modifier}#{chars}%>\", " <>
               "please remove \"#{modifier}\" accordingly"
-    raise EEx.SyntaxError, message: message, file: state.file, line: line
+    :elixir_errors.warn line, state.file, message
+    generate_buffer([{:end_expr, line, '', chars} | t], buffer, scope, state)
+    # TODO: Make this an error on Elixir v2.0 since it accidentally worked previously.
+    # raise EEx.SyntaxError, message: message, file: state.file, line: line
   end
 
   defp generate_buffer([{:end_expr, line, _, chars} | _], _buffer, [], state) do
