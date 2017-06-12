@@ -54,6 +54,17 @@ defmodule MapTest do
     assert map_size(@sample) == 2
   end
 
+  test "new/1" do
+    assert Map.new(%{a: 1, b: 2}) == %{a: 1, b: 2}
+    assert Map.new(MapSet.new([a: 1, b: 2, a: 3])) == %{b: 2, a: 3}
+  end
+
+  test "new/2" do
+    transformer = fn {key, value} -> {key, value * 2} end
+    assert Map.new(%{a: 1, b: 2}, transformer) == %{a: 2, b: 4}
+    assert Map.new(MapSet.new([a: 1, b: 2, a: 3]), transformer) == %{b: 4, a: 6}
+  end
+
   test "take/2" do
     assert Map.take(%{a: 1, b: 2, c: 3}, [:b, :c]) == %{b: 2, c: 3}
     assert Map.take(%{a: 1, b: 2, c: 3}, MapSet.new([:b, :c])) == %{b: 2, c: 3}
