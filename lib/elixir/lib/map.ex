@@ -421,7 +421,7 @@ defmodule Map do
       %{} ->
         default
       other ->
-        :erlang.error({:badmap, other})
+        :erlang.error({:badmap, other}, [map, key, default])
     end
   end
 
@@ -455,7 +455,7 @@ defmodule Map do
       %{} ->
         fun.()
       other ->
-        :erlang.error({:badmap, other})
+        :erlang.error({:badmap, other}, [map, key, fun])
     end
   end
 
@@ -566,7 +566,7 @@ defmodule Map do
       %{} ->
         put(map, key, initial)
       other ->
-        :erlang.error({:badmap, other})
+        :erlang.error({:badmap, other}, [map, key, initial, fun])
     end
   end
 
@@ -595,7 +595,7 @@ defmodule Map do
       %{} ->
         {default, map}
       other ->
-        :erlang.error({:badmap, other})
+        :erlang.error({:badmap, other}, [map, key, default])
     end
   end
 
@@ -631,7 +631,7 @@ defmodule Map do
       %{} ->
         {fun.(), map}
       other ->
-        :erlang.error({:badmap, other})
+        :erlang.error({:badmap, other}, [map, key, fun])
     end
   end
 
@@ -655,8 +655,8 @@ defmodule Map do
     |> drop_list(map)
   end
 
-  def drop(non_map, _keys) do
-    :erlang.error({:badmap, non_map})
+  def drop(non_map, keys) do
+    :erlang.error({:badmap, non_map}, [non_map, keys])
   end
 
   defp drop_list([], acc), do: acc
@@ -687,8 +687,8 @@ defmodule Map do
     |> split([], map)
   end
 
-  def split(non_map, _keys) do
-    :erlang.error({:badmap, non_map})
+  def split(non_map, keys) do
+    :erlang.error({:badmap, non_map}, [non_map, keys])
   end
 
   defp split([], included, excluded) do
@@ -857,8 +857,8 @@ defmodule Map do
   def equal?(map1, map2)
 
   def equal?(%{} = map1, %{} = map2), do: map1 === map2
-  def equal?(%{}, map), do: :erlang.error({:badmap, map})
-  def equal?(term, _other), do: :erlang.error({:badmap, term})
+  def equal?(%{} = map1, map2), do: :erlang.error({:badmap, map2}, [map1, map2])
+  def equal?(term, other), do: :erlang.error({:badmap, term}, [term, other])
 
   @doc false
   # TODO: Remove on 2.0
