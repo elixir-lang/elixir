@@ -129,10 +129,16 @@ tokenize(String, Line, Column, Opts) ->
     false -> true
   end,
 
+  Preserve = case lists:keyfind(preserve_comments, 1, Opts) of
+    {preserve_comments, true} -> true;
+    false -> false
+  end,
+
   tokenize(String, Line, Column, #elixir_tokenizer{
     file=File,
     existing_atoms_only=Existing,
     check_terminators=Check,
+    preserve_comments=Preserve,
     identifier_tokenizer=elixir_config:get(identifier_tokenizer)
   }).
 
@@ -170,8 +176,14 @@ tokenize([$0, $o, H | T], Line, Column, Scope, Tokens) when ?is_octal(H) ->
 % Comments
 
 tokenize([$# | String], Line, Column, Scope, Tokens) ->
-  Rest = tokenize_comment(String),
-  tokenize(Rest, Line, Column, Scope, Tokens);
+  {Rest, Comment, Length} = tokenize_comment(String, [$#], 1),
+  case Scope#elixir_tokenizer.preserve_comments of
+    true  ->
+      CommentToken = {comment, {Line, Column, Column + Length}, Comment},
+      tokenize(Rest, Line, Column + Length, Scope, [CommentToken | Tokens]);
+    false ->
+      tokenize(Rest, Line, Column, Scope, Tokens)
+  end;
 
 % Sigils
 
@@ -500,7 +512,7 @@ strip_horizontal_space(T, Counter) ->
 
 strip_dot_space(T, Counter, Column) ->
   case strip_horizontal_space(T) of
-    {"#" ++ Rest, _}    -> strip_dot_space(tokenize_comment(Rest), Counter, 1);
+    {"#" ++ Rest, _}    -> strip_dot_space(element(1, tokenize_comment(Rest, [$#], 1)), Counter, 1);
     {"\r\n" ++ Rest, _} -> strip_dot_space(Rest, Counter + 1, 1);
     {"\n" ++ Rest, _}   -> strip_dot_space(Rest, Counter + 1, 1);
     {Rest, Length}      -> {Rest, Counter, Column + Length}
@@ -825,10 +837,14 @@ tokenize_bin(Rest, Acc, Length) ->
 
 %% Comments
 
-tokenize_comment("\r\n" ++ _ = Rest) -> Rest;
-tokenize_comment("\n" ++ _ = Rest)   -> Rest;
-tokenize_comment([_ | Rest])         -> tokenize_comment(Rest);
-tokenize_comment([])                 -> [].
+tokenize_comment("\r\n" ++ _ = Rest, Acc, Length) ->
+  {Rest, lists:reverse(Acc), Length};
+tokenize_comment("\n" ++ _ = Rest, Acc, Length) ->
+  {Rest, lists:reverse(Acc), Length};
+tokenize_comment([H | Rest], Acc, Length) -> 
+  tokenize_comment(Rest, [H | Acc], Length + 1);
+tokenize_comment([], Acc, Length) ->
+  {[], Acc, Length}.
 
 %% Identifiers
 
