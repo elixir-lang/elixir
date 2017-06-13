@@ -226,6 +226,12 @@ defmodule Kernel.ParallelCompiler do
         end
         spawn_compilers(state)
 
+      {:warning, file, line, message} ->
+        if callback = Keyword.get(options, :each_warning) do
+          callback.(file, line, message)
+        end
+        wait_for_messages(state)
+
       {:DOWN, _down_ref, :process, down_pid, {:shutdown, file}} ->
         if callback = Keyword.get(options, :each_file) do
           callback.(file)

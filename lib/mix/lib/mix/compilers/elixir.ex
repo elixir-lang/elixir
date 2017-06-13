@@ -1,7 +1,7 @@
 defmodule Mix.Compilers.Elixir do
   @moduledoc false
 
-  @manifest_vsn :v6
+  @manifest_vsn :v7
 
   import Record
 
@@ -13,7 +13,8 @@ defmodule Mix.Compilers.Elixir do
     runtime_references: [],
     compile_dispatches: [],
     runtime_dispatches: [],
-    external: []
+    external: [],
+    warnings: []
   ]
 
   @doc """
@@ -156,6 +157,7 @@ defmodule Mix.Compilers.Elixir do
       _ = Kernel.ParallelCompiler.files stale,
             [each_module: &each_module(pid, cwd, &1, &2, &3),
              each_long_compilation: &each_long_compilation(&1, long_compilation_threshold),
+             each_warning: &each_warning(pid, cwd, &1, &2, &3),
              long_compilation_threshold: long_compilation_threshold,
              dest: dest] ++ extra
       Agent.cast pid, fn {modules, sources} ->
@@ -202,7 +204,8 @@ defmodule Mix.Compilers.Elixir do
     external = get_external_resources(module, cwd)
 
     Agent.cast pid, fn {modules, sources} ->
-      source_external = case List.keyfind(sources, source, source(:source)) do
+      source_entry = List.keyfind(sources, source, source(:source))
+      source_external = case source_entry do
         source(external: old_external) -> external ++ old_external
         nil -> external
       end
@@ -227,7 +230,8 @@ defmodule Mix.Compilers.Elixir do
         runtime_references: runtime_references,
         compile_dispatches: compile_dispatches,
         runtime_dispatches: runtime_dispatches,
-        external: source_external
+        external: source_external,
+        warnings: source(source_entry, :warnings)
       )
 
       modules = List.keystore(modules, module, module(:module), new_module)
@@ -260,6 +264,21 @@ defmodule Mix.Compilers.Elixir do
 
   defp each_long_compilation(source, threshold) do
     Mix.shell.info "Compiling #{source} (it's taking more than #{threshold}s)"
+  end
+
+  defp each_warning(pid, cwd, file, line, warning) do
+    Agent.cast pid, fn {modules, sources} ->
+      source_path = Path.relative_to(file, cwd)
+      sources =
+        if source = List.keyfind(sources, source_path, source(:source)) do
+          warnings = [{line, warning} | source(source, :warnings)]
+          new_source = source(source, warnings: warnings)
+          List.keyreplace(sources, source_path, source(:source), new_source)
+        else
+          sources
+        end
+      {modules, sources}
+    end
   end
 
   ## Resolution

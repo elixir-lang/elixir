@@ -12,6 +12,12 @@
 warn(none, File, Warning) ->
   warn(0, File, Warning);
 warn(Line, File, Warning) when is_integer(Line), is_binary(File) ->
+  CompilerPid = get(elixir_compiler_pid),
+  if
+    CompilerPid =/= undefined ->
+      CompilerPid ! {warning, File, Line, list_to_binary(Warning)};
+    true -> ok
+  end,
   warn([Warning, "\n  ", file_format(Line, File), $\n]).
 
 -spec warn(unicode:chardata()) -> ok.
