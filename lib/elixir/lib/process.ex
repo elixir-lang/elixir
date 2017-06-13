@@ -88,6 +88,18 @@ defmodule Process do
 
   @doc """
   Deletes the given `key` from the process dictionary.
+
+  Returns the value that was under `key` in the process dictionary,
+  or `nil` if `key` was not stored in the process dictionary.
+
+  ## Examples
+
+      Process.put(:comments, ["comment", "other comment"])
+      Process.delete(:comments)
+      #=> ["comment", "other comment"]
+      Process.delete(:comments)
+      #=> nil
+
   """
   @spec delete(term) :: term | nil
   def delete(key) do
