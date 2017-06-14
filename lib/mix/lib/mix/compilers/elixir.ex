@@ -152,7 +152,7 @@ defmodule Mix.Compilers.Elixir do
 
     # Starts a server responsible for keeping track which files
     # were compiled and the dependencies between them.
-    {:ok, pid} = Agent.start_link(fn -> {modules, sources} end)
+    {:ok, pid} = Agent.start_link(fn -> {modules, sources, %{}} end)
     long_compilation_threshold = opts[:long_compilation_threshold] || 10
 
     try do
@@ -162,9 +162,9 @@ defmodule Mix.Compilers.Elixir do
              each_warning: &each_warning(pid, cwd, &1, &2, &3),
              long_compilation_threshold: long_compilation_threshold,
              dest: dest] ++ extra
-      Agent.cast pid, fn {modules, sources} ->
+      Agent.cast pid, fn {modules, sources, warnings} ->
         write_manifest(manifest, modules, sources, dest, timestamp)
-        {modules, sources}
+        {modules, sources, warnings}
       end
     after
       Agent.stop(pid, :normal, :infinity)
@@ -205,9 +205,8 @@ defmodule Mix.Compilers.Elixir do
     source   = Path.relative_to(source, cwd)
     external = get_external_resources(module, cwd)
 
-    Agent.cast pid, fn {modules, sources} ->
-      source_entry = List.keyfind(sources, source, source(:source))
-      source_external = case source_entry do
+    Agent.cast pid, fn {modules, sources, warnings} ->
+      source_external = case List.keyfind(sources, source, source(:source)) do
         source(external: old_external) -> external ++ old_external
         nil -> external
       end
@@ -233,12 +232,12 @@ defmodule Mix.Compilers.Elixir do
         compile_dispatches: compile_dispatches,
         runtime_dispatches: runtime_dispatches,
         external: source_external,
-        warnings: source(source_entry, :warnings)
+        warnings: Map.get(warnings, source, [])
       )
 
       modules = List.keystore(modules, module, module(:module), new_module)
       sources = List.keystore(sources, source, source(:source), new_source)
-      {modules, sources}
+      {modules, sources, warnings}
     end
   end
 
@@ -268,18 +267,12 @@ defmodule Mix.Compilers.Elixir do
     Mix.shell.info "Compiling #{source} (it's taking more than #{threshold}s)"
   end
 
-  defp each_warning(pid, cwd, file, line, warning) do
-    Agent.cast pid, fn {modules, sources} ->
+  defp each_warning(pid, cwd, file, line, message) do
+    Agent.cast pid, fn {modules, sources, warnings} ->
       source_path = Path.relative_to(file, cwd)
-      sources =
-        if source = List.keyfind(sources, source_path, source(:source)) do
-          warnings = [{line, warning} | source(source, :warnings)]
-          new_source = source(source, warnings: warnings)
-          List.keyreplace(sources, source_path, source(:source), new_source)
-        else
-          sources
-        end
-      {modules, sources}
+      warning = {line, message}
+      warnings = Map.update(warnings, source_path, [warning], &([warning | &1]))
+      {modules, sources, warnings}
     end
   end
 
