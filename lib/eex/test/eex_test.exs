@@ -169,15 +169,15 @@ defmodule EExTest do
     end
 
     test "when middle expression has a modifier" do
-      ExUnit.CaptureIO.capture_io :stderr, fn ->
+      assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
         EEx.compile_string "foo <%= if true do %>true<%= else %>false<% end %>"
-      end
+      end) =~ ~s[unexpected beginning of EEx tag \"<%=\" on \"<%= else %>\"]
     end
 
     test "when end expression has a modifier" do
-      assert_raise EEx.SyntaxError, ~s[nofile:1: unexpected beginning of EEx tag "<%=" on end of expression "<%= end %>", please remove "=" accordingly], fn ->
+      assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
         EEx.compile_string "foo <%= if true do %>true<% else %>false<%= end %>"
-      end
+      end) =~ ~s[unexpected beginning of EEx tag \"<%=\" on end of expression \"<%= end %>\"]
     end
   end
 
