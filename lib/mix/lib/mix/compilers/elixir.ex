@@ -391,7 +391,7 @@ defmodule Mix.Compilers.Elixir do
     else
       [@manifest_vsn | data] ->
         split_manifest(data, compile_path)
-      [v | data] when v in [:v4, :v5] ->
+      [v | data] when v in [:v4, :v5, :v6] ->
         for module(beam: beam) <- data, do: File.rm(Path.join(compile_path, beam))
         {[], []}
       _ ->
