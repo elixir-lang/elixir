@@ -200,6 +200,10 @@ defmodule DateTimeTest do
                       minute: 50, second: 7}
   end
 
+  test "from_iso8601/1 handles nil value properly" do
+    assert DateTime.from_iso8601(nil) == {:error, :invalid_format}
+  end
+
   test "from_unix/2" do
     # with Unix times back to 0 Gregorian seconds
     min_datetime = %DateTime{

@@ -356,6 +356,8 @@ defmodule NaiveDateTime do
       {:error, :invalid_format}
       iex> NaiveDateTime.from_iso8601("2015-01-23T23:50:07.123-24:00")
       {:error, :invalid_format}
+      iex> NaiveDateTime.from_iso8601(nil)
+      {:error, :invalid_format}
 
   """
   @spec from_iso8601(String.t, Calendar.calendar) :: {:ok, t} | {:error, atom}
@@ -379,6 +381,10 @@ defmodule NaiveDateTime do
   end
 
   def from_iso8601(<<_::binary>>, _calendar) do
+    {:error, :invalid_format}
+  end
+
+  def from_iso8601(nil, _calendar) do
     {:error, :invalid_format}
   end
 
