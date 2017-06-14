@@ -63,7 +63,8 @@ defmodule ExUnit.OnExitHandler do
     receive do
       {:DOWN, ^ref, _, _, _} -> nil
     after
-      timeout -> ExUnit.TimeoutError.exception(timeout: timeout, type: :supervised)
+      timeout ->
+        {:error, ExUnit.TimeoutError.exception(timeout: timeout, type: "supervisor shutdown"), []}
     end
   end
 
@@ -101,7 +102,7 @@ defmodule ExUnit.OnExitHandler do
             receive do
               {:DOWN, ^runner_monitor, :process, ^runner_pid, _} -> :ok
             end
-            exception = ExUnit.TimeoutError.exception(timeout: timeout, type: :on_exit)
+            exception = ExUnit.TimeoutError.exception(timeout: timeout, type: "on_exit callback")
             {nil, nil, error || {:error, exception, stacktrace}}
           nil ->
             receive_runner_reply(runner_pid, runner_monitor, error, timeout)
