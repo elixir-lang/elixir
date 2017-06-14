@@ -331,4 +331,35 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
     end
   end
+
+  test "prints warnings from non-stale files with --all-warnings" do
+    in_fixture "no_mixfile", fn ->
+      File.write!("lib/a.ex", """
+      defmodule A do
+        def my_fn(unused), do: :ok
+      end
+      """)
+
+      # First compilation should print unused variable warning
+      import ExUnit.CaptureIO
+      output = capture_io :standard_error, fn ->
+        Mix.Tasks.Compile.Elixir.run([]) == :ok
+      end
+
+      # Should also print warning
+      assert capture_io(:standard_error, fn ->
+        Mix.Tasks.Compile.Elixir.run(["--all-warnings"])
+      end) == output
+
+      # Should not print warning once fixed
+      File.write!("lib/a.ex", """
+      defmodule A do
+        def my_fn(_unused), do: :ok
+      end
+      """)
+      assert capture_io(:standard_error, fn ->
+        Mix.Tasks.Compile.Elixir.run(["--all-warnings"])
+      end) == ""
+    end
+  end
 end

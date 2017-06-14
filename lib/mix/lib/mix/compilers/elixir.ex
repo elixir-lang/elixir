@@ -79,6 +79,8 @@ defmodule Mix.Compilers.Elixir do
     stale   = changed -- removed
     sources = update_stale_sources(all_sources, removed, changed)
 
+    if opts[:all_warnings], do: show_warnings(sources)
+
     cond do
       stale != [] ->
         compile_manifest(manifest, exts, modules, sources, stale, dest, timestamp, opts)
@@ -367,6 +369,15 @@ defmodule Mix.Compilers.Elixir do
     _ = File.rm(beam)
     _ = :code.purge(module)
     _ = :code.delete(module)
+  end
+
+  defp show_warnings(sources) do
+    for source(source: source, warnings: warnings) <- sources do
+      file = Path.join(File.cwd!, source)
+      for {line, message} <- warnings do
+        :elixir_errors.warn(line, file, to_charlist(message))
+      end
+    end
   end
 
   ## Manifest handling
