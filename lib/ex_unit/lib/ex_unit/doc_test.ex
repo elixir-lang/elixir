@@ -438,6 +438,10 @@ defmodule ExUnit.DocTest do
     adjust_indent(:text, lines, line_no, [], 0, module)
   end
 
+  defp adjust_indent(:after_prompt, [], line_no, _adjusted_lines, _indent, module) do
+    raise_incomplete_doctest(line_no, module)
+  end
+
   defp adjust_indent(_kind, [], _line_no, adjusted_lines, _indent, _module) do
     Enum.reverse adjusted_lines
   end
@@ -457,8 +461,7 @@ defmodule ExUnit.DocTest do
 
     case String.trim_leading(line) do
       "" ->
-        raise Error, line: line_no, module: module,
-                     message: "expected non-blank line to follow iex> prompt"
+        raise_incomplete_doctest(line_no, module)
       ^stripped_line ->
         :ok
       _ ->
@@ -651,4 +654,9 @@ defmodule ExUnit.DocTest do
     do: true
   defp is_inspected_end?(_),
     do: false
+
+  defp raise_incomplete_doctest(line_no, module) do
+    raise Error, line: line_no, module: module,
+                 message: "expected non-blank line to follow iex> prompt"
+  end
 end
