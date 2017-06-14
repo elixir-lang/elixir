@@ -102,6 +102,16 @@ defmodule IEx.HelpersTest do
 
       assert capture_io(fn -> h Impl.first end) == "* @callback first(integer()) :: integer()\n\nDocs for MyBehaviour.first\n"
       assert capture_io(fn -> h Impl.second end) == "* def second(int)\n\nDocs for Impl.second/1\n* def second(int1, int2)\n\nDocs for Impl.second/2\n"
+
+      assert capture_io(fn -> h MyBehaviour.first end) == """
+      No documentation for function MyBehaviour.first was found, but there is a callback with the same name.
+      You can view callback documentations with the b/1 helper.\n
+      """
+      assert capture_io(fn -> h MyBehaviour.second/2 end) == """
+      No documentation for function MyBehaviour.second/2 was found, but there is a callback with the same name.
+      You can view callback documentations with the b/1 helper.\n
+      """
+      assert capture_io(fn -> h MyBehaviour.second/3 end) == "No documentation for MyBehaviour.second/3 was found\n"
     end
   after
     cleanup_modules([Impl, MyBehaviour])
