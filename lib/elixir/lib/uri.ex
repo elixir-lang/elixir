@@ -481,10 +481,10 @@ defmodule URI do
     raise ArgumentError, "you must merge onto an absolute URI"
   end
   def merge(_base, %URI{scheme: rel_scheme} = rel) when rel_scheme != nil do
-    rel
+    %{rel | path: remove_dot_segments_from_path(rel.path)}
   end
   def merge(base, %URI{authority: authority} = rel) when authority != nil do
-    %{rel | scheme: base.scheme}
+    %{rel | scheme: base.scheme, path: remove_dot_segments_from_path(rel.path)}
   end
   def merge(%URI{} = base, %URI{path: rel_path} = rel) when rel_path in ["", nil] do
     %{base | query: rel.query || base.query, fragment: rel.fragment}
@@ -500,11 +500,22 @@ defmodule URI do
   defp merge_paths(nil, rel_path),
     do: merge_paths("/", rel_path)
   defp merge_paths(_, "/" <> _ = rel_path),
-    do: rel_path
+    do: remove_dot_segments_from_path(rel_path)
   defp merge_paths(base_path, rel_path) do
     [_ | base_segments] = path_to_segments(base_path)
     path_to_segments(rel_path)
     |> Kernel.++(base_segments)
+    |> remove_dot_segments([])
+    |> Enum.join("/")
+  end
+
+  defp remove_dot_segments_from_path(nil) do
+    nil
+  end
+
+  defp remove_dot_segments_from_path(path) do
+    path
+    |> path_to_segments()
     |> remove_dot_segments([])
     |> Enum.join("/")
   end
