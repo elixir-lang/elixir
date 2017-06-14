@@ -116,8 +116,12 @@ defmodule IEx.Introspection do
   end
 
   defp h_mod_fun_arity(mod, fun, arity) when is_atom(mod) do
-    if docs = Code.get_docs(mod, :docs) do
-      if doc = find_doc(docs, fun, arity) do
+    docs = Code.get_docs(mod, :docs)
+
+    cond do
+      is_nil(docs) ->
+        :no_docs
+      doc = find_doc(docs, fun, arity) ->
         if callback_module = is_nil(elem(doc, 4)) and callback_module(mod, fun, arity) do
           filter = &match?({^fun, ^arity}, elem(&1, 0))
           print_callback_docs(callback_module, filter, &print_doc/2)
@@ -125,15 +129,10 @@ defmodule IEx.Introspection do
           print_doc(doc)
         end
         :ok
-      else
-        if has_callback?(mod, fun, arity) do
-          :behaviour_found
-        else
-          :not_found
-        end
-      end
-    else
-      :no_docs
+      has_callback?(mod, fun, arity) ->
+        :behaviour_found
+      true ->
+        :not_found
     end
   end
 
