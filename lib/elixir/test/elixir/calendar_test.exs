@@ -200,6 +200,42 @@ defmodule DateTimeTest do
                       minute: 50, second: 7}
   end
 
+  test "from_iso8601/1 handles nil value properly" do
+    assert DateTime.from_iso8601(nil) == {:error, :invalid_format}
+  end
+
+  test "from_iso8601/1 with tz offsets" do
+    assert DateTime.from_iso8601("2017-06-02T14:00:00+01:00") |> elem(1) ==
+           %DateTime{year: 2017, month: 6, day: 2, zone_abbr: "UTC",
+                     hour: 13, minute: 0, second: 0, microsecond: {0, 0},
+                     utc_offset: 0, std_offset: 0, time_zone: "Etc/UTC"}
+
+    assert DateTime.from_iso8601("2017-06-02T14:00:00-04:00") |> elem(1) ==
+           %DateTime{year: 2017, month: 6, day: 2, zone_abbr: "UTC",
+                     hour: 18, minute: 0, second: 0, microsecond: {0, 0},
+                     utc_offset: 0, std_offset: 0, time_zone: "Etc/UTC"}
+
+    assert DateTime.from_iso8601("2017-06-02T14:00:00+0100") |> elem(1) ==
+           %DateTime{year: 2017, month: 6, day: 2, zone_abbr: "UTC",
+                     hour: 13, minute: 0, second: 0, microsecond: {0, 0},
+                     utc_offset: 0, std_offset: 0, time_zone: "Etc/UTC"}
+
+    assert DateTime.from_iso8601("2017-06-02T14:00:00-0400") |> elem(1) ==
+           %DateTime{year: 2017, month: 6, day: 2, zone_abbr: "UTC",
+                     hour: 18, minute: 0, second: 0, microsecond: {0, 0},
+                     utc_offset: 0, std_offset: 0, time_zone: "Etc/UTC"}
+
+    assert DateTime.from_iso8601("2017-06-02T14:00:00+01") |> elem(1) ==
+           %DateTime{year: 2017, month: 6, day: 2, zone_abbr: "UTC",
+                     hour: 13, minute: 0, second: 0, microsecond: {0, 0},
+                     utc_offset: 0, std_offset: 0, time_zone: "Etc/UTC"}
+
+    assert DateTime.from_iso8601("2017-06-02T14:00:00-04") |> elem(1) ==
+           %DateTime{year: 2017, month: 6, day: 2, zone_abbr: "UTC",
+                     hour: 18, minute: 0, second: 0, microsecond: {0, 0},
+                     utc_offset: 0, std_offset: 0, time_zone: "Etc/UTC"}
+  end
+
   test "from_unix/2" do
     # with Unix times back to 0 Gregorian seconds
     min_datetime = %DateTime{
@@ -258,37 +294,5 @@ defmodule DateTimeTest do
     assert DateTime.compare(datetime1, datetime1) == :eq
     assert DateTime.compare(datetime1, datetime2) == :lt
     assert DateTime.compare(datetime2, datetime1) == :gt
-  end
-
-  test "from_iso8601/1 with tz offsets" do
-    assert DateTime.from_iso8601("2017-06-02T14:00:00+01:00") |> elem(1) ==
-           %DateTime{year: 2017, month: 6, day: 2, zone_abbr: "UTC",
-                     hour: 13, minute: 0, second: 0, microsecond: {0, 0},
-                     utc_offset: 0, std_offset: 0, time_zone: "Etc/UTC"}
-
-    assert DateTime.from_iso8601("2017-06-02T14:00:00-04:00") |> elem(1) ==
-           %DateTime{year: 2017, month: 6, day: 2, zone_abbr: "UTC",
-                     hour: 18, minute: 0, second: 0, microsecond: {0, 0},
-                     utc_offset: 0, std_offset: 0, time_zone: "Etc/UTC"}
-
-    assert DateTime.from_iso8601("2017-06-02T14:00:00+0100") |> elem(1) ==
-           %DateTime{year: 2017, month: 6, day: 2, zone_abbr: "UTC",
-                     hour: 13, minute: 0, second: 0, microsecond: {0, 0},
-                     utc_offset: 0, std_offset: 0, time_zone: "Etc/UTC"}
-
-    assert DateTime.from_iso8601("2017-06-02T14:00:00-0400") |> elem(1) ==
-           %DateTime{year: 2017, month: 6, day: 2, zone_abbr: "UTC",
-                     hour: 18, minute: 0, second: 0, microsecond: {0, 0},
-                     utc_offset: 0, std_offset: 0, time_zone: "Etc/UTC"}
-
-    assert DateTime.from_iso8601("2017-06-02T14:00:00+01") |> elem(1) ==
-           %DateTime{year: 2017, month: 6, day: 2, zone_abbr: "UTC",
-                     hour: 13, minute: 0, second: 0, microsecond: {0, 0},
-                     utc_offset: 0, std_offset: 0, time_zone: "Etc/UTC"}
-
-    assert DateTime.from_iso8601("2017-06-02T14:00:00-04") |> elem(1) ==
-           %DateTime{year: 2017, month: 6, day: 2, zone_abbr: "UTC",
-                     hour: 18, minute: 0, second: 0, microsecond: {0, 0},
-                     utc_offset: 0, std_offset: 0, time_zone: "Etc/UTC"}
   end
 end
