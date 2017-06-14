@@ -342,9 +342,9 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
       # First compilation should print unused variable warning
       import ExUnit.CaptureIO
-      output = capture_io :standard_error, fn ->
+      output = capture_io(:standard_error, fn ->
         Mix.Tasks.Compile.Elixir.run([]) == :ok
-      end
+      end)
 
       # Should also print warning
       assert capture_io(:standard_error, fn ->
