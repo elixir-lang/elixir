@@ -118,11 +118,11 @@ newline_test() ->
 
 dot_newline_operator_test() ->
   [{identifier, {1, 1, 4}, foo},
-   {'.', {2, 4, 5}},
+   {'.', {1, 4, 5}},
    {identifier, {2, 1, 2}, '+'},
    {number, {2, 2, 3}, 1}] = tokenize("foo.\n+1"),
   [{identifier, {1, 1, 4}, foo},
-   {'.', {2, 4, 5}},
+   {'.', {1, 4, 5}},
    {identifier, {2, 1, 2}, '+'},
    {number, {2, 2, 3}, 1}] = tokenize("foo.#bar\n+1").
 

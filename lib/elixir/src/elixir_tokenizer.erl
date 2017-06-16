@@ -119,26 +119,26 @@ tokenize(String, Line, Column, Opts) ->
     false -> <<"nofile">>
   end,
 
-  Existing = case lists:keyfind(existing_atoms_only, 1, Opts) of
+  ExistingAtomsOnly = case lists:keyfind(existing_atoms_only, 1, Opts) of
     {existing_atoms_only, true} -> true;
-    false -> false
+    _ -> false
   end,
 
-  Check = case lists:keyfind(check_terminators, 1, Opts) of
+  CheckTerminators = case lists:keyfind(check_terminators, 1, Opts) of
     {check_terminators, false} -> false;
-    false -> true
+    _ -> true
   end,
 
-  Preserve = case lists:keyfind(preserve_comments, 1, Opts) of
+  PreserveComments = case lists:keyfind(preserve_comments, 1, Opts) of
     {preserve_comments, true} -> true;
-    false -> false
+    _ -> false
   end,
 
   tokenize(String, Line, Column, #elixir_tokenizer{
     file=File,
-    existing_atoms_only=Existing,
-    check_terminators=Check,
-    preserve_comments=Preserve,
+    existing_atoms_only=ExistingAtomsOnly,
+    check_terminators=CheckTerminators,
+    preserve_comments=PreserveComments,
     identifier_tokenizer=elixir_config:get(identifier_tokenizer)
   }).
 
@@ -465,8 +465,8 @@ tokenize([$% | T], Line, Column, Scope, Tokens) ->
   tokenize(T, Line, Column + 1, Scope, [{'%', {Line, Column, Column + 1}} | Tokens]);
 
 tokenize([$. | T], Line, Column, Scope, Tokens) ->
-  {Rest, Counter, Offset} = strip_dot_space(T, 0, Column + 1),
-  handle_dot([$. | Rest], Line + Counter, Offset - 1, Column, Scope, Tokens);
+  {Rest, Counter, Offset, CommentTokens} = strip_dot_space(T, 0, Column + 1, Line, []),
+  handle_dot([$. | Rest], Line, Offset - 1, Column, Scope, Tokens, CommentTokens, Counter);
 
 % Identifiers
 
@@ -510,12 +510,15 @@ strip_horizontal_space([H | T], Counter) when ?is_horizontal_space(H) ->
 strip_horizontal_space(T, Counter) ->
   {T, Counter}.
 
-strip_dot_space(T, Counter, Column) ->
+strip_dot_space(T, Counter, Column, StartLine, Tokens) ->
   case strip_horizontal_space(T) of
-    {"#" ++ Rest, _}    -> strip_dot_space(element(1, tokenize_comment(Rest, [$#], 1)), Counter, 1);
-    {"\r\n" ++ Rest, _} -> strip_dot_space(Rest, Counter + 1, 1);
-    {"\n" ++ Rest, _}   -> strip_dot_space(Rest, Counter + 1, 1);
-    {Rest, Length}      -> {Rest, Counter, Column + Length}
+    {"#" ++ R, _} ->
+      {Rest, Comment, Length} = tokenize_comment(R, [$#], 1),
+      CommentToken = {comment, {StartLine + Counter, Column, Column + Length}, Comment},
+      strip_dot_space(Rest, Counter, 1, StartLine, [CommentToken | Tokens]);
+    {"\r\n" ++ Rest, _} -> strip_dot_space(Rest, Counter + 1, 1, StartLine, Tokens);
+    {"\n" ++ Rest, _}   -> strip_dot_space(Rest, Counter + 1, 1, StartLine, Tokens);
+    {Rest, Length}      -> {Rest, Counter, Column + Length, Tokens}
   end.
 
 handle_char(7)   -> {"\\a", "alert"};
@@ -584,37 +587,44 @@ handle_op(Rest, Line, Column, Kind, Length, Op, Scope, Tokens) ->
                add_token_with_nl({Kind, {Line, Column, Column + Length}, Op}, Tokens))
   end.
 
+handle_comments(CommentTokens, Tokens, Scope) ->
+  case Scope#elixir_tokenizer.preserve_comments of
+    true  -> lists:append(CommentTokens, Tokens);
+    false -> Tokens
+  end.
+
 % ## Three Token Operators
-handle_dot([$., T1, T2, T3 | Rest], Line, Column, DotColumn, Scope, Tokens) when
+handle_dot([$., T1, T2, T3 | Rest], Line, Column, DotColumn, Scope, Tokens, CommentTokens, Counter) when
     ?unary_op3(T1, T2, T3); ?comp_op3(T1, T2, T3); ?and_op3(T1, T2, T3); ?or_op3(T1, T2, T3);
     ?arrow_op3(T1, T2, T3); ?three_op(T1, T2, T3) ->
-  handle_call_identifier(Rest, Line, Column + 1, DotColumn, 3, list_to_atom([T1, T2, T3]), Scope, Tokens);
+  handle_call_identifier(Rest, Line, Column + 1, DotColumn, 3, list_to_atom([T1, T2, T3]), Scope, Tokens, CommentTokens, Counter);
 
 % ## Two Token Operators
-handle_dot([$., T1, T2 | Rest], Line, Column, DotColumn, Scope, Tokens) when
+handle_dot([$., T1, T2 | Rest], Line, Column, DotColumn, Scope, Tokens, CommentTokens, Counter) when
     ?comp_op2(T1, T2); ?rel_op2(T1, T2); ?and_op(T1, T2); ?or_op(T1, T2);
     ?arrow_op(T1, T2); ?in_match_op(T1, T2); ?two_op(T1, T2); ?stab_op(T1, T2);
     ?type_op(T1, T2) ->
-  handle_call_identifier(Rest, Line, Column + 1, DotColumn, 2, list_to_atom([T1, T2]), Scope, Tokens);
+  handle_call_identifier(Rest, Line, Column + 1, DotColumn, 2, list_to_atom([T1, T2]), Scope, Tokens, CommentTokens, Counter);
 
 % ## Single Token Operators
-handle_dot([$., T | Rest], Line, Column, DotColumn, Scope, Tokens) when
+handle_dot([$., T | Rest], Line, Column, DotColumn, Scope, Tokens, CommentTokens, Counter) when
     ?at_op(T); ?unary_op(T); ?capture_op(T); ?dual_op(T); ?mult_op(T);
     ?rel_op(T); ?match_op(T); ?pipe_op(T) ->
-  handle_call_identifier(Rest, Line, Column + 1, DotColumn, 1, list_to_atom([T]), Scope, Tokens);
+  handle_call_identifier(Rest, Line, Column + 1, DotColumn, 1, list_to_atom([T]), Scope, Tokens, CommentTokens, Counter);
 
 % ## Exception for .( as it needs to be treated specially in the parser
-handle_dot([$., $( | Rest], Line, Column, DotColumn, Scope, Tokens) ->
-  tokenize([$( | Rest], Line, Column + 2, Scope, add_token_with_nl({dot_call_op, {Line, DotColumn, DotColumn + 1}, '.'}, Tokens));
+handle_dot([$., $( | Rest], Line, Column, DotColumn, Scope, Tokens, CommentTokens, Counter) ->
+  TokensSoFar = add_token_with_nl({dot_call_op, {Line, DotColumn, DotColumn + 1}, '.'}, Tokens),
+  tokenize([$( | Rest], Line + Counter, Column + 2, Scope, handle_comments(CommentTokens, TokensSoFar, Scope));
 
-handle_dot([$., H | T] = Original, Line, Column, DotColumn, Scope, Tokens) when ?is_quote(H) ->
+handle_dot([$., H | T] = Original, Line, Column, DotColumn, Scope, Tokens, CommentTokens, Counter) when ?is_quote(H) ->
   case elixir_interpolation:extract(Line, Column + 2, Scope, true, T, H) of
     {NewLine, NewColumn, [Part], Rest} when is_binary(Part) ->
       case unsafe_to_atom(Part, Line, Scope) of
         {ok, Atom} ->
-          Token = check_call_identifier(Line, Column, max(NewColumn - Column, 0), Atom, Rest),
-          tokenize(Rest, NewLine, NewColumn, Scope,
-                   [Token | add_token_with_nl({'.', {Line, DotColumn, DotColumn + 1}}, Tokens)]);
+          Token = check_call_identifier(Line + Counter, Column, max(NewColumn - Column, 0), Atom, Rest),
+          TokensSoFar = add_token_with_nl({'.', {Line, DotColumn, DotColumn + 1}}, Tokens),
+          tokenize(Rest, NewLine, NewColumn, Scope, [Token | handle_comments(CommentTokens, TokensSoFar, Scope)]);
         {error, Reason} ->
           {error, Reason, Original, Tokens}
       end;
@@ -622,13 +632,14 @@ handle_dot([$., H | T] = Original, Line, Column, DotColumn, Scope, Tokens) when 
       interpolation_error(Reason, Original, Tokens, " (for function name starting at line ~B)", [Line])
   end;
 
-handle_dot([$. | Rest], Line, Column, DotColumn, Scope, Tokens) ->
-  tokenize(Rest, Line, Column + 1, Scope, add_token_with_nl({'.', {Line, DotColumn, DotColumn + 1}}, Tokens)).
+handle_dot([$. | Rest], Line, Column, DotColumn, Scope, Tokens, CommentTokens, Counter) ->
+  TokensSoFar = add_token_with_nl({'.', {Line, DotColumn, DotColumn + 1}}, Tokens),
+  tokenize(Rest, Line + Counter, Column + 1, Scope, handle_comments(CommentTokens, TokensSoFar, Scope)).
 
-handle_call_identifier(Rest, Line, Column, DotColumn, Length, Op, Scope, Tokens) ->
-  {_, {_, _, NewColumn}, _} = Token = check_call_identifier(Line, Column, Length, Op, Rest),
-  tokenize(Rest, Line, NewColumn, Scope,
-           [Token | add_token_with_nl({'.', {Line, DotColumn, DotColumn + 1}}, Tokens)]).
+handle_call_identifier(Rest, Line, Column, DotColumn, Length, Op, Scope, Tokens, CommentTokens, Counter) ->
+  {_, {NewLine, _, NewColumn}, _} = Token = check_call_identifier(Line + Counter, Column, Length, Op, Rest),
+  TokensSoFar = add_token_with_nl({'.', {Line, DotColumn, DotColumn + 1}}, Tokens),
+  tokenize(Rest, NewLine, NewColumn, Scope, [Token | handle_comments(CommentTokens, TokensSoFar, Scope)]).
 
 % ## Ambiguous unary/binary operators tokens
 handle_space_sensitive_tokens([Sign, NotMarker | T], Line, Column, Scope, [{Identifier, _, _} = H | Tokens]) when
