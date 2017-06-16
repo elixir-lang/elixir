@@ -124,6 +124,7 @@ defmodule Kernel.ParallelCompiler do
           end
 
         send(parent, {:file_compiled, self(), file, result})
+        exit(:shutdown)
       end
 
     timeout = Keyword.get(options, :long_compilation_threshold, 10) * 1_000
@@ -230,7 +231,7 @@ defmodule Kernel.ParallelCompiler do
         spawn_compilers(state)
 
       {:file_compiled, child_pid, file, :ok} ->
-        wait_for_down(queued, child_pid)
+        discard_down(child_pid)
 
         if callback = Keyword.get(options, :each_file) do
           callback.(file)
@@ -246,7 +247,7 @@ defmodule Kernel.ParallelCompiler do
         spawn_compilers(%{state | entries: new_entries, waiting: new_waiting, queued: new_queued})
 
       {:file_compiled, child_pid, file, {kind, reason, stack}} ->
-        wait_for_down(queued, child_pid)
+        discard_down(child_pid)
         print_error(file, kind, reason, stack)
         terminate(queued)
 
@@ -256,16 +257,15 @@ defmodule Kernel.ParallelCompiler do
     end
   end
 
-  defp wait_for_down(queued, pid) do
+  defp discard_down(pid) do
     receive do
-      {:DOWN, ref, :process, ^pid, reason} -> handle_down(queued, ref, reason)
+      {:DOWN, _, :process, ^pid, _} -> :ok
     end
   end
 
   defp handle_down(_queued, _ref, :normal) do
     :ok
   end
-
   defp handle_down(queued, ref, reason) do
     case List.keyfind(queued, ref, 1) do
       {_child, ^ref, file, _timer_ref} ->

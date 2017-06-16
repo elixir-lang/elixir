@@ -64,6 +64,7 @@ defmodule Kernel.ParallelRequire do
         end
 
       send(parent, {:file_required, self(), file, result})
+      exit(:shutdown)
     end
 
     spawn_requires(files, [{pid, ref} | waiting], callbacks, schedulers, result)
@@ -72,7 +73,7 @@ defmodule Kernel.ParallelRequire do
   defp wait_for_messages(files, waiting, callbacks, schedulers, result) do
     receive do
       {:file_required, pid, file, {:required, mods}} ->
-        wait_for_down(waiting, pid)
+        discard_down(pid)
         if each_file_callback = callbacks[:each_file] do
           each_file_callback.(file)
         end
@@ -80,7 +81,7 @@ defmodule Kernel.ParallelRequire do
         spawn_requires(files, waiting, callbacks, schedulers, mods ++ result)
 
       {:file_required, pid, _file, {kind, reason, stacktrace}} ->
-        wait_for_down(waiting, pid)
+        discard_down(pid)
         :erlang.raise(kind, reason, stacktrace)
 
       {:DOWN, ref, :process, pid, reason} ->
@@ -104,9 +105,9 @@ defmodule Kernel.ParallelRequire do
     end
   end
 
-  defp wait_for_down(waiting, pid) do
+  defp discard_down(pid) do
     receive do
-      {:DOWN, ref, :process, ^pid, reason} -> handle_down(waiting, pid, ref, reason)
+      {:DOWN, _, :process, ^pid, _} -> :ok
     end
   end
 
