@@ -269,7 +269,11 @@ defmodule IO.ANSI.Docs do
 
     widths =
       for line <- lines do
-        for {_col, length} <- line, do: length
+        if table_header?(line) do
+          for _ <- line, do: 0
+        else
+          for {_col, length} <- line, do: length
+        end
       end
 
     col_widths = Enum.reduce(widths,
@@ -291,6 +295,7 @@ defmodule IO.ANSI.Docs do
     col =
       col
       |> String.replace("\\\|", "|")
+      |> String.trim()
       |> handle_links
       |> handle_inline(options)
     {col, length_without_escape(col, 0)}
@@ -306,6 +311,8 @@ defmodule IO.ANSI.Docs do
   defp render_table([first, second | rest], widths, options) do
     combined = Enum.zip(first, widths)
     if table_header?(second) do
+      alignments = Enum.map(second, &column_alignment/1)
+      options = Keyword.put_new(options, :alignments, alignments)
       draw_table_row(combined, options, :heading)
       render_table(rest, widths, options)
     else
@@ -323,6 +330,14 @@ defmodule IO.ANSI.Docs do
   defp render_table([], _, _),
     do: nil
 
+  defp column_alignment({line, _}) do
+    cond do
+      String.starts_with?(line, ":") and String.ends_with?(line, ":") -> :center
+      String.ends_with?(line, ":") -> :right
+      true -> :left
+    end
+  end
+
   defp table_header?(row) do
     Enum.all?(row, fn {col, _} -> table_header_column?(col) end)
   end
@@ -336,16 +351,33 @@ defmodule IO.ANSI.Docs do
   defp table_header_contents?(_), do: false
 
   defp draw_table_row(cols_and_widths, options, heading \\ false) do
+    default_alignments = List.duplicate(:left, length(cols_and_widths))
+    alignments = Keyword.get(options, :alignments, default_alignments)
+
     columns =
-      Enum.map_join(cols_and_widths, " | ", fn {{col, length}, width} ->
-        col <> String.duplicate(" ", width - length)
-      end)
+      cols_and_widths
+      |> Enum.zip(alignments)
+      |> Enum.map_join(" | ", &generate_table_cell/1)
 
     if heading do
       write(:doc_table_heading, columns, options)
     else
       IO.puts columns
     end
+  end
+
+  defp generate_table_cell({{{col, length}, width}, :center}) do
+    pad = if rem(length, 2) == 0, do: 1, else: rem(width, 2)
+    spaces = div(width, 2) - div(length, 2)
+    String.duplicate(" ", spaces) <> col <> String.duplicate(" ", spaces + pad)
+  end
+
+  defp generate_table_cell({{{col, length}, width}, :right}) do
+    String.duplicate(" ", width - length) <> col
+  end
+
+  defp generate_table_cell({{{col, length}, width}, _}) do
+    col <> String.duplicate(" ", width - length)
   end
 
   defp table_line?(line) do
