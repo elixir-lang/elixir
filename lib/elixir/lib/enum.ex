@@ -1567,7 +1567,7 @@ defmodule Enum do
       iex> Enum.min_max_by(["aaa", "a", "bb", "c", "ccc"], &String.length/1)
       {"a", "aaa"}
 
-      iex> Enum.min_max_by([], &String.lenth/1, fn -> {nil, nil} end)
+      iex> Enum.min_max_by([], &String.length/1, fn -> {nil, nil} end)
       {nil, nil}
 
   """
