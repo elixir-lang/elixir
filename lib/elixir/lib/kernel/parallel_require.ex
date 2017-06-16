@@ -49,17 +49,21 @@ defmodule Kernel.ParallelRequire do
 
   defp spawn_requires([file | files], waiting, callbacks, schedulers, result) do
     parent = self()
+
     {pid, ref} = :erlang.spawn_monitor fn ->
       :erlang.put(:elixir_compiler_pid, parent)
       :erlang.put(:elixir_compiler_file, file)
 
-      exit(try do
-        new = Code.require_file(file) || []
-        {:required, Enum.map(new, &elem(&1, 0)), file}
-      catch
-        kind, reason ->
-          {:failure, kind, reason, System.stacktrace}
-      end)
+      result =
+        try do
+          new = Code.require_file(file) || []
+          {:required, Enum.map(new, &elem(&1, 0))}
+        catch
+          kind, reason ->
+            {kind, reason, System.stacktrace}
+        end
+
+      send(parent, {:file_required, self(), file, result})
     end
 
     spawn_requires(files, [{pid, ref} | waiting], callbacks, schedulers, result)
@@ -67,28 +71,21 @@ defmodule Kernel.ParallelRequire do
 
   defp wait_for_messages(files, waiting, callbacks, schedulers, result) do
     receive do
-      {:DOWN, ref, :process, pid, status} ->
-        tuple = {pid, ref}
-        if tuple in waiting do
-          waiting = List.delete(waiting, tuple)
-
-          case status do
-            {:required, mods, file} ->
-              if each_file_callback = callbacks[:each_file] do
-                each_file_callback.(file)
-              end
-
-              spawn_requires(files, waiting, callbacks, schedulers, mods ++ result)
-
-            {:failure, kind, reason, stacktrace} ->
-              :erlang.raise(kind, reason, stacktrace)
-
-            other ->
-              :erlang.raise(:exit, other, [])
-          end
-        else
-          spawn_requires(files, waiting, callbacks, schedulers, result)
+      {:file_required, pid, file, {:required, mods}} ->
+        wait_for_down(waiting, pid)
+        if each_file_callback = callbacks[:each_file] do
+          each_file_callback.(file)
         end
+        waiting = List.keydelete(waiting, pid, 0)
+        spawn_requires(files, waiting, callbacks, schedulers, mods ++ result)
+
+      {:file_required, pid, _file, {kind, reason, stacktrace}} ->
+        wait_for_down(waiting, pid)
+        :erlang.raise(kind, reason, stacktrace)
+
+      {:DOWN, ref, :process, pid, reason} ->
+        handle_down(waiting, pid, ref, reason)
+        spawn_requires(files, waiting, callbacks, schedulers, result)
 
       {:module_available, child, ref, file, module, binary} ->
         if each_module_callback = callbacks[:each_module] do
@@ -105,5 +102,18 @@ defmodule Kernel.ParallelRequire do
         send(child, {ref, :not_found})
         spawn_requires(files, waiting, callbacks, schedulers, result)
     end
+  end
+
+  defp wait_for_down(waiting, pid) do
+    receive do
+      {:DOWN, ref, :process, ^pid, reason} -> handle_down(waiting, pid, ref, reason)
+    end
+  end
+
+  defp handle_down(waiting, pid, ref, reason) do
+    if reason != :normal and {pid, ref} in waiting do
+      :erlang.raise(:exit, reason, [])
+    end
+    :ok
   end
 end

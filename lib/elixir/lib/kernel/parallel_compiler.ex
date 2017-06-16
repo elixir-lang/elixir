@@ -110,17 +110,20 @@ defmodule Kernel.ParallelCompiler do
         :erlang.put(:elixir_compiler_file, file)
         :erlang.process_flag(:error_handler, Kernel.ErrorHandler)
 
-        exit(try do
-          _ = if output do
-            :elixir_compiler.file_to_path(file, output)
-          else
-            :elixir_compiler.file(file, Keyword.get(options, :dest))
+        result =
+          try do
+            _ = if output do
+              :elixir_compiler.file_to_path(file, output)
+            else
+              :elixir_compiler.file(file, Keyword.get(options, :dest))
+            end
+            :ok
+          catch
+            kind, reason ->
+              {kind, reason, System.stacktrace}
           end
-          {:shutdown, file}
-        catch
-          kind, reason ->
-            {:failure, kind, reason, System.stacktrace}
-        end)
+
+        send(parent, {:file_compiled, self(), file, result})
       end
 
     timeout = Keyword.get(options, :long_compilation_threshold, 10) * 1_000
@@ -226,23 +229,50 @@ defmodule Kernel.ParallelCompiler do
         end
         spawn_compilers(state)
 
-      {:DOWN, _down_ref, :process, down_pid, {:shutdown, file}} ->
+      {:file_compiled, child_pid, file, :ok} ->
+        wait_for_down(queued, child_pid)
+
         if callback = Keyword.get(options, :each_file) do
           callback.(file)
         end
 
-        cancel_waiting_timer(queued, down_pid)
+        cancel_waiting_timer(queued, child_pid)
 
         # Sometimes we may have spurious entries in the waiting
         # list because someone invoked try/rescue UndefinedFunctionError
-        new_entries = List.delete(entries, down_pid)
-        new_queued  = List.keydelete(queued, down_pid, 0)
-        new_waiting = List.keydelete(waiting, down_pid, 1)
+        new_entries = List.delete(entries, child_pid)
+        new_queued  = List.keydelete(queued, child_pid, 0)
+        new_waiting = List.keydelete(waiting, child_pid, 1)
         spawn_compilers(%{state | entries: new_entries, waiting: new_waiting, queued: new_queued})
 
-      {:DOWN, down_ref, :process, _down_pid, reason} ->
-        handle_failure(down_ref, reason, queued)
+      {:file_compiled, child_pid, file, {kind, reason, stack}} ->
+        wait_for_down(queued, child_pid)
+        print_error(file, kind, reason, stack)
+        terminate(queued)
+
+      {:DOWN, ref, :process, _pid, reason} ->
+        handle_down(queued, ref, reason)
         wait_for_messages(state)
+    end
+  end
+
+  defp wait_for_down(queued, pid) do
+    receive do
+      {:DOWN, ref, :process, ^pid, reason} -> handle_down(queued, ref, reason)
+    end
+  end
+
+  defp handle_down(_queued, _ref, :normal) do
+    :ok
+  end
+
+  defp handle_down(queued, ref, reason) do
+    case List.keyfind(queued, ref, 1) do
+      {_child, ^ref, file, _timer_ref} ->
+        print_error(file, :exit, reason, [])
+        terminate(queued)
+      _ ->
+        :ok
     end
   end
 
@@ -255,7 +285,7 @@ defmodule Kernel.ParallelCompiler do
         {_kind, ^pid, _, on, _} = List.keyfind(waiting, pid, 1)
         error = CompileError.exception(description: "deadlocked waiting on module #{inspect on}",
                                        file: nil, line: nil)
-        print_failure(file, {:failure, :error, error, stacktrace})
+        print_error(file, :error, error, stacktrace)
 
         {file, on}
       end
@@ -279,35 +309,16 @@ defmodule Kernel.ParallelCompiler do
     exit({:shutdown, 1})
   end
 
-  defp handle_failure(ref, reason, queued) do
-    if file = find_failure(ref, queued) do
-      print_failure(file, reason)
-      for {pid, _, _, _} <- queued do
-        Process.exit(pid, :kill)
-      end
-      exit({:shutdown, 1})
+  defp terminate(queued) do
+    for {pid, _, _, _} <- queued do
+      Process.exit(pid, :kill)
     end
+    exit({:shutdown, 1})
   end
 
-  defp find_failure(ref, queued) do
-    case List.keyfind(queued, ref, 1) do
-      {_child, ^ref, file, _timer_ref} -> file
-      _ -> nil
-    end
-  end
-
-  defp print_failure(_file, {:shutdown, _}) do
-    :ok
-  end
-
-  defp print_failure(file, {:failure, kind, reason, stacktrace}) do
+  defp print_error(file, kind, reason, stack) do
     IO.write ["\n== Compilation error in file #{Path.relative_to_cwd(file)} ==\n",
-             Kernel.CLI.format_error(kind, reason, stacktrace)]
-  end
-
-  defp print_failure(file, reason) do
-    IO.write ["\n== Compilation error in file #{Path.relative_to_cwd(file)} ==\n",
-              Kernel.CLI.print_error(:exit, reason, [])]
+             Kernel.CLI.format_error(kind, reason, stack)]
   end
 
   defp cancel_waiting_timer(queued, child_pid) do
