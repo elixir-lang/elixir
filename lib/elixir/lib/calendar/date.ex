@@ -354,6 +354,14 @@ defmodule Date do
 
   """
   @spec compare(Calendar.date, Calendar.date) :: :lt | :eq | :gt
+  def compare(%{calendar: calendar, year: year1, month: month1, day: day1},
+              %{calendar: calendar, year: year2, month: month2, day: day2}) do
+    case {{year1, month1, day1}, {year2, month2, day2}} do
+      {first, second} when first > second -> :gt
+      {first, second} when first < second -> :lt
+      _ -> :eq
+    end
+  end
   def compare(date1, date2) do
     if Calendar.compatible_calendars?(date1.calendar, date2.calendar) do
       case {to_rata_die(date1), to_rata_die(date2)} do

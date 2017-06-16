@@ -338,6 +338,15 @@ defmodule Time do
 
   """
   @spec compare(Calendar.time, Calendar.time) :: :lt | :eq | :gt
+  def compare(%{calendar: calendar, hour: hour1, minute: minute1, second: second1, microsecond: {microsecond1, _}},
+              %{calendar: calendar, hour: hour2, minute: minute2, second: second2, microsecond: {microsecond2, _}}) do
+    case {{hour1, minute1, second1, microsecond1}, {hour2, minute2, second2, microsecond2}} do
+      {first, second} when first > second -> :gt
+      {first, second} when first < second -> :lt
+      _ -> :eq
+    end
+  end
+
   def compare(time1, time2) do
     {parts1, ppd1} = to_day_fraction(time1)
     {parts2, ppd2} = to_day_fraction(time2)
