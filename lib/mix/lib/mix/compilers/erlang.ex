@@ -42,17 +42,19 @@ defmodule Mix.Compilers.Erlang do
   of error. An error is raised at the end if any of the
   files failed to compile.
   """
-  def compile(manifest, mappings, src_ext, dest_ext, force, callback) when is_boolean(force) do
-    compile(manifest, mappings, src_ext, dest_ext, [force: force], callback)
-  end
-
-  def compile(manifest, mappings, src_ext, dest_ext, opts, callback) do
+  def compile(manifest, mappings, src_ext, dest_ext, opts, callback) when is_list(opts) do
     force = opts[:force]
     files =
       for {src, dest} <- mappings do
         extract_targets(src, src_ext, dest, dest_ext, force)
       end |> Enum.concat
     compile(manifest, files, src_ext, opts, callback)
+  end
+
+  def compile(manifest, mappings, src_ext, dest_ext, force, callback) when is_boolean(force) do
+    IO.warn "Mix.Compilers.Erlang.compile/6 with a boolean as 5th argument is deprecated, " <>
+            "please pass [force: true]"
+    compile(manifest, mappings, src_ext, dest_ext, [force: force], callback)
   end
 
   @doc """
