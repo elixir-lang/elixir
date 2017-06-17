@@ -22,6 +22,7 @@ defmodule Date.Range do
 
   """
 
+  @opaque t :: %__MODULE__{first: Date.t, last: Date.t}
   @doc false
   defstruct [:first, :last, :first_rata_die, :last_rata_die]
 
@@ -71,6 +72,12 @@ defmodule Date.Range do
 
     defp reduce(_, _, {:cont, acc}, _fun, _up) do
       {:done, acc}
+    end
+  end
+
+  defimpl Inspect do
+    def inspect(%Date.Range{first: first, last: last}, _) do
+      "#DateRange<" <> inspect(first) <> ", " <> inspect(last) <> ">"
     end
   end
 end

@@ -62,10 +62,7 @@ defmodule Date do
   ## Examples
 
       iex> Date.range(~D[2000-01-01], ~D[2001-01-01])
-      %Date.Range{
-        first: ~D[2000-01-01],
-        last: ~D[2001-01-01],
-      }
+      #DateRange<~D[2000-01-01], ~D[2001-01-01]>
 
   """
 
