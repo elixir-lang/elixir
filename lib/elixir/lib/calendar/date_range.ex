@@ -1,36 +1,29 @@
 defmodule Date.Range do
   @moduledoc """
-  Defines a range of dates.
+  Returns an inclusive range between dates.
 
-  A range of dates represents a discrete number of dates where
-  the first and last values are dates with matching calendars.
+  Ranges must be created with the `Date.range/2` function.
 
-  Ranges of dates can be either increasing (`first <= last`) or
-  decreasing (`first > last`). They are also always inclusive.
+  The following fields are public:
 
-  A range of dates implements the `Enumerable` protocol, which means
-  functions in the `Enum` module can be used to work with
-  ranges:
+    * `:first` - the initial date on the range
+    * `:last` - the last date on the range
 
-      iex> range = Date.range(~D[2001-01-01], ~D[2002-01-01])
-      iex> Enum.count(range)
-      366
-      iex> Enum.member?(range, ~D[2001-02-01])
-      true
-      iex> Enum.reduce(range, 0, fn(_date, acc) -> acc - 1 end)
-      -366
-
+  The remaining fields are private and should not be accessed.
   """
 
-  @opaque t :: %__MODULE__{first: Date.t, last: Date.t}
-  @doc false
+  @type t :: %__MODULE__{first: Date.t, last: Date.t,
+                         first_rata_die: rata_die_days, last_rata_die: rata_die_days}
+
+  @opaque rata_die_days :: Calendar.days
+
   defstruct [:first, :last, :first_rata_die, :last_rata_die]
 
   defimpl Enumerable do
-    def member?(%Date.Range{first: %{calendar: calendar, year: first_year, month: first_month, day: first_day},
-              last: %{calendar: calendar, year: last_year, month: last_month, day: last_day},
-              first_rata_die: first_rata_die, last_rata_die: last_rata_die},
-            %Date{calendar: calendar, year: year, month: month, day: day}) do
+    def member?(%{first: %{calendar: calendar, year: first_year, month: first_month, day: first_day},
+                  last: %{calendar: calendar, year: last_year, month: last_month, day: last_day},
+                  first_rata_die: first_rata_die, last_rata_die: last_rata_die},
+                %Date{calendar: calendar, year: year, month: month, day: day}) do
       first = {first_year, first_month, first_day}
       last = {last_year, last_month, last_day}
       date = {year, month, day}
@@ -50,28 +43,39 @@ defmodule Date.Range do
       {:ok, abs(first_rata_die - last_rata_die) + 1}
     end
 
-    def reduce(%Date.Range{first_rata_die: first_rata_die, last_rata_die: last_rata_die, first: %{calendar: c}}, acc, fun) do
-      reduce(first_rata_die, last_rata_die, acc, &(fun.(Date.from_rata_die_days(&1, c), &2)), first_rata_die <= last_rata_die)
+    def reduce(%Date.Range{first_rata_die: first_rata_die, last_rata_die: last_rata_die,
+                           first: %{calendar: calendar}}, acc, fun) do
+      reduce(first_rata_die, last_rata_die, acc, fun, calendar, first_rata_die <= last_rata_die)
     end
 
-    defp reduce(_x, _y, {:halt, acc}, _fun, _up?) do
+    defp reduce(_x, _y, {:halt, acc}, _fun, _calendar, _up?) do
       {:halted, acc}
     end
 
-    defp reduce(x, y, {:suspend, acc}, fun, up?) do
-      {:suspended, acc, &reduce(x, y, &1, fun, up?)}
+    defp reduce(x, y, {:suspend, acc}, fun, calendar, up?) do
+      {:suspended, acc, &reduce(x, y, &1, fun, calendar, up?)}
     end
 
-    defp reduce(x, y, {:cont, acc}, fun, _up? = true) when x <= y do
-      reduce(x + 1, y, fun.(x, acc), fun, _up? = true)
+    defp reduce(x, y, {:cont, acc}, fun, calendar, up? = true) when x <= y do
+      reduce(x + 1, y, fun.(date_from_rata_days(x, calendar), acc), fun, calendar, up?)
     end
 
-    defp reduce(x, y, {:cont, acc}, fun, _up? = false) when x >= y do
-      reduce(x - 1, y, fun.(x, acc), fun, _up? = false)
+    defp reduce(x, y, {:cont, acc}, fun, calendar, up? = false) when x >= y do
+      reduce(x - 1, y, fun.(date_from_rata_days(x, calendar), acc), fun, calendar, up?)
     end
 
-    defp reduce(_, _, {:cont, acc}, _fun, _up) do
+    defp reduce(_, _, {:cont, acc}, _fun, _calendar, _up) do
       {:done, acc}
+    end
+
+    defp date_from_rata_days(days, Calendar.ISO) do
+      {year, month, day} = Calendar.ISO.date_from_rata_die_days(days)
+      %Date{year: year, month: month, day: day, calendar: Calendar.ISO}
+    end
+
+    defp date_from_rata_days(days, calendar) do
+      {year, month, day, _, _, _, _} = calendar.naive_datetime_from_rata_die({days, {0, 86400000000}})
+      %Date{year: year, month: month, day: day, calendar: calendar}
     end
   end
 
