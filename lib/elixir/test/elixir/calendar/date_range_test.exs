@@ -3,36 +3,47 @@ Code.require_file "../fixtures/calendar/julian.exs", __DIR__
 
 defmodule Date.RangeTest do
   use ExUnit.Case, async: true
-  doctest Date.Range
 
-  setup do
-    {:ok, range: Date.range(~D[2000-01-01], ~D[2001-01-01])}
-  end
+  @asc_range Date.range(~D[2000-01-01], ~D[2001-01-01])
+  @desc_range Date.range(~D[2001-01-01], ~D[2000-01-01])
 
   describe "Enum.member?/2" do
-    test "for ascending range", %{range: range} do
-      assert Enum.member?(range, ~D[2000-02-22])
-      refute Enum.member?(range, ~D[2002-01-01])
+    test "for ascending range" do
+      assert Enum.member?(@asc_range, ~D[2000-02-22])
+      assert Enum.member?(@asc_range, ~D[2000-01-01])
+      assert Enum.member?(@asc_range, ~D[2001-01-01])
+      refute Enum.member?(@asc_range, ~D[2002-01-01])
+      refute Enum.member?(@asc_range, Calendar.Julian.date(1999, 12, 19))
     end
 
-    test "for descending range", %{range: range} do
-      assert Enum.member?(range, ~D[2000-02-22])
-      refute Enum.member?(range, ~D[1999-01-01])
+    test "for descending range" do
+      assert Enum.member?(@desc_range, ~D[2000-02-22])
+      assert Enum.member?(@desc_range, ~D[2000-01-01])
+      assert Enum.member?(@desc_range, ~D[2001-01-01])
+      refute Enum.member?(@desc_range, ~D[1999-01-01])
+      refute Enum.member?(@asc_range, Calendar.Julian.date(1999, 12, 19))
     end
   end
 
   describe "Enum.count/1" do
-    test "counts days in range", %{range: range} do
-      assert Enum.count(range) == 367
+    test "for ascending range" do
+      assert Enum.count(@asc_range) == 367
+    end
+
+    test "for descending range" do
+      assert Enum.count(@desc_range) == 367
     end
   end
 
   describe "Enum.reduce/3" do
-    test "acts as a normal reduce" do
+    test "for ascending range" do
       range = Date.range(~D[2000-01-01], ~D[2000-01-03])
-      fun = fn (date, acc) -> acc ++ [date] end
+      assert Enum.to_list(range) == [~D[2000-01-01], ~D[2000-01-02], ~D[2000-01-03]]
+    end
 
-      assert Enum.reduce(range, [], fun) == [~D[2000-01-01], ~D[2000-01-02], ~D[2000-01-03]]
+    test "for descending range" do
+      range = Date.range(~D[2000-01-03], ~D[2000-01-01])
+      assert Enum.to_list(range) == [~D[2000-01-03], ~D[2000-01-02], ~D[2000-01-01]]
     end
   end
 
@@ -46,9 +57,12 @@ defmodule Date.RangeTest do
   end
 
   test "accepts equal but not Calendar.ISO calendars" do
-    first = Calendar.Julian.date(2001, 01, 01)
-    last = Calendar.Julian.date(2000, 01, 01)
-
-    assert Date.range(first, last)
+    first = Calendar.Julian.date(2000, 01, 01)
+    last = Calendar.Julian.date(2001, 01, 01)
+    range = Date.range(first, last)
+    assert range
+    assert first in range
+    assert last in range
+    assert Enum.count(range) == 367
   end
 end
