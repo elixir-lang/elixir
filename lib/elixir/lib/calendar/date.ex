@@ -57,28 +57,47 @@ defmodule Date do
                    day: Calendar.day, calendar: Calendar.calendar}
 
   @doc """
-  Returns a Date.Range
+  Returns a range of dates.
+
+  A range of dates represents a discrete number of dates where
+  the first and last values are dates with matching calendars.
+
+  Ranges of dates can be either increasing (`first <= last`) or
+  decreasing (`first > last`). They are also always inclusive.
 
   ## Examples
 
       iex> Date.range(~D[2000-01-01], ~D[2001-01-01])
       #DateRange<~D[2000-01-01], ~D[2001-01-01]>
 
+  A range of dates implements the `Enumerable` protocol, which means
+  functions in the `Enum` module can be used to work with
+  ranges:
+
+      iex> range = Date.range(~D[2001-01-01], ~D[2002-01-01])
+      iex> Enum.count(range)
+      366
+      iex> Enum.member?(range, ~D[2001-02-01])
+      true
+      iex> Enum.reduce(range, 0, fn(_date, acc) -> acc - 1 end)
+      -366
   """
 
   @spec range(Date.t, Date.t) :: Date.Range.t
   def range(%{calendar: calendar} = first, %{calendar: calendar} = last) do
+    {first_days, _} = to_rata_die(first)
+    {last_days, _} = to_rata_die(last)
+
     %Date.Range{
       first: first,
       last: last,
-      first_rata_die: to_rata_die_days(first),
-      last_rata_die: to_rata_die_days(last),
+      first_rata_die: first_days,
+      last_rata_die: last_days,
     }
   end
 
   def range(%Date{}, %Date{}) do
-    raise ArgumentError,
-      "both dates must have matching calendars"
+    raise ArgumentError, "both dates must have matching calendars"
   end
 
   @doc """
@@ -499,12 +518,6 @@ defmodule Date do
     calendar.naive_datetime_to_rata_die(year, month, day, 0, 0, 0, {0, 0})
   end
 
-  @doc false
-  def to_rata_die_days(date) do
-    {days, _} = to_rata_die(date)
-    days
-  end
-
   defp from_rata_die({days, _}, Calendar.ISO) do
     {year, month, day} = Calendar.ISO.date_from_rata_die_days(days)
     %Date{year: year, month: month, day: day, calendar: Calendar.ISO}
@@ -512,11 +525,6 @@ defmodule Date do
   defp from_rata_die(rata_die, target_calendar) do
     {year, month, day, _, _, _, _} = target_calendar.naive_datetime_from_rata_die(rata_die)
     %Date{year: year, month: month, day: day, calendar: target_calendar}
-  end
-
-  @doc false
-  def from_rata_die_days(rata_die, target_calendar) do
-    from_rata_die({rata_die, {0, 86400000000}}, target_calendar)
   end
 
   @doc """
