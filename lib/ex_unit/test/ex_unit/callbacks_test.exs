@@ -109,6 +109,20 @@ defmodule ExUnit.CallbacksTest do
            "** (MatchError) no match of right hand side value: :error"
   end
 
+  test "doesn't choke on dead supervisor" do
+    defmodule StartSupervisedErrorTest do
+      use ExUnit.Case
+
+      @tag timeout: 500
+      test "ok" do
+        start_supervised {Task, fn -> Process.flag(:trap_exit, true); Process.sleep(:infinity) end}
+      end
+    end
+
+    ExUnit.Server.cases_loaded()
+    assert capture_io(fn -> ExUnit.run end) =~ "supervisor shutdown timed out after 500ms"
+  end
+
   test "doesn't choke on on_exit errors" do
     defmodule OnExitErrorTest do
       use ExUnit.Case

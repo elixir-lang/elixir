@@ -57,6 +57,50 @@ defmodule Date do
                    day: Calendar.day, calendar: Calendar.calendar}
 
   @doc """
+  Returns a range of dates.
+
+  A range of dates represents a discrete number of dates where
+  the first and last values are dates with matching calendars.
+
+  Ranges of dates can be either increasing (`first <= last`) or
+  decreasing (`first > last`). They are also always inclusive.
+
+  ## Examples
+
+      iex> Date.range(~D[2000-01-01], ~D[2001-01-01])
+      #DateRange<~D[2000-01-01], ~D[2001-01-01]>
+
+  A range of dates implements the `Enumerable` protocol, which means
+  functions in the `Enum` module can be used to work with
+  ranges:
+
+      iex> range = Date.range(~D[2001-01-01], ~D[2002-01-01])
+      iex> Enum.count(range)
+      366
+      iex> Enum.member?(range, ~D[2001-02-01])
+      true
+      iex> Enum.reduce(range, 0, fn(_date, acc) -> acc - 1 end)
+      -366
+  """
+
+  @spec range(Date.t, Date.t) :: Date.Range.t
+  def range(%{calendar: calendar} = first, %{calendar: calendar} = last) do
+    {first_days, _} = to_rata_die(first)
+    {last_days, _} = to_rata_die(last)
+
+    %Date.Range{
+      first: first,
+      last: last,
+      first_rata_die: first_days,
+      last_rata_die: last_days,
+    }
+  end
+
+  def range(%Date{}, %Date{}) do
+    raise ArgumentError, "both dates must have matching calendars"
+  end
+
+  @doc """
   Returns the current date in UTC.
 
   ## Examples
@@ -354,6 +398,14 @@ defmodule Date do
 
   """
   @spec compare(Calendar.date, Calendar.date) :: :lt | :eq | :gt
+  def compare(%{calendar: calendar, year: year1, month: month1, day: day1},
+              %{calendar: calendar, year: year2, month: month2, day: day2}) do
+    case {{year1, month1, day1}, {year2, month2, day2}} do
+      {first, second} when first > second -> :gt
+      {first, second} when first < second -> :lt
+      _ -> :eq
+    end
+  end
   def compare(date1, date2) do
     if Calendar.compatible_calendars?(date1.calendar, date2.calendar) do
       case {to_rata_die(date1), to_rata_die(date2)} do

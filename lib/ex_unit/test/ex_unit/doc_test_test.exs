@@ -17,6 +17,9 @@ defmodule ExUnit.DocTestTest.GoodModule do
   """
   def test_sigil, do: :ok
 
+  @doc "    iex>1 + 2\n    3"
+  def no_trailing_new_line, do: :ok
+
   @doc """
   iex> a = 1
   iex> b = a + 2
@@ -265,6 +268,11 @@ defmodule ExUnit.DocTestTest.Incomplete do
   def test_fun, do: :ok
 end |> write_beam
 
+defmodule ExUnit.DocTestTest.IncompleteNoTrailingNewLine do
+  @doc "iex> 3 + 4"
+  def test_fun, do: :ok
+end |> write_beam
+
 defmodule ExUnit.DocTestTest.FenceIncomplete do
   @doc ~S'''
   ```
@@ -400,56 +408,56 @@ defmodule ExUnit.DocTestTest do
 
     assert output =~ """
       1) test moduledoc at ExUnit.DocTestTest.Invalid (1) (ExUnit.DocTestTest.ActuallyCompiled)
-         test/ex_unit/doc_test_test.exs:391
-         Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:130: syntax error before: '*'
+         test/ex_unit/doc_test_test.exs:399
+         Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:133: syntax error before: '*'
          code: 1 + * 1
-         stacktrace:
-           test/ex_unit/doc_test_test.exs:130: ExUnit.DocTestTest.Invalid (module)
-    """
-
-    assert output =~ """
-      2) test moduledoc at ExUnit.DocTestTest.Invalid (2) (ExUnit.DocTestTest.ActuallyCompiled)
-         test/ex_unit/doc_test_test.exs:391
-         Doctest failed
-         code: 1 + hd(List.flatten([1])) === 3
-         left: 2
          stacktrace:
            test/ex_unit/doc_test_test.exs:133: ExUnit.DocTestTest.Invalid (module)
     """
 
     assert output =~ """
+      2) test moduledoc at ExUnit.DocTestTest.Invalid (2) (ExUnit.DocTestTest.ActuallyCompiled)
+         test/ex_unit/doc_test_test.exs:399
+         Doctest failed
+         code: 1 + hd(List.flatten([1])) === 3
+         left: 2
+         stacktrace:
+           test/ex_unit/doc_test_test.exs:136: ExUnit.DocTestTest.Invalid (module)
+    """
+
+    assert output =~ """
       3) test moduledoc at ExUnit.DocTestTest.Invalid (3) (ExUnit.DocTestTest.ActuallyCompiled)
-         test/ex_unit/doc_test_test.exs:391
+         test/ex_unit/doc_test_test.exs:399
          Doctest failed
          code: inspect(:oops) === "#MapSet<[]>"
          left: ":oops"
          stacktrace:
-           test/ex_unit/doc_test_test.exs:136: ExUnit.DocTestTest.Invalid (module)
+           test/ex_unit/doc_test_test.exs:139: ExUnit.DocTestTest.Invalid (module)
     """
 
     # The stacktrace points to the cause of the error
     assert output =~ """
       4) test moduledoc at ExUnit.DocTestTest.Invalid (4) (ExUnit.DocTestTest.ActuallyCompiled)
-         test/ex_unit/doc_test_test.exs:391
+         test/ex_unit/doc_test_test.exs:399
          Doctest failed: got UndefinedFunctionError with message "function Hello.world/0 is undefined (module Hello is not available)"
          code: Hello.world
          stacktrace:
            Hello.world()
-           (for doctest at) test/ex_unit/doc_test_test.exs:139: (test)
+           (for doctest at) test/ex_unit/doc_test_test.exs:142: (test)
     """
 
     assert output =~ """
       5) test moduledoc at ExUnit.DocTestTest.Invalid (5) (ExUnit.DocTestTest.ActuallyCompiled)
-         test/ex_unit/doc_test_test.exs:391
+         test/ex_unit/doc_test_test.exs:399
          Doctest failed: expected exception WhatIsThis but got RuntimeError with message "oops"
          code: raise "oops"
          stacktrace:
-           test/ex_unit/doc_test_test.exs:142: ExUnit.DocTestTest.Invalid (module)
+           test/ex_unit/doc_test_test.exs:145: ExUnit.DocTestTest.Invalid (module)
     """
 
     assert output =~ """
       6) test moduledoc at ExUnit.DocTestTest.Invalid (6) (ExUnit.DocTestTest.ActuallyCompiled)
-         test/ex_unit/doc_test_test.exs:391
+         test/ex_unit/doc_test_test.exs:399
          Doctest failed: wrong message for RuntimeError
          expected:
            "hello"
@@ -457,55 +465,55 @@ defmodule ExUnit.DocTestTest do
            "oops"
          code: raise "oops"
          stacktrace:
-           test/ex_unit/doc_test_test.exs:145: ExUnit.DocTestTest.Invalid (module)
+           test/ex_unit/doc_test_test.exs:148: ExUnit.DocTestTest.Invalid (module)
     """
 
     assert output =~ """
       7) test doc at ExUnit.DocTestTest.Invalid.a/0 (7) (ExUnit.DocTestTest.ActuallyCompiled)
-         test/ex_unit/doc_test_test.exs:391
-         Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:151: syntax error before: '*'
+         test/ex_unit/doc_test_test.exs:399
+         Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:154: syntax error before: '*'
          code: 1 + * 1
          stacktrace:
-           test/ex_unit/doc_test_test.exs:151: ExUnit.DocTestTest.Invalid (module)
+           test/ex_unit/doc_test_test.exs:154: ExUnit.DocTestTest.Invalid (module)
     """
 
     assert output =~ """
       8) test doc at ExUnit.DocTestTest.Invalid.b/0 (8) (ExUnit.DocTestTest.ActuallyCompiled)
-         test/ex_unit/doc_test_test.exs:391
-         Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:157: syntax error before: '*'
+         test/ex_unit/doc_test_test.exs:399
+         Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:160: syntax error before: '*'
          code: 1 + * 1
          stacktrace:
-           test/ex_unit/doc_test_test.exs:157: ExUnit.DocTestTest.Invalid (module)
+           test/ex_unit/doc_test_test.exs:160: ExUnit.DocTestTest.Invalid (module)
     """
 
     assert output =~ """
       9) test doc at ExUnit.DocTestTest.Invalid.dedented_past_fence/0 (9) (ExUnit.DocTestTest.ActuallyCompiled)
-         test/ex_unit/doc_test_test.exs:391
-         Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:181: unexpected token: "`" (column 5, codepoint U+0060)
+         test/ex_unit/doc_test_test.exs:399
+         Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:184: unexpected token: "`" (column 5, codepoint U+0060)
          code: 3
                    ```
          stacktrace:
-           test/ex_unit/doc_test_test.exs:180: ExUnit.DocTestTest.Invalid (module)
+           test/ex_unit/doc_test_test.exs:183: ExUnit.DocTestTest.Invalid (module)
     """
 
     assert output =~ """
      10) test doc at ExUnit.DocTestTest.Invalid.indented_not_enough/0 (10) (ExUnit.DocTestTest.ActuallyCompiled)
-         test/ex_unit/doc_test_test.exs:391
-         Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:165: unexpected token: "`" (column 1, codepoint U+0060)
+         test/ex_unit/doc_test_test.exs:399
+         Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:168: unexpected token: "`" (column 1, codepoint U+0060)
          code: 3
                `
          stacktrace:
-           test/ex_unit/doc_test_test.exs:164: ExUnit.DocTestTest.Invalid (module)
+           test/ex_unit/doc_test_test.exs:167: ExUnit.DocTestTest.Invalid (module)
     """
 
     assert output =~ """
      11) test doc at ExUnit.DocTestTest.Invalid.indented_too_much/0 (11) (ExUnit.DocTestTest.ActuallyCompiled)
-         test/ex_unit/doc_test_test.exs:391
-         Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:173: unexpected token: "`" (column 3, codepoint U+0060)
+         test/ex_unit/doc_test_test.exs:399
+         Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:176: unexpected token: "`" (column 3, codepoint U+0060)
          code: 3
                  ```
          stacktrace:
-           test/ex_unit/doc_test_test.exs:172: ExUnit.DocTestTest.Invalid (module)
+           test/ex_unit/doc_test_test.exs:175: ExUnit.DocTestTest.Invalid (module)
     """
   end
 
@@ -607,6 +615,16 @@ defmodule ExUnit.DocTestTest do
       defmodule NeverCompiled do
         import ExUnit.DocTest
         doctest ExUnit.DocTestTest.Incomplete
+      end
+    end
+  end
+
+  test "fails with improper termination not ending in new line" do
+    assert_raise ExUnit.DocTest.Error,
+      ~r[test/ex_unit/doc_test_test\.exs:\d+: expected non-blank line to follow iex> prompt], fn ->
+      defmodule NeverCompiled do
+        import ExUnit.DocTest
+        doctest ExUnit.DocTestTest.IncompleteNoTrailingNewLine
       end
     end
   end

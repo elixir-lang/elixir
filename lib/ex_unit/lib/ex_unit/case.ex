@@ -4,7 +4,7 @@ end
 
 defmodule ExUnit.Case do
   @moduledoc """
-  Sets up an ExUnit test case.
+  Helpers for defining test cases.
 
   This module must be used in other modules as a way to configure
   and prepare them for testing.
@@ -16,8 +16,10 @@ defmodule ExUnit.Case do
       does not change any global state. Defaults to `false`.
 
   This module automatically includes all callbacks defined in
-  `ExUnit.Callbacks`. See that module's documentation for more
-  information.
+  `ExUnit.Callbacks`. See that module for more information on `setup`,
+  `start_supervised`, `on_exit` and the test process lifecycle.
+
+  For grouping tests together, see `describe/2` in this module.
 
   ## Examples
 
@@ -41,7 +43,7 @@ defmodule ExUnit.Case do
 
         setup do
           {:ok, pid} = KV.start_link
-          {:ok, [pid: pid]}
+          {:ok, pid: pid}
         end
 
         test "stores key-value pairs", context do
@@ -183,20 +185,21 @@ defmodule ExUnit.Case do
 
   ## Log Capture
 
-  ExUnit can optionally suppress printing of log messages that are generated during a test. Log
-  messages generated while running a test are captured and only if the test fails are they printed
-  to aid with debugging.
+  ExUnit can optionally suppress printing of log messages that are generated
+  during a test. Log messages generated while running a test are captured and
+  only if the test fails are they printed to aid with debugging.
 
-  You can opt into this behaviour for individual tests by tagging them with `:capture_log` or enable
-  log capture for all tests in the ExUnit configuration:
+  You can opt into this behaviour for individual tests by tagging them with
+  `:capture_log` or enable log capture for all tests in the ExUnit configuration:
 
       ExUnit.start(capture_log: true)
 
-  This default can be overridden by `@tag capture_log: false` or `@moduletag capture_log: false`.
+  This default can be overridden by `@tag capture_log: false` or
+  `@moduletag capture_log: false`.
 
-  Since `setup_all` blocks don't belong to a specific test, log messages generated in them (or
-  between tests) are never captured. If you want to suppress these messages as well, remove the
-  console backend globally:
+  Since `setup_all` blocks don't belong to a specific test, log messages generated
+  in them (or between tests) are never captured. If you want to suppress these
+  messages as well, remove the console backend globally:
 
       config :logger, backends: []
   """

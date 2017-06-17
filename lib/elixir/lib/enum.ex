@@ -1567,7 +1567,7 @@ defmodule Enum do
       iex> Enum.min_max_by(["aaa", "a", "bb", "c", "ccc"], &String.length/1)
       {"a", "aaa"}
 
-      iex> Enum.min_max_by([], &String.lenth/1, fn -> {nil, nil} end)
+      iex> Enum.min_max_by([], &String.length/1, fn -> {nil, nil} end)
       {nil, nil}
 
   """
@@ -2218,21 +2218,14 @@ defmodule Enum do
   function.
 
   This function maps each element of the enumerable using the provided `mapper`
-  function.  The enumerable is then sorted by the mapped elements
-  using the `sorter` function, which defaults to `Kernel.<=/2`
+  function. The enumerable is then sorted by the mapped elements
+  using the `sorter` function, which defaults to `Kernel.<=/2`.
 
   `sort_by/3` differs from `sort/2` in that it only calculates the
   comparison value for each element in the enumerable once instead of
   once for each element in each comparison.
-  If the same function is being called on both element, it's also more
+  If the same function is being called on both elements, it's also more
   compact to use `sort_by/3`.
-
-  This technique is also known as a
-  _[Schwartzian Transform](https://en.wikipedia.org/wiki/Schwartzian_transform)_,
-  or the _Lisp decorate-sort-undecorate idiom_ as the `mapper`
-  is decorating the original `enumerable`; then `sorter` is sorting the
-  decorations; and finally the enumerable is being undecorated so only
-  the original elements remain, but now in sorted order.
 
   ## Examples
 

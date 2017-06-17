@@ -9,8 +9,8 @@ defmodule RegistryTest do
     partitions = config[:partitions] || 1
     listeners = List.wrap(config[:listener])
     opts = [keys: keys, name: config.test, partitions: partitions, listeners: listeners]
-    {:ok, sup} = Supervisor.start_link([{Registry, opts}], strategy: :one_for_one)
-    {:ok, %{registry: config.test, partitions: partitions, sup: sup}}
+    {:ok, _} = start_supervised({Registry, opts})
+    {:ok, %{registry: config.test, partitions: partitions}}
   end
 
   for {describe, partitions} <- ["with 1 partition": 1, "with 8 partitions": 8] do

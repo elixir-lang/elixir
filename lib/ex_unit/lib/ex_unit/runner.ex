@@ -273,7 +273,7 @@ defmodule ExUnit.Runner do
             receive do
               {:DOWN, ^test_ref, :process, ^test_pid, _} -> :ok
             end
-            exception = ExUnit.TimeoutError.exception(timeout: timeout, type: test.tags.type)
+            exception = ExUnit.TimeoutError.exception(timeout: timeout, type: Atom.to_string(test.tags.type))
             %{test | state: failed(:error, exception, stacktrace)}
           nil ->
             receive_test_reply(test, test_pid, test_ref, timeout)
