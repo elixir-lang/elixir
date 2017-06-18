@@ -119,24 +119,27 @@ tokenize(String, Line, Column, Opts) ->
     false -> <<"nofile">>
   end,
 
-  ExistingAtomsOnly = case lists:keyfind(existing_atoms_only, 1, Opts) of
-    {existing_atoms_only, true} -> true;
+  ExistingAtoms = case lists:keyfind(existing_atoms_only, 1, Opts) of
+    {existing_atoms_only, ExistingAtomsBool} when
+      is_boolean(ExistingAtomsBool) -> ExistingAtomsBool;
     _ -> false
   end,
 
   CheckTerminators = case lists:keyfind(check_terminators, 1, Opts) of
-    {check_terminators, false} -> false;
+    {check_terminators, CheckTerminatorsBool} when
+      is_boolean(CheckTerminatorsBool) -> CheckTerminatorsBool;
     _ -> true
   end,
 
   PreserveComments = case lists:keyfind(preserve_comments, 1, Opts) of
-    {preserve_comments, true} -> true;
+    {preserve_comments, PreserveCommentsBool} when
+      is_boolean(PreserveCommentsBool) -> PreserveCommentsBool;
     _ -> false
   end,
 
   tokenize(String, Line, Column, #elixir_tokenizer{
     file=File,
-    existing_atoms_only=ExistingAtomsOnly,
+    existing_atoms_only=ExistingAtoms,
     check_terminators=CheckTerminators,
     preserve_comments=PreserveComments,
     identifier_tokenizer=elixir_config:get(identifier_tokenizer)
