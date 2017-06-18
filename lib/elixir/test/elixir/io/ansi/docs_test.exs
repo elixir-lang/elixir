@@ -303,6 +303,24 @@ defmodule IO.ANSI.DocsTest do
            "\e[7mcolumn 1 | and 2\e[0m\na        | b    \none      | two  \n\e[0m"
   end
 
+  test "table with heading alignment" do
+    table = """
+    column 1 | 2        | and three
+    -------: | :------: | :-----
+        a    |  even    | c\none | odd | three
+    """
+
+    expected = """
+    \e[7m\
+    column 1 |   2   | and three\e[0m
+           a | even  | c        
+         one |  odd  | three    
+    \e[0m
+    """ |> String.trim_trailing
+
+    assert format(table) == expected
+  end
+
   test "table with formatting in cells" do
     assert format("`a` | _b_\nc | d") ==
            "\e[36ma\e[0m | \e[4mb\e[0m\nc | d\n\e[0m"
