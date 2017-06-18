@@ -368,7 +368,7 @@ defmodule Mix.Compilers.Elixir do
     for source(source: source, warnings: warnings) <- sources do
       file = Path.join(File.cwd!, source)
       for {line, message} <- warnings do
-        :elixir_errors.warn(line, file, to_charlist(message))
+        :elixir_errors.warn(line, file, message)
       end
     end
   end
