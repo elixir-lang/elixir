@@ -1,7 +1,7 @@
 defmodule Mix.Compilers.Elixir do
   @moduledoc false
 
-  @manifest_vsn :v6
+  @manifest_vsn :v7
 
   import Record
 
@@ -13,7 +13,8 @@ defmodule Mix.Compilers.Elixir do
     runtime_references: [],
     compile_dispatches: [],
     runtime_dispatches: [],
-    external: []
+    external: [],
+    warnings: []
   ]
 
   @doc """
@@ -77,6 +78,8 @@ defmodule Mix.Compilers.Elixir do
 
     stale   = changed -- removed
     sources = update_stale_sources(all_sources, removed, changed)
+
+    if opts[:all_warnings], do: show_warnings(sources)
 
     cond do
       stale != [] ->
@@ -149,18 +152,19 @@ defmodule Mix.Compilers.Elixir do
 
     # Starts a server responsible for keeping track which files
     # were compiled and the dependencies between them.
-    {:ok, pid} = Agent.start_link(fn -> {modules, sources} end)
+    {:ok, pid} = Agent.start_link(fn -> {modules, sources, %{}} end)
     long_compilation_threshold = opts[:long_compilation_threshold] || 10
 
     try do
       _ = Kernel.ParallelCompiler.files stale,
             [each_module: &each_module(pid, cwd, &1, &2, &3),
              each_long_compilation: &each_long_compilation(&1, long_compilation_threshold),
+             each_warning: &each_warning(pid, cwd, &1, &2, &3),
              long_compilation_threshold: long_compilation_threshold,
              dest: dest] ++ extra
-      Agent.cast pid, fn {modules, sources} ->
+      Agent.cast pid, fn {modules, sources, warnings} ->
         write_manifest(manifest, modules, sources, dest, timestamp)
-        {modules, sources}
+        {modules, sources, warnings}
       end
     after
       Agent.stop(pid, :normal, :infinity)
@@ -201,7 +205,7 @@ defmodule Mix.Compilers.Elixir do
     source   = Path.relative_to(source, cwd)
     external = get_external_resources(module, cwd)
 
-    Agent.cast pid, fn {modules, sources} ->
+    Agent.cast pid, fn {modules, sources, warnings} ->
       source_external = case List.keyfind(sources, source, source(:source)) do
         source(external: old_external) -> external ++ old_external
         nil -> external
@@ -227,12 +231,13 @@ defmodule Mix.Compilers.Elixir do
         runtime_references: runtime_references,
         compile_dispatches: compile_dispatches,
         runtime_dispatches: runtime_dispatches,
-        external: source_external
+        external: source_external,
+        warnings: Map.get(warnings, source, [])
       )
 
       modules = List.keystore(modules, module, module(:module), new_module)
       sources = List.keystore(sources, source, source(:source), new_source)
-      {modules, sources}
+      {modules, sources, warnings}
     end
   end
 
@@ -260,6 +265,15 @@ defmodule Mix.Compilers.Elixir do
 
   defp each_long_compilation(source, threshold) do
     Mix.shell.info "Compiling #{source} (it's taking more than #{threshold}s)"
+  end
+
+  defp each_warning(pid, cwd, file, line, message) do
+    Agent.cast pid, fn {modules, sources, warnings} ->
+      source_path = Path.relative_to(file, cwd)
+      warning = {line, message}
+      warnings = Map.update(warnings, source_path, [warning], &([warning | &1]))
+      {modules, sources, warnings}
+    end
   end
 
   ## Resolution
@@ -350,6 +364,15 @@ defmodule Mix.Compilers.Elixir do
     _ = :code.delete(module)
   end
 
+  defp show_warnings(sources) do
+    for source(source: source, warnings: warnings) <- sources do
+      file = Path.join(File.cwd!, source)
+      for {line, message} <- warnings do
+        :elixir_errors.warn(line, file, message)
+      end
+    end
+  end
+
   ## Manifest handling
 
   # Similar to read_manifest, but supports data migration.
@@ -361,7 +384,7 @@ defmodule Mix.Compilers.Elixir do
     else
       [@manifest_vsn | data] ->
         split_manifest(data, compile_path)
-      [v | data] when v in [:v4, :v5] ->
+      [v | data] when v in [:v4, :v5, :v6] ->
         for module(beam: beam) <- data, do: File.rm(Path.join(compile_path, beam))
         {[], []}
       _ ->
