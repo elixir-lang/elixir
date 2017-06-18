@@ -6,7 +6,15 @@ defmodule ExUnit.AssertionsTest.Value do
   def truthy, do: true
 end
 
-alias ExUnit.AssertionsTest.Value
+defmodule ExUnit.AssertionsTest.BrokenError do
+  defexception [:message]
+
+  def message(_) do
+    raise "error"
+  end
+end
+
+alias ExUnit.AssertionsTest.{BrokenError, Value}
 
 defmodule ExUnit.AssertionsTest do
   use ExUnit.Case, async: true
@@ -546,6 +554,16 @@ defmodule ExUnit.AssertionsTest do
       "\n  ~r/ba[zk]/" <>
       "\nactual:" <>
       "\n  \"bar\"" = error.message
+  end
+
+  test "assert raise with an exception with bad message/1 implementation" do
+    assert_raise BrokenError, fn ->
+      raise BrokenError
+    end
+  rescue
+    error in [ExUnit.AssertionError] ->
+      "Got exception ExUnit.AssertionsTest.BrokenError but it failed to produce a message with:" <>
+      "\n\n** (RuntimeError) error\n" <> _ = error.message
   end
 
   test "assert greater than operator" do

@@ -4,9 +4,22 @@ defmodule Mix.Tasks.Compile.ErlangTest do
   use MixTest.Case
   import ExUnit.CaptureIO
 
-  setup do
+  setup config do
+    erlc_options = Map.get(config, :erlc_options, [])
+    Mix.ProjectStack.post_config erlc_options: erlc_options
     Mix.Project.push MixTest.Case.Sample
     :ok
+  end
+
+  @tag erlc_options: [{:d, 'foo', 'bar'}]
+  test "raises on invalid erlc_options" do
+    in_fixture "compile_erlang", fn ->
+      assert_raise Mix.Error, ~r"failed with ArgumentError", fn ->
+        capture_io fn ->
+          Mix.Tasks.Compile.Erlang.run []
+        end
+      end
+    end
   end
 
   test "compilation continues if one file fails to compile" do

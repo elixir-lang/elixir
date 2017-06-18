@@ -30,9 +30,9 @@ defmodule ExUnit.MultiError do
 
   defexception [errors: []]
 
-  def message(exception) do
+  def message(%{errors: errors}) do
     "got the following errors:\n\n" <>
-      Enum.map_join(exception, "\n\n", fn {kind, error, stack} ->
+      Enum.map_join(errors, "\n\n", fn {kind, error, stack} ->
         Exception.format_banner(kind, error, stack)
       end)
   end
@@ -628,6 +628,7 @@ defmodule ExUnit.Assertions do
 
         cond do
           name == exception ->
+            check_error_message(name, error)
             error
           name == ExUnit.AssertionError ->
             reraise(error, stacktrace)
@@ -637,6 +638,15 @@ defmodule ExUnit.Assertions do
     else
       _ -> flunk "Expected exception #{inspect exception} but nothing was raised"
     end
+  end
+
+  defp check_error_message(module, error) do
+    module.message(error)
+  catch
+    kind, reason ->
+      stacktrace = System.stacktrace()
+
+      flunk "Got exception #{inspect module} but it failed to produce a message with:\n\n" <> Exception.format(kind, reason, stacktrace)
   end
 
   @doc """

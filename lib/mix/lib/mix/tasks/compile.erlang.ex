@@ -71,7 +71,7 @@ defmodule Mix.Tasks.Compile.Erlang do
     unless is_list(erlc_options) do
       Mix.raise ":erlc_options should be a list of options, got: #{inspect(erlc_options)}"
     end
-    erlc_options = erlc_options ++ [{:outdir, compile_path}, {:i, include_path}, :report]
+    erlc_options = erlc_options ++ [:report, outdir: compile_path, i: include_path]
     erlc_options = Enum.map erlc_options, fn
       {kind, dir} when kind in [:i, :outdir] ->
         {kind, to_erl_file(dir)}
@@ -95,7 +95,14 @@ defmodule Mix.Tasks.Compile.Erlang do
         :code.delete(module)
 
         file = to_erl_file(Path.rootname(input, ".erl"))
-        :compile.file(file, erlc_options)
+        case :compile.file(file, erlc_options) do
+          {:ok, module} ->
+            {:ok, module}
+          :error ->
+            :error
+          {:error, :badarg} ->
+            Mix.raise "Compiling Erlang #{inspect file} failed with ArgumentError, probably because of invalid :erlc_options"
+        end
     end)
   end
 

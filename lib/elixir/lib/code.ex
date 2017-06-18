@@ -341,11 +341,11 @@ defmodule Code do
 
   Accepts `relative_to` as an argument to tell where the file is located.
   The return value is the same as that of `load_file/2`. If the file was already
-  required/loaded, doesn't do anything and returns `nil`.
+  required/loaded, `require_file` doesn't do anything and returns `nil`.
 
   Notice that if `require_file` is invoked by different processes concurrently,
   the first process to invoke `require_file` acquires a lock and the remaining
-  ones will block until the file is available. I.e. if `require_file` is called
+  ones will block until the file is available. I.e., if `require_file` is called
   N times with a given file, it will be loaded only once. The first process to
   call `require_file` will get the list of loaded modules, others will get `nil`.
 
