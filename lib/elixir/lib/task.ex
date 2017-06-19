@@ -372,7 +372,8 @@ defmodule Task do
       values are:
       * `:exit` (default) - the process that spawned the tasks exits.
       * `:kill_task` - the task that timed out is killed. The value
-        emitted for that task is `{:exit, :timeout}`.
+        emitted for that task is `{:exit, :timeout, element}`, where
+        `element` is the element it timed out on. 
 
   ## Example
 

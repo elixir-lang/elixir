@@ -498,12 +498,19 @@ defmodule TaskTest do
 
     test "streams an enumerable with ordered: false" do
       opts = [max_concurrency: 1, ordered: false]
-      assert 8..1 |> Task.async_stream(&sleep(&1 * 10), opts) |> Enum.to_list ==
-             [ok: 80, ok: 70, ok: 60, ok: 50, ok: 40, ok: 30, ok: 20, ok: 10]
+      assert 4..1 |> Task.async_stream(&sleep(&1 * 100), opts) |> Enum.to_list ==
+             [ok: 400, ok: 300, ok: 200, ok: 100]
 
-      opts = [max_concurrency: 8, ordered: false]
-      assert 8..1 |> Task.async_stream(&sleep(&1 * 10), opts) |> Enum.to_list ==
-             [ok: 10, ok: 20, ok: 30, ok: 40, ok: 50, ok: 60, ok: 70, ok: 80]
+      opts = [max_concurrency: 4, ordered: false]
+      assert 4..1 |> Task.async_stream(&sleep(&1 * 100), opts) |> Enum.to_list ==
+             [ok: 100, ok: 200, ok: 300, ok: 400]
+    end
+
+    test "streams an enumerable with ordered: false, on_timeout: :kill_task" do
+      opts = [max_concurrency: 4, ordered: false, on_timeout: :kill_task, timeout: 50]
+      assert [100, 1, 100, 1] |> Task.async_stream(&sleep/1, opts) |> Enum.to_list() ==
+             [{:ok, 1}, {:ok, 1}, {:exit, :timeout, 100}, {:exit, :timeout, 100}]
+      refute_received _
     end
   end
 
@@ -632,7 +639,7 @@ defmodule TaskTest do
       test "with :on_timeout set to :kill_task" do
         opts = Keyword.merge(@opts, on_timeout: :kill_task, timeout: 50)
         assert [100, 1, 100, 1] |> Task.async_stream(&sleep/1, opts) |> Enum.to_list() ==
-               [exit: :timeout, ok: 1, exit: :timeout, ok: 1]
+               [{:exit, :timeout, 100}, {:ok, 1}, {:exit, :timeout, 100}, {:ok, 1}]
         refute_received _
       end
     end

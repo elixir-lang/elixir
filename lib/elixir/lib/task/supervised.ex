@@ -209,9 +209,9 @@ defmodule Task.Supervised do
       # response in the "waiting" map and do nothing, since we'll only act on
       # this response when the replying task dies (we'll notice in the :down
       # message).
-      {{^monitor_ref, position}, value} ->
-        %{^position => {pid, :running}} = waiting
-        waiting = Map.put(waiting, position, {pid, {:ok, value}})
+      {{^monitor_ref, position}, reply} ->
+        %{^position => {pid, :running, value}} = waiting
+        waiting = Map.put(waiting, position, {pid, {:ok, reply}, value})
         stream_reduce({:cont, acc}, max, spawned, delivered, waiting, next, config)
 
       # The task at position "position" died for some reason. We check if it
@@ -223,25 +223,25 @@ defmodule Task.Supervised do
           case waiting do
             # If the task replied, we don't care whether it went down for timeout
             # or for normal reasons.
-            %{^position => {_, {:ok, _} = ok}} ->
+            %{^position => {_, {:ok, _} = ok, _}} ->
               ok
             # If the task exited by itself before replying, we emit {:exit, reason}.
-            %{^position => {_, :running}} when kind == :down ->
+            %{^position => {_, :running, _}} when kind == :down ->
               {:exit, reason}
             # If the task timed out before replying, we either exit (on_timeout: :exit)
             # or emit {:exit, :timeout} (on_timeout: :kill_task) (note the task is already
             # dead at this point).
-            %{^position => {_, :running}} when kind == :timed_out ->
+            %{^position => {_, :running, value}} when kind == :timed_out ->
               if on_timeout == :exit do
                 stream_cleanup_inbox(monitor_pid, monitor_ref)
                 exit({:timeout, {__MODULE__, :stream, [timeout]}})
               else
-                {:exit, :timeout}
+                {:exit, :timeout, value}
               end
           end
 
         if ordered? do
-          waiting = Map.put(waiting, position, {nil, result})
+          waiting = Map.put(waiting, position, {:done, result})
           stream_deliver({:cont, acc}, max + 1, spawned, delivered, waiting, next, config)
         else
           pair = deliver_now(result, acc, next, config)
@@ -306,7 +306,7 @@ defmodule Task.Supervised do
       monitor_ref: monitor_ref, timeout: timeout} = config
 
     case waiting do
-      %{^delivered => {nil, reply}} ->
+      %{^delivered => {:done, reply}} ->
         try do
           reducer.(reply, acc)
         catch
@@ -364,7 +364,7 @@ defmodule Task.Supervised do
     receive do
       {:spawned, {^monitor_ref, ^spawned}, pid} ->
         send(pid, {self(), {monitor_ref, spawned}})
-        Map.put(waiting, spawned, {pid, :running})
+        Map.put(waiting, spawned, {pid, :running, value})
       {:DOWN, ^monitor_ref, _, ^monitor_pid, reason} ->
         stream_cleanup_inbox(monitor_pid, monitor_ref)
         exit({reason, {__MODULE__, :stream, [timeout]}})
