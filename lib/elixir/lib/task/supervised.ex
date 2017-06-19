@@ -234,7 +234,7 @@ defmodule Task.Supervised do
             %{^position => {_, :running, value}} when kind == :timed_out ->
               if on_timeout == :exit do
                 stream_cleanup_inbox(monitor_pid, monitor_ref)
-                exit({:timeout, {__MODULE__, :stream, [timeout]}})
+                exit({:timeout, {__MODULE__, :stream, [value, timeout]}})
               else
                 {:exit, :timeout, value}
               end
