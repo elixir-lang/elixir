@@ -152,6 +152,10 @@ defmodule Task.Supervisor do
 
     * `:max_concurrency` - sets the maximum number of tasks to run
       at the same time. Defaults to `System.schedulers_online/0`.
+    * `:ordered` - if the results should be returned in the same order
+      as the input stream. This option is useful when you have large
+      streams and don't want to buffer results before they are delievered.
+      Defaults to `true`.
     * `:timeout` - the maximum amount of time to wait (in milliseconds)
       without receiving a task reply (across all running tasks).
       Defaults to `5000`.

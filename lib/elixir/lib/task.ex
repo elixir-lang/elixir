@@ -362,6 +362,10 @@ defmodule Task do
 
     * `:max_concurrency` - sets the maximum number of tasks to run
       at the same time. Defaults to `System.schedulers_online/0`.
+    * `:ordered` - if the results should be returned in the same order
+      as the input stream. This option is useful when you have large
+      streams and don't want to buffer results before they are delievered.
+      Defaults to `true`.
     * `:timeout` - the maximum amount of time (in milliseconds) each
       task is allowed to execute for. Defaults to `5000`.
     * `:on_timeout` - what do to when a task times out. The possible

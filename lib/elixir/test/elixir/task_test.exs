@@ -495,6 +495,16 @@ defmodule TaskTest do
              {:timeout, {Task.Supervised, :stream, [0]}}
       refute_received _
     end
+
+    test "streams an enumerable with ordered: false" do
+      opts = [max_concurrency: 1, ordered: false]
+      assert 8..1 |> Task.async_stream(&sleep(&1 * 10), opts) |> Enum.to_list ==
+             [ok: 80, ok: 70, ok: 60, ok: 50, ok: 40, ok: 30, ok: 20, ok: 10]
+
+      opts = [max_concurrency: 8, ordered: false]
+      assert 8..1 |> Task.async_stream(&sleep(&1 * 10), opts) |> Enum.to_list ==
+             [ok: 10, ok: 20, ok: 30, ok: 40, ok: 50, ok: 60, ok: 70, ok: 80]
+    end
   end
 
   for {desc, concurrency} <- ["==": 4, "<": 2, ">": 8] do
