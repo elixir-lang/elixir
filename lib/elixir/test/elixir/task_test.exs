@@ -543,7 +543,7 @@ defmodule TaskTest do
       test "streams an enumerable with exits" do
         Process.flag(:trap_exit, true)
         assert 1..4 |> Task.async_stream(&exit/1, @opts) |> Enum.to_list ==
-               [exit: 1, exit: 2, exit: 3, exit: 4]
+               [{:exit, 1, 1}, {:exit, 2, 2}, {:exit, 3, 3}, {:exit, 4, 4}]
         refute_received {:EXIT, _, _}
       end
 
@@ -586,7 +586,7 @@ defmodule TaskTest do
       test "with inner halt on failure" do
         Process.flag(:trap_exit, true)
         assert 1..8 |> Stream.take(4) |> Task.async_stream(&exit/1, @opts) |> Enum.to_list ==
-               [exit: 1, exit: 2, exit: 3, exit: 4]
+               [{:exit, 1, 1}, {:exit, 2, 2}, {:exit, 3, 3}, {:exit, 4, 4}]
       end
 
       test "with inner halt and slowest first" do
@@ -602,7 +602,7 @@ defmodule TaskTest do
       test "with outer halt on failure" do
         Process.flag(:trap_exit, true)
         assert 1..8 |> Task.async_stream(&exit/1, @opts) |> Enum.take(4) ==
-               [exit: 1, exit: 2, exit: 3, exit: 4]
+               [{:exit, 1, 1}, {:exit, 2, 2}, {:exit, 3, 3}, {:exit, 4, 4}]
       end
 
       test "with outer halt and slowest first" do

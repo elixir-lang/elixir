@@ -210,8 +210,8 @@ defmodule Task.Supervised do
       # this response when the replying task dies (we'll notice in the :down
       # message).
       {{^monitor_ref, position}, reply} ->
-        %{^position => {pid, :running, value}} = waiting
-        waiting = Map.put(waiting, position, {pid, {:ok, reply}, value})
+        %{^position => {pid, :running, element}} = waiting
+        waiting = Map.put(waiting, position, {pid, {:ok, reply}, element})
         stream_reduce({:cont, acc}, max, spawned, delivered, waiting, next, config)
 
       # The task at position "position" died for some reason. We check if it
@@ -226,17 +226,17 @@ defmodule Task.Supervised do
             %{^position => {_, {:ok, _} = ok, _}} ->
               ok
             # If the task exited by itself before replying, we emit {:exit, reason}.
-            %{^position => {_, :running, _}} when kind == :down ->
-              {:exit, reason}
+            %{^position => {_, :running, element}} when kind == :down ->
+              {:exit, reason, element}
             # If the task timed out before replying, we either exit (on_timeout: :exit)
             # or emit {:exit, :timeout} (on_timeout: :kill_task) (note the task is already
             # dead at this point).
-            %{^position => {_, :running, value}} when kind == :timed_out ->
+            %{^position => {_, :running, element}} when kind == :timed_out ->
               if on_timeout == :exit do
                 stream_cleanup_inbox(monitor_pid, monitor_ref)
-                exit({:timeout, {__MODULE__, :stream, [value, timeout]}})
+                exit({:timeout, {__MODULE__, :stream, [element, timeout]}})
               else
-                {:exit, :timeout, value}
+                {:exit, :timeout, element}
               end
           end
 
@@ -285,7 +285,7 @@ defmodule Task.Supervised do
       reducer.(reply, acc)
     catch
       kind, reason ->
-        stacktrace = System.stacktrace
+        stacktrace = System.stacktrace()
         is_function(next) && next.({:halt, []})
         stream_close(monitor_pid, monitor_ref, timeout)
         :erlang.raise(kind, reason, stacktrace)
