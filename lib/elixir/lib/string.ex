@@ -2052,6 +2052,17 @@ defmodule String do
     end)
   end
 
+  @doc """
+  Returns an empty string.
+
+  ## Example
+
+      iex> String.empty
+      ""
+  """
+  @spec empty() :: String.t
+  def empty, do: ""
+
   # TODO: Remove by 2.0
   # (hard-deprecated in elixir_dispatch)
   @doc false
