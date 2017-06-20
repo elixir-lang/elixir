@@ -360,18 +360,17 @@ defmodule ExUnit.Case do
               "for describe/2 on named setups and how to handle hierarchies"
       end
 
-      message =
-        case unquote(message) do
-          message when is_binary(message) ->
-            if message in @ex_unit_used_describes do
-              raise ExUnit.DuplicateDescribeError,
-                    "describe #{inspect(message)} is already defined in #{inspect(__MODULE__)}"
-            else
-              message
-            end
-          other ->
-            raise ArgumentError, "describe name must be a string, got: #{inspect(other)}"
-        end
+      message = unquote(message)
+      cond do
+        not is_binary(message) ->
+          raise ArgumentError, "describe name must be a string, got: #{inspect(message)}"
+        message in @ex_unit_used_describes ->
+          raise ExUnit.DuplicateDescribeError,
+                "describe #{inspect(message)} is already defined in #{inspect(__MODULE__)}"
+        true ->
+          :ok
+      end
+
       @ex_unit_describe message
       @ex_unit_used_describes message
       Module.delete_attribute(__ENV__.module, :describetag)
