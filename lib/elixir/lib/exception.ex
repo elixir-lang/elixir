@@ -170,6 +170,8 @@ defmodule Exception do
   """
   @spec blame(:error, any, stacktrace) :: {t, stacktrace}
   @spec blame(non_error_kind, payload, stacktrace) :: {payload, stacktrace} when payload: var
+  def blame(kind, error, stacktrace)
+
   def blame(:error, error, stacktrace) do
     case normalize(:error, error, stacktrace) do
       %{__struct__: FunctionClauseError} = struct ->
