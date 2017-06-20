@@ -1177,8 +1177,12 @@ defmodule String do
 
   defp do_reverse(nil, acc), do: IO.iodata_to_binary(acc)
 
+  @compile {:inline, duplicate: 2}
+
   @doc """
   Returns a string `subject` duplicated `n` times.
+
+  Inlined by the compiler.
 
   ## Examples
 
@@ -1193,7 +1197,7 @@ defmodule String do
 
   """
   @spec duplicate(t, non_neg_integer) :: t
-  def duplicate(subject, n) when is_integer(n) and n >= 0 do
+  def duplicate(subject, n) do
     :binary.copy(subject, n)
   end
 

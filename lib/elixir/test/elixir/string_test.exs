@@ -372,7 +372,7 @@ defmodule StringTest do
     assert String.duplicate("abc", 1) == "abc"
     assert String.duplicate("abc", 2) == "abcabc"
     assert String.duplicate("&ã$", 2) == "&ã$&ã$"
-    assert_raise FunctionClauseError, fn ->
+    assert_raise ArgumentError, fn ->
       String.duplicate("abc", -1)
     end
   end
