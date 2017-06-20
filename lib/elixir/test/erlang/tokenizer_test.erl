@@ -2,8 +2,7 @@
 -include_lib("eunit/include/eunit.hrl").
 
 tokenize(String) ->
-  {ok, _Line, _Column, Result} = elixir_tokenizer:tokenize(String, 1, []),
-  Result.
+  tokenize(String, []).
 
 tokenize(String, Opts) ->
   {ok, _Line, _Column, Result} = elixir_tokenizer:tokenize(String, 1, Opts),

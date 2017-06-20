@@ -119,9 +119,9 @@ tokenize(String, Line, Column, Opts) ->
     false -> <<"nofile">>
   end,
 
-  ExistingAtoms = case lists:keyfind(existing_atoms_only, 1, Opts) of
-    {existing_atoms_only, ExistingAtomsBool} when
-      is_boolean(ExistingAtomsBool) -> ExistingAtomsBool;
+  ExistingAtomsOnly = case lists:keyfind(existing_atoms_only, 1, Opts) of
+    {existing_atoms_only, ExistingAtomsOnlyBool} when
+      is_boolean(ExistingAtomsOnlyBool) -> ExistingAtomsOnlyBool;
     _ -> false
   end,
 
@@ -139,7 +139,7 @@ tokenize(String, Line, Column, Opts) ->
 
   tokenize(String, Line, Column, #elixir_tokenizer{
     file=File,
-    existing_atoms_only=ExistingAtoms,
+    existing_atoms_only=ExistingAtomsOnly,
     check_terminators=CheckTerminators,
     preserve_comments=PreserveComments,
     identifier_tokenizer=elixir_config:get(identifier_tokenizer)
@@ -519,9 +519,12 @@ strip_dot_space(T, Counter, Column, StartLine, Tokens) ->
       {Rest, Comment, Length} = tokenize_comment(R, [$#], 1),
       CommentToken = {comment, {StartLine + Counter, Column, Column + Length}, Comment},
       strip_dot_space(Rest, Counter, 1, StartLine, [CommentToken | Tokens]);
-    {"\r\n" ++ Rest, _} -> strip_dot_space(Rest, Counter + 1, 1, StartLine, Tokens);
-    {"\n" ++ Rest, _}   -> strip_dot_space(Rest, Counter + 1, 1, StartLine, Tokens);
-    {Rest, Length}      -> {Rest, Counter, Column + Length, Tokens}
+    {"\r\n" ++ Rest, _} ->
+      strip_dot_space(Rest, Counter + 1, 1, StartLine, Tokens);
+    {"\n" ++ Rest, _} ->
+      strip_dot_space(Rest, Counter + 1, 1, StartLine, Tokens);
+    {Rest, Length} ->
+      {Rest, Counter, Column + Length, Tokens}
   end.
 
 handle_char(7)   -> {"\\a", "alert"};
