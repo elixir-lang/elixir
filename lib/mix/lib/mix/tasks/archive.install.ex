@@ -62,8 +62,7 @@ defmodule Mix.Tasks.Archive.Install do
   end
 
   # Callbacks
-
-  def check_install_spec({local_or_url, path_or_url}, _opts) when
+  def check_install_spec({local_or_url, path_or_url} = _install_spec, _opts) when
       local_or_url in [:local, :url] do
     if Path.extname(path_or_url) == ".ez" do
       :ok
