@@ -1,5 +1,5 @@
 defmodule Mix.Tasks.Compile.App do
-  use Mix.Task
+  use Mix.Task.Compiler
 
   @recursive true
 

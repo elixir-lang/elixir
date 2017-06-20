@@ -1,5 +1,5 @@
 defmodule Mix.Tasks.Compile.Erlang do
-  use Mix.Task
+  use Mix.Task.Compiler
   import Mix.Compilers.Erlang
 
   @recursive true
