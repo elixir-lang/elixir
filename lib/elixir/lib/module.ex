@@ -409,9 +409,11 @@ defmodule Module do
     * `:module`     - module name (`Module == Module.__info__(:module)`)
 
   In addition to the above, you may also pass to `__info__/1` any atom supported
-  by `:erlang.module_info/0` which also gets defined for each compiled module.
+  by [`:erlang.module_info/0`](http://erlang.org/doc/reference_manual/modules.html#id77914)
+  which also gets defined for each compiled module.
 
-  For a list of supported attributes and more information, see [Modules – Erlang Reference Manual](http://www.erlang.org/doc/reference_manual/modules.html#id77056).
+  For a list of supported attributes and more information, see
+  [Modules – Erlang Reference Manual](http://www.erlang.org/doc/reference_manual/modules.html#id77056).
   """
   def __info__(kind)
 
