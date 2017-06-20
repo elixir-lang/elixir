@@ -70,6 +70,22 @@ defmodule ExUnit.DescribeTest do
         end
       end
     end
+
+    test "when using the same name for two describe blocks" do
+      message = ~s(describe "some tests" is already defined in ExUnit.DescribeTest.DescribeWithSameNames)
+
+      assert_raise ExUnit.DuplicateDescribeError, message, fn ->
+        defmodule DescribeWithSameNames do
+          use ExUnit.Case
+
+          describe "some tests" do
+          end
+
+          describe "some tests" do
+          end
+        end
+      end
+    end
   end
 
   describe "test names" do

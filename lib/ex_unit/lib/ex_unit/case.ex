@@ -2,6 +2,10 @@ defmodule ExUnit.DuplicateTestError do
   defexception [:message]
 end
 
+defmodule ExUnit.DuplicateDescribeError do
+  defexception [:message]
+end
+
 defmodule ExUnit.Case do
   @moduledoc """
   Helpers for defining test cases.
@@ -217,7 +221,7 @@ defmodule ExUnit.Case do
       async = !!unquote(opts)[:async]
 
       unless Module.get_attribute(__MODULE__, :ex_unit_tests) do
-        Enum.each [:ex_unit_tests, :tag, :describetag, :moduletag, :ex_unit_registered],
+        Enum.each [:ex_unit_tests, :tag, :describetag, :moduletag, :ex_unit_registered, :ex_unit_used_describes],
           &Module.register_attribute(__MODULE__, &1, accumulate: true)
 
         @before_compile ExUnit.Case
@@ -359,10 +363,19 @@ defmodule ExUnit.Case do
               "for describe/2 on named setups and how to handle hierarchies"
       end
 
-      @ex_unit_describe (case unquote(message) do
-        msg when is_binary(msg) -> msg
-        msg -> raise ArgumentError, "describe name must be a string, got: #{inspect msg}"
-      end)
+      message = unquote(message)
+      cond do
+        not is_binary(message) ->
+          raise ArgumentError, "describe name must be a string, got: #{inspect(message)}"
+        message in @ex_unit_used_describes ->
+          raise ExUnit.DuplicateDescribeError,
+                "describe #{inspect(message)} is already defined in #{inspect(__MODULE__)}"
+        true ->
+          :ok
+      end
+
+      @ex_unit_describe message
+      @ex_unit_used_describes message
       Module.delete_attribute(__ENV__.module, :describetag)
 
       try do
