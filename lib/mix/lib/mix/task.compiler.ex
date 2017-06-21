@@ -36,7 +36,7 @@ defmodule Mix.Task.Compiler do
   @doc """
   Lists manifest files for the compiler.
   """
-  @callback manifests() :: [binary]
+  @callback manifests() :: [Path.t]
 
   @doc """
   Removes build artifacts and manifests.
