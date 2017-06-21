@@ -219,9 +219,9 @@ defmodule Task.SupervisorTest do
     test "streams an enumerable with exits", %{supervisor: supervisor} do
       Process.flag(:trap_exit, true)
       assert supervisor
-             |> Task.Supervisor.async_stream(1..4, &exit/1, @opts)
+             |> Task.Supervisor.async_stream(1..4, &exit(Integer.to_string(&1)), @opts)
              |> Enum.to_list ==
-             [exit: 1, exit: 2, exit: 3, exit: 4]
+             [{:exit, "1", 1}, {:exit, "2", 2}, {:exit, "3", 3}, {:exit, "4", 4}]
     end
 
     test "shuts down unused tasks", %{supervisor: supervisor} do
@@ -277,7 +277,7 @@ defmodule Task.SupervisorTest do
       assert supervisor
              |> Task.Supervisor.async_stream_nolink(1..4, &exit/1, @opts)
              |> Enum.to_list ==
-             [exit: 1, exit: 2, exit: 3, exit: 4]
+             [{:exit, 1, 1}, {:exit, 2, 2}, {:exit, 3, 3}, {:exit, 4, 4}]
     end
 
     test "shuts down unused tasks", %{supervisor: supervisor} do

@@ -135,9 +135,10 @@ defmodule Task.Supervisor do
   own task. The tasks will be spawned under the given `supervisor` and
   linked to the current process, similarly to `async/4`.
 
-  When streamed, each task will emit `{:ok, val}` upon successful
-  completion or `{:exit, val}` if the caller is trapping exits. Results
-  are emitted in the same order as the original `enumerable`.
+  When streamed, each task will emit `{:ok, value}` upon successful
+  completion or `{:exit, reason, element}` if the caller is trapping
+  exits, where `element` is the stream element. Results are emitted
+  in the same order as the original `enumerable`.
 
   The level of concurrency can be controlled via the `:max_concurrency`
   option and defaults to `System.schedulers_online/0`. A timeout
@@ -152,9 +153,19 @@ defmodule Task.Supervisor do
 
     * `:max_concurrency` - sets the maximum number of tasks to run
       at the same time. Defaults to `System.schedulers_online/0`.
+    * `:ordered` - whether the results should be returned in the same order
+      as the input stream. This option is useful when you have large
+      streams and don't want to buffer results before they are delivered.
+      Defaults to `true`.
     * `:timeout` - the maximum amount of time to wait (in milliseconds)
       without receiving a task reply (across all running tasks).
       Defaults to `5000`.
+    * `:on_timeout` - what do to when a task times out. The possible
+      values are:
+      * `:exit` (default) - the process that spawned the tasks exits.
+      * `:kill_task` - the task that timed out is killed. The value
+        emitted for that task is `{:exit, :timeout, element}`, where
+        `element` is the element it timed out on.
 
   ## Examples
 
