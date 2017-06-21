@@ -95,15 +95,15 @@ defmodule Mix.Local do
   """
   def check_elixir_version_in_ebin(ebin) do
     elixir = ebin |> Path.dirname |> Path.join(".elixir") |> String.to_charlist
-    case :erl_prim_loader.get_file(elixir) do
-      {:ok, req, _} ->
+    case File.read(elixir) do
+      {:ok, req} ->
         unless Version.match?(System.version, req) do
           archive = ebin |> Path.dirname |> Path.basename
           Mix.shell.error "warning: the archive #{archive} requires Elixir #{inspect req} " <>
                           "but you are running on v#{System.version}"
         end
         :ok
-      :error ->
+      {:error, _} ->
         :ok
     end
   end
