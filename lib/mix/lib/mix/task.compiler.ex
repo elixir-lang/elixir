@@ -24,6 +24,10 @@ defmodule Mix.Task.Compiler do
 
     * `@shortdoc`  - makes the task public with a short description that appears on `mix help`
     * `@recursive` - runs the task recursively in umbrella projects
+    * `@preferred_cli_env` - recommends environment to run task. It is used in absence of
+      a Mix project recommendation, or explicit `MIX_ENV`, and it only works for tasks
+      in the current project. `@preferred_cli_env` is not loaded from dependencies as
+      we need to know the environment before dependencies are loaded.
 
   """
 
@@ -48,7 +52,7 @@ defmodule Mix.Task.Compiler do
   @doc false
   defmacro __using__(_opts) do
     quote do
-      Enum.each [:shortdoc, :recursive],
+      Enum.each [:shortdoc, :recursive, :preferred_cli_env],
         &Module.register_attribute(__MODULE__, &1, persist: true)
       @behaviour Mix.Task.Compiler
     end
