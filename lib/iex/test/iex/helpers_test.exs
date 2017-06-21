@@ -151,7 +151,7 @@ defmodule IEx.HelpersTest do
 
   test "b helper function" do
     assert capture_io(fn -> b Mix.Task.stop end) == "No documentation for Mix.Task.stop was found\n"
-    assert capture_io(fn -> b Mix.Task.run end) =~ "* @callback run([binary()]) :: any()\n\nA task needs to implement `run`"
+    assert capture_io(fn -> b Mix.Task.run end) =~ "* @callback run(command_line_args :: [binary()]) :: any()\n\nA task needs to implement `run`"
     assert capture_io(fn -> b NoMix.run end) == "Could not load module NoMix, got: nofile\n"
     assert capture_io(fn -> b Exception.message/1 end) == "* @callback message(t()) :: String.t()\n\n\n"
   end
