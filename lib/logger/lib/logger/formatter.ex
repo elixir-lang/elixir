@@ -154,5 +154,8 @@ defmodule Logger.Formatter do
       binary -> binary
     end
   end
+  defp metadata(map) when is_map(map) do
+    inspect(map)
+  end
   defp metadata(other), do: to_string(other)
 end
