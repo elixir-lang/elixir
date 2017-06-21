@@ -36,5 +36,6 @@
   terminators=[],
   check_terminators=true,
   existing_atoms_only=false,
+  preserve_comments=false,
   identifier_tokenizer=elixir_tokenizer
 }).
