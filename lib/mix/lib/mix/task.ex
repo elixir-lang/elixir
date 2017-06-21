@@ -76,7 +76,7 @@ defmodule Mix.Task do
   end
 
   defp safe_list_dir(path) do
-    case :erl_prim_loader.list_dir(path) do
+    case File.ls(path) do
       {:ok, paths} -> paths
       {:error, _} -> []
     end
