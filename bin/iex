@@ -53,4 +53,4 @@ else
   ERL="-kernel shell_history_path \"$HOME/.elixir-history\" $ERL"
 fi
 
-echo exec "$SCRIPT_PATH"/elixir --no-halt --erl "$ERL" +iex "$@"
+exec "$SCRIPT_PATH"/elixir --no-halt --erl "$ERL" +iex "$@"
