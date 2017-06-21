@@ -43,18 +43,14 @@ defmodule Mix.Task.Compiler do
   """
   @callback clean() :: term
 
+  @optional_callbacks clean: 0, manifests: 0
+
   @doc false
   defmacro __using__(_opts) do
     quote do
       Enum.each [:shortdoc, :recursive],
         &Module.register_attribute(__MODULE__, &1, persist: true)
       @behaviour Mix.Task.Compiler
-
-      def clean, do: :noop
-
-      def manifests, do: []
-
-      defoverridable(clean: 0, manifests: 0)
     end
   end
 end
