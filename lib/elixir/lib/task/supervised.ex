@@ -145,6 +145,7 @@ defmodule Task.Supervised do
   def stream(enumerable, acc, reducer, mfa, options, spawn) do
     next = &Enumerable.reduce(enumerable, &1, fn x, acc -> {:suspend, [x | acc]} end)
     max_concurrency = Keyword.get(options, :max_concurrency, System.schedulers_online)
+    ordered? = Keyword.get(options, :ordered, true)
     timeout = Keyword.get(options, :timeout, 5000)
     on_timeout = Keyword.get(options, :on_timeout, :exit)
     parent = self()
@@ -168,6 +169,7 @@ defmodule Task.Supervised do
       reducer: reducer,
       monitor_pid: monitor_pid,
       monitor_ref: monitor_ref,
+      ordered: ordered?,
       timeout: timeout,
       on_timeout: on_timeout,
     }
@@ -200,16 +202,16 @@ defmodule Task.Supervised do
        when max == 0
        when next == :done do
     %{monitor_pid: monitor_pid, monitor_ref: monitor_ref,
-      timeout: timeout, on_timeout: on_timeout} = config
+      timeout: timeout, on_timeout: on_timeout, ordered: ordered?} = config
 
     receive do
       # The task at position "position" replied with "value". We put the
       # response in the "waiting" map and do nothing, since we'll only act on
       # this response when the replying task dies (we'll notice in the :down
       # message).
-      {{^monitor_ref, position}, value} ->
-        %{^position => {pid, :running}} = waiting
-        waiting = Map.put(waiting, position, {pid, {:ok, value}})
+      {{^monitor_ref, position}, reply} ->
+        %{^position => {pid, :running, element}} = waiting
+        waiting = Map.put(waiting, position, {pid, {:ok, reply}, element})
         stream_reduce({:cont, acc}, max, spawned, delivered, waiting, next, config)
 
       # The task at position "position" died for some reason. We check if it
@@ -217,27 +219,34 @@ defmodule Task.Supervised do
       # (then the reply from this task will be {:exit, reason}). This message is
       # sent to us by the monitor process, not by the dying task directly.
       {kind, {^monitor_ref, position}, reason} when kind in [:down , :timed_out] ->
-        waiting =
+        result =
           case waiting do
             # If the task replied, we don't care whether it went down for timeout
             # or for normal reasons.
-            %{^position => {_, {:ok, _} = ok}} ->
-              Map.put(waiting, position, {nil, ok})
+            %{^position => {_, {:ok, _} = ok, _}} ->
+              ok
             # If the task exited by itself before replying, we emit {:exit, reason}.
-            %{^position => {_, :running}} when kind == :down ->
-              Map.put(waiting, position, {nil, {:exit, reason}})
+            %{^position => {_, :running, element}} when kind == :down ->
+              {:exit, reason, element}
             # If the task timed out before replying, we either exit (on_timeout: :exit)
             # or emit {:exit, :timeout} (on_timeout: :kill_task) (note the task is already
             # dead at this point).
-            %{^position => {_, :running}} when kind == :timed_out ->
+            %{^position => {_, :running, element}} when kind == :timed_out ->
               if on_timeout == :exit do
                 stream_cleanup_inbox(monitor_pid, monitor_ref)
-                exit({:timeout, {__MODULE__, :stream, [timeout]}})
+                exit({:timeout, {__MODULE__, :stream, [element, timeout]}})
               else
-                Map.put(waiting, position, {nil, {:exit, :timeout}})
+                {:exit, :timeout, element}
               end
           end
-        stream_deliver({:cont, acc}, max + 1, spawned, delivered, waiting, next, config)
+
+        if ordered? do
+          waiting = Map.put(waiting, position, {:done, result})
+          stream_deliver({:cont, acc}, max + 1, spawned, delivered, waiting, next, config)
+        else
+          pair = deliver_now(result, acc, next, config)
+          stream_reduce(pair, max + 1, spawned, delivered + 1, waiting, next, config)
+        end
 
       # The monitor process died. We just cleanup the messages from the monitor
       # process and exit.
@@ -269,6 +278,20 @@ defmodule Task.Supervised do
     end
   end
 
+  defp deliver_now(reply, acc, next, config) do
+    %{reducer: reducer, monitor_pid: monitor_pid,
+      monitor_ref: monitor_ref, timeout: timeout} = config
+    try do
+      reducer.(reply, acc)
+    catch
+      kind, reason ->
+        stacktrace = System.stacktrace()
+        is_function(next) && next.({:halt, []})
+        stream_close(monitor_pid, monitor_ref, timeout)
+        :erlang.raise(kind, reason, stacktrace)
+    end
+  end
+
   defp stream_deliver({:suspend, acc}, max, spawned, delivered, waiting, next, config) do
     continuation = &stream_deliver(&1, max, spawned, delivered, waiting, next, config)
     {:suspended, acc, continuation}
@@ -283,7 +306,7 @@ defmodule Task.Supervised do
       monitor_ref: monitor_ref, timeout: timeout} = config
 
     case waiting do
-      %{^delivered => {nil, reply}} ->
+      %{^delivered => {:done, reply}} ->
         try do
           reducer.(reply, acc)
         catch
@@ -341,7 +364,7 @@ defmodule Task.Supervised do
     receive do
       {:spawned, {^monitor_ref, ^spawned}, pid} ->
         send(pid, {self(), {monitor_ref, spawned}})
-        Map.put(waiting, spawned, {pid, :running})
+        Map.put(waiting, spawned, {pid, :running, value})
       {:DOWN, ^monitor_ref, _, ^monitor_pid, reason} ->
         stream_cleanup_inbox(monitor_pid, monitor_ref)
         exit({reason, {__MODULE__, :stream, [timeout]}})
