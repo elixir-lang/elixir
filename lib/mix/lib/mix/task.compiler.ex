@@ -3,7 +3,7 @@ defmodule Mix.Task.Compiler do
   This module defines the behaviour for a Mix task that does compilation.
 
   A Mix compiler task can be defined by simply using `Mix.Task.Compiler`
-  in a module starting with `Mix.Tasks.Compile.` and defining
+  in a module whose name starts with `Mix.Tasks.Compile.` and defining
   the `run/1` function:
 
       defmodule Mix.Tasks.Compile.MyLanguage do
@@ -22,8 +22,9 @@ defmodule Mix.Task.Compiler do
 
   The following attributes are used the same way as in other Mix tasks:
 
-  * `@shortdoc`  - makes the task public with a short description that appears on `mix help`
-  * `@recursive` - runs the task recursively in umbrella projects
+    * `@shortdoc`  - makes the task public with a short description that appears on `mix help`
+    * `@recursive` - runs the task recursively in umbrella projects
+
   """
 
   @doc """
