@@ -242,6 +242,12 @@ defmodule Macro do
       " define the anonymous function as a regular private function"
   end
 
+  def pipe(expr, {call, _, _} = call_args, _) when call in unquote(unary_ops) do
+    raise ArgumentError,
+      "cannot pipe #{to_string expr} into #{to_string call_args}, " <>
+      "piping into a unary operator is forbidden. You could use e.g. Kernel.+(5) instead of +5"
+  end
+
   def pipe(expr, {call, line, atom}, integer) when is_atom(atom) do
     {call, line, List.insert_at([], integer, expr)}
   end
@@ -258,12 +264,6 @@ defmodule Macro do
     "cannot pipe #{to_string expr} into #{to_string call_args}, " <>
     "can only pipe into local calls foo(), remote calls Foo.bar() or anonymous functions calls foo.()"
   end
-
-  @doc false
-  def pipe_warning({call, _, _}) when call in unquote(unary_ops) do
-    "piping into a unary operator is deprecated. You could use e.g. Kernel.+(5) instead of +5"
-  end
-  def pipe_warning(_), do: nil
 
   @doc """
   Applies the given function to the node metadata if it contains one.
