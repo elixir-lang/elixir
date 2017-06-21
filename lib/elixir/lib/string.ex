@@ -55,6 +55,9 @@ defmodule String do
   The current Elixir version implements Extended Grapheme Cluster
   algorithm.
 
+  For converting a binary to a different encoding and for Unicode
+  normalization mechanisms, see Erlang's `:unicode` module.
+
   ## String and binary operations
 
   To act according to the Unicode Standard, many functions
