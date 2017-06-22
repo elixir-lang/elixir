@@ -666,12 +666,12 @@ defmodule String do
       <<prefix::size(prefix_size)-binary, suffix::binary>> when prefix == match ->
         replace_leading(suffix, match, replacement, prefix_size, suffix_size - prefix_size, acc + 1)
       _ ->
-        prepend(duplicate(replacement, acc), string)
+        prepend_unless_empty(duplicate(replacement, acc), string)
     end
   end
 
   defp replace_leading(string, _match, replacement, _prefix_size, _suffix_size, acc) do
-    prepend(duplicate(replacement, acc), string)
+    prepend_unless_empty(duplicate(replacement, acc), string)
   end
 
   @doc """
@@ -714,12 +714,12 @@ defmodule String do
       <<prefix::size(prefix_size)-binary, suffix::binary>> when suffix == match ->
         replace_trailing(prefix, match, replacement, prefix_size - suffix_size, suffix_size, acc + 1)
       _ ->
-        append(string, duplicate(replacement, acc))
+        append_unless_empty(string, duplicate(replacement, acc))
     end
   end
 
   defp replace_trailing(string, _match, replacement, _prefix_size, _suffix_size, acc) do
-    append(string, duplicate(replacement, acc))
+    append_unless_empty(string, duplicate(replacement, acc))
   end
 
   @doc """
@@ -755,7 +755,7 @@ defmodule String do
 
     case string do
       <<prefix::size(prefix_size)-binary, suffix::binary>> when prefix == match ->
-        prepend(replacement, suffix)
+        prepend_unless_empty(replacement, suffix)
       _ ->
         string
     end
@@ -795,19 +795,19 @@ defmodule String do
 
     case string do
       <<prefix::size(prefix_size)-binary, suffix::binary>> when suffix == match ->
-        append(prefix, replacement)
+        append_unless_empty(prefix, replacement)
       _ ->
         string
     end
   end
 
-  @compile {:inline, prepend: 2, append: 2}
+  @compile {:inline, prepend_unless_empty: 2, append_unless_empty: 2}
 
-  defp prepend("", suffix), do: suffix
-  defp prepend(prefix, suffix), do: prefix <> suffix
+  defp prepend_unless_empty("", suffix), do: suffix
+  defp prepend_unless_empty(prefix, suffix), do: prefix <> suffix
 
-  defp append(prefix, ""), do: prefix
-  defp append(prefix, suffix), do: prefix <> suffix
+  defp append_unless_empty(prefix, ""), do: prefix
+  defp append_unless_empty(prefix, suffix), do: prefix <> suffix
 
   @doc false
   # TODO: Remove by 2.0
