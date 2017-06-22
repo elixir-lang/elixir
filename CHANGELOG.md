@@ -123,7 +123,7 @@ This version includes changes that make Elixir fully compatible with Erlang/OTP 
 
 #### Elixir
 
-  * [DateTime] `Fix DateTime.from_iso8601/2` when offset has no colon
+  * [DateTime] Fix `DateTime.from_iso8601/2` when offset has no colon
   * [Registry] Do not leak EXIT messages on `Registry.dispatch/3`
 
 ## v1.4.4 (2017-05-15)
