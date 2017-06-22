@@ -210,8 +210,8 @@ defmodule Task.Supervised do
       # this response when the replying task dies (we'll notice in the :down
       # message).
       {{^monitor_ref, position}, reply} ->
-        %{^position => {pid, :running, element}} = waiting
-        waiting = Map.put(waiting, position, {pid, {:ok, reply}, element})
+        %{^position => {pid, :running}} = waiting
+        waiting = Map.put(waiting, position, {pid, {:ok, reply}})
         stream_reduce({:cont, acc}, max, spawned, delivered, waiting, next, config)
 
       # The task at position "position" died for some reason. We check if it
@@ -223,20 +223,20 @@ defmodule Task.Supervised do
           case waiting do
             # If the task replied, we don't care whether it went down for timeout
             # or for normal reasons.
-            %{^position => {_, {:ok, _} = ok, _}} ->
+            %{^position => {_, {:ok, _} = ok}} ->
               ok
             # If the task exited by itself before replying, we emit {:exit, reason}.
-            %{^position => {_, :running, element}} when kind == :down ->
-              {:exit, reason, element}
+            %{^position => {_, :running}} when kind == :down ->
+              {:exit, reason}
             # If the task timed out before replying, we either exit (on_timeout: :exit)
             # or emit {:exit, :timeout} (on_timeout: :kill_task) (note the task is already
             # dead at this point).
-            %{^position => {_, :running, element}} when kind == :timed_out ->
+            %{^position => {_, :running}} when kind == :timed_out ->
               if on_timeout == :exit do
                 stream_cleanup_inbox(monitor_pid, monitor_ref)
-                exit({:timeout, {__MODULE__, :stream, [element, timeout]}})
+                exit({:timeout, {__MODULE__, :stream, [timeout]}})
               else
-                {:exit, :timeout, element}
+                {:exit, :timeout}
               end
           end
 
@@ -364,7 +364,7 @@ defmodule Task.Supervised do
     receive do
       {:spawned, {^monitor_ref, ^spawned}, pid} ->
         send(pid, {self(), {monitor_ref, spawned}})
-        Map.put(waiting, spawned, {pid, :running, value})
+        Map.put(waiting, spawned, {pid, :running})
       {:DOWN, ^monitor_ref, _, ^monitor_pid, reason} ->
         stream_cleanup_inbox(monitor_pid, monitor_ref)
         exit({reason, {__MODULE__, :stream, [timeout]}})
