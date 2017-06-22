@@ -45,7 +45,7 @@ For a complete reference on Elixir syntax, see the [Syntax Reference](https://he
 
 In the example above, an argument that did not match or guard that did not evaluate to true are shown between `-`. If the terminal supports ANSI coloring, they are wrapped in red instead of the `-` character.
 
-Since blaming an exception can be extensive, `Exception.blame/3` must be used exclusively in debugging situations. It is not advised to apply it to production components such as a Logger. This feature has been integrated into the compiler, the command line, ExUnit and IEx.
+Since blaming an exception can be expensive, `Exception.blame/3` must be used exclusively in debugging situations. It is not advised to apply it to production components such as a Logger. This feature has been integrated into the compiler, the command line, ExUnit and IEx.
 
 This feature also requires Erlang/OTP 20+.
 
@@ -82,7 +82,7 @@ If it is necessary to configure any of the children, such can be done by passing
       MyApp.Endpoint
     ]
 
-The modules `Agent`, `Registry`, `Task`, and `Task.Supervisor` have been updated to also defined a `child_spec/1` function, allowing them to be used in a supervision tree similar to the examples above. `use Agent`, `use GenServer`, `use Supervisor`, and `use Task` have also been updated to automatically generate an overridable `child_spec/1`.
+The modules `Agent`, `Registry`, `Task`, and `Task.Supervisor` have been updated to include a `child_spec/1` function, allowing them to be used directly in a supervision tree similar to the examples above. `use Agent`, `use GenServer`, `use Supervisor`, and `use Task` have also been updated to automatically define an overridable `child_spec/1` function.
 
 Finally, child specifications are now provided as maps (data-structures) instead of the previous `Supervisor.Spec.worker/3` and `Supervisor.Spec.supervisor/3` APIs. This behaviour also aligns with how supervisors are configured in Erlang/OTP 18+. See the updated `Supervisor` docs for more information, as well as the new `Supervisor.init/2` and `Supervisor.child_spec/2` functions.
 
@@ -145,6 +145,7 @@ This release brings further improvements to Calendar types. It adds arithmetic a
   * [Calendar] Add Rata Die format for conversions between Calendars and `Date.convert/2`, `Time.convert/2`, `NaiveDateTime.convert/2` and `DateTime.convert/2` (as well as bang variants)
   * [Calendar] Add `:calendar` field to `Time` struct
   * [Calendar] Add `Time.diff/3`, `Date.add/2`, `Date.diff/2`, `DateTime.diff/3`
+  * [Calendar] Add `Date.range/2`
   * [Enum] Add `Enum.chunk_by/4` and `Stream.chunk_by/4`
   * [Exception] Add `Exception.blame/3` that adds metadata to exceptions
   * [File] Add `File.read_link/1` and `File.read_link!/1`
@@ -167,12 +168,15 @@ This release brings further improvements to Calendar types. It adds arithmetic a
   * [Supervisor] Add `Supervisor.init/2` and `Supervisor.child_spec/2`
   * [Supervisor] Allow `module` and `{module, arg}` to be given to `Supervisor.start_link/2` and invoke `module.child_spec(arg)` on each argument
   * [Task] Support `:on_timeout` in `Task.async_stream` to control how tasks are terminated
+  * [Task] Add `ordered: false` support to `Task.async_stream`
 
 #### ExUnit
 
   * [ExUnit] Show code snippet from test source file in case of test errors
   * [ExUnit] Show the value of variables used in an assertion
   * [ExUnit] Use `Exception.blame/3` when formatting test errors
+  * [ExUnit] Make `assert_raise/2` fail if the underlying exception has a broken `message/1` implementation
+  * [ExUnit] Add `start_supervised/2` and `stop_supervised/1` to ExUnit. Processes started by this function are automatically shut down when the test exits
 
 #### IEx
 
@@ -186,6 +190,7 @@ This release brings further improvements to Calendar types. It adds arithmetic a
 
 #### Mix
 
+  * [mix compile.elixir] Add `--all-warnings` option to Elixir compiler that shows all warnings from the previous compilation (instead of just of the files being compiled)
   * [mix escript.build] Strip debug information from escripts by default and add option `:strip_beam` which defaults to true
   * [mix loadpaths] Ensure `--no-deps-check` do not trigger SCM callbacks (such as `git`)
   * [mix local.hex] Add `--if-missing` flag to `local.hex` mix task
@@ -214,6 +219,7 @@ This release brings further improvements to Calendar types. It adds arithmetic a
 #### Mix
 
   * [mix compile.elixir] Store multiple sources in case of module conflicts. This solves an issue where `_build` would get corrupted when compiling Elixir projects with module conflicts
+  * [mix compile.erlang] Do not silently discard Erlang compile errors
   * [mix compile.protocols] Ensure protocol implementations do not "disappear" when switching between applications in umbrella projects by having separate consolidation paths per project
 
 ### 3. Soft deprecations (no warnings emitted)
