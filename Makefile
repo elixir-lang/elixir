@@ -119,8 +119,6 @@ clean:
 	rm -rf ebin
 	rm -rf lib/*/ebin
 	rm -f lib/elixir/src/elixir.app.src
-	rm -f Docs-v*.zip
-	rm -f Precompiled-v*.zip
 	$(Q) $(MAKE) clean_residual_files
 
 clean_elixir:
