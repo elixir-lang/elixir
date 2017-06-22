@@ -143,23 +143,6 @@ defmodule ExUnit.FormatterTest do
     """
   end
 
-  test "formats binding when there is some" do
-    many_ids = Enum.to_list(1..30)
-    no_ids = []
-    failure = [{:error, catch_assertion(assert Enum.take(many_ids, 3) == no_ids), []}]
-    assert format_test_failure(test(), failure, 1, 80, &formatter/2) =~ """
-      1) world (Hello)
-         test/ex_unit/formatter_test.exs:1
-         Assertion with == failed
-         code:  assert Enum.take(many_ids, 3) == no_ids
-         left:  [1, 2, 3]
-         right: []
-         variables:
-           many_ids = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
-            21, 22, 23, 24, 25, 26, 27, 28, 29, 30]
-    """
-  end
-
   test "formats multiple assertions" do
     failure = [{:error, catch_assertion(assert ExUnit.FormatterTest.falsy), []},
                {:error, catch_assertion(assert 1 == 2), []}]
