@@ -3,13 +3,10 @@ defmodule Task.Supervisor do
   A task supervisor.
 
   This module defines a supervisor which can be used to dynamically
-  supervise tasks. Behind the scenes, this module is implemented as a
-  `:simple_one_for_one` supervisor where the workers are temporary by
-  default (that is, they are not restarted after they die; read the docs
-  for `start_link/1` for more information on choosing the restart
-  strategy).
+  supervise tasks.
 
-  See the `Task` module for more information.
+  `start_link/1` can be used to start the supervisor. See the `Task`
+  module for more examples.
 
   ## Name registration
 
@@ -36,19 +33,23 @@ defmodule Task.Supervisor do
 
   The supported options are:
 
-  * `:name` - used to register a supervisor name, the supported values are
-    described under the `Name Registration` section in the `GenServer` module
-    docs;
+    * `:name` - used to register a supervisor name, the supported values are
+      described under the `Name Registration` section in the `GenServer` module
+      docs;
 
-  * `:restart` - the restart strategy, may be `:temporary` (the default),
-    `:transient` or `:permanent`. Check `Supervisor` for more info.
-    Defaults to `:temporary` so tasks aren't automatically restarted when
-    they complete nor in case of crashes;
+    * `:restart` - the restart strategy, may be `:temporary` (the default),
+      `:transient` or `:permanent`. `:temporary` means the task is never
+      restarted, `:transient` means it is restarted if the exit is not
+      `:normal`, `:shutdown` or `{:shutdown, reason}`. A `:permanent` restart
+      strategy means it is always restarted. It defaults to `:temporary` so
+      tasks aren't automatically restarted when they complete nor in case of
+      crashes. Note the `:async` functions in this module support only `:temporary`
+      restarts;
 
-  * `:shutdown` - `:brutal_kill` if the tasks must be killed directly on shutdown
-    or an integer indicating the timeout value, defaults to 5000 milliseconds;
+    * `:shutdown` - `:brutal_kill` if the tasks must be killed directly on shutdown
+      or an integer indicating the timeout value, defaults to 5000 milliseconds;
 
-  * `:max_restarts` and `:max_seconds` - as specified in `Supervisor`;
+    * `:max_restarts` and `:max_seconds` - as specified in `Supervisor`;
 
   """
   @spec start_link([option]) :: Supervisor.on_start
@@ -70,6 +71,10 @@ defmodule Task.Supervisor do
   The `supervisor` must be a reference as defined in `Task.Supervisor`.
   The task will still be linked to the caller, see `Task.async/3` for
   more information and `async_nolink/2` for a non-linked variant.
+
+  Note this function requires the task supervisor to have `:temporary`
+  as the `:restart` option (the default), as `async/2` keeps a direct
+  reference to the task which is lost if the task is restarted.
   """
   @spec async(Supervisor.supervisor, (() -> any)) :: Task.t
   def async(supervisor, fun) do
@@ -82,6 +87,10 @@ defmodule Task.Supervisor do
   The `supervisor` must be a reference as defined in `Task.Supervisor`.
   The task will still be linked to the caller, see `Task.async/3` for
   more information and `async_nolink/2` for a non-linked variant.
+
+  Note this function requires the task supervisor to have `:temporary`
+  as the `:restart` option (the default), as `async/4` keeps a direct
+  reference to the task which is lost if the task is restarted.
   """
   @spec async(Supervisor.supervisor, module, atom, [term]) :: Task.t
   def async(supervisor, module, fun, args) do
@@ -94,6 +103,10 @@ defmodule Task.Supervisor do
   The `supervisor` must be a reference as defined in `Task.Supervisor`.
   The task won't be linked to the caller, see `Task.async/3` for
   more information.
+
+  Note this function requires the task supervisor to have `:temporary`
+  as the `:restart` option (the default), as `async_nolink/2` keeps a
+  direct reference to the task which is lost if the task is restarted.
 
   ## Compatibility with OTP behaviours
 
@@ -121,6 +134,10 @@ defmodule Task.Supervisor do
   The `supervisor` must be a reference as defined in `Task.Supervisor`.
   The task won't be linked to the caller, see `Task.async/3` for
   more information.
+
+  Note this function requires the task supervisor to have `:temporary`
+  as the `:restart` option (the default), as `async_nolink/4` keeps a
+  direct reference to the task which is lost if the task is restarted.
   """
   @spec async_nolink(Supervisor.supervisor, module, atom, [term]) :: Task.t
   def async_nolink(supervisor, module, fun, args) do
@@ -144,6 +161,10 @@ defmodule Task.Supervisor do
   option and defaults to `System.schedulers_online/0`. A timeout
   can also be given as an option representing the maximum amount of
   time to wait without a task reply.
+
+  Note this function requires the task supervisor to have `:temporary`
+  as the `:restart` option (the default), as `async_stream/6` keeps a
+  direct reference to the task which is lost if the task is restarted.
 
   Finally, if you find yourself trapping exits to handle exits inside
   the async stream, consider using `async_stream_nolink/6` to start tasks
