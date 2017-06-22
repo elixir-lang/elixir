@@ -37,7 +37,7 @@ Atoms in Elixir follow the identifier rule above with the following modification
 
 ### Variables
 
-Atoms in Elixir follow the identifier rule above with the following modifications:
+Variables in Elixir follow the identifier rule above with the following modifications:
 
   * `<Start>` includes the codepoint _ (005F)
   * `<Start>` must not include Lu (letter uppercase) and Lt (letter titlecase) characters
