@@ -492,7 +492,7 @@ defmodule TaskTest do
   describe "async_stream/2" do
     test "timeout" do
       assert catch_exit([:infinity] |> Task.async_stream(&sleep/1, [timeout: 0]) |> Enum.to_list) ==
-             {:timeout, {Task.Supervised, :stream, [:infinity, 0]}}
+             {:timeout, {Task.Supervised, :stream, [0]}}
       refute_received _
     end
 
@@ -509,7 +509,7 @@ defmodule TaskTest do
     test "streams an enumerable with ordered: false, on_timeout: :kill_task" do
       opts = [max_concurrency: 4, ordered: false, on_timeout: :kill_task, timeout: 50]
       assert [100, 1, 100, 1] |> Task.async_stream(&sleep/1, opts) |> Enum.to_list() ==
-             [{:ok, 1}, {:ok, 1}, {:exit, :timeout, 100}, {:exit, :timeout, 100}]
+             [ok: 1, ok: 1, exit: :timeout, exit: :timeout]
       refute_received _
     end
   end
@@ -543,7 +543,7 @@ defmodule TaskTest do
       test "streams an enumerable with exits" do
         Process.flag(:trap_exit, true)
         assert 1..4 |> Task.async_stream(&exit/1, @opts) |> Enum.to_list ==
-               [{:exit, 1, 1}, {:exit, 2, 2}, {:exit, 3, 3}, {:exit, 4, 4}]
+               [exit: 1, exit: 2, exit: 3, exit: 4]
         refute_received {:EXIT, _, _}
       end
 
@@ -586,7 +586,7 @@ defmodule TaskTest do
       test "with inner halt on failure" do
         Process.flag(:trap_exit, true)
         assert 1..8 |> Stream.take(4) |> Task.async_stream(&exit/1, @opts) |> Enum.to_list ==
-               [{:exit, 1, 1}, {:exit, 2, 2}, {:exit, 3, 3}, {:exit, 4, 4}]
+               [exit: 1, exit: 2, exit: 3, exit: 4]
       end
 
       test "with inner halt and slowest first" do
@@ -602,7 +602,7 @@ defmodule TaskTest do
       test "with outer halt on failure" do
         Process.flag(:trap_exit, true)
         assert 1..8 |> Task.async_stream(&exit/1, @opts) |> Enum.take(4) ==
-               [{:exit, 1, 1}, {:exit, 2, 2}, {:exit, 3, 3}, {:exit, 4, 4}]
+               [exit: 1, exit: 2, exit: 3, exit: 4]
       end
 
       test "with outer halt and slowest first" do
@@ -639,7 +639,7 @@ defmodule TaskTest do
       test "with :on_timeout set to :kill_task" do
         opts = Keyword.merge(@opts, on_timeout: :kill_task, timeout: 50)
         assert [100, 1, 100, 1] |> Task.async_stream(&sleep/1, opts) |> Enum.to_list() ==
-               [{:exit, :timeout, 100}, {:ok, 1}, {:exit, :timeout, 100}, {:ok, 1}]
+               [exit: :timeout, ok: 1, exit: :timeout, ok: 1]
         refute_received _
       end
     end
