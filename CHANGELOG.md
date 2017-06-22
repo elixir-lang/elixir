@@ -109,9 +109,26 @@ You can now also install archives from Hex in this way. Since they are fetched a
 
 It is also possible to install escripts and archives by providing a Git/GitHub repo. See `mix help escript.install` and `mix help archive.install` for more details.
 
+## v1.4.5 (2017-06-22)
+
+This version includes changes that make Elixir fully compatible with Erlang/OTP 20.
+
+### 1. Enhancements
+
+#### Logger
+
+  * [Logger] Handle changes to crash reports in OTP 20
+
+### 2. Bug fixes
+
+#### Elixir
+
+  * [DateTime] `Fix DateTime.from_iso8601/2` when offset has no colon
+  * [Registry] Do not leak EXIT messages on `Registry.dispatch/3`
+
 ## v1.4.4 (2017-05-15)
 
-This version includes changes that make Elixir fully compatible with Erlang OTP 20-rc.1.
+This version includes changes that make Elixir fully compatible with Erlang/OTP 20-rc.1.
 
 ### 1. Bug fixes
 
@@ -121,7 +138,7 @@ This version includes changes that make Elixir fully compatible with Erlang OTP 
 
 ## v1.4.3 (2017-05-15)
 
-This version includes changes that make Elixir fully compatible with Erlang OTP 20-rc.1.
+This version includes changes that make Elixir fully compatible with Erlang/OTP 20-rc.1.
 
 ### 1. Enhancements
 
