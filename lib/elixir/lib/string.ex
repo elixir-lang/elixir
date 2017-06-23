@@ -666,15 +666,15 @@ defmodule String do
 
   defp replace_leading(string, match, replacement, prefix_size, suffix_size, acc) when suffix_size >= 0 do
     case string do
-      <<prefix::size(prefix_size)-binary, suffix::size(suffix_size)-binary>> when prefix == match ->
+      <<prefix::size(prefix_size)-binary, suffix::binary>> when prefix == match ->
         replace_leading(suffix, match, replacement, prefix_size, suffix_size - prefix_size, acc + 1)
       _ ->
-        duplicate(replacement, acc) <> string
+        prepend_unless_empty(duplicate(replacement, acc), string)
     end
   end
 
   defp replace_leading(string, _match, replacement, _prefix_size, _suffix_size, acc) do
-    duplicate(replacement, acc) <> string
+    prepend_unless_empty(duplicate(replacement, acc), string)
   end
 
   @doc """
@@ -714,15 +714,15 @@ defmodule String do
 
   defp replace_trailing(string, match, replacement, prefix_size, suffix_size, acc) when prefix_size >= 0 do
     case string do
-      <<prefix::size(prefix_size)-binary, suffix::size(suffix_size)-binary>> when suffix == match ->
+      <<prefix::size(prefix_size)-binary, suffix::binary>> when suffix == match ->
         replace_trailing(prefix, match, replacement, prefix_size - suffix_size, suffix_size, acc + 1)
       _ ->
-        string <> duplicate(replacement, acc)
+        append_unless_empty(string, duplicate(replacement, acc))
     end
   end
 
   defp replace_trailing(string, _match, replacement, _prefix_size, _suffix_size, acc) do
-    string <> duplicate(replacement, acc)
+    append_unless_empty(string, duplicate(replacement, acc))
   end
 
   @doc """
@@ -755,11 +755,10 @@ defmodule String do
   def replace_prefix(string, match, replacement)
       when is_binary(string) and is_binary(match) and is_binary(replacement) do
     prefix_size = byte_size(match)
-    suffix_size = byte_size(string) - prefix_size
 
     case string do
-      <<prefix::size(prefix_size)-binary, suffix::size(suffix_size)-binary>> when prefix == match ->
-        replacement <> suffix
+      <<prefix::size(prefix_size)-binary, suffix::binary>> when prefix == match ->
+        prepend_unless_empty(replacement, suffix)
       _ ->
         string
     end
@@ -798,12 +797,20 @@ defmodule String do
     prefix_size = byte_size(string) - suffix_size
 
     case string do
-      <<prefix::size(prefix_size)-binary, suffix::size(suffix_size)-binary>> when suffix == match ->
-        prefix <> replacement
+      <<prefix::size(prefix_size)-binary, suffix::binary>> when suffix == match ->
+        append_unless_empty(prefix, replacement)
       _ ->
         string
     end
   end
+
+  @compile {:inline, prepend_unless_empty: 2, append_unless_empty: 2}
+
+  defp prepend_unless_empty("", suffix), do: suffix
+  defp prepend_unless_empty(prefix, suffix), do: prefix <> suffix
+
+  defp append_unless_empty(prefix, ""), do: prefix
+  defp append_unless_empty(prefix, suffix), do: prefix <> suffix
 
   @doc false
   # TODO: Remove by 2.0
