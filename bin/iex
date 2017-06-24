@@ -43,6 +43,14 @@ readlink_f () {
   fi
 }
 
+ERL="-noshell -user Elixir.IEx.CLI"
 SELF=$(readlink_f "$0")
 SCRIPT_PATH=$(dirname "$SELF")
-exec "$SCRIPT_PATH"/elixir --no-halt --erl "-noshell -user Elixir.IEx.CLI" +iex "$@"
+
+if [ -z "$HOME" ]; then
+  :
+else
+  ERL="-kernel shell_history_path \"$HOME/.elixir-history\" $ERL"
+fi
+
+exec "$SCRIPT_PATH"/elixir --no-halt --erl "$ERL" +iex "$@"

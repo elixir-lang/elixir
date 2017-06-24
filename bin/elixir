@@ -113,7 +113,7 @@ if [ "$OS" != "Windows_NT" ]; then
 fi
 
 if [ "$OS" = "Windows_NT" ] && [ $USE_WERL ]; then
-    ERL_EXEC="werl"
+  ERL_EXEC="werl"
 fi
 
 if [ -z "$ERL_PATH" ]; then
