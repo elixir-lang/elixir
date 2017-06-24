@@ -165,6 +165,7 @@ This release brings further improvements to Calendar types. It adds arithmetic a
   * [Process] Add `Process.cancel_timer/2`
   * [Protocol] Show available implementations on `Protocol.UndefinedError` if the protocol has been consolidated
   * [Registry] Support ETS guard conditions in `Registry.match/3`
+  * [Registry] Support `parallel: true` in `Registry.dispatch/3`
   * [Supervisor] Add `Supervisor.init/2` and `Supervisor.child_spec/2`
   * [Supervisor] Allow `module` and `{module, arg}` to be given to `Supervisor.start_link/2` and invoke `module.child_spec(arg)` on each argument
   * [Task] Support `:on_timeout` in `Task.async_stream` to control how tasks are terminated
