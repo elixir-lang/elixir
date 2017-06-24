@@ -27,6 +27,26 @@ defmodule IEx do
   to work. `--werl` may be permanently enabled by setting the `IEX_WITH_WERL`
   environment variable.
 
+  ## Shell history
+
+  From Erlang/OTP 20, it is possible to get shell history by passing some
+  flags that enable it in the VM. This can be done on a per-need basis
+  when starting IEx:
+
+      iex --erl "-kernel shell_history enabled"
+
+  If you would rather enable it on your system as a whole, you can use
+  the `ERL_AFLAGS` environment variable and make sure that it is set
+  accordingly on your terminal/shell configuration.
+
+  On Linux:
+
+      export ERL_AFLAGS="-kernel shell_history enabled"
+
+  On Windows:
+
+      set ERL_AFLAGS "-kernel shell_history enabled"
+
   ## The Break command
 
   Inside IEx, hitting `Ctrl+C` will open up the `BREAK` menu. In this
