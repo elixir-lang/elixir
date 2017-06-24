@@ -1156,7 +1156,7 @@ defmodule Stream do
   def cycle(enumerable)
 
   def cycle(enumerable) when length(enumerable) == 0 do
-    raise ArgumentError, "Stream cannot cycle over empty enumerable"
+    raise ArgumentError, "cannot cycle over empty enumerable"
   end
 
   def cycle(enumerable) when is_list(enumerable) do
@@ -1190,7 +1190,7 @@ defmodule Stream do
         {:halted, acc}
     else
       {state, []} when state in [:done, :halted] ->
-        raise ArgumentError, "Stream cannot cycle over empty enumerable"
+        raise ArgumentError, "cannot cycle over empty enumerable"
       {state, acc} when state in [:done, :halted] ->
         do_cycle(cycle, cycle, {:cont, acc})
       {:suspended, acc, continuation} ->
