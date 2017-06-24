@@ -220,28 +220,72 @@ defmodule RegistryTest do
         assert Registry.keys(registry, self()) |> Enum.sort() == [1, 1.0]
       end
 
-      test "dispatches to multiple keys", %{registry: registry} do
+      test "dispatches to multiple keys in serial", %{registry: registry} do
         Process.flag(:trap_exit, true)
+        parent = self()
 
         assert Registry.dispatch(registry, "hello", fn _ ->
           raise "will never be invoked"
-        end) == :ok
+        end, parallel: false) == :ok
 
         {:ok, _} = Registry.register(registry, "hello", :value1)
         {:ok, _} = Registry.register(registry, "hello", :value2)
         {:ok, _} = Registry.register(registry, "world", :value3)
 
         assert Registry.dispatch(registry, "hello", fn entries ->
+          assert parent == self()
           for {pid, value} <- entries, do: send(pid, {:dispatch, value})
-        end)
+        end, parallel: false)
 
         assert_received {:dispatch, :value1}
         assert_received {:dispatch, :value2}
         refute_received {:dispatch, :value3}
 
         assert Registry.dispatch(registry, "world", fn entries ->
+          assert parent == self()
           for {pid, value} <- entries, do: send(pid, {:dispatch, value})
-        end)
+        end, parallel: false)
+
+        refute_received {:dispatch, :value1}
+        refute_received {:dispatch, :value2}
+        assert_received {:dispatch, :value3}
+
+        refute_received {:EXIT, _, _}
+      end
+
+      test "dispatches to multiple keys in parallel", %{registry: registry, partitions: partitions} do
+        Process.flag(:trap_exit, true)
+        parent = self()
+
+        assert Registry.dispatch(registry, "hello", fn _ ->
+          raise "will never be invoked"
+        end, parallel: true) == :ok
+
+        {:ok, _} = Registry.register(registry, "hello", :value1)
+        {:ok, _} = Registry.register(registry, "hello", :value2)
+        {:ok, _} = Registry.register(registry, "world", :value3)
+
+        assert Registry.dispatch(registry, "hello", fn entries ->
+          if partitions == 8 do
+            assert parent != self()
+          else
+            assert parent == self()
+          end
+          for {pid, value} <- entries, do: send(pid, {:dispatch, value})
+        end, parallel: true)
+
+        assert_received {:dispatch, :value1}
+        assert_received {:dispatch, :value2}
+        refute_received {:dispatch, :value3}
+
+        assert Registry.dispatch(registry, "world", fn entries ->
+          if partitions == 8 do
+            assert parent != self()
+          else
+            assert parent == self()
+          end
+          for {pid, value} <- entries, do: send(pid, {:dispatch, value})
+        end, parallel: true)
 
         refute_received {:dispatch, :value1}
         refute_received {:dispatch, :value2}

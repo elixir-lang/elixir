@@ -109,8 +109,7 @@ defmodule Registry do
 
   In this example, we will also set the number of partitions to the number of
   schedulers online, which will make the registry more performant on highly
-  concurrent environments as each partition will spawn a new process, allowing
-  dispatching to happen in parallel:
+  concurrent environments:
 
       {:ok, _} = Registry.start_link(keys: :duplicate, name: Registry.PubSubTest,
                                      partitions: System.schedulers_online)
@@ -362,17 +361,16 @@ defmodule Registry do
   associated to the pid. If there are no entries for the given key,
   the callback is never invoked.
 
-  If the registry is not partitioned, the callback is invoked in the process
-  that calls `dispatch/3`. If the registry is partitioned, the callback is
-  invoked concurrently per partition by starting a task linked to the
-  caller. The callback, however, is only invoked if there are entries for that
-  partition.
+  If the registry is partitioned, the callback is invoked multiple times
+  per partition. If the registry is partitioned and `parallel: true` is
+  given as an option, the dispatching happens in parallel. In both cases,
+  the callback is only invoked if there are entries for that partition.
 
   See the module documentation for examples of using the `dispatch/3`
   function for building custom dispatching or a pubsub system.
   """
-  @spec dispatch(registry, key, (entries :: [{pid, value}] -> term)) :: :ok
-  def dispatch(registry, key, mfa_or_fun)
+  @spec dispatch(registry, key, (entries :: [{pid, value}] -> term), keyword) :: :ok
+  def dispatch(registry, key, mfa_or_fun, opts \\ [])
       when is_atom(registry) and is_function(mfa_or_fun, 1)
       when is_atom(registry) and tuple_size(mfa_or_fun) == 3 do
     case key_info!(registry) do
@@ -386,17 +384,33 @@ defmodule Registry do
         |> safe_lookup_second(key)
         |> apply_non_empty_to_mfa_or_fun(mfa_or_fun)
       {:duplicate, partitions, _} ->
-        registry
-        |> dispatch_task(key, mfa_or_fun, partitions)
-        |> Enum.each(&Task.await(&1, :infinity))
+        if Keyword.get(opts, :parallel, false) do
+          registry
+          |> dispatch_parallel(key, mfa_or_fun, partitions)
+          |> Enum.each(&Task.await(&1, :infinity))
+        else
+          dispatch_serial(registry, key, mfa_or_fun, partitions)
+        end
     end
     :ok
   end
 
-  defp dispatch_task(_registry, _key, _mfa_or_fun, 0) do
+  defp dispatch_serial(_registry, _key, _mfa_or_fun, 0) do
+    :ok
+  end
+  defp dispatch_serial(registry, key, mfa_or_fun, partition) do
+    partition = partition - 1
+    registry
+    |> key_ets!(partition)
+    |> safe_lookup_second(key)
+    |> apply_non_empty_to_mfa_or_fun(mfa_or_fun)
+    dispatch_serial(registry, key, mfa_or_fun, partition)
+  end
+
+  defp dispatch_parallel(_registry, _key, _mfa_or_fun, 0) do
     []
   end
-  defp dispatch_task(registry, key, mfa_or_fun, partition) do
+  defp dispatch_parallel(registry, key, mfa_or_fun, partition) do
     partition = partition - 1
     parent = self()
     task = Task.async(fn ->
@@ -407,7 +421,7 @@ defmodule Registry do
       Process.unlink(parent)
       :ok
     end)
-    [task | dispatch_task(registry, key, mfa_or_fun, partition)]
+    [task | dispatch_parallel(registry, key, mfa_or_fun, partition)]
   end
 
   defp apply_non_empty_to_mfa_or_fun([], _mfa_or_fun) do
