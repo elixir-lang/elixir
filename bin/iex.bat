@@ -40,7 +40,13 @@ echo ** Options can be passed to the Erlang VM using ELIXIR_ERL_OPTIONS or --erl
 goto end
 
 :run
+@set ELIXIR_HISTORY_DIR=%USERPROFILE%\.elixir-history
+@set ELIXIR_HISTORY_DIR=%ELIXIR_HISTORY_DIR:\=\\%
+@for %%I in ("%ELIXIR_HISTORY_DIR%") do @set SHORT_ELIXIR_HISTORY_DIR=%%~sI
+@set SHORT_ELIXIR_HISTORY_DIR=%SHORT_ELIXIR_HISTORY_DIR:\=\\%
+
+@set ERL="-kernel shell_history_path \"%SHORT_ELIXIR_HISTORY_DIR%\" -noshell -user Elixir.IEx.CLI"
 @if defined IEX_WITH_WERL (@set __ELIXIR_IEX_FLAGS=--werl) else (set __ELIXIR_IEX_FLAGS=)
-call "%~dp0\elixir.bat" --no-halt --erl "-noshell -user Elixir.IEx.CLI" +iex %__ELIXIR_IEX_FLAGS% %*
+call "%~dp0\elixir.bat" --no-halt --erl %ERL% +iex %__ELIXIR_IEX_FLAGS% %*
 :end
 endlocal
