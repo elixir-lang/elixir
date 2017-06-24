@@ -168,12 +168,16 @@ defmodule StreamTest do
     stream = Stream.cycle([1, 2, 3])
     assert is_function(stream)
 
-    assert_raise ArgumentError, fn ->
+    assert_raise ArgumentError, "cannot cycle over empty enumerable", fn ->
       Stream.cycle([])
     end
 
-    assert_raise ArgumentError, fn ->
-      Stream.map([], &(&1)) |> Stream.cycle |> Enum.to_list
+    assert_raise ArgumentError, "cannot cycle over empty enumerable", fn ->
+      Stream.map([], &(&1)) |> Stream.cycle() |> Enum.to_list()
+    end
+
+    assert_raise ArgumentError, "cannot cycle over empty enumerable", fn ->
+      Stream.map(%{}, &(&1)) |> Stream.cycle() |> Enum.to_list()
     end
 
     assert Stream.cycle([1, 2, 3]) |> Stream.take(5) |> Enum.to_list == [1, 2, 3, 1, 2]
