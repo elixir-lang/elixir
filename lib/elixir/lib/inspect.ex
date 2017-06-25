@@ -417,31 +417,28 @@ defimpl Inspect, for: Regex do
   defp escape(bin, term),
     do: escape(bin, [], term)
 
-  defp escape(<<?\\, term>> <> rest, buf, term),
-    do: escape(rest, [buf | [?\\, term]], term)
-
-  defp escape(<<term>> <> rest, buf, term),
+  defp escape(<<term, rest::binary>>, buf, term),
     do: escape(rest, [buf | [?\\, term]], term)
 
   # The list of characters is from 'String.printable?' implementation
   # minus characters treated specially by regex: \s, \d, \b, \e
 
-  defp escape(<<?\n>> <> rest, buf, term),
+  defp escape(<<?\n, rest::binary>>, buf, term),
     do: escape(rest, [buf | '\\n'], term)
 
-  defp escape(<<?\r>> <> rest, buf, term),
+  defp escape(<<?\r, rest::binary>>, buf, term),
     do: escape(rest, [buf | '\\r'], term)
 
-  defp escape(<<?\t>> <> rest, buf, term),
+  defp escape(<<?\t, rest::binary>>, buf, term),
     do: escape(rest, [buf | '\\t'], term)
 
-  defp escape(<<?\v>> <> rest, buf, term),
+  defp escape(<<?\v, rest::binary>>, buf, term),
     do: escape(rest, [buf | '\\v'], term)
 
-  defp escape(<<?\f>> <> rest, buf, term),
+  defp escape(<<?\f, rest::binary>>, buf, term),
     do: escape(rest, [buf | '\\f'], term)
 
-  defp escape(<<?\a>> <> rest, buf, term),
+  defp escape(<<?\a, rest::binary>>, buf, term),
     do: escape(rest, [buf | '\\a'], term)
 
   defp escape(<<char::utf8, rest::binary>>, buf, term)

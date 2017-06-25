@@ -560,8 +560,9 @@ defmodule Inspect.OthersTest do
            "~r/\\a\\x08\\x7F\\x1B\\f\\n\\r \\t\\v\\//"
     assert inspect(~r<\a\b\d\e\f\n\r\s\t\v/>) ==
            "~r/\\a\\b\\d\\e\\f\\n\\r\\s\\t\\v\\//"
-    opts = [syntax_colors: [regex: :red]]
-    assert inspect(~r/hi/, opts) ==
+    assert inspect(~r" \\/ ") ==
+           "~r/ \\\\\\/ /"
+    assert inspect(~r/hi/, syntax_colors: [regex: :red]) ==
            "\e[31m~r/hi/\e[0m"
   end
 end
