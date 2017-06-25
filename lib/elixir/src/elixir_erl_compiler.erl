@@ -87,11 +87,6 @@ format_error(erl_lint, {undefined_function, {F, A}}) ->
 format_error(erl_lint, {spec_fun_undefined, {M, F, A}}) ->
   io_lib:format("spec for undefined function ~ts.~ts/~B", [elixir_aliases:inspect(M), F, A]);
 
-%% TODO: Remove this clause when we depend only on Erlang 19.
-format_error(erl_lint, {bittype_mismatch, Val1, Val2, Kind}) ->
-  Desc = "conflict in ~s specification for bit field: \"~p\" and \"~p\"",
-  io_lib:format(Desc, [Kind, Val1, Val2]);
-
 %% Make no_effect clauses pretty
 format_error(sys_core_fold, {no_effect, {erlang, F, A}}) ->
   {Fmt, Args} = case erl_internal:comp_op(F, A) of
