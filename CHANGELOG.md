@@ -146,6 +146,7 @@ This release brings further improvements to Calendar types. It adds arithmetic a
   * [Calendar] Add `:calendar` field to `Time` struct
   * [Calendar] Add `Time.diff/3`, `Date.add/2`, `Date.diff/2`, `DateTime.diff/3`
   * [Calendar] Add `Date.range/2`
+  * [Calendar] Add `Date.new/4`, `DateTime.utc_now/1`, `NaiveDateTime.new/8` and `Time.new/5` that allow specifing calendar
   * [Enum] Add `Enum.chunk_by/4` and `Stream.chunk_by/4`
   * [Exception] Add `Exception.blame/3` that adds metadata to exceptions
   * [File] Add `File.read_link/1` and `File.read_link!/1`
@@ -195,6 +196,7 @@ This release brings further improvements to Calendar types. It adds arithmetic a
   * [mix loadpaths] Ensure `--no-deps-check` do not trigger SCM callbacks (such as `git`)
   * [mix local.hex] Add `--if-missing` flag to `local.hex` mix task
   * [mix profile.cprof] Add `Mix.Tasks.Profile.Cprof` for count-based profiling
+  * [mix new] New styling for generated applications
 
 ### 2. Bug fixes
 
@@ -246,6 +248,10 @@ This release brings further improvements to Calendar types. It adds arithmetic a
   * [String] `String.lstrip/1` and `String.rstrip/1` are deprecated in favor of `String.trim_leading/1` and `String.trim_trailing/1`
   * [String] `String.lstrip/2` and `String.rstrip/2` are deprecated in favor of `String.trim_leading/2` and `String.trim_trailing/2` with a binary as second argument
   * [Typespec] `char_list/0` type is deprecated in favor of `charlist/0`
+
+#### EEx
+
+  * [EEx] Deprecate `<%= ` in middle and end expressions, e.g.: `<%= else %>` and `<%= end %>`
 
 ## v1.4
 
