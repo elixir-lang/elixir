@@ -589,13 +589,9 @@ defmodule Map do
   """
   @spec pop(map, key, value) :: {value, map}
   def pop(map, key, default \\ nil) do
-    case map do
-      %{^key => value} ->
-        {value, delete(map, key)}
-      %{} ->
-        {default, map}
-      other ->
-        :erlang.error({:badmap, other}, [map, key, default])
+    case :maps.take(key, map) do
+      {_, _} = tuple -> tuple
+      :error -> {default, map}
     end
   end
 

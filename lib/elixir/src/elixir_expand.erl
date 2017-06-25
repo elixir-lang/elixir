@@ -194,9 +194,6 @@ expand({quote, Meta, [Opts, Do]}, E) when is_list(Do) ->
 
   Generated = lists:keyfind(generated, 1, EOpts) == {generated, true},
 
-  %% TODO: Do not allow negative line numbers once Erlang 18
-  %% support is dropped as it only allows negative line
-  %% annotations alongside the generated check.
   Q = #elixir_quote{line=Line, file=File, unquote=Unquote,
                     context=Context, generated=Generated},
 

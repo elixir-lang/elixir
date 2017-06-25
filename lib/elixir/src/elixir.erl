@@ -18,13 +18,7 @@
 -type as_boolean(T) :: T.
 -type keyword() :: [{atom(), any()}].
 -type keyword(T) :: [{atom(), T}].
-
-%% TODO: Remove ifdef once we drop OTP 18
--ifdef(old_map_specs).
--type struct() :: #{'__struct__' => atom(), atom() => any()}.
--else.
 -type struct() :: #{'__struct__' := atom(), atom() => any()}.
--endif.
 
 %% OTP Application API
 
@@ -44,10 +38,10 @@ start(_Type, _Args) ->
   OTPRelease = string:to_integer(erlang:system_info(otp_release)),
 
   case OTPRelease of
-    {Num, _} when Num >= 18 ->
+    {Num, _} when Num >= 19 ->
       ok;
     _ ->
-      io:format(standard_error, "unsupported Erlang version, expected Erlang 18+~n", []),
+      io:format(standard_error, "unsupported Erlang version, expected Erlang 19+~n", []),
       erlang:halt(1)
   end,
 

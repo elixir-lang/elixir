@@ -367,6 +367,8 @@ deprecation('Elixir.Atom', to_char_list, 1) ->
   "use Atom.to_charlist/1";
 deprecation('Elixir.Enum', filter_map, 3) ->
   "use Enum.filter/2 + Enum.map/2 or for comprehensions";
+deprecation('Elixir.Enum', partition, 2) ->
+  "use Enum.split_with/2";
 deprecation('Elixir.Enum', uniq, 2) ->
   "use Enum.uniq_by/2";
 deprecation('Elixir.Float', to_char_list, 1) ->

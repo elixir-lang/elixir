@@ -15,6 +15,7 @@ Elixir deprecations happen in 3 steps:
 
 Deprecated feature                               | Deprecated in | Replaced by (available since)
 :----------------------------------------------- | :------------ | :----------------------------
+`Enum.partition/2`                               | [v1.6]        | `Enum.split_with/2` (v1.4)
 `Atom.to_char_list/1`                            | [v1.5]        | `Atom.to_charlist/1` (v1.3)
 `Enum.filter_map/3`                              | [v1.5]        | `Enum.filter/2` + `Enum.map/2` or for comprehensions (v1.0)
 `Float.to_char_list/1`                           | [v1.5]        | `Float.to_charlist/1` (v1.3)
@@ -69,3 +70,4 @@ Empty string in `String.starts_with?/2`, `String.ends_with?/2`, `String.contains
 [v1.3]: https://github.com/elixir-lang/elixir/blob/v1.3/CHANGELOG.md#4-deprecations
 [v1.4]: https://github.com/elixir-lang/elixir/blob/v1.4/CHANGELOG.md#4-deprecations
 [v1.5]: https://github.com/elixir-lang/elixir/blob/v1.5/CHANGELOG.md#4-deprecations
+[v1.6]: https://github.com/elixir-lang/elixir/blob/master/CHANGELOG.md#4-deprecations
