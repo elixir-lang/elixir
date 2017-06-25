@@ -1155,7 +1155,7 @@ defmodule Stream do
   @spec cycle(Enumerable.t) :: Enumerable.t
   def cycle(enumerable)
 
-  def cycle(enumerable) when length(enumerable) == 0 do
+  def cycle([]) do
     raise ArgumentError, "cannot cycle over empty enumerable"
   end
 
