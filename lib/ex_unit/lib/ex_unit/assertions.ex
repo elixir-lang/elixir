@@ -260,7 +260,7 @@ defmodule ExUnit.Assertions do
     nil
   end
 
-  defp translate_assertion(kind, {_, _, [left, right]} = expr, call, message, true, caller) do
+  defp translate_assertion(kind, {_, _, [left, right]} = expr, call, message, true, _caller) do
     expr = escape_quoted(kind, expr)
 
     quote do
@@ -281,7 +281,7 @@ defmodule ExUnit.Assertions do
     end
   end
 
-  defp translate_assertion(kind, {_, _, [left, right]} = expr, call, message, false, caller) do
+  defp translate_assertion(kind, {_, _, [left, right]} = expr, call, message, false, _caller) do
     expr = escape_quoted(kind, expr)
 
     quote do
@@ -513,29 +513,6 @@ defmodule ExUnit.Assertions do
         {node, acc}
     end)
     |> elem(1)
-  end
-
-  defp collect_vars_used_in_expression({name, _meta, context} = _var, _existing_vars)
-       when is_atom(name) and is_atom(context) do
-    []
-  end
-
-  defp collect_vars_used_in_expression(expr, existing_vars) do
-    {_ast, vars} =
-      Macro.prewalk(expr, [], fn
-        {name, _meta, nil} = var, acc when is_atom(name) ->
-          if {name, nil} in existing_vars do
-            {:ok, [{name, var} | acc]}
-          else
-            {:ok, acc}
-          end
-        other, acc ->
-          {other, acc}
-      end)
-
-    vars
-    |> Enum.reverse()
-    |> Enum.uniq_by(&elem(&1, 0))
   end
 
   defp no_warning({name, meta, [expr, [do: clauses]]}) do
