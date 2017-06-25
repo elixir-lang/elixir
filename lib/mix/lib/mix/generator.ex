@@ -32,6 +32,22 @@ defmodule Mix.Generator do
   end
 
   @doc """
+  Destroy a file.
+
+  ## Examples
+
+      iex> Mix.Generator.destroy_file(".gitignore")
+      * removing .gitignore
+      :ok
+
+  """
+  @spec destroy_file(Path.t) :: any
+  def destroy_file(path) when is_binary(path) do
+    Mix.shell.info [:red, "* removing ", :reset, Path.relative_to_cwd(path)]
+    File.rm!(path)
+  end
+
+  @doc """
   Creates a directory if one does not exist yet.
 
   This function does nothing if the given directory already exists; in this
@@ -49,6 +65,30 @@ defmodule Mix.Generator do
     Mix.shell.info [:green, "* creating ", :reset, Path.relative_to_cwd(path)]
     File.mkdir_p! path
   end
+
+  @doc """
+  Destroy a directory if exist.
+
+  ## Options
+
+    * `:force` - force to remove the directroy using `File.rm_rf!`, so use it carefully.
+
+  ## Examples
+
+      iex> Mix.Generator.destroy_directory("path/to/dir")
+      * removing path/to/dir
+      :ok
+
+  """
+  @spec destroy_directory(Path.t, keyword) :: any
+  def destroy_directory(path, opts \\ []) when is_binary(path) do
+    Mix.shell.info [:red, "* removing ", :reset, Path.relative_to_cwd(path)]
+
+    do_destroy_directory(path, opts[:force])
+  end
+
+  defp do_destroy_directory(path, true), do: File.rm_rf! path
+  defp do_destroy_directory(path, _), do: File.rmdir! path
 
   @doc """
   Embeds a template given by `contents` into the current module.
