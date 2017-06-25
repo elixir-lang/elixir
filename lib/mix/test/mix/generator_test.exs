@@ -73,4 +73,37 @@ defmodule Mix.GeneratorTest do
       assert_received {:mix_shell, :info, ["* removing foo"]}
     end
   end
+
+  test "destroy a directory" do
+    in_tmp "destroy_directory", fn ->
+      create_directory("new_directory")
+      destroy_directory "new_directory"
+
+      assert_received {:mix_shell, :info, ["* removing new_directory"]}
+    end
+  end
+
+  test "destroy a directory with files" do
+    in_tmp "destroy_directory", fn ->
+      create_directory("new_directory")
+      create_file "new_directory/foo", "HELLO"
+      create_file "new_directory/bar", "WORLD"
+    
+      assert_raise File.Error, fn ->
+        destroy_directory "new_directory"
+      end
+    end
+  end
+
+  test "force to destroy the directory" do
+    in_tmp "destroy_directory", fn ->
+      create_directory("new_directory")
+      create_file "new_directory/foo", "HELLO"
+      create_file "new_directory/bar", "WORLD"
+
+      destroy_directory "new_directory", force: true
+    
+      assert_received {:mix_shell, :info, ["* removing new_directory"]}
+    end
+  end
 end
