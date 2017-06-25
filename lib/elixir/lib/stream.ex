@@ -1155,6 +1155,10 @@ defmodule Stream do
   @spec cycle(Enumerable.t) :: Enumerable.t
   def cycle(enumerable)
 
+  def cycle([]) do
+    raise ArgumentError, "cannot cycle over empty enumerable"
+  end
+
   def cycle(enumerable) when is_list(enumerable) do
     unfold {enumerable, enumerable}, fn
       {source, [h | t]}      -> {h, {source, t}}
@@ -1185,6 +1189,8 @@ defmodule Stream do
       {:stream_cycle, acc} ->
         {:halted, acc}
     else
+      {state, []} when state in [:done, :halted] ->
+        raise ArgumentError, "cannot cycle over empty enumerable"
       {state, acc} when state in [:done, :halted] ->
         do_cycle(cycle, cycle, {:cont, acc})
       {:suspended, acc, continuation} ->
