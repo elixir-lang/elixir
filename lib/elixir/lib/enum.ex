@@ -1663,8 +1663,8 @@ defmodule Enum do
   end
 
   @doc false
-  # TODO: Deprecate by v1.6 (hard-deprecation)
-  @spec partition(t, (element -> any)) :: {list, list}
+  # TODO: Remove on 2.0
+  # (hard-deprecated in elixir_dispatch)
   def partition(enumerable, fun) do
     split_with(enumerable, fun)
   end

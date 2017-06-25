@@ -64,15 +64,6 @@ defmodule Mix.Hex do
   Returns the URL to the Hex mirror.
   """
   def mirror do
-    System.get_env("HEX_MIRROR") || cdn() || @hex_mirror
-  end
-
-  # TODO: Remove by 1.4
-  defp cdn do
-    if cdn = System.get_env("HEX_CDN") do
-      Mix.shell.error "warning: the HEX_CDN environment variable has been deprecated " <>
-                      "in favor of HEX_MIRROR"
-      cdn
-    end
+    System.get_env("HEX_MIRROR") || @hex_mirror
   end
 end

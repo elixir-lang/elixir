@@ -84,7 +84,7 @@ defmodule System do
     | :microsecond
     | :nanosecond
     | pos_integer
-    # TODO: Deprecate these in Elixir 2.0
+    # TODO: Warn all old mappings once Elixir requires Erlang/OTP 19.1+
     | :seconds
     | :milliseconds
     | :microseconds
@@ -836,7 +836,6 @@ defmodule System do
   defp normalize_time_unit(:native),
     do: :native
 
-  # TODO: Remove these mappings once Elixir requires Erlang/OTP 19.1
   defp normalize_time_unit(:second),
     do: :seconds
   defp normalize_time_unit(:millisecond),
@@ -846,7 +845,6 @@ defmodule System do
   defp normalize_time_unit(:nanosecond),
     do: :nano_seconds
 
-  # TODO: Warn on Elixir 1.5
   defp normalize_time_unit(:seconds),
     do: :seconds
   defp normalize_time_unit(:milliseconds),
@@ -859,7 +857,6 @@ defmodule System do
   defp normalize_time_unit(unit) when is_integer(unit) and unit > 0,
     do: unit
 
-  # TODO: Warn on Elixir 1.5
   defp normalize_time_unit(erlang_unit)
       when erlang_unit in [:milli_seconds, :micro_seconds, :nano_seconds] do
     erlang_unit

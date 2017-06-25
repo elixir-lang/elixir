@@ -266,18 +266,15 @@ defmodule ModuleTest do
     assert :erlang.phash2(atoms) == 53987778
   end
 
-  # TODO: Remove this check once we depend only on 19
-  if :erlang.system_info(:otp_release) >= '19' do
-    test "create with generated true does not emit warnings" do
-      contents =
-        quote generated: true do
-          def world, do: true
-          def world, do: false
-        end
-      {:module, ModuleCreateGenerated, _, _} =
-        Module.create(ModuleCreateGenerated, contents, __ENV__)
-      assert ModuleCreateGenerated.world
-    end
+  test "create with generated true does not emit warnings" do
+    contents =
+      quote generated: true do
+        def world, do: true
+        def world, do: false
+      end
+    {:module, ModuleCreateGenerated, _, _} =
+      Module.create(ModuleCreateGenerated, contents, __ENV__)
+    assert ModuleCreateGenerated.world
   end
 
   # TODO: Remove this check once we depend only on 20
