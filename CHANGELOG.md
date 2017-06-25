@@ -134,7 +134,7 @@ Overall, using `@impl` has the following advantages:
 
 This release brings further improvements to Calendar types. It adds arithmetic and others functions to `Time`, `Date`, `NaiveDateTime` and `Datetime` as well as conversion between different calendars.
 
-## v1.5.0-dev
+## v1.5.0-rc.0 (2017-06-25)
 
 ### 1. Enhancements
 
@@ -174,7 +174,6 @@ This release brings further improvements to Calendar types. It adds arithmetic a
 #### ExUnit
 
   * [ExUnit] Show code snippet from test source file in case of test errors
-  * [ExUnit] Show the value of variables used in an assertion
   * [ExUnit] Use `Exception.blame/3` when formatting test errors
   * [ExUnit] Make `assert_raise/2` fail if the underlying exception has a broken `message/1` implementation
   * [ExUnit] Add `start_supervised/2` and `stop_supervised/1` to ExUnit. Processes started by this function are automatically shut down when the test exits
@@ -205,6 +204,7 @@ This release brings further improvements to Calendar types. It adds arithmetic a
   * [Kernel] Support guards on anonymous functions of zero arity
   * [Kernel] Fix compilation of maps used as maps keys inside matches
   * [Record] Properly escape quoted expressions passed to `defrecord`
+  * [Regex] Fix `inspect/2` for regexes with `/` terminator in them
   * [String] Consider Unicode non-characters valid according to the specification in `String.valid?/1`
 
 #### ExUnit
