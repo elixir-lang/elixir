@@ -32,6 +32,22 @@ defmodule Mix.Generator do
   end
 
   @doc """
+  Destroy a file.
+
+  ## Examples
+
+      iex> Mix.Generator.destroy_file(".gitignore")
+      * removing .gitignore
+      :ok
+
+  """
+  @spec destroy_file(Path.t) :: any
+  def destroy_file(path) when is_binary(path) do
+    Mix.shell.info [:red, "* removing ", :reset, Path.relative_to_cwd(path)]
+    File.rm!(path)
+  end
+
+  @doc """
   Creates a directory if one does not exist yet.
 
   This function does nothing if the given directory already exists; in this

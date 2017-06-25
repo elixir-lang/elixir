@@ -64,4 +64,13 @@ defmodule Mix.GeneratorTest do
       assert_received {:mix_shell, :yes?, ["foo already exists, overwrite?"]}
     end
   end
+
+  test "destroy a file" do
+    in_tmp "destroy_file", fn ->
+      create_file "foo", "HELLO WORLD"
+      destroy_file("foo")
+
+      assert_received {:mix_shell, :info, ["* removing foo"]}
+    end
+  end
 end
