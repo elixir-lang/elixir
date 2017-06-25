@@ -765,11 +765,11 @@ defmodule Kernel.Typespec do
         {{:optional, meta2, [k]}, v} ->
           {:type, line(meta2), :map_field_assoc, [typespec(k, vars, caller), typespec(v, vars, caller)]}
         {k, v} ->
-          # TODO: Emit warnings on v1.6 (when we drop OTP 18 support)
-          # :elixir_errors.warn(caller.line, caller.file,
-          #   "invalid map specification. %{foo => bar} is deprecated in favor of " <>
-          #   "%{required(foo) => bar} and %{optional(foo) => bar}. required/1 is an " <>
-          #   "OTP 19 only feature, if you are targeting OTP 18 use optional/1.")
+          warning =
+            "invalid map specification. %{foo => bar} is deprecated in favor of " <>
+            "%{required(foo) => bar} and %{optional(foo) => bar}. required/1 is an " <>
+            "OTP 19 only feature, if you are targeting OTP 18 use optional/1."
+          :elixir_errors.warn(caller.line, caller.file, warning)
           {:type, line(meta), :map_field_assoc, [typespec(k, vars, caller), typespec(v, vars, caller)]}
         {:|, _, [_, _]} ->
           compile_error(caller,
