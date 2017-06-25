@@ -190,9 +190,7 @@ defmodule String.Break do
   # Split
 
   def split(string) do
-    for piece <- :binary.split(string, unquote(whitespace -- non_breakable), [:global]),
-        piece != "",
-        do: piece
+    :binary.split(string, unquote(whitespace -- non_breakable), [:global, :trim_all])
   end
 
   # Decompose
