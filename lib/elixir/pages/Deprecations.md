@@ -17,7 +17,6 @@ Deprecated feature                               | Deprecated in | Replaced by (
 :----------------------------------------------- | :------------ | :----------------------------
 `%{key => value}` in typespecs                   | [v1.6]        | `%{required(key) => value}` or `%{optional(key) => value}` (v1.4 and OTP 19)
 `Enum.partition/2`                               | [v1.6]        | `Enum.split_with/2` (v1.4)
-`<%=` in middle and end expressions              | [v1.5]        | `<%=` in the start expression (v1.0)
 `Atom.to_char_list/1`                            | [v1.5]        | `Atom.to_charlist/1` (v1.3)
 `Enum.filter_map/3`                              | [v1.5]        | `Enum.filter/2` + `Enum.map/2` or for comprehensions (v1.0)
 `Float.to_char_list/1`                           | [v1.5]        | `Float.to_charlist/1` (v1.3)
@@ -36,6 +35,7 @@ Deprecated feature                               | Deprecated in | Replaced by (
 `:char_lists` key in `t:Inspect.Opts.t/0` type   | [v1.5]        | `:charlists` (v1.3)
 `char_list/0` type                               | [v1.5]        | `charlist/0` type (v1.3)
 `@compile {:parse_transform, _}` in `Module`     | [v1.5]        | *None*
+EEx: `<%=` in middle and end expressions         | [v1.5]        | Use `<%` (= is allowed only on start expressions) (v1.0)
 `Access.key/1`                                   | [v1.4]        | `Access.key/2` (v1.3)
 `Behaviour` module                               | [v1.4]        | `@callback` (v1.0)
 `Enum.uniq/2`                                    | [v1.4]        | `Enum.uniq_by/2` (v1.2)
