@@ -33,6 +33,7 @@ Deprecated feature                               | Deprecated in | Replaced by (
 `:char_lists` key in `t:Inspect.Opts.t/0` type   | [v1.5]        | `:charlists` (v1.3)
 `char_list/0` type                               | [v1.5]        | `charlist/0` type (v1.3)
 `@compile {:parse_transform, _}` in `Module`     | [v1.5]        | *None*
+EEx: `<%=` in middle and end expressions         | [v1.5]        | Use `<%` (= is allowed only on start expressions) (v1.0)
 `Access.key/1`                                   | [v1.4]        | `Access.key/2` (v1.3)
 `Behaviour` module                               | [v1.4]        | `@callback` (v1.0)
 `Enum.uniq/2`                                    | [v1.4]        | `Enum.uniq_by/2` (v1.2)
