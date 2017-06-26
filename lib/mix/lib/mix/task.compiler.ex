@@ -36,7 +36,7 @@ defmodule Mix.Task.Compiler do
   @doc """
   Removes build artifacts and manifests.
   """
-  @callback clean() :: term
+  @callback clean() :: any
 
   @optional_callbacks clean: 0, manifests: 0
 
