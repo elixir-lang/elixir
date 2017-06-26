@@ -367,7 +367,7 @@ defmodule Stream do
 
   @doc """
   Lazily drops elements of the enumerable while the given
-  function returns `true`.
+  function returns a truthy value.
 
   ## Examples
 
@@ -714,7 +714,7 @@ defmodule Stream do
 
   @doc """
   Lazily takes elements of the enumerable while the given
-  function returns `true`.
+  function returns a truthy value.
 
   ## Examples
 
