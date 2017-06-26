@@ -48,10 +48,17 @@ defmodule Mix.Task do
   @doc false
   defmacro __using__(_opts) do
     quote do
-      Enum.each [:shortdoc, :recursive, :preferred_cli_env],
+      Enum.each Mix.Task.supported_attributes,
         &Module.register_attribute(__MODULE__, &1, persist: true)
       @behaviour Mix.Task
     end
+  end
+
+  @doc """
+  A list of attributes that can be set for configuration and documentation
+  """
+  def supported_attributes do
+    [:shortdoc, :recursive, :preferred_cli_env]
   end
 
   @doc """

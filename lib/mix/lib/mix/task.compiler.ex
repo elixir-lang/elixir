@@ -18,17 +18,8 @@ defmodule Mix.Task.Compiler do
   define `manifests/0`, and if it writes any output to disk it should
   also define `clean/0`.
 
-  ## Attributes
-
-  The following attributes are used the same way as in other Mix tasks:
-
-    * `@shortdoc`  - makes the task public with a short description that appears on `mix help`
-    * `@recursive` - runs the task recursively in umbrella projects
-    * `@preferred_cli_env` - recommends environment to run task. It is used in absence of
-      a Mix project recommendation, or explicit `MIX_ENV`, and it only works for tasks
-      in the current project. `@preferred_cli_env` is not loaded from dependencies as
-      we need to know the environment before dependencies are loaded.
-
+  A compiler supports the same attributes for configuration and
+  documentation as a regular Mix task.
   """
 
   @doc """
@@ -52,7 +43,7 @@ defmodule Mix.Task.Compiler do
   @doc false
   defmacro __using__(_opts) do
     quote do
-      Enum.each [:shortdoc, :recursive, :preferred_cli_env],
+      Enum.each Mix.Task.supported_attributes,
         &Module.register_attribute(__MODULE__, &1, persist: true)
       @behaviour Mix.Task.Compiler
     end
