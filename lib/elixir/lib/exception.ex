@@ -18,7 +18,7 @@ defmodule Exception do
   @type t :: %{
     required(:__struct__) => module,
     required(:__exception__) => true,
-    atom => any
+    optional(atom) => any,
   }
 
   @typedoc "The kind handled by formatting functions"

@@ -690,8 +690,6 @@ defmodule Kernel.TypespecTest do
       quote(do: @type literal_map_with_key() :: %{key: integer()}),
       quote(do: @type literal_map_with_required_key() :: %{required(bitstring()) => integer()}),
       quote(do: @type literal_map_with_optional_key() :: %{optional(bitstring()) => integer()}),
-      # TODO: Remove by 1.5, when the following line with give a warning
-      quote(do: @type literal_map_with_arrow() :: %{any() => any()}),
       quote(do: @type literal_struct_all_fields_any_type() :: %SomeStruct{}),
       quote(do: @type literal_struct_all_fields_key_type() :: %SomeStruct{key: integer()}),
       quote(do: @type literal_empty_tuple() :: {}),
@@ -759,10 +757,6 @@ defmodule Kernel.TypespecTest do
 
         {:literal_keyword_list_fixed_key2, _, _} ->
           assert ast_string == "@type(literal_keyword_list_fixed_key2() :: [{:key, integer()}])"
-
-        # TODO: Remove by 1.5
-        {:literal_map_with_arrow, _, _} ->
-          assert ast_string == "@type(literal_map_with_arrow() :: %{optional(any()) => any()})"
 
         {:literal_struct_all_fields_any_type, _, _} ->
           assert ast_string == "@type(literal_struct_all_fields_any_type() :: %Kernel.TypespecTest.SomeStruct{key: term()})"
