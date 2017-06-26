@@ -59,7 +59,7 @@ defmodule IEx.Evaluator do
   @doc """
   Returns the named fields from the current session environment.
   """
-  @spec fields_from_env(pid, [atom]) :: %{atom => term}
+  @spec fields_from_env(pid, [atom]) :: %{optional(atom) => term}
   def fields_from_env(evaluator, fields) do
     ref = make_ref()
     send evaluator, {:fields_from_env, ref, self(), fields}
