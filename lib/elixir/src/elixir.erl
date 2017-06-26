@@ -271,6 +271,7 @@ string_to_quoted(String, StartLine, File, Opts) when is_integer(StartLine), is_b
   case elixir_tokenizer:tokenize(String, StartLine, [{file, File} | Opts]) of
     {ok, _Line, _Column, Tokens} ->
       put(elixir_parser_file, File),
+      handle_parsing_opts(Opts),
       try elixir_parser:parse(Tokens) of
         {ok, Forms} -> {ok, Forms};
         {error, {{Line, _, _}, _, [Error, Token]}} -> {error, {Line, to_binary(Error), to_binary(Token)}};
@@ -297,3 +298,11 @@ string_to_quoted(String, StartLine, File, Opts) when is_integer(StartLine), is_b
 
 to_binary(List) when is_list(List) -> elixir_utils:characters_to_binary(List);
 to_binary(Atom) when is_atom(Atom) -> atom_to_binary(Atom, utf8).
+
+handle_parsing_opts(Opts) ->
+  case lists:keyfind(metadata_in_literals, 1, Opts) of
+    {metadata_in_literals, MetadataInLiteralsBool} when
+        is_boolean(MetadataInLiteralsBool) ->
+      put(metadata_in_literals, MetadataInLiteralsBool);
+    _ -> put(metadata_in_literals, false)
+  end.

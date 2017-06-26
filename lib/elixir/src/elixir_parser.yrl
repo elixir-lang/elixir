@@ -242,14 +242,14 @@ access_expr -> open_paren ';' stab ';' close_paren : build_stab(reverse('$3')).
 access_expr -> open_paren ';' stab close_paren : build_stab(reverse('$3')).
 access_expr -> open_paren ';' close_paren : build_stab([]).
 access_expr -> empty_paren : warn_empty_paren('$1'), nil.
-access_expr -> number : ?exprs('$1').
-access_expr -> char : ?exprs('$1').
+access_expr -> number : handle_literal(?exprs('$1'), '$1').
+access_expr -> char : handle_literal(?exprs('$1'), '$1').
 access_expr -> list : element(1, '$1').
 access_expr -> map : '$1'.
 access_expr -> tuple : '$1'.
-access_expr -> 'true' : ?id('$1').
-access_expr -> 'false' : ?id('$1').
-access_expr -> 'nil' : ?id('$1').
+access_expr -> 'true' : handle_literal(?id('$1'), '$1').
+access_expr -> 'false' : handle_literal(?id('$1'), '$1').
+access_expr -> 'nil' : handle_literal(?id('$1'), '$1').
 access_expr -> bin_string  : build_bin_string('$1').
 access_expr -> list_string : build_list_string('$1').
 access_expr -> bit_string : '$1'.
@@ -257,7 +257,7 @@ access_expr -> sigil : build_sigil('$1').
 access_expr -> max_expr : '$1'.
 
 %% Aliases and properly formed calls. Used by map_expr.
-max_expr -> atom : ?exprs('$1').
+max_expr -> atom : handle_literal(?exprs('$1'), '$1').
 max_expr -> atom_safe : build_quoted_atom('$1', true).
 max_expr -> atom_unsafe : build_quoted_atom('$1', false).
 max_expr -> parens_call call_args_parens : build_identifier('$1', '$2').
@@ -278,9 +278,9 @@ bracket_at_expr -> at_op_eol access_expr bracket_arg :
 
 %% Blocks
 
-do_block -> do_eoe 'end' : [[{do, nil}]].
+do_block -> do_eoe 'end' : [[{do, handle_literal(nil, '$1')}]].
 do_block -> do_eoe stab end_eoe : [[{do, build_stab(reverse('$2'))}]].
-do_block -> do_eoe block_list 'end' : [[{do, nil} | '$2']].
+do_block -> do_eoe block_list 'end' : [[{do, handle_literal(nil, '$1')} | '$2']].
 do_block -> do_eoe stab_eoe block_list 'end' : [[{do, build_stab(reverse('$2'))} | '$3']].
 
 eoe -> eol : '$1'.
@@ -326,7 +326,7 @@ stab_op_eol_and_expr -> stab_op_eol expr : {'$1', '$2'}.
 stab_op_eol_and_expr -> stab_op_eol : warn_empty_stab_clause('$1'), {'$1', nil}.
 
 block_item -> block_eoe stab_eoe : {?exprs('$1'), build_stab(reverse('$2'))}.
-block_item -> block_eoe : {?exprs('$1'), nil}.
+block_item -> block_eoe : {?exprs('$1'), handle_literal(nil, '$1')}.
 
 block_list -> block_item : ['$1'].
 block_list -> block_item block_list : ['$1' | '$2'].
@@ -614,6 +614,14 @@ meta_from_token(Token) -> meta_from_location(?location(Token)).
 meta_from_location({Line, Column, EndColumn})
   when is_integer(Line), is_integer(Column), is_integer(EndColumn) -> [{line, Line}].
 
+%% Handle metadata in literals
+
+handle_literal(Literal, Token) ->
+  case get(metadata_in_literals) of
+    true  -> {'__block__', meta_from_token(Token), [Literal]};
+    false -> Literal
+  end.
+
 %% Operators
 
 build_op({_Kind, Location, 'in'}, {UOp, _, [Left]}, Right) when ?rearrange_uop(UOp) ->
@@ -715,19 +723,20 @@ build_sigil({sigil, Location, Sigil, Parts, Modifiers}) ->
   Meta = meta_from_location(Location),
   {list_to_atom("sigil_" ++ [Sigil]), Meta, [{'<<>>', Meta, string_parts(Parts)}, Modifiers]}.
 
-build_bin_string({bin_string, _Location, [H]}) when is_binary(H) ->
-  H;
+build_bin_string({bin_string, _Location, [H]} = Token) when is_binary(H) ->
+  handle_literal(H, Token);
 build_bin_string({bin_string, Location, Args}) ->
   {'<<>>', meta_from_location(Location), string_parts(Args)}.
 
-build_list_string({list_string, _Location, [H]}) when is_binary(H) ->
-  elixir_utils:characters_to_list(H);
+build_list_string({list_string, _Location, [H]} = Token) when is_binary(H) ->
+  handle_literal(elixir_utils:characters_to_list(H), Token);
 build_list_string({list_string, Location, Args}) ->
   Meta = meta_from_location(Location),
   {{'.', Meta, ['Elixir.String', to_charlist]}, Meta, [{'<<>>', Meta, string_parts(Args)}]}.
 
-build_quoted_atom({_, _Location, [H]}, Safe) when is_binary(H) ->
-  Op = binary_to_atom_op(Safe), erlang:Op(H, utf8);
+build_quoted_atom({_, _Location, [H]} = Token, Safe) when is_binary(H) ->
+  Op = binary_to_atom_op(Safe),
+  handle_literal(erlang:Op(H, utf8), Token);
 build_quoted_atom({_, Location, Args}, Safe) ->
   Meta = meta_from_location(Location),
   {{'.', Meta, [erlang, binary_to_atom_op(Safe)]}, Meta, [{'<<>>', Meta, string_parts(Args)}, utf8]}.
