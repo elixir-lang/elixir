@@ -181,6 +181,8 @@ This release brings further improvements to Calendar types. It adds arithmetic a
 
 #### IEx
 
+  * [IEx.Autocomplete] Support autocompletion of variable names
+  * [IEx.Autocomplete] Support autocompletion of functions imported using `import Mod, only: [...]`
   * [IEx.Evaluator] Use `Exception.blame/3` when showing errors in the terminal
   * [IEx.Helpers] Add `e/1` IEx helper to list all exports in a module
   * [IEx.Info] Implement `IEx.Info` protocol for calendar types
