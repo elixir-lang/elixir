@@ -548,7 +548,8 @@ defmodule Map do
 
   If `key` is present in `map` with value `value`, `fun` is invoked with
   argument `value` and its result is used as the new value of `key`. If `key` is
-  not present in `map`, `initial` is inserted as the value of `key`.
+  not present in `map`, `initial` is inserted as the value of `key`. The initial
+  value will not be passed through the update function.
 
   ## Examples
 
