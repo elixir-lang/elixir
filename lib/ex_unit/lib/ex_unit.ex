@@ -212,7 +212,8 @@ defmodule ExUnit do
     * `:timeout` - sets the timeout for the tests, defaults to `60_000` milliseconds;
 
     * `:trace` - sets ExUnit into trace mode, this sets `:max_cases` to `1` and
-      prints each test case and test while running.
+      prints each test case and test while running. Note that in trace mode test timeouts
+      will be ignored.
 
   """
   def configure(options) do
