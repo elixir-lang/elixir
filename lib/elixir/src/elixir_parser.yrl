@@ -77,7 +77,7 @@ Nonassoc 330 dot_identifier.
 
 %%% MAIN FLOW OF EXPRESSIONS
 
-grammar -> eoe : nil.
+grammar -> eoe : handle_literal(nil, '$1').
 grammar -> expr_list : to_block('$1').
 grammar -> eoe expr_list : to_block('$2').
 grammar -> expr_list eoe : to_block('$1').
