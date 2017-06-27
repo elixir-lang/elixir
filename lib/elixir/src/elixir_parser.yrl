@@ -617,8 +617,8 @@ meta_from_location({Line, Column, EndColumn})
 %% Handle metadata in literals
 
 handle_literal(Literal, Token) ->
-  case get(metadata_in_literals) of
-    true  -> {'__block__', meta_from_token(Token), [Literal]};
+  case get(wrap_literals_in_blocks) of
+    true -> {'__block__', meta_from_token(Token), [Literal]};
     false -> Literal
   end.
 

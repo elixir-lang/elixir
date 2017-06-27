@@ -116,6 +116,14 @@ defmodule CodeTest do
     assert catch_error(Code.string_to_quoted!(":there_is_no_such_atom", existing_atoms_only: true)) == :badarg
   end
 
+  test "string_to_quoted/2 with wrap_literals_in_blocks option" do
+    assert Code.string_to_quoted('"one"', wrap_literals_in_blocks: true) == {:ok, {:__block__, [line: 1], ["one"]}}
+    assert Code.string_to_quoted('"one"') == {:ok, "one"}
+    assert Code.string_to_quoted('1', wrap_literals_in_blocks: true) == {:ok, {:__block__, [line: 1], [1]}}
+    assert Code.string_to_quoted('nil', wrap_literals_in_blocks: true) == {:ok, {:__block__, [line: 1], [nil]}}
+    assert Code.string_to_quoted(':one', wrap_literals_in_blocks: true) == {:ok, {:__block__, [line: 1], [:one]}}
+  end
+
   test "compile source" do
     assert __MODULE__.__info__(:compile)[:source] == String.to_charlist(__ENV__.file)
   end
