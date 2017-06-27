@@ -283,7 +283,7 @@ defmodule StringIO do
            _ -> list_to_binary(input, encoding)
          end
 
-        {list_to_binary(result, encoding), state_after_read(s, input, prompt, count)}
+        {get_until_result(result, encoding), state_after_read(s, input, prompt, count)}
 
       :error ->
         {:error, s}
@@ -326,6 +326,11 @@ defmodule StringIO do
   defp list_to_binary(b, _)        when is_binary(b), do: b
   defp list_to_binary(l, :unicode) when is_list(l),   do: to_string(l)
   defp list_to_binary(l, :latin1)  when is_list(l),   do: :binary.list_to_bin(l)
+
+  # From http://erlang.org/doc/apps/stdlib/io_protocol.html: Result can be any
+  # Erlang term, but if it is a list(), the I/O server can convert it to a binary().
+  defp get_until_result(l, encoding) when is_list(l), do: list_to_binary(l, encoding)
+  defp get_until_result(other, _), do: other
 
   ## io_requests
 

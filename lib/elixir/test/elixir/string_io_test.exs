@@ -347,4 +347,18 @@ defmodule StringIOTest do
     result = get_until(pid, :latin1, "", GetUntilCallbacks, :until_eof)
     assert result == <<181, 255, 194, ?\n>>
   end
+
+  test ":io.erl_scan_form/2" do
+    pid = start("1.")
+    result = :io.scan_erl_form(pid, 'p>')
+    assert result == {:ok, [{:integer, 1, 1}, {:dot, 1}], 1}
+    assert StringIO.contents(pid) == {"", ""}
+  end
+
+  test ":io.erl_scan_form/2 with capture_prompt" do
+    pid = start("1.", capture_prompt: true)
+    result = :io.scan_erl_form(pid, 'p>')
+    assert result == {:ok, [{:integer, 1, 1}, {:dot, 1}], 1}
+    assert StringIO.contents(pid) == {"", "p>p>"}
+  end
 end
