@@ -274,56 +274,58 @@ defmodule StringIO do
 
   ## get_until
 
-  defp get_until(encoding, prompt, mod, fun, args,
-                 %{input: input, output: output, capture_prompt: capture_prompt} = s) do
-    case :unicode.characters_to_list(input, encoding) do
-      {:error, _, _} ->
-        {:error, s}
-      {:incomplete, _, _} ->
-        {:error, s}
-      chars ->
-        {result, input, count} = do_get_until(chars, encoding, mod, fun, args)
-
+  defp get_until(encoding, prompt, mod, fun, args, %{input: input} = s) do
+    case do_get_until(input, encoding, mod, fun, args) do
+      {result, input, count} ->
         input =
-          case input do
-            :eof -> ""
-            _ -> :unicode.characters_to_binary(input, encoding)
-          end
+         case input do
+           :eof -> ""
+           _ -> list_to_binary(input, encoding)
+         end
 
-        s =
-          if capture_prompt do
-            %{s | output: <<output::binary, :binary.copy(IO.chardata_to_string(prompt), count)::binary>>}
-          else
-            s
-          end
+        {list_to_binary(result, encoding), state_after_read(s, input, prompt, count)}
 
-        {result, %{s | input: input}}
+      :error ->
+        {:error, s}
     end
   end
 
   defp do_get_until(chars, encoding, mod, fun, args, continuation \\ [], count \\ 0)
 
-  defp do_get_until('', encoding, mod, fun, args, continuation, count) do
+  defp do_get_until("", encoding, mod, fun, args, continuation, count) do
     case apply(mod, fun, [continuation, :eof | args]) do
       {:done, result, rest} ->
         {result, rest, count + 1}
       {:more, next_continuation} ->
-        do_get_until('', encoding, mod, fun, args, next_continuation, count + 1)
+        do_get_until("", encoding, mod, fun, args, next_continuation, count + 1)
     end
   end
 
   defp do_get_until(chars, encoding, mod, fun, args, continuation, count) do
-    {line, rest} = collect_line(chars)
+    case bytes_until_eol(chars, encoding, 0) do
+      {r, c} when r in [:split, :replace_split] ->
+        {line, rest} = :erlang.split_binary(chars, c)
 
-    case apply(mod, fun, [continuation, line | args]) do
-      {:done, result, :eof} ->
-        {result, rest, count + 1}
-      {:done, result, extra} ->
-        {result, extra ++ rest, count + 1}
-      {:more, next_continuation} ->
-        do_get_until(rest, encoding, mod, fun, args, next_continuation, count + 1)
+        case apply(mod, fun, [continuation, binary_to_list(line, encoding) | args]) do
+          {:done, result, :eof} ->
+            {result, rest, count + 1}
+          {:done, result, extra} ->
+            {result, extra ++ binary_to_list(rest, encoding), count + 1}
+          {:more, next_continuation} ->
+            do_get_until(rest, encoding, mod, fun, args, next_continuation, count + 1)
+        end
+
+      :error ->
+        :error
     end
   end
+
+  defp binary_to_list(l, _)        when is_list(l),   do: l
+  defp binary_to_list(b, :unicode) when is_binary(b), do: to_charlist(b)
+  defp binary_to_list(b, :latin1)  when is_binary(b), do: :binary.bin_to_list(b)
+  defp list_to_binary(b, _)        when is_binary(b), do: b
+  defp list_to_binary(l, :unicode) when is_list(l),   do: to_string(l)
+  defp list_to_binary(l, :latin1)  when is_list(l),   do: :binary.list_to_bin(l)
 
   ## io_requests
 
@@ -337,12 +339,14 @@ defmodule StringIO do
 
   ## helpers
 
-  defp state_after_read(%{capture_prompt: false} = s, remainder, _prompt) do
+  defp state_after_read(state, remainder, prompt, count \\ 1)
+
+  defp state_after_read(%{capture_prompt: false} = s, remainder, _prompt, _count) do
     %{s | input: remainder}
   end
 
-  defp state_after_read(%{capture_prompt: true, output: output} = s, remainder, prompt) do
-    %{s | input: remainder, output: <<output::binary, IO.chardata_to_string(prompt)::binary>>}
+  defp state_after_read(%{capture_prompt: true, output: output} = s, remainder, prompt, count) do
+    %{s | input: remainder, output: <<output::binary, :binary.copy(IO.chardata_to_string(prompt), count)::binary>>}
   end
 
   defp bytes_until_eol("", _, count), do: {:split, count}
@@ -358,26 +362,6 @@ defmodule StringIO do
   end
 
   defp bytes_until_eol(<<_::binary>>, _, _), do: :error
-
-  defp collect_line(chars) do
-    collect_line(chars, [])
-  end
-
-  defp collect_line([], stack) do
-    {:lists.reverse(stack), []}
-  end
-
-  defp collect_line([?\r, ?\n | rest], stack) do
-    {:lists.reverse([?\n | stack]), rest}
-  end
-
-  defp collect_line([?\n | rest], stack) do
-    {:lists.reverse([?\n | stack]), rest}
-  end
-
-  defp collect_line([h | t], stack) do
-    collect_line(t, [h | stack])
-  end
 
   defp io_reply(from, reply_as, reply) do
     send from, {:io_reply, reply_as, reply}
