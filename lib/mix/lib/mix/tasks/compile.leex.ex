@@ -1,5 +1,5 @@
 defmodule Mix.Tasks.Compile.Leex do
-  use Mix.Task
+  use Mix.Task.Compiler
   alias Mix.Compilers.Erlang
 
   @recursive true

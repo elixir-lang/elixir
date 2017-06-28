@@ -1,5 +1,5 @@
 defmodule Mix.Tasks.Compile.Protocols do
-  use Mix.Task
+  use Mix.Task.Compiler
 
   @manifest ".compile.protocols"
   @manifest_vsn :v2
