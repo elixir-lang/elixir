@@ -63,7 +63,9 @@ defmodule Time do
   Expects all values to be integers. Returns `{:ok, time}` if each
   entry fits its appropriate range, returns `{:error, reason}` otherwise.
 
-  Note a time may have 60 seconds in case of leap seconds.
+  Note a time may have 60 seconds in case of leap seconds. Microseconds
+  can also be given with a precision, which must be an integer between
+  0 and 6.
 
   ## Examples
 
@@ -85,6 +87,10 @@ defmodule Time do
       iex> Time.new(23, 59, 61, 999_999)
       {:error, :invalid_time}
       iex> Time.new(23, 59, 59, 1_000_000)
+      {:error, :invalid_time}
+
+      # Invalid precision
+      Time.new(23, 59, 59, {999_999, 10})
       {:error, :invalid_time}
 
   """
