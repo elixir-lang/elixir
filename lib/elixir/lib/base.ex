@@ -106,11 +106,30 @@ defmodule Base do
     end
   end
 
-  defp encode_pair_clauses(alphabet, case) do
-    index = index(alphabet, case)
+  defp encode_pair_clauses(alphabet, case) when case in [:sensitive, :upper] do
     shift = shift(alphabet)
+    alphabet
+    |> Stream.with_index()
+    |> encode_clauses(shift)
+  end
 
-    for {encoding1, value1} <- index, {encoding2, value2} <- index do
+  defp encode_pair_clauses(alphabet, :lower) do
+    shift = shift(alphabet)
+    alphabet
+    |> Stream.map(fn c -> (if c in ?A..?Z, do: c - ?A + ?a, else: c) end)
+    |> Stream.with_index()
+    |> encode_clauses(shift)
+  end
+
+  defp shift(alphabet) do
+    alphabet
+    |> length()
+    |> :math.log2()
+    |> round()
+  end
+
+  defp encode_clauses(alphabet, shift) do
+    for {encoding1, value1} <- alphabet, {encoding2, value2} <- alphabet do
       encoding = bsl(encoding1, 8) + encoding2
       value = bsl(value1, shift) + value2
       [clause] = quote do: (unquote(value) -> unquote(encoding))
@@ -126,49 +145,77 @@ defmodule Base do
     end
   end
 
-  defp decode_char_clauses(alphabet, case) do
-    index = index(alphabet, case)
-
+  defp decode_char_clauses(alphabet, case) when case in [:sensitive, :upper] do
     clauses =
-      for {encoding, value} <- index do
-        [clause] = quote do: (unquote(encoding) -> unquote(value))
-        clause
+      alphabet
+      |> Stream.with_index()
+      |> decode_clauses()
+    clauses ++ bad_digit_clause()
+  end
+
+  defp decode_char_clauses(alphabet, :lower) do
+    {uppers, rest} =
+      alphabet
+      |> Stream.with_index()
+      |> Enum.split_with(fn {c, _} -> c in ?A..?Z end)
+    lowers = Stream.map(uppers,
+      fn {encoding, value} -> {encoding - ?A + ?a, value} end)
+
+    if length(uppers) > length(rest) do
+      decode_mixed_clauses(lowers, rest)
+    else
+      decode_mixed_clauses(rest, lowers)
+    end
+  end
+
+  defp decode_char_clauses(alphabet, :mixed) when length(alphabet) == 16 do
+    alphabet = Stream.with_index(alphabet)
+    lowers =
+      alphabet
+      |> Stream.filter(fn {encoding, _} -> encoding in ?A..?Z end)
+      |> Stream.map(fn {encoding, value} -> {encoding - ?A + ?a, value} end)
+    decode_mixed_clauses(alphabet, lowers)
+  end
+
+  defp decode_char_clauses(alphabet, :mixed) when length(alphabet) == 32 do
+    alphabet
+    |> Stream.with_index()
+    |> Stream.flat_map(fn {encoding, value} = pair ->
+        if encoding in ?A..?Z do
+          [pair, {encoding - ?A + ?a, value}]
+        else
+          [pair]
+        end
+      end)
+    |> decode_clauses()
+  end
+
+  defp decode_mixed_clauses(first, second) do
+    first_clauses = decode_clauses(first)
+    second_clauses = decode_clauses(second) ++ bad_digit_clause()
+    join_clause =
+      quote do
+        encoding ->
+          case encoding do
+            unquote(second_clauses)
+          end
       end
-
-    bad_char_clause = quote do: (c -> raise ArgumentError, bad_digit(c))
-
-    clauses ++ bad_char_clause
+    first_clauses ++ join_clause
   end
 
-  defp shift(alphabet) do
-    alphabet
-    |> length()
-    |> :math.log2()
-    |> round()
+  defp decode_clauses(alphabet) do
+    for {encoding, value} <- alphabet do
+      [clause] = quote do: (unquote(encoding) -> unquote(value))
+      clause
+    end
   end
 
-  defp to_lower(char) when char in ?A..?Z, do: char - ?A + ?a
-  defp to_lower(char), do: char
-
-  defp index(alphabet, case) when case in [:sensitive, :upper] do
-    Stream.with_index(alphabet)
-  end
-
-  defp index(alphabet, :lower) do
-    alphabet
-    |> index(:sensitive)
-    |> Stream.map(fn {encoding, value} -> {to_lower(encoding), value} end)
-  end
-
-  defp index(alphabet, :mixed) do
-    [index(alphabet, :upper), index(alphabet, :lower)]
-    |> Stream.concat()
-    |> Stream.uniq()
-  end
-
-
-  defp bad_digit(c) do
-    "non-alphabet digit found: #{inspect <<c>>, binaries: :as_strings} (byte #{c})"
+  defp bad_digit_clause() do
+    quote do
+      c ->
+        raise ArgumentError,
+          "non-alphabet digit found: #{inspect <<c>>, binaries: :as_strings} (byte #{c})"
+    end
   end
 
   defp maybe_pad(subject, false, _, _),
