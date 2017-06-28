@@ -19,7 +19,7 @@ defmodule Mix.Task.Compiler do
   also define `clean/0`.
 
   A compiler supports the same attributes for configuration and
-  documentation as a regular Mix task.
+  documentation as a regular Mix task. See `Mix.Task` for more information.
   """
 
   @doc """
