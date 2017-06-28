@@ -805,12 +805,12 @@ defmodule Base do
           <<main::binary, unquote(fun)(c1)::16, unquote(fun)(c2)::16,
             unquote(fun)(c3)::16, unquote(fun)(c4)::16>>
         <<c1::8, c2::8, c3::8>> ->
-          <<unquote(fun)(c1)::16, unquote(fun)(c2)::16,
+          <<main::binary, unquote(fun)(c1)::16, unquote(fun)(c2)::16,
             unquote(fun)(c3)::16>>
         <<c1::8, c2::8>> ->
-          <<unquote(fun)(c1)::16, unquote(fun)(c2)::16>>
+          <<main::binary, unquote(fun)(c1)::16, unquote(fun)(c2)::16>>
         <<c1::8>> ->
-           <<unquote(fun)(c1)::16>>
+          <<main::binary, unquote(fun)(c1)::16>>
         <<>> ->
           main
       end
