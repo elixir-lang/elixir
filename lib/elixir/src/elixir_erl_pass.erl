@@ -513,7 +513,7 @@ translate_remote(Left, Right, Meta, Args, S) ->
       {{call, Ann, {remote, Ann, TLeft, TRight}, TArgs}, SC}
   end.
 
-is_always_string({{'.', _, [Module, Function]}, Args}) ->
+is_always_string({{'.', _, [Module, Function]}, _, Args}) ->
   is_always_string(Module, Function, length(Args));
 %% Binary literals were already excluded in earlier passes.
 is_always_string(_Ast) ->
