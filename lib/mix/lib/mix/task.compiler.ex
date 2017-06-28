@@ -43,8 +43,8 @@ defmodule Mix.Task.Compiler do
   @doc false
   defmacro __using__(_opts) do
     quote do
-      Enum.each Mix.Task.supported_attributes,
-        &Module.register_attribute(__MODULE__, &1, persist: true)
+      Enum.each(Mix.Task.supported_attributes(),
+        &Module.register_attribute(__MODULE__, &1, persist: true))
       @behaviour Mix.Task.Compiler
     end
   end
