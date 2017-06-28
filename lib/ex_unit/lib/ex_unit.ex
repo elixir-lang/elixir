@@ -138,10 +138,13 @@ defmodule ExUnit do
 
   @doc """
   Starts ExUnit and automatically runs tests right before the
-  VM terminates. It accepts a set of options to configure `ExUnit`
+  VM terminates.
+
+  It accepts a set of options to configure `ExUnit`
   (the same ones accepted by `configure/1`).
 
-  If you want to run tests manually, you can set `:autorun` to `false`.
+  If you want to run tests manually, you can set the `:autorun` option
+  to `false` and use `run/1` to run tests.
   """
   def start(options \\ []) do
     {:ok, _} = Application.ensure_all_started(:ex_unit)
@@ -195,7 +198,9 @@ defmodule ExUnit do
 
     * `:include` - specifies which tests are run by skipping tests that do not
       match the filter. Keep in mind that all tests are included by default, so unless they are
-      excluded first, the `:include` option has no effect;
+      excluded first, the `:include` option has no effect. To only run the tests
+      that match the `:include` filter, exclude the `:test` tag first (see the
+      documentation for `ExUnit.Case` for more information on tags);
 
     * `:max_cases` - maximum number of cases to run in parallel.
       It defaults to `System.schedulers_online * 2` to
@@ -254,8 +259,8 @@ defmodule ExUnit do
   end
 
   @doc """
-  API used to run the tests. It is invoked automatically
-  if ExUnit is started via `ExUnit.start/1`.
+  Runs the tests. It is invoked automatically
+  if ExUnit is started via `start/1`.
 
   Returns a map containing the total number of tests, the number
   of failures and the number of skipped tests.
