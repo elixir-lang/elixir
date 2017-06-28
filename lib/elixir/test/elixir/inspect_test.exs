@@ -452,6 +452,14 @@ defmodule Inspect.MapTest do
            inspect(%Inspect.Error{message: "#{msg}"})
   end
 
+  test "bad implementation safe disables colors" do
+    msg = "got KeyError with message \\\"key :unknown not found in: " <>
+          "%{__struct__: Inspect.MapTest.Failing, key: 0}\\\" while " <>
+          "inspecting %{__struct__: Inspect.MapTest.Failing, key: 0}"
+
+    assert inspect(%Failing{}, syntax_colors: [atom: [:green]]) =~ msg
+  end
+
   test "exception" do
     assert inspect(%RuntimeError{message: "runtime error"}) ==
            "%RuntimeError{message: \"runtime error\"}"
