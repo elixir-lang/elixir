@@ -143,8 +143,8 @@ defmodule ExUnit do
   It accepts a set of options to configure `ExUnit`
   (the same ones accepted by `configure/1`).
 
-  If you want to run tests manually, you can set the `:autorun` to
-  `false` and use `run/1` to run tests.
+  If you want to run tests manually, you can set the `:autorun` option
+  to `false` and use `run/1` to run tests.
   """
   def start(options \\ []) do
     {:ok, _} = Application.ensure_all_started(:ex_unit)
