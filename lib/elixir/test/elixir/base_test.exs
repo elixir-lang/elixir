@@ -761,7 +761,7 @@ defmodule BaseTest do
         decode_case <- [:upper, :lower, :mixed],
         (encode_case == decode_case) or (decode_case == :mixed),
         pad? <- [true, false],
-        len <- 0..64 do
+        len <- 0..256 do
       data =
         0
         |> :lists.seq(len - 1)
