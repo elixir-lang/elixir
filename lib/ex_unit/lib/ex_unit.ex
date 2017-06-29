@@ -157,7 +157,7 @@ defmodule ExUnit do
       System.at_exit fn
         0 ->
           time = ExUnit.Server.cases_loaded()
-          config = put_defaults(configuration())
+          config = persist_defaults(configuration())
           %{failures: failures} = ExUnit.Runner.run(config, time)
           System.at_exit fn _ ->
             if failures > 0, do: exit({:shutdown, 1})
@@ -232,6 +232,8 @@ defmodule ExUnit do
   """
   def configuration do
     Application.get_all_env(:ex_unit)
+    |> put_seed()
+    |> put_max_cases()
   end
 
   @doc """
@@ -266,28 +268,25 @@ defmodule ExUnit do
   of failures and the number of skipped tests.
   """
   def run do
-    config = put_defaults(configuration())
+    config = persist_defaults(configuration())
     ExUnit.Runner.run(config, nil)
   end
 
-  defp put_defaults(opts) do
-    opts
-    |> put_seed()
-    |> put_max_cases()
+  # Persists default values in application
+  # environment before the test suite starts.
+  defp persist_defaults(config) do
+    config |> Keyword.take([:seed, :max_cases]) |> configure()
+    config
   end
 
   defp put_seed(opts) do
     Keyword.put_new_lazy(opts, :seed, fn ->
-      seed = :os.timestamp |> elem(2)
-      Application.put_env(:ex_unit, :seed, seed)
-      seed
+      :os.timestamp |> elem(2)
     end)
   end
 
   defp put_max_cases(opts) do
-    max_cases = max_cases(opts)
-    Application.put_env(:ex_unit, :max_cases, max_cases)
-    Keyword.put(opts, :max_cases, max_cases)
+    Keyword.put(opts, :max_cases, max_cases(opts))
   end
 
   defp max_cases(opts) do
