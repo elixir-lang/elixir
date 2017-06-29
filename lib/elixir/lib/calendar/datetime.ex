@@ -471,11 +471,15 @@ defmodule DateTime do
   end
 
   defimpl Inspect do
-    def inspect(%{calendar: calendar, year: year, month: month, day: day,
+    def inspect(%{calendar: Calendar.ISO, year: year, month: month, day: day,
                   hour: hour, minute: minute, second: second, microsecond: microsecond,
                   time_zone: time_zone, zone_abbr: zone_abbr, utc_offset: utc_offset, std_offset: std_offset}, _) do
-      "#DateTime<" <> calendar.datetime_to_string(year, month, day, hour, minute, second, microsecond,
-                                                  time_zone, zone_abbr, utc_offset, std_offset) <> ">"
+      "#DateTime<" <> Calendar.ISO.datetime_to_string(year, month, day, hour, minute, second, microsecond,
+                                                      time_zone, zone_abbr, utc_offset, std_offset) <> ">"
+    end
+
+    def inspect(datetime, opts) do
+      Inspect.Any.inspect(datetime, opts)
     end
   end
 
