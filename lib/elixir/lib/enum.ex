@@ -1403,6 +1403,9 @@ defmodule Enum do
   Calls the provided `empty_fallback` function and returns its value if
   `enumerable` is empty. The default `empty_fallback` raises `Enum.EmptyError`.
 
+  If called with a single element list, the single element will be returned
+  without calling the given function.
+
   ## Examples
 
       iex> Enum.max_by(["a", "aa", "aaa"], fn(x) -> String.length(x) end)
@@ -1411,12 +1414,19 @@ defmodule Enum do
       iex> Enum.max_by(["a", "aa", "aaa", "b", "bbb"], &String.length/1)
       "aaa"
 
+      iex> Enum.max_by(["aaa"], &String.length/1)
+      "aaa"
+
       iex> Enum.max_by([], &String.length/1, fn -> nil end)
       nil
 
   """
   @spec max_by(t, (element -> any), (() -> empty_result)) :: element | empty_result | no_return when empty_result: any
   def max_by(enumerable, fun, empty_fallback \\ fn -> raise Enum.EmptyError end)
+
+  def max_by([single_element], _fun, _empty_fallback) do
+    single_element
+  end
 
   def max_by(enumerable, fun, empty_fallback) do
     aggregate_by(enumerable, &{&1, fun.(&1)}, fn entry, {_, fun_max} = old ->
@@ -1499,6 +1509,9 @@ defmodule Enum do
   Calls the provided `empty_fallback` function and returns its value if
   `enumerable` is empty. The default `empty_fallback` raises `Enum.EmptyError`.
 
+  If called with a single element list, the single element will be returned
+  without calling the given function.
+
   ## Examples
 
       iex> Enum.min_by(["a", "aa", "aaa"], fn(x) -> String.length(x) end)
@@ -1507,12 +1520,19 @@ defmodule Enum do
       iex> Enum.min_by(["a", "aa", "aaa", "b", "bbb"], &String.length/1)
       "a"
 
+      iex> Enum.min_by(["a"], &String.length/1)
+      "a"
+
       iex> Enum.min_by([], &String.length/1, fn -> nil end)
       nil
 
   """
   @spec min_by(t, (element -> any), (() -> empty_result)) :: element | empty_result | no_return when empty_result: any
   def min_by(enumerable, fun, empty_fallback \\ fn -> raise Enum.EmptyError end)
+
+  def min_by([single_element], _fun, _empty_fallback) do
+    single_element
+  end
 
   def min_by(enumerable, fun, empty_fallback) do
     aggregate_by(enumerable, &{&1, fun.(&1)}, fn entry, {_, fun_min} = old ->
