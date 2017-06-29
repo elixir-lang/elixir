@@ -260,6 +260,26 @@ defmodule DateTimeTest do
     assert DateTime.compare(datetime2, datetime1) == :gt
   end
 
+  test "convert/2" do
+    datetime_iso = %DateTime{year: 2000, month: 2, day: 29, zone_abbr: "CET",
+                             hour: 23, minute: 0, second: 7, microsecond: {0, 6},
+                             utc_offset: 3600, std_offset: 0, time_zone: "Europe/Warsaw"}
+    datetime_jul = %DateTime{year: 2000, month: 2, day: 16, zone_abbr: "CET",
+                             hour: 23, minute: 0, second: 7, microsecond: {0, 6},
+                             utc_offset: 3600, std_offset: 0, time_zone: "Europe/Warsaw",
+                             calendar: Calendar.Julian}
+
+    assert DateTime.convert(datetime_iso, Calendar.Julian) == {:ok, datetime_jul}
+
+    assert datetime_iso
+           |> DateTime.convert!(Calendar.Julian)
+           |> DateTime.convert!(Calendar.ISO) ==
+           datetime_iso
+
+    assert DateTime.convert(datetime_iso, FakeCalendar) ==
+           {:error, :incompatible_calendars}
+  end
+
   test "from_iso8601/1 with tz offsets" do
     assert DateTime.from_iso8601("2017-06-02T14:00:00+01:00") |> elem(1) ==
            %DateTime{year: 2017, month: 6, day: 2, zone_abbr: "UTC",

@@ -579,12 +579,16 @@ defmodule DateTime do
     {:ok, datetime}
   end
 
-  def convert(%DateTime{} = datetime, calendar) do
-    result_datetime =
-      datetime
-      |> to_rata_die
-      |> from_rata_die(datetime, calendar)
-    {:ok, result_datetime}
+  def convert(%DateTime{calendar: dt_calendar} = datetime, calendar) do
+    if Calendar.compatible_calendars?(dt_calendar, calendar) do
+      result_datetime =
+        datetime
+        |> to_rata_die
+        |> from_rata_die(datetime, calendar)
+      {:ok, result_datetime}
+    else
+      {:error, :incompatible_calendars}
+    end
   end
 
   @doc """
@@ -625,7 +629,7 @@ defmodule DateTime do
 
   defp from_rata_die(rata_die, time_zone, zone_abbr, utc_offset, std_offset, calendar) do
     {year, month, day, hour, minute, second, microsecond} = calendar.naive_datetime_from_rata_die(rata_die)
-    %DateTime{year: year, month: month, day: day,
+    %DateTime{calendar: calendar, year: year, month: month, day: day,
               hour: hour, minute: minute, second: second, microsecond: microsecond,
               time_zone: time_zone, zone_abbr: zone_abbr, utc_offset: utc_offset, std_offset: std_offset}
   end
