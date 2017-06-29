@@ -1627,7 +1627,7 @@ defmodule Kernel.SpecialForms do
         ArgumentError ->
           IO.puts "Invalid argument given"
       catch
-        value ->
+        value, _ ->
           IO.puts "Caught #{inspect(value)}"
       else
         value ->
