@@ -210,7 +210,8 @@ build(Line, File, Module, Lexical) ->
     {typep, [], true, nil},
 
     % Internal
-    {{elixir, impls}, []}
+    {{elixir, impls}, []},
+    {{elixir, cache_env}, 0, nil}
   ]),
 
   Persisted = [behaviour, on_load, compile, external_resource, dialyzer, vsn],
