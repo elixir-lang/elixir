@@ -150,7 +150,6 @@ defmodule ExUnit do
     {:ok, _} = Application.ensure_all_started(:ex_unit)
 
     configure(options)
-    config = put_defaults(configuration())
 
     if Application.fetch_env!(:ex_unit, :autorun) do
       Application.put_env(:ex_unit, :autorun, false)
@@ -158,6 +157,7 @@ defmodule ExUnit do
       System.at_exit fn
         0 ->
           time = ExUnit.Server.cases_loaded()
+          config = put_defaults(configuration())
           %{failures: failures} = ExUnit.Runner.run(config, time)
           System.at_exit fn _ ->
             if failures > 0, do: exit({:shutdown, 1})
