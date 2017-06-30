@@ -227,4 +227,4 @@ optimized_inspect_interpolation_test() ->
     {bin, _,
      [{bin_element, _,
        {call, _, {remote, _,{atom, _, 'Elixir.Kernel'}, {atom, _, inspect}}, [_]},
-       default, [binary]}]} = to_erl("\"#{inspect 1}\"").
+       default, [binary]}]} = to_erl("\"#{inspect(1)}\"").
