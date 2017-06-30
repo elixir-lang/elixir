@@ -139,8 +139,8 @@ defmodule StringTest do
   end
 
   test "upcase/1 with UTF-8 multibyte" do
-    assert String.upcase("straße") == "STRASSE"
-    assert String.upcase("áüÈß") == "ÁÜÈSS"
+    assert String.upcase("straße") == "STRAẞE"
+    assert String.upcase("áüÈß") == "ÁÜÈẞ"
   end
 
   test "downcase/1" do
