@@ -1747,7 +1747,7 @@ defmodule Kernel.SpecialForms do
       exit(:shutdown)
     catch
       kind, value when kind in [:exit, :throw] ->
-        IO.puts "Exited with or thrown value #{inspect(value)}"
+        IO.puts "Caught exit or throw with value #{inspect(value)}"
     end
 
   The `catch` clause also supports `:error` alongside `:exit` and `:throw` as
