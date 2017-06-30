@@ -110,7 +110,7 @@ defmodule Base do
   defp encode_pair_clauses(alphabet, case) when case in [:sensitive, :upper] do
     shift = shift(alphabet)
     alphabet
-    |> Stream.with_index()
+    |> Enum.with_index()
     |> encode_clauses(shift)
   end
 
@@ -118,7 +118,7 @@ defmodule Base do
     shift = shift(alphabet)
     alphabet
     |> Stream.map(fn c -> (if c in ?A..?Z, do: c - ?A + ?a, else: c) end)
-    |> Stream.with_index()
+    |> Enum.with_index()
     |> encode_clauses(shift)
   end
 
@@ -149,7 +149,7 @@ defmodule Base do
   defp decode_char_clauses(alphabet, case) when case in [:sensitive, :upper] do
     clauses =
       alphabet
-      |> Stream.with_index()
+      |> Enum.with_index()
       |> decode_clauses()
     clauses ++ bad_digit_clause()
   end
@@ -158,9 +158,9 @@ defmodule Base do
     {uppers, rest} =
       alphabet
       |> Stream.with_index()
-      |> Enum.split_with(fn {c, _} -> c in ?A..?Z end)
-    lowers = Stream.map(uppers,
-      fn {encoding, value} -> {encoding - ?A + ?a, value} end)
+      |> Enum.split_with(fn {encoding, _} -> encoding in ?A..?Z end)
+    lowers =
+      Enum.map(uppers, fn {encoding, value} -> {encoding - ?A + ?a, value} end)
 
     if length(uppers) > length(rest) do
       decode_mixed_clauses(lowers, rest)
@@ -170,18 +170,18 @@ defmodule Base do
   end
 
   defp decode_char_clauses(alphabet, :mixed) when length(alphabet) == 16 do
-    alphabet = Stream.with_index(alphabet)
+    alphabet = Enum.with_index(alphabet)
     lowers =
       alphabet
       |> Stream.filter(fn {encoding, _} -> encoding in ?A..?Z end)
-      |> Stream.map(fn {encoding, value} -> {encoding - ?A + ?a, value} end)
+      |> Enum.map(fn {encoding, value} -> {encoding - ?A + ?a, value} end)
     decode_mixed_clauses(alphabet, lowers)
   end
 
   defp decode_char_clauses(alphabet, :mixed) when length(alphabet) == 32 do
     alphabet
     |> Stream.with_index()
-    |> Stream.flat_map(fn {encoding, value} = pair ->
+    |> Enum.flat_map(fn {encoding, value} = pair ->
         if encoding in ?A..?Z do
           [pair, {encoding - ?A + ?a, value}]
         else
