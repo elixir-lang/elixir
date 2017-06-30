@@ -411,11 +411,12 @@ defmodule DateTime do
          {:ok, offset} <- parse_offset(rest) do
       %{year: year, month: month, day: day} = date
       %{hour: hour, minute: minute, second: second, microsecond: microsecond} = time
+      {_, precision} = microsecond
 
       datetime =
         Calendar.ISO.naive_datetime_to_rata_die(year, month, day, hour, minute, second, microsecond)
         |> apply_tz_offset(offset)
-        |> from_rata_die("Etc/UTC", "UTC", 0, 0, calendar)
+        |> from_rata_die("Etc/UTC", "UTC", 0, 0, calendar, precision)
 
       {:ok, %{datetime | microsecond: microsecond}, offset}
     else
@@ -579,12 +580,12 @@ defmodule DateTime do
     {:ok, datetime}
   end
 
-  def convert(%DateTime{calendar: dt_calendar} = datetime, calendar) do
+  def convert(%DateTime{calendar: dt_calendar, microsecond: {_, precision}} = datetime, calendar) do
     if Calendar.compatible_calendars?(dt_calendar, calendar) do
       result_datetime =
         datetime
         |> to_rata_die
-        |> from_rata_die(datetime, calendar)
+        |> from_rata_die(datetime, calendar, precision)
       {:ok, result_datetime}
     else
       {:error, :incompatible_calendars}
@@ -622,15 +623,15 @@ defmodule DateTime do
     calendar.naive_datetime_to_rata_die(year, month, day, hour, minute, second, microsecond)
   end
 
-  defp from_rata_die(rata_die, datetime, calendar) do
+  defp from_rata_die(rata_die, datetime, calendar, precision) do
     %{time_zone: time_zone, zone_abbr: zone_abbr, utc_offset: utc_offset, std_offset: std_offset} = datetime
-    from_rata_die(rata_die, time_zone, zone_abbr, utc_offset, std_offset, calendar)
+    from_rata_die(rata_die, time_zone, zone_abbr, utc_offset, std_offset, calendar, precision)
   end
 
-  defp from_rata_die(rata_die, time_zone, zone_abbr, utc_offset, std_offset, calendar) do
-    {year, month, day, hour, minute, second, microsecond} = calendar.naive_datetime_from_rata_die(rata_die)
+  defp from_rata_die(rata_die, time_zone, zone_abbr, utc_offset, std_offset, calendar, precision) do
+    {year, month, day, hour, minute, second, {microsecond, _}} = calendar.naive_datetime_from_rata_die(rata_die)
     %DateTime{calendar: calendar, year: year, month: month, day: day,
-              hour: hour, minute: minute, second: second, microsecond: microsecond,
+              hour: hour, minute: minute, second: second, microsecond: {microsecond, precision},
               time_zone: time_zone, zone_abbr: zone_abbr, utc_offset: utc_offset, std_offset: std_offset}
   end
 

@@ -269,10 +269,10 @@ defmodule DateTimeTest do
 
   test "convert/2" do
     datetime_iso = %DateTime{year: 2000, month: 2, day: 29, zone_abbr: "CET",
-                             hour: 23, minute: 0, second: 7, microsecond: {0, 6},
+                             hour: 23, minute: 0, second: 7, microsecond: {0, 0},
                              utc_offset: 3600, std_offset: 0, time_zone: "Europe/Warsaw"}
     datetime_jul = %DateTime{year: 2000, month: 2, day: 16, zone_abbr: "CET",
-                             hour: 23, minute: 0, second: 7, microsecond: {0, 6},
+                             hour: 23, minute: 0, second: 7, microsecond: {0, 0},
                              utc_offset: 3600, std_offset: 0, time_zone: "Europe/Warsaw",
                              calendar: Calendar.Julian}
 
@@ -282,6 +282,11 @@ defmodule DateTimeTest do
            |> DateTime.convert!(Calendar.Julian)
            |> DateTime.convert!(Calendar.ISO) ==
            datetime_iso
+
+    assert %{datetime_iso | microsecond: {123, 6}}
+           |> DateTime.convert!(Calendar.Julian)
+           |> DateTime.convert!(Calendar.ISO) ==
+           %{datetime_iso | microsecond: {123, 6}}
 
     assert DateTime.convert(datetime_iso, FakeCalendar) ==
            {:error, :incompatible_calendars}
