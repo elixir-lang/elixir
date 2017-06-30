@@ -560,22 +560,27 @@ defmodule DateTime do
   end
 
   @doc """
-  Converts a DateTime from one calendar to another.
+  Converts a `DateTime` from one calendar to another.
 
-  If this conversion fails for some reason, an `{:error, reason}` tuple is returned.
+  If it is not possible to convert unambiguously between the calendars
+  (see `Calendar.compatible_calendars?/2`), an `{:error, :incompatible_calendars}` tuple
+  is returned.
 
   ## Examples
+
+  Imagine someone implements `Calendar.Julian`:
 
       iex> dt1 = %DateTime{year: 2000, month: 2, day: 29, zone_abbr: "AMT",
       ...>                 hour: 23, minute: 0, second: 7, microsecond: {0, 0},
       ...>                 utc_offset: -14400, std_offset: 0, time_zone: "America/Manaus"}
-      iex> DateTime.convert(dt1, Calendar.ISO)
-      {:ok, %DateTime{year: 2000, month: 2, day: 29, zone_abbr: "AMT",
-                      hour: 23, minute: 0, second: 7, microsecond: {0, 0},
-                      utc_offset: -14400, std_offset: 0, time_zone: "America/Manaus"}}
+      iex> DateTime.convert(dt1, Calendar.Julian)
+      {:ok, %DateTime{calendar: Calendar.Julian, day: 16, hour: 23,
+                      microsecond: {0, 0}, minute: 0, month: 2, second: 7, std_offset: 0,
+                      time_zone: "America/Manaus", utc_offset: -14400, year: 2000,
+                      zone_abbr: "AMT"}}
 
   """
-  @spec convert(DateTime.t, Calendar.calendar) :: {:ok, DateTime.t} | {:error, atom}
+  @spec convert(Calendar.datetime, Calendar.calendar) :: {:ok, DateTime.t} | {:error, :incompatible_calendars}
   def convert(%DateTime{calendar: calendar} = datetime, calendar) do
     {:ok, datetime}
   end
@@ -595,7 +600,8 @@ defmodule DateTime do
   @doc """
   Converts a `DateTime` struct from one calendar to another.
 
-  If this conversion fails for some reason, an `ArgumentError` is raised.
+  If it is not possible to convert unambiguously between the calendars
+  (see `Calendar.compatible_calendars?/2`), an ArgumentError is raised.
 
   ## Examples
 
@@ -608,13 +614,13 @@ defmodule DateTime do
                 utc_offset: -14400, std_offset: 0, time_zone: "America/Manaus"}
 
   """
-  @spec convert!(DateTime.t, Calendar.calendar) :: DateTime.t
+  @spec convert!(Calendar.datetime, Calendar.calendar) :: DateTime.t | no_return
   def convert!(datetime, calendar) do
     case convert(datetime, calendar) do
       {:ok, value} ->
         value
-      {:error, reason} ->
-        raise ArgumentError, "cannot convert #{inspect datetime} to target calendar #{inspect calendar}, reason: #{inspect reason}"
+      {:error, :incompatible_calendars} ->
+        raise ArgumentError, "cannot convert #{inspect datetime} to target calendar #{inspect calendar}, reason: #{inspect datetime.calendar} and #{inspect calendar} have different day rollover moments, making this conversion ambiguous"
     end
   end
 
