@@ -161,10 +161,17 @@ defmodule NaiveDateTimeTest do
   test "convert/2" do
     assert NaiveDateTime.convert(~N[2000-01-01 12:34:15.123400], Calendar.Julian) ==
            {:ok, Calendar.Julian.naive_datetime(1999, 12, 19, 12, 34, 15, {123400, 6})}
+
+    assert ~N[2000-01-01 12:34:15]
+           |> NaiveDateTime.convert!(Calendar.Julian)
+           |> NaiveDateTime.convert!(Calendar.ISO) ==
+           ~N[2000-01-01 12:34:15]
+
     assert ~N[2000-01-01 12:34:15.123456]
            |> NaiveDateTime.convert!(Calendar.Julian)
            |> NaiveDateTime.convert!(Calendar.ISO) ==
            ~N[2000-01-01 12:34:15.123456]
+
     assert NaiveDateTime.convert(~N[2016-02-03 00:00:01], FakeCalendar) ==
            {:error, :incompatible_calendars}
 
