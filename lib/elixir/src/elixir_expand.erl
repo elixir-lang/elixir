@@ -6,7 +6,7 @@
 %% =
 
 expand({'=', Meta, [Left, Right]}, E) ->
-  assert_no_guard_scope(Meta, '=', E),
+  assert_no_guard_scope(Meta, "=", E),
   {ERight, ER} = expand(Right, E),
   {ELeft, EL}  = elixir_clauses:match(fun expand/2, Left, E),
   {{'=', Meta, [ELeft, ERight]}, elixir_env:mergev(EL, ER)};
@@ -62,7 +62,7 @@ expand({Kind, Meta, [{{'.', _, [Base, '{}']}, _, Refs} | Rest]}, E)
 expand({alias, Meta, [Ref]}, E) ->
   expand({alias, Meta, [Ref, []]}, E);
 expand({alias, Meta, [Ref, Opts]}, E) ->
-  assert_no_match_or_guard_scope(Meta, alias, E),
+  assert_no_match_or_guard_scope(Meta, "alias", E),
   {ERef, ER} = expand_without_aliases_report(Ref, E),
   {EOpts, ET}  = expand_opts(Meta, alias, [as, warn], no_alias_opts(Opts), ER),
 
@@ -76,7 +76,7 @@ expand({alias, Meta, [Ref, Opts]}, E) ->
 expand({require, Meta, [Ref]}, E) ->
   expand({require, Meta, [Ref, []]}, E);
 expand({require, Meta, [Ref, Opts]}, E) ->
-  assert_no_match_or_guard_scope(Meta, require, E),
+  assert_no_match_or_guard_scope(Meta, "require", E),
 
   {ERef, ER} = expand_without_aliases_report(Ref, E),
   {EOpts, ET}  = expand_opts(Meta, require, [as, warn], no_alias_opts(Opts), ER),
@@ -93,7 +93,7 @@ expand({import, Meta, [Left]}, E) ->
   expand({import, Meta, [Left, []]}, E);
 
 expand({import, Meta, [Ref, Opts]}, E) ->
-  assert_no_match_or_guard_scope(Meta, import, E),
+  assert_no_match_or_guard_scope(Meta, "import", E),
   {ERef, ER} = expand_without_aliases_report(Ref, E),
   {EOpts, ET}  = expand_opts(Meta, import, [only, except, warn], Opts, ER),
 
@@ -206,7 +206,7 @@ expand({quote, Meta, [_, _]}, E) ->
 %% Functions
 
 expand({'&', Meta, [Arg]}, E) ->
-  assert_no_match_or_guard_scope(Meta, '&', E),
+  assert_no_match_or_guard_scope(Meta, "&", E),
   case elixir_fn:capture(Meta, Arg, E) of
     {remote, Remote, Fun, Arity} ->
       is_atom(Remote) andalso
@@ -219,34 +219,36 @@ expand({'&', Meta, [Arg]}, E) ->
   end;
 
 expand({fn, Meta, Pairs}, E) ->
-  assert_no_match_or_guard_scope(Meta, fn, E),
+  assert_no_match_or_guard_scope(Meta, "fn", E),
   elixir_fn:expand(Meta, Pairs, E);
 
 %% Case/Receive/Try
 
 expand({'cond', Meta, [Opts]}, E) ->
-  assert_no_match_or_guard_scope(Meta, 'cond', E),
+  assert_no_match_or_guard_scope(Meta, "cond", E),
   assert_no_underscore_clause_in_cond(Opts, E),
   {EClauses, EC} = elixir_clauses:'cond'(Meta, Opts, E),
   {{'cond', Meta, [EClauses]}, EC};
 
-expand({'case', Meta, [Expr, Options]}, Env) ->
+expand({'case', Meta, [Expr, Options]}, E) ->
+  assert_no_match_or_guard_scope(Meta, "case", E),
   ShouldExportVars = proplists:get_value(export_vars, Meta, true),
-  expand_case(ShouldExportVars, Meta, Expr, Options, Env);
+  expand_case(ShouldExportVars, Meta, Expr, Options, E);
 
 expand({'receive', Meta, [Opts]}, E) ->
-  assert_no_match_or_guard_scope(Meta, 'receive', E),
+  assert_no_match_or_guard_scope(Meta, "receive", E),
   {EClauses, EC} = elixir_clauses:'receive'(Meta, Opts, E),
   {{'receive', Meta, [EClauses]}, EC};
 
 expand({'try', Meta, [Opts]}, E) ->
-  assert_no_match_or_guard_scope(Meta, 'try', E),
+  assert_no_match_or_guard_scope(Meta, "try", E),
   {EClauses, EC} = elixir_clauses:'try'(Meta, Opts, E),
   {{'try', Meta, [EClauses]}, EC};
 
 %% Comprehensions
 
 expand({for, Meta, [_ | _] = Args}, E) ->
+  assert_no_match_or_guard_scope(Meta, "for", E),
   {Cases, Block} =
     case elixir_utils:split_last(Args) of
       {OuterCases, OuterOpts} when is_list(OuterOpts) ->
@@ -278,11 +280,13 @@ expand({for, Meta, [_ | _] = Args}, E) ->
 %% With
 
 expand({with, Meta, [_ | _] = Args}, E) ->
+  assert_no_match_or_guard_scope(Meta, "with", E),
   elixir_with:expand(Meta, Args, E);
 
 %% Super
 
 expand({super, Meta, Args}, #{file := File} = E) when is_list(Args) ->
+  assert_no_match_or_guard_scope(Meta, "super", E),
   Module = assert_module_scope(Meta, super, E),
   Function = assert_function_scope(Meta, super, E),
   {_, Arity} = Function,
@@ -388,6 +392,7 @@ expand({{'.', DotMeta, [Left, Right]}, Meta, Args}, E)
 %% Anonymous calls
 
 expand({{'.', DotMeta, [Expr]}, Meta, Args}, E) when is_list(Args) ->
+  assert_no_match_or_guard_scope(Meta, "anonymous call", E),
   {EExpr, EE} = expand(Expr, E),
   if
     is_atom(EExpr) ->
@@ -435,7 +440,8 @@ expand(PidOrRef, E) when is_pid(PidOrRef); is_reference(PidOrRef) ->
     Function ->
       %% TODO: Make me an error on 2.0
       elixir_errors:form_warn([], ?key(E, file), ?MODULE,
-                              {invalid_pid_or_ref_in_function, PidOrRef, Function})
+                              {invalid_pid_or_ref_in_function, PidOrRef, Function}),
+      PidOrRef
   end;
 
 expand(Other, E) when is_number(Other); is_atom(Other); is_binary(Other) ->
@@ -560,7 +566,6 @@ var_kind(Meta, Kind) ->
 %% Case
 
 expand_case(true, Meta, Expr, Opts, E) ->
-  assert_no_match_or_guard_scope(Meta, 'case', E),
   {EExpr, EE} = expand(Expr, E),
   {EOpts, EO} = elixir_clauses:'case'(Meta, Opts, EE),
   ROpts =
@@ -786,11 +791,11 @@ assert_function_scope(_Meta, _Kind, #{function := Function}) -> Function.
 assert_no_match_or_guard_scope(Meta, Kind, E) ->
   assert_no_match_scope(Meta, Kind, E),
   assert_no_guard_scope(Meta, Kind, E).
-assert_no_match_scope(Meta, _Kind, #{context := match, file := File}) ->
-  form_error(Meta, File, ?MODULE, invalid_pattern_in_match);
+assert_no_match_scope(Meta, Kind, #{context := match, file := File}) ->
+  form_error(Meta, File, ?MODULE, {invalid_pattern_in_match, Kind});
 assert_no_match_scope(_Meta, _Kind, _E) -> [].
-assert_no_guard_scope(Meta, _Kind, #{context := guard, file := File}) ->
-  form_error(Meta, File, ?MODULE, invalid_expr_in_guard);
+assert_no_guard_scope(Meta, Kind, #{context := guard, file := File}) ->
+  form_error(Meta, File, ?MODULE, {invalid_expr_in_guard, Kind});
 assert_no_guard_scope(_Meta, _Kind, _E) -> [].
 
 %% Here we look into the Clauses "optimistically", that is, we don't check for
@@ -867,10 +872,10 @@ format_error({undefined_var, Name, Kind}) ->
 format_error(underscore_in_cond) ->
   "unbound variable _ inside \"cond\". If you want the last clause to always match, "
     "you probably meant to use: true ->";
-format_error(invalid_expr_in_guard) ->
-  "invalid expression in guard";
-format_error(invalid_pattern_in_match) ->
-  "invalid pattern in match";
+format_error({invalid_expr_in_guard, Kind}) ->
+  io_lib:format("invalid expression in guard, ~ts is not allowed in guards", [Kind]);
+format_error({invalid_pattern_in_match, Kind}) ->
+  io_lib:format("invalid pattern in match, ~ts is not allowed in matches", [Kind]);
 format_error({invalid_expr_in_scope, Scope, Kind}) ->
   io_lib:format("cannot invoke ~ts outside ~ts", [Kind, Scope]);
 format_error({invalid_alias, Expr}) ->
