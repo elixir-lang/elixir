@@ -21,7 +21,7 @@ defmodule EEx.Engine do
       as marker. The allowed markers so far are: `""`, `"="`, `"/"`
       and `"|"`.
 
-      Markers `"/"` and `"|"` are only for use in a custom EEx Engines 
+      Markers `"/"` and `"|"` are only for use in a custom EEx engines 
       and are not implemented by default. Use of them without the
       implementation raises `EEx.SyntaxError`.
 
@@ -128,8 +128,8 @@ defmodule EEx.Engine do
 
       <% Elixir expression  - inline with output %>
       <%= Elixir expression - replace with result %>
-      <%/ Elixir expression - raise EEx.SyntaxError, to be implemented in a custom Engine %>
-      <%| Elixir expression - raise EEx.SyntaxError, to be implemented in a custom Engine %>
+      <%/ Elixir expression - raise EEx.SyntaxError, to be implemented by custom engines %>
+      <%| Elixir expression - raise EEx.SyntaxError, to be implemented by custom engines %>
 
   All other markers are not implemented by this engine.
   """
