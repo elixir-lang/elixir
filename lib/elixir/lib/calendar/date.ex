@@ -67,8 +67,11 @@ defmodule Date do
 
   ## Examples
 
-      iex> Date.range(~D[2000-01-01], ~D[2001-01-01])
-      #DateRange<~D[2000-01-01], ~D[2001-01-01]>
+      iex> Date.range(~D[1999-01-01], ~D[2000-01-01])
+      #DateRange<~D[1999-01-01], ~D[2000-01-01]>
+
+      iex> Date.range(~N[2000-01-01 09:00:00], ~D[1999-01-01])
+      #DateRange<~N[2000-01-01 09:00:00], ~D[1999-01-01]>
 
   A range of dates implements the `Enumerable` protocol, which means
   functions in the `Enum` module can be used to work with
@@ -83,7 +86,7 @@ defmodule Date do
       -366
   """
 
-  @spec range(Date.t, Date.t) :: Date.Range.t
+  @spec range(Calendar.date, Calendar.date) :: Date.Range.t
   def range(%{calendar: calendar} = first, %{calendar: calendar} = last) do
     {first_days, _} = to_rata_die(first)
     {last_days, _} = to_rata_die(last)
@@ -96,7 +99,8 @@ defmodule Date do
     }
   end
 
-  def range(%Date{}, %Date{}) do
+  def range(%{calendar: _, year: _, month: _, day: _},
+            %{calendar: _, year: _, month: _, day: _}) do
     raise ArgumentError, "both dates must have matching calendars"
   end
 
@@ -125,7 +129,7 @@ defmodule Date do
   end
 
   @doc """
-  Returns true if the year in `date` is a leap year.
+  Returns true if the year in the given `date` is a leap year.
 
   ## Examples
 
@@ -149,7 +153,7 @@ defmodule Date do
   end
 
   @doc """
-  Returns the number of days in the given date month.
+  Returns the number of days in the given `date` month.
 
   ## Examples
 
@@ -269,7 +273,7 @@ defmodule Date do
       iex> Date.from_iso8601!("2015:01:23")
       ** (ArgumentError) cannot parse "2015:01:23" as date, reason: :invalid_format
   """
-  @spec from_iso8601!(String.t) :: t
+  @spec from_iso8601!(String.t) :: t | no_return
   def from_iso8601!(string, calendar \\ Calendar.ISO) do
     case from_iso8601(string, calendar) do
       {:ok, value} ->
@@ -309,7 +313,7 @@ defmodule Date do
   end
 
   @doc """
-  Converts a `Date` struct to an Erlang date tuple.
+  Converts the given `date` to an Erlang date tuple.
 
   Only supports converting dates which are in the ISO calendar,
   or other calendars in which the days also start at midnight.
@@ -364,7 +368,7 @@ defmodule Date do
       ** (ArgumentError) cannot convert {2000, 13, 1} to date, reason: :invalid_date
 
   """
-  @spec from_erl!(:calendar.date) :: t
+  @spec from_erl!(:calendar.date) :: t | no_return
   def from_erl!(tuple) do
     case from_erl(tuple) do
       {:ok, value} ->
@@ -375,7 +379,7 @@ defmodule Date do
   end
 
   @doc """
-  Compares two `Date` structs.
+  Compares two date structs.
 
   Returns `:gt` if first date is later than the second
   and `:lt` for vice versa. If the two dates are equal
@@ -397,7 +401,7 @@ defmodule Date do
       :eq
 
   """
-  @spec compare(Calendar.date, Calendar.date) :: :lt | :eq | :gt
+  @spec compare(Calendar.date, Calendar.date) :: :lt | :eq | :gt | no_return
   def compare(%{calendar: calendar, year: year1, month: month1, day: day1},
               %{calendar: calendar, year: year2, month: month2, day: day2}) do
     case {{year1, month1, day1}, {year2, month2, day2}} do
@@ -424,14 +428,14 @@ defmodule Date do
   end
 
   @doc """
-  Converts a date from one calendar to another.
+  Converts the given `date` from it's calendar to the given `calendar`.
 
   Returns `{:ok, date}` if the calendars are compatible,
   or `{:error, :incompatible_calendars}` if they are not.
 
   See also `Calendar.compatible_calendars?/2`.
   """
-  @spec convert(Calendar.date(), Calendar.calendar) :: {:ok, Date.t} | {:error, :incompatible_calendars}
+  @spec convert(Calendar.date, Calendar.calendar) :: {:ok, t} | {:error, :incompatible_calendars}
   def convert(%Date{calendar: calendar} = date, calendar), do: {:ok, date}
   def convert(%{calendar: calendar} = date, target_calendar) do
     if Calendar.compatible_calendars?(calendar, target_calendar) do
@@ -449,7 +453,7 @@ defmodule Date do
   Similar to `Date.convert/2`, but raises an `ArgumentError`
   if the conversion between the two calendars is not possible.
   """
-  @spec convert!(Date.t, Calendar.calendar) :: Date.t
+  @spec convert!(Calendar.date, Calendar.calendar) :: t | no_return
   def convert!(date, calendar) do
     case convert(date, calendar) do
       {:ok, value} ->
@@ -460,7 +464,7 @@ defmodule Date do
   end
 
   @doc """
-  Adds the number of days to the given date.
+  Adds the number of days to the given `date`.
 
   The days are counted as gregorian days. The date is returned in the same
   calendar as it was given in.
@@ -472,9 +476,12 @@ defmodule Date do
       iex> Date.add(~D[2000-01-01], 2)
       ~D[2000-01-03]
 
+      iex> Date.add(~N[2000-01-01 09:00:00], 2)
+      ~D[2000-01-03]
+
   """
-  @spec add(Date.t, integer()) :: Date.t
-  def add(%Date{calendar: calendar} = date, days) do
+  @spec add(Calendar.date, integer()) :: t
+  def add(%{calendar: calendar} = date, days) do
     {rata_days, fraction} = to_rata_die(date)
     from_rata_die({rata_days + days, fraction}, calendar)
   end
@@ -493,16 +500,19 @@ defmodule Date do
       iex> Date.diff(~D[2000-01-01], ~D[2000-01-03])
       -2
 
+      iex> Date.diff(~D[2000-01-01], ~N[2000-01-03 09:00:00])
+      -2
+
   """
-  @spec diff(Date.t, Date.t) :: integer
-  def diff(%Date{calendar: Calendar.ISO, year: year1, month: month1, day: day1},
-           %Date{calendar: Calendar.ISO, year: year2, month: month2, day: day2}) do
+  @spec diff(Calendar.date, Calendar.date) :: integer | no_return
+  def diff(%{calendar: Calendar.ISO, year: year1, month: month1, day: day1},
+           %{calendar: Calendar.ISO, year: year2, month: month2, day: day2}) do
     Calendar.ISO.date_to_rata_die_days(year1, month1, day1) -
       Calendar.ISO.date_to_rata_die_days(year2, month2, day2)
   end
 
-  def diff(%Date{} = date1, %Date{} = date2) do
-    if Calendar.compatible_calendars?(date1.calendar, date2.calendar) do
+  def diff(%{calendar: calendar1} = date1, %{calendar: calendar2} = date2) do
+    if Calendar.compatible_calendars?(calendar1, calendar2) do
       {days1, _} = to_rata_die(date1)
       {days2, _} = to_rata_die(date2)
       days1 - days2
@@ -528,7 +538,7 @@ defmodule Date do
   end
 
   @doc """
-  Calculates the day of the week of a given `Date` struct.
+  Calculates the day of the week of a given `date`.
 
   Returns the day of the week as an integer. For the ISO 8601
   calendar (the default), it is an integer from 1 to 7, where
