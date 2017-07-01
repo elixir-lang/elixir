@@ -529,6 +529,7 @@ defmodule MacroTest do
     assert Macro.validate(1.0) == :ok
     assert Macro.validate(:foo) == :ok
     assert Macro.validate("bar") == :ok
+    assert Macro.validate(<<0::8>>) == :ok
     assert Macro.validate(self()) == :ok
     assert Macro.validate({1, 2}) == :ok
     assert Macro.validate({:foo, [], :baz}) == :ok

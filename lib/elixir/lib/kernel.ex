@@ -4295,6 +4295,94 @@ defmodule Kernel do
   end
 
   @doc """
+  Generates a macro suitable for use in guard expressions.
+
+  It raises at compile time if the definition uses expressions that aren't
+  allowed in guards, and otherwise creates a macro that can be used both inside
+  or outside guards.
+
+  ## Example
+
+      defmodule Integer.Guards do
+        defguard is_even(value) when is_integer(value) and rem(value, 2) == 0
+      end
+
+      defmodule Integer.Utils do
+        import Integer.Guards
+
+        def is_even_and_large?(value) when is_even(value) and value > 100, do: true
+        def is_even_and_large?(_), do: false
+
+        def is_even_and_small?(value) do
+          if is_even(value) and value <= 100, do: true, else: false
+        end
+      end
+
+  """
+  @spec defguard(Macro.t, Keyword.t) :: Macro.t | no_return
+  defmacro defguard(guard, blocks \\ []) do
+    {definition, implementation} = :elixir_utils.extract_guards(guard)
+    case Macro.decompose_call(definition) do
+      {name, args} ->
+        do_defguard name, args, implementation, blocks, __CALLER__
+      _ ->
+        raise ArgumentError, message:
+          "could not extract a definition for defguard from `#{Macro.to_string definition}`,"
+          <> " expected: `defguard name(args...) when implementation...`"
+    end
+  end
+
+  defp do_defguard(call, args, [], [], env) do
+    case :elixir_dispatch.find_import([], call, length(args), env) do
+      false -> # call(args) doesn't exist, probably trying to define a guard without an implementation
+        raise ArgumentError, message:
+          "defguard requires an implementation,"
+            <> " try: `defguard #{Macro.to_string({call, [], args})} when implementation...`"
+      _ -> # call(args) exists, probably trying to invoke it to define a guard but forgot the signature
+        raise ArgumentError, message:
+          "defguard requires a unique name,"
+          <> " try: `defguard name(args...) when #{Macro.to_string({call, [], args})}`"
+    end
+  end
+
+  # Provided a multi-line block, suggest the first line as the implementation
+  defp do_defguard(name, args, [], [{_first, {:__block__, _, [first_line | _rest]}}], _env) do
+    raise ArgumentError, message:
+      "defguard does not accept a block,"
+      <> " try: `defguard #{Macro.to_string {name, [], args}} when #{Macro.to_string first_line}`"
+  end
+
+  # Provided a single-line block, probably meant for that to be the implementation
+  defp do_defguard(name, args, [], [{_first, single_line_block}], _env) do
+    raise ArgumentError, message:
+      "defguard does not accept a block,"
+      <> " try: `defguard #{Macro.to_string {name, [], args}} when #{Macro.to_string single_line_block}...`"
+  end
+
+  defp do_defguard(name, args, guard, [], env) do
+    {args, refs} = Macro.postwalk(args, [], fn
+      {ref, _meta, context} = var, acc when is_atom(ref) and is_atom(context) ->
+        {var, [{ref, context} | acc]}
+      node, acc ->
+        {node, acc}
+    end)
+    env = %{env | context: :guard, vars: refs}
+    _valid? = :elixir_expand.expand(guard, env)
+    quote do
+      defmacro unquote(name)(unquote_splicing(args)) do
+        unquote(Kernel.Utils.defguard(guard, refs))
+      end
+    end
+  end
+
+  # Both implementation and block given, probably only wanted the implementation
+  defp do_defguard(name, args, implementation, _blocks, _env) do
+    raise ArgumentError, message:
+      "defguard does not accept a block,"
+      <> " try: `defguard #{Macro.to_string {name, [], args}} when #{Macro.to_string implementation}...`"
+  end
+
+  @doc """
   Uses the given module in the current context.
 
   When calling:

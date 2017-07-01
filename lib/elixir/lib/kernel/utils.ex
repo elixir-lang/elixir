@@ -125,4 +125,91 @@ defmodule Kernel.Utils do
     ArgumentError.exception("raise/1 expects a module name, string or exception as " <>
                             "the first argument, got: #{inspect other}")
   end
+
+  @doc """
+  Callback for defguard.
+
+  Rewrites an expression so it can be used both inside and outside a guard.
+
+  Take, for example, the expression:
+
+      is_integer(value) and rem(value, 2) == 0
+
+  If we wanted to create a macro, `is_even`, from this expression, that could be
+  used in guards, we'd have to take several things into account.
+
+  First, if this expression is being used inside a guard, `value` needs to be
+  unquoted each place it occurs, since it has not yet been at that point in our
+  macro.
+
+  Secondly, if the expression is being used outside of a guard, we want to unquote
+  `value`––but only once, and then re-use the unquoted form throughout the expression.
+
+  This helper does exactly that: takes the AST for an expression and a list of
+  variable references it should be aware of, and rewrites it into a new expression
+  that checks for its presence in a guard, then unquotes the variable references as
+  appropriate.
+
+  The resulting transformation looks something like this:
+
+      > expression = quote do: is_integer(value) and rem(value, 2) == 0
+      > variable_references = [value: Elixir]
+      > Kernel.Utils.defguard(expression, variable_references) |> Macro.to_string |> IO.puts
+
+      case Macro.Env.in_guard? __CALLER__ do
+        true -> quote do
+          is_integer(unquote(value)) and rem(unquote(value), 2) == 0
+        end
+        false -> quote do
+          value = unquote(value)
+          is_integer(value) and rem(value, 2) == 0
+        end
+      end
+  """
+  @spec defguard(Macro.t, Keyword.t) :: Macro.t
+  def defguard(expr, refs) do
+    quote do
+      case Macro.Env.in_guard?(__CALLER__) do
+        true  -> unquote(literal_quote inside_guard_quotation(expr, refs))
+        false -> unquote(literal_quote out_of_guard_quotation(expr, refs))
+      end
+    end
+  end
+
+  # Finds every reference to `refs` in `expr` and wraps them in an unquote.
+  defp inside_guard_quotation(expr, refs) do
+    Macro.postwalk expr, fn
+      {ref, _meta, context} = var when is_atom(ref) and is_atom(context) ->
+        case {ref, context} in refs do
+          true  -> literal_unquote(var)
+          false -> var
+        end
+      node -> node
+    end
+  end
+
+  # Prefaces `expr` with unquoted versions of `refs`.
+  defp out_of_guard_quotation(expr, refs) do
+    {expr, used_refs} =  Macro.postwalk(expr, [], fn
+      {ref, _meta, context} = var, acc when is_atom(ref) and is_atom(context) ->
+        case {ref, context} in refs and {ref, context} not in acc do
+          true  ->  {var, [{ref, context} | acc]}
+          false ->  {var, acc}
+        end
+      node, acc ->
+        {node, acc}
+    end)
+    for {ref, context} <- :lists.reverse(used_refs) do
+      var = {ref, [], context}
+      quote do: unquote(var) = unquote(literal_unquote var)
+    end ++ List.wrap(expr)
+  end
+
+  defp literal_quote(ast) do
+    {:quote, [], [[do: {:__block__, [], List.wrap(ast)} ]]}
+  end
+  defp literal_unquote(ast) do
+    {:unquote, [], List.wrap(ast)}
+  end
+
 end
