@@ -95,7 +95,7 @@ defmodule Time do
 
   """
   @spec new(Calendar.hour, Calendar.minute, Calendar.second, Calendar.microsecond, Calendar.calendar) ::
-        {:ok, Time.t} | {:error, atom}
+        {:ok, t} | {:error, atom}
   def new(hour, minute, second, microsecond \\ {0, 0}, calendar \\ Calendar.ISO)
 
   def new(hour, minute, second, microsecond, calendar) when is_integer(microsecond) do
@@ -114,7 +114,7 @@ defmodule Time do
   end
 
   @doc """
-  Converts the given time to a string.
+  Converts the given `time` to a string.
 
   ### Examples
 
@@ -218,7 +218,7 @@ defmodule Time do
       iex> Time.from_iso8601!("2015:01:23 23-50-07")
       ** (ArgumentError) cannot parse "2015:01:23 23-50-07" as time, reason: :invalid_format
   """
-  @spec from_iso8601!(String.t) :: t
+  @spec from_iso8601!(String.t) :: t | no_return
   def from_iso8601!(string) do
     case from_iso8601(string) do
       {:ok, value} ->
@@ -258,7 +258,7 @@ defmodule Time do
   end
 
   @doc """
-  Converts a `Time` struct to an Erlang time tuple.
+  Converts given `time` to an Erlang time tuple.
 
   WARNING: Loss of precision may occur, as Erlang time tuples
   only contain hours/minutes/seconds.
@@ -321,7 +321,7 @@ defmodule Time do
   end
 
   @doc """
-  Compares two `Time` structs.
+  Compares two time structs.
 
   Returns `:gt` if first time is later than the second
   and `:lt` for vice versa. If the two times are equal
@@ -365,12 +365,12 @@ defmodule Time do
   end
 
   @doc """
-  Converts the `Time` struct to a different calendar.
+  Converts given `time` to a different calendar.
 
   Returns `{:ok, time}` if the conversion was successful,
   or `{:error, reason}` if it was not, for some reason.
   """
-  @spec convert(Calendar.time, Calendar.calendar) :: {:ok, Time.t} | {:error, atom}
+  @spec convert(Calendar.time, Calendar.calendar) :: {:ok, t} | {:error, atom}
   def convert(%Time{calendar: calendar} = time, calendar) do
     {:ok, time}
   end
@@ -388,7 +388,7 @@ defmodule Time do
   Similar to `Time.convert/2`, but raises an `ArgumentError`
   if the conversion between the two calendars is not possible.
   """
-  @spec convert!(Calendar.time, Calendar.calendar) :: Time.t
+  @spec convert!(Calendar.time, Calendar.calendar) :: t | no_return
   def convert!(time, calendar) do
     case convert(time, calendar) do
       {:ok, value} ->
@@ -418,7 +418,7 @@ defmodule Time do
       -2_000_000
 
   """
-  @spec diff(Time.t, Time.t, System.time_unit) :: integer
+  @spec diff(t, t, System.time_unit) :: integer
   def diff(%Time{} = time1, %Time{} = time2, unit \\ :second) do
     fraction1 = to_day_fraction(time1)
     fraction2 = to_day_fraction(time2)
