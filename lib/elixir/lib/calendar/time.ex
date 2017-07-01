@@ -369,6 +369,14 @@ defmodule Time do
 
   Returns `{:ok, time}` if the conversion was successful,
   or `{:error, reason}` if it was not, for some reason.
+
+  ## Examples
+
+  Imagine someone implements `Calendar.Julian`:
+
+      iex> Time.convert(~T[13:30:15], Calendar.Julian)
+      {:ok, %Time{calendar: Calendar.Julian, hour: 13, minute: 30, second: 15, microsecond: {0, 0}}}
+
   """
   @spec convert(Calendar.time, Calendar.calendar) :: {:ok, t} | {:error, atom}
   def convert(%Time{calendar: calendar} = time, calendar) do
@@ -387,6 +395,14 @@ defmodule Time do
   @doc """
   Similar to `Time.convert/2`, but raises an `ArgumentError`
   if the conversion between the two calendars is not possible.
+
+  ## Examples
+
+  Imagine someone implements `Calendar.Julian`:
+
+      iex> Time.convert!(~T[13:30:15], Calendar.Julian)
+      %Time{calendar: Calendar.Julian, hour: 13, minute: 30, second: 15, microsecond: {0, 0}}
+
   """
   @spec convert!(Calendar.time, Calendar.calendar) :: t | no_return
   def convert!(time, calendar) do

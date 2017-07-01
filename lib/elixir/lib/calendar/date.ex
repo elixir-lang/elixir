@@ -434,6 +434,14 @@ defmodule Date do
   or `{:error, :incompatible_calendars}` if they are not.
 
   See also `Calendar.compatible_calendars?/2`.
+
+  ## Examples
+
+  Imagine someone implements `Calendar.Julian`:
+
+      iex> Date.convert(~D[2000-01-01], Calendar.Julian)
+      {:ok, %Date{calendar: Calendar.Julian, year: 1999, month: 12, day: 19}}
+
   """
   @spec convert(Calendar.date, Calendar.calendar) :: {:ok, t} | {:error, :incompatible_calendars}
   def convert(%Date{calendar: calendar} = date, calendar), do: {:ok, date}
@@ -452,6 +460,14 @@ defmodule Date do
   @doc """
   Similar to `Date.convert/2`, but raises an `ArgumentError`
   if the conversion between the two calendars is not possible.
+
+  ## Examples
+
+  Imagine someone implements `Calendar.Julian`:
+
+      iex> Date.convert!(~D[2000-01-01], Calendar.Julian)
+      %Date{calendar: Calendar.Julian, year: 1999, month: 12, day: 19}
+
   """
   @spec convert!(Calendar.date, Calendar.calendar) :: t | no_return
   def convert!(date, calendar) do

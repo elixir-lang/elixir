@@ -602,6 +602,15 @@ defmodule NaiveDateTime do
   If it is not possible to convert unambiguously between the calendars
   (see `Calendar.compatible_calendars?/2`), an `{:error, :incompatible_calendars}` tuple
   is returned.
+
+  ## Examples
+
+  Imagine someone implements `Calendar.Julian`:
+
+      iex> NaiveDateTime.convert(~N[2000-01-01 13:30:15], Calendar.Julian)
+      {:ok, %NaiveDateTime{calendar: Calendar.Julian, year: 1999, month: 12, day: 19,
+                           hour: 13, minute: 30, month: 12, second: 15, microsecond: {0, 0}}}
+
   """
   @spec convert(Calendar.naive_datetime, Calendar.calendar) :: {:ok, t} | {:error, :incompatible_calendars}
   def convert(%NaiveDateTime{calendar: calendar} = naive_datetime, calendar) do
@@ -625,6 +634,15 @@ defmodule NaiveDateTime do
 
   If it is not possible to convert unambiguously between the calendars
   (see `Calendar.compatible_calendars?/2`), an ArgumentError is raised.
+
+  ## Examples
+
+  Imagine someone implements `Calendar.Julian`:
+
+      iex> NaiveDateTime.convert!(~N[2000-01-01 13:30:15], Calendar.Julian)
+      %NaiveDateTime{calendar: Calendar.Julian, year: 1999, month: 12, day: 19,
+                     hour: 13, minute: 30, month: 12, second: 15, microsecond: {0, 0}}
+
   """
   @spec convert!(Calendar.naive_datetime, Calendar.calendar) :: t
   def convert!(naive_datetime, calendar) do
