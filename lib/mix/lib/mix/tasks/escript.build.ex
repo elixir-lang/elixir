@@ -13,7 +13,16 @@ defmodule Mix.Tasks.Escript.Build do
   be installed, as Elixir is embedded as part of the escript.
 
   This task guarantees the project and its dependencies are
-  compiled and packages them inside an escript.
+  compiled and packages them inside an escript. Before invoking
+  `mix escript.build`, it is only necessary to define a `:escript`
+  key with a `:main_module` option in your `mix.exs` file:
+
+      escript: [main_module: MyApp.CLI]
+
+  By default, this task removes documentation and debugging
+  chunks from the compiled `.beam` files to reduce the size of
+  the escript. If this is not desired, check the `:strip_beams`
+  option.
 
   > Note: escripts do not support projects and dependencies
   > that need to store or read artifacts from the priv directory.
@@ -261,7 +270,7 @@ defmodule Mix.Tasks.Escript.Build do
 
   defp strip_beam(beam) when is_binary(beam) do
     {:ok, _, all_chunks} = :beam_lib.all_chunks(beam)
-    filtered_chunks = ['CInf', 'Abst', 'Dbgi']
+    filtered_chunks = ['Abst', 'CInf', 'Dbgi', 'ExDc']
     significant_chunks =
       for {name, _} = pair <- all_chunks, name not in filtered_chunks, do: pair
     {:ok, built_module} = :beam_lib.build_module(significant_chunks)
