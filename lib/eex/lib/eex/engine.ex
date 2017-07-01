@@ -18,7 +18,12 @@ defmodule EEx.Engine do
 
       The marker is what follows exactly after `<%`. For example,
       `<% foo %>` has an empty marker, but `<%= foo %>` has `"="`
-      as marker. The allowed markers so far are: `""` and `"="`.
+      as marker. The allowed markers so far are: `""`, `"="`, `"/"`
+      and `"|"`.
+
+      Markers `"/"` and `"|"` are only for use in a custom EEx Engines 
+      and are not implemented by default. Use of them without the
+      implementation raises `EEx.SyntaxError`.
 
       Read `handle_expr/3` below for more information about the markers
       implemented by default by this engine.
@@ -121,8 +126,10 @@ defmodule EEx.Engine do
   @doc """
   Implements expressions according to the markers.
 
-      <% Elixir expression - inline with output %>
+      <% Elixir expression  - inline with output %>
       <%= Elixir expression - replace with result %>
+      <%/ Elixir expression - raise EEx.SyntaxError, to be implemented in a custom Engine %>
+      <%| Elixir expression - raise EEx.SyntaxError, to be implemented in a custom Engine %>
 
   All other markers are not implemented by this engine.
   """
@@ -133,11 +140,23 @@ defmodule EEx.Engine do
     end
   end
 
+  def handle_expr(_buffer, "/", _expr) do
+    not_implemented!("/")
+  end
+
+  def handle_expr(_buffer, "|", _expr) do
+    not_implemented!("|")
+  end
+
   def handle_expr(buffer, "", expr) do
     quote do
       tmp2 = unquote(buffer)
       unquote(expr)
       tmp2
     end
+  end
+
+  defp not_implemented!(marker) do
+    raise EEx.SyntaxError, message: "handle_expr/3 not implemented for <%#{marker} %>"
   end
 end

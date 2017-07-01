@@ -179,6 +179,18 @@ defmodule EExTest do
         EEx.compile_string "foo <%= if true do %>true<% else %>false<%= end %>"
       end) =~ ~s[unexpected beginning of EEx tag \"<%=\" on end of expression \"<%= end %>\"]
     end
+
+    test "when trying to use marker '/' without implementation" do
+      assert_raise EEx.SyntaxError, ~r/handle_expr\/3 not implemented for <%\/ %>/, fn ->
+        EEx.compile_string "<%/ true %>"
+      end
+    end
+
+    test "when trying to use marker '|' without implementation" do
+      assert_raise EEx.SyntaxError, ~r/handle_expr\/3 not implemented for <%| %>/, fn ->
+        EEx.compile_string "<%| true %>"
+      end
+    end
   end
 
   describe "environment" do
@@ -447,6 +459,12 @@ defmodule EExTest do
       EEx.Engine.handle_text(buffer, text)
     end
 
+    def handle_expr(buffer, "/", _expr) do
+      quote do
+        unquote(buffer) <> "baz"
+      end
+    end
+
     def handle_expr(buffer, mark, expr) do
       EEx.Engine.handle_expr(buffer, mark, expr)
     end
@@ -454,12 +472,27 @@ defmodule EExTest do
 
   describe "custom engines" do
     test "calls handle_body" do
-      assert {:wrapped, "foo"} = EEx.eval_string("foo", [], engine: TestEngine)
+      assert_eval {:wrapped, "foo"}, "foo", [], engine: TestEngine
+    end
+
+    test "standard marker" do
+      assert_eval {:wrapped, "foo bar"}, "foo <%= :bar %>", [], engine: TestEngine
+    end
+
+    test "custom marker" do
+      assert_eval {:wrapped, "foo baz"}, "foo <%/ :bar %>", [], engine: TestEngine
+    end
+
+    test "not implemented custom marker" do
+      assert_raise EEx.SyntaxError, ~r/handle_expr\/3 not implemented for <%| %>/, fn ->
+        assert_eval {:wrapped, "foo baz"}, "foo <%| :bar %>", [], engine: TestEngine
+      end
     end
   end
 
+
   defp assert_eval(expected, actual, binding \\ [], opts \\ []) do
-    opts = Enum.into [file: __ENV__.file, engine: EEx.Engine], opts
+    opts = Enum.into [file: __ENV__.file, engine: opts[:engine] || EEx.Engine], opts
     result = EEx.eval_string(actual, binding, opts)
     assert result == expected
   end
