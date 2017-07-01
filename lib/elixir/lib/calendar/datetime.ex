@@ -12,6 +12,11 @@ defmodule DateTime do
   are structural and based on the DateTime struct fields. For proper
   comparison between datetimes, use the `compare/2` function.
 
+  The functions on this module work with the `DateTime` struct as well
+  as any struct that contains the same fields as the `DateTime` struct.
+  Such functions expect `t:Calendar.datetime/0` in their typespecs
+  (instead of `t:t/0`).
+
   Developers should avoid creating the DateTime struct directly
   and instead rely on the functions provided by this module as
   well as the ones in 3rd party calendar libraries.
@@ -52,13 +57,13 @@ defmodule DateTime do
       "Etc/UTC"
 
   """
-  @spec utc_now(Calendar.calendar) :: DateTime.t
+  @spec utc_now(Calendar.calendar) :: t
   def utc_now(calendar \\ Calendar.ISO) do
     System.os_time |> from_unix!(:native, calendar)
   end
 
   @doc """
-  Converts the given Unix time to DateTime.
+  Converts the given Unix time to `DateTime`.
 
   The integer can be given in different unit
   according to `System.convert_time_unit/3` and it will
@@ -86,7 +91,7 @@ defmodule DateTime do
   Negative Unix times are supported, up to -62167219200 seconds,
   which is equivalent to "0000-01-01T00:00:00Z" or 0 Gregorian seconds.
   """
-  @spec from_unix(integer, :native | System.time_unit, Calendar.calendar) :: {:ok, DateTime.t} | {:error, atom}
+  @spec from_unix(integer, :native | System.time_unit, Calendar.calendar) :: {:ok, t} | {:error, atom}
   def from_unix(integer, unit \\ :second, calendar \\ Calendar.ISO) when is_integer(integer) do
     case Calendar.ISO.from_unix(integer, unit) do
       {:ok, {year, month, day}, {hour, minute, second}, microsecond} ->
@@ -100,7 +105,7 @@ defmodule DateTime do
   end
 
   @doc """
-  Converts the given Unix time to DateTime.
+  Converts the given Unix time to `DateTime`.
 
   The integer can be given in different unit
   according to `System.convert_time_unit/3` and it will
@@ -122,7 +127,7 @@ defmodule DateTime do
       #DateTime<2015-05-25 13:26:08.868569Z>
 
   """
-  @spec from_unix!(integer, :native | System.time_unit, Calendar.calendar) :: DateTime.t
+  @spec from_unix!(integer, :native | System.time_unit, Calendar.calendar) :: t | no_return
   def from_unix!(integer, unit \\ :second, calendar \\ Calendar.ISO) when is_atom(unit) do
     case from_unix(integer, unit, calendar) do
       {:ok, datetime} ->
@@ -133,7 +138,7 @@ defmodule DateTime do
   end
 
   @doc """
-  Converts the given NaiveDateTime to DateTime.
+  Converts the given `NaiveDateTime` to `DateTime`.
 
   It expects a time zone to put the NaiveDateTime in.
   Currently it only supports "Etc/UTC" as time zone.
@@ -145,7 +150,7 @@ defmodule DateTime do
       #DateTime<2016-05-24 13:26:08.003Z>
 
   """
-  @spec from_naive(NaiveDateTime.t, Calendar.time_zone) :: {:ok, DateTime.t}
+  @spec from_naive(NaiveDateTime.t, Calendar.time_zone) :: {:ok, t}
   def from_naive(naive_datetime, time_zone)
 
   def from_naive(%NaiveDateTime{calendar: calendar,
@@ -157,7 +162,7 @@ defmodule DateTime do
   end
 
   @doc """
-  Converts the given NaiveDateTime to DateTime.
+  Converts the given `NaiveDateTime` to `DateTime`.
 
   It expects a time zone to put the NaiveDateTime in.
   Currently it only supports "Etc/UTC" as time zone.
@@ -168,7 +173,7 @@ defmodule DateTime do
       #DateTime<2016-05-24 13:26:08.003Z>
 
   """
-  @spec from_naive!(non_neg_integer, :native | System.time_unit) :: DateTime.t
+  @spec from_naive!(NaiveDateTime.t, Calendar.time_zone) :: t | no_return
   def from_naive!(naive_datetime, time_zone) do
     case from_naive(naive_datetime, time_zone) do
       {:ok, datetime} ->
@@ -179,9 +184,9 @@ defmodule DateTime do
   end
 
   @doc """
-  Converts the given DateTime to Unix time.
+  Converts the given `datetime` to Unix time.
 
-  The DateTime is expected to be using the ISO calendar
+  The `datetime` is expected to be using the ISO calendar
   with a year greater than or equal to 0.
 
   It will return the integer with the given unit,
@@ -205,10 +210,10 @@ defmodule DateTime do
       -17412508655
 
   """
-  @spec to_unix(DateTime.t, System.time_unit) :: non_neg_integer
+  @spec to_unix(Calendar.datetime, System.time_unit) :: integer
   def to_unix(datetime, unit \\ :second)
 
-  def to_unix(%DateTime{utc_offset: utc_offset, std_offset: std_offset} = datetime, unit) do
+  def to_unix(%{utc_offset: utc_offset, std_offset: std_offset} = datetime, unit) do
     {days, fraction} = to_rata_die(datetime)
     unix_units = Calendar.ISO.rata_die_to_unit({days - @unix_days, fraction}, unit)
     offset_units = System.convert_time_unit(utc_offset + std_offset, :second, unit)
@@ -216,7 +221,7 @@ defmodule DateTime do
   end
 
   @doc """
-  Converts a `DateTime` into a `NaiveDateTime`.
+  Converts the given `datetime` into a `NaiveDateTime`.
 
   Because `NaiveDateTime` does not hold time zone information,
   any time zone related data will be lost during the conversion.
@@ -230,7 +235,8 @@ defmodule DateTime do
       ~N[2000-02-29 23:00:07.0]
 
   """
-  def to_naive(%DateTime{year: year, month: month, day: day, calendar: calendar,
+  @spec to_naive(t) :: NaiveDateTime.t
+  def to_naive(%DateTime{calendar: calendar, year: year, month: month, day: day,
                          hour: hour, minute: minute, second: second, microsecond: microsecond}) do
     %NaiveDateTime{year: year, month: month, day: day, calendar: calendar,
                    hour: hour, minute: minute, second: second, microsecond: microsecond}
@@ -251,6 +257,7 @@ defmodule DateTime do
       ~D[2000-02-29]
 
   """
+  @spec to_date(t) :: Date.t
   def to_date(%DateTime{year: year, month: month, day: day, calendar: calendar}) do
     %Date{year: year, month: month, day: day, calendar: calendar}
   end
@@ -270,6 +277,7 @@ defmodule DateTime do
       ~T[23:00:07.0]
 
   """
+  @spec to_time(t) :: Time.t
   def to_time(%DateTime{hour: hour, minute: minute, second: second, microsecond: microsecond, calendar: calendar}) do
     %Time{hour: hour, minute: minute, second: second, microsecond: microsecond, calendar: calendar}
   end
@@ -429,7 +437,7 @@ defmodule DateTime do
   end
 
   @doc """
-  Converts the given datetime to a string according to its calendar.
+  Converts the given `datetime` to a string according to its calendar.
 
   ### Examples
 
@@ -485,7 +493,7 @@ defmodule DateTime do
   end
 
   @doc """
-  Compares two `DateTime` structs.
+  Compares two datetime structs.
 
   Returns `:gt` if first datetime is later than the second
   and `:lt` for vice versa. If the two datetimes are equal
@@ -506,7 +514,7 @@ defmodule DateTime do
       :gt
 
   """
-  @spec compare(DateTime.t, DateTime.t) :: :lt | :eq | :gt
+  @spec compare(Calendar.datetime, Calendar.datetime) :: :lt | :eq | :gt
   def compare(%DateTime{utc_offset: utc_offset1, std_offset: std_offset1} = datetime1,
               %DateTime{utc_offset: utc_offset2, std_offset: std_offset2} = datetime2) do
     {days1, {parts1, ppd1}} =
@@ -552,9 +560,9 @@ defmodule DateTime do
       -18000
 
   """
-  @spec diff(DateTime.t, DateTime.t) :: integer()
-  def diff(%DateTime{utc_offset: utc_offset1, std_offset: std_offset1} = datetime1,
-           %DateTime{utc_offset: utc_offset2, std_offset: std_offset2} = datetime2, unit \\ :second) do
+  @spec diff(Calendar.datetime, Calendar.datetime) :: integer()
+  def diff(%{utc_offset: utc_offset1, std_offset: std_offset1} = datetime1,
+           %{utc_offset: utc_offset2, std_offset: std_offset2} = datetime2, unit \\ :second) do
     naive_diff =
       (datetime1 |> to_rata_die() |> Calendar.ISO.rata_die_to_unit(unit)) -
       (datetime2 |> to_rata_die() |> Calendar.ISO.rata_die_to_unit(unit))
