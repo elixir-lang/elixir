@@ -1187,6 +1187,24 @@ defmodule Kernel.ExpansionTest do
       end)
     end
 
+    assert_raise CompileError, ~r"invalid pattern in match", fn ->
+      expand(quote do
+        x = &(&1)
+        case true do
+          x.(false) -> true
+        end
+      end)
+    end
+
+    assert_raise CompileError, ~r"invalid expression in guard", fn ->
+      expand(quote do
+        x = &(&1)
+        case true do
+          true when x.(true) -> true
+        end
+      end)
+    end
+
     assert_raise CompileError, ~r"invalid call foo\(1\)\(2\)", fn ->
       expand(quote do: foo(1)(2))
     end
