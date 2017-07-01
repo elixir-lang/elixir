@@ -70,6 +70,8 @@ defmodule Code.Formatter do
     def: 2,
     defp: 1,
     defp: 2,
+    defguard: 1,
+    defguardp: 1,
     defmacro: 1,
     defmacro: 2,
     defmacrop: 1,
