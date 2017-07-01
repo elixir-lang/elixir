@@ -4468,6 +4468,103 @@ defmodule Kernel do
   end
 
   @doc """
+  Generates a macro suitable for use in guard expressions.
+
+  It raises at compile time if the definition uses expressions that aren't
+  allowed in guards, and otherwise creates a macro that can be used both inside
+  or outside guards.
+
+  Note the convention in Elixir is to name functions/macros allowed in
+  guards with the `is_` prefix, such as `is_list/1`. If, however, the
+  function/macro returns a boolean and is not allowed in guards, it should
+  have no prefix and end with a question mark, such as `Keyword.keyword?/1`.
+
+  ## Example
+
+      defmodule Integer.Guards do
+        defguard is_even(value) when is_integer(value) and rem(value, 2) == 0
+      end
+
+      defmodule Collatz do
+        @moduledoc "Tools for working with the Collatz sequence."
+        import Integer.Guards
+
+        @doc "Determines the number of steps `n` takes to reach `1`."
+        # If this function never converges, please let me know what `n` you used.
+        def converge(n) when n > 0, do: step(n, 0)
+
+        defp step(1, step_count) do
+          step_count
+        end
+
+        defp step(n, step_count) when is_even(n) do
+          step(div(n, 2), step_count + 1)
+        end
+
+        defp step(n, step_count) do
+          step(3*n + 1, step_count + 1)
+        end
+      end
+
+  """
+  @spec defguard(Macro.t()) :: Macro.t()
+  defmacro defguard(guard) do
+    define_guard(:defmacro, guard, __CALLER__)
+  end
+
+  @doc """
+  Generates a private macro suitable for use in guard expressions.
+
+  It raises at compile time if the definition uses expressions that aren't
+  allowed in guards, and otherwise creates a private macro that can be used
+  both inside or outside guards in the current module.
+
+  Similar to `defmacrop/2`, `defguardp/2` must be defined before its use
+  in the current module.
+  """
+  @spec defguardp(Macro.t()) :: Macro.t()
+  defmacro defguardp(guard) do
+    define_guard(:defmacrop, guard, __CALLER__)
+  end
+
+  defp define_guard(kind, guard, env) do
+    case :elixir_utils.extract_guards(guard) do
+      {call, impl} when length(impl) < 2 ->
+        case Macro.decompose_call(call) do
+          {_name, args} ->
+            validate_variable_only_args!(call, args)
+
+            quoted =
+              quote do
+                require Kernel.Utils
+                Kernel.Utils.defguard(unquote(args), unquote(impl))
+              end
+
+            define(kind, call, [do: quoted], env)
+
+          _invalid_definition ->
+            raise ArgumentError, "invalid syntax in defguard #{Macro.to_string(call)}"
+        end
+
+      {call, _multiple_impls} ->
+        raise ArgumentError, "invalid syntax in defguard #{Macro.to_string(call)}"
+    end
+  end
+
+  defp validate_variable_only_args!(call, args) do
+    Enum.each(args, fn
+      {ref, _meta, context} when is_atom(ref) and is_atom(context) ->
+        :ok
+
+      {:\\, _m1, [{ref, _m2, context}, _default]} when is_atom(ref) and is_atom(context) ->
+        :ok
+
+      _match ->
+        raise ArgumentError, "invalid syntax in defguard #{Macro.to_string(call)}"
+    end)
+  end
+
+  @doc """
   Uses the given module in the current context.
 
   When calling:
