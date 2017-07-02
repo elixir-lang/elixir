@@ -144,12 +144,8 @@ defmodule EEx.Engine do
     end
   end
 
-  def handle_expr(_buffer, "/", _expr) do
-    raise_marker_not_implemented("/")
-  end
-
-  def handle_expr(_buffer, "|", _expr) do
-    raise_marker_not_implemented("|")
+  def handle_expr(_buffer, marker, _expr) when marker in ["/", "|"] do
+    raise_marker_not_implemented(marker)
   end
 
   def handle_expr(buffer, "", expr) do
