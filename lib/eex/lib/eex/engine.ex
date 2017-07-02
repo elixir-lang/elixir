@@ -18,11 +18,15 @@ defmodule EEx.Engine do
 
       The marker is what follows exactly after `<%`. For example,
       `<% foo %>` has an empty marker, but `<%= foo %>` has `"="`
-      as marker. The allowed markers so far are: `""`, `"="`, `"/"`
-      and `"|"`.
+      as marker. The allowed markers so far are: 
 
-      Markers `"/"` and `"|"` are only for use in a custom EEx engines 
-      and are not implemented by default. Use of them without the
+        * `""`
+        * `"="`
+        * `"/"`
+        * `"|"`
+
+      Markers `"/"` and `"|"` are only for use in custom EEx engines
+      and are not implemented by default. Using them without the
       implementation raises `EEx.SyntaxError`.
 
       Read `handle_expr/3` below for more information about the markers
@@ -126,7 +130,7 @@ defmodule EEx.Engine do
   @doc """
   Implements expressions according to the markers.
 
-      <% Elixir expression  - inline with output %>
+      <% Elixir expression - inline with output %>
       <%= Elixir expression - replace with result %>
       <%/ Elixir expression - raise EEx.SyntaxError, to be implemented by custom engines %>
       <%| Elixir expression - raise EEx.SyntaxError, to be implemented by custom engines %>
@@ -141,11 +145,11 @@ defmodule EEx.Engine do
   end
 
   def handle_expr(_buffer, "/", _expr) do
-    not_implemented!("/")
+    raise_marker_not_implemented("/")
   end
 
   def handle_expr(_buffer, "|", _expr) do
-    not_implemented!("|")
+    raise_marker_not_implemented("|")
   end
 
   def handle_expr(buffer, "", expr) do
@@ -156,7 +160,7 @@ defmodule EEx.Engine do
     end
   end
 
-  defp not_implemented!(marker) do
+  defp raise_marker_not_implemented(marker) do
     raise EEx.SyntaxError, message: "handle_expr/3 not implemented for <%#{marker} %>"
   end
 end

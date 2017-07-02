@@ -74,21 +74,11 @@ defmodule EEx.Tokenizer do
 
   # Retrieve marker for <%
 
-  defp retrieve_marker('=' ++ t) do
-    {'=', t}
-  end
+  defp retrieve_marker([marker | t]) when marker in [?=, ?/, ?|],
+    do: {[marker], t}
 
-  defp retrieve_marker('/' ++ t) do
-    {'/', t}
-  end
-
-  defp retrieve_marker('|' ++ t) do
-    {'|', t}
-  end
-
-  defp retrieve_marker(t) do
-    {'', t}
-  end
+  defp retrieve_marker(t),
+    do: {'', t}
 
   # Tokenize an expression until we find %>
 
