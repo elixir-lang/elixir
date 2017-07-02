@@ -170,14 +170,14 @@ defmodule Kernel.Utils do
   def defguard(expr, refs) do
     quote do
       case Macro.Env.in_guard?(__CALLER__) do
-        true  -> unquote(literal_quote inside_guard_quotation(expr, refs))
-        false -> unquote(literal_quote out_of_guard_quotation(expr, refs))
+        true  -> unquote(literal_quote unquote_every_ref(expr, refs))
+        false -> unquote(literal_quote unquote_refs_once(expr, refs))
       end
     end
   end
 
   # Finds every reference to `refs` in `expr` and wraps them in an unquote.
-  defp inside_guard_quotation(expr, refs) do
+  defp unquote_every_ref(expr, refs) do
     Macro.postwalk expr, fn
       {ref, _meta, context} = var when is_atom(ref) and is_atom(context) ->
         case {ref, context} in refs do
@@ -189,8 +189,8 @@ defmodule Kernel.Utils do
   end
 
   # Prefaces `expr` with unquoted versions of `refs`.
-  defp out_of_guard_quotation(expr, refs) do
-    {expr, used_refs} =  Macro.postwalk(expr, [], fn
+  defp unquote_refs_once(expr, refs) do
+    {^expr, used_refs} =  Macro.postwalk(expr, [], fn
       {ref, _meta, context} = var, acc when is_atom(ref) and is_atom(context) ->
         case {ref, context} in refs and {ref, context} not in acc do
           true  ->  {var, [{ref, context} | acc]}
