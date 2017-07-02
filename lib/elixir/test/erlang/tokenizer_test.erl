@@ -85,8 +85,7 @@ comments_test() ->
   [{number, {1, 1, 2}, 1}, {eol, {1, 3, 4}}, {number, {2, 1, 2}, 2}] = tokenize("1 # Comment\n2"),
   [{number, {1, 1, 2}, 1}, {comment, {1, 3, 12}, "# Comment"},
    {eol, {1, 12, 13}}, {number, {2, 1, 2}, 2}] = tokenize("1 # Comment\n2", [{preserve_comments, true}]),
-  [{comment,{1,1,10},"# Comment"}] = tokenize("# Comment", [{preserve_comments, true}]).
-
+  [{comment, {1, 1, 10}, "# Comment"}] = tokenize("# Comment", [{preserve_comments, true}]).
 
 identifier_test() ->
   [{identifier, {1, 1, 4}, abc}] = tokenize("abc "),
