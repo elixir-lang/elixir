@@ -507,6 +507,7 @@ defmodule Calendar.ISO do
   end
 
   # Based on `:calendar.day_to_year`
+  # This procedure needs to change if we want to support < 0 year dates.
   defp days_to_year(days) do
     years = Integer.floor_div(days, @days_per_nonleap_year)
     {years, day_of_year} = do_days_to_year(years, days, days_in_prev_years(years))
@@ -520,9 +521,9 @@ defmodule Calendar.ISO do
     {year, days2}
   end
 
+  # TODO This is the reason that `:calendar` cannot handle years before `0`!
+  # This procedure cannot properly be defined for that.
   def days_in_prev_years(year) when year <= 0 do
-    # TODO This is the reason that `:calendar` cannot handle years before `0`!
-    # This procedure cannot properly be defined for that.
     0
   end
   def days_in_prev_years(year) do
