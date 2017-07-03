@@ -510,20 +510,8 @@ defmodule Calendar.ISO do
     {years, months, day_in_month}
   end
 
-  # Based on `:calendar.day_to_year(days)`
-  # This procedure needs to change if we want to support < 0 year dates.
+  # Based on `:calendar.day_to_year(days)`, but adapted to work with negative numbers.
   defp days_to_year(days) do
-    origdays = days
-    IO.inspect(days_to_years_old(days), label: "Days #{origdays} to years old")
-    {fourcenturies, days} = divmod(days - 1, @days_per_fourcenturies)
-    {centuries, days} = divmod(days, @days_per_century)
-    {leap_cycles, days} = divmod(days, @days_per_leap_cycle)
-    {rest_years, days} = divmod(days, @days_per_nonleap_year)
-    years = 400 * fourcenturies + 100 * centuries + 4 * leap_cycles + rest_years
-    {years, days} |> IO.inspect(label: "Days #{origdays} to years new")
-  end
-
-  defp days_to_years_old(days) do
     years = Integer.floor_div(days, @days_per_nonleap_year)
     {years, days_before_year} = do_days_to_year(years, days, days_in_prev_years(years))
     {years, days - days_before_year}
@@ -537,12 +525,10 @@ defmodule Calendar.ISO do
     {year, days2}
   end
 
-  # TODO This is the reason that `:calendar` cannot handle years before `0`!
-  # This procedure cannot properly be defined for that.
   def days_in_prev_years(year) when year == 0 do
     0
   end
-  def days_in_prev_years(year) when year > 0 do
+  def days_in_prev_years(year) do
     prevyear = year - 1
     Integer.floor_div(prevyear, 4) - Integer.floor_div(prevyear, 100) + Integer.floor_div(prevyear, 400) +
     prevyear * @days_per_nonleap_year + @days_per_leap_year
