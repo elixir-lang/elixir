@@ -536,7 +536,7 @@ defmodule Calendar.ISO do
     prevyear * @days_per_nonleap_year + @days_per_leap_year
   end
 
-  defp year_day_to_date(year, day_of_year) do
+  def year_day_to_date(year, day_of_year) do
     extra_day = if leap_year?(year), do: 1, else: 0
     {month, day} = do_year_to_date(extra_day, day_of_year)
     {month, day + 1}
@@ -550,37 +550,37 @@ defmodule Calendar.ISO do
     {1, day_of_year}
   end
   defp do_year_to_date(extra_day, day_of_year) when day_of_year in (31..(58 + extra_day)) do
-    {2, day_of_year}
+    {2, day_of_year - 31}
   end
   defp do_year_to_date(extra_day, day_of_year) when day_of_year in (59 + extra_day)..(89 + extra_day) do
-    {3, day_of_year}
+    {3, day_of_year - (59 + extra_day)}
   end
   defp do_year_to_date(extra_day, day_of_year) when day_of_year in (90 + extra_day)..(119 + extra_day) do
-    {4, day_of_year}
+    {4, day_of_year - (90 + extra_day)}
   end
   defp do_year_to_date(extra_day, day_of_year) when day_of_year in (120 + extra_day)..(150 + extra_day) do
-    {5, day_of_year}
+    {5, day_of_year - (120 + extra_day)}
   end
   defp do_year_to_date(extra_day, day_of_year) when day_of_year in (151 + extra_day)..(180 + extra_day) do
-    {6, day_of_year}
+    {6, day_of_year - (151 + extra_day)}
   end
   defp do_year_to_date(extra_day, day_of_year) when day_of_year in (181 + extra_day)..(211 + extra_day) do
-    {7, day_of_year}
+    {7, day_of_year - (181 + extra_day)}
   end
   defp do_year_to_date(extra_day, day_of_year) when day_of_year in (212 + extra_day)..(242 + extra_day) do
-    {8, day_of_year}
+    {8, day_of_year - (212 + extra_day)}
   end
   defp do_year_to_date(extra_day, day_of_year) when day_of_year in (243 + extra_day)..(272 + extra_day) do
-    {9, day_of_year}
+    {9, day_of_year - (243 + extra_day)}
   end
   defp do_year_to_date(extra_day, day_of_year) when day_of_year in (273 + extra_day)..(303 + extra_day) do
-    {10, day_of_year}
+    {10, day_of_year - (273 + extra_day)}
   end
   defp do_year_to_date(extra_day, day_of_year) when day_of_year in (304 + extra_day)..(333 + extra_day) do
-    {11, day_of_year}
+    {11, day_of_year - (304 + extra_day)}
   end
   defp do_year_to_date(extra_day, day_of_year) when day_of_year in (334 + extra_day)..(365 + extra_day) do
-    {12, day_of_year}
+    {12, day_of_year - (334 + extra_day)}
   end
 
   # {date, time} = :calendar.gregorian_seconds_to_datetime(@unix_epoch + div(total, 1_000_000))
