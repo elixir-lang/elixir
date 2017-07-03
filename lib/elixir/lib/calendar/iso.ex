@@ -134,14 +134,12 @@ defmodule Calendar.ISO do
     719528
   end
   def date_to_iso_days(year, month, day) do
-    # :calendar.date_to_gregorian_days(year, month, day)
     date_to_gregorian_days(year, month, day) - 365
   end
 
   # Converts count of days since 0000-01-01 to {year, month, day} tuple.
   @doc false
   def date_from_iso_days(days) do
-    # :calendar.gregorian_days_to_date(days)
     gregorian_days_to_date(days + 365)
   end
 
@@ -227,7 +225,6 @@ defmodule Calendar.ISO do
   @impl true
   def day_of_week(year, month, day)
       when is_integer(year) and is_integer(month) and is_integer(day) do
-    # :calendar.day_of_the_week(year, month, day)
     Integer.mod((date_to_gregorian_days(year, month, day) + 5), 7) + 1
   end
 
@@ -291,7 +288,6 @@ defmodule Calendar.ISO do
 
   @impl true
   def valid_date?(year, month, day) when day in (1..31) and month in (1..12) and year in (0..9999) do
-    # year <= 9999 and :calendar.valid_date(year, month, day)
     day <= days_in_month(year, month)
   end
   def valid_date?(year, month, day) do
@@ -346,7 +342,6 @@ defmodule Calendar.ISO do
     if total in @unix_range_microseconds do
       microsecond = rem(total, 1_000_000)
       precision = precision_for_unit(unit)
-      # {date, time} = :calendar.gregorian_seconds_to_datetime(@unix_epoch + div(total, 1_000_000))
       {date, time} = gregorian_seconds_to_datetime(@unix_epoch + div(total, 1_000_000))
       {:ok, date, time, {microsecond, precision}}
     else
@@ -476,14 +471,12 @@ defmodule Calendar.ISO do
     end
   end
 
-  # :calendar.date_to_gregorian_days(year, month, day) - 365
   # `year >=0`-check only exists to maintain full compatibility with `:calendar`,
   # Can be removed in the future.
   defp date_to_gregorian_days(year, month, day) when year >= 0 do
     last_day = days_in_month(year, month)
     true =  day <= last_day
     days_in_prev_years(year) + days_before_month(month) + leap_day_offset(year, month) + day - 1
-    end
   end
 
   # Note that this function does not add the extra leap day for a leap year.
@@ -508,7 +501,6 @@ defmodule Calendar.ISO do
     if leap_year?(year), do: 1, else: 0
   end
 
-  # :calendar.gregorian_days_to_date(days + 365)
   # `days >=0`-check only exists to maintain full compatibility with `:calendar`,
   # Can be removed in the future, once we expose negative dates to the public.
   defp gregorian_days_to_date(days) when days >= 0 do
@@ -517,14 +509,12 @@ defmodule Calendar.ISO do
     {years, months, day_in_month}
   end
 
-  # Based on `:calendar.day_to_year(days)`, but adapted to work with negative numbers.
   defp days_to_year(days) do
     years = Integer.floor_div(days, @days_per_nonleap_year)
     {years, days_before_year} = days_to_year(years, days, days_in_prev_years(years))
     {years, days - days_before_year}
   end
 
-  # Based on `:calendar.dty(year, days)`
   defp days_to_year(year, days, days2) when days < days2 do
     days_to_year(year - 1, days, days_in_prev_years(year - 1))
   end
@@ -586,7 +576,6 @@ defmodule Calendar.ISO do
     {12, day_of_year - (334 + extra_day)}
   end
 
-  # {date, time} = :calendar.gregorian_seconds_to_datetime(@unix_epoch + div(total, 1_000_000))
   defp gregorian_seconds_to_datetime(seconds) do
     {days, time} = divmod(seconds, @seconds_per_day)
 
