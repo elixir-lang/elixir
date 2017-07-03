@@ -157,6 +157,7 @@ defmodule EEx.Engine do
   end
 
   defp raise_marker_not_implemented(marker) do
-    raise EEx.SyntaxError, message: "handle_expr/3 not implemented for <%#{marker} %>"
+    raise EEx.SyntaxError, 
+      "unsupported EEx syntax <%#{marker} %> (the syntax is valid but not supported by the current EEx engine)"
   end
 end
