@@ -261,13 +261,19 @@ defmodule Calendar.ISO do
   Converts the given date into a string.
   """
   @impl true
-  def date_to_string(year, month, day) do
+  def date_to_string(year, month, day) when year >= 0 do
     zero_pad(year, 4) <> "-" <> zero_pad(month, 2) <> "-" <> zero_pad(day, 2)
+  end
+  def date_to_string(year, month, day) when year < 0 do
+    "-" <> zero_pad(abs(year), 4) <> "-" <> zero_pad(month, 2) <> "-" <> zero_pad(day, 2)
   end
 
   defp date_to_string(year, month, day, :extended), do: date_to_string(year, month, day)
-  defp date_to_string(year, month, day, :basic) do
+  defp date_to_string(year, month, day, :basic) when year >= 0 do
     zero_pad(year, 4) <> zero_pad(month, 2) <> zero_pad(day, 2)
+  end
+  defp date_to_string(year, month, day, :basic) when year < 0 do
+    "-" <> zero_pad(abs(year), 4) <> zero_pad(month, 2) <> zero_pad(day, 2)
   end
 
   @doc """

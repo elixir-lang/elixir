@@ -235,6 +235,9 @@ defmodule Date do
       iex> Date.from_iso8601("2015-01-32")
       {:error, :invalid_date}
 
+      iex> Date.from_iso8601("-0010-01-23")
+      {:ok, ~D[-0010-01-23]}
+
   """
   @spec from_iso8601(String.t) :: {:ok, t} | {:error, atom}
   def from_iso8601(string, calendar \\ Calendar.ISO)
@@ -245,6 +248,18 @@ defmodule Date do
          {day, ""} <- Integer.parse(day) do
       with {:ok, date} <- new(year, month, day, Calendar.ISO),
            do: convert(date, calendar)
+    else
+      _ -> {:error, :invalid_format}
+    end
+  end
+
+  # Negative dates.
+  def from_iso8601(<<?-, year::4-bytes, ?-, month::2-bytes, ?-, day::2-bytes>>, calendar) do
+    with {year, ""} <- Integer.parse(year),
+         {month, ""} <- Integer.parse(month),
+         {day, ""} <- Integer.parse(day) do
+      with {:ok, date} <- new(-year, month, day, Calendar.ISO),
+        do: convert(date, calendar)
     else
       _ -> {:error, :invalid_format}
     end

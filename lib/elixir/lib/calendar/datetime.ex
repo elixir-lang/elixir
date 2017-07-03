@@ -376,6 +376,10 @@ defmodule DateTime do
       iex> datetime
       #DateTime<2015-01-23 21:20:07.123Z>
 
+      iex> DateTime.from_iso8601("-0010-01-23T23:50:07,123+02:30")
+      {:ok, %DateTime{calendar: Calendar.ISO, day: 23, hour: 21, microsecond: {123000, 3}, minute: 20, month: 1, second: 7, std_offset: 0,
+                      time_zone: "Etc/UTC", utc_offset: 0, year: -10, zone_abbr: "UTC"}, 9000}
+
       iex> DateTime.from_iso8601("2015-01-23P23:50:07")
       {:error, :invalid_format}
       iex> DateTime.from_iso8601("2015-01-23 23:50:07A")
@@ -416,6 +420,34 @@ defmodule DateTime do
         Calendar.ISO.naive_datetime_to_iso_days(year, month, day, hour, minute, second, microsecond)
         |> apply_tz_offset(offset)
         |> from_iso_days("Etc/UTC", "UTC", 0, 0, calendar, precision)
+
+      {:ok, %{datetime | microsecond: microsecond}, offset}
+    else
+      {:error, reason} -> {:error, reason}
+      _ -> {:error, :invalid_format}
+    end
+  end
+
+  # Negative DateTimes
+  def from_iso8601(<<?-, year::4-bytes, ?-, month::2-bytes, ?-, day::2-bytes, sep,
+                     hour::2-bytes, ?:, min::2-bytes, ?:, sec::2-bytes, rest::binary>>, calendar) when sep in [?\s, ?T] do
+    with {year, ""} <- Integer.parse(year),
+         {month, ""} <- Integer.parse(month),
+         {day, ""} <- Integer.parse(day),
+         {hour, ""} <- Integer.parse(hour),
+         {minute, ""} <- Integer.parse(min),
+         {second, ""} <- Integer.parse(sec),
+         {microsecond, rest} <- Calendar.ISO.parse_microsecond(rest),
+         {:ok, date} <- Date.new(-year, month, day),
+         {:ok, time} <- Time.new(hour, minute, second, microsecond),
+         {:ok, offset} <- parse_offset(rest) do
+      %{year: year, month: month, day: day} = date
+      %{hour: hour, minute: minute, second: second, microsecond: microsecond} = time
+
+      datetime =
+        Calendar.ISO.naive_datetime_to_rata_die(year, month, day, hour, minute, second, microsecond)
+        |> apply_tz_offset(offset)
+        |> from_rata_die("Etc/UTC", "UTC", 0, 0, calendar)
 
       {:ok, %{datetime | microsecond: microsecond}, offset}
     else

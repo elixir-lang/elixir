@@ -250,11 +250,13 @@ defmodule DateTimeTest do
                             minute: 0, month: 1, second: 0, std_offset: 0, time_zone: "Etc/UTC",
                             utc_offset: 0, year: 0, zone_abbr: "UTC"}
     assert DateTime.to_unix(gregorian_0) == -62167219200
+  end
 
-    before_gregorian_0 = %DateTime{gregorian_0 | year: -1}
-    assert_raise FunctionClauseError, fn ->
-      DateTime.to_unix(before_gregorian_0)
-    end
+  test "to_unix/2 works even for pre-Gregorian times" do
+    pre_gregorian = %DateTime{calendar: Calendar.ISO, day: 1, hour: 0, microsecond: {0, 0},
+                            minute: 0, month: 1, second: 0, std_offset: 0, time_zone: "Etc/UTC",
+                            utc_offset: 0, year: -10, zone_abbr: "UTC"}
+    assert DateTime.to_unix(pre_gregorian) == -62482752000
   end
 
   test "compare/2" do
