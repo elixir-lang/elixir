@@ -478,7 +478,7 @@ defmodule Calendar.ISO do
   # :calendar.gregorian_days_to_date(days + 365)
   defp gregorian_days_to_date(days) do
     {years, day_of_year} = days_to_year(days)
-    {months, day_in_month} = year_day_to_date(day_of_year)
+    {months, day_in_month} = year_day_to_date(years, day_of_year)
     {years, months, day_in_month}
   end
 
@@ -506,7 +506,7 @@ defmodule Calendar.ISO do
     prevyear * @days_per_nonleap_year + @days_per_leap_year
   end
 
-  defp year_day_to_date(day_of_year) do
+  defp year_day_to_date(year, day_of_year) do
     extra_day = if leap_year?(year) do 1 else 0 end
     {month, day} = do_year_to_date(extra_day, day_of_year)
   end
@@ -555,7 +555,7 @@ defmodule Calendar.ISO do
   # {date, time} = :calendar.gregorian_seconds_to_datetime(@unix_epoch + div(total, 1_000_000))
   defp gregorian_seconds_to_datetime(seconds) do
     days = Integer.floor_div(seconds, @seconds_per_day)
-    time_seconds = Integer.mod(seconds, @seconds_per_day)
+    time = Integer.mod(seconds, @seconds_per_day)
 
     {year, month, day} = gregorian_days_to_date(days)
     {hours, minutes, seconds} = seconds_to_time(time)
