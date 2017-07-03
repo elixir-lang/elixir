@@ -527,10 +527,10 @@ defmodule Calendar.ISO do
 
   # TODO This is the reason that `:calendar` cannot handle years before `0`!
   # This procedure cannot properly be defined for that.
-  def days_in_prev_years(year) when year <= 0 do
+  def days_in_prev_years(year) when year == 0 do
     0
   end
-  def days_in_prev_years(year) do
+  def days_in_prev_years(year) when year > 0 do
     prevyear = year - 1
     Integer.floor_div(prevyear, 4) - Integer.floor_div(prevyear, 100) + Integer.floor_div(prevyear, 400) +
     prevyear * @days_per_nonleap_year + @days_per_leap_year
