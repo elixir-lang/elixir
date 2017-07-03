@@ -263,16 +263,10 @@ defmodule Calendar.ISO do
   def date_to_string(year, month, day) when year >= 0 do
     zero_pad(year, 4) <> "-" <> zero_pad(month, 2) <> "-" <> zero_pad(day, 2)
   end
-  def date_to_string(year, month, day) when year < 0 do
-    "-" <> zero_pad(abs(year), 4) <> "-" <> zero_pad(month, 2) <> "-" <> zero_pad(day, 2)
-  end
 
   defp date_to_string(year, month, day, :extended), do: date_to_string(year, month, day)
   defp date_to_string(year, month, day, :basic) when year >= 0 do
     zero_pad(year, 4) <> zero_pad(month, 2) <> zero_pad(day, 2)
-  end
-  defp date_to_string(year, month, day, :basic) when year < 0 do
-    "-" <> zero_pad(abs(year), 4) <> zero_pad(month, 2) <> zero_pad(day, 2)
   end
 
   @doc """
@@ -296,7 +290,7 @@ defmodule Calendar.ISO do
   end
 
   @impl true
-  def valid_date?(year, month, day) when day in (1..31) and month in (1..12) and year <= 9999 do
+  def valid_date?(year, month, day) when day in (1..31) and month in (1..12) and year in (0..9999) do
     # year <= 9999 and :calendar.valid_date(year, month, day)
     day <= days_in_month(year, month)
   end
@@ -483,7 +477,9 @@ defmodule Calendar.ISO do
   end
 
   # :calendar.date_to_gregorian_days(year, month, day) - 365
-  defp date_to_gregorian_days(year, month, day) do
+  # `year >=0`-check only exists to maintain full compatibility with `:calendar`,
+  # Can be removed in the future, once we expose negative dates to the public.
+  defp date_to_gregorian_days(year, month, day) when year >= 0 do
     last_day = days_in_month(year, month)
     if day <= last_day do # TODO Why does :calendar have this check?
       days_in_prev_years(year) + days_before_month(month) + leap_day_offset(year, month) + day - 1
@@ -513,7 +509,9 @@ defmodule Calendar.ISO do
   end
 
   # :calendar.gregorian_days_to_date(days + 365)
-  defp gregorian_days_to_date(days) do
+  # `days >=0`-check only exists to maintain full compatibility with `:calendar`,
+  # Can be removed in the future, once we expose negative dates to the public.
+  defp gregorian_days_to_date(days) when days >= 0 do
     {years, day_of_year} = days_to_year(days)
     {months, day_in_month} = year_day_to_date(years, day_of_year)
     {years, months, day_in_month}

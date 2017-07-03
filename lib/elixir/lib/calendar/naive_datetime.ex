@@ -362,9 +362,6 @@ defmodule NaiveDateTime do
       iex> NaiveDateTime.from_iso8601("2015-01-23T23:50:07.123-24:00")
       {:error, :invalid_format}
 
-      iex> NaiveDateTime.from_iso8601("-0015-01-23T23:50:07.123+00:00")
-      {:ok, ~N[-0015-01-23 23:50:07.123]}
-
   """
   @spec from_iso8601(String.t, Calendar.calendar) :: {:ok, t} | {:error, atom}
   def from_iso8601(string, calendar \\ Calendar.ISO)
@@ -385,25 +382,6 @@ defmodule NaiveDateTime do
       _ -> {:error, :invalid_format}
     end
   end
-
-  # Negative NaiveDateTimes
-  def from_iso8601(<<?-, year::4-bytes, ?-, month::2-bytes, ?-, day::2-bytes, sep,
-    hour::2-bytes, ?:, min::2-bytes, ?:, sec::2-bytes, rest::binary>>, calendar) when sep in [?\s, ?T] do
-    with {year, ""} <- Integer.parse(year),
-         {month, ""} <- Integer.parse(month),
-         {day, ""} <- Integer.parse(day),
-         {hour, ""} <- Integer.parse(hour),
-         {min, ""} <- Integer.parse(min),
-         {sec, ""} <- Integer.parse(sec),
-         {microsec, rest} <- Calendar.ISO.parse_microsecond(rest),
-         {_offset, ""} <- Calendar.ISO.parse_offset(rest) do
-      with {:ok, utc_date} <- new(-year, month, day, hour, min, sec, microsec, Calendar.ISO),
-        do: convert(utc_date, calendar)
-    else
-      _ -> {:error, :invalid_format}
-    end
-  end
-
 
   def from_iso8601(<<_::binary>>, _calendar) do
     {:error, :invalid_format}
