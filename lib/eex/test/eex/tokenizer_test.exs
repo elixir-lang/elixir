@@ -22,6 +22,16 @@ defmodule EEx.TokenizerTest do
            {:ok, [{:text, 'foo '}, {:expr, 1, '=', ' bar '}]}
   end
 
+  test "strings with embedded slash code" do
+    assert T.tokenize('foo <%/ bar %>', 1) ==
+           {:ok, [{:text, 'foo '}, {:expr, 1, '/', ' bar '}]}
+  end
+
+  test "strings with embedded pipe code" do
+    assert T.tokenize('foo <%| bar %>', 1) ==
+           {:ok, [{:text, 'foo '}, {:expr, 1, '|', ' bar '}]}
+  end
+
   test "strings with more than one line" do
     assert T.tokenize('foo\n<%= bar %>', 1) ==
            {:ok, [{:text, 'foo\n'}, {:expr, 2, '=', ' bar '}]}
