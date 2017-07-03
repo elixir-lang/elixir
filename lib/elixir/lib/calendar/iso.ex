@@ -36,7 +36,6 @@ defmodule Calendar.ISO do
   @days_per_century 36524
   @days_per_fourcenturies 146097
 
-
   @doc """
   Returns the `t:Calendar.iso_days` format of the specified date.
 
@@ -229,7 +228,7 @@ defmodule Calendar.ISO do
   def day_of_week(year, month, day)
       when is_integer(year) and is_integer(month) and is_integer(day) do
     # :calendar.day_of_the_week(year, month, day)
-    day_of_the_week(year, month, day)
+    Integer.mod((date_to_gregorian_days(years, months, days) + 5), 7) + 1
   end
 
   @doc """
@@ -523,25 +522,23 @@ defmodule Calendar.ISO do
   # Based on `:calendar.day_to_year(days)`, but adapted to work with negative numbers.
   defp days_to_year(days) do
     years = Integer.floor_div(days, @days_per_nonleap_year)
-    {years, days_before_year} = do_days_to_year(years, days, days_in_prev_years(years))
+    {years, days_before_year} = days_to_year(years, days, days_in_prev_years(years))
     {years, days - days_before_year}
   end
 
   # Based on `:calendar.dty(year, days)`
-  defp do_days_to_year(year, days, days2) when days < days2 do
-    do_days_to_year(year - 1, days, days_in_prev_years(year - 1))
+  defp days_to_year(year, days, days2) when days < days2 do
+    days_to_year(year - 1, days, days_in_prev_years(year - 1))
   end
-  defp do_days_to_year(year, _days, days2) do
+  defp days_to_year(year, _days, days2) do
     {year, days2}
   end
 
-  def days_in_prev_years(year) when year == 0 do
-    0
-  end
+  def days_in_prev_years(0), do: 0
   def days_in_prev_years(year) do
     prevyear = year - 1
     Integer.floor_div(prevyear, 4) - Integer.floor_div(prevyear, 100) + Integer.floor_div(prevyear, 400) +
-    prevyear * @days_per_nonleap_year + @days_per_leap_year
+      prevyear * @days_per_nonleap_year + @days_per_leap_year
   end
 
   def year_day_to_date(year, day_of_year) do
@@ -554,40 +551,41 @@ defmodule Calendar.ISO do
   # Guards can probably be optimized further (why check lower bounds?)
   # original: https://github.com/erlang/otp/blob/master/lib/stdlib/src/calendar.erl#L491
   # Can possibly be written in a for-loop as well, for increased brevity and readability :D
-  defp do_year_to_date(extra_day, day_of_year) when day_of_year in (0..30) do
+  # Should only ever be called with `day_of_year` 0..366 and `extra_day` 0 | 1.
+  defp do_year_to_date(extra_day, day_of_year) when day_of_year < 31 do
     {1, day_of_year}
   end
-  defp do_year_to_date(extra_day, day_of_year) when day_of_year in (31..(58 + extra_day)) do
+  defp do_year_to_date(extra_day, day_of_year) when day_of_year < (59 + extra_day) do
     {2, day_of_year - 31}
   end
-  defp do_year_to_date(extra_day, day_of_year) when day_of_year in (59 + extra_day)..(89 + extra_day) do
+  defp do_year_to_date(extra_day, day_of_year) when day_of_year < (90 + extra_day) do
     {3, day_of_year - (59 + extra_day)}
   end
-  defp do_year_to_date(extra_day, day_of_year) when day_of_year in (90 + extra_day)..(119 + extra_day) do
+  defp do_year_to_date(extra_day, day_of_year) when day_of_year < (120 + extra_day) do
     {4, day_of_year - (90 + extra_day)}
   end
-  defp do_year_to_date(extra_day, day_of_year) when day_of_year in (120 + extra_day)..(150 + extra_day) do
+  defp do_year_to_date(extra_day, day_of_year) when day_of_year < (151 + extra_day) do
     {5, day_of_year - (120 + extra_day)}
   end
-  defp do_year_to_date(extra_day, day_of_year) when day_of_year in (151 + extra_day)..(180 + extra_day) do
+  defp do_year_to_date(extra_day, day_of_year) when day_of_year < (181 + extra_day) do
     {6, day_of_year - (151 + extra_day)}
   end
-  defp do_year_to_date(extra_day, day_of_year) when day_of_year in (181 + extra_day)..(211 + extra_day) do
+  defp do_year_to_date(extra_day, day_of_year) when day_of_year < (212 + extra_day) do
     {7, day_of_year - (181 + extra_day)}
   end
-  defp do_year_to_date(extra_day, day_of_year) when day_of_year in (212 + extra_day)..(242 + extra_day) do
+  defp do_year_to_date(extra_day, day_of_year) when day_of_year < (243 + extra_day) do
     {8, day_of_year - (212 + extra_day)}
   end
-  defp do_year_to_date(extra_day, day_of_year) when day_of_year in (243 + extra_day)..(272 + extra_day) do
+  defp do_year_to_date(extra_day, day_of_year) when day_of_year < (273 + extra_day) do
     {9, day_of_year - (243 + extra_day)}
   end
-  defp do_year_to_date(extra_day, day_of_year) when day_of_year in (273 + extra_day)..(303 + extra_day) do
+  defp do_year_to_date(extra_day, day_of_year) when day_of_year < (304 + extra_day) do
     {10, day_of_year - (273 + extra_day)}
   end
-  defp do_year_to_date(extra_day, day_of_year) when day_of_year in (304 + extra_day)..(333 + extra_day) do
+  defp do_year_to_date(extra_day, day_of_year) when day_of_year < (334 + extra_day) do
     {11, day_of_year - (304 + extra_day)}
   end
-  defp do_year_to_date(extra_day, day_of_year) when day_of_year in (334 + extra_day)..(365 + extra_day) do
+  defp do_year_to_date(extra_day, day_of_year) when day_of_year do
     {12, day_of_year - (334 + extra_day)}
   end
 
@@ -610,11 +608,6 @@ defmodule Calendar.ISO do
 
   defp divmod(divisor, dividend) do
     {Integer.floor_div(divisor, dividend), Integer.mod(divisor, dividend)}
-  end
-
-  # :calendar.day_of_the_week(year, month, day)
-  defp day_of_the_week(years, months, days) do
-    Integer.mod((date_to_gregorian_days(years, months, days) + 5), 7) + 1
   end
 end
 
