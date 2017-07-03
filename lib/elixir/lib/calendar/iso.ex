@@ -29,6 +29,13 @@ defmodule Calendar.ISO do
   @seconds_per_day 24 * 60 * 60 # Note that this does _not_ handle leap seconds.
   @microseconds_per_second 1_000_000
 
+  # Used in leap day calculations:
+  @days_per_nonleap_year 365
+  @days_per_leap_year 366
+  @days_per_fouryears 3 * @days_per_nonleap_year + @days_per_leap_year
+  @days_per_century 25 * @days_per_fouryears
+  @days_per_fourcenturies 100 * @days_per_century
+
   @doc """
   Returns the `t:Calendar.iso_days` format of the specified date.
 
@@ -127,13 +134,15 @@ defmodule Calendar.ISO do
     719528
   end
   def date_to_iso_days(year, month, day) do
-    :calendar.date_to_gregorian_days(year, month, day)
+    # :calendar.date_to_gregorian_days(year, month, day)
+    date_to_gregorian_days(year, month, day) - 365
   end
 
   # Converts count of days since 0000-01-01 to {year, month, day} tuple.
   @doc false
   def date_from_iso_days(days) do
-    :calendar.gregorian_days_to_date(days)
+    # :calendar.gregorian_days_to_date(days)
+    gregorian_days_to_date(days + 365)
   end
 
   defp div_mod(int1, int2) do
@@ -188,8 +197,8 @@ defmodule Calendar.ISO do
   """
   @spec leap_year?(year) :: boolean()
   @impl true
-  def leap_year?(year) when is_integer(year) and year >= 0 do
-    rem(year, 4) === 0 and (rem(year, 100) > 0 or rem(year, 400) === 0)
+  def leap_year?(year) when is_integer(year) do
+    Integer.mod(year, 4) === 0 and (Integer.mod(year, 100) > 0 or Integer.mod(year, 400) === 0)
   end
 
   @doc """
@@ -218,7 +227,8 @@ defmodule Calendar.ISO do
   @impl true
   def day_of_week(year, month, day)
       when is_integer(year) and is_integer(month) and is_integer(day) do
-    :calendar.day_of_the_week(year, month, day)
+    # :calendar.day_of_the_week(year, month, day)
+    day_of_the_week(year, month, day)
   end
 
   @doc """
@@ -460,4 +470,113 @@ defmodule Calendar.ISO do
       {days + days_offset, {parts, ppd}}
     end
   end
+
+  # :calendar.date_to_gregorian_days(year, month, day) - 365
+  defp date_to_gregorian_days(year, month, day) do
+  end
+
+  # :calendar.gregorian_days_to_date(days + 365)
+  defp gregorian_days_to_date(days) do
+    {years, day_of_year} = days_to_year(days)
+    {months, day_in_month} = year_day_to_date(day_of_year)
+    {years, months, day_in_month}
+  end
+
+  defp days_to_year(days) do
+    years = Integer.floor_div(days, @days_per_nonleap_year)
+    {years, day_of_year} = do_days_to_year(years, days, days_in_prev_years(years))
+    {years, day_of_year}
+  end
+
+  defp do_days_to_year(year, days, days2) when days < days2 do
+    do_days_to_year(year - 1, days, dy(days2 - 1))
+  end
+  defp do_days_to_year(year, days, _days2) do
+    {year, days}
+  end
+
+  defp days_in_prev_years(year) when year <= 0 do
+    # TODO This is the reason that `:calendar` cannot handle years before `0`!
+    # This procedure cannot properly be defined for that.
+    0
+  end
+  defp days_in_prev_years(year) do
+    prevyear = year - 1
+    Integer.floor_div(prevyear, 4) - Integer.floor_div(prevyear, 100) + Integer.floor_div(prevyear, 400) +
+    prevyear * @days_per_nonleap_year + @days_per_leap_year
+  end
+
+  defp year_day_to_date(day_of_year) do
+    extra_day = if leap_year?(year) do 1 else 0 end
+    {month, day} = do_year_to_date(extra_day, day_of_year)
+  end
+
+  # Note: `0` is the first day of the month.
+  # Guards can probably be optimized further (why check lower bounds?)
+  # original: https://github.com/erlang/otp/blob/master/lib/stdlib/src/calendar.erl#L491
+  # Can possibly be written in a for-loop as well, for increased brevity and readability :D
+  defp do_year_to_date(extra_day, day_of_year) when day_of_year in (0..30) do
+    {1, day_of_year}
+  end
+  defp do_year_to_date(extra_day, day_of_year) when day_of_year in (31..(58 + extra_day)) do
+    {2, day_of_year}
+  end
+  defp do_year_to_date(extra_day, day_of_year) when day_of_year in (59 + extra_day)..(89 + extra_day) do
+    {3, day_of_year}
+  end
+  defp do_year_to_date(extra_day, day_of_year) when day_of_year in (90 + extra_day)..(119 + extra_day) do
+    {4, day_of_year}
+  end
+  defp do_year_to_date(extra_day, day_of_year) when day_of_year in (120 + extra_day)..(150 + extra_day) do
+    {5, day_of_year}
+  end
+  defp do_year_to_date(extra_day, day_of_year) when day_of_year in (151 + extra_day)..(180 + extra_day) do
+    {6, day_of_year}
+  end
+  defp do_year_to_date(extra_day, day_of_year) when day_of_year in (181 + extra_day)..(211 + extra_day) do
+    {7, day_of_year}
+  end
+  defp do_year_to_date(extra_day, day_of_year) when day_of_year in (212 + extra_day)..(233 + extra_day) do
+    {8, day_of_year}
+  end
+  defp do_year_to_date(extra_day, day_of_year) when day_of_year in (234 + extra_day)..(272 + extra_day) do
+    {9, day_of_year}
+  end
+  defp do_year_to_date(extra_day, day_of_year) when day_of_year in (273 + extra_day)..(303 + extra_day) do
+    {10, day_of_year}
+  end
+  defp do_year_to_date(extra_day, day_of_year) when day_of_year in (304 + extra_day)..(333 + extra_day) do
+    {11, day_of_year}
+  end
+  defp do_year_to_date(extra_day, day_of_year) when day_of_year in (334 + extra_day)..(365 + extra_day) do
+    {12, day_of_year}
+  end
+
+  # {date, time} = :calendar.gregorian_seconds_to_datetime(@unix_epoch + div(total, 1_000_000))
+  defp gregorian_seconds_to_datetime(seconds) do
+    days = Integer.floor_div(seconds, @seconds_per_day)
+    time_seconds = Integer.mod(seconds, @seconds_per_day)
+
+    {year, month, day} = gregorian_days_to_date(days)
+    {hours, minutes, seconds} = seconds_to_time(time)
+    {{year, month, day}, {hours, minutes, seconds}}
+  end
+
+  # TODO Maybe increase precision to microseconds while we're at it?
+  defp seconds_to_time(seconds) when abs(seconds) >= 0 and abs(seconds) < @seconds_per_day do
+    {hours, seconds} = divmod(seconds, @seconds_per_hour)
+    {minutes, seconds} = divmod(seconds, @seconds_per_minute)
+
+    {hours, minutes, seconds}
+  end
+
+  defp divmod(divisor, dividend) do
+    {Integer.floor_div(divisor, dividend), Integer.mod(divisor, dividend)}
+  end
+
+  # :calendar.day_of_the_week(year, month, day)
+  defp day_of_the_week(years, months, days) do
+    Integer.mod((date_to_gregorian_days(years, months, days) + 5), 7) + 1
+  end
 end
+
