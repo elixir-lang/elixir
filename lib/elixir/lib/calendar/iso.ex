@@ -489,7 +489,7 @@ defmodule Calendar.ISO do
   end
 
   defp do_days_to_year(year, days, days2) when days < days2 do
-    do_days_to_year(year - 1, days, dy(days2 - 1))
+    do_days_to_year(year - 1, days, days_in_prev_years(days2 - 1))
   end
   defp do_days_to_year(year, days, _days2) do
     {year, days}
