@@ -473,6 +473,50 @@ defmodule Calendar.ISO do
 
   # :calendar.date_to_gregorian_days(year, month, day) - 365
   defp date_to_gregorian_days(year, month, day) do
+    :calendar.date_to_gregorian_days(year, month, day) - 365
+    last_day = last_day_of_the_month(year, month)
+    if day <= last_day do # TODO Why does :calendar have this check?
+      days_in_prev_years(year) + days_before_month(month) + leap_day_offset(year, month) + day - 1
+    end
+  end
+
+  defp last_day_of_the_month(year, month)
+  defp last_day_of_the_month(_, 4), do: 30
+  defp last_day_of_the_month(_, 6), do: 30
+  defp last_day_of_the_month(_, 9), do: 30
+  defp last_day_of_the_month(_, 11), do: 30
+  defp last_day_of_the_month(_, 2) do
+    if leap_year?(year) do
+      29
+    else
+      28
+    end
+  end
+  defp last_day_of_the_month(_, month) when month > 0 and month < 13 do
+    31
+  end
+
+  defp days_before_month(month)
+  defp days_before_month(1), do: 0
+  defp days_before_month(2), do: 31
+  defp days_before_month(3), do: 59
+  defp days_before_month(4), do: 90
+  defp days_before_month(5), do: 120
+  defp days_before_month(6), do: 151
+  defp days_before_month(7), do: 181
+  defp days_before_month(8), do: 212
+  defp days_before_month(9), do: 243
+  defp days_before_month(10), do: 273
+  defp days_before_month(11), do: 304
+  defp days_before_month(12), do: 334
+
+  defp leap_day_offset(year, month) when month < 3, do: 0
+  defp leap_day_offset(year, month) do
+    if leap_year?(year) do
+      1
+    else
+      0
+    end
   end
 
   # :calendar.gregorian_days_to_date(days + 365)
