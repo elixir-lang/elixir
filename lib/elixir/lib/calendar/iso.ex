@@ -342,7 +342,8 @@ defmodule Calendar.ISO do
     if total in @unix_range_microseconds do
       microsecond = rem(total, 1_000_000)
       precision = precision_for_unit(unit)
-      {date, time} = :calendar.gregorian_seconds_to_datetime(@unix_epoch + div(total, 1_000_000))
+      # {date, time} = :calendar.gregorian_seconds_to_datetime(@unix_epoch + div(total, 1_000_000))
+      {date, time} = gregorian_seconds_to_datetime(@unix_epoch + div(total, 1_000_000))
       {:ok, date, time, {microsecond, precision}}
     else
       {:error, :invalid_unix_time}
@@ -473,27 +474,10 @@ defmodule Calendar.ISO do
 
   # :calendar.date_to_gregorian_days(year, month, day) - 365
   defp date_to_gregorian_days(year, month, day) do
-    :calendar.date_to_gregorian_days(year, month, day) - 365
-    last_day = last_day_of_the_month(year, month)
+    last_day = days_in_month(year, month)
     if day <= last_day do # TODO Why does :calendar have this check?
       days_in_prev_years(year) + days_before_month(month) + leap_day_offset(year, month) + day - 1
     end
-  end
-
-  defp last_day_of_the_month(year, month)
-  defp last_day_of_the_month(_, 4), do: 30
-  defp last_day_of_the_month(_, 6), do: 30
-  defp last_day_of_the_month(_, 9), do: 30
-  defp last_day_of_the_month(_, 11), do: 30
-  defp last_day_of_the_month(_, 2) do
-    if leap_year?(year) do
-      29
-    else
-      28
-    end
-  end
-  defp last_day_of_the_month(_, month) when month > 0 and month < 13 do
-    31
   end
 
   defp days_before_month(month)
