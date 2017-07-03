@@ -3,8 +3,9 @@ defmodule EEx.Tokenizer do
 
   @type content :: IO.chardata
   @type line :: non_neg_integer
+  @type marker :: '=' | '/' | '|' | ''
   @type token :: {:text, content} |
-                 {:expr | :start_expr | :middle_expr | :end_expr, line, '=' | '', content}
+                 {:expr | :start_expr | :middle_expr | :end_expr, line, marker, content}
 
   @doc """
   Tokenizes the given charlist or binary.
@@ -73,8 +74,8 @@ defmodule EEx.Tokenizer do
 
   # Retrieve marker for <%
 
-  defp retrieve_marker('=' ++ t) do
-    {'=', t}
+  defp retrieve_marker([marker | t]) when marker in [?=, ?/, ?|] do
+    {[marker], t}
   end
 
   defp retrieve_marker(t) do
