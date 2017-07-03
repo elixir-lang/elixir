@@ -32,8 +32,8 @@ defmodule Calendar.ISO do
   # Used in leap day calculations:
   @days_per_nonleap_year 365
   @days_per_leap_year 366
-  @days_per_fouryears 3 * @days_per_nonleap_year + @days_per_leap_year
-  @days_per_century 25 * @days_per_fouryears
+  @days_per_leap_cycle 3 * @days_per_nonleap_year + @days_per_leap_year
+  @days_per_century 25 * @days_per_leap_cycle
   @days_per_fourcenturies 100 * @days_per_century
 
   @doc """
@@ -512,6 +512,16 @@ defmodule Calendar.ISO do
   # Based on `:calendar.day_to_year(days)`
   # This procedure needs to change if we want to support < 0 year dates.
   defp days_to_year(days) do
+    IO.inspect(days_to_years_old(days), label: "Days to years old")
+    {fourcenturies, days} = divmod(days, @days_per_fourcenturies)
+    {centuries, days} = divmod(days, @days_per_century)
+    {leap_cycles, days} = divmod(days, @days_per_leap_cycle)
+    {rest_years, days} = divmod(days, @days_per_nonleap_year)
+    years = 400 * fourcenturies + 100 * centuries + 4 * leap_cycles + rest_years
+    {years, days} |> IO.inspect(label: "Days to years new")
+  end
+
+  defp days_to_years_old(days) do
     years = Integer.floor_div(days, @days_per_nonleap_year)
     {years, days_before_year} = do_days_to_year(years, days, days_in_prev_years(years))
     {years, days - days_before_year}
