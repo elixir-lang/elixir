@@ -291,8 +291,12 @@ defmodule Calendar.ISO do
   end
 
   @impl true
+  def valid_date?(year, month, day) when day in (1..31) and month in (1..12) and year <= 9999 do
+    # year <= 9999 and :calendar.valid_date(year, month, day)
+    day <= days_in_month(year, month)
+  end
   def valid_date?(year, month, day) do
-    year <= 9999 and :calendar.valid_date(year, month, day)
+    false
   end
 
   @impl true
