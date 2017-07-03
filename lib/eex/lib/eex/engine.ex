@@ -29,6 +29,10 @@ defmodule EEx.Engine do
       and are not implemented by default. Using them without the
       implementation raises `EEx.SyntaxError`.
 
+      If your engine does not implement all markers, please ensure that
+      `handle_expr/3` falls back to `EEx.Engine.handle_expr/3` 
+      to raise the proper error message.
+
       Read `handle_expr/3` below for more information about the markers
       implemented by default by this engine.
 
