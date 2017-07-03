@@ -537,8 +537,9 @@ defmodule Calendar.ISO do
   end
 
   defp year_day_to_date(year, day_of_year) do
-    extra_day = if leap_year?(year) do 1 else 0 end
+    extra_day = if leap_year?(year), do: 1, else: 0
     {month, day} = do_year_to_date(extra_day, day_of_year)
+    {month, day + 1}
   end
 
   # Note: `0` is the first day of the month.
