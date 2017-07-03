@@ -496,11 +496,7 @@ defmodule Calendar.ISO do
 
   defp leap_day_offset(year, month) when month < 3, do: 0
   defp leap_day_offset(year, month) do
-    if leap_year?(year) do
-      1
-    else
-      0
-    end
+    if leap_year?(year), do: 1, else: 0
   end
 
   # :calendar.gregorian_days_to_date(days + 365)
@@ -510,25 +506,26 @@ defmodule Calendar.ISO do
     {years, months, day_in_month}
   end
 
+  # Based on `:calendar.day_to_year`
   defp days_to_year(days) do
     years = Integer.floor_div(days, @days_per_nonleap_year)
     {years, day_of_year} = do_days_to_year(years, days, days_in_prev_years(years))
-    {years, day_of_year}
+    {years, days - day_of_year}
   end
 
   defp do_days_to_year(year, days, days2) when days < days2 do
-    do_days_to_year(year - 1, days, days_in_prev_years(days2 - 1))
+    do_days_to_year(year - 1, days, days_in_prev_years(year - 1))
   end
-  defp do_days_to_year(year, days, _days2) do
-    {year, days}
+  defp do_days_to_year(year, _days, days2) do
+    {year, days2}
   end
 
-  defp days_in_prev_years(year) when year <= 0 do
+  def days_in_prev_years(year) when year <= 0 do
     # TODO This is the reason that `:calendar` cannot handle years before `0`!
     # This procedure cannot properly be defined for that.
     0
   end
-  defp days_in_prev_years(year) do
+  def days_in_prev_years(year) do
     prevyear = year - 1
     Integer.floor_div(prevyear, 4) - Integer.floor_div(prevyear, 100) + Integer.floor_div(prevyear, 400) +
     prevyear * @days_per_nonleap_year + @days_per_leap_year
@@ -564,10 +561,10 @@ defmodule Calendar.ISO do
   defp do_year_to_date(extra_day, day_of_year) when day_of_year in (181 + extra_day)..(211 + extra_day) do
     {7, day_of_year}
   end
-  defp do_year_to_date(extra_day, day_of_year) when day_of_year in (212 + extra_day)..(233 + extra_day) do
+  defp do_year_to_date(extra_day, day_of_year) when day_of_year in (212 + extra_day)..(242 + extra_day) do
     {8, day_of_year}
   end
-  defp do_year_to_date(extra_day, day_of_year) when day_of_year in (234 + extra_day)..(272 + extra_day) do
+  defp do_year_to_date(extra_day, day_of_year) when day_of_year in (243 + extra_day)..(272 + extra_day) do
     {9, day_of_year}
   end
   defp do_year_to_date(extra_day, day_of_year) when day_of_year in (273 + extra_day)..(303 + extra_day) do
