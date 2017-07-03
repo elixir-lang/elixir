@@ -480,6 +480,9 @@ defmodule Calendar.ISO do
     end
   end
 
+  # Note that this function does not add the extra leap day for a leap year.
+  # If you want to add that leap day when appropriate,
+  # add the result of `leap_day_offset(year, month)` to the result of `days_before_month(month)`.
   defp days_before_month(month)
   defp days_before_month(1), do: 0
   defp days_before_month(2), do: 31
@@ -506,14 +509,15 @@ defmodule Calendar.ISO do
     {years, months, day_in_month}
   end
 
-  # Based on `:calendar.day_to_year`
+  # Based on `:calendar.day_to_year(days)`
   # This procedure needs to change if we want to support < 0 year dates.
   defp days_to_year(days) do
     years = Integer.floor_div(days, @days_per_nonleap_year)
-    {years, day_of_year} = do_days_to_year(years, days, days_in_prev_years(years))
-    {years, days - day_of_year}
+    {years, days_before_year} = do_days_to_year(years, days, days_in_prev_years(years))
+    {years, days - days_before_year}
   end
 
+  # Based on `:calendar.dty(year, days)`
   defp do_days_to_year(year, days, days2) when days < days2 do
     do_days_to_year(year - 1, days, days_in_prev_years(year - 1))
   end
@@ -580,8 +584,7 @@ defmodule Calendar.ISO do
 
   # {date, time} = :calendar.gregorian_seconds_to_datetime(@unix_epoch + div(total, 1_000_000))
   defp gregorian_seconds_to_datetime(seconds) do
-    days = Integer.floor_div(seconds, @seconds_per_day)
-    time = Integer.mod(seconds, @seconds_per_day)
+    {days, time} = divmod(seconds, @seconds_per_day)
 
     {year, month, day} = gregorian_days_to_date(days)
     {hours, minutes, seconds} = seconds_to_time(time)
