@@ -478,11 +478,11 @@ defmodule Calendar.ISO do
 
   # :calendar.date_to_gregorian_days(year, month, day) - 365
   # `year >=0`-check only exists to maintain full compatibility with `:calendar`,
-  # Can be removed in the future, once we expose negative dates to the public.
+  # Can be removed in the future.
   defp date_to_gregorian_days(year, month, day) when year >= 0 do
     last_day = days_in_month(year, month)
-    if day <= last_day do # TODO Why does :calendar have this check?
-      days_in_prev_years(year) + days_before_month(month) + leap_day_offset(year, month) + day - 1
+    true =  day <= last_day
+    days_in_prev_years(year) + days_before_month(month) + leap_day_offset(year, month) + day - 1
     end
   end
 
