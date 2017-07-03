@@ -228,7 +228,7 @@ defmodule Calendar.ISO do
   def day_of_week(year, month, day)
       when is_integer(year) and is_integer(month) and is_integer(day) do
     # :calendar.day_of_the_week(year, month, day)
-    Integer.mod((date_to_gregorian_days(years, months, days) + 5), 7) + 1
+    Integer.mod((date_to_gregorian_days(year, month, day) + 5), 7) + 1
   end
 
   @doc """
@@ -548,7 +548,6 @@ defmodule Calendar.ISO do
   end
 
   # Note: `0` is the first day of the month.
-  # Guards can probably be optimized further (why check lower bounds?)
   # original: https://github.com/erlang/otp/blob/master/lib/stdlib/src/calendar.erl#L491
   # Can possibly be written in a for-loop as well, for increased brevity and readability :D
   # Should only ever be called with `day_of_year` 0..366 and `extra_day` 0 | 1.
@@ -585,7 +584,7 @@ defmodule Calendar.ISO do
   defp do_year_to_date(extra_day, day_of_year) when day_of_year < (334 + extra_day) do
     {11, day_of_year - (304 + extra_day)}
   end
-  defp do_year_to_date(extra_day, day_of_year) when day_of_year do
+  defp do_year_to_date(extra_day, day_of_year) do
     {12, day_of_year - (334 + extra_day)}
   end
 
