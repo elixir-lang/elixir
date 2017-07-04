@@ -402,11 +402,12 @@ defmodule DateTime do
          {:ok, offset} <- parse_offset(rest) do
       %{year: year, month: month, day: day} = date
       %{hour: hour, minute: minute, second: second, microsecond: microsecond} = time
+      {_, precision} = microsecond
 
       datetime =
         Calendar.ISO.naive_datetime_to_rata_die(year, month, day, hour, minute, second, microsecond)
         |> apply_tz_offset(offset)
-        |> from_rata_die("Etc/UTC", "UTC", 0, 0, calendar)
+        |> from_rata_die("Etc/UTC", "UTC", 0, 0, calendar, precision)
 
       {:ok, %{datetime | microsecond: microsecond}, offset}
     else
@@ -563,71 +564,87 @@ defmodule DateTime do
   end
 
   @doc """
-  Converts a DateTime from one calendar to another.
+  Converts a given `datetime` from one calendar to another.
 
-  If this conversion fails for some reason, an `{:error, reason}` tuple is returned.
+  If it is not possible to convert unambiguously between the calendars
+  (see `Calendar.compatible_calendars?/2`), an `{:error, :incompatible_calendars}` tuple
+  is returned.
 
   ## Examples
+
+  Imagine someone implements `Calendar.Julian`:
 
       iex> dt1 = %DateTime{year: 2000, month: 2, day: 29, zone_abbr: "AMT",
       ...>                 hour: 23, minute: 0, second: 7, microsecond: {0, 0},
       ...>                 utc_offset: -14400, std_offset: 0, time_zone: "America/Manaus"}
-      iex> {:ok, dt2} = DateTime.convert(dt1, Calendar.ISO)
-      iex> dt2
-      #DateTime<2000-02-29 23:00:07-04:00 AMT America/Manaus>
+      iex> DateTime.convert(dt1, Calendar.Julian)
+      {:ok, %DateTime{calendar: Calendar.Julian, day: 16, hour: 23,
+                      microsecond: {0, 0}, minute: 0, month: 2, second: 7, std_offset: 0,
+                      time_zone: "America/Manaus", utc_offset: -14400, year: 2000,
+                      zone_abbr: "AMT"}}
 
   """
-  @spec convert(DateTime.t, Calendar.calendar) :: {:ok, DateTime.t} | {:error, atom}
+  @spec convert(Calendar.datetime, Calendar.calendar) :: {:ok, t} | {:error, :incompatible_calendars}
   def convert(%DateTime{calendar: calendar} = datetime, calendar) do
     {:ok, datetime}
   end
 
-  def convert(%DateTime{} = datetime, calendar) do
-    result_datetime =
-      datetime
-      |> to_rata_die
-      |> from_rata_die(datetime, calendar)
-    {:ok, result_datetime}
+  def convert(%{calendar: dt_calendar, microsecond: {_, precision}} = datetime, calendar) do
+    if Calendar.compatible_calendars?(dt_calendar, calendar) do
+      result_datetime =
+        datetime
+        |> to_rata_die
+        |> from_rata_die(datetime, calendar, precision)
+      {:ok, result_datetime}
+    else
+      {:error, :incompatible_calendars}
+    end
   end
 
   @doc """
-  Converts a `DateTime` struct from one calendar to another.
+  Converts a given `datetime` from one calendar to another.
 
-  If this conversion fails for some reason, an `ArgumentError` is raised.
+  If it is not possible to convert unambiguously between the calendars
+  (see `Calendar.compatible_calendars?/2`), an ArgumentError is raised.
 
   ## Examples
+
+  Imagine someone implements `Calendar.Julian`:
 
       iex> dt1 = %DateTime{year: 2000, month: 2, day: 29, zone_abbr: "AMT",
       ...>                 hour: 23, minute: 0, second: 7, microsecond: {0, 0},
       ...>                 utc_offset: -14400, std_offset: 0, time_zone: "America/Manaus"}
-      iex> DateTime.convert!(dt1, Calendar.ISO)
-      #DateTime<2000-02-29 23:00:07-04:00 AMT America/Manaus>
+      iex> DateTime.convert!(dt1, Calendar.Julian)
+      %DateTime{calendar: Calendar.Julian, day: 16, hour: 23,
+                microsecond: {0, 0}, minute: 0, month: 2, second: 7, std_offset: 0,
+                time_zone: "America/Manaus", utc_offset: -14400, year: 2000,
+                zone_abbr: "AMT"}
 
   """
-  @spec convert!(DateTime.t, Calendar.calendar) :: DateTime.t
+  @spec convert!(Calendar.datetime, Calendar.calendar) :: t | no_return
   def convert!(datetime, calendar) do
     case convert(datetime, calendar) do
       {:ok, value} ->
         value
-      {:error, reason} ->
-        raise ArgumentError, "cannot convert #{inspect datetime} to target calendar #{inspect calendar}, reason: #{inspect reason}"
+      {:error, :incompatible_calendars} ->
+        raise ArgumentError, "cannot convert #{inspect datetime} to target calendar #{inspect calendar}, reason: #{inspect datetime.calendar} and #{inspect calendar} have different day rollover moments, making this conversion ambiguous"
     end
   end
 
-  defp to_rata_die(%DateTime{calendar: calendar,year: year, month: month, day: day,
-                             hour: hour, minute: minute, second: second, microsecond: microsecond}) do
+  defp to_rata_die(%{calendar: calendar,year: year, month: month, day: day,
+                     hour: hour, minute: minute, second: second, microsecond: microsecond}) do
     calendar.naive_datetime_to_rata_die(year, month, day, hour, minute, second, microsecond)
   end
 
-  defp from_rata_die(rata_die, datetime, calendar) do
+  defp from_rata_die(rata_die, datetime, calendar, precision) do
     %{time_zone: time_zone, zone_abbr: zone_abbr, utc_offset: utc_offset, std_offset: std_offset} = datetime
-    from_rata_die(rata_die, time_zone, zone_abbr, utc_offset, std_offset, calendar)
+    from_rata_die(rata_die, time_zone, zone_abbr, utc_offset, std_offset, calendar, precision)
   end
 
-  defp from_rata_die(rata_die, time_zone, zone_abbr, utc_offset, std_offset, calendar) do
-    {year, month, day, hour, minute, second, microsecond} = calendar.naive_datetime_from_rata_die(rata_die)
-    %DateTime{year: year, month: month, day: day,
-              hour: hour, minute: minute, second: second, microsecond: microsecond,
+  defp from_rata_die(rata_die, time_zone, zone_abbr, utc_offset, std_offset, calendar, precision) do
+    {year, month, day, hour, minute, second, {microsecond, _}} = calendar.naive_datetime_from_rata_die(rata_die)
+    %DateTime{calendar: calendar, year: year, month: month, day: day,
+              hour: hour, minute: minute, second: second, microsecond: {microsecond, precision},
               time_zone: time_zone, zone_abbr: zone_abbr, utc_offset: utc_offset, std_offset: std_offset}
   end
 

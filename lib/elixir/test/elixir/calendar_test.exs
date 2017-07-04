@@ -160,11 +160,18 @@ defmodule NaiveDateTimeTest do
 
   test "convert/2" do
     assert NaiveDateTime.convert(~N[2000-01-01 12:34:15.123400], Calendar.Julian) ==
-           {:ok, Calendar.Julian.naive_datetime(1999, 12, 19, 12, 34, 15, 123400)}
+           {:ok, Calendar.Julian.naive_datetime(1999, 12, 19, 12, 34, 15, {123400, 6})}
+
+    assert ~N[2000-01-01 12:34:15]
+           |> NaiveDateTime.convert!(Calendar.Julian)
+           |> NaiveDateTime.convert!(Calendar.ISO) ==
+           ~N[2000-01-01 12:34:15]
+
     assert ~N[2000-01-01 12:34:15.123456]
            |> NaiveDateTime.convert!(Calendar.Julian)
            |> NaiveDateTime.convert!(Calendar.ISO) ==
            ~N[2000-01-01 12:34:15.123456]
+
     assert NaiveDateTime.convert(~N[2016-02-03 00:00:01], FakeCalendar) ==
            {:error, :incompatible_calendars}
 
@@ -258,6 +265,31 @@ defmodule DateTimeTest do
     assert DateTime.compare(datetime1, datetime1) == :eq
     assert DateTime.compare(datetime1, datetime2) == :lt
     assert DateTime.compare(datetime2, datetime1) == :gt
+  end
+
+  test "convert/2" do
+    datetime_iso = %DateTime{year: 2000, month: 2, day: 29, zone_abbr: "CET",
+                             hour: 23, minute: 0, second: 7, microsecond: {0, 0},
+                             utc_offset: 3600, std_offset: 0, time_zone: "Europe/Warsaw"}
+    datetime_jul = %DateTime{year: 2000, month: 2, day: 16, zone_abbr: "CET",
+                             hour: 23, minute: 0, second: 7, microsecond: {0, 0},
+                             utc_offset: 3600, std_offset: 0, time_zone: "Europe/Warsaw",
+                             calendar: Calendar.Julian}
+
+    assert DateTime.convert(datetime_iso, Calendar.Julian) == {:ok, datetime_jul}
+
+    assert datetime_iso
+           |> DateTime.convert!(Calendar.Julian)
+           |> DateTime.convert!(Calendar.ISO) ==
+           datetime_iso
+
+    assert %{datetime_iso | microsecond: {123, 6}}
+           |> DateTime.convert!(Calendar.Julian)
+           |> DateTime.convert!(Calendar.ISO) ==
+           %{datetime_iso | microsecond: {123, 6}}
+
+    assert DateTime.convert(datetime_iso, FakeCalendar) ==
+           {:error, :incompatible_calendars}
   end
 
   test "from_iso8601/1 with tz offsets" do
