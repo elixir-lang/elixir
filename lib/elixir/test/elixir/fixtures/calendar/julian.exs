@@ -22,10 +22,6 @@ defmodule Calendar.Julian do
 
   def naive_datetime(year, month, day, hour, minute, second, microsecond \\ {0, 0})
 
-  def naive_datetime(year, month, day, hour, minute, second, microsecond) when is_integer(microsecond) do
-    naive_datetime(year, month, day, hour, minute, second, {microsecond, 6})
-  end
-
   def naive_datetime(year, month, day, hour, minute, second, microsecond) do
     %NaiveDateTime{year: year, month: month, day: day, hour: hour, minute: minute, second: second, microsecond: microsecond, calendar: Calendar.Julian}
   end
@@ -59,10 +55,6 @@ defmodule Calendar.Julian do
   end
 
   def time_from_day_fraction(day_fraction), do: Calendar.ISO.time_from_day_fraction(day_fraction)
-
-  def time_to_day_fraction(hour, minute, second, microsecond) when is_integer(microsecond) do
-    time_to_day_fraction(hour, minute, second, {microsecond, 6})
-  end
 
   def time_to_day_fraction(hour, minute, second, microsecond) do
     Calendar.ISO.time_to_day_fraction(hour, minute, second, microsecond)
