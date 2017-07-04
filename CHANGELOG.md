@@ -142,18 +142,22 @@ This release brings further improvements to Calendar types. It adds arithmetic a
 
   * [Base] Optimise Base encode/decode
   * [Calendar] Implement Inspect for DateTime with Calendar.ISO
+  * [Enum] Introduce `Enum.chunk_every/2` and `Enum.chunk_every/4` with a more explicit API than `Enum.chunk/2` and `Enum.chunk/4`
   * [Kernel] Cache the AST on definitions. This speeds up the compilation time from 10% to 15% measured across different projects.
+  * [Stream] Introduce `Stream.chunk_every/2` and `Stream.chunk_every/4` with a more explicit API than `Stream.chunk/2` and `Stream.chunk/4`
 
 ### 2. Bug fixes
 
 #### Elixir
 
   * [Calendar] Return `{:error, :invalid_time}` for wrong precision instead of crashing
+  * [Enum] Rename `Enum.chunk_by/4` to `Enum.chunk_while/4` (`chunk_by/4` was only part of 1.5.0-rc.0) (regression)
   * [Enumerable] Raise `Protocol.UndefinedError` on bad functions in Enumerable implementation
   * [Inspect] Do not use colors when inspecting for error messages
   * [Kernel] Improve error message on invalid patterns and guards
   * [Kernel] Do not warn false positives about unused variables on rescue (regression)
   * [Stream] Fix stream cycle over empty enumerable
+  * [Stream] Rename `Stream.chunk_by/4` to `Stream.chunk_while/4` (`chunk_by/4` was only part of 1.5.0-rc.0) (regression)
   * [StringIO] Fix encoding and performance issues in `StringIO.get_until`
 
 #### ExUnit
