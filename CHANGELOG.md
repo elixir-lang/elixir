@@ -152,6 +152,7 @@ This release brings further improvements to Calendar types. It adds arithmetic a
   * [Enumerable] Raise `Protocol.UndefinedError` on bad functions in Enumerable implementation
   * [Inspect] Do not use colors when inspecting for error messages
   * [Kernel] Improve error message on invalid patterns and guards
+  * [Kernel] Do not warn false positives about unused variables on rescue (regression)
   * [Stream] Fix stream cycle over empty enumerable
   * [StringIO] Fix encoding and performance issues in `StringIO.get_until`
 
@@ -233,6 +234,7 @@ This release brings further improvements to Calendar types. It adds arithmetic a
   * [File] Support `:ram`/`:raw` files in `File.copy/2`
   * [Kernel] Support guards on anonymous functions of zero arity
   * [Kernel] Fix compilation of maps used as maps keys inside matches
+  * [Module] `on_definition/6` callback receives body wrapped in a keyword list, such as `[do: body]`. This solves a bug where it was impossible to distinguish between a bodyless clause and a function that returns `nil`.
   * [Record] Properly escape quoted expressions passed to `defrecord`
   * [Regex] Fix `inspect/2` for regexes with `/` terminator in them
   * [String] Consider Unicode non-characters valid according to the specification in `String.valid?/1`
