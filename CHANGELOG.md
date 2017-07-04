@@ -134,6 +134,31 @@ Overall, using `@impl` has the following advantages:
 
 This release brings further improvements to Calendar types. It adds arithmetic and others functions to `Time`, `Date`, `NaiveDateTime` and `Datetime` as well as conversion between different calendars.
 
+## v1.5.0-rc.1 (2017-07-04)
+
+### 1. Enhancements
+
+#### Elixir
+
+  * [Base] Optimise Base encode/decode
+  * [Calendar] Implement Inspect for DateTime with Calendar.ISO
+  * [Kernel] Cache the AST on definitions. This speeds up the compilation time from 10% to 15% measured across different projects.
+
+### 2. Bug fixes
+
+#### Elixir
+
+  * [Calendar] Return `{:error, :invalid_time}` for wrong precision instead of crashing
+  * [Enumerable] Raise `Protocol.UndefinedError` on bad functions in Enumerable implementation
+  * [Inspect] Do not use colors when inspecting for error messages
+  * [Kernel] Improve error message on invalid patterns and guards
+  * [Stream] Fix stream cycle over empty enumerable
+  * [StringIO] Fix encoding and performance issues in `StringIO.get_until`
+
+#### ExUnit
+
+  * [ExUnit] Load ExUnit configuration as late as possible (regression)
+
 ## v1.5.0-rc.0 (2017-06-25)
 
 ### 1. Enhancements
