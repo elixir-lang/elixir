@@ -768,11 +768,12 @@ defmodule BaseTest do
         |> Enum.shuffle()
         |> IO.iodata_to_binary()
 
-      assert data ==
+      expected =
         data
         |> encode.([case: encode_case, pad: pad?])
         |> decode.([case: decode_case, pad: pad?]),
-        "identity did not match for #{inspect data} when #{inspect encode} (#{encode_case})"
+      
+      assert data == expected, "identity did not match for #{inspect data} when #{inspect encode} (#{encode_case})"
     end
   end
 end
