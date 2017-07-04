@@ -8,6 +8,9 @@ before_test:
 test_script:
   - cmd: C:\MinGW\msys\1.0\bin\make --keep-going test_windows
 
+environment:
+  ELIXIR_ASSERT_TIMEOUT: 2000
+
 configuration: Test
 
 matrix:
