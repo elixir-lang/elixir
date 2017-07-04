@@ -771,9 +771,9 @@ defmodule BaseTest do
       expected =
         data
         |> encode.([case: encode_case, pad: pad?])
-        |> decode.([case: decode_case, pad: pad?]),
-      
-      assert data == expected, "identity did not match for #{inspect data} when #{inspect encode} (#{encode_case})"
+        |> decode.([case: decode_case, pad: pad?])
+
+      assert data == expected
     end
   end
 end
