@@ -1,6 +1,6 @@
-# GraphemeBreakProperty-9.0.0.txt
-# Date: 2016-06-03, 22:23:55 GMT
-# © 2016 Unicode®, Inc.
+# GraphemeBreakProperty-10.0.0.txt
+# Date: 2017-03-12, 07:03:41 GMT
+# © 2017 Unicode®, Inc.
 # Unicode and the Unicode Logo are registered trademarks of Unicode, Inc. in the U.S. and other countries.
 # For terms of use, see http://www.unicode.org/terms_of_use.html
 #
@@ -9,7 +9,7 @@
 
 # ================================================
 
-# Property: Grapheme_Cluster_Break
+# Property:	Grapheme_Cluster_Break
 
 #  All code points not explicitly listed for Grapheme_Cluster_Break
 #  have the value Other (XX).
@@ -25,8 +25,11 @@
 0D4E          ; Prepend # Lo       MALAYALAM LETTER DOT REPH
 110BD         ; Prepend # Cf       KAITHI NUMBER SIGN
 111C2..111C3  ; Prepend # Lo   [2] SHARADA SIGN JIHVAMULIYA..SHARADA SIGN UPADHMANIYA
+11A3A         ; Prepend # Lo       ZANABAZAR SQUARE CLUSTER-INITIAL LETTER RA
+11A86..11A89  ; Prepend # Lo   [4] SOYOMBO CLUSTER-INITIAL LETTER RA..SOYOMBO CLUSTER-INITIAL LETTER SA
+11D46         ; Prepend # Lo       MASARAM GONDI REPHA
 
-# Total code points: 13
+# Total code points: 19
 
 # ================================================
 
@@ -126,6 +129,7 @@ E01F0..E0FFF  ; Control # Cn [3600] <reserved-E01F0>..<reserved-E0FFF>
 0AC7..0AC8    ; Extend # Mn   [2] GUJARATI VOWEL SIGN E..GUJARATI VOWEL SIGN AI
 0ACD          ; Extend # Mn       GUJARATI SIGN VIRAMA
 0AE2..0AE3    ; Extend # Mn   [2] GUJARATI VOWEL SIGN VOCALIC L..GUJARATI VOWEL SIGN VOCALIC LL
+0AFA..0AFF    ; Extend # Mn   [6] GUJARATI SIGN SUKUN..GUJARATI SIGN TWO-CIRCLE NUKTA ABOVE
 0B01          ; Extend # Mn       ORIYA SIGN CANDRABINDU
 0B3C          ; Extend # Mn       ORIYA SIGN NUKTA
 0B3E          ; Extend # Mc       ORIYA VOWEL SIGN AA
@@ -154,7 +158,8 @@ E01F0..E0FFF  ; Control # Cn [3600] <reserved-E01F0>..<reserved-E0FFF>
 0CCC..0CCD    ; Extend # Mn   [2] KANNADA VOWEL SIGN AU..KANNADA SIGN VIRAMA
 0CD5..0CD6    ; Extend # Mc   [2] KANNADA LENGTH MARK..KANNADA AI LENGTH MARK
 0CE2..0CE3    ; Extend # Mn   [2] KANNADA VOWEL SIGN VOCALIC L..KANNADA VOWEL SIGN VOCALIC LL
-0D01          ; Extend # Mn       MALAYALAM SIGN CANDRABINDU
+0D00..0D01    ; Extend # Mn   [2] MALAYALAM SIGN COMBINING ANUSVARA ABOVE..MALAYALAM SIGN CANDRABINDU
+0D3B..0D3C    ; Extend # Mn   [2] MALAYALAM SIGN VERTICAL BAR VIRAMA..MALAYALAM SIGN CIRCULAR VIRAMA
 0D3E          ; Extend # Mc       MALAYALAM VOWEL SIGN AA
 0D41..0D44    ; Extend # Mn   [4] MALAYALAM VOWEL SIGN U..MALAYALAM VOWEL SIGN VOCALIC RR
 0D4D          ; Extend # Mn       MALAYALAM SIGN VIRAMA
@@ -243,7 +248,7 @@ E01F0..E0FFF  ; Control # Cn [3600] <reserved-E01F0>..<reserved-E0FFF>
 1CED          ; Extend # Mn       VEDIC SIGN TIRYAK
 1CF4          ; Extend # Mn       VEDIC TONE CANDRA ABOVE
 1CF8..1CF9    ; Extend # Mn   [2] VEDIC TONE RING ABOVE..VEDIC TONE DOUBLE RING ABOVE
-1DC0..1DF5    ; Extend # Mn  [54] COMBINING DOTTED GRAVE ACCENT..COMBINING UP TACK ABOVE
+1DC0..1DF9    ; Extend # Mn  [58] COMBINING DOTTED GRAVE ACCENT..COMBINING WIDE INVERTED BRIDGE BELOW
 1DFB..1DFF    ; Extend # Mn   [5] COMBINING DELETION MARK..COMBINING RIGHT ARROWHEAD AND DOWN ARROWHEAD BELOW
 200C          ; Extend # Cf       ZERO WIDTH NON-JOINER
 20D0..20DC    ; Extend # Mn  [13] COMBINING LEFT HARPOON ABOVE..COMBINING FOUR DOTS ABOVE
@@ -353,6 +358,15 @@ FF9E..FF9F    ; Extend # Lm   [2] HALFWIDTH KATAKANA VOICED SOUND MARK..HALFWIDT
 1171D..1171F  ; Extend # Mn   [3] AHOM CONSONANT SIGN MEDIAL LA..AHOM CONSONANT SIGN MEDIAL LIGATING RA
 11722..11725  ; Extend # Mn   [4] AHOM VOWEL SIGN I..AHOM VOWEL SIGN UU
 11727..1172B  ; Extend # Mn   [5] AHOM VOWEL SIGN AW..AHOM SIGN KILLER
+11A01..11A06  ; Extend # Mn   [6] ZANABAZAR SQUARE VOWEL SIGN I..ZANABAZAR SQUARE VOWEL SIGN O
+11A09..11A0A  ; Extend # Mn   [2] ZANABAZAR SQUARE VOWEL SIGN REVERSED I..ZANABAZAR SQUARE VOWEL LENGTH MARK
+11A33..11A38  ; Extend # Mn   [6] ZANABAZAR SQUARE FINAL CONSONANT MARK..ZANABAZAR SQUARE SIGN ANUSVARA
+11A3B..11A3E  ; Extend # Mn   [4] ZANABAZAR SQUARE CLUSTER-FINAL LETTER YA..ZANABAZAR SQUARE CLUSTER-FINAL LETTER VA
+11A47         ; Extend # Mn       ZANABAZAR SQUARE SUBJOINER
+11A51..11A56  ; Extend # Mn   [6] SOYOMBO VOWEL SIGN I..SOYOMBO VOWEL SIGN OE
+11A59..11A5B  ; Extend # Mn   [3] SOYOMBO VOWEL SIGN VOCALIC R..SOYOMBO VOWEL LENGTH MARK
+11A8A..11A96  ; Extend # Mn  [13] SOYOMBO FINAL CONSONANT SIGN G..SOYOMBO SIGN ANUSVARA
+11A98..11A99  ; Extend # Mn   [2] SOYOMBO GEMINATION MARK..SOYOMBO SUBJOINER
 11C30..11C36  ; Extend # Mn   [7] BHAIKSUKI VOWEL SIGN I..BHAIKSUKI VOWEL SIGN VOCALIC L
 11C38..11C3D  ; Extend # Mn   [6] BHAIKSUKI VOWEL SIGN E..BHAIKSUKI SIGN ANUSVARA
 11C3F         ; Extend # Mn       BHAIKSUKI SIGN VIRAMA
@@ -360,6 +374,11 @@ FF9E..FF9F    ; Extend # Lm   [2] HALFWIDTH KATAKANA VOICED SOUND MARK..HALFWIDT
 11CAA..11CB0  ; Extend # Mn   [7] MARCHEN SUBJOINED LETTER RA..MARCHEN VOWEL SIGN AA
 11CB2..11CB3  ; Extend # Mn   [2] MARCHEN VOWEL SIGN U..MARCHEN VOWEL SIGN E
 11CB5..11CB6  ; Extend # Mn   [2] MARCHEN SIGN ANUSVARA..MARCHEN SIGN CANDRABINDU
+11D31..11D36  ; Extend # Mn   [6] MASARAM GONDI VOWEL SIGN AA..MASARAM GONDI VOWEL SIGN VOCALIC R
+11D3A         ; Extend # Mn       MASARAM GONDI VOWEL SIGN E
+11D3C..11D3D  ; Extend # Mn   [2] MASARAM GONDI VOWEL SIGN AI..MASARAM GONDI VOWEL SIGN O
+11D3F..11D45  ; Extend # Mn   [7] MASARAM GONDI VOWEL SIGN AU..MASARAM GONDI VIRAMA
+11D47         ; Extend # Mn       MASARAM GONDI RA-KARA
 16AF0..16AF4  ; Extend # Mn   [5] BASSA VAH COMBINING HIGH TONE..BASSA VAH COMBINING HIGH-LOW TONE
 16B30..16B36  ; Extend # Mn   [7] PAHAWH HMONG MARK CIM TUB..PAHAWH HMONG MARK CIM TAUM
 16F8F..16F92  ; Extend # Mn   [4] MIAO TONE RIGHT..MIAO TONE BELOW
@@ -387,7 +406,7 @@ FF9E..FF9F    ; Extend # Lm   [2] HALFWIDTH KATAKANA VOICED SOUND MARK..HALFWIDT
 E0020..E007F  ; Extend # Cf  [96] TAG SPACE..CANCEL TAG
 E0100..E01EF  ; Extend # Mn [240] VARIATION SELECTOR-17..VARIATION SELECTOR-256
 
-# Total code points: 1828
+# Total code points: 1901
 
 # ================================================
 
@@ -472,6 +491,7 @@ E0100..E01EF  ; Extend # Mn [240] VARIATION SELECTOR-17..VARIATION SELECTOR-256
 1C34..1C35    ; SpacingMark # Mc   [2] LEPCHA CONSONANT SIGN NYIN-DO..LEPCHA CONSONANT SIGN KANG
 1CE1          ; SpacingMark # Mc       VEDIC TONE ATHARVAVEDIC INDEPENDENT SVARITA
 1CF2..1CF3    ; SpacingMark # Mc   [2] VEDIC SIGN ARDHAVISARGA..VEDIC SIGN ROTATED ARDHAVISARGA
+1CF7          ; SpacingMark # Mc       VEDIC SIGN ATIKRAMA
 A823..A824    ; SpacingMark # Mc   [2] SYLOTI NAGRI VOWEL SIGN A..SYLOTI NAGRI VOWEL SIGN I
 A827          ; SpacingMark # Mc       SYLOTI NAGRI VOWEL SIGN OO
 A880..A881    ; SpacingMark # Mc   [2] SAURASHTRA SIGN ANUSVARA..SAURASHTRA SIGN VISARGA
@@ -529,6 +549,10 @@ ABEC          ; SpacingMark # Mc       MEETEI MAYEK LUM IYEK
 116B6         ; SpacingMark # Mc       TAKRI SIGN VIRAMA
 11720..11721  ; SpacingMark # Mc   [2] AHOM VOWEL SIGN A..AHOM VOWEL SIGN AA
 11726         ; SpacingMark # Mc       AHOM VOWEL SIGN E
+11A07..11A08  ; SpacingMark # Mc   [2] ZANABAZAR SQUARE VOWEL SIGN AI..ZANABAZAR SQUARE VOWEL SIGN AU
+11A39         ; SpacingMark # Mc       ZANABAZAR SQUARE SIGN VISARGA
+11A57..11A58  ; SpacingMark # Mc   [2] SOYOMBO VOWEL SIGN AI..SOYOMBO VOWEL SIGN AU
+11A97         ; SpacingMark # Mc       SOYOMBO SIGN VISARGA
 11C2F         ; SpacingMark # Mc       BHAIKSUKI VOWEL SIGN AA
 11C3E         ; SpacingMark # Mc       BHAIKSUKI SIGN VISARGA
 11CA9         ; SpacingMark # Mc       MARCHEN SUBJOINED LETTER YA
@@ -538,7 +562,7 @@ ABEC          ; SpacingMark # Mc       MEETEI MAYEK LUM IYEK
 1D166         ; SpacingMark # Mc       MUSICAL SYMBOL COMBINING SPRECHGESANG STEM
 1D16D         ; SpacingMark # Mc       MUSICAL SYMBOL COMBINING AUGMENTATION DOT
 
-# Total code points: 341
+# Total code points: 348
 
 # ================================================
 
@@ -1375,8 +1399,9 @@ D789..D7A3    ; LVT # Lo  [27] HANGUL SYLLABLE HIG..HANGUL SYLLABLE HIH
 26F9          ; E_Base # So       PERSON WITH BALL
 270A..270D    ; E_Base # So   [4] RAISED FIST..WRITING HAND
 1F385         ; E_Base # So       FATHER CHRISTMAS
-1F3C3..1F3C4  ; E_Base # So   [2] RUNNER..SURFER
-1F3CA..1F3CB  ; E_Base # So   [2] SWIMMER..WEIGHT LIFTER
+1F3C2..1F3C4  ; E_Base # So   [3] SNOWBOARDER..SURFER
+1F3C7         ; E_Base # So       HORSE RACING
+1F3CA..1F3CC  ; E_Base # So   [3] SWIMMER..GOLFER
 1F442..1F443  ; E_Base # So   [2] EAR..NOSE
 1F446..1F450  ; E_Base # So  [11] WHITE UP POINTING BACKHAND INDEX..OPEN HANDS SIGN
 1F46E         ; E_Base # So       POLICE OFFICER
@@ -1385,7 +1410,7 @@ D789..D7A3    ; LVT # Lo  [27] HANGUL SYLLABLE HIG..HANGUL SYLLABLE HIH
 1F481..1F483  ; E_Base # So   [3] INFORMATION DESK PERSON..DANCER
 1F485..1F487  ; E_Base # So   [3] NAIL POLISH..HAIRCUT
 1F4AA         ; E_Base # So       FLEXED BICEPS
-1F575         ; E_Base # So       SLEUTH OR SPY
+1F574..1F575  ; E_Base # So   [2] MAN IN BUSINESS SUIT LEVITATING..SLEUTH OR SPY
 1F57A         ; E_Base # So       MAN DANCING
 1F590         ; E_Base # So       RAISED HAND WITH FINGERS SPLAYED
 1F595..1F596  ; E_Base # So   [2] REVERSED HAND WITH MIDDLE FINGER EXTENDED..RAISED HAND WITH PART BETWEEN MIDDLE AND RING FINGERS
@@ -1394,13 +1419,15 @@ D789..D7A3    ; LVT # Lo  [27] HANGUL SYLLABLE HIG..HANGUL SYLLABLE HIH
 1F6A3         ; E_Base # So       ROWBOAT
 1F6B4..1F6B6  ; E_Base # So   [3] BICYCLIST..PEDESTRIAN
 1F6C0         ; E_Base # So       BATH
-1F918..1F91E  ; E_Base # So   [7] SIGN OF THE HORNS..HAND WITH INDEX AND MIDDLE FINGERS CROSSED
+1F6CC         ; E_Base # So       SLEEPING ACCOMMODATION
+1F918..1F91C  ; E_Base # So   [5] SIGN OF THE HORNS..RIGHT-FACING FIST
+1F91E..1F91F  ; E_Base # So   [2] HAND WITH INDEX AND MIDDLE FINGERS CROSSED..I LOVE YOU HAND SIGN
 1F926         ; E_Base # So       FACE PALM
-1F930         ; E_Base # So       PREGNANT WOMAN
-1F933..1F939  ; E_Base # So   [7] SELFIE..JUGGLING
-1F93C..1F93E  ; E_Base # So   [3] WRESTLERS..HANDBALL
+1F930..1F939  ; E_Base # So  [10] PREGNANT WOMAN..JUGGLING
+1F93D..1F93E  ; E_Base # So   [2] WATER POLO..HANDBALL
+1F9D1..1F9DD  ; E_Base # So  [13] ADULT..ELF
 
-# Total code points: 79
+# Total code points: 98
 
 # ================================================
 
@@ -1416,11 +1443,28 @@ D789..D7A3    ; LVT # Lo  [27] HANGUL SYLLABLE HIG..HANGUL SYLLABLE HIH
 
 # ================================================
 
+2640          ; Glue_After_Zwj # So       FEMALE SIGN
+2642          ; Glue_After_Zwj # So       MALE SIGN
+2695..2696    ; Glue_After_Zwj # So   [2] STAFF OF AESCULAPIUS..SCALES
+2708          ; Glue_After_Zwj # So       AIRPLANE
 2764          ; Glue_After_Zwj # So       HEAVY BLACK HEART
+1F308         ; Glue_After_Zwj # So       RAINBOW
+1F33E         ; Glue_After_Zwj # So       EAR OF RICE
+1F373         ; Glue_After_Zwj # So       COOKING
+1F393         ; Glue_After_Zwj # So       GRADUATION CAP
+1F3A4         ; Glue_After_Zwj # So       MICROPHONE
+1F3A8         ; Glue_After_Zwj # So       ARTIST PALETTE
+1F3EB         ; Glue_After_Zwj # So       SCHOOL
+1F3ED         ; Glue_After_Zwj # So       FACTORY
 1F48B         ; Glue_After_Zwj # So       KISS MARK
+1F4BB..1F4BC  ; Glue_After_Zwj # So   [2] PERSONAL COMPUTER..BRIEFCASE
+1F527         ; Glue_After_Zwj # So       WRENCH
+1F52C         ; Glue_After_Zwj # So       MICROSCOPE
 1F5E8         ; Glue_After_Zwj # So       LEFT SPEECH BUBBLE
+1F680         ; Glue_After_Zwj # So       ROCKET
+1F692         ; Glue_After_Zwj # So       FIRE ENGINE
 
-# Total code points: 3
+# Total code points: 22
 
 # ================================================
 
