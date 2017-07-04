@@ -2,7 +2,7 @@ defmodule Stream.Reducers do
   # Collection of reducers and utilities shared by Enum and Stream.
   @moduledoc false
 
-  def chunk(chunk_by, enumerable, count, step, leftover) do
+  def chunk_every(chunk_by, enumerable, count, step, leftover) do
     limit = :erlang.max(count, step)
     chunk_by.(enumerable, {[], 0}, fn entry, {acc_buffer, acc_count} ->
       acc_buffer = [entry | acc_buffer]
@@ -22,7 +22,7 @@ defmodule Stream.Reducers do
         {:cont, new_state}
       end
     end, fn {acc_buffer, acc_count} ->
-      if is_nil(leftover) || acc_count == 0 do
+      if leftover == :discard or acc_count == 0 do
         {:cont, []}
       else
         {:cont, :lists.reverse(acc_buffer, Enum.take(leftover, count - acc_count)), []}
@@ -45,12 +45,13 @@ defmodule Stream.Reducers do
     end)
   end
 
-  defmacro chunk_by(callback, fun \\ nil) do
+  defmacro chunk_while(callback, fun \\ nil) do
     quote do
       fn entry, acc(head, acc, tail) ->
         case unquote(callback).(entry, acc) do
           {:cont, emit, acc} -> next_with_acc(unquote(fun), emit, head, acc, tail)
           {:cont, acc} -> skip(acc(head, acc, tail))
+          {:halt, acc} -> {:halt, acc(head, acc, tail)}
         end
       end
     end

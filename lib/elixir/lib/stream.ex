@@ -121,47 +121,57 @@ defmodule Stream do
 
   ## Transformers
 
-  @doc """
-  Shortcut to `chunk(enum, n, n)`.
-  """
-  @spec chunk(Enumerable.t, pos_integer) :: Enumerable.t
+  # Deprecate on v1.7
+  @doc false
   def chunk(enum, n), do: chunk(enum, n, n, nil)
 
+  # Deprecate on v1.7
+  @doc false
+  def chunk(enum, n, step, leftover \\ nil)
+      when is_integer(n) and n > 0 and is_integer(step) and step > 0 do
+    R.chunk(&chunk_while/4, enum, n, step, leftover)
+  end
+
   @doc """
-  Streams the enumerable in chunks, containing `n` items each, where
-  each new chunk starts `step` elements into the enumerable.
+  Shortcut to `chunk_every(enum, count, count)`.
+  """
+  @spec chunk_every(Enumerable.t, pos_integer) :: Enumerable.t
+  def chunk_every(enum, count), do: chunk_every(enum, count, count, [])
+
+  @doc """
+  Streams the enumerable in chunks, containing `count` items each,
+  where each new chunk starts `step` elements into the enumerable.
 
   `step` is optional and, if not passed, defaults to `count`, i.e.
   chunks do not overlap.
 
-  If the final chunk does not have `count` elements to fill the chunk,
-  the final chunk is dropped unless `leftover` is given.
+  If the last chunk does not have `count` elements to fill the chunk,
+  elements are taken from `leftover` to fill in the chunk. If `leftover`
+  does not have enough elements to fill the chunk, then a partial chunk
+  is returned with less than `count` elements.
 
-  If `leftover` is given, elements are taken from `leftover` to fill in
-  the chunk. If `leftover` is passed and does not have enough elements
-  to fill the chunk, then a partial chunk is returned with less than
-  `count` elements. Therefore, an empty list can be given to `leftover`
-  when one simply desires for the last chunk to not be discarded.
+  If `:discard` is given in `leftover`, the last chunk is discarded
+  unless it has exactly `count` elements.
 
   ## Examples
 
-      iex> Stream.chunk([1, 2, 3, 4, 5, 6], 2) |> Enum.to_list
+      iex> Stream.chunk_every([1, 2, 3, 4, 5, 6], 2) |> Enum.to_list
       [[1, 2], [3, 4], [5, 6]]
 
-      iex> Stream.chunk([1, 2, 3, 4, 5, 6], 3, 2) |> Enum.to_list
+      iex> Stream.chunk_every([1, 2, 3, 4, 5, 6], 3, 2, :discard) |> Enum.to_list
       [[1, 2, 3], [3, 4, 5]]
 
-      iex> Stream.chunk([1, 2, 3, 4, 5, 6], 3, 2, [7]) |> Enum.to_list
+      iex> Stream.chunk_every([1, 2, 3, 4, 5, 6], 3, 2, [7]) |> Enum.to_list
       [[1, 2, 3], [3, 4, 5], [5, 6, 7]]
 
-      iex> Stream.chunk([1, 2, 3, 4, 5, 6], 3, 3, []) |> Enum.to_list
+      iex> Stream.chunk_every([1, 2, 3, 4, 5, 6], 3, 3, []) |> Enum.to_list
       [[1, 2, 3], [4, 5, 6]]
 
   """
-  @spec chunk(Enumerable.t, pos_integer, pos_integer, Enumerable.t | nil) :: Enumerable.t
-  def chunk(enum, n, step, leftover \\ nil)
-      when is_integer(n) and n > 0 and is_integer(step) and step > 0 do
-    R.chunk(&chunk_by/4, enum, n, step, leftover)
+  @spec chunk_every(Enumerable.t, pos_integer, pos_integer, Enumerable.t | :discard) :: Enumerable.t
+  def chunk_every(enum, count, step, leftover \\ [])
+      when is_integer(count) and count > 0 and is_integer(step) and step > 0 do
+    R.chunk_every(&chunk_while/4, enum, count, step, leftover)
   end
 
   @doc """
@@ -178,7 +188,7 @@ defmodule Stream do
   """
   @spec chunk_by(Enumerable.t, (element -> any)) :: Enumerable.t
   def chunk_by(enum, fun) do
-    R.chunk_by(&chunk_by/4, enum, fun)
+    R.chunk_by(&chunk_while/4, enum, fun)
   end
 
   @doc """
@@ -205,21 +215,21 @@ defmodule Stream do
       ...>   [] -> {:cont, []}
       ...>   acc -> {:cont, Enum.reverse(acc), []}
       ...> end
-      iex> stream = Stream.chunk_by(1..10, [], chunk_fun, after_fun)
+      iex> stream = Stream.chunk_while(1..10, [], chunk_fun, after_fun)
       iex> Enum.to_list(stream)
       [[1, 2], [3, 4], [5, 6], [7, 8], [9, 10]]
 
   """
-  @spec chunk_by(Enumerable.t, acc,
-                 (element, acc -> {:cont, chunk, acc} | {:cont, acc}),
-                 (acc -> {:cont, chunk, acc} | {:cont, acc})) :: Enumerable.t when chunk: any
-  def chunk_by(enum, acc, chunk_fun, after_fun) do
+  @spec chunk_while(Enumerable.t, acc,
+                    (element, acc -> {:cont, chunk, acc} | {:cont, acc} | {:halt, acc}),
+                    (acc -> {:cont, chunk, acc} | {:cont, acc})) :: Enumerable.t when chunk: any
+  def chunk_while(enum, acc, chunk_fun, after_fun) do
     lazy enum, acc,
-         fn(f1) -> R.chunk_by(chunk_fun, f1) end,
-         &after_chunk_by(&1, &2, after_fun)
+         fn(f1) -> R.chunk_while(chunk_fun, f1) end,
+         &after_chunk_while(&1, &2, after_fun)
   end
 
-  defp after_chunk_by(acc(h, acc, t), f1, after_fun) do
+  defp after_chunk_while(acc(h, acc, t), f1, after_fun) do
     case after_fun.(acc) do
       {:cont, emit, acc} -> next_with_acc(f1, emit, h, acc, t)
       {:cont, acc} -> {:cont, acc(h, acc, t)}

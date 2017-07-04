@@ -314,11 +314,21 @@ defmodule Enum do
     end
   end
 
-  @doc """
-  Shortcut to `chunk(enumerable, count, count)`.
-  """
-  @spec chunk(t, pos_integer) :: [list]
+  # Deprecate on v1.7
+  @doc false
   def chunk(enumerable, count), do: chunk(enumerable, count, count, nil)
+
+  # Deprecate on v1.7
+  @doc false
+  def chunk(enumerable, count, step, leftover \\ nil) do
+    chunk_every(enumerable, count, step, leftover || :discard)
+  end
+
+  @doc """
+  Shortcut to `chunk_every(enumerable, count, count)`.
+  """
+  @spec chunk_every(t, pos_integer) :: [list]
+  def chunk_every(enumerable, count), do: chunk_every(enumerable, count, count, [])
 
   @doc """
   Returns list of lists containing `count` items each, where
@@ -327,40 +337,36 @@ defmodule Enum do
   `step` is optional and, if not passed, defaults to `count`, i.e.
   chunks do not overlap.
 
-  If the final chunk does not have `count` elements to fill the chunk,
-  the final chunk is dropped unless `leftover` is given.
+  If the last chunk does not have `count` elements to fill the chunk,
+  elements are taken from `leftover` to fill in the chunk. If `leftover`
+  does not have enough elements to fill the chunk, then a partial chunk
+  is returned with less than `count` elements.
 
-  If `leftover` is given, elements are taken from `leftover` to fill in
-  the chunk. If `leftover` is passed and does not have enough elements
-  to fill the chunk, then a partial chunk is returned with less than
-  `count` elements. Therefore, an empty list can be given to `leftover`
-  when one simply desires for the last chunk to not be discarded.
+  If `:discard` is given in `leftover`, the last chunk is discarded
+  unless it has exactly `count` elements.
 
   ## Examples
 
-      iex> Enum.chunk([1, 2, 3, 4, 5, 6], 2)
+      iex> Enum.chunk_every([1, 2, 3, 4, 5, 6], 2)
       [[1, 2], [3, 4], [5, 6]]
 
-      iex> Enum.chunk([1, 2, 3, 4, 5, 6], 3, 2)
+      iex> Enum.chunk_every([1, 2, 3, 4, 5, 6], 3, 2, :discard)
       [[1, 2, 3], [3, 4, 5]]
 
-      iex> Enum.chunk([1, 2, 3, 4, 5, 6], 3, 2, [7])
+      iex> Enum.chunk_every([1, 2, 3, 4, 5, 6], 3, 2, [7])
       [[1, 2, 3], [3, 4, 5], [5, 6, 7]]
 
-      iex> Enum.chunk([1, 2, 3, 4], 3, 3, [])
+      iex> Enum.chunk_every([1, 2, 3, 4], 3, 3, [])
       [[1, 2, 3], [4]]
 
-      iex> Enum.chunk([1, 2, 3, 4], 10)
-      []
-
-      iex> Enum.chunk([1, 2, 3, 4], 10, 10, [])
+      iex> Enum.chunk_every([1, 2, 3, 4], 10)
       [[1, 2, 3, 4]]
 
   """
-  @spec chunk(t, pos_integer, pos_integer, t | nil) :: [list]
-  def chunk(enumerable, count, step, leftover \\ nil)
+  @spec chunk_every(t, pos_integer, pos_integer, t | :discard) :: [list]
+  def chunk_every(enumerable, count, step, leftover \\ [])
       when is_integer(count) and count > 0 and is_integer(step) and step > 0 do
-    R.chunk(&chunk_by/4, enumerable, count, step, leftover)
+    R.chunk_every(&chunk_while/4, enumerable, count, step, leftover)
   end
 
   @doc """
@@ -389,15 +395,22 @@ defmodule Enum do
       ...>   [] -> {:cont, []}
       ...>   acc -> {:cont, Enum.reverse(acc), []}
       ...> end
-      iex> Enum.chunk_by(1..10, [], chunk_fun, after_fun)
+      iex> Enum.chunk_while(1..10, [], chunk_fun, after_fun)
       [[1, 2], [3, 4], [5, 6], [7, 8], [9, 10]]
 
   """
-  @spec chunk_by(t, acc,
-                 (element, acc -> {:cont, chunk, acc} | {:cont, acc}),
-                 (acc -> {:cont, chunk, acc} | {:cont, acc})) :: Enumerable.t when chunk: any
-  def chunk_by(enum, acc, chunk_fun, after_fun) do
-    {res, acc} = reduce(enum, {[], acc}, R.chunk_by(chunk_fun))
+  @spec chunk_while(t, acc,
+                    (element, acc -> {:cont, chunk, acc} | {:cont, acc} | {:halt, acc}),
+                    (acc -> {:cont, chunk, acc} | {:cont, acc})) :: Enumerable.t when chunk: any
+  def chunk_while(enum, acc, chunk_fun, after_fun) do
+    {_, {res, acc}} =
+      Enumerable.reduce(enum, {:cont, {[], acc}}, fn entry, {buffer, acc} ->
+        case chunk_fun.(entry, acc) do
+          {:cont, emit, acc} -> {:cont, {[emit | buffer], acc}}
+          {:cont, acc} -> {:cont, {buffer, acc}}
+          {:halt, acc} -> {:halt, {buffer, acc}}
+        end
+      end)
 
     case after_fun.(acc) do
       {:cont, _acc} -> :lists.reverse(res)
@@ -419,7 +432,7 @@ defmodule Enum do
   """
   @spec chunk_by(t, (element -> any)) :: [list]
   def chunk_by(enumerable, fun) do
-    R.chunk_by(&chunk_by/4, enumerable, fun)
+    R.chunk_by(&chunk_while/4, enumerable, fun)
   end
 
   @doc """

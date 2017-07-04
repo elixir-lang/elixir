@@ -66,12 +66,15 @@ defmodule EnumTest do
     assert Enum.chunk_by([1], fn _ -> true end) == [[1]]
   end
 
-  test "chunk_by/4" do
+  test "chunk_while/4" do
     chunk_fun = fn i, acc ->
-      if rem(i, 2) == 0 do
-        {:cont, Enum.reverse([i | acc]), []}
-      else
-        {:cont, [i | acc]}
+      cond do
+        i > 10 ->
+          {:halt, acc}
+        rem(i, 2) == 0 ->
+          {:cont, Enum.reverse([i | acc]), []}
+        true ->
+          {:cont, [i | acc]}
       end
     end
 
@@ -80,12 +83,16 @@ defmodule EnumTest do
       acc -> {:cont, Enum.reverse(acc), []}
     end
 
-    assert Enum.chunk_by([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], [], chunk_fun, after_fun) ==
+    assert Enum.chunk_while([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], [], chunk_fun, after_fun) ==
            [[1, 2], [3, 4], [5, 6], [7, 8], [9, 10]]
-    assert Enum.chunk_by(0..10, [], chunk_fun, after_fun) ==
+    assert Enum.chunk_while(0..9, [], chunk_fun, after_fun) ==
+           [[0], [1, 2], [3, 4], [5, 6], [7, 8], [9]]
+    assert Enum.chunk_while(0..10, [], chunk_fun, after_fun) ==
            [[0], [1, 2], [3, 4], [5, 6], [7, 8], [9, 10]]
-    assert Enum.chunk_by(0..11, [], chunk_fun, after_fun) ==
-           [[0], [1, 2], [3, 4], [5, 6], [7, 8], [9, 10], [11]]
+    assert Enum.chunk_while(0..11, [], chunk_fun, after_fun) ==
+           [[0], [1, 2], [3, 4], [5, 6], [7, 8], [9, 10]]
+    assert Enum.chunk_while([5, 7, 9, 11], [], chunk_fun, after_fun) ==
+           [[5, 7, 9]]
   end
 
   test "concat/1" do
@@ -821,16 +828,16 @@ defmodule EnumTest.Range do
     assert Enum.at(2..6, -8) == nil
   end
 
-  test "chunk/2" do
-    assert Enum.chunk(1..5, 2) == [[1, 2], [3, 4]]
+  test "chunk_every/2" do
+    assert Enum.chunk_every(1..5, 2) == [[1, 2], [3, 4], [5]]
   end
 
-  test "chunk/4" do
-    assert Enum.chunk(1..5, 2, 2, [6]) == [[1, 2], [3, 4], [5, 6]]
-    assert Enum.chunk(1..6, 3, 2) == [[1, 2, 3], [3, 4, 5]]
-    assert Enum.chunk(1..6, 2, 3) == [[1, 2], [4, 5]]
-    assert Enum.chunk(1..6, 3, 2, []) == [[1, 2, 3], [3, 4, 5], [5, 6]]
-    assert Enum.chunk(1..5, 4, 4, 6..10) == [[1, 2, 3, 4], [5, 6, 7, 8]]
+  test "chunk_every/4" do
+    assert Enum.chunk_every(1..5, 2, 2) == [[1, 2], [3, 4], [5]]
+    assert Enum.chunk_every(1..6, 3, 2, :discard) == [[1, 2, 3], [3, 4, 5]]
+    assert Enum.chunk_every(1..6, 2, 3, :discard) == [[1, 2], [4, 5]]
+    assert Enum.chunk_every(1..6, 3, 2, []) == [[1, 2, 3], [3, 4, 5], [5, 6]]
+    assert Enum.chunk_every(1..5, 4, 4, 6..10) == [[1, 2, 3, 4], [5, 6, 7, 8]]
   end
 
   test "chunk_by/2" do
