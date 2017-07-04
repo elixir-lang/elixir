@@ -1566,3 +1566,13 @@ defmodule EnumTest.SideEffects do
     assert Enum.take(iterator, 0) == []
   end
 end
+
+defmodule EnumTest.Function do
+  use ExUnit.Case, async: true
+
+  test "raises Protocol.UndefinedError for funs of wrong arity" do
+    assert_raise Protocol.UndefinedError, fn ->
+      Enum.to_list(fn -> nil end)
+    end
+  end
+end
