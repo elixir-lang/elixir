@@ -181,12 +181,12 @@ defmodule Base do
     alphabet
     |> Stream.with_index()
     |> Enum.flat_map(fn {encoding, value} = pair ->
-        if encoding in ?A..?Z do
-          [pair, {encoding - ?A + ?a, value}]
-        else
-          [pair]
-        end
-      end)
+         if encoding in ?A..?Z do
+           [pair, {encoding - ?A + ?a, value}]
+         else
+           [pair]
+         end
+       end)
     |> decode_clauses()
   end
 
@@ -214,7 +214,7 @@ defmodule Base do
     quote do
       c ->
         raise ArgumentError,
-          "non-alphabet digit found: #{inspect <<c>>, binaries: :as_strings} (byte #{c})"
+              "non-alphabet digit found: #{inspect <<c>>, binaries: :as_strings} (byte #{c})"
     end
   end
 
@@ -919,11 +919,11 @@ defmodule Base do
       segs = div(byte_size(string) + 7, 8) - 1
       <<main::size(segs)-binary-unit(64), rest::binary>> = string
       main =
-      for <<c1::8, c2::8, c3::8, c4::8, c5::8, c6::8, c7::8, c8::8 <- main>>, into: <<>> do
-        <<unquote(fun)(c1)::6, unquote(fun)(c2)::6, unquote(fun)(c3)::6,
-          unquote(fun)(c4)::6, unquote(fun)(c5)::6, unquote(fun)(c6)::6,
-          unquote(fun)(c7)::6, unquote(fun)(c8)::6>>
-      end
+        for <<c1::8, c2::8, c3::8, c4::8, c5::8, c6::8, c7::8, c8::8 <- main>>, into: <<>> do
+          <<unquote(fun)(c1)::6, unquote(fun)(c2)::6, unquote(fun)(c3)::6,
+            unquote(fun)(c4)::6, unquote(fun)(c5)::6, unquote(fun)(c6)::6,
+            unquote(fun)(c7)::6, unquote(fun)(c8)::6>>
+        end
       case rest do
         <<c1::8, c2::8, ?=, ?=>> ->
           <<main::bits, unquote(fun)(c1)::6, bsr(unquote(fun)(c2), 4)::2>>
