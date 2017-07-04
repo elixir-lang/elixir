@@ -750,4 +750,30 @@ defmodule BaseTest do
   test "hex_decode32!/2 with :mixed case and ignoring padding" do
     assert "fo" == hex_decode32!("cPNg", case: :mixed, padding: false)
   end
+
+  test "encode then decode is identity" do
+    for {encode, decode} <- [{&encode16/2, &decode16!/2},
+                             {&encode32/2, &decode32!/2},
+                             {&hex_encode32/2, &hex_decode32!/2},
+                             {&encode64/2, &decode64!/2},
+                             {&url_encode64/2, &url_decode64!/2}],
+        encode_case <- [:upper, :lower],
+        decode_case <- [:upper, :lower, :mixed],
+        (encode_case == decode_case) or (decode_case == :mixed),
+        pad? <- [true, false],
+        len <- 0..256 do
+      data =
+        0
+        |> :lists.seq(len - 1)
+        |> Enum.shuffle()
+        |> IO.iodata_to_binary()
+
+      expected =
+        data
+        |> encode.([case: encode_case, pad: pad?])
+        |> decode.([case: decode_case, pad: pad?]),
+      
+      assert data == expected, "identity did not match for #{inspect data} when #{inspect encode} (#{encode_case})"
+    end
+  end
 end
