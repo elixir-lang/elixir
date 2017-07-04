@@ -162,6 +162,7 @@ This release brings further improvements to Calendar types. It adds arithmetic a
   * [Macro] Introduce `Macro.generate_arguments/2`
   * [Map] Optimize `Map.merge/3` by choosing merging direction
   * [Map] Add `replace/3` and `replace!/3` for replacing an existing key
+  * [Map] Raise `BadMapError` in `Map.equal?/2` when either of the two arguments is not a map
   * [MapSet] Reduce `MapSet` size when serialized to approximately half
   * [Process] Add `Process.cancel_timer/2`
   * [Protocol] Show available implementations on `Protocol.UndefinedError` if the protocol has been consolidated
