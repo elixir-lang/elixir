@@ -15,10 +15,12 @@ matrix:
     - os: linux
       otp_release: 20.0
 
+env:
+  - ELIXIR_ASSERT_TIMEOUT=2000
+
 script: "make compile && rm -rf .git && make test"
 
 notifications:
   recipients:
     - jose.valim@plataformatec.com.br
     - eric.meadows.jonsson@gmail.com
-
