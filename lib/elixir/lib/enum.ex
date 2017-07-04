@@ -360,17 +360,7 @@ defmodule Enum do
   @spec chunk(t, pos_integer, pos_integer, t | nil) :: [list]
   def chunk(enumerable, count, step, leftover \\ nil)
       when is_integer(count) and count > 0 and is_integer(step) and step > 0 do
-    limit = :erlang.max(count, step)
-
-    {acc, {buffer, i}} =
-      reduce(enumerable, {[], {[], 0}}, R.chunk(count, step, limit))
-
-    if is_nil(leftover) || i == 0 do
-      :lists.reverse(acc)
-    else
-      buffer = :lists.reverse(buffer, take(leftover, count - i))
-      :lists.reverse([buffer | acc])
-    end
+    R.chunk(&chunk_by/4, enumerable, count, step, leftover)
   end
 
   @doc """
@@ -429,18 +419,7 @@ defmodule Enum do
   """
   @spec chunk_by(t, (element -> any)) :: [list]
   def chunk_by(enumerable, fun) do
-    chunk_by(enumerable, nil, fn
-      entry, nil ->
-        {:cont, {[entry], fun.(entry)}}
-      entry, {acc, value} ->
-        case fun.(entry) do
-          ^value -> {:cont, {[entry | acc], value}}
-          new_value -> {:cont, :lists.reverse(acc), {[entry], new_value}}
-        end
-    end, fn
-      nil -> {:cont, :done}
-      {acc, _value} -> {:cont, :lists.reverse(acc), :done}
-    end)
+    R.chunk_by(&chunk_by/4, enumerable, fun)
   end
 
   @doc """

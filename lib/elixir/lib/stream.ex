@@ -161,23 +161,7 @@ defmodule Stream do
   @spec chunk(Enumerable.t, pos_integer, pos_integer, Enumerable.t | nil) :: Enumerable.t
   def chunk(enum, n, step, leftover \\ nil)
       when is_integer(n) and n > 0 and is_integer(step) and step > 0 do
-    limit = :erlang.max(n, step)
-    if is_nil(leftover) do
-      lazy enum, {[], 0}, fn(f1) -> R.chunk(n, step, limit, f1) end
-    else
-      lazy enum, {[], 0},
-           fn(f1) -> R.chunk(n, step, limit, f1) end,
-           &do_chunk(&1, n, leftover, &2)
-     end
-  end
-
-  defp do_chunk(acc(_, {_, 0}, _) = acc, _, _, _) do
-    {:cont, acc}
-  end
-
-  defp do_chunk(acc(h, {buffer, count} = old, t), n, leftover, f1) do
-    buffer = :lists.reverse(buffer, Enum.take(leftover, n - count))
-    next_with_acc(f1, buffer, h, old, t)
+    R.chunk(&chunk_by/4, enum, n, step, leftover)
   end
 
   @doc """
@@ -194,18 +178,7 @@ defmodule Stream do
   """
   @spec chunk_by(Enumerable.t, (element -> any)) :: Enumerable.t
   def chunk_by(enum, fun) do
-    chunk_by(enum, nil, fn
-      entry, nil ->
-        {:cont, {[entry], fun.(entry)}}
-      entry, {acc, value} ->
-        case fun.(entry) do
-          ^value -> {:cont, {[entry | acc], value}}
-          new_value -> {:cont, :lists.reverse(acc), {[entry], new_value}}
-        end
-    end, fn
-      nil -> {:cont, :done}
-      {acc, _value} -> {:cont, :lists.reverse(acc), :done}
-    end)
+    R.chunk_by(&chunk_by/4, enum, fun)
   end
 
   @doc """
