@@ -92,58 +92,145 @@ defmodule Base do
 
   """
 
-  b16_alphabet    = Enum.with_index '0123456789ABCDEF'
-  b64_alphabet    = Enum.with_index 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
-  b64url_alphabet = Enum.with_index 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'
-  b32_alphabet    = Enum.with_index 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'
-  b32hex_alphabet = Enum.with_index '0123456789ABCDEFGHIJKLMNOPQRSTUV'
+  b16_alphabet    = '0123456789ABCDEF'
+  b64_alphabet    = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+  b64url_alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'
+  b32_alphabet    = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'
+  b32hex_alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUV'
 
-  Enum.each [{:enc16,    :dec16,    b16_alphabet},
-             {:enc32,    :dec32,    b32_alphabet},
-             {:enc64,    :dec64,    b64_alphabet},
-             {:enc64url, :dec64url, b64url_alphabet},
-             {:enc32hex, :dec32hex, b32hex_alphabet}], fn({enc, dec, alphabet}) ->
-    for {encoding, value} <- alphabet do
-      defp unquote(enc)(unquote(value)), do: unquote(encoding)
-      defp unquote(dec)(unquote(encoding)), do: unquote(value)
-    end
-    defp unquote(dec)(c) do
-      raise ArgumentError, "non-alphabet digit found: #{inspect <<c>>, binaries: :as_strings} (byte #{c})"
+  defmacrop encode_pair(alphabet, case, value) do
+    quote do
+      case unquote(value) do
+        unquote(encode_pair_clauses(alphabet, case))
+      end
     end
   end
 
-  @compile {:inline, from_upper: 1, from_lower: 1, from_mixed: 1,
-                     to_lower: 1, to_upper: 1, enc16: 1, dec16: 1,
-                     enc32: 1, dec32: 1, enc32hex: 1, dec32hex: 1,
-                     enc64: 1, dec64: 1, enc64url: 1, dec64url: 1}
+  defp encode_pair_clauses(alphabet, case) when case in [:sensitive, :upper] do
+    shift = shift(alphabet)
+    alphabet
+    |> Enum.with_index()
+    |> encode_clauses(shift)
+  end
 
-  defp to_lower(char) when char in ?A..?Z,
-    do: char + (?a - ?A)
-  defp to_lower(char),
-    do: char
+  defp encode_pair_clauses(alphabet, :lower) do
+    shift = shift(alphabet)
+    alphabet
+    |> Stream.map(fn c -> (if c in ?A..?Z, do: c - ?A + ?a, else: c) end)
+    |> Enum.with_index()
+    |> encode_clauses(shift)
+  end
 
-  defp to_upper(char), do: char
+  defp shift(alphabet) do
+    alphabet
+    |> length()
+    |> :math.log2()
+    |> round()
+  end
 
-  defp from_upper(char), do: char
+  defp encode_clauses(alphabet, shift) do
+    for {encoding1, value1} <- alphabet, {encoding2, value2} <- alphabet do
+      encoding = bsl(encoding1, 8) + encoding2
+      value = bsl(value1, shift) + value2
+      [clause] = quote do: (unquote(value) -> unquote(encoding))
+      clause
+    end
+  end
 
-  defp from_lower(char) when char in ?a..?z,
-    do: char - (?a - ?A)
-  defp from_lower(char) when char not in ?A..?Z,
-    do: char
-  defp from_lower(char),
-    do: raise(ArgumentError, "non-alphabet digit found: \"#{<<char>>}\" (byte #{char})")
+  defmacrop decode_char(alphabet, case, encoding) do
+    quote do
+      case unquote(encoding) do
+        unquote(decode_char_clauses(alphabet, case))
+      end
+    end
+  end
 
-  defp from_mixed(char) when char in ?a..?z,
-    do: char - (?a - ?A)
-  defp from_mixed(char),
-    do: char
+  defp decode_char_clauses(alphabet, case) when case in [:sensitive, :upper] do
+    clauses =
+      alphabet
+      |> Enum.with_index()
+      |> decode_clauses()
+    clauses ++ bad_digit_clause()
+  end
 
-  defp maybe_pad(subject, false, _, _),
-    do: subject
-  defp maybe_pad(subject, _, group_size, pad) do
-    case rem(byte_size(subject), group_size) do
-      0 -> subject
-      x -> subject <> String.duplicate(pad, group_size - x)
+  defp decode_char_clauses(alphabet, :lower) do
+    {uppers, rest} =
+      alphabet
+      |> Stream.with_index()
+      |> Enum.split_with(fn {encoding, _} -> encoding in ?A..?Z end)
+    lowers =
+      Enum.map(uppers, fn {encoding, value} -> {encoding - ?A + ?a, value} end)
+
+    if length(uppers) > length(rest) do
+      decode_mixed_clauses(lowers, rest)
+    else
+      decode_mixed_clauses(rest, lowers)
+    end
+  end
+
+  defp decode_char_clauses(alphabet, :mixed) when length(alphabet) == 16 do
+    alphabet = Enum.with_index(alphabet)
+    lowers =
+      alphabet
+      |> Stream.filter(fn {encoding, _} -> encoding in ?A..?Z end)
+      |> Enum.map(fn {encoding, value} -> {encoding - ?A + ?a, value} end)
+    decode_mixed_clauses(alphabet, lowers)
+  end
+
+  defp decode_char_clauses(alphabet, :mixed) when length(alphabet) == 32 do
+    alphabet
+    |> Stream.with_index()
+    |> Enum.flat_map(fn {encoding, value} = pair ->
+         if encoding in ?A..?Z do
+           [pair, {encoding - ?A + ?a, value}]
+         else
+           [pair]
+         end
+       end)
+    |> decode_clauses()
+  end
+
+  defp decode_mixed_clauses(first, second) do
+    first_clauses = decode_clauses(first)
+    second_clauses = decode_clauses(second) ++ bad_digit_clause()
+    join_clause =
+      quote do
+        encoding ->
+          case encoding do
+            unquote(second_clauses)
+          end
+      end
+    first_clauses ++ join_clause
+  end
+
+  defp decode_clauses(alphabet) do
+    for {encoding, value} <- alphabet do
+      [clause] = quote do: (unquote(encoding) -> unquote(value))
+      clause
+    end
+  end
+
+  defp bad_digit_clause() do
+    quote do
+      c ->
+        raise ArgumentError,
+              "non-alphabet digit found: #{inspect <<c>>, binaries: :as_strings} (byte #{c})"
+    end
+  end
+
+  defp maybe_pad(body, "", _, _),
+    do: body
+  defp maybe_pad(body, tail, false, _),
+    do: body <> tail
+  defp maybe_pad(body, tail, _, group_size) do
+    case group_size - rem(byte_size(tail), group_size) do
+      ^group_size -> body <> tail
+      6 -> body <> tail <> "======"
+      5 -> body <> tail <> "====="
+      4 -> body <> tail <> "===="
+      3 -> body <> tail <> "==="
+      2 -> body <> tail <> "=="
+      1 -> body <> tail <> "="
     end
   end
 
@@ -587,7 +674,7 @@ defmodule Base do
   def hex_encode32(data, opts \\ []) when is_binary(data) do
     case = Keyword.get(opts, :case, :upper)
     pad? = Keyword.get(opts, :padding, true)
-    do_hex_encode32(case, data, pad?)
+    do_encode32hex(case, data, pad?)
   end
 
   @doc """
@@ -678,7 +765,7 @@ defmodule Base do
   def hex_decode32!(string, opts \\ []) when is_binary(string) do
     case = Keyword.get(opts, :case, :upper)
     pad? = Keyword.get(opts, :padding, true)
-    do_hex_decode32(case, string, pad?)
+    do_decode32hex(case, string, pad?)
   end
 
   defp remove_ignored(string, nil), do: string
@@ -686,244 +773,298 @@ defmodule Base do
     for <<char::8 <- string>>, char not in '\s\t\r\n', into: <<>>, do: <<char::8>>
   end
 
-  defp do_encode16(_, <<>>), do: <<>>
-  defp do_encode16(:upper, data) do
-    for <<c::4 <- data>>, into: <<>>, do: <<enc16(c)::8>>
+  enc16 = [upper: :enc16_upper, lower: :enc16_lower]
+
+  for {case, fun} <- enc16 do
+    defp unquote(fun)(char) do
+      encode_pair(unquote(b16_alphabet), unquote(case), char)
+    end
   end
-  defp do_encode16(:lower, data) do
-    for <<c::4 <- data>>, into: <<>>, do: <<to_lower(enc16(c))::8>>
+
+  defp do_encode16(_, <<>>), do: <<>>
+
+  for {case, fun} <- enc16 do
+    defp do_encode16(unquote(case), data) do
+      split =  8 * div(byte_size(data), 8)
+      <<main::size(split)-binary, rest::binary>> = data
+      main =
+        for <<c1::8, c2::8, c3::8, c4::8, c5::8, c6::8, c7::8, c8::8 <- main>>, into: <<>> do
+          <<unquote(fun)(c1)::16, unquote(fun)(c2)::16,
+            unquote(fun)(c3)::16, unquote(fun)(c4)::16,
+            unquote(fun)(c5)::16, unquote(fun)(c6)::16,
+            unquote(fun)(c7)::16, unquote(fun)(c8)::16>>
+        end
+      case rest do
+        <<c1::8, c2::8, c3::8, c4::8, c5::8, c6::8, c7::8>> ->
+          <<main::binary, unquote(fun)(c1)::16, unquote(fun)(c2)::16,
+            unquote(fun)(c3)::16, unquote(fun)(c4)::16,
+            unquote(fun)(c5)::16, unquote(fun)(c6)::16,
+            unquote(fun)(c7)::16>>
+        <<c1::8, c2::8, c3::8, c4::8, c5::8, c6::8>> ->
+          <<main::binary, unquote(fun)(c1)::16, unquote(fun)(c2)::16,
+            unquote(fun)(c3)::16, unquote(fun)(c4)::16,
+            unquote(fun)(c5)::16, unquote(fun)(c6)::16>>
+        <<c1::8, c2::8, c3::8, c4::8, c5::8>> ->
+          <<main::binary, unquote(fun)(c1)::16, unquote(fun)(c2)::16,
+            unquote(fun)(c3)::16, unquote(fun)(c4)::16,
+            unquote(fun)(c5)::16>>
+        <<c1::8, c2::8, c3::8, c4::8>> ->
+          <<main::binary, unquote(fun)(c1)::16, unquote(fun)(c2)::16,
+            unquote(fun)(c3)::16, unquote(fun)(c4)::16>>
+        <<c1::8, c2::8, c3::8>> ->
+          <<main::binary, unquote(fun)(c1)::16, unquote(fun)(c2)::16,
+            unquote(fun)(c3)::16>>
+        <<c1::8, c2::8>> ->
+          <<main::binary, unquote(fun)(c1)::16, unquote(fun)(c2)::16>>
+        <<c1::8>> ->
+          <<main::binary, unquote(fun)(c1)::16>>
+        <<>> ->
+          main
+      end
+    end
+  end
+
+  dec16 = [upper: :dec16_upper, lower: :dec16_lower, mixed: :dec16_mixed]
+
+  for {case, fun} <- dec16 do
+    defp unquote(fun)(encoding) do
+      decode_char(unquote(b16_alphabet), unquote(case), encoding)
+    end
   end
 
   defp do_decode16(_, <<>>), do: <<>>
-  defp do_decode16(:upper, string) when rem(byte_size(string), 2) == 0 do
-    for <<c1::8, c2::8 <- string>>, into: <<>> do
-      <<dec16(c1)::4, dec16(c2)::4>>
-    end
-  end
-  defp do_decode16(:lower, string) when rem(byte_size(string), 2) == 0 do
-    for <<c1::8, c2::8 <- string>>, into: <<>> do
-      <<dec16(from_lower(c1))::4, dec16(from_lower(c2))::4>>
-    end
-  end
-  defp do_decode16(:mixed, string) when rem(byte_size(string), 2) == 0 do
-    for <<c1::8, c2::8 <- string>>, into: <<>> do
-      <<dec16(from_mixed(c1))::4, dec16(from_mixed(c2))::4>>
+
+  for {case, fun} <- dec16 do
+    defp do_decode16(unquote(case), string) do
+      split =  8 * div(byte_size(string), 8)
+      <<main::size(split)-binary, rest::binary>> = string
+      main =
+        for <<c1::8, c2::8, c3::8, c4::8, c5::8, c6::8, c7::8, c8::8 <- main>>, into: <<>> do
+          <<unquote(fun)(c1)::4, unquote(fun)(c2)::4,
+            unquote(fun)(c3)::4, unquote(fun)(c4)::4,
+            unquote(fun)(c5)::4, unquote(fun)(c6)::4,
+            unquote(fun)(c7)::4, unquote(fun)(c8)::4>>
+        end
+      case rest do
+        <<c1::8, c2::8, c3::8, c4::8, c5::8, c6::8>> ->
+          <<main::bits, unquote(fun)(c1)::4, unquote(fun)(c2)::4,
+            unquote(fun)(c3)::4, unquote(fun)(c4)::4,
+            unquote(fun)(c5)::4, unquote(fun)(c6)::4>>
+        <<c1::8, c2::8, c3::8, c4::8>> ->
+          <<main::bits, unquote(fun)(c1)::4, unquote(fun)(c2)::4,
+            unquote(fun)(c3)::4, unquote(fun)(c4)::4>>
+        <<c1::8, c2::8>> ->
+          <<main::bits, unquote(fun)(c1)::4, unquote(fun)(c2)::4>>
+        <<_::8>> ->
+          raise ArgumentError, "odd-length string"
+        <<>> ->
+          main
+      end
     end
   end
 
-  defp do_encode64(<<>>, _), do: <<>>
-  defp do_encode64(data, pad?) do
-    split =  3 * div(byte_size(data), 3)
-    <<main::size(split)-binary, rest::binary>> = data
-    main = for <<c::6 <- main>>, into: <<>>, do: <<enc64(c)::8>>
-    tail = case rest do
-      <<c1::6, c2::6, c3::4>> ->
-        <<enc64(c1)::8, enc64(c2)::8, enc64(bsl(c3, 2))::8>>
-      <<c1::6, c2::2>> ->
-        <<enc64(c1)::8, enc64(bsl(c2, 4))::8>>
-      <<>> ->
-        <<>>
+  for {base, alphabet} <- ["64": b64_alphabet, "64url": b64url_alphabet] do
+    pair = :"enc#{base}_pair"
+    char = :"enc#{base}_char"
+    do_encode = :"do_encode#{base}"
+
+    defp unquote(pair)(value) do
+      encode_pair(unquote(alphabet), :sensitive, value)
     end
-    main <> maybe_pad(tail, pad?, 4, "=")
-  end
 
-  defp do_decode64(<<>>, _), do: <<>>
-  defp do_decode64(string, false) do
-    maybe_pad(string, true, 4, "=") |> do_decode64(true)
-  end
-  defp do_decode64(string, _pad?) when rem(byte_size(string), 4) == 0 do
-    split = byte_size(string) - 4
-    <<main::size(split)-binary, rest::binary>> = string
-    main = for <<c::8 <- main>>, into: <<>>, do: <<dec64(c)::6>>
-    tail = case rest do
-      <<c1::8, c2::8, ?=, ?=>> ->
-        <<dec64(c1)::6, bsr(dec64(c2), 4)::2>>
-      <<c1::8, c2::8, c3::8, ?=>> ->
-        <<dec64(c1)::6, dec64(c2)::6, bsr(dec64(c3), 2)::4>>
-      <<c1::8, c2::8, c3::8, c4::8>> ->
-        <<dec64(c1)::6, dec64(c2)::6, dec64(c3)::6, dec64(c4)::6>>
-      <<>> ->
-        <<>>
+    defp unquote(char)(value) do
+      value
+      |> unquote(pair)()
+      |> band(0x00FF)
     end
-    main <> tail
-  end
-  defp do_decode64(_, _) do
-    raise ArgumentError, "incorrect padding"
-  end
 
-  defp do_encode64url(<<>>, _), do: <<>>
-  defp do_encode64url(data, pad?) do
-    split =  3 * div(byte_size(data), 3)
-    <<main::size(split)-binary, rest::binary>> = data
-    main = for <<c::6 <- main>>, into: <<>>, do: <<enc64url(c)::8>>
-    tail = case rest do
-      <<c1::6, c2::6, c3::4>> ->
-        <<enc64url(c1)::8, enc64url(c2)::8, enc64url(bsl(c3, 2))::8>>
-      <<c1::6, c2::2>> ->
-        <<enc64url(c1)::8, enc64url(bsl(c2, 4))::8>>
-      <<>> ->
-        <<>>
+    defp unquote(do_encode)(<<>>, _), do: <<>>
+    defp unquote(do_encode)(data, pad?) do
+      split =  6 * div(byte_size(data), 6)
+      <<main::size(split)-binary, rest::binary>> = data
+      main = for <<c1::12, c2::12, c3::12, c4::12 <- main>>, into: <<>> do
+        <<unquote(pair)(c1)::16, unquote(pair)(c2)::16,
+          unquote(pair)(c3)::16, unquote(pair)(c4)::16>>
+      end
+      tail = case rest do
+        <<c1::12, c2::12, c3::12, c::4>> ->
+          <<unquote(pair)(c1)::16, unquote(pair)(c2)::16, unquote(pair)(c3)::16,
+            unquote(char)(bsl(c, 2))::8>>
+        <<c1::12, c2::12, c3::8>> ->
+          <<unquote(pair)(c1)::16, unquote(pair)(c2)::16,
+            unquote(pair)(bsl(c3, 4))::16>>
+        <<c1::12, c2::12>> ->
+          <<unquote(pair)(c1)::16, unquote(pair)(c2)::16>>
+        <<c1::12, c2::4>> ->
+          <<unquote(pair)(c1)::16, unquote(char)(bsl(c2, 2))::8>>
+        <<c1::8>> ->
+          <<unquote(pair)(bsl(c1, 4))::16>>
+        <<>> ->
+          <<>>
+      end
+      maybe_pad(main, tail, pad?, 4)
     end
-    main <> maybe_pad(tail, pad?, 4, "=")
   end
 
-  defp do_decode64url(<<>>, _), do: <<>>
-  defp do_decode64url(string, false) do
-    maybe_pad(string, true, 4, "=") |> do_decode64url(true)
-  end
-  defp do_decode64url(string, _pad?) when rem(byte_size(string), 4) == 0 do
-    split = byte_size(string) - 4
-    <<main::size(split)-binary, rest::binary>> = string
-    main = for <<c::8 <- main>>, into: <<>>, do: <<dec64url(c)::6>>
-    tail = case rest do
-      <<c1::8, c2::8, ?=, ?=>> ->
-        <<dec64url(c1)::6, bsr(dec64url(c2), 4)::2>>
-      <<c1::8, c2::8, c3::8, ?=>> ->
-        <<dec64url(c1)::6, dec64url(c2)::6, bsr(dec64url(c3), 2)::4>>
-      <<c1::8, c2::8, c3::8, c4::8>> ->
-        <<dec64url(c1)::6, dec64url(c2)::6, dec64url(c3)::6, dec64url(c4)::6>>
-      <<>> ->
-        <<>>
+  for {base, alphabet} <- ["64": b64_alphabet, "64url": b64url_alphabet] do
+    fun = :"dec#{base}"
+    do_decode = :"do_decode#{base}"
+
+    defp unquote(fun)(encoding) do
+      decode_char(unquote(alphabet), :sensitive, encoding)
     end
-    main <> tail
-  end
-  defp do_decode64url(_, _) do
-    raise ArgumentError, "incorrect padding"
+
+    defp unquote(do_decode)(<<>>, _), do: <<>>
+    defp unquote(do_decode)(string, pad?) do
+      segs = div(byte_size(string) + 7, 8) - 1
+      <<main::size(segs)-binary-unit(64), rest::binary>> = string
+      main =
+        for <<c1::8, c2::8, c3::8, c4::8, c5::8, c6::8, c7::8, c8::8 <- main>>, into: <<>> do
+          <<unquote(fun)(c1)::6, unquote(fun)(c2)::6, unquote(fun)(c3)::6,
+            unquote(fun)(c4)::6, unquote(fun)(c5)::6, unquote(fun)(c6)::6,
+            unquote(fun)(c7)::6, unquote(fun)(c8)::6>>
+        end
+      case rest do
+        <<c1::8, c2::8, ?=, ?=>> ->
+          <<main::bits, unquote(fun)(c1)::6, bsr(unquote(fun)(c2), 4)::2>>
+        <<c1::8, c2::8, c3::8, ?=>> ->
+          <<main::bits, unquote(fun)(c1)::6, unquote(fun)(c2)::6,
+            bsr(unquote(fun)(c3), 2)::4>>
+        <<c1::8, c2::8, c3::8, c4::8>> ->
+          <<main::bits, unquote(fun)(c1)::6, unquote(fun)(c2)::6,
+            unquote(fun)(c3)::6, unquote(fun)(c4)::6>>
+        <<c1::8, c2::8, c3::8, c4::8, c5::8, c6::8, ?=, ?=>> ->
+          <<main::bits, unquote(fun)(c1)::6, unquote(fun)(c2)::6,
+            unquote(fun)(c3)::6, unquote(fun)(c4)::6, unquote(fun)(c5)::6,
+            bsr(unquote(fun)(c6), 4)::2>>
+        <<c1::8, c2::8, c3::8, c4::8, c5::8, c6::8, c7::8, ?=>> ->
+          <<main::bits, unquote(fun)(c1)::6, unquote(fun)(c2)::6,
+            unquote(fun)(c3)::6, unquote(fun)(c4)::6, unquote(fun)(c5)::6,
+            unquote(fun)(c6)::6, bsr(unquote(fun)(c7), 2)::4>>
+        <<c1::8, c2::8, c3::8, c4::8, c5::8, c6::8, c7::8, c8::8>> ->
+          <<main::bits, unquote(fun)(c1)::6, unquote(fun)(c2)::6,
+            unquote(fun)(c3)::6, unquote(fun)(c4)::6, unquote(fun)(c5)::6,
+            unquote(fun)(c6)::6, unquote(fun)(c7)::6, unquote(fun)(c8)::6>>
+        <<c1::8, c2::8>> when not pad? ->
+          <<main::bits, unquote(fun)(c1)::6, bsr(unquote(fun)(c2), 4)::2>>
+        <<c1::8, c2::8, c3::8>> when not pad? ->
+          <<main::bits, unquote(fun)(c1)::6, unquote(fun)(c2)::6,
+            bsr(unquote(fun)(c3), 2)::4>>
+        <<c1::8, c2::8, c3::8, c4::8, c5::8, c6::8>> when not pad? ->
+          <<main::bits, unquote(fun)(c1)::6, unquote(fun)(c2)::6,
+            unquote(fun)(c3)::6, unquote(fun)(c4)::6, unquote(fun)(c5)::6,
+            bsr(unquote(fun)(c6), 4)::2>>
+        <<c1::8, c2::8, c3::8, c4::8, c5::8, c6::8, c7::8>> when not pad? ->
+          <<main::bits, unquote(fun)(c1)::6, unquote(fun)(c2)::6,
+            unquote(fun)(c3)::6, unquote(fun)(c4)::6, unquote(fun)(c5)::6,
+            unquote(fun)(c6)::6, bsr(unquote(fun)(c7), 2)::4>>
+        _ ->
+          raise ArgumentError, "incorrect padding"
+      end
+    end
   end
 
-  defp do_encode32(_, <<>>, _), do: <<>>
+  for {base, alphabet} <- ["32": b32_alphabet, "32hex": b32hex_alphabet],
+      case <- [:upper, :lower] do
+    pair = :"enc#{base}_#{case}_pair"
+    char = :"enc#{base}_#{case}_char"
+    do_encode = :"do_encode#{base}"
 
-  for {case, fun} <- [upper: :to_upper, lower: :to_lower] do
-    defp do_encode32(unquote(case), data, pad?) do
+    defp unquote(pair)(value) do
+      encode_pair(unquote(alphabet), unquote(case), value)
+    end
+
+    defp unquote(char)(value) do
+      value
+      |> unquote(pair)()
+      |> band(0x00FF)
+    end
+
+    defp unquote(do_encode)(_, <<>>, _), do: <<>>
+    defp unquote(do_encode)(unquote(case), data, pad?) do
       split =  5 * div(byte_size(data), 5)
       <<main::size(split)-binary, rest::binary>> = data
-      main = for <<c::5 <- main>>, into: <<>>, do: <<unquote(fun)(enc32(c))::8>>
+      main =
+        for <<c1::10, c2::10, c3::10, c4::10 <- main>>, into: <<>> do
+          <<unquote(pair)(c1)::16, unquote(pair)(c2)::16,
+            unquote(pair)(c3)::16, unquote(pair)(c4)::16>>
+        end
       tail = case rest do
-        <<c1::5, c2::5, c3::5, c4::5, c5::5, c6::5, c7::2>> ->
-          <<unquote(fun)(enc32(c1))::8, unquote(fun)(enc32(c2))::8,
-            unquote(fun)(enc32(c3))::8, unquote(fun)(enc32(c4))::8,
-            unquote(fun)(enc32(c5))::8, unquote(fun)(enc32(c6))::8,
-            unquote(fun)(enc32(bsl(c7, 3)))::8>>
-        <<c1::5, c2::5, c3::5, c4::5, c5::4>> ->
-          <<unquote(fun)(enc32(c1))::8, unquote(fun)(enc32(c2))::8,
-            unquote(fun)(enc32(c3))::8, unquote(fun)(enc32(c4))::8,
-            unquote(fun)(enc32(bsl(c5, 1)))::8>>
-        <<c1::5, c2::5, c3::5, c4::1>> ->
-          <<unquote(fun)(enc32(c1))::8, unquote(fun)(enc32(c2))::8,
-            unquote(fun)(enc32(c3))::8, unquote(fun)(enc32(bsl(c4, 4)))::8>>
-        <<c1::5, c2::3>> ->
-          <<unquote(fun)(enc32(c1))::8, unquote(fun)(enc32(bsl(c2, 2)))::8>>
+        <<c1::10, c2::10, c3::10, c4::2>> ->
+          <<unquote(pair)(c1)::16, unquote(pair)(c2)::16,
+            unquote(pair)(c3)::16, unquote(char)(bsl(c4, 3))::8>>
+        <<c1::10, c2::10, c3::4>> ->
+          <<unquote(pair)(c1)::16, unquote(pair)(c2)::16,
+            unquote(char)(bsl(c3, 1))::8>>
+        <<c1::10, c2::6>> ->
+          <<unquote(pair)(c1)::16, unquote(pair)(bsl(c2, 4))::16>>
+        <<c1::8>> ->
+          <<unquote(pair)(bsl(c1, 2))::16>>
         <<>> ->
           <<>>
       end
-      main <> maybe_pad(tail, pad?, 8, "=")
+      maybe_pad(main, tail, pad?, 8)
     end
   end
 
-  defp do_decode32(_, <<>>, _), do: <<>>
-  defp do_decode32(case, string, false),
-    do: do_decode32(case, maybe_pad(string, true, 8, "="), true)
+  for {base, alphabet} <- ["32": b32_alphabet, "32hex": b32hex_alphabet],
+      case <- [:upper, :lower, :mixed] do
+    fun = :"dec#{base}_#{case}"
+    do_decode = :"do_decode#{base}"
 
-  for {case, fun} <- [upper: :from_upper, lower: :from_lower, mixed: :from_mixed] do
-    defp do_decode32(unquote(case), string, _pad?) when rem(byte_size(string), 8) == 0 do
-      split = byte_size(string) - 8
-      <<main::size(split)-binary, rest::binary>> = string
-      main = for <<c::8 <- main>>, into: <<>>, do: <<dec32(unquote(fun)(c))::5>>
-      tail = case rest do
+    defp unquote(fun)(encoding) do
+      decode_char(unquote(alphabet), unquote(case), encoding)
+    end
+
+    defp unquote(do_decode)(_, <<>>, _), do: <<>>
+
+    defp unquote(do_decode)(unquote(case), string, pad?) do
+      segs = div(byte_size(string) + 7, 8) - 1
+      <<main::size(segs)-binary-unit(64), rest::binary>> = string
+      main =
+        for <<c1::8, c2::8, c3::8, c4::8, c5::8, c6::8, c7::8, c8::8 <- main>>, into: <<>> do
+          <<unquote(fun)(c1)::5, unquote(fun)(c2)::5,
+            unquote(fun)(c3)::5, unquote(fun)(c4)::5,
+            unquote(fun)(c5)::5, unquote(fun)(c6)::5,
+            unquote(fun)(c7)::5, unquote(fun)(c8)::5>>
+        end
+      case rest do
         <<c1::8, c2::8, ?=, ?=, ?=, ?=, ?=, ?=>> ->
-          <<dec32(unquote(fun)(c1))::5, bsr(dec32(unquote(fun)(c2)), 2)::3>>
+          <<main::bits, unquote(fun)(c1)::5, bsr(unquote(fun)(c2), 2)::3>>
         <<c1::8, c2::8, c3::8, c4::8, ?=, ?=, ?=, ?=>> ->
-          <<dec32(unquote(fun)(c1))::5, dec32(unquote(fun)(c2))::5,
-            dec32(unquote(fun)(c3))::5, bsr(dec32(unquote(fun)(c4)), 4)::1>>
+          <<main::bits, unquote(fun)(c1)::5, unquote(fun)(c2)::5,
+            unquote(fun)(c3)::5, bsr(unquote(fun)(c4), 4)::1>>
         <<c1::8, c2::8, c3::8, c4::8, c5::8, ?=, ?=, ?=>> ->
-          <<dec32(unquote(fun)(c1))::5, dec32(unquote(fun)(c2))::5,
-            dec32(unquote(fun)(c3))::5, dec32(unquote(fun)(c4))::5,
-            bsr(dec32(unquote(fun)(c5)), 1)::4>>
+          <<main::bits, unquote(fun)(c1)::5, unquote(fun)(c2)::5,
+            unquote(fun)(c3)::5, unquote(fun)(c4)::5,
+            bsr(unquote(fun)(c5), 1)::4>>
         <<c1::8, c2::8, c3::8, c4::8, c5::8, c6::8, c7::8, ?=>> ->
-          <<dec32(unquote(fun)(c1))::5, dec32(unquote(fun)(c2))::5,
-            dec32(unquote(fun)(c3))::5, dec32(unquote(fun)(c4))::5,
-            dec32(unquote(fun)(c5))::5, dec32(unquote(fun)(c6))::5,
-            bsr(dec32(unquote(fun)(c7)), 3)::2>>
+          <<main::bits, unquote(fun)(c1)::5, unquote(fun)(c2)::5,
+            unquote(fun)(c3)::5, unquote(fun)(c4)::5,
+            unquote(fun)(c5)::5, unquote(fun)(c6)::5,
+            bsr(unquote(fun)(c7), 3)::2>>
         <<c1::8, c2::8, c3::8, c4::8, c5::8, c6::8, c7::8, c8::8>> ->
-          <<dec32(unquote(fun)(c1))::5, dec32(unquote(fun)(c2))::5,
-            dec32(unquote(fun)(c3))::5, dec32(unquote(fun)(c4))::5,
-            dec32(unquote(fun)(c5))::5, dec32(unquote(fun)(c6))::5,
-            dec32(unquote(fun)(c7))::5, dec32(unquote(fun)(c8))::5>>
-        <<>> ->
-          <<>>
+          <<main::bits, unquote(fun)(c1)::5, unquote(fun)(c2)::5,
+            unquote(fun)(c3)::5, unquote(fun)(c4)::5,
+            unquote(fun)(c5)::5, unquote(fun)(c6)::5,
+            unquote(fun)(c7)::5, unquote(fun)(c8)::5>>
+        <<c1::8, c2::8>> when not pad? ->
+          <<main::bits, unquote(fun)(c1)::5, bsr(unquote(fun)(c2), 2)::3>>
+        <<c1::8, c2::8, c3::8, c4::8>> when not pad? ->
+          <<main::bits, unquote(fun)(c1)::5, unquote(fun)(c2)::5,
+            unquote(fun)(c3)::5, bsr(unquote(fun)(c4), 4)::1>>
+        <<c1::8, c2::8, c3::8, c4::8, c5::8>> when not pad? ->
+          <<main::bits, unquote(fun)(c1)::5, unquote(fun)(c2)::5,
+            unquote(fun)(c3)::5, unquote(fun)(c4)::5,
+            bsr(unquote(fun)(c5), 1)::4>>
+        <<c1::8, c2::8, c3::8, c4::8, c5::8, c6::8, c7::8>> when not pad? ->
+          <<main::bits, unquote(fun)(c1)::5, unquote(fun)(c2)::5,
+            unquote(fun)(c3)::5, unquote(fun)(c4)::5,
+            unquote(fun)(c5)::5, unquote(fun)(c6)::5,
+            bsr(unquote(fun)(c7), 3)::2>>
+        _ ->
+          raise ArgumentError, "incorrect padding"
       end
-      main <> tail
     end
   end
-
-  defp do_decode32(_, _, _),
-    do: raise ArgumentError, "incorrect padding"
-
-  defp do_hex_encode32(_, <<>>, _), do: <<>>
-
-  for {case, fun} <- [upper: :to_upper, lower: :to_lower] do
-    defp do_hex_encode32(unquote(case), data, pad?) do
-      split =  5 * div(byte_size(data), 5)
-      <<main::size(split)-binary, rest::binary>> = data
-      main = for <<c::5 <- main>>, into: <<>>, do: <<unquote(fun)(enc32hex(c))::8>>
-      tail = case rest do
-        <<c1::5, c2::5, c3::5, c4::5, c5::5, c6::5, c7::2>> ->
-          <<unquote(fun)(enc32hex(c1))::8, unquote(fun)(enc32hex(c2))::8,
-            unquote(fun)(enc32hex(c3))::8, unquote(fun)(enc32hex(c4))::8,
-            unquote(fun)(enc32hex(c5))::8, unquote(fun)(enc32hex(c6))::8,
-            unquote(fun)(enc32hex(bsl(c7, 3)))::8>>
-        <<c1::5, c2::5, c3::5, c4::5, c5::4>> ->
-          <<unquote(fun)(enc32hex(c1))::8, unquote(fun)(enc32hex(c2))::8,
-            unquote(fun)(enc32hex(c3))::8, unquote(fun)(enc32hex(c4))::8,
-            unquote(fun)(enc32hex(bsl(c5, 1)))::8>>
-        <<c1::5, c2::5, c3::5, c4::1>> ->
-          <<unquote(fun)(enc32hex(c1))::8, unquote(fun)(enc32hex(c2))::8,
-            unquote(fun)(enc32hex(c3))::8, unquote(fun)(enc32hex(bsl(c4, 4)))::8>>
-        <<c1::5, c2::3>> ->
-          <<unquote(fun)(enc32hex(c1))::8, unquote(fun)(enc32hex(bsl(c2, 2)))::8>>
-        <<>> ->
-          <<>>
-      end
-      main <> maybe_pad(tail, pad?, 8, "=")
-    end
-  end
-
-  defp do_hex_decode32(_, <<>>, _), do: <<>>
-  defp do_hex_decode32(case, string, false),
-    do: do_hex_decode32(case, maybe_pad(string, true, 8, "="), true)
-
-  for {case, fun} <- [upper: :from_upper, lower: :from_lower, mixed: :from_mixed] do
-    defp do_hex_decode32(unquote(case), string, _pad?) when rem(byte_size(string), 8) == 0 do
-      split = byte_size(string) - 8
-      <<main::size(split)-binary, rest::binary>> = string
-      main = for <<c::8 <- main>>, into: <<>>, do: <<dec32hex(unquote(fun)(c))::5>>
-      tail = case rest do
-        <<c1::8, c2::8, ?=, ?=, ?=, ?=, ?=, ?=>> ->
-          <<dec32hex(unquote(fun)(c1))::5, bsr(dec32hex(unquote(fun)(c2)), 2)::3>>
-        <<c1::8, c2::8, c3::8, c4::8, ?=, ?=, ?=, ?=>> ->
-          <<dec32hex(unquote(fun)(c1))::5, dec32hex(unquote(fun)(c2))::5,
-            dec32hex(unquote(fun)(c3))::5, bsr(dec32hex(unquote(fun)(c4)), 4)::1>>
-        <<c1::8, c2::8, c3::8, c4::8, c5::8, ?=, ?=, ?=>> ->
-          <<dec32hex(unquote(fun)(c1))::5, dec32hex(unquote(fun)(c2))::5,
-            dec32hex(unquote(fun)(c3))::5, dec32hex(unquote(fun)(c4))::5,
-            bsr(dec32hex(unquote(fun)(c5)), 1)::4>>
-        <<c1::8, c2::8, c3::8, c4::8, c5::8, c6::8, c7::8, ?=>> ->
-          <<dec32hex(unquote(fun)(c1))::5, dec32hex(unquote(fun)(c2))::5,
-            dec32hex(unquote(fun)(c3))::5, dec32hex(unquote(fun)(c4))::5,
-            dec32hex(unquote(fun)(c5))::5, dec32hex(unquote(fun)(c6))::5,
-            bsr(dec32hex(unquote(fun)(c7)), 3)::2>>
-        <<c1::8, c2::8, c3::8, c4::8, c5::8, c6::8, c7::8, c8::8>> ->
-          <<dec32hex(unquote(fun)(c1))::5, dec32hex(unquote(fun)(c2))::5,
-            dec32hex(unquote(fun)(c3))::5, dec32hex(unquote(fun)(c4))::5,
-            dec32hex(unquote(fun)(c5))::5, dec32hex(unquote(fun)(c6))::5,
-            dec32hex(unquote(fun)(c7))::5, dec32hex(unquote(fun)(c8))::5>>
-        <<>> ->
-          <<>>
-      end
-      main <> tail
-    end
-  end
-
-  defp do_hex_decode32(_, _, _),
-    do: raise ArgumentError, "incorrect padding"
 end
