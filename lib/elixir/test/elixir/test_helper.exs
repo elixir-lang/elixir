@@ -1,5 +1,9 @@
+assert_timeout = String.to_integer(
+  System.get_env("ELIXIR_ASSERT_TIMEOUT") || "500"
+)
+
 ExUnit.start [trace: "--trace" in System.argv,
-              assert_receive_timeout: 500]
+              assert_receive_timeout: assert_timeout]
 
 # Beam files compiled on demand
 path = Path.expand("../../tmp/beams", __DIR__)
