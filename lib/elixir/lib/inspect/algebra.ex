@@ -243,7 +243,7 @@ defmodule Inspect.Algebra do
             try do
               Process.put(:inspect_trap, true)
 
-              res = Inspect.Map.inspect(map, opts)
+              res = Inspect.Map.inspect(map, %{opts | syntax_colors: []})
               res = IO.iodata_to_binary(format(res, :infinity))
 
               exception = Inspect.Error.exception(

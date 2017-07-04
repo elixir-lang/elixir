@@ -861,7 +861,7 @@ tokenize_comment("\n" ++ _ = Rest, Acc, Length) ->
 tokenize_comment([H | Rest], Acc, Length) -> 
   tokenize_comment(Rest, [H | Acc], Length + 1);
 tokenize_comment([], Acc, Length) ->
-  {[], Acc, Length}.
+  {[], lists:reverse(Acc), Length}.
 
 %% Identifiers
 

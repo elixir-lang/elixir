@@ -1,5 +1,5 @@
 defmodule Mix.Tasks.Compile.Xref do
-  use Mix.Task
+  use Mix.Task.Compiler
   alias Mix.Tasks.Compile.Elixir, as: E
 
   @recursive true

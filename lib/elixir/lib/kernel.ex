@@ -3289,8 +3289,17 @@ defmodule Kernel do
       result
     end
 
-    {escaped, _} = :elixir_quote.escape(block, false)
-    module_vars  = module_vars(env.vars, 0)
+    escaped =
+      case env do
+        %{function: nil, lexical_tracker: pid} when is_pid(pid) ->
+          integer = Kernel.LexicalTracker.write_cache(pid, block)
+          quote do: Kernel.LexicalTracker.read_cache(unquote(pid), unquote(integer))
+        %{} ->
+          {escaped, _} = :elixir_quote.escape(block, false)
+          escaped
+      end
+
+    module_vars = module_vars(env.vars, 0)
 
     quote do
       unquote(with_alias)
@@ -3554,19 +3563,30 @@ defmodule Kernel do
   end
 
   defp define(kind, call, expr, env) do
-    assert_module_scope(env, kind, 2)
+    module = assert_module_scope(env, kind, 2)
     assert_no_function_scope(env, kind, 2)
+    table = :elixir_module.data_table(module)
 
-    {call, unquoted_call} = :elixir_quote.escape(call, true)
-    {expr, unquoted_expr} = :elixir_quote.escape(expr, true)
+    {escaped_call, unquoted_call} = :elixir_quote.escape(call, true)
+    {escaped_expr, unquoted_expr} = :elixir_quote.escape(expr, true)
+
+    escaped_expr =
+      case unquoted_expr do
+        true ->
+          escaped_expr
+        false ->
+          key = {:cache_def, :erlang.unique_integer()}
+          :ets.insert(table, {key, expr})
+          quote do: :ets.lookup_element(unquote(table), unquote(key), 2)
+      end
 
     # Do not check clauses if any expression was unquoted
     check_clauses = not(unquoted_expr or unquoted_call)
-    pos = :elixir_locals.cache_env(env)
+    pos = :elixir_locals.cache_env(table, env)
 
     quote do
       :elixir_def.store_definition(unquote(kind), unquote(check_clauses),
-                                   unquote(call), unquote(expr), unquote(pos))
+                                   unquote(escaped_call), unquote(escaped_expr), unquote(pos))
     end
   end
 
@@ -4594,7 +4614,7 @@ defmodule Kernel do
   defp assert_module_scope(env, fun, arity) do
     case env.module do
       nil -> raise ArgumentError, "cannot invoke #{fun}/#{arity} outside module"
-      _   -> :ok
+      mod -> mod
     end
   end
 

@@ -1,5 +1,5 @@
 defmodule Mix.Tasks.Compile.Elixir do
-  use Mix.Task
+  use Mix.Task.Compiler
 
   @recursive true
   @manifest ".compile.elixir"

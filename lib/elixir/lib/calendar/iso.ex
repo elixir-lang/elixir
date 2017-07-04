@@ -273,8 +273,9 @@ defmodule Calendar.ISO do
     year <= 9999 and :calendar.valid_date(year, month, day)
   end
 
-  def valid_time?(hour, minute, second, {microsecond, _}) do
-    hour in 0..23 and minute in 0..59 and second in 0..60 and microsecond in 0..999_999
+  def valid_time?(hour, minute, second, {microsecond, precision}) do
+    hour in 0..23 and minute in 0..59 and second in 0..60 and
+      microsecond in 0..999_999 and precision in 0..6
   end
 
   def day_rollover_relative_to_midnight_utc() do

@@ -23,10 +23,10 @@ put_compiler_modules(M) when is_list(M) ->
 %% Table functions
 
 data_table(Module) ->
-  ets:lookup_element(elixir_modules, Module, 2).
+  Module.
 
 defs_table(Module) ->
-  ets:lookup_element(elixir_modules, Module, 3).
+  ets:lookup_element(elixir_modules, Module, 2).
 
 is_open(Module) ->
   ets:lookup(elixir_modules, Module) /= [].
@@ -160,17 +160,17 @@ check_module_availability(Line, File, Module) ->
 
 build(Line, File, Module, Lexical) ->
   case elixir_code_server:call({lookup, Module}) of
-    [{Module, _, _, OldLine, OldFile}] ->
+    [{Module, _, OldLine, OldFile}] ->
       Error = {module_in_definition, Module, OldFile, OldLine},
       elixir_errors:form_error([{line, Line}], File, ?MODULE, Error);
     _ ->
       []
   end,
 
-  Data = ets:new(Module, [set, public]),
+  Data = ets:new(Module, [set, public, named_table]),
   Defs = ets:new(Module, [duplicate_bag, public]),
   Ref  = elixir_code_server:call({defmodule, self(),
-                                 {Module, Data, Defs, Line, File}}),
+                                 {Module, Defs, Line, File}}),
 
   DocsOnDefinition =
       case elixir_compiler:get_opt(docs) of
@@ -210,7 +210,8 @@ build(Line, File, Module, Lexical) ->
     {typep, [], true, nil},
 
     % Internal
-    {{elixir, impls}, []}
+    {{elixir, impls}, []},
+    {{elixir, cache_env}, 0, nil}
   ]),
 
   Persisted = [behaviour, on_load, compile, external_resource, dialyzer, vsn],

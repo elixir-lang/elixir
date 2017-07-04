@@ -138,16 +138,18 @@ defmodule ExUnit do
 
   @doc """
   Starts ExUnit and automatically runs tests right before the
-  VM terminates. It accepts a set of options to configure `ExUnit`
+  VM terminates.
+
+  It accepts a set of options to configure `ExUnit`
   (the same ones accepted by `configure/1`).
 
-  If you want to run tests manually, you can set `:autorun` to `false`.
+  If you want to run tests manually, you can set the `:autorun` option
+  to `false` and use `run/1` to run tests.
   """
   def start(options \\ []) do
     {:ok, _} = Application.ensure_all_started(:ex_unit)
 
     configure(options)
-    config = put_defaults(configuration())
 
     if Application.fetch_env!(:ex_unit, :autorun) do
       Application.put_env(:ex_unit, :autorun, false)
@@ -155,6 +157,7 @@ defmodule ExUnit do
       System.at_exit fn
         0 ->
           time = ExUnit.Server.cases_loaded()
+          config = persist_defaults(configuration())
           %{failures: failures} = ExUnit.Runner.run(config, time)
           System.at_exit fn _ ->
             if failures > 0, do: exit({:shutdown, 1})
@@ -195,7 +198,9 @@ defmodule ExUnit do
 
     * `:include` - specifies which tests are run by skipping tests that do not
       match the filter. Keep in mind that all tests are included by default, so unless they are
-      excluded first, the `:include` option has no effect;
+      excluded first, the `:include` option has no effect. To only run the tests
+      that match the `:include` filter, exclude the `:test` tag first (see the
+      documentation for `ExUnit.Case` for more information on tags);
 
     * `:max_cases` - maximum number of cases to run in parallel.
       It defaults to `System.schedulers_online * 2` to
@@ -227,6 +232,8 @@ defmodule ExUnit do
   """
   def configuration do
     Application.get_all_env(:ex_unit)
+    |> put_seed()
+    |> put_max_cases()
   end
 
   @doc """
@@ -254,35 +261,32 @@ defmodule ExUnit do
   end
 
   @doc """
-  API used to run the tests. It is invoked automatically
-  if ExUnit is started via `ExUnit.start/1`.
+  Runs the tests. It is invoked automatically
+  if ExUnit is started via `start/1`.
 
   Returns a map containing the total number of tests, the number
   of failures and the number of skipped tests.
   """
   def run do
-    config = put_defaults(configuration())
+    config = persist_defaults(configuration())
     ExUnit.Runner.run(config, nil)
   end
 
-  defp put_defaults(opts) do
-    opts
-    |> put_seed()
-    |> put_max_cases()
+  # Persists default values in application
+  # environment before the test suite starts.
+  defp persist_defaults(config) do
+    config |> Keyword.take([:seed, :max_cases]) |> configure()
+    config
   end
 
   defp put_seed(opts) do
     Keyword.put_new_lazy(opts, :seed, fn ->
-      seed = :os.timestamp |> elem(2)
-      Application.put_env(:ex_unit, :seed, seed)
-      seed
+      :os.timestamp |> elem(2)
     end)
   end
 
   defp put_max_cases(opts) do
-    max_cases = max_cases(opts)
-    Application.put_env(:ex_unit, :max_cases, max_cases)
-    Keyword.put(opts, :max_cases, max_cases)
+    Keyword.put(opts, :max_cases, max_cases(opts))
   end
 
   defp max_cases(opts) do

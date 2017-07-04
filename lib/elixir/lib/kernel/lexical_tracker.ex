@@ -82,6 +82,18 @@ defmodule Kernel.LexicalTracker do
   end
 
   @doc false
+  def write_cache(pid, value) do
+    key = :erlang.unique_integer()
+    :gen_server.cast(pid, {:write_cache, key, value})
+    key
+  end
+
+  @doc false
+  def read_cache(pid, key) do
+    :gen_server.call(pid, {:read_cache, key}, @timeout)
+  end
+
+  @doc false
   def collect_unused_imports(pid) do
     unused(pid, :import)
   end
@@ -99,7 +111,7 @@ defmodule Kernel.LexicalTracker do
 
   def init(dest) do
     {:ok, %{directives: %{}, references: %{}, compile: %{},
-            runtime: %{}, dest: dest}}
+            runtime: %{}, dest: dest, cache: %{}}}
   end
 
   @doc false
@@ -122,6 +134,14 @@ defmodule Kernel.LexicalTracker do
 
   def handle_call(:dest, _from, state) do
     {:reply, state.dest, state}
+  end
+
+  def handle_call({:read_cache, key}, _from, %{cache: cache} = state) do
+    {:reply, Map.fetch!(cache, key), state}
+  end
+
+  def handle_cast({:write_cache, key, value}, %{cache: cache} = state) do
+    {:noreply, Map.put(state, :cache, Map.put(cache, key, value))}
   end
 
   def handle_cast({:remote_reference, module, mode}, state) do

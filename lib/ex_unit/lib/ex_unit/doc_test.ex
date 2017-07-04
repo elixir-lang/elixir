@@ -23,7 +23,7 @@ defmodule ExUnit.DocTest do
 
   To run doctests include them in an ExUnit case with a `doctest` macro:
 
-      defmodule MyModule.Test do
+      defmodule MyModuleTest do
         use ExUnit.Case, async: true
         doctest MyModule
       end

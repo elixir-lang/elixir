@@ -1,7 +1,7 @@
 %% Module responsible for tracking invocations of module calls.
 -module(elixir_locals).
 -export([
-  setup/1, cleanup/1, cache_env/1, get_cached_env/1,
+  setup/1, cleanup/1, cache_env/1, cache_env/2, get_cached_env/1,
   record_local/2, record_local/3, record_import/4,
   record_definition/3, record_defaults/4,
   ensure_no_import_conflict/3, warn_unused_local/3, format_error/1
@@ -9,6 +9,7 @@
 
 -include("elixir.hrl").
 -define(attr, {elixir, locals_tracker}).
+-define(cache, {elixir, cache_env}).
 -define(tracker, 'Elixir.Module.LocalsTracker').
 
 setup(Module) ->
@@ -56,18 +57,29 @@ if_tracker(Module, Default, Callback) ->
 
 %% CACHING
 
-cache_env(#{module := Module, line := Line} = E) ->
-  try ets:lookup_element(elixir_module:data_table(Module), ?attr, 2) of
-    Pid ->
-      {Pid, {Line, ?tracker:cache_env(Pid, E#{line := nil, vars := []})}}
-  catch
-    error:badarg ->
-      {Escaped, _} = elixir_quote:escape(E#{vars := []}, false),
-      Escaped
-  end.
+cache_env(#{module := Module} = E) ->
+  cache_env(elixir_module:data_table(Module), E).
 
-get_cached_env({Pid, {Line, Ref}}) -> (?tracker:get_cached_env(Pid, Ref))#{line := Line};
-get_cached_env(Env) -> Env.
+cache_env(Table, #{line := Line} = E) ->
+  Cache = E#{line := nil, vars := []},
+
+  Pos =
+    case ets:lookup(Table, ?cache) of
+      [{_, Key, Cache}] ->
+        Key;
+      [{_, PrevKey, _}] ->
+        Key = PrevKey + 1,
+        ets:insert(Table, {{cache_env, Key}, Cache}),
+        ets:insert(Table, {?cache, Key, Cache}),
+        Key
+    end,
+
+  {Table, {Line, Pos}}.
+
+get_cached_env({Table, {Line, Pos}}) ->
+  (ets:lookup_element(Table, {cache_env, Pos}, 2))#{line := Line};
+get_cached_env(Env) ->
+  Env.
 
 %% ERROR HANDLING
 

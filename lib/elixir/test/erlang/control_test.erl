@@ -222,3 +222,9 @@ optimized_oror_test() ->
 
 no_after_in_try_test() ->
   {'try', _, [_], [_], _, []} = to_erl("try do :foo.bar() else _ -> :ok end").
+
+optimized_inspect_interpolation_test() ->
+    {bin, _,
+     [{bin_element, _,
+       {call, _, {remote, _,{atom, _, 'Elixir.Kernel'}, {atom, _, inspect}}, [_]},
+       default, [binary]}]} = to_erl("\"#{inspect(1)}\"").
