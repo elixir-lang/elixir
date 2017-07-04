@@ -626,8 +626,6 @@ defmodule NaiveDateTime do
         value
       {:error, :incompatible_calendars} ->
         raise ArgumentError, "cannot convert #{inspect naive_datetime} to target calendar #{inspect calendar}, reason: #{inspect naive_datetime.calendar} and #{inspect calendar} have different day rollover moments, making this conversion ambiguous"
-      {:error, reason} ->
-        raise ArgumentError, "cannot convert #{inspect naive_datetime} to target calendar #{inspect calendar}, reason: #{inspect reason}"
     end
   end
 
