@@ -69,22 +69,19 @@ defmodule DateTime do
 
   ## Examples
 
-      iex> DateTime.from_unix(1464096368)
-      {:ok, %DateTime{calendar: Calendar.ISO, day: 24, hour: 13, microsecond: {0, 0}, minute: 26,
-                      month: 5, second: 8, std_offset: 0, time_zone: "Etc/UTC", utc_offset: 0,
-                      year: 2016, zone_abbr: "UTC"}}
+      iex> {:ok, datetime} = DateTime.from_unix(1464096368)
+      iex> datetime
+      #DateTime<2016-05-24 13:26:08Z>
 
-      iex> DateTime.from_unix(1432560368868569, :microsecond)
-      {:ok, %DateTime{calendar: Calendar.ISO, day: 25, hour: 13, microsecond: {868569, 6}, minute: 26,
-                      month: 5, second: 8, std_offset: 0, time_zone: "Etc/UTC", utc_offset: 0,
-                      year: 2015, zone_abbr: "UTC"}}
+      iex> {:ok, datetime} = DateTime.from_unix(1432560368868569, :microsecond)
+      iex> datetime
+      #DateTime<2015-05-25 13:26:08.868569Z>
 
   The unit can also be an integer as in `t:System.time_unit/0`:
 
-      iex> DateTime.from_unix(143256036886856, 1024)
-      {:ok, %DateTime{calendar: Calendar.ISO, day: 17, hour: 7, microsecond: {320312, 3},
-        minute: 5, month: 3, second: 22, std_offset: 0, time_zone: "Etc/UTC",
-        utc_offset: 0, year: 6403, zone_abbr: "UTC"}}
+      iex> {:ok, datetime} = DateTime.from_unix(143256036886856, 1024)
+      iex> datetime
+      #DateTime<6403-03-17 07:05:22.320Z>
 
   Negative Unix times are supported, up to -62167219200 seconds,
   which is equivalent to "0000-01-01T00:00:00Z" or 0 Gregorian seconds.
@@ -116,19 +113,13 @@ defmodule DateTime do
 
       # An easy way to get the Unix epoch is passing 0 to this function
       iex> DateTime.from_unix!(0)
-      %DateTime{calendar: Calendar.ISO, day: 1, hour: 0, microsecond: {0, 0},
-                minute: 0, month: 1, second: 0, std_offset: 0, time_zone: "Etc/UTC",
-                utc_offset: 0, year: 1970, zone_abbr: "UTC"}
+      #DateTime<1970-01-01 00:00:00Z>
 
       iex> DateTime.from_unix!(1464096368)
-      %DateTime{calendar: Calendar.ISO, day: 24, hour: 13, microsecond: {0, 0}, minute: 26,
-                month: 5, second: 8, std_offset: 0, time_zone: "Etc/UTC", utc_offset: 0,
-                year: 2016, zone_abbr: "UTC"}
+      #DateTime<2016-05-24 13:26:08Z>
 
       iex> DateTime.from_unix!(1432560368868569, :microsecond)
-      %DateTime{calendar: Calendar.ISO, day: 25, hour: 13, microsecond: {868569, 6}, minute: 26,
-                month: 5, second: 8, std_offset: 0, time_zone: "Etc/UTC", utc_offset: 0,
-                year: 2015, zone_abbr: "UTC"}
+      #DateTime<2015-05-25 13:26:08.868569Z>
 
   """
   @spec from_unix!(integer, :native | System.time_unit, Calendar.calendar) :: DateTime.t
@@ -149,10 +140,10 @@ defmodule DateTime do
 
   ## Examples
 
-      iex> DateTime.from_naive(~N[2016-05-24 13:26:08.003], "Etc/UTC")
-      {:ok, %DateTime{calendar: Calendar.ISO, day: 24, hour: 13, microsecond: {3000, 3}, minute: 26,
-                      month: 5, second: 8, std_offset: 0, time_zone: "Etc/UTC", utc_offset: 0,
-                      year: 2016, zone_abbr: "UTC"}}
+      iex> {:ok, datetime} = DateTime.from_naive(~N[2016-05-24 13:26:08.003], "Etc/UTC")
+      iex> datetime
+      #DateTime<2016-05-24 13:26:08.003Z>
+
   """
   @spec from_naive(NaiveDateTime.t, Calendar.time_zone) :: {:ok, DateTime.t}
   def from_naive(naive_datetime, time_zone)
@@ -174,9 +165,7 @@ defmodule DateTime do
   ## Examples
 
       iex> DateTime.from_naive!(~N[2016-05-24 13:26:08.003], "Etc/UTC")
-      %DateTime{calendar: Calendar.ISO, day: 24, hour: 13, microsecond: {3000, 3}, minute: 26,
-                month: 5, second: 8, std_offset: 0, time_zone: "Etc/UTC", utc_offset: 0,
-                year: 2016, zone_abbr: "UTC"}
+      #DateTime<2016-05-24 13:26:08.003Z>
 
   """
   @spec from_naive!(non_neg_integer, :native | System.time_unit) :: DateTime.t
@@ -367,15 +356,17 @@ defmodule DateTime do
 
   ## Examples
 
-      iex> DateTime.from_iso8601("2015-01-23T23:50:07Z")
-      {:ok, %DateTime{calendar: Calendar.ISO, day: 23, hour: 23, microsecond: {0, 0}, minute: 50, month: 1, second: 7, std_offset: 0,
-                      time_zone: "Etc/UTC", utc_offset: 0, year: 2015, zone_abbr: "UTC"}, 0}
-      iex> DateTime.from_iso8601("2015-01-23T23:50:07.123+02:30")
-      {:ok, %DateTime{calendar: Calendar.ISO, day: 23, hour: 21, microsecond: {123000, 3}, minute: 20, month: 1, second: 7, std_offset: 0,
-                      time_zone: "Etc/UTC", utc_offset: 0, year: 2015, zone_abbr: "UTC"}, 9000}
-      iex> DateTime.from_iso8601("2015-01-23T23:50:07,123+02:30")
-      {:ok, %DateTime{calendar: Calendar.ISO, day: 23, hour: 21, microsecond: {123000, 3}, minute: 20, month: 1, second: 7, std_offset: 0,
-                      time_zone: "Etc/UTC", utc_offset: 0, year: 2015, zone_abbr: "UTC"}, 9000}
+      iex> {:ok, datetime, 0} = DateTime.from_iso8601("2015-01-23T23:50:07Z")
+      iex> datetime
+      #DateTime<2015-01-23 23:50:07Z>
+
+      iex> {:ok, datetime, 9000} = DateTime.from_iso8601("2015-01-23T23:50:07.123+02:30")
+      iex> datetime
+      #DateTime<2015-01-23 21:20:07.123Z>
+
+      iex> {:ok, datetime, 9000} = DateTime.from_iso8601("2015-01-23T23:50:07,123+02:30")
+      iex> datetime
+      #DateTime<2015-01-23 21:20:07.123Z>
 
       iex> DateTime.from_iso8601("2015-01-23P23:50:07")
       {:error, :invalid_format}
@@ -479,6 +470,19 @@ defmodule DateTime do
     end
   end
 
+  defimpl Inspect do
+    def inspect(%{calendar: Calendar.ISO, year: year, month: month, day: day,
+                  hour: hour, minute: minute, second: second, microsecond: microsecond,
+                  time_zone: time_zone, zone_abbr: zone_abbr, utc_offset: utc_offset, std_offset: std_offset}, _) do
+      "#DateTime<" <> Calendar.ISO.datetime_to_string(year, month, day, hour, minute, second, microsecond,
+                                                      time_zone, zone_abbr, utc_offset, std_offset) <> ">"
+    end
+
+    def inspect(datetime, opts) do
+      Inspect.Any.inspect(datetime, opts)
+    end
+  end
+
   @doc """
   Compares two `DateTime` structs.
 
@@ -568,10 +572,9 @@ defmodule DateTime do
       iex> dt1 = %DateTime{year: 2000, month: 2, day: 29, zone_abbr: "AMT",
       ...>                 hour: 23, minute: 0, second: 7, microsecond: {0, 0},
       ...>                 utc_offset: -14400, std_offset: 0, time_zone: "America/Manaus"}
-      iex> DateTime.convert(dt1, Calendar.ISO)
-      {:ok, %DateTime{year: 2000, month: 2, day: 29, zone_abbr: "AMT",
-                      hour: 23, minute: 0, second: 7, microsecond: {0, 0},
-                      utc_offset: -14400, std_offset: 0, time_zone: "America/Manaus"}}
+      iex> {:ok, dt2} = DateTime.convert(dt1, Calendar.ISO)
+      iex> dt2
+      #DateTime<2000-02-29 23:00:07-04:00 AMT America/Manaus>
 
   """
   @spec convert(DateTime.t, Calendar.calendar) :: {:ok, DateTime.t} | {:error, atom}
@@ -598,9 +601,7 @@ defmodule DateTime do
       ...>                 hour: 23, minute: 0, second: 7, microsecond: {0, 0},
       ...>                 utc_offset: -14400, std_offset: 0, time_zone: "America/Manaus"}
       iex> DateTime.convert!(dt1, Calendar.ISO)
-      %DateTime{year: 2000, month: 2, day: 29, zone_abbr: "AMT",
-                hour: 23, minute: 0, second: 7, microsecond: {0, 0},
-                utc_offset: -14400, std_offset: 0, time_zone: "America/Manaus"}
+      #DateTime<2000-02-29 23:00:07-04:00 AMT America/Manaus>
 
   """
   @spec convert!(DateTime.t, Calendar.calendar) :: DateTime.t
