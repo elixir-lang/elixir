@@ -133,265 +133,289 @@ defmodule Kernel.RaiseTest do
     end
   end
 
-  test "rescue with underscore no exception" do
-    result = try do
-      RescueUndefinedModule.go
-    rescue
-      _ -> true
-    end
-
-    assert result
-  end
-
-  test "rescue with higher precedence than catch" do
-    result = try do
-      RescueUndefinedModule.go
-    catch
-      _, _ -> false
-    rescue
-      _ -> true
-    end
-
-    assert result
-  end
-
-  test "rescue runtime error" do
-    result = try do
-      raise "an exception"
-    rescue
-      RuntimeError -> true
-    catch
-      :error, _ -> false
-    end
-
-    assert result
-
-    result = try do
-      raise "an exception"
-    rescue
-      AnotherError -> true
-    catch
-      :error, _ -> false
-    end
-
-    refute result
-  end
-
-  test "rescue named runtime error" do
-    result = try do
-      raise "an exception"
-    rescue
-      x in [RuntimeError] -> Exception.message(x)
-    catch
-      :error, _ -> false
-    end
-
-    assert result == "an exception"
-  end
-
-  test "rescue argument error from elixir" do
-    result = try do
-     raise ArgumentError, ""
-    rescue
-      ArgumentError -> true
-    end
-
-    assert result
-  end
-
-  test "rescue named without aliases" do
-    result = try do
-      raise "an exception"
-    rescue
-      x -> Exception.message(x)
-    end
-
-    assert result == "an exception"
-  end
-
-  test "wrap custom Erlang error" do
-    result = try do
-      :erlang.error(:sample)
-    rescue
-      x in [RuntimeError, ErlangError] -> Exception.message(x)
-    end
-
-    assert result == "Erlang error: :sample"
-  end
-
-  test "undefined function error" do
-    result = try do
-      DoNotExist.for_sure()
-    rescue
-      x in [UndefinedFunctionError] -> Exception.message(x)
-    end
-
-    assert result == "function DoNotExist.for_sure/0 is undefined (module DoNotExist is not available)"
-  end
-
-  test "function clause error" do
-    result = try do
-      zero(1)
-    rescue
-      x in [FunctionClauseError] -> Exception.message(x)
-    end
-
-    assert result == "no function clause matching in Kernel.RaiseTest.zero/1"
-  end
-
-  test "badarg error" do
-    result = try do
-      :erlang.error(:badarg)
-    rescue
-      x in [ArgumentError] -> Exception.message(x)
-    end
-
-    assert result == "argument error"
-  end
-
-  test "tuple badarg error" do
-    result = try do
-      :erlang.error({:badarg, [1, 2, 3]})
-    rescue
-      x in [ArgumentError] -> Exception.message(x)
-    end
-
-    assert result == "argument error: [1, 2, 3]"
-  end
-
-  test "badarith error" do
-    result = try do
-      :erlang.error(:badarith)
-    rescue
-      x in [ArithmeticError] -> Exception.message(x)
-    end
-
-    assert result == "bad argument in arithmetic expression"
-  end
-
-  test "badarity error" do
-    fun    = fn(x) -> x end
-    string = "#{inspect(fun)} with arity 1 called with 2 arguments (1, 2)"
-
-    result = try do
-      fun.(1, 2)
-    rescue
-      x in [BadArityError] -> Exception.message(x)
-    end
-
-    assert result == string
-  end
-
-  test "badfun error" do
-    # Avoid "invalid function call" warning in >= OTP 19
-    x = fn -> :example end
-    result = try do
-      x.().(2)
-    rescue
-      x in [BadFunctionError] -> Exception.message(x)
-    end
-
-    assert result == "expected a function, got: :example"
-  end
-
-  test "badmatch error" do
-    x = :example
-    result = try do
-      ^x = zero(0)
-    rescue
-      x in [MatchError] -> Exception.message(x)
-    end
-
-    assert result == "no match of right hand side value: 0"
-  end
-
-  test "bad key error" do
-    result = try do
-      %{%{} | foo: :bar}
-    rescue
-      x in [KeyError] -> Exception.message(x)
-    end
-
-    assert result == "key :foo not found"
-
-    result = try do
-      %{}.foo
-    rescue
-      x in [KeyError] -> Exception.message(x)
-    end
-
-    assert result == "key :foo not found in: %{}"
-  end
-
-  test "bad map error" do
-    result = try do
-      %{zero(0) | foo: :bar}
-    rescue
-      x in [BadMapError] -> Exception.message(x)
-    end
-
-    assert result == "expected a map, got: 0"
-  end
-
-  test "bad boolean error" do
-    result = try do
-      1 and true
-    rescue
-      x in [BadBooleanError] -> Exception.message(x)
-    end
-
-    assert result == "expected a boolean on left-side of \"and\", got: 1"
-  end
-
-  test "case clause error" do
-    x = :example
-    result = try do
-      case zero(0) do
-        ^x -> nil
+  describe "rescue" do
+    test "runtime error" do
+      result = try do
+        raise "an exception"
+      rescue
+        RuntimeError -> true
+      catch
+        :error, _ -> false
       end
-    rescue
-      x in [CaseClauseError] -> Exception.message(x)
-    end
 
-    assert result == "no case clause matching: 0"
-  end
+      assert result
 
-  test "cond clause error" do
-    result = try do
-      cond do
-        !zero(0) -> :ok
+      result = try do
+        raise "an exception"
+      rescue
+        AnotherError -> true
+      catch
+        :error, _ -> false
       end
-    rescue
-      x in [CondClauseError] -> Exception.message(x)
+
+      refute result
     end
 
-    assert result == "no cond clause evaluated to a true value"
-  end
-
-  test "try clause error" do
-    f = fn() -> :example end
-    result = try do
-      try do
-        f.()
-      else
-        :other ->
-          :ok
+    test "named runtime error" do
+      result = try do
+        raise "an exception"
+      rescue
+        x in [RuntimeError] -> Exception.message(x)
+      catch
+        :error, _ -> false
       end
-    rescue
-      x in [TryClauseError] -> Exception.message(x)
+
+      assert result == "an exception"
     end
 
-    assert result == "no try clause matching: :example"
+    test "with higher precedence than catch" do
+      result = try do
+        raise "an exception"
+      catch
+        _, _ -> false
+      rescue
+        _ -> true
+      end
+
+      assert result
+    end
+
+    test "argument error from erlang" do
+      result = try do
+        :erlang.error(:badarg)
+      rescue
+        ArgumentError -> true
+      end
+
+      assert result
+    end
+
+    test "argument error from elixir" do
+      result = try do
+        raise ArgumentError, ""
+      rescue
+        ArgumentError -> true
+      end
+
+      assert result
+    end
+
+    test "catch-all variable" do
+      result = try do
+        raise "an exception"
+      rescue
+        x -> Exception.message(x)
+      end
+
+      assert result == "an exception"
+    end
+
+    test "catch-all underscore" do
+      result = try do
+        raise "an exception"
+      rescue
+        _ -> true
+      end
+
+      assert result
+    end
+
+    test "catch-all unused variable" do
+      result = try do
+        raise "an exception"
+      rescue
+        _any -> true
+      end
+
+      assert result
+    end
   end
 
-  test "undefined function error as Erlang error" do
-    result = try do
-      DoNotExist.for_sure()
-    rescue
-      x in [ErlangError] -> Exception.message(x)
+  describe "normalize" do
+    test "wrap custom Erlang error" do
+      result = try do
+        :erlang.error(:sample)
+      rescue
+        x in [ErlangError] -> Exception.message(x)
+      end
+
+      assert result == "Erlang error: :sample"
     end
 
-    assert result == "function DoNotExist.for_sure/0 is undefined (module DoNotExist is not available)"
+    test "undefined function error" do
+      result = try do
+        DoNotExist.for_sure()
+      rescue
+        x in [UndefinedFunctionError] -> Exception.message(x)
+      end
+
+      assert result == "function DoNotExist.for_sure/0 is undefined (module DoNotExist is not available)"
+    end
+
+    test "function clause error" do
+      result = try do
+        zero(1)
+      rescue
+        x in [FunctionClauseError] -> Exception.message(x)
+      end
+
+      assert result == "no function clause matching in Kernel.RaiseTest.zero/1"
+    end
+
+    test "badarg error" do
+      result = try do
+        :erlang.error(:badarg)
+      rescue
+        x in [ArgumentError] -> Exception.message(x)
+      end
+
+      assert result == "argument error"
+    end
+
+    test "tuple badarg error" do
+      result = try do
+        :erlang.error({:badarg, [1, 2, 3]})
+      rescue
+        x in [ArgumentError] -> Exception.message(x)
+      end
+
+      assert result == "argument error: [1, 2, 3]"
+    end
+
+    test "badarith error" do
+      result = try do
+        :erlang.error(:badarith)
+      rescue
+        x in [ArithmeticError] -> Exception.message(x)
+      end
+
+      assert result == "bad argument in arithmetic expression"
+    end
+
+    test "badarity error" do
+      fun    = fn(x) -> x end
+      string = "#{inspect(fun)} with arity 1 called with 2 arguments (1, 2)"
+
+      result = try do
+        fun.(1, 2)
+      rescue
+        x in [BadArityError] -> Exception.message(x)
+      end
+
+      assert result == string
+    end
+
+    test "badfun error" do
+      # Avoid "invalid function call" warning in >= OTP 19
+      x = fn -> :example end
+      result = try do
+        x.().(2)
+      rescue
+        x in [BadFunctionError] -> Exception.message(x)
+      end
+
+      assert result == "expected a function, got: :example"
+    end
+
+    test "badmatch error" do
+      x = :example
+      result = try do
+        ^x = zero(0)
+      rescue
+        x in [MatchError] -> Exception.message(x)
+      end
+
+      assert result == "no match of right hand side value: 0"
+    end
+
+    test "bad key error" do
+      result = try do
+        %{%{} | foo: :bar}
+      rescue
+        x in [KeyError] -> Exception.message(x)
+      end
+
+      assert result == "key :foo not found"
+
+      result = try do
+        %{}.foo
+      rescue
+        x in [KeyError] -> Exception.message(x)
+      end
+
+      assert result == "key :foo not found in: %{}"
+    end
+
+    test "bad map error" do
+      result = try do
+        %{zero(0) | foo: :bar}
+      rescue
+        x in [BadMapError] -> Exception.message(x)
+      end
+
+      assert result == "expected a map, got: 0"
+    end
+
+    test "bad boolean error" do
+      result = try do
+        1 and true
+      rescue
+        x in [BadBooleanError] -> Exception.message(x)
+      end
+
+      assert result == "expected a boolean on left-side of \"and\", got: 1"
+    end
+
+    test "case clause error" do
+      x = :example
+      result = try do
+        case zero(0) do
+          ^x -> nil
+        end
+      rescue
+        x in [CaseClauseError] -> Exception.message(x)
+      end
+
+      assert result == "no case clause matching: 0"
+    end
+
+    test "cond clause error" do
+      result = try do
+        cond do
+          !zero(0) -> :ok
+        end
+      rescue
+        x in [CondClauseError] -> Exception.message(x)
+      end
+
+      assert result == "no cond clause evaluated to a true value"
+    end
+
+    test "try clause error" do
+      f = fn() -> :example end
+      result = try do
+        try do
+          f.()
+        else
+          :other ->
+            :ok
+        end
+      rescue
+        x in [TryClauseError] -> Exception.message(x)
+      end
+
+      assert result == "no try clause matching: :example"
+    end
+
+    test "undefined function error as Erlang error" do
+      result = try do
+        DoNotExist.for_sure()
+      rescue
+        x in [ErlangError] -> Exception.message(x)
+      end
+
+      assert result == "function DoNotExist.for_sure/0 is undefined (module DoNotExist is not available)"
+    end
   end
 
   defmacrop exceptions do
