@@ -83,9 +83,7 @@ defmodule Mix.Tasks.Run do
 
     # Start app after rewriting System.argv,
     # but before requiring and evaling.
-    if opts[:start] != false do
-      Mix.Task.run "app.start", args
-    end
+    Mix.Task.run "app.start", args
 
     process_load(opts, expr_evaluator)
 
