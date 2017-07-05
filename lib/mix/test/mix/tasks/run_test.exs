@@ -37,6 +37,19 @@ defmodule Mix.Tasks.RunTest do
     purge [GitRepo]
   end
 
+  test "does not start applications on --no-start", context do
+    in_tmp context.test, fn ->
+      Mix.Tasks.Run.run ["--no-start", "-e", "send self(), {:apps, Application.started_applications}"]
+      assert_received {:apps, apps}
+      refute List.keyfind(apps, :sample, 0)
+      Mix.Task.clear
+
+      Mix.Tasks.Run.run ["-e", "send self(), {:apps, Application.started_applications}"]
+      assert_received {:apps, apps}
+      assert List.keyfind(apps, :sample, 0)
+    end
+  end
+
   test "run errors on missing files", context do
     in_tmp context.test, fn ->
       assert_raise Mix.Error, "No files matched pattern \"non-existent\" given to --require", fn ->
