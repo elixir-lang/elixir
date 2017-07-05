@@ -356,20 +356,21 @@ defimpl Inspect, for: Map do
     open = color("%" <> name <> "{", :map, opts)
     sep = color(",", :map, opts)
     close = color("}", :map, opts)
-    surround_many(open, map, close, opts, traverse_fun(map), sep)
+    surround_many(open, map, close, opts, traverse_fun(map, opts), sep)
   end
 
-  defp traverse_fun(list) do
+  defp traverse_fun(list, opts) do
     if Inspect.List.keyword?(list) do
       &Inspect.List.keyword/2
     else
-      &to_map/2
+      sep = color(" => ", :map, opts)
+      &to_map(&1, &2, sep)
     end
   end
 
-  defp to_map({key, value}, opts) do
+  defp to_map({key, value}, opts, sep) do
     concat(
-      concat(to_doc(key, opts), " => "),
+      concat(to_doc(key, opts), sep),
       to_doc(value, opts)
     )
   end
