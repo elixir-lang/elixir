@@ -166,8 +166,8 @@ defmodule Module.LocalsTracker do
   end
 
   defp unreachable(reachable, private) do
-    for {tuple, kind, _, _} <- private,
-        kind == :defmacrop or not :sets.is_element(tuple, reachable),
+    for {tuple, _, _, _} <- private,
+        not :sets.is_element(tuple, reachable),
         do: tuple
   end
 

@@ -38,18 +38,24 @@ translate({'__block__', Meta, Args}, S) when is_list(Args) ->
 
 %% Compilation environment macros
 
-translate({'__CALLER__', Meta, Atom}, S) when is_atom(Atom) ->
-  {{var, ?ann(Meta), '__CALLER__'}, S#elixir_erl{caller=true}};
+translate({'__CALLER__', Meta, Atom}, #elixir_erl{def=Kind}=S) when is_atom(Atom) ->
+  if
+    Kind == defmacro; Kind == defmacrop ->
+      {{var, ?ann(Meta), '__CALLER__'}, S#elixir_erl{caller=true}};
+    true ->
+      {{atom, ?ann(Meta), nil}, S}
+  end;
 
-translate({'super', Meta, Args}, #elixir_erl{def={Kind, Name, _}} = S) ->
+translate({'super', Meta, [{Kind,Name}|Args]}, S) ->
   %% In the expanded AST, super is used to invoke a function
-  %% with the same name but possibly different arity.
+  %% in the current module originated from a default clause
+  %% or a super call.
   {TArgs, SA} = translate_args(Args, S),
   Ann = ?ann(Meta),
   if
     Kind == defmacro; Kind == defmacrop ->
       MacroName = elixir_utils:macro_name(Name),
-      {{call, Ann, {atom, Ann, MacroName}, [{var, Ann, '_@CALLER'} | TArgs]}, SA};
+      {{call, Ann, {atom, Ann, MacroName}, [{var, Ann, '__CALLER__'} | TArgs]}, SA#elixir_erl{caller=true}};
     Kind == def; Kind == defp ->
       {{call, Ann, {atom, Ann, Name}, TArgs}, SA}
   end;
