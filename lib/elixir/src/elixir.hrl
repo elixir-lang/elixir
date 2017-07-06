@@ -37,5 +37,6 @@
   check_terminators=true,
   existing_atoms_only=false,
   preserve_comments=false,
+  detect_sigil_terminators=false,
   identifier_tokenizer=elixir_tokenizer
 }).

@@ -137,11 +137,18 @@ tokenize(String, Line, Column, Opts) ->
     _ -> false
   end,
 
+  DetectSigilTerminators = case lists:keyfind(detect_sigil_terminators, 1, Opts) of
+    {detect_sigil_terminators, DetectSigilTerminatorsBool} when
+      is_boolean(DetectSigilTerminatorsBool) -> DetectSigilTerminatorsBool;
+    _ -> false
+  end,
+
   tokenize(String, Line, Column, #elixir_tokenizer{
     file=File,
     existing_atoms_only=ExistingAtomsOnly,
     check_terminators=CheckTerminators,
     preserve_comments=PreserveComments,
+    detect_sigil_terminators=DetectSigilTerminators,
     identifier_tokenizer=elixir_config:get(identifier_tokenizer)
   }).
 
@@ -194,7 +201,8 @@ tokenize([$~, S, H, H, H | T] = Original, Line, Column, Scope, Tokens) when ?is_
   case extract_heredoc_with_interpolation(Line, Column, Scope, ?is_downcase(S), T, H) of
     {ok, NewLine, NewColumn, Parts, Rest} ->
       {Final, Modifiers} = collect_modifiers(Rest, []),
-      tokenize(Final, NewLine, NewColumn, Scope, [{sigil, {Line, Column, NewColumn}, S, Parts, Modifiers} | Tokens]);
+      SigilToken = handle_sigil(Line, Column, NewColumn, S, Parts, Modifiers, [H, H, H], Scope),
+      tokenize(Final, NewLine, NewColumn, Scope, [SigilToken | Tokens]);
     {error, Reason} ->
       {error, Reason, Original, Tokens}
   end;
@@ -203,7 +211,8 @@ tokenize([$~, S, H | T] = Original, Line, Column, Scope, Tokens) when ?is_sigil(
   case elixir_interpolation:extract(Line, Column + 3, Scope, ?is_downcase(S), T, sigil_terminator(H)) of
     {NewLine, NewColumn, Parts, Rest} ->
       {Final, Modifiers} = collect_modifiers(Rest, []),
-      tokenize(Final, NewLine, NewColumn, Scope, [{sigil, {Line, Column, NewColumn}, S, Parts, Modifiers} | Tokens]);
+      SigilToken = handle_sigil(Line, Column, NewColumn, S, Parts, Modifiers, H, Scope),
+      tokenize(Final, NewLine, NewColumn, Scope, [SigilToken | Tokens]);
     {error, Reason} ->
       Sigil = [$~, S, H],
       interpolation_error(Reason, Original, Tokens, " (for sigil ~ts starting at line ~B)", [Sigil, Line])
@@ -595,8 +604,14 @@ handle_op(Rest, Line, Column, Kind, Length, Op, Scope, Tokens) ->
 
 handle_comments(CommentTokens, Tokens, Scope) ->
   case Scope#elixir_tokenizer.preserve_comments of
-    true  -> lists:append(CommentTokens, Tokens);
+    true -> lists:append(CommentTokens, Tokens);
     false -> Tokens
+  end.
+
+handle_sigil(Line, Column, NewColumn, S, Parts, Modifiers, Terminator, Scope) ->
+  case Scope#elixir_tokenizer.detect_sigil_terminators of
+    true -> {sigil, {Line, Column, NewColumn}, S, Parts, Modifiers, Terminator};
+    false -> {sigil, {Line, Column, NewColumn}, S, Parts, Modifiers}
   end.
 
 % ## Three Token Operators
