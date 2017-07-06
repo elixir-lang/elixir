@@ -14,11 +14,11 @@ defmodule IEx.Evaluator do
     old_leader = Process.group_leader
     Process.group_leader(self(), leader)
 
-    state = loop_state(opts)
+    state = loop_state(server, IEx.History.init, opts)
     command == :ack && :proc_lib.init_ack(self())
 
     try do
-      loop(server, IEx.History.init, state)
+      loop(state)
     after
       Process.group_leader(self(), old_leader)
     end
@@ -71,23 +71,23 @@ defmodule IEx.Evaluator do
     end
   end
 
-  defp loop(server, history, state) do
+  defp loop(%{server: server} = state) do
     receive do
       {:eval, ^server, code, iex_state} ->
-        {result, history, state} = eval(code, iex_state, history, state)
+        {result, state} = eval(code, iex_state, state)
         send server, {:evaled, self(), result}
-        loop(server, history, state)
+        loop(state)
       {:fields_from_env, ref, receiver, fields} ->
         send receiver, {ref, Map.take(state.env, fields)}
-        loop(server, history, state)
+        loop(state)
       {:value_from_binding, ref, receiver, var_name, map_key_path} ->
         value = traverse_binding(state.binding, var_name, map_key_path)
         send receiver, {ref, value}
-        loop(server, history, state)
+        loop(state)
       {:variables_from_binding, ref, receiver, var_prefix} ->
         value = find_matched_variables(state.binding, var_prefix)
         send receiver, {ref, value}
-        loop(server, history, state)
+        loop(state)
       {:done, ^server} ->
         :ok
     end
@@ -110,7 +110,7 @@ defmodule IEx.Evaluator do
         do: var_name
   end
 
-  defp loop_state(opts) do
+  defp loop_state(server, history, opts) do
     env =
       if env = opts[:env] do
         :elixir.env_for_eval(env, [])
@@ -121,7 +121,7 @@ defmodule IEx.Evaluator do
     {_, _, env, scope} = :elixir.eval('import IEx.Helpers', [], env)
 
     binding = Keyword.get(opts, :binding, [])
-    state  = %{binding: binding, scope: scope, env: env}
+    state  = %{binding: binding, scope: scope, env: env, server: server, history: history}
 
     case opts[:dot_iex_path] do
       ""   -> state
@@ -178,34 +178,38 @@ defmodule IEx.Evaluator do
   # https://github.com/elixir-lang/elixir/issues/1089 for discussion.
   @break_trigger '#iex:break\n'
 
-  defp eval(code, iex_state, history, state) do
+  defp eval(code, iex_state, state) do
     try do
-      do_eval(String.to_charlist(code), iex_state, history, state)
+      do_eval(String.to_charlist(code), iex_state, state)
     catch
       kind, error ->
         print_error(kind, error, System.stacktrace)
-        {%{iex_state | cache: ''}, history, state}
+        {%{iex_state | cache: ''}, state}
     end
   end
 
-  defp do_eval(@break_trigger, %IEx.State{cache: ''} = iex_state, history, state) do
-    {iex_state, history, state}
+  defp do_eval(@break_trigger, %IEx.State{cache: ''} = iex_state, state) do
+    {iex_state, state}
   end
 
-  defp do_eval(@break_trigger, iex_state, _history, _state) do
+  defp do_eval(@break_trigger, iex_state, _state) do
     :elixir_errors.parse_error(iex_state.counter, "iex", "incomplete expression", "")
   end
 
-  defp do_eval(latest_input, iex_state, history, state) do
+  defp do_eval(latest_input, iex_state, state) do
     code = iex_state.cache ++ latest_input
     line = iex_state.counter
-    Process.put(:iex_history, history)
-    handle_eval(Code.string_to_quoted(code, [line: line, file: "iex"]), code, line, iex_state, history, state)
+    put_history(state)
+    handle_eval(Code.string_to_quoted(code, [line: line, file: "iex"]), code, line, iex_state, state)
   after
     Process.delete(:iex_history)
   end
 
-  defp handle_eval({:ok, forms}, code, line, iex_state, history, state) do
+  defp put_history(%{history: history}) do
+    Process.put(:iex_history, history)
+  end
+
+  defp handle_eval({:ok, forms}, code, line, iex_state, state) do
     {result, binding, env, scope} =
       :elixir.eval_forms(forms, state.binding, state.env, state.scope)
     unless result == IEx.dont_display_result, do: io_inspect(result)
@@ -218,22 +222,23 @@ defmodule IEx.Evaluator do
                 scope: scope,
                 binding: binding}
 
-    {iex_state, update_history(history, line, code, result), state}
+    {iex_state, update_history(state, line, code, result)}
   end
 
-  defp handle_eval({:error, {_, _, ""}}, code, _line, iex_state, history, state) do
+  defp handle_eval({:error, {_, _, ""}}, code, _line, iex_state, state) do
     # Update iex_state.cache so that IEx continues to add new input to
     # the unfinished expression in "code"
-    {%{iex_state | cache: code}, history, state}
+    {%{iex_state | cache: code}, state}
   end
 
-  defp handle_eval({:error, {line, error, token}}, _code, _line, _iex_state, _, _state) do
+  defp handle_eval({:error, {line, error, token}}, _code, _line, _iex_state, _state) do
     # Encountered malformed expression
     :elixir_errors.parse_error(line, "iex", error, token)
   end
 
-  defp update_history(history, counter, cache, result) do
-    IEx.History.append(history, {counter, cache, result}, IEx.Config.history_size)
+  defp update_history(state, counter, cache, result) do
+    history_size = IEx.Config.history_size
+    update_in(state.history, &IEx.History.append(&1, {counter, cache, result}, history_size))
   end
 
   defp io_inspect(result) do

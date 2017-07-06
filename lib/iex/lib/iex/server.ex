@@ -1,5 +1,7 @@
 defmodule IEx.State do
   @moduledoc false
+  # This state is exchanged between IEx.Server and
+  # IEx.Evaluator which is why it is a struct.
   defstruct cache: '', counter: 1, prefix: "iex"
   @type t :: %__MODULE__{}
 end
@@ -59,30 +61,22 @@ defmodule IEx.Server do
   Requests to take over the given shell from the
   current process.
   """
-  @spec take_over(binary, keyword, pos_integer) ::
+  @spec take_over(binary, keyword) ::
         :ok | {:error, :no_iex} | {:error, :refused}
-  def take_over(identifier, opts, timeout \\ 1000, server \\ whereis()) do
+  def take_over(identifier, opts, server \\ whereis()) do
     cond do
       is_nil(server) ->
         {:error, :no_iex}
       true ->
         ref = make_ref()
-        send server, {:take?, self(), ref}
+        opts = [evaluator: self()] ++ opts
+        send server, {:take, self(), identifier, ref, opts}
 
         receive do
-          ^ref ->
-            opts = [evaluator: self()] ++ opts
-            send server, {:take, self(), identifier, ref, opts}
-
-            receive do
-              {^ref, nil} ->
-                {:error, :refused}
-              {^ref, leader} ->
-                IEx.Evaluator.init(:no_ack, server, leader, opts)
-            end
-        after
-          timeout ->
-            {:error, :no_iex}
+          {^ref, nil} ->
+            {:error, :refused}
+          {^ref, leader} ->
+            IEx.Evaluator.init(:no_ack, server, leader, opts)
         end
     end
   end
@@ -110,16 +104,12 @@ defmodule IEx.Server do
 
   defp start_loop(opts, pid, ref) do
     receive do
-      {:take?, other, ref} ->
-        send(other, ref)
-        start_loop(opts, pid, ref)
-
-      {:take, other, identifier, ref, opts} ->
-        if allow_take?(identifier) do
-          send(other, {ref, Process.group_leader})
-          run(opts)
+      {:take, take_pid, take_identifier, take_ref, take_opts} ->
+        if allow_take?(take_identifier) do
+          send(take_pid, {take_ref, Process.group_leader})
+          run(take_opts)
         else
-          send(other, {ref, nil})
+          send(take_pid, {take_ref, nil})
           start_loop(opts, pid, ref)
         end
 
@@ -137,7 +127,15 @@ defmodule IEx.Server do
   defp run(opts) when is_list(opts) do
     IO.puts "Interactive Elixir (#{System.version}) - press Ctrl+C to exit (type h() ENTER for help)"
     evaluator = start_evaluator(opts)
-    loop(run_state(opts), evaluator, Process.monitor(evaluator))
+    loop(iex_state(opts), evaluator, Process.monitor(evaluator))
+  end
+
+  defp rerun(opts, evaluator, evaluator_ref) do
+    IO.puts("")
+    # We should not shutdown the evaluator if the
+    # rerun request came from the evaluator itself.
+    stop_evaluator(evaluator, evaluator_ref, evaluator != opts[:evaluator])
+    run(opts)
   end
 
   @doc """
@@ -153,21 +151,10 @@ defmodule IEx.Server do
     evaluator
   end
 
-  defp reset_loop(opts, evaluator, evaluator_ref) do
-    IO.puts("")
-    # We only kill the evaluator if the new evaluator
-    # is not the same as the current one. Otherwise
-    # we end up killing the process that is taking over.
-    exit_loop(evaluator, evaluator_ref, opts[:evaluator] != evaluator)
-    run(opts)
-  end
-
-  defp exit_loop(evaluator, evaluator_ref, done? \\ true) do
+  defp stop_evaluator(evaluator, evaluator_ref, done? \\ true) do
     Process.delete(:evaluator)
     Process.demonitor(evaluator_ref, [:flush])
-    if done? do
-      send(evaluator, {:done, self()})
-    end
+    done? && send(evaluator, {:done, self()})
     :ok
   end
 
@@ -189,9 +176,9 @@ defmodule IEx.Server do
         io_error "** (EXIT) interrupted"
         loop(%{state | cache: ''}, evaluator, evaluator_ref)
       {:input, ^input, :eof} ->
-        exit_loop(evaluator, evaluator_ref)
+        stop_evaluator(evaluator, evaluator_ref)
       {:input, ^input, {:error, :terminated}} ->
-        exit_loop(evaluator, evaluator_ref)
+        stop_evaluator(evaluator, evaluator_ref)
       msg ->
         handle_take_over(msg, evaluator, evaluator_ref, input, fn ->
           wait_input(state, evaluator, evaluator_ref, input)
@@ -219,24 +206,14 @@ defmodule IEx.Server do
 
   # Take process.
   #
-  # The take? message is received out of band, so we can
-  # go back to wait for the same input. The take message
-  # needs to take hold of the IO, so it kills the input,
-  # re-runs the server OR goes back to the main loop.
-  #
   # A take process may also happen if the evaluator dies,
   # then a new evaluator is created to replace the dead one.
-  defp handle_take_over({:take?, other, ref}, _evaluator, _evaluator_ref, _input, callback) do
-    send(other, ref)
-    callback.()
-  end
-
   defp handle_take_over({:take, other, identifier, ref, opts}, evaluator, evaluator_ref, input, callback) do
     kill_input(input)
 
     if allow_take?(identifier) do
       send other, {ref, Process.group_leader}
-      reset_loop(opts, evaluator, evaluator_ref)
+      rerun(opts, evaluator, evaluator_ref)
     else
       send other, {ref, nil}
       callback.()
@@ -245,7 +222,7 @@ defmodule IEx.Server do
 
   defp handle_take_over({:respawn, evaluator}, evaluator, evaluator_ref, input, _callback) do
     kill_input(input)
-    reset_loop([], evaluator, evaluator_ref)
+    rerun([], evaluator, evaluator_ref)
   end
 
   defp handle_take_over({:DOWN, evaluator_ref, :process, evaluator, reason},
@@ -257,7 +234,7 @@ defmodule IEx.Server do
         io_error "** (IEx.Error) #{type} when printing EXIT message: #{inspect detail}"
     end
     kill_input(input)
-    reset_loop([], evaluator, evaluator_ref)
+    rerun([], evaluator, evaluator_ref)
   end
 
   defp handle_take_over(_, _evaluator, _evaluator_ref, _input, callback) do
@@ -278,9 +255,8 @@ defmodule IEx.Server do
 
   ## State
 
-  defp run_state(opts) do
+  defp iex_state(opts) do
     prefix = Keyword.get(opts, :prefix, "iex")
-
     %IEx.State{prefix: prefix}
   end
 
