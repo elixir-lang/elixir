@@ -16,7 +16,7 @@ defmodule IEx.HelpersTest do
   end
 
   test "system_info() helper" do
-    assert "## System and architecture" <> _ =
+    assert "\n## System and architecture" <> _ =
            capture_io(fn -> system_info() end)
   end
 
