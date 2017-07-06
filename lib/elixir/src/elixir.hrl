@@ -5,7 +5,7 @@
 -define(var_context, ?MODULE).
 
 -record(elixir_erl, {
-  def=nil,                 %% a tuple with the current definition {def | ..., name, arity}
+  def=nil,                 %% the definition kind (def, defp, etc)
   context=nil,             %% can be match, guards or nil
   extra=nil,               %% extra information about the context, like pin_guard and map_key
   caller=false,            %% when true, it means caller was invoked

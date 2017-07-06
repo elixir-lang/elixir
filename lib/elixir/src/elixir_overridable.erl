@@ -15,15 +15,15 @@ overridable(Module, Value) ->
 
 super(Meta, File, Module, Function) ->
   case store(Module, Function, true) of
-    {ok, Name} ->
-      Name;
+    {_, _} = KindName ->
+      KindName;
     error ->
       elixir_errors:form_error(Meta, File, ?MODULE, {no_super, Module, Function})
   end.
 
 store_pending(Module) ->
   [begin
-    {ok, _} = store(Module, Pair, false),
+    {_, _} = store(Module, Pair, false),
     Pair
    end || {Pair, {_, _, _, false}} <- maps:to_list(overridable(Module)),
           not 'Elixir.Module':'defines?'(Module, Pair)].
@@ -42,7 +42,7 @@ store(Module, Function, Hidden) ->
           false ->
             {Kind, Name, Arity, Clauses};
           true when Kind == defmacro; Kind == defmacrop ->
-            {defp, name(Name, Count), Arity + 1, rewrite_clauses(Clauses)};
+            {defmacrop, name(Name, Count), Arity, Clauses};
           true ->
             {defp, name(Name, Count), Arity, Clauses}
         end,
@@ -62,14 +62,10 @@ store(Module, Function, Hidden) ->
           ok
       end,
 
-      {ok, Tuple};
+      {FinalKind, FinalName};
     error ->
       error
   end.
-
-rewrite_clauses(Clauses) ->
-  [{Meta, [{'__CALLER__', [], nil} | Args], Guards, Body} ||
-   {Meta, Args, Guards, Body} <- Clauses].
 
 name(Name, Count) when is_integer(Count) ->
   list_to_atom(atom_to_list(Name) ++ " (overridable " ++ integer_to_list(Count) ++ ")").
@@ -83,6 +79,6 @@ format_error({no_super, Module, {Name, Arity}}) ->
     [Name, Arity, elixir_aliases:inspect(Module), Joined]).
 
 format_fa({Name, Arity}) ->
-  A = atom_to_binary(Name, utf8),
+  A = 'Elixir.Inspect.Function':escape_name(Name),
   B = integer_to_binary(Arity),
   <<A/binary, $/, B/binary>>.

@@ -293,14 +293,9 @@ expand({super, Meta, Args}, #{file := File} = E) when is_list(Args) ->
 
   case length(Args) of
     Arity ->
-      {OName, OArity} = elixir_overridable:super(Meta, File, Module, Function),
+      {Kind, Name} = elixir_overridable:super(Meta, File, Module, Function),
       {EArgs, EA} = expand_args(Args, E),
-      OArgs =
-        if
-          OArity > Arity -> [{'__CALLER__', [], nil} | EArgs];
-          true -> EArgs
-        end,
-      {{OName, Meta, OArgs}, EA};
+      {{super, Meta, [{Kind, Name} | EArgs]}, EA};
     _ ->
       form_error(Meta, File, ?MODULE, wrong_number_of_args_for_super)
   end;

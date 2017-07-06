@@ -170,6 +170,7 @@ defmodule Kernel.ExpansionTest do
     end
 
     test "__CALLER__" do
+      assert __CALLER__ == nil
       assert expand(quote do: __CALLER__) == quote do: __CALLER__
     end
 
