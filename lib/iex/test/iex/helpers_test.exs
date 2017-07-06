@@ -15,6 +15,11 @@ defmodule IEx.HelpersTest do
     Application.delete_env(:elixir, :ansi_enabled)
   end
 
+  test "system_info() helper" do
+    assert "## System and architecture" <> _ =
+           capture_io(fn -> system_info() end)
+  end
+
   test "h helper" do
     assert "* IEx.Helpers\n\nWelcome to Interactive Elixir" <> _
            = capture_iex("h()")
