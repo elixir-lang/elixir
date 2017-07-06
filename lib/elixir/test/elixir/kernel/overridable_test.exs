@@ -101,33 +101,66 @@ defmodule Kernel.OverridableExampleBehaviour do
 end
 
 defmodule Kernel.OverridableTest do
-  defmodule OverridableOrder do
-    def not_private(str) do
-      process_url(str)
-    end
-
-    def process_url(_str) do
-      :first
-    end
-
-    # There was a bug where the order in which we removed
-    # overridable expressions lead to errors. This module
-    # aims to guarantee removing process_url/1 before we
-    # remove the function that depends on it does not cause
-    # errors. If it compiles, it works!
-    defoverridable [process_url: 1, not_private: 1]
-
-    def process_url(_str) do
-      :second
-    end
-  end
-
   require Kernel.Overridable, as: Overridable
   use ExUnit.Case
 
   defp purge(module) do
     :code.purge(module)
     :code.delete(module)
+  end
+
+  test "overridable keeps function ordering" do
+    defmodule OverridableOrder do
+      def not_private(str) do
+        process_url(str)
+      end
+
+      def process_url(_str) do
+        :first
+      end
+
+      # There was a bug where the order in which we removed
+      # overridable expressions lead to errors. This module
+      # aims to guarantee removing process_url/1 before we
+      # remove the function that depends on it does not cause
+      # errors. If it compiles, it works!
+      defoverridable [process_url: 1, not_private: 1]
+
+      def process_url(_str) do
+        :second
+      end
+    end
+  end
+
+  test "overridable works with defaults" do
+    defmodule OverridableDefault do
+      def fun(value, opt \\ :from_parent) do
+        {value, opt}
+      end
+
+      defmacro macro(value, opt \\ :from_parent) do
+        {{value, opt}, Macro.escape(__CALLER__)}
+      end
+
+      # There was a bug where the default function would
+      # attempt to call its overridable name instead of
+      # func/1. If it compiles, it works!
+      defoverridable [fun: 1, fun: 2, macro: 1, macro: 2]
+
+      def fun(value) do
+        {value, super(value)}
+      end
+
+      defmacro macro(value) do
+        {{value, super(value)}, Macro.escape(__CALLER__)}
+      end
+    end
+
+    defmodule OverridableCall do
+      require OverridableDefault
+      OverridableDefault.fun(:foo)
+      OverridableDefault.macro(:bar)
+    end
   end
 
   test "overridable is made concrete if no other is defined" do

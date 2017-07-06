@@ -22,7 +22,9 @@ new() ->
     prematch_vars => nil}.                 %% a set of variables defined before the current match
 
 linify({Line, Env}) ->
-  Env#{line := Line}.
+  Env#{line := Line};
+linify(#{} = Env) ->
+  Env.
 
 env_to_scope(#{file := File, context := Context}) ->
   #elixir_erl{file=File, context=Context}.

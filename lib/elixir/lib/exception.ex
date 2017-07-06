@@ -230,7 +230,7 @@ defmodule Exception do
          {_, kind, _, clauses} <- List.keyfind(defs, {function, arity}, 0) do
       clauses =
         for {meta, ex_args, guards, _block} <- clauses do
-          scope = :elixir_erl.definition_scope(meta, kind, function, arity, "nofile")
+          scope = :elixir_erl.definition_scope(meta, kind, "nofile")
           {erl_args, scope} =
             :elixir_erl_clauses.match(&:elixir_erl_pass.translate_args/2, ex_args, scope)
           {args, binding} =
@@ -862,8 +862,7 @@ defmodule UndefinedFunctionError do
   end
 
   defp format_fa({_dist, fun, arity}) do
-    fun = with ":" <> fun <- inspect(fun), do: fun
-    ["      * ", fun, ?/, Integer.to_string(arity), ?\n]
+    ["      * ", Inspect.Function.escape_name(fun), ?/, Integer.to_string(arity), ?\n]
   end
 
   defp exports_for(module) do
