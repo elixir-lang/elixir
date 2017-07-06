@@ -440,12 +440,12 @@ defmodule IEx do
   the process information. Let's see an example:
 
       import Enum, only: [map: 2]
-      require IEx
+
 
       defmodule Adder do
         def add(a, b) do
           c = a + b
-          IEx.pry
+          require IEx; IEx.pry
         end
       end
 
@@ -472,54 +472,10 @@ defmodule IEx do
   Setting variables or importing modules in IEx does not
   affect the caller's environment (hence it is called `pry`).
   """
-  defmacro pry(timeout \\ 5000) do
+  defmacro pry() do
     quote do
-      IEx.pry(binding(), __ENV__, unquote(timeout))
+      IEx.Pry.pry(binding(), __ENV__)
     end
-  end
-
-  @doc """
-  Callback for `IEx.pry/1`.
-
-  You can invoke this function directly when you are not able to invoke
-  `IEx.pry/1` as a macro. This function expects the binding (from
-  `Kernel.binding/0`), the environment (from `__ENV__/0`) and the timeout
-  (a sensible default is 5000).
-  """
-  def pry(binding, env, timeout) do
-    opts = [binding: binding, dot_iex_path: "", env: env, prefix: "pry"]
-    meta = "#{inspect self()} at #{Path.relative_to_cwd(env.file)}:#{env.line}"
-    desc =
-      if File.regular?(env.file) do
-        parse_file(env)
-      else
-        ""
-      end
-
-    res = IEx.Server.take_over("Request to pry #{meta}#{desc}", opts, timeout)
-
-    # We cannot use colors because IEx may be off.
-    case res do
-      {:error, :no_iex} ->
-        extra =
-          case :os.type do
-            {:win32, _} -> " If you are Windows, you may need to start IEx with the --werl flag."
-            _           -> ""
-          end
-        IO.puts :stdio, "Cannot pry #{meta}. Is an IEx shell running?" <> extra
-      _ ->
-        :ok
-    end
-
-    res
-  end
-
-  defp parse_file(env) do
-    lines =
-      env.file
-      |> File.stream!
-      |> Enum.slice(max(env.line - 3, 0), 5)
-    Enum.intersperse(["\n\n" | lines], "    ")
   end
 
   ## Callbacks

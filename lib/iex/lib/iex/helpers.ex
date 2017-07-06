@@ -40,7 +40,6 @@ defmodule IEx.Helpers do
     * `pwd/0`         - prints the current working directory
     * `r/1`           - recompiles the given module's source file
     * `recompile/0`   - recompiles the current project
-    * `respawn/0`     - respawns the current shell
     * `system_info/0` - prints system info (versions, memory usage, stats)
     * `v/0`           - retrieves the last value from the history
     * `v/1`           - retrieves the nth value from the history

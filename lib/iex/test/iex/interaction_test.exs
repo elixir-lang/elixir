@@ -3,8 +3,6 @@ Code.require_file "../test_helper.exs", __DIR__
 defmodule IEx.InteractionTest do
   use IEx.Case
 
-  ## Basic interaction
-
   test "whole output" do
     assert capture_io("IO.puts \"Hello world\"", fn ->
       IEx.Server.start([dot_iex_path: ""], {IEx, :dont_display_result, []})
@@ -18,6 +16,10 @@ defmodule IEx.InteractionTest do
 
   test "normal input" do
     assert capture_iex("1 + 2") == "3"
+  end
+
+  test "invalid input" do
+    assert capture_iex("if true do ) false end") =~ "** (SyntaxError) iex:1: \"do\" is missing terminator \"end\". unexpected token: \")\" at line 1"
   end
 
   test "multiple vars" do
@@ -37,22 +39,6 @@ defmodule IEx.InteractionTest do
     assert capture_iex(code) =~ "3"
   end
 
-  test "exception" do
-    exception = Regex.escape("** (ArithmeticError) bad argument in arithmetic expression")
-    assert capture_iex("1 + :atom\n:this_is_still_working")
-           =~ ~r/^#{exception}.+\n:this_is_still_working$/s
-    refute capture_iex("1 + :atom\n:this_is_still_working")
-           =~ ~r/erl_eval/s
-  end
-
-  test "empty history at the start" do
-    assert capture_iex("v(-1)") =~ "** (RuntimeError) v(-1) is out of bounds"
-  end
-
-  test "empty history at the start redux" do
-    assert capture_iex("v(1)") =~ "** (RuntimeError) v(1) is out of bounds"
-  end
-
   test "no break" do
     input = """
       ["a
@@ -70,10 +56,6 @@ defmodule IEx.InteractionTest do
     #iex:break
     """
     assert capture_iex(input) =~ "** (TokenMissingError) iex:1: incomplete expression"
-  end
-
-  test "invalid input" do
-    assert capture_iex("if true do ) false end") =~ "** (SyntaxError) iex:1: \"do\" is missing terminator \"end\". unexpected token: \")\" at line 1"
   end
 
   test "module definition" do
@@ -112,12 +94,12 @@ defmodule IEx.InteractionTest do
            "<<45, 46, 47>>\n[45, 46, 47]\n%{__struct__: IO.Stream, device: nil, line_or_bytes: :line, raw: true}"
   end
 
-  test "history size" do
-    opts = [history_size: 3]
-    assert capture_iex("1\n2\n3\nv(1)", opts) == "1\n2\n3\n1"
-    assert "1\n2\n3\n4\n** (RuntimeError) v(1) is out of bounds" <> _ = capture_iex("1\n2\n3\n4\nv(1)", opts)
-    assert "1\n2\n3\n4\n** (RuntimeError) v(-4) is out of bounds" <> _ = capture_iex("1\n2\n3\n4\nv(-4)", opts)
-    assert "1\n2\n3\n4\n2\n** (RuntimeError) v(2) is out of bounds" <> _ = capture_iex("1\n2\n3\n4\nv(2)\nv(2)", opts)
+  test "exception" do
+    exception = Regex.escape("** (ArithmeticError) bad argument in arithmetic expression")
+    assert capture_iex("1 + :atom\n:this_is_still_working") =~
+           ~r/^#{exception}.+\n:this_is_still_working$/s
+    refute capture_iex("1 + :atom\n:this_is_still_working") =~
+           ~r/erl_eval/s
   end
 
   test "receive exit" do
