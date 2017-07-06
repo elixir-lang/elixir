@@ -22,27 +22,28 @@ defmodule IEx.Helpers do
 
   There are many other helpers available, here are some examples:
 
-    * `b/1`         - prints callbacks info and docs for a given module
-    * `c/1`         - compiles a file into the current directory
-    * `c/2`         - compiles a file to the given path
-    * `cd/1`        - changes the current directory
-    * `clear/0`     - clears the screen
-    * `e/1`         - shows all exports (functions + macros) in a module
-    * `flush/0`     - flushes all messages sent to the shell
-    * `h/0`         - prints this help message
-    * `h/1`         - prints help for the given module, function or macro
-    * `i/0`         - prints information about the last value
-    * `i/1`         - prints information about the given term
-    * `ls/0`        - lists the contents of the current directory
-    * `ls/1`        - lists the contents of the specified directory
-    * `pid/1`       - creates a PID from a string
-    * `pid/3`       - creates a PID with the 3 integer arguments passed
-    * `pwd/0`       - prints the current working directory
-    * `r/1`         - recompiles the given module's source file
-    * `recompile/0` - recompiles the current project
-    * `respawn/0`   - respawns the current shell
-    * `v/0`         - retrieves the last value from the history
-    * `v/1`         - retrieves the nth value from the history
+    * `b/1`           - prints callbacks info and docs for a given module
+    * `c/1`           - compiles a file into the current directory
+    * `c/2`           - compiles a file to the given path
+    * `cd/1`          - changes the current directory
+    * `clear/0`       - clears the screen
+    * `e/1`           - shows all exports (functions + macros) in a module
+    * `flush/0`       - flushes all messages sent to the shell
+    * `h/0`           - prints this help message
+    * `h/1`           - prints help for the given module, function or macro
+    * `i/0`           - prints information about the last value
+    * `i/1`           - prints information about the given term
+    * `ls/0`          - lists the contents of the current directory
+    * `ls/1`          - lists the contents of the specified directory
+    * `pid/1`         - creates a PID from a string
+    * `pid/3`         - creates a PID with the 3 integer arguments passed
+    * `pwd/0`         - prints the current working directory
+    * `r/1`           - recompiles the given module's source file
+    * `recompile/0`   - recompiles the current project
+    * `respawn/0`     - respawns the current shell
+    * `system_info/0` - prints system info (versions, memory usage, stats)
+    * `v/0`           - retrieves the last value from the history
+    * `v/1`           - retrieves the nth value from the history
 
   Help for all of those functions can be consulted directly from
   the command line using the `h/1` helper itself. Try:
@@ -498,6 +499,77 @@ defmodule IEx.Helpers do
   end
 
   @doc """
+  Prints system information such as versions, memory usage and statistics.
+  """
+  def system_info do
+    print_pane("System and architecture")
+
+    print_entry("Elixir version", System.version)
+    print_entry("OTP version", :erlang.system_info(:otp_release))
+    print_entry("ERTS version", :erlang.system_info(:version))
+    print_entry("Compiled for", :erlang.system_info(:system_architecture))
+    print_entry("Schedulers", :erlang.system_info(:schedulers))
+    print_entry("Schedulers online", :erlang.system_info(:schedulers_online))
+
+    print_pane("Memory")
+    print_memory("Total", :total, :MB)
+    print_memory("Atoms", :atom)
+    print_memory("Binaries", :binary)
+    print_memory("Code", :code)
+    print_memory("ETS", :ets)
+    print_memory("Processes", :processes)
+
+    print_pane("Statistics / limits")
+    print_uptime()
+    print_entry("Run queue", :erlang.statistics(:run_queue))
+    if :erlang.system_info(:otp_release) >= '20' do
+      print_percentage("Atoms", :atom_count, :atom_limit)
+    end
+    print_percentage("ETS", :ets_count, :ets_limit)
+    print_percentage("Ports", :port_count, :port_limit)
+    print_percentage("Processes", :process_count, :process_limit)
+
+    IO.puts ""
+    dont_display_result()
+  end
+
+  defp print_pane(msg) do
+    IO.puts IEx.color(:eval_result, ["\n## ", msg, " \n"])
+  end
+
+  defp print_entry(_key, nil), do: :ok
+  defp print_entry(key, value), do: IO.puts "#{pad_key(key)}#{value}"
+
+  defp print_uptime() do
+    IO.write pad_key("Uptime")
+    :c.uptime()
+  end
+
+  defp print_percentage(key, min, max) do
+    min = get_stat(min)
+    max = get_stat(max)
+    percentage = trunc((min / max) * 100)
+    IO.puts "#{pad_key(key)}#{min} / #{max} (#{percentage}% used)"
+  end
+
+  defp get_stat(:ets_count), do: length(:ets.all())
+  defp get_stat(other), do: :erlang.system_info(other)
+
+  defp print_memory(key, memory, unit \\ :kB) do
+    value =
+      memory
+      |> :erlang.memory()
+      |> div(memory_unit(unit))
+      |> round()
+    IO.puts "#{pad_key(key)}#{value} #{unit}"
+  end
+
+  defp memory_unit(:MB), do: 1024 * 1024
+  defp memory_unit(:kB), do: 1024
+
+  defp pad_key(key), do: String.pad_trailing("#{key}:", 20, " ")
+
+  @doc """
   Flushes all messages sent to the shell and prints them out.
   """
   def flush do
@@ -547,12 +619,15 @@ defmodule IEx.Helpers do
   Prints a list of all the functions and macros exported by the given module.
   """
   def e(module \\ Kernel) do
-    IEx.Autocomplete.exports(module) |> print_exports()
+    print_exports(IEx.Autocomplete.exports(module))
     dont_display_result()
   end
 
   defp print_exports(functions) do
-    list = Enum.map(functions, fn({name, arity}) -> Atom.to_string(name) <> "/" <> Integer.to_string(arity) end)
+    list =
+      Enum.map(functions, fn {name, arity} ->
+        Atom.to_string(name) <> "/" <> Integer.to_string(arity)
+      end)
     print_table(list)
   end
 
