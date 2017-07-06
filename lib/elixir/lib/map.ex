@@ -286,10 +286,11 @@ defmodule Map do
 
   ## Examples
 
-      iex> Map.replace(%{a: 1}, :b, 2)
-      %{a: 1}
       iex> Map.replace(%{a: 1, b: 2}, :a, 3)
       %{a: 3, b: 2}
+
+      iex> Map.replace(%{a: 1}, :b, 2)
+      %{a: 1}
 
   """
   @spec replace(map, key, value) :: map
@@ -312,6 +313,7 @@ defmodule Map do
 
       iex> Map.replace!(%{a: 1, b: 2}, :a, 3)
       %{a: 3, b: 2}
+
       iex> Map.replace!(%{a: 1}, :b, 2)
       ** (KeyError) key :b not found in: %{a: 1}
 
