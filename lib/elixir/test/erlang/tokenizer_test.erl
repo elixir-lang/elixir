@@ -195,9 +195,9 @@ vc_merge_conflict_test() ->
     tokenize_error("<<<<<<< HEAD\n[1, 2, 3]").
 
 sigil_terminator_test() ->
-  [{sigil, {1, 1, 8}, 114, [<<"foo">>], [], 47}] = tokenize("~r/foo/"),
-  [{sigil, {1, 1, 8}, 114, [<<"foo">>], [], 91}] = tokenize("~r[foo]"),
-  [{sigil, {1, 1, 8}, 114, [<<"foo">>], [], 34}] = tokenize("~r\"foo\""),
+  [{sigil, {1, 1, 8}, 114, [<<"foo">>], [], "/"}] = tokenize("~r/foo/"),
+  [{sigil, {1, 1, 8}, 114, [<<"foo">>], [], "["}] = tokenize("~r[foo]"),
+  [{sigil, {1, 1, 8}, 114, [<<"foo">>], [], "\""}] = tokenize("~r\"foo\""),
   [{sigil, {1, 1, 1}, 83, [<<"sigil heredoc\n">>], [], "\"\"\""}] = tokenize("~S\"\"\"\nsigil heredoc\n\"\"\""),
   [{sigil, {1, 1, 1}, 83, [<<"sigil heredoc\n">>], [], "'''"}] = tokenize("~S'''\nsigil heredoc\n'''").
 

@@ -203,7 +203,7 @@ tokenize([$~, S, H | T] = Original, Line, Column, Scope, Tokens) when ?is_sigil(
   case elixir_interpolation:extract(Line, Column + 3, Scope, ?is_downcase(S), T, sigil_terminator(H)) of
     {NewLine, NewColumn, Parts, Rest} ->
       {Final, Modifiers} = collect_modifiers(Rest, []),
-      tokenize(Final, NewLine, NewColumn, Scope, [{sigil, {Line, Column, NewColumn}, S, Parts, Modifiers, H} | Tokens]);
+      tokenize(Final, NewLine, NewColumn, Scope, [{sigil, {Line, Column, NewColumn}, S, Parts, Modifiers, [H]} | Tokens]);
     {error, Reason} ->
       Sigil = [$~, S, H],
       interpolation_error(Reason, Original, Tokens, " (for sigil ~ts starting at line ~B)", [Sigil, Line])
