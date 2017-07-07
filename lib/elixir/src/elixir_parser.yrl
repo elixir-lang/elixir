@@ -719,9 +719,10 @@ build_access(Expr, {List, Location}) ->
 
 %% Interpolation aware
 
-build_sigil({sigil, Location, Sigil, Parts, Modifiers}) ->
+build_sigil({sigil, Location, Sigil, Parts, Modifiers, Terminator}) ->
   Meta = meta_from_location(Location),
-  {list_to_atom("sigil_" ++ [Sigil]), Meta, [{'<<>>', Meta, string_parts(Parts)}, Modifiers]}.
+  MetaWithTerminator = [{terminator, Terminator} | Meta],
+  {list_to_atom("sigil_" ++ [Sigil]), MetaWithTerminator, [{'<<>>', Meta, string_parts(Parts)}, Modifiers]}.
 
 build_bin_string({bin_string, _Location, [H]} = Token) when is_binary(H) ->
   handle_literal(H, Token);
