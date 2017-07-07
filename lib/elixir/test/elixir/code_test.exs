@@ -101,16 +101,16 @@ defmodule CodeTest do
   end
 
   test "string_to_quoted/1 for presence of sigils terminators" do
-    assert Code.string_to_quoted("~r/foo/") == {:ok, {:sigil_r, [terminator: '/', line: 1],
-                                                [{:<<>>, [line: 1], ["foo"]}, []]}}
-    assert Code.string_to_quoted("~r[foo]") == {:ok, {:sigil_r, [terminator: '[', line: 1],
-                                                [{:<<>>, [line: 1], ["foo"]}, []]}}
-    assert Code.string_to_quoted("~r\"foo\"") == {:ok, {:sigil_r, [terminator: '"', line: 1],
-                                                  [{:<<>>, [line: 1], ["foo"]}, []]}}
-    assert Code.string_to_quoted("~S\"\"\"\nsigil heredoc\n\"\"\"") == {:ok, {:sigil_S, [terminator: '"""', line: 1],
-                                                                        [{:<<>>, [line: 1], ["sigil heredoc\n"]}, []]}}
-    assert Code.string_to_quoted("~S'''\nsigil heredoc\n'''") == {:ok, {:sigil_S, [terminator: '\'\'\'', line: 1],
-                                                                  [{:<<>>, [line: 1], ["sigil heredoc\n"]}, []]}}
+    assert Code.string_to_quoted("~r/foo/") ==
+           {:ok, {:sigil_r, [terminator: '/', line: 1], [{:<<>>, [line: 1], ["foo"]}, []]}}
+    assert Code.string_to_quoted("~r[foo]") ==
+           {:ok, {:sigil_r, [terminator: '[', line: 1], [{:<<>>, [line: 1], ["foo"]}, []]}}
+    assert Code.string_to_quoted("~r\"foo\"") ==
+           {:ok, {:sigil_r, [terminator: '"', line: 1], [{:<<>>, [line: 1], ["foo"]}, []]}}
+    assert Code.string_to_quoted("~S\"\"\"\nsigil heredoc\n\"\"\"") ==
+           {:ok, {:sigil_S, [terminator: '"""', line: 1], [{:<<>>, [line: 1], ["sigil heredoc\n"]}, []]}}
+    assert Code.string_to_quoted("~S'''\nsigil heredoc\n'''") ==
+           {:ok, {:sigil_S, [terminator: '\'\'\'', line: 1], [{:<<>>, [line: 1], ["sigil heredoc\n"]}, []]}}
   end
 
   test "string_to_quoted!/1 works as string_to_quoted/1 but raises on errors" do
