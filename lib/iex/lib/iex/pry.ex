@@ -36,7 +36,13 @@ defmodule IEx.Pry do
   end
 
   @doc """
-  Formats the location for whereami prying.
+  Formats the location for `whereami/3` prying.
+
+  It receives the `file`, `line` and the snippet `radius` and
+  returns `{:ok, lines}`, where lines is a list of chardata
+  containing each formatted line, or `:error`.
+
+  The actual line is especially formatted in bold.
   """
   def whereami(file, line, radius) do
     with true <- File.regular?(file),

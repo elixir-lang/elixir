@@ -637,6 +637,45 @@ defmodule IEx.Helpers do
   end
 
   @doc """
+  Prints the current location in a pry session.
+
+  It expects a `radius` which chooses how many lines before and after
+  the current line we should print. By default the `radius` is of two
+  lines:
+
+      Location: lib/iex/lib/iex/helpers.ex:79
+
+      77:
+      78:   def recompile do
+      79:     require IEx; IEx.pry
+      80:     if mix_started?() do
+      81:       config = Mix.Project.config
+
+  This command only works inside a pry session started manually
+  via `IEx.pry` or a breakpoint set via `IEx.break/1`. Calling
+  this function during a regular `IEx` session will print an error.
+
+  Keep in mind the `whereami` location can be off when prying
+  precompiled source code, such as Elixir itself.
+  """
+  def whereami(radius \\ 2) do
+    case Process.get(:iex_whereami) do
+      {file, line} ->
+        IO.puts IEx.color(:eval_info, ["Location: ", Path.relative_to_cwd(file), ":", Integer.to_string(line)])
+        case IEx.Pry.whereami(file, line, radius) do
+          {:ok, lines} ->
+            IO.write [?\n, lines, ?\n]
+          :error ->
+            IO.puts IEx.color(:eval_error, "Could not extract source snippet. Location is not available.")
+        end
+      _ ->
+        IO.puts IEx.color(:eval_error, "Pry session is not currently enabled")
+    end
+
+    dont_display_result()
+  end
+
+  @doc """
   Similar to `import_file` but only imports the file it if it is available.
 
   By default, `import_file/1` fails when the given file does not exist.
