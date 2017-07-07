@@ -5,6 +5,29 @@ defmodule IEx.HelpersTest do
 
   import IEx.Helpers
 
+  describe "whereami" do
+    test "is disabled by default" do
+      assert capture_iex("whereami()") =~
+             "Pry session is not currently enabled"
+    end
+
+    test "shows current location for custom envs" do
+      whereami = capture_iex("whereami()", [], env: %{__ENV__ | line: 3})
+      assert whereami =~ "test/iex/helpers_test.exs:3"
+      assert whereami =~ "3: defmodule IEx.HelpersTest do"
+    end
+
+    test "prints message when location is not available" do
+      whereami = capture_iex("whereami()", [], env: %{__ENV__ | line: 30000})
+      assert whereami =~ "test/iex/helpers_test.exs:30000"
+      assert whereami =~ "Could not extract source snippet. Location is not available."
+
+      whereami = capture_iex("whereami()", [], env: %{__ENV__ | file: "nofile", line: 1})
+      assert whereami =~ "nofile:1"
+      assert whereami =~ "Could not extract source snippet. Location is not available."
+    end
+  end
+
   describe "clear" do
     test "clear the screen with ansi" do
       Application.put_env(:elixir, :ansi_enabled, true)

@@ -200,13 +200,22 @@ defmodule IEx.Evaluator do
     code = iex_state.cache ++ latest_input
     line = iex_state.counter
     put_history(state)
+    put_whereami(state)
     handle_eval(Code.string_to_quoted(code, [line: line, file: "iex"]), code, line, iex_state, state)
   after
     Process.delete(:iex_history)
+    Process.delete(:iex_whereami)
   end
 
   defp put_history(%{history: history}) do
     Process.put(:iex_history, history)
+  end
+
+  defp put_whereami(%{env: %{file: "iex"}}) do
+    :ok
+  end
+  defp put_whereami(%{env: %{file: file, line: line}}) do
+    Process.put(:iex_whereami, {file, line})
   end
 
   defp handle_eval({:ok, forms}, code, line, iex_state, state) do
