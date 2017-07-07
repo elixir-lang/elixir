@@ -1,9 +1,9 @@
 %% Convenience functions used to manipulate scope and its variables.
 -module(elixir_erl_var).
--export([translate/4, build/2, context_info/1,
+-export([translate/4, build/2,
   load_binding/2, dump_binding/2,
   mergev/2, mergec/2, merge_vars/2, merge_opt_vars/2,
-  warn_unsafe_var/4, warn_underscored_var_access/3, format_error/1
+  warn_unsafe_var/4, format_error/1
 ]).
 -include("elixir.hrl").
 
@@ -13,22 +13,26 @@ translate(Meta, Name, Kind, S) when is_atom(Kind); is_integer(Kind) ->
   Ann = ?ann(Meta),
   Tuple = {Name, Kind},
   Vars = S#elixir_erl.vars,
+  BackupVars = S#elixir_erl.backup_vars,
 
-  {Current, Exists, Safe} =
+  {Current, Safe} =
     case maps:find({Name, Kind}, Vars) of
-      {ok, {VarC, _, VarS}} -> {VarC, true, VarS};
-      error -> {nil, false, true}
+      {ok, {VarC, _, VarS}} -> {VarC, VarS};
+      error -> {nil, true}
     end,
 
   case S#elixir_erl.context of
     match ->
-      MatchVars = S#elixir_erl.match_vars,
+      Previous =
+        case maps:find({Name, Kind}, BackupVars) of
+          {ok, {BackupVarC, _, _}} -> BackupVarC;
+          error -> nil
+        end,
 
-      case Exists andalso maps:get(Tuple, MatchVars, false) of
-        true ->
-          warn_underscored_var_repeat(Meta, S#elixir_erl.file, Name, Kind),
+      if
+        Current /= nil, Current /= Previous ->
           {{var, Ann, Current}, S};
-        false ->
+        true ->
           %% We attempt to give vars a nice name because we
           %% still use the unused vars warnings from erl_lint.
           %%
@@ -44,7 +48,6 @@ translate(Meta, Name, Kind, S) when is_atom(Kind); is_integer(Kind) ->
 
           FS = NS#elixir_erl{
             vars=maps:put(Tuple, {NewVar, Counter, true}, Vars),
-            match_vars=maps:put(Tuple, true, MatchVars),
             export_vars=case S#elixir_erl.export_vars of
               nil -> nil;
               EV  -> maps:put(Tuple, {NewVar, Counter, true}, EV)
@@ -53,8 +56,7 @@ translate(Meta, Name, Kind, S) when is_atom(Kind); is_integer(Kind) ->
 
           {{var, Ann, NewVar}, FS}
       end;
-    _  when Exists ->
-      warn_underscored_var_access(Meta, S#elixir_erl.file, Name),
+    _  when Current /= nil ->
       warn_unsafe_var(Meta, S#elixir_erl.file, Name, Safe),
       {{var, Ann, Current}, S}
   end.
@@ -69,42 +71,13 @@ build(Key, #elixir_erl{counter=Counter} = S) ->
    Cnt,
    S#elixir_erl{counter=maps:put(Key, Cnt, Counter)}}.
 
-context_info(Kind) when Kind == nil; is_integer(Kind) -> "";
-context_info(Kind) -> io_lib:format(" (context ~ts)", [elixir_aliases:inspect(Kind)]).
-
-warn_underscored_var_repeat(Meta, File, Name, Kind) ->
-  Warn = should_warn(Meta),
-  case atom_to_list(Name) of
-    "_@" ++ _ ->
-      ok; %% Automatically generated variables
-    "_" ++ _ when Warn ->
-      elixir_errors:form_warn(Meta, File, ?MODULE, {unused_match, Name, Kind});
-    _ ->
-      ok
-  end.
-
 warn_unsafe_var(Meta, File, Name, Safe) ->
-  Warn = should_warn(Meta),
-  if
-    (not Safe) and Warn ->
-      elixir_errors:form_warn(Meta, File, ?MODULE, {unsafe_var, Name});
+  case (not Safe) andalso (lists:keyfind(generated, 1, Meta) /= {generated, true}) of
     true ->
+      elixir_errors:form_warn(Meta, File, ?MODULE, {unsafe_var, Name});
+    false ->
       ok
   end.
-
-warn_underscored_var_access(Meta, File, Name) ->
-  Warn = should_warn(Meta),
-  case atom_to_list(Name) of
-    "_@" ++ _ ->
-      ok; %% Automatically generated variables
-    "_" ++ _ when Warn ->
-      elixir_errors:form_warn(Meta, File, ?MODULE, {underscore_var_access, Name});
-    _ ->
-      ok
-  end.
-
-should_warn(Meta) ->
-  lists:keyfind(generated, 1, Meta) /= {generated, true}.
 
 %% SCOPE MERGING
 
@@ -193,13 +166,6 @@ dump_binding(Binding, #elixir_erl{vars=Vars}) ->
 
 %% Errors
 
-format_error({unused_match, Name, Kind}) ->
-  io_lib:format("the underscored variable \"~ts\"~ts appears more than once in a "
-                "match. This means the pattern will only match if all \"~ts\" bind "
-                "to the same value. If this is the intended behaviour, please "
-                "remove the leading underscore from the variable name, otherwise "
-                "give the variables different names", [Name, context_info(Kind), Name]);
-
 format_error({unsafe_var, Name}) ->
   io_lib:format("the variable \"~ts\" is unsafe as it has been set inside "
                 "one of: case, cond, receive, if, and, or, &&, ||. "
@@ -214,10 +180,4 @@ format_error({unsafe_var, Name}) ->
                 "        1 -> :one\n"
                 "        2 -> :two\n"
                 "      end\n\n"
-                "Unsafe variable found at:", [Name]);
-
-format_error({underscore_var_access, Name}) ->
-  io_lib:format("the underscored variable \"~ts\" is used after being set. "
-                "A leading underscore indicates that the value of the variable "
-                "should be ignored. If this is intended please rename the "
-                "variable to remove the underscore", [Name]).
+                "Unsafe variable found at:", [Name]).

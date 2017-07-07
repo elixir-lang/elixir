@@ -311,8 +311,9 @@ expand({'^', Meta, [Arg]}, #{context := match, prematch_vars := PrematchVars} = 
       %% If the variable was defined, then we return the expanded ^, otherwise
       %% we raise. We cannot use the expanded env because it would contain the
       %% variable.
-      case lists:member({VarName, var_kind(VarMeta, Kind)}, PrematchVars) of
+      case lists:member({VarName, var_context(VarMeta, Kind)}, PrematchVars) of
         true ->
+          warn_underscored_var_access(VarMeta, VarName, Kind, E),
           {{'^', Meta, [Var]}, EA};
         false ->
           form_error(Meta, ?key(EA, file), ?MODULE, {unbound_variable_pin, VarName})
@@ -328,17 +329,28 @@ expand({'_', _Meta, Kind} = Var, #{context := match} = E) when is_atom(Kind) ->
 expand({'_', Meta, Kind}, E) when is_atom(Kind) ->
   form_error(Meta, ?key(E, file), ?MODULE, unbound_underscore);
 
-expand({Name, Meta, Kind} = Var, #{context := match, export_vars := Export} = E) when is_atom(Name), is_atom(Kind) ->
-  Pair      = {Name, var_kind(Meta, Kind)},
-  NewVars   = ordsets:add_element(Pair, ?key(E, vars)),
-  NewExport = case (Export /= nil) of
-    true  -> ordsets:add_element(Pair, Export);
-    false -> Export
-  end,
-  {Var, E#{vars := NewVars, export_vars := NewExport}};
+expand({Name, Meta, Kind} = Var, #{context := match} = E) when is_atom(Name), is_atom(Kind) ->
+  #{vars := Vars, match_vars := Match, export_vars := Export} = E,
+  Pair = {Name, var_context(Meta, Kind)},
+  NewVars = ordsets:add_element(Pair, Vars),
+
+  NewExport =
+    case (Export /= nil) of
+      true  -> ordsets:add_element(Pair, Export);
+      false -> Export
+    end,
+
+  NewMatch =
+    case lists:member(Pair, Match) of
+      true -> warn_underscored_var_repeat(Meta, Name, Kind, E), Match;
+      false -> [Pair | Match]
+    end,
+
+  {Var, E#{vars := NewVars, match_vars := NewMatch, export_vars := NewExport}};
 expand({Name, Meta, Kind} = Var, #{vars := Vars} = E) when is_atom(Name), is_atom(Kind) ->
-  case lists:member({Name, var_kind(Meta, Kind)}, Vars) of
+  case lists:member({Name, var_context(Meta, Kind)}, Vars) of
     true ->
+      warn_underscored_var_access(Meta, Name, Kind, E),
       {Var, E};
     false ->
       case lists:keyfind(var, 1, Meta) of
@@ -552,7 +564,7 @@ expand_args(Args, E) ->
 
 %% Match/var helpers
 
-var_kind(Meta, Kind) ->
+var_context(Meta, Kind) ->
   case lists:keyfind(counter, 1, Meta) of
     {counter, Counter} -> Counter;
     false -> Kind
@@ -811,6 +823,30 @@ assert_no_underscore_clause_in_cond(_Other, _E) ->
 
 %% Warnings
 
+warn_underscored_var_repeat(Meta, Name, Kind, E) ->
+  Warn = should_warn(Meta),
+  case atom_to_list(Name) of
+    "_" ++ _ when Warn ->
+      elixir_errors:form_warn(Meta, ?key(E, file), ?MODULE, {underscored_var_repeat, Name, Kind});
+    _ ->
+      ok
+  end.
+
+warn_underscored_var_access(Meta, Name, Kind, E) ->
+  Warn = should_warn(Meta),
+  case atom_to_list(Name) of
+    "_" ++ _ when Warn ->
+      elixir_errors:form_warn(Meta, ?key(E, file), ?MODULE, {underscored_var_access, Name, Kind});
+    _ ->
+      ok
+  end.
+
+context_info(Kind) when Kind == nil; is_integer(Kind) -> "";
+context_info(Kind) -> io_lib:format(" (context ~ts)", [elixir_aliases:inspect(Kind)]).
+
+should_warn(Meta) ->
+  lists:keyfind(generated, 1, Meta) /= {generated, true}.
+
 format_error({useless_literal, Term}) ->
   io_lib:format("code block contains unused literal ~ts "
                 "(remove the literal or assign it to _ to avoid warnings)",
@@ -863,7 +899,7 @@ format_error({undefined_var, Name, Kind}) ->
   Message =
     "expected variable \"~ts\"~ts to expand to an existing variable "
     "or be part of a match",
-  io_lib:format(Message, [Name, elixir_erl_var:context_info(Kind)]);
+  io_lib:format(Message, [Name, context_info(Kind)]);
 format_error(underscore_in_cond) ->
   "unbound variable _ inside \"cond\". If you want the last clause to always match, "
     "you probably meant to use: true ->";
@@ -915,4 +951,15 @@ format_error({options_are_not_keyword, Kind, Opts}) ->
   io_lib:format("invalid options for ~s, expected a keyword list, got: ~ts",
                 [Kind, 'Elixir.Macro':to_string(Opts)]);
 format_error({undefined_function, Name, Args}) ->
-  io_lib:format("undefined function ~ts/~B", [Name, length(Args)]).
+  io_lib:format("undefined function ~ts/~B", [Name, length(Args)]);
+format_error({underscored_var_repeat, Name, Kind}) ->
+  io_lib:format("the underscored variable \"~ts\"~ts appears more than once in a "
+                "match. This means the pattern will only match if all \"~ts\" bind "
+                "to the same value. If this is the intended behaviour, please "
+                "remove the leading underscore from the variable name, otherwise "
+                "give the variables different names", [Name, context_info(Kind), Name]);
+format_error({underscored_var_access, Name, Kind}) ->
+  io_lib:format("the underscored variable \"~ts\"~ts is used after being set. "
+                "A leading underscore indicates that the value of the variable "
+                "should be ignored. If this is intended please rename the "
+                "variable to remove the underscore", [Name, context_info(Kind)]).
