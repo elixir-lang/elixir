@@ -44,6 +44,8 @@ defmodule Macro.Env do
 
     * `export_vars` - a list keeping all variables to be exported in a
       construct (may be `nil`)
+    * `match_vars` - a list of variables defined in a given match (is
+      `nil` when not inside a match)
     * `prematch_vars` - a list of variables defined before a match (is
       `nil` when not inside a match)
 
@@ -64,6 +66,7 @@ defmodule Macro.Env do
   @type local :: atom | nil
 
   @opaque export_vars :: vars | nil
+  @opaque match_vars :: vars | nil
   @opaque prematch_vars :: vars | nil
 
   @type t :: %{__struct__: __MODULE__,
@@ -80,6 +83,7 @@ defmodule Macro.Env do
                context_modules: context_modules,
                vars: vars,
                export_vars: export_vars,
+               match_vars: match_vars,
                prematch_vars: prematch_vars,
                lexical_tracker: lexical_tracker}
 
@@ -99,6 +103,7 @@ defmodule Macro.Env do
       vars: [],
       lexical_tracker: nil,
       export_vars: nil,
+      match_vars: nil,
       prematch_vars: nil}
   end
 

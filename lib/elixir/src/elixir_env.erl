@@ -19,6 +19,7 @@ new() ->
     lexical_tracker => nil,                %% holds the lexical tracker PID
     vars => [],                            %% a set of defined variables
     export_vars => nil,                    %% a set of variables to be exported in some constructs
+    match_vars => nil,                     %% a set of variables defined in the current match
     prematch_vars => nil}.                 %% a set of variables defined before the current match
 
 linify({Line, Env}) ->

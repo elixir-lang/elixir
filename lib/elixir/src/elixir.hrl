@@ -11,7 +11,6 @@
   caller=false,            %% when true, it means caller was invoked
   vars=#{},                %% a map of defined variables and their alias
   backup_vars=nil,         %% a copy of vars to be used on ^var
-  match_vars=nil,          %% a set of all variables defined in a particular match
   export_vars=nil,         %% a dict of all variables defined in a particular clause
   extra_guards=nil,        %% extra guards from args expansion
   counter=#{},             %% a map counting the variables defined
