@@ -194,6 +194,13 @@ vc_merge_conflict_test() ->
   {1, "found an unexpected version control marker, please resolve the conflicts: ", "<<<<<<< HEAD"} =
     tokenize_error("<<<<<<< HEAD\n[1, 2, 3]").
 
+sigil_terminator_test() ->
+  [{sigil, {1, 1, 8}, 114, [<<"foo">>], [], "/"}] = tokenize("~r/foo/"),
+  [{sigil, {1, 1, 8}, 114, [<<"foo">>], [], "["}] = tokenize("~r[foo]"),
+  [{sigil, {1, 1, 8}, 114, [<<"foo">>], [], "\""}] = tokenize("~r\"foo\""),
+  [{sigil, {1, 1, 1}, 83, [<<"sigil heredoc\n">>], [], "\"\"\""}] = tokenize("~S\"\"\"\nsigil heredoc\n\"\"\""),
+  [{sigil, {1, 1, 1}, 83, [<<"sigil heredoc\n">>], [], "'''"}] = tokenize("~S'''\nsigil heredoc\n'''").
+
 invalid_sigil_delimiter_test() ->
   {1, "invalid sigil delimiter: ", Message} = tokenize_error("~s\\"),
   true = lists:prefix("\"\\\" (column 3, codepoint U+005C)", lists:flatten(Message)).
