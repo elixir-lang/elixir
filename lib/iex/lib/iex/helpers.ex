@@ -217,42 +217,9 @@ defmodule IEx.Helpers do
       iex> h Enum.all?
 
   """
-  @h_modules [__MODULE__, Kernel, Kernel.SpecialForms]
-
-  defmacro h(term)
-  defmacro h({:/, _, [call, arity]} = term) do
-    args =
-      case Macro.decompose_call(call) do
-        {_mod, :__info__, []} when arity == 1 ->
-          [Module, :__info__, 1]
-        {mod, fun, []} ->
-          [mod, fun, arity]
-        {fun, []} ->
-          [@h_modules, fun, arity]
-        _ ->
-          [term]
-      end
-
+  defmacro h(term) do
     quote do
-      IEx.Introspection.h(unquote_splicing(args))
-    end
-  end
-
-  defmacro h(call) do
-    args =
-      case Macro.decompose_call(call) do
-        {_mod, :__info__, []} ->
-          [Module, :__info__, 1]
-        {mod, fun, []} ->
-          [mod, fun]
-        {fun, []} ->
-          [@h_modules, fun]
-        _ ->
-          [call]
-      end
-
-    quote do
-      IEx.Introspection.h(unquote_splicing(args))
+      IEx.Introspection.h(unquote(IEx.Introspection.decompose(term)))
     end
   end
 
@@ -268,22 +235,9 @@ defmodule IEx.Helpers do
       iex> b(Mix.Task.run)
       iex> b(GenServer)
   """
-  defmacro b(term)
-  defmacro b({:/, _, [{{:., _, [mod, fun]}, _, []}, arity]}) do
+  defmacro b(term) do
     quote do
-      IEx.Introspection.b(unquote(mod), unquote(fun), unquote(arity))
-    end
-  end
-
-  defmacro b({{:., _, [mod, fun]}, _, []}) do
-    quote do
-      IEx.Introspection.b(unquote(mod), unquote(fun))
-    end
-  end
-
-  defmacro b(module) do
-    quote do
-      IEx.Introspection.b(unquote(module))
+      IEx.Introspection.b(unquote(IEx.Introspection.decompose(term)))
     end
   end
 
@@ -305,22 +259,9 @@ defmodule IEx.Helpers do
       @type t() :: Enumerable.t()
 
   """
-  defmacro t(term)
-  defmacro t({:/, _, [{{:., _, [mod, fun]}, _, []}, arity]}) do
+  defmacro t(term) do
     quote do
-      IEx.Introspection.t(unquote(mod), unquote(fun), unquote(arity))
-    end
-  end
-
-  defmacro t({{:., _, [mod, fun]}, _, []}) do
-    quote do
-      IEx.Introspection.t(unquote(mod), unquote(fun))
-    end
-  end
-
-  defmacro t(module) do
-    quote do
-      IEx.Introspection.t(unquote(module))
+      IEx.Introspection.t(unquote(IEx.Introspection.decompose(term)))
     end
   end
 
@@ -336,30 +277,9 @@ defmodule IEx.Helpers do
       iex> s(is_atom/1)
 
   """
-  defmacro s(term)
-  defmacro s({:/, _, [call, arity]} = term) do
-    args =
-      case Macro.decompose_call(call) do
-        {mod, fun, []} -> [mod, fun, arity]
-        {fun, []} -> [Kernel, fun, arity]
-        _ -> [term]
-      end
-
+  defmacro s(term) do
     quote do
-      IEx.Introspection.s(unquote_splicing(args))
-    end
-  end
-
-  defmacro s(call) do
-    args =
-      case Macro.decompose_call(call) do
-        {mod, fun, []} -> [mod, fun]
-        {fun, []} -> [Kernel, fun]
-        _ -> [call]
-      end
-
-    quote do
-      IEx.Introspection.s(unquote_splicing(args))
+      IEx.Introspection.s(unquote(IEx.Introspection.decompose(term)))
     end
   end
 

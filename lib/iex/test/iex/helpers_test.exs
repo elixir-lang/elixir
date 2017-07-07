@@ -58,7 +58,7 @@ defmodule IEx.HelpersTest do
       h_output_module = capture_io(fn -> h Module.__info__ end)
       assert capture_io(fn -> h Module.UnlikelyTo.Exist.__info__ end) == h_output_module
       assert capture_io(fn -> h Module.UnlikelyTo.Exist.__info__/1 end) == h_output_module
-      assert capture_io(fn -> h __info__ end) == "No documentation for __info__ was found\n"
+      assert capture_io(fn -> h __info__ end) == "No documentation for Kernel.__info__ was found\n"
     end
 
     test "considers underscored functions without docs by default" do
