@@ -163,13 +163,13 @@ defmodule Mix.TaskTest do
   end
 
   test "alias?/1" do
-    refute Mix.Task.alias?(:sample)
-    refute Mix.Task.alias?("sample")
+    assert Mix.Task.alias?(:sample) == false
+    assert Mix.Task.alias?("sample") == false
 
     Mix.Project.push MixTest.Case.Sample
-    assert Mix.Task.alias?(:sample)
-    assert Mix.Task.alias?("sample")
-    refute Mix.Task.alias?("another")
+    assert Mix.Task.alias?(:sample) == true
+    assert Mix.Task.alias?("sample") == true
+    assert Mix.Task.alias?("another") == false
   after
     Mix.Project.pop
   end
