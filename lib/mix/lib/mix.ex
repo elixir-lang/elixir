@@ -201,6 +201,15 @@ defmodule Mix do
 
   @doc """
   Returns the Mix environment.
+
+  This function should not be used at runtime in application code (as opposed
+  to infrastructure and build code like Mix tasks). Mix is a build tool and may
+  not be available after the code is compiled (for example in a release).
+
+  To differentiate the program behavior depending on the environment, it is
+  recommended to use application environment through `Application.get_env/3`.
+  Proper configuration can be set in `Mix.Config` files, often per-environment
+  (see `Mix.Config.import_config/1` for more information).
   """
   def env do
     # env is not available on bootstrapping, so set a :dev default
@@ -212,6 +221,9 @@ defmodule Mix do
 
   Be careful when invoking this function as any project
   configuration won't be reloaded.
+
+  This function should not be used at runtime in application code
+  (see `env/0` for more information).
   """
   def env(env) when is_atom(env) do
     Mix.State.put(:env, env)
