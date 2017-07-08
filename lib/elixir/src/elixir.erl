@@ -177,8 +177,13 @@ env_for_eval(Env, Opts) ->
     false -> nil
   end,
 
+  FA = case lists:keyfind(function, 1, Opts) of
+    {function, {Function, Arity}} when is_atom(Function), is_integer(Arity) -> {Function, Arity};
+    false -> nil
+  end,
+
   Env#{
-    file := File, module := Module,
+    file := File, module := Module, function := FA,
     macros := Macros, functions := Functions,
     requires := Requires, aliases := Aliases, line := Line
   }.

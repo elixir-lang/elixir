@@ -111,13 +111,7 @@ defmodule IEx.Evaluator do
   end
 
   defp loop_state(server, history, opts) do
-    env =
-      if env = opts[:env] do
-        :elixir.env_for_eval(env, [])
-      else
-        :elixir.env_for_eval(file: "iex")
-      end
-
+    env = opts[:env] || :elixir.env_for_eval(file: "iex")
     {_, _, env, scope} = :elixir.eval('import IEx.Helpers', [], env)
 
     binding = Keyword.get(opts, :binding, [])

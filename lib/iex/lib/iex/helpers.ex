@@ -710,7 +710,7 @@ defmodule IEx.Helpers do
         IO.puts IEx.color(:eval_info, ["Location: ", Path.relative_to_cwd(file), ":", Integer.to_string(line)])
         case IEx.Pry.whereami(file, line, radius) do
           {:ok, lines} ->
-            IO.write [?\n, lines, ?\n, ?\n]
+            IO.write [?\n, lines, ?\n]
           :error ->
             IO.puts IEx.color(:eval_error, "Could not extract source snippet. Location is not available.")
         end
