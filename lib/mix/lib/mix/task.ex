@@ -193,7 +193,10 @@ defmodule Mix.Task do
   end
 
   def alias?(task) when is_atom(task) do
-    Mix.Project.config[:aliases][task]
+    case Mix.Project.config[:aliases][task] do
+      nil -> false
+      _ -> true
+    end
   end
 
   @doc """
