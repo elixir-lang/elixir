@@ -28,6 +28,107 @@ defmodule IEx.HelpersTest do
     end
   end
 
+  describe "open" do
+    @iex_helpers Path.expand("../../lib/iex/helpers.ex", __DIR__)
+    @elixir_erl Path.expand("../../../elixir/src/elixir.erl", __DIR__)
+
+    test "opens Elixir module" do
+      assert capture_iex("open(IEx.Helpers)") |> maybe_trim_quotes() =~
+             ~r/#{@iex_helpers}:1/
+    end
+
+    test "opens function" do
+      assert capture_iex("open(h)") |> maybe_trim_quotes() =~
+             ~r/#{@iex_helpers}:\d+/
+    end
+
+    test "opens function/arity" do
+      assert capture_iex("open(b/1)") |> maybe_trim_quotes() =~
+             ~r/#{@iex_helpers}:\d+/
+      assert capture_iex("open(h/0)") |> maybe_trim_quotes() =~
+             ~r/#{@iex_helpers}:\d+/
+    end
+
+    test "opens module.function" do
+      assert capture_iex("open(IEx.Helpers.b)") |> maybe_trim_quotes() =~
+             ~r/#{@iex_helpers}:\d+/
+      assert capture_iex("open(IEx.Helpers.h)") |> maybe_trim_quotes() =~
+             ~r/#{@iex_helpers}:\d+/
+    end
+
+    test "opens module.function/arity" do
+      assert capture_iex("open(IEx.Helpers.b/1)") |> maybe_trim_quotes() =~
+             ~r/#{@iex_helpers}:\d+/
+      assert capture_iex("open(IEx.Helpers.h/0)") |> maybe_trim_quotes() =~
+             ~r/#{@iex_helpers}:\d+/
+    end
+
+    test "opens Erlang module" do
+      assert capture_iex("open(:elixir)") |> maybe_trim_quotes() =~
+             ~r/#{@elixir_erl}:\d+/
+    end
+
+    test "opens Erlang module.function" do
+      assert capture_iex("open(:elixir.start)") |> maybe_trim_quotes() =~
+             ~r/#{@elixir_erl}:\d+/
+    end
+
+    test "opens Erlang module.function/arity" do
+      assert capture_iex("open(:elixir.start/2)") |> maybe_trim_quotes() =~
+             ~r/#{@elixir_erl}:\d+/
+    end
+
+    test "errors if module is not available" do
+      assert capture_iex("open(:unknown)") ==
+             "Could not open: :unknown. Module is not available."
+    end
+
+    test "errors if module.function is not available" do
+      assert capture_iex("open(:unknown.unknown)") ==
+             "Could not open: :unknown.unknown. Module is not available."
+      assert capture_iex("open(:elixir.unknown)") ==
+             "Could not open: :elixir.unknown. Function/macro is not available."
+    end
+
+    test "errors if module.function/arity is not available" do
+      assert capture_iex("open(:unknown.start/10)") ==
+             "Could not open: :unknown.start/10. Module is not available."
+      assert capture_iex("open(:elixir.start/10)") ==
+             "Could not open: :elixir.start/10. Function/macro is not available."
+    end
+
+    test "opens the current pry location" do
+      assert capture_iex("open()", [], env: %{__ENV__ | line: 3}) |> maybe_trim_quotes() ==
+             "#{__ENV__.file}:3"
+    end
+
+    test "errors if prying is not available" do
+      assert capture_iex("open()") == "Pry session is not currently enabled"
+    end
+
+    test "opens given {file, line}" do
+      assert capture_iex("open({#{inspect __ENV__.file}, 3})") |> maybe_trim_quotes() ==
+             "#{__ENV__.file}:3"
+    end
+
+    test "errors when given {file, line} is not available" do
+      assert capture_iex("open({~s[foo], 3})") ==
+             "Could not open: \"foo\". File is not available."
+    end
+
+    test "opens given path" do
+      assert capture_iex("open(#{inspect __ENV__.file})") |> maybe_trim_quotes() ==
+             __ENV__.file
+    end
+
+    defp maybe_trim_quotes(string) do
+      case :os.type do
+        {:win32, _} -> String.trim(string, "\"")
+        _ -> string
+      end
+    end
+  end
+
   describe "clear" do
     test "clear the screen with ansi" do
       Application.put_env(:elixir, :ansi_enabled, true)

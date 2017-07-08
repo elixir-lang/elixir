@@ -13,7 +13,7 @@ defmodule IEx.Pry do
     meta = "#{inspect self()} at #{Path.relative_to_cwd(env.file)}:#{env.line}"
     desc =
       case whereami(env.file, env.line, 2) do
-        {:ok, lines} -> [?\n, ?\n, lines]
+        {:ok, lines} -> [?\n, ?\n, lines, ?\n]
         :error -> ""
       end
 
@@ -24,8 +24,8 @@ defmodule IEx.Pry do
       {:error, :no_iex} ->
         extra =
           case :os.type do
-            {:win32, _} -> " If you are Windows, you may need to start IEx with the --werl flag."
-            _           -> ""
+            {:win32, _} -> " If you are using Windows, you may need to start IEx with the --werl flag."
+            _ -> ""
           end
         IO.puts :stdio, "Cannot pry #{meta}. Is an IEx shell running?" <> extra
       _ ->

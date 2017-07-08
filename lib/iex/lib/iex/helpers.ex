@@ -194,11 +194,57 @@ defmodule IEx.Helpers do
   end
 
   @doc """
+  Opens the current prying location.
+
+  This command only works inside a pry session started manually
+  via `IEx.pry` or a breakpoint set via `IEx.break/1`. Calling
+  this function during a regular `IEx` session will print an error.
+
+  Keep in mind the `open` location may not exist when prying
+  precompiled source code, such as Elixir itself.
+
+  For more information and to open any module or function, see
+  `open/1`.
+  """
+  def open() do
+    case Process.get(:iex_whereami) do
+      {file, line} ->
+        IEx.Introspection.open({file, line})
+      _ ->
+        IO.puts IEx.color(:eval_error, "Pry session is not currently enabled")
+    end
+
+    dont_display_result()
+  end
+
+  @doc """
+  Opens the given module, module/function/arity or file.
+
+  This function uses the ELIXIR_EDITOR environment variable
+  and falls back to EDITOR if the former is not available.
+
+  Since this function prints the result returned by the
+  editor, ELIXIR_EDITOR can be set "echo" if you prefer
+  to display the location rather than opening it.
+
+  ## Examples
+
+      iex> open MyApp
+      iex> open MyApp.fun/2
+      iex> open "path/to/file"
+
+  """
+  defmacro open(term) do
+    quote do
+      IEx.Introspection.open(unquote(IEx.Introspection.decompose(term)))
+    end
+  end
+
+  @doc """
   Prints the documentation for `IEx.Helpers`.
   """
   def h() do
     IEx.Introspection.h(IEx.Helpers)
-    dont_display_result()
   end
 
   @doc """
@@ -655,7 +701,7 @@ defmodule IEx.Helpers do
   via `IEx.pry` or a breakpoint set via `IEx.break/1`. Calling
   this function during a regular `IEx` session will print an error.
 
-  Keep in mind the `whereami` location can be off when prying
+  Keep in mind the `whereami` location may not exist when prying
   precompiled source code, such as Elixir itself.
   """
   def whereami(radius \\ 2) do
@@ -664,7 +710,7 @@ defmodule IEx.Helpers do
         IO.puts IEx.color(:eval_info, ["Location: ", Path.relative_to_cwd(file), ":", Integer.to_string(line)])
         case IEx.Pry.whereami(file, line, radius) do
           {:ok, lines} ->
-            IO.write [?\n, lines, ?\n]
+            IO.write [?\n, lines, ?\n, ?\n]
           :error ->
             IO.puts IEx.color(:eval_error, "Could not extract source snippet. Location is not available.")
         end
