@@ -104,14 +104,14 @@ Other constructs are `for`, `with`, `try`/`rescue`/`catch`/`else`/, and the `mat
 
 ## Failing guards
 
-Errors in guards do not result in a runtime error, but in the erroring guard fail. For example, the `length/1` function only works with lists, and if we use it on anything else it fails:
+Errors in guards do not result in runtime errors, but in guards failing. For example, the `length/1` function only works with lists. If we use it with anything else, a runtime error is raised:
 
 ```elixir
 iex> length("hello")
 ** (ArgumentError) argument error
 ```
 
-However, when used in guards, it simply makes the corresponding clause fail (i.e., not match):
+However, when used in guards, the corresponding clause simply fails to match:
 
 ```elixir
 iex> case "hello" do
@@ -123,7 +123,7 @@ iex> case "hello" do
 :length_failed
 ```
 
-In many cases, we can take advantage of this: in the code above, for example, we can use `length/1` to both check that the given thing is a list *and* check some properties of its length (instead of using `is_list(something) and length(something) > 0`).
+In many cases, we can take advantage of this. In the code above, we used `length/1` to both check that the given thing is a list *and* check some properties of its length (instead of using `is_list(something) and length(something) > 0`).
 
 ## Expressions in guard clauses
 
