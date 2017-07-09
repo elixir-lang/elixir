@@ -112,10 +112,11 @@ defmodule IEx.Evaluator do
 
   defp loop_state(server, history, opts) do
     env = opts[:env] || :elixir.env_for_eval(file: "iex")
+    env = %{env | match_vars: :apply}
     {_, _, env, scope} = :elixir.eval('import IEx.Helpers', [], env)
 
     binding = Keyword.get(opts, :binding, [])
-    state  = %{binding: binding, scope: scope, env: env, server: server, history: history}
+    state = %{binding: binding, scope: scope, env: env, server: server, history: history}
 
     case opts[:dot_iex_path] do
       ""   -> state
