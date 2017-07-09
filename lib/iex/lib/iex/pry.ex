@@ -166,7 +166,7 @@ defmodule IEx.Pry do
 
   def init(:ok) do
     Process.flag(:trap_exit, true)
-    :ets.new(@table, [:named_table, :public])
+    :ets.new(@table, [:named_table, :public, write_concurrency: true])
     {:ok, 0}
   end
 

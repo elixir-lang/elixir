@@ -47,13 +47,14 @@ defmodule IEx.Server do
   @doc """
   Returns the PID of the IEx evaluator process if it exists.
   """
-  @spec evaluator :: pid | nil
+  @spec evaluator :: {evaluator :: pid, server :: pid} | nil
   def evaluator() do
     case IEx.Server.local do
-      nil -> nil
+      nil ->
+        nil
       pid ->
         {:dictionary, dictionary} = Process.info(pid, :dictionary)
-        dictionary[:evaluator]
+        {dictionary[:evaluator], pid}
     end
   end
 
@@ -130,7 +131,8 @@ defmodule IEx.Server do
     loop(iex_state(opts), evaluator, Process.monitor(evaluator))
   end
 
-  defp rerun(opts, evaluator, evaluator_ref) do
+  defp rerun(opts, evaluator, evaluator_ref, input) do
+    kill_input(input)
     IO.puts("")
     # We should not shutdown the evaluator if the
     # rerun request came from the evaluator itself.
@@ -209,11 +211,9 @@ defmodule IEx.Server do
   # A take process may also happen if the evaluator dies,
   # then a new evaluator is created to replace the dead one.
   defp handle_take_over({:take, other, identifier, ref, opts}, evaluator, evaluator_ref, input, callback) do
-    kill_input(input)
-
     if allow_take?(identifier) do
       send other, {ref, Process.group_leader}
-      rerun(opts, evaluator, evaluator_ref)
+      rerun(opts, evaluator, evaluator_ref, input)
     else
       send other, {ref, nil}
       callback.()
@@ -221,8 +221,7 @@ defmodule IEx.Server do
   end
 
   defp handle_take_over({:respawn, evaluator}, evaluator, evaluator_ref, input, _callback) do
-    kill_input(input)
-    rerun([], evaluator, evaluator_ref)
+    rerun([], evaluator, evaluator_ref, input)
   end
 
   defp handle_take_over({:DOWN, evaluator_ref, :process, evaluator, reason},
@@ -233,8 +232,7 @@ defmodule IEx.Server do
       type, detail ->
         io_error "** (IEx.Error) #{type} when printing EXIT message: #{inspect detail}"
     end
-    kill_input(input)
-    rerun([], evaluator, evaluator_ref)
+    rerun([], evaluator, evaluator_ref, input)
   end
 
   defp handle_take_over(_, _evaluator, _evaluator_ref, _input, callback) do

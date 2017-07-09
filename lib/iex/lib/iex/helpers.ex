@@ -35,6 +35,7 @@ defmodule IEx.Helpers do
     * `i/1`           - prints information about the given term
     * `ls/0`          - lists the contents of the current directory
     * `ls/1`          - lists the contents of the specified directory
+    * `open/1`        - opens the source for the given module or function in your editor
     * `pid/1`         - creates a PID from a string
     * `pid/3`         - creates a PID with the 3 integer arguments passed
     * `pwd/0`         - prints the current working directory
@@ -53,6 +54,9 @@ defmodule IEx.Helpers do
   exports (functions and macros) in the `IEx.Helpers` module:
 
       iex> e(IEx.Helpers)
+
+  This module also include helpers for debugging purposes, see
+  `IEx.break!/4` for more information.
 
   To learn more about IEx as a whole, type `h(IEx)`.
   """
