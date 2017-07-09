@@ -379,8 +379,8 @@ defmodule Time do
 
   """
   @spec convert(Calendar.time, Calendar.calendar) :: {:ok, t} | {:error, atom}
-  def convert(%Time{calendar: calendar} = time, calendar) do
-    {:ok, time}
+  def convert(%{calendar: calendar, hour: hour, minute: minute, second: second, microsecond: microsecond}, calendar) do
+    {:ok, %Time{calendar: calendar, hour: hour, minute: minute, second: second, microsecond: microsecond}}
   end
 
   def convert(%{microsecond: {_, precision}} = time, calendar) do

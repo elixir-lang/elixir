@@ -613,8 +613,10 @@ defmodule NaiveDateTime do
 
   """
   @spec convert(Calendar.naive_datetime, Calendar.calendar) :: {:ok, t} | {:error, :incompatible_calendars}
-  def convert(%NaiveDateTime{calendar: calendar} = naive_datetime, calendar) do
-    {:ok, naive_datetime}
+  def convert(%{calendar: calendar, year: year, month: month, day: day,
+                hour: hour, minute: minute, second: second, microsecond: microsecond}, calendar) do
+    {:ok, %NaiveDateTime{calendar: calendar, year: year, month: month, day: day,
+                         hour: hour, minute: minute, second: second, microsecond: microsecond}}
   end
 
   def convert(%{calendar: ndt_calendar, microsecond: {_, precision}} = naive_datetime, calendar) do

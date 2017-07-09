@@ -444,7 +444,9 @@ defmodule Date do
 
   """
   @spec convert(Calendar.date, Calendar.calendar) :: {:ok, t} | {:error, :incompatible_calendars}
-  def convert(%Date{calendar: calendar} = date, calendar), do: {:ok, date}
+  def convert(%{calendar: calendar, year: year, month: month, day: day}, calendar) do
+    {:ok, %Date{calendar: calendar, year: year, month: month, day: day}}
+  end
   def convert(%{calendar: calendar} = date, target_calendar) do
     if Calendar.compatible_calendars?(calendar, target_calendar) do
       result_date =
