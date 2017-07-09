@@ -28,10 +28,10 @@ defmodule IEx.Evaluator do
   Gets a value out of the binding, using the provided
   variable name and map key path.
   """
-  @spec value_from_binding(pid, atom, [atom]) :: {:ok, any} | :error
-  def value_from_binding(evaluator, var_name, map_key_path) do
+  @spec value_from_binding(pid, pid, atom, [atom]) :: {:ok, any} | :error
+  def value_from_binding(evaluator, server, var_name, map_key_path) do
     ref = make_ref()
-    send evaluator, {:value_from_binding, ref, self(), var_name, map_key_path}
+    send evaluator, {:value_from_binding, server, ref, self(), var_name, map_key_path}
 
     receive do
       {^ref, result} -> result
@@ -44,10 +44,10 @@ defmodule IEx.Evaluator do
   Gets a list of variables out of the binding that match the passed
   variable prefix.
   """
-  @spec variables_from_binding(pid, String.t) :: [String.t]
-  def variables_from_binding(evaluator, variable_prefix) do
+  @spec variables_from_binding(pid, pid, String.t) :: [String.t]
+  def variables_from_binding(evaluator, server, variable_prefix) do
     ref = make_ref()
-    send evaluator, {:variables_from_binding, ref, self(), variable_prefix}
+    send evaluator, {:variables_from_binding, server, ref, self(), variable_prefix}
 
     receive do
       {^ref, result} -> result
@@ -59,10 +59,10 @@ defmodule IEx.Evaluator do
   @doc """
   Returns the named fields from the current session environment.
   """
-  @spec fields_from_env(pid, [atom]) :: %{optional(atom) => term}
-  def fields_from_env(evaluator, fields) do
+  @spec fields_from_env(pid, pid, [atom]) :: %{optional(atom) => term}
+  def fields_from_env(evaluator, server, fields) do
     ref = make_ref()
-    send evaluator, {:fields_from_env, ref, self(), fields}
+    send evaluator, {:fields_from_env, server, ref, self(), fields}
 
     receive do
       {^ref, result} -> result
@@ -77,14 +77,14 @@ defmodule IEx.Evaluator do
         {result, state} = eval(code, iex_state, state)
         send server, {:evaled, self(), result}
         loop(state)
-      {:fields_from_env, ref, receiver, fields} ->
+      {:fields_from_env, ^server, ref, receiver, fields} ->
         send receiver, {ref, Map.take(state.env, fields)}
         loop(state)
-      {:value_from_binding, ref, receiver, var_name, map_key_path} ->
+      {:value_from_binding, ^server, ref, receiver, var_name, map_key_path} ->
         value = traverse_binding(state.binding, var_name, map_key_path)
         send receiver, {ref, value}
         loop(state)
-      {:variables_from_binding, ref, receiver, var_prefix} ->
+      {:variables_from_binding, ^server, ref, receiver, var_prefix} ->
         value = find_matched_variables(state.binding, var_prefix)
         send receiver, {ref, value}
         loop(state)
@@ -195,7 +195,8 @@ defmodule IEx.Evaluator do
     line = iex_state.counter
     put_history(state)
     put_whereami(state)
-    handle_eval(Code.string_to_quoted(code, [line: line, file: "iex"]), code, line, iex_state, state)
+    quoted = Code.string_to_quoted(code, [line: line, file: "iex"])
+    handle_eval(quoted, code, line, iex_state, state)
   after
     Process.delete(:iex_history)
     Process.delete(:iex_whereami)

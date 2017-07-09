@@ -2,10 +2,7 @@ defmodule IEx do
   @moduledoc ~S"""
   Elixir's interactive shell.
 
-  This module is the main entry point for Interactive Elixir and
-  in this documentation we will talk a bit about how IEx works.
-
-  Notice that some of the functionalities described here will not be available
+  Some of the functionalities described here will not be available
   depending on your terminal. In particular, if you get a message
   saying that the smart terminal could not be run, some of the
   features described here won't work.
@@ -47,11 +44,77 @@ defmodule IEx do
 
       set ERL_AFLAGS "-kernel shell_history enabled"
 
+  ## Expressions in IEx
+
+  As an interactive shell, IEx evaluates expressions. This has some
+  interesting consequences that are worth discussing.
+
+  The first one is that the code is truly evaluated and not compiled.
+  This means that any benchmarking done in the shell is going to have
+  skewed results. So never run any profiling nor benchmarks in the shell.
+
+  Second, IEx allows you to break an expression into many lines,
+  since this is common in Elixir. For example:
+
+      iex(1)> "ab
+      ...(1)> c"
+      "ab\nc"
+
+  In the example above, the shell will be expecting more input until it
+  finds the closing quote. Sometimes it is not obvious which character
+  the shell is expecting, and the user may find themselves trapped in
+  the state of incomplete expression with no ability to terminate it other
+  than by exiting the shell.
+
+  For such cases, there is a special break-trigger (`#iex:break`) that when
+  encountered on a line by itself will force the shell to break out of any
+  pending expression and return to its normal state:
+
+      iex(1)> ["ab
+      ...(1)> c"
+      ...(1)> "
+      ...(1)> ]
+      ...(1)> #iex:break
+      ** (TokenMissingError) iex:1: incomplete expression
+
   ## The Break command
 
   Inside IEx, hitting `Ctrl+C` will open up the `BREAK` menu. In this
   menu you can quit the shell, see process and ets tables information
   and much more.
+
+  ## Exiting the shell
+
+  There are a few ways to quit the IEx shell:
+
+    * via the `BREAK` menu (available via `Ctrl+C`) by typing `q`, pressing enter
+    * by hitting `Ctrl+C`, `Ctrl+C`
+    * by hitting `Ctrl+\`
+
+  If you are connected to remote shell, it remains alive after disconnection.
+
+  ## Prying and breakpoints
+
+  IEx also has the ability to set breakpoints on Elixir code and
+  "pry" into running processes. This allows the developer to have
+  an IEx session run inside a given function.
+
+  `IEx.pry/0` can be used when you are able to modify the source
+  code directly and recompile it:
+
+      def my_fun(arg1, arg2) do
+        require IEx; IEx.pry
+        ... implementation ...
+      end
+
+  When the code is executed, it will ask you for permission to be
+  introspected.
+
+  Alternatively, you can use `IEx.break!/4` to setup a breakpoint
+  on a given module, function and arity you have no control of.
+  While `IEx.break!/4` is more flexible, it requires OTP 20+ and
+  it does not contain information about imports and aliases from
+  the source code.
 
   ## The User Switch command
 
@@ -85,8 +148,16 @@ defmodule IEx do
   Since shells are isolated from each other, you can't access the
   variables defined in one shell from the other one.
 
-  The user switch command menu also allows developers to connect to remote
-  shells using the `r` command. A topic which we will discuss next.
+  The User Switch command can also be used to terminate an existing
+  session, for example when the evaluator gets stuck in an infinite
+  loop or when you are stuck typing an expression:
+
+      User switch command
+       --> i
+       --> c
+
+  The user switch command menu also allows developers to connect to
+  remote shells using the `r` command. A topic which we will discuss next.
 
   ## Remote shells
 
@@ -209,48 +280,6 @@ defmodule IEx do
       iex(1)> [1, 2, 3, 4, 5]
       [1, 2, 3, ...]
 
-  ## Expressions in IEx
-
-  As an interactive shell, IEx evaluates expressions. This has some
-  interesting consequences that are worth discussing.
-
-  The first one is that the code is truly evaluated and not compiled.
-  This means that any benchmarking done in the shell is going to have
-  skewed results. So never run any profiling nor benchmarks in the shell.
-
-  Second, IEx allows you to break an expression into many lines,
-  since this is common in Elixir. For example:
-
-      iex(1)> "ab
-      ...(1)> c"
-      "ab\nc"
-
-  In the example above, the shell will be expecting more input until it
-  finds the closing quote. Sometimes it is not obvious which character
-  the shell is expecting, and the user may find themselves trapped in
-  the state of incomplete expression with no ability to terminate it other
-  than by exiting the shell.
-
-  For such cases, there is a special break-trigger (`#iex:break`) that when
-  encountered on a line by itself will force the shell to break out of any
-  pending expression and return to its normal state:
-
-      iex(1)> ["ab
-      ...(1)> c"
-      ...(1)> "
-      ...(1)> ]
-      ...(1)> #iex:break
-      ** (TokenMissingError) iex:1: incomplete expression
-
-  ## Exiting the shell
-
-  There are a few ways to quit the IEx shell:
-
-    * via the `BREAK` menu (available via `Ctrl+C`) by typing `q`, `Enter`
-    * by hitting `Ctrl+C`, `Ctrl+C`
-    * by hitting `Ctrl+\`
-
-  If you are connected to remote shell, it remains alive after disconnection.
   """
 
   @doc """
@@ -419,17 +448,23 @@ defmodule IEx do
   Pries into the process environment.
 
   This is useful for debugging a particular chunk of code
-  and inspect the state of a particular process. The process
-  is temporarily changed to trap exits (i.e. the process flag
-  `:trap_exit` is set to `true`) and has the `group_leader` changed
-  to support ANSI escape codes. Those values are reverted by
-  calling `respawn/0`, which starts a new IEx shell, freeing up
-  the pried one.
+  when executed by a particular process. The process becomes
+  the evaluator of IEx commands and is temporarily changed to
+  have a custom group leader. Those values are reverted by
+  calling `IEx.Helpers.respawn/0`, which starts a new IEx shell,
+  freeing up the pried one.
 
-  When a process is pried, all code runs inside IEx and, as
-  such, it is evaluated and cannot access private functions
-  of the module being pried. Module functions still need to be
-  accessed via `Mod.fun(args)`.
+  When a process is pried, all code runs inside IEx and has
+  access to all imports and aliases from the original code.
+  However, the code is evaluated and therefore cannot access
+  private functions of the module being pried. Module functions
+  still need to be accessed via `Mod.fun(args)`.
+
+  Alternatively, you can use `IEx.break!/4` to setup a breakpoint
+  on a given module, function and arity you have no control of.
+  While `IEx.break!/4` is more flexible, it requires OTP 20+ and
+  it does not contain information about imports and aliases from
+  the source code.
 
   ## Examples
 
@@ -470,11 +505,111 @@ defmodule IEx do
       Interactive Elixir - press Ctrl+C to exit (type h() ENTER for help)
 
   Setting variables or importing modules in IEx does not
-  affect the caller's environment (hence it is called `pry`).
+  affect the caller's environment. However, sending and
+  receiving messages will change the process state.
   """
   defmacro pry() do
     quote do
       IEx.Pry.pry(binding(), __ENV__)
+    end
+  end
+
+  @doc """
+  Sets up a breakpoint in the given module, function and arity.
+
+  This function will recompile the given module and load a new
+  version in memory with breakpoints at the given function and
+  arity.
+
+  When a breakpoint is reached, IEx will ask if you want to `pry`
+  the given function and arity. In other words, this works similar
+  to `IEx.pry/0` as the running process becomes the evaluator of
+  IEx commands and is temporarily changed to have a custom group
+  leader. However, differently from `IEx.pry/0`, aliases and imports
+  from the source code won't be available in the shell.
+
+  IEx helpers includes many conveniences related to breakpoints.
+  Below they are listed with the full module, such as `IEx.Helpers.breaks/0`,
+  but remember it can be called directly as `breaks()` inside IEx.
+  They are:
+
+    * `IEx.Helpers.break!/2` - sets up a breakpoint for a given `Mod.fun/arity`
+    * `IEx.Helpers.break!/4` - sets up a breakpoint for the given module, function, arity
+    * `IEx.Helpers.breaks/0` - prints all breakpoints and their ids
+    * `IEx.Helpers.continue/0` - continues until the next breakpoint in the same shell
+    * `IEx.Helpers.open/0` - opens editor on the current breakpoint
+    * `IEx.Helpers.remove_breaks/0` - removes all breakpoints in all modules
+    * `IEx.Helpers.remove_breaks/1` - removes all breakpoints in a given module
+    * `IEx.Helpers.reset_break/1` - resets all breaks for the given id or `Mod.fun/arity`
+    * `IEx.Helpers.reset_break/3` - resets all breaks for the given module, function, arity
+    * `IEx.Helpers.respawn/0` - starts a new shell (breakpoints will ask for permission once more)
+    * `IEx.Helpers.whereami/1` - shows the current location
+
+  By default, the number of stops in a breakpoint is 1. Any follow-up
+  call won't stop the code execution unless another breakpoint is set.
+
+  Alternatively, the number of be increased by passing the `stops`
+  argument. `IEx.Helpers.reset_break/1` and `IEx.Helpers.reset_break/3`
+  can be used to reset the number back to zero. Note the module remains
+  "instrumented" even after all stops on all breakpoints are consumed.
+  You can remove the instrumentation in a given module by calling
+  `IEx.Helpers.remove_breaks/1` and on all modules by calling
+  `IEx.Helpers.remove_breaks/0`.
+
+  To exit a breakpoint, the developer can either invoke `continue()`,
+  which will block the shell until the next breakpoint is found or
+  the process terminates, or invoke `respawn()`, which starts a new IEx
+  shell, freeing up the pried one.
+
+  This functionality only works on Elixir code and requires OTP 20+.
+
+  ## Examples
+
+  The following sets up a breakpoint on `URI.decode_query/2`:
+
+      IEx.break!(URI, :decode_query, 2)
+
+  The following call will setup a breakpoint that stops once.
+  To set a breakpoint that will stop 10 times:
+
+      IEx.break!(URI, :decode_query, 10)
+
+  `IEx.break!/2` is a convenience macro that allows breakpoints
+  to be given in the `Mod.fun/arity` format:
+
+      require IEx
+      IEx.break!(URI.decode_query/2)
+
+  Or to set a breakpoint that will stop 10 times:
+
+      IEx.break!(URI.decode_query/2, 10)
+
+  This function returns the breakpoint ID and will raise if there
+  is an error setting up the breakpoint.
+  """
+  def break!(module, function, arity, stops \\ 10) do
+    case IEx.Pry.break(module, function, arity, stops) do
+      {:ok, id} ->
+        id
+      {:error, kind} ->
+        message =
+          case kind do
+            :missing_debug_info ->
+              "module #{inspect module} was not compiled with debug_info"
+            :no_beam_file ->
+              "could not find .beam file for #{inspect module}"
+            :non_elixir_module ->
+              "module #{inspect module} was not written in Elixir"
+            :otp_20_is_required ->
+              "you are running on an earlier OTP version than OTP 20"
+            :outdated_debug_info ->
+              "module #{inspect module} was not compiled with the latest debug_info"
+            :recompilation_failed ->
+              "the module could not be compiled with breakpoints (likely an internal error)"
+            :unknown_function_arity ->
+              "unknown function/macro #{Exception.format_mfa(module, function, arity)}"
+          end
+        raise ArgumentError, "could not set breakpoint, " <> message
     end
   end
 

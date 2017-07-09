@@ -11,13 +11,13 @@ defmodule IEx.AutocompleteTest do
 
   defmodule MyServer do
     def evaluator do
-      Process.get(:evaluator)
+      {Process.get(:evaluator), self()}
     end
   end
 
   defp eval(line) do
     ExUnit.CaptureIO.capture_io(fn ->
-      evaluator = MyServer.evaluator
+      {evaluator, _} = MyServer.evaluator
       Process.group_leader(evaluator, Process.group_leader)
       send evaluator, {:eval, self(), line <> "\n", %IEx.State{}}
       assert_receive {:evaled, _, _}

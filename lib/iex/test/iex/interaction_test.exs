@@ -102,6 +102,12 @@ defmodule IEx.InteractionTest do
            ~r/erl_eval/s
   end
 
+  test "exception while invoking conflicting helpers" do
+    import File, only: [open: 1], warn: false
+    assert capture_iex("open('README.md')", [], [env: __ENV__]) =~
+           ~r"function open/1 imported from both File and IEx.Helpers"
+  end
+
   test "receive exit" do
     assert capture_iex("spawn_link(fn -> exit(:bye) end); Process.sleep(1000)") =~
            ~r"\*\* \(EXIT from #PID<\d+\.\d+\.\d+>\) :bye"
