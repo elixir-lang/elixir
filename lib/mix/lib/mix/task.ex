@@ -193,7 +193,7 @@ defmodule Mix.Task do
   end
 
   def alias?(task) when is_atom(task) do
-    !!Mix.Project.config[:aliases][task]
+    Keyword.has_key?(Mix.Project.config()[:aliases], task)
   end
 
   @doc """
