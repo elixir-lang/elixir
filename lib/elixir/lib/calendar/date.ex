@@ -273,7 +273,7 @@ defmodule Date do
       iex> Date.from_iso8601!("2015:01:23")
       ** (ArgumentError) cannot parse "2015:01:23" as date, reason: :invalid_format
   """
-  @spec from_iso8601!(String.t) :: t | no_return
+  @spec from_iso8601!(String.t) :: t
   def from_iso8601!(string, calendar \\ Calendar.ISO) do
     case from_iso8601(string, calendar) do
       {:ok, value} ->
@@ -368,7 +368,7 @@ defmodule Date do
       ** (ArgumentError) cannot convert {2000, 13, 1} to date, reason: :invalid_date
 
   """
-  @spec from_erl!(:calendar.date) :: t | no_return
+  @spec from_erl!(:calendar.date) :: t
   def from_erl!(tuple) do
     case from_erl(tuple) do
       {:ok, value} ->
@@ -401,7 +401,7 @@ defmodule Date do
       :eq
 
   """
-  @spec compare(Calendar.date, Calendar.date) :: :lt | :eq | :gt | no_return
+  @spec compare(Calendar.date, Calendar.date) :: :lt | :eq | :gt
   def compare(%{calendar: calendar, year: year1, month: month1, day: day1},
               %{calendar: calendar, year: year2, month: month2, day: day2}) do
     case {{year1, month1, day1}, {year2, month2, day2}} do
@@ -469,7 +469,7 @@ defmodule Date do
       %Date{calendar: Calendar.Julian, year: 1999, month: 12, day: 19}
 
   """
-  @spec convert!(Calendar.date, Calendar.calendar) :: t | no_return
+  @spec convert!(Calendar.date, Calendar.calendar) :: t
   def convert!(date, calendar) do
     case convert(date, calendar) do
       {:ok, value} ->
@@ -520,7 +520,7 @@ defmodule Date do
       -2
 
   """
-  @spec diff(Calendar.date, Calendar.date) :: integer | no_return
+  @spec diff(Calendar.date, Calendar.date) :: integer
   def diff(%{calendar: Calendar.ISO, year: year1, month: month1, day: day1},
            %{calendar: Calendar.ISO, year: year2, month: month2, day: day2}) do
     Calendar.ISO.date_to_rata_die_days(year1, month1, day1) -

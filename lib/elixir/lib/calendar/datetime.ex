@@ -127,7 +127,7 @@ defmodule DateTime do
       #DateTime<2015-05-25 13:26:08.868569Z>
 
   """
-  @spec from_unix!(integer, :native | System.time_unit, Calendar.calendar) :: t | no_return
+  @spec from_unix!(integer, :native | System.time_unit, Calendar.calendar) :: t
   def from_unix!(integer, unit \\ :second, calendar \\ Calendar.ISO) when is_atom(unit) do
     case from_unix(integer, unit, calendar) do
       {:ok, datetime} ->
@@ -173,7 +173,7 @@ defmodule DateTime do
       #DateTime<2016-05-24 13:26:08.003Z>
 
   """
-  @spec from_naive!(NaiveDateTime.t, Calendar.time_zone) :: t | no_return
+  @spec from_naive!(NaiveDateTime.t, Calendar.time_zone) :: t
   def from_naive!(naive_datetime, time_zone) do
     case from_naive(naive_datetime, time_zone) do
       {:ok, datetime} ->
