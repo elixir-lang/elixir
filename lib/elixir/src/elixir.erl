@@ -179,6 +179,7 @@ env_for_eval(Env, Opts) ->
 
   FA = case lists:keyfind(function, 1, Opts) of
     {function, {Function, Arity}} when is_atom(Function), is_integer(Arity) -> {Function, Arity};
+    {function, nil} -> nil;
     false -> nil
   end,
 
