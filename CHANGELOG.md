@@ -18,6 +18,28 @@ Elixir follows the recommendations in [Unicode Annex #31](http://unicode.org/rep
 
 For a complete reference on Elixir syntax, see the [Syntax Reference](https://hexdocs.pm/elixir/syntax-reference.html). For technical details on Unicode support, see [Unicode Syntax](https://hexdocs.pm/elixir/unicode-syntax.html).
 
+## IEx improvements
+
+IEx got many improvements. The autocompletion system is now capable of autocompleting variables and user imports. New helpers have also been added:
+
+  * `exports/1` lists all exports (functions and macros) in a given module
+  * `open/1` opens up the source of a module or function directly in your editor. For example, `open MyApp.Module`
+  * `system_info/0` prints general information about the running system, such as number of cores, runtime version, allocation of memory in the VM and more
+
+IEx also features a breakpoint system for code debugging. The following functions have been added to aid debugging:
+
+  * `break!/2` - sets up a breakpoint for a given `Mod.fun/arity`
+  * `break!/4` - sets up a breakpoint for the given module, function, arity
+  * `breaks/0` - prints all breakpoints and their ids
+  * `continue/0` - continues until the next breakpoint in the same process
+  * `open/0` - opens editor on the current breakpoint
+  * `remove_breaks/0` - removes all breakpoints in all modules
+  * `remove_breaks/1` - removes all breakpoints in a given module
+  * `reset_break/1` - sets the number of stops on the given id to zero
+  * `reset_break/3` - sets the number of stops on the given module, function, arity to zer
+  * `respawn/0` - starts a new shell (breakpoints will ask for permission once more)
+  * `whereami/1` - shows the current location
+
 ## Exception.blame
 
 `Exception.blame/3` is a new function in Elixir that is capable of attaching debug information to certain exceptions. Currently this is used to augment `FunctionClauseError`s with a summary of all clauses and which parts of clause match and which ones didn't. For example:
@@ -145,6 +167,13 @@ This release brings further improvements to Calendar types. It adds arithmetic a
   * [Enum] Introduce `Enum.chunk_every/2` and `Enum.chunk_every/4` with a more explicit API than `Enum.chunk/2` and `Enum.chunk/4`
   * [Kernel] Cache the AST on definitions. This speeds up the compilation time from 10% to 15% measured across different projects.
   * [Stream] Introduce `Stream.chunk_every/2` and `Stream.chunk_every/4` with a more explicit API than `Stream.chunk/2` and `Stream.chunk/4`
+
+#### IEx
+
+  * [IEx.Helpers] Add `break!/2`, `break!/4`, `breaks/0`, `continue/0`, `open/0`, `remove_breaks/0`, `remove_breaks/1`, `reset_break/1`, `reset_break/3` and `whereami/1` for code debugging
+  * [IEx.Helpers] No longer emit warnings for IEx commands without parentheses
+  * [IEx.Helpers] Add `system_info/0` for printing runtime system information
+  * [IEx.Helpers] Add `open/1` to open the source of a given module/function in your editor
 
 ### 2. Bug fixes
 
