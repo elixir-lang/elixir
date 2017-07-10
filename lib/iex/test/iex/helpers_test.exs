@@ -235,10 +235,10 @@ defmodule IEx.HelpersTest do
     end
   end
 
-  describe "system_info" do
-    test "shows system information" do
+  describe "runtime_info" do
+    test "shows vm information" do
       assert "\n## System and architecture" <> _ =
-             capture_io(fn -> system_info() end)
+             capture_io(fn -> runtime_info() end)
     end
   end
 
