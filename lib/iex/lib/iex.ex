@@ -594,10 +594,10 @@ defmodule IEx do
 
       IEx.break!(URI, :decode_query, 2)
 
-  The following call will setup a breakpoint that stops once.
+  This call will setup a breakpoint that stops once.
   To set a breakpoint that will stop 10 times:
 
-      IEx.break!(URI, :decode_query, 10)
+      IEx.break!(URI, :decode_query, 2, 10)
 
   `IEx.break!/2` is a convenience macro that allows breakpoints
   to be given in the `Mod.fun/arity` format:
@@ -622,7 +622,7 @@ defmodule IEx do
       iex -S mix test path/to/file:line --trace
 
   """
-  def break!(module, function, arity, stops \\ 10) do
+  def break!(module, function, arity, stops \\ 1) do
     case IEx.Pry.break(module, function, arity, stops) do
       {:ok, id} ->
         id
