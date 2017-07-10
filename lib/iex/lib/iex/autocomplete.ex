@@ -395,8 +395,8 @@ defmodule IEx.Autocomplete do
   ## Evaluator interface
 
   defp imports_from_env(server) do
-    with evaluator when is_pid(evaluator) <- server.evaluator(),
-         env_fields = IEx.Evaluator.fields_from_env(evaluator, [:functions, :macros]),
+    with {evaluator, server} <- server.evaluator(),
+         env_fields = IEx.Evaluator.fields_from_env(evaluator, server, [:functions, :macros]),
          %{functions: funs, macros: macros} <- env_fields do
       Enum.flat_map(funs ++ macros, &elem(&1, 1))
     else
@@ -405,8 +405,8 @@ defmodule IEx.Autocomplete do
   end
 
   defp aliases_from_env(server) do
-    with evaluator when is_pid(evaluator) <- server.evaluator,
-         %{aliases: aliases} <- IEx.Evaluator.fields_from_env(evaluator, [:aliases]) do
+    with {evaluator, server} <- server.evaluator(),
+         %{aliases: aliases} <- IEx.Evaluator.fields_from_env(evaluator, server, [:aliases]) do
       aliases
     else
       _ -> []
@@ -414,17 +414,17 @@ defmodule IEx.Autocomplete do
   end
 
   defp variables_from_binding(hint, server) do
-    with evaluator when is_pid(evaluator) <- server.evaluator() do
-      IEx.Evaluator.variables_from_binding(evaluator, hint)
+    with {evaluator, server} <- server.evaluator() do
+      IEx.Evaluator.variables_from_binding(evaluator, server, hint)
     else
       _ -> []
     end
   end
 
   defp value_from_binding(ast_node, server) do
-    with evaluator when is_pid(evaluator) <- server.evaluator(),
+    with {evaluator, server} <- server.evaluator(),
          {var, map_key_path} <- extract_from_ast(ast_node, []) do
-      IEx.Evaluator.value_from_binding(evaluator, var, map_key_path)
+      IEx.Evaluator.value_from_binding(evaluator, server, var, map_key_path)
     else
       _ -> :error
     end
