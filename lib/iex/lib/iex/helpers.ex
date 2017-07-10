@@ -35,6 +35,7 @@ defmodule IEx.Helpers do
     * `i/1`           - prints information about the given term
     * `ls/0`          - lists the contents of the current directory
     * `ls/1`          - lists the contents of the specified directory
+    * `open/1`        - opens the source for the given module or function in your editor
     * `pid/1`         - creates a PID from a string
     * `pid/3`         - creates a PID with the 3 integer arguments passed
     * `pwd/0`         - prints the current working directory
@@ -53,6 +54,9 @@ defmodule IEx.Helpers do
   exports (functions and macros) in the `IEx.Helpers` module:
 
       iex> e(IEx.Helpers)
+
+  This module also include helpers for debugging purposes, see
+  `IEx.break!/4` for more information.
 
   To learn more about IEx as a whole, type `h(IEx)`.
   """
@@ -194,11 +198,57 @@ defmodule IEx.Helpers do
   end
 
   @doc """
+  Opens the current prying location.
+
+  This command only works inside a pry session started manually
+  via `IEx.pry/0` or a breakpoint set via `IEx.break!/4`. Calling
+  this function during a regular `IEx` session will print an error.
+
+  Keep in mind the `open/0` location may not exist when prying
+  precompiled source code, such as Elixir itself.
+
+  For more information and to open any module or function, see
+  `open/1`.
+  """
+  def open() do
+    case Process.get(:iex_whereami) do
+      {file, line} ->
+        IEx.Introspection.open({file, line})
+      _ ->
+        IO.puts IEx.color(:eval_error, "Pry session is not currently enabled")
+    end
+
+    dont_display_result()
+  end
+
+  @doc """
+  Opens the given module, module/function/arity or file.
+
+  This function uses the `ELIXIR_EDITOR` environment variable
+  and falls back to EDITOR if the former is not available.
+
+  Since this function prints the result returned by the
+  editor, `ELIXIR_EDITOR` can be set "echo" if you prefer
+  to display the location rather than opening it.
+
+  ## Examples
+
+      iex> open MyApp
+      iex> open MyApp.fun/2
+      iex> open "path/to/file"
+
+  """
+  defmacro open(term) do
+    quote do
+      IEx.Introspection.open(unquote(IEx.Introspection.decompose(term)))
+    end
+  end
+
+  @doc """
   Prints the documentation for `IEx.Helpers`.
   """
   def h() do
     IEx.Introspection.h(IEx.Helpers)
-    dont_display_result()
   end
 
   @doc """
@@ -626,14 +676,177 @@ defmodule IEx.Helpers do
 
   @doc """
   Respawns the current shell by starting a new shell process.
-
-  Returns `true` if it worked.
   """
   def respawn do
     if whereis = IEx.Server.whereis do
       send whereis, {:respawn, self()}
-      dont_display_result()
     end
+    dont_display_result()
+  end
+
+  @doc """
+  Continues execution of the current process.
+
+  This is usually called by sessions started with `IEx.pry/0`
+  or `IEx.break!/4`. This allows the current to execute until
+  the next breakpoint, which will automatically yield control
+  back to IEx without requesting permission to pry.
+
+  If the running process terminates, a new IEx session is
+  started.
+
+  While the process executes, the user will no longer have
+  control of the shell. If you would rather start a new shell,
+  use `respawn/0` instead.
+  """
+  def continue do
+    if whereis = IEx.Server.whereis do
+      send whereis, {:continue, self()}
+    end
+    dont_display_result()
+  end
+
+  @doc """
+  Macro-based shortcut for `IEx.break!/4`.
+  """
+  defmacro break!(ast, stops \\ 1) do
+    quote do
+      require IEx
+      IEx.break!(unquote(ast), unquote(stops))
+    end
+  end
+
+  @doc """
+  Sets up a breakpoint in `module`, `function` and `arity`
+  with the given number of `stops`.
+
+  See `IEx.break!/4` for a complete description of breakpoints
+  in IEx.
+  """
+  defdelegate break!(module, function, arity, stops \\ 1), to: IEx
+
+  @doc """
+  Prints all breakpoints to the terminal.
+  """
+  def breaks do
+    breaks(IEx.Pry.breaks())
+  end
+
+  defp breaks([]) do
+    IO.puts IEx.color(:eval_info, "No breakpoints set")
+    dont_display_result()
+  end
+
+  defp breaks(breaks) do
+    entries =
+      for {id, module, {function, arity}, stops} <- breaks do
+        {Integer.to_string(id),
+         Exception.format_mfa(module, function, arity),
+         Integer.to_string(stops)}
+      end
+
+    entries = [{"ID", "Module.function/arity", "Pending stops"} | entries]
+
+    {id_max, mfa_max, stops_max} =
+      Enum.reduce(entries, {0, 0, 0}, fn {id, mfa, stops}, {id_max, mfa_max, stops_max} ->
+        {max(byte_size(id), id_max),
+         max(byte_size(mfa), mfa_max),
+         max(byte_size(stops), stops_max)}
+      end)
+
+    [header | entries] = entries
+
+    IO.puts ""
+    print_break(header, id_max, mfa_max)
+    IO.puts [String.duplicate("-", id_max + 2), ?\s,
+             String.duplicate("-", mfa_max + 2), ?\s,
+             String.duplicate("-", stops_max + 2)]
+    Enum.each(entries, &print_break(&1, id_max, mfa_max))
+    IO.puts ""
+
+    dont_display_result()
+  end
+
+  defp print_break({id, mfa, stops}, id_max, mfa_max) do
+    IO.puts [?\s, String.pad_trailing(id, id_max + 2),
+             ?\s, String.pad_trailing(mfa, mfa_max + 2),
+             ?\s, stops]
+  end
+
+  @doc """
+  Sets the number of pending stops in the breakpoint
+  with the given id to zero.
+
+  Returns `:ok` if there is such breakpoint id. `:not_found`
+  otherwise.
+
+  Note the module remains "instrumented" on reset. If you would
+  like to effectively remove all breakpoints and instrumentation
+  code from a module, use `remove_breaks/1` instead.
+  """
+  defdelegate reset_break(id), to: IEx.Pry
+
+  @doc """
+  Sets the number of pending stops in the given module,
+  function and arity to zero.
+
+  If the module is not instrumented or if the given function
+  does not have a breakpoint, it is a no-op and it returns
+  `:not_found`. Otherwise it returns `:ok`.
+
+  Note the module remains "instrumented" on reset. If you would
+  like to effectively remove all breakpoints and instrumentation
+  code from a module, use `remove_breaks/1` instead.
+  """
+  defdelegate reset_break(module, function, arity), to: IEx.Pry
+
+  @doc """
+  Removes all breakpoints and instrumentation from `module`.
+  """
+  defdelegate remove_breaks(module), to: IEx.Pry
+
+  @doc """
+  Removes all breakpoints and instrumentation from all modules.
+  """
+  defdelegate remove_breaks(), to: IEx.Pry
+
+  @doc """
+  Prints the current location in a pry session.
+
+  It expects a `radius` which chooses how many lines before and after
+  the current line we should print. By default the `radius` is of two
+  lines:
+
+      Location: lib/iex/lib/iex/helpers.ex:79
+
+      77:
+      78:   def recompile do
+      79:     require IEx; IEx.pry
+      80:     if mix_started?() do
+      81:       config = Mix.Project.config
+
+  This command only works inside a pry session started manually
+  via `IEx.pry/0` or a breakpoint set via `IEx.break!/4`. Calling
+  this function during a regular `IEx` session will print an error.
+
+  Keep in mind the `whereami/1` location may not exist when prying
+  precompiled source code, such as Elixir itself.
+  """
+  def whereami(radius \\ 2) do
+    case Process.get(:iex_whereami) do
+      {file, line} ->
+        IO.puts IEx.color(:eval_info, ["Location: ", Path.relative_to_cwd(file), ":", Integer.to_string(line)])
+        case IEx.Pry.whereami(file, line, radius) do
+          {:ok, lines} ->
+            IO.write [?\n, lines, ?\n]
+          :error ->
+            IO.puts IEx.color(:eval_error, "Could not extract source snippet. Location is not available.")
+        end
+      _ ->
+        IO.puts IEx.color(:eval_error, "Pry session is not currently enabled")
+    end
+
+    dont_display_result()
   end
 
   @doc """
