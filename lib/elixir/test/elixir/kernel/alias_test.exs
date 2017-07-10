@@ -28,7 +28,7 @@ defmodule Kernel.AliasTest do
   end
 
   test "lexical" do
-    if true do
+    if true_fun() do
       alias OMG, as: List, warn: false
     else
       alias ABC, as: List, warn: false
@@ -36,6 +36,8 @@ defmodule Kernel.AliasTest do
 
     assert List.flatten([1, [2], 3]) == [1, 2, 3]
   end
+
+  defp true_fun(), do: true
 
   defmodule Elixir do
     def sample, do: 1

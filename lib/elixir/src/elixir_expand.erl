@@ -593,7 +593,7 @@ expand_case(false, Meta, Expr, Opts, E) ->
 
 rewrite_case_clauses([{do, [
   {'->', FalseMeta, [
-    [{'when', _, [Var, {{'.', _, [erlang, 'or']}, _, [
+    [{'when', _, [Var, {{'.', _, [erlang, 'orelse']}, _, [
       {{'.', _, [erlang, '=:=']}, _, [Var, nil]},
       {{'.', _, [erlang, '=:=']}, _, [Var, false]}
     ]}]}],

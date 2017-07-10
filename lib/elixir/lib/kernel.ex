@@ -3028,31 +3028,43 @@ defmodule Kernel do
   defmacro left in right do
     in_module? = (__CALLER__.context == nil)
 
-    right = case bootstrapped?(Macro) do
-      true  -> Macro.expand(right, __CALLER__)
-      false -> right
+    expand = case bootstrapped?(Macro) do
+      true -> &Macro.expand(&1, __CALLER__)
+      false -> &(&1)
     end
 
-    case right do
+    case expand.(right) do
       [] when not in_module? ->
         false
 
-      [h | t] ->
-        in_var(in_module?, left, &in_list(&1, h, t))
+      [head | tail] = list when not in_module? ->
+        in_var(in_module?, left, &in_list(&1, head, tail, expand, list, in_module?))
+
+      [_ | _] = list when in_module? ->
+        case ensure_evaled(list, {0, []}, expand) do
+          {[head | tail], {_, []}} ->
+            in_var(in_module?, left, &in_list(&1, head, tail, expand, list, in_module?))
+          {[head | tail], {_, vars_values}} ->
+            {vars, values} = :lists.unzip(:lists.reverse(vars_values))
+            quote do
+              {unquote_splicing(vars)} = {unquote_splicing(values)}
+              unquote(in_var(in_module?, left, &in_list(&1, head, tail, expand, list, in_module?)))
+            end
+        end
 
       {:%{}, _meta, [__struct__: Elixir.Range, first: first, last: last]} ->
         first = Macro.expand(first, __CALLER__)
         last  = Macro.expand(last, __CALLER__)
         in_var(in_module?, left, &in_range(&1, first, last))
 
-      _ when in_module? ->
+      right when in_module? ->
         quote do: Elixir.Enum.member?(unquote(right), unquote(left))
 
       %{__struct__: Elixir.Range, first: _, last: _} ->
         raise ArgumentError, "non-literal range in guard should be escaped with Macro.escape/2"
 
-      _ ->
-        raise ArgumentError, <<"invalid args for operator \"in\", it expects a compile-time list ",
+      right ->
+        raise ArgumentError, <<"invalid args for operator \"in\", it expects a compile-time proper list ",
                                "or compile-time range on the right side when used in guard expressions, got: ",
                                Macro.to_string(right)::binary>>
     end
@@ -3067,6 +3079,37 @@ defmodule Kernel do
       var = unquote(ast)
       unquote(fun.(quote(do: var)))
     end
+  end
+
+  # Called as ensure_evaled(list, {0, []}). Note acc is reversed.
+  defp ensure_evaled(list, acc, expand) do
+    :lists.mapfoldl(fn
+      {:|, meta, [head, tail]}, acc ->
+        {head, acc} = ensure_evaled_element(head, acc)
+        {tail, acc} = ensure_evaled_tail(expand.(tail), acc, expand)
+        {{:|, meta, [head, tail]}, acc}
+      elem, acc ->
+        ensure_evaled_element(elem, acc)
+    end, acc, list)
+  end
+
+  defp ensure_evaled_element(elem, acc) when is_number(elem) or is_atom(elem) or is_binary(elem) do
+    {elem, acc}
+  end
+  defp ensure_evaled_element(elem, acc) do
+    ensure_evaled_var(elem, acc)
+  end
+
+  defp ensure_evaled_tail(elem, acc, expand) when is_list(elem) do
+    ensure_evaled(elem, acc, expand)
+  end
+  defp ensure_evaled_tail(elem, acc, _expand) do
+    ensure_evaled_var(elem, acc)
+  end
+
+  defp ensure_evaled_var(elem, {index, ast}) do
+    var = {String.to_atom("var" <> Integer.to_string(index)), [], __MODULE__}
+    {var, {index + 1, [{var, elem} | ast]}}
   end
 
   defp in_range(left, first, last) do
@@ -3094,43 +3137,60 @@ defmodule Kernel do
 
   defp in_range_literal(left, first, last) when first < last do
     quote do
-      :erlang.is_integer(unquote(left)) and
-        unquote(increasing_compare(left, first, last))
+      :erlang.andalso(:erlang.is_integer(unquote(left)),
+                      unquote(increasing_compare(left, first, last)))
     end
   end
 
   defp in_range_literal(left, first, last) do
     quote do
-      :erlang.is_integer(unquote(left)) and
-        unquote(decreasing_compare(left, first, last))
+      :erlang.andalso(:erlang.is_integer(unquote(left)),
+                      unquote(decreasing_compare(left, first, last)))
     end
   end
 
-  defp in_list(left, h, t) do
-    :lists.foldr(fn x, acc ->
-      quote do: :erlang.or(unquote(comp(left, x)), unquote(acc))
-    end, comp(left, h), t)
+  defp in_list(left, head, tail, expand, right, in_module?) do
+    :lists.foldr(fn elem, acc ->
+      quote do: :erlang.orelse(unquote(comp(left, elem, expand, right, in_module?)), unquote(acc))
+    end, comp(left, head, expand, right, in_module?), tail)
   end
 
-  defp comp(left, {:|, _, [h, t]}) do
-    quote(do: :erlang.or(:erlang."=:="(unquote(left), unquote(h)), unquote(left) in unquote(t)))
+  defp comp(left, {:|, _, [head, tail]}, expand, right, in_module?) do
+    case expand.(tail) do
+      [] ->
+        quote(do: :erlang."=:="(unquote(left), unquote(head)))
+      [tail_head | tail] ->
+        quote do
+          :erlang.orelse(:erlang."=:="(unquote(left), unquote(head)),
+                         unquote(in_list(left, tail_head, tail, expand, right, in_module?)))
+        end
+      tail when in_module? ->
+        quote do
+          :erlang.orelse(:erlang."=:="(unquote(left), unquote(head)),
+                         :lists.member(unquote(left), unquote(tail)))
+        end
+      _ ->
+        raise ArgumentError, <<"invalid args for operator \"in\", it expects a compile-time proper list ",
+                               "or compile-time range on the right side when used in guard expressions, got: ",
+                               Macro.to_string(right)::binary>>
+    end
   end
 
-  defp comp(left, right) do
+  defp comp(left, right, _expand, _right, _in_module?) do
     quote(do: :erlang."=:="(unquote(left), unquote(right)))
   end
 
   defp increasing_compare(var, first, last) do
     quote do
-      :erlang.">="(unquote(var), unquote(first)) and
-        :erlang."=<"(unquote(var), unquote(last))
+      :erlang.andalso(:erlang.">="(unquote(var), unquote(first)),
+                      :erlang."=<"(unquote(var), unquote(last)))
     end
   end
 
   defp decreasing_compare(var, first, last) do
     quote do
-      :erlang."=<"(unquote(var), unquote(first)) and
-        :erlang.">="(unquote(var), unquote(last))
+      :erlang.andalso(:erlang."=<"(unquote(var), unquote(first)),
+                      :erlang.">="(unquote(var), unquote(last)))
     end
   end
 

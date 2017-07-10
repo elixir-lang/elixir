@@ -336,6 +336,23 @@ defmodule KernelTest do
       assert case_in(-3, -1..-3) == true
     end
 
+    test "performs all side-effects" do
+      assert 1 in [1, send(self(), 2)]
+      assert_received 2
+
+      assert 1 in [1 | send(self(), [2])]
+      assert_received [2]
+
+      assert 2 in [1 | send(self(), [2])]
+      assert_received [2]
+    end
+
+    test "has proper evaluation order" do
+      a = 1
+      assert 1 in [a = 2, a]
+      _ = a # silence unused var warning
+    end
+
     test "in module body" do
       defmodule InSample do
         @foo [:a, :b]
@@ -359,37 +376,40 @@ defmodule KernelTest do
 
     test "with a non-literal non-escaped compile-time range in guards" do
       message = "non-literal range in guard should be escaped with Macro.escape/2"
-      assert_raise ArgumentError, message, fn ->
-        Code.eval_string """
-        defmodule InErrors do
-          range = 1..3
-          def foo(x) when x in unquote(range), do: :ok
-        end
-        """
+      assert_eval_raise ArgumentError, message, """
+      defmodule InErrors do
+        range = 1..3
+        def foo(x) when x in unquote(range), do: :ok
       end
+      """
     end
 
     test "with a non-compile-time range in guards" do
       message = ~r/invalid args for operator "in", .* got: :hello/
-      assert_raise ArgumentError, message, fn ->
-        Code.eval_string """
-        defmodule InErrors do
-          def foo(x) when x in :hello, do: :ok
-        end
-        """
+      assert_eval_raise ArgumentError, message, """
+      defmodule InErrors do
+        def foo(x) when x in :hello, do: :ok
       end
+      """
     end
 
     test "with a non-compile-time list cons in guards" do
-      message = ~r/invalid args for operator "in", .* got: list\(\)/
-      assert_raise ArgumentError, message, fn ->
-        Code.eval_string """
-        defmodule InErrors do
-          def list, do: [1]
-          def foo(x) when x in [1 | list()], do: :ok
-        end
-        """
+      message = ~r/invalid args for operator "in", .* got: \[1 | list\(\)\]/
+      assert_eval_raise ArgumentError, message, """
+      defmodule InErrors do
+        def list, do: [1]
+        def foo(x) when x in [1 | list()], do: :ok
       end
+      """
+    end
+
+    test "with a compile-time non-list in tail in guards" do
+      message = ~r/invalid args for operator "in", .* got: \[1 | 1..3\]/
+      assert_eval_raise ArgumentError, message, """
+      defmodule InErrors do
+        def foo(x) when x in [1 | 1..3], do: :ok
+      end
+      """
     end
 
     test "with a non-integer range" do
@@ -409,17 +429,28 @@ defmodule KernelTest do
 
       result = expand_to_string(quote(do: rand() in [1, 2]))
       assert result =~ "var = rand()"
-      assert result =~ ":erlang.or(:erlang.\"=:=\"(var, 2), :erlang.\"=:=\"(var, 1))"
+      assert result =~ ":erlang.orelse(:erlang.\"=:=\"(var, 2), :erlang.\"=:=\"(var, 1))"
 
       result = expand_to_string(quote(do: rand() in [1 | [2]]))
       assert result =~ "var = rand()"
-      assert result =~ ":erlang.or(:erlang.\"=:=\"(var, 1), :erlang.\"=:=\"(var, 2))"
+      assert result =~ ":erlang.orelse(:erlang.\"=:=\"(var, 1), :erlang.\"=:=\"(var, 2))"
+
+      result = expand_to_string(quote(do: rand() in [1 | some_call()]))
+      assert result =~ "var = rand()"
+      assert result =~ "{var0} = {some_call()}"
+      assert result =~ ":erlang.orelse(:erlang.\"=:=\"(var, 1), :lists.member(var, var0))"
     end
 
     defp expand_to_string(ast) do
       ast
       |> Macro.prewalk(&Macro.expand(&1, __ENV__))
       |> Macro.to_string
+    end
+
+    defp assert_eval_raise(error, msg, string) do
+      assert_raise error, msg, fn ->
+        Code.eval_string(string)
+      end
     end
   end
 
