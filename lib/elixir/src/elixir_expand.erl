@@ -360,10 +360,15 @@ expand({Name, Meta, Kind} = Var, #{vars := Vars} = E) when is_atom(Name), is_ato
         {var, true} ->
           form_error(Meta, ?key(E, file), ?MODULE, {undefined_var, Name, Kind});
         _ ->
-          Message =
-            io_lib:format("variable \"~ts\" does not exist and is being expanded to \"~ts()\","
-              " please use parentheses to remove the ambiguity or change the variable name", [Name, Name]),
-          elixir_errors:warn(?line(Meta), ?key(E, file), Message),
+          case ?key(E, match_vars) of
+            warn ->
+              Message =
+                io_lib:format("variable \"~ts\" does not exist and is being expanded to \"~ts()\","
+                  " please use parentheses to remove the ambiguity or change the variable name", [Name, Name]),
+              elixir_errors:warn(?line(Meta), ?key(E, file), Message);
+            apply ->
+              ok
+          end,
           expand({Name, Meta, []}, E)
       end
   end;

@@ -119,17 +119,7 @@ defmodule IEx.Config do
   # Agent API
 
   def start_link(_) do
-    Agent.start_link(__MODULE__, :handle_init, [@table], [name: @agent])
-  end
-
-  def new() do
-    tab = :ets.new(@table, [:named_table, :public])
-    true = :ets.insert_new(tab, [after_spawn: []])
-    tab
-  end
-
-  def delete(__MODULE__) do
-    :ets.delete(__MODULE__)
+    Agent.start_link(__MODULE__, :handle_init, [], name: @agent)
   end
 
   def after_spawn(fun) do
@@ -146,9 +136,10 @@ defmodule IEx.Config do
 
   # Agent callbacks
 
-  def handle_init(tab) do
-    :public = :ets.info(tab, :protection)
-    tab
+  def handle_init do
+    :ets.new(@table, [:named_table, :public])
+    true = :ets.insert_new(@table, [after_spawn: []])
+    @table
   end
 
   def handle_after_spawn(tab, fun) do
@@ -164,10 +155,9 @@ defmodule IEx.Config do
   end
 
   defp update_configuration(config) do
-    put = fn({key, value}) when key in @keys ->
+    Enum.each(config, fn {key, value} when key in @keys ->
       Application.put_env(:iex, key, value)
-    end
-    Enum.each(config, put)
+    end)
   end
 
   defp merge_option(:colors, old, new) when is_list(new), do: Keyword.merge(old, new)
