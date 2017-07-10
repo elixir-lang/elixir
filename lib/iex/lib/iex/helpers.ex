@@ -726,6 +726,91 @@ defmodule IEx.Helpers do
   defdelegate break!(module, function, arity, stops \\ 1), to: IEx
 
   @doc """
+  Prints all breakpoints to the terminal.
+  """
+  def breaks do
+    breaks(IEx.Pry.breaks())
+  end
+
+  defp breaks([]) do
+    IO.puts IEx.color(:eval_info, "No breakpoints set")
+    dont_display_result()
+  end
+
+  defp breaks(breaks) do
+    entries =
+      for {id, module, {function, arity}, stops} <- breaks do
+        {Integer.to_string(id),
+         Exception.format_mfa(module, function, arity),
+         Integer.to_string(stops)}
+      end
+
+    entries = [{"ID", "Module.function/arity", "Pending stops"} | entries]
+
+    {id_max, mfa_max, stops_max} =
+      Enum.reduce(entries, {0, 0, 0}, fn {id, mfa, stops}, {id_max, mfa_max, stops_max} ->
+        {max(byte_size(id), id_max),
+         max(byte_size(mfa), mfa_max),
+         max(byte_size(stops), stops_max)}
+      end)
+
+    [header | entries] = entries
+
+    IO.puts ""
+    print_break(header, id_max, mfa_max)
+    IO.puts [String.duplicate("-", id_max + 2), ?\s,
+             String.duplicate("-", mfa_max + 2), ?\s,
+             String.duplicate("-", stops_max + 2)]
+    Enum.each(entries, &print_break(&1, id_max, mfa_max))
+    IO.puts ""
+
+    dont_display_result()
+  end
+
+  defp print_break({id, mfa, stops}, id_max, mfa_max) do
+    IO.puts [?\s, String.pad_trailing(id, id_max + 2),
+             ?\s, String.pad_trailing(mfa, mfa_max + 2),
+             ?\s, stops]
+  end
+
+  @doc """
+  Sets the number of pending stops in the breakpoint
+  with the given id to zero.
+
+  Returns `:ok` if there is such breakpoint id. `:not_found`
+  otherwise.
+
+  Note the module remains "instrumented" on reset. If you would
+  like to effectively remove all breakpoints and instrumentation
+  code from a module, use `remove_breaks/1` instead.
+  """
+  defdelegate reset_break(id), to: IEx.Pry
+
+  @doc """
+  Sets the number of pending stops in the given module,
+  function and arity to zero.
+
+  If the module is not instrumented or if the given function
+  does not have a breakpoint, it is a no-op and it returns
+  `:not_found`. Otherwise it returns `:ok`.
+
+  Note the module remains "instrumented" on reset. If you would
+  like to effectively remove all breakpoints and instrumentation
+  code from a module, use `remove_breaks/1` instead.
+  """
+  defdelegate reset_break(module, function, arity), to: IEx.Pry
+
+  @doc """
+  Removes all breakpoints and instrumentation from `module`.
+  """
+  defdelegate remove_breaks(module), to: IEx.Pry
+
+  @doc """
+  Removes all breakpoints and instrumentation from all modules.
+  """
+  defdelegate remove_breaks(), to: IEx.Pry
+
+  @doc """
   Prints the current location in a pry session.
 
   It expects a `radius` which chooses how many lines before and after
