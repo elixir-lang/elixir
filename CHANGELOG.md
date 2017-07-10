@@ -24,7 +24,7 @@ IEx got many improvements. The autocompletion system is now capable of autocompl
 
   * `exports/1` lists all exports (functions and macros) in a given module
   * `open/1` opens up the source of a module or function directly in your editor. For example, `open MyApp.Module`
-  * `system_info/0` prints general information about the running system, such as number of cores, runtime version, allocation of memory in the VM and more
+  * `runtime_info/0` prints general information about the running system, such as number of cores, runtime version, allocation of memory in the VM and more
 
 IEx also features a breakpoint system for code debugging. The following functions have been added to aid debugging:
 
@@ -172,7 +172,7 @@ This release brings further improvements to Calendar types. It adds arithmetic a
 
   * [IEx.Helpers] Add `break!/2`, `break!/4`, `breaks/0`, `continue/0`, `open/0`, `remove_breaks/0`, `remove_breaks/1`, `reset_break/1`, `reset_break/3` and `whereami/1` for code debugging
   * [IEx.Helpers] No longer emit warnings for IEx commands without parentheses
-  * [IEx.Helpers] Add `system_info/0` for printing runtime system information
+  * [IEx.Helpers] Add `runtime_info/0` for printing runtime system information
   * [IEx.Helpers] Add `open/1` to open the source of a given module/function in your editor
 
 ### 2. Bug fixes
@@ -244,7 +244,7 @@ This release brings further improvements to Calendar types. It adds arithmetic a
   * [IEx.Autocomplete] Support autocompletion of variable names
   * [IEx.Autocomplete] Support autocompletion of functions imported using `import Mod, only: [...]`
   * [IEx.Evaluator] Use `Exception.blame/3` when showing errors in the terminal
-  * [IEx.Helpers] Add `e/1` IEx helper to list all exports in a module
+  * [IEx.Helpers] Add `exports/1` IEx helper to list all exports in a module
   * [IEx.Info] Implement `IEx.Info` protocol for calendar types
 
 #### Logger
