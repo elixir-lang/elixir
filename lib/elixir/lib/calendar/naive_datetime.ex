@@ -27,6 +27,11 @@ defmodule NaiveDateTime do
   `NaiveDateTime` is not validated against a time zone, such errors
   would go unnoticed.
 
+  The functions on this module work with the `NaiveDateTime` struct as well
+  as any struct that contains the same fields as the `NaiveDateTime` struct,
+  such as `DateTime`. Such functions expect
+  `t:Calendar.naive_datetime/0` in their typespecs (instead of `t:t/0`).
+
   Developers should avoid creating the NaiveDateTime structs directly
   and instead rely on the functions provided by this module as well
   as the ones in 3rd party calendar libraries.
@@ -149,7 +154,7 @@ defmodule NaiveDateTime do
   def new(date, time)
 
   def new(%Date{calendar: calendar, year: year, month: month, day: day},
-          %Time{hour: hour, minute: minute, second: second, microsecond: microsecond, calendar: calendar}) do
+          %Time{calendar: calendar, hour: hour, minute: minute, second: second, microsecond: microsecond}) do
     {:ok, %NaiveDateTime{calendar: calendar, year: year, month: month, day: day,
                          hour: hour, minute: minute, second: second, microsecond: microsecond}}
   end
@@ -509,6 +514,7 @@ defmodule NaiveDateTime do
       {:error, :invalid_date}
       iex> NaiveDateTime.from_erl({{2000, 13, 1},{13, 30, 15}})
       {:error, :invalid_date}
+
   """
   @spec from_erl(:calendar.datetime, Calendar.microsecond) :: {:ok, t} | {:error, atom}
   def from_erl(tuple, microsecond \\ {0, 0}, calendar \\ Calendar.ISO)
@@ -532,6 +538,7 @@ defmodule NaiveDateTime do
       ~N[2000-01-01 13:30:15.005]
       iex> NaiveDateTime.from_erl!({{2000, 13, 1}, {13, 30, 15}})
       ** (ArgumentError) cannot convert {{2000, 13, 1}, {13, 30, 15}} to naive datetime, reason: :invalid_date
+
   """
   @spec from_erl!(:calendar.datetime, Calendar.microsecond) :: t | no_return
   def from_erl!(tuple, microsecond \\ {0, 0}) do
@@ -590,15 +597,26 @@ defmodule NaiveDateTime do
   end
 
   @doc """
-  Converts a `NaiveDateTime` struct from one calendar to another.
+  Converts the given `naive_datetime` from one calendar to another.
 
   If it is not possible to convert unambiguously between the calendars
   (see `Calendar.compatible_calendars?/2`), an `{:error, :incompatible_calendars}` tuple
   is returned.
+
+  ## Examples
+
+  Imagine someone implements `Calendar.Julian`:
+
+      iex> NaiveDateTime.convert(~N[2000-01-01 13:30:15], Calendar.Julian)
+      {:ok, %NaiveDateTime{calendar: Calendar.Julian, year: 1999, month: 12, day: 19,
+                           hour: 13, minute: 30, month: 12, second: 15, microsecond: {0, 0}}}
+
   """
-  @spec convert(Calendar.naive_datetime, Calendar.calendar) :: {:ok, NaiveDateTime.t} | {:error, :incompatible_calendars}
-  def convert(%NaiveDateTime{calendar: calendar} = naive_datetime, calendar) do
-    {:ok, naive_datetime}
+  @spec convert(Calendar.naive_datetime, Calendar.calendar) :: {:ok, t} | {:error, :incompatible_calendars}
+  def convert(%{calendar: calendar, year: year, month: month, day: day,
+                hour: hour, minute: minute, second: second, microsecond: microsecond}, calendar) do
+    {:ok, %NaiveDateTime{calendar: calendar, year: year, month: month, day: day,
+                         hour: hour, minute: minute, second: second, microsecond: microsecond}}
   end
 
   def convert(%{calendar: ndt_calendar, microsecond: {_, precision}} = naive_datetime, calendar) do
@@ -614,12 +632,21 @@ defmodule NaiveDateTime do
   end
 
   @doc """
-  Converts a NaiveDateTime from one calendar to another.
+  Converts the given `naive_datetime` from one calendar to another.
 
   If it is not possible to convert unambiguously between the calendars
   (see `Calendar.compatible_calendars?/2`), an ArgumentError is raised.
+
+  ## Examples
+
+  Imagine someone implements `Calendar.Julian`:
+
+      iex> NaiveDateTime.convert!(~N[2000-01-01 13:30:15], Calendar.Julian)
+      %NaiveDateTime{calendar: Calendar.Julian, year: 1999, month: 12, day: 19,
+                     hour: 13, minute: 30, month: 12, second: 15, microsecond: {0, 0}}
+
   """
-  @spec convert!(NaiveDateTime.t, Calendar.calendar) :: NaiveDateTime.t
+  @spec convert!(Calendar.naive_datetime, Calendar.calendar) :: t
   def convert!(naive_datetime, calendar) do
     case convert(naive_datetime, calendar) do
       {:ok, value} ->
@@ -639,13 +666,13 @@ defmodule NaiveDateTime do
   defp from_rata_die(rata_die, calendar, precision) do
     {year, month, day, hour, minute, second, {microsecond, _}} =
       calendar.naive_datetime_from_rata_die(rata_die)
-    %NaiveDateTime{year: year, month: month, day: day, hour: hour, minute: minute, second: second,
-                   microsecond: {microsecond, precision}, calendar: calendar}
+    %NaiveDateTime{calendar: calendar, year: year, month: month, day: day,
+                   hour: hour, minute: minute, second: second, microsecond: {microsecond, precision}}
   end
 
   defimpl String.Chars do
     def to_string(%{calendar: calendar, year: year, month: month, day: day,
-                     hour: hour, minute: minute, second: second, microsecond: microsecond}) do
+                    hour: hour, minute: minute, second: second, microsecond: microsecond}) do
       calendar.naive_datetime_to_string(year, month, day, hour, minute, second, microsecond)
     end
   end
