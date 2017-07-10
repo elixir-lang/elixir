@@ -53,7 +53,7 @@ defmodule IEx.Helpers do
   To list all IEx helpers available, which is effectively all
   exports (functions and macros) in the `IEx.Helpers` module:
 
-      iex> e(IEx.Helpers)
+      iex> exports(IEx.Helpers)
 
   This module also include helpers for debugging purposes, see
   `IEx.break!/4` for more information.
@@ -587,17 +587,14 @@ defmodule IEx.Helpers do
   @doc """
   Prints a list of all the functions and macros exported by the given module.
   """
-  def e(module \\ Kernel) do
-    print_exports(IEx.Autocomplete.exports(module))
-    dont_display_result()
-  end
-
-  defp print_exports(functions) do
+  def exports(module \\ Kernel) do
+    exports = IEx.Autocomplete.exports(module)
     list =
-      Enum.map(functions, fn {name, arity} ->
+      Enum.map(exports, fn {name, arity} ->
         Atom.to_string(name) <> "/" <> Integer.to_string(arity)
       end)
     print_table(list)
+    dont_display_result()
   end
 
   @doc """
