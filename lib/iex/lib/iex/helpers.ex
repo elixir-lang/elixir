@@ -676,14 +676,34 @@ defmodule IEx.Helpers do
 
   @doc """
   Respawns the current shell by starting a new shell process.
-
-  Returns `true` if it worked.
   """
   def respawn do
     if whereis = IEx.Server.whereis do
       send whereis, {:respawn, self()}
-      dont_display_result()
     end
+    dont_display_result()
+  end
+
+  @doc """
+  Continues execution of the current process.
+
+  This is usually called by sessions started with `IEx.pry/0`
+  or `IEx.break!/4`. This allows the current to execute until
+  the next breakpoint, which will automatically yield control
+  back to IEx without requesting permission to pry.
+
+  If the running process terminates, a new IEx session is
+  started.
+
+  While the process executes, the user will no longer have
+  control of the shell. If you would rather start a new shell,
+  use `respawn/0` instead.
+  """
+  def continue do
+    if whereis = IEx.Server.whereis do
+      send whereis, {:continue, self()}
+    end
+    dont_display_result()
   end
 
   @doc """
