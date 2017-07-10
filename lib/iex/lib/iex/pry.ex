@@ -243,7 +243,7 @@ defmodule IEx.Pry do
   end
 
   def handle_call(:remove_breaks, _from, _counter) do
-    # Make sure to deinstrumented before clearing
+    # Make sure to deinstrument before clearing
     # up the table to avoid race conditions.
     @table
     |> :ets.match({:_, :"$1", :_, :_})

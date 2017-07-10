@@ -119,7 +119,7 @@ defmodule IEx.Config do
   # Agent API
 
   def start_link(_) do
-    Agent.start_link(__MODULE__, :handle_init, [], [name: @agent])
+    Agent.start_link(__MODULE__, :handle_init, [], name: @agent)
   end
 
   def after_spawn(fun) do

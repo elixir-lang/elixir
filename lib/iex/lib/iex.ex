@@ -507,6 +507,15 @@ defmodule IEx do
   Setting variables or importing modules in IEx does not
   affect the caller's environment. However, sending and
   receiving messages will change the process state.
+
+  ## Pry and mix test
+
+  To use `IEx.pry/0` during tests, you need to run Mix inside
+  `iex` and pass the `--trace` to `mix test` to avoid running
+  into timeouts:
+
+      iex -S mix test --trace
+      iex -S mix test path/to/file:line --trace
   """
   defmacro pry() do
     quote do
@@ -602,6 +611,16 @@ defmodule IEx do
 
   This function returns the breakpoint ID and will raise if there
   is an error setting up the breakpoint.
+
+  ## Breaks and mix test
+
+  To use `IEx.break!/4` during tests, you need to run Mix inside
+  `iex` and pass the `--trace` to `mix test` to avoid running
+  into timeouts:
+
+      iex -S mix test --trace
+      iex -S mix test path/to/file:line --trace
+
   """
   def break!(module, function, arity, stops \\ 10) do
     case IEx.Pry.break(module, function, arity, stops) do
@@ -625,7 +644,7 @@ defmodule IEx do
             :unknown_function_arity ->
               "unknown function/macro #{Exception.format_mfa(module, function, arity)}"
           end
-        raise ArgumentError, "could not set breakpoint, " <> message
+        raise "could not set breakpoint, " <> message
     end
   end
 

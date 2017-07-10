@@ -49,12 +49,9 @@ defmodule IEx.Server do
   """
   @spec evaluator :: {evaluator :: pid, server :: pid} | nil
   def evaluator() do
-    case IEx.Server.local do
-      nil ->
-        nil
-      pid ->
-        {:dictionary, dictionary} = Process.info(pid, :dictionary)
-        {dictionary[:evaluator], pid}
+    if pid = IEx.Server.local do
+      {:dictionary, dictionary} = Process.info(pid, :dictionary)
+      {dictionary[:evaluator], pid}
     end
   end
 
@@ -65,20 +62,19 @@ defmodule IEx.Server do
   @spec take_over(binary, keyword) ::
         :ok | {:error, :no_iex} | {:error, :refused}
   def take_over(identifier, opts, server \\ whereis()) do
-    cond do
-      is_nil(server) ->
-        {:error, :no_iex}
-      true ->
-        ref = make_ref()
-        opts = [evaluator: self()] ++ opts
-        send server, {:take, self(), identifier, ref, opts}
+    if is_nil(server) do
+      {:error, :no_iex}
+    else
+      ref = make_ref()
+      opts = [evaluator: self()] ++ opts
+      send server, {:take, self(), identifier, ref, opts}
 
-        receive do
-          {^ref, nil} ->
-            {:error, :refused}
-          {^ref, leader} ->
-            IEx.Evaluator.init(:no_ack, server, leader, opts)
-        end
+      receive do
+        {^ref, nil} ->
+          {:error, :refused}
+        {^ref, leader} ->
+          IEx.Evaluator.init(:no_ack, server, leader, opts)
+      end
     end
   end
 
