@@ -533,9 +533,9 @@ defmodule IEx do
   Sets up a breakpoint in `module`, `function` and `arity` with
   the given number of `stops`.
 
-  This function will recompile the given module and load a new
+  This function will instrument the given module and load a new
   version in memory with breakpoints at the given function and
-  arity.
+  arity. If the module is recompiled, all breakpoints are lost.
 
   When a breakpoint is reached, IEx will ask if you want to `pry`
   the given function and arity. In other words, this works similar
@@ -556,8 +556,8 @@ defmodule IEx do
     * `IEx.Helpers.open/0` - opens editor on the current breakpoint
     * `IEx.Helpers.remove_breaks/0` - removes all breakpoints in all modules
     * `IEx.Helpers.remove_breaks/1` - removes all breakpoints in a given module
-    * `IEx.Helpers.reset_break/1` - resets all breaks for the given id or `Mod.fun/arity`
-    * `IEx.Helpers.reset_break/3` - resets all breaks for the given module, function, arity
+    * `IEx.Helpers.reset_break/1` - sets the number of stops on the given id to zero
+    * `IEx.Helpers.reset_break/3` - sets the number of stops on the given module, function, arity to zero
     * `IEx.Helpers.respawn/0` - starts a new shell (breakpoints will ask for permission once more)
     * `IEx.Helpers.whereami/1` - shows the current location
 
