@@ -22,28 +22,28 @@ defmodule IEx.Helpers do
 
   There are many other helpers available, here are some examples:
 
-    * `b/1`           - prints callbacks info and docs for a given module
-    * `c/1`           - compiles a file into the current directory
-    * `c/2`           - compiles a file to the given path
-    * `cd/1`          - changes the current directory
-    * `clear/0`       - clears the screen
-    * `exports/1`     - shows all exports (functions + macros) in a module
-    * `flush/0`       - flushes all messages sent to the shell
-    * `h/0`           - prints this help message
-    * `h/1`           - prints help for the given module, function or macro
-    * `i/0`           - prints information about the last value
-    * `i/1`           - prints information about the given term
-    * `ls/0`          - lists the contents of the current directory
-    * `ls/1`          - lists the contents of the specified directory
-    * `open/1`        - opens the source for the given module or function in your editor
-    * `pid/1`         - creates a PID from a string
-    * `pid/3`         - creates a PID with the 3 integer arguments passed
-    * `pwd/0`         - prints the current working directory
-    * `r/1`           - recompiles the given module's source file
-    * `recompile/0`   - recompiles the current project
-    * `system_info/0` - prints system info (versions, memory usage, stats)
-    * `v/0`           - retrieves the last value from the history
-    * `v/1`           - retrieves the nth value from the history
+    * `b/1`            - prints callbacks info and docs for a given module
+    * `c/1`            - compiles a file into the current directory
+    * `c/2`            - compiles a file to the given path
+    * `cd/1`           - changes the current directory
+    * `clear/0`        - clears the screen
+    * `exports/1`      - shows all exports (functions + macros) in a module
+    * `flush/0`        - flushes all messages sent to the shell
+    * `h/0`            - prints this help message
+    * `h/1`            - prints help for the given module, function or macro
+    * `i/0`            - prints information about the last value
+    * `i/1`            - prints information about the given term
+    * `ls/0`           - lists the contents of the current directory
+    * `ls/1`           - lists the contents of the specified directory
+    * `open/1`         - opens the source for the given module or function in your editor
+    * `pid/1`          - creates a PID from a string
+    * `pid/3`          - creates a PID with the 3 integer arguments passed
+    * `pwd/0`          - prints the current working directory
+    * `r/1`            - recompiles the given module's source file
+    * `recompile/0`    - recompiles the current project
+    * `runtime_info/0` - prints runtime info (versions, memory usage, stats)
+    * `v/0`            - retrieves the last value from the history
+    * `v/1`            - retrieves the nth value from the history
 
   Help for all of those functions can be consulted directly from
   the command line using the `h/1` helper itself. Try:
@@ -468,9 +468,9 @@ defmodule IEx.Helpers do
   end
 
   @doc """
-  Prints system information such as versions, memory usage and statistics.
+  Prints vm/runtime information such as versions, memory usage and statistics.
   """
-  def system_info do
+  def runtime_info do
     print_pane("System and architecture")
 
     print_entry("Elixir version", System.version)
