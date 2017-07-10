@@ -69,19 +69,19 @@ defmodule IEx.HelpersTest do
       end
 
       test "errors when setting up a break with no beam" do
-        assert_raise ArgumentError,
+        assert_raise RuntimeError,
                      "could not set breakpoint, could not find .beam file for IEx.HelpersTest",
                      fn -> break!(__MODULE__, :setup, 1) end
       end
 
       test "errors when setting up a break for unknown function" do
-        assert_raise ArgumentError,
+        assert_raise RuntimeError,
                      "could not set breakpoint, unknown function/macro URI.unknown/2",
                      fn -> break!(URI, :unknown, 2) end
       end
 
       test "errors for non elixir modules" do
-        assert_raise ArgumentError,
+        assert_raise RuntimeError,
                      "could not set breakpoint, module :elixir was not written in Elixir",
                      fn -> break!(:elixir, :unknown, 2) end
       end

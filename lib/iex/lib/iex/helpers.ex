@@ -201,10 +201,10 @@ defmodule IEx.Helpers do
   Opens the current prying location.
 
   This command only works inside a pry session started manually
-  via `IEx.pry` or a breakpoint set via `IEx.break/1`. Calling
+  via `IEx.pry/0` or a breakpoint set via `IEx.break!/4`. Calling
   this function during a regular `IEx` session will print an error.
 
-  Keep in mind the `open` location may not exist when prying
+  Keep in mind the `open/0` location may not exist when prying
   precompiled source code, such as Elixir itself.
 
   For more information and to open any module or function, see
@@ -224,11 +224,11 @@ defmodule IEx.Helpers do
   @doc """
   Opens the given module, module/function/arity or file.
 
-  This function uses the ELIXIR_EDITOR environment variable
+  This function uses the `ELIXIR_EDITOR` environment variable
   and falls back to EDITOR if the former is not available.
 
   Since this function prints the result returned by the
-  editor, ELIXIR_EDITOR can be set "echo" if you prefer
+  editor, `ELIXIR_EDITOR` can be set "echo" if you prefer
   to display the location rather than opening it.
 
   ## Examples
@@ -826,10 +826,10 @@ defmodule IEx.Helpers do
       81:       config = Mix.Project.config
 
   This command only works inside a pry session started manually
-  via `IEx.pry` or a breakpoint set via `IEx.break/1`. Calling
+  via `IEx.pry/0` or a breakpoint set via `IEx.break!/4`. Calling
   this function during a regular `IEx` session will print an error.
 
-  Keep in mind the `whereami` location may not exist when prying
+  Keep in mind the `whereami/1` location may not exist when prying
   precompiled source code, such as Elixir itself.
   """
   def whereami(radius \\ 2) do

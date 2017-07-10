@@ -196,7 +196,7 @@ defmodule IEx.Evaluator do
     line = iex_state.counter
     put_history(state)
     put_whereami(state)
-    quoted = Code.string_to_quoted(code, [line: line, file: "iex"])
+    quoted = Code.string_to_quoted(code, line: line, file: "iex")
     handle_eval(quoted, code, line, iex_state, state)
   after
     Process.delete(:iex_history)
