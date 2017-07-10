@@ -515,7 +515,23 @@ defmodule IEx do
   end
 
   @doc """
-  Sets up a breakpoint in the given module, function and arity.
+  Macro-based shortcut for `IEx.break!/4`.
+  """
+  defmacro break!(ast, stops \\ 1) do
+    with {:/, _, [call, arity]} when is_integer(arity) <- ast,
+         {mod, fun, []} <- Macro.decompose_call(call) do
+      quote do
+        IEx.break!(unquote(mod), unquote(fun), unquote(arity), unquote(stops))
+      end
+    else
+      _ ->
+        raise ArgumentError, "expected Mod.fun/arity, such as URI.parse/1, got: #{Macro.to_string(ast)}"
+    end
+  end
+
+  @doc """
+  Sets up a breakpoint in `module`, `function` and `arity` with
+  the given number of `stops`.
 
   This function will recompile the given module and load a new
   version in memory with breakpoints at the given function and

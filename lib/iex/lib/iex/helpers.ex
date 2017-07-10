@@ -707,6 +707,25 @@ defmodule IEx.Helpers do
   end
 
   @doc """
+  Macro-based shortcut for `IEx.break!/4`.
+  """
+  defmacro break!(ast, stops \\ 1) do
+    quote do
+      require IEx
+      IEx.break!(unquote(ast), unquote(stops))
+    end
+  end
+
+  @doc """
+  Sets up a breakpoint in `module`, `function` and `arity`
+  with the given number of `stops`.
+
+  See `IEx.break!/4` for a complete description of breakpoints
+  in IEx.
+  """
+  defdelegate break!(module, function, arity, stops \\ 1), to: IEx
+
+  @doc """
   Prints the current location in a pry session.
 
   It expects a `radius` which chooses how many lines before and after
