@@ -27,7 +27,7 @@ defmodule IEx.Helpers do
     * `c/2`           - compiles a file to the given path
     * `cd/1`          - changes the current directory
     * `clear/0`       - clears the screen
-    * `e/1`           - shows all exports (functions + macros) in a module
+    * `exports/1`     - shows all exports (functions + macros) in a module
     * `flush/0`       - flushes all messages sent to the shell
     * `h/0`           - prints this help message
     * `h/1`           - prints help for the given module, function or macro
