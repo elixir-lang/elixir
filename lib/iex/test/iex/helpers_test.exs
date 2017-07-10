@@ -28,6 +28,38 @@ defmodule IEx.HelpersTest do
     end
   end
 
+  if :erlang.system_info(:otp_release) >= '20' do
+    describe "break!" do
+      test "sets up a breakpoint on the given module" do
+        assert break!(URI, :decode_query, 2) == 1
+        assert [_] = IEx.Pry.breaks()
+      end
+
+      test "sets up a breakpoint with macro syntax" do
+        assert break!(URI.decode_query/2) == 1
+        assert [_] = IEx.Pry.breaks()
+      end
+
+      test "errors when setting up a break with no beam" do
+        assert_raise ArgumentError,
+                     "could not set breakpoint, could not find .beam file for IEx.HelpersTest",
+                     fn -> break!(__MODULE__, :setup, 1) end
+      end
+
+      test "errors when setting up a break for unknown function" do
+        assert_raise ArgumentError,
+                     "could not set breakpoint, unknown function/macro URI.unknown/2",
+                     fn -> break!(URI, :unknown, 2) end
+      end
+
+      test "errors for non elixir modules" do
+        assert_raise ArgumentError,
+                     "could not set breakpoint, module :elixir was not written in Elixir",
+                     fn -> break!(:elixir, :unknown, 2) end
+      end
+    end
+  end
+
   describe "open" do
     @iex_helpers Path.expand("../../lib/iex/helpers.ex", __DIR__)
     @elixir_erl Path.expand("../../../elixir/src/elixir.erl", __DIR__)
