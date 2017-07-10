@@ -19,31 +19,54 @@ defmodule IEx.Pry do
   `IEx.pry/1` as a macro. This function expects the binding (from
   `Kernel.binding/0`) and the environment (from `__ENV__/0`).
   """
-  def pry(binding, %Macro.Env{file: file, line: line} = env) do
+  def pry(binding, %Macro.Env{} = env) do
+    %{file: file, line: line, module: module, function: function_arity} = env
+    self = self()
     opts = [binding: binding, dot_iex_path: "", env: env, prefix: "pry"]
-    meta = "#{inspect self()} at #{Path.relative_to_cwd(file)}:#{line}"
-    desc =
-      case whereami(file, line, 2) do
-        {:ok, lines} -> [?\n, ?\n, lines]
-        :error -> ""
+
+    location =
+      case function_arity do
+        {function, arity} ->
+          "#{Exception.format_mfa(module, function, arity)} (#{Path.relative_to_cwd(file)}:#{line})"
+        _ ->
+          "#{Path.relative_to_cwd(file)}:#{line}"
       end
 
-    res = IEx.Server.take_over("Request to pry #{meta}#{desc}", opts)
+    whereami =
+      case whereami(file, line, 2) do
+        {:ok, lines} -> [?\n, ?\n, lines]
+        :error -> []
+      end
 
-    # We cannot use colors because IEx may be off.
-    case res do
+    # If we are the current evaluator, it is because we just
+    # reached a pry/breakpoint and the user hit continue().
+    # In both cases, we are safe to print and the request will
+    # suceed.
+    request =
+      case IEx.Server.evaluator do
+        {^self, _} ->
+          IO.puts IEx.color :eval_interrupt, "Break reached: #{location}#{whereami}"
+          "Prying #{inspect self} at #{location}"
+        _ ->
+          "Request to pry #{inspect self} at #{location}#{whereami}"
+      end
+
+    # We cannot use colors because IEx may be off
+    case IEx.Server.take_over(request, opts) do
+      :ok ->
+        :ok
       {:error, :no_iex} ->
         extra =
-          case :os.type do
-            {:win32, _} -> " If you are using Windows, you may need to start IEx with the --werl flag."
-            _ -> ""
+          if match?({:win32, _}, :os.type) do
+            " If you are using Windows, you may need to start IEx with the --werl flag."
+          else
+            ""
           end
-        IO.puts :stdio, "Cannot pry #{meta}. Is an IEx shell running?" <> extra
-      _ ->
-        :ok
+        IO.puts :stdio, "Cannot pry #{inspect self} at #{location}. Is an IEx shell running?" <> extra
+        {:error, :no_iex}
+      {:error, _} = error ->
+        error
     end
-
-    res
   end
 
   def pry(binding, opts) when is_list(opts) do
