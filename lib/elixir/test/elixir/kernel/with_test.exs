@@ -10,7 +10,7 @@ defmodule Kernel.WithTest do
 
   test "matching with" do
     assert with(_..42 <- 1..42, do: :ok) == :ok
-    assert with({:ok, res} <- :error, do: res) == :error
+    assert with({:ok, res} <- error(), do: res) == :error
     assert with({:ok, _} = res <- ok(42), do: elem(res, 1)) == 42
   end
 
@@ -29,7 +29,7 @@ defmodule Kernel.WithTest do
     result = with({:ok, n1} <- ok(11), n2 <- 22, do: n1 + n2)
     assert result == 33
 
-    result = with(n1 <- 11, {:ok, n2} <- :error, do: n1 + n2)
+    result = with(n1 <- 11, {:ok, n2} <- error(), do: n1 + n2)
     assert result == :error
   end
 
@@ -65,9 +65,9 @@ defmodule Kernel.WithTest do
   end
 
   test "else conditions" do
-    assert with({:ok, res} <- 41, do: res, else: ({:error, error} -> error; res -> res + 1)) == 42
-    assert with({:ok, res} <- 41, do: res, else: (res when res == 41 -> res + 1; res -> res)) == 42
-    assert with({:ok, res} <- 41, do: res, else: (_ -> :error)) == :error
+    assert with({:ok, res} <- four(), do: res, else: ({:error, error} -> error; res -> res + 1)) == 5
+    assert with({:ok, res} <- four(), do: res, else: (res when res == 4 -> res + 1; res -> res)) == 5
+    assert with({:ok, res} <- four(), do: res, else: (_ -> :error)) == :error
   end
 
   test "else conditions with match error" do

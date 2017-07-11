@@ -1,6 +1,6 @@
 %% Convenience functions used to manipulate scope and its variables.
 -module(elixir_erl_var).
--export([translate/4, build/2,
+-export([translate/4, build/2, assign/4,
   load_binding/2, dump_binding/2,
   mergev/2, mergec/2, merge_vars/2, merge_opt_vars/2,
   warn_unsafe_var/4, format_error/1
@@ -10,13 +10,10 @@
 %% VAR HANDLING
 
 translate(Meta, Name, Kind, S) when is_atom(Kind); is_integer(Kind) ->
-  Ann = ?ann(Meta),
   Tuple = {Name, Kind},
-  Vars = S#elixir_erl.vars,
-  BackupVars = S#elixir_erl.backup_vars,
 
   {Current, Safe} =
-    case maps:find({Name, Kind}, Vars) of
+    case maps:find(Tuple, S#elixir_erl.vars) of
       {ok, {VarC, _, VarS}} -> {VarC, VarS};
       error -> {nil, true}
     end,
@@ -24,42 +21,47 @@ translate(Meta, Name, Kind, S) when is_atom(Kind); is_integer(Kind) ->
   case S#elixir_erl.context of
     match ->
       Previous =
-        case maps:find({Name, Kind}, BackupVars) of
+        case maps:find(Tuple, S#elixir_erl.backup_vars) of
           {ok, {BackupVarC, _, _}} -> BackupVarC;
           error -> nil
         end,
 
       if
         Current /= nil, Current /= Previous ->
-          {{var, Ann, Current}, S};
+          {{var, ?ann(Meta), Current}, S};
         true ->
-          %% We attempt to give vars a nice name because we
-          %% still use the unused vars warnings from erl_lint.
-          %%
-          %% Once we move the warning to Elixir compiler, we
-          %% can name vars as _@COUNTER.
-          {NewVar, Counter, NS} =
-            if
-              Kind /= nil ->
-                build('_', S);
-              true ->
-                build(Name, S)
-            end,
-
-          FS = NS#elixir_erl{
-            vars=maps:put(Tuple, {NewVar, Counter, true}, Vars),
-            export_vars=case S#elixir_erl.export_vars of
-              nil -> nil;
-              EV  -> maps:put(Tuple, {NewVar, Counter, true}, EV)
-            end
-          },
-
-          {{var, Ann, NewVar}, FS}
+          assign(Meta, Name, Kind, S)
       end;
     _  when Current /= nil ->
       warn_unsafe_var(Meta, S#elixir_erl.file, Name, Safe),
-      {{var, Ann, Current}, S}
+      {{var, ?ann(Meta), Current}, S}
   end.
+
+assign(Meta, Name, Kind, S) ->
+  Tuple = {Name, Kind},
+
+  %% We attempt to give vars a nice name because we
+  %% still use the unused vars warnings from erl_lint.
+  %%
+  %% Once we move the warning to Elixir compiler, we
+  %% can name vars as _@COUNTER.
+  {NewVar, Counter, NS} =
+    if
+      Kind /= nil ->
+        build('_', S);
+      true ->
+        build(Name, S)
+    end,
+
+  FS = NS#elixir_erl{
+    vars=maps:put(Tuple, {NewVar, Counter, true}, S#elixir_erl.vars),
+    export_vars=case S#elixir_erl.export_vars of
+      nil -> nil;
+      EV  -> maps:put(Tuple, {NewVar, Counter, true}, EV)
+    end
+  },
+
+  {{var, ?ann(Meta), NewVar}, FS}.
 
 build(Key, #elixir_erl{counter=Counter} = S) ->
   Cnt =
