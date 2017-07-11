@@ -193,8 +193,8 @@ defmodule ExUnit.DocTest do
         end
       end
 
-    tests = quote bind_quoted: binding() do
-      file = "(for doctest at) " <> Path.relative_to_cwd(mod.__info__(:compile)[:source])
+    tests = quote bind_quoted: [mod: mod, opts: opts] do
+      file = ExUnit.DocTest.__file__(mod)
       for {name, test} <- ExUnit.DocTest.__doctests__(mod, opts) do
         @tag :doctest
         @file file
@@ -203,6 +203,13 @@ defmodule ExUnit.DocTest do
     end
 
     [require, tests]
+  end
+
+  @doc false
+  def __file__(module) do
+    source = module.__info__(:compile)[:source] ||
+             raise "#{inspect module} does not have compile-time source information"
+    "(for doctest at) " <> Path.relative_to_cwd(source)
   end
 
   @doc false
