@@ -254,21 +254,22 @@ defmodule Protocol do
     {:error, :not_a_protocol} |
     {:error, :no_beam_info}
   def consolidate(protocol, types) when is_atom(protocol) do
-    with {:ok, info} <- beam_protocol(protocol),
-         {:ok, code, docs} <- change_debug_info(info, types),
-         do: compile(code, docs)
+    with {:ok, ast_info, chunks_info} <- beam_protocol(protocol),
+         {:ok, code} <- change_debug_info(ast_info, types),
+         do: compile(protocol, code, chunks_info)
   end
 
   defp beam_protocol(protocol) do
-    chunk_ids = [:abstract_code, :attributes, 'ExDc']
+    chunk_ids = [:abstract_code, :attributes, :compile_info, 'ExDc']
     opts = [:allow_missing_chunks]
     case :beam_lib.chunks(beam_file(protocol), chunk_ids, opts) do
       {:ok, {^protocol, [{:abstract_code, {_raw, abstract_code}},
                          {:attributes, attributes},
+                         {:compile_info, compile_info},
                          {'ExDc', docs}]}} ->
         case attributes[:protocol] do
           [fallback_to_any: any] ->
-            {:ok, {protocol, any, abstract_code, docs}}
+            {:ok, {protocol, any, abstract_code}, {compile_info, docs}}
           _ ->
             {:error, :not_a_protocol}
         end
@@ -286,12 +287,12 @@ defmodule Protocol do
 
   # Change the debug information to the optimized
   # impl_for/1 dispatch version.
-  defp change_debug_info({protocol, any, code, docs}, types) do
+  defp change_debug_info({protocol, any, code}, types) do
     types   = if any, do: types, else: List.delete(types, Any)
     all     = [Any] ++ for {_guard, mod} <- __builtin__(), do: mod
     structs = types -- all
     case change_impl_for(code, protocol, types, structs, false, []) do
-      {:ok, ret} -> {:ok, ret, docs}
+      {:ok, ret} -> {:ok, ret}
       other      -> other
     end
   end
@@ -358,9 +359,9 @@ defmodule Protocol do
     change_impl_for(tail, protocol, info, types, protocol?, [head | acc])
   end
 
-  defp change_impl_for([], protocol, _info, _types, protocol?, acc) do
+  defp change_impl_for([], _protocol, _info, _types, protocol?, acc) do
     if protocol? do
-      {:ok, {protocol, Enum.reverse(acc)}}
+      {:ok, Enum.reverse(acc)}
     else
       {:error, :not_a_protocol}
     end
@@ -405,8 +406,9 @@ defmodule Protocol do
   end
 
   # Finally compile the module and emit its bytecode.
-  defp compile({protocol, code}, docs) do
-    opts = if Code.compiler_options[:debug_info], do: [:debug_info], else: []
+  defp compile(protocol, code, {compile_info, docs}) do
+    opts = Keyword.take(compile_info, [:source])
+    opts = if Code.compiler_options[:debug_info], do: [:debug_info | opts], else: opts
     {:ok, ^protocol, binary, _warnings} = :compile.forms(code, [:return | opts])
     {:ok,
       case docs do
