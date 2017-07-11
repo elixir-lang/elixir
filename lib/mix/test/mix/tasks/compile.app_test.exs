@@ -26,15 +26,16 @@ defmodule Mix.Tasks.Compile.AppTest do
     end
 
     def deps do
-      [{:ok1, path: "../ok"},
-       {:ok2, path: "../ok", only: :prod},
-       {:ok3, path: "../ok", only: :dev},
-       {:ok4, path: "../ok", runtime: true},
-       {:ok5, path: "../ok", runtime: false},
-       {:ok6, path: "../ok", optional: true},
-       {:ok7, path: "../ok", optional: false},
-       {:ok8, path: "../ok", app: false},
-       {:ok9, path: "../ok"}]
+      [{:ok1,  path: "../ok"},
+       {:ok2,  path: "../ok", only: :prod},
+       {:ok3,  path: "../ok", only: :dev},
+       {:ok4,  path: "../ok", runtime: :start},
+       {:ok5,  path: "../ok", runtime: false},
+       {:ok5b, path: "../ok", runtime: :none},
+       {:ok6,  path: "../ok", optional: true},
+       {:ok7,  path: "../ok", optional: false},
+       {:ok8,  path: "../ok", app: false},
+       {:ok9,  path: "../ok"}]
     end
   end
 
