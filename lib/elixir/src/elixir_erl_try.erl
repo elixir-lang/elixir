@@ -28,14 +28,14 @@ each_clause({'catch', Meta, Raw, Expr}, S) ->
 
 each_clause({rescue, Meta, [{in, _, [Left, Right]}], Expr}, S) ->
   {TempName, _, CS} = elixir_erl_var:build('_', S),
-  TempVar = {TempName, Meta, 'Elixir'},
+  TempVar = {TempName, Meta, ?var_context},
   {Parts, Safe, FS} = rescue_guards(Meta, TempVar, Right, CS),
   Body = rescue_clause_body(Left, Expr, Safe, TempVar, Meta),
   build_rescue(Meta, Parts, Body, FS);
 
 each_clause({rescue, Meta, [{VarName, _, Context} = Left], Expr}, S) when is_atom(VarName), is_atom(Context) ->
   {TempName, _, CS} = elixir_erl_var:build('_', S),
-  TempVar = {TempName, Meta, 'Elixir'},
+  TempVar = {TempName, Meta, ?var_context},
   Body = rescue_clause_body(Left, Expr, false, TempVar, Meta),
   build_rescue(Meta, [{TempVar, []}], Body, CS).
 
