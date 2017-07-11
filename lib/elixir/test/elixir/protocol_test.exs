@@ -377,6 +377,10 @@ defmodule Protocol.ConsolidationTest do
            List.keyfind(docs, {:ok, 1}, 0)
   end
 
+  test "consolidation keeps source" do
+    assert Sample.__info__(:compile)[:source]
+  end
+
   test "consolidated keeps callbacks" do
     callbacks = Kernel.Typespec.beam_callbacks(@sample_binary)
     assert callbacks != []
