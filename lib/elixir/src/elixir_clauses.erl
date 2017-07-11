@@ -2,7 +2,7 @@
 %% fn, receive and friends. try is handled in elixir_try.
 -module(elixir_clauses).
 -export([match/3, clause/5, def/2, head/2,
-         'case'/3, 'receive'/3, 'try'/3, 'cond'/3,
+         'case'/3, 'receive'/3, 'try'/3, 'cond'/3, with/3,
          format_error/1]).
 -import(elixir_errors, [form_error/4]).
 -include("elixir.hrl").
@@ -111,6 +111,66 @@ expand_receive(Meta, {'after', _}, _Acc, E) ->
   form_error(Meta, ?key(E, file), ?MODULE, multiple_after_clauses_in_receive);
 expand_receive(Meta, {Key, _}, _Acc, E) ->
   form_error(Meta, ?key(E, file), ?MODULE, {unexpected_option, 'receive', Key}).
+
+%% With
+
+with(Meta, Args, E) ->
+  {Exprs, Opts0} =
+    case elixir_utils:split_last(Args) of
+      {_, LastArg} = SplitResult when is_list(LastArg) ->
+        SplitResult;
+      _ ->
+        {Args, []}
+    end,
+
+  {EExprs, {EE, HasMatch}} = lists:mapfoldl(fun expand_with/2, {E, false}, Exprs),
+  {EDo, Opts1} = expand_with_do(Meta, Opts0, EE),
+  {EOpts, Opts2} = expand_with_else(Meta, Opts1, E, HasMatch),
+
+  case Opts2 of
+    [{Key, _} | _] ->
+      form_error(Meta, ?key(E, file), elixir_clauses, {unexpected_option, with, Key});
+    [] ->
+      ok
+  end,
+
+  {{with, Meta, EExprs ++ [[{do, EDo} | EOpts]]}, E}.
+
+expand_with({'<-', Meta, [{Name, _, Ctx}, _] = Args}, Acc) when is_atom(Name), is_atom(Ctx) ->
+  expand_with({'=', Meta, Args}, Acc);
+expand_with({'<-', Meta, [Left, Right]}, {E, _HasMatch}) ->
+  {ERight, ER} = elixir_expand:expand(Right, E),
+  {[ELeft], EL}  = head([Left], E),
+  {{'<-', Meta, [ELeft, ERight]}, {elixir_env:mergev(EL, ER), true}};
+expand_with(Expr, {E, HasMatch}) ->
+  {EExpr, EE} = elixir_expand:expand(Expr, E),
+  {EExpr, {EE, HasMatch}}.
+
+expand_with_do(Meta, Opts, E) ->
+  case lists:keytake(do, 1, Opts) of
+    {value, {do, Expr}, RestOpts} ->
+      {EExpr, _} = elixir_expand:expand(Expr, E),
+      {EExpr, RestOpts};
+    false ->
+      form_error(Meta, ?key(E, file), elixir_expand, {missing_option, 'with', [do]})
+  end.
+
+expand_with_else(Meta, Opts, E, HasMatch) ->
+  case lists:keytake(else, 1, Opts) of
+    {value, Pair, RestOpts} ->
+      if
+        HasMatch ->
+          ok;
+        true ->
+          Message = "\"else\" clauses will never match because all patterns in \"with\" will always match",
+          elixir_errors:warn(?line(Meta), ?key(E, file), Message)
+      end,
+      Fun = expand_one(Meta, 'with', 'else', fun head/2),
+      EPair = expand_without_export(Meta, 'with', Fun, Pair, E),
+      {[EPair], RestOpts};
+    false ->
+      {[], Opts}
+  end.
 
 %% Try
 

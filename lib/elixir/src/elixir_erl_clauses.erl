@@ -1,20 +1,16 @@
 %% Handle code related to args, guard and -> matching for case,
 %% fn, receive and friends. try is handled in elixir_erl_try.
 -module(elixir_erl_clauses).
--export([match/3, clause/6, clauses/3, guards/3, get_clauses/3, get_clauses/4]).
+-export([match/3, clause/6, clauses/3, guards/3, get_clauses/3]).
 -include("elixir.hrl").
 
 %% Get clauses under the given key.
 
 get_clauses(Key, Keyword, As) ->
-  get_clauses(Key, Keyword, As, false).
-get_clauses(Key, Keyword, As, AllowNil) ->
   case lists:keyfind(Key, 1, Keyword) of
     {Key, Clauses} when is_list(Clauses) ->
       [{As, Meta, Left, Right} || {'->', Meta, [Left, Right]} <- Clauses];
-    {Key, nil} when AllowNil ->
-      [];
-    false ->
+    _ ->
       []
   end.
 
@@ -28,19 +24,16 @@ match(Fun, Args, S) -> Fun(Args, S).
 %% Translate clauses with args, guards and expressions
 
 clause(Meta, Fun, Args, Expr, Guards, S) when is_list(Meta) ->
-  {TArgs, SA} = match(Fun, Args, S#elixir_erl{extra_guards=[]}),
-  {TExpr, SE} = elixir_erl_pass:translate(Expr,
-                  SA#elixir_erl{extra_guards=nil, export_vars=S#elixir_erl.export_vars}),
-
-  Extra = SA#elixir_erl.extra_guards,
-  TGuards = guards(Guards, Extra, SA),
+  {TArgs, SA} = match(Fun, Args, S),
+  SG = SA#elixir_erl{extra_guards=[]},
+  TGuards = guards(Guards, SA#elixir_erl.extra_guards, SG),
+  {TExpr, SE} = elixir_erl_pass:translate(Expr, SG#elixir_erl{export_vars=S#elixir_erl.export_vars}),
   {{clause, ?ann(Meta), TArgs, TGuards, unblock(TExpr)}, SE}.
 
 % Translate/Extract guards from the given expression.
 
 guards(Guards, Extra, S) ->
-  SG = S#elixir_erl{context=guard, extra_guards=nil},
-
+  SG = S#elixir_erl{context=guard},
   case Guards of
     [] -> case Extra of [] -> []; _ -> [Extra] end;
     _  -> [translate_guard(Guard, Extra, SG) || Guard <- Guards]

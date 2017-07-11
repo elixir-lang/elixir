@@ -499,50 +499,18 @@ defmodule Kernel.ExpansionTest do
 
   describe "with" do
     test "variables do not leak" do
-      input = quote(do: (with({foo} <- {bar}, do: baz = :ok); baz))
-      other = Macro.var(:other, :elixir_with)
-      result = quote do
-        case {bar()} do
-          {foo} -> baz = :ok
-          unquote(other) -> unquote(other)
-        end
-        baz()
-      end
-
-      assert input |> expand() |> clean_meta([:export_vars, :generated]) == result
+      assert expand(quote(do: (with({foo} <- {bar}, do: baz = :ok); baz)))
+             quote(do: (with({foo} <- {bar()}, do: baz = :ok); baz()))
     end
 
     test "variables are available in do option" do
-      input = quote(do: (with({foo} <- {bar}, do: baz = foo); baz))
-      other = Macro.var(:other, :elixir_with)
-      result = quote do
-        case {bar()} do
-          {foo} -> baz = foo
-          unquote(other) -> unquote(other)
-        end
-        baz()
-      end
-
-      assert input |> expand() |> clean_meta([:export_vars, :generated]) == result
+      assert expand(quote(do: (with({foo} <- {bar}, do: baz = foo); baz))) ==
+             quote(do: (with({foo} <- {bar()}, do: baz = foo); baz()))
     end
 
     test "variables inside else do not leak" do
-      input = quote(do: (with({foo} <- {bar}, do: :ok, else: (baz -> baz)); baz))
-      other = Macro.var(:other, :elixir_with)
-      return = Macro.var(:return, :elixir_with)
-      result = quote do
-        case(case {bar()} do
-          {foo} -> {:ok, :ok}
-          unquote(other) -> {:error, unquote(other)}
-        end) do
-          {:ok, unquote(return)} -> unquote(return)
-          {:error, baz} -> baz
-          {:error, unquote(other)} -> :erlang.error({:with_clause, unquote(other)})
-        end
-        baz()
-      end
-
-      assert input |> expand() |> clean_meta([:export_vars, :generated]) == result
+      assert expand(quote(do: (with({foo} <- {bar}, do: :ok, else: (baz -> baz)); baz))) ==
+             quote(do: (with({foo} <- {bar()}, do: :ok, else: (baz -> baz)); baz()))
     end
 
     test "fails if \"do\" is missing" do

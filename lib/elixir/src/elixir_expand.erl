@@ -281,7 +281,7 @@ expand({for, Meta, [_ | _] = Args}, E) ->
 
 expand({with, Meta, [_ | _] = Args}, E) ->
   assert_no_match_or_guard_scope(Meta, "with", E),
-  elixir_with:expand(Meta, Args, E);
+  elixir_clauses:with(Meta, Args, E);
 
 %% Super
 
