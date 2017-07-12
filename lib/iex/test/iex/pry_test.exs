@@ -186,16 +186,16 @@ defmodule IEx.PryTest do
         assert IEx.Pry.breaks() == []
       end
     end
-  end
 
-  defp instrumented?(module) do
-    module.module_info(:attributes)[:iex_pry] == [true]
-  end
+    defp instrumented?(module) do
+      module.module_info(:attributes)[:iex_pry] == [true]
+    end
 
-  defp deinstrument!(module) do
-    beam = :code.which(module)
-    :code.purge(module)
-    {:module, _} = :code.load_binary(module, beam, File.read!(beam))
-    :ok
+    defp deinstrument!(module) do
+      beam = :code.which(module)
+      :code.purge(module)
+      {:module, _} = :code.load_binary(module, beam, File.read!(beam))
+      :ok
+    end
   end
 end
