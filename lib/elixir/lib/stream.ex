@@ -129,7 +129,7 @@ defmodule Stream do
   @doc false
   def chunk(enum, n, step, leftover \\ nil)
       when is_integer(n) and n > 0 and is_integer(step) and step > 0 do
-    R.chunk(&chunk_while/4, enum, n, step, leftover)
+    chunk_every(enum, n, step, leftover || :discard)
   end
 
   @doc """
