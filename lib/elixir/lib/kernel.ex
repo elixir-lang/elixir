@@ -1741,11 +1741,14 @@ defmodule Kernel do
   """
   @spec struct(module | struct, Enum.t) :: struct
   def struct(struct, fields \\ []) do
-    struct(struct, fields, fn {key, val}, acc ->
-      case Map.has_key?(acc, key) and key != :__struct__ do
-        true  -> Map.put(acc, key, val)
-        false -> acc
-      end
+    struct(struct, fields, fn
+      {:__struct__, _val}, acc ->
+        acc
+      {key, val}, acc ->
+        case acc do
+          %{^key => _} -> %{acc | key => val}
+          _ -> acc
+        end
     end)
   end
 
@@ -3708,16 +3711,25 @@ defmodule Kernel do
       case bootstrapped?(Enum) do
         true ->
           quote do
-            def __struct__(kv) do
-              {map, keys} =
-                Enum.reduce(kv, {__struct__(), @enforce_keys}, fn {key, val}, {map, keys} ->
-                  {Map.replace!(map, key, val), List.delete(keys, key)}
-                end)
-              case keys do
-                [] -> map
-                _  -> raise ArgumentError, "the following keys must also be given when building " <>
-                                           "struct #{inspect __MODULE__}: #{inspect keys}"
-              end
+            case @enforce_keys do
+              [] ->
+                def __struct__(kv) do
+                  Enum.reduce(kv, @struct, fn {key, val}, map ->
+                    Map.replace!(map, key, val)
+                  end)
+                end
+              _ ->
+                def __struct__(kv) do
+                  {map, keys} =
+                    Enum.reduce(kv, {@struct, @enforce_keys}, fn {key, val}, {map, keys} ->
+                      {Map.replace!(map, key, val), List.delete(keys, key)}
+                    end)
+                  case keys do
+                    [] -> map
+                    _  -> raise ArgumentError, "the following keys must also be given when building " <>
+                        "struct #{inspect __MODULE__}: #{inspect keys}"
+                  end
+                end
             end
           end
         false ->
@@ -3726,7 +3738,7 @@ defmodule Kernel do
             def __struct__(kv) do
               :lists.foldl(fn {key, val}, acc ->
                 Map.replace!(acc, key, val)
-              end, __struct__(), kv)
+              end, @struct, kv)
             end
           end
       end
@@ -4604,6 +4616,7 @@ defmodule Kernel do
 
   # We need this check only for bootstrap purposes.
   # Once Kernel is loaded and we recompile, it is a no-op.
+  @compile {:inline, bootstrapped?: 1}
   case :code.ensure_loaded(Kernel) do
     {:module, _} ->
       defp bootstrapped?(_), do: true
