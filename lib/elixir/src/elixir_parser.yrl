@@ -636,10 +636,7 @@ build_unary_op({_Kind, Location, Op}, Expr) ->
   {Op, meta_from_location(Location), [Expr]}.
 
 build_list(Marker, Args) ->
-  case get(wrap_literals_in_blocks) of
-    true -> {{'__block__', meta_from_token(Marker), [Args]}, ?location(Marker)};
-    false -> {Args, ?location(Marker)}
-  end.
+  {handle_literal(Args, Marker), ?location(Marker)}.
 
 build_tuple(Marker, [Left, Right]) ->
   handle_literal({Left, Right}, Marker);
