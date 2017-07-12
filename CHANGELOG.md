@@ -156,7 +156,7 @@ Overall, using `@impl` has the following advantages:
 
 This release brings further improvements to Calendar types. It adds arithmetic and others functions to `Time`, `Date`, `NaiveDateTime` and `Datetime` as well as conversion between different calendars.
 
-## v1.5.0-rc.1 (2017-07-04)
+## v1.5.0-rc.1 (2017-07-12)
 
 ### 1. Enhancements
 
@@ -165,7 +165,7 @@ This release brings further improvements to Calendar types. It adds arithmetic a
   * [Base] Optimise Base encode/decode
   * [Calendar] Implement Inspect for DateTime with Calendar.ISO
   * [Enum] Introduce `Enum.chunk_every/2` and `Enum.chunk_every/4` with a more explicit API than `Enum.chunk/2` and `Enum.chunk/4`
-  * [Kernel] Cache the AST on definitions. This speeds up the compilation time from 10% to 15% measured across different projects.
+  * [Kernel] Cache the AST on definitions. This speeds up the compilation time from 10% to 15% measured across different projects
   * [Stream] Introduce `Stream.chunk_every/2` and `Stream.chunk_every/4` with a more explicit API than `Stream.chunk/2` and `Stream.chunk/4`
 
 #### IEx
@@ -185,6 +185,8 @@ This release brings further improvements to Calendar types. It adds arithmetic a
   * [Inspect] Do not use colors when inspecting for error messages
   * [Kernel] Improve error message on invalid patterns and guards
   * [Kernel] Do not warn false positives about unused variables on rescue (regression)
+  * [Kernel] Ensure `do` clause in `with` is tail call optimizable
+  * [Protocol] Do not lose source compile info on protocol consolidation
   * [Stream] Fix stream cycle over empty enumerable
   * [Stream] Rename `Stream.chunk_by/4` to `Stream.chunk_while/4` (`chunk_by/4` was only part of 1.5.0-rc.0) (regression)
   * [StringIO] Fix encoding and performance issues in `StringIO.get_until`
