@@ -169,11 +169,6 @@ defmodule Kernel.ExpansionTest do
       assert expand(quote do: __DIR__) == __DIR__
     end
 
-    test "__CALLER__" do
-      assert __CALLER__ == nil
-      assert expand(quote do: __CALLER__) == quote do: __CALLER__
-    end
-
     test "__ENV__" do
       env = %{__ENV__ | line: 0}
       assert expand_env(quote(do: __ENV__), env) ==

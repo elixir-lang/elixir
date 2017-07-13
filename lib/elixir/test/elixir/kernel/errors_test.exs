@@ -15,6 +15,12 @@ defmodule Kernel.ErrorsTest do
       '[foo: \u200B]\noops'
   end
 
+  test "invalid __CALLER__" do
+    assert_compile_fail CompileError,
+      "nofile:1: variable '__CALLER__' is unbound",
+      'defmodule Sample do def hello do __CALLER__ end end'
+  end
+
   test "invalid quoted token" do
     assert_compile_fail SyntaxError,
       "nofile:1: syntax error before: \"world\"",
