@@ -609,7 +609,7 @@ defmodule NaiveDateTime do
 
       iex> NaiveDateTime.convert(~N[2000-01-01 13:30:15], Calendar.Julian)
       {:ok, %NaiveDateTime{calendar: Calendar.Julian, year: 1999, month: 12, day: 19,
-                           hour: 13, minute: 30, month: 12, second: 15, microsecond: {0, 0}}}
+                           hour: 13, minute: 30, second: 15, microsecond: {0, 0}}}
 
   """
   @spec convert(Calendar.naive_datetime, Calendar.calendar) :: {:ok, t} | {:error, :incompatible_calendars}
@@ -643,7 +643,7 @@ defmodule NaiveDateTime do
 
       iex> NaiveDateTime.convert!(~N[2000-01-01 13:30:15], Calendar.Julian)
       %NaiveDateTime{calendar: Calendar.Julian, year: 1999, month: 12, day: 19,
-                     hour: 13, minute: 30, month: 12, second: 15, microsecond: {0, 0}}
+                     hour: 13, minute: 30, second: 15, microsecond: {0, 0}}
 
   """
   @spec convert!(Calendar.naive_datetime, Calendar.calendar) :: t
