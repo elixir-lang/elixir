@@ -230,7 +230,7 @@ defmodule Exception do
          {_, kind, _, clauses} <- List.keyfind(defs, {function, arity}, 0) do
       clauses =
         for {meta, ex_args, guards, _block} <- clauses do
-          scope = :elixir_erl.definition_scope(meta, kind, "nofile")
+          scope = :elixir_erl.definition_scope(meta, "nofile")
           {erl_args, scope} =
             :elixir_erl_clauses.match(&:elixir_erl_pass.translate_args/2, ex_args, scope)
           {args, binding} =
