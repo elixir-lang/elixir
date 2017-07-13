@@ -15,10 +15,12 @@ defmodule Kernel.MacrosTest do
 
   Kernel.MacrosTest.Nested = require Kernel.MacrosTest.Nested, as: Nested
 
+  @spec my_macro :: Macro.t
   defmacro my_macro do
     quote do: 1 + 1
   end
 
+  @spec my_private_macro :: Macro.t
   defmacrop my_private_macro do
     quote do: 1 + 3
   end
