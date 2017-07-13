@@ -1106,6 +1106,10 @@ defmodule Stream do
     end
   end
 
+  defp do_zip_next_tuple([] = _zips, acc, _callback, [], _buffer) do
+    {:done, acc}
+  end
+
   defp do_zip_next_tuple([] = _zips, acc, callback, yielded_elems, buffer) do
     # "yielded_elems" is a reversed list of results for the current iteration of
     # zipping: it needs to be reversed and converted to a tuple to have the next

@@ -812,7 +812,9 @@ defmodule EnumTest do
     assert Enum.zip([[]]) == []
     assert Enum.zip([[1]]) == [{1}]
 
-    assert Enum.zip([[], [], [], []])  == []
+    assert Enum.zip([[], [], [], []]) == []
+
+    assert Enum.zip(%{}) == []
   end
 end
 
