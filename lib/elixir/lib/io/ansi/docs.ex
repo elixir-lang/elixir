@@ -338,14 +338,14 @@ defmodule IO.ANSI.Docs do
     end
   end
 
-  defp table_header?(row) do
-    Enum.all?(row, fn {col, _} -> table_header_column?(col) end)
+  defp table_header?(line) do
+    Enum.all?(line, fn {col, _} -> table_header_column?(col) end)
   end
 
-  defp table_header_column?(":" <> row), do: table_header_contents?(row)
-  defp table_header_column?(row), do: table_header_contents?(row)
+  defp table_header_column?(":" <> rest), do: table_header_contents?(rest)
+  defp table_header_column?(col), do: table_header_contents?(col)
 
-  defp table_header_contents?("-" <> row), do: table_header_contents?(row)
+  defp table_header_contents?("-" <> rest), do: table_header_contents?(rest)
   defp table_header_contents?(":"), do: true
   defp table_header_contents?(""), do: true
   defp table_header_contents?(_), do: false
@@ -367,17 +367,17 @@ defmodule IO.ANSI.Docs do
   end
 
   defp generate_table_cell({{{col, length}, width}, :center}) do
-    pad = if rem(length, 2) == 0, do: 1, else: rem(width, 2)
-    spaces = div(width, 2) - div(length, 2)
-    String.duplicate(" ", spaces) <> col <> String.duplicate(" ", spaces + pad)
+    col
+    |> String.pad_leading(div(width, 2) - div(length, 2) + length)
+    |> String.pad_trailing(width + 1 - rem(width, 2))
   end
 
-  defp generate_table_cell({{{col, length}, width}, :right}) do
-    String.duplicate(" ", width - length) <> col
+  defp generate_table_cell({{{col, _length}, width}, :right}) do
+    String.pad_leading(col, width)
   end
 
-  defp generate_table_cell({{{col, length}, width}, _}) do
-    col <> String.duplicate(" ", width - length)
+  defp generate_table_cell({{{col, _length}, width}, :left}) do
+    String.pad_trailing(col, width)
   end
 
   defp table_line?(line) do
