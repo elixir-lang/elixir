@@ -69,6 +69,10 @@ defmodule RegistryTest do
                [{self(), value}]
         assert Registry.match(registry, "hello", {:"$1", :_, :"$1"}) ==
                [{self(), value}]
+        assert Registry.match(registry, "hello", :_) ==
+               [{self(), value}]
+        assert Registry.match(registry, :_, :_) ==
+               []
       end
 
       test "supports guard conditions", %{registry: registry} do
