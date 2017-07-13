@@ -38,13 +38,8 @@ translate({'__block__', Meta, Args}, S) when is_list(Args) ->
 
 %% Compilation environment macros
 
-translate({'__CALLER__', Meta, Atom}, #elixir_erl{def=Kind}=S) when is_atom(Atom) ->
-  if
-    Kind == defmacro; Kind == defmacrop ->
-      {{var, ?ann(Meta), '__CALLER__'}, S#elixir_erl{caller=true}};
-    true ->
-      {{atom, ?ann(Meta), nil}, S}
-  end;
+translate({'__CALLER__', Meta, Atom}, S) when is_atom(Atom) ->
+  {{var, ?ann(Meta), '__CALLER__'}, S#elixir_erl{caller=true}};
 
 translate({'super', Meta, [{Kind, Name} | Args]}, S) ->
   %% In the expanded AST, super is used to invoke a function
