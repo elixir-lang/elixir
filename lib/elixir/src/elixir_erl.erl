@@ -157,33 +157,57 @@ compile(#{module := Module} = Map) ->
     end,
   load_form(Map, Data, Prefix, Forms, Specs).
 
+dynamic_form(#{module := Module, line := Line, file := File, attributes := Attributes,
+               definitions := Definitions, unreachable := Unreachable}) ->
+  {Def, Defmacro, Macros, Exports, Functions} =
+    split_definition(Definitions, File, Unreachable, [], [], [], [], {[], []}),
+
+  Location = {elixir_utils:characters_to_list(elixir_utils:relative_to_cwd(File)), Line},
+  Prefix = [{attribute, Line, file, Location},
+            {attribute, Line, module, Module},
+            {attribute, Line, compile, no_auto_import}],
+
+  Forms0 = functions_form(Line, Module, Def, Defmacro, Exports, Functions),
+  Forms1 = attributes_form(Line, Attributes, Forms0),
+  {Prefix, Forms1, Macros, Unreachable}.
+
 % Definitions
 
-split_definition([{Tuple, def, Meta, Clauses} | T], File, Unreachable,
-                 Def, Defmacro, Exports, Functions) ->
-  {_, _, N, A, _} = Function = translate_definition(def, Meta, File, Tuple, Clauses),
-  split_definition(T, File, Unreachable, [Tuple | Def], Defmacro, [{N, A} | Exports],
-                   add_definition(Meta, Function, Functions));
-
-split_definition([{Tuple, defmacro, Meta, Clauses} | T], File, Unreachable,
-                 Def, Defmacro, Exports, Functions) ->
-  {_, _, N, A, _} = Function = translate_definition(defmacro, Meta, File, Tuple, Clauses),
-  split_definition(T, File, Unreachable, Def, [Tuple | Defmacro], [{N, A} | Exports],
-                   add_definition(Meta, Function, Functions));
-
 split_definition([{Tuple, Kind, Meta, Clauses} | T], File, Unreachable,
-                 Def, Defmacro, Exports, Functions) ->
-  Function = translate_definition(Kind, Meta, File, Tuple, Clauses),
+                 Def, Defmacro, Macros, Exports, Functions) ->
   case lists:member(Tuple, Unreachable) of
     false ->
-      split_definition(T, File, Unreachable, Def, Defmacro, Exports,
-                       add_definition(Meta, Function, Functions));
+      split_definition(Tuple, Kind, Meta, Clauses, T, File, Unreachable,
+                       Def, Defmacro, Macros, Exports, Functions);
     true ->
-      split_definition(T, File, Unreachable, Def, Defmacro, Exports, Functions)
+      split_definition(T, File, Unreachable, Def, Defmacro, Macros, Exports, Functions)
   end;
+split_definition([], _File, _Unreachable, Def, Defmacro, Macros, Exports, {Head, Tail}) ->
+  {Def, Defmacro, Macros, Exports, Head ++ Tail}.
 
-split_definition([], _File, _Unreachable, Def, Defmacro, Exports, {Head, Tail}) ->
-  {Def, Defmacro, Exports, Head ++ Tail}.
+split_definition(Tuple, def, Meta, Clauses, T, File, Unreachable,
+                 Def, Defmacro, Macros, Exports, Functions) ->
+  {_, _, N, A, _} = Entry = translate_definition(def, Meta, File, Tuple, Clauses),
+  split_definition(T, File, Unreachable, [Tuple | Def], Defmacro, Macros, [{N, A} | Exports],
+                   add_definition(Meta, Entry, Functions));
+
+split_definition(Tuple, defp, Meta, Clauses, T, File, Unreachable,
+                 Def, Defmacro, Macros, Exports, Functions) ->
+  Entry = translate_definition(defp, Meta, File, Tuple, Clauses),
+  split_definition(T, File, Unreachable, Def, Defmacro, Macros, Exports,
+                   add_definition(Meta, Entry, Functions));
+
+split_definition(Tuple, defmacro, Meta, Clauses, T, File, Unreachable,
+                 Def, Defmacro, Macros, Exports, Functions) ->
+  {_, _, N, A, _} = Entry = translate_definition(defmacro, Meta, File, Tuple, Clauses),
+  split_definition(T, File, Unreachable, Def, [Tuple | Defmacro], [Tuple | Macros], [{N, A} | Exports],
+                   add_definition(Meta, Entry, Functions));
+
+split_definition(Tuple, defmacrop, Meta, Clauses, T, File, Unreachable,
+                 Def, Defmacro, Macros, Exports, Functions) ->
+  Entry = translate_definition(defmacro, Meta, File, Tuple, Clauses),
+  split_definition(T, File, Unreachable, Def, Defmacro, [Tuple | Macros], Exports,
+                   add_definition(Meta, Entry, Functions)).
 
 add_definition(Meta, Body, {Head, Tail}) ->
   case lists:keyfind(location, 1, Meta) of
@@ -238,20 +262,6 @@ is_macro(defmacrop) -> true;
 is_macro(_)         -> false.
 
 % Functions
-
-dynamic_form(#{module := Module, line := Line, file := File, attributes := Attributes,
-               definitions := Definitions, unreachable := Unreachable}) ->
-  {Def, Defmacro, Exports, Functions} =
-    split_definition(Definitions, File, Unreachable, [], [], [], {[], []}),
-
-  Location = {elixir_utils:characters_to_list(elixir_utils:relative_to_cwd(File)), Line},
-  Prefix = [{attribute, Line, file, Location},
-            {attribute, Line, module, Module},
-            {attribute, Line, compile, no_auto_import}],
-
-  Forms0 = functions_form(Line, Module, Def, Defmacro, Exports, Functions),
-  Forms1 = attributes_form(Line, Attributes, Forms0),
-  {Prefix, Forms1, Defmacro, Unreachable}.
 
 functions_form(Line, Module, Def, Defmacro, Exports, Body) ->
   {Spec, Info} = add_info_function(Line, Module, Def, Defmacro),
