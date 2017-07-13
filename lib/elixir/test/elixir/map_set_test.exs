@@ -66,6 +66,14 @@ defmodule MapSetTest do
     refute MapSet.disjoint?(MapSet.new(1..120), MapSet.new(1..6))
   end
 
+  test "intersect?/2" do
+    assert MapSet.intersect?(MapSet.new(1..6), MapSet.new(1..2))
+    assert MapSet.intersect?(MapSet.new(1..2), MapSet.new(1..6))
+    assert MapSet.intersect?(MapSet.new(1..2), MapSet.new(2..3))
+    refute MapSet.intersect?(MapSet.new(1..2), MapSet.new(3..4))
+    refute MapSet.intersect?(MapSet.new(), MapSet.new())
+  end
+
   test "subset?/2" do
     assert MapSet.subset?(MapSet.new, MapSet.new)
     assert MapSet.subset?(MapSet.new(1..6), MapSet.new(1..10))
