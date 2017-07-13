@@ -270,18 +270,18 @@ defmodule Mix.Tasks.Escript.Build do
 
   defp strip_beam(beam) when is_binary(beam) do
     {:ok, _, all_chunks} = :beam_lib.all_chunks(beam)
-    filtered_chunks = ['Abst', 'CInf', 'Dbgi', 'ExDc']
-    significant_chunks =
-      for {name, _} = pair <- all_chunks, name not in filtered_chunks, do: pair
-    {:ok, built_module} = :beam_lib.build_module(significant_chunks)
-    compress(built_module)
+    strip_chunks = ['Abst', 'CInf', 'Dbgi', 'ExDc']
+    preserved_chunks =
+      for {name, _} = chunk <- all_chunks, name not in strip_chunks, do: chunk
+    {:ok, content} = :beam_lib.build_module(preserved_chunks)
+    compress(content)
   end
 
-  defp compress(binary0) do
-    {:ok, fd} = :ram_file.open(binary0, [:write, :binary])
-    {:ok, _} = :ram_file.compress(fd)
-    {:ok, binary} = :ram_file.get_file(fd)
-    :ok = :ram_file.close(fd)
+  defp compress(binary) do
+    {:ok, file} = :ram_file.open(binary, [:write, :binary])
+    {:ok, _} = :ram_file.compress(file)
+    {:ok, binary} = :ram_file.get_file(file)
+    :ok = :ram_file.close(file)
     binary
   end
 
