@@ -632,7 +632,25 @@ defmodule Registry do
   """
   @spec unregister(registry, key) :: :ok
   def unregister(registry, key) when is_atom(registry) do
-    unregister_match(registry, key, :_)
+    self = self()
+    {kind, partitions, key_ets, pid_ets, listeners} = info!(registry)
+    {key_partition, pid_partition} = partitions(kind, key, self, partitions)
+    key_ets = key_ets || key_ets!(registry, key_partition)
+    {pid_server, pid_ets} = pid_ets || pid_ets!(registry, pid_partition)
+
+    # Remove first from the key_ets because in case of crashes
+    # the pid_ets will still be able to clean up. The last step is
+    # to clean if we have no more entries.
+    true = :ets.match_delete(key_ets, {key, {self, :_}})
+    true = :ets.delete_object(pid_ets, {self, key, key_ets})
+
+    unlink_if_unregistered(pid_server, pid_ets, self)
+
+    for listener <- listeners do
+      Kernel.send(listener, {:unregister, registry, key, self})
+    end
+
+    :ok
   end
 
   @doc """
@@ -669,8 +687,26 @@ defmodule Registry do
     # Remove first from the key_ets because in case of crashes
     # the pid_ets will still be able to clean up. The last step is
     # to clean if we have no more entries.
-    true = :ets.match_delete(key_ets, {key, {self, pattern}})
-    true = :ets.delete_object(pid_ets, {self, key, key_ets})
+    # spec = {key, {self, pattern}}
+    select_spec = [{{key, {self, pattern}},[],[true]}]
+    total   = :ets.select_count(key_ets, spec) |> IO.inspect
+    case :ets.select_delete(key_ets, {key, {self, pattern}}) do
+      # We deleted everything, we can just delete the object
+      ^total ->
+        true = :ets.delete_object(pid_ets, {self, key, key_ets})
+
+      deleted ->
+        remaining = total - deleted
+        fake_key_ets = -1 * remaining
+
+        :ets.insert(pid_ets, {self, key, fake_key_ets})
+        true = :ets.delete_object(pid_ets, {self, key, key_ets})
+        for _ <- 0..remaining do
+          :ets.insert(pid_ets, {self, key, key_ets})
+        end
+        true = :ets.delete_object(pid_ets, {self, key, fake_key_ets})
+
+    end
 
     unlink_if_unregistered(pid_server, pid_ets, self)
 
