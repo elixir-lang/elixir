@@ -2,7 +2,7 @@
 -module(elixir_erl).
 -export([elixir_to_erl/1, definition_to_anonymous/5, compile/1,
          get_ann/1, remote/4, add_beam_chunks/2, debug_info/4,
-         definition_scope/3]).
+         definition_scope/2]).
 -include("elixir.hrl").
 
 %% TODO: Remove extra chunk functionality when OTP 20+.
@@ -137,14 +137,14 @@ elixir_to_erl_cons2([], Acc) ->
 
 %% Returns a definition scope for translation.
 
-definition_scope(Meta, Kind, File) ->
+definition_scope(Meta, File) ->
   %% TODO: We only need to do this dance because some
   %% warnings are raised in elixir_erl_pass. Once we remove
   %% all warnings from the Erlang pass, we can remove the
   %% file field from #elixir_erl and clean up the code.
   case lists:keyfind(location, 1, Meta) of
-    {location, {F, _}} -> #elixir_erl{def=Kind,file=F};
-    false -> #elixir_erl{def=Kind,file=File}
+    {location, {F, _}} -> #elixir_erl{file=F};
+    false -> #elixir_erl{file=File}
   end.
 
 %% Compilation hook.
@@ -234,7 +234,7 @@ translate_definition(Kind, Meta, File, {Name, Arity}, Clauses) ->
   end.
 
 translate_clause(Kind, {Meta, Args, Guards, Body}, File) ->
-  S = definition_scope(Meta, Kind, File),
+  S = definition_scope(Meta, File),
 
   {TClause, TS} = elixir_erl_clauses:clause(Meta,
                     fun elixir_erl_pass:translate_args/2, Args, Body, Guards, S),
