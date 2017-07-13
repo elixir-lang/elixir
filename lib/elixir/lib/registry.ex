@@ -534,7 +534,8 @@ defmodule Registry do
   """
   @spec match(registry, key, match_pattern :: atom() | tuple(), guards :: list()) :: [{pid, term}]
   def match(registry, key, pattern, guards \\ []) when is_atom(registry) and is_list(guards) do
-    spec = [{{key, {:_, pattern}}, guards, [{:element, 2, :"$_"}]}]
+    guards = [{:"=:=", {:element, 1, :"$_"}, {:const, key}} | guards]
+    spec = [{{:_, {:_, pattern}}, guards, [{:element, 2, :"$_"}]}]
 
     case key_info!(registry) do
       {:unique, partitions, key_ets} ->
