@@ -1033,10 +1033,10 @@ defmodule Stream do
   def zip(left, right), do: zip([left, right])
 
   @doc """
-  Zips corresponding elements from a collection of enumerables
+  Zips corresponding elements from a list of enumerables
   into one stream of tuples.
 
-  The zipping finishes as soon as any enumerable completes.
+  The zipping finishes as soon as any enumerable in the given list completes.
 
   ## Examples
 
@@ -1047,8 +1047,9 @@ defmodule Stream do
 
   """
   @spec zip([Enumerable.t]) :: Enumerable.t
-  def zip(enumerables) do
-    step      = &do_zip_step(&1, &2)
+  def zip(enumerables) when is_list(enumerables) do
+    step = &do_zip_step(&1, &2)
+
     enum_funs = Enum.map(enumerables, fn enum ->
       {&Enumerable.reduce(enum, &1, step), :cont}
     end)
