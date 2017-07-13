@@ -203,6 +203,22 @@ defmodule MapSet do
   end
 
   @doc """
+  Checks if `map_set1` and `map_set2` have any members in common.
+
+  ## Examples
+
+      iex> MapSet.intersect?(MapSet.new([1, 2]), MapSet.new([3, 4]))
+      false
+      iex> MapSet.intersect?(MapSet.new([1, 2]), MapSet.new([2, 3]))
+      true
+
+  """
+  @spec intersect?(t, t) :: boolean
+  def intersect?(set1, set2) do
+    not disjoint?(set1, set2)
+  end
+
+  @doc """
   Checks if two sets are equal.
 
   The comparison between elements must be done using `===`.
