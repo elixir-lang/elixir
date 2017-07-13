@@ -636,7 +636,7 @@ defmodule ExUnit.DocTest do
         [mod, message] = :binary.split(error, ")")
         {:error, Module.concat([mod]), String.trim_leading(message)}
       _ ->
-        if is_inspected?(string) do
+        if inspectable?(string) do
           {:inspect, inspect(string)}
         else
           {:test, string}
@@ -644,22 +644,22 @@ defmodule ExUnit.DocTest do
     end
   end
 
-  defp is_inspected?(<<?#, char, rest::binary>>) when char in ?A..?Z,
-    do: is_inspected_end?(rest)
-  defp is_inspected?(_),
+  defp inspectable?(<<?#, char, rest::binary>>) when char in ?A..?Z,
+    do: inspectable_end?(rest)
+  defp inspectable?(_),
     do: false
 
-  defp is_inspected_end?(<<?., char, rest::binary>>) when char in ?A..?Z,
-    do: is_inspected_end?(rest)
-  defp is_inspected_end?(<<char, rest::binary>>)
+  defp inspectable_end?(<<?., char, rest::binary>>) when char in ?A..?Z,
+    do: inspectable_end?(rest)
+  defp inspectable_end?(<<char, rest::binary>>)
        when char in ?A..?Z
        when char in ?a..?z
        when char in ?0..?9
        when char == ?_,
-    do: is_inspected_end?(rest)
-  defp is_inspected_end?(<<?<, _::binary>>),
+    do: inspectable_end?(rest)
+  defp inspectable_end?(<<?<, _::binary>>),
     do: true
-  defp is_inspected_end?(_),
+  defp inspectable_end?(_),
     do: false
 
   defp raise_incomplete_doctest(line_no, module) do
