@@ -1007,6 +1007,11 @@ test "transform/4 closes on nested errors" do
     cycle  = Stream.cycle([:a, :b, :c])
     assert Stream.zip([concat, cycle]) |> Enum.to_list ==
            [{1, :a}, {2, :b}, {3, :c}, {4, :a}, {5, :b}, {6, :c}]
+
+    assert_raise FunctionClauseError, fn ->
+      enum_of_enums = Stream.cycle([[1, 2], [:a, :b]])
+      Stream.zip(enum_of_enums)
+    end
   end
 
   test "zip/1 does not leave streams suspended" do
