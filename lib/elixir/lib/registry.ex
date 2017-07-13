@@ -632,7 +632,35 @@ defmodule Registry do
   """
   @spec unregister(registry, key) :: :ok
   def unregister(registry, key) when is_atom(registry) do
+    unregister_match(registry, key, :_)
+  end
+
+  @doc """
+  Unregister entries for a given key matching a pattern.
+
+  ## Examples
+
+  For unique registries it's the same as unregister:
+
+
+  For duplicate registries:
+
+      iex> Registry.start_link(:duplicate, Registry.DuplicateUnregisterMatchTest)
+      iex> Registry.register(Registry.DuplicateUnregisterMatchTest, "hello", :world_a)
+      iex> Registry.register(Registry.DuplicateUnregisterMatchTest, "hello", :world_b)
+      iex> Registry.register(Registry.DuplicateUnregisterMatchTest, "hello", :world_c)
+      iex> Registry.keys(Registry.DuplicateUnregisterMatchTest, self())
+      ["hello", "hello", "hello"]
+      iex> Registry.unregister_match(Registry.DuplicateUnregisterMatchTest, "hello", :world_a)
+      :ok
+      iex> Registry.keys(Registry.DuplicateUnregisterMatchTest, self())
+      ["hello", "hello"]
+      iex> Registry.lookup(Registry.DuplicateUnregisterMatchTest, "hello")
+      [:world_b, :world_c]
+  """
+  def unregister_match(registry, key, pattern) do
     self = self()
+
     {kind, partitions, key_ets, pid_ets, listeners} = info!(registry)
     {key_partition, pid_partition} = partitions(kind, key, self, partitions)
     key_ets = key_ets || key_ets!(registry, key_partition)
@@ -641,7 +669,7 @@ defmodule Registry do
     # Remove first from the key_ets because in case of crashes
     # the pid_ets will still be able to clean up. The last step is
     # to clean if we have no more entries.
-    true = :ets.match_delete(key_ets, {key, {self, :_}})
+    true = :ets.match_delete(key_ets, {key, {self, pattern}})
     true = :ets.delete_object(pid_ets, {self, key, key_ets})
 
     unlink_if_unregistered(pid_server, pid_ets, self)
