@@ -313,8 +313,8 @@ defmodule IO.ANSI.DocsTest do
     expected = """
     \e[7m\
     column 1 |   2   | and three\e[0m
-           a | even  | c        
-         one |  odd  | three    
+           a | even  | c\s\s\s\s\s\s\s\s
+         one |  odd  | three\s\s\s\s
     \e[0m
     """ |> String.trim_trailing
 
