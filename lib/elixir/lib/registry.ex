@@ -588,7 +588,20 @@ defmodule Registry do
   def keys(registry, pid) when is_atom(registry) and is_pid(pid) do
     {kind, partitions, _, pid_ets, _} = info!(registry)
     {_, pid_ets} = pid_ets || pid_ets!(registry, pid, partitions)
-    keys = safe_lookup_second(pid_ets, pid)
+
+    keys = try do
+      spec = [{{pid, :'$1', :'$2'}}, [], [{:'$1', :'$2'}]]
+      :ets.select(pid_ets, spec)
+    catch
+      :error, :badarg -> []
+    end
+    |> Enum.group_by(&elem(&1, 0), &elem(&1, 1))
+    |> Enum.flat_map(fn {key, keys} ->
+      case Enum.find(keys, &match?({_key_ets, remaining}, &1)) do
+        {_, remaining} -> List.duplicate(key, -1 * remaining)
+        _ -> keys
+      end
+    end)
 
     cond do
       kind == :unique -> Enum.uniq(keys)
@@ -688,13 +701,13 @@ defmodule Registry do
     # the pid_ets will still be able to clean up. The last step is
     # to clean if we have no more entries.
 
-    # here we want to count all entries for this pid under this key, regardless
+    # Here we want to count all entries for this pid under this key, regardless
     # of pattern.
-    total_spec = [{{key, {self, :_}},[],[{:const, true}]}]
+    total_spec = [{{key, {self, :_}}, [], [{:const, true}]}]
     total = :ets.select_count(key_ets, total_spec)
 
-    # we only want to delete things that match the pattern
-    delete_spec = [{{key, {self, pattern}},[],[{:const, true}]}]
+    # We only want to delete things that match the pattern
+    delete_spec = [{{key, {self, pattern}}, [] ,[{:const, true}]}]
     case :ets.select_delete(key_ets, delete_spec) do
       # We deleted everything, we can just delete the object
       ^total ->
@@ -1047,7 +1060,11 @@ defmodule Registry.Partition do
   def handle_info({:EXIT, pid, _reason}, ets) do
     entries = :ets.take(ets, pid)
     for {_pid, key, key_ets} <- entries do
-      key_ets = with {key_ets, _} <- key_ets, do: key_ets
+      key_ets = case key_ets do
+        # In case the fake key ets is being used. See unregister_match/2.
+        {key_ets, _} -> key_ets
+        _ -> key_ets
+      end
 
       try do
         :ets.match_delete(key_ets, {key, {pid, :_}})
