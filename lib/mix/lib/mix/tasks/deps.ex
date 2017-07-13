@@ -92,9 +92,13 @@ defmodule Mix.Tasks.Deps do
       be automatically picked. You can find the manager by running `mix deps`
       and override it by setting the `:override` option in a top-level project.
 
-    * `:runtime` - whether the dependency is part of runtime applications.
-      Defaults to `true` which automatically adds the application to the list
-      of apps that are started automatically and included in releases
+    * `:runtime` - specifies whether the dependency is part of runtime applications,
+      and if so, what the start type is (either `:start` or `:none`).
+      Defaults to `:start` which automatically adds the application to the list
+      of apps that are started automatically and included in releases. If set to
+      `:none`, the application is not loaded or started, but included in releases, 
+      and if set to `false`, the application is excluded from releases, and neither 
+      loaded or started when running your application via Mix.
 
   ### Git options (`:git`)
 

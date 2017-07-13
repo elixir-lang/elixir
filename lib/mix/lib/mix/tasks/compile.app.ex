@@ -263,7 +263,7 @@ defmodule Mix.Tasks.Compile.App do
 
     for %{app: app, opts: opts, top_level: true} <- Mix.Dep.cached,
         Keyword.get(opts, :app, true),
-        Keyword.get(opts, :runtime, true),
+        Keyword.get(opts, :runtime, :start) in [true, :start],
         not Keyword.get(opts, :optional, false),
         app not in included_applications,
         do: app
