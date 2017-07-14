@@ -83,7 +83,7 @@ defmodule Module do
         @impl true # will warn if neither Bar nor Baz specify a callback named bar/0
         def bar(), do: :ok
 
-        @impl Baz # Will warn if Baz does not specify a callback named baz/0
+        @impl Baz # will warn if Baz does not specify a callback named baz/0
         def baz(), do: :ok
       end
 
@@ -644,13 +644,13 @@ defmodule Module do
       [] ->
         :ets.insert(table, {{:doc, function_tuple}, line, kind, signature, doc})
         :ok
-      [{doc_tuple, line, _old_kind, old_sign, old_doc}] ->
+      [{doc_tuple, line, _current_kind, current_sign, current_doc}] ->
         :ets.insert(table, {
           doc_tuple,
           line,
           kind,
-          merge_signatures(old_sign, signature, 1),
-          if(is_nil(doc), do: old_doc, else: doc)
+          merge_signatures(current_sign, signature, 1),
+          if(is_nil(doc), do: current_doc, else: doc)
         })
         :ok
     end
@@ -895,7 +895,7 @@ defmodule Module do
         case :elixir_def.take_definition(module, tuple) do
           false ->
             raise ArgumentError,
-              "cannot make function #{function_name}/#{arity} overridable because it was not defined"
+                  "cannot make function #{function_name}/#{arity} overridable because it was not defined"
           clause ->
             neighbours =
               if :elixir_compiler.get_opt(:internal) do
@@ -904,13 +904,13 @@ defmodule Module do
                 Module.LocalsTracker.yank(module, tuple)
               end
 
-            old = :elixir_overridable.overridable(module)
-            count = case :maps.find(tuple, old) do
+            overridable_definitions = :elixir_overridable.overridable(module)
+            count = case :maps.find(tuple, overridable_definitions) do
               {:ok, {count, _, _, _}} -> count + 1
               :error -> 1
             end
-            new = :maps.put(tuple, {count, clause, neighbours, false}, old)
-            :elixir_overridable.overridable(module, new)
+            overridable_definitions = :maps.put(tuple, {count, clause, neighbours, false}, overridable_definitions)
+            :elixir_overridable.overridable(module, overridable_definitions)
         end
 
       other ->
@@ -922,7 +922,8 @@ defmodule Module do
   @spec make_overridable(module, module) :: :ok
   def make_overridable(module, behaviour) when is_atom(module) and is_atom(behaviour) do
     case check_module_for_overridable(module, behaviour) do
-      :ok -> :ok
+      :ok ->
+        :ok
       {:error, error_explanation} ->
         raise ArgumentError, "cannot pass module #{inspect(behaviour)} as argument to defoverridable/1 because #{error_explanation}"
     end
@@ -933,9 +934,10 @@ defmodule Module do
         pair
       end
 
-    tuples = for function_tuple <- definitions_in(module),
-                 function_tuple in behaviour_callbacks,
-                 do: function_tuple
+    tuples =
+      for definition <- definitions_in(module),
+          definition in behaviour_callbacks,
+          do: definition
 
     make_overridable(module, tuples)
   end
@@ -970,7 +972,7 @@ defmodule Module do
 
   defp normalize_macro_or_function_callback({function_name, arity}) do
     case :erlang.atom_to_list(function_name) do
-      # Macros are always provided one extra argument in behaviour_info
+      # Macros are always provided one extra argument in behaviour_info/1
       'MACRO-' ++ tail -> {{:erlang.list_to_atom(tail), arity - 1}, :defmacro}
       _ -> {{function_name, arity}, :def}
     end
@@ -1100,8 +1102,8 @@ defmodule Module do
     table = data_table_for(module)
 
     if Keyword.get(options, :persist) do
-      old_attribute = :ets.lookup_element(table, {:elixir, :persisted_attributes}, 2)
-      :ets.insert(table, {{:elixir, :persisted_attributes}, [attribute | old_attribute]})
+      attributes = :ets.lookup_element(table, {:elixir, :persisted_attributes}, 2)
+      :ets.insert(table, {{:elixir, :persisted_attributes}, [attribute | attributes]})
     end
 
     if Keyword.get(options, :accumulate) do
@@ -1176,7 +1178,7 @@ defmodule Module do
       {:error, :private_doc} ->
         :elixir_errors.warn line, env.file,
           "#{kind} #{name}/#{arity} is private, " <>
-          "@doc's are always discarded for private functions/macros/types"
+          "@doc attribute is always discarded for private functions/macros/types"
     end
 
     :ok
@@ -1216,9 +1218,8 @@ defmodule Module do
     callbacks = callbacks_with_behaviour(behaviours)
 
     Enum.reduce(impls, callbacks, fn {pair, kind, line, file, value}, acc ->
-      case impl_warn(pair, kind, value, behaviours, callbacks) do
-        :ok -> :ok
-        {:error, message} -> :elixir_errors.warn(line, file, message)
+      if message = impl_warning(pair, kind, value, behaviours, callbacks) do
+        :elixir_errors.warn(line, file, message)
       end
       Map.delete(acc, {pair, kind})
     end)
@@ -1232,76 +1233,81 @@ defmodule Module do
         into: %{}
   end
 
-  defp impl_warn(pair, kind, _, _, _) when kind in [:defp, :defmacrop] do
-    {:error, "#{format_kind_pair(kind, pair)} is private, @impl is always discarded for private functions/macros"}
+  defp impl_warning(pair, kind, _, _, _) when kind in [:defp, :defmacrop] do
+    "#{format_definition(kind, pair)} is private, @impl attribute is always discarded for private functions/macros"
   end
-  defp impl_warn(pair, kind, value, [], _callbacks) do
-    {:error, "got @impl #{inspect value} for #{format_kind_pair(kind, pair)} but no behaviour was declared"}
+
+  defp impl_warning(pair, kind, value, [], _callbacks) do
+    "got \"@impl #{inspect value}\" for #{format_definition(kind, pair)} but no behaviour was declared"
   end
-  defp impl_warn(pair, kind, false, _behaviours, callbacks) do
+
+  defp impl_warning(pair, kind, false, _behaviours, callbacks) do
     if behaviour = Map.get(callbacks, {pair, kind}) do
-      message = "got @impl false for #{format_kind_pair(kind, pair)} " <>
-                "but it is a callback specified in #{inspect(behaviour)}"
-      {:error, message}
-    else
-      :ok
+      "got \"@impl false\" for #{format_definition(kind, pair)} " <>
+        "but it is a callback specified in #{inspect(behaviour)}"
     end
   end
-  defp impl_warn(pair, kind, true, _, callbacks) do
-    if Map.has_key?(callbacks, {pair, kind}) do
-      :ok
-    else
-      message = "got @impl true for #{format_kind_pair(kind, pair)} " <>
-                "but no behaviour specifies this callback#{known_callbacks(callbacks)}"
-      {:error, message}
+
+  defp impl_warning(pair, kind, true, _, callbacks) do
+    if not Map.has_key?(callbacks, {pair, kind}) do
+      "got \"@impl true\" for #{format_definition(kind, pair)} " <>
+        "but no behaviour specifies such callback#{known_callbacks(callbacks)}"
     end
   end
-  defp impl_warn(pair, kind, behaviour, behaviours, callbacks) do
+
+  defp impl_warning(pair, kind, behaviour, behaviours, callbacks) do
     cond do
       Map.get(callbacks, {pair, kind}) == behaviour ->
-        :ok
+        nil
       behaviour not in behaviours ->
-        message = "got @impl #{inspect behaviour} for #{format_kind_pair(kind, pair)} " <>
-                  "but the given behaviour was not declared with @behaviour"
-        {:error, message}
+        "got \"@impl #{inspect behaviour}\" for #{format_definition(kind, pair)} " <>
+          "but this behaviour was not declared with @behaviour"
       true ->
-        message = "got @impl #{inspect behaviour} for #{format_kind_pair(kind, pair)} " <>
-                  "but the behaviour does not specify this callback#{known_callbacks(callbacks)}"
-        {:error, message}
+        "got \"@impl #{inspect behaviour}\" for #{format_definition(kind, pair)} " <>
+          "but this behaviour does not specify such callback#{known_callbacks(callbacks)}"
     end
   end
 
   defp warn_missing_impls(_env, callbacks, _defs, _) when map_size(callbacks) == 0 do
     :ok
   end
+
   defp warn_missing_impls(env, non_implemented_callbacks, defs, overridable_pairs) do
     for {pair, kind, meta, _clauses} <- defs,
         kind in [:def, :defmacro],
         pair not in overridable_pairs,
         behaviour = Map.get(non_implemented_callbacks, {pair, kind}) do
-      message = "module attribute @impl was not set for callback " <>
-                "#{format_kind_pair(kind, pair)} (callback specified in #{inspect behaviour}). " <>
-                "This either means you forgot to add the \"@impl true\" annotation before the " <>
-                "definition or that you are accidentally overriding a callback"
+      message =
+        "module attribute @impl was not set for #{format_definition(kind, pair)} " <>
+        "callback (specified in #{inspect behaviour}). " <>
+        "This either means you forgot to add the \"@impl true\" annotation before the " <>
+        "definition or that you are accidentally overriding this callback"
       :elixir_errors.warn(:elixir_utils.get_line(meta), env.file, message)
     end
 
     :ok
   end
 
-  defp format_kind_pair(kind, {name, arity}) do
-    "#{kind} #{name}/#{arity}"
+  defp format_definition(kind, {name, arity}) do
+    format_definition(kind) <> " #{name}/#{arity}"
   end
+
+  defp format_definition(:defmacro), do: "macro"
+  defp format_definition(:defmacrop), do: "macro"
+  defp format_definition(:def), do: "function"
+  defp format_definition(:defp), do: "function"
 
   defp known_callbacks(callbacks) when map_size(callbacks) == 0 do
     ". There are no known callbacks, please specify the proper @behaviour " <>
-    "and make sure they define callbacks"
+      "and make sure it defines callbacks"
   end
+
   defp known_callbacks(callbacks) do
-    formatted = for {{{name, arity}, kind}, module} <- callbacks do
-      "\n  * " <> Exception.format_mfa(module, name, arity) <> " (#{kind})"
-    end
-    ". The known callbacks are:\n#{formatted}\n"
+    formatted_callbacks =
+      for {{{name, arity}, kind}, module} <- callbacks do
+        "\n  * " <> Exception.format_mfa(module, name, arity) <> " (#{format_definition(kind)})"
+      end
+    ". The known callbacks are:\n#{formatted_callbacks}\n"
   end
 
   @doc false
@@ -1311,13 +1317,13 @@ defmodule Module do
     assert_not_compiled!(:put_attribute, module)
     table = data_table_for(module)
 
-    new =
+    typespecs =
       case :ets.lookup(table, key) do
-        [{^key, old, _, _}] -> [value | old]
+        [{^key, typespecs, _, _}] -> [value | typespecs]
         [] -> [value]
       end
 
-    :ets.insert(table, {key, new, true, nil})
+    :ets.insert(table, {key, typespecs, true, nil})
   end
 
   @doc false
@@ -1382,11 +1388,11 @@ defmodule Module do
         value
       {line, doc} when is_integer(line) ->
         raise ArgumentError,
-          "expected the #{key} attribute to contain a binary, a boolean, or nil, got: #{inspect(doc)}"
+              "expected the #{key} attribute to contain a binary, a boolean, or nil, got: #{inspect(doc)}"
       _other ->
         raise ArgumentError,
-          "expected the #{key} attribute to be {line, doc} (where \"doc\" is " <>
-          "a binary, a boolean, or nil), got: #{inspect(value)}"
+              "expected the #{key} attribute to be {line, doc} (where \"doc\" is " <>
+              "a binary, a boolean, or nil), got: #{inspect(value)}"
     end
   end
 
@@ -1398,8 +1404,8 @@ defmodule Module do
         tuple
       other ->
         raise ArgumentError,
-          "expected the @on_load attribute to be an atom or a " <>
-          "{atom, 0} tuple, got: #{inspect(other)}"
+              "expected the @on_load attribute to be an atom or a " <>
+              "{atom, 0} tuple, got: #{inspect(other)}"
     end
   end
 
@@ -1413,7 +1419,7 @@ defmodule Module do
         value
       other ->
         raise ArgumentError,
-          "expected impl attribute to contain a module or a boolean, got: #{inspect(other)}"
+              "expected the @impl attribute to contain a module or a boolean, got: #{inspect(other)}"
     end
   end
 
@@ -1435,8 +1441,9 @@ defmodule Module do
     do: {atom, :__on_definition__}
 
   defp preprocess_attribute(key, _value) when key in [:type, :typep, :export_type, :opaque, :callback, :macrocallback] do
-    raise ArgumentError, "attributes type, typep, export_type, opaque, callback, and macrocallback" <>
-      "must be set directly via the @ notation"
+    raise ArgumentError,
+          "attributes type, typep, export_type, opaque, callback, and macrocallback" <>
+          "must be set directly via the @ notation"
   end
 
   defp preprocess_attribute(_key, value) do
@@ -1466,6 +1473,6 @@ defmodule Module do
   defp assert_not_compiled!(fun, module) do
     open?(module) ||
       raise ArgumentError,
-        "could not call #{fun} with argument #{inspect module} because the module is already compiled"
+            "could not call #{fun} with argument #{inspect module} because the module is already compiled"
   end
 end
