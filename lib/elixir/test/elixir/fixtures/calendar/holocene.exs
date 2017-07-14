@@ -3,6 +3,8 @@ defmodule Calendar.Holocene do
   # It implements the Holocene calendar, which is based on the
   # Propleptic Gregorian calendar with every year + 10000.
 
+  @behaviour Calendar
+
   def date(year, month, day) do
     %Date{year: year, month: month, day: day, calendar: __MODULE__}
   end
@@ -17,7 +19,15 @@ defmodule Calendar.Holocene do
   end
 
   def naive_datetime_to_string(year, month, day, hour, minute, second, microsecond) do
-    "#{year}-#{month}-#{day} #{Calendar.ISO.time_to_string(hour, minute, second, microsecond)} (HE)"
+    "#{year}-#{month}-#{day}" <>
+      Calendar.ISO.time_to_string(hour, minute, second, microsecond) <> " (HE)"
+  end
+
+  def datetime_to_string(year, month, day,
+                         hour, minute, second, microsecond,
+                         _time_zone, zone_abbr, _utc_offset, _std_offset) do
+    "#{year}-#{month}-#{day}" <>
+      Calendar.ISO.time_to_string(hour, minute, second, microsecond) <> " #{zone_abbr} (HE)"
   end
 
   defdelegate time_to_string(hour, minute, second, microsecond), to: Calendar.ISO
@@ -41,4 +51,12 @@ defmodule Calendar.Holocene do
   defdelegate leap_year?(year), to: Calendar.ISO
 
   defdelegate days_in_month(year, month), to: Calendar.ISO
+
+  defdelegate day_of_week(year, month, day), to: Calendar.ISO
+
+  def valid_date?(year, month, day) do
+    :calendar.valid_date(year, month, day)
+  end
+
+  defdelegate valid_time?(hour, minute, second, microsecond), to: Calendar.ISO
 end
