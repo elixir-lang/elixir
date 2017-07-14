@@ -372,10 +372,12 @@ defmodule Time do
 
   ## Examples
 
-  Imagine someone implements `Calendar.Julian`:
+  Imagine someone implements `Calendar.Holocene`, a calendar based on the
+  Gregorian calendar that adds exactly 10,000 years to the current Gregorian
+  year:
 
-      iex> Time.convert(~T[13:30:15], Calendar.Julian)
-      {:ok, %Time{calendar: Calendar.Julian, hour: 13, minute: 30, second: 15, microsecond: {0, 0}}}
+      iex> Time.convert(~T[13:30:15], Calendar.Holocene)
+      {:ok, %Time{calendar: Calendar.Holocene, hour: 13, minute: 30, second: 15, microsecond: {0, 0}}}
 
   """
   @spec convert(Calendar.time, Calendar.calendar) :: {:ok, t} | {:error, atom}
@@ -398,10 +400,12 @@ defmodule Time do
 
   ## Examples
 
-  Imagine someone implements `Calendar.Julian`:
+  Imagine someone implements `Calendar.Holocene`, a calendar based on the
+  Gregorian calendar that adds exactly 10,000 years to the current Gregorian
+  year:
 
-      iex> Time.convert!(~T[13:30:15], Calendar.Julian)
-      %Time{calendar: Calendar.Julian, hour: 13, minute: 30, second: 15, microsecond: {0, 0}}
+      iex> Time.convert!(~T[13:30:15], Calendar.Holocene)
+      %Time{calendar: Calendar.Holocene, hour: 13, minute: 30, second: 15, microsecond: {0, 0}}
 
   """
   @spec convert!(Calendar.time, Calendar.calendar) :: t
@@ -438,8 +442,8 @@ defmodule Time do
   def diff(%Time{} = time1, %Time{} = time2, unit \\ :second) do
     fraction1 = to_day_fraction(time1)
     fraction2 = to_day_fraction(time2)
-    Calendar.ISO.rata_die_to_unit({0, fraction1}, unit) -
-      Calendar.ISO.rata_die_to_unit({0, fraction2}, unit)
+    Calendar.ISO.iso_days_to_unit({0, fraction1}, unit) -
+      Calendar.ISO.iso_days_to_unit({0, fraction2}, unit)
   end
 
   ## Helpers

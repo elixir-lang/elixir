@@ -1299,9 +1299,9 @@ defmodule Module do
   end
   defp known_callbacks(callbacks) do
     formatted = for {{{name, arity}, kind}, module} <- callbacks do
-      "\n  * " <> Exception.format_mfa(module, name, arity) <> "(#{kind})"
+      "\n  * " <> Exception.format_mfa(module, name, arity) <> " (#{kind})"
     end
-    ". The known callbacks are:\n#{formatted}"
+    ". The known callbacks are:\n#{formatted}\n"
   end
 
   @doc false

@@ -34,19 +34,19 @@ defmodule Calendar.ISO do
 
   ## Examples
 
-      iex> Calendar.ISO.naive_datetime_to_rata_die(1, 1, 1, 0, 0, 0, {0, 6})
-      {1, {0, 86400000000}}
-      iex> Calendar.ISO.naive_datetime_to_rata_die(2000, 1, 1, 12, 0, 0, {0, 6})
-      {730120, {43200000000, 86400000000}}
-      iex> Calendar.ISO.naive_datetime_to_rata_die(2000, 1, 1, 13, 0, 0, {0, 6})
-      {730120, {46800000000, 86400000000}}
+      iex> Calendar.ISO.naive_datetime_to_iso_days(0, 1, 1, 0, 0, 0, {0, 6})
+      {0, {0, 86400000000}}
+      iex> Calendar.ISO.naive_datetime_to_iso_days(2000, 1, 1, 12, 0, 0, {0, 6})
+      {730485, {43200000000, 86400000000}}
+      iex> Calendar.ISO.naive_datetime_to_iso_days(2000, 1, 1, 13, 0, 0, {0, 6})
+      {730485, {46800000000, 86400000000}}
 
   """
-  @spec naive_datetime_to_rata_die(Calendar.year, Calendar.month, Calendar.day,
+  @spec naive_datetime_to_iso_days(Calendar.year, Calendar.month, Calendar.day,
                                    Calendar.hour, Calendar.minute, Calendar.second,
-                                   Calendar.microsecond) :: Calendar.rata_die
-  def naive_datetime_to_rata_die(year, month, day, hour, minute, second, microsecond) do
-    {date_to_rata_die_days(year, month, day),
+                                   Calendar.microsecond) :: Calendar.iso_days
+  def naive_datetime_to_iso_days(year, month, day, hour, minute, second, microsecond) do
+    {date_to_iso_days_days(year, month, day),
      time_to_day_fraction(hour, minute, second, microsecond)}
   end
 
@@ -55,21 +55,19 @@ defmodule Calendar.ISO do
 
   ## Examples
 
-      iex> Calendar.ISO.naive_datetime_from_rata_die({1, {0, 86400}})
-      {1, 1, 1, 0, 0, 0, {0, 6}}
-
-      iex> Calendar.ISO.naive_datetime_from_rata_die({730120, {0, 86400}})
+      iex> Calendar.ISO.naive_datetime_from_iso_days({0, {0, 86400}})
+      {0, 1, 1, 0, 0, 0, {0, 6}}
+      iex> Calendar.ISO.naive_datetime_from_iso_days({730485, {0, 86400}})
       {2000, 1, 1, 0, 0, 0, {0, 6}}
-
-      iex> Calendar.ISO.naive_datetime_from_rata_die({730120, {43200, 86400}})
+      iex> Calendar.ISO.naive_datetime_from_iso_days({730485, {43200, 86400}})
       {2000, 1, 1, 12, 0, 0, {0, 6}}
 
   """
-  @spec naive_datetime_from_rata_die(Calendar.rata_die) ::
+  @spec naive_datetime_from_iso_days(Calendar.iso_days) ::
         {Calendar.year, Calendar.month, Calendar.day,
          Calendar.hour, Calendar.minute, Calendar.second, Calendar.microsecond}
-  def naive_datetime_from_rata_die({days, day_fraction}) do
-    {year, month, day} = date_from_rata_die_days(days)
+  def naive_datetime_from_iso_days({days, day_fraction}) do
+    {year, month, day} = date_from_iso_days_days(days)
     {hour, minute, second, microsecond} = time_from_day_fraction(day_fraction)
     {year, month, day, hour, minute, second, microsecond}
   end
@@ -118,21 +116,21 @@ defmodule Calendar.ISO do
 
   # Converts a year, month, day in only a count of days since the Rata Die epoch.
   @doc false
-  def date_to_rata_die_days(0, 1, 1) do
-    -365
+  def date_to_iso_days_days(0, 1, 1) do
+    0
   end
-  def date_to_rata_die_days(1970, 1, 1) do
-    719163
+  def date_to_iso_days_days(1970, 1, 1) do
+    719528
   end
-  def date_to_rata_die_days(year, month, day) do
+  def date_to_iso_days_days(year, month, day) do
     # Rata Die starts at year 1, rather than at year 0.
-    :calendar.date_to_gregorian_days(year, month, day) - 365
+    :calendar.date_to_gregorian_days(year, month, day)
   end
 
   # Calculates {year, month, day} from the count of days since the Rata Die epoch.
   @doc false
-  def date_from_rata_die_days(days) do
-    :calendar.gregorian_days_to_date(days + 365)
+  def date_from_iso_days_days(days) do
+    :calendar.gregorian_days_to_date(days)
   end
 
   defp div_mod(int1, int2) do
@@ -419,26 +417,26 @@ defmodule Calendar.ISO do
   end
 
   @doc false
-  def rata_die_to_unit({days, {parts, ppd}}, unit) do
+  def iso_days_to_unit({days, {parts, ppd}}, unit) do
     day_microseconds = days * @seconds_per_day * @microseconds_per_second
     microseconds = div(parts * @seconds_per_day * @microseconds_per_second, ppd)
     System.convert_time_unit(day_microseconds + microseconds, :microsecond, unit)
   end
 
   @doc false
-  def add_day_fraction_to_rata_die({days, {parts, ppd}}, add, ppd) do
-    normalize_rata_die(days, parts + add, ppd)
+  def add_day_fraction_to_iso_days({days, {parts, ppd}}, add, ppd) do
+    normalize_iso_days(days, parts + add, ppd)
   end
-  def add_day_fraction_to_rata_die({days, {parts, ppd}}, add, add_ppd) do
+  def add_day_fraction_to_iso_days({days, {parts, ppd}}, add, add_ppd) do
     parts = parts * add_ppd
     add = add * ppd
     gcd = Integer.gcd(ppd, add_ppd)
     result_parts = div(parts + add, gcd)
     result_ppd = div(ppd * add_ppd, gcd)
-    normalize_rata_die(days, result_parts, result_ppd)
+    normalize_iso_days(days, result_parts, result_ppd)
   end
 
-  defp normalize_rata_die(days, parts, ppd) do
+  defp normalize_iso_days(days, parts, ppd) do
     days_offset = div(parts, ppd)
     parts = rem(parts, ppd)
     if parts < 0 do
