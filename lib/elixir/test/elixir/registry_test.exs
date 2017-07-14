@@ -86,6 +86,42 @@ defmodule RegistryTest do
                [{self(), value}]
       end
 
+      test "unregister_match supports patterns", %{registry: registry} do
+        value = {1, :atom, 1}
+        {:ok, _} = Registry.register(registry, "hello", value)
+
+        Registry.unregister_match(registry, "hello", {2, :_, :_})
+        assert Registry.lookup(registry, "hello") ==
+               [{self(), value}]
+        Registry.unregister_match(registry, "hello", {1.0, :_, :_})
+        assert Registry.lookup(registry, "hello") ==
+               [{self(), value}]
+        Registry.unregister_match(registry, "hello", {:_, :atom, :_})
+        assert Registry.lookup(registry, "hello") ==
+              []
+      end
+
+      test "unregister_match supports guards", %{registry: registry} do
+        value = {1, :atom, 1}
+        {:ok, _} = Registry.register(registry, "hello", value)
+
+        Registry.unregister_match(registry, "hello", {:"$1", :_, :_}, [{:<, :"$1", 2}])
+        assert Registry.lookup(registry, "hello") ==
+               []
+      end
+
+      test "unregister_match supports tricky keys", %{registry: registry} do
+        {:ok, _} = Registry.register(registry, :_, :foo)
+        {:ok, _} = Registry.register(registry, "hello", "b")
+
+        Registry.unregister_match(registry, :_, :foo)
+        assert Registry.lookup(registry, :_) ==
+               []
+
+        assert Registry.keys(registry, self()) |> Enum.sort ==
+               ["hello"]
+      end
+
       test "compares using ===", %{registry: registry} do
         {:ok, _} = Registry.register(registry, 1.0, :value)
         {:ok, _} = Registry.register(registry, 1, :value)
