@@ -456,18 +456,15 @@ defmodule Stream do
   """
   @spec interval(non_neg_integer) :: Enumerable.t
   def interval(interval) do
-
-    ms_since_epoch = fn {mega, sec, micro} ->
-      div(micro, 1000) + 1000 * ( sec + 1_000_000 * mega )
-    end
-
-    start_time = ms_since_epoch.(:os.timestamp())
+    start_time = now_in_ms()
     
     unfold 0, fn(count) ->
       then = start_time + interval * count
-      now  = ms_since_epoch.(:os.timestamp())
+      now  = now_in_ms()
 
-      Process.sleep(then - now)
+      if then > now do
+        Process.sleep(then - now)
+      end
 
       {count, count + 1}
     end
@@ -1415,6 +1412,9 @@ defmodule Stream do
     do: %{lazy | funs: [fun | funs], accs: [acc | accs], done: done}
   defp lazy(enum, acc, fun, done),
     do: %Stream{enum: enum, funs: [fun], accs: [acc], done: done}
+
+  defp now_in_ms(),
+    do: :erlang.monotonic_time(:millisecond)
 end
 
 defimpl Enumerable, for: Stream do
