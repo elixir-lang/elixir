@@ -35,17 +35,16 @@ defmodule Calendar do
   @typedoc """
   The internal date format that is used when converting between calendars.
 
-  This is the amount of days including the fractional part that has passed of the last day,
-  since midnight 1 January AD 1 of the Proleptic Gregorian Calendar
-  (0000-01-01+00:00T00:00.00000 in ISO 8601 notation).
+  This is the amount of days including the fractional part that has passed of
+  the last day since 0000-01-01+00:00T00:00.00000 in ISO 8601 notation (also
+  known as midnight 1 January BC 1 of the Proleptic Gregorian Calendar).
 
   The `parts_per_day` represent how many subparts the current day is subdivided in
   (for different calendars, picking a different `parts_per_day` might make sense).
-  The `parts_in_day` represents how many of these `parts_per_day` have passed in the last day.
-
-  Thus, a Rata Die like `{1234, {1, 2}}` should be read as `1234½`.
+  The `parts_in_day` represents how many of these `parts_per_day` have passed in the
+  last day.
   """
-  @type rata_die :: {days :: integer, day_fraction}
+  @type iso_days :: {days :: integer, day_fraction}
 
   @typedoc """
   Microseconds with stored precision.
@@ -127,14 +126,14 @@ defmodule Calendar do
   @callback time_to_string(hour, minute, second, microsecond) :: String.t
 
   @doc """
-  Converts the given datetime (with time zone) into the `t:rata_die` format.
+  Converts the given datetime (with time zone) into the `t:iso_days` format.
   """
-  @callback naive_datetime_to_rata_die(year, month, day, hour, minute, second, microsecond) :: rata_die
+  @callback naive_datetime_to_iso_days(year, month, day, hour, minute, second, microsecond) :: iso_days
 
   @doc """
-  Converts `t:rata_die` to the Calendar's datetime format.
+  Converts `t:iso_days` to the Calendar's datetime format.
   """
-  @callback naive_datetime_from_rata_die(rata_die) :: {year, month, day, hour, minute, second, microsecond}
+  @callback naive_datetime_from_iso_days(iso_days) :: {year, month, day, hour, minute, second, microsecond}
 
   @doc """
   Converts the given time to the `t:day_fraction` format.
