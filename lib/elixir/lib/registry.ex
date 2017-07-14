@@ -588,12 +588,34 @@ defmodule Registry do
   def keys(registry, pid) when is_atom(registry) and is_pid(pid) do
     {kind, partitions, _, pid_ets, _} = info!(registry)
     {_, pid_ets} = pid_ets || pid_ets!(registry, pid, partitions)
-    keys = safe_lookup_second(pid_ets, pid)
+
+    keys = try do
+      spec = [{{pid, :'$1', :'$2'}, [], [{{:'$1', :'$2'}}]}]
+      :ets.select(pid_ets, spec)
+    catch
+      :error, :badarg -> []
+    end
+
+    # Handle the possibility of fake keys
+    keys = gather_keys(keys, [], false)
 
     cond do
       kind == :unique -> Enum.uniq(keys)
       true -> keys
     end
+  end
+
+  defp gather_keys([{key, {_, remaining}} | rest], acc, _fake) do
+    gather_keys(rest, [key | acc], {key, remaining})
+  end
+  defp gather_keys([{key, _} | rest], acc, fake) do
+    gather_keys(rest, [key | acc], fake)
+  end
+  defp gather_keys([], acc, {key, remaining}) do
+    List.duplicate(key, remaining) ++ Enum.reject(acc, & &1 === key)
+  end
+  defp gather_keys([], acc, false) do
+    acc
   end
 
   @doc """
@@ -648,6 +670,95 @@ defmodule Registry do
 
     for listener <- listeners do
       Kernel.send(listener, {:unregister, registry, key, self})
+    end
+
+    :ok
+  end
+
+  @doc """
+  Unregister entries for a given key matching a pattern.
+
+  ## Examples
+
+  For unique registries it can be used to conditionally unregister a key on
+  the basis of whether or not it matches a particular value.
+
+      iex> Registry.start_link(:unique, Registry.UniqueUnregisterMatchTest)
+      iex> Registry.register(Registry.UniqueUnregisterMatchTest, "hello", :world)
+      iex> Registry.keys(Registry.UniqueUnregisterMatchTest, self())
+      ["hello"]
+      iex> Registry.unregister_match(Registry.UniqueUnregisterMatchTest, "hello", :foo)
+      :ok
+      iex> Registry.keys(Registry.UniqueUnregisterMatchTest, self())
+      ["hello"]
+      iex> Registry.unregister_match(Registry.UniqueUnregisterMatchTest, "hello", :world)
+      :ok
+      iex> Registry.keys(Registry.UniqueUnregisterMatchTest, self())
+      []
+
+  For duplicate registries:
+
+      iex> Registry.start_link(:duplicate, Registry.DuplicateUnregisterMatchTest)
+      iex> Registry.register(Registry.DuplicateUnregisterMatchTest, "hello", :world_a)
+      iex> Registry.register(Registry.DuplicateUnregisterMatchTest, "hello", :world_b)
+      iex> Registry.register(Registry.DuplicateUnregisterMatchTest, "hello", :world_c)
+      iex> Registry.keys(Registry.DuplicateUnregisterMatchTest, self())
+      ["hello", "hello", "hello"]
+      iex> Registry.unregister_match(Registry.DuplicateUnregisterMatchTest, "hello", :world_a)
+      :ok
+      iex> Registry.keys(Registry.DuplicateUnregisterMatchTest, self())
+      ["hello", "hello"]
+      iex> Registry.lookup(Registry.DuplicateUnregisterMatchTest, "hello")
+      [{self(), :world_b}, {self(), :world_c}]
+  """
+  def unregister_match(registry, key, pattern, guards \\ []) when is_list(guards) do
+    self = self()
+
+    {kind, partitions, key_ets, pid_ets, listeners} = info!(registry)
+    {key_partition, pid_partition} = partitions(kind, key, self, partitions)
+    key_ets = key_ets || key_ets!(registry, key_partition)
+    {pid_server, pid_ets} = pid_ets || pid_ets!(registry, pid_partition)
+
+    # Remove first from the key_ets because in case of crashes
+    # the pid_ets will still be able to clean up. The last step is
+    # to clean if we have no more entries.
+
+    # Here we want to count all entries for this pid under this key, regardless
+    # of pattern.
+    underscore_guard = {:"=:=", {:element, 1, :"$_"}, {:const, key}}
+    total_spec = [{{:_, {self, :_}}, [underscore_guard], [true]}]
+    total = :ets.select_count(key_ets, total_spec)
+
+    # We only want to delete things that match the pattern
+    delete_spec = [{{:_, {self, pattern}}, [underscore_guard | guards] ,[true]}]
+    case :ets.select_delete(key_ets, delete_spec) do
+      # We deleted everything, we can just delete the object
+      ^total ->
+        true = :ets.delete_object(pid_ets, {self, key, key_ets})
+
+        unlink_if_unregistered(pid_server, pid_ets, self)
+
+        for listener <- listeners do
+          Kernel.send(listener, {:unregister, registry, key, self})
+        end
+
+      0 ->
+        :ok
+
+      deleted ->
+        # There are still entries remaining for this pid. delete_object/2 with
+        # duplicate_bag tables will remove every entry, but we only want to
+        # remove those we have deleted. The solution is to introduce a temp_entry
+        # that indicates how many keys WILL be remaining after the delete operation.
+        remaining = total - deleted
+        temp_entry = {self, key, {key_ets, remaining}}
+        true = :ets.insert(pid_ets, temp_entry)
+        true = :ets.delete_object(pid_ets, {self, key, key_ets})
+        real_keys = List.duplicate({self, key, key_ets}, remaining)
+        true = :ets.insert(pid_ets, real_keys)
+        # We've recreated the real remaining key entries, so we can now delete
+        # our temporary entry.
+        true = :ets.delete_object(pid_ets, temp_entry)
     end
 
     :ok
@@ -977,6 +1088,12 @@ defmodule Registry.Partition do
   def handle_info({:EXIT, pid, _reason}, ets) do
     entries = :ets.take(ets, pid)
     for {_pid, key, key_ets} <- entries do
+      key_ets = case key_ets do
+        # In case the fake key ets is being used. See unregister_match/2.
+        {key_ets, _} -> key_ets
+        _ -> key_ets
+      end
+
       try do
         :ets.match_delete(key_ets, {key, {pid, :_}})
       catch
