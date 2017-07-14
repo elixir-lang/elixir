@@ -148,7 +148,7 @@ defmodule MapSet do
     map =
       map1
       |> Map.keys
-      |> filter_not_in(map2)
+      |> filter_not_in(map2, [])
 
     %MapSet{map: map}
   end
@@ -160,16 +160,14 @@ defmodule MapSet do
     %{map_set | map: Map.drop(map1, Map.keys(map2))}
   end
 
-  defp filter_not_in(keys, map2, acc \\ [])
   defp filter_not_in([], _map2, acc), do: :maps.from_list(acc)
   defp filter_not_in([key | rest], map2, acc) do
-    acc =
-      if Map.has_key?(map2, key) do
-        acc
-      else
-        [{key, []} | acc]
-      end
-    filter_not_in(rest, map2, acc)
+    case map2 do
+      %{^key => _} ->
+        filter_not_in(rest, map2, acc)
+      _ ->
+        filter_not_in(rest, map2, [{key, []} | acc])
+    end
   end
 
   @doc """
@@ -196,9 +194,9 @@ defmodule MapSet do
     true
   end
   defp none_in?([key | rest], map2) do
-    case Map.has_key?(map2, key) do
-      true -> false
-      false -> none_in?(rest, map2)
+    case map2 do
+      %{^key => _} -> false
+      _ -> none_in?(rest, map2)
     end
   end
 
@@ -257,7 +255,7 @@ defmodule MapSet do
   """
   @spec member?(t, value) :: boolean
   def member?(%MapSet{map: map}, value) do
-    Map.has_key?(map, value)
+    match?(%{^value => _}, map)
   end
 
   @doc """
@@ -316,11 +314,7 @@ defmodule MapSet do
 
   defp map_subset?([], _), do: true
   defp map_subset?([key | rest], map2) do
-    if Map.has_key?(map2, key) do
-      map_subset?(rest, map2)
-    else
-      false
-    end
+    match?(%{^key => _}, map2) and map_subset?(rest, map2)
   end
 
   @doc """
@@ -356,6 +350,7 @@ defmodule MapSet do
     new_from_list(Map.keys(map1) ++ Map.keys(map2), [])
   end
 
+  @compile {:inline, [order_by_size: 2]}
   defp order_by_size(map1, map2) when map_size(map1) > map_size(map2), do: {map2, map1}
   defp order_by_size(map1, map2), do: {map1, map2}
 
