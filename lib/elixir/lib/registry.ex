@@ -597,7 +597,7 @@ defmodule Registry do
     end
 
     # Handle the possibility of fake keys
-    keys = gather_keys(keys)
+    keys = gather_keys(keys, [], false)
 
     cond do
       kind == :unique -> Enum.uniq(keys)
@@ -605,7 +605,6 @@ defmodule Registry do
     end
   end
 
-  defp gather_keys(keys, acc \\ [], fake \\ false)
   defp gather_keys([{key, {_, remaining}} | rest], acc, _fake) do
     gather_keys(rest, [key | acc], {key, remaining})
   end
@@ -681,7 +680,21 @@ defmodule Registry do
 
   ## Examples
 
-  For unique registries it's the same as unregister:
+  For unique registries it can be used to conditionally unregister a key on
+  the basis of whether or not it matches a particular value.
+
+      iex> Registry.start_link(:unique, Registry.UniqueUnregisterMatchTest)
+      iex> Registry.register(Registry.UniqueUnregisterMatchTest, "hello", :world)
+      iex> Registry.keys(Registry.UniqueUnregisterMatchTest, self())
+      ["hello"]
+      iex> Registry.unregister_match(Registry.UniqueUnregisterMatchTest, "hello", :foo)
+      :ok
+      iex> Registry.keys(Registry.UniqueUnregisterMatchTest, self())
+      ["hello"]
+      iex> Registry.unregister_match(Registry.UniqueUnregisterMatchTest, "hello", :world)
+      :ok
+      iex> Registry.keys(Registry.UniqueUnregisterMatchTest, self())
+      []
 
 
   For duplicate registries:
@@ -729,17 +742,23 @@ defmodule Registry do
           Kernel.send(listener, {:unregister, registry, key, self})
         end
 
+      0 ->
+        :ok
+
       deleted ->
+        # There are still entries remaining for this pid. delete_object/2 with
+        # duplicate_bag tables will remove every entry, but we only want to
+        # remove those we have deleted. The solution is to introduce a temp_entry
+        # that indicates how many keys WILL be remaining after the delete operation.
         remaining = total - deleted
         temp_entry = {self, key, {key_ets, remaining}}
         true = :ets.insert(pid_ets, temp_entry)
-
         true = :ets.delete_object(pid_ets, {self, key, key_ets})
-
         real_keys = List.duplicate({self, key, key_ets}, remaining)
         true = :ets.insert(pid_ets, real_keys)
+        # We've recreated the real remaining key entries, so we can now delete
+        # our temporary entry.
         true = :ets.delete_object(pid_ets, temp_entry)
-
     end
 
     :ok
