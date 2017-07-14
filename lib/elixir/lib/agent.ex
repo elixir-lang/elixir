@@ -236,7 +236,7 @@ defmodule Agent do
   ## Examples
 
       iex> {:ok, pid} = Agent.start(fn -> 42 end)
-      iex> Agent.get(pid, fn(state) -> state end)
+      iex> Agent.get(pid, fn state -> state end)
       42
 
   """
