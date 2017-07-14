@@ -14,15 +14,18 @@ defmodule Calendar.Holocene do
                    microsecond: microsecond, calendar: __MODULE__}
   end
 
+  @impl true
   def date_to_string(year, month, day) do
     "#{year}-#{month}-#{day} (HE)"
   end
 
+  @impl true
   def naive_datetime_to_string(year, month, day, hour, minute, second, microsecond) do
     "#{year}-#{month}-#{day}" <>
       Calendar.ISO.time_to_string(hour, minute, second, microsecond) <> " (HE)"
   end
 
+  @impl true
   def datetime_to_string(year, month, day,
                          hour, minute, second, microsecond,
                          _time_zone, zone_abbr, _utc_offset, _std_offset) do
@@ -30,33 +33,44 @@ defmodule Calendar.Holocene do
       Calendar.ISO.time_to_string(hour, minute, second, microsecond) <> " #{zone_abbr} (HE)"
   end
 
+  @impl true
   defdelegate time_to_string(hour, minute, second, microsecond), to: Calendar.ISO
 
+  @impl true
   def day_rollover_relative_to_midnight_utc(), do: {0, 1}
 
+  @impl true
   def naive_datetime_from_iso_days(entry) do
     {year, month, day, hour, minute, second, microsecond} =
       Calendar.ISO.naive_datetime_from_iso_days(entry)
     {year + 10000, month, day, hour, minute, second, microsecond}
   end
 
+  @impl true
   def naive_datetime_to_iso_days(year, month, day, hour, minute, second, microsecond) do
     Calendar.ISO.naive_datetime_to_iso_days(year - 10000, month, day, hour, minute, second, microsecond)
   end
 
+  @impl true
   defdelegate time_from_day_fraction(day_fraction), to: Calendar.ISO
 
+  @impl true
   defdelegate time_to_day_fraction(hour, minute, second, microsecond), to: Calendar.ISO
 
+  @impl true
   defdelegate leap_year?(year), to: Calendar.ISO
 
+  @impl true
   defdelegate days_in_month(year, month), to: Calendar.ISO
 
+  @impl true
   defdelegate day_of_week(year, month, day), to: Calendar.ISO
 
+  @impl true
   def valid_date?(year, month, day) do
     :calendar.valid_date(year, month, day)
   end
 
+  @impl true
   defdelegate valid_time?(hour, minute, second, microsecond), to: Calendar.ISO
 end
