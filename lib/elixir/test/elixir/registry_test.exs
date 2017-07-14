@@ -403,7 +403,7 @@ defmodule RegistryTest do
                [{self(), value1}, {self(), value2}]
         Registry.unregister_match(registry, "hello", {:_, :atom, :_})
         assert Registry.lookup(registry, "hello") ==
-              []
+               []
       end
 
       test "unregister_match supports guards", %{registry: registry} do
