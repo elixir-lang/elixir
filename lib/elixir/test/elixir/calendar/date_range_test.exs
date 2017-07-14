@@ -1,5 +1,5 @@
 Code.require_file "../test_helper.exs", __DIR__
-Code.require_file "../fixtures/calendar/julian.exs", __DIR__
+Code.require_file "../fixtures/calendar/holocene.exs", __DIR__
 
 defmodule Date.RangeTest do
   use ExUnit.Case, async: true
@@ -13,7 +13,7 @@ defmodule Date.RangeTest do
       assert Enum.member?(@asc_range, ~D[2000-01-01])
       assert Enum.member?(@asc_range, ~D[2001-01-01])
       refute Enum.member?(@asc_range, ~D[2002-01-01])
-      refute Enum.member?(@asc_range, Calendar.Julian.date(1999, 12, 19))
+      refute Enum.member?(@asc_range, Calendar.Holocene.date(12000, 1, 1))
     end
 
     test "for descending range" do
@@ -21,7 +21,7 @@ defmodule Date.RangeTest do
       assert Enum.member?(@desc_range, ~D[2000-01-01])
       assert Enum.member?(@desc_range, ~D[2001-01-01])
       refute Enum.member?(@desc_range, ~D[1999-01-01])
-      refute Enum.member?(@asc_range, Calendar.Julian.date(1999, 12, 19))
+      refute Enum.member?(@asc_range, Calendar.Holocene.date(12000, 1, 1))
     end
   end
 
@@ -49,16 +49,16 @@ defmodule Date.RangeTest do
 
   test "both dates must have matching calendars" do
     first = ~D[2000-01-01]
-    last = Calendar.Julian.date(2001, 01, 01)
+    last = Calendar.Holocene.date(12001, 1, 1)
 
     assert_raise ArgumentError, "both dates must have matching calendars", fn ->
       Date.range(first, last)
     end
   end
 
-  test "accepts equal but not Calendar.ISO calendars" do
-    first = Calendar.Julian.date(2000, 01, 01)
-    last = Calendar.Julian.date(2001, 01, 01)
+  test "accepts equal but non Calendar.ISO calendars" do
+    first = Calendar.Holocene.date(12000, 1, 1)
+    last = Calendar.Holocene.date(12001, 1, 1)
     range = Date.range(first, last)
     assert range
     assert first in range

@@ -1,5 +1,5 @@
 Code.require_file "test_helper.exs", __DIR__
-Code.require_file "fixtures/calendar/julian.exs", __DIR__
+Code.require_file "fixtures/calendar/holocene.exs", __DIR__
 
 defmodule FakeCalendar do
   def date_to_string(_, _, _), do: "boom"
@@ -37,7 +37,10 @@ defmodule DateTest do
 
   test "compare/2 across calendars" do
     date1 = ~D[2000-01-01]
-    date2 = Calendar.Julian.date(2000, 01, 01)
+    date2 = Calendar.Holocene.date(12000, 01, 01)
+    assert Date.compare(date1, date2) == :eq
+
+    date2 = Calendar.Holocene.date(12001, 01, 01)
     assert Date.compare(date1, date2) == :lt
     assert Date.compare(date2, date1) == :gt
   end
@@ -53,14 +56,14 @@ defmodule DateTest do
   end
 
   test "convert/2" do
-    assert Date.convert(~D[2000-01-01], Calendar.Julian) ==
-           {:ok, Calendar.Julian.date(1999, 12, 19)}
-    assert ~D[2000-01-01] |> Date.convert!(Calendar.Julian) |> Date.convert!(Calendar.ISO) ==
+    assert Date.convert(~D[2000-01-01], Calendar.Holocene) ==
+           {:ok, Calendar.Holocene.date(12000, 01, 01)}
+    assert ~D[2000-01-01] |> Date.convert!(Calendar.Holocene) |> Date.convert!(Calendar.ISO) ==
            ~D[2000-01-01]
     assert Date.convert(~D[2016-02-03], FakeCalendar) ==
            {:error, :incompatible_calendars}
-    assert Date.convert(~N[2000-01-01 00:00:00], Calendar.Julian) ==
-           {:ok, Calendar.Julian.date(1999, 12, 19)}
+    assert Date.convert(~N[2000-01-01 00:00:00], Calendar.Holocene) ==
+           {:ok, Calendar.Holocene.date(12000, 01, 01)}
   end
 
   test "diff/2" do
@@ -68,7 +71,7 @@ defmodule DateTest do
     assert Date.diff(~D[2000-01-01], ~D[2000-01-31]) == -30
 
     date1 = ~D[2000-01-01]
-    date2 = Calendar.Julian.date(2000, 01, 01)
+    date2 = Calendar.Holocene.date(12000, 01, 14)
     assert Date.diff(date1, date2) == -13
     assert Date.diff(date2, date1) == 13
   end
@@ -145,40 +148,40 @@ defmodule NaiveDateTimeTest do
 
   test "add/2 with other calendars" do
     assert ~N[2000-01-01 12:34:15.123456]
-           |> NaiveDateTime.convert!(Calendar.Julian)
+           |> NaiveDateTime.convert!(Calendar.Holocene)
            |> NaiveDateTime.add(10, :second) ==
-           %NaiveDateTime{calendar: Calendar.Julian, year: 1999, month: 12, day: 19,
+           %NaiveDateTime{calendar: Calendar.Holocene, year: 12000, month: 1, day: 1,
                           hour: 12, minute: 34, second: 25, microsecond: {123456, 6}}
   end
 
   test "diff/2 with other calendars" do
     assert ~N[2000-01-01 12:34:15.123456]
-           |> NaiveDateTime.convert!(Calendar.Julian)
+           |> NaiveDateTime.convert!(Calendar.Holocene)
            |> NaiveDateTime.add(10, :second)
            |> NaiveDateTime.diff(~N[2000-01-01 12:34:15.123456]) == 10
   end
 
   test "convert/2" do
-    assert NaiveDateTime.convert(~N[2000-01-01 12:34:15.123400], Calendar.Julian) ==
-           {:ok, Calendar.Julian.naive_datetime(1999, 12, 19, 12, 34, 15, {123400, 6})}
+    assert NaiveDateTime.convert(~N[2000-01-01 12:34:15.123400], Calendar.Holocene) ==
+           {:ok, Calendar.Holocene.naive_datetime(12000, 1, 1, 12, 34, 15, {123400, 6})}
 
     assert ~N[2000-01-01 12:34:15]
-           |> NaiveDateTime.convert!(Calendar.Julian)
+           |> NaiveDateTime.convert!(Calendar.Holocene)
            |> NaiveDateTime.convert!(Calendar.ISO) ==
            ~N[2000-01-01 12:34:15]
 
     assert ~N[2000-01-01 12:34:15.123456]
-           |> NaiveDateTime.convert!(Calendar.Julian)
+           |> NaiveDateTime.convert!(Calendar.Holocene)
            |> NaiveDateTime.convert!(Calendar.ISO) ==
            ~N[2000-01-01 12:34:15.123456]
 
     assert NaiveDateTime.convert(~N[2016-02-03 00:00:01], FakeCalendar) ==
            {:error, :incompatible_calendars}
 
-    assert NaiveDateTime.convert(~N[1970-01-01 00:00:00], Calendar.Julian) ==
-           {:ok, Calendar.Julian.naive_datetime(1969, 12, 19, 0, 0, 0, {0, 0})}
-    assert NaiveDateTime.convert(DateTime.from_unix!(0, :seconds), Calendar.Julian) ==
-           {:ok, Calendar.Julian.naive_datetime(1969, 12, 19, 0, 0, 0, {0, 0})}
+    assert NaiveDateTime.convert(~N[1970-01-01 00:00:00], Calendar.Holocene) ==
+           {:ok, Calendar.Holocene.naive_datetime(11970, 1, 1, 0, 0, 0, {0, 0})}
+    assert NaiveDateTime.convert(DateTime.from_unix!(0, :seconds), Calendar.Holocene) ==
+           {:ok, Calendar.Holocene.naive_datetime(11970, 1, 1, 0, 0, 0, {0, 0})}
   end
 end
 
@@ -271,20 +274,20 @@ defmodule DateTimeTest do
     datetime_iso = %DateTime{year: 2000, month: 2, day: 29, zone_abbr: "CET",
                              hour: 23, minute: 0, second: 7, microsecond: {0, 0},
                              utc_offset: 3600, std_offset: 0, time_zone: "Europe/Warsaw"}
-    datetime_jul = %DateTime{year: 2000, month: 2, day: 16, zone_abbr: "CET",
+    datetime_hol = %DateTime{year: 12000, month: 2, day: 29, zone_abbr: "CET",
                              hour: 23, minute: 0, second: 7, microsecond: {0, 0},
                              utc_offset: 3600, std_offset: 0, time_zone: "Europe/Warsaw",
-                             calendar: Calendar.Julian}
+                             calendar: Calendar.Holocene}
 
-    assert DateTime.convert(datetime_iso, Calendar.Julian) == {:ok, datetime_jul}
+    assert DateTime.convert(datetime_iso, Calendar.Holocene) == {:ok, datetime_hol}
 
     assert datetime_iso
-           |> DateTime.convert!(Calendar.Julian)
+           |> DateTime.convert!(Calendar.Holocene)
            |> DateTime.convert!(Calendar.ISO) ==
            datetime_iso
 
     assert %{datetime_iso | microsecond: {123, 6}}
-           |> DateTime.convert!(Calendar.Julian)
+           |> DateTime.convert!(Calendar.Holocene)
            |> DateTime.convert!(Calendar.ISO) ==
            %{datetime_iso | microsecond: {123, 6}}
 
