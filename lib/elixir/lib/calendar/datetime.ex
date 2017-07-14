@@ -45,7 +45,7 @@ defmodule DateTime do
                          time_zone: Calendar.time_zone, zone_abbr: Calendar.zone_abbr,
                          utc_offset: Calendar.utc_offset, std_offset: Calendar.std_offset}
 
-  @unix_days :calendar.date_to_gregorian_days({1970, 1, 1}) - 365
+  @unix_days :calendar.date_to_gregorian_days({1970, 1, 1})
 
   @doc """
   Returns the current datetime in UTC.
@@ -214,8 +214,8 @@ defmodule DateTime do
   def to_unix(datetime, unit \\ :second)
 
   def to_unix(%{utc_offset: utc_offset, std_offset: std_offset} = datetime, unit) do
-    {days, fraction} = to_rata_die(datetime)
-    unix_units = Calendar.ISO.rata_die_to_unit({days - @unix_days, fraction}, unit)
+    {days, fraction} = to_iso_days(datetime)
+    unix_units = Calendar.ISO.iso_days_to_unit({days - @unix_days, fraction}, unit)
     offset_units = System.convert_time_unit(utc_offset + std_offset, :second, unit)
     unix_units - offset_units
   end
@@ -413,9 +413,9 @@ defmodule DateTime do
       {_, precision} = microsecond
 
       datetime =
-        Calendar.ISO.naive_datetime_to_rata_die(year, month, day, hour, minute, second, microsecond)
+        Calendar.ISO.naive_datetime_to_iso_days(year, month, day, hour, minute, second, microsecond)
         |> apply_tz_offset(offset)
-        |> from_rata_die("Etc/UTC", "UTC", 0, 0, calendar, precision)
+        |> from_iso_days("Etc/UTC", "UTC", 0, 0, calendar, precision)
 
       {:ok, %{datetime | microsecond: microsecond}, offset}
     else
@@ -519,19 +519,19 @@ defmodule DateTime do
               %DateTime{utc_offset: utc_offset2, std_offset: std_offset2} = datetime2) do
     {days1, {parts1, ppd1}} =
       datetime1
-      |> to_rata_die()
+      |> to_iso_days()
       |> apply_tz_offset(utc_offset1 + std_offset1)
 
     {days2, {parts2, ppd2}} =
       datetime2
-      |> to_rata_die()
+      |> to_iso_days()
       |> apply_tz_offset(utc_offset2 + std_offset2)
 
     # Ensure fraction tuples have same denominator.
-    rata_die1 = {days1, parts1 * ppd2}
-    rata_die2 = {days2, parts2 * ppd1}
+    iso_days1 = {days1, parts1 * ppd2}
+    iso_days2 = {days2, parts2 * ppd1}
 
-    case {rata_die1, rata_die2}  do
+    case {iso_days1, iso_days2}  do
       {first, second} when first > second -> :gt
       {first, second} when first < second -> :lt
       _ -> :eq
@@ -564,8 +564,8 @@ defmodule DateTime do
   def diff(%{utc_offset: utc_offset1, std_offset: std_offset1} = datetime1,
            %{utc_offset: utc_offset2, std_offset: std_offset2} = datetime2, unit \\ :second) do
     naive_diff =
-      (datetime1 |> to_rata_die() |> Calendar.ISO.rata_die_to_unit(unit)) -
-      (datetime2 |> to_rata_die() |> Calendar.ISO.rata_die_to_unit(unit))
+      (datetime1 |> to_iso_days() |> Calendar.ISO.iso_days_to_unit(unit)) -
+      (datetime2 |> to_iso_days() |> Calendar.ISO.iso_days_to_unit(unit))
     offset_diff =
       (utc_offset2 + std_offset2) - (utc_offset1 + std_offset1)
     naive_diff + System.convert_time_unit(offset_diff, :second, unit)
@@ -580,15 +580,17 @@ defmodule DateTime do
 
   ## Examples
 
-  Imagine someone implements `Calendar.Julian`:
+  Imagine someone implements `Calendar.Holocene`, a calendar based on the
+  Gregorian calendar that adds exactly 10,000 years to the current Gregorian
+  year:
 
       iex> dt1 = %DateTime{year: 2000, month: 2, day: 29, zone_abbr: "AMT",
       ...>                 hour: 23, minute: 0, second: 7, microsecond: {0, 0},
       ...>                 utc_offset: -14400, std_offset: 0, time_zone: "America/Manaus"}
-      iex> DateTime.convert(dt1, Calendar.Julian)
-      {:ok, %DateTime{calendar: Calendar.Julian, day: 16, hour: 23,
+      iex> DateTime.convert(dt1, Calendar.Holocene)
+      {:ok, %DateTime{calendar: Calendar.Holocene, day: 29, hour: 23,
                       microsecond: {0, 0}, minute: 0, month: 2, second: 7, std_offset: 0,
-                      time_zone: "America/Manaus", utc_offset: -14400, year: 2000,
+                      time_zone: "America/Manaus", utc_offset: -14400, year: 12000,
                       zone_abbr: "AMT"}}
 
   """
@@ -605,8 +607,8 @@ defmodule DateTime do
     if Calendar.compatible_calendars?(dt_calendar, calendar) do
       result_datetime =
         datetime
-        |> to_rata_die
-        |> from_rata_die(datetime, calendar, precision)
+        |> to_iso_days
+        |> from_iso_days(datetime, calendar, precision)
       {:ok, result_datetime}
     else
       {:error, :incompatible_calendars}
@@ -621,15 +623,17 @@ defmodule DateTime do
 
   ## Examples
 
-  Imagine someone implements `Calendar.Julian`:
+  Imagine someone implements `Calendar.Holocene`, a calendar based on the
+  Gregorian calendar that adds exactly 10,000 years to the current Gregorian
+  year:
 
       iex> dt1 = %DateTime{year: 2000, month: 2, day: 29, zone_abbr: "AMT",
       ...>                 hour: 23, minute: 0, second: 7, microsecond: {0, 0},
       ...>                 utc_offset: -14400, std_offset: 0, time_zone: "America/Manaus"}
-      iex> DateTime.convert!(dt1, Calendar.Julian)
-      %DateTime{calendar: Calendar.Julian, day: 16, hour: 23,
+      iex> DateTime.convert!(dt1, Calendar.Holocene)
+      %DateTime{calendar: Calendar.Holocene, day: 29, hour: 23,
                 microsecond: {0, 0}, minute: 0, month: 2, second: 7, std_offset: 0,
-                time_zone: "America/Manaus", utc_offset: -14400, year: 2000,
+                time_zone: "America/Manaus", utc_offset: -14400, year: 12000,
                 zone_abbr: "AMT"}
 
   """
@@ -643,24 +647,24 @@ defmodule DateTime do
     end
   end
 
-  defp to_rata_die(%{calendar: calendar,year: year, month: month, day: day,
+  defp to_iso_days(%{calendar: calendar,year: year, month: month, day: day,
                      hour: hour, minute: minute, second: second, microsecond: microsecond}) do
-    calendar.naive_datetime_to_rata_die(year, month, day, hour, minute, second, microsecond)
+    calendar.naive_datetime_to_iso_days(year, month, day, hour, minute, second, microsecond)
   end
 
-  defp from_rata_die(rata_die, datetime, calendar, precision) do
+  defp from_iso_days(iso_days, datetime, calendar, precision) do
     %{time_zone: time_zone, zone_abbr: zone_abbr, utc_offset: utc_offset, std_offset: std_offset} = datetime
-    from_rata_die(rata_die, time_zone, zone_abbr, utc_offset, std_offset, calendar, precision)
+    from_iso_days(iso_days, time_zone, zone_abbr, utc_offset, std_offset, calendar, precision)
   end
 
-  defp from_rata_die(rata_die, time_zone, zone_abbr, utc_offset, std_offset, calendar, precision) do
-    {year, month, day, hour, minute, second, {microsecond, _}} = calendar.naive_datetime_from_rata_die(rata_die)
+  defp from_iso_days(iso_days, time_zone, zone_abbr, utc_offset, std_offset, calendar, precision) do
+    {year, month, day, hour, minute, second, {microsecond, _}} = calendar.naive_datetime_from_iso_days(iso_days)
     %DateTime{calendar: calendar, year: year, month: month, day: day,
               hour: hour, minute: minute, second: second, microsecond: {microsecond, precision},
               time_zone: time_zone, zone_abbr: zone_abbr, utc_offset: utc_offset, std_offset: std_offset}
   end
 
-  defp apply_tz_offset(rata_die, offset) do
-    Calendar.ISO.add_day_fraction_to_rata_die(rata_die, -offset, 86400)
+  defp apply_tz_offset(iso_days, offset) do
+    Calendar.ISO.add_day_fraction_to_iso_days(iso_days, -offset, 86400)
   end
 end

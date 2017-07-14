@@ -200,9 +200,9 @@ defmodule NaiveDateTime do
           integer, unit \\ :second) when is_integer(integer) do
     ppd = System.convert_time_unit(86400, :second, unit)
     naive_datetime
-    |> to_rata_die()
-    |> Calendar.ISO.add_day_fraction_to_rata_die(integer, ppd)
-    |> from_rata_die(calendar, precision)
+    |> to_iso_days()
+    |> Calendar.ISO.add_day_fraction_to_iso_days(integer, ppd)
+    |> from_iso_days(calendar, precision)
   end
 
   @doc """
@@ -237,8 +237,8 @@ defmodule NaiveDateTime do
       raise ArgumentError, "cannot calculate the difference between #{inspect naive_datetime1} and #{inspect naive_datetime2} because their calendars are not compatible and thus the result would be ambiguous"
     end
 
-    units1 = naive_datetime1 |> to_rata_die() |> Calendar.ISO.rata_die_to_unit(unit)
-    units2 = naive_datetime2 |> to_rata_die() |> Calendar.ISO.rata_die_to_unit(unit)
+    units1 = naive_datetime1 |> to_iso_days() |> Calendar.ISO.iso_days_to_unit(unit)
+    units2 = naive_datetime2 |> to_iso_days() |> Calendar.ISO.iso_days_to_unit(unit)
     units1 - units2
   end
 
@@ -581,7 +581,7 @@ defmodule NaiveDateTime do
   @spec compare(Calendar.naive_datetime, Calendar.naive_datetime) :: :lt | :eq | :gt
   def compare(%{calendar: calendar1} = naive_datetime1, %{calendar: calendar2} = naive_datetime2) do
     if Calendar.compatible_calendars?(calendar1, calendar2) do
-      case {to_rata_die(naive_datetime1), to_rata_die(naive_datetime2)} do
+      case {to_iso_days(naive_datetime1), to_iso_days(naive_datetime2)} do
         {first, second} when first > second -> :gt
         {first, second} when first < second -> :lt
         _ -> :eq
@@ -605,10 +605,12 @@ defmodule NaiveDateTime do
 
   ## Examples
 
-  Imagine someone implements `Calendar.Julian`:
+  Imagine someone implements `Calendar.Holocene`, a calendar based on the
+  Gregorian calendar that adds exactly 10,000 years to the current Gregorian
+  year:
 
-      iex> NaiveDateTime.convert(~N[2000-01-01 13:30:15], Calendar.Julian)
-      {:ok, %NaiveDateTime{calendar: Calendar.Julian, year: 1999, month: 12, day: 19,
+      iex> NaiveDateTime.convert(~N[2000-01-01 13:30:15], Calendar.Holocene)
+      {:ok, %NaiveDateTime{calendar: Calendar.Holocene, year: 12000, month: 1, day: 1,
                            hour: 13, minute: 30, second: 15, microsecond: {0, 0}}}
 
   """
@@ -623,8 +625,8 @@ defmodule NaiveDateTime do
     if Calendar.compatible_calendars?(ndt_calendar, calendar) do
       result_naive_datetime =
         naive_datetime
-        |> to_rata_die
-        |> from_rata_die(calendar, precision)
+        |> to_iso_days
+        |> from_iso_days(calendar, precision)
       {:ok, result_naive_datetime}
     else
       {:error, :incompatible_calendars}
@@ -639,10 +641,12 @@ defmodule NaiveDateTime do
 
   ## Examples
 
-  Imagine someone implements `Calendar.Julian`:
+  Imagine someone implements `Calendar.Holocene`, a calendar based on the
+  Gregorian calendar that adds exactly 10,000 years to the current Gregorian
+  year:
 
-      iex> NaiveDateTime.convert!(~N[2000-01-01 13:30:15], Calendar.Julian)
-      %NaiveDateTime{calendar: Calendar.Julian, year: 1999, month: 12, day: 19,
+      iex> NaiveDateTime.convert!(~N[2000-01-01 13:30:15], Calendar.Holocene)
+      %NaiveDateTime{calendar: Calendar.Holocene, year: 12000, month: 1, day: 1,
                      hour: 13, minute: 30, second: 15, microsecond: {0, 0}}
 
   """
@@ -658,14 +662,14 @@ defmodule NaiveDateTime do
 
   ## Helpers
 
-  defp to_rata_die(%{calendar: calendar, year: year, month: month, day: day,
+  defp to_iso_days(%{calendar: calendar, year: year, month: month, day: day,
                      hour: hour, minute: minute, second: second, microsecond: microsecond}) do
-    calendar.naive_datetime_to_rata_die(year, month, day, hour, minute, second, microsecond)
+    calendar.naive_datetime_to_iso_days(year, month, day, hour, minute, second, microsecond)
   end
 
-  defp from_rata_die(rata_die, calendar, precision) do
+  defp from_iso_days(iso_days, calendar, precision) do
     {year, month, day, hour, minute, second, {microsecond, _}} =
-      calendar.naive_datetime_from_rata_die(rata_die)
+      calendar.naive_datetime_from_iso_days(iso_days)
     %NaiveDateTime{calendar: calendar, year: year, month: month, day: day,
                    hour: hour, minute: minute, second: second, microsecond: {microsecond, precision}}
   end

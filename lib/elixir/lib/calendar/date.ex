@@ -82,20 +82,20 @@ defmodule Date do
       366
       iex> Enum.member?(range, ~D[2001-02-01])
       true
-      iex> Enum.reduce(range, 0, fn(_date, acc) -> acc - 1 end)
+      iex> Enum.reduce(range, 0, fn _date, acc -> acc - 1 end)
       -366
   """
 
   @spec range(Calendar.date, Calendar.date) :: Date.Range.t
   def range(%{calendar: calendar} = first, %{calendar: calendar} = last) do
-    {first_days, _} = to_rata_die(first)
-    {last_days, _} = to_rata_die(last)
+    {first_days, _} = to_iso_days(first)
+    {last_days, _} = to_iso_days(last)
 
     %Date.Range{
       first: first,
       last: last,
-      first_rata_die: first_days,
-      last_rata_die: last_days,
+      first_in_iso_days: first_days,
+      last_in_iso_days: last_days,
     }
   end
 
@@ -412,7 +412,7 @@ defmodule Date do
   end
   def compare(date1, date2) do
     if Calendar.compatible_calendars?(date1.calendar, date2.calendar) do
-      case {to_rata_die(date1), to_rata_die(date2)} do
+      case {to_iso_days(date1), to_iso_days(date2)} do
         {first, second} when first > second -> :gt
         {first, second} when first < second -> :lt
         _ -> :eq
@@ -437,10 +437,12 @@ defmodule Date do
 
   ## Examples
 
-  Imagine someone implements `Calendar.Julian`:
+  Imagine someone implements `Calendar.Holocene`, a calendar based on the
+  Gregorian calendar that adds exactly 10,000 years to the current Gregorian
+  year:
 
-      iex> Date.convert(~D[2000-01-01], Calendar.Julian)
-      {:ok, %Date{calendar: Calendar.Julian, year: 1999, month: 12, day: 19}}
+      iex> Date.convert(~D[2000-01-01], Calendar.Holocene)
+      {:ok, %Date{calendar: Calendar.Holocene, year: 12000, month: 1, day: 1}}
 
   """
   @spec convert(Calendar.date, Calendar.calendar) :: {:ok, t} | {:error, :incompatible_calendars}
@@ -451,8 +453,8 @@ defmodule Date do
     if Calendar.compatible_calendars?(calendar, target_calendar) do
       result_date =
         date
-        |> to_rata_die()
-        |> from_rata_die(target_calendar)
+        |> to_iso_days()
+        |> from_iso_days(target_calendar)
       {:ok, result_date}
     else
       {:error, :incompatible_calendars}
@@ -465,10 +467,12 @@ defmodule Date do
 
   ## Examples
 
-  Imagine someone implements `Calendar.Julian`:
+  Imagine someone implements `Calendar.Holocene`, a calendar based on the
+  Gregorian calendar that adds exactly 10,000 years to the current Gregorian
+  year:
 
-      iex> Date.convert!(~D[2000-01-01], Calendar.Julian)
-      %Date{calendar: Calendar.Julian, year: 1999, month: 12, day: 19}
+      iex> Date.convert!(~D[2000-01-01], Calendar.Holocene)
+      %Date{calendar: Calendar.Holocene, year: 12000, month: 1, day: 1}
 
   """
   @spec convert!(Calendar.date, Calendar.calendar) :: t
@@ -500,8 +504,8 @@ defmodule Date do
   """
   @spec add(Calendar.date, integer()) :: t
   def add(%{calendar: calendar} = date, days) do
-    {rata_days, fraction} = to_rata_die(date)
-    from_rata_die({rata_days + days, fraction}, calendar)
+    {iso_days_days, fraction} = to_iso_days(date)
+    from_iso_days({iso_days_days + days, fraction}, calendar)
   end
 
   @doc """
@@ -525,33 +529,33 @@ defmodule Date do
   @spec diff(Calendar.date, Calendar.date) :: integer
   def diff(%{calendar: Calendar.ISO, year: year1, month: month1, day: day1},
            %{calendar: Calendar.ISO, year: year2, month: month2, day: day2}) do
-    Calendar.ISO.date_to_rata_die_days(year1, month1, day1) -
-      Calendar.ISO.date_to_rata_die_days(year2, month2, day2)
+    Calendar.ISO.date_to_iso_days_days(year1, month1, day1) -
+      Calendar.ISO.date_to_iso_days_days(year2, month2, day2)
   end
 
   def diff(%{calendar: calendar1} = date1, %{calendar: calendar2} = date2) do
     if Calendar.compatible_calendars?(calendar1, calendar2) do
-      {days1, _} = to_rata_die(date1)
-      {days2, _} = to_rata_die(date2)
+      {days1, _} = to_iso_days(date1)
+      {days2, _} = to_iso_days(date2)
       days1 - days2
     else
       raise ArgumentError, "cannot calculate the difference between #{inspect date1} and #{inspect date2} because their calendars are not compatible and thus the result would be ambiguous"
     end
   end
 
-  defp to_rata_die(%{calendar: Calendar.ISO, year: year, month: month, day: day}) do
-    {Calendar.ISO.date_to_rata_die_days(year, month, day), {0, 86400000000}}
+  defp to_iso_days(%{calendar: Calendar.ISO, year: year, month: month, day: day}) do
+    {Calendar.ISO.date_to_iso_days_days(year, month, day), {0, 86400000000}}
   end
-  defp to_rata_die(%{calendar: calendar, year: year, month: month, day: day}) do
-    calendar.naive_datetime_to_rata_die(year, month, day, 0, 0, 0, {0, 0})
+  defp to_iso_days(%{calendar: calendar, year: year, month: month, day: day}) do
+    calendar.naive_datetime_to_iso_days(year, month, day, 0, 0, 0, {0, 0})
   end
 
-  defp from_rata_die({days, _}, Calendar.ISO) do
-    {year, month, day} = Calendar.ISO.date_from_rata_die_days(days)
+  defp from_iso_days({days, _}, Calendar.ISO) do
+    {year, month, day} = Calendar.ISO.date_from_iso_days_days(days)
     %Date{year: year, month: month, day: day, calendar: Calendar.ISO}
   end
-  defp from_rata_die(rata_die, target_calendar) do
-    {year, month, day, _, _, _, _} = target_calendar.naive_datetime_from_rata_die(rata_die)
+  defp from_iso_days(iso_days, target_calendar) do
+    {year, month, day, _, _, _, _} = target_calendar.naive_datetime_from_iso_days(iso_days)
     %Date{year: year, month: month, day: day, calendar: target_calendar}
   end
 
