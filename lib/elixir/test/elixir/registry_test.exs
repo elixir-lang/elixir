@@ -351,6 +351,50 @@ defmodule RegistryTest do
                [{self(), value1}, {self(), value2}]
       end
 
+      test "unregister_match supports patterns", %{registry: registry} do
+        value1 = {1, :atom, 1}
+        {:ok, _} = Registry.register(registry, "hello", value1)
+        value2 = {2, :atom, 2}
+        {:ok, _} = Registry.register(registry, "hello", value2)
+
+        Registry.unregister_match(registry, "hello", {2, :_, :_})
+        assert Registry.lookup(registry, "hello") ==
+               [{self(), value1}]
+
+        {:ok, _} = Registry.register(registry, "hello", value2)
+        Registry.unregister_match(registry, "hello", {2.0, :_, :_})
+        assert Registry.lookup(registry, "hello") ==
+               [{self(), value1}, {self(), value2}]
+        Registry.unregister_match(registry, "hello", {:_, :atom, :_})
+        assert Registry.lookup(registry, "hello") ==
+              []
+      end
+
+      test "unregister_match supports guards", %{registry: registry} do
+        value1 = {1, :atom, 1}
+        {:ok, _} = Registry.register(registry, "hello", value1)
+        value2 = {2, :atom, 2}
+        {:ok, _} = Registry.register(registry, "hello", value2)
+
+        Registry.unregister_match(registry, "hello", {:"$1", :_, :_}, [{:<, :"$1", 2}])
+        assert Registry.lookup(registry, "hello") ==
+               [{self(), value2}]
+      end
+
+      test "unregister_match supports tricky keys", %{registry: registry} do
+        {:ok, _} = Registry.register(registry, :_, :foo)
+        {:ok, _} = Registry.register(registry, :_, :bar)
+        {:ok, _} = Registry.register(registry, "hello", "a")
+        {:ok, _} = Registry.register(registry, "hello", "b")
+
+        Registry.unregister_match(registry, :_, :foo)
+        assert Registry.lookup(registry, :_) ==
+               [{self(), :bar}]
+
+        assert Registry.keys(registry, self()) |> Enum.sort ==
+               [:_, "hello", "hello"]
+      end
+
       @tag listener: :"duplicate_listener_#{partitions}"
       test "allows listeners", %{registry: registry, listener: listener} do
         Process.register(self(), listener)

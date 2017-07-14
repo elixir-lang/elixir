@@ -696,7 +696,6 @@ defmodule Registry do
       iex> Registry.keys(Registry.UniqueUnregisterMatchTest, self())
       []
 
-
   For duplicate registries:
 
       iex> Registry.start_link(:duplicate, Registry.DuplicateUnregisterMatchTest)
@@ -726,12 +725,12 @@ defmodule Registry do
 
     # Here we want to count all entries for this pid under this key, regardless
     # of pattern.
-    guards = [{:"=:=", {:element, 1, :"$_"}, {:const, key}} | guards]
-    total_spec = [{{:_, {self, :_}}, guards, [{:const, true}]}]
+    total_spec = [{{key, {self, :_}}, [], [true]}]
     total = :ets.select_count(key_ets, total_spec)
 
     # We only want to delete things that match the pattern
-    delete_spec = [{{:_, {self, pattern}}, guards ,[{:const, true}]}]
+    guards = [{:"=:=", {:element, 1, :"$_"}, {:const, key}} | guards]
+    delete_spec = [{{:_, {self, pattern}}, guards ,[true]}]
     case :ets.select_delete(key_ets, delete_spec) do
       # We deleted everything, we can just delete the object
       ^total ->
