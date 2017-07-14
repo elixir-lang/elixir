@@ -636,10 +636,10 @@ build_unary_op({_Kind, Location, Op}, Expr) ->
   {Op, meta_from_location(Location), [Expr]}.
 
 build_list(Marker, Args) ->
-  {Args, ?location(Marker)}.
+  {handle_literal(Args, Marker), ?location(Marker)}.
 
-build_tuple(_Marker, [Left, Right]) ->
-  {Left, Right};
+build_tuple(Marker, [Left, Right]) ->
+  handle_literal({Left, Right}, Marker);
 build_tuple(Marker, Args) ->
   {'{}', meta_from_token(Marker), Args}.
 
