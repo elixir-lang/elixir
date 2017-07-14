@@ -590,23 +590,33 @@ defmodule Registry do
     {_, pid_ets} = pid_ets || pid_ets!(registry, pid, partitions)
 
     keys = try do
-      spec = [{{pid, :'$1', :'$2'}}, [], [{:'$1', :'$2'}]]
+      spec = [{{pid, :'$1', :'$2'}, [], [{{:'$1', :'$2'}}]}]
       :ets.select(pid_ets, spec)
     catch
       :error, :badarg -> []
     end
-    |> Enum.group_by(&elem(&1, 0), &elem(&1, 1))
-    |> Enum.flat_map(fn {key, keys} ->
-      case Enum.find(keys, &match?({_key_ets, remaining}, &1)) do
-        {_, remaining} -> List.duplicate(key, -1 * remaining)
-        _ -> keys
-      end
-    end)
+
+    # Handle the possibility of fake keys
+    keys = gather_keys(keys)
 
     cond do
       kind == :unique -> Enum.uniq(keys)
       true -> keys
     end
+  end
+
+  defp gather_keys(keys, acc \\ [], fake \\ false)
+  defp gather_keys([{key, {_, remaining}} | rest], acc, _fake) do
+    gather_keys(rest, [key | acc], {key, remaining})
+  end
+  defp gather_keys([{key, _} | rest], acc, fake) do
+    gather_keys(rest, [key | acc], fake)
+  end
+  defp gather_keys([], acc, {key, remaining}) do
+    List.duplicate(key, remaining) ++ Enum.reject(acc, & &1 === key)
+  end
+  defp gather_keys([], acc, false) do
+    acc
   end
 
   @doc """
@@ -721,8 +731,7 @@ defmodule Registry do
 
       deleted ->
         remaining = total - deleted
-        fake_key_ets = -1 * remaining
-        temp_entry = {self, key, {key_ets, fake_key_ets}}
+        temp_entry = {self, key, {key_ets, remaining}}
         true = :ets.insert(pid_ets, temp_entry)
 
         true = :ets.delete_object(pid_ets, {self, key, key_ets})
