@@ -725,12 +725,12 @@ defmodule Registry do
 
     # Here we want to count all entries for this pid under this key, regardless
     # of pattern.
-    total_spec = [{{key, {self, :_}}, [], [true]}]
+    underscore_guard = {:"=:=", {:element, 1, :"$_"}, {:const, key}}
+    total_spec = [{{:_, {self, :_}}, [underscore_guard], [true]}]
     total = :ets.select_count(key_ets, total_spec)
 
     # We only want to delete things that match the pattern
-    guards = [{:"=:=", {:element, 1, :"$_"}, {:const, key}} | guards]
-    delete_spec = [{{:_, {self, pattern}}, guards ,[true]}]
+    delete_spec = [{{:_, {self, pattern}}, [underscore_guard | guards] ,[true]}]
     case :ets.select_delete(key_ets, delete_spec) do
       # We deleted everything, we can just delete the object
       ^total ->
