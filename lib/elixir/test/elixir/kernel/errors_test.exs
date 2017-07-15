@@ -64,16 +64,16 @@ defmodule Kernel.ErrorsTest do
       message = "nofile:1: invalid character \"ó\" (codepoint U+00F3) in alias (only ascii characters are allowed): Foó"
       assert_eval_raise SyntaxError, message, 'Foó'
 
-      message = """
+      message = ~r"""
       Elixir expects unquoted Unicode atoms and variables to be in NFC form.
 
       Got:
 
-          "foó" (codepoints 0066 006F 006F 0301)
+          "foó" \(codepoints 0066 006F 006F 0301\)
 
       Expected:
 
-          "foó" (codepoints 0066 006F 00F3)
+          "foó" \(codepoints 0066 006F 00F3\)
 
       """
       assert_eval_raise SyntaxError, message, :unicode.characters_to_nfd_list("foó")
