@@ -10,59 +10,59 @@ defmodule Kernel.ErrorsTest do
   end
 
   test "invalid token" do
-    assert_compile_fail SyntaxError,
+    assert_eval_raise SyntaxError,
       "nofile:1: unexpected token: \"\u200B\" (column 7, codepoint U+200B)",
       '[foo: \u200B]\noops'
   end
 
   test "invalid __CALLER__" do
-    assert_compile_fail CompileError,
+    assert_eval_raise CompileError,
       "nofile:1: variable '__CALLER__' is unbound",
       'defmodule Sample do def hello do __CALLER__ end end'
   end
 
   test "invalid quoted token" do
-    assert_compile_fail SyntaxError,
+    assert_eval_raise SyntaxError,
       "nofile:1: syntax error before: \"world\"",
       '"hello" "world"'
 
-    assert_compile_fail SyntaxError,
+    assert_eval_raise SyntaxError,
       "nofile:1: syntax error before: Foobar",
       '1 Foobar'
 
-    assert_compile_fail SyntaxError,
+    assert_eval_raise SyntaxError,
       "nofile:1: syntax error before: foo",
       'Foo.:foo'
 
-    assert_compile_fail SyntaxError,
+    assert_eval_raise SyntaxError,
       "nofile:1: syntax error before: \"foo\"",
       'Foo.:"foo\#{:bar}"'
 
-    assert_compile_fail SyntaxError,
+    assert_eval_raise SyntaxError,
       "nofile:1: syntax error before: \"",
       'Foo.:"\#{:bar}"'
   end
 
   test "invalid identifier" do
     message = fn name -> "nofile:1: invalid character \"@\" (codepoint U+0040) in identifier: #{name}" end
-    assert_compile_fail SyntaxError, message.("foo@"), 'foo@'
-    assert_compile_fail SyntaxError, message.("foo@"), 'foo@ '
-    assert_compile_fail SyntaxError, message.("foo@bar"), 'foo@bar'
+    assert_eval_raise SyntaxError, message.("foo@"), 'foo@'
+    assert_eval_raise SyntaxError, message.("foo@"), 'foo@ '
+    assert_eval_raise SyntaxError, message.("foo@bar"), 'foo@bar'
 
     message = fn name -> "nofile:1: invalid character \"@\" (codepoint U+0040) in alias: #{name}" end
-    assert_compile_fail SyntaxError, message.("Foo@"), 'Foo@'
-    assert_compile_fail SyntaxError, message.("Foo@bar"), 'Foo@bar'
+    assert_eval_raise SyntaxError, message.("Foo@"), 'Foo@'
+    assert_eval_raise SyntaxError, message.("Foo@bar"), 'Foo@bar'
 
     message = "nofile:1: invalid character \"!\" (codepoint U+0021) in alias: Foo!"
-    assert_compile_fail SyntaxError, message, 'Foo!'
+    assert_eval_raise SyntaxError, message, 'Foo!'
 
     message = "nofile:1: invalid character \"?\" (codepoint U+003F) in alias: Foo?"
-    assert_compile_fail SyntaxError, message, 'Foo?'
+    assert_eval_raise SyntaxError, message, 'Foo?'
 
     # TODO: Remove this check once we depend on OTP 20+
     if :erlang.system_info(:otp_release) >= '20' do
       message = "invalid character \"ó\" (codepoint U+00F3) in alias (only ascii characters are allowed): Foó"
-      assert_compile_fail SyntaxError, message, 'Foó'
+      assert_eval_raise SyntaxError, message, 'Foó'
 
       message = """
       Elixir expects unquoted Unicode atoms and variables to be in NFC form.
@@ -76,12 +76,12 @@ defmodule Kernel.ErrorsTest do
           "foó" (codepoints 0066 006F 00F3)
 
       """
-      assert_compile_fail SyntaxError, message, :unicode.characters_to_nfd_list("foó")
+      assert_eval_raise SyntaxError, message, :unicode.characters_to_nfd_list("foó")
     end
   end
 
   test "invalid fn" do
-    assert_compile_fail SyntaxError,
+    assert_eval_raise SyntaxError,
       "nofile:1: expected clauses to be defined with -> inside: 'fn'",
       'fn 1 end'
   end
@@ -89,56 +89,56 @@ defmodule Kernel.ErrorsTest do
   test "kw missing space" do
     msg = "nofile:1: keyword argument must be followed by space after: foo:"
 
-    assert_compile_fail SyntaxError, msg, "foo:bar"
-    assert_compile_fail SyntaxError, msg, "foo:+"
-    assert_compile_fail SyntaxError, msg, "foo:+1"
+    assert_eval_raise SyntaxError, msg, "foo:bar"
+    assert_eval_raise SyntaxError, msg, "foo:+"
+    assert_eval_raise SyntaxError, msg, "foo:+1"
   end
 
   test "sigil terminator" do
-    assert_compile_fail TokenMissingError,
+    assert_eval_raise TokenMissingError,
       "nofile:3: missing terminator: \" (for sigil ~r\" starting at line 1)",
       '~r"foo\n\n'
 
-    assert_compile_fail TokenMissingError,
+    assert_eval_raise TokenMissingError,
       "nofile:3: missing terminator: } (for sigil ~r{ starting at line 1)",
       '~r{foo\n\n'
   end
 
   test "dot terminator" do
-    assert_compile_fail TokenMissingError,
+    assert_eval_raise TokenMissingError,
       "nofile:1: missing terminator: \" (for function name starting at line 1)",
       'foo."bar'
   end
 
   test "string terminator" do
-    assert_compile_fail TokenMissingError,
+    assert_eval_raise TokenMissingError,
       "nofile:1: missing terminator: \" (for string starting at line 1)",
       '"bar'
   end
 
   test "heredoc start" do
-    assert_compile_fail SyntaxError,
+    assert_eval_raise SyntaxError,
       "nofile:1: heredoc start must be followed by a new line after \"\"\"",
       '"""bar\n"""'
   end
 
   test "heredoc terminator" do
-    assert_compile_fail TokenMissingError,
+    assert_eval_raise TokenMissingError,
       "nofile:2: missing terminator: \"\"\" (for heredoc starting at line 1)",
       '"""\nbar'
-    assert_compile_fail SyntaxError,
+    assert_eval_raise SyntaxError,
       "nofile:2: invalid location for heredoc terminator, please escape token or move it to its own line: \"\"\"",
       '"""\nbar"""'
   end
 
   test "unexpected end" do
-    assert_compile_fail SyntaxError,
+    assert_eval_raise SyntaxError,
       "nofile:1: unexpected token: end",
       '1 end'
   end
 
   test "syntax error" do
-    assert_compile_fail SyntaxError,
+    assert_eval_raise SyntaxError,
       "nofile:1: syntax error before: '.'",
       '+.foo'
   end
@@ -146,10 +146,10 @@ defmodule Kernel.ErrorsTest do
   test "syntax error before sigil" do
     msg = fn x -> "nofile:1: syntax error before: sigil ~s starting with content '#{x}'" end
 
-    assert_compile_fail SyntaxError, msg.("bar baz"), '~s(foo) ~s(bar baz)'
-    assert_compile_fail SyntaxError, msg.(""), '~s(foo) ~s()'
-    assert_compile_fail SyntaxError, msg.("bar "), '~s(foo) ~s(bar \#{:baz})'
-    assert_compile_fail SyntaxError, msg.(""), '~s(foo) ~s(\#{:bar} baz)'
+    assert_eval_raise SyntaxError, msg.("bar baz"), '~s(foo) ~s(bar baz)'
+    assert_eval_raise SyntaxError, msg.(""), '~s(foo) ~s()'
+    assert_eval_raise SyntaxError, msg.("bar "), '~s(foo) ~s(bar \#{:baz})'
+    assert_eval_raise SyntaxError, msg.(""), '~s(foo) ~s(\#{:bar} baz)'
   end
 
   test "op ambiguity" do
@@ -159,11 +159,11 @@ defmodule Kernel.ErrorsTest do
   end
 
   test "syntax error with do" do
-    assert_compile_fail SyntaxError,
+    assert_eval_raise SyntaxError,
                         ~r/nofile:1: unexpected token "do"./,
                         'if true, do\n'
 
-    assert_compile_fail SyntaxError,
+    assert_eval_raise SyntaxError,
                         ~r/nofile:1: unexpected keyword "do:"./,
                         'if true do:\n'
   end
@@ -173,22 +173,22 @@ defmodule Kernel.ErrorsTest do
           "insert spaces between the function name and the opening parentheses. " <>
           "Syntax error before: '('"
 
-    assert_compile_fail SyntaxError, msg, 'foo (hello, world)'
+    assert_eval_raise SyntaxError, msg, 'foo (hello, world)'
   end
 
   test "syntax error on nested no parens call" do
-    msg = "nofile:1: unexpected comma. Parentheses are required to solve ambiguity"
+    msg = ~r"nofile:1: unexpected comma. Parentheses are required to solve ambiguity"
 
-    assert_compile_fail SyntaxError, msg, '[foo 1, 2]'
-    assert_compile_fail SyntaxError, msg, '[foo bar 1, 2]'
-    assert_compile_fail SyntaxError, msg, '[do: foo 1, 2]'
-    assert_compile_fail SyntaxError, msg, 'foo(do: bar 1, 2)'
-    assert_compile_fail SyntaxError, msg, '{foo 1, 2}'
-    assert_compile_fail SyntaxError, msg, '{foo bar 1, 2}'
-    assert_compile_fail SyntaxError, msg, 'foo 1, foo 2, 3'
-    assert_compile_fail SyntaxError, msg, 'foo 1, @bar 3, 4'
-    assert_compile_fail SyntaxError, msg, 'foo 1, 2 + bar 3, 4'
-    assert_compile_fail SyntaxError, msg, 'foo(1, foo 2, 3)'
+    assert_eval_raise SyntaxError, msg, '[foo 1, 2]'
+    assert_eval_raise SyntaxError, msg, '[foo bar 1, 2]'
+    assert_eval_raise SyntaxError, msg, '[do: foo 1, 2]'
+    assert_eval_raise SyntaxError, msg, 'foo(do: bar 1, 2)'
+    assert_eval_raise SyntaxError, msg, '{foo 1, 2}'
+    assert_eval_raise SyntaxError, msg, '{foo bar 1, 2}'
+    assert_eval_raise SyntaxError, msg, 'foo 1, foo 2, 3'
+    assert_eval_raise SyntaxError, msg, 'foo 1, @bar 3, 4'
+    assert_eval_raise SyntaxError, msg, 'foo 1, 2 + bar 3, 4'
+    assert_eval_raise SyntaxError, msg, 'foo(1, foo 2, 3)'
 
     assert is_list List.flatten [1]
     assert is_list Enum.reverse [3, 2, 1], [4, 5, 6]
@@ -206,19 +206,19 @@ defmodule Kernel.ErrorsTest do
     msg = "nofile:1: atom cannot be followed by an alias. If the '.' was meant to be " <>
           "part of the atom's name, the atom name must be quoted. Syntax error before: '.'"
 
-    assert_compile_fail SyntaxError, msg, ':foo.Bar'
-    assert_compile_fail SyntaxError, msg, ':"foo".Bar'
+    assert_eval_raise SyntaxError, msg, ':foo.Bar'
+    assert_eval_raise SyntaxError, msg, ':"foo".Bar'
   end
 
   test "syntax error with no token" do
-    assert_compile_fail TokenMissingError,
+    assert_eval_raise TokenMissingError,
       "nofile:1: missing terminator: ) (for \"(\" starting at line 1)",
       'case 1 ('
   end
 
   test "clause with defaults" do
-    assert_compile_fail CompileError,
-      "nofile:3: definitions with multiple clauses and default values require a header",
+    assert_eval_raise CompileError,
+      ~r"nofile:3: definitions with multiple clauses and default values require a header",
       ~C'''
       defmodule Kernel.ErrorsTest.ClauseWithDefaults1 do
         def hello(arg \\ 0), do: nil
@@ -226,8 +226,8 @@ defmodule Kernel.ErrorsTest do
       end
       '''
 
-    assert_compile_fail CompileError,
-      "nofile:2: undefined function foo/0",
+    assert_eval_raise CompileError,
+      ~r"nofile:2: undefined function foo/0",
       ~C'''
       defmodule Kernel.ErrorsTest.ClauseWithDefaults3 do
         def hello(foo, bar \\ foo())
@@ -237,7 +237,7 @@ defmodule Kernel.ErrorsTest do
   end
 
   test "different defs with defaults" do
-    assert_compile_fail CompileError,
+    assert_eval_raise CompileError,
       "nofile:3: def hello/3 defaults conflicts with def hello/2",
       ~C'''
       defmodule Kernel.ErrorsTest.DifferentDefsWithDefaults1 do
@@ -246,7 +246,7 @@ defmodule Kernel.ErrorsTest do
       end
       '''
 
-    assert_compile_fail CompileError,
+    assert_eval_raise CompileError,
       "nofile:3: def hello/2 conflicts with defaults from def hello/3",
       ~C'''
       defmodule Kernel.ErrorsTest.DifferentDefsWithDefaults2 do
@@ -257,7 +257,7 @@ defmodule Kernel.ErrorsTest do
   end
 
   test "bad form" do
-    assert_compile_fail CompileError,
+    assert_eval_raise CompileError,
       "nofile:2: undefined function bar/0",
       '''
       defmodule Kernel.ErrorsTest.BadForm do
@@ -267,21 +267,21 @@ defmodule Kernel.ErrorsTest do
   end
 
   test "literal on map and struct" do
-    assert_compile_fail SyntaxError,
+    assert_eval_raise SyntaxError,
       "nofile:1: syntax error before: '}'",
       '%{{:a, :b}}'
 
-    assert_compile_fail SyntaxError,
+    assert_eval_raise SyntaxError,
       "nofile:1: syntax error before: '{'",
       '%{:a, :b}{a: :b}'
 
-    assert_compile_fail CompileError,
+    assert_eval_raise CompileError,
       "nofile:1: expected key-value pairs in a map, got: put_in(foo.bar().baz(), nil)",
       'foo = 1; %{put_in(foo.bar.baz, nil), :bar}'
   end
 
   test "struct fields on defstruct" do
-    assert_compile_fail ArgumentError,
+    assert_eval_raise ArgumentError,
       "struct field names must be atoms, got: 1",
       '''
       defmodule Kernel.ErrorsTest.StructFieldsOnDefstruct do
@@ -291,7 +291,7 @@ defmodule Kernel.ErrorsTest do
   end
 
   test "struct access on body" do
-    assert_compile_fail CompileError,
+    assert_eval_raise CompileError,
       "nofile:3: cannot access struct Kernel.ErrorsTest.StructAccessOnBody, " <>
       "the struct was not yet defined or the struct " <>
       "is being accessed in the same context that defines it",
@@ -304,11 +304,11 @@ defmodule Kernel.ErrorsTest do
   end
 
   test "struct errors" do
-    assert_compile_fail CompileError,
+    assert_eval_raise CompileError,
       "nofile:1: BadStruct.__struct__/1 is undefined, cannot expand struct BadStruct",
       '%BadStruct{}'
 
-    assert_compile_fail CompileError,
+    assert_eval_raise CompileError,
       "nofile:1: BadStruct.__struct__/0 is undefined, cannot expand struct BadStruct",
       '%BadStruct{} = %{}'
 
@@ -318,7 +318,7 @@ defmodule Kernel.ErrorsTest do
       end
     end
 
-    assert_compile_fail CompileError,
+    assert_eval_raise CompileError,
       "nofile:1: expected Kernel.ErrorsTest.BadStruct.__struct__/0 to return a map, got: []",
       '%#{BadStruct}{} = %{}'
 
@@ -326,29 +326,29 @@ defmodule Kernel.ErrorsTest do
       defstruct name: "john"
     end
 
-    assert_compile_fail KeyError,
+    assert_eval_raise KeyError,
       "key :age not found in: %Kernel.ErrorsTest.GoodStruct{name: \"john\"}",
       '%#{GoodStruct}{age: 27}'
 
-    assert_compile_fail CompileError,
+    assert_eval_raise CompileError,
       "nofile:1: unknown key :age for struct Kernel.ErrorsTest.GoodStruct",
       '%#{GoodStruct}{age: 27} = %{}'
   end
 
   test "name for defmodule" do
-    assert_compile_fail CompileError,
+    assert_eval_raise CompileError,
       "nofile:1: invalid module name: 3",
       'defmodule 1 + 2, do: 3'
   end
 
   test "invalid unquote" do
-    assert_compile_fail CompileError,
+    assert_eval_raise CompileError,
       "nofile:1: unquote called outside quote",
       'unquote 1'
   end
 
   test "invalid unquote splicing in oneliners" do
-    assert_compile_fail ArgumentError,
+    assert_eval_raise ArgumentError,
       "unquote_splicing only works inside arguments and block contexts, " <>
       "wrap it in parens if you want it to work with one-liners",
       '''
@@ -365,7 +365,7 @@ defmodule Kernel.ErrorsTest do
   end
 
   test "undefined non-local function" do
-    assert_compile_fail CompileError,
+    assert_eval_raise CompileError,
       "nofile:1: undefined function call/2",
       'call foo, do: :foo'
   end
@@ -399,19 +399,19 @@ defmodule Kernel.ErrorsTest do
   end
 
   test "invalid fn args" do
-    assert_compile_fail TokenMissingError,
+    assert_eval_raise TokenMissingError,
       "nofile:1: missing terminator: end (for \"fn\" starting at line 1)",
       'fn 1'
   end
 
   test "invalid escape" do
-    assert_compile_fail TokenMissingError,
+    assert_eval_raise TokenMissingError,
       "nofile:1: invalid escape \\ at end of file",
       '1 \\'
   end
 
   test "function local conflict" do
-    assert_compile_fail CompileError,
+    assert_eval_raise CompileError,
       "nofile:3: imported Kernel.&&/2 conflicts with local function",
       '''
       defmodule Kernel.ErrorsTest.FunctionLocalConflict do
@@ -422,7 +422,7 @@ defmodule Kernel.ErrorsTest do
   end
 
   test "macro local conflict" do
-    assert_compile_fail CompileError,
+    assert_eval_raise CompileError,
       "nofile:6: call to local macro &&/2 conflicts with imported Kernel.&&/2, " <>
       "please rename the local macro or remove the conflicting import",
       '''
@@ -437,7 +437,7 @@ defmodule Kernel.ErrorsTest do
   end
 
   test "macro with undefined local" do
-    assert_compile_fail UndefinedFunctionError,
+    assert_eval_raise UndefinedFunctionError,
       "function Kernel.ErrorsTest.MacroWithUndefinedLocal.unknown/1" <>
       " is undefined (function unknown/1 is not available)",
       '''
@@ -449,7 +449,7 @@ defmodule Kernel.ErrorsTest do
   end
 
   test "private macro" do
-    assert_compile_fail UndefinedFunctionError,
+    assert_eval_raise UndefinedFunctionError,
       "function Kernel.ErrorsTest.PrivateMacro.foo/0 is undefined (function foo/0 is not available)",
       '''
       defmodule Kernel.ErrorsTest.PrivateMacro do
@@ -461,7 +461,7 @@ defmodule Kernel.ErrorsTest do
   end
 
   test "function definition with alias" do
-    assert_compile_fail CompileError,
+    assert_eval_raise CompileError,
       "nofile:2: function names should start with lowercase characters or underscore, invalid name Bar",
       '''
       defmodule Kernel.ErrorsTest.FunctionDefinitionWithAlias do
@@ -473,7 +473,7 @@ defmodule Kernel.ErrorsTest do
   end
 
   test "function import conflict" do
-    assert_compile_fail CompileError,
+    assert_eval_raise CompileError,
       "nofile:3: function exit/1 imported from both :erlang and Kernel, call is ambiguous",
       '''
       defmodule Kernel.ErrorsTest.FunctionImportConflict do
@@ -484,7 +484,7 @@ defmodule Kernel.ErrorsTest do
   end
 
   test "unrequired macro" do
-    assert_compile_fail CompileError,
+    assert_eval_raise CompileError,
       "nofile:2: you must require Kernel.ErrorsTest before invoking " <>
       "the macro Kernel.ErrorsTest.hello/0",
       '''
@@ -495,7 +495,7 @@ defmodule Kernel.ErrorsTest do
   end
 
   test "def defmacro clause change" do
-    assert_compile_fail CompileError,
+    assert_eval_raise CompileError,
       "nofile:3: defmacro foo/1 already defined as def",
       '''
       defmodule Kernel.ErrorsTest.DefDefmacroClauseChange do
@@ -506,7 +506,7 @@ defmodule Kernel.ErrorsTest do
   end
 
   test "def defp clause change from another file" do
-    assert_compile_fail CompileError,
+    assert_eval_raise CompileError,
       ~r"nofile:4: def hello/0 already defined as defp",
       '''
       defmodule Kernel.ErrorsTest.DefDefmacroClauseChange do
@@ -518,7 +518,7 @@ defmodule Kernel.ErrorsTest do
   end
 
   test "internal function overridden" do
-    assert_compile_fail CompileError,
+    assert_eval_raise CompileError,
       "nofile:2: cannot define def __info__/1 as it is automatically defined by Elixir",
       '''
       defmodule Kernel.ErrorsTest.InternalFunctionOverridden do
@@ -528,7 +528,7 @@ defmodule Kernel.ErrorsTest do
   end
 
   test "no macros" do
-    assert_compile_fail CompileError,
+    assert_eval_raise CompileError,
       "nofile:2: could not load macros from module :lists",
       '''
       defmodule Kernel.ErrorsTest.NoMacros do
@@ -538,7 +538,7 @@ defmodule Kernel.ErrorsTest do
   end
 
   test "invalid macro" do
-    assert_compile_fail CompileError,
+    assert_eval_raise CompileError,
       "nofile: invalid quoted expression: {:foo, :bar, :baz, :bat}",
       '''
       defmodule Kernel.ErrorsTest.InvalidMacro do
@@ -552,13 +552,13 @@ defmodule Kernel.ErrorsTest do
   end
 
   test "unloaded module" do
-    assert_compile_fail CompileError,
+    assert_eval_raise CompileError,
       "nofile:1: module Certainly.Doesnt.Exist is not loaded and could not be found",
       'import Certainly.Doesnt.Exist'
   end
 
   test "module imported from the context it was defined in" do
-    assert_compile_fail CompileError,
+    assert_eval_raise CompileError,
       ~r"nofile:4: module Kernel.ErrorsTest.ScheduledModule.Hygiene is not loaded but was defined.",
       '''
       defmodule Kernel.ErrorsTest.ScheduledModule do
@@ -570,7 +570,7 @@ defmodule Kernel.ErrorsTest do
   end
 
   test "module imported from the same module" do
-    assert_compile_fail CompileError,
+    assert_eval_raise CompileError,
       ~r"nofile:3: you are trying to use the module Kernel.ErrorsTest.ScheduledModule.Hygiene which is currently being defined",
       '''
       defmodule Kernel.ErrorsTest.ScheduledModule do
@@ -582,7 +582,7 @@ defmodule Kernel.ErrorsTest do
   end
 
   test "already compiled module" do
-    assert_compile_fail ArgumentError,
+    assert_eval_raise ArgumentError,
       "could not call eval_quoted with argument Record " <>
       "because the module is already compiled",
       'Module.eval_quoted Record, quote(do: 1), [], file: __ENV__.file'
@@ -616,13 +616,13 @@ defmodule Kernel.ErrorsTest do
   end
 
   test "interpolation error" do
-    assert_compile_fail SyntaxError,
+    assert_eval_raise SyntaxError,
       "nofile:1: \"do\" is missing terminator \"end\". unexpected token: \")\" at line 1",
       '"foo\#{case 1 do )}bar"'
   end
 
   test "in definition module" do
-    assert_compile_fail CompileError,
+    assert_eval_raise CompileError,
       "nofile:2: cannot define module Kernel.ErrorsTest.InDefinitionModule " <>
       "because it is currently being defined in nofile:1",
       '''
@@ -633,19 +633,19 @@ defmodule Kernel.ErrorsTest do
   end
 
   test "invalid definition" do
-    assert_compile_fail CompileError,
+    assert_eval_raise CompileError,
       "nofile:1: invalid syntax in def 1.(hello)",
       'defmodule Kernel.ErrorsTest.InvalidDefinition, do: (def 1.(hello), do: true)'
   end
 
   test "invalid pin in definition" do
-    assert_compile_fail CompileError,
+    assert_eval_raise CompileError,
       "nofile:1: cannot use ^hello on function/macro definition as there are no previous variables",
       'defmodule Kernel.ErrorsTest.InvalidDefinition, do: (def foo(^hello), do: :ok)'
   end
 
   test "invalid size in bitstrings" do
-    assert_compile_fail CompileError,
+    assert_eval_raise CompileError,
       "nofile:1: cannot use ^x outside of match clauses",
       'x = 8; <<a, b::size(^x)>> = <<?a, ?b>>'
   end
@@ -679,17 +679,17 @@ defmodule Kernel.ErrorsTest do
     '''
 
     # All invalid examples
-    assert_compile_fail SyntaxError,
+    assert_eval_raise SyntaxError,
       "nofile:1: syntax error before: ';'",
       '1+;\n2'
 
-    assert_compile_fail SyntaxError,
+    assert_eval_raise SyntaxError,
       "nofile:1: syntax error before: ';'",
       'max(1, ;2)'
   end
 
   test "new line error" do
-    assert_compile_fail SyntaxError,
+    assert_eval_raise SyntaxError,
       "nofile:3: unexpectedly reached end of line. The current expression is invalid or incomplete",
       'if true do\n  foo = [],\n  baz\nend'
   end
@@ -697,19 +697,19 @@ defmodule Kernel.ErrorsTest do
   # As reported and discussed in
   # https://github.com/elixir-lang/elixir/issues/4419.
   test "characters literal are printed correctly in syntax errors" do
-    assert_compile_fail SyntaxError,
+    assert_eval_raise SyntaxError,
       "nofile:1: syntax error before: ?a",
       ':ok ?a'
-    assert_compile_fail SyntaxError,
+    assert_eval_raise SyntaxError,
       "nofile:1: syntax error before: ?\\s",
       ':ok ?\\s'
-    assert_compile_fail SyntaxError,
+    assert_eval_raise SyntaxError,
       "nofile:1: syntax error before: ?す"
       ':ok ?す'
   end
 
   test "invalid \"fn do expr end\"" do
-    assert_compile_fail SyntaxError,
+    assert_eval_raise SyntaxError,
       "nofile:1: unexpected token \"do\". Anonymous functions are written as:\n\n" <>
         "    fn pattern -> expression end\n\n" <>
         "Syntax error before: do",
@@ -717,7 +717,7 @@ defmodule Kernel.ErrorsTest do
   end
 
   test "bodyless function with guard" do
-    assert_compile_fail CompileError,
+    assert_eval_raise CompileError,
       "nofile:2: missing :do option in \"def\"",
       '''
       defmodule Kernel.ErrorsTest.BodyessFunctionWithGuard do
@@ -727,8 +727,8 @@ defmodule Kernel.ErrorsTest do
   end
 
   test "invalid args for bodyless clause" do
-    assert_compile_fail CompileError,
-      "nofile:2: only variables and \\\\ are allowed as arguments in definition header.",
+    assert_eval_raise CompileError,
+      ~r"nofile:2: only variables and \\\\ are allowed as arguments in definition header.",
       '''
       defmodule Kernel.ErrorsTest.InvalidArgsForBodylessClause do
         def foo(nil)
@@ -738,7 +738,7 @@ defmodule Kernel.ErrorsTest do
   end
 
   test "typespec errors" do
-    assert_compile_fail CompileError,
+    assert_eval_raise CompileError,
       "nofile:2: type foo() undefined",
       '''
       defmodule Kernel.ErrorsTest.TypespecErrors1 do
@@ -747,7 +747,7 @@ defmodule Kernel.ErrorsTest do
       '''
 
     message = "nofile:2: spec for undefined function omg/0"
-    assert_compile_fail CompileError, message,
+    assert_eval_raise CompileError, message,
       '''
       defmodule Kernel.ErrorsTest.TypespecErrors2 do
         @spec omg :: atom
@@ -756,15 +756,15 @@ defmodule Kernel.ErrorsTest do
   end
 
   test "bad multi-call" do
-    assert_compile_fail CompileError,
+    assert_eval_raise CompileError,
       "nofile:1: invalid argument for alias, expected a compile time atom or alias, got: 42",
       'alias IO.{ANSI, 42}'
 
-    assert_compile_fail CompileError,
+    assert_eval_raise CompileError,
       "nofile:1: :as option is not supported by multi-alias call",
       'alias Elixir.{Map}, as: Dict'
 
-    assert_compile_fail UndefinedFunctionError,
+    assert_eval_raise UndefinedFunctionError,
       "function List.\"{}\"/1 is undefined or private",
       '[List.{Chars}, "one"]'
   end
@@ -830,40 +830,27 @@ defmodule Kernel.ErrorsTest do
 
   ## Helpers
 
-  defp assert_compile_fail(given_exception, string) do
-    case format_rescue(string) do
-      {^given_exception, _, _} -> :ok
-      {exception, _, _} ->
-        raise ExUnit.AssertionError,
-          left: inspect(exception),
-          right: inspect(given_exception),
-          message: "Expected match"
+  defp assert_eval_raise(given_exception, string) do
+    assert_raise given_exception, fn ->
+      Code.eval_string(string)
     end
   end
 
-  defp assert_compile_fail(given_exception, given_message, string) do
-    {exception, message, _} = format_rescue(string)
-
-    unless exception == given_exception and message =~ given_message do
-      raise ExUnit.AssertionError,
-        left: "#{inspect exception}[message: #{inspect message}]",
-        right: "#{inspect given_exception}[message: #{inspect given_message}]",
-        message: "Expected match"
+  defp assert_eval_raise(given_exception, given_message, string) do
+    assert_raise given_exception, given_message, fn ->
+      Code.eval_string(string)
     end
   end
 
-  defp rescue_stacktrace(expr) do
-    expr |> format_rescue() |> elem(2)
-  end
+  defp rescue_stacktrace(string) do
+    stacktrace =
+      try do
+        Code.eval_string(string)
+        nil
+      rescue
+        _ -> System.stacktrace
+      end
 
-  defp format_rescue(expr) do
-    result = try do
-      :elixir.eval(to_charlist(expr), [])
-      nil
-    rescue
-      error -> {error.__struct__, Exception.message(error), System.stacktrace}
-    end
-
-    result || flunk("Expected expression to fail")
+    stacktrace || flunk("Expected expression to fail")
   end
 end
