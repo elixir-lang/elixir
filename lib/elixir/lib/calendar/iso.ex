@@ -42,6 +42,7 @@ defmodule Calendar.ISO do
       {730485, {46800000000, 86400000000}}
 
   """
+  @impl true
   @spec naive_datetime_to_iso_days(Calendar.year, Calendar.month, Calendar.day,
                                    Calendar.hour, Calendar.minute, Calendar.second,
                                    Calendar.microsecond) :: Calendar.iso_days
@@ -66,6 +67,7 @@ defmodule Calendar.ISO do
   @spec naive_datetime_from_iso_days(Calendar.iso_days) ::
         {Calendar.year, Calendar.month, Calendar.day,
          Calendar.hour, Calendar.minute, Calendar.second, Calendar.microsecond}
+  @impl true
   def naive_datetime_from_iso_days({days, day_fraction}) do
     {year, month, day} = date_from_iso_days_days(days)
     {hour, minute, second, microsecond} = time_from_day_fraction(day_fraction)
@@ -83,6 +85,7 @@ defmodule Calendar.ISO do
       {45296000123, 86400000000}
 
   """
+  @impl true
   @spec time_to_day_fraction(Calendar.hour, Calendar.minute,
                              Calendar.second, Calendar.microsecond) :: Calendar.day_fraction
   def time_to_day_fraction(0, 0, 0, {0, _}) do
@@ -104,6 +107,7 @@ defmodule Calendar.ISO do
       {13, 0, 0, {0, 6}}
 
   """
+  @impl true
   @spec time_from_day_fraction(Calendar.day_fraction) ::
         {Calendar.hour, Calendar.minute, Calendar.second, Calendar.microsecond}
   def time_from_day_fraction({parts_in_day, parts_per_day}) do
@@ -158,6 +162,7 @@ defmodule Calendar.ISO do
 
   """
   @spec days_in_month(year, month) :: 28..31
+  @impl true
   def days_in_month(year, month)
 
   def days_in_month(year, 2) do
@@ -182,6 +187,7 @@ defmodule Calendar.ISO do
 
   """
   @spec leap_year?(year) :: boolean()
+  @impl true
   def leap_year?(year) when is_integer(year) and year >= 0 do
     rem(year, 4) === 0 and (rem(year, 100) > 0 or rem(year, 400) === 0)
   end
@@ -209,6 +215,7 @@ defmodule Calendar.ISO do
       7
   """
   @spec day_of_week(year, month, day) :: 1..7
+  @impl true
   def day_of_week(year, month, day)
       when is_integer(year) and is_integer(month) and is_integer(day) do
     :calendar.day_of_the_week(year, month, day)
@@ -217,7 +224,10 @@ defmodule Calendar.ISO do
   @doc """
   Converts the given time into a string.
   """
-  def time_to_string(hour, minute, second, microsecond, format \\ :extended)
+  @impl true
+  def time_to_string(hour, minute, second, microsecond) do
+    time_to_string(hour, minute, second, microsecond, :extended)
+  end
 
   def time_to_string(hour, minute, second, {_, 0}, format) do
     time_to_string_format(hour, minute, second, format)
@@ -239,6 +249,7 @@ defmodule Calendar.ISO do
   @doc """
   Converts the given date into a string.
   """
+  @impl true
   def date_to_string(year, month, day) do
     zero_pad(year, 4) <> "-" <> zero_pad(month, 2) <> "-" <> zero_pad(day, 2)
   end
@@ -251,6 +262,7 @@ defmodule Calendar.ISO do
   @doc """
   Converts the datetime (without time zone) into a string.
   """
+  @impl true
   def naive_datetime_to_string(year, month, day, hour, minute, second, microsecond) do
     date_to_string(year, month, day) <> " " <> time_to_string(hour, minute, second, microsecond)
   end
@@ -258,6 +270,7 @@ defmodule Calendar.ISO do
   @doc """
   Convers the datetime (with time zone) into a string.
   """
+  @impl true
   def datetime_to_string(year, month, day, hour, minute, second, microsecond,
                          time_zone, zone_abbr, utc_offset, std_offset) do
     date_to_string(year, month, day) <> " " <>
@@ -266,15 +279,18 @@ defmodule Calendar.ISO do
       zone_to_string(utc_offset, std_offset, zone_abbr, time_zone)
   end
 
+  @impl true
   def valid_date?(year, month, day) do
     year <= 9999 and :calendar.valid_date(year, month, day)
   end
 
+  @impl true
   def valid_time?(hour, minute, second, {microsecond, precision}) do
     hour in 0..23 and minute in 0..59 and second in 0..60 and
       microsecond in 0..999_999 and precision in 0..6
   end
 
+  @impl true
   def day_rollover_relative_to_midnight_utc() do
     {0, 1}
   end
