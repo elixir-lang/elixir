@@ -61,7 +61,7 @@ defmodule Kernel.ErrorsTest do
 
     # TODO: Remove this check once we depend on OTP 20+
     if :erlang.system_info(:otp_release) >= '20' do
-      message = "invalid character \"ó\" (codepoint U+00F3) in alias (only ascii characters are allowed): Foó"
+      message = "nofile:1: invalid character \"ó\" (codepoint U+00F3) in alias (only ascii characters are allowed): Foó"
       assert_eval_raise SyntaxError, message, 'Foó'
 
       message = """
