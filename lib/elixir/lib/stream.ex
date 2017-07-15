@@ -455,11 +455,8 @@ defmodule Stream do
 
   """
   @spec interval(non_neg_integer) :: Enumerable.t
-  def interval(n) do
-    unfold 0, fn(count) ->
-      Process.sleep(n)
-      {count, count + 1}
-    end
+  def interval(interval) do
+    unfold({:first_time, interval}, &do_interval/1)
   end
 
   @doc """
@@ -1404,6 +1401,22 @@ defmodule Stream do
     do: %{lazy | funs: [fun | funs], accs: [acc | accs], done: done}
   defp lazy(enum, acc, fun, done),
     do: %Stream{enum: enum, funs: [fun], accs: [acc], done: done}
+
+  defp do_interval({:first_time, interval}) do
+    { 0, { 1, now_in_ms(), interval }}
+  end
+
+  defp do_interval({count, previous_time, interval}) do
+    then = previous_time + interval
+    now  = now_in_ms()
+
+    if then > now, do: Process.sleep(then - now)
+
+    {count, { count + 1, then, interval }}
+  end
+    
+  defp now_in_ms(),
+    do: :erlang.monotonic_time(:millisecond)
 end
 
 defimpl Enumerable, for: Stream do
