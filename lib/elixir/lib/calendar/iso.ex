@@ -30,7 +30,7 @@ defmodule Calendar.ISO do
   @microseconds_per_second 1_000_000
 
   @doc """
-  Returns the normalized Rata Die representation of the specified date.
+  Returns the `t:Calendar.iso_days` format of the specified date.
 
   ## Examples
 
@@ -51,7 +51,7 @@ defmodule Calendar.ISO do
   end
 
   @doc """
-  Converts a Rata Die to the datetime format specified by this calendar.
+  Converts the `t:Calendar.iso_days` format to the datetime format specified by this calendar.
 
   ## Examples
 
@@ -114,7 +114,7 @@ defmodule Calendar.ISO do
     {hours, minutes, seconds, {microseconds, 6}}
   end
 
-  # Converts a year, month, day in only a count of days since the Rata Die epoch.
+  # Converts year, month, day to count of days since 0000-01-01.
   @doc false
   def date_to_iso_days_days(0, 1, 1) do
     0
@@ -123,11 +123,10 @@ defmodule Calendar.ISO do
     719528
   end
   def date_to_iso_days_days(year, month, day) do
-    # Rata Die starts at year 1, rather than at year 0.
     :calendar.date_to_gregorian_days(year, month, day)
   end
 
-  # Calculates {year, month, day} from the count of days since the Rata Die epoch.
+  # Converts count of days since 0000-01-01 to {year, month, day} tuple.
   @doc false
   def date_from_iso_days_days(days) do
     :calendar.gregorian_days_to_date(days)
