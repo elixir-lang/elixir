@@ -72,8 +72,8 @@ defmodule File do
   and `:delayed_write` are also useful when operating on large files or
   working with files in tight loops.
 
-  Check [`:file.open/2`](http://www.erlang.org/doc/man/file.html#open-2) for more information
-  about such options and other performance considerations.
+  Check `:file.open/2` for more information about such options and
+  other performance considerations.
   """
 
   @type posix :: :file.posix()
@@ -324,7 +324,7 @@ defmodule File do
   the `type` to `:symlink` and returns a `File.Stat` struct for the link. For any
   other file, returns exactly the same values as `stat/2`.
 
-  For more details, see [`:file.read_link_info/2`](http://www.erlang.org/doc/man/file.html#read_link_info-2).
+  For more details, see `:file.read_link_info/2`.
 
   ## Options
 
@@ -370,8 +370,7 @@ defmodule File do
   If `path` exists and is a symlink, returns `{:ok, target}`, otherwise returns
   `{:error, reason}`.
 
-  For more details, see
-  [`:file.read_link/1`](http://erlang.org/doc/man/file.html#read_link-1).
+  For more details, see `:file.read_link/1`.
 
   Typical error reasons are:
 
@@ -1086,7 +1085,7 @@ defmodule File do
 
     * `:delayed_write`, `:raw`, `:ram`, `:read_ahead`, `:sync`, `{:encoding, ...}`,
       `{:read_ahead, pos_integer}`, `{:delayed_write, non_neg_integer, non_neg_integer}` -
-      for more information about these options see [`:file.open/2`](http://www.erlang.org/doc/man/file.html#open-2).
+      for more information about these options see `:file.open/2`.
 
   This function returns:
 

@@ -72,8 +72,7 @@ defmodule Node do
   The result returned when the argument is a list, is the list of nodes
   satisfying the disjunction(s) of the list elements.
 
-  For more information, see
-  [`:erlang.nodes/1`](http://www.erlang.org/doc/man/erlang.html#nodes-1).
+  For more information, see `:erlang.nodes/1`.
   """
   @typep state :: :visible | :hidden | :connected | :this | :known
   @spec list(state | [state]) :: [t]
@@ -87,11 +86,9 @@ defmodule Node do
   If `flag` is `true`, monitoring is turned on.
   If `flag` is `false`, monitoring is turned off.
 
-  For more information, see
-  [`:erlang.monitor_node/2`](http://www.erlang.org/doc/man/erlang.html#monitor_node-2).
+  For more information, see `:erlang.monitor_node/2`.
   
-  For monitoring status changes of all nodes, see
-  [`:net_kernel.monitor_nodes/3`](http://www.erlang.org/doc/man/net_kernel.html#monitor_nodes-2).
+  For monitoring status changes of all nodes, see `:net_kernel.monitor_nodes/3`.
   """
   @spec monitor(t, boolean) :: true
   def monitor(node, flag) do
@@ -102,11 +99,9 @@ defmodule Node do
   Behaves as `monitor/2` except that it allows an extra
   option to be given, namely `:allow_passive_connect`.
 
-  For more information, see
-  [`:erlang.monitor_node/3`](http://www.erlang.org/doc/man/erlang.html#monitor_node-3).
+  For more information, see `:erlang.monitor_node/3`.
   
-  For monitoring status changes of all nodes, see
-  [`:net_kernel.monitor_nodes/3`](http://www.erlang.org/doc/man/net_kernel.html#monitor_nodes-2).
+  For monitoring status changes of all nodes, see `:net_kernel.monitor_nodes/3`.
   """
   @spec monitor(t, boolean, [:allow_passive_connect]) :: true
   def monitor(node, flag, options) do
@@ -137,8 +132,7 @@ defmodule Node do
   protocols. Returns `true` if disconnection succeeds, otherwise `false`.
   If the local node is not alive, the function returns `:ignored`.
 
-  For more information, see
-  [`:erlang.disconnect_node/1`](http://www.erlang.org/doc/man/erlang.html#disconnect_node-1).
+  For more information, see `:erlang.disconnect_node/1`.
   """
   @spec disconnect(t) :: boolean | :ignored
   def disconnect(node) do
@@ -151,8 +145,7 @@ defmodule Node do
   Returns `true` if successful, `false` if not, and the atom
   `:ignored` if the local node is not alive.
 
-  For more information, see
-  [`:net_kernel.connect_node/1`](http://www.erlang.org/doc/man/net_kernel.html#connect_node-1).
+  For more information, see `:net_kernel.connect_node/1`.
   """
   @spec connect(t) :: boolean | :ignored
   def connect(node) do
@@ -163,8 +156,7 @@ defmodule Node do
   Returns the PID of a new process started by the application of `fun`
   on `node`. If `node` does not exist, a useless PID is returned.
 
-  For the list of available options, see
-  [`:erlang.spawn/2`](http://www.erlang.org/doc/man/erlang.html#spawn-2).
+  For the list of available options, see `:erlang.spawn/2`.
 
   Inlined by the compiler.
   """
@@ -179,8 +171,7 @@ defmodule Node do
 
   If `node` does not exist, a useless PID is returned.
 
-  For the list of available options, see
-  [`:erlang.spawn_opt/3`](http://www.erlang.org/doc/man/erlang.html#spawn_opt-3).
+  For the list of available options, see `:erlang.spawn_opt/3`.
 
   Inlined by the compiler.
   """
@@ -195,8 +186,7 @@ defmodule Node do
 
   If `node` does not exist, a useless PID is returned.
 
-  For the list of available options, see
-  [`:erlang.spawn/4`](http://www.erlang.org/doc/man/erlang.html#spawn-4).
+  For the list of available options, see `:erlang.spawn/4`.
 
   Inlined by the compiler.
   """
@@ -211,8 +201,7 @@ defmodule Node do
 
   If `node` does not exist, a useless PID is returned.
 
-  For the list of available options, see
-  [`:erlang.spawn/5`](http://www.erlang.org/doc/man/erlang.html#spawn_opt-5).
+  For the list of available options, see `:erlang.spawn/5`.
 
   Inlined by the compiler.
   """

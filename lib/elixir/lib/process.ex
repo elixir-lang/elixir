@@ -349,7 +349,7 @@ defmodule Process do
   just the spawned process PID.
 
   More options are available; for the comprehensive list of available options
-  check [`:erlang.spawn_opt/4`](http://www.erlang.org/doc/man/erlang.html#spawn_opt-4).
+  check `:erlang.spawn_opt/4`.
 
   Inlined by the compiler.
   """
@@ -366,7 +366,7 @@ defmodule Process do
   just the spawned process PID.
 
   It also accepts extra options, for the list of available options
-  check [`:erlang.spawn_opt/4`](http://www.erlang.org/doc/man/erlang.html#spawn_opt-4).
+  check `:erlang.spawn_opt/4`.
 
   Inlined by the compiler.
   """
@@ -389,8 +389,7 @@ defmodule Process do
     * `reason` is the exit reason.
 
   See [the need for monitoring](http://elixir-lang.org/getting-started/mix-otp/genserver.html#the-need-for-monitoring)
-  for an example.
-  See [`:erlang.monitor/2`](http://www.erlang.org/doc/man/erlang.html#monitor-2) for more info.
+  for an example. See `:erlang.monitor/2` for more info.
 
   Inlined by the compiler.
   """
@@ -406,7 +405,7 @@ defmodule Process do
   obtained by calling `monitor/1`, that monitoring is turned off.
   If the monitoring is already turned off, nothing happens.
 
-  See [`:erlang.demonitor/2`](http://www.erlang.org/doc/man/erlang.html#demonitor-2) for more info.
+  See `:erlang.demonitor/2` for more info.
 
   Inlined by the compiler.
   """
@@ -421,7 +420,7 @@ defmodule Process do
   alive. This means that for such process, `alive?/1` will return `false` but
   its PID will be part of the list of PIDs returned by this function.
 
-  See [`:erlang.processes/0`](http://www.erlang.org/doc/man/erlang.html#processes-0) for more info.
+  See `:erlang.processes/0` for more info.
 
   Inlined by the compiler.
   """
@@ -446,7 +445,7 @@ defmodule Process do
   emit an exit signal to all its other linked processes. The behaviour when
   `pid1` is trapping exits is described in `exit/2`.
 
-  See [`:erlang.link/1`](http://www.erlang.org/doc/man/erlang.html#link-1) for more info.
+  See `:erlang.link/1` for more info.
 
   Inlined by the compiler.
   """
@@ -463,7 +462,7 @@ defmodule Process do
 
   The return value of this function is always `true`.
 
-  See [`:erlang.unlink/1`](http://www.erlang.org/doc/man/erlang.html#unlink-1) for more info.
+  See `:erlang.unlink/1` for more info.
 
   Inlined by the compiler.
   """
@@ -524,7 +523,7 @@ defmodule Process do
   Returns the PID or port identifier registered under `name` or `nil` if the
   name is not registered.
 
-  See [`:erlang.whereis/1`](http://www.erlang.org/doc/man/erlang.html#whereis-1) for more info.
+  See `:erlang.whereis/1` for more info.
   """
   @spec whereis(atom) :: pid | port | nil
   def whereis(name) do
@@ -570,7 +569,7 @@ defmodule Process do
 
   Returns the old value of `flag`.
 
-  See [`:erlang.process_flag/2`](http://www.erlang.org/doc/man/erlang.html#process_flag-2) for more info.
+  See `:erlang.process_flag/2` for more info.
 
   Note that `flag` values `:max_heap_size` and `:message_queue_data` are only available since OTP 19.
 
@@ -599,7 +598,7 @@ defmodule Process do
   The allowed values for `flag` are only a subset of those allowed in `flag/2`,
   namely `:save_calls`.
 
-  See [`:erlang.process_flag/3`](http://www.erlang.org/doc/man/erlang.html#process_flag-3) for more info.
+  See `:erlang.process_flag/3` for more info.
 
   Inlined by the compiler.
   """
@@ -612,7 +611,7 @@ defmodule Process do
 
   Use this only for debugging information.
 
-  See [`:erlang.process_info/1`](http://www.erlang.org/doc/man/erlang.html#process_info-1) for more info.
+  See `:erlang.process_info/1` for more info.
   """
   @spec info(pid) :: keyword
   def info(pid) do
@@ -623,7 +622,7 @@ defmodule Process do
   Returns information about the process identified by `pid`,
   or returns `nil` if the process is not alive.
 
-  See [`:erlang.process_info/2`](http://www.erlang.org/doc/man/erlang.html#process_info-2) for more info.
+  See `:erlang.process_info/2` for more info.
   """
   @spec info(pid, atom | [atom]) :: {atom, term} | [{atom, term}]  | nil
   def info(pid, spec)
@@ -648,7 +647,7 @@ defmodule Process do
   which is useful if the process does not expect to receive any messages
   in the near future.
 
-  See [`:erlang.hibernate/3`](http://www.erlang.org/doc/man/erlang.html#hibernate-3) for more info.
+  See `:erlang.hibernate/3` for more info.
 
   Inlined by the compiler.
   """

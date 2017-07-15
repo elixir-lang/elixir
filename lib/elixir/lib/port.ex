@@ -110,14 +110,6 @@ defmodule Port do
   the `:args` option as done above. For the full list of options, see the
   documentation for the Erlang function `:erlang.open_port/2`.
 
-  ### spawn_driver
-
-  Spawn driver is used to start Port Drivers, which are programs written in
-  C that implements a specific communication protocols and are dynamically
-  linked to the Erlang VM. Port drivers are an advanced topic and one of the
-  mechanisms for integrating C code, alongside NIFs. For more information,
-  [please check the Erlang docs](http://erlang.org/doc/reference_manual/ports.html).
-
   ### fd
 
   The `:fd` name option allows developers to access `in` and `out` file
@@ -180,8 +172,7 @@ defmodule Port do
     * `{:fd, fd_in, fd_out}` - accesses file descriptors, `fd_in` and `fd_out`
       opened by the VM.
 
-  For more information and the list of options, see
-  [`:erlang.open_port/2`](http://www.erlang.org/doc/man/erlang.html#open_port-2).
+  For more information and the list of options, see `:erlang.open_port/2`.
 
   Inlined by the compiler.
   """
@@ -193,7 +184,7 @@ defmodule Port do
   @doc """
   Closes the `port`.
 
-  For more information, see [`:erlang.port_close/1`](http://www.erlang.org/doc/man/erlang.html#port_close-1).
+  For more information, see `:erlang.port_close/1`.
 
   Inlined by the compiler.
   """
@@ -205,7 +196,7 @@ defmodule Port do
   @doc """
   Sends `data` to the port driver `port`.
 
-  For more information, see [`:erlang.port_command/2`](http://www.erlang.org/doc/man/erlang.html#port_command-2).
+  For more information, see `:erlang.port_command/2`.
 
   Inlined by the compiler.
   """
@@ -217,7 +208,7 @@ defmodule Port do
   @doc """
   Associates the `port` identifier with a `pid`.
 
-  For more information, see [`:erlang.port_connect/2`](http://www.erlang.org/doc/man/erlang.html#port_connect-2).
+  For more information, see `:erlang.port_connect/2`.
 
   Inlined by the compiler.
   """
@@ -229,7 +220,7 @@ defmodule Port do
   @doc """
   Returns information about the `port` or `nil` if the port is closed.
 
-  For more information, see [`:erlang.port_info/1`](http://www.erlang.org/doc/man/erlang.html#port_info-1).
+  For more information, see `:erlang.port_info/1`.
   """
   def info(port) do
     nillify :erlang.port_info(port)
@@ -238,7 +229,7 @@ defmodule Port do
   @doc """
   Returns information about the `port` or `nil` if the port is closed.
 
-  For more information, see [`:erlang.port_info/2`](http://www.erlang.org/doc/man/erlang.html#port_info-2).
+  For more information, see `:erlang.port_info/2`.
   """
   @spec info(port, atom) :: {atom, term} | nil
   def info(port, spec)

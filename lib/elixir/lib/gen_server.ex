@@ -220,32 +220,28 @@ defmodule GenServer do
   system events that happen during its execution, such as received messages,
   sent replies and state changes.
 
-  Let's explore the basic functions from the [`:sys` module](http://www.erlang.org/doc/man/sys.html) used for debugging:
+  Let's explore the basic functions from the
+  [`:sys` module](http://www.erlang.org/doc/man/sys.html) used for debugging:
 
-    * [`:sys.get_state/2`](http://erlang.org/doc/man/sys.html#get_state-2) -
-      allows retrieval of the state of the process. In the case of
-      a GenServer process, it will be the callback module state, as
-      passed into the callback functions as last argument.
-    * [`:sys.get_status/2`](http://erlang.org/doc/man/sys.html#get_status-2) -
-      allows retrieval of the status of the process. This status includes
-      the process dictionary, if the process is running or is suspended,
-      the parent PID, the debugger state, and the state of the behaviour module,
-      which includes the callback module state (as returned by `:sys.get_state/2`).
-      It's possible to change how this status is represented by defining
-      the optional `c:GenServer.format_status/2` callback.
-    * [`:sys.trace/3`](http://erlang.org/doc/man/sys.html#trace-3) -
-      prints all the system events to `:stdio`.
-    * [`:sys.statistics/3`](http://erlang.org/doc/man/sys.html#statistics-3) -
-      manages collection of process statistics.
-    * [`:sys.no_debug/2`](http://erlang.org/doc/man/sys.html#no_debug-2) -
-      turns off all debug handlers for the given process. It is very important
-      to switch off debugging once we're done. Excessive debug handlers or
-      those that should be turned off, but weren't, can seriously damage
-      the performance of the system.
-    * [`:sys.suspend/2`](http://erlang.org/doc/man/sys.html#suspend-2) - allows
-      to suspend a process so that it only replies to system messages but no
-      other messages. A suspended process can be reactivated via
-      [`:sys.resume/2`](http://erlang.org/doc/man/sys.html#resume-2).
+    * `:sys.get_state/2` - allows retrieval of the state of the process.
+      In the case of a GenServer process, it will be the callback module state,
+      as passed into the callback functions as last argument.
+    * `:sys.get_status/2` - allows retrieval of the status of the process.
+      This status includes the process dictionary, if the process is running
+      or is suspended, the parent PID, the debugger state, and the state of
+      the behaviour module, which includes the callback module state
+      (as returned by `:sys.get_state/2`). It's possible to change how this
+      status is represented by defining the optional `c:GenServer.format_status/2`
+      callback.
+    * `:sys.trace/3` - prints all the system events to `:stdio`.
+    * `:sys.statistics/3` - manages collection of process statistics.
+    * `:sys.no_debug/2` - turns off all debug handlers for the given process.
+      It is very important to switch off debugging once we're done. Excessive
+      debug handlers or those that should be turned off, but weren't, can
+      seriously damage the performance of the system.
+    * `:sys.suspend/2` - allows to suspend a process so that it only
+      replies to system messages but no other messages. A suspended process
+      can be reactivated via `:sys.resume/2`.
 
   Let's see how we could use those functions for debugging the stack server
   we defined earlier.
