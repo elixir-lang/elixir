@@ -1819,7 +1819,7 @@ defmodule Enum do
     end
   end
 
-  def reduce(%{__struct__: _} = enumerable, acc, fun) do
+  def reduce(%_{} = enumerable, acc, fun) do
     Enumerable.reduce(enumerable, {:cont, acc},
                       fn x, acc -> {:cont, fun.(x, acc)} end) |> elem(1)
   end

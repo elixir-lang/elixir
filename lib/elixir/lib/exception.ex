@@ -41,25 +41,25 @@ defmodule Exception do
   """
   def exception?(term)
 
-  def exception?(%{__struct__: struct, __exception__: true}) when is_atom(struct),
-    do: true
+  def exception?(%_{__exception__: true}), do: true
 
   def exception?(_), do: false
 
   @doc """
   Gets the message for an `exception`.
   """
-  def message(%{__struct__: module, __exception__: true} = exception) when is_atom(module) do
+  def message(%module{__exception__: true} = exception) do
     try do
       module.message(exception)
     rescue
-      e ->
-        "got #{inspect e.__struct__} with message #{inspect message(e)} " <>
+      caught_exception ->
+        "got #{inspect caught_exception.__struct__} with message #{inspect message(caught_exception)} " <>
         "while retrieving Exception.message/1 for #{inspect(exception)}"
     else
-      x when is_binary(x) -> x
-      x ->
-        "got #{inspect(x)} " <>
+      result when is_binary(result) ->
+        result
+      result ->
+        "got #{inspect(result)} " <>
         "while retrieving Exception.message/1 for #{inspect(exception)} " <>
         "(expected a string)"
     end

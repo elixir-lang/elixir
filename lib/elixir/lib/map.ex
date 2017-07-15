@@ -165,7 +165,7 @@ defmodule Map do
   @spec new(Enumerable.t) :: map
   def new(enumerable)
   def new(list) when is_list(list), do: :maps.from_list(list)
-  def new(%{__struct__: _} = struct), do: new_from_enum(struct)
+  def new(%_{} = struct), do: new_from_enum(struct)
   def new(%{} = map), do: map
   def new(enum), do: new_from_enum(enum)
 

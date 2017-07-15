@@ -112,12 +112,15 @@ defmodule Kernel.Utils do
   def raise(msg) when is_binary(msg) do
     RuntimeError.exception(msg)
   end
+
   def raise(atom) when is_atom(atom) do
     atom.exception([])
   end
-  def raise(%{__struct__: struct, __exception__: true} = exception) when is_atom(struct) do
+
+  def raise(%_{__exception__: true} = exception) do
     exception
   end
+
   def raise(other) do
     ArgumentError.exception("raise/1 expects a module name, string or exception as " <>
                             "the first argument, got: #{inspect other}")

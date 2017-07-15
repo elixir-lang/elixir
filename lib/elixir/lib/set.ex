@@ -15,10 +15,10 @@ defmodule Set do
   defmacrop target(set) do
     quote do
       case unquote(set) do
-        %{__struct__: x} when is_atom(x) ->
-          x
-        x ->
-          unsupported_set(x)
+        %module{} ->
+          module
+        set ->
+          unsupported_set(set)
       end
     end
   end

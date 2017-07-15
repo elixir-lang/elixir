@@ -186,14 +186,14 @@ defmodule Dict do
   defmacrop target(dict) do
     quote do
       case unquote(dict) do
-        %{__struct__: x} when is_atom(x) ->
-          x
+        %module{} ->
+          module
         %{} ->
           Map
-        x when is_list(x) ->
+        dict when is_list(dict) ->
           Keyword
-        x ->
-          unsupported_dict(x)
+        dict ->
+          unsupported_dict(dict)
       end
     end
   end

@@ -374,7 +374,7 @@ defmodule ExceptionTest do
 
         {:ok, :def, clauses} = Exception.blame_mfa(Access, :fetch, [self(), "oops"])
         assert annotated_clauses_to_string(clauses) == [
-          "{[-%struct{} = container-, +key+], []}",
+          "{[-%module{} = container-, +key+], []}",
           "{[+map+, +key+], [-is_map(map)-]}",
           "{[+list+, +key+], [-is_list(list)- and -is_atom(key)-]}",
           "{[+list+, +key+], [-is_list(list)-]}",
@@ -498,7 +498,7 @@ defmodule ExceptionTest do
 
         Attempted function clauses (showing 5 out of 5):
 
-            def fetch(-%struct{} = container-, key)
+            def fetch(-%module{} = container-, key)
         """
       end
     end

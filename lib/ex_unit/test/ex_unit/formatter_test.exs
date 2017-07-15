@@ -193,7 +193,7 @@ defmodule ExUnit.FormatterTest do
 
            Attempted function clauses (showing 5 out of 5):
 
-               def fetch(%struct{} = container, key)
+               def fetch(%module{} = container, key)
       """
 
       assert failure =~ ~r"\(elixir\) lib/access\.ex:\d+: Access\.fetch/2"

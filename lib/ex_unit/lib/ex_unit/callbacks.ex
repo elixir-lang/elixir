@@ -339,7 +339,7 @@ defmodule ExUnit.Callbacks do
     merge(mod, context, value, original_value)
   end
 
-  defp merge(mod, _context, %{__struct__: _}, original_value) do
+  defp merge(mod, _context, %_{}, original_value) do
     raise_merge_failed!(mod, original_value)
   end
 
