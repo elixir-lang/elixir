@@ -30,8 +30,7 @@ defmodule Mix.Tasks.Compile.Leex do
     * `:leex_options` - compilation options that apply
       to Leex's compiler.
 
-      For a complete list of options,
-      see [`:leex.file/2`](http://www.erlang.org/doc/man/leex.html#file-2).
+      For a complete list of options, see `:leex.file/2`.
       Note that the `:report`, `:return_errors`, and `:return_warnings` options
       are overridden by this compiler, thus setting them has no effect.
 

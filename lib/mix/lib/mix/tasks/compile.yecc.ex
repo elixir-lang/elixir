@@ -30,8 +30,7 @@ defmodule Mix.Tasks.Compile.Yecc do
     * `:yecc_options` - compilation options that apply
       to Yecc's compiler.
 
-      For a complete list of options,
-      see [`:yecc.file/1`](http://www.erlang.org/doc/man/yecc.html#file-1).
+      For a complete list of options, see `:yecc.file/1`.
       Note that the `:report`, `:return_errors`, and `:return_warnings` options
       are overridden by this compiler, thus setting them has no effect.
 
