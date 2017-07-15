@@ -46,7 +46,6 @@ defmodule Kernel do
   Those are the modules that handle Elixir built-in types.
 
     * `Atom` - a literal constant with a name. `true`, `false` and `nil` are atoms
-    * `:binary` (byte-level, in Erlang) and `String` (character-level, in Elixir)
     * `Float` - numbers with floating point precision
     * `Integer` - whole numbers (not fractions)
     * `List` - collection of a variable amount of elements (linked lists)
@@ -55,10 +54,13 @@ defmodule Kernel do
     * `Port` - mechanisms to interact with the external world
     * `Tuple` - collection of fixed amount of elements
 
-  There are two data-types without an accompanying module
+  There are three data-types without an accompanying module:
 
-    * Function - a reference to code chunk (created with `fn`)
-    * Reference - a unique value in the runtime system (created with `make_ref/0`)
+    * Bitstrings - a sequence of bits, created with `<<>>/1`. When the number of
+      bits is divisible by 8, they are called binaries and be manipulate with the
+      Erlang [:binary module](http://erlang.org/doc/man/binary.html)
+    * Function - a reference to code chunk, created with `fn -> end`
+    * Reference - a unique value in the runtime system, created with `make_ref/0`
 
   ### Data-types
 
@@ -73,6 +75,7 @@ defmodule Kernel do
     * `Keyword` - lists of tuples, often representing optional values
     * `Range` - inclusive range between two ingers
     * `Regex` - regular expressions
+    * `String` - UTF-8 encoded binaries representing characters
     * `URI` - representation of URIs that identify resources
     * `Version` - representation of versions and requirements
 
