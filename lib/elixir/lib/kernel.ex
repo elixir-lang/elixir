@@ -7,10 +7,16 @@ import :elixir_bootstrap
 
 defmodule Kernel do
   @moduledoc """
-  Provides the default macros and functions Elixir imports into your
-  environment.
+  This module is the entry point of the Elixir programming languages.
 
-  These macros and functions can be skipped or cherry-picked via the
+  It provides the default functions and macros Elixir imports into your
+  environment. Those can be directly invoked in your code without the
+  module name:
+
+      iex> is_number(13)
+      true
+
+  These functions and macros can be skipped or cherry-picked via the
   `import/2` macro. For instance, if you want to tell Elixir not to
   import the `if/2` macro, you can do:
 
@@ -19,16 +25,106 @@ defmodule Kernel do
   Elixir also has special forms that are always imported and
   cannot be skipped. These are described in `Kernel.SpecialForms`.
 
+  This module provides a variety of code definition, flow-control
+  and data-type functionality. For example, new processes can be
+  created with `spawn/1`, modules can be defined with `defmodule/2`,
+  short-circuit operators are found in `&&/2` and `||/2`, numbers
+  can be added with `+/2` and more. This module also contains all
+  built-in guards, which is a set of functions that augment pattern
+  matching with complex checks. More information about guards can be
+  found in the [Guards page](guards.html).
+
+  ## The standard library
+
+  `Kernel` provides the basic capabilities the Elixir standard library
+  is built on top of. It is recommended to explore the standard library
+  for advanced functionality. Here are the main groups of modules in the
+  standard library (it is not a complete reference).
+
+  ### Built-in types
+
+  Those are the modules that handle Elixir built-in types.
+
+    * `Atom` - a literal constant with a name. `true`, `false` and `nil` are atoms
+    * `:binary` (byte-level, in Erlang) and `String` (character-level, in Elixir)
+    * `Float` - numbers with floating point precision
+    * `Integer` - whole numbers (not fractions)
+    * `List` - collection of a variable amount of elements (linked lists)
+    * `Map` - collection of key-value pairs
+    * `Process` - light-weight threads of execution
+    * `Port` - mechanisms to interact with the external world
+    * `Tuple` - collection of fixed amount of elements
+
+  There are two data-types without an accompanying module
+
+    * Function - a reference to code chunk (created with `fn`)
+    * Reference - a unique value in the runtime system (created with `make_ref/0`)
+
+  ### Data-types
+
+  Elixir also provides other data-types that are built on the types above.
+
+    * `Date` - year-month-day structs in a given calendar
+    * `Time` - hour:minute:second structs in a given calendar
+    * `DateTime` - date and time with timezone in a given calendar
+    * `Exception` - data raises from errors and unexpected scenarios
+    * `MapSet` - unordered collection of unique elements
+    * `NaiveDateTime` - date and time without timezone in a given calendar
+    * `Keyword` - lists of tuples, often representing optional values
+    * `Range` - inclusive range between two ingers
+    * `Regex` - regular expressions
+    * `URI` - representation of URIs that identify resources
+    * `Version` - representation of versions and requirements
+
+  ### System modules
+
+  Modules that interface with the underlying system:
+
+    * `IO` - handle input and output
+    * `File` - interacts with the underlying file system
+    * `Path` - manipulate file system paths
+    * `System` - reads and writes system information
+
+  ### Protocols
+
+  Protocols add polymorphic dispatch to Elixir. They are contracts
+  implementable by data-types.
+
+    * `Collectable` - a protocol for collecting data into data types
+    * `Enumerable` - handles collections in Elixir. The `Enum` module
+      provides eager functions for working with collections, the `Stream`
+      module provides lazy functions
+    * `Inspect` - converts data-types into their programming language
+      representation
+    * `List.Chars` - converts data-types to their outside world
+      representation as char lists (non-programming based)
+    * `String.Chars` - converts data-types to their outside world
+      representation as strings (non-programming based)
+
+  ### Process-based functionality
+
+  The following modules build on top of processes to provide concurrency,
+  fault-tolerance and more.
+
+    * `Agent` - a process that encapsulates mutable state
+    * `GenServer` - a generic client-server API
+    * `Registry` - a key-value process-based storage
+    * `Supervisor` - a process that is responsible for starting,
+      supervising and shutting down other processes
+    * `Task` - a process that performs computations
+
+  ## Inlining
+
   Some of the functions described in this module are inlined by
   the Elixir compiler into their Erlang counterparts in the
   [`:erlang` module](http://www.erlang.org/doc/man/erlang.html).
   Those functions are called BIFs (built-in internal functions)
-  in Erlang-land and they exhibit interesting properties, as some of
-  them are allowed in guards and others are used for compiler
+  in Erlang-land and they exhibit interesting properties, as some
+  of them are allowed in guards and others are used for compiler
   optimizations.
 
-  Most of the inlined functions can be seen in effect when capturing
-  the function:
+  Most of the inlined functions can be seen in effect when
+  capturing the function:
 
       iex> &Kernel.is_atom/1
       &:erlang.is_atom/1
