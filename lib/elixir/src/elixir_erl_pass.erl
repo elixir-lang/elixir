@@ -24,6 +24,15 @@ translate({'{}', Meta, Args}, S) when is_list(Args) ->
 translate({'%{}', Meta, Args}, S) when is_list(Args) ->
   translate_map(Meta, Args, S);
 
+translate({'%', Meta, [{'_', VarMeta, Context}, Right]}, S) when is_atom(Context) ->
+  translate({'%', Meta, [{module, VarMeta, ?var_context}, Right]}, S);
+
+translate({'%', Meta, [{Name, _, Context} = Left, Right]}, S) when is_atom(Name), is_atom(Context) ->
+  {{map, _, TArgs} = Result, TS} = translate_struct(Meta, Left, Right, S),
+  {var, Ann, _} = Var = find_struct_var(TArgs),
+  Guard = elixir_erl:remote(Ann, erlang, is_atom, [Var]),
+  {Result, TS#elixir_erl{extra_guards=[Guard | TS#elixir_erl.extra_guards]}};
+
 translate({'%', Meta, [Left, Right]}, S) ->
   translate_struct(Meta, Left, Right, S);
 
@@ -568,3 +577,8 @@ is_always_string('Elixir.Macro', to_string, _) -> true;
 is_always_string('Elixir.String.Chars', to_string, _) -> true;
 is_always_string('Elixir.Path', join, _) -> true;
 is_always_string(_Module, _Function, _Args) -> false.
+
+find_struct_var([{map_field_exact, _, {atom, _, '__struct__'}, Var}]) ->
+  Var;
+find_struct_var([_ | Rest]) ->
+  find_struct_var(Rest).
