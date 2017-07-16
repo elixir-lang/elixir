@@ -331,12 +331,16 @@ defmodule Time do
 
       iex> Time.compare(~T[16:04:16], ~T[16:04:28])
       :lt
+      iex> Time.compare(~T[16:04:16], ~T[16:04:16])
+      :eq
       iex> Time.compare(~T[16:04:16.01], ~T[16:04:16.001])
       :gt
 
   This function can also be used to compare across more
   complex calendar types by considering only the time fields:
 
+      iex> Time.compare(~N[1900-01-01 16:04:16], ~N[2015-01-01 16:04:16])
+      :eq
       iex> Time.compare(~N[2015-01-01 16:04:16], ~N[2015-01-01 16:04:28])
       :lt
       iex> Time.compare(~N[2015-01-01 16:04:16.01], ~N[2000-01-01 16:04:16.001])
