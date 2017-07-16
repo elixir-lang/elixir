@@ -27,11 +27,11 @@ translate({'%{}', Meta, Args}, S) when is_list(Args) ->
 translate({'%', Meta, [{'_', VarMeta, Context}, Right]}, S) when is_atom(Context) ->
   translate({'%', Meta, [{module, VarMeta, ?var_context}, Right]}, S);
 
+translate({'%', Meta, [{'^', _, [{Name, _, Context}]} = Left, Right]}, S) when is_atom(Name), is_atom(Context) ->
+  translate_struct_var_name(Meta, Left, Right, S);
+
 translate({'%', Meta, [{Name, _, Context} = Left, Right]}, S) when is_atom(Name), is_atom(Context) ->
-  {{map, _, TArgs} = Result, TS} = translate_struct(Meta, Left, Right, S),
-  {var, Ann, _} = Var = find_struct_var(TArgs),
-  Guard = elixir_erl:remote(Ann, erlang, is_atom, [Var]),
-  {Result, TS#elixir_erl{extra_guards=[Guard | TS#elixir_erl.extra_guards]}};
+  translate_struct_var_name(Meta, Left, Right, S);
 
 translate({'%', Meta, [Left, Right]}, S) ->
   translate_struct(Meta, Left, Right, S);
@@ -164,7 +164,7 @@ translate({'^', Meta, [{Name, VarMeta, Kind}]}, #elixir_erl{context=match, file=
   {ok, {Value, _Counter, Safe}} = maps:find(Tuple, S#elixir_erl.backup_vars),
   elixir_erl_var:warn_unsafe_var(VarMeta, File, Name, Safe),
 
-  PAnn = ?ann(Meta),
+  PAnn = ?ann(?generated(Meta)),
   PVar = {var, PAnn, Value},
 
   case S#elixir_erl.extra of
@@ -408,6 +408,12 @@ translate_map(Meta, [{'|', _Meta, [Update, Assocs]}], S) ->
   translate_map(Meta, Assocs, {ok, TUpdate}, US);
 translate_map(Meta, Assocs, S) ->
   translate_map(Meta, Assocs, none, S).
+
+translate_struct_var_name(Meta, Name, Args, S) ->
+  {{map, _, TArgs} = Result, TS} = translate_struct(Meta, Name, Args, S),
+  {var, Ann, _} = Var = find_struct_var(TArgs),
+  Guard = elixir_erl:remote(Ann, erlang, is_atom, [Var]),
+  {Result, TS#elixir_erl{extra_guards=[Guard | TS#elixir_erl.extra_guards]}}.
 
 translate_struct(Meta, Name, {'%{}', _, [{'|', _, [Update, Assocs]}]}, S) ->
   Ann = ?ann(Meta),

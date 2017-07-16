@@ -179,7 +179,7 @@ defmodule MapTest do
     user = %ExternalUser{name: "john", age: 27}
     %^struct{name: "john"} = user
 
-    invalid_struct = %{__struct__: "Foo"}
+    invalid_struct = %{__struct__: foo()}
     assert_raise CaseClauseError, fn ->
       case invalid_struct do
         %module{} -> :ok
@@ -192,6 +192,13 @@ defmodule MapTest do
       end
     end
 
+    assert_raise CaseClauseError, fn ->
+      foo = foo()
+      case invalid_struct do
+        %^foo{} -> :ok
+      end
+    end
+
     assert_raise FunctionClauseError, fn ->
       destruct1(invalid_struct)
     end
@@ -199,6 +206,10 @@ defmodule MapTest do
     assert_raise FunctionClauseError, fn ->
       destruct2(invalid_struct)
     end
+  end
+
+  def foo() do
+    "Foo"
   end
 
   defp destruct1(%module{}), do: module
