@@ -70,15 +70,15 @@ defmodule String.Casing do
 
   # Downcase
 
-  def downcase(string), do: downcase(string, "")
+  def downcase(string) when is_binary(string), do: downcase(string, "")
 
   for {codepoint, _upper, lower, _title} <- codes, lower && lower != codepoint do
-    defp downcase(unquote(codepoint) <> rest, acc) do
+    defp downcase(<<unquote(codepoint), rest::bits>>, acc) do
       downcase(rest, acc <> unquote(lower))
     end
   end
 
-  defp downcase(<<char, rest::binary>>, acc) do
+  defp downcase(<<char, rest::bits>>, acc) do
     downcase(rest, <<acc::binary, char>>)
   end
 
@@ -86,15 +86,15 @@ defmodule String.Casing do
 
   # Upcase
 
-  def upcase(string), do: upcase(string, "")
+  def upcase(string) when is_binary(string), do: upcase(string, "")
 
   for {codepoint, upper, _lower, _title} <- codes, upper && upper != codepoint do
-    defp upcase(unquote(codepoint) <> rest, acc) do
+    defp upcase(<<unquote(codepoint), rest::bits>>, acc) do
       upcase(rest, acc <> unquote(upper))
     end
   end
 
-  defp upcase(<<char, rest::binary>>, acc) do
+  defp upcase(<<char, rest::bits>>, acc) do
     upcase(rest, <<acc::binary, char>>)
   end
 
@@ -140,11 +140,14 @@ defmodule String.Break do
 
   # trim_leading
 
-  for codepoint <- whitespace do
-    def trim_leading(unquote(codepoint) <> rest), do: trim_leading(rest)
+  def trim_leading(string) when is_binary(string) do
+    do_trim_leading(string)
   end
-  def trim_leading(""), do: ""
-  def trim_leading(string) when is_binary(string), do: string
+
+  for codepoint <- whitespace do
+    def do_trim_leading(<<unquote(codepoint), rest::bits>>), do: do_trim_leading(rest)
+  end
+  def do_trim_leading(<<rest::bits>>), do: rest
 
   # trim_trailing
 
