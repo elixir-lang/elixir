@@ -419,7 +419,14 @@ defmodule Time do
   end
 
   @doc """
-  Returns the difference between two `Time` structs.
+  Returns the difference between two times, considering only the hour, minute
+  second and microsecond.
+
+  As with the `compare/2` function both `Time` structs and other structures
+  containing time can be used. If for instance a `NaiveDateTime` or `DateTime`
+  is passed, only the hour, month, second, and microsecond is considered. Any
+  additional information about a date or time zone is ignored when calculating
+  the difference.
 
   The answer can be returned in any `unit` available from
   `t:System.time_unit/0`. If the first unit is smaller than
@@ -432,14 +439,24 @@ defmodule Time do
 
       iex> Time.diff(~T[00:29:12], ~T[00:29:10])
       2
+
+      # When passing a `NaiveDateTime` the date part is ignored.
+      iex> Time.diff(~N[2017-01-01 00:29:12], ~T[00:29:10])
+      2
+
+      # Two `NaiveDateTime` structs could have big differences in the date
+      # but only the time part is considered.
+      iex> Time.diff(~N[2017-01-01 00:29:12], (~N[1900-02-03 00:29:10]))
+      2
+
       iex> Time.diff(~T[00:29:12], ~T[00:29:10], :microsecond)
       2_000_000
       iex> Time.diff(~T[00:29:10], ~T[00:29:12], :microsecond)
       -2_000_000
 
   """
-  @spec diff(t, t, System.time_unit) :: integer
-  def diff(%Time{} = time1, %Time{} = time2, unit \\ :second) do
+  @spec diff(Calendar.time, Calendar.time, System.time_unit) :: integer
+  def diff(time1, time2, unit \\ :second) do
     fraction1 = to_day_fraction(time1)
     fraction2 = to_day_fraction(time2)
     Calendar.ISO.iso_days_to_unit({0, fraction1}, unit) -
