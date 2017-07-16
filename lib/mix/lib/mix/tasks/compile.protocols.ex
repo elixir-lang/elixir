@@ -204,7 +204,7 @@ defmodule Mix.Tasks.Compile.Protocols do
 
     protocols =
       for {_, {:impl, protocol}, _beam} <- removed_metadata,
-          !Map.has_key?(removed_protocols, protocol),
+          not Map.has_key?(removed_protocols, protocol),
           do: {protocol, true},
           into: protocols
 
