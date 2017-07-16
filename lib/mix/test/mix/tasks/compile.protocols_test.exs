@@ -42,6 +42,41 @@ defmodule Mix.Tasks.Compile.ProtocolsTest do
     end
   end
 
+  test "compiles after converting a protocol into a standard module", context do
+    Mix.Project.push MixTest.Case.Sample
+
+    in_tmp context.test, fn ->
+      File.mkdir_p!("lib")
+      assert Mix.Task.run("compile")
+
+      # Define a local protocol
+      File.write!("lib/protocol.ex", """
+      defprotocol Compile.Protocol do
+        def foo(a)
+      end
+
+      defimpl Compile.Protocol, for: Integer do
+        def foo(a), do: a
+      end
+      """)
+      assert compile_elixir_and_protocols() == :ok
+      mark_as_old!("_build/dev/lib/sample/consolidated/Elixir.Compile.Protocol.beam")
+      File.rm!("lib/protocol.ex")
+
+      # Define a standard module
+      File.write!("lib/protocol.ex", """
+      defmodule Compile.Protocol do
+      end
+      """)
+      assert compile_elixir_and_protocols() == :noop
+
+      # Delete a local protocol
+      File.rm!("lib/protocol.ex")
+      assert compile_elixir_and_protocols() == :noop
+      refute File.regular?("_build/dev/lib/sample/consolidated/Elixir.Compile.Protocol.beam")
+    end
+  end
+
   test "compiles and consolidates deps protocols", context do
     Mix.Project.push MixTest.Case.Sample
 
