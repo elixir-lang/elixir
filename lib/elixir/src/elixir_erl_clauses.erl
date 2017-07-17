@@ -16,10 +16,11 @@ get_clauses(Key, Keyword, As) ->
 
 %% Translate matches
 
-match(Fun, Args, #elixir_erl{context=Context, backup_vars=BackupVars, vars=Vars} = S) when Context /= match ->
+match(Fun, Args, #elixir_erl{context=Context, backup_vars=BackupVars, vars=Vars} = S) when Context =/= match ->
   {Result, NewS} = match(Fun, Args, S#elixir_erl{context=match, backup_vars=Vars}),
   {Result, NewS#elixir_erl{context=Context, backup_vars=BackupVars}};
-match(Fun, Args, S) -> Fun(Args, S).
+match(Fun, Args, S) ->
+  Fun(Args, S).
 
 %% Translate clauses with args, guards and expressions
 

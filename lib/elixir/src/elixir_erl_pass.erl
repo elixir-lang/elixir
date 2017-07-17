@@ -12,8 +12,27 @@ translate({'=', Meta, [{'_', _, Atom}, Right]}, S) when is_atom(Atom) ->
 
 translate({'=', Meta, [Left, Right]}, S) ->
   {TRight, SR} = translate(Right, S),
-  {TLeft, SL} = elixir_erl_clauses:match(fun translate/2, Left, SR),
-  {{match, ?ann(Meta), TLeft, TRight}, SL};
+  case elixir_erl_clauses:match(fun translate/2, Left, SR) of
+    {TLeft, #elixir_erl{extra_guards=ExtraGuards, context=Context} = SL0}
+        when ExtraGuards =/= [], Context =/= match ->
+      SL1 = SL0#elixir_erl{extra_guards=[]},
+      Match = {match, ?ann(Meta), TLeft, TRight},
+      Generated = ?generated(Meta),
+      {ResultVar, SL2} = elixir_erl_clauses:match(fun translate/2, {result, Generated, ?var_context}, SL1),
+      Ann = ?ann(Generated),
+      ResultMatch = {match, Ann, ResultVar, Match},
+      True = {atom, Ann, true},
+      Reason = {tuple, Ann, [{atom, Ann, badmatch}, ResultVar]},
+      RaiseExpr = elixir_erl:remote(Ann, erlang, error, [Reason]),
+      GuardsExp = {'if', Ann, [
+        {clause, Ann, [], [ExtraGuards], [True]},
+        {clause, Ann, [], [[True]], [RaiseExpr]}
+      ]},
+      {{block, ?ann(Meta), [ResultMatch, GuardsExp]}, SL2};
+
+    {TLeft, SL} ->
+      {{match, ?ann(Meta), TLeft, TRight}, SL}
+  end;
 
 %% Containers
 
@@ -538,7 +557,7 @@ translate_remote('Elixir.String.Chars', to_string, Meta, [Arg], S) ->
       {TArg, TS} = translate(Arg, S),
       {VarName, _, VS} = elixir_erl_var:build(rewrite, TS),
 
-      Generated = erl_anno:set_generated(true, ?ann(Meta)),
+      Generated = ?ann(?generated(Meta)),
       Var = {var, Generated, VarName},
       Guard = elixir_erl:remote(Generated, erlang, is_binary, [Var]),
       Slow = elixir_erl:remote(Generated, 'Elixir.String.Chars', to_string, [Var]),

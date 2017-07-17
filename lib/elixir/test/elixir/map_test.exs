@@ -174,10 +174,14 @@ defmodule MapTest do
   end
 
   test "structs with variable name" do
-    %struct{name: "john"} = %ExternalUser{name: "john", age: 27}
-    assert struct == ExternalUser
+    %module{name: "john"} = %ExternalUser{name: "john", age: 27}
+    assert module == ExternalUser
     user = %ExternalUser{name: "john", age: 27}
-    %^struct{name: "john"} = user
+    %^module{name: "john"} = user
+
+    case user do
+      %_{} = %{age: age} -> age
+    end
 
     invalid_struct = %{__struct__: foo()}
     assert_raise CaseClauseError, fn ->
@@ -205,6 +209,19 @@ defmodule MapTest do
 
     assert_raise FunctionClauseError, fn ->
       destruct2(invalid_struct)
+    end
+
+    assert_raise MatchError, fn ->
+      %module{} = invalid_struct
+    end
+
+    assert_raise MatchError, fn ->
+      %_{} = invalid_struct
+    end
+
+    assert_raise MatchError, fn ->
+      foo = foo()
+      %^foo{} = invalid_struct
     end
   end
 
