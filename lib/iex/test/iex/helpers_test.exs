@@ -125,6 +125,15 @@ defmodule IEx.HelpersTest do
   describe "open" do
     @iex_helpers Path.expand("../../lib/iex/helpers.ex", __DIR__)
     @elixir_erl Path.expand("../../../elixir/src/elixir.erl", __DIR__)
+    @editor System.get_env("ELIXIR_EDITOR")
+
+    test "opens __FILE__ and __LINE__" do
+      System.put_env("ELIXIR_EDITOR", "echo __LINE__:__FILE__")
+      assert capture_iex("open({#{inspect __ENV__.file}, 3})") |> maybe_trim_quotes() ==
+             "3:#{__ENV__.file}"
+    after
+      System.put_env("ELIXIR_EDITOR", @editor)
+    end
 
     test "opens Elixir module" do
       assert capture_iex("open(IEx.Helpers)") |> maybe_trim_quotes() =~
@@ -208,11 +217,6 @@ defmodule IEx.HelpersTest do
     test "errors when given {file, line} is not available" do
       assert capture_iex("open({~s[foo], 3})") ==
              "Could not open: \"foo\". File is not available."
-    end
-
-    test "opens given path" do
-      assert capture_iex("open(#{inspect __ENV__.file})") |> maybe_trim_quotes() ==
-             __ENV__.file
     end
 
     defp maybe_trim_quotes(string) do
