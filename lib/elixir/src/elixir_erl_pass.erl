@@ -428,11 +428,10 @@ translate_map(Meta, [{'|', _Meta, [Update, Assocs]}], S) ->
 translate_map(Meta, Assocs, S) ->
   translate_map(Meta, Assocs, none, S).
 
-translate_struct_var_name(Meta, Name, Args, S) ->
-  {{map, _, TArgs} = Result, TS} = translate_struct(Meta, Name, Args, S),
-  {var, Ann, _} = Var = find_struct_var(TArgs),
-  Guard = elixir_erl:remote(Ann, erlang, is_atom, [Var]),
-  {Result, TS#elixir_erl{extra_guards=[Guard | TS#elixir_erl.extra_guards]}}.
+translate_struct_var_name(Meta, Name, Args, S0) ->
+  {{map, MapAnn, TArgs0}, S1} = translate_struct(Meta, Name, Args, S0),
+  {TArgs1, S2} = generate_struct_name_guard(TArgs0, [], S1),
+  {{map, MapAnn, TArgs1}, S2}.
 
 translate_struct(Meta, Name, {'%{}', _, [{'|', _, [Update, Assocs]}]}, S) ->
   Ann = ?ann(Meta),
@@ -459,8 +458,8 @@ translate_map(Meta, Assocs, TUpdate, #elixir_erl{extra=Extra} = S) ->
   {Op, KeyFun, ValFun} = translate_key_val_op(TUpdate, S),
   Ann = ?ann(Meta),
 
-  {TArgs, SA} = lists:mapfoldl(fun({Key, Value}, Acc) ->
-    {TKey, Acc1}   = KeyFun(Key, Acc),
+  {TArgs, SA} = lists:mapfoldl(fun({Key, Value}, Acc0) ->
+    {TKey, Acc1} = KeyFun(Key, Acc0),
     {TValue, Acc2} = ValFun(Value, Acc1#elixir_erl{extra=Extra}),
     {{Op, ?ann(Meta), TKey, TValue}, Acc2}
   end, S, Assocs),
@@ -603,7 +602,12 @@ is_always_string('Elixir.String.Chars', to_string, _) -> true;
 is_always_string('Elixir.Path', join, _) -> true;
 is_always_string(_Module, _Function, _Args) -> false.
 
-find_struct_var([{map_field_exact, _, {atom, _, '__struct__'}, Var}]) ->
-  Var;
-find_struct_var([_ | Rest]) ->
-  find_struct_var(Rest).
+generate_struct_name_guard([{map_field_exact, Ann, {atom, _, '__struct__'} = Key, Var} | Rest], Acc, S0) ->
+  {ModuleVar, S1} = elixir_erl_clauses:match(fun translate/2, {module, ?generated([]), ?var_context}, S0),
+  {var, VarAnn, _} = ModuleVar,
+  Match = {match, erl_anno:set_generated(true, Ann), ModuleVar, Var},
+  Guard = elixir_erl:remote(VarAnn, erlang, is_atom, [ModuleVar]),
+  S2 = S1#elixir_erl{extra_guards=[Guard | S1#elixir_erl.extra_guards]},
+  {lists:reverse(Acc, [{map_field_exact, Ann, Key, Match} | Rest]), S2};
+generate_struct_name_guard([Field | Rest], Acc, S) ->
+  generate_struct_name_guard(Rest, [Field | Acc], S).

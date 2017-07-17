@@ -180,13 +180,13 @@ defmodule MapTest do
     %^module{name: "john"} = user
 
     case user do
-      %_{} = %{age: age} -> age
+      %module{} = %{age: 27} -> module
     end
 
     invalid_struct = %{__struct__: foo()}
     assert_raise CaseClauseError, fn ->
       case invalid_struct do
-        %module{} -> :ok
+        %module{} -> module
       end
     end
 
@@ -213,6 +213,7 @@ defmodule MapTest do
 
     assert_raise MatchError, fn ->
       %module{} = invalid_struct
+      _ = module
     end
 
     assert_raise MatchError, fn ->
