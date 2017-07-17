@@ -244,6 +244,9 @@ defmodule IEx.Helpers do
   `ELIXIR_EDITOR` can be set "echo" if you prefer to display the
   location rather than opening it.
 
+  Keep in mind the location may not exist when opening
+  precompiled source code, such as Elixir itself.
+
   ## Examples
 
       iex> open MyApp
