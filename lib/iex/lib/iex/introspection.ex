@@ -84,22 +84,25 @@ defmodule IEx.Introspection do
   end
 
   def open({file, line}) when is_binary(file) and is_integer(line) do
-    if File.regular?(file) do
-      open("#{file}:#{line}")
-    else
-      puts_error("Could not open: #{inspect file}. File is not available.")
+    cond do
+      not File.regular?(file) ->
+        puts_error("Could not open: #{inspect file}. File is not available.")
+      editor = System.get_env("ELIXIR_EDITOR") || System.get_env("EDITOR") ->
+        command =
+          if editor =~ "__FILE__" or editor =~ "__LINE__" do
+            editor
+            |> String.replace("__FILE__", inspect(file))
+            |> String.replace("__LINE__", Integer.to_string(line))
+          else
+            "#{editor} #{inspect file}:#{line}"
+          end
+        IO.write IEx.color(:eval_info, :os.cmd(String.to_charlist(command)))
+      true ->
+        puts_error("Could not open: #{inspect file}. " <>
+                   "Please set the ELIXIR_EDITOR or EDITOR environment variables with the " <>
+                   "command line invocation of your favorite EDITOR.")
     end
-    dont_display_result()
-  end
 
-  def open(path) when is_binary(path) do
-    if editor = System.get_env("ELIXIR_EDITOR") || System.get_env("EDITOR") do
-      IO.write IEx.color(:eval_info, :os.cmd('#{editor} #{inspect path}'))
-    else
-      puts_error("Could not open: #{inspect path}. " <>
-                 "Please set the ELIXIR_EDITOR or EDITOR environment variables with the " <>
-                 "command line invocation of your favorite EDITOR.")
-    end
     dont_display_result()
   end
 
