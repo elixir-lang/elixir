@@ -242,7 +242,7 @@ access_expr -> open_paren ';' stab ';' close_paren : build_stab(reverse('$3')).
 access_expr -> open_paren ';' stab close_paren : build_stab(reverse('$3')).
 access_expr -> open_paren ';' close_paren : build_stab([]).
 access_expr -> empty_paren : warn_empty_paren('$1'), nil.
-access_expr -> number : handle_literal(?exprs('$1'), '$1').
+access_expr -> number : handle_number_literal(?exprs('$1'), '$1').
 access_expr -> char : handle_literal(?exprs('$1'), '$1').
 access_expr -> list : element(1, '$1').
 access_expr -> map : '$1'.
@@ -615,6 +615,13 @@ meta_from_location({Line, Column, EndColumn})
   when is_integer(Line), is_integer(Column), is_integer(EndColumn) -> [{line, Line}].
 
 %% Handle metadata in literals
+
+handle_number_literal(Literal, Token) ->
+  MetaWithBase = [{base, element(4, Token)} | meta_from_token(Token)],
+  case get(wrap_literals_in_blocks) of
+    true -> {'__block__', MetaWithBase, [Literal]};
+    false -> Literal
+  end.
 
 handle_literal(Literal, Token) ->
   case get(wrap_literals_in_blocks) of
