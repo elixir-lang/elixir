@@ -25,19 +25,21 @@ Nonterminals
   dot_identifier dot_op_identifier dot_do_identifier
   dot_paren_identifier dot_bracket_identifier
   do_block fn_eoe do_eoe end_eoe block_eoe block_item block_list
+  number
   .
 
 Terminals
   identifier kw_identifier kw_identifier_safe kw_identifier_unsafe bracket_identifier
   paren_identifier do_identifier block_identifier
   fn 'end' aliases
-  number char atom atom_safe atom_unsafe bin_string list_string sigil
+  char atom atom_safe atom_unsafe bin_string list_string sigil
   dot_call_op op_identifier
   comp_op at_op unary_op and_op or_op arrow_op match_op in_op in_match_op
   type_op dual_op add_op mult_op two_op three_op pipe_op stab_op when_op assoc_op
   capture_op rel_op
   'true' 'false' 'nil' 'do' eol ';' ',' '.'
   '(' ')' '[' ']' '{' '}' '<<' '>>' '%{}' '%'
+  binary octal decimal float hex
   .
 
 Rootsymbol grammar.
@@ -234,7 +236,7 @@ no_parens_zero_expr -> dot_identifier : build_identifier('$1', nil).
 %% marks identifiers followed by brackets as bracket_identifier.
 access_expr -> bracket_at_expr : '$1'.
 access_expr -> bracket_expr : '$1'.
-access_expr -> capture_op_eol number : build_unary_op('$1', ?exprs('$2')).
+access_expr -> capture_op_eol decimal : build_unary_op('$1', ?exprs('$2')).
 access_expr -> fn_eoe stab end_eoe : build_fn('$1', reverse('$2')).
 access_expr -> open_paren stab close_paren : build_stab(reverse('$2')).
 access_expr -> open_paren stab ';' close_paren : build_stab(reverse('$2')).
@@ -242,7 +244,7 @@ access_expr -> open_paren ';' stab ';' close_paren : build_stab(reverse('$3')).
 access_expr -> open_paren ';' stab close_paren : build_stab(reverse('$3')).
 access_expr -> open_paren ';' close_paren : build_stab([]).
 access_expr -> empty_paren : warn_empty_paren('$1'), nil.
-access_expr -> number : handle_literal(?exprs('$1'), '$1').
+access_expr -> number : '$1'.
 access_expr -> char : handle_literal(?exprs('$1'), '$1').
 access_expr -> list : element(1, '$1').
 access_expr -> map : '$1'.
@@ -255,6 +257,13 @@ access_expr -> list_string : build_list_string('$1').
 access_expr -> bit_string : '$1'.
 access_expr -> sigil : build_sigil('$1').
 access_expr -> max_expr : '$1'.
+
+%% Numbers in different bases
+number -> binary : handle_literal(?exprs('$1'), '$1', {base, 2}).
+number -> octal : handle_literal(?exprs('$1'), '$1', {base, 8}).
+number -> decimal : handle_literal(?exprs('$1'), '$1', {base, 10}).
+number -> float : handle_literal(?exprs('$1'), '$1').
+number -> hex : handle_literal(?exprs('$1'), '$1', {base, 16}).
 
 %% Aliases and properly formed calls. Used by map_expr.
 max_expr -> atom : handle_literal(?exprs('$1'), '$1').
@@ -617,12 +626,14 @@ meta_from_location({Line, Column, EndColumn})
 %% Handle metadata in literals
 
 handle_literal(Literal, Token) ->
-  Meta = case Token of
-    {number, _, _, Base} -> [{base, Base} | meta_from_token(Token)];
-    _ -> meta_from_token(Token)
-  end,
   case get(wrap_literals_in_blocks) of
-    true -> {'__block__', Meta, [Literal]};
+    true -> {'__block__', meta_from_token(Token), [Literal]};
+    false -> Literal
+  end.
+
+handle_literal(Literal, Token, ExtraMeta) ->
+  case get(wrap_literals_in_blocks) of
+    true -> {'__block__', [ExtraMeta | meta_from_token(Token)], [Literal]};
     false -> Literal
   end.
 
