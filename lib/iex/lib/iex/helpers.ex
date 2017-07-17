@@ -222,20 +222,33 @@ defmodule IEx.Helpers do
   end
 
   @doc """
-  Opens the given module, module/function/arity or file.
+  Opens the given module, module/function/arity or `{file, line}`.
 
   This function uses the `ELIXIR_EDITOR` environment variable
-  and falls back to EDITOR if the former is not available.
+  and falls back to `EDITOR` if the former is not available.
 
-  Since this function prints the result returned by the
-  editor, `ELIXIR_EDITOR` can be set "echo" if you prefer
-  to display the location rather than opening it.
+  By default, it attempts to open the file and line using the
+  `file:line` notation. For example, if your editor is called
+  `subl`, it will open the file as:
+
+      subl path/to/file:line
+
+  Custom editors are supported by using the __FILE__ and __LINE__
+  notations. For example, vi/vim users can set `ELIXIR_EDITOR` to:
+
+      ELIXIR_EDITOR="vi +__LINE__ __FILE__"
+
+  and Elixir will properly interpolate values.
+
+  Since this function prints the result returned by the editor,
+  `ELIXIR_EDITOR` can be set "echo" if you prefer to display the
+  location rather than opening it.
 
   ## Examples
 
       iex> open MyApp
       iex> open MyApp.fun/2
-      iex> open "path/to/file"
+      iex> open {"path/to/file", 1}
 
   """
   defmacro open(term) do
