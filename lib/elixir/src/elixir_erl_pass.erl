@@ -43,9 +43,6 @@ translate({'{}', Meta, Args}, S) when is_list(Args) ->
 translate({'%{}', Meta, Args}, S) when is_list(Args) ->
   translate_map(Meta, Args, S);
 
-translate({'%', Meta, [{'_', VarMeta, Context}, Right]}, S) when is_atom(Context) ->
-  translate({'%', Meta, [{module, VarMeta, ?var_context}, Right]}, S);
-
 translate({'%', Meta, [{'^', _, [{Name, _, Context}]} = Left, Right]}, S) when is_atom(Name), is_atom(Context) ->
   translate_struct_var_name(Meta, Left, Right, S);
 
