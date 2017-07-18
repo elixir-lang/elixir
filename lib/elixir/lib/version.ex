@@ -106,6 +106,7 @@ defmodule Version do
                          build: build}
 
   defmodule Requirement do
+    @moduledoc false
     defstruct [:source, :matchspec, :compiled]
     @type t :: %__MODULE__{}
   end
