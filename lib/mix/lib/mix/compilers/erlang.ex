@@ -51,9 +51,9 @@ defmodule Mix.Compilers.Erlang do
     compile(manifest, files, src_ext, opts, callback)
   end
 
-  def compile(manifest, mappings, src_ext, dest_ext, force, callback) when is_boolean(force) do
-    IO.warn "Mix.Compilers.Erlang.compile/6 with a boolean as 5th argument is deprecated, " <>
-            "please pass [force: true]"
+  def compile(manifest, mappings, src_ext, dest_ext, force, callback) when is_boolean(force) or is_nil(force) do
+    IO.warn "Mix.Compilers.Erlang.compile/6 with a boolean or nil as 5th argument is deprecated, " <>
+            "please pass [force: true] or [] instead"
     compile(manifest, mappings, src_ext, dest_ext, [force: force], callback)
   end
 
