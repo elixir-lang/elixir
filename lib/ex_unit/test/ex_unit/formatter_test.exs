@@ -173,7 +173,7 @@ defmodule ExUnit.FormatterTest do
         try do
           Access.fetch(:foo, :bar)
         rescue
-          e -> {Exception.normalize(:error, e, System.stacktrace()), System.stacktrace()}
+          exception -> {exception, System.stacktrace()}
         end
 
       failure = format_test_failure(test(), [{:error, error, [hd(stack)]}], 1, 80, &formatter/2)
