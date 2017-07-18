@@ -173,12 +173,66 @@ defmodule MapTest do
     end
   end
 
-  test "structs when matching" do
-    %struct{name: "john"} = %ExternalUser{name: "john", age: 27}
-    assert struct == ExternalUser
+  test "structs with variable name" do
+    %module{name: "john"} = %ExternalUser{name: "john", age: 27}
+    assert module == ExternalUser
     user = %ExternalUser{name: "john", age: 27}
-    %^struct{name: "john"} = user
+    %^module{name: "john"} = user
+
+    case user do
+      %module{} = %{age: 27} -> module
+    end
+
+    invalid_struct = %{__struct__: foo()}
+    assert_raise CaseClauseError, fn ->
+      case invalid_struct do
+        %module{} -> module
+      end
+    end
+
+    assert_raise CaseClauseError, fn ->
+      case invalid_struct do
+        %_{} -> :ok
+      end
+    end
+
+    assert_raise CaseClauseError, fn ->
+      foo = foo()
+      case invalid_struct do
+        %^foo{} -> :ok
+      end
+    end
+
+    assert_raise FunctionClauseError, fn ->
+      destruct1(invalid_struct)
+    end
+
+    assert_raise FunctionClauseError, fn ->
+      destruct2(invalid_struct)
+    end
+
+    assert_raise MatchError, fn ->
+      %module{} = invalid_struct
+      _ = module
+    end
+
+    assert_raise MatchError, fn ->
+      %_{} = invalid_struct
+    end
+
+    assert_raise MatchError, fn ->
+      foo = foo()
+      %^foo{} = invalid_struct
+    end
   end
+
+  def foo() do
+    "Foo"
+  end
+
+  defp destruct1(%module{}), do: module
+
+  defp destruct2(%_{}), do: :ok
 
   test "structs when using dynamic modules" do
     defmodule Module.concat(MapTest, DynamicUser) do
