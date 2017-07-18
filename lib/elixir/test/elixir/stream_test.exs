@@ -1069,6 +1069,28 @@ test "transform/4 closes on nested errors" do
     assert Stream.with_index(nats) |> Enum.take(3) == [{1, 0}, {2, 1}, {3, 2}]
   end
 
+  test "intersperse/2 is lazy" do
+    assert lazy?(Stream.intersperse([], 0))
+  end
+
+  test "intersperse/2 on an empty list" do
+    assert Enum.to_list(Stream.intersperse([], 0)) == []
+  end
+
+  test "intersperse/2 on a single element list" do
+    assert Enum.to_list(Stream.intersperse([1], 0)) == [1]
+  end
+
+  test "intersperse/2 on a multiple elements list" do
+    assert Enum.to_list(Stream.intersperse(1..3, 0)) == [1, 0, 2, 0, 3]
+  end
+
+  test "intersperse/2 is zippable" do
+    stream = Stream.intersperse(1..10, 0)
+    list = Enum.to_list(stream)
+    assert Enum.zip(list, list) == Enum.zip(stream, stream)
+  end
+
   defp lazy?(stream) do
     match?(%Stream{}, stream) or is_function(stream, 2)
   end
