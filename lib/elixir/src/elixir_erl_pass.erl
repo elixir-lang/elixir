@@ -12,8 +12,27 @@ translate({'=', Meta, [{'_', _, Atom}, Right]}, S) when is_atom(Atom) ->
 
 translate({'=', Meta, [Left, Right]}, S) ->
   {TRight, SR} = translate(Right, S),
-  {TLeft, SL} = elixir_erl_clauses:match(fun translate/2, Left, SR),
-  {{match, ?ann(Meta), TLeft, TRight}, SL};
+  case elixir_erl_clauses:match(fun translate/2, Left, SR) of
+    {TLeft, #elixir_erl{extra_guards=ExtraGuards, context=Context} = SL0}
+        when ExtraGuards =/= [], Context =/= match ->
+      SL1 = SL0#elixir_erl{extra_guards=[]},
+      Match = {match, ?ann(Meta), TLeft, TRight},
+      Generated = ?generated(Meta),
+      {ResultVar, SL2} = elixir_erl_clauses:match(fun translate/2, {result, Generated, ?var_context}, SL1),
+      Ann = ?ann(Generated),
+      ResultMatch = {match, Ann, ResultVar, Match},
+      True = {atom, Ann, true},
+      Reason = {tuple, Ann, [{atom, Ann, badmatch}, ResultVar]},
+      RaiseExpr = elixir_erl:remote(Ann, erlang, error, [Reason]),
+      GuardsExp = {'if', Ann, [
+        {clause, Ann, [], [ExtraGuards], [True]},
+        {clause, Ann, [], [[True]], [RaiseExpr]}
+      ]},
+      {{block, ?ann(Meta), [ResultMatch, GuardsExp]}, SL2};
+
+    {TLeft, SL} ->
+      {{match, ?ann(Meta), TLeft, TRight}, SL}
+  end;
 
 %% Containers
 
@@ -23,6 +42,15 @@ translate({'{}', Meta, Args}, S) when is_list(Args) ->
 
 translate({'%{}', Meta, Args}, S) when is_list(Args) ->
   translate_map(Meta, Args, S);
+
+translate({'%', Meta, [{'_', VarMeta, Context}, Right]}, S) when is_atom(Context) ->
+  translate({'%', Meta, [{module, VarMeta, ?var_context}, Right]}, S);
+
+translate({'%', Meta, [{'^', _, [{Name, _, Context}]} = Left, Right]}, S) when is_atom(Name), is_atom(Context) ->
+  translate_struct_var_name(Meta, Left, Right, S);
+
+translate({'%', Meta, [{Name, _, Context} = Left, Right]}, S) when is_atom(Name), is_atom(Context) ->
+  translate_struct_var_name(Meta, Left, Right, S);
 
 translate({'%', Meta, [Left, Right]}, S) ->
   translate_struct(Meta, Left, Right, S);
@@ -155,7 +183,7 @@ translate({'^', Meta, [{Name, VarMeta, Kind}]}, #elixir_erl{context=match, file=
   {ok, {Value, _Counter, Safe}} = maps:find(Tuple, S#elixir_erl.backup_vars),
   elixir_erl_var:warn_unsafe_var(VarMeta, File, Name, Safe),
 
-  PAnn = ?ann(Meta),
+  PAnn = ?ann(?generated(Meta)),
   PVar = {var, PAnn, Value},
 
   case S#elixir_erl.extra of
@@ -400,6 +428,11 @@ translate_map(Meta, [{'|', _Meta, [Update, Assocs]}], S) ->
 translate_map(Meta, Assocs, S) ->
   translate_map(Meta, Assocs, none, S).
 
+translate_struct_var_name(Meta, Name, Args, S0) ->
+  {{map, MapAnn, TArgs0}, S1} = translate_struct(Meta, Name, Args, S0),
+  {TArgs1, S2} = generate_struct_name_guard(TArgs0, [], S1),
+  {{map, MapAnn, TArgs1}, S2}.
+
 translate_struct(Meta, Name, {'%{}', _, [{'|', _, [Update, Assocs]}]}, S) ->
   Ann = ?ann(Meta),
   Generated = erl_anno:set_generated(true, Ann),
@@ -425,8 +458,8 @@ translate_map(Meta, Assocs, TUpdate, #elixir_erl{extra=Extra} = S) ->
   {Op, KeyFun, ValFun} = translate_key_val_op(TUpdate, S),
   Ann = ?ann(Meta),
 
-  {TArgs, SA} = lists:mapfoldl(fun({Key, Value}, Acc) ->
-    {TKey, Acc1}   = KeyFun(Key, Acc),
+  {TArgs, SA} = lists:mapfoldl(fun({Key, Value}, Acc0) ->
+    {TKey, Acc1} = KeyFun(Key, Acc0),
     {TValue, Acc2} = ValFun(Value, Acc1#elixir_erl{extra=Extra}),
     {{Op, ?ann(Meta), TKey, TValue}, Acc2}
   end, S, Assocs),
@@ -523,7 +556,7 @@ translate_remote('Elixir.String.Chars', to_string, Meta, [Arg], S) ->
       {TArg, TS} = translate(Arg, S),
       {VarName, _, VS} = elixir_erl_var:build(rewrite, TS),
 
-      Generated = erl_anno:set_generated(true, ?ann(Meta)),
+      Generated = ?ann(?generated(Meta)),
       Var = {var, Generated, VarName},
       Guard = elixir_erl:remote(Generated, erlang, is_binary, [Var]),
       Slow = elixir_erl:remote(Generated, 'Elixir.String.Chars', to_string, [Var]),
@@ -568,3 +601,13 @@ is_always_string('Elixir.Macro', to_string, _) -> true;
 is_always_string('Elixir.String.Chars', to_string, _) -> true;
 is_always_string('Elixir.Path', join, _) -> true;
 is_always_string(_Module, _Function, _Args) -> false.
+
+generate_struct_name_guard([{map_field_exact, Ann, {atom, _, '__struct__'} = Key, Var} | Rest], Acc, S0) ->
+  {ModuleVar, S1} = elixir_erl_clauses:match(fun translate/2, {module, ?generated([]), ?var_context}, S0),
+  {var, VarAnn, _} = ModuleVar,
+  Match = {match, erl_anno:set_generated(true, Ann), ModuleVar, Var},
+  Guard = elixir_erl:remote(VarAnn, erlang, is_atom, [ModuleVar]),
+  S2 = S1#elixir_erl{extra_guards=[Guard | S1#elixir_erl.extra_guards]},
+  {lists:reverse(Acc, [{map_field_exact, Ann, Key, Match} | Rest]), S2};
+generate_struct_name_guard([Field | Rest], Acc, S) ->
+  generate_struct_name_guard(Rest, [Field | Acc], S).
