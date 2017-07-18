@@ -223,12 +223,12 @@ defmodule Inspect.Algebra do
   @spec to_doc(any, Inspect.Opts.t) :: t
   def to_doc(term, opts)
 
-  def to_doc(%{__struct__: struct} = map, %Inspect.Opts{} = opts) when is_atom(struct) do
+  def to_doc(%_{} = struct, %Inspect.Opts{} = opts) do
     if opts.structs do
       try do
-        Inspect.inspect(map, opts)
+        Inspect.inspect(struct, opts)
       rescue
-        e ->
+        caught_exception ->
           stacktrace = System.stacktrace
 
           # Because we try to raise a nice error message in case
@@ -238,18 +238,18 @@ defmodule Inspect.Algebra do
           # we won't try to render any failed instruct when building
           # the error message.
           if Process.get(:inspect_trap) do
-            Inspect.Map.inspect(map, opts)
+            Inspect.Map.inspect(struct, opts)
           else
             try do
               Process.put(:inspect_trap, true)
 
-              res = Inspect.Map.inspect(map, %{opts | syntax_colors: []})
+              res = Inspect.Map.inspect(struct, %{opts | syntax_colors: []})
               res = IO.iodata_to_binary(format(res, :infinity))
 
-              exception = Inspect.Error.exception(
-                message: "got #{inspect e.__struct__} with message " <>
-                         "#{inspect Exception.message(e)} while inspecting #{res}"
-              )
+              message =
+                "got #{inspect caught_exception.__struct__} with message " <>
+                "#{inspect Exception.message(caught_exception)} while inspecting #{res}"
+              exception = Inspect.Error.exception(message: message)
 
               if opts.safe do
                 Inspect.inspect(exception, opts)
@@ -262,7 +262,7 @@ defmodule Inspect.Algebra do
           end
       end
     else
-      Inspect.Map.inspect(map, opts)
+      Inspect.Map.inspect(struct, opts)
     end
   end
 

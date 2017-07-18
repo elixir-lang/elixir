@@ -233,17 +233,17 @@ defmodule Access do
   """
   @callback pop(data, key) :: {value, data} when data: container | any_container
 
-  defmacrop raise_undefined_behaviour(e, struct, top) do
+  defmacrop raise_undefined_behaviour(exception, module, top) do
     quote do
       stacktrace = System.stacktrace
-      e =
+      exception =
         case stacktrace do
           [unquote(top) | _] ->
-            %{unquote(e) | reason: "#{inspect unquote(struct)} does not implement the Access behaviour"}
+            %{unquote(exception) | reason: "#{inspect unquote(module)} does not implement the Access behaviour"}
           _ ->
-            unquote(e)
+            unquote(exception)
         end
-      reraise e, stacktrace
+      reraise exception, stacktrace
     end
   end
 
@@ -258,11 +258,11 @@ defmodule Access do
   @spec fetch(nil_container, any) :: :error
   def fetch(container, key)
 
-  def fetch(%struct{} = container, key) do
-    struct.fetch(container, key)
+  def fetch(%module{} = container, key) do
+    module.fetch(container, key)
   rescue
-    e in UndefinedFunctionError ->
-      raise_undefined_behaviour e, struct, {^struct, :fetch, [^container, ^key], _}
+    exception in UndefinedFunctionError ->
+      raise_undefined_behaviour exception, module, {^module, :fetch, [^container, ^key], _}
   end
 
   def fetch(map, key) when is_map(map) do
@@ -299,12 +299,12 @@ defmodule Access do
   @spec get(nil_container, any, default) :: default when default: var
   def get(container, key, default \\ nil)
 
-  def get(%{__struct__: struct} = container, key, default) do
+  def get(%module{} = container, key, default) do
     try do
-      struct.fetch(container, key)
+      module.fetch(container, key)
     rescue
-      e in UndefinedFunctionError ->
-        raise_undefined_behaviour e, struct, {^struct, :fetch, [^container, ^key], _}
+      exception in UndefinedFunctionError ->
+        raise_undefined_behaviour exception, module, {^module, :fetch, [^container, ^key], _}
     else
       {:ok, value} -> value
       :error -> default
@@ -352,11 +352,11 @@ defmodule Access do
         {get_value, data} when get_value: var, data: container
   def get_and_update(container, key, fun)
 
-  def get_and_update(%{__struct__: struct} = container, key, fun) do
-    struct.get_and_update(container, key, fun)
+  def get_and_update(%module{} = container, key, fun) do
+    module.get_and_update(container, key, fun)
   rescue
-    e in UndefinedFunctionError ->
-      raise_undefined_behaviour e, struct, {^struct, :get_and_update, [^container, ^key, ^fun], _}
+    exception in UndefinedFunctionError ->
+      raise_undefined_behaviour exception, module, {^module, :get_and_update, [^container, ^key, ^fun], _}
   end
 
   def get_and_update(map, key, fun) when is_map(map) do
@@ -399,11 +399,11 @@ defmodule Access do
 
   """
   @spec pop(data, key) :: {value, data} when data: container
-  def pop(%{__struct__: struct} = container, key) do
-    struct.pop(container, key)
+  def pop(%module{} = container, key) do
+    module.pop(container, key)
   rescue
-    e in UndefinedFunctionError ->
-      raise_undefined_behaviour e, struct, {^struct, :pop, [^container, ^key], _}
+    exception in UndefinedFunctionError ->
+      raise_undefined_behaviour exception, module, {^module, :pop, [^container, ^key], _}
   end
 
   def pop(map, key) when is_map(map) do

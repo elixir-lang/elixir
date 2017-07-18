@@ -79,7 +79,7 @@ defmodule Kernel.CLI.ErrorTest do
       assert error =~ "** (FunctionClauseError) no function clause matching in Access.fetch/2"
       assert error =~ "The following arguments were given to Access.fetch/2"
       assert error =~ ":foo"
-      assert error =~ "def fetch(-%struct{} = container-, +key+)"
+      assert error =~ "def fetch(-%module{} = container-, +key+)"
       assert error =~ ~r"\(elixir\) lib/access\.ex:\d+: Access\.fetch/2"
     end
   end

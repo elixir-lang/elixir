@@ -556,19 +556,19 @@ defimpl Inspect, for: Reference do
 end
 
 defimpl Inspect, for: Any do
-  def inspect(%{__struct__: struct} = map, opts) do
+  def inspect(%module{} = struct, opts) do
     try do
-      struct.__struct__
+      module.__struct__
     rescue
-      _ -> Inspect.Map.inspect(map, opts)
+      _ -> Inspect.Map.inspect(struct, opts)
     else
       dunder ->
-        if :maps.keys(dunder) == :maps.keys(map) do
-          pruned = :maps.remove(:__exception__, :maps.remove(:__struct__, map))
+        if :maps.keys(dunder) == :maps.keys(struct) do
+          pruned = :maps.remove(:__exception__, :maps.remove(:__struct__, struct))
           colorless_opts = %{opts | syntax_colors: []}
-          Inspect.Map.inspect(pruned, Inspect.Atom.inspect(struct, colorless_opts), opts)
+          Inspect.Map.inspect(pruned, Inspect.Atom.inspect(module, colorless_opts), opts)
         else
-          Inspect.Map.inspect(map, opts)
+          Inspect.Map.inspect(struct, opts)
         end
     end
   end
