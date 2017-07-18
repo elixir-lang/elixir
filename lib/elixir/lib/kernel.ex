@@ -7,7 +7,7 @@ import :elixir_bootstrap
 
 defmodule Kernel do
   @moduledoc """
-  This module is the entry point of the Elixir programming languages.
+  This module is the entry point of the Elixir programming language.
 
   It provides the default functions and macros Elixir imports into your
   environment. Those can be directly invoked in your code without the
@@ -17,8 +17,8 @@ defmodule Kernel do
       true
 
   These functions and macros can be skipped or cherry-picked via the
-  `import/2` macro. For instance, if you want to tell Elixir not to
-  import the `if/2` macro, you can do:
+  `Kernel.SpecialForms.import/2` macro. For instance, if you want to tell
+  Elixir not to import the `if/2` macro, you can do:
 
       import Kernel, except: [if: 2]
 
@@ -29,8 +29,8 @@ defmodule Kernel do
   and data-type functionality. For example, new processes can be
   created with `spawn/1`, modules can be defined with `defmodule/2`,
   short-circuit operators are found in `&&/2` and `||/2`, numbers
-  can be added with `+/2` and more. This module also contains all
-  built-in guards, which is a set of functions that augment pattern
+  can be added with `+/2`, and more. This module also contains all
+  built-in guards, which are a set of functions that augment pattern
   matching with complex checks. More information about guards can be
   found in the [Guards page](guards.html).
 
@@ -39,41 +39,44 @@ defmodule Kernel do
   `Kernel` provides the basic capabilities the Elixir standard library
   is built on top of. It is recommended to explore the standard library
   for advanced functionality. Here are the main groups of modules in the
-  standard library (it is not a complete reference).
+  standard library (this list is not a complete reference).
 
   ### Built-in types
 
-  Those are the modules that handle Elixir built-in types.
+  The following modules handle Elixir built-in data types:
 
-    * `Atom` - a literal constant with a name. `true`, `false` and `nil` are atoms
+    * `Atom` - literal constants with a name (`true`, `false`, and `nil` are atoms)
     * `Float` - numbers with floating point precision
     * `Integer` - whole numbers (not fractions)
-    * `List` - collection of a variable amount of elements (linked lists)
-    * `Map` - collection of key-value pairs
+    * `List` - collections of a variable amount of elements (linked lists)
+    * `Map` - collections of key-value pairs
     * `Process` - light-weight threads of execution
     * `Port` - mechanisms to interact with the external world
-    * `Tuple` - collection of fixed amount of elements
+    * `Tuple` - collections of fixed amount of elements
 
   There are three data-types without an accompanying module:
 
-    * Bitstrings - a sequence of bits, created with `<<>>/1`. When the number of
-      bits is divisible by 8, they are called binaries and be manipulate with the
-      Erlang [:binary module](http://erlang.org/doc/man/binary.html)
-    * Function - a reference to code chunk, created with `fn -> end`
+    * Bitstrings - a sequence of bits, created with `Kernel.SpecialForms.<<>>/1`.
+      When the number of bits is divisible by 8, they are called binaries and can
+      be manipulated with the Erlang
+      [`:binary` module](http://erlang.org/doc/man/binary.html)
+    * Function - a reference to code chunk, created with the `Kernel.SpecialForms.fn/2`
+      special form
     * Reference - a unique value in the runtime system, created with `make_ref/0`
 
   ### Data-types
 
-  Elixir also provides other data-types that are built on the types above.
+  Elixir also provides other data-types that are built on top of the types
+  listed above.
 
-    * `Date` - year-month-day structs in a given calendar
-    * `Time` - hour:minute:second structs in a given calendar
+    * `Date` - `year-month-day` structs in a given calendar
+    * `Time` - `hour:minute:second` structs in a given calendar
     * `DateTime` - date and time with timezone in a given calendar
-    * `Exception` - data raises from errors and unexpected scenarios
-    * `MapSet` - unordered collection of unique elements
+    * `Exception` - data raised from errors and unexpected scenarios
+    * `MapSet` - unordered collections of unique elements
     * `NaiveDateTime` - date and time without timezone in a given calendar
-    * `Keyword` - lists of tuples, often representing optional values
-    * `Range` - inclusive range between two ingers
+    * `Keyword` - lists of two-element tuples, often representing optional values
+    * `Range` - inclusive ranges between two ingers
     * `Regex` - regular expressions
     * `String` - UTF-8 encoded binaries representing characters
     * `URI` - representation of URIs that identify resources
@@ -83,17 +86,18 @@ defmodule Kernel do
 
   Modules that interface with the underlying system:
 
-    * `IO` - handle input and output
+    * `IO` - handles input and output
     * `File` - interacts with the underlying file system
-    * `Path` - manipulate file system paths
+    * `Path` - manipulates file system paths
     * `System` - reads and writes system information
 
   ### Protocols
 
   Protocols add polymorphic dispatch to Elixir. They are contracts
-  implementable by data-types.
+  implementable by data-types. See `defprotocol/2` for more information on
+  protocols. Elixir provides the following protocols in the standard library:
 
-    * `Collectable` - a protocol for collecting data into data types
+    * `Collectable` - collects data into a data type
     * `Enumerable` - handles collections in Elixir. The `Enum` module
       provides eager functions for working with collections, the `Stream`
       module provides lazy functions
@@ -107,7 +111,7 @@ defmodule Kernel do
   ### Process-based functionality
 
   The following modules build on top of processes to provide concurrency,
-  fault-tolerance and more.
+  fault-tolerance, and more.
 
     * `Agent` - a process that encapsulates mutable state
     * `GenServer` - a generic client-server API
