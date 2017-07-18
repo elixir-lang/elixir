@@ -1087,7 +1087,7 @@ test "transform/4 closes on nested errors" do
 
   test "intersperse/2 is zippable" do
     stream = Stream.intersperse(1..10, 0)
-    list   = Enum.to_list(stream)
+    list = Enum.to_list(stream)
     assert Enum.zip(list, list) == Enum.zip(stream, stream)
   end
 
