@@ -214,6 +214,7 @@ This release brings further improvements to Calendar types. It adds arithmetic a
   * [File] Introduce `:trim_bom` option for `File.stream!/2`
   * [Inspect] Add `:printable_limit` to control the limit of printable structures
   * [Integer] Add `Integer.gcd/2`
+  * [Kernel] Add `left not in right` to check that the left side is not in the enumerable on the right
   * [Kernel] Use the new `debug_info` chunk in OTP 20. This provides a mechanism for tools to retrieve the Elixir AST from beam files
   * [Kernel] `defoverridable/1` accepts a module name as argument and marks all callbacks as overridable
   * [Kernel] Allow non-quoted Unicode atoms and variables according to Unicode Annex #31 (see Unicode Syntax document)
