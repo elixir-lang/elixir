@@ -1670,7 +1670,7 @@ defmodule Kernel do
               :erlang.raise :error, RuntimeError.exception(message), stacktrace
             atom when is_atom(atom) ->
               :erlang.raise :error, atom.exception([]), stacktrace
-            %{__struct__: struct, __exception__: true} = other when is_atom(struct) ->
+            %_{__exception__: true} = other ->
               :erlang.raise :error, other, stacktrace
             other ->
               message = "reraise/2 expects a module name, string or exception as the first argument, got: #{inspect other}"
@@ -1897,11 +1897,11 @@ defmodule Kernel do
     struct(struct.__struct__(), fields, fun)
   end
 
-  defp struct(%{__struct__: _} = struct, [], _fun) do
+  defp struct(%_{} = struct, [], _fun) do
     struct
   end
 
-  defp struct(%{__struct__: _} = struct, fields, fun) do
+  defp struct(%_{} = struct, fields, fun) do
     Enum.reduce(fields, struct, fun)
   end
 

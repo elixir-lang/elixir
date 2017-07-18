@@ -328,9 +328,9 @@ defimpl IEx.Info, for: [Date, Time, NaiveDateTime] do
 end
 
 defimpl IEx.Info, for: Any do
-  def info(%{__struct__: mod}) do
-    ["Data type": inspect(mod),
+  def info(%module{}) do
+    ["Data type": inspect(module),
      "Description": "This is a struct. Structs are maps with a __struct__ key.",
-     "Reference modules": inspect(mod) <> ", Map"]
+     "Reference modules": inspect(module) <> ", Map"]
   end
 end
