@@ -130,8 +130,14 @@ Once a pull request is sent, the Elixir team will review your changes.
 We outline our process below to clarify the roles of everyone involved.
 
 All pull requests must be approved by two committers before being merged into
-the repository. In case any changes are necessary, the team will leave
-appropriate comments requesting changes to the code.
+the repository. If any changes are necessary, the team will leave appropriate
+comments requesting changes to the code. Unfortunately we cannot guarantee a
+pull request will be merged, even when modifications are requested, as the Elixir
+team will re-evaluate the contribution as it changes.
+
+Committers may also push style changes directly to your branch. If you would
+rather manage all changes yourself, you can disable "Allow edits from maintainers"
+feature when submitting your pull request.
 
 The Elixir team may optionally assign someone to review a pull request.
 In case someone is assigned, they must explicitly approve the code before
