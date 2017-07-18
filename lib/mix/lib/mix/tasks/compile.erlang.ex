@@ -146,6 +146,8 @@ defmodule Mix.Tasks.Compile.Erlang do
         end
       {:attribute, _, :behaviour, behaviour} ->
         %{erl | behaviours: [behaviour | erl.behaviours]}
+      {:attribute, _, :compile, value} when is_list(value) ->
+        %{erl | compile: value ++ erl.compile}
       {:attribute, _, :compile, value} ->
         %{erl | compile: [value | erl.compile]}
       _ ->
