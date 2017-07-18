@@ -1413,20 +1413,6 @@ defmodule Stream do
     )
   end
 
-  defp emit_entries_from_lazy(fun, [entry], head, state, tail) do
-    next_with_acc(fun, entry, head, state, tail)
-  end
-  defp emit_entries_from_lazy(fun, [entry | rest], head, state, tail) do
-    case next_with_acc(fun, entry, head, state, tail) do
-      {:cont, acc(head, state, tail)} ->
-        emit_entries_from_lazy(fun, rest, head, state, tail)
-      {:halt, _} = halt ->
-        halt
-      {:suspend, acc(head, state, tail)} ->
-        {:suspend, acc(head, {:suspended_with_pending_entries, rest, state}, tail)}
-    end
-  end
-
   ## Helpers
 
   @compile {:inline, lazy: 2, lazy: 3, lazy: 4}
