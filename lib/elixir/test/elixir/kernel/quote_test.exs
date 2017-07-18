@@ -195,14 +195,14 @@ end
 
 # DO NOT MOVE THIS LINE
 defmodule Kernel.QuoteTest.Errors do
-  defmacro defadd do
+  defmacro defraise do
     quote location: :keep do
-      def add(a, b), do: a + b
+      def will_raise(_a, _b), do: raise "oops"
     end
   end
 
   defmacro will_raise do
-    quote location: :keep, do: raise "omg"
+    quote location: :keep, do: raise "oops"
   end
 end
 
@@ -211,16 +211,16 @@ defmodule Kernel.QuoteTest.ErrorsTest do
   import Kernel.QuoteTest.Errors
 
   # Defines the add function
-  defadd()
+  defraise()
 
   test "inside function error" do
-    assert_raise ArithmeticError, fn ->
-      add(:a, :b)
+    assert_raise RuntimeError, fn ->
+      will_raise(:a, :b)
     end
 
     mod  = Kernel.QuoteTest.ErrorsTest
     file = __ENV__.file |> Path.relative_to_cwd |> String.to_charlist
-    assert [{^mod, :add, 2, [file: ^file, line: 200]} | _] = System.stacktrace
+    assert [{^mod, :will_raise, 2, [file: ^file, line: 200]} | _] = System.stacktrace
   end
 
   test "outside function error" do
