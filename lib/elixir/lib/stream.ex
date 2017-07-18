@@ -1403,14 +1403,10 @@ defmodule Stream do
   """
   @spec intersperse(Enumerable.t, any) :: Enumerable.t
   def intersperse(enumerable, intersperse_element) do
-    Stream.transform(
-      enumerable,
-      false,
-      fn
-        element, true -> {[intersperse_element, element], true}
-        element, false -> {[element], true}
-      end
-    )
+    Stream.transform(enumerable, false, fn
+      element, true -> {[intersperse_element, element], true}
+      element, false -> {[element], true}
+    end)
   end
 
   ## Helpers
