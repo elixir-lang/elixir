@@ -166,15 +166,15 @@ tokenize(("<<<<<<<" ++ _) = Original, Line, 1, _Scope, Tokens) ->
 
 tokenize([$0, $x, H | T], Line, Column, Scope, Tokens) when ?is_hex(H) ->
   {Rest, Number, Length} = tokenize_hex(T, [H], 1),
-  tokenize(Rest, Line, Column + 2 + Length, Scope, [{number, {Line, Column, Column + 2 + Length}, Number} | Tokens]);
+  tokenize(Rest, Line, Column + 2 + Length, Scope, [{hexadecimal, {Line, Column, Column + 2 + Length}, Number} | Tokens]);
 
 tokenize([$0, $b, H | T], Line, Column, Scope, Tokens) when ?is_bin(H) ->
   {Rest, Number, Length} = tokenize_bin(T, [H], 1),
-  tokenize(Rest, Line, Column + 2 + Length, Scope, [{number, {Line, Column, Column + 2 + Length}, Number} | Tokens]);
+  tokenize(Rest, Line, Column + 2 + Length, Scope, [{binary, {Line, Column, Column + 2 + Length}, Number} | Tokens]);
 
 tokenize([$0, $o, H | T], Line, Column, Scope, Tokens) when ?is_octal(H) ->
   {Rest, Number, Length} = tokenize_octal(T, [H], 1),
-  tokenize(Rest, Line, Column + 2 + Length, Scope, [{number, {Line, Column, Column + 2 + Length}, Number} | Tokens]);
+  tokenize(Rest, Line, Column + 2 + Length, Scope, [{octal, {Line, Column, Column + 2 + Length}, Number} | Tokens]);
 
 % Comments
 
@@ -420,8 +420,10 @@ tokenize([H | T], Line, Column, Scope, Tokens) when ?is_digit(H) ->
   case tokenize_number(T, [H], 1, false) of
     {error, Reason, Number} ->
       {error, {Line, Reason, Number}, T, Tokens};
+    {Rest, Number, Length} when is_integer(Number) ->
+      tokenize(Rest, Line, Column + Length, Scope, [{decimal, {Line, Column, Column + Length}, Number} | Tokens]);
     {Rest, Number, Length} ->
-      tokenize(Rest, Line, Column + Length, Scope, [{number, {Line, Column, Column + Length}, Number} | Tokens])
+      tokenize(Rest, Line, Column + Length, Scope, [{float, {Line, Column, Column + Length}, Number} | Tokens])
   end;
 
 % Spaces
@@ -858,7 +860,7 @@ tokenize_comment("\r\n" ++ _ = Rest, Acc, Length) ->
   {Rest, lists:reverse(Acc), Length};
 tokenize_comment("\n" ++ _ = Rest, Acc, Length) ->
   {Rest, lists:reverse(Acc), Length};
-tokenize_comment([H | Rest], Acc, Length) -> 
+tokenize_comment([H | Rest], Acc, Length) ->
   tokenize_comment(Rest, [H | Acc], Length + 1);
 tokenize_comment([], Acc, Length) ->
   {[], lists:reverse(Acc), Length}.
