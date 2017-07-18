@@ -245,7 +245,6 @@ access_expr -> open_paren ';' stab close_paren : build_stab(reverse('$3')).
 access_expr -> open_paren ';' close_paren : build_stab([]).
 access_expr -> empty_paren : warn_empty_paren('$1'), nil.
 access_expr -> number : '$1'.
-access_expr -> char : handle_literal(?exprs('$1'), '$1').
 access_expr -> list : element(1, '$1').
 access_expr -> map : '$1'.
 access_expr -> tuple : '$1'.
@@ -258,12 +257,13 @@ access_expr -> bit_string : '$1'.
 access_expr -> sigil : build_sigil('$1').
 access_expr -> max_expr : '$1'.
 
-%% Numbers in different bases
-number -> binary : handle_literal(?exprs('$1'), '$1', {base, 2}).
-number -> octal : handle_literal(?exprs('$1'), '$1', {base, 8}).
-number -> decimal : handle_literal(?exprs('$1'), '$1', {base, 10}).
+%% Augment integer literals with representation format if wrap_literals_in_blocks option is true
+number -> char : handle_literal(?exprs('$1'), '$1', [{format, char}]).
+number -> binary : handle_literal(?exprs('$1'), '$1', [{format, binary}]).
+number -> octal : handle_literal(?exprs('$1'), '$1', [{format, octal}]).
+number -> decimal : handle_literal(?exprs('$1'), '$1', [{format, decimal}]).
+number -> hex : handle_literal(?exprs('$1'), '$1', [{format, hexadecimal}]).
 number -> float : handle_literal(?exprs('$1'), '$1').
-number -> hex : handle_literal(?exprs('$1'), '$1', {base, 16}).
 
 %% Aliases and properly formed calls. Used by map_expr.
 max_expr -> atom : handle_literal(?exprs('$1'), '$1').
@@ -626,14 +626,11 @@ meta_from_location({Line, Column, EndColumn})
 %% Handle metadata in literals
 
 handle_literal(Literal, Token) ->
-  case get(wrap_literals_in_blocks) of
-    true -> {'__block__', meta_from_token(Token), [Literal]};
-    false -> Literal
-  end.
+  handle_literal(Literal, Token, []).
 
 handle_literal(Literal, Token, ExtraMeta) ->
   case get(wrap_literals_in_blocks) of
-    true -> {'__block__', [ExtraMeta | meta_from_token(Token)], [Literal]};
+    true -> {'__block__', ExtraMeta ++ meta_from_token(Token), [Literal]};
     false -> Literal
   end.
 
