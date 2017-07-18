@@ -39,7 +39,7 @@ Terminals
   capture_op rel_op
   'true' 'false' 'nil' 'do' eol ';' ',' '.'
   '(' ')' '[' ']' '{' '}' '<<' '>>' '%{}' '%'
-  binary octal decimal float hex
+  binary octal decimal float hexadecimal
   .
 
 Rootsymbol grammar.
@@ -262,7 +262,7 @@ number -> char : handle_literal(?exprs('$1'), '$1', [{format, char}]).
 number -> binary : handle_literal(?exprs('$1'), '$1', [{format, binary}]).
 number -> octal : handle_literal(?exprs('$1'), '$1', [{format, octal}]).
 number -> decimal : handle_literal(?exprs('$1'), '$1', [{format, decimal}]).
-number -> hex : handle_literal(?exprs('$1'), '$1', [{format, hexadecimal}]).
+number -> hexadecimal : handle_literal(?exprs('$1'), '$1', [{format, hexadecimal}]).
 number -> float : handle_literal(?exprs('$1'), '$1').
 
 %% Aliases and properly formed calls. Used by map_expr.

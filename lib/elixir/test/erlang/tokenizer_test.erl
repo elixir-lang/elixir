@@ -33,8 +33,8 @@ scientific_test() ->
   {1, "invalid float number ", "1.0e309"} = tokenize_error("1.0e309").
 
 hex_bin_octal_test() ->
-  [{hex, {1, 1, 5}, 255}] = tokenize("0xFF"),
-  [{hex, {1, 1, 6}, 255}] = tokenize("0xF_F"),
+  [{hexadecimal, {1, 1, 5}, 255}] = tokenize("0xFF"),
+  [{hexadecimal, {1, 1, 6}, 255}] = tokenize("0xF_F"),
   [{octal, {1, 1, 5}, 63}] = tokenize("0o77"),
   [{octal, {1, 1, 6}, 63}] = tokenize("0o7_7"),
   [{binary, {1, 1, 5}, 3}] = tokenize("0b11"),
