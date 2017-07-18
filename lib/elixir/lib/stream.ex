@@ -1386,6 +1386,47 @@ defmodule Stream do
     end
   end
 
+  @doc """
+  Lazily intersperses `intersperse_element` between each element of the enumeration.
+
+  ## Examples
+
+      iex> Stream.intersperse([1, 2, 3], 0) |> Enum.to_list
+      [1, 0, 2, 0, 3]
+
+      iex> Stream.intersperse([1], 0) |> Enum.to_list
+      [1]
+
+      iex> Stream.intersperse([], 0) |> Enum.to_list
+      []
+
+  """
+  @spec intersperse(Enumerable.t, any) :: Enumerable.t
+  def intersperse(enumerable, intersperse_element) do
+    Stream.transform(
+      enumerable,
+      false,
+      fn
+        element, true -> {[intersperse_element, element], true}
+        element, false -> {[element], true}
+      end
+    )
+  end
+
+  defp emit_entries_from_lazy(fun, [entry], head, state, tail) do
+    next_with_acc(fun, entry, head, state, tail)
+  end
+  defp emit_entries_from_lazy(fun, [entry | rest], head, state, tail) do
+    case next_with_acc(fun, entry, head, state, tail) do
+      {:cont, acc(head, state, tail)} ->
+        emit_entries_from_lazy(fun, rest, head, state, tail)
+      {:halt, _} = halt ->
+        halt
+      {:suspend, acc(head, state, tail)} ->
+        {:suspend, acc(head, {:suspended_with_pending_entries, rest, state}, tail)}
+    end
+  end
+
   ## Helpers
 
   @compile {:inline, lazy: 2, lazy: 3, lazy: 4}
