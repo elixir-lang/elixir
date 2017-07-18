@@ -17,18 +17,18 @@ translate({'=', Meta, [Left, Right]}, S) ->
         when ExtraGuards =/= [], Context =/= match ->
       SL1 = SL0#elixir_erl{extra_guards=[]},
       Match = {match, ?ann(Meta), TLeft, TRight},
-      Generated = ?generated(Meta),
-      {ResultVar, SL2} = elixir_erl_clauses:match(fun translate/2, {result, Generated, ?var_context}, SL1),
-      Ann = ?ann(Generated),
-      ResultMatch = {match, Ann, ResultVar, Match},
-      True = {atom, Ann, true},
-      Reason = {tuple, Ann, [{atom, Ann, badmatch}, ResultVar]},
-      RaiseExpr = elixir_erl:remote(Ann, erlang, error, [Reason]),
-      GuardsExp = {'if', Ann, [
-        {clause, Ann, [], [ExtraGuards], [True]},
-        {clause, Ann, [], [[True]], [RaiseExpr]}
+      Generated = ?ann(?generated(Meta)),
+      {ResultVarName, _, SL2} = elixir_erl_var:build('_', SL1),
+      ResultVar = {var, Generated, ResultVarName},
+      ResultMatch = {match, Generated, ResultVar, Match},
+      True = {atom, Generated, true},
+      Reason = {tuple, Generated, [{atom, Generated, badmatch}, ResultVar]},
+      RaiseExpr = elixir_erl:remote(Generated, erlang, error, [Reason]),
+      GuardsExp = {'if', Generated, [
+        {clause, Generated, [], [ExtraGuards], [True]},
+        {clause, Generated, [], [[True]], [RaiseExpr]}
       ]},
-      {{block, ?ann(Meta), [ResultMatch, GuardsExp]}, SL2};
+      {{block, Generated, [ResultMatch, GuardsExp]}, SL2};
 
     {TLeft, SL} ->
       {{match, ?ann(Meta), TLeft, TRight}, SL}
@@ -603,10 +603,11 @@ is_always_string('Elixir.Path', join, _) -> true;
 is_always_string(_Module, _Function, _Args) -> false.
 
 generate_struct_name_guard([{map_field_exact, Ann, {atom, _, '__struct__'} = Key, Var} | Rest], Acc, S0) ->
-  {ModuleVar, S1} = elixir_erl_clauses:match(fun translate/2, {module, ?generated([]), ?var_context}, S0),
-  {var, VarAnn, _} = ModuleVar,
-  Match = {match, erl_anno:set_generated(true, Ann), ModuleVar, Var},
-  Guard = elixir_erl:remote(VarAnn, erlang, is_atom, [ModuleVar]),
+  {ModuleVarName, _, S1} = elixir_erl_var:build('_', S0),
+  Generated = erl_anno:set_generated(true, Ann),
+  ModuleVar = {var, Generated, ModuleVarName},
+  Match = {match, Generated, ModuleVar, Var},
+  Guard = elixir_erl:remote(Generated, erlang, is_atom, [ModuleVar]),
   S2 = S1#elixir_erl{extra_guards=[Guard | S1#elixir_erl.extra_guards]},
   {lists:reverse(Acc, [{map_field_exact, Ann, Key, Match} | Rest]), S2};
 generate_struct_name_guard([Field | Rest], Acc, S) ->
