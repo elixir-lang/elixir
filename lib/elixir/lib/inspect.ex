@@ -283,9 +283,9 @@ defimpl Inspect, for: List do
           end
         IO.iodata_to_binary inspected
       keyword?(term) ->
-        surround_many(open, term, close, opts, &keyword/2, sep)
+        surround_many(open, term, close, opts, &keyword/2, separator: sep, mode: :strict, nest: 2)
       true ->
-        surround_many(open, term, close, opts, &to_doc/2, sep)
+        surround_many(open, term, close, opts, &to_doc/2, separator: sep)
     end
   end
 
@@ -342,13 +342,13 @@ defimpl Inspect, for: Tuple do
     open = color("{", :tuple, opts)
     sep = color(",", :tuple, opts)
     close = color("}", :tuple, opts)
-    surround_many(open, Tuple.to_list(tuple), close, opts, &to_doc/2, sep)
+    surround_many(open, Tuple.to_list(tuple), close, opts, &to_doc/2, separator: sep, mode: :flex)
   end
 end
 
 defimpl Inspect, for: Map do
   def inspect(map, opts) do
-    nest inspect(map, "", opts), 1
+    inspect(map, "", opts)
   end
 
   def inspect(map, name, opts) do
@@ -356,7 +356,8 @@ defimpl Inspect, for: Map do
     open = color("%" <> name <> "{", :map, opts)
     sep = color(",", :map, opts)
     close = color("}", :map, opts)
-    surround_many(open, map, close, opts, traverse_fun(map, opts), sep)
+    surround_many(open, map, close, opts, traverse_fun(map, opts),
+                  separator: sep, mode: :strict, nest: 2)
   end
 
   defp traverse_fun(list, opts) do
