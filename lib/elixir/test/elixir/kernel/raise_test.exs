@@ -229,6 +229,17 @@ defmodule Kernel.RaiseTest do
 
       assert result
     end
+
+    test "catch-all with \"x in _\" syntax" do
+      result = try do
+        raise "an exception"
+      rescue
+        exception in _ ->
+          Exception.message(exception)
+      end
+
+      assert result == "an exception"
+    end
   end
 
   describe "normalize" do
