@@ -7,20 +7,6 @@ defmodule Inspect.AlgebraTest do
 
   import Inspect.Algebra
 
-  def helloabcd do
-    concat(
-      glue(
-        glue(
-          glue("hello", "a"),
-          "b"),
-        "c"),
-      "d")
-  end
-
-  def sdoc(doc) do
-    format(group(doc), :infinity)
-  end
-
   defp render(doc, limit) do
     format(doc, limit) |> IO.iodata_to_binary
   end
@@ -28,9 +14,6 @@ defmodule Inspect.AlgebraTest do
   test "empty doc" do
     # Consistent with definitions
     assert empty() == :doc_nil
-
-    # Consistent with corresponding sdoc
-    assert sdoc(empty()) == []
 
     # Consistent formatting
     assert render(empty(), 80) == ""
@@ -43,9 +26,6 @@ defmodule Inspect.AlgebraTest do
 
     # Wrong argument type
     assert_raise FunctionClauseError, fn -> break(42) end
-
-    # Consistent with corresponding sdoc
-    assert sdoc(break("_")) == ["_"]
 
     # Consistent formatting
     assert render(break("_"), 80) == "_"
@@ -63,10 +43,6 @@ defmodule Inspect.AlgebraTest do
   end
 
   test "text doc" do
-    # Consistent with corresponding sdoc
-    assert sdoc("_") == ["_"]
-
-    # Consistent formatting
     assert render("_", 80) == "_"
   end
 
@@ -84,9 +60,6 @@ defmodule Inspect.AlgebraTest do
 
     # Wrong argument type
     assert_raise FunctionClauseError, fn -> nest("foo", empty()) end
-
-    # Consistent with corresponding sdoc
-    assert sdoc(nest("a", 1))  == ["a"]
 
     # Consistent formatting
     assert render(nest("a", 1), 80) == "a"
@@ -126,9 +99,6 @@ defmodule Inspect.AlgebraTest do
     assert line("a", "b") ==
       {:doc_cons, "a", {:doc_cons, :doc_line, "b"}}
 
-    # Consistent with corresponding sdoc
-    assert sdoc(line("a", "b")) == ["a", "\n", "b"]
-
     # Consistent formatting
     assert render(line(glue("aaa", "bbb"), glue("ccc", "ddd")), 10) ==
            "aaa bbb\nccc ddd"
@@ -137,15 +107,13 @@ defmodule Inspect.AlgebraTest do
   test "group doc" do
     # Consistent with definitions
     assert group(glue("a", "b")) ==
-      {:doc_group, {:doc_cons, "a", concat(break(), "b")}}
-    assert group(empty()) == {:doc_group, empty()}
-
-    # Consistent with corresponding sdoc
-    assert sdoc(glue("a", "b")) == ["a", " ", "b"]
+           {:doc_group, {:doc_cons, "a", concat(break(), "b")}, :flex}
+    assert group(empty()) == {:doc_group, empty(), :flex}
 
     # Consistent formatting
-    assert render(helloabcd(), 5) == "hello\na b\ncd"
-    assert render(helloabcd(), 80) == "hello a b cd"
+    doc = concat(glue(glue(glue("hello", "a"), "b"), "c"), "d")
+    assert render(group(doc, :flex), 5) == "hello\na b\ncd"
+    assert render(group(doc, :strict), 5) == "hello\na\nb\ncd"
   end
 
   test "formatting with infinity" do
