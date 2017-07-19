@@ -268,7 +268,9 @@ defmodule ExUnit.FormatterTest do
          Assertion with == failed
          code:  assert :will_fail == %BadInspect{}
          left:  :will_fail
-         right: %Inspect.Error{message: #{inspect message}}
+         right: %Inspect.Error{
+                  message: #{inspect message}
+                }
     """
   end
 
