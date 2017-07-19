@@ -228,6 +228,11 @@ expand_rescue(Meta, _, E) ->
 expand_rescue({Name, _, Atom} = Var, E) when is_atom(Name), is_atom(Atom) ->
   match(fun elixir_expand:expand/2, Var, E);
 
+%% rescue var in _ => rescue var
+expand_rescue({in, _, [{Name, _, VarContext} = Var, {'_', _, UnderscoreContext}]}, E)
+    when is_atom(Name), is_atom(VarContext), is_atom(UnderscoreContext) ->
+  expand_rescue(Var, E);
+
 %% rescue var in [Exprs]
 expand_rescue({in, Meta, [Left, Right]}, E) ->
   {ELeft, EL}  = match(fun elixir_expand:expand/2, Left, E),
