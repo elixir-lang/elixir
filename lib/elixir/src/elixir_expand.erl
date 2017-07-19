@@ -451,12 +451,12 @@ expand(Function, E) when is_function(Function) ->
 expand(PidOrRef, E) when is_pid(PidOrRef); is_reference(PidOrRef) ->
   case ?key(E, function) of
     nil ->
-      PidOrRef;
+      {PidOrRef, E};
     Function ->
       %% TODO: Make me an error on 2.0
       elixir_errors:form_warn([], ?key(E, file), ?MODULE,
                               {invalid_pid_or_ref_in_function, PidOrRef, Function}),
-      PidOrRef
+      {PidOrRef, E}
   end;
 
 expand(Other, E) when is_number(Other); is_atom(Other); is_binary(Other) ->

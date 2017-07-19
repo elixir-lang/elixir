@@ -307,6 +307,12 @@ defmodule ModuleTest do
     end
   end
 
+  test "does not use ETS tables named after the module" do
+    in_module do
+      assert :ets.info(__MODULE__) == :undefined
+    end
+  end
+
   ## Definitions
 
   test "defines?" do
