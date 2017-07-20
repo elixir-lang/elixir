@@ -228,12 +228,11 @@ eval_forms(Tree, Binding, Env, Scope) ->
       % Below must be all one line for locations to be the same
       % when the stacktrace is extended to the full stacktrace.
       {value, Value, NewBinding} =
-        try erl_eval:expr(Erl, ParsedBinding, none, none, none) catch Class:Exception -> erlang:raise(Class, Exception, get_stacktrace()) end,
+        try erl_eval:expr(Erl, ParsedBinding, none, none, none) catch Class:Exception -> erlang:raise(Class, Exception, get_stacktrace(erlang:get_stacktrace())) end,
       {Value, elixir_erl_var:dump_binding(NewBinding, NewScope), NewEnv, NewScope}
   end.
 
-get_stacktrace() ->
-  Stacktrace = erlang:get_stacktrace(),
+get_stacktrace(Stacktrace) ->
   % eval_eval and eval_bits can call :erlang.raise/3 without the full
   % stacktrace. When this occurs re-add the current stacktrace so that no
   % stack information is lost.
@@ -243,17 +242,17 @@ get_stacktrace() ->
     throw:stack ->
       % Ignore stack item for current function.
       [_ | CurrentStack] = erlang:get_stacktrace(),
-      get_stacktrace(Stacktrace, CurrentStack)
+      merge_stacktrace(Stacktrace, CurrentStack)
   end.
 
 % The stacktrace did not include the current stack, re-add it.
-get_stacktrace([], CurrentStack) ->
+merge_stacktrace([], CurrentStack) ->
   CurrentStack;
 % The stacktrace includes the current stack.
-get_stacktrace(CurrentStack, CurrentStack) ->
+merge_stacktrace(CurrentStack, CurrentStack) ->
   CurrentStack;
-get_stacktrace([StackItem | Stacktrace], CurrentStack) ->
-  [StackItem | get_stacktrace(Stacktrace, CurrentStack)].
+merge_stacktrace([StackItem | Stacktrace], CurrentStack) ->
+  [StackItem | merge_stacktrace(Stacktrace, CurrentStack)].
 
 %% Converts a quoted expression to Erlang abstract format
 
