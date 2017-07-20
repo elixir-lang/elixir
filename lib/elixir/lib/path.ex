@@ -615,17 +615,19 @@ defmodule Path do
   def wildcard(glob, opts \\ []) do
     mod = if Keyword.get(opts, :match_dot), do: :file, else: Path.Wildcard
     glob
-    |> chardata_to_list()
+    |> chardata_to_list!()
     |> :filelib.wildcard(mod)
     |> Enum.map(&IO.chardata_to_string/1)
   end
 
-  # expand_dot the given path by expanding "..", "." and "~".
-
-  defp chardata_to_list(chardata) do
+  defp chardata_to_list!(chardata) do
     case :unicode.characters_to_list(chardata) do
       result when is_list(result) ->
-        result
+        if 0 in result do
+          raise ArgumentError, "cannot execute Path.wildcard/2 for path with null byte, got: #{inspect chardata}"
+        else
+          result
+        end
 
       {:error, encoded, rest} ->
         raise UnicodeConversionError, encoded: encoded, rest: rest, kind: :invalid
@@ -653,6 +655,8 @@ defmodule Path do
       _ -> rest
     end
   end
+
+  # expand_dot the given path by expanding "..", "." and "~".
 
   defp expand_dot(<<"/", rest::binary>>),
     do: "/" <> do_expand_dot(rest)

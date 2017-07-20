@@ -460,6 +460,11 @@ defmodule FileTest do
       end
     end
 
+    test "cp_r raises on path with null byte" do
+      assert_raise ArgumentError, ~r/null byte/, fn -> File.cp_r("source", "foo\0bar") end
+      assert_raise ArgumentError, ~r/null byte/, fn -> File.cp_r("foo\0bar", "dest") end
+    end
+
     test "cp_r with src file and dest file" do
       src  = fixture_path("file.txt")
       dest = tmp_path("sample.txt")
@@ -1111,6 +1116,10 @@ defmodule FileTest do
       refute File.exists?(tmp_path("tmp/a/a/2.txt"))
       refute File.exists?(tmp_path("tmp/b/3.txt"))
       refute File.exists?(fixture)
+    end
+
+    test "rm_rf raises on path with null byte" do
+      assert_raise ArgumentError, ~r/null byte/, fn -> File.rm_rf("foo\0bar") end
     end
 
     test "rm_rf with symlink" do
