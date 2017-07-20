@@ -4,7 +4,25 @@
 
 ### 1. Enhancements
 
+#### EEx
+
+  * [EEx] Allow markers "/" and "|" to be used in a custom EEx engine
+
+#### Elixir
+
+  * [Inspect] Add `:strict` and `:flex` modes to `Inspect.Algebra`
+  * [Stream] Add `Stream.intersperse/2`
+  * [String] Update to Unicode 10
+
+#### Mix
+
+  * [mix compile] Create behavior for Mix compiler tasks
+
 ### 2. Bug fixes
+
+#### Elixir
+
+  * [Kernel] Validate variable struct name is atom when used in pattern matching
 
 ### 3. Soft deprecations (no warnings emitted)
 
