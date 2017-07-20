@@ -156,6 +156,36 @@ Overall, using `@impl` has the following advantages:
 
 This release brings further improvements to Calendar types. It adds arithmetic and others functions to `Time`, `Date`, `NaiveDateTime` and `Datetime` as well as conversion between different calendars.
 
+## v1.5.0-rc.2 (2017-07-20)
+
+### 1. Enhancements
+
+#### Elixir
+
+  * [Calendar] Move calendar from `rata_die` to `iso_days`
+  * [Registry] Introduce `Registry.unregister_match/4`
+  * [String] Optimise binary pattern matching in `String.Break`
+
+#### IEx
+
+  * [IEx.Helpers] Allow `__FILE__` and `__LINE__` customization in `IEx.Helpers.open/1`
+
+### 2. Bug fixes
+
+#### Elixir
+
+  * [File] Ensure recursive file operations raise on paths with null bytes
+  * [Kernel] Bring the `e in _` syntax back to try/rescue (regression)
+  * [Kernel] Do not use named ETS tables during module definition (regression)
+  * [Path] Ensure recursive path operations raise on paths with null bytes
+  * [Registry] Ensure `Registry.match/4` works with `:_` as key
+  * [Stream] Fix regression in `Stream.chunk/4` (regression)
+
+#### Mix
+
+  * [mix compile.protocols] Do not raise when consolidating a protocol that was converted into a module
+  * [mix compile.erlang] Properly track `-compile` module attribute when specified as a list
+
 ## v1.5.0-rc.1 (2017-07-12)
 
 ### 1. Enhancements
@@ -166,6 +196,7 @@ This release brings further improvements to Calendar types. It adds arithmetic a
   * [Calendar] Implement Inspect for DateTime with Calendar.ISO
   * [Enum] Introduce `Enum.chunk_every/2` and `Enum.chunk_every/4` with a more explicit API than `Enum.chunk/2` and `Enum.chunk/4`
   * [Kernel] Cache the AST on definitions. This speeds up the compilation time from 10% to 15% measured across different projects
+  * [Kernel] Improve compiler error message on invalid patterns and guards
   * [Stream] Introduce `Stream.chunk_every/2` and `Stream.chunk_every/4` with a more explicit API than `Stream.chunk/2` and `Stream.chunk/4`
 
 #### IEx
@@ -182,8 +213,7 @@ This release brings further improvements to Calendar types. It adds arithmetic a
   * [Calendar] Return `{:error, :invalid_time}` for wrong precision instead of crashing
   * [Enum] Rename `Enum.chunk_by/4` to `Enum.chunk_while/4` (`chunk_by/4` was only part of 1.5.0-rc.0) (regression)
   * [Enumerable] Raise `Protocol.UndefinedError` on bad functions in Enumerable implementation
-  * [Inspect] Do not use colors when inspecting for error messages
-  * [Kernel] Improve error message on invalid patterns and guards
+  * [Inspect] Do not use colors when inspecting error messages
   * [Kernel] Do not warn false positives about unused variables on rescue (regression)
   * [Kernel] Ensure `do` clause in `with` is tail call optimizable
   * [Protocol] Do not lose source compile info on protocol consolidation
