@@ -670,15 +670,21 @@ defmodule File do
       File.cp_r "samples", "tmp"
 
       # Same as before, but asks the user how to proceed in case of conflicts
-      File.cp_r "samples", "tmp", fn(source, destination) ->
+      File.cp_r "samples", "tmp", fn source, destination ->
         IO.gets("Overwriting #{destination} by #{source}. Type y to confirm. ") == "y\n"
       end
 
   """
   @spec cp_r(Path.t, Path.t, (Path.t, Path.t -> boolean)) :: {:ok, [binary]} | {:error, posix, binary}
-  def cp_r(source, destination, callback \\ fn(_, _) -> true end) when is_function(callback, 2) do
-    source = IO.chardata_to_string(source)
-    destination = IO.chardata_to_string(destination)
+  def cp_r(source, destination, callback \\ fn _, _ -> true end) when is_function(callback, 2) do
+    source =
+      source
+      |> IO.chardata_to_string()
+      |> assert_no_null_byte!("File.cp_r/3")
+    destination =
+      destination
+      |> IO.chardata_to_string()
+      |> assert_no_null_byte!("File.cp_r/3")
 
     case do_cp_r(source, destination, callback, []) do
       {:error, _, _} = error -> error
@@ -947,7 +953,10 @@ defmodule File do
   """
   @spec rm_rf(Path.t) :: {:ok, [binary]} | {:error, posix, binary}
   def rm_rf(path) do
-    do_rm_rf(IO.chardata_to_string(path), {:ok, []})
+    path
+    |> IO.chardata_to_string()
+    |> assert_no_null_byte!("File.cp_r/3")
+    |> do_rm_rf({:ok, []})
   end
 
   defp do_rm_rf(path, {:ok, _} = entry) do
@@ -1453,6 +1462,15 @@ defmodule File do
   ## Helpers
 
   @read_ahead_size 64 * 1024
+
+  defp assert_no_null_byte!(binary, operation) do
+    case :binary.match(binary, "\0") do
+      {_, _} ->
+        raise ArgumentError, "cannot execute #{operation} for path with null byte, got: #{inspect binary}"
+      :nomatch ->
+        binary
+    end
+  end
 
   defp normalize_modes([:utf8 | rest], binary?) do
     [encoding: :utf8] ++ normalize_modes(rest, binary?)

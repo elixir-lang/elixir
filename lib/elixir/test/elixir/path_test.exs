@@ -32,6 +32,10 @@ defmodule PathTest do
     File.rm_rf tmp_path("wildcard")
   end
 
+  test "wildcard/2 raises on null byte" do
+    assert_raise ArgumentError, ~r/null byte/, fn -> Path.wildcard("foo\0bar") end
+  end
+
   if windows?() do
     describe "Windows" do
       test "relative/1" do
