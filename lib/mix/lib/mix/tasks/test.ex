@@ -67,6 +67,8 @@ defmodule Mix.Tasks.Test do
     * `--raise` - raises if the test suite failed
     * `--seed` - seeds the random number generator used to randomize tests order;
       `--seed 0` disables randomization
+    * `--slowest` - prints timing information for the N slowest tests; automatically
+      sets `--trace`
     * `--stale` - runs only tests which reference modules that changed since the
       last `test --stale`. You can read more about this option in the "Stale" section below.
     * `--timeout` - sets the timeout for the tests
@@ -168,7 +170,8 @@ defmodule Mix.Tasks.Test do
              exclude: :keep, seed: :integer, only: :keep, compile: :boolean,
              start: :boolean, timeout: :integer, raise: :boolean,
              deps_check: :boolean, archives_check: :boolean, elixir_version_check: :boolean,
-             stale: :boolean, listen_on_stdin: :boolean, formatter: :keep]
+             stale: :boolean, listen_on_stdin: :boolean, formatter: :keep,
+             slowest: :integer]
 
   @cover [output: "cover", tool: Cover]
 
@@ -265,7 +268,7 @@ defmodule Mix.Tasks.Test do
   end
 
   @option_keys [:trace, :max_cases, :include, :exclude,
-                :seed, :timeout, :formatters, :colors]
+                :seed, :timeout, :formatters, :colors, :slowest]
 
   @doc false
   def ex_unit_opts(opts) do

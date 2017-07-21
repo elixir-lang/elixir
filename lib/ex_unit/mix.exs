@@ -27,6 +27,7 @@ defmodule ExUnit.Mixfile do
         formatters: [ExUnit.CLIFormatter],
         include: [],
         refute_receive_timeout: 100,
+        slowest: 0,
         stacktrace_depth: 20,
         timeout: 60_000,
         trace: false

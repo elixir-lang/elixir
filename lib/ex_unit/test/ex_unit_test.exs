@@ -78,6 +78,37 @@ defmodule ExUnitTest do
     ExUnit.configure(timeout: 60_000)
   end
 
+  test "reports slow tests" do
+    defmodule SlowestTest do
+      use ExUnit.Case
+
+      test "tardy" do
+        refute false
+      end
+
+      test "delayed" do
+        Process.sleep(5)
+        assert false
+      end
+
+      test "slowest" do
+        Process.sleep(10)
+        refute false
+      end
+    end
+
+    old_config = ExUnit.configuration()
+    on_exit(fn -> ExUnit.configure(old_config) end)
+
+    ExUnit.start(slowest: 2)
+    ExUnit.Server.cases_loaded()
+
+    output = capture_io(fn -> ExUnit.run end)
+
+    assert output =~ ~r"Top 2 slowest \(\d+\.\d+s\), \d{2}.\d% of total time:"
+    assert output =~ ~r"\* test slowest \(.+ms\)\n  \* test delayed \(.+ms\)"
+  end
+
   test "sets max cases to one with trace enabled" do
     old_config = ExUnit.configuration()
     on_exit(fn -> ExUnit.configure(old_config) end)
@@ -98,6 +129,17 @@ defmodule ExUnitTest do
     refute config[:trace]
     assert config[:max_cases] == System.schedulers_online * 2
     assert config[:timeout] == 60_000
+  end
+
+  test "sets trace when slowest is enabled" do
+    old_config = ExUnit.configuration()
+    on_exit(fn -> ExUnit.configure(old_config) end)
+
+    ExUnit.start(slowest: 10, max_cases: 10, autorun: false)
+    config = ExUnit.configuration()
+    assert config[:trace]
+    assert config[:slowest] == 10
+    assert config[:max_cases] == 1
   end
 
   test "filtering cases with tags" do

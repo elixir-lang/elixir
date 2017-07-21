@@ -211,6 +211,10 @@ defmodule ExUnit do
 
     * `:seed` - an integer seed value to randomize the test suite;
 
+    * `:slowest` - prints timing information for the N slowest tests. Running
+      ExUnit with slow test reporting automatically runs in `trace` mode. It
+      is disabled by default;
+
     * `:stacktrace_depth` - configures the stacktrace depth to be used
       on formatting and reporters, defaults to `20`;
 
@@ -233,6 +237,7 @@ defmodule ExUnit do
   def configuration do
     Application.get_all_env(:ex_unit)
     |> put_seed()
+    |> put_slowest()
     |> put_max_cases()
   end
 
@@ -275,7 +280,7 @@ defmodule ExUnit do
   # Persists default values in application
   # environment before the test suite starts.
   defp persist_defaults(config) do
-    config |> Keyword.take([:seed, :max_cases]) |> configure()
+    config |> Keyword.take([:max_cases, :seed, :trace]) |> configure()
     config
   end
 
@@ -287,6 +292,14 @@ defmodule ExUnit do
 
   defp put_max_cases(opts) do
     Keyword.put(opts, :max_cases, max_cases(opts))
+  end
+
+  defp put_slowest(opts) do
+    if opts[:slowest] > 0 do
+      Keyword.put(opts, :trace, true)
+    else
+      opts
+    end
   end
 
   defp max_cases(opts) do
