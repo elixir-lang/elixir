@@ -85,6 +85,12 @@ defmodule SystemTest do
     end
   end
 
+  test "cmd/3 raises with non-binary arguments" do
+    assert_raise ArgumentError, ~r"all arguments for System.cmd/3 must be binaries", fn ->
+      System.cmd("ls", ['/usr'])
+    end
+  end
+
   if windows?() do
     test "cmd/2 win" do
       assert {"hello\r\n", 0} = System.cmd "cmd", ~w[/c echo hello]
