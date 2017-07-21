@@ -339,6 +339,8 @@ defmodule System do
   """
   @spec find_executable(binary) :: binary | nil
   def find_executable(program) when is_binary(program) do
+    assert_no_null_byte!(program, "System.find_executable/1")
+
     case :os.find_executable(String.to_charlist(program)) do
       false -> nil
       other -> List.to_string(other)
@@ -393,8 +395,13 @@ defmodule System do
   """
   @spec put_env(binary, binary) :: :ok
   def put_env(varname, value) when is_binary(varname) and is_binary(value) do
-   :os.putenv String.to_charlist(varname), String.to_charlist(value)
-   :ok
+    case :binary.match(varname, "=") do
+      {_, _} ->
+        raise ArgumentError, "cannot execute System.put_env/2 for key with \"=\", got: #{inspect varname}"
+      :nomatch ->
+        :os.putenv String.to_charlist(varname), String.to_charlist(value)
+        :ok
+    end
   end
 
   @doc """
@@ -588,6 +595,7 @@ defmodule System do
   @spec cmd(binary, [binary], keyword) ::
         {Collectable.t, exit_status :: non_neg_integer}
   def cmd(command, args, opts \\ []) when is_binary(command) and is_list(args) do
+    assert_no_null_byte!(command, "System.cmd/3")
     cmd = String.to_charlist(command)
 
     cmd =
@@ -831,6 +839,15 @@ defmodule System do
   @spec unique_integer([:positive | :monotonic]) :: integer
   def unique_integer(modifiers \\ []) do
     :erlang.unique_integer(modifiers)
+  end
+
+  defp assert_no_null_byte!(binary, operation) do
+    case :binary.match(binary, "\0") do
+      {_, _} ->
+        raise ArgumentError, "cannot execute #{operation} for program with null byte, got: #{inspect binary}"
+      :nomatch ->
+        binary
+    end
   end
 
   defp normalize_time_unit(:native),

@@ -73,6 +73,16 @@ defmodule SystemTest do
 
     System.put_env(%{@test_var => "OTHER_SAMPLE"})
     assert System.get_env(@test_var) == "OTHER_SAMPLE"
+
+    assert_raise ArgumentError, ~r[cannot execute System.put_env/2 for key with \"=\"], fn ->
+      System.put_env("FOO=BAR", "BAZ")
+    end
+  end
+
+  test "cmd/2 raises for null bytes" do
+    assert_raise ArgumentError, ~r"cannot execute System.cmd/3 for program with null byte", fn ->
+      System.cmd("null\0byte", [])
+    end
   end
 
   if windows?() do
@@ -107,11 +117,11 @@ defmodule SystemTest do
       File.rm_rf! Path.dirname(tmp_path(@echo))
     end
   else
-    test "cmd/2 Unix" do
+    test "cmd/2 unix" do
       assert {"hello\n", 0} = System.cmd "echo", ["hello"]
     end
 
-    test "cmd/3 (with options) Unix" do
+    test "cmd/3 (with options) unix" do
       assert {["hello\n"], 0} = System.cmd "echo", ["hello"],
                                   into: [], cd: System.cwd!, env: %{"foo" => "bar", "baz" => nil},
                                   arg0: "echo", stderr_to_stdout: true, parallelism: true
@@ -119,7 +129,7 @@ defmodule SystemTest do
 
     @echo "echo-elixir-test"
 
-    test "cmd/2 with absolute and relative paths Unix" do
+    test "cmd/2 with absolute and relative paths ynix" do
       echo = tmp_path(@echo)
       File.mkdir_p! Path.dirname(echo)
       File.cp! System.find_executable("echo"), echo
@@ -143,6 +153,9 @@ defmodule SystemTest do
     assert System.find_executable("erl")
     assert is_binary System.find_executable("erl")
     assert !System.find_executable("does-not-really-exist-from-elixir")
+    assert_raise ArgumentError, ~r"cannot execute System.find_executable/1 for program with null byte", fn ->
+      System.find_executable("null\0byte")
+    end
   end
 
   test "monotonic_time/0" do
