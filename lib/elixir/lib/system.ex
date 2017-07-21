@@ -595,6 +595,9 @@ defmodule System do
         {Collectable.t, exit_status :: non_neg_integer}
   def cmd(command, args, opts \\ []) when is_binary(command) and is_list(args) do
     assert_no_null_byte!(command, "System.cmd/3")
+    unless Enum.all?(args, &is_binary/1) do
+      raise ArgumentError, "all arguments for System.cmd/3 must be binaries"
+    end
     cmd = String.to_charlist(command)
 
     cmd =
