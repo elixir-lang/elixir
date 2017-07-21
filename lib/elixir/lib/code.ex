@@ -488,7 +488,7 @@ defmodule Code do
   If the module is already loaded, this works as no-op. If the module
   was not yet loaded, it tries to load it.
 
-  If it succeeds loading the module, it returns `{:module, module}`.
+  If it succeeds in loading the module, it returns `{:module, module}`.
   If not, returns `{:error, reason}` with the error reason.
 
   ## Code loading on the Erlang VM
@@ -564,7 +564,7 @@ defmodule Code do
   not loaded yet, it checks if it needs to be compiled first and then
   tries to load it.
 
-  If it succeeds loading the module, it returns `{:module, module}`.
+  If it succeeds in loading the module, it returns `{:module, module}`.
   If not, returns `{:error, reason}` with the error reason.
 
   Check `ensure_loaded/1` for more information on module loading
