@@ -533,6 +533,22 @@ defmodule StreamTest do
            |> Enum.to_list() == [false, true]
   end
 
+  test "traverse/1" do
+    assert Stream.traverse([:a, :b, [:c, [:d, :e]]]) |> Enum.take(0) == []
+    assert Stream.traverse(%{}) |> Enum.take(1) == []
+    assert Stream.traverse(1..5) |> Enum.take(5) == [1, 2, 3, 4, 5]
+    assert Stream.traverse([1,2,3,4,5]) |> Enum.take(2) == [1, 2]
+    assert %{"a" => %{"b" => "c", "d" => %{"e" => "f"}}}
+           |> Stream.traverse
+           |> Enum.take(4) == [{"a", %{"b" => "c", "d" => %{"e" => "f"}}},
+                               {"b", "c"},
+                               {"d", %{"e" => "f"}},
+                               {"e", "f"}]
+    assert [:a, :b, [:c, [:d, :e]]]
+           |> Stream.traverse
+           |> Enum.take(900) == [:a, :b, [:c, [:d, :e]], :c, [:d, :e], :d, :e]
+  end
+
   test "iterate/2" do
     stream = Stream.iterate(0, &(&1+2))
     assert Enum.take(stream, 5) == [0, 2, 4, 6, 8]

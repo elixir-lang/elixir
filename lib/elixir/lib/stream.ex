@@ -904,6 +904,64 @@ defmodule Stream do
     {:suspend, [x | acc]}
   end
 
+@doc """
+Creates a stream that emits elements of a nested Enum by walking the Enum depth-first.
+
+For lists, emits individual list elements.
+For maps, emits tuples of the form `{key, value}`.
+
+## Examples
+    iex> Stream.traverse([:a, [:b, :c, :d, [:e, :f]]]) |> Enum.to_list
+    [:a, [:b, :c, :d, [:e, :f]], :b, :c, :d, [:e, :f], :e, :f]
+
+    iex> Stream.traverse(%{a: %{b: :c, d: %{e: :f}}}) |> Enum.to_list
+    [a: %{b: :c, d: %{e: :f}}, b: :c, d: %{e: :f}, e: :f]
+
+    iex> Stream.traverse(%{a: %{b: :c, d: %{e: :f}}})
+    ...> |> Stream.map(fn({k, _v}) -> k end)
+    ...> |> Enum.to_list
+    [:a, :b, :d, :e]
+
+    iex> Stream.traverse([%{a: :b, x: :z}, %{c: [:d, :e, %{h: :i, j: :t}]}]) |> Enum.to_list
+    [%{a: :b, x: :z},
+     {:a, :b},
+     {:x, :z},
+     %{c: [:d, :e, %{h: :i, j: :t}]},
+     {:c, [:d, :e, %{h: :i, j: :t}]},
+     :d,
+     :e,
+     %{h: :i, j: :t},
+     {:h, :i},
+     {:j, :t}]
+"""
+@spec traverse(Enumerable.t) :: Enumerable.t
+def traverse(enum) do
+  Stream.transform(
+    enum,
+    [],
+    fn(el, acc) ->
+      case traverse_branch?(el) do
+        true ->
+          child_nodes = traverse_child_nodes(el)
+          child_stream = traverse(child_nodes)
+          {
+            Stream.concat([el], child_stream),
+            acc
+          }
+        false ->
+          {[el], acc}
+      end
+    end)
+end
+
+defp traverse_branch?({_k, v}) when is_map(v) or is_list(v), do: true
+defp traverse_branch?(el) when is_map(el) or is_list(el), do: true
+defp traverse_branch?(_), do: false
+
+defp traverse_child_nodes(el) when is_map(el), do: Stream.into(el, [])
+defp traverse_child_nodes(el) when is_list(el), do: el
+defp traverse_child_nodes({_k, v}), do: v
+
   @doc """
   Creates a stream that only emits elements if they are unique.
 
