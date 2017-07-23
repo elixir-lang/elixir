@@ -371,6 +371,10 @@ defmodule String do
     :binary.split(string, pattern, [:global])
   end
 
+  def split(string, pattern, [trim: true]) when is_binary(string) and pattern != "" do
+    :binary.split(string, pattern, [:global, :trim_all])
+  end
+
   def split(string, pattern, options) when is_binary(string) do
     parts   = Keyword.get(options, :parts, :infinity)
     trim    = Keyword.get(options, :trim, false)
