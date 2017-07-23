@@ -21,6 +21,11 @@ defmodule RegistryTest do
         assert length(Supervisor.which_children(registry)) == partitions
       end
 
+      test "registers process with pid", %{registry: registry} do
+        {:ok, agent} = Agent.start_link fn -> [] end
+        {:ok, pid} = Registry.register(agent, registry, "hello", :value)
+      end
+
       test "has unique registrations", %{registry: registry} do
         {:ok, pid} = Registry.register(registry, "hello", :value)
         assert is_pid(pid)

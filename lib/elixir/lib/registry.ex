@@ -803,10 +803,12 @@ defmodule Registry do
 
   """
   @spec register(registry, key, value) :: {:ok, pid} | {:error, {:already_registered, pid}}
-  def register(registry, key, value) when is_atom(registry) do
-    self = self()
+  def register(registry, key, value) when is_atom(registry), do: register(self(), registry, key, value)
+
+  @spec register(pid, registry, key, value) :: {:ok, pid} | {:error, {:already_registered, pid}}
+  def register(pid, registry, key, value) when is_atom(registry) do
     {kind, partitions, key_ets, pid_ets, listeners} = info!(registry)
-    {key_partition, pid_partition} = partitions(kind, key, self, partitions)
+    {key_partition, pid_partition} = partitions(kind, key, pid, partitions)
     key_ets = key_ets || key_ets!(registry, key_partition)
     {pid_server, pid_ets} = pid_ets || pid_ets!(registry, pid_partition)
 
@@ -814,18 +816,18 @@ defmodule Registry do
     # always be able to do the clean up. If we register first to the
     # key one and the process crashes, the key will stay there forever.
     Process.link(pid_server)
-    true = :ets.insert(pid_ets, {self, key, key_ets})
-    case register_key(kind, pid_server, key_ets, key, {key, {self, value}}) do
+    true = :ets.insert(pid_ets, {pid, key, key_ets})
+    case register_key(kind, pid_server, key_ets, key, {key, {pid, value}}) do
       {:ok, _} = ok ->
         for listener <- listeners do
-          Kernel.send(listener, {:register, registry, key, self, value})
+          Kernel.send(listener, {:register, registry, key, pid, value})
         end
         ok
-      {:error, {:already_registered, ^self}} = error ->
+      {:error, {:already_registered, ^pid}} = error ->
         error
       {:error, _} = error ->
-        true = :ets.delete_object(pid_ets, {self, key, key_ets})
-        unlink_if_unregistered(pid_server, pid_ets, self)
+        true = :ets.delete_object(pid_ets, {pid, key, key_ets})
+        unlink_if_unregistered(pid_server, pid_ets, pid)
         error
     end
   end
