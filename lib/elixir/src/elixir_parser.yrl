@@ -751,7 +751,7 @@ build_bin_string(Token) ->
 build_bin_string({bin_string, _Location, [H]} = Token, ExtraMeta) when is_binary(H) ->
   handle_literal(H, Token, ExtraMeta);
 build_bin_string({bin_string, Location, Args}, ExtraMeta) ->
-  Meta = meta_from_location(Location) ++ ExtraMeta,
+  Meta = ExtraMeta ++ meta_from_location(Location),
   {'<<>>', Meta, string_parts(Args)}.
 
 build_list_string(Token) ->
@@ -761,7 +761,7 @@ build_list_string({list_string, _Location, [H]} = Token, ExtraMeta) when is_bina
   handle_literal(elixir_utils:characters_to_list(H), Token, ExtraMeta);
 build_list_string({list_string, Location, Args}, ExtraMeta) ->
   Meta = meta_from_location(Location),
-  {{'.', Meta, ['Elixir.String', to_charlist]}, Meta, [{'<<>>', Meta ++ ExtraMeta, string_parts(Args)}]}.
+  {{'.', Meta, ['Elixir.String', to_charlist]}, Meta, [{'<<>>', ExtraMeta ++ Meta, string_parts(Args)}]}.
 
 build_quoted_atom({_, _Location, [H]} = Token, Safe) when is_binary(H) ->
   Op = binary_to_atom_op(Safe),
