@@ -33,6 +33,7 @@ Terminals
   paren_identifier do_identifier block_identifier
   fn 'end' aliases
   char atom atom_safe atom_unsafe bin_string list_string sigil
+  bin_heredoc list_heredoc
   dot_call_op op_identifier
   comp_op at_op unary_op and_op or_op arrow_op match_op in_op in_match_op
   type_op dual_op add_op mult_op two_op three_op pipe_op stab_op when_op assoc_op
@@ -253,6 +254,8 @@ access_expr -> 'false' : handle_literal(?id('$1'), '$1').
 access_expr -> 'nil' : handle_literal(?id('$1'), '$1').
 access_expr -> bin_string  : build_bin_string('$1').
 access_expr -> list_string : build_list_string('$1').
+access_expr -> bin_heredoc : build_bin_heredoc('$1').
+access_expr -> list_heredoc : build_list_heredoc('$1').
 access_expr -> bit_string : '$1'.
 access_expr -> sigil : build_sigil('$1').
 access_expr -> max_expr : '$1'.
@@ -736,16 +739,29 @@ build_sigil({sigil, Location, Sigil, Parts, Modifiers, Terminator}) ->
   MetaWithTerminator = [{terminator, Terminator} | Meta],
   {list_to_atom("sigil_" ++ [Sigil]), MetaWithTerminator, [{'<<>>', Meta, string_parts(Parts)}, Modifiers]}.
 
-build_bin_string({bin_string, _Location, [H]} = Token) when is_binary(H) ->
-  handle_literal(H, Token);
-build_bin_string({bin_string, Location, Args}) ->
-  {'<<>>', meta_from_location(Location), string_parts(Args)}.
+build_bin_heredoc({bin_heredoc, Location, Args}) ->
+  build_bin_string({bin_string, Location, Args}, [{format, bin_heredoc}]).
 
-build_list_string({list_string, _Location, [H]} = Token) when is_binary(H) ->
-  handle_literal(elixir_utils:characters_to_list(H), Token);
-build_list_string({list_string, Location, Args}) ->
+build_list_heredoc({list_heredoc, Location, Args}) ->
+  build_list_string({list_string, Location, Args}, [{format, list_heredoc}]).
+
+build_bin_string(Token) ->
+  build_bin_string(Token, []).
+
+build_bin_string({bin_string, _Location, [H]} = Token, ExtraMeta) when is_binary(H) ->
+  handle_literal(H, Token, ExtraMeta);
+build_bin_string({bin_string, Location, Args}, ExtraMeta) ->
+  Meta = meta_from_location(Location) ++ ExtraMeta,
+  {'<<>>', Meta, string_parts(Args)}.
+
+build_list_string(Token) ->
+  build_list_string(Token, []).
+
+build_list_string({list_string, _Location, [H]} = Token, ExtraMeta) when is_binary(H) ->
+  handle_literal(elixir_utils:characters_to_list(H), Token, ExtraMeta);
+build_list_string({list_string, Location, Args}, ExtraMeta) ->
   Meta = meta_from_location(Location),
-  {{'.', Meta, ['Elixir.String', to_charlist]}, Meta, [{'<<>>', Meta, string_parts(Args)}]}.
+  {{'.', Meta, ['Elixir.String', to_charlist]}, Meta, [{'<<>>', Meta ++ ExtraMeta, string_parts(Args)}]}.
 
 build_quoted_atom({_, _Location, [H]} = Token, Safe) when is_binary(H) ->
   Op = binary_to_atom_op(Safe),
