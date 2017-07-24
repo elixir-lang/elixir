@@ -144,6 +144,10 @@ defmodule CodeTest do
            {:ok, {:__block__, [line: 1], [[{:__block__, [format: :decimal, line: 1], [1]}]]}}
     assert Code.string_to_quoted("{:ok, :test}", wrap_literals_in_blocks: true) ==
            {:ok, {:__block__, [line: 1], [{{:__block__, [line: 1], [:ok]}, {:__block__, [line: 1], [:test]}}]}}
+    assert Code.string_to_quoted("\"\"\"\nhello\n\"\"\"", wrap_literals_in_blocks: true)
+           {:ok, {:__block__, [format: :bin_heredoc, line: 1], ["hello\n"]}}
+    assert Code.string_to_quoted("'''\nhello\n'''", wrap_literals_in_blocks: true)
+           {:ok, {:__block__, [format: :list_heredoc, line: 1], ['hello\n']}}
   end
 
   test "compile source" do
