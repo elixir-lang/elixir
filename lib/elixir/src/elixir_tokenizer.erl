@@ -546,7 +546,7 @@ handle_char(_)  -> false.
 handle_heredocs(T, Line, Column, H, Scope, Tokens) ->
   case extract_heredoc_with_interpolation(Line, Column, Scope, true, T, H) of
     {ok, NewLine, NewColumn, Parts, Rest} ->
-      Token = {string_type(H), {Line, Column, NewColumn}, unescape_tokens(Parts)},
+      Token = {heredoc_type(H), {Line, Column, NewColumn}, unescape_tokens(Parts)},
       tokenize(Rest, NewLine, NewColumn, Scope, [Token | Tokens]);
     {error, Reason} ->
       {error, Reason, [H, H, H] ++ T, Tokens}
@@ -1028,6 +1028,9 @@ check_terminator(_, Terminators) ->
 
 string_type($") -> bin_string;
 string_type($') -> list_string.
+
+heredoc_type($") -> bin_heredoc;
+heredoc_type($') -> list_heredoc.
 
 sigil_terminator($() -> $);
 sigil_terminator($[) -> $];
