@@ -156,89 +156,22 @@ Overall, using `@impl` has the following advantages:
 
 This release brings further improvements to Calendar types. It adds arithmetic and others functions to `Time`, `Date`, `NaiveDateTime` and `Datetime` as well as conversion between different calendars.
 
-## v1.5.0-rc.2 (2017-07-20)
+## v1.5.0 (2017-07-25)
 
 ### 1. Enhancements
 
 #### Elixir
 
-  * [Calendar] Move calendar from `rata_die` to `iso_days`
-  * [Registry] Introduce `Registry.unregister_match/4`
-  * [String] Optimise binary pattern matching in `String.Break`
-
-#### IEx
-
-  * [IEx.Helpers] Allow `__FILE__` and `__LINE__` customization in `IEx.Helpers.open/1`
-
-### 2. Bug fixes
-
-#### Elixir
-
-  * [File] Ensure recursive file operations raise on paths with null bytes
-  * [Kernel] Bring the `e in _` syntax back to try/rescue (regression)
-  * [Kernel] Do not use named ETS tables during module definition (regression)
-  * [Path] Ensure recursive path operations raise on paths with null bytes
-  * [Registry] Ensure `Registry.match/4` works with `:_` as key
-  * [Stream] Fix regression in `Stream.chunk/4` (regression)
-
-#### Mix
-
-  * [mix compile.protocols] Do not raise when consolidating a protocol that was converted into a module
-  * [mix compile.erlang] Properly track `-compile` module attribute when specified as a list
-
-## v1.5.0-rc.1 (2017-07-12)
-
-### 1. Enhancements
-
-#### Elixir
-
+  * [Access] Optimize `Access.get/2`
   * [Base] Optimise Base encode/decode
   * [Calendar] Implement Inspect for DateTime with Calendar.ISO
-  * [Enum] Introduce `Enum.chunk_every/2` and `Enum.chunk_every/4` with a more explicit API than `Enum.chunk/2` and `Enum.chunk/4`
-  * [Kernel] Cache the AST on definitions. This speeds up the compilation time from 10% to 15% measured across different projects
-  * [Kernel] Improve compiler error message on invalid patterns and guards
-  * [Stream] Introduce `Stream.chunk_every/2` and `Stream.chunk_every/4` with a more explicit API than `Stream.chunk/2` and `Stream.chunk/4`
-
-#### IEx
-
-  * [IEx.Helpers] Add `break!/2`, `break!/4`, `breaks/0`, `continue/0`, `open/0`, `remove_breaks/0`, `remove_breaks/1`, `reset_break/1`, `reset_break/3` and `whereami/1` for code debugging
-  * [IEx.Helpers] No longer emit warnings for IEx commands without parentheses
-  * [IEx.Helpers] Add `runtime_info/0` for printing runtime system information
-  * [IEx.Helpers] Add `open/1` to open the source of a given module/function in your editor
-
-### 2. Bug fixes
-
-#### Elixir
-
-  * [Calendar] Return `{:error, :invalid_time}` for wrong precision instead of crashing
-  * [Enum] Rename `Enum.chunk_by/4` to `Enum.chunk_while/4` (`chunk_by/4` was only part of 1.5.0-rc.0) (regression)
-  * [Enumerable] Raise `Protocol.UndefinedError` on bad functions in Enumerable implementation
-  * [Inspect] Do not use colors when inspecting error messages
-  * [Kernel] Do not warn false positives about unused variables on rescue (regression)
-  * [Kernel] Ensure `do` clause in `with` is tail call optimizable
-  * [Protocol] Do not lose source compile info on protocol consolidation
-  * [Stream] Fix stream cycle over empty enumerable
-  * [Stream] Rename `Stream.chunk_by/4` to `Stream.chunk_while/4` (`chunk_by/4` was only part of 1.5.0-rc.0) (regression)
-  * [StringIO] Fix encoding and performance issues in `StringIO.get_until`
-
-#### ExUnit
-
-  * [ExUnit] Load ExUnit configuration as late as possible (regression)
-
-## v1.5.0-rc.0 (2017-06-25)
-
-### 1. Enhancements
-
-#### Elixir
-
-  * [Access] Optimize Access.get/2
-  * [Calendar] Limit `Calendar.ISO` up to year 10000
-  * [Calendar] Add Rata Die format for conversions between Calendars and `Date.convert/2`, `Time.convert/2`, `NaiveDateTime.convert/2` and `DateTime.convert/2` (as well as bang variants)
+  * [Calendar] Add "ISO days" format for conversions between Calendars and `Date.convert/2`, `Time.convert/2`, `NaiveDateTime.convert/2` and `DateTime.convert/2` (as well as bang variants)
   * [Calendar] Add `:calendar` field to `Time` struct
   * [Calendar] Add `Time.diff/3`, `Date.add/2`, `Date.diff/2`, `DateTime.diff/3`
   * [Calendar] Add `Date.range/2`
   * [Calendar] Add `Date.new/4`, `DateTime.utc_now/1`, `NaiveDateTime.new/8` and `Time.new/5` that allow specifing calendar
   * [Enum] Add `Enum.chunk_by/4` and `Stream.chunk_by/4`
+  * [Enum] Add `Enum.chunk_every/2` and `Enum.chunk_every/4` with a more explicit API than `Enum.chunk/2` and `Enum.chunk/4`
   * [Exception] Add `Exception.blame/3` that adds metadata to exceptions
   * [File] Add `File.read_link/1` and `File.read_link!/1`
   * [File] Introduce `:trim_bom` option for `File.stream!/2`
@@ -249,6 +182,8 @@ This release brings further improvements to Calendar types. It adds arithmetic a
   * [Kernel] `defoverridable/1` accepts a module name as argument and marks all callbacks as overridable
   * [Kernel] Allow non-quoted Unicode atoms and variables according to Unicode Annex #31 (see Unicode Syntax document)
   * [Kernel] Warn when a `:__struct__` key is used when building/updating structs
+  * [Kernel] Cache the AST on definitions. This speeds up the compilation time from 10% to 15% measured across different projects
+  * [Kernel] Improve compiler error message on invalid patterns and guards
   * [Keyword] Add `replace/3` and `replace!/3` for replacing an existing key
   * [List] `List.starts_with?/2`
   * [Macro] Introduce `Macro.generate_arguments/2`
@@ -260,6 +195,9 @@ This release brings further improvements to Calendar types. It adds arithmetic a
   * [Protocol] Show available implementations on `Protocol.UndefinedError` if the protocol has been consolidated
   * [Registry] Support ETS guard conditions in `Registry.match/3`
   * [Registry] Support `parallel: true` in `Registry.dispatch/3`
+  * [Registry] Introduce `Registry.unregister_match/4`
+  * [Stream] Add `Stream.chunk_every/2` and `Stream.chunk_every/4` with a more explicit API than `Stream.chunk/2` and `Stream.chunk/4`
+  * [String] Optimise binary pattern matching in `String.split/1` and `String.trim_*/1`
   * [Supervisor] Add `Supervisor.init/2` and `Supervisor.child_spec/2`
   * [Supervisor] Allow `module` and `{module, arg}` to be given to `Supervisor.start_link/2` and invoke `module.child_spec(arg)` on each argument
   * [Task] Support `:on_timeout` in `Task.async_stream` to control how tasks are terminated
@@ -278,6 +216,10 @@ This release brings further improvements to Calendar types. It adds arithmetic a
   * [IEx.Autocomplete] Support autocompletion of functions imported using `import Mod, only: [...]`
   * [IEx.Evaluator] Use `Exception.blame/3` when showing errors in the terminal
   * [IEx.Helpers] Add `exports/1` IEx helper to list all exports in a module
+  * [IEx.Helpers] Add `break!/2`, `break!/4`, `breaks/0`, `continue/0`, `open/0`, `remove_breaks/0`, `remove_breaks/1`, `reset_break/1`, `reset_break/3` and `whereami/1` for code debugging
+  * [IEx.Helpers] No longer emit warnings for IEx commands without parentheses
+  * [IEx.Helpers] Add `runtime_info/0` for printing runtime system information
+  * [IEx.Helpers] Add `open/1` to open the source of a given module/function in your editor
   * [IEx.Info] Implement `IEx.Info` protocol for calendar types
 
 #### Logger
@@ -297,13 +239,26 @@ This release brings further improvements to Calendar types. It adds arithmetic a
 
 #### Elixir
 
+  * [Calendar] Ensure `Calendar.ISO` raises a readable error when reaching up the year 10000 restriction
+  * [Calendar] Return `{:error, :invalid_time}` for wrong precision instead of crashing when parsing ISO dates
+  * [Enumerable] Raise `Protocol.UndefinedError` on bad functions in Enumerable implementation
+  * [File] Ensure recursive file operations raise on paths with null bytes (*security issue reported by Griffin Byatt*)
   * [File] Support `:ram`/`:raw` files in `File.copy/2`
+  * [Inspect] Do not use colors when inspecting error messages
   * [Kernel] Support guards on anonymous functions of zero arity
   * [Kernel] Fix compilation of maps used as maps keys inside matches
+  * [Kernel] Ensure `do` clause in `with` is tail call optimizable
   * [Module] `on_definition/6` callback receives body wrapped in a keyword list, such as `[do: body]`. This solves a bug where it was impossible to distinguish between a bodyless clause and a function that returns `nil`.
+  * [Path] Ensure recursive path operations raise on paths with null bytes (*security issue reported by Griffin Byatt*)
+  * [Protocol] Do not lose source compile info on protocol consolidation
   * [Record] Properly escape quoted expressions passed to `defrecord`
   * [Regex] Fix `inspect/2` for regexes with `/` terminator in them
+  * [Registry] Ensure `Registry.match/4` works with `:_` as key
+  * [Stream] Fix stream cycle over empty enumerable
   * [String] Consider Unicode non-characters valid according to the specification in `String.valid?/1`
+  * [StringIO] Fix encoding and performance issues in `StringIO.get_until`
+  * [System] Raise on paths with null bytes in `System.cmd/2` and in `System.find_executable/1` (*security issue reported by Griffin Byatt*)
+  * [System] Raise on ill-formed environment variables (*security issue reported by Griffin Byatt*)
 
 #### ExUnit
 
@@ -319,7 +274,9 @@ This release brings further improvements to Calendar types. It adds arithmetic a
 
   * [mix compile.elixir] Store multiple sources in case of module conflicts. This solves an issue where `_build` would get corrupted when compiling Elixir projects with module conflicts
   * [mix compile.erlang] Do not silently discard Erlang compile errors
+  * [mix compile.erlang] Properly track `-compile` module attribute when specified as a list
   * [mix compile.protocols] Ensure protocol implementations do not "disappear" when switching between applications in umbrella projects by having separate consolidation paths per project
+  * [mix compile.protocols] Do not raise when consolidating a protocol that was converted into a module
 
 ### 3. Soft deprecations (no warnings emitted)
 
@@ -347,7 +304,7 @@ This release brings further improvements to Calendar types. It adds arithmetic a
 
 #### EEx
 
-  * [EEx] Deprecate `<%= ` in middle and end expressions, e.g.: `<%= else %>` and `<%= end %>`
+  * [EEx] Deprecate `<%= ` in "middle" and "end" expressions, e.g.: `<%= else %>` and `<%= end %>`
 
 ## v1.4
 
