@@ -512,6 +512,10 @@ defmodule TaskTest do
              [ok: 1, ok: 1, exit: :timeout, exit: :timeout]
       refute_received _
     end
+
+    test "streams an enumerable with infinite timeout" do
+      [ok: :ok] = Task.async_stream([1], fn _ -> :ok end, timeout: :infinity) |> Enum.to_list
+    end
   end
 
   for {desc, concurrency} <- ["==": 4, "<": 2, ">": 8] do
