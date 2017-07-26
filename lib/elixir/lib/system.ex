@@ -171,11 +171,13 @@ defmodule System do
   """
   @spec build_info() :: map
   def build_info do
-    %{build:       build(),
-      date:        get_date(),
-      revision:    revision(),
-      version:     version(),
-      otp_release: get_otp_release()}
+    %{
+      build: build(),
+      date: get_date(),
+      revision: revision(),
+      version: version(),
+      otp_release: get_otp_release()
+    }
   end
 
   # Returns a string of the build info
