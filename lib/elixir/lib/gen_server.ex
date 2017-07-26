@@ -67,7 +67,7 @@ defmodule GenServer do
   defined module to be put under a supervision tree. The generated
   `child_spec/1` can be customized with the following options:
 
-    * `:id` - the child specification id, defauts to the current module
+    * `:id` - the child specification id, defaults to the current module
     * `:start` - how to start the child process (defaults to calling `__MODULE__.start_link/1`)
     * `:restart` - when the child should be restarted, defaults to `:permanent`
     * `:shutdown` - how to shut down the child
