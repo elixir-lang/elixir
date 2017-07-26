@@ -484,10 +484,46 @@ defmodule IEx.Helpers do
     |> Enum.map_join(", ", &inspect/1)
   end
 
+  @runtime_info_topics [:system, :memory, :limits, :applications]
   @doc """
   Prints vm/runtime information such as versions, memory usage and statistics.
+  Additional topics are available via `runtime_info/1`.
   """
-  def runtime_info do
+  def runtime_info(), do: runtime_info([:system, :memory, :limits])
+
+  @doc """
+  Just like runtime_info/0, except accepts topic or a list of topics.
+  E.g. topic `:applications` will list the applications loaded.
+  """
+  def runtime_info(topic) when is_atom(topic) and topic in @runtime_info_topics do
+    topic
+    |> List.wrap
+    |> runtime_info
+  end
+  def runtime_info(topics) when is_list(topics) do
+    topics
+    |> Enum.uniq
+    |> print_runtime_info
+  end
+
+  defp print_runtime_info(topics) do
+    Enum.each(topics, & print_runtime_info_topic(&1))
+    IO.puts ""
+    print_topic_info(topics)
+    IO.puts ""
+    dont_display_result()
+  end
+
+  defp print_topic_info(topics) when is_list(topics) do
+    IO.write pad_key("Showing topics")
+    IO.puts inspect(topics)
+    IO.write pad_key("Additional topics")
+    IO.puts inspect(@runtime_info_topics -- topics)
+    IO.puts ""
+    IO.puts "To view a specific topic call runtime_info(topic)"
+  end
+
+  defp print_runtime_info_topic(:system) do
     print_pane("System and architecture")
 
     print_entry("Elixir version", System.version)
@@ -496,7 +532,8 @@ defmodule IEx.Helpers do
     print_entry("Compiled for", :erlang.system_info(:system_architecture))
     print_entry("Schedulers", :erlang.system_info(:schedulers))
     print_entry("Schedulers online", :erlang.system_info(:schedulers_online))
-
+  end
+  defp print_runtime_info_topic(:memory) do
     print_pane("Memory")
     print_memory("Total", :total, :MB)
     print_memory("Atoms", :atom)
@@ -504,7 +541,8 @@ defmodule IEx.Helpers do
     print_memory("Code", :code)
     print_memory("ETS", :ets)
     print_memory("Processes", :processes)
-
+  end
+  defp print_runtime_info_topic(:limits) do
     print_pane("Statistics / limits")
     print_uptime()
     print_entry("Run queue", :erlang.statistics(:run_queue))
@@ -514,12 +552,22 @@ defmodule IEx.Helpers do
     print_percentage("ETS", :ets_count, :ets_limit)
     print_percentage("Ports", :port_count, :port_limit)
     print_percentage("Processes", :process_count, :process_limit)
+  end
+  defp print_runtime_info_topic(:applications) do
+    print_pane("Loaded OTP Applications")
 
-    print_pane("OTP Applications")
-    print_applications()
+    started = Application.started_applications()
 
-    IO.puts ""
-    dont_display_result()
+    Application.loaded_applications()
+    |> Enum.sort_by(& elem(&1, 0))
+    |> Enum.each(fn {app, _, version} = loaded ->
+      IO.write pad_key(app)
+      IO.write String.pad_trailing("#{version}", 20)
+      if loaded in started do
+        IO.write "(started)"
+      end
+      IO.puts ""
+    end)
   end
 
   defp print_pane(msg) do
@@ -532,15 +580,6 @@ defmodule IEx.Helpers do
   defp print_uptime() do
     IO.write pad_key("Uptime")
     :c.uptime()
-  end
-
-  defp print_applications() do
-    Application.started_applications()
-    |> Enum.sort_by(& elem(&1, 0))
-    |> Enum.each(fn {app, _, version} ->
-      IO.write pad_key(app)
-      IO.puts version
-    end)
   end
 
   defp print_percentage(key, min, max) do
