@@ -20,7 +20,7 @@ defmodule SystemTest do
     version_file = Path.join([__DIR__, "../../../..", "VERSION"]) |> Path.expand
     {:ok, version} = File.read(version_file)
     assert build_info[:version] == String.trim(version)
-    assert build_info[:build] != ""
+    assert build_info[:build] =~ "compiled with OTP"
   end
 
   test "cwd/0" do

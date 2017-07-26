@@ -182,12 +182,10 @@ defmodule System do
   defp build do
     {:ok, v} = Version.parse(version())
 
-    cond do
-      ([] == v.pre) or ("" == revision()) ->
-        version()
-      true ->
-        "#{version()} (#{revision()})"
-    end
+    revision_string = if v.pre != [] and revision() != "", do: " (#{revision()})", else: ""
+    otp_version_string = " (compiled with OTP #{get_otp_version()})"
+
+    version() <> revision_string <> otp_version_string
   end
 
   @doc """
