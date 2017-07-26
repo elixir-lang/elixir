@@ -11,6 +11,7 @@ defmodule SystemTest do
     assert is_binary build_info[:date]
     assert is_binary build_info[:revision]
     assert is_binary build_info[:version]
+    assert is_binary build_info[:otp_release]
 
     if build_info[:revision] != "" do
       assert String.length(build_info[:revision]) >= 7
@@ -19,7 +20,7 @@ defmodule SystemTest do
     version_file = Path.join([__DIR__, "../../../..", "VERSION"]) |> Path.expand
     {:ok, version} = File.read(version_file)
     assert build_info[:version] == String.trim(version)
-    assert build_info[:build] != ""
+    assert build_info[:build] =~ "compiled with OTP"
   end
 
   test "cwd/0" do
