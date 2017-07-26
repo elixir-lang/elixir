@@ -405,7 +405,13 @@ defmodule Task.Supervised do
       {:spawn, position, value} ->
         {type, pid} = spawn.(parent_pid, normalize_mfa_with_arg(mfa, value))
         ref = Process.monitor(pid)
-        timer_ref = Process.send_after(self(), {:timeout, {monitor_ref, ref}}, timeout)
+
+        # Schedule a timeout message to ourselves, unless the timeout was set to :infinity
+        timer_ref = case timeout do
+          :infinity -> nil
+          timeout -> Process.send_after(self(), {:timeout, {monitor_ref, ref}}, timeout)
+        end
+
         send(parent_pid, {:spawned, {monitor_ref, position}, pid})
         task_info = %{
           position: position,
@@ -443,7 +449,9 @@ defmodule Task.Supervised do
       # this and keep going.
       {:DOWN, ref, _, _, reason} ->
         {%{position: position, timer_ref: timer_ref, timed_out?: timed_out?}, running_tasks} = Map.pop(running_tasks, ref)
-        :ok = Process.cancel_timer(timer_ref, async: true, info: false)
+        if timer_ref != nil do
+          :ok = Process.cancel_timer(timer_ref, async: true, info: false)
+        end
         message_kind = if(timed_out?, do: :timed_out, else: :down)
         send(parent_pid, {message_kind, {monitor_ref, position}, reason})
         stream_monitor_loop(running_tasks, config)
