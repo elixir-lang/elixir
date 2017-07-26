@@ -314,6 +314,7 @@ defmodule IEx.Helpers do
 
       iex> t(Enum)
       @type t() :: Enumerable.t()
+      @type acc() :: any()
       @type element() :: any()
       @type index() :: integer()
       @type default() :: any()
