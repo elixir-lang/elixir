@@ -115,7 +115,7 @@ defmodule System do
   end
 
   # Returns OTP version that Elixir was compiled with.
-  defmacrop get_otp_version do
+  defmacrop get_otp_release do
     List.to_string(:erlang.system_info(:otp_release))
   end
 
@@ -175,7 +175,7 @@ defmodule System do
       date:        get_date(),
       revision:    revision(),
       version:     version(),
-      otp_version: get_otp_version()}
+      otp_release: get_otp_release()}
   end
 
   # Returns a string of the build info
@@ -183,7 +183,7 @@ defmodule System do
     {:ok, v} = Version.parse(version())
 
     revision_string = if v.pre != [] and revision() != "", do: " (#{revision()})", else: ""
-    otp_version_string = " (compiled with OTP #{get_otp_version()})"
+    otp_version_string = " (compiled with OTP #{get_otp_release()})"
 
     version() <> revision_string <> otp_version_string
   end

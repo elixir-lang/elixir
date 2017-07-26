@@ -11,7 +11,7 @@ defmodule SystemTest do
     assert is_binary build_info[:date]
     assert is_binary build_info[:revision]
     assert is_binary build_info[:version]
-    assert is_binary build_info[:otp_version]
+    assert is_binary build_info[:otp_release]
 
     if build_info[:revision] != "" do
       assert String.length(build_info[:revision]) >= 7
