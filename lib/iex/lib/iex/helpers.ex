@@ -515,6 +515,9 @@ defmodule IEx.Helpers do
     print_percentage("Ports", :port_count, :port_limit)
     print_percentage("Processes", :process_count, :process_limit)
 
+    print_pane("OTP Applications")
+    print_applications()
+
     IO.puts ""
     dont_display_result()
   end
@@ -529,6 +532,15 @@ defmodule IEx.Helpers do
   defp print_uptime() do
     IO.write pad_key("Uptime")
     :c.uptime()
+  end
+
+  defp print_applications() do
+    Application.started_applications()
+    |> Enum.sort_by(& elem(&1, 0))
+    |> Enum.each(fn {app, _, version} ->
+      IO.write pad_key(app)
+      IO.puts version
+    end)
   end
 
   defp print_percentage(key, min, max) do
