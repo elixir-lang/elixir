@@ -114,6 +114,11 @@ defmodule System do
     end
   end
 
+  # Returns OTP version that Elixir was compiled with.
+  defmacrop get_otp_version do
+    List.to_string(:erlang.system_info(:otp_release))
+  end
+
   # Tries to run "git rev-parse --short HEAD". In the case of success returns
   # the short revision hash. If that fails, returns an empty string.
   defmacrop get_revision do
@@ -166,10 +171,11 @@ defmodule System do
   """
   @spec build_info() :: map
   def build_info do
-    %{build:    build(),
-      date:     get_date(),
-      revision: revision(),
-      version:  version()}
+    %{build:       build(),
+      date:        get_date(),
+      revision:    revision(),
+      version:     version(),
+      otp_version: get_otp_version()}
   end
 
   # Returns a string of the build info
