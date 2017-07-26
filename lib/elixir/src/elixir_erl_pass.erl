@@ -396,7 +396,8 @@ translate_with_else(Meta, [{else, Else}], S) ->
   RaiseExpr = {{'.', Generated, [erlang, error]}, Generated, [{with_clause, RaiseVar}]},
   RaiseClause = {'->', Generated, [[RaiseVar], RaiseExpr]},
 
-  Case = {'case', [{export_vars, false} | Meta], [ElseVarEx, [{do, Else ++ [RaiseClause]}]]},
+  GeneratedElse = [{'->', ?generated(ElseMeta), ElseArgs} || {'->', ElseMeta, ElseArgs} <- Else],
+  Case = {'case', [{export_vars, false} | Generated], [ElseVarEx, [{do, GeneratedElse ++ [RaiseClause]}]]},
   {TranslatedCase, SC} = elixir_erl_pass:translate(Case, SV),
   {{clause, ?ann(Generated), [ElseVarErl], [], [TranslatedCase]}, SC}.
 
@@ -407,9 +408,8 @@ translate_with_do([{'<-', Meta, [Left, Expr]} | Rest], Do, Else, S) ->
   TGuards = elixir_erl_clauses:guards(Guards, [], SA),
   {TBody, SB} = translate_with_do(Rest, Do, Else, SA),
 
-  Ann = ?ann(?generated(Meta)),
-  Clause = {clause, Ann, [TArgs], TGuards, unblock(TBody)},
-  {{'case', Ann, TExpr, [Clause, Else]}, SB};
+  Clause = {clause, ?ann(Meta), [TArgs], TGuards, unblock(TBody)},
+  {{'case', ?ann(?generated(Meta)), TExpr, [Clause, Else]}, SB};
 translate_with_do([Expr | Rest], Do, Else, S) ->
   {TExpr, TS} = elixir_erl_pass:translate(Expr, S),
   {TRest, RS} = translate_with_do(Rest, Do, Else, TS),
