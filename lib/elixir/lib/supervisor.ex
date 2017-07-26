@@ -496,8 +496,16 @@ defmodule Supervisor do
   @typedoc "Supported strategies"
   @type strategy :: :simple_one_for_one | :one_for_one | :one_for_all | :rest_for_one
 
+  # Note we have inlined all types for readability
   @typedoc "The supervisor specification"
-  @type child_spec :: :supervisor.child_spec()
+  @type child_spec :: %{
+    required(:id) => term(),
+    required(:start) => {module(), function(), [term()]},
+    optional(:restart) => :permanent | :transient | :temporary,
+    optional(:shutdown) => :brutal_kill | non_neg_integer() | :infinity,
+    optional(:type) => :worker | :supervisor,
+    optional(:modules) => [module()] | :dynamic
+  }
 
   @doc """
   Starts a supervisor with the given children.
