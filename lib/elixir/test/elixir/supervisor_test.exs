@@ -84,7 +84,7 @@ defmodule SupervisorTest do
       Supervisor.child_spec(Unknown, [])
     end
 
-    assert_raise ArgumentError, ~r"supervisors expect the child to be a module", fn ->
+    assert_raise ArgumentError, ~r"supervisors expect each child to be one of", fn ->
       Supervisor.child_spec("other", [])
     end
   end
@@ -109,6 +109,19 @@ defmodule SupervisorTest do
     assert_raise ArgumentError, "expected :strategy option to be given", fn ->
       Supervisor.init([], [])
     end
+  end
+
+  test "init/2 with old and new child specs" do
+    import Supervisor.Spec
+
+    assert Supervisor.init([Task, worker(Task, [])], strategy: :one_for_one) ==
+           {:ok, {
+              %{intensity: 3, period: 5, strategy: :one_for_one},
+              [
+                %{id: Task, restart: :temporary, start: {Task, :start_link, [[]]}},
+                {Task, {Task, :start_link, []}, :permanent, 5000, :worker, [Task]}
+              ]
+           }}
   end
 
   test "start_link/2 with via" do
@@ -149,6 +162,15 @@ defmodule SupervisorTest do
     assert_raise ArgumentError, ~r"expected :name option to be one of:", fn ->
       Supervisor.start_link(children, name: {:via, "Via", "my_gen_server_name"}, strategy: :one_for_one)
     end
+  end
+
+  test "start_link/2 with old and new specs" do
+    import Supervisor.Spec
+    children = [
+      {Stack, {[:hello], [name: :dyn_stack]}},
+      worker(Stack, [{[:hello], []}], id: :old_stack)
+    ]
+    {:ok, _} = Supervisor.start_link(children, strategy: :one_for_one)
   end
 
   test "start_link/3" do
