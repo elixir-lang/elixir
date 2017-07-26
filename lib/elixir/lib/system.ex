@@ -116,7 +116,7 @@ defmodule System do
 
   # Returns OTP version that Elixir was compiled with.
   defmacrop get_otp_release do
-    List.to_string(:erlang.system_info(:otp_release))
+    :erlang.list_to_binary(:erlang.system_info(:otp_release))
   end
 
   # Tries to run "git rev-parse --short HEAD". In the case of success returns
@@ -802,7 +802,7 @@ defmodule System do
   """
   @spec otp_release :: String.t
   def otp_release do
-    :erlang.list_to_binary :erlang.system_info(:otp_release)
+    :erlang.list_to_binary(:erlang.system_info(:otp_release))
   end
 
   @doc """
