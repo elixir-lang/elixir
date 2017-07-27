@@ -157,7 +157,7 @@ defmodule Mix.Dep do
   changing the current working directory and loading the given
   project onto the project stack.
 
-  It is expected a loaded dependency as argument.
+  It expects a loaded dependency as argument.
   """
   def in_dependency(dep, post_config \\ [], fun)
 
@@ -360,7 +360,7 @@ defmodule Mix.Dep do
   @doc """
   Returns all source paths.
 
-  Source paths are the directories that contains ebin files for a given
+  Source paths are the directories that contain ebin files for a given
   dependency. All managers, except `:rebar`, have only one source path.
   """
   def source_paths(%Mix.Dep{manager: :rebar, app: app, opts: opts, extra: extra}) do
