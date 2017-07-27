@@ -345,9 +345,8 @@ defmodule Task do
   terminates all tasks.
 
   When streamed, each task will emit `{:ok, value}` upon successful
-  completion or `{:exit, reason}` if the caller is trapping exits,
-  where `element` is the stream element. Results are emitted in the
-  same order as the original `enumerable`.
+  completion or `{:exit, reason}` if the caller is trapping exits.
+  Results are emitted in the same order as the original `enumerable`.
 
   The level of concurrency can be controlled via the `:max_concurrency`
   option and defaults to `System.schedulers_online/0`. A timeout
@@ -373,8 +372,7 @@ defmodule Task do
       values are:
       * `:exit` (default) - the process that spawned the tasks exits.
       * `:kill_task` - the task that timed out is killed. The value
-        emitted for that task is `{:exit, :timeout, element}`, where
-        `element` is the element it timed out on.
+        emitted for that task is `{:exit, :timeout}`.
 
   ## Example
 
