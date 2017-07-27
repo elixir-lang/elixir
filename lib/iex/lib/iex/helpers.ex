@@ -507,7 +507,7 @@ defmodule IEx.Helpers do
   end
 
   defp print_runtime_info(topics) do
-    Enum.each(topics, & print_runtime_info_topic(&1))
+    Enum.each(topics, &print_runtime_info_topic/1)
     IO.puts ""
     print_topic_info(topics)
     IO.puts ""
@@ -559,7 +559,7 @@ defmodule IEx.Helpers do
     started = Application.started_applications()
 
     Application.loaded_applications()
-    |> Enum.sort_by(& elem(&1, 0))
+    |> Enum.sort_by(&elem(&1, 0))
     |> Enum.each(fn {app, _, version} = loaded ->
       IO.write pad_key(app)
       IO.write String.pad_trailing("#{version}", 20)
