@@ -60,6 +60,37 @@ defmodule Mix.Tasks.NewTest do
     end
   end
 
+  test "new with --cli" do
+    in_tmp "new cli", fn ->
+      Mix.Tasks.New.run ["hello_world", "--cli"]
+
+      assert_file "hello_world/mix.exs", fn file ->
+        assert file =~ "app: :hello_world"
+        assert file =~ "version: \"0.1.0\""
+        assert file =~ "escript: [main_module: HelloWorld.CLI]"
+      end
+
+      assert_file "hello_world/README.md", ~r/# HelloWorld\n/
+      assert_file "hello_world/.gitignore"
+
+      assert_file "hello_world/lib/hello_world/cli.ex", fn file ->
+        assert file =~ "defmodule HelloWorld.CLI do"
+        assert file =~ "def main(_args) do"
+      end
+
+      assert_file "hello_world/test/test_helper.exs", ~r/ExUnit.start()/
+
+      assert_file "hello_world/test/hello_world/cli_test.exs", fn file ->
+        assert file =~ "defmodule HelloWorld.CLITest do"
+        assert file =~ "import ExUnit.CaptureIO"
+        assert file =~ "capture_io"
+      end
+
+      assert_received {:mix_shell, :info, ["* creating mix.exs"]}
+      assert_received {:mix_shell, :info, ["* creating lib/hello_world/cli.ex"]}
+    end
+  end
+
   test "new with --app" do
     in_tmp "new app", fn ->
       Mix.Tasks.New.run ["HELLO_WORLD", "--app", "hello_world"]

@@ -9,7 +9,7 @@ defmodule Mix.Tasks.New do
   Creates a new Elixir project.
   It expects the path of the project as argument.
 
-      mix new PATH [--sup] [--module MODULE] [--app APP] [--umbrella]
+      mix new PATH [--sup] [--module MODULE] [--app APP] [--umbrella] [--cli]
 
   A project at the given PATH will be created. The
   application name and module name will be retrieved
@@ -28,6 +28,9 @@ defmodule Mix.Tasks.New do
   A `--module` option can be given in order
   to name the modules in the generated code skeleton.
 
+  A `--cli` option will generate a command-line application
+  skeleton using escript.
+
   ## Examples
 
       mix new hello_world
@@ -44,6 +47,7 @@ defmodule Mix.Tasks.New do
 
   @switches [
     app: :string,
+    cli: :boolean,
     module: :string,
     sup: :boolean,
     umbrella: :boolean
@@ -84,11 +88,16 @@ defmodule Mix.Tasks.New do
     create_file "README.md",  readme_template(assigns)
     create_file ".gitignore", gitignore_text()
 
-    if in_umbrella?() do
-      create_file "mix.exs", mixfile_apps_template(assigns)
-    else
-      create_file "mix.exs", mixfile_template(assigns)
+    mix_template = cond do
+      in_umbrella?() ->
+        mixfile_apps_template(assigns)
+      opts[:cli] ->
+        mixfile_cli_template(assigns)
+      true ->
+        mixfile_template(assigns)
     end
+
+    create_file "mix.exs", mix_template
 
     create_directory "config"
     create_file "config/config.exs", config_template(assigns)
@@ -98,6 +107,11 @@ defmodule Mix.Tasks.New do
 
     if opts[:sup] do
       create_file "lib/#{app}/application.ex", lib_app_template(assigns)
+    end
+
+    if opts[:cli] do
+      create_file "lib/#{app}/cli.ex", cli_template(assigns)
+      create_file "test/#{app}/cli_test.exs", cli_test_template(assigns)
     end
 
     create_directory "test"
@@ -320,6 +334,30 @@ defmodule Mix.Tasks.New do
   end
   """
 
+  embed_template :mixfile_cli, """
+  defmodule <%= @mod %>.Mixfile do
+    use Mix.Project
+
+    def project do
+      [
+        app: :<%= @app %>,
+        version: "0.1.0",
+        elixir: "~> <%= @version %>",
+        escript: [main_module: <%= @mod %>.CLI],
+        deps: deps()
+      ]
+    end
+
+    # Run "mix help deps" to learn about dependencies.
+    defp deps do
+      [
+        # {:dep_from_hexpm, "~> 0.3.0"},
+        # {:dep_from_git, git: "https://github.com/elixir-lang/my_dep.git", tag: "0.1.0"},
+      ]
+    end
+  end
+  """
+
   embed_template :mixfile_umbrella, """
   defmodule <%= @mod %>.Mixfile do
     use Mix.Project
@@ -440,6 +478,18 @@ defmodule Mix.Tasks.New do
   end
   """
 
+  embed_template :cli, """
+  defmodule <%= @mod %>.CLI do
+    # See https://hexdocs.pm/mix/master/Mix.Tasks.Escript.Build.html
+    # for more information on escript
+    @moduledoc false
+
+    def main(_args) do
+      IO.puts("Hello from <%= @mod %>.CLI!")
+    end
+  end
+  """
+
   embed_template :test, """
   defmodule <%= @mod %>Test do
     use ExUnit.Case
@@ -447,6 +497,23 @@ defmodule Mix.Tasks.New do
 
     test "greets the world" do
       assert <%= @mod %>.hello() == :world
+    end
+  end
+  """
+
+  embed_template :cli_test, """
+  defmodule <%= @mod %>.CLITest do
+    use ExUnit.Case
+    doctest <%= @mod %>
+
+    # See https://hexdocs.pm/ex_unit/ExUnit.CaptureIO.html
+    # for more information and examples
+    import ExUnit.CaptureIO
+
+    test "checking the IO output" do
+      assert capture_io(fn ->
+        <%= @mod %>.CLI.main([])
+      end) == "Hello from <%= @mod %>.CLI!\n"
     end
   end
   """
