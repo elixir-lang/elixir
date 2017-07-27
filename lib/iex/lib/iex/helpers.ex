@@ -492,7 +492,7 @@ defmodule IEx.Helpers do
   def runtime_info(), do: runtime_info([:system, :memory, :limits])
 
   @doc """
-  Just like runtime_info/0, except accepts topic or a list of topics.
+  Just like `runtime_info/0`, except accepts topic or a list of topics.
   E.g. topic `:applications` will list the applications loaded.
   """
   def runtime_info(topic) when is_atom(topic) and topic in @runtime_info_topics do
