@@ -221,7 +221,7 @@ defmodule IEx.HelpersTest do
 
     defp maybe_trim_quotes(string) do
       case :os.type do
-        {:win32, _} -> String.trim(string, "\"")
+        {:win32, _} -> String.replace(string, "\"", "")
         _ -> string
       end
     end
