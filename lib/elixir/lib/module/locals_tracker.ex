@@ -138,8 +138,8 @@ defmodule Module.LocalsTracker do
 
   # Reattach a previously yanked node
   @doc false
-  def reattach(pid, kind, tuple, neighbours) do
-    :gen_server.cast(to_pid(pid), {:reattach, kind, tuple, neighbours})
+  def reattach(pid, tuple, kind, function, neighbours) do
+    :gen_server.cast(to_pid(pid), {:reattach, tuple, kind, function, neighbours})
   end
 
   # Collecting all conflicting imports with the given functions
@@ -162,13 +162,23 @@ defmodule Module.LocalsTracker do
   def collect_unused_locals(ref, private) do
     d = :gen_server.call(to_pid(ref), :digraph, @timeout)
     reachable = reachable_from(d, :local)
-    {unreachable(reachable, private), collect_warnings(reachable, private)}
+    reattached = :digraph.out_neighbours(d, :reattach)
+    {unreachable(reachable, reattached, private), collect_warnings(reachable, private)}
   end
 
-  defp unreachable(reachable, private) do
-    for {tuple, _, _, _} <- private,
-        not :sets.is_element(tuple, reachable),
+  defp unreachable(reachable, reattached, private) do
+    for {tuple, kind, _, _} <- private,
+        not reachable?(tuple, kind, reachable, reattached),
         do: tuple
+  end
+
+  defp reachable?(tuple, :defmacrop, reachable, reattached) do
+    # All private micros are unreachable unless they have been
+    # reattached and they are reachable.
+    :lists.member(tuple, reattached) and :sets.is_element(tuple, reachable)
+  end
+  defp reachable?(tuple, :defp, reachable, _reattached) do
+    :sets.is_element(tuple, reachable)
   end
 
   defp collect_warnings(reachable, private) do
@@ -221,6 +231,7 @@ defmodule Module.LocalsTracker do
   def init([]) do
     d = :digraph.new([:protected])
     :digraph.add_vertex(d, :local)
+    :digraph.add_vertex(d, :reattach)
     {:ok, d}
   end
 
@@ -262,16 +273,28 @@ defmodule Module.LocalsTracker do
     {:noreply, d}
   end
 
-  def handle_cast({:reattach, _kind, tuple, {in_neigh, out_neigh}}, d) do
+  def handle_cast({:reattach, tuple, kind, function, {in_neigh, out_neigh}}, d) do
+    # Reattach the old function
     for from <- in_neigh do
       :digraph.add_vertex(d, from)
-      replace_edge!(d, from, tuple)
+      replace_edge!(d, from, function)
     end
 
     for to <- out_neigh do
       :digraph.add_vertex(d, to)
-      replace_edge!(d, tuple, to)
+      replace_edge!(d, function, to)
     end
+
+    # Add the new definition
+    handle_add_definition(d, kind, tuple)
+
+    # Make a call from the old function to the new one
+    if function != tuple do
+      handle_add_local(d, function, tuple)
+    end
+
+    # Finally marked the new one as reattached
+    replace_edge!(d, :reattach, tuple)
 
     {:noreply, d}
   end

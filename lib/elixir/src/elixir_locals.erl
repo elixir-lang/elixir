@@ -3,7 +3,7 @@
 -export([
   setup/1, cleanup/1, cache_env/1, cache_env/2, get_cached_env/1,
   record_local/2, record_local/3, record_import/4,
-  record_definition/3, record_defaults/4,
+  record_definition/3, record_defaults/4, reattach/5,
   ensure_no_import_conflict/3, warn_unused_local/3, format_error/1
 ]).
 
@@ -24,6 +24,9 @@ setup(Module) ->
 
 cleanup(Module) ->
   if_tracker(Module, fun(Pid) -> unlink(Pid), ?tracker:stop(Pid), ok end).
+
+reattach(Tuple, Kind, Module, Function, Neighbours) ->
+  if_tracker(Module, fun(Pid) -> ?tracker:reattach(Pid, Tuple, Kind, Function, Neighbours) end).
 
 record_local(Tuple, Module) when is_atom(Module) ->
   if_tracker(Module, fun(Pid) -> ?tracker:add_local(Pid, Tuple), ok end).
