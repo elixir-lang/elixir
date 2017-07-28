@@ -116,7 +116,8 @@ defmodule Mix.Tasks.Profile.Fprof do
     {opts, head} = OptionParser.parse_head!(args,
       aliases: [r: :require, p: :parallel, e: :eval, c: :config],
       strict: @switches)
-    Mix.Tasks.Run.run(args, opts, head, &profile_code(&1, opts),
+    Mix.Tasks.Run.run(["--no-mixexs" | args], opts, head,
+                      &profile_code(&1, opts),
                       &profile_code(File.read!(&1), opts))
   end
 
