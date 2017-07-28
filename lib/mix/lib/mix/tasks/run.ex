@@ -38,6 +38,7 @@ defmodule Mix.Tasks.Run do
     * `--no-deps-check` - does not check dependencies
     * `--no-archives-check` - does not check archives
     * `--no-halt` - does not halt the system after running the command
+    * `--no-mixexs` - allows the command to run even if there is no mix.exs
     * `--no-start` - does not start applications after compilation
     * `--no-elixir-version-check` - does not check the Elixir version from mix.exs
 
@@ -47,7 +48,7 @@ defmodule Mix.Tasks.Run do
   def run(args) do
     {opts, head} = OptionParser.parse_head!(args,
       aliases: [r: :require, p: :parallel, e: :eval, c: :config],
-      strict: [parallel: :boolean, require: :keep, eval: :keep, config: :keep,
+      strict: [parallel: :boolean, require: :keep, eval: :keep, config: :keep, mixexs: :boolean,
                halt: :boolean, compile: :boolean, deps_check: :boolean, start: :boolean,
                archives_check: :boolean, elixir_version_check: :boolean, parallel_require: :keep])
 
@@ -83,7 +84,14 @@ defmodule Mix.Tasks.Run do
 
     # Start app after rewriting System.argv,
     # but before requiring and evaling.
-    Mix.Task.run "app.start", args
+    cond do
+      Mix.Project.get ->
+        Mix.Task.run "app.start", args
+      "--no-mixexs" in args ->
+        :ok
+      true ->
+        Mix.Project.get!
+    end
 
     process_load(opts, expr_evaluator)
 
