@@ -10,10 +10,6 @@ defmodule Mix.Tasks.Profile.CprofTest do
   @moduletag apps: [:sample]
   @expr "Enum.each(1..5, &String.Chars.Integer.to_string/1)"
 
-  setup do
-    Mix.Project.push MixTest.Case.Sample
-  end
-
   test "profiles evaluated expression", context do
     in_tmp context.test, fn ->
       assert capture_io(fn ->
