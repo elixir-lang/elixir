@@ -52,12 +52,9 @@ store(Module, Function, Hidden) ->
       case Overridden of
         false ->
           overridable(Module, maps:put(Function, {Count, Def, Neighbours, true}, Overridable)),
-          (not elixir_compiler:get_opt(internal)) andalso
-            'Elixir.Module.LocalsTracker':reattach(Module, Kind, Function, Neighbours),
           elixir_def:store_definition(false, FinalKind, Meta, FinalName, FinalArity,
                                       File, Module, Defaults, FinalClauses),
-          elixir_locals:record_definition(Tuple, FinalKind, Module),
-          elixir_locals:record_local(Tuple, Module, Function);
+          elixir_locals:reattach(Tuple, FinalKind, Module, Function, Neighbours);
         true ->
           ok
       end,

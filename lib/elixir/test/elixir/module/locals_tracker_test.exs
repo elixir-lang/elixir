@@ -60,11 +60,11 @@ defmodule Module.LocalsTrackerTest do
     D.add_local(config[:pid], {:foo, 1}, {:bar, 1})
     D.add_definition(config[:pid], :defp, {:bar, 1})
 
-    {infoo, outfoo}   = D.yank(config[:pid], {:foo, 1})
+    {infoo, outfoo} = D.yank(config[:pid], {:foo, 1})
     {inbar, outbar} = D.yank(config[:pid], {:bar, 1})
 
-    D.reattach(config[:pid], :defp, {:bar, 1}, {inbar, outbar})
-    D.reattach(config[:pid], :def, {:foo, 1}, {infoo, outfoo})
+    D.reattach(config[:pid], {:bar, 1}, :defp, {:bar, 1}, {inbar, outbar})
+    D.reattach(config[:pid], {:foo, 1}, :def, {:foo, 1}, {infoo, outfoo})
     assert {:bar, 1} in D.reachable(config[:pid])
   end
 

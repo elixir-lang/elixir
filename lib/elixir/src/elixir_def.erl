@@ -58,8 +58,8 @@ fetch_definition([[Tuple] | T], File, Module, Table, All, Private) ->
 
   try ets:lookup_element(Table, {clauses, Tuple}, 2) of
     Clauses ->
-      Unwrapped =
-        {Tuple, Kind, Meta, Clauses},
+      NewAll =
+        [{Tuple, Kind, Meta, Clauses} | All],
       NewPrivate =
         case (Kind == defp) orelse (Kind == defmacrop) of
           true ->
@@ -68,7 +68,7 @@ fetch_definition([[Tuple] | T], File, Module, Table, All, Private) ->
           false ->
             Private
         end,
-      fetch_definition(T, File, Module, Table, [Unwrapped | All], NewPrivate)
+      fetch_definition(T, File, Module, Table, NewAll, NewPrivate)
   catch
     error:badarg ->
       warn_bodyless_function(Check, Meta, File, Module, Kind, Tuple),
