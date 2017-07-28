@@ -954,7 +954,7 @@ defmodule File do
   def rm_rf(path) do
     path
     |> IO.chardata_to_string()
-    |> assert_no_null_byte!("File.cp_r/3")
+    |> assert_no_null_byte!("File.rm_rf/1")
     |> do_rm_rf({:ok, []})
   end
 
