@@ -82,13 +82,13 @@ end
 
 ### Strings
 
-Strings in Elixir are written between double-quotes, such as `"foo"`. Any double-quote inside the string must be escaped with `\`. Strings support Unicode characters and are stored in UTF-8 encoding.
+Strings in Elixir are written between double-quotes, such as `"foo"`. Any double-quote inside the string must be escaped with `\ `. Strings support Unicode characters and are stored in UTF-8 encoding.
 
 Strings are always represented as themselves in the AST.
 
 ### Charlists
 
-Charlists in Elixir are written in single-quotes, such as `'foo'`. Any single-quote inside the string must be escaped with `\`. Charlists are a list of integers, each integer representing a Unicode character.
+Charlists in Elixir are written in single-quotes, such as `'foo'`. Any single-quote inside the string must be escaped with `\ `. Charlists are a list of integers, each integer representing a Unicode character.
 
 Charlists are always represented as themselves in the AST.
 
