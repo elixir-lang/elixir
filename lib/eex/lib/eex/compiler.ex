@@ -16,10 +16,10 @@ defmodule EEx.Compiler do
     trim = opts[:trim] || false
     case EEx.Tokenizer.tokenize(source, line, trim: trim) do
       {:ok, tokens} ->
-        state = %{engine: opts[:engine] || @default_engine, init: nil,
+        state = %{engine: opts[:engine] || @default_engine,
                   file: file, line: line, quoted: [], start_line: nil}
         init = state.engine.init(opts)
-        generate_buffer(tokens, init, [], %{state | init: init})
+        generate_buffer(tokens, init, [], state)
       {:error, line, message} ->
         raise EEx.SyntaxError, line: line, file: file, message: message
     end
@@ -42,7 +42,7 @@ defmodule EEx.Compiler do
   defp generate_buffer([{:start_expr, start_line, mark, chars} | rest], buffer, scope, state) do
     {contents, line, rest} = look_ahead_text(rest, start_line, chars)
     {contents, rest} =
-      generate_buffer(rest, state.init, [contents | scope],
+      generate_buffer(rest, state.engine.handle_begin(buffer), [contents | scope],
                       %{state | quoted: [], line: line, start_line: start_line})
     buffer = state.engine.handle_expr(buffer, IO.chardata_to_string(mark), contents)
     generate_buffer(rest, buffer, scope, state)
@@ -50,7 +50,7 @@ defmodule EEx.Compiler do
 
   defp generate_buffer([{:middle_expr, line, '', chars} | rest], buffer, [current | scope], state) do
     {wrapped, state} = wrap_expr(current, line, buffer, chars, state)
-    generate_buffer(rest, state.init, [wrapped | scope], %{state | line: line})
+    generate_buffer(rest, state.engine.handle_begin(buffer), [wrapped | scope], %{state | line: line})
   end
 
   defp generate_buffer([{:middle_expr, line, modifier, chars} | t], buffer, scope, state) do
@@ -99,7 +99,7 @@ defmodule EEx.Compiler do
     key = length(state.quoted)
     placeholder = '__EEX__(' ++ Integer.to_charlist(key) ++ ');'
     {current ++ placeholder ++ new_lines ++ chars,
-     %{state | quoted: [{key, buffer} | state.quoted]}}
+     %{state | quoted: [{key, state.engine.handle_end(buffer)} | state.quoted]}}
   end
 
   # Look text ahead on expressions

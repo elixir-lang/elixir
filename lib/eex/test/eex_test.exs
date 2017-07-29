@@ -450,21 +450,31 @@ defmodule EExTest do
     @behaviour EEx.Engine
 
     def init(_opts) do
-      ""
+      "INIT"
     end
 
     def handle_body(body) do
-      {:wrapped, body}
+      "BODY(#{body})"
+    end
+
+    def handle_begin(_) do
+      "BEGIN"
+    end
+
+    def handle_end(buffer) do
+      buffer <> ":END"
     end
 
     def handle_text(buffer, text) do
-      EEx.Engine.handle_text(buffer, text)
+      buffer <> ":TEXT(#{String.trim(text)})"
     end
 
-    def handle_expr(buffer, "/", _expr) do
-      quote do
-        unquote(buffer) <> "baz"
-      end
+    def handle_expr(buffer, "/", expr) do
+      buffer <> ":DIV(#{Macro.to_string(expr)})"
+    end
+
+    def handle_expr(buffer, "=", expr) do
+      buffer <> ":EQUAL(#{Macro.to_string(expr)})"
     end
 
     def handle_expr(buffer, mark, expr) do
@@ -473,16 +483,17 @@ defmodule EExTest do
   end
 
   describe "custom engines" do
-    test "calls handle_body" do
-      assert_eval {:wrapped, "foo"}, "foo", [], engine: TestEngine
-    end
-
-    test "standard marker" do
-      assert_eval {:wrapped, "foo bar"}, "foo <%= :bar %>", [], engine: TestEngine
+    test "text" do
+      assert_eval "BODY(INIT:TEXT(foo))", "foo", [], engine: TestEngine
     end
 
     test "custom marker" do
-      assert_eval {:wrapped, "foo baz"}, "foo <%/ :bar %>", [], engine: TestEngine
+      assert_eval "BODY(INIT:TEXT(foo):DIV(:bar))", "foo <%/ :bar %>", [], engine: TestEngine
+    end
+
+    test "begin/end" do
+      assert_eval ~s[BODY(INIT:TEXT(foo):EQUAL(if() do\n  "BEGIN:TEXT(this):END"\nelse\n  "BEGIN:TEXT(that):END"\nend))],
+                  "foo <%= if do %>this<% else %>that<% end %>", [], engine: TestEngine
     end
 
     test "not implemented custom marker" do
@@ -492,7 +503,6 @@ defmodule EExTest do
       end
     end
   end
-
 
   defp assert_eval(expected, actual, binding \\ [], opts \\ []) do
     opts = Enum.into [file: __ENV__.file, engine: opts[:engine] || EEx.Engine], opts
