@@ -96,8 +96,10 @@ start(_Type, _Args) ->
                    relative_paths => true},
   {ok, [[Home] | _]} = init:get_argument(home),
   Config = [{at_exit, []},
-            {home, unicode:characters_to_binary(Home, Encoding, Encoding)},
+            {argv, []},
+            {bootstrap, false},
             {compiler_options, CompilerOpts},
+            {home, unicode:characters_to_binary(Home, Encoding, Encoding)},
             {identifier_tokenizer, Tokenizer}
             | URIConfig],
   Tab = elixir_config:new(Config),

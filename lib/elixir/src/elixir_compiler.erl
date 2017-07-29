@@ -125,9 +125,9 @@ allows_fast_compilation(_) -> false.
 
 bootstrap() ->
   {ok, _} = application:ensure_all_started(elixir),
-  Update = fun(Old) -> maps:merge(Old, #{docs => false, internal => true,
-                                         relative_paths => false}) end,
+  Update = fun(Old) -> maps:merge(Old, #{docs => false, relative_paths => false}) end,
   _ = elixir_config:update(compiler_options, Update),
+  _ = elixir_config:put(bootstrap, true),
   [bootstrap_file(File) || File <- bootstrap_main()].
 
 bootstrap_file(File) ->

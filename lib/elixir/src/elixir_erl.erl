@@ -151,7 +151,7 @@ compile(#{module := Module} = Map) ->
   Data = elixir_module:data_table(Module),
   {Prefix, Forms, Defmacro, Unreachable} = dynamic_form(Map),
   Specs =
-    case elixir_compiler:get_opt(internal) of
+    case elixir_config:get(bootstrap) of
       true -> [];
       false -> specs_form(Data, Defmacro, Unreachable, types_form(Data, []))
     end,
