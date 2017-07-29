@@ -1,7 +1,8 @@
 -module(elixir_module).
 -export([data_table/1, defs_table/1, is_open/1, delete_doc/6,
          compile/4, expand_callback/6, format_error/1,
-         compiler_modules/0, delete_impl/6]).
+         compiler_modules/0, delete_impl/6,
+         write_cache/3, read_cache/2]).
 -include("elixir.hrl").
 
 -define(lexical_attr, {elixir, lexical_tracker}).
@@ -38,6 +39,12 @@ delete_doc(#{module := Module}, _, _, _, _, _) ->
 delete_impl(#{module := Module}, _, _, _, _, _) ->
   ets:delete(data_table(Module), impl),
   ok.
+
+write_cache(Module, Key, Value) ->
+  ets:insert(data_table(Module), {{cache, Key}, Value}).
+
+read_cache(Module, Key) ->
+  ets:lookup_element(data_table(Module), {cache, Key}, 2).
 
 %% Compilation hook
 
