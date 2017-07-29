@@ -82,7 +82,7 @@ defmodule Supervisor do
   supervisor will automatically start a new one, with the initial stack
   of `[:hello]`:
 
-      GenServer.call(MyStack, :pop)
+      GenServer.call(Stack, :pop)
       #=> :hello
 
   Supervisors support different strategies; in the example above, we
