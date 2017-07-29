@@ -86,25 +86,31 @@ change_universal_time(Name, {{Y, M, D}, {H, Min, Sec}}=Time)
     file:write_file_info(Name, #file_info{mtime=Time}, [{time, universal}]).
 
 relative_to_cwd(Path) ->
-  case elixir_compiler:get_opt(relative_paths) of
+  try elixir_compiler:get_opt(relative_paths) of
     true  -> 'Elixir.Path':relative_to_cwd(Path);
     false -> Path
+  catch
+    _:_ -> Path
   end.
 
 characters_to_list(Data) when is_list(Data) ->
   Data;
 characters_to_list(Data) ->
-  case elixir_compiler:get_opt(internal) of
+  try elixir_config:get(bootstrap) of
     true  -> unicode:characters_to_list(Data);
     false -> 'Elixir.String':to_charlist(Data)
+  catch
+    _:_ -> unicode:characters_to_list(Data)
   end.
 
 characters_to_binary(Data) when is_binary(Data) ->
   Data;
 characters_to_binary(Data) ->
-  case elixir_compiler:get_opt(internal) of
+  try elixir_config:get(bootstrap) of
     true  -> unicode:characters_to_binary(Data);
     false -> 'Elixir.List':to_string(Data)
+  catch
+    _:_ -> unicode:characters_to_binary(Data)
   end.
 
 %% Returns the caller as a stacktrace entry.
