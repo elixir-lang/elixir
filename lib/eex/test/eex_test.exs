@@ -436,25 +436,38 @@ defmodule EExTest do
     @behaviour EEx.Engine
 
     def init(_opts) do
-      ""
+      "INIT"
     end
 
     def handle_body(body) do
-      {:wrapped, body}
+      "BODY(#{body})"
+    end
+
+    def handle_begin(_) do
+      "BEGIN"
+    end
+
+    def handle_end(buffer) do
+      buffer <> ":END"
     end
 
     def handle_text(buffer, text) do
-      EEx.Engine.handle_text(buffer, text)
+      buffer <> ":TEXT(#{String.trim(text)})"
     end
 
-    def handle_expr(buffer, mark, expr) do
-      EEx.Engine.handle_expr(buffer, mark, expr)
+    def handle_expr(buffer, "=", expr) do
+      buffer <> ":EQUAL(#{Macro.to_string(expr)})"
     end
   end
 
   describe "custom engines" do
-    test "calls handle_body" do
-      assert {:wrapped, "foo"} = EEx.eval_string("foo", [], engine: TestEngine)
+    test "text" do
+      assert_eval "BODY(INIT:TEXT(foo))", "foo", [], engine: TestEngine
+    end
+
+    test "begin/end" do
+      assert_eval ~s[BODY(INIT:TEXT(foo):EQUAL(if() do\n  "BEGIN:TEXT(this):END"\nelse\n  "BEGIN:TEXT(that):END"\nend))],
+                  "foo <%= if do %>this<% else %>that<% end %>", [], engine: TestEngine
     end
   end
 

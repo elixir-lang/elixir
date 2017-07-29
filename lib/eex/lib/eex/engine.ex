@@ -2,19 +2,26 @@ defmodule EEx.Engine do
   @moduledoc ~S"""
   Basic EEx engine that ships with Elixir.
 
-  An engine needs to implement four functions:
+  An engine needs to implement six functions:
 
-    * `init(opts)` - returns the initial buffer
+    * `init(opts)` - called at the beginning of every text
+      and it must return the initial state.
 
-    * `handle_body(quoted)` - receives the final built quoted
-      expression, should do final post-processing and return a
-      quoted expression.
+    * `handle_body(state)` - receives the state of the document
+      and it must return a quoted expression.
 
-    * `handle_text(buffer, text)` - it receives the buffer,
+    * `handle_text(state, text)` - it receives the state,
       the text and must return a new quoted expression.
 
-    * `handle_expr(buffer, marker, expr)` - it receives the buffer,
-      the marker, the expr and must return a new quoted expression.
+    * `handle_expr(state, marker, expr)` - it receives the state,
+      the marker, the expr and must return a new state.
+
+    * `handle_begin(state)` - called every time there a new state
+      is needed with an empty buffer. Typically called for do/end
+      blocks, case expressions, anonymous functions, etc
+
+    * `handle_end(state)` - opposite of `handle_begin(state)` and
+      it must return quoted expression
 
       The marker is what follows exactly after `<%`. For example,
       `<% foo %>` has an empty marker, but `<%= foo %>` has `"="`
@@ -27,10 +34,14 @@ defmodule EEx.Engine do
   default implementations for the functions above.
   """
 
-  @callback init(opts :: keyword) :: Macro.t
-  @callback handle_body(quoted :: Macro.t) :: Macro.t
-  @callback handle_text(buffer :: Macro.t, text :: String.t) :: Macro.t
-  @callback handle_expr(buffer :: Macro.t, marker :: String.t, expr :: Macro.t) :: Macro.t
+  @type state :: term
+
+  @callback init(opts :: keyword) :: state
+  @callback handle_body(state) :: Macro.t
+  @callback handle_text(state, text :: String.t) :: state
+  @callback handle_expr(state, marker :: String.t, expr :: Macro.t) :: state
+  @callback handle_begin(state) :: state
+  @callback handle_end(state) :: Macro.t
 
   @doc false
   defmacro __using__(_) do
@@ -43,6 +54,14 @@ defmodule EEx.Engine do
 
       def handle_body(quoted) do
         EEx.Engine.handle_body(quoted)
+      end
+
+      def handle_begin(quoted) do
+        EEx.Engine.handle_begin(quoted)
+      end
+
+      def handle_end(quoted) do
+        EEx.Engine.handle_end(quoted)
       end
 
       def handle_text(buffer, text) do
@@ -102,6 +121,20 @@ defmodule EEx.Engine do
   """
   def init(_opts) do
     ""
+  end
+
+  @doc """
+  Returns an empty string as the new buffer.
+  """
+  def handle_begin(_previous) do
+    ""
+  end
+
+  @doc """
+  End of the new buffer.
+  """
+  def handle_end(quoted) do
+    quoted
   end
 
   @doc """
