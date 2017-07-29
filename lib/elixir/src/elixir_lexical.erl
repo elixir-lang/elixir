@@ -11,7 +11,7 @@
 -define(tracker, 'Elixir.Kernel.LexicalTracker').
 
 run(File, Dest, Callback) ->
-  case elixir_compiler:get_opt(internal) of
+  case elixir_config:get(bootstrap) of
     false ->
       {ok, Pid} = ?tracker:start_link(Dest),
       try Callback(Pid) of

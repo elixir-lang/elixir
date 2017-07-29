@@ -13,7 +13,7 @@
 -define(tracker, 'Elixir.Module.LocalsTracker').
 
 setup(Module) ->
-  case elixir_compiler:get_opt(internal) of
+  case elixir_config:get(bootstrap) of
     false ->
       {ok, Pid} = ?tracker:start_link(),
       ets:insert(elixir_module:data_table(Module), {?attr, Pid}),

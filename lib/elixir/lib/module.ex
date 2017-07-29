@@ -898,7 +898,7 @@ defmodule Module do
                   "cannot make function #{function_name}/#{arity} overridable because it was not defined"
           clause ->
             neighbours =
-              if :elixir_compiler.get_opt(:internal) do
+              if :elixir_config.get(:bootstrap) do
                 []
               else
                 Module.LocalsTracker.yank(module, tuple)

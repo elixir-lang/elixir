@@ -18,7 +18,11 @@ matrix:
 env:
   - ELIXIR_ASSERT_TIMEOUT=2000
 
-script: "make compile && rm -rf .git && make test"
+script:
+  - make compile
+  - rm -rf .git
+  - make test
+  - dialyzer -pa lib/elixir/ebin --build_plt --output_plt elixir.plt --apps lib/elixir/ebin/elixir.beam lib/elixir/ebin/Elixir.Kernel.beam
 
 notifications:
   recipients:

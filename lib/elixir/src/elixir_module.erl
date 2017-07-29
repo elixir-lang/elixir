@@ -86,7 +86,7 @@ compile(Line, Module, Block, Vars, E) ->
 
     {AllDefinitions, Unreachable} = elixir_def:fetch_definitions(File, Module),
 
-    (not elixir_compiler:get_opt(internal)) andalso
+    (not elixir_config:get(bootstrap)) andalso
      'Elixir.Module':check_behaviours_and_impls(E, Data, AllDefinitions, OverridablePairs),
 
     CompileOpts = lists:flatten(ets:lookup_element(Data, compile, 2)),
@@ -186,7 +186,7 @@ build(Line, File, Module, Lexical) ->
       end,
 
   ImplOnDefinition =
-      case elixir_compiler:get_opt(internal) of
+      case elixir_config:get(bootstrap) of
         true -> [{elixir_module, delete_impl}];
         _    -> [{'Elixir.Module', compile_impl}]
       end,
