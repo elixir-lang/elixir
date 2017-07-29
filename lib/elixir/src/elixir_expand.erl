@@ -448,15 +448,15 @@ expand(Function, E) when is_function(Function) ->
   end;
 
 
-expand(PidOrRef, E) when is_pid(PidOrRef); is_reference(PidOrRef) ->
+expand(Pid, E) when is_pid(Pid) ->
   case ?key(E, function) of
     nil ->
-      {PidOrRef, E};
+      {Pid, E};
     Function ->
       %% TODO: Make me an error on 2.0
       elixir_errors:form_warn([], ?key(E, file), ?MODULE,
-                              {invalid_pid_or_ref_in_function, PidOrRef, Function}),
-      {PidOrRef, E}
+                              {invalid_pid_in_function, Pid, Function}),
+      {Pid, E}
   end;
 
 expand(Other, E) when is_number(Other); is_atom(Other); is_binary(Other) ->
@@ -949,9 +949,9 @@ format_error({invalid_local_invocation, Context, {Name, _, Args} = Call}) ->
 format_error({invalid_remote_invocation, Context, Receiver, Right, Arity}) ->
   io_lib:format("cannot invoke remote function ~ts.~ts/~B inside ~ts",
                 ['Elixir.Macro':to_string(Receiver), Right, Arity, Context]);
-format_error({invalid_pid_or_ref_in_function, PidOrRef, {Name, Arity}}) ->
-  io_lib:format("cannot compile PID/Reference ~ts inside quoted expression for function ~ts/~B",
-                ['Elixir.Kernel':inspect(PidOrRef, []), Name, Arity]);
+format_error({invalid_pid_in_function, Pid, {Name, Arity}}) ->
+  io_lib:format("cannot compile PID ~ts inside quoted expression for function ~ts/~B",
+                ['Elixir.Kernel':inspect(Pid, []), Name, Arity]);
 format_error({unsupported_option, Kind, Key}) ->
   io_lib:format("unsupported option ~ts given to ~s",
                 ['Elixir.Macro':to_string(Key), Kind]);

@@ -3565,7 +3565,6 @@ defmodule Kernel do
   defp define(kind, call, expr, env) do
     module = assert_module_scope(env, kind, 2)
     assert_no_function_scope(env, kind, 2)
-    table = :elixir_module.data_table(module)
 
     {escaped_call, unquoted_call} = :elixir_quote.escape(call, true)
     {escaped_expr, unquoted_expr} = :elixir_quote.escape(expr, true)
@@ -3575,14 +3574,14 @@ defmodule Kernel do
         true ->
           escaped_expr
         false ->
-          key = {:cache_def, :erlang.unique_integer()}
-          :ets.insert(table, {key, expr})
-          quote do: :ets.lookup_element(unquote(table), unquote(key), 2)
+          key = :erlang.unique_integer()
+          :elixir_module.write_cache(module, key, expr)
+          quote do: :elixir_module.read_cache(unquote(module), unquote(key))
       end
 
     # Do not check clauses if any expression was unquoted
     check_clauses = not(unquoted_expr or unquoted_call)
-    pos = :elixir_locals.cache_env(table, env)
+    pos = :elixir_locals.cache_env(env)
 
     quote do
       :elixir_def.store_definition(unquote(kind), unquote(check_clauses),

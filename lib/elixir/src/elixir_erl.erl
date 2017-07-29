@@ -121,9 +121,9 @@ elixir_to_erl(Function) when is_function(Function) ->
     false ->
       error(badarg)
   end;
-elixir_to_erl(PidOrRef) when is_pid(PidOrRef); is_reference(PidOrRef) ->
+elixir_to_erl(Pid) when is_pid(Pid) ->
   elixir_erl:remote(0, erlang, binary_to_term,
-    [elixir_erl:elixir_to_erl(term_to_binary(PidOrRef))]);
+    [elixir_erl:elixir_to_erl(term_to_binary(Pid))]);
 elixir_to_erl(_Other) ->
   error(badarg).
 

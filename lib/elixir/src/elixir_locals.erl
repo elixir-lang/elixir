@@ -1,7 +1,7 @@
 %% Module responsible for tracking invocations of module calls.
 -module(elixir_locals).
 -export([
-  setup/1, cleanup/1, cache_env/1, cache_env/2, get_cached_env/1,
+  setup/1, cleanup/1, cache_env/1, get_cached_env/1,
   record_local/2, record_local/3, record_import/4,
   record_definition/3, record_defaults/4, reattach/5,
   ensure_no_import_conflict/3, warn_unused_local/3, format_error/1
@@ -60,10 +60,8 @@ if_tracker(Module, Default, Callback) ->
 
 %% CACHING
 
-cache_env(#{module := Module} = E) ->
-  cache_env(elixir_module:data_table(Module), E).
-
-cache_env(Table, #{line := Line} = E) ->
+cache_env(#{line := Line, module := Module} = E) ->
+  Table = elixir_module:data_table(Module),
   Cache = E#{line := nil, vars := []},
 
   Pos =
@@ -77,10 +75,10 @@ cache_env(Table, #{line := Line} = E) ->
         Key
     end,
 
-  {Table, {Line, Pos}}.
+  {Module, {Line, Pos}}.
 
-get_cached_env({Table, {Line, Pos}}) ->
-  (ets:lookup_element(Table, {cache_env, Pos}, 2))#{line := Line};
+get_cached_env({Module, {Line, Pos}}) ->
+  (ets:lookup_element(elixir_module:data_table(Module), {cache_env, Pos}, 2))#{line := Line};
 get_cached_env(Env) ->
   Env.
 
