@@ -14,7 +14,9 @@ defmodule ExUnit.CLIFormatter do
       trace: opts[:trace],
       colors: Keyword.put_new(opts[:colors], :enabled, IO.ANSI.enabled?),
       width: get_terminal_width(),
+      slowest: opts[:slowest],
       test_counter: %{},
+      test_timings: [],
       failure_counter: 0,
       skipped_counter: 0,
       invalid_counter: 0
@@ -42,7 +44,8 @@ defmodule ExUnit.CLIFormatter do
     else
       IO.write success(".", config)
     end
-    {:noreply, %{config | test_counter: update_test_counter(config.test_counter, test)}}
+    {:noreply, %{config | test_counter: update_test_counter(config.test_counter, test),
+                          test_timings: update_test_timings(config.test_timings, test)}}
   end
 
   def handle_cast({:test_finished, %ExUnit.Test{state: {:skip, _}} = test}, config) do
@@ -73,6 +76,7 @@ defmodule ExUnit.CLIFormatter do
     print_logs(test.logs)
 
     {:noreply, %{config | test_counter: update_test_counter(config.test_counter, test),
+                          test_timings: update_test_timings(config.test_timings, test),
                           failure_counter: config.failure_counter + 1}}
   end
 
@@ -111,6 +115,10 @@ defmodule ExUnit.CLIFormatter do
     "\r  * #{test.name} (skipped)"
   end
 
+  defp normalize_us(us) do
+    div(us, 1000)
+  end
+
   defp format_us(us) do
     us = div(us, 10)
     if us < 10 do
@@ -125,11 +133,55 @@ defmodule ExUnit.CLIFormatter do
     Map.update(test_counter, type, 1, &(&1 + 1))
   end
 
+  ## Slowest
+
+  defp format_slowest_total(%{slowest: slowest} = config, run_us) do
+    slowest_us =
+      config
+      |> extract_slowest_tests()
+      |> Enum.reduce(0, & &1.time + &2)
+
+    slowest_time =
+      slowest_us
+      |> normalize_us()
+      |> format_us()
+
+    percentage = Float.round(((slowest_us / run_us) * 100), 1)
+
+    "Top #{slowest} slowest (#{slowest_time}s), #{percentage}% of total time:\n"
+  end
+
+  defp format_slowest_times(config) do
+    config
+    |> extract_slowest_tests()
+    |> Enum.map(&format_slow_test/1)
+  end
+
+  defp format_slow_test(%ExUnit.Test{name: name, time: time}) do
+    "  * #{name} (#{format_us(time)}ms)\n"
+  end
+
+  defp extract_slowest_tests(%{slowest: slowest, test_timings: timings} = _config) do
+    timings
+    |> Enum.sort_by(fn %{time: time} -> -time end)
+    |> Enum.take(slowest)
+  end
+
+  defp update_test_timings(timings, %ExUnit.Test{} = test) do
+    [test | timings]
+  end
+
   ## Printing
 
   defp print_suite(config, run_us, load_us) do
     IO.write "\n\n"
     IO.puts format_time(run_us, load_us)
+
+    if config.slowest > 0 do
+      IO.write "\n"
+      IO.puts format_slowest_total(config, run_us)
+      IO.puts format_slowest_times(config)
+    end
 
     # singular/plural
     test_type_counts = format_test_type_counts(config)
