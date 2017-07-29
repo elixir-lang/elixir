@@ -58,7 +58,7 @@ handle_file_warning(_, _File, {_Line, erl_lint, {shadowed_var, _Var, _Where}}) -
 handle_file_warning(_, _File, {_Line, erl_lint, {exported_var, _Var, _Where}}) -> ok;
 
 handle_file_warning(_, File, {Line, erl_lint, {undefined_behaviour, Module}}) ->
-  case elixir_compiler:get_opt(internal) of
+  case elixir_config:get(bootstrap) of
     true ->
       ok;
     false ->
