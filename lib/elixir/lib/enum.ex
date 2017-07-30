@@ -2230,13 +2230,19 @@ defmodule Enum do
 
   Using the default `sorter` of `<=/2`:
 
-      iex> Enum.sort_by ["some", "kind", "of", "monster"], &byte_size/1
+      iex> Enum.sort_by(["some", "kind", "of", "monster"], &byte_size/1)
       ["of", "some", "kind", "monster"]
 
   Using a custom `sorter` to override the order:
 
-      iex> Enum.sort_by ["some", "kind", "of", "monster"], &byte_size/1, &>=/2
+      iex> Enum.sort_by(["some", "kind", "of", "monster"], &byte_size/1, &>=/2)
       ["monster", "some", "kind", "of"]
+
+  Sorting by multiple properties - first by size, then by first letter
+  (this takes advantage of the fact that tuples are compared element-by-element):
+
+      iex> Enum.sort_by(["some", "kind", "of", "monster"], &{byte_size(&1), String.first(&1)})
+      ["of", "kind", "some", "monster"]
 
   """
   @spec sort_by(t, (element -> mapped_element),
