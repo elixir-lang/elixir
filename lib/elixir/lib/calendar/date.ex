@@ -221,14 +221,8 @@ defmodule Date do
   end
 
   @doc """
-  Parses the extended "Date and time of day" format described by
+  Parses the extended "Dates" format described by
   [ISO 8601:2004](https://en.wikipedia.org/wiki/ISO_8601).
-
-  Timezone offset may be included in the string but they will be
-  simply discarded as such information is not included in naive date
-  times.
-
-  Time representations with reduced accuracy are not supported.
 
   ## Examples
 
@@ -261,7 +255,7 @@ defmodule Date do
   end
 
   @doc """
-  Parses the extended "Date and time of day" format described by
+  Parses the extended "Dates" format described by
   [ISO 8601:2004](https://en.wikipedia.org/wiki/ISO_8601).
 
   Raises if the format is invalid.
