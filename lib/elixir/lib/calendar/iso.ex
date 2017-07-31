@@ -134,13 +134,13 @@ defmodule Calendar.ISO do
     719528
   end
   def date_to_iso_days(year, month, day) do
-    date_to_gregorian_days(year, month, day) - 365
+    date_to_gregorian_days(year, month, day)
   end
 
   # Converts count of days since 0000-01-01 to {year, month, day} tuple.
   @doc false
   def date_from_iso_days(days) do
-    gregorian_days_to_date(days + 365)
+    gregorian_days_to_date(days)
   end
 
   defp div_mod(int1, int2) do
@@ -596,4 +596,3 @@ defmodule Calendar.ISO do
     {Integer.floor_div(divisor, dividend), Integer.mod(divisor, dividend)}
   end
 end
-
