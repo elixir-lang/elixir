@@ -226,9 +226,7 @@ defmodule MapTest do
     end
   end
 
-  def foo() do
-    "Foo"
-  end
+  defp foo(), do: "foo"
 
   defp destruct1(%module{}), do: module
 
@@ -270,7 +268,7 @@ defmodule MapTest do
     end
   end
 
-  test "defstruct allow keys to be enforced" do
+  test "defstruct allows keys to be enforced" do
     message = "the following keys must also be given when building struct TestMod: [:foo]"
     assert_raise ArgumentError, message, fn ->
       Code.eval_string("""
@@ -295,6 +293,26 @@ defmodule MapTest do
         end
         """)
     end
+  end
+
+  test "struct always expands context module" do
+    Code.compiler_options(ignore_module_conflict: true)
+
+    defmodule LocalPoint do
+      defstruct x: 0
+      def new, do: %LocalPoint{}
+    end
+
+    assert LocalPoint.new == %{__struct__: LocalPoint, x: 0}
+
+    defmodule LocalPoint do
+      defstruct x: 0, y: 0
+      def new, do: %LocalPoint{}
+    end
+
+    assert LocalPoint.new == %{__struct__: LocalPoint, x: 0, y: 0}
+  after
+    Code.compiler_options(ignore_module_conflict: false)
   end
 
   defmodule LocalUser do
