@@ -32,9 +32,6 @@ defmodule Calendar.ISO do
   # Used in leap day calculations:
   @days_per_nonleap_year 365
   @days_per_leap_year 366
-  @days_per_leap_cycle 3 * @days_per_nonleap_year + @days_per_leap_year
-  @days_per_century 36524
-  @days_per_fourcenturies 146097
 
   @doc """
   Returns the `t:Calendar.iso_days` format of the specified date.
@@ -287,11 +284,11 @@ defmodule Calendar.ISO do
   end
 
   @impl true
-  def valid_date?(year, month, day) when day in (1..31) and month in (1..12) and year in (0..9999) do
-    day <= days_in_month(year, month)
-  end
   def valid_date?(year, month, day) do
-    false
+    day in 1..31 and
+      month in 1..12 and
+      year in 0..9999 and
+      day <= days_in_month(year, month)
   end
 
   @impl true
@@ -496,8 +493,8 @@ defmodule Calendar.ISO do
   defp days_before_month(11), do: 304
   defp days_before_month(12), do: 334
 
-  defp leap_day_offset(year, month) when month < 3, do: 0
-  defp leap_day_offset(year, month) do
+  defp leap_day_offset(_year, month) when month < 3, do: 0
+  defp leap_day_offset(year, _month) do
     if leap_year?(year), do: 1, else: 0
   end
 
@@ -539,7 +536,7 @@ defmodule Calendar.ISO do
   # original: https://github.com/erlang/otp/blob/master/lib/stdlib/src/calendar.erl#L491
   # Can possibly be written in a for-loop as well, for increased brevity and readability :D
   # Should only ever be called with `day_of_year` 0..366 and `extra_day` 0 | 1.
-  defp do_year_to_date(extra_day, day_of_year) when day_of_year < 31 do
+  defp do_year_to_date(_extra_day, day_of_year) when day_of_year < 31 do
     {1, day_of_year}
   end
   defp do_year_to_date(extra_day, day_of_year) when day_of_year < (59 + extra_day) do
