@@ -105,7 +105,7 @@ defmodule ExUnitTest do
 
     output = capture_io(fn -> ExUnit.run end)
 
-    assert output =~ ~r"Top 2 slowest \(\d+\.\d+s\), \d{2}.\d% of total time:"
+    assert output =~ ~r"Top 2 slowest \(\d+\.\d+s\), \d+.\d% of total time:"
     assert output =~ ~r"\* test slowest \(.+ms\)\n  \* test delayed \(.+ms\)"
   end
 
