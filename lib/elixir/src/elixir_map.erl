@@ -121,10 +121,7 @@ validate_struct(_, _) -> false.
 
 load_struct(Meta, Name, Args, InContext, E) ->
   Arity = length(Args),
-
-  Local =
-    not(ensure_loaded(Name)) andalso
-      (InContext orelse wait_for_struct(Name)),
+  Local = InContext orelse (not(ensure_loaded(Name)) andalso wait_for_struct(Name)),
 
   try
     case Local andalso elixir_def:local_for(Name, '__struct__', Arity, [def]) of
