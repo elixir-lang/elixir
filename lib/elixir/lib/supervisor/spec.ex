@@ -1,7 +1,8 @@
 defmodule Supervisor.Spec do
   @moduledoc """
-  NOTE: The functions in this module are deprecated. Please see
-  `Supervisor` instead.
+  NOTE: The functions in this module are deprecated and they do not
+  work with the module-based child specs introduced in Elixir v1.5.
+  Please see the `Supervisor` documentation instead.
 
   Convenience functions for defining supervisor specifications.
 
