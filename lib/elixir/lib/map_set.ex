@@ -32,6 +32,10 @@ defmodule MapSet do
   structures: for example, see `MapSet.new/1` or `Enum.into/2`.
   """
 
+  # MapSets have an underlying Map. MapSet elements are keys of said map,
+  # and this empty list is their associated dummy value.
+  @dummy_value []
+
   @type value :: term
 
   @opaque t(value) :: %__MODULE__{map: %{optional(value) => []}}
@@ -99,14 +103,14 @@ defmodule MapSet do
   end
 
   defp new_from_list([item | rest], acc) do
-    new_from_list(rest, [{item, []} | acc])
+    new_from_list(rest, [{item, @dummy_value} | acc])
   end
 
   defp new_from_list_transform([], _fun, acc) do
     :maps.from_list(acc)
   end
   defp new_from_list_transform([item | rest], fun, acc) do
-    new_from_list_transform(rest, fun, [{fun.(item), []} | acc])
+    new_from_list_transform(rest, fun, [{fun.(item), @dummy_value} | acc])
   end
 
   @doc """
@@ -166,7 +170,7 @@ defmodule MapSet do
       %{^key => _} ->
         filter_not_in(rest, map2, acc)
       _ ->
-        filter_not_in(rest, map2, [{key, []} | acc])
+        filter_not_in(rest, map2, [{key, @dummy_value} | acc])
     end
   end
 
@@ -271,7 +275,7 @@ defmodule MapSet do
   """
   @spec put(t(val), new_val) :: t(val | new_val) when val: value, new_val: value
   def put(%MapSet{map: map} = map_set, value) do
-    %{map_set | map: Map.put(map, value, [])}
+    %{map_set | map: Map.put(map, value, @dummy_value)}
   end
 
   @doc """
