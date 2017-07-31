@@ -100,12 +100,32 @@ defmodule Logger.Formatter do
   end
 
   @doc """
+  Formats time as chardata.
+  """
+  def format_time({hh, mi, ss, ms}) do
+    [pad2(hh), ?:, pad2(mi), ?:, pad2(ss), ?., pad3(ms)]
+  end
+
+  @doc """
+  Formats date as chardata.
+  """
+  def format_date({yy, mm, dd}) do
+    [Integer.to_string(yy), ?-, pad2(mm), ?-, pad2(dd)]
+  end
+
+  defp pad3(int) when int < 10,  do: [?0, ?0, Integer.to_string(int)]
+  defp pad3(int) when int < 100, do: [?0, Integer.to_string(int)]
+  defp pad3(int), do: Integer.to_string(int)
+
+  defp pad2(int) when int < 10, do: [?0, Integer.to_string(int)]
+  defp pad2(int), do: Integer.to_string(int)
+
+  @doc """
   Takes a compiled format and injects the, level, timestamp, message and
   metadata listdict and returns a properly formatted string.
   """
-
-  @spec format({atom, atom} | [pattern | binary], Logger.level, Logger.message, time, keyword) ::
-    IO.chardata
+  @spec format({atom, atom} | [pattern | binary], Logger.level,
+               Logger.message, time, keyword) :: IO.chardata
   def format({mod, fun}, level, msg, ts, md) do
     apply(mod, fun, [level, msg, ts, md])
   end
@@ -117,8 +137,8 @@ defmodule Logger.Formatter do
   end
 
   defp output(:message, _, msg, _, _),        do: msg
-  defp output(:date, _, _, {date, _time}, _), do: Logger.Utils.format_date(date)
-  defp output(:time, _, _, {_date, time}, _), do: Logger.Utils.format_time(time)
+  defp output(:date, _, _, {date, _time}, _), do: format_date(date)
+  defp output(:time, _, _, {_date, time}, _), do: format_time(time)
   defp output(:level, level, _, _, _),        do: Atom.to_string(level)
   defp output(:node, _, _, _, _),             do: Atom.to_string(node())
 
