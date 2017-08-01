@@ -411,7 +411,7 @@ defmodule URI do
   def parse(string) when is_binary(string) do
     # From https://tools.ietf.org/html/rfc3986#appendix-B
     regex = Regex.recompile!(~r/^(([a-z][a-z0-9\+\-\.]*):)?(\/\/([^\/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?/i)
-    parts = nillify(Regex.run(regex, string))
+    parts = normalize_parts(string, Regex.run(regex, string))
 
     destructure [_, _, scheme, _, authority, path, _, query, _, fragment], parts
     {userinfo, host, port} = split_authority(authority)
@@ -424,6 +424,15 @@ defmodule URI do
       fragment: fragment, authority: authority,
       userinfo: userinfo, host: host, port: port
     }
+  end
+
+  defp normalize_parts(string, parts) do
+    if String.ends_with?(string, "#") do
+      [fragment | rest] = Enum.reverse(parts)
+      Enum.reverse([fragment | nillify(rest)])
+    else
+      nillify(parts)
+    end
   end
 
   # Split an authority into its userinfo, host and port parts.
