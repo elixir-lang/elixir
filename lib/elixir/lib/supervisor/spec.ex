@@ -173,8 +173,19 @@ defmodule Supervisor.Spec do
     maxR = Keyword.get(options, :max_restarts, 3)
     maxS = Keyword.get(options, :max_seconds, 5)
 
-    assert_unique_ids(Enum.map(children, &elem(&1, 0)))
+    assert_unique_ids(Enum.map(children, &get_id/1))
     {:ok, {{strategy, maxR, maxS}, children}}
+  end
+
+  defp get_id({id, _, _, _, _, _}) do
+    id
+  end
+  defp get_id(other) do
+    raise ArgumentError,
+      "invalid tuple specification given to supervise/2. If you are trying to use " <>
+      "the map child specification that is part of the Elixir v1.5, use Supervisor.init/2 " <>
+      "instead of Supervisor.Spec.supervise/2. See the Supervisor module for more information. " <>
+      "Got: #{inspect other}"
   end
 
   defp assert_unique_ids([id | rest]) do
