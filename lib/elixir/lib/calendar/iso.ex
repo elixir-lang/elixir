@@ -29,7 +29,6 @@ defmodule Calendar.ISO do
   @seconds_per_day 24 * 60 * 60 # Note that this does _not_ handle leap seconds.
   @microseconds_per_second 1_000_000
 
-  # Used in leap day calculations:
   @days_per_nonleap_year 365
   @days_per_leap_year 366
 
@@ -130,14 +129,18 @@ defmodule Calendar.ISO do
   def date_to_iso_days(1970, 1, 1) do
     719528
   end
-  def date_to_iso_days(year, month, day) do
-    date_to_gregorian_days(year, month, day)
+  def date_to_iso_days(year, month, day) when year in 0..9999 do
+    true = day <= days_in_month(year, month)
+    days_in_previous_years(year) + days_before_month(month) + leap_day_offset(year, month) + day - 1
   end
 
   # Converts count of days since 0000-01-01 to {year, month, day} tuple.
   @doc false
-  def date_from_iso_days(days) do
-    gregorian_days_to_date(days)
+  def date_from_iso_days(days) when days in 0..3652424 do
+    {year, day_of_year} = days_to_year(days)
+    extra_day = if leap_year?(year), do: 1, else: 0
+    {month, day_in_month} = year_day_to_year_date(extra_day, day_of_year)
+    {year, month, day_in_month + 1}
   end
 
   defp div_mod(int1, int2) do
@@ -192,8 +195,8 @@ defmodule Calendar.ISO do
   """
   @spec leap_year?(year) :: boolean()
   @impl true
-  def leap_year?(year) when is_integer(year) do
-    Integer.mod(year, 4) === 0 and (Integer.mod(year, 100) > 0 or Integer.mod(year, 400) === 0)
+  def leap_year?(year) when is_integer(year) and year >= 0 do
+    rem(year, 4) === 0 and (rem(year, 100) > 0 or rem(year, 400) === 0)
   end
 
   @doc """
@@ -222,7 +225,7 @@ defmodule Calendar.ISO do
   @impl true
   def day_of_week(year, month, day)
       when is_integer(year) and is_integer(month) and is_integer(day) do
-    Integer.mod((date_to_gregorian_days(year, month, day) + 5), 7) + 1
+    Integer.mod((date_to_iso_days(year, month, day) + 5), 7) + 1
   end
 
   @doc """
@@ -254,12 +257,12 @@ defmodule Calendar.ISO do
   Converts the given date into a string.
   """
   @impl true
-  def date_to_string(year, month, day) when year >= 0 do
+  def date_to_string(year, month, day) do
     zero_pad(year, 4) <> "-" <> zero_pad(month, 2) <> "-" <> zero_pad(day, 2)
   end
 
   defp date_to_string(year, month, day, :extended), do: date_to_string(year, month, day)
-  defp date_to_string(year, month, day, :basic) when year >= 0 do
+  defp date_to_string(year, month, day, :basic) do
     zero_pad(year, 4) <> zero_pad(month, 2) <> zero_pad(day, 2)
   end
 
@@ -285,10 +288,9 @@ defmodule Calendar.ISO do
 
   @impl true
   def valid_date?(year, month, day) do
-    day in 1..31 and
-      month in 1..12 and
+    month in 1..12 and
       year in 0..9999 and
-      day <= days_in_month(year, month)
+      day in 1..days_in_month(year, month)
   end
 
   @impl true
@@ -339,7 +341,7 @@ defmodule Calendar.ISO do
     if total in @unix_range_microseconds do
       microsecond = rem(total, 1_000_000)
       precision = precision_for_unit(unit)
-      {date, time} = gregorian_seconds_to_datetime(@unix_epoch + div(total, 1_000_000))
+      {date, time} = iso_seconds_to_datetime(@unix_epoch + div(total, 1_000_000))
       {:ok, date, time, {microsecond, precision}}
     else
       {:error, :invalid_unix_time}
@@ -468,18 +470,9 @@ defmodule Calendar.ISO do
     end
   end
 
-  # `year >=0`-check only exists to maintain full compatibility with `:calendar`,
-  # Can be removed in the future.
-  defp date_to_gregorian_days(year, month, day) when year >= 0 do
-    last_day = days_in_month(year, month)
-    true =  day <= last_day
-    days_in_prev_years(year) + days_before_month(month) + leap_day_offset(year, month) + day - 1
-  end
-
   # Note that this function does not add the extra leap day for a leap year.
   # If you want to add that leap day when appropriate,
-  # add the result of `leap_day_offset(year, month)` to the result of `days_before_month(month)`.
-  defp days_before_month(month)
+  # add the result of leap_day_offset/2 to the result of days_before_month/1.
   defp days_before_month(1), do: 0
   defp days_before_month(2), do: 31
   defp days_before_month(3), do: 59
@@ -498,98 +491,79 @@ defmodule Calendar.ISO do
     if leap_year?(year), do: 1, else: 0
   end
 
-  # `days >=0`-check only exists to maintain full compatibility with `:calendar`,
-  # Can be removed in the future, once we expose negative dates to the public.
-  defp gregorian_days_to_date(days) when days >= 0 do
-    {years, day_of_year} = days_to_year(days)
-    {months, day_in_month} = year_day_to_date(years, day_of_year)
-    {years, months, day_in_month}
-  end
-
   defp days_to_year(days) do
-    years = Integer.floor_div(days, @days_per_nonleap_year)
-    {years, days_before_year} = days_to_year(years, days, days_in_prev_years(years))
-    {years, days - days_before_year}
+    year = Integer.floor_div(days, @days_per_nonleap_year)
+    {year, days_before_year} = days_to_year(year, days, days_in_previous_years(year))
+    {year, days - days_before_year}
   end
 
-  defp days_to_year(year, days, days2) when days < days2 do
-    days_to_year(year - 1, days, days_in_prev_years(year - 1))
+  defp days_to_year(year, days1, days2) when days1 < days2 do
+    days_to_year(year - 1, days1, days_in_previous_years(year - 1))
   end
-  defp days_to_year(year, _days, days2) do
+
+  defp days_to_year(year, _days1, days2) do
     {year, days2}
   end
 
-  def days_in_prev_years(0), do: 0
-  def days_in_prev_years(year) do
-    prevyear = year - 1
-    Integer.floor_div(prevyear, 4) - Integer.floor_div(prevyear, 100) + Integer.floor_div(prevyear, 400) +
-      prevyear * @days_per_nonleap_year + @days_per_leap_year
+  defp days_in_previous_years(0), do: 0
+  defp days_in_previous_years(year) do
+    previous_year = year - 1
+    Integer.floor_div(previous_year, 4) -
+      Integer.floor_div(previous_year, 100) +
+      Integer.floor_div(previous_year, 400) +
+      previous_year * @days_per_nonleap_year + @days_per_leap_year
   end
 
-  def year_day_to_date(year, day_of_year) do
-    extra_day = if leap_year?(year), do: 1, else: 0
-    {month, day} = do_year_to_date(extra_day, day_of_year)
-    {month, day + 1}
-  end
-
-  # Note: `0` is the first day of the month.
-  # original: https://github.com/erlang/otp/blob/master/lib/stdlib/src/calendar.erl#L491
-  # Can possibly be written in a for-loop as well, for increased brevity and readability :D
-  # Should only ever be called with `day_of_year` 0..366 and `extra_day` 0 | 1.
-  defp do_year_to_date(_extra_day, day_of_year) when day_of_year < 31 do
+  # Note that 0 is the first day of the month.
+  defp year_day_to_year_date(_extra_day, day_of_year) when day_of_year < 31 do
     {1, day_of_year}
   end
-  defp do_year_to_date(extra_day, day_of_year) when day_of_year < (59 + extra_day) do
+  defp year_day_to_year_date(extra_day, day_of_year) when day_of_year < (59 + extra_day) do
     {2, day_of_year - 31}
   end
-  defp do_year_to_date(extra_day, day_of_year) when day_of_year < (90 + extra_day) do
+  defp year_day_to_year_date(extra_day, day_of_year) when day_of_year < (90 + extra_day) do
     {3, day_of_year - (59 + extra_day)}
   end
-  defp do_year_to_date(extra_day, day_of_year) when day_of_year < (120 + extra_day) do
+  defp year_day_to_year_date(extra_day, day_of_year) when day_of_year < (120 + extra_day) do
     {4, day_of_year - (90 + extra_day)}
   end
-  defp do_year_to_date(extra_day, day_of_year) when day_of_year < (151 + extra_day) do
+  defp year_day_to_year_date(extra_day, day_of_year) when day_of_year < (151 + extra_day) do
     {5, day_of_year - (120 + extra_day)}
   end
-  defp do_year_to_date(extra_day, day_of_year) when day_of_year < (181 + extra_day) do
+  defp year_day_to_year_date(extra_day, day_of_year) when day_of_year < (181 + extra_day) do
     {6, day_of_year - (151 + extra_day)}
   end
-  defp do_year_to_date(extra_day, day_of_year) when day_of_year < (212 + extra_day) do
+  defp year_day_to_year_date(extra_day, day_of_year) when day_of_year < (212 + extra_day) do
     {7, day_of_year - (181 + extra_day)}
   end
-  defp do_year_to_date(extra_day, day_of_year) when day_of_year < (243 + extra_day) do
+  defp year_day_to_year_date(extra_day, day_of_year) when day_of_year < (243 + extra_day) do
     {8, day_of_year - (212 + extra_day)}
   end
-  defp do_year_to_date(extra_day, day_of_year) when day_of_year < (273 + extra_day) do
+  defp year_day_to_year_date(extra_day, day_of_year) when day_of_year < (273 + extra_day) do
     {9, day_of_year - (243 + extra_day)}
   end
-  defp do_year_to_date(extra_day, day_of_year) when day_of_year < (304 + extra_day) do
+  defp year_day_to_year_date(extra_day, day_of_year) when day_of_year < (304 + extra_day) do
     {10, day_of_year - (273 + extra_day)}
   end
-  defp do_year_to_date(extra_day, day_of_year) when day_of_year < (334 + extra_day) do
+  defp year_day_to_year_date(extra_day, day_of_year) when day_of_year < (334 + extra_day) do
     {11, day_of_year - (304 + extra_day)}
   end
-  defp do_year_to_date(extra_day, day_of_year) do
+  defp year_day_to_year_date(extra_day, day_of_year) do
     {12, day_of_year - (334 + extra_day)}
   end
 
-  defp gregorian_seconds_to_datetime(seconds) do
-    {days, time} = divmod(seconds, @seconds_per_day)
+  defp iso_seconds_to_datetime(seconds) do
+    {days, rest_seconds} = div_mod(seconds, @seconds_per_day)
 
-    {year, month, day} = gregorian_days_to_date(days)
-    {hours, minutes, seconds} = seconds_to_time(time)
-    {{year, month, day}, {hours, minutes, seconds}}
+    date = date_from_iso_days(days)
+    time = seconds_to_time(rest_seconds)
+    {date, time}
   end
 
-  # TODO Maybe increase precision to microseconds while we're at it?
-  defp seconds_to_time(seconds) when abs(seconds) >= 0 and abs(seconds) < @seconds_per_day do
-    {hours, seconds} = divmod(seconds, @seconds_per_hour)
-    {minutes, seconds} = divmod(seconds, @seconds_per_minute)
+  defp seconds_to_time(seconds) when seconds in 0..(@seconds_per_day - 1) do
+    {hour, rest_seconds} = div_mod(seconds, @seconds_per_hour)
+    {minute, second} = div_mod(rest_seconds, @seconds_per_minute)
 
-    {hours, minutes, seconds}
-  end
-
-  defp divmod(divisor, dividend) do
-    {Integer.floor_div(divisor, dividend), Integer.mod(divisor, dividend)}
+    {hour, minute, second}
   end
 end
