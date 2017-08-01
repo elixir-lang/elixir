@@ -156,6 +156,39 @@ Overall, using `@impl` has the following advantages:
 
 This release brings further improvements to Calendar types. It adds arithmetic and others functions to `Time`, `Date`, `NaiveDateTime` and `Datetime` as well as conversion between different calendars.
 
+## v1.5.1 (2017-08-01)
+
+### 1. Enhancements
+
+#### EEx
+
+  * [EEx.Engine] Add `handle_begin` and `handle_end` to EEx
+
+#### Elixir
+
+  * [Kernel] Do not use references on function/macro definitions - this provides large improvements in compilation times in some rare corner cases
+  * [Supervisor] Support mixing old and new typespecs in `Supervisor.init/2` and `Supevisor.start_link/2`
+
+#### Mix
+
+  * [mix profile.*] Allow profile tasks to run without a project
+
+### 2. Bug fixes
+
+#### EEx
+
+  * [EEx.Engine] Do not re-use the value of the `init/1` callback throughout the compilation stack
+
+#### Elixir
+
+  * [Kernel] Ensure dialyzer does not emit warnings in some uses of `with`
+  * [Kernel] Fix dialyzer warnings when `defmacrop` is used in modules
+  * [Kernel] Ensure Elixir modules can be dialyzed without starting the Elixir application
+  * [Kernel] Do not serialize references in quoted expressions
+  * [Kernel] Make sure structs expansion use the latest definition available when struct modules are recompiled
+  * [Task] Support `:infinity` timeout on Task streams
+  * [Typespec] Ensure typespecs allow `tuple` to be used as variable names
+
 ## v1.5.0 (2017-07-25)
 
 ### 1. Enhancements
