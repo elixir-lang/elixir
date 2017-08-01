@@ -304,14 +304,15 @@ defmodule IEx do
 
   List of supported keys in the keyword list:
 
-    * `:enabled`      - boolean value that allows for switching the coloring on and off
-    * `:eval_result`  - color for an expression's resulting value
-    * `:eval_info`    - ... various informational messages
-    * `:eval_error`   - ... error messages
-    * `:stack_info`   - ... the stacktrace color
-    * `:blame_diff`   - ... when blaming source with no match
+    * `:enabled` - boolean value that allows for switching the coloring on and off
+    * `:eval_result` - color for an expression's resulting value
+    * `:eval_info` - ... various informational messages
+    * `:eval_error` - ... error messages
+    * `:eval_interrupt` - ... interrupt messages
+    * `:stack_info` - ... the stacktrace color
+    * `:blame_diff` - ... when blaming source with no match
     * `:ls_directory` - ... for directory entries (ls helper)
-    * `:ls_device`    - ... device entries (ls helper)
+    * `:ls_device` - ... device entries (ls helper)
 
   When printing documentation, IEx will convert the Markdown
   documentation to ANSI as well. Colors for this can be configured
