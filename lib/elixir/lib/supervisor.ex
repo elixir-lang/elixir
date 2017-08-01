@@ -187,7 +187,7 @@ defmodule Supervisor do
   `GenServer` with a shutdown limit of 10 seconds (10_000 miliseconds),
   one might do:
 
-      use GenServer, shutdown: 10000
+      use GenServer, shutdown: 10_000
 
   Let's understand what the `:shutdown` and `:restart` options control.
 
@@ -333,14 +333,14 @@ defmodule Supervisor do
   The first argument given to `start_link/2` is a list of children which may
   be either:
 
-      * a module - such as `Stack`. In this case, it is equivalent to passing
-        `{Stack, []}` (which means `Stack.child_spec/1` is invoked with an empty
-        keywords list)
-      * a tuple with a module as first element and the start argument as second -
-        such as `{Stack, [:hello]}`. When such format is used, the supervisor
-        will retrieve the child specification from the given module.
-      * a map representing the child specification itself - such as the child
-        specification map outlined in the previous section.
+    * a module - such as `Stack`. In this case, it is equivalent to passing
+      `{Stack, []}` (which means `Stack.child_spec/1` is invoked with an empty
+      keywords list)
+    * a tuple with a module as first element and the start argument as second -
+      such as `{Stack, [:hello]}`. When such format is used, the supervisor
+      will retrieve the child specification from the given module.
+    * a map representing the child specification itself - such as the child
+      specification map outlined in the previous section.
 
   The second argument is a keyword list of options:
 
