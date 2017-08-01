@@ -903,7 +903,7 @@ defmodule Kernel.Typespec do
   end
 
   # Handle tuples
-  defp typespec({:tuple, meta, args}, _vars, _caller) when args == [] or is_atom(args) do
+  defp typespec({:tuple, meta, []}, _vars, _caller) do
     {:type, line(meta), :tuple, :any}
   end
 

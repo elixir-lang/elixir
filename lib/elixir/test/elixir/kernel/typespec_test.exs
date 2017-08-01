@@ -507,6 +507,19 @@ defmodule Kernel.TypespecTest do
            specs(bytecode)
   end
 
+  test "@spec(spec) with tuples and tuple vars" do
+    bytecode = test_module do
+      def my_fun1(x), do: x
+      def my_fun2(x), do: x
+      @spec my_fun1(tuple) :: tuple
+      @spec my_fun2(tuple) :: tuple when tuple: {integer, integer}
+    end
+
+    assert [{{:my_fun1, 1}, [{:type, _, :fun, [{:type, _, :product, [{:type, _, :tuple, :any}]}, {:type, _, :tuple, :any}]}]},
+            {{:my_fun2, 1}, [{:type, _, :bounded_fun, [{:type, _, :fun, [{:type, _, :product, [{:var, _, :tuple}]}, {:var, _, :tuple}]}, _]}]}] =
+           specs(bytecode)
+  end
+
   test "@spec(spec) for unreachable private function" do
     # Run it inside capture_io/2 so that the "my_fun/1 is unused"
     # warning doesn't get printed among the ExUnit test results.
