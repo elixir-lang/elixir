@@ -56,23 +56,23 @@ defmodule Date.Range do
     end
 
     defp reduce(x, y, {:cont, acc}, fun, calendar, up? = true) when x <= y do
-      reduce(x + 1, y, fun.(date_from_iso_days_days(x, calendar), acc), fun, calendar, up?)
+      reduce(x + 1, y, fun.(date_from_iso_days(x, calendar), acc), fun, calendar, up?)
     end
 
     defp reduce(x, y, {:cont, acc}, fun, calendar, up? = false) when x >= y do
-      reduce(x - 1, y, fun.(date_from_iso_days_days(x, calendar), acc), fun, calendar, up?)
+      reduce(x - 1, y, fun.(date_from_iso_days(x, calendar), acc), fun, calendar, up?)
     end
 
     defp reduce(_, _, {:cont, acc}, _fun, _calendar, _up) do
       {:done, acc}
     end
 
-    defp date_from_iso_days_days(days, Calendar.ISO) do
-      {year, month, day} = Calendar.ISO.date_from_iso_days_days(days)
+    defp date_from_iso_days(days, Calendar.ISO) do
+      {year, month, day} = Calendar.ISO.date_from_iso_days(days)
       %Date{year: year, month: month, day: day, calendar: Calendar.ISO}
     end
 
-    defp date_from_iso_days_days(days, calendar) do
+    defp date_from_iso_days(days, calendar) do
       {year, month, day, _, _, _, _} = calendar.naive_datetime_from_iso_days({days, {0, 86400000000}})
       %Date{year: year, month: month, day: day, calendar: calendar}
     end
