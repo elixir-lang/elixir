@@ -498,8 +498,8 @@ defmodule Date do
   """
   @spec add(Calendar.date, integer()) :: t
   def add(%{calendar: calendar} = date, days) do
-    {iso_days_days, fraction} = to_iso_days(date)
-    from_iso_days({iso_days_days + days, fraction}, calendar)
+    {iso_days, fraction} = to_iso_days(date)
+    from_iso_days({iso_days + days, fraction}, calendar)
   end
 
   @doc """
@@ -523,8 +523,8 @@ defmodule Date do
   @spec diff(Calendar.date, Calendar.date) :: integer
   def diff(%{calendar: Calendar.ISO, year: year1, month: month1, day: day1},
            %{calendar: Calendar.ISO, year: year2, month: month2, day: day2}) do
-    Calendar.ISO.date_to_iso_days_days(year1, month1, day1) -
-      Calendar.ISO.date_to_iso_days_days(year2, month2, day2)
+    Calendar.ISO.date_to_iso_days(year1, month1, day1) -
+      Calendar.ISO.date_to_iso_days(year2, month2, day2)
   end
 
   def diff(%{calendar: calendar1} = date1, %{calendar: calendar2} = date2) do
@@ -538,14 +538,14 @@ defmodule Date do
   end
 
   defp to_iso_days(%{calendar: Calendar.ISO, year: year, month: month, day: day}) do
-    {Calendar.ISO.date_to_iso_days_days(year, month, day), {0, 86400000000}}
+    {Calendar.ISO.date_to_iso_days(year, month, day), {0, 86400000000}}
   end
   defp to_iso_days(%{calendar: calendar, year: year, month: month, day: day}) do
     calendar.naive_datetime_to_iso_days(year, month, day, 0, 0, 0, {0, 0})
   end
 
   defp from_iso_days({days, _}, Calendar.ISO) do
-    {year, month, day} = Calendar.ISO.date_from_iso_days_days(days)
+    {year, month, day} = Calendar.ISO.date_from_iso_days(days)
     %Date{year: year, month: month, day: day, calendar: Calendar.ISO}
   end
   defp from_iso_days(iso_days, target_calendar) do

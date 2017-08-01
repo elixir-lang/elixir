@@ -47,7 +47,7 @@ defmodule Calendar.ISO do
                                    Calendar.hour, Calendar.minute, Calendar.second,
                                    Calendar.microsecond) :: Calendar.iso_days
   def naive_datetime_to_iso_days(year, month, day, hour, minute, second, microsecond) do
-    {date_to_iso_days_days(year, month, day),
+    {date_to_iso_days(year, month, day),
      time_to_day_fraction(hour, minute, second, microsecond)}
   end
 
@@ -69,7 +69,7 @@ defmodule Calendar.ISO do
          Calendar.hour, Calendar.minute, Calendar.second, Calendar.microsecond}
   @impl true
   def naive_datetime_from_iso_days({days, day_fraction}) do
-    {year, month, day} = date_from_iso_days_days(days)
+    {year, month, day} = date_from_iso_days(days)
     {hour, minute, second, microsecond} = time_from_day_fraction(day_fraction)
     {year, month, day, hour, minute, second, microsecond}
   end
@@ -120,19 +120,19 @@ defmodule Calendar.ISO do
 
   # Converts year, month, day to count of days since 0000-01-01.
   @doc false
-  def date_to_iso_days_days(0, 1, 1) do
+  def date_to_iso_days(0, 1, 1) do
     0
   end
-  def date_to_iso_days_days(1970, 1, 1) do
+  def date_to_iso_days(1970, 1, 1) do
     719528
   end
-  def date_to_iso_days_days(year, month, day) do
+  def date_to_iso_days(year, month, day) do
     :calendar.date_to_gregorian_days(year, month, day)
   end
 
   # Converts count of days since 0000-01-01 to {year, month, day} tuple.
   @doc false
-  def date_from_iso_days_days(days) do
+  def date_from_iso_days(days) do
     :calendar.gregorian_days_to_date(days)
   end
 
