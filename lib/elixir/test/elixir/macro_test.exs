@@ -297,6 +297,11 @@ defmodule MacroTest do
       assert Macro.to_string(quote do: ~R"\n123") == ~s/~R"\\\\n123"/
     end
 
+    test "tuple call" do
+      assert Macro.to_string(quote do: alias Foo.{Bar, Baz, Bong}) == "alias(Foo.{Bar, Baz, Bong})"
+      assert Macro.to_string(quote do: foo Foo.{}) == "foo(Foo.{})"
+    end
+
     test "arrow" do
       assert Macro.to_string(quote do: foo(1, (2 -> 3))) == "foo(1, (2 -> 3))"
     end
