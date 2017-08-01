@@ -142,7 +142,7 @@ tokenize(String, Line, Column, Opts) ->
     existing_atoms_only=ExistingAtomsOnly,
     check_terminators=CheckTerminators,
     preserve_comments=PreserveComments,
-    identifier_tokenizer=elixir_config:get(identifier_tokenizer)
+    identifier_tokenizer=elixir_config:safe_get(identifier_tokenizer, 'Elixir.String.Tokenizer')
   }).
 
 tokenize(String, Line, Opts) ->

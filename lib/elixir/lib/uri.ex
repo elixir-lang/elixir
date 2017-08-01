@@ -42,7 +42,7 @@ defmodule URI do
   """
   @spec default_port(binary) :: nil | non_neg_integer
   def default_port(scheme) when is_binary(scheme) do
-    :elixir_config.get({:uri, scheme})
+    :elixir_config.safe_get({:uri, scheme}, nil)
   end
 
   @doc """
