@@ -654,22 +654,62 @@ defmodule Registry do
   """
   @spec unregister(registry, key) :: :ok
   def unregister(registry, key) when is_atom(registry) do
-    self = self()
+    unregister(registry, self(), key)
+  end
+
+  @doc """
+  Unregisters all entries for the given `key` associated with the
+  process `pid` in `registry`.
+
+  Always returns `:ok` and automatically unlinks the current process from
+  the owner if there are no more keys associated to the current process. See
+  also `register/3` to read more about the "owner".
+
+  ## Examples
+
+  For unique registries:
+
+      iex> Registry.start_link(:unique, Registry.UniqueUnregisterTest)
+      ...> pid = spawn(fn -> receive do _ -> :ok end end)
+      ...> Registry.register(Registry.UniqueUnregisterTest, pid, "hello", :world)
+      ...> Registry.keys(Registry.UniqueUnregisterTest, pid)
+      ["hello"]
+      ...> Registry.unregister(Registry.UniqueUnregisterTest, pid, "hello")
+      :ok
+      ...> Registry.keys(Registry.UniqueUnregisterTest, pid)
+      []
+
+  For duplicate registries:
+
+      iex> Registry.start_link(:duplicate, Registry.DuplicateUnregisterTest)
+      ...> pid = spawn(fn -> receive do _ -> :ok end end)
+      ...> Registry.register(Registry.DuplicateUnregisterTest, pid, "hello", :world)
+      ...> Registry.register(Registry.DuplicateUnregisterTest, pid, "hello", :world)
+      ...> Registry.keys(Registry.DuplicateUnregisterTest, pid)
+      ["hello", "hello"]
+      ...> Registry.unregister(Registry.DuplicateUnregisterTest, pid, "hello")
+      :ok
+      ...> Registry.keys(Registry.DuplicateUnregisterTest, pid)
+      []
+
+  """
+  @spec unregister(registry, pid, key) :: :ok
+  def unregister(registry, pid, key) when is_atom(registry) and is_pid(pid) do
     {kind, partitions, key_ets, pid_ets, listeners} = info!(registry)
-    {key_partition, pid_partition} = partitions(kind, key, self, partitions)
+    {key_partition, pid_partition} = partitions(kind, key, pid, partitions)
     key_ets = key_ets || key_ets!(registry, key_partition)
     {pid_server, pid_ets} = pid_ets || pid_ets!(registry, pid_partition)
 
     # Remove first from the key_ets because in case of crashes
     # the pid_ets will still be able to clean up. The last step is
     # to clean if we have no more entries.
-    true = :ets.match_delete(key_ets, {key, {self, :_}})
-    true = :ets.delete_object(pid_ets, {self, key, key_ets})
+    true = :ets.match_delete(key_ets, {key, {pid, :_}})
+    true = :ets.delete_object(pid_ets, {pid, key, key_ets})
 
-    unlink_if_unregistered(pid_server, pid_ets, self)
+    unlink_if_unregistered(pid_server, pid_ets, pid)
 
     for listener <- listeners do
-      Kernel.send(listener, {:unregister, registry, key, self})
+      Kernel.send(listener, {:unregister, registry, key, pid})
     end
 
     :ok
@@ -803,10 +843,39 @@ defmodule Registry do
 
   """
   @spec register(registry, key, value) :: {:ok, pid} | {:error, {:already_registered, pid}}
-  def register(registry, key, value) when is_atom(registry) do
-    self = self()
+  def register(registry, key, value) do
+    register(registry, self(), key, value)
+  end
+
+  @doc """
+  Like `register/3`, but takes the pid of the process to register under the given `key`.
+
+  This permits you to register a process externally, i.e. from another process.
+
+  ## Examples
+
+  Registering under a unique registry does not allow multiple entries:
+
+      iex> Registry.start_link(:unique, Registry.UniqueRegisterTest)
+      ...> pid = spawn(fn -> receive do _ -> :ok end end)
+      ...> {:ok, _} = Registry.register(Registry.UniqueRegisterTest, pid, "hello", :world)
+      ...> {:error, {:already_registered, ^pid}} = Registry.register(Registry.UniqueRegisterTest, pid, "hello", :later)
+      ...> Registry.keys(Registry.UniqueRegisterTest, pid)
+      ["hello"]
+
+  Such is possible for duplicate registries though:
+
+      iex> Registry.start_link(:duplicate, Registry.DuplicateRegisterTest)
+      ...> pid = spawn(fn -> receive do _ -> :ok end end)
+      ...> {:ok, _} = Registry.register(Registry.DuplicateRegisterTest, pid, "hello", :world)
+      ...> {:ok, _} = Registry.register(Registry.DuplicateRegisterTest, pid, "hello", :world)
+      ...> Registry.keys(Registry.DuplicateRegisterTest, pid)
+      ["hello", "hello"]
+  """
+  @spec register(registry, pid, key, value) :: {:ok, pid} | {:error, {:already_registered, pid}}
+  def register(registry, pid, key, value) when is_atom(registry) and is_pid(pid) do
     {kind, partitions, key_ets, pid_ets, listeners} = info!(registry)
-    {key_partition, pid_partition} = partitions(kind, key, self, partitions)
+    {key_partition, pid_partition} = partitions(kind, key, pid, partitions)
     key_ets = key_ets || key_ets!(registry, key_partition)
     {pid_server, pid_ets} = pid_ets || pid_ets!(registry, pid_partition)
 
@@ -814,18 +883,18 @@ defmodule Registry do
     # always be able to do the clean up. If we register first to the
     # key one and the process crashes, the key will stay there forever.
     Process.link(pid_server)
-    true = :ets.insert(pid_ets, {self, key, key_ets})
-    case register_key(kind, pid_server, key_ets, key, {key, {self, value}}) do
+    true = :ets.insert(pid_ets, {pid, key, key_ets})
+    case register_key(kind, pid_server, key_ets, key, {key, {pid, value}}) do
       {:ok, _} = ok ->
         for listener <- listeners do
-          Kernel.send(listener, {:register, registry, key, self, value})
+          Kernel.send(listener, {:register, registry, key, pid, value})
         end
         ok
-      {:error, {:already_registered, ^self}} = error ->
+      {:error, {:already_registered, ^pid}} = error ->
         error
       {:error, _} = error ->
-        true = :ets.delete_object(pid_ets, {self, key, key_ets})
-        unlink_if_unregistered(pid_server, pid_ets, self)
+        true = :ets.delete_object(pid_ets, {pid, key, key_ets})
+        unlink_if_unregistered(pid_server, pid_ets, pid)
         error
     end
   end
