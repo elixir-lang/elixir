@@ -832,12 +832,27 @@ defmodule Enum do
   Filters the enumerable, i.e. returns only those elements
   for which `fun` returns a truthy value.
 
-  See also `reject/2`.
+  See also `reject/2` which discards all elements where the
+  function returns true.
 
   ## Examples
 
       iex> Enum.filter([1, 2, 3], fn(x) -> rem(x, 2) == 0 end)
       [2]
+
+  Keep in mind that `filter` is not capable of filtering and
+  transforming an element at the same time. If you would like
+  to do so, consider using `flat_map/2`. For example, if you
+  want to convert all strings that represent an integer and
+  discard the invalid one in one pass:
+
+      strings = ["1234", "abc", "12ab"]
+      Enum.flat_map(strings, fn string ->
+        case Integer.parse(string) do
+          {int, _rest} -> [int] # transform to integer
+          :error -> [] # skip the value
+        end
+      end)
 
   """
   @spec filter(t, (element -> as_boolean(term))) :: list
