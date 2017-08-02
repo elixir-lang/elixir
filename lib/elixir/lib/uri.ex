@@ -435,28 +435,18 @@ defmodule URI do
     regex = Regex.recompile!(~r/(^(.*)@)?(\[[a-zA-Z0-9:.]*\]|[^:]*)(:(\d*))?/)
     components = Regex.run(regex, string || "")
 
-    destructure [_, _, userinfo, host, _, port], nillify(components)
-    host = if host, do: host |> String.trim_leading("[") |> String.trim_trailing("]")
-    port = if port, do: String.to_integer(port)
+    destructure [_, _, userinfo, host, _, port], components
+    userinfo = nillify(userinfo)
+    host = if nillify(host), do: host |> String.trim_leading("[") |> String.trim_trailing("]")
+    port = if nillify(port), do: String.to_integer(port)
 
     {userinfo, host, port}
   end
 
   # Regex.run returns empty strings sometimes. We want
   # to replace those with nil for consistency.
-  defp nillify(list) when is_list(list) do
-    for string <- list do
-      if byte_size(string) > 0, do: string
-    end
-  end
-
-  defp nillify("") do
-    nil
-  end
-
-  defp nillify(other) do
-    other
-  end
+  defp nillify(""), do: nil
+  defp nillify(other), do: other
 
   @doc """
   Returns the string representation of the given `URI` struct.
