@@ -106,7 +106,8 @@ defmodule ExUnitTest do
     output = capture_io(fn -> ExUnit.run end)
 
     assert output =~ ~r"Top 2 slowest \(\d+\.\d+s\), \d+.\d% of total time:"
-    assert output =~ ~r"\* test slowest \(.+ms\)\n  \* test delayed \(.+ms\)"
+    assert output =~ ~r"\* test slowest \(.+ms\)"
+    assert output =~ ~r"\* test delayed \(.+ms\)"
   end
 
   test "sets max cases to one with trace enabled" do
