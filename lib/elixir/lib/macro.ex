@@ -802,6 +802,11 @@ defmodule Macro do
     fun.(ast, to_string(left, fun) <> to_string([right], fun))
   end
 
+  # foo.{bar, baz}
+  def to_string({{:., _, [left, :{}]}, _, args} = ast, fun) do
+    fun.(ast, to_string(left, fun) <> ".{" <> args_to_string(args, fun) <> "}")
+  end
+
   # All other calls
   def to_string({target, _, args} = ast, fun) when is_list(args) do
     if sigil = sigil_call(ast, fun) do
