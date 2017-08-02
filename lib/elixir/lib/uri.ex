@@ -411,9 +411,13 @@ defmodule URI do
   def parse(string) when is_binary(string) do
     # From https://tools.ietf.org/html/rfc3986#appendix-B
     regex = Regex.recompile!(~r/^(([a-z][a-z0-9\+\-\.]*):)?(\/\/([^\/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?/i)
-    parts = normalize_parts(string, Regex.run(regex, string))
+    parts = Regex.run(regex, string)
 
     destructure [_, _, scheme, _, authority, path, _, query, _, fragment], parts
+    scheme = nillify(scheme)
+    authority = nillify(authority)
+    path = nillify(path)
+    query = nillify(query)
     {userinfo, host, port} = split_authority(authority)
 
     scheme = scheme && String.downcase(scheme)
@@ -424,15 +428,6 @@ defmodule URI do
       fragment: fragment, authority: authority,
       userinfo: userinfo, host: host, port: port
     }
-  end
-
-  defp normalize_parts(string, parts) do
-    if String.ends_with?(string, "#") do
-      [fragment | rest] = Enum.reverse(parts)
-      Enum.reverse([fragment | nillify(rest)])
-    else
-      nillify(parts)
-    end
   end
 
   # Split an authority into its userinfo, host and port parts.
@@ -449,10 +444,18 @@ defmodule URI do
 
   # Regex.run returns empty strings sometimes. We want
   # to replace those with nil for consistency.
-  defp nillify(list) do
+  defp nillify(list) when is_list(list) do
     for string <- list do
       if byte_size(string) > 0, do: string
     end
+  end
+
+  defp nillify("") do
+    nil
+  end
+
+  defp nillify(other) do
+    other
   end
 
   @doc """
