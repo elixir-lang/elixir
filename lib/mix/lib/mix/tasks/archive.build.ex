@@ -93,20 +93,20 @@ defmodule Mix.Tasks.Archive.Build do
     :ok
   end
 
-  defp create(source, target, include_dot_files) do
+  defp create(source, target, include_dot_files?) do
     source_path = Path.expand(source)
     target_path = Path.expand(target)
     dir = Mix.Local.archive_name(target_path) |> String.to_charlist
     {:ok, _} = :zip.create(String.to_charlist(target_path),
-                  files_to_add(source_path, dir, include_dot_files))
+                  files_to_add(source_path, dir, include_dot_files?))
     :ok
   end
 
-  defp files_to_add(path, dir, include_dot_files) do
+  defp files_to_add(path, dir, include_dot_files?) do
     File.cd! path, fn ->
       evsn = Path.wildcard(".elixir")
       ebin = Path.wildcard("ebin/*.{beam,app}")
-      priv = Path.wildcard("priv/**/*", match_dot: include_dot_files)
+      priv = Path.wildcard("priv/**/*", match_dot: include_dot_files?)
 
       Enum.reduce evsn ++ ebin ++ priv, [], fn(f, acc) ->
         case File.read(f) do

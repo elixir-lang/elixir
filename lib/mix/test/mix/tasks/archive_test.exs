@@ -25,24 +25,24 @@ defmodule Mix.Tasks.ArchiveTest do
   test "archive build" do
     in_fixture "archive", fn ->
       Mix.Tasks.Archive.Build.run ["--no-elixir-version-check"]
-      assert File.regular? 'archive-0.1.0.ez'
-      assert has_zip_file?('archive-0.1.0.ez', 'archive-0.1.0/.elixir')
-      assert has_zip_file?('archive-0.1.0.ez', 'archive-0.1.0/priv/not_really_an.so')
-      assert has_zip_file?('archive-0.1.0.ez', 'archive-0.1.0/ebin/Elixir.Mix.Tasks.Local.Sample.beam')
-      assert has_zip_file?('archive-0.1.0.ez', 'archive-0.1.0/ebin/archive.app')
+      assert_archive_content_default()
     end
   end
 
   test "archive build with include-dot-files" do
     in_fixture "archive", fn ->
       Mix.Tasks.Archive.Build.run ["--no-elixir-version-check", "--include-dot-files"]
-      assert File.regular? 'archive-0.1.0.ez'
-      assert has_zip_file?('archive-0.1.0.ez', 'archive-0.1.0/.elixir')
-      assert has_zip_file?('archive-0.1.0.ez', 'archive-0.1.0/priv/not_really_an.so')
+      assert_archive_content_default()
       assert has_zip_file?('archive-0.1.0.ez', 'archive-0.1.0/priv/.dot_file')
-      assert has_zip_file?('archive-0.1.0.ez', 'archive-0.1.0/ebin/Elixir.Mix.Tasks.Local.Sample.beam')
-      assert has_zip_file?('archive-0.1.0.ez', 'archive-0.1.0/ebin/archive.app')
     end
+  end
+
+  def assert_archive_content_default() do
+    assert File.regular? 'archive-0.1.0.ez'
+    assert has_zip_file?('archive-0.1.0.ez', 'archive-0.1.0/.elixir')
+    assert has_zip_file?('archive-0.1.0.ez', 'archive-0.1.0/priv/not_really_an.so')
+    assert has_zip_file?('archive-0.1.0.ez', 'archive-0.1.0/ebin/Elixir.Mix.Tasks.Local.Sample.beam')
+    assert has_zip_file?('archive-0.1.0.ez', 'archive-0.1.0/ebin/archive.app')
   end
 
   test "archive install" do
