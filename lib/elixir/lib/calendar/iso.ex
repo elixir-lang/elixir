@@ -258,10 +258,13 @@ defmodule Calendar.ISO do
   """
   @impl true
   def date_to_string(year, month, day) do
+    date_to_string(year, month, day, :extended)
+  end
+
+  defp date_to_string(year, month, day, :extended) do
     zero_pad(year, 4) <> "-" <> zero_pad(month, 2) <> "-" <> zero_pad(day, 2)
   end
 
-  defp date_to_string(year, month, day, :extended), do: date_to_string(year, month, day)
   defp date_to_string(year, month, day, :basic) do
     zero_pad(year, 4) <> zero_pad(month, 2) <> zero_pad(day, 2)
   end
