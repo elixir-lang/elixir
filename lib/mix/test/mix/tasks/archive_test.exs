@@ -28,6 +28,7 @@ defmodule Mix.Tasks.ArchiveTest do
       assert File.regular? 'archive-0.1.0.ez'
       assert has_zip_file?('archive-0.1.0.ez', 'archive-0.1.0/.elixir')
       assert has_zip_file?('archive-0.1.0.ez', 'archive-0.1.0/priv/not_really_an.so')
+      assert has_zip_file?('archive-0.1.0.ez', 'archive-0.1.0/priv/.dot_file')
       assert has_zip_file?('archive-0.1.0.ez', 'archive-0.1.0/ebin/Elixir.Mix.Tasks.Local.Sample.beam')
       assert has_zip_file?('archive-0.1.0.ez', 'archive-0.1.0/ebin/archive.app')
     end

@@ -103,7 +103,7 @@ defmodule Mix.Tasks.Archive.Build do
     File.cd! path, fn ->
       evsn = Path.wildcard(".elixir")
       ebin = Path.wildcard("ebin/*.{beam,app}")
-      priv = Path.wildcard("priv/**/*")
+      priv = Path.wildcard("priv/**/*", match_dot: true)
 
       Enum.reduce evsn ++ ebin ++ priv, [], fn(f, acc) ->
         case File.read(f) do
