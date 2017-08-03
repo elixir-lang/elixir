@@ -4307,15 +4307,16 @@ defmodule Kernel do
         defguard is_even(value) when is_integer(value) and rem(value, 2) == 0
       end
 
-      defmodule Integer.Utils do
+      defmodule Collatz do
+        @moduledoc "Tools for working with the Collatz Conjecture."
         import Integer.Guards
 
-        def is_even_and_large?(value) when is_even(value) and value > 100, do: true
-        def is_even_and_large?(_), do: false
+        @doc "Determines the number of steps `n` takes to reach `1`."
+        def steps(n) when n > 0, do: steps(n, 0)
 
-        def is_even_and_small?(value) do
-          if is_even(value) and value <= 100, do: true, else: false
-        end
+        defp step(1, step_count), do: step_count
+        defp step(n, step_count) when is_even(n), do: step(div(n, 2), step_count + 1)
+        defp step(n, step_count), do: step(3*n + 1, step_count + 1)
       end
 
   """
