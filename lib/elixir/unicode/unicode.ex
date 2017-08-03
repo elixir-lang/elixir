@@ -265,7 +265,7 @@ defmodule String.Unicode do
 
   # Length
 
-  def length(string) do
+  def length(string) when is_binary(string) do
     do_length(next_grapheme_size(string), 0)
   end
 
