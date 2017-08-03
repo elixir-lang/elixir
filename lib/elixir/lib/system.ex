@@ -384,6 +384,22 @@ defmodule System do
   end
 
   @doc """
+  Environment variable value.
+
+  Returns the value of the environment variable
+  `varname` as a binary or raises `RuntimeError`
+  if the environment variable is undefined.
+  """
+  @spec get_env!(binary) :: binary
+  def get_env!(varname) when is_binary(varname) do
+    case get_env(varname) do
+      nil ->
+        raise RuntimeError, message: "environment variable #{varname} is undefined"
+      binary -> binary
+    end
+  end
+
+  @doc """
   Erlang VM process identifier.
 
   Returns the process identifier of the current Erlang emulator
