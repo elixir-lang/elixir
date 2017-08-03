@@ -296,6 +296,7 @@ This release brings further improvements to Calendar types. It adds arithmetic a
 #### ExUnit
 
   * [ExUnit] Properly account failed tests when `setup_all` fails
+  * [ExUnit] Having two or more `describe` blocks with the same name will now raise an error.
 
 #### IEx
 
