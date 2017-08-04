@@ -134,7 +134,7 @@ defmodule ExUnit.Case do
     * `:registered` - used for `ExUnit.Case.register_attribute/3` values
     * `:describe`   - the describe block the test belongs to
 
-  The following tags customize how tests behaves:
+  The following tags customize how tests behave:
 
     * `:capture_log` - see the "Log Capture" section below
     * `:skip` - skips the test with the given reason
