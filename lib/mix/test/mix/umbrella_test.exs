@@ -310,14 +310,14 @@ defmodule Mix.UmbrellaTest do
         assert File.regular?("_build/dev/lib/bar/ebin/Elixir.Bar.beam")
 
         # Noop by default
-        assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == :noop
+        assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:noop, []}
 
         # Noop when there is no runtime dependency
         ensure_touched("_build/dev/lib/foo/ebin/Elixir.Foo.beam",
                        File.stat!("_build/dev/lib/bar/.compile.elixir").mtime)
         ensure_touched("_build/dev/lib/foo/.compile.elixir",
                        File.stat!("_build/dev/lib/bar/.compile.elixir").mtime)
-        assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == :noop
+        assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:noop, []}
 
         # Add runtime dependency
         File.write!("lib/bar.ex", """
@@ -325,7 +325,7 @@ defmodule Mix.UmbrellaTest do
           def bar, do: Foo.foo
         end
         """)
-        assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == :ok
+        assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
         assert_receive {:mix_shell, :info, ["Compiled lib/bar.ex"]}
 
         # Noop for runtime dependencies
@@ -333,11 +333,11 @@ defmodule Mix.UmbrellaTest do
                        File.stat!("_build/dev/lib/bar/.compile.elixir").mtime)
         ensure_touched("_build/dev/lib/foo/.compile.elixir",
                        File.stat!("_build/dev/lib/bar/.compile.elixir").mtime)
-        assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == :noop
+        assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:noop, []}
 
         # Add compile time dependency
         File.write!("lib/bar.ex", "defmodule Bar, do: Foo.foo")
-        assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == :ok
+        assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
         assert_receive {:mix_shell, :info, ["Compiled lib/bar.ex"]}
 
         # Recompiles for compile time dependencies
@@ -345,7 +345,7 @@ defmodule Mix.UmbrellaTest do
                        File.stat!("_build/dev/lib/bar/.compile.elixir").mtime)
         ensure_touched("_build/dev/lib/foo/.compile.elixir",
                        File.stat!("_build/dev/lib/bar/.compile.elixir").mtime)
-        assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == :ok
+        assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
         assert_receive {:mix_shell, :info, ["Compiled lib/bar.ex"]}
       end)
     end)

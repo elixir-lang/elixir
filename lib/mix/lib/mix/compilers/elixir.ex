@@ -86,11 +86,10 @@ defmodule Mix.Compilers.Elixir do
         compile_manifest(manifest, exts, modules, sources, stale, dest, timestamp, opts)
       removed != [] ->
         write_manifest(manifest, modules, sources, dest, timestamp)
+        {:ok, diagnostics(sources)}
       true ->
-        :ok
+        {:noop, diagnostics(sources)}
     end
-
-    {stale, removed}
   end
 
   defp mtimes_and_sizes(sources) do
@@ -162,15 +161,13 @@ defmodule Mix.Compilers.Elixir do
              each_warning: &each_warning(pid, cwd, &1, &2, &3),
              long_compilation_threshold: long_compilation_threshold,
              dest: dest] ++ extra
-      Agent.cast pid, fn {modules, sources, warnings} ->
+      Agent.get pid, fn {modules, sources, _warnings} ->
         write_manifest(manifest, modules, sources, dest, timestamp)
-        {modules, sources, warnings}
+        {:ok, diagnostics(sources)}
       end
     after
       Agent.stop(pid, :normal, :infinity)
     end
-
-    :ok
   end
 
   defp set_compiler_opts(opts) do
@@ -273,6 +270,18 @@ defmodule Mix.Compilers.Elixir do
       warning = {line, message}
       warnings = Map.update(warnings, source_path, [warning], &([warning | &1]))
       {modules, sources, warnings}
+    end
+  end
+
+  defp diagnostics(sources) do
+    Enum.flat_map sources, fn source(source: source, warnings: warnings) ->
+      for {line, message} <- warnings do
+        %{file: Path.absname(source),
+          severity: :warning,
+          message: to_string(message),
+          position: line - 1,
+          compiler_name: "Elixir"}
+      end
     end
   end
 
