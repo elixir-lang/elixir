@@ -134,8 +134,13 @@ defmodule Mix.Tasks.Deps.Compile do
 
       try do
         res = Mix.Task.run("compile", ["--no-deps", "--no-archives-check",
-                                       "--no-elixir-version-check", "--no-warnings-as-errors"])
-        :ok in List.wrap(res)
+                                       "--no-elixir-version-check", "--no-warnings-as-errors",
+                                       "--return-errors"])
+        case Mix.Task.Compiler.normalize_result(res) do
+          {:ok, _} -> true
+          {:noop, _} -> false
+          {:error, diagnostics} -> throw {:diagnostics, diagnostics}
+        end
       catch
         kind, reason ->
           stacktrace = System.stacktrace
