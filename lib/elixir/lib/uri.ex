@@ -411,9 +411,13 @@ defmodule URI do
   def parse(string) when is_binary(string) do
     # From https://tools.ietf.org/html/rfc3986#appendix-B
     regex = Regex.recompile!(~r/^(([a-z][a-z0-9\+\-\.]*):)?(\/\/([^\/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?/i)
-    parts = nillify(Regex.run(regex, string))
+    parts = Regex.run(regex, string)
 
     destructure [_, _, scheme, _, authority, path, _, query, _, fragment], parts
+    scheme = nillify(scheme)
+    authority = nillify(authority)
+    path = nillify(path)
+    query = nillify(query)
     {userinfo, host, port} = split_authority(authority)
 
     scheme = scheme && String.downcase(scheme)
@@ -431,20 +435,18 @@ defmodule URI do
     regex = Regex.recompile!(~r/(^(.*)@)?(\[[a-zA-Z0-9:.]*\]|[^:]*)(:(\d*))?/)
     components = Regex.run(regex, string || "")
 
-    destructure [_, _, userinfo, host, _, port], nillify(components)
-    host = if host, do: host |> String.trim_leading("[") |> String.trim_trailing("]")
-    port = if port, do: String.to_integer(port)
+    destructure [_, _, userinfo, host, _, port], components
+    userinfo = nillify(userinfo)
+    host = if nillify(host), do: host |> String.trim_leading("[") |> String.trim_trailing("]")
+    port = if nillify(port), do: String.to_integer(port)
 
     {userinfo, host, port}
   end
 
   # Regex.run returns empty strings sometimes. We want
   # to replace those with nil for consistency.
-  defp nillify(list) do
-    for string <- list do
-      if byte_size(string) > 0, do: string
-    end
-  end
+  defp nillify(""), do: nil
+  defp nillify(other), do: other
 
   @doc """
   Returns the string representation of the given `URI` struct.

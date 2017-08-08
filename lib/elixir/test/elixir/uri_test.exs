@@ -200,6 +200,17 @@ defmodule URITest do
     test "downcases the scheme" do
       assert URI.parse("hTtP://google.com").scheme == "http"
     end
+
+    test "preserves empty fragments" do
+      ~w[
+          http://example.com#
+          http://example.com/#
+          http://example.com/test#
+      ]
+      |> Enum.each(fn uri -> 
+           assert URI.parse(uri).fragment == ""
+         end)
+    end
   end
 
   test "default_port/1,2" do
