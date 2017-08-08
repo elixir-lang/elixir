@@ -9,7 +9,7 @@ defmodule Kernel.ParallelCompilerTest do
   test "compiles files solving dependencies" do
     fixtures = [fixture_path("parallel_compiler/bar.ex"), fixture_path("parallel_compiler/foo.ex")]
     assert capture_io(fn ->
-      assert [BarParallel, FooParallel] = Kernel.ParallelCompiler.files fixtures
+      assert {:ok, [BarParallel, FooParallel]} = Kernel.ParallelCompiler.files fixtures
     end) =~ "message_from_foo"
   after
     Enum.map [FooParallel, BarParallel], fn mod ->
@@ -20,7 +20,8 @@ defmodule Kernel.ParallelCompilerTest do
 
   test "compiles files with structs solving dependencies" do
     fixtures = [fixture_path("parallel_struct/bar.ex"), fixture_path("parallel_struct/foo.ex")]
-    assert [BarStruct, FooStruct] = Kernel.ParallelCompiler.files(fixtures) |> Enum.sort
+    assert {:ok, modules} = Kernel.ParallelCompiler.files(fixtures)
+    assert [BarStruct, FooStruct] = Enum.sort(modules)
   after
     Enum.map [FooStruct, BarStruct], fn mod ->
       :code.purge(mod)
@@ -31,14 +32,14 @@ defmodule Kernel.ParallelCompilerTest do
   test "emits struct undefined error when local struct is undefined" do
     fixtures = [fixture_path("parallel_struct/undef.ex")]
     assert capture_io(fn ->
-      assert catch_exit(Kernel.ParallelCompiler.files(fixtures)) == {:shutdown, 1}
+      assert {:error, _} = Kernel.ParallelCompiler.files(fixtures)
     end) =~ "Undef.__struct__/1 is undefined, cannot expand struct Undef"
   end
 
   test "does not hang on missing dependencies" do
     fixtures = [fixture_path("parallel_compiler/bat.ex")]
     assert capture_io(fn ->
-      assert catch_exit(Kernel.ParallelCompiler.files(fixtures)) == {:shutdown, 1}
+      assert {:error, _} = Kernel.ParallelCompiler.files(fixtures)
     end) =~ "== Compilation error"
   end
 
@@ -47,7 +48,7 @@ defmodule Kernel.ParallelCompilerTest do
                 fixture_path("parallel_deadlock/bar.ex")]
 
     msg = capture_io(fn ->
-      assert catch_exit(Kernel.ParallelCompiler.files fixtures) == {:shutdown, 1}
+      assert {:error, _} = Kernel.ParallelCompiler.files(fixtures)
     end)
 
     assert msg =~ "Compilation failed because of a deadlock between files."
