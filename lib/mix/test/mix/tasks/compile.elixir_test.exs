@@ -1,6 +1,7 @@
 Code.require_file "../../test_helper.exs", __DIR__
 
 defmodule Mix.Tasks.Compile.ElixirTest do
+  alias Mix.Task.Compiler.Diagnostic
   use MixTest.Case
 
   setup do
@@ -371,10 +372,10 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       end
       """)
 
-      diagnostic = %{
+      diagnostic = %Diagnostic{
         file: Path.absname("lib/a.ex"),
         severity: :warning,
-        position: 1,
+        position: 2,
         message: "variable \"unused\" is unused",
         compiler_name: "Elixir"
       }
@@ -399,10 +400,10 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
       file = Path.absname("lib/a.ex")
       ExUnit.CaptureIO.capture_io(fn ->
-        assert {:error, [%{
+        assert {:error, [%Diagnostic{
           file: ^file,
           severity: :error,
-          position: 1,
+          position: 2,
           message: "** (SyntaxError) lib/a.ex:2:" <> _,
           compiler_name: "Elixir"
         }]} = Mix.Tasks.Compile.Elixir.run([])
@@ -426,10 +427,10 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
       ExUnit.CaptureIO.capture_io(fn ->
         assert {:error, errors} = Mix.Tasks.Compile.Elixir.run([])
-        assert %{message: "deadlocked waiting on module B"} =
-          Enum.find(errors, &(String.ends_with?(&1[:file], "lib/a.ex")))
-        assert %{message: "deadlocked waiting on module A"} =
-          Enum.find(errors, &(String.ends_with?(&1[:file], "lib/b.ex")))
+        assert %Diagnostic{message: "deadlocked waiting on module B"} =
+          Enum.find(errors, &(String.ends_with?(&1.file, "lib/a.ex")))
+        assert %Diagnostic{message: "deadlocked waiting on module A"} =
+          Enum.find(errors, &(String.ends_with?(&1.file, "lib/b.ex")))
       end)
     end
   end

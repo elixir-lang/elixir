@@ -28,39 +28,48 @@ defmodule Mix.Task.Compiler do
   documentation as a regular Mix task. See `Mix.Task` for more information.
   """
 
-  @typedoc """
-  Diagnostic information such as a warning or compilation error.
-  """
-  @type diagnostic :: %{
-    required(:file) => Path.t | nil,
-    required(:severity) => diagnostic_severity,
-    required(:message) => String.t,
-    optional(:position) => diagnostic_position,
-    optional(:compiler_name) => String.t,
-    optional(:details) => any
-  }
+  defmodule Diagnostic do
+    @moduledoc """
+    Diagnostic information such as a warning or compilation error.
+    """
 
-  @typedoc """
-  Severity of a diagnostic:
-  * `:error`: An issue that caused compilation to fail
-  * `:warning`: An issue that did not cause failure but suggests the programmer may have made a mistake
-  * `:hint`: A suggestion for style or good practices that is not as severe as a warning
-  * `:information`: Any other information relevant to compilation that does not fit into the above categories
-  """
-  @type diagnostic_severity :: :error | :warning | :information | :hint
+    @type t :: %__MODULE__{
+      file: Path.t,
+      severity: severity,
+      message: String.t,
+      position: position,
+      compiler_name: String.t,
+      details: any
+    }
 
-  @typedoc """
-  Where in a file the diagnostic applies. Can be either a line number or a range
-  specified as `{start_line, start_column, end_line, end_column}`.
+    @typedoc """
+    Severity of a diagnostic:
+    * `:error`: An issue that caused compilation to fail
+    * `:warning`: An issue that did not cause failure but suggests the programmer may have made a mistake
+    * `:hint`: A suggestion for style or good practices that is not as severe as a warning
+    * `:information`: Any other information relevant to compilation that does not fit into the above categories
+    """
+    @type severity :: :error | :warning | :information | :hint
 
-  Line numbers are 0-based, and column numbers are 0-based and refer to the
-  cursor position at the start of the character at that index. For example,
-  to indicate that a diagnostic applies to the first `n` characters of the
-  first line, the range would be `{0, 0, 0, n}`.
-  """
-  @type diagnostic_position ::
-    non_neg_integer |
-    {non_neg_integer, non_neg_integer, non_neg_integer, non_neg_integer}
+    @typedoc """
+    Where in a file the diagnostic applies. Can be either a line number,
+    a range specified as `{start_line, start_col, end_line, end_col}`,
+    or `nil` if unknown.
+
+    Line numbers are 1-based, and column numbers in a range are 0-based and refer
+    to the cursor position at the start of the character at that index. For example,
+    to indicate that a diagnostic applies to the first `n` characters of the
+    first line, the range would be `{1, 0, 1, n}`.
+    """
+    @type position ::
+      nil |
+      pos_integer |
+      {pos_integer, non_neg_integer, pos_integer, non_neg_integer}
+
+    @enforce_keys [:file, :severity, :message, :position, :compiler_name]
+    defstruct [:file, :severity, :message, :position, :compiler_name, :details]
+
+  end
 
   @doc """
   Receives command-line arguments and performs compilation. If it
@@ -68,7 +77,7 @@ defmodule Mix.Task.Compiler do
   it should return a tuple with the status and a list of diagnostics.
   """
   @callback run([binary]) :: :ok | :noop
-                           | {:ok | :noop | :error, [diagnostic]}
+                           | {:ok | :noop | :error, [Diagnostic.t]}
 
   @doc """
   Lists manifest files for the compiler.

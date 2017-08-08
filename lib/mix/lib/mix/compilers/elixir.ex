@@ -4,6 +4,7 @@ defmodule Mix.Compilers.Elixir do
   @manifest_vsn :v7
   @compiler_name "Elixir"
 
+  alias Mix.Task.Compiler.Diagnostic
   import Record
 
   defrecord :module, [:module, :kind, :sources, :beam, :binary]
@@ -173,11 +174,13 @@ defmodule Mix.Compilers.Elixir do
         {:error, errors} ->
           diagnostics =
             for %CompileError{file: file, line: line, description: description} <- errors do
-              %{file: Path.absname(file),
+              %Diagnostic{
+                file: Path.absname(file),
                 severity: :error,
-                position: (if line, do: line - 1, else: nil),
+                position: line,
                 message: to_string(description),
-                compiler_name: @compiler_name}
+                compiler_name: @compiler_name
+              }
             end
           {:error, diagnostics}
       end
@@ -292,10 +295,10 @@ defmodule Mix.Compilers.Elixir do
   defp diagnostics(sources) do
     Enum.flat_map sources, fn source(source: source, warnings: warnings) ->
       for {line, message} <- warnings do
-        %{file: Path.absname(source),
+        %Diagnostic{file: Path.absname(source),
           severity: :warning,
           message: to_string(message),
-          position: line - 1,
+          position: line,
           compiler_name: @compiler_name}
       end
     end
