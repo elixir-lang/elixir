@@ -2,6 +2,7 @@ defmodule Mix.Compilers.Elixir do
   @moduledoc false
 
   @manifest_vsn :v7
+  @compiler_name "Elixir"
 
   import Record
 
@@ -155,15 +156,30 @@ defmodule Mix.Compilers.Elixir do
     long_compilation_threshold = opts[:long_compilation_threshold] || 10
 
     try do
-      _ = Kernel.ParallelCompiler.files stale,
-            [each_module: &each_module(pid, cwd, &1, &2, &3),
-             each_long_compilation: &each_long_compilation(&1, long_compilation_threshold),
-             each_warning: &each_warning(pid, cwd, &1, &2, &3),
-             long_compilation_threshold: long_compilation_threshold,
-             dest: dest] ++ extra
-      Agent.get pid, fn {modules, sources, _warnings} ->
-        write_manifest(manifest, modules, sources, dest, timestamp)
-        {:ok, diagnostics(sources)}
+      result =
+        Kernel.ParallelCompiler.files stale,
+              [each_module: &each_module(pid, cwd, &1, &2, &3),
+              each_long_compilation: &each_long_compilation(&1, long_compilation_threshold),
+              each_warning: &each_warning(pid, cwd, &1, &2, &3),
+              long_compilation_threshold: long_compilation_threshold,
+              dest: dest] ++ extra
+
+      case result do
+        {:ok, _} ->
+          Agent.get pid, fn {modules, sources, _warnings} ->
+            write_manifest(manifest, modules, sources, dest, timestamp)
+            {:ok, diagnostics(sources)}
+          end
+        {:error, errors} ->
+          diagnostics =
+            for %CompileError{file: file, line: line, description: description} <- errors do
+              %{file: Path.absname(file),
+                severity: :error,
+                position: (if line, do: line - 1, else: nil),
+                message: to_string(description),
+                compiler_name: @compiler_name}
+            end
+          {:error, diagnostics}
       end
     after
       Agent.stop(pid, :normal, :infinity)
@@ -280,7 +296,7 @@ defmodule Mix.Compilers.Elixir do
           severity: :warning,
           message: to_string(message),
           position: line - 1,
-          compiler_name: "Elixir"}
+          compiler_name: @compiler_name}
       end
     end
   end
