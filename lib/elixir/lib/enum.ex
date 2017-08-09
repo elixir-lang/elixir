@@ -1750,7 +1750,7 @@ defmodule Enum do
   the specified function for enumerables that are one-element long.
 
   If you wish to use another value for the accumulator, use
-  `Enumerable.reduce/3`.
+  `Enum.reduce/3`.
 
   ## Examples
 
