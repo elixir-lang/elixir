@@ -202,14 +202,14 @@ defmodule URITest do
     end
 
     test "preserves empty fragments" do
-      ~w[
-          http://example.com#
-          http://example.com/#
-          http://example.com/test#
+      [
+        "http://example.com#",
+        "http://example.com/#",
+        "http://example.com/test#",
       ]
-      |> Enum.each(fn uri -> 
-           assert URI.parse(uri).fragment == ""
-         end)
+      |> Enum.each(fn uri ->
+        assert URI.parse(uri).fragment == ""
+      end)
     end
   end
 
