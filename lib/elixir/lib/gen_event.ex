@@ -32,7 +32,7 @@ defmodule GenEvent do
   If the use case where you were using GenEvent requires more complex logic,
   [GenStage](https://github.com/elixir-lang/gen_stage) provides a great
   alternative. GenStage is an external Elixir library maintained by the Elixir
-  team; it provides tool to implement systems that exchange events in a
+  team; it provides a tool to implement systems that exchange events in a
   demand-driven way with built-in support for backpressure. See the [GenStage
   documentation](https://hexdocs.pm/gen_stage) for more information.
 
