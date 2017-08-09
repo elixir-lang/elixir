@@ -600,7 +600,9 @@ defmodule ExUnit.Assertions do
   end
 
   @doc """
-  Asserts that `value1` and `value2` differ by no more than `delta`.
+  Asserts that `value1` and `value2` differ by no more than `delta`. All `delta`s
+  must be positive, and will raise an `ArgumentError` if a negative `delta` is
+  passed as the third argument to this assertion.
 
 
   ## Examples
@@ -609,7 +611,11 @@ defmodule ExUnit.Assertions do
       assert_in_delta 10, 15, 4
 
   """
-  def assert_in_delta(value1, value2, delta, message \\ nil) do
+  def assert_in_delta(value1, value2, delta, message \\ nil)
+  def assert_in_delta(_, _, delta, _) when delta < 0 do
+    raise ArgumentError, "All deltas must be positive. Did you mean #{abs(delta)}?"
+  end
+  def assert_in_delta(value1, value2, delta, message) do
     diff = abs(value1 - value2)
     message = message ||
       "Expected the difference between #{inspect value1} and " <>
