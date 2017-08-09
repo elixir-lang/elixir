@@ -1001,8 +1001,19 @@ defmodule IEx.Helpers do
     end
   end
 
-  defp compile_elixir(exs, :in_memory), do: Kernel.ParallelCompiler.files(exs)
-  defp compile_elixir(exs, path), do: Kernel.ParallelCompiler.files_to_path(exs, path)
+  defp compile_elixir(exs, :in_memory) do
+    case Kernel.ParallelCompiler.files(exs) do
+      {:ok, modules} -> modules
+      {:error, [error | _]} -> raise error
+    end
+  end
+
+  defp compile_elixir(exs, path) do
+    case Kernel.ParallelCompiler.files_to_path(exs, path) do
+      {:ok, modules} -> modules
+      {:error, [error | _]} -> raise error
+    end
+  end
 
   # Compiles and loads an Erlang source file, returns {module, binary}
   defp compile_erlang(source) do

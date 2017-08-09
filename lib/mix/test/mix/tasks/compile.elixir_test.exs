@@ -1,6 +1,7 @@
 Code.require_file "../../test_helper.exs", __DIR__
 
 defmodule Mix.Tasks.Compile.ElixirTest do
+  alias Mix.Task.Compiler.Diagnostic
   use MixTest.Case
 
   setup do
@@ -87,7 +88,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       File.write!("lib/a.ex", "raise ~s(oops)")
 
       capture_io fn ->
-        assert catch_exit(Mix.Tasks.Compile.Elixir.run []) == {:shutdown, 1}
+        assert {:error, [_]} = Mix.Tasks.Compile.Elixir.run([])
       end
 
       refute File.regular?("_build/dev/lib/sample/ebin/Elixir.A.beam")
@@ -96,12 +97,12 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
   test "removes, purges and deletes old artifacts" do
     in_fixture "no_mixfile", fn ->
-      assert Mix.Tasks.Compile.Elixir.run([]) == :ok
+      assert Mix.Tasks.Compile.Elixir.run([]) == {:ok, []}
       assert File.regular?("_build/dev/lib/sample/ebin/Elixir.A.beam")
       assert Code.ensure_loaded?(A)
 
       File.rm!("lib/a.ex")
-      assert Mix.Tasks.Compile.Elixir.run([]) == :ok
+      assert Mix.Tasks.Compile.Elixir.run([]) == {:ok, []}
       refute File.regular?("_build/dev/lib/sample/ebin/Elixir.A.beam")
       refute Code.ensure_loaded?(A)
       refute String.contains?(File.read!("_build/dev/lib/sample/.compile.elixir"), "Elixir.A")
@@ -110,7 +111,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
   test "compiles mtime changed files" do
     in_fixture "no_mixfile", fn ->
-      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == :ok
+      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
 
@@ -128,7 +129,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
 
       File.touch!("_build/dev/lib/sample/.compile.elixir", future)
-      assert Mix.Tasks.Compile.Elixir.run([]) == :noop
+      assert Mix.Tasks.Compile.Elixir.run([]) == {:noop, []}
     end
   end
 
@@ -137,7 +138,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       past = {{2010, 1, 1}, {0, 0, 0}}
       File.touch!("lib/a.ex", past)
 
-      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == :ok
+      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
 
@@ -157,7 +158,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     in_fixture "no_mixfile", fn ->
       File.write!("lib/a.ex", "defmodule A, do: B.module_info")
 
-      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == :ok
+      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
 
@@ -177,7 +178,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     in_fixture "no_mixfile", fn ->
       File.write!("lib/a.ex", "defmodule A, do: B.module_info")
 
-      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == :ok
+      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
 
@@ -207,26 +208,26 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       """)
 
       # Compiles with missing external resources
-      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == :ok
-      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == :noop
+      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
+      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:noop, []}
       Mix.shell.flush
       purge [A, B]
 
       # Update local existing resource
       File.touch!("lib/a.eex", {{2020, 1, 1}, {0, 0, 0}})
-      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == :ok
+      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
 
       # Does not update on old existing resource
       File.touch!("lib/a.eex", {{1970, 1, 1}, {0, 0, 0}})
-      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == :noop
+      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:noop, []}
       Mix.shell.flush
       purge [A, B]
 
       # Update external existing resource
       File.touch!(tmp, {{2020, 1, 1}, {0, 0, 0}})
-      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == :ok
+      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
     end
@@ -253,7 +254,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       end
       """)
 
-      assert Mix.Tasks.Compile.Elixir.run(["--verbose", "--ignore-module-conflict"]) == :ok
+      assert Mix.Tasks.Compile.Elixir.run(["--verbose", "--ignore-module-conflict"]) == {:ok, []}
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
       refute function_exported?(A, :one, 0)
@@ -273,10 +274,10 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     in_fixture "no_mixfile", fn ->
       File.write!("lib/a.ex", "")
 
-      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == :ok
+      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
 
-      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == :noop
+      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:noop, []}
       refute_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
     end
   end
@@ -289,21 +290,21 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       end
       """)
 
-      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == :ok
+      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
       purge [A, B]
     end
   end
 
   test "recompiles with --force" do
     in_fixture "no_mixfile", fn ->
-      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == :ok
+      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
       purge [A, B]
 
       # Now we have a noop
-      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == :noop
+      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:noop, []}
 
       # --force
-      assert Mix.Tasks.Compile.Elixir.run(["--force", "--verbose"]) == :ok
+      assert Mix.Tasks.Compile.Elixir.run(["--force", "--verbose"]) == {:ok, []}
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
     end
   end
@@ -316,7 +317,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       end
       """)
 
-      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == :ok
+      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
 
@@ -360,6 +361,77 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       assert capture_io(:standard_error, fn ->
         Mix.Tasks.Compile.Elixir.run(["--all-warnings"])
       end) == ""
+    end
+  end
+
+  test "returns warning diagnostics" do
+    in_fixture "no_mixfile", fn ->
+      File.write!("lib/a.ex", """
+      defmodule A do
+        def my_fn(unused), do: :ok
+      end
+      """)
+
+      diagnostic = %Diagnostic{
+        file: Path.absname("lib/a.ex"),
+        severity: :warning,
+        position: 2,
+        message: "variable \"unused\" is unused",
+        compiler_name: "Elixir"
+      }
+
+      ExUnit.CaptureIO.capture_io(:standard_error, fn ->
+        assert {:ok, [^diagnostic]} = Mix.Tasks.Compile.Elixir.run([])
+      end)
+
+      # Recompiling should return :noop status because nothing is stale,
+      # but also include previous warning diagnostics
+      assert {:noop, [^diagnostic]} = Mix.Tasks.Compile.Elixir.run([])
+    end
+  end
+
+  test "returns error diagnostics" do
+    in_fixture "no_mixfile", fn ->
+      File.write!("lib/a.ex", """
+      defmodule A do
+        def my_fn(), do: $$$
+      end
+      """)
+
+      file = Path.absname("lib/a.ex")
+      ExUnit.CaptureIO.capture_io(fn ->
+        assert {:error, [%Diagnostic{
+          file: ^file,
+          severity: :error,
+          position: 2,
+          message: "** (SyntaxError) lib/a.ex:2:" <> _,
+          compiler_name: "Elixir"
+        }]} = Mix.Tasks.Compile.Elixir.run([])
+      end)
+    end
+  end
+
+  test "returns error diagnostics when deadlocked" do
+    in_fixture "no_mixfile", fn ->
+      File.write!("lib/a.ex", """
+      defmodule A do
+        import B
+      end
+      """)
+
+      File.write!("lib/b.ex", """
+      defmodule B do
+        import A
+      end
+      """)
+
+      ExUnit.CaptureIO.capture_io(fn ->
+        assert {:error, errors} = Mix.Tasks.Compile.Elixir.run([])
+        assert %Diagnostic{message: "deadlocked waiting on module B"} =
+          Enum.find(errors, &(String.ends_with?(&1.file, "lib/a.ex")))
+        assert %Diagnostic{message: "deadlocked waiting on module A"} =
+          Enum.find(errors, &(String.ends_with?(&1.file, "lib/b.ex")))
+      end)
     end
   end
 end

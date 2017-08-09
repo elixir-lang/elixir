@@ -65,10 +65,7 @@ defmodule Mix.Tasks.Compile.Elixir do
     force    = opts[:force] || Mix.Utils.stale?(configs, [manifest])
 
     opts = Keyword.merge(project[:elixirc_options] || [], opts)
-    case Mix.Compilers.Elixir.compile(manifest, srcs, dest, [:ex], force, opts) do
-      {[], []} -> :noop
-      {_, _} -> :ok
-    end
+    Mix.Compilers.Elixir.compile(manifest, srcs, dest, [:ex], force, opts)
   end
 
   @doc """

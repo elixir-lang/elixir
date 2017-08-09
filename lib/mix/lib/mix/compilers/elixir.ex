@@ -2,7 +2,9 @@ defmodule Mix.Compilers.Elixir do
   @moduledoc false
 
   @manifest_vsn :v7
+  @compiler_name "Elixir"
 
+  alias Mix.Task.Compiler.Diagnostic
   import Record
 
   defrecord :module, [:module, :kind, :sources, :beam, :binary]
@@ -86,11 +88,10 @@ defmodule Mix.Compilers.Elixir do
         compile_manifest(manifest, exts, modules, sources, stale, dest, timestamp, opts)
       removed != [] ->
         write_manifest(manifest, modules, sources, dest, timestamp)
+        {:ok, diagnostics(sources)}
       true ->
-        :ok
+        {:noop, diagnostics(sources)}
     end
-
-    {stale, removed}
   end
 
   defp mtimes_and_sizes(sources) do
@@ -156,21 +157,36 @@ defmodule Mix.Compilers.Elixir do
     long_compilation_threshold = opts[:long_compilation_threshold] || 10
 
     try do
-      _ = Kernel.ParallelCompiler.files stale,
-            [each_module: &each_module(pid, cwd, &1, &2, &3),
-             each_long_compilation: &each_long_compilation(&1, long_compilation_threshold),
-             each_warning: &each_warning(pid, cwd, &1, &2, &3),
-             long_compilation_threshold: long_compilation_threshold,
-             dest: dest] ++ extra
-      Agent.cast pid, fn {modules, sources, warnings} ->
-        write_manifest(manifest, modules, sources, dest, timestamp)
-        {modules, sources, warnings}
+      result =
+        Kernel.ParallelCompiler.files stale,
+              [each_module: &each_module(pid, cwd, &1, &2, &3),
+              each_long_compilation: &each_long_compilation(&1, long_compilation_threshold),
+              each_warning: &each_warning(pid, cwd, &1, &2, &3),
+              long_compilation_threshold: long_compilation_threshold,
+              dest: dest] ++ extra
+
+      case result do
+        {:ok, _} ->
+          Agent.get pid, fn {modules, sources, _warnings} ->
+            write_manifest(manifest, modules, sources, dest, timestamp)
+            {:ok, diagnostics(sources)}
+          end
+        {:error, errors} ->
+          diagnostics =
+            for %CompileError{file: file, line: line, description: description} <- errors do
+              %Diagnostic{
+                file: Path.absname(file),
+                severity: :error,
+                position: line,
+                message: to_string(description),
+                compiler_name: @compiler_name
+              }
+            end
+          {:error, diagnostics}
       end
     after
       Agent.stop(pid, :normal, :infinity)
     end
-
-    :ok
   end
 
   defp set_compiler_opts(opts) do
@@ -273,6 +289,18 @@ defmodule Mix.Compilers.Elixir do
       warning = {line, message}
       warnings = Map.update(warnings, source_path, [warning], &([warning | &1]))
       {modules, sources, warnings}
+    end
+  end
+
+  defp diagnostics(sources) do
+    Enum.flat_map sources, fn source(source: source, warnings: warnings) ->
+      for {line, message} <- warnings do
+        %Diagnostic{file: Path.absname(source),
+          severity: :warning,
+          message: to_string(message),
+          position: line,
+          compiler_name: @compiler_name}
+      end
     end
   end
 
