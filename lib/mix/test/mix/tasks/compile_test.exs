@@ -98,4 +98,100 @@ defmodule Mix.Tasks.CompileTest do
       end
     end
   end
+
+  test "returns warning diagnostics" do
+    alias Mix.Task.Compiler.Diagnostic
+    import ExUnit.CaptureIO
+    in_fixture "no_mixfile", fn ->
+      File.write!("lib/a.ex", """
+      defmodule A do
+        def my_fn(unused), do: :ok
+      end
+      """)
+
+      capture_io(:standard_error, fn ->
+        assert Mix.Tasks.Compile.run([]) == {:ok, [%Diagnostic{
+          file: Path.absname("lib/a.ex"),
+          severity: :warning,
+          position: 2,
+          compiler_name: "Elixir",
+          message: "variable \"unused\" is unused"
+        }]}
+      end)
+    end
+  end
+
+  test "exits on compile errors without --return-errors" do
+    import ExUnit.CaptureIO
+    in_fixture "no_mixfile", fn ->
+      File.write!("lib/a.ex", """
+      defmodule A do
+        $$$
+      end
+      """)
+
+      capture_io(fn ->
+        assert catch_exit(Mix.Tasks.Compile.run([])) == {:shutdown, 1}
+      end)
+    end
+  end
+
+  test "returns diagnostics on compile errors with --return-errors" do
+    alias Mix.Task.Compiler.Diagnostic
+    import ExUnit.CaptureIO
+    in_fixture "no_mixfile", fn ->
+      File.write!("lib/a.ex", """
+      defmodule A do
+        $$$
+      end
+      """)
+
+      capture_io(fn ->
+        file = Path.absname("lib/a.ex")
+        assert {:error, [%Diagnostic{
+          file: ^file,
+          severity: :error,
+          position: 2,
+          message: "** (SyntaxError) lib/a.ex:2:" <> _,
+          compiler_name: "Elixir"
+        }]} = Mix.Tasks.Compile.run(["--return-errors"])
+      end)
+    end
+  end
+
+  test "returns diagnostics from errors in deps with --return-errors" do
+    alias Mix.Task.Compiler.Diagnostic
+    import ExUnit.CaptureIO
+
+    defmodule DepsApp do
+      def project do
+        [app: :sample, version: "0.1.0",
+        deps: [
+          {:ok, "0.1.0", path: "deps/ok"}
+        ]]
+      end
+    end
+
+    in_fixture "deps_status", fn ->
+      Mix.Project.push DepsApp
+
+      File.mkdir_p("deps/ok/lib/")
+      File.write!("deps/ok/lib/dep_a.ex", """
+      defmodule DepA do
+        $$$
+      end
+      """)
+
+      capture_io(fn ->
+        file = Path.absname("deps/ok/lib/dep_a.ex")
+        assert {:error, [%Diagnostic{
+          compiler_name: "Elixir",
+          file: ^file,
+          message: "** (SyntaxError) lib/dep_a.ex:2:" <> _,
+          position: 2,
+          severity: :error
+        }]} = Mix.Tasks.Compile.run(["--return-errors"])
+      end)
+    end
+  end
 end
