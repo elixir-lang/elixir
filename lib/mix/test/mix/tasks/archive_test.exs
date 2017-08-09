@@ -26,6 +26,7 @@ defmodule Mix.Tasks.ArchiveTest do
     in_fixture "archive", fn ->
       Mix.Tasks.Archive.Build.run ["--no-elixir-version-check"]
       assert_archive_content_default()
+      refute has_zip_file?('archive-0.1.0.ez', 'archive-0.1.0/priv/.dot_file')
     end
   end
 
