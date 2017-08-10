@@ -12,24 +12,13 @@
 warn(none, File, Warning) ->
   warn(0, File, Warning);
 warn(Line, File, Warning) when is_integer(Line), is_binary(File) ->
-  CompilerPid = get(elixir_compiler_pid),
-  if
-    CompilerPid =/= undefined ->
-      CompilerPid ! {warning, File, Line, Warning};
-    true -> ok
-  end,
-  warn([Warning, "\n  ", file_format(Line, File), $\n]).
+  send_warning(File, Line, Warning),
+  print_warning([Warning, "\n  ", file_format(Line, File), $\n]).
 
 -spec warn(unicode:chardata()) -> ok.
 warn(Message) ->
-  CompilerPid = get(elixir_compiler_pid),
-  if
-    CompilerPid =/= undefined ->
-      elixir_code_server:cast({register_warning, CompilerPid});
-    true -> ok
-  end,
-  io:put_chars(standard_error, [warning_prefix(), Message, $\n]),
-  ok.
+  send_warning(nil, nil, Message),
+  print_warning(Message).
 
 warning_prefix() ->
   case application:get_env(elixir, ansi_enabled) of
@@ -134,6 +123,20 @@ parse_erl_term(Term) ->
   Parsed.
 
 %% Helpers
+
+print_warning(Message) ->
+  io:put_chars(standard_error, [warning_prefix(), Message, $\n]),
+  ok.
+
+send_warning(File, Line, Message) ->
+  CompilerPid = get(elixir_compiler_pid),
+  if
+    CompilerPid =/= undefined ->
+      CompilerPid ! {warning, File, Line, Message},
+      elixir_code_server:cast({register_warning, CompilerPid});
+    true -> ok
+  end,
+  ok.
 
 file_format(0, File) ->
   io_lib:format("~ts", [elixir_utils:relative_to_cwd(File)]);
