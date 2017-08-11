@@ -94,7 +94,7 @@ defmodule Time do
       {:error, :invalid_time}
 
   """
-  @spec new(Calendar.hour, Calendar.minute, Calendar.second, Calendar.microsecond, Calendar.calendar) ::
+  @spec new(Calendar.hour, Calendar.minute, Calendar.second, Calendar.microsecond | integer, Calendar.calendar) ::
         {:ok, t} | {:error, atom}
   def new(hour, minute, second, microsecond \\ {0, 0}, calendar \\ Calendar.ISO)
 
