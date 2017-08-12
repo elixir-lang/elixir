@@ -599,6 +599,12 @@ defmodule ExUnit.AssertionsTest do
     true = assert_in_delta(1.1, 1.2, 0.2)
   end
 
+  test "assert in delta raises when passing a negative delta" do
+    assert_raise ArgumentError, fn ->
+      assert_in_delta(1.1, 1.2, -0.2)
+    end
+  end
+
   test "assert in delta error" do
     "This should never be tested" = assert_in_delta(10, 12, 1)
   rescue

@@ -609,7 +609,11 @@ defmodule ExUnit.Assertions do
       assert_in_delta 10, 15, 4
 
   """
-  def assert_in_delta(value1, value2, delta, message \\ nil) do
+  def assert_in_delta(value1, value2, delta, message \\ nil)
+  def assert_in_delta(_, _, delta, _) when delta < 0 do
+    raise ArgumentError, "delta must always be a positive number, got: #{inspect(delta)}"
+  end
+  def assert_in_delta(value1, value2, delta, message) do
     diff = abs(value1 - value2)
     message = message ||
       "Expected the difference between #{inspect value1} and " <>
