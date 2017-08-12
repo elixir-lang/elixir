@@ -611,7 +611,7 @@ defmodule ExUnit.Assertions do
   """
   def assert_in_delta(value1, value2, delta, message \\ nil)
   def assert_in_delta(_, _, delta, _) when delta < 0 do
-    raise ArgumentError, "all deltas must be positive. Did you mean #{-delta}?"
+    raise ArgumentError, "delta must always be a positive number, got: #{inspect(delta)}"
   end
   def assert_in_delta(value1, value2, delta, message) do
     diff = abs(value1 - value2)
