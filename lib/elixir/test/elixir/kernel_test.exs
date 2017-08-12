@@ -238,6 +238,28 @@ defmodule KernelTest do
     assert_raise BadBooleanError, fn -> 0 or 1 end
   end
 
+  describe "!/1" do
+    def not_fun(x) when !x, do: true
+    def not_fun(_), do: false
+
+    test "! in guard" do
+      assert not_fun(false)
+      assert not_fun(nil)
+      refute not_fun(true)
+      refute not_fun(1)
+    end
+
+    def not_not_fun(x) when !!x, do: true
+    def not_not_fun(_), do: false
+
+    test "!! in guard" do
+      assert not_not_fun(true)
+      assert not_not_fun(1)
+      refute not_not_fun(false)
+      refute not_not_fun(nil)
+    end
+  end
+
   describe "in/2" do
     test "with literals on right side" do
       assert 2 in [1, 2, 3]

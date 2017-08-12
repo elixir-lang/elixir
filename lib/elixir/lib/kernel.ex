@@ -1470,7 +1470,7 @@ defmodule Kernel do
   Receives any argument (not just booleans) and returns `true` if the argument
   is `false` or `nil`; returns `false` otherwise.
 
-  Not allowed in guard clauses.
+  Allowed in guard tests.
 
   ## Examples
 
@@ -1484,21 +1484,35 @@ defmodule Kernel do
   defmacro !(value)
 
   defmacro !({:!, _, [value]}) do
-    optimize_boolean(quote do
-      case unquote(value) do
-        x when x in [false, nil] -> false
-        _ -> true
-      end
-    end)
+    case Macro.Env.in_guard?(__CALLER__) do
+      true ->
+        quote do
+          unquote(value) not in [false, nil]
+        end
+      _ ->
+        optimize_boolean(quote do
+          case unquote(value) do
+            x when x in [false, nil] -> false
+            _ -> true
+          end
+        end)
+    end
   end
 
   defmacro !(value) do
-    optimize_boolean(quote do
-      case unquote(value) do
-        x when x in [false, nil] -> true
-        _ -> false
-      end
-    end)
+    case Macro.Env.in_guard?(__CALLER__) do
+      true ->
+        quote do
+          unquote(value) in [false, nil]
+        end
+      _ ->
+        optimize_boolean(quote do
+          case unquote(value) do
+            x when x in [false, nil] -> true
+            _ -> false
+          end
+        end)
+    end
   end
 
   @doc """
