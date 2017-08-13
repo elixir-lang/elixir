@@ -212,7 +212,7 @@ defmodule IEx.Helpers do
   """
   def open() do
     case Process.get(:iex_whereami) do
-      {file, line} ->
+      {file, line, _} ->
         IEx.Introspection.open({file, line})
       _ ->
         IO.puts IEx.color(:eval_error, "Pry session is not currently enabled")
@@ -876,7 +876,7 @@ defmodule IEx.Helpers do
   defdelegate remove_breaks(), to: IEx.Pry
 
   @doc """
-  Prints the current location in a pry session.
+  Prints the current location and stacktrace in a pry session.
 
   It expects a `radius` which chooses how many lines before and after
   the current line we should print. By default the `radius` is of two
@@ -890,6 +890,8 @@ defmodule IEx.Helpers do
       80:     if mix_started?() do
       81:       config = Mix.Project.config
 
+      (IEx.Helpers) lib/iex/lib/iex/helpers.ex:78: IEx.Helpers.recompile/0
+
   This command only works inside a pry session started manually
   via `IEx.pry/0` or a breakpoint set via `IEx.break!/4`. Calling
   this function during a regular `IEx` session will print an error.
@@ -899,7 +901,7 @@ defmodule IEx.Helpers do
   """
   def whereami(radius \\ 2) do
     case Process.get(:iex_whereami) do
-      {file, line} ->
+      {file, line, stacktrace} ->
         IO.puts IEx.color(:eval_info, ["Location: ", Path.relative_to_cwd(file), ":", Integer.to_string(line)])
         case IEx.Pry.whereami(file, line, radius) do
           {:ok, lines} ->
@@ -907,6 +909,14 @@ defmodule IEx.Helpers do
           :error ->
             IO.puts IEx.color(:eval_error, "Could not extract source snippet. Location is not available.")
         end
+
+        case stacktrace do
+          nil ->
+            :ok
+          stacktrace ->
+            IO.write [Exception.format_stacktrace(stacktrace), ?\n]
+        end
+
       _ ->
         IO.puts IEx.color(:eval_error, "Pry session is not currently enabled")
     end

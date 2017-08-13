@@ -22,7 +22,8 @@ defmodule IEx.Pry do
   def pry(binding, %Macro.Env{} = env) do
     %{file: file, line: line, module: module, function: function_arity} = env
     self = self()
-    opts = [binding: binding, dot_iex_path: "", env: env, prefix: "pry"]
+    {:current_stacktrace, stacktrace} = Process.info(self, :current_stacktrace)
+    opts = [binding: binding, dot_iex_path: "", env: env, prefix: "pry", stacktrace: prune_stacktrace(stacktrace)]
 
     location =
       case function_arity do
@@ -41,7 +42,7 @@ defmodule IEx.Pry do
     # If we are the current evaluator, it is because we just
     # reached a pry/breakpoint and the user hit continue().
     # In both cases, we are safe to print and the request will
-    # suceed.
+    # succeed.
     request =
       case IEx.Server.evaluator do
         {^self, _} ->
@@ -72,6 +73,24 @@ defmodule IEx.Pry do
   def pry(binding, opts) when is_list(opts) do
     vars = for {k, _} when is_atom(k) <- binding, do: {k, nil}
     pry(binding, %{:elixir.env_for_eval(opts) | vars: vars})
+  end
+
+  @elixir_internals [:elixir, :erl_eval, IEx.Evaluator, IEx.Pry]
+
+  defp prune_stacktrace([{mod, _, _, _} | t]) when mod in @elixir_internals do
+    prune_stacktrace(t)
+  end
+
+  defp prune_stacktrace([{Process, :info, 2, _} | t]) do
+    prune_stacktrace(t)
+  end
+
+  defp prune_stacktrace([h | t]) do
+    [h | prune_stacktrace(t)]
+  end
+
+  defp prune_stacktrace([]) do
+    []
   end
 
   @doc """
