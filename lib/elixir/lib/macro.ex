@@ -1308,8 +1308,8 @@ defmodule Macro do
   end
 
 
-  defp do_underscore(<<h, t, rest::binary>>, _)
-      when (h >= ?A and h <= ?Z) and not (t >= ?A and t <= ?Z) and t != ?. and t != ?_ do
+  defp do_underscore(<<h, t, rest::binary>>, prev)
+      when (h >= ?A and h <= ?Z) and not (t >= ?A and t <= ?Z) and t != ?. and t != ?_ and prev != ?_ do
     <<?_, to_lower_char(h), t>> <> do_underscore(rest, t)
   end
   defp do_underscore(<<h, t::binary>>, prev)
