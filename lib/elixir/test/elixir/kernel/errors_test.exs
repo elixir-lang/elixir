@@ -3,6 +3,8 @@ Code.require_file "../test_helper.exs", __DIR__
 defmodule Kernel.ErrorsTest do
   use ExUnit.Case, async: true
 
+  import ExUnit.CaptureIO
+
   defmacro hello do
     quote location: :keep do
       def hello, do: :world
@@ -649,16 +651,16 @@ defmodule Kernel.ErrorsTest do
       "nofile:1: cannot use ^x outside of match clauses",
       'x = 8; <<a, b::size(^x)>> = <<?a, ?b>>'
 
-    # There is a warn generated on this because the expansion from ambiguous variable to
-    # a function call that is necessary to catch the error, fixing the warn creates
-    # a false-positive result.
-    assert_compile_fail CompileError,
-      "nofile:2: size in bitstring expects an integer or a variable as argument, got: bar()",
-      '''
-      defmodule Kernel.ErrorsTest.InvalidSizeInBitstring do
-        def foo(<<_::size(bar)>>), do: :ok
-      end
-      '''
+    warning = capture_io(:stderr, fn ->
+      assert_compile_fail CompileError,
+        "nofile:2: size in bitstring expects an integer or a variable as argument, got: bar()",
+        '''
+        defmodule Kernel.ErrorsTest.InvalidSizeInBitstring do
+          def foo(<<_::size(bar)>>), do: :ok
+        end
+        '''
+    end)
+    assert warning =~ "variable \"bar\" does not exist and is being expanded to \"bar()\""
   end
 
   test "end of expression" do
