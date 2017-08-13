@@ -22,8 +22,8 @@ expand(BitstrMeta, Fun, [{'::', Meta, [Left, Right]} | T], Acc, E, RequireSize) 
   %% on subparts, however we can't assign new variables.
   {ER, MatchSize} =
     case E of
-      {EExtracted, _} -> {EExtracted, false};          %% expand_arg,  no assigns
-      _               -> {E#{context := nil}, T /= []} %% expand, revert assigns
+      {EExtracted, _} -> {EExtracted, false}; %% expand_arg,  no assigns
+      _               -> {E#{context := nil, match_vars := warn}, T /= []} %% expand, revert assigns
     end,
 
   ERight = expand_specs(expr_type(ELeft), Meta, Right, ER, RequireSize or MatchSize),
