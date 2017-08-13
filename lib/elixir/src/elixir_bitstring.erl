@@ -23,7 +23,7 @@ expand(BitstrMeta, Fun, [{'::', Meta, [Left, Right]} | T], Acc, E, RequireSize) 
   {ER, MatchSize} =
     case E of
       {EExtracted, _} -> {EExtracted, false}; %% expand_arg,  no assigns
-      _               -> {E#{context := nil, match_vars := warn}, T /= []} %% expand, revert assigns
+      _ -> {E#{context := nil, match_vars := warn}, T /= []} %% expand, revert assigns
     end,
 
   ERight = expand_specs(expr_type(ELeft), Meta, Right, ER, RequireSize or MatchSize),

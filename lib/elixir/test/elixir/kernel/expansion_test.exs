@@ -1182,10 +1182,11 @@ defmodule Kernel.ExpansionTest do
     end
 
     assert_raise CompileError,
-      ~r"size in bitstring expects an integer or a variable as argument, got: bar\(\)",
+      ~r"size in bitstring expects an integer or a variable as argument, got: foo\(\)",
       fn ->
-        assert expand(quote do: <<x::size(bar)>>) ==
-               "variable \"bar\" does not exist and is being expanded to \"bar\(\)\""
+        expand(quote do
+          fn <<_::size(foo)>> -> :ok end
+        end)
       end
   end
 
