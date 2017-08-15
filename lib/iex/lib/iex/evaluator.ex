@@ -114,9 +114,10 @@ defmodule IEx.Evaluator do
     env = opts[:env] || :elixir.env_for_eval(file: "iex")
     env = %{env | match_vars: :apply}
     {_, _, env, scope} = :elixir.eval('import IEx.Helpers', [], env)
+    stacktrace = opts[:stacktrace]
 
     binding = Keyword.get(opts, :binding, [])
-    state = %{binding: binding, scope: scope, env: env, server: server, history: history}
+    state = %{binding: binding, scope: scope, env: env, server: server, history: history, stacktrace: stacktrace}
 
     case opts[:dot_iex_path] do
       ""   -> state
@@ -210,8 +211,8 @@ defmodule IEx.Evaluator do
   defp put_whereami(%{env: %{file: "iex"}}) do
     :ok
   end
-  defp put_whereami(%{env: %{file: file, line: line}}) do
-    Process.put(:iex_whereami, {file, line})
+  defp put_whereami(%{env: %{file: file, line: line}, stacktrace: stacktrace}) do
+    Process.put(:iex_whereami, {file, line, stacktrace})
   end
 
   defp handle_eval({:ok, forms}, code, line, iex_state, state) do
