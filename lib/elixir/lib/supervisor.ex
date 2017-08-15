@@ -200,7 +200,7 @@ defmodule Supervisor do
 
     * any integer >= 0 - the amount of time in miliseconds that the
       supervisor will wait for children to terminate after emitting a
-      `Process.exit(child, :shutdown)` signal.  If the child process is
+      `Process.exit(child, :shutdown)` signal. If the child process is
       not trapping exits, the initial `:shutdown` signal will terminate
       the child process immediately. If the child process is trapping
       exits, it has the given amount of time in miliseconds to terminate.
