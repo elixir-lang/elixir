@@ -1180,6 +1180,14 @@ defmodule Kernel.ExpansionTest do
     assert_raise CompileError, ~r"unhandled operator ->", fn ->
       expand(quote do: (foo -> bar))
     end
+
+    assert_raise CompileError,
+      ~r"size in bitstring expects an integer or a variable as argument, got: foo\(\)",
+      fn ->
+        expand(quote do
+          fn <<_::size(foo)>> -> :ok end
+        end)
+      end
   end
 
   ## Helpers
