@@ -210,7 +210,7 @@ defmodule Supervisor do
 
     * `:infinity` - works as an integer except the supervisor will wait
       indefinitely for the child to terminate. If the child process is a
-      supervisor, the recommend value is `:infinity` to give the supervisor
+      supervisor, the recommended value is `:infinity` to give the supervisor
       and its children enough time to shutdown. This option can be used with
       regular workers but doing so is discouraged and requires extreme care.
       If not used carefully and the child process does not terminate, it means
