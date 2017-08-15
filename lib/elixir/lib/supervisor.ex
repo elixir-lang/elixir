@@ -678,7 +678,7 @@ defmodule Supervisor do
 
       Supervisor.child_spec({Agent, fn -> :ok end}, id: {Agent, 1})
       #=> %{id: {Agent, 1},
-            start: {Agent, :start_link, [fn -> :ok end]}}
+      #=>   start: {Agent, :start_link, [fn -> :ok end]}}
 
   It may also be used when there is a need to change the number
   of arguments when starting a module under a `:simple_one_for_one`
@@ -686,7 +686,7 @@ defmodule Supervisor do
 
       Supervisor.child_spec(Agent, start: {Agent, :start_link, []})
       #=> %{id: Agent,
-            start: {Agent, :start_link, []}}
+      #=>   start: {Agent, :start_link, []}}
 
   """
   @spec child_spec(child_spec() | {module, arg :: term} | module, keyword) :: child_spec()
