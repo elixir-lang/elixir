@@ -20,10 +20,17 @@ defmodule IEx.Pry do
   `Kernel.binding/0`) and the environment (from `__ENV__/0`).
   """
   def pry(binding, %Macro.Env{} = env) do
-    %{file: file, line: line, module: module, function: function_arity} = env
     self = self()
+    %{file: file, line: line, module: module, function: function_arity} = env
     {:current_stacktrace, stacktrace} = Process.info(self, :current_stacktrace)
-    opts = [binding: binding, dot_iex_path: "", env: env, prefix: "pry", stacktrace: prune_stacktrace(stacktrace)]
+
+    opts = [
+      binding: binding,
+      dot_iex_path: "",
+      env: env,
+      prefix: "pry",
+      stacktrace: prune_stacktrace(stacktrace)
+    ]
 
     location =
       case function_arity do
@@ -44,12 +51,11 @@ defmodule IEx.Pry do
     # In both cases, we are safe to print and the request will
     # succeed.
     request =
-      case IEx.Server.evaluator do
-        {^self, _} ->
-          IO.puts IEx.color :eval_interrupt, "Break reached: #{location}#{whereami}"
-          "Prying #{inspect self} at #{location}"
-        _ ->
-          "Request to pry #{inspect self} at #{location}#{whereami}"
+      if Process.get(:iex_evaluator) do
+        IO.puts IEx.color :eval_interrupt, "Break reached: #{location}#{whereami}"
+        "Prying #{inspect self} at #{location}"
+      else
+        "Request to pry #{inspect self} at #{location}#{whereami}"
       end
 
     # We cannot use colors because IEx may be off
