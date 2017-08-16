@@ -74,6 +74,7 @@ The collection types are compared using the following rules:
 * Tuples are compared by size then element by element.
 * Maps are compared by size then by keys in ascending term order then by values in key order. In the specific case of maps' key ordering, integers are always considered to be less than floats.
 * Lists are compared element by element.
+* Bitstrings are compared byte by byte, incomplete bytes are compared bit by bit.
 
 ## Custom and overridden operators
 
