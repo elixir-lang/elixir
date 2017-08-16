@@ -240,7 +240,7 @@ defmodule Supervisor do
   ## Exit reasons
 
   A supervisor restarts a child process depending on its `:restart`
-  configuration. For example, when `:restart` is set `:transient`, the
+  configuration. For example, when `:restart` is set to `:transient`, the
   supervisor does not restart the child in case it exits with reason `:normal`,
   `:shutdown` or `{:shutdown, term}`.
 
