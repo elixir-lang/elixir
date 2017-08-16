@@ -79,10 +79,6 @@ defmodule ExUnit.CaptureServer do
     {:noreply, config}
   end
 
-  def handle_info(msg, state) do
-    super(msg, state)
-  end
-
   defp release_device(ref, %{devices: {names, refs}} = config) do
     case Map.pop(refs, ref) do
       {{name, pid}, refs} ->
@@ -98,17 +94,18 @@ defmodule ExUnit.CaptureServer do
           ArgumentError -> nil
         end
         %{config | devices: {names, refs}}
-      {nil, _refs} -> config
+      {nil, _refs} ->
+        config
     end
   end
 
   defp remove_log_capture(ref, %{log_captures: refs} = config) do
-    if Map.has_key?(refs, ref) do
-      refs = Map.delete(refs, ref)
-      maybe_add_console(refs, config.log_status)
-      %{config | log_captures: refs}
-    else
-      config
+    case Map.pop(refs, ref, false) do
+      {true, refs} ->
+        maybe_add_console(refs, config.log_status)
+        %{config | log_captures: refs}
+      {false, _refs} ->
+        config
     end
   end
 
