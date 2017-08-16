@@ -78,10 +78,10 @@ defmodule List do
 
       Application.loaded_applications
       #=>  [{:stdlib, 'ERTS  CXC 138 10', '2.6'},
-            {:compiler, 'ERTS  CXC 138 10', '6.0.1'},
-            {:elixir, 'elixir', '1.0.0'},
-            {:kernel, 'ERTS  CXC 138 10', '4.1'},
-            {:logger, 'logger', '1.0.0'}]
+      #=>   {:compiler, 'ERTS  CXC 138 10', '6.0.1'},
+      #=>   {:elixir, 'elixir', '1.0.0'},
+      #=>   {:kernel, 'ERTS  CXC 138 10', '4.1'},
+      #=>   {:logger, 'logger', '1.0.0'}]
 
   ## List and Enum modules
 
