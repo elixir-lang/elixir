@@ -3188,7 +3188,7 @@ defimpl Enumerable, for: Map do
   end
 
   def member?(map, {key, value}) do
-    {:ok, match?({:ok, ^value}, :maps.find(key, map))}
+    {:ok, match?(%{^key => ^value}, map)}
   end
 
   def member?(_map, _other) do
