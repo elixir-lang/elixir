@@ -388,7 +388,7 @@ defmodule Code do
 
       Code.compiler_options
       #=> %{debug_info: true, docs: true,
-            warnings_as_errors: false, ignore_module_conflict: false}
+      #=>   warnings_as_errors: false, ignore_module_conflict: false}
 
   """
   def compiler_options do
@@ -440,7 +440,7 @@ defmodule Code do
 
       Code.compiler_options(debug_info: true)
       #=> %{debug_info: true, docs: true,
-            warnings_as_errors: false, ignore_module_conflict: false}
+      #=>   warnings_as_errors: false, ignore_module_conflict: false}
 
   """
   def compiler_options(opts) do

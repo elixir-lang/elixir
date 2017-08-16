@@ -145,12 +145,12 @@ defmodule Supervisor do
 
       Stack.child_spec([:hello])
       #=> %{
-        id: Stack,
-        start: {Stack, :start_link, [[:hello]]},
-        restart: :permanent,
-        shutdown: 5000,
-        type: :worker
-      }
+      #=>   id: Stack,
+      #=>   start: {Stack, :start_link, [[:hello]]},
+      #=>   restart: :permanent,
+      #=>   shutdown: 5000,
+      #=>   type: :worker
+      #=> }
 
   The child specification contains 5 keys. The first two are required
   and the remaining ones are optional:

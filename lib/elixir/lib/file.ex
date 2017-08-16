@@ -1358,7 +1358,7 @@ defmodule File do
       # Read in 2048 byte chunks rather than lines
       File.stream!("./test/test.data", [], 2048)
       #=> %File.Stream{line_or_bytes: 2048, modes: [:raw, :read_ahead, :binary],
-      #=> path: "./test/test.data", raw: true}
+      #=>   path: "./test/test.data", raw: true}
 
   See `Stream.run/1` for an example of streaming into a file.
 
