@@ -144,9 +144,10 @@ defmodule Inspect.Algebra do
   are encoded explicitly as `:flat` or `:break`. Those groups are then reduced
   to a simple document, where the layout is already decided, per [Lindig][0].
 
-  This implementation splits the `:break` mode in two modes: `:strict` and
-  `:flex`. The `:strict` mode has one entry per line, the `:flex` mode tries
-  to fit the maximum amount of entries in a group in the same line.
+  This implementation has two types of groups: `:strict` and `:flex`. They
+  have different rules to when a group is considered float or a break. The
+  `:strict` mode guarantees one break per line, the `:flex` mode tries to fit
+  the maximum amount of entries in a group in the same line.
 
   Custom pretty printers can be implemented using the documents returned
   by this module and by providing their own rendering functions.
