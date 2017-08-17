@@ -524,7 +524,7 @@ defmodule Supervisor do
   `{:ok, child, info}`, or `:ignore`) this function returns
   `{:ok, pid}`, where `pid` is the PID of the supervisor. If the supervisor
   is given a name and a process with the specified name already exists,
-  the function returns `{:error,  {:already_started, pid}}`, where `pid`
+  the function returns `{:error, {:already_started, pid}}`, where `pid`
   is the PID of that process.
 
   If the start function of any of the child processes fails or returns an error
