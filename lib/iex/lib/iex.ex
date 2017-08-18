@@ -477,7 +477,6 @@ defmodule IEx do
 
       import Enum, only: [map: 2]
 
-
       defmodule Adder do
         def add(a, b) do
           c = a + b
@@ -508,6 +507,25 @@ defmodule IEx do
   Setting variables or importing modules in IEx does not
   affect the caller's environment. However, sending and
   receiving messages will change the process state.
+
+  ## Pry and macros
+
+  When setting up Pry inside a code defined by macros, such as:
+
+      defmacro __using__(_) do
+        quote do
+          def add(a, b) do
+            c = a + b
+            require IEx; IEx.pry
+          end
+        end
+      end
+
+  The variables defined inside `quote` won't be available during
+  prying due to the hygiene mechanism in quoted expressions. The
+  hygiene mechanism changes the variable names in quoted expressions
+  so they don't collide with variables defined by the users of the
+  macros. Therefore the original names are not available.
 
   ## Pry and mix test
 
