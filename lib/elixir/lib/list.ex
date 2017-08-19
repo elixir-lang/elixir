@@ -182,8 +182,8 @@ defmodule List do
 
   """
   @spec foldl([elem], acc, (elem, acc -> acc)) :: acc when elem: var, acc: var
-  def foldl(list, acc, function) when is_list(list) and is_function(function) do
-    :lists.foldl(function, acc, list)
+  def foldl(list, acc, fun) when is_list(list) and is_function(fun) do
+    :lists.foldl(fun, acc, list)
   end
 
   @doc """
@@ -197,8 +197,8 @@ defmodule List do
 
   """
   @spec foldr([elem], acc, (elem, acc -> acc)) :: acc when elem: var, acc: var
-  def foldr(list, acc, function) when is_list(list) and is_function(function) do
-    :lists.foldr(function, acc, list)
+  def foldr(list, acc, fun) when is_list(list) and is_function(fun) do
+    :lists.foldr(fun, acc, list)
   end
 
   @doc """
