@@ -130,11 +130,32 @@ defmodule Supervisor do
   In summary, when the `Supervisor.start_link(children, opts)` is called,
   it traverses the list of children and retrieves their `child_spec/1`.
   Then each child specification describes how each child is started,
-  typically via the `start_link/1` function. The supervisor invokes the
-  `start_link/1` when it initializes and whenever the child process needs
-  to be restarted. The new process started by `start_link/1` often
-  executes the `init` callback as its first step. The `init` callback is
-  where we initialize and configure the child process.
+  typically via the `start_link/1` function. After the supervisor process
+  starts, it starts each child process in the order they are defined. Each
+  child process typically executes the `init` callback as its first step.
+  The `init` callback is where we initialize and configure the child process.
+
+  ## The shutdown process
+
+  When a supervisor shuts down, it terminates all children in the opposite
+  order they are listed. The termination happens by sending a shutdown exit
+  signal to the child process and then awaiting for a time interval, which
+  defaults to 5000 miliseconds, for the child process to terminate. If the
+  child process does not terminate, it is abruptly terminated with reason
+  `:brutal_kill`. The shutdown time can be configured in the child specification
+  which is detailed in the next section.
+
+  If the child process is not trapping exits, it will shutdown immediately
+  when it receives the first exit signal. If the child process is trapping
+  exits, then the `terminate` callback is invoked, and the child process
+  must terminate in a reasonable time interval before being abruptly
+  terminated by the supervisor.
+
+  In other words, if it is important that a process cleans after itself
+  when your application or the supervision tree is shutting down, then
+  this process must trap exits and its child specification should specify
+  the proper `:shutdown` value, ensuring it terminates within a reasonable
+  interval.
 
   ## Child specification
 
@@ -237,7 +258,7 @@ defmodule Supervisor do
   For a more complete understanding of the exit reasons and their
   impact, see the "Exit reasons" section next.
 
-  ## Exit reasons
+  ## Exit reasons and restarts
 
   A supervisor restarts a child process depending on its `:restart`
   configuration. For example, when `:restart` is set to `:transient`, the

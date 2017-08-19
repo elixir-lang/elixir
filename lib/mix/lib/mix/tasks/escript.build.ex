@@ -8,7 +8,7 @@ defmodule Mix.Tasks.Escript.Build do
   Builds an escript for the project.
 
   An escript is an executable that can be invoked from the
-  command line.  An escript can run on any machine that has
+  command line. An escript can run on any machine that has
   Erlang installed and by default does not require Elixir to
   be installed, as Elixir is embedded as part of the escript.
 
@@ -19,10 +19,18 @@ defmodule Mix.Tasks.Escript.Build do
 
       escript: [main_module: MyApp.CLI]
 
-  By default, this task removes documentation and debugging
-  chunks from the compiled `.beam` files to reduce the size of
-  the escript. If this is not desired, check the `:strip_beams`
-  option.
+  Escripts should be used as a mechanism to share scripts between
+  developers and not as a deployment mechanism. For running live
+  systems, consider using `mix run` or building releases. See
+  the `Application` module for more information on systems life-
+  cycles.
+
+  By default, this task starts the current application. If this
+  is not desired, set the `:app` configuration to nil.
+
+  This task also removes documentation and debugging chunks from
+  the compiled `.beam` files to reduce the size of the escript.
+  If this is not desired, check the `:strip_beams` option.
 
   > Note: escripts do not support projects and dependencies
   > that need to store or read artifacts from the priv directory.
@@ -364,10 +372,10 @@ defmodule Mix.Tasks.Escript.Build do
       erl_version = :erlang.system_info(:otp_release)
 
       case :string.to_integer(erl_version) do
-        {num, _} when num >= 18 -> nil
+        {num, _} when num >= 19 -> nil
         _ ->
           io_error ["Incompatible Erlang/OTP release: ", erl_version,
-                    ".\nThis escript requires at least Erlang/OTP 18.0\n"]
+                    ".\nThis escript requires at least Erlang/OTP 19.0\n"]
           :erlang.halt(1)
       end
 

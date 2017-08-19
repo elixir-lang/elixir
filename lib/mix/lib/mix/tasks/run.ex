@@ -1,30 +1,36 @@
 defmodule Mix.Tasks.Run do
   use Mix.Task
 
-  @shortdoc "Runs the given file or expression"
+  @shortdoc "Starts and runs the current application"
 
   @moduledoc """
-  Runs the given file or expression in the context of the application.
+  Starts and runs the current application.
 
-  You can use this task to execute a particular file or command:
-
-      mix run -e Hello.world
-      mix run my_script.exs
-
-  This task provides a subset of the functionality available in the
-  `elixir` executable, including setting up the `System.argv/0` arguments:
-
-      mix run my_script.exs arg1 arg2 arg3
-
-  You can also use this task to simply start an application and keep
-  it running without halting:
+  `mix run` can be used to start the current application dependencies
+  ant the application itself. For long running systems, this is typically
+  done with the `--no-halt` option:
 
       mix run --no-halt
 
-  Before running any command, the task compiles and starts the current
-  application. Those can be configured with the options below.
+  If there is a desire to execute a script within the current application
+  or configure the application via command line flags, it is possible to
+  do so by passing a script file or an eval expression to the command:
 
-  You may also pass options specific to the `elixir` executable as follows:
+      mix run my_app_script.exs arg1 arg2 arg3
+      mix run -e "MyApp.start" -- arg1 arg2 arg3
+
+  In both cases, the command line flags are available under `System.argv/0`.
+
+  Before running any command, Mix will compile and start the current
+  application. If for some reason the application needs to be configured
+  before it is started, the `--no-start` flag can be used and you are then
+  responsible for starting all applications by using functions such as
+  `Application.ensure_all_started/1`. For more information about the
+  application life-cycle and dynamically configuring applications, see
+  the `Application` module.
+
+  If you need to pass options to the Elixir executable at the same time
+  you use `mix run`, it can be done as follows:
 
       elixir --sname hello -S mix run --no-halt
 
