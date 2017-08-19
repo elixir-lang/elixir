@@ -84,6 +84,18 @@ defmodule Kernel.WarningTest do
     end) =~ message
   end
 
+  test "unary operator followed by new line" do
+    assert capture_err(fn ->
+      Code.eval_string """
+        1
+        +
+        1
+      """
+  end) =~ "unary operator + followed by new line"
+  after
+    purge Sample
+  end
+
   test "useless attr" do
     message = capture_err(fn ->
       Code.eval_string """

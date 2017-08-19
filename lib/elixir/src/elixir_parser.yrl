@@ -380,7 +380,7 @@ capture_op_eol -> capture_op eol : '$1'.
 unary_op_eol -> unary_op : '$1'.
 unary_op_eol -> unary_op eol : '$1'.
 unary_op_eol -> dual_op : '$1'.
-unary_op_eol -> dual_op eol : '$1'.
+unary_op_eol -> dual_op eol : warn_unary_operator_eol('$1'), '$1'.
 
 match_op_eol -> match_op : '$1'.
 match_op_eol -> match_op eol : '$1'.
@@ -870,3 +870,13 @@ warn_pipe({arrow_op, {Line, _Begin, _End}, Op}, {_, [_ | _], [_ | _]}) ->
   );
 warn_pipe(_Token, _) ->
   ok.
+
+warn_unary_operator_eol({dual_op, {Line, _Begin, _End}, Op}) ->
+  elixir_errors:warn(Line, ?file(),
+    io_lib:format(
+      "unary operator ~ts followed by new line. "
+      "This sometimes happen when you try to use a binary operator in multiple lines, "
+      "please make sure that all your arguments are in the same line.",
+      [Op]
+    )
+  ).
