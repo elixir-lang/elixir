@@ -37,6 +37,7 @@ start(_Type, _Args) ->
 
   OTPRelease = string:to_integer(erlang:system_info(otp_release)),
 
+  %% Whenever we change this check, we should also change escript.build.
   case OTPRelease of
     {Num, _} when Num >= 19 ->
       ok;
