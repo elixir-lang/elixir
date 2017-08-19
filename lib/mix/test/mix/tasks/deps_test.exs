@@ -117,7 +117,7 @@ defmodule Mix.Tasks.DepsTest do
       Mix.Tasks.Deps.run []
 
       assert_received {:mix_shell, :info, ["* ok (https://github.com/elixir-lang/ok.git) (mix)"]}
-      assert_received {:mix_shell, :info, ["  lock outdated: the lock is outdated compared to the options in your mixfile. To fetch locked version run \"mix deps.get\""]}
+      assert_received {:mix_shell, :info, ["  lock outdated: the lock is outdated compared to the options in your mix.exs. To fetch locked version run \"mix deps.get\""]}
     end
   end
 

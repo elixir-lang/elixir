@@ -256,7 +256,7 @@ defmodule Mix.Dep.Loader do
 
   # If we have a Mix dependency that came from a remote converger,
   # we just use the dependencies given by the remote converger,
-  # we don't need to load the mixfile at all. We can only do this
+  # we don't need to load the mix.exs at all. We can only do this
   # because umbrella projects are not supported in remotes.
   defp mix_dep(%Mix.Dep{opts: opts} = dep, children) do
     from = Path.join(opts[:dest], "mix.exs")
