@@ -261,7 +261,7 @@ defmodule Logger do
         format: "\n$time $metadata[$level] $levelpad$message\n",
         metadata: [:user_id]
 
-  #### Custom Formatting
+  ### Custom formatting
 
   The console backend allows you to customize the format of your log messages
   with the `:format` option.
@@ -283,6 +283,19 @@ defmodule Logger do
       defmodule MyConsoleLogger do
         def format(level, message, timestamp, metadata) do
           # Custom formatting logic...
+        end
+      end
+
+  It is extremely importating that **the formatting function does not fail**, as
+  it will bring that particular logger instance down, causing your system to
+  temporarily lose messages. If necessary, wrap the function in a "rescue" and
+  log a default message instead:
+
+      defmodule MyConsoleLogger do
+        def format(level, message, timestamp, metadata) do
+          # Custom formatting logic...
+        rescue
+          _ -> "could not format: #{inspect {level, message, metadata}}"
         end
       end
 
