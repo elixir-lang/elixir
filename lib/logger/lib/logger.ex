@@ -278,7 +278,7 @@ defmodule Logger do
         format: {MyConsoleLogger, :format}
 
   And here is an example of how you can define `MyConsoleLogger.format/4` from the
-  above configuration.
+  above configuration:
 
       defmodule MyConsoleLogger do
         def format(level, message, timestamp, metadata) do
@@ -286,7 +286,7 @@ defmodule Logger do
         end
       end
 
-  It is extremely importating that **the formatting function does not fail**, as
+  It is extremely important that **the formatting function does not fail**, as
   it will bring that particular logger instance down, causing your system to
   temporarily lose messages. If necessary, wrap the function in a "rescue" and
   log a default message instead:
