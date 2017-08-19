@@ -33,7 +33,7 @@ defmodule Mix.Compilers.Test do
 
     case test_files_to_run do
       [] when stale ->
-        Mix.shell.info "No stale tests."
+        Mix.shell.info "No stale tests"
         :noop
 
       [] when test_patterns == [] ->
@@ -45,8 +45,9 @@ defmodule Mix.Compilers.Test do
         :noop
 
       test_files ->
+        task = Task.async(ExUnit, :run, [])
+
         try do
-          task = Task.async(ExUnit, :run, [])
           Kernel.ParallelRequire.files(test_files, parallel_require_callbacks)
           ExUnit.Server.cases_loaded()
           %{failures: failures} = results = Task.await(task, :infinity)
@@ -56,6 +57,13 @@ defmodule Mix.Compilers.Test do
           end
 
           {:ok, results}
+        catch
+          kind, reason ->
+            stack = System.stacktrace
+            # In case there is an error, shutdown the runner task
+            # before the error propagates up and trigger links.
+            Task.shutdown(task)
+            :erlang.raise(kind, reason, stack)
         after
           agent_stop(stale_manifest_pid)
         end

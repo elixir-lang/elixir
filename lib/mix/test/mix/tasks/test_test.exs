@@ -40,7 +40,7 @@ defmodule Mix.Tasks.TestTest do
       assert_stale_run_output "2 tests, 0 failures"
 
       assert_stale_run_output """
-      No stale tests.
+      No stale tests
       """
     end
   end
@@ -124,7 +124,7 @@ defmodule Mix.Tasks.TestTest do
 
       Port.command(port, "\n")
 
-      assert receive_until_match(port, "No stale tests.", []) =~ "Restarting..."
+      assert receive_until_match(port, "No stale tests", []) =~ "Restarting..."
     end
   end
 
