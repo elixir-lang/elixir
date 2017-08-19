@@ -91,7 +91,14 @@ defmodule Kernel.WarningTest do
         +
         1
       """
-  end) =~ "unary operator + followed by new line"
+    end) =~ "unary operator + followed by new line"
+
+    assert capture_err(fn ->
+      Code.eval_string """
+        !
+        1
+      """
+    end) =~ "unary operator ! followed by new line"
   after
     purge Sample
   end
