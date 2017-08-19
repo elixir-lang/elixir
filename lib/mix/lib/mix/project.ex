@@ -141,7 +141,7 @@ defmodule Mix.Project do
   Retrieves the current project if there is one.
 
   If there is no current project, `nil` is returned. This
-  may happen in casesthere is no mixfile in the current
+  may happen in cases there is no `mix.exs` in the current
   directory.
 
   If you expect a project to be defined, i.e., it is a

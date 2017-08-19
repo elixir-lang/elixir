@@ -85,9 +85,9 @@ defmodule Mix.Tasks.New do
     create_file ".gitignore", gitignore_text()
 
     if in_umbrella?() do
-      create_file "mix.exs", mixfile_apps_template(assigns)
+      create_file "mix.exs", mixexs_apps_template(assigns)
     else
-      create_file "mix.exs", mixfile_template(assigns)
+      create_file "mix.exs", mixexs_template(assigns)
     end
 
     create_directory "config"
@@ -128,7 +128,7 @@ defmodule Mix.Tasks.New do
 
     create_file ".gitignore", gitignore_text()
     create_file "README.md", readme_template(assigns)
-    create_file "mix.exs", mixfile_umbrella_template(assigns)
+    create_file "mix.exs", mixexs_umbrella_template(assigns)
 
     create_directory "apps"
 
@@ -253,7 +253,7 @@ defmodule Mix.Tasks.New do
   *.ez
   """
 
-  embed_template :mixfile, """
+  embed_template :mixexs, """
   defmodule <%= @mod %>.Mixfile do
     use Mix.Project
 
@@ -284,7 +284,7 @@ defmodule Mix.Tasks.New do
   end
   """
 
-  embed_template :mixfile_apps, """
+  embed_template :mixexs_apps, """
   defmodule <%= @mod %>.Mixfile do
     use Mix.Project
 
@@ -320,7 +320,7 @@ defmodule Mix.Tasks.New do
   end
   """
 
-  embed_template :mixfile_umbrella, """
+  embed_template :mixexs_umbrella, """
   defmodule <%= @mod %>.Mixfile do
     use Mix.Project
 
