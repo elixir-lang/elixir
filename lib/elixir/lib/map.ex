@@ -516,12 +516,12 @@ defmodule Map do
   defdelegate merge(map1, map2), to: :maps
 
   @doc """
-  Merges two maps into one, resolving conflicts through the given `callback`.
+  Merges two maps into one, resolving conflicts through the given `fun`.
 
   All keys in `map2` will be added to `map1`. The given function will be invoked
   when there are duplicate keys; its arguments are `key` (the duplicate key),
   `value1` (the value of `key` in `map1`), and `value2` (the value of `key` in
-  `map2`). The value returned by `callback` is used as the value under `key` in
+  `map2`). The value returned by `fun` is used as the value under `key` in
   the resulting map.
 
   ## Examples
@@ -533,14 +533,14 @@ defmodule Map do
 
   """
   @spec merge(map, map, (key, value, value -> value)) :: map
-  def merge(map1, map2, callback) when is_function(callback, 3) do
+  def merge(map1, map2, fun) when is_function(fun, 3) do
     if map_size(map1) > map_size(map2) do
       :maps.fold fn key, val2, acc ->
-        update(acc, key, val2, fn val1 -> callback.(key, val1, val2) end)
+        update(acc, key, val2, fn val1 -> fun.(key, val1, val2) end)
       end, map1, map2
     else
       :maps.fold fn key, val2, acc ->
-        update(acc, key, val2, fn val1 -> callback.(key, val2, val1) end)
+        update(acc, key, val2, fn val1 -> fun.(key, val2, val1) end)
       end, map2, map1
     end
   end
