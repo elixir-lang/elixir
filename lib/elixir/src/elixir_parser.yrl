@@ -378,9 +378,9 @@ capture_op_eol -> capture_op : '$1'.
 capture_op_eol -> capture_op eol : '$1'.
 
 unary_op_eol -> unary_op : '$1'.
-unary_op_eol -> unary_op eol : '$1'.
+unary_op_eol -> unary_op eol : warn_unary_operator_eol('$1'), '$1'.
 unary_op_eol -> dual_op : '$1'.
-unary_op_eol -> dual_op eol : '$1'.
+unary_op_eol -> dual_op eol : warn_unary_operator_eol('$1'), '$1'.
 
 match_op_eol -> match_op : '$1'.
 match_op_eol -> match_op eol : '$1'.
@@ -856,6 +856,25 @@ warn_empty_stab_clause({stab_op, {Line, _Begin, _End}, '->'}) ->
   elixir_errors:warn(Line, ?file(),
     "an expression is always required on the right side of ->. "
     "Please provide a value after ->").
+
+warn_unary_operator_eol({dual_op, {Line, _Begin, _End}, Op}) ->
+  elixir_errors:warn(Line, ?file(),
+    io_lib:format(
+      "unary operator ~ts followed by new line. "
+      "This may happen when you try to use a binary operator over multiple lines. "
+      "Please make sure that the operator and all arguments are on the same line",
+      [Op]
+    )
+  );
+warn_unary_operator_eol({unary_op, {Line, _Begin, _End}, Op}) ->
+  elixir_errors:warn(Line, ?file(),
+    io_lib:format(
+      "unary operator ~ts followed by new line. "
+      "Please make sure the unary operator and the expression that follows "
+      "the operator are on the same line",
+      [Op]
+     )
+  ).
 
 warn_pipe({arrow_op, {Line, _Begin, _End}, Op}, {_, [_ | _], [_ | _]}) ->
   elixir_errors:warn(Line, ?file(),
