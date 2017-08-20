@@ -7,7 +7,7 @@ defmodule Mix.Local.InstallerTest do
     dep_spec = {:"git repo", git: fixture_path("git_repo")}
 
     config =
-      Mix.Local.Installer.fetch dep_spec, fn _mixexs ->
+      Mix.Local.Installer.fetch dep_spec, fn _mix_exs ->
         assert Mix.env() == :prod
         Mix.Project.config()
       end
