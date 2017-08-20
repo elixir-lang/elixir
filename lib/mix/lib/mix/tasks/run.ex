@@ -54,7 +54,7 @@ defmodule Mix.Tasks.Run do
   def run(args) do
     {opts, head} = OptionParser.parse_head!(args,
       aliases: [r: :require, p: :parallel, e: :eval, c: :config],
-      strict: [parallel: :boolean, require: :keep, eval: :keep, config: :keep, mixexs: :boolean,
+      strict: [parallel: :boolean, require: :keep, eval: :keep, config: :keep, mix_exs: :boolean,
                halt: :boolean, compile: :boolean, deps_check: :boolean, start: :boolean,
                archives_check: :boolean, elixir_version_check: :boolean, parallel_require: :keep])
 
