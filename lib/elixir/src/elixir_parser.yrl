@@ -857,7 +857,6 @@ warn_empty_stab_clause({stab_op, {Line, _Begin, _End}, '->'}) ->
     "an expression is always required on the right side of ->. "
     "Please provide a value after ->").
 
-%% TODO: Make this an error on Elixir v2.0.
 warn_unary_operator_eol({dual_op, {Line, _Begin, _End}, Op}) ->
   elixir_errors:warn(Line, ?file(),
     io_lib:format(
