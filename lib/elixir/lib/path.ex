@@ -171,6 +171,57 @@ defmodule Path do
   end
 
   @doc """
+  Expands the path by expanding any `.` and `..` characters.
+
+  Note this function only expands any `.` and `..` characters within the given
+  path, and it does not take into account the absolute or relative nature of
+  the path itself, for that please use `expand/1` or `expand/2`.
+
+  ## Examples
+
+      ### Intended use case
+
+      iex> Path.expand_dot("foo/bar/../baz")
+      "foo/baz"
+
+      ### Non-intended use cases are ignored
+
+      iex> Path.expand_dot("foo/bar/./baz")
+      "foo/bar/baz"
+
+      iex> Path.expand_dot("../foo/bar")
+      "foo/bar"
+
+  """
+  @spec expand_dot(t) :: binary
+  def expand_dot(<<"/", rest::binary>>) do
+    "/" <> do_expand_dot(rest)
+  end
+
+  def expand_dot(<<letter, ":/", rest::binary>>) when letter in ?a..?z do
+    <<letter, ":/">> <> do_expand_dot(rest)
+  end
+
+  def expand_dot(path) do
+    do_expand_dot(path)
+  end
+
+  defp do_expand_dot(path),
+    do: do_expand_dot(:binary.split(path, "/", [:global]), [])
+  defp do_expand_dot([".." | t], [_, _ | acc]),
+    do: do_expand_dot(t, acc)
+  defp do_expand_dot([".." | t], []),
+    do: do_expand_dot(t, [])
+  defp do_expand_dot(["." | t], acc),
+    do: do_expand_dot(t, acc)
+  defp do_expand_dot([h | t], acc),
+    do: do_expand_dot(t, ["/", h | acc])
+  defp do_expand_dot([], []),
+    do: ""
+  defp do_expand_dot([], ["/" | acc]),
+    do: IO.iodata_to_binary(:lists.reverse(acc))
+
+  @doc """
   Returns the path type.
 
   ## Examples
@@ -655,31 +706,6 @@ defmodule Path do
       _ -> rest
     end
   end
-
-  # expand_dot the given path by expanding "..", "." and "~".
-
-  defp expand_dot(<<"/", rest::binary>>),
-    do: "/" <> do_expand_dot(rest)
-  defp expand_dot(<<letter, ":/", rest::binary>>) when letter in ?a..?z,
-    do: <<letter, ":/">> <> do_expand_dot(rest)
-  defp expand_dot(path),
-    do: do_expand_dot(path)
-
-  defp do_expand_dot(path),
-    do: do_expand_dot(:binary.split(path, "/", [:global]), [])
-
-  defp do_expand_dot([".." | t], [_, _ | acc]),
-    do: do_expand_dot(t, acc)
-  defp do_expand_dot([".." | t], []),
-    do: do_expand_dot(t, [])
-  defp do_expand_dot(["." | t], acc),
-    do: do_expand_dot(t, acc)
-  defp do_expand_dot([h | t], acc),
-    do: do_expand_dot(t, ["/", h | acc])
-  defp do_expand_dot([], []),
-    do: ""
-  defp do_expand_dot([], ["/" | acc]),
-    do: IO.iodata_to_binary(:lists.reverse(acc))
 
   defp major_os_type do
     :os.type |> elem(0)
