@@ -1,4 +1,4 @@
-defmodule RawRepo.Mixfile do
+defmodule RawRepo.MixProject do
   use Mix.Project
 
   def project do

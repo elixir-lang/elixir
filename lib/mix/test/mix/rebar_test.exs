@@ -173,7 +173,7 @@ defmodule Mix.RebarTest do
                [:git_repo, :git_rebar, :rebar_override]
       end
     after
-      purge [GitRepo.Mixfile]
+      purge [GitRepo.MixProject]
     end
 
     test "gets and compiles dependencies for Rebar" do
@@ -241,7 +241,7 @@ defmodule Mix.RebarTest do
 
       in_tmp "get and compile dependencies for Rebar with Mix", fn ->
         File.write! MixTest.Case.tmp_path("rebar_dep/mix.exs"), """
-        defmodule RebarDep.Mixfile do
+        defmodule RebarDep.MixProject do
           use Mix.Project
 
           def project do

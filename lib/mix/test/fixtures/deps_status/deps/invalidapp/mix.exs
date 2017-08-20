@@ -1,4 +1,4 @@
-defmodule InvalidApp.Mixfile do
+defmodule InvalidApp.MixProject do
   use Mix.Project
 
   def project do

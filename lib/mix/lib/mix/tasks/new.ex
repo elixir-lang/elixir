@@ -254,7 +254,7 @@ defmodule Mix.Tasks.New do
   """
 
   embed_template :mixexs, """
-  defmodule <%= @mod %>.Mixfile do
+  defmodule <%= @mod %>.MixProject do
     use Mix.Project
 
     def project do
@@ -285,7 +285,7 @@ defmodule Mix.Tasks.New do
   """
 
   embed_template :mixexs_apps, """
-  defmodule <%= @mod %>.Mixfile do
+  defmodule <%= @mod %>.MixProject do
     use Mix.Project
 
     def project do
@@ -321,7 +321,7 @@ defmodule Mix.Tasks.New do
   """
 
   embed_template :mixexs_umbrella, """
-  defmodule <%= @mod %>.Mixfile do
+  defmodule <%= @mod %>.MixProject do
     use Mix.Project
 
     def project do

@@ -94,7 +94,7 @@ defmodule Mix.Tasks.Escript.Build do
 
   ## Example
 
-      defmodule MyApp.Mixfile do
+      defmodule MyApp.MixProject do
         use Mix.Project
 
         def project do

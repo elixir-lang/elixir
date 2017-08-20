@@ -269,7 +269,7 @@ defmodule Mix.Local.Installer do
       File.mkdir_p!(tmp_path)
 
       File.write! Path.join(tmp_path, "mix.exs"), """
-      defmodule Mix.Local.Installer.Fetcher.Mixfile do
+      defmodule Mix.Local.Installer.Fetcher.MixProject do
         use Mix.Project
 
         def project do

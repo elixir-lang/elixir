@@ -146,7 +146,7 @@ defmodule Mix.Tasks.DepsGitTest do
       assert File.exists?("_build/dev/lib/deps_on_git_repo/ebin")
     end
   after
-    purge [GitRepo, GitRepo.Mixfile]
+    purge [GitRepo, GitRepo.MixProject]
   end
 
   test "compiles many levels deep dependencies" do
@@ -163,7 +163,7 @@ defmodule Mix.Tasks.DepsGitTest do
       assert File.exists?("_build/dev/lib/git_repo")
     end
   after
-    purge [GitRepo, GitRepo.Mixfile]
+    purge [GitRepo, GitRepo.MixProject]
   end
 
   test "recompiles the project when a dep is fetched" do
@@ -198,7 +198,7 @@ defmodule Mix.Tasks.DepsGitTest do
       :ok
     end
   after
-    purge [A, B, GitRepo, GitRepo.Mixfile]
+    purge [A, B, GitRepo, GitRepo.MixProject]
   end
 
   test "all up to date dependencies" do
@@ -213,7 +213,7 @@ defmodule Mix.Tasks.DepsGitTest do
       assert_received {:mix_shell, :info, ["All dependencies up to date"]}
     end
   after
-    purge [GitRepo, GitRepo.Mixfile]
+    purge [GitRepo, GitRepo.MixProject]
   end
 
   test "updates the lock when the repo updates" do
@@ -241,7 +241,7 @@ defmodule Mix.Tasks.DepsGitTest do
       refute File.read!("mix.lock") =~ last
     end
   after
-    purge [GitRepo, GitRepo.Mixfile]
+    purge [GitRepo, GitRepo.MixProject]
   end
 
   test "updates the repo when the lock updates" do
@@ -277,7 +277,7 @@ defmodule Mix.Tasks.DepsGitTest do
       refute_received {:mix_shell, :error, _}
     end
   after
-    purge [GitRepo, GitRepo.Mixfile]
+    purge [GitRepo, GitRepo.MixProject]
   end
 
   @tag :git_sparse
@@ -366,7 +366,7 @@ defmodule Mix.Tasks.DepsGitTest do
       refute_received {:mix_shell, :error, _}
     end
   after
-    purge [GitRepo, GitRepo.Mixfile]
+    purge [GitRepo, GitRepo.MixProject]
   end
 
   test "does not attempt to compile projects that could not be retrieved" do
@@ -393,7 +393,7 @@ defmodule Mix.Tasks.DepsGitTest do
       assert File.read!("mix.lock") =~ last
     end
   after
-    purge [GitRepo, GitRepo.Mixfile]
+    purge [GitRepo, GitRepo.MixProject]
   end
 
   test "updates on Git opts change" do
@@ -411,7 +411,7 @@ defmodule Mix.Tasks.DepsGitTest do
       assert File.regular?("deps/git_repo/lib/git_repo.ex")
     end
   after
-    purge [GitRepo, GitRepo.Mixfile]
+    purge [GitRepo, GitRepo.MixProject]
   end
 
   test "does not load bad mixfiles on update" do
@@ -427,7 +427,7 @@ defmodule Mix.Tasks.DepsGitTest do
       assert File.read!("mix.lock") =~ last
     end
   after
-    purge [GitRepo, GitRepo.Mixfile]
+    purge [GitRepo, GitRepo.MixProject]
   end
 
   defp refresh(post_config) do

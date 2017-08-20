@@ -1,4 +1,4 @@
-defmodule Logger.Mixfile do
+defmodule Logger.MixProject do
   use Mix.Project
 
   def project do
