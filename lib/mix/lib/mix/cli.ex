@@ -23,14 +23,14 @@ defmodule Mix.CLI do
 
   defp proceed(args) do
     load_dot_config()
-    load_mixexs()
+    load_mix_exs()
     {task, args} = get_task(args)
     ensure_hex(task)
     change_env(task)
     run_task(task, args)
   end
 
-  defp load_mixexs() do
+  defp load_mix_exs() do
     file = System.get_env("MIX_EXS") || "mix.exs"
     _ = if File.regular?(file) do
       Code.load_file(file)

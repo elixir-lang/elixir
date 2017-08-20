@@ -299,7 +299,7 @@ defmodule Mix.Local.Installer do
     :code.delete(Mix.Local.Installer.Fetcher)
   end
 
-  defp in_fetcher(_mixexs) do
+  defp in_fetcher(_mix_exs) do
     Mix.Task.run("deps.get", [])
   end
 
