@@ -5,7 +5,7 @@ defmodule Mix.Project do
   A Mix project is defined by calling `use Mix.Project` in a module, usually
   placed in `mix.exs`:
 
-      defmodule MyApp.Mixfile do
+      defmodule MyApp.MixProject do
         use Mix.Project
 
         def project do
@@ -313,7 +313,7 @@ defmodule Mix.Project do
       Mix.Project.in_project :my_app, "/path/to/my_app", fn module ->
         "Mixfile is: #{inspect module}"
       end
-      #=> "Mixfile is: MyApp.Mixfile"
+      #=> "Mixfile is: MyApp.MixProject"
 
   """
   @spec in_project(atom, Path.t, keyword, (module -> result)) :: result when result: term

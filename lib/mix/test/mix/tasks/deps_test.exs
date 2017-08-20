@@ -493,7 +493,7 @@ defmodule Mix.Tasks.DepsTest do
       assert_received {:mix_shell, :info, [^message]}
     end
   after
-    purge [GitRepo, GitRepo.Mixfile]
+    purge [GitRepo, GitRepo.MixProject]
   end
 
   test "does not check dependencies if --no-deps-check is provided" do
@@ -528,7 +528,7 @@ defmodule Mix.Tasks.DepsTest do
       assert_received {:mix_shell, :info, [^message]}
     end
   after
-    purge [GitRepo, GitRepo.Mixfile]
+    purge [GitRepo, GitRepo.MixProject]
   end
 
   test "converged dependencies errors if not overriding" do
@@ -548,7 +548,7 @@ defmodule Mix.Tasks.DepsTest do
       end
     end
   after
-    purge [GitRepo, GitRepo.Mixfile]
+    purge [GitRepo, GitRepo.MixProject]
   end
 
   test "checks if dependencies are using old Elixir version" do

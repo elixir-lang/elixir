@@ -47,7 +47,7 @@ defmodule Mix.Tasks.Deps.TreeTest do
       assert_received {:mix_shell, :info, ["    └── git_repo (" <> _]}
     end
   after
-    purge [DepsOnGitRepo.Mixfile, GitRepo.Mixfile]
+    purge [DepsOnGitRepo.MixProject, GitRepo.MixProject]
   end
 
   test "show the dependency tree for umbrella apps" do
@@ -136,6 +136,6 @@ defmodule Mix.Tasks.Deps.TreeTest do
         """
     end
   after
-    purge [DepsOnGitRepo.Mixfile, GitRepo.Mixfile]
+    purge [DepsOnGitRepo.MixProject, GitRepo.MixProject]
   end
 end

@@ -167,7 +167,7 @@ defmodule Mix.Tasks.EscriptTest do
       assert System.cmd("escript", ["escript_test_with_deps"]) == {"TEST\n", 0}
     end
   after
-    purge [Ok.Mixfile]
+    purge [Ok.MixProject]
   end
 
   test "generate escript with Erlang and deps" do
@@ -179,7 +179,7 @@ defmodule Mix.Tasks.EscriptTest do
       assert System.cmd("escript", ["escript_test_erlang_with_deps"]) == {"Erlang value", 0}
     end
   after
-    purge [Ok.Mixfile]
+    purge [Ok.MixProject]
   end
 
   test "generating escript for umbrella projects fails with a nice error" do
@@ -274,7 +274,7 @@ defmodule Mix.Tasks.EscriptTest do
       """
 
       File.write! "mix.exs", """
-      defmodule GitRepo.Mixfile do
+      defmodule GitRepo.MixProject do
         use Mix.Project
 
         def project do
@@ -294,6 +294,6 @@ defmodule Mix.Tasks.EscriptTest do
       assert System.cmd("escript", [escript_path]) == {"TEST\n", 0}
     end
   after
-    purge [GitRepo, GitRepo.Mixfile]
+    purge [GitRepo, GitRepo.MixProject]
   end
 end

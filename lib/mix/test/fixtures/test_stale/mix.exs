@@ -1,4 +1,4 @@
-defmodule TestStale.Mixfile do
+defmodule TestStale.MixProject do
   use Mix.Project
 
   def project do

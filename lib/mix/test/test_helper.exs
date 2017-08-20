@@ -213,7 +213,7 @@ unless File.dir?(target) do
 
   File.write! Path.join(target, "mix.exs"), """
   ## Auto-generated fixture
-  defmodule GitRepo.Mixfile do
+  defmodule GitRepo.MixProject do
     use Mix.Project
 
     def project do
@@ -243,7 +243,7 @@ unless File.dir?(target) do
 
   File.write! Path.join(subdir, "mix.exs"), """
   ## Auto-generated fixture
-  defmodule GitSparseRepo.Mixfile do
+  defmodule GitSparseRepo.MixProject do
     use Mix.Project
 
     def project do
@@ -276,7 +276,7 @@ unless File.dir?(target) do
 
   File.write! Path.join(target, "mix.exs"), """
   ## Auto-generated fixture
-  defmodule DepsOnGitRepo.Mixfile do
+  defmodule DepsOnGitRepo.MixProject do
     use Mix.Project
 
     def project do
