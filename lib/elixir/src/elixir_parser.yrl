@@ -861,14 +861,18 @@ warn_unary_operator_eol({dual_op, {Line, _Begin, _End}, Op}) ->
   elixir_errors:warn(Line, ?file(),
     io_lib:format(
       "unary operator ~ts followed by new line. "
-      "This sometimes happen when you try to use a binary operator in multiple lines, "
-      "please make sure that all your arguments are in the same line.",
+      "This happens sometimes when you try to use a binary operator over multiple lines, "
+      "please make sure that the operator and all arguments are on the same line.",
       [Op]
     )
   );
 warn_unary_operator_eol({unary_op, {Line, _Begin, _End}, Op}) ->
   elixir_errors:warn(Line, ?file(),
-    io_lib:format("unary operator ~ts followed by new line. ", [Op])
+    io_lib:format("unary operator ~ts followed by new line. "
+      "Please make sure the unary operator and the expression that follows "
+      "the operator are on the same line",
+      [Op]
+     )
   ).
 
 warn_pipe({arrow_op, {Line, _Begin, _End}, Op}, {_, [_ | _], [_ | _]}) ->
