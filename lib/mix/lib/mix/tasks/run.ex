@@ -38,7 +38,7 @@ defmodule Mix.Tasks.Run do
     * `--no-deps-check` - does not check dependencies
     * `--no-archives-check` - does not check archives
     * `--no-halt` - does not halt the system after running the command
-    * `--no-mixexs` - allows the command to run even if there is no mix.exs
+    * `--no-mix-exs` - allows the command to run even if there is no mix.exs
     * `--no-start` - does not start applications after compilation
     * `--no-elixir-version-check` - does not check the Elixir version from mix.exs
 
@@ -87,10 +87,12 @@ defmodule Mix.Tasks.Run do
     cond do
       Mix.Project.get ->
         Mix.Task.run "app.start", args
-      "--no-mixexs" in args ->
+      "--no-mix-exs" in args ->
         :ok
       true ->
-        Mix.Project.get!
+        Mix.raise "Cannot execute \"mix run\" without a Mix.Project, " <>
+                  "please ensure you are running Mix in a directory with a mix.exs file " <>
+                  "or pass the --no-mix-exs flag"
     end
 
     process_load(opts, expr_evaluator)
