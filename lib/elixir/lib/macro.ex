@@ -64,45 +64,6 @@ defmodule Macro do
   @typedoc "Represents literals in the AST"
   @type literal :: atom | number | binary | fun | {t, t} | [t]
 
-  binary_ops =
-    [:===, :!==, :==, :!=, :<=, :>=,
-     :&&, :||, :<>, :++, :--, :\\, :::, :<-, :.., :|>, :=~,
-     :<, :>, :->,
-     :+, :-, :*, :/, :=, :|, :.,
-     :and, :or, :when, :in,
-     :~>>, :<<~, :~>, :<~, :<~>, :<|>,
-     :<<<, :>>>, :|||, :&&&, :^^^, :~~~]
-
-  @doc false
-  defmacro binary_ops, do: unquote(binary_ops)
-
-  unary_ops = [:!, :@, :^, :not, :+, :-, :~~~, :&]
-
-  @doc false
-  defmacro unary_ops, do: unquote(unary_ops)
-
-  @spec binary_op_props(atom) :: {:left | :right, precedence :: integer}
-  defp binary_op_props(o) do
-    case o do
-      o when o in [:<-, :\\]                  -> {:left,  40}
-      :when                                   -> {:right, 50}
-      :::                                     -> {:right, 60}
-      :|                                      -> {:right, 70}
-      :=                                      -> {:right, 90}
-      o when o in [:||, :|||, :or]            -> {:left, 130}
-      o when o in [:&&, :&&&, :and]           -> {:left, 140}
-      o when o in [:==, :!=, :=~, :===, :!==] -> {:left, 150}
-      o when o in [:<, :<=, :>=, :>]          -> {:left, 160}
-      o when o in [:|>, :<<<, :>>>, :<~, :~>,
-                :<<~, :~>>, :<~>, :<|>, :^^^] -> {:left, 170}
-      :in                                     -> {:left, 180}
-      o when o in [:++, :--, :.., :<>]        -> {:right, 200}
-      o when o in [:+, :-]                    -> {:left, 210}
-      o when o in [:*, :/]                    -> {:left, 220}
-      :.                                      -> {:left, 310}
-    end
-  end
-
   # Classifies the given atom into one of the following categories:
   #
   #   * :alias - a valid Elixir alias, like Foo, Foo.Bar and so on
@@ -126,7 +87,7 @@ defmodule Macro do
     cond do
       atom in [:"%", :"%{}", :"{}", :"<<>>", :"...", :"..", :"."] ->
         :not_callable
-      atom in unquote(unary_ops) or atom in unquote(binary_ops) ->
+      unary_op(atom) != :error or binary_op(atom) != :error ->
         :callable
       valid_alias?(charlist) ->
         :alias
@@ -164,6 +125,77 @@ defmodule Macro do
 
   defp trim_leading_while_valid_identifier(other) do
     other
+  end
+
+  @doc """
+  Receives an atom representing an operator and the number of operands
+  and returns its associativity and precedence.
+
+  The precedence is a positive integer that can be used for comparison
+  purposes. Its actual value should be relied on and can change at any
+  time.
+
+  ## Examples
+
+      iex> Macro.operator(:+, 2)
+      {:left, 210}
+
+  """
+  @spec operator(atom, 1) :: {:non_associative, precedence :: pos_integer} | :error
+  @spec operator(atom, 2) :: {:left | :right, precedence :: pos_integer} | :error
+  @spec operator(atom, non_neg_integer) :: :error
+  def operator(op, 1) when is_atom(op), do: unary_op(op)
+  def operator(op, 2) when is_atom(op), do: binary_op(op)
+  def operator(op, arity) when is_atom(op) and is_integer(arity), do: :error
+
+  defp unary_op(op) do
+    cond do
+      op in [:&] ->
+        {:non_associative, 30}
+      op in [:!, :^, :not, :+, :-, :~~~] ->
+        {:non_associative, 300}
+      op in [:@] ->
+        {:non_associative, 320}
+      true ->
+        :error
+    end
+  end
+
+  defp binary_op(op) do
+    cond do
+      op in [:<-, :\\] ->
+        {:left,  40}
+      op in [:when] ->
+        {:right, 50}
+      op in [:::] ->
+        {:right, 60}
+      op in [:|] ->
+        {:right, 70}
+      op in [:=] ->
+        {:right, 90}
+      op in [:||, :|||, :or] ->
+        {:left, 130}
+      op in [:&&, :&&&, :and] ->
+        {:left, 140}
+      op in [:==, :!=, :=~, :===, :!==] ->
+        {:left, 150}
+      op in [:<, :<=, :>=, :>] ->
+        {:left, 160}
+      op in [:|>, :<<<, :>>>, :<~, :~>, :<<~, :~>>, :<~>, :<|>, :^^^] ->
+        {:left, 170}
+      op in [:in] ->
+        {:left, 180}
+      op in [:++, :--, :.., :<>] ->
+        {:right, 200}
+      op in [:+, :-] ->
+        {:left, 210}
+      op in [:*, :/] ->
+        {:left, 220}
+      op in [:.] ->
+        {:left, 310}
+      true ->
+        :error
+    end
   end
 
   @doc """
@@ -226,12 +258,6 @@ defmodule Macro do
     raise ArgumentError, bad_pipe(expr, call_args)
   end
 
-  def pipe(expr, {call, _, [_, _]} = call_args, _integer)
-      when call in unquote(binary_ops) do
-    raise ArgumentError, "cannot pipe #{to_string expr} into #{to_string call_args}, " <>
-                         "the #{to_string call} operator can only take two arguments"
-  end
-
   # {:fn, _, _} is what we get when we pipe into an anonymous function without
   # calling it, e.g., `:foo |> (fn x -> x end)`.
   def pipe(expr, {:fn, _, _}, _integer) do
@@ -246,8 +272,13 @@ defmodule Macro do
     {call, line, List.insert_at([], integer, expr)}
   end
 
-  def pipe(expr, {call, line, args}, integer) when is_list(args) do
-    {call, line, List.insert_at(args, integer, expr)}
+  def pipe(expr, {call, line, args} = call_args, integer) when is_list(args) do
+    if is_atom(call) and binary_op(call) != :error do
+      raise ArgumentError, "cannot pipe #{to_string expr} into #{to_string call_args}, " <>
+                           "the #{to_string call} operator can only take two arguments"
+    else
+      {call, line, List.insert_at(args, integer, expr)}
+    end
   end
 
   def pipe(expr, call_args, _integer) do
@@ -258,12 +289,6 @@ defmodule Macro do
     "cannot pipe #{to_string expr} into #{to_string call_args}, " <>
     "can only pipe into local calls foo(), remote calls Foo.bar() or anonymous functions calls foo.()"
   end
-
-  @doc false
-  def pipe_warning({call, _, _}) when call in unquote(unary_ops) do
-    "piping into a unary operator is deprecated. You could use e.g. Kernel.+(5) instead of +5"
-  end
-  def pipe_warning(_), do: nil
 
   @doc """
   Applies the given function to the node metadata if it contains one.
@@ -747,11 +772,6 @@ defmodule Macro do
     fun.(ast, op_to_string(left, fun, :when, :left) <> " when " <> right)
   end
 
-  # Binary ops
-  def to_string({op, _, [left, right]} = ast, fun) when op in unquote(binary_ops) do
-    fun.(ast, op_to_string(left, fun, op, :left) <> " #{op} " <> op_to_string(right, fun, op, :right))
-  end
-
   # Splat when
   def to_string({:when, _, args} = ast, fun) do
     {left, right} = :elixir_utils.split_last(args)
@@ -778,28 +798,13 @@ defmodule Macro do
     fun.(ast, to_string(left, fun) <> " not in " <> to_string(right, fun))
   end
 
-  # Unary ops
-  def to_string({unary, _, [{binary, _, [_, _]} = arg]} = ast, fun)
-      when unary in unquote(unary_ops) and binary in unquote(binary_ops) do
-    fun.(ast, Atom.to_string(unary) <> "(" <> to_string(arg, fun) <> ")")
-  end
-
-  def to_string({:not, _, [arg]} = ast, fun)  do
-    fun.(ast, "not " <> to_string(arg, fun))
-  end
-
-  def to_string({op, _, [arg]} = ast, fun) when op in unquote(unary_ops) do
-    fun.(ast, Atom.to_string(op) <> to_string(arg, fun))
-  end
-
   # Access
-  def to_string({{:., _, [Access, :get]}, _, [{op, _, _} = left, right]} = ast, fun)
-      when op in unquote(binary_ops) do
-    fun.(ast, "(" <> to_string(left, fun) <> ")" <> to_string([right], fun))
-  end
-
   def to_string({{:., _, [Access, :get]}, _, [left, right]} = ast, fun) do
-    fun.(ast, to_string(left, fun) <> to_string([right], fun))
+    if binary_expr?(left) do
+      fun.(ast, "(" <> to_string(left, fun) <> ")" <> to_string([right], fun))
+    else
+      fun.(ast, to_string(left, fun) <> to_string([right], fun))
+    end
   end
 
   # foo.{bar, baz}
@@ -809,14 +814,16 @@ defmodule Macro do
 
   # All other calls
   def to_string({target, _, args} = ast, fun) when is_list(args) do
-    if sigil = sigil_call(ast, fun) do
-      sigil
-    else
+    with :error <- unary_call(ast, fun),
+         :error <- binary_call(ast, fun),
+         :error <- sigil_call(ast, fun) do
       {list, last} = :elixir_utils.split_last(args)
       fun.(ast, case kw_blocks?(last) do
         true  -> call_to_string_with_args(target, list, fun) <> kw_blocks_to_string(last, fun)
         false -> call_to_string_with_args(target, args, fun)
       end)
+    else
+      {:ok, value} -> value
     end
   end
 
@@ -904,25 +911,67 @@ defmodule Macro do
   defp module_to_string(atom, _fun) when is_atom(atom), do: inspect(atom, [])
   defp module_to_string(other, fun), do: call_to_string(other, fun)
 
-  defp sigil_call({func, _, [{:<<>>, _, _} = bin, args]} = ast, fun) when is_atom(func) and is_list(args) do
-    sigil =
-      case Atom.to_string(func) do
-        <<"sigil_", name>> ->
-          "~" <> <<name>> <>
-          interpolate(bin, fun) <>
-          sigil_args(args, fun)
-        _ ->
-          nil
-      end
-    fun.(ast, sigil)
+  defp unary_call({:not, _, [arg]} = ast, fun)  do
+    {:ok, fun.(ast, "not " <> to_string(arg, fun))}
+  end
+
+  defp unary_call({op, _, [arg]} = ast, fun) when is_atom(op) do
+    case unary_op(op) do
+      {_, _} ->
+        if binary_expr?(arg) do
+          {:ok, fun.(ast, Atom.to_string(op) <> "(" <> to_string(arg, fun) <> ")")}
+        else
+          {:ok, fun.(ast, Atom.to_string(op) <> to_string(arg, fun))}
+        end
+      :error ->
+        :error
+    end
+  end
+
+  defp unary_call(_, _) do
+    :error
+  end
+
+  defp binary_call({op, _, [left, right]} = ast, fun) when is_atom(op) do
+    case binary_op(op) do
+      {_, _} ->
+        left = op_to_string(left, fun, op, :left)
+        right = op_to_string(right, fun, op, :right)
+        {:ok, fun.(ast, left <> " #{op} " <> right)}
+      :error ->
+        :error
+    end
+  end
+
+  defp binary_call(_, _) do
+    :error
+  end
+
+  defp sigil_call({sigil, _, [{:<<>>, _, _} = bin, args]} = ast, fun)
+       when is_atom(sigil) and is_list(args) do
+    case Atom.to_string(sigil) do
+      <<"sigil_", name>> ->
+        {:ok, fun.(ast, "~" <> <<name>> <> interpolate(bin, fun) <> sigil_args(args, fun))}
+      _ ->
+        :error
+    end
   end
 
   defp sigil_call(_other, _fun) do
-    nil
+    :error
   end
 
   defp sigil_args([], _fun),   do: ""
   defp sigil_args(args, fun), do: fun.(args, List.to_string(args))
+
+  defp binary_expr?(expr) do
+    case expr do
+      {op, _, [_, _]} ->
+        binary_op(op) != :error
+      _ ->
+        false
+    end
+  end
 
   defp call_to_string(atom, _fun) when is_atom(atom),
     do: Atom.to_string(atom)
@@ -1022,19 +1071,19 @@ defmodule Macro do
     "(" <> to_string(expr, fun) <> ")"
   end
 
-  defp op_to_string({op, _, [_, _]} = expr, fun, parent_op, side) when op in unquote(binary_ops) do
-    {parent_assoc, parent_prec} = binary_op_props(parent_op)
-    {_, prec}                   = binary_op_props(op)
-    cond do
-      parent_prec < prec -> to_string(expr, fun)
-      parent_prec > prec -> wrap_in_parenthesis(expr, fun)
-      true ->
-        # parent_prec == prec, so look at associativity.
-        if parent_assoc == side do
-          to_string(expr, fun)
-        else
-          wrap_in_parenthesis(expr, fun)
+  defp op_to_string({op, _, [_, _]} = expr, fun, parent_op, side) when is_atom(op) do
+    case binary_op(op) do
+      {_, prec} ->
+        {parent_assoc, parent_prec} = binary_op(parent_op)
+
+        cond do
+          parent_prec < prec -> to_string(expr, fun)
+          parent_prec > prec -> wrap_in_parenthesis(expr, fun)
+          parent_assoc == side -> to_string(expr, fun)
+          true -> wrap_in_parenthesis(expr, fun)
         end
+      :error ->
+        to_string(expr, fun)
     end
   end
 
