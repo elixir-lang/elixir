@@ -89,7 +89,7 @@ defmodule Kernel.ParallelCompilerTest do
                } = Kernel.ParallelCompiler.files([fixture], return_errors: true)
       end
 
-      assert msg =~ "Failed due to warnings while using the --warnings-as-errors option\n"
+      assert msg =~ "Compilation failed due to warnings while using the --warnings-as-errors option\n"
     after
       Code.compiler_options(warnings_as_errors: warnings_as_errors)
     end

@@ -38,8 +38,6 @@ defmodule Kernel.ParallelCompiler do
       they are loaded into memory. If you want a file to actually be written to
       `dest`, use `files_to_path/3` instead.
 
-    * `:require` - when set to true, loads files using `Code.require_file/1`
-
     * `:return_errors` - return `{:ok, modules, warnings}` on success or
       `{:error, errors}` if compilation fails or if there are warnings and
       `warnings_as_errors` is set to true.
@@ -63,15 +61,6 @@ defmodule Kernel.ParallelCompiler do
 
   def files_to_path(files, path, options) when is_binary(path) and is_list(options) do
     spawn_compilers(files, path, options)
-  end
-
-  @doc """
-  Requires the given files in parallel.
-  Read `files/2` for more information.
-  """
-  def require_files(files, options \\ []) do
-    options = Keyword.put(options, :require, true)
-    spawn_compilers(files, nil, options)
   end
 
   defp spawn_compilers(files, path, options) do
@@ -98,7 +87,7 @@ defmodule Kernel.ParallelCompiler do
     result =
       case {result, compilation_status} do
         {{:ok, _, warnings}, :error} ->
-          IO.puts :stderr, "Failed due to warnings while using the --warnings-as-errors option"
+          IO.puts :stderr, "Compilation failed due to warnings while using the --warnings-as-errors option"
           {:error, warnings}
         _ ->
           result
@@ -141,20 +130,15 @@ defmodule Kernel.ParallelCompiler do
         # Set the elixir_compiler_pid used by our custom Kernel.ErrorHandler.
         :erlang.put(:elixir_compiler_pid, parent)
         :erlang.put(:elixir_compiler_file, file)
-        unless Keyword.get(options, :require) do
-          :erlang.process_flag(:error_handler, Kernel.ErrorHandler)
-        end
+        :erlang.process_flag(:error_handler, Kernel.ErrorHandler)
 
         result =
           try do
-            _ = cond do
-              output ->
-                :elixir_compiler.file_to_path(file, output)
-              Keyword.get(options, :require) ->
-                Code.require_file(file)
-              true ->
-                :elixir_compiler.file(file, Keyword.get(options, :dest))
-              end
+            _ = if output do
+              :elixir_compiler.file_to_path(file, output)
+            else
+              :elixir_compiler.file(file, Keyword.get(options, :dest))
+            end
             :ok
           catch
             kind, reason ->
