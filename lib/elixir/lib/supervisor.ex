@@ -333,7 +333,7 @@ defmodule Supervisor do
     * `:start` - how to start the child process (defaults to calling `__MODULE__.start_link/1`)
     * `:restart` - when the supervisor should be restarted, defaults to `:permanent`
 
-  ## start_link/2, init/2 and strategies
+  ## `start_link/2`, `init/2`, and strategies
 
   So far we have started the supervisor passing a single child as a tuple
   as well as a strategy called `:one_for_one`:
