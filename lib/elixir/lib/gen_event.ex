@@ -775,7 +775,7 @@ defmodule GenEvent do
       case reason do
         {:undef, [{m, f, a, _} | _] = mfas} ->
           cond do
-            :code.is_loaded(m) === false ->
+            :code.is_loaded(m) == false ->
               {:"module could not be loaded", mfas}
             function_exported?(m, f, length(a)) ->
               reason

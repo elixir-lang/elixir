@@ -795,7 +795,7 @@ defmodule UndefinedFunctionError do
     cond do
       is_nil(function) or is_nil(arity) ->
         "undefined function"
-      not is_nil(module) and :code.is_loaded(module) === false ->
+      not is_nil(module) and :code.is_loaded(module) == false ->
         message(%{e | reason: :"module could not be loaded"})
       true ->
         message(%{e | reason: :"function not exported"})
