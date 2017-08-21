@@ -240,7 +240,7 @@ defmodule Task.Supervisor do
 
   Each item in `enumerable` is passed as argument to the given function `fun`
   and processed by its own task. The tasks will be spawned under the given
-  `supervisor` and linked to the current process, similarly to `async_nolink/2`.
+  `supervisor` and will not be linked to the current process, similarly to `async_nolink/2`.
 
   See `async_stream/6` for discussion and examples.
   """
