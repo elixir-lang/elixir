@@ -166,15 +166,15 @@ tokenize(("<<<<<<<" ++ _) = Original, Line, 1, _Scope, Tokens) ->
 
 tokenize([$0, $x, H | T], Line, Column, Scope, Tokens) when ?is_hex(H) ->
   {Rest, Number, Length} = tokenize_hex(T, [H], 1),
-  tokenize(Rest, Line, Column + 2 + Length, Scope, [{hex, {Line, Column, Column + 2 + Length}, Number} | Tokens]);
+  tokenize(Rest, Line, Column + 2 + Length, Scope, [{base_integer, {Line, Column, Column + 2 + Length}, Number} | Tokens]);
 
 tokenize([$0, $b, H | T], Line, Column, Scope, Tokens) when ?is_bin(H) ->
   {Rest, Number, Length} = tokenize_bin(T, [H], 1),
-  tokenize(Rest, Line, Column + 2 + Length, Scope, [{binary, {Line, Column, Column + 2 + Length}, Number} | Tokens]);
+  tokenize(Rest, Line, Column + 2 + Length, Scope, [{base_integer, {Line, Column, Column + 2 + Length}, Number} | Tokens]);
 
 tokenize([$0, $o, H | T], Line, Column, Scope, Tokens) when ?is_octal(H) ->
   {Rest, Number, Length} = tokenize_octal(T, [H], 1),
-  tokenize(Rest, Line, Column + 2 + Length, Scope, [{octal, {Line, Column, Column + 2 + Length}, Number} | Tokens]);
+  tokenize(Rest, Line, Column + 2 + Length, Scope, [{base_integer, {Line, Column, Column + 2 + Length}, Number} | Tokens]);
 
 % Comments
 
@@ -420,7 +420,7 @@ tokenize([H | T], Line, Column, Scope, Tokens) when ?is_digit(H) ->
   case tokenize_number(T, [H], 1, false) of
     {error, Reason, Number} ->
       {error, {Line, Reason, Number}, T, Tokens};
-    {Rest, Number, Length} when is_integer(Number) ->
+    {Rest, Number, Length} when is_list(Number) ->
       tokenize(Rest, Line, Column + Length, Scope, [{decimal, {Line, Column, Column + Length}, Number} | Tokens]);
     {Rest, Number, Length} ->
       tokenize(Rest, Line, Column + Length, Scope, [{float, {Line, Column, Column + Length}, Number} | Tokens])
@@ -831,28 +831,28 @@ tokenize_number(Rest, Acc, Length, true) ->
 
 %% Or integer.
 tokenize_number(Rest, Acc, Length, false) ->
-  {Rest, list_to_integer(lists:reverse(Acc)), Length}.
+  {Rest, lists:reverse(Acc), Length}.
 
 tokenize_hex([H | T], Acc, Length) when ?is_hex(H) ->
   tokenize_hex(T, [H | Acc], Length + 1);
 tokenize_hex([$_, H | T], Acc, Length) when ?is_hex(H) ->
   tokenize_hex(T, [H | Acc], Length + 2);
 tokenize_hex(Rest, Acc, Length) ->
-  {Rest, list_to_integer(lists:reverse(Acc), 16), Length}.
+  {Rest, [$0, $x | lists:reverse(Acc)], Length}.
 
 tokenize_octal([H | T], Acc, Length) when ?is_octal(H) ->
   tokenize_octal(T, [H | Acc], Length + 1);
 tokenize_octal([$_, H | T], Acc, Length) when ?is_octal(H) ->
   tokenize_octal(T, [H | Acc], Length + 2);
 tokenize_octal(Rest, Acc, Length) ->
-  {Rest, list_to_integer(lists:reverse(Acc), 8), Length}.
+  {Rest, [$0, $o | lists:reverse(Acc)], Length}.
 
 tokenize_bin([H | T], Acc, Length) when ?is_bin(H) ->
   tokenize_bin(T, [H | Acc], Length + 1);
 tokenize_bin([$_, H | T], Acc, Length) when ?is_bin(H) ->
   tokenize_bin(T, [H | Acc], Length + 2);
 tokenize_bin(Rest, Acc, Length) ->
-  {Rest, list_to_integer(lists:reverse(Acc), 2), Length}.
+  {Rest, [$0, $b | lists:reverse(Acc)], Length}.
 
 %% Comments
 
