@@ -130,14 +130,14 @@ compile(Line, Module, Block, Vars, E) ->
 %% misleading so use a custom reason.
 compile_undef(Module, Fun, Arity, Stack) ->
   ExMod = 'Elixir.UndefinedFunctionError',
-  case code:is_loaded(ExMod) of
-    false ->
-      erlang:raise(error, undef, Stack);
-    _ ->
+  case code:ensure_loaded(ExMod) of
+    {module, _} ->
       Opts = [{module, Module}, {function, Fun}, {arity, Arity},
               {reason, 'function not available'}],
       Exception = 'Elixir.UndefinedFunctionError':exception(Opts),
-      erlang:raise(error, Exception, Stack)
+      erlang:raise(error, Exception, Stack);
+    {_, _} ->
+      erlang:raise(error, undef, Stack)
   end.
 
 %% Handle reserved modules and duplicates.
