@@ -156,7 +156,7 @@ defmodule Integer do
   Returns the integer represented by the ordered `digits`.
 
   An optional `base` value may be provided representing the radix for the `digits`.
-  This one can be an integer >= 2.
+  Base has to be an integer greater or equal than `2`.
 
   ## Examples
 
@@ -170,7 +170,7 @@ defmodule Integer do
       0
 
   """
-  @spec undigits([integer], integer) :: integer
+  @spec undigits([integer], pos_integer) :: integer
   def undigits(digits, base \\ 10) when is_list(digits) and is_integer(base) and base >= 2 do
     do_undigits(digits, base, 0)
   end
