@@ -166,7 +166,7 @@ tokenize(("<<<<<<<" ++ _) = Original, Line, 1, _Scope, Tokens) ->
 
 tokenize([$0, $x, H | T], Line, Column, Scope, Tokens) when ?is_hex(H) ->
   {Rest, Number, Length} = tokenize_hex(T, [H], 1),
-  tokenize(Rest, Line, Column + 2 + Length, Scope, [{hexadecimal, {Line, Column, Column + 2 + Length}, Number} | Tokens]);
+  tokenize(Rest, Line, Column + 2 + Length, Scope, [{hex, {Line, Column, Column + 2 + Length}, Number} | Tokens]);
 
 tokenize([$0, $b, H | T], Line, Column, Scope, Tokens) when ?is_bin(H) ->
   {Rest, Number, Length} = tokenize_bin(T, [H], 1),
