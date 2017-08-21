@@ -136,7 +136,7 @@ defmodule CodeTest do
     assert Code.string_to_quoted("0b10", wrap_literals_in_blocks: true) == {:ok, {:__block__, [format: :binary, line: 1], [2]}}
     assert Code.string_to_quoted("12", wrap_literals_in_blocks: true) == {:ok, {:__block__, [format: :decimal, line: 1], [12]}}
     assert Code.string_to_quoted("0o123", wrap_literals_in_blocks: true) == {:ok, {:__block__, [format: :octal, line: 1], [83]}}
-    assert Code.string_to_quoted("0xEF", wrap_literals_in_blocks: true) == {:ok, {:__block__, [format: :hexadecimal, line: 1], [239]}}
+    assert Code.string_to_quoted("0xEF", wrap_literals_in_blocks: true) == {:ok, {:__block__, [format: :hex, line: 1], [239]}}
     assert Code.string_to_quoted("12.3", wrap_literals_in_blocks: true) == {:ok, {:__block__, [line: 1], [12.3]}}
     assert Code.string_to_quoted("nil", wrap_literals_in_blocks: true) == {:ok, {:__block__, [line: 1], [nil]}}
     assert Code.string_to_quoted(":one", wrap_literals_in_blocks: true) == {:ok, {:__block__, [line: 1], [:one]}}
