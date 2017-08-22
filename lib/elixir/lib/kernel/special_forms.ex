@@ -1437,11 +1437,18 @@ defmodule Kernel.SpecialForms do
       4
 
   In other words, `&(&1 * 2)` is equivalent to `fn x -> x * 2 end`.
-  Another example using a local function:
 
-      iex> fun = &is_atom(&1)
-      iex> fun.(:atom)
-      true
+  We can pritially apply a module function with placeholder.
+
+      iex> take_five = &Enum.take(&1, 5)
+      iex> take_five(1..10)
+      [1, 2, 3, 4, 5]
+
+  Another example while using a imported or local function:
+
+      iex> first_elem = &elem(&1, 1)
+      iex> first_elem.({0, 1})
+      0
 
   The `&` operator can be used with more complex expressions:
 
@@ -1456,8 +1463,8 @@ defmodule Kernel.SpecialForms do
       {1, 2}
 
       iex> fun = &[&1 | &2]
-      iex> fun.(1, 2)
-      [1 | 2]
+      iex> fun.(1, [2, 3])
+      [1, 2, 3]
 
   The only restrictions when creating anonymous functions is that at
   least one placeholder must be present, i.e. it must contain at least
