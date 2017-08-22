@@ -100,7 +100,8 @@ defimpl Inspect, for: BitString do
   defp inspect_bitstring(bitstring, opts) do
     left = color("<<", :binary, opts)
     right = color(">>", :binary, opts)
-    nest surround(left, each_bit(bitstring, opts.limit, opts), right), 1
+    inner = each_bit(bitstring, opts.limit, opts)
+    group(concat(nest(concat(left, inner), 2), right), :flex)
   end
 
   defp each_bit(_, 0, _) do
@@ -168,9 +169,11 @@ defimpl Inspect, for: List do
           end
         IO.iodata_to_binary inspected
       keyword?(term) ->
-        surround_many(open, term, close, opts, &keyword/2, separator: sep, mode: :strict, nest: 2)
+        surround_many(open, term, close, opts, &keyword/2,
+                      separator: sep, group: :strict)
       true ->
-        surround_many(open, term, close, opts, &to_doc/2, separator: sep)
+        surround_many(open, term, close, opts, &to_doc/2,
+                      separator: sep, group: :flex)
     end
   end
 
@@ -197,7 +200,7 @@ defimpl Inspect, for: Tuple do
     open = color("{", :tuple, opts)
     sep = color(",", :tuple, opts)
     close = color("}", :tuple, opts)
-    surround_many(open, Tuple.to_list(tuple), close, opts, &to_doc/2, separator: sep, mode: :flex)
+    surround_many(open, Tuple.to_list(tuple), close, opts, &to_doc/2, separator: sep)
   end
 end
 
@@ -212,7 +215,7 @@ defimpl Inspect, for: Map do
     sep = color(",", :map, opts)
     close = color("}", :map, opts)
     surround_many(open, map, close, opts, traverse_fun(map, opts),
-                  separator: sep, mode: :strict, nest: 2)
+                  separator: sep, group: :strict)
   end
 
   defp traverse_fun(list, opts) do

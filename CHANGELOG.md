@@ -10,7 +10,7 @@
 
 #### Elixir
 
-  * [Inspect] Add `:strict` and `:flex` modes to `Inspect.Algebra`
+  * [Inspect] Add `:strict` and `:flex` groups to `Inspect.Algebra`
   * [Stream] Add `Stream.intersperse/2`
   * [String] Update to Unicode 10
 
