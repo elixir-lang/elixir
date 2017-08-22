@@ -83,6 +83,9 @@ defmodule List do
       #=>   {:kernel, 'ERTS  CXC 138 10', '4.1'},
       #=>   {:logger, 'logger', '1.0.0'}]
 
+  A list can be checked if it is made of printable ascii
+  codepoints with `ascii_printable?/2`.
+
   ## List and Enum modules
 
   This module aims to provide operations that are specific
@@ -436,6 +439,70 @@ defmodule List do
   def zip(list_of_lists) when is_list(list_of_lists) do
     do_zip(list_of_lists, [])
   end
+
+  @doc """
+  Checks if a list is a charlist made only of printable ASCII characters.
+
+  A printable charlist in Elixir contains only ASCII characters.
+
+  Takes an optional `limit` as a second argument. `ascii_printable?/2` only
+  checks the printability of the list up to the `limit`.
+
+  ## Examples
+
+      iex> List.ascii_printable?('abc')
+      true
+
+      iex> List.ascii_printable?('abc' ++ [0])
+      false
+
+      iex> List.ascii_printable?('abc' ++ [0], 2)
+      true
+
+  Improper lists are not printable, even if made only of ascii characters:
+
+      iex> List.ascii_printable?('abc' ++ ?d)
+      false
+
+  """
+  def ascii_printable?(list, counter \\ :infinity)
+
+  def ascii_printable?(_, 0) do
+    true
+  end
+  def ascii_printable?([char | rest], counter) when is_integer(char) and char >= 32 and char <= 126 do
+    ascii_printable?(rest, decrement(counter))
+  end
+  def ascii_printable?([?\n | rest], counter) do
+    ascii_printable?(rest, decrement(counter))
+  end
+  def ascii_printable?([?\r | rest], counter) do
+    ascii_printable?(rest, decrement(counter))
+  end
+  def ascii_printable?([?\t | rest], counter) do
+    ascii_printable?(rest, decrement(counter))
+  end
+  def ascii_printable?([?\v | rest], counter) do
+    ascii_printable?(rest, decrement(counter))
+  end
+  def ascii_printable?([?\b | rest], counter) do
+    ascii_printable?(rest, decrement(counter))
+  end
+  def ascii_printable?([?\f | rest], counter) do
+    ascii_printable?(rest, decrement(counter))
+  end
+  def ascii_printable?([?\e | rest], counter) do
+    ascii_printable?(rest, decrement(counter))
+  end
+  def ascii_printable?([?\a | rest], counter) do
+    ascii_printable?(rest, decrement(counter))
+  end
+  def ascii_printable?([], _counter), do: true
+  def ascii_printable?(_, _counter), do: false
+
+  @compile {:inline, decrement: 1}
+  defp decrement(:infinity), do: :infinity
+  defp decrement(counter),   do: counter - 1
 
   @doc """
   Returns a list with `value` inserted at the specified `index`.

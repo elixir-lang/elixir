@@ -15,6 +15,7 @@ Elixir deprecations happen in 3 steps:
 
 Deprecated feature                               | Deprecated in | Replaced by (available since)
 :----------------------------------------------- | :------------ | :----------------------------
+`Macro.unescape_tokens/1` and `Macro.unescape_tokens/2` | [v1.6] | Use `Enum.map/2` to traverse over the arguments (v1.0)
 `Enum.partition/2`                               | [v1.6]        | `Enum.split_with/2` (v1.4)
 `Atom.to_char_list/1`                            | [v1.5]        | `Atom.to_charlist/1` (v1.3)
 `Enum.filter_map/3`                              | [v1.5]        | `Enum.filter/2` + `Enum.map/2` or for comprehensions (v1.0)

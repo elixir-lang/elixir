@@ -104,10 +104,10 @@ defimpl IEx.Info, for: List do
   def info(list) do
     specific_info =
       cond do
-        list == []                    -> info_list(list)
-        Inspect.List.printable?(list) -> info_charlist(list)
-        Keyword.keyword?(list)        -> info_kw_list(list)
-        true                          -> info_list(list)
+        list == [] -> info_list(list)
+        List.ascii_printable?(list) -> info_charlist(list)
+        Keyword.keyword?(list) -> info_kw_list(list)
+        true -> info_list(list)
       end
 
     ["Data type": "List"] ++ specific_info

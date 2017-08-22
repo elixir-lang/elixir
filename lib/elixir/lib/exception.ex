@@ -597,12 +597,14 @@ defmodule Exception do
   "anonymous fn in func/arity"
   """
   def format_mfa(module, fun, arity) when is_atom(module) and is_atom(fun) do
-    case Inspect.Function.extract_anonymous_fun_parent(Atom.to_string(fun)) do
+    case Code.Identifier.extract_anonymous_fun_parent(fun) do
       {outer_name, outer_arity} ->
         "anonymous fn#{format_arity(arity)} in " <>
-          "#{inspect(module)}.#{Inspect.Function.escape_name(outer_name)}/#{outer_arity}"
+          "#{Code.Identifier.inspect_as_atom(module)}." <>
+          "#{Code.Identifier.inspect_as_function(outer_name)}/#{outer_arity}"
       :error ->
-        "#{inspect(module)}.#{Inspect.Function.escape_name(fun)}#{format_arity(arity)}"
+        "#{Code.Identifier.inspect_as_atom(module)}." <>
+          "#{Code.Identifier.inspect_as_function(fun)}#{format_arity(arity)}"
     end
   end
 
@@ -862,7 +864,7 @@ defmodule UndefinedFunctionError do
   end
 
   defp format_fa({_dist, fun, arity}) do
-    ["      * ", Inspect.Function.escape_name(fun), ?/, Integer.to_string(arity), ?\n]
+    ["      * ", Code.Identifier.inspect_as_function(fun), ?/, Integer.to_string(arity), ?\n]
   end
 
   defp exports_for(module) do

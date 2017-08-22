@@ -6,7 +6,7 @@
 inspect(Atom) when is_atom(Atom) ->
   case elixir_config:get(bootstrap) of
     true  -> atom_to_binary(Atom, utf8);
-    false -> 'Elixir.Inspect.Atom':inspect(Atom)
+    false -> 'Elixir.Code.Identifier':inspect_as_atom(Atom)
   end.
 
 %% Store an alias in the given scope

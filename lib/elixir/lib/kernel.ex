@@ -4525,10 +4525,10 @@ defmodule Kernel do
   """
   defmacro sigil_s(term, modifiers)
   defmacro sigil_s({:<<>>, _, [piece]}, []) when is_binary(piece) do
-    Macro.unescape_string(piece)
+    :elixir_interpolation.unescape_chars(piece)
   end
   defmacro sigil_s({:<<>>, line, pieces}, []) do
-    {:<<>>, line, Macro.unescape_tokens(pieces)}
+    {:<<>>, line, :elixir_interpolation.unescape_tokens(pieces)}
   end
 
   @doc ~S"""
@@ -4574,11 +4574,11 @@ defmodule Kernel do
   # We can skip the runtime conversion if we are
   # creating a binary made solely of series of chars.
   defmacro sigil_c({:<<>>, _meta, [string]}, []) when is_binary(string) do
-    String.to_charlist(Macro.unescape_string(string))
+    String.to_charlist(:elixir_interpolation.unescape_chars(string))
   end
 
   defmacro sigil_c({:<<>>, meta, pieces}, []) do
-    binary = {:<<>>, meta, Macro.unescape_tokens(pieces)}
+    binary = {:<<>>, meta, :elixir_interpolation.unescape_tokens(pieces)}
     quote do: String.to_charlist(unquote(binary))
   end
 
@@ -4601,13 +4601,13 @@ defmodule Kernel do
   """
   defmacro sigil_r(term, modifiers)
   defmacro sigil_r({:<<>>, _meta, [string]}, options) when is_binary(string) do
-    binary = Macro.unescape_string(string, fn(x) -> Regex.unescape_map(x) end)
+    binary = :elixir_interpolation.unescape_chars(string, &Regex.unescape_map/1)
     regex  = Regex.compile!(binary, :binary.list_to_bin(options))
     Macro.escape(regex)
   end
 
   defmacro sigil_r({:<<>>, meta, pieces}, options) do
-    binary = {:<<>>, meta, Macro.unescape_tokens(pieces, fn(x) -> Regex.unescape_map(x) end)}
+    binary = {:<<>>, meta, :elixir_interpolation.unescape_tokens(pieces, &Regex.unescape_map/1)}
     quote do: Regex.compile!(unquote(binary), unquote(:binary.list_to_bin(options)))
   end
 
@@ -4714,11 +4714,11 @@ defmodule Kernel do
   """
   defmacro sigil_w(term, modifiers)
   defmacro sigil_w({:<<>>, _meta, [string]}, modifiers) when is_binary(string) do
-    split_words(Macro.unescape_string(string), modifiers)
+    split_words(:elixir_interpolation.unescape_chars(string), modifiers)
   end
 
   defmacro sigil_w({:<<>>, meta, pieces}, modifiers) do
-    binary = {:<<>>, meta, Macro.unescape_tokens(pieces)}
+    binary = {:<<>>, meta, :elixir_interpolation.unescape_tokens(pieces)}
     split_words(binary, modifiers)
   end
 
