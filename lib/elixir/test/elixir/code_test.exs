@@ -97,7 +97,7 @@ defmodule CodeTest do
 
   test "string_to_quoted/1" do
     assert Code.string_to_quoted("1 + 2") == {:ok, {:+, [line: 1], [1, 2]}}
-    assert Code.string_to_quoted("a.1") == {:error, {1, "syntax error before: ", "1"}}
+    assert Code.string_to_quoted("a.1") == {:error, {1, "syntax error before: ", "\"1\""}}
   end
 
   test "string_to_quoted/1 for presence of sigils terminators" do

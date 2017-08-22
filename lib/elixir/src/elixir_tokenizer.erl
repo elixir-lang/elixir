@@ -166,17 +166,17 @@ tokenize(("<<<<<<<" ++ _) = Original, Line, 1, _Scope, Tokens) ->
 
 tokenize([$0, $x, H | T], Line, Column, Scope, Tokens) when ?is_hex(H) ->
   {Rest, Number, OriginalRepresentation, Length} = tokenize_hex(T, [H], 1),
-  Token = {integer, {Line, {Column, Column + 2 + Length}, Number}, OriginalRepresentation},
+  Token = {int, {Line, {Column, Column + 2 + Length}, Number}, OriginalRepresentation},
   tokenize(Rest, Line, Column + 2 + Length, Scope, [Token | Tokens]);
 
 tokenize([$0, $b, H | T], Line, Column, Scope, Tokens) when ?is_bin(H) ->
   {Rest, Number, OriginalRepresentation, Length} = tokenize_bin(T, [H], 1),
-  Token = {integer, {Line, {Column, Column + 2 + Length}, Number}, OriginalRepresentation},
+  Token = {int, {Line, {Column, Column + 2 + Length}, Number}, OriginalRepresentation},
   tokenize(Rest, Line, Column + 2 + Length, Scope, [Token | Tokens]);
 
 tokenize([$0, $o, H | T], Line, Column, Scope, Tokens) when ?is_octal(H) ->
   {Rest, Number, OriginalRepresentation, Length} = tokenize_octal(T, [H], 1),
-  Token = {integer, {Line, {Column, Column + 2 + Length}, Number}, OriginalRepresentation},
+  Token = {int, {Line, {Column, Column + 2 + Length}, Number}, OriginalRepresentation},
   tokenize(Rest, Line, Column + 2 + Length, Scope, [Token | Tokens]);
 
 % Comments
@@ -433,7 +433,7 @@ tokenize([H | T], Line, Column, Scope, Tokens) when ?is_digit(H) ->
     {error, Reason, Number} ->
       {error, {Line, Reason, Number}, T, Tokens};
     {Rest, Number, Length} when is_integer(Number) ->
-      Token = {integer, {Line, {Column, Column + Length}, Number}, integer_to_list(Number)},
+      Token = {int, {Line, {Column, Column + Length}, Number}, integer_to_list(Number)},
       tokenize(Rest, Line, Column + Length, Scope, [Token | Tokens]);
     {Rest, Number, Length} ->
       Token = {float, {Line, {Column, Column + Length}, nil}, Number},

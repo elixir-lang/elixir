@@ -41,12 +41,12 @@ extract_interpolations_with_only_two_interpolations_test() ->
 
 extract_interpolations_with_tuple_inside_interpolation_test() ->
   [<<"f">>,
-   {{1, {2, 8}, nil}, [{'{', {1, {4, 5}, nil}}, {integer, {1, {5, 6}, 1}, "1"}, {'}', {1, {6, 7}, nil}}]},
+   {{1, {2, 8}, nil}, [{'{', {1, {4, 5}, nil}}, {int, {1, {5, 6}, 1}, "1"}, {'}', {1, {6, 7}, nil}}]},
    <<"o">>] = extract_interpolations("f#{{1}}o").
 
 extract_interpolations_with_many_expressions_inside_interpolation_test() ->
   [<<"f">>,
-   {{1, {2, 3}, nil}, [{integer, {1, {4, 5}, 1}, "1"}, {eol, {1, {5, 6}, nil}}, {integer, {2, {1, 2}, 2}, "2"}]},
+   {{1, {2, 3}, nil}, [{int, {1, {4, 5}, 1}, "1"}, {eol, {1, {5, 6}, nil}}, {int, {2, {1, 2}, 2}, "2"}]},
     <<"o">>] = extract_interpolations("f#{1\n2}o").
 
 extract_interpolations_with_right_curly_inside_string_inside_interpolation_test() ->
@@ -66,7 +66,7 @@ extract_interpolations_with_escaped_quote_inside_string_inside_interpolation_tes
 
 extract_interpolations_with_less_than_operation_inside_interpolation_test() ->
   [<<"f">>,
-   {{1, {2, 8}, nil}, [{integer, {1, {4, 5}, 1}, "1"}, {rel_op, {1, {5, 6}, nil}, '<'}, {integer, {1, {6, 7}, 2}, "2"}]},
+   {{1, {2, 8}, nil}, [{int, {1, {4, 5}, 1}, "1"}, {rel_op, {1, {5, 6}, nil}, '<'}, {int, {1, {6, 7}, 2}, "2"}]},
    <<"o">>] = extract_interpolations("f#{1<2}o").
 
 extract_interpolations_with_an_escaped_character_test() ->
@@ -184,5 +184,5 @@ char_test() ->
 
 %% Binaries
 
-bitstr_with_integer_test() ->
+bitstr_with_int_test() ->
   {<<"fdo">>, _} = eval("<< \"f\", 50+50, \"o\" >>").
