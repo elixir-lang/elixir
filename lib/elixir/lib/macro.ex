@@ -53,7 +53,10 @@ defmodule Macro do
 
       ~X(without #{"interpolation"})r
       #=>"}\"noitalopretni\"{# tuohtiw"
+
   """
+
+  alias Code.Identifier
 
   @typedoc "Abstract Syntax Tree (AST)"
   @type t :: expr | literal
@@ -63,140 +66,6 @@ defmodule Macro do
 
   @typedoc "Represents literals in the AST"
   @type literal :: atom | number | binary | fun | {t, t} | [t]
-
-  # Classifies the given atom into one of the following categories:
-  #
-  #   * :alias - a valid Elixir alias, like Foo, Foo.Bar and so on
-  #
-  #   * :callable - an atom that can be used as a function call after the
-  #     . operator (for example, :<> is callable because Foo.<>(1, 2, 3) is valid
-  #     syntax); this category includes identifiers like :foo
-  #
-  #   * :not_callable - an atom that cannot be used as a function call after the
-  #     . operator (for example, :<<>> is not callable because Foo.<<>> is a
-  #     syntax error); this category includes atoms like :Foo, since they are
-  #     valid identifiers but they need quotes to be used in function calls
-  #     (Foo."Bar")
-  #
-  #   * :other - any other atom (these are usually escaped when inspected, like
-  #     :"foo and bar")
-  @doc false
-  def classify_identifier(atom) when is_atom(atom) do
-    charlist = Atom.to_charlist(atom)
-
-    cond do
-      atom in [:"%", :"%{}", :"{}", :"<<>>", :"...", :"..", :"."] ->
-        :not_callable
-      unary_op(atom) != :error or binary_op(atom) != :error ->
-        :callable
-      valid_alias?(charlist) ->
-        :alias
-      true ->
-        case :elixir_config.safe_get(:identifier_tokenizer, String.Tokenizer).tokenize(charlist) do
-          {kind, _acc, [], _, _, special} ->
-            if kind == :identifier and not :lists.member(?@, special) do
-              :callable
-            else
-              :not_callable
-            end
-          _ ->
-            :other
-        end
-    end
-  end
-
-  defp valid_alias?('Elixir' ++ rest), do: valid_alias_piece?(rest)
-  defp valid_alias?(_other), do: false
-
-  defp valid_alias_piece?([?., char | rest]) when char >= ?A and char <= ?Z,
-    do: valid_alias_piece?(trim_leading_while_valid_identifier(rest))
-  defp valid_alias_piece?([]),
-    do: true
-  defp valid_alias_piece?(_other),
-    do: false
-
-  defp trim_leading_while_valid_identifier([char | rest])
-       when char >= ?a and char <= ?z
-       when char >= ?A and char <= ?Z
-       when char >= ?0 and char <= ?9
-       when char == ?_ do
-    trim_leading_while_valid_identifier(rest)
-  end
-
-  defp trim_leading_while_valid_identifier(other) do
-    other
-  end
-
-  @doc """
-  Receives an atom representing an operator and the number of operands
-  and returns its associativity and precedence.
-
-  The precedence is a positive integer that can be used for comparison
-  purposes. Its actual value should be relied on and can change at any
-  time.
-
-  ## Examples
-
-      iex> Macro.operator(:+, 2)
-      {:left, 210}
-
-  """
-  @spec operator(atom, 1) :: {:non_associative, precedence :: pos_integer} | :error
-  @spec operator(atom, 2) :: {:left | :right, precedence :: pos_integer} | :error
-  @spec operator(atom, non_neg_integer) :: :error
-  def operator(op, 1) when is_atom(op), do: unary_op(op)
-  def operator(op, 2) when is_atom(op), do: binary_op(op)
-  def operator(op, arity) when is_atom(op) and is_integer(arity), do: :error
-
-  defp unary_op(op) do
-    cond do
-      op in [:&] ->
-        {:non_associative, 30}
-      op in [:!, :^, :not, :+, :-, :~~~] ->
-        {:non_associative, 300}
-      op in [:@] ->
-        {:non_associative, 320}
-      true ->
-        :error
-    end
-  end
-
-  defp binary_op(op) do
-    cond do
-      op in [:<-, :\\] ->
-        {:left,  40}
-      op in [:when] ->
-        {:right, 50}
-      op in [:::] ->
-        {:right, 60}
-      op in [:|] ->
-        {:right, 70}
-      op in [:=] ->
-        {:right, 90}
-      op in [:||, :|||, :or] ->
-        {:left, 130}
-      op in [:&&, :&&&, :and] ->
-        {:left, 140}
-      op in [:==, :!=, :=~, :===, :!==] ->
-        {:left, 150}
-      op in [:<, :<=, :>=, :>] ->
-        {:left, 160}
-      op in [:|>, :<<<, :>>>, :<~, :~>, :<<~, :~>>, :<~>, :<|>, :^^^] ->
-        {:left, 170}
-      op in [:in] ->
-        {:left, 180}
-      op in [:++, :--, :.., :<>] ->
-        {:right, 200}
-      op in [:+, :-] ->
-        {:left, 210}
-      op in [:*, :/] ->
-        {:left, 220}
-      op in [:.] ->
-        {:left, 310}
-      true ->
-        :error
-    end
-  end
 
   @doc """
   Breaks a pipeline expression into a list.
@@ -273,7 +142,7 @@ defmodule Macro do
   end
 
   def pipe(expr, {call, line, args} = call_args, integer) when is_list(args) do
-    if is_atom(call) and binary_op(call) != :error do
+    if is_atom(call) and Identifier.binary_op(call) != :error do
       raise ArgumentError, "cannot pipe #{to_string expr} into #{to_string call_args}, " <>
                            "the #{to_string call} operator can only take two arguments"
     else
@@ -595,6 +464,8 @@ defmodule Macro do
   representing the codepoint of the character it wants to unescape.
   Here is the default mapping function implemented by Elixir:
 
+      def unescape_map(unicode), do: true
+      def unescape_map(hex), do: true
       def unescape_map(?0), do: ?0
       def unescape_map(?a), do: ?\a
       def unescape_map(?b), do: ?\b
@@ -606,8 +477,6 @@ defmodule Macro do
       def unescape_map(?s), do: ?\s
       def unescape_map(?t), do: ?\t
       def unescape_map(?v), do: ?\v
-      def unescape_map(?x), do: true
-      def unescape_map(?u), do: true
       def unescape_map(e),  do: e
 
   If the `unescape_map/1` function returns `false`, the char is
@@ -629,28 +498,12 @@ defmodule Macro do
     :elixir_interpolation.unescape_chars(chars, map)
   end
 
-  @doc """
-  Unescapes the given tokens according to the default map.
-
-  Check `unescape_string/1` and `unescape_string/2` for more
-  information about unescaping.
-
-  Only tokens that are binaries are unescaped, all others are
-  ignored. This function is useful when implementing your own
-  sigils. Check the implementation of `Kernel.sigil_s/2`
-  for examples.
-  """
-  @spec unescape_tokens([Macro.t]) :: [Macro.t]
+  @doc false
   def unescape_tokens(tokens) do
     :elixir_interpolation.unescape_tokens(tokens)
   end
 
-  @doc """
-  Unescapes the given tokens according to the given map.
-
-  Check `unescape_tokens/1` and `unescape_string/2` for more information.
-  """
-  @spec unescape_tokens([Macro.t], (non_neg_integer -> non_neg_integer | false)) :: [Macro.t]
+  @doc false
   def unescape_tokens(tokens, map) do
     :elixir_interpolation.unescape_tokens(tokens, map)
   end
@@ -838,7 +691,7 @@ defmodule Macro do
       list == [] ->
         "[]"
       :io_lib.printable_list(list) ->
-        {escaped, _} = Inspect.BitString.escape(IO.chardata_to_string(list), ?')
+        {escaped, _} = Identifier.escape(IO.chardata_to_string(list), ?')
         IO.iodata_to_binary [?', escaped, ?']
       Inspect.List.keyword?(list) ->
         "[" <> kw_list_to_string(list, fun) <> "]"
@@ -916,7 +769,7 @@ defmodule Macro do
   end
 
   defp unary_call({op, _, [arg]} = ast, fun) when is_atom(op) do
-    case unary_op(op) do
+    case Identifier.unary_op(op) do
       {_, _} ->
         if binary_expr?(arg) do
           {:ok, fun.(ast, Atom.to_string(op) <> "(" <> to_string(arg, fun) <> ")")}
@@ -933,7 +786,7 @@ defmodule Macro do
   end
 
   defp binary_call({op, _, [left, right]} = ast, fun) when is_atom(op) do
-    case binary_op(op) do
+    case Identifier.binary_op(op) do
       {_, _} ->
         left = op_to_string(left, fun, op, :left)
         right = op_to_string(right, fun, op, :right)
@@ -967,7 +820,7 @@ defmodule Macro do
   defp binary_expr?(expr) do
     case expr do
       {op, _, [_, _]} ->
-        binary_op(op) != :error
+        Identifier.binary_op(op) != :error
       _ ->
         false
     end
@@ -995,7 +848,7 @@ defmodule Macro do
   end
 
   defp call_to_string_for_atom(atom) do
-    Inspect.Function.escape_name(atom)
+    Identifier.inspect_as_function(atom)
   end
 
   defp args_to_string(args, fun) do
@@ -1053,11 +906,7 @@ defmodule Macro do
 
   defp kw_list_to_string(list, fun) do
     Enum.map_join(list, ", ", fn {key, value} ->
-      atom_name = case Inspect.Atom.inspect(key) do
-        ":" <> rest -> rest
-        other       -> other
-      end
-      atom_name <> ": " <> to_string(value, fun)
+      Identifier.inspect_as_key(key) <> to_string(value, fun)
     end)
   end
 
@@ -1072,9 +921,9 @@ defmodule Macro do
   end
 
   defp op_to_string({op, _, [_, _]} = expr, fun, parent_op, side) when is_atom(op) do
-    case binary_op(op) do
+    case Identifier.binary_op(op) do
       {_, prec} ->
-        {parent_assoc, parent_prec} = binary_op(parent_op)
+        {parent_assoc, parent_prec} = Identifier.binary_op(parent_op)
 
         cond do
           parent_prec < prec -> to_string(expr, fun)
@@ -1355,7 +1204,6 @@ defmodule Macro do
   def underscore("") do
     ""
   end
-
 
   defp do_underscore(<<h, t, rest::binary>>, _)
       when (h >= ?A and h <= ?Z) and not (t >= ?A and t <= ?Z) and t != ?. and t != ?_ do

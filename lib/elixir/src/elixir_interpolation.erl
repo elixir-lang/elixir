@@ -82,13 +82,13 @@ unescape_chars(String, Map) ->
   unescape_chars(String, Map, <<>>).
 
 unescape_chars(<<$\\, $x, Rest/binary>>, Map, Acc) ->
-  case Map($x) of
+  case Map(hex) of
     true  -> unescape_hex(Rest, Map, Acc);
     false -> unescape_chars(Rest, Map, <<Acc/binary, $\\, $x>>)
   end;
 
 unescape_chars(<<$\\, $u, Rest/binary>>, Map, Acc) ->
-  case Map($u) of
+  case Map(unicode) of
     true  -> unescape_unicode(Rest, Map, Acc);
     false -> unescape_chars(Rest, Map, <<Acc/binary, $\\, $u>>)
   end;
@@ -181,6 +181,8 @@ append_codepoint(Rest, Map, List, Acc, Base) ->
       error('Elixir.ArgumentError':exception([{message, Msg}]))
   end.
 
+unescape_map(unicode) -> true;
+unescape_map(hex) -> true;
 unescape_map($0) -> 0;
 unescape_map($a) -> 7;
 unescape_map($b) -> $\b;
@@ -192,8 +194,6 @@ unescape_map($r) -> $\r;
 unescape_map($s) -> $\s;
 unescape_map($t) -> $\t;
 unescape_map($v) -> $\v;
-unescape_map($x) -> true;
-unescape_map($u) -> true;
 unescape_map(E)  -> E.
 
 % Extract Helpers

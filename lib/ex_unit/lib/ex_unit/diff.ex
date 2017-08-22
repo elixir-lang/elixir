@@ -40,7 +40,7 @@ defmodule ExUnit.Diff do
 
   # Char lists and lists
   def script(left, right) when is_list(left) and is_list(right) do
-    if Inspect.List.printable?(left) and Inspect.List.printable?(right) do
+    if List.ascii_printable?(left) and List.ascii_printable?(right) do
       script_string(List.to_string(left), List.to_string(right), ?')
     else
       keywords? = Inspect.List.keyword?(left) and Inspect.List.keyword?(right)
@@ -69,8 +69,8 @@ defmodule ExUnit.Diff do
     length1 = String.length(string1)
     length2 = String.length(string2)
     if bag_distance(string1, string2) / max(length1, length2) <= 0.6 do
-      {escaped1, _} = Inspect.BitString.escape(string1, token)
-      {escaped2, _} = Inspect.BitString.escape(string2, token)
+      {escaped1, _} = Code.Identifier.escape(string1, token)
+      {escaped2, _} = Code.Identifier.escape(string2, token)
       string1 = IO.iodata_to_binary escaped1
       string2 = IO.iodata_to_binary escaped2
       [{:eq, <<token>>}, script_string(string1, string2), {:eq, <<token>>}]

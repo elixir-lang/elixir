@@ -389,6 +389,10 @@ deprecation('Elixir.List.Chars', to_char_list, 1) ->
   "use List.Chars.to_charlist/1";
 deprecation('Elixir.Map', size, 1) ->
   "use Kernel.map_size/1";
+deprecation('Elixir.Macro', unescape_tokens, 1) ->
+  "instead traverse over the arguments using Enum.map/2";
+deprecation('Elixir.Macro', unescape_tokens, 2) ->
+  "instead traverse over the arguments using Enum.map/2";
 deprecation('Elixir.Stream', filter_map, 3) ->
   "use Stream.filter/2 + Stream.map/2";
 deprecation('Elixir.Stream', uniq, 2) ->

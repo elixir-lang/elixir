@@ -76,6 +76,6 @@ format_error({no_super, Module, {Name, Arity}}) ->
     [Name, Arity, elixir_aliases:inspect(Module), Joined]).
 
 format_fa({Name, Arity}) ->
-  A = 'Elixir.Inspect.Function':escape_name(Name),
+  A = 'Elixir.Code.Identifier':inspect_as_function(Name),
   B = integer_to_binary(Arity),
   <<A/binary, $/, B/binary>>.
