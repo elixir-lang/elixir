@@ -277,8 +277,8 @@ defmodule Inspect.ListTest do
     assert inspect([a: 1, a: 2, b: 2]) == "[a: 1, a: 2, b: 2]"
     assert inspect(["123": 1]) == ~s(["123": 1])
 
-    assert inspect([foo: [1, 2, 3, :bar], bazzz: :bat], [pretty: true, width: 30]) ==
-           "[\n  foo: [1, 2, 3, :bar],\n  bazzz: :bat\n]"
+    assert inspect([foo: [1, 2, 3], baz: [4, 5, 6]], [pretty: true, width: 20]) ==
+           "[\n  foo: [1, 2, 3],\n  baz: [4, 5, 6]\n]"
   end
 
   test "opt infer" do

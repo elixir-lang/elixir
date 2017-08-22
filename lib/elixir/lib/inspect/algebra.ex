@@ -144,10 +144,9 @@ defmodule Inspect.Algebra do
   are encoded explicitly as `:flat` or `:break`. Those groups are then reduced
   to a simple document, where the layout is already decided, per [Lindig][0].
 
-  This implementation has two types of groups: `:strict` and `:flex`. They
-  have different rules to when a group is considered float or a break. The
-  `:strict` mode guarantees one break per line, the `:flex` mode tries to fit
-  the maximum amount of entries in a group in the same line.
+  This implementation has two types of groups: `:strict` and `:flex`. A
+  `:strict` group guarantees one break per line, the `:flex` group tries
+  to fit the maximum amount of entries in a group in the same line.
 
   Custom pretty printers can be implemented using the documents returned
   by this module and by providing their own rendering functions.
@@ -160,8 +159,7 @@ defmodule Inspect.Algebra do
   @surround_separator ","
   @tail_separator " |"
   @newline "\n"
-  @nesting 1
-  @mode :flex
+  @group :flex
   @space " "
 
   # Functional interface to "doc" records
@@ -448,7 +446,7 @@ defmodule Inspect.Algebra do
 
   """
   @spec group(t) :: doc_group
-  def group(doc, mode \\ @mode) when is_doc(doc) do
+  def group(doc, mode \\ @group) when is_doc(doc) do
     doc_group(doc, mode)
   end
 
@@ -516,10 +514,8 @@ defmodule Inspect.Algebra do
 
   ## Options
 
-    * `:mode` - if the surround contents are `:flex`, which means we try to fit as
-      much as possible on a single line, or `:strict`, which forces a new line on
-      every break, as well, as after `left` and before `right`
-    * `:nest` - how much to nest the surrounded contents
+    * `:mode` - controls if surrounding is done with concating or glueing
+    * `:group` - controls if the group is `:strict` or `:flex`
 
   ## Examples
 
@@ -531,13 +527,11 @@ defmodule Inspect.Algebra do
   @spec surround(t, t, t, keyword()) :: t
   def surround(left, doc, right, opts \\ [])
       when is_doc(left) and is_doc(doc) and is_doc(right) and is_list(opts) do
-    nest = Keyword.get(opts, :nest, @nesting)
-
-    case Keyword.get(opts, :mode, @mode) do
+    case Keyword.get(opts, :group, @group) do
       :flex ->
-        group(concat(nest(concat(left, doc), nest), right), :flex)
+        group(concat(nest(concat(left, doc), 1), right), :flex)
       :strict ->
-        group(glue(nest(glue(left, "", doc), nest), "", right), :strict)
+        group(glue(nest(glue(left, "", doc), 2), "", right), :strict)
     end
   end
 
@@ -578,7 +572,7 @@ defmodule Inspect.Algebra do
       when is_doc(left) and is_list(docs) and is_doc(right) and is_function(fun, 2) do
     cond do
       is_list(opts) ->
-        separator = Keyword.get(opts, :separator, @surround_separator)
+        {separator, opts} = Keyword.pop(opts, :separator, @surround_separator)
         surround_many(left, docs, right, inspect.limit, inspect, fun, separator, opts)
       is_doc(opts) ->
         # TODO: Deprecate on Elixir v1.8
