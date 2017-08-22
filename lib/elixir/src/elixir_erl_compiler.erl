@@ -61,6 +61,13 @@ handle_file_warning(_, File, {Line, erl_lint, {undefined_behaviour, Module}}) ->
   case elixir_config:get(bootstrap) of
     true ->
       ok;
+    false when Module == 'Elixir.Collectable';
+               Module == 'Elixir.Enumerable';
+               Module == 'Elixir.Inspect';
+               Module == 'Elixir.List.Chars';
+               Module == 'Elixir.String.Chars' ->
+      %% Silence Elixir behaviour warnings because of bootstrapping
+      ok;
     false ->
       elixir_errors:warn(Line, File, ["behaviour ", elixir_aliases:inspect(Module), " is undefined"])
   end;
