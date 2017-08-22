@@ -1438,13 +1438,13 @@ defmodule Kernel.SpecialForms do
 
   In other words, `&(&1 * 2)` is equivalent to `fn x -> x * 2 end`.
 
-  We can pritially apply a module function with placeholder.
+  We can partially apply a remote function with placeholder:
 
       iex> take_five = &Enum.take(&1, 5)
-      iex> take_five(1..10)
+      iex> take_five.(1..10)
       [1, 2, 3, 4, 5]
 
-  Another example while using a imported or local function:
+  Another example while using an imported or local function:
 
       iex> first_elem = &elem(&1, 1)
       iex> first_elem.({0, 1})
