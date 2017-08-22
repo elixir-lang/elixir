@@ -13,8 +13,8 @@ defmodule Date.Range do
   """
 
   @type t :: %__MODULE__{first: Date.t, last: Date.t,
-                         first_in_iso_days: Calendar.days,
-                         last_in_iso_days: Calendar.days}
+                         first_in_iso_days: Calendar.iso_days,
+                         last_in_iso_days: Calendar.iso_days}
 
   defstruct [:first, :last, :first_in_iso_days, :last_in_iso_days]
 
