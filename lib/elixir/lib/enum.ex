@@ -1808,7 +1808,7 @@ defmodule Enum do
 
       def my_map(enumerable, fun) do
         enumerable
-        |> Enum.reduce(enumerable, [], fn(x, acc) -> [fun.(x) | acc] end)
+        |> Enum.reduce([], fn(x, acc) -> [fun.(x) | acc] end)
         |> Enum.reverse
       end
 
