@@ -41,12 +41,12 @@ extract_interpolations_with_only_two_interpolations_test() ->
 
 extract_interpolations_with_tuple_inside_interpolation_test() ->
   [<<"f">>,
-   {{1, 2, 8}, [{'{', {1, 4, 5}}, {decimal, {1, 5, 6}, 1}, {'}', {1, 6, 7}}]},
+   {{1, 2, 8}, [{'{', {1, 4, 5}}, {decimal, {1, 5, 6}, "1"}, {'}', {1, 6, 7}}]},
    <<"o">>] = extract_interpolations("f#{{1}}o").
 
 extract_interpolations_with_many_expressions_inside_interpolation_test() ->
   [<<"f">>,
-   {{1, 2, 3}, [{decimal, {1, 4, 5}, 1}, {eol, {1, 5, 6}}, {decimal, {2, 1, 2}, 2}]},
+   {{1, 2, 3}, [{decimal, {1, 4, 5}, "1"}, {eol, {1, 5, 6}}, {decimal, {2, 1, 2}, "2"}]},
     <<"o">>] = extract_interpolations("f#{1\n2}o").
 
 extract_interpolations_with_right_curly_inside_string_inside_interpolation_test() ->
@@ -66,7 +66,7 @@ extract_interpolations_with_escaped_quote_inside_string_inside_interpolation_tes
 
 extract_interpolations_with_less_than_operation_inside_interpolation_test() ->
   [<<"f">>,
-   {{1, 2, 8}, [{decimal, {1, 4, 5}, 1}, {rel_op, {1, 5, 6}, '<'}, {decimal, {1, 6, 7}, 2}]},
+   {{1, 2, 8}, [{decimal, {1, 4, 5}, "1"}, {rel_op, {1, 5, 6}, '<'}, {decimal, {1, 6, 7}, "2"}]},
    <<"o">>] = extract_interpolations("f#{1<2}o").
 
 extract_interpolations_with_an_escaped_character_test() ->
