@@ -40,7 +40,7 @@ Terminals
   capture_op rel_op
   'true' 'false' 'nil' 'do' eol ';' ',' '.'
   '(' ')' '[' ']' '{' '}' '<<' '>>' '%{}' '%'
-  binary octal decimal float hex
+  integer float
   .
 
 Rootsymbol grammar.
@@ -237,7 +237,7 @@ no_parens_zero_expr -> dot_identifier : build_identifier('$1', nil).
 %% marks identifiers followed by brackets as bracket_identifier.
 access_expr -> bracket_at_expr : '$1'.
 access_expr -> bracket_expr : '$1'.
-access_expr -> capture_op_eol decimal : build_unary_op('$1', ?exprs('$2')).
+access_expr -> capture_op_eol integer : build_unary_op('$1', integer_value('$2')).
 access_expr -> fn_eoe stab end_eoe : build_fn('$1', reverse('$2')).
 access_expr -> open_paren stab close_paren : build_stab(reverse('$2')).
 access_expr -> open_paren stab ';' close_paren : build_stab(reverse('$2')).
@@ -262,10 +262,7 @@ access_expr -> max_expr : '$1'.
 
 %% Augment integer literals with representation format if wrap_literals_in_blocks option is true
 number -> char : handle_literal(?exprs('$1'), '$1', [{format, char}]).
-number -> binary : handle_literal(?exprs('$1'), '$1', [{format, binary}]).
-number -> octal : handle_literal(?exprs('$1'), '$1', [{format, octal}]).
-number -> decimal : handle_literal(?exprs('$1'), '$1', [{format, decimal}]).
-number -> hex : handle_literal(?exprs('$1'), '$1', [{format, hex}]).
+number -> integer : handle_literal(integer_value('$1'), '$1', [{original, ?exprs('$1')}]).
 number -> float : handle_literal(?exprs('$1'), '$1').
 
 %% Aliases and properly formed calls. Used by map_expr.
@@ -636,6 +633,10 @@ handle_literal(Literal, Token, ExtraMeta) ->
     true -> {'__block__', ExtraMeta ++ meta_from_token(Token), [Literal]};
     false -> Literal
   end.
+
+integer_value(Token) ->
+  {_, _, Value} = element(2, Token),
+  Value.
 
 %% Operators
 
