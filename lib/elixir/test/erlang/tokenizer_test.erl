@@ -13,193 +13,210 @@ tokenize_error(String) ->
   Error.
 
 type_test() ->
-  [{decimal, {1, 1, 2}, 1}, {type_op, {1, 3, 5}, '::'}, {decimal, {1, 6, 7}, 3}] = tokenize("1 :: 3"),
-  [{identifier, {1, 1, 5}, name},
-   {'.', {1, 5, 6}},
-   {paren_identifier, {1, 6, 8}, '::'},
-   {'(', {1, 8, 9}},
-   {decimal, {1, 9, 10}, 3},
-   {')', {1, 10, 11}}] = tokenize("name.::(3)").
+  [{decimal, {1, {1, 2}, nil}, 1},
+   {type_op, {1, {3, 5}, nil}, '::'},
+   {decimal, {1, {6, 7}, nil}, 3}] = tokenize("1 :: 3"),
+  [{identifier, {1, {1, 5}, nil}, name},
+   {'.', {1, {5, 6}, nil}},
+   {paren_identifier, {1, {6, 8}, nil}, '::'},
+   {'(', {1, {8, 9}, nil}},
+   {decimal, {1, {9, 10}, nil}, 3},
+   {')', {1, {10, 11}, nil}}] = tokenize("name.::(3)").
 
 arithmetic_test() ->
-  [{decimal, {1, 1, 2}, 1}, {dual_op, {1, 3, 4}, '+'}, {decimal, {1, 5, 6}, 2}, {dual_op, {1, 7, 8}, '+'}, {decimal, {1, 9, 10}, 3}] = tokenize("1 + 2 + 3").
+  [{decimal, {1, {1, 2}, nil}, 1},
+   {dual_op, {1, {3, 4}, nil}, '+'},
+   {decimal, {1, {5, 6}, nil}, 2},
+   {dual_op, {1, {7, 8}, nil}, '+'},
+   {decimal, {1, {9, 10}, nil}, 3}] = tokenize("1 + 2 + 3").
 
 op_kw_test() ->
-  [{atom, {1, 1, 5}, foo}, {dual_op, {1, 5, 6}, '+'}, {atom, {1, 6, 10}, bar}] = tokenize(":foo+:bar").
+  [{atom, {1, {1, 5}, nil}, foo},
+   {dual_op, {1, {5, 6}, nil}, '+'},
+   {atom, {1, {6, 10}, nil}, bar}] = tokenize(":foo+:bar").
 
 scientific_test() ->
-  [{float, {1, 1, 7}, 0.1}] = tokenize("1.0e-1"),
-  [{float, {1, 1, 16}, 1.2345678e-7}] = tokenize("1_234.567_8e-10"),
+  [{float, {1, {1, 7}, nil}, 0.1}] = tokenize("1.0e-1"),
+  [{float, {1, {1, 16}, nil}, 1.2345678e-7}] = tokenize("1_234.567_8e-10"),
   {1, "invalid float number ", "1.0e309"} = tokenize_error("1.0e309").
 
 hex_bin_octal_test() ->
-  [{hex, {1, 1, 5}, 255}] = tokenize("0xFF"),
-  [{hex, {1, 1, 6}, 255}] = tokenize("0xF_F"),
-  [{octal, {1, 1, 5}, 63}] = tokenize("0o77"),
-  [{octal, {1, 1, 6}, 63}] = tokenize("0o7_7"),
-  [{binary, {1, 1, 5}, 3}] = tokenize("0b11"),
-  [{binary, {1, 1, 6}, 3}] = tokenize("0b1_1").
+  [{hex, {1, {1, 5}, nil}, 255}] = tokenize("0xFF"),
+  [{hex, {1, {1, 6}, nil}, 255}] = tokenize("0xF_F"),
+  [{octal, {1, {1, 5}, nil}, 63}] = tokenize("0o77"),
+  [{octal, {1, {1, 6}, nil}, 63}] = tokenize("0o7_7"),
+  [{binary, {1, {1, 5}, nil}, 3}] = tokenize("0b11"),
+  [{binary, {1, {1, 6}, nil}, 3}] = tokenize("0b1_1").
 
 unquoted_atom_test() ->
-  [{atom, {1, 1, 3}, '+'}] = tokenize(":+"),
-  [{atom, {1, 1, 3}, '-'}] = tokenize(":-"),
-  [{atom, {1, 1, 3}, '*'}] = tokenize(":*"),
-  [{atom, {1, 1, 3}, '/'}] = tokenize(":/"),
-  [{atom, {1, 1, 3}, '='}] = tokenize(":="),
-  [{atom, {1, 1, 4}, '&&'}] = tokenize(":&&").
+  [{atom, {1, {1, 3}, nil}, '+'}] = tokenize(":+"),
+  [{atom, {1, {1, 3}, nil}, '-'}] = tokenize(":-"),
+  [{atom, {1, {1, 3}, nil}, '*'}] = tokenize(":*"),
+  [{atom, {1, {1, 3}, nil}, '/'}] = tokenize(":/"),
+  [{atom, {1, {1, 3}, nil}, '='}] = tokenize(":="),
+  [{atom, {1, {1, 4}, nil}, '&&'}] = tokenize(":&&").
 
 quoted_atom_test() ->
-  [{atom_unsafe, {1, 1, 11}, [<<"foo bar">>]}] = tokenize(":\"foo bar\"").
+  [{atom_unsafe, {1, {1, 11}, nil}, [<<"foo bar">>]}] = tokenize(":\"foo bar\"").
 
 oversized_atom_test() ->
   OversizedAtom = [$: | string:copies("a", 256)],
   {1, "atom length must be less than system limit", ":"} = tokenize_error(OversizedAtom).
 
 op_atom_test() ->
-  [{atom, {1, 1, 6}, f0_1}] = tokenize(":f0_1").
+  [{atom, {1, {1, 6}, nil}, f0_1}] = tokenize(":f0_1").
 
 kw_test() ->
-  [{kw_identifier, {1, 1, 4}, do}] = tokenize("do: "),
-  [{kw_identifier, {1, 1, 4}, a@}] = tokenize("a@: "),
-  [{kw_identifier, {1, 1, 4}, 'A@'}] = tokenize("A@: "),
-  [{kw_identifier, {1, 1, 5}, a@b}] = tokenize("a@b: "),
-  [{kw_identifier, {1, 1, 5}, 'A@!'}] = tokenize("A@!: "),
-  [{kw_identifier, {1, 1, 5}, 'a@!'}] = tokenize("a@!: "),
-  [{kw_identifier_unsafe, {1, 1, 10}, [<<"foo bar">>]}] = tokenize("\"foo bar\": ").
+  [{kw_identifier, {1, {1, 4}, nil}, do}] = tokenize("do: "),
+  [{kw_identifier, {1, {1, 4}, nil}, a@}] = tokenize("a@: "),
+  [{kw_identifier, {1, {1, 4}, nil}, 'A@'}] = tokenize("A@: "),
+  [{kw_identifier, {1, {1, 5}, nil}, a@b}] = tokenize("a@b: "),
+  [{kw_identifier, {1, {1, 5}, nil}, 'A@!'}] = tokenize("A@!: "),
+  [{kw_identifier, {1, {1, 5}, nil}, 'a@!'}] = tokenize("a@!: "),
+  [{kw_identifier_unsafe, {1, {1, 10}, nil}, [<<"foo bar">>]}] = tokenize("\"foo bar\": ").
 
 integer_test() ->
-  [{decimal, {1, 1, 4}, 123}] = tokenize("123"),
-  [{decimal, {1, 1, 4}, 123}, {';', {1, 4, 5}}] = tokenize("123;"),
-  [{eol, {1, 1, 2}}, {decimal, {3, 1, 4}, 123}] = tokenize("\n\n123"),
-  [{decimal, {1, 3, 6}, 123}, {decimal, {1, 8, 11}, 234}] = tokenize("  123  234  ").
+  [{decimal, {1, {1, 4}, nil}, 123}] = tokenize("123"),
+  [{decimal, {1, {1, 4}, nil}, 123}, {';', {1, {4, 5}, nil}}] = tokenize("123;"),
+  [{eol, {1, {1, 2}, nil}}, {decimal, {3, {1, 4}, nil}, 123}] = tokenize("\n\n123"),
+  [{decimal, {1, {3, 6}, nil}, 123}, {decimal, {1, {8, 11}, nil}, 234}] = tokenize("  123  234  ").
 
 float_test() ->
-  [{float, {1, 1, 5}, 12.3}] = tokenize("12.3"),
-  [{float, {1, 1, 5}, 12.3}, {';', {1, 5, 6}}] = tokenize("12.3;"),
-  [{eol, {1, 1, 2}}, {float, {3, 1, 5}, 12.3}] = tokenize("\n\n12.3"),
-  [{float, {1, 3, 7}, 12.3}, {float, {1, 9, 13}, 23.4}] = tokenize("  12.3  23.4  "),
+  [{float, {1, {1, 5}, nil}, 12.3}] = tokenize("12.3"),
+  [{float, {1, {1, 5}, nil}, 12.3}, {';', {1, {5, 6}, nil}}] = tokenize("12.3;"),
+  [{eol, {1, {1, 2}, nil}}, {float, {3, {1, 5}, nil}, 12.3}] = tokenize("\n\n12.3"),
+  [{float, {1, {3, 7}, nil}, 12.3}, {float, {1, {9, 13}, nil}, 23.4}] = tokenize("  12.3  23.4  "),
   OversizedFloat = string:copies("9", 310) ++ ".0",
   {1, "invalid float number ", OversizedFloat} = tokenize_error(OversizedFloat).
 
 comments_test() ->
-  [{decimal, {1, 1, 2}, 1}, {eol, {1, 3, 4}}, {decimal, {2, 1, 2}, 2}] = tokenize("1 # Comment\n2"),
-  [{decimal, {1, 1, 2}, 1}, {comment, {1, 3, 12}, "# Comment"},
-   {eol, {1, 12, 13}}, {decimal, {2, 1, 2}, 2}] = tokenize("1 # Comment\n2", [{preserve_comments, true}]),
-  [{comment, {1, 1, 10}, "# Comment"}] = tokenize("# Comment", [{preserve_comments, true}]).
+  [{decimal, {1, {1, 2}, nil}, 1},
+   {eol, {1, {3, 4}, nil}},
+   {decimal, {2, {1, 2}, nil}, 2}] = tokenize("1 # Comment\n2"),
+  [{decimal, {1, {1, 2}, nil}, 1},
+   {comment, {1, {3, 12}, nil}, "# Comment"},
+   {eol, {1, {12, 13}, nil}},
+   {decimal, {2, {1, 2}, nil}, 2}] = tokenize("1 # Comment\n2", [{preserve_comments, true}]),
+  [{comment, {1, {1, 10}, nil}, "# Comment"}] = tokenize("# Comment", [{preserve_comments, true}]).
 
 identifier_test() ->
-  [{identifier, {1, 1, 4}, abc}] = tokenize("abc "),
-  [{identifier, {1, 1, 5}, 'abc?'}] = tokenize("abc?"),
-  [{identifier, {1, 1, 5}, 'abc!'}] = tokenize("abc!"),
-  [{identifier, {1, 1, 5}, 'a0c!'}] = tokenize("a0c!"),
-  [{paren_identifier, {1, 1, 4}, 'a0c'}, {'(', {1, 4, 5}}, {')', {1, 5, 6}}] = tokenize("a0c()"),
-  [{paren_identifier, {1, 1, 5}, 'a0c!'}, {'(', {1, 5, 6}}, {')', {1, 6, 7}}] = tokenize("a0c!()").
+  [{identifier, {1, {1, 4}, nil}, abc}] = tokenize("abc "),
+  [{identifier, {1, {1, 5}, nil}, 'abc?'}] = tokenize("abc?"),
+  [{identifier, {1, {1, 5}, nil}, 'abc!'}] = tokenize("abc!"),
+  [{identifier, {1, {1, 5}, nil}, 'a0c!'}] = tokenize("a0c!"),
+  [{paren_identifier, {1, {1, 4}, nil}, 'a0c'}, {'(', {1, {4, 5}, nil}}, {')', {1, {5, 6}, nil}}] = tokenize("a0c()"),
+  [{paren_identifier, {1, {1, 5}, nil}, 'a0c!'}, {'(', {1, {5, 6}, nil}}, {')', {1, {6, 7}, nil}}] = tokenize("a0c!()").
 
 module_macro_test() ->
-  [{identifier, {1, 1, 11}, '__MODULE__'}] = tokenize("__MODULE__").
+  [{identifier, {1, {1, 11}, nil}, '__MODULE__'}] = tokenize("__MODULE__").
 
 triple_dot_test() ->
-  [{identifier, {1, 1, 4}, '...'}] = tokenize("..."),
-  [{'.', {1, 1, 2}}, {identifier, {1, 3, 5}, '..'}] = tokenize(". ..").
+  [{identifier, {1, {1, 4}, nil}, '...'}] = tokenize("..."),
+  [{'.', {1, {1, 2}, nil}}, {identifier, {1, {3, 5}, nil}, '..'}] = tokenize(". ..").
 
 dot_test() ->
-  [{identifier, {1, 1, 4}, foo},
-   {'.', {1, 4, 5}},
-   {identifier, {1, 5, 8}, bar},
-   {'.', {1, 8, 9}},
-   {identifier, {1, 9, 12}, baz}] = tokenize("foo.bar.baz").
+  [{identifier, {1, {1, 4}, nil}, foo},
+   {'.', {1, {4, 5}, nil}},
+   {identifier, {1, {5, 8}, nil}, bar},
+   {'.', {1, {8, 9}, nil}},
+   {identifier, {1, {9, 12}, nil}, baz}] = tokenize("foo.bar.baz").
 
 dot_keyword_test() ->
- [{identifier, {1, 1, 4}, foo},
-  {'.', {1, 4, 5}},
-  {identifier, {1, 5, 7}, do}] = tokenize("foo.do").
+ [{identifier, {1, {1, 4}, nil}, foo},
+  {'.', {1, {4, 5}, nil}},
+  {identifier, {1, {5, 7}, nil}, do}] = tokenize("foo.do").
 
 newline_test() ->
-  [{identifier, {1, 1, 4}, foo},
-   {'.', {2, 1, 2}},
-   {identifier, {2, 2, 5}, bar}]  = tokenize("foo\n.bar"),
-  [{decimal, {1, 1, 2}, 1},
-   {two_op, {2, 1, 3}, '++'},
-   {decimal, {2, 3, 4}, 2}]  = tokenize("1\n++2").
+  [{identifier, {1, {1, 4}, nil}, foo},
+   {'.', {2, {1, 2}, nil}},
+   {identifier, {2, {2, 5}, nil}, bar}]  = tokenize("foo\n.bar"),
+  [{decimal, {1, {1, 2}, nil}, 1},
+   {two_op, {2, {1, 3}, nil}, '++'},
+   {decimal, {2, {3, 4}, nil}, 2}]  = tokenize("1\n++2").
 
 dot_newline_operator_test() ->
-  [{identifier, {1, 1, 4}, foo},
-   {'.', {1, 4, 5}},
-   {identifier, {2, 1, 2}, '+'},
-   {decimal, {2, 2, 3}, 1}] = tokenize("foo.\n+1"),
-  [{identifier, {1, 1, 4}, foo},
-   {'.', {1, 4, 5}},
-   {identifier, {2, 1, 2}, '+'},
-   {decimal, {2, 2, 3}, 1}] = tokenize("foo.#bar\n+1"),
-  [{identifier, {1, 1, 4}, foo},
-   {'.', {1, 4, 5}},
-   {comment, {1, 5, 9}, "#bar"},
-   {identifier, {2, 1, 2}, '+'},
-   {decimal, {2, 2, 3}, 1}] = tokenize("foo.#bar\n+1", [{preserve_comments, true}]).
+  [{identifier, {1, {1, 4}, nil}, foo},
+   {'.', {1, {4, 5}, nil}},
+   {identifier, {2, {1, 2}, nil}, '+'},
+   {decimal, {2, {2, 3}, nil}, 1}] = tokenize("foo.\n+1"),
+  [{identifier, {1, {1, 4}, nil}, foo},
+   {'.', {1, {4, 5}, nil}},
+   {identifier, {2, {1, 2}, nil}, '+'},
+   {decimal, {2, {2, 3}, nil}, 1}] = tokenize("foo.#bar\n+1"),
+  [{identifier, {1, {1, 4}, nil}, foo},
+   {'.', {1, {4, 5}, nil}},
+   {comment, {1, {5, 9}, nil}, "#bar"},
+   {identifier, {2, {1, 2}, nil}, '+'},
+   {decimal, {2, {2, 3}, nil}, 1}] = tokenize("foo.#bar\n+1", [{preserve_comments, true}]).
 
 aliases_test() ->
-  [{'aliases', {1, 1, 4}, ['Foo']}] = tokenize("Foo"),
-  [{'aliases', {1, 1, 4}, ['Foo']},
-   {'.', {1, 4, 5}},
-   {'aliases', {1, 5, 8}, ['Bar']},
-   {'.', {1, 8, 9}},
-   {'aliases', {1, 9, 12}, ['Baz']}] = tokenize("Foo.Bar.Baz").
+  [{'aliases', {1, {1, 4}, nil}, ['Foo']}] = tokenize("Foo"),
+  [{'aliases', {1, {1, 4}, nil}, ['Foo']},
+   {'.', {1, {4, 5}, nil}},
+   {'aliases', {1, {5, 8}, nil}, ['Bar']},
+   {'.', {1, {8, 9}, nil}},
+   {'aliases', {1, {9, 12}, nil}, ['Baz']}] = tokenize("Foo.Bar.Baz").
 
 string_test() ->
-  [{bin_string, {1, 1, 6}, [<<"foo">>]}] = tokenize("\"foo\""),
-  [{bin_string, {1, 1, 6}, [<<"f\"">>]}] = tokenize("\"f\\\"\""),
-  [{list_string, {1, 1, 6}, [<<"foo">>]}] = tokenize("'foo'").
+  [{bin_string, {1, {1, 6}, nil}, [<<"foo">>]}] = tokenize("\"foo\""),
+  [{bin_string, {1, {1, 6}, nil}, [<<"f\"">>]}] = tokenize("\"f\\\"\""),
+  [{list_string, {1, {1, 6}, nil}, [<<"foo">>]}] = tokenize("'foo'").
 
 empty_string_test() ->
-  [{bin_string, {1, 1, 3}, [<<>>]}] = tokenize("\"\""),
-  [{list_string, {1, 1, 3}, [<<>>]}] = tokenize("''").
+  [{bin_string, {1, {1, 3}, nil}, [<<>>]}] = tokenize("\"\""),
+  [{list_string, {1, {1, 3}, nil}, [<<>>]}] = tokenize("''").
 
 addadd_test() ->
-  [{identifier, {1, 1, 2}, x}, {two_op, {1, 3, 5}, '++'}, {identifier, {1, 6, 7}, y}] = tokenize("x ++ y").
+  [{identifier, {1, {1, 2}, nil}, x},
+   {two_op, {1, {3, 5}, nil}, '++'},
+   {identifier, {1, {6, 7}, nil}, y}] = tokenize("x ++ y").
 
 space_test() ->
-  [{op_identifier, {1, 1, 4}, foo}, {dual_op, {1, 5, 6}, '-'}, {decimal, {1, 6, 7}, 2}] = tokenize("foo -2"),
-  [{op_identifier, {1, 1, 4}, foo}, {dual_op, {1, 6, 7}, '-'}, {decimal, {1, 7, 8}, 2}] = tokenize("foo  -2").
+  [{op_identifier, {1, {1, 4}, nil}, foo},
+   {dual_op, {1, {5, 6}, nil}, '-'},
+   {decimal, {1, {6, 7}, nil}, 2}] = tokenize("foo -2"),
+  [{op_identifier, {1, {1, 4}, nil}, foo},
+   {dual_op, {1, {6, 7}, nil}, '-'},
+   {decimal, {1, {7, 8}, nil}, 2}] = tokenize("foo  -2").
 
 chars_test() ->
-  [{char, {1, 1, 3}, 97}] = tokenize("?a"),
-  [{char, {1, 1, 3}, 99}] = tokenize("?c"),
-  [{char, {1, 1, 4}, 0}]  = tokenize("?\\0"),
-  [{char, {1, 1, 4}, 7}]  = tokenize("?\\a"),
-  [{char, {1, 1, 4}, 10}] = tokenize("?\\n"),
-  [{char, {1, 1, 4}, 92}] = tokenize("?\\\\").
+  [{char, {1, {1, 3}, nil}, 97}] = tokenize("?a"),
+  [{char, {1, {1, 3}, nil}, 99}] = tokenize("?c"),
+  [{char, {1, {1, 4}, nil}, 0}]  = tokenize("?\\0"),
+  [{char, {1, {1, 4}, nil}, 7}]  = tokenize("?\\a"),
+  [{char, {1, {1, 4}, nil}, 10}] = tokenize("?\\n"),
+  [{char, {1, {1, 4}, nil}, 92}] = tokenize("?\\\\").
 
 interpolation_test() ->
-  [{bin_string, {1, 1, 9}, [<<"f">>,
-    {{1, 3, 8}, [{identifier, {1, 5, 7}, oo}]}]},
-   {two_op, {1, 10, 12}, '<>'}, {bin_string, {1, 13, 15},
-    [<<>>]}] = tokenize("\"f#{oo}\" <> \"\"").
+  [{bin_string, {1, {1, 9}, nil}, [<<"f">>, {{1, {3, 8}, nil}, [{identifier, {1, {5, 7}, nil}, oo}]}]},
+   {two_op, {1, {10, 12}, nil}, '<>'},
+   {bin_string, {1, {13, 15}, nil}, [<<>>]}] = tokenize("\"f#{oo}\" <> \"\"").
 
 capture_test() ->
-  [{capture_op, {1, 1, 2}, '&'},
-   {identifier, {1, 2, 4}, '||'},
-   {mult_op,    {1, 4, 5}, '/'},
-   {decimal,     {1, 5, 6}, 2}] = tokenize("&||/2"),
-  [{capture_op, {1, 1, 2}, '&'},
-   {identifier, {1, 2, 4}, 'or'},
-   {mult_op,    {1, 4, 5}, '/'},
-   {decimal,     {1, 5, 6}, 2}] = tokenize("&or/2"),
-  [{capture_op,{1,1,2},'&'},
-   {unary_op,{1,2,5},'not'},
-   {decimal,{1,6,7},1},
-   {',',{1,7,8}},
-   {decimal,{1,9,10},2}] = tokenize("&not 1, 2").
+  [{capture_op, {1, {1, 2}, nil}, '&'},
+   {identifier, {1, {2, 4}, nil}, '||'},
+   {mult_op,    {1, {4, 5}, nil}, '/'},
+   {decimal,     {1, {5, 6}, nil}, 2}] = tokenize("&||/2"),
+  [{capture_op, {1, {1, 2}, nil}, '&'},
+   {identifier, {1, {2, 4}, nil}, 'or'},
+   {mult_op,    {1, {4, 5}, nil}, '/'},
+   {decimal,     {1, {5, 6}, nil}, 2}] = tokenize("&or/2"),
+  [{capture_op, {1, {1, 2}, nil}, '&'},
+   {unary_op, {1, {2, 5}, nil}, 'not'},
+   {decimal, {1, {6, 7}, nil}, 1},
+   {',', {1, {7, 8}, nil}},
+   {decimal, {1, {9, 10}, nil}, 2}] = tokenize("&not 1, 2").
 
 vc_merge_conflict_test() ->
   {1, "found an unexpected version control marker, please resolve the conflicts: ", "<<<<<<< HEAD"} =
     tokenize_error("<<<<<<< HEAD\n[1, 2, 3]").
 
 sigil_terminator_test() ->
-  [{sigil, {1, 1, 8}, 114, [<<"foo">>], [], "/"}] = tokenize("~r/foo/"),
-  [{sigil, {1, 1, 8}, 114, [<<"foo">>], [], "["}] = tokenize("~r[foo]"),
-  [{sigil, {1, 1, 8}, 114, [<<"foo">>], [], "\""}] = tokenize("~r\"foo\""),
-  [{sigil, {1, 1, 1}, 83, [<<"sigil heredoc\n">>], [], "\"\"\""}] = tokenize("~S\"\"\"\nsigil heredoc\n\"\"\""),
-  [{sigil, {1, 1, 1}, 83, [<<"sigil heredoc\n">>], [], "'''"}] = tokenize("~S'''\nsigil heredoc\n'''").
+  [{sigil, {1, {1, 8}, nil}, 114, [<<"foo">>], [], "/"}] = tokenize("~r/foo/"),
+  [{sigil, {1, {1, 8}, nil}, 114, [<<"foo">>], [], "["}] = tokenize("~r[foo]"),
+  [{sigil, {1, {1, 8}, nil}, 114, [<<"foo">>], [], "\""}] = tokenize("~r\"foo\""),
+  [{sigil, {1, {1, 1}, nil}, 83, [<<"sigil heredoc\n">>], [], "\"\"\""}] = tokenize("~S\"\"\"\nsigil heredoc\n\"\"\""),
+  [{sigil, {1, {1, 1}, nil}, 83, [<<"sigil heredoc\n">>], [], "'''"}] = tokenize("~S'''\nsigil heredoc\n'''").
 
 invalid_sigil_delimiter_test() ->
   {1, "invalid sigil delimiter: ", Message} = tokenize_error("~s\\"),

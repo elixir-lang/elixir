@@ -623,7 +623,7 @@ Erlang code.
 meta_from_token(Token, Counter) -> [{counter, Counter} | meta_from_token(Token)].
 meta_from_token(Token) -> meta_from_location(?location(Token)).
 
-meta_from_location({Line, Column, EndColumn})
+meta_from_location({Line, {Column, EndColumn}, _})
   when is_integer(Line), is_integer(Column), is_integer(EndColumn) -> [{line, Line}].
 
 %% Handle metadata in literals
