@@ -36,8 +36,9 @@ op_kw_test() ->
    {atom, {1, {6, 10}, nil}, bar}] = tokenize(":foo+:bar").
 
 scientific_test() ->
-  [{float, {1, {1, 7}, nil}, 0.1}] = tokenize("1.0e-1"),
-  [{float, {1, {1, 16}, nil}, 1.2345678e-7}] = tokenize("1_234.567_8e-10"),
+  [{float, {1, {1, 7}, 0.1}, "1.0e-1"}] = tokenize("1.0e-1"),
+  [{float, {1, {1, 7}, 0.1}, "1.0E-1"}] = tokenize("1.0E-1"),
+  [{float, {1, {1, 16}, 1.2345678e-7}, "1234.5678e-10"}] = tokenize("1_234.567_8e-10"),
   {1, "invalid float number ", "1.0e309"} = tokenize_error("1.0e309").
 
 hex_bin_octal_test() ->
@@ -84,10 +85,11 @@ int_test() ->
   [{int, {1, {1, 8}, 100000}, "0100000"}] = tokenize("0100000").
 
 float_test() ->
-  [{float, {1, {1, 5}, nil}, 12.3}] = tokenize("12.3"),
-  [{float, {1, {1, 5}, nil}, 12.3}, {';', {1, {5, 6}, nil}}] = tokenize("12.3;"),
-  [{eol, {1, {1, 2}, nil}}, {float, {3, {1, 5}, nil}, 12.3}] = tokenize("\n\n12.3"),
-  [{float, {1, {3, 7}, nil}, 12.3}, {float, {1, {9, 13}, nil}, 23.4}] = tokenize("  12.3  23.4  "),
+  [{float, {1, {1, 5}, 12.3}, "12.3"}] = tokenize("12.3"),
+  [{float, {1, {1, 5}, 12.3}, "12.3"}, {';', {1, {5, 6}, nil}}] = tokenize("12.3;"),
+  [{eol, {1, {1, 2}, nil}}, {float, {3, {1, 5}, 12.3}, "12.3"}] = tokenize("\n\n12.3"),
+  [{float, {1, {3, 7}, 12.3}, "12.3"}, {float, {1, {9, 13}, 23.4}, "23.4"}] = tokenize("  12.3  23.4  "),
+  [{float, {1, {1, 11}, 12.3}, "0012.300"}] = tokenize("00_12.3_00"),
   OversizedFloat = string:copies("9", 310) ++ ".0",
   {1, "invalid float number ", OversizedFloat} = tokenize_error(OversizedFloat).
 
