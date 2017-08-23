@@ -435,8 +435,8 @@ tokenize([H | T], Line, Column, Scope, Tokens) when ?is_digit(H) ->
     {Rest, Number, Original, Length} when is_integer(Number) ->
       Token = {int, {Line, {Column, Column + Length}, Number}, Original},
       tokenize(Rest, Line, Column + Length, Scope, [Token | Tokens]);
-    {Rest, Number, _, Length} ->
-      Token = {float, {Line, {Column, Column + Length}, nil}, Number},
+    {Rest, Number, Original, Length} ->
+      Token = {float, {Line, {Column, Column + Length}, Number}, Original},
       tokenize(Rest, Line, Column + Length, Scope, [Token | Tokens])
   end;
 
@@ -828,12 +828,12 @@ tokenize_number([$_, H | T], Acc, Length, Bool) when ?is_digit(H) ->
 %% Check if we have e- followed by numbers (valid only for floats);
 tokenize_number([E, S, H | T], Acc, Length, true)
     when (E == $E) or (E == $e), ?is_digit(H), S == $+ orelse S == $- ->
-  tokenize_number(T, [H, S, $e | Acc], Length + 3, true);
+  tokenize_number(T, [H, S, E | Acc], Length + 3, true);
 
 %% Check if we have e followed by numbers (valid only for floats);
 tokenize_number([E, H | T], Acc, Length, true)
     when (E == $E) or (E == $e), ?is_digit(H) ->
-  tokenize_number(T, [H, $e | Acc], Length + 2, true);
+  tokenize_number(T, [H, E | Acc], Length + 2, true);
 
 %% Finally just numbers.
 tokenize_number([H | T], Acc, Length, Bool) when ?is_digit(H) ->
