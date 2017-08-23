@@ -1446,7 +1446,7 @@ defmodule Kernel.SpecialForms do
 
   Another example while using an imported or local function:
 
-      iex> first_elem = &elem(&1, 1)
+      iex> first_elem = &elem(&1, 0)
       iex> first_elem.({0, 1})
       0
 
