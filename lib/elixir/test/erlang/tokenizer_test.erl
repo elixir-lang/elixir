@@ -180,12 +180,12 @@ space_test() ->
    {int, {1, {7, 8}, 2}, "2"}] = tokenize("foo  -2").
 
 chars_test() ->
-  [{char, {1, {1, 3}, nil}, 97}] = tokenize("?a"),
-  [{char, {1, {1, 3}, nil}, 99}] = tokenize("?c"),
-  [{char, {1, {1, 4}, nil}, 0}]  = tokenize("?\\0"),
-  [{char, {1, {1, 4}, nil}, 7}]  = tokenize("?\\a"),
-  [{char, {1, {1, 4}, nil}, 10}] = tokenize("?\\n"),
-  [{char, {1, {1, 4}, nil}, 92}] = tokenize("?\\\\").
+  [{int, {1, {1, 3}, 97}, "?a"}] = tokenize("?a"),
+  [{int, {1, {1, 3}, 99}, "?c"}] = tokenize("?c"),
+  [{int, {1, {1, 4}, 0}, "?\\0"}]  = tokenize("?\\0"),
+  [{int, {1, {1, 4}, 7}, "?\\a"}]  = tokenize("?\\a"),
+  [{int, {1, {1, 4}, 10}, "?\\n"}] = tokenize("?\\n"),
+  [{int, {1, {1, 4}, 92}, "?\\\\"}] = tokenize("?\\\\").
 
 interpolation_test() ->
   [{bin_string, {1, {1, 9}, nil}, [<<"f">>, {{1, {3, 8}, nil}, [{identifier, {1, {5, 7}, nil}, oo}]}]},

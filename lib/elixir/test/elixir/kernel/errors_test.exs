@@ -694,17 +694,15 @@ defmodule Kernel.ErrorsTest do
       'if true do\n  foo = [],\n  baz\nend'
   end
 
-  # As reported and discussed in
-  # https://github.com/elixir-lang/elixir/issues/4419.
   test "characters literal are printed correctly in syntax errors" do
     assert_eval_raise SyntaxError,
-      "nofile:1: syntax error before: ?a",
+      "nofile:1: syntax error before: \"?a\"",
       ':ok ?a'
     assert_eval_raise SyntaxError,
-      "nofile:1: syntax error before: ?\\s",
+      "nofile:1: syntax error before: \"?\\\\s\"",
       ':ok ?\\s'
     assert_eval_raise SyntaxError,
-      "nofile:1: syntax error before: ?す"
+      "nofile:1: syntax error before: \"?す\""
       ':ok ?す'
   end
 

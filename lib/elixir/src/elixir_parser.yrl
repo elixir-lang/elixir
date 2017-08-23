@@ -32,7 +32,7 @@ Terminals
   identifier kw_identifier kw_identifier_safe kw_identifier_unsafe bracket_identifier
   paren_identifier do_identifier block_identifier
   fn 'end' aliases
-  char atom atom_safe atom_unsafe bin_string list_string sigil
+  atom atom_safe atom_unsafe bin_string list_string sigil
   bin_heredoc list_heredoc
   dot_call_op op_identifier
   comp_op at_op unary_op and_op or_op arrow_op match_op in_op in_match_op
@@ -261,7 +261,6 @@ access_expr -> sigil : build_sigil('$1').
 access_expr -> max_expr : '$1'.
 
 %% Augment integer literals with representation format if wrap_literals_in_blocks option is true
-number -> char : handle_literal(?exprs('$1'), '$1', [{format, char}]).
 number -> int : handle_literal(integer_value('$1'), '$1', [{original, ?exprs('$1')}]).
 number -> float : handle_literal(?exprs('$1'), '$1').
 
@@ -634,8 +633,7 @@ handle_literal(Literal, Token, ExtraMeta) ->
     false -> Literal
   end.
 
-integer_value(Token) ->
-  {_, _, Value} = element(2, Token),
+integer_value({_, {_, _, Value}, _}) ->
   Value.
 
 %% Operators

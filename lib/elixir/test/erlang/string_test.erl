@@ -71,7 +71,7 @@ extract_interpolations_with_less_than_operation_inside_interpolation_test() ->
 
 extract_interpolations_with_an_escaped_character_test() ->
   [<<"f">>,
-   {{1, {2, 17}, nil}, [{char, {1, {4, 7}, nil}, 7}, {rel_op, {1, {8, 9}, nil}, '>'}, {char, {1, {10, 13}, nil}, 7}]}
+   {{1, {2, 17}, nil}, [{int, {1, {4, 7}, 7}, "?\\a"}, {rel_op, {1, {8, 9}, nil}, '>'}, {int, {1, {10, 13}, 7}, "?\\a"}]}
    ] = extract_interpolations("f#{?\\a > ?\\a   }").
 
 extract_interpolations_with_invalid_expression_inside_interpolation_test() ->
