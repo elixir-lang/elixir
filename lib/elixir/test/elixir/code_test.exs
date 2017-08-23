@@ -97,7 +97,7 @@ defmodule CodeTest do
 
   test "string_to_quoted/1" do
     assert Code.string_to_quoted("1 + 2") == {:ok, {:+, [line: 1], [1, 2]}}
-    assert Code.string_to_quoted("a.1") == {:error, {1, "syntax error before: ", "1"}}
+    assert Code.string_to_quoted("a.1") == {:error, {1, "syntax error before: ", "\"1\""}}
   end
 
   test "string_to_quoted/1 for presence of sigils terminators" do
@@ -132,16 +132,16 @@ defmodule CodeTest do
   test "string_to_quoted/2 with wrap_literals_in_blocks option" do
     assert Code.string_to_quoted("\"one\"", wrap_literals_in_blocks: true) == {:ok, {:__block__, [line: 1], ["one"]}}
     assert Code.string_to_quoted("\"one\"") == {:ok, "one"}
-    assert Code.string_to_quoted("?é", wrap_literals_in_blocks: true) == {:ok, {:__block__, [format: :char, line: 1], [233]}}
-    assert Code.string_to_quoted("0b10", wrap_literals_in_blocks: true) == {:ok, {:__block__, [format: :binary, line: 1], [2]}}
-    assert Code.string_to_quoted("12", wrap_literals_in_blocks: true) == {:ok, {:__block__, [format: :decimal, line: 1], [12]}}
-    assert Code.string_to_quoted("0o123", wrap_literals_in_blocks: true) == {:ok, {:__block__, [format: :octal, line: 1], [83]}}
-    assert Code.string_to_quoted("0xEF", wrap_literals_in_blocks: true) == {:ok, {:__block__, [format: :hex, line: 1], [239]}}
+    assert Code.string_to_quoted("?é", wrap_literals_in_blocks: true) == {:ok, {:__block__, [original: '?é', line: 1], [233]}}
+    assert Code.string_to_quoted("0b10", wrap_literals_in_blocks: true) == {:ok, {:__block__, [original: '0b10', line: 1], [2]}}
+    assert Code.string_to_quoted("12", wrap_literals_in_blocks: true) == {:ok, {:__block__, [original: '12', line: 1], [12]}}
+    assert Code.string_to_quoted("0o123", wrap_literals_in_blocks: true) == {:ok, {:__block__, [original: '0o123', line: 1], [83]}}
+    assert Code.string_to_quoted("0xEF", wrap_literals_in_blocks: true) == {:ok, {:__block__, [original: '0xEF', line: 1], [239]}}
     assert Code.string_to_quoted("12.3", wrap_literals_in_blocks: true) == {:ok, {:__block__, [line: 1], [12.3]}}
     assert Code.string_to_quoted("nil", wrap_literals_in_blocks: true) == {:ok, {:__block__, [line: 1], [nil]}}
     assert Code.string_to_quoted(":one", wrap_literals_in_blocks: true) == {:ok, {:__block__, [line: 1], [:one]}}
     assert Code.string_to_quoted("[1]", wrap_literals_in_blocks: true) ==
-           {:ok, {:__block__, [line: 1], [[{:__block__, [format: :decimal, line: 1], [1]}]]}}
+           {:ok, {:__block__, [line: 1], [[{:__block__, [original: '1', line: 1], [1]}]]}}
     assert Code.string_to_quoted("{:ok, :test}", wrap_literals_in_blocks: true) ==
            {:ok, {:__block__, [line: 1], [{{:__block__, [line: 1], [:ok]}, {:__block__, [line: 1], [:test]}}]}}
     assert Code.string_to_quoted("\"\"\"\nhello\n\"\"\"", wrap_literals_in_blocks: true)
