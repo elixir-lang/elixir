@@ -1,7 +1,6 @@
 -module(elixir_tokenizer).
 -include("elixir.hrl").
 -export([tokenize/1, tokenize/3, tokenize/4, invalid_do_error/1]).
--import(elixir_interpolation, [unescape_tokens/1]).
 
 %% Numbers
 -define(is_hex(S), (?is_digit(S) orelse (S >= $A andalso S =< $F) orelse (S >= $a andalso S =< $f))).
@@ -114,36 +113,22 @@ tokenize(String, Line, Column, #elixir_tokenizer{} = Scope) ->
   tokenize(String, Line, Column, Scope, []);
 
 tokenize(String, Line, Column, Opts) ->
-  File = case lists:keyfind(file, 1, Opts) of
-    {file, V1} -> V1;
-    false -> <<"nofile">>
-  end,
-
-  ExistingAtomsOnly = case lists:keyfind(existing_atoms_only, 1, Opts) of
-    {existing_atoms_only, ExistingAtomsOnlyBool} when
-      is_boolean(ExistingAtomsOnlyBool) -> ExistingAtomsOnlyBool;
-    _ -> false
-  end,
-
-  CheckTerminators = case lists:keyfind(check_terminators, 1, Opts) of
-    {check_terminators, CheckTerminatorsBool} when
-      is_boolean(CheckTerminatorsBool) -> CheckTerminatorsBool;
-    _ -> true
-  end,
-
-  PreserveComments = case lists:keyfind(preserve_comments, 1, Opts) of
-    {preserve_comments, PreserveCommentsBool} when
-      is_boolean(PreserveCommentsBool) -> PreserveCommentsBool;
-    _ -> false
-  end,
-
-  tokenize(String, Line, Column, #elixir_tokenizer{
-    file=File,
-    existing_atoms_only=ExistingAtomsOnly,
-    check_terminators=CheckTerminators,
-    preserve_comments=PreserveComments,
-    identifier_tokenizer=elixir_config:safe_get(identifier_tokenizer, 'Elixir.String.Tokenizer')
-  }).
+  Scope =
+    lists:foldl(fun
+      ({file, File}, Acc) when is_binary(File) ->
+        Acc#elixir_tokenizer{file=File};
+      ({existing_atoms_only, ExistingAtomsOnly}, Acc) when is_boolean(ExistingAtomsOnly) ->
+        Acc#elixir_tokenizer{existing_atoms_only=ExistingAtomsOnly};
+      ({check_terminators, CheckTerminators}, Acc) when is_boolean(CheckTerminators) ->
+        Acc#elixir_tokenizer{check_terminators=CheckTerminators};
+      ({preserve_comments, PreserveComments}, Acc) when is_boolean(PreserveComments) ->
+        Acc#elixir_tokenizer{preserve_comments=PreserveComments};
+      ({unescape, Unescape}, Acc) when is_boolean(Unescape) ->
+        Acc#elixir_tokenizer{unescape=Unescape};
+      (_, Acc) ->
+        Acc
+    end, #elixir_tokenizer{}, Opts),
+  tokenize(String, Line, Column, Scope, []).
 
 tokenize(String, Line, Opts) ->
   tokenize(String, Line, 1, Opts).
@@ -404,7 +389,7 @@ tokenize([T | Rest], Line, Column, Scope, Tokens) when ?pipe_op(T) ->
 tokenize([$:, H | T] = Original, Line, Column, Scope, Tokens) when ?is_quote(H) ->
   case elixir_interpolation:extract(Line, Column + 2, Scope, true, T, H) of
     {NewLine, NewColumn, Parts, Rest} ->
-      Unescaped = unescape_tokens(Parts),
+      Unescaped = unescape_tokens(Parts, Scope),
       Key = case Scope#elixir_tokenizer.existing_atoms_only of
         true  -> atom_safe;
         false -> atom_unsafe
@@ -561,7 +546,7 @@ handle_char(_)  -> false.
 handle_heredocs(T, Line, Column, H, Scope, Tokens) ->
   case extract_heredoc_with_interpolation(Line, Column, Scope, true, T, H) of
     {ok, NewLine, NewColumn, Parts, Rest} ->
-      Token = {heredoc_type(H), {Line, {Column, NewColumn}, nil}, unescape_tokens(Parts)},
+      Token = {heredoc_type(H), {Line, {Column, NewColumn}, nil}, unescape_tokens(Parts, Scope)},
       tokenize(Rest, NewLine, NewColumn, Scope, [Token | Tokens]);
     {error, Reason} ->
       {error, Reason, [H, H, H] ++ T, Tokens}
@@ -572,7 +557,7 @@ handle_strings(T, Line, Column, H, Scope, Tokens) ->
     {error, Reason} ->
       interpolation_error(Reason, [H | T], Tokens, " (for string starting at line ~B)", [Line]);
     {NewLine, NewColumn, Parts, [$: | Rest]} when ?is_space(hd(Rest)) ->
-      Unescaped = unescape_tokens(Parts),
+      Unescaped = unescape_tokens(Parts, Scope),
       Key = case Scope#elixir_tokenizer.existing_atoms_only of
         true  -> kw_identifier_safe;
         false -> kw_identifier_unsafe
@@ -580,7 +565,7 @@ handle_strings(T, Line, Column, H, Scope, Tokens) ->
       Token = {Key, {Line, {Column - 1, NewColumn}, nil}, Unescaped},
       tokenize(Rest, NewLine, NewColumn, Scope, [Token | Tokens]);
     {NewLine, NewColumn, Parts, Rest} ->
-      Token = {string_type(H), {Line, {Column - 1, NewColumn}, nil}, unescape_tokens(Parts)},
+      Token = {string_type(H), {Line, {Column - 1, NewColumn}, nil}, unescape_tokens(Parts, Scope)},
       tokenize(Rest, NewLine, NewColumn, Scope, [Token | Tokens])
   end.
 
@@ -813,6 +798,11 @@ extract_heredoc_line(Marker, [Marker, Marker, Marker | T], Buffer, Counter) ->
   {ok, Buffer, T, Counter};
 extract_heredoc_line(Marker, Rest, Buffer, _Counter) ->
   extract_heredoc_line(Marker, Rest, Buffer).
+
+unescape_tokens(Tokens, #elixir_tokenizer{unescape=true}) ->
+  elixir_interpolation:unescape_tokens(Tokens);
+unescape_tokens(Tokens, #elixir_tokenizer{unescape=false}) ->
+  Tokens.
 
 %% Integers and floats
 %% At this point, we are at least sure the first digit is a number.
