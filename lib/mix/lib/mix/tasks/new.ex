@@ -251,7 +251,6 @@ defmodule Mix.Tasks.New do
 
   # Also ignore archive artifacts (built via "mix archive.build").
   *.ez
-
   <%= if @app do %>
   # Ignore package tarball (built via "mix hex.build").
   <%= @app %>-*.tar
