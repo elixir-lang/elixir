@@ -82,7 +82,7 @@ defmodule Mix.Tasks.New do
                version: get_version(System.version)]
 
     create_file "README.md",  readme_template(assigns)
-    create_file ".gitignore", gitignore_text()
+    create_file ".gitignore", gitignore_template(assigns)
 
     if in_umbrella?() do
       create_file "mix.exs", mix_exs_apps_template(assigns)
@@ -126,7 +126,7 @@ defmodule Mix.Tasks.New do
   defp generate_umbrella(_app, mod, path, _opts) do
     assigns = [app: nil, mod: mod]
 
-    create_file ".gitignore", gitignore_text()
+    create_file ".gitignore", gitignore_template(assigns)
     create_file "README.md", readme_template(assigns)
     create_file "mix.exs", mix_exs_umbrella_template(assigns)
 
@@ -230,7 +230,7 @@ defmodule Mix.Tasks.New do
   <% end %>
   """
 
-  embed_text :gitignore, """
+  embed_template :gitignore, """
   # The directory Mix will write compiled artifacts to.
   /_build/
 
@@ -251,6 +251,11 @@ defmodule Mix.Tasks.New do
 
   # Also ignore archive artifacts (built via "mix archive.build").
   *.ez
+
+  <%= if @app do %>
+  # Ignore package tarball (built via "mix hex.build").
+  <%= @app %>-*.tar
+  <% end %>
   """
 
   embed_template :mix_exs, """
