@@ -487,9 +487,8 @@ defmodule Path do
       iex> Path.join("/foo", "/bar/")
       "/foo/bar"
 
-  The functions in this module support chardata, so giving a list will treat it as a single entity:
-
-  ## Examples
+  The functions in this module support chardata, so giving a list will
+  treat it as a single entity:
 
       iex> Path.join("foo", ["bar", "fiz"])
       "foo/barfiz"
