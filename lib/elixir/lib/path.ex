@@ -484,6 +484,12 @@ defmodule Path do
       iex> Path.join("foo", "bar")
       "foo/bar"
 
+      iex> Path.join("foo", ["bar", "fiz"])
+      "foo/barfiz"
+
+      iex> Path.join(["foo", "bar"], "fiz")
+      "foobar/fiz"
+
       iex> Path.join("/foo", "/bar/")
       "/foo/bar"
 
