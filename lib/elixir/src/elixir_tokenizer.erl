@@ -113,6 +113,9 @@ tokenize(String, Line, Column, #elixir_tokenizer{} = Scope) ->
   tokenize(String, Line, Column, Scope, []);
 
 tokenize(String, Line, Column, Opts) ->
+  IdentifierTokenizer =
+    elixir_config:safe_get(identifier_tokenizer, 'Elixir.String.Tokenizer'),
+
   Scope =
     lists:foldl(fun
       ({file, File}, Acc) when is_binary(File) ->
@@ -127,7 +130,8 @@ tokenize(String, Line, Column, Opts) ->
         Acc#elixir_tokenizer{unescape=Unescape};
       (_, Acc) ->
         Acc
-    end, #elixir_tokenizer{}, Opts),
+    end, #elixir_tokenizer{identifier_tokenizer=IdentifierTokenizer}, Opts),
+
   tokenize(String, Line, Column, Scope, []).
 
 tokenize(String, Line, Opts) ->
