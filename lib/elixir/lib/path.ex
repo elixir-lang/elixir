@@ -487,6 +487,15 @@ defmodule Path do
       iex> Path.join("/foo", "/bar/")
       "/foo/bar"
 
+  The functions in this module support chardata, so giving a list will
+  treat it as a single entity:
+
+      iex> Path.join("foo", ["bar", "fiz"])
+      "foo/barfiz"
+
+      iex> Path.join(["foo", "bar"], "fiz")
+      "foobar/fiz"
+
   """
   @spec join(t, t) :: binary
   def join(left, right) do
