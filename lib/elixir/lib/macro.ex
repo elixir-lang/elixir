@@ -653,7 +653,7 @@ defmodule Macro do
 
   # Access
   def to_string({{:., _, [Access, :get]}, _, [left, right]} = ast, fun) do
-    if binary_expr?(left) do
+    if op_expr?(left) do
       fun.(ast, "(" <> to_string(left, fun) <> ")" <> to_string([right], fun))
     else
       fun.(ast, to_string(left, fun) <> to_string([right], fun))
@@ -771,7 +771,7 @@ defmodule Macro do
   defp unary_call({op, _, [arg]} = ast, fun) when is_atom(op) do
     case Identifier.unary_op(op) do
       {_, _} ->
-        if binary_expr?(arg) do
+        if op_expr?(arg) do
           {:ok, fun.(ast, Atom.to_string(op) <> "(" <> to_string(arg, fun) <> ")")}
         else
           {:ok, fun.(ast, Atom.to_string(op) <> to_string(arg, fun))}
@@ -817,10 +817,12 @@ defmodule Macro do
   defp sigil_args([], _fun),   do: ""
   defp sigil_args(args, fun), do: fun.(args, List.to_string(args))
 
-  defp binary_expr?(expr) do
+  defp op_expr?(expr) do
     case expr do
       {op, _, [_, _]} ->
         Identifier.binary_op(op) != :error
+      {op, _, [_]} ->
+        Identifier.unary_op(op) != :error
       _ ->
         false
     end

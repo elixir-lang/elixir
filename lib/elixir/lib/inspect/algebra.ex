@@ -349,8 +349,7 @@ defmodule Inspect.Algebra do
   `string`.
 
   This break can be rendered as a linebreak or as the given `string`,
-  depending on the `mode` of the chosen layout or the provided
-  separator.
+  depending on the `mode` of the chosen layout.
 
   ## Examples
 

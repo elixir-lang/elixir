@@ -449,6 +449,7 @@ defmodule MacroTest do
       assert Macro.to_string(quote do: not 1) == "not 1"
       assert Macro.to_string(quote do: not foo) == "not foo"
       assert Macro.to_string(quote do: -1) == "-1"
+      assert Macro.to_string(quote do: + + 1) == "+(+1)"
       assert Macro.to_string(quote do: !(foo > bar)) == "!(foo > bar)"
       assert Macro.to_string(quote do: @foo(bar)) == "@foo(bar)"
       assert Macro.to_string(quote do: identity(&1)) == "identity(&1)"
