@@ -164,32 +164,20 @@ tokenize(("<<<<<<<" ++ _) = Original, Line, 1, _Scope, Tokens) ->
 
 % Base integers
 
-% tokenize([$0, $x, H | T], Line, Column, Scope, Tokens) when ?is_hex(H) ->
-%   {Rest, Number, OriginalRepresentation, Length} = tokenize_hex(T, [H], 1),
-%   Token = {integer, {Line, {Column, Column + 2 + Length}, Number}, OriginalRepresentation},
-%   tokenize(Rest, Line, Column + 2 + Length, Scope, [Token | Tokens]);
-%
-% tokenize([$0, $b, H | T], Line, Column, Scope, Tokens) when ?is_bin(H) ->
-%   {Rest, Number, OriginalRepresentation, Length} = tokenize_bin(T, [H], 1),
-%   Token = {integer, {Line, {Column, Column + 2 + Length}, Number}, OriginalRepresentation},
-%   tokenize(Rest, Line, Column + 2 + Length, Scope, [Token | Tokens]);
-%
-% tokenize([$0, $o, H | T], Line, Column, Scope, Tokens) when ?is_octal(H) ->
-%   {Rest, Number, OriginalRepresentation, Length} = tokenize_octal(T, [H], 1),
-%   Token = {integer, {Line, {Column, Column + 2 + Length}, Number}, OriginalRepresentation},
-%   tokenize(Rest, Line, Column + 2 + Length, Scope, [Token | Tokens]);
-
 tokenize([$0, $x, H | T], Line, Column, Scope, Tokens) when ?is_hex(H) ->
-  {Rest, Number, Length} = tokenize_hex(T, [H], 1),
-  tokenize(Rest, Line, Column + 2 + Length, Scope, [{hex, {Line, {Column, Column + 2 + Length}, nil}, Number} | Tokens]);
+  {Rest, Number, OriginalRepresentation, Length} = tokenize_hex(T, [H], 1),
+  Token = {int, {Line, {Column, Column + 2 + Length}, Number}, OriginalRepresentation},
+  tokenize(Rest, Line, Column + 2 + Length, Scope, [Token | Tokens]);
 
 tokenize([$0, $b, H | T], Line, Column, Scope, Tokens) when ?is_bin(H) ->
-  {Rest, Number, Length} = tokenize_bin(T, [H], 1),
-  tokenize(Rest, Line, Column + 2 + Length, Scope, [{binary, {Line, {Column, Column + 2 + Length}, nil}, Number} | Tokens]);
+  {Rest, Number, OriginalRepresentation, Length} = tokenize_bin(T, [H], 1),
+  Token = {int, {Line, {Column, Column + 2 + Length}, Number}, OriginalRepresentation},
+  tokenize(Rest, Line, Column + 2 + Length, Scope, [Token | Tokens]);
 
 tokenize([$0, $o, H | T], Line, Column, Scope, Tokens) when ?is_octal(H) ->
-  {Rest, Number, Length} = tokenize_octal(T, [H], 1),
-  tokenize(Rest, Line, Column + 2 + Length, Scope, [{octal, {Line, {Column, Column + 2 + Length}, nil}, Number} | Tokens]);
+  {Rest, Number, OriginalRepresentation, Length} = tokenize_octal(T, [H], 1),
+  Token = {int, {Line, {Column, Column + 2 + Length}, Number}, OriginalRepresentation},
+  tokenize(Rest, Line, Column + 2 + Length, Scope, [Token | Tokens]);
 
 % Comments
 
@@ -243,7 +231,7 @@ tokenize([$~, S, H | _] = Original, Line, Column, _Scope, Tokens) when ?is_upcas
 
 tokenize([$?, $\\, H | T], Line, Column, Scope, Tokens) ->
   Char = elixir_interpolation:unescape_map(H),
-  Token = {char, {Line, {Column, Column + 3}, nil}, Char},
+  Token = {int, {Line, {Column, Column + 3}, Char}, [$?, $\\, H]},
   tokenize(T, Line, Column + 3, Scope, [Token | Tokens]);
 
 tokenize([$?, Char | T], Line, Column, Scope, Tokens) ->
@@ -255,7 +243,7 @@ tokenize([$?, Char | T], Line, Column, Scope, Tokens) ->
     false ->
       ok
   end,
-  Token = {char, {Line, {Column, Column + 2}, nil}, Char},
+  Token = {int, {Line, {Column, Column + 2}, Char}, [$?, Char]},
   tokenize(T, Line, Column + 2, Scope, [Token | Tokens]);
 
 % Heredocs
@@ -445,7 +433,7 @@ tokenize([H | T], Line, Column, Scope, Tokens) when ?is_digit(H) ->
     {error, Reason, Number} ->
       {error, {Line, Reason, Number}, T, Tokens};
     {Rest, Number, Length} when is_integer(Number) ->
-      Token = {decimal, {Line, {Column, Column + Length}, nil}, Number},
+      Token = {int, {Line, {Column, Column + Length}, Number}, integer_to_list(Number)},
       tokenize(Rest, Line, Column + Length, Scope, [Token | Tokens]);
     {Rest, Number, Length} ->
       Token = {float, {Line, {Column, Column + Length}, nil}, Number},
@@ -868,21 +856,24 @@ tokenize_hex([H | T], Acc, Length) when ?is_hex(H) ->
 tokenize_hex([$_, H | T], Acc, Length) when ?is_hex(H) ->
   tokenize_hex(T, [H | Acc], Length + 2);
 tokenize_hex(Rest, Acc, Length) ->
-  {Rest, list_to_integer(lists:reverse(Acc), 16), Length}.
+  Digits = lists:reverse(Acc),
+  {Rest, list_to_integer(Digits, 16), [$0, $x | Digits], Length}.
 
 tokenize_octal([H | T], Acc, Length) when ?is_octal(H) ->
   tokenize_octal(T, [H | Acc], Length + 1);
 tokenize_octal([$_, H | T], Acc, Length) when ?is_octal(H) ->
   tokenize_octal(T, [H | Acc], Length + 2);
 tokenize_octal(Rest, Acc, Length) ->
-  {Rest, list_to_integer(lists:reverse(Acc), 8), Length}.
+  Digits = lists:reverse(Acc),
+  {Rest, list_to_integer(Digits, 8), [$0, $o | Digits], Length}.
 
 tokenize_bin([H | T], Acc, Length) when ?is_bin(H) ->
   tokenize_bin(T, [H | Acc], Length + 1);
 tokenize_bin([$_, H | T], Acc, Length) when ?is_bin(H) ->
   tokenize_bin(T, [H | Acc], Length + 2);
 tokenize_bin(Rest, Acc, Length) ->
-  {Rest, list_to_integer(lists:reverse(Acc), 2), Length}.
+  Digits = lists:reverse(Acc),
+  {Rest, list_to_integer(Digits, 2), [$0, $b | Digits], Length}.
 
 %% Comments
 
