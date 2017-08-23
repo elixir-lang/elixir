@@ -242,6 +242,7 @@ defmodule PathTest do
     assert Path.join("/foo", "./bar") == "/foo/./bar"
 
     assert Path.join([?/, "foo"], "./bar") == "/foo/./bar"
+    assert Path.join(["/foo", "bar"], ["fiz", "buz"]) == "/foobar/fizbuz"
   end
 
   test "split/1" do
