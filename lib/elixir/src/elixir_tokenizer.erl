@@ -432,10 +432,10 @@ tokenize([H | T], Line, Column, Scope, Tokens) when ?is_digit(H) ->
   case tokenize_number(T, [H], 1, false) of
     {error, Reason, Number} ->
       {error, {Line, Reason, Number}, T, Tokens};
-    {Rest, Number, Length} when is_integer(Number) ->
-      Token = {int, {Line, {Column, Column + Length}, Number}, integer_to_list(Number)},
+    {Rest, Number, Original, Length} when is_integer(Number) ->
+      Token = {int, {Line, {Column, Column + Length}, Number}, Original},
       tokenize(Rest, Line, Column + Length, Scope, [Token | Tokens]);
-    {Rest, Number, Length} ->
+    {Rest, Number, _, Length} ->
       Token = {float, {Line, {Column, Column + Length}, nil}, Number},
       tokenize(Rest, Line, Column + Length, Scope, [Token | Tokens])
   end;
@@ -842,14 +842,16 @@ tokenize_number([H | T], Acc, Length, Bool) when ?is_digit(H) ->
 %% Cast to float...
 tokenize_number(Rest, Acc, Length, true) ->
   try
-    {Rest, list_to_float(lists:reverse(Acc)), Length}
+    Digits = lists:reverse(Acc),
+    {Rest, list_to_float(Digits), Digits, Length}
   catch
     error:badarg -> {error, "invalid float number ", lists:reverse(Acc)}
   end;
 
 %% Or integer.
 tokenize_number(Rest, Acc, Length, false) ->
-  {Rest, list_to_integer(lists:reverse(Acc)), Length}.
+  Digits = lists:reverse(Acc),
+  {Rest, list_to_integer(Digits), Digits, Length}.
 
 tokenize_hex([H | T], Acc, Length) when ?is_hex(H) ->
   tokenize_hex(T, [H | Acc], Length + 1);
