@@ -602,12 +602,6 @@ defmodule Macro do
     fun.(ast, "fn\n  " <> block <> "\nend")
   end
 
-  # Ranges
-  def to_string({:.., _, args} = ast, fun) do
-    range = Enum.map_join(args, "..", &to_string(&1, fun))
-    fun.(ast, range)
-  end
-
   # left -> right
   def to_string([{:->, _, _} | _] = ast, fun) do
     fun.(ast, "(" <> arrow_to_string(ast, fun, true) <> ")")
@@ -790,7 +784,8 @@ defmodule Macro do
       {_, _} ->
         left = op_to_string(left, fun, op, :left)
         right = op_to_string(right, fun, op, :right)
-        {:ok, fun.(ast, left <> " #{op} " <> right)}
+        op = if op in [:..], do: "#{op}", else: " #{op} "
+        {:ok, fun.(ast, left <> op <> right)}
       :error ->
         :error
     end
