@@ -18,7 +18,7 @@ defmodule ExUnitTest do
       end
     end
 
-    ExUnit.Server.cases_loaded()
+    ExUnit.Server.modules_loaded()
 
     assert capture_io(fn ->
       assert ExUnit.run == %{failures: 2, skipped: 0, total: 2}
@@ -37,7 +37,7 @@ defmodule ExUnitTest do
       end
     end
 
-    ExUnit.Server.cases_loaded()
+    ExUnit.Server.modules_loaded()
 
     assert capture_io(fn ->
       assert ExUnit.run == %{failures: 1, skipped: 0, total: 1}
@@ -54,7 +54,7 @@ defmodule ExUnitTest do
       end
     end
 
-    ExUnit.Server.cases_loaded()
+    ExUnit.Server.modules_loaded()
 
     output = capture_io(fn -> ExUnit.run end)
     assert output =~ "** (ExUnit.TimeoutError) test timed out after 10ms"
@@ -71,7 +71,7 @@ defmodule ExUnitTest do
     end
 
     ExUnit.configure(timeout: 5)
-    ExUnit.Server.cases_loaded()
+    ExUnit.Server.modules_loaded()
     output = capture_io(fn -> ExUnit.run end)
     assert output =~ "** (ExUnit.TimeoutError) test timed out after 5ms"
   after
@@ -97,11 +97,9 @@ defmodule ExUnitTest do
       end
     end
 
-    old_config = ExUnit.configuration()
-    on_exit(fn -> ExUnit.configure(old_config) end)
-
+    on_exit_reload_config()
     ExUnit.start(slowest: 2)
-    ExUnit.Server.cases_loaded()
+    ExUnit.Server.modules_loaded()
 
     output = capture_io(fn -> ExUnit.run end)
 
@@ -111,9 +109,7 @@ defmodule ExUnitTest do
   end
 
   test "sets max cases to one with trace enabled" do
-    old_config = ExUnit.configuration()
-    on_exit(fn -> ExUnit.configure(old_config) end)
-
+    on_exit_reload_config()
     ExUnit.start(trace: true, max_cases: 10, autorun: false)
     config = ExUnit.configuration()
     assert config[:trace]
@@ -122,9 +118,7 @@ defmodule ExUnitTest do
   end
 
   test "does not set timeout to infinity and the max cases to 1 with trace disabled" do
-    old_config = ExUnit.configuration()
-    on_exit(fn -> ExUnit.configure(old_config) end)
-
+    on_exit_reload_config()
     ExUnit.start(trace: false, autorun: false)
     config = ExUnit.configuration()
     refute config[:trace]
@@ -133,9 +127,7 @@ defmodule ExUnitTest do
   end
 
   test "sets trace when slowest is enabled" do
-    old_config = ExUnit.configuration()
-    on_exit(fn -> ExUnit.configure(old_config) end)
-
+    on_exit_reload_config()
     ExUnit.start(slowest: 10, max_cases: 10, autorun: false)
     config = ExUnit.configuration()
     assert config[:trace]
@@ -215,7 +207,7 @@ defmodule ExUnitTest do
       end
     end
 
-    ExUnit.Server.cases_loaded()
+    ExUnit.Server.modules_loaded()
     output = capture_io(&ExUnit.run/0)
     assert output =~ "[debug] two"
     refute output =~ "[debug] one"
@@ -248,7 +240,7 @@ defmodule ExUnitTest do
       end
     end
 
-    ExUnit.Server.cases_loaded()
+    ExUnit.Server.modules_loaded()
 
     output = capture_io(fn ->
       assert ExUnit.run == %{failures: 1, skipped: 0, total: 1}
@@ -295,7 +287,7 @@ defmodule ExUnitTest do
       test "this is not implemented yet"
     end
 
-    ExUnit.Server.cases_loaded()
+    ExUnit.Server.modules_loaded()
 
     output = capture_io(fn ->
       assert ExUnit.run == %{failures: 1, skipped: 0, total: 1}
@@ -321,7 +313,7 @@ defmodule ExUnitTest do
       test "this will also raise", do: raise "oops"
     end
 
-    ExUnit.Server.cases_loaded()
+    ExUnit.Server.modules_loaded()
 
     output = capture_io(fn ->
       assert ExUnit.run == %{failures: 0, skipped: 2, total: 2}
@@ -330,26 +322,26 @@ defmodule ExUnitTest do
     assert output =~ "2 tests, 0 failures, 2 skipped"
   end
 
-  test "filtering cases with :case tag" do
-    defmodule FirstTestCase do
+  test "filtering cases with :module tag" do
+    defmodule FirstTestModule do
       use ExUnit.Case
       test "ok", do: :ok
     end
 
-    defmodule SecondTestCase do
+    defmodule SecondTestModule do
       use ExUnit.Case
       test "false", do: assert false
     end
 
-    {result, output} = run_with_filter([exclude: :case], []) # Empty because it is already loaded
+    {result, output} = run_with_filter([exclude: :module], []) # Empty because it is already loaded
     assert result == %{failures: 0, skipped: 2, total: 2}
     assert output =~ "2 tests, 0 failures, 2 skipped"
 
     {result, output} =
-      [exclude: :test, include: [case: "ExUnitTest.SecondTestCase"]]
-      |> run_with_filter([FirstTestCase, SecondTestCase])
+      [exclude: :test, include: [module: "ExUnitTest.SecondTestModule"]]
+      |> run_with_filter([FirstTestModule, SecondTestModule])
     assert result == %{failures: 1, skipped: 1, total: 2}
-    assert output =~ "1) test false (ExUnitTest.SecondTestCase)"
+    assert output =~ "1) test false (ExUnitTest.SecondTestModule)"
     assert output =~ "2 tests, 1 failure, 1 skipped"
   end
 
@@ -386,7 +378,7 @@ defmodule ExUnitTest do
       test "sample", do: :ok
     end
 
-    ExUnit.Server.cases_loaded()
+    ExUnit.Server.modules_loaded()
 
     output = capture_io(fn ->
       assert ExUnit.run == %{failures: 1, skipped: 0, total: 1}
@@ -406,7 +398,7 @@ defmodule ExUnitTest do
       test "sample", do: :ok
     end
 
-    ExUnit.Server.cases_loaded()
+    ExUnit.Server.modules_loaded()
 
     output = capture_io(fn ->
       assert ExUnit.run == %{failures: 1, skipped: 0, total: 1}
@@ -426,16 +418,21 @@ defmodule ExUnitTest do
       test "sample", do: :ok
     end
 
-    ExUnit.Server.cases_loaded()
+    ExUnit.Server.modules_loaded()
 
     capture_io(fn ->
       assert ExUnit.run == %{failures: 0, skipped: 0, total: 1}
     end)
   end
 
+  defp on_exit_reload_config(extra \\ []) do
+    old_config = ExUnit.configuration()
+    on_exit(fn -> ExUnit.configure(extra ++ old_config) end)
+  end
+
   defp run_with_filter(filters, cases) do
-    Enum.each(cases, &ExUnit.Server.add_sync_case/1)
-    ExUnit.Server.cases_loaded()
+    Enum.each(cases, &ExUnit.Server.add_sync_module/1)
+    ExUnit.Server.modules_loaded()
     opts = Keyword.merge(ExUnit.configuration, filters)
     output = capture_io fn -> Process.put(:capture_result, ExUnit.Runner.run(opts, nil)) end
     {Process.get(:capture_result), output}

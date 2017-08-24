@@ -16,12 +16,12 @@ defmodule ExUnit.FormatterTest do
     end
   end
 
-  defp test_case do
-    %ExUnit.TestCase{name: Hello}
+  defp test_module do
+    %ExUnit.TestModule{name: Hello}
   end
 
   defp test do
-    %ExUnit.Test{name: :world, case: Hello, tags: %{file: __ENV__.file, line: 1}}
+    %ExUnit.Test{name: :world, module: Hello, tags: %{file: __ENV__.file, line: 1}}
   end
 
   def falsy() do
@@ -202,7 +202,7 @@ defmodule ExUnit.FormatterTest do
 
   test "formats setup all errors" do
     failure = [{:error, catch_error(raise "oops"), []}]
-    assert format_test_case_failure(test_case(), failure, 1, 80, &formatter/2) =~ """
+    assert format_test_all_failure(test_module(), failure, 1, 80, &formatter/2) =~ """
       1) Hello: failure on setup_all callback, test invalidated
          ** (RuntimeError) oops
     """
@@ -210,7 +210,7 @@ defmodule ExUnit.FormatterTest do
 
   test "formats assertions with operators with no limit" do
     failure = [{:error, catch_assertion(assert [1, 2, 3] == [4, 5, 6]), []}]
-    assert format_test_case_failure(test_case(), failure, 1, :infinity, &formatter/2) =~ """
+    assert format_test_all_failure(test_module(), failure, 1, :infinity, &formatter/2) =~ """
       1) Hello: failure on setup_all callback, test invalidated
          Assertion with == failed
          code:  assert [1, 2, 3] == [4, 5, 6]
@@ -221,7 +221,7 @@ defmodule ExUnit.FormatterTest do
 
   test "formats assertions with operators with column limit" do
     failure = [{:error, catch_assertion(assert [1, 2, 3] == [4, 5, 6]), []}]
-    assert format_test_case_failure(test_case(), failure, 1, 15, &formatter/2) =~ """
+    assert format_test_all_failure(test_module(), failure, 1, 15, &formatter/2) =~ """
       1) Hello: failure on setup_all callback, test invalidated
          Assertion with == failed
          code:  assert [1, 2, 3] == [4, 5, 6]
@@ -237,7 +237,7 @@ defmodule ExUnit.FormatterTest do
   test "formats assertions with message with multiple lines" do
     message = "Some meaningful error:\nuseful info\nanother useful info"
     failure = [{:error, catch_assertion(assert(false, message)), []}]
-    assert format_test_case_failure(test_case(), failure, 1, :infinity, &formatter/2) =~ """
+    assert format_test_all_failure(test_module(), failure, 1, :infinity, &formatter/2) =~ """
       1) Hello: failure on setup_all callback, test invalidated
          Some meaningful error:
          useful info

@@ -3,7 +3,7 @@ defmodule ExUnit.CLIFormatter do
   use GenServer
 
   import ExUnit.Formatter, only: [format_time: 2, format_filters: 2, format_test_failure: 5,
-                                  format_test_case_failure: 5]
+                                  format_test_all_failure: 5]
 
   ## Callbacks
 
@@ -80,7 +80,7 @@ defmodule ExUnit.CLIFormatter do
                           failure_counter: config.failure_counter + 1}}
   end
 
-  def handle_cast({:case_started, %ExUnit.TestCase{name: name}}, config) do
+  def handle_cast({:module_started, %ExUnit.TestModule{name: name}}, config) do
     if config.trace do
       IO.puts("\n#{inspect name}")
     end
@@ -88,17 +88,22 @@ defmodule ExUnit.CLIFormatter do
     {:noreply, config}
   end
 
-  def handle_cast({:case_finished, %ExUnit.TestCase{state: nil}}, config) do
+  def handle_cast({:module_finished, %ExUnit.TestModule{state: nil}}, config) do
     {:noreply, config}
   end
 
-  def handle_cast({:case_finished, %ExUnit.TestCase{state: {:failed, failures}} = test_case}, config) do
-    formatted = format_test_case_failure(test_case, failures, config.failure_counter + length(test_case.tests),
-                                         config.width, &formatter(&1, &2, config))
+  def handle_cast({:module_finished, %ExUnit.TestModule{state: {:failed, failures}} = test_module}, config) do
+    tests_length = length(test_module.tests)
+    formatted = format_test_all_failure(test_module, failures, config.failure_counter + tests_length,
+                                        config.width, &formatter(&1, &2, config))
 
     print_failure(formatted, config)
-    test_counter = Enum.reduce(test_case.tests, config.test_counter, &update_test_counter(&2, &1))
-    {:noreply, %{config | test_counter: test_counter, failure_counter: config.failure_counter + length(test_case.tests)}}
+    test_counter = Enum.reduce(test_module.tests, config.test_counter, &update_test_counter(&2, &1))
+    {:noreply, %{config | test_counter: test_counter, failure_counter: config.failure_counter + tests_length}}
+  end
+
+  def handle_cast(_, config) do
+    {:noreply, config}
   end
 
   ## Tracing

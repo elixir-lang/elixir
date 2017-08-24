@@ -9,8 +9,8 @@ defmodule ExUnit.CaseTest do
 
   @moduletag :moduletag
 
-  test "defines test case info" do
-    assert %ExUnit.TestCase{name: __MODULE__, tests: tests} = __ex_unit__(:case)
+  test "defines __ex_unit__" do
+    assert %ExUnit.TestModule{name: __MODULE__, tests: tests} = __ex_unit__()
     assert length(tests) > 0
   end
 
@@ -20,7 +20,7 @@ defmodule ExUnit.CaseTest do
   @tag world: :good
   test "tags", context do
     line = __ENV__.line - 1
-    assert context[:case] == __MODULE__
+    assert context[:module] == __MODULE__
     assert context[:test] == __ENV__.function |> elem(0)
     assert context[:line] == line
     assert context[:async] == true

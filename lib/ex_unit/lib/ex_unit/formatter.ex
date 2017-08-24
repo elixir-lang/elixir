@@ -14,11 +14,11 @@ defmodule ExUnit.Formatter do
       the suite has finished. `run_us` and `load_us` are the run and load
       times in microseconds respectively.
 
-    * `{:case_started, test_case}` -
-      a test case has started. See `ExUnit.TestCase` for details.
+    * `{:module_started, test_module}` -
+      a test module has started. See `ExUnit.TestModule` for details.
 
-    * `{:case_finished, test_case}` -
-      a test case has finished. See `ExUnit.TestCase` for details.
+    * `{:module_finished, test_module}` -
+      a test module has finished. See `ExUnit.TestModule` for details.
 
     * `{:test_started, test}` -
       a test has started. See `ExUnit.Test` for details.
@@ -26,10 +26,18 @@ defmodule ExUnit.Formatter do
     * `{:test_finished, test}` -
       a test has finished. See `ExUnit.Test` for details.
 
+  The formatter will also receive the following events but they are deprecated
+  and should be ignored:
+
+    * `{:case_started, test_module}` -
+      a test module has started. See `ExUnit.TestCase` for details.
+
+    * `{:case_finished, test_module}` -
+      a test module has finished. See `ExUnit.TestCase` for details.
+
   """
 
   @type id :: term
-  @type test_case :: ExUnit.TestCase.t
   @type test :: ExUnit.Test.t
   @type run_us :: pos_integer
   @type load_us :: pos_integer | nil
@@ -104,13 +112,13 @@ defmodule ExUnit.Formatter do
   Receives a test and formats its failure.
   """
   def format_test_failure(test, failures, counter, width, formatter) do
-    %ExUnit.Test{name: name, case: case, tags: tags} = test
+    %ExUnit.Test{name: name, module: module, tags: tags} = test
 
-    test_info(with_counter(counter, "#{name} (#{inspect case})"), formatter) <>
+    test_info(with_counter(counter, "#{name} (#{inspect module})"), formatter) <>
       test_location(with_location(tags), formatter) <>
       Enum.map_join(Enum.with_index(failures), "", fn {{kind, reason, stack}, index} ->
         {text, stack} = format_kind_reason(test, kind, reason, stack, width, formatter)
-        failure_header(failures, index) <> text <> format_stacktrace(stack, case, name, formatter)
+        failure_header(failures, index) <> text <> format_stacktrace(stack, module, name, formatter)
        end) <>
       report(tags, failures, width, formatter)
   end
@@ -155,14 +163,20 @@ defmodule ExUnit.Formatter do
   defp report_spacing([_]), do: ""
   defp report_spacing(_), do: "\n"
 
+  # TODO: Deprecate on Elixir v1.8
+  @doc false
+  def format_test_case_failure(test_case, failures, counter, width, formatter) do
+    format_test_all_failure(test_case, failures, counter, width, formatter)
+  end
+
   @doc """
   Receives a test case and formats its failure.
   """
-  def format_test_case_failure(test_case, failures, counter, width, formatter) do
-    %ExUnit.TestCase{name: name} = test_case
+  def format_test_all_failure(test_module, failures, counter, width, formatter) do
+    name = test_module.name
     test_case_info(with_counter(counter, "#{inspect name}: "), formatter) <>
       Enum.map_join(Enum.with_index(failures), "", fn {{kind, reason, stack}, index} ->
-        {text, stack} = format_kind_reason(test_case, kind, reason, stack, width, formatter)
+        {text, stack} = format_kind_reason(test_module, kind, reason, stack, width, formatter)
         failure_header(failures, index) <> text <> format_stacktrace(stack, name, nil, formatter)
       end)
   end
@@ -192,8 +206,8 @@ defmodule ExUnit.Formatter do
     end
   end
 
-  defp get_code(%{case: case, name: name}, stack) do
-    info = Enum.find_value(stack, fn {^case, ^name, _, info} -> info; _ -> nil end)
+  defp get_code(%{module: module, name: name}, stack) do
+    info = Enum.find_value(stack, fn {^module, ^name, _, info} -> info; _ -> nil end)
     file = info[:file]
     line = info[:line]
     if line > 0 && file && File.exists?(file) do

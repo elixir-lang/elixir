@@ -38,7 +38,7 @@ defmodule ExUnit.FiltersTest do
     assert ExUnit.Filters.eval([os: "win"], [], %{os: :win}, [])          == :ok
     assert ExUnit.Filters.eval([os: "win"], [os: :unix], %{os: :win}, []) == :ok
     assert ExUnit.Filters.eval([os: "win"], [:os], %{os: :win}, [])       == :ok
-    assert ExUnit.Filters.eval([case: "Foo"], [:os], %{case: Foo}, [])    == :ok
+    assert ExUnit.Filters.eval([module: "Foo"], [:os], %{module: Foo}, [])    == :ok
   end
 
   test "evaluating filter matches regexes" do

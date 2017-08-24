@@ -57,7 +57,7 @@ defmodule ExUnit do
   files. See `Mix.Tasks.Test` for more information.
   """
 
-  @typedoc "The error state returned by ExUnit.Test and ExUnit.TestCase"
+  @typedoc "The error state returned by ExUnit.Test and ExUnit.TestModule"
   @type state  :: nil | {:failed, failed} | {:skip, binary} | {:invalid, module}
   @type failed :: [{Exception.kind, reason :: term, stacktrace :: [tuple]}]
 
@@ -67,35 +67,48 @@ defmodule ExUnit do
 
     It is received by formatters and contains the following fields:
 
-      * `:name`  - the test name
-      * `:case`  - the test case
+      * `:name` - the test name
+      * `:module` - the test module
       * `:state` - the test error state (see ExUnit.state)
-      * `:time`  - the time to run the test
-      * `:tags`  - the test tags
-      * `:logs`  - the captured logs
+      * `:time` - the time to run the test
+      * `:tags` - the test tags
+      * `:logs` - the captured logs
 
     """
-    defstruct [:name, :case, :state, time: 0, tags: %{}, logs: ""]
+    defstruct [:name, :case, :module, :state, time: 0, tags: %{}, logs: ""]
 
+    # TODO: Remove the `:case` field on Elixir v2.0
     @type t :: %__MODULE__{
                  name: atom,
                  case: module,
+                 module: module,
                  state: ExUnit.state,
                  time: non_neg_integer,
                  tags: map}
   end
 
-  defmodule TestCase do
+  defmodule TestModule do
     @moduledoc """
     A struct that keeps information about the test case.
 
     It is received by formatters and contains the following fields:
 
       * `:name`  - the test case name
-      * `:state` - the test error state (see ExUnit.state)
+      * `:state` - the test error state (see `t:ExUnit.state/0`)
       * `:tests` - all tests for this case
 
     """
+    defstruct [:name, :state, tests: []]
+
+    @type t :: %__MODULE__{
+                 name: module,
+                 state: ExUnit.state,
+                 tests: [ExUnit.Test.t]}
+  end
+
+  defmodule TestCase do
+    # TODO: Remove this on Elixir v2.0 as well as uses of it.
+    @moduledoc false
     defstruct [:name, :state, tests: []]
 
     @type t :: %__MODULE__{
@@ -156,7 +169,7 @@ defmodule ExUnit do
 
       System.at_exit fn
         0 ->
-          time = ExUnit.Server.cases_loaded()
+          time = ExUnit.Server.modules_loaded()
           config = persist_defaults(configuration())
           %{failures: failures} = ExUnit.Runner.run(config, time)
           System.at_exit fn _ ->
@@ -184,9 +197,6 @@ defmodule ExUnit do
       and print them on test failure. Can be overridden for individual tests via
       `@tag capture_log: false`. Defaults to `false`;
 
-    * `:case_load_timeout` - the timeout to be used when loading a test case,
-      defaults to `60_000` milliseconds;
-
     * `:colors` - a keyword list of colors to be used by some formatters.
       The only option so far is `[enabled: boolean]` which defaults to `IO.ANSI.enabled?/0`;
 
@@ -202,9 +212,12 @@ defmodule ExUnit do
       that match the `:include` filter, exclude the `:test` tag first (see the
       documentation for `ExUnit.Case` for more information on tags);
 
-    * `:max_cases` - maximum number of cases to run in parallel.
-      It defaults to `System.schedulers_online * 2` to
-      optimize both CPU-bound and IO-bound tests;
+    * `:max_cases` - maximum number of tests to run in parallel. Only tests from
+      different modules run in parallel. It defaults to `System.schedulers_online * 2`
+      to optimize both CPU-bound and IO-bound tests;
+
+    * `:module_load_timeout` - the timeout to be used when loading a test module,
+      defaults to `60_000` milliseconds;
 
     * `:refute_receive_timeout` - the timeout to be used on `refute_receive`
       calls, defaults to `100` milliseconds;

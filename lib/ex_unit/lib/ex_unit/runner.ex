@@ -36,7 +36,7 @@ defmodule ExUnit.Runner do
       stats: stats,
       max_cases: opts[:max_cases],
       seed: opts[:seed],
-      cases: :async,
+      modules: :async,
       timeout: opts[:timeout],
       trace: opts[:trace]
     }
@@ -52,81 +52,81 @@ defmodule ExUnit.Runner do
     |> Keyword.put(:include, include)
   end
 
-  defp loop(%{cases: :async} = config, taken) do
+  defp loop(%{modules: :async} = config, taken) do
     available = config.max_cases - taken
 
     cond do
-      # No cases available, wait for one
+      # No modules available, wait for one
       available <= 0 ->
         wait_until_available(config, taken)
 
-      # Slots are available, start with async cases
-      cases = ExUnit.Server.take_async_cases(available) ->
-        spawn_cases(config, cases, taken)
+      # Slots are available, start with async modules
+      modules = ExUnit.Server.take_async_modules(available) ->
+        spawn_modules(config, modules, taken)
 
       true ->
-        cases = ExUnit.Server.take_sync_cases()
-        loop(%{config | cases: cases}, taken)
+        modules = ExUnit.Server.take_sync_modules()
+        loop(%{config | modules: modules}, taken)
     end
   end
 
-  defp loop(%{cases: cases} = config, taken) do
-    case cases do
+  defp loop(%{modules: modules} = config, taken) do
+    case modules do
       _ when taken > 0 ->
         wait_until_available(config, taken)
 
-      # So we can start all sync cases
+      # So we can start all sync modules
       [h | t] ->
-        spawn_cases(%{config | cases: t}, [h], taken)
+        spawn_modules(%{config | modules: t}, [h], taken)
 
-      # No more cases, we are done!
+      # No more modules, we are done!
       [] ->
         config
     end
   end
 
-  # Loop expecting messages from the spawned cases. Whenever
-  # a test case has finished executing, decrease the taken
-  # cases counter and attempt to spawn new ones.
+  # Loop expecting messages from the spawned modules. Whenever
+  # a module has finished executing, decrease the taken modules
+  # counter and attempt to spawn new ones.
   defp wait_until_available(config, taken) do
     receive do
-      {_pid, :case_finished, _test_case} ->
+      {_pid, :module_finished, _test_case} ->
         loop(config, taken - 1)
     end
   end
 
-  defp spawn_cases(config, cases, taken) do
+  defp spawn_modules(config, modules, taken) do
     pid = self()
 
-    Enum.each cases, fn case_name ->
+    Enum.each modules, fn module ->
       spawn_link fn ->
-        run_case(config, pid, case_name)
+        run_module(config, pid, module)
       end
     end
 
-    loop(config, taken + length(cases))
+    loop(config, taken + length(modules))
   end
 
-  defp run_case(config, pid, case_name) do
-    test_case = case_name.__ex_unit__(:case)
-    EM.case_started(config.manager, test_case)
+  defp run_module(config, pid, module) do
+    test_module = module.__ex_unit__()
+    EM.module_started(config.manager, test_module)
 
     # Prepare tests, selecting which ones should
     # run and which ones were skipped.
-    tests = prepare_tests(config, test_case.tests)
+    tests = prepare_tests(config, test_module.tests)
 
-    {test_case, pending} =
+    {test_module, pending} =
       if Enum.all?(tests, &(&1.state)) do
-        {test_case, tests}
+        {test_module, tests}
       else
-        spawn_case(config, test_case, tests)
+        spawn_module(config, test_module, tests)
       end
 
     # Run the pending tests. We don't actually spawn those
     # tests but we do send the notifications to formatter.
     Enum.each pending, &run_test(config, &1, [])
-    EM.case_finished(config.manager, test_case)
-    send pid, {self(), :case_finished, test_case}
+    EM.module_finished(config.manager, test_module)
+    send pid, {self(), :module_finished, test_module}
   end
 
   defp prepare_tests(config, tests) do
@@ -135,7 +135,7 @@ defmodule ExUnit.Runner do
     exclude = config.exclude
 
     for test <- tests do
-      tags = Map.merge(test.tags, %{test: test.name, case: test.case})
+      tags = Map.merge(test.tags, %{test: test.name, module: test.module})
       case ExUnit.Filters.eval(include, exclude, tags, tests) do
         :ok           -> %{test | tags: tags}
         {:error, msg} -> %{test | state: {:skip, msg}}
@@ -143,48 +143,46 @@ defmodule ExUnit.Runner do
     end
   end
 
-  defp spawn_case(config, test_case, tests) do
+  defp spawn_module(config, test_module, tests) do
     parent = self()
 
-    {case_pid, case_ref} =
+    {module_pid, module_ref} =
       spawn_monitor(fn ->
         ExUnit.OnExitHandler.register(self())
 
-        case exec_case_setup(test_case) do
-          {:ok, test_case, context} ->
+        case exec_module_setup(test_module) do
+          {:ok, test_module, context} ->
             Enum.each tests, &run_test(config, &1, context)
-            send parent, {self(), :case_finished, test_case, []}
+            send parent, {self(), :module_finished, test_module, []}
 
-          {:error, test_case} ->
-            failed_tests = Enum.map tests, & %{&1 | state: {:invalid, test_case}}
-            send parent, {self(), :case_finished, test_case, failed_tests}
+          {:error, test_module} ->
+            failed_tests = Enum.map tests, & %{&1 | state: {:invalid, test_module}}
+            send parent, {self(), :module_finished, test_module, failed_tests}
         end
 
         exit(:shutdown)
       end)
 
-    {test_case, pending} =
+    {test_module, pending} =
       receive do
-        {^case_pid, :case_finished, test_case, tests} ->
-          receive do
-            {:DOWN, ^case_ref, :process, ^case_pid, _} -> :ok
-          end
-          {test_case, tests}
-        {:DOWN, ^case_ref, :process, ^case_pid, error} ->
-          test_case = %{test_case | state: failed({:EXIT, case_pid}, error, [])}
-          {test_case, []}
+        {^module_pid, :module_finished, test_module, tests} ->
+          Process.demonitor(module_ref, [:flush])
+          {test_module, tests}
+        {:DOWN, ^module_ref, :process, ^module_pid, error} ->
+          test_module = %{test_module | state: failed({:EXIT, module_pid}, error, [])}
+          {test_module, []}
       end
 
     timeout = get_timeout(%{}, config)
-    {exec_on_exit(test_case, case_pid, timeout), pending}
+    {exec_on_exit(test_module, module_pid, timeout), pending}
   end
 
-  defp exec_case_setup(%ExUnit.TestCase{name: case_name} = test_case) do
-    {:ok, test_case, case_name.__ex_unit__(:setup_all, %{case: case_name})}
+  defp exec_module_setup(%ExUnit.TestModule{name: module} = test_module) do
+    {:ok, test_module, module.__ex_unit__(:setup_all, %{module: module})}
   catch
     kind, error ->
       failed = failed(kind, error, pruned_stacktrace())
-      {:error, %{test_case | state: failed}}
+      {:error, %{test_module | state: failed}}
   end
 
   defp run_test(true, config, test, context) do
@@ -259,9 +257,7 @@ defmodule ExUnit.Runner do
   defp receive_test_reply(test, test_pid, test_ref, timeout) do
     receive do
       {^test_pid, :test_finished, test} ->
-        receive do
-          {:DOWN, ^test_ref, :process, ^test_pid, _} -> :ok
-        end
+        Process.demonitor(test_ref, [:flush])
         test
       {:DOWN, ^test_ref, :process, ^test_pid, error} ->
         %{test | state: failed({:EXIT, test_pid}, error, [])}
@@ -269,10 +265,8 @@ defmodule ExUnit.Runner do
       timeout ->
         case Process.info(test_pid, :current_stacktrace) do
           {:current_stacktrace, stacktrace} ->
+            Process.demonitor(test_ref, [:flush])
             Process.exit(test_pid, :kill)
-            receive do
-              {:DOWN, ^test_ref, :process, ^test_pid, _} -> :ok
-            end
             exception = ExUnit.TimeoutError.exception(timeout: timeout, type: Atom.to_string(test.tags.type))
             %{test | state: failed(:error, exception, stacktrace)}
           nil ->
@@ -281,15 +275,15 @@ defmodule ExUnit.Runner do
     end
   end
 
-  defp exec_test_setup(%ExUnit.Test{case: case} = test, context) do
-    {:ok, %{test | tags: case.__ex_unit__(:setup, context)}}
+  defp exec_test_setup(%ExUnit.Test{module: module} = test, context) do
+    {:ok, %{test | tags: module.__ex_unit__(:setup, context)}}
   catch
     kind, error ->
       {:error, %{test | state: failed(kind, error, pruned_stacktrace())}}
   end
 
-  defp exec_test(%ExUnit.Test{case: case, name: name, tags: context} = test) do
-    apply(case, name, [context])
+  defp exec_test(%ExUnit.Test{module: module, name: name, tags: context} = test) do
+    apply(module, name, [context])
     test
   catch
     kind, error ->
