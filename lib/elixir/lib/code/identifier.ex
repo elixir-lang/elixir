@@ -76,9 +76,11 @@ defmodule Code.Identifier do
 
     * :alias - a valid Elixir alias, like Foo, Foo.Bar and so on
 
-    * :callable - an atom that can be used as a function call after the
-      . operator (for example, :<> is callable because Foo.<>(1, 2, 3) is valid
-      syntax); this category includes identifiers like :foo
+    * :callable_local - an atom that can be used as a local call;
+      this category includes identifiers like :foo
+
+    * :callable_operators - all callable operators, such as `:<>`. Note
+      operators such as `:..` are not callable because of ambiguity
 
     * :not_callable - an atom that cannot be used as a function call after the
       . operator (for example, :<<>> is not callable because Foo.<<>> is a
@@ -97,14 +99,14 @@ defmodule Code.Identifier do
       atom in [:"%", :"%{}", :"{}", :"<<>>", :"...", :"..", :"."] ->
         :not_callable
       unary_op(atom) != :error or binary_op(atom) != :error ->
-        :callable
+        :callable_operator
       valid_alias?(charlist) ->
         :alias
       true ->
         case :elixir_config.safe_get(:identifier_tokenizer, String.Tokenizer).tokenize(charlist) do
           {kind, _acc, [], _, _, special} ->
             if kind == :identifier and not :lists.member(?@, special) do
-              :callable
+              :callable_local
             else
               :not_callable
             end
@@ -156,7 +158,7 @@ defmodule Code.Identifier do
           "Elixir." <> rest ->
             rest
         end
-      type when type in [:callable, :not_callable] ->
+      type when type in [:callable_local, :callable_operator, :not_callable] ->
         ":" <> binary
       :other ->
         {escaped, _} = escape(binary, ?")
@@ -171,7 +173,7 @@ defmodule Code.Identifier do
     binary = Atom.to_string(atom)
 
     case classify(atom) do
-      type when type in [:callable, :not_callable] ->
+      type when type in [:callable_local, :callable_operator, :not_callable] ->
         IO.iodata_to_binary [binary, ?:, ?\s]
       _ ->
         {escaped, _} = escape(binary, ?")
@@ -186,7 +188,7 @@ defmodule Code.Identifier do
     binary = Atom.to_string(atom)
 
     case classify(atom) do
-      :callable ->
+      type when type in [:callable_local, :callable_operator] ->
         binary
       type ->
         escaped =
