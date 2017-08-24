@@ -252,8 +252,8 @@ access_expr -> tuple : '$1'.
 access_expr -> 'true' : handle_literal(?id('$1'), '$1').
 access_expr -> 'false' : handle_literal(?id('$1'), '$1').
 access_expr -> 'nil' : handle_literal(?id('$1'), '$1').
-access_expr -> bin_string  : build_bin_string('$1').
-access_expr -> list_string : build_list_string('$1').
+access_expr -> bin_string : build_bin_string('$1', [{format, string}]).
+access_expr -> list_string : build_list_string('$1', [{format, charlist}]).
 access_expr -> bin_heredoc : build_bin_heredoc('$1').
 access_expr -> list_heredoc : build_list_heredoc('$1').
 access_expr -> bit_string : '$1'.
@@ -744,23 +744,26 @@ build_bin_heredoc({bin_heredoc, Location, Args}) ->
 build_list_heredoc({list_heredoc, Location, Args}) ->
   build_list_string({list_string, Location, Args}, [{format, list_heredoc}]).
 
-build_bin_string(Token) ->
-  build_bin_string(Token, []).
-
 build_bin_string({bin_string, _Location, [H]} = Token, ExtraMeta) when is_binary(H) ->
   handle_literal(H, Token, ExtraMeta);
 build_bin_string({bin_string, Location, Args}, ExtraMeta) ->
-  Meta = ExtraMeta ++ meta_from_location(Location),
+  Meta =
+    case get(wrap_literals_in_blocks) of
+      true -> ExtraMeta ++ meta_from_location(Location);
+      false -> meta_from_location(Location)
+    end,
   {'<<>>', Meta, string_parts(Args)}.
-
-build_list_string(Token) ->
-  build_list_string(Token, []).
 
 build_list_string({list_string, _Location, [H]} = Token, ExtraMeta) when is_binary(H) ->
   handle_literal(elixir_utils:characters_to_list(H), Token, ExtraMeta);
 build_list_string({list_string, Location, Args}, ExtraMeta) ->
   Meta = meta_from_location(Location),
-  {{'.', Meta, ['Elixir.String', to_charlist]}, Meta, [{'<<>>', ExtraMeta ++ Meta, string_parts(Args)}]}.
+  MetaWithExtra =
+    case get(wrap_literals_in_blocks) of
+      true -> ExtraMeta ++ Meta;
+      false -> Meta
+    end,
+  {{'.', Meta, ['Elixir.String', to_charlist]}, Meta, [{'<<>>', MetaWithExtra, string_parts(Args)}]}.
 
 build_quoted_atom({_, _Location, [H]} = Token, Safe) when is_binary(H) ->
   Op = binary_to_atom_op(Safe),
