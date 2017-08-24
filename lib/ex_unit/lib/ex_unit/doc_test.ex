@@ -193,14 +193,17 @@ defmodule ExUnit.DocTest do
         end
       end
 
-    tests = quote bind_quoted: [mod: mod, opts: opts] do
-      file = ExUnit.DocTest.__file__(mod)
-      for {name, test} <- ExUnit.DocTest.__doctests__(mod, opts) do
-        @tag :doctest
-        @file file
-        test name, do: unquote(test)
+    tests =
+      quote bind_quoted: [mod: mod, opts: opts] do
+        env = __ENV__
+        file = ExUnit.DocTest.__file__(mod)
+
+        for {name, test} <- ExUnit.DocTest.__doctests__(mod, opts) do
+          @file file
+          doc = ExUnit.Case.register_test(env, :doctest, name, [])
+          def unquote(doc)(_), do: unquote(test)
+        end
       end
-    end
 
     [require, tests]
   end
@@ -239,11 +242,11 @@ defmodule ExUnit.DocTest do
   end
 
   defp test_name(%{fun_arity: :moduledoc}, m, n) do
-    "moduledoc at #{inspect m} (#{n})"
+    "module #{inspect m} (#{n})"
   end
 
   defp test_name(%{fun_arity: {f, a}}, m, n) do
-    "doc at #{inspect m}.#{f}/#{a} (#{n})"
+    "#{inspect m}.#{f}/#{a} (#{n})"
   end
 
   defp test_content(%{exprs: exprs, line: line}, module, do_import) do
