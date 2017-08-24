@@ -49,12 +49,16 @@ defmodule ExUnit.EventManager do
     notify(ref, {:suite_finished, run_us, load_us})
   end
 
-  def case_started(ref, test_case) do
-    notify(ref, {:case_started, test_case})
+  def module_started(ref, test_module) do
+    # TODO: Remove case_started in Elixir v2.0
+    notify(ref, {:module_started, test_module})
+    notify(ref, {:case_started, Map.put(test_module, :__struct__, ExUnit.TestCase)})
   end
 
-  def case_finished(ref, test_case) do
-    notify(ref, {:case_finished, test_case})
+  def module_finished(ref, test_module) do
+    # TODO: Remove case_finished in Elixir v2.0
+    notify(ref, {:case_finished, Map.put(test_module, :__struct__, ExUnit.TestCase)})
+    notify(ref, {:module_finished, test_module})
   end
 
   def test_started(ref, test) do

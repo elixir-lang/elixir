@@ -386,7 +386,7 @@ defmodule ExUnit.DocTestTest do
       doctest ExUnit.DocTestTest.SomewhatGoodModuleWithOnly, only: [one: 0, two: 0], import: true
     end
 
-    ExUnit.Server.cases_loaded()
+    ExUnit.Server.modules_loaded()
     assert capture_io(fn -> ExUnit.run end) =~ "2 doctests, 1 failure"
   end
 
@@ -400,7 +400,7 @@ defmodule ExUnit.DocTestTest do
     end
 
     ExUnit.configure(seed: 0, colors: [enabled: false])
-    ExUnit.Server.cases_loaded()
+    ExUnit.Server.modules_loaded()
     output = capture_io(fn -> ExUnit.run end)
 
     # Test order is not guaranteed, we can't match this as a string for each failing doctest
@@ -523,7 +523,7 @@ defmodule ExUnit.DocTestTest do
       doctest ExUnit.DocTestTest.Numbered
     end
 
-    ExUnit.Server.cases_loaded()
+    ExUnit.Server.modules_loaded()
     assert capture_io(fn -> ExUnit.run end) =~ "1 doctest, 0 failures"
   end
 
@@ -552,7 +552,7 @@ defmodule ExUnit.DocTestTest do
       end
     end
 
-    ExUnit.Server.cases_loaded()
+    ExUnit.Server.modules_loaded()
     assert capture_io(fn -> ExUnit.run end) =~ "2 doctests, 0 failures"
   end
 

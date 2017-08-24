@@ -125,12 +125,12 @@ defmodule ExUnit.Case do
   The following tags are set automatically by ExUnit and are
   therefore reserved:
 
-    * `:case`       - the test case module
+    * `:module`     - the module on which the test was defined
     * `:file`       - the file on which the test was defined
     * `:line`       - the line on which the test was defined
     * `:test`       - the test name
+    * `:type`       - the type of the test (`:test`, `:doctest`, `:property`, etc)
     * `:async`      - if the test case is in async mode
-    * `:type`       - the type of the test (`:test`, `:property`, etc)
     * `:registered` - used for `ExUnit.Case.register_attribute/3` values
     * `:describe`   - the describe block the test belongs to
 
@@ -208,7 +208,7 @@ defmodule ExUnit.Case do
       config :logger, backends: []
   """
 
-  @reserved [:case, :file, :line, :test, :async, :registered, :describe, :type]
+  @reserved [:module, :file, :line, :test, :async, :registered, :describe, :type]
 
   @doc false
   defmacro __using__(opts) do
@@ -390,8 +390,8 @@ defmodule ExUnit.Case do
   @doc false
   defmacro __before_compile__(_) do
     quote do
-      def __ex_unit__(:case) do
-        %ExUnit.TestCase{name: __MODULE__, tests: @ex_unit_tests}
+      def __ex_unit__ do
+        %ExUnit.TestModule{name: __MODULE__, tests: @ex_unit_tests}
       end
     end
   end
@@ -399,9 +399,9 @@ defmodule ExUnit.Case do
   @doc false
   def __after_compile__(%{module: module}, _) do
     if Module.get_attribute(module, :ex_unit_async) do
-      ExUnit.Server.add_async_case(module)
+      ExUnit.Server.add_async_module(module)
     else
-      ExUnit.Server.add_sync_case(module)
+      ExUnit.Server.add_sync_module(module)
     end
   end
 
@@ -449,7 +449,7 @@ defmodule ExUnit.Case do
       |> Map.merge(%{line: line, file: file, registered: registered,
                      async: async, describe: describe, type: type})
 
-    test = %ExUnit.Test{name: name, case: mod, tags: tags}
+    test = %ExUnit.Test{name: name, case: mod, tags: tags, module: mod}
     Module.put_attribute(mod, :ex_unit_tests, test)
 
     Enum.each registered_attributes, fn(attribute) ->

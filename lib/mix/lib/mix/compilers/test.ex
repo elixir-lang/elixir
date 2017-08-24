@@ -49,7 +49,7 @@ defmodule Mix.Compilers.Test do
 
         try do
           Kernel.ParallelRequire.files(test_files, parallel_require_callbacks)
-          ExUnit.Server.cases_loaded()
+          ExUnit.Server.modules_loaded()
           %{failures: failures} = results = Task.await(task, :infinity)
 
           if failures == 0 do
