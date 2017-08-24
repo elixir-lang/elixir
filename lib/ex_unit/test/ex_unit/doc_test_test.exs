@@ -387,7 +387,7 @@ defmodule ExUnit.DocTestTest do
     end
 
     ExUnit.Server.cases_loaded()
-    assert capture_io(fn -> ExUnit.run end) =~ "2 tests, 1 failure"
+    assert capture_io(fn -> ExUnit.run end) =~ "2 doctests, 1 failure"
   end
 
   test "doctest failures" do
@@ -404,10 +404,10 @@ defmodule ExUnit.DocTestTest do
     output = capture_io(fn -> ExUnit.run end)
 
     # Test order is not guaranteed, we can't match this as a string for each failing doctest
-    assert output =~ ~r/\d+\) test moduledoc at ExUnit\.DocTestTest\.Invalid \(\d+\) \(ExUnit\.DocTestTest\.ActuallyCompiled\)/
+    assert output =~ ~r/\d+\) doctest module ExUnit\.DocTestTest\.Invalid \(\d+\) \(ExUnit\.DocTestTest\.ActuallyCompiled\)/
 
     assert output =~ """
-      1) test moduledoc at ExUnit.DocTestTest.Invalid (1) (ExUnit.DocTestTest.ActuallyCompiled)
+      1) doctest module ExUnit.DocTestTest.Invalid (1) (ExUnit.DocTestTest.ActuallyCompiled)
          test/ex_unit/doc_test_test.exs:399
          Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:133: syntax error before: '*'
          code: 1 + * 1
@@ -416,7 +416,7 @@ defmodule ExUnit.DocTestTest do
     """
 
     assert output =~ """
-      2) test moduledoc at ExUnit.DocTestTest.Invalid (2) (ExUnit.DocTestTest.ActuallyCompiled)
+      2) doctest module ExUnit.DocTestTest.Invalid (2) (ExUnit.DocTestTest.ActuallyCompiled)
          test/ex_unit/doc_test_test.exs:399
          Doctest failed
          code: 1 + hd(List.flatten([1])) === 3
@@ -426,7 +426,7 @@ defmodule ExUnit.DocTestTest do
     """
 
     assert output =~ """
-      3) test moduledoc at ExUnit.DocTestTest.Invalid (3) (ExUnit.DocTestTest.ActuallyCompiled)
+      3) doctest module ExUnit.DocTestTest.Invalid (3) (ExUnit.DocTestTest.ActuallyCompiled)
          test/ex_unit/doc_test_test.exs:399
          Doctest failed
          code: inspect(:oops) === "#MapSet<[]>"
@@ -437,7 +437,7 @@ defmodule ExUnit.DocTestTest do
 
     # The stacktrace points to the cause of the error
     assert output =~ """
-      4) test moduledoc at ExUnit.DocTestTest.Invalid (4) (ExUnit.DocTestTest.ActuallyCompiled)
+      4) doctest module ExUnit.DocTestTest.Invalid (4) (ExUnit.DocTestTest.ActuallyCompiled)
          test/ex_unit/doc_test_test.exs:399
          Doctest failed: got UndefinedFunctionError with message "function Hello.world/0 is undefined (module Hello is not available)"
          code: Hello.world
@@ -447,7 +447,7 @@ defmodule ExUnit.DocTestTest do
     """
 
     assert output =~ """
-      5) test moduledoc at ExUnit.DocTestTest.Invalid (5) (ExUnit.DocTestTest.ActuallyCompiled)
+      5) doctest module ExUnit.DocTestTest.Invalid (5) (ExUnit.DocTestTest.ActuallyCompiled)
          test/ex_unit/doc_test_test.exs:399
          Doctest failed: expected exception WhatIsThis but got RuntimeError with message "oops"
          code: raise "oops"
@@ -456,7 +456,7 @@ defmodule ExUnit.DocTestTest do
     """
 
     assert output =~ """
-      6) test moduledoc at ExUnit.DocTestTest.Invalid (6) (ExUnit.DocTestTest.ActuallyCompiled)
+      6) doctest module ExUnit.DocTestTest.Invalid (6) (ExUnit.DocTestTest.ActuallyCompiled)
          test/ex_unit/doc_test_test.exs:399
          Doctest failed: wrong message for RuntimeError
          expected:
@@ -469,7 +469,7 @@ defmodule ExUnit.DocTestTest do
     """
 
     assert output =~ """
-      7) test doc at ExUnit.DocTestTest.Invalid.a/0 (7) (ExUnit.DocTestTest.ActuallyCompiled)
+      7) doctest ExUnit.DocTestTest.Invalid.a/0 (7) (ExUnit.DocTestTest.ActuallyCompiled)
          test/ex_unit/doc_test_test.exs:399
          Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:154: syntax error before: '*'
          code: 1 + * 1
@@ -478,7 +478,7 @@ defmodule ExUnit.DocTestTest do
     """
 
     assert output =~ """
-      8) test doc at ExUnit.DocTestTest.Invalid.b/0 (8) (ExUnit.DocTestTest.ActuallyCompiled)
+      8) doctest ExUnit.DocTestTest.Invalid.b/0 (8) (ExUnit.DocTestTest.ActuallyCompiled)
          test/ex_unit/doc_test_test.exs:399
          Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:160: syntax error before: '*'
          code: 1 + * 1
@@ -487,7 +487,7 @@ defmodule ExUnit.DocTestTest do
     """
 
     assert output =~ """
-      9) test doc at ExUnit.DocTestTest.Invalid.dedented_past_fence/0 (9) (ExUnit.DocTestTest.ActuallyCompiled)
+      9) doctest ExUnit.DocTestTest.Invalid.dedented_past_fence/0 (9) (ExUnit.DocTestTest.ActuallyCompiled)
          test/ex_unit/doc_test_test.exs:399
          Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:184: unexpected token: "`" (column 5, codepoint U+0060)
          code: 3
@@ -497,7 +497,7 @@ defmodule ExUnit.DocTestTest do
     """
 
     assert output =~ """
-     10) test doc at ExUnit.DocTestTest.Invalid.indented_not_enough/0 (10) (ExUnit.DocTestTest.ActuallyCompiled)
+     10) doctest ExUnit.DocTestTest.Invalid.indented_not_enough/0 (10) (ExUnit.DocTestTest.ActuallyCompiled)
          test/ex_unit/doc_test_test.exs:399
          Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:168: unexpected token: "`" (column 1, codepoint U+0060)
          code: 3
@@ -507,7 +507,7 @@ defmodule ExUnit.DocTestTest do
     """
 
     assert output =~ """
-     11) test doc at ExUnit.DocTestTest.Invalid.indented_too_much/0 (11) (ExUnit.DocTestTest.ActuallyCompiled)
+     11) doctest ExUnit.DocTestTest.Invalid.indented_too_much/0 (11) (ExUnit.DocTestTest.ActuallyCompiled)
          test/ex_unit/doc_test_test.exs:399
          Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:176: unexpected token: "`" (column 3, codepoint U+0060)
          code: 3
@@ -524,7 +524,7 @@ defmodule ExUnit.DocTestTest do
     end
 
     ExUnit.Server.cases_loaded()
-    assert capture_io(fn -> ExUnit.run end) =~ "1 test, 0 failures"
+    assert capture_io(fn -> ExUnit.run end) =~ "1 doctest, 0 failures"
   end
 
   test "IEx prompt contains host" do
@@ -541,19 +541,19 @@ defmodule ExUnit.DocTestTest do
     end
   end
 
-  test "tags tests as doctests" do
-    defmodule DoctestTag do
+  test "doctests type" do
+    defmodule DoctestType do
       use ExUnit.Case
       doctest ExUnit.DocTestTest.NoImport
 
       setup test do
-        assert test.doctest
+        assert test.type == :doctest
         :ok
       end
     end
 
     ExUnit.Server.cases_loaded()
-    assert capture_io(fn -> ExUnit.run end) =~ "2 tests, 0 failures"
+    assert capture_io(fn -> ExUnit.run end) =~ "2 doctests, 0 failures"
   end
 
   test "multiple exceptions in one test case is not supported" do
@@ -630,7 +630,7 @@ defmodule ExUnit.DocTestTest do
   end
 
   test "fails on invalid use" do
-    assert_raise RuntimeError, ~r"cannot define test", fn ->
+    assert_raise RuntimeError, ~r"cannot define doctest", fn ->
       defmodule FunctionClashFail do
         import ExUnit.DocTest
         doctest ExUnit.DocTestTest.Invalid
