@@ -642,7 +642,7 @@ defmodule Inspect.Algebra do
     format(width, 0, [{0, :flat, group(doc)}])
   end
 
-  # Record representing the document mode to be rendered: flat or broken
+  # Record representing the document mode to be rendered
   @typep mode :: :flat | :flex | :strict
 
   @spec fits?(integer, [{integer, mode, t}]) :: boolean
