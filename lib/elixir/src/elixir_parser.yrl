@@ -252,7 +252,7 @@ access_expr -> tuple : '$1'.
 access_expr -> 'true' : handle_literal(?id('$1'), '$1').
 access_expr -> 'false' : handle_literal(?id('$1'), '$1').
 access_expr -> 'nil' : handle_literal(?id('$1'), '$1').
-access_expr -> bin_string  : build_bin_string('$1').
+access_expr -> bin_string : build_bin_string('$1').
 access_expr -> list_string : build_list_string('$1').
 access_expr -> bin_heredoc : build_bin_heredoc('$1').
 access_expr -> list_heredoc : build_list_heredoc('$1').
@@ -748,7 +748,10 @@ build_bin_string(Token) ->
   build_bin_string(Token, []).
 
 build_bin_string({bin_string, _Location, [H]} = Token, ExtraMeta) when is_binary(H) ->
-  handle_literal(H, Token, ExtraMeta);
+  case proplists:is_defined(format, ExtraMeta) of
+    true -> handle_literal(H, Token, ExtraMeta);
+    false -> handle_literal(H, Token, ExtraMeta ++ [{format, string}])
+  end;
 build_bin_string({bin_string, Location, Args}, ExtraMeta) ->
   Meta = ExtraMeta ++ meta_from_location(Location),
   {'<<>>', Meta, string_parts(Args)}.
@@ -757,7 +760,11 @@ build_list_string(Token) ->
   build_list_string(Token, []).
 
 build_list_string({list_string, _Location, [H]} = Token, ExtraMeta) when is_binary(H) ->
-  handle_literal(elixir_utils:characters_to_list(H), Token, ExtraMeta);
+  HList = elixir_utils:characters_to_list(H),
+  case proplists:is_defined(format, ExtraMeta) of
+    true -> handle_literal(HList, Token, ExtraMeta);
+    false -> handle_literal(HList, Token, ExtraMeta ++ [{format, charlist}])
+  end;
 build_list_string({list_string, Location, Args}, ExtraMeta) ->
   Meta = meta_from_location(Location),
   {{'.', Meta, ['Elixir.String', to_charlist]}, Meta, [{'<<>>', ExtraMeta ++ Meta, string_parts(Args)}]}.
