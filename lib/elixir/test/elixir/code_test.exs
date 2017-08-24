@@ -130,7 +130,8 @@ defmodule CodeTest do
   end
 
   test "string_to_quoted/2 with wrap_literals_in_blocks option" do
-    assert Code.string_to_quoted("\"one\"", wrap_literals_in_blocks: true) == {:ok, {:__block__, [line: 1], ["one"]}}
+    assert Code.string_to_quoted("\"one\"", wrap_literals_in_blocks: true) == {:ok, {:__block__, [format: :string, line: 1], ["one"]}}
+    assert Code.string_to_quoted("'one'", wrap_literals_in_blocks: true) == {:ok, {:__block__, [format: :charlist, line: 1], ['one']}}
     assert Code.string_to_quoted("\"one\"") == {:ok, "one"}
     assert Code.string_to_quoted("?é", wrap_literals_in_blocks: true) == {:ok, {:__block__, [original: '?é', line: 1], [233]}}
     assert Code.string_to_quoted("0b10", wrap_literals_in_blocks: true) == {:ok, {:__block__, [original: '0b10', line: 1], [2]}}
