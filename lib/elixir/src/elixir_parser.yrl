@@ -670,7 +670,7 @@ build_map_update(Marker, {Pipe, Left, Right}, Extra) ->
 
 build_block([{Op, _, [_]}]=Exprs) when ?rearrange_uop(Op) ->
   {'__block__', [], Exprs};
-build_block([{unquote_splicing, _, Args}]=Exprs) when length(Args) =< 2 ->
+build_block([{unquote_splicing, _, [_]}]=Exprs) ->
   {'__block__', [], Exprs};
 build_block([Expr]) ->
   Expr;
