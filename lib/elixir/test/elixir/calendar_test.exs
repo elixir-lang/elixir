@@ -66,6 +66,15 @@ defmodule DateTest do
            {:ok, Calendar.Holocene.date(12000, 01, 01)}
   end
 
+  test "add/2" do
+    assert_raise FunctionClauseError, fn ->
+      Date.add(~D[0000-01-01], 3652425)
+    end
+    assert_raise FunctionClauseError, fn ->
+      Date.add(~D[0000-01-01], -1)
+    end
+  end
+
   test "diff/2" do
     assert Date.diff(~D[2000-01-31], ~D[2000-01-01]) == 30
     assert Date.diff(~D[2000-01-01], ~D[2000-01-31]) == -30

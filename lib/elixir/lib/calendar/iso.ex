@@ -122,13 +122,13 @@ defmodule Calendar.ISO do
   def date_to_iso_days_days(1970, 1, 1) do
     719528
   end
-  def date_to_iso_days_days(year, month, day) do
+  def date_to_iso_days_days(year, month, day) when year <= 9999 do
     :calendar.date_to_gregorian_days(year, month, day)
   end
 
   # Converts count of days since 0000-01-01 to {year, month, day} tuple.
   @doc false
-  def date_from_iso_days_days(days) do
+  def date_from_iso_days_days(days) when days <= 3652424 do
     :calendar.gregorian_days_to_date(days)
   end
 
