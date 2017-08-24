@@ -326,23 +326,23 @@ defmodule DateTime do
   @spec to_iso8601(Calendar.datetime, :extended | :basic ) :: String.t
   def to_iso8601(datetime, format \\ :extended)
 
+  def to_iso8601(_, format) when format not in [:extended, :basic] do
+    raise ArgumentError, "DateTime.to_iso8601/2 expects format to be :extended or :basic, got: #{inspect format}"
+  end
+
   def to_iso8601(%{calendar: Calendar.ISO, year: year, month: month, day: day,
                   hour: hour, minute: minute, second: second, microsecond: microsecond,
-                  time_zone: time_zone, zone_abbr: zone_abbr, utc_offset: utc_offset, std_offset: std_offset}, format) when format in [:extended, :basic] do
+                  time_zone: time_zone, zone_abbr: zone_abbr, utc_offset: utc_offset, std_offset: std_offset}, format) do
     Calendar.ISO.datetime_to_iso8601(year, month, day, hour, minute, second, microsecond,
                                      time_zone, zone_abbr, utc_offset, std_offset, format)
   end
 
   def to_iso8601(%{calendar: _, year: _, month: _, day: _,
                    hour: _, minute: _, second: _, microsecond: _,
-                   time_zone: _, zone_abbr: _, utc_offset: _, std_offset: _} = datetime, format) when format in [:extended, :basic] do
+                   time_zone: _, zone_abbr: _, utc_offset: _, std_offset: _} = datetime, format) do
     datetime
     |> convert!(Calendar.ISO)
     |> to_iso8601(format)
-  end
-
-  def to_iso8601(_, format) do
-    raise ArgumentError, "DateTime.to_iso8601/2 expects format to be :extended or :basic, got: #{inspect format}"
   end
 
   @doc """
