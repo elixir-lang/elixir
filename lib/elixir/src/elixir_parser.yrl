@@ -80,12 +80,12 @@ Nonassoc 330 dot_identifier.
 
 %%% MAIN FLOW OF EXPRESSIONS
 
-grammar -> eoe : handle_literal(nil, '$1').
+grammar -> eoe : {'__block__', meta_from_token('$1'), []}.
 grammar -> expr_list : to_block('$1').
 grammar -> eoe expr_list : to_block('$2').
 grammar -> expr_list eoe : to_block('$1').
 grammar -> eoe expr_list eoe : to_block('$2').
-grammar -> '$empty' : nil.
+grammar -> '$empty' : {'__block__', [], []}.
 
 % Note expressions are on reverse order
 expr_list -> expr : ['$1'].
