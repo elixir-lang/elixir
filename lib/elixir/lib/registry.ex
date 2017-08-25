@@ -532,7 +532,7 @@ defmodule Registry do
       [{self(), {1, :atom, 1}}, {self(), {2, :atom, 2}}]
 
   """
-  @spec match(registry, key, match_pattern :: atom() | tuple(), guards :: list()) :: [{pid, term}]
+  @spec match(registry, key, match_pattern :: term, guards :: list()) :: [{pid, term}]
   def match(registry, key, pattern, guards \\ []) when is_atom(registry) and is_list(guards) do
     guards = [{:"=:=", {:element, 1, :"$_"}, {:const, key}} | guards]
     spec = [{{:_, {:_, pattern}}, guards, [{:element, 2, :"$_"}]}]

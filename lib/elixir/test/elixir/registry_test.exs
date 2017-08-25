@@ -59,20 +59,22 @@ defmodule RegistryTest do
       end
 
       test "supports match patterns", %{registry: registry} do
-        value = {1, :atom, 1}
+        value = {1, :atom, 1, %{a: "a", b: "b"}}
         {:ok, _} = Registry.register(registry, "hello", value)
-        assert Registry.match(registry, "hello", {1, :_, :_}) ==
+        assert Registry.match(registry, "hello", {1, :_, :_, :_}) ==
                [{self(), value}]
-        assert Registry.match(registry, "hello", {1.0, :_, :_}) ==
+        assert Registry.match(registry, "hello", {1.0, :_, :_, :_}) ==
                []
-        assert Registry.match(registry, "hello", {:_, :atom, :_}) ==
+        assert Registry.match(registry, "hello", {:_, :atom, :_, :_}) ==
                [{self(), value}]
-        assert Registry.match(registry, "hello", {:"$1", :_, :"$1"}) ==
+        assert Registry.match(registry, "hello", {:"$1", :_, :"$1", :_}) ==
                [{self(), value}]
         assert Registry.match(registry, "hello", :_) ==
                [{self(), value}]
         assert Registry.match(registry, :_, :_) ==
                []
+        assert Registry.match(registry, "hello", {:_, :_, :_, %{b: "b"}}) ==
+               [{self(), value}]
       end
 
       test "supports guard conditions", %{registry: registry} do
