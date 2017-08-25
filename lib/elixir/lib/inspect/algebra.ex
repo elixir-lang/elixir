@@ -463,7 +463,31 @@ defmodule Inspect.Algebra do
   def space(doc1, doc2), do: concat(doc1, concat(" ", doc2))
 
   @doc ~S"""
+  A mandatory linebreak.
+
+  A group with a linebreak never fits and is always broken
+  into its own line.
+
+  ## Examples
+
+    iex> doc = Inspect.Algebra.concat(
+    ...>   Inspect.Algebra.concat(
+    ...>     "Hughes",
+    ...>     Inspect.Algebra.line()
+    ...>   ), "Wadler"
+    ...> )
+    iex> Inspect.Algebra.format(doc, 80)
+    ["Hughes", "\n", "Wadler"]
+
+  """
+  @spec line() :: :doc_line
+  def line(), do: :doc_line
+
+  @doc ~S"""
   Inserts a mandatory linebreak between two documents.
+
+  A group with a linebreak never fits and is always broken
+  into its own line.
 
   ## Examples
 
@@ -473,7 +497,7 @@ defmodule Inspect.Algebra do
 
   """
   @spec line(t, t) :: t
-  def line(doc1, doc2), do: concat(doc1, concat(:doc_line, doc2))
+  def line(doc1, doc2), do: concat(doc1, concat(line(), doc2))
 
   @doc ~S"""
   Folds a list of documents into a document using the given folder function.
@@ -648,7 +672,7 @@ defmodule Inspect.Algebra do
   @spec fits?(integer, [{integer, mode, t}]) :: boolean
   defp fits?(w, _) when w < 0,                      do: false
   defp fits?(_, []),                                do: true
-  defp fits?(_, [{_, _, :doc_line} | _]),           do: true
+  defp fits?(_, [{_, m, :doc_line} | _]),           do: m != :flat
   defp fits?(w, [{_, _, :doc_nil} | t]),            do: fits?(w, t)
   defp fits?(w, [{i, m, doc_cons(x, y)} | t]),      do: fits?(w, [{i, m, x} | [{i, m, y} | t]])
   defp fits?(w, [{i, m, doc_color(x, _)} | t]),     do: fits?(w, [{i, m, x} | t])
