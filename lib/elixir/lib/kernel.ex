@@ -76,7 +76,7 @@ defmodule Kernel do
     * `MapSet` - unordered collections of unique elements
     * `NaiveDateTime` - date and time without timezone in a given calendar
     * `Keyword` - lists of two-element tuples, often representing optional values
-    * `Range` - inclusive ranges between two ingers
+    * `Range` - inclusive ranges between two integers
     * `Regex` - regular expressions
     * `String` - UTF-8 encoded binaries representing characters
     * `URI` - representation of URIs that identify resources
