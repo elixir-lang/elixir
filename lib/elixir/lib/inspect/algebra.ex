@@ -97,8 +97,8 @@ defmodule Inspect.Algebra do
 
   This module implements the functionality described in
   ["Strictly Pretty" (2000) by Christian Lindig][0] with small
-  additions, like support for String nodes and a group mode that
-  maximises horizontal space use.
+  additions, like support for binary nodes and a break mode that
+  maximises use of horizontal space.
 
       iex> Inspect.Algebra.empty
       :doc_nil
@@ -130,6 +130,11 @@ defmodule Inspect.Algebra do
       iex> doc = Inspect.Algebra.glue(String.duplicate("a", 20), " ", "b")
       iex> Inspect.Algebra.format(doc, 10)
       ["aaaaaaaaaaaaaaaaaaaa", "\n", "b"]
+
+  This module uses the byte size to compute how much space there is
+  left. If your document contains strings, then those need to be
+  wrapped in `string/1`, which then relies on `String.length/1` to
+  precompute the document size.
 
   Finally, this module also contains Elixir related functions, a bit
   tied to Elixir formatting, namely `surround/3` and `surround_many/5`.
@@ -171,6 +176,8 @@ defmodule Inspect.Algebra do
 
   @type t ::
           :doc_nil
+          | binary
+          | doc_string
           | doc_line
           | doc_cons
           | doc_nest
@@ -178,7 +185,11 @@ defmodule Inspect.Algebra do
           | doc_group
           | doc_color
           | doc_next_fits
-          | binary
+
+  @typep doc_string :: {:doc_string, t, non_neg_integer}
+  defmacrop doc_string(string, length) do
+    quote do: {:doc_string, unquote(string), unquote(length)}
+  end
 
   @typep doc_cons :: {:doc_cons, t, t}
   defmacrop doc_cons(left, right) do
@@ -232,8 +243,8 @@ defmodule Inspect.Algebra do
       is_binary(unquote(doc)) or
       unquote(doc) == :doc_nil or
       (is_tuple(unquote(doc)) and
-       elem(unquote(doc), 0) in [:doc_cons, :doc_nest, :doc_break, :doc_group,
-                                 :doc_color, :doc_line, :doc_next_fits])
+       elem(unquote(doc), 0) in [:doc_string, :doc_cons, :doc_nest, :doc_break,
+                                 :doc_group, :doc_color, :doc_line, :doc_next_fits])
     end
   end
 
@@ -302,6 +313,37 @@ defmodule Inspect.Algebra do
   """
   @spec empty() :: :doc_nil
   def empty, do: :doc_nil
+
+  @doc ~S"""
+  Creates a document represented by string.
+
+  While `Inspect.Algebra` accepts binaries as documents,
+  those are counted by binary size. On the other hand,
+  `string` documents are measured in terms of graphemes
+  towards the document size.
+
+  ## Examples
+
+  The following document has 10 bytes and therefore it
+  does not format to width 9 without breaks:
+
+      iex> doc = Inspect.Algebra.glue("olá", " ", "mundo")
+      iex> Inspect.Algebra.format(doc, 9)
+      ["olá", "\n", "mundo"]
+
+  However, if we use `string`, then the string length is
+  used, instead of byte size, correctly fitting:
+
+      iex> string = Inspect.Algebra.string("olá")
+      iex> doc = Inspect.Algebra.glue(string, " ", "mundo")
+      iex> Inspect.Algebra.format(doc, 9)
+      ["olá", " ", "mundo"]
+
+  """
+  @spec string(String.t) :: doc_string
+  def string(string) when is_binary(string) do
+    doc_string(string, String.length(string))
+  end
 
   @doc ~S"""
   Concatenates two document entities returning a new document.
@@ -745,6 +787,7 @@ defmodule Inspect.Algebra do
   defp fits?(w, k, [{i, m, doc_nest(x, _, :break)} | t]),  do: fits?(w, k, [{i, m, x} | t])
   defp fits?(w, k, [{i, m, doc_nest(x, j, _)} | t]),       do: fits?(w, k, [{apply_nesting(i, k, j), m, x} | t])
   defp fits?(w, k, [{i, _, doc_group(x)} | t]),            do: fits?(w, k, [{i, :flat, x} | t])
+  defp fits?(w, k, [{_, _, doc_string(_, l)} | t]),        do: fits?(w, k + l, t)
   defp fits?(w, k, [{_, _, s} | t]) when is_binary(s),     do: fits?(w, k + byte_size(s), t)
   defp fits?(w, k, [{_, :flat, doc_break(s, _)} | t]),     do: fits?(w, k + byte_size(s), t)
   defp fits?(_, _, [{_, :break, doc_break(_, _)} | _]),    do: true
@@ -755,7 +798,8 @@ defmodule Inspect.Algebra do
   defp format(w, _, [{i, _, doc_line(_)} | t]),         do: [indent(i) | format(w, i, t)]
   defp format(w, k, [{i, m, doc_cons(x, y)} | t]),      do: format(w, k, [{i, m, x} | [{i, m, y} | t]])
   defp format(w, k, [{i, m, doc_color(x, c)} | t]),     do: [ansi(c) | format(w, k, [{i, m, x} | t])]
-  defp format(w, k, [{_, _, s} | t]) when is_binary(s), do: [s | format(w, (k + byte_size(s)), t)]
+  defp format(w, k, [{_, _, doc_string(s, l)} | t]),    do: [s | format(w, k + l, t)]
+  defp format(w, k, [{_, _, s} | t]) when is_binary(s), do: [s | format(w, k + byte_size(s), t)]
   defp format(w, k, [{i, m, doc_next_fits(x)} | t]),    do: format(w, k, [{i, m, x} | t])
 
   # Flex breaks are not conditional to the mode
