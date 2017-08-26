@@ -101,7 +101,7 @@ defimpl Inspect, for: BitString do
     left = color("<<", :binary, opts)
     right = color(">>", :binary, opts)
     inner = each_bit(bitstring, opts.limit, opts)
-    group(concat(nest(concat(left, inner), 2), right), :flex)
+    concat(nest(concat(left, inner), 2), right)
   end
 
   defp each_bit(_, 0, _) do
@@ -170,10 +170,10 @@ defimpl Inspect, for: List do
         IO.iodata_to_binary inspected
       keyword?(term) ->
         surround_many(open, term, close, opts, &keyword/2,
-                      separator: sep, group: :strict)
+                      separator: sep, break: :strict)
       true ->
         surround_many(open, term, close, opts, &to_doc/2,
-                      separator: sep, group: :flex)
+                      separator: sep, break: :flex)
     end
   end
 
@@ -215,7 +215,7 @@ defimpl Inspect, for: Map do
     sep = color(",", :map, opts)
     close = color("}", :map, opts)
     surround_many(open, map, close, opts, traverse_fun(map, opts),
-                  separator: sep, group: :strict)
+                  separator: sep, break: :strict)
   end
 
   defp traverse_fun(list, opts) do
