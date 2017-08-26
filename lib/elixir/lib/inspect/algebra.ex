@@ -177,9 +177,9 @@ defmodule Inspect.Algebra do
     quote do: {:doc_cons, unquote(left), unquote(right)}
   end
 
-  @typep doc_nest :: {:doc_nest, t, non_neg_integer}
-  defmacrop doc_nest(doc, indent) do
-    quote do: {:doc_nest, unquote(doc), unquote(indent)}
+  @typep doc_nest :: {:doc_nest, t, non_neg_integer, :always | :break}
+  defmacrop doc_nest(doc, indent, always_or_break) do
+    quote do: {:doc_nest, unquote(doc), unquote(indent), unquote(always_or_break)}
   end
 
   @typep doc_line :: {:doc_line, boolean}
@@ -345,14 +345,15 @@ defmodule Inspect.Algebra do
 
   """
   @spec nest(t, non_neg_integer) :: doc_nest
-  def nest(doc, level)
+  def nest(doc, level, mode \\ :always)
 
-  def nest(doc, 0) when is_doc(doc) do
+  def nest(doc, 0, _mode) when is_doc(doc) do
     doc
   end
 
-  def nest(doc, level) when is_doc(doc) and is_integer(level) and level > 0 do
-    doc_nest(doc, level)
+  def nest(doc, level, mode)
+      when is_doc(doc) and is_integer(level) and level > 0 and mode in [:always, :break] do
+    doc_nest(doc, level, mode)
   end
 
   @doc ~S"""
@@ -431,6 +432,10 @@ defmodule Inspect.Algebra do
   Documents in a group are attempted to be rendered together
   to the best of the renderer ability.
 
+  The mode can be `:flex`, which attempts to fit as much as
+  possible in a single line, or `:strict`, which converts all
+  breaks into new lines if the document does not fit.
+
   ## Examples
 
       iex> doc = Inspect.Algebra.group(
@@ -476,8 +481,8 @@ defmodule Inspect.Algebra do
   @doc ~S"""
   A mandatory linebreak.
 
-  If a group contain line breaks, the group will fit only if
-  all lines in the group fits. However, if a line has `force?`
+  If a strict group contains line breaks, the group will fit only
+  if all lines in the group fits. However, if a line has `force?`
   set to true, then the group always breaks.
 
   ## Examples
@@ -498,8 +503,7 @@ defmodule Inspect.Algebra do
   @doc ~S"""
   Inserts a mandatory linebreak between two documents.
 
-  A group with a linebreak never fits and is always broken
-  into its own line.
+  See `line/1`.
 
   ## Examples
 
@@ -550,7 +554,7 @@ defmodule Inspect.Algebra do
   ## Options
 
     * `:mode` - controls if surrounding is done with concating or glueing
-    * `:group` - controls if the group is `:strict` or `:flex`
+    * `:group` - controls if the group is `:strict` or `:flex`, see `group/2`
 
   ## Examples
 
@@ -680,37 +684,38 @@ defmodule Inspect.Algebra do
 
   # Record representing the document mode to be rendered
   #
-  #   * strict - represents the strict group mode and requires fitting
   #   * flex - represents the flex gruop mode and requires fitting
-  #   * flat - represents a fitted document
+  #   * break - represents a fitted document with breaks as breaks
+  #   * flat - represents a fitted document with breaks as flats
   #
-  @typep mode :: :strict | :flex | :flat
+  @typep mode :: :break | :flex | :flat
 
   @spec fits?(integer, integer, [{integer, mode, t}]) :: boolean
-  defp fits?(_, k, _) when k < 0,                      do: false
-  defp fits?(_, _, []),                                do: true
-  defp fits?(w, k, [{_, _, :doc_nil} | t]),            do: fits?(w, k, t)
-  defp fits?(_, _, [{_, m, doc_line(true)} | _]),      do: m == :flex
-  defp fits?(w, _, [{i, _, doc_line(false)} | t]),     do: fits?(w, w - i, t)
-  defp fits?(w, k, [{i, m, doc_cons(x, y)} | t]),      do: fits?(w, k, [{i, m, x} | [{i, m, y} | t]])
-  defp fits?(w, k, [{i, m, doc_color(x, _)} | t]),     do: fits?(w, k, [{i, m, x} | t])
-  defp fits?(w, k, [{i, m, doc_nest(x, j)} | t]),      do: fits?(w, k, [{i + j, m, x} | t])
-  defp fits?(w, k, [{i, _, doc_group(x, _)} | t]),     do: fits?(w, k, [{i, :flat, x} | t])
-  defp fits?(w, k, [{_, _, s} | t]) when is_binary(s), do: fits?(w, (k - byte_size(s)), t)
-  defp fits?(w, k, [{_, :flat, doc_break(s)} | t]),    do: fits?(w, (k - byte_size(s)), t)
-  defp fits?(_, _, [{_, :strict, doc_break(_)} | _]),  do: true
-  defp fits?(_, _, [{_, :flex, doc_break(_)} | _]),    do: true
+  defp fits?(_, k, _) when k < 0,                          do: false
+  defp fits?(_, _, []),                                    do: true
+  defp fits?(w, k, [{_, _, :doc_nil} | t]),                do: fits?(w, k, t)
+  defp fits?(_, _, [{_, m, doc_line(true)} | _]),          do: m == :flex
+  defp fits?(w, _, [{i, _, doc_line(false)} | t]),         do: fits?(w, w - i, t)
+  defp fits?(w, k, [{i, m, doc_cons(x, y)} | t]),          do: fits?(w, k, [{i, m, x} | [{i, m, y} | t]])
+  defp fits?(w, k, [{i, m, doc_color(x, _)} | t]),         do: fits?(w, k, [{i, m, x} | t])
+  defp fits?(w, k, [{i, m, doc_nest(x, _, :break)} | t]),  do: fits?(w, k, [{i, m, x} | t])
+  defp fits?(w, k, [{i, m, doc_nest(x, j, :always)} | t]), do: fits?(w, k, [{i + j, m, x} | t])
+  defp fits?(w, k, [{i, _, doc_group(x, :flex)} | t]),     do: fits?(w, k, [{i, :flex, x} | t])
+  defp fits?(w, k, [{i, _, doc_group(x, _)} | t]),         do: fits?(w, k, [{i, :flat, x} | t])
+  defp fits?(w, k, [{_, _, s} | t]) when is_binary(s),     do: fits?(w, (k - byte_size(s)), t)
+  defp fits?(w, k, [{_, :flat, doc_break(s)} | t]),        do: fits?(w, (k - byte_size(s)), t)
+  defp fits?(_, _, [{_, :break, doc_break(_)} | _]),       do: true
+  defp fits?(_, _, [{_, :flex, doc_break(_)} | _]),        do: true
 
   @spec format(integer | :infinity, integer, [{integer, mode, t}]) :: [binary]
   defp format(_, _, []),                                do: []
   defp format(w, k, [{_, _, :doc_nil} | t]),            do: format(w, k, t)
   defp format(w, _, [{i, _, doc_line(_)} | t]),         do: [indent(i) | format(w, i, t)]
   defp format(w, k, [{i, m, doc_cons(x, y)} | t]),      do: format(w, k, [{i, m, x} | [{i, m, y} | t]])
-  defp format(w, k, [{i, m, doc_nest(x, j)} | t]),      do: format(w, k, [{i + j, m, x} | t])
   defp format(w, k, [{i, m, doc_color(x, c)} | t]),     do: [ansi(c) | format(w, k, [{i, m, x} | t])]
   defp format(w, k, [{_, _, s} | t]) when is_binary(s), do: [s | format(w, (k + byte_size(s)), t)]
+  defp format(w, _, [{i, :break, doc_break(_)} | t]),   do: [indent(i) | format(w, i, t)]
   defp format(w, k, [{_, :flat, doc_break(s)} | t]),    do: [s | format(w, (k + byte_size(s)), t)]
-  defp format(w, _, [{i, :strict, doc_break(_)} | t]),  do: [indent(i) | format(w, i, t)]
   defp format(w, k, [{i, :flex, doc_break(s)} | t]) do
     k = k + byte_size(s)
 
@@ -718,6 +723,14 @@ defmodule Inspect.Algebra do
       [s | format(w, k, t)]
     else
       [indent(i) | format(w, i, t)]
+    end
+  end
+  # Nesting is conditional to the mode.
+  defp format(w, k, [{i, mode, doc_nest(x, j, nest)} | t]) do
+    if nest == :always or (nest == :break and mode == :break) do
+      format(w, k, [{i + j, mode, x} | t])
+    else
+      format(w, k, [{i, mode, x} | t])
     end
   end
   # If the doc_group is flex, the fitting decision happens later.
@@ -729,7 +742,7 @@ defmodule Inspect.Algebra do
     if w == :infinity or fits?(w, w - k, [{i, :flat, x} | t]) do
       format w, k, [{i, :flat, x} | t]
     else
-      format w, k, [{i, :strict, x} | t]
+      format w, k, [{i, :break, x} | t]
     end
   end
 
