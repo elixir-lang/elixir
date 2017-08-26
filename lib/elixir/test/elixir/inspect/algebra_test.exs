@@ -97,7 +97,7 @@ defmodule Inspect.AlgebraTest do
   test "line doc" do
     # Consistent with definitions
     assert line("a", "b") ==
-      {:doc_cons, "a", {:doc_cons, :doc_line, "b"}}
+      {:doc_cons, "a", {:doc_cons, {:doc_line, false}, "b"}}
 
     # Consistent formatting
     assert render(line(glue("aaa", "bbb"), glue("ccc", "ddd")), 10) ==
@@ -114,11 +114,22 @@ defmodule Inspect.AlgebraTest do
     doc = concat(glue(glue(glue("hello", "a"), "b"), "c"), "d")
     assert render(group(doc, :flex), 5) == "hello\na b\ncd"
     assert render(group(doc, :strict), 5) == "hello\na\nb\ncd"
+  end
 
-    # Breaks if one of the line in the group break
+  test "groups with soft lines" do
     doc = line(glue("a", "b"), glue("hello", "world"))
     assert render(group(doc, :flex), 5) == "a b\nhello\nworld"
     assert render(group(doc, :strict), 5) == "a\nb\nhello\nworld"
+    assert render(group(doc, :flex), 100) == "a b\nhello world"
+    assert render(group(doc, :strict), 100) == "a b\nhello world"
+  end
+
+  test "groups with hard lines" do
+    doc = line(glue("a", "b"), glue("hello", "world"), true)
+    assert render(group(doc, :flex), 5) == "a b\nhello\nworld"
+    assert render(group(doc, :strict), 5) == "a\nb\nhello\nworld"
+    assert render(group(doc, :flex), 100) == "a b\nhello world"
+    assert render(group(doc, :strict), 100) == "a\nb\nhello\nworld"
   end
 
   test "formatting with infinity" do
