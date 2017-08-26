@@ -21,8 +21,8 @@ defmodule Inspect.AlgebraTest do
 
   test "break doc" do
     # Consistent with definitions
-    assert break("break") == {:doc_break, "break"}
-    assert break("") == {:doc_break, ""}
+    assert break("break") == {:doc_break, "break", :strict}
+    assert break("") == {:doc_break, "", :strict}
 
     # Wrong argument type
     assert_raise FunctionClauseError, fn -> break(42) end
@@ -33,9 +33,8 @@ defmodule Inspect.AlgebraTest do
 
   test "glue doc" do
     # Consistent with definitions
-    assert glue("a", "->", "b") == {:doc_cons,
-      "a", {:doc_cons, {:doc_break, "->"}, "b"}
-   }
+    assert glue("a", "->", "b") ==
+           {:doc_cons, "a", {:doc_cons, {:doc_break, "->", :strict}, "b"}}
     assert glue("a", "b") == glue("a", " ", "b")
 
     # Wrong argument type
@@ -107,29 +106,24 @@ defmodule Inspect.AlgebraTest do
   test "group doc" do
     # Consistent with definitions
     assert group(glue("a", "b")) ==
-           {:doc_group, {:doc_cons, "a", concat(break(), "b")}, :flex}
-    assert group(empty()) == {:doc_group, empty(), :flex}
+           {:doc_group, {:doc_cons, "a", concat(break(), "b")}}
+    assert group(empty()) == {:doc_group, empty()}
 
     # Consistent formatting
     doc = concat(glue(glue(glue("hello", "a"), "b"), "c"), "d")
-    assert render(group(doc, :flex), 5) == "hello\na b\ncd"
-    assert render(group(doc, :strict), 5) == "hello\na\nb\ncd"
+    assert render(group(doc), 5) == "hello\na\nb\ncd"
   end
 
   test "groups with soft lines" do
     doc = line(glue("a", "b"), glue("hello", "world"))
-    assert render(group(doc, :flex), 5) == "a b\nhello\nworld"
-    assert render(group(doc, :strict), 5) == "a\nb\nhello\nworld"
-    assert render(group(doc, :flex), 100) == "a b\nhello world"
-    assert render(group(doc, :strict), 100) == "a b\nhello world"
+    assert render(group(doc), 5) == "a\nb\nhello\nworld"
+    assert render(group(doc), 100) == "a b\nhello world"
   end
 
   test "groups with hard lines" do
     doc = line(glue("a", "b"), glue("hello", "world"), true)
-    assert render(group(doc, :flex), 5) == "a b\nhello\nworld"
-    assert render(group(doc, :strict), 5) == "a\nb\nhello\nworld"
-    assert render(group(doc, :flex), 100) == "a b\nhello world"
-    assert render(group(doc, :strict), 100) == "a\nb\nhello\nworld"
+    assert render(group(doc), 5) == "a\nb\nhello\nworld"
+    assert render(group(doc), 100) == "a\nb\nhello\nworld"
   end
 
   test "formatting with infinity" do
@@ -156,14 +150,5 @@ defmodule Inspect.AlgebraTest do
     assert sm.(["a" | "b"]) |> render(80) == "[a | b]"
     assert sm.(["a" | empty()]) |> render(80) == "[a]"
     assert sm.([empty() | "b"]) |> render(80) == "[b]"
-  end
-
-  test "surround_many with docs as the wrappers and as the separator" do
-    opts = %Inspect.Opts{}
-    fun = fn(d, _) -> d end
-
-    doc = surround_many(break("["), ["a", "b", "c"], break("]"), opts, fun, break(","))
-    assert render(doc, 80) == "[a, b, c]"
-    assert render(doc, 5) == "[a, b\n  c]"
   end
 end
