@@ -97,8 +97,8 @@ defmodule Inspect.Algebra do
 
   This module implements the functionality described in
   ["Strictly Pretty" (2000) by Christian Lindig][0] with small
-  additions, like support for String nodes, and a custom
-  rendering function that maximises horizontal space use.
+  additions, like support for String nodes and a group mode that
+  maximises horizontal space use.
 
       iex> Inspect.Algebra.empty
       :doc_nil
@@ -140,13 +140,19 @@ defmodule Inspect.Algebra do
   relies on lazy evaluation to unfold document groups on two alternatives:
   `:flat` (breaks as spaces) and `:break` (breaks as newlines).
   Implementing the same logic in a strict language such as Elixir leads
-  to an exponential growth of possible documents, unless document groups
-  are encoded explicitly as `:flat` or `:break`. Those groups are then reduced
-  to a simple document, where the layout is already decided, per [Lindig][0].
+  to an exponential growth of possible documents, unless groups are explicitly
+  encoded. Those groups are then reduced to a simple document, where the
+  layout is already decided, per [Lindig][0].
 
-  This implementation has two types of groups: `:strict` and `:flex`. A
-  `:strict` group guarantees one break per line, the `:flex` group tries
-  to fit the maximum amount of entries in a group in the same line.
+  This implementation has two types of groups: `:strict` and `:flex`. When
+  a strict group does not fit, all breaks in the group become new lines.
+  On the other hand, a `:flex` group  tries to fit the maximum amount of
+  in the same line as possible.
+
+  This implementation also adds line documents, built by `line/1` and
+  friends. If a group contains lines, all lines in the group must fit
+  the document, otherwise the group "breaks". A line may also force a
+  group to break.
 
   Custom pretty printers can be implemented using the documents returned
   by this module and by providing their own rendering functions.
@@ -164,7 +170,7 @@ defmodule Inspect.Algebra do
 
   # Functional interface to "doc" records
 
-  @type t :: :doc_nil | :doc_line | doc_cons | doc_nest | doc_break | doc_group | doc_color | binary
+  @type t :: :doc_nil | doc_line | doc_cons | doc_nest | doc_break | doc_group | doc_color | binary
 
   @typep doc_cons :: {:doc_cons, t, t}
   defmacrop doc_cons(left, right) do
@@ -174,6 +180,11 @@ defmodule Inspect.Algebra do
   @typep doc_nest :: {:doc_nest, t, non_neg_integer}
   defmacrop doc_nest(doc, indent) do
     quote do: {:doc_nest, unquote(doc), unquote(indent)}
+  end
+
+  @typep doc_line :: {:doc_line, boolean}
+  defmacrop doc_line(force?) do
+    quote do: {:doc_line, unquote(force?)}
   end
 
   @typep doc_break :: {:doc_break, binary}
@@ -206,9 +217,9 @@ defmodule Inspect.Algebra do
   defp do_is_doc(doc) do
     quote do
       is_binary(unquote(doc)) or
-      unquote(doc) in [:doc_nil, :doc_line] or
+      unquote(doc) == :doc_nil or
       (is_tuple(unquote(doc)) and
-       elem(unquote(doc), 0) in [:doc_cons, :doc_nest, :doc_break, :doc_group, :doc_color])
+       elem(unquote(doc), 0) in [:doc_cons, :doc_nest, :doc_break, :doc_group, :doc_color, :doc_line])
     end
   end
 
@@ -465,8 +476,9 @@ defmodule Inspect.Algebra do
   @doc ~S"""
   A mandatory linebreak.
 
-  A group with a linebreak never fits and is always broken
-  into its own line.
+  If a group contain line breaks, the group will fit only if
+  all lines in the group fits. However, if a line has `force?`
+  set to true, then the group always breaks.
 
   ## Examples
 
@@ -480,8 +492,8 @@ defmodule Inspect.Algebra do
     ["Hughes", "\n", "Wadler"]
 
   """
-  @spec line() :: :doc_line
-  def line(), do: :doc_line
+  @spec line(boolean) :: doc_line
+  def line(force? \\ false) when is_boolean(force?), do: doc_line(force?)
 
   @doc ~S"""
   Inserts a mandatory linebreak between two documents.
@@ -497,7 +509,7 @@ defmodule Inspect.Algebra do
 
   """
   @spec line(t, t) :: t
-  def line(doc1, doc2), do: concat(doc1, concat(line(), doc2))
+  def line(doc1, doc2, force? \\ false), do: concat(doc1, concat(line(force?), doc2))
 
   @doc ~S"""
   Folds a list of documents into a document using the given folder function.
@@ -667,13 +679,19 @@ defmodule Inspect.Algebra do
   end
 
   # Record representing the document mode to be rendered
-  @typep mode :: :flat | :flex | :strict
+  #
+  #   * strict - represents the strict group mode and requires fitting
+  #   * flex - represents the flex gruop mode and requires fitting
+  #   * flat - represents a fitted document
+  #
+  @typep mode :: :strict | :flex | :flat
 
   @spec fits?(integer, integer, [{integer, mode, t}]) :: boolean
   defp fits?(_, k, _) when k < 0,                      do: false
   defp fits?(_, _, []),                                do: true
-  defp fits?(w, _, [{i, _, :doc_line} | t]),           do: fits?(w, w - i, t)
   defp fits?(w, k, [{_, _, :doc_nil} | t]),            do: fits?(w, k, t)
+  defp fits?(_, _, [{_, m, doc_line(true)} | _]),      do: m == :flex
+  defp fits?(w, _, [{i, _, doc_line(false)} | t]),     do: fits?(w, w - i, t)
   defp fits?(w, k, [{i, m, doc_cons(x, y)} | t]),      do: fits?(w, k, [{i, m, x} | [{i, m, y} | t]])
   defp fits?(w, k, [{i, m, doc_color(x, _)} | t]),     do: fits?(w, k, [{i, m, x} | t])
   defp fits?(w, k, [{i, m, doc_nest(x, j)} | t]),      do: fits?(w, k, [{i + j, m, x} | t])
@@ -685,8 +703,8 @@ defmodule Inspect.Algebra do
 
   @spec format(integer | :infinity, integer, [{integer, mode, t}]) :: [binary]
   defp format(_, _, []),                                do: []
-  defp format(w, _, [{i, _, :doc_line} | t]),           do: [indent(i) | format(w, i, t)]
   defp format(w, k, [{_, _, :doc_nil} | t]),            do: format(w, k, t)
+  defp format(w, _, [{i, _, doc_line(_)} | t]),         do: [indent(i) | format(w, i, t)]
   defp format(w, k, [{i, m, doc_cons(x, y)} | t]),      do: format(w, k, [{i, m, x} | [{i, m, y} | t]])
   defp format(w, k, [{i, m, doc_nest(x, j)} | t]),      do: format(w, k, [{i + j, m, x} | t])
   defp format(w, k, [{i, m, doc_color(x, c)} | t]),     do: [ansi(c) | format(w, k, [{i, m, x} | t])]
