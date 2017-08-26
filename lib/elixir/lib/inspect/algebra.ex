@@ -165,6 +165,7 @@ defmodule Inspect.Algebra do
   @tail_separator " |"
   @newline "\n"
   @break :flex
+  @line :soft
 
   # Functional interface to "doc" records
 
@@ -180,9 +181,9 @@ defmodule Inspect.Algebra do
     quote do: {:doc_nest, unquote(doc), unquote(indent), unquote(always_or_break)}
   end
 
-  @typep doc_line :: {:doc_line, boolean}
-  defmacrop doc_line(force?) do
-    quote do: {:doc_line, unquote(force?)}
+  @typep doc_line :: {:doc_line, :hard | :soft}
+  defmacrop doc_line(mode) do
+    quote do: {:doc_line, unquote(mode)}
   end
 
   @typep doc_break :: {:doc_break, binary, :flex | :strict}
@@ -466,9 +467,9 @@ defmodule Inspect.Algebra do
   @doc ~S"""
   A mandatory linebreak.
 
-  If a strict group contains line breaks, the group will fit only
-  if all lines in the group fits. However, if a line has `force?`
-  set to true, then the group always breaks.
+  If the line break is `:soft` (the default), a gruop will fit
+  if all lines in the group fits. On the other hand, a `:hard`
+  line always causes the group to break.
 
   ## Examples
 
@@ -482,8 +483,8 @@ defmodule Inspect.Algebra do
     ["Hughes", "\n", "Wadler"]
 
   """
-  @spec line(boolean) :: doc_line
-  def line(force? \\ false) when is_boolean(force?), do: doc_line(force?)
+  @spec line(mode) :: doc_line
+  def line(mode \\ @line) when mode in [:soft, :hard], do: doc_line(mode)
 
   @doc ~S"""
   Inserts a mandatory linebreak between two documents.
@@ -498,7 +499,7 @@ defmodule Inspect.Algebra do
 
   """
   @spec line(t, t) :: t
-  def line(doc1, doc2, force? \\ false), do: concat(doc1, concat(line(force?), doc2))
+  def line(doc1, doc2, mode \\ @line), do: concat(doc1, concat(line(mode), doc2))
 
   @doc ~S"""
   Folds a list of documents into a document using the given folder function.
@@ -679,8 +680,8 @@ defmodule Inspect.Algebra do
   defp fits?(_, k, _) when k < 0,                          do: false
   defp fits?(_, _, []),                                    do: true
   defp fits?(w, k, [{_, _, :doc_nil} | t]),                do: fits?(w, k, t)
-  defp fits?(_, _, [{_, _, doc_line(true)} | _]),          do: false
-  defp fits?(w, _, [{i, _, doc_line(false)} | t]),         do: fits?(w, w - i, t)
+  defp fits?(_, _, [{_, _, doc_line(:hard)} | _]),         do: false
+  defp fits?(w, _, [{i, _, doc_line(:soft)} | t]),         do: fits?(w, w - i, t)
   defp fits?(w, k, [{i, m, doc_cons(x, y)} | t]),          do: fits?(w, k, [{i, m, x} | [{i, m, y} | t]])
   defp fits?(w, k, [{i, m, doc_color(x, _)} | t]),         do: fits?(w, k, [{i, m, x} | t])
   defp fits?(w, k, [{i, m, doc_nest(x, _, :break)} | t]),  do: fits?(w, k, [{i, m, x} | t])
