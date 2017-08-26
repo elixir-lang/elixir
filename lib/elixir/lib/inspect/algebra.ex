@@ -663,25 +663,25 @@ defmodule Inspect.Algebra do
   """
   @spec format(t, non_neg_integer | :infinity) :: iodata
   def format(doc, width) when is_doc(doc) and (width == :infinity or width >= 0) do
-    format(width, 0, [{0, :flat, group(doc)}])
+    format(width, 0, [{0, :flex, doc}])
   end
 
   # Record representing the document mode to be rendered
   @typep mode :: :flat | :flex | :strict
 
-  @spec fits?(integer, [{integer, mode, t}]) :: boolean
-  defp fits?(w, _) when w < 0,                      do: false
-  defp fits?(_, []),                                do: true
-  defp fits?(_, [{_, m, :doc_line} | _]),           do: m != :flat
-  defp fits?(w, [{_, _, :doc_nil} | t]),            do: fits?(w, t)
-  defp fits?(w, [{i, m, doc_cons(x, y)} | t]),      do: fits?(w, [{i, m, x} | [{i, m, y} | t]])
-  defp fits?(w, [{i, m, doc_color(x, _)} | t]),     do: fits?(w, [{i, m, x} | t])
-  defp fits?(w, [{i, m, doc_nest(x, j)} | t]),      do: fits?(w, [{i + j, m, x} | t])
-  defp fits?(w, [{i, _, doc_group(x, _)} | t]),     do: fits?(w, [{i, :flat, x} | t])
-  defp fits?(w, [{_, _, s} | t]) when is_binary(s), do: fits?((w - byte_size(s)), t)
-  defp fits?(w, [{_, :flat, doc_break(s)} | t]),    do: fits?((w - byte_size(s)), t)
-  defp fits?(_, [{_, :strict, doc_break(_)} | _]),  do: true
-  defp fits?(_, [{_, :flex, doc_break(_)} | _]),    do: true
+  @spec fits?(integer, integer, [{integer, mode, t}]) :: boolean
+  defp fits?(_, k, _) when k < 0,                      do: false
+  defp fits?(_, _, []),                                do: true
+  defp fits?(w, _, [{i, _, :doc_line} | t]),           do: fits?(w, w - i, t)
+  defp fits?(w, k, [{_, _, :doc_nil} | t]),            do: fits?(w, k, t)
+  defp fits?(w, k, [{i, m, doc_cons(x, y)} | t]),      do: fits?(w, k, [{i, m, x} | [{i, m, y} | t]])
+  defp fits?(w, k, [{i, m, doc_color(x, _)} | t]),     do: fits?(w, k, [{i, m, x} | t])
+  defp fits?(w, k, [{i, m, doc_nest(x, j)} | t]),      do: fits?(w, k, [{i + j, m, x} | t])
+  defp fits?(w, k, [{i, _, doc_group(x, _)} | t]),     do: fits?(w, k, [{i, :flat, x} | t])
+  defp fits?(w, k, [{_, _, s} | t]) when is_binary(s), do: fits?(w, (k - byte_size(s)), t)
+  defp fits?(w, k, [{_, :flat, doc_break(s)} | t]),    do: fits?(w, (k - byte_size(s)), t)
+  defp fits?(_, _, [{_, :strict, doc_break(_)} | _]),  do: true
+  defp fits?(_, _, [{_, :flex, doc_break(_)} | _]),    do: true
 
   @spec format(integer | :infinity, integer, [{integer, mode, t}]) :: [binary]
   defp format(_, _, []),                                do: []
@@ -696,7 +696,7 @@ defmodule Inspect.Algebra do
   defp format(w, k, [{i, :flex, doc_break(s)} | t]) do
     k = k + byte_size(s)
 
-    if w == :infinity or fits?(w - k, t) do
+    if w == :infinity or fits?(w, w - k, t) do
       [s | format(w, k, t)]
     else
       [indent(i) | format(w, i, t)]
@@ -708,7 +708,7 @@ defmodule Inspect.Algebra do
   end
   # If the doc_group is strict, the fitting decision happens now.
   defp format(w, k, [{i, _, doc_group(x, :strict)} | t]) do
-    if w == :infinity or fits?(w - k, [{i, :flat, x} | t]) do
+    if w == :infinity or fits?(w, w - k, [{i, :flat, x} | t]) do
       format w, k, [{i, :flat, x} | t]
     else
       format w, k, [{i, :strict, x} | t]

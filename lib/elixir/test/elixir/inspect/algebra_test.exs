@@ -114,6 +114,11 @@ defmodule Inspect.AlgebraTest do
     doc = concat(glue(glue(glue("hello", "a"), "b"), "c"), "d")
     assert render(group(doc, :flex), 5) == "hello\na b\ncd"
     assert render(group(doc, :strict), 5) == "hello\na\nb\ncd"
+
+    # Breaks if one of the line in the group break
+    doc = line(glue("a", "b"), glue("hello", "world"))
+    assert render(group(doc, :flex), 5) == "a b\nhello\nworld"
+    assert render(group(doc, :strict), 5) == "a\nb\nhello\nworld"
   end
 
   test "formatting with infinity" do
